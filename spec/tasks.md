@@ -1,0 +1,45 @@
+# Core Progress
+
+- Add symbol table
+
+- Non numeric world (val and def)
+
+- Mutability and Immutability
+
+- Static typing
+
+- Control flow statements:
+	- return
+	- break
+	- continue
+
+- Allow forward declaration of functions
+
+
+
+# Lexing / Parsing Improvements
+
+- Add useful parsing error messages like:
+  Error: expected expression, but found &
+    1 + 2 + & + 6
+            ^
+
+
+
+# Optimization / IR Improvements
+
+- Consolidate control flow constructs into single IR Loop Node
+
+- Pinhole optimizations
+
+
+
+# Mathematics
+
+- Autodifferentiation
+
+- Maximize, minimize
+
+- Derivatives, integrals
+
+- Expression simplification for numerics

@@ -1,0 +1,18 @@
+#!/usr/bin/python
+
+import argparse
+import os
+
+if __name__ == '__main__':
+	parser = argparse.ArgumentParser()
+	parser.add_argument('--rebuild', action='store_true', help='Rebuild the myte language')
+	parser.add_argument('FILE', nargs='?', help='File to process with myte interpreter')
+
+	args = parser.parse_args()
+
+	if args.rebuild:
+		os.system('$MYTEPATH/scripts/build')
+	elif args.FILE is None:
+		os.system('$MYTEPATH/scripts/run')
+	else:
+		os.system('$MYTEPATH/scripts/run {0}'.format(args.FILE))
