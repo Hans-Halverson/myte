@@ -133,6 +133,10 @@ enum class TokenType {
 		override fun toString(): String = "for"
 	},
 
+	RETURN {
+		override fun toString(): String = "return"
+	},
+
 	UNIT {
 		override fun toString(): String = "unit"
 	},

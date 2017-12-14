@@ -1,3 +1,3 @@
 package myte.eval.values
 
-class UnitValue() : Value()
+object UnitValue : Value()

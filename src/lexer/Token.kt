@@ -14,177 +14,182 @@ data class StringToken(val str: String) : Token() {
 	override val type: TokenType = TokenType.STRING
 }
 
-class TrueToken() : Token() {
+object TrueToken : Token() {
 	override val type: TokenType = TokenType.TRUE
 	override fun toString(): String = "true"
 }
 
-class FalseToken() : Token() {
+object FalseToken : Token() {
 	override val type: TokenType = TokenType.FALSE
 	override fun toString(): String = "false"
 }
 
-class PlusToken : Token() {
+object PlusToken : Token() {
 	override val type: TokenType = TokenType.PLUS
 	override fun toString(): String = "+"
 }
 
-class MinusToken : Token() {
+object MinusToken : Token() {
 	override val type: TokenType = TokenType.MINUS
 	override fun toString(): String = "-"
 }
 
-class AsteriskToken : Token() {
+object AsteriskToken : Token() {
 	override val type: TokenType = TokenType.ASTERISK
 	override fun toString(): String = "*"
 }
 
-class ForwardSlashToken : Token() {
+object ForwardSlashToken : Token() {
 	override val type: TokenType = TokenType.FORWARD_SLASH
 	override fun toString(): String = "/"
 }
 
-class CaretToken : Token() {
+object CaretToken : Token() {
 	override val type: TokenType = TokenType.CARET
 	override fun toString(): String = "^"
 }
 
-class EqualsToken: Token() {
+object EqualsToken: Token() {
 	override val type: TokenType = TokenType.EQUALS
 	override fun toString(): String = "="
 }
 
-class DoubleEqualsToken: Token() {
+object DoubleEqualsToken: Token() {
 	override val type: TokenType = TokenType.DOUBLE_EQUALS
 	override fun toString(): String = "=="
 }
 
-class LessThanToken: Token() {
+object LessThanToken: Token() {
 	override val type: TokenType = TokenType.LESS_THAN
 	override fun toString(): String = "<"
 }
 
-class LessThanOrEqualToken: Token() {
+object LessThanOrEqualToken: Token() {
 	override val type: TokenType = TokenType.LESS_THAN_OR_EQUAL
 	override fun toString(): String = "<="
 }
 
-class GreaterThanToken: Token() {
+object GreaterThanToken: Token() {
 	override val type: TokenType = TokenType.GREATER_THAN
 	override fun toString(): String = ">"
 }
 
-class GreaterThanOrEqualToken: Token() {
+object GreaterThanOrEqualToken: Token() {
 	override val type: TokenType = TokenType.GREATER_THAN_OR_EQUAL
 	override fun toString(): String = ">="
 }
 
-class NotEqualsToken: Token() {
+object NotEqualsToken: Token() {
 	override val type: TokenType = TokenType.NOT_EQUALS
 	override fun toString(): String = "!="
 }
 
-class LogicalNotToken: Token() {
+object LogicalNotToken: Token() {
 	override val type: TokenType = TokenType.LOGICAL_NOT
 	override fun toString(): String = "!"
 }
 
-class LogicalAndToken: Token() {
+object LogicalAndToken: Token() {
 	override val type: TokenType = TokenType.LOGICAL_AND
 	override fun toString(): String = "&&"
 }
 
-class LogicalOrToken: Token() {
+object LogicalOrToken: Token() {
 	override val type: TokenType = TokenType.LOGICAL_OR
 	override fun toString(): String = "||"
 }
 
-class LeftParenToken : Token() {
+object LeftParenToken : Token() {
 	override val type: TokenType = TokenType.LEFT_PAREN
 	override fun toString(): String = "("
 }
 
-class RightParenToken : Token() {
+object RightParenToken : Token() {
 	override val type: TokenType = TokenType.RIGHT_PAREN
 	override fun toString(): String = ")"
 }
 
-class LeftBraceToken : Token() {
+object LeftBraceToken : Token() {
 	override val type: TokenType = TokenType.LEFT_BRACE
 	override fun toString(): String = "{"
 }
 
-class RightBraceToken : Token() {
+object RightBraceToken : Token() {
 	override val type: TokenType = TokenType.RIGHT_BRACE
 	override fun toString(): String = "}"
 }
 
-class CommaToken: Token() {
+object CommaToken: Token() {
 	override val type: TokenType = TokenType.COMMA
 	override fun toString(): String = ","
 }
 
-class ColonToken: Token() {
+object ColonToken: Token() {
 	override val type: TokenType = TokenType.COLON
 	override fun toString(): String = ":"
 }
 
-class LetToken: Token() {
+object LetToken: Token() {
 	override val type: TokenType = TokenType.LET
 	override fun toString(): String = "let"
 }
 
-class DefToken: Token() {
+object DefToken: Token() {
 	override val type: TokenType = TokenType.DEF
 	override fun toString(): String = "def"
 }
 
-class NumToken: Token() {
+object NumToken: Token() {
 	override val type: TokenType = TokenType.NUM
 	override fun toString(): String = "num"
 }
 
-class IfToken: Token() {
+object IfToken: Token() {
 	override val type: TokenType = TokenType.IF
 	override fun toString(): String = "if"
 }
 
-class ElseToken: Token() {
+object ElseToken: Token() {
 	override val type: TokenType = TokenType.ELSE
 	override fun toString(): String = "else"
 }
 
-class WhileToken: Token() {
+object WhileToken: Token() {
 	override val type: TokenType = TokenType.WHILE
 	override fun toString(): String = "while"
 }
 
-class DoToken: Token() {
+object DoToken: Token() {
 	override val type: TokenType = TokenType.DO
 	override fun toString(): String = "do"
 }
 
-class ForToken: Token() {
+object ForToken: Token() {
 	override val type: TokenType = TokenType.FOR
 	override fun toString(): String = "for"
 }
 
-class UnitToken: Token() {
+object ReturnToken: Token() {
+	override val type: TokenType = TokenType.RETURN
+	override fun toString(): String = "return"
+}
+
+object UnitToken: Token() {
 	override val type: TokenType = TokenType.UNIT
 	override fun toString(): String = "unit"
 }
 
-class BoolToken: Token() {
+object BoolToken: Token() {
 	override val type: TokenType = TokenType.BOOL
 	override fun toString(): String = "bool"
 }
 
-class FloatToken: Token() {
+object FloatToken: Token() {
 	override val type: TokenType = TokenType.FLOAT
 	override fun toString(): String = "float"
 }
 
-class NewLineToken: Token() {
+object NewLineToken: Token() {
 	override val type: TokenType = TokenType.NEW_LINE
 	override fun toString(): String = "<NewLine>"
 }

@@ -85,6 +85,9 @@ FOR_STATEMENT -> for ( STATEMENT , EXPR , STATEMENT ) STATEMENT
 			   | for ( , , STATEMENT ) STATEMENT
 			   | for ( , , ) STATEMENT
 
+RETURN_STATEMENT -> return unit
+                  | return EXPR
+
 STATEMENT -> EXPR
 		   | BLOCK
 		   | FUNCTION_DEF

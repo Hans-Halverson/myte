@@ -2,12 +2,12 @@
 
 - Mutability and Immutability
 
-- Static typing
-
 - Control flow statements:
 	- return
 	- break
 	- continue
+
+- Add basic types: ints and strings
 
 - Allow forward declaration of functions
 

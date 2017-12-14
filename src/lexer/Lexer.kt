@@ -33,19 +33,20 @@ private class LL1StatefulReader(private val reader: Reader) {
 }
 
 private val keywordToTokenMap = mapOf(
-	"true" to TrueToken(),
-	"false" to FalseToken(),
-	"let" to LetToken(),
-	"def" to DefToken(),
-	"num" to NumToken(),
-	"if" to IfToken(),
-	"else" to ElseToken(),
-	"while" to WhileToken(),
-	"do" to DoToken(),
-	"for" to ForToken(),
-	"unit" to UnitToken(),
-	"bool" to BoolToken(),
-	"float" to FloatToken()
+	"true" to TrueToken,
+	"false" to FalseToken,
+	"let" to LetToken,
+	"def" to DefToken,
+	"num" to NumToken,
+	"if" to IfToken,
+	"else" to ElseToken,
+	"while" to WhileToken,
+	"do" to DoToken,
+	"for" to ForToken,
+	"return" to ReturnToken,
+	"unit" to UnitToken,
+	"bool" to BoolToken,
+	"float" to FloatToken
 )
 
 private fun readNumberString(reader: LL1StatefulReader): String {
@@ -135,9 +136,9 @@ private fun readEquals(reader: LL1StatefulReader): Token {
 	// If readEquals is called, the current character must be '='
 	if (reader.hasNext && reader.next == '=') {
 		reader.advance()
-		return DoubleEqualsToken()
+		return DoubleEqualsToken
 	} else {
-		return EqualsToken()
+		return EqualsToken
 	}
 }
 
@@ -145,9 +146,9 @@ private fun readLessThan(reader: LL1StatefulReader): Token {
 	// If readLessThan is called, the current character must be '<'
 	if (reader.hasNext && reader.next == '=') {
 		reader.advance()
-		return LessThanOrEqualToken()
+		return LessThanOrEqualToken
 	} else {
-		return LessThanToken()
+		return LessThanToken
 	}
 }
 
@@ -155,9 +156,9 @@ private fun readGreaterThan(reader: LL1StatefulReader): Token {
 	// If readGreaterThan is called, the current character must be '>'
 	if (reader.hasNext && reader.next == '=') {
 		reader.advance()
-		return GreaterThanOrEqualToken()
+		return GreaterThanOrEqualToken
 	} else {
-		return GreaterThanToken()
+		return GreaterThanToken
 	}
 }
 
@@ -165,9 +166,9 @@ private fun readBang(reader: LL1StatefulReader): Token {
 	// If readBang is called, the current character must be "!"
 	if (reader.hasNext && reader.next == '=') {
 		reader.advance()
-		return NotEqualsToken()
+		return NotEqualsToken
 	} else {
-		return LogicalNotToken()
+		return LogicalNotToken
 	}
 }
 
@@ -175,7 +176,7 @@ private fun readAmpersand(reader: LL1StatefulReader): LogicalAndToken {
 	// If readAmpersand is called, the current character must be "&"
 	if (reader.hasNext && reader.next == '&') {
 		reader.advance()
-		return LogicalAndToken()
+		return LogicalAndToken
 	} else {
 		throw LexicalException("Unexpected token encountered &${reader.next}")
 	}
@@ -185,7 +186,7 @@ private fun readPipe(reader: LL1StatefulReader): LogicalOrToken {
 	// If readPipe is called, the current character must be "|"
 	if (reader.hasNext && reader.next == '|') {
 		reader.advance()
-		return LogicalOrToken()
+		return LogicalOrToken
 	} else {
 		throw LexicalException("Unexpected token encountered |${reader.next}")
 	}
@@ -197,23 +198,23 @@ fun createTokens(input: Reader): List<Token> {
 
 	while (reader.hasCurrent) {
 		when (reader.current) {
-			'+' -> tokens.add(PlusToken())
-			'-' -> tokens.add(MinusToken())
-			'*' -> tokens.add(AsteriskToken())
-			'/' -> tokens.add(ForwardSlashToken())
-			'^' -> tokens.add(CaretToken())
+			'+' -> tokens.add(PlusToken)
+			'-' -> tokens.add(MinusToken)
+			'*' -> tokens.add(AsteriskToken)
+			'/' -> tokens.add(ForwardSlashToken)
+			'^' -> tokens.add(CaretToken)
 			'=' -> tokens.add(readEquals(reader))
 			'<' -> tokens.add(readLessThan(reader))
 			'>' -> tokens.add(readGreaterThan(reader))
 			'!' -> tokens.add(readBang(reader))
 			'&' -> tokens.add(readAmpersand(reader))
 			'|' -> tokens.add(readPipe(reader))
-			'(' -> tokens.add(LeftParenToken())
-			')' -> tokens.add(RightParenToken())
-			'{' -> tokens.add(LeftBraceToken())
-			'}' -> tokens.add(RightBraceToken())
-			',' -> tokens.add(CommaToken())
-			':' -> tokens.add(ColonToken())
+			'(' -> tokens.add(LeftParenToken)
+			')' -> tokens.add(RightParenToken)
+			'{' -> tokens.add(LeftBraceToken)
+			'}' -> tokens.add(RightBraceToken)
+			',' -> tokens.add(CommaToken)
+			':' -> tokens.add(ColonToken)
 			in '0'..'9' -> tokens.add(readNumber(reader))
 			else -> {
 				if (reader.current.isValidIdentifierCharacter()) {

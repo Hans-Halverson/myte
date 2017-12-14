@@ -8,15 +8,9 @@ import myte.shared.*
 import java.util.Stack
 
 
-class Evaluator(val symbolTable: SymbolTable, val printInternalValues: Boolean = true) {
+class Evaluator(val symbolTable: SymbolTable) {
 
 	private val environment = Environment()
-
-	private fun printIfEnabled(value: Value) {
-		if (printInternalValues) {
-			printValue(value)
-		}
-	}
 
 	fun evaluate(node: IRNode, env: Environment = environment): Value {
 		return when (node) {
@@ -32,31 +26,24 @@ class Evaluator(val symbolTable: SymbolTable, val printInternalValues: Boolean =
 			is NumericCallNode -> evalNumericCall(node, env)
 			is FunctionCallNode -> evalFunctionCall(node, env)
 			is AssignmentNode -> evalAssignment(node, env)
-			is DefineNumericFunction -> {
-				val type = symbolTable.getInfo(node.ident)?.type
-				if (type !is FunctionType) {
-					throw EvaluationException("Unknown function ${node.ident.name}")
-				}
-				env.extend(node.ident, Closure(node.ident, node.formalArgs, node.expr, env.copy(), type))
-				return UnitValue()
-			}
 			is VariableDefinitionNode -> {
 				env.extend(node.ident, evaluate(node.expr))
-				return UnitValue()
+				return UnitValue
 			}
 			is FunctionDefinitionNode -> {
 				val type = symbolTable.getInfo(node.ident)?.type
 				if (type !is FunctionType) {
 					throw EvaluationException("Unknown function ${node.ident.name}")
 				}
-				env.extend(node.ident, Closure(node.ident, node.formalArgs, node.stmt, env.copy(), type))
-				return UnitValue()
+				env.extend(node.ident, Closure(node.ident, node.formalArgs, node.body, env.copy(), type))
+				return UnitValue
 			}
 			is BlockNode -> evalBlock(node, env)
 			is IfNode -> evalIf(node, env)
 			is WhileNode -> evalWhile(node, env)
 			is DoWhileNode -> evalDoWhile(node, env)
 			is ForNode -> evalFor(node, env)
+			is ReturnNode -> evalReturn(node, env)
 			else -> throw EvaluationException("Unknown IR node ${node}")
 		}
 	}
@@ -151,35 +138,48 @@ class Evaluator(val symbolTable: SymbolTable, val printInternalValues: Boolean =
 		val actualArgs: List<Value> = node.actualArgs.map { expr -> evaluate(expr, env) }
 
 		val applicationEnv: Environment = closure.environment.copy()
+		applicationEnv.enterScope()
+
 		closure.formalArgs.zip(actualArgs).forEach { (ident, value) -> applicationEnv.extend(ident, value) }
 
-		return evaluate(closure.body, applicationEnv)
+		try {
+			evaluate(closure.body, applicationEnv)
+		} catch (returnException: Return) {
+			applicationEnv.exitScope()
+			return returnException.returnValue
+		}
+
+		throw EvaluationException("No return value")
+	}
+
+	fun evalAssignment(node: AssignmentNode, env: Environment): Value {
+		val value = evaluate(node.expr, env)
+		env.reassign(node.ident, value)
+
+		return value
 	}
 
 	fun evalBlock(node: BlockNode, env: Environment): UnitValue {
 		env.enterScope()
 		for (childNode in node.nodes) {
-			val value = evaluate(childNode, env)
-			printIfEnabled(value)
+			evaluate(childNode, env)
 		}
 
 		env.exitScope()
 
-		return UnitValue()
+		return UnitValue
 	}
 
 	fun evalIf(node: IfNode, env: Environment): UnitValue {
 		val cond = evalBoolean(node.cond, env)
 
 		if (cond.bool) {
-			val value = evaluate(node.conseq, env)
-			printIfEnabled(value)
+			evaluate(node.conseq, env)
 		} else if (node.altern != null) {
-			val value = evaluate(node.altern, env)
-			printIfEnabled(value)
+			evaluate(node.altern, env)
 		}
 
-		return UnitValue()
+		return UnitValue
 	}
 
 	fun evalWhile(node: WhileNode, env: Environment): UnitValue {
@@ -190,7 +190,7 @@ class Evaluator(val symbolTable: SymbolTable, val printInternalValues: Boolean =
 			cond = evalBoolean(node.cond, env)
 		}
 
-		return UnitValue()
+		return UnitValue
 	}
 
 	fun evalDoWhile(node: DoWhileNode, env: Environment): UnitValue {
@@ -199,7 +199,7 @@ class Evaluator(val symbolTable: SymbolTable, val printInternalValues: Boolean =
 			val cond = evalBoolean(node.cond, env)
 		} while (cond.bool)
 
-		return UnitValue()
+		return UnitValue
 	}
 
 	fun evalFor(node: ForNode, env: Environment): UnitValue {
@@ -215,8 +215,7 @@ class Evaluator(val symbolTable: SymbolTable, val printInternalValues: Boolean =
 		}
 
 		while (condition) {
-			val value = evaluate(node.body, env)
-			printIfEnabled(value)
+			evaluate(node.body, env)
 
 			if (node.update != null) {
 				evaluate(node.update, env)
@@ -229,14 +228,12 @@ class Evaluator(val symbolTable: SymbolTable, val printInternalValues: Boolean =
 
 		env.exitScope()
 
-		return UnitValue()
+		return UnitValue
 	}
 
-	fun evalAssignment(node: AssignmentNode, env: Environment): Value {
-		val value = evaluate(node.expr, env)
-		env.reassign(node.ident, value)
-
-		return value
+	fun evalReturn(node: ReturnNode, env: Environment): UnitValue {
+		val returnVal = if (node.expr != null) evaluate(node.expr, env) else UnitValue
+		throw Return(returnVal)
 	}
 
 }

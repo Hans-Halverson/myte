@@ -46,6 +46,7 @@ class Parser(tokens: List<Token> = listOf()) {
 			is WhileToken -> parseWhileStatement()
 			is DoToken -> parseDoWhileStatement()
 			is ForToken -> parseForStatement()
+			is ReturnToken -> parseReturnStatement()
 			else -> parseExpression(token)
 		}
 	}
@@ -279,7 +280,7 @@ class Parser(tokens: List<Token> = listOf()) {
 		}
 	}
 
-	fun parseNumericFunctionDefinition(): DefineNumericFunctionStatement {
+	fun parseNumericFunctionDefinition(): FunctionDefinitionStatement {
 		var token = tokenizer.next()
 
 		if (token !is StringToken) {
@@ -327,7 +328,7 @@ class Parser(tokens: List<Token> = listOf()) {
 
 		symbolTable.exitScope()
 
-		return DefineNumericFunctionStatement(ident, formalArgs, expr)
+		return FunctionDefinitionStatement(ident, formalArgs, expr)
 	}
 
 	fun parseFunctionDefinition(): Statement {
@@ -469,5 +470,14 @@ class Parser(tokens: List<Token> = listOf()) {
 		symbolTable.exitScope()
 
 		return ForStatement(initializer, condition, update, statement)
+	}
+
+	fun parseReturnStatement(): ReturnStatement {
+		if (tokenizer.current is UnitToken) {
+			tokenizer.next()
+			return ReturnStatement(null)
+		} else {
+			return ReturnStatement(parseExpression())
+		}
 	}
 }

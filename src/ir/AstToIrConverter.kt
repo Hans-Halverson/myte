@@ -12,18 +12,18 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 	fun convert(stmt: Statement): IRNode {
 		return when {
 			// General statements / expressions
-			stmt is DefineNumericFunctionStatement -> convertDefineNumericFunction(stmt)
-			stmt is FunctionDefinitionStatement -> convertFunctionDefinition(stmt)
+			stmt is IdentifierExpression -> convertVariable(stmt)
 			stmt is VariableDefinitionStatement -> convertVariableDefinition(stmt)
+			stmt is FunctionDefinitionStatement -> convertFunctionDefinition(stmt)
 			stmt is BlockStatement -> BlockNode(stmt.stmts.map(this::convert))
 			stmt is IfStatement -> convertIf(stmt)
 			stmt is WhileStatement -> convertWhile(stmt)
 			stmt is DoWhileStatement -> convertDoWhile(stmt)
 			stmt is ForStatement -> convertFor(stmt)
-			stmt is IdentifierExpression -> convertVariable(stmt)
 			stmt is CallExpression -> convertFunctionCall(stmt)
 			stmt is AssignmentExpression -> convertAssignment(stmt)
 			stmt is GroupExpression -> convert(stmt.expr)
+			stmt is ReturnStatement -> convertReturn(stmt)
 
 			// Boolean expressions
 			stmt is BooleanLiteralExpression -> BooleanLiteralNode(stmt.bool)
@@ -50,12 +50,23 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 		return symbolTable.getInfo(ident)?.idClass == IdentifierClass.FUNCTION
 	}
 
-	fun convertDefineNumericFunction(stmt: DefineNumericFunctionStatement): DefineNumericFunction {
-		return DefineNumericFunction(stmt.ident, stmt.formalArgs, convert(stmt.expr))
-	}
-
 	fun convertFunctionDefinition(stmt: FunctionDefinitionStatement): FunctionDefinitionNode {
-		return FunctionDefinitionNode(stmt.ident, stmt.formalArgs, convert(stmt.stmt))
+		val type = symbolTable.getInfo(stmt.ident)?.type
+		if (type !is FunctionType) {
+			throw IRConversionException("Unknown function ${stmt.ident.name}")
+		}
+
+		val body = convert(stmt.body)
+
+		if (!returnsHaveType(body, type.returnType)) {
+			throw IRConversionException("${stmt.ident.name} must return ${type.returnType}")
+		}
+
+		if (!allPathsHaveReturn(body)) {
+			throw IRConversionException("Every branch of ${stmt.ident.name} must return a value")
+		}
+
+		return FunctionDefinitionNode(stmt.ident, stmt.formalArgs, body)
 	}
 
 	fun convertVariableDefinition(stmt: VariableDefinitionStatement): VariableDefinitionNode {
@@ -160,6 +171,11 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 		return AssignmentNode(expr.ident, body, info.type)
 	}
 
+	fun convertReturn(expr: ReturnStatement): ReturnNode {
+		val returnVal = if (expr.expr != null) convert(expr.expr) else null 
+		return ReturnNode(returnVal)
+	}
+
 	fun convertEquality(expr: EqualityExpression): EqualityNode {
 		val left = convert(expr.left)
 		val right = convert(expr.right)
@@ -255,5 +271,26 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 		}
 
 		return MultiplyNode(NEGATIVE_ONE_NODE, body)
+	}
+
+	fun allPathsHaveReturn(node: IRNode): Boolean {
+		return when (node) {
+			is ReturnNode -> true
+			is IfNode -> allPathsHaveReturn(node.conseq) && (node.altern != null && allPathsHaveReturn(node.altern))
+			is BlockNode -> allPathsHaveReturn(node.nodes.get(node.nodes.lastIndex))
+			else -> false
+		}
+	}
+
+	fun returnsHaveType(node: IRNode, type: Type): Boolean {
+		return when (node) {
+			is ReturnNode -> (node.expr?.type == type) || (node.expr == null && type == UnitType)
+			is BlockNode -> node.nodes.all { n -> returnsHaveType(n, type) }
+			is IfNode -> returnsHaveType(node.conseq, type) && (node.altern == null || returnsHaveType(node.altern, type))
+			is WhileNode -> returnsHaveType(node.body, type)
+			is DoWhileNode -> returnsHaveType(node.body, type)
+			is ForNode -> returnsHaveType(node.body, type)
+			else -> true
+		}
 	}
 }
