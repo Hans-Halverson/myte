@@ -1,9 +1,5 @@
 # Core Progress
 
-- Add symbol table
-
-- Non numeric world (val and def)
-
 - Mutability and Immutability
 
 - Static typing

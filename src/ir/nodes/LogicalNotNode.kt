@@ -1,3 +1,5 @@
 package myte.ir.nodes
 
-data class LogicalNotNode(val node: IRBooleanNode) : IRBooleanNode()
+import myte.shared.*
+
+data class LogicalNotNode(val node: IRNode) : IRNode(BoolType)

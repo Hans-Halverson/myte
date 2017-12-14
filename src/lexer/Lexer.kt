@@ -42,7 +42,10 @@ private val keywordToTokenMap = mapOf(
 	"else" to ElseToken(),
 	"while" to WhileToken(),
 	"do" to DoToken(),
-	"for" to ForToken()
+	"for" to ForToken(),
+	"unit" to UnitToken(),
+	"bool" to BoolToken(),
+	"float" to FloatToken()
 )
 
 private fun readNumberString(reader: LL1StatefulReader): String {

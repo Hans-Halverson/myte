@@ -2,12 +2,13 @@ package myte.eval
 
 import myte.eval.values.*
 import myte.ir.nodes.*
+import myte.parser.*
 import myte.shared.*
 
 import java.util.Stack
 
 
-class Evaluator(val printInternalValues: Boolean = true) {
+class Evaluator(val symbolTable: SymbolTable, val printInternalValues: Boolean = true) {
 
 	private val environment = Environment()
 
@@ -21,29 +22,22 @@ class Evaluator(val printInternalValues: Boolean = true) {
 		return when (node) {
 			is ConstantNode -> NumberValue(node.num)
 			is BooleanLiteralNode -> BooleanValue(node.bool)
-			is NumericVariableNode -> env.lookup(node.ident)
 			is VariableNode -> env.lookup(node.ident)
-			is AddNode -> NumberValue(evalNumber(node.left, env).num + evalNumber(node.right, env).num)
-			is SubtractNode -> NumberValue(evalNumber(node.left, env).num - evalNumber(node.right, env).num)
-			is MultiplyNode -> NumberValue(evalNumber(node.left, env).num * evalNumber(node.right, env).num)
-			is DivideNode -> NumberValue(evalNumber(node.numer, env).num / evalNumber(node.denom, env).num)
-			is ExponentNode -> NumberValue(Math.pow(evalNumber(node.base, env).num, evalNumber(node.exponent, env).num))
+			is BinaryMathOperatorNode -> evalBinaryMathOperator(node, env)
 			is LogicalNotNode -> BooleanValue(!evalBoolean(node.node, env).bool)
 			is LogicalAndNode -> evalLogicalAnd(node, env)
 			is LogicalOrNode -> evalLogicalOr(node, env)
-			is EqualsNode -> BooleanValue(evaluate(node.left, env) == evaluate(node.right, env))
-			is NotEqualsNode -> BooleanValue(evaluate(node.left, env) != evaluate(node.right, env))
+			is EqualityNode -> evalEquality(node, env)
 			is ComparisonNode -> evalComparison(node, env)
 			is NumericCallNode -> evalNumericCall(node, env)
 			is FunctionCallNode -> evalFunctionCall(node, env)
-			is NumericAssignmentNode -> evalNumericAssignment(node, env)
 			is AssignmentNode -> evalAssignment(node, env)
-			is DefineNumericVariable -> {
-				env.extend(node.ident, evaluate(node.expr))
-				return UnitValue()
-			}
 			is DefineNumericFunction -> {
-				env.extend(node.ident, NumericClosure(node.formalArgs, node.expr, env.copy()))
+				val type = symbolTable.getInfo(node.ident)?.type
+				if (type !is FunctionType) {
+					throw EvaluationException("Unknown function ${node.ident.name}")
+				}
+				env.extend(node.ident, Closure(node.ident, node.formalArgs, node.expr, env.copy(), type))
 				return UnitValue()
 			}
 			is VariableDefinitionNode -> {
@@ -51,7 +45,11 @@ class Evaluator(val printInternalValues: Boolean = true) {
 				return UnitValue()
 			}
 			is FunctionDefinitionNode -> {
-				env.extend(node.ident, Closure(node.formalArgs, node.stmt, env.copy()))
+				val type = symbolTable.getInfo(node.ident)?.type
+				if (type !is FunctionType) {
+					throw EvaluationException("Unknown function ${node.ident.name}")
+				}
+				env.extend(node.ident, Closure(node.ident, node.formalArgs, node.stmt, env.copy(), type))
 				return UnitValue()
 			}
 			is BlockNode -> evalBlock(node, env)
@@ -63,7 +61,7 @@ class Evaluator(val printInternalValues: Boolean = true) {
 		}
 	}
 
-	fun evalNumber(node: IRNumericNode, env: Environment): NumberValue {
+	fun evalNumber(node: IRNode, env: Environment): NumberValue {
 		val value = evaluate(node, env)
 		if (value !is NumberValue) {
 			throw EvaluationException("Expected ${value} to be a number")
@@ -72,13 +70,20 @@ class Evaluator(val printInternalValues: Boolean = true) {
 		return value
 	}
 
-	fun evalBoolean(node: IRBooleanNode, env: Environment): BooleanValue {
+	fun evalBoolean(node: IRNode, env: Environment): BooleanValue {
 		val value = evaluate(node, env)
 		if (value !is BooleanValue) {
 			throw EvaluationException("Expected ${value} to be a boolean")
 		}
 
 		return value
+	}
+
+	fun evalBinaryMathOperator(node: BinaryMathOperatorNode, env: Environment): NumberValue {
+		val left = evalNumber(node.left, env)
+		val right = evalNumber(node.right, env)
+
+		return NumberValue(node.compute(left.num, right.num))
 	}
 
 	fun evalLogicalAnd(node: LogicalAndNode, env: Environment): BooleanValue {
@@ -101,6 +106,13 @@ class Evaluator(val printInternalValues: Boolean = true) {
 		}
 	}
 
+	fun evalEquality(node: EqualityNode, env: Environment): BooleanValue {
+		val leftVal = evaluate(node.left, env)
+		val rightVal = evaluate(node.right, env)
+
+		return BooleanValue(node.compare(leftVal, rightVal))
+	}
+
 	fun evalComparison(node: ComparisonNode, env: Environment): BooleanValue {
 		val leftVal = evalNumber(node.left, env)
 		val rightVal = evalNumber(node.right, env)
@@ -110,7 +122,7 @@ class Evaluator(val printInternalValues: Boolean = true) {
 
 	fun evalNumericCall(node: NumericCallNode, env: Environment): Value {
 		val closure = env.lookup(node.func)
-		if (closure !is NumericClosure) {
+		if (closure !is Closure) {
 			throw EvaluationException("Cannot call ${closure}, can only call functions")
 		}
 
@@ -123,7 +135,7 @@ class Evaluator(val printInternalValues: Boolean = true) {
 		val applicationEnv: Environment = closure.environment.copy()
 		closure.formalArgs.zip(actualArgs).forEach { (ident, value) -> applicationEnv.extend(ident, value) }
 
-		return evaluate(closure.expr, applicationEnv)
+		return evaluate(closure.body, applicationEnv)
 	}
 
 	fun evalFunctionCall(node: FunctionCallNode, env: Environment): Value {
@@ -141,7 +153,7 @@ class Evaluator(val printInternalValues: Boolean = true) {
 		val applicationEnv: Environment = closure.environment.copy()
 		closure.formalArgs.zip(actualArgs).forEach { (ident, value) -> applicationEnv.extend(ident, value) }
 
-		return evaluate(closure.stmt, applicationEnv)
+		return evaluate(closure.body, applicationEnv)
 	}
 
 	fun evalBlock(node: BlockNode, env: Environment): UnitValue {
@@ -174,7 +186,7 @@ class Evaluator(val printInternalValues: Boolean = true) {
 		var cond = evalBoolean(node.cond, env)
 
 		while (cond.bool) {
-			evaluate(node.stmt, env)
+			evaluate(node.body, env)
 			cond = evalBoolean(node.cond, env)
 		}
 
@@ -183,7 +195,7 @@ class Evaluator(val printInternalValues: Boolean = true) {
 
 	fun evalDoWhile(node: DoWhileNode, env: Environment): UnitValue {
 		do {
-			evaluate(node.stmt, env)
+			evaluate(node.body, env)
 			val cond = evalBoolean(node.cond, env)
 		} while (cond.bool)
 
@@ -203,7 +215,7 @@ class Evaluator(val printInternalValues: Boolean = true) {
 		}
 
 		while (condition) {
-			val value = evaluate(node.stmt, env)
+			val value = evaluate(node.body, env)
 			printIfEnabled(value)
 
 			if (node.update != null) {
@@ -218,13 +230,6 @@ class Evaluator(val printInternalValues: Boolean = true) {
 		env.exitScope()
 
 		return UnitValue()
-	}
-
-	fun evalNumericAssignment(node: NumericAssignmentNode, env: Environment): Value {
-		val value = evaluate(node.expr, env)
-		env.reassign(node.ident, value)
-
-		return value
 	}
 
 	fun evalAssignment(node: AssignmentNode, env: Environment): Value {

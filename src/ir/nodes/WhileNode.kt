@@ -1,3 +1,5 @@
 package myte.ir.nodes
 
-data class WhileNode(val cond: IRBooleanNode, val stmt: IRNode) : IRNode()
+import myte.shared.*
+
+data class WhileNode(val cond: IRNode, val body: IRNode) : IRNode(UnitType)

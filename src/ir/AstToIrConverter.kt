@@ -9,105 +9,37 @@ val NEGATIVE_ONE_NODE = ConstantNode(-1.0)
 
 class AstToIrConverter(val symbolTable: SymbolTable) {
 
-	fun convertStatement(stmt: Statement): IRNode {
+	fun convert(stmt: Statement): IRNode {
 		return when {
-			stmt is DefineNumericFunctionStatement -> DefineNumericFunction(stmt.ident,
-																	        stmt.formalArgs,
-																	        convertNumericExpression(stmt.expr))
-			stmt is DefineNumericVariableStatement -> DefineNumericVariable(stmt.ident,
-																	        convertNumericExpression(stmt.expr))
-			stmt is FunctionDefinitionStatement -> FunctionDefinitionNode(stmt.ident,
-																	      stmt.formalArgs,
-																	      convertStatement(stmt.stmt))
-			stmt is VariableDefinitionStatement -> VariableDefinitionNode(stmt.ident,
-																		  convertStatement(stmt.expr))
-			stmt is BlockStatement -> BlockNode(stmt.stmts.map(this::convertStatement))
-			stmt is IfStatement -> IfNode(convertBooleanExpression(stmt.cond),
-				                          convertStatement(stmt.conseq),
-				                          if (stmt.altern != null) convertStatement(stmt.altern) else null)
-			stmt is WhileStatement -> WhileNode(convertBooleanExpression(stmt.cond),
-										        convertStatement(stmt.stmt))
-			stmt is DoWhileStatement -> DoWhileNode(convertBooleanExpression(stmt.cond),
-				                                    convertStatement(stmt.stmt))
-			stmt is ForStatement -> ForNode(if (stmt.init != null) convertStatement(stmt.init) else null,
-				                            if (stmt.cond != null) convertBooleanExpression(stmt.cond) else null,
-									        if (stmt.update != null) convertStatement(stmt.update) else null,
-									        convertStatement(stmt.stmt))
-			stmt is IdentifierExpression -> VariableNode(stmt.ident)
-			stmt is CallExpression && isFunction(stmt.func) ->
-				FunctionCallNode(stmt.func, stmt.actualArgs.map(this::convertStatement))
-			stmt is AssignmentExpression && isVariable(stmt.ident) ->
-				AssignmentNode(stmt.ident, convertStatement(stmt.expr))
-			stmt is Expression -> {
-				try {
-					return convertBooleanExpression(stmt)
-				} catch (e: IRConversionException) {
-					return convertNumericExpression(stmt)
-				}			
-			}
-			else -> {
-				throw IRConversionException("Unexpected statement ${stmt}")
-			}
+			// General statements / expressions
+			stmt is DefineNumericFunctionStatement -> convertDefineNumericFunction(stmt)
+			stmt is FunctionDefinitionStatement -> convertFunctionDefinition(stmt)
+			stmt is VariableDefinitionStatement -> convertVariableDefinition(stmt)
+			stmt is BlockStatement -> BlockNode(stmt.stmts.map(this::convert))
+			stmt is IfStatement -> convertIf(stmt)
+			stmt is WhileStatement -> convertWhile(stmt)
+			stmt is DoWhileStatement -> convertDoWhile(stmt)
+			stmt is ForStatement -> convertFor(stmt)
+			stmt is IdentifierExpression -> convertVariable(stmt)
+			stmt is CallExpression -> convertFunctionCall(stmt)
+			stmt is AssignmentExpression -> convertAssignment(stmt)
+			stmt is GroupExpression -> convert(stmt.expr)
+
+			// Boolean expressions
+			stmt is BooleanLiteralExpression -> BooleanLiteralNode(stmt.bool)
+			stmt is EqualityExpression -> convertEquality(stmt)
+			stmt is ComparisonExpression -> convertComparison(stmt)
+			stmt is LogicalAndExpression -> convertLogicalAnd(stmt)
+			stmt is LogicalOrExpression -> convertLogicalOr(stmt)
+			stmt is LogicalNotExpression -> convertLogicalNot(stmt)
+
+			// Numeric expressions
+			stmt is NumberLiteral -> ConstantNode(stmt.num)
+			stmt is BinaryMathOperatorExpression -> convertBinaryMathOperator(stmt)
+			stmt is UnaryPlusExpression -> convertUnaryPlus(stmt)
+			stmt is UnaryMinusExpression -> convertUnaryMinus(stmt)
+			else -> throw IRConversionException("Unexpected statement ${stmt}")
 		}
-	}
-
-	fun convertBooleanExpression(expr: Expression): IRBooleanNode {
-		return when (expr) {
-			is BooleanLiteralExpression -> BooleanLiteralNode(expr.bool)
-			is EqualsExpression -> EqualsNode(convertStatement(expr.left),
-											  convertStatement(expr.right))
-			is NotEqualsExpression -> NotEqualsNode(convertStatement(expr.left),
-											        convertStatement(expr.right))
-			is LessThanExpression -> LessThanNode(convertNumericExpression(expr.left),
-											      convertNumericExpression(expr.right))
-			is LessThanOrEqualExpression -> LessThanOrEqualNode(convertNumericExpression(expr.left),
-											                    convertNumericExpression(expr.right))
-			is GreaterThanExpression -> GreaterThanNode(convertNumericExpression(expr.left),
-											            convertNumericExpression(expr.right))
-			is GreaterThanOrEqualExpression -> GreaterThanOrEqualNode(convertNumericExpression(expr.left),
-											                          convertNumericExpression(expr.right))
-			is LogicalAndExpression -> LogicalAndNode(convertBooleanExpression(expr.left),
-													  convertBooleanExpression(expr.right))
-			is LogicalOrExpression -> LogicalOrNode(convertBooleanExpression(expr.left),
-												    convertBooleanExpression(expr.right))
-			is LogicalNotExpression -> LogicalNotNode(convertBooleanExpression(expr.expr))
-			is GroupExpression -> convertBooleanExpression(expr.expr)
-			else -> throw IRConversionException("Expected expression that evaluates to boolean, got ${expr}")
-		}
-	}
-
-	fun convertNumericExpression(expr: Expression): IRNumericNode {
-		return when {
-			expr is NumberLiteral -> ConstantNode(expr.num)
-			expr is IdentifierExpression && isNumber(expr.ident) -> NumericVariableNode(expr.ident)
-			expr is AddExpression -> AddNode(convertNumericExpression(expr.left),
-				                             convertNumericExpression(expr.right))
-			expr is SubtractExpression -> SubtractNode(convertNumericExpression(expr.left),
-												       convertNumericExpression(expr.right))
-			expr is MultiplyExpression -> MultiplyNode(convertNumericExpression(expr.left),
-				                                       convertNumericExpression(expr.right))
-			expr is DivideExpression -> DivideNode(convertNumericExpression(expr.numer),
-				                                   convertNumericExpression(expr.denom))
-			expr is ExponentExpression -> ExponentNode(convertNumericExpression(expr.base),
-				                                       convertNumericExpression(expr.exponent))
-			expr is UnaryPlusExpression -> convertNumericExpression(expr.expr)
-			expr is UnaryMinusExpression -> MultiplyNode(NEGATIVE_ONE_NODE,
-				                                         convertNumericExpression(expr.expr))
-			expr is GroupExpression -> convertNumericExpression(expr.expr)
-			expr is CallExpression && isNumericFunction(expr.func) ->
-				NumericCallNode(expr.func, expr.actualArgs.map(this::convertNumericExpression))
-			expr is AssignmentExpression && isNumber(expr.ident) ->
-				NumericAssignmentNode(expr.ident, convertNumericExpression(expr.expr))
-			else -> throw NumericException("Mixed numerics and non-numerics")
-		}
-	}
-
-	fun isNumber(ident: Identifier): Boolean {
-		return symbolTable.getInfo(ident)?.idClass == IdentifierClass.NUMBER
-	}
-
-	fun isVariable(ident: Identifier): Boolean {
-		return symbolTable.getInfo(ident)?.idClass == IdentifierClass.VARIABLE
 	}
 
 	fun isNumericFunction(ident: Identifier): Boolean {
@@ -118,4 +50,210 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 		return symbolTable.getInfo(ident)?.idClass == IdentifierClass.FUNCTION
 	}
 
+	fun convertDefineNumericFunction(stmt: DefineNumericFunctionStatement): DefineNumericFunction {
+		return DefineNumericFunction(stmt.ident, stmt.formalArgs, convert(stmt.expr))
+	}
+
+	fun convertFunctionDefinition(stmt: FunctionDefinitionStatement): FunctionDefinitionNode {
+		return FunctionDefinitionNode(stmt.ident, stmt.formalArgs, convert(stmt.stmt))
+	}
+
+	fun convertVariableDefinition(stmt: VariableDefinitionStatement): VariableDefinitionNode {
+		val info = symbolTable.getInfo(stmt.ident)
+		if (info == null) {
+			throw IRConversionException("Unknown variable ${stmt.ident.name}")
+		}
+
+		val body = convert(stmt.expr)
+
+		if (info.type != body.type) {
+			throw IRConversionException("${stmt.ident.name} has type ${info.type}, but was assigned ${body.type}")
+		}
+
+		return VariableDefinitionNode(stmt.ident, convert(stmt.expr))
+	}
+
+	fun convertIf(stmt: IfStatement): IfNode {
+		val cond = convert(stmt.cond)
+		if (cond.type !is BoolType) {
+			throw IRConversionException("Condition of if must be a bool, but given ${cond.type}")
+		}
+
+		val conseq = convert(stmt.conseq)
+		val altern = if (stmt.altern != null) convert(stmt.altern) else null
+
+		return IfNode(cond, conseq, altern)
+	}
+
+	fun convertWhile(stmt: WhileStatement): WhileNode {
+		val cond = convert(stmt.cond)
+		if (cond.type !is BoolType) {
+			throw IRConversionException("Condition of while must be a bool, but given ${cond.type}")
+		}
+
+		return WhileNode(cond, convert(stmt.body))
+	}
+
+	fun convertDoWhile(stmt: DoWhileStatement): DoWhileNode {
+		val cond = convert(stmt.cond)
+		if (cond.type !is BoolType) {
+			throw IRConversionException("Condition of do while must be a bool, but given ${cond.type}")
+		}
+
+		return DoWhileNode(cond, convert(stmt.body))
+	}
+
+	fun convertFor(stmt: ForStatement): ForNode {
+		val init = if (stmt.init != null) convert(stmt.init) else null
+
+		val cond = if (stmt.cond != null) convert(stmt.cond) else null
+		if (cond != null && cond.type !is BoolType) {
+			throw IRConversionException("Condition of for must be a bool, but given ${cond.type}")
+		}
+
+		val update = if (stmt.update != null) convert(stmt.update) else null
+
+		return ForNode(init, cond, update, convert(stmt.body))
+	}
+
+	fun convertVariable(expr: IdentifierExpression): VariableNode {
+		val info = symbolTable.getInfo(expr.ident)
+		if (info == null) {
+			throw IRConversionException("Unknown variable ${expr.ident.name}")
+		}
+
+		return VariableNode(expr.ident, info.type)
+	}
+
+	fun convertFunctionCall(expr: CallExpression): IRNode {
+		val funcType = symbolTable.getInfo(expr.func)?.type
+		if (funcType !is FunctionType) {
+			throw IRConversionException("Unknown function ${expr.func.name}")
+		}
+
+		val args = expr.actualArgs.map(this::convert)
+		val actualArgTypes = args.map { arg -> arg.type }
+
+		if (actualArgTypes != funcType.argTypes) {
+			throw IRConversionException("${expr.func.name} expected arguments of type ${funcType.argTypes}, but found ${actualArgTypes}")
+		}
+
+		if (isNumericFunction(expr.func)) {
+			return NumericCallNode(expr.func, args)
+		} else {
+			return FunctionCallNode(expr.func, args, funcType.returnType)
+		}
+	}
+
+	fun convertAssignment(expr: AssignmentExpression): AssignmentNode {
+		val info = symbolTable.getInfo(expr.ident)
+		if (info == null) {
+			throw IRConversionException("Unknown variable ${expr.ident.name}")
+		}
+
+		val body = convert(expr.expr)
+
+		if (info.type != body.type) {
+			throw IRConversionException("Type of ${expr.ident.name} is ${info.type}, but assigned ${body.type}")
+		}
+
+		return AssignmentNode(expr.ident, body, info.type)
+	}
+
+	fun convertEquality(expr: EqualityExpression): EqualityNode {
+		val left = convert(expr.left)
+		val right = convert(expr.right)
+
+		if (left.type != right.type) {
+			throw IRConversionException("Cannot check equality between different types, found ${left.type} and ${right.type}")
+		}
+
+		return when (expr) {
+			is EqualsExpression -> EqualsNode(left, right)
+			is NotEqualsExpression -> NotEqualsNode(left, right)
+		}
+	}
+
+	fun convertComparison(expr: ComparisonExpression): ComparisonNode {
+		val left = convert(expr.left)
+		val right = convert(expr.right)
+
+		if (left.type != FloatType || right.type != FloatType) {
+			throw IRConversionException("Comparison expects two floats, found ${left.type} and ${right.type}")
+		}
+
+		return when (expr) {
+			is LessThanExpression -> LessThanNode(left, right)
+			is LessThanOrEqualExpression -> LessThanOrEqualNode(left, right)
+			is GreaterThanExpression -> GreaterThanNode(left, right)
+			is GreaterThanOrEqualExpression -> GreaterThanOrEqualNode(left, right)
+		}
+	}
+
+	fun convertLogicalAnd(expr: LogicalAndExpression): LogicalAndNode {
+		val left = convert(expr.left)
+		val right = convert(expr.right)
+
+		if (left.type != BoolType || right.type != BoolType) {
+			throw IRConversionException("Logical and expects two bools, found ${left.type} and ${right.type}")
+		}
+
+		return LogicalAndNode(left, right)
+	}
+
+	fun convertLogicalOr(expr: LogicalOrExpression): LogicalOrNode {
+		val left = convert(expr.left)
+		val right = convert(expr.right)
+
+		if (left.type != BoolType || right.type != BoolType) {
+			throw IRConversionException("Logical or expects two bools, found ${left.type} and ${right.type}")
+		}
+
+		return LogicalOrNode(left, right)
+	}
+
+	fun convertLogicalNot(expr: LogicalNotExpression): LogicalNotNode {
+		val body = convert(expr.expr)
+
+		if (body.type != BoolType) {
+			throw IRConversionException("Logical not expects a bool, found ${body.type}")
+		}
+
+		return LogicalNotNode(body)
+	}
+
+	fun convertBinaryMathOperator(expr: BinaryMathOperatorExpression): BinaryMathOperatorNode {
+		val left = convert(expr.left)
+		val right = convert(expr.right)
+
+		if (left.type != FloatType || right.type != FloatType) {
+			throw IRConversionException("Binary math operator expected two floats, found ${left.type} and ${right.type}")
+		}
+
+		return when (expr) {
+			is AddExpression -> AddNode(left, right)
+			is SubtractExpression -> SubtractNode(left, right)
+			is MultiplyExpression -> MultiplyNode(left, right)
+			is DivideExpression -> DivideNode(left, right)
+			is ExponentExpression -> ExponentNode(left, right)
+		}
+	}
+
+	fun convertUnaryPlus(expr: UnaryPlusExpression): IRNode {
+		val body = convert(expr.expr)
+		if (body.type != FloatType) {
+			throw IRConversionException("Unary plus operator expected a float, found ${body.type}")
+		}
+
+		return body
+	}
+
+	fun convertUnaryMinus(expr: UnaryMinusExpression): MultiplyNode {
+		val body = convert(expr.expr)
+		if (body.type != FloatType) {
+			throw IRConversionException("Unary minus operator expected a float, found ${body.type}")
+		}
+
+		return MultiplyNode(NEGATIVE_ONE_NODE, body)
+	}
 }

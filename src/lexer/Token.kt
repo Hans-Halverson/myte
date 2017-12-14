@@ -169,6 +169,21 @@ class ForToken: Token() {
 	override fun toString(): String = "for"
 }
 
+class UnitToken: Token() {
+	override val type: TokenType = TokenType.UNIT
+	override fun toString(): String = "unit"
+}
+
+class BoolToken: Token() {
+	override val type: TokenType = TokenType.BOOL
+	override fun toString(): String = "bool"
+}
+
+class FloatToken: Token() {
+	override val type: TokenType = TokenType.FLOAT
+	override fun toString(): String = "float"
+}
+
 class NewLineToken: Token() {
 	override val type: TokenType = TokenType.NEW_LINE
 	override fun toString(): String = "<NewLine>"

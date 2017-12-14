@@ -133,6 +133,18 @@ enum class TokenType {
 		override fun toString(): String = "for"
 	},
 
+	UNIT {
+		override fun toString(): String = "unit"
+	},
+
+	BOOL {
+		override fun toString(): String = "bool"
+	},
+
+	FLOAT {
+		override fun toString(): String = "float"
+	},
+
 	NEW_LINE {
 		override fun toString(): String = "\\n"
 	}

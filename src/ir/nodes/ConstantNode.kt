@@ -1,3 +1,5 @@
 package myte.ir.nodes
 
-data class ConstantNode(val num: Double) : IRNumericNode()
+import myte.shared.*
+
+data class ConstantNode(val num: Double) : IRNode(FloatType)

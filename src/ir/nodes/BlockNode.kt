@@ -1,3 +1,5 @@
 package myte.ir.nodes
 
-data class BlockNode(val nodes: List<IRNode>) : IRNode()
+import myte.shared.*
+
+data class BlockNode(val nodes: List<IRNode>) : IRNode(UnitType)

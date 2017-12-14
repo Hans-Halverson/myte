@@ -15,7 +15,7 @@ import java.io.StringReader
 fun repl(input: BufferedReader) {
 	val parser = Parser()
 	val converter = AstToIrConverter(parser.symbolTable)
-	val eval = Evaluator()
+	val eval = Evaluator(parser.symbolTable)
 
 	// The repl loop process a single input to the repl, consisting of a 
 	// single statement which will be evaluated.
@@ -67,9 +67,8 @@ fun repl(input: BufferedReader) {
 			try {
 				parser.setTokens(tokens)
 				val statement = parser.parseLine()
-				println(statement)
 
-				val ir = converter.convertStatement(statement)
+				val ir = converter.convert(statement)
 
 				val value = eval.evaluate(ir)
 				printValue(value)
@@ -96,10 +95,10 @@ fun evaluateFile(input: BufferedReader) {
 	val converter = AstToIrConverter(parser.symbolTable)
 	val statements = parser.parseFile()
 	
-	val eval = Evaluator()
+	val eval = Evaluator(parser.symbolTable)
 
 	for (statement in statements) {
-		val ir = converter.convertStatement(statement)
+		val ir = converter.convert(statement)
 		val value = eval.evaluate(ir)
 		printValue(value)
 	}

@@ -1,3 +1,5 @@
 package myte.ir.nodes
 
-data class BooleanLiteralNode(val bool: Boolean) : IRBooleanNode()
+import myte.shared.*
+
+data class BooleanLiteralNode(val bool: Boolean) : IRNode(BoolType)

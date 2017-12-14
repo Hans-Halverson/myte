@@ -6,8 +6,7 @@ fun stringOfValue(value: Value): String? {
 	return when (value) {
 		is BooleanValue -> if (value.bool) "true" else "false"
 		is NumberValue -> value.num.toString()
-		is NumericClosure -> "<numeric function>"
-		is Closure -> "<function>"
+		is Closure -> "${value.ident.name}: ${value.type}"
 		else -> null
 	}
 }

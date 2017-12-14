@@ -1,3 +1,5 @@
 package myte.ir.nodes
 
-abstract class IRNode
+import myte.shared.*
+
+abstract class IRNode(val type: Type)
