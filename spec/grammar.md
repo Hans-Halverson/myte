@@ -18,6 +18,10 @@ Operators have the following precedence, from low to high:
 Values and functions defined with let are numeric, and can only interact with other numbers and numerics. General, non-numeric values and functions are defined with the var and def keywords, respectively.
 
 
+# Number conversions
+Implicit conversions from int to float are allowed when using arithmetic operators (+, -, /, *, ^) and comparisons (<, <=, >, >=), but not when function arguments.
+
+
 # Full grammar
 
 EXPR -> NUMBER

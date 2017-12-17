@@ -1,8 +1,12 @@
 package myte.lexer
 
 enum class TokenType {
-	NUMBER {
-		override fun toString(): String = "Number"
+	INT_LITERAL {
+		override fun toString(): String = "int literal"
+	},
+
+	FLOAT_LITERAL {
+		override fun toString(): String = "float literal"
 	},
 
 	STRING {
@@ -137,12 +141,24 @@ enum class TokenType {
 		override fun toString(): String = "return"
 	},
 
+	BREAK {
+		override fun toString(): String = "break"
+	},
+
+	CONTINUE {
+		override fun toString(): String = "continue"
+	},
+
 	UNIT {
 		override fun toString(): String = "unit"
 	},
 
 	BOOL {
 		override fun toString(): String = "bool"
+	},
+
+	INT {
+		override fun toString(): String = "int"
 	},
 
 	FLOAT {

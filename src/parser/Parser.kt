@@ -4,8 +4,7 @@ import myte.lexer.*
 import myte.parser.ast.*
 import myte.shared.*
 
-class Parser(tokens: List<Token> = listOf()) {
-	val symbolTable = SymbolTable()
+class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 	var tokenizer: Tokenizer = Tokenizer(tokens)
 
 	fun setTokens(newTokens: List<Token>) {
@@ -47,6 +46,8 @@ class Parser(tokens: List<Token> = listOf()) {
 			is DoToken -> parseDoWhileStatement()
 			is ForToken -> parseForStatement()
 			is ReturnToken -> parseReturnStatement()
+			is BreakToken -> BreakStatement
+			is ContinueToken -> ContinueStatement
 			else -> parseExpression(token)
 		}
 	}
@@ -56,7 +57,8 @@ class Parser(tokens: List<Token> = listOf()) {
 	fun parseExpression(firstToken: Token?, precedence: Int = 0): Expression {
 		// Match on all tokens that signal a prefix operator
 		var currentExpr = when (firstToken) {
-			is NumberToken -> NumberLiteral(firstToken.num)
+			is IntLiteralToken -> IntLiteral(firstToken.num)
+			is FloatLiteralToken -> FloatLiteral(firstToken.num)
 			is StringToken -> parseIdentifierExpression(firstToken)
 			is TrueToken -> BooleanLiteralExpression(true)
 			is FalseToken -> BooleanLiteralExpression(false)
@@ -240,6 +242,7 @@ class Parser(tokens: List<Token> = listOf()) {
 
 		return when (token) {
 			is BoolToken -> BoolType
+			is IntToken -> IntType
 			is FloatToken -> FloatType
 			is UnitToken -> UnitType
 			else -> throw ParseException("Expected type, got ${token}")

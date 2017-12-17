@@ -44,12 +44,15 @@ private val keywordToTokenMap = mapOf(
 	"do" to DoToken,
 	"for" to ForToken,
 	"return" to ReturnToken,
+	"break" to BreakToken,
+	"continue" to ContinueToken,
 	"unit" to UnitToken,
 	"bool" to BoolToken,
+	"int" to IntToken,
 	"float" to FloatToken
 )
 
-private fun readNumberString(reader: LL1StatefulReader): String {
+private fun readNumber(reader: LL1StatefulReader): Token {
 	var numberString = StringBuilder()
 
 	// If readNumber is called, the current character must be numeric
@@ -65,6 +68,8 @@ private fun readNumberString(reader: LL1StatefulReader): String {
 	if (reader.hasNext && reader.next == '.') {
 		numberString.append(reader.next)
 		reader.advance()
+	} else {
+		return stringToInt(numberString.toString())
 	}
 
 	// Read digits after decimal point
@@ -78,7 +83,7 @@ private fun readNumberString(reader: LL1StatefulReader): String {
 		numberString.append(reader.next)
 		reader.advance()
 	} else {
-		return numberString.toString()
+		return stringToFloat(numberString.toString())
 	}
 
 	// Read exponent sign
@@ -86,11 +91,11 @@ private fun readNumberString(reader: LL1StatefulReader): String {
 		numberString.append(reader.next)
 		reader.advance()
 	} else {
-		return numberString.toString()
+		return stringToFloat(numberString.toString())
 	}
 
 	if (reader.hasNext && reader.next !in '0'..'9') {
-		throw LexicalException("Malformed number ${numberString.toString()}")
+		throw LexicalException("Malformed float ${numberString.toString()}")
 	}
 
 	// Read exponent digits
@@ -99,16 +104,22 @@ private fun readNumberString(reader: LL1StatefulReader): String {
 		reader.advance()
 	}
 
-	return numberString.toString()
+	return stringToFloat(numberString.toString())
 }
 
-private fun readNumber(reader: LL1StatefulReader): NumberToken {
-	val numberString = readNumberString(reader)
-
+private fun stringToInt(str: String): IntLiteralToken {
 	try {
-		return NumberToken(numberString.toDouble())
+		return IntLiteralToken(str.toInt())
 	} catch (e: NumberFormatException) {
-		throw LexicalException("Malformed number ${numberString}")
+		throw LexicalException("Malformed int ${str}")
+	}
+}
+
+private fun stringToFloat(str: String): FloatLiteralToken {
+	try {
+		return FloatLiteralToken(str.toDouble())
+	} catch (e: NumberFormatException) {
+		throw LexicalException("Malformed float ${str}")
 	}
 }
 

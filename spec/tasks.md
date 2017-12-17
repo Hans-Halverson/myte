@@ -2,12 +2,9 @@
 
 - Mutability and Immutability
 
-- Control flow statements:
-	- return
-	- break
-	- continue
+- Add basic types: strings
 
-- Add basic types: ints and strings
+- Add lists, arrays, maps
 
 - Allow forward declaration of functions
 

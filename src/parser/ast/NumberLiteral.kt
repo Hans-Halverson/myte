@@ -1,3 +1,7 @@
 package myte.parser.ast
 
-data class NumberLiteral(val num: Double): Expression()
+sealed class NumberLiteral : Expression()
+
+data class IntLiteral(val num: Int): NumberLiteral()
+
+data class FloatLiteral(val num: Double) : NumberLiteral()

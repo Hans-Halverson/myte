@@ -1,6 +1,8 @@
 package myte.shared
 
-abstract class Type
+sealed class Type
+
+sealed class NumberType : Type()
 
 object UnitType : Type() {
 	override fun toString(): String = "unit"
@@ -10,7 +12,11 @@ object BoolType : Type() {
 	override fun toString(): String = "bool"
 }
 
-object FloatType : Type() {
+object IntType : NumberType() {
+	override fun toString(): String = "int"
+}
+
+object FloatType : NumberType() {
 	override fun toString(): String = "float"
 }
 

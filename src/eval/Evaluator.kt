@@ -8,17 +8,16 @@ import myte.shared.*
 import java.util.Stack
 
 
-class Evaluator(val symbolTable: SymbolTable) {
-
-	private val environment = Environment()
+class Evaluator(val symbolTable: SymbolTable, val environment: Environment) {
 
 	fun evaluate(node: IRNode, env: Environment = environment): Value {
 		return when (node) {
-			is ConstantNode -> NumberValue(node.num)
-			is BooleanLiteralNode -> BooleanValue(node.bool)
+			is IntLiteralNode -> IntValue(node.num)
+			is FloatLiteralNode -> FloatValue(node.num)
+			is BooleanLiteralNode -> BoolValue(node.bool)
 			is VariableNode -> env.lookup(node.ident)
 			is BinaryMathOperatorNode -> evalBinaryMathOperator(node, env)
-			is LogicalNotNode -> BooleanValue(!evalBoolean(node.node, env).bool)
+			is LogicalNotNode -> BoolValue(!evalBool(node.node, env).bool)
 			is LogicalAndNode -> evalLogicalAnd(node, env)
 			is LogicalOrNode -> evalLogicalOr(node, env)
 			is EqualityNode -> evalEquality(node, env)
@@ -35,7 +34,7 @@ class Evaluator(val symbolTable: SymbolTable) {
 				if (type !is FunctionType) {
 					throw EvaluationException("Unknown function ${node.ident.name}")
 				}
-				env.extend(node.ident, Closure(node.ident, node.formalArgs, node.body, env.copy(), type))
+				env.extend(node.ident, ClosureValue(node.ident, node.formalArgs, node.body, env.copy(), type))
 				return UnitValue
 			}
 			is BlockNode -> evalBlock(node, env)
@@ -44,22 +43,33 @@ class Evaluator(val symbolTable: SymbolTable) {
 			is DoWhileNode -> evalDoWhile(node, env)
 			is ForNode -> evalFor(node, env)
 			is ReturnNode -> evalReturn(node, env)
+			is BreakNode -> throw Break
+			is ContinueNode -> throw Continue
 			else -> throw EvaluationException("Unknown IR node ${node}")
 		}
 	}
 
-	fun evalNumber(node: IRNode, env: Environment): NumberValue {
+	fun evalInt(node: IRNode, env: Environment): IntValue {
 		val value = evaluate(node, env)
-		if (value !is NumberValue) {
-			throw EvaluationException("Expected ${value} to be a number")
+		if (value !is IntValue) {
+			throw EvaluationException("Expected ${value} to be an int")
 		}
 
 		return value
 	}
 
-	fun evalBoolean(node: IRNode, env: Environment): BooleanValue {
+	fun evalFloat(node: IRNode, env: Environment): FloatValue {
 		val value = evaluate(node, env)
-		if (value !is BooleanValue) {
+		if (value !is FloatValue) {
+			throw EvaluationException("Expected ${value} to be a float")
+		}
+
+		return value
+	}
+
+	fun evalBool(node: IRNode, env: Environment): BoolValue {
+		val value = evaluate(node, env)
+		if (value !is BoolValue) {
 			throw EvaluationException("Expected ${value} to be a boolean")
 		}
 
@@ -67,83 +77,108 @@ class Evaluator(val symbolTable: SymbolTable) {
 	}
 
 	fun evalBinaryMathOperator(node: BinaryMathOperatorNode, env: Environment): NumberValue {
-		val left = evalNumber(node.left, env)
-		val right = evalNumber(node.right, env)
+		return when (node.type) {
+			is IntType -> {
+				val left = evalInt(node.left, env)
+				val right = evalInt(node.right, env)
 
-		return NumberValue(node.compute(left.num, right.num))
+				IntValue(node.computeInt(left.num, right.num))
+			}
+			is FloatType -> {
+				val left = evalFloat(node.left, env)
+				val right = evalFloat(node.right, env)
+
+				FloatValue(node.computeFloat(left.num, right.num))
+			}
+			else -> throw EvaluationException("Binary math operator must have a number type, given ${node.type}")
+		}
 	}
 
-	fun evalLogicalAnd(node: LogicalAndNode, env: Environment): BooleanValue {
-		val leftValue = evalBoolean(node.left, env)
+	fun evalLogicalAnd(node: LogicalAndNode, env: Environment): BoolValue {
+		val leftValue = evalBool(node.left, env)
 
 		if (leftValue.bool) {
-			return evalBoolean(node.right, env)
+			return evalBool(node.right, env)
 		} else {
 			return leftValue;
 		}
 	}
 
-	fun evalLogicalOr(node: LogicalOrNode, env: Environment): BooleanValue {
-		val leftValue = evalBoolean(node.left, env)
+	fun evalLogicalOr(node: LogicalOrNode, env: Environment): BoolValue {
+		val leftValue = evalBool(node.left, env)
 
 		if (!leftValue.bool) {
-			return evalBoolean(node.right, env)
+			return evalBool(node.right, env)
 		} else {
 			return leftValue;
 		}
 	}
 
-	fun evalEquality(node: EqualityNode, env: Environment): BooleanValue {
+	fun evalEquality(node: EqualityNode, env: Environment): BoolValue {
 		val leftVal = evaluate(node.left, env)
 		val rightVal = evaluate(node.right, env)
 
-		return BooleanValue(node.compare(leftVal, rightVal))
+		return BoolValue(node.compare(leftVal, rightVal))
 	}
 
-	fun evalComparison(node: ComparisonNode, env: Environment): BooleanValue {
-		val leftVal = evalNumber(node.left, env)
-		val rightVal = evalNumber(node.right, env)
+	fun evalComparison(node: ComparisonNode, env: Environment): BoolValue {
+		return when (node.numType) {
+			is IntType -> {
+				val left = evalInt(node.left, env)
+				val right = evalInt(node.right, env)
 
-		return BooleanValue(node.compare(leftVal.num, rightVal.num))
+				BoolValue(node.compareInts(left.num, right.num))
+			}
+			is FloatType -> {
+				val left = evalFloat(node.left, env)
+				val right = evalFloat(node.right, env)
+
+				BoolValue(node.compareFloats(left.num, right.num))
+			}
+		}
 	}
 
 	fun evalNumericCall(node: NumericCallNode, env: Environment): Value {
-		val closure = env.lookup(node.func)
-		if (closure !is Closure) {
-			throw EvaluationException("Cannot call ${closure}, can only call functions")
+		val closureValue = env.lookup(node.func)
+
+		if (closureValue !is ClosureValue) {
+			throw EvaluationException("Cannot call ${closureValue}, can only call functions")
 		}
 
-		if (node.actualArgs.size != closure.formalArgs.size) {
-			throw EvaluationException("${node.func} expected ${closure.formalArgs.size} arguments, but received ${node.actualArgs.size}")
+		if (node.actualArgs.size != closureValue.formalArgs.size) {
+			throw EvaluationException("${node.func} expected ${closureValue.formalArgs.size} arguments, but received ${node.actualArgs.size}")
 		}
 
 		val actualArgs: List<Value> = node.actualArgs.map { expr -> evaluate(expr, env) }
 
-		val applicationEnv: Environment = closure.environment.copy()
-		closure.formalArgs.zip(actualArgs).forEach { (ident, value) -> applicationEnv.extend(ident, value) }
+		val applicationEnv: Environment = closureValue.environment.copy()
+		closureValue.formalArgs.zip(actualArgs).forEach { (ident, value) -> applicationEnv.extend(ident, value) }
 
-		return evaluate(closure.body, applicationEnv)
+		return evaluate(closureValue.body, applicationEnv)
 	}
 
 	fun evalFunctionCall(node: FunctionCallNode, env: Environment): Value {
-		val closure = env.lookup(node.func)
-		if (closure !is Closure) {
-			throw EvaluationException("Cannot call ${closure}, can only call functions")
+		val closureValue = env.lookup(node.func)
+		if (closureValue is BuiltinValue) {
+			val actualArgs: List<Value> = node.actualArgs.map { expr -> evaluate(expr, env) }
+			return closureValue.func(actualArgs)
+		} else if (closureValue !is ClosureValue) {
+			throw EvaluationException("Cannot call ${closureValue}, can only call functions")
 		}
 
-		if (node.actualArgs.size != closure.formalArgs.size) {
-			throw EvaluationException("${node.func} expected ${closure.formalArgs.size} arguments, but received ${node.actualArgs.size}")
+		if (node.actualArgs.size != closureValue.formalArgs.size) {
+			throw EvaluationException("${node.func} expected ${closureValue.formalArgs.size} arguments, but received ${node.actualArgs.size}")
 		}
 
 		val actualArgs: List<Value> = node.actualArgs.map { expr -> evaluate(expr, env) }
 
-		val applicationEnv: Environment = closure.environment.copy()
+		val applicationEnv: Environment = closureValue.environment.copy()
 		applicationEnv.enterScope()
 
-		closure.formalArgs.zip(actualArgs).forEach { (ident, value) -> applicationEnv.extend(ident, value) }
+		closureValue.formalArgs.zip(actualArgs).forEach { (ident, value) -> applicationEnv.extend(ident, value) }
 
 		try {
-			evaluate(closure.body, applicationEnv)
+			evaluate(closureValue.body, applicationEnv)
 		} catch (returnException: Return) {
 			applicationEnv.exitScope()
 			return returnException.returnValue
@@ -171,7 +206,7 @@ class Evaluator(val symbolTable: SymbolTable) {
 	}
 
 	fun evalIf(node: IfNode, env: Environment): UnitValue {
-		val cond = evalBoolean(node.cond, env)
+		val cond = evalBool(node.cond, env)
 
 		if (cond.bool) {
 			evaluate(node.conseq, env)
@@ -183,21 +218,31 @@ class Evaluator(val symbolTable: SymbolTable) {
 	}
 
 	fun evalWhile(node: WhileNode, env: Environment): UnitValue {
-		var cond = evalBoolean(node.cond, env)
+		var cond = evalBool(node.cond, env)
 
-		while (cond.bool) {
-			evaluate(node.body, env)
-			cond = evalBoolean(node.cond, env)
-		}
+		try {
+			while (cond.bool) {
+				try {
+					evaluate(node.body, env)
+				} catch (e: Continue) {}
+
+				cond = evalBool(node.cond, env)
+			}
+		} catch (e: Break) {}
 
 		return UnitValue
 	}
 
 	fun evalDoWhile(node: DoWhileNode, env: Environment): UnitValue {
-		do {
-			evaluate(node.body, env)
-			val cond = evalBoolean(node.cond, env)
-		} while (cond.bool)
+		try {
+			do {
+				try {
+					evaluate(node.body, env)
+				} catch (e: Continue) {}
+
+				val cond = evalBool(node.cond, env)
+			} while (cond.bool)
+		} catch (e: Break) {}
 
 		return UnitValue
 	}
@@ -211,20 +256,24 @@ class Evaluator(val symbolTable: SymbolTable) {
 
 		var condition = true
 		if (node.cond != null) {
-			condition = evalBoolean(node.cond, env).bool
+			condition = evalBool(node.cond, env).bool
 		}
 
-		while (condition) {
-			evaluate(node.body, env)
+		try {
+			while (condition) {
+				try {
+					evaluate(node.body, env)
+				} catch (e: Continue) {}
 
-			if (node.update != null) {
-				evaluate(node.update, env)
-			}
+				if (node.update != null) {
+					evaluate(node.update, env)
+				}
 
-			if (node.cond != null) {
-				condition = evalBoolean(node.cond, env).bool
+				if (node.cond != null) {
+					condition = evalBool(node.cond, env).bool
+				}
 			}
-		}
+		} catch (e: Break) {}
 
 		env.exitScope()
 

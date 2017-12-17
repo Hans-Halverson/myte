@@ -1,10 +1,12 @@
 package myte
 
 import myte.eval.*
+import myte.eval.builtins.*
 import myte.ir.*
 import myte.lexer.*
 import myte.parser.*
 import myte.parser.ast.*
+import myte.shared.*
 
 import java.io.BufferedReader
 import java.io.FileReader
@@ -13,9 +15,13 @@ import java.io.StringReader
 
 
 fun repl(input: BufferedReader) {
-	val parser = Parser()
-	val converter = AstToIrConverter(parser.symbolTable)
-	val eval = Evaluator(parser.symbolTable)
+	val symbolTable = SymbolTable()
+	val environment = Environment()
+	registerBuiltins(symbolTable, environment)
+
+	val parser = Parser(symbolTable)
+	val converter = AstToIrConverter(symbolTable)
+	val eval = Evaluator(symbolTable, environment)
 
 	// The repl loop process a single input to the repl, consisting of a 
 	// single statement which will be evaluated.
@@ -69,6 +75,7 @@ fun repl(input: BufferedReader) {
 				val statement = parser.parseLine()
 
 				val ir = converter.convert(statement)
+				converter.assertIRStructure(ir)
 
 				val value = eval.evaluate(ir)
 				printValue(value)
@@ -91,14 +98,20 @@ fun evaluateFile(input: BufferedReader) {
 		return
 	}
 
-	val parser = Parser(tokens)
-	val converter = AstToIrConverter(parser.symbolTable)
+	val symbolTable = SymbolTable()
+	val environment = Environment()
+	registerBuiltins(symbolTable, environment)
+	
+	val parser = Parser(symbolTable, tokens)
+	val converter = AstToIrConverter(symbolTable)
 	val statements = parser.parseFile()
 	
-	val eval = Evaluator(parser.symbolTable)
+	val eval = Evaluator(symbolTable, environment)
 
 	for (statement in statements) {
 		val ir = converter.convert(statement)
+		converter.assertIRStructure(ir)
+		
 		val value = eval.evaluate(ir)
 		printValue(value)
 	}

@@ -1,11 +1,13 @@
 package myte.ir
 
+import myte.eval.builtins.*
 import myte.ir.nodes.*
 import myte.parser.*
 import myte.parser.ast.*
 import myte.shared.*
 
-val NEGATIVE_ONE_NODE = ConstantNode(-1.0)
+val NEGATIVE_ONE_INT_NODE = IntLiteralNode(-1)
+val NEGATIVE_ONE_FLOAT_NODE = FloatLiteralNode(-1.0)
 
 class AstToIrConverter(val symbolTable: SymbolTable) {
 
@@ -24,6 +26,8 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 			stmt is AssignmentExpression -> convertAssignment(stmt)
 			stmt is GroupExpression -> convert(stmt.expr)
 			stmt is ReturnStatement -> convertReturn(stmt)
+			stmt is BreakStatement -> BreakNode
+			stmt is ContinueStatement -> ContinueNode
 
 			// Boolean expressions
 			stmt is BooleanLiteralExpression -> BooleanLiteralNode(stmt.bool)
@@ -34,7 +38,8 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 			stmt is LogicalNotExpression -> convertLogicalNot(stmt)
 
 			// Numeric expressions
-			stmt is NumberLiteral -> ConstantNode(stmt.num)
+			stmt is IntLiteral -> IntLiteralNode(stmt.num)
+			stmt is FloatLiteral -> FloatLiteralNode(stmt.num)
 			stmt is BinaryMathOperatorExpression -> convertBinaryMathOperator(stmt)
 			stmt is UnaryPlusExpression -> convertUnaryPlus(stmt)
 			stmt is UnaryMinusExpression -> convertUnaryMinus(stmt)
@@ -191,18 +196,20 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 	}
 
 	fun convertComparison(expr: ComparisonExpression): ComparisonNode {
-		val left = convert(expr.left)
-		val right = convert(expr.right)
+		val leftNode = convert(expr.left)
+		val rightNode = convert(expr.right)
 
-		if (left.type != FloatType || right.type != FloatType) {
-			throw IRConversionException("Comparison expects two floats, found ${left.type} and ${right.type}")
+		if (leftNode.type !is NumberType || rightNode.type !is NumberType) {
+			throw IRConversionException("Comparison expects two numbers, found ${leftNode.type} and ${rightNode.type}")
 		}
 
+		val (left, right, type) = coerceNumbers(leftNode, rightNode)
+
 		return when (expr) {
-			is LessThanExpression -> LessThanNode(left, right)
-			is LessThanOrEqualExpression -> LessThanOrEqualNode(left, right)
-			is GreaterThanExpression -> GreaterThanNode(left, right)
-			is GreaterThanOrEqualExpression -> GreaterThanOrEqualNode(left, right)
+			is LessThanExpression -> LessThanNode(left, right, type)
+			is LessThanOrEqualExpression -> LessThanOrEqualNode(left, right, type)
+			is GreaterThanExpression -> GreaterThanNode(left, right, type)
+			is GreaterThanOrEqualExpression -> GreaterThanOrEqualNode(left, right, type)
 		}
 	}
 
@@ -239,26 +246,48 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 	}
 
 	fun convertBinaryMathOperator(expr: BinaryMathOperatorExpression): BinaryMathOperatorNode {
-		val left = convert(expr.left)
-		val right = convert(expr.right)
+		val leftNode = convert(expr.left)
+		val rightNode = convert(expr.right)
 
-		if (left.type != FloatType || right.type != FloatType) {
-			throw IRConversionException("Binary math operator expected two floats, found ${left.type} and ${right.type}")
+		if (leftNode.type !is NumberType || rightNode.type !is NumberType) {
+			throw IRConversionException("Binary math operator expected two numbers, found ${leftNode.type} and ${rightNode.type}")
 		}
 
+		val (left, right, type) = coerceNumbers(leftNode, rightNode)
+
 		return when (expr) {
-			is AddExpression -> AddNode(left, right)
-			is SubtractExpression -> SubtractNode(left, right)
-			is MultiplyExpression -> MultiplyNode(left, right)
-			is DivideExpression -> DivideNode(left, right)
-			is ExponentExpression -> ExponentNode(left, right)
+			is AddExpression -> AddNode(left, right, type)
+			is SubtractExpression -> SubtractNode(left, right, type)
+			is MultiplyExpression -> MultiplyNode(left, right, type)
+			is DivideExpression -> DivideNode(left, right, type)
+			is ExponentExpression -> ExponentNode(left, right, type)
+		}
+	}
+
+	fun coerceNumbers(left: IRNode, right: IRNode): Triple<IRNode, IRNode, NumberType> {
+		if (left.type is IntType && right.type is IntType) {
+			return Triple(left, right, IntType)
+		} else if (left.type is IntType && right.type is FloatType) {
+			val intToFloat = BUILTINS[INT_TO_FLOAT_BUILTIN]!!
+			val floatLeft = FunctionCallNode(intToFloat.getIdent(), listOf(left), intToFloat.type.returnType)
+	
+			return Triple(floatLeft, right, FloatType)
+		} else if (left.type is FloatType && right.type is IntType) {
+			val intToFloat = BUILTINS[INT_TO_FLOAT_BUILTIN]!!
+			val floatRight = FunctionCallNode(intToFloat.getIdent(), listOf(right), intToFloat.type.returnType)
+			
+			return Triple(left, floatRight, FloatType)
+		} else if (left.type is FloatType && right.type is FloatType) {
+			return Triple(left, right, FloatType)
+		} else {
+			throw IRConversionException("Cannot coerce ${left.type} and ${right.type} into common type")
 		}
 	}
 
 	fun convertUnaryPlus(expr: UnaryPlusExpression): IRNode {
 		val body = convert(expr.expr)
-		if (body.type != FloatType) {
-			throw IRConversionException("Unary plus operator expected a float, found ${body.type}")
+		if (body.type !is NumberType) {
+			throw IRConversionException("Unary plus operator expected a number type, found ${body.type}")
 		}
 
 		return body
@@ -266,11 +295,11 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 
 	fun convertUnaryMinus(expr: UnaryMinusExpression): MultiplyNode {
 		val body = convert(expr.expr)
-		if (body.type != FloatType) {
-			throw IRConversionException("Unary minus operator expected a float, found ${body.type}")
+		return when (body.type) {
+			is IntType -> MultiplyNode(NEGATIVE_ONE_INT_NODE, body, IntType)
+			is FloatType -> MultiplyNode(NEGATIVE_ONE_FLOAT_NODE, body, FloatType)
+			else -> throw IRConversionException("Unary minus operator expected a number type, found ${body.type}")
 		}
-
-		return MultiplyNode(NEGATIVE_ONE_NODE, body)
 	}
 
 	fun allPathsHaveReturn(node: IRNode): Boolean {
@@ -291,6 +320,35 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 			is DoWhileNode -> returnsHaveType(node.body, type)
 			is ForNode -> returnsHaveType(node.body, type)
 			else -> true
+		}
+	}
+
+	fun assertIRStructure(node: IRNode) {
+		jumpsInAllowedPlaces(node, false, false)
+	}
+
+	fun jumpsInAllowedPlaces(node: IRNode, allowReturn: Boolean, allowBreakOrContinue: Boolean) {
+		when (node) {
+			is BlockNode -> node.nodes.map { n -> jumpsInAllowedPlaces(n, allowReturn, allowBreakOrContinue )}
+			is IfNode -> {
+				jumpsInAllowedPlaces(node.conseq, allowReturn, allowBreakOrContinue)
+				if (node.altern != null) {
+					jumpsInAllowedPlaces(node.altern, allowReturn, allowBreakOrContinue)
+				}
+			}
+			is WhileNode -> jumpsInAllowedPlaces(node.body, allowReturn, true)
+			is DoWhileNode -> jumpsInAllowedPlaces(node.body, allowReturn, true)
+			is ForNode -> {
+				if (node.init != null) {
+					jumpsInAllowedPlaces(node.init, allowReturn, false)
+				}
+				jumpsInAllowedPlaces(node.body, allowReturn, true)
+			}
+			is FunctionDefinitionNode -> jumpsInAllowedPlaces(node.body, true, false)
+			is ReturnNode -> if (!allowReturn) throw IRConversionException("Return must appear in function body")
+			is BreakNode -> if (!allowBreakOrContinue) throw IRConversionException("Break must appear in loop")
+			is ContinueNode -> if (!allowBreakOrContinue) throw IRConversionException("Continue must appear in loop")
+			else -> {}
 		}
 	}
 }

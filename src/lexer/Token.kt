@@ -2,12 +2,17 @@ package myte.lexer
 
 import myte.shared.*
 
+
 sealed class Token {
 	abstract val type: TokenType
 }
 
-data class NumberToken(val num: Double) : Token() {
-	override val type: TokenType = TokenType.NUMBER
+data class IntLiteralToken(val num: Int) : Token() {
+	override val type: TokenType = TokenType.INT_LITERAL
+}
+
+data class FloatLiteralToken(val num: Double) : Token() {
+	override val type: TokenType = TokenType.FLOAT_LITERAL
 }
 
 data class StringToken(val str: String) : Token() {
@@ -174,6 +179,16 @@ object ReturnToken: Token() {
 	override fun toString(): String = "return"
 }
 
+object BreakToken: Token() {
+	override val type: TokenType = TokenType.BREAK
+	override fun toString(): String = "break"
+}
+
+object ContinueToken: Token() {
+	override val type: TokenType = TokenType.CONTINUE
+	override fun toString(): String = "continue"
+}
+
 object UnitToken: Token() {
 	override val type: TokenType = TokenType.UNIT
 	override fun toString(): String = "unit"
@@ -182,6 +197,11 @@ object UnitToken: Token() {
 object BoolToken: Token() {
 	override val type: TokenType = TokenType.BOOL
 	override fun toString(): String = "bool"
+}
+
+object IntToken: Token() {
+	override val type: TokenType = TokenType.INT
+	override fun toString(): String = "int"
 }
 
 object FloatToken: Token() {

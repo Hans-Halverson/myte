@@ -1,3 +1,5 @@
 package myte.eval.values
 
-object UnitValue : Value()
+import myte.shared.*
+
+object UnitValue : Value(UnitType)
