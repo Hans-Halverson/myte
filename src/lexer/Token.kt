@@ -15,8 +15,12 @@ data class FloatLiteralToken(val num: Double) : Token() {
 	override val type: TokenType = TokenType.FLOAT_LITERAL
 }
 
-data class StringToken(val str: String) : Token() {
-	override val type: TokenType = TokenType.STRING
+data class StringLiteralToken(val str: String) : Token() {
+	override val type: TokenType = TokenType.STRING_LITERAL
+}
+
+data class IdentifierToken(val str: String) : Token() {
+	override val type: TokenType = TokenType.IDENTIFIER
 }
 
 object TrueToken : Token() {
@@ -124,6 +128,11 @@ object RightBraceToken : Token() {
 	override fun toString(): String = "}"
 }
 
+object QuotesToken: Token() {
+	override val type: TokenType = TokenType.QUOTES
+	override fun toString(): String = "\""
+}
+
 object CommaToken: Token() {
 	override val type: TokenType = TokenType.COMMA
 	override fun toString(): String = ","
@@ -197,6 +206,11 @@ object UnitToken: Token() {
 object BoolToken: Token() {
 	override val type: TokenType = TokenType.BOOL
 	override fun toString(): String = "bool"
+}
+
+object StringTypeToken: Token() {
+	override val type: TokenType = TokenType.STRING_TYPE
+	override fun toString(): String = "string"
 }
 
 object IntToken: Token() {

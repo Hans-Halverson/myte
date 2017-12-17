@@ -9,8 +9,12 @@ enum class TokenType {
 		override fun toString(): String = "float literal"
 	},
 
-	STRING {
-		override fun toString(): String = "String"
+	STRING_LITERAL {
+		override fun toString(): String = "string literal"
+	},
+
+	IDENTIFIER {
+		override fun toString(): String = "identifier"
 	},
 
 	TRUE {
@@ -97,6 +101,10 @@ enum class TokenType {
 		override fun toString(): String = "}"
 	},
 
+	QUOTES {
+		override fun toString(): String = "\""
+	},
+
 	COMMA {
 		override fun toString(): String = ","
 	},
@@ -155,6 +163,10 @@ enum class TokenType {
 
 	BOOL {
 		override fun toString(): String = "bool"
+	},
+
+	STRING_TYPE {
+		override fun toString(): String = "string"
 	},
 
 	INT {

@@ -48,6 +48,7 @@ private val keywordToTokenMap = mapOf(
 	"continue" to ContinueToken,
 	"unit" to UnitToken,
 	"bool" to BoolToken,
+	"string" to StringTypeToken,
 	"int" to IntToken,
 	"float" to FloatToken
 )
@@ -138,7 +139,7 @@ private fun readString(reader: LL1StatefulReader): Token {
 	var string = str.toString()
 	var keywordToken = keywordToTokenMap[string]
 
-	return keywordToken ?: StringToken(string)
+	return keywordToken ?: IdentifierToken(string)
 }
 
 private fun Char.isValidIdentifierCharacter(): Boolean = this.isLetterOrDigit() || this.equals('_')
@@ -203,6 +204,19 @@ private fun readPipe(reader: LL1StatefulReader): LogicalOrToken {
 	}
 }
 
+private fun readStringLiteral(reader: LL1StatefulReader): StringLiteralToken {
+	// If readPipe is called, the current character must be "\""
+	reader.advance()
+
+	var str = StringBuilder()
+	while (reader.current != '"') {
+		str.append(reader.current)
+		reader.advance()
+	}
+
+	return StringLiteralToken(str.toString())
+}
+
 fun createTokens(input: Reader): List<Token> {
 	val tokens: MutableList<Token> = mutableListOf()
 	val reader = LL1StatefulReader(input)
@@ -224,6 +238,7 @@ fun createTokens(input: Reader): List<Token> {
 			')' -> tokens.add(RightParenToken)
 			'{' -> tokens.add(LeftBraceToken)
 			'}' -> tokens.add(RightBraceToken)
+			'"' -> tokens.add(readStringLiteral(reader))
 			',' -> tokens.add(CommaToken)
 			':' -> tokens.add(ColonToken)
 			in '0'..'9' -> tokens.add(readNumber(reader))

@@ -5,6 +5,7 @@ import myte.eval.values.*
 fun stringOfValue(value: Value): String? {
 	return when (value) {
 		is BoolValue -> if (value.bool) "true" else "false"
+		is StringValue -> "\"${value.str}\""
 		is IntValue -> value.num.toString()
 		is FloatValue -> value.num.toString()
 		is ClosureValue -> "${value.ident.name}: ${value.type}"

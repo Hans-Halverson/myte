@@ -35,6 +35,7 @@ abstract class Builtin(val name: String, val type: FunctionType) {
 }
 
 val BUILTINS: Map<String, Builtin> = hashMapOf(
+	FLOAT_TO_INT_BUILTIN to FloatToIntBuiltin(),
 	INT_TO_FLOAT_BUILTIN to IntToFloatBuiltin()
 )
 

@@ -24,7 +24,8 @@ Implicit conversions from int to float are allowed when using arithmetic operato
 
 # Full grammar
 
-EXPR -> NUMBER
+EXPR -> NUMBER_LITERAL
+	  | " STRING_LITERAL "
 	  | IDENT
       | UNARY
       | INFIX

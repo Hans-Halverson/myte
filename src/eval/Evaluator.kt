@@ -15,6 +15,7 @@ class Evaluator(val symbolTable: SymbolTable, val environment: Environment) {
 			is IntLiteralNode -> IntValue(node.num)
 			is FloatLiteralNode -> FloatValue(node.num)
 			is BooleanLiteralNode -> BoolValue(node.bool)
+			is StringLiteralNode -> StringValue(node.str)
 			is VariableNode -> env.lookup(node.ident)
 			is BinaryMathOperatorNode -> evalBinaryMathOperator(node, env)
 			is LogicalNotNode -> BoolValue(!evalBool(node.node, env).bool)

@@ -59,9 +59,10 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 		var currentExpr = when (firstToken) {
 			is IntLiteralToken -> IntLiteral(firstToken.num)
 			is FloatLiteralToken -> FloatLiteral(firstToken.num)
-			is StringToken -> parseIdentifierExpression(firstToken)
+			is IdentifierToken -> parseIdentifierExpression(firstToken)
 			is TrueToken -> BooleanLiteralExpression(true)
 			is FalseToken -> BooleanLiteralExpression(false)
+			is StringLiteralToken -> StringLiteralExpression(firstToken.str)
 			is PlusToken -> parseUnaryPlusExpression()
 			is MinusToken -> parseUnaryMinusExpression()
 			is LogicalNotToken -> parseLogicalNotExpression()
@@ -102,7 +103,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 	}
 
 
-	fun parseIdentifierExpression(token: StringToken): IdentifierExpression {
+	fun parseIdentifierExpression(token: IdentifierToken): IdentifierExpression {
 		val ident = symbolTable.lookup(token.str)
 		if (ident == null) {
 			throw ParseException("No identifier found for symbol ${token.str}")
@@ -242,6 +243,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
 		return when (token) {
 			is BoolToken -> BoolType
+			is StringTypeToken -> StringType
 			is IntToken -> IntType
 			is FloatToken -> FloatType
 			is UnitToken -> UnitType
@@ -255,7 +257,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 		if (token is NumToken) {
 			token = tokenizer.next()
 
-			if (token !is StringToken) {
+			if (token !is IdentifierToken) {
 				throw ParseException("No identifier found in definition")
 			}
 
@@ -267,7 +269,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 			val ident = symbolTable.addSymbol(identName, IdentifierClass.NUMBER, FloatType)
 			return VariableDefinitionStatement(ident, parseExpression())
 		} else {
-			if (token !is StringToken) {
+			if (token !is IdentifierToken) {
 				throw ParseException("No identifier found in definition")
 			}
 
@@ -286,7 +288,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 	fun parseNumericFunctionDefinition(): FunctionDefinitionStatement {
 		var token = tokenizer.next()
 
-		if (token !is StringToken) {
+		if (token !is IdentifierToken) {
 			throw ParseException("No identifier found in function definition")
 		}
 
@@ -300,7 +302,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 		argsLoop@ while (tokenizer.current !is RightParenToken) {
 			token = tokenizer.next()
 			when (token) {
-				is StringToken -> {
+				is IdentifierToken -> {
 					argNames.add(token.str)
 					argTypes.add(FloatType)
 				}
@@ -339,7 +341,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
 		if (token is NumToken) {
 			return parseNumericFunctionDefinition()
-		} else if (token !is StringToken) {
+		} else if (token !is IdentifierToken) {
 			throw ParseException("No identifier found in function definition")
 		}
 
@@ -353,7 +355,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 		argsLoop@ while (tokenizer.current !is RightParenToken) {
 			token = tokenizer.next()
 			when (token) {
-				is StringToken -> {
+				is IdentifierToken -> {
 					argNames.add(token.str)
 					argTypes.add(parseTypeAnnotation())
 				}

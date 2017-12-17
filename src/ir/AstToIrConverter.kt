@@ -28,6 +28,7 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 			stmt is ReturnStatement -> convertReturn(stmt)
 			stmt is BreakStatement -> BreakNode
 			stmt is ContinueStatement -> ContinueNode
+			stmt is StringLiteralExpression -> StringLiteralNode(stmt.str)
 
 			// Boolean expressions
 			stmt is BooleanLiteralExpression -> BooleanLiteralNode(stmt.bool)

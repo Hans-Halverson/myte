@@ -2,8 +2,6 @@
 
 - Mutability and Immutability
 
-- Add basic types: strings
-
 - Add lists, arrays, maps
 
 - Allow forward declaration of functions

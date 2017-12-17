@@ -12,6 +12,10 @@ object BoolType : Type() {
 	override fun toString(): String = "bool"
 }
 
+object StringType : Type() {
+	override fun toString(): String = "string"
+}
+
 object IntType : NumberType() {
 	override fun toString(): String = "int"
 }
