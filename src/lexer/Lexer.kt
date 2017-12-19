@@ -36,6 +36,7 @@ private val keywordToTokenMap = mapOf(
 	"true" to TrueToken,
 	"false" to FalseToken,
 	"let" to LetToken,
+	"const" to ConstToken,
 	"def" to DefToken,
 	"num" to NumToken,
 	"if" to IfToken,
@@ -144,6 +145,16 @@ private fun readString(reader: LL1StatefulReader): Token {
 
 private fun Char.isValidIdentifierCharacter(): Boolean = this.isLetterOrDigit() || this.equals('_')
 
+private fun readMinus(reader: LL1StatefulReader): Token {
+	// If readMinus is called, the current character must be "-"
+	if (reader.hasNext && reader.next == '>') {
+		reader.advance()
+		return ArrowToken
+	} else {
+		return MinusToken
+	}
+}
+
 private fun readEquals(reader: LL1StatefulReader): Token {
 	// If readEquals is called, the current character must be '='
 	if (reader.hasNext && reader.next == '=') {
@@ -224,7 +235,7 @@ fun createTokens(input: Reader): List<Token> {
 	while (reader.hasCurrent) {
 		when (reader.current) {
 			'+' -> tokens.add(PlusToken)
-			'-' -> tokens.add(MinusToken)
+			'-' -> tokens.add(readMinus(reader))
 			'*' -> tokens.add(AsteriskToken)
 			'/' -> tokens.add(ForwardSlashToken)
 			'^' -> tokens.add(CaretToken)

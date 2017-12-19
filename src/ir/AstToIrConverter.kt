@@ -48,12 +48,16 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 		}
 	}
 
-	fun isNumericFunction(ident: Identifier): Boolean {
-		return symbolTable.getInfo(ident)?.idClass == IdentifierClass.NUMERIC_FUNCTION
+	fun identHasProp(ident: Identifier, prop: IdentifierProperty): Boolean {
+		return symbolTable.getInfo(ident)?.props?.contains(prop) ?: false
 	}
 
-	fun isFunction(ident: Identifier): Boolean {
-		return symbolTable.getInfo(ident)?.idClass == IdentifierClass.FUNCTION
+	fun isNumeric(ident: Identifier): Boolean {
+		return identHasProp(ident, IdentifierProperty.NUMERIC)
+	}
+
+	fun isImmutable(ident: Identifier): Boolean {
+		return identHasProp(ident, IdentifierProperty.IMMUTABLE)
 	}
 
 	fun convertFunctionDefinition(stmt: FunctionDefinitionStatement): FunctionDefinitionNode {
@@ -64,12 +68,14 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 
 		val body = convert(stmt.body)
 
-		if (!returnsHaveType(body, type.returnType)) {
-			throw IRConversionException("${stmt.ident.name} must return ${type.returnType}")
-		}
+		if (!isNumeric(stmt.ident)) {
+			if (!returnsHaveType(body, type.returnType)) {
+				throw IRConversionException("${stmt.ident.name} must return ${type.returnType}")
+			}
 
-		if (!allPathsHaveReturn(body)) {
-			throw IRConversionException("Every branch of ${stmt.ident.name} must return a value")
+			if (!allPathsHaveReturn(body)) {
+				throw IRConversionException("Every branch of ${stmt.ident.name} must return a value")
+			}
 		}
 
 		return FunctionDefinitionNode(stmt.ident, stmt.formalArgs, body)
@@ -155,7 +161,7 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 			throw IRConversionException("${expr.func.name} expected arguments of type ${funcType.argTypes}, but found ${actualArgTypes}")
 		}
 
-		if (isNumericFunction(expr.func)) {
+		if (isNumeric(expr.func)) {
 			return NumericCallNode(expr.func, args)
 		} else {
 			return FunctionCallNode(expr.func, args, funcType.returnType)
@@ -166,6 +172,10 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 		val info = symbolTable.getInfo(expr.ident)
 		if (info == null) {
 			throw IRConversionException("Unknown variable ${expr.ident.name}")
+		}
+
+		if (isImmutable(expr.ident)) {
+			throw IRConversionException("Cannot reassign immutable variable ${expr.ident.name}")
 		}
 
 		val body = convert(expr.expr)

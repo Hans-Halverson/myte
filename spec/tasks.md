@@ -1,7 +1,5 @@
 # Core Progress
 
-- Mutability and Immutability
-
 - Add lists, arrays, maps
 
 - Allow forward declaration of functions

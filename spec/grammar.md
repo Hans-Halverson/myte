@@ -58,12 +58,17 @@ ACTUAL_ARGS -> EXPR
 TYPE -> bool
       | float
       | unit
-      | TYPE ->
+      | FUNCTION_TYPE
+      | ( FUNCTION_TYPE )
+
+FUNCTION_TYPE -> TYPE -> TYPE
 
 TYPED_IDENT = IDENT : TYPE
 
 VARIABLE_DEF -> let TYPED_IDENT = EXPR
 			  | let num IDENT = EXPR
+			  | const TYPED_IDENT = EXPR
+			  | const num IDENT = EXPR
 
 FUNCTION_DEF -> def IDENT ( FORMAL_ARGS ) : TYPE STATEMENT
 			  | def num IDENT ( FORMAL_NUM_ARGS ) = EXPR

@@ -46,9 +46,9 @@ class SymbolTable() {
 		return null
 	}
 
-	fun addSymbol(name: String, idClass: IdentifierClass, type: Type): Identifier {
+	fun addSymbol(name: String, idClass: IdentifierClass, type: Type, props: Set<IdentifierProperty> = hashSetOf()): Identifier {
 		val ident = newIdentifier(name)
-		val info = IdentifierInfo(name, idClass, type)
+		val info = IdentifierInfo(name, idClass, type, props)
 
 		currentTable.symbols[name] = ident
 		identifiers[ident] = info

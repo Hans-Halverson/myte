@@ -19,10 +19,13 @@ fun newIdentifier(name: String): Identifier {
 data class Identifier(val name: String, val id: Long)
 
 enum class IdentifierClass {
-	NUMBER,
-	NUMERIC_FUNCTION,
 	VARIABLE,
 	FUNCTION,
 }
 
-data class IdentifierInfo(val name: String, val idClass: IdentifierClass, val type: Type)
+enum class IdentifierProperty {
+	NUMERIC,
+	IMMUTABLE,
+}
+
+data class IdentifierInfo(val name: String, val idClass: IdentifierClass, val type: Type, val props: Set<IdentifierProperty>)

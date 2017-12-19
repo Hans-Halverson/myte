@@ -143,9 +143,19 @@ object ColonToken: Token() {
 	override fun toString(): String = ":"
 }
 
+object ArrowToken: Token() {
+	override val type: TokenType = TokenType.ARROW
+	override fun toString(): String = "->"
+}
+
 object LetToken: Token() {
 	override val type: TokenType = TokenType.LET
 	override fun toString(): String = "let"
+}
+
+object ConstToken: Token() {
+	override val type: TokenType = TokenType.CONST
+	override fun toString(): String = "const"
 }
 
 object DefToken: Token() {

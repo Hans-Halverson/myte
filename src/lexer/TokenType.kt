@@ -113,8 +113,16 @@ enum class TokenType {
 		override fun toString(): String = ":"
 	},
 
+	ARROW {
+		override fun toString(): String = "->"
+	},
+
 	LET {
 		override fun toString(): String = "let"
+	},
+
+	CONST {
+		override fun toString(): String = "const"
 	},
 
 	DEF {
