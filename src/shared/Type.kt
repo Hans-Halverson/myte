@@ -24,6 +24,10 @@ object FloatType : NumberType() {
 	override fun toString(): String = "float"
 }
 
+data class ListType(val typeParam: Type) : Type() {
+	override fun toString(): String = "list<${typeParam}>"
+}
+
 class FunctionType(val argTypes: List<Type>, val returnType: Type) : Type() {
 	override fun toString(): String {
 		val builder = StringBuilder()

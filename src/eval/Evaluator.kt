@@ -23,7 +23,6 @@ class Evaluator(val symbolTable: SymbolTable, val environment: Environment) {
 			is LogicalOrNode -> evalLogicalOr(node, env)
 			is EqualityNode -> evalEquality(node, env)
 			is ComparisonNode -> evalComparison(node, env)
-			is NumericCallNode -> evalNumericCall(node, env)
 			is FunctionCallNode -> evalFunctionCall(node, env)
 			is AssignmentNode -> evalAssignment(node, env)
 			is VariableDefinitionNode -> {
@@ -137,25 +136,6 @@ class Evaluator(val symbolTable: SymbolTable, val environment: Environment) {
 				BoolValue(node.compareFloats(left.num, right.num))
 			}
 		}
-	}
-
-	fun evalNumericCall(node: NumericCallNode, env: Environment): Value {
-		val closureValue = env.lookup(node.func)
-
-		if (closureValue !is ClosureValue) {
-			throw EvaluationException("Cannot call ${closureValue}, can only call functions")
-		}
-
-		if (node.actualArgs.size != closureValue.formalArgs.size) {
-			throw EvaluationException("${node.func} expected ${closureValue.formalArgs.size} arguments, but received ${node.actualArgs.size}")
-		}
-
-		val actualArgs: List<Value> = node.actualArgs.map { expr -> evaluate(expr, env) }
-
-		val applicationEnv: Environment = closureValue.environment.copy()
-		closureValue.formalArgs.zip(actualArgs).forEach { (ident, value) -> applicationEnv.extend(ident, value) }
-
-		return evaluate(closureValue.body, applicationEnv)
 	}
 
 	fun evalFunctionCall(node: FunctionCallNode, env: Environment): Value {

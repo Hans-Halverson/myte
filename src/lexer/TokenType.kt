@@ -101,6 +101,14 @@ enum class TokenType {
 		override fun toString(): String = "}"
 	},
 
+	LEFT_BRACKET {
+		override fun toString(): String = "["
+	},
+
+	RIGHT_BRACKET {
+		override fun toString(): String = "]"
+	},
+
 	QUOTES {
 		override fun toString(): String = "\""
 	},
@@ -183,6 +191,10 @@ enum class TokenType {
 
 	FLOAT {
 		override fun toString(): String = "float"
+	},
+
+	LIST {
+		override fun toString(): String = "list"
 	},
 
 	NEW_LINE {

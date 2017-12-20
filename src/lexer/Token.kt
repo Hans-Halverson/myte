@@ -128,6 +128,16 @@ object RightBraceToken : Token() {
 	override fun toString(): String = "}"
 }
 
+object LeftBracketToken : Token() {
+	override val type: TokenType = TokenType.LEFT_BRACKET
+	override fun toString(): String = "["
+}
+
+object RightBracketToken : Token() {
+	override val type: TokenType = TokenType.RIGHT_BRACKET
+	override fun toString(): String = "]"
+}
+
 object QuotesToken: Token() {
 	override val type: TokenType = TokenType.QUOTES
 	override fun toString(): String = "\""
@@ -231,6 +241,11 @@ object IntToken: Token() {
 object FloatToken: Token() {
 	override val type: TokenType = TokenType.FLOAT
 	override fun toString(): String = "float"
+}
+
+object ListToken: Token() {
+	override val type: TokenType = TokenType.LIST
+	override fun toString(): String = "list"
 }
 
 object NewLineToken: Token() {

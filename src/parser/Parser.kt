@@ -58,12 +58,15 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 	fun parseExpression(firstToken: Token?, precedence: Int = 0): Expression {
 		// Match on all tokens that signal a prefix operator
 		var currentExpr = when (firstToken) {
+			// Literals
 			is IntLiteralToken -> IntLiteral(firstToken.num)
 			is FloatLiteralToken -> FloatLiteral(firstToken.num)
 			is IdentifierToken -> parseIdentifierExpression(firstToken)
 			is TrueToken -> BooleanLiteralExpression(true)
 			is FalseToken -> BooleanLiteralExpression(false)
 			is StringLiteralToken -> StringLiteralExpression(firstToken.str)
+			is LeftBracketToken -> parseListExpression()
+			// Unary operators
 			is PlusToken -> parseUnaryPlusExpression()
 			is MinusToken -> parseUnaryMinusExpression()
 			is LogicalNotToken -> parseLogicalNotExpression()
@@ -111,6 +114,27 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 		}
 
 		return IdentifierExpression(ident)
+	}
+
+	fun parseListExpression(): ListExpression {
+		val elements: MutableList<Expression> = mutableListOf()
+
+		if (tokenizer.current is RightBracketToken) {
+			tokenizer.next()
+			return ListExpression(listOf())
+		}
+
+		elements.add(parseExpression())
+
+		while (tokenizer.current is CommaToken) {
+			tokenizer.next()
+			elements.add(parseExpression())
+		}
+
+		assertCurrent(TokenType.RIGHT_BRACKET)
+		tokenizer.next()
+
+		return ListExpression(elements)
 	}
 
 	fun parseUnaryPlusExpression(): UnaryPlusExpression {
@@ -268,6 +292,17 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
 				functionType
 			}
+			is ListToken -> {
+				assertCurrent(TokenType.LESS_THAN)
+				tokenizer.next()
+
+				val typeParam = parseType()
+
+				assertCurrent(TokenType.GREATER_THAN)
+				tokenizer.next()
+
+				ListType(typeParam)
+			}
 			else -> throw ParseException("Expected type, got ${token}")
 		}
 	}
@@ -320,8 +355,14 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 		}
 	}
 
-	fun parseNumericFunctionDefinition(): FunctionDefinitionStatement {
+	fun parseFunctionDefinition(): Statement {
 		var token = tokenizer.next()
+
+		var isNumeric = false
+		if (token is NumToken) {
+			token = tokenizer.next()
+			isNumeric = true
+		}
 
 		if (token !is IdentifierToken) {
 			throw ParseException("No identifier found in function definition")
@@ -339,60 +380,11 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 			when (token) {
 				is IdentifierToken -> {
 					argNames.add(token.str)
-					argTypes.add(FloatType)
-				}
-				else -> throw ParseException("Formal arguments must be identifiers")
-			}
-
-			when (tokenizer.current) {
-				is RightParenToken -> break@argsLoop
-				is CommaToken -> tokenizer.next()
-				else -> throw ParseException(tokenizer.current)
-			}
-		}
-
-		val ident = symbolTable.addSymbol(funcName, IdentifierClass.FUNCTION, FunctionType(argTypes, FloatType), hashSetOf(IdentifierProperty.NUMERIC))
-		val formalArgs: MutableList<Identifier> = mutableListOf()
-
-		symbolTable.enterScope()
-
-		for (name in argNames) {
-			formalArgs.add(symbolTable.addSymbol(name, IdentifierClass.VARIABLE, FloatType, hashSetOf(IdentifierProperty.NUMERIC)))
-		}
-
-		tokenizer.next()
-		assertCurrent(TokenType.EQUALS)
-		tokenizer.next()
-
-		val expr = parseExpression()
-
-		symbolTable.exitScope()
-
-		return FunctionDefinitionStatement(ident, formalArgs, expr)
-	}
-
-	fun parseFunctionDefinition(): Statement {
-		var token = tokenizer.next()
-
-		if (token is NumToken) {
-			return parseNumericFunctionDefinition()
-		} else if (token !is IdentifierToken) {
-			throw ParseException("No identifier found in function definition")
-		}
-
-		val funcName = token.str
-		val argNames: MutableList<String> = mutableListOf()
-		val argTypes: MutableList<Type> = mutableListOf()
-
-		assertCurrent(TokenType.LEFT_PAREN)
-		tokenizer.next()
-
-		argsLoop@ while (tokenizer.current !is RightParenToken) {
-			token = tokenizer.next()
-			when (token) {
-				is IdentifierToken -> {
-					argNames.add(token.str)
-					argTypes.add(parseTypeAnnotation())
+					if (isNumeric) {
+						argTypes.add(FloatType)
+					} else {
+						argTypes.add(parseTypeAnnotation())
+					}
 				}
 				else -> throw ParseException("Formal arguments must be identifiers")
 			}
@@ -406,7 +398,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
 		tokenizer.next()
 
-		val returnType = parseTypeAnnotation()
+		val returnType = if (isNumeric) FloatType else parseTypeAnnotation()
 		val ident = symbolTable.addSymbol(funcName, IdentifierClass.FUNCTION, FunctionType(argTypes, returnType))
 		val formalArgs: MutableList<Identifier> = mutableListOf()
 
@@ -416,11 +408,20 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 			formalArgs.add(symbolTable.addSymbol(argName, IdentifierClass.VARIABLE, argType))
 		}
 
-		val stmt = parseStatement()
+		if (tokenizer.current is EqualsToken) {
+			tokenizer.next()
 
-		symbolTable.exitScope()
+			val expr = parseExpression()
+			symbolTable.exitScope()
+			return FunctionDefinitionExpression(ident, formalArgs, expr)
+		} else {
+			assertCurrent(TokenType.LEFT_BRACE)
+			tokenizer.next()
 
-		return FunctionDefinitionStatement(ident, formalArgs, stmt)
+			val block = parseBlock()
+			symbolTable.exitScope()
+			return FunctionDefinitionStatement(ident, formalArgs, block)
+		}
 	}
 
 	fun parseBlock(): BlockStatement {

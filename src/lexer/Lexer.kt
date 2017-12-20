@@ -51,7 +51,8 @@ private val keywordToTokenMap = mapOf(
 	"bool" to BoolToken,
 	"string" to StringTypeToken,
 	"int" to IntToken,
-	"float" to FloatToken
+	"float" to FloatToken,
+	"list" to ListToken
 )
 
 private fun readNumber(reader: LL1StatefulReader): Token {
@@ -249,6 +250,8 @@ fun createTokens(input: Reader): List<Token> {
 			')' -> tokens.add(RightParenToken)
 			'{' -> tokens.add(LeftBraceToken)
 			'}' -> tokens.add(RightBraceToken)
+			'[' -> tokens.add(LeftBracketToken)
+			']' -> tokens.add(RightBracketToken)
 			'"' -> tokens.add(readStringLiteral(reader))
 			',' -> tokens.add(CommaToken)
 			':' -> tokens.add(ColonToken)

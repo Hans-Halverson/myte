@@ -17,6 +17,7 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 			stmt is IdentifierExpression -> convertVariable(stmt)
 			stmt is VariableDefinitionStatement -> convertVariableDefinition(stmt)
 			stmt is FunctionDefinitionStatement -> convertFunctionDefinition(stmt)
+			stmt is FunctionDefinitionExpression -> convertFunctionDefinitionExpression(stmt)
 			stmt is BlockStatement -> BlockNode(stmt.stmts.map(this::convert))
 			stmt is IfStatement -> convertIf(stmt)
 			stmt is WhileStatement -> convertWhile(stmt)
@@ -29,6 +30,7 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 			stmt is BreakStatement -> BreakNode
 			stmt is ContinueStatement -> ContinueNode
 			stmt is StringLiteralExpression -> StringLiteralNode(stmt.str)
+			stmt is ListExpression -> convertList(stmt)
 
 			// Boolean expressions
 			stmt is BooleanLiteralExpression -> BooleanLiteralNode(stmt.bool)
@@ -68,17 +70,30 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 
 		val body = convert(stmt.body)
 
-		if (!isNumeric(stmt.ident)) {
-			if (!returnsHaveType(body, type.returnType)) {
-				throw IRConversionException("${stmt.ident.name} must return ${type.returnType}")
-			}
+		if (!returnsHaveType(body, type.returnType)) {
+			throw IRConversionException("${stmt.ident.name} must return ${type.returnType}")
+		}
 
-			if (!allPathsHaveReturn(body)) {
-				throw IRConversionException("Every branch of ${stmt.ident.name} must return a value")
-			}
+		if (!allPathsHaveReturn(body)) {
+			throw IRConversionException("Every branch of ${stmt.ident.name} must return a value")
 		}
 
 		return FunctionDefinitionNode(stmt.ident, stmt.formalArgs, body)
+	}
+
+	fun convertFunctionDefinitionExpression(stmt: FunctionDefinitionExpression): FunctionDefinitionNode {
+		val type = symbolTable.getInfo(stmt.ident)?.type
+		if (type !is FunctionType) {
+			throw IRConversionException("Unknown function ${stmt.ident.name}")
+		}
+
+		val body = convert(stmt.body)
+
+		if (body.type != type.returnType) {
+			throw IRConversionException("${stmt.ident.name} must return ${type.returnType}, found ${body.type}")
+		}
+
+		return FunctionDefinitionNode(stmt.ident, stmt.formalArgs, ReturnNode(body)) 
 	}
 
 	fun convertVariableDefinition(stmt: VariableDefinitionStatement): VariableDefinitionNode {
@@ -162,7 +177,7 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 		}
 
 		if (isNumeric(expr.func)) {
-			return NumericCallNode(expr.func, args)
+			return FunctionCallNode(expr.func, args, FloatType)
 		} else {
 			return FunctionCallNode(expr.func, args, funcType.returnType)
 		}
@@ -190,6 +205,10 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 	fun convertReturn(expr: ReturnStatement): ReturnNode {
 		val returnVal = if (expr.expr != null) convert(expr.expr) else null 
 		return ReturnNode(returnVal)
+	}
+
+	fun convertList(expr: ListExpression): ListNode {
+		return ListNode(mutableListOf(), ListType(BoolType))
 	}
 
 	fun convertEquality(expr: EqualityExpression): EqualityNode {

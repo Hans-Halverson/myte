@@ -26,6 +26,7 @@ Implicit conversions from int to float are allowed when using arithmetic operato
 
 EXPR -> NUMBER_LITERAL
 	  | " STRING_LITERAL "
+	  | [ EXPR_LIST ]
 	  | IDENT
       | UNARY
       | INFIX
@@ -50,18 +51,22 @@ INFIX -> EXPR + EXPR
 	   | EXPR && EXPR
 	   | EXPR || EXPR
 
-FUNCTION_CALL -> IDENT ( ACTUAL ARGS )
+FUNCTION_CALL -> IDENT ( EXPR_LIST )
 
-ACTUAL_ARGS -> EXPR
-			 | , EXPR
+EXPR_LIST -> EXPR
+		   | , EXPR
+
 
 TYPE -> bool
       | float
       | unit
-      | FUNCTION_TYPE
-      | ( FUNCTION_TYPE )
+      | ( TYPE )
+      | TYPE -> TYPE
+      | list<TYPE_PARAM_LIST>
 
-FUNCTION_TYPE -> TYPE -> TYPE
+TYPE_PARAM_LIST -> TYPE TYPE_PARAM_LIST
+                 | TYPE
+
 
 TYPED_IDENT = IDENT : TYPE
 
@@ -70,14 +75,18 @@ VARIABLE_DEF -> let TYPED_IDENT = EXPR
 			  | const TYPED_IDENT = EXPR
 			  | const num IDENT = EXPR
 
-FUNCTION_DEF -> def IDENT ( FORMAL_ARGS ) : TYPE STATEMENT
-			  | def num IDENT ( FORMAL_NUM_ARGS ) = EXPR
+FUNCTION_SIG -> def IDENT ( TYPED_ARGS ) : TYPE FUNCTION_BODY
+			  | def num IDENT ( UNTYPED_ARGS ) FUNCTION_BODY
 
-FORMAL_ARGS -> TYPED_IDENT
-		     | FORMAL_ARGS , TYPED_IDENT
+FUNCTION_BODY -> BLOCK
+               | = EXPR
 
-FORMAL_NUM_ARGS -> IDENT
-		         | FORMAL_NUM_ARGS , IDENT
+TYPED_ARGS -> TYPED_IDENT
+		    | TYPED_ARGS , TYPED_IDENT
+
+UNTYPED_ARGS -> IDENT
+		      | UNTYPED_ARGS , IDENT
+
 
 IF_STATEMENT -> if EXPR STATEMENT
               | if EXPR STATEMENT else STATEMENT
@@ -110,6 +119,7 @@ STATEMENT_LIST -> STATEMENT STATEMENT_LIST
                 | epsilon
 
 BLOCK -> { STATEMENT_LIST }
+
 
 REPL_LINE = STATEMENT
 FILE = STATEMENT_LIST
