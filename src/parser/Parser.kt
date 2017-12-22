@@ -334,8 +334,10 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 				identProps.add(IdentifierProperty.IMMUTABLE)
 			}
 
+			val expr = parseExpression()
 			val ident = symbolTable.addSymbol(identName, IdentifierClass.VARIABLE, FloatTypeExpression, identProps)
-			return VariableDefinitionStatement(ident, parseExpression())
+			
+			return VariableDefinitionStatement(ident, expr)
 		} else {
 			if (token !is IdentifierToken) {
 				throw ParseException("No identifier found in definition")
@@ -351,8 +353,10 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 			assertCurrent(TokenType.EQUALS)
 			tokenizer.next()
 
+			val expr = parseExpression()
 			val ident = symbolTable.addSymbol(identName, IdentifierClass.VARIABLE, typeExpr, identProps)
-			return VariableDefinitionStatement(ident, parseExpression())
+			
+			return VariableDefinitionStatement(ident, expr)
 		}
 	}
 

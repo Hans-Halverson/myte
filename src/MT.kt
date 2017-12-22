@@ -75,6 +75,7 @@ fun repl(input: BufferedReader) {
 				val statement = parser.parseLine()
 
 				val ir = converter.convert(statement)
+				converter.inferTypes(listOf(ir))
 				converter.assertIRStructure(ir)
 
 				val value = eval.evaluate(ir)
@@ -104,15 +105,16 @@ fun evaluateFile(input: BufferedReader) {
 	
 	val parser = Parser(symbolTable, tokens)
 	val converter = AstToIrConverter(symbolTable)
-	val statements = parser.parseFile()
-	
 	val eval = Evaluator(symbolTable, environment)
 
-	for (statement in statements) {
-		val ir = converter.convert(statement)
-		converter.assertIRStructure(ir)
-		
-		val value = eval.evaluate(ir)
+	val statements = parser.parseFile()
+	val irNodes = statements.map(converter::convert)
+
+	converter.inferTypes(irNodes)
+	irNodes.forEach(converter::assertIRStructure)
+
+	for (irNode in irNodes) {
+		val value = eval.evaluate(irNode)
 		printValue(value)
 	}
 }

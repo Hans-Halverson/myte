@@ -154,7 +154,7 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 	}
 
 	fun convertListLiteral(expr: ListLiteralExpression): ListLiteralNode {
-		return ListLiteralNode(expr.elements.map(this::convert), ListTypeExpression(newTypeVariable()))
+		return ListLiteralNode(expr.elements.map(this::convert))
 	}
 
 	fun convertEquality(expr: EqualityExpression): EqualityNode {
@@ -171,25 +171,11 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 		val leftNode = convert(expr.left)
 		val rightNode = convert(expr.right)
 
-		// TODO: Readd this type check and integer comparisons
-//		if (leftNode.type !is NumberType || rightNode.type !is NumberType) {
-//			throw IRConversionException("Comparison expects two numbers, found ${leftNode.type} and ${rightNode.type}")
-//		}
-//
-//		val (left, right, type) = coerceNumbers(leftNode, rightNode)
-//
-//		return when (expr) {
-//			is LessThanExpression -> LessThanNode(left, right, type)
-//			is LessThanOrEqualExpression -> LessThanOrEqualNode(left, right, type)
-//			is GreaterThanExpression -> GreaterThanNode(left, right, type)
-//			is GreaterThanOrEqualExpression -> GreaterThanOrEqualNode(left, right, type)
-//		}
-
 		return when (expr) {
-			is LessThanExpression -> LessThanNode(leftNode, rightNode, FloatType)
-			is LessThanOrEqualExpression -> LessThanOrEqualNode(leftNode, rightNode, FloatType)
-			is GreaterThanExpression -> GreaterThanNode(leftNode, rightNode, FloatType)
-			is GreaterThanOrEqualExpression -> GreaterThanOrEqualNode(leftNode, rightNode, FloatType)
+			is LessThanExpression -> LessThanNode(leftNode, rightNode)
+			is LessThanOrEqualExpression -> LessThanOrEqualNode(leftNode, rightNode)
+			is GreaterThanExpression -> GreaterThanNode(leftNode, rightNode)
+			is GreaterThanOrEqualExpression -> GreaterThanOrEqualNode(leftNode, rightNode)
 		}
 	}
 
@@ -209,21 +195,6 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 		val leftNode = convert(expr.left)
 		val rightNode = convert(expr.right)
 
-		// TODO: Readd this type check
-//		if (leftNode.type !is NumberType || rightNode.type !is NumberType) {
-//			throw IRConversionException("Binary math operator expected two numbers, found ${leftNode.type} and ${rightNode.type}")
-//		}
-//
-//		val (left, right, type) = coerceNumbers(leftNode, rightNode)
-//
-//		return when (expr) {
-//			is AddExpression -> AddNode(left, right, type)
-//			is SubtractExpression -> SubtractNode(left, right, type)
-//			is MultiplyExpression -> MultiplyNode(left, right, type)
-//			is DivideExpression -> DivideNode(left, right, type)
-//			is ExponentExpression -> ExponentNode(left, right, type)
-//		}
-
 		return when (expr) {
 			is AddExpression -> AddNode(leftNode, rightNode)
 			is SubtractExpression -> SubtractNode(leftNode, rightNode)
@@ -233,52 +204,21 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 		}
 	}
 
-// TDOD: Recreate functionality in new type system
-//	fun coerceNumbers(left: IRNode, right: IRNode): Triple<IRNode, IRNode, NumberType> {
-//		if (left.type is IntType && right.type is IntType) {
-//			return Triple(left, right, IntType)
-//		} else if (left.type is IntType && right.type is FloatType) {
-//			val intToFloat = BUILTINS[INT_TO_FLOAT_BUILTIN]!!
-//			val floatLeft = FunctionCallNode(intToFloat.getIdent(), listOf(left), intToFloat.type.returnType)
-//	
-//			return Triple(floatLeft, right, FloatType)
-//		} else if (left.type is FloatType && right.type is IntType) {
-//			val intToFloat = BUILTINS[INT_TO_FLOAT_BUILTIN]!!
-//			val floatRight = FunctionCallNode(intToFloat.getIdent(), listOf(right), intToFloat.type.returnType)
-//			
-//			return Triple(left, floatRight, FloatType)
-//		} else if (left.type is FloatType && right.type is FloatType) {
-//			return Triple(left, right, FloatType)
-//		} else {
-//			throw IRConversionException("Cannot coerce ${left.type} and ${right.type} into common type")
-//		}
-//	}
-
-	fun convertUnaryPlus(expr: UnaryPlusExpression): IRNode {
-		val body = convert(expr.expr)
-		// TODO: Readd this type check
-//		if (body.type !is NumberType) {
-//			throw IRConversionException("Unary plus operator expected a number type, found ${body.type}")
-//		}
-
-		return body
+	fun convertUnaryPlus(expr: UnaryPlusExpression): IdentityNode {
+		return IdentityNode(convert(expr.expr))
 	}
 
 	fun convertUnaryMinus(expr: UnaryMinusExpression): NegateNode {
-		val body = convert(expr.expr)
-		// TODO: Readd this type check and functionality
-//		return when (body.type) {
-//			is IntType -> MultiplyNode(NEGATIVE_ONE_INT_NODE, body, IntType)
-//			is FloatType -> MultiplyNode(NEGATIVE_ONE_FLOAT_NODE, body, FloatType)
-//			else -> throw IRConversionException("Unary minus operator expected a number type, found ${body.type}")
-//		}
+		return NegateNode(convert(expr.expr))
+	}
 
-		return NegateNode(body)
+	fun inferTypes(nodes: List<IRNode>) {
+		nodes.forEach(typeChecker::typeCheck)
+		nodes.forEach(typeChecker::inferIRTypes)
+		typeChecker.inferSymbolTypes()
 	}
 
 	fun assertIRStructure(node: IRNode) {
-		typeChecker.typeCheck(node)
-		typeChecker.inferTypes(node)
 		functionsReturnCorrectType(node)
 		jumpsInAllowedPlaces(node, false, false)
 	}

@@ -1,9 +1,8 @@
 package myte.ir.nodes
 
-import myte.eval.values.*
 import myte.shared.*
 
-sealed class BinaryMathOperatorNode(val left: IRNode, val right: IRNode) : IRNode(FloatTypeExpression) {
+sealed class BinaryMathOperatorNode(val left: IRNode, val right: IRNode) : IRNode(newTypeVariable()) {
 	abstract fun computeInt(left: Int, right: Int): Int
 	abstract fun computeFloat(left: Double, right: Double): Double
 
