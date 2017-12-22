@@ -1,6 +1,6 @@
-package myte.parser
+package myte.shared
 
-import myte.shared.*
+class SymbolTableException(message: String) : Exception(message)
 
 private class ScopedSymbolTable(val parent: ScopedSymbolTable? = null) {
 	val symbols: MutableMap<String, Identifier> = hashMapOf()
@@ -17,7 +17,7 @@ class SymbolTable() {
 	fun exitScope() {
 		val parent = currentTable.parent
 		if (parent == null) {
-			throw ParseException("Cannot exit global scope")
+			throw SymbolTableException("Cannot exit global scope")
 		}
 		
 		currentTable = parent
@@ -46,9 +46,9 @@ class SymbolTable() {
 		return null
 	}
 
-	fun addSymbol(name: String, idClass: IdentifierClass, type: Type, props: Set<IdentifierProperty> = hashSetOf()): Identifier {
+	fun addSymbol(name: String, idClass: IdentifierClass, typeExpr: TypeExpression, props: Set<IdentifierProperty> = hashSetOf()): Identifier {
 		val ident = newIdentifier(name)
-		val info = IdentifierInfo(name, idClass, type, props)
+		val info = IdentifierInfo(name, idClass, typeExpr, props)
 
 		currentTable.symbols[name] = ident
 		identifiers[ident] = info

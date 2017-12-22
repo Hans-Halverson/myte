@@ -16,8 +16,10 @@ class Evaluator(val symbolTable: SymbolTable, val environment: Environment) {
 			is FloatLiteralNode -> FloatValue(node.num)
 			is BooleanLiteralNode -> BoolValue(node.bool)
 			is StringLiteralNode -> StringValue(node.str)
+			is ListLiteralNode -> evalListLiteralNode(node, env)
 			is VariableNode -> env.lookup(node.ident)
 			is BinaryMathOperatorNode -> evalBinaryMathOperator(node, env)
+			is NegateNode -> evalNegate(node, env)
 			is LogicalNotNode -> BoolValue(!evalBool(node.node, env).bool)
 			is LogicalAndNode -> evalLogicalAnd(node, env)
 			is LogicalOrNode -> evalLogicalOr(node, env)
@@ -34,6 +36,7 @@ class Evaluator(val symbolTable: SymbolTable, val environment: Environment) {
 				if (type !is FunctionType) {
 					throw EvaluationException("Unknown function ${node.ident.name}")
 				}
+
 				env.extend(node.ident, ClosureValue(node.ident, node.formalArgs, node.body, env.copy(), type))
 				return UnitValue
 			}
@@ -76,22 +79,49 @@ class Evaluator(val symbolTable: SymbolTable, val environment: Environment) {
 		return value
 	}
 
-	fun evalBinaryMathOperator(node: BinaryMathOperatorNode, env: Environment): NumberValue {
-		return when (node.type) {
-			is IntType -> {
-				val left = evalInt(node.left, env)
-				val right = evalInt(node.right, env)
-
-				IntValue(node.computeInt(left.num, right.num))
-			}
-			is FloatType -> {
-				val left = evalFloat(node.left, env)
-				val right = evalFloat(node.right, env)
-
-				FloatValue(node.computeFloat(left.num, right.num))
-			}
-			else -> throw EvaluationException("Binary math operator must have a number type, given ${node.type}")
+	fun evalListLiteralNode(node: ListLiteralNode, env: Environment): ListValue {
+		val type = node.type
+		if (type !is ListType) {
+			throw EvaluationException("Expected list literal to have list type, but found ${type}")
 		}
+
+		val list = node.elements.map({ element -> evaluate(element, env) }).toMutableList()
+
+		return ListValue(list, type)
+	}
+
+	fun evalBinaryMathOperator(node: BinaryMathOperatorNode, env: Environment): NumberValue {
+// TODO: Readd ints
+//		return when (node.type) {
+//			is IntType -> {
+//				val left = evalInt(node.left, env)
+//				val right = evalInt(node.right, env)
+//
+//				IntValue(node.computeInt(left.num, right.num))
+//			}
+//			is FloatType -> {
+//				val left = evalFloat(node.left, env)
+//				val right = evalFloat(node.right, env)
+//
+//				FloatValue(node.computeFloat(left.num, right.num))
+//			}
+//			else -> throw EvaluationException("Binary math operator must have a number type, given ${node.type}")
+//		}
+
+		val left = evalFloat(node.left, env)
+		val right = evalFloat(node.right, env)
+
+		return FloatValue(node.computeFloat(left.num, right.num))
+	}
+
+	fun evalNegate(node: NegateNode, env: Environment): NumberValue {
+// TODO: Readd ints
+//		return when (node.type) {
+//			is IntType -> IntValue(evalInt(node.expr, env).num)
+//			is FloatType -> FloatValue(evalFloat(node.expr, env).num)
+//			else -> throw EvaluationException("Unary math operator must have a number type, given ${node.type}")
+//		}
+		return FloatValue(-evalFloat(node.expr, env).num)
 	}
 
 	fun evalLogicalAnd(node: LogicalAndNode, env: Environment): BoolValue {

@@ -11,6 +11,8 @@ val NEGATIVE_ONE_FLOAT_NODE = FloatLiteralNode(-1.0)
 
 class AstToIrConverter(val symbolTable: SymbolTable) {
 
+	private val typeChecker = TypeChecker(symbolTable)
+
 	fun convert(stmt: Statement): IRNode {
 		return when {
 			// General statements / expressions
@@ -30,7 +32,7 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 			stmt is BreakStatement -> BreakNode
 			stmt is ContinueStatement -> ContinueNode
 			stmt is StringLiteralExpression -> StringLiteralNode(stmt.str)
-			stmt is ListExpression -> convertList(stmt)
+			stmt is ListLiteralExpression -> convertListLiteral(stmt)
 
 			// Boolean expressions
 			stmt is BooleanLiteralExpression -> BooleanLiteralNode(stmt.bool)
@@ -63,16 +65,7 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 	}
 
 	fun convertFunctionDefinition(stmt: FunctionDefinitionStatement): FunctionDefinitionNode {
-		val type = symbolTable.getInfo(stmt.ident)?.type
-		if (type !is FunctionType) {
-			throw IRConversionException("Unknown function ${stmt.ident.name}")
-		}
-
 		val body = convert(stmt.body)
-
-		if (!returnsHaveType(body, type.returnType)) {
-			throw IRConversionException("${stmt.ident.name} must return ${type.returnType}")
-		}
 
 		if (!allPathsHaveReturn(body)) {
 			throw IRConversionException("Every branch of ${stmt.ident.name} must return a value")
@@ -82,16 +75,7 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 	}
 
 	fun convertFunctionDefinitionExpression(stmt: FunctionDefinitionExpression): FunctionDefinitionNode {
-		val type = symbolTable.getInfo(stmt.ident)?.type
-		if (type !is FunctionType) {
-			throw IRConversionException("Unknown function ${stmt.ident.name}")
-		}
-
 		val body = convert(stmt.body)
-
-		if (body.type != type.returnType) {
-			throw IRConversionException("${stmt.ident.name} must return ${type.returnType}, found ${body.type}")
-		}
 
 		return FunctionDefinitionNode(stmt.ident, stmt.formalArgs, ReturnNode(body)) 
 	}
@@ -102,21 +86,11 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 			throw IRConversionException("Unknown variable ${stmt.ident.name}")
 		}
 
-		val body = convert(stmt.expr)
-
-		if (info.type != body.type) {
-			throw IRConversionException("${stmt.ident.name} has type ${info.type}, but was assigned ${body.type}")
-		}
-
 		return VariableDefinitionNode(stmt.ident, convert(stmt.expr))
 	}
 
 	fun convertIf(stmt: IfStatement): IfNode {
 		val cond = convert(stmt.cond)
-		if (cond.type !is BoolType) {
-			throw IRConversionException("Condition of if must be a bool, but given ${cond.type}")
-		}
-
 		val conseq = convert(stmt.conseq)
 		val altern = if (stmt.altern != null) convert(stmt.altern) else null
 
@@ -124,31 +98,16 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 	}
 
 	fun convertWhile(stmt: WhileStatement): WhileNode {
-		val cond = convert(stmt.cond)
-		if (cond.type !is BoolType) {
-			throw IRConversionException("Condition of while must be a bool, but given ${cond.type}")
-		}
-
-		return WhileNode(cond, convert(stmt.body))
+		return WhileNode(convert(stmt.cond), convert(stmt.body))
 	}
 
 	fun convertDoWhile(stmt: DoWhileStatement): DoWhileNode {
-		val cond = convert(stmt.cond)
-		if (cond.type !is BoolType) {
-			throw IRConversionException("Condition of do while must be a bool, but given ${cond.type}")
-		}
-
-		return DoWhileNode(cond, convert(stmt.body))
+		return DoWhileNode(convert(stmt.cond), convert(stmt.body))
 	}
 
 	fun convertFor(stmt: ForStatement): ForNode {
 		val init = if (stmt.init != null) convert(stmt.init) else null
-
 		val cond = if (stmt.cond != null) convert(stmt.cond) else null
-		if (cond != null && cond.type !is BoolType) {
-			throw IRConversionException("Condition of for must be a bool, but given ${cond.type}")
-		}
-
 		val update = if (stmt.update != null) convert(stmt.update) else null
 
 		return ForNode(init, cond, update, convert(stmt.body))
@@ -160,26 +119,19 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 			throw IRConversionException("Unknown variable ${expr.ident.name}")
 		}
 
-		return VariableNode(expr.ident, info.type)
+		return VariableNode(expr.ident, info.typeExpr)
 	}
 
 	fun convertFunctionCall(expr: CallExpression): IRNode {
-		val funcType = symbolTable.getInfo(expr.func)?.type
-		if (funcType !is FunctionType) {
-			throw IRConversionException("Unknown function ${expr.func.name}")
-		}
-
 		val args = expr.actualArgs.map(this::convert)
-		val actualArgTypes = args.map { arg -> arg.type }
-
-		if (actualArgTypes != funcType.argTypes) {
-			throw IRConversionException("${expr.func.name} expected arguments of type ${funcType.argTypes}, but found ${actualArgTypes}")
-		}
 
 		if (isNumeric(expr.func)) {
-			return FunctionCallNode(expr.func, args, FloatType)
+			return FunctionCallNode(expr.func, args, FloatTypeExpression)
 		} else {
-			return FunctionCallNode(expr.func, args, funcType.returnType)
+			val funcType = symbolTable.getInfo(expr.func)?.typeExpr
+			val returnType = if (funcType is FunctionTypeExpression) funcType.returnParam else newTypeVariable()
+			
+			return FunctionCallNode(expr.func, args, returnType)
 		}
 	}
 
@@ -193,13 +145,7 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 			throw IRConversionException("Cannot reassign immutable variable ${expr.ident.name}")
 		}
 
-		val body = convert(expr.expr)
-
-		if (info.type != body.type) {
-			throw IRConversionException("Type of ${expr.ident.name} is ${info.type}, but assigned ${body.type}")
-		}
-
-		return AssignmentNode(expr.ident, body, info.type)
+		return AssignmentNode(expr.ident, convert(expr.expr), info.typeExpr)
 	}
 
 	fun convertReturn(expr: ReturnStatement): ReturnNode {
@@ -207,17 +153,13 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 		return ReturnNode(returnVal)
 	}
 
-	fun convertList(expr: ListExpression): ListNode {
-		return ListNode(mutableListOf(), ListType(BoolType))
+	fun convertListLiteral(expr: ListLiteralExpression): ListLiteralNode {
+		return ListLiteralNode(expr.elements.map(this::convert), ListTypeExpression(newTypeVariable()))
 	}
 
 	fun convertEquality(expr: EqualityExpression): EqualityNode {
 		val left = convert(expr.left)
 		val right = convert(expr.right)
-
-		if (left.type != right.type) {
-			throw IRConversionException("Cannot check equality between different types, found ${left.type} and ${right.type}")
-		}
 
 		return when (expr) {
 			is EqualsExpression -> EqualsNode(left, right)
@@ -229,107 +171,116 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 		val leftNode = convert(expr.left)
 		val rightNode = convert(expr.right)
 
-		if (leftNode.type !is NumberType || rightNode.type !is NumberType) {
-			throw IRConversionException("Comparison expects two numbers, found ${leftNode.type} and ${rightNode.type}")
-		}
-
-		val (left, right, type) = coerceNumbers(leftNode, rightNode)
+		// TODO: Readd this type check and integer comparisons
+//		if (leftNode.type !is NumberType || rightNode.type !is NumberType) {
+//			throw IRConversionException("Comparison expects two numbers, found ${leftNode.type} and ${rightNode.type}")
+//		}
+//
+//		val (left, right, type) = coerceNumbers(leftNode, rightNode)
+//
+//		return when (expr) {
+//			is LessThanExpression -> LessThanNode(left, right, type)
+//			is LessThanOrEqualExpression -> LessThanOrEqualNode(left, right, type)
+//			is GreaterThanExpression -> GreaterThanNode(left, right, type)
+//			is GreaterThanOrEqualExpression -> GreaterThanOrEqualNode(left, right, type)
+//		}
 
 		return when (expr) {
-			is LessThanExpression -> LessThanNode(left, right, type)
-			is LessThanOrEqualExpression -> LessThanOrEqualNode(left, right, type)
-			is GreaterThanExpression -> GreaterThanNode(left, right, type)
-			is GreaterThanOrEqualExpression -> GreaterThanOrEqualNode(left, right, type)
+			is LessThanExpression -> LessThanNode(leftNode, rightNode, FloatType)
+			is LessThanOrEqualExpression -> LessThanOrEqualNode(leftNode, rightNode, FloatType)
+			is GreaterThanExpression -> GreaterThanNode(leftNode, rightNode, FloatType)
+			is GreaterThanOrEqualExpression -> GreaterThanOrEqualNode(leftNode, rightNode, FloatType)
 		}
 	}
 
 	fun convertLogicalAnd(expr: LogicalAndExpression): LogicalAndNode {
-		val left = convert(expr.left)
-		val right = convert(expr.right)
-
-		if (left.type != BoolType || right.type != BoolType) {
-			throw IRConversionException("Logical and expects two bools, found ${left.type} and ${right.type}")
-		}
-
-		return LogicalAndNode(left, right)
+		return LogicalAndNode(convert(expr.left), convert(expr.right))
 	}
 
 	fun convertLogicalOr(expr: LogicalOrExpression): LogicalOrNode {
-		val left = convert(expr.left)
-		val right = convert(expr.right)
-
-		if (left.type != BoolType || right.type != BoolType) {
-			throw IRConversionException("Logical or expects two bools, found ${left.type} and ${right.type}")
-		}
-
-		return LogicalOrNode(left, right)
+		return LogicalOrNode(convert(expr.left), convert(expr.right))
 	}
 
 	fun convertLogicalNot(expr: LogicalNotExpression): LogicalNotNode {
-		val body = convert(expr.expr)
-
-		if (body.type != BoolType) {
-			throw IRConversionException("Logical not expects a bool, found ${body.type}")
-		}
-
-		return LogicalNotNode(body)
+		return LogicalNotNode(convert(expr.expr))
 	}
 
 	fun convertBinaryMathOperator(expr: BinaryMathOperatorExpression): BinaryMathOperatorNode {
 		val leftNode = convert(expr.left)
 		val rightNode = convert(expr.right)
 
-		if (leftNode.type !is NumberType || rightNode.type !is NumberType) {
-			throw IRConversionException("Binary math operator expected two numbers, found ${leftNode.type} and ${rightNode.type}")
-		}
-
-		val (left, right, type) = coerceNumbers(leftNode, rightNode)
+		// TODO: Readd this type check
+//		if (leftNode.type !is NumberType || rightNode.type !is NumberType) {
+//			throw IRConversionException("Binary math operator expected two numbers, found ${leftNode.type} and ${rightNode.type}")
+//		}
+//
+//		val (left, right, type) = coerceNumbers(leftNode, rightNode)
+//
+//		return when (expr) {
+//			is AddExpression -> AddNode(left, right, type)
+//			is SubtractExpression -> SubtractNode(left, right, type)
+//			is MultiplyExpression -> MultiplyNode(left, right, type)
+//			is DivideExpression -> DivideNode(left, right, type)
+//			is ExponentExpression -> ExponentNode(left, right, type)
+//		}
 
 		return when (expr) {
-			is AddExpression -> AddNode(left, right, type)
-			is SubtractExpression -> SubtractNode(left, right, type)
-			is MultiplyExpression -> MultiplyNode(left, right, type)
-			is DivideExpression -> DivideNode(left, right, type)
-			is ExponentExpression -> ExponentNode(left, right, type)
+			is AddExpression -> AddNode(leftNode, rightNode)
+			is SubtractExpression -> SubtractNode(leftNode, rightNode)
+			is MultiplyExpression -> MultiplyNode(leftNode, rightNode)
+			is DivideExpression -> DivideNode(leftNode, rightNode)
+			is ExponentExpression -> ExponentNode(leftNode, rightNode)
 		}
 	}
 
-	fun coerceNumbers(left: IRNode, right: IRNode): Triple<IRNode, IRNode, NumberType> {
-		if (left.type is IntType && right.type is IntType) {
-			return Triple(left, right, IntType)
-		} else if (left.type is IntType && right.type is FloatType) {
-			val intToFloat = BUILTINS[INT_TO_FLOAT_BUILTIN]!!
-			val floatLeft = FunctionCallNode(intToFloat.getIdent(), listOf(left), intToFloat.type.returnType)
-	
-			return Triple(floatLeft, right, FloatType)
-		} else if (left.type is FloatType && right.type is IntType) {
-			val intToFloat = BUILTINS[INT_TO_FLOAT_BUILTIN]!!
-			val floatRight = FunctionCallNode(intToFloat.getIdent(), listOf(right), intToFloat.type.returnType)
-			
-			return Triple(left, floatRight, FloatType)
-		} else if (left.type is FloatType && right.type is FloatType) {
-			return Triple(left, right, FloatType)
-		} else {
-			throw IRConversionException("Cannot coerce ${left.type} and ${right.type} into common type")
-		}
-	}
+// TDOD: Recreate functionality in new type system
+//	fun coerceNumbers(left: IRNode, right: IRNode): Triple<IRNode, IRNode, NumberType> {
+//		if (left.type is IntType && right.type is IntType) {
+//			return Triple(left, right, IntType)
+//		} else if (left.type is IntType && right.type is FloatType) {
+//			val intToFloat = BUILTINS[INT_TO_FLOAT_BUILTIN]!!
+//			val floatLeft = FunctionCallNode(intToFloat.getIdent(), listOf(left), intToFloat.type.returnType)
+//	
+//			return Triple(floatLeft, right, FloatType)
+//		} else if (left.type is FloatType && right.type is IntType) {
+//			val intToFloat = BUILTINS[INT_TO_FLOAT_BUILTIN]!!
+//			val floatRight = FunctionCallNode(intToFloat.getIdent(), listOf(right), intToFloat.type.returnType)
+//			
+//			return Triple(left, floatRight, FloatType)
+//		} else if (left.type is FloatType && right.type is FloatType) {
+//			return Triple(left, right, FloatType)
+//		} else {
+//			throw IRConversionException("Cannot coerce ${left.type} and ${right.type} into common type")
+//		}
+//	}
 
 	fun convertUnaryPlus(expr: UnaryPlusExpression): IRNode {
 		val body = convert(expr.expr)
-		if (body.type !is NumberType) {
-			throw IRConversionException("Unary plus operator expected a number type, found ${body.type}")
-		}
+		// TODO: Readd this type check
+//		if (body.type !is NumberType) {
+//			throw IRConversionException("Unary plus operator expected a number type, found ${body.type}")
+//		}
 
 		return body
 	}
 
-	fun convertUnaryMinus(expr: UnaryMinusExpression): MultiplyNode {
+	fun convertUnaryMinus(expr: UnaryMinusExpression): NegateNode {
 		val body = convert(expr.expr)
-		return when (body.type) {
-			is IntType -> MultiplyNode(NEGATIVE_ONE_INT_NODE, body, IntType)
-			is FloatType -> MultiplyNode(NEGATIVE_ONE_FLOAT_NODE, body, FloatType)
-			else -> throw IRConversionException("Unary minus operator expected a number type, found ${body.type}")
-		}
+		// TODO: Readd this type check and functionality
+//		return when (body.type) {
+//			is IntType -> MultiplyNode(NEGATIVE_ONE_INT_NODE, body, IntType)
+//			is FloatType -> MultiplyNode(NEGATIVE_ONE_FLOAT_NODE, body, FloatType)
+//			else -> throw IRConversionException("Unary minus operator expected a number type, found ${body.type}")
+//		}
+
+		return NegateNode(body)
+	}
+
+	fun assertIRStructure(node: IRNode) {
+		typeChecker.typeCheck(node)
+		typeChecker.inferTypes(node)
+		functionsReturnCorrectType(node)
+		jumpsInAllowedPlaces(node, false, false)
 	}
 
 	fun allPathsHaveReturn(node: IRNode): Boolean {
@@ -341,20 +292,40 @@ class AstToIrConverter(val symbolTable: SymbolTable) {
 		}
 	}
 
-	fun returnsHaveType(node: IRNode, type: Type): Boolean {
-		return when (node) {
-			is ReturnNode -> (node.expr?.type == type) || (node.expr == null && type == UnitType)
-			is BlockNode -> node.nodes.all { n -> returnsHaveType(n, type) }
-			is IfNode -> returnsHaveType(node.conseq, type) && (node.altern == null || returnsHaveType(node.altern, type))
-			is WhileNode -> returnsHaveType(node.body, type)
-			is DoWhileNode -> returnsHaveType(node.body, type)
-			is ForNode -> returnsHaveType(node.body, type)
-			else -> true
+	fun functionsReturnCorrectType(node: IRNode) {
+		node.map { func ->
+			// Find all function definitions, and save expected return type
+			if (func is FunctionDefinitionNode) {
+				val funcType = symbolTable.getInfo(func.ident)?.type
+				if (funcType !is FunctionType) {
+					throw IRConversionException("Unknown function ${func.ident.name}")
+				}
+
+				// For each function definition, all child returns must return correct type
+				returnsHaveType(func, funcType.returnType)
+			}
 		}
 	}
 
-	fun assertIRStructure(node: IRNode) {
-		jumpsInAllowedPlaces(node, false, false)
+	fun returnsHaveType(node: IRNode, type: Type) {
+		when (node) {
+			is ReturnNode -> {
+				val returnType = if (node.expr == null) UnitType else node.expr.type
+				if (returnType != type) {
+					throw IRConversionException("Return of ${type} expected, but instead found ${returnType}")
+				}
+			}
+			is BlockNode -> node.nodes.forEach { n -> returnsHaveType(n, type) }
+			is IfNode -> {
+				returnsHaveType(node.conseq, type)
+				if (node.altern != null) {
+					returnsHaveType(node.altern, type)
+				}
+			}
+			is WhileNode -> returnsHaveType(node.body, type)
+			is DoWhileNode -> returnsHaveType(node.body, type)
+			is ForNode -> returnsHaveType(node.body, type)
+		}
 	}
 
 	fun jumpsInAllowedPlaces(node: IRNode, allowReturn: Boolean, allowBreakOrContinue: Boolean) {

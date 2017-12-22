@@ -2,9 +2,9 @@ package myte.ir.nodes
 
 import myte.shared.*
 
-class VariableNode(val ident: Identifier, type: Type): IRNode(type) {
+class VariableNode(val ident: Identifier, evalTypeExpr: TypeExpression): IRNode(evalTypeExpr) {
 	override fun toString(): String {
-		return "VariableNode(ident=${ident}, type=${type})"
+		return "VariableNode(ident=${ident})"
 	}
 
 	override fun equals(other: Any?): Boolean {

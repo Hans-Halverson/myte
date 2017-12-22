@@ -2,9 +2,9 @@ package myte.ir.nodes
 
 import myte.shared.*
 
-data class LogicalNotNode(val node: IRNode) : IRNode(BoolTypeExpression) {
+class NegateNode(val expr: IRNode) : IRNode(FloatTypeExpression) {
 	override fun <T> map(func: (IRNode) -> T) {
 		func(this)
-		node.map(func)
+		expr.map(func)
 	}
 }

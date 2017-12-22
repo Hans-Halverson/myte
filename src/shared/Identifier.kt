@@ -1,19 +1,13 @@
 package myte.shared
 
-import java.util.Random
-
-private val identifierIdGenerator = Random()
-private val identifierIds: MutableSet<Long> = mutableSetOf()
+private var maxIdentId: Long = 0
 
 fun newIdentifier(name: String): Identifier {
-	var randomId: Long = identifierIdGenerator.nextLong()
-
-	while (identifierIds.contains(randomId)) {
-		identifierIds.add(randomId)
-		randomId = identifierIdGenerator.nextLong()
+	if (maxIdentId == Long.MAX_VALUE) {
+		throw Exception("Identifier reached maximum value, no unique identifiers left")
 	}
 
-	return Identifier(name, randomId)
+	return Identifier(name, maxIdentId++)
 }
 
 data class Identifier(val name: String, val id: Long)
@@ -28,4 +22,12 @@ enum class IdentifierProperty {
 	IMMUTABLE,
 }
 
-data class IdentifierInfo(val name: String, val idClass: IdentifierClass, val type: Type, val props: Set<IdentifierProperty>)
+data class IdentifierInfo(val name: String, val idClass: IdentifierClass, val typeExpr: TypeExpression, val props: Set<IdentifierProperty>) {
+	private var typeIfInferred: Type? = null
+
+	var type: Type
+		get() = typeIfInferred!!
+		set(newType: Type) {
+			typeIfInferred = newType
+		}
+}

@@ -2,4 +2,4 @@ package myte.ir.nodes
 
 import myte.shared.*
 
-object BreakNode : IRNode(UnitType)
+object BreakNode : IRNode(UnitTypeExpression)

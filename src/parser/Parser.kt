@@ -65,7 +65,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 			is TrueToken -> BooleanLiteralExpression(true)
 			is FalseToken -> BooleanLiteralExpression(false)
 			is StringLiteralToken -> StringLiteralExpression(firstToken.str)
-			is LeftBracketToken -> parseListExpression()
+			is LeftBracketToken -> parseListLiteralExpression()
 			// Unary operators
 			is PlusToken -> parseUnaryPlusExpression()
 			is MinusToken -> parseUnaryMinusExpression()
@@ -116,12 +116,12 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 		return IdentifierExpression(ident)
 	}
 
-	fun parseListExpression(): ListExpression {
+	fun parseListLiteralExpression(): ListLiteralExpression {
 		val elements: MutableList<Expression> = mutableListOf()
 
 		if (tokenizer.current is RightBracketToken) {
 			tokenizer.next()
-			return ListExpression(listOf())
+			return ListLiteralExpression(listOf())
 		}
 
 		elements.add(parseExpression())
@@ -134,7 +134,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 		assertCurrent(TokenType.RIGHT_BRACKET)
 		tokenizer.next()
 
-		return ListExpression(elements)
+		return ListLiteralExpression(elements)
 	}
 
 	fun parseUnaryPlusExpression(): UnaryPlusExpression {
@@ -260,8 +260,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 		return CallExpression(prevExpr.ident, actualArgs)
 	}
 
-	fun parseType(): Type {
-		val types: MutableList<Type> = mutableListOf(parseSingleType())
+	fun parseType(): TypeExpression {
+		val types: MutableList<TypeExpression> = mutableListOf(parseSingleType())
 
 		if (tokenizer.current !is ArrowToken) {
 			return types[0]
@@ -273,17 +273,17 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 		} while (tokenizer.current is ArrowToken)
 
 		val returnType = types.removeAt(types.lastIndex)
-		return FunctionType(types, returnType)
+		return FunctionTypeExpression(types, returnType)
 	}
 
-	fun parseSingleType(): Type {
+	fun parseSingleType(): TypeExpression {
 		val token = tokenizer.next()
 		return when (token) {
-			is BoolToken -> BoolType
-			is StringTypeToken -> StringType
-			is IntToken -> IntType
-			is FloatToken -> FloatType
-			is UnitToken -> UnitType
+			is BoolToken -> BoolTypeExpression
+			is StringTypeToken -> StringTypeExpression
+			is IntToken -> IntTypeExpression
+			is FloatToken -> FloatTypeExpression
+			is UnitToken -> UnitTypeExpression
 			is LeftParenToken -> {
 				val functionType = parseType()
 
@@ -301,13 +301,13 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 				assertCurrent(TokenType.GREATER_THAN)
 				tokenizer.next()
 
-				ListType(typeParam)
+				ListTypeExpression(typeParam)
 			}
 			else -> throw ParseException("Expected type, got ${token}")
 		}
 	}
 
-	fun parseTypeAnnotation(): Type {
+	fun parseTypeAnnotation(): TypeExpression {
 		assertCurrent(TokenType.COLON)
 		tokenizer.next()
 
@@ -334,7 +334,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 				identProps.add(IdentifierProperty.IMMUTABLE)
 			}
 
-			val ident = symbolTable.addSymbol(identName, IdentifierClass.VARIABLE, FloatType, identProps)
+			val ident = symbolTable.addSymbol(identName, IdentifierClass.VARIABLE, FloatTypeExpression, identProps)
 			return VariableDefinitionStatement(ident, parseExpression())
 		} else {
 			if (token !is IdentifierToken) {
@@ -343,14 +343,15 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
 			val identName = token.str
 
-			val type = parseTypeAnnotation()
+			// Parse type if one is specified, otherwise create new type variable
+			val typeExpr = if (tokenizer.current is ColonToken) parseTypeAnnotation() else newTypeVariable()
 
 			val identProps = if (isConst) hashSetOf(IdentifierProperty.IMMUTABLE) else hashSetOf()
 
 			assertCurrent(TokenType.EQUALS)
 			tokenizer.next()
 
-			val ident = symbolTable.addSymbol(identName, IdentifierClass.VARIABLE, type, identProps)
+			val ident = symbolTable.addSymbol(identName, IdentifierClass.VARIABLE, typeExpr, identProps)
 			return VariableDefinitionStatement(ident, parseExpression())
 		}
 	}
@@ -370,7 +371,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
 		val funcName = token.str
 		val argNames: MutableList<String> = mutableListOf()
-		val argTypes: MutableList<Type> = mutableListOf()
+		val argTypes: MutableList<TypeExpression> = mutableListOf()
 
 		assertCurrent(TokenType.LEFT_PAREN)
 		tokenizer.next()
@@ -381,7 +382,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 				is IdentifierToken -> {
 					argNames.add(token.str)
 					if (isNumeric) {
-						argTypes.add(FloatType)
+						argTypes.add(FloatTypeExpression)
 					} else {
 						argTypes.add(parseTypeAnnotation())
 					}
@@ -398,8 +399,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
 		tokenizer.next()
 
-		val returnType = if (isNumeric) FloatType else parseTypeAnnotation()
-		val ident = symbolTable.addSymbol(funcName, IdentifierClass.FUNCTION, FunctionType(argTypes, returnType))
+		val returnType = if (isNumeric) FloatTypeExpression else parseTypeAnnotation()
+		val ident = symbolTable.addSymbol(funcName, IdentifierClass.FUNCTION, FunctionTypeExpression(argTypes, returnType))
 		val formalArgs: MutableList<Identifier> = mutableListOf()
 
 		symbolTable.enterScope()
