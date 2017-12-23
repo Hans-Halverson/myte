@@ -1,13 +1,31 @@
 package myte.parser.ast
 
-sealed class BinaryMathOperatorExpression(val left: Expression, val right: Expression) : Expression()
+sealed class BinaryMathOperatorExpression(
+    val left: Expression,
+    val right: Expression
+) : Expression()
 
-class AddExpression(left: Expression, right: Expression) : BinaryMathOperatorExpression(left, right)
+class AddExpression(
+    left: Expression,
+    right: Expression
+) : BinaryMathOperatorExpression(left, right)
 
-class SubtractExpression(left: Expression, right: Expression) : BinaryMathOperatorExpression(left, right)
+class SubtractExpression(
+    left: Expression,
+    right: Expression
+) : BinaryMathOperatorExpression(left, right)
 
-class MultiplyExpression(left: Expression, right: Expression) : BinaryMathOperatorExpression(left, right)
+class MultiplyExpression(
+    left: Expression,
+    right: Expression
+) : BinaryMathOperatorExpression(left, right)
 
-class DivideExpression(numer: Expression, denom: Expression) : BinaryMathOperatorExpression(numer, denom)
+class DivideExpression(
+    numer: Expression,
+    denom: Expression
+) : BinaryMathOperatorExpression(numer, denom)
 
-class ExponentExpression(base: Expression, exponent: Expression) : BinaryMathOperatorExpression(base, exponent)
+class ExponentExpression(
+    base: Expression,
+    exponent: Expression
+) : BinaryMathOperatorExpression(base, exponent)
