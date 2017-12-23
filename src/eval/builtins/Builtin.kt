@@ -53,8 +53,11 @@ abstract class Builtin(val name: String, val type: FunctionType) {
 
 // List of all builtins
 val BUILTINS: Map<String, Builtin> = hashMapOf(
+    PRINT_LINE_BUILTIN to PrintLineBuiltin(),
+    INT_TO_FLOAT_BUILTIN to IntToFloatBuiltin(),
+    INT_TO_STRING_BUILTIN to IntToStringBuiltin(),
     FLOAT_TO_INT_BUILTIN to FloatToIntBuiltin(),
-    INT_TO_FLOAT_BUILTIN to IntToFloatBuiltin()
+    FLOAT_TO_STRING_BUILTIN to FloatToStringBuiltin()
 )
 
 /**

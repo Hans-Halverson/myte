@@ -4,12 +4,10 @@ import myte.eval.values.*
 
 import java.util.Stack
 
-typealias Scope = MutableMap<Identifier, Value>
-
 class EnvironmentException(message: String) : Exception(message)
 
 class Environment() {
-    private val scopes: Stack<Scope> = Stack()
+    private val scopes: Stack<MutableMap<Identifier, Value>> = Stack()
 
     // Start off with a single global scope
     init {
@@ -80,7 +78,10 @@ class Environment() {
      * Return a shallow copy of the current environment.
      */
     fun copy(): Environment {
+        // Create a new environment and remove the empty global scope
         val newEnv = Environment()
+        newEnv.exitScope()
+
         for (scope in scopes) {
             newEnv.scopes.push(scope)
         }

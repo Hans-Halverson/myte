@@ -1,30 +1,26 @@
 package myte.shared
 
+import java.util.Stack
+
 class SymbolTableException(message: String) : Exception(message)
 
-/**
- * A symbol table for a single scope.
- *
- * @property parent the (optional) parent symbol table for this symbol table. If there is no
- *           parent symbol table, this is the global symbol table.
- * @property symbols a map of strings to identifiers in the current scope
- */
-private class ScopedSymbolTable(val parent: ScopedSymbolTable? = null) {
-    val symbols: MutableMap<String, Identifier> = hashMapOf()
-}
-
 class SymbolTable() {
-    // The symbol table for the current scope (with parent pointers up to the global scope)
-    private var currentTable = ScopedSymbolTable()
+    // A stack of scopes, where each scope is a map of strings to identifiers
+    private val scopes: Stack<MutableMap<String, Identifier>> = Stack()
 
     // A map of identifiers to their info for all identifiers that have been seen in all scopes
-    val identifiers: MutableMap<Identifier, IdentifierInfo> = hashMapOf()
+    var identifiers: MutableMap<Identifier, IdentifierInfo> = hashMapOf()
+
+    // Start off with a single global scope
+    init {
+        scopes.push(hashMapOf())
+    }
 
     /**
      * Enter a new scope.
      */
     fun enterScope() {
-        currentTable = ScopedSymbolTable(currentTable)
+        scopes.push(hashMapOf())
     }
 
     /**
@@ -33,22 +29,19 @@ class SymbolTable() {
      * @throws SymbolTableException if one attempts to exit the global scope
      */
     fun exitScope() {
-        val parent = currentTable.parent
-        if (parent == null) {
+        if (scopes.size > 1) {
+            scopes.pop()
+        } else {
             throw SymbolTableException("Cannot exit global scope")
         }
-        
-        currentTable = parent
     }
 
     /**
      * Reset the symbol table to the global scope.
      */
     fun returnToGlobalScope() {
-        var parent = currentTable.parent
-        while (parent != null) {
-            currentTable = parent
-            parent = currentTable.parent
+        while (scopes.size > 1) {
+            scopes.pop()
         }
     }
 
@@ -59,16 +52,13 @@ class SymbolTable() {
      *         with that name has been seen in the current scope
      */
     fun lookup(name: String): Identifier? {
-        var table: ScopedSymbolTable? = currentTable
-
         // Find the lowest scope in which this name appears
-        while (table != null) {
-            val ident = table.symbols[name]
+        for (i in scopes.size - 1 downTo 0) {
+            val scope = scopes.get(i)
+            val ident = scope[name]
             if (ident != null) {
                 return ident
             }
-
-            table = table.parent
         }
 
         return null
@@ -88,10 +78,11 @@ class SymbolTable() {
             typeExpr: TypeExpression,
             props: Set<IdentifierProperty> = hashSetOf()
     ): Identifier {
+        val scope = scopes.peek()
         val ident = newIdentifier(name)
         val info = IdentifierInfo(name, idClass, typeExpr, props)
 
-        currentTable.symbols[name] = ident
+        scope[name] = ident
         identifiers[ident] = info
 
         return ident
@@ -103,5 +94,25 @@ class SymbolTable() {
      */
     fun getInfo(ident: Identifier): IdentifierInfo? {
         return identifiers[ident]
+    }
+
+    /**
+     * Return a shallow copy of this symbol table that points to the same data, but in which new
+     * symbols can be added without affecting the old symbol table.
+     */
+    fun copy(): SymbolTable {
+        // Create a new symbol table and remove the empty global scope
+        val symbolTable = SymbolTable()
+        symbolTable.scopes.pop()
+
+        // Create a new map for each scope, so that it can be modified without affecting this table
+        for (scope in scopes) {
+            symbolTable.scopes.push(scope.toMutableMap())
+        }
+
+        // Copy all identifiers to a new map so they can be modified without affecting this table
+        symbolTable.identifiers = identifiers.toMutableMap()
+
+        return symbolTable
     }
 }

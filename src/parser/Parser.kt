@@ -500,7 +500,11 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                     if (isNumeric) {
                         argTypes.add(FloatTypeExpression)
                     } else {
-                        argTypes.add(parseTypeAnnotation())
+                        if (tokenizer.current is ColonToken) {
+                            argTypes.add(parseTypeAnnotation())
+                        } else {
+                            argTypes.add(newTypeVariable())
+                        }
                     }
                 }
                 else -> throw ParseException("Formal arguments must be identifiers")

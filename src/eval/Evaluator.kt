@@ -5,10 +5,14 @@ import myte.ir.nodes.*
 import myte.parser.*
 import myte.shared.*
 
-import java.util.Stack
+class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
 
-
-class Evaluator(val symbolTable: SymbolTable, val environment: Environment) {
+    /**
+     * Set the symbol table to new symbol table.
+     */
+    fun resetSymbolTable(newSymbolTable: SymbolTable) {
+        symbolTable = newSymbolTable
+    }
 
     /**
      * Evaluate a node in the environment.

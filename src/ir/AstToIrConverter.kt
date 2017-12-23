@@ -6,9 +6,17 @@ import myte.parser.*
 import myte.parser.ast.*
 import myte.shared.*
 
-class AstToIrConverter(val symbolTable: SymbolTable) {
+class AstToIrConverter(var symbolTable: SymbolTable) {
 
     private val typeChecker = TypeChecker(symbolTable)
+
+    /**
+     * Set the symbol table to new symbol table.
+     */
+    fun resetSymbolTable(newSymbolTable: SymbolTable) {
+        symbolTable = newSymbolTable
+        typeChecker.resetSymbolTable(newSymbolTable)
+    }
 
     /**
      * Convert a node in the ast into a node in the internal representation.

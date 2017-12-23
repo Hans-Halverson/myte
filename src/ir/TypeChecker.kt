@@ -24,8 +24,15 @@ private class TypeEquivalenceNode(
     }
 }
 
-class TypeChecker(val symbolTable: SymbolTable) {
+class TypeChecker(var symbolTable: SymbolTable) {
     private val typeToNode: MutableMap<TypeExpression, TypeEquivalenceNode> = mutableMapOf()
+
+    /**
+     * Set the symbol table to new symbol table.
+     */
+    fun resetSymbolTable(newSymbolTable: SymbolTable) {
+        symbolTable = newSymbolTable
+    }
 
     /**
      * Add a type expression to the set of equivalence classes, if it does not already exist.
