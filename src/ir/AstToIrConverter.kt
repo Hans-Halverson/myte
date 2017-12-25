@@ -93,6 +93,13 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
 
     fun convertFunctionDefinition(stmt: FunctionDefinitionStatement): FunctionDefinitionNode {
         val body = convert(stmt.body)
+
+        // Check that all paths in the function return a value
+        if (!allPathsHaveReturn(body)) {
+            throw IRConversionException("Every branch of ${stmt.ident.name} must return " +
+                    "a value")
+        }
+
         return FunctionDefinitionNode(stmt.ident, stmt.formalArgs, body)
     }
 
@@ -144,26 +151,20 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
 
     fun convertFunctionCall(expr: CallExpression): IRNode {
         val args = expr.actualArgs.map(this::convert)
+        val returnTypeExpr = if (isNumeric(expr.func)) FloatTypeExpression else newTypeVariable()
 
-        if (isNumeric(expr.func)) {
-            return FunctionCallNode(expr.func, args, FloatTypeExpression)
-        } else {
-            val funcType = symbolTable.getInfo(expr.func)?.typeExpr
-
-            // If type of function is known, use the return type expression as the eval type.
-            // Otherwise generate a new type variable for the eval type.
-            if (funcType is FunctionTypeExpression) {
-                return FunctionCallNode(expr.func, args, funcType.returnType)
-            } else {
-                return FunctionCallNode(expr.func, args, newTypeVariable())
-            }            
-        }
+        return FunctionCallNode(expr.func, args, returnTypeExpr)
     }
 
     fun convertAssignment(expr: AssignmentExpression): AssignmentNode {
         val info = symbolTable.getInfo(expr.ident)
         if (info == null) {
             throw IRConversionException("Unknown variable ${expr.ident.name}")
+        }
+
+        if (info.idClass != IdentifierClass.VARIABLE) {
+            throw IRConversionException("Cannot reassign ${expr.ident.name}, can only " +
+                    "reassign variables")
         }
 
         if (isImmutable(expr.ident)) {
@@ -254,8 +255,11 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
      */
     fun inferTypes(nodes: List<IRNode>) {
         nodes.forEach(typeChecker::typeCheck)
+
+        typeChecker.inferFunctionTypes()
+        typeChecker.inferVariableTypes()
+
         nodes.forEach(typeChecker::inferIRTypes)
-        typeChecker.inferSymbolTypes()
     }
 
     /**
@@ -264,7 +268,6 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
      * valid locations).
      */
     fun assertIRStructure(node: IRNode) {
-        functionsReturnCorrectType(node)
         jumpsInAllowedPlaces(node, false, false)
     }
 
@@ -280,62 +283,6 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
                     allPathsHaveReturn(node.altern)
             is BlockNode -> allPathsHaveReturn(node.nodes.get(node.nodes.lastIndex))
             else -> false
-        }
-    }
-
-    /**
-     * Check whether all return statements in the subtree reeoted an an IR node return the correct
-     * type.
-     *
-     * @throws IRConversionException if a return is found that returns the incorrect type
-     */
-    fun returnsHaveType(node: IRNode, type: Type) {
-        when (node) {
-            is ReturnNode -> {
-                val returnType = if (node.expr == null) UnitType else node.expr.type
-                if (returnType != type) {
-                    throw IRConversionException("Return of ${type} expected, but instead found " +
-                            "${returnType}")
-                }
-            }
-            is BlockNode -> node.nodes.forEach { n -> returnsHaveType(n, type) }
-            is IfNode -> {
-                returnsHaveType(node.conseq, type)
-                if (node.altern != null) {
-                    returnsHaveType(node.altern, type)
-                }
-            }
-            is WhileNode -> returnsHaveType(node.body, type)
-            is DoWhileNode -> returnsHaveType(node.body, type)
-            is ForNode -> returnsHaveType(node.body, type)
-        }
-    }
-
-    /**
-     * Check whether all functions in the subtree rooted at a node always return with the correct
-     * type in all possible execution paths.
-     *
-     * @throws IRConversionException if a return is found that returns the incorrect type, or if
-     *         an execution path does not end in a return
-     */
-    fun functionsReturnCorrectType(node: IRNode) {
-        node.map { func ->
-            // Find all function definitions, and save expected return type
-            if (func is FunctionDefinitionNode) {
-                val funcType = symbolTable.getInfo(func.ident)?.type
-                if (funcType !is FunctionType) {
-                    throw IRConversionException("Unknown function ${func.ident.name}")
-                }
-
-                // For each function definition, all child returns must return correct type
-                returnsHaveType(func, funcType.returnType)
-
-                // Check that all paths in the function return a value
-                if (!allPathsHaveReturn(func.body)) {
-                    throw IRConversionException("Every branch of ${func.ident.name} must return " +
-                            "a value")
-                }
-            }
         }
     }
 
@@ -377,7 +324,6 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             is ContinueNode -> if (!allowBreakOrContinue) {
                 throw IRConversionException("Continue must appear in loop")
             }
-            else -> {}
         }
     }
 }

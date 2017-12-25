@@ -28,7 +28,12 @@ data class ListType(val elementType: Type) : Type() {
     override fun toString(): String = "list<${elementType}>"
 }
 
-class FunctionType(val argTypes: List<Type>, val returnType: Type) : Type() {
+class FunctionType(
+    val argTypes: List<Type>,
+    val returnType: Type
+) : Type() {
+    val typeParams: List<TypeParameter> = gatherTypeParameters(this)
+
     override fun toString(): String {
         val builder = StringBuilder()
 
@@ -67,5 +72,45 @@ class FunctionType(val argTypes: List<Type>, val returnType: Type) : Type() {
         }
 
         return (argTypes == other.argTypes) && (returnType == other.returnType)
+    }
+}
+
+class TypeParameter(val id: Long) : Type() {
+    override fun toString(): String = "${id}"
+
+    override fun equals(other: Any?): Boolean {
+        if (other !is TypeParameter) {
+            return false
+        }
+
+        return (id == other.id)
+    }
+}
+
+private var maxTypeParamId: Long = 0
+
+/**
+ * Return a new type parameter with the given name.
+ * The type parameter id is guaranteed to be unique.
+ */
+fun newTypeParameter(): TypeParameter {
+    if (maxTypeParamId == Long.MAX_VALUE) {
+        throw Exception("Type parameter ids reached maximum value, no unique type parameters left")
+    }
+
+    return TypeParameter(maxTypeParamId++)
+}
+
+fun gatherTypeParameters(type: Type): MutableList<TypeParameter> {
+    return when (type) {
+        is TypeParameter -> mutableListOf(type)
+        is ListType -> gatherTypeParameters(type.elementType)
+        is FunctionType -> {
+            val allParams = type.argTypes.flatMap(::gatherTypeParameters).toMutableList()
+                
+            allParams.addAll(gatherTypeParameters(type.returnType))
+            allParams.distinct().toMutableList()
+        }
+        else -> mutableListOf()
     }
 }

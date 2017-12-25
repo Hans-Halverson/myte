@@ -73,12 +73,49 @@ class SymbolTable() {
      * @param props an (optional) set of all properties of this identifier
      */
     fun addSymbol(
-            name: String,
-            idClass: IdentifierClass,
-            typeExpr: TypeExpression,
-            props: Set<IdentifierProperty> = hashSetOf()
+        name: String,
+        idClass: IdentifierClass,
+        typeExpr: TypeExpression,
+        props: Set<IdentifierProperty> = hashSetOf()
     ): Identifier {
         val scope = scopes.peek()
+        return addSymbolInScope(scope, name, idClass, typeExpr, props)
+    }
+
+    /**
+     * Add a new identifier to the previous scope, and fill in its info.
+     *
+     * @param name the name of the new identifier
+     * @param idClass the class of the new identifier (e.g. variable, function)
+     * @param typeExpr the best known type expression for the new identifier
+     * @param props an (optional) set of all properties of this identifier
+     */
+    fun addSymbolInPreviousScope(
+        name: String,
+        idClass: IdentifierClass,
+        typeExpr: TypeExpression,
+        props: Set<IdentifierProperty> = hashSetOf()
+    ): Identifier {
+        val scope = scopes.get(scopes.size - 2)
+        return addSymbolInScope(scope, name, idClass, typeExpr, props)
+    }
+
+    /**
+     * Add a new identifier to a particular scope, and fill in its info.
+     *
+     * @param scope the scope to add the identifier to
+     * @param name the name of the new identifier
+     * @param idClass the class of the new identifier (e.g. variable, function)
+     * @param typeExpr the best known type expression for the new identifier
+     * @param props an (optional) set of all properties of this identifier
+     */
+    private fun addSymbolInScope(
+        scope: MutableMap<String, Identifier>,
+        name: String,
+        idClass: IdentifierClass,
+        typeExpr: TypeExpression,
+        props: Set<IdentifierProperty>
+    ): Identifier {
         val ident = newIdentifier(name)
         val info = IdentifierInfo(name, idClass, typeExpr, props)
 

@@ -25,6 +25,7 @@ data class Identifier(val name: String, val id: Long)
 enum class IdentifierClass {
     VARIABLE,
     FUNCTION,
+    TYPE_PARAMETER,
 }
 
 // An IdentifierProperty is a possible property of an identifier.
