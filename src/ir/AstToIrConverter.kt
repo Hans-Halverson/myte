@@ -254,7 +254,8 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
      *         for every node in the IR and for every symbol in the symbol table
      */
     fun inferTypes(nodes: List<IRNode>) {
-        nodes.forEach(typeChecker::typeCheck)
+        val boundVars: MutableSet<TypeVariable> = hashSetOf()
+        nodes.forEach { node -> typeChecker.typeCheck(node, boundVars) }
 
         typeChecker.inferFunctionTypes()
         typeChecker.inferVariableTypes()
@@ -311,6 +312,9 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             is ForNode -> {
                 if (node.init != null) {
                     jumpsInAllowedPlaces(node.init, allowReturn, false)
+                }
+                if (node.update != null) {
+                    jumpsInAllowedPlaces(node.update, allowReturn, false)
                 }
                 jumpsInAllowedPlaces(node.body, allowReturn, true)
             }

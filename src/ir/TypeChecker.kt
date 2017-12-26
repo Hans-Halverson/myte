@@ -67,17 +67,54 @@ class TypeChecker(var symbolTable: SymbolTable) {
     }
 
     /**
-     * Recursively find the representative type expression for a given type expression. This will
-     * return the representative type expression for this type, and the representative type
-     * type expressions for all child types if the given type is a type constructor.
+     * Recursively find a fresh representative type expression for a given type expression. This
+     * will return the representative type expression for this type, and the representative type
+     * type expressions for all child types if the given type is a type constructor. All free type
+     * variables in the representative type expression will also be remapped to fresh type vars.
+     *
+     * @param type the type expression to find the representative type for
+     * @param boundVars set of all bound type variables. If not supplied, defaults to the empty set.
+     * @param mappedVars map of old type variables to fresh type variables for all non-bound type
+     *        variables encountered so far. If not supplied, defaults to the empty map.
      */
-    private fun findRepType(type: TypeExpression): TypeExpression {
+    private fun findRepType(
+        type: TypeExpression,
+        boundVars: MutableSet<TypeVariable>,
+        mappedVars: MutableMap<TypeVariable, TypeVariable> = mutableMapOf()
+    ): TypeExpression {
         val repType = findRepresentativeNode(type).type
         return when (repType) {
-            is ListTypeExpression -> ListTypeExpression(findRepType(repType.elementType))
+            is ListTypeExpression -> {
+                ListTypeExpression(findRepType(repType.elementType, boundVars, mappedVars))
+            }
             is FunctionTypeExpression -> {
-                FunctionTypeExpression(repType.argTypes.map(this::findRepType), 
-                        findRepType(repType.returnType))
+                val argTypes = repType.argTypes.map { argType ->
+                    findRepType(argType, boundVars, mappedVars)
+                }
+                val returnType = findRepType(repType.returnType, boundVars, mappedVars)
+
+                return FunctionTypeExpression(argTypes, returnType)
+            }
+            is TypeVariable -> {
+                // If already bound (has same representative as bound var), then return
+                // existing type variable
+                val repBoundVars = boundVars.map { boundVar ->
+                    findRepresentativeNode(boundVar).type
+                }
+
+                if (repBoundVars.contains(repType)) {
+                    return repType
+                }
+
+                // If not yet bound, return mapped variable or add to map if not yet mapped
+                val mappedVar = mappedVars[repType]
+                if (mappedVar != null) {
+                    return mappedVar
+                } else {
+                    val newVar = newTypeVariable()
+                    mappedVars[repType] = newVar
+                    return newVar
+                }
             }
             else -> repType
         }
@@ -181,26 +218,26 @@ class TypeChecker(var symbolTable: SymbolTable) {
     /**
      * Type check and perform unification for an IR tree rooted at a given node.
      */
-    fun typeCheck(node: IRNode) {
+    fun typeCheck(node: IRNode, boundVars: MutableSet<TypeVariable>) {
         when (node) {
-            is ListLiteralNode -> typeCheckListLiteral(node)
-            is UnaryMathOperatorNode -> typeCheckUnaryMathOperator(node)
-            is BinaryMathOperatorNode -> typeCheckBinaryMathOperator(node)
-            is LogicalAndNode -> typeCheckLogicalAnd(node)
-            is LogicalOrNode -> typeCheckLogicalOr(node)
-            is LogicalNotNode -> typeCheckLogicalNot(node)
-            is EqualityNode -> typeCheckEquality(node)
-            is ComparisonNode -> typeCheckComparison(node)
-            is FunctionCallNode -> typeCheckFunctionCall(node)
-            is AssignmentNode -> typeCheckAssignment(node)
-            is VariableDefinitionNode -> typeCheckVariableDefinition(node)
-            is FunctionDefinitionNode -> typeCheckFunctionDefinition(node)
-            is BlockNode -> typeCheckBlock(node)
-            is IfNode -> typeCheckIf(node)
-            is WhileNode -> typeCheckWhile(node)
-            is DoWhileNode -> typeCheckDoWhile(node)
-            is ForNode -> typeCheckFor(node)
-            is ReturnNode -> typeCheckReturn(node)
+            is ListLiteralNode -> typeCheckListLiteral(node, boundVars)
+            is UnaryMathOperatorNode -> typeCheckUnaryMathOperator(node, boundVars)
+            is BinaryMathOperatorNode -> typeCheckBinaryMathOperator(node, boundVars)
+            is LogicalAndNode -> typeCheckLogicalAnd(node, boundVars)
+            is LogicalOrNode -> typeCheckLogicalOr(node, boundVars)
+            is LogicalNotNode -> typeCheckLogicalNot(node, boundVars)
+            is EqualityNode -> typeCheckEquality(node, boundVars)
+            is ComparisonNode -> typeCheckComparison(node, boundVars)
+            is FunctionCallNode -> typeCheckFunctionCall(node, boundVars)
+            is AssignmentNode -> typeCheckAssignment(node, boundVars)
+            is VariableDefinitionNode -> typeCheckVariableDefinition(node, boundVars)
+            is FunctionDefinitionNode -> typeCheckFunctionDefinition(node, boundVars)
+            is BlockNode -> typeCheckBlock(node, boundVars)
+            is IfNode -> typeCheckIf(node, boundVars)
+            is WhileNode -> typeCheckWhile(node, boundVars)
+            is DoWhileNode -> typeCheckDoWhile(node, boundVars)
+            is ForNode -> typeCheckFor(node, boundVars)
+            is ReturnNode -> typeCheckReturn(node, boundVars)
             else -> return
         }
     }
@@ -211,285 +248,317 @@ class TypeChecker(var symbolTable: SymbolTable) {
     //
     ///////////////////////////////////////////////////////////////////////////
 
-    fun typeCheckListLiteral(node: ListLiteralNode) {
-        node.elements.forEach(this::typeCheck)
+    fun typeCheckListLiteral(node: ListLiteralNode, boundVars: MutableSet<TypeVariable>) {
+        node.elements.forEach { element -> typeCheck(element, boundVars) }
 
         // Attempt to unify the types of each list element with a new type variable
         val expectedElementType = newTypeVariable()
         val expectedType = ListTypeExpression(expectedElementType)
 
         node.elements.forEach({ element ->
-            if (!unify(element.evalTypeExpr, expectedElementType)) {
+            if (!unify(findRepType(element.evalTypeExpr, boundVars), expectedElementType)) {
                 throw IRConversionException("List must have elements of same type, found " +
-                        "${findRepType(element.evalTypeExpr)} and " +
-                        "${findRepType(expectedElementType)}")
+                        "${findRepType(element.evalTypeExpr, boundVars)} and " +
+                        "${findRepType(expectedElementType, boundVars)}")
             }
         })
 
         // Attempt to unify the list eval type with the new list type variable
         if (!unify(node.evalTypeExpr, expectedType)) {
             throw IRConversionException("Cannot infer type for list, expected " +
-                    "${findRepType(expectedType)} but found ${findRepType(node.evalTypeExpr)}")
+                    "${findRepType(expectedType, boundVars)} but found " +
+                    "${findRepType(node.evalTypeExpr, boundVars)}")
         }
     }
 
-    fun typeCheckUnaryMathOperator(node: UnaryMathOperatorNode) {
-        typeCheck(node.node)
+    fun typeCheckUnaryMathOperator(
+        node: UnaryMathOperatorNode,
+        boundVars: MutableSet<TypeVariable>
+    ) {
+        typeCheck(node.node, boundVars)
 
         // Unify this node's type with its child's type, and verify it is a number type
         val canUnify = unify(node.node.evalTypeExpr, node.evalTypeExpr)
-        val repType = findRepType(node.evalTypeExpr)
+        val repType = findRepType(node.evalTypeExpr, boundVars)
 
         if (!canUnify || repType !is NumberTypeExpression) {
             throw IRConversionException("Unary math operator expects a number, found " +
-                    "${findRepType(node.node.evalTypeExpr)}")
+                    "${findRepType(node.node.evalTypeExpr, boundVars)}")
         }
     }
 
-    fun typeCheckBinaryMathOperator(node: BinaryMathOperatorNode) {
-        typeCheck(node.left)
-        typeCheck(node.right)
+    fun typeCheckBinaryMathOperator(
+        node: BinaryMathOperatorNode,
+        boundVars: MutableSet<TypeVariable>
+    ) {
+        typeCheck(node.left, boundVars)
+        typeCheck(node.right, boundVars)
 
-        // Unify this node's type with both it's children's types, and verify that both
-        // children have the same numeric type
-        val canUnify = unify(node.left.evalTypeExpr, node.evalTypeExpr) &&
-            unify(node.right.evalTypeExpr, node.evalTypeExpr)
-        val repType = findRepType(node.evalTypeExpr)
-
-        if (!canUnify || repType !is NumberTypeExpression) {
+        // Unify this node's type with both it's children's types
+        if (!unify(node.left.evalTypeExpr, node.evalTypeExpr) ||
+                !unify(node.right.evalTypeExpr, node.evalTypeExpr)) {
             throw IRConversionException("Binary math operator expects two numbers of same type, " +
-                    "found ${findRepType(node.left.evalTypeExpr)} and " +
-                    "${findRepType(node.right.evalTypeExpr)}")
+                    "found ${findRepType(node.left.evalTypeExpr, boundVars)} and " +
+                    "${findRepType(node.right.evalTypeExpr, boundVars)}")
         }
     }
 
-    fun typeCheckLogicalAnd(node: LogicalAndNode) {
-        typeCheck(node.left)
-        typeCheck(node.right)
+    fun typeCheckLogicalAnd(node: LogicalAndNode, boundVars: MutableSet<TypeVariable>) {
+        typeCheck(node.left, boundVars)
+        typeCheck(node.right, boundVars)
 
         if (!unify(node.left.evalTypeExpr, BoolTypeExpression) ||
                 !unify(node.right.evalTypeExpr, BoolTypeExpression)) {
             throw IRConversionException("Logical and expects two bools, found " +
-                    "${findRepType(node.left.evalTypeExpr)} and " +
-                    "${findRepType(node.right.evalTypeExpr)}")
+                    "${findRepType(node.left.evalTypeExpr, boundVars)} and " +
+                    "${findRepType(node.right.evalTypeExpr, boundVars)}")
         }
     }
 
-    fun typeCheckLogicalOr(node: LogicalOrNode) {
-        typeCheck(node.left)
-        typeCheck(node.right)
+    fun typeCheckLogicalOr(node: LogicalOrNode, boundVars: MutableSet<TypeVariable>) {
+        typeCheck(node.left, boundVars)
+        typeCheck(node.right, boundVars)
 
         if (!unify(node.left.evalTypeExpr, BoolTypeExpression) ||
                 !unify(node.right.evalTypeExpr, BoolTypeExpression)) {
             throw IRConversionException("Logical or expects two bools, found " +
-                    "${findRepType(node.left.evalTypeExpr)} and " +
-                    "${findRepType(node.right.evalTypeExpr)}")
+                    "${findRepType(node.left.evalTypeExpr, boundVars)} and " +
+                    "${findRepType(node.right.evalTypeExpr, boundVars)}")
         }
     }
 
-    fun typeCheckLogicalNot(node: LogicalNotNode) {
-        typeCheck(node.node)
+    fun typeCheckLogicalNot(node: LogicalNotNode, boundVars: MutableSet<TypeVariable>) {
+        typeCheck(node.node, boundVars)
 
         if (!unify(node.node.evalTypeExpr, BoolTypeExpression)) {
             throw IRConversionException("Logical not expects a bool, found " +
-                    "${findRepType(node.node.evalTypeExpr)}")
+                    "${findRepType(node.node.evalTypeExpr, boundVars)}")
         }
     }
 
-    fun typeCheckEquality(node: EqualityNode) {
-        typeCheck(node.left)
-        typeCheck(node.right)
+    fun typeCheckEquality(node: EqualityNode, boundVars: MutableSet<TypeVariable>) {
+        typeCheck(node.left, boundVars)
+        typeCheck(node.right, boundVars)
 
         // Create a new type variable and unify both children with it, as both children must have
         // the same unkown type.
         val typeVar = newTypeVariable()
 
-        if (!unify(node.left.evalTypeExpr, typeVar) || !unify(node.right.evalTypeExpr, typeVar)) {
+        val leftRepType = findRepType(node.left.evalTypeExpr, boundVars)
+        val rightRepType = findRepType(node.right.evalTypeExpr, boundVars)
+
+        if (!unify(leftRepType, typeVar) || !unify(rightRepType, typeVar)) {
             throw IRConversionException("Cannot check equality between different types, found " +
-                    "${findRepType(node.left.evalTypeExpr)} and " +
-                    "${findRepType(node.right.evalTypeExpr)}")
+                    "${findRepType(leftRepType, boundVars)} and " +
+                    "${findRepType(rightRepType, boundVars)}")
         }
     }
 
-    fun typeCheckComparison(node: ComparisonNode) {
-        typeCheck(node.left)
-        typeCheck(node.right)
+    fun typeCheckComparison(node: ComparisonNode, boundVars: MutableSet<TypeVariable>) {
+        typeCheck(node.left, boundVars)
+        typeCheck(node.right, boundVars)
 
         // Create a new type variable and unify both children with it, as both children must have
-        // the same numeric type.
+        // the same type.
         val typeVar = newTypeVariable()
-        val canUnify = unify(node.left.evalTypeExpr, typeVar) &&
-            unify(node.right.evalTypeExpr, typeVar)
-        val repType = findRepType(typeVar)
 
-        if (!canUnify || repType !is NumberTypeExpression) {
+        val leftRepType = findRepType(node.left.evalTypeExpr, boundVars)
+        val rightRepType = findRepType(node.right.evalTypeExpr, boundVars)
+
+        if (!unify(leftRepType, typeVar) || !unify(rightRepType, typeVar)) {
             throw IRConversionException("Comparison expects two numbers of same type, found " +
-                    "${findRepType(node.left.evalTypeExpr)} and " +
-                    "${findRepType(node.right.evalTypeExpr)}")
+                    "${findRepType(leftRepType, boundVars)} and " +
+                    "${findRepType(rightRepType, boundVars)}")
         }
     }
 
-    fun typeCheckFunctionCall(node: FunctionCallNode) {
+    fun typeCheckFunctionCall(node: FunctionCallNode, boundVars: MutableSet<TypeVariable>) {
         val funcTypeExpr = symbolTable.getInfo(node.func)?.typeExpr
         if (funcTypeExpr == null) {
             throw IRConversionException("Unknown function ${node.func.name}")
         }
 
-        val funcRepType = findRepType(funcTypeExpr)
+        val funcRepType = findRepType(funcTypeExpr, boundVars)
 
-        // Create new type variables for each type variable (aka parameter) in the function type.
-        // This allows the type parameters to not be permanently bound to concrete types.
-        val freshFuncRepType = if (funcRepType is FunctionTypeExpression) {
-            funcRepType.withFreshTypeParams()
-        } else {
-            funcRepType
-        }
-
-        node.actualArgs.map(this::typeCheck)
+        node.actualArgs.forEach { actualArg -> typeCheck(actualArg, boundVars) }
 
         // Unify the arguments to the function with the expected argument types stored for the
         // function in the symbol table
-        val argTypeExprs = node.actualArgs.map { arg -> arg.evalTypeExpr }
-        val expectedFuncExpr = FunctionTypeExpression(argTypeExprs, node.evalTypeExpr)
+        val argTypeExprs = node.actualArgs.map { arg -> findRepType(arg.evalTypeExpr, boundVars) }
+        val returnTypeExpr = node.evalTypeExpr
+        val expectedFuncExpr = FunctionTypeExpression(argTypeExprs, returnTypeExpr)
 
-        if (!unify(expectedFuncExpr, freshFuncRepType)) {
+        if (!unify(expectedFuncExpr, funcRepType)) {
             // If type of identifier is a known function, provide more useful error message
             if (funcRepType is FunctionTypeExpression) {
+                val argRepTypes = argTypeExprs.map { argType -> findRepType(argType, boundVars) }
                 throw IRConversionException("${node.func.name} expected arguments of type " +
-                        "${funcRepType.argTypes}, but found " +
-                        "${argTypeExprs.map(this::findRepType)}")
+                        "${funcRepType.argTypes}, but found ${argRepTypes}")
             } else {
                 throw IRConversionException("${node.func.name} expected to have type " +
-                        "${findRepType(expectedFuncExpr)}, but found ${funcRepType}")
+                        "${findRepType(expectedFuncExpr, boundVars)}, but found ${funcRepType}")
             }
         }
     }
 
-    fun typeCheckAssignment(node: AssignmentNode) {
+    fun typeCheckAssignment(node: AssignmentNode, boundVars: MutableSet<TypeVariable>) {
         val typeExpr = symbolTable.getInfo(node.ident)?.typeExpr
         if (typeExpr == null) {
             throw IRConversionException("Unknown variable ${node.ident.name}")
         }
 
-        typeCheck(node.expr)
+        typeCheck(node.expr, boundVars)
 
-        // Create new type variables for each type variable (aka parameter) if it is a function type
-        // This allows the type parameters to not be permanently bound to concrete types.
-        val freshNodeType = node.expr.evalTypeExpr.withFreshTypeParams()
+        val nodeRepType = findRepType(node.expr.evalTypeExpr, boundVars)
 
-        if (!unify(freshNodeType, typeExpr)) {
-            throw IRConversionException("Type of ${node.ident.name} is ${findRepType(typeExpr)}, " +
-                    "but assigned ${findRepType(freshNodeType)}")
+        if (!unify(nodeRepType, typeExpr)) {
+            throw IRConversionException("Type of ${node.ident.name} is " +
+                    "${findRepType(typeExpr, boundVars)}, but assigned " +
+                    "${findRepType(nodeRepType, boundVars)}")
         }
     }
 
-    fun typeCheckVariableDefinition(node: VariableDefinitionNode) {
+    fun typeCheckVariableDefinition(
+        node: VariableDefinitionNode,
+        boundVars: MutableSet<TypeVariable>
+    ) {
         val typeExpr = symbolTable.getInfo(node.ident)?.typeExpr
         if (typeExpr == null) {
             throw IRConversionException("Unknown variable ${node.ident.name}")
         }
 
-        typeCheck(node.expr)
+        typeCheck(node.expr, boundVars)
 
-        // Create new type variables for each type variable (aka parameter) if it is a function type
-        // This allows the type parameters to not be permanently bound to concrete types.
-        val nodeRepType = findRepType(node.expr.evalTypeExpr)
-        val freshNodeType = if (nodeRepType is FunctionTypeExpression) {
-            nodeRepType.withFreshTypeParams()
-        } else {
-            nodeRepType
-        }
+        val freshNodeType = findRepType(node.expr.evalTypeExpr, boundVars)
 
         if (!unify(freshNodeType, typeExpr)) {
-            throw IRConversionException("Type of ${node.ident.name} is ${findRepType(typeExpr)}, " +
-                    "but assigned ${findRepType(freshNodeType)}")
+            throw IRConversionException("Type of ${node.ident.name} is " +
+                    "${findRepType(typeExpr, boundVars)}, but assigned " +
+                    "${findRepType(freshNodeType, boundVars)}")
         }
     }
 
-    fun typeCheckFunctionDefinition(node: FunctionDefinitionNode) {
+    fun typeCheckFunctionDefinition(
+        node: FunctionDefinitionNode,
+        boundVars: MutableSet<TypeVariable>
+    ) {
         val typeExpr = symbolTable.getInfo(node.ident)?.typeExpr
         if (typeExpr !is FunctionTypeExpression) {
             throw IRConversionException("Unknown function ${node.ident.name}")
         }
 
-        typeCheck(node.body)
+        val newBoundVars = boundVars.toHashSet()
+
+        // Add all type variables in function type to the set of bound type variables
+        typeExpr.getAllVariables().forEach { typeVar ->
+            newBoundVars.add(typeVar)
+        }
+
+        typeCheck(node.body, newBoundVars)
 
         // Unify all returned expression types with the return type of this function
-        node.body.map { retNode ->
-            if (retNode is ReturnNode) {
-                val retTypeExpr = retNode.expr?.evalTypeExpr ?: UnitTypeExpression
-                if (!unify(retTypeExpr, typeExpr.returnType)) {
-                    throw IRConversionException("${node.ident.name} must return " +
-                            "${findRepType(typeExpr.returnType)} but found " +
-                            "${findRepType(retTypeExpr)}")
+        mapOverReturns(node.body, { retNode ->
+            val retTypeExpr = retNode.expr?.evalTypeExpr ?: UnitTypeExpression
+            if (!unify(retTypeExpr, typeExpr.returnType)) {
+                throw IRConversionException("${node.ident.name} must return " +
+                        "${findRepType(typeExpr.returnType, newBoundVars)} but found " +
+                        "${findRepType(retTypeExpr, newBoundVars)}")
+            }
+        })
+    }
+
+    /**
+     * Apply a function to every return rooted at a subtree, without recurring into nested
+     * function definitions.
+     */
+    fun mapOverReturns(node: IRNode, func: (ReturnNode) -> Unit) {
+        when (node) {
+            is BlockNode -> node.nodes.map { n -> mapOverReturns(n, func) }
+            is IfNode -> {
+                mapOverReturns(node.conseq, func)
+                if (node.altern != null) {
+                    mapOverReturns(node.altern, func)
                 }
             }
+            is WhileNode -> mapOverReturns(node.body, func)
+            is DoWhileNode -> mapOverReturns(node.body, func)
+            is ForNode -> {
+                if (node.init != null) {
+                    mapOverReturns(node.init, func)
+                }
+                if (node.update != null) {
+                    mapOverReturns(node.update, func)
+                }
+                mapOverReturns(node.body, func)
+            }
+            is ReturnNode -> func(node)
         }
     }
 
-    fun typeCheckBlock(node: BlockNode) {
-        node.nodes.map(this::typeCheck)
+    fun typeCheckBlock(node: BlockNode, boundVars: MutableSet<TypeVariable>) {
+        node.nodes.forEach { child -> typeCheck(child, boundVars) }
     }
 
-    fun typeCheckIf(node: IfNode) {
-        typeCheck(node.cond)
+    fun typeCheckIf(node: IfNode, boundVars: MutableSet<TypeVariable>) {
+        typeCheck(node.cond, boundVars)
 
         if (!unify(node.cond.evalTypeExpr, BoolTypeExpression)) {
             throw IRConversionException("Condition of if must be a bool, but found " +
-                    "${findRepType(node.cond.evalTypeExpr)}")
+                    "${findRepType(node.cond.evalTypeExpr, boundVars)}")
         }
 
-        typeCheck(node.conseq)
+        typeCheck(node.conseq, boundVars)
+
         if (node.altern != null) {
-            typeCheck(node.altern)
+            typeCheck(node.altern, boundVars)
         }
     }
 
-    fun typeCheckWhile(node: WhileNode) {
-        typeCheck(node.cond)
+    fun typeCheckWhile(node: WhileNode, boundVars: MutableSet<TypeVariable>) {
+        typeCheck(node.cond, boundVars)
 
         if (!unify(node.cond.evalTypeExpr, BoolTypeExpression)) {
             throw IRConversionException("Condition of while must be a bool, but given " +
-                    "${findRepType(node.cond.evalTypeExpr)}")
+                    "${findRepType(node.cond.evalTypeExpr, boundVars)}")
         }
 
-        typeCheck(node.body)
+        typeCheck(node.body, boundVars)
     }
 
-    fun typeCheckDoWhile(node: DoWhileNode) {
-        typeCheck(node.cond)
+    fun typeCheckDoWhile(node: DoWhileNode, boundVars: MutableSet<TypeVariable>) {
+        typeCheck(node.cond, boundVars)
 
         if (!unify(node.cond.evalTypeExpr, BoolTypeExpression)) {
             throw IRConversionException("Condition of do while must be a bool, but given " +
-                    "${findRepType(node.cond.evalTypeExpr)}")
+                    "${findRepType(node.cond.evalTypeExpr, boundVars)}")
         }
 
-        typeCheck(node.body)
+        typeCheck(node.body, boundVars)
     }
 
-    fun typeCheckFor(node: ForNode) {
+    fun typeCheckFor(node: ForNode, boundVars: MutableSet<TypeVariable>) {
         if (node.init != null) {
-            typeCheck(node.init)
+            typeCheck(node.init, boundVars)
         }
 
         if (node.cond != null) {
-            typeCheck(node.cond)
+            typeCheck(node.cond, boundVars)
             if (!unify(node.cond.evalTypeExpr, BoolTypeExpression)) {
                 throw IRConversionException("Condition of for must be a bool, but given " +
-                        "${findRepType(node.cond.evalTypeExpr)}")
+                        "${findRepType(node.cond.evalTypeExpr, boundVars)}")
             }
         }
 
         if (node.update != null) {
-            typeCheck(node.update)
+            typeCheck(node.update, boundVars)
         }
 
-        typeCheck(node.body)
+        typeCheck(node.body, boundVars)
     }
 
-    fun typeCheckReturn(node: ReturnNode) {
+    fun typeCheckReturn(node: ReturnNode, boundVars: MutableSet<TypeVariable>) {
         if (node.expr != null) {
-            typeCheck(node.expr)
+            typeCheck(node.expr, boundVars)
         }
     }
 
@@ -498,7 +567,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
      * If the representative type of any child type is still a type variable and has not been
      * unified to a concrete type, then return null.
      */
-    fun inferredTypeForExpression(typeExpr: TypeExpression, bindTypeVars: Boolean = false): Type? {
+    fun inferredTypeForExpression(typeExpr: TypeExpression): Type {
         val repType = findRepresentativeNode(typeExpr).type
         return when (repType) {
             is TypeVariable -> {
@@ -506,14 +575,11 @@ class TypeChecker(var symbolTable: SymbolTable) {
                 val boundTypeParam = boundTypeVars[repType]
                 if (boundTypeParam != null) {
                     return boundTypeParam
-                // If specified, create new type parameter and bind this type variable to it
-                } else if (bindTypeVars) {
+                // Otherwise, create new type parameter and bind this type variable to it
+                } else {
                     val newTypeParam = newTypeParameter()
                     boundTypeVars[repType] = newTypeParam
                     newTypeParam
-                // Otherwise there is no inferred type, if type var was not bound or set to be bound
-                } else {
-                    return null
                 }
             }
             is UnitTypeExpression -> UnitType
@@ -522,29 +588,21 @@ class TypeChecker(var symbolTable: SymbolTable) {
             is IntTypeExpression -> IntType
             is FloatTypeExpression -> FloatType
             is ListTypeExpression -> {
-                // Infer type for element type, if null then return null
+                // Infer type for element type and reconstruct list type
                 val elementRepType = findRepresentativeNode(repType.elementType).type
-                val elementType = inferredTypeForExpression(elementRepType, bindTypeVars)
-                if (elementType == null) {
-                    return null
-                } else {
-                    return ListType(elementType)
-                }
+                val elementType = inferredTypeForExpression(elementRepType)
+                return ListType(elementType)
             }
             is FunctionTypeExpression -> {
-                // Infer types for arguments and return type, if any are null then return null
+                // Infer types for arguments and return type, then reconstruct type
                 val argTypes = repType.argTypes
                         .map { argType -> findRepresentativeNode(argType).type }
-                        .map { argRepType -> inferredTypeForExpression(argRepType, true) }
+                        .map { argRepType -> inferredTypeForExpression(argRepType) }
 
                 val returnRepType = findRepresentativeNode(repType.returnType).type
-                val returnType = inferredTypeForExpression(returnRepType, true)
+                val returnType = inferredTypeForExpression(returnRepType)
 
-                if (returnType == null || argTypes.any { argType -> argType == null} ) {
-                    return null
-                } else {
-                    return FunctionType(argTypes.map { x -> x!! } , returnType)
-                }
+                return FunctionType(argTypes, returnType)
             }
         }
     }
@@ -555,15 +613,9 @@ class TypeChecker(var symbolTable: SymbolTable) {
      */
     fun inferSymbolTypes(idClass: IdentifierClass) {
         // Infer types for every identifier of the specified class
-        for ((ident, identInfo) in symbolTable.identifiers) {
+        for ((_, identInfo) in symbolTable.identifiers) {
             if (identInfo.idClass == idClass) {
-                val inferredType = inferredTypeForExpression(identInfo.typeExpr)
-                if (inferredType == null) {
-                    throw IRConversionException("Could not infer type for ${ident.name}, found " +
-                            "${findRepType(identInfo.typeExpr)}")
-                }
-
-                identInfo.type = inferredType
+                identInfo.type = inferredTypeForExpression(identInfo.typeExpr)
             }
         }
     }
@@ -592,13 +644,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
     fun inferIRTypes(root: IRNode) {
         // Infer return types for each IRNode
         root.map { node ->
-            val inferredType = inferredTypeForExpression(node.evalTypeExpr)
-            if (inferredType == null) {
-                throw IRConversionException("Could not infer type for " +
-                        "${findRepType(node.evalTypeExpr)}")
-            }
-
-            node.type = inferredType
+            node.type = inferredTypeForExpression(node.evalTypeExpr)
         }
     }
 

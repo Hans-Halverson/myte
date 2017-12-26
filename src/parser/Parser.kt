@@ -249,7 +249,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
     fun parseExponentExpression(prevExpr: Expression): ExponentExpression {
         // If parseExponentExpression is called, the previous token must have been a ^.
         // Subtracting one from the precedence makes this operator right associative.
-        val expr = parseExpression(EXPONENT_PRECEDENCE - 1)
+        val expr = parseExpression(rightAssociative(EXPONENT_PRECEDENCE))
         return ExponentExpression(prevExpr, expr)
     }
 
@@ -260,7 +260,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                     + "assign to ${prevExpr}")
         }
         
-        val expr = parseExpression(ASSIGNMENT_PRECEDENCE)
+        // Subtracting one from the precedence makes this operator right associative.
+        val expr = parseExpression(rightAssociative(ASSIGNMENT_PRECEDENCE))
         return AssignmentExpression(prevExpr.ident, expr)
     }
 
@@ -344,12 +345,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
      * Parse the current stream into a single top-level type expression, which may contain
      * arbitrarily nested types.
      */
-    fun parseType(
-        inFunctionDef: Boolean = false,
-        newTypeParams: MutableList<TypeVariable> = mutableListOf()
-    ): TypeExpression {
-        val types: MutableList<TypeExpression> = mutableListOf(
-                parseNestedType(inFunctionDef, newTypeParams))
+    fun parseType(inFunctionDef: Boolean = false): TypeExpression {
+        val types: MutableList<TypeExpression> = mutableListOf(parseNestedType(inFunctionDef))
 
         // If not a function type, only parse first complete type
         if (tokenizer.current !is ArrowToken) {
@@ -359,7 +356,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         // If a function type, add arrow separated types as args and return type of function type
         do {
             tokenizer.next()
-            types.add(parseNestedType(inFunctionDef, newTypeParams))
+            types.add(parseNestedType(inFunctionDef))
         } while (tokenizer.current is ArrowToken)
 
         val returnType = types.removeAt(types.lastIndex)
@@ -370,10 +367,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
      * Parse the current stream into a single nested type expression, that may contain arbitrarily
      * nested types.
      */
-    fun parseNestedType(
-        inFunctionDef: Boolean = false,
-        newTypeParams: MutableList<TypeVariable> = mutableListOf()
-    ): TypeExpression {
+    fun parseNestedType(inFunctionDef: Boolean = false): TypeExpression {
         val token = tokenizer.next()
         return when (token) {
             is BoolToken -> BoolTypeExpression
@@ -385,7 +379,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                 assertCurrent(TokenType.LESS_THAN)
                 tokenizer.next()
 
-                val elementType = parseType(inFunctionDef, newTypeParams)
+                val elementType = parseType(inFunctionDef)
 
                 assertCurrent(TokenType.GREATER_THAN)
                 tokenizer.next()
@@ -395,7 +389,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             // Nested types can be surrounded in parentheses - and nested function types must
             // have surrounding parentheses.
             is LeftParenToken -> {
-                val nestedType = parseType(inFunctionDef, newTypeParams)
+                val nestedType = parseType(inFunctionDef)
 
                 assertCurrent(TokenType.RIGHT_PAREN)
                 tokenizer.next()
@@ -418,10 +412,6 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                     // the type parameter to the symbol table.
                     val newTypeParam = newTypeVariable()
                     symbolTable.addSymbol(token.str, IdentifierClass.TYPE_PARAMETER, newTypeParam)
-
-                    // Save this type parameter as a new parameter introduced in the overall type
-                    newTypeParams.add(newTypeParam)
-
                     newTypeParam
                 } else {
                     throw ParseException("Unknown type ${token.str}")
@@ -434,14 +424,11 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
     /**
      * Parse the current type annotation in the stream into a single type expression.
      */
-    fun parseTypeAnnotation(
-        inFunctionDef: Boolean = false,
-        newTypeParams: MutableList<TypeVariable> = mutableListOf()
-    ): TypeExpression {
+    fun parseTypeAnnotation(inFunctionDef: Boolean = false): TypeExpression {
         assertCurrent(TokenType.COLON)
         tokenizer.next()
 
-        return parseType(inFunctionDef, newTypeParams)
+        return parseType(inFunctionDef)
     }
 
     fun parseVariableDefinition(isConst: Boolean): Statement {
@@ -521,7 +508,6 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         val funcName = token.str
         val formalArgs: MutableList<Identifier> = mutableListOf()
         val argTypes: MutableList<TypeExpression> = mutableListOf()
-        val newTypeParams: MutableList<TypeVariable> = mutableListOf()
 
         assertCurrent(TokenType.LEFT_PAREN)
         tokenizer.next()
@@ -538,17 +524,15 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                     val argType = if (isNumeric) {
                         FloatTypeExpression
                     } else if (tokenizer.current is ColonToken) {
-                        parseTypeAnnotation(true, newTypeParams)
+                        parseTypeAnnotation(true)
                     } else {
-                        val newTypeVar = newTypeVariable()
-                        newTypeParams.add(newTypeVar)
-                        newTypeVar
+                        newTypeVariable()
                     }
 
                     // Add formal argument as variable to symbol table in new scope
                     argTypes.add(argType)
                     formalArgs.add(symbolTable.addSymbol(token.str,
-                        IdentifierClass.VARIABLE, argType))
+                            IdentifierClass.VARIABLE, argType))
                 }
                 else -> throw ParseException("Formal arguments must be identifiers")
             }
@@ -568,11 +552,9 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         val returnType = if (isNumeric) {
             FloatTypeExpression
         } else if (tokenizer.current is ColonToken) {
-            parseTypeAnnotation(true, newTypeParams)
+            parseTypeAnnotation(true)
         } else {
-            val newTypeVar = newTypeVariable()
-            newTypeParams.add(newTypeVar)
-            newTypeVar
+            newTypeVariable()
         }
 
         // Add the function to the symbol table with correct type before parsing body, and make

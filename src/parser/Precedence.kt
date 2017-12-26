@@ -38,3 +38,8 @@ fun getPrecedenceForInfixToken(tokenType: TokenType): Int = when (tokenType) {
     TokenType.LEFT_PAREN -> CALL_PRECEDENCE
     else -> NO_PRECEDENCE
 }
+
+/**
+ * Make a precedence right associative by subtracting one from it.
+ */
+fun rightAssociative(precedence: Int): Int = precedence - 1

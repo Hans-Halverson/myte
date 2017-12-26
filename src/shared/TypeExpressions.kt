@@ -10,17 +10,7 @@ sealed class TypeExpression {
      */
     abstract fun toType(): Type?
 
-    /**
-     * Create a new, equivalent type expression with new type variables for each parameter of
-     * function types.
-     *
-     * @property newTypeParams a map of old type parameters to new type parameters
-     */
-    open fun withFreshTypeParams(
-        newTypeParams: MutableMap<TypeVariable, TypeVariable> = mutableMapOf()
-    ): TypeExpression {
-        return this
-    }
+    open fun getAllVariables(): List<TypeVariable> = listOf()
 }
 
 sealed class NumberTypeExpression : TypeExpression()
@@ -46,20 +36,7 @@ fun newTypeVariable(): TypeVariable {
 data class TypeVariable(val id: Long) : TypeExpression() {
     override fun toType(): Type? = null
 
-    override fun withFreshTypeParams(
-        newTypeParams: MutableMap<TypeVariable, TypeVariable>
-    ): TypeExpression {
-        val mappedTypeParam = newTypeParams[this]
-
-        // If this type param has been remapped, return new version, otherwise map it.
-        if (mappedTypeParam != null) {
-            return mappedTypeParam
-        } else {
-            val newParam = newTypeVariable()
-            newTypeParams[this] = newParam
-            return newParam
-        }
-    }
+    override fun getAllVariables(): List<TypeVariable> = listOf(this)
 
     override fun toString(): String = "${id}"
 }
@@ -105,11 +82,7 @@ data class ListTypeExpression(val elementType: TypeExpression) : TypeExpression(
         }
     }
 
-    override fun withFreshTypeParams(
-        newTypeParams: MutableMap<TypeVariable, TypeVariable>
-    ): TypeExpression {
-        return ListTypeExpression(elementType.withFreshTypeParams(newTypeParams))
-    }
+    override fun getAllVariables(): List<TypeVariable> = elementType.getAllVariables()
 
     override fun toString(): String = "list<${elementType}>"
 }
@@ -131,13 +104,11 @@ data class FunctionTypeExpression(
         }
     }
 
-    override fun withFreshTypeParams(
-        newTypeParams: MutableMap<TypeVariable, TypeVariable>
-    ): TypeExpression {
-        val newArgTypes = argTypes.map { arg -> arg.withFreshTypeParams(newTypeParams) }
-        val newReturnType = returnType.withFreshTypeParams(newTypeParams)
+    override fun getAllVariables(): List<TypeVariable> {
+        val argVars = argTypes.map(TypeExpression::getAllVariables).flatten()
+        val returnVars = returnType.getAllVariables()
 
-        return FunctionTypeExpression(newArgTypes, newReturnType)
+        return listOf(argVars, returnVars).flatten()
     }
 
     override fun toString(): String {
