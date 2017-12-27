@@ -28,6 +28,10 @@ data class ListType(val elementType: Type) : Type() {
     override fun toString(): String = "list<${elementType}>"
 }
 
+data class TupleType(val elementTypes: List<Type>) : Type() {
+    override fun toString(): String = elementTypes.joinToString(", ", "(", ")")
+}
+
 class FunctionType(
     val argTypes: List<Type>,
     val returnType: Type

@@ -105,7 +105,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             is PlusToken -> parseUnaryPlusExpression()
             is MinusToken -> parseUnaryMinusExpression()
             is LogicalNotToken -> parseLogicalNotExpression()
-            is LeftParenToken -> parseGroupExpression()
+            is LeftParenToken -> parseParenthesizedExpression()
             // If the expression does not begin with a literal or prefix operator, it is not a
             // valid expression.
             else -> throw ParseException(firstToken)
@@ -212,14 +212,30 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         return LogicalNotExpression(expr)
     }
 
-    fun parseGroupExpression(): GroupExpression {
-        // If parseGroupExpression is called, the previous token must have been a (
+    fun parseParenthesizedExpression(): Expression {
+        // If parseParenthesizedExpression is called, the previous token must have been a (
         val expr = parseExpression()
+
+        // If a right paren is seen after a single expression, this is a group expression
+        if (tokenizer.current is RightParenToken) {
+            tokenizer.next()
+            return GroupExpression(expr)
+        }
+
+        // Otherwise interpret as a tuple literal by parsing comma separated list of expressions
+        val exprs = mutableListOf(expr)
+
+        while (tokenizer.current !is RightParenToken) {
+            assertCurrent(TokenType.COMMA)
+            tokenizer.next()
+
+            exprs.add(parseExpression())
+        }
 
         assertCurrent(TokenType.RIGHT_PAREN)
         tokenizer.next()
 
-        return GroupExpression(expr)
+        return TupleLiteralExpression(exprs)
     }
 
     fun parseAddExpression(prevExpr: Expression): AddExpression {
@@ -346,21 +362,46 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
      * arbitrarily nested types.
      */
     fun parseType(inFunctionDef: Boolean = false): TypeExpression {
-        val types: MutableList<TypeExpression> = mutableListOf(parseNestedType(inFunctionDef))
+        var funcTypes: MutableList<TypeExpression> = mutableListOf(parseNestedType(inFunctionDef))
+        val tupleTypes: MutableList<TypeExpression> = mutableListOf()
 
-        // If not a function type, only parse first complete type
-        if (tokenizer.current !is ArrowToken) {
-            return types[0]
+        while (tokenizer.current is ArrowToken || tokenizer.current is CommaToken) {
+            // If a function arrow is found, contine addinf function parts to list
+            if (tokenizer.current is ArrowToken) {
+                tokenizer.next()
+                funcTypes.add(parseNestedType(inFunctionDef))
+            } else {
+                tokenizer.next()
+
+                // If there were multiple stored func types, a function must have been parsed
+                if (funcTypes.size > 1) {
+                    val returnType = funcTypes.removeAt(funcTypes.lastIndex)
+                    tupleTypes.add(FunctionTypeExpression(funcTypes, returnType))
+                // Otherwise a single tuple element must have been parsed
+                } else {
+                    tupleTypes.add(funcTypes[0])
+                }
+
+                funcTypes = mutableListOf(parseNestedType(inFunctionDef))
+            }
         }
 
-        // If a function type, add arrow separated types as args and return type of function type
-        do {
-            tokenizer.next()
-            types.add(parseNestedType(inFunctionDef))
-        } while (tokenizer.current is ArrowToken)
+        // If there were multiple stored func types, a function must have been parsed
+        if (funcTypes.size > 1) {
+            val returnType = funcTypes.removeAt(funcTypes.lastIndex)
+            tupleTypes.add(FunctionTypeExpression(funcTypes, returnType))
+        // Otherwise a single tuple element must have been parsed
+        } else {
+            tupleTypes.add(funcTypes[0])
+        }
 
-        val returnType = types.removeAt(types.lastIndex)
-        return FunctionTypeExpression(types, returnType)
+        // If only a single tuple type was found, it is not actually a tuple
+        if (tupleTypes.size == 1) {
+            return tupleTypes[0]
+        // If multiple tuple types were found, construct tuple type
+        } else {
+            return TupleTypeExpression(tupleTypes)
+        }
     }
 
     /**

@@ -32,6 +32,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             stmt is IntLiteral -> IntLiteralNode(stmt.num)
             stmt is FloatLiteral -> FloatLiteralNode(stmt.num)
             stmt is ListLiteralExpression -> convertListLiteral(stmt)
+            stmt is TupleLiteralExpression -> convertTupleLiteral(stmt)
             // Variables and functions
             stmt is IdentifierExpression -> convertVariable(stmt)
             stmt is CallExpression -> convertFunctionCall(stmt)
@@ -182,6 +183,10 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
 
     fun convertListLiteral(expr: ListLiteralExpression): ListLiteralNode {
         return ListLiteralNode(expr.elements.map(this::convert))
+    }
+
+    fun convertTupleLiteral(expr: TupleLiteralExpression): TupleLiteralNode {
+        return TupleLiteralNode(expr.elements.map(this::convert))
     }
 
     fun convertEquality(expr: EqualityExpression): EqualityNode {

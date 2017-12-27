@@ -87,6 +87,13 @@ class TypeChecker(var symbolTable: SymbolTable) {
             is ListTypeExpression -> {
                 ListTypeExpression(findRepType(repType.elementType, boundVars, mappedVars))
             }
+            is TupleTypeExpression -> {
+                val elementTypes = repType.elementTypes.map { elementType ->
+                    findRepType(elementType, boundVars, mappedVars)
+                }
+                
+                return TupleTypeExpression(elementTypes)
+            }
             is FunctionTypeExpression -> {
                 val argTypes = repType.argTypes.map { argType ->
                     findRepType(argType, boundVars, mappedVars)
@@ -161,6 +168,10 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
         return when (subst) {
             is ListTypeExpression -> occursIn(typeVar, subst.elementType)
+            is TupleTypeExpression -> {
+                subst.elementTypes.map({ elementType -> occursIn(typeVar, elementType) })
+                                  .any({ x -> x})
+            }
             is FunctionTypeExpression -> occursIn(typeVar, subst.returnType) ||
                     subst.argTypes.map({ argType -> occursIn(typeVar, argType) })
                                   .any({ x -> x })
@@ -193,12 +204,24 @@ class TypeChecker(var symbolTable: SymbolTable) {
             }
 
             return canUnify
+        // If both representatives have tuple types, merge reps of all element types
+        } else if (type1 is TupleTypeExpression && type2 is TupleTypeExpression) {
+            val canUnify = type1.elementTypes.size == type2.elementTypes.size &&
+                    type1.elementTypes.zip(type2.elementTypes)
+                         .map({ (e1, e2) -> unify(e1, e2) })
+                         .all({ x -> x })
+
+            if (canUnify) {
+                mergeReps(rep1, rep2)
+            }
+
+            return canUnify
         // If both representatives have function type, merge reps and unify their child types
         } else if (type1 is FunctionTypeExpression && type2 is FunctionTypeExpression) {
             val canUnify = type1.argTypes.size == type2.argTypes.size &&
                     unify(type1.returnType, type2.returnType) &&
                     type1.argTypes.zip(type2.argTypes)
-                         .map({ (p1, p2) -> unify(p1, p2) })
+                         .map({ (a1, a2) -> unify(a1, a2) })
                          .all({ x -> x })
 
             if (canUnify) {
@@ -221,6 +244,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
     fun typeCheck(node: IRNode, boundVars: MutableSet<TypeVariable>) {
         when (node) {
             is ListLiteralNode -> typeCheckListLiteral(node, boundVars)
+            is TupleLiteralNode -> typeCheckTupleLiteral(node, boundVars)
             is UnaryMathOperatorNode -> typeCheckUnaryMathOperator(node, boundVars)
             is BinaryMathOperatorNode -> typeCheckBinaryMathOperator(node, boundVars)
             is LogicalAndNode -> typeCheckLogicalAnd(node, boundVars)
@@ -266,6 +290,31 @@ class TypeChecker(var symbolTable: SymbolTable) {
         // Attempt to unify the list eval type with the new list type variable
         if (!unify(node.evalTypeExpr, expectedType)) {
             throw IRConversionException("Cannot infer type for list, expected " +
+                    "${findRepType(expectedType, boundVars)} but found " +
+                    "${findRepType(node.evalTypeExpr, boundVars)}")
+        }
+    }
+
+    fun typeCheckTupleLiteral(node: TupleLiteralNode, boundVars: MutableSet<TypeVariable>) {
+        node.elements.forEach { element -> typeCheck(element, boundVars) }
+
+        val nodeEvalTypeExpr = node.evalTypeExpr
+        if (nodeEvalTypeExpr !is TupleTypeExpression) {
+            throw IRConversionException("Expected tuple literal to have tuple type, but found " +
+                    "${findRepType(nodeEvalTypeExpr, boundVars)}")
+        }
+
+        // Attempt to unify the types of each tuple element with its respective element type
+        val canUnifyElements = node.elements.zip(nodeEvalTypeExpr.elementTypes)
+                .map({ (element, expectedElementType) ->
+                    unify(findRepType(element.evalTypeExpr, boundVars), expectedElementType)
+                }).all({ x -> x })
+
+        val expectedType = TupleTypeExpression(nodeEvalTypeExpr.elementTypes)
+
+        // Attempt to unify the list eval type with the new list type variable
+        if (!canUnifyElements || !unify(nodeEvalTypeExpr, expectedType)) {
+            throw IRConversionException("Cannot infer type for tuple, expected " +
                     "${findRepType(expectedType, boundVars)} but found " +
                     "${findRepType(node.evalTypeExpr, boundVars)}")
         }
@@ -592,6 +641,14 @@ class TypeChecker(var symbolTable: SymbolTable) {
                 val elementRepType = findRepresentativeNode(repType.elementType).type
                 val elementType = inferredTypeForExpression(elementRepType)
                 return ListType(elementType)
+            }
+            is TupleTypeExpression -> {
+                // Infer type for each element type and reconstruct tuple type
+                val elementTypes = repType.elementTypes
+                        .map { elementType -> findRepresentativeNode(elementType).type }
+                        .map { elementRepType -> inferredTypeForExpression(elementRepType) }
+
+                return TupleType(elementTypes)
             }
             is FunctionTypeExpression -> {
                 // Infer types for arguments and return type, then reconstruct type

@@ -32,6 +32,7 @@ EXPR -> NUMBER_LITERAL
       | INFIX
       | FUNCTION_CALL
       | ( EXPR )
+      | ( EXPR_LIST )
 
 UNARY -> + EXPR
        | - EXPR
@@ -62,6 +63,7 @@ TYPE -> bool
       | unit
       | ( TYPE )
       | TYPE -> TYPE
+      | TYPE , TYPE
       | list<TYPE_PARAM_LIST>
       | IDENT
 

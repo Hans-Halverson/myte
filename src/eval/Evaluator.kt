@@ -28,6 +28,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             is IntLiteralNode -> IntValue(node.num)
             is FloatLiteralNode -> FloatValue(node.num)
             is ListLiteralNode -> evalListLiteralNode(node, env)
+            is TupleLiteralNode -> evalTupleLiteralNode(node, env)
             // Variables and functions
             is VariableNode -> env.lookup(node.ident)
             is FunctionCallNode -> evalFunctionCall(node, env)
@@ -110,6 +111,20 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         }).toMutableList()
 
         return ListValue(list, type)
+    }
+
+    fun evalTupleLiteralNode(node: TupleLiteralNode, env: Environment): TupleValue {
+        val type = node.type
+        if (type !is TupleType) {
+            throw EvaluationException("Expected tuple literal to have tuple type, " +
+                    "but found ${type}")
+        }
+
+        val tuple = node.elements.map({ element ->
+            evaluate(element, env)
+        }).toMutableList()
+
+        return TupleValue(tuple, type)
     }
 
     fun evalUnaryMathOperator(node: UnaryMathOperatorNode, env: Environment): NumberValue {

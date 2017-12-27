@@ -4,12 +4,6 @@ package myte.shared
  * A type expression used in type inferrence.
  */
 sealed class TypeExpression {
-    /**
-     * Convert this type expression into a concrete type if possible, otherwise return null
-     * if this type expression does not represent a fully defined type.
-     */
-    abstract fun toType(): Type?
-
     open fun getAllVariables(): List<TypeVariable> = listOf()
 }
 
@@ -34,75 +28,49 @@ fun newTypeVariable(): TypeVariable {
  * @property id the unique id which identifies this type variable
  */
 data class TypeVariable(val id: Long) : TypeExpression() {
-    override fun toType(): Type? = null
-
     override fun getAllVariables(): List<TypeVariable> = listOf(this)
 
     override fun toString(): String = "${id}"
 }
 
 object UnitTypeExpression : TypeExpression() {
-    override fun toType(): Type? = UnitType
-
     override fun toString(): String = "unit"
 }
 
 object BoolTypeExpression : TypeExpression() {
-    override fun toType(): Type? = BoolType
-
     override fun toString(): String = "bool"
 }
 
 object IntTypeExpression : NumberTypeExpression() {
-    override fun toType(): Type? = IntType
-
     override fun toString(): String = "int"
 }
 
 object FloatTypeExpression : NumberTypeExpression() {
-    override fun toType(): Type? = FloatType
-
     override fun toString(): String = "float"
 }
 
 object StringTypeExpression : TypeExpression() {
-    override fun toType(): Type? = StringType
-
     override fun toString(): String = "string"
 }
 
 data class ListTypeExpression(val elementType: TypeExpression) : TypeExpression() {
-    override fun toType(): Type? {
-        // If the element type is not fully defined, this type cannot be fully defined
-        val childType = elementType.toType()
-        if (childType == null) {
-            return null
-        } else {
-            return ListType(childType)
-        }
-    }
-
     override fun getAllVariables(): List<TypeVariable> = elementType.getAllVariables()
 
     override fun toString(): String = "list<${elementType}>"
+}
+
+data class TupleTypeExpression(val elementTypes: List<TypeExpression>) : TypeExpression() {
+    override fun getAllVariables(): List<TypeVariable> {
+        return elementTypes.map(TypeExpression::getAllVariables).flatten()
+    }
+
+    override fun toString(): String = elementTypes.joinToString(", ", "(", ")")
 }
 
 data class FunctionTypeExpression(
     val argTypes: List<TypeExpression>,
     val returnType: TypeExpression
 ) : TypeExpression() {
-    
-    override fun toType(): Type? {
-        // If the arg types or return type are fully defined, this type cannot be fully defined
-        val args = argTypes.map { arg -> arg.toType() }
-        val funcReturn = returnType.toType()
-
-        if (funcReturn == null || args.any { arg -> arg == null }) {
-            return null
-        } else {
-            return FunctionType(args.map { x -> x!! }, funcReturn)
-        }
-    }
 
     override fun getAllVariables(): List<TypeVariable> {
         val argVars = argTypes.map(TypeExpression::getAllVariables).flatten()
@@ -155,6 +123,7 @@ fun expressionFromType(type: Type): TypeExpression {
         is IntType -> IntTypeExpression
         is FloatType -> FloatTypeExpression
         is ListType -> ListTypeExpression(expressionFromType(type.elementType))
+        is TupleType -> TupleTypeExpression(type.elementTypes.map(::expressionFromType))
         is FunctionType -> FunctionTypeExpression(type.argTypes.map(::expressionFromType),
                                                   expressionFromType(type.returnType))
         is TypeParameter -> newTypeVariable()
