@@ -194,7 +194,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
     }
 
     fun evalComparison(node: ComparisonNode, env: Environment): BoolValue {
-        return when (node.left.type) {
+        return when (node.type) {
             is IntType -> {
                 val left = evalInt(node.left, env)
                 val right = evalInt(node.right, env)
@@ -302,8 +302,8 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             throw EvaluationException("Unknown function ${node.ident.name}")
         }
 
-        env.extend(node.ident, ClosureValue(node.ident, node.formalArgs, node.body,
-                env.copy(), type))
+        env.extend(node.ident, ClosureValue(node.formalArgs, node.body, env.copy(), type))
+
         return UnitValue
     }
 

@@ -11,8 +11,8 @@ import myte.shared.*
 class FunctionCallNode(
     val func: Identifier,
     val actualArgs: List<IRNode>,
-    evalTypeExpr: TypeExpression
-) : IRNode(evalTypeExpr) {
+    type: Type
+) : IRNode(type) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         actualArgs.map { arg -> arg.map(func) }

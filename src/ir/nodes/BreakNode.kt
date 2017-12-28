@@ -5,4 +5,4 @@ import myte.shared.*
 /**
  * A node that represents a break statement.
  */
-object BreakNode : IRNode(UnitTypeExpression)
+object BreakNode : IRNode(UnitType)

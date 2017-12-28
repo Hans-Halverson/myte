@@ -11,7 +11,7 @@ import myte.shared.*
 sealed class BinaryMathOperatorNode(
     val left: IRNode,
     val right: IRNode
-) : IRNode(newTypeVariable()) {
+) : IRNode(TypeVariable()) {
     
     /**
      * Return the result of applying this operation to two ints.

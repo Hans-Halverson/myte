@@ -9,7 +9,7 @@ import myte.shared.*
  */
 class TupleLiteralNode(
     val elements: List<IRNode>
-) : IRNode(TupleTypeExpression(elements.map { newTypeVariable() })) {
+) : IRNode(TupleType(elements.map { TypeVariable() })) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         elements.map { element -> element.map(func) }

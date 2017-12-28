@@ -149,14 +149,14 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         }
 
         // The best known eval type of a variable is the type expression stored in the symbol table
-        return VariableNode(expr.ident, info.typeExpr)
+        return VariableNode(expr.ident, info.type)
     }
 
     fun convertFunctionCall(expr: CallExpression): FunctionCallNode {
         val args = expr.actualArgs.map(this::convert)
-        val returnTypeExpr = if (isNumeric(expr.func)) FloatTypeExpression else newTypeVariable()
+        val returnType = if (isNumeric(expr.func)) FloatType else TypeVariable()
 
-        return FunctionCallNode(expr.func, args, returnTypeExpr)
+        return FunctionCallNode(expr.func, args, returnType)
     }
 
     fun convertKeyedAccess(expr: KeyedAccessExpression): KeyedAccessNode {
@@ -167,7 +167,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         // Convert the keyed access, and use its properties to construct the keyed assignment
         val keyedAccess = convertKeyedAccess(expr.lValue)
         return KeyedAssignmentNode(keyedAccess.container, keyedAccess.key,
-                convert(expr.rValue), keyedAccess.evalTypeExpr)
+                convert(expr.rValue), keyedAccess.type)
     }
 
     fun convertVariableAssignment(expr: VariableAssignmentExpression): VariableAssignmentNode {
@@ -186,7 +186,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         }
 
         // The best known eval type of a variable is the type expression stored in the symbol table
-        return VariableAssignmentNode(expr.lValue, convert(expr.rValue), info.typeExpr)
+        return VariableAssignmentNode(expr.lValue, convert(expr.rValue), info.type)
     }
 
     fun convertReturn(expr: ReturnStatement): ReturnNode {

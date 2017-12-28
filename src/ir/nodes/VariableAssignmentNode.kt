@@ -11,8 +11,8 @@ import myte.shared.*
 class VariableAssignmentNode(
     val lValue: Identifier,
     val rValue: IRNode,
-    evalTypeExpr: TypeExpression
-) : IRNode(evalTypeExpr) {
+    type: Type
+) : IRNode(type) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         rValue.map(func)

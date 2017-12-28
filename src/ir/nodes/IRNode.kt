@@ -5,21 +5,11 @@ import myte.shared.*
 /**
  * A node in the internal representation of the program.
  *
- * @property evalTypeExpr the most specific type expression of the type that this node evaluates to
- *           that is known when the node is created
+ * @property type the type that this node evaluates to. Holds the most specific type known
+ *           for this node when intially created, and later is reassigned with inferred node
+ *           type after type inference has taken place.
  */
-abstract class IRNode(val evalTypeExpr: TypeExpression) {
-    private var typeIfInferred: Type? = null
-
-    /**
-     * @property type the inferred type that this node evaluates to. This is initially null,
-     *           so it is not safe to access until after type inference has finished.
-     */
-    var type: Type
-        get() = typeIfInferred!!
-        set(newType: Type) {
-            typeIfInferred = newType
-        }
+abstract class IRNode(var type: Type) {
 
     /*
      * Apply a function over the entire IR tree rooted at this node in preorder.

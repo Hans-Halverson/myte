@@ -7,7 +7,7 @@ import myte.shared.*
  *
  * @property nodes all nodes that exist within the new scope
  */
-data class BlockNode(val nodes: List<IRNode>) : IRNode(UnitTypeExpression) {
+data class BlockNode(val nodes: List<IRNode>) : IRNode(UnitType) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         nodes.map { node -> node.map(func) }

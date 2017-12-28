@@ -15,7 +15,7 @@ data class ForNode(
     val cond: IRNode?,
     val update: IRNode?,
     val body: IRNode
-) : IRNode(UnitTypeExpression) {
+) : IRNode(UnitType) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         init?.map(func)

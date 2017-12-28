@@ -64,40 +64,34 @@ class SymbolTable() {
         return null
     }
 
-    /**
-     * Add a new identifier to the current scope, and fill in its info.
-     *
-     * @param name the name of the new identifier
-     * @param idClass the class of the new identifier (e.g. variable, function)
-     * @param typeExpr the best known type expression for the new identifier
-     * @param props an (optional) set of all properties of this identifier
-     */
     fun addSymbol(
         name: String,
         idClass: IdentifierClass,
-        typeExpr: TypeExpression,
+        type: Type,
         props: Set<IdentifierProperty> = hashSetOf()
     ): Identifier {
         val scope = scopes.peek()
-        return addSymbolInScope(scope, name, idClass, typeExpr, props)
+        return addSymbolInScope(scope, name, idClass, type, props)
     }
 
-    /**
-     * Add a new identifier to the previous scope, and fill in its info.
-     *
-     * @param name the name of the new identifier
-     * @param idClass the class of the new identifier (e.g. variable, function)
-     * @param typeExpr the best known type expression for the new identifier
-     * @param props an (optional) set of all properties of this identifier
-     */
     fun addSymbolInPreviousScope(
         name: String,
         idClass: IdentifierClass,
-        typeExpr: TypeExpression,
+        type: Type,
         props: Set<IdentifierProperty> = hashSetOf()
     ): Identifier {
         val scope = scopes.get(scopes.size - 2)
-        return addSymbolInScope(scope, name, idClass, typeExpr, props)
+        return addSymbolInScope(scope, name, idClass, type, props)
+    }
+
+    fun addSymbolInGlobalScope(
+        name: String,
+        idClass: IdentifierClass,
+        type: Type,
+        props: Set<IdentifierProperty> = hashSetOf()
+    ): Identifier {
+        val scope = scopes[0]
+        return addSymbolInScope(scope, name, idClass, type, props)
     }
 
     /**
@@ -106,18 +100,18 @@ class SymbolTable() {
      * @param scope the scope to add the identifier to
      * @param name the name of the new identifier
      * @param idClass the class of the new identifier (e.g. variable, function)
-     * @param typeExpr the best known type expression for the new identifier
+     * @param type the best known type for the new identifier
      * @param props an (optional) set of all properties of this identifier
      */
     private fun addSymbolInScope(
         scope: MutableMap<String, Identifier>,
         name: String,
         idClass: IdentifierClass,
-        typeExpr: TypeExpression,
+        type: Type,
         props: Set<IdentifierProperty>
     ): Identifier {
-        val ident = newIdentifier(name)
-        val info = IdentifierInfo(name, idClass, typeExpr, props)
+        val ident = Identifier(name)
+        val info = IdentifierInfo(name, idClass, type, props)
 
         scope[name] = ident
         identifiers[ident] = info

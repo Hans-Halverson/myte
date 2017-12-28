@@ -13,8 +13,8 @@ class KeyedAssignmentNode(
     val container: IRNode,
     val key: IRNode,
     val rValue: IRNode,
-    evalTypeExpr: TypeExpression
-) : IRNode(evalTypeExpr) {
+    type: Type
+) : IRNode(type) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         container.map(func)

@@ -8,7 +8,8 @@ const val PRINT_LINE_BUILTIN = "println"
 /**
  * A builtin which prints out a single string.
  */
-class PrintLineBuiltin() : Builtin(PRINT_LINE_BUILTIN, FunctionType(listOf(StringType), UnitType)) {
+class PrintLineBuiltin(
+) : Builtin(PRINT_LINE_BUILTIN, FunctionType(listOf(StringType), UnitType)) {
     
     /**
     * Print out a single string.

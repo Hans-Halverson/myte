@@ -7,4 +7,4 @@ import myte.shared.*
  *
  * @property str the string literal value
  */
-data class StringLiteralNode(val str: String) : IRNode(StringTypeExpression)
+data class StringLiteralNode(val str: String) : IRNode(StringType)
