@@ -26,7 +26,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
      */
     fun convert(stmt: Statement): IRNode {
         return when {
-            // Literals and variables
+            // Literals
             stmt is BoolLiteralExpression -> BoolLiteralNode(stmt.bool)
             stmt is StringLiteralExpression -> StringLiteralNode(stmt.str)
             stmt is IntLiteral -> IntLiteralNode(stmt.num)
@@ -34,8 +34,9 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             stmt is VectorLiteralExpression -> convertVectorLiteral(stmt)
             stmt is TupleLiteralExpression -> convertTupleLiteral(stmt)
             // Variables and functions
-            stmt is IdentifierExpression -> convertVariable(stmt)
-            stmt is CallExpression -> convertFunctionCall(stmt)
+            stmt is VariableExpression -> convertVariable(stmt)
+            stmt is FunctionCallExpression -> convertFunctionCall(stmt)
+            stmt is TypeConstructorExpression -> convertTypeConstructor(stmt)
             stmt is KeyedAccessExpression -> convertKeyedAccess(stmt)
             stmt is KeyedAssignmentExpression -> convertKeyedAssignment(stmt)
             stmt is VariableAssignmentExpression -> convertVariableAssignment(stmt)
@@ -142,7 +143,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         return ForNode(init, cond, update, convert(stmt.body))
     }
 
-    fun convertVariable(expr: IdentifierExpression): VariableNode {
+    fun convertVariable(expr: VariableExpression): IRNode {
         val info = symbolTable.getInfo(expr.ident)
         if (info == null) {
             throw IRConversionException("Unknown variable ${expr.ident.name}")
@@ -152,11 +153,19 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         return VariableNode(expr.ident, info.type)
     }
 
-    fun convertFunctionCall(expr: CallExpression): FunctionCallNode {
+    fun convertFunctionCall(expr: FunctionCallExpression): FunctionCallNode {
         val args = expr.actualArgs.map(this::convert)
         val returnType = if (isNumeric(expr.func)) FloatType else TypeVariable()
 
         return FunctionCallNode(expr.func, args, returnType)
+    }
+
+    fun convertTypeConstructor(expr: TypeConstructorExpression): TypeConstructorNode {
+        // Create a fresh adt type for this type variant, since exact type params aren't known yet
+        val type = expr.adtVariant.adtSig.getFreshAdt()
+        val args = expr.actualArgs.map(this::convert)
+
+        return TypeConstructorNode(expr.adtVariant, args, type)
     }
 
     fun convertKeyedAccess(expr: KeyedAccessExpression): KeyedAccessNode {

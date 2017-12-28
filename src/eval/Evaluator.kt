@@ -34,6 +34,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             is KeyedAccessNode -> evalKeyedAccess(node, env)
             is KeyedAssignmentNode -> evalKeyedAssignment(node, env)
             is FunctionCallNode -> evalFunctionCall(node, env)
+            is TypeConstructorNode -> evalTypeConstructor(node, env)
             is VariableAssignmentNode -> evalVariableAssignment(node, env)
             is VariableDefinitionNode -> evalVariableDefinition(node, env)
             is FunctionDefinitionNode -> evalFunctionDefinition(node, env)
@@ -282,6 +283,11 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         }
 
         throw EvaluationException("No return value")
+    }
+
+    fun evalTypeConstructor(node: TypeConstructorNode, env: Environment): AlgebraicDataTypeValue {
+        val actualArgs = node.actualArgs.map { expr -> evaluate(expr, env) }
+        return AlgebraicDataTypeValue(node.adtVariant, actualArgs, node.type)
     }
 
     fun evalVariableAssignment(node: VariableAssignmentNode, env: Environment): Value {

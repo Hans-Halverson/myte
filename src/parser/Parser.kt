@@ -187,13 +187,23 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
     //
     ///////////////////////////////////////////////////////////////////////////
 
-    fun parseIdentifierExpression(token: IdentifierToken): IdentifierExpression {
+    fun parseIdentifierExpression(token: IdentifierToken): Expression {
         val ident = symbolTable.lookup(token.str)
         if (ident == null) {
             throw ParseException("No identifier found for symbol ${token.str}")
         }
 
-        return IdentifierExpression(ident)
+        // If identifier is a variable or function, create a variable
+        val info = symbolTable.getInfo(ident)
+        if (info?.idClass == IdentifierClass.VARIABLE ||
+                info?.idClass == IdentifierClass.FUNCTION) {
+            return VariableExpression(ident)
+        // If identifier is a type constructor, create a constructor with no arguments
+        } else if (info?.idClass == IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT) {
+            return TypeConstructorExpression(info.adtVariant, listOf())
+        } else {
+            throw ParseException("${ident.name} is not a function, variable, or type constructor")
+        }
     }
 
     fun parseVectorLiteralExpression(): VectorLiteralExpression {
@@ -298,7 +308,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
     fun parseAssignmentExpression(prevExpr: Expression): Expression {
         // If parseAssignmentExpression is called, the previous token must have been a =
         // Subtracting one from the precedence makes this operator right associative.
-        if (prevExpr is IdentifierExpression) {
+        if (prevExpr is VariableExpression) {
             if (symbolTable.getInfo(prevExpr.ident)?.idClass != IdentifierClass.VARIABLE) {
                 throw ParseException("Can only reassign value to variables")
             }
@@ -361,32 +371,33 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         return LogicalOrExpression(prevExpr, expr)
     }
 
-    fun parseCallExpression(prevExpr: Expression): CallExpression {
+    fun parseCallExpression(prevExpr: Expression): Expression {
         // If parseCallExpression is called, the previous token must have been a (
-        if (prevExpr !is IdentifierExpression) {
-            throw ParseException("Function name must be an identifier")
-        }
-
         val actualArgs: MutableList<Expression> = mutableListOf()
 
         // If no arguments are supplied, create function call with no argument list
-        if (tokenizer.current is RightParenToken) {
-            tokenizer.next()
-            return CallExpression(prevExpr.ident, listOf())
-        }
-
-        // Add all arguments (comma separated expressions) until the next right paren is encountered
-        actualArgs.add(parseExpression())
-
-        while (tokenizer.current is CommaToken) {
-            tokenizer.next()
+        if (tokenizer.current !is RightParenToken) {
+            // Add all arguments (comma separated expressions) until the next right paren is found
             actualArgs.add(parseExpression())
+
+            while (tokenizer.current is CommaToken) {
+                tokenizer.next()
+                actualArgs.add(parseExpression())
+            }
         }
 
         assertCurrent(TokenType.RIGHT_PAREN)
         tokenizer.next()
 
-        return CallExpression(prevExpr.ident, actualArgs)
+        // If a variable is called create a call expression
+        if (prevExpr is VariableExpression) {
+            return FunctionCallExpression(prevExpr.ident, actualArgs)
+        // If a type constructor is called, create a type constructor expression with arguments
+        } else if (prevExpr is TypeConstructorExpression) {
+            return TypeConstructorExpression(prevExpr.adtVariant, actualArgs)
+        } else {
+            throw ParseException("Can only apply functions or type constructors")
+        }
     }
 
     fun parseKeyedAccessExpression(prevExpr: Expression): KeyedAccessExpression {
@@ -753,6 +764,11 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                 return identInfo.type
             // If this is an algebraic data type, created parameterized adt type
             } else if (identInfo?.idClass == IdentifierClass.ALGEBRAIC_DATA_TYPE) {
+                val adt = identInfo.type
+                if (adt !is AlgebraicDataType) {
+                    throw ParseException("Expected ${token.str} to be an algebraic data type")
+                }
+
                 // Parse optional, comma separated list of types within < > 
                 // for parameterized variant type
                 val typeParams: MutableList<Type> = mutableListOf()
@@ -766,13 +782,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                     tokenizer.next()
                 }
 
-                //val astType = identInfo?.type
-                //if (astType !is AlgebraicDataType) {
-                //    throw ParseException("Expected ${token.str} to be an algebraic data type")
-                //}
-
-                //return astType.getTypeExpr(typeParams)
-                throw ParseException("TODO: Implement this")
+                return adt.adtSig.getAdtWithParams(typeParams)
             } else {
                 throw ParseException("Expected ${token.str} to be a type parameter")
             }
@@ -805,14 +815,16 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         }
 
         val typeName = currentToken.str
+        val typeParams: MutableList<TypeVariable> = mutableListOf()
+
         tokenizer.next()
 
-        val typeVars: MutableList<TypeVariable> = mutableListOf()
-
+        // Enter a new scope for the duration of this definition, so that type params will be local
         symbolTable.enterScope()
         
         // Parse optional type parameters for parameterized variant type
         if (tokenizer.current is LessThanToken) {
+            // Type parameters must be a comma separated list of identifiers within < >
             do {
                 tokenizer.next()
                 currentToken = tokenizer.current
@@ -821,9 +833,10 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                     throw ParseException("Expected ${currentToken} to be an identifier")
                 }
 
-                val typeVar = TypeVariable()
-                typeVars.add(typeVar)
-                symbolTable.addSymbol(currentToken.str, IdentifierClass.TYPE_PARAMETER, typeVar)
+                // Add the type parameter to the local environment and save it in the list of params
+                val typeParam = TypeVariable()
+                typeParams.add(typeParam)
+                symbolTable.addSymbol(currentToken.str, IdentifierClass.TYPE_PARAMETER, typeParam)
 
                 tokenizer.next()
             } while (tokenizer.current is CommaToken)
@@ -832,13 +845,9 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             tokenizer.next()
         }
 
-        //val adtType = AlgebraicDataType(typeName, typeParams, mutableListOf())
-
-        //val typeIdent = symbolTable.addSymbolInGlobalScope(typeName,
-        //        IdentifierClass.ALGEBRAIC_DATA_TYPE, adtType.getTypeExpr(typeVars))
-        //symbolTable.getInfo(typeIdent)?.type = adtType
-
-        //val variants: MutableList<AlgebraicDataTypeVariantExpression> = mutableListOf()
+        // Create adt type signature based off name and type params, and add to global scope
+        val adtSig = AlgebraicDataTypeSignature(typeName, typeParams)
+        addAdtSigToSymbolTable(adtSig, symbolTable)
 
         assertCurrent(TokenType.EQUALS)
         tokenizer.next()
@@ -846,6 +855,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         assertCurrent(TokenType.LEFT_BRACE)
         tokenizer.next()
 
+        // Parse nonempty sequence of variant definitions
         do {
             currentToken = tokenizer.current
 
@@ -856,27 +866,33 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             val variantName = currentToken.str
             tokenizer.next()
 
-            val variantType = if (tokenizer.current is ColonToken) {
+            // Parse optional type annotation
+            val typeAnnotation = if (tokenizer.current is ColonToken) {
                 tokenizer.next()
                 parseType()
             } else {
                 null
             }
 
-            //val variantType = AlgebraicDataTypeVariant(variantName)
-            //val variantTypeExpr = AlgebraicDataTypeVariantExpression(variantName, typeExpr)
+            // If tuple type then constructor is elements of tuple, otherwise use parsed type
+            // if it exists, or empty constructor if no type annotation was provided
+            val typeConstructor = if (typeAnnotation is TupleType) {
+                typeAnnotation.elementTypes
+            } else if (typeAnnotation != null) {
+                listOf(typeAnnotation)
+            } else {
+                listOf()
+            }
 
-            //variants.add(variantTypeExpr)
-            //symbolTable.addSymbolInGlobalScope(typeName,
-            //       IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT, variantTypeExpr)
-
+            // Create a new variant type and add it to the global scope
+            val adtVariant = AlgebraicDataTypeVariant(adtSig, variantName, typeConstructor)
+            adtSig.variants.add(adtVariant)
+            addAdtVariantToSymbolTable(adtVariant, symbolTable)
         } while (tokenizer.current !is RightBraceToken)
 
         tokenizer.next()
 
         symbolTable.exitScope()
-
-        //println(adtType)
     }
 
 }

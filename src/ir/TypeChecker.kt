@@ -108,6 +108,14 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
                 return FunctionType(argTypes, returnType)
             }
+            // Find the rep type for each type parameter and reconstruct adt with correct adt sig
+            is AlgebraicDataType -> {
+                val typeParams = repType.typeParams.map { typeParam ->
+                    findRepType(typeParam, boundVars, mappedVars, freshVars)
+                }
+
+                return AlgebraicDataType(repType.adtSig, typeParams)
+            }
             is TypeVariable -> {
                 // If already bound (has same representative as bound var), then return
                 // existing type variable
@@ -185,6 +193,10 @@ class TypeChecker(var symbolTable: SymbolTable) {
             is FunctionType -> occursIn(typeVar, subst.returnType) ||
                     subst.argTypes.map({ argType -> occursIn(typeVar, argType) })
                                   .any({ x -> x })
+            is AlgebraicDataType -> {
+                subst.typeParams.map({ typeParam -> occursIn(typeVar, typeParam) })
+                                .any({ x -> x })
+            }
 
             else -> false
         }
@@ -239,6 +251,19 @@ class TypeChecker(var symbolTable: SymbolTable) {
             }
 
             return canUnify
+        // If both representatives are the same adt, merge reps and unify parameter types
+        } else if (type1 is AlgebraicDataType && type2 is AlgebraicDataType) {
+            val canUnify = type1.adtSig == type2.adtSig &&
+                    type1.typeParams.size == type2.typeParams.size &&
+                    type1.typeParams.zip(type2.typeParams)
+                         .map({ (p1, p2) -> unify(p1, p2) })
+                         .all({ x -> x })
+
+            if (canUnify) {
+                mergeReps(rep1, rep2)
+            }
+
+            return canUnify
         // If a representative is type variable, merge reps
         } else if (type1 is TypeVariable || type2 is TypeVariable) {
             return mergeReps(rep1, rep2)
@@ -253,21 +278,28 @@ class TypeChecker(var symbolTable: SymbolTable) {
      */
     fun typeCheck(node: IRNode, boundVars: MutableSet<TypeVariable>) {
         when (node) {
+            // Literals
             is VectorLiteralNode -> typeCheckVectorLiteral(node, boundVars)
             is TupleLiteralNode -> typeCheckTupleLiteral(node, boundVars)
-            is UnaryMathOperatorNode -> typeCheckUnaryMathOperator(node, boundVars)
-            is BinaryMathOperatorNode -> typeCheckBinaryMathOperator(node, boundVars)
-            is LogicalAndNode -> typeCheckLogicalAnd(node, boundVars)
-            is LogicalOrNode -> typeCheckLogicalOr(node, boundVars)
-            is LogicalNotNode -> typeCheckLogicalNot(node, boundVars)
-            is EqualityNode -> typeCheckEquality(node, boundVars)
-            is ComparisonNode -> typeCheckComparison(node, boundVars)
+            // Variables and functions
+            is FunctionCallNode -> typeCheckFunctionCall(node, boundVars)
+            is TypeConstructorNode -> typeCheckTypeConstructor(node, boundVars)
             is KeyedAccessNode -> typeCheckKeyedAccess(node, boundVars)
             is KeyedAssignmentNode -> typeCheckKeyedAssignment(node, boundVars)
-            is FunctionCallNode -> typeCheckFunctionCall(node, boundVars)
             is VariableAssignmentNode -> typeCheckVariableAssignment(node, boundVars)
             is VariableDefinitionNode -> typeCheckVariableDefinition(node, boundVars)
             is FunctionDefinitionNode -> typeCheckFunctionDefinition(node, boundVars)
+            // Math expressions
+            is UnaryMathOperatorNode -> typeCheckUnaryMathOperator(node, boundVars)
+            is BinaryMathOperatorNode -> typeCheckBinaryMathOperator(node, boundVars)
+            // Logical operators
+            is LogicalAndNode -> typeCheckLogicalAnd(node, boundVars)
+            is LogicalOrNode -> typeCheckLogicalOr(node, boundVars)
+            is LogicalNotNode -> typeCheckLogicalNot(node, boundVars)
+            // Comparisons
+            is EqualityNode -> typeCheckEquality(node, boundVars)
+            is ComparisonNode -> typeCheckComparison(node, boundVars)
+            // Control flow and structure
             is BlockNode -> typeCheckBlock(node, boundVars)
             is IfNode -> typeCheckIf(node, boundVars)
             is WhileNode -> typeCheckWhile(node, boundVars)
@@ -507,6 +539,48 @@ class TypeChecker(var symbolTable: SymbolTable) {
                 throw IRConversionException("${node.func.name} expected to have type " +
                         "${findRepType(expectedFuncType, boundVars)}, but found ${funcRepType}")
             }
+        }
+    }
+
+    fun typeCheckTypeConstructor(
+        node: TypeConstructorNode,
+        boundVars: MutableSet<TypeVariable>
+    ) {
+        val nodeType = node.type
+        if (nodeType !is AlgebraicDataType) {
+            throw IRConversionException("Type constructor must have algebraic data type")
+        }
+
+        node.actualArgs.forEach { actualArg -> typeCheck(actualArg, boundVars) }
+
+        // Find constructor arg types given the current adt params and adt variant
+        val expectedArgTypes = node.adtVariant.getTypeConstructorWithParams(nodeType.typeParams)
+        val actualArgTypes = node.actualArgs.map { arg -> findRepType(arg.type, boundVars)}
+
+        // If either expected or actual args are empty, print special message if both aren't empty
+        if (actualArgTypes.size == 0) {
+            if (expectedArgTypes.size != 0) {
+                throw IRConversionException("${node.adtVariant.name} expects arguments of type " +
+                        "${expectedArgTypes}, but received no arguments")
+            // If no args exist or were expected, there is nothing to type check since adt type
+            // must have no params to infer.
+            } else {
+                return
+            }
+        } else if (expectedArgTypes.size == 0) {
+            throw IRConversionException("${node.adtVariant.name} expects no arguments, but found " +
+                        "arguments of type ${actualArgTypes}")
+        }
+
+        // Unify each arg type with its expected type
+        val canUnify = expectedArgTypes.size == actualArgTypes.size &&
+                expectedArgTypes.zip(actualArgTypes)
+                    .map({(expected, actual) -> unify(expected, actual)})
+                    .all({ x -> x })
+
+        if (!canUnify) {
+            throw IRConversionException("${node.adtVariant.name} expected arguments of type " +
+                    "${expectedArgTypes}, but found ${actualArgTypes}")
         }
     }
 

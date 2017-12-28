@@ -37,4 +37,7 @@ data class IdentifierInfo(
     val idClass: IdentifierClass,
     var type: Type,
     val props: Set<IdentifierProperty>
-)
+) {
+    lateinit var adtSig: AlgebraicDataTypeSignature
+    lateinit var adtVariant: AlgebraicDataTypeVariant
+}

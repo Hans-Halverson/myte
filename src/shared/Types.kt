@@ -4,7 +4,16 @@ package myte.shared
  * A type expression used in type inferrence.
  */
 sealed class Type {
+    /**
+     * Return a list of all type variables contained in this type and its child types.
+     */
     open fun getAllVariables(): List<TypeVariable> = listOf()
+
+    /**
+     * Return a new type that is identical to this type, with every type variable in the supplied
+     * map mapped to the corresponding type.
+     */
+    open fun substitute(typeMap: Map<TypeVariable, Type>): Type = this
 }
 
 sealed class NumberType : Type()
@@ -16,6 +25,11 @@ sealed class NumberType : Type()
  */
 data class TypeVariable(val id: Long = newTypeVariableId()) : Type() {
     override fun getAllVariables(): List<TypeVariable> = listOf(this)
+
+    override fun substitute(typeMap: Map<TypeVariable, Type>): Type {
+        val mappedType = typeMap[this]
+        return mappedType ?: this
+    }
 
     override fun toString(): String = "${id}"
 }
@@ -43,12 +57,20 @@ object StringType : Type() {
 data class VectorType(val elementType: Type) : Type() {
     override fun getAllVariables(): List<TypeVariable> = elementType.getAllVariables()
 
+    override fun substitute(typeMap: Map<TypeVariable, Type>): Type {
+        return VectorType(elementType.substitute(typeMap))
+    }
+
     override fun toString(): String = "vec<${elementType}>"
 }
 
 data class TupleType(val elementTypes: List<Type>) : Type() {
     override fun getAllVariables(): List<TypeVariable> {
         return elementTypes.map(Type::getAllVariables).flatten()
+    }
+
+    override fun substitute(typeMap: Map<TypeVariable, Type>): Type {
+        return TupleType(elementTypes.map { elementType -> elementType.substitute(typeMap) })
     }
 
     override fun toString(): String = elementTypes.joinToString(", ", "(", ")")
@@ -60,10 +82,17 @@ data class FunctionType(
 ) : Type() {
 
     override fun getAllVariables(): List<TypeVariable> {
-        val argVars = argTypes.map(Type::getAllVariables).flatten()
-        val returnVars = returnType.getAllVariables()
+        val argVals = argTypes.map(Type::getAllVariables).flatten()
+        val returnVal = returnType.getAllVariables()
 
-        return listOf(argVars, returnVars).flatten()
+        return listOf(argVals, returnVal).flatten()
+    }
+
+    override fun substitute(typeMap: Map<TypeVariable, Type>): Type {
+        val argVals = argTypes.map({ argType -> argType.substitute(typeMap) })
+        val returnVal = returnType.substitute(typeMap)
+
+        return FunctionType(argVals, returnVal)
     }
 
     override fun toString(): String {
@@ -99,11 +128,34 @@ data class FunctionType(
     }
 }
 
-//data class AlgebraicDataType(
-//    val adt: AlgebraicDataType,
-//    val typeParams: List<Type>
-//) : Type() {
-//    override fun getAllVariables(): List<TypeVariable> {
-//        return typeParams.map(Type::getAllVariables).flatten()
-//    }
-//}
+/**
+ * An instance of an algebraic data type that has been parameterized by actual types.
+ *
+ * @property adtSig the algebraic data type signature for this adt
+ * @property typeParams a list of the actual type parameters supplied to this instance of the adt
+ */
+data class AlgebraicDataType(
+    val adtSig: AlgebraicDataTypeSignature,
+    val typeParams: List<Type>
+) : Type() {
+    override fun getAllVariables(): List<TypeVariable> {
+        return typeParams.map(Type::getAllVariables).flatten()
+    }
+
+    override fun substitute(typeMap: Map<TypeVariable, Type>): Type {
+        val substTypes = typeParams.map { typeParam -> typeParam.substitute(typeMap) }
+        return AlgebraicDataType(adtSig, substTypes)
+    }
+
+    override fun toString(): String {
+        val builder = StringBuilder()
+
+        builder.append(adtSig.name)
+
+        if (typeParams.size > 0) {
+            builder.append(typeParams.joinToString(", ", "<", ">"))
+        }
+
+        return builder.toString()
+    }
+}
