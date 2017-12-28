@@ -71,6 +71,8 @@ private class LL1StatefulReader(private val reader: Reader) {
 private val keywordToTokenMap = mapOf(
     "true" to TrueToken,
     "false" to FalseToken,
+    "type" to TypeToken,
+    "of" to OfToken,
     "let" to LetToken,
     "const" to ConstToken,
     "def" to DefToken,
@@ -88,7 +90,7 @@ private val keywordToTokenMap = mapOf(
     "string" to StringTypeToken,
     "int" to IntToken,
     "float" to FloatToken,
-    "list" to ListToken
+    "vec" to VecToken
 )
 
 ///////////////////////////////////////////////////////////////////////////

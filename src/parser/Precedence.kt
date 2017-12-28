@@ -14,7 +14,8 @@ const val ADD_PRECEDENCE: Int = 6
 const val MULTIPLY_PRECEDENCE: Int = 7
 const val EXPONENT_PRECEDENCE: Int = 8
 const val NUMERIC_PREFIX_PRECEDENCE: Int = 9
-const val CALL_PRECEDENCE: Int = 10
+const val KEYED_ACCESS_PRECEDENCE = 10
+const val CALL_PRECEDENCE: Int = 11
 
 /**
  * Given a token found between two expressions, assign a precedence level to the operator or
@@ -35,6 +36,7 @@ fun getPrecedenceForInfixToken(tokenType: TokenType): Int = when (tokenType) {
     TokenType.ASTERISK -> MULTIPLY_PRECEDENCE
     TokenType.FORWARD_SLASH -> MULTIPLY_PRECEDENCE
     TokenType.CARET -> EXPONENT_PRECEDENCE
+    TokenType.LEFT_BRACKET -> KEYED_ACCESS_PRECEDENCE
     TokenType.LEFT_PAREN -> CALL_PRECEDENCE
     else -> NO_PRECEDENCE
 }

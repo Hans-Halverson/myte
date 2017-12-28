@@ -53,10 +53,10 @@ object StringTypeExpression : TypeExpression() {
     override fun toString(): String = "string"
 }
 
-data class ListTypeExpression(val elementType: TypeExpression) : TypeExpression() {
+data class VectorTypeExpression(val elementType: TypeExpression) : TypeExpression() {
     override fun getAllVariables(): List<TypeVariable> = elementType.getAllVariables()
 
-    override fun toString(): String = "list<${elementType}>"
+    override fun toString(): String = "vec<${elementType}>"
 }
 
 data class TupleTypeExpression(val elementTypes: List<TypeExpression>) : TypeExpression() {
@@ -122,7 +122,7 @@ fun expressionFromType(type: Type): TypeExpression {
         is StringType -> StringTypeExpression
         is IntType -> IntTypeExpression
         is FloatType -> FloatTypeExpression
-        is ListType -> ListTypeExpression(expressionFromType(type.elementType))
+        is VectorType -> VectorTypeExpression(expressionFromType(type.elementType))
         is TupleType -> TupleTypeExpression(type.elementTypes.map(::expressionFromType))
         is FunctionType -> FunctionTypeExpression(type.argTypes.map(::expressionFromType),
                                                   expressionFromType(type.returnType))

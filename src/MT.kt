@@ -81,14 +81,16 @@ fun repl(input: BufferedReader) {
                 // Parse a single line of repl input
                 val statement = parser.parseLine()
 
-                // Convert to ir and perform type checking
-                val ir = converter.convert(statement)
-                converter.inferTypes(listOf(ir))
-                converter.assertIRStructure(ir)
+                if (statement != null) {
+                    // Convert to ir and perform type checking
+                    val ir = converter.convert(statement)
+                    converter.inferTypes(listOf(ir))
+                    converter.assertIRStructure(ir)
 
-                // Evaluate the current input
-                val value = eval.evaluate(ir)
-                printValue(value)
+                    // Evaluate the current input
+                    val value = eval.evaluate(ir)
+                    printValue(value)
+                }
 
                 // Save the successfully updated symbol table
                 symbolTable = parser.symbolTable

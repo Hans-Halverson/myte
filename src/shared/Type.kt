@@ -24,8 +24,8 @@ object FloatType : NumberType() {
     override fun toString(): String = "float"
 }
 
-data class ListType(val elementType: Type) : Type() {
-    override fun toString(): String = "list<${elementType}>"
+data class VectorType(val elementType: Type) : Type() {
+    override fun toString(): String = "vec<${elementType}>"
 }
 
 data class TupleType(val elementTypes: List<Type>) : Type() {
@@ -108,7 +108,7 @@ fun newTypeParameter(): TypeParameter {
 fun gatherTypeParameters(type: Type): MutableList<TypeParameter> {
     return when (type) {
         is TypeParameter -> mutableListOf(type)
-        is ListType -> gatherTypeParameters(type.elementType)
+        is VectorType -> gatherTypeParameters(type.elementType)
         is FunctionType -> {
             val allParams = type.argTypes.flatMap(::gatherTypeParameters).toMutableList()
                 

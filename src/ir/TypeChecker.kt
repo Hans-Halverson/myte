@@ -84,8 +84,8 @@ class TypeChecker(var symbolTable: SymbolTable) {
     ): TypeExpression {
         val repType = findRepresentativeNode(type).type
         return when (repType) {
-            is ListTypeExpression -> {
-                ListTypeExpression(findRepType(repType.elementType, boundVars, mappedVars))
+            is VectorTypeExpression -> {
+                VectorTypeExpression(findRepType(repType.elementType, boundVars, mappedVars))
             }
             is TupleTypeExpression -> {
                 val elementTypes = repType.elementTypes.map { elementType ->
@@ -167,7 +167,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         }
 
         return when (subst) {
-            is ListTypeExpression -> occursIn(typeVar, subst.elementType)
+            is VectorTypeExpression -> occursIn(typeVar, subst.elementType)
             is TupleTypeExpression -> {
                 subst.elementTypes.map({ elementType -> occursIn(typeVar, elementType) })
                                   .any({ x -> x})
@@ -196,8 +196,8 @@ class TypeChecker(var symbolTable: SymbolTable) {
         // If representatives are the same, they can be unified
         if (rep1 == rep2) {
             return true
-        // If both representatives have list type, merge reps and unify their child types
-        } else if (type1 is ListTypeExpression && type2 is ListTypeExpression) {
+        // If both representatives have vector type, merge reps and unify their child types
+        } else if (type1 is VectorTypeExpression && type2 is VectorTypeExpression) {
             val canUnify = unify(type1.elementType, type2.elementType)
             if (canUnify) {
                 mergeReps(rep1, rep2)
@@ -243,7 +243,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
      */
     fun typeCheck(node: IRNode, boundVars: MutableSet<TypeVariable>) {
         when (node) {
-            is ListLiteralNode -> typeCheckListLiteral(node, boundVars)
+            is VectorLiteralNode -> typeCheckVectorLiteral(node, boundVars)
             is TupleLiteralNode -> typeCheckTupleLiteral(node, boundVars)
             is UnaryMathOperatorNode -> typeCheckUnaryMathOperator(node, boundVars)
             is BinaryMathOperatorNode -> typeCheckBinaryMathOperator(node, boundVars)
@@ -252,8 +252,10 @@ class TypeChecker(var symbolTable: SymbolTable) {
             is LogicalNotNode -> typeCheckLogicalNot(node, boundVars)
             is EqualityNode -> typeCheckEquality(node, boundVars)
             is ComparisonNode -> typeCheckComparison(node, boundVars)
+            is KeyedAccessNode -> typeCheckKeyedAccess(node, boundVars)
+            is KeyedAssignmentNode -> typeCheckKeyedAssignment(node, boundVars)
             is FunctionCallNode -> typeCheckFunctionCall(node, boundVars)
-            is AssignmentNode -> typeCheckAssignment(node, boundVars)
+            is VariableAssignmentNode -> typeCheckVariableAssignment(node, boundVars)
             is VariableDefinitionNode -> typeCheckVariableDefinition(node, boundVars)
             is FunctionDefinitionNode -> typeCheckFunctionDefinition(node, boundVars)
             is BlockNode -> typeCheckBlock(node, boundVars)
@@ -272,24 +274,24 @@ class TypeChecker(var symbolTable: SymbolTable) {
     //
     ///////////////////////////////////////////////////////////////////////////
 
-    fun typeCheckListLiteral(node: ListLiteralNode, boundVars: MutableSet<TypeVariable>) {
+    fun typeCheckVectorLiteral(node: VectorLiteralNode, boundVars: MutableSet<TypeVariable>) {
         node.elements.forEach { element -> typeCheck(element, boundVars) }
 
-        // Attempt to unify the types of each list element with a new type variable
+        // Attempt to unify the types of each vector element with a new type variable
         val expectedElementType = newTypeVariable()
-        val expectedType = ListTypeExpression(expectedElementType)
+        val expectedType = VectorTypeExpression(expectedElementType)
 
         node.elements.forEach({ element ->
             if (!unify(findRepType(element.evalTypeExpr, boundVars), expectedElementType)) {
-                throw IRConversionException("List must have elements of same type, found " +
+                throw IRConversionException("Vector must have elements of same type, found " +
                         "${findRepType(element.evalTypeExpr, boundVars)} and " +
                         "${findRepType(expectedElementType, boundVars)}")
             }
         })
 
-        // Attempt to unify the list eval type with the new list type variable
+        // Attempt to unify the vector eval type with the new vector type variable
         if (!unify(node.evalTypeExpr, expectedType)) {
-            throw IRConversionException("Cannot infer type for list, expected " +
+            throw IRConversionException("Cannot infer type for vector, expected " +
                     "${findRepType(expectedType, boundVars)} but found " +
                     "${findRepType(node.evalTypeExpr, boundVars)}")
         }
@@ -421,6 +423,54 @@ class TypeChecker(var symbolTable: SymbolTable) {
         }
     }
 
+    fun typeCheckKeyedAccess(node: KeyedAccessNode, boundVars: MutableSet<TypeVariable>) {
+        typeCheck(node.container, boundVars)
+        typeCheck(node.key, boundVars)
+
+        // Constrain eval type of node to be the element type of vector
+        val expectedVectorType = VectorTypeExpression(node.evalTypeExpr)
+
+        if (!unify(node.container.evalTypeExpr, expectedVectorType)) {
+            throw IRConversionException("Can only perform keyed access on a vector, found " +
+                    "${findRepType(node.container.evalTypeExpr, boundVars)}")
+        }
+
+        // Constrain key to be an integer
+        if (!unify(node.key.evalTypeExpr, IntTypeExpression)) {
+            throw IRConversionException("Key in keyed access must be an int, found " +
+                    "${findRepType(node.key.evalTypeExpr, boundVars)}")
+        }
+    }
+
+    fun typeCheckKeyedAssignment(node: KeyedAssignmentNode, boundVars: MutableSet<TypeVariable>) {
+        typeCheck(node.container, boundVars)
+        typeCheck(node.key, boundVars)
+        typeCheck(node.rValue, boundVars)
+
+        // Constrain eval type of container to be the element type of vector, while simultaneously
+        // constraining eval type of assignment to be the element type of vector.
+        val expectedVectorType = VectorTypeExpression(node.evalTypeExpr)
+
+        if (!unify(node.container.evalTypeExpr, expectedVectorType)) {
+            throw IRConversionException("Can only perform keyed access on a vector, found " +
+                    "${findRepType(node.container.evalTypeExpr, boundVars)}")
+        }
+
+        // Constrain key to be an integer
+        if (!unify(node.key.evalTypeExpr, IntTypeExpression)) {
+            throw IRConversionException("Key in keyed access must be an int, found " +
+                    "${findRepType(node.key.evalTypeExpr, boundVars)}")
+        }
+
+        // Constrain element type of vector to be type of rValue assigned to it
+        val rValueRepType = findRepType(node.rValue.evalTypeExpr, boundVars)
+        if (!unify(rValueRepType, node.evalTypeExpr)) {
+            throw IRConversionException("Expected type for assignment is " +
+                    "${findRepType(node.evalTypeExpr, boundVars)}, but assigned " +
+                    "${findRepType(rValueRepType, boundVars)}")
+        }
+    }
+
     fun typeCheckFunctionCall(node: FunctionCallNode, boundVars: MutableSet<TypeVariable>) {
         val funcTypeExpr = symbolTable.getInfo(node.func)?.typeExpr
         if (funcTypeExpr == null) {
@@ -450,18 +500,21 @@ class TypeChecker(var symbolTable: SymbolTable) {
         }
     }
 
-    fun typeCheckAssignment(node: AssignmentNode, boundVars: MutableSet<TypeVariable>) {
-        val typeExpr = symbolTable.getInfo(node.ident)?.typeExpr
+    fun typeCheckVariableAssignment(
+        node: VariableAssignmentNode,
+        boundVars: MutableSet<TypeVariable>
+    ) {
+        val typeExpr = symbolTable.getInfo(node.lValue)?.typeExpr
         if (typeExpr == null) {
-            throw IRConversionException("Unknown variable ${node.ident.name}")
+            throw IRConversionException("Unknown variable ${node.lValue.name}")
         }
 
-        typeCheck(node.expr, boundVars)
+        typeCheck(node.rValue, boundVars)
 
-        val nodeRepType = findRepType(node.expr.evalTypeExpr, boundVars)
+        val nodeRepType = findRepType(node.rValue.evalTypeExpr, boundVars)
 
         if (!unify(nodeRepType, typeExpr)) {
-            throw IRConversionException("Type of ${node.ident.name} is " +
+            throw IRConversionException("Type of ${node.lValue.name} is " +
                     "${findRepType(typeExpr, boundVars)}, but assigned " +
                     "${findRepType(nodeRepType, boundVars)}")
         }
@@ -636,11 +689,11 @@ class TypeChecker(var symbolTable: SymbolTable) {
             is StringTypeExpression -> StringType
             is IntTypeExpression -> IntType
             is FloatTypeExpression -> FloatType
-            is ListTypeExpression -> {
-                // Infer type for element type and reconstruct list type
+            is VectorTypeExpression -> {
+                // Infer type for element type and reconstruct vector type
                 val elementRepType = findRepresentativeNode(repType.elementType).type
                 val elementType = inferredTypeForExpression(elementRepType)
-                return ListType(elementType)
+                return VectorType(elementType)
             }
             is TupleTypeExpression -> {
                 // Infer type for each element type and reconstruct tuple type

@@ -25,7 +25,10 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
         val statements: MutableList<Statement> = mutableListOf()
         while (!tokenizer.reachedEnd) {
-            statements.add(parseStatement())
+            val statement = parseTopLevelStatement()
+            if (statement != null) {
+                statements.add(statement)
+            }
         }
 
         return statements
@@ -34,14 +37,14 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
     /**
      * Parse a single command from the REPL.
      *
-     * @return the single statement parsed from the input stream
+     * @return the single statement parsed from the input stream, or null if no statement is created
      * @throws ParseException if the stream does not correspond to a valid statement, or if there
      *         are leftover tokens after the statement has been parsed
      */
-    fun parseLine(): Statement {
+    fun parseLine(): Statement? {
         symbolTable.returnToGlobalScope()
 
-        val statement = parseStatement()
+        val statement = parseTopLevelStatement()
 
         if (!tokenizer.reachedEnd) {
             throw ParseException(tokenizer.current)
@@ -50,13 +53,35 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         return statement
     }
 
-    /** 
-     * Parse the current statement in the stream of tokens.
+
+    /**
+     * Parse the current top level statement, and return the statement if a statement can be
+     * created, or null if no statement needs to be created.
      */
-    fun parseStatement(): Statement {
+    fun parseTopLevelStatement(): Statement? {
         val token = tokenizer.next()
 
-        return when(token) {
+        return when (token) {
+            is TypeToken -> {
+                parseTypeDefinition()
+                null
+            }
+            else -> parseStatement(token)
+        }
+    }
+
+    /**
+     * Parse the current statement in the stream of tokens.
+     */
+    fun parseStatement(): Statement = parseStatement(tokenizer.next())
+
+    /** 
+     * Parse the current statement in the stream of tokens.
+     * 
+     * @param token the first token of the current statement
+     */
+    fun parseStatement(token: Token): Statement {
+        return when (token) {
             is LeftBraceToken -> parseBlock()
             is LetToken -> parseVariableDefinition(false)
             is ConstToken -> parseVariableDefinition(true)
@@ -90,7 +115,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
      * @param precedence the optional precedence level that governs the current context, if none
      *        is supplied the lowest precedence level is assumed.
      */
-    fun parseExpression(firstToken: Token?, precedence: Int = NO_PRECEDENCE): Expression {
+    fun parseExpression(firstToken: Token, precedence: Int = NO_PRECEDENCE): Expression {
         // Match on all tokens that signal a prefix operator
         var currentExpr = when (firstToken) {
             // Literals
@@ -100,7 +125,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             is TrueToken -> BoolLiteralExpression(true)
             is FalseToken -> BoolLiteralExpression(false)
             is StringLiteralToken -> StringLiteralExpression(firstToken.str)
-            is LeftBracketToken -> parseListLiteralExpression()
+            is LeftBracketToken -> parseVectorLiteralExpression()
             // Prefixs operators
             is PlusToken -> parseUnaryPlusExpression()
             is MinusToken -> parseUnaryMinusExpression()
@@ -136,8 +161,9 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                 // Logical operators
                 is LogicalAndToken -> parseLogicalAndExpression(currentExpr)
                 is LogicalOrToken -> parseLogicalOrExpression(currentExpr)
-                // Function call
+                // Function call or access
                 is LeftParenToken -> parseCallExpression(currentExpr)
+                is LeftBracketToken -> parseKeyedAccessExpression(currentExpr)
                 else -> throw ParseException(token)
             }
         }
@@ -157,7 +183,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
     ///////////////////////////////////////////////////////////////////////////
     // 
-    // Parsing functions for statement and expression
+    // Parsing functions for statements and expressions
     //
     ///////////////////////////////////////////////////////////////////////////
 
@@ -170,14 +196,14 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         return IdentifierExpression(ident)
     }
 
-    fun parseListLiteralExpression(): ListLiteralExpression {
-        // If parseListLiteralExpression is called, the previous token must have been a [
+    fun parseVectorLiteralExpression(): VectorLiteralExpression {
+        // If parseVectorLiteralExpression is called, the previous token must have been a [
         val elements: MutableList<Expression> = mutableListOf()
 
-        // Return empty list if no list elements are encountered
+        // Return empty list if no vector elements are encountered
         if (tokenizer.current is RightBracketToken) {
             tokenizer.next()
-            return ListLiteralExpression(listOf())
+            return VectorLiteralExpression(listOf())
         }
 
         // Add expressions, separated by commas, until a right bracket is encountered.
@@ -191,7 +217,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         assertCurrent(TokenType.RIGHT_BRACKET)
         tokenizer.next()
 
-        return ListLiteralExpression(elements)
+        return VectorLiteralExpression(elements)
     }
 
     fun parseUnaryPlusExpression(): UnaryPlusExpression {
@@ -269,16 +295,22 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         return ExponentExpression(prevExpr, expr)
     }
 
-    fun parseAssignmentExpression(prevExpr: Expression): AssignmentExpression {
+    fun parseAssignmentExpression(prevExpr: Expression): Expression {
         // If parseAssignmentExpression is called, the previous token must have been a =
-        if (prevExpr !is IdentifierExpression) {
-            throw ParseException("Can only assign to identifiers, attempted to "
-                    + "assign to ${prevExpr}")
-        }
-        
         // Subtracting one from the precedence makes this operator right associative.
-        val expr = parseExpression(rightAssociative(ASSIGNMENT_PRECEDENCE))
-        return AssignmentExpression(prevExpr.ident, expr)
+        if (prevExpr is IdentifierExpression) {
+            if (symbolTable.getInfo(prevExpr.ident)?.idClass != IdentifierClass.VARIABLE) {
+                throw ParseException("Can only reassign value to variables")
+            }
+
+            val expr = parseExpression(rightAssociative(ASSIGNMENT_PRECEDENCE))
+            return VariableAssignmentExpression(prevExpr.ident, expr)
+        } else if (prevExpr is KeyedAccessExpression) {
+            val expr = parseExpression(rightAssociative(ASSIGNMENT_PRECEDENCE))
+            return KeyedAssignmentExpression(prevExpr, expr)
+        } else {
+            throw ParseException("Cannot assign value to ${prevExpr}")
+        }
     }
 
     fun parseEqualsExpression(prevExpr: Expression): EqualsExpression {
@@ -357,119 +389,14 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         return CallExpression(prevExpr.ident, actualArgs)
     }
 
-    /**
-     * Parse the current stream into a single top-level type expression, which may contain
-     * arbitrarily nested types.
-     */
-    fun parseType(inFunctionDef: Boolean = false): TypeExpression {
-        var funcTypes: MutableList<TypeExpression> = mutableListOf(parseNestedType(inFunctionDef))
-        val tupleTypes: MutableList<TypeExpression> = mutableListOf()
+    fun parseKeyedAccessExpression(prevExpr: Expression): KeyedAccessExpression {
+        // If parseKeyedAccessExpression is called, the previous token must have been a [
+        val keyExpr = parseExpression(KEYED_ACCESS_PRECEDENCE)
 
-        while (tokenizer.current is ArrowToken || tokenizer.current is CommaToken) {
-            // If a function arrow is found, contine addinf function parts to list
-            if (tokenizer.current is ArrowToken) {
-                tokenizer.next()
-                funcTypes.add(parseNestedType(inFunctionDef))
-            } else {
-                tokenizer.next()
-
-                // If there were multiple stored func types, a function must have been parsed
-                if (funcTypes.size > 1) {
-                    val returnType = funcTypes.removeAt(funcTypes.lastIndex)
-                    tupleTypes.add(FunctionTypeExpression(funcTypes, returnType))
-                // Otherwise a single tuple element must have been parsed
-                } else {
-                    tupleTypes.add(funcTypes[0])
-                }
-
-                funcTypes = mutableListOf(parseNestedType(inFunctionDef))
-            }
-        }
-
-        // If there were multiple stored func types, a function must have been parsed
-        if (funcTypes.size > 1) {
-            val returnType = funcTypes.removeAt(funcTypes.lastIndex)
-            tupleTypes.add(FunctionTypeExpression(funcTypes, returnType))
-        // Otherwise a single tuple element must have been parsed
-        } else {
-            tupleTypes.add(funcTypes[0])
-        }
-
-        // If only a single tuple type was found, it is not actually a tuple
-        if (tupleTypes.size == 1) {
-            return tupleTypes[0]
-        // If multiple tuple types were found, construct tuple type
-        } else {
-            return TupleTypeExpression(tupleTypes)
-        }
-    }
-
-    /**
-     * Parse the current stream into a single nested type expression, that may contain arbitrarily
-     * nested types.
-     */
-    fun parseNestedType(inFunctionDef: Boolean = false): TypeExpression {
-        val token = tokenizer.next()
-        return when (token) {
-            is BoolToken -> BoolTypeExpression
-            is StringTypeToken -> StringTypeExpression
-            is IntToken -> IntTypeExpression
-            is FloatToken -> FloatTypeExpression
-            is UnitToken -> UnitTypeExpression
-            is ListToken -> {
-                assertCurrent(TokenType.LESS_THAN)
-                tokenizer.next()
-
-                val elementType = parseType(inFunctionDef)
-
-                assertCurrent(TokenType.GREATER_THAN)
-                tokenizer.next()
-
-                ListTypeExpression(elementType)
-            }
-            // Nested types can be surrounded in parentheses - and nested function types must
-            // have surrounding parentheses.
-            is LeftParenToken -> {
-                val nestedType = parseType(inFunctionDef)
-
-                assertCurrent(TokenType.RIGHT_PAREN)
-                tokenizer.next()
-
-                nestedType
-            }
-            // Interpret all identifier tokens as type parameters
-            is IdentifierToken -> {
-                // If this type parameter has been seen before, use the stored type variable
-                val identIfExists = symbolTable.lookup(token.str)
-                if (identIfExists != null) {
-                    val identInfo = symbolTable.getInfo(identIfExists)
-                    if (identInfo != null && identInfo.idClass == IdentifierClass.TYPE_PARAMETER) {
-                        return identInfo.typeExpr
-                    } else {
-                        throw ParseException("Expected ${token.str} to be a type parameter")
-                    }
-                } else if (inFunctionDef) {
-                    // If this type parameter has not been seen, create a new type variable and add
-                    // the type parameter to the symbol table.
-                    val newTypeParam = newTypeVariable()
-                    symbolTable.addSymbol(token.str, IdentifierClass.TYPE_PARAMETER, newTypeParam)
-                    newTypeParam
-                } else {
-                    throw ParseException("Unknown type ${token.str}")
-                }
-            }
-            else -> throw ParseException("Expected type, got ${token}")
-        }
-    }
-
-    /**
-     * Parse the current type annotation in the stream into a single type expression.
-     */
-    fun parseTypeAnnotation(inFunctionDef: Boolean = false): TypeExpression {
-        assertCurrent(TokenType.COLON)
+        assertCurrent(TokenType.RIGHT_BRACKET)
         tokenizer.next()
 
-        return parseType(inFunctionDef)
+        return KeyedAccessExpression(prevExpr, keyExpr)
     }
 
     fun parseVariableDefinition(isConst: Boolean): Statement {
@@ -728,4 +655,180 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             return ReturnStatement(parseExpression())
         }
     }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // 
+    // Parsing functions for types
+    //
+    ///////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Parse the current stream into a single top-level type expression, which may contain
+     * arbitrarily nested types.
+     */
+    fun parseType(inFunctionDef: Boolean = false): TypeExpression {
+        val funcTypes: MutableList<TypeExpression> = mutableListOf(parseNestedType(inFunctionDef))
+
+        // Parse arrow separated list of types
+        while (tokenizer.current is ArrowToken) {
+            tokenizer.next()
+            funcTypes.add(parseNestedType(inFunctionDef))
+        }
+
+        // If only one type is found return it, otherwise construct function type
+        if (funcTypes.size > 1) {
+            val returnType = funcTypes.removeAt(funcTypes.lastIndex)
+            return FunctionTypeExpression(funcTypes, returnType)
+        } else {
+            return funcTypes[0]
+        }
+    }
+
+    /**
+     * Parse the current stream into a single nested type expression, that may contain arbitrarily
+     * nested types.
+     */
+    fun parseNestedType(inFunctionDef: Boolean = false): TypeExpression {
+        val token = tokenizer.next()
+        return when (token) {
+            is BoolToken -> BoolTypeExpression
+            is StringTypeToken -> StringTypeExpression
+            is IntToken -> IntTypeExpression
+            is FloatToken -> FloatTypeExpression
+            is UnitToken -> UnitTypeExpression
+            is VecToken -> {
+                assertCurrent(TokenType.LESS_THAN)
+                tokenizer.next()
+
+                val elementType = parseType(inFunctionDef)
+
+                assertCurrent(TokenType.GREATER_THAN)
+                tokenizer.next()
+
+                VectorTypeExpression(elementType)
+            }
+            // Regular types or tuple types can be surrounded in parentheses
+            is LeftParenToken -> {
+                val nestedTypes: MutableList<TypeExpression> = mutableListOf()
+
+                // Parse a comma separated list of types
+                do {
+                    nestedTypes.add(parseType(inFunctionDef))
+                } while (tokenizer.current is CommaToken)
+
+                assertCurrent(TokenType.RIGHT_PAREN)
+                tokenizer.next()
+
+                // If only one type is found return that type, otherwise return tuple type
+                if (nestedTypes.size > 0) {
+                    return TupleTypeExpression(nestedTypes)
+                } else {
+                    return nestedTypes[0]
+                }
+            }
+            // Interpret all identifier tokens as type parameters
+            is IdentifierToken -> {
+                // If this type parameter has been seen before, use the stored type variable
+                val identIfExists = symbolTable.lookup(token.str)
+                if (identIfExists != null) {
+                    val identInfo = symbolTable.getInfo(identIfExists)
+                    if (identInfo != null && identInfo.idClass == IdentifierClass.TYPE_PARAMETER) {
+                        return identInfo.typeExpr
+                    } else {
+                        throw ParseException("Expected ${token.str} to be a type parameter")
+                    }
+                } else if (inFunctionDef) {
+                    // If this type parameter has not been seen, create a new type variable and add
+                    // the type parameter to the symbol table.
+                    val newTypeParam = newTypeVariable()
+                    symbolTable.addSymbol(token.str, IdentifierClass.TYPE_PARAMETER, newTypeParam)
+                    newTypeParam
+                } else {
+                    throw ParseException("Unknown type ${token.str}")
+                }
+            }
+            else -> throw ParseException("Expected type, got ${token}")
+        }
+    }
+
+    /**
+     * Parse the current type annotation in the stream into a single type expression.
+     */
+    fun parseTypeAnnotation(inFunctionDef: Boolean = false): TypeExpression {
+        assertCurrent(TokenType.COLON)
+        tokenizer.next()
+
+        return parseType(inFunctionDef)
+    }
+
+    fun parseTypeDefinition() {
+        // If parseTypeDefinition is called, the previous token must have been a type
+        var currentToken = tokenizer.current
+        if (currentToken !is IdentifierToken) {
+            throw ParseException("Expected ${currentToken} to be an identifier")
+        }
+
+        val typeName = currentToken.str
+        tokenizer.next()
+
+        val typeParams: MutableList<TypeVariable> = mutableListOf()
+
+        symbolTable.enterScope()
+        
+        // Parse optional type parameters for parameterized variant type
+        if (tokenizer.current is LessThanToken) {
+            do {
+                tokenizer.next()
+                currentToken = tokenizer.current
+
+                if (currentToken !is IdentifierToken) {
+                    throw ParseException("Expected ${currentToken} to be an identifier")
+                }
+
+                val typeParam = newTypeVariable()
+                typeParams.add(typeParam)
+                symbolTable.addSymbol(currentToken.str, IdentifierClass.TYPE_PARAMETER, typeParam)
+
+                tokenizer.next()
+            } while (tokenizer.current is CommaToken)
+
+            assertCurrent(TokenType.GREATER_THAN)
+            tokenizer.next()
+        }
+
+        assertCurrent(TokenType.EQUALS)
+        tokenizer.next()
+
+        assertCurrent(TokenType.LEFT_BRACE)
+        tokenizer.next()
+
+        val variants: MutableMap<String, TypeExpression?> = mutableMapOf()
+
+        do {
+            currentToken = tokenizer.current
+
+            if (currentToken !is IdentifierToken) {
+                throw ParseException("Expected ${currentToken} to be an identifier")
+            }
+
+            val variantName = currentToken.str
+            tokenizer.next()
+
+            if (tokenizer.current is ColonToken) {
+                tokenizer.next()
+                variants[variantName] = parseType()
+            } else {
+                variants[variantName] = null
+            }
+        } while (tokenizer.current !is RightBraceToken)
+
+        tokenizer.next()
+
+        symbolTable.exitScope()
+
+        println(typeName)
+        println(typeParams)
+        println(variants)
+    }
+
 }

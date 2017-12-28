@@ -27,12 +27,14 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             is StringLiteralNode -> StringValue(node.str)
             is IntLiteralNode -> IntValue(node.num)
             is FloatLiteralNode -> FloatValue(node.num)
-            is ListLiteralNode -> evalListLiteralNode(node, env)
+            is VectorLiteralNode -> evalVectorLiteralNode(node, env)
             is TupleLiteralNode -> evalTupleLiteralNode(node, env)
             // Variables and functions
             is VariableNode -> env.lookup(node.ident)
+            is KeyedAccessNode -> evalKeyedAccess(node, env)
+            is KeyedAssignmentNode -> evalKeyedAssignment(node, env)
             is FunctionCallNode -> evalFunctionCall(node, env)
-            is AssignmentNode -> evalAssignment(node, env)
+            is VariableAssignmentNode -> evalVariableAssignment(node, env)
             is VariableDefinitionNode -> evalVariableDefinition(node, env)
             is FunctionDefinitionNode -> evalFunctionDefinition(node, env)
             // Math expressions
@@ -100,17 +102,18 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         return value
     }
 
-    fun evalListLiteralNode(node: ListLiteralNode, env: Environment): ListValue {
+    fun evalVectorLiteralNode(node: VectorLiteralNode, env: Environment): VectorValue {
         val type = node.type
-        if (type !is ListType) {
-            throw EvaluationException("Expected list literal to have list type, but found ${type}")
+        if (type !is VectorType) {
+            throw EvaluationException("Expected vector literal to have vector type, " +
+                    "but found ${type}")
         }
 
-        val list = node.elements.map({ element ->
+        val vector = node.elements.map({ element ->
             evaluate(element, env)
         }).toMutableList()
 
-        return ListValue(list, type)
+        return VectorValue(vector, type)
     }
 
     fun evalTupleLiteralNode(node: TupleLiteralNode, env: Environment): TupleValue {
@@ -209,6 +212,39 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         }
     }
 
+    fun evalKeyedAccess(node: KeyedAccessNode, env: Environment): Value {
+        val container = evaluate(node.container, env)
+        if (container !is VectorValue) {
+            throw EvaluationException("Can only perform keyed access on a vector, " +
+                    "found ${container.type}")
+        }
+
+        val key = evalInt(node.key, env)
+        if (key.num < 0 || key.num >= container.elements.size) {
+            throw EvaluationException("Index ${key.num} is outside bounds of vector")
+        }
+
+        return container.elements[key.num]
+    }
+
+    fun evalKeyedAssignment(node: KeyedAssignmentNode, env: Environment): Value {
+        val container = evaluate(node.container, env)
+        if (container !is VectorValue) {
+            throw EvaluationException("Can only perform keyed access on a vector, " +
+                    "found ${container.type}")
+        }
+
+        val key = evalInt(node.key, env)
+        if (key.num < 0 || key.num >= container.elements.size) {
+            throw EvaluationException("Index ${key.num} is outside bounds of vector")
+        }
+
+        val rValue = evaluate(node.rValue, env)
+        container.elements[key.num] = rValue
+
+        return rValue
+    }
+
     fun evalFunctionCall(node: FunctionCallNode, env: Environment): Value {
         val closureValue = env.lookup(node.func)
 
@@ -248,9 +284,9 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         throw EvaluationException("No return value")
     }
 
-    fun evalAssignment(node: AssignmentNode, env: Environment): Value {
-        val value = evaluate(node.expr, env)
-        env.reassign(node.ident, value)
+    fun evalVariableAssignment(node: VariableAssignmentNode, env: Environment): Value {
+        val value = evaluate(node.rValue, env)
+        env.reassign(node.lValue, value)
 
         return value
     }

@@ -157,6 +157,16 @@ object ArrowToken: Token() {
     override fun toString(): String = "->"
 }
 
+object TypeToken: Token() {
+    override val type: TokenType = TokenType.TYPE
+    override fun toString(): String = "type"
+}
+
+object OfToken: Token() {
+    override val type: TokenType = TokenType.OF
+    override fun toString(): String = "of"
+}
+
 object LetToken: Token() {
     override val type: TokenType = TokenType.LET
     override fun toString(): String = "let"
@@ -242,9 +252,9 @@ object FloatToken: Token() {
     override fun toString(): String = "float"
 }
 
-object ListToken: Token() {
-    override val type: TokenType = TokenType.LIST
-    override fun toString(): String = "list"
+object VecToken: Token() {
+    override val type: TokenType = TokenType.VEC
+    override fun toString(): String = "vec"
 }
 
 object NewLineToken: Token() {

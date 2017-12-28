@@ -125,6 +125,14 @@ enum class TokenType {
         override fun toString(): String = "->"
     },
 
+    TYPE {
+        override fun toString(): String = "type"
+    },
+
+    OF {
+        override fun toString(): String = "of"
+    },
+
     LET {
         override fun toString(): String = "let"
     },
@@ -193,8 +201,8 @@ enum class TokenType {
         override fun toString(): String = "float"
     },
 
-    LIST {
-        override fun toString(): String = "list"
+    VEC {
+        override fun toString(): String = "vec"
     },
 
     NEW_LINE {

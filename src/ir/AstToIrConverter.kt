@@ -31,12 +31,14 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             stmt is StringLiteralExpression -> StringLiteralNode(stmt.str)
             stmt is IntLiteral -> IntLiteralNode(stmt.num)
             stmt is FloatLiteral -> FloatLiteralNode(stmt.num)
-            stmt is ListLiteralExpression -> convertListLiteral(stmt)
+            stmt is VectorLiteralExpression -> convertVectorLiteral(stmt)
             stmt is TupleLiteralExpression -> convertTupleLiteral(stmt)
             // Variables and functions
             stmt is IdentifierExpression -> convertVariable(stmt)
             stmt is CallExpression -> convertFunctionCall(stmt)
-            stmt is AssignmentExpression -> convertAssignment(stmt)
+            stmt is KeyedAccessExpression -> convertKeyedAccess(stmt)
+            stmt is KeyedAssignmentExpression -> convertKeyedAssignment(stmt)
+            stmt is VariableAssignmentExpression -> convertVariableAssignment(stmt)
             stmt is VariableDefinitionStatement -> convertVariableDefinition(stmt)
             stmt is FunctionDefinitionStatement -> convertFunctionDefinition(stmt)
             stmt is FunctionDefinitionExpression -> convertFunctionDefinitionExpression(stmt)
@@ -150,30 +152,41 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         return VariableNode(expr.ident, info.typeExpr)
     }
 
-    fun convertFunctionCall(expr: CallExpression): IRNode {
+    fun convertFunctionCall(expr: CallExpression): FunctionCallNode {
         val args = expr.actualArgs.map(this::convert)
         val returnTypeExpr = if (isNumeric(expr.func)) FloatTypeExpression else newTypeVariable()
 
         return FunctionCallNode(expr.func, args, returnTypeExpr)
     }
 
-    fun convertAssignment(expr: AssignmentExpression): AssignmentNode {
-        val info = symbolTable.getInfo(expr.ident)
+    fun convertKeyedAccess(expr: KeyedAccessExpression): KeyedAccessNode {
+        return KeyedAccessNode(convert(expr.container), convert(expr.key))
+    }
+
+    fun convertKeyedAssignment(expr: KeyedAssignmentExpression): KeyedAssignmentNode {
+        // Convert the keyed access, and use its properties to construct the keyed assignment
+        val keyedAccess = convertKeyedAccess(expr.lValue)
+        return KeyedAssignmentNode(keyedAccess.container, keyedAccess.key,
+                convert(expr.rValue), keyedAccess.evalTypeExpr)
+    }
+
+    fun convertVariableAssignment(expr: VariableAssignmentExpression): VariableAssignmentNode {
+        val info = symbolTable.getInfo(expr.lValue)
         if (info == null) {
-            throw IRConversionException("Unknown variable ${expr.ident.name}")
+            throw IRConversionException("Unknown variable ${expr.lValue.name}")
         }
 
         if (info.idClass != IdentifierClass.VARIABLE) {
-            throw IRConversionException("Cannot reassign ${expr.ident.name}, can only " +
+            throw IRConversionException("Cannot reassign ${expr.lValue.name}, can only " +
                     "reassign variables")
         }
 
-        if (isImmutable(expr.ident)) {
-            throw IRConversionException("Cannot reassign immutable variable ${expr.ident.name}")
+        if (isImmutable(expr.lValue)) {
+            throw IRConversionException("Cannot reassign immutable variable ${expr.lValue.name}")
         }
 
         // The best known eval type of a variable is the type expression stored in the symbol table
-        return AssignmentNode(expr.ident, convert(expr.expr), info.typeExpr)
+        return VariableAssignmentNode(expr.lValue, convert(expr.rValue), info.typeExpr)
     }
 
     fun convertReturn(expr: ReturnStatement): ReturnNode {
@@ -181,8 +194,8 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         return ReturnNode(returnVal)
     }
 
-    fun convertListLiteral(expr: ListLiteralExpression): ListLiteralNode {
-        return ListLiteralNode(expr.elements.map(this::convert))
+    fun convertVectorLiteral(expr: VectorLiteralExpression): VectorLiteralNode {
+        return VectorLiteralNode(expr.elements.map(this::convert))
     }
 
     fun convertTupleLiteral(expr: TupleLiteralExpression): TupleLiteralNode {

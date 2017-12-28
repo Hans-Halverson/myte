@@ -30,9 +30,9 @@ EXPR -> NUMBER_LITERAL
       | IDENT
       | UNARY
       | INFIX
-      | FUNCTION_CALL
-      | ( EXPR )
       | ( EXPR_LIST )
+      | FUNCTION_CALL
+      | KEYED_ACCESS
 
 UNARY -> + EXPR
        | - EXPR
@@ -54,6 +54,8 @@ INFIX -> EXPR + EXPR
 
 FUNCTION_CALL -> IDENT ( EXPR_LIST )
 
+KEYED_ACCESS -> IDENT [ EXPR ]
+
 EXPR_LIST -> EXPR
            | , EXPR
 
@@ -61,14 +63,16 @@ EXPR_LIST -> EXPR
 TYPE -> bool
       | float
       | unit
-      | ( TYPE )
+      | ( TYPE_LIST )
       | TYPE -> TYPE
-      | TYPE , TYPE
-      | list<TYPE_PARAM_LIST>
+      | vec < TYPE_PARAM_LIST >
       | IDENT
 
-TYPE_PARAM_LIST -> TYPE TYPE_PARAM_LIST
-                 | TYPE
+TYPE_LIST -> TYPE , TYPE_LIST
+           | TYPE
+
+TYPE_PARAM_LIST -> IDENT TYPE_PARAM_LIST
+                 | IDENT
 
 
 TYPED_IDENT = IDENT : TYPE
@@ -92,6 +96,13 @@ TYPED_ARGS -> TYPED_IDENT
 
 UNTYPED_ARGS -> IDENT
               | UNTYPED_ARGS , IDENT
+
+
+TYPE_DEF -> type IDENT = { TYPE_DEF_LIST }
+          | type IDENT < TYPE_PARAM_LIST > = { TYPE_DEF_LIST }
+
+TYPE_DEF_LIST -> TYPED_IDENT TYPE_DEF_LIST
+               | TYPED_IDENT
 
 
 IF_STATEMENT -> if EXPR STATEMENT
