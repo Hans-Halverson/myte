@@ -54,6 +54,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             is WhileNode -> evalWhile(node, env)
             is DoWhileNode -> evalDoWhile(node, env)
             is ForNode -> evalFor(node, env)
+            is MatchNode -> evalMatch(node, env)
             is ReturnNode -> evalReturn(node, env)
             is BreakNode -> throw Break
             is ContinueNode -> throw Continue
@@ -298,7 +299,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
     }
 
     fun evalVariableDefinition(node: VariableDefinitionNode, env: Environment): UnitValue {
-        env.extend(node.ident, evaluate(node.expr))
+        env.extend(node.ident, evaluate(node.expr, env))
         return UnitValue
     }
 
@@ -413,6 +414,75 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         } // Do nothing
 
         env.exitScope()
+
+        return UnitValue
+    }
+
+    /**
+     * Structurally match a value with a pattern. If the value has the same structure as the
+     * pattern, true will be returned and all variables in the structure will be bound to the
+     * appropriate value. If the value does not match the pattern, false will be returned, however
+     * variables in the pattern may still be bound to values that were matched in the middle of the
+     * matching process.
+     *
+     * @param value the value to match against the pattern
+     * @param pattern the pattern to match against
+     * @param env the current environment
+     */
+    fun matchPattern(value: Value, pattern: IRNode, env: Environment): Boolean {
+        // If a variable is ever encountered, bind it the current value
+        if (pattern is VariableNode) {
+            env.extend(pattern.ident, value)
+            return true
+        }
+
+        return when (value) {
+            // Literals match if they contain the same wrapped value
+            is BoolValue -> pattern is BoolLiteralNode && pattern.bool == value.bool
+            is StringValue -> pattern is StringLiteralNode && pattern.str == value.str
+            is IntValue -> pattern is IntLiteralNode && pattern.num == value.num
+            is FloatValue -> pattern is FloatLiteralNode && pattern.num == value.num
+            // Vectors match if they are the same size and contain the same elements
+            is VectorValue -> pattern is VectorLiteralNode &&
+                    value.elements.size == pattern.elements.size &&
+                    value.elements.zip(pattern.elements)
+                        .map({ (elem, pat) -> matchPattern(elem, pat, env) })
+                        .all({ x -> x })
+            // Tuples match if they contain the same elements, as they must be the same size
+            is TupleValue -> pattern is TupleLiteralNode &&
+                    value.tuple.zip(pattern.elements)
+                        .map({ (elem, pat) -> matchPattern(elem, pat, env) })
+                        .all({ x -> x })
+            // ADTs match if they are the same variant and contain the same elements
+            is AlgebraicDataTypeValue -> pattern is TypeConstructorNode &&
+                    value.adtVariant == pattern.adtVariant &&
+                    value.fields.zip(pattern.actualArgs)
+                        .map({ (field, pat) -> matchPattern(field, pat, env) })
+                        .all({ x -> x })
+            // Nothing can match functions or unit
+            is BuiltinValue -> false
+            is ClosureValue -> false
+            is UnitValue -> false
+            else -> throw EvaluationException("Unknown value ${value}")
+        }
+    }
+
+    fun evalMatch(node: MatchNode, env: Environment): UnitValue {
+        // Evaluate expression to match on in current environment
+        val exprValue = evaluate(node.expr, env)
+
+        // Find first pattern which matches value, and execute its corresponding statement
+        for ((pattern, statement) in node.cases) {
+            env.enterScope()
+
+            if (matchPattern(exprValue, pattern, env)) {
+                evaluate(statement, env)
+                env.exitScope()
+                break
+            }
+
+            env.exitScope()
+        }
 
         return UnitValue
     }

@@ -61,6 +61,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             stmt is WhileStatement -> convertWhile(stmt)
             stmt is DoWhileStatement -> convertDoWhile(stmt)
             stmt is ForStatement -> convertFor(stmt)
+            stmt is MatchStatement -> convertMatch(stmt)
             stmt is ReturnStatement -> convertReturn(stmt)
             stmt is BreakStatement -> BreakNode
             stmt is ContinueStatement -> ContinueNode
@@ -141,6 +142,15 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         val update = if (stmt.update != null) convert(stmt.update) else null
 
         return ForNode(init, cond, update, convert(stmt.body))
+    }
+
+    fun convertMatch(stmt: MatchStatement): MatchNode {
+        val expr = convert(stmt.expr)
+        val cases = stmt.cases.map { (pattern, statement) ->
+            Pair(convert(pattern), convert(statement))
+        }
+
+        return MatchNode(expr, cases)
     }
 
     fun convertVariable(expr: VariableExpression): IRNode {
@@ -309,6 +319,8 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             is IfNode -> allPathsHaveReturn(node.conseq) && 
                     node.altern != null &&
                     allPathsHaveReturn(node.altern)
+            is MatchNode -> node.cases.map({ (_, stmt) -> allPathsHaveReturn(stmt) })
+                                      .all({ x -> x })
             is BlockNode -> allPathsHaveReturn(node.nodes.get(node.nodes.lastIndex))
             else -> false
         }
@@ -344,6 +356,11 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
                     jumpsInAllowedPlaces(node.update, allowReturn, false)
                 }
                 jumpsInAllowedPlaces(node.body, allowReturn, true)
+            }
+            is MatchNode -> {
+                node.cases.forEach { (_, stmt) ->
+                    jumpsInAllowedPlaces(stmt, allowReturn, allowBreakOrContinue)
+                }
             }
             is FunctionDefinitionNode -> jumpsInAllowedPlaces(node.body, true, false)
             is ReturnNode -> if (!allowReturn) {

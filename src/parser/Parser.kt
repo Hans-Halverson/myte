@@ -218,7 +218,12 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         }
 
         // Add expressions, separated by commas, until a right bracket is encountered.
-        elements.add(parseExpression())
+        // If in pattern, only parse valid patterns with a call to parsePattern
+        if (isPattern) {
+            elements.add(parsePattern())
+        } else {
+            elements.add(parseExpression())
+        }
 
         while (tokenizer.current is CommaToken) {
             tokenizer.next()
@@ -972,7 +977,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
             firstVariant = false
             currentToken = tokenizer.current
-            
+
             if (currentToken !is IdentifierToken) {
                 throw ParseException("Expected ${currentToken} to be an identifier")
             }

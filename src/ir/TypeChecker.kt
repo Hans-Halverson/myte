@@ -305,6 +305,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
             is WhileNode -> typeCheckWhile(node, boundVars)
             is DoWhileNode -> typeCheckDoWhile(node, boundVars)
             is ForNode -> typeCheckFor(node, boundVars)
+            is MatchNode -> typeCheckMatch(node, boundVars)
             is ReturnNode -> typeCheckReturn(node, boundVars)
             else -> return
         }
@@ -555,7 +556,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
         // Find constructor arg types given the current adt params and adt variant
         val expectedArgTypes = node.adtVariant.getTypeConstructorWithParams(nodeType.typeParams)
-        val actualArgTypes = node.actualArgs.map { arg -> findRepType(arg.type, boundVars)}
+        val actualArgTypes = node.actualArgs.map { arg -> arg.type }
 
         // If either expected or actual args are empty, print special message if both aren't empty
         if (actualArgTypes.size == 0) {
@@ -677,6 +678,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
                 }
                 mapOverReturns(node.body, func)
             }
+            is MatchNode -> node.cases.forEach { (_, stmt) -> mapOverReturns(stmt, func) }
             is ReturnNode -> func(node)
         }
     }
@@ -740,6 +742,29 @@ class TypeChecker(var symbolTable: SymbolTable) {
         }
 
         typeCheck(node.body, boundVars)
+    }
+
+    fun typeCheckMatch(node: MatchNode, boundVars: MutableSet<TypeVariable>) {
+        typeCheck(node.expr, boundVars)
+        node.cases.forEach { (pattern, statement) ->
+            // Bind all variables that are found in the pattern, including in child nodes
+            val newBoundVars = boundVars.toHashSet()
+            pattern.map { patNode ->
+                patNode.type.getAllVariables().forEach { typeVar -> newBoundVars.add(typeVar) }
+            }
+
+            typeCheck(pattern, newBoundVars)
+            typeCheck(statement, newBoundVars)
+        }
+
+        // All patterns must have same type as the matched expression
+        node.cases.forEach { (pat, _) ->
+            if (!unify(pat.type, node.expr.type)) {
+                throw IRConversionException("Patterns in match statement expected to have type " +
+                        "${findRepType(node.expr.type, boundVars)}, but found " +
+                        "${findRepType(pat.type, boundVars)}")
+            }
+        }
     }
 
     fun typeCheckReturn(node: ReturnNode, boundVars: MutableSet<TypeVariable>) {
