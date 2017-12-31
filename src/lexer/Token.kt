@@ -157,6 +157,11 @@ object ArrowToken: Token() {
     override fun toString(): String = "->"
 }
 
+object PipeToken: Token() {
+    override val type: TokenType = TokenType.PIPE
+    override fun toString(): String = "|"
+}
+
 object TypeToken: Token() {
     override val type: TokenType = TokenType.TYPE
     override fun toString(): String = "type"
@@ -210,6 +215,11 @@ object DoToken: Token() {
 object ForToken: Token() {
     override val type: TokenType = TokenType.FOR
     override fun toString(): String = "for"
+}
+
+object MatchToken: Token() {
+    override val type: TokenType = TokenType.MATCH
+    override fun toString(): String = "match"
 }
 
 object ReturnToken: Token() {

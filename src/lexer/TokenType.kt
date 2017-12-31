@@ -125,6 +125,10 @@ enum class TokenType {
         override fun toString(): String = "->"
     },
 
+    PIPE {
+        override fun toString(): String = "|"
+    },
+
     TYPE {
         override fun toString(): String = "type"
     },
@@ -167,6 +171,10 @@ enum class TokenType {
 
     FOR {
         override fun toString(): String = "for"
+    },
+
+    MATCH {
+        override fun toString(): String = "match"
     },
 
     RETURN {

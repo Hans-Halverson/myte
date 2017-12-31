@@ -82,6 +82,7 @@ private val keywordToTokenMap = mapOf(
     "while" to WhileToken,
     "do" to DoToken,
     "for" to ForToken,
+    "match" to MatchToken,
     "return" to ReturnToken,
     "break" to BreakToken,
     "continue" to ContinueToken,
@@ -267,13 +268,13 @@ private fun readAmpersand(reader: LL1StatefulReader): LogicalAndToken {
     }
 }
 
-private fun readPipe(reader: LL1StatefulReader): LogicalOrToken {
+private fun readPipe(reader: LL1StatefulReader): Token {
     // If readPipe is called, the current character must be "|"
     if (reader.hasNext && reader.next == '|') {
         reader.advance()
         return LogicalOrToken
     } else {
-        throw LexicalException("Unexpected token encountered |${reader.next}")
+        return PipeToken
     }
 }
 

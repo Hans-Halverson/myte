@@ -90,6 +90,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             is WhileToken -> parseWhileStatement()
             is DoToken -> parseDoWhileStatement()
             is ForToken -> parseForStatement()
+            is MatchToken -> parseMatchStatement()
             is ReturnToken -> parseReturnStatement()
             is BreakToken -> BreakStatement
             is ContinueToken -> ContinueStatement
@@ -206,7 +207,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         }
     }
 
-    fun parseVectorLiteralExpression(): VectorLiteralExpression {
+    fun parseVectorLiteralExpression(isPattern: Boolean = false): VectorLiteralExpression {
         // If parseVectorLiteralExpression is called, the previous token must have been a [
         val elements: MutableList<Expression> = mutableListOf()
 
@@ -221,7 +222,12 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
         while (tokenizer.current is CommaToken) {
             tokenizer.next()
-            elements.add(parseExpression())
+            // If in pattern, only parse valid patterns with a call to parsePattern
+            if (isPattern) {
+                elements.add(parsePattern())
+            } else {
+                elements.add(parseExpression())
+            }
         }
 
         assertCurrent(TokenType.RIGHT_BRACKET)
@@ -248,9 +254,14 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         return LogicalNotExpression(expr)
     }
 
-    fun parseParenthesizedExpression(): Expression {
+    fun parseParenthesizedExpression(isPattern: Boolean = false): Expression {
         // If parseParenthesizedExpression is called, the previous token must have been a (
-        val expr = parseExpression()
+        // If in pattern, only parse valid patterns with call to parsePattern
+        var expr = if (isPattern) {
+            parsePattern()
+        } else {
+            parseExpression()
+        }
 
         // If a right paren is seen after a single expression, this is a group expression
         if (tokenizer.current is RightParenToken) {
@@ -265,7 +276,14 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             assertCurrent(TokenType.COMMA)
             tokenizer.next()
 
-            exprs.add(parseExpression())
+            // If in pattern, only parse valid patterns with call to parsePattern
+            expr = if (isPattern) {
+                parsePattern()
+            } else {
+                parseExpression()
+            }
+
+            exprs.add(expr)
         }
 
         assertCurrent(TokenType.RIGHT_PAREN)
@@ -655,6 +673,93 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         return ForStatement(initializer, condition, update, statement)
     }
 
+    fun parsePattern(): Expression {
+        var token = tokenizer.next()
+        return when (token) {
+            // Patterns only consist of literals and variables
+            is IntLiteralToken -> IntLiteral(token.num)
+            is FloatLiteralToken -> FloatLiteral(token.num)
+            is StringLiteralToken -> StringLiteralExpression(token.str)
+            is TrueToken -> BoolLiteralExpression(true)
+            is FalseToken -> BoolLiteralExpression(false)
+            is LeftBracketToken -> parseVectorLiteralExpression(true)
+            is LeftParenToken -> parseParenthesizedExpression(true)
+            // An identifier may be a new variable or a type constructor
+            is IdentifierToken -> {
+                // If unseen identifier, create new identifier
+                val variantIdent = symbolTable.lookup(token.str)
+                if (variantIdent == null) {
+                    val ident = symbolTable.addSymbol(token.str, IdentifierClass.VARIABLE,
+                            TypeVariable())
+                    return VariableExpression(ident)
+                }
+
+                // If identifier is seen but not adt variant, create new identifier
+                val variantInfo = symbolTable.getInfo(variantIdent)
+                if (variantInfo?.idClass != IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT) {
+                    val ident = symbolTable.addSymbol(token.str, IdentifierClass.VARIABLE,
+                            TypeVariable())
+                    return VariableExpression(ident)
+                }
+
+                // If identifier is for type constructor, parse (optional) comma separated list
+                // of patterns with parentheses
+                val adtVariant = variantInfo.adtVariant
+                val args: MutableList<Expression> = mutableListOf()
+
+                if (tokenizer.current is LeftParenToken) {
+                    do {
+                        tokenizer.next()
+                        args.add(parsePattern())
+                    } while (tokenizer.current is CommaToken)
+
+                    assertCurrent(TokenType.RIGHT_PAREN)
+                    tokenizer.next()
+                }
+
+                return TypeConstructorExpression(adtVariant, args)
+            }
+            else -> throw ParseException("Patterns must only consist of literals and variables")
+        }
+    }
+
+    fun parseMatchStatement(): MatchStatement {
+        // If parseMatchStatement is called, the previous token must have been a match.
+        val matchExpr = parseExpression()
+
+        assertCurrent(TokenType.LEFT_BRACE)
+        tokenizer.next()
+
+        val patterns: MutableList<Expression> = mutableListOf()
+        val statements: MutableList<Statement> = mutableListOf()
+
+        // Parse nonempty list of cases
+        do {
+            // Each case should be in its own scope
+            symbolTable.enterScope()
+
+            // Pipe for first case is optional, but required for all other cases
+            if (patterns.size != 0 || tokenizer.current == PipeToken) {
+                assertCurrent(TokenType.PIPE)
+                tokenizer.next()
+            }
+
+            // Rest of case is pattern and statement separated by an arrow
+            patterns.add(parsePattern())
+
+            assertCurrent(TokenType.ARROW)
+            tokenizer.next()
+
+            statements.add(parseStatement())
+
+            symbolTable.exitScope()
+        } while (tokenizer.current !is RightBraceToken)
+
+        tokenizer.next()
+
+        return MatchStatement(matchExpr, patterns.zip(statements))
+    }
+
     fun parseReturnStatement(): ReturnStatement {
         // If parseReturnStatement is called, the previous token must have been a return.
         // If unit is reurned, do not store a return expression.
@@ -855,10 +960,19 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         assertCurrent(TokenType.LEFT_BRACE)
         tokenizer.next()
 
+        var firstVariant = true
+
         // Parse nonempty sequence of variant definitions
         do {
-            currentToken = tokenizer.current
+            // Pipe before the first variant is optional, but required for all other variants
+            if (!firstVariant || tokenizer.current == PipeToken) {
+                assertCurrent(TokenType.PIPE)
+                tokenizer.next()
+            }
 
+            firstVariant = false
+            currentToken = tokenizer.current
+            
             if (currentToken !is IdentifierToken) {
                 throw ParseException("Expected ${currentToken} to be an identifier")
             }
@@ -866,9 +980,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             val variantName = currentToken.str
             tokenizer.next()
 
-            // Parse optional type annotation
-            val typeAnnotation = if (tokenizer.current is ColonToken) {
-                tokenizer.next()
+            // Parse optional type constructor arguments
+            val typeAnnotation = if (tokenizer.current is LeftParenToken) {
                 parseType()
             } else {
                 null

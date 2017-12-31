@@ -25,6 +25,7 @@ Implicit conversions from int to float are allowed when using arithmetic operato
 # Full grammar
 
 EXPR -> NUMBER_LITERAL
+      | BOOL_LITERAL
       | " STRING_LITERAL "
       | [ EXPR_LIST ]
       | IDENT
@@ -65,14 +66,15 @@ TYPE -> bool
       | unit
       | ( TYPE_LIST )
       | TYPE -> TYPE
-      | vec < TYPE_PARAM_LIST >
+      | vec < TYPE_LIST >
       | IDENT
+      | IDENT < TYPE_LIST >
 
 TYPE_LIST -> TYPE , TYPE_LIST
            | TYPE
 
-TYPE_PARAM_LIST -> IDENT TYPE_PARAM_LIST
-                 | IDENT
+IDENT_LIST -> IDENT IDENT_LIST
+            | IDENT
 
 
 TYPED_IDENT = IDENT : TYPE
@@ -98,11 +100,14 @@ UNTYPED_ARGS -> IDENT
               | UNTYPED_ARGS , IDENT
 
 
-TYPE_DEF -> type IDENT = { TYPE_DEF_LIST }
-          | type IDENT < TYPE_PARAM_LIST > = { TYPE_DEF_LIST }
+TYPE_DEF -> type IDENT = { TYPE_VARIANT_LIST }
+          | type IDENT < TYPE_PARAM_LIST > = { TYPE_VARIANT_LIST }
 
-TYPE_DEF_LIST -> TYPED_IDENT TYPE_DEF_LIST
-               | TYPED_IDENT
+TYPE_VARIANT_LIST -> TYPE_VARIANT TYPE_VARIANT_LIST
+                   | TYPE_VARIANT
+
+TYPE_VARIANT -> | IDENT ( TYPE_LIST )
+              | | IDENT
 
 
 IF_STATEMENT -> if EXPR STATEMENT
@@ -124,6 +129,24 @@ FOR_STATEMENT -> for ( STATEMENT , EXPR , STATEMENT ) STATEMENT
 RETURN_STATEMENT -> return unit
                   | return EXPR
 
+MATCH_STATEMENT -> match EXPR { MATCH_CASE_LIST }
+
+MATCH_CASE_LIST -> MATCH_CASE MATCH_CASE_LIST
+                 | MATCH_CASE
+
+MATCH_CASE -> | PATTERN -> STATEMENT
+
+PATTERN -> NUMBER_LITERAL
+      | BOOL_LITERAL
+      | " STRING_LITERAL "
+      | [ PATTERN_LIST ]
+      | ( PATTERN_LIST )
+      | IDENT
+      | IDENT ( PATTERN_LIST )
+
+PATTERN_LIST = PATTERN PATTERN_LIST
+             | PATTERN
+
 STATEMENT -> EXPR
            | BLOCK
            | FUNCTION_DEF
@@ -131,6 +154,7 @@ STATEMENT -> EXPR
            | IF_STATEMENT
            | WHILE_STATEMENT
            | FOR_STATEMENT
+           | RETURN_STATEMENT
 
 STATEMENT_LIST -> STATEMENT STATEMENT_LIST
                 | epsilon
