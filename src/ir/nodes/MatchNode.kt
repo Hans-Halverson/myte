@@ -12,7 +12,7 @@ import myte.shared.*
 data class MatchNode(
     val expr: IRNode,
     val cases: List<Pair<IRNode, IRNode>>
-) : IRNode(UnitType) {
+) : IRNode() {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         expr.map(func)

@@ -10,9 +10,8 @@ import myte.shared.*
  */
 class FunctionCallNode(
     val func: Identifier,
-    val actualArgs: List<IRNode>,
-    type: Type
-) : IRNode(type) {
+    val actualArgs: List<IRNode>
+) : IRNode() {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         actualArgs.map { arg -> arg.map(func) }

@@ -196,7 +196,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
     }
 
     fun evalComparison(node: ComparisonNode, env: Environment): BoolValue {
-        return when (node.type) {
+        return when (node.left.type) {
             is IntType -> {
                 val left = evalInt(node.left, env)
                 val right = evalInt(node.right, env)

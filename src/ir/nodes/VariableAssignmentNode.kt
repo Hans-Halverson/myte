@@ -10,9 +10,8 @@ import myte.shared.*
  */
 class VariableAssignmentNode(
     val lValue: Identifier,
-    val rValue: IRNode,
-    type: Type
-) : IRNode(type) {
+    val rValue: IRNode
+) : IRNode() {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         rValue.map(func)

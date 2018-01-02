@@ -7,7 +7,7 @@ import myte.shared.*
  *
  * @property node the bool expression
  */
-data class LogicalNotNode(val node: IRNode) : IRNode(BoolType) {
+data class LogicalNotNode(val node: IRNode) : IRNode() {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         node.map(func)

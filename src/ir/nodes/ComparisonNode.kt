@@ -8,7 +8,7 @@ import myte.shared.*
  * @property left the left hand side of the comparison
  * @property right the right hand side of the comparison
  */
-sealed class ComparisonNode(val left: IRNode, val right: IRNode) : IRNode(BoolType) {
+sealed class ComparisonNode(val left: IRNode, val right: IRNode) : IRNode() {
 
     /**
      * Return the result of comparing two ints.

@@ -5,4 +5,4 @@ import myte.shared.*
 /**
  * A node that represents a continue statement.
  */
-object ContinueNode : IRNode(UnitType)
+object ContinueNode : IRNode()

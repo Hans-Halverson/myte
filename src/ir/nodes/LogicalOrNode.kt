@@ -8,7 +8,7 @@ import myte.shared.*
  * @property left the left hand side of the logical or expression
  * @property right the right hand side of the logical or expression
  */
-data class LogicalOrNode(val left: IRNode, val right: IRNode) : IRNode(BoolType) {
+data class LogicalOrNode(val left: IRNode, val right: IRNode) : IRNode() {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         left.map(func)

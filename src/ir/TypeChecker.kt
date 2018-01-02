@@ -275,38 +275,51 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
     /**
      * Type check and perform unification for an IR tree rooted at a given node.
+     *
+     * @param node the ir node to type check
+     * @param boundVars a set of all type variables that have been bound in the current type scope
+     *        for this node
+     * @param rebind whether or not to refresh unbound type variables for all type from identifiers
+     *        that are encountered in this node or its children
      */
-    fun typeCheck(node: IRNode, boundVars: MutableSet<TypeVariable>) {
+    fun typeCheck(node: IRNode, boundVars: MutableSet<TypeVariable>, refresh: Boolean) {
         when (node) {
             // Literals
-            is VectorLiteralNode -> typeCheckVectorLiteral(node, boundVars)
-            is TupleLiteralNode -> typeCheckTupleLiteral(node, boundVars)
+            is BoolLiteralNode -> node.type = BoolType
+            is StringLiteralNode -> node.type = StringType
+            is IntLiteralNode -> node.type = IntType
+            is FloatLiteralNode -> node.type = FloatType
+            is VectorLiteralNode -> typeCheckVectorLiteral(node, boundVars, refresh)
+            is TupleLiteralNode -> typeCheckTupleLiteral(node, boundVars, refresh)
             // Variables and functions
-            is FunctionCallNode -> typeCheckFunctionCall(node, boundVars)
-            is TypeConstructorNode -> typeCheckTypeConstructor(node, boundVars)
-            is KeyedAccessNode -> typeCheckKeyedAccess(node, boundVars)
-            is KeyedAssignmentNode -> typeCheckKeyedAssignment(node, boundVars)
-            is VariableAssignmentNode -> typeCheckVariableAssignment(node, boundVars)
-            is VariableDefinitionNode -> typeCheckVariableDefinition(node, boundVars)
-            is FunctionDefinitionNode -> typeCheckFunctionDefinition(node, boundVars)
+            is VariableNode -> typeCheckVariable(node, boundVars, refresh)
+            is FunctionCallNode -> typeCheckFunctionCall(node, boundVars, refresh)
+            is TypeConstructorNode -> typeCheckTypeConstructor(node, boundVars, refresh)
+            is KeyedAccessNode -> typeCheckKeyedAccess(node, boundVars, refresh)
+            is KeyedAssignmentNode -> typeCheckKeyedAssignment(node, boundVars, refresh)
+            is VariableAssignmentNode -> typeCheckVariableAssignment(node, boundVars, refresh)
+            is VariableDefinitionNode -> typeCheckVariableDefinition(node, boundVars, refresh)
+            is FunctionDefinitionNode -> typeCheckFunctionDefinition(node, boundVars, refresh)
             // Math expressions
-            is UnaryMathOperatorNode -> typeCheckUnaryMathOperator(node, boundVars)
-            is BinaryMathOperatorNode -> typeCheckBinaryMathOperator(node, boundVars)
+            is UnaryMathOperatorNode -> typeCheckUnaryMathOperator(node, boundVars, refresh)
+            is BinaryMathOperatorNode -> typeCheckBinaryMathOperator(node, boundVars, refresh)
             // Logical operators
-            is LogicalAndNode -> typeCheckLogicalAnd(node, boundVars)
-            is LogicalOrNode -> typeCheckLogicalOr(node, boundVars)
-            is LogicalNotNode -> typeCheckLogicalNot(node, boundVars)
+            is LogicalAndNode -> typeCheckLogicalAnd(node, boundVars, refresh)
+            is LogicalOrNode -> typeCheckLogicalOr(node, boundVars, refresh)
+            is LogicalNotNode -> typeCheckLogicalNot(node, boundVars, refresh)
             // Comparisons
-            is EqualityNode -> typeCheckEquality(node, boundVars)
-            is ComparisonNode -> typeCheckComparison(node, boundVars)
+            is EqualityNode -> typeCheckEquality(node, boundVars, refresh)
+            is ComparisonNode -> typeCheckComparison(node, boundVars, refresh)
             // Control flow and structure
-            is BlockNode -> typeCheckBlock(node, boundVars)
-            is IfNode -> typeCheckIf(node, boundVars)
-            is WhileNode -> typeCheckWhile(node, boundVars)
-            is DoWhileNode -> typeCheckDoWhile(node, boundVars)
-            is ForNode -> typeCheckFor(node, boundVars)
-            is MatchNode -> typeCheckMatch(node, boundVars)
-            is ReturnNode -> typeCheckReturn(node, boundVars)
+            is BlockNode -> typeCheckBlock(node, boundVars, refresh)
+            is IfNode -> typeCheckIf(node, boundVars, refresh)
+            is WhileNode -> typeCheckWhile(node, boundVars, refresh)
+            is DoWhileNode -> typeCheckDoWhile(node, boundVars, refresh)
+            is ForNode -> typeCheckFor(node, boundVars, refresh)
+            is MatchNode -> typeCheckMatch(node, boundVars, refresh)
+            is ReturnNode -> typeCheckReturn(node, boundVars, refresh)
+            is BreakNode -> node.type = UnitType
+            is ContinueNode -> node.type = UnitType
             else -> return
         }
     }
@@ -317,65 +330,80 @@ class TypeChecker(var symbolTable: SymbolTable) {
     //
     ///////////////////////////////////////////////////////////////////////////
 
-    fun typeCheckVectorLiteral(node: VectorLiteralNode, boundVars: MutableSet<TypeVariable>) {
-        node.elements.forEach { element -> typeCheck(element, boundVars) }
+    fun typeCheckVectorLiteral(
+        node: VectorLiteralNode,
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
+    ) {
+        node.elements.forEach { element -> typeCheck(element, boundVars, refresh) }
 
-        // Attempt to unify the types of each vector element with a new type variable
-        val expectedElementType = TypeVariable()
-        val expectedType = VectorType(expectedElementType)
+        // Vector type is initially unknown, so set as vector type with new type variable param
+        val elementType = TypeVariable()
+        node.type = VectorType(elementType)
 
+        // Attempt to unify the types of each vector element with the type variable param
         node.elements.forEach({ element ->
-            if (!unify(findRepType(element.type, boundVars), expectedElementType)) {
+            if (!unify(element.type, elementType)) {
                 throw IRConversionException("Vector must have elements of same type, found " +
                         "${findRepType(element.type, boundVars)} and " +
-                        "${findRepType(expectedElementType, boundVars)}")
+                        "${findRepType(elementType, boundVars)}")
             }
         })
+    }
 
-        // Attempt to unify the vector eval type with the new vector type variable
-        if (!unify(node.type, expectedType)) {
-            throw IRConversionException("Cannot infer type for vector, expected " +
-                    "${findRepType(expectedType, boundVars)} but found " +
-                    "${findRepType(node.type, boundVars)}")
+    fun typeCheckTupleLiteral(
+        node: TupleLiteralNode,
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
+    ) {
+        node.elements.forEach { element -> typeCheck(element, boundVars, refresh) }
+
+        // Tuple type is initially unknown, so set as tuple type with type variables for fields
+        val nodeType = TupleType(node.elements.map { TypeVariable() })
+        node.type = nodeType
+
+        // Unify the types of each tuple element with its respective element type variable
+        node.elements.zip(nodeType.elementTypes).forEach { (element, expectedElementType) ->
+            if (!unify(element.type, expectedElementType)) {
+                throw IRConversionException("Cannot infer type for tuple element, expected " +
+                        "${findRepType(element.type, boundVars)} but found " +
+                        "${findRepType(expectedElementType, boundVars)}")
+            }
         }
     }
 
-    fun typeCheckTupleLiteral(node: TupleLiteralNode, boundVars: MutableSet<TypeVariable>) {
-        node.elements.forEach { element -> typeCheck(element, boundVars) }
-
-        val nodetype = node.type
-        if (nodetype !is TupleType) {
-            throw IRConversionException("Expected tuple literal to have tuple type, but found " +
-                    "${findRepType(nodetype, boundVars)}")
+    fun typeCheckVariable(
+        node: VariableNode,
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
+    ) {
+        val info = symbolTable.getInfo(node.ident)
+        if (info == null) {
+            throw IRConversionException("Unknown variable ${node.ident.name}")
         }
 
-        // Attempt to unify the types of each tuple element with its respective element type
-        val canUnifyElements = node.elements.zip(nodetype.elementTypes)
-                .map({ (element, expectedElementType) ->
-                    unify(findRepType(element.type, boundVars), expectedElementType)
-                }).all({ x -> x })
-
-        val expectedType = TupleType(nodetype.elementTypes)
-
-        // Attempt to unify the list eval type with the new list type variable
-        if (!canUnifyElements || !unify(nodetype, expectedType)) {
-            throw IRConversionException("Cannot infer type for tuple, expected " +
-                    "${findRepType(expectedType, boundVars)} but found " +
-                    "${findRepType(node.type, boundVars)}")
+        // The evaluation type of this node is the type stored for the variable in the symbol table.
+        // Since a type for an identifier is being found, a fresh version of that type must be
+        // found (if applicable).
+        if (refresh) {
+            node.type = findRepType(info.type, boundVars)
+        } else {
+            node.type = info.type
         }
     }
 
     fun typeCheckUnaryMathOperator(
         node: UnaryMathOperatorNode,
-        boundVars: MutableSet<TypeVariable>
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
     ) {
-        typeCheck(node.node, boundVars)
+        typeCheck(node.node, boundVars, refresh)
 
-        // Unify this node's type with its child's type, and verify it is a number type
-        val canUnify = unify(node.node.type, node.type)
-        val repType = findRepType(node.type, boundVars)
+        // Set the node type to be a new type variable, as type is not yet known
+        node.type = TypeVariable()
 
-        if (!canUnify || repType !is NumberType) {
+        // Unify this node's type with its child's type
+        if (!unify(node.node.type, node.type)) {
             throw IRConversionException("Unary math operator expects a number, found " +
                     "${findRepType(node.node.type, boundVars)}")
         }
@@ -383,10 +411,14 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
     fun typeCheckBinaryMathOperator(
         node: BinaryMathOperatorNode,
-        boundVars: MutableSet<TypeVariable>
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
     ) {
-        typeCheck(node.left, boundVars)
-        typeCheck(node.right, boundVars)
+        typeCheck(node.left, boundVars, refresh)
+        typeCheck(node.right, boundVars, refresh)
+
+        // Set the node type to be a new type variable, as type is not yet known
+        node.type = TypeVariable()
 
         // Unify this node's type with both it's children's types
         if (!unify(node.left.type, node.type) ||
@@ -397,9 +429,16 @@ class TypeChecker(var symbolTable: SymbolTable) {
         }
     }
 
-    fun typeCheckLogicalAnd(node: LogicalAndNode, boundVars: MutableSet<TypeVariable>) {
-        typeCheck(node.left, boundVars)
-        typeCheck(node.right, boundVars)
+    fun typeCheckLogicalAnd(
+        node: LogicalAndNode,
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
+    ) {
+        typeCheck(node.left, boundVars, refresh)
+        typeCheck(node.right, boundVars, refresh)
+
+        // Logical and evaluates to bool
+        node.type = BoolType
 
         if (!unify(node.left.type, BoolType) ||
                 !unify(node.right.type, BoolType)) {
@@ -409,9 +448,16 @@ class TypeChecker(var symbolTable: SymbolTable) {
         }
     }
 
-    fun typeCheckLogicalOr(node: LogicalOrNode, boundVars: MutableSet<TypeVariable>) {
-        typeCheck(node.left, boundVars)
-        typeCheck(node.right, boundVars)
+    fun typeCheckLogicalOr(
+        node: LogicalOrNode,
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
+    ) {
+        typeCheck(node.left, boundVars, refresh)
+        typeCheck(node.right, boundVars, refresh)
+
+        // Logical or evaluates to bool
+        node.type = BoolType
 
         if (!unify(node.left.type, BoolType) ||
                 !unify(node.right.type, BoolType)) {
@@ -421,8 +467,15 @@ class TypeChecker(var symbolTable: SymbolTable) {
         }
     }
 
-    fun typeCheckLogicalNot(node: LogicalNotNode, boundVars: MutableSet<TypeVariable>) {
-        typeCheck(node.node, boundVars)
+    fun typeCheckLogicalNot(
+        node: LogicalNotNode,
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
+    ) {
+        typeCheck(node.node, boundVars, refresh)
+
+        // Logical not evaluates to bool
+        node.type = BoolType
 
         if (!unify(node.node.type, BoolType)) {
             throw IRConversionException("Logical not expects a bool, found " +
@@ -430,45 +483,54 @@ class TypeChecker(var symbolTable: SymbolTable) {
         }
     }
 
-    fun typeCheckEquality(node: EqualityNode, boundVars: MutableSet<TypeVariable>) {
-        typeCheck(node.left, boundVars)
-        typeCheck(node.right, boundVars)
+    fun typeCheckEquality(
+        node: EqualityNode,
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
+    ) {
+        typeCheck(node.left, boundVars, refresh)
+        typeCheck(node.right, boundVars, refresh)
 
-        // Create a new type variable and unify both children with it, as both children must have
-        // the same unkown type.
-        val typeVar = TypeVariable()
+        // Equality nodes evaluate to a bool
+        node.type = BoolType
 
-        val leftRepType = findRepType(node.left.type, boundVars)
-        val rightRepType = findRepType(node.right.type, boundVars)
-
-        if (!unify(leftRepType, typeVar) || !unify(rightRepType, typeVar)) {
+        // Unify both child types together, as both children must have the same unknown type.
+        if (!unify(node.left.type, node.right.type)) {
             throw IRConversionException("Cannot check equality between different types, found " +
-                    "${findRepType(leftRepType, boundVars)} and " +
-                    "${findRepType(rightRepType, boundVars)}")
+                    "${findRepType(node.left.type, boundVars)} and " +
+                    "${findRepType(node.right.type, boundVars)}")
         }
     }
 
-    fun typeCheckComparison(node: ComparisonNode, boundVars: MutableSet<TypeVariable>) {
-        typeCheck(node.left, boundVars)
-        typeCheck(node.right, boundVars)
+    fun typeCheckComparison(
+        node: ComparisonNode,
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
+    ) {
+        typeCheck(node.left, boundVars, refresh)
+        typeCheck(node.right, boundVars, refresh)
 
-        // Create a new type variable and unify both children with it, as both children must have
-        // the same type.
-        val typeVar = TypeVariable()
+        // Comparison nodes evaluate to a bool
+        node.type = BoolType
 
-        val leftRepType = findRepType(node.left.type, boundVars)
-        val rightRepType = findRepType(node.right.type, boundVars)
-
-        if (!unify(leftRepType, typeVar) || !unify(rightRepType, typeVar)) {
+        // Unify both child types together, as both children must have the same unknown type.
+        if (!unify(node.left.type, node.right.type)) {
             throw IRConversionException("Comparison expects two numbers of same type, found " +
-                    "${findRepType(leftRepType, boundVars)} and " +
-                    "${findRepType(rightRepType, boundVars)}")
+                    "${findRepType(node.left.type, boundVars)} and " +
+                    "${findRepType(node.right.type, boundVars)}")
         }
     }
 
-    fun typeCheckKeyedAccess(node: KeyedAccessNode, boundVars: MutableSet<TypeVariable>) {
-        typeCheck(node.container, boundVars)
-        typeCheck(node.key, boundVars)
+    fun typeCheckKeyedAccess(
+        node: KeyedAccessNode,
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
+    ) {
+        typeCheck(node.container, boundVars, refresh)
+        typeCheck(node.key, boundVars, refresh)
+
+        // Type of keyed access node is new type variable, as type is not yet known
+        node.type = TypeVariable()
 
         // Constrain eval type of node to be the element type of vector
         val expectedVectorType = VectorType(node.type)
@@ -485,10 +547,17 @@ class TypeChecker(var symbolTable: SymbolTable) {
         }
     }
 
-    fun typeCheckKeyedAssignment(node: KeyedAssignmentNode, boundVars: MutableSet<TypeVariable>) {
-        typeCheck(node.container, boundVars)
-        typeCheck(node.key, boundVars)
-        typeCheck(node.rValue, boundVars)
+    fun typeCheckKeyedAssignment(
+        node: KeyedAssignmentNode,
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
+    ) {
+        typeCheck(node.container, boundVars, refresh)
+        typeCheck(node.key, boundVars, refresh)
+        typeCheck(node.rValue, boundVars, refresh)
+
+        // Type of keyed assignment node is new type variable, as type is not yet known
+        node.type = TypeVariable()
 
         // Constrain eval type of container to be the element type of vector, while simultaneously
         // constraining eval type of assignment to be the element type of vector.
@@ -506,29 +575,40 @@ class TypeChecker(var symbolTable: SymbolTable) {
         }
 
         // Constrain element type of vector to be type of rValue assigned to it
-        val rValueRepType = findRepType(node.rValue.type, boundVars)
-        if (!unify(rValueRepType, node.type)) {
+        if (!unify(node.rValue.type, node.type)) {
             throw IRConversionException("Expected type for assignment is " +
                     "${findRepType(node.type, boundVars)}, but assigned " +
-                    "${findRepType(rValueRepType, boundVars)}")
+                    "${findRepType(node.rValue.type, boundVars)}")
         }
     }
 
-    fun typeCheckFunctionCall(node: FunctionCallNode, boundVars: MutableSet<TypeVariable>) {
-        val funcType = symbolTable.getInfo(node.func)?.type
+    fun typeCheckFunctionCall(
+        node: FunctionCallNode,
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
+    ) {
+        val funcInfo = symbolTable.getInfo(node.func)
+        val funcType = funcInfo?.type
         if (funcType == null) {
             throw IRConversionException("Unknown function ${node.func.name}")
         }
 
+        node.actualArgs.forEach { actualArg -> typeCheck(actualArg, boundVars, refresh) }
+
+        // Since a type for an identifier is being found, a fresh version of that type must be used.
         val funcRepType = findRepType(funcType, boundVars)
 
-        node.actualArgs.forEach { actualArg -> typeCheck(actualArg, boundVars) }
+        // Return type is a float if numeric, otherwise it is unknown so use new type variable
+        node.type = if (funcInfo.props.contains(IdentifierProperty.NUMERIC)) {
+            FloatType
+        } else {
+            TypeVariable()
+        }
 
         // Unify the arguments to the function with the expected argument types stored for the
         // function in the symbol table
-        val argTypes = node.actualArgs.map { arg -> findRepType(arg.type, boundVars) }
-        val returnType = node.type
-        val expectedFuncType = FunctionType(argTypes, returnType)
+        val argTypes = node.actualArgs.map { arg -> arg.type }
+        val expectedFuncType = FunctionType(argTypes, node.type)
 
         if (!unify(expectedFuncType, funcRepType)) {
             // If type of identifier is a known function, provide more useful error message
@@ -545,14 +625,14 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
     fun typeCheckTypeConstructor(
         node: TypeConstructorNode,
-        boundVars: MutableSet<TypeVariable>
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
     ) {
-        val nodeType = node.type
-        if (nodeType !is AlgebraicDataType) {
-            throw IRConversionException("Type constructor must have algebraic data type")
-        }
+        node.actualArgs.forEach { actualArg -> typeCheck(actualArg, boundVars, refresh) }
 
-        node.actualArgs.forEach { actualArg -> typeCheck(actualArg, boundVars) }
+        // Create a fresh adt type for this type variant, since exact type params aren't known yet
+        val nodeType = node.adtVariant.adtSig.getFreshAdt()
+        node.type = nodeType
 
         // Find constructor arg types given the current adt params and adt variant
         val expectedArgTypes = node.adtVariant.getTypeConstructorWithParams(nodeType.typeParams)
@@ -587,47 +667,53 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
     fun typeCheckVariableAssignment(
         node: VariableAssignmentNode,
-        boundVars: MutableSet<TypeVariable>
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
     ) {
         val type = symbolTable.getInfo(node.lValue)?.type
         if (type == null) {
             throw IRConversionException("Unknown variable ${node.lValue.name}")
         }
 
-        typeCheck(node.rValue, boundVars)
+        typeCheck(node.rValue, boundVars, refresh)
 
-        val nodeRepType = findRepType(node.rValue.type, boundVars)
+        // The evaluation type of this node is the type stored for the variable in the symbol table.
+        // Since a type for an identifier is being found, a fresh version of that type must be used.
+        node.type = findRepType(type, boundVars)
 
-        if (!unify(nodeRepType, type)) {
+        if (!unify(node.rValue.type, node.type)) {
             throw IRConversionException("Type of ${node.lValue.name} is " +
-                    "${findRepType(type, boundVars)}, but assigned " +
-                    "${findRepType(nodeRepType, boundVars)}")
+                    "${findRepType(node.type, boundVars)}, but assigned " +
+                    "${findRepType(node.rValue.type, boundVars)}")
         }
     }
 
     fun typeCheckVariableDefinition(
         node: VariableDefinitionNode,
-        boundVars: MutableSet<TypeVariable>
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
     ) {
         val type = symbolTable.getInfo(node.ident)?.type
         if (type == null) {
             throw IRConversionException("Unknown variable ${node.ident.name}")
         }
 
-        typeCheck(node.expr, boundVars)
+        typeCheck(node.expr, boundVars, refresh)
 
-        val freshNodeType = findRepType(node.expr.type, boundVars)
+        // Variable definition node evaluates to unit value
+        node.type = UnitType
 
-        if (!unify(freshNodeType, type)) {
+        if (!unify(node.expr.type, type)) {
             throw IRConversionException("Type of ${node.ident.name} is " +
                     "${findRepType(type, boundVars)}, but assigned " +
-                    "${findRepType(freshNodeType, boundVars)}")
+                    "${findRepType(node.expr.type, boundVars)}")
         }
     }
 
     fun typeCheckFunctionDefinition(
         node: FunctionDefinitionNode,
-        boundVars: MutableSet<TypeVariable>
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
     ) {
         val type = symbolTable.getInfo(node.ident)?.type
         if (type !is FunctionType) {
@@ -641,7 +727,10 @@ class TypeChecker(var symbolTable: SymbolTable) {
             newBoundVars.add(typeVar)
         }
 
-        typeCheck(node.body, newBoundVars)
+        typeCheck(node.body, newBoundVars, refresh)
+
+        // Function definition node evaluates to unit value
+        node.type = UnitType
 
         // Unify all returned types with the return type of this function
         mapOverReturns(node.body, { retNode ->
@@ -683,54 +772,66 @@ class TypeChecker(var symbolTable: SymbolTable) {
         }
     }
 
-    fun typeCheckBlock(node: BlockNode, boundVars: MutableSet<TypeVariable>) {
-        node.nodes.forEach { child -> typeCheck(child, boundVars) }
+    fun typeCheckBlock(node: BlockNode, boundVars: MutableSet<TypeVariable>, refresh: Boolean) {
+        node.nodes.forEach { child -> typeCheck(child, boundVars, refresh) }
+
+        // Block node evaluates to a unit value
+        node.type = UnitType
     }
 
-    fun typeCheckIf(node: IfNode, boundVars: MutableSet<TypeVariable>) {
-        typeCheck(node.cond, boundVars)
+    fun typeCheckIf(node: IfNode, boundVars: MutableSet<TypeVariable>, refresh: Boolean) {
+        typeCheck(node.cond, boundVars, refresh)
 
         if (!unify(node.cond.type, BoolType)) {
             throw IRConversionException("Condition of if must be a bool, but found " +
                     "${findRepType(node.cond.type, boundVars)}")
         }
 
-        typeCheck(node.conseq, boundVars)
+        typeCheck(node.conseq, boundVars, refresh)
 
         if (node.altern != null) {
-            typeCheck(node.altern, boundVars)
+            typeCheck(node.altern, boundVars, refresh)
         }
+
+        // If node evaluates to unit value
+        node.type = UnitType
     }
 
-    fun typeCheckWhile(node: WhileNode, boundVars: MutableSet<TypeVariable>) {
-        typeCheck(node.cond, boundVars)
+    fun typeCheckWhile(node: WhileNode, boundVars: MutableSet<TypeVariable>, refresh: Boolean) {
+        typeCheck(node.cond, boundVars, refresh)
 
         if (!unify(node.cond.type, BoolType)) {
             throw IRConversionException("Condition of while must be a bool, but given " +
                     "${findRepType(node.cond.type, boundVars)}")
         }
 
-        typeCheck(node.body, boundVars)
+        typeCheck(node.body, boundVars, refresh)
+
+        // While node evaluates to unit value
+        node.type = UnitType
     }
 
-    fun typeCheckDoWhile(node: DoWhileNode, boundVars: MutableSet<TypeVariable>) {
-        typeCheck(node.cond, boundVars)
+    fun typeCheckDoWhile(node: DoWhileNode, boundVars: MutableSet<TypeVariable>, refresh: Boolean) {
+        typeCheck(node.cond, boundVars, refresh)
 
         if (!unify(node.cond.type, BoolType)) {
             throw IRConversionException("Condition of do while must be a bool, but given " +
                     "${findRepType(node.cond.type, boundVars)}")
         }
 
-        typeCheck(node.body, boundVars)
+        typeCheck(node.body, boundVars, refresh)
+
+        // Do while node evaluates to unit value
+        node.type = UnitType
     }
 
-    fun typeCheckFor(node: ForNode, boundVars: MutableSet<TypeVariable>) {
+    fun typeCheckFor(node: ForNode, boundVars: MutableSet<TypeVariable>, refresh: Boolean) {
         if (node.init != null) {
-            typeCheck(node.init, boundVars)
+            typeCheck(node.init, boundVars, refresh)
         }
 
         if (node.cond != null) {
-            typeCheck(node.cond, boundVars)
+            typeCheck(node.cond, boundVars, refresh)
             if (!unify(node.cond.type, BoolType)) {
                 throw IRConversionException("Condition of for must be a bool, but given " +
                         "${findRepType(node.cond.type, boundVars)}")
@@ -738,24 +839,32 @@ class TypeChecker(var symbolTable: SymbolTable) {
         }
 
         if (node.update != null) {
-            typeCheck(node.update, boundVars)
+            typeCheck(node.update, boundVars, refresh)
         }
 
-        typeCheck(node.body, boundVars)
+        typeCheck(node.body, boundVars, refresh)
+
+        // For node evaluates to unit value
+        node.type = UnitType
     }
 
-    fun typeCheckMatch(node: MatchNode, boundVars: MutableSet<TypeVariable>) {
-        typeCheck(node.expr, boundVars)
+    fun typeCheckMatch(node: MatchNode, boundVars: MutableSet<TypeVariable>, refresh: Boolean) {
+        typeCheck(node.expr, boundVars, refresh)
+
         node.cases.forEach { (pattern, statement) ->
+            typeCheck(pattern, boundVars, false)
+
             // Bind all variables that are found in the pattern, including in child nodes
             val newBoundVars = boundVars.toHashSet()
             pattern.map { patNode ->
                 patNode.type.getAllVariables().forEach { typeVar -> newBoundVars.add(typeVar) }
             }
 
-            typeCheck(pattern, newBoundVars)
-            typeCheck(statement, newBoundVars)
+            typeCheck(statement, newBoundVars, refresh)
         }
+
+        // Match node evaluates to unit value
+        node.type = UnitType
 
         // All patterns must have same type as the matched expression
         node.cases.forEach { (pat, _) ->
@@ -767,10 +876,13 @@ class TypeChecker(var symbolTable: SymbolTable) {
         }
     }
 
-    fun typeCheckReturn(node: ReturnNode, boundVars: MutableSet<TypeVariable>) {
+    fun typeCheckReturn(node: ReturnNode, boundVars: MutableSet<TypeVariable>, refresh: Boolean) {
         if (node.expr != null) {
-            typeCheck(node.expr, boundVars)
+            typeCheck(node.expr, boundVars, refresh)
         }
+
+        // Return node evalutes to unit value
+        node.type = UnitType
     }
 
     /**

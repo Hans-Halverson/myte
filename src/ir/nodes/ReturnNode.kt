@@ -7,7 +7,7 @@ import myte.shared.*
  *
  * @property expr the (optional) expression whose value is returned
  */
-data class ReturnNode(val expr: IRNode?) : IRNode(UnitType) {
+data class ReturnNode(val expr: IRNode?) : IRNode() {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         expr?.map(func)

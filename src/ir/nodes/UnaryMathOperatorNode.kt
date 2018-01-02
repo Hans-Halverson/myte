@@ -7,7 +7,7 @@ import myte.shared.*
  *
  * @property node the arithmetic expression the operation is applied to
  */
-sealed class UnaryMathOperatorNode(val node: IRNode) : IRNode(TypeVariable()) {
+sealed class UnaryMathOperatorNode(val node: IRNode) : IRNode() {
 
     /**
      * Return the result of applying this operation to an int.

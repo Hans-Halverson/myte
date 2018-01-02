@@ -6,10 +6,11 @@ import myte.shared.*
  * A node in the internal representation of the program.
  *
  * @property type the type that this node evaluates to. Holds the most specific type known
- *           for this node when intially created, and later is reassigned with inferred node
+ *           for this node when intially assigned, and later is reassigned with inferred node
  *           type after type inference has taken place.
  */
-abstract class IRNode(var type: Type) {
+abstract class IRNode {
+    lateinit var type: Type
 
     /*
      * Apply a function over the entire IR tree rooted at this node in preorder.

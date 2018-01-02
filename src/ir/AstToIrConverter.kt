@@ -77,13 +77,6 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     }
 
     /**
-     * Returns whether an identifier is numeric.
-     */
-    fun isNumeric(ident: Identifier): Boolean {
-        return identHasProp(ident, IdentifierProperty.NUMERIC)
-    }
-
-    /**
      * Returns whether an identifier is immutable.
      */
     fun isImmutable(ident: Identifier): Boolean {
@@ -159,23 +152,19 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             throw IRConversionException("Unknown variable ${expr.ident.name}")
         }
 
-        // The best known eval type of a variable is the type expression stored in the symbol table
-        return VariableNode(expr.ident, info.type)
+        return VariableNode(expr.ident)
     }
 
     fun convertFunctionCall(expr: FunctionCallExpression): FunctionCallNode {
         val args = expr.actualArgs.map(this::convert)
-        val returnType = if (isNumeric(expr.func)) FloatType else TypeVariable()
 
-        return FunctionCallNode(expr.func, args, returnType)
+        return FunctionCallNode(expr.func, args)
     }
 
     fun convertTypeConstructor(expr: TypeConstructorExpression): TypeConstructorNode {
-        // Create a fresh adt type for this type variant, since exact type params aren't known yet
-        val type = expr.adtVariant.adtSig.getFreshAdt()
         val args = expr.actualArgs.map(this::convert)
 
-        return TypeConstructorNode(expr.adtVariant, args, type)
+        return TypeConstructorNode(expr.adtVariant, args)
     }
 
     fun convertKeyedAccess(expr: KeyedAccessExpression): KeyedAccessNode {
@@ -186,7 +175,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         // Convert the keyed access, and use its properties to construct the keyed assignment
         val keyedAccess = convertKeyedAccess(expr.lValue)
         return KeyedAssignmentNode(keyedAccess.container, keyedAccess.key,
-                convert(expr.rValue), keyedAccess.type)
+                convert(expr.rValue))
     }
 
     fun convertVariableAssignment(expr: VariableAssignmentExpression): VariableAssignmentNode {
@@ -204,8 +193,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             throw IRConversionException("Cannot reassign immutable variable ${expr.lValue.name}")
         }
 
-        // The best known eval type of a variable is the type expression stored in the symbol table
-        return VariableAssignmentNode(expr.lValue, convert(expr.rValue), info.type)
+        return VariableAssignmentNode(expr.lValue, convert(expr.rValue))
     }
 
     fun convertReturn(expr: ReturnStatement): ReturnNode {
@@ -292,7 +280,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
      */
     fun inferTypes(nodes: List<IRNode>) {
         val boundVars: MutableSet<TypeVariable> = hashSetOf()
-        nodes.forEach { node -> typeChecker.typeCheck(node, boundVars) }
+        nodes.forEach { node -> typeChecker.typeCheck(node, boundVars, true) }
 
         typeChecker.inferFunctionTypes()
         typeChecker.inferVariableTypes()

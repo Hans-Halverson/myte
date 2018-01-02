@@ -8,7 +8,7 @@ import myte.shared.*
  * @property container the container that is being indexed into
  * @property key the key used to index into the container
  */
-data class KeyedAccessNode(val container: IRNode, val key: IRNode) : IRNode(TypeVariable()) {
+data class KeyedAccessNode(val container: IRNode, val key: IRNode) : IRNode() {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         container.map(func)
