@@ -14,6 +14,12 @@ sealed class Type {
      * map mapped to the corresponding type.
      */
     open fun substitute(typeMap: Map<TypeVariable, Type>): Type = this
+
+    /**
+     * Convert this type into its string representation, where the string representation for each
+     * type variable comes from the included map.
+     */
+    abstract fun formatToString(typeVars: Map<TypeVariable, String> = mapOf()): String
 }
 
 sealed class NumberType : Type()
@@ -31,27 +37,41 @@ data class TypeVariable(val id: Long = newTypeVariableId()) : Type() {
         return mappedType ?: this
     }
 
-    override fun toString(): String = "${id}"
+    override fun formatToString(typeVars: Map<TypeVariable, String>): String {
+        return typeVars[this] ?: "${id}"
+    }
+
+    override fun toString(): String = formatToString()
 }
 
 object UnitType : Type() {
-    override fun toString(): String = "unit"
+    override fun formatToString(typeVars: Map<TypeVariable, String>): String = "unit"
+
+    override fun toString(): String = formatToString()
 }
 
 object BoolType : Type() {
-    override fun toString(): String = "bool"
+    override fun formatToString(typeVars: Map<TypeVariable, String>): String = "bool"
+
+    override fun toString(): String = formatToString()
 }
 
 object IntType : NumberType() {
-    override fun toString(): String = "int"
+    override fun formatToString(typeVars: Map<TypeVariable, String>): String = "int"
+
+    override fun toString(): String = formatToString()
 }
 
 object FloatType : NumberType() {
-    override fun toString(): String = "float"
+    override fun formatToString(typeVars: Map<TypeVariable, String>): String = "float"
+
+    override fun toString(): String = formatToString()
 }
 
 object StringType : Type() {
-    override fun toString(): String = "string"
+    override fun formatToString(typeVars: Map<TypeVariable, String>): String = "string"
+
+    override fun toString(): String = formatToString()
 }
 
 data class VectorType(val elementType: Type) : Type() {
@@ -61,7 +81,11 @@ data class VectorType(val elementType: Type) : Type() {
         return VectorType(elementType.substitute(typeMap))
     }
 
-    override fun toString(): String = "vec<${elementType}>"
+    override fun formatToString(typeVars: Map<TypeVariable, String>): String {
+        return "vec<${elementType.formatToString(typeVars)}>"
+    }
+
+    override fun toString(): String = formatToString()
 }
 
 data class TupleType(val elementTypes: List<Type>) : Type() {
@@ -73,7 +97,12 @@ data class TupleType(val elementTypes: List<Type>) : Type() {
         return TupleType(elementTypes.map { elementType -> elementType.substitute(typeMap) })
     }
 
-    override fun toString(): String = elementTypes.joinToString(", ", "(", ")")
+    override fun formatToString(typeVars: Map<TypeVariable, String>): String {
+        return elementTypes.map { elementType -> elementType.formatToString(typeVars) }
+                .joinToString(", ", "(", ")")
+    }
+
+    override fun toString(): String = formatToString()
 }
 
 data class FunctionType(
@@ -95,7 +124,7 @@ data class FunctionType(
         return FunctionType(argVals, returnVal)
     }
 
-    override fun toString(): String {
+    override fun formatToString(typeVars: Map<TypeVariable, String>): String {
         val builder = StringBuilder()
 
         // Add the arg types, wrapping then in parentheses if they are function types
@@ -103,10 +132,10 @@ data class FunctionType(
             for (argType in argTypes) {
                 if (argType is FunctionType) {
                     builder.append("(")
-                    builder.append(argType.toString())
+                    builder.append(argType.formatToString(typeVars))
                     builder.append(")")
                 } else {
-                    builder.append(argType.toString())
+                    builder.append(argType.formatToString(typeVars))
                 }
 
                 builder.append(" -> ")
@@ -118,14 +147,16 @@ data class FunctionType(
         // Add the return type, wrapping it in parentheses if it is a function type
         if (returnType is FunctionType) {
             builder.append("(")
-            builder.append(returnType.toString())
+            builder.append(returnType.formatToString(typeVars))
             builder.append(")")
         } else {
-            builder.append(returnType.toString())
+            builder.append(returnType.formatToString(typeVars))
         }
 
         return builder.toString()
     }
+
+    override fun toString(): String = formatToString()
 }
 
 /**
@@ -147,15 +178,49 @@ data class AlgebraicDataType(
         return AlgebraicDataType(adtSig, substTypes)
     }
 
-    override fun toString(): String {
+    override fun formatToString(typeVars: Map<TypeVariable, String>): String {
         val builder = StringBuilder()
 
         builder.append(adtSig.name)
 
         if (typeParams.size > 0) {
-            builder.append(typeParams.joinToString(", ", "<", ">"))
+            builder.append(typeParams.map { typeParam -> typeParam.formatToString(typeVars) }
+                    .joinToString(", ", "<", ">"))
         }
 
         return builder.toString()
     }
+
+    override fun toString(): String = formatToString()
 }
+
+/**
+ * Format a list of types into strings, where type variables of the same type are replaced by
+ * the same representations. The representation of these type variables will be:
+ * a, b, c, ..., a2, b2, c2, ... a3, b3, c3, ... etc.
+ */
+fun formatTypes(types: List<Type>): List<String> {
+    val allVariables = types.flatMap(Type::getAllVariables).distinct()
+    val varToStr: MutableMap<TypeVariable, String> = mutableMapOf()
+
+    allVariables.forEachIndexed { index, typeVar ->
+        val quot = index / 26
+        val rem = index % 26
+        // If on the first 26 type variables, just use 'a' ... 'z'
+        val stringRep = if (quot == 0) {
+            'a'.plus(rem).toString()
+        // All later type variables have a number appended (e.g. a2)
+        } else {
+            "${'a'.plus(rem)}${quot + 1}"
+        }
+
+        varToStr[typeVar] = stringRep
+    }
+
+    return types.map { type -> type.formatToString(varToStr)}
+}
+
+/**
+ * Format a single type into a string.
+ */
+fun formatType(type: Type): String = formatTypes(listOf(type))[0]

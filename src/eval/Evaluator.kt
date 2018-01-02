@@ -108,7 +108,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         val type = node.type
         if (type !is VectorType) {
             throw EvaluationException("Expected vector literal to have vector type, " +
-                    "but found ${type}")
+                    "but found ${formatType(type)}")
         }
 
         val vector = node.elements.map({ element ->
@@ -122,7 +122,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         val type = node.type
         if (type !is TupleType) {
             throw EvaluationException("Expected tuple literal to have tuple type, " +
-                    "but found ${type}")
+                    "but found ${formatType(type)}")
         }
 
         val tuple = node.elements.map({ element ->
@@ -143,7 +143,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
                 FloatValue(node.computeFloat(expr.num))
             }
             else -> throw EvaluationException("Unary math operator must have a number type, " +
-                    "given ${node.type}")
+                    "given ${formatType(node.type)}")
         }
     }
 
@@ -162,7 +162,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
                 FloatValue(node.computeFloat(left.num, right.num))
             }
             else -> throw EvaluationException("Binary math operator must have a number type, " +
-                    "given ${node.type}")
+                    "given ${formatType(node.type)}")
         }
     }
 
@@ -210,7 +210,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
                 BoolValue(node.compareFloats(left.num, right.num))
             }
             else -> throw EvaluationException("Comparison must be between two numbers, "
-                    + "given ${node.type}")
+                    + "given ${formatType(node.type)}")
         }
     }
 
@@ -218,7 +218,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         val container = evaluate(node.container, env)
         if (container !is VectorValue) {
             throw EvaluationException("Can only perform keyed access on a vector, " +
-                    "found ${container.type}")
+                    "found ${formatType(container.type)}")
         }
 
         val key = evalInt(node.key, env)
@@ -233,7 +233,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         val container = evaluate(node.container, env)
         if (container !is VectorValue) {
             throw EvaluationException("Can only perform keyed access on a vector, " +
-                    "found ${container.type}")
+                    "found ${formatType(container.type)}")
         }
 
         val key = evalInt(node.key, env)
@@ -280,7 +280,12 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             evaluate(closureValue.body, applicationEnv)
         } catch (returnException: Return) {
             applicationEnv.exitScope()
-            return returnException.returnValue
+
+            // Set type of return value to match type of input arguments
+            val returnValue = returnException.returnValue
+            returnValue.type = node.type
+            
+            return returnValue
         }
 
         throw EvaluationException("No return value")
