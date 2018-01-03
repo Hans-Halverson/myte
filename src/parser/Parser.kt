@@ -152,7 +152,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                 is ForwardSlashToken -> parseDivideExpression(currentExpr)
                 is CaretToken -> parseExponentExpression(currentExpr)
                 // Comparison operators
-                is EqualsToken -> parseAssignmentExpression(currentExpr)
+                is EqualsToken -> parseAssignmentExpression(currentExpr, token)
                 is DoubleEqualsToken -> parseEqualsExpression(currentExpr)
                 is NotEqualsToken -> parseNotEqualsExpression(currentExpr)
                 is LessThanToken -> parseLessThanExpression(currentExpr)
@@ -163,7 +163,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                 is LogicalAndToken -> parseLogicalAndExpression(currentExpr)
                 is LogicalOrToken -> parseLogicalOrExpression(currentExpr)
                 // Function call or access
-                is LeftParenToken -> parseCallExpression(currentExpr)
+                is LeftParenToken -> parseCallExpression(currentExpr, token)
                 is LeftBracketToken -> parseKeyedAccessExpression(currentExpr)
                 else -> throw ParseException(token)
             }
@@ -178,7 +178,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
      */
     fun assertCurrent(tokenType: TokenType) {
         if (tokenizer.current.type != tokenType) {
-            throw ParseException(tokenType, tokenizer.current.type)
+            throw ParseException(tokenType, tokenizer.current.type, tokenizer.current)
         }
     }
 
@@ -191,7 +191,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
     fun parseIdentifierExpression(token: IdentifierToken): Expression {
         val ident = symbolTable.lookup(token.str)
         if (ident == null) {
-            throw ParseException("No identifier found for symbol ${token.str}")
+            throw ParseException("No identifier found for symbol ${token.str}", token)
         }
 
         // If identifier is a variable or function, create a variable
@@ -203,7 +203,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         } else if (info?.idClass == IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT) {
             return TypeConstructorExpression(info.adtVariant, listOf())
         } else {
-            throw ParseException("${ident.name} is not a function, variable, or type constructor")
+            throw ParseException("${ident.name} is not a function, variable, or type constructor",
+                    token)
         }
     }
 
@@ -328,12 +329,12 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         return ExponentExpression(prevExpr, expr)
     }
 
-    fun parseAssignmentExpression(prevExpr: Expression): Expression {
+    fun parseAssignmentExpression(prevExpr: Expression, prevToken: EqualsToken): Expression {
         // If parseAssignmentExpression is called, the previous token must have been a =
         // Subtracting one from the precedence makes this operator right associative.
         if (prevExpr is VariableExpression) {
             if (symbolTable.getInfo(prevExpr.ident)?.idClass != IdentifierClass.VARIABLE) {
-                throw ParseException("Can only reassign value to variables")
+                throw ParseException("Can only reassign value to variables", prevToken)
             }
 
             val expr = parseExpression(rightAssociative(ASSIGNMENT_PRECEDENCE))
@@ -342,7 +343,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             val expr = parseExpression(rightAssociative(ASSIGNMENT_PRECEDENCE))
             return KeyedAssignmentExpression(prevExpr, expr)
         } else {
-            throw ParseException("Cannot assign value to ${prevExpr}")
+            throw ParseException("Cannot assign value to ${prevExpr}", prevToken)
         }
     }
 
@@ -394,7 +395,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         return LogicalOrExpression(prevExpr, expr)
     }
 
-    fun parseCallExpression(prevExpr: Expression): Expression {
+    fun parseCallExpression(prevExpr: Expression, prevToken: LeftParenToken): Expression {
         // If parseCallExpression is called, the previous token must have been a (
         val actualArgs: MutableList<Expression> = mutableListOf()
 
@@ -419,7 +420,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         } else if (prevExpr is TypeConstructorExpression) {
             return TypeConstructorExpression(prevExpr.adtVariant, actualArgs)
         } else {
-            throw ParseException("Can only apply functions or type constructors")
+            throw ParseException("Can only apply functions or type constructors", prevToken)
         }
     }
 
@@ -441,7 +442,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             token = tokenizer.next()
 
             if (token !is IdentifierToken) {
-                throw ParseException("No identifier found in definition")
+                throw ParseException("Expected identifier in variable definition", token)
             }
 
             val identName = token.str
@@ -464,7 +465,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             return VariableDefinitionStatement(ident, expr)
         } else {
             if (token !is IdentifierToken) {
-                throw ParseException("No identifier found in definition")
+                throw ParseException("Expected identifier in variable definition", token)
             }
 
             val identName = token.str
@@ -503,10 +504,10 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         }
 
         if (token !is IdentifierToken) {
-            throw ParseException("No identifier found in function definition")
+            throw ParseException("Expected identifier in variable definition", token)
         }
 
-        val funcName = token.str
+        val funcToken = token
         val formalArgs: MutableList<Identifier> = mutableListOf()
         val argTypes: MutableList<Type> = mutableListOf()
 
@@ -535,7 +536,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                     formalArgs.add(symbolTable.addSymbol(token.str,
                             IdentifierClass.VARIABLE, argType))
                 }
-                else -> throw ParseException("Formal arguments must be identifiers")
+                else -> throw ParseException("Formal arguments must be identifiers", token)
             }
 
             // If a right paren is found, all arguments have been found. If a comma is found,
@@ -560,7 +561,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
         // Add the function to the symbol table with correct type before parsing body, and make
         // sure to add in previous scope, as symbolTable is currently in the scope of the function.
-        val ident = symbolTable.addSymbolInPreviousScope(funcName, IdentifierClass.FUNCTION,
+        val ident = symbolTable.addSymbolInPreviousScope(funcToken.str, IdentifierClass.FUNCTION,
                 FunctionType(argTypes, returnType))
 
         // Expression function definition bodies begin with an equals sign
@@ -724,7 +725,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
                 return TypeConstructorExpression(adtVariant, args)
             }
-            else -> throw ParseException("Patterns must only consist of literals and variables")
+            else -> throw ParseException("Patterns must only consist of literals and variables"
+                    , token)
         }
     }
 
@@ -744,7 +746,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             symbolTable.enterScope()
 
             // Pipe for first case is optional, but required for all other cases
-            if (patterns.size != 0 || tokenizer.current == PipeToken) {
+            if (patterns.size != 0 || tokenizer.current is PipeToken) {
                 assertCurrent(TokenType.PIPE)
                 tokenizer.next()
             }
@@ -819,7 +821,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             is VecToken -> parseVectorType(inFunctionDef)
             is LeftParenToken -> parseParenthesizedType(inFunctionDef)
             is IdentifierToken -> parseIdentiferType(token, inFunctionDef)
-            else -> throw ParseException("Expected type, got ${token}")
+            else -> throw ParseException("Expected type, got ${token}", token)
         }
     }
 
@@ -876,7 +878,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             } else if (identInfo?.idClass == IdentifierClass.ALGEBRAIC_DATA_TYPE) {
                 val adt = identInfo.type
                 if (adt !is AlgebraicDataType) {
-                    throw ParseException("Expected ${token.str} to be an algebraic data type")
+                    throw ParseException("Expected ${token.str} to be an algebraic data type",
+                            token)
                 }
 
                 // Parse optional, comma separated list of types within < > 
@@ -894,7 +897,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
                 return adt.adtSig.getAdtWithParams(typeParams)
             } else {
-                throw ParseException("Expected ${token.str} to be a type parameter")
+                throw ParseException("Expected ${token.str} to be a type parameter", token)
             }
         } else if (inFunctionDef) {
             // If this type parameter has not been seen, create a new type variable and add
@@ -903,7 +906,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             symbolTable.addSymbol(token.str, IdentifierClass.TYPE_PARAMETER, newTypeParam)
             return newTypeParam
         } else {
-            throw ParseException("Unknown type ${token.str}")
+            throw ParseException("Unknown type ${token.str}", token)
         }
     }
 
@@ -921,7 +924,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         // If parseTypeDefinition is called, the previous token must have been a type
         var currentToken = tokenizer.current
         if (currentToken !is IdentifierToken) {
-            throw ParseException("Expected ${currentToken} to be an identifier")
+            throw ParseException("Expected ${currentToken} to be an identifier", currentToken)
         }
 
         val typeName = currentToken.str
@@ -940,7 +943,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                 currentToken = tokenizer.current
 
                 if (currentToken !is IdentifierToken) {
-                    throw ParseException("Expected ${currentToken} to be an identifier")
+                    throw ParseException("Expected ${currentToken} to be an identifier",
+                            currentToken)
                 }
 
                 // Add the type parameter to the local environment and save it in the list of params
@@ -970,7 +974,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         // Parse nonempty sequence of variant definitions
         do {
             // Pipe before the first variant is optional, but required for all other variants
-            if (!firstVariant || tokenizer.current == PipeToken) {
+            if (!firstVariant || tokenizer.current is PipeToken) {
                 assertCurrent(TokenType.PIPE)
                 tokenizer.next()
             }
@@ -979,7 +983,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             currentToken = tokenizer.current
 
             if (currentToken !is IdentifierToken) {
-                throw ParseException("Expected ${currentToken} to be an identifier")
+                throw ParseException("Expected ${currentToken} to be an identifier", currentToken)
             }
 
             val variantName = currentToken.str

@@ -11,6 +11,9 @@ private class LL1StatefulReader(private val reader: Reader) {
     private var currentChar: Int
     private var nextChar: Int
 
+    var charNum: Int = 1
+    var lineNum: Int = 1
+
     // Prime the reader the initally be set to look at the first and second characters
     init {
         currentChar = reader.read()
@@ -26,7 +29,7 @@ private class LL1StatefulReader(private val reader: Reader) {
             if (currentChar != -1) {
                 return currentChar.toChar()
             } else {
-                throw LexicalException("Unexpected EOF")
+                throw LexicalException("Unexpected EOF", charNum, lineNum)
             }
         }
 
@@ -39,7 +42,7 @@ private class LL1StatefulReader(private val reader: Reader) {
             if (nextChar != -1) {
                 return nextChar.toChar()
             } else {
-                throw LexicalException("Unexpected EOF")
+                throw LexicalException("Unexpected EOF", charNum, lineNum)
             }
         }
 
@@ -59,6 +62,17 @@ private class LL1StatefulReader(private val reader: Reader) {
      * Move the reader forward one token in the stream.
      */
     fun advance() {
+        // Increment character and line index according to current, consumed character.
+        // Tabs count as 4 characters, all other characters count as a single character
+        if (currentChar.toChar() == '\t') {
+            charNum += 4
+        } else if (currentChar.toChar() == '\n') {
+            lineNum++
+            charNum = 1
+        } else {
+            charNum++
+        }
+
         currentChar = nextChar
 
         if (hasCurrent) {
@@ -67,32 +81,38 @@ private class LL1StatefulReader(private val reader: Reader) {
     }
 }
 
-// A map of all keywords to the tokens they represent
-private val keywordToTokenMap = mapOf(
-    "true" to TrueToken,
-    "false" to FalseToken,
-    "type" to TypeToken,
-    "of" to OfToken,
-    "let" to LetToken,
-    "const" to ConstToken,
-    "def" to DefToken,
-    "num" to NumToken,
-    "if" to IfToken,
-    "else" to ElseToken,
-    "while" to WhileToken,
-    "do" to DoToken,
-    "for" to ForToken,
-    "match" to MatchToken,
-    "return" to ReturnToken,
-    "break" to BreakToken,
-    "continue" to ContinueToken,
-    "unit" to UnitToken,
-    "bool" to BoolToken,
-    "string" to StringTypeToken,
-    "int" to IntToken,
-    "float" to FloatToken,
-    "vec" to VecToken
-)
+/**
+ * Given a string (along with the current character and line number), return a keyword token
+ * for that string if the string is a keyword, otherwise return null.
+ */
+private fun getKeywordToken(str: String, charNum: Int, lineNum: Int): Token? {
+    return when (str) {
+        "true" -> TrueToken(charNum, lineNum)
+        "false" -> FalseToken(charNum, lineNum)
+        "type" -> TypeToken(charNum, lineNum)
+        "of" -> OfToken(charNum, lineNum)
+        "let" -> LetToken(charNum, lineNum)
+        "const" -> ConstToken(charNum, lineNum)
+        "def" -> DefToken(charNum, lineNum)
+        "num" -> NumToken(charNum, lineNum)
+        "if" -> IfToken(charNum, lineNum)
+        "else" -> ElseToken(charNum, lineNum)
+        "while" -> WhileToken(charNum, lineNum)
+        "do" -> DoToken(charNum, lineNum)
+        "for" -> ForToken(charNum, lineNum)
+        "match" -> MatchToken(charNum, lineNum)
+        "return" -> ReturnToken(charNum, lineNum)
+        "break" -> BreakToken(charNum, lineNum)
+        "continue" -> ContinueToken(charNum, lineNum)
+        "unit" -> UnitToken(charNum, lineNum)
+        "bool" -> BoolToken(charNum, lineNum)
+        "string" -> StringTypeToken(charNum, lineNum)
+        "int" -> IntToken(charNum, lineNum)
+        "float" -> FloatToken(charNum, lineNum)
+        "vec" -> VecToken(charNum, lineNum)
+        else -> null
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////
 // 
@@ -106,6 +126,9 @@ private val keywordToTokenMap = mapOf(
  */
 private fun readNumber(reader: LL1StatefulReader): Token {
     var numberString = StringBuilder()
+
+    val charNum = reader.charNum
+    val lineNum = reader.lineNum
 
     // If readNumber is called, the current character must be numeric
     numberString.append(reader.current)
@@ -121,7 +144,7 @@ private fun readNumber(reader: LL1StatefulReader): Token {
         numberString.append(reader.next)
         reader.advance()
     } else {
-        return stringToInt(numberString.toString())
+        return stringToInt(numberString.toString(), charNum, lineNum)
     }
 
     // Read digits after decimal point
@@ -135,7 +158,7 @@ private fun readNumber(reader: LL1StatefulReader): Token {
         numberString.append(reader.next)
         reader.advance()
     } else {
-        return stringToFloat(numberString.toString())
+        return stringToFloat(numberString.toString(), charNum, lineNum)
     }
 
     // Read exponent sign
@@ -143,11 +166,11 @@ private fun readNumber(reader: LL1StatefulReader): Token {
         numberString.append(reader.next)
         reader.advance()
     } else {
-        return stringToFloat(numberString.toString())
+        return stringToFloat(numberString.toString(), charNum, lineNum)
     }
 
     if (reader.hasNext && reader.next !in '0'..'9') {
-        throw LexicalException("Malformed float ${numberString.toString()}")
+        throw LexicalException("Malformed float ${numberString.toString()}", charNum, lineNum)
     }
 
     // Read exponent digits
@@ -156,18 +179,18 @@ private fun readNumber(reader: LL1StatefulReader): Token {
         reader.advance()
     }
 
-    return stringToFloat(numberString.toString())
+    return stringToFloat(numberString.toString(), charNum, lineNum)
 }
 
 /**
  * Convert a string to an int token.
  * @throws LexicalException if the string does not represent a valid int
  */
-private fun stringToInt(str: String): IntLiteralToken {
+private fun stringToInt(str: String, charNum: Int, lineNum: Int): IntLiteralToken {
     try {
-        return IntLiteralToken(str.toInt())
+        return IntLiteralToken(str.toInt(), charNum, lineNum)
     } catch (e: NumberFormatException) {
-        throw LexicalException("Malformed int ${str}")
+        throw LexicalException("Malformed int ${str}", charNum, lineNum)
     }
 }
 
@@ -175,11 +198,11 @@ private fun stringToInt(str: String): IntLiteralToken {
  * Convert a string to a float token.
  * @throws LexicalException if the string does not represent a valid float
  */
-private fun stringToFloat(str: String): FloatLiteralToken {
+private fun stringToFloat(str: String, charNum: Int, lineNum: Int): FloatLiteralToken {
     try {
-        return FloatLiteralToken(str.toDouble())
+        return FloatLiteralToken(str.toDouble(), charNum, lineNum)
     } catch (e: NumberFormatException) {
-        throw LexicalException("Malformed float ${str}")
+        throw LexicalException("Malformed float ${str}", charNum, lineNum)
     }
 }
 
@@ -189,6 +212,9 @@ private fun stringToFloat(str: String): FloatLiteralToken {
  */
 private fun readString(reader: LL1StatefulReader): Token {
     var str = StringBuilder()
+
+    val charNum = reader.charNum
+    val lineNum = reader.lineNum
 
     // If readString is called, the current character must be valid
     str.append(reader.current)
@@ -200,86 +226,110 @@ private fun readString(reader: LL1StatefulReader): Token {
 
     // Check if string is a keyword
     var string = str.toString()
-    var keywordToken = keywordToTokenMap[string]
+    var keywordToken = getKeywordToken(string, charNum, lineNum)
 
-    return keywordToken ?: IdentifierToken(string)
+    return keywordToken ?: IdentifierToken(string, charNum, lineNum)
 }
 
 // Identifiers in myte consist of only alphanumeric characters and underscores.
 private fun Char.isValidIdentifierCharacter(): Boolean = this.isLetterOrDigit() || this.equals('_')
 
 private fun readMinus(reader: LL1StatefulReader): Token {
+    val charNum = reader.charNum
+    val lineNum = reader.lineNum
+
     // If readMinus is called, the current character must be "-"
     if (reader.hasNext && reader.next == '>') {
         reader.advance()
-        return ArrowToken
+        return ArrowToken(charNum, lineNum)
     } else {
-        return MinusToken
+        return MinusToken(charNum, lineNum)
     }
 }
 
 private fun readEquals(reader: LL1StatefulReader): Token {
+    val charNum = reader.charNum
+    val lineNum = reader.lineNum
+
     // If readEquals is called, the current character must be '='
     if (reader.hasNext && reader.next == '=') {
         reader.advance()
-        return DoubleEqualsToken
+        return DoubleEqualsToken(charNum, lineNum)
     } else {
-        return EqualsToken
+        return EqualsToken(charNum, lineNum)
     }
 }
 
 private fun readLessThan(reader: LL1StatefulReader): Token {
+    val charNum = reader.charNum
+    val lineNum = reader.lineNum
+
     // If readLessThan is called, the current character must be '<'
     if (reader.hasNext && reader.next == '=') {
         reader.advance()
-        return LessThanOrEqualToken
+        return LessThanOrEqualToken(charNum, lineNum)
     } else {
-        return LessThanToken
+        return LessThanToken(charNum, lineNum)
     }
 }
 
 private fun readGreaterThan(reader: LL1StatefulReader): Token {
+    val charNum = reader.charNum
+    val lineNum = reader.lineNum
+
     // If readGreaterThan is called, the current character must be '>'
     if (reader.hasNext && reader.next == '=') {
         reader.advance()
-        return GreaterThanOrEqualToken
+        return GreaterThanOrEqualToken(charNum, lineNum)
     } else {
-        return GreaterThanToken
+        return GreaterThanToken(charNum, lineNum)
     }
 }
 
 private fun readBang(reader: LL1StatefulReader): Token {
+    val charNum = reader.charNum
+    val lineNum = reader.lineNum
+
     // If readBang is called, the current character must be "!"
     if (reader.hasNext && reader.next == '=') {
         reader.advance()
-        return NotEqualsToken
+        return NotEqualsToken(charNum, lineNum)
     } else {
-        return LogicalNotToken
+        return LogicalNotToken(charNum, lineNum)
     }
 }
 
 private fun readAmpersand(reader: LL1StatefulReader): LogicalAndToken {
+    val charNum = reader.charNum
+    val lineNum = reader.lineNum
+
     // If readAmpersand is called, the current character must be "&"
     if (reader.hasNext && reader.next == '&') {
         reader.advance()
-        return LogicalAndToken
+        return LogicalAndToken(charNum, lineNum)
     } else {
-        throw LexicalException("Unexpected token encountered &${reader.next}")
+        throw LexicalException("Unexpected token encountered &${reader.next}", charNum, lineNum)
     }
 }
 
 private fun readPipe(reader: LL1StatefulReader): Token {
+    val charNum = reader.charNum
+    val lineNum = reader.lineNum
+
     // If readPipe is called, the current character must be "|"
     if (reader.hasNext && reader.next == '|') {
         reader.advance()
-        return LogicalOrToken
+        return LogicalOrToken(charNum, lineNum)
     } else {
-        return PipeToken
+        return PipeToken(charNum, lineNum)
     }
 }
 
 private fun readStringLiteral(reader: LL1StatefulReader): StringLiteralToken {
     // If readPipe is called, the current character must be "\""
+    val charNum = reader.charNum
+    val lineNum = reader.lineNum
+
     reader.advance()
 
     var str = StringBuilder()
@@ -288,7 +338,7 @@ private fun readStringLiteral(reader: LL1StatefulReader): StringLiteralToken {
         reader.advance()
     }
 
-    return StringLiteralToken(str.toString())
+    return StringLiteralToken(str.toString(), charNum, lineNum)
 }
 
 /**
@@ -299,35 +349,37 @@ fun createTokens(input: Reader): List<Token> {
     val reader = LL1StatefulReader(input)
 
     while (reader.hasCurrent) {
+        val charNum = reader.charNum
+        val lineNum = reader.lineNum
+
         when (reader.current) {
-            '+' -> tokens.add(PlusToken)
+            '+' -> tokens.add(PlusToken(charNum, lineNum))
             '-' -> tokens.add(readMinus(reader))
-            '*' -> tokens.add(AsteriskToken)
-            '/' -> tokens.add(ForwardSlashToken)
-            '^' -> tokens.add(CaretToken)
+            '*' -> tokens.add(AsteriskToken(charNum, lineNum))
+            '/' -> tokens.add(ForwardSlashToken(charNum, lineNum))
+            '^' -> tokens.add(CaretToken(charNum, lineNum))
             '=' -> tokens.add(readEquals(reader))
             '<' -> tokens.add(readLessThan(reader))
             '>' -> tokens.add(readGreaterThan(reader))
             '!' -> tokens.add(readBang(reader))
             '&' -> tokens.add(readAmpersand(reader))
             '|' -> tokens.add(readPipe(reader))
-            '(' -> tokens.add(LeftParenToken)
-            ')' -> tokens.add(RightParenToken)
-            '{' -> tokens.add(LeftBraceToken)
-            '}' -> tokens.add(RightBraceToken)
-            '[' -> tokens.add(LeftBracketToken)
-            ']' -> tokens.add(RightBracketToken)
+            '(' -> tokens.add(LeftParenToken(charNum, lineNum))
+            ')' -> tokens.add(RightParenToken(charNum, lineNum))
+            '{' -> tokens.add(LeftBraceToken(charNum, lineNum))
+            '}' -> tokens.add(RightBraceToken(charNum, lineNum))
+            '[' -> tokens.add(LeftBracketToken(charNum, lineNum))
+            ']' -> tokens.add(RightBracketToken(charNum, lineNum))
             '"' -> tokens.add(readStringLiteral(reader))
-            ',' -> tokens.add(CommaToken)
-            ':' -> tokens.add(ColonToken)
+            ',' -> tokens.add(CommaToken(charNum, lineNum))
+            ':' -> tokens.add(ColonToken(charNum, lineNum))
             in '0'..'9' -> tokens.add(readNumber(reader))
             else -> {
                 // Identifiers and keywords must begin with an alphabetic character or underscore.
                 if (reader.current.isValidIdentifierCharacter()) {
                     tokens.add(readString(reader))
                 } else if (!reader.current.isWhitespace()) {
-                    throw LexicalException("Invalid character ${reader.current} in identifier, only"
-                        + " alphanumeric characters or underscores are allowed.")
+                    throw LexicalException("Unknown character ${reader.current}.", charNum, lineNum)
                 }
             }
         }

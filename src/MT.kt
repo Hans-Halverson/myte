@@ -27,79 +27,87 @@ fun repl(input: BufferedReader) {
     // The repl loop process a single input to the repl, consisting of a 
     // single statement which will be evaluated.
     replLoop@ while (true) {
-        val tokens: MutableList<Token> = mutableListOf()
+        val inputLines = StringBuilder()
         var numLines = 0
         var seenBlankLine = false
 
         // The input loop processes a single line of input at a time. A single statement
         // may take multiple lines of input to complete.
         inputLoop@ while (true) {
-            // If on first iteration print initial prompt, otherwise print continuation prompt.
-            if (numLines == 0) {
-                print(">> ")
-            } else {
-                print(".. ")
-            }
-
-            val line = input.readLine()
-            numLines++
-
-            // If EOF is encountered, no statement could be created. If an empty line
-            // is encountered on the first line of this statement, continue on to next statement.
-            if (line == null) {
-                break@replLoop
-            } else if (line == "" && numLines == 1) {
-                continue@replLoop
-            }
-
-            val lineTokens = createTokens(StringReader(line))
-
-            if (lineTokens.size == 0) {
-                // If two blank lines in a row are seen, interpret as end of statement
-                if (seenBlankLine) {
-                    println("Two empty lines encountered, ignoring input and moving to next statement.")
-                    continue@replLoop
+            try {
+                // If on first iteration print initial prompt, otherwise print continuation prompt.
+                if (numLines == 0) {
+                    print(">> ")
                 } else {
-                    seenBlankLine = true
+                    print(".. ")
+                }
+
+                val line = input.readLine()
+
+                // Add the new line with the end of line character removed by readLine
+                inputLines.append(line)
+                inputLines.append("\n")
+
+                numLines++
+
+                // If EOF is encountered, no statement could be created. If an empty line is
+                // encountered on the first line of this statement, continue on to next statement.
+                if (line == null) {
+                    break@replLoop
+                } else if (line == "" && numLines == 1) {
+                    continue@replLoop
+                }
+
+                val tokens = createTokens(StringReader(inputLines.toString()))
+
+                if (line.trim() == "") {
+                    // If two blank lines in a row are seen, interpret as end of statement
+                    if (seenBlankLine) {
+                        println("Two empty lines encountered, ignoring input and moving to " +
+                                "next statement.")
+                        continue@replLoop
+                    } else {
+                        seenBlankLine = true
+                        continue@inputLoop
+                    }
+                } else {
+                    seenBlankLine = false
+                }
+
+                // Try parsing current tokens, evaluate if successful.
+                // Otherwise gather tokens from next line and try parsing again.
+                try {
+                    // Create a new copy of symbol table and parse with it
+                    val symbolTableCopy = symbolTable.copy()
+                    val parser = Parser(symbolTableCopy, tokens)
+                    converter.resetSymbolTable(symbolTableCopy)
+                    eval.resetSymbolTable(symbolTableCopy)
+
+                    // Parse a single line of repl input
+                    val statement = parser.parseLine()
+
+                    if (statement != null) {
+                        // Convert to ir and perform type checking
+                        val ir = converter.convert(statement)
+                        converter.inferTypes(listOf(ir))
+                        converter.assertIRStructure(ir)
+
+                        // Evaluate the current input
+                        val value = eval.evaluate(ir)
+                        printValue(value)
+                    }
+
+                    // Save the successfully updated symbol table
+                    symbolTable = parser.symbolTable
+
+                    continue@replLoop
+                } catch (e: ParseEOFException) {
                     continue@inputLoop
                 }
-            } else {
-                seenBlankLine = false
-            }
-
-            tokens.addAll(lineTokens)
-
-            // Try parsing current tokens, evaluate if successful.
-            // Otherwise gather tokens from next line and try parsing again.
-            try {
-                // Create a new copy of symbol table and parse with it
-                val symbolTableCopy = symbolTable.copy()
-                val parser = Parser(symbolTableCopy, tokens)
-                converter.resetSymbolTable(symbolTableCopy)
-                eval.resetSymbolTable(symbolTableCopy)
-
-                // Parse a single line of repl input
-                val statement = parser.parseLine()
-
-                if (statement != null) {
-                    // Convert to ir and perform type checking
-                    val ir = converter.convert(statement)
-                    converter.inferTypes(listOf(ir))
-                    converter.assertIRStructure(ir)
-
-                    // Evaluate the current input
-                    val value = eval.evaluate(ir)
-                    printValue(value)
-                }
-
-                // Save the successfully updated symbol table
-                symbolTable = parser.symbolTable
-
+            } catch (except: ExceptionWithContext) {
+                printExceptionWithContext(except, inputLines.toString())
                 continue@replLoop
-            } catch (e: ParseEOFException) {
-                continue@inputLoop
             }
-
         }
     }
 

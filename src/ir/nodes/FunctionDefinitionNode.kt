@@ -7,7 +7,7 @@ import myte.shared.*
  *
  * @property ident the identifier of the function that is being defined
  * @property formalArgs a list of identifiers for the formal arguments to the function
- * @body the body of the function
+ * @property body the body of the function
  */
 data class FunctionDefinitionNode(
     val ident: Identifier,
