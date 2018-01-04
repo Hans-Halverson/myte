@@ -26,7 +26,7 @@ abstract class Builtin(val name: String, val type: FunctionType) {
     fun evalWrapper(args: List<Value>): Value {
         val actualTypes = args.map { arg -> arg.type }
         if (actualTypes != type.argTypes) {
-            throw EvaluationException("${name} expected arguments of type ${type.argTypes}, but " +
+            throw Exception("${name} expected arguments of type ${type.argTypes}, but " +
                     "found {actualTypes}")
         }
 

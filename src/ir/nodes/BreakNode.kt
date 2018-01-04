@@ -4,5 +4,6 @@ import myte.shared.*
 
 /**
  * A node that represents a break statement.
+ * @property breakContext the context for the break keyword
  */
-object BreakNode : IRNode()
+data class BreakNode(val breakContext: Context) : IRNode(breakContext)

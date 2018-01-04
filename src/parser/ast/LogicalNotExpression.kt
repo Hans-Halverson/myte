@@ -1,3 +1,5 @@
 package myte.parser.ast
 
-data class LogicalNotExpression(val expr: Expression) : Expression()
+import myte.shared.*
+
+class LogicalNotExpression(val expr: Expression, startContext: Context) : Expression(startContext)

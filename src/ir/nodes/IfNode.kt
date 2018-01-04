@@ -10,11 +10,12 @@ import myte.shared.*
  * @property altern the (optional) branch of the if statement that is evaluated if
  *           the condition is false
  */
-data class IfNode(
+class IfNode(
     val cond: IRNode,
     val conseq: IRNode,
-    val altern: IRNode?
-) : IRNode() {
+    val altern: IRNode?,
+    startContext: Context
+) : IRNode(startContext) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         cond.map(func)

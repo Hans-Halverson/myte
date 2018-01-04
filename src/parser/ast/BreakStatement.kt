@@ -1,3 +1,5 @@
 package myte.parser.ast
 
-object BreakStatement : Statement()
+import myte.shared.*
+
+data class BreakStatement(val breakContext: Context) : Statement(breakContext)

@@ -1,3 +1,9 @@
 package myte.parser.ast
 
-data class DoWhileStatement(val cond: Expression, val body: Statement) : Statement()
+import myte.shared.*
+
+class DoWhileStatement(
+    val cond: Expression,
+    val body: Statement,
+    startContext: Context
+) : Statement(startContext)

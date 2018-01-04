@@ -1,3 +1,8 @@
 package myte.parser.ast
 
-data class ReturnStatement(val expr: Expression?) : Statement()
+import myte.shared.*
+
+data class ReturnStatement(
+    val expr: Expression?,
+    val returnContext: Context
+) : Statement(returnContext)

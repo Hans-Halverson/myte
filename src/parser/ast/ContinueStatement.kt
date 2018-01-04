@@ -1,3 +1,5 @@
 package myte.parser.ast
 
-object ContinueStatement : Statement()
+import myte.shared.*
+
+data class ContinueStatement(val continueContext: Context) : Statement(continueContext)

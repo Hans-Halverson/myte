@@ -1,3 +1,9 @@
 package myte.parser.ast
 
-data class KeyedAccessExpression(val container: Expression, val key: Expression): Expression()
+import myte.shared.*
+
+data class KeyedAccessExpression(
+    val container: Expression,
+    val key: Expression,
+    val accessContext: Context
+): Expression(container.startContext)

@@ -1,3 +1,5 @@
 package myte.parser.ast
 
-abstract class Expression : Statement()
+import myte.shared.*
+
+abstract class Expression(startContext: Context) : Statement(startContext)

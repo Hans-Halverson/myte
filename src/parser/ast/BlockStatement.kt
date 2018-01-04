@@ -1,3 +1,8 @@
 package myte.parser.ast
 
-data class BlockStatement(val stmts: List<Statement>) : Statement()
+import myte.shared.*
+
+class BlockStatement(
+    val stmts: List<Statement>,
+    startContext: Context
+) : Statement(startContext)

@@ -379,7 +379,7 @@ fun createTokens(input: Reader): List<Token> {
                 if (reader.current.isValidIdentifierCharacter()) {
                     tokens.add(readString(reader))
                 } else if (!reader.current.isWhitespace()) {
-                    throw LexicalException("Unknown character ${reader.current}.", charNum, lineNum)
+                    throw LexicalException("Unknown character ${reader.current}", charNum, lineNum)
                 }
             }
         }

@@ -1,6 +1,9 @@
 package myte.parser.ast
 
-sealed class EqualityExpression(val left: Expression, val right: Expression) : Expression()
+sealed class EqualityExpression(
+    val left: Expression,
+    val right: Expression
+) : Expression(left.startContext)
 
 class EqualsExpression(left: Expression, right: Expression) : EqualityExpression(left, right)
 

@@ -4,5 +4,6 @@ import myte.shared.*
 
 data class VariableAssignmentExpression(
     val lValue: Identifier,
-    val rValue: Expression
-) : Expression()
+    val rValue: Expression,
+    val identContext: Context
+) : Expression(identContext)

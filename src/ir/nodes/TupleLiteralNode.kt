@@ -7,7 +7,7 @@ import myte.shared.*
  *
  * @property elements the elements in the tuple literal
  */
-class TupleLiteralNode(val elements: List<IRNode>) : IRNode() {
+class TupleLiteralNode(val elements: List<IRNode>, startContext: Context) : IRNode(startContext) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         elements.map { element -> element.map(func) }

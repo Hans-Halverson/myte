@@ -8,12 +8,14 @@ import myte.shared.*
  * @property container the container which has an element reassigned
  * @property the key of the element in the container which should be reassigned
  * @property rValue the expression whose value is assigned to that element
+* @property accessContext the context of the left bracket in the access
  */
 class KeyedAssignmentNode(
     val container: IRNode,
     val key: IRNode,
-    val rValue: IRNode
-) : IRNode() {
+    val rValue: IRNode,
+    val accessContext: Context
+) : IRNode(container.startContext) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         container.map(func)

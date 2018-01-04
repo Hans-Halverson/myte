@@ -1,6 +1,9 @@
 package myte.parser.ast
 
-sealed class ComparisonExpression(val left: Expression, val right: Expression) : Expression()
+sealed class ComparisonExpression(
+    val left: Expression,
+    val right: Expression
+) : Expression(left.startContext)
 
 class LessThanExpression(
     left: Expression,

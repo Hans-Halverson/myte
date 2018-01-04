@@ -1,3 +1,5 @@
 package myte.parser.ast
 
-data class StringLiteralExpression(val str: String): Expression()
+import myte.shared.*
+
+class StringLiteralExpression(val str: String, startContext: Context): Expression(startContext)

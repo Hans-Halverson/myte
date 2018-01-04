@@ -9,10 +9,11 @@ import myte.shared.*
  * @property cases a list of node pairs representing the match cases, where the first node is a
  *           pattern, and the second node is the statement to be executed if the pattern is matched
  */
-data class MatchNode(
+class MatchNode(
     val expr: IRNode,
-    val cases: List<Pair<IRNode, IRNode>>
-) : IRNode() {
+    val cases: List<Pair<IRNode, IRNode>>,
+    startContext: Context
+) : IRNode(startContext) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         expr.map(func)

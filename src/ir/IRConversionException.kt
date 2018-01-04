@@ -1,3 +1,8 @@
 package myte.ir
 
-class IRConversionException(message: String) : Exception(message)
+import myte.shared.*
+
+class IRConversionException(
+    message: String,
+    context: Context
+) : ExceptionWithContext(message, context)

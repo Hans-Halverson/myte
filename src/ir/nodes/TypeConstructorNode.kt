@@ -8,11 +8,13 @@ import myte.shared.*
  * @property func the algebraic data type variant that this is a type constructor for
  * @property actualArgs the expressions that evaluate to the arguments of the
  *           type constructor
+ * @property identContext the context for the identifier in this type constructor
  */
 class TypeConstructorNode(
     val adtVariant: AlgebraicDataTypeVariant,
-    val actualArgs: List<IRNode>
-) : IRNode() {
+    val actualArgs: List<IRNode>,
+    val identContext: Context
+) : IRNode(identContext) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         actualArgs.map { arg -> arg.map(func) }

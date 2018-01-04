@@ -8,8 +8,9 @@ import myte.shared.*
  * @property type the type that this node evaluates to. Holds the most specific type known
  *           for this node when intially assigned, and later is reassigned with inferred node
  *           type after type inference has taken place.
+ * @property startContext the context for the start of the content contained at this node
  */
-abstract class IRNode {
+abstract class IRNode(val startContext: Context) {
     lateinit var type: Type
 
     /*

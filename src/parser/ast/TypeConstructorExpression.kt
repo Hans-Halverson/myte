@@ -2,7 +2,8 @@ package myte.parser.ast
 
 import myte.shared.*
 
-data class TypeConstructorExpression(
+class TypeConstructorExpression(
     val adtVariant: AlgebraicDataTypeVariant,
-    val actualArgs: List<Expression>
-) : Expression()
+    val actualArgs: List<Expression>,
+    val identContext: Context
+) : Expression(identContext)

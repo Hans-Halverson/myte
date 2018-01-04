@@ -7,8 +7,14 @@ import myte.shared.*
  *
  * @property ident the identifier of the new variable
  * @property expr the expression whose value is bound to the new variable
+ * @property identContext the context for the identifier that is defined in this node
  */
-class VariableDefinitionNode(val ident: Identifier, val expr: IRNode) : IRNode() {
+class VariableDefinitionNode(
+    val ident: Identifier,
+    val expr: IRNode,
+    val identContext: Context,
+    startContext: Context
+) : IRNode(startContext) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         expr.map(func)

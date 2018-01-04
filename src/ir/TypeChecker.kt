@@ -35,27 +35,27 @@ class TypeChecker(var symbolTable: SymbolTable) {
     }
 
     /**
-     * Add a type to the set of equivalence classes, if it does not already exist.
+     * Add a type to the set of equivalence classes, if it does not already exist, and return the
+     * equivalence class node for this type.
      */
-    private fun addType(type: Type) {
-        if (!typeToNode.contains(type)) {
-            typeToNode[type] = TypeEquivalenceNode(type)
+    private fun addType(type: Type): TypeEquivalenceNode {
+        val typeEquivNode = typeToNode[type]
+        if (typeEquivNode == null) {
+            val newEquivNode = TypeEquivalenceNode(type)
+            typeToNode[type] = newEquivNode
+
+            return newEquivNode
         }
+
+        return typeEquivNode
     }
 
     /**
      * Find the representative equivalence class node for the given type.
      */
     private fun findRepresentativeNode(type: Type): TypeEquivalenceNode {
-        addType(type)
-
-        var node = typeToNode[type]
-        if (node == null) {
-            throw IRConversionException("Unknown type ${formatType(type)}")
-        }
-
         // The representative of a node is found by following parent pointers until the last node
-        var currentNode: TypeEquivalenceNode = node
+        var currentNode: TypeEquivalenceNode = addType(type)
         var parent = currentNode.parent
         while (parent != null) {
             currentNode = parent
@@ -347,7 +347,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
                 val typeStrings = formatTypes(listOf(findRepType(element.type, boundVars),
                         findRepType(elementType, boundVars)))
                 throw IRConversionException("Vector must have elements of same type, found " +
-                        "${typeStrings[0]} and ${typeStrings[1]}")
+                        "${typeStrings[0]} and ${typeStrings[1]}", element.startContext)
             }
         })
     }
@@ -369,7 +369,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
                 val typeStrings = formatTypes(listOf(findRepType(element.type, boundVars),
                         findRepType(expectedElementType, boundVars)))
                 throw IRConversionException("Cannot infer type for tuple element, expected " +
-                        "${typeStrings[0]} but found ${typeStrings[1]}")
+                        "${typeStrings[0]} but found ${typeStrings[1]}", element.startContext)
             }
         }
     }
@@ -381,7 +381,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
     ) {
         val info = symbolTable.getInfo(node.ident)
         if (info == null) {
-            throw IRConversionException("Unknown variable ${node.ident.name}")
+            throw IRConversionException("Unknown variable ${node.ident.name}", node.identContext)
         }
 
         // The evaluation type of this node is the type stored for the variable in the symbol table.
@@ -407,7 +407,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         // Unify this node's type with its child's type
         if (!unify(node.node.type, node.type)) {
             throw IRConversionException("Unary math operator expects a number, found " +
-                    "${formatType(findRepType(node.node.type, boundVars))}")
+                    "${formatType(findRepType(node.node.type, boundVars))}", node.node.startContext)
         }
     }
 
@@ -428,7 +428,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
             val typeStrings = formatTypes(listOf(findRepType(node.left.type, boundVars),
                     findRepType(node.right.type, boundVars)))
             throw IRConversionException("Binary math operator expects two numbers of same type, " +
-                    "found ${typeStrings[0]} and ${typeStrings[1]}")
+                    "found ${typeStrings[0]} and ${typeStrings[1]}", node.right.startContext)
         }
     }
 
@@ -443,12 +443,19 @@ class TypeChecker(var symbolTable: SymbolTable) {
         // Logical and evaluates to bool
         node.type = BoolType
 
-        if (!unify(node.left.type, BoolType) ||
-                !unify(node.right.type, BoolType)) {
+        // Both sides of logical and must have type bool
+        if (!unify(node.left.type, BoolType)) {
             val typeStrings = formatTypes(listOf(findRepType(node.left.type, boundVars),
                     findRepType(node.right.type, boundVars)))
             throw IRConversionException("Logical and expects two bools, found " +
-                    "${typeStrings[0]} and ${typeStrings[1]}")
+                    "${typeStrings[0]} and ${typeStrings[1]}", node.left.startContext)
+        }
+
+        if (!unify(node.right.type, BoolType)) {
+            val typeStrings = formatTypes(listOf(findRepType(node.left.type, boundVars),
+                    findRepType(node.right.type, boundVars)))
+            throw IRConversionException("Logical and expects two bools, found " +
+                    "${typeStrings[0]} and ${typeStrings[1]}", node.right.startContext)
         }
     }
 
@@ -463,12 +470,19 @@ class TypeChecker(var symbolTable: SymbolTable) {
         // Logical or evaluates to bool
         node.type = BoolType
 
-        if (!unify(node.left.type, BoolType) ||
-                !unify(node.right.type, BoolType)) {
+        // Both sides of logical or must have type bool
+        if (!unify(node.left.type, BoolType)) {
             val typeStrings = formatTypes(listOf(findRepType(node.left.type, boundVars),
                     findRepType(node.right.type, boundVars)))
             throw IRConversionException("Logical or expects two bools, found " +
-                    "${typeStrings[0]} and ${typeStrings[1]}")
+                    "${typeStrings[0]} and ${typeStrings[1]}", node.left.startContext)
+        }
+
+        if (!unify(node.right.type, BoolType)) {
+            val typeStrings = formatTypes(listOf(findRepType(node.left.type, boundVars),
+                    findRepType(node.right.type, boundVars)))
+            throw IRConversionException("Logical or expects two bools, found " +
+                    "${typeStrings[0]} and ${typeStrings[1]}", node.right.startContext)
         }
     }
 
@@ -484,7 +498,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
         if (!unify(node.node.type, BoolType)) {
             throw IRConversionException("Logical not expects a bool, found " +
-                    "${formatType(findRepType(node.node.type, boundVars))}")
+                    "${formatType(findRepType(node.node.type, boundVars))}", node.startContext)
         }
     }
 
@@ -504,7 +518,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
             val typeStrings = formatTypes(listOf(findRepType(node.left.type, boundVars),
                     findRepType(node.right.type, boundVars)))
             throw IRConversionException("Cannot check equality between different types, found " +
-                    "${typeStrings[0]} and ${typeStrings[1]}")
+                    "${typeStrings[0]} and ${typeStrings[1]}", node.right.startContext)
         }
     }
 
@@ -524,7 +538,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
             val typeStrings = formatTypes(listOf(findRepType(node.left.type, boundVars),
                     findRepType(node.right.type, boundVars)))
             throw IRConversionException("Comparison expects two numbers of same type, found " +
-                    "${typeStrings[0]} and ${typeStrings[1]}")
+                    "${typeStrings[0]} and ${typeStrings[1]}", node.right.startContext)
         }
     }
 
@@ -544,13 +558,14 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
         if (!unify(node.container.type, expectedVectorType)) {
             throw IRConversionException("Can only perform keyed access on a vector, found " +
-                    "${formatType(findRepType(node.container.type, boundVars))}")
+                    "${formatType(findRepType(node.container.type, boundVars))}",
+                    node.accessContext)
         }
 
         // Constrain key to be an integer
         if (!unify(node.key.type, IntType)) {
             throw IRConversionException("Key in keyed access must be an int, found " +
-                    "${formatType(findRepType(node.key.type, boundVars))}")
+                    "${formatType(findRepType(node.key.type, boundVars))}", node.key.startContext)
         }
     }
 
@@ -572,13 +587,14 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
         if (!unify(node.container.type, expectedVectorType)) {
             throw IRConversionException("Can only perform keyed access on a vector, found " +
-                    "${formatType(findRepType(node.container.type, boundVars))}")
+                    "${formatType(findRepType(node.container.type, boundVars))}",
+                    node.accessContext)
         }
 
         // Constrain key to be an integer
         if (!unify(node.key.type, IntType)) {
             throw IRConversionException("Key in keyed access must be an int, found " +
-                    "${formatType(findRepType(node.key.type, boundVars))}")
+                    "${formatType(findRepType(node.key.type, boundVars))}", node.key.startContext)
         }
 
         // Constrain element type of vector to be type of rValue assigned to it
@@ -586,7 +602,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
             val typeStrings = formatTypes(listOf(findRepType(node.type, boundVars),
                     findRepType(node.rValue.type, boundVars)))
             throw IRConversionException("Expected type for assignment is " +
-                    "${typeStrings[0]}, but assigned ${typeStrings[1]}")
+                    "${typeStrings[0]}, but assigned ${typeStrings[1]}", node.rValue.startContext)
         }
     }
 
@@ -598,7 +614,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         val funcInfo = symbolTable.getInfo(node.func)
         val funcType = funcInfo?.type
         if (funcType == null) {
-            throw IRConversionException("Unknown function ${node.func.name}")
+            throw IRConversionException("Unknown function ${node.func.name}", node.identContext)
         }
 
         node.actualArgs.forEach { actualArg -> typeCheck(actualArg, boundVars, refresh) }
@@ -624,12 +640,12 @@ class TypeChecker(var symbolTable: SymbolTable) {
                 val argRepTypes = argTypes.map { argType -> findRepType(argType, boundVars) }
                 throw IRConversionException("${node.func.name} expected arguments of type " +
                         "${formatTypes(funcRepType.argTypes)}, but found " +
-                        "${formatTypes(argRepTypes)}")
+                        "${formatTypes(argRepTypes)}", node.identContext)
             } else {
                 val typeStrings = formatTypes(listOf(findRepType(expectedFuncType, boundVars),
                         funcRepType))
                 throw IRConversionException("${node.func.name} expected to have type " +
-                        "${typeStrings[0]}, but found ${typeStrings[1]}")
+                        "${typeStrings[0]}, but found ${typeStrings[1]}", node.identContext)
             }
         }
     }
@@ -653,7 +669,8 @@ class TypeChecker(var symbolTable: SymbolTable) {
         if (actualArgTypes.size == 0) {
             if (expectedArgTypes.size != 0) {
                 throw IRConversionException("${node.adtVariant.name} expects arguments of type " +
-                        "${formatTypes(expectedArgTypes)}, but received no arguments")
+                        "${formatTypes(expectedArgTypes)}, but received no arguments",
+                        node.identContext)
             // If no args exist or were expected, there is nothing to type check since adt type
             // must have no params to infer.
             } else {
@@ -661,7 +678,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
             }
         } else if (expectedArgTypes.size == 0) {
             throw IRConversionException("${node.adtVariant.name} expects no arguments, but found " +
-                        "arguments of type ${formatTypes(actualArgTypes)}")
+                        "arguments of type ${formatTypes(actualArgTypes)}", node.identContext)
         }
 
         // Unify each arg type with its expected type
@@ -672,7 +689,8 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
         if (!canUnify) {
             throw IRConversionException("${node.adtVariant.name} expected arguments of type " +
-                    "${formatTypes(expectedArgTypes)}, but found ${formatTypes(actualArgTypes)}")
+                    "${formatTypes(expectedArgTypes)}, but found ${formatTypes(actualArgTypes)}",
+                    node.identContext)
         }
     }
 
@@ -683,7 +701,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
     ) {
         val type = symbolTable.getInfo(node.lValue)?.type
         if (type == null) {
-            throw IRConversionException("Unknown variable ${node.lValue.name}")
+            throw IRConversionException("Unknown variable ${node.lValue.name}", node.identContext)
         }
 
         typeCheck(node.rValue, boundVars, refresh)
@@ -696,7 +714,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
             val typeStrings = formatTypes(listOf(findRepType(node.type, boundVars),
                     findRepType(node.rValue.type, boundVars)))
             throw IRConversionException("Type of ${node.lValue.name} is " +
-                    "${typeStrings[0]}, but assigned ${typeStrings[1]}")
+                    "${typeStrings[0]}, but assigned ${typeStrings[1]}", node.rValue.startContext)
         }
     }
 
@@ -707,7 +725,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
     ) {
         val type = symbolTable.getInfo(node.ident)?.type
         if (type == null) {
-            throw IRConversionException("Unknown variable ${node.ident.name}")
+            throw IRConversionException("Unknown variable ${node.ident.name}", node.identContext)
         }
 
         typeCheck(node.expr, boundVars, refresh)
@@ -719,7 +737,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
             val typeStrings = formatTypes(listOf(findRepType(type, boundVars),
                     findRepType(node.expr.type, boundVars)))
             throw IRConversionException("Type of ${node.ident.name} is " +
-                    "${typeStrings[0]}, but assigned ${typeStrings[1]}")
+                    "${typeStrings[0]}, but assigned ${typeStrings[1]}", node.expr.startContext)
         }
     }
 
@@ -730,7 +748,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
     ) {
         val type = symbolTable.getInfo(node.ident)?.type
         if (type !is FunctionType) {
-            throw IRConversionException("Unknown function ${node.ident.name}")
+            throw IRConversionException("Unknown function ${node.ident.name}", node.identContext)
         }
 
         val newBoundVars = boundVars.toHashSet()
@@ -751,8 +769,9 @@ class TypeChecker(var symbolTable: SymbolTable) {
             if (!unify(retType, type.returnType)) {
                 val typeStrings = formatTypes(listOf(findRepType(type.returnType, newBoundVars),
                         findRepType(retType, newBoundVars)))
+                val context = retNode.expr?.startContext ?: retNode.startContext
                 throw IRConversionException("${node.ident.name} must return " +
-                        "${typeStrings[0]} but found ${typeStrings[1]}")
+                        "${typeStrings[0]} but found ${typeStrings[1]}", context)
             }
         })
     }
@@ -798,7 +817,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
         if (!unify(node.cond.type, BoolType)) {
             throw IRConversionException("Condition of if must be a bool, but found " +
-                    "${formatType(findRepType(node.cond.type, boundVars))}")
+                    "${formatType(findRepType(node.cond.type, boundVars))}", node.cond.startContext)
         }
 
         typeCheck(node.conseq, boundVars, refresh)
@@ -816,7 +835,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
         if (!unify(node.cond.type, BoolType)) {
             throw IRConversionException("Condition of while must be a bool, but given " +
-                    "${formatType(findRepType(node.cond.type, boundVars))}")
+                    "${formatType(findRepType(node.cond.type, boundVars))}", node.cond.startContext)
         }
 
         typeCheck(node.body, boundVars, refresh)
@@ -830,7 +849,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
         if (!unify(node.cond.type, BoolType)) {
             throw IRConversionException("Condition of do while must be a bool, but given " +
-                    "${formatType(findRepType(node.cond.type, boundVars))}")
+                    "${formatType(findRepType(node.cond.type, boundVars))}", node.cond.startContext)
         }
 
         typeCheck(node.body, boundVars, refresh)
@@ -848,7 +867,8 @@ class TypeChecker(var symbolTable: SymbolTable) {
             typeCheck(node.cond, boundVars, refresh)
             if (!unify(node.cond.type, BoolType)) {
                 throw IRConversionException("Condition of for must be a bool, but given " +
-                        "${formatType(findRepType(node.cond.type, boundVars))}")
+                        "${formatType(findRepType(node.cond.type, boundVars))}",
+                        node.cond.startContext)
             }
         }
 
@@ -886,7 +906,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
                 val typeStrings = formatTypes(listOf(findRepType(node.expr.type, boundVars),
                         findRepType(pat.type, boundVars)))
                 throw IRConversionException("Patterns in match statement expected to have type " +
-                        "${typeStrings[0]}, but found ${typeStrings[1]}")
+                        "${typeStrings[0]}, but found ${typeStrings[1]}", pat.startContext)
             }
         }
     }

@@ -10,12 +10,13 @@ import myte.shared.*
  * @property update the (optional) statement that is evaluated at the end of every loop
  * @property body the body of the for loop
  */
-data class ForNode(
+class ForNode(
     val init: IRNode?,
     val cond: IRNode?,
     val update: IRNode?,
-    val body: IRNode
-) : IRNode() {
+    val body: IRNode,
+    startContext: Context
+) : IRNode(startContext) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         init?.map(func)

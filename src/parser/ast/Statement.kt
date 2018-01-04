@@ -1,3 +1,5 @@
 package myte.parser.ast
 
-abstract class Statement
+import myte.shared.*
+
+abstract class Statement(val startContext: Context)

@@ -1,3 +1,6 @@
 package myte.parser.ast
 
-data class LogicalOrExpression(val left: Expression, val right: Expression) : Expression()
+class LogicalOrExpression(
+    val left: Expression,
+    val right: Expression
+) : Expression(left.startContext)

@@ -1,3 +1,8 @@
 package myte.parser.ast
 
-data class VectorLiteralExpression(val elements: List<Expression>): Expression()
+import myte.shared.*
+
+class VectorLiteralExpression(
+    val elements: List<Expression>,
+    startContext: Context
+): Expression(startContext)
