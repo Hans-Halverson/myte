@@ -9,7 +9,7 @@ abstract class ExceptionWithContext(message: String, val context: Context) : Exc
 /**
  * A certain place in a file, represented by character and line number.
  */
-data class Context(val charNum: Int, val lineNum: Int)
+data class Context(val charNum: Int, val lineNum: Int, val fileName: String?)
 
 const val ESC = "\u001B"
 const val RESET_ATTRIBUTES = ESC + "[0m"
@@ -41,11 +41,17 @@ fun printExceptionWithContext(except: ExceptionWithContext, text: String) {
     }
 
     // Pull out the entire line, and replace all tabs with four spaces
-    val line = text.substring(lineBeginIdx, currentIdx).replace("\t", "    ")    
+    val line = text.substring(lineBeginIdx, currentIdx).replace("\t", "    ")
+    val fileNamePrefix = if (except.context.fileName != null) {
+        "${except.context.fileName}:"
+    } else {
+        ""
+    } 
 
     // Print the error message formatted with terminal text color and highlighting
-    println("${except.context.lineNum}:${except.context.charNum}:${BOLD_ATTRIBUTE}${RED_COLOR} " +
-            "error: ${RESET_COLOR}${except.message}${RESET_ATTRIBUTES}")
+    println("${fileNamePrefix}${except.context.lineNum}:${except.context.charNum}:" +
+            "${BOLD_ATTRIBUTE}${RED_COLOR} error: ${RESET_COLOR}${except.message}" +
+            "${RESET_ATTRIBUTES}")
 
     // Print out the offending line with a pointer below it to the exact character
     println(line)

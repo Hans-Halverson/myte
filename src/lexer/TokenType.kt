@@ -133,10 +133,6 @@ enum class TokenType {
         override fun toString(): String = "type"
     },
 
-    OF {
-        override fun toString(): String = "of"
-    },
-
     LET {
         override fun toString(): String = "let"
     },

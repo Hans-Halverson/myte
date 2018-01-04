@@ -58,7 +58,7 @@ fun repl(input: BufferedReader) {
                     continue@replLoop
                 }
 
-                val tokens = createTokens(StringReader(inputLines.toString()))
+                val tokens = createTokens(StringReader(inputLines.toString()), null)
 
                 if (line.trim() == "") {
                     // If two blank lines in a row are seen, interpret as end of statement
@@ -118,9 +118,18 @@ fun repl(input: BufferedReader) {
 /**
  * Evaluate an entire file at once, with input coming from the given input reader.
  */
-fun evaluateFile(input: BufferedReader) {
+fun evaluateFile(input: BufferedReader, fileName: String) {
+    // Read entire file into string
+    val file = StringBuilder()
+    var line = input.readLine()
+    while (line != null) {
+        file.append(line)
+        file.append("\n")
+        line = input.readLine()
+    }
+
     // Tokenize the entire file
-    val tokens = createTokens(input)
+    val tokens = createTokens(StringReader(file.toString()), fileName)
     if (tokens.size == 0) {
         return
     }
@@ -130,21 +139,25 @@ fun evaluateFile(input: BufferedReader) {
     val environment = Environment()
     registerBuiltins(symbolTable, environment)
     
-    // Set up parser, converter, and evaluator
-    val parser = Parser(symbolTable, tokens)
-    val converter = AstToIrConverter(symbolTable)
-    val eval = Evaluator(symbolTable, environment)
+    try {
+        // Set up parser, converter, and evaluator
+        val parser = Parser(symbolTable, tokens)
+        val converter = AstToIrConverter(symbolTable)
+        val eval = Evaluator(symbolTable, environment)
 
-    // Parse, convert, and type check all statements in the file
-    val statements = parser.parseFile()
-    val irNodes = statements.map(converter::convert)
+        // Parse, convert, and type check all statements in the file
+        val statements = parser.parseFile()
+        val irNodes = statements.map(converter::convert)
 
-    converter.inferTypes(irNodes)
-    irNodes.forEach(converter::assertIRStructure)
+        converter.inferTypes(irNodes)
+        irNodes.forEach(converter::assertIRStructure)
 
-    // Evaluate each statement in the file in order
-    for (irNode in irNodes) {
-        eval.evaluate(irNode)
+        // Evaluate each statement in the file in order
+        for (irNode in irNodes) {
+            eval.evaluate(irNode)
+        }
+    } catch (except: ExceptionWithContext) {
+        printExceptionWithContext(except, file.toString())
     }
 }
 
@@ -154,7 +167,7 @@ fun main(args: Array<String>) {
         repl(reader)
     } else if (args.size == 1) {
         val reader = BufferedReader(FileReader(args[0]))
-        evaluateFile(reader)
+        evaluateFile(reader, args[0])
     } else {
         println("Usage: mt [file]")
     }
