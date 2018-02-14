@@ -365,6 +365,7 @@ fun createTokens(input: Reader, fileName: String?): List<Token> {
             '[' -> tokens.add(LeftBracketToken(context))
             ']' -> tokens.add(RightBracketToken(context))
             '"' -> tokens.add(readStringLiteral(reader))
+            '.' -> tokens.add(PeriodToken(context))
             ',' -> tokens.add(CommaToken(context))
             ':' -> tokens.add(ColonToken(context))
             in '0'..'9' -> tokens.add(readNumber(reader))

@@ -42,7 +42,6 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             stmt is VariableAssignmentExpression -> convertVariableAssignment(stmt)
             stmt is VariableDefinitionStatement -> convertVariableDefinition(stmt)
             stmt is FunctionDefinitionStatement -> convertFunctionDefinition(stmt)
-            stmt is FunctionDefinitionExpression -> convertFunctionDefinitionExpression(stmt)
             // Math expressions
             stmt is UnaryPlusExpression -> convertUnaryPlus(stmt)
             stmt is UnaryMinusExpression -> convertUnaryMinus(stmt)
@@ -102,15 +101,6 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
                 stmt.startContext)
     }
 
-    fun convertFunctionDefinitionExpression(
-            stmt: FunctionDefinitionExpression
-    ): FunctionDefinitionNode {
-        val body = convert(stmt.body)
-        // Wrap the body of a function expression in a return node
-        return FunctionDefinitionNode(stmt.ident, stmt.formalArgs,
-                ReturnNode(body, body.startContext), stmt.identContext, stmt.startContext)
-    }
-
     fun convertVariableDefinition(stmt: VariableDefinitionStatement): VariableDefinitionNode {
         return VariableDefinitionNode(stmt.ident, convert(stmt.expr), stmt.identContext,
                 stmt.startContext)
@@ -159,9 +149,10 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     }
 
     fun convertFunctionCall(expr: FunctionCallExpression): FunctionCallNode {
+        val func = convert(expr.func)
         val args = expr.actualArgs.map(this::convert)
 
-        return FunctionCallNode(expr.func, args, expr.identContext)
+        return FunctionCallNode(func, args, expr.identContext)
     }
 
     fun convertTypeConstructor(expr: TypeConstructorExpression): TypeConstructorNode {

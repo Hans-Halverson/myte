@@ -180,26 +180,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
      * Returns whether the given type variable occurs anywhere in a given type.
      */
     private fun occursIn(typeVar: TypeVariable, subst: Type): Boolean {
-        if (typeVar == subst) {
-            return true
-        }
-
-        return when (subst) {
-            is VectorType -> occursIn(typeVar, subst.elementType)
-            is TupleType -> {
-                subst.elementTypes.map({ elementType -> occursIn(typeVar, elementType) })
-                                  .any({ x -> x})
-            }
-            is FunctionType -> occursIn(typeVar, subst.returnType) ||
-                    subst.argTypes.map({ argType -> occursIn(typeVar, argType) })
-                                  .any({ x -> x })
-            is AlgebraicDataType -> {
-                subst.typeParams.map({ typeParam -> occursIn(typeVar, typeParam) })
-                                .any({ x -> x })
-            }
-
-            else -> false
-        }
+        return subst.getAllVariables().contains(typeVar)
     }
 
     /**
@@ -611,10 +592,17 @@ class TypeChecker(var symbolTable: SymbolTable) {
         boundVars: MutableSet<TypeVariable>,
         refresh: Boolean
     ) {
-        val funcInfo = symbolTable.getInfo(node.func)
+        // Function node must be a variable node
+        val func = if (node.func is VariableNode) {
+            node.func.ident
+        } else {
+            throw IRConversionException("Can only call functions", node.func.startContext)
+        }
+
+        val funcInfo = symbolTable.getInfo(func)
         val funcType = funcInfo?.type
         if (funcType == null) {
-            throw IRConversionException("Unknown function ${node.func.name}", node.identContext)
+            throw IRConversionException("Unknown function ${func.name}", node.identContext)
         }
 
         node.actualArgs.forEach { actualArg -> typeCheck(actualArg, boundVars, refresh) }
@@ -638,13 +626,13 @@ class TypeChecker(var symbolTable: SymbolTable) {
             // If type of identifier is a known function, provide more useful error message
             if (funcRepType is FunctionType) {
                 val argRepTypes = argTypes.map { argType -> findRepType(argType, boundVars) }
-                throw IRConversionException("${node.func.name} expected arguments of type " +
+                throw IRConversionException("${func.name} expected arguments of type " +
                         "${formatTypes(funcRepType.argTypes)}, but found " +
                         "${formatTypes(argRepTypes)}", node.identContext)
             } else {
                 val typeStrings = formatTypes(listOf(findRepType(expectedFuncType, boundVars),
                         funcRepType))
-                throw IRConversionException("${node.func.name} expected to have type " +
+                throw IRConversionException("${func.name} expected to have type " +
                         "${typeStrings[0]}, but found ${typeStrings[1]}", node.identContext)
             }
         }

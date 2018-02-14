@@ -113,6 +113,10 @@ enum class TokenType {
         override fun toString(): String = "\""
     },
 
+    PERIOD {
+        override fun toString(): String = "."
+    },
+
     COMMA {
         override fun toString(): String = ","
     },

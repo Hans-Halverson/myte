@@ -165,6 +165,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                 // Function call or access
                 is LeftParenToken -> parseCallExpression(currentExpr, token)
                 is LeftBracketToken -> parseKeyedAccessExpression(currentExpr, token)
+                is PeriodToken -> parseAccessExpression(currentExpr, token)
                 else -> throw ParseException(token)
             }
         }
@@ -421,7 +422,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
         // If a variable is called create a call expression
         if (prevExpr is VariableExpression) {
-            return FunctionCallExpression(prevExpr.ident, actualArgs, prevExpr.identContext)
+            return FunctionCallExpression(prevExpr, actualArgs, prevExpr.identContext)
         // If a type constructor is called, create a type constructor expression with arguments
         } else if (prevExpr is TypeConstructorExpression) {
             return TypeConstructorExpression(prevExpr.adtVariant, actualArgs, prevExpr.identContext)
@@ -435,7 +436,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         leftBracketToken: LeftBracketToken
     ): KeyedAccessExpression {
         // If parseKeyedAccessExpression is called, the previous token must have been a [
-        val keyExpr = parseExpression(KEYED_ACCESS_PRECEDENCE)
+        val keyExpr = parseExpression()
 
         assertCurrent(TokenType.RIGHT_BRACKET)
         tokenizer.next()
@@ -443,7 +444,14 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         return KeyedAccessExpression(prevExpr, keyExpr, leftBracketToken.context)
     }
 
-    fun parseVariableDefinition(isConst: Boolean, defToken: Token): Statement {
+    fun parseAccessExpression(prevExpr: Expression, periodToken: PeriodToken): AccessExpression {
+        // If parseKeyedAccessExpression is called, the previous token must have been a .
+        val accessExpr = parseExpression(CALL_ACCESS_PRECEDENCE)
+
+        return AccessExpression(prevExpr, accessExpr, periodToken.context)
+    }
+
+    fun parseVariableDefinition(isConst: Boolean, defToken: Token): VariableDefinitionStatement {
         // If parseVariableDefinition is called, the previous token must have been a let or const
         var token = tokenizer.next()
 
@@ -502,7 +510,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         }
     }
 
-    fun parseFunctionDefinition(defToken: DefToken): Statement {
+    fun parseFunctionDefinition(defToken: DefToken): FunctionDefinitionStatement {
         // If parseFunctionDefinition is called, the previous token must have been a def
         var token = tokenizer.next()
 
@@ -530,27 +538,25 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         // Keep parsing comma separated formal argument identifiers until a right paren is found
         argsLoop@ while (tokenizer.current !is RightParenToken) {
             token = tokenizer.next()
-            when (token) {
-                is IdentifierToken -> {
-                    // Only parse types if the function is non-numeric, otherwise must be floats
-                    val argType = if (isNumeric) {
-                        FloatType
-                    } else if (tokenizer.current is ColonToken) {
-                        parseTypeAnnotation(true)
-                    } else {
-                        TypeVariable()
-                    }
-
-                    // Add formal argument as variable to symbol table in new scope
-                    argTypes.add(argType)
-                    formalArgs.add(symbolTable.addSymbol(token.str,
-                            IdentifierClass.VARIABLE, argType))
-                }
-                else -> throw ParseException("Formal arguments must be identifiers", token)
+            if (token !is IdentifierToken) {
+                throw ParseException("Formal arguments must be identifiers", token)
             }
 
+            // Only parse types if the function is non-numeric, otherwise must be floats
+            val argType = if (isNumeric) {
+                FloatType
+            } else if (tokenizer.current is ColonToken) {
+                parseTypeAnnotation(true)
+            } else {
+                TypeVariable()
+            }
+
+            // Add formal argument as variable to symbol table in new scope
+            argTypes.add(argType)
+            formalArgs.add(symbolTable.addSymbol(token.str, IdentifierClass.VARIABLE, argType))
+
             // If a right paren is found, all arguments have been found. If a comma is found,
-            // there must still be identifiers to parse. Otherwise, synatix is invalid.
+            // there must still be identifiers to parse. Otherwise, syntax is invalid.
             when (tokenizer.current) {
                 is RightParenToken -> break@argsLoop
                 is CommaToken -> tokenizer.next()
@@ -558,6 +564,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             }
         }
 
+        assertCurrent(TokenType.RIGHT_PAREN)
         tokenizer.next()
 
         // If function is numeric, it must return float. Otherwise find the type.
@@ -580,8 +587,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
             val expr = parseExpression()
             symbolTable.exitScope()
-            return FunctionDefinitionExpression(ident, formalArgs, expr, funcToken.context,
-                    defToken.context)
+            return FunctionDefinitionStatement(ident, formalArgs,
+                    ReturnStatement(expr, expr.startContext), funcToken.context, defToken.context)
         } else {
             // Non-expression function definition bodies must consist of a single block
             token = tokenizer.next()
@@ -999,7 +1006,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             currentToken = tokenizer.current
 
             if (currentToken !is IdentifierToken) {
-                throw ParseException("Expected ${currentToken} to be an identifier", currentToken)
+                throw ParseException("Type parameters must identifiers", currentToken)
             }
 
             val variantName = currentToken.str

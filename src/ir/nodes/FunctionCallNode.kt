@@ -5,12 +5,12 @@ import myte.shared.*
 /**
  * A node that represents a function call on a list of arguments.
  *
- * @property func the identifier of the function that is being called
+ * @property func the node that evaluates to the function that is being called
  * @property actualArgs the expressions that evaluate to the arguments of the function call
  * @property identContext the context for the identifier in this function call
  */
 class FunctionCallNode(
-    val func: Identifier,
+    val func: IRNode,
     val actualArgs: List<IRNode>,
     val identContext: Context
 ) : IRNode(identContext) {

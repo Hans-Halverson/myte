@@ -2,223 +2,130 @@ package myte.lexer
 
 import myte.shared.*
 
-sealed class Token(val context: Context) {    
-    abstract val type: TokenType
+sealed class Token(val context: Context, val type: TokenType) {    
     override fun toString(): String = type.toString()
 }
 
-class IntLiteralToken(val num: Int, context: Context) : Token(context) {
-    override val type: TokenType = TokenType.INT_LITERAL
+class IntLiteralToken(val num: Int, context: Context) : Token(context, TokenType.INT_LITERAL) {
     override fun toString(): String = num.toString()
 }
 
-class FloatLiteralToken(val num: Double, context: Context) : Token(context) {
-    override val type: TokenType = TokenType.FLOAT_LITERAL
+class FloatLiteralToken(
+    val num: Double,
+    context: Context
+) : Token(context, TokenType.FLOAT_LITERAL) {
     override fun toString(): String = num.toString()
 }
 
-class StringLiteralToken(val str: String, context: Context) : Token(context) {
-    override val type: TokenType = TokenType.STRING_LITERAL
+class StringLiteralToken(
+    val str: String,
+    context: Context
+) : Token(context, TokenType.STRING_LITERAL) {
     override fun toString(): String = "\"${str}\""
 }
 
-class IdentifierToken(val str: String, context: Context) : Token(context) {
-    override val type: TokenType = TokenType.IDENTIFIER
+class IdentifierToken(val str: String, context: Context) : Token(context, TokenType.IDENTIFIER) {
     override fun toString(): String = str
 }
 
-class TrueToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.TRUE
-}
+class TrueToken(context: Context) : Token(context, TokenType.TRUE)
 
-class FalseToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.FALSE
-}
+class FalseToken(context: Context) : Token(context, TokenType.FALSE)
 
-class PlusToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.PLUS
-}
+class PlusToken(context: Context) : Token(context, TokenType.PLUS)
 
-class MinusToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.MINUS
-}
+class MinusToken(context: Context) : Token(context, TokenType.MINUS)
 
-class AsteriskToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.ASTERISK
-}
+class AsteriskToken(context: Context) : Token(context, TokenType.ASTERISK)
 
-class ForwardSlashToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.FORWARD_SLASH
-}
+class ForwardSlashToken(context: Context) : Token(context, TokenType.FORWARD_SLASH)
 
-class CaretToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.CARET
-}
+class CaretToken(context: Context) : Token(context, TokenType.CARET)
 
-class EqualsToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.EQUALS
-}
+class EqualsToken(context: Context) : Token(context, TokenType.EQUALS)
 
-class DoubleEqualsToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.DOUBLE_EQUALS
-}
+class DoubleEqualsToken(context: Context) : Token(context, TokenType.DOUBLE_EQUALS)
 
-class LessThanToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.LESS_THAN
-}
+class LessThanToken(context: Context) : Token(context, TokenType.LESS_THAN)
 
-class LessThanOrEqualToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.LESS_THAN_OR_EQUAL
-}
+class LessThanOrEqualToken(context: Context) : Token(context, TokenType.LESS_THAN_OR_EQUAL)
 
-class GreaterThanToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.GREATER_THAN
-}
+class GreaterThanToken(context: Context) : Token(context, TokenType.GREATER_THAN)
 
-class GreaterThanOrEqualToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.GREATER_THAN_OR_EQUAL
-}
+class GreaterThanOrEqualToken(context: Context) : Token(context, TokenType.GREATER_THAN_OR_EQUAL)
 
-class NotEqualsToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.NOT_EQUALS
-}
+class NotEqualsToken(context: Context) : Token(context, TokenType.NOT_EQUALS)
 
-class LogicalNotToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.LOGICAL_NOT
-}
+class LogicalNotToken(context: Context) : Token(context, TokenType.LOGICAL_NOT)
 
-class LogicalAndToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.LOGICAL_AND
-}
+class LogicalAndToken(context: Context) : Token(context, TokenType.LOGICAL_AND)
 
-class LogicalOrToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.LOGICAL_OR
-}
+class LogicalOrToken(context: Context) : Token(context, TokenType.LOGICAL_OR)
 
-class LeftParenToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.LEFT_PAREN
-}
+class LeftParenToken(context: Context) : Token(context, TokenType.LEFT_PAREN)
 
-class RightParenToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.RIGHT_PAREN
-}
+class RightParenToken(context: Context) : Token(context, TokenType.RIGHT_PAREN)
 
-class LeftBraceToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.LEFT_BRACE
-}
+class LeftBraceToken(context: Context) : Token(context, TokenType.LEFT_BRACE)
 
-class RightBraceToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.RIGHT_BRACE
-}
+class RightBraceToken(context: Context) : Token(context, TokenType.RIGHT_BRACE)
 
-class LeftBracketToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.LEFT_BRACKET
-}
+class LeftBracketToken(context: Context) : Token(context, TokenType.LEFT_BRACKET)
 
-class RightBracketToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.RIGHT_BRACKET
-}
+class RightBracketToken(context: Context) : Token(context, TokenType.RIGHT_BRACKET)
 
-class QuotesToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.QUOTES
-}
+class QuotesToken(context: Context) : Token(context, TokenType.QUOTES)
 
-class CommaToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.COMMA
-}
+class PeriodToken(context: Context) : Token(context, TokenType.PERIOD)
 
-class ColonToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.COLON
-}
+class CommaToken(context: Context) : Token(context, TokenType.COMMA)
 
-class ArrowToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.ARROW
-}
+class ColonToken(context: Context) : Token(context, TokenType.COLON)
 
-class PipeToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.PIPE
-}
+class ArrowToken(context: Context) : Token(context, TokenType.ARROW)
 
-class TypeToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.TYPE
-}
+class PipeToken(context: Context) : Token(context, TokenType.PIPE)
 
-class LetToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.LET
-}
+class TypeToken(context: Context) : Token(context, TokenType.TYPE)
 
-class ConstToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.CONST
-}
 
-class DefToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.DEF
-}
+class LetToken(context: Context) : Token(context, TokenType.LET)
 
-class NumToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.NUM
-}
+class ConstToken(context: Context) : Token(context, TokenType.CONST)
 
-class IfToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.IF
-}
+class DefToken(context: Context) : Token(context, TokenType.DEF)
 
-class ElseToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.ELSE
-}
+class NumToken(context: Context) : Token(context, TokenType.NUM)
 
-class WhileToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.WHILE
-}
 
-class DoToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.DO
-}
+class IfToken(context: Context) : Token(context, TokenType.IF)
 
-class ForToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.FOR
-}
+class ElseToken(context: Context) : Token(context, TokenType.ELSE)
 
-class MatchToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.MATCH
-}
+class WhileToken(context: Context) : Token(context, TokenType.WHILE)
 
-class ReturnToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.RETURN
-}
+class DoToken(context: Context) : Token(context, TokenType.DO)
 
-class BreakToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.BREAK
-}
+class ForToken(context: Context) : Token(context, TokenType.FOR)
 
-class ContinueToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.CONTINUE
-}
+class MatchToken(context: Context) : Token(context, TokenType.MATCH)
 
-class UnitToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.UNIT
-}
+class ReturnToken(context: Context) : Token(context, TokenType.RETURN)
 
-class BoolToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.BOOL
-}
+class BreakToken(context: Context) : Token(context, TokenType.BREAK)
 
-class StringTypeToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.STRING_TYPE
-}
+class ContinueToken(context: Context) : Token(context, TokenType.CONTINUE)
 
-class IntToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.INT
-}
+class UnitToken(context: Context) : Token(context, TokenType.UNIT)
 
-class FloatToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.FLOAT
-}
+class BoolToken(context: Context) : Token(context, TokenType.BOOL)
 
-class VecToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.VEC
-}
+class StringTypeToken(context: Context) : Token(context, TokenType.STRING_TYPE)
 
-class NewLineToken(context: Context) : Token(context) {
-    override val type: TokenType = TokenType.NEW_LINE
-}
+class IntToken(context: Context) : Token(context, TokenType.INT)
+
+class FloatToken(context: Context) : Token(context, TokenType.FLOAT)
+
+class VecToken(context: Context) : Token(context, TokenType.VEC)
+
+class NewLineToken(context: Context) : Token(context, TokenType.NEW_LINE)

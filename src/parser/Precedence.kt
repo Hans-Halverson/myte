@@ -5,24 +5,22 @@ import myte.lexer.*
 // Precedence levels ascend from 0, a higher precedence binds expressions more tightly, and will be
 // applied before operators of a lower precedence.
 const val NO_PRECEDENCE: Int = 0
-const val KEYED_ACCESS_PRECEDENCE = 1
-const val ASSIGNMENT_PRECEDENCE: Int = 2
-const val LOGICAL_OR_PRECEDENCE: Int = 3
-const val LOGICAL_AND_PRECEDENCE: Int = 4
-const val LOGICAL_NOT_PRECEDENCE: Int = 5
-const val COMPARISON_PRECEDENCE: Int = 6
-const val ADD_PRECEDENCE: Int = 7
-const val MULTIPLY_PRECEDENCE: Int = 8
-const val EXPONENT_PRECEDENCE: Int = 9
-const val NUMERIC_PREFIX_PRECEDENCE: Int = 10
-const val CALL_PRECEDENCE: Int = 11
+const val ASSIGNMENT_PRECEDENCE: Int = 1
+const val LOGICAL_OR_PRECEDENCE: Int = 2
+const val LOGICAL_AND_PRECEDENCE: Int = 3
+const val LOGICAL_NOT_PRECEDENCE: Int = 4
+const val COMPARISON_PRECEDENCE: Int = 5
+const val ADD_PRECEDENCE: Int = 6
+const val MULTIPLY_PRECEDENCE: Int = 7
+const val EXPONENT_PRECEDENCE: Int = 8
+const val NUMERIC_PREFIX_PRECEDENCE: Int = 9
+const val CALL_ACCESS_PRECEDENCE: Int = 10
 
 /**
  * Given a token found between two expressions, assign a precedence level to the operator or
  * synatic structure that was found.
  */
 fun getPrecedenceForInfixToken(tokenType: TokenType): Int = when (tokenType) {
-    TokenType.LEFT_BRACKET -> KEYED_ACCESS_PRECEDENCE
     TokenType.EQUALS -> ASSIGNMENT_PRECEDENCE
     TokenType.LOGICAL_OR -> LOGICAL_OR_PRECEDENCE
     TokenType.LOGICAL_AND -> LOGICAL_AND_PRECEDENCE
@@ -37,7 +35,9 @@ fun getPrecedenceForInfixToken(tokenType: TokenType): Int = when (tokenType) {
     TokenType.ASTERISK -> MULTIPLY_PRECEDENCE
     TokenType.FORWARD_SLASH -> MULTIPLY_PRECEDENCE
     TokenType.CARET -> EXPONENT_PRECEDENCE
-    TokenType.LEFT_PAREN -> CALL_PRECEDENCE
+    TokenType.PERIOD -> CALL_ACCESS_PRECEDENCE
+    TokenType.LEFT_BRACKET -> CALL_ACCESS_PRECEDENCE
+    TokenType.LEFT_PAREN -> CALL_ACCESS_PRECEDENCE
     else -> NO_PRECEDENCE
 }
 
