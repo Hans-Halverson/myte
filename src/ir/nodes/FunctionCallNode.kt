@@ -7,13 +7,12 @@ import myte.shared.*
  *
  * @property func the node that evaluates to the function that is being called
  * @property actualArgs the expressions that evaluate to the arguments of the function call
- * @property identContext the context for the identifier in this function call
  */
 class FunctionCallNode(
     val func: IRNode,
     val actualArgs: List<IRNode>,
-    val identContext: Context
-) : IRNode(identContext) {
+    startContext: Context
+) : IRNode(startContext) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         actualArgs.map { arg -> arg.map(func) }

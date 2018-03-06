@@ -11,7 +11,7 @@ import myte.shared.*
  * @property startContext the context for the start of the content contained at this node
  */
 abstract class IRNode(val startContext: Context) {
-    lateinit var type: Type
+    var type: Type = TypeVariable()
 
     /*
      * Apply a function over the entire IR tree rooted at this node in preorder.
