@@ -6,26 +6,30 @@ import myte.shared.*
 /**
  * A node in the forest of type equivalence classes.
  *
- * @property type the type contained at this node
+ * @property resolvedType the type contained at this node
  * @property parent the (optional) parent node in the forest of type equivalence classes. This type
  *           is in the same equivalence class as its parent, and if the parent is null, this type
  *           is the representative for its equivalence class.
  */
 private class TypeEquivalenceNode(
-    val type: Type,
+    var resolvedType: Type,
     var parent: TypeEquivalenceNode? = null
 ) {
+    // An equivalence node is a root only when its parent pointer is itself
+    val isRoot: Boolean
+        get() = parent == this
+
     override fun equals(other: Any?): Boolean {
         if (other !is TypeEquivalenceNode) {
             return false
         }
 
-        return (type == other.type)
+        return (resolvedType == other.resolvedType)
     }
 }
 
 class TypeChecker(var symbolTable: SymbolTable) {
-    private val typeToNode: MutableMap<Type, TypeEquivalenceNode> = mutableMapOf()
+    private val typeVarToNode: MutableMap<TypeVariable, TypeEquivalenceNode> = mutableMapOf()
 
     /**
      * Set the symbol table to new symbol table.
@@ -35,14 +39,14 @@ class TypeChecker(var symbolTable: SymbolTable) {
     }
 
     /**
-     * Add a type to the set of equivalence classes, if it does not already exist, and return the
-     * equivalence class node for this type.
+     * Add a type variable to the set of equivalence classes, if it does not already exist, and
+     * return the equivalence class node for this type variable.
      */
-    private fun addType(type: Type): TypeEquivalenceNode {
-        val typeEquivNode = typeToNode[type]
+    private fun addTypeVar(typeVar: TypeVariable): TypeEquivalenceNode {
+        val typeEquivNode = typeVarToNode[typeVar]
         if (typeEquivNode == null) {
-            val newEquivNode = TypeEquivalenceNode(type)
-            typeToNode[type] = newEquivNode
+            val newEquivNode = TypeEquivalenceNode(typeVar)
+            typeVarToNode[typeVar] = newEquivNode
 
             return newEquivNode
         }
@@ -51,11 +55,11 @@ class TypeChecker(var symbolTable: SymbolTable) {
     }
 
     /**
-     * Find the representative equivalence class node for the given type.
+     * Find the representative equivalence class node for the given type variable.
      */
-    private fun findRepresentativeNode(type: Type): TypeEquivalenceNode {
+    private fun findRepNode(typeVar: TypeVariable): TypeEquivalenceNode {
         // The representative of a node is found by following parent pointers until the last node
-        var currentNode: TypeEquivalenceNode = addType(type)
+        var currentNode: TypeEquivalenceNode = addTypeVar(typeVar)
         var parent = currentNode.parent
         while (parent != null) {
             currentNode = parent
@@ -63,6 +67,21 @@ class TypeChecker(var symbolTable: SymbolTable) {
         }
 
         return currentNode
+    }
+
+    /**
+     * Set the representative node of the given type variable to be resolved to the given type.
+     * Returns true if successful, false if the type variable has already been resolved to an
+     * an incompatible type.
+     */
+    private fun resolveType(typeVar: TypeVariable, resolvedType: Type): Boolean {
+        val equivNode = findRepNode(typeVar)
+        if (equivNode.resolvedType == resolvedType || equivNode.resolvedType is TypeVariable) {
+            equivNode.resolvedType = resolvedType
+            return true
+        } else {
+            return false
+        }
     }
 
     /**
@@ -84,7 +103,9 @@ class TypeChecker(var symbolTable: SymbolTable) {
         mappedVars: MutableMap<TypeVariable, TypeVariable> = mutableMapOf(),
         freshVars: Boolean = true
     ): Type {
-        val repType = findRepresentativeNode(type).type
+        // Find the representative type if this is a type variable, otherwise use the type
+        val repType = if (type is TypeVariable) findRepNode(type).resolvedType else type
+
         return when (repType) {
             // Find the rep type for vector element type and reconstruct vector type
             is VectorType -> {
@@ -121,7 +142,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
                 // existing type variable
                 if (freshVars) {
                     val repBoundVars = boundVars.map { boundVar ->
-                        findRepresentativeNode(boundVar).type
+                        findRepNode(boundVar).resolvedType
                     }
 
                     if (repBoundVars.contains(repType)) {
@@ -146,34 +167,39 @@ class TypeChecker(var symbolTable: SymbolTable) {
     }
 
     /**
-     * Merge two representative nodes into the same equivalence class.
+     * Merge two types into the same equivalence class, where at least one type is a type variable.
      *
-     * @return whether the two representative nodes can be merged into the same equivalence class.
+     * @return whether the two types can be merged into the same equivalence class.
      *         This is not possible if one is a type variable that appears in the other
      *         type.
      */
-    private fun mergeReps(rep1: TypeEquivalenceNode, rep2: TypeEquivalenceNode): Boolean {
-        if (rep1 == rep2) {
-            return true
-        }
-
-        // If a rep is not a type variable, set it as the merged representative.
-        // If a type variable is encountered, be sure to perform the occurs check.
-        if (rep1.type is TypeVariable) {
-            if (occursIn(rep1.type, rep2.type)) {
-                return false
-            }
+    private fun mergeTypes(type1: Type, type2: Type): Boolean {
+        // If merging two type variables, set the first rep node to point to the second rep node
+        if (type1 is TypeVariable && type2 is TypeVariable) {
+            val rep1 = findRepNode(type1)
+            val rep2 = findRepNode(type2)
 
             rep1.parent = rep2
-        } else {
-            if (rep2.type is TypeVariable && occursIn(rep2.type, rep1.type)) {
+
+            return true
+        // If merging a type variable with a type, if occurs check passes resolve type variable
+        } else if (type1 is TypeVariable && type2 !is TypeVariable) {
+            if (occursIn(type1, type2)) {
                 return false
             }
 
-            rep2.parent = rep1
-        }
+            return resolveType(type1, type2)
+        // If merging a type with a type variable, if occurs check passes resolve type variable
+        } else if (type1 !is TypeVariable && type2 is TypeVariable) {
+            if (occursIn(type2, type1)) {
+                return false
+            }
 
-        return true
+            return resolveType(type2, type1)
+        // Merge types should only be called if at least one type is a type variable
+        } else {
+            return false
+        }
     }
 
     /**
@@ -184,71 +210,45 @@ class TypeChecker(var symbolTable: SymbolTable) {
     }
 
     /**
-     * Unify two types by merging them (and recursively merging their child types) into the same
-     * equivalence class following the unification algorithm.
+     * Unify two types by merging their representative types (and recursively merging their
+     * child types) into the same equivalence class following the unification algorithm.
      * 
      * @return whether the two types can be unified or not
      */
     private fun unify(t1: Type, t2: Type): Boolean {
-        val rep1 = findRepresentativeNode(t1)
-        val rep2 = findRepresentativeNode(t2)
+        // If type variables, work with their representative types
+        val type1 = if (t1 is TypeVariable) findRepNode(t1).resolvedType else t1
+        val type2 = if (t2 is TypeVariable) findRepNode(t2).resolvedType else t2
 
-        val type1 = rep1.type
-        val type2 = rep2.type
-
-        // If representatives are the same, they can be unified
-        if (rep1 == rep2) {
+        // If both types are already identical, they are already unified
+        if (type1 == type2) {
             return true
+        // If at least one type is a type variable, merge types together
+        } else if (type1 is TypeVariable || type2 is TypeVariable) {
+            return mergeTypes(type1, type2)
         // If both representatives have vector type, merge reps and unify their child types
         } else if (type1 is VectorType && type2 is VectorType) {
-            val canUnify = unify(type1.elementType, type2.elementType)
-            if (canUnify) {
-                mergeReps(rep1, rep2)
-            }
-
-            return canUnify
+            return unify(type1.elementType, type2.elementType)
         // If both representatives have tuple types, merge reps of all element types
         } else if (type1 is TupleType && type2 is TupleType) {
-            val canUnify = type1.elementTypes.size == type2.elementTypes.size &&
+            return type1.elementTypes.size == type2.elementTypes.size &&
                     type1.elementTypes.zip(type2.elementTypes)
                          .map({ (e1, e2) -> unify(e1, e2) })
                          .all({ x -> x })
-
-            if (canUnify) {
-                mergeReps(rep1, rep2)
-            }
-
-            return canUnify
         // If both representatives have function type, merge reps and unify their child types
         } else if (type1 is FunctionType && type2 is FunctionType) {
-            val canUnify = type1.argTypes.size == type2.argTypes.size &&
+            return type1.argTypes.size == type2.argTypes.size &&
                     unify(type1.returnType, type2.returnType) &&
                     type1.argTypes.zip(type2.argTypes)
                          .map({ (a1, a2) -> unify(a1, a2) })
                          .all({ x -> x })
-
-            if (canUnify) {
-                mergeReps(rep1, rep2)
-            }
-
-            return canUnify
         // If both representatives are the same adt, merge reps and unify parameter types
         } else if (type1 is AlgebraicDataType && type2 is AlgebraicDataType) {
-            val canUnify = type1.adtSig == type2.adtSig &&
+            return type1.adtSig == type2.adtSig &&
                     type1.typeParams.size == type2.typeParams.size &&
                     type1.typeParams.zip(type2.typeParams)
                          .map({ (p1, p2) -> unify(p1, p2) })
                          .all({ x -> x })
-
-            if (canUnify) {
-                mergeReps(rep1, rep2)
-            }
-
-            return canUnify
-        // If a representative is type variable, merge reps
-        } else if (type1 is TypeVariable || type2 is TypeVariable) {
-            return mergeReps(rep1, rep2)
-        // Otherwise the types cannot be unified
         } else {
             return false
         }

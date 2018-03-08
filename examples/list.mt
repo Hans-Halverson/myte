@@ -6,6 +6,6 @@ type list<a> = {
 def map(f, lst) {
     match lst {
         | Nil -> return Nil
-        | Cons(h, tl) -> return Cons(f(hd), map(f, tl))
+        | Cons(hd, tl) -> return Cons(f(hd), map(f, tl))
     }
 }
