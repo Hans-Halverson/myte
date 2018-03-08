@@ -10,14 +10,16 @@ import myte.shared.*
  * @property parent the (optional) parent node in the forest of type equivalence classes. This type
  *           is in the same equivalence class as its parent, and if the parent is null, this type
  *           is the representative for its equivalence class.
+ * @property rank an upper bound on the longest path from this node to a leaf
  */
 private class TypeEquivalenceNode(
     var resolvedType: Type,
-    var parent: TypeEquivalenceNode? = null
+    var parent: TypeEquivalenceNode? = null,
+    var rank: Int = 0
 ) {
-    // An equivalence node is a root only when its parent pointer is itself
+    // An equivalence node is a root only when it does not have a parent
     val isRoot: Boolean
-        get() = parent == this
+        get() = parent == null
 
     override fun equals(other: Any?): Boolean {
         if (other !is TypeEquivalenceNode) {
@@ -55,18 +57,29 @@ class TypeChecker(var symbolTable: SymbolTable) {
     }
 
     /**
+     * Find the root equivalence node for a given equivalence node, and compress the path
+     * to the root along the way.
+     */
+    private fun findRoot(node: TypeEquivalenceNode): TypeEquivalenceNode {
+        val parent = node.parent
+        // If this is not a root, find the root and set the parent to point directly to the root
+        if (parent != null) {
+            val root = findRoot(parent)
+            node.parent = root
+            return root
+        } else {
+            // Otherwise return this node since it is its own root
+            return node
+        }
+    }
+
+    /**
      * Find the representative equivalence class node for the given type variable.
      */
     private fun findRepNode(typeVar: TypeVariable): TypeEquivalenceNode {
-        // The representative of a node is found by following parent pointers until the last node
-        var currentNode: TypeEquivalenceNode = addTypeVar(typeVar)
-        var parent = currentNode.parent
-        while (parent != null) {
-            currentNode = parent
-            parent = currentNode.parent
-        }
-
-        return currentNode
+        // The representative node of a type is found by finding the root of its equivalence node
+        var node = addTypeVar(typeVar)
+        return findRoot(node)
     }
 
     /**
@@ -179,7 +192,16 @@ class TypeChecker(var symbolTable: SymbolTable) {
             val rep1 = findRepNode(type1)
             val rep2 = findRepNode(type2)
 
-            rep1.parent = rep2
+            // Choose the lower ranked node to be the root
+            if (rep1.rank > rep2.rank) {
+                rep2.parent = rep1
+            } else {
+                rep1.parent = rep2
+                // If ranks were equal, increment the rank of the newly non-root node
+                if (rep1.rank == rep2.rank) {
+                    rep2.rank++
+                }
+            }
 
             return true
         // If merging a type variable with a type, if occurs check passes resolve type variable
