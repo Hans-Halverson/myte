@@ -7,13 +7,13 @@ import myte.shared.*
  *
  * @property lValue the identifier of the variable that is being reassigned
  * @property rValue the expression whose value is assigned to the variable
- * @property identContext the context for the identifier of the variable
+ * @property identLocation the location for the identifier of the variable
  */
 class VariableAssignmentNode(
     val lValue: Identifier,
     val rValue: IRNode,
-    val identContext: Context
-) : IRNode(identContext) {
+    val identLocation: Location
+) : IRNode(identLocation) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         rValue.map(func)

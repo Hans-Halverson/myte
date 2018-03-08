@@ -12,8 +12,8 @@ import myte.shared.*
 class MatchNode(
     val expr: IRNode,
     val cases: List<Pair<IRNode, IRNode>>,
-    startContext: Context
-) : IRNode(startContext) {
+    startLocation: Location
+) : IRNode(startLocation) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         expr.map(func)

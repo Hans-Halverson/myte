@@ -5,5 +5,5 @@ import myte.shared.*
 data class KeyedAssignmentExpression(
     val lValue: KeyedAccessExpression,
     val rValue: Expression,
-    val accessContext: Context
-) : Expression(lValue.startContext)
+    val accessLocation: Location
+) : Expression(lValue.startLocation)

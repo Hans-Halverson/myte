@@ -7,7 +7,7 @@ import myte.shared.*
  *
  * @property ident the identifier of the variable
  */
-class VariableNode(val ident: Identifier, startContext: Context): IRNode(startContext) {
+class VariableNode(val ident: Identifier, startLocation: Location): IRNode(startLocation) {
     override fun toString(): String {
         return "VariableNode(ident=${ident})"
     }

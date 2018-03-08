@@ -5,14 +5,14 @@ import myte.shared.*
 
 class ParseException(
     message: String,
-    context: Context
-) : ExceptionWithContext(message, context) {
+    location: Location
+) : ExceptionWithLocation(message, location) {
     constructor(token: Token)
-            : this("Unexpected ${token} encountered", token.context)
+            : this("Unexpected ${token} encountered", token.location)
     constructor(message: String, token: Token)
-            : this(message, token.context)
+            : this(message, token.location)
     constructor(expected: TokenType, actual: TokenType, token: Token)
-            : this("\"$expected\" expected, but \"$actual\" found", token.context)
+            : this("\"$expected\" expected, but \"$actual\" found", token.location)
 }
 
 class ParseEOFException() : Exception("Unexpected EOF encountered")

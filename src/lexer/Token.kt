@@ -2,130 +2,130 @@ package myte.lexer
 
 import myte.shared.*
 
-sealed class Token(val context: Context, val type: TokenType) {    
+sealed class Token(val location: Location, val type: TokenType) {    
     override fun toString(): String = type.toString()
 }
 
-class IntLiteralToken(val num: Int, context: Context) : Token(context, TokenType.INT_LITERAL) {
+class IntLiteralToken(val num: Int, location: Location) : Token(location, TokenType.INT_LITERAL) {
     override fun toString(): String = num.toString()
 }
 
 class FloatLiteralToken(
     val num: Double,
-    context: Context
-) : Token(context, TokenType.FLOAT_LITERAL) {
+    location: Location
+) : Token(location, TokenType.FLOAT_LITERAL) {
     override fun toString(): String = num.toString()
 }
 
 class StringLiteralToken(
     val str: String,
-    context: Context
-) : Token(context, TokenType.STRING_LITERAL) {
+    location: Location
+) : Token(location, TokenType.STRING_LITERAL) {
     override fun toString(): String = "\"${str}\""
 }
 
-class IdentifierToken(val str: String, context: Context) : Token(context, TokenType.IDENTIFIER) {
+class IdentifierToken(val str: String, location: Location) : Token(location, TokenType.IDENTIFIER) {
     override fun toString(): String = str
 }
 
-class TrueToken(context: Context) : Token(context, TokenType.TRUE)
+class TrueToken(location: Location) : Token(location, TokenType.TRUE)
 
-class FalseToken(context: Context) : Token(context, TokenType.FALSE)
+class FalseToken(location: Location) : Token(location, TokenType.FALSE)
 
-class PlusToken(context: Context) : Token(context, TokenType.PLUS)
+class PlusToken(location: Location) : Token(location, TokenType.PLUS)
 
-class MinusToken(context: Context) : Token(context, TokenType.MINUS)
+class MinusToken(location: Location) : Token(location, TokenType.MINUS)
 
-class AsteriskToken(context: Context) : Token(context, TokenType.ASTERISK)
+class AsteriskToken(location: Location) : Token(location, TokenType.ASTERISK)
 
-class ForwardSlashToken(context: Context) : Token(context, TokenType.FORWARD_SLASH)
+class ForwardSlashToken(location: Location) : Token(location, TokenType.FORWARD_SLASH)
 
-class CaretToken(context: Context) : Token(context, TokenType.CARET)
+class CaretToken(location: Location) : Token(location, TokenType.CARET)
 
-class EqualsToken(context: Context) : Token(context, TokenType.EQUALS)
+class EqualsToken(location: Location) : Token(location, TokenType.EQUALS)
 
-class DoubleEqualsToken(context: Context) : Token(context, TokenType.DOUBLE_EQUALS)
+class DoubleEqualsToken(location: Location) : Token(location, TokenType.DOUBLE_EQUALS)
 
-class LessThanToken(context: Context) : Token(context, TokenType.LESS_THAN)
+class LessThanToken(location: Location) : Token(location, TokenType.LESS_THAN)
 
-class LessThanOrEqualToken(context: Context) : Token(context, TokenType.LESS_THAN_OR_EQUAL)
+class LessThanOrEqualToken(location: Location) : Token(location, TokenType.LESS_THAN_OR_EQUAL)
 
-class GreaterThanToken(context: Context) : Token(context, TokenType.GREATER_THAN)
+class GreaterThanToken(location: Location) : Token(location, TokenType.GREATER_THAN)
 
-class GreaterThanOrEqualToken(context: Context) : Token(context, TokenType.GREATER_THAN_OR_EQUAL)
+class GreaterThanOrEqualToken(location: Location) : Token(location, TokenType.GREATER_THAN_OR_EQUAL)
 
-class NotEqualsToken(context: Context) : Token(context, TokenType.NOT_EQUALS)
+class NotEqualsToken(location: Location) : Token(location, TokenType.NOT_EQUALS)
 
-class LogicalNotToken(context: Context) : Token(context, TokenType.LOGICAL_NOT)
+class LogicalNotToken(location: Location) : Token(location, TokenType.LOGICAL_NOT)
 
-class LogicalAndToken(context: Context) : Token(context, TokenType.LOGICAL_AND)
+class LogicalAndToken(location: Location) : Token(location, TokenType.LOGICAL_AND)
 
-class LogicalOrToken(context: Context) : Token(context, TokenType.LOGICAL_OR)
+class LogicalOrToken(location: Location) : Token(location, TokenType.LOGICAL_OR)
 
-class LeftParenToken(context: Context) : Token(context, TokenType.LEFT_PAREN)
+class LeftParenToken(location: Location) : Token(location, TokenType.LEFT_PAREN)
 
-class RightParenToken(context: Context) : Token(context, TokenType.RIGHT_PAREN)
+class RightParenToken(location: Location) : Token(location, TokenType.RIGHT_PAREN)
 
-class LeftBraceToken(context: Context) : Token(context, TokenType.LEFT_BRACE)
+class LeftBraceToken(location: Location) : Token(location, TokenType.LEFT_BRACE)
 
-class RightBraceToken(context: Context) : Token(context, TokenType.RIGHT_BRACE)
+class RightBraceToken(location: Location) : Token(location, TokenType.RIGHT_BRACE)
 
-class LeftBracketToken(context: Context) : Token(context, TokenType.LEFT_BRACKET)
+class LeftBracketToken(location: Location) : Token(location, TokenType.LEFT_BRACKET)
 
-class RightBracketToken(context: Context) : Token(context, TokenType.RIGHT_BRACKET)
+class RightBracketToken(location: Location) : Token(location, TokenType.RIGHT_BRACKET)
 
-class QuotesToken(context: Context) : Token(context, TokenType.QUOTES)
+class QuotesToken(location: Location) : Token(location, TokenType.QUOTES)
 
-class PeriodToken(context: Context) : Token(context, TokenType.PERIOD)
+class PeriodToken(location: Location) : Token(location, TokenType.PERIOD)
 
-class CommaToken(context: Context) : Token(context, TokenType.COMMA)
+class CommaToken(location: Location) : Token(location, TokenType.COMMA)
 
-class ColonToken(context: Context) : Token(context, TokenType.COLON)
+class ColonToken(location: Location) : Token(location, TokenType.COLON)
 
-class ArrowToken(context: Context) : Token(context, TokenType.ARROW)
+class ArrowToken(location: Location) : Token(location, TokenType.ARROW)
 
-class PipeToken(context: Context) : Token(context, TokenType.PIPE)
+class PipeToken(location: Location) : Token(location, TokenType.PIPE)
 
-class TypeToken(context: Context) : Token(context, TokenType.TYPE)
-
-
-class LetToken(context: Context) : Token(context, TokenType.LET)
-
-class ConstToken(context: Context) : Token(context, TokenType.CONST)
-
-class DefToken(context: Context) : Token(context, TokenType.DEF)
-
-class NumToken(context: Context) : Token(context, TokenType.NUM)
+class TypeToken(location: Location) : Token(location, TokenType.TYPE)
 
 
-class IfToken(context: Context) : Token(context, TokenType.IF)
+class LetToken(location: Location) : Token(location, TokenType.LET)
 
-class ElseToken(context: Context) : Token(context, TokenType.ELSE)
+class ConstToken(location: Location) : Token(location, TokenType.CONST)
 
-class WhileToken(context: Context) : Token(context, TokenType.WHILE)
+class DefToken(location: Location) : Token(location, TokenType.DEF)
 
-class DoToken(context: Context) : Token(context, TokenType.DO)
+class NumToken(location: Location) : Token(location, TokenType.NUM)
 
-class ForToken(context: Context) : Token(context, TokenType.FOR)
 
-class MatchToken(context: Context) : Token(context, TokenType.MATCH)
+class IfToken(location: Location) : Token(location, TokenType.IF)
 
-class ReturnToken(context: Context) : Token(context, TokenType.RETURN)
+class ElseToken(location: Location) : Token(location, TokenType.ELSE)
 
-class BreakToken(context: Context) : Token(context, TokenType.BREAK)
+class WhileToken(location: Location) : Token(location, TokenType.WHILE)
 
-class ContinueToken(context: Context) : Token(context, TokenType.CONTINUE)
+class DoToken(location: Location) : Token(location, TokenType.DO)
 
-class UnitToken(context: Context) : Token(context, TokenType.UNIT)
+class ForToken(location: Location) : Token(location, TokenType.FOR)
 
-class BoolToken(context: Context) : Token(context, TokenType.BOOL)
+class MatchToken(location: Location) : Token(location, TokenType.MATCH)
 
-class StringTypeToken(context: Context) : Token(context, TokenType.STRING_TYPE)
+class ReturnToken(location: Location) : Token(location, TokenType.RETURN)
 
-class IntToken(context: Context) : Token(context, TokenType.INT)
+class BreakToken(location: Location) : Token(location, TokenType.BREAK)
 
-class FloatToken(context: Context) : Token(context, TokenType.FLOAT)
+class ContinueToken(location: Location) : Token(location, TokenType.CONTINUE)
 
-class VecToken(context: Context) : Token(context, TokenType.VEC)
+class UnitToken(location: Location) : Token(location, TokenType.UNIT)
 
-class NewLineToken(context: Context) : Token(context, TokenType.NEW_LINE)
+class BoolToken(location: Location) : Token(location, TokenType.BOOL)
+
+class StringTypeToken(location: Location) : Token(location, TokenType.STRING_TYPE)
+
+class IntToken(location: Location) : Token(location, TokenType.INT)
+
+class FloatToken(location: Location) : Token(location, TokenType.FLOAT)
+
+class VecToken(location: Location) : Token(location, TokenType.VEC)
+
+class NewLineToken(location: Location) : Token(location, TokenType.NEW_LINE)

@@ -4,5 +4,5 @@ import myte.shared.*
 
 class TupleLiteralExpression(
     val elements: List<Expression>,
-    startContext: Context
-): Expression(startContext)
+    startLocation: Location
+): Expression(startLocation)

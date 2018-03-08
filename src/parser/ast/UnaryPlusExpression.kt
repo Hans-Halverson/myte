@@ -2,4 +2,4 @@ package myte.parser.ast
 
 import myte.shared.*
 
-class UnaryPlusExpression(val expr: Expression, startContext: Context) : Expression(startContext)
+class UnaryPlusExpression(val expr: Expression, startLocation: Location) : Expression(startLocation)

@@ -92,8 +92,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             is ForToken -> parseForStatement(token)
             is MatchToken -> parseMatchStatement(token)
             is ReturnToken -> parseReturnStatement(token)
-            is BreakToken -> BreakStatement(token.context)
-            is ContinueToken -> ContinueStatement(token.context)
+            is BreakToken -> BreakStatement(token.location)
+            is ContinueToken -> ContinueStatement(token.location)
             // If no statement was found yet, the current statement must be an expression
             else -> parseExpression(token)
         }
@@ -120,12 +120,12 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         // Match on all tokens that signal a prefix operator
         var currentExpr = when (firstToken) {
             // Literals
-            is IntLiteralToken -> IntLiteral(firstToken.num, firstToken.context)
-            is FloatLiteralToken -> FloatLiteral(firstToken.num, firstToken.context)
+            is IntLiteralToken -> IntLiteral(firstToken.num, firstToken.location)
+            is FloatLiteralToken -> FloatLiteral(firstToken.num, firstToken.location)
             is IdentifierToken -> parseIdentifierExpression(firstToken)
-            is TrueToken -> BoolLiteralExpression(true, firstToken.context)
-            is FalseToken -> BoolLiteralExpression(false, firstToken.context)
-            is StringLiteralToken -> StringLiteralExpression(firstToken.str, firstToken.context)
+            is TrueToken -> BoolLiteralExpression(true, firstToken.location)
+            is FalseToken -> BoolLiteralExpression(false, firstToken.location)
+            is StringLiteralToken -> StringLiteralExpression(firstToken.str, firstToken.location)
             is LeftBracketToken -> parseVectorLiteralExpression(false, firstToken)
             // Prefixs operators
             is PlusToken -> parseUnaryPlusExpression(firstToken)
@@ -199,10 +199,10 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         val info = symbolTable.getInfo(ident)
         if (info?.idClass == IdentifierClass.VARIABLE ||
                 info?.idClass == IdentifierClass.FUNCTION) {
-            return VariableExpression(ident, token.context)
+            return VariableExpression(ident, token.location)
         // If identifier is a type constructor, create a constructor with no arguments
         } else if (info?.idClass == IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT) {
-            return TypeConstructorExpression(info.adtVariant, listOf(), token.context)
+            return TypeConstructorExpression(info.adtVariant, listOf(), token.location)
         } else {
             throw ParseException("${ident.name} is not a function, variable, or type constructor",
                     token)
@@ -219,7 +219,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         // Return empty list if no vector elements are encountered
         if (tokenizer.current is RightBracketToken) {
             tokenizer.next()
-            return VectorLiteralExpression(listOf(), leftBracketToken.context)
+            return VectorLiteralExpression(listOf(), leftBracketToken.location)
         }
 
         // Add expressions, separated by commas, until a right bracket is encountered.
@@ -243,25 +243,25 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         assertCurrent(TokenType.RIGHT_BRACKET)
         tokenizer.next()
 
-        return VectorLiteralExpression(elements, leftBracketToken.context)
+        return VectorLiteralExpression(elements, leftBracketToken.location)
     }
 
     fun parseUnaryPlusExpression(plusToken: PlusToken): UnaryPlusExpression {
         // If parseUnaryPlusExpression is called, the previous token must have been a +
         val expr = parseExpression(NUMERIC_PREFIX_PRECEDENCE)
-        return UnaryPlusExpression(expr, plusToken.context)
+        return UnaryPlusExpression(expr, plusToken.location)
     }
 
     fun parseUnaryMinusExpression(minusToken: MinusToken): UnaryMinusExpression {
         // If parseUnaryMinusExpression is called, the previous token must have been a -
         val expr = parseExpression(NUMERIC_PREFIX_PRECEDENCE)
-        return UnaryMinusExpression(expr, minusToken.context)
+        return UnaryMinusExpression(expr, minusToken.location)
     }
 
     fun parseLogicalNotExpression(logicalNotToken: LogicalNotToken): LogicalNotExpression {
         // If parseLogicalNotExpression is called, the previous token must have been a !
         val expr = parseExpression(LOGICAL_NOT_PRECEDENCE)
-        return LogicalNotExpression(expr, logicalNotToken.context)
+        return LogicalNotExpression(expr, logicalNotToken.location)
     }
 
     fun parseParenthesizedExpression(
@@ -279,7 +279,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         // If a right paren is seen after a single expression, this is a group expression
         if (tokenizer.current is RightParenToken) {
             tokenizer.next()
-            return GroupExpression(expr, leftParenToken.context)
+            return GroupExpression(expr, leftParenToken.location)
         }
 
         // Otherwise interpret as a tuple literal by parsing comma separated list of expressions
@@ -302,7 +302,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         assertCurrent(TokenType.RIGHT_PAREN)
         tokenizer.next()
 
-        return TupleLiteralExpression(exprs, leftParenToken.context)
+        return TupleLiteralExpression(exprs, leftParenToken.location)
     }
 
     fun parseAddExpression(prevExpr: Expression): AddExpression {
@@ -345,10 +345,10 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             }
 
             val expr = parseExpression(rightAssociative(ASSIGNMENT_PRECEDENCE))
-            return VariableAssignmentExpression(prevExpr.ident, expr, prevExpr.identContext)
+            return VariableAssignmentExpression(prevExpr.ident, expr, prevExpr.identLocation)
         } else if (prevExpr is KeyedAccessExpression) {
             val expr = parseExpression(rightAssociative(ASSIGNMENT_PRECEDENCE))
-            return KeyedAssignmentExpression(prevExpr, expr, prevExpr.accessContext)
+            return KeyedAssignmentExpression(prevExpr, expr, prevExpr.accessLocation)
         } else {
             throw ParseException("Cannot assign value to ${prevExpr}", equalsToken)
         }
@@ -422,10 +422,11 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
         // If a variable is called create a call expression
         if (prevExpr is VariableExpression) {
-            return FunctionCallExpression(prevExpr, actualArgs, prevExpr.identContext)
+            return FunctionCallExpression(prevExpr, actualArgs, prevExpr.identLocation)
         // If a type constructor is called, create a type constructor expression with arguments
         } else if (prevExpr is TypeConstructorExpression) {
-            return TypeConstructorExpression(prevExpr.adtVariant, actualArgs, prevExpr.identContext)
+            return TypeConstructorExpression(prevExpr.adtVariant, actualArgs,
+                    prevExpr.identLocation)
         } else {
             throw ParseException("Can only apply functions or type constructors", leftParenToken)
         }
@@ -441,14 +442,14 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         assertCurrent(TokenType.RIGHT_BRACKET)
         tokenizer.next()
 
-        return KeyedAccessExpression(prevExpr, keyExpr, leftBracketToken.context)
+        return KeyedAccessExpression(prevExpr, keyExpr, leftBracketToken.location)
     }
 
     fun parseAccessExpression(prevExpr: Expression, periodToken: PeriodToken): AccessExpression {
         // If parseKeyedAccessExpression is called, the previous token must have been a .
         val accessExpr = parseExpression(CALL_ACCESS_PRECEDENCE)
 
-        return AccessExpression(prevExpr, accessExpr, periodToken.context)
+        return AccessExpression(prevExpr, accessExpr, periodToken.location)
     }
 
     fun parseVariableDefinition(isConst: Boolean, defToken: Token): VariableDefinitionStatement {
@@ -479,7 +480,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             val ident = symbolTable.addSymbol(identToken.str, IdentifierClass.VARIABLE,
                     FloatType, identProps)
             
-            return VariableDefinitionStatement(ident, expr, identToken.context, defToken.context)
+            return VariableDefinitionStatement(ident, expr, identToken.location, defToken.location)
         } else {
             if (token !is IdentifierToken) {
                 throw ParseException("Expected identifier in variable definition", token)
@@ -506,7 +507,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             val ident = symbolTable.addSymbol(identToken.str, IdentifierClass.VARIABLE, type,
                     identProps)
             
-            return VariableDefinitionStatement(ident, expr, identToken.context, defToken.context)
+            return VariableDefinitionStatement(ident, expr, identToken.location, defToken.location)
         }
     }
 
@@ -588,7 +589,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             val expr = parseExpression()
             symbolTable.exitScope()
             return FunctionDefinitionStatement(ident, formalArgs,
-                    ReturnStatement(expr, expr.startContext), funcToken.context, defToken.context)
+                    ReturnStatement(expr, expr.startLocation), funcToken.location,
+                            defToken.location)
         } else {
             // Non-expression function definition bodies must consist of a single block
             token = tokenizer.next()
@@ -600,8 +602,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
             val block = parseBlock(token)
             symbolTable.exitScope()
-            return FunctionDefinitionStatement(ident, formalArgs, block, funcToken.context,
-                    defToken.context)
+            return FunctionDefinitionStatement(ident, formalArgs, block, funcToken.location,
+                    defToken.location)
         }
     }
 
@@ -618,7 +620,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         tokenizer.next()
         symbolTable.exitScope()
 
-        return BlockStatement(statements, leftBraceToken.context)
+        return BlockStatement(statements, leftBraceToken.location)
     }
 
     fun parseIfStatement(ifToken: IfToken): IfStatement {
@@ -633,7 +635,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             alternative = parseStatement()
         }
 
-        return IfStatement(condition, consequent, alternative, ifToken.context)
+        return IfStatement(condition, consequent, alternative, ifToken.location)
     }
 
     fun parseWhileStatement(whileToken: WhileToken): WhileStatement {
@@ -641,7 +643,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         val condition = parseExpression()
         val statement = parseStatement()
 
-        return WhileStatement(condition, statement, whileToken.context)
+        return WhileStatement(condition, statement, whileToken.location)
     }
 
     fun parseDoWhileStatement(doToken: DoToken): DoWhileStatement {
@@ -653,7 +655,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
         val condition = parseExpression()
 
-        return DoWhileStatement(condition, statement, doToken.context)
+        return DoWhileStatement(condition, statement, doToken.location)
     }
 
     fun parseForStatement(forToken: ForToken): ForStatement {
@@ -699,18 +701,18 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
         symbolTable.exitScope()
 
-        return ForStatement(initializer, condition, update, statement, forToken.context)
+        return ForStatement(initializer, condition, update, statement, forToken.location)
     }
 
     fun parsePattern(): Expression {
         var token = tokenizer.next()
         return when (token) {
             // Patterns only consist of literals and variables
-            is IntLiteralToken -> IntLiteral(token.num, token.context)
-            is FloatLiteralToken -> FloatLiteral(token.num, token.context)
-            is StringLiteralToken -> StringLiteralExpression(token.str, token.context)
-            is TrueToken -> BoolLiteralExpression(true, token.context)
-            is FalseToken -> BoolLiteralExpression(false, token.context)
+            is IntLiteralToken -> IntLiteral(token.num, token.location)
+            is FloatLiteralToken -> FloatLiteral(token.num, token.location)
+            is StringLiteralToken -> StringLiteralExpression(token.str, token.location)
+            is TrueToken -> BoolLiteralExpression(true, token.location)
+            is FalseToken -> BoolLiteralExpression(false, token.location)
             is LeftBracketToken -> parseVectorLiteralExpression(true, token)
             is LeftParenToken -> parseParenthesizedExpression(true, token)
             // An identifier may be a new variable or a type constructor
@@ -720,7 +722,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                 if (variantIdent == null) {
                     val ident = symbolTable.addSymbol(token.str, IdentifierClass.VARIABLE,
                             TypeVariable())
-                    return VariableExpression(ident, token.context)
+                    return VariableExpression(ident, token.location)
                 }
 
                 // If identifier is seen but not adt variant, create new identifier
@@ -728,7 +730,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                 if (variantInfo?.idClass != IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT) {
                     val ident = symbolTable.addSymbol(token.str, IdentifierClass.VARIABLE,
                             TypeVariable())
-                    return VariableExpression(ident, token.context)
+                    return VariableExpression(ident, token.location)
                 }
 
                 // If identifier is for type constructor, parse (optional) comma separated list
@@ -746,7 +748,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                     tokenizer.next()
                 }
 
-                return TypeConstructorExpression(adtVariant, args, token.context)
+                return TypeConstructorExpression(adtVariant, args, token.location)
             }
             else -> throw ParseException("Patterns must only consist of literals and variables",
                         token)
@@ -787,7 +789,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
         tokenizer.next()
 
-        return MatchStatement(matchExpr, patterns.zip(statements), matchToken.context)
+        return MatchStatement(matchExpr, patterns.zip(statements), matchToken.location)
     }
 
     fun parseReturnStatement(returnToken: ReturnToken): ReturnStatement {
@@ -795,9 +797,9 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         // If unit is reurned, do not store a return expression.
         if (tokenizer.current is UnitToken) {
             tokenizer.next()
-            return ReturnStatement(null, returnToken.context)
+            return ReturnStatement(null, returnToken.location)
         } else {
-            return ReturnStatement(parseExpression(), returnToken.context)
+            return ReturnStatement(parseExpression(), returnToken.location)
         }
     }
 

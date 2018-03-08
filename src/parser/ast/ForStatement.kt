@@ -7,5 +7,5 @@ class ForStatement(
     val cond: Expression?,
     val update: Statement?,
     val body: Statement,
-    startContext: Context
-) : Statement(startContext)
+    startLocation: Location
+) : Statement(startLocation)

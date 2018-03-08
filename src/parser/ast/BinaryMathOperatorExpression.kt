@@ -3,7 +3,7 @@ package myte.parser.ast
 sealed class BinaryMathOperatorExpression(
     val left: Expression,
     val right: Expression
-) : Expression(left.startContext)
+) : Expression(left.startLocation)
 
 class AddExpression(
     left: Expression,

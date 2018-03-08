@@ -11,8 +11,8 @@ import myte.shared.*
 class FunctionCallNode(
     val func: IRNode,
     val actualArgs: List<IRNode>,
-    startContext: Context
-) : IRNode(startContext) {
+    startLocation: Location
+) : IRNode(startLocation) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         actualArgs.map { arg -> arg.map(func) }

@@ -11,8 +11,8 @@ import myte.shared.*
 class DoWhileNode(
     val cond: IRNode,
     val body: IRNode,
-    startContext: Context
-) : IRNode(startContext) {
+    startLocation: Location
+) : IRNode(startLocation) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         cond.map(func)

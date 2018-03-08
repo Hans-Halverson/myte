@@ -15,8 +15,8 @@ class ForNode(
     val cond: IRNode?,
     val update: IRNode?,
     val body: IRNode,
-    startContext: Context
-) : IRNode(startContext) {
+    startLocation: Location
+) : IRNode(startLocation) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         init?.map(func)

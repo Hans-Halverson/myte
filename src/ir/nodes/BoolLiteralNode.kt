@@ -7,4 +7,4 @@ import myte.shared.*
  *
  * @property bool the bool literal value
  */
-class BoolLiteralNode(val bool: Boolean, startContext: Context) : IRNode(startContext)
+class BoolLiteralNode(val bool: Boolean, startLocation: Location) : IRNode(startLocation)

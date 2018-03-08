@@ -3,4 +3,4 @@ package myte.parser.ast
 class LogicalOrExpression(
     val left: Expression,
     val right: Expression
-) : Expression(left.startContext)
+) : Expression(left.startLocation)

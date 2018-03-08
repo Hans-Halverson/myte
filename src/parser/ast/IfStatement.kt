@@ -6,5 +6,5 @@ class IfStatement(
     val cond: Expression,
     val conseq: Statement,
     val altern: Statement?,
-    startContext: Context
-) : Statement(startContext)
+    startLocation: Location
+) : Statement(startLocation)

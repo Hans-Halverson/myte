@@ -2,4 +2,7 @@ package myte.lexer
 
 import myte.shared.*
 
-class LexicalException(message: String, context: Context) : ExceptionWithContext(message, context)
+class LexicalException(
+    message: String,
+    location: Location
+) : ExceptionWithLocation(message, location)

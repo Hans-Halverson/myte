@@ -2,4 +2,4 @@ package myte.parser.ast
 
 import myte.shared.*
 
-class BoolLiteralExpression(val bool: Boolean, startContext: Context): Expression(startContext)
+class BoolLiteralExpression(val bool: Boolean, startLocation: Location): Expression(startLocation)

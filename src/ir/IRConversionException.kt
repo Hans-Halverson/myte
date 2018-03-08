@@ -4,5 +4,5 @@ import myte.shared.*
 
 class IRConversionException(
     message: String,
-    context: Context
-) : ExceptionWithContext(message, context)
+    location: Location
+) : ExceptionWithLocation(message, location)

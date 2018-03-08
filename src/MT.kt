@@ -104,8 +104,8 @@ fun repl(input: BufferedReader) {
                 } catch (e: ParseEOFException) {
                     continue@inputLoop
                 }
-            } catch (except: ExceptionWithContext) {
-                printExceptionWithContext(except, inputLines.toString())
+            } catch (except: ExceptionWithLocation) {
+                printExceptionWithLocation(except, inputLines.toString())
                 continue@replLoop
             }
         }
@@ -156,8 +156,8 @@ fun evaluateFile(input: BufferedReader, fileName: String) {
         for (irNode in irNodes) {
             eval.evaluate(irNode)
         }
-    } catch (except: ExceptionWithContext) {
-        printExceptionWithContext(except, file.toString())
+    } catch (except: ExceptionWithLocation) {
+        printExceptionWithLocation(except, file.toString())
     }
 }
 

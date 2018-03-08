@@ -5,6 +5,6 @@ import myte.shared.*
 class VariableDefinitionStatement(
     val ident: Identifier,
     val expr: Expression,
-    val identContext: Context,
-    startContext: Context
-) : Statement(startContext)
+    val identLocation: Location,
+    startLocation: Location
+) : Statement(startLocation)

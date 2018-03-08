@@ -27,10 +27,10 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     fun convert(stmt: Statement): IRNode {
         return when {
             // Literals
-            stmt is BoolLiteralExpression -> BoolLiteralNode(stmt.bool, stmt.startContext)
-            stmt is StringLiteralExpression -> StringLiteralNode(stmt.str, stmt.startContext)
-            stmt is IntLiteral -> IntLiteralNode(stmt.num, stmt.startContext)
-            stmt is FloatLiteral -> FloatLiteralNode(stmt.num, stmt.startContext)
+            stmt is BoolLiteralExpression -> BoolLiteralNode(stmt.bool, stmt.startLocation)
+            stmt is StringLiteralExpression -> StringLiteralNode(stmt.str, stmt.startLocation)
+            stmt is IntLiteral -> IntLiteralNode(stmt.num, stmt.startLocation)
+            stmt is FloatLiteral -> FloatLiteralNode(stmt.num, stmt.startLocation)
             stmt is VectorLiteralExpression -> convertVectorLiteral(stmt)
             stmt is TupleLiteralExpression -> convertTupleLiteral(stmt)
             // Variables and functions
@@ -55,16 +55,16 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             stmt is ComparisonExpression -> convertComparison(stmt)
             // Control flow and structure
             stmt is GroupExpression -> convert(stmt.expr)
-            stmt is BlockStatement -> BlockNode(stmt.stmts.map(this::convert), stmt.startContext)
+            stmt is BlockStatement -> BlockNode(stmt.stmts.map(this::convert), stmt.startLocation)
             stmt is IfStatement -> convertIf(stmt)
             stmt is WhileStatement -> convertWhile(stmt)
             stmt is DoWhileStatement -> convertDoWhile(stmt)
             stmt is ForStatement -> convertFor(stmt)
             stmt is MatchStatement -> convertMatch(stmt)
             stmt is ReturnStatement -> convertReturn(stmt)
-            stmt is BreakStatement -> BreakNode(stmt.breakContext)
-            stmt is ContinueStatement -> ContinueNode(stmt.continueContext)
-            else -> throw IRConversionException("Unknown statement ${stmt}", stmt.startContext)
+            stmt is BreakStatement -> BreakNode(stmt.breakLocation)
+            stmt is ContinueStatement -> ContinueNode(stmt.continueLocation)
+            else -> throw IRConversionException("Unknown statement ${stmt}", stmt.startLocation)
         }
     }
 
@@ -94,16 +94,16 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         // Check that all paths in the function return a value
         if (!allPathsHaveReturn(body)) {
             throw IRConversionException("Every branch of ${stmt.ident.name} must return " +
-                    "a value", stmt.identContext)
+                    "a value", stmt.identLocation)
         }
 
-        return FunctionDefinitionNode(stmt.ident, stmt.formalArgs, body, stmt.identContext,
-                stmt.startContext)
+        return FunctionDefinitionNode(stmt.ident, stmt.formalArgs, body, stmt.identLocation,
+                stmt.startLocation)
     }
 
     fun convertVariableDefinition(stmt: VariableDefinitionStatement): VariableDefinitionNode {
-        return VariableDefinitionNode(stmt.ident, convert(stmt.expr), stmt.identContext,
-                stmt.startContext)
+        return VariableDefinitionNode(stmt.ident, convert(stmt.expr), stmt.identLocation,
+                stmt.startLocation)
     }
 
     fun convertIf(stmt: IfStatement): IfNode {
@@ -111,15 +111,15 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         val conseq = convert(stmt.conseq)
         val altern = if (stmt.altern != null) convert(stmt.altern) else null
 
-        return IfNode(cond, conseq, altern, stmt.startContext)
+        return IfNode(cond, conseq, altern, stmt.startLocation)
     }
 
     fun convertWhile(stmt: WhileStatement): WhileNode {
-        return WhileNode(convert(stmt.cond), convert(stmt.body), stmt.startContext)
+        return WhileNode(convert(stmt.cond), convert(stmt.body), stmt.startLocation)
     }
 
     fun convertDoWhile(stmt: DoWhileStatement): DoWhileNode {
-        return DoWhileNode(convert(stmt.cond), convert(stmt.body), stmt.startContext)
+        return DoWhileNode(convert(stmt.cond), convert(stmt.body), stmt.startLocation)
     }
 
     fun convertFor(stmt: ForStatement): ForNode {
@@ -127,7 +127,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         val cond = if (stmt.cond != null) convert(stmt.cond) else null
         val update = if (stmt.update != null) convert(stmt.update) else null
 
-        return ForNode(init, cond, update, convert(stmt.body), stmt.startContext)
+        return ForNode(init, cond, update, convert(stmt.body), stmt.startLocation)
     }
 
     fun convertMatch(stmt: MatchStatement): MatchNode {
@@ -136,72 +136,72 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             Pair(convert(pattern), convert(statement))
         }
 
-        return MatchNode(expr, cases, stmt.startContext)
+        return MatchNode(expr, cases, stmt.startLocation)
     }
 
     fun convertVariable(expr: VariableExpression): IRNode {
         val info = symbolTable.getInfo(expr.ident)
         if (info == null) {
-            throw IRConversionException("Unknown variable ${expr.ident.name}", expr.identContext)
+            throw IRConversionException("Unknown variable ${expr.ident.name}", expr.identLocation)
         }
 
-        return VariableNode(expr.ident, expr.identContext)
+        return VariableNode(expr.ident, expr.identLocation)
     }
 
     fun convertFunctionCall(expr: FunctionCallExpression): FunctionCallNode {
         val func = convert(expr.func)
         val args = expr.actualArgs.map(this::convert)
 
-        return FunctionCallNode(func, args, expr.identContext)
+        return FunctionCallNode(func, args, expr.identLocation)
     }
 
     fun convertTypeConstructor(expr: TypeConstructorExpression): TypeConstructorNode {
         val args = expr.actualArgs.map(this::convert)
 
-        return TypeConstructorNode(expr.adtVariant, args, expr.identContext)
+        return TypeConstructorNode(expr.adtVariant, args, expr.identLocation)
     }
 
     fun convertKeyedAccess(expr: KeyedAccessExpression): KeyedAccessNode {
-        return KeyedAccessNode(convert(expr.container), convert(expr.key), expr.accessContext)
+        return KeyedAccessNode(convert(expr.container), convert(expr.key), expr.accessLocation)
     }
 
     fun convertKeyedAssignment(expr: KeyedAssignmentExpression): KeyedAssignmentNode {
         // Convert the keyed access, and use its properties to construct the keyed assignment
         val keyedAccess = convertKeyedAccess(expr.lValue)
         return KeyedAssignmentNode(keyedAccess.container, keyedAccess.key,
-                convert(expr.rValue), expr.accessContext)
+                convert(expr.rValue), expr.accessLocation)
     }
 
     fun convertVariableAssignment(expr: VariableAssignmentExpression): VariableAssignmentNode {
         val info = symbolTable.getInfo(expr.lValue)
         if (info == null) {
-            throw IRConversionException("Unknown variable ${expr.lValue.name}", expr.identContext)
+            throw IRConversionException("Unknown variable ${expr.lValue.name}", expr.identLocation)
         }
 
         if (info.idClass != IdentifierClass.VARIABLE) {
             throw IRConversionException("Cannot reassign ${expr.lValue.name}, can only " +
-                    "reassign variables", expr.identContext)
+                    "reassign variables", expr.identLocation)
         }
 
         if (isImmutable(expr.lValue)) {
             throw IRConversionException("Cannot reassign immutable variable ${expr.lValue.name}",
-                    expr.identContext)
+                    expr.identLocation)
         }
 
-        return VariableAssignmentNode(expr.lValue, convert(expr.rValue), expr.identContext)
+        return VariableAssignmentNode(expr.lValue, convert(expr.rValue), expr.identLocation)
     }
 
     fun convertReturn(expr: ReturnStatement): ReturnNode {
         val returnVal = if (expr.expr != null) convert(expr.expr) else null 
-        return ReturnNode(returnVal, expr.returnContext)
+        return ReturnNode(returnVal, expr.returnLocation)
     }
 
     fun convertVectorLiteral(expr: VectorLiteralExpression): VectorLiteralNode {
-        return VectorLiteralNode(expr.elements.map(this::convert), expr.startContext)
+        return VectorLiteralNode(expr.elements.map(this::convert), expr.startLocation)
     }
 
     fun convertTupleLiteral(expr: TupleLiteralExpression): TupleLiteralNode {
-        return TupleLiteralNode(expr.elements.map(this::convert), expr.startContext)
+        return TupleLiteralNode(expr.elements.map(this::convert), expr.startLocation)
     }
 
     fun convertEquality(expr: EqualityExpression): EqualityNode {
@@ -235,7 +235,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     }
 
     fun convertLogicalNot(expr: LogicalNotExpression): LogicalNotNode {
-        return LogicalNotNode(convert(expr.expr), expr.startContext)
+        return LogicalNotNode(convert(expr.expr), expr.startLocation)
     }
 
     fun convertBinaryMathOperator(expr: BinaryMathOperatorExpression): BinaryMathOperatorNode {
@@ -252,11 +252,11 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     }
 
     fun convertUnaryPlus(expr: UnaryPlusExpression): IdentityNode {
-        return IdentityNode(convert(expr.expr), expr.startContext)
+        return IdentityNode(convert(expr.expr), expr.startLocation)
     }
 
     fun convertUnaryMinus(expr: UnaryMinusExpression): NegateNode {
-        return NegateNode(convert(expr.expr), expr.startContext)
+        return NegateNode(convert(expr.expr), expr.startLocation)
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -348,13 +348,13 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             is FunctionDefinitionNode -> jumpsInAllowedPlaces(node.body, true, false)
             is ReturnNode -> if (!allowReturn) {
                 throw IRConversionException("Return must appear in function body",
-                        node.returnContext)
+                        node.returnLocation)
             }
             is BreakNode -> if (!allowBreakOrContinue) {
-                throw IRConversionException("Break must appear in loop", node.breakContext)
+                throw IRConversionException("Break must appear in loop", node.breakLocation)
             }
             is ContinueNode -> if (!allowBreakOrContinue) {
-                throw IRConversionException("Continue must appear in loop", node.continueContext)
+                throw IRConversionException("Continue must appear in loop", node.continueLocation)
             }
         }
     }

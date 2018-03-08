@@ -12,8 +12,8 @@ import myte.shared.*
 class TypeConstructorNode(
     val adtVariant: AlgebraicDataTypeVariant,
     val actualArgs: List<IRNode>,
-    identContext: Context
-) : IRNode(identContext) {
+    identLocation: Location
+) : IRNode(identLocation) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         actualArgs.map { arg -> arg.map(func) }

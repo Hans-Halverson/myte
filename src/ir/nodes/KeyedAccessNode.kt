@@ -7,13 +7,13 @@ import myte.shared.*
  *
  * @property container the container that is being indexed into
  * @property key the key used to index into the container
- * @property accessContext the context of the left bracket in the access
+ * @property accessLocation the location of the left bracket in the access
  */
 data class KeyedAccessNode(
     val container: IRNode,
     val key: IRNode,
-    val accessContext: Context
-) : IRNode(container.startContext) {
+    val accessLocation: Location
+) : IRNode(container.startLocation) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         container.map(func)

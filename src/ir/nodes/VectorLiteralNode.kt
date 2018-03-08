@@ -7,7 +7,10 @@ import myte.shared.*
  *
  * @property elements the elements in the vector literal
  */
-class VectorLiteralNode(val elements: List<IRNode>, startContext: Context) : IRNode(startContext) {
+class VectorLiteralNode(
+    val elements: List<IRNode>,
+    startLocation: Location
+) : IRNode(startLocation) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         elements.map { element -> element.map(func) }

@@ -2,4 +2,4 @@ package myte.parser.ast
 
 import myte.shared.*
 
-abstract class Expression(startContext: Context) : Statement(startContext)
+abstract class Expression(startLocation: Location) : Statement(startLocation)

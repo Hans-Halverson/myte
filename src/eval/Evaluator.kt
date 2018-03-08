@@ -58,7 +58,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             is ReturnNode -> evalReturn(node, env)
             is BreakNode -> throw Break
             is ContinueNode -> throw Continue
-            else -> throw EvaluationException("Unknown IR node ${node}", node.startContext)
+            else -> throw EvaluationException("Unknown IR node ${node}", node.startLocation)
         }
     }
 
@@ -74,7 +74,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
     fun evalInt(node: IRNode, env: Environment): IntValue {
         val value = evaluate(node, env)
         if (value !is IntValue) {
-            throw EvaluationException("Expected ${value} to be an int", node.startContext)
+            throw EvaluationException("Expected ${value} to be an int", node.startLocation)
         }
 
         return value
@@ -86,7 +86,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
     fun evalFloat(node: IRNode, env: Environment): FloatValue {
         val value = evaluate(node, env)
         if (value !is FloatValue) {
-            throw EvaluationException("Expected ${value} to be a float", node.startContext)
+            throw EvaluationException("Expected ${value} to be a float", node.startLocation)
         }
 
         return value
@@ -98,7 +98,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
     fun evalBool(node: IRNode, env: Environment): BoolValue {
         val value = evaluate(node, env)
         if (value !is BoolValue) {
-            throw EvaluationException("Expected ${value} to be a boolean", node.startContext)
+            throw EvaluationException("Expected ${value} to be a boolean", node.startLocation)
         }
 
         return value
@@ -108,7 +108,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         val type = node.type
         if (type !is VectorType) {
             throw EvaluationException("Expected vector literal to have vector type, " +
-                    "but found ${formatType(type)}", node.startContext)
+                    "but found ${formatType(type)}", node.startLocation)
         }
 
         val vector = node.elements.map({ element ->
@@ -122,7 +122,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         val type = node.type
         if (type !is TupleType) {
             throw EvaluationException("Expected tuple literal to have tuple type, " +
-                    "but found ${formatType(type)}", node.startContext)
+                    "but found ${formatType(type)}", node.startLocation)
         }
 
         val tuple = node.elements.map({ element ->
@@ -143,7 +143,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
                 FloatValue(node.computeFloat(expr.num))
             }
             else -> throw EvaluationException("Unary math operator must have a number type, " +
-                    "given ${formatType(node.type)}", node.startContext)
+                    "given ${formatType(node.type)}", node.startLocation)
         }
     }
 
@@ -162,7 +162,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
                 FloatValue(node.computeFloat(left.num, right.num))
             }
             else -> throw EvaluationException("Binary math operator must have a number type, " +
-                    "given ${formatType(node.type)}", node.startContext)
+                    "given ${formatType(node.type)}", node.startLocation)
         }
     }
 
@@ -210,7 +210,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
                 BoolValue(node.compareFloats(left.num, right.num))
             }
             else -> throw EvaluationException("Comparison must be between two numbers, "
-                    + "given ${formatType(node.type)}", node.startContext)
+                    + "given ${formatType(node.type)}", node.startLocation)
         }
     }
 
@@ -218,13 +218,13 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         val container = evaluate(node.container, env)
         if (container !is VectorValue) {
             throw EvaluationException("Can only perform keyed access on a vector, " +
-                    "found ${formatType(container.type)}", node.startContext)
+                    "found ${formatType(container.type)}", node.startLocation)
         }
 
         val key = evalInt(node.key, env)
         if (key.num < 0 || key.num >= container.elements.size) {
             throw EvaluationException("Index ${key.num} is outside bounds of vector",
-                    node.key.startContext)
+                    node.key.startLocation)
         }
 
         return container.elements[key.num]
@@ -234,13 +234,13 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         val container = evaluate(node.container, env)
         if (container !is VectorValue) {
             throw EvaluationException("Can only perform keyed access on a vector, " +
-                    "found ${formatType(container.type)}", node.startContext)
+                    "found ${formatType(container.type)}", node.startLocation)
         }
 
         val key = evalInt(node.key, env)
         if (key.num < 0 || key.num >= container.elements.size) {
             throw EvaluationException("Index ${key.num} is outside bounds of vector",
-                    node.key.startContext)
+                    node.key.startLocation)
         }
 
         val rValue = evaluate(node.rValue, env)
@@ -251,7 +251,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
 
     fun evalFunctionCall(node: FunctionCallNode, env: Environment): Value {
         if (node.func !is VariableNode) {
-            throw EvaluationException("Can only call function", node.func.startContext)
+            throw EvaluationException("Can only call function", node.func.startLocation)
         }
         
         val closureValue = env.lookup(node.func.ident)
@@ -262,13 +262,13 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             return closureValue.func(actualArgs)
         } else if (closureValue !is ClosureValue) {
             throw EvaluationException("Cannot call ${closureValue}, can only call functions",
-                    node.startContext)
+                    node.startLocation)
         }
 
         // Check that number of arguments is correct
         if (node.actualArgs.size != closureValue.formalArgs.size) {
             throw EvaluationException("${node.func} expected ${closureValue.formalArgs.size} " +
-                    "arguments, but received ${node.actualArgs.size}", node.startContext)
+                    "arguments, but received ${node.actualArgs.size}", node.startLocation)
         }
 
         val actualArgs: List<Value> = node.actualArgs.map { expr -> evaluate(expr, env) }
@@ -295,7 +295,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             return returnValue
         }
 
-        throw EvaluationException("No return value", node.startContext)
+        throw EvaluationException("No return value", node.startLocation)
     }
 
     fun evalTypeConstructor(node: TypeConstructorNode, env: Environment): AlgebraicDataTypeValue {
@@ -318,7 +318,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
     fun evalFunctionDefinition(node: FunctionDefinitionNode, env: Environment): UnitValue {
         val type = symbolTable.getInfo(node.ident)?.type
         if (type !is FunctionType) {
-            throw EvaluationException("Unknown function ${node.ident.name}", node.identContext)
+            throw EvaluationException("Unknown function ${node.ident.name}", node.identLocation)
         }
 
         env.extend(node.ident, ClosureValue(node.formalArgs, node.body, env.copy(), type))
@@ -475,7 +475,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             is BuiltinValue -> false
             is ClosureValue -> false
             is UnitValue -> false
-            else -> throw EvaluationException("Unknown value ${value}", pattern.startContext)
+            else -> throw EvaluationException("Unknown value ${value}", pattern.startLocation)
         }
     }
 

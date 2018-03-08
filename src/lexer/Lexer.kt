@@ -32,7 +32,7 @@ private class LL1StatefulReader(private val reader: Reader, private val fileName
             if (currentChar != -1) {
                 return currentChar.toChar()
             } else {
-                throw LexicalException("Unexpected EOF", currentContext)
+                throw LexicalException("Unexpected EOF", currentLocation)
             }
         }
 
@@ -45,7 +45,7 @@ private class LL1StatefulReader(private val reader: Reader, private val fileName
             if (nextChar != -1) {
                 return nextChar.toChar()
             } else {
-                throw LexicalException("Unexpected EOF", currentContext)
+                throw LexicalException("Unexpected EOF", currentLocation)
             }
         }
 
@@ -61,8 +61,8 @@ private class LL1StatefulReader(private val reader: Reader, private val fileName
     val hasNext: Boolean
         get() = nextChar != -1
 
-    val currentContext: Context
-        get() = Context(charNum, lineNum, fileName)
+    val currentLocation: Location
+        get() = Location(charNum, lineNum, fileName)
 
     /**
      * Move the reader forward one token in the stream.
@@ -91,30 +91,30 @@ private class LL1StatefulReader(private val reader: Reader, private val fileName
  * Given a string (along with the current character and line number), return a keyword token
  * for that string if the string is a keyword, otherwise return null.
  */
-private fun getKeywordToken(str: String, context: Context): Token? {
+private fun getKeywordToken(str: String, location: Location): Token? {
     return when (str) {
-        "true" -> TrueToken(context)
-        "false" -> FalseToken(context)
-        "type" -> TypeToken(context)
-        "let" -> LetToken(context)
-        "const" -> ConstToken(context)
-        "def" -> DefToken(context)
-        "num" -> NumToken(context)
-        "if" -> IfToken(context)
-        "else" -> ElseToken(context)
-        "while" -> WhileToken(context)
-        "do" -> DoToken(context)
-        "for" -> ForToken(context)
-        "match" -> MatchToken(context)
-        "return" -> ReturnToken(context)
-        "break" -> BreakToken(context)
-        "continue" -> ContinueToken(context)
-        "unit" -> UnitToken(context)
-        "bool" -> BoolToken(context)
-        "string" -> StringTypeToken(context)
-        "int" -> IntToken(context)
-        "float" -> FloatToken(context)
-        "vec" -> VecToken(context)
+        "true" -> TrueToken(location)
+        "false" -> FalseToken(location)
+        "type" -> TypeToken(location)
+        "let" -> LetToken(location)
+        "const" -> ConstToken(location)
+        "def" -> DefToken(location)
+        "num" -> NumToken(location)
+        "if" -> IfToken(location)
+        "else" -> ElseToken(location)
+        "while" -> WhileToken(location)
+        "do" -> DoToken(location)
+        "for" -> ForToken(location)
+        "match" -> MatchToken(location)
+        "return" -> ReturnToken(location)
+        "break" -> BreakToken(location)
+        "continue" -> ContinueToken(location)
+        "unit" -> UnitToken(location)
+        "bool" -> BoolToken(location)
+        "string" -> StringTypeToken(location)
+        "int" -> IntToken(location)
+        "float" -> FloatToken(location)
+        "vec" -> VecToken(location)
         else -> null
     }
 }
@@ -132,7 +132,7 @@ private fun getKeywordToken(str: String, context: Context): Token? {
 private fun readNumber(reader: LL1StatefulReader): Token {
     var numberString = StringBuilder()
 
-    val context = reader.currentContext
+    val location = reader.currentLocation
 
     // If readNumber is called, the current character must be numeric
     numberString.append(reader.current)
@@ -148,7 +148,7 @@ private fun readNumber(reader: LL1StatefulReader): Token {
         numberString.append(reader.next)
         reader.advance()
     } else {
-        return stringToInt(numberString.toString(), context)
+        return stringToInt(numberString.toString(), location)
     }
 
     // Read digits after decimal point
@@ -162,7 +162,7 @@ private fun readNumber(reader: LL1StatefulReader): Token {
         numberString.append(reader.next)
         reader.advance()
     } else {
-        return stringToFloat(numberString.toString(), context)
+        return stringToFloat(numberString.toString(), location)
     }
 
     // Read exponent sign
@@ -170,11 +170,11 @@ private fun readNumber(reader: LL1StatefulReader): Token {
         numberString.append(reader.next)
         reader.advance()
     } else {
-        return stringToFloat(numberString.toString(), context)
+        return stringToFloat(numberString.toString(), location)
     }
 
     if (reader.hasNext && reader.next !in '0'..'9') {
-        throw LexicalException("Malformed float ${numberString.toString()}", context)
+        throw LexicalException("Malformed float ${numberString.toString()}", location)
     }
 
     // Read exponent digits
@@ -183,18 +183,18 @@ private fun readNumber(reader: LL1StatefulReader): Token {
         reader.advance()
     }
 
-    return stringToFloat(numberString.toString(), context)
+    return stringToFloat(numberString.toString(), location)
 }
 
 /**
  * Convert a string to an int token.
  * @throws LexicalException if the string does not represent a valid int
  */
-private fun stringToInt(str: String, context: Context): IntLiteralToken {
+private fun stringToInt(str: String, location: Location): IntLiteralToken {
     try {
-        return IntLiteralToken(str.toInt(), context)
+        return IntLiteralToken(str.toInt(), location)
     } catch (e: NumberFormatException) {
-        throw LexicalException("Malformed int ${str}", context)
+        throw LexicalException("Malformed int ${str}", location)
     }
 }
 
@@ -202,11 +202,11 @@ private fun stringToInt(str: String, context: Context): IntLiteralToken {
  * Convert a string to a float token.
  * @throws LexicalException if the string does not represent a valid float
  */
-private fun stringToFloat(str: String, context: Context): FloatLiteralToken {
+private fun stringToFloat(str: String, location: Location): FloatLiteralToken {
     try {
-        return FloatLiteralToken(str.toDouble(), context)
+        return FloatLiteralToken(str.toDouble(), location)
     } catch (e: NumberFormatException) {
-        throw LexicalException("Malformed float ${str}", context)
+        throw LexicalException("Malformed float ${str}", location)
     }
 }
 
@@ -217,7 +217,7 @@ private fun stringToFloat(str: String, context: Context): FloatLiteralToken {
 private fun readString(reader: LL1StatefulReader): Token {
     var str = StringBuilder()
 
-    val context = reader.currentContext
+    val location = reader.currentLocation
 
     // If readString is called, the current character must be valid
     str.append(reader.current)
@@ -229,101 +229,101 @@ private fun readString(reader: LL1StatefulReader): Token {
 
     // Check if string is a keyword
     var string = str.toString()
-    var keywordToken = getKeywordToken(string, context)
+    var keywordToken = getKeywordToken(string, location)
 
-    return keywordToken ?: IdentifierToken(string, context)
+    return keywordToken ?: IdentifierToken(string, location)
 }
 
 // Identifiers in myte consist of only alphanumeric characters and underscores.
 private fun Char.isValidIdentifierCharacter(): Boolean = this.isLetterOrDigit() || this.equals('_')
 
 private fun readMinus(reader: LL1StatefulReader): Token {
-    val context = reader.currentContext
+    val location = reader.currentLocation
 
     // If readMinus is called, the current character must be "-"
     if (reader.hasNext && reader.next == '>') {
         reader.advance()
-        return ArrowToken(context)
+        return ArrowToken(location)
     } else {
-        return MinusToken(context)
+        return MinusToken(location)
     }
 }
 
 private fun readEquals(reader: LL1StatefulReader): Token {
-    val context = reader.currentContext
+    val location = reader.currentLocation
 
     // If readEquals is called, the current character must be '='
     if (reader.hasNext && reader.next == '=') {
         reader.advance()
-        return DoubleEqualsToken(context)
+        return DoubleEqualsToken(location)
     } else {
-        return EqualsToken(context)
+        return EqualsToken(location)
     }
 }
 
 private fun readLessThan(reader: LL1StatefulReader): Token {
-    val context = reader.currentContext
+    val location = reader.currentLocation
 
     // If readLessThan is called, the current character must be '<'
     if (reader.hasNext && reader.next == '=') {
         reader.advance()
-        return LessThanOrEqualToken(context)
+        return LessThanOrEqualToken(location)
     } else {
-        return LessThanToken(context)
+        return LessThanToken(location)
     }
 }
 
 private fun readGreaterThan(reader: LL1StatefulReader): Token {
-    val context = reader.currentContext
+    val location = reader.currentLocation
 
     // If readGreaterThan is called, the current character must be '>'
     if (reader.hasNext && reader.next == '=') {
         reader.advance()
-        return GreaterThanOrEqualToken(context)
+        return GreaterThanOrEqualToken(location)
     } else {
-        return GreaterThanToken(context)
+        return GreaterThanToken(location)
     }
 }
 
 private fun readBang(reader: LL1StatefulReader): Token {
-    val context = reader.currentContext
+    val location = reader.currentLocation
 
     // If readBang is called, the current character must be "!"
     if (reader.hasNext && reader.next == '=') {
         reader.advance()
-        return NotEqualsToken(context)
+        return NotEqualsToken(location)
     } else {
-        return LogicalNotToken(context)
+        return LogicalNotToken(location)
     }
 }
 
 private fun readAmpersand(reader: LL1StatefulReader): LogicalAndToken {
-    val context = reader.currentContext
+    val location = reader.currentLocation
 
     // If readAmpersand is called, the current character must be "&"
     if (reader.hasNext && reader.next == '&') {
         reader.advance()
-        return LogicalAndToken(context)
+        return LogicalAndToken(location)
     } else {
-        throw LexicalException("Unexpected token encountered &${reader.next}", context)
+        throw LexicalException("Unexpected token encountered &${reader.next}", location)
     }
 }
 
 private fun readPipe(reader: LL1StatefulReader): Token {
-    val context = reader.currentContext
+    val location = reader.currentLocation
 
     // If readPipe is called, the current character must be "|"
     if (reader.hasNext && reader.next == '|') {
         reader.advance()
-        return LogicalOrToken(context)
+        return LogicalOrToken(location)
     } else {
-        return PipeToken(context)
+        return PipeToken(location)
     }
 }
 
 private fun readStringLiteral(reader: LL1StatefulReader): StringLiteralToken {
     // If readPipe is called, the current character must be "\""
-    val context = reader.currentContext
+    val location = reader.currentLocation
 
     reader.advance()
 
@@ -333,7 +333,7 @@ private fun readStringLiteral(reader: LL1StatefulReader): StringLiteralToken {
         reader.advance()
     }
 
-    return StringLiteralToken(str.toString(), context)
+    return StringLiteralToken(str.toString(), location)
 }
 
 /**
@@ -344,37 +344,37 @@ fun createTokens(input: Reader, fileName: String?): List<Token> {
     val reader = LL1StatefulReader(input, fileName)
 
     while (reader.hasCurrent) {
-        val context = reader.currentContext
+        val location = reader.currentLocation
 
         when (reader.current) {
-            '+' -> tokens.add(PlusToken(context))
+            '+' -> tokens.add(PlusToken(location))
             '-' -> tokens.add(readMinus(reader))
-            '*' -> tokens.add(AsteriskToken(context))
-            '/' -> tokens.add(ForwardSlashToken(context))
-            '^' -> tokens.add(CaretToken(context))
+            '*' -> tokens.add(AsteriskToken(location))
+            '/' -> tokens.add(ForwardSlashToken(location))
+            '^' -> tokens.add(CaretToken(location))
             '=' -> tokens.add(readEquals(reader))
             '<' -> tokens.add(readLessThan(reader))
             '>' -> tokens.add(readGreaterThan(reader))
             '!' -> tokens.add(readBang(reader))
             '&' -> tokens.add(readAmpersand(reader))
             '|' -> tokens.add(readPipe(reader))
-            '(' -> tokens.add(LeftParenToken(context))
-            ')' -> tokens.add(RightParenToken(context))
-            '{' -> tokens.add(LeftBraceToken(context))
-            '}' -> tokens.add(RightBraceToken(context))
-            '[' -> tokens.add(LeftBracketToken(context))
-            ']' -> tokens.add(RightBracketToken(context))
+            '(' -> tokens.add(LeftParenToken(location))
+            ')' -> tokens.add(RightParenToken(location))
+            '{' -> tokens.add(LeftBraceToken(location))
+            '}' -> tokens.add(RightBraceToken(location))
+            '[' -> tokens.add(LeftBracketToken(location))
+            ']' -> tokens.add(RightBracketToken(location))
             '"' -> tokens.add(readStringLiteral(reader))
-            '.' -> tokens.add(PeriodToken(context))
-            ',' -> tokens.add(CommaToken(context))
-            ':' -> tokens.add(ColonToken(context))
+            '.' -> tokens.add(PeriodToken(location))
+            ',' -> tokens.add(CommaToken(location))
+            ':' -> tokens.add(ColonToken(location))
             in '0'..'9' -> tokens.add(readNumber(reader))
             else -> {
                 // Identifiers and keywords must begin with an alphabetic character or underscore.
                 if (reader.current.isValidIdentifierCharacter()) {
                     tokens.add(readString(reader))
                 } else if (!reader.current.isWhitespace()) {
-                    throw LexicalException("Unknown character ${reader.current}", context)
+                    throw LexicalException("Unknown character ${reader.current}", location)
                 }
             }
         }

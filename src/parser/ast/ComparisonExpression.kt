@@ -3,7 +3,7 @@ package myte.parser.ast
 sealed class ComparisonExpression(
     val left: Expression,
     val right: Expression
-) : Expression(left.startContext)
+) : Expression(left.startLocation)
 
 class LessThanExpression(
     left: Expression,

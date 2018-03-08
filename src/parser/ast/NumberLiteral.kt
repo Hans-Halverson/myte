@@ -2,8 +2,8 @@ package myte.parser.ast
 
 import myte.shared.*
 
-sealed class NumberLiteral(startContext: Context) : Expression(startContext)
+sealed class NumberLiteral(startLocation: Location) : Expression(startLocation)
 
-class IntLiteral(val num: Int, startContext: Context): NumberLiteral(startContext)
+class IntLiteral(val num: Int, startLocation: Location): NumberLiteral(startLocation)
 
-class FloatLiteral(val num: Double, startContext: Context) : NumberLiteral(startContext)
+class FloatLiteral(val num: Double, startLocation: Location) : NumberLiteral(startLocation)

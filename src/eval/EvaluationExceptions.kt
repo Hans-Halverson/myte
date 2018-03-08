@@ -5,8 +5,8 @@ import myte.shared.*
 
 class EvaluationException(
     message: String,
-    context: Context
-) : ExceptionWithContext(message, context)
+    location: Location
+) : ExceptionWithLocation(message, location)
 
 class Return(val returnValue: Value) : Exception("Returned value ${returnValue}")
 

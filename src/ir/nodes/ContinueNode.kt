@@ -4,6 +4,6 @@ import myte.shared.*
 
 /**
  * A node that represents a continue statement.
- * @property continueContext the context for the continue keyword
+ * @property continueLocation the location for the continue keyword
  */
-data class ContinueNode(val continueContext: Context) : IRNode(continueContext)
+data class ContinueNode(val continueLocation: Location) : IRNode(continueLocation)

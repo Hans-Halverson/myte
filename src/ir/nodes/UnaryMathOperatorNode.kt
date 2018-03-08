@@ -7,7 +7,10 @@ import myte.shared.*
  *
  * @property node the arithmetic expression the operation is applied to
  */
-sealed class UnaryMathOperatorNode(val node: IRNode, startContext: Context) : IRNode(startContext) {
+sealed class UnaryMathOperatorNode(
+    val node: IRNode,
+    startLocation: Location
+) : IRNode(startLocation) {
 
     /**
      * Return the result of applying this operation to an int.
@@ -30,8 +33,8 @@ sealed class UnaryMathOperatorNode(val node: IRNode, startContext: Context) : IR
  */
 class IdentityNode(
     node: IRNode,
-    startContext: Context
-) : UnaryMathOperatorNode(node, startContext) {
+    startLocation: Location
+) : UnaryMathOperatorNode(node, startLocation) {
     override fun computeInt(num: Int): Int = num
 
     override fun computeFloat(num: Double): Double = num
@@ -42,8 +45,8 @@ class IdentityNode(
  */
 class NegateNode(
     node: IRNode,
-    startContext: Context
-) : UnaryMathOperatorNode(node, startContext) {
+    startLocation: Location
+) : UnaryMathOperatorNode(node, startLocation) {
     override fun computeInt(num: Int): Int = -num
     
     override fun computeFloat(num: Double): Double = -num

@@ -3,7 +3,7 @@ package myte.parser.ast
 sealed class EqualityExpression(
     val left: Expression,
     val right: Expression
-) : Expression(left.startContext)
+) : Expression(left.startLocation)
 
 class EqualsExpression(left: Expression, right: Expression) : EqualityExpression(left, right)
 
