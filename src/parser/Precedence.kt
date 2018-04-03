@@ -2,43 +2,64 @@ package myte.parser
 
 import myte.lexer.*
 
-// Precedence levels ascend from 0, a higher precedence binds expressions more tightly, and will be
-// applied before operators of a lower precedence.
-const val NO_PRECEDENCE: Int = 0
-const val ASSIGNMENT_PRECEDENCE: Int = 1
-const val LOGICAL_OR_PRECEDENCE: Int = 2
-const val LOGICAL_AND_PRECEDENCE: Int = 3
-const val LOGICAL_NOT_PRECEDENCE: Int = 4
-const val COMPARISON_PRECEDENCE: Int = 5
-const val ADD_PRECEDENCE: Int = 6
-const val MULTIPLY_PRECEDENCE: Int = 7
-const val EXPONENT_PRECEDENCE: Int = 8
-const val NUMERIC_PREFIX_PRECEDENCE: Int = 9
-const val CALL_ACCESS_PRECEDENCE: Int = 10
+/* 
+ * Precedence levels ascend from 0, a higher precedence binds expressions more tightly, and will be
+ * applied before operators of a lower precedence.
+ */
+
+// Precedence levels for expression
+const val EXPR_NO_PRECEDENCE: Int = 0
+const val EXPR_ASSIGNMENT_PRECEDENCE: Int = 1
+const val EXPR_LOGICAL_OR_PRECEDENCE: Int = 2
+const val EXPR_LOGICAL_AND_PRECEDENCE: Int = 3
+const val EXPR_LOGICAL_NOT_PRECEDENCE: Int = 4
+const val EXPR_COMPARISON_PRECEDENCE: Int = 5
+const val EXPR_ADD_PRECEDENCE: Int = 6
+const val EXPR_MULTIPLY_PRECEDENCE: Int = 7
+const val EXPR_EXPONENT_PRECEDENCE: Int = 8
+const val EXPR_NUMERIC_PREFIX_PRECEDENCE: Int = 9
+const val EXPR_CALL_ACCESS_PRECEDENCE: Int = 10
+
+// Precedence levels for type expressions
+const val TYPE_NO_PRECEDENCE: Int = 0
+const val TYPE_UNION_PRECEDENCE: Int = 1
+const val TYPE_TUPLE_PRECEDENCE: Int = 2
+const val TYPE_FUNCTION_PRECEDENCE: Int = 3
 
 /**
  * Given a token found between two expressions, assign a precedence level to the operator or
  * synatic structure that was found.
  */
-fun getPrecedenceForInfixToken(tokenType: TokenType): Int = when (tokenType) {
-    TokenType.EQUALS -> ASSIGNMENT_PRECEDENCE
-    TokenType.LOGICAL_OR -> LOGICAL_OR_PRECEDENCE
-    TokenType.LOGICAL_AND -> LOGICAL_AND_PRECEDENCE
-    TokenType.DOUBLE_EQUALS -> COMPARISON_PRECEDENCE
-    TokenType.NOT_EQUALS -> COMPARISON_PRECEDENCE
-    TokenType.LESS_THAN -> COMPARISON_PRECEDENCE
-    TokenType.LESS_THAN_OR_EQUAL -> COMPARISON_PRECEDENCE
-    TokenType.GREATER_THAN -> COMPARISON_PRECEDENCE
-    TokenType.GREATER_THAN_OR_EQUAL -> COMPARISON_PRECEDENCE
-    TokenType.PLUS -> ADD_PRECEDENCE
-    TokenType.MINUS -> ADD_PRECEDENCE
-    TokenType.ASTERISK -> MULTIPLY_PRECEDENCE
-    TokenType.FORWARD_SLASH -> MULTIPLY_PRECEDENCE
-    TokenType.CARET -> EXPONENT_PRECEDENCE
-    TokenType.PERIOD -> CALL_ACCESS_PRECEDENCE
-    TokenType.LEFT_BRACKET -> CALL_ACCESS_PRECEDENCE
-    TokenType.LEFT_PAREN -> CALL_ACCESS_PRECEDENCE
-    else -> NO_PRECEDENCE
+fun getExprPrecedenceForInfixToken(tokenType: TokenType): Int = when (tokenType) {
+    TokenType.EQUALS -> EXPR_ASSIGNMENT_PRECEDENCE
+    TokenType.LOGICAL_OR -> EXPR_LOGICAL_OR_PRECEDENCE
+    TokenType.LOGICAL_AND -> EXPR_LOGICAL_AND_PRECEDENCE
+    TokenType.DOUBLE_EQUALS -> EXPR_COMPARISON_PRECEDENCE
+    TokenType.NOT_EQUALS -> EXPR_COMPARISON_PRECEDENCE
+    TokenType.LESS_THAN -> EXPR_COMPARISON_PRECEDENCE
+    TokenType.LESS_THAN_OR_EQUAL -> EXPR_COMPARISON_PRECEDENCE
+    TokenType.GREATER_THAN -> EXPR_COMPARISON_PRECEDENCE
+    TokenType.GREATER_THAN_OR_EQUAL -> EXPR_COMPARISON_PRECEDENCE
+    TokenType.PLUS -> EXPR_ADD_PRECEDENCE
+    TokenType.MINUS -> EXPR_ADD_PRECEDENCE
+    TokenType.ASTERISK -> EXPR_MULTIPLY_PRECEDENCE
+    TokenType.FORWARD_SLASH -> EXPR_MULTIPLY_PRECEDENCE
+    TokenType.CARET -> EXPR_EXPONENT_PRECEDENCE
+    TokenType.PERIOD -> EXPR_CALL_ACCESS_PRECEDENCE
+    TokenType.LEFT_BRACKET -> EXPR_CALL_ACCESS_PRECEDENCE
+    TokenType.LEFT_PAREN -> EXPR_CALL_ACCESS_PRECEDENCE
+    else -> EXPR_NO_PRECEDENCE
+}
+
+/**
+ * Given a token found between two type expressions, assign a precedence level to the type
+ * type constructor structure that was found.
+ */
+fun getTypePrecedenceForInfixToken(tokenType: TokenType): Int = when (tokenType) {
+    TokenType.PIPE -> TYPE_UNION_PRECEDENCE
+    TokenType.COMMA -> TYPE_TUPLE_PRECEDENCE
+    TokenType.ARROW -> TYPE_FUNCTION_PRECEDENCE
+    else -> TYPE_NO_PRECEDENCE
 }
 
 /**

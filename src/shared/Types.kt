@@ -16,6 +16,11 @@ sealed class Type {
     open fun substitute(typeMap: Map<TypeVariable, Type>): Type = this
 
     /**
+     * Convert this type into its canonical form, removing all GroupTypes.
+     */
+    open fun canonicalize(): Type = this
+
+    /**
      * Convert this type into its string representation, where the string representation for each
      * type variable comes from the included map.
      */
@@ -81,6 +86,8 @@ data class VectorType(val elementType: Type) : Type() {
         return VectorType(elementType.substitute(typeMap))
     }
 
+    override fun canonicalize(): Type = VectorType(elementType.canonicalize())
+
     override fun formatToString(typeVars: Map<TypeVariable, String>): String {
         return "vec<${elementType.formatToString(typeVars)}>"
     }
@@ -96,6 +103,8 @@ data class TupleType(val elementTypes: List<Type>) : Type() {
     override fun substitute(typeMap: Map<TypeVariable, Type>): Type {
         return TupleType(elementTypes.map { elementType -> elementType.substitute(typeMap) })
     }
+
+    override fun canonicalize(): Type = TupleType(elementTypes.map(Type::canonicalize))
 
     override fun formatToString(typeVars: Map<TypeVariable, String>): String {
         return elementTypes.map { elementType -> elementType.formatToString(typeVars) }
@@ -123,6 +132,9 @@ data class FunctionType(
 
         return FunctionType(argVals, returnVal)
     }
+
+    override fun canonicalize(): Type =
+            FunctionType(argTypes.map(Type::canonicalize), returnType.canonicalize())
 
     override fun formatToString(typeVars: Map<TypeVariable, String>): String {
         val builder = StringBuilder()
@@ -178,6 +190,9 @@ data class AlgebraicDataType(
         return AlgebraicDataType(adtSig, substTypes)
     }
 
+    override fun canonicalize(): Type =
+            AlgebraicDataType(adtSig, typeParams.map(Type::canonicalize))
+
     override fun formatToString(typeVars: Map<TypeVariable, String>): String {
         val builder = StringBuilder()
 
@@ -194,20 +209,36 @@ data class AlgebraicDataType(
     override fun toString(): String = formatToString()
 }
 
+/**
+ * An instance of a union type that has been parameterized by actual types.
+ *
+ * @property variants a list of all variants for this union
+ * @property typeParams a list of the actual type parameters that this union is parameterized by.
+ *           this should be nonempty only if a this is a defined union type with a unionSig
+ * @property unionSig the union type signature for this union, if it has been defined
+ */
 data class UnionType(
-    val unionSig: UnionTypeSignature?,
-    val typeParams: List<Type>,
-    val variants: List<Type>
+    val variants: List<Type>,
+    val typeParams: List<Type> = listOf(),
+    val unionSig: UnionTypeSignature? = null
 ) : Type() {
     override fun getAllVariables(): List<TypeVariable> {
-        return typeParams.map(Type::getAllVariables).flatten()
+        return typeParams.map(Type::getAllVariables).flatten() +
+                variants.map(Type::getAllVariables).flatten()
     }
 
     override fun substitute(typeMap: Map<TypeVariable, Type>): Type {
         val newTypeParams = typeParams.map { typeParam -> typeParam.substitute(typeMap) }
         val newVariants = variants.map { variant -> variant.substitute(typeMap) }
 
-        return UnionType(unionSig, newTypeParams, newVariants)
+        return UnionType(newTypeParams, newVariants, unionSig)
+    }
+
+    override fun canonicalize(): Type {
+        val canonicalVariants = variants.map(Type::canonicalize)
+        val canonicalParams = typeParams.map(Type::canonicalize)
+        
+        return UnionType(canonicalVariants, canonicalParams, unionSig)
     }
 
     override fun formatToString(typeVars: Map<TypeVariable, String>): String {
@@ -229,6 +260,23 @@ data class UnionType(
     }
 
     override fun toString(): String = formatToString()
+}
+
+/**
+ * A type that wraps another type while parsing. This is a dummy type, and should not exist in any
+ * type after parsing, as it is removed by canonicalization.
+ */
+class GroupType(val type: Type) : Type() {
+    override fun getAllVariables(): List<TypeVariable> =
+            throw Exception("Group type is unimplemented")
+
+    override fun substitute(typeMap: Map<TypeVariable, Type>): Type =
+            throw Exception("Group type is unimplemented")
+
+    override fun canonicalize() = type
+
+    override fun formatToString(typeVars: Map<TypeVariable, String>): String =
+            throw Exception("Group type is unimplemented")
 }
 
 /**

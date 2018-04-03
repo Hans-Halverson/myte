@@ -109,7 +109,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
      * @param precedence the optional precedence level that governs the current context, if none
      *        is supplied the lowest precedence level is assumed.
      */
-    fun parseExpression(precedence: Int = NO_PRECEDENCE): Expression {
+    fun parseExpression(precedence: Int = EXPR_NO_PRECEDENCE): Expression {
         return parseExpression(tokenizer.next(), precedence)
     }
 
@@ -120,7 +120,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
      * @param precedence the optional precedence level that governs the current context, if none
      *        is supplied the lowest precedence level is assumed.
      */
-    fun parseExpression(firstToken: Token, precedence: Int = NO_PRECEDENCE): Expression {
+    fun parseExpression(firstToken: Token, precedence: Int = EXPR_NO_PRECEDENCE): Expression {
         // Match on all tokens that signal a prefix operator
         var currentExpr = when (firstToken) {
             // Literals
@@ -145,7 +145,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         // as these will be bound more tightly and therefore should be children of the current,
         // lower precedence expression.
         while (!tokenizer.reachedEnd &&
-                precedence < getPrecedenceForInfixToken(tokenizer.current.type)) {
+                precedence < getExprPrecedenceForInfixToken(tokenizer.current.type)) {
             // Match on all tokens that signal an infix operator
             val token = tokenizer.next()
             currentExpr = when (token) {
@@ -252,19 +252,19 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
     fun parseUnaryPlusExpression(plusToken: PlusToken): UnaryPlusExpression {
         // If parseUnaryPlusExpression is called, the previous token must have been a +
-        val expr = parseExpression(NUMERIC_PREFIX_PRECEDENCE)
+        val expr = parseExpression(EXPR_NUMERIC_PREFIX_PRECEDENCE)
         return UnaryPlusExpression(expr, plusToken.location)
     }
 
     fun parseUnaryMinusExpression(minusToken: MinusToken): UnaryMinusExpression {
         // If parseUnaryMinusExpression is called, the previous token must have been a -
-        val expr = parseExpression(NUMERIC_PREFIX_PRECEDENCE)
+        val expr = parseExpression(EXPR_NUMERIC_PREFIX_PRECEDENCE)
         return UnaryMinusExpression(expr, minusToken.location)
     }
 
     fun parseLogicalNotExpression(logicalNotToken: LogicalNotToken): LogicalNotExpression {
         // If parseLogicalNotExpression is called, the previous token must have been a !
-        val expr = parseExpression(LOGICAL_NOT_PRECEDENCE)
+        val expr = parseExpression(EXPR_LOGICAL_NOT_PRECEDENCE)
         return LogicalNotExpression(expr, logicalNotToken.location)
     }
 
@@ -311,32 +311,32 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
     fun parseAddExpression(prevExpr: Expression): AddExpression {
         // If parseAddExpression is called, the previous token must have been a +
-        val expr = parseExpression(ADD_PRECEDENCE)
+        val expr = parseExpression(EXPR_ADD_PRECEDENCE)
         return AddExpression(prevExpr, expr)
     }
 
     fun parseSubtractExpression(prevExpr: Expression): SubtractExpression {
         // If parseSubtractExpression is called, the previous token must have been a -
-        val expr = parseExpression(ADD_PRECEDENCE)
+        val expr = parseExpression(EXPR_ADD_PRECEDENCE)
         return SubtractExpression(prevExpr, expr)
     }
 
     fun parseMultiplyExpression(prevExpr: Expression): MultiplyExpression {
         // If parseMultiplyExpression is called, the previous token must have been a *
-        val expr = parseExpression(MULTIPLY_PRECEDENCE)
+        val expr = parseExpression(EXPR_MULTIPLY_PRECEDENCE)
         return MultiplyExpression(prevExpr, expr)
     }
 
     fun parseDivideExpression(prevExpr: Expression): DivideExpression {
         // If parseDivideExpression is called, the previous token must have been a /
-        val expr = parseExpression(MULTIPLY_PRECEDENCE)
+        val expr = parseExpression(EXPR_MULTIPLY_PRECEDENCE)
         return DivideExpression(prevExpr, expr)
     }
 
     fun parseExponentExpression(prevExpr: Expression): ExponentExpression {
         // If parseExponentExpression is called, the previous token must have been a ^.
         // Subtracting one from the precedence makes this operator right associative.
-        val expr = parseExpression(rightAssociative(EXPONENT_PRECEDENCE))
+        val expr = parseExpression(rightAssociative(EXPR_EXPONENT_PRECEDENCE))
         return ExponentExpression(prevExpr, expr)
     }
 
@@ -348,10 +348,10 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                 throw ParseException("Can only reassign value to variables", equalsToken)
             }
 
-            val expr = parseExpression(rightAssociative(ASSIGNMENT_PRECEDENCE))
+            val expr = parseExpression(rightAssociative(EXPR_ASSIGNMENT_PRECEDENCE))
             return VariableAssignmentExpression(prevExpr.ident, expr, prevExpr.identLocation)
         } else if (prevExpr is KeyedAccessExpression) {
-            val expr = parseExpression(rightAssociative(ASSIGNMENT_PRECEDENCE))
+            val expr = parseExpression(rightAssociative(EXPR_ASSIGNMENT_PRECEDENCE))
             return KeyedAssignmentExpression(prevExpr, expr, prevExpr.accessLocation)
         } else {
             throw ParseException("Cannot assign value to ${prevExpr}", equalsToken)
@@ -360,49 +360,49 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
     fun parseEqualsExpression(prevExpr: Expression): EqualsExpression {
         // If parseEqualsExpression is called, the previous token must have been a ==
-        val expr = parseExpression(COMPARISON_PRECEDENCE)
+        val expr = parseExpression(EXPR_COMPARISON_PRECEDENCE)
         return EqualsExpression(prevExpr, expr)
     }
 
     fun parseNotEqualsExpression(prevExpr: Expression): NotEqualsExpression {
         // If parseNotEqualsExpression is called, the previous token must have been a !=
-        val expr = parseExpression(COMPARISON_PRECEDENCE)
+        val expr = parseExpression(EXPR_COMPARISON_PRECEDENCE)
         return NotEqualsExpression(prevExpr, expr)
     }
 
     fun parseLessThanExpression(prevExpr: Expression): LessThanExpression {
         // If parseLessThanExpression is called, the previous token must have been a <
-        val expr = parseExpression(COMPARISON_PRECEDENCE)
+        val expr = parseExpression(EXPR_COMPARISON_PRECEDENCE)
         return LessThanExpression(prevExpr, expr)
     }
 
     fun parseLessThanOrEqualExpression(prevExpr: Expression): LessThanOrEqualExpression {
         // If parseLessThanOrEqualExpression is called, the previous token must have been a <=
-        val expr = parseExpression(COMPARISON_PRECEDENCE)
+        val expr = parseExpression(EXPR_COMPARISON_PRECEDENCE)
         return LessThanOrEqualExpression(prevExpr, expr)
     }
 
     fun parseGreaterThanExpression(prevExpr: Expression): GreaterThanExpression {
         // If parseGreaterThanExpression is called, the previous token must have been a >
-        val expr = parseExpression(COMPARISON_PRECEDENCE)
+        val expr = parseExpression(EXPR_COMPARISON_PRECEDENCE)
         return GreaterThanExpression(prevExpr, expr)
     }
 
     fun parseGreaterThanOrEqualExpression(prevExpr: Expression): GreaterThanOrEqualExpression {
         // If parseGreaterThanOrEqualExpression is called, the previous token must have been a >=
-        val expr = parseExpression(COMPARISON_PRECEDENCE)
+        val expr = parseExpression(EXPR_COMPARISON_PRECEDENCE)
         return GreaterThanOrEqualExpression(prevExpr, expr)
     }
 
     fun parseLogicalAndExpression(prevExpr: Expression): LogicalAndExpression {
         // If parseLogicalAndExpression is called, the previous token must have been a &&
-        val expr = parseExpression(LOGICAL_AND_PRECEDENCE)
+        val expr = parseExpression(EXPR_LOGICAL_AND_PRECEDENCE)
         return LogicalAndExpression(prevExpr, expr)
     }
 
     fun parseLogicalOrExpression(prevExpr: Expression): LogicalOrExpression {
         // If parseLogicalOrExpression is called, the previous token must have been a ||
-        val expr = parseExpression(LOGICAL_OR_PRECEDENCE)
+        val expr = parseExpression(EXPR_LOGICAL_OR_PRECEDENCE)
         return LogicalOrExpression(prevExpr, expr)
     }
 
@@ -451,7 +451,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
     fun parseAccessExpression(prevExpr: Expression, periodToken: PeriodToken): AccessExpression {
         // If parseKeyedAccessExpression is called, the previous token must have been a .
-        val accessExpr = parseExpression(CALL_ACCESS_PRECEDENCE)
+        val accessExpr = parseExpression(EXPR_CALL_ACCESS_PRECEDENCE)
 
         return AccessExpression(prevExpr, accessExpr, periodToken.location)
     }
@@ -813,45 +813,48 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
     //
     ///////////////////////////////////////////////////////////////////////////
 
-    /**
-     * Parse the current stream into a single top-level types, which may contain
-     * arbitrarily nested types.
-     */
-    fun parseType(inFunctionDef: Boolean = false): Type {
-        val funcTypes: MutableList<Type> = mutableListOf(parseNestedType(inFunctionDef))
+    fun parseType(inFunctionDef: Boolean = false, precedence: Int = TYPE_NO_PRECEDENCE): Type {
+        val currentToken = tokenizer.next()
 
-        // Parse arrow separated list of types
-        while (tokenizer.current is ArrowToken) {
-            tokenizer.next()
-            funcTypes.add(parseNestedType(inFunctionDef))
-        }
-
-        // If only one type is found return it, otherwise construct function type
-        if (funcTypes.size > 1) {
-            val returnType = funcTypes.removeAt(funcTypes.lastIndex)
-            return FunctionType(funcTypes, returnType)
-        } else {
-            return funcTypes[0]
-        }
-    }
-
-    /**
-     * Parse the current stream into a single nested type, that may contain arbitrarily
-     * nested types.
-     */
-    fun parseNestedType(inFunctionDef: Boolean = false): Type {
-        val token = tokenizer.next()
-        return when (token) {
+        // Find the first type found in the type expression
+        var currentType = when (currentToken) {
             is BoolToken -> BoolType
             is StringTypeToken -> StringType
             is IntToken -> IntType
             is FloatToken -> FloatType
             is UnitToken -> UnitType
-            is VecToken -> parseVectorType(inFunctionDef)
             is LeftParenToken -> parseParenthesizedType(inFunctionDef)
-            is IdentifierToken -> parseIdentiferType(token, inFunctionDef)
-            else -> throw ParseException("Expected type, got ${token}", token)
+            is VecToken -> parseVectorType(inFunctionDef)
+            is IdentifierToken -> parseIdentiferType(currentToken, inFunctionDef)
+            else -> throw ParseException("Expected type, got ${currentToken}", currentToken)
         }
+
+        // Keep parsing operators that have a higher precedence than the current precedence context,
+        // as these will be bound more tightly and therefore should be children of the current,
+        // lower precedence expression.
+        while (!tokenizer.reachedEnd &&
+                precedence < getTypePrecedenceForInfixToken(tokenizer.current.type)) {
+            // Match on all tokens that signal an infix type operator
+            val token = tokenizer.next()
+            currentType = when (token) {
+                is PipeToken -> parseUnionType(currentType, inFunctionDef)
+                is CommaToken -> parseTupleType(currentType, inFunctionDef)
+                is ArrowToken -> parseFunctionType(currentType, inFunctionDef)
+                else -> throw ParseException(token)
+            }
+        }
+
+        return currentType.canonicalize()
+    }
+
+    fun parseParenthesizedType(inFunctionDef: Boolean): Type {
+        // If parseParenthesizedExpression is called, the previous token must have been a (
+        val type = parseType(inFunctionDef)
+
+        assertCurrent(TokenType.RIGHT_PAREN)
+        tokenizer.next()
+
+        return GroupType(type)
     }
 
     fun parseVectorType(inFunctionDef: Boolean = false): VectorType {
@@ -866,29 +869,6 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         tokenizer.next()
 
         return VectorType(elementType)
-    }
-
-    fun parseParenthesizedType(inFunctionDef: Boolean = false): Type {
-        // If parseParenthesizedType is called, previous token must have been (.
-        // Regular types or tuple types can be surrounded in parentheses
-        val nestedTypes: MutableList<Type> = mutableListOf(
-                parseType(inFunctionDef))
-
-        // Parse a comma separated list of types
-        while (tokenizer.current is CommaToken) {
-            tokenizer.next()
-            nestedTypes.add(parseType(inFunctionDef))
-        }
-
-        assertCurrent(TokenType.RIGHT_PAREN)
-        tokenizer.next()
-
-        // If only one type is found return that type, otherwise return tuple type
-        if (nestedTypes.size > 1) {
-            return TupleType(nestedTypes)
-        } else {
-            return nestedTypes[0]
-        }
     }
 
     /**
@@ -944,6 +924,45 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             return newTypeParam
         } else {
             throw ParseException("Unknown type ${token.str}", token)
+        }
+    }
+
+    fun parseUnionType(prevType: Type, inFunctionDef: Boolean): UnionType {
+        // If parseUnionType is called, the previous token must have been a |
+        val type = parseType(inFunctionDef, TYPE_UNION_PRECEDENCE)
+
+        // If the previous type was a union, the next type is an additional variant to that union
+        if (prevType is UnionType) {
+            return UnionType(prevType.variants + type)
+        // Otherwise this is a union between the two given types
+        } else {
+            return UnionType(listOf(prevType, type))
+        }
+    }
+
+    fun parseTupleType(prevType: Type, inFunctionDef: Boolean): TupleType {
+        // If parseTupleType is called, the previous token must have been a ,
+        val type = parseType(inFunctionDef, TYPE_TUPLE_PRECEDENCE)
+
+        // If the previous type was a tuple, the next type is an element at the end of that tuple
+        if (prevType is TupleType) {
+            return TupleType(prevType.elementTypes + type)
+        // Otherwise this is a two element tuple
+        } else {
+            return TupleType(listOf(prevType, type))
+        }
+    }
+
+    fun parseFunctionType(prevType: Type, inFunctionDef: Boolean): FunctionType {
+        // If parseFunctionType is called, the previous token must have been a ->
+        val type = parseType(inFunctionDef, TYPE_FUNCTION_PRECEDENCE)
+
+        // If the previous type was a function, the next type is its return type
+        if (prevType is FunctionType) {
+            return FunctionType(prevType.argTypes + prevType.returnType, type)
+        // Otherwise, this is a one argument function
+        } else {
+            return FunctionType(listOf(prevType), type)
         }
     }
 

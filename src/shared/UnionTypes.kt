@@ -33,7 +33,7 @@ class UnionTypeSignature(
         val paramsMap = typeParams.zip(types).toMap()
         val parameterizedVariants = variants.map { variant -> variant.substitute(paramsMap) }
 
-        return UnionType(this, types, parameterizedVariants)
+        return UnionType(types, parameterizedVariants, this)
     }
 }
 
