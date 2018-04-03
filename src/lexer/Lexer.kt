@@ -96,6 +96,7 @@ private fun getKeywordToken(str: String, location: Location): Token? {
         "true" -> TrueToken(location)
         "false" -> FalseToken(location)
         "type" -> TypeToken(location)
+        "union" -> UnionToken(location)
         "let" -> LetToken(location)
         "const" -> ConstToken(location)
         "def" -> DefToken(location)

@@ -107,14 +107,11 @@ class TypeChecker(var symbolTable: SymbolTable) {
      * @param boundVars set of all bound type variables. If not supplied, defaults to the empty set.
      * @param mappedVars map of old type variables to fresh type variables for all unbound type
      *        variables encountered so far. If not supplied, defaults to the empty map.
-     * @param freshVars whether or not to create and map new type variables for every unbound type
-     *        variables encountered in the representative type
      */
     private fun findRepType(
         type: Type,
         boundVars: MutableSet<TypeVariable>,
-        mappedVars: MutableMap<TypeVariable, TypeVariable> = mutableMapOf(),
-        freshVars: Boolean = true
+        mappedVars: MutableMap<TypeVariable, TypeVariable> = mutableMapOf()
     ): Type {
         // Find the representative type if this is a type variable, otherwise use the type
         val repType = if (type is TypeVariable) findRepNode(type).resolvedType else type
@@ -122,13 +119,12 @@ class TypeChecker(var symbolTable: SymbolTable) {
         return when (repType) {
             // Find the rep type for vector element type and reconstruct vector type
             is VectorType -> {
-                VectorType(findRepType(repType.elementType, boundVars,
-                        mappedVars, freshVars))
+                VectorType(findRepType(repType.elementType, boundVars, mappedVars))
             }
             // Find the rep type for each tuple element and reconstruct tuple type
             is TupleType -> {
                 val elementTypes = repType.elementTypes.map { elementType ->
-                    findRepType(elementType, boundVars, mappedVars, freshVars)
+                    findRepType(elementType, boundVars, mappedVars)
                 }
                 
                 return TupleType(elementTypes)
@@ -136,16 +132,16 @@ class TypeChecker(var symbolTable: SymbolTable) {
             // Find the rep type for each arg and return type, and reconstruct function type
             is FunctionType -> {
                 val argTypes = repType.argTypes.map { argType ->
-                    findRepType(argType, boundVars, mappedVars, freshVars)
+                    findRepType(argType, boundVars, mappedVars)
                 }
-                val returnType = findRepType(repType.returnType, boundVars, mappedVars, freshVars)
+                val returnType = findRepType(repType.returnType, boundVars, mappedVars)
 
                 return FunctionType(argTypes, returnType)
             }
             // Find the rep type for each type parameter and reconstruct adt with correct adt sig
             is AlgebraicDataType -> {
                 val typeParams = repType.typeParams.map { typeParam ->
-                    findRepType(typeParam, boundVars, mappedVars, freshVars)
+                    findRepType(typeParam, boundVars, mappedVars)
                 }
 
                 return AlgebraicDataType(repType.adtSig, typeParams)
@@ -153,26 +149,22 @@ class TypeChecker(var symbolTable: SymbolTable) {
             is TypeVariable -> {
                 // If already bound (has same representative as bound var), then return
                 // existing type variable
-                if (freshVars) {
-                    val repBoundVars = boundVars.map { boundVar ->
-                        findRepNode(boundVar).resolvedType
-                    }
+                val repBoundVars = boundVars.map { boundVar ->
+                    findRepNode(boundVar).resolvedType
+                }
 
-                    if (repBoundVars.contains(repType)) {
-                        return repType
-                    }
-
-                    // If not yet bound, return mapped variable or add to map if not yet mapped
-                    val mappedVar = mappedVars[repType]
-                    if (mappedVar != null) {
-                        return mappedVar
-                    } else {
-                        val newVar = TypeVariable()
-                        mappedVars[repType] = newVar
-                        return newVar
-                    }
-                } else {
+                if (repBoundVars.contains(repType)) {
                     return repType
+                }
+
+                // If not yet bound, return mapped variable or add to map if not yet mapped
+                val mappedVar = mappedVars[repType]
+                if (mappedVar != null) {
+                    return mappedVar
+                } else {
+                    val newVar = TypeVariable()
+                    mappedVars[repType] = newVar
+                    return newVar
                 }
             }
             else -> repType

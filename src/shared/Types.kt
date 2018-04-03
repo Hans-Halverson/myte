@@ -194,6 +194,43 @@ data class AlgebraicDataType(
     override fun toString(): String = formatToString()
 }
 
+data class UnionType(
+    val unionSig: UnionTypeSignature?,
+    val typeParams: List<Type>,
+    val variants: List<Type>
+) : Type() {
+    override fun getAllVariables(): List<TypeVariable> {
+        return typeParams.map(Type::getAllVariables).flatten()
+    }
+
+    override fun substitute(typeMap: Map<TypeVariable, Type>): Type {
+        val newTypeParams = typeParams.map { typeParam -> typeParam.substitute(typeMap) }
+        val newVariants = variants.map { variant -> variant.substitute(typeMap) }
+
+        return UnionType(unionSig, newTypeParams, newVariants)
+    }
+
+    override fun formatToString(typeVars: Map<TypeVariable, String>): String {
+        val builder = StringBuilder()
+
+        if (unionSig != null) {
+            builder.append(unionSig.name)
+
+            if (typeParams.size > 0) {
+                builder.append(typeParams.map { typeParam -> typeParam.formatToString(typeVars) }
+                        .joinToString(", ", "<", ">"))
+            }
+        } else {
+                builder.append(variants.map { variant -> variant.formatToString(typeVars) }
+                        .joinToString(" | "))
+        }
+
+        return builder.toString()
+    }
+
+    override fun toString(): String = formatToString()
+}
+
 /**
  * Format a list of types into strings, where type variables of the same type are replaced by
  * the same representations. The representation of these type variables will be:

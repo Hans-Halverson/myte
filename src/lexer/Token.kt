@@ -88,6 +88,7 @@ class PipeToken(location: Location) : Token(location, TokenType.PIPE)
 
 class TypeToken(location: Location) : Token(location, TokenType.TYPE)
 
+class UnionToken(location: Location) : Token(location, TokenType.UNION)
 
 class LetToken(location: Location) : Token(location, TokenType.LET)
 
@@ -96,7 +97,6 @@ class ConstToken(location: Location) : Token(location, TokenType.CONST)
 class DefToken(location: Location) : Token(location, TokenType.DEF)
 
 class NumToken(location: Location) : Token(location, TokenType.NUM)
-
 
 class IfToken(location: Location) : Token(location, TokenType.IF)
 
