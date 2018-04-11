@@ -20,7 +20,8 @@ class AlgebraicDataTypeValue(
             return false
         }
 
-        return (adtVariant.id == other.adtVariant.id &&
-                adtVariant.typeConstructor == other.adtVariant.typeConstructor)
+        return (adtVariant.id == other.adtVariant.id && fields == other.fields)
     }
+
+    override fun hashCode(): Int = adtVariant.id.hashCode() + fields.hashCode()
 }

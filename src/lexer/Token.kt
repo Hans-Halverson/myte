@@ -74,6 +74,14 @@ class LeftBracketToken(location: Location) : Token(location, TokenType.LEFT_BRAC
 
 class RightBracketToken(location: Location) : Token(location, TokenType.RIGHT_BRACKET)
 
+class LeftMapLiteralToken(location: Location) : Token(location, TokenType.LEFT_MAP_LITERAL)
+
+class RightMapLiteralToken(location: Location) : Token(location, TokenType.RIGHT_MAP_LITERAL)
+
+class LeftSetLiteralToken(location: Location) : Token(location, TokenType.LEFT_SET_LITERAL)
+
+class RightSetLiteralToken(location: Location) : Token(location, TokenType.RIGHT_SET_LITERAL)
+
 class QuotesToken(location: Location) : Token(location, TokenType.QUOTES)
 
 class PeriodToken(location: Location) : Token(location, TokenType.PERIOD)
@@ -127,5 +135,9 @@ class IntToken(location: Location) : Token(location, TokenType.INT)
 class FloatToken(location: Location) : Token(location, TokenType.FLOAT)
 
 class VecToken(location: Location) : Token(location, TokenType.VEC)
+
+class MapToken(location: Location) : Token(location, TokenType.MAP)
+
+class SetToken(location: Location) : Token(location, TokenType.SET)
 
 class NewLineToken(location: Location) : Token(location, TokenType.NEW_LINE)

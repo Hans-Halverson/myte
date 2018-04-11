@@ -32,6 +32,8 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             stmt is IntLiteral -> IntLiteralNode(stmt.num, stmt.startLocation)
             stmt is FloatLiteral -> FloatLiteralNode(stmt.num, stmt.startLocation)
             stmt is VectorLiteralExpression -> convertVectorLiteral(stmt)
+            stmt is SetLiteralExpression -> convertSetLiteral(stmt)
+            stmt is MapLiteralExpression -> convertMapLiteral(stmt)
             stmt is TupleLiteralExpression -> convertTupleLiteral(stmt)
             // Variables and functions
             stmt is VariableExpression -> convertVariable(stmt)
@@ -198,6 +200,15 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
 
     fun convertVectorLiteral(expr: VectorLiteralExpression): VectorLiteralNode {
         return VectorLiteralNode(expr.elements.map(this::convert), expr.startLocation)
+    }
+
+    fun convertSetLiteral(expr: SetLiteralExpression): SetLiteralNode {
+        return SetLiteralNode(expr.elements.map(this::convert), expr.startLocation)
+    }
+
+    fun convertMapLiteral(expr: MapLiteralExpression): MapLiteralNode {
+        return MapLiteralNode(expr.keys.map(this::convert), expr.values.map(this::convert),
+                expr.startLocation)
     }
 
     fun convertTupleLiteral(expr: TupleLiteralExpression): TupleLiteralNode {

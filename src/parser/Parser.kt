@@ -131,6 +131,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             is FalseToken -> BoolLiteralExpression(false, firstToken.location)
             is StringLiteralToken -> StringLiteralExpression(firstToken.str, firstToken.location)
             is LeftBracketToken -> parseVectorLiteralExpression(false, firstToken)
+            is LeftSetLiteralToken -> parseSetLiteralExpression(false, firstToken)
+            is LeftMapLiteralToken -> parseMapLiteralExpression(false, firstToken)
             // Prefixs operators
             is PlusToken -> parseUnaryPlusExpression(firstToken)
             is MinusToken -> parseUnaryMinusExpression(firstToken)
@@ -228,26 +230,85 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
         // Add expressions, separated by commas, until a right bracket is encountered.
         // If in pattern, only parse valid patterns with a call to parsePattern
-        if (isPattern) {
-            elements.add(parsePattern())
-        } else {
-            elements.add(parseExpression())
-        }
+        elements.add(parsePatternOrExpr(isPattern))
 
         while (tokenizer.current is CommaToken) {
             tokenizer.next()
-            // If in pattern, only parse valid patterns with a call to parsePattern
-            if (isPattern) {
-                elements.add(parsePattern())
-            } else {
-                elements.add(parseExpression())
-            }
+            elements.add(parsePatternOrExpr(isPattern))
         }
 
         assertCurrent(TokenType.RIGHT_BRACKET)
         tokenizer.next()
 
         return VectorLiteralExpression(elements, leftBracketToken.location)
+    }
+
+    fun parseSetLiteralExpression(
+        isPattern: Boolean,
+        leftSetLiteralToken: LeftSetLiteralToken
+    ): SetLiteralExpression {
+        // If parseSetLiteralExpression is called, the previous token must have been a {|
+        val elements: MutableList<Expression> = mutableListOf()
+
+        // Return empty list if no set elements are encountered
+        if (tokenizer.current is RightSetLiteralToken) {
+            tokenizer.next()
+            return SetLiteralExpression(listOf(), leftSetLiteralToken.location)
+        }
+
+        // Add expressions, separated by commas, until the set literal is closed.
+        // If in pattern, only parse valid patterns with a call to parsePattern
+        elements.add(parsePatternOrExpr(isPattern))
+
+        while (tokenizer.current is CommaToken) {
+            tokenizer.next()
+            elements.add(parsePatternOrExpr(isPattern))
+        }
+
+        assertCurrent(TokenType.RIGHT_SET_LITERAL)
+        tokenizer.next()
+
+        return SetLiteralExpression(elements, leftSetLiteralToken.location)
+    }
+
+    fun parseMapLiteralExpression(
+        isPattern: Boolean,
+        leftMapLiteralToken: LeftMapLiteralToken
+    ): MapLiteralExpression {
+        // If parseSetLiteralExpression is called, the previous token must have been a [|
+        val keys: MutableList<Expression> = mutableListOf()
+        val values: MutableList<Expression> = mutableListOf()
+
+        // Return empty list if no map elements are encountered
+        if (tokenizer.current is RightMapLiteralToken) {
+            tokenizer.next()
+            return MapLiteralExpression(listOf(), listOf(), leftMapLiteralToken.location)
+        }
+
+        // Add first key -> value pair to running lists of keys and values
+        keys.add(parsePatternOrExpr(isPattern))
+
+        assertCurrent(TokenType.ARROW)
+        tokenizer.next()
+
+        values.add(parsePatternOrExpr(isPattern))
+
+        while (tokenizer.current is CommaToken) {
+            tokenizer.next()
+
+            // Add key -> value pairs, separated by commas, until the map literal is closed
+            keys.add(parsePatternOrExpr(isPattern))
+
+            assertCurrent(TokenType.ARROW)
+            tokenizer.next()
+
+            values.add(parsePatternOrExpr(isPattern))
+        }
+
+        assertCurrent(TokenType.RIGHT_MAP_LITERAL)
+        tokenizer.next()
+
+        return MapLiteralExpression(keys, values, leftMapLiteralToken.location)
     }
 
     fun parseUnaryPlusExpression(plusToken: PlusToken): UnaryPlusExpression {
@@ -273,12 +334,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         leftParenToken: LeftParenToken
     ): Expression {
         // If parseParenthesizedExpression is called, the previous token must have been a (
-        // If in pattern, only parse valid patterns with call to parsePattern
-        var expr = if (isPattern) {
-            parsePattern()
-        } else {
-            parseExpression()
-        }
+        var expr = parsePatternOrExpr(isPattern)
 
         // If a right paren is seen after a single expression, this is a group expression
         if (tokenizer.current is RightParenToken) {
@@ -293,12 +349,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             assertCurrent(TokenType.COMMA)
             tokenizer.next()
 
-            // If in pattern, only parse valid patterns with call to parsePattern
-            expr = if (isPattern) {
-                parsePattern()
-            } else {
-                parseExpression()
-            }
+            expr = parsePatternOrExpr(isPattern)
 
             exprs.add(expr)
         }
@@ -708,6 +759,14 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         return ForStatement(initializer, condition, update, statement, forToken.location)
     }
 
+    fun parsePatternOrExpr(isPattern: Boolean): Expression {
+        if (isPattern) {
+            return parsePattern()
+        } else {
+            return parseExpression()
+        }
+    }
+
     fun parsePattern(): Expression {
         var token = tokenizer.next()
         return when (token) {
@@ -718,6 +777,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             is TrueToken -> BoolLiteralExpression(true, token.location)
             is FalseToken -> BoolLiteralExpression(false, token.location)
             is LeftBracketToken -> parseVectorLiteralExpression(true, token)
+            is LeftSetLiteralToken -> parseSetLiteralExpression(true, token)
+            is LeftMapLiteralToken -> parseMapLiteralExpression(true, token)
             is LeftParenToken -> parseParenthesizedExpression(true, token)
             // An identifier may be a new variable or a type constructor
             is IdentifierToken -> {
@@ -825,7 +886,9 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             is UnitToken -> UnitType
             is LeftParenToken -> parseParenthesizedType(inFunctionDef)
             is VecToken -> parseVectorType(inFunctionDef)
-            is IdentifierToken -> parseIdentiferType(currentToken, inFunctionDef)
+            is SetToken -> parseSetType(inFunctionDef)
+            is MapToken -> parseMapType(inFunctionDef)
+            is IdentifierToken -> parseIdentifierType(currentToken, inFunctionDef)
             else -> throw ParseException("Expected type, got ${currentToken}", currentToken)
         }
 
@@ -837,8 +900,6 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             // Match on all tokens that signal an infix type operator
             val token = tokenizer.next()
             currentType = when (token) {
-                is PipeToken -> parseUnionType(currentType, inFunctionDef)
-                is CommaToken -> parseTupleType(currentType, inFunctionDef)
                 is ArrowToken -> parseFunctionType(currentType, inFunctionDef)
                 else -> throw ParseException(token)
             }
@@ -849,12 +910,23 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
     fun parseParenthesizedType(inFunctionDef: Boolean): Type {
         // If parseParenthesizedExpression is called, the previous token must have been a (
-        val type = parseType(inFunctionDef)
+        val types: MutableList<Type> = mutableListOf(parseType(inFunctionDef))
+
+        while (tokenizer.current is CommaToken) {
+            tokenizer.next()
+            types.add(parseType(inFunctionDef))
+        }
 
         assertCurrent(TokenType.RIGHT_PAREN)
         tokenizer.next()
 
-        return GroupType(type)
+        // If only one type was found in the list, this is just a parenthesized single type
+        if (types.size == 1) {
+            return types.get(0)
+        // Otherwise this is a tuple type with the listed elements
+        } else {
+            return TupleType(types)
+        }
     }
 
     fun parseVectorType(inFunctionDef: Boolean = false): VectorType {
@@ -871,12 +943,45 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         return VectorType(elementType)
     }
 
+    fun parseSetType(inFunctionDef: Boolean = false): SetType {
+        // If parseSetType is called, previous token must have been set.
+        // Parse element type surrounded by angle braces.
+        assertCurrent(TokenType.LESS_THAN)
+        tokenizer.next()
+
+        val elementType = parseType(inFunctionDef)
+
+        assertCurrent(TokenType.GREATER_THAN)
+        tokenizer.next()
+
+        return SetType(elementType)
+    }
+
+    fun parseMapType(inFunctionDef: Boolean = false): MapType {
+        // If parseMapType is called, previous token must have been map.
+        // Parse comma separated key and val types surrounded by angle braces.
+        assertCurrent(TokenType.LESS_THAN)
+        tokenizer.next()
+
+        val keyType = parseType(inFunctionDef)
+
+        assertCurrent(TokenType.COMMA)
+        tokenizer.next()
+
+        val valType = parseType(inFunctionDef)
+
+        assertCurrent(TokenType.GREATER_THAN)
+        tokenizer.next()
+
+        return MapType(keyType, valType)
+    }
+
     /**
      * Parse the type represented by a particular identifier. This could be an existing type
      * parameter, a new type parameter (if in a function definition), the beginning of a
      * defined algebraic data type, or the beginning of a defined union type.
      */
-    fun parseIdentiferType(token: IdentifierToken, inFunctionDef: Boolean = false): Type {
+    fun parseIdentifierType(token: IdentifierToken, inFunctionDef: Boolean = false): Type {
         val ident = symbolTable.lookup(token.str)
         if (ident != null) {
             val identInfo = symbolTable.getInfo(ident)
@@ -898,7 +1003,14 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                     tokenizer.next()
                 }
 
-                return identInfo.adtSig.getAdtWithParams(typeParams)
+                // Check that number of type params matches before continuing
+                val adtSig = identInfo.adtSig
+                if (identInfo.adtSig.typeParams.size != typeParams.size) {
+                    throw ParseException("Type ${adtSig.name} expects ${adtSig.typeParams.size} " +
+                        "type parameters, but received ${typeParams.size}", token)
+                }
+
+                return adtSig.getAdtWithParams(typeParams)
             } else if (identInfo?.idClass == IdentifierClass.UNION_TYPE) {
                 // Parse optional, comma separated list of types within < > for parameterized type
                 val typeParams: MutableList<Type> = mutableListOf()
@@ -924,32 +1036,6 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             return newTypeParam
         } else {
             throw ParseException("Unknown type ${token.str}", token)
-        }
-    }
-
-    fun parseUnionType(prevType: Type, inFunctionDef: Boolean): UnionType {
-        // If parseUnionType is called, the previous token must have been a |
-        val type = parseType(inFunctionDef, TYPE_UNION_PRECEDENCE)
-
-        // If the previous type was a union, the next type is an additional variant to that union
-        if (prevType is UnionType) {
-            return UnionType(prevType.variants + type)
-        // Otherwise this is a union between the two given types
-        } else {
-            return UnionType(listOf(prevType, type))
-        }
-    }
-
-    fun parseTupleType(prevType: Type, inFunctionDef: Boolean): TupleType {
-        // If parseTupleType is called, the previous token must have been a ,
-        val type = parseType(inFunctionDef, TYPE_TUPLE_PRECEDENCE)
-
-        // If the previous type was a tuple, the next type is an element at the end of that tuple
-        if (prevType is TupleType) {
-            return TupleType(prevType.elementTypes + type)
-        // Otherwise this is a two element tuple
-        } else {
-            return TupleType(listOf(prevType, type))
         }
     }
 

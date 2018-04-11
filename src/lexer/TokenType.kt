@@ -109,6 +109,22 @@ enum class TokenType {
         override fun toString(): String = "]"
     },
 
+    LEFT_MAP_LITERAL {
+        override fun toString(): String = "[|"
+    },
+
+    RIGHT_MAP_LITERAL {
+        override fun toString(): String = "|]"
+    },
+
+    LEFT_SET_LITERAL {
+        override fun toString(): String = "{|"
+    },
+
+    RIGHT_SET_LITERAL {
+        override fun toString(): String = "|}"
+    },
+
     QUOTES {
         override fun toString(): String = "\""
     },
@@ -215,6 +231,14 @@ enum class TokenType {
 
     VEC {
         override fun toString(): String = "vec"
+    },
+
+    MAP {
+        override fun toString(): String = "map"
+    },
+
+    SET {
+        override fun toString(): String = "set"
     },
 
     NEW_LINE {

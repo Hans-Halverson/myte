@@ -28,6 +28,8 @@ EXPR -> NUMBER_LITERAL
       | BOOL_LITERAL
       | " STRING_LITERAL "
       | [ EXPR_LIST ]
+      | [| KV_PAIR_LIST |]
+      | {| EXPR_LIST |}
       | IDENT
       | UNARY
       | INFIX
@@ -60,6 +62,10 @@ KEYED_ACCESS -> IDENT [ EXPR ]
 
 EXPR_LIST -> EXPR [, EXPR]*
 
+KV_PAIR -> EXPR -> EXPR
+
+KV_PAIR_LIST -> KV_PAIR [, KV_PAIR]*
+
 
 TYPE -> bool
       | float
@@ -67,7 +73,9 @@ TYPE -> bool
       | ( TYPE_LIST )
       | TYPE -> TYPE
       | TYPE | TYPE
-      | vec < TYPE_LIST >
+      | vec < TYPE >
+      | map < TYPE, TYPE >
+      | set < TYPE >
       | IDENT [< TYPE_LIST >]?
 
 TYPE_LIST -> TYPE [, TYPE]*

@@ -8,11 +8,6 @@
 
 # Lexing / Parsing Improvements
 
-- Add useful parsing error messages like:
-  Error: expected expression, but found &
-    1 + 2 + & + 6
-            ^
-
 
 
 # Optimization / IR Improvements

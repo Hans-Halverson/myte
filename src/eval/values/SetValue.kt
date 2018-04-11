@@ -2,18 +2,18 @@ package myte.eval.values
 
 import myte.shared.*
 
-class VectorValue(val elements: MutableList<Value>, type: VectorType) : Value(type) {
+class SetValue(val elements: MutableSet<Value>, type: SetType) : Value(type) {
     override fun toString(): String {
-        // Return special string for empty vector
+        // Return special string for empty set
         if (elements.size == 0) {
-            return "[ ]"
+            return "{| |}"
         }
-
-        return elements.joinToString(", ", "[ ", " ]")
+        
+        return elements.joinToString(", ", "{| ", " |}")
     }
     
     override fun equals(other: Any?): Boolean {
-        if (other !is VectorValue) {
+        if (other !is SetValue) {
             return false
         }
 

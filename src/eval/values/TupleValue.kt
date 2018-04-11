@@ -12,4 +12,6 @@ class TupleValue(val tuple: MutableList<Value>, type: TupleType) : Value(type) {
 
         return tuple == other.tuple
     }
+
+    override fun hashCode(): Int = tuple.hashCode()
 }

@@ -116,6 +116,8 @@ private fun getKeywordToken(str: String, location: Location): Token? {
         "int" -> IntToken(location)
         "float" -> FloatToken(location)
         "vec" -> VecToken(location)
+        "map" -> MapToken(location)
+        "set" -> SetToken(location)
         else -> null
     }
 }
@@ -317,8 +319,38 @@ private fun readPipe(reader: LL1StatefulReader): Token {
     if (reader.hasNext && reader.next == '|') {
         reader.advance()
         return LogicalOrToken(location)
+    } else if (reader.hasNext && reader.next == ']') {
+        reader.advance()
+        return RightMapLiteralToken(location)
+    } else if (reader.hasNext && reader.next == '}') {
+        reader.advance()
+        return RightSetLiteralToken(location)
     } else {
         return PipeToken(location)
+    }
+}
+
+private fun readLeftBrace(reader: LL1StatefulReader): Token {
+    val location = reader.currentLocation
+
+    // If readLeftBrace is called, the current character must be "{"
+    if (reader.hasNext && reader.next == '|') {
+        reader.advance()
+        return LeftSetLiteralToken(location)
+    } else {
+        return LeftBraceToken(location)
+    }
+}
+
+private fun readLeftBracket(reader: LL1StatefulReader): Token {
+    val location = reader.currentLocation
+
+    // If readLeftBracket is called, the current character must be "["
+    if (reader.hasNext && reader.next == '|') {
+        reader.advance()
+        return LeftMapLiteralToken(location)
+    } else {
+        return LeftBracketToken(location)
     }
 }
 
@@ -361,9 +393,9 @@ fun createTokens(input: Reader, fileName: String?): List<Token> {
             '|' -> tokens.add(readPipe(reader))
             '(' -> tokens.add(LeftParenToken(location))
             ')' -> tokens.add(RightParenToken(location))
-            '{' -> tokens.add(LeftBraceToken(location))
+            '{' -> tokens.add(readLeftBrace(reader))
             '}' -> tokens.add(RightBraceToken(location))
-            '[' -> tokens.add(LeftBracketToken(location))
+            '[' -> tokens.add(readLeftBracket(reader))
             ']' -> tokens.add(RightBracketToken(location))
             '"' -> tokens.add(readStringLiteral(reader))
             '.' -> tokens.add(PeriodToken(location))

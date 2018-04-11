@@ -28,6 +28,8 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             is IntLiteralNode -> IntValue(node.num)
             is FloatLiteralNode -> FloatValue(node.num)
             is VectorLiteralNode -> evalVectorLiteralNode(node, env)
+            is SetLiteralNode -> evalSetLiteralNode(node, env)
+            is MapLiteralNode -> evalMapLiteralNode(node, env)
             is TupleLiteralNode -> evalTupleLiteralNode(node, env)
             // Variables and functions
             is VariableNode -> env.lookup(node.ident)
@@ -116,6 +118,35 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         }).toMutableList()
 
         return VectorValue(vector, type)
+    }
+
+    fun evalSetLiteralNode(node: SetLiteralNode, env: Environment): SetValue {
+        val type = node.type
+        if (type !is SetType) {
+            throw EvaluationException("Expected set literal to have set type, " +
+                    "but found ${formatType(type)}", node.startLocation)
+        }
+
+        val setElements = node.elements.map({ element ->
+            evaluate(element, env)
+        }).toMutableSet()
+
+        return SetValue(setElements, type)
+    }
+
+    fun evalMapLiteralNode(node: MapLiteralNode, env: Environment): MapValue {
+        val type = node.type
+        if (type !is MapType) {
+            throw EvaluationException("Expected map literal to have map type, " +
+                    "but found ${formatType(type)}", node.startLocation)
+        }
+
+        val keys = node.keys.map({ key -> evaluate(key, env) })
+        val values = node.values.map({ value -> evaluate(value, env) })
+
+        val mapElements = keys.zip(values).toMap().toMutableMap()
+
+        return MapValue(mapElements, type)
     }
 
     fun evalTupleLiteralNode(node: TupleLiteralNode, env: Environment): TupleValue {
@@ -440,11 +471,15 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
      * @param value the value to match against the pattern
      * @param pattern the pattern to match against
      * @param env the current environment
+     * @param bind whether to bind variables to matched values or not
      */
-    fun matchPattern(value: Value, pattern: IRNode, env: Environment): Boolean {
+    fun matchPattern(value: Value, pattern: IRNode, env: Environment, bind: Boolean): Boolean {
         // If a variable is ever encountered, bind it the current value
         if (pattern is VariableNode) {
-            env.extend(pattern.ident, value)
+            if (bind) {
+                env.extend(pattern.ident, value)
+            }
+
             return true
         }
 
@@ -458,18 +493,20 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             is VectorValue -> pattern is VectorLiteralNode &&
                     value.elements.size == pattern.elements.size &&
                     value.elements.zip(pattern.elements)
-                        .map({ (elem, pat) -> matchPattern(elem, pat, env) })
+                        .map({ (elem, pat) -> matchPattern(elem, pat, env, bind) })
                         .all({ x -> x })
+            is SetValue -> matchSetPattern(value, pattern, env)
+            is MapValue -> matchMapPattern(value, pattern, env)
             // Tuples match if they contain the same elements, as they must be the same size
             is TupleValue -> pattern is TupleLiteralNode &&
                     value.tuple.zip(pattern.elements)
-                        .map({ (elem, pat) -> matchPattern(elem, pat, env) })
+                        .map({ (elem, pat) -> matchPattern(elem, pat, env, bind) })
                         .all({ x -> x })
             // ADTs match if they are the same variant and contain the same elements
             is AlgebraicDataTypeValue -> pattern is TypeConstructorNode &&
                     value.adtVariant == pattern.adtVariant &&
                     value.fields.zip(pattern.actualArgs)
-                        .map({ (field, pat) -> matchPattern(field, pat, env) })
+                        .map({ (field, pat) -> matchPattern(field, pat, env, bind) })
                         .all({ x -> x })
             // Nothing can match functions or unit
             is BuiltinValue -> false
@@ -477,6 +514,64 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             is UnitValue -> false
             else -> throw EvaluationException("Unknown value ${value}", pattern.startLocation)
         }
+    }
+
+    fun matchSetPattern(value: SetValue, pattern: IRNode, env: Environment): Boolean {
+        // Error if a set is matched to non-set literal, or if set size differs
+        if (pattern !is SetLiteralNode || value.elements.size != pattern.elements.size) {
+            return false
+        }
+
+        // Find a mapping between the given values and patterns
+        val valueList = value.elements.toList()
+        val mapping = findMatches(valueList, pattern.elements) {
+            v, p -> matchPattern(v, p, env, false)
+        }
+
+        // Error if the value and patterns can not be made to match
+        if (mapping == null) {
+            return false
+        }
+
+        // Bind each value and pattern that are matched together, and return sucess
+        for ((i, j) in mapping.withIndex()) {
+            matchPattern(valueList[i], pattern.elements[j], env, true)
+        }
+        
+        return true
+    }
+
+    fun matchMapPattern(value: MapValue, pattern: IRNode, env: Environment): Boolean {
+        // Error if a map is matched to non-map literal, or if map size differs
+        if (pattern !is MapLiteralNode || value.map.size != pattern.keys.size) {
+            return false
+        }
+
+        // Find a mapping between the given values and patterns
+        val valueList = value.map.entries.toList()
+        val patternList = pattern.keys.zip(pattern.values)
+
+        val mapping = findMatches(valueList, patternList) {
+            (valueKey, valueVal), (patternKey, patternVal) -> 
+                matchPattern(valueKey, patternKey, env, false) &&
+                matchPattern(valueVal, patternVal, env, false)
+        }
+
+        // Error if the value and patterns can not be made to match
+        if (mapping == null) {
+            return false
+        }
+
+        // Bind each value and pattern that are matched together, and return sucess
+        for ((i, j) in mapping.withIndex()) {
+            val (valueKey, valueVal) = valueList[i]
+            val (patternKey, patternVal) = patternList[j]
+
+            matchPattern(valueKey, patternKey, env, true)
+            matchPattern(valueVal, patternVal, env, true)
+        }
+
+        return true
     }
 
     fun evalMatch(node: MatchNode, env: Environment): UnitValue {
@@ -487,7 +582,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         for ((pattern, statement) in node.cases) {
             env.enterScope()
 
-            if (matchPattern(exprValue, pattern, env)) {
+            if (matchPattern(exprValue, pattern, env, true)) {
                 evaluate(statement, env)
                 env.exitScope()
                 break

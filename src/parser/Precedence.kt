@@ -22,9 +22,7 @@ const val EXPR_CALL_ACCESS_PRECEDENCE: Int = 10
 
 // Precedence levels for type expressions
 const val TYPE_NO_PRECEDENCE: Int = 0
-const val TYPE_UNION_PRECEDENCE: Int = 1
-const val TYPE_TUPLE_PRECEDENCE: Int = 2
-const val TYPE_FUNCTION_PRECEDENCE: Int = 3
+const val TYPE_FUNCTION_PRECEDENCE: Int = 1
 
 /**
  * Given a token found between two expressions, assign a precedence level to the operator or
@@ -56,8 +54,6 @@ fun getExprPrecedenceForInfixToken(tokenType: TokenType): Int = when (tokenType)
  * type constructor structure that was found.
  */
 fun getTypePrecedenceForInfixToken(tokenType: TokenType): Int = when (tokenType) {
-    TokenType.PIPE -> TYPE_UNION_PRECEDENCE
-    TokenType.COMMA -> TYPE_TUPLE_PRECEDENCE
     TokenType.ARROW -> TYPE_FUNCTION_PRECEDENCE
     else -> TYPE_NO_PRECEDENCE
 }

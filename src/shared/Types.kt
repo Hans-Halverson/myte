@@ -95,6 +95,40 @@ data class VectorType(val elementType: Type) : Type() {
     override fun toString(): String = formatToString()
 }
 
+data class SetType(val elementType: Type) : Type() {
+    override fun getAllVariables(): List<TypeVariable> = elementType.getAllVariables()
+
+    override fun substitute(typeMap: Map<TypeVariable, Type>): Type {
+        return SetType(elementType.substitute(typeMap))
+    }
+
+    override fun canonicalize(): Type = SetType(elementType.canonicalize())
+
+    override fun formatToString(typeVars: Map<TypeVariable, String>): String {
+        return "set<${elementType.formatToString(typeVars)}>"
+    }
+
+    override fun toString(): String = formatToString()
+}
+
+data class MapType(val keyType: Type, val valType: Type) : Type() {
+    override fun getAllVariables(): List<TypeVariable> {
+        return keyType.getAllVariables() + valType.getAllVariables()
+    }
+
+    override fun substitute(typeMap: Map<TypeVariable, Type>): Type {
+        return MapType(keyType.substitute(typeMap), valType.substitute(typeMap))
+    }
+
+    override fun canonicalize(): Type = MapType(keyType.canonicalize(), valType.canonicalize())
+
+    override fun formatToString(typeVars: Map<TypeVariable, String>): String {
+        return "map<${keyType.formatToString(typeVars)}, ${valType.formatToString(typeVars)}>"
+    }
+
+    override fun toString(): String = formatToString()
+}
+
 data class TupleType(val elementTypes: List<Type>) : Type() {
     override fun getAllVariables(): List<TypeVariable> {
         return elementTypes.map(Type::getAllVariables).flatten()

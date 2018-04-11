@@ -121,6 +121,15 @@ class TypeChecker(var symbolTable: SymbolTable) {
             is VectorType -> {
                 VectorType(findRepType(repType.elementType, boundVars, mappedVars))
             }
+            // Find the rep type for set element type and reconstruct set type
+            is SetType -> {
+                SetType(findRepType(repType.elementType, boundVars, mappedVars))
+            }
+            // Find the rep type for map's key and value types and reconstruct map type
+            is MapType -> {
+                MapType(findRepType(repType.keyType, boundVars, mappedVars),
+                        findRepType(repType.valType, boundVars, mappedVars))
+            }
             // Find the rep type for each tuple element and reconstruct tuple type
             is TupleType -> {
                 val elementTypes = repType.elementTypes.map { elementType ->
@@ -243,6 +252,12 @@ class TypeChecker(var symbolTable: SymbolTable) {
         // If both representatives have vector type, merge reps and unify their child types
         } else if (type1 is VectorType && type2 is VectorType) {
             return unify(type1.elementType, type2.elementType)
+        // If both representatives have set type, merge reps and unify their child types
+        } else if (type1 is SetType && type2 is SetType) {
+            return unify(type1.elementType, type2.elementType)
+        } else if (type1 is MapType && type2 is MapType) {
+            return unify(type1.keyType, type2.keyType) &&
+                    unify(type1.valType, type2.valType)
         // If both representatives have tuple types, merge reps of all element types
         } else if (type1 is TupleType && type2 is TupleType) {
             return type1.elementTypes.size == type2.elementTypes.size &&
@@ -285,6 +300,8 @@ class TypeChecker(var symbolTable: SymbolTable) {
             is IntLiteralNode -> typeCheckIntLiteral(node, boundVars)
             is FloatLiteralNode -> typeCheckFloatLiteral(node, boundVars)
             is VectorLiteralNode -> typeCheckVectorLiteral(node, boundVars, refresh)
+            is SetLiteralNode -> typeCheckSetLiteral(node, boundVars, refresh)
+            is MapLiteralNode -> typeCheckMapLiteral(node, boundVars, refresh)
             is TupleLiteralNode -> typeCheckTupleLiteral(node, boundVars, refresh)
             // Variables and functions
             is VariableNode -> typeCheckVariable(node, boundVars, refresh)
@@ -397,6 +414,73 @@ class TypeChecker(var symbolTable: SymbolTable) {
                 val types = typesToString(element.type, elementType, boundVars)
                 throw IRConversionException("Vector must have elements of same type, found " +
                         "${types[0]} and ${types[1]}", element.startLocation)
+            }
+        })
+    }
+
+    fun typeCheckSetLiteral(
+        node: SetLiteralNode,
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
+    ) {
+        node.elements.forEach { element -> typeCheck(element, boundVars, refresh) }
+
+        // Set type is initially unknown, so set as set type with new type variable param
+        val elementType = TypeVariable()
+        val setType = SetType(elementType)
+
+        // Type of this set literal must be a set of the element type
+        if (!unify(node.type, setType)) {
+            val types = typesToString(node.type, setType, boundVars)
+            throw IRConversionException("Set literal could not be inferred to have set " +
+                    "type, found ${types[0]} but expected ${types[1]}", node.startLocation)
+        }
+
+        // Attempt to unify the types of each set element with the type variable param
+        node.elements.forEach({ element ->
+            if (!unify(element.type, elementType)) {
+                val types = typesToString(element.type, elementType, boundVars)
+                throw IRConversionException("Set must have elements of same type, found " +
+                        "${types[0]} and ${types[1]}", element.startLocation)
+            }
+        })
+    }
+
+    fun typeCheckMapLiteral(
+        node: MapLiteralNode,
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
+    ) {
+        node.keys.forEach { key -> typeCheck(key, boundVars, refresh) }
+        node.values.forEach { value -> typeCheck(value, boundVars, refresh) }
+
+        // Map type is initially unknown, so set as map type with new key and value params
+        val keyType = TypeVariable()
+        val valType = TypeVariable()
+        val mapType = MapType(keyType, valType)
+
+        // Type of this map literal must be the new map type
+        if (!unify(node.type, mapType)) {
+            val types = typesToString(node.type, mapType, boundVars)
+            throw IRConversionException("Map literal could not be inferred to have map type, " +
+                "found ${types[0]} but expected ${types[1]}", node.startLocation)
+        }
+
+        // Attempt to unify the types of each key with the new key param
+        node.keys.forEach({ key -> 
+            if (!unify(key.type, keyType)) {
+                val types = typesToString(key.type, keyType, boundVars)
+                throw IRConversionException("Map must have keys of same type, found " +
+                        "${types[0]} and ${types[1]}", key.startLocation)
+            }
+        })
+
+        // Attempt to unify the types of each value with the new value param
+        node.values.forEach({ value -> 
+            if (!unify(value.type, valType)) {
+                val types = typesToString(value.type, valType, boundVars)
+                throw IRConversionException("Map must have values of same type, found " +
+                        "${types[0]} and ${types[1]}", value.startLocation)
             }
         })
     }
