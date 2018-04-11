@@ -30,12 +30,14 @@ enum class IdentifierProperty {
  *
  * @property name the name of the identifier in the program
  * @property idClass the class of the identifier (e.g. variable, function)
+ * @property location the location of the identifier in the source code
  * @property type the best known type for this identifier
  * @property props a set of all properties of this identifier
  */
 data class IdentifierInfo(
     val name: String,
     val idClass: IdentifierClass,
+    val location: Location,
     var type: Type,
     val props: Set<IdentifierProperty>
 ) {

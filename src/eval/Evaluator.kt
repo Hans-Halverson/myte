@@ -247,37 +247,60 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
 
     fun evalKeyedAccess(node: KeyedAccessNode, env: Environment): Value {
         val container = evaluate(node.container, env)
-        if (container !is VectorValue) {
-            throw EvaluationException("Can only perform keyed access on a vector, " +
-                    "found ${formatType(container.type)}", node.startLocation)
-        }
+        if (container is VectorValue) {
+            val key = evalInt(node.key, env)
 
-        val key = evalInt(node.key, env)
-        if (key.num < 0 || key.num >= container.elements.size) {
-            throw EvaluationException("Index ${key.num} is outside bounds of vector",
-                    node.key.startLocation)
-        }
+            // Look up index in vector and return it, erroring if key is outside bounds of vector
+            if (key.num < 0 || key.num >= container.elements.size) {
+                throw EvaluationException("Index ${key.num} is outside bounds of vector",
+                        node.key.startLocation)
+            }
 
-        return container.elements[key.num]
+            return container.elements[key.num]
+        } else if (container is MapValue) {
+            val key = evaluate(node.key, env)
+            val value = container.map[key]
+
+            // Look up key in map and return it, erroring if no value is found
+            if (value == null) {
+                throw EvaluationException("No value for key ${key} in ${container}",
+                        node.key.startLocation)
+            }
+            
+            return value
+        } else {
+            throw EvaluationException("Can't perform keyed access on , " +
+                    "${formatType(container.type)}", node.startLocation)
+        }
     }
 
     fun evalKeyedAssignment(node: KeyedAssignmentNode, env: Environment): Value {
         val container = evaluate(node.container, env)
-        if (container !is VectorValue) {
-            throw EvaluationException("Can only perform keyed access on a vector, " +
-                    "found ${formatType(container.type)}", node.startLocation)
+        if (container is VectorValue) {
+            val key = evalInt(node.key, env)
+
+            // Look up index in vector and assign to it, erroring if key is outside bounds of vector
+            if (key.num < 0 || key.num >= container.elements.size) {
+                throw EvaluationException("Index ${key.num} is outside bounds of vector",
+                        node.key.startLocation)
+            }
+
+            val rValue = evaluate(node.rValue, env)
+            container.elements[key.num] = rValue
+
+            return rValue
+        } else if (container is MapValue) {
+            val key = evaluate(node.key, env)
+            val value = evaluate(node.rValue, env)
+
+            // Add key to map, overwriting any value for that key that already exists
+            container.map[key] = value
+            
+            return value
+        } else {
+            throw EvaluationException("Can't perform keyed assignment on , " +
+                    "${formatType(container.type)}", node.startLocation)
         }
-
-        val key = evalInt(node.key, env)
-        if (key.num < 0 || key.num >= container.elements.size) {
-            throw EvaluationException("Index ${key.num} is outside bounds of vector",
-                    node.key.startLocation)
-        }
-
-        val rValue = evaluate(node.rValue, env)
-        container.elements[key.num] = rValue
-
-        return rValue
     }
 
     fun evalFunctionCall(node: FunctionCallNode, env: Environment): Value {

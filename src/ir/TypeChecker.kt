@@ -11,11 +11,13 @@ import myte.shared.*
  *           is in the same equivalence class as its parent, and if the parent is null, this type
  *           is the representative for its equivalence class.
  * @property rank an upper bound on the longest path from this node to a leaf
+ * @property hasDeferredConstraint whether the type has a deferred keyed access constraint or not
  */
 private class TypeEquivalenceNode(
     var resolvedType: Type,
     var parent: TypeEquivalenceNode? = null,
-    var rank: Int = 0
+    var rank: Int = 0,
+    var deferredConstraints: MutableList<DeferredConstraint> = mutableListOf()
 ) {
     // An equivalence node is a root only when it does not have a parent
     val isRoot: Boolean
@@ -89,12 +91,64 @@ class TypeChecker(var symbolTable: SymbolTable) {
      */
     private fun resolveType(typeVar: TypeVariable, resolvedType: Type): Boolean {
         val equivNode = findRepNode(typeVar)
-        if (equivNode.resolvedType == resolvedType || equivNode.resolvedType is TypeVariable) {
+        if (equivNode.resolvedType != resolvedType || equivNode.resolvedType is TypeVariable) {
+            // Set resolved type
             equivNode.resolvedType = resolvedType
+
+            // Apply all deferred constraints, removing those that are satisfied
+            equivNode.deferredConstraints = equivNode.deferredConstraints.filter({
+                constraint -> !constraint.apply(resolvedType)
+            }).toMutableList()
+
             return true
         } else {
             return false
         }
+    }
+
+    /**
+     * Add a deferred constraint to the given type variable.
+     */
+    private fun addDeferredConstraint(
+        type: Type,
+        constraint: DeferredConstraint,
+        location: Location
+    ) {
+        if (type is TypeVariable) {
+            // If a type variable, find the representative node and type
+            val equivNode = findRepNode(type)
+            val repType = equivNode.resolvedType
+
+            // Attempt to apply the constraint now, if it fails then defer until rep type changes
+            if (!constraint.apply(repType)) {
+                equivNode.deferredConstraints.add(constraint)
+            }
+        } else {
+            // Attempt to apply this constraint to concrete type, fail if not possible since there
+            // will never be a point in the future in which it could be resolved.
+            if (!constraint.apply(type)) {
+                throw IRConversionException("Could not apply constraint ${constraint} to ${type}",
+                        location)
+            }
+        }
+    }
+
+    /**
+     * Infer a final type for the given input type. If this type is a type variable, there must
+     * be no outstanding deferred constraints in order for a type to be inferred.
+     */
+    private fun inferType(type: Type, location: Location): Type {
+        if (type is TypeVariable) {
+            val repNode = findRepNode(type)
+
+            // The existence outstanding, incomplete constraints means a type could not be inferred
+            if (!repNode.deferredConstraints.isEmpty()) {
+                throw IRConversionException("Cannot infer type, there are still outstanding " +
+                        "deferred constraints", location)
+            }
+        }
+
+        return findRepType(type, mutableSetOf())
     }
 
     /**
@@ -196,12 +250,22 @@ class TypeChecker(var symbolTable: SymbolTable) {
             // Choose the lower ranked node to be the root
             if (rep1.rank > rep2.rank) {
                 rep2.parent = rep1
+
+                // Transfer deferred keyed access constraint to parent node
+                rep1.deferredConstraints.addAll(rep2.deferredConstraints.filter({
+                    constraint -> !constraint.apply(rep1.resolvedType)
+                }))
             } else {
                 rep1.parent = rep2
                 // If ranks were equal, increment the rank of the newly non-root node
                 if (rep1.rank == rep2.rank) {
                     rep2.rank++
                 }
+
+                // Transfer deferred keyed access constraint to parent node
+                rep2.deferredConstraints.addAll(rep1.deferredConstraints.filter({
+                    constraint -> !constraint.apply(rep1.resolvedType)
+                }))
             }
 
             return true
@@ -238,7 +302,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
      * 
      * @return whether the two types can be unified or not
      */
-    private fun unify(t1: Type, t2: Type): Boolean {
+    fun unify(t1: Type, t2: Type): Boolean {
         // If type variables, work with their representative types
         val type1 = if (t1 is TypeVariable) findRepNode(t1).resolvedType else t1
         val type2 = if (t2 is TypeVariable) findRepNode(t2).resolvedType else t2
@@ -699,21 +763,10 @@ class TypeChecker(var symbolTable: SymbolTable) {
         typeCheck(node.container, boundVars, refresh)
         typeCheck(node.key, boundVars, refresh)
 
-        // Constrain eval type of node to be the element type of vector
-        val expectedVectorType = VectorType(node.type)
+        val keyedAccessConstraint = KeyedAccessConstraint(node, boundVars, this)
 
-        if (!unify(node.container.type, expectedVectorType)) {
-            val type = typeToString(node.container.type, boundVars)
-            throw IRConversionException("Can only perform keyed access on a vector, found ${type}",
-                    node.accessLocation)
-        }
-
-        // Constrain key to be an integer
-        if (!unify(node.key.type, IntType)) {
-            val type = typeToString(node.key.type, boundVars)
-            throw IRConversionException("Key in keyed access must be an int, found ${type}",
-                    node.key.startLocation)
-        }
+        addDeferredConstraint(node.container.type, keyedAccessConstraint,
+                node.container.startLocation)
     }
 
     fun typeCheckKeyedAssignment(
@@ -725,29 +778,10 @@ class TypeChecker(var symbolTable: SymbolTable) {
         typeCheck(node.key, boundVars, refresh)
         typeCheck(node.rValue, boundVars, refresh)
 
-        // Constrain eval type of container to be the element type of vector, while simultaneously
-        // constraining eval type of assignment to be the element type of vector.
-        val expectedVectorType = VectorType(node.type)
+        val keyedAssignmentConstraint = KeyedAssignmentConstraint(node, boundVars, this)
 
-        if (!unify(node.container.type, expectedVectorType)) {
-            val type = typeToString(node.container.type, boundVars)
-            throw IRConversionException("Can only perform keyed access on a vector, found ${type}",
-                    node.accessLocation)
-        }
-
-        // Constrain key to be an integer
-        if (!unify(node.key.type, IntType)) {
-            val type = typeToString(node.key.type, boundVars)
-            throw IRConversionException("Key in keyed access must be an int, found ${type}",
-                    node.key.startLocation)
-        }
-
-        // Constrain element type of vector to be type of rValue assigned to it
-        if (!unify(node.rValue.type, node.type)) {
-            val types = typesToString(node.type, node.rValue.type, boundVars)
-            throw IRConversionException("Expected type for assignment is " +
-                    "${types[0]}, but assigned ${types[1]}", node.rValue.startLocation)
-        }
+        addDeferredConstraint(node.container.type, keyedAssignmentConstraint,
+                node.container.startLocation)
     }
 
     fun typeCheckFunctionCall(
@@ -1145,7 +1179,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         // Infer types for every identifier of the specified class
         for ((_, identInfo) in symbolTable.identifiers) {
             if (identInfo.idClass == idClass) {
-                identInfo.type = findRepType(identInfo.type, mutableSetOf())
+                identInfo.type = inferType(identInfo.type, identInfo.location)
             }
         }
     }
@@ -1174,7 +1208,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
     fun inferIRTypes(root: IRNode) {
         // Infer return types for each IRNode
         root.map { node ->
-            node.type = findRepType(node.type, mutableSetOf())
+            node.type = inferType(node.type, node.startLocation)
         }
     }
 
@@ -1191,5 +1225,4 @@ class TypeChecker(var symbolTable: SymbolTable) {
     fun typesToString(type1: Type, type2: Type, boundVars: MutableSet<TypeVariable>): List<String> {
         return formatTypes(listOf(findRepType(type1, boundVars), findRepType(type2, boundVars)))
     }
-
 }

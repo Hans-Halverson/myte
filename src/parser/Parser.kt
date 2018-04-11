@@ -533,7 +533,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             // symbol for the ident will be used in the body (if the ident is being rebound).
             val expr = parseExpression()
             val ident = symbolTable.addSymbol(identToken.str, IdentifierClass.VARIABLE,
-                    FloatType, identProps)
+                    identToken.location, FloatType, identProps)
             
             return VariableDefinitionStatement(ident, expr, identToken.location, defToken.location)
         } else {
@@ -559,8 +559,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             // Parse the expression and then add the ident to the symbol table, so that the old
             // symbol for the ident will be used in the body (if the ident is being rebound).
             val expr = parseExpression()
-            val ident = symbolTable.addSymbol(identToken.str, IdentifierClass.VARIABLE, type,
-                    identProps)
+            val ident = symbolTable.addSymbol(identToken.str, IdentifierClass.VARIABLE,
+                    identToken.location, type, identProps)
             
             return VariableDefinitionStatement(ident, expr, identToken.location, defToken.location)
         }
@@ -609,7 +609,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
             // Add formal argument as variable to symbol table in new scope
             argTypes.add(argType)
-            formalArgs.add(symbolTable.addSymbol(token.str, IdentifierClass.VARIABLE, argType))
+            formalArgs.add(symbolTable.addSymbol(token.str, IdentifierClass.VARIABLE,
+                    token.location, argType))
 
             // If a right paren is found, all arguments have been found. If a comma is found,
             // there must still be identifiers to parse. Otherwise, syntax is invalid.
@@ -635,7 +636,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         // Add the function to the symbol table with correct type before parsing body, and make
         // sure to add in previous scope, as symbolTable is currently in the scope of the function.
         val ident = symbolTable.addSymbolInPreviousScope(funcToken.str, IdentifierClass.FUNCTION,
-                FunctionType(argTypes, returnType))
+                funcToken.location, FunctionType(argTypes, returnType))
 
         // Expression function definition bodies begin with an equals sign
         if (tokenizer.current is EqualsToken) {
@@ -786,7 +787,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                 val variantIdent = symbolTable.lookup(token.str)
                 if (variantIdent == null) {
                     val ident = symbolTable.addSymbol(token.str, IdentifierClass.VARIABLE,
-                            TypeVariable())
+                            token.location, TypeVariable())
                     return VariableExpression(ident, token.location)
                 }
 
@@ -794,7 +795,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                 val variantInfo = symbolTable.getInfo(variantIdent)
                 if (variantInfo?.idClass != IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT) {
                     val ident = symbolTable.addSymbol(token.str, IdentifierClass.VARIABLE,
-                            TypeVariable())
+                            token.location, TypeVariable())
                     return VariableExpression(ident, token.location)
                 }
 
@@ -1032,7 +1033,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             // If this type parameter has not been seen, create a new type variable and add
             // the type parameter to the symbol table.
             val newTypeParam = TypeVariable()
-            symbolTable.addSymbol(token.str, IdentifierClass.TYPE_PARAMETER, newTypeParam)
+            symbolTable.addSymbol(token.str, IdentifierClass.TYPE_PARAMETER,
+                    token.location, newTypeParam)
             return newTypeParam
         } else {
             throw ParseException("Unknown type ${token.str}", token)
@@ -1069,7 +1071,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             throw ParseException("Expected ${currentToken} to be an identifier", currentToken)
         }
 
-        val typeName = currentToken.str
+        val typeNameToken = currentToken
         val typeParams: MutableList<TypeVariable> = mutableListOf()
 
         tokenizer.next()
@@ -1092,7 +1094,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                 // Add the type parameter to the local environment and save it in the list of params
                 val typeParam = TypeVariable()
                 typeParams.add(typeParam)
-                symbolTable.addSymbol(currentToken.str, IdentifierClass.TYPE_PARAMETER, typeParam)
+                symbolTable.addSymbol(currentToken.str, IdentifierClass.TYPE_PARAMETER,
+                        currentToken.location, typeParam)
 
                 tokenizer.next()
             } while (tokenizer.current is CommaToken)
@@ -1102,8 +1105,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         }
 
         // Create adt type signature based off name and type params, and add to global scope
-        val adtSig = AlgebraicDataTypeSignature(typeName, typeParams)
-        addAdtSigToSymbolTable(adtSig, symbolTable)
+        val adtSig = AlgebraicDataTypeSignature(typeNameToken.str, typeParams)
+        addAdtSigToSymbolTable(adtSig, symbolTable, typeNameToken.location)
 
         assertCurrent(TokenType.EQUALS)
         tokenizer.next()
@@ -1128,7 +1131,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                 throw ParseException("Algebraic data type variants must be named", currentToken)
             }
 
-            val variantName = currentToken.str
+            val variantNameToken = currentToken
             tokenizer.next()
 
             // Parse optional type constructor arguments
@@ -1149,9 +1152,9 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             }
 
             // Create a new variant type and add it to the global scope
-            val adtVariant = AlgebraicDataTypeVariant(adtSig, variantName, typeConstructor)
+            val adtVariant = AlgebraicDataTypeVariant(adtSig, variantNameToken.str, typeConstructor)
             adtSig.variants.add(adtVariant)
-            addAdtVariantToSymbolTable(adtVariant, symbolTable)
+            addAdtVariantToSymbolTable(adtVariant, symbolTable, variantNameToken.location)
         } while (tokenizer.current !is RightBraceToken)
 
         tokenizer.next()
@@ -1170,7 +1173,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             throw ParseException("Expected ${currentToken} to be an identifier", currentToken)
         }
 
-        val typeName = currentToken.str
+        val typeNameToken = currentToken
         val typeParams: MutableList<TypeVariable> = mutableListOf()
 
         tokenizer.next()
@@ -1193,7 +1196,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                 // Add the type parameter to the local environment and save it in the list of params
                 val typeParam = TypeVariable()
                 typeParams.add(typeParam)
-                symbolTable.addSymbol(currentToken.str, IdentifierClass.TYPE_PARAMETER, typeParam)
+                symbolTable.addSymbol(currentToken.str, IdentifierClass.TYPE_PARAMETER,
+                        currentToken.location, typeParam)
 
                 tokenizer.next()
             } while (tokenizer.current is CommaToken)
@@ -1203,8 +1207,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         }
 
         // Create union signature based off name and type params, and add to global scope
-        val unionSig = UnionTypeSignature(typeName, typeParams)
-        addUnionSigToSymbolTable(unionSig, symbolTable)
+        val unionSig = UnionTypeSignature(typeNameToken.str, typeParams)
+        addUnionSigToSymbolTable(unionSig, symbolTable, typeNameToken.location)
 
         assertCurrent(TokenType.EQUALS)
         tokenizer.next()

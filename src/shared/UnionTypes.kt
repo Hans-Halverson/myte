@@ -40,9 +40,13 @@ class UnionTypeSignature(
 /**
  * Add a union type signature to the global scope of the symbol table.
  */
-fun addUnionSigToSymbolTable(unionSig: UnionTypeSignature, symbolTable: SymbolTable) {
+fun addUnionSigToSymbolTable(
+    unionSig: UnionTypeSignature,
+    symbolTable: SymbolTable,
+    location: Location
+) {
     val ident = symbolTable.addSymbolInGlobalScope(unionSig.name, IdentifierClass.UNION_TYPE,
-            unionSig.getUnionTypeWithParams(unionSig.typeParams))
+            location, unionSig.getUnionTypeWithParams(unionSig.typeParams))
     val info = symbolTable.getInfo(ident)!!
     info.unionSig = unionSig
 }

@@ -67,31 +67,34 @@ class SymbolTable() {
     fun addSymbol(
         name: String,
         idClass: IdentifierClass,
+        location: Location,
         type: Type,
         props: Set<IdentifierProperty> = hashSetOf()
     ): Identifier {
         val scope = scopes.peek()
-        return addSymbolInScope(scope, name, idClass, type, props)
+        return addSymbolInScope(scope, name, idClass, location, type, props)
     }
 
     fun addSymbolInPreviousScope(
         name: String,
         idClass: IdentifierClass,
+        location: Location,
         type: Type,
         props: Set<IdentifierProperty> = hashSetOf()
     ): Identifier {
         val scope = scopes.get(scopes.size - 2)
-        return addSymbolInScope(scope, name, idClass, type, props)
+        return addSymbolInScope(scope, name, idClass, location, type, props)
     }
 
     fun addSymbolInGlobalScope(
         name: String,
         idClass: IdentifierClass,
+        location: Location,
         type: Type,
         props: Set<IdentifierProperty> = hashSetOf()
     ): Identifier {
         val scope = scopes[0]
-        return addSymbolInScope(scope, name, idClass, type, props)
+        return addSymbolInScope(scope, name, idClass, location, type, props)
     }
 
     /**
@@ -100,6 +103,7 @@ class SymbolTable() {
      * @param scope the scope to add the identifier to
      * @param name the name of the new identifier
      * @param idClass the class of the new identifier (e.g. variable, function)
+     * @property location the location of the identifier in the source code
      * @param type the best known type for the new identifier
      * @param props an (optional) set of all properties of this identifier
      */
@@ -107,11 +111,12 @@ class SymbolTable() {
         scope: MutableMap<String, Identifier>,
         name: String,
         idClass: IdentifierClass,
+        location: Location,
         type: Type,
         props: Set<IdentifierProperty>
     ): Identifier {
         val ident = Identifier(name)
-        val info = IdentifierInfo(name, idClass, type, props)
+        val info = IdentifierInfo(name, idClass, location, type, props)
 
         scope[name] = ident
         identifiers[ident] = info
