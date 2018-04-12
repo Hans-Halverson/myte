@@ -100,7 +100,6 @@ private fun getKeywordToken(str: String, location: Location): Token? {
         "let" -> LetToken(location)
         "const" -> ConstToken(location)
         "def" -> DefToken(location)
-        "num" -> NumToken(location)
         "if" -> IfToken(location)
         "else" -> ElseToken(location)
         "while" -> WhileToken(location)

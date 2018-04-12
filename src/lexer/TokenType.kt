@@ -169,10 +169,6 @@ enum class TokenType {
         override fun toString(): String = "def"
     },
 
-    NUM {
-        override fun toString(): String = "num"
-    },
-
     IF {
         override fun toString(): String = "if"
     },

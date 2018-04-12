@@ -154,7 +154,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         val func = convert(expr.func)
         val args = expr.actualArgs.map(this::convert)
 
-        return FunctionCallNode(func, args, expr.identLocation)
+        return FunctionCallNode(func, args, expr.callLocation, expr.startLocation)
     }
 
     fun convertTypeConstructor(expr: TypeConstructorExpression): TypeConstructorNode {

@@ -21,7 +21,6 @@ enum class IdentifierClass {
 // An IdentifierProperty is a possible property of an identifier.
 // A single identifier can have many IdentifierProperties.
 enum class IdentifierProperty {
-    NUMERIC,
     IMMUTABLE,
 }
 

@@ -583,7 +583,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
     ) {
         val info = symbolTable.getInfo(node.ident)
         if (info == null) {
-            throw IRConversionException("Unknown variable ${node.ident.name}", node.startLocation)
+            throw IRConversionException("Unknown identifier ${node.ident.name}", node.startLocation)
         }
 
         // The evaluation type of this node is the type stored for the variable in the symbol table.
@@ -789,51 +789,20 @@ class TypeChecker(var symbolTable: SymbolTable) {
         boundVars: MutableSet<TypeVariable>,
         refresh: Boolean
     ) {
-        // Function node must be a variable node
-        val func = if (node.func is VariableNode) {
-            node.func.ident
-        } else {
-            throw IRConversionException("Can only call functions", node.func.startLocation)
-        }
-
-        val funcInfo = symbolTable.getInfo(func)
-        val funcType = funcInfo?.type
-        if (funcType == null) {
-            throw IRConversionException("Unknown function ${func.name}", node.startLocation)
-        }
-
+        typeCheck(node.func, boundVars, refresh)
         node.actualArgs.forEach { actualArg -> typeCheck(actualArg, boundVars, refresh) }
 
-        // Since a type for an identifier is being found, a fresh version of that type must be used.
-        val funcRepType = findRepType(funcType, boundVars)
-
-        // Return type is a float if numeric
-        if (funcInfo.props.contains(IdentifierProperty.NUMERIC)) {
-            if (!unify(node.type, FloatType)) {
-                val type = typeToString(node.type, boundVars)
-                throw IRConversionException("Return type for numeric function must be float, but " +
-                        "found ${type}", node.startLocation)
-            }
-        }
+        val funcType = node.func.type
 
         // Unify the arguments to the function with the expected argument types stored for the
         // function in the symbol table
         val argTypes = node.actualArgs.map { arg -> arg.type }
         val expectedFuncType = FunctionType(argTypes, node.type)
 
-        if (!unify(expectedFuncType, funcRepType)) {
-            // If type of identifier is a known function, provide more useful error message
-            if (funcRepType is FunctionType) {
-                val argRepTypes = argTypes.map { argType -> findRepType(argType, boundVars) }
-                throw IRConversionException("${func.name} expected arguments of type " +
-                        "${formatTypes(funcRepType.argTypes)}, but found " +
-                        "${formatTypes(argRepTypes)}", node.startLocation)
-            } else {
-                val types = formatTypes(listOf(findRepType(expectedFuncType, boundVars),
-                        funcRepType))
-                throw IRConversionException("${func.name} expected to have type " +
-                        "${types[0]}, but found ${types[1]}", node.startLocation)
-            }
+        if (!unify(expectedFuncType, funcType)) {
+            val types = typesToString(expectedFuncType, funcType, boundVars)
+            throw IRConversionException("Illegal function call. Function expected to have type " +
+                    "${types[0]}, but found ${types[1]}", node.callLocation)
         }
     }
 

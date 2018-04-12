@@ -304,11 +304,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
     }
 
     fun evalFunctionCall(node: FunctionCallNode, env: Environment): Value {
-        if (node.func !is VariableNode) {
-            throw EvaluationException("Can only call function", node.func.startLocation)
-        }
-        
-        val closureValue = env.lookup(node.func.ident)
+        val closureValue = evaluate(node.func, env)
 
         // Check if bound function is a builtin. If so, use its stored evaluation function
         if (closureValue is BuiltinValue) {

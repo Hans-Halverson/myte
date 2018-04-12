@@ -474,16 +474,15 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
         assertCurrent(TokenType.RIGHT_PAREN)
         tokenizer.next()
-
-        // If a variable is called create a call expression
-        if (prevExpr is VariableExpression) {
-            return FunctionCallExpression(prevExpr, actualArgs, prevExpr.identLocation)
+            
         // If a type constructor is called, create a type constructor expression with arguments
-        } else if (prevExpr is TypeConstructorExpression) {
+        if (prevExpr is TypeConstructorExpression) {
             return TypeConstructorExpression(prevExpr.adtVariant, actualArgs,
                     prevExpr.identLocation)
+        // Otherwise create a regular call expression and determine whether it is valid later
         } else {
-            throw ParseException("Can only apply functions or type constructors", leftParenToken)
+            return FunctionCallExpression(prevExpr, actualArgs, leftParenToken.location,
+                    prevExpr.startLocation)
         }
     }
 
@@ -511,71 +510,37 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         // If parseVariableDefinition is called, the previous token must have been a let or const
         var token = tokenizer.next()
 
-        if (token is NumToken) {
-            token = tokenizer.next()
-
-            if (token !is IdentifierToken) {
-                throw ParseException("Expected identifier in variable definition", token)
-            }
-
-            val identToken = token
-
-            assertCurrent(TokenType.EQUALS)
-            tokenizer.next()
-
-            // Const variable definitions are immutable, all others are mutable.
-            val identProps: MutableSet<IdentifierProperty> = hashSetOf(IdentifierProperty.NUMERIC)
-            if (isConst) {
-                identProps.add(IdentifierProperty.IMMUTABLE)
-            }
-
-            // Parse the expression and then add the ident to the symbol table, so that the old
-            // symbol for the ident will be used in the body (if the ident is being rebound).
-            val expr = parseExpression()
-            val ident = symbolTable.addSymbol(identToken.str, IdentifierClass.VARIABLE,
-                    identToken.location, FloatType, identProps)
-            
-            return VariableDefinitionStatement(ident, expr, identToken.location, defToken.location)
-        } else {
-            if (token !is IdentifierToken) {
-                throw ParseException("Expected identifier in variable definition", token)
-            }
-
-            val identToken = token
-
-            // Parse type if one is specified, otherwise create new type variable
-            val type = if (tokenizer.current is ColonToken) {
-                parseTypeAnnotation()
-            } else {
-                TypeVariable()
-            }
-
-            // Const variable definitions are immutable, all others are mutable
-            val identProps = if (isConst) hashSetOf(IdentifierProperty.IMMUTABLE) else hashSetOf()
-
-            assertCurrent(TokenType.EQUALS)
-            tokenizer.next()
-
-            // Parse the expression and then add the ident to the symbol table, so that the old
-            // symbol for the ident will be used in the body (if the ident is being rebound).
-            val expr = parseExpression()
-            val ident = symbolTable.addSymbol(identToken.str, IdentifierClass.VARIABLE,
-                    identToken.location, type, identProps)
-            
-            return VariableDefinitionStatement(ident, expr, identToken.location, defToken.location)
+        if (token !is IdentifierToken) {
+            throw ParseException("Expected identifier in variable definition", token)
         }
+
+        val identToken = token
+
+        // Parse type if one is specified, otherwise create new type variable
+        val type = if (tokenizer.current is ColonToken) {
+            parseTypeAnnotation()
+        } else {
+            TypeVariable()
+        }
+
+        // Const variable definitions are immutable, all others are mutable
+        val identProps = if (isConst) hashSetOf(IdentifierProperty.IMMUTABLE) else hashSetOf()
+
+        assertCurrent(TokenType.EQUALS)
+        tokenizer.next()
+
+        // Parse the expression and then add the ident to the symbol table, so that the old
+        // symbol for the ident will be used in the body (if the ident is being rebound).
+        val expr = parseExpression()
+        val ident = symbolTable.addSymbol(identToken.str, IdentifierClass.VARIABLE,
+                identToken.location, type, identProps)
+        
+        return VariableDefinitionStatement(ident, expr, identToken.location, defToken.location)
     }
 
     fun parseFunctionDefinition(defToken: DefToken): FunctionDefinitionStatement {
         // If parseFunctionDefinition is called, the previous token must have been a def
         var token = tokenizer.next()
-
-        // Check whether function is numeric or not
-        var isNumeric = false
-        if (token is NumToken) {
-            token = tokenizer.next()
-            isNumeric = true
-        }
 
         if (token !is IdentifierToken) {
             throw ParseException("Expected identifier in variable definition", token)
@@ -598,10 +563,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
                 throw ParseException("Formal arguments must be identifiers", token)
             }
 
-            // Only parse types if the function is non-numeric, otherwise must be floats
-            val argType = if (isNumeric) {
-                FloatType
-            } else if (tokenizer.current is ColonToken) {
+            // Only parse type annotations if they exist
+            val argType = if (tokenizer.current is ColonToken) {
                 parseTypeAnnotation(true)
             } else {
                 TypeVariable()
@@ -624,10 +587,8 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         assertCurrent(TokenType.RIGHT_PAREN)
         tokenizer.next()
 
-        // If function is numeric, it must return float. Otherwise find the type.
-        val returnType = if (isNumeric) {
-            FloatType
-        } else if (tokenizer.current is ColonToken) {
+        // Parse return type annotation if one exists
+        val returnType = if (tokenizer.current is ColonToken) {
             parseTypeAnnotation(true)
         } else {
             TypeVariable()

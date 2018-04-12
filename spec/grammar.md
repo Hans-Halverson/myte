@@ -14,9 +14,6 @@ Operators have the following precedence, from low to high:
 4. Function application (f(x))
 
 
-# Numerics
-Values and functions defined with let are numeric, and can only interact with other numbers and numerics. General, non-numeric values and functions are defined with the var and def keywords, respectively.
-
 
 # Number conversions
 Implicit conversions from int to float are allowed when using arithmetic operators (+, -, /, *, ^) and comparisons (<, <=, >, >=), but not when function arguments.
@@ -34,7 +31,7 @@ EXPR -> NUMBER_LITERAL
       | UNARY
       | INFIX
       | ( EXPR_LIST )
-      | FUNCTION_CALL
+      | EXPR ( [EXPR_LIST]? )
       | KEYED_ACCESS
 
 UNARY -> + EXPR
@@ -55,8 +52,6 @@ INFIX -> EXPR + EXPR
        | EXPR && EXPR
        | EXPR || EXPR
        | EXPR = EXPR
-
-FUNCTION_CALL -> IDENT ( [EXPR_LIST]? )
 
 KEYED_ACCESS -> IDENT [ EXPR ]
 
@@ -84,12 +79,9 @@ TYPE_LIST -> TYPE [, TYPE]*
 TYPED_IDENT = IDENT [: TYPE]?
 
 VARIABLE_DEF -> let TYPED_IDENT = EXPR
-              | let num IDENT = EXPR
               | const TYPED_IDENT = EXPR
-              | const num IDENT = EXPR
 
 FUNCTION_DEF -> def IDENT ( [TYPED_ARGS]? ) [: TYPE]? FUNCTION_BODY
-              | def num IDENT ( [UNTYPED_ARGS]? ) FUNCTION_BODY
 
 FUNCTION_BODY -> BLOCK
                | = EXPR
