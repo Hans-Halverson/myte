@@ -104,6 +104,8 @@ class ConstToken(location: Location) : Token(location, TokenType.CONST)
 
 class DefToken(location: Location) : Token(location, TokenType.DEF)
 
+class FunToken(location: Location) : Token(location, TokenType.FUN)
+
 class IfToken(location: Location) : Token(location, TokenType.IF)
 
 class ElseToken(location: Location) : Token(location, TokenType.ELSE)

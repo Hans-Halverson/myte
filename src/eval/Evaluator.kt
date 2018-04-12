@@ -27,10 +27,12 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             is StringLiteralNode -> StringValue(node.str)
             is IntLiteralNode -> IntValue(node.num)
             is FloatLiteralNode -> FloatValue(node.num)
+            is UnitLiteralNode -> UnitValue
             is VectorLiteralNode -> evalVectorLiteralNode(node, env)
             is SetLiteralNode -> evalSetLiteralNode(node, env)
             is MapLiteralNode -> evalMapLiteralNode(node, env)
             is TupleLiteralNode -> evalTupleLiteralNode(node, env)
+            is LambdaNode -> evalLambda(node, env)
             // Variables and functions
             is VariableNode -> env.lookup(node.ident)
             is KeyedAccessNode -> evalKeyedAccess(node, env)
@@ -376,6 +378,16 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         return UnitValue
     }
 
+    fun evalLambda(node: LambdaNode, env: Environment): ClosureValue {
+        val funcType = node.type
+        if (funcType !is FunctionType) {
+            throw EvaluationException("Lambda expression must have function type, " +
+                    "found ${formatType(funcType)}", node.startLocation)
+        }
+
+        return ClosureValue(node.formalArgs, node.body, env.copy(), funcType)
+    }
+
     fun evalBlock(node: BlockNode, env: Environment): UnitValue {
         // Evaluate all the children of a block node in a new scope, which is removed after block
         env.enterScope()
@@ -508,6 +520,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             is StringValue -> pattern is StringLiteralNode && pattern.str == value.str
             is IntValue -> pattern is IntLiteralNode && pattern.num == value.num
             is FloatValue -> pattern is FloatLiteralNode && pattern.num == value.num
+            is UnitValue -> pattern is UnitLiteralNode
             // Vectors match if they are the same size and contain the same elements
             is VectorValue -> pattern is VectorLiteralNode &&
                     value.elements.size == pattern.elements.size &&
@@ -530,7 +543,6 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             // Nothing can match functions or unit
             is BuiltinValue -> false
             is ClosureValue -> false
-            is UnitValue -> false
             else -> throw EvaluationException("Unknown value ${value}", pattern.startLocation)
         }
     }

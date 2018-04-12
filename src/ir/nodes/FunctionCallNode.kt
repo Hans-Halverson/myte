@@ -17,6 +17,7 @@ class FunctionCallNode(
 ) : IRNode(startLocation) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
+        this.func.map(func)
         actualArgs.map { arg -> arg.map(func) }
     }
 

@@ -363,10 +363,12 @@ class TypeChecker(var symbolTable: SymbolTable) {
             is StringLiteralNode -> typeCheckStringLiteral(node, boundVars)
             is IntLiteralNode -> typeCheckIntLiteral(node, boundVars)
             is FloatLiteralNode -> typeCheckFloatLiteral(node, boundVars)
+            is UnitLiteralNode -> typeCheckUnitLiteral(node, boundVars)
             is VectorLiteralNode -> typeCheckVectorLiteral(node, boundVars, refresh)
             is SetLiteralNode -> typeCheckSetLiteral(node, boundVars, refresh)
             is MapLiteralNode -> typeCheckMapLiteral(node, boundVars, refresh)
             is TupleLiteralNode -> typeCheckTupleLiteral(node, boundVars, refresh)
+            is LambdaNode -> typeCheckLambda(node, boundVars, refresh)
             // Variables and functions
             is VariableNode -> typeCheckVariable(node, boundVars, refresh)
             is FunctionCallNode -> typeCheckFunctionCall(node, boundVars, refresh)
@@ -450,6 +452,18 @@ class TypeChecker(var symbolTable: SymbolTable) {
         if (!unify(node.type, FloatType)) {
             val type = typeToString(node.type, boundVars)
             throw IRConversionException("Float literal could not be inferred to have float " +
+                    "type, found ${type}", node.startLocation)
+        }
+    }
+
+    fun typeCheckUnitLiteral(
+        node: UnitLiteralNode,
+        boundVars: MutableSet<TypeVariable>
+    ) {
+        // Type of unit literal must be unit
+        if (!unify(node.type, UnitType)) {
+            val type = typeToString(node.type, boundVars)
+            throw IRConversionException("Unit literal could not be inferred to have unit " +
                     "type, found ${type}", node.startLocation)
         }
     }
@@ -943,6 +957,38 @@ class TypeChecker(var symbolTable: SymbolTable) {
                 val types = typesToString(funcType.returnType, retType, newBoundVars)
                 val location = retNode.expr?.startLocation ?: retNode.startLocation
                 throw IRConversionException("${node.ident.name} must return ${types[0]} " +
+                        "but found ${types[1]}", location)
+            }
+        })
+    }
+
+    fun typeCheckLambda(node: LambdaNode, boundVars: MutableSet<TypeVariable>, refresh: Boolean) {
+        // Bind all types in the argument list
+        val newBoundVars = boundVars.toHashSet()
+
+        val argTypes = node.formalArgs.map { formalArg -> symbolTable.getInfo(formalArg)?.type!! }
+        argTypes.forEach { type -> newBoundVars.addAll(type.getAllVariables()) }
+
+        typeCheck(node.body, newBoundVars, refresh)
+
+        // Create expected function type from argument list and new return type variable
+        val returnType = TypeVariable()
+        val funcType = FunctionType(argTypes, returnType)
+
+        // Lambda expression node evaluates to this function type
+        if (!unify(node.type, funcType)) {
+            val types = typesToString(funcType, node.type, newBoundVars)
+            throw IRConversionException("Expected lambda expression to have type ${types[0]}, " +
+                    "but found ${types[1]}", node.startLocation)
+        }
+
+        // Unify all returned types with the return type of this lambda expression
+        mapOverReturns(node.body, { retNode ->
+            val retType = retNode.expr?.type ?: UnitType
+            if (!unify(retType, returnType)) {
+                val types = typesToString(returnType, retType, newBoundVars)
+                val location = retNode.expr?.startLocation ?: retNode.startLocation
+                throw IRConversionException("Lambda expression expected to return ${types[0]} " +
                         "but found ${types[1]}", location)
             }
         })

@@ -30,9 +30,10 @@ EXPR -> NUMBER_LITERAL
       | IDENT
       | UNARY
       | INFIX
-      | ( EXPR_LIST )
+      | ( [EXPR_LIST]? )
       | EXPR ( [EXPR_LIST]? )
-      | KEYED_ACCESS
+      | EXPR [ EXPR ]
+      | fun ( [TYPED_ARGS]? ) -> LAMBDA_BODY
 
 UNARY -> + EXPR
        | - EXPR
@@ -53,13 +54,14 @@ INFIX -> EXPR + EXPR
        | EXPR || EXPR
        | EXPR = EXPR
 
-KEYED_ACCESS -> IDENT [ EXPR ]
-
 EXPR_LIST -> EXPR [, EXPR]*
 
 KV_PAIR -> EXPR -> EXPR
 
 KV_PAIR_LIST -> KV_PAIR [, KV_PAIR]*
+
+LAMBDA_BODY -> EXPR
+             | BLOCK
 
 
 TYPE -> bool
@@ -87,8 +89,6 @@ FUNCTION_BODY -> BLOCK
                | = EXPR
 
 TYPED_ARGS -> TYPED_IDENT [, TYPED_IDENT]*
-
-UNTYPED_ARGS -> IDENT [, IDENT]*
 
 
 TYPE_DEF -> type IDENT [< TYPE_PARAM_LIST >]? = { TYPE_VARIANT_LIST }

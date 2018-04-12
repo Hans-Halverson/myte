@@ -31,10 +31,12 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             stmt is StringLiteralExpression -> StringLiteralNode(stmt.str, stmt.startLocation)
             stmt is IntLiteral -> IntLiteralNode(stmt.num, stmt.startLocation)
             stmt is FloatLiteral -> FloatLiteralNode(stmt.num, stmt.startLocation)
+            stmt is UnitLiteralExpression -> UnitLiteralNode(stmt.startLocation)
             stmt is VectorLiteralExpression -> convertVectorLiteral(stmt)
             stmt is SetLiteralExpression -> convertSetLiteral(stmt)
             stmt is MapLiteralExpression -> convertMapLiteral(stmt)
             stmt is TupleLiteralExpression -> convertTupleLiteral(stmt)
+            stmt is LambdaExpression -> convertLambda(stmt)
             // Variables and functions
             stmt is VariableExpression -> convertVariable(stmt)
             stmt is FunctionCallExpression -> convertFunctionCall(stmt)
@@ -89,6 +91,18 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     // Conversion functions for each AST node
     //
     ///////////////////////////////////////////////////////////////////////////
+
+    fun convertLambda(expr: LambdaExpression): LambdaNode {
+        val body = convert(expr.body)
+
+        // Check that all paths in the lambda return a value
+        if (!allPathsHaveReturn(body)) {
+            throw IRConversionException("Every branch of lambda expression must return a value",
+                    expr.startLocation)
+        }
+
+        return LambdaNode(expr.formalArgs, body, expr.startLocation)
+    }
 
     fun convertFunctionDefinition(stmt: FunctionDefinitionStatement): FunctionDefinitionNode {
         val body = convert(stmt.body)
