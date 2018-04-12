@@ -24,7 +24,11 @@ class StringLiteralToken(
     override fun toString(): String = "\"${str}\""
 }
 
-class IdentifierToken(val str: String, location: Location) : Token(location, TokenType.IDENTIFIER) {
+open class IdentifierToken(
+    val str: String,
+    location: Location,
+    type: TokenType = TokenType.IDENTIFIER
+) : Token(location, type) {
     override fun toString(): String = str
 }
 
@@ -124,20 +128,36 @@ class BreakToken(location: Location) : Token(location, TokenType.BREAK)
 
 class ContinueToken(location: Location) : Token(location, TokenType.CONTINUE)
 
-class UnitToken(location: Location) : Token(location, TokenType.UNIT)
+class UnitToken(
+    location: Location
+) : IdentifierToken(TokenType.UNIT.toString(), location, TokenType.UNIT)
 
-class BoolToken(location: Location) : Token(location, TokenType.BOOL)
+class BoolToken(
+    location: Location
+) : IdentifierToken(TokenType.BOOL.toString(), location, TokenType.BOOL)
 
-class StringTypeToken(location: Location) : Token(location, TokenType.STRING_TYPE)
+class StringTypeToken(
+    location: Location
+) : IdentifierToken(TokenType.BOOL.toString(), location, TokenType.STRING_TYPE)
 
-class IntToken(location: Location) : Token(location, TokenType.INT)
+class IntToken(
+    location: Location
+) : IdentifierToken(TokenType.INT.toString(), location, TokenType.INT)
 
-class FloatToken(location: Location) : Token(location, TokenType.FLOAT)
+class FloatToken(
+    location: Location
+) : IdentifierToken(TokenType.FLOAT.toString(), location, TokenType.FLOAT)
 
-class VecToken(location: Location) : Token(location, TokenType.VEC)
+class VecToken(
+    location: Location
+) : IdentifierToken(TokenType.VEC.toString(), location, TokenType.VEC)
 
-class MapToken(location: Location) : Token(location, TokenType.MAP)
+class MapToken(
+    location: Location
+) : IdentifierToken(TokenType.MAP.toString(), location, TokenType.MAP)
 
-class SetToken(location: Location) : Token(location, TokenType.SET)
+class SetToken(
+    location: Location
+) : IdentifierToken(TokenType.SET.toString(), location, TokenType.SET)
 
 class NewLineToken(location: Location) : Token(location, TokenType.NEW_LINE)
