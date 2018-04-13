@@ -4,7 +4,11 @@ import myte.lexer.*
 import myte.parser.ast.*
 import myte.shared.*
 
-class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
+class Parser(
+    val symbolTable: SymbolTable,
+    tokens: List<Token> = listOf(),
+    val ignoreAmbiguousEnd: Boolean = false
+) {
     var tokenizer: Tokenizer = Tokenizer(tokens)
 
     /**
@@ -851,22 +855,34 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         // If parseMatchStatement is called, the previous token must have been a match.
         val matchExpr = parseExpression()
 
-        assertCurrent(TokenType.LEFT_BRACE)
-        tokenizer.next()
-
         val patterns: MutableList<Expression> = mutableListOf()
         val statements: MutableList<Statement> = mutableListOf()
 
         // Parse nonempty list of cases
         do {
+            // The pipe before the first match case is optional
+            if (patterns.size == 0 && tokenizer.current is PipeToken) {
+                tokenizer.next()
+            } else if (patterns.size != 0) {
+                // If EOF is reached right after a complete match case, another case could start
+                // on the next input line.
+                if (tokenizer.reachedEnd) {
+                    if (ignoreAmbiguousEnd) {
+                        break
+                    } else {
+                        throw AmbiguousEndException()
+                    }
+                // Otherwise a pipe signals that another match case is starting
+                } else if (tokenizer.current is PipeToken) {
+                    tokenizer.next()
+                // Otherwise we have parsed all the cases for this match
+                } else {
+                    break
+                }
+            }
+
             // Each case should be in its own scope
             symbolTable.enterScope()
-
-            // Pipe for first case is optional, but required for all other cases
-            if (patterns.size != 0 || tokenizer.current is PipeToken) {
-                assertCurrent(TokenType.PIPE)
-                tokenizer.next()
-            }
 
             // Rest of case is pattern and statement separated by an arrow
             patterns.add(parsePattern())
@@ -877,9 +893,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             statements.add(parseStatement())
 
             symbolTable.exitScope()
-        } while (tokenizer.current !is RightBraceToken)
-
-        tokenizer.next()
+        } while (true)
 
         return MatchStatement(matchExpr, patterns.zip(statements), matchToken.location)
     }
@@ -1137,17 +1151,29 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
         assertCurrent(TokenType.EQUALS)
         tokenizer.next()
 
-        assertCurrent(TokenType.LEFT_BRACE)
-        tokenizer.next()
-
         var firstVariant = true
 
         // Parse nonempty sequence of variant definitions
         do {
-            // Pipe before the first variant is optional, but required for all other variants
-            if (!firstVariant || tokenizer.current is PipeToken) {
-                assertCurrent(TokenType.PIPE)
+            // The pipe before the first variant is optional
+            if (firstVariant && tokenizer.current is PipeToken) {
                 tokenizer.next()
+            } else if (!firstVariant) {
+                // If EOF is reached right after a complete variant, another variant could start
+                // on the next input line.
+                if (tokenizer.reachedEnd) {
+                    if (ignoreAmbiguousEnd) {
+                        break
+                    } else {
+                        throw AmbiguousEndException()
+                    }
+                // Otherwise a pipe signals that another variant is starting
+                } else if (tokenizer.current is PipeToken) {
+                    tokenizer.next()
+                // Otherwise we have parsed all the variants for this type
+                } else {
+                    break
+                }
             }
 
             firstVariant = false
@@ -1159,6 +1185,20 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
 
             val variantNameToken = currentToken
             tokenizer.next()
+
+            // Type constructor arguments are optional, so an end here is ambiguous
+            if (tokenizer.reachedEnd) {
+                // If end is unambiguous, need to create a new variant and add it to global scope
+                if (ignoreAmbiguousEnd) {
+                    val adtVariant = AlgebraicDataTypeVariant(adtSig, variantNameToken.str,
+                            listOf())
+                    adtSig.variants.add(adtVariant)
+                    addAdtVariantToSymbolTable(adtVariant, symbolTable, variantNameToken.location)
+                    break
+                } else {
+                    throw AmbiguousEndException()
+                }
+            }
 
             // Parse optional type constructor arguments
             val typeAnnotation = if (tokenizer.current is LeftParenToken) {
@@ -1181,9 +1221,7 @@ class Parser(val symbolTable: SymbolTable, tokens: List<Token> = listOf()) {
             val adtVariant = AlgebraicDataTypeVariant(adtSig, variantNameToken.str, typeConstructor)
             adtSig.variants.add(adtVariant)
             addAdtVariantToSymbolTable(adtVariant, symbolTable, variantNameToken.location)
-        } while (tokenizer.current !is RightBraceToken)
-
-        tokenizer.next()
+        } while (true)
 
         symbolTable.exitScope()
     }

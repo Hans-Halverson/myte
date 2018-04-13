@@ -16,3 +16,6 @@ class ParseException(
 }
 
 class ParseEOFException() : Exception("Unexpected EOF encountered")
+
+class AmbiguousEndException() : Exception("EOF encountered with full parse, but current " +
+        "expression could continue")

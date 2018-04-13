@@ -30,6 +30,7 @@ fun repl(input: BufferedReader) {
         val inputLines = StringBuilder()
         var numLines = 0
         var seenBlankLine = false
+        var ambiguousEnd = false
 
         // The input loop processes a single line of input at a time. A single statement
         // may take multiple lines of input to complete.
@@ -66,20 +67,27 @@ fun repl(input: BufferedReader) {
                         println("Two empty lines encountered, ignoring input and moving to " +
                                 "next statement.")
                         continue@replLoop
+                    // If a blank line is seen after an unambiguous end, it is simply a blank line
+                    // and the next line of input should be processed. If the end is ambiguous,
+                    // the input should be parsed normally as a complete statement.
                     } else {
                         seenBlankLine = true
-                        continue@inputLoop
+                        if (!ambiguousEnd) {
+                            continue@inputLoop
+                        }
                     }
                 } else {
                     seenBlankLine = false
                 }
+
+                ambiguousEnd = false
 
                 // Try parsing current tokens, evaluate if successful.
                 // Otherwise gather tokens from next line and try parsing again.
                 try {
                     // Create a new copy of symbol table and parse with it
                     val symbolTableCopy = symbolTable.copy()
-                    val parser = Parser(symbolTableCopy, tokens)
+                    val parser = Parser(symbolTableCopy, tokens, seenBlankLine)
                     converter.resetSymbolTable(symbolTableCopy)
                     eval.resetSymbolTable(symbolTableCopy)
 
@@ -102,6 +110,9 @@ fun repl(input: BufferedReader) {
 
                     continue@replLoop
                 } catch (e: ParseEOFException) {
+                    continue@inputLoop
+                } catch (e: AmbiguousEndException) {
+                    ambiguousEnd = true
                     continue@inputLoop
                 }
             } catch (except: ExceptionWithLocation) {
