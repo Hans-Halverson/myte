@@ -40,7 +40,7 @@ fun repl(input: BufferedReader) {
                 if (numLines == 0) {
                     print(">> ")
                 } else {
-                    print(".. ")
+                    print("   ")
                 }
 
                 val line = input.readLine()

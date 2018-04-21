@@ -811,6 +811,30 @@ class Parser(
             is LeftSetLiteralToken -> parseSetLiteralExpression(true, token)
             is LeftMapLiteralToken -> parseMapLiteralExpression(true, token)
             is LeftParenToken -> parseParenthesizedExpression(true, token)
+            // Plus tokens can prefix a number literal
+            is PlusToken -> {
+                val currentToken = tokenizer.next()
+                if (currentToken is IntLiteralToken) {
+                    IntLiteral(currentToken.num, token.location)
+                } else if (currentToken is FloatLiteralToken) {
+                    FloatLiteral(currentToken.num, token.location)
+                } else {
+                    throw ParseException("Patterns must only consist of literals and variables",
+                        token)
+                }
+            }
+            // Minus tokens can prefix a number literal
+            is MinusToken -> {
+                val currentToken = tokenizer.next()
+                if (currentToken is IntLiteralToken) {
+                    IntLiteral(-currentToken.num, token.location)
+                } else if (currentToken is FloatLiteralToken) {
+                    FloatLiteral(-currentToken.num, token.location)
+                } else {
+                    throw ParseException("Patterns must only consist of literals and variables",
+                        token)
+                }
+            }
             // An identifier may be a new variable or a type constructor
             is IdentifierToken -> {
                 // If unseen identifier, create new identifier

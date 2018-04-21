@@ -4,6 +4,8 @@
 
 - Allow forward declaration of functions
 
+- Add modules/import system
+
 
 
 # Lexing / Parsing Improvements

@@ -276,12 +276,30 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         }
     }
 
-    fun convertUnaryPlus(expr: UnaryPlusExpression): IdentityNode {
-        return IdentityNode(convert(expr.expr), expr.startLocation)
+    fun convertUnaryPlus(expr: UnaryPlusExpression): IRNode {
+        val child = convert(expr.expr)
+
+        // If child is an int or float literal, can simply return the literals
+        if (child is IntLiteralNode) {
+            return IntLiteralNode(child.num, expr.startLocation)
+        } else if (child is FloatLiteralNode) {
+            return FloatLiteralNode(child.num, expr.startLocation)
+        } else {
+            return IdentityNode(convert(expr.expr), expr.startLocation)
+        }
     }
 
-    fun convertUnaryMinus(expr: UnaryMinusExpression): NegateNode {
-        return NegateNode(convert(expr.expr), expr.startLocation)
+    fun convertUnaryMinus(expr: UnaryMinusExpression): IRNode {
+        val child = convert(expr.expr)
+
+        // If child is an int or float literal, can simply negate the literals
+        if (child is IntLiteralNode) {
+            return IntLiteralNode(-child.num, expr.startLocation)
+        } else if (child is FloatLiteralNode) {
+            return FloatLiteralNode(-child.num, expr.startLocation)
+        } else {
+            return NegateNode(child, expr.startLocation)
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -311,10 +329,11 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     /**
      * Assert that the IR has the correct physical structure (e.g. functions always return with
      * the correct type, control flow statements like break, continue, return only occur in 
-     * valid locations).
+     * valid locations). This must be called after type inference has taken place.
      */
-    fun assertIRStructure(node: IRNode) {
-        jumpsInAllowedPlaces(node, false, false)
+    fun assertIRStructure(root: IRNode) {
+        jumpsInAllowedPlaces(root, false, false)
+        exhaustiveMatchCases(root)
     }
 
     /**
@@ -371,6 +390,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
                 }
             }
             is FunctionDefinitionNode -> jumpsInAllowedPlaces(node.body, true, false)
+            is LambdaNode -> jumpsInAllowedPlaces(node.body, true, false)
             is ReturnNode -> if (!allowReturn) {
                 throw IRConversionException("Return must appear in function body",
                         node.returnLocation)
@@ -384,3 +404,4 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         }
     }
 }
+
