@@ -106,6 +106,7 @@ private fun getKeywordToken(str: String, location: Location): Token? {
         "do" -> DoToken(location)
         "for" -> ForToken(location)
         "match" -> MatchToken(location)
+        "when" -> WhenToken(location)
         "return" -> ReturnToken(location)
         "break" -> BreakToken(location)
         "continue" -> ContinueToken(location)

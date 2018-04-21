@@ -6,19 +6,21 @@ import myte.shared.*
  * A node that represents a match statement.
  *
  * @property expr the expression whose value will be matched on
- * @property cases a list of node pairs representing the match cases, where the first node is a
- *           pattern, and the second node is the statement to be executed if the pattern is matched
+ * @property cases a list of node triples representing the match cases, where the first node is a
+ *           pattern, the second node is an optional guard (or null if none exists), and the
+ *           third is the statement to be executed if the pattern is matched.
  */
 class MatchNode(
     val expr: IRNode,
-    val cases: List<Pair<IRNode, IRNode>>,
+    val cases: List<Triple<IRNode, IRNode?, IRNode>>,
     startLocation: Location
 ) : IRNode(startLocation) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
         expr.map(func)
-        cases.map { (pattern, statement) ->
+        cases.map { (pattern, guard, statement) ->
             pattern.map(func)
+            guard?.map(func)
             statement.map(func)
         }
     }

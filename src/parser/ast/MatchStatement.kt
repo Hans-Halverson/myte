@@ -4,6 +4,6 @@ import myte.shared.*
 
 class MatchStatement(
     val expr: Expression,
-    val cases: List<Pair<Expression, Statement>>,
+    val cases: List<Triple<Expression, Expression?, Statement>>,
     startLocation: Location
 ) : Statement(startLocation)

@@ -148,8 +148,18 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
 
     fun convertMatch(stmt: MatchStatement): MatchNode {
         val expr = convert(stmt.expr)
-        val cases = stmt.cases.map { (pattern, statement) ->
-            Pair(convert(pattern), convert(statement))
+        val cases = stmt.cases.map { (p, g, s) ->
+            val pattern = convert(p)
+
+            val guard = if (g != null) {
+                convert(g)
+            } else {
+                null
+            }
+
+            val statement = convert(s)
+
+            Triple(pattern, guard, statement)
         }
 
         return MatchNode(expr, cases, stmt.startLocation)
@@ -346,7 +356,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             is IfNode -> allPathsHaveReturn(node.conseq) && 
                     node.altern != null &&
                     allPathsHaveReturn(node.altern)
-            is MatchNode -> node.cases.map({ (_, stmt) -> allPathsHaveReturn(stmt) })
+            is MatchNode -> node.cases.map({ (_, _, stmt) -> allPathsHaveReturn(stmt) })
                                       .all({ x -> x })
             is BlockNode -> allPathsHaveReturn(node.nodes.get(node.nodes.lastIndex))
             else -> false
@@ -385,7 +395,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
                 jumpsInAllowedPlaces(node.body, allowReturn, true)
             }
             is MatchNode -> {
-                node.cases.forEach { (_, stmt) ->
+                node.cases.forEach { (_, _, stmt) ->
                     jumpsInAllowedPlaces(stmt, allowReturn, allowBreakOrContinue)
                 }
             }

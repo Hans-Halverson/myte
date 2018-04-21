@@ -120,6 +120,8 @@ class ForToken(location: Location) : Token(location, TokenType.FOR)
 
 class MatchToken(location: Location) : Token(location, TokenType.MATCH)
 
+class WhenToken(location: Location) : Token(location, TokenType.WHEN)
+
 class ReturnToken(location: Location) : Token(location, TokenType.RETURN)
 
 class BreakToken(location: Location) : Token(location, TokenType.BREAK)

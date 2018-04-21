@@ -56,15 +56,27 @@ class InexhaustiveMatchException(val trace: MatchTrace) : Exception()
 fun exhaustiveMatchCases(root: IRNode) {
     root.map { node -> 
         if (node is MatchNode) {
-            val patterns = node.cases.map { (pattern, _) ->
+            // Find all patterns without guards to check for exhaustive matching. Guarded cases
+            // are ignored because the guard could evaluate to false at runtime.
+            val patterns = node.cases.mapNotNull { (pattern, guard, _) ->
+                if (guard == null) {
                     Pair<List<IRNode>, List<List<IRNode>>>(listOf(pattern), listOf())
+                } else {
+                    null
+                }
+            }
+
+            // Error if all patterns have guards
+            if (patterns.isEmpty()) {
+                throw IRConversionException("Inexhaustive match case. All cases are guarded, " +
+                        "there is no guarantee one will be matched at runtime.", node.startLocation)
             }
 
             try {
                 exhaustiveMatches(listOf(node.expr.type), patterns, listOf(), listOf(), listOf())
             } catch (e: InexhaustiveMatchException) {
                 val trace = traceToMatchedCase(e.trace, node.expr.type)
-                throw IRConversionException("Inexhaustive match cases. Here is an example of a " +
+                throw IRConversionException("Inexhaustive match case. Here is an example of a " +
                         "case that is not matched: ${trace}", node.startLocation)
             }
         }

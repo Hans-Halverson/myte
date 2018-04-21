@@ -876,6 +876,7 @@ class Parser(
         val matchExpr = parseExpression()
 
         val patterns: MutableList<Expression> = mutableListOf()
+        val guards: MutableList<Expression?> = mutableListOf()
         val statements: MutableList<Statement> = mutableListOf()
 
         // Parse nonempty list of cases
@@ -907,6 +908,17 @@ class Parser(
             // Rest of case is pattern and statement separated by an arrow
             patterns.add(parsePattern())
 
+            // Parse optional guard
+            val guard = if (tokenizer.current is WhenToken) {
+                tokenizer.next()
+                parseExpression()
+            } else {
+                null
+            }
+
+            guards.add(guard)
+
+            // Parse arrow and then statement to be evaluated in match case
             assertCurrent(TokenType.ARROW)
             tokenizer.next()
 
@@ -915,7 +927,11 @@ class Parser(
             symbolTable.exitScope()
         } while (true)
 
-        return MatchStatement(matchExpr, patterns.zip(statements), matchToken.location)
+        val cases = patterns.zip(guards).zip(statements).map {
+            (pg, s) -> Triple(pg.first, pg.second, s)
+        }
+        
+        return MatchStatement(matchExpr, cases, matchToken.location)
     }
 
     fun parseReturnStatement(returnToken: ReturnToken): ReturnStatement {

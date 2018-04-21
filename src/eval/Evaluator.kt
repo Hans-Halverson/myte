@@ -610,10 +610,19 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         val exprValue = evaluate(node.expr, env)
 
         // Find first pattern which matches value, and execute its corresponding statement
-        for ((pattern, statement) in node.cases) {
+        for ((pattern, guard, statement) in node.cases) {
             env.enterScope()
 
             if (matchPattern(exprValue, pattern, env, true)) {
+                // Do not evaluate this case if a guard exists and fails
+                if (guard != null) {
+                    val passesGuard = evalBool(guard, env)
+                    if (!passesGuard.bool) {
+                        env.exitScope()
+                        continue
+                    }
+                }
+
                 evaluate(statement, env)
                 env.exitScope()
                 break

@@ -1018,7 +1018,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
                 }
                 mapOverReturns(node.body, func)
             }
-            is MatchNode -> node.cases.forEach { (_, stmt) -> mapOverReturns(stmt, func) }
+            is MatchNode -> node.cases.forEach { (_, _, stmt) -> mapOverReturns(stmt, func) }
             is ReturnNode -> func(node)
         }
     }
@@ -1126,13 +1126,18 @@ class TypeChecker(var symbolTable: SymbolTable) {
     fun typeCheckMatch(node: MatchNode, boundVars: MutableSet<TypeVariable>, refresh: Boolean) {
         typeCheck(node.expr, boundVars, refresh)
 
-        node.cases.forEach { (pattern, statement) ->
+        node.cases.forEach { (pattern, guard, statement) ->
             typeCheck(pattern, boundVars, false)
 
             // Bind all variables that are found in the pattern, including in child nodes
             val newBoundVars = boundVars.toHashSet()
             pattern.map { patNode ->
                 patNode.type.getAllVariables().forEach { typeVar -> newBoundVars.add(typeVar) }
+            }
+
+            // Type check guard if it exists
+            if (guard != null) {
+                typeCheck(guard, newBoundVars, refresh)
             }
 
             typeCheck(statement, newBoundVars, refresh)
@@ -1145,12 +1150,21 @@ class TypeChecker(var symbolTable: SymbolTable) {
                     "but found ${type}", node.startLocation)
         }
 
-        // All patterns must have same type as the matched expression
-        node.cases.forEach { (pat, _) ->
+        node.cases.forEach { (pat, guard, _) ->
+            // All patterns must have same type as the matched expression
             if (!unify(pat.type, node.expr.type)) {
                 val types = typesToString(node.expr.type, pat.type, boundVars)
                 throw IRConversionException("Patterns in match statement expected to have type " +
                         "${types[0]}, but found ${types[1]}", pat.startLocation)
+            }
+
+            // Guard statements, if they exist, must evaluate to bools
+            if (guard != null) {
+                if (!unify(guard.type, BoolType)) {
+                    val type = typeToString(guard.type, boundVars)
+                    throw IRConversionException("Pattern matching guards must have type bool, " +
+                            "but found ${type}", guard.startLocation)
+                }
             }
         }
     }

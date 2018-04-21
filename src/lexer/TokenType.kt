@@ -193,6 +193,10 @@ enum class TokenType {
         override fun toString(): String = "match"
     },
 
+    WHEN {
+        override fun toString(): String = "when"
+    },
+
     RETURN {
         override fun toString(): String = "return"
     },
