@@ -70,10 +70,6 @@ class Parser(
                 parseTypeDefinition()
                 null
             }
-            is UnionToken -> {
-                parseUnionTypeDefinition()
-                null
-            }
             else -> parseStatement(token)
         }
     }
@@ -970,7 +966,7 @@ class Parser(
             }
         }
 
-        return currentType.canonicalize()
+        return currentType
     }
 
     fun parseParenthesizedType(inFunctionDef: Boolean): Type {
@@ -1043,8 +1039,8 @@ class Parser(
 
     /**
      * Parse the type represented by a particular identifier. This could be an existing type
-     * parameter, a new type parameter (if in a function definition), the beginning of a
-     * defined algebraic data type, or the beginning of a defined union type.
+     * parameter, a new type parameter (if in a function definition), pr the beginning of a
+     * defined algebraic data type.
      */
     fun parseIdentifierType(token: IdentifierToken, inFunctionDef: Boolean = false): Type {
         val ident = symbolTable.lookup(token.str)
@@ -1076,20 +1072,6 @@ class Parser(
                 }
 
                 return adtSig.getAdtWithParams(typeParams)
-            } else if (identInfo?.idClass == IdentifierClass.UNION_TYPE) {
-                // Parse optional, comma separated list of types within < > for parameterized type
-                val typeParams: MutableList<Type> = mutableListOf()
-                if (tokenizer.current is LessThanToken) {
-                    do {
-                        tokenizer.next()
-                        typeParams.add(parseType(inFunctionDef))
-                    } while (tokenizer.current is CommaToken)
-
-                    assertCurrent(TokenType.GREATER_THAN)
-                    tokenizer.next()
-                }
-
-                return identInfo.unionSig.getUnionTypeWithParams(typeParams)
             } else {
                 throw ParseException("Expected ${token.str} to be a type parameter", token)
             }
@@ -1249,80 +1231,4 @@ class Parser(
 
         symbolTable.exitScope()
     }
-
-    fun parseUnionTypeDefinition() {
-        // If parseTypeDefinition is called, the previous token must have been a union
-        assertCurrent(TokenType.TYPE)
-        tokenizer.next()
-
-        // The next token must be an identifier specifying the name of the union type
-        var currentToken = tokenizer.current
-        if (currentToken !is IdentifierToken) {
-            throw ParseException("Expected ${currentToken} to be an identifier", currentToken)
-        }
-
-        val typeNameToken = currentToken
-        val typeParams: MutableList<TypeVariable> = mutableListOf()
-
-        tokenizer.next()
-
-        // Enter a new scope for the duration of this definition, so that type params will be local
-        symbolTable.enterScope()
-        
-        // Parse optional type parameters for union type
-        if (tokenizer.current is LessThanToken) {
-            // Type parameters must be a comma separated list of identifiers within < >
-            do {
-                tokenizer.next()
-                currentToken = tokenizer.current
-
-                if (currentToken !is IdentifierToken) {
-                    throw ParseException("Expected ${currentToken} to be an identifier",
-                            currentToken)
-                }
-
-                // Add the type parameter to the local environment and save it in the list of params
-                val typeParam = TypeVariable()
-                typeParams.add(typeParam)
-                symbolTable.addSymbol(currentToken.str, IdentifierClass.TYPE_PARAMETER,
-                        currentToken.location, typeParam)
-
-                tokenizer.next()
-            } while (tokenizer.current is CommaToken)
-
-            assertCurrent(TokenType.GREATER_THAN)
-            tokenizer.next()
-        }
-
-        // Create union signature based off name and type params, and add to global scope
-        val unionSig = UnionTypeSignature(typeNameToken.str, typeParams)
-        addUnionSigToSymbolTable(unionSig, symbolTable, typeNameToken.location)
-
-        assertCurrent(TokenType.EQUALS)
-        tokenizer.next()
-
-        assertCurrent(TokenType.LEFT_BRACE)
-        tokenizer.next()
-
-        var firstVariant = true
-
-        // Parse nonempty sequence of variant definitions
-        do {
-            // Pipe before the first variant is optional, but required for all other variants
-            if (!firstVariant || tokenizer.current is PipeToken) {
-                assertCurrent(TokenType.PIPE)
-                tokenizer.next()
-            }
-
-            firstVariant = false
-
-            // Add each variant to the signature
-            unionSig.variants.add(parseType())
-        } while (tokenizer.current !is RightBraceToken)
-
-        tokenizer.next()
-
-        symbolTable.exitScope()
-    }
-
 }

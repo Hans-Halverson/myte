@@ -100,8 +100,6 @@ class PipeToken(location: Location) : Token(location, TokenType.PIPE)
 
 class TypeToken(location: Location) : Token(location, TokenType.TYPE)
 
-class UnionToken(location: Location) : Token(location, TokenType.UNION)
-
 class LetToken(location: Location) : Token(location, TokenType.LET)
 
 class ConstToken(location: Location) : Token(location, TokenType.CONST)

@@ -32,7 +32,19 @@ class IntTraceOption(val ints: Set<Int>) : MatchTraceOption()
 // A float type, along with all float literals that were checked
 class FloatTraceOption(val floats: Set<Double>) : MatchTraceOption()
 
-// An ADR, along with the variant that was checked
+// A string type, along with all string literals that were checked
+class StringTraceOption(val strings: Set<String>) : MatchTraceOption()
+
+// A vector type, along with the size of all vector literals that were checked
+class VectorTraceOption(val vectorSizes: Set<Int>) : MatchTraceOption()
+
+// A set type, along with the size of all set literals that were checked
+class SetTraceOption(val setSizes: Set<Int>) : MatchTraceOption()
+
+// A map type, along with the size of all map literals that were checked
+class MapTraceOption(val mapSizes: Set<Int>) : MatchTraceOption()
+
+// An ADT, along with the variant that was checked
 class VariantBeginTraceOption(val variant: AlgebraicDataTypeVariant) : MatchTraceOption()
 
 class InexhaustiveMatchException(val trace: MatchTrace) : Exception()
@@ -67,7 +79,7 @@ fun exhaustiveMatchCases(root: IRNode) {
  * @return a list of pattern contexts taken from patterns, where the first node in the current
  *         pattern passes the predicates. All VariableNodes are also kept.
  */
-fun filterPatterns(
+private fun filterPatterns(
     patterns: List<PatternWithContext>,
     pred: (IRNode) -> Boolean
 ): List<PatternWithContext> {
@@ -92,7 +104,7 @@ fun filterPatterns(
  *        variable patterns for the current nesting level
  * @return whether the list of patterns exhaustively matches the given types
  */
-fun exhaustiveMatches(
+private fun exhaustiveMatches(
     types: List<Type>,
     patterns: List<PatternWithContext>,
     restOfTypes: List<List<Type>>,
@@ -218,6 +230,70 @@ fun exhaustiveMatches(
 
         exhaustiveMatches(nextTypes, vars, restOfTypes, varPatterns,
                 trace + FloatTraceOption(floats))
+    // String type can only be exhaustively matched by wildcard, but gather all literals for trace
+    } else if (typeToCheck is StringType) {
+        val vars = filterPatterns(patterns) { _ -> false }
+
+        // Gather all string literals for trace
+        val strings = patterns.mapNotNull({ (pat, _) ->
+            val firstPattern = pat[0]
+            if (firstPattern is StringLiteralNode) {
+                firstPattern.str
+            } else {
+                null
+            }
+        }).toSet()
+
+        exhaustiveMatches(nextTypes, vars, restOfTypes, varPatterns,
+                trace + StringTraceOption(strings))
+    // Vectors can only be exhaustively matched by wildcard, but gather all literal sizes for trace
+    } else if (typeToCheck is VectorType) {
+        val vars = filterPatterns(patterns) { _ -> false }
+
+        // Gather all vector literal sizes for trace
+        val vectorSizes = patterns.mapNotNull({ (pat, _) ->
+            val firstPattern = pat[0]
+            if (firstPattern is VectorLiteralNode) {
+                firstPattern.elements.size
+            } else {
+                null
+            }
+        }).toSet()
+
+        exhaustiveMatches(nextTypes, vars, restOfTypes, varPatterns,
+                trace + VectorTraceOption(vectorSizes))
+    // Set type can only be exhaustively matched by wildcard, but gather all literals sizes for trace
+    } else if (typeToCheck is SetType) {
+        val vars = filterPatterns(patterns) { _ -> false }
+
+        // Gather all set literal sizes for trace
+        val setSizes = patterns.mapNotNull({ (pat, _) ->
+            val firstPattern = pat[0]
+            if (firstPattern is SetLiteralNode) {
+                firstPattern.elements.size
+            } else {
+                null
+            }
+        }).toSet()
+
+        exhaustiveMatches(nextTypes, vars, restOfTypes, varPatterns,
+                trace + SetTraceOption(setSizes))
+    // Map type can only be exhaustively matched by wildcard, but gather all literals sizes for trace
+    } else if (typeToCheck is MapType) {
+        val vars = filterPatterns(patterns) { _ -> false }
+
+        // Gather all map literal sizes for trace
+        val mapSizes = patterns.mapNotNull({ (pat, _) ->
+            val firstPattern = pat[0]
+            if (firstPattern is MapLiteralNode) {
+                firstPattern.keys.size
+            } else {
+                null
+            }
+        }).toSet()
+
+        exhaustiveMatches(nextTypes, vars, restOfTypes, varPatterns,
+                trace + MapTraceOption(mapSizes))
     // All other types can only be exhaustively matched by variables
     } else {
         val vars = filterPatterns(patterns) { _ -> false }
@@ -245,6 +321,80 @@ object UnitMatchedCase : MatchedCase() {
  */
 class LiteralMatchedCase<T>(val literal: T) : MatchedCase() {
     override fun toString(): String = literal.toString()
+}
+
+/**
+ * A matched case that matches a vector of a particular size, with all wildcards.
+ */
+class WildcardVectorMatchedCase(val size: Int) : MatchedCase() {
+    override fun toString(): String {
+        // Return special string for empty vector
+        if (size == 0) {
+            return "[ ]"
+        }
+
+        // Create list of wildcards of given size
+        val wildcard = WildcardMatchedCase.toString()
+        val elements = (0 until size).map { _ -> wildcard }
+
+        return elements.joinToString(", ", "[ ", " ]")
+    }
+}
+
+/**
+ * A matched case that matches a set of a particular size, with all wildcards.
+ */
+class WildcardSetMatchedCase(val size: Int) : MatchedCase() {
+    override fun toString(): String {
+        // Return special string for empty set
+        if (size == 0) {
+            return "{| |}"
+        }
+
+        // Create list of wildcards of given size
+        val wildcard = WildcardMatchedCase.toString()
+        val elements = (0 until size).map { _ -> wildcard }
+
+        return elements.joinToString(", ", "{| ", " |}")
+    }
+}
+
+/**
+ * A matched case that matches a map of a particular size, with all wildcards.
+ */
+class WildcardMapMatchedCase(val size: Int) : MatchedCase() {
+    override fun toString(): String {
+        // Return special string for empty map
+        if (size == 0) {
+            return "[| |]"
+        }
+
+        // Create list of wildcards of given size
+        val wildcard = WildcardMatchedCase.toString()
+        val elements = (0 until size).map { _ -> wildcard }
+
+        val builder = StringBuilder()
+        builder.append("[| ")
+
+        var firstPair = true
+        for ((key, value) in elements.zip(elements)) {
+            // Add a comma separator between every two kvpairs
+            if (firstPair) {
+                firstPair = false
+            } else {
+                builder.append(", ")
+            }
+
+            // Add the pair itself to the string, formatted as key -> value
+            builder.append(key)
+            builder.append(" -> ")
+            builder.append(value)
+        }
+
+        builder.append(" |]")
+
+        return builder.toString()
+    }
 }
 
 /**
@@ -281,7 +431,7 @@ class NestedMatchedCase(val elements: MutableList<MatchedCase>, val name: String
  * Given an exhaustive match checking trace and the corresponding type, construct a case that is
  * unmatched by the corresponding match statement.
  */
-fun traceToMatchedCase(trace: MatchTrace, type: Type): MatchedCase {
+private fun traceToMatchedCase(trace: MatchTrace, type: Type): MatchedCase {
     val typeStack: MutableList<MutableList<Type>> = mutableListOf(mutableListOf(type))
     val matchedCase =  NestedMatchedCase(mutableListOf(), null)
     val matchedCaseStack: MutableList<NestedMatchedCase> = mutableListOf(matchedCase)
@@ -320,6 +470,21 @@ fun traceToMatchedCase(trace: MatchTrace, type: Type): MatchedCase {
 
                 matchedCaseStack.removeAt(0)
             }
+            // Variants are added as a new nested match case pushed onto the stack, and types for
+            // the variant (if they exist) are pushed onto the type stack.
+            is VariantBeginTraceOption -> {
+                val adtType = typeStack[0].removeAt(0) as AlgebraicDataType
+                val typeArgs = traceOption.variant.getTypeConstructorWithParams(adtType.typeParams)
+
+                val variantNestedCase = NestedMatchedCase(mutableListOf(), traceOption.variant.name)
+                matchedCaseStack[0].elements.add(variantNestedCase)
+
+                // Push onto the type stack (and matched case stack) if variant has type arguments 
+                if (!typeArgs.isEmpty()) {
+                    typeStack.add(0, typeArgs.toMutableList())
+                    matchedCaseStack.add(0, variantNestedCase)
+                }
+            }
             // Bools are simply added as bool matches
             is BoolTraceOption -> {
                 typeStack[0].removeAt(0)
@@ -342,20 +507,37 @@ fun traceToMatchedCase(trace: MatchTrace, type: Type): MatchedCase {
                 typeStack[0].removeAt(0)
                 matchedCaseStack[0].elements.add(LiteralMatchedCase(exampleFloat))
             }
-            // Variants are added as a new nested match case pushed onto the stack, and types for
-            // the variant (if they exist) are pushed onto the type stack.
-            is VariantBeginTraceOption -> {
-                val adtType = typeStack[0].removeAt(0) as AlgebraicDataType
-                val typeArgs = traceOption.variant.getTypeConstructorWithParams(adtType.typeParams)
+            // Strings are added with an example string that is the first (lexicographically)
+            // string that is not matched.
+            is StringTraceOption -> {
+                val exampleString = findFirstUnmatchedString(traceOption.strings)
 
-                val variantNestedCase = NestedMatchedCase(mutableListOf(), traceOption.variant.name)
-                matchedCaseStack[0].elements.add(variantNestedCase)
+                typeStack[0].removeAt(0)
+                matchedCaseStack[0].elements.add(LiteralMatchedCase(exampleString))
+            }
+            // Vectors are added with an example vector that contains wildcards and is the smallest
+            // size of vector not matched.
+            is VectorTraceOption -> {
+                val exampleVectorSize = findSmallestUnmatchedWholeNumber(traceOption.vectorSizes)
 
-                // Push onto the type stack (and matched case stack) if variant has type arguments 
-                if (!typeArgs.isEmpty()) {
-                    typeStack.add(0, typeArgs.toMutableList())
-                    matchedCaseStack.add(0, variantNestedCase)
-                }
+                typeStack[0].removeAt(0)
+                matchedCaseStack[0].elements.add(WildcardVectorMatchedCase(exampleVectorSize))
+            }
+            // Set are added with an example set that contains wildcards and is the smallest
+            // size of set not matched.
+            is SetTraceOption -> {
+                val exampleSetSize = findSmallestUnmatchedWholeNumber(traceOption.setSizes)
+
+                typeStack[0].removeAt(0)
+                matchedCaseStack[0].elements.add(WildcardSetMatchedCase(exampleSetSize))
+            }
+            // Maps are added with an example map that contains wildcards and is the smallest
+            // size of map not matched.
+            is MapTraceOption -> {
+                val exampleMapSize = findSmallestUnmatchedWholeNumber(traceOption.mapSizes)
+
+                typeStack[0].removeAt(0)
+                matchedCaseStack[0].elements.add(WildcardMapMatchedCase(exampleMapSize))
             }
         }
     }
@@ -379,25 +561,51 @@ fun traceToMatchedCase(trace: MatchTrace, type: Type): MatchedCase {
 /**
  * Find the smallest whole number (an integer >= 0) that does not appear in the provided set.
  */
-fun findSmallestUnmatchedWholeNumber(ints: Set<Int>): Int {
-    val matchedInts = ints.toMutableList()
-    matchedInts.sort()
-
-    // Find the index of 0 in the sorted list
-    val zeroIndex = matchedInts.indexOf(0)
-    if (zeroIndex == -1) {
-        // If zero does not exist, it is the smallest whole number
-        return 0
-    } else {
-        // Otherwise traverse list from index containing 0, finding smallest integer not included
-        var i = 1
-        var ind = zeroIndex + 1
-
-        while (ind < matchedInts.size && matchedInts[ind] == i) {
-            i += 1
-            ind += 1
+private fun findSmallestUnmatchedWholeNumber(ints: Set<Int>): Int {
+    for (i in 0 until ints.size) {
+        if (!ints.contains(i)) {
+            return i
         }
-
-        return i
     }
+
+    return ints.size
 }
+
+/**
+ * Return an int i to the i'th lowercase string in lexicographic order.
+ */
+private fun mapIntToLexicographicString(i: Int): String {
+    val builder = StringBuilder()
+    
+    var currentInt = i
+    
+    while (currentInt > 0) {
+        val c = currentInt % 26
+        
+        if (currentInt >= 26) {
+            builder.append('a'.plus(c))
+        } else {
+            builder.append('a'.plus(c - 1))
+        }
+        
+        currentInt = currentInt / 26
+    }
+
+    return builder.reverse().toString()
+}
+
+/**
+ * Find the lexicographically first (alphanbetic, lowercase) string that does not appear in the
+ * provided set.
+ */
+private fun findFirstUnmatchedString(strings: Set<String>): String {
+    for (i in 0 until strings.size) {
+        val string = mapIntToLexicographicString(i)
+        if (!strings.contains(string)) {
+            return "\"" + string + "\""
+        }
+    }
+
+    return "\"" + mapIntToLexicographicString(strings.size) + "\""
+}
+

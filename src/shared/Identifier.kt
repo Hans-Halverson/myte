@@ -14,8 +14,7 @@ enum class IdentifierClass {
     FUNCTION,
     TYPE_PARAMETER,
     ALGEBRAIC_DATA_TYPE,
-    ALGEBRAIC_DATA_TYPE_VARIANT,
-    UNION_TYPE
+    ALGEBRAIC_DATA_TYPE_VARIANT
 }
 
 // An IdentifierProperty is a possible property of an identifier.
@@ -42,5 +41,4 @@ data class IdentifierInfo(
 ) {
     lateinit var adtSig: AlgebraicDataTypeSignature
     lateinit var adtVariant: AlgebraicDataTypeVariant
-    lateinit var unionSig: UnionTypeSignature
 }
