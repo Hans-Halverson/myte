@@ -39,26 +39,6 @@ class Parser(
     }
 
     /**
-     * Parse a single command from the REPL.
-     *
-     * @return the single statement parsed from the input stream, or null if no statement is created
-     * @throws ParseException if the stream does not correspond to a valid statement, or if there
-     *         are leftover tokens after the statement has been parsed
-     */
-    fun parseLine(): Statement? {
-        symbolTable.returnToGlobalScope()
-
-        val statement = parseTopLevelStatement()
-
-        if (!tokenizer.reachedEnd) {
-            throw ParseException(tokenizer.current)
-        }
-
-        return statement
-    }
-
-
-    /**
      * Parse the current top level statement, and return the statement if a statement can be
      * created, or null if no statement needs to be created.
      */
@@ -70,8 +50,39 @@ class Parser(
                 parseTypeDefinition()
                 null
             }
+            is DefToken -> parseFunctionDefinition(token)
+            is LetToken -> parseVariableDefinition(false, token)
+            is ConstToken -> parseVariableDefinition(true, token)
+            else -> throw ParseException("Top level statements can only be type, function, or " +
+                    "variable definitions", token)
+        }
+    }
+
+    /**
+     * Parse a single command from the REPL.
+     *
+     * @return the single statement parsed from the input stream, or null if no statement is created
+     * @throws ParseException if the stream does not correspond to a valid statement, or if there
+     *         are leftover tokens after the statement has been parsed
+     */
+    fun parseReplLine(): Statement? {
+        symbolTable.returnToGlobalScope()
+
+        // Type defs do not produce a statement, and all other statements can be REPL top level
+        val token = tokenizer.next()
+        val statement = when (token) {
+            is TypeToken -> {
+                parseTypeDefinition()
+                null
+            }
             else -> parseStatement(token)
         }
+
+        if (!tokenizer.reachedEnd) {
+            throw ParseException(tokenizer.current)
+        }
+
+        return statement
     }
 
     /**

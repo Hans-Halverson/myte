@@ -2,7 +2,9 @@ package myte
 
 import myte.eval.*
 import myte.eval.builtins.*
+import myte.eval.values.*
 import myte.ir.*
+import myte.ir.nodes.*
 import myte.lexer.*
 import myte.parser.*
 import myte.parser.ast.*
@@ -12,6 +14,8 @@ import java.io.BufferedReader
 import java.io.FileReader
 import java.io.InputStreamReader
 import java.io.StringReader
+
+import kotlin.system.exitProcess
 
 /**
  * Run the REPL with input stream coming from the input reader.
@@ -92,7 +96,7 @@ fun repl(input: BufferedReader) {
                     eval.resetSymbolTable(symbolTableCopy)
 
                     // Parse a single line of repl input
-                    val statement = parser.parseLine()
+                    val statement = parser.parseReplLine()
 
                     if (statement != null) {
                         // Convert to ir and perform type checking
@@ -128,8 +132,10 @@ fun repl(input: BufferedReader) {
 
 /**
  * Evaluate an entire file at once, with input coming from the given input reader.
+ *
+ * @return an int success value - 0 if successful, or another int on error
  */
-fun evaluateFile(input: BufferedReader, fileName: String) {
+fun evaluateFile(input: BufferedReader, fileName: String, args: List<String>): Int {
     // Read entire file into string
     val file = StringBuilder()
     var line = input.readLine()
@@ -142,7 +148,7 @@ fun evaluateFile(input: BufferedReader, fileName: String) {
     // Tokenize the entire file
     val tokens = createTokens(StringReader(file.toString()), fileName)
     if (tokens.size == 0) {
-        return
+        return 0
     }
 
     // Set up symbol table and environment, and add all builtins
@@ -163,12 +169,34 @@ fun evaluateFile(input: BufferedReader, fileName: String) {
         converter.inferTypes(irNodes)
         irNodes.forEach(converter::assertIRStructure)
 
-        // Evaluate each statement in the file in order
+        // Evaluate each statement in the file in order, saving the main function
+        var mainFunc: ClosureValue? = null
         for (irNode in irNodes) {
             eval.evaluate(irNode)
+            if (irNode is FunctionDefinitionNode && irNode.ident.name == "main") {
+                mainFunc = eval.environment.lookup(irNode.ident) as ClosureValue
+            }
         }
+
+        // Error if a main function is not found
+        if (mainFunc == null) {
+            println("Main function must exist")
+            return 1
+        }
+
+        // Call main function on input arguments
+        val argValues = VectorValue(args.map({ str -> StringValue(str) }).toMutableList(),
+                VectorType(StringType))
+        val returnValue = eval.applyClosureToArgs(mainFunc, listOf(argValues))
+        if (returnValue == null || returnValue !is IntValue) {
+            println("Main function must return an int")
+            return 1
+        }
+
+        return returnValue.num
     } catch (except: ExceptionWithLocation) {
         printExceptionWithLocation(except, file.toString())
+        return 1
     }
 }
 
@@ -176,10 +204,9 @@ fun main(args: Array<String>) {
     if (args.size == 0) {
         val reader = BufferedReader(InputStreamReader(System.`in`))
         repl(reader)
-    } else if (args.size == 1) {
-        val reader = BufferedReader(FileReader(args[0]))
-        evaluateFile(reader, args[0])
     } else {
-        println("Usage: mt [file]")
+        val reader = BufferedReader(FileReader(args[0]))
+        val status = evaluateFile(reader, args[0], args.toList().drop(1))
+        exitProcess(status)
     }
 }

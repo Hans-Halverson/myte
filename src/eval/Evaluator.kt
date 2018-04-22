@@ -271,7 +271,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             
             return value
         } else {
-            throw EvaluationException("Can't perform keyed access on , " +
+            throw EvaluationException("Can't perform keyed access on " +
                     "${formatType(container.type)}", node.startLocation)
         }
     }
@@ -300,9 +300,30 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             
             return value
         } else {
-            throw EvaluationException("Can't perform keyed assignment on , " +
+            throw EvaluationException("Can't perform keyed assignment on " +
                     "${formatType(container.type)}", node.startLocation)
         }
+    }
+
+    fun applyClosureToArgs(closure: ClosureValue, args: List<Value>): Value? {
+        // Create a copy of the environment that is saved for this closure, and enter a scope which
+        // has all the formal arguments identifiers bound to actual values.
+        val applicationEnv: Environment = closure.environment.copy()
+        applicationEnv.enterScope()
+
+        closure.formalArgs.zip(args).forEach { (ident, value) ->
+            applicationEnv.extend(ident, value)
+        }
+
+        // A closure can only be exited with with a return
+        try {
+            evaluate(closure.body, applicationEnv)
+        } catch (returnException: Return) {
+            applicationEnv.exitScope()
+            return returnException.returnValue            
+        }
+
+        return null
     }
 
     fun evalFunctionCall(node: FunctionCallNode, env: Environment): Value {
@@ -325,29 +346,17 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
 
         val actualArgs: List<Value> = node.actualArgs.map { expr -> evaluate(expr, env) }
 
-        // Create a copy of the environment that is saved for this closure, and enter a scope which
-        // has all the formal arguments identifiers bound to actual values.
-        val applicationEnv: Environment = closureValue.environment.copy()
-        applicationEnv.enterScope()
-
-        closureValue.formalArgs.zip(actualArgs).forEach { (ident, value) ->
-            applicationEnv.extend(ident, value)
+        // Evaluate body of closure and retrieve return value
+        val returnValue = applyClosureToArgs(closureValue, actualArgs)
+        if (returnValue == null) {
+            throw EvaluationException("No return value", node.startLocation)
         }
 
-        // A closure can only be exited with with a return
-        try {
-            evaluate(closureValue.body, applicationEnv)
-        } catch (returnException: Return) {
-            applicationEnv.exitScope()
 
-            // Set type of return value to match type of input arguments
-            val returnValue = returnException.returnValue
-            returnValue.type = node.type
-            
-            return returnValue
-        }
+        // Set type of return value to match type of input arguments
+        returnValue.type = node.type
 
-        throw EvaluationException("No return value", node.startLocation)
+        return returnValue
     }
 
     fun evalTypeConstructor(node: TypeConstructorNode, env: Environment): AlgebraicDataTypeValue {

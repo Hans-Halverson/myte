@@ -128,12 +128,20 @@ STATEMENT -> EXPR
            | VARIABLE_DEF
            | IF_STATEMENT
            | WHILE_STATEMENT
+           | DO_WHILE_STATEMENT
            | FOR_STATEMENT
+           | MATCH_STATEMENT
            | RETURN_STATEMENT
 
 BLOCK -> { STATEMENT* }
 
 
-REPL_LINE = STATEMENT
-FILE = STATEMENT*
+REPL_LINE -> STATEMENT
+           | TYPE_DEF
+
+TOP_LEVEL_STATEMENT -> TYPE_DEF
+                     | FUNCTION_DEF
+                     | VARIABLE_DEF
+
+FILE -> [TOP_LEVEL_STATEMENT]*
 

@@ -930,6 +930,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         refresh: Boolean
     ) {
         val funcType = symbolTable.getInfo(node.ident)?.type
+
         if (funcType !is FunctionType) {
             throw IRConversionException("Unknown function ${node.ident.name}", node.identLocation)
         }
@@ -960,6 +961,16 @@ class TypeChecker(var symbolTable: SymbolTable) {
                         "but found ${types[1]}", location)
             }
         })
+
+        // Main must always have type vec<string> -> int
+        if (node.ident.name == "main") {
+            val mainType = FunctionType(listOf(VectorType(StringType)), IntType)
+            if (!unify(funcType, mainType)) {
+                val types = typesToString(mainType, funcType, newBoundVars)
+                throw IRConversionException("Main function must have type ${types[0]}, " +
+                        "but found ${types[1]}", node.startLocation)
+            }
+        }
     }
 
     fun typeCheckLambda(node: LambdaNode, boundVars: MutableSet<TypeVariable>, refresh: Boolean) {

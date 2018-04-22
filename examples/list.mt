@@ -31,3 +31,10 @@ def fold(f, i, l) {
     | Nil -> return i
     | Cons(hd, tl) -> return f(fold(f, i, tl), hd)
 }
+
+def main(args) {
+    let lst = Cons(1, Cons(2, Cons(3, Nil)))
+    println(intToString(fold(fun (n1, n2) -> n1 + n2, 0, lst)))
+
+    return 0
+}
