@@ -3,7 +3,7 @@ package myte.parser.ast
 import myte.shared.*
 
 class TypeConstructorExpression(
-    val adtVariant: AlgebraicDataTypeVariant,
+    val ident: ResolvableSymbol,
     val actualArgs: List<Expression>,
-    val identLocation: Location
+    identLocation: Location
 ) : Expression(identLocation)

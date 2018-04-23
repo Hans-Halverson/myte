@@ -2,8 +2,6 @@
 
 - Add lists, arrays, maps
 
-- Allow forward declaration of functions
-
 - Add modules/import system
 
 

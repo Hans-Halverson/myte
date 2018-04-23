@@ -181,7 +181,7 @@ class Parser(
                 is LogicalAndToken -> parseLogicalAndExpression(currentExpr)
                 is LogicalOrToken -> parseLogicalOrExpression(currentExpr)
                 // Function call or access
-                is LeftParenToken -> parseCallExpression(currentExpr, token)
+                is LeftParenToken -> parseApplicationExpression(currentExpr, token)
                 is LeftBracketToken -> parseKeyedAccessExpression(currentExpr, token)
                 is PeriodToken -> parseAccessExpression(currentExpr, token)
                 else -> throw ParseException(token)
@@ -208,23 +208,8 @@ class Parser(
     ///////////////////////////////////////////////////////////////////////////
 
     fun parseIdentifierExpression(token: IdentifierToken): Expression {
-        val ident = symbolTable.lookup(token.str)
-        if (ident == null) {
-            throw ParseException("No identifier found for symbol ${token.str}", token)
-        }
-
-        // If identifier is a variable or function, create a variable
-        val info = symbolTable.getInfo(ident)
-        if (info?.idClass == IdentifierClass.VARIABLE ||
-                info?.idClass == IdentifierClass.FUNCTION) {
-            return VariableExpression(ident, token.location)
-        // If identifier is a type constructor, create a constructor with no arguments
-        } else if (info?.idClass == IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT) {
-            return TypeConstructorExpression(info.adtVariant, listOf(), token.location)
-        } else {
-            throw ParseException("${ident.name} is not a function, variable, or type constructor",
-                    token)
-        }
+        val resolvableIdent = symbolTable.lookup(token.str)
+        return VariableExpression(resolvableIdent, token.location)
     }
 
     fun parseVectorLiteralExpression(
@@ -412,19 +397,8 @@ class Parser(
     fun parseAssignmentExpression(prevExpr: Expression, equalsToken: EqualsToken): Expression {
         // If parseAssignmentExpression is called, the previous token must have been a =
         // Subtracting one from the precedence makes this operator right associative.
-        if (prevExpr is VariableExpression) {
-            if (symbolTable.getInfo(prevExpr.ident)?.idClass != IdentifierClass.VARIABLE) {
-                throw ParseException("Can only reassign value to variables", equalsToken)
-            }
-
-            val expr = parseExpression(rightAssociative(EXPR_ASSIGNMENT_PRECEDENCE))
-            return VariableAssignmentExpression(prevExpr.ident, expr, prevExpr.identLocation)
-        } else if (prevExpr is KeyedAccessExpression) {
-            val expr = parseExpression(rightAssociative(EXPR_ASSIGNMENT_PRECEDENCE))
-            return KeyedAssignmentExpression(prevExpr, expr, prevExpr.accessLocation)
-        } else {
-            throw ParseException("Cannot only assign values to variables", equalsToken)
-        }
+        val expr = parseExpression(rightAssociative(EXPR_ASSIGNMENT_PRECEDENCE))
+        return AssignmentExpression(prevExpr, expr, equalsToken.location)
     }
 
     fun parseEqualsExpression(prevExpr: Expression): EqualsExpression {
@@ -475,8 +449,11 @@ class Parser(
         return LogicalOrExpression(prevExpr, expr)
     }
 
-    fun parseCallExpression(prevExpr: Expression, leftParenToken: LeftParenToken): Expression {
-        // If parseCallExpression is called, the previous token must have been a (
+    fun parseApplicationExpression(
+        prevExpr: Expression,
+        leftParenToken: LeftParenToken
+    ): ApplicationExpression {
+        // If parseApplicationExpression is called, the previous token must have been a (
         val actualArgs: MutableList<Expression> = mutableListOf()
 
         // If no arguments are supplied, create function call with no argument list
@@ -492,16 +469,8 @@ class Parser(
 
         assertCurrent(TokenType.RIGHT_PAREN)
         tokenizer.next()
-            
-        // If a type constructor is called, create a type constructor expression with arguments
-        if (prevExpr is TypeConstructorExpression) {
-            return TypeConstructorExpression(prevExpr.adtVariant, actualArgs,
-                    prevExpr.identLocation)
-        // Otherwise create a regular call expression and determine whether it is valid later
-        } else {
-            return FunctionCallExpression(prevExpr, actualArgs, leftParenToken.location,
-                    prevExpr.startLocation)
-        }
+
+        return ApplicationExpression(prevExpr, actualArgs, leftParenToken.location)
     }
 
     fun parseKeyedAccessExpression(
@@ -519,7 +488,7 @@ class Parser(
 
     fun parseAccessExpression(prevExpr: Expression, periodToken: PeriodToken): AccessExpression {
         // If parseKeyedAccessExpression is called, the previous token must have been a .
-        val accessExpr = parseExpression(EXPR_CALL_ACCESS_PRECEDENCE)
+        val accessExpr = parseExpression(EXPR_APPLICATION_ACCESS_PRECEDENCE)
 
         return AccessExpression(prevExpr, accessExpr, periodToken.location)
     }
@@ -844,28 +813,15 @@ class Parser(
             }
             // An identifier may be a new variable or a type constructor
             is IdentifierToken -> {
-                // If unseen identifier, create new identifier
-                val variantIdent = symbolTable.lookup(token.str)
-                if (variantIdent == null) {
-                    val ident = symbolTable.addSymbol(token.str, IdentifierClass.VARIABLE,
-                            token.location, TypeVariable())
-                    return VariableExpression(ident, token.location)
-                }
+                val ident = symbolTable.addPatternSymbol(token.str, token.location)
 
-                // If identifier is seen but not adt variant, create new identifier
-                val variantInfo = symbolTable.getInfo(variantIdent)
-                if (variantInfo?.idClass != IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT) {
-                    val ident = symbolTable.addSymbol(token.str, IdentifierClass.VARIABLE,
-                            token.location, TypeVariable())
-                    return VariableExpression(ident, token.location)
-                }
-
-                // If identifier is for type constructor, parse (optional) comma separated list
-                // of patterns with parentheses
-                val adtVariant = variantInfo.adtVariant
                 val args: MutableList<Expression> = mutableListOf()
 
-                if (tokenizer.current is LeftParenToken) {
+                // Identifier may be followed by (optional) comma separated list of patterns within
+                // parentheses, meaning this is a type constructor pattern instead of a variable.
+                if (tokenizer.current !is LeftParenToken) {
+                    return VariableExpression(ident, token.location)
+                } else {
                     do {
                         tokenizer.next()
                         args.add(parsePattern())
@@ -873,9 +829,9 @@ class Parser(
 
                     assertCurrent(TokenType.RIGHT_PAREN)
                     tokenizer.next()
-                }
 
-                return TypeConstructorExpression(adtVariant, args, token.location)
+                    return TypeConstructorExpression(ident, args, token.location)
+                }
             }
             else -> throw ParseException("Patterns must only consist of literals and variables",
                         token)
@@ -914,7 +870,7 @@ class Parser(
             }
 
             // Each case should be in its own scope
-            symbolTable.enterScope()
+            symbolTable.enterScope(ScopeType.PATTERN)
 
             // Rest of case is pattern and statement separated by an arrow
             patterns.add(parsePattern())
@@ -1070,7 +1026,7 @@ class Parser(
      * defined algebraic data type.
      */
     fun parseIdentifierType(token: IdentifierToken, inFunctionDef: Boolean = false): Type {
-        val ident = symbolTable.lookup(token.str)
+        val ident = symbolTable.lookupDEPRECATED(token.str)
         if (ident != null) {
             val identInfo = symbolTable.getInfo(ident)
             // If this is a type parameter that has been defined, then use the stored type variable

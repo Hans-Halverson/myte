@@ -2,8 +2,8 @@ package myte.parser.ast
 
 import myte.shared.*
 
-data class KeyedAssignmentExpression(
-    val lValue: KeyedAccessExpression,
+data class AssignmentExpression(
+    val lValue: Expression,
     val rValue: Expression,
-    val accessLocation: Location
+    val equalsLocation: Location
 ) : Expression(lValue.startLocation)

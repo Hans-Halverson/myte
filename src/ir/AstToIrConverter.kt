@@ -39,11 +39,10 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             stmt is LambdaExpression -> convertLambda(stmt)
             // Variables and functions
             stmt is VariableExpression -> convertVariable(stmt)
-            stmt is FunctionCallExpression -> convertFunctionCall(stmt)
+            stmt is ApplicationExpression -> convertApplication(stmt)
             stmt is TypeConstructorExpression -> convertTypeConstructor(stmt)
             stmt is KeyedAccessExpression -> convertKeyedAccess(stmt)
-            stmt is KeyedAssignmentExpression -> convertKeyedAssignment(stmt)
-            stmt is VariableAssignmentExpression -> convertVariableAssignment(stmt)
+            stmt is AssignmentExpression -> convertAssignment(stmt)
             stmt is VariableDefinitionStatement -> convertVariableDefinition(stmt)
             stmt is FunctionDefinitionStatement -> convertFunctionDefinition(stmt)
             // Math expressions
@@ -166,55 +165,78 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     }
 
     fun convertVariable(expr: VariableExpression): IRNode {
-        val info = symbolTable.getInfo(expr.ident)
-        if (info == null) {
-            throw IRConversionException("Unknown variable ${expr.ident.name}", expr.identLocation)
+        val ident = expr.ident.resolve()
+
+        if (ident == null) {
+            throw IRConversionException("No identifier found with name ${expr.ident.symbol()}",
+                    expr.identLocation)
         }
 
-        return VariableNode(expr.ident, expr.identLocation)
+        // If this identifier is for a type constructor, create a type constructor node
+        val info = symbolTable.getInfo(ident)!!
+        if (info.idClass == IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT) {
+            return TypeConstructorNode(info.adtVariant, listOf(), expr.identLocation)
+        }
+
+        return VariableNode(ident, expr.identLocation)
     }
 
-    fun convertFunctionCall(expr: FunctionCallExpression): FunctionCallNode {
+    fun convertApplication(expr: ApplicationExpression): IRNode {
         val func = convert(expr.func)
-        val args = expr.actualArgs.map(this::convert)
+        val args = expr.args.map(this::convert)
 
-        return FunctionCallNode(func, args, expr.callLocation, expr.startLocation)
+        if (func is TypeConstructorNode) {
+            return TypeConstructorNode(func.adtVariant, args, func.startLocation)
+        } else {
+            return FunctionCallNode(func, args, expr.callLocation, expr.startLocation)
+        }
     }
 
     fun convertTypeConstructor(expr: TypeConstructorExpression): TypeConstructorNode {
+        val ident = expr.ident.resolve()
+        if (ident == null) {
+            throw IRConversionException("No identifier found with name ${expr.ident.symbol()}",
+                    expr.startLocation)
+        }
+
+        val info = symbolTable.getInfo(ident)
+        if (info?.idClass != IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT) {
+            throw IRConversionException("${expr.ident.symbol()} is not a type constructor",
+                    expr.startLocation)
+        }
+
         val args = expr.actualArgs.map(this::convert)
 
-        return TypeConstructorNode(expr.adtVariant, args, expr.identLocation)
+        return TypeConstructorNode(info.adtVariant, args, expr.startLocation)
     }
 
     fun convertKeyedAccess(expr: KeyedAccessExpression): KeyedAccessNode {
         return KeyedAccessNode(convert(expr.container), convert(expr.key), expr.accessLocation)
     }
 
-    fun convertKeyedAssignment(expr: KeyedAssignmentExpression): KeyedAssignmentNode {
-        // Convert the keyed access, and use its properties to construct the keyed assignment
-        val keyedAccess = convertKeyedAccess(expr.lValue)
-        return KeyedAssignmentNode(keyedAccess.container, keyedAccess.key,
-                convert(expr.rValue), expr.accessLocation)
-    }
+    fun convertAssignment(expr: AssignmentExpression): IRNode {
+        val lValue = convert(expr.lValue)
 
-    fun convertVariableAssignment(expr: VariableAssignmentExpression): VariableAssignmentNode {
-        val info = symbolTable.getInfo(expr.lValue)
-        if (info == null) {
-            throw IRConversionException("Unknown variable ${expr.lValue.name}", expr.identLocation)
+        if (lValue is VariableNode) {
+            // Error if assigning to identifier that is not a variable
+            if (symbolTable.getInfo(lValue.ident)?.idClass != IdentifierClass.VARIABLE) {
+                throw IRConversionException("Can only reassign variables", expr.equalsLocation)
+            }
+
+            // Error if assigning to immutable variable
+            if (isImmutable(lValue.ident)) {
+                throw IRConversionException("Cannot reassign immutable variable " +
+                        "${lValue.ident.name}", lValue.startLocation)
+            }
+
+            return VariableAssignmentNode(lValue.ident, convert(expr.rValue), lValue.startLocation)
+        } else if (lValue is KeyedAccessNode) {
+            return KeyedAssignmentNode(lValue.container, lValue.key,
+                    convert(expr.rValue), lValue.accessLocation)
+        } else {
+            throw IRConversionException("Cannot only assign values to variables",
+                    expr.equalsLocation)
         }
-
-        if (info.idClass != IdentifierClass.VARIABLE) {
-            throw IRConversionException("Cannot reassign ${expr.lValue.name}, can only " +
-                    "reassign variables", expr.identLocation)
-        }
-
-        if (isImmutable(expr.lValue)) {
-            throw IRConversionException("Cannot reassign immutable variable ${expr.lValue.name}",
-                    expr.identLocation)
-        }
-
-        return VariableAssignmentNode(expr.lValue, convert(expr.rValue), expr.identLocation)
     }
 
     fun convertReturn(expr: ReturnStatement): ReturnNode {
