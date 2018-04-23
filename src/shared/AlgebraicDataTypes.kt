@@ -110,31 +110,3 @@ class AlgebraicDataTypeVariant(
         return id == other.id
     }
 }
-
-/**
- * Add an algebraic type signature to the global scope of the symbol table.
- */
-fun addAdtSigToSymbolTable(
-    adtSig: AlgebraicDataTypeSignature,
-    symbolTable: SymbolTable,
-    location: Location
-) {
-    val ident = symbolTable.addSymbolInGlobalScope(adtSig.name, IdentifierClass.ALGEBRAIC_DATA_TYPE,
-            location, adtSig.getAdtWithParams(adtSig.typeParams))
-    val info = symbolTable.getInfo(ident)!!
-    info.adtSig = adtSig
-}
-
-/**
- * Add an algebraic type variant to the global scope of the symbol table.
- */
-fun addAdtVariantToSymbolTable(
-    adtVariant: AlgebraicDataTypeVariant,
-    symbolTable: SymbolTable,
-    location: Location
-) {
-    val ident = symbolTable.addSymbolInGlobalScope(adtVariant.name,
-            IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT, location, adtVariant.typeForConstructor())
-    val info = symbolTable.getInfo(ident)!!
-    info.adtVariant = adtVariant
-}

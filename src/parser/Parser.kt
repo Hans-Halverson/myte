@@ -7,7 +7,7 @@ import myte.shared.*
 class Parser(
     val symbolTable: SymbolTable,
     tokens: List<Token> = listOf(),
-    val ignoreAmbiguousEnd: Boolean = false
+    val ignoreAmbiguousEnd: Boolean = true
 ) {
     var tokenizer: Tokenizer = Tokenizer(tokens)
 
@@ -24,35 +24,29 @@ class Parser(
      * @return a list of statements corresponding to the top level statements in the file
      * @throws ParseException if the stream of tokens does not represent a valid list of statements
      */
-    fun parseFile(): List<Statement> {
+    fun parseFile(): Package {
         symbolTable.returnToGlobalScope()
 
-        val statements: MutableList<Statement> = mutableListOf()
+        val pack = Package()
         while (!tokenizer.reachedEnd) {
-            val statement = parseTopLevelStatement()
-            if (statement != null) {
-                statements.add(statement)
-            }
+            parseTopLevelStatement(pack)
         }
 
-        return statements
+        return pack
     }
 
     /**
      * Parse the current top level statement, and return the statement if a statement can be
      * created, or null if no statement needs to be created.
      */
-    fun parseTopLevelStatement(): Statement? {
+    fun parseTopLevelStatement(pack: Package) {
         val token = tokenizer.next()
 
-        return when (token) {
-            is TypeToken -> {
-                parseTypeDefinition()
-                null
-            }
-            is DefToken -> parseFunctionDefinition(token)
-            is LetToken -> parseVariableDefinition(false, token)
-            is ConstToken -> parseVariableDefinition(true, token)
+        when (token) {
+            is TypeToken -> pack.typeDefs.add(parseTypeDefinition())
+            is DefToken -> pack.statements.add(parseFunctionDefinition(token))
+            is LetToken -> pack.statements.add(parseVariableDefinition(false, token))
+            is ConstToken -> pack.statements.add(parseVariableDefinition(true, token))
             else -> throw ParseException("Top level statements can only be type, function, or " +
                     "variable definitions", token)
         }
@@ -65,16 +59,13 @@ class Parser(
      * @throws ParseException if the stream does not correspond to a valid statement, or if there
      *         are leftover tokens after the statement has been parsed
      */
-    fun parseReplLine(): Statement? {
+    fun parseReplLine(): TopLevelStatement {
         symbolTable.returnToGlobalScope()
 
         // Type defs do not produce a statement, and all other statements can be REPL top level
         val token = tokenizer.next()
         val statement = when (token) {
-            is TypeToken -> {
-                parseTypeDefinition()
-                null
-            }
+            is TypeToken -> parseTypeDefinition()
             else -> parseStatement(token)
         }
 
@@ -137,7 +128,7 @@ class Parser(
             // Literals
             is IntLiteralToken -> IntLiteral(firstToken.num, firstToken.location)
             is FloatLiteralToken -> FloatLiteral(firstToken.num, firstToken.location)
-            is IdentifierToken -> parseIdentifierExpression(firstToken)
+            is IdentifierToken -> parseVariableExpression(firstToken)
             is TrueToken -> BoolLiteralExpression(true, firstToken.location)
             is FalseToken -> BoolLiteralExpression(false, firstToken.location)
             is StringLiteralToken -> StringLiteralExpression(firstToken.str, firstToken.location)
@@ -207,8 +198,8 @@ class Parser(
     //
     ///////////////////////////////////////////////////////////////////////////
 
-    fun parseIdentifierExpression(token: IdentifierToken): Expression {
-        val resolvableIdent = symbolTable.lookup(token.str)
+    fun parseVariableExpression(token: IdentifierToken): Expression {
+        val resolvableIdent = symbolTable.lookupVariable(token.str)
         return VariableExpression(resolvableIdent, token.location)
     }
 
@@ -503,11 +494,11 @@ class Parser(
 
         val identToken = token
 
-        // Parse type if one is specified, otherwise create new type variable
-        val type = if (tokenizer.current is ColonToken) {
+        // Parse type if one is supplied
+        val typeAnnotation = if (tokenizer.current is ColonToken) {
             parseTypeAnnotation()
         } else {
-            TypeVariable()
+            null
         }
 
         // Const variable definitions are immutable, all others are mutable
@@ -519,10 +510,11 @@ class Parser(
         // Parse the expression and then add the ident to the symbol table, so that the old
         // symbol for the ident will be used in the body (if the ident is being rebound).
         val expr = parseExpression()
-        val ident = symbolTable.addSymbol(identToken.str, IdentifierClass.VARIABLE,
-                identToken.location, type, identProps)
+        val ident = symbolTable.addVariable(identToken.str, IdentifierClass.VARIABLE,
+                identToken.location, WhichScope.CURRENT, identProps)
         
-        return VariableDefinitionStatement(ident, expr, identToken.location, defToken.location)
+        return VariableDefinitionStatement(ident, expr, typeAnnotation, identToken.location,
+                defToken.location)
     }
 
     fun parseLambdaExpression(funToken: FunToken): LambdaExpression {
@@ -530,10 +522,10 @@ class Parser(
         assertCurrent(TokenType.LEFT_PAREN)
         tokenizer.next()
 
-        val formalArgs: MutableList<Identifier> = mutableListOf()
+        val formalArgs: MutableList<Pair<Identifier, TypeExpression?>> = mutableListOf()
 
         // Enter a new scope so that all variable names and types are scoped to this function
-        symbolTable.enterScope()
+        symbolTable.enterScope(ScopeType.FUNCTION)
 
         // Keep parsing comma separated formal argument identifiers until a right paren is found
         argsLoop@ while (tokenizer.current !is RightParenToken) {
@@ -542,16 +534,17 @@ class Parser(
                 throw ParseException("Formal arguments must be identifiers", token)
             }
 
-            // Only parse type annotations if they exist
-            val argType = if (tokenizer.current is ColonToken) {
+            // Parse optional type annotation if they exist
+            val typeAnnotation = if (tokenizer.current is ColonToken) {
                 parseTypeAnnotation(true)
             } else {
-                TypeVariable()
+                null
             }
 
             // Add formal argument as variable to symbol table in new scope
-            formalArgs.add(symbolTable.addSymbol(token.str, IdentifierClass.VARIABLE,
-                    token.location, argType))
+            val formalArg = symbolTable.addVariable(token.str, IdentifierClass.VARIABLE,
+                    token.location)
+            formalArgs.add(Pair(formalArg, typeAnnotation))
 
             // If a right paren is found, all arguments have been found. If a comma is found,
             // there must still be identifiers to parse. Otherwise, syntax is invalid.
@@ -592,14 +585,13 @@ class Parser(
         }
 
         val funcToken = token
-        val formalArgs: MutableList<Identifier> = mutableListOf()
-        val argTypes: MutableList<Type> = mutableListOf()
+        val formalArgs: MutableList<Pair<Identifier, TypeExpression?>> = mutableListOf()
 
         assertCurrent(TokenType.LEFT_PAREN)
         tokenizer.next()
 
         // Enter a new scope so that all variable names and types are scoped to this function
-        symbolTable.enterScope()
+        symbolTable.enterScope(ScopeType.FUNCTION)
 
         // Keep parsing comma separated formal argument identifiers until a right paren is found
         argsLoop@ while (tokenizer.current !is RightParenToken) {
@@ -608,17 +600,16 @@ class Parser(
                 throw ParseException("Formal arguments must be identifiers", token)
             }
 
-            // Only parse type annotations if they exist
-            val argType = if (tokenizer.current is ColonToken) {
+            // Parse optional type annotation
+            val typeAnnotation = if (tokenizer.current is ColonToken) {
                 parseTypeAnnotation(true)
             } else {
-                TypeVariable()
+                null
             }
 
-            // Add formal argument as variable to symbol table in new scope
-            argTypes.add(argType)
-            formalArgs.add(symbolTable.addSymbol(token.str, IdentifierClass.VARIABLE,
-                    token.location, argType))
+            val formalArg = symbolTable.addVariable(token.str, IdentifierClass.VARIABLE,
+                    token.location)
+            formalArgs.add(Pair(formalArg, typeAnnotation))
 
             // If a right paren is found, all arguments have been found. If a comma is found,
             // there must still be identifiers to parse. Otherwise, syntax is invalid.
@@ -632,17 +623,17 @@ class Parser(
         assertCurrent(TokenType.RIGHT_PAREN)
         tokenizer.next()
 
-        // Parse return type annotation if one exists
-        val returnType = if (tokenizer.current is ColonToken) {
+        // Parse optional return type annotation
+        val returnTypeAnnotation = if (tokenizer.current is ColonToken) {
             parseTypeAnnotation(true)
         } else {
-            TypeVariable()
+            null
         }
 
         // Add the function to the symbol table with correct type before parsing body, and make
         // sure to add in previous scope, as symbolTable is currently in the scope of the function.
-        val ident = symbolTable.addSymbolInPreviousScope(funcToken.str, IdentifierClass.FUNCTION,
-                funcToken.location, FunctionType(argTypes, returnType))
+        val ident = symbolTable.addVariable(funcToken.str, IdentifierClass.FUNCTION,
+                funcToken.location, WhichScope.PREVIOUS)
 
         // Expression function definition bodies begin with an equals sign
         if (tokenizer.current is EqualsToken) {
@@ -650,7 +641,7 @@ class Parser(
 
             val expr = parseExpression()
             symbolTable.exitScope()
-            return FunctionDefinitionStatement(ident, formalArgs,
+            return FunctionDefinitionStatement(ident, formalArgs, returnTypeAnnotation,
                     ReturnStatement(expr, expr.startLocation), funcToken.location,
                             defToken.location)
         } else {
@@ -664,14 +655,14 @@ class Parser(
 
             val block = parseBlock(token)
             symbolTable.exitScope()
-            return FunctionDefinitionStatement(ident, formalArgs, block, funcToken.location,
-                    defToken.location)
+            return FunctionDefinitionStatement(ident, formalArgs, returnTypeAnnotation, block,
+                    funcToken.location, defToken.location)
         }
     }
 
     fun parseBlock(leftBraceToken: LeftBraceToken): BlockStatement {
         // If parseBlock is called, the previous token must have been a {
-        symbolTable.enterScope()
+        symbolTable.enterScope(ScopeType.BLOCK)
 
         // Keep parsing statements in a new scope until a right brace is encountered
         val statements: MutableList<Statement> = mutableListOf()
@@ -727,7 +718,7 @@ class Parser(
 
         // Entire for loop must be in a new scope, since the init and update could introduce
         // new bindings that should not exist outside the context of the for loop.
-        symbolTable.enterScope()
+        symbolTable.enterScope(ScopeType.BLOCK)
 
         // Parse initializer statement if a comma is not seen
         var initializer: Statement? = null
@@ -813,7 +804,7 @@ class Parser(
             }
             // An identifier may be a new variable or a type constructor
             is IdentifierToken -> {
-                val ident = symbolTable.addPatternSymbol(token.str, token.location)
+                val ident = symbolTable.addPatternVariable(token.str, token.location)
 
                 val args: MutableList<Expression> = mutableListOf()
 
@@ -918,16 +909,19 @@ class Parser(
     //
     ///////////////////////////////////////////////////////////////////////////
 
-    fun parseType(inFunctionDef: Boolean = false, precedence: Int = TYPE_NO_PRECEDENCE): Type {
+    fun parseType(
+        inFunctionDef: Boolean = false,
+        precedence: Int = TYPE_NO_PRECEDENCE
+    ): TypeExpression {
         val currentToken = tokenizer.next()
 
         // Find the first type found in the type expression
         var currentType = when (currentToken) {
-            is BoolToken -> BoolType
-            is StringTypeToken -> StringType
-            is IntToken -> IntType
-            is FloatToken -> FloatType
-            is UnitToken -> UnitType
+            is BoolToken -> BoolTypeExpression
+            is StringTypeToken -> StringTypeExpression
+            is IntToken -> IntTypeExpression
+            is FloatToken -> FloatTypeExpression
+            is UnitToken -> UnitTypeExpression
             is LeftParenToken -> parseParenthesizedType(inFunctionDef)
             is VecToken -> parseVectorType(inFunctionDef)
             is SetToken -> parseSetType(inFunctionDef)
@@ -952,9 +946,9 @@ class Parser(
         return currentType
     }
 
-    fun parseParenthesizedType(inFunctionDef: Boolean): Type {
+    fun parseParenthesizedType(inFunctionDef: Boolean): TypeExpression {
         // If parseParenthesizedType is called, the previous token must have been a (
-        val types: MutableList<Type> = mutableListOf(parseType(inFunctionDef))
+        val types: MutableList<TypeExpression> = mutableListOf(parseType(inFunctionDef))
 
         while (tokenizer.current is CommaToken) {
             tokenizer.next()
@@ -969,11 +963,11 @@ class Parser(
             return types.get(0)
         // Otherwise this is a tuple type with the listed elements
         } else {
-            return TupleType(types)
+            return TupleTypeExpression(types)
         }
     }
 
-    fun parseVectorType(inFunctionDef: Boolean = false): VectorType {
+    fun parseVectorType(inFunctionDef: Boolean = false): VectorTypeExpression {
         // If parseVectorType is called, previous token must have been vec.
         // Parse element type surrounded by angle braces.
         assertCurrent(TokenType.LESS_THAN)
@@ -984,10 +978,10 @@ class Parser(
         assertCurrent(TokenType.GREATER_THAN)
         tokenizer.next()
 
-        return VectorType(elementType)
+        return VectorTypeExpression(elementType)
     }
 
-    fun parseSetType(inFunctionDef: Boolean = false): SetType {
+    fun parseSetType(inFunctionDef: Boolean = false): SetTypeExpression {
         // If parseSetType is called, previous token must have been set.
         // Parse element type surrounded by angle braces.
         assertCurrent(TokenType.LESS_THAN)
@@ -998,10 +992,10 @@ class Parser(
         assertCurrent(TokenType.GREATER_THAN)
         tokenizer.next()
 
-        return SetType(elementType)
+        return SetTypeExpression(elementType)
     }
 
-    fun parseMapType(inFunctionDef: Boolean = false): MapType {
+    fun parseMapType(inFunctionDef: Boolean = false): MapTypeExpression {
         // If parseMapType is called, previous token must have been map.
         // Parse comma separated key and val types surrounded by angle braces.
         assertCurrent(TokenType.LESS_THAN)
@@ -1017,83 +1011,63 @@ class Parser(
         assertCurrent(TokenType.GREATER_THAN)
         tokenizer.next()
 
-        return MapType(keyType, valType)
+        return MapTypeExpression(keyType, valType)
     }
 
     /**
      * Parse the type represented by a particular identifier. This could be an existing type
-     * parameter, a new type parameter (if in a function definition), pr the beginning of a
+     * parameter, a new type parameter (if in a function definition), or the beginning of a
      * defined algebraic data type.
      */
-    fun parseIdentifierType(token: IdentifierToken, inFunctionDef: Boolean = false): Type {
-        val ident = symbolTable.lookupDEPRECATED(token.str)
-        if (ident != null) {
-            val identInfo = symbolTable.getInfo(ident)
-            // If this is a type parameter that has been defined, then use the stored type variable
-            if (identInfo?.idClass == IdentifierClass.TYPE_PARAMETER) {
-                return identInfo.type
-            // If this is an algebraic data type, created parameterized adt type
-            } else if (identInfo?.idClass == IdentifierClass.ALGEBRAIC_DATA_TYPE) {
-                // Parse optional, comma separated list of types within < > 
-                // for parameterized variant type
-                val typeParams: MutableList<Type> = mutableListOf()
-                if (tokenizer.current is LessThanToken) {
-                    do {
-                        tokenizer.next()
-                        typeParams.add(parseType(inFunctionDef))
-                    } while (tokenizer.current is CommaToken)
+    fun parseIdentifierType(
+        token: IdentifierToken,
+        inFunctionDef: Boolean = false
+    ): TypeExpression {
+        val ident = symbolTable.addTypeVariable(token.str, token.location, inFunctionDef)
 
-                    assertCurrent(TokenType.GREATER_THAN)
-                    tokenizer.next()
-                }
+        // Parse (optional) comma separated list of types within < > that parameterize this type
+        val typeParams: MutableList<TypeExpression> = mutableListOf()
+        if (tokenizer.current is LessThanToken) {
+            do {
+                tokenizer.next()
+                typeParams.add(parseType(inFunctionDef))
+            } while (tokenizer.current is CommaToken)
 
-                // Check that number of type params matches before continuing
-                val adtSig = identInfo.adtSig
-                if (identInfo.adtSig.typeParams.size != typeParams.size) {
-                    throw ParseException("Type ${adtSig.name} expects ${adtSig.typeParams.size} " +
-                        "type parameters, but received ${typeParams.size}", token)
-                }
+            assertCurrent(TokenType.GREATER_THAN)
+            tokenizer.next()
 
-                return adtSig.getAdtWithParams(typeParams)
-            } else {
-                throw ParseException("Expected ${token.str} to be a type parameter", token)
-            }
-        } else if (inFunctionDef) {
-            // If this type parameter has not been seen, create a new type variable and add
-            // the type parameter to the symbol table.
-            val newTypeParam = TypeVariable()
-            symbolTable.addSymbol(token.str, IdentifierClass.TYPE_PARAMETER,
-                    token.location, newTypeParam)
-            return newTypeParam
-        } else {
-            throw ParseException("Unknown type ${token.str}", token)
         }
+
+        return VariableTypeExpression(ident, typeParams, token.location)
     }
 
-    fun parseFunctionType(prevType: Type, inFunctionDef: Boolean): FunctionType {
+    fun parseFunctionType(
+        prevType: TypeExpression,
+        inFunctionDef: Boolean
+    ): FunctionTypeExpression {
         // If parseFunctionType is called, the previous token must have been a ->
         val type = parseType(inFunctionDef, TYPE_FUNCTION_PRECEDENCE)
 
         // If the previous type was a function, the next type is its return type
-        if (prevType is FunctionType) {
-            return FunctionType(prevType.argTypes + prevType.returnType, type)
+        if (prevType is FunctionTypeExpression) {
+            return FunctionTypeExpression(prevType.argTypes + prevType.returnType, type)
         // Otherwise, this is a one argument function
         } else {
-            return FunctionType(listOf(prevType), type)
+            return FunctionTypeExpression(listOf(prevType), type)
         }
     }
 
     /**
      * Parse the current type annotation in the stream into a single type.
      */
-    fun parseTypeAnnotation(inFunctionDef: Boolean = false): Type {
+    fun parseTypeAnnotation(inFunctionDef: Boolean = false): TypeExpression {
         assertCurrent(TokenType.COLON)
         tokenizer.next()
 
         return parseType(inFunctionDef)
     }
 
-    fun parseTypeDefinition() {
+    fun parseTypeDefinition(): TypeDefinitionExpression {
         // If parseTypeDefinition is called, the previous token must have been a type
         var currentToken = tokenizer.current
         if (currentToken !is IdentifierToken) {
@@ -1101,12 +1075,12 @@ class Parser(
         }
 
         val typeNameToken = currentToken
-        val typeParams: MutableList<TypeVariable> = mutableListOf()
+        val typeParams: MutableList<Identifier> = mutableListOf()
 
         tokenizer.next()
 
         // Enter a new scope for the duration of this definition, so that type params will be local
-        symbolTable.enterScope()
+        symbolTable.enterScope(ScopeType.TYPE_DEFINITION)
         
         // Parse optional type parameters for parameterized variant type
         if (tokenizer.current is LessThanToken) {
@@ -1121,10 +1095,8 @@ class Parser(
                 }
 
                 // Add the type parameter to the local environment and save it in the list of params
-                val typeParam = TypeVariable()
-                typeParams.add(typeParam)
-                symbolTable.addSymbol(currentToken.str, IdentifierClass.TYPE_PARAMETER,
-                        currentToken.location, typeParam)
+                typeParams.add(symbolTable.addType(currentToken.str,
+                        IdentifierClass.TYPE_PARAMETER, currentToken.location))
 
                 tokenizer.next()
             } while (tokenizer.current is CommaToken)
@@ -1133,13 +1105,14 @@ class Parser(
             tokenizer.next()
         }
 
-        // Create adt type signature based off name and type params, and add to global scope
-        val adtSig = AlgebraicDataTypeSignature(typeNameToken.str, typeParams)
-        addAdtSigToSymbolTable(adtSig, symbolTable, typeNameToken.location)
+        // Add identifier for ADT name to global scope
+        val typeIdent = symbolTable.addType(typeNameToken.str, IdentifierClass.ALGEBRAIC_DATA_TYPE,
+                typeNameToken.location, WhichScope.GLOBAL)
 
         assertCurrent(TokenType.EQUALS)
         tokenizer.next()
 
+        val variants: MutableList<Pair<Identifier, List<TypeExpression>>> = mutableListOf()
         var firstVariant = true
 
         // Parse nonempty sequence of variant definitions
@@ -1179,10 +1152,10 @@ class Parser(
             if (tokenizer.reachedEnd) {
                 // If end is unambiguous, need to create a new variant and add it to global scope
                 if (ignoreAmbiguousEnd) {
-                    val adtVariant = AlgebraicDataTypeVariant(adtSig, variantNameToken.str,
-                            listOf())
-                    adtSig.variants.add(adtVariant)
-                    addAdtVariantToSymbolTable(adtVariant, symbolTable, variantNameToken.location)
+                    val variantIdent = symbolTable.addVariable(variantNameToken.str,
+                            IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT, variantNameToken.location,
+                            WhichScope.GLOBAL)
+                    variants.add(Pair(variantIdent, listOf()))
                     break
                 } else {
                     throw AmbiguousEndException()
@@ -1198,7 +1171,7 @@ class Parser(
 
             // If tuple type then constructor is elements of tuple, otherwise use parsed type
             // if it exists, or empty constructor if no type annotation was provided
-            val typeConstructor = if (typeAnnotation is TupleType) {
+            val typeConstructor = if (typeAnnotation is TupleTypeExpression) {
                 typeAnnotation.elementTypes
             } else if (typeAnnotation != null) {
                 listOf(typeAnnotation)
@@ -1206,12 +1179,15 @@ class Parser(
                 listOf()
             }
 
-            // Create a new variant type and add it to the global scope
-            val adtVariant = AlgebraicDataTypeVariant(adtSig, variantNameToken.str, typeConstructor)
-            adtSig.variants.add(adtVariant)
-            addAdtVariantToSymbolTable(adtVariant, symbolTable, variantNameToken.location)
+            // Create a new variant identifier and add it to the global scope
+            val variantIdent = symbolTable.addVariable(variantNameToken.str,
+                    IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT, variantNameToken.location,
+                    WhichScope.GLOBAL)
+            variants.add(Pair(variantIdent, typeConstructor))
         } while (true)
 
         symbolTable.exitScope()
+
+        return TypeDefinitionExpression(typeIdent, typeParams, variants)
     }
 }

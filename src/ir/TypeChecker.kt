@@ -815,8 +815,8 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
         if (!unify(expectedFuncType, funcType)) {
             val types = typesToString(expectedFuncType, funcType, boundVars)
-            throw IRConversionException("Illegal function call. Function expected to have type " +
-                    "${types[0]}, but found ${types[1]}", node.callLocation)
+            throw IRConversionException("Function inferred to have type " +
+                    "${types[0]}, but expected ${types[1]}", node.startLocation)
         }
     }
 

@@ -2,4 +2,6 @@ package myte.parser.ast
 
 import myte.shared.*
 
-abstract class Statement(val startLocation: Location)
+abstract class TopLevelStatement()
+
+abstract class Statement(val startLocation: Location) : TopLevelStatement()

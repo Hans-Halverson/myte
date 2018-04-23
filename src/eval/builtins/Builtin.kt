@@ -37,8 +37,12 @@ abstract class Builtin(val name: String, val type: FunctionType) {
      * Add this builtin to the symbol table and environment.
      */
     fun register(symbolTable: SymbolTable, environment: Environment): Identifier {
-        val ident = symbolTable.addSymbol(name, IdentifierClass.FUNCTION,
-                Location(-1, -1, null), type)
+        // Add type annotated identifier to symbol table
+        val ident = symbolTable.addVariable(name, IdentifierClass.FUNCTION,
+                Location(-1, -1, null))
+        val info = symbolTable.getInfo(ident)!!
+        info.type = type
+
         val builtin = BuiltinValue(this::evalWrapper, type)
         environment.extend(ident, builtin)
 

@@ -36,6 +36,7 @@ def shadowing(x) {
 def patterns(x) {
     match x
     | Nil -> return Nil
+    | Cons(hd, tl) -> return Cons(hd, tl)
 }
 
 type list<a> = Nil | Cons(a, list<a>)
@@ -46,6 +47,8 @@ def main(args) {
     println(intToString(g(100)))
     println(intToString(h(200)))
     println(intToString(shadowing(30)))
-    println(patterns("45"))
+
+    patterns(Nil)
+
     return 0
 }

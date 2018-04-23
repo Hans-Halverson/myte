@@ -5,3 +5,11 @@ def fib(x) {
         return fib(x - 1) + fib(x - 2)
     }
 }
+
+def main(args) {
+    for (let i = 0, i <= 10, i = i + 1) {
+        println(intToString(fib(i)))
+    }
+
+    return 0
+}

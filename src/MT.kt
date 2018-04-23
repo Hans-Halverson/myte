@@ -98,13 +98,11 @@ fun repl(input: BufferedReader) {
                     // Parse a single line of repl input
                     val statement = parser.parseReplLine()
 
-                    if (statement != null) {
-                        // Convert to ir and perform type checking
-                        val ir = converter.convert(statement)
-                        converter.inferTypes(listOf(ir))
-                        converter.assertIRStructure(ir)
+                    // Convert to ir and perform type checking
+                    val ir = converter.convertReplStatement(statement)
 
-                        // Evaluate the current input
+                    // If there is something to be evaluated, send to evaluator
+                    if (ir != null) {
                         val value = eval.evaluate(ir)
                         printValue(value)
                     }
@@ -162,12 +160,9 @@ fun evaluateFile(input: BufferedReader, fileName: String, args: List<String>): I
         val converter = AstToIrConverter(symbolTable)
         val eval = Evaluator(symbolTable, environment)
 
-        // Parse, convert, and type check all statements in the file
-        val statements = parser.parseFile()
-        val irNodes = statements.map(converter::convert)
-
-        converter.inferTypes(irNodes)
-        irNodes.forEach(converter::assertIRStructure)
+        // Parse, convert, and type check the entire file
+        val pack = parser.parseFile()
+        val irNodes = converter.convertPackage(pack)
 
         // Evaluate each statement in the file in order, saving the main function
         var mainFunc: ClosureValue? = null

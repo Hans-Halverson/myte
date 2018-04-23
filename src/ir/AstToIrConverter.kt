@@ -18,6 +18,39 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         typeChecker.resetSymbolTable(newSymbolTable)
     }
 
+    fun convertPackage(pack: Package): List<IRNode> {
+        // First create ADT sigs, then create variants for those sigs so that variants can
+        // reference other ADTs regardless of order.
+        pack.typeDefs.forEach(this::createAdtSig)
+        pack.typeDefs.forEach(this::createAdtVariants)
+
+        // Convert all statements in package
+        val irNodes = pack.statements.map(this::convert)
+
+        inferTypes(irNodes)
+        irNodes.forEach(this::assertIRStructure)
+
+        return irNodes
+    }
+
+    fun convertReplStatement(stmt: TopLevelStatement): IRNode? {
+        if (stmt is TypeDefinitionExpression) {
+            // Create ADT sig and variants
+            createAdtSig(stmt)
+            createAdtVariants(stmt)
+            return null
+        } else if (stmt is Statement) {
+            // Convert node, infer types, and verify correct IR structure
+            val node = convert(stmt)
+            inferTypes(listOf(node))
+            assertIRStructure(node)
+
+            return node
+        } else {
+            throw Exception("Unkown repl statement ${stmt}")  
+        }
+    }
+
     /**
      * Convert a node in the ast into a node in the internal representation.
      *
@@ -87,11 +120,24 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
 
     ///////////////////////////////////////////////////////////////////////////
     // 
-    // Conversion functions for each AST node
+    // Conversion functions for each AST statement node
     //
     ///////////////////////////////////////////////////////////////////////////
 
     fun convertLambda(expr: LambdaExpression): LambdaNode {
+        val formalArgs = expr.formalArgs.map { (arg, typeAnnotation) ->
+            // Annotate each formal argument with its optional type annotation or new type variable
+            val type = if (typeAnnotation != null) {
+                convertType(typeAnnotation)
+            } else {
+                TypeVariable()
+            }
+
+            symbolTable.getInfo(arg)?.type = type
+
+            arg
+        }
+
         val body = convert(expr.body)
 
         // Check that all paths in the lambda return a value
@@ -100,10 +146,33 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
                     expr.startLocation)
         }
 
-        return LambdaNode(expr.formalArgs, body, expr.startLocation)
+        return LambdaNode(formalArgs, body, expr.startLocation)
     }
 
     fun convertFunctionDefinition(stmt: FunctionDefinitionStatement): FunctionDefinitionNode {
+        val (formalArgs, argTypes) = stmt.formalArgs.map({ (arg, typeAnnotation) ->
+            // Annotate each formal argument with its optional type annotation or new type variable
+            val type = if (typeAnnotation != null) {
+                convertType(typeAnnotation)
+            } else {
+                TypeVariable()
+            }
+
+            symbolTable.getInfo(arg)?.type = type
+
+            Pair(arg, type)
+        }).unzip()
+
+        // Find annotated return type
+        val returnType = if (stmt.returnTypeAnnotation != null) {
+            convertType(stmt.returnTypeAnnotation)
+        } else {
+            TypeVariable()
+        }
+
+        // Annotate function identifier with type from annotations
+        symbolTable.getInfo(stmt.ident)?.type = FunctionType(argTypes, returnType)
+
         val body = convert(stmt.body)
 
         // Check that all paths in the function return a value
@@ -112,11 +181,20 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
                     "a value", stmt.identLocation)
         }
 
-        return FunctionDefinitionNode(stmt.ident, stmt.formalArgs, body, stmt.identLocation,
+        return FunctionDefinitionNode(stmt.ident, formalArgs, body, stmt.identLocation,
                 stmt.startLocation)
     }
 
     fun convertVariableDefinition(stmt: VariableDefinitionStatement): VariableDefinitionNode {
+        // Annotate this identifier with type annotation, or new type variable if not annotated
+        val type = if (stmt.typeAnnotation != null) {
+            convertType(stmt.typeAnnotation)
+        } else {
+            TypeVariable()
+        }
+
+        symbolTable.getInfo(stmt.ident)?.type = type
+
         return VariableDefinitionNode(stmt.ident, convert(stmt.expr), stmt.identLocation,
                 stmt.startLocation)
     }
@@ -331,6 +409,99 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             return FloatLiteralNode(-child.num, expr.startLocation)
         } else {
             return NegateNode(child, expr.startLocation)
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // 
+    // Conversion functions for type definitions
+    //
+    ///////////////////////////////////////////////////////////////////////////
+
+    fun createAdtSig(typeDef: TypeDefinitionExpression) {
+        // First annotate all type parameters identifiers with new type variables
+        val typeParams = typeDef.typeParamIdents.map { typeParamIdent ->
+            val typeParam = TypeVariable()
+            symbolTable.getInfo(typeParamIdent)?.type = typeParam
+            typeParam
+        }
+
+        // Create initial ADT signature and annotate identifier with it
+        val adtSig = AlgebraicDataTypeSignature(typeDef.typeIdent.name, typeParams)
+        symbolTable.getInfo(typeDef.typeIdent)?.adtSig = adtSig
+        symbolTable.getInfo(typeDef.typeIdent)?.type = adtSig.getAdtWithParams(adtSig.typeParams)
+    }
+
+    fun createAdtVariants(typeDef: TypeDefinitionExpression) {
+        val adtSig = symbolTable.getInfo(typeDef.typeIdent)?.adtSig!!
+
+        for ((variantIdent, typeConstructorExprs) in typeDef.variants) {
+            // Create variant by parsing type constructor and add to ADT sig
+            val typeConstructor = typeConstructorExprs.map(this::convertType)
+            val variant = AlgebraicDataTypeVariant(adtSig, variantIdent.name, typeConstructor)
+            adtSig.variants.add(variant)
+
+            // Annotate variant's identifier with newly created variant
+            symbolTable.getInfo(variantIdent)?.adtVariant = variant
+            symbolTable.getInfo(variantIdent)?.type = variant.typeForConstructor()
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // 
+    // Conversion functions for each AST type node
+    //
+    ///////////////////////////////////////////////////////////////////////////
+
+    fun convertType(typeExpr: TypeExpression): Type {
+        return when (typeExpr) {
+            is UnitTypeExpression -> UnitType
+            is BoolTypeExpression -> BoolType
+            is IntTypeExpression -> IntType
+            is FloatTypeExpression -> FloatType
+            is StringTypeExpression -> StringType
+            is VectorTypeExpression -> VectorType(convertType(typeExpr.elementType))
+            is SetTypeExpression -> SetType(convertType(typeExpr.elementType))
+            is MapTypeExpression -> MapType(convertType(typeExpr.keyType),
+                    convertType(typeExpr.valType))
+            is TupleTypeExpression -> TupleType(typeExpr.elementTypes.map(this::convertType))
+            is FunctionTypeExpression -> FunctionType(typeExpr.argTypes.map(this::convertType),
+                    convertType(typeExpr.returnType))
+            is VariableTypeExpression -> convertVariableType(typeExpr)
+        }
+    }
+
+    fun convertVariableType(typeExpr: VariableTypeExpression): Type {
+        val ident = typeExpr.ident.resolve()
+        if (ident == null) {
+            throw IRConversionException("Unknown type ${typeExpr.ident.symbol()}",
+                    typeExpr.startLocation)
+        }
+
+
+        val info = symbolTable.getInfo(ident)!!
+        if (info.idClass == IdentifierClass.ALGEBRAIC_DATA_TYPE) {
+            val typeParams = typeExpr.typeParams.map(this::convertType)
+
+            // If this is an ADT, error if number of parameters differs
+            val adtSig = info.adtSig
+            if (adtSig.typeParams.size != typeParams.size) {
+                throw IRConversionException("Type ${adtSig.name} expects " +
+                        "${adtSig.typeParams.size} type parameters, but received " +
+                        "${typeParams.size}", typeExpr.startLocation)
+            }
+
+            return adtSig.getAdtWithParams(typeParams)
+        } else if (info.idClass == IdentifierClass.TYPE_PARAMETER) {
+            if (!typeExpr.typeParams.isEmpty()) {
+                // Error if this is not an ADT but was given type parameters
+                throw IRConversionException("Type ${ident.name} does not have any type parameters",
+                        typeExpr.startLocation)
+            }
+
+            return info.type
+        } else {
+            throw IRConversionException("${ident.name} is not a type", typeExpr.startLocation)
         }
     }
 
