@@ -1,3 +1,5 @@
+package mutual_recursion
+
 def f(x) {
     if (x == 0) {
         return 0

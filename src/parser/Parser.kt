@@ -1,15 +1,24 @@
 package myte.parser
 
 import myte.lexer.*
+import myte.parser.*
 import myte.parser.ast.*
 import myte.shared.*
 
 class Parser(
-    val symbolTable: SymbolTable,
-    tokens: List<Token> = listOf(),
-    val ignoreAmbiguousEnd: Boolean = true
+    var symbolTable: SymbolTable
 ) {
-    var tokenizer: Tokenizer = Tokenizer(tokens)
+    // The tokenizer that is currently in use
+    var tokenizer: Tokenizer = Tokenizer(listOf())
+
+    // The root of the package node tree
+    val rootPackageNode: PackageTreeNode = PackageTreeNode("", null)
+
+    // The import context that is currently in use
+    var importContext: ImportContext = ImportContext(rootPackageNode)
+
+    // Whether to ignore ambiguous line endings, or whether to throw an AmbiguousEndException
+    var ignoreAmbiguousEnd: Boolean = true
 
     /**
      * Reset the stream of tokens that are being parsed to a new stream.
@@ -19,20 +28,40 @@ class Parser(
     }
 
     /**
+     * Parse a list of files, represented as a list of lists of tokens.
+     */
+    fun parseFiles(allTokens: List<List<Token>>): ParseFilesResult {
+        val allPackages: MutableSet<Package> = mutableSetOf()
+        val allImportContexts: MutableList<ImportContext> = mutableListOf()
+
+        for (fileTokens in allTokens) {
+            setTokens(fileTokens)
+
+            val (pack, importContext) = parseFile()
+            allPackages.add(pack)
+            allImportContexts.add(importContext)
+        }
+
+        return ParseFilesResult(allPackages.toList(), allImportContexts)
+    }
+
+    /**
      * Parse an entire file, represented as a list of tokens.
      *
      * @return a list of statements corresponding to the top level statements in the file
      * @throws ParseException if the stream of tokens does not represent a valid list of statements
      */
-    fun parseFile(): Package {
-        symbolTable.returnToGlobalScope()
+    fun parseFile(): Pair<Package, ImportContext> {
+        val pack = parsePackageDeclaration()
+        importContext = parseImportStatements(ImportContext(rootPackageNode))
 
-        val pack = Package()
+        symbolTable.registerPackageScope(pack)
+
         while (!tokenizer.reachedEnd) {
             parseTopLevelStatement(pack)
         }
 
-        return pack
+        return Pair(pack, importContext)
     }
 
     /**
@@ -52,6 +81,22 @@ class Parser(
         }
     }
 
+    fun initRepl() {
+        // Create a package with an empty name for the REPL to run inside. Import context has
+        // already been set up on parser initialization.
+        val replPackage = Package("", Scope(null, ScopeType.REPL))
+        rootPackageNode.children[replPackage.name] = replPackage.packageTreeNode
+        symbolTable.registerPackageScope(replPackage)
+    }
+
+    /**
+     * Reset a portion of the parser's state for the next REPL line.
+     */
+    fun resetForReplLine(symbolTable: SymbolTable, ignoreAmbiguousEnd: Boolean) {
+        this.symbolTable = symbolTable
+        this.ignoreAmbiguousEnd = ignoreAmbiguousEnd
+    }
+
     /**
      * Parse a single command from the REPL.
      *
@@ -59,12 +104,19 @@ class Parser(
      * @throws ParseException if the stream does not correspond to a valid statement, or if there
      *         are leftover tokens after the statement has been parsed
      */
-    fun parseReplLine(): TopLevelStatement {
-        symbolTable.returnToGlobalScope()
+    fun parseReplLine(tokens: List<Token>): ParseReplLineResult {
+        setTokens(tokens)
+        symbolTable.returnToPackageScope()
 
-        // Type defs do not produce a statement, and all other statements can be REPL top level
         val token = tokenizer.next()
         val statement = when (token) {
+            // If it is an import statement, parse imports and add to import context. This does
+            // not produce a top level statement.
+            is ImportToken -> {
+                parseImportStatements(importContext, true)
+                null
+            }
+            // Otherwise parse type definition or statement
             is TypeToken -> parseTypeDefinition()
             else -> parseStatement(token)
         }
@@ -73,7 +125,7 @@ class Parser(
             throw ParseException(tokenizer.current)
         }
 
-        return statement
+        return ParseReplLineResult(statement, importContext)
     }
 
     /**
@@ -199,8 +251,27 @@ class Parser(
     ///////////////////////////////////////////////////////////////////////////
 
     fun parseVariableExpression(token: IdentifierToken): Expression {
-        val resolvableIdent = symbolTable.lookupVariable(token.str)
-        return VariableExpression(resolvableIdent, token.location)
+        // Parse "::" separated list of strings to find scope and identifier name
+        val identParts = mutableListOf(token.str)
+
+        while (!tokenizer.reachedEnd && tokenizer.current is ScopeToken) {
+            tokenizer.next()
+
+            val currentToken = tokenizer.current
+            if (currentToken !is IdentifierToken) {
+                throw ParseException("Identifier must follow scope", currentToken)
+            }
+
+            identParts.add(currentToken.str)
+            tokenizer.next()
+        }
+
+        // All parts except the last are part of the scope. Add resolve job to symbol table.
+        val name = identParts[identParts.size - 1]
+        val scopes = identParts.take(identParts.size - 1)
+        val ident = symbolTable.lookupVariable(name, scopes, token.location, importContext)
+
+        return VariableExpression(ident, token.location)
     }
 
     fun parseVectorLiteralExpression(
@@ -804,7 +875,27 @@ class Parser(
             }
             // An identifier may be a new variable or a type constructor
             is IdentifierToken -> {
-                val ident = symbolTable.addPatternVariable(token.str, token.location)
+                // Parse "::" separated list of strings to find scope and identifier name
+                val identParts = mutableListOf(token.str)
+
+                while (!tokenizer.reachedEnd && tokenizer.current is ScopeToken) {
+                    tokenizer.next()
+
+                    val currentToken = tokenizer.current
+                    if (currentToken !is IdentifierToken) {
+                        throw ParseException("Identifier must follow scope", currentToken)
+                    }
+
+                    identParts.add(currentToken.str)
+                    tokenizer.next()
+                }
+
+                // All parts except the last are part of the scope. Add resolve job to symbol table.
+                val name = identParts[identParts.size - 1]
+                val scopes = identParts.take(identParts.size - 1)
+
+                val ident = symbolTable.addPatternVariable(name, scopes, importContext,
+                        token.location)
 
                 val args: MutableList<Expression> = mutableListOf()
 
@@ -905,6 +996,111 @@ class Parser(
 
     ///////////////////////////////////////////////////////////////////////////
     // 
+    // Parsing packages and imports
+    //
+    ///////////////////////////////////////////////////////////////////////////
+
+    fun parsePackageDeclaration(): Package {
+        // Parse initial package declaration
+        var token = tokenizer.next()
+        if (token !is PackageToken) {
+            throw ParseException("Every file must begin with a package declaration", token)
+        }
+
+        // Parse package name - a sequence of identifiers separated by scope tokens (::)
+        token = tokenizer.next()
+        if (token !is IdentifierToken) {
+            throw ParseException("Package name must consist of scope separated identifiers", token)
+        }
+
+        val packageParts = mutableListOf(token.str)
+        while (!tokenizer.reachedEnd && tokenizer.current is ScopeToken) {
+            tokenizer.next()
+            token = tokenizer.next()
+
+            if (token !is IdentifierToken) {
+                throw ParseException("Package name must consist of scope separated identifiers",
+                        token)
+            }
+
+            packageParts.add(token.str)
+        }
+
+        // Lookup and return the package if it already exists, or create new package if it doesn't
+        val pack = rootPackageNode.getSubPackage(packageParts)
+        if (pack != null) {
+            return pack
+        } else {
+            return rootPackageNode.createSubPackage(packageParts)
+        }
+    }
+
+    fun parseImportStatements(
+        importContext: ImportContext,
+        seenFirstImport: Boolean = false
+    ): ImportContext {
+        var firstImport = true
+
+        // Parse sequence of import statements, and enter loop if already seen the first import
+        while ((!tokenizer.reachedEnd && tokenizer.current is ImportToken) ||
+                    (seenFirstImport && firstImport)) {
+            // Ignore the first import if it has already been seen
+            if (!(seenFirstImport && firstImport)) {
+                tokenizer.next()
+            }
+
+            firstImport = false
+
+            // Parse import parts which appear as a sequence of identifiers separated by scopes (::)
+            var token = tokenizer.next()
+            if (token !is IdentifierToken) {
+                throw ParseException("Imports must consist of scope separated identifiers", token)
+            }
+
+            val importParts = mutableListOf(token.str)
+            val importLocations = mutableListOf(token.location)
+
+            while (!tokenizer.reachedEnd && tokenizer.current is ScopeToken) {
+                tokenizer.next()
+                token = tokenizer.next()
+
+                if (token !is IdentifierToken) {
+                    throw ParseException("Imports must consist of scope separated identifiers",
+                            token)
+                }
+
+                importParts.add(token.str)
+                importLocations.add(token.location)
+            }
+
+            // Parse optional alias. If no alias is explicitly given, the last part is used
+            val (alias, aliasLoc) = if (!tokenizer.reachedEnd && tokenizer.current is AsToken) {
+                tokenizer.next()
+                token = tokenizer.next()
+                if (token !is IdentifierToken) {
+                    throw ParseException("Import alias must be an identifier", token)
+                }
+
+                Pair(token.str, token.location)
+            } else {
+                Pair(importParts[importParts.size - 1], importLocations[importLocations.size - 1])
+            }
+
+            // Cannot add two imports with the same alias into same context
+            if (importContext.imports.any { (otherAlias, _, _) -> alias == otherAlias }) {
+                throw ParseException("Import with name ${alias} already found", aliasLoc)
+            }
+
+            // Add these import parts and alias to the import context
+            importContext.imports.add(Triple(alias, importParts, importLocations[0]))
+        }
+
+        return importContext
+    }
+
+
+    ///////////////////////////////////////////////////////////////////////////
+    // 
     // Parsing functions for types
     //
     ///////////////////////////////////////////////////////////////////////////
@@ -926,7 +1122,7 @@ class Parser(
             is VecToken -> parseVectorType(inFunctionDef)
             is SetToken -> parseSetType(inFunctionDef)
             is MapToken -> parseMapType(inFunctionDef)
-            is IdentifierToken -> parseIdentifierType(currentToken, inFunctionDef)
+            is IdentifierToken -> parseVariableType(currentToken, inFunctionDef)
             else -> throw ParseException("Expected type, got ${currentToken}", currentToken)
         }
 
@@ -1019,11 +1215,31 @@ class Parser(
      * parameter, a new type parameter (if in a function definition), or the beginning of a
      * defined algebraic data type.
      */
-    fun parseIdentifierType(
+    fun parseVariableType(
         token: IdentifierToken,
         inFunctionDef: Boolean = false
     ): TypeExpression {
-        val ident = symbolTable.addTypeVariable(token.str, token.location, inFunctionDef)
+        // Parse "::" separated list of strings to find scope and identifier name
+        val identParts = mutableListOf(token.str)
+
+        while (!tokenizer.reachedEnd && tokenizer.current is ScopeToken) {
+            tokenizer.next()
+
+            val currentToken = tokenizer.current
+            if (currentToken !is IdentifierToken) {
+                throw ParseException("Identifier must follow scope", currentToken)
+            }
+
+            identParts.add(currentToken.str)
+            tokenizer.next()
+        }
+
+        // All parts except the last are part of the scope. Add resolve job to symbol table.
+        val name = identParts[identParts.size - 1]
+        val scopes = identParts.take(identParts.size - 1)
+
+        val ident = symbolTable.addTypeVariable(name, scopes, importContext,
+                token.location, inFunctionDef)
 
         // Parse (optional) comma separated list of types within < > that parameterize this type
         val typeParams: MutableList<TypeExpression> = mutableListOf()
@@ -1105,9 +1321,9 @@ class Parser(
             tokenizer.next()
         }
 
-        // Add identifier for ADT name to global scope
+        // Add identifier for ADT name to package scope
         val typeIdent = symbolTable.addType(typeNameToken.str, IdentifierClass.ALGEBRAIC_DATA_TYPE,
-                typeNameToken.location, WhichScope.GLOBAL)
+                typeNameToken.location, WhichScope.PACKAGE)
 
         assertCurrent(TokenType.EQUALS)
         tokenizer.next()
@@ -1150,11 +1366,11 @@ class Parser(
 
             // Type constructor arguments are optional, so an end here is ambiguous
             if (tokenizer.reachedEnd) {
-                // If end is unambiguous, need to create a new variant and add it to global scope
+                // If end is unambiguous, need to create a new variant and add it to package scope
                 if (ignoreAmbiguousEnd) {
                     val variantIdent = symbolTable.addVariable(variantNameToken.str,
                             IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT, variantNameToken.location,
-                            WhichScope.GLOBAL)
+                            WhichScope.PACKAGE)
                     variants.add(Pair(variantIdent, listOf()))
                     break
                 } else {
@@ -1179,10 +1395,10 @@ class Parser(
                 listOf()
             }
 
-            // Create a new variant identifier and add it to the global scope
+            // Create a new variant identifier and add it to the package scope
             val variantIdent = symbolTable.addVariable(variantNameToken.str,
                     IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT, variantNameToken.location,
-                    WhichScope.GLOBAL)
+                    WhichScope.PACKAGE)
             variants.add(Pair(variantIdent, typeConstructor))
         } while (true)
 

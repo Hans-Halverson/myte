@@ -1,6 +1,7 @@
 package myte.eval
 
 import myte.eval.values.*
+import myte.ir.*
 import myte.ir.nodes.*
 import myte.parser.*
 import myte.shared.*
@@ -12,6 +13,33 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
      */
     fun resetSymbolTable(newSymbolTable: SymbolTable) {
         symbolTable = newSymbolTable
+    }
+
+    fun evaluateFiles(filesResult: ConvertFilesResult, args: List<String>): Int {
+        // Evaluate all nodes
+        filesResult.nodes.forEach { node -> evaluate(node) }
+
+        // Find main function and apply it to arguments, returning return value of main
+        val mainClosure = environment.lookup(filesResult.main) as ClosureValue
+
+        val argValues: MutableList<Value> = args.map({ str -> StringValue(str) }).toMutableList()
+        val argVector = VectorValue(argValues, VectorType(StringType))
+        val mainReturnValue = applyClosureToArgs(mainClosure, listOf(argVector)) as IntValue
+
+        return mainReturnValue.num
+    }
+
+    fun evaluatePackages(packagesResult: ConvertPackagesResult) {
+        packagesResult.nodes.forEach { node -> evaluate(node) }
+    }
+
+    fun evaluateReplLine(replLineResult: ConvertReplLineResult) {
+        // If there is something to be evaluated, evaluate it and print out value
+        val node = replLineResult.node
+        if (node != null) {
+            val value = evaluate(node)
+            printValue(value)
+        }
     }
 
     /**

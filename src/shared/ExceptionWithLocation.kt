@@ -4,7 +4,13 @@ package myte.shared
  * An exception that is associated with a certain location (line and character number where the
  * exception originates from).
  */
-abstract class ExceptionWithLocation(message: String, val location: Location) : Exception(message)
+open class ExceptionWithLocation(message: String, val location: Location) : Exception(message)
+
+/**
+ * An exception that should be displayed in the same way as with a location, but where no
+ * location exists.
+ */
+open class ExceptionWithoutLocation(message: String) : Exception(message)
 
 /**
  * A certain place in a file, represented by character and line number.
@@ -21,7 +27,7 @@ const val RESET_COLOR = ESC + "[39m"
  * Print the message in the given exception, with the appropriate location displayed and
  * pointed to in the correct place.
  */
-fun printExceptionWithLocation(except: ExceptionWithLocation, text: String) {
+fun printExceptionWithLocation(except: ExceptionWithLocation, text: String) { 
     var currentIdx = 0
     var currentLine = 1
 
@@ -56,4 +62,17 @@ fun printExceptionWithLocation(except: ExceptionWithLocation, text: String) {
     // Print out the offending line with a pointer below it to the exact character
     println(line)
     println("${" ".repeat(except.location.charNum - 1)}^")
+}
+
+/**
+ * Print an exception without location in the same format as an exception with location, at the
+ * beginning of the specified file.
+ */
+fun printExceptionWithoutLocation(
+    except: ExceptionWithoutLocation,
+    fileName: String?,
+    text: String
+) {
+    printExceptionWithLocation(ExceptionWithLocation(except.message!!,
+            Location(1, 1, fileName)), text)
 }

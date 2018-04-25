@@ -1,3 +1,4 @@
+package scopes
 
 def f() {
     return a

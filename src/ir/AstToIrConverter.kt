@@ -18,36 +18,58 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         typeChecker.resetSymbolTable(newSymbolTable)
     }
 
-    fun convertPackage(pack: Package): List<IRNode> {
+    fun convertMyteFiles(parseFilesResult: ParseFilesResult): List<IRNode> {
+        val packages = parseFilesResult.packages
+
+        // First check that all imports actually exist
+        assertImportsExist(parseFilesResult.importContexts)
+
         // First create ADT sigs, then create variants for those sigs so that variants can
         // reference other ADTs regardless of order.
-        pack.typeDefs.forEach(this::createAdtSig)
-        pack.typeDefs.forEach(this::createAdtVariants)
+        packages.forEach { pack -> pack.typeDefs.forEach(this::createAdtSig) }
+        packages.forEach { pack -> pack.typeDefs.forEach(this::createAdtVariants) }
 
-        // Convert all statements in package
-        val irNodes = pack.statements.map(this::convert)
+        // Convert all statements of each package
+        val irNodes = packages.map({ pack -> pack.statements.map(this::convert) }).flatten()
 
+        // Infer types and then check structure of IR
         inferTypes(irNodes)
         irNodes.forEach(this::assertIRStructure)
 
         return irNodes
     }
 
-    fun convertReplStatement(stmt: TopLevelStatement): IRNode? {
-        if (stmt is TypeDefinitionExpression) {
+    fun convertFiles(parseFilesResult: ParseFilesResult): ConvertFilesResult {
+        val nodes = convertMyteFiles(parseFilesResult)
+        val mainIdent = findMainIdentifier(nodes)
+        return ConvertFilesResult(nodes, mainIdent)
+    }
+
+    fun convertPackages(parsePackagesResult: ParseFilesResult): ConvertPackagesResult {
+        val nodes = convertMyteFiles(parsePackagesResult)
+        return ConvertPackagesResult(nodes)
+    }
+
+    fun convertReplLine(replLineResult: ParseReplLineResult): ConvertReplLineResult {
+        val statement = replLineResult.statement
+        if (statement == null) {
+            // If no statement this must have been an import, so check that all imports exist
+            assertImportsExist(listOf(replLineResult.importContext))
+            return ConvertReplLineResult(null)
+        } else if (statement is TypeDefinitionExpression) {
             // Create ADT sig and variants
-            createAdtSig(stmt)
-            createAdtVariants(stmt)
-            return null
-        } else if (stmt is Statement) {
+            createAdtSig(statement)
+            createAdtVariants(statement)
+            return ConvertReplLineResult(null)
+        } else if (statement is Statement) {
             // Convert node, infer types, and verify correct IR structure
-            val node = convert(stmt)
+            val node = convert(statement)
             inferTypes(listOf(node))
             assertIRStructure(node)
 
-            return node
+            return ConvertReplLineResult(node)
         } else {
-            throw Exception("Unkown repl statement ${stmt}")  
+            throw Exception("Unkown repl statement ${statement}")  
         }
     }
 
@@ -245,11 +267,6 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     fun convertVariable(expr: VariableExpression): IRNode {
         val ident = expr.ident.resolve()
 
-        if (ident == null) {
-            throw IRConversionException("No identifier found with name ${expr.ident.symbol()}",
-                    expr.identLocation)
-        }
-
         // If this identifier is for a type constructor, create a type constructor node
         val info = symbolTable.getInfo(ident)!!
         if (info.idClass == IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT) {
@@ -272,10 +289,6 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
 
     fun convertTypeConstructor(expr: TypeConstructorExpression): TypeConstructorNode {
         val ident = expr.ident.resolve()
-        if (ident == null) {
-            throw IRConversionException("No identifier found with name ${expr.ident.symbol()}",
-                    expr.startLocation)
-        }
 
         val info = symbolTable.getInfo(ident)
         if (info?.idClass != IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT) {
@@ -473,11 +486,6 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
 
     fun convertVariableType(typeExpr: VariableTypeExpression): Type {
         val ident = typeExpr.ident.resolve()
-        if (ident == null) {
-            throw IRConversionException("Unknown type ${typeExpr.ident.symbol()}",
-                    typeExpr.startLocation)
-        }
-
 
         val info = symbolTable.getInfo(ident)!!
         if (info.idClass == IdentifierClass.ALGEBRAIC_DATA_TYPE) {
@@ -510,6 +518,58 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     // Type and structure checks after IR tree has been created
     //
     ///////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Check that all imports point to packages (or members within packages) that exist.
+     */
+    fun assertImportsExist(importContexts: List<ImportContext>) {
+        for (importContext in importContexts) {
+            for ((_, importName, location) in importContext.imports) {
+                // Every import must be either the name of a package
+                val pack = importContext.rootPackageNode.getSubPackage(importName)
+
+                // Or an identifier or type within a package
+                val identName = importName[importName.size - 1]
+                val parentPackage = importContext.rootPackageNode
+                        .getSubPackage(importName.dropLast(1))
+                val variableInPackage = parentPackage?.scope?.lookupVariable(identName)
+                val typeInPackage = parentPackage?.scope?.lookupType(identName)
+
+                // Error if the import statement does not correspond to package or member in package
+                if (pack == null && variableInPackage == null && typeInPackage == null) {
+                    val name = formatPackageName(importName)
+                    throw IRConversionException("No package (or member within package) found " +
+                            "with name ${name}", location)
+                }
+            }
+        }
+    }
+
+    /**
+     * Find the unique identifier for the main function, erroring if a unique main cannot be found.
+     */
+    fun findMainIdentifier(nodes: List<IRNode>): Identifier {
+        var mainIdent: Identifier? = null
+        var mainFileName: String = ""
+        for (node in nodes) {
+            // Find the main function def and save its identifier, erroring if two mains are found
+            if (node is FunctionDefinitionNode && node.ident.name == "main") {
+                if (mainIdent == null) {
+                    mainIdent = node.ident
+                    mainFileName = symbolTable.getInfo(node.ident)?.location?.fileName!!
+                } else {
+                    throw IRConversionException("Main function already defined in ${mainFileName}",
+                            node.identLocation)
+                }
+            }
+        }
+
+        if (mainIdent == null) {
+            throw ExceptionWithoutLocation("No main function found")
+        }
+
+        return mainIdent
+    }
 
     /**
      * Infer the types for the internal representation, and infer types for every symbol in

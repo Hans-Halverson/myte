@@ -118,6 +118,9 @@ private fun getKeywordToken(str: String, location: Location): Token? {
         "vec" -> VecToken(location)
         "map" -> MapToken(location)
         "set" -> SetToken(location)
+        "package" -> PackageToken(location)
+        "import" -> ImportToken(location)
+        "as" -> AsToken(location)
         else -> null
     }
 }
@@ -354,6 +357,18 @@ private fun readLeftBracket(reader: LL1StatefulReader): Token {
     }
 }
 
+private fun readColon(reader: LL1StatefulReader): Token {
+    val location = reader.currentLocation
+
+    // If readColon is called, the current character must be ":"
+    if (reader.hasNext && reader.next == ':') {
+        reader.advance()
+        return ScopeToken(location)
+    } else {
+        return ColonToken(location)
+    }
+}
+
 private fun readStringLiteral(reader: LL1StatefulReader): StringLiteralToken {
     // If readPipe is called, the current character must be "\""
     val location = reader.currentLocation
@@ -400,7 +415,7 @@ fun createTokens(input: Reader, fileName: String?): List<Token> {
             '"' -> tokens.add(readStringLiteral(reader))
             '.' -> tokens.add(PeriodToken(location))
             ',' -> tokens.add(CommaToken(location))
-            ':' -> tokens.add(ColonToken(location))
+            ':' -> tokens.add(readColon(reader))
             in '0'..'9' -> tokens.add(readNumber(reader))
             else -> {
                 // Identifiers and keywords must begin with an alphabetic character or underscore.

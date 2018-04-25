@@ -1,127 +1,19 @@
 package myte.shared
 
+import myte.parser.ImportContext
+import myte.parser.Package
+
 class SymbolTableException(message: String) : Exception(message)
-
-abstract class ResolvableSymbol() {
-    /**
-     * Resolve this symbol into an identifier, or return null if it could not be resolved.
-     */
-    abstract fun resolve(): Identifier?
-
-    abstract fun symbol(): String
-}
-
-class ResolvedIdentifier(val ident: Identifier) : ResolvableSymbol() {
-    override fun resolve(): Identifier? = ident
-    override fun symbol(): String = ident.name
-}
-
-class VariableSymbolPendingResolution(val name: String, val scope: Scope) : ResolvableSymbol() {
-    override fun resolve(): Identifier? {
-        var currentScope: Scope? = scope
-
-        while (currentScope != null) {
-            // Walk up parent scopes, but can only look up in 1. Global scope since it is unordered,
-            // or 2. Pattern scope since pattern variables are always unresolved on first pass
-            if (currentScope.type == ScopeType.GLOBAL || currentScope.type == ScopeType.PATTERN) {
-                val ident = currentScope.lookupVariable(name) 
-                if (ident != null) {
-                    return ident
-                }
-            }
-
-            currentScope = currentScope.parent
-        }
-
-        return null
-    }
-
-    override fun symbol(): String = name
-}
-
-class PatternSymbolPendingResolution(
-    val name: String,
-    val location: Location,
-    val scope: Scope,
-    val symbolTable: SymbolTable
-) : ResolvableSymbol() {
-    override fun resolve(): Identifier? {
-        // Can only resolve to type constructor or new identifier, and at resolution all ADTs
-        // will be defined in the global scope. If no ident exists, create a new variable.
-        val ident = scope.lookupVariable(name)
-        if (ident == null) {
-            val patternIdent = symbolTable.addSymbolInScope(scope, name, IdentifierClass.VARIABLE,
-                    location, hashSetOf(), true)
-
-            // Annotate this new identifier with a new type variable
-            symbolTable.getInfo(patternIdent)?.type = TypeVariable()
-
-            return patternIdent
-        }
-
-        // If the closest ident is not a type constructor, then create a new variable
-        val existingIdClass = symbolTable.getInfo(ident)?.idClass
-        if (existingIdClass != IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT) {
-            val patternIdent = symbolTable.addSymbolInScope(scope, name, IdentifierClass.VARIABLE,
-                    location, hashSetOf(), true)
-
-            // Annotate this new identifier with a new type variable
-            symbolTable.getInfo(patternIdent)?.type = TypeVariable()
-
-            return patternIdent
-        }
-
-        return ident
-    }
-
-    override fun symbol(): String = name
-}
-
-class TypeSymbolPendingResolution(
-    val name: String,
-    val location: Location,
-    val create: Boolean,
-    val scope: Scope,
-    val symbolTable: SymbolTable
-) : ResolvableSymbol() {
-    override fun resolve(): Identifier? {
-        var currentScope: Scope? = scope
-
-        while (currentScope != null) {
-            // Walk up parent scopes, but can only look up in 1. Global scope since it is unordered
-            // and contains type defs, 2. Function scope since type variables are added there,
-            // or 3. Type definition scope since type parameters are introduced there
-            if (currentScope.type == ScopeType.GLOBAL || currentScope.type == ScopeType.FUNCTION ||
-                    currentScope.type == ScopeType.TYPE_DEFINITION) {
-                val ident = currentScope.lookupType(name) 
-                if (ident != null) {
-                    return ident
-                }
-            }
-
-            currentScope = currentScope.parent
-        }
-
-        // If no ident was found, then create a type parameter if create flag is set
-        if (create) {
-            val typeParamIdent = symbolTable.addSymbolInScope(scope, name,
-                    IdentifierClass.TYPE_PARAMETER, location, hashSetOf(), false)
-
-            // Annotate type paramater ident with new type variable
-            symbolTable.getInfo(typeParamIdent)?.type = TypeVariable()
-
-            return typeParamIdent
-        } else {
-            return null
-        }
-    }
-
-    override fun symbol(): String = name
-}
+class SymbolTableExceptionWithLocation(
+    message: String,
+    location: Location
+) : ExceptionWithLocation(message, location)
 
 enum class ScopeType {
+    ROOT,
+    REPL,
     BLOCK,
-    GLOBAL,
+    PACKAGE,
     FUNCTION,
     PATTERN,
     TYPE_DEFINITION
@@ -130,19 +22,19 @@ enum class ScopeType {
 enum class WhichScope {
     CURRENT,
     PREVIOUS,
-    GLOBAL
+    PACKAGE
 }
 
 /**
  * A single scope, which may be nested inside arbitrarily many parent scopes.
  *
- * @param parent the parent scope for this scope, or null if this is the global scope
+ * @param parent the parent scope for this scope, or null if this is the package scope
  * @param idents a map of names to identifiers defined within this scope
  * @param types a map of names to type identifiers defined within this scope
  */
 class Scope(
-    val parent: Scope? = null,
-    val type: ScopeType = ScopeType.GLOBAL,
+    var parent: Scope? = null,
+    val type: ScopeType = ScopeType.PACKAGE,
     val variables: MutableMap<String, Identifier> = mutableMapOf(),
     val types: MutableMap<String, Identifier> = mutableMapOf()
 ) {
@@ -154,13 +46,14 @@ class Scope(
      *         with that name has been seen in the current scope
      */
     fun lookupVariable(name: String): Identifier? {
+        val parentScope = parent
         val ident = variables[name]
         if (ident != null) {
             return ident
-        } else if (parent == null) {
+        } else if (parentScope == null) {
             return null
         } else {
-            return parent.lookupVariable(name)
+            return parentScope.lookupVariable(name)
         }
     }
 
@@ -172,31 +65,44 @@ class Scope(
      *         identifier with that name has been seen in the current scope
      */
     fun lookupType(name: String): Identifier? {
+        val parentScope = parent
         val ident = types[name]
         if (ident != null) {
             return ident
-        } else if (parent == null) {
+        } else if (parentScope == null) {
             return null
         } else {
-            return parent.lookupType(name)
+            return parentScope.lookupType(name)
         }
     }
 
-    fun findGlobalScope(): Scope {
-        if (parent == null) {
+    fun findPackageScope(): Scope {
+        // The REPL scope is effectively a package scope
+        if (type == ScopeType.PACKAGE || type == ScopeType.REPL) {
             return this
         } else {
-            return parent.findGlobalScope()
+            return parent!!.findPackageScope()
         }
     }
 }
 
 class SymbolTable() {
-    // The current scope, intially just the global scope
-    var currentScope: Scope = Scope()
+    // The root scope which contains all builtins
+    var rootScope: Scope = Scope(null, ScopeType.ROOT)
+
+    // The current scope, intially just a package scope
+    var currentScope: Scope = Scope(rootScope)
 
     // A map of identifiers to their info for all identifiers that have been seen in all scopes
     var identifiers: MutableMap<Identifier, IdentifierInfo> = hashMapOf()
+
+    /**
+     * Use a new package's scope as the root package scope.
+     */
+    fun registerPackageScope(pack: Package) {
+        pack.scope.parent = rootScope
+        currentScope = pack.scope
+    }
 
     /**
      * Enter a new scope.
@@ -208,31 +114,42 @@ class SymbolTable() {
     /**
      * Exit the current scope.
      *
-     * @throws SymbolTableException if one attempts to exit the global scope
+     * @throws SymbolTableException if one attempts to exit the package scope
      */
     fun exitScope() {
         val parent = currentScope.parent
         if (parent != null) {
             currentScope = parent
         } else {
-            throw SymbolTableException("Cannot exit global scope")
+            throw SymbolTableException("Cannot exit package scope")
         }
     }
 
     /**
-     * Reset the symbol table to the global scope.
+     * Reset the symbol table to the package scope.
      */
-    fun returnToGlobalScope() {
-        currentScope = currentScope.findGlobalScope()
+    fun returnToPackageScope() {
+        currentScope = currentScope.findPackageScope()
     }
 
-    fun lookupVariable(name: String): ResolvableSymbol {
+    fun lookupVariable(
+        name: String,
+        scopePrefixes: List<String>,
+        location: Location,
+        importContext: ImportContext
+    ): ResolvableSymbol {
         val ident = currentScope.lookupVariable(name)
-        if (ident != null) {
+        if (ident != null && scopePrefixes.isEmpty()) {
             return ResolvedIdentifier(ident)
         } else {
-            return VariableSymbolPendingResolution(name, currentScope)
+            return VariableSymbolPendingResolution(name, scopePrefixes, location,
+                    currentScope, importContext)
         }
+    }
+
+    fun addBuiltin(name: String): Identifier {
+        return addSymbolInScope(rootScope, name, IdentifierClass.FUNCTION,
+                Location(-1, -1, null), hashSetOf(), true)
     }
 
     fun addVariable(
@@ -245,7 +162,7 @@ class SymbolTable() {
         val scope = when (whichScope) {
             WhichScope.CURRENT -> currentScope
             WhichScope.PREVIOUS -> currentScope.parent!!
-            WhichScope.GLOBAL -> currentScope.findGlobalScope()
+            WhichScope.PACKAGE -> currentScope.findPackageScope()
         }
 
         return addSymbolInScope(scope, name, idClass, location, props, true)
@@ -261,22 +178,31 @@ class SymbolTable() {
         val scope = when (whichScope) {
             WhichScope.CURRENT -> currentScope
             WhichScope.PREVIOUS -> currentScope.parent!!
-            WhichScope.GLOBAL -> currentScope.findGlobalScope()
+            WhichScope.PACKAGE -> currentScope.findPackageScope()
         }
 
         return addSymbolInScope(scope, name, idClass, location, props, false)
     }
 
-    fun addPatternVariable(name: String, location: Location): PatternSymbolPendingResolution {
-        return PatternSymbolPendingResolution(name, location, currentScope, this)
+    fun addPatternVariable(
+        name: String,
+        scopePrefixes: List<String>,
+        importContext: ImportContext,
+        location: Location
+    ): PatternSymbolPendingResolution {
+        return PatternSymbolPendingResolution(name, scopePrefixes, location, currentScope,
+                this, importContext)
     }
 
     fun addTypeVariable(
         name: String,
+        scopePrefixes: List<String>,
+        importContext: ImportContext,
         location: Location,
         create: Boolean
     ): TypeSymbolPendingResolution {
-        return TypeSymbolPendingResolution(name, location, create, currentScope, this)
+        return TypeSymbolPendingResolution(name, scopePrefixes, location, create, currentScope,
+                this, importContext)
     }
 
     /**
@@ -301,8 +227,20 @@ class SymbolTable() {
         val info = IdentifierInfo(name, idClass, location, props)
 
         if (isVariable) {
+            // Cannot add two identifiers with same name to the same package scope
+            if (scope.type == ScopeType.PACKAGE && scope.variables.contains(name)) {
+                throw SymbolTableExceptionWithLocation("Identifier with name ${name} already " +
+                        "exists in this package", location)
+            }
+
             scope.variables[name] = ident
         } else {
+            // Cannot add two types with same name to the same package scope
+            if (scope.type == ScopeType.PACKAGE && scope.types.contains(name)) {
+                throw SymbolTableExceptionWithLocation("Type with name ${name} already exists in " +
+                        "this package", location)
+            }
+
             scope.types[name] = ident
         }
 
@@ -321,20 +259,23 @@ class SymbolTable() {
 
     /**
      * Return a shallow copy of this symbol table that has the same set of saved identifiers and
-     * the same global scope. The new symbol table is returned in the global scope.
+     * the same package scope. The new symbol table is returned in the package scope.
      */
-    fun copy(): SymbolTable {
-        // Create a new symbol table and remove the empty global scope
+    fun copyForRepl(): SymbolTable {
+        // Create a new symbol table
         val symbolTable = SymbolTable()      
 
-        // Create a new map for the global scope, so that it can be modified
+        // Create a new map for the package scope, so that it can be modified
         // without affecting this table  
-        val globalScope = currentScope.findGlobalScope()
-        symbolTable.currentScope = Scope(null, ScopeType.GLOBAL,
-                globalScope.variables.toMutableMap(), globalScope.types.toMutableMap())
+        val packageScope = currentScope.findPackageScope()
+        symbolTable.currentScope = Scope(rootScope, ScopeType.REPL,
+                packageScope.variables.toMutableMap(), packageScope.types.toMutableMap())
 
         // Copy all identifiers to a new map so they can be modified without affecting this table
         symbolTable.identifiers = identifiers.toMutableMap()
+
+        // Preserve same root scope in new symbol table
+        symbolTable.rootScope = rootScope
 
         return symbolTable
     }

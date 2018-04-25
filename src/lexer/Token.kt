@@ -98,6 +98,8 @@ class ArrowToken(location: Location) : Token(location, TokenType.ARROW)
 
 class PipeToken(location: Location) : Token(location, TokenType.PIPE)
 
+class ScopeToken(location: Location) : Token(location, TokenType.SCOPE)
+
 class TypeToken(location: Location) : Token(location, TokenType.TYPE)
 
 class LetToken(location: Location) : Token(location, TokenType.LET)
@@ -159,5 +161,17 @@ class MapToken(
 class SetToken(
     location: Location
 ) : IdentifierToken(TokenType.SET.toString(), location, TokenType.SET)
+
+class PackageToken(
+    location: Location
+) : IdentifierToken(TokenType.PACKAGE.toString(), location, TokenType.PACKAGE)
+
+class ImportToken(
+    location: Location
+) : IdentifierToken(TokenType.IMPORT.toString(), location, TokenType.IMPORT)
+
+class AsToken(
+    location: Location
+) : IdentifierToken(TokenType.AS.toString(), location, TokenType.AS)
 
 class NewLineToken(location: Location) : Token(location, TokenType.NEW_LINE)

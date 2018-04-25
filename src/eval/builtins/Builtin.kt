@@ -38,8 +38,7 @@ abstract class Builtin(val name: String, val type: FunctionType) {
      */
     fun register(symbolTable: SymbolTable, environment: Environment): Identifier {
         // Add type annotated identifier to symbol table
-        val ident = symbolTable.addVariable(name, IdentifierClass.FUNCTION,
-                Location(-1, -1, null))
+        val ident = symbolTable.addBuiltin(name)
         val info = symbolTable.getInfo(ident)!!
         info.type = type
 

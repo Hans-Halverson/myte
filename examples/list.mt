@@ -1,3 +1,5 @@
+package lists
+
 type list<a> =
 | Cons(a, list<a>)
 | Nil
@@ -33,8 +35,8 @@ def fold(f, i, l) {
 }
 
 def main(args) {
-    let lst = Cons(1, Cons(2, Cons(3, Nil)))
-    println(intToString(fold(fun (n1, n2) -> n1 + n2, 0, lst)))
+    let list = Cons(1, Cons(2, Cons(3, Nil)))
+    println(intToString(fold(fun (a, b) -> a + b, 0, list)))
 
     return 0
 }

@@ -17,16 +17,71 @@ import java.io.StringReader
 
 import kotlin.system.exitProcess
 
+fun readFile(fileName: String): String {
+    val input = BufferedReader(FileReader(fileName))
+
+    // Read entire file into string
+    val file = StringBuilder()
+    var line = input.readLine()
+    while (line != null) {
+        file.append(line)
+        file.append("\n")
+        line = input.readLine()
+    }
+
+    input.close()
+
+    return file.toString()
+}
+
+fun tokenizeFiles(fileNames: List<String>): List<List<Token>> {
+    val allTokens: MutableList<List<Token>> = mutableListOf()
+    for (fileName in fileNames) {
+        // Tokenize the entire file
+        val file = readFile(fileName)
+        val tokens = createTokens(StringReader(file), fileName)
+        if (tokens.size == 0) {
+            continue
+        }
+
+        allTokens.add(tokens)
+    }
+
+    return allTokens
+}
+
 /**
  * Run the REPL with input stream coming from the input reader.
  */
-fun repl(input: BufferedReader) {
+fun repl(packageFiles: List<String>) {
+    // Set up compilation pipeline objects
     var symbolTable = SymbolTable()
     val environment = Environment()
     registerBuiltins(symbolTable, environment)
 
+    val parser = Parser(symbolTable)
     val converter = AstToIrConverter(symbolTable)
     val eval = Evaluator(symbolTable, environment)
+
+    // Tokenize, parse, convert, type check, and evaluate all included packages
+    try {
+        val packageTokens = tokenizeFiles(packageFiles)
+        val parseFilesResult = parser.parseFiles(packageTokens)
+        val convertPackagesResult = converter.convertPackages(parseFilesResult)
+        eval.evaluatePackages(convertPackagesResult)
+    } catch (except: ExceptionWithLocation) {
+        printExceptionWithLocation(except, readFile(except.location.fileName!!))
+        return
+    } catch (except: ExceptionWithoutLocation) {
+        printExceptionWithoutLocation(except, packageFiles[0], readFile(packageFiles[0]))
+        return
+    }
+
+    // Start reading from command line
+    val input = BufferedReader(InputStreamReader(System.`in`))
+
+    // Initialize parser
+    parser.initRepl()
 
     // The repl loop process a single input to the repl, consisting of a 
     // single statement which will be evaluated.
@@ -90,22 +145,15 @@ fun repl(input: BufferedReader) {
                 // Otherwise gather tokens from next line and try parsing again.
                 try {
                     // Create a new copy of symbol table and parse with it
-                    val symbolTableCopy = symbolTable.copy()
-                    val parser = Parser(symbolTableCopy, tokens, seenBlankLine)
+                    val symbolTableCopy = symbolTable.copyForRepl()
+                    parser.resetForReplLine(symbolTableCopy, seenBlankLine)
                     converter.resetSymbolTable(symbolTableCopy)
                     eval.resetSymbolTable(symbolTableCopy)
 
-                    // Parse a single line of repl input
-                    val statement = parser.parseReplLine()
-
-                    // Convert to ir and perform type checking
-                    val ir = converter.convertReplStatement(statement)
-
-                    // If there is something to be evaluated, send to evaluator
-                    if (ir != null) {
-                        val value = eval.evaluate(ir)
-                        printValue(value)
-                    }
+                    // Parse a single line of repl input, process the statement, and evaluate
+                    val parseReplLineResult = parser.parseReplLine(tokens)
+                    val convertReplLineResult = converter.convertReplLine(parseReplLineResult)
+                    eval.evaluateReplLine(convertReplLineResult)
 
                     // Save the successfully updated symbol table
                     symbolTable = parser.symbolTable
@@ -120,6 +168,9 @@ fun repl(input: BufferedReader) {
             } catch (except: ExceptionWithLocation) {
                 printExceptionWithLocation(except, inputLines.toString())
                 continue@replLoop
+            } catch (except: ExceptionWithoutLocation) {
+                printExceptionWithoutLocation(except, null, inputLines.toString())
+                continue@replLoop
             }
         }
     }
@@ -133,75 +184,73 @@ fun repl(input: BufferedReader) {
  *
  * @return an int success value - 0 if successful, or another int on error
  */
-fun evaluateFile(input: BufferedReader, fileName: String, args: List<String>): Int {
-    // Read entire file into string
-    val file = StringBuilder()
-    var line = input.readLine()
-    while (line != null) {
-        file.append(line)
-        file.append("\n")
-        line = input.readLine()
-    }
-
-    // Tokenize the entire file
-    val tokens = createTokens(StringReader(file.toString()), fileName)
-    if (tokens.size == 0) {
-        return 0
-    }
-
+fun evaluateFiles(fileNames: List<String>, packageNames: List<String>, args: List<String>): Int {
     // Set up symbol table and environment, and add all builtins
     val symbolTable = SymbolTable()
     val environment = Environment()
     registerBuiltins(symbolTable, environment)
+
+    // Set up parser, converter, and evaluator
+    val parser = Parser(symbolTable)
+    val converter = AstToIrConverter(symbolTable)
+    val eval = Evaluator(symbolTable, environment)
     
     try {
-        // Set up parser, converter, and evaluator
-        val parser = Parser(symbolTable, tokens)
-        val converter = AstToIrConverter(symbolTable)
-        val eval = Evaluator(symbolTable, environment)
+        // Tokenize, parse, convert, type check, and evaluate all packages
+        val packageTokens = tokenizeFiles(packageNames)
+        val parsePackagesResult = parser.parseFiles(packageTokens)
+        val convertPackagesResult = converter.convertPackages(parsePackagesResult)
+        eval.evaluatePackages(convertPackagesResult)
 
-        // Parse, convert, and type check the entire file
-        val pack = parser.parseFile()
-        val irNodes = converter.convertPackage(pack)
+        // Tokenize, parse, convert, type check, and evaluate all files
+        val fileTokens = tokenizeFiles(fileNames)
+        val parseFilesResult = parser.parseFiles(fileTokens)
+        val convertFilesResult = converter.convertFiles(parseFilesResult)
+        val mainReturnValue = eval.evaluateFiles(convertFilesResult, args)
 
-        // Evaluate each statement in the file in order, saving the main function
-        var mainFunc: ClosureValue? = null
-        for (irNode in irNodes) {
-            eval.evaluate(irNode)
-            if (irNode is FunctionDefinitionNode && irNode.ident.name == "main") {
-                mainFunc = eval.environment.lookup(irNode.ident) as ClosureValue
-            }
-        }
-
-        // Error if a main function is not found
-        if (mainFunc == null) {
-            println("Main function must exist")
-            return 1
-        }
-
-        // Call main function on input arguments
-        val argValues = VectorValue(args.map({ str -> StringValue(str) }).toMutableList(),
-                VectorType(StringType))
-        val returnValue = eval.applyClosureToArgs(mainFunc, listOf(argValues))
-        if (returnValue == null || returnValue !is IntValue) {
-            println("Main function must return an int")
-            return 1
-        }
-
-        return returnValue.num
+        return mainReturnValue
     } catch (except: ExceptionWithLocation) {
-        printExceptionWithLocation(except, file.toString())
+        printExceptionWithLocation(except, readFile(except.location.fileName!!))
+        return 1
+    } catch (except: ExceptionWithoutLocation) {
+        printExceptionWithoutLocation(except, fileNames[0], readFile(fileNames[0]))
         return 1
     }
 }
 
+/**
+ * Parse command line args formatted as [FILE_NAMES]* --args [ARGS]* --packages [PACKAGE_FILES]*
+ * into the list of files, command line arguments, and package files to include.
+ */
+fun parseArguments(args: List<String>): Triple<List<String>, List<String>, List<String>> {
+    val files: MutableList<String> = mutableListOf()
+    val commandLineArgs: MutableList<String> = mutableListOf()
+    val packages: MutableList<String> = mutableListOf()
+
+    val argIndex = args.indexOf("--args")
+    val packageIndex = args.indexOf("--packages")
+
+    for (i in 0 until argIndex) {
+        files.add(args[i])
+    }
+
+    for (i in argIndex + 1 until packageIndex) {
+        commandLineArgs.add(args[i])
+    }
+
+    for (i in packageIndex + 1 until args.size) {
+        packages.add(args[i])
+    }
+
+    return Triple(files, commandLineArgs, packages)
+}
+
 fun main(args: Array<String>) {
-    if (args.size == 0) {
-        val reader = BufferedReader(InputStreamReader(System.`in`))
-        repl(reader)
+    val (fileNames, commandLineArgs, packageFiles) = parseArguments(args.toList())
+    if (fileNames.size == 0) {
+        repl(packageFiles)
     } else {
-        val reader = BufferedReader(FileReader(args[0]))
-        val status = evaluateFile(reader, args[0], args.toList().drop(1))
+        val status = evaluateFiles(fileNames, packageFiles, commandLineArgs)
         exitProcess(status)
     }
 }

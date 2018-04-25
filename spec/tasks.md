@@ -2,12 +2,6 @@
 
 - Add lists, arrays, maps
 
-- Add modules/import system
-
-
-
-# Lexing / Parsing Improvements
-
 
 
 # Optimization / IR Improvements

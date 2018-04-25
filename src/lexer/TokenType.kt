@@ -149,6 +149,10 @@ enum class TokenType {
         override fun toString(): String = "|"
     },
 
+    SCOPE {
+        override fun toString(): String = "::"
+    },
+
     TYPE {
         override fun toString(): String = "type"
     },
@@ -239,6 +243,18 @@ enum class TokenType {
 
     SET {
         override fun toString(): String = "set"
+    },
+
+    PACKAGE {
+        override fun toString(): String = "package"
+    },
+
+    IMPORT {
+        override fun toString(): String = "import"
+    },
+
+    AS {
+        override fun toString(): String = "as"
     },
 
     NEW_LINE {

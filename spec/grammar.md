@@ -1,25 +1,9 @@
 # Identifiers
 Identifiers must consists of only alphanumeric characters and underscores, and must begin with an alphabetic character.
 
-
-# Arithmetic operations
-The following two argument, infix arithmetic operators are defined: +, -, /, *.
-
-
-# Order of operations
-Operators have the following precedence, from low to high:
-1. Addition and subtraction (+,-)
-2. Multiplication and division (*,/)
-3. Exponentiation (^)
-4. Function application (f(x))
-
-
-
-# Number conversions
-Implicit conversions from int to float are allowed when using arithmetic operators (+, -, /, *, ^) and comparisons (<, <=, >, >=), but not when function arguments.
-
-
 # Full grammar
+
+SCOPED_IDENT -> IDENT [:: IDENT]*
 
 EXPR -> NUMBER_LITERAL
       | BOOL_LITERAL
@@ -27,7 +11,7 @@ EXPR -> NUMBER_LITERAL
       | [ EXPR_LIST ]
       | [| KV_PAIR_LIST |]
       | {| EXPR_LIST |}
-      | IDENT
+      | SCOPED_IDENT
       | UNARY
       | INFIX
       | ( [EXPR_LIST]? )
@@ -73,7 +57,7 @@ TYPE -> bool
       | vec < TYPE >
       | map < TYPE, TYPE >
       | set < TYPE >
-      | IDENT [< TYPE_LIST >]?
+      | SCOPED_IDENT [< TYPE_LIST >]?
 
 TYPE_LIST -> TYPE [, TYPE]*
 
@@ -117,7 +101,7 @@ PATTERN -> NUMBER_LITERAL
       | [ [PATTERN_LIST]? ]
       | ( PATTERN_LIST )
       | IDENT
-      | IDENT ( PATTERN_LIST )
+      | SCOPED_IDENT [( PATTERN_LIST )]?
 
 PATTERN_LIST = PATTERN [, PATTERN]*
 
@@ -136,12 +120,19 @@ STATEMENT -> EXPR
 BLOCK -> { STATEMENT* }
 
 
-REPL_LINE -> STATEMENT
-           | TYPE_DEF
 
 TOP_LEVEL_STATEMENT -> TYPE_DEF
                      | FUNCTION_DEF
                      | VARIABLE_DEF
 
-FILE -> [TOP_LEVEL_STATEMENT]*
+
+PACKAGE -> package PACKAGE_NAME
+
+IMPORT -> import PACKAGE_NAME [as IDENT]?
+
+REPL_LINE -> STATEMENT
+           | TYPE_DEF
+           | IMPORT
+
+FILE -> PACKAGE [IMPORT]* [TOP_LEVEL_STATEMENT]*
 
