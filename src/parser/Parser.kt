@@ -1057,45 +1057,120 @@ class Parser(
                 throw ParseException("Imports must consist of scope separated identifiers", token)
             }
 
-            val importParts = mutableListOf(token.str)
-            val importLocations = mutableListOf(token.location)
+            val importTokens = mutableListOf(token)
+            var isMultipleImport = false
 
-            while (!tokenizer.reachedEnd && tokenizer.current is ScopeToken) {
+            scopeLoop@while (!tokenizer.reachedEnd && tokenizer.current is ScopeToken) {
                 tokenizer.next()
                 token = tokenizer.next()
 
+                // If left brace is seen, this is a multiple import statement so stop parsing scopes
+                if (token is LeftBraceToken) {
+                    isMultipleImport = true
+                    break@scopeLoop
+                } else if (token !is IdentifierToken) {
+                    throw ParseException("Imports must consist of scope separated identifiers",
+                            token)
+                }
+
+                importTokens.add(token)
+            }
+
+            // If this is a multiple import start parsing all final imports with optional aliases
+            if (isMultipleImport) {
+                // Parse last name part of first import in multiple imports
+                token = tokenizer.next()
                 if (token !is IdentifierToken) {
                     throw ParseException("Imports must consist of scope separated identifiers",
                             token)
                 }
 
-                importParts.add(token.str)
-                importLocations.add(token.location)
-            }
+                // Find alias token for first import in multiple imports
+                val lastImportTokens = mutableListOf(token)
+                val aliasTokens = mutableListOf(parseOptionalAlias(token, true))
 
-            // Parse optional alias. If no alias is explicitly given, the last part is used
-            val (alias, aliasLoc) = if (!tokenizer.reachedEnd && tokenizer.current is AsToken) {
-                tokenizer.next()
-                token = tokenizer.next()
-                if (token !is IdentifierToken) {
-                    throw ParseException("Import alias must be an identifier", token)
+                // Parse comma separated list of rest of multiple imports
+                while (tokenizer.current is CommaToken) {
+                    tokenizer.next()
+
+                    // Parse last name part of import
+                    token = tokenizer.next()
+                    if (token !is IdentifierToken) {
+                        throw ParseException("Imports must consist of scope separated identifiers",
+                                token)
+                    }
+
+                    // Find alias for import in multiple imports
+                    lastImportTokens.add(token)
+                    aliasTokens.add(parseOptionalAlias(token, true))
                 }
 
-                Pair(token.str, token.location)
+                // Multiple import must end with a closing curly brace
+                assertCurrent(TokenType.RIGHT_BRACE)
+                tokenizer.next()
+
+                // Cannot add two aliases with the same name into the same context
+                for (aliasToken in aliasTokens) {
+                    val alias = aliasToken.str
+
+                    // This can occur because the context already contains an alias with that name
+                    if (importContext.imports.any { (otherAlias, _, _) -> alias == otherAlias }) {
+                        throw ParseException("Import with name ${alias} already found",
+                                aliasToken.location)
+                    }
+
+                    // Or if the multiple import contains two imports with the same alias
+                    if (aliasTokens.any { otherToken -> otherToken.str == aliasToken.str &&
+                            otherToken != aliasToken }) {
+                        throw ParseException("Import with name ${alias} already found",
+                                aliasToken.location)
+                    }
+                }
+
+                // Add all import parts and aliases to the import context
+                for ((aliasToken, lastImportToken) in aliasTokens.zip(lastImportTokens)) {
+                    val fullImportParts = importTokens.map({ it.str }).toList() +
+                            lastImportToken.str
+                    importContext.imports.add(Triple(aliasToken.str, fullImportParts,
+                            importTokens[0].location))
+                }
             } else {
-                Pair(importParts[importParts.size - 1], importLocations[importLocations.size - 1])
-            }
+                // Otherwise this is a single import, so parse optional alias and add it to context
+                val aliasToken = parseOptionalAlias(importTokens[importTokens.size - 1], false)
+                val alias = aliasToken.str
 
-            // Cannot add two imports with the same alias into same context
-            if (importContext.imports.any { (otherAlias, _, _) -> alias == otherAlias }) {
-                throw ParseException("Import with name ${alias} already found", aliasLoc)
-            }
+                // Cannot add two imports with the same alias into same context
+                if (importContext.imports.any { (otherAlias, _, _) -> alias == otherAlias }) {
+                    throw ParseException("Import with name ${alias} already found",
+                            aliasToken.location)
+                }
 
-            // Add these import parts and alias to the import context
-            importContext.imports.add(Triple(alias, importParts, importLocations[0]))
+                // Add these import parts and alias to the import context
+                importContext.imports.add(Triple(alias, importTokens.map({ it.str}),
+                        importTokens[0].location))
+            }
         }
 
         return importContext
+    }
+
+    fun parseOptionalAlias(
+        lastImportToken: IdentifierToken,
+        inMultipleImport: Boolean
+    ): IdentifierToken {
+        // Parse optional alias part of import
+        return if ((inMultipleImport || !tokenizer.reachedEnd)
+                && tokenizer.current is AsToken) {
+            tokenizer.next()
+            val token = tokenizer.next()
+            if (token !is IdentifierToken) {
+                throw ParseException("Import alias must be an identifier", token)
+            }
+
+            token
+        } else {
+            lastImportToken
+        }
     }
 
 

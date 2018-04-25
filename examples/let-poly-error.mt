@@ -1,4 +1,4 @@
-package let_poly_error
+package LetPolyError
 
 def g(y) {
     def f(x) {

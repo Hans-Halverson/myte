@@ -2,22 +2,18 @@
 
 - Add lists, arrays, maps
 
+- Add record types as an alternative type constructor to tuple type constructors
+
+- Add destructuring for
+
+- Make returns optional for unit return values
+
+- Allow if, match, and blocks to be expressions
+
+- Add traits and implementations on types
+
 
 
 # Optimization / IR Improvements
 
-- Consolidate control flow constructs into single IR Loop Node
-
 - Pinhole optimizations
-
-
-
-# Mathematics
-
-- Autodifferentiation
-
-- Maximize, minimize
-
-- Derivatives, integrals
-
-- Expression simplification for numerics

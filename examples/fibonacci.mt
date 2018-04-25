@@ -1,4 +1,4 @@
-package fibonacci
+package Fibonacci
 
 def fib(x) {
     if (x <= 1) {

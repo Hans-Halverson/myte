@@ -1,4 +1,4 @@
-package lists
+package List
 
 type list<a> =
 | Cons(a, list<a>)

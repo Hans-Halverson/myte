@@ -1,4 +1,4 @@
-package mutual_recursion
+package MutualRecursion
 
 def f(x) {
     if (x == 0) {
