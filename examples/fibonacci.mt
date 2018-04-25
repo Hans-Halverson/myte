@@ -8,10 +8,8 @@ def fib(x) {
     }
 }
 
-def main(args) {
+def main() {
     for (let i = 0, i <= 10, i = i + 1) {
         println(intToString(fib(i)))
     }
-
-    return 0
 }

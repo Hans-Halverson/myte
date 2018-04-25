@@ -4,7 +4,7 @@
 
 - Add record types as an alternative type constructor to tuple type constructors
 
-- Add destructuring for
+- Add destructuring for tuples and simple type constructors
 
 - Make returns optional for unit return values
 

@@ -24,9 +24,14 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
 
         val argValues: MutableList<Value> = args.map({ str -> StringValue(str) }).toMutableList()
         val argVector = VectorValue(argValues, VectorType(StringType))
-        val mainReturnValue = applyClosureToArgs(mainClosure, listOf(argVector)) as IntValue
+        val mainReturnValue = applyClosureToArgs(mainClosure, listOf(argVector))
 
-        return mainReturnValue.num
+        // Return success if main returns unit, otherwise the status int
+        if (mainReturnValue is UnitValue) {
+            return 0
+        }
+
+        return (mainReturnValue as IntValue).num
     }
 
     fun evaluatePackages(packagesResult: ConvertPackagesResult) {
@@ -333,7 +338,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         }
     }
 
-    fun applyClosureToArgs(closure: ClosureValue, args: List<Value>): Value? {
+    fun applyClosureToArgs(closure: ClosureValue, args: List<Value>): Value {
         // Create a copy of the environment that is saved for this closure, and enter a scope which
         // has all the formal arguments identifiers bound to actual values.
         val applicationEnv: Environment = closure.environment.copy()
@@ -343,7 +348,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             applicationEnv.extend(ident, value)
         }
 
-        // A closure can only be exited with with a return
+        // A closure may be exited with a return, and returns unit if no return is evaluated
         try {
             evaluate(closure.body, applicationEnv)
         } catch (returnException: Return) {
@@ -351,7 +356,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             return returnException.returnValue            
         }
 
-        return null
+        return UnitValue
     }
 
     fun evalFunctionCall(node: FunctionCallNode, env: Environment): Value {
@@ -376,10 +381,6 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
 
         // Evaluate body of closure and retrieve return value
         val returnValue = applyClosureToArgs(closureValue, actualArgs)
-        if (returnValue == null) {
-            throw EvaluationException("No return value", node.startLocation)
-        }
-
 
         // Set type of return value to match type of input arguments
         returnValue.type = node.type

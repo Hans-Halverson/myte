@@ -160,15 +160,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             arg
         }
 
-        val body = convert(expr.body)
-
-        // Check that all paths in the lambda return a value
-        if (!allPathsHaveReturn(body)) {
-            throw IRConversionException("Every branch of lambda expression must return a value",
-                    expr.startLocation)
-        }
-
-        return LambdaNode(formalArgs, body, expr.startLocation)
+        return LambdaNode(formalArgs, convert(expr.body), expr.startLocation)
     }
 
     fun convertFunctionDefinition(stmt: FunctionDefinitionStatement): FunctionDefinitionNode {
@@ -195,16 +187,8 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         // Annotate function identifier with type from annotations
         symbolTable.getInfo(stmt.ident)?.type = FunctionType(argTypes, returnType)
 
-        val body = convert(stmt.body)
-
-        // Check that all paths in the function return a value
-        if (!allPathsHaveReturn(body)) {
-            throw IRConversionException("Every branch of ${stmt.ident.name} must return " +
-                    "a value", stmt.identLocation)
-        }
-
-        return FunctionDefinitionNode(stmt.ident, formalArgs, body, stmt.identLocation,
-                stmt.startLocation)
+        return FunctionDefinitionNode(stmt.ident, formalArgs, convert(stmt.body),
+                stmt.identLocation, stmt.startLocation)
     }
 
     fun convertVariableDefinition(stmt: VariableDefinitionStatement): VariableDefinitionNode {
@@ -597,6 +581,31 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     fun assertIRStructure(root: IRNode) {
         jumpsInAllowedPlaces(root, false, false)
         exhaustiveMatchCases(root)
+        allFunctionsHaveReturn(root)
+    }
+
+    /**
+     * Return whether all functions and lambdas in the entire tree have exhuastive return statements
+     * (unless they have the unit return type, in which case returns are not required).
+     */
+    fun allFunctionsHaveReturn(root: IRNode) {
+        root.map { node ->
+            if (node is FunctionDefinitionNode) {
+                // Check that all paths in a non-unit function return a value
+                val funcType = symbolTable.getInfo(node.ident)?.type as FunctionType
+                if (funcType.returnType != UnitType && !allPathsHaveReturn(node.body)) {
+                    throw IRConversionException("Every branch of ${node.ident.name} must return " +
+                            "a value", node.identLocation)
+                }
+            } else if (node is LambdaNode) {
+                // Check that all paths in a non-unit lambda return a value
+                val funcType = node.type as FunctionType
+                if (funcType.returnType != UnitType && !allPathsHaveReturn(node.body)) {
+                    throw IRConversionException("Every branch of lambda expression must return a " +
+                            "value", node.startLocation)
+                }
+            }
+        }
     }
 
     /**

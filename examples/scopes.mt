@@ -43,13 +43,11 @@ def patterns(x) {
 type list<a> = Nil | Cons(a, list<a>)
 
 
-def main(args) {
+def main() {
     println(f())
     println(intToString(g(100)))
     println(intToString(h(200)))
     println(intToString(shadowing(30)))
 
     patterns(Nil)
-
-    return 0
 }

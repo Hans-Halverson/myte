@@ -952,7 +952,9 @@ class TypeChecker(var symbolTable: SymbolTable) {
         }
 
         // Unify all returned types with the return type of this function
+        var foundReturn = false
         mapOverReturns(node.body, { retNode ->
+            foundReturn = true
             val retType = retNode.expr?.type ?: UnitType
             if (!unify(retType, funcType.returnType)) {
                 val types = typesToString(funcType.returnType, retType, newBoundVars)
@@ -962,14 +964,34 @@ class TypeChecker(var symbolTable: SymbolTable) {
             }
         })
 
-        // Main must always have type vec<string> -> int
-        if (node.ident.name == "main") {
-            val mainType = FunctionType(listOf(VectorType(StringType)), IntType)
-            if (!unify(funcType, mainType)) {
-                val types = typesToString(mainType, funcType, newBoundVars)
-                throw IRConversionException("Main function must have type ${types[0]}, " +
-                        "but found ${types[1]}", node.startLocation)
+        // If no return statements were found, this function returns unit
+        if (!foundReturn) {
+            if (!unify(funcType.returnType, UnitType)) {
+                val type = typeToString(funcType.returnType, newBoundVars)
+                throw IRConversionException("${node.ident.name} inferred to return unit, but " +
+                        "expected ${type}", node.startLocation)
             }
+        }
+
+        // Main must always have return type int or unit, and a single optional argument
+        // with type vec<string>.
+        if (node.ident.name == "main") {
+            // If there is a return, main must return an int
+            if (foundReturn) {
+                if (!unify(funcType.returnType, IntType)) {
+                    val type = typeToString(funcType.returnType, newBoundVars)
+                    throw IRConversionException("Main function must return int, found ${type}",
+                            node.startLocation)
+                }
+            }
+
+            // Main must have single argument of type vec<string>, if any arguments exist
+            val argType = VectorType(StringType)
+            if ((funcType.argTypes.size >= 1 && !unify(funcType.argTypes[0], argType))
+                    || funcType.argTypes.size >= 2) {
+                throw IRConversionException("Main function must have a single argument of type " +
+                        "${argType}", node.startLocation)
+            }            
         }
     }
 

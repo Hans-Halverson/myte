@@ -34,9 +34,7 @@ def fold(f, i, l) {
     | Cons(hd, tl) -> return f(fold(f, i, tl), hd)
 }
 
-def main(args) {
+def main() {
     let list = Cons(1, Cons(2, Cons(3, Nil)))
     println(intToString(fold(fun (a, b) -> a + b, 0, list)))
-
-    return 0
 }

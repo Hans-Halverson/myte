@@ -28,7 +28,7 @@ type type1 = Int(int) | Type2(type2)
 
 type type2 = Bool(bool) | Type1(type1)
 
-def main(args) {
+def main() {
     println(intToString(f(10)))
     println(intToString(g(10)))
 
@@ -41,6 +41,4 @@ def main(args) {
     println(intToString(recursiveTypes(t2)))
     println(intToString(recursiveTypes(t3)))
     println(intToString(recursiveTypes(t4)))
-
-    return 0
 }

@@ -985,13 +985,7 @@ class Parser(
 
     fun parseReturnStatement(returnToken: ReturnToken): ReturnStatement {
         // If parseReturnStatement is called, the previous token must have been a return.
-        // If unit is reurned, do not store a return expression.
-        if (tokenizer.current is UnitToken) {
-            tokenizer.next()
-            return ReturnStatement(null, returnToken.location)
-        } else {
-            return ReturnStatement(parseExpression(), returnToken.location)
-        }
+        return ReturnStatement(parseExpression(), returnToken.location)
     }
 
     ///////////////////////////////////////////////////////////////////////////
