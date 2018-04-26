@@ -376,7 +376,9 @@ class TypeChecker(var symbolTable: SymbolTable) {
             is KeyedAccessNode -> typeCheckKeyedAccess(node, boundVars, refresh)
             is KeyedAssignmentNode -> typeCheckKeyedAssignment(node, boundVars, refresh)
             is VariableAssignmentNode -> typeCheckVariableAssignment(node, boundVars, refresh)
+            is PatternAssignmentNode -> typeCheckPatternAssignment(node, boundVars, refresh)
             is VariableDefinitionNode -> typeCheckVariableDefinition(node, boundVars, refresh)
+            is PatternDefinitionNode -> typeCheckPatternAssignment(node, boundVars, refresh)
             is FunctionDefinitionNode -> typeCheckFunctionDefinition(node, boundVars, refresh)
             // Math expressions
             is UnaryMathOperatorNode -> typeCheckUnaryMathOperator(node, boundVars, refresh)
@@ -897,6 +899,29 @@ class TypeChecker(var symbolTable: SymbolTable) {
         }
     }
 
+    fun typeCheckPatternAssignment(
+        node: PatternAssignmentNode,
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
+    ) {
+        typeCheck(node.pattern, boundVars, refresh)
+        typeCheck(node.rValue, boundVars, refresh)
+
+        // The pattern should have the same type as the rValue
+        if (!unify(node.rValue.type, node.pattern.type)) {
+            val types = typesToString(node.pattern.type, node.rValue.type, boundVars)
+            throw IRConversionException("Pattern has type ${types[0]}, " +
+                    "but assigned ${types[1]}", node.rValue.startLocation)
+        }
+
+        // The evaluation type of the assignment node should be the same as the rValue
+        if (!unify(node.rValue.type, node.type)) {
+            val types = typesToString(node.rValue.type, node.type, boundVars)
+            throw IRConversionException("Pattern assignment should evaluate to " +
+                    "${types[0]}, but found ${types[1]}", node.rValue.startLocation)
+        }
+    }
+
     fun typeCheckVariableDefinition(
         node: VariableDefinitionNode,
         boundVars: MutableSet<TypeVariable>,
@@ -919,8 +944,38 @@ class TypeChecker(var symbolTable: SymbolTable) {
         // The value assigned to the variable should have the same type as the variable
         if (!unify(node.expr.type, varType)) {
             val types = typesToString(varType, node.expr.type, boundVars)
-            throw IRConversionException("Type of ${node.ident.name} is " +
-                    "${types[0]}, but assigned ${types[1]}", node.expr.startLocation)
+            throw IRConversionException("Pattern has type ${types[0]}, " +
+                    "but assigned ${types[1]}", node.expr.startLocation)
+        }
+    }
+
+    fun typeCheckPatternAssignment(
+        node: PatternDefinitionNode,
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
+    ) {
+        typeCheck(node.pattern, boundVars, refresh)
+        typeCheck(node.expr, boundVars, refresh)
+
+        // Type of pattern must be equal to type of type annotation
+        if (!unify(node.pattern.type, node.typeAnnotation)) {
+            val types = typesToString(node.typeAnnotation, node.pattern.type, boundVars)
+            throw IRConversionException("Pattern expected to have type ${types[0]}, but found " +
+                    "${types[1]}", node.patternLocation)
+        }
+
+        // Pattern definition nodes evaluates to unit value
+        if (!unify(node.type, UnitType)) {
+            val type = typeToString(node.type, boundVars)
+            throw IRConversionException("Pattern definition should evaluate to the unit type, " +
+                    "but found ${type}", node.startLocation)
+        }
+
+        // The pattern should have the same type as the expression assigned to it
+        if (!unify(node.expr.type, node.pattern.type)) {
+            val types = typesToString(node.pattern.type, node.expr.type, boundVars)
+            throw IRConversionException("Pattern has type ${types[0]}, " +
+                    "but assigned ${types[1]}", node.expr.startLocation)
         }
     }
 

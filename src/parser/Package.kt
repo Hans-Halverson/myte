@@ -73,4 +73,8 @@ class ImportContext(
 
         return null
     }
+
+    fun copyForRepl(): ImportContext {
+        return ImportContext(rootPackageNode, imports.toMutableList())
+    }
 }

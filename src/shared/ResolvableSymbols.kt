@@ -134,14 +134,11 @@ class PatternSymbolPendingResolution(
         if (scopePrefixes.isEmpty()) {
             // First check whether this is a type constructor defined in this package
             val ident = scope.lookupVariable(name)
-            if (ident == null) {
-                val patternIdent = symbolTable.addSymbolInScope(scope, name,
-                        IdentifierClass.VARIABLE, location, hashSetOf(), true)
-
-                // Annotate this new identifier with a new type variable
-                symbolTable.getInfo(patternIdent)?.type = TypeVariable()
-
-                return patternIdent
+            if (ident != null) {
+                if (symbolTable.getInfo(ident)?.idClass ==
+                        IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT) {
+                    return ident
+                }
             }
 
             // Next try to find an imported type constructor with this alias
@@ -154,19 +151,14 @@ class PatternSymbolPendingResolution(
                 }
             }
 
-            // If the closest ident is not a type constructor, then create a new variable
-            val existingIdClass = symbolTable.getInfo(ident)?.idClass
-            if (existingIdClass != IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT) {
-                val patternIdent = symbolTable.addSymbolInScope(scope, name,
-                        IdentifierClass.VARIABLE, location, hashSetOf(), true)
+            // Otherwise create a new variable and identifier
+            val patternIdent = symbolTable.addSymbolInScope(scope, name, IdentifierClass.VARIABLE,
+                    location, hashSetOf(), true)
 
-                // Annotate this new identifier with a new type variable
-                symbolTable.getInfo(patternIdent)?.type = TypeVariable()
+            // Annotate this new identifier with a new type variable
+            symbolTable.getInfo(patternIdent)?.type = TypeVariable()
 
-                return patternIdent
-            }
-
-            return ident
+            return patternIdent
         // If there are scope prefixes, find correct package and lookup in it
         } else {
             val (importedPackage, fullImport) = findPackage(scopePrefixes, importContext, location)

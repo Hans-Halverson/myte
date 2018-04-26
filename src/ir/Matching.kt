@@ -79,6 +79,30 @@ fun exhaustiveMatchCases(root: IRNode) {
                 throw IRConversionException("Inexhaustive match case. Here is an example of a " +
                         "case that is not matched: ${trace}", node.startLocation)
             }
+        // If this is a pattern assignment node, check for exhaustive cases for single pattern
+        } else if (node is PatternDefinitionNode) {
+            val pattern = Pair<List<IRNode>, List<List<IRNode>>>(listOf(node.pattern), listOf())
+            try {
+                exhaustiveMatches(listOf(node.expr.type), listOf(pattern), listOf(), listOf(),
+                        listOf())
+            } catch (e: InexhaustiveMatchException) {
+                val trace = traceToMatchedCase(e.trace, node.expr.type)
+                throw IRConversionException("Inexhaustive pattern matching in definition. " +
+                        "Here is an example of a case that is not matched: ${trace}",
+                        node.startLocation)
+            }
+        // If this is a pattern definition node, check for exhaustive cases for single pattern
+        } else if (node is PatternAssignmentNode) {
+            val pattern = Pair<List<IRNode>, List<List<IRNode>>>(listOf(node.pattern), listOf())
+            try {
+                exhaustiveMatches(listOf(node.rValue.type), listOf(pattern), listOf(), listOf(),
+                        listOf())
+            } catch (e: InexhaustiveMatchException) {
+                val trace = traceToMatchedCase(e.trace, node.rValue.type)
+                throw IRConversionException("Inexhaustive pattern matching in assignment. " +
+                        "Here is an example of a case that is not matched: ${trace}",
+                        node.startLocation)
+            }
         }
     }
 }

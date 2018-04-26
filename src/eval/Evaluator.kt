@@ -72,7 +72,9 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             is KeyedAssignmentNode -> evalKeyedAssignment(node, env)
             is FunctionCallNode -> evalFunctionCall(node, env)
             is TypeConstructorNode -> evalTypeConstructor(node, env)
+            is PatternAssignmentNode -> evalPatternAssignment(node, env)
             is VariableAssignmentNode -> evalVariableAssignment(node, env)
+            is PatternDefinitionNode -> evalPatternDefinition(node, env)
             is VariableDefinitionNode -> evalVariableDefinition(node, env)
             is FunctionDefinitionNode -> evalFunctionDefinition(node, env)
             // Math expressions
@@ -393,11 +395,29 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         return AlgebraicDataTypeValue(node.adtVariant, actualArgs, node.type)
     }
 
+    fun evalPatternAssignment(node: PatternAssignmentNode, env: Environment): Value {
+        val value = evaluate(node.rValue, env)
+        if (!matchPattern(value, node.pattern, env, true)) {
+            throw EvaluationException("Could not match value to pattern", node.startLocation)
+        }
+
+        return value
+    }
+
     fun evalVariableAssignment(node: VariableAssignmentNode, env: Environment): Value {
         val value = evaluate(node.rValue, env)
         env.reassign(node.lValue, value)
 
         return value
+    }
+
+    fun evalPatternDefinition(node: PatternDefinitionNode, env: Environment): Value {
+        val value = evaluate(node.expr, env)
+        if (!matchPattern(value, node.pattern, env, true)) {
+            throw EvaluationException("Could not match value to pattern", node.startLocation)
+        }
+
+        return UnitValue
     }
 
     fun evalVariableDefinition(node: VariableDefinitionNode, env: Environment): UnitValue {

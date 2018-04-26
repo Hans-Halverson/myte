@@ -92,8 +92,13 @@ class Parser(
     /**
      * Reset a portion of the parser's state for the next REPL line.
      */
-    fun resetForReplLine(symbolTable: SymbolTable, ignoreAmbiguousEnd: Boolean) {
+    fun resetForReplLine(
+        symbolTable: SymbolTable,
+        importContext: ImportContext,
+        ignoreAmbiguousEnd: Boolean
+    ) {
         this.symbolTable = symbolTable
+        this.importContext = importContext
         this.ignoreAmbiguousEnd = ignoreAmbiguousEnd
     }
 
@@ -557,13 +562,9 @@ class Parser(
 
     fun parseVariableDefinition(isConst: Boolean, defToken: Token): VariableDefinitionStatement {
         // If parseVariableDefinition is called, the previous token must have been a let or const
-        var token = tokenizer.next()
+        val identProps = if (isConst) hashSetOf(IdentifierProperty.IMMUTABLE) else hashSetOf()
 
-        if (token !is IdentifierToken) {
-            throw ParseException("Expected identifier in variable definition", token)
-        }
-
-        val identToken = token
+        val lValue = parseLValue(identProps)
 
         // Parse type if one is supplied
         val typeAnnotation = if (tokenizer.current is ColonToken) {
@@ -572,20 +573,111 @@ class Parser(
             null
         }
 
-        // Const variable definitions are immutable, all others are mutable
-        val identProps = if (isConst) hashSetOf(IdentifierProperty.IMMUTABLE) else hashSetOf()
-
         assertCurrent(TokenType.EQUALS)
         tokenizer.next()
 
-        // Parse the expression and then add the ident to the symbol table, so that the old
-        // symbol for the ident will be used in the body (if the ident is being rebound).
         val expr = parseExpression()
-        val ident = symbolTable.addVariable(identToken.str, IdentifierClass.VARIABLE,
-                identToken.location, WhichScope.CURRENT, identProps)
-        
-        return VariableDefinitionStatement(ident, expr, typeAnnotation, identToken.location,
+        return VariableDefinitionStatement(lValue, expr, typeAnnotation, lValue.startLocation,
                 defToken.location)
+    }
+
+    fun parseLValue(identProps: Set<IdentifierProperty>): Expression {
+        val token = tokenizer.next()
+        return when (token) {
+            // A left paren signals the beginning of a tuple literal (or parenthesized expression)
+            is LeftParenToken -> parseLValueParenthesizedExpression(token, identProps)
+            // An identifier signals either a single variable or a type constructor
+            is IdentifierToken -> parseLValueVariableExpression(token, identProps)
+            else -> throw ParseException("Patterns in variable assignment must consist solely of " +
+                    "variables, tuples, and type constructors", token)
+        }
+    }
+
+    fun parseLValueParenthesizedExpression(
+        token: LeftParenToken,
+        identProps: Set<IdentifierProperty>
+    ): Expression {
+        // If this is called, the previous token must have been a ( within an lValue
+        val lValue = parseLValue(identProps)
+
+        // If a single lValue is between parentheses, simply return it
+        if (tokenizer.current is RightParenToken) {
+            return lValue
+        }
+
+        // Otherwise parse comma separated list of lValues until right paren is seen,
+        // as this is a tuple literal.
+        val lValues = mutableListOf(lValue)
+
+        while (tokenizer.current !is RightParenToken) {
+            assertCurrent(TokenType.COMMA)
+            tokenizer.next()
+
+            lValues.add(parseLValue(identProps))
+        }
+
+        assertCurrent(TokenType.RIGHT_PAREN)
+        tokenizer.next()
+
+        return TupleLiteralExpression(lValues, token.location)
+    }
+
+    fun parseLValueVariableExpression(
+        token: IdentifierToken,
+        identProps: Set<IdentifierProperty>
+    ): Expression {
+        // Parse "::" separated list of strings to find scope and identifier name
+        val identParts = mutableListOf(token)
+
+        while (!tokenizer.reachedEnd && tokenizer.current is ScopeToken) {
+            tokenizer.next()
+
+            val currentToken = tokenizer.current
+            if (currentToken !is IdentifierToken) {
+                throw ParseException("Identifier must follow scope", currentToken)
+            }
+
+            identParts.add(currentToken)
+            tokenizer.next()
+        }
+
+        // All parts except the last are part of the scope. Add resolve job to symbol table.
+        val scopeTokens = identParts.take(identParts.size - 1)
+
+        // If there is no left parent following the variable, it is a variable.
+        // Otherwise it must be a type constructor.
+        if (tokenizer.current !is LeftParenToken) {
+            // Defined variables must have no scopes
+            if (scopeTokens.isEmpty()) {
+                val ident = symbolTable.addVariable(token.str, IdentifierClass.VARIABLE,
+                        token.location, WhichScope.CURRENT, identProps)
+                return VariableExpression(ResolvedIdentifier(ident), token.location)
+            } else {
+                throw ParseException("Variables in variable definition cannot have scopes",
+                        scopeTokens[0].location)
+            }
+        }
+
+        // Must be a type constructor, so look it up with scopes in context
+        val ident = symbolTable.lookupVariable(token.str, scopeTokens.map({ it.str }),
+                token.location, importContext)
+        val variableExpr = VariableExpression(ident, token.location)
+        val callLocation = tokenizer.current.location
+
+        // Parse comma separated list of lValues
+        tokenizer.next()
+        val lValues = mutableListOf(parseLValue(identProps))
+        while (tokenizer.current !is RightParenToken) {
+            assertCurrent(TokenType.COMMA)
+            tokenizer.next()
+
+            lValues.add(parseLValue(identProps))
+        }
+
+        assertCurrent(TokenType.RIGHT_PAREN)
+        tokenizer.next()
+
+        return ApplicationExpression(variableExpr, lValues, callLocation)
     }
 
     fun parseLambdaExpression(funToken: FunToken): LambdaExpression {
@@ -901,9 +993,12 @@ class Parser(
 
                 // Identifier may be followed by (optional) comma separated list of patterns within
                 // parentheses, meaning this is a type constructor pattern instead of a variable.
+                val variableExpr = VariableExpression(ident, token.location)
                 if (tokenizer.current !is LeftParenToken) {
-                    return VariableExpression(ident, token.location)
+                    return variableExpr
                 } else {
+                    val callLocation = tokenizer.current.location
+
                     do {
                         tokenizer.next()
                         args.add(parsePattern())
@@ -912,7 +1007,7 @@ class Parser(
                     assertCurrent(TokenType.RIGHT_PAREN)
                     tokenizer.next()
 
-                    return TypeConstructorExpression(ident, args, token.location)
+                    return ApplicationExpression(variableExpr, args, callLocation)
                 }
             }
             else -> throw ParseException("Patterns must only consist of literals and variables",

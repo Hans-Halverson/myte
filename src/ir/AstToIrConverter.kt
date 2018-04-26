@@ -95,7 +95,6 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             // Variables and functions
             stmt is VariableExpression -> convertVariable(stmt)
             stmt is ApplicationExpression -> convertApplication(stmt)
-            stmt is TypeConstructorExpression -> convertTypeConstructor(stmt)
             stmt is KeyedAccessExpression -> convertKeyedAccess(stmt)
             stmt is AssignmentExpression -> convertAssignment(stmt)
             stmt is VariableDefinitionStatement -> convertVariableDefinition(stmt)
@@ -191,7 +190,9 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
                 stmt.identLocation, stmt.startLocation)
     }
 
-    fun convertVariableDefinition(stmt: VariableDefinitionStatement): VariableDefinitionNode {
+    fun convertVariableDefinition(stmt: VariableDefinitionStatement): IRNode {
+        val pattern = convertLValuePattern(stmt.lValue, true)
+
         // Annotate this identifier with type annotation, or new type variable if not annotated
         val type = if (stmt.typeAnnotation != null) {
             convertType(stmt.typeAnnotation)
@@ -199,10 +200,15 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             TypeVariable()
         }
 
-        symbolTable.getInfo(stmt.ident)?.type = type
-
-        return VariableDefinitionNode(stmt.ident, convert(stmt.expr), stmt.identLocation,
-                stmt.startLocation)
+        // If this is a simple variable assignment, create variable definition node
+        if (pattern is VariableNode) {
+            return VariableDefinitionNode(pattern.ident, convert(stmt.expr), pattern.startLocation,
+                    stmt.startLocation)
+        // Otherwise this is a pattern deconstruction variable definition
+        } else {
+            return PatternDefinitionNode(pattern, convert(stmt.expr), type, pattern.startLocation,
+                    stmt.startLocation)
+        }
     }
 
     fun convertIf(stmt: IfStatement): IfNode {
@@ -271,46 +277,83 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         }
     }
 
-    fun convertTypeConstructor(expr: TypeConstructorExpression): TypeConstructorNode {
-        val ident = expr.ident.resolve()
-
-        val info = symbolTable.getInfo(ident)
-        if (info?.idClass != IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT) {
-            throw IRConversionException("${expr.ident.symbol()} is not a type constructor",
-                    expr.startLocation)
-        }
-
-        val args = expr.actualArgs.map(this::convert)
-
-        return TypeConstructorNode(info.adtVariant, args, expr.startLocation)
-    }
-
     fun convertKeyedAccess(expr: KeyedAccessExpression): KeyedAccessNode {
         return KeyedAccessNode(convert(expr.container), convert(expr.key), expr.accessLocation)
     }
 
     fun convertAssignment(expr: AssignmentExpression): IRNode {
-        val lValue = convert(expr.lValue)
-
-        if (lValue is VariableNode) {
-            // Error if assigning to identifier that is not a variable
-            if (symbolTable.getInfo(lValue.ident)?.idClass != IdentifierClass.VARIABLE) {
-                throw IRConversionException("Can only reassign variables", expr.equalsLocation)
-            }
-
-            // Error if assigning to immutable variable
-            if (isImmutable(lValue.ident)) {
-                throw IRConversionException("Cannot reassign immutable variable " +
-                        "${lValue.ident.name}", lValue.startLocation)
-            }
-
-            return VariableAssignmentNode(lValue.ident, convert(expr.rValue), lValue.startLocation)
-        } else if (lValue is KeyedAccessNode) {
+        // If the lValue is a keyed access, then this is a keyed assignment
+        if (expr.lValue is KeyedAccessExpression) {
+            val lValue = convertKeyedAccess(expr.lValue)
             return KeyedAssignmentNode(lValue.container, lValue.key,
                     convert(expr.rValue), lValue.accessLocation)
+        // Else this must be a deconstruction assignment (which encompasses variable assignment)
         } else {
-            throw IRConversionException("Cannot only assign values to variables",
-                    expr.equalsLocation)
+            val pattern = convertLValuePattern(expr.lValue, false)
+
+            // If this is a simple variable assignment, create node
+            if (pattern is VariableNode) {
+                return VariableAssignmentNode(pattern.ident, convert(expr.rValue),
+                        pattern.startLocation)
+            // Otherwise this is a deconstruction assignment
+            } else {
+                return PatternAssignmentNode(pattern, convert(expr.rValue),
+                        pattern.startLocation)
+            }
+        }
+    }
+
+    fun convertLValuePattern(expr: Expression, inDef: Boolean): IRNode {
+        when (expr) {
+            is VariableExpression -> {
+                val ident = expr.ident.resolve()
+
+                // If in a variable definition, need to annotate ident with new type variable,
+                // since every ident needs a type annotated when it is defined.
+                if (inDef) {
+                    symbolTable.getInfo(ident)?.type = TypeVariable()
+                }
+
+                // Error if assigning to identifier that is not a variable
+                if (symbolTable.getInfo(ident)?.idClass != IdentifierClass.VARIABLE) {
+                    throw IRConversionException("Can only reassign variables", expr.identLocation)
+                }
+
+                // Error if assigning to immutable variable
+                if (isImmutable(ident)) {
+                    throw IRConversionException("Cannot reassign immutable variable " +
+                            "${ident.name}", expr.identLocation)
+                }
+
+                return VariableNode(ident, expr.identLocation)
+            }
+            // For tuples, simply convert tuple elements
+            is TupleLiteralExpression -> {
+                return TupleLiteralNode(expr.elements.map({ convertLValuePattern(it, inDef) }),
+                        expr.startLocation)
+            }
+            // Type constructors appear as application expressions
+            is ApplicationExpression -> {
+                // The only allowable applications are for type constructors
+                val typeConstructor = expr.func
+                if (typeConstructor !is VariableExpression) {
+                    throw IRConversionException("Pattern assignments must consist solely of " +
+                            "variables, tuples, and type constructors", expr.func.startLocation)  
+                }
+
+                val ident = typeConstructor.ident.resolve()
+                val info = symbolTable.getInfo(ident)!!
+                if (info.idClass != IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT) {
+                    throw IRConversionException("Pattern assignments must consist solely of " +
+                            "variables, tuples, and type constructors", expr.func.startLocation)   
+                }
+
+                // Create type constructor node
+                val args = expr.args.map({ convertLValuePattern(it, inDef )})
+                return TypeConstructorNode(info.adtVariant, args, expr.startLocation)
+            }
+            else -> throw IRConversionException("Pattern assignments must consist solely of " +
+                    "variables, tuples, and type constructors", expr.startLocation) 
         }
     }
 

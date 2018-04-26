@@ -36,7 +36,7 @@ INFIX -> EXPR + EXPR
        | EXPR >= EXPR
        | EXPR && EXPR
        | EXPR || EXPR
-       | EXPR = EXPR
+       | LVALUE = EXPR
 
 EXPR_LIST -> EXPR [, EXPR]*
 
@@ -46,6 +46,10 @@ KV_PAIR_LIST -> KV_PAIR [, KV_PAIR]*
 
 LAMBDA_BODY -> EXPR
              | BLOCK
+
+LVALUE -> IDENT
+        | ( LVALUE [, LVALUE]* )
+        | SCOPED_IDENT ( LVALUE [, LVALUE]* )
 
 
 TYPE -> bool
@@ -64,8 +68,8 @@ TYPE_LIST -> TYPE [, TYPE]*
 
 TYPED_IDENT = IDENT [: TYPE]?
 
-VARIABLE_DEF -> let TYPED_IDENT = EXPR
-              | const TYPED_IDENT = EXPR
+VARIABLE_DEF -> let LVALUE [: TYPE]? = EXPR
+              | const LVALUE [: TYPE]? = EXPR
 
 FUNCTION_DEF -> def IDENT ( [TYPED_ARGS]? ) [: TYPE]? FUNCTION_BODY
 

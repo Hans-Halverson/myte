@@ -6,8 +6,6 @@
 
 - Add destructuring for tuples and simple type constructors
 
-- Make returns optional for unit return values
-
 - Allow if, match, and blocks to be expressions
 
 - Add traits and implementations on types

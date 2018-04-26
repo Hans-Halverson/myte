@@ -63,6 +63,8 @@ fun repl(packageFiles: List<String>) {
     val converter = AstToIrConverter(symbolTable)
     val eval = Evaluator(symbolTable, environment)
 
+    var importContext = parser.importContext
+
     // Tokenize, parse, convert, type check, and evaluate all included packages
     try {
         val packageTokens = tokenizeFiles(packageFiles)
@@ -144,9 +146,10 @@ fun repl(packageFiles: List<String>) {
                 // Try parsing current tokens, evaluate if successful.
                 // Otherwise gather tokens from next line and try parsing again.
                 try {
-                    // Create a new copy of symbol table and parse with it
+                    // Create a new copy of symbol table and ident context and parse with it
                     val symbolTableCopy = symbolTable.copyForRepl()
-                    parser.resetForReplLine(symbolTableCopy, seenBlankLine)
+                    val importContextCopy = importContext.copyForRepl()
+                    parser.resetForReplLine(symbolTableCopy, importContextCopy, seenBlankLine)
                     converter.resetSymbolTable(symbolTableCopy)
                     eval.resetSymbolTable(symbolTableCopy)
 
@@ -155,8 +158,9 @@ fun repl(packageFiles: List<String>) {
                     val convertReplLineResult = converter.convertReplLine(parseReplLineResult)
                     eval.evaluateReplLine(convertReplLineResult)
 
-                    // Save the successfully updated symbol table
+                    // Save the successfully updated symbol table and import context
                     symbolTable = parser.symbolTable
+                    importContext = parser.importContext
 
                     continue@replLoop
                 } catch (e: ParseEOFException) {
