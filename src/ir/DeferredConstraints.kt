@@ -16,7 +16,7 @@ sealed class DeferredConstraint {
 
 /**
  * A contstraint that waits until a container in a keyed access has been resolved, and then
- * applies the correct constraints if it is a vector or map.
+ * applies the correct constraints if it is a vector, map, or tuple.
  */
 class KeyedAccessConstraint(
     val node: KeyedAccessNode,
@@ -58,6 +58,32 @@ class KeyedAccessConstraint(
                         boundVars)
                 throw IRConversionException("Map expected to have keys of type ${types[0]}, " +
                         "but found ${types[1]}", node.startLocation) 
+            }
+
+            return true
+        } else if (containerType is TupleType) {
+            // Can only index using int literals for tuples, since we must know the exact index
+            if (node.key !is IntLiteralNode) {
+                throw IRConversionException("Can only use int literal keys for tuple",
+                        node.key.startLocation)
+            }
+
+            typeChecker.unify(node.key.type, IntType)
+
+            // Check that int literal is within bounds
+            val num = node.key.num
+            val tupleSize = containerType.elementTypes.size
+            if (num < 0 || num >= tupleSize) {
+                throw IRConversionException("Tuple of size ${tupleSize} cannot be indexed by " +
+                        "key ${num}", node.key.startLocation)
+            }
+
+            // Constrain eval type of node to be the type of the corresponding tuple element
+            val elementType = containerType.elementTypes[num]
+            if (!typeChecker.unify(elementType, node.type)) {
+                val types = typeChecker.typesToString(elementType, node.type, boundVars)
+                throw IRConversionException("Tuple expected to have element of type ${types[0]} " +
+                        "at index ${num}, but found ${types[1]}", node.startLocation)
             }
 
             return true

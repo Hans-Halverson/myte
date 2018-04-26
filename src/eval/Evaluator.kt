@@ -305,6 +305,16 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             }
             
             return value
+        } else if (container is TupleValue) {
+            val key = evalInt(node.key, env)
+
+            // Look up index in tuple and return it, erroring if key is outside arity of tuple
+            if (key.num < 0 || key.num >= container.tuple.size) {
+                throw EvaluationException("Index ${key.num} is outside bounds of tuple",
+                        node.key.startLocation)
+            }
+
+            return container.tuple[key.num]
         } else {
             throw EvaluationException("Can't perform keyed access on " +
                     "${formatType(container.type)}", node.startLocation)

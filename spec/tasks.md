@@ -1,10 +1,8 @@
 # Core Progress
 
-- Add lists, arrays, maps
+- Add lists, arrays, maps standard libaries and utility functions
 
 - Add record types as an alternative type constructor to tuple type constructors
-
-- Add destructuring for tuples and simple type constructors
 
 - Allow if, match, and blocks to be expressions
 
