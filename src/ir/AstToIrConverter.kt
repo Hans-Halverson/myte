@@ -30,7 +30,9 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         packages.forEach { pack -> pack.typeDefs.forEach(this::createAdtVariants) }
 
         // Convert all statements of each package
-        val irNodes = packages.map({ pack -> pack.statements.map(this::convert) }).flatten()
+        val irNodes = packages.map({ pack ->
+            pack.statements.map({ convert(it, false) })
+        }).flatten()
 
         // Infer types and then check structure of IR
         inferTypes(irNodes)
@@ -63,7 +65,12 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             return ConvertReplLineResult(null)
         } else if (statement is Statement) {
             // Convert node, infer types, and verify correct IR structure
-            val node = convert(statement)
+            val node = when (statement) {
+                // Match statements on top level of REPL should be interpreted as expressions
+                is MatchStatement -> convert(statement, true)
+                else -> convert(statement, false)
+            }
+
             inferTypes(listOf(node))
             assertIRStructure(node)
 
@@ -79,7 +86,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
      * @param stmt the ast node
      * @return the exivalent node in the internal representation
      */
-    fun convert(stmt: Statement): IRNode {
+    fun convert(stmt: Statement, isExpr: Boolean): IRNode {
         return when {
             // Literals
             stmt is BoolLiteralExpression -> BoolLiteralNode(stmt.bool, stmt.startLocation)
@@ -111,13 +118,13 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             stmt is EqualityExpression -> convertEquality(stmt)
             stmt is ComparisonExpression -> convertComparison(stmt)
             // Control flow and structure
-            stmt is GroupExpression -> convert(stmt.expr)
-            stmt is BlockStatement -> BlockNode(stmt.stmts.map(this::convert), stmt.startLocation)
-            stmt is IfStatement -> convertIf(stmt)
+            stmt is GroupExpression -> convert(stmt.expr, true)
+            stmt is BlockStatement -> convertBlock(stmt, isExpr)
+            stmt is IfStatement -> convertIf(stmt, isExpr)
             stmt is WhileStatement -> convertWhile(stmt)
             stmt is DoWhileStatement -> convertDoWhile(stmt)
             stmt is ForStatement -> convertFor(stmt)
-            stmt is MatchStatement -> convertMatch(stmt)
+            stmt is MatchStatement -> convertMatch(stmt, isExpr)
             stmt is ReturnStatement -> convertReturn(stmt)
             stmt is BreakStatement -> BreakNode(stmt.breakLocation)
             stmt is ContinueStatement -> ContinueNode(stmt.continueLocation)
@@ -159,7 +166,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             arg
         }
 
-        return LambdaNode(formalArgs, convert(expr.body), expr.startLocation)
+        return LambdaNode(formalArgs, convert(expr.body, false), expr.startLocation)
     }
 
     fun convertFunctionDefinition(stmt: FunctionDefinitionStatement): FunctionDefinitionNode {
@@ -186,7 +193,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         // Annotate function identifier with type from annotations
         symbolTable.getInfo(stmt.ident)?.type = FunctionType(argTypes, returnType)
 
-        return FunctionDefinitionNode(stmt.ident, formalArgs, convert(stmt.body),
+        return FunctionDefinitionNode(stmt.ident, formalArgs, convert(stmt.body, false),
                 stmt.identLocation, stmt.startLocation)
     }
 
@@ -202,56 +209,71 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
 
         // If this is a simple variable assignment, create variable definition node
         if (pattern is VariableNode) {
-            return VariableDefinitionNode(pattern.ident, convert(stmt.expr), pattern.startLocation,
-                    stmt.startLocation)
+            return VariableDefinitionNode(pattern.ident, convert(stmt.expr, true),
+                    pattern.startLocation, stmt.startLocation)
         // Otherwise this is a pattern deconstruction variable definition
         } else {
-            return PatternDefinitionNode(pattern, convert(stmt.expr), type, pattern.startLocation,
-                    stmt.startLocation)
+            return PatternDefinitionNode(pattern, convert(stmt.expr, true), type,
+                    pattern.startLocation, stmt.startLocation)
         }
     }
 
-    fun convertIf(stmt: IfStatement): IfNode {
-        val cond = convert(stmt.cond)
-        val conseq = convert(stmt.conseq)
-        val altern = if (stmt.altern != null) convert(stmt.altern) else null
+    fun convertBlock(stmt: BlockStatement, isExpr: Boolean): BlockNode {
+        if (!isExpr || stmt.stmts.isEmpty()) {
+            // If block is a statement, all its children are statements
+            val statements = stmt.stmts.map({ convert(it, false ) })
+            return BlockNode(statements, isExpr, stmt.startLocation)
+        } else {
+            // If block is a nonempty expression, the last statement must be an expression
+            val firstStmts = stmt.stmts.take(stmt.stmts.size - 1)
+            val lastStmt = stmt.stmts[stmt.stmts.size - 1]
+            val statements = firstStmts.map({ convert(it, false) }) + convert(lastStmt, true)
 
-        return IfNode(cond, conseq, altern, stmt.startLocation)
+            return BlockNode(statements, true, stmt.startLocation)
+        }
+    }
+
+    fun convertIf(stmt: IfStatement, isExpr: Boolean): IfNode {
+        val cond = convert(stmt.cond, true)
+        val conseq = convert(stmt.conseq, isExpr)
+        val altern = if (stmt.altern != null) convert(stmt.altern, isExpr) else null
+
+        return IfNode(cond, conseq, altern, isExpr, stmt.startLocation)
     }
 
     fun convertWhile(stmt: WhileStatement): WhileNode {
-        return WhileNode(convert(stmt.cond), convert(stmt.body), stmt.startLocation)
+        return WhileNode(convert(stmt.cond, true), convert(stmt.body, false), stmt.startLocation)
     }
 
     fun convertDoWhile(stmt: DoWhileStatement): DoWhileNode {
-        return DoWhileNode(convert(stmt.cond), convert(stmt.body), stmt.startLocation)
+        return DoWhileNode(convert(stmt.cond, true), convert(stmt.body, false), stmt.startLocation)
     }
 
     fun convertFor(stmt: ForStatement): ForNode {
-        val init = if (stmt.init != null) convert(stmt.init) else null
-        val cond = if (stmt.cond != null) convert(stmt.cond) else null
-        val update = if (stmt.update != null) convert(stmt.update) else null
+        val init = if (stmt.init != null) convert(stmt.init, false) else null
+        val cond = if (stmt.cond != null) convert(stmt.cond, true) else null
+        val update = if (stmt.update != null) convert(stmt.update, false) else null
 
-        return ForNode(init, cond, update, convert(stmt.body), stmt.startLocation)
+        return ForNode(init, cond, update, convert(stmt.body, false), stmt.startLocation)
     }
 
-    fun convertMatch(stmt: MatchStatement): MatchNode {
-        val expr = convert(stmt.expr)
+    fun convertMatch(stmt: MatchStatement, isExpr: Boolean): MatchNode {
+        val expr = convert(stmt.expr, true)
         val cases = stmt.cases.map { (p, g, s) ->
-            val pattern = convert(p)
+            val pattern = convert(p, true)
 
             val guard = if (g != null) {
-                convert(g)
+                convert(g, true)
             } else {
                 null
             }
 
-            val statement = convert(s)
+            val case = convert(s, isExpr)
 
-            Triple(pattern, guard, statement)
+            Triple(pattern, guard, case)
         }
 
-        return MatchNode(expr, cases, stmt.startLocation)
+        return MatchNode(expr, cases, isExpr, stmt.startLocation)
     }
 
     fun convertVariable(expr: VariableExpression): IRNode {
@@ -267,8 +289,8 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     }
 
     fun convertApplication(expr: ApplicationExpression): IRNode {
-        val func = convert(expr.func)
-        val args = expr.args.map(this::convert)
+        val func = convert(expr.func, true)
+        val args = expr.args.map({ convert(it, true) })
 
         if (func is TypeConstructorNode) {
             return TypeConstructorNode(func.adtVariant, args, func.startLocation)
@@ -278,7 +300,8 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     }
 
     fun convertKeyedAccess(expr: KeyedAccessExpression): KeyedAccessNode {
-        return KeyedAccessNode(convert(expr.container), convert(expr.key), expr.accessLocation)
+        return KeyedAccessNode(convert(expr.container, true),
+                convert(expr.key, true), expr.accessLocation)
     }
 
     fun convertAssignment(expr: AssignmentExpression): IRNode {
@@ -286,18 +309,18 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         if (expr.lValue is KeyedAccessExpression) {
             val lValue = convertKeyedAccess(expr.lValue)
             return KeyedAssignmentNode(lValue.container, lValue.key,
-                    convert(expr.rValue), lValue.accessLocation)
+                    convert(expr.rValue, true), lValue.accessLocation)
         // Else this must be a deconstruction assignment (which encompasses variable assignment)
         } else {
             val pattern = convertLValuePattern(expr.lValue, false)
 
             // If this is a simple variable assignment, create node
             if (pattern is VariableNode) {
-                return VariableAssignmentNode(pattern.ident, convert(expr.rValue),
+                return VariableAssignmentNode(pattern.ident, convert(expr.rValue, true),
                         pattern.startLocation)
             // Otherwise this is a deconstruction assignment
             } else {
-                return PatternAssignmentNode(pattern, convert(expr.rValue),
+                return PatternAssignmentNode(pattern, convert(expr.rValue, true),
                         pattern.startLocation)
             }
         }
@@ -358,30 +381,30 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     }
 
     fun convertReturn(expr: ReturnStatement): ReturnNode {
-        val returnVal = if (expr.expr != null) convert(expr.expr) else null 
+        val returnVal = if (expr.expr != null) convert(expr.expr, true) else null 
         return ReturnNode(returnVal, expr.returnLocation)
     }
 
     fun convertVectorLiteral(expr: VectorLiteralExpression): VectorLiteralNode {
-        return VectorLiteralNode(expr.elements.map(this::convert), expr.startLocation)
+        return VectorLiteralNode(expr.elements.map({ convert(it, true) }), expr.startLocation)
     }
 
     fun convertSetLiteral(expr: SetLiteralExpression): SetLiteralNode {
-        return SetLiteralNode(expr.elements.map(this::convert), expr.startLocation)
+        return SetLiteralNode(expr.elements.map({ convert(it, true) }), expr.startLocation)
     }
 
     fun convertMapLiteral(expr: MapLiteralExpression): MapLiteralNode {
-        return MapLiteralNode(expr.keys.map(this::convert), expr.values.map(this::convert),
-                expr.startLocation)
+        return MapLiteralNode(expr.keys.map({ convert(it, true) }),
+                expr.values.map({ convert(it, true) }), expr.startLocation)
     }
 
     fun convertTupleLiteral(expr: TupleLiteralExpression): TupleLiteralNode {
-        return TupleLiteralNode(expr.elements.map(this::convert), expr.startLocation)
+        return TupleLiteralNode(expr.elements.map({ convert(it, true) }), expr.startLocation)
     }
 
     fun convertEquality(expr: EqualityExpression): EqualityNode {
-        val left = convert(expr.left)
-        val right = convert(expr.right)
+        val left = convert(expr.left, true)
+        val right = convert(expr.right, true)
 
         return when (expr) {
             is EqualsExpression -> EqualsNode(left, right)
@@ -390,8 +413,8 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     }
 
     fun convertComparison(expr: ComparisonExpression): ComparisonNode {
-        val leftNode = convert(expr.left)
-        val rightNode = convert(expr.right)
+        val leftNode = convert(expr.left, true)
+        val rightNode = convert(expr.right, true)
 
         return when (expr) {
             is LessThanExpression -> LessThanNode(leftNode, rightNode)
@@ -402,20 +425,20 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     }
 
     fun convertLogicalAnd(expr: LogicalAndExpression): LogicalAndNode {
-        return LogicalAndNode(convert(expr.left), convert(expr.right))
+        return LogicalAndNode(convert(expr.left, true), convert(expr.right, true))
     }
 
     fun convertLogicalOr(expr: LogicalOrExpression): LogicalOrNode {
-        return LogicalOrNode(convert(expr.left), convert(expr.right))
+        return LogicalOrNode(convert(expr.left, true), convert(expr.right, true))
     }
 
     fun convertLogicalNot(expr: LogicalNotExpression): LogicalNotNode {
-        return LogicalNotNode(convert(expr.expr), expr.startLocation)
+        return LogicalNotNode(convert(expr.expr, true), expr.startLocation)
     }
 
     fun convertBinaryMathOperator(expr: BinaryMathOperatorExpression): BinaryMathOperatorNode {
-        val leftNode = convert(expr.left)
-        val rightNode = convert(expr.right)
+        val leftNode = convert(expr.left, true)
+        val rightNode = convert(expr.right, true)
 
         return when (expr) {
             is AddExpression -> AddNode(leftNode, rightNode)
@@ -427,7 +450,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     }
 
     fun convertUnaryPlus(expr: UnaryPlusExpression): IRNode {
-        val child = convert(expr.expr)
+        val child = convert(expr.expr, true)
 
         // If child is an int or float literal, can simply return the literals
         if (child is IntLiteralNode) {
@@ -435,12 +458,12 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         } else if (child is FloatLiteralNode) {
             return FloatLiteralNode(child.num, expr.startLocation)
         } else {
-            return IdentityNode(convert(expr.expr), expr.startLocation)
+            return IdentityNode(child, expr.startLocation)
         }
     }
 
     fun convertUnaryMinus(expr: UnaryMinusExpression): IRNode {
-        val child = convert(expr.expr)
+        val child = convert(expr.expr, true)
 
         // If child is an int or float literal, can simply negate the literals
         if (child is IntLiteralNode) {

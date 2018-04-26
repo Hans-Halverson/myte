@@ -1114,11 +1114,21 @@ class TypeChecker(var symbolTable: SymbolTable) {
     fun typeCheckBlock(node: BlockNode, boundVars: MutableSet<TypeVariable>, refresh: Boolean) {
         node.nodes.forEach { child -> typeCheck(child, boundVars, refresh) }
 
-        // Block node evaluates to a unit value
-        if (!unify(node.type, UnitType)) {
-            val type = typeToString(node.type, boundVars)
-            throw IRConversionException("Block should evaluate to the unit type, but found ${type}",
-                    node.startLocation)
+        // If block is a statement or an expression with no cases, it must evaluate to unit
+        if (!node.isExpression || node.nodes.isEmpty()) {
+            if (!unify(node.type, UnitType)) {
+                val type = typeToString(node.type, boundVars)
+                throw IRConversionException("Block statement should evaluate to the unit type, " +
+                        "but found ${type}", node.startLocation)
+            }
+        // If block is a nonempty expression, it evaluates to type of last statement within it
+        } else {
+            val lastNode = node.nodes[node.nodes.size - 1]
+            if (!unify(node.type, lastNode.type)) {
+                val types = typesToString(node.type, lastNode.type, boundVars)
+                throw IRConversionException("Block expression expected to evaluate to " + 
+                        "${types[0]}, but found ${types[1]}", node.startLocation)
+            }
         }
     }
 
@@ -1137,11 +1147,32 @@ class TypeChecker(var symbolTable: SymbolTable) {
             typeCheck(node.altern, boundVars, refresh)
         }
 
-        // If node evaluates to unit value
-        if (!unify(node.type, UnitType)) {
-            val type = typeToString(node.type, boundVars)
-            throw IRConversionException("If statement should evaluate to the unit type, " +
-                    "but found ${type}", node.startLocation)
+        if (node.isExpression) {
+            // If an expression, the if node must have an else case
+            if (node.altern == null) {
+                throw IRConversionException("If expression must have else case", node.startLocation)
+            }
+
+            // Both true and false cases of if expression must have same type
+            if (!unify(node.conseq.type, node.altern.type)) {
+                val types = typesToString(node.conseq.type, node.altern.type, boundVars)
+                throw IRConversionException("Both true and false cases of if expression must " +
+                        "have the same type, found ${types[0]} and ${types[1]}", node.startLocation)
+            }
+
+            // If expresison evaluates to same type as its cases
+            if (!unify(node.type, node.conseq.type)) {
+                val types = typesToString(node.type, node.altern.type, boundVars)
+                throw IRConversionException("If expression expected to have type ${node.type}, " +
+                        "but found ${types[1]}", node.startLocation)
+            }
+        } else {
+            // If a statement, if cases do not have to have same type and if evaluates to unit
+            if (!unify(node.type, UnitType)) {
+                val type = typeToString(node.type, boundVars)
+                throw IRConversionException("If statement should evaluate to the unit type, " +
+                        "but found ${type}", node.startLocation)
+            }
         }
     }
 
@@ -1231,13 +1262,6 @@ class TypeChecker(var symbolTable: SymbolTable) {
             typeCheck(statement, newBoundVars, refresh)
         }
 
-        // Match node evaluates to unit value
-        if (!unify(node.type, UnitType)) {
-            val type = typeToString(node.type, boundVars)
-            throw IRConversionException("Match statement should evaluate to the unit type, " +
-                    "but found ${type}", node.startLocation)
-        }
-
         node.cases.forEach { (pat, guard, _) ->
             // All patterns must have same type as the matched expression
             if (!unify(pat.type, node.expr.type)) {
@@ -1253,6 +1277,33 @@ class TypeChecker(var symbolTable: SymbolTable) {
                     throw IRConversionException("Pattern matching guards must have type bool, " +
                             "but found ${type}", guard.startLocation)
                 }
+            }
+        }
+
+        if (node.isExpression) {
+            // If an expression, cases must all evaluate to same type and match case evaluates
+            // to that same type.
+            val matchType = TypeVariable()
+            node.cases.forEach { (_, _, case) ->
+                if (!unify(case.type, matchType)) {
+                    val types = typesToString(case.type, matchType, boundVars)
+                    throw IRConversionException("Cases in match expression must all have the " +
+                            "same type, found ${types[0]} and ${types[1]}", case.startLocation)
+                }
+            }
+
+            if (!unify(node.type, matchType)) {
+                val types = typesToString(node.type, matchType, boundVars)
+                throw IRConversionException("Match expression expected to have type " +
+                        "${types[0]}, but found ${types[1]}", node.startLocation)
+            }
+        } else {
+            // If a statement, cases do not have to evaluate to same type and the entire match
+            // node evaluates to the unit value.
+            if (!unify(node.type, UnitType)) {
+                val type = typeToString(node.type, boundVars)
+                throw IRConversionException("Match statement should evaluate to the unit type, " +
+                        "but found ${type}", node.startLocation)
             }
         }
     }

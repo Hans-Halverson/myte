@@ -456,29 +456,43 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         return ClosureValue(node.formalArgs, node.body, env.copy(), funcType)
     }
 
-    fun evalBlock(node: BlockNode, env: Environment): UnitValue {
+    fun evalBlock(node: BlockNode, env: Environment): Value {
         // Evaluate all the children of a block node in a new scope, which is removed after block
         env.enterScope()
 
+        var result: Value = UnitValue
+
         for (childNode in node.nodes) {
-            evaluate(childNode, env)
+            result = evaluate(childNode, env)
         }
 
         env.exitScope()
 
-        return UnitValue
+        // If an expression, return result of evaluating last statement. Otherwise return unit.
+        if (node.isExpression) {
+            return result
+        } else {
+            return UnitValue
+        }
     }
 
-    fun evalIf(node: IfNode, env: Environment): UnitValue {
+    fun evalIf(node: IfNode, env: Environment): Value {
         val cond = evalBool(node.cond, env)
 
+        var result: Value = UnitValue
+
         if (cond.bool) {
-            evaluate(node.conseq, env)
+            result = evaluate(node.conseq, env)
         } else if (node.altern != null) {
-            evaluate(node.altern, env)
+            result = evaluate(node.altern, env)
         }
 
-        return UnitValue
+        // If an expression, evaluate to evaluated case. If statement, always evaluate to unit.
+        if (node.isExpression) {
+            return result
+        } else {
+            return UnitValue
+        }
     }
 
     /**
@@ -673,9 +687,10 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         return true
     }
 
-    fun evalMatch(node: MatchNode, env: Environment): UnitValue {
+    fun evalMatch(node: MatchNode, env: Environment): Value {
         // Evaluate expression to match on in current environment
         val exprValue = evaluate(node.expr, env)
+        var result: Value = UnitValue
 
         // Find first pattern which matches value, and execute its corresponding statement
         for ((pattern, guard, statement) in node.cases) {
@@ -691,7 +706,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
                     }
                 }
 
-                evaluate(statement, env)
+                result = evaluate(statement, env)
                 env.exitScope()
                 break
             }
@@ -699,7 +714,12 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             env.exitScope()
         }
 
-        return UnitValue
+        // If an expression, return result of evaluating matched case. Otherwise always return unit.
+        if (node.isExpression) {
+            return result
+        } else {
+            return UnitValue
+        }
     }
 
     fun evalReturn(node: ReturnNode, env: Environment): UnitValue {

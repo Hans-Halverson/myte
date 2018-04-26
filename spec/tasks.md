@@ -4,8 +4,6 @@
 
 - Add record types as an alternative type constructor to tuple type constructors
 
-- Allow if, match, and blocks to be expressions
-
 - Add traits and implementations on types
 
 

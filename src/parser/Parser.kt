@@ -145,15 +145,12 @@ class Parser(
      */
     fun parseStatement(token: Token): Statement {
         return when (token) {
-            is LeftBraceToken -> parseBlock(token)
             is LetToken -> parseVariableDefinition(false, token)
             is ConstToken -> parseVariableDefinition(true, token)
             is DefToken -> parseFunctionDefinition(token)
-            is IfToken -> parseIfStatement(token)
             is WhileToken -> parseWhileStatement(token)
             is DoToken -> parseDoWhileStatement(token)
             is ForToken -> parseForStatement(token)
-            is MatchToken -> parseMatchStatement(token)
             is ReturnToken -> parseReturnStatement(token)
             is BreakToken -> BreakStatement(token.location)
             is ContinueToken -> ContinueStatement(token.location)
@@ -198,6 +195,10 @@ class Parser(
             is MinusToken -> parseUnaryMinusExpression(firstToken)
             is LogicalNotToken -> parseLogicalNotExpression(firstToken)
             is LeftParenToken -> parseParenthesizedExpression(false, firstToken)
+            // Statements that can be expressions
+            is LeftBraceToken -> parseBlock(firstToken)
+            is IfToken -> parseIfStatement(firstToken)
+            is MatchToken -> parseMatchStatement(firstToken)
             // If the expression does not begin with a literal or prefix operator, it is not a
             // valid expression.
             else -> throw ParseException(firstToken)

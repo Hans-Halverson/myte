@@ -18,6 +18,9 @@ EXPR -> NUMBER_LITERAL
       | EXPR ( [EXPR_LIST]? )
       | EXPR [ EXPR ]
       | fun ( [TYPED_ARGS]? ) -> LAMBDA_BODY
+      | BLOCK
+      | IF_STATEMENT
+      | MATCH_STATEMENT
 
 UNARY -> + EXPR
        | - EXPR

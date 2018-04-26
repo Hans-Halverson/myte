@@ -5,4 +5,4 @@ import myte.shared.*
 class BlockStatement(
     val stmts: List<Statement>,
     startLocation: Location
-) : Statement(startLocation)
+) : Expression(startLocation)

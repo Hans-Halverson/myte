@@ -7,4 +7,4 @@ class IfStatement(
     val conseq: Statement,
     val altern: Statement?,
     startLocation: Location
-) : Statement(startLocation)
+) : Expression(startLocation)
