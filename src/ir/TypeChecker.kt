@@ -137,14 +137,14 @@ class TypeChecker(var symbolTable: SymbolTable) {
      * Infer a final type for the given input type. If this type is a type variable, there must
      * be no outstanding deferred constraints in order for a type to be inferred.
      */
-    private fun inferType(type: Type, location: Location): Type {
+    private fun inferType(type: Type): Type {
         if (type is TypeVariable) {
             val repNode = findRepNode(type)
 
             // The existence outstanding, incomplete constraints means a type could not be inferred
             if (!repNode.deferredConstraints.isEmpty()) {
-                throw IRConversionException("Cannot infer type, there are still outstanding " +
-                        "deferred constraints", location)
+                val constraintExample = repNode.deferredConstraints[0]
+                constraintExample.assertUnresolved()
             }
         }
 
@@ -627,6 +627,10 @@ class TypeChecker(var symbolTable: SymbolTable) {
             throw IRConversionException("Unary math operator expects a number, found ${type}",
                     node.node.startLocation)
         }
+
+        // Add deferred constraint to make sure node is int or float
+        val unaryMathOperatorConstraint = UnaryMathOperatorConstraint(node, boundVars, this)
+        addDeferredConstraint(node.type, unaryMathOperatorConstraint, node.startLocation)
     }
 
     fun typeCheckBinaryMathOperator(
@@ -637,13 +641,17 @@ class TypeChecker(var symbolTable: SymbolTable) {
         typeCheck(node.left, boundVars, refresh)
         typeCheck(node.right, boundVars, refresh)
 
-        // Unify this node's type with both it's children's types
+        // Unify this node's type with both its children's types
         if (!unify(node.left.type, node.type) ||
                 !unify(node.right.type, node.type)) {
             val types = typesToString(node.left.type, node.right.type, boundVars)
             throw IRConversionException("Binary math operator expects two numbers of same type, " +
                     "found ${types[0]} and ${types[1]}", node.right.startLocation)
         }
+
+        // Add deferred constraint to make sure node is int or float
+        val binaryMathOperatorConstraint = BinaryMathOperatorConstraint(node, boundVars, this)
+        addDeferredConstraint(node.type, binaryMathOperatorConstraint, node.startLocation)
     }
 
     fun typeCheckLogicalAnd(
@@ -1347,7 +1355,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         // Infer types for every identifier of the specified class
         for ((_, identInfo) in symbolTable.identifiers) {
             if (identInfo.idClass == idClass) {
-                identInfo.type = inferType(identInfo.type, identInfo.location)
+                identInfo.type = inferType(identInfo.type)
             }
         }
     }
@@ -1376,7 +1384,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
     fun inferIRTypes(root: IRNode) {
         // Infer return types for each IRNode
         root.map { node ->
-            node.type = inferType(node.type, node.startLocation)
+            node.type = inferType(node.type)
         }
     }
 

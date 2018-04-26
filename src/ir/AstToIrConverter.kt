@@ -686,7 +686,9 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
                     allPathsHaveReturn(node.altern)
             is MatchNode -> node.cases.map({ (_, _, stmt) -> allPathsHaveReturn(stmt) })
                                       .all({ x -> x })
-            is BlockNode -> allPathsHaveReturn(node.nodes.get(node.nodes.lastIndex))
+            is BlockNode -> {
+                allPathsHaveReturn(node.nodes.get(node.nodes.lastIndex))
+            }
             else -> false
         }
     }

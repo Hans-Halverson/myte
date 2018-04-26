@@ -12,10 +12,16 @@ sealed class DeferredConstraint {
      *         deferred even further.
      */
     abstract fun apply(trigger: Type): Boolean
+
+    /**
+     * Assert that this constraint is unresolved at the end of type inference. This should
+     * throw an exception with an appropriate error message.
+     */
+    abstract fun assertUnresolved()
 }
 
 /**
- * A contstraint that waits until a container in a keyed access has been resolved, and then
+ * A constraint that waits until a container in a keyed access has been resolved, and then
  * applies the correct constraints if it is a vector, map, or tuple.
  */
 class KeyedAccessConstraint(
@@ -95,10 +101,15 @@ class KeyedAccessConstraint(
                     "which does not support keyed access", node.startLocation)
         }
     }
+
+    override fun assertUnresolved() {
+        throw IRConversionException("Type could not be inferred, consider adding more type " +
+                "annotations", node.startLocation)
+    }
 }
 
 /**
- * A contstraint that waits until a container in a keyed assignment has been resolved, and then
+ * A constraints that waits until a container in a keyed assignment has been resolved, and then
  * applies the correct constraints if it is a vector or map.
  */
 class KeyedAssignmentConstraint(
@@ -167,5 +178,65 @@ class KeyedAssignmentConstraint(
                     "${typeStr}, which does not support keyed access", node.startLocation)
         }
     }
+
+    override fun assertUnresolved() {
+        throw IRConversionException("Type could not be inferred, consider adding more type " +
+                "annotations", node.startLocation)
+    }
 }
 
+/**
+ * A constraint that waits until the type for a unary math operator is resolved, and then checks
+ * that it is either an int or float.
+ */
+class UnaryMathOperatorConstraint(
+    val node: UnaryMathOperatorNode,
+    val boundVars: MutableSet<TypeVariable>,
+    val typeChecker: TypeChecker
+) : DeferredConstraint() {
+    override fun apply(trigger: Type): Boolean {
+        val nodeType = trigger
+        if (nodeType is IntType || nodeType is FloatType) {
+            return true
+        } else if (nodeType is TypeVariable) {
+            return false
+        } else {
+            val typeStr = typeChecker.typeToString(nodeType, boundVars)
+            throw IRConversionException("Unary math operator expects arguments of type int or " +
+                    "float, but found ${typeStr}", node.startLocation)
+        }
+    }
+
+    override fun assertUnresolved() {
+        throw IRConversionException("Could not infer type between int and float, consider adding " +
+                "more type annotations", node.startLocation)
+    }
+}
+
+/**
+ * A constraint that waits until the type for a binary math operator is resolved, and then checks
+ * that it is either an int or float.
+ */
+class BinaryMathOperatorConstraint(
+    val node: BinaryMathOperatorNode,
+    val boundVars: MutableSet<TypeVariable>,
+    val typeChecker: TypeChecker
+) : DeferredConstraint() {
+    override fun apply(trigger: Type): Boolean {
+        val nodeType = trigger
+        if (nodeType is IntType || nodeType is FloatType) {
+            return true
+        } else if (nodeType is TypeVariable) {
+            return false
+        } else {
+            val typeStr = typeChecker.typeToString(nodeType, boundVars)
+            throw IRConversionException("Binary math operator expects arguments of type int or " +
+                    "float, but found ${typeStr}", node.startLocation)
+        }
+    }
+
+    override fun assertUnresolved() {
+        throw IRConversionException("Could not infer type between int and float, consider adding " +
+                "more type annotations", node.startLocation)
+    }
+}

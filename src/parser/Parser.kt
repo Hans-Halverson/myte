@@ -683,16 +683,22 @@ class Parser(
 
     fun parseLambdaExpression(funToken: FunToken): LambdaExpression {
         // If parseLambdaExpression is called, the previous token must have been a fun
-        assertCurrent(TokenType.LEFT_PAREN)
-        tokenizer.next()
+
+        // Arg list can optionall start with parens
+        val hasParens = tokenizer.current is LeftParenToken
+        if (hasParens) {
+            assertCurrent(TokenType.LEFT_PAREN)
+            tokenizer.next()
+        }
 
         val formalArgs: MutableList<Pair<Identifier, TypeExpression?>> = mutableListOf()
 
         // Enter a new scope so that all variable names and types are scoped to this function
         symbolTable.enterScope(ScopeType.FUNCTION)
 
-        // Keep parsing comma separated formal argument identifiers until a right paren is found
-        argsLoop@ while (tokenizer.current !is RightParenToken) {
+        // Keep parsing comma separated formal argument list until a right paren or arrow is found
+        argsLoop@ while (tokenizer.current !is RightParenToken &&
+                tokenizer.current !is ArrowToken) {
             var token = tokenizer.next()
             if (token !is IdentifierToken) {
                 throw ParseException("Formal arguments must be identifiers", token)
@@ -710,30 +716,28 @@ class Parser(
                     token.location)
             formalArgs.add(Pair(formalArg, typeAnnotation))
 
-            // If a right paren is found, all arguments have been found. If a comma is found,
-            // there must still be identifiers to parse. Otherwise, syntax is invalid.
+            // If a right paren or arrow is found, all arguments have been found. If a comma is
+            // found, there must still be identifiers to parse. Otherwise, syntax is invalid.
             when (tokenizer.current) {
+                is ArrowToken -> break@argsLoop
                 is RightParenToken -> break@argsLoop
                 is CommaToken -> tokenizer.next()
                 else -> throw ParseException(tokenizer.current)
             }
         }
 
-        assertCurrent(TokenType.RIGHT_PAREN)
-        tokenizer.next()
+        // If arg list started with paren, it must end with paren
+        if (hasParens) {
+            assertCurrent(TokenType.RIGHT_PAREN)
+            tokenizer.next()
+        }
 
         assertCurrent(TokenType.ARROW)
         tokenizer.next()
 
-        // Lambda body can be either an expression or a block
-        val token = tokenizer.current
-        val body = if (token is LeftBraceToken) {
-            tokenizer.next()
-            parseBlock(token)
-        } else {
-            val expr = parseExpression()
-            ReturnStatement(expr, expr.startLocation)
-        }
+        // Lambda body must be an expression
+        val expr = parseExpression()
+        val body = ReturnStatement(expr, expr.startLocation)
 
         symbolTable.exitScope()
 

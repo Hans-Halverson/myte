@@ -12,6 +12,8 @@ EXPR -> NUMBER_LITERAL
       | [| KV_PAIR_LIST |]
       | {| EXPR_LIST |}
       | SCOPED_IDENT
+      | SCOPED_IDENT ( EXPR [, EXPR]* )
+      | SCOPED_IDENT { IDENT : EXPR [, IDENT : EXPR]* }
       | UNARY
       | INFIX
       | ( [EXPR_LIST]? )
@@ -86,7 +88,9 @@ TYPE_DEF -> type IDENT [< TYPE_PARAM_LIST >]? = [| TYPE_VARIANT]+
 
 TYPE_PARAM_LIST -> IDENT [, IDENT]*
 
-TYPE_VARIANT -> IDENT [( TYPE_LIST )]?
+TYPE_VARIANT -> IDENT
+              | IDENT ( TYPE_LIST )
+              | IDENT { IDENT : TYPE [, IDENT : TYPE]* }
 
 
 IF_STATEMENT -> if EXPR STATEMENT [else STATEMENT]?
@@ -108,7 +112,9 @@ PATTERN -> NUMBER_LITERAL
       | [ [PATTERN_LIST]? ]
       | ( PATTERN_LIST )
       | IDENT
-      | SCOPED_IDENT [( PATTERN_LIST )]?
+      | SCOPED_IDENT
+      | SCOPED_IDENT ( PATTERN_LIST )
+      | SCOPED_IDENT { IDENT : PATTERN [, IDENT : PATTERN]* }
 
 PATTERN_LIST = PATTERN [, PATTERN]*
 
