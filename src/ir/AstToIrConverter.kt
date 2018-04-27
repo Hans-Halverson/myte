@@ -102,6 +102,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             // Variables and functions
             stmt is VariableExpression -> convertVariable(stmt)
             stmt is ApplicationExpression -> convertApplication(stmt)
+            stmt is RecordTypeConstructorExpression -> convertRecordTypeConstructor(stmt)
             stmt is KeyedAccessExpression -> convertKeyedAccess(stmt)
             stmt is AssignmentExpression -> convertAssignment(stmt)
             stmt is VariableDefinitionStatement -> convertVariableDefinition(stmt)
@@ -282,7 +283,13 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         // If this identifier is for a type constructor, create a type constructor node
         val info = symbolTable.getInfo(ident)!!
         if (info.idClass == IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT) {
-            return TypeConstructorNode(info.adtVariant, listOf(), expr.identLocation)
+            val adtVariant = info.adtVariant
+            if (adtVariant is TupleVariant) {
+                return TupleTypeConstructorNode(adtVariant, listOf(), expr.identLocation)
+            } else {
+                throw IRConversionException("No arguments given to record type constructor",
+                        expr.identLocation)
+            }
         }
 
         return VariableNode(ident, expr.identLocation)
@@ -292,11 +299,66 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         val func = convert(expr.func, true)
         val args = expr.args.map({ convert(it, true) })
 
-        if (func is TypeConstructorNode) {
-            return TypeConstructorNode(func.adtVariant, args, func.startLocation)
+        if (func is TupleTypeConstructorNode) {
+            return TupleTypeConstructorNode(func.adtVariant, args, func.startLocation)
         } else {
             return FunctionCallNode(func, args, expr.callLocation, expr.startLocation)
         }
+    }
+
+    fun convertRecordTypeConstructor(
+        expr: RecordTypeConstructorExpression
+    ): RecordTypeConstructorNode {
+        // Resolve record type constructor
+        if (expr.typeConstructor !is VariableExpression) {
+            throw IRConversionException("Can only create record with record type constructor",
+                    expr.callLocation)
+        }
+
+        val ident = expr.typeConstructor.ident.resolve()
+        val info = symbolTable.getInfo(ident)!!
+
+        // Make sure that the ident corresponds to record type constructor
+        if (info.idClass != IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT) {
+            throw IRConversionException("Can only create record with record type constructor",
+                    expr.callLocation)
+        }
+
+        val adtVariant = info.adtVariant
+        if (adtVariant !is RecordVariant) {
+            throw IRConversionException("Expected record type constructor instead of tuple " +
+                    "type constructor", expr.callLocation)
+        }
+
+        val fields = expr.fields.mapValues { (_, field) -> convert(field, true) }
+
+        // Check for fields that were not defined in the record type
+        val fieldsNotInType = expr.fields.keys - adtVariant.fields.keys
+        if (!fieldsNotInType.isEmpty()) {
+            if (fieldsNotInType.size > 1) {
+                throw IRConversionException("Record type ${ident.name} does not have fields with " +
+                        "names ${fieldsNotInType}", expr.startLocation)
+            } else {
+                throw IRConversionException("Record type ${ident.name} does not have field with " +
+                        "name ${fieldsNotInType}", expr.startLocation)
+            }
+        }
+
+        // Patterns do not have to define all fields, but expressions need to define all fields
+        if (!expr.isPattern) {
+            val fieldsNotSpecified = adtVariant.fields.keys - expr.fields.keys
+            if (!fieldsNotSpecified.isEmpty()) {
+                if (fieldsNotSpecified.size > 1) {
+                    throw IRConversionException("Missing fields ${fieldsNotSpecified} for " +
+                            "record type ${ident.name}", expr.startLocation)
+                } else {
+                    throw IRConversionException("Missing field ${fieldsNotSpecified} for " +
+                            "record type ${ident.name}", expr.startLocation)
+                }
+            }
+        }
+
+        return RecordTypeConstructorNode(adtVariant, fields, expr.startLocation)
     }
 
     fun convertKeyedAccess(expr: KeyedAccessExpression): KeyedAccessNode {
@@ -355,7 +417,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
                 return TupleLiteralNode(expr.elements.map({ convertLValuePattern(it, inDef) }),
                         expr.startLocation)
             }
-            // Type constructors appear as application expressions
+            // Tuple type constructors appear as application expressions
             is ApplicationExpression -> {
                 // The only allowable applications are for type constructors
                 val typeConstructor = expr.func
@@ -371,9 +433,51 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
                             "variables, tuples, and type constructors", expr.func.startLocation)   
                 }
 
-                // Create type constructor node
+                val adtVariant = info.adtVariant
                 val args = expr.args.map({ convertLValuePattern(it, inDef )})
-                return TypeConstructorNode(info.adtVariant, args, expr.startLocation)
+                return TupleTypeConstructorNode(adtVariant as TupleVariant, args,
+                            expr.startLocation)
+            }
+            // Process record type constructors as normal for a pattern
+            is RecordTypeConstructorExpression -> {
+                // Resolve record type constructor
+                if (expr.typeConstructor !is VariableExpression) {
+                    throw IRConversionException("Can only create record with record type " +
+                            "constructor", expr.typeConstructor.startLocation)
+                }
+
+                val ident = expr.typeConstructor.ident.resolve()
+                val info = symbolTable.getInfo(ident)!!
+
+                // Make sure that the ident corresponds to record type constructor
+                if (info.idClass != IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT) {
+                    throw IRConversionException("Can only create record with record type " +
+                            "constructor", expr.typeConstructor.startLocation)
+                }
+
+                val adtVariant = info.adtVariant
+                if (adtVariant !is RecordVariant) {
+                    throw IRConversionException("Expected record type constructor instead of tuple " +
+                            "type constructor", expr.callLocation)
+                }
+
+                val fields = expr.fields.mapValues { (_, field) ->
+                    convertLValuePattern(field, true)
+                }
+
+                // Check for fields that were not defined in the record type
+                val fieldsNotInType = expr.fields.keys - adtVariant.fields.keys
+                if (!fieldsNotInType.isEmpty()) {
+                    if (fieldsNotInType.size > 1) {
+                        throw IRConversionException("Record type ${ident.name} does not have " +
+                                "fields with names ${fieldsNotInType}", expr.startLocation)
+                    } else {
+                        throw IRConversionException("Record type ${ident.name} does not have " +
+                                "field with name ${fieldsNotInType}", expr.startLocation)
+                    }
+                }
+
+                return RecordTypeConstructorNode(adtVariant, fields, expr.startLocation)
             }
             else -> throw IRConversionException("Pattern assignments must consist solely of " +
                     "variables, tuples, and type constructors", expr.startLocation) 
@@ -498,15 +602,26 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     fun createAdtVariants(typeDef: TypeDefinitionExpression) {
         val adtSig = symbolTable.getInfo(typeDef.typeIdent)?.adtSig!!
 
-        for ((variantIdent, typeConstructorExprs) in typeDef.variants) {
+        // Convert all tuple variants in type definition
+        for ((variantIdent, typeConstructorExprs) in typeDef.tupleVariants) {
             // Create variant by parsing type constructor and add to ADT sig
             val typeConstructor = typeConstructorExprs.map(this::convertType)
-            val variant = AlgebraicDataTypeVariant(adtSig, variantIdent.name, typeConstructor)
+            val variant = TupleVariant(adtSig, variantIdent.name, typeConstructor)
             adtSig.variants.add(variant)
 
             // Annotate variant's identifier with newly created variant
             symbolTable.getInfo(variantIdent)?.adtVariant = variant
-            symbolTable.getInfo(variantIdent)?.type = variant.typeForConstructor()
+        }
+
+        // Convert all record variants in type definition
+        for ((variantIdent, fieldExprs) in typeDef.recordVariants) {
+            // Create variant by parsing field types and add to ADT sig
+            val fields = fieldExprs.mapValues { (_, typeExpr) -> convertType(typeExpr) }
+            val variant = RecordVariant(adtSig, variantIdent.name, fields)
+            adtSig.variants.add(variant)
+
+            // Annotate variant's identifier with newly created variant
+            symbolTable.getInfo(variantIdent)?.adtVariant = variant
         }
     }
 

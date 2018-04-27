@@ -369,10 +369,11 @@ class TypeChecker(var symbolTable: SymbolTable) {
             is MapLiteralNode -> typeCheckMapLiteral(node, boundVars, refresh)
             is TupleLiteralNode -> typeCheckTupleLiteral(node, boundVars, refresh)
             is LambdaNode -> typeCheckLambda(node, boundVars, refresh)
+            is TupleTypeConstructorNode -> typeCheckTupleTypeConstructor(node, boundVars, refresh)
+            is RecordTypeConstructorNode -> typeCheckRecordTypeConstructor(node, boundVars, refresh)
             // Variables and functions
             is VariableNode -> typeCheckVariable(node, boundVars, refresh)
             is FunctionCallNode -> typeCheckFunctionCall(node, boundVars, refresh)
-            is TypeConstructorNode -> typeCheckTypeConstructor(node, boundVars, refresh)
             is KeyedAccessNode -> typeCheckKeyedAccess(node, boundVars, refresh)
             is KeyedAssignmentNode -> typeCheckKeyedAssignment(node, boundVars, refresh)
             is VariableAssignmentNode -> typeCheckVariableAssignment(node, boundVars, refresh)
@@ -830,14 +831,14 @@ class TypeChecker(var symbolTable: SymbolTable) {
         }
     }
 
-    fun typeCheckTypeConstructor(
-        node: TypeConstructorNode,
+    fun typeCheckTupleTypeConstructor(
+        node: TupleTypeConstructorNode,
         boundVars: MutableSet<TypeVariable>,
         refresh: Boolean
     ) {
         node.actualArgs.forEach { actualArg -> typeCheck(actualArg, boundVars, refresh) }
 
-        // Create a fresh adt type for this type variant, since exact type params aren't known yet
+        // Create a fresh adt type for this type variant, since type params must be new
         val nodeType = node.adtVariant.adtSig.getFreshAdt()
         if (!unify(node.type, nodeType)) {
             val types = typesToString(nodeType, node.type, boundVars)
@@ -849,11 +850,11 @@ class TypeChecker(var symbolTable: SymbolTable) {
         val expectedArgTypes = node.adtVariant.getTypeConstructorWithParams(nodeType.typeParams)
         val actualArgTypes = node.actualArgs.map { arg -> arg.type }
 
-        // If either expected or actual args are empty, print special message if both aren't empty
+        // If expected or actual args are empty, print special message if both aren't empty
         if (actualArgTypes.size == 0) {
             if (expectedArgTypes.size != 0) {
-                throw IRConversionException("${node.adtVariant.name} expects arguments of type " +
-                        "${formatTypes(expectedArgTypes)}, but received no arguments",
+                throw IRConversionException("${node.adtVariant.name} expects arguments of " +
+                        "type ${formatTypes(expectedArgTypes)}, but received no arguments",
                         node.startLocation)
             // If no args exist or were expected, there is nothing to type check since adt type
             // must have no params to infer.
@@ -861,8 +862,9 @@ class TypeChecker(var symbolTable: SymbolTable) {
                 return
             }
         } else if (expectedArgTypes.size == 0) {
-            throw IRConversionException("${node.adtVariant.name} expects no arguments, but found " +
-                        "arguments of type ${formatTypes(actualArgTypes)}", node.startLocation)
+            throw IRConversionException("${node.adtVariant.name} expects no arguments, but " +
+                    "found arguments of type ${formatTypes(actualArgTypes)}",
+                    node.startLocation)
         }
 
         // Unify each arg type with its expected type
@@ -873,8 +875,37 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
         if (!canUnify) {
             throw IRConversionException("${node.adtVariant.name} expected arguments of type " +
-                    "${formatTypes(expectedArgTypes)}, but found ${formatTypes(actualArgTypes)}",
-                    node.startLocation)
+                    "${formatTypes(expectedArgTypes)}, but found " +
+                    "${formatTypes(actualArgTypes)}", node.startLocation)
+        }
+    }
+
+    fun typeCheckRecordTypeConstructor(
+        node: RecordTypeConstructorNode,
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
+    ) {
+        node.fields.forEach { (_, field) -> typeCheck(field, boundVars, refresh) }
+
+        // Create a fresh adt type for this type variant, since type params must be new
+        val nodeType = node.adtVariant.adtSig.getFreshAdt()
+        if (!unify(node.type, nodeType)) {
+            val types = typesToString(nodeType, node.type, boundVars)
+            throw IRConversionException("Could not infer return type for type constructor, " +
+                    "expected ${types[0]} but found ${types[1]}", node.startLocation)
+        }
+
+        // Find constructor fields types given the current adt params and adt variant
+        val expectedFieldTypes = node.adtVariant.getFieldsWithParams(nodeType.typeParams)
+
+        // Make sure that every field has the correct type
+        node.fields.forEach { (fieldName, field) ->
+            val expectedFieldType = expectedFieldTypes[fieldName]!!
+            if (!unify(field.type, expectedFieldType)) {
+                val types = typesToString(expectedFieldType, field.type, boundVars)
+                throw IRConversionException("${node.adtVariant.name} expected field ${fieldName} " +
+                        "to have type ${types[0]}, but found ${types[1]}", field.startLocation)
+            }
         }
     }
 

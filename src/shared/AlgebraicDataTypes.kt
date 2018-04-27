@@ -54,19 +54,37 @@ class AlgebraicDataTypeSignature(
 /**
  * A single variant of an algebraic data type - serves as the master resource for defining this
  * variant of the algebraic data type.
- * 
+ *
+ * @property adtSig the algebraic data type signature that this is a variant of
  * @property name the name of the type constructor for this variant
- * @property type the (optional) type of this variant. This should only use the type variables
- *           specified as parameters in the adt signature. If null, the type constructor needs no
- *           arguments.
- * @property the unique id for this variant
+ * @property id the unique id for this variant
  */
-class AlgebraicDataTypeVariant(
+sealed class AlgebraicDataTypeVariant(
     val adtSig: AlgebraicDataTypeSignature,
     val name: String,
-    val typeConstructor: List<Type>,
     val id: Long = newAdtVariantId()
 ) {
+    override fun hashCode(): Int = id.hashCode()
+
+    override fun equals(other: Any?): Boolean {
+        if (other !is AlgebraicDataTypeVariant) {
+            return false
+        }
+
+        return id == other.id
+    }
+}
+
+/**
+ * A variant of an algebraic data type that is a tuple (including the variant that has no arguments)
+ * 
+ * @property typeConstructor a list of types representing the arguments to the type constructor
+ */
+class TupleVariant(
+    adtSig: AlgebraicDataTypeSignature,
+    name: String,
+    val typeConstructor: List<Type>
+) : AlgebraicDataTypeVariant(adtSig, name) {
     /**
      * Create the type corresponding to this variant's type constructor. If the constructor has
      * multiple types it is a tuple of those types, if the constructor has a single type it is
@@ -99,14 +117,24 @@ class AlgebraicDataTypeVariant(
             return "${name}"
         }
     }
+}
 
-    override fun hashCode(): Int = id.hashCode()
-
-    override fun equals(other: Any?): Boolean {
-        if (other !is AlgebraicDataTypeVariant) {
-            return false
-        }
-
-        return id == other.id
+/**
+ * A variant of an algebraic data type that is a record.
+ * 
+ * @property fields a map of field names to the type of that field for the record variant
+ */
+class RecordVariant(
+    adtSig: AlgebraicDataTypeSignature,
+    name: String,
+    val fields: Map<String, Type>
+) : AlgebraicDataTypeVariant(adtSig, name) {
+    /**
+     * Returns a version of the fields with the given params substituted in for the
+     * formal params in the adt signature.
+     */
+    fun getFieldsWithParams(params: List<Type>): Map<String, Type> {
+        val paramsMap = adtSig.typeParams.zip(params).toMap()
+        return fields.mapValues { (_, type) -> type.substitute(paramsMap) }
     }
 }

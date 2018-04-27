@@ -66,12 +66,13 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             is MapLiteralNode -> evalMapLiteralNode(node, env)
             is TupleLiteralNode -> evalTupleLiteralNode(node, env)
             is LambdaNode -> evalLambda(node, env)
+            is TupleTypeConstructorNode -> evalTupleTypeConstructor(node, env)
+            is RecordTypeConstructorNode -> evalRecordTypeConstructor(node, env)
             // Variables and functions
             is VariableNode -> env.lookup(node.ident)
             is KeyedAccessNode -> evalKeyedAccess(node, env)
             is KeyedAssignmentNode -> evalKeyedAssignment(node, env)
             is FunctionCallNode -> evalFunctionCall(node, env)
-            is TypeConstructorNode -> evalTypeConstructor(node, env)
             is PatternAssignmentNode -> evalPatternAssignment(node, env)
             is VariableAssignmentNode -> evalVariableAssignment(node, env)
             is PatternDefinitionNode -> evalPatternDefinition(node, env)
@@ -400,9 +401,12 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         return returnValue
     }
 
-    fun evalTypeConstructor(node: TypeConstructorNode, env: Environment): AlgebraicDataTypeValue {
+    fun evalTupleTypeConstructor(
+        node: TupleTypeConstructorNode,
+        env: Environment
+    ): TupleVariantValue {
         val actualArgs = node.actualArgs.map { expr -> evaluate(expr, env) }
-        return AlgebraicDataTypeValue(node.adtVariant, actualArgs, node.type)
+        return TupleVariantValue(node.adtVariant, actualArgs, node.type)
     }
 
     fun evalPatternAssignment(node: PatternAssignmentNode, env: Environment): Value {
@@ -412,6 +416,14 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         }
 
         return value
+    }
+
+    fun evalRecordTypeConstructor(
+        node: RecordTypeConstructorNode,
+        env: Environment
+    ): RecordVariantValue {
+        val fields = node.fields.mapValues { (_, field) -> evaluate(field, env) }
+        return RecordVariantValue(node.adtVariant, fields, node.type)
     }
 
     fun evalVariableAssignment(node: VariableAssignmentNode, env: Environment): Value {
@@ -617,11 +629,16 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
                         .map({ (elem, pat) -> matchPattern(elem, pat, env, bind) })
                         .all({ x -> x })
             // ADTs match if they are the same variant and contain the same elements
-            is AlgebraicDataTypeValue -> pattern is TypeConstructorNode &&
+            is TupleVariantValue -> pattern is TupleTypeConstructorNode &&
                     value.adtVariant == pattern.adtVariant &&
                     value.fields.zip(pattern.actualArgs)
                         .map({ (field, pat) -> matchPattern(field, pat, env, bind) })
                         .all({ x -> x })
+            is RecordVariantValue -> pattern is RecordTypeConstructorNode &&
+                    value.adtVariant == pattern.adtVariant &&
+                    pattern.fields.map({ (name, field) ->
+                        matchPattern(value.fields[name]!!, field, env, bind)
+                    }).all({ x -> x })
             // Nothing can match functions or unit
             is BuiltinValue -> false
             is ClosureValue -> false

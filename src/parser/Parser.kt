@@ -232,6 +232,7 @@ class Parser(
                 // Function call or access
                 is LeftParenToken -> parseApplicationExpression(currentExpr, token)
                 is LeftBracketToken -> parseKeyedAccessExpression(currentExpr, token)
+                is LeftBraceToken -> parseRecordTypeConstructorExpression(currentExpr, token)
                 is PeriodToken -> parseAccessExpression(currentExpr, token)
                 else -> throw ParseException(token)
             }
@@ -554,9 +555,49 @@ class Parser(
         return KeyedAccessExpression(prevExpr, keyExpr, leftBracketToken.location)
     }
 
+    fun parseRecordTypeConstructorExpression(
+        prevExpr: Expression,
+        leftBraceToken: LeftBraceToken
+    ): RecordTypeConstructorExpression {
+        // If parseRecordTypeConstructorExpression is called, the previous token must have been a {
+        val fields: MutableMap<String, Expression> = mutableMapOf()
+
+        // Parse comma separated list of fields, all within curly braces
+        fieldsLoop@ while (tokenizer.current !is RightBraceToken) {
+            var token = tokenizer.next()
+            if (token !is IdentifierToken) {
+                throw ParseException("Field names must be identifiers", token)
+            }
+
+            // Fields in a record must be unique
+            if (fields.containsKey(token.str)) {
+                throw ParseException("Field with name ${token.str} already defined in " +
+                        "this record", token)
+            }
+
+            assertCurrent(TokenType.COLON)
+            tokenizer.next()
+
+            fields[token.str] = parseExpression()
+
+            // If a right brace is found, all fields have been parsed. If a comma is
+            // found, there must still be fields to parse. Otherwise, syntax is invalid.
+            when (tokenizer.current) {
+                is RightBraceToken -> break@fieldsLoop
+                is CommaToken -> tokenizer.next()
+                else -> throw ParseException(tokenizer.current)
+            }
+        }
+
+        assertCurrent(TokenType.RIGHT_BRACE)
+        tokenizer.next()
+
+        return RecordTypeConstructorExpression(prevExpr, fields, false, leftBraceToken.location)
+    }
+
     fun parseAccessExpression(prevExpr: Expression, periodToken: PeriodToken): AccessExpression {
         // If parseKeyedAccessExpression is called, the previous token must have been a .
-        val accessExpr = parseExpression(EXPR_APPLICATION_ACCESS_PRECEDENCE)
+        val accessExpr = parseExpression(EXPR_APPLICATION_OR_ACCESS_PRECEDENCE)
 
         return AccessExpression(prevExpr, accessExpr, periodToken.location)
     }
@@ -645,10 +686,74 @@ class Parser(
         // All parts except the last are part of the scope. Add resolve job to symbol table.
         val scopeTokens = identParts.take(identParts.size - 1)
 
-        // If there is no left parent following the variable, it is a variable.
-        // Otherwise it must be a type constructor.
-        if (tokenizer.current !is LeftParenToken) {
-            // Defined variables must have no scopes
+        // If there is a left paren following the variable, this is a tuple type constructor
+        // pattern definition.
+        if (tokenizer.current is LeftParenToken) {
+            // Must be a type constructor, so look it up with scopes in context
+            val ident = symbolTable.lookupVariable(token.str, scopeTokens.map({ it.str }),
+                    token.location, importContext)
+            val variableExpr = VariableExpression(ident, token.location)
+            val callLocation = tokenizer.current.location
+
+            // Parse comma separated list of lValues
+            tokenizer.next()
+            val lValues = mutableListOf(parseLValue(identProps))
+            while (tokenizer.current !is RightParenToken) {
+                assertCurrent(TokenType.COMMA)
+                tokenizer.next()
+
+                lValues.add(parseLValue(identProps))
+            }
+
+            assertCurrent(TokenType.RIGHT_PAREN)
+            tokenizer.next()
+
+            return ApplicationExpression(variableExpr, lValues, callLocation)
+        // If there is a left brace following the variable, this is a tuple type constructor
+        // pattern definition.
+        } else if (tokenizer.current is LeftBraceToken) {
+            // Must be a type constructor, so look it up with scopes in context
+            val ident = symbolTable.lookupVariable(token.str, scopeTokens.map({ it.str }),
+                    token.location, importContext)
+            val variableExpr = VariableExpression(ident, token.location)
+            val callLocation = tokenizer.current.location
+
+            val fields: MutableMap<String, Expression> = mutableMapOf()
+
+            // Parse comma separated list of fields, all within curly braces
+            tokenizer.next()
+            fieldsLoop@ while (tokenizer.current !is RightBraceToken) {
+                var currentToken = tokenizer.next()
+                if (currentToken !is IdentifierToken) {
+                    throw ParseException("Field names must be identifiers", currentToken)
+                }
+
+                // Fields in a record must be unique
+                if (fields.containsKey(currentToken.str)) {
+                    throw ParseException("Field with name ${currentToken.str} already defined in " +
+                            "this record", currentToken)
+                }
+
+                assertCurrent(TokenType.COLON)
+                tokenizer.next()
+
+                fields[currentToken.str] = parseLValue(identProps)
+
+                // If a right brace is found, all fields have been parsed. If a comma is
+                // found, there must still be fields to parse. Otherwise, syntax is invalid.
+                when (tokenizer.current) {
+                    is RightBraceToken -> break@fieldsLoop
+                    is CommaToken -> tokenizer.next()
+                    else -> throw ParseException(tokenizer.current)
+                }
+            }
+
+            assertCurrent(TokenType.RIGHT_BRACE)
+            tokenizer.next()
+
+            return RecordTypeConstructorExpression(variableExpr, fields, true, callLocation)
+        // Otherwise this is a defined variable, and it must have no scopes
+        } else {
             if (scopeTokens.isEmpty()) {
                 val ident = symbolTable.addVariable(token.str, IdentifierClass.VARIABLE,
                         token.location, WhichScope.CURRENT, identProps)
@@ -658,27 +763,6 @@ class Parser(
                         scopeTokens[0].location)
             }
         }
-
-        // Must be a type constructor, so look it up with scopes in context
-        val ident = symbolTable.lookupVariable(token.str, scopeTokens.map({ it.str }),
-                token.location, importContext)
-        val variableExpr = VariableExpression(ident, token.location)
-        val callLocation = tokenizer.current.location
-
-        // Parse comma separated list of lValues
-        tokenizer.next()
-        val lValues = mutableListOf(parseLValue(identProps))
-        while (tokenizer.current !is RightParenToken) {
-            assertCurrent(TokenType.COMMA)
-            tokenizer.next()
-
-            lValues.add(parseLValue(identProps))
-        }
-
-        assertCurrent(TokenType.RIGHT_PAREN)
-        tokenizer.next()
-
-        return ApplicationExpression(variableExpr, lValues, callLocation)
     }
 
     fun parseLambdaExpression(funToken: FunToken): LambdaExpression {
@@ -997,11 +1081,9 @@ class Parser(
                 val args: MutableList<Expression> = mutableListOf()
 
                 // Identifier may be followed by (optional) comma separated list of patterns within
-                // parentheses, meaning this is a type constructor pattern instead of a variable.
+                // parentheses, meaning this is a tuple type constructor pattern.
                 val variableExpr = VariableExpression(ident, token.location)
-                if (tokenizer.current !is LeftParenToken) {
-                    return variableExpr
-                } else {
+                if (tokenizer.current is LeftParenToken) {
                     val callLocation = tokenizer.current.location
 
                     do {
@@ -1013,6 +1095,48 @@ class Parser(
                     tokenizer.next()
 
                     return ApplicationExpression(variableExpr, args, callLocation)
+                // Identifier may be followed by (optional) comma separated list of named fields
+                // and patterns within braces, meaning this is a record type constructor pattern.
+                } else if (tokenizer.current is LeftBraceToken) {
+                    val leftBraceLocation = tokenizer.current.location
+                    tokenizer.next()
+
+                    val fields: MutableMap<String, Expression> = mutableMapOf()
+
+                    // Parse comma separated list of fields, all within curly braces
+                    fieldsLoop@ while (tokenizer.current !is RightBraceToken) {
+                        token = tokenizer.next()
+                        if (token !is IdentifierToken) {
+                            throw ParseException("Field names must be identifiers", token)
+                        }
+
+                        // Fields in a record must be unique
+                        if (fields.containsKey(token.str)) {
+                            throw ParseException("Field with name ${token.str} already defined in " +
+                                    "this record", token)
+                        }
+
+                        assertCurrent(TokenType.COLON)
+                        tokenizer.next()
+
+                        fields[token.str] = parsePattern()
+
+                        // If a right brace is found, all fields have been parsed. If a comma is
+                        // found, there must still be fields to parse. Otherwise, syntax is invalid.
+                        when (tokenizer.current) {
+                            is RightBraceToken -> break@fieldsLoop
+                            is CommaToken -> tokenizer.next()
+                            else -> throw ParseException(tokenizer.current)
+                        }
+                    }
+
+                    assertCurrent(TokenType.RIGHT_BRACE)
+                    tokenizer.next()
+
+                    return RecordTypeConstructorExpression(variableExpr, fields, true,
+                            leftBraceLocation)
+                } else {
+                    return variableExpr
                 }
             }
             else -> throw ParseException("Patterns must only consist of literals and variables",
@@ -1497,7 +1621,9 @@ class Parser(
         assertCurrent(TokenType.EQUALS)
         tokenizer.next()
 
-        val variants: MutableList<Pair<Identifier, List<TypeExpression>>> = mutableListOf()
+        val tupleVariants: MutableList<Pair<Identifier, List<TypeExpression>>> = mutableListOf()
+        val recordVariants: MutableList<Pair<Identifier, Map<String, TypeExpression>>> =
+                mutableListOf()
         var firstVariant = true
 
         // Parse nonempty sequence of variant definitions
@@ -1540,39 +1666,82 @@ class Parser(
                     val variantIdent = symbolTable.addVariable(variantNameToken.str,
                             IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT, variantNameToken.location,
                             WhichScope.PACKAGE)
-                    variants.add(Pair(variantIdent, listOf()))
+                    tupleVariants.add(Pair(variantIdent, listOf()))
                     break
                 } else {
                     throw AmbiguousEndException()
                 }
             }
 
-            // Parse optional type constructor arguments
-            val typeAnnotation = if (tokenizer.current is LeftParenToken) {
-                parseType()
-            } else {
-                null
-            }
+            if (tokenizer.current is LeftBraceToken) {
+                tokenizer.next()
 
-            // If tuple type then constructor is elements of tuple, otherwise use parsed type
-            // if it exists, or empty constructor if no type annotation was provided
-            val typeConstructor = if (typeAnnotation is TupleTypeExpression) {
-                typeAnnotation.elementTypes
-            } else if (typeAnnotation != null) {
-                listOf(typeAnnotation)
-            } else {
-                listOf()
-            }
+                val fields: MutableMap<String, TypeExpression> = mutableMapOf()
 
-            // Create a new variant identifier and add it to the package scope
-            val variantIdent = symbolTable.addVariable(variantNameToken.str,
-                    IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT, variantNameToken.location,
-                    WhichScope.PACKAGE)
-            variants.add(Pair(variantIdent, typeConstructor))
+                // Parse comma separated list of fields, all within curly braces
+                fieldsLoop@ while (tokenizer.current !is RightBraceToken) {
+                    var token = tokenizer.next()
+                    if (token !is IdentifierToken) {
+                        throw ParseException("Field names must be identifiers", token)
+                    }
+
+                    // Fields in a record must be unique
+                    if (fields.containsKey(token.str)) {
+                        throw ParseException("Field with name ${token.str} already defined in " +
+                                "this record", token)
+                    }
+
+                    assertCurrent(TokenType.COLON)
+                    tokenizer.next()
+
+                    fields[token.str] = parseType()
+
+                    // If a right brace is found, all fields have been parsed. If a comma is
+                    // found, there must still be fields to parse. Otherwise, syntax is invalid.
+                    when (tokenizer.current) {
+                        is RightBraceToken -> break@fieldsLoop
+                        is CommaToken -> tokenizer.next()
+                        else -> throw ParseException(tokenizer.current)
+                    }
+                }
+
+                assertCurrent(TokenType.RIGHT_BRACE)
+                tokenizer.next()
+
+                // Create a new record variant identifier and add it to the package scope
+                val variantIdent = symbolTable.addVariable(variantNameToken.str,
+                        IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT, variantNameToken.location,
+                        WhichScope.PACKAGE)
+                recordVariants.add(Pair(variantIdent, fields))
+            // Otherwise this is a tuple type variant
+            } else {
+                // Parse optional type constructor arguments
+                val typeAnnotation = if (tokenizer.current is LeftParenToken) {
+                    parseType()
+                } else {
+                    null
+                }
+
+                // If tuple type then constructor is elements of tuple, otherwise use parsed type
+                // if it exists, or empty constructor if no type annotation was provided
+                val typeConstructor = if (typeAnnotation is TupleTypeExpression) {
+                    typeAnnotation.elementTypes
+                } else if (typeAnnotation != null) {
+                    listOf(typeAnnotation)
+                } else {
+                    listOf()
+                }
+
+                // Create a new tuple variant identifier and add it to the package scope
+                val variantIdent = symbolTable.addVariable(variantNameToken.str,
+                        IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT, variantNameToken.location,
+                        WhichScope.PACKAGE)
+                tupleVariants.add(Pair(variantIdent, typeConstructor))
+            }
         } while (true)
 
         symbolTable.exitScope()
 
-        return TypeDefinitionExpression(typeIdent, typeParams, variants)
+        return TypeDefinitionExpression(typeIdent, typeParams, tupleVariants, recordVariants)
     }
 }

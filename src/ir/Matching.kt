@@ -44,10 +44,21 @@ class SetTraceOption(val setSizes: Set<Int>) : MatchTraceOption()
 // A map type, along with the size of all map literals that were checked
 class MapTraceOption(val mapSizes: Set<Int>) : MatchTraceOption()
 
-// An ADT, along with the variant that was checked
-class VariantBeginTraceOption(val variant: AlgebraicDataTypeVariant) : MatchTraceOption()
+// A tuple variant type constructor, along with the variant that was checked
+class TupleVariantBeginTraceOption(val variant: TupleVariant) : MatchTraceOption()
+
+/**
+ * A record variant type constructor, along with the variant that was checked and the fields that
+ * were checked, in the order they were checked.
+ */
+class RecordVariantBeginTraceOption(
+    val variant: RecordVariant,
+    val fields: List<String>
+) : MatchTraceOption()
 
 class InexhaustiveMatchException(val trace: MatchTrace) : Exception()
+
+val VARIABLE_NODE = VariableNode(Identifier("_"), Location(1, 1, null))
 
 /**
  * Check whether every match statement in the tree rooted at the given root has exhaustive match
@@ -220,20 +231,70 @@ private fun exhaustiveMatches(
 
         // There must be exhaustive, nested matches for each variant in this ADT
         typeToCheck.adtSig.variants.forEach({ variant ->
-            // Find the correct type constructor for this parameterized variant
-            val typeConstructor = variant.getTypeConstructorWithParams(typeToCheck.typeParams)
+            if (variant is TupleVariant) {
+                // Find the correct type constructor for this parameterized variant
+                val typeConstructor = variant.getTypeConstructorWithParams(typeToCheck.typeParams)
 
-            val variantPatterns = patterns.mapNotNull { (pat, rest) -> 
-                val firstPattern = pat[0]
-                if (firstPattern is TypeConstructorNode && firstPattern.adtVariant == variant) {
-                    Pair(firstPattern.actualArgs, listOf(pat.drop(1)) + rest)
-                } else {
-                    null
+                val variantPatterns = patterns.mapNotNull { (pat, rest) -> 
+                    val firstPattern = pat[0]
+                    if (firstPattern is TupleTypeConstructorNode &&
+                            firstPattern.adtVariant == variant) {
+                        Pair(firstPattern.actualArgs, listOf(pat.drop(1)) + rest)
+                    } else {
+                        null
+                    }
                 }
-            }
 
-            exhaustiveMatches(typeConstructor, variantPatterns, listOf(nextTypes) + restOfTypes,
-                    listOf(vars) + varPatterns, trace + VariantBeginTraceOption(variant))
+                exhaustiveMatches(typeConstructor, variantPatterns, listOf(nextTypes) + restOfTypes,
+                        listOf(vars) + varPatterns, trace + TupleVariantBeginTraceOption(variant))
+            } else if (variant is RecordVariant) {
+                // Find the correct fields for this parameterized variant
+                val fields = variant.getFieldsWithParams(typeToCheck.typeParams)
+
+                // Find all fields that appear in the given list of patterns
+                val fieldsInPatterns: MutableSet<String> = mutableSetOf()
+                patterns.forEach { (pat, _) ->
+                    val firstPattern = pat[0]
+                    if (firstPattern is RecordTypeConstructorNode &&
+                            firstPattern.adtVariant == variant) {
+                        fieldsInPatterns.addAll(firstPattern.fields.keys)
+                    }
+                }
+
+                // Create list of all fields found in patterns along with their types, in order
+                val fieldsInOrder: MutableList<String> = mutableListOf()
+                val typesInOrder: MutableList<Type> = mutableListOf()
+
+                for (field in fieldsInPatterns) {
+                    fieldsInOrder.add(field)
+                    typesInOrder.add(fields[field]!!)
+                }
+
+                val variantPatterns = patterns.mapNotNull { (pat, rest) -> 
+                    val firstPattern = pat[0]
+                    if (firstPattern is RecordTypeConstructorNode &&
+                            firstPattern.adtVariant == variant) {
+                        // Construct list of fields in same order, if field is not specified in
+                        // pattern then put in special variable node.
+                        val patternList = fieldsInOrder.map { field ->
+                            val fieldPattern = firstPattern.fields[field]
+                            if (fieldPattern != null) {
+                                fieldPattern
+                            } else {
+                                VARIABLE_NODE
+                            }
+                        }
+
+                        Pair(patternList, listOf(pat.drop(1)) + rest)
+                    } else {
+                        null
+                    }
+                }
+
+                exhaustiveMatches(typesInOrder, variantPatterns, listOf(nextTypes) + restOfTypes,
+                        listOf(vars) + varPatterns,
+                        trace + RecordVariantBeginTraceOption(variant, fieldsInOrder))
+            }
         })
     // Int type can only be exhaustively matched by wildcard, but gather all literals for trace
     } else if (typeToCheck is IntType) {
@@ -437,28 +498,55 @@ class WildcardMapMatchedCase(val size: Int) : MatchedCase() {
  * A matched case that contains nested matched cases.
  *
  * @param elements the nested matched cases
- * @param name the name of this case. If null, this is a tuple. If non-null, this is an ADT variant
- *        with that name
+ * @param variant the ADT variant for this matched case, or null if this is a tuple
+ * @param fields the list of fields that were checked, in order. This is only non-null if this is
+ *        a record variant.
  */
-class NestedMatchedCase(val elements: MutableList<MatchedCase>, val name: String?) : MatchedCase() {
+class NestedMatchedCase(
+    val elements: MutableList<MatchedCase>,
+    val variant: AlgebraicDataTypeVariant?,
+    val fields: List<String>?
+) : MatchedCase() {
     override fun simplify(): MatchedCase {
         val simplifiedElements = elements.map(MatchedCase::simplify)
 
         // This nested case can be removed if it is a tuple and all fields are wildcards
-        if (name == null && simplifiedElements.all { element -> element is WildcardMatchedCase }) {
+        if (simplifiedElements.all { element -> element is WildcardMatchedCase } &&
+                variant == null) {
             return WildcardMatchedCase
         } else {
-            return NestedMatchedCase(simplifiedElements.toMutableList(), name)
+            return NestedMatchedCase(simplifiedElements.toMutableList(), variant, fields)
         }
     }
 
     override fun toString(): String {
-        if (name == null) {
-            return elements.joinToString(", ", "(", ")")
-        } else if (elements.isEmpty()) {
-            return name
+        // If a tuple, format elements into comma separated list
+        if (variant is TupleVariant) {
+            if (elements.isEmpty()) {
+                return variant.name
+            } else {
+                return variant.name + elements.joinToString(", ", "(", ")")
+            }
+        // If a record, use elements corresponding to record fields, and all other fields
+        // are mapped to wildcards.
+        } else if (variant is RecordVariant) {
+            val recordExample: MutableMap<String, MatchedCase> = mutableMapOf()
+            for ((field, _) in variant.fields) {
+                val fieldIdx = fields?.indexOf(field)!!
+                if (fieldIdx == -1) {
+                    recordExample[field] = WildcardMatchedCase
+                } else {
+                    recordExample[field] = elements[fieldIdx]
+                }
+            }
+
+            val fieldString = recordExample.map({ (fieldName, fieldValue) ->
+                "${fieldName}: ${fieldValue}"
+            }).joinToString(", ", "{", "}")
+            return variant.name + fieldString
+        // Otherwise this must be a tuple
         } else {
-            return name + elements.joinToString(", ", "(", ")")
+            return elements.joinToString(", ", "(", ")")
         }
     }
 }
@@ -469,7 +557,7 @@ class NestedMatchedCase(val elements: MutableList<MatchedCase>, val name: String
  */
 private fun traceToMatchedCase(trace: MatchTrace, type: Type): MatchedCase {
     val typeStack: MutableList<MutableList<Type>> = mutableListOf(mutableListOf(type))
-    val matchedCase =  NestedMatchedCase(mutableListOf(), null)
+    val matchedCase =  NestedMatchedCase(mutableListOf(), null, null)
     val matchedCaseStack: MutableList<NestedMatchedCase> = mutableListOf(matchedCase)
 
     for (traceOption in trace) {
@@ -490,7 +578,7 @@ private fun traceToMatchedCase(trace: MatchTrace, type: Type): MatchedCase {
                 val tupleType = typeStack[0].removeAt(0) as TupleType
                 typeStack.add(0, tupleType.elementTypes.toMutableList())
 
-                val tupleMatchCase = NestedMatchedCase(mutableListOf(), null)
+                val tupleMatchCase = NestedMatchedCase(mutableListOf(), null, null)
                 matchedCaseStack[0].elements.add(tupleMatchCase)
                 matchedCaseStack.add(0, tupleMatchCase)
             }
@@ -506,18 +594,42 @@ private fun traceToMatchedCase(trace: MatchTrace, type: Type): MatchedCase {
 
                 matchedCaseStack.removeAt(0)
             }
-            // Variants are added as a new nested match case pushed onto the stack, and types for
-            // the variant (if they exist) are pushed onto the type stack.
-            is VariantBeginTraceOption -> {
+            // Tuple variants are added as a new nested match case pushed onto the stack, and types
+            // for the variant (if they exist) are pushed onto the type stack.
+            is TupleVariantBeginTraceOption -> {
                 val adtType = typeStack[0].removeAt(0) as AlgebraicDataType
-                val typeArgs = traceOption.variant.getTypeConstructorWithParams(adtType.typeParams)
+                val typeArgs = traceOption.variant
+                        .getTypeConstructorWithParams(adtType.typeParams)
 
-                val variantNestedCase = NestedMatchedCase(mutableListOf(), traceOption.variant.name)
+                val variantNestedCase = NestedMatchedCase(mutableListOf(),
+                        traceOption.variant, null)
                 matchedCaseStack[0].elements.add(variantNestedCase)
 
-                // Push onto the type stack (and matched case stack) if variant has type arguments 
+                // Push onto the type stack (and matched case stack) if variant has type args 
                 if (!typeArgs.isEmpty()) {
                     typeStack.add(0, typeArgs.toMutableList())
+                    matchedCaseStack.add(0, variantNestedCase)
+                }
+            }
+            // Tuple variants are added as a new nested match case pushed onto the stack, and types
+            // for the variant (if they exist) are pushed onto the type stack.
+            is RecordVariantBeginTraceOption -> {
+                val adtType = typeStack[0].removeAt(0) as AlgebraicDataType
+                val fields = traceOption.variant.getFieldsWithParams(adtType.typeParams)
+
+                // Construct list of type corresponding to matched fields, in same orde as fields
+                val typesInOrder: MutableList<Type> = mutableListOf()
+                for (field in traceOption.fields) {
+                    typesInOrder.add(fields[field]!!)
+                }
+
+                val variantNestedCase = NestedMatchedCase(mutableListOf(),
+                        traceOption.variant, traceOption.fields)
+                matchedCaseStack[0].elements.add(variantNestedCase)
+
+                // Push onto the type stack (and matched case stack) if variant has type args 
+                if (!typesInOrder.isEmpty()) {
+                    typeStack.add(0, typesInOrder.toMutableList())
                     matchedCaseStack.add(0, variantNestedCase)
                 }
             }
