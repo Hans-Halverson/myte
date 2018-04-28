@@ -70,6 +70,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             is RecordTypeConstructorNode -> evalRecordTypeConstructor(node, env)
             // Variables and functions
             is VariableNode -> env.lookup(node.ident)
+            is AccessNode -> evalAccess(node, env)
             is KeyedAccessNode -> evalKeyedAccess(node, env)
             is KeyedAssignmentNode -> evalKeyedAssignment(node, env)
             is FunctionCallNode -> evalFunctionCall(node, env)
@@ -281,6 +282,16 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             else -> throw EvaluationException("Comparison must be between two numbers, "
                     + "given ${formatType(node.type)}", node.startLocation)
         }
+    }
+
+    fun evalAccess(node: AccessNode, env: Environment): Value {
+        val expr = evaluate(node.expr, env)
+        if (expr !is RecordVariantValue) {
+            throw EvaluationException("Can only access field on record type, found ${expr.type}",
+                    node.accessLocation)
+        }
+
+        return expr.fields[node.field]!!
     }
 
     fun evalKeyedAccess(node: KeyedAccessNode, env: Environment): Value {

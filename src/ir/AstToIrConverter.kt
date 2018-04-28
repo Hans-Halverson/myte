@@ -104,6 +104,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             stmt is ApplicationExpression -> convertApplication(stmt)
             stmt is RecordTypeConstructorExpression -> convertRecordTypeConstructor(stmt)
             stmt is KeyedAccessExpression -> convertKeyedAccess(stmt)
+            stmt is AccessExpression -> convertAccess(stmt)
             stmt is AssignmentExpression -> convertAssignment(stmt)
             stmt is VariableDefinitionStatement -> convertVariableDefinition(stmt)
             stmt is FunctionDefinitionStatement -> convertFunctionDefinition(stmt)
@@ -210,6 +211,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
 
         // If this is a simple variable assignment, create variable definition node
         if (pattern is VariableNode) {
+            symbolTable.getInfo(pattern.ident)?.type = type
             return VariableDefinitionNode(pattern.ident, convert(stmt.expr, true),
                     pattern.startLocation, stmt.startLocation)
         // Otherwise this is a pattern deconstruction variable definition
@@ -366,6 +368,10 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
                 convert(expr.key, true), expr.accessLocation)
     }
 
+    fun convertAccess(expr: AccessExpression): AccessNode {
+        return AccessNode(convert(expr.expr, true), expr.field, expr.accessLocation)
+    }
+
     fun convertAssignment(expr: AssignmentExpression): IRNode {
         // If the lValue is a keyed access, then this is a keyed assignment
         if (expr.lValue is KeyedAccessExpression) {
@@ -404,8 +410,8 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
                     throw IRConversionException("Can only reassign variables", expr.identLocation)
                 }
 
-                // Error if assigning to immutable variable
-                if (isImmutable(ident)) {
+                // Error if assigning to immutable variable outside of its definition
+                if (!inDef && isImmutable(ident)) {
                     throw IRConversionException("Cannot reassign immutable variable " +
                             "${ident.name}", expr.identLocation)
                 }

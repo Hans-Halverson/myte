@@ -109,11 +109,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
     /**
      * Add a deferred constraint to the given type variable.
      */
-    private fun addDeferredConstraint(
-        type: Type,
-        constraint: DeferredConstraint,
-        location: Location
-    ) {
+    private fun addDeferredConstraint(type: Type, constraint: DeferredConstraint) {
         if (type is TypeVariable) {
             // If a type variable, find the representative node and type
             val equivNode = findRepNode(type)
@@ -127,8 +123,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
             // Attempt to apply this constraint to concrete type, fail if not possible since there
             // will never be a point in the future in which it could be resolved.
             if (!constraint.apply(type)) {
-                throw IRConversionException("Could not apply constraint ${constraint} to ${type}",
-                        location)
+                constraint.assertUnresolved()
             }
         }
     }
@@ -251,7 +246,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
             if (rep1.rank > rep2.rank) {
                 rep2.parent = rep1
 
-                // Transfer deferred keyed access constraint to parent node
+                // Transfer deferred constraints to parent node
                 rep1.deferredConstraints.addAll(rep2.deferredConstraints.filter({
                     constraint -> !constraint.apply(rep1.resolvedType)
                 }))
@@ -262,9 +257,9 @@ class TypeChecker(var symbolTable: SymbolTable) {
                     rep2.rank++
                 }
 
-                // Transfer deferred keyed access constraint to parent node
+                // Transfer deferred constraints to parent node
                 rep2.deferredConstraints.addAll(rep1.deferredConstraints.filter({
-                    constraint -> !constraint.apply(rep1.resolvedType)
+                    constraint -> !constraint.apply(rep2.resolvedType)
                 }))
             }
 
@@ -374,6 +369,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
             // Variables and functions
             is VariableNode -> typeCheckVariable(node, boundVars, refresh)
             is FunctionCallNode -> typeCheckFunctionCall(node, boundVars, refresh)
+            is AccessNode -> typeCheckAccess(node, boundVars, refresh)
             is KeyedAccessNode -> typeCheckKeyedAccess(node, boundVars, refresh)
             is KeyedAssignmentNode -> typeCheckKeyedAssignment(node, boundVars, refresh)
             is VariableAssignmentNode -> typeCheckVariableAssignment(node, boundVars, refresh)
@@ -631,7 +627,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
         // Add deferred constraint to make sure node is int or float
         val unaryMathOperatorConstraint = UnaryMathOperatorConstraint(node, boundVars, this)
-        addDeferredConstraint(node.type, unaryMathOperatorConstraint, node.startLocation)
+        addDeferredConstraint(node.type, unaryMathOperatorConstraint)
     }
 
     fun typeCheckBinaryMathOperator(
@@ -652,7 +648,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
         // Add deferred constraint to make sure node is int or float
         val binaryMathOperatorConstraint = BinaryMathOperatorConstraint(node, boundVars, this)
-        addDeferredConstraint(node.type, binaryMathOperatorConstraint, node.startLocation)
+        addDeferredConstraint(node.type, binaryMathOperatorConstraint)
     }
 
     fun typeCheckLogicalAnd(
@@ -780,6 +776,13 @@ class TypeChecker(var symbolTable: SymbolTable) {
         }
     }
 
+    fun typeCheckAccess(node: AccessNode, boundVars: MutableSet<TypeVariable>, refresh: Boolean) {
+        typeCheck(node.expr, boundVars, refresh)
+        
+        val accessConstraint = AccessConstraint(node, boundVars, this)
+        addDeferredConstraint(node.expr.type, accessConstraint)
+    }
+
     fun typeCheckKeyedAccess(
         node: KeyedAccessNode,
         boundVars: MutableSet<TypeVariable>,
@@ -789,9 +792,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         typeCheck(node.key, boundVars, refresh)
 
         val keyedAccessConstraint = KeyedAccessConstraint(node, boundVars, this)
-
-        addDeferredConstraint(node.container.type, keyedAccessConstraint,
-                node.container.startLocation)
+        addDeferredConstraint(node.container.type, keyedAccessConstraint)
     }
 
     fun typeCheckKeyedAssignment(
@@ -804,9 +805,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         typeCheck(node.rValue, boundVars, refresh)
 
         val keyedAssignmentConstraint = KeyedAssignmentConstraint(node, boundVars, this)
-
-        addDeferredConstraint(node.container.type, keyedAssignmentConstraint,
-                node.container.startLocation)
+        addDeferredConstraint(node.container.type, keyedAssignmentConstraint)
     }
 
     fun typeCheckFunctionCall(
@@ -922,10 +921,8 @@ class TypeChecker(var symbolTable: SymbolTable) {
         typeCheck(node.rValue, boundVars, refresh)
 
         // The evaluation type of this node is the type stored for the variable in the symbol table.
-        // Since a type for an identifier is being found, a fresh version of that type must be used.
-        val freshType = findRepType(type, boundVars)
-        if (!unify(node.type, freshType)) {
-            val types = typesToString(freshType, node.type, boundVars)
+        if (!unify(node.type, type)) {
+            val types = typesToString(type, node.type, boundVars)
             throw IRConversionException("Variable assignment should evaluate to ${types[0]}, " +
                     "but found ${types[1]}", node.startLocation)
         }

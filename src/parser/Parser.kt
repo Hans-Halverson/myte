@@ -597,9 +597,14 @@ class Parser(
 
     fun parseAccessExpression(prevExpr: Expression, periodToken: PeriodToken): AccessExpression {
         // If parseKeyedAccessExpression is called, the previous token must have been a .
-        val accessExpr = parseExpression(EXPR_APPLICATION_OR_ACCESS_PRECEDENCE)
+        val fieldToken = tokenizer.current
+        if (fieldToken !is IdentifierToken) {
+            throw ParseException("Expected a field name", fieldToken)
+        }
 
-        return AccessExpression(prevExpr, accessExpr, periodToken.location)
+        tokenizer.next()
+
+        return AccessExpression(prevExpr, fieldToken.str, periodToken.location)
     }
 
     fun parseVariableDefinition(isConst: Boolean, defToken: Token): VariableDefinitionStatement {
@@ -930,7 +935,14 @@ class Parser(
 
     fun parseIfStatement(ifToken: IfToken): IfStatement {
         // If parseIfStatement is called, the previous token must have been an if
+        assertCurrent(TokenType.LEFT_PAREN)
+        tokenizer.next()
+
         val condition = parseExpression()
+
+        assertCurrent(TokenType.RIGHT_PAREN)
+        tokenizer.next()
+
         val consequent = parseStatement()
         var alternative: Statement? = null
 
@@ -945,7 +957,15 @@ class Parser(
 
     fun parseWhileStatement(whileToken: WhileToken): WhileStatement {
         // If parseWhileStatement is called, the previous token must have been a while
+        assertCurrent(TokenType.LEFT_PAREN)
+        tokenizer.next()
+
         val condition = parseExpression()
+
+        assertCurrent(TokenType.RIGHT_PAREN)
+        tokenizer.next()
+
+
         val statement = parseStatement()
 
         return WhileStatement(condition, statement, whileToken.location)
@@ -958,7 +978,13 @@ class Parser(
         assertCurrent(TokenType.WHILE)
         tokenizer.next()
 
+        assertCurrent(TokenType.LEFT_PAREN)
+        tokenizer.next()
+
         val condition = parseExpression()
+
+        assertCurrent(TokenType.RIGHT_PAREN)
+        tokenizer.next()
 
         return DoWhileStatement(condition, statement, doToken.location)
     }

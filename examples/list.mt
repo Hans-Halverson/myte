@@ -15,7 +15,7 @@ def map(f, l) = match l
 def filter(p, l) = match l
     | Nil -> Nil
     | Cons(hd, tl) -> {
-        if p(hd) {
+        if (p(hd)) {
             Cons(hd, filter(p, tl))
         } else {
             filter(p, tl)
