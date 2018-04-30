@@ -7,4 +7,4 @@ class ConvertFilesResult(val nodes: List<IRNode>, val main: Identifier)
 
 class ConvertPackagesResult(val nodes: List<IRNode>)
 
-class ConvertReplLineResult(val node: IRNode?)
+class ConvertReplLineResult(val toEvaluate: List<IRNode>, val toProcess: List<IRNode>)

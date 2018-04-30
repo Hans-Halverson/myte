@@ -58,10 +58,12 @@ class VariableSymbolPendingResolution(
             while (currentScope != null) {
                 // Walk up parent scopes, but can only look up in 1. Package scope since it is
                 // unordered, 2. Pattern scope since pattern variables are always unresolved
-                // on first pass throgh patterns, or 3. REPL scope since it is top level for REPL
+                // on first pass throgh patterns, 3. REPL scope since it is top level for REPL, or
+                // 4. Type definition (implementation) scope, as it contains methods and "this"
                 if (currentScope.type == ScopeType.PACKAGE ||
                         currentScope.type == ScopeType.PATTERN ||
-                        currentScope.type == ScopeType.REPL) {
+                        currentScope.type == ScopeType.REPL ||
+                        currentScope.type == ScopeType.TYPE_DEFINITION) {
                     val ident = currentScope.lookupVariable(name) 
                     if (ident != null) {
                         return ident

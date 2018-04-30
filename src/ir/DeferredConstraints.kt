@@ -249,27 +249,38 @@ class AccessConstraint(
     override fun apply(trigger: Type): Boolean {
         val exprType = trigger
         if (exprType is AlgebraicDataType) {
-            // Error if expr is not resolved to a simple record type
-            val recordVariant = exprType.adtSig.variants[0]
-            if (exprType.adtSig.variants.size != 1 || recordVariant !is RecordVariant) {
-                val typeStr = typeChecker.typeToString(exprType, boundVars)
-                throw IRConversionException("Can only access field on simple record type, found " +
-                        "${typeStr}", node.accessLocation)
-            }
+            // Find method type if a method was defined
+            val methodIdent = exprType.adtSig.methods[node.field]
+            val accessType = if (methodIdent != null) {
+                val methodType = typeChecker.symbolTable.getInfo(methodIdent)?.type!!
+                val paramsMap = exprType.adtSig.typeParams.zip(exprType.typeParams).toMap()
+                typeChecker.findRepSubstitution(methodType, paramsMap)
+            // Otherwise find field type with that name, or error if none was found
+            } else {
+                // Error if expr is not resolved to a simple record type
+                val recordVariant = exprType.adtSig.variants[0]
+                if (exprType.adtSig.variants.size != 1 || recordVariant !is RecordVariant) {
+                    val typeStr = typeChecker.typeToString(exprType, boundVars)
+                    throw IRConversionException("No field or method with name ${node.field} for " +
+                            "type ${typeStr}", node.accessLocation)
+                }
 
-            // Error if no field with the given name is defined on the record type
-            val fieldType = recordVariant.getFieldsWithParams(exprType.typeParams)[node.field]
-            if (fieldType == null) {
-                val typeStr = typeChecker.typeToString(exprType, boundVars)
-                throw IRConversionException("${typeStr} does not have field with name " +
-                        "${node.field}", node.accessLocation)
+                // Error if no field with the given name is defined on the record type
+                val fieldType = recordVariant.getFieldsWithParams(exprType.typeParams)[node.field]
+                if (fieldType == null) {
+                    val typeStr = typeChecker.typeToString(exprType, boundVars)
+                    throw IRConversionException("No field or method with name ${node.field} for " +
+                            "type ${typeStr}", node.accessLocation)
+                }
+
+                fieldType
             }
 
             // Type of node is type of corresponding record field
-            if (!typeChecker.unify(node.type, fieldType)) {
-                val types = typeChecker.typesToString(node.type, fieldType, boundVars)
-                throw IRConversionException("Field inferred to have type ${types[0]}, but " +
-                        "expected ${types[1]}", node.accessLocation)
+            if (!typeChecker.unify(node.type, accessType)) {
+                val types = typeChecker.typesToString(node.type, accessType, boundVars)
+                throw IRConversionException("Field or method inferred to have type ${types[0]}, " +
+                        "but expected ${types[1]}", node.accessLocation)
             }
 
             return true

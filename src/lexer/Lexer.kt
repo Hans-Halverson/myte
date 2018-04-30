@@ -121,6 +121,7 @@ private fun getKeywordToken(str: String, location: Location): Token? {
         "package" -> PackageToken(location)
         "import" -> ImportToken(location)
         "as" -> AsToken(location)
+        "implement" -> ImplementToken(location)
         else -> null
     }
 }

@@ -73,6 +73,7 @@ class Parser(
 
         when (token) {
             is TypeToken -> pack.typeDefs.add(parseTypeDefinition())
+            is ImplementToken -> pack.typeImpls.add(parseTypeImplementation())
             is DefToken -> pack.statements.add(parseFunctionDefinition(token))
             is LetToken -> pack.statements.add(parseVariableDefinition(false, token))
             is ConstToken -> pack.statements.add(parseVariableDefinition(true, token))
@@ -121,8 +122,9 @@ class Parser(
                 parseImportStatements(importContext, true)
                 null
             }
-            // Otherwise parse type definition or statement
+            // Otherwise parse type definition, implementation, or statement
             is TypeToken -> parseTypeDefinition()
+            is ImplementToken -> parseTypeImplementation()
             else -> parseStatement(token)
         }
 
@@ -1602,7 +1604,7 @@ class Parser(
         return parseType(inFunctionDef)
     }
 
-    fun parseTypeDefinition(): TypeDefinitionExpression {
+    fun parseTypeDefinition(): TypeDefinitionStatement {
         // If parseTypeDefinition is called, the previous token must have been a type
         var currentToken = tokenizer.current
         if (currentToken !is IdentifierToken) {
@@ -1768,6 +1770,67 @@ class Parser(
 
         symbolTable.exitScope()
 
-        return TypeDefinitionExpression(typeIdent, typeParams, tupleVariants, recordVariants)
+        return TypeDefinitionStatement(typeIdent, typeParams, tupleVariants, recordVariants)
+    }
+
+    fun parseTypeImplementation(): TypeImplementationStatement {
+        var token = tokenizer.current
+        if (token !is IdentifierToken) {
+            throw ParseException("Type must follow implement declaration", token)
+        }
+
+        // Find type in symbol table
+        val typeNameToken = token
+        val typeIdent = symbolTable.addTypeVariable(typeNameToken.str, listOf(), importContext,
+                typeNameToken.location, false)
+        val typeParams: MutableList<Identifier> = mutableListOf()
+
+        tokenizer.next()
+
+        // Enter a new scope for the duration of this definition, so that type params will be local
+        symbolTable.enterScope(ScopeType.TYPE_DEFINITION)
+        
+        // Parse optional type parameters
+        if (tokenizer.current is LessThanToken) {
+            // Type parameters must be a comma separated list of identifiers within < >
+            do {
+                tokenizer.next()
+                token = tokenizer.current
+
+                if (token !is IdentifierToken) {
+                    throw ParseException("Expected ${token} to be an identifier", token)
+                }
+
+                // Add the type parameter to the local environment and save it in the list of params
+                typeParams.add(symbolTable.addType(token.str, IdentifierClass.TYPE_PARAMETER,
+                        token.location))
+
+                tokenizer.next()
+            } while (tokenizer.current is CommaToken)
+
+            assertCurrent(TokenType.GREATER_THAN)
+            tokenizer.next()
+        }
+
+        assertCurrent(TokenType.LEFT_BRACE)
+        tokenizer.next()
+
+        // Add "this" to method definition scope and add all method definitions
+        val methods: MutableList<FunctionDefinitionStatement> = mutableListOf()
+        val thisIdent = symbolTable.addVariable("this", IdentifierClass.VARIABLE,
+                typeNameToken.location)
+
+        while (tokenizer.current is DefToken) {
+            token = tokenizer.current as DefToken
+            tokenizer.next()
+            methods.add(parseFunctionDefinition(token))
+        }
+
+        assertCurrent(TokenType.RIGHT_BRACE)
+        tokenizer.next()
+
+        symbolTable.exitScope()
+
+        return TypeImplementationStatement(typeIdent, typeParams, thisIdent, methods)
     }
 }

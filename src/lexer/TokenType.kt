@@ -257,6 +257,10 @@ enum class TokenType {
         override fun toString(): String = "as"
     },
 
+    IMPLEMENT {
+        override fun toString(): String = "implement"
+    },
+
     NEW_LINE {
         override fun toString(): String = "\\n"
     }

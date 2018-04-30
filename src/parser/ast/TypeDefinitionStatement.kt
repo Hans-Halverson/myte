@@ -2,7 +2,7 @@ package myte.parser.ast
 
 import myte.shared.*
 
-class TypeDefinitionExpression(
+class TypeDefinitionStatement(
     val typeIdent: Identifier,
     val typeParamIdents: List<Identifier>,
     val tupleVariants: List<Pair<Identifier, List<TypeExpression>>>,

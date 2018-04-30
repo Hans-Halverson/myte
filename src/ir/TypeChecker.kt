@@ -143,7 +143,75 @@ class TypeChecker(var symbolTable: SymbolTable) {
             }
         }
 
-        return findRepType(type, mutableSetOf())
+        return findRepType(type, mutableSetOf(), mutableMapOf(), false)
+    }
+
+    /**
+     * Given a key and value, fill in the representative type variable to representative type
+     * mappings for all variable/type pairs in the key and value types.
+     *
+     * @param keyType the key type to fill in type variable mappings for
+     * @param valType the value type to associate with a type variable
+     * @param substMap the map from representative type variables to representative types
+     */
+    fun substituteReps(
+        keyType: Type,
+        valType: Type,
+        substMap: MutableMap<TypeVariable, Type>
+    ) {
+        val keyRepType = findRepType(keyType, mutableSetOf(), mutableMapOf(), false)
+        val valRepType = findRepType(valType, mutableSetOf(), mutableMapOf(), false)
+
+        when {
+            // For non type variables, simply recur into types
+            keyRepType is VectorType && valRepType is VectorType ->
+                substituteReps(keyRepType.elementType, valRepType.elementType, substMap)
+            keyRepType is SetType && valRepType is SetType ->
+                substituteReps(keyRepType.elementType, valRepType.elementType, substMap)
+            keyRepType is MapType && valRepType is MapType -> {
+                substituteReps(keyRepType.keyType, valRepType.keyType, substMap)
+                substituteReps(keyRepType.valType, valRepType.valType, substMap)
+            }
+            keyRepType is TupleType && valRepType is TupleType -> keyRepType.elementTypes
+                .zip(valRepType.elementTypes).forEach { (keyType, valType) ->
+                    substituteReps(keyType, valType, substMap)
+                }
+            keyRepType is FunctionType && valRepType is FunctionType -> {
+                keyRepType.argTypes.zip(valRepType.argTypes).forEach { (keyType, valType) ->
+                    substituteReps(keyType, valType, substMap)
+                }
+
+                substituteReps(keyRepType.returnType, valRepType.returnType, substMap)
+            }
+            keyRepType is AlgebraicDataType && valRepType is AlgebraicDataType ->
+                keyRepType.typeParams.zip(valRepType.typeParams).forEach { (keyType, valType) ->
+                    substituteReps(keyType, valType, substMap)
+                }
+            // Add type variables to representative substitution map
+            keyRepType is TypeVariable -> {
+                substMap[keyRepType] = valRepType
+            }
+        }
+    }
+
+    /**
+     * Find the substitution given a map and a type, working on the representative types of both
+     * the type and the substitution.
+     */
+    fun findRepSubstitution(
+        type: Type,
+        substMap: Map<TypeVariable, Type>
+    ): Type {
+        // Find the representative substitution of the given substitution
+        val repSubstMap: MutableMap<TypeVariable, Type> = mutableMapOf()
+        substMap.forEach { (keyType, valType) ->
+            substituteReps(keyType, valType, repSubstMap)
+        }
+
+        // Use the representative substitutions on this type's representative type
+        val repType = findRepType(type, mutableSetOf(), mutableMapOf(), false)
+
+        return repType.substitute(repSubstMap)
     }
 
     /**
@@ -156,11 +224,13 @@ class TypeChecker(var symbolTable: SymbolTable) {
      * @param boundVars set of all bound type variables. If not supplied, defaults to the empty set.
      * @param mappedVars map of old type variables to fresh type variables for all unbound type
      *        variables encountered so far. If not supplied, defaults to the empty map.
+     * @param refresh whether to create a new type variable for all unbound type variables in type
      */
     private fun findRepType(
         type: Type,
         boundVars: MutableSet<TypeVariable>,
-        mappedVars: MutableMap<TypeVariable, TypeVariable> = mutableMapOf()
+        mappedVars: MutableMap<TypeVariable, TypeVariable> = mutableMapOf(),
+        refresh: Boolean = true
     ): Type {
         // Find the representative type if this is a type variable, otherwise use the type
         val repType = if (type is TypeVariable) findRepNode(type).resolvedType else type
@@ -168,21 +238,21 @@ class TypeChecker(var symbolTable: SymbolTable) {
         return when (repType) {
             // Find the rep type for vector element type and reconstruct vector type
             is VectorType -> {
-                VectorType(findRepType(repType.elementType, boundVars, mappedVars))
+                VectorType(findRepType(repType.elementType, boundVars, mappedVars, refresh))
             }
             // Find the rep type for set element type and reconstruct set type
             is SetType -> {
-                SetType(findRepType(repType.elementType, boundVars, mappedVars))
+                SetType(findRepType(repType.elementType, boundVars, mappedVars, refresh))
             }
             // Find the rep type for map's key and value types and reconstruct map type
             is MapType -> {
-                MapType(findRepType(repType.keyType, boundVars, mappedVars),
-                        findRepType(repType.valType, boundVars, mappedVars))
+                MapType(findRepType(repType.keyType, boundVars, mappedVars, refresh),
+                        findRepType(repType.valType, boundVars, mappedVars, refresh))
             }
             // Find the rep type for each tuple element and reconstruct tuple type
             is TupleType -> {
                 val elementTypes = repType.elementTypes.map { elementType ->
-                    findRepType(elementType, boundVars, mappedVars)
+                    findRepType(elementType, boundVars, mappedVars, refresh)
                 }
                 
                 return TupleType(elementTypes)
@@ -190,16 +260,16 @@ class TypeChecker(var symbolTable: SymbolTable) {
             // Find the rep type for each arg and return type, and reconstruct function type
             is FunctionType -> {
                 val argTypes = repType.argTypes.map { argType ->
-                    findRepType(argType, boundVars, mappedVars)
+                    findRepType(argType, boundVars, mappedVars, refresh)
                 }
-                val returnType = findRepType(repType.returnType, boundVars, mappedVars)
+                val returnType = findRepType(repType.returnType, boundVars, mappedVars, refresh)
 
                 return FunctionType(argTypes, returnType)
             }
             // Find the rep type for each type parameter and reconstruct adt with correct adt sig
             is AlgebraicDataType -> {
                 val typeParams = repType.typeParams.map { typeParam ->
-                    findRepType(typeParam, boundVars, mappedVars)
+                    findRepType(typeParam, boundVars, mappedVars, refresh)
                 }
 
                 return AlgebraicDataType(repType.adtSig, typeParams)
@@ -219,10 +289,13 @@ class TypeChecker(var symbolTable: SymbolTable) {
                 val mappedVar = mappedVars[repType]
                 if (mappedVar != null) {
                     return mappedVar
-                } else {
+                // Generate new type variable if refresh flag is set, otherwise return rep type
+                } else if (refresh) {
                     val newVar = TypeVariable()
                     mappedVars[repType] = newVar
                     return newVar
+                } else {
+                    return repType
                 }
             }
             else -> repType
@@ -1031,6 +1104,14 @@ class TypeChecker(var symbolTable: SymbolTable) {
         // Add all type variables in function type to the set of bound type variables
         funcType.getAllVariables().forEach { typeVar ->
             newBoundVars.add(typeVar)
+        }
+
+        // If this is a method definition, add all type implementation parameters to bound vars
+        if (node is MethodDefinitionNode) {
+            val type = symbolTable.getInfo(node.thisIdent)?.type!!
+            type.getAllVariables().forEach { typeVar ->
+                newBoundVars.add(typeVar)
+            }
         }
 
         typeCheck(node.body, newBoundVars, refresh)

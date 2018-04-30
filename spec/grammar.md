@@ -23,6 +23,7 @@ EXPR -> NUMBER_LITERAL
       | BLOCK
       | IF_STATEMENT
       | MATCH_STATEMENT
+      | EXPR . IDENT
 
 UNARY -> + EXPR
        | - EXPR
@@ -133,6 +134,8 @@ STATEMENT -> EXPR
 BLOCK -> { STATEMENT* }
 
 
+METHODS -> implement IDENT [< TYPE_PARAM_LIST >]? { [FUNCTION_DEF]* }
+
 
 TOP_LEVEL_STATEMENT -> TYPE_DEF
                      | FUNCTION_DEF
@@ -146,6 +149,7 @@ IMPORT -> import PACKAGE_NAME :: { IDENT [as IDENT]? [, IDENT [as IDENT]?]* }
 
 REPL_LINE -> STATEMENT
            | TYPE_DEF
+           | 
            | IMPORT
 
 FILE -> PACKAGE [IMPORT]* [TOP_LEVEL_STATEMENT]*

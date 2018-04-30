@@ -39,9 +39,12 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
     }
 
     fun evaluateReplLine(replLineResult: ConvertReplLineResult) {
-        // If there is something to be evaluated, evaluate it and print out value
-        val node = replLineResult.node
-        if (node != null) {
+        // First evaluate nodes to process, then evaluate nodes to evaluate and print values
+        for (node in replLineResult.toProcess) {
+            evaluate(node)
+        }
+
+        for (node in replLineResult.toEvaluate) {
             val value = evaluate(node)
             printValue(value)
         }
@@ -78,6 +81,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             is VariableAssignmentNode -> evalVariableAssignment(node, env)
             is PatternDefinitionNode -> evalPatternDefinition(node, env)
             is VariableDefinitionNode -> evalVariableDefinition(node, env)
+            is MethodDefinitionNode -> evalMethodDefinition(node, env)
             is FunctionDefinitionNode -> evalFunctionDefinition(node, env)
             // Math expressions
             is UnaryMathOperatorNode -> evalUnaryMathOperator(node, env)
@@ -286,12 +290,21 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
 
     fun evalAccess(node: AccessNode, env: Environment): Value {
         val expr = evaluate(node.expr, env)
-        if (expr !is RecordVariantValue) {
-            throw EvaluationException("Can only access field on record type, found ${expr.type}",
-                    node.accessLocation)
-        }
 
-        return expr.fields[node.field]!!
+        // If method is defined, add expression as receiver
+        val adtType = expr.type as AlgebraicDataType
+        val methodIdent = adtType.adtSig.methods[node.field]
+        if (methodIdent != null) {
+            val methodValue = env.lookup(methodIdent) as MethodValue
+            return methodValue.withReceiver(expr)
+        } else {
+            if (expr !is RecordVariantValue) {
+                throw EvaluationException("No field or method with name ${node.field} for " +
+                        "type ${expr.type}", node.accessLocation)
+            }
+
+            return expr.fields[node.field]!!
+        }
     }
 
     fun evalKeyedAccess(node: KeyedAccessNode, env: Environment): Value {
@@ -367,6 +380,16 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         // has all the formal arguments identifiers bound to actual values.
         val applicationEnv: Environment = closure.environment.copy()
         applicationEnv.enterScope()
+
+        // Bind "this" if a method is being called
+        if (closure is MethodValue) {
+            if (closure.receiver == null) {
+                throw EvaluationException("Cannot call method without receiver",
+                        closure.body.startLocation)
+            }
+
+            applicationEnv.extend(closure.thisIdent, closure.receiver)
+        }
 
         closure.formalArgs.zip(args).forEach { (ident, value) ->
             applicationEnv.extend(ident, value)
@@ -455,6 +478,18 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
 
     fun evalVariableDefinition(node: VariableDefinitionNode, env: Environment): UnitValue {
         env.extend(node.ident, evaluate(node.expr, env))
+        return UnitValue
+    }
+
+    fun evalMethodDefinition(node: MethodDefinitionNode, env: Environment): UnitValue {
+        val type = symbolTable.getInfo(node.ident)?.type
+        if (type !is FunctionType) {
+            throw EvaluationException("Unknown function ${node.ident.name}", node.identLocation)
+        }
+
+        env.extend(node.ident, MethodValue(node.formalArgs, node.body, env.copy(), node.thisIdent,
+                null, type))
+
         return UnitValue
     }
 

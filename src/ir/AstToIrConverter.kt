@@ -29,10 +29,16 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         packages.forEach { pack -> pack.typeDefs.forEach(this::createAdtSig) }
         packages.forEach { pack -> pack.typeDefs.forEach(this::createAdtVariants) }
 
+        // Create implementations for ADTs, saving definition nodes in list of all IR nodes.
+        val irNodes: MutableList<IRNode> = mutableListOf()
+        irNodes.addAll(packages.flatMap({ pack ->
+            pack.typeImpls.flatMap(this::createTypeImplementation)
+        }))
+
         // Convert all statements of each package
-        val irNodes = packages.map({ pack ->
+        irNodes.addAll(packages.flatMap({ pack ->
             pack.statements.map({ convert(it, false) })
-        }).flatten()
+        }))
 
         // Infer types and then check structure of IR
         inferTypes(irNodes)
@@ -57,12 +63,20 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         if (statement == null) {
             // If no statement this must have been an import, so check that all imports exist
             assertImportsExist(listOf(replLineResult.importContext))
-            return ConvertReplLineResult(null)
-        } else if (statement is TypeDefinitionExpression) {
+            return ConvertReplLineResult(listOf(), listOf())
+        } else if (statement is TypeDefinitionStatement) {
             // Create ADT sig and variants
             createAdtSig(statement)
             createAdtVariants(statement)
-            return ConvertReplLineResult(null)
+            return ConvertReplLineResult(listOf(), listOf())
+        } else if (statement is TypeImplementationStatement) {
+            // Create type implementation, then nfer types and check structure of methods
+            val irNodes = createTypeImplementation(statement)
+
+            inferTypes(irNodes)
+            irNodes.forEach(this::assertIRStructure)
+
+            return ConvertReplLineResult(listOf(), irNodes)
         } else if (statement is Statement) {
             // Convert node, infer types, and verify correct IR structure
             val node = when (statement) {
@@ -74,7 +88,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             inferTypes(listOf(node))
             assertIRStructure(node)
 
-            return ConvertReplLineResult(node)
+            return ConvertReplLineResult(listOf(node), listOf())
         } else {
             throw Exception("Unkown repl statement ${statement}")  
         }
@@ -591,7 +605,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     //
     ///////////////////////////////////////////////////////////////////////////
 
-    fun createAdtSig(typeDef: TypeDefinitionExpression) {
+    fun createAdtSig(typeDef: TypeDefinitionStatement) {
         // First annotate all type parameters identifiers with new type variables
         val typeParams = typeDef.typeParamIdents.map { typeParamIdent ->
             val typeParam = TypeVariable()
@@ -605,7 +619,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         symbolTable.getInfo(typeDef.typeIdent)?.type = adtSig.getAdtWithParams(adtSig.typeParams)
     }
 
-    fun createAdtVariants(typeDef: TypeDefinitionExpression) {
+    fun createAdtVariants(typeDef: TypeDefinitionStatement) {
         val adtSig = symbolTable.getInfo(typeDef.typeIdent)?.adtSig!!
 
         // Convert all tuple variants in type definition
@@ -629,6 +643,58 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             // Annotate variant's identifier with newly created variant
             symbolTable.getInfo(variantIdent)?.adtVariant = variant
         }
+    }
+
+    fun createTypeImplementation(typeImpl: TypeImplementationStatement): List<IRNode> {
+        val typeIdent = typeImpl.typeIdent.resolve()
+        val info = symbolTable.getInfo(typeIdent)!!
+
+        if (info.idClass != IdentifierClass.ALGEBRAIC_DATA_TYPE) {
+            throw IRConversionException("Can only define methods for user defined data types",
+                    info.location)
+        }
+
+        // Make sure number of type parameters is correct
+        val adtSig = info.adtSig
+        if (adtSig.typeParams.size != typeImpl.typeParamIdents.size) {
+            throw IRConversionException("Type ${adtSig.name} expects " +
+                    "${adtSig.typeParams.size} type parameters, but received " +
+                    "${typeImpl.typeParamIdents.size}", info.location)
+        }
+
+        // Annotate type parameter identifiers with new type variables
+        typeImpl.typeParamIdents.zip(adtSig.typeParams).forEach { (typeParamIdent, adtTypeParam) ->
+            symbolTable.getInfo(typeParamIdent)?.type = adtTypeParam
+        }
+
+        // Annotate "this" with correctly parameterized type
+        symbolTable.getInfo(typeImpl.thisIdent)?.type = adtSig.getAdtWithParams(adtSig.typeParams)
+
+        // Check that every method and field has a unique name
+        val names: MutableSet<String> = mutableSetOf()
+        val firstVariant = adtSig.variants[0]
+        if (adtSig.variants.size == 1 && firstVariant is RecordVariant) {
+            names.addAll(firstVariant.fields.keys)
+        }
+
+        for (methodDef in typeImpl.methods) {
+            if (names.contains(methodDef.ident.name)) {
+                throw IRConversionException("Field or method with name ${methodDef.ident.name} " +
+                        "already defined for type ${typeIdent.name}", methodDef.identLocation)
+            } else {
+                names.add(methodDef.ident.name)
+            }
+        }
+
+        // Convert function definitions to method definitions, then add methods to type
+        val funcDefs = typeImpl.methods.map(this::convertFunctionDefinition)
+        val methodDefs = funcDefs.map { funcDef ->
+            adtSig.methods[funcDef.ident.name] = funcDef.ident
+            MethodDefinitionNode(funcDef.ident, funcDef.formalArgs, funcDef.body,
+                    typeImpl.thisIdent, funcDef.identLocation, funcDef.startLocation)
+        }
+
+        return methodDefs
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -674,7 +740,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         } else if (info.idClass == IdentifierClass.TYPE_PARAMETER) {
             if (!typeExpr.typeParams.isEmpty()) {
                 // Error if this is not an ADT but was given type parameters
-                throw IRConversionException("Type ${ident.name} does not have any type parameters",
+                throw IRConversionException("Type ${ident.name} does not take any type parameters",
                         typeExpr.startLocation)
             }
 

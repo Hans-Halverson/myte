@@ -174,4 +174,8 @@ class AsToken(
     location: Location
 ) : IdentifierToken(TokenType.AS.toString(), location, TokenType.AS)
 
+class ImplementToken(
+    location: Location
+) : IdentifierToken(TokenType.IMPLEMENT.toString(), location, TokenType.IMPLEMENT)
+
 class NewLineToken(location: Location) : Token(location, TokenType.NEW_LINE)

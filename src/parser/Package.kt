@@ -52,7 +52,8 @@ class PackageTreeNode(
 class Package(
     val name: String,
     val scope: Scope = Scope(),
-    val typeDefs: MutableList<TypeDefinitionExpression> = mutableListOf(),
+    val typeDefs: MutableList<TypeDefinitionStatement> = mutableListOf(),
+    val typeImpls: MutableList<TypeImplementationStatement> = mutableListOf(),
     val statements: MutableList<Statement> = mutableListOf()
 ) {
     val packageTreeNode: PackageTreeNode = PackageTreeNode(name, this)

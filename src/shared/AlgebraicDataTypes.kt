@@ -13,6 +13,7 @@ class AlgebraicDataTypeSignature(
     val name: String,
     val typeParams: List<TypeVariable>,
     val variants: MutableList<AlgebraicDataTypeVariant> = mutableListOf(),
+    val methods: MutableMap<String, Identifier> = mutableMapOf(),
     val id: Long = newAdtId()
 ) {
     /**
@@ -33,11 +34,6 @@ class AlgebraicDataTypeSignature(
         }
 
         return AlgebraicDataType(this, types)
-    }
-
-    override fun toString(): String {
-        return "AlgebraicDataTypeSignature(name=${name}, typeParams=${typeParams}, " +
-                "variants=${variants}, id=${id})"
     }
 
     override fun hashCode(): Int = id.hashCode()

@@ -10,7 +10,7 @@ import myte.shared.*
  * @property body the body of the function
  * @property identLocation the location for the identifier of the function
  */
-class FunctionDefinitionNode(
+open class FunctionDefinitionNode(
     val ident: Identifier,
     val formalArgs: List<Identifier>,
     val body: IRNode,
@@ -22,3 +22,12 @@ class FunctionDefinitionNode(
         body.map(func)
     }
 }
+
+class MethodDefinitionNode(
+    ident: Identifier,
+    formalArgs: List<Identifier>,
+    body: IRNode,
+    val thisIdent: Identifier,
+    identLocation: Location,
+    startLocation: Location
+) : FunctionDefinitionNode(ident, formalArgs, body, identLocation, startLocation)
