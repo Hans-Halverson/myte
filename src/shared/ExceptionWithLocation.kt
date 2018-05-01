@@ -12,6 +12,8 @@ open class ExceptionWithLocation(message: String, val location: Location) : Exce
  */
 open class ExceptionWithoutLocation(message: String) : Exception(message)
 
+class UnexpectedEOFException() : Exception("Unexpected EOF encountered")
+
 /**
  * A certain place in a file, represented by character and line number.
  */
@@ -52,7 +54,7 @@ fun printExceptionWithLocation(except: ExceptionWithLocation, text: String) {
         "${except.location.fileName}:"
     } else {
         ""
-    } 
+    }
 
     // Print the error message formatted with terminal text color and highlighting
     println("${fileNamePrefix}${except.location.lineNum}:${except.location.charNum}:" +

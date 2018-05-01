@@ -312,7 +312,7 @@ private fun readAmpersand(reader: LL1StatefulReader): LogicalAndToken {
         reader.advance()
         return LogicalAndToken(location)
     } else {
-        throw LexicalException("Unexpected token encountered &${reader.next}", location)
+        throw LexicalException("Unknown symbol &${reader.next}", location)
     }
 }
 
@@ -370,6 +370,51 @@ private fun readColon(reader: LL1StatefulReader): Token {
     }
 }
 
+private fun readSlash(reader: LL1StatefulReader): Token? {
+    val location = reader.currentLocation
+
+    // If readColon is called, the current character must be "/"
+    if (reader.hasNext && reader.next == '/') {
+        reader.advance()
+        readLineComment(reader)
+        return null
+    } else if (reader.hasNext && reader.next == '*') {
+        reader.advance()
+        readBlockComment(reader)
+        return null
+    } else {
+        return ForwardSlashToken(location)
+    }
+}
+
+private fun readLineComment(reader: LL1StatefulReader) {
+    // Read until next new line character, consuming new line
+    while (reader.current != '\n') {
+        reader.advance()
+    }
+}
+
+private fun readBlockComment(reader: LL1StatefulReader) {
+    // Keep consuming tokens until a "*/" is seen
+    var seenAsterisk = false
+    while (true) {
+        if (reader.current == '*') {
+            seenAsterisk = true
+        } else if (seenAsterisk && reader.current == '/') {
+            reader.advance()
+            break
+        } else {
+            seenAsterisk = false
+        }
+
+        if (reader.hasNext) {
+            reader.advance()
+        } else {
+            throw UnexpectedEOFException()
+        }
+    }
+}
+
 private fun readStringLiteral(reader: LL1StatefulReader): StringLiteralToken {
     // If readPipe is called, the current character must be "\""
     val location = reader.currentLocation
@@ -379,7 +424,11 @@ private fun readStringLiteral(reader: LL1StatefulReader): StringLiteralToken {
     var str = StringBuilder()
     while (reader.current != '"') {
         str.append(reader.current)
-        reader.advance()
+        if (reader.hasNext) {
+            reader.advance()
+        } else {
+            throw UnexpectedEOFException()
+        }
     }
 
     return StringLiteralToken(str.toString(), location)
@@ -399,7 +448,6 @@ fun createTokens(input: Reader, fileName: String?): List<Token> {
             '+' -> tokens.add(PlusToken(location))
             '-' -> tokens.add(readMinus(reader))
             '*' -> tokens.add(AsteriskToken(location))
-            '/' -> tokens.add(ForwardSlashToken(location))
             '^' -> tokens.add(CaretToken(location))
             '=' -> tokens.add(readEquals(reader))
             '<' -> tokens.add(readLessThan(reader))
@@ -417,6 +465,13 @@ fun createTokens(input: Reader, fileName: String?): List<Token> {
             '.' -> tokens.add(PeriodToken(location))
             ',' -> tokens.add(CommaToken(location))
             ':' -> tokens.add(readColon(reader))
+            '/' -> {
+                // Only add token if one exists. This could read a comment and generate no token.
+                val token = readSlash(reader)
+                if (token != null) {
+                    tokens.add(token)
+                }
+            }
             in '0'..'9' -> tokens.add(readNumber(reader))
             else -> {
                 // Identifiers and keywords must begin with an alphabetic character or underscore.

@@ -1,6 +1,7 @@
 package myte.parser
 
 import myte.lexer.*
+import myte.shared.*
 
 class Tokenizer(val tokens: List<Token>) {
     private var currentIndex = 0
@@ -9,14 +10,14 @@ class Tokenizer(val tokens: List<Token>) {
      * Returns the current token.
      *
      * @return the current token
-     * @throws ParseEOFException if the tokenizer is at the end of the stream of tokens
+     * @throws UnexpectedEOFException if the tokenizer is at the end of the stream of tokens
      */
     val current: Token
         get() {
             if (currentIndex < tokens.size) {
                 return tokens.get(currentIndex)
             } else {
-                throw ParseEOFException()
+                throw UnexpectedEOFException()
             }
         }
 
@@ -30,11 +31,11 @@ class Tokenizer(val tokens: List<Token>) {
      * Advances the tokenizer by one token.
      *
      * @return the current token immediately before the tokenizer was advanced
-     * @throws ParseEOFException if the tokenizer is already at the end of the stream of tokens
+     * @throws UnexpectedEOFException if the tokenizer is already at the end of the stream of tokens
      */
     fun next(): Token {
         if (currentIndex == tokens.size) {
-            throw ParseEOFException()
+            throw UnexpectedEOFException()
         } else {
             return tokens.get(currentIndex++)
         }

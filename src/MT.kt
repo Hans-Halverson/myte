@@ -120,32 +120,38 @@ fun repl(packageFiles: List<String>) {
                     continue@replLoop
                 }
 
-                val tokens = createTokens(StringReader(inputLines.toString()), null)
-
-                if (line.trim() == "") {
-                    // If two blank lines in a row are seen, interpret as end of statement
-                    if (seenBlankLine) {
-                        println("Two empty lines encountered, ignoring input and moving to " +
-                                "next statement.")
-                        continue@replLoop
-                    // If a blank line is seen after an unambiguous end, it is simply a blank line
-                    // and the next line of input should be processed. If the end is ambiguous,
-                    // the input should be parsed normally as a complete statement.
-                    } else {
-                        seenBlankLine = true
-                        if (!ambiguousEnd) {
-                            continue@inputLoop
-                        }
-                    }
-                } else {
-                    seenBlankLine = false
-                }
-
-                ambiguousEnd = false
-
-                // Try parsing current tokens, evaluate if successful.
-                // Otherwise gather tokens from next line and try parsing again.
                 try {
+                    val tokens = createTokens(StringReader(inputLines.toString()), null)
+
+                    if (line.trim() == "") {
+                        // If two blank lines in a row are seen, interpret as end of statement
+                        if (seenBlankLine) {
+                            println("Two empty lines encountered, ignoring input and moving to " +
+                                    "next statement.")
+                            continue@replLoop
+                        // If a blank line is seen after an unambiguous end, it is simply a blank
+                        // line and the next line of input should be processed. If the end is
+                        // ambiguous, the input should be parsed normally as a complete statement.
+                        } else {
+                            seenBlankLine = true
+                            if (!ambiguousEnd) {
+                                continue@inputLoop
+                            }
+                        }
+                    } else {
+                        seenBlankLine = false
+                    }
+
+                    ambiguousEnd = false
+
+                    // If line was just a comment, continue onto next statement
+                    if (tokens.size == 0) {
+                        continue@replLoop
+                    }
+
+                    // Try parsing current tokens, evaluate if successful. Otherwise gather tokens
+                    // from next line and try parsing again.
+
                     // Create a new copy of symbol table and ident context and parse with it
                     val symbolTableCopy = symbolTable.copyForRepl()
                     val importContextCopy = importContext.copyForRepl()
@@ -163,7 +169,7 @@ fun repl(packageFiles: List<String>) {
                     importContext = parser.importContext
 
                     continue@replLoop
-                } catch (e: ParseEOFException) {
+                } catch (e: UnexpectedEOFException) {
                     continue@inputLoop
                 } catch (e: AmbiguousEndException) {
                     ambiguousEnd = true
