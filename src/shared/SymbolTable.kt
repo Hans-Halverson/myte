@@ -16,12 +16,12 @@ enum class ScopeType {
     PACKAGE,
     FUNCTION,
     PATTERN,
-    TYPE_DEFINITION
+    TYPE_DEFINITION,
+    NEW_DEFINITION
 }
 
 enum class WhichScope {
     CURRENT,
-    PREVIOUS,
     PACKAGE
 }
 
@@ -137,14 +137,9 @@ class SymbolTable() {
         scopePrefixes: List<String>,
         location: Location,
         importContext: ImportContext
-    ): ResolvableSymbol {
-        val ident = currentScope.lookupVariable(name)
-        if (ident != null && scopePrefixes.isEmpty()) {
-            return ResolvedIdentifier(ident)
-        } else {
-            return VariableSymbolPendingResolution(name, scopePrefixes, location,
-                    currentScope, importContext)
-        }
+    ): VariableSymbolPendingResolution {
+        return VariableSymbolPendingResolution(name, scopePrefixes, location,
+                currentScope, importContext)
     }
 
     fun addBuiltin(name: String): Identifier {
@@ -161,7 +156,6 @@ class SymbolTable() {
     ): Identifier {
         val scope = when (whichScope) {
             WhichScope.CURRENT -> currentScope
-            WhichScope.PREVIOUS -> currentScope.parent!!
             WhichScope.PACKAGE -> currentScope.findPackageScope()
         }
 
@@ -177,7 +171,6 @@ class SymbolTable() {
     ): Identifier {
         val scope = when (whichScope) {
             WhichScope.CURRENT -> currentScope
-            WhichScope.PREVIOUS -> currentScope.parent!!
             WhichScope.PACKAGE -> currentScope.findPackageScope()
         }
 
@@ -188,10 +181,11 @@ class SymbolTable() {
         name: String,
         scopePrefixes: List<String>,
         importContext: ImportContext,
-        location: Location
+        location: Location,
+        canCreate: Boolean
     ): PatternSymbolPendingResolution {
-        return PatternSymbolPendingResolution(name, scopePrefixes, location, currentScope,
-                this, importContext)
+        return PatternSymbolPendingResolution(name, scopePrefixes, location, canCreate,
+                currentScope, this, importContext)
     }
 
     fun addTypeVariable(

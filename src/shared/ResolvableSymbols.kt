@@ -52,25 +52,10 @@ class VariableSymbolPendingResolution(
         // If there are no scope prefixes, either variable is in this package's scope or it is an
         // imported function or variable from another scope.
         if (scopePrefixes.isEmpty()) {
-            var currentScope: Scope? = scope
-
-            // First try to resolve variable in the current package's scope
-            while (currentScope != null) {
-                // Walk up parent scopes, but can only look up in 1. Package scope since it is
-                // unordered, 2. Pattern scope since pattern variables are always unresolved
-                // on first pass throgh patterns, 3. REPL scope since it is top level for REPL, or
-                // 4. Type definition (implementation) scope, as it contains methods and "this"
-                if (currentScope.type == ScopeType.PACKAGE ||
-                        currentScope.type == ScopeType.PATTERN ||
-                        currentScope.type == ScopeType.REPL ||
-                        currentScope.type == ScopeType.TYPE_DEFINITION) {
-                    val ident = currentScope.lookupVariable(name) 
-                    if (ident != null) {
-                        return ident
-                    }
-                }
-
-                currentScope = currentScope.parent
+            // Lookup variable in current lexical scope
+            val ident = scope.lookupVariable(name)
+            if (ident != null) {
+                return ident
             }
 
             // Otherwise try to find import with the same alias
@@ -126,6 +111,7 @@ class PatternSymbolPendingResolution(
     val name: String,
     val scopePrefixes: List<String>,
     val location: Location,
+    val canCreate: Boolean,
     val scope: Scope,
     val symbolTable: SymbolTable,
     val importContext: ImportContext
@@ -153,14 +139,18 @@ class PatternSymbolPendingResolution(
                 }
             }
 
-            // Otherwise create a new variable and identifier
-            val patternIdent = symbolTable.addSymbolInScope(scope, name, IdentifierClass.VARIABLE,
-                    location, hashSetOf(), true)
+            // Otherwise create a new variable and identifier if the canCreate flag is set
+            if (canCreate) {
+                val patternIdent = symbolTable.addSymbolInScope(scope, name,
+                        IdentifierClass.VARIABLE, location, hashSetOf(), true)
 
-            // Annotate this new identifier with a new type variable
-            symbolTable.getInfo(patternIdent)?.type = TypeVariable()
+                // Annotate this new identifier with a new type variable
+                symbolTable.getInfo(patternIdent)?.type = TypeVariable()
 
-            return patternIdent
+                return patternIdent
+            } else {
+                throw IRConversionException("No type constructor with name ${name} found", location)
+            }
         // If there are scope prefixes, find correct package and lookup in it
         } else {
             val (importedPackage, fullImport) = findPackage(scopePrefixes, importContext, location)
@@ -203,25 +193,10 @@ class TypeSymbolPendingResolution(
         // If there are no scope prefixes, this is either a type defined 1. In this package,
         // 2. Directly imported, or 3. A new type variable to create if create flag is set.
         if (scopePrefixes.isEmpty()) {
-            var currentScope: Scope? = scope
-
-            // First check for types with this name defined in the current package (walking scopes)
-            while (currentScope != null) {
-                // Walk up parent scopes, but can only look up in 1. Package scope since it is
-                // unordered and contains type defs, 2. Function scope since type variables are
-                // added there, 3. Type def scope since type parameters are introduced there,
-                // 4. REPL scope as it servers as the top level for the REPL and contains type defs
-                if (currentScope.type == ScopeType.PACKAGE ||
-                        currentScope.type == ScopeType.FUNCTION ||
-                        currentScope.type == ScopeType.TYPE_DEFINITION ||
-                        currentScope.type == ScopeType.REPL) {
-                    val ident = currentScope.lookupType(name) 
-                    if (ident != null) {
-                        return ident
-                    }
-                }
-
-                currentScope = currentScope.parent
+            // Look up type in current lexical scope
+            val ident = scope.lookupType(name)
+            if (ident != null) {
+                return ident
             }
 
             // Next try to find an imported type with this alias

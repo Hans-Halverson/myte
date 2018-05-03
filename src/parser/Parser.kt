@@ -75,9 +75,9 @@ class Parser(
             is TypeToken -> pack.typeDefs.add(parseTypeDefinition())
             is ImplementToken -> pack.typeImpls.add(parseTypeImplementation())
             is TraitToken -> pack.traitDefs.add(parseTraitDefinition())
-            is DefToken -> pack.statements.add(parseFunctionDefinition(token))
-            is LetToken -> pack.statements.add(parseVariableDefinition(false, token))
-            is ConstToken -> pack.statements.add(parseVariableDefinition(true, token))
+            is DefToken -> pack.statements.add(parseFunctionDefinition(true, token))
+            is LetToken -> pack.statements.add(parseVariableDefinition(false, true, token))
+            is ConstToken -> pack.statements.add(parseVariableDefinition(true, true, token))
             else -> throw ParseException("Top level statements can only be type, function, or " +
                     "variable definitions", token)
         }
@@ -127,6 +127,10 @@ class Parser(
             is TypeToken -> parseTypeDefinition()
             is ImplementToken -> parseTypeImplementation()
             is TraitToken -> parseTraitDefinition()
+            // Function and variable definitions should be treated as if they are top level
+            is LetToken -> parseVariableDefinition(false, true, token)
+            is ConstToken -> parseVariableDefinition(true, true, token)
+            is DefToken -> parseFunctionDefinition(true, token)
             else -> parseStatement(token)
         }
 
@@ -149,9 +153,9 @@ class Parser(
      */
     fun parseStatement(token: Token): Statement {
         return when (token) {
-            is LetToken -> parseVariableDefinition(false, token)
-            is ConstToken -> parseVariableDefinition(true, token)
-            is DefToken -> parseFunctionDefinition(token)
+            is LetToken -> parseVariableDefinition(false, false, token)
+            is ConstToken -> parseVariableDefinition(true, false, token)
+            is DefToken -> parseFunctionDefinition(false, token)
             is WhileToken -> parseWhileStatement(token)
             is DoToken -> parseDoWhileStatement(token)
             is ForToken -> parseForStatement(token)
@@ -611,9 +615,18 @@ class Parser(
         return AccessExpression(prevExpr, fieldToken.str, periodToken.location)
     }
 
-    fun parseVariableDefinition(isConst: Boolean, defToken: Token): VariableDefinitionStatement {
+    fun parseVariableDefinition(
+        isConst: Boolean,
+        isTopLevel: Boolean,
+        defToken: Token
+    ): VariableDefinitionStatement {
         // If parseVariableDefinition is called, the previous token must have been a let or const
         val identProps = if (isConst) hashSetOf(IdentifierProperty.IMMUTABLE) else hashSetOf()
+
+        // If not top level, a new definition enters a new scope
+        if (!isTopLevel) {
+            symbolTable.enterScope(ScopeType.NEW_DEFINITION)
+        }
 
         val lValue = parseLValue(identProps)
 
@@ -837,7 +850,10 @@ class Parser(
         return LambdaExpression(formalArgs, body, funToken.location)
     }
 
-    fun parseFunctionDefinition(defToken: DefToken): FunctionDefinitionStatement {
+    fun parseFunctionDefinition(
+        isTopLevel: Boolean,
+        defToken: DefToken
+    ): FunctionDefinitionStatement {
         // If parseFunctionDefinition is called, the previous token must have been a def
         var token = tokenizer.next()
 
@@ -850,6 +866,15 @@ class Parser(
 
         assertCurrent(TokenType.LEFT_PAREN)
         tokenizer.next()
+
+        // If not top level, start a new scope where this function is defined
+        if (!isTopLevel) {
+            symbolTable.enterScope(ScopeType.NEW_DEFINITION)
+        }
+
+        // Add the function to the symbol table
+        val ident = symbolTable.addVariable(funcToken.str, IdentifierClass.FUNCTION,
+                funcToken.location)
 
         // Enter a new scope so that all variable names and types are scoped to this function
         symbolTable.enterScope(ScopeType.FUNCTION)
@@ -890,11 +915,6 @@ class Parser(
         } else {
             null
         }
-
-        // Add the function to the symbol table with correct type before parsing body, and make
-        // sure to add in previous scope, as symbolTable is currently in the scope of the function.
-        val ident = symbolTable.addVariable(funcToken.str, IdentifierClass.FUNCTION,
-                funcToken.location, WhichScope.PREVIOUS)
 
         // Expression function definition bodies begin with an equals sign
         if (tokenizer.current is EqualsToken) {
@@ -1105,16 +1125,15 @@ class Parser(
                 val name = identParts[identParts.size - 1]
                 val scopes = identParts.take(identParts.size - 1)
 
-                val ident = symbolTable.addPatternVariable(name, scopes, importContext,
-                        token.location)
-
-                val args: MutableList<Expression> = mutableListOf()
-
                 // Identifier may be followed by (optional) comma separated list of patterns within
                 // parentheses, meaning this is a tuple type constructor pattern.
-                val variableExpr = VariableExpression(ident, token.location)
                 if (tokenizer.current is LeftParenToken) {
+                    val ident = symbolTable.addPatternVariable(name, scopes, importContext,
+                            token.location, false)
+
+                    val variableExpr = VariableExpression(ident, token.location)
                     val callLocation = tokenizer.current.location
+                    val args: MutableList<Expression> = mutableListOf()
 
                     do {
                         tokenizer.next()
@@ -1128,6 +1147,10 @@ class Parser(
                 // Identifier may be followed by (optional) comma separated list of named fields
                 // and patterns within braces, meaning this is a record type constructor pattern.
                 } else if (tokenizer.current is LeftBraceToken) {
+                    val ident = symbolTable.addPatternVariable(name, scopes, importContext,
+                            token.location, false)
+
+                    val variableExpr = VariableExpression(ident, token.location)
                     val leftBraceLocation = tokenizer.current.location
                     tokenizer.next()
 
@@ -1166,7 +1189,9 @@ class Parser(
                     return RecordTypeConstructorExpression(variableExpr, fields, true,
                             leftBraceLocation)
                 } else {
-                    return variableExpr
+                    val ident = symbolTable.addPatternVariable(name, scopes, importContext,
+                            token.location, true)
+                    return VariableExpression(ident, token.location)
                 }
             }
             else -> throw ParseException("Patterns must only consist of literals and variables",
@@ -1615,6 +1640,7 @@ class Parser(
 
         val typeNameToken = currentToken
         val typeParams: MutableList<Identifier> = mutableListOf()
+        val typeParamNames: MutableSet<String> = mutableSetOf()
 
         tokenizer.next()
 
@@ -1633,9 +1659,16 @@ class Parser(
                             currentToken)
                 }
 
+                // Cannot have two type parameters with the same name
+                if (typeParamNames.contains(currentToken.str)) {
+                    throw ParseException("Type ${typeNameToken} cannot have two type " +
+                            "parameters with the same name: ${currentToken.str}", currentToken)
+                }
+
                 // Add the type parameter to the local environment and save it in the list of params
                 typeParams.add(symbolTable.addType(currentToken.str,
                         IdentifierClass.TYPE_PARAMETER, currentToken.location))
+                typeParamNames.add(currentToken.str)
 
                 tokenizer.next()
             } while (tokenizer.current is CommaToken)
@@ -1805,6 +1838,7 @@ class Parser(
         val typeIdent = symbolTable.addTypeVariable(name, scopes, importContext,
                 typeStartToken.location, false)
         val typeParams: MutableList<Identifier> = mutableListOf()
+        val typeParamNames: MutableSet<String> = mutableSetOf()
 
         // Enter a new scope for the duration of this definition, so that type params will be local
         symbolTable.enterScope(ScopeType.TYPE_DEFINITION)
@@ -1820,9 +1854,16 @@ class Parser(
                     throw ParseException("Expected ${token} to be a type parameter", token)
                 }
 
+                // Cannot have two type parameters with the same name
+                if (typeParamNames.contains(token.str)) {
+                    throw ParseException("Type ${name} cannot have two type " +
+                            "parameters with the same name: ${token.str}", token)
+                }
+
                 // Add the type parameter to the local environment and save it in the list of params
                 typeParams.add(symbolTable.addType(token.str, IdentifierClass.TYPE_PARAMETER,
                         token.location))
+                typeParamNames.add(token.str)
 
                 tokenizer.next()
             } while (tokenizer.current is CommaToken)
@@ -1855,7 +1896,7 @@ class Parser(
         while (tokenizer.current is DefToken) {
             val token = tokenizer.current as DefToken
             tokenizer.next()
-            methods.add(parseFunctionDefinition(token))
+            methods.add(parseFunctionDefinition(true, token))
         }
 
         assertCurrent(TokenType.RIGHT_BRACE)
@@ -1923,6 +1964,7 @@ class Parser(
                 traitNameToken.location)
 
         val typeParams: MutableList<Identifier> = mutableListOf()
+        val typeParamNames: MutableSet<String> = mutableSetOf()
 
         // Enter a new scope for the duration of this definition, so that type params will be local
         symbolTable.enterScope(ScopeType.TYPE_DEFINITION)
@@ -1940,9 +1982,16 @@ class Parser(
                     throw ParseException("Expected ${token} to be an identifier", token)
                 }
 
+                // Cannot have two type parameters with the same name
+                if (typeParamNames.contains(token.str)) {
+                    throw ParseException("Trait ${traitNameToken.str} cannot have two type " +
+                            "parameters with the same name: ${token.str}", token)
+                }
+
                 // Add the type parameter to the local environment and save it in the list of params
                 typeParams.add(symbolTable.addType(token.str, IdentifierClass.TYPE_PARAMETER,
                         token.location))
+                typeParamNames.add(token.str)
 
                 tokenizer.next()
             } while (tokenizer.current is CommaToken)
@@ -1966,7 +2015,7 @@ class Parser(
                 abstractMethods.add(parseAbstractFunctionDefinition(token))
             } else if (token is DefToken) {
                 tokenizer.next()
-                concreteMethods.add(parseFunctionDefinition(token))
+                concreteMethods.add(parseFunctionDefinition(true, token))
             } else if (token is RightBraceToken){
                 break
             } else {
@@ -1997,6 +2046,8 @@ class Parser(
         }
 
         val funcToken = token
+        val ident = symbolTable.addVariable(funcToken.str, IdentifierClass.FUNCTION,
+                funcToken.location)
         val formalArgs: MutableList<Pair<Identifier, TypeExpression>> = mutableListOf()
 
         assertCurrent(TokenType.LEFT_PAREN)
@@ -2036,10 +2087,7 @@ class Parser(
             UnitTypeExpression
         }
 
-        // Add the function to the symbol table with correct type before parsing body, and make
-        // sure to add in previous scope, as symbolTable is currently in the scope of the function.
-        val ident = symbolTable.addVariable(funcToken.str, IdentifierClass.FUNCTION,
-                funcToken.location, WhichScope.PREVIOUS)
+        symbolTable.exitScope()
 
         return AbstractFunctionDefinitionStatement(ident, formalArgs, returnTypeAnnotation,
                 funcToken.location, abstractToken.location)

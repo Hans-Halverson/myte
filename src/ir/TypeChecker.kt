@@ -327,8 +327,16 @@ class TypeChecker(var symbolTable: SymbolTable) {
             val rep1 = findRepNode(type1)
             val rep2 = findRepNode(type2)
 
-            // Choose the lower ranked node to be the root
-            if (rep1.rank > rep2.rank) {
+            // Choose the type parameter to be the root node, or choose the lower ranked node
+            val firstIsParent = if (type1 is TypeParameter) {
+                true
+            } else if (type2 is TypeParameter) {
+                false
+            } else {
+                rep1.rank > rep2.rank
+            }
+
+            if (firstIsParent) {
                 rep2.parent = rep1
 
                 // Transfer deferred constraints to parent node
@@ -392,6 +400,11 @@ class TypeChecker(var symbolTable: SymbolTable) {
             return true
         // If at least one type is a type variable, merge types together
         } else if (type1 is TypeVariable || type2 is TypeVariable) {
+            // Cannot merge a type parameter with anything except a type variable
+            if ((type1 is TypeParameter && type2 !is TypeVariable) ||
+                    (type1 !is TypeVariable && type2 is TypeParameter)) {
+                return false
+            }
             return mergeTypes(type1, type2)
         // If both representatives have vector type, merge reps and unify their child types
         } else if (type1 is VectorType && type2 is VectorType) {

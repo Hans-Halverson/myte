@@ -29,7 +29,7 @@ sealed class NumberType : Type()
  *
  * @property id the unique id which identifies this type variable
  */
-data class TypeVariable(val id: Long = newTypeVariableId()) : Type() {
+open class TypeVariable(val id: Long = newTypeVariableId()) : Type() {
     override fun getAllVariables(): List<TypeVariable> = listOf(this)
 
     override fun substitute(typeMap: Map<TypeVariable, Type>): Type {
@@ -42,7 +42,17 @@ data class TypeVariable(val id: Long = newTypeVariableId()) : Type() {
     }
 
     override fun toString(): String = formatToString()
+
+    override fun equals(other: Any?): Boolean {
+        if (other !is TypeVariable) {
+            return false
+        }
+
+        return id == other.id
+    }
 }
+
+class TypeParameter() : TypeVariable()
 
 object UnitType : Type() {
     override fun formatToString(typeVars: Map<TypeVariable, String>): String = "unit"

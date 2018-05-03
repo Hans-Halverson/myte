@@ -633,7 +633,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     fun createAdtSig(typeDef: TypeDefinitionStatement) {
         // First annotate all type parameters identifiers with new type variables
         val typeParams = typeDef.typeParamIdents.map { typeParamIdent ->
-            val typeParam = TypeVariable()
+            val typeParam = TypeParameter()
             symbolTable.getInfo(typeParamIdent)?.type = typeParam
             typeParam
         }
@@ -673,7 +673,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     fun createTrait(traitDef: TraitDefinitionStatement): List<IRNode> {
         // First annotate all type parameters identifiers with new type variables
         val typeParams = traitDef.typeParamIdents.map { typeParamIdent ->
-            val typeParam = TypeVariable()
+            val typeParam = TypeParameter()
             symbolTable.getInfo(typeParamIdent)?.type = typeParam
             typeParam
         }
