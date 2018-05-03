@@ -122,6 +122,9 @@ private fun getKeywordToken(str: String, location: Location): Token? {
         "import" -> ImportToken(location)
         "as" -> AsToken(location)
         "implement" -> ImplementToken(location)
+        "extends" -> ExtendsToken(location)
+        "trait" -> TraitToken(location)
+        "abstract" -> AbstractToken(location)
         else -> null
     }
 }

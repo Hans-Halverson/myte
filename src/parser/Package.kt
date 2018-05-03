@@ -54,6 +54,7 @@ class Package(
     val scope: Scope = Scope(),
     val typeDefs: MutableList<TypeDefinitionStatement> = mutableListOf(),
     val typeImpls: MutableList<TypeImplementationStatement> = mutableListOf(),
+    val traitDefs: MutableList<TraitDefinitionStatement> = mutableListOf(),
     val statements: MutableList<Statement> = mutableListOf()
 ) {
     val packageTreeNode: PackageTreeNode = PackageTreeNode(name, this)

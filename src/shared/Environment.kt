@@ -41,6 +41,11 @@ class Environment() {
         scope[ident] = value
     }
 
+    fun extendGlobal(ident: Identifier, value: Value) {
+        val scope = scopes[0]
+        scope[ident] = value
+    }
+
     /**
      * Reassign the value bound to an identifier in the environment to a new value. This will
      * reassign the value in the lowest scope in which the identifier is bound.

@@ -74,6 +74,7 @@ class Parser(
         when (token) {
             is TypeToken -> pack.typeDefs.add(parseTypeDefinition())
             is ImplementToken -> pack.typeImpls.add(parseTypeImplementation())
+            is TraitToken -> pack.traitDefs.add(parseTraitDefinition())
             is DefToken -> pack.statements.add(parseFunctionDefinition(token))
             is LetToken -> pack.statements.add(parseVariableDefinition(false, token))
             is ConstToken -> pack.statements.add(parseVariableDefinition(true, token))
@@ -125,6 +126,7 @@ class Parser(
             // Otherwise parse type definition, implementation, or statement
             is TypeToken -> parseTypeDefinition()
             is ImplementToken -> parseTypeImplementation()
+            is TraitToken -> parseTraitDefinition()
             else -> parseStatement(token)
         }
 
@@ -840,7 +842,7 @@ class Parser(
         var token = tokenizer.next()
 
         if (token !is IdentifierToken) {
-            throw ParseException("Expected identifier in variable definition", token)
+            throw ParseException("Expected function name", token)
         }
 
         val funcToken = token
@@ -1774,21 +1776,158 @@ class Parser(
     }
 
     fun parseTypeImplementation(): TypeImplementationStatement {
-        var token = tokenizer.current
-        if (token !is IdentifierToken) {
-            throw ParseException("Type must follow implement declaration", token)
+        // Parse "::" separated list of strings to find scope and identifier name
+        val typeStartToken = tokenizer.current
+        if (typeStartToken !is IdentifierToken) {
+            throw ParseException("Expected type name", typeStartToken)
         }
 
-        // Find type in symbol table
-        val typeNameToken = token
-        val typeIdent = symbolTable.addTypeVariable(typeNameToken.str, listOf(), importContext,
-                typeNameToken.location, false)
-        val typeParams: MutableList<Identifier> = mutableListOf()
-
+        val identParts = mutableListOf(typeStartToken.str)
         tokenizer.next()
+
+        while (!tokenizer.reachedEnd && tokenizer.current is ScopeToken) {
+            tokenizer.next()
+
+            val currentToken = tokenizer.current
+            if (currentToken !is IdentifierToken) {
+                throw ParseException("Identifier must follow scope", currentToken)
+            }
+
+            identParts.add(currentToken.str)
+            tokenizer.next()
+        }
+
+        // All parts except the last are part of the scope. Add resolve job to symbol table.
+        val name = identParts[identParts.size - 1]
+        val scopes = identParts.take(identParts.size - 1)
+
+        // Find type in symbol table
+        val typeIdent = symbolTable.addTypeVariable(name, scopes, importContext,
+                typeStartToken.location, false)
+        val typeParams: MutableList<Identifier> = mutableListOf()
 
         // Enter a new scope for the duration of this definition, so that type params will be local
         symbolTable.enterScope(ScopeType.TYPE_DEFINITION)
+        
+        // Parse optional type parameters
+        if (tokenizer.current is LessThanToken) {
+            // Type parameters must be a comma separated list of identifiers within < >
+            do {
+                tokenizer.next()
+                var token = tokenizer.current
+
+                if (token !is IdentifierToken) {
+                    throw ParseException("Expected ${token} to be a type parameter", token)
+                }
+
+                // Add the type parameter to the local environment and save it in the list of params
+                typeParams.add(symbolTable.addType(token.str, IdentifierClass.TYPE_PARAMETER,
+                        token.location))
+
+                tokenizer.next()
+            } while (tokenizer.current is CommaToken)
+
+            assertCurrent(TokenType.GREATER_THAN)
+            tokenizer.next()
+        }
+
+        // Parse optional, comma separated list of traits that this type implements
+        val extendedTraits: MutableList<Pair<ResolvableSymbol, List<TypeExpression>>> =
+                mutableListOf()
+        if (tokenizer.current is ExtendsToken) {
+            tokenizer.next()
+            extendedTraits.add(parseExtendedTrait())
+
+            while (tokenizer.current is CommaToken) {
+                tokenizer.next()
+                extendedTraits.add(parseExtendedTrait())
+            }
+        }
+
+        assertCurrent(TokenType.LEFT_BRACE)
+        tokenizer.next()
+
+        // Add "this" to method definition scope and add all method definitions
+        val methods: MutableList<FunctionDefinitionStatement> = mutableListOf()
+        val thisIdent = symbolTable.addVariable("this", IdentifierClass.VARIABLE,
+                typeStartToken.location)
+
+        while (tokenizer.current is DefToken) {
+            val token = tokenizer.current as DefToken
+            tokenizer.next()
+            methods.add(parseFunctionDefinition(token))
+        }
+
+        assertCurrent(TokenType.RIGHT_BRACE)
+        tokenizer.next()
+
+        symbolTable.exitScope()
+
+        return TypeImplementationStatement(typeIdent, typeParams, thisIdent, methods,
+                extendedTraits)
+    }
+
+    fun parseExtendedTrait(): Pair<ResolvableSymbol, List<TypeExpression>> {
+        // Parse "::" separated list of strings to find scope and identifier name
+        val traitStartToken = tokenizer.current
+        if (traitStartToken !is IdentifierToken) {
+            throw ParseException("Expected trait name", traitStartToken)
+        }
+
+        val identParts = mutableListOf(traitStartToken.str)
+        tokenizer.next()
+
+        while (!tokenizer.reachedEnd && tokenizer.current is ScopeToken) {
+            tokenizer.next()
+
+            val currentToken = tokenizer.current
+            if (currentToken !is IdentifierToken) {
+                throw ParseException("Identifier must follow scope", currentToken)
+            }
+
+            identParts.add(currentToken.str)
+            tokenizer.next()
+        }
+
+        // All parts except the last are part of the scope. Add resolve job to symbol table.
+        val name = identParts[identParts.size - 1]
+        val scopes = identParts.take(identParts.size - 1)
+
+        // Find trait in symbol table
+        val traitIdent = symbolTable.addTypeVariable(name, scopes, importContext,
+                traitStartToken.location, false)
+        val typeParams: MutableList<TypeExpression> = mutableListOf()
+        
+        // Parse optional type parameters - a comma separated list of types within < >
+        if (tokenizer.current is LessThanToken) {
+            do {
+                tokenizer.next()
+                typeParams.add(parseType())
+            } while (tokenizer.current is CommaToken)
+
+            assertCurrent(TokenType.GREATER_THAN)
+            tokenizer.next()
+        }
+
+        return Pair(traitIdent, typeParams)
+    }
+
+    fun parseTraitDefinition(): TraitDefinitionStatement {
+        var token = tokenizer.current
+        if (token !is IdentifierToken) {
+            throw ParseException("Trait name must be an identifier", token)
+        }
+
+        val traitNameToken = token
+        val traitIdent = symbolTable.addType(traitNameToken.str, IdentifierClass.TRAIT,
+                traitNameToken.location)
+
+        val typeParams: MutableList<Identifier> = mutableListOf()
+
+        // Enter a new scope for the duration of this definition, so that type params will be local
+        symbolTable.enterScope(ScopeType.TYPE_DEFINITION)
+
+        tokenizer.next()
         
         // Parse optional type parameters
         if (tokenizer.current is LessThanToken) {
@@ -1815,15 +1954,25 @@ class Parser(
         assertCurrent(TokenType.LEFT_BRACE)
         tokenizer.next()
 
-        // Add "this" to method definition scope and add all method definitions
-        val methods: MutableList<FunctionDefinitionStatement> = mutableListOf()
+        val abstractMethods: MutableList<AbstractFunctionDefinitionStatement> = mutableListOf()
+        val concreteMethods: MutableList<FunctionDefinitionStatement> = mutableListOf()
         val thisIdent = symbolTable.addVariable("this", IdentifierClass.VARIABLE,
-                typeNameToken.location)
+                traitNameToken.location)
 
-        while (tokenizer.current is DefToken) {
-            token = tokenizer.current as DefToken
-            tokenizer.next()
-            methods.add(parseFunctionDefinition(token))
+        while (true) {
+            token = tokenizer.current
+            if (token is AbstractToken) {
+                tokenizer.next()
+                abstractMethods.add(parseAbstractFunctionDefinition(token))
+            } else if (token is DefToken) {
+                tokenizer.next()
+                concreteMethods.add(parseFunctionDefinition(token))
+            } else if (token is RightBraceToken){
+                break
+            } else {
+                throw ParseException("Trait expects concrete or abstract function definitions",
+                        token)
+            }
         }
 
         assertCurrent(TokenType.RIGHT_BRACE)
@@ -1831,6 +1980,68 @@ class Parser(
 
         symbolTable.exitScope()
 
-        return TypeImplementationStatement(typeIdent, typeParams, thisIdent, methods)
+        return TraitDefinitionStatement(traitIdent, typeParams, thisIdent, abstractMethods,
+                concreteMethods)
+    }
+
+    fun parseAbstractFunctionDefinition(
+        abstractToken: AbstractToken
+    ): AbstractFunctionDefinitionStatement {
+        // If parseAbstractFunctionDefinition is called, the previous token must have been abstract
+        assertCurrent(TokenType.DEF)
+        tokenizer.next()
+
+        var token = tokenizer.next()
+        if (token !is IdentifierToken) {
+            throw ParseException("Expected function name", token)
+        }
+
+        val funcToken = token
+        val formalArgs: MutableList<Pair<Identifier, TypeExpression>> = mutableListOf()
+
+        assertCurrent(TokenType.LEFT_PAREN)
+        tokenizer.next()
+
+        // Enter a new scope so that all type parameters are scoped to this function
+        symbolTable.enterScope(ScopeType.FUNCTION)
+
+        // Keep parsing comma separated formal argument identifiers until a right paren is found
+        argsLoop@ while (tokenizer.current !is RightParenToken) {
+            token = tokenizer.next()
+            if (token !is IdentifierToken) {
+                throw ParseException("Formal arguments must be identifiers", token)
+            }
+
+            // Add argument to symbol table and parse required type annotation
+            val formalArg = symbolTable.addVariable(token.str, IdentifierClass.VARIABLE,
+                    token.location)
+            formalArgs.add(Pair(formalArg, parseTypeAnnotation(true)))
+
+            // If a right paren is found, all arguments have been found. If a comma is found,
+            // there must still be identifiers to parse. Otherwise, syntax is invalid.
+            when (tokenizer.current) {
+                is RightParenToken -> break@argsLoop
+                is CommaToken -> tokenizer.next()
+                else -> throw ParseException(tokenizer.current)
+            }
+        }
+
+        assertCurrent(TokenType.RIGHT_PAREN)
+        tokenizer.next()
+
+        // Parse optional return type annotation, interpreting it as unit if no annoation supplied
+        val returnTypeAnnotation = if (tokenizer.current is ColonToken) {
+            parseTypeAnnotation(true)
+        } else {
+            UnitTypeExpression
+        }
+
+        // Add the function to the symbol table with correct type before parsing body, and make
+        // sure to add in previous scope, as symbolTable is currently in the scope of the function.
+        val ident = symbolTable.addVariable(funcToken.str, IdentifierClass.FUNCTION,
+                funcToken.location, WhichScope.PREVIOUS)
+
+        return AbstractFunctionDefinitionStatement(ident, formalArgs, returnTypeAnnotation,
+                funcToken.location, abstractToken.location)
     }
 }

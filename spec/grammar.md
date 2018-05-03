@@ -134,10 +134,20 @@ STATEMENT -> EXPR
 BLOCK -> { STATEMENT* }
 
 
-METHODS -> implement IDENT [< TYPE_PARAM_LIST >]? { [FUNCTION_DEF]* }
+SCOPED_IDENT_PARAMS -> SCOPED_IDENT [< TYPE_PARAM_LIST >]?
+
+TRAITS_LIST = SCOPED_IDENT_PARAMS [, SCOPED_IDENT_PARAMS]*
+
+TYPE_IMPL -> implement SCOPED_IDENT_PARAMS [extends TRAITS_LIST] { [FUNCTION_DEF]* }
+
+TRAIT_DEF -> trait IDENT [< TYPE_PARAM_LIST >]? { [TRAIT_FUNCTION]* }
+
+TRAIT_FUNCTION -> abstract IDENT ( IDENT : TYPE [, IDENT : TYPE]* ) [: TYPE]?
+                | FUNCTION_DEF
 
 
 TOP_LEVEL_STATEMENT -> TYPE_DEF
+                     | TYPE_IMPL
                      | FUNCTION_DEF
                      | VARIABLE_DEF
 
@@ -149,7 +159,7 @@ IMPORT -> import PACKAGE_NAME :: { IDENT [as IDENT]? [, IDENT [as IDENT]?]* }
 
 REPL_LINE -> STATEMENT
            | TYPE_DEF
-           | 
+           | TYPE_IMPL
            | IMPORT
 
 FILE -> PACKAGE [IMPORT]* [TOP_LEVEL_STATEMENT]*

@@ -224,6 +224,32 @@ data class AlgebraicDataType(
     override fun toString(): String = formatToString()
 }
 
+data class TraitType(val traitSig: TraitSignature, val typeParams: List<Type>) : Type() {
+    override fun getAllVariables(): List<TypeVariable> {
+        return typeParams.map(Type::getAllVariables).flatten()
+    }
+
+    override fun substitute(typeMap: Map<TypeVariable, Type>): Type {
+        val substTypes = typeParams.map { typeParam -> typeParam.substitute(typeMap) }
+        return TraitType(traitSig, substTypes)
+    }
+
+    override fun formatToString(typeVars: Map<TypeVariable, String>): String {
+        val builder = StringBuilder()
+
+        builder.append(traitSig.name)
+
+        if (typeParams.size > 0) {
+            builder.append(typeParams.map { typeParam -> typeParam.formatToString(typeVars) }
+                    .joinToString(", ", "<", ">"))
+        }
+
+        return builder.toString()
+    }
+
+    override fun toString(): String = formatToString()
+}
+
 /**
  * Format a list of types into strings, where type variables of the same type are replaced by
  * the same representations. The representation of these type variables will be:

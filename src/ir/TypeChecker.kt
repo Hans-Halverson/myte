@@ -187,6 +187,10 @@ class TypeChecker(var symbolTable: SymbolTable) {
                 keyRepType.typeParams.zip(valRepType.typeParams).forEach { (keyType, valType) ->
                     substituteReps(keyType, valType, substMap)
                 }
+            keyRepType is TraitType && valRepType is TraitType ->
+                keyRepType.typeParams.zip(valRepType.typeParams).forEach { (keyType, valType) ->
+                    substituteReps(keyType, valType, substMap)
+                }
             // Add type variables to representative substitution map
             keyRepType is TypeVariable -> {
                 substMap[keyRepType] = valRepType
@@ -226,7 +230,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
      *        variables encountered so far. If not supplied, defaults to the empty map.
      * @param refresh whether to create a new type variable for all unbound type variables in type
      */
-    private fun findRepType(
+    fun findRepType(
         type: Type,
         boundVars: MutableSet<TypeVariable>,
         mappedVars: MutableMap<TypeVariable, TypeVariable> = mutableMapOf(),
@@ -273,6 +277,14 @@ class TypeChecker(var symbolTable: SymbolTable) {
                 }
 
                 return AlgebraicDataType(repType.adtSig, typeParams)
+            }
+            // Find the rep type for each type paramter and reconstruct trait with correct trait sig
+            is TraitType -> {
+                val typeParams = repType.typeParams.map { typeParam ->
+                    findRepType(typeParam, boundVars, mappedVars, refresh)
+                }
+
+                return TraitType(repType.traitSig, typeParams)
             }
             is TypeVariable -> {
                 // If already bound (has same representative as bound var), then return
@@ -406,6 +418,13 @@ class TypeChecker(var symbolTable: SymbolTable) {
         // If both representatives are the same adt, merge reps and unify parameter types
         } else if (type1 is AlgebraicDataType && type2 is AlgebraicDataType) {
             return type1.adtSig == type2.adtSig &&
+                    type1.typeParams.size == type2.typeParams.size &&
+                    type1.typeParams.zip(type2.typeParams)
+                         .map({ (p1, p2) -> unify(p1, p2) })
+                         .all({ x -> x })
+        // If both representatives are the same trait, merge reps and unify parameter types
+        } else if (type1 is TraitType && type2 is TraitType) {
+            return type1.traitSig == type2.traitSig &&
                     type1.typeParams.size == type2.typeParams.size &&
                     type1.typeParams.zip(type2.typeParams)
                          .map({ (p1, p2) -> unify(p1, p2) })
@@ -897,9 +916,9 @@ class TypeChecker(var symbolTable: SymbolTable) {
         val expectedFuncType = FunctionType(argTypes, node.type)
 
         if (!unify(expectedFuncType, funcType)) {
-            val types = typesToString(expectedFuncType, funcType, boundVars)
+            val types = typesToString(funcType, expectedFuncType, boundVars)
             throw IRConversionException("Function inferred to have type " +
-                    "${types[0]}, but expected ${types[1]}", node.startLocation)
+                    "${types[0]}, but used as if it had type ${types[1]}", node.startLocation)
         }
     }
 
@@ -1164,6 +1183,15 @@ class TypeChecker(var symbolTable: SymbolTable) {
                 throw IRConversionException("Main function must have a single argument of type " +
                         "${argType}", node.startLocation)
             }            
+        }
+
+        // If this function implements an abstract function, unify with substituted abstract type
+        if (node is MethodDefinitionNode && node.abstractType != null) {
+            if (!unify(funcType, node.abstractType)) {
+                val types = typesToString(node.abstractType, funcType, newBoundVars)
+                throw IRConversionException("Abstract ${node.ident.name} has type ${types[0]}, " +
+                        "but implementation has type ${types[1]}", node.startLocation)
+            }
         }
     }
 

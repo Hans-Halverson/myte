@@ -28,6 +28,7 @@ class MethodDefinitionNode(
     formalArgs: List<Identifier>,
     body: IRNode,
     val thisIdent: Identifier,
+    val abstractType: Type?,
     identLocation: Location,
     startLocation: Location
 ) : FunctionDefinitionNode(ident, formalArgs, body, identLocation, startLocation)

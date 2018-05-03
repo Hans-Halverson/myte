@@ -14,6 +14,7 @@ class AlgebraicDataTypeSignature(
     val typeParams: List<TypeVariable>,
     val variants: MutableList<AlgebraicDataTypeVariant> = mutableListOf(),
     val methods: MutableMap<String, Identifier> = mutableMapOf(),
+    val traits: MutableList<TraitType> = mutableListOf(),
     val id: Long = newAdtId()
 ) {
     /**
@@ -34,6 +35,32 @@ class AlgebraicDataTypeSignature(
         }
 
         return AlgebraicDataType(this, types)
+    }
+
+    /**
+     * Returns the set of all field and method names defined on this type.
+     */
+    fun getAllNames(): MutableSet<String> {
+        val names: MutableSet<String> = mutableSetOf()
+
+        // Add fields of record if this is a simply record type
+        if (variants.size == 1) {
+            val firstVariant = variants[0]
+            if (firstVariant is RecordVariant) {
+                names.addAll(firstVariant.fields.keys)
+            }
+        }
+
+        // Add all methods from traits
+        for (extendedTrait in traits) {
+            names.addAll(extendedTrait.traitSig.abstractMethods.keys)
+            names.addAll(extendedTrait.traitSig.concreteMethods.keys)
+        }
+
+        // Add all methods defined on this type
+        names.addAll(methods.keys)
+
+        return names
     }
 
     override fun hashCode(): Int = id.hashCode()

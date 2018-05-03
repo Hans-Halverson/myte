@@ -261,6 +261,18 @@ enum class TokenType {
         override fun toString(): String = "implement"
     },
 
+    EXTENDS {
+        override fun toString(): String = "extends"
+    },
+
+    TRAIT {
+        override fun toString(): String = "trait"
+    },
+
+    ABSTRACT {
+        override fun toString(): String = "abstract"
+    },
+
     NEW_LINE {
         override fun toString(): String = "\\n"
     }

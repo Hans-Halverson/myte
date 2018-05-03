@@ -290,20 +290,41 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
 
     fun evalAccess(node: AccessNode, env: Environment): Value {
         val expr = evaluate(node.expr, env)
+        val type = expr.type
 
-        // If method is defined, add expression as receiver
-        val adtType = expr.type as AlgebraicDataType
-        val methodIdent = adtType.adtSig.methods[node.field]
-        if (methodIdent != null) {
+        // If a trait, find concrete method with the given name
+        if (type is TraitType) {
+            val methodIdent = type.traitSig.concreteMethods[node.field]!!
             val methodValue = env.lookup(methodIdent) as MethodValue
-            return methodValue.withReceiver(expr)
-        } else {
-            if (expr !is RecordVariantValue) {
-                throw EvaluationException("No field or method with name ${node.field} for " +
-                        "type ${expr.type}", node.accessLocation)
+            return methodValue.withReceiver(expr, node.type)
+        // If an ADT, find method with the given name, or concrete method on extended trait
+        } else if (type is AlgebraicDataType) {
+            // Find and return method with given name if one exists
+            val methodIdent = type.adtSig.methods[node.field]
+            if (methodIdent != null) {
+                val methodValue = env.lookup(methodIdent) as MethodValue
+                return methodValue.withReceiver(expr, node.type)
             }
 
-            return expr.fields[node.field]!!
+            // Find concrete method on extended trait with the given name
+            for (extendedTrait in type.adtSig.traits) {
+                val traitMethodIdent = extendedTrait.traitSig.concreteMethods[node.field]
+                if (traitMethodIdent != null) {
+                    val methodValue = env.lookup(traitMethodIdent) as MethodValue
+                    return methodValue.withReceiver(expr, node.type)
+                }
+            }
+
+            // If value is a record, find field with the given name
+            if (expr is RecordVariantValue) {
+                return expr.fields[node.field]!!
+            } else {
+                throw EvaluationException("No method with name ${node.field} for " +
+                        "type ${expr.type}", node.accessLocation)
+            }
+        } else {
+            throw EvaluationException("No field or method with name ${node.field} for " +
+                    "type ${expr.type}", node.accessLocation)
         }
     }
 
@@ -487,8 +508,8 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             throw EvaluationException("Unknown function ${node.ident.name}", node.identLocation)
         }
 
-        env.extend(node.ident, MethodValue(node.formalArgs, node.body, env.copy(), node.thisIdent,
-                null, type))
+        env.extendGlobal(node.ident, MethodValue(node.formalArgs, node.body, env.copy(),
+                node.thisIdent, null, type))
 
         return UnitValue
     }

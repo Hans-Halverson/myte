@@ -249,12 +249,42 @@ class AccessConstraint(
     override fun apply(trigger: Type): Boolean {
         val exprType = trigger
         if (exprType is AlgebraicDataType) {
+            // First check whether this function is defined as a concrete function in a trait
+            // that this ADT extends.
+            for (extTrait in exprType.adtSig.traits) {
+                val concreteIdent = extTrait.traitSig.concreteMethods[node.field]
+                if (concreteIdent != null) {
+                    // First perform rep substitution from trait sig params to trait type params
+                    val concreteType = typeChecker.symbolTable.getInfo(concreteIdent)?.type!!
+                    val trtParamsMap = extTrait.traitSig.typeParams.zip(extTrait.typeParams).toMap()
+                    val traitSubstType = typeChecker.findRepSubstitution(concreteType, trtParamsMap)
+
+                    // Then perform rep substitution from ADT sig params to ADT type params
+                    val adtParamsMap = exprType.adtSig.typeParams.zip(exprType.typeParams).toMap()
+                    val adtSubstType = typeChecker.findRepSubstitution(traitSubstType, adtParamsMap)
+
+                    // Finally refresh all unbound variables
+                    val freshMethodType = typeChecker.findRepType(adtSubstType, boundVars)
+
+                    // Type of node is type of reparameterized concrete function defined in trait
+                    if (!typeChecker.unify(node.type, freshMethodType)) {
+                        val types = typeChecker.typesToString(node.type, freshMethodType, boundVars)
+                        throw IRConversionException("Field or method inferred to have type " +
+                                "${types[0]}, but expected ${types[1]}", node.accessLocation)
+                    }
+
+                    return true
+                }
+            }
+
             // Find method type if a method was defined
             val methodIdent = exprType.adtSig.methods[node.field]
             val accessType = if (methodIdent != null) {
                 val methodType = typeChecker.symbolTable.getInfo(methodIdent)?.type!!
                 val paramsMap = exprType.adtSig.typeParams.zip(exprType.typeParams).toMap()
-                typeChecker.findRepSubstitution(methodType, paramsMap)
+                val methodTypeWithParams = typeChecker.findRepSubstitution(methodType, paramsMap)
+
+                typeChecker.findRepType(methodTypeWithParams, boundVars)
             // Otherwise find field type with that name, or error if none was found
             } else {
                 // Error if expr is not resolved to a simple record type
@@ -276,11 +306,39 @@ class AccessConstraint(
                 fieldType
             }
 
-            // Type of node is type of corresponding record field
+            // Type of node is type of corresponding field or method
             if (!typeChecker.unify(node.type, accessType)) {
                 val types = typeChecker.typesToString(node.type, accessType, boundVars)
                 throw IRConversionException("Field or method inferred to have type ${types[0]}, " +
                         "but expected ${types[1]}", node.accessLocation)
+            }
+
+            return true
+        } else if (exprType is TraitType) {
+            // Find concrete or abstract method defined on trait, erroring if none is found
+            val abstractIdent = exprType.traitSig.abstractMethods[node.field]
+            val concreteIdent = exprType.traitSig.concreteMethods[node.field]
+            val methodIdent = if (abstractIdent != null) {
+                abstractIdent
+            } else if (concreteIdent != null) {
+                concreteIdent
+            } else {
+                val typeStr = typeChecker.typeToString(exprType, boundVars)
+                throw IRConversionException("No method with name ${node.field} defined on trait " +
+                        "${typeStr}", node.accessLocation)
+            }
+
+            val identType = typeChecker.symbolTable.getInfo(methodIdent)?.type!!
+            val paramsMap = exprType.traitSig.typeParams.zip(exprType.typeParams).toMap()
+            val methodType = typeChecker.findRepSubstitution(identType, paramsMap)
+
+            val freshMethodType = typeChecker.findRepType(methodType, boundVars)
+
+            // Type of node is type of reparameterized method defined in trait
+            if (!typeChecker.unify(node.type, freshMethodType)) {
+                val types = typeChecker.typesToString(node.type, freshMethodType, boundVars)
+                throw IRConversionException("Method inferred to have type " +
+                        "${types[0]}, but expected ${types[1]}", node.accessLocation)
             }
 
             return true

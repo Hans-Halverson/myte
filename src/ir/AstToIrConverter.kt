@@ -29,8 +29,13 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         packages.forEach { pack -> pack.typeDefs.forEach(this::createAdtSig) }
         packages.forEach { pack -> pack.typeDefs.forEach(this::createAdtVariants) }
 
-        // Create implementations for ADTs, saving definition nodes in list of all IR nodes.
+        // Create traits, saving definition nodes in list of all IR nodes
         val irNodes: MutableList<IRNode> = mutableListOf()
+        irNodes.addAll(packages.flatMap({ pack ->
+            pack.traitDefs.flatMap(this::createTrait)
+        }))
+
+        // Create implementations for ADTs, saving definition nodes in list of all IR nodes
         irNodes.addAll(packages.flatMap({ pack ->
             pack.typeImpls.flatMap(this::createTypeImplementation)
         }))
@@ -69,8 +74,16 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             createAdtSig(statement)
             createAdtVariants(statement)
             return ConvertReplLineResult(listOf(), listOf())
+        } else if (statement is TraitDefinitionStatement) {
+            // Create trait, then infer types and check structure of methods
+            val irNodes = createTrait(statement)
+
+            inferTypes(irNodes)
+            irNodes.forEach(this::assertIRStructure)
+
+            return ConvertReplLineResult(listOf(), irNodes)
         } else if (statement is TypeImplementationStatement) {
-            // Create type implementation, then nfer types and check structure of methods
+            // Create type implementation, then infer types and check structure of methods
             val irNodes = createTypeImplementation(statement)
 
             inferTypes(irNodes)
@@ -211,6 +224,18 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
 
         return FunctionDefinitionNode(stmt.ident, formalArgs, convert(stmt.body, false),
                 stmt.identLocation, stmt.startLocation)
+    }
+
+    fun convertAbstractFunctionDefinition(stmt: AbstractFunctionDefinitionStatement) {
+        val argTypes = stmt.formalArgs.map { (arg, typeAnnotation) ->
+            val type = convertType(typeAnnotation)
+            symbolTable.getInfo(arg)?.type = type
+            type
+        }
+
+        // Annotate function identifier with function type from annotations
+        val returnType = convertType(stmt.returnTypeAnnotation)
+        symbolTable.getInfo(stmt.ident)?.type = FunctionType(argTypes, returnType)
     }
 
     fun convertVariableDefinition(stmt: VariableDefinitionStatement): IRNode {
@@ -645,21 +670,78 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         }
     }
 
+    fun createTrait(traitDef: TraitDefinitionStatement): List<IRNode> {
+        // First annotate all type parameters identifiers with new type variables
+        val typeParams = traitDef.typeParamIdents.map { typeParamIdent ->
+            val typeParam = TypeVariable()
+            symbolTable.getInfo(typeParamIdent)?.type = typeParam
+            typeParam
+        }
+
+        // Create initial trait signature and type, and annotate identifier with it
+        val traitIdent = traitDef.traitIdent
+        val traitSig = TraitSignature(traitDef.traitIdent.name, typeParams)
+        val traitType = traitSig.getTraitWithParams(typeParams)
+        symbolTable.getInfo(traitIdent)?.traitSig = traitSig
+        symbolTable.getInfo(traitIdent)?.type = traitType
+
+        // Annotate this with trait type
+        val thisInfo = symbolTable.getInfo(traitDef.thisIdent)!!
+        thisInfo.type = traitType
+
+        // Check that every method has a unique name
+        val names: MutableSet<String> = mutableSetOf()
+        for (abstractDef in traitDef.abstractMethods) {
+            if (names.contains(abstractDef.ident.name)) {
+                throw IRConversionException("Method with name ${abstractDef.ident.name} " +
+                        "already defined for type ${traitIdent.name}", abstractDef.identLocation)
+            } else {
+                names.add(abstractDef.ident.name)
+            }
+        }
+
+        for (concreteDef in traitDef.concreteMethods) {
+            if (names.contains(concreteDef.ident.name)) {
+                throw IRConversionException("Method with name ${concreteDef.ident.name} " +
+                        "already defined for type ${traitIdent.name}", concreteDef.identLocation)
+            } else {
+                names.add(concreteDef.ident.name)
+            }
+        }
+
+        // Convert abstract method definitions and add to trait
+        traitDef.abstractMethods.forEach { abstractDef ->
+            convertAbstractFunctionDefinition(abstractDef)
+            traitSig.abstractMethods[abstractDef.ident.name] = abstractDef.ident
+        }
+
+        // Convert concrete method definitions and add to trait
+        val concreteNodes = traitDef.concreteMethods.map { concreteDef ->
+            val funcDef = convertFunctionDefinition(concreteDef)
+            traitSig.concreteMethods[funcDef.ident.name] = funcDef.ident
+            MethodDefinitionNode(funcDef.ident, funcDef.formalArgs, funcDef.body,
+                    traitDef.thisIdent, null, funcDef.identLocation, funcDef.startLocation)
+        }
+
+        return concreteNodes
+    }
+
     fun createTypeImplementation(typeImpl: TypeImplementationStatement): List<IRNode> {
         val typeIdent = typeImpl.typeIdent.resolve()
-        val info = symbolTable.getInfo(typeIdent)!!
+        val typeInfo = symbolTable.getInfo(typeIdent)!!
+        val thisInfo = symbolTable.getInfo(typeImpl.thisIdent)!!
 
-        if (info.idClass != IdentifierClass.ALGEBRAIC_DATA_TYPE) {
+        if (typeInfo.idClass != IdentifierClass.ALGEBRAIC_DATA_TYPE) {
             throw IRConversionException("Can only define methods for user defined data types",
-                    info.location)
+                    thisInfo.location)
         }
 
         // Make sure number of type parameters is correct
-        val adtSig = info.adtSig
+        val adtSig = typeInfo.adtSig
         if (adtSig.typeParams.size != typeImpl.typeParamIdents.size) {
             throw IRConversionException("Type ${adtSig.name} expects " +
                     "${adtSig.typeParams.size} type parameters, but received " +
-                    "${typeImpl.typeParamIdents.size}", info.location)
+                    "${typeImpl.typeParamIdents.size}", thisInfo.location)
         }
 
         // Annotate type parameter identifiers with new type variables
@@ -668,14 +750,11 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         }
 
         // Annotate "this" with correctly parameterized type
-        symbolTable.getInfo(typeImpl.thisIdent)?.type = adtSig.getAdtWithParams(adtSig.typeParams)
+        thisInfo.type = adtSig.getAdtWithParams(adtSig.typeParams)
 
         // Check that every method and field has a unique name
-        val names: MutableSet<String> = mutableSetOf()
-        val firstVariant = adtSig.variants[0]
-        if (adtSig.variants.size == 1 && firstVariant is RecordVariant) {
-            names.addAll(firstVariant.fields.keys)
-        }
+        val names = adtSig.getAllNames()
+        val abstractNames: MutableSet<String> = mutableSetOf()
 
         for (methodDef in typeImpl.methods) {
             if (names.contains(methodDef.ident.name)) {
@@ -686,12 +765,64 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             }
         }
 
+        for ((traitSymbol, _) in typeImpl.extendedTraits) {
+            val traitIdent = traitSymbol.resolve()
+            val traitSig = symbolTable.getInfo(traitIdent)?.traitSig!!
+
+            // Make sure that concrete methods defined on traits do not conflict with names in type
+            for ((concreteName, _) in traitSig.concreteMethods) {
+                if (names.contains(concreteName)) {
+                    throw IRConversionException("Field or method with name ${concreteName} " +
+                            "already defined for type ${typeIdent.name}, conflicting with method " +
+                            "of same name from trait ${traitIdent.name}", thisInfo.location) 
+                } else {
+                    names.add(concreteName)
+                }
+            }
+
+            for ((abstractName, _) in traitSig.abstractMethods) {
+                // Make sure that no two abstract methods have the same name
+                if (abstractNames.contains(abstractName)) {
+                    throw IRConversionException("${typeIdent.name} cannot implement two abstract " +
+                            "methods with the same name: ${abstractName}", thisInfo.location)
+                }
+
+                // Make sure that all abstract methods defined in trait are implemented by type
+                if (!names.contains(abstractName)) {
+                    throw IRConversionException("Type ${typeIdent.name} cannot implement trait " +
+                            "${traitIdent.name}, since method ${abstractName} is " +
+                            "not implemented", thisInfo.location)
+                }
+            }
+        }
+
+        val abstractTypes: MutableMap<String, Type> = mutableMapOf()
+
+        // Add implemented traits to adt's signature
+        for ((traitSymbol, typeParamExprs) in typeImpl.extendedTraits) {
+            val traitIdent = traitSymbol.resolve()
+            val traitSig = symbolTable.getInfo(traitIdent)?.traitSig!!
+
+            val typeParams = typeParamExprs.map(this::convertType)
+            val traitType = traitSig.getTraitWithParams(typeParams)
+
+            adtSig.traits.add(traitType)
+
+            // Generate method types with correct paramaters for this type implementation
+            for ((abstractName, abstractIdent) in traitSig.abstractMethods) {
+                val substMap = traitSig.typeParams.zip(typeParams).toMap()
+                val methodType = symbolTable.getInfo(abstractIdent)?.type?.substitute(substMap)!!
+                abstractTypes[abstractName] = methodType
+            }
+        }
+
         // Convert function definitions to method definitions, then add methods to type
         val funcDefs = typeImpl.methods.map(this::convertFunctionDefinition)
         val methodDefs = funcDefs.map { funcDef ->
             adtSig.methods[funcDef.ident.name] = funcDef.ident
             MethodDefinitionNode(funcDef.ident, funcDef.formalArgs, funcDef.body,
-                    typeImpl.thisIdent, funcDef.identLocation, funcDef.startLocation)
+                    typeImpl.thisIdent, abstractTypes[funcDef.ident.name],
+                    funcDef.identLocation, funcDef.startLocation)
         }
 
         return methodDefs
@@ -737,6 +868,17 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             }
 
             return adtSig.getAdtWithParams(typeParams)
+        } else if (info.idClass == IdentifierClass.TRAIT) {
+            val typeParams = typeExpr.typeParams.map(this::convertType)
+
+            // If this is a trait, error if number of parameters differs
+            if (info.traitSig.typeParams.size != typeParams.size) {
+                throw IRConversionException("Trait ${info.traitSig.name} expects " +
+                        "${info.traitSig.typeParams.size} type parameters, but received " +
+                        "${typeParams.size}", typeExpr.startLocation)
+            }
+
+            return info.traitSig.getTraitWithParams(typeParams)
         } else if (info.idClass == IdentifierClass.TYPE_PARAMETER) {
             if (!typeExpr.typeParams.isEmpty()) {
                 // Error if this is not an ADT but was given type parameters

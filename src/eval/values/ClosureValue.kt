@@ -20,11 +20,8 @@ class MethodValue(
     val receiver: Value?,
     type: FunctionType
 ) : ClosureValue(formalArgs, body, environment, type) {
-    fun withReceiver(recv: Value): MethodValue {
-        val adtType = recv.type as AlgebraicDataType
-        val paramsMap = adtType.adtSig.typeParams.zip(adtType.typeParams).toMap()
-        val methodType = (type.substitute(paramsMap)) as FunctionType
-
-        return MethodValue(formalArgs, body, environment, thisIdent, recv, methodType)
+    fun withReceiver(recv: Value, methodType: Type): MethodValue {
+        return MethodValue(formalArgs, body, environment, thisIdent, recv,
+                methodType as FunctionType)
     }
 }

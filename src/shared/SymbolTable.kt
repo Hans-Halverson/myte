@@ -236,7 +236,8 @@ class SymbolTable() {
             scope.variables[name] = ident
         } else {
             // Cannot add two types with same name to the same package scope
-            if (scope.type == ScopeType.PACKAGE && scope.types.contains(name)) {
+            if ((scope.type == ScopeType.PACKAGE || scope.type == ScopeType.REPL) &&
+                    scope.types.contains(name)) {
                 throw SymbolTableExceptionWithLocation("Type with name ${name} already exists in " +
                         "this package", location)
             }

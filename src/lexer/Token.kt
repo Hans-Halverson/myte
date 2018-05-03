@@ -178,4 +178,16 @@ class ImplementToken(
     location: Location
 ) : IdentifierToken(TokenType.IMPLEMENT.toString(), location, TokenType.IMPLEMENT)
 
+class ExtendsToken(
+    location: Location
+) : IdentifierToken(TokenType.EXTENDS.toString(), location, TokenType.EXTENDS)
+
+class TraitToken(
+    location: Location
+) : IdentifierToken(TokenType.TRAIT.toString(), location, TokenType.TRAIT)
+
+class AbstractToken(
+    location: Location
+) : IdentifierToken(TokenType.ABSTRACT.toString(), location, TokenType.ABSTRACT)
+
 class NewLineToken(location: Location) : Token(location, TokenType.NEW_LINE)
