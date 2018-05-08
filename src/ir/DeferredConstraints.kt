@@ -8,8 +8,8 @@ sealed class DeferredConstraint {
      * Attempt to apply this constraint.
      *
      * @param trigger the new type to apply this constraint to
-     * @return whether the constraint was successfully applied, or whether it should be
-     *         deferred even further.
+     * @return a list of deferred constraints (along with thier triggers) to add if this
+     *         constraint has been satisfied, or null if this constraint has not been satisfied
      */
     abstract fun apply(trigger: Type): Boolean
 
@@ -18,6 +18,13 @@ sealed class DeferredConstraint {
      * throw an exception with an appropriate error message.
      */
     abstract fun assertUnresolved()
+
+    /**
+     * Attempt to infer types if the fixed point iteration has stalled.
+     * 
+     * @return whether a type could be inferred or not
+     */
+    open fun inferOnFixedPointStall(trigger: Type): Boolean = false
 }
 
 /**
@@ -36,15 +43,14 @@ class KeyedAccessConstraint(
         if (containerType is VectorType) {
             // Constrain eval type of node to be the element type of vector
             if (!typeChecker.unify(containerType.elementType, node.type)) {
-                val types = typeChecker.typesToString(containerType.elementType, node.type,
-                        boundVars)
+                val types = typeChecker.typesToString(containerType.elementType, node.type)
                 throw IRConversionException("Expected type of vector elements to be ${types[0]}, " +
                         "but found ${types[1]}", node.accessLocation)
             }
 
             // Constrain key to be an integer
             if (!typeChecker.unify(node.key.type, IntType)) {
-                val typeStr = typeChecker.typeToString(node.key.type, boundVars)
+                val typeStr = typeChecker.typeToString(node.key.type)
                 throw IRConversionException("Vector expected to have keys of type int, " +
                         "found ${typeStr}", node.key.startLocation)
             }
@@ -53,15 +59,14 @@ class KeyedAccessConstraint(
         } else if (containerType is MapType) {
             // Constrain eval type of node to be the value type of map
             if (!typeChecker.unify(containerType.valType, node.type)) {
-                val types = typeChecker.typesToString(containerType.valType, node.type, boundVars)
+                val types = typeChecker.typesToString(containerType.valType, node.type)
                 throw IRConversionException("Map expected to have values of type ${types[0]}, " +
                         "but found ${types[1]}", node.startLocation)
             }
 
             // Constrain key type of key node to be key type of map
             if (!typeChecker.unify(containerType.keyType, node.key.type)) {
-                val types = typeChecker.typesToString(containerType.keyType, node.key.type,
-                        boundVars)
+                val types = typeChecker.typesToString(containerType.keyType, node.key.type)
                 throw IRConversionException("Map expected to have keys of type ${types[0]}, " +
                         "but found ${types[1]}", node.startLocation) 
             }
@@ -87,7 +92,7 @@ class KeyedAccessConstraint(
             // Constrain eval type of node to be the type of the corresponding tuple element
             val elementType = containerType.elementTypes[num]
             if (!typeChecker.unify(elementType, node.type)) {
-                val types = typeChecker.typesToString(elementType, node.type, boundVars)
+                val types = typeChecker.typesToString(elementType, node.type)
                 throw IRConversionException("Tuple expected to have element of type ${types[0]} " +
                         "at index ${num}, but found ${types[1]}", node.startLocation)
             }
@@ -96,7 +101,7 @@ class KeyedAccessConstraint(
         } else if (containerType is TypeVariable) {
             return false
         } else {
-            val typeStr = typeChecker.typeToString(containerType, boundVars)
+            val typeStr = typeChecker.typeToString(containerType)
             throw IRConversionException("Attempted to perform keyed access on type ${typeStr}, " +
                     "which does not support keyed access", node.startLocation)
         }
@@ -124,22 +129,21 @@ class KeyedAssignmentConstraint(
         if (containerType is VectorType) {
             // Constrain eval type of node to be the element type of vector
             if (!typeChecker.unify(containerType.elementType, node.type)) {
-                val types = typeChecker.typesToString(containerType.elementType, node.type,
-                        boundVars)
+                val types = typeChecker.typesToString(containerType.elementType, node.type)
                 throw IRConversionException("Expected type of vector elements to be ${types[0]}, " +
                         "but found ${types[1]}", node.accessLocation)
             }
 
             // Constrain key to be an integer
             if (!typeChecker.unify(node.key.type, IntType)) {
-                val type = typeChecker.typeToString(node.key.type, boundVars)
+                val type = typeChecker.typeToString(node.key.type)
                 throw IRConversionException("Vector expected to have keys of type int, " +
                         "found ${type}", node.key.startLocation)
             }
 
             // Constrain element type of vector to be type of rValue assigned to it
             if (!typeChecker.unify(node.rValue.type, node.type)) {
-                val types = typeChecker.typesToString(node.type, node.rValue.type, boundVars)
+                val types = typeChecker.typesToString(node.type, node.rValue.type)
                 throw IRConversionException("Vector has elements of type ${types[0]}, " +
                         "but assigned ${types[1]}", node.rValue.startLocation)
             }
@@ -148,23 +152,21 @@ class KeyedAssignmentConstraint(
         } else if (containerType is MapType) {
             // Constrain eval type of node to be the value type of map
             if (!typeChecker.unify(containerType.valType, node.type)) {
-                val types = typeChecker.typesToString(containerType.valType, node.type, boundVars)
+                val types = typeChecker.typesToString(containerType.valType, node.type)
                 throw IRConversionException("Map expected to have values of type ${types[0]}, " +
                         "but found ${types[1]}", node.startLocation)
             }
 
             // Constrain key type of key node to be key type of map
             if (!typeChecker.unify(containerType.keyType, node.key.type)) {
-                val types = typeChecker.typesToString(containerType.keyType, node.key.type,
-                        boundVars)
+                val types = typeChecker.typesToString(containerType.keyType, node.key.type)
                 throw IRConversionException("Map expected to have keys of type ${types[0]}, " +
                         "but found ${types[1]}", node.startLocation) 
             }
 
             // Constrain value type of map to the type or rValue assigned to it
             if (!typeChecker.unify(containerType.valType, node.rValue.type)) {
-                val types = typeChecker.typesToString(containerType.valType, node.rValue.type,
-                        boundVars)
+                val types = typeChecker.typesToString(containerType.valType, node.rValue.type)
                 throw IRConversionException("Map has values of type ${types[0]}, " +
                         "but assigned ${types[1]}", node.rValue.startLocation)
             }
@@ -173,7 +175,7 @@ class KeyedAssignmentConstraint(
         } else if (containerType is TypeVariable) {
             return false
         } else {
-            val typeStr = typeChecker.typeToString(containerType, boundVars)
+            val typeStr = typeChecker.typeToString(containerType)
             throw IRConversionException("Attempted to perform keyed assignment on type " +
                     "${typeStr}, which does not support keyed access", node.startLocation)
         }
@@ -201,7 +203,7 @@ class UnaryMathOperatorConstraint(
         } else if (nodeType is TypeVariable) {
             return false
         } else {
-            val typeStr = typeChecker.typeToString(nodeType, boundVars)
+            val typeStr = typeChecker.typeToString(nodeType)
             throw IRConversionException("Unary math operator expects arguments of type int or " +
                     "float, but found ${typeStr}", node.startLocation)
         }
@@ -229,7 +231,7 @@ class BinaryMathOperatorConstraint(
         } else if (nodeType is TypeVariable) {
             return false
         } else {
-            val typeStr = typeChecker.typeToString(nodeType, boundVars)
+            val typeStr = typeChecker.typeToString(nodeType)
             throw IRConversionException("Binary math operator expects arguments of type int or " +
                     "float, but found ${typeStr}", node.startLocation)
         }
@@ -268,7 +270,7 @@ class AccessConstraint(
 
                     // Type of node is type of reparameterized concrete function defined in trait
                     if (!typeChecker.unify(node.type, freshMethodType)) {
-                        val types = typeChecker.typesToString(node.type, freshMethodType, boundVars)
+                        val types = typeChecker.typesToString(node.type, freshMethodType)
                         throw IRConversionException("Field or method inferred to have type " +
                                 "${types[0]}, but expected ${types[1]}", node.accessLocation)
                     }
@@ -290,7 +292,7 @@ class AccessConstraint(
                 // Error if expr is not resolved to a simple record type
                 val recordVariant = exprType.adtSig.variants[0]
                 if (exprType.adtSig.variants.size != 1 || recordVariant !is RecordVariant) {
-                    val typeStr = typeChecker.typeToString(exprType, boundVars)
+                    val typeStr = typeChecker.typeToString(exprType)
                     throw IRConversionException("No field or method with name ${node.field} for " +
                             "type ${typeStr}", node.accessLocation)
                 }
@@ -298,7 +300,7 @@ class AccessConstraint(
                 // Error if no field with the given name is defined on the record type
                 val fieldType = recordVariant.getFieldsWithParams(exprType.typeParams)[node.field]
                 if (fieldType == null) {
-                    val typeStr = typeChecker.typeToString(exprType, boundVars)
+                    val typeStr = typeChecker.typeToString(exprType)
                     throw IRConversionException("No field or method with name ${node.field} for " +
                             "type ${typeStr}", node.accessLocation)
                 }
@@ -308,7 +310,7 @@ class AccessConstraint(
 
             // Type of node is type of corresponding field or method
             if (!typeChecker.unify(node.type, accessType)) {
-                val types = typeChecker.typesToString(node.type, accessType, boundVars)
+                val types = typeChecker.typesToString(node.type, accessType)
                 throw IRConversionException("Field or method inferred to have type ${types[0]}, " +
                         "but expected ${types[1]}", node.accessLocation)
             }
@@ -323,7 +325,7 @@ class AccessConstraint(
             } else if (concreteIdent != null) {
                 concreteIdent
             } else {
-                val typeStr = typeChecker.typeToString(exprType, boundVars)
+                val typeStr = typeChecker.typeToString(exprType)
                 throw IRConversionException("No method with name ${node.field} defined on trait " +
                         "${typeStr}", node.accessLocation)
             }
@@ -336,7 +338,7 @@ class AccessConstraint(
 
             // Type of node is type of reparameterized method defined in trait
             if (!typeChecker.unify(node.type, freshMethodType)) {
-                val types = typeChecker.typesToString(node.type, freshMethodType, boundVars)
+                val types = typeChecker.typesToString(node.type, freshMethodType)
                 throw IRConversionException("Method inferred to have type " +
                         "${types[0]}, but expected ${types[1]}", node.accessLocation)
             }
@@ -345,7 +347,7 @@ class AccessConstraint(
         } else if (exprType is TypeVariable) {
             return false
         } else {
-            val typeStr = typeChecker.typeToString(exprType, boundVars)
+            val typeStr = typeChecker.typeToString(exprType)
             throw IRConversionException("Can only access field on simple record type, found " +
                     "${typeStr}", node.accessLocation)
         }
@@ -354,5 +356,91 @@ class AccessConstraint(
     override fun assertUnresolved() {
         throw IRConversionException("Type could not be inferred, consider adding more type " +
                 "annotations", node.expr.startLocation)
+    }
+}
+
+class SubtypeConstraint(
+    val subType: Type,
+    val except: () -> Unit,
+    val typeChecker: TypeChecker
+) : DeferredConstraint() {
+    override fun apply(trigger: Type): Boolean {
+        val superType = trigger
+        val repSubType = if (subType is TypeVariable) {
+            typeChecker.findRepNode(subType).resolvedType
+        } else {
+            subType
+        }
+
+        // If the supertype is still a type variable, keep this constraint
+        if (superType is TypeVariable) {
+            return false
+        // If the subtype is still a type variable, remove this constraint since the
+        // super/subtype relation will be enforced by the supertype constraint on the subtype.
+        } else if (repSubType is TypeVariable) {
+            return true
+        } else {
+            if (!typeChecker.subtype(subType, superType, except)) {
+                except()
+            }
+
+            return true
+        }
+    }
+
+    override fun assertUnresolved() {
+        throw ExceptionWithoutLocation("Supertype could not be inferred, consider adding more " +
+                "type annotations")
+    }
+
+    override fun inferOnFixedPointStall(trigger: Type): Boolean {
+        if (!typeChecker.unify(trigger, subType)) {
+            except()
+        }
+
+        return true
+    }
+}
+
+class SupertypeConstraint(
+    val superType: Type,
+    val except: () -> Unit,
+    val typeChecker: TypeChecker
+) : DeferredConstraint() {
+    override fun apply(trigger: Type): Boolean {
+        val subType = trigger
+        val repSuperType = if (superType is TypeVariable) {
+            typeChecker.findRepNode(superType).resolvedType
+        } else {
+            superType
+        }
+
+        // If the subtype is still a type variable, keep this constraint
+        if (subType is TypeVariable) {
+            return false
+        // If the supertype is still a type variable, remove this constraint since the
+        // super/subtype relation will be enforced by the subtype constraint on the supertype.
+        } else if (repSuperType is TypeVariable) {
+            return true
+        } else {
+            if (!typeChecker.subtype(subType, superType, except)) {
+                except()
+            }
+
+            return true
+        }
+    }
+
+    override fun assertUnresolved() {
+        throw ExceptionWithoutLocation("Subtype could not be inferred, consider adding more " +
+                "type annotations")
+    }
+
+    override fun inferOnFixedPointStall(trigger: Type): Boolean {
+        if (!typeChecker.unify(trigger, superType)) {
+            except()
+        }
+
+        return true
     }
 }

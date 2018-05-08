@@ -7,13 +7,13 @@ import myte.shared.*
  *
  * @property pattern the pattern containing variables to be defined
  * @property expr the expression whose value is assigned to the deconstructed pattern
- * @property typeAnnotation the type that the pattern was annotated with
+ * @property typeAnnotation an optional type annotation
  * @property patternLocation the location of the beginning of the pattern
  */
 class PatternDefinitionNode(
     val pattern: IRNode,
     val expr: IRNode,
-    val typeAnnotation: Type,
+    val typeAnnotation: Type?,
     val patternLocation: Location,
     startLocation: Location
 ) : IRNode(startLocation) {

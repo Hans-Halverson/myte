@@ -29,27 +29,33 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         packages.forEach { pack -> pack.typeDefs.forEach(this::createAdtSig) }
         packages.forEach { pack -> pack.typeDefs.forEach(this::createAdtVariants) }
 
+        inferTypes(listOf())
+
         // Create traits, saving definition nodes in list of all IR nodes
-        val irNodes: MutableList<IRNode> = mutableListOf()
-        irNodes.addAll(packages.flatMap({ pack ->
+        val traitNodes = packages.flatMap({ pack ->
             pack.traitDefs.flatMap(this::createTrait)
-        }))
+        })
+
+        inferTypes(traitNodes)
+        traitNodes.forEach(this::assertIRStructure)
 
         // Create implementations for ADTs, saving definition nodes in list of all IR nodes
-        irNodes.addAll(packages.flatMap({ pack ->
+        val implNodes = packages.flatMap({ pack ->
             pack.typeImpls.flatMap(this::createTypeImplementation)
-        }))
+        })
+
+        inferTypes(implNodes)
+        implNodes.forEach(this::assertIRStructure)
 
         // Convert all statements of each package
-        irNodes.addAll(packages.flatMap({ pack ->
+        val defNodes = packages.flatMap({ pack ->
             pack.statements.map({ convert(it, false) })
-        }))
+        })
 
-        // Infer types and then check structure of IR
-        inferTypes(irNodes)
-        irNodes.forEach(this::assertIRStructure)
+        inferTypes(defNodes)
+        defNodes.forEach(this::assertIRStructure)
 
-        return irNodes
+        return traitNodes + implNodes + defNodes
     }
 
     fun convertFiles(parseFilesResult: ParseFilesResult): ConvertFilesResult {
@@ -191,6 +197,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             }
 
             symbolTable.getInfo(arg)?.type = type
+            symbolTable.getInfo(arg)?.typeShouldBeInferred = true
 
             arg
         }
@@ -208,54 +215,61 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             }
 
             symbolTable.getInfo(arg)?.type = type
+            symbolTable.getInfo(arg)?.typeShouldBeInferred = true
 
             Pair(arg, type)
         }).unzip()
 
         // Find annotated return type
-        val returnType = if (stmt.returnTypeAnnotation != null) {
+        val returnTypeAnnotation = if (stmt.returnTypeAnnotation != null) {
             convertType(stmt.returnTypeAnnotation)
         } else {
-            TypeVariable()
+            null
         }
+
+        val returnType = returnTypeAnnotation ?: TypeVariable()
 
         // Annotate function identifier with type from annotations
         symbolTable.getInfo(stmt.ident)?.type = FunctionType(argTypes, returnType)
+        symbolTable.getInfo(stmt.ident)?.typeShouldBeInferred = true
 
         return FunctionDefinitionNode(stmt.ident, formalArgs, convert(stmt.body, false),
-                stmt.identLocation, stmt.startLocation)
+                returnTypeAnnotation, stmt.identLocation, stmt.startLocation)
     }
 
     fun convertAbstractFunctionDefinition(stmt: AbstractFunctionDefinitionStatement) {
         val argTypes = stmt.formalArgs.map { (arg, typeAnnotation) ->
             val type = convertType(typeAnnotation)
             symbolTable.getInfo(arg)?.type = type
+            symbolTable.getInfo(arg)?.typeShouldBeInferred = true
             type
         }
 
         // Annotate function identifier with function type from annotations
         val returnType = convertType(stmt.returnTypeAnnotation)
         symbolTable.getInfo(stmt.ident)?.type = FunctionType(argTypes, returnType)
+        symbolTable.getInfo(stmt.ident)?.typeShouldBeInferred = true
     }
 
     fun convertVariableDefinition(stmt: VariableDefinitionStatement): IRNode {
         val pattern = convertLValuePattern(stmt.lValue, true)
 
         // Annotate this identifier with type annotation, or new type variable if not annotated
-        val type = if (stmt.typeAnnotation != null) {
+        val typeAnnotation = if (stmt.typeAnnotation != null) {
             convertType(stmt.typeAnnotation)
         } else {
-            TypeVariable()
+            null
         }
 
         // If this is a simple variable assignment, create variable definition node
         if (pattern is VariableNode) {
-            symbolTable.getInfo(pattern.ident)?.type = type
-            return VariableDefinitionNode(pattern.ident, convert(stmt.expr, true),
+            symbolTable.getInfo(pattern.ident)?.type = TypeVariable()
+            symbolTable.getInfo(pattern.ident)?.typeShouldBeInferred = true
+            return VariableDefinitionNode(pattern.ident, convert(stmt.expr, true), typeAnnotation,
                     pattern.startLocation, stmt.startLocation)
         // Otherwise this is a pattern deconstruction variable definition
         } else {
-            return PatternDefinitionNode(pattern, convert(stmt.expr, true), type,
+            return PatternDefinitionNode(pattern, convert(stmt.expr, true), typeAnnotation,
                     pattern.startLocation, stmt.startLocation)
         }
     }
@@ -442,6 +456,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
                 // since every ident needs a type annotated when it is defined.
                 if (inDef) {
                     symbolTable.getInfo(ident)?.type = TypeVariable()
+                    symbolTable.getInfo(ident)?.typeShouldBeInferred = true
                 }
 
                 // Error if assigning to identifier that is not a variable
@@ -635,6 +650,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         val typeParams = typeDef.typeParamIdents.map { typeParamIdent ->
             val typeParam = TypeParameter()
             symbolTable.getInfo(typeParamIdent)?.type = typeParam
+            symbolTable.getInfo(typeParamIdent)?.typeShouldBeInferred = true
             typeParam
         }
 
@@ -642,6 +658,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         val adtSig = AlgebraicDataTypeSignature(typeDef.typeIdent.name, typeParams)
         symbolTable.getInfo(typeDef.typeIdent)?.adtSig = adtSig
         symbolTable.getInfo(typeDef.typeIdent)?.type = adtSig.getAdtWithParams(adtSig.typeParams)
+        symbolTable.getInfo(typeDef.typeIdent)?.typeShouldBeInferred = true
     }
 
     fun createAdtVariants(typeDef: TypeDefinitionStatement) {
@@ -675,6 +692,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         val typeParams = traitDef.typeParamIdents.map { typeParamIdent ->
             val typeParam = TypeParameter()
             symbolTable.getInfo(typeParamIdent)?.type = typeParam
+            symbolTable.getInfo(typeParamIdent)?.typeShouldBeInferred = true
             typeParam
         }
 
@@ -684,10 +702,12 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         val traitType = traitSig.getTraitWithParams(typeParams)
         symbolTable.getInfo(traitIdent)?.traitSig = traitSig
         symbolTable.getInfo(traitIdent)?.type = traitType
+        symbolTable.getInfo(traitIdent)?.typeShouldBeInferred = true
 
         // Annotate this with trait type
         val thisInfo = symbolTable.getInfo(traitDef.thisIdent)!!
         thisInfo.type = traitType
+        thisInfo.typeShouldBeInferred = true
 
         // Check that every method has a unique name
         val names: MutableSet<String> = mutableSetOf()
@@ -720,7 +740,8 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             val funcDef = convertFunctionDefinition(concreteDef)
             traitSig.concreteMethods[funcDef.ident.name] = funcDef.ident
             MethodDefinitionNode(funcDef.ident, funcDef.formalArgs, funcDef.body,
-                    traitDef.thisIdent, null, funcDef.identLocation, funcDef.startLocation)
+                    funcDef.returnTypeAnnotation, traitDef.thisIdent, null, funcDef.identLocation,
+                    funcDef.startLocation)
         }
 
         return concreteNodes
@@ -747,10 +768,12 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         // Annotate type parameter identifiers with new type variables
         typeImpl.typeParamIdents.zip(adtSig.typeParams).forEach { (typeParamIdent, adtTypeParam) ->
             symbolTable.getInfo(typeParamIdent)?.type = adtTypeParam
+            symbolTable.getInfo(typeParamIdent)?.typeShouldBeInferred = true
         }
 
         // Annotate "this" with correctly parameterized type
         thisInfo.type = adtSig.getAdtWithParams(adtSig.typeParams)
+        thisInfo.typeShouldBeInferred = true
 
         // Check that every method and field has a unique name
         val names = adtSig.getAllNames()
@@ -821,8 +844,8 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         val methodDefs = funcDefs.map { funcDef ->
             adtSig.methods[funcDef.ident.name] = funcDef.ident
             MethodDefinitionNode(funcDef.ident, funcDef.formalArgs, funcDef.body,
-                    typeImpl.thisIdent, abstractTypes[funcDef.ident.name],
-                    funcDef.identLocation, funcDef.startLocation)
+                    funcDef.returnTypeAnnotation, typeImpl.thisIdent,
+                    abstractTypes[funcDef.ident.name], funcDef.identLocation, funcDef.startLocation)
         }
 
         return methodDefs
@@ -961,6 +984,8 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     fun inferTypes(nodes: List<IRNode>) {
         val boundVars: MutableSet<TypeVariable> = hashSetOf()
         nodes.forEach { node -> typeChecker.typeCheck(node, boundVars, true) }
+
+        typeChecker.findFixedPoint()
 
         typeChecker.inferFunctionTypes()
         typeChecker.inferVariableTypes()

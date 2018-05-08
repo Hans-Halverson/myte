@@ -5,6 +5,8 @@ type List<a> =
 | Nil
 
 implement List<a> {
+    def isEmpty() = this == Nil
+
     def length() = match this
         | Nil -> 0
         | Cons(_, tl) -> 1 + tl.length()
@@ -39,10 +41,6 @@ implement List<a> {
         | (Nil, _) -> Nil
         | (_, Nil) -> Nil
         | (Cons(hd1, tl1), Cons(hd2, tl2)) -> Cons((hd1, hd2), tl1.zip(tl2))
-}
-
-implement List<a> {
-    def isEmpty() = this == Nil
 }
 
 def main() {

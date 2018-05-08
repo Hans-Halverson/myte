@@ -42,4 +42,7 @@ data class IdentifierInfo(
     lateinit var adtSig: AlgebraicDataTypeSignature
     lateinit var adtVariant: AlgebraicDataTypeVariant
     lateinit var traitSig: TraitSignature
+
+    var typeShouldBeInferred = false
+    var typeIsInferred = false
 }

@@ -7,11 +7,13 @@ import myte.shared.*
  *
  * @property ident the identifier of the new variable
  * @property expr the expression whose value is bound to the new variable
+ * @property typeAnnotation an optional type annotation
  * @property identLocation the location for the identifier that is defined in this node
  */
 class VariableDefinitionNode(
     val ident: Identifier,
     val expr: IRNode,
+    val typeAnnotation: Type?,
     val identLocation: Location,
     startLocation: Location
 ) : IRNode(startLocation) {
