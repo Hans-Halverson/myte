@@ -234,16 +234,11 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         symbolTable.getInfo(stmt.ident)?.typeShouldBeInferred = true
 
         return FunctionDefinitionNode(stmt.ident, formalArgs, convert(stmt.body, false),
-                returnTypeAnnotation, stmt.identLocation, stmt.startLocation)
+                returnTypeAnnotation, null, stmt.identLocation, stmt.startLocation)
     }
 
-    fun convertAbstractFunctionDefinition(stmt: AbstractFunctionDefinitionStatement) {
-        val argTypes = stmt.formalArgs.map { (arg, typeAnnotation) ->
-            val type = convertType(typeAnnotation)
-            symbolTable.getInfo(arg)?.type = type
-            symbolTable.getInfo(arg)?.typeShouldBeInferred = true
-            type
-        }
+    fun convertFunctionSignatureDefinition(stmt: FunctionSignatureDefinitionStatement) {
+        val argTypes = stmt.argTypes.map(this::convertType)
 
         // Annotate function identifier with function type from annotations
         val returnType = convertType(stmt.returnTypeAnnotation)
@@ -710,38 +705,82 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         thisInfo.typeShouldBeInferred = true
 
         // Check that every method has a unique name
-        val names: MutableSet<String> = mutableSetOf()
-        for (abstractDef in traitDef.abstractMethods) {
-            if (names.contains(abstractDef.ident.name)) {
-                throw IRConversionException("Method with name ${abstractDef.ident.name} " +
-                        "already defined for type ${traitIdent.name}", abstractDef.identLocation)
+        val methodNames: MutableSet<String> = mutableSetOf()
+        val staticNames: MutableSet<String> = mutableSetOf()
+        for ((methodSignature, isStatic) in traitDef.methodSignatures) {
+            if (isStatic) {
+                if (staticNames.contains(methodSignature.ident.name)) {
+                    throw IRConversionException("Static method with name " +
+                            "${methodSignature.ident.name} already defined for type " +
+                            "${traitIdent.name}", methodSignature.identLocation)
+                } else {
+                    staticNames.add(methodSignature.ident.name)
+                }
             } else {
-                names.add(abstractDef.ident.name)
+                if (methodNames.contains(methodSignature.ident.name)) {
+                    throw IRConversionException("Method with name ${methodSignature.ident.name} " +
+                            "already defined for type ${traitIdent.name}",
+                            methodSignature.identLocation)
+                } else {
+                    methodNames.add(methodSignature.ident.name)
+                }
             }
         }
 
-        for (concreteDef in traitDef.concreteMethods) {
-            if (names.contains(concreteDef.ident.name)) {
-                throw IRConversionException("Method with name ${concreteDef.ident.name} " +
-                        "already defined for type ${traitIdent.name}", concreteDef.identLocation)
+        for ((concreteDef, isStatic) in traitDef.concreteMethods) {
+            if (isStatic) {
+                if (staticNames.contains(concreteDef.ident.name)) {
+                    throw IRConversionException("Static method with name " +
+                            "${concreteDef.ident.name} already defined for type " +
+                            "${traitIdent.name}", concreteDef.identLocation)
+                } else {
+                    staticNames.add(concreteDef.ident.name)
+                }
             } else {
-                names.add(concreteDef.ident.name)
+                if (methodNames.contains(concreteDef.ident.name)) {
+                    throw IRConversionException("Method with name ${concreteDef.ident.name} " +
+                            "already defined for type ${traitIdent.name}",
+                            concreteDef.identLocation)
+                } else {
+                    methodNames.add(concreteDef.ident.name)
+                }
             }
         }
 
-        // Convert abstract method definitions and add to trait
-        traitDef.abstractMethods.forEach { abstractDef ->
-            convertAbstractFunctionDefinition(abstractDef)
-            traitSig.abstractMethods[abstractDef.ident.name] = abstractDef.ident
+        // Convert method signature definitions and add to trait
+        traitDef.methodSignatures.forEach { (methodSignature, isStatic) ->
+            convertFunctionSignatureDefinition(methodSignature)
+
+            if (isStatic) {
+                traitSig.staticMethodSignatures[methodSignature.ident.name] = methodSignature.ident
+            } else {
+                traitSig.methodSignatures[methodSignature.ident.name] = methodSignature.ident
+            }
         }
 
-        // Convert concrete method definitions and add to trait
-        val concreteNodes = traitDef.concreteMethods.map { concreteDef ->
-            val funcDef = convertFunctionDefinition(concreteDef)
-            traitSig.concreteMethods[funcDef.ident.name] = funcDef.ident
-            MethodDefinitionNode(funcDef.ident, funcDef.formalArgs, funcDef.body,
-                    funcDef.returnTypeAnnotation, traitDef.thisIdent, null, funcDef.identLocation,
-                    funcDef.startLocation)
+        // Add concrete and static methods to trait
+        traitDef.concreteMethods.map { (methodDef, isStatic) ->
+            if (isStatic) {
+                traitSig.staticConcreteMethods[methodDef.ident.name] = methodDef.ident
+            } else {
+                traitSig.concreteMethods[methodDef.ident.name] = methodDef.ident
+            }   
+        }
+
+        // Convert concrete method definitions
+        val concreteNodes = traitDef.concreteMethods.map { (methodDef, isStatic) ->
+            val funcDef = convertFunctionDefinition(methodDef)
+
+            if (isStatic) {
+                // If a static method, check that the function can be static (does not contain this)
+                assertStaticMethod(funcDef)
+                funcDef
+            } else {
+                // Convert function definition node to method definition node
+                MethodDefinitionNode(funcDef.ident, funcDef.formalArgs, funcDef.body,
+                        funcDef.returnTypeAnnotation, traitDef.thisIdent, null,
+                        funcDef.identLocation, funcDef.startLocation)
+            }
         }
 
         return concreteNodes
@@ -776,15 +815,27 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         thisInfo.typeShouldBeInferred = true
 
         // Check that every method and field has a unique name
-        val names = adtSig.getAllNames()
-        val abstractNames: MutableSet<String> = mutableSetOf()
+        val (methodNames, staticNames) = adtSig.getAllNames()
+        val sigNames: MutableSet<String> = mutableSetOf()
+        val staticSigNames: MutableSet<String> = mutableSetOf()
 
-        for (methodDef in typeImpl.methods) {
-            if (names.contains(methodDef.ident.name)) {
-                throw IRConversionException("Field or method with name ${methodDef.ident.name} " +
-                        "already defined for type ${typeIdent.name}", methodDef.identLocation)
+        for ((methodDef, isStatic) in typeImpl.methods) {
+            if (isStatic) {
+                if (staticNames.contains(methodDef.ident.name)) {
+                    throw IRConversionException("Static method method with name " +
+                            "${methodDef.ident.name} already defined for type ${typeIdent.name}",
+                            methodDef.identLocation)
+                } else {
+                    staticNames.add(methodDef.ident.name)
+                }
             } else {
-                names.add(methodDef.ident.name)
+                if (methodNames.contains(methodDef.ident.name)) {
+                    throw IRConversionException("Field or method with name " +
+                            "${methodDef.ident.name} already defined for type ${typeIdent.name}",
+                            methodDef.identLocation)
+                } else {
+                    methodNames.add(methodDef.ident.name)
+                }
             }
         }
 
@@ -794,32 +845,63 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
 
             // Make sure that concrete methods defined on traits do not conflict with names in type
             for ((concreteName, _) in traitSig.concreteMethods) {
-                if (names.contains(concreteName)) {
+                if (methodNames.contains(concreteName)) {
                     throw IRConversionException("Field or method with name ${concreteName} " +
                             "already defined for type ${typeIdent.name}, conflicting with method " +
                             "of same name from trait ${traitIdent.name}", thisInfo.location) 
                 } else {
-                    names.add(concreteName)
+                    methodNames.add(concreteName)
                 }
             }
 
-            for ((abstractName, _) in traitSig.abstractMethods) {
-                // Make sure that no two abstract methods have the same name
-                if (abstractNames.contains(abstractName)) {
-                    throw IRConversionException("${typeIdent.name} cannot implement two abstract " +
-                            "methods with the same name: ${abstractName}", thisInfo.location)
+            // Make sure that static methods defined on traits do not conflict with names in type
+            for ((staticName, _) in traitSig.staticConcreteMethods) {
+                if (staticNames.contains(staticName)) {
+                    throw IRConversionException("Static method with name ${staticName} " +
+                            "already defined for type ${typeIdent.name}, conflicting with method " +
+                            "of same name from trait ${traitIdent.name}", thisInfo.location) 
+                } else {
+                    staticNames.add(staticName)
+                }
+            }
+
+            for ((sigName, _) in traitSig.methodSignatures) {
+                // Make sure that no two method signatures have the same name
+                if (sigNames.contains(sigName)) {
+                    throw IRConversionException("${typeIdent.name} cannot implement two " +
+                            "methods with the same name: ${sigName}", thisInfo.location)
+                } else {
+                    sigNames.add(sigName)
                 }
 
-                // Make sure that all abstract methods defined in trait are implemented by type
-                if (!names.contains(abstractName)) {
+                // Make sure that all method signatures defined in trait are implemented by type
+                if (!methodNames.contains(sigName)) {
                     throw IRConversionException("Type ${typeIdent.name} cannot implement trait " +
-                            "${traitIdent.name}, since method ${abstractName} is " +
+                            "${traitIdent.name}, since method ${sigName} is " +
+                            "not implemented", thisInfo.location)
+                }
+            }
+
+            for ((staticSigName, _) in traitSig.staticMethodSignatures) {
+                // Make sure that no two static method signatures have the same name
+                if (staticSigNames.contains(staticSigName)) {
+                    throw IRConversionException("${typeIdent.name} cannot implement two " +
+                            "methods with the same name: ${staticSigName}", thisInfo.location)
+                } else {
+                    staticSigNames.add(staticSigName)
+                }
+
+                // Make sure that all method signatures defined in trait are implemented by type
+                if (!staticNames.contains(staticSigName)) {
+                    throw IRConversionException("Type ${typeIdent.name} cannot implement trait " +
+                            "${traitIdent.name}, since static method ${staticSigName} is " +
                             "not implemented", thisInfo.location)
                 }
             }
         }
 
-        val abstractTypes: MutableMap<String, Type> = mutableMapOf()
+        val methodSigTypes: MutableMap<String, Type> = mutableMapOf()
+        val staticSigTypes: MutableMap<String, Type> = mutableMapOf()
 
         // Add implemented traits to adt's signature
         for ((traitSymbol, typeParamExprs) in typeImpl.extendedTraits) {
@@ -831,21 +913,49 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
 
             adtSig.traits.add(traitType)
 
-            // Generate method types with correct paramaters for this type implementation
-            for ((abstractName, abstractIdent) in traitSig.abstractMethods) {
+            // Generate method types with correct parameters for this type implementation
+            for ((sigName, sigIdent) in traitSig.methodSignatures) {
                 val substMap = traitSig.typeParams.zip(typeParams).toMap()
-                val methodType = symbolTable.getInfo(abstractIdent)?.type?.substitute(substMap)!!
-                abstractTypes[abstractName] = methodType
+                val methodType = symbolTable.getInfo(sigIdent)?.type?.substitute(substMap)!!
+                methodSigTypes[sigName] = methodType
+            }
+
+            // Generate static method types with correct parameters for this type implementation
+            for ((staticSigName, staticSigIdent) in traitSig.staticMethodSignatures) {
+                val substMap = traitSig.typeParams.zip(typeParams).toMap()
+                val staticType = symbolTable.getInfo(staticSigIdent)?.type?.substitute(substMap)!!
+                staticSigTypes[staticSigName] = staticType
             }
         }
 
-        // Convert function definitions to method definitions, then add methods to type
-        val funcDefs = typeImpl.methods.map(this::convertFunctionDefinition)
-        val methodDefs = funcDefs.map { funcDef ->
-            adtSig.methods[funcDef.ident.name] = funcDef.ident
-            MethodDefinitionNode(funcDef.ident, funcDef.formalArgs, funcDef.body,
-                    funcDef.returnTypeAnnotation, typeImpl.thisIdent,
-                    abstractTypes[funcDef.ident.name], funcDef.identLocation, funcDef.startLocation)
+        // Add methods and static methods to ADT
+        typeImpl.methods.map { (stmt, isStatic) ->
+            if (isStatic) {
+                adtSig.staticMethods[stmt.ident.name] = stmt.ident
+            } else {
+                adtSig.methods[stmt.ident.name] = stmt.ident
+            }
+        }
+
+        // Convert function definitions to method definitions
+        val methodDefs = typeImpl.methods.map { (stmt, isStatic) ->
+            val funcDef = convertFunctionDefinition(stmt)
+            if (isStatic) {
+                // If a static method, check that the function can be static (does not contain this)
+                assertStaticMethod(funcDef)
+
+                // Add static sig type to function definition node
+                FunctionDefinitionNode(funcDef.ident, funcDef.formalArgs, funcDef.body,
+                        funcDef.returnTypeAnnotation, staticSigTypes[funcDef.ident.name],
+                        funcDef.identLocation, funcDef.startLocation)
+            } else {
+                // Convert function definition node to method definition node
+                MethodDefinitionNode(funcDef.ident, funcDef.formalArgs, funcDef.body,
+                        funcDef.returnTypeAnnotation, typeImpl.thisIdent,
+                        methodSigTypes[funcDef.ident.name], funcDef.identLocation,
+                        funcDef.startLocation)
+            }
+
         }
 
         return methodDefs
@@ -1044,6 +1154,15 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
                 allPathsHaveReturn(node.nodes.get(node.nodes.lastIndex))
             }
             else -> false
+        }
+    }
+
+    fun assertStaticMethod(staticMethod: FunctionDefinitionNode) {
+        staticMethod.map { node ->
+            if (node is VariableNode && node.ident.name == "this") {
+                throw IRConversionException("Static method ${staticMethod.ident.name} cannot " +
+                        "refer to this", node.startLocation)
+            }
         }
     }
 

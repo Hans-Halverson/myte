@@ -186,8 +186,12 @@ class TraitToken(
     location: Location
 ) : IdentifierToken(TokenType.TRAIT.toString(), location, TokenType.TRAIT)
 
-class AbstractToken(
+class SigToken(
     location: Location
-) : IdentifierToken(TokenType.ABSTRACT.toString(), location, TokenType.ABSTRACT)
+) : IdentifierToken(TokenType.SIG.toString(), location, TokenType.SIG)
+
+class StaticToken(
+    location: Location
+) : IdentifierToken(TokenType.STATIC.toString(), location, TokenType.STATIC)
 
 class NewLineToken(location: Location) : Token(location, TokenType.NEW_LINE)

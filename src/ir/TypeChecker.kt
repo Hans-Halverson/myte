@@ -1443,16 +1443,16 @@ class TypeChecker(var symbolTable: SymbolTable) {
             }            
         }
 
-        // If this function implements an abstract function, this function type is a subtype
-        // of abstract functin type.
-        if (node is MethodDefinitionNode && node.abstractType != null) {
+        // If this function implements a method signature, this function type is a subtype
+        // of method signature type.
+        if (node.signature != null) {
             val except = { ->
-                val types = typesToString(node.abstractType, funcType)
-                throw IRConversionException("Abstract ${node.ident.name} has type ${types[0]}, " +
-                        "but implementation has type ${types[1]}", node.startLocation)
+                val types = typesToString(node.signature, funcType)
+                throw IRConversionException("Method signature ${node.ident.name} has type " +
+                        "${types[0]}, but implementation has type ${types[1]}", node.startLocation)
             }
 
-            if (!subtype(funcType, node.abstractType, except)) {
+            if (!subtype(funcType, node.signature, except)) {
                 except()
             }
         }

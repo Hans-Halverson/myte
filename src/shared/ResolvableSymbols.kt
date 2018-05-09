@@ -39,6 +39,7 @@ class ResolvedIdentifier(val ident: Identifier) : ResolvableSymbol() {
  * @property scopePrefixes a list of scope names that prefix this variable's name
  * @property location the location of the beginning of the scope prefixed name
  * @property scope the scope that the variable needs to be resolved in
+ * @property symbolTable the symbol table for this variable
  * @property importContext the import context that the variable needs to be resolved in
  */
 class VariableSymbolPendingResolution(
@@ -46,6 +47,7 @@ class VariableSymbolPendingResolution(
     val scopePrefixes: List<String>,
     val location: Location,
     val scope: Scope,
+    val symbolTable: SymbolTable,
     val importContext: ImportContext
 ) : ResolvableSymbol() {
     override fun resolve(): Identifier {
@@ -75,12 +77,107 @@ class VariableSymbolPendingResolution(
             return variableIdent
         // If there are scope prefixes, find correct package and lookup in it
         } else {
-            val (importedPackage, fullImport) = findPackage(scopePrefixes, importContext, location)
+            // If there is one scope prefix, this could be a static method in the current scope,
+            // or a static method
+            if (scopePrefixes.size == 1) {
+                // First check whether this is a static method where the type is in the current
+                // lexical scope.
+                var typeIdent = scope.lookupType(scopePrefixes[0])
+                if (typeIdent != null) {
+                    val identInfo = symbolTable.getInfo(typeIdent)!!
+
+                    // If a trait, return concrete static method with the same name if one exists
+                    if (identInfo.idClass == IdentifierClass.TRAIT) {
+                        val staticMethod = identInfo.traitSig.staticConcreteMethods[name]
+                        if (staticMethod != null) {
+                            return staticMethod
+                        }
+                    // If an ADT, return static method with the same name if one exists
+                    } else if (identInfo.idClass == IdentifierClass.ALGEBRAIC_DATA_TYPE) {
+                        val staticMethod = identInfo.adtSig.staticMethods[name]
+                        if (staticMethod != null) {
+                            return staticMethod
+                        }
+                    }
+                }
+
+                // Then check whether this is a static method where the type is an imported alias
+                val importParts = importContext.findImportForAlias(scopePrefixes[0])
+                if (importParts != null) {
+                    val packageParts = importParts.dropLast(1)
+                    val typeName = importParts[importParts.size - 1]
+
+                    // First find package containing trait or type
+                    val subPackage = importContext.rootPackageNode.getSubPackage(packageParts)
+                    if (subPackage != null) {
+                        // Then find trait or type within package
+                        typeIdent = subPackage.scope.lookupType(typeName)
+                        if (typeIdent != null) {
+                            val identInfo = symbolTable.getInfo(typeIdent)!!
+
+                            // If a trait, return concrete static method with the same name if found
+                            if (identInfo.idClass == IdentifierClass.TRAIT) {
+                                val staticMethod = identInfo.traitSig.staticConcreteMethods[name]
+                                if (staticMethod != null) {
+                                    return staticMethod
+                                }
+                            // If an ADT, return static method with the same name if one exists
+                            } else if (identInfo.idClass == IdentifierClass.ALGEBRAIC_DATA_TYPE) {
+                                val staticMethod = identInfo.adtSig.staticMethods[name]
+                                if (staticMethod != null) {
+                                    return staticMethod
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Next, try to find imported trait or type with the same name, and find static method..
+            // First resolve type alias from first scope prefix.
+            val importParts = importContext.findImportForAlias(scopePrefixes[0])
+            if (importParts != null) {
+                // All scope parts but last are subpackages, last scope part must be the type
+                val restOfImportParts = scopePrefixes.drop(1).dropLast(1)
+                val typeName = scopePrefixes[scopePrefixes.size - 1]
+
+                // Find package containing type, by looking up package from alias and rest of scope
+                val subPackage = importContext.rootPackageNode.getSubPackage(importParts +
+                        restOfImportParts)
+
+                if (subPackage != null) {
+                    // Then look up trait or type with that name in the package
+                    val typeIdent = subPackage.scope.lookupType(typeName)
+                    if (typeIdent != null) {
+                        val identInfo = symbolTable.getInfo(typeIdent)!!
+                        // If a trait, return concrete static method with the same name if found
+                        if (identInfo.idClass == IdentifierClass.TRAIT) {
+                            val staticMethod = identInfo.traitSig.staticConcreteMethods[name]
+                            if (staticMethod != null) {
+                                return staticMethod
+                            }
+                        // If an ADT, return static method with the same name if one exists
+                        } else if (identInfo.idClass == IdentifierClass.ALGEBRAIC_DATA_TYPE) {
+                            val staticMethod = identInfo.adtSig.staticMethods[name]
+                            if (staticMethod != null) {
+                                return staticMethod
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Otherwise find the package and lookup in it
+            val importedPackage = findPackage(scopePrefixes, importContext)
+            if (importedPackage == null) {
+                val fullReference = (scopePrefixes + name).joinToString("::")
+                throw IRConversionException("Unresolved reference $fullReference", location)
+            }
+
             val variableIdent = importedPackage.scope.lookupVariable(name)
             if (variableIdent == null) {
-                val packageName = formatPackageName(fullImport)
-                throw IRConversionException("No member with name ${name} found in package " +
-                        "${packageName}", location)
+                val fullReference = (scopePrefixes + name).joinToString("::")
+                throw IRConversionException("Unresolved reference: $fullReference", location)
             }
 
             return variableIdent
@@ -153,12 +250,16 @@ class PatternSymbolPendingResolution(
             }
         // If there are scope prefixes, find correct package and lookup in it
         } else {
-            val (importedPackage, fullImport) = findPackage(scopePrefixes, importContext, location)
+            val importedPackage = findPackage(scopePrefixes, importContext)
+            if (importedPackage == null) {
+                val fullReference = (scopePrefixes + name).joinToString("::")
+                throw IRConversionException("Unresolved reference: $fullReference", location)
+            }
+
             val variableIdent = importedPackage.scope.lookupVariable(name)
             if (variableIdent == null) {
-                val packageName = formatPackageName(fullImport)
-                throw IRConversionException("No type constructor with name ${name} found in " +
-                        "package ${packageName}", location)
+                val fullReference = (scopePrefixes + name).joinToString("::")
+                throw IRConversionException("Unresolved reference: $fullReference", location)
             }
 
             return variableIdent
@@ -223,12 +324,16 @@ class TypeSymbolPendingResolution(
             }
         // If there are scope prefixes, find correct package and lookup in it
         } else {
-            val (importedPackage, fullImport) = findPackage(scopePrefixes, importContext, location)
+            val importedPackage = findPackage(scopePrefixes, importContext)
+            if (importedPackage == null) {
+                val fullReference = (scopePrefixes + name).joinToString("::")
+                throw IRConversionException("Unresolved reference: $fullReference", location)
+            }
+
             val typeIdent = importedPackage.scope.lookupType(name)
             if (typeIdent == null) {
-                val packageName = formatPackageName(fullImport)
-                throw IRConversionException("No type with name ${name} found in package " +
-                        "${packageName}", location)
+                val fullReference = (scopePrefixes + name).joinToString("::")
+                throw IRConversionException("Unresolved reference: $fullReference", location)
             }
 
             return typeIdent
@@ -244,27 +349,20 @@ class TypeSymbolPendingResolution(
  */
 private fun findPackage(
     scopePrefixes: List<String>,
-    importContext: ImportContext,
-    location: Location
-): Pair<Package, List<String>> {
+    importContext: ImportContext
+): Package? {
     // The first scope prefix is a scope alias, try to resolve it
     val importAlias = scopePrefixes[0]
     val importParts = importContext.findImportForAlias(importAlias)
     if (importParts == null) {
-        throw IRConversionException("No import found with name ${importAlias}", location)
+        return null
     }
 
     // The full import statement is the unaliased import prepended to the rest of the scope
     val restOfScopePrefixes = scopePrefixes.drop(1)
     val fullImport = importParts + restOfScopePrefixes
 
-    val importedPackage = importContext.rootPackageNode.getSubPackage(fullImport)
-    if (importedPackage == null) {
-        val packageName = formatPackageName(fullImport)
-        throw IRConversionException("No package with name ${packageName} found", location)
-    }
-
-    return Pair(importedPackage, fullImport)
+    return importContext.rootPackageNode.getSubPackage(fullImport)
 }
 
 /**

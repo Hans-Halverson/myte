@@ -139,7 +139,7 @@ class SymbolTable() {
         importContext: ImportContext
     ): VariableSymbolPendingResolution {
         return VariableSymbolPendingResolution(name, scopePrefixes, location,
-                currentScope, importContext)
+                currentScope, this, importContext)
     }
 
     fun addBuiltin(name: String): Identifier {

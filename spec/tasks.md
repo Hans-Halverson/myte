@@ -4,7 +4,9 @@
 
 - Add overloading of functions
 
-- Add traits and implementations on types
+- Static functions in traits and implementations
+
+- Allow for traits to extend other traits
 
 
 

@@ -317,11 +317,11 @@ class AccessConstraint(
 
             return true
         } else if (exprType is TraitType) {
-            // Find concrete or abstract method defined on trait, erroring if none is found
-            val abstractIdent = exprType.traitSig.abstractMethods[node.field]
+            // Find concrete method or method signature defined on trait, erroring if none is found
+            val methodSignatureIdent = exprType.traitSig.methodSignatures[node.field]
             val concreteIdent = exprType.traitSig.concreteMethods[node.field]
-            val methodIdent = if (abstractIdent != null) {
-                abstractIdent
+            val methodIdent = if (methodSignatureIdent != null) {
+                methodSignatureIdent
             } else if (concreteIdent != null) {
                 concreteIdent
             } else {

@@ -405,8 +405,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         // Bind "this" if a method is being called
         if (closure is MethodValue) {
             if (closure.receiver == null) {
-                throw EvaluationException("Cannot call method without receiver",
-                        closure.body.startLocation)
+                throw ExceptionWithoutLocation("Cannot call method without receiver")
             }
 
             applicationEnv.extend(closure.thisIdent, closure.receiver)

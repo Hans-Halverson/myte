@@ -3,8 +3,10 @@ package myte.shared
 class TraitSignature(
     val name: String,
     val typeParams: List<TypeVariable>,
-    val abstractMethods: MutableMap<String, Identifier> = mutableMapOf(),
+    val methodSignatures: MutableMap<String, Identifier> = mutableMapOf(),
     val concreteMethods: MutableMap<String, Identifier> = mutableMapOf(),
+    val staticMethodSignatures: MutableMap<String, Identifier> = mutableMapOf(),
+    val staticConcreteMethods: MutableMap<String, Identifier> = mutableMapOf(),
     val id: Long = newTraitId()
 ) {
     /**

@@ -124,7 +124,8 @@ private fun getKeywordToken(str: String, location: Location): Token? {
         "implement" -> ImplementToken(location)
         "extends" -> ExtendsToken(location)
         "trait" -> TraitToken(location)
-        "abstract" -> AbstractToken(location)
+        "sig" -> SigToken(location)
+        "static" -> StaticToken(location)
         else -> null
     }
 }

@@ -2,9 +2,9 @@ package myte.parser.ast
 
 import myte.shared.*
 
-class AbstractFunctionDefinitionStatement(
+class FunctionSignatureDefinitionStatement(
     val ident: Identifier,
-    val formalArgs: List<Pair<Identifier, TypeExpression>>,
+    val argTypes: List<TypeExpression>,
     val returnTypeAnnotation: TypeExpression,
     val identLocation: Location,
     startLocation: Location

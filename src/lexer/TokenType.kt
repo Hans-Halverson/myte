@@ -269,8 +269,12 @@ enum class TokenType {
         override fun toString(): String = "trait"
     },
 
-    ABSTRACT {
-        override fun toString(): String = "abstract"
+    SIG {
+        override fun toString(): String = "sig"
+    },
+
+    STATIC {
+        override fun toString(): String = "static"
     },
 
     NEW_LINE {

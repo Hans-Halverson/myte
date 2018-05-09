@@ -14,6 +14,7 @@ class AlgebraicDataTypeSignature(
     val typeParams: List<TypeVariable>,
     val variants: MutableList<AlgebraicDataTypeVariant> = mutableListOf(),
     val methods: MutableMap<String, Identifier> = mutableMapOf(),
+    val staticMethods: MutableMap<String, Identifier> = mutableMapOf(),
     val traits: MutableList<TraitType> = mutableListOf(),
     val id: Long = newAdtId()
 ) {
@@ -38,29 +39,33 @@ class AlgebraicDataTypeSignature(
     }
 
     /**
-     * Returns the set of all field and method names defined on this type.
+     * Returns the set of all field and method names defined on this type, as well as the set of
+     * all static method names defined on this type or its traits.
      */
-    fun getAllNames(): MutableSet<String> {
-        val names: MutableSet<String> = mutableSetOf()
+    fun getAllNames(): Pair<MutableSet<String>, MutableSet<String>> {
+        val methodNames: MutableSet<String> = mutableSetOf()
+        val staticNames: MutableSet<String> = mutableSetOf()
 
         // Add fields of record if this is a simply record type
         if (variants.size == 1) {
             val firstVariant = variants[0]
             if (firstVariant is RecordVariant) {
-                names.addAll(firstVariant.fields.keys)
+                methodNames.addAll(firstVariant.fields.keys)
             }
         }
 
-        // Add all methods from traits
+        // Add all method names and static method name from traits
         for (extendedTrait in traits) {
-            names.addAll(extendedTrait.traitSig.abstractMethods.keys)
-            names.addAll(extendedTrait.traitSig.concreteMethods.keys)
+            methodNames.addAll(extendedTrait.traitSig.methodSignatures.keys)
+            methodNames.addAll(extendedTrait.traitSig.concreteMethods.keys)
+            staticNames.addAll(extendedTrait.traitSig.staticMethodSignatures.keys)
+            staticNames.addAll(extendedTrait.traitSig.staticConcreteMethods.keys)
         }
 
-        // Add all methods defined on this type
-        names.addAll(methods.keys)
+        // Add all method names defined on this type
+        methodNames.addAll(methods.keys)
 
-        return names
+        return Pair(methodNames, staticNames)
     }
 
     override fun hashCode(): Int = id.hashCode()

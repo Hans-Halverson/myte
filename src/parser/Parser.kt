@@ -1889,14 +1889,24 @@ class Parser(
         tokenizer.next()
 
         // Add "this" to method definition scope and add all method definitions
-        val methods: MutableList<FunctionDefinitionStatement> = mutableListOf()
+        val methods: MutableList<Pair<FunctionDefinitionStatement, Boolean>> = mutableListOf()
         val thisIdent = symbolTable.addVariable("this", IdentifierClass.VARIABLE,
                 typeStartToken.location)
 
-        while (tokenizer.current is DefToken) {
-            val token = tokenizer.current as DefToken
+        while (tokenizer.current !is RightBraceToken) {
+            // Parse optional static modifier to function definition
+            val isStatic = if (tokenizer.current is StaticToken) {
+                tokenizer.next()
+                true
+            } else {
+                false
+            }
+
+            val token = tokenizer.current
+            assertCurrent(TokenType.DEF)
             tokenizer.next()
-            methods.add(parseFunctionDefinition(true, token))
+
+            methods.add(Pair(parseFunctionDefinition(true, token as DefToken), isStatic))
         }
 
         assertCurrent(TokenType.RIGHT_BRACE)
@@ -2003,19 +2013,31 @@ class Parser(
         assertCurrent(TokenType.LEFT_BRACE)
         tokenizer.next()
 
-        val abstractMethods: MutableList<AbstractFunctionDefinitionStatement> = mutableListOf()
-        val concreteMethods: MutableList<FunctionDefinitionStatement> = mutableListOf()
+        val signatureDefs: MutableList<Pair<FunctionSignatureDefinitionStatement, Boolean>> =
+                mutableListOf()
+        val concreteMethods: MutableList<Pair<FunctionDefinitionStatement, Boolean>> =
+                mutableListOf()
         val thisIdent = symbolTable.addVariable("this", IdentifierClass.VARIABLE,
                 traitNameToken.location)
 
         while (true) {
             token = tokenizer.current
-            if (token is AbstractToken) {
+
+            // Check whether the current definition is static or not
+            val isStatic = if (token is StaticToken) {
                 tokenizer.next()
-                abstractMethods.add(parseAbstractFunctionDefinition(token))
+                token = tokenizer.current
+                true
+            } else {
+                false
+            }
+
+            if (token is SigToken) {
+                tokenizer.next()
+                signatureDefs.add(Pair(parseFunctionSignatureDefinition(token), isStatic))
             } else if (token is DefToken) {
                 tokenizer.next()
-                concreteMethods.add(parseFunctionDefinition(true, token))
+                concreteMethods.add(Pair(parseFunctionDefinition(true, token), isStatic))
             } else if (token is RightBraceToken){
                 break
             } else {
@@ -2029,16 +2051,14 @@ class Parser(
 
         symbolTable.exitScope()
 
-        return TraitDefinitionStatement(traitIdent, typeParams, thisIdent, abstractMethods,
+        return TraitDefinitionStatement(traitIdent, typeParams, thisIdent, signatureDefs,
                 concreteMethods)
     }
 
-    fun parseAbstractFunctionDefinition(
-        abstractToken: AbstractToken
-    ): AbstractFunctionDefinitionStatement {
-        // If parseAbstractFunctionDefinition is called, the previous token must have been abstract
-        assertCurrent(TokenType.DEF)
-        tokenizer.next()
+    fun parseFunctionSignatureDefinition(
+        sigToken: SigToken
+    ): FunctionSignatureDefinitionStatement {
+        // If parseFunctionSignatureDefinition is called, the previous token must have been abstract
 
         var token = tokenizer.next()
         if (token !is IdentifierToken) {
@@ -2048,7 +2068,7 @@ class Parser(
         val funcToken = token
         val ident = symbolTable.addVariable(funcToken.str, IdentifierClass.FUNCTION,
                 funcToken.location)
-        val formalArgs: MutableList<Pair<Identifier, TypeExpression>> = mutableListOf()
+        val argTypes: MutableList<TypeExpression> = mutableListOf()
 
         assertCurrent(TokenType.LEFT_PAREN)
         tokenizer.next()
@@ -2058,15 +2078,7 @@ class Parser(
 
         // Keep parsing comma separated formal argument identifiers until a right paren is found
         argsLoop@ while (tokenizer.current !is RightParenToken) {
-            token = tokenizer.next()
-            if (token !is IdentifierToken) {
-                throw ParseException("Formal arguments must be identifiers", token)
-            }
-
-            // Add argument to symbol table and parse required type annotation
-            val formalArg = symbolTable.addVariable(token.str, IdentifierClass.VARIABLE,
-                    token.location)
-            formalArgs.add(Pair(formalArg, parseTypeAnnotation(true)))
+            argTypes.add(parseType(true))
 
             // If a right paren is found, all arguments have been found. If a comma is found,
             // there must still be identifiers to parse. Otherwise, syntax is invalid.
@@ -2089,7 +2101,7 @@ class Parser(
 
         symbolTable.exitScope()
 
-        return AbstractFunctionDefinitionStatement(ident, formalArgs, returnTypeAnnotation,
-                funcToken.location, abstractToken.location)
+        return FunctionSignatureDefinitionStatement(ident, argTypes, returnTypeAnnotation,
+                funcToken.location, sigToken.location)
     }
 }
