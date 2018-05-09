@@ -162,7 +162,7 @@ fun repl(packageFiles: List<String>) {
                     // Parse a single line of repl input, process the statement, and evaluate
                     val parseReplLineResult = parser.parseReplLine(tokens)
                     val convertReplLineResult = converter.convertReplLine(parseReplLineResult)
-                    eval.evaluateReplLine(convertReplLineResult)
+                    eval.evaluateReplLine(convertReplLineResult, converter.typeChecker)
 
                     // Save the successfully updated symbol table and import context
                     symbolTable = parser.symbolTable

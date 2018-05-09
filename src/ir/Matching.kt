@@ -427,14 +427,14 @@ class WildcardVectorMatchedCase(val size: Int) : MatchedCase() {
     override fun toString(): String {
         // Return special string for empty vector
         if (size == 0) {
-            return "[ ]"
+            return "[]"
         }
 
         // Create list of wildcards of given size
         val wildcard = WildcardMatchedCase.toString()
         val elements = (0 until size).map { _ -> wildcard }
 
-        return elements.joinToString(", ", "[ ", " ]")
+        return elements.joinToString(", ", "[", "]")
     }
 }
 
@@ -445,14 +445,14 @@ class WildcardSetMatchedCase(val size: Int) : MatchedCase() {
     override fun toString(): String {
         // Return special string for empty set
         if (size == 0) {
-            return "{| |}"
+            return "{||}"
         }
 
         // Create list of wildcards of given size
         val wildcard = WildcardMatchedCase.toString()
         val elements = (0 until size).map { _ -> wildcard }
 
-        return elements.joinToString(", ", "{| ", " |}")
+        return elements.joinToString(", ", "{|", "|}")
     }
 }
 
@@ -463,7 +463,7 @@ class WildcardMapMatchedCase(val size: Int) : MatchedCase() {
     override fun toString(): String {
         // Return special string for empty map
         if (size == 0) {
-            return "[| |]"
+            return "[||]"
         }
 
         // Create list of wildcards of given size
@@ -471,7 +471,7 @@ class WildcardMapMatchedCase(val size: Int) : MatchedCase() {
         val elements = (0 until size).map { _ -> wildcard }
 
         val builder = StringBuilder()
-        builder.append("[| ")
+        builder.append("[|")
 
         var firstPair = true
         for ((key, value) in elements.zip(elements)) {
@@ -488,7 +488,7 @@ class WildcardMapMatchedCase(val size: Int) : MatchedCase() {
             builder.append(value)
         }
 
-        builder.append(" |]")
+        builder.append("|]")
 
         return builder.toString()
     }

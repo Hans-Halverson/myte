@@ -45,5 +45,5 @@ implement List<a> {
 
 def main() {
     let list = Cons(1, Cons(2, Cons(3, Nil)))
-    println(intToString(list.fold(fun (a, b) -> a + b, 0)))
+    println(list.fold(fun (a, b) -> a + b, 0).toString())
 }

@@ -6,10 +6,10 @@ class VectorValue(val elements: MutableList<Value>, type: VectorType) : Value(ty
     override fun toString(): String {
         // Return special string for empty vector
         if (elements.size == 0) {
-            return "[ ]"
+            return "[]"
         }
 
-        return elements.joinToString(", ", "[ ", " ]")
+        return elements.joinToString(", ", "[", "]")
     }
     
     override fun equals(other: Any?): Boolean {

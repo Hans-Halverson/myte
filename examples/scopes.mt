@@ -25,7 +25,7 @@ def h(x) {
 
 def shadowing(x) {
     let x = 100
-    println(intToString(x))
+    println(x.toString())
     def moreShadowing(x) {
         return x
     }
@@ -45,9 +45,9 @@ type list<a> = Nil | Cons(a, list<a>)
 
 def main() {
     println(f())
-    println(intToString(g(100)))
-    println(intToString(h(200)))
-    println(intToString(shadowing(30)))
+    println(g(100).toString())
+    println(h(200).toString())
+    println(shadowing(30).toString())
 
     patterns(Nil)
 }

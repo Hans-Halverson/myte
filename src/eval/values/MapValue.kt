@@ -6,11 +6,11 @@ class MapValue(val map: MutableMap<Value, Value>, type: MapType) : Value(type) {
     override fun toString(): String {
         // Return special string for empty map
         if (map.size == 0) {
-            return "[| |]"
+            return "[||]"
         }
 
         val builder = StringBuilder()
-        builder.append("[| ")
+        builder.append("[|")
 
         var firstPair = true
         for ((key, value) in map) {
@@ -27,7 +27,7 @@ class MapValue(val map: MutableMap<Value, Value>, type: MapType) : Value(type) {
             builder.append(value)
         }
 
-        builder.append(" |]")
+        builder.append("|]")
 
         return builder.toString()
     }

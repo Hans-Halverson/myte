@@ -8,3 +8,11 @@ class BuiltinValue(
 ) : Value(type) {
     override fun toString(): String = "<function>"
 }
+
+class BuiltinMethodValue(
+    val func: (List<Value>, Value) -> Value,
+    val receiver: Value,
+    type: FunctionType
+) : Value(type) {
+    override fun toString(): String = "<function>"
+}

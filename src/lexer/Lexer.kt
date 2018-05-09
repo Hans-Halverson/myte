@@ -140,7 +140,7 @@ private fun getKeywordToken(str: String, location: Location): Token? {
  * Read a single number token from input stream, is read as either an int or float.
  * @throws LexicalException if the number is malformed
  */
-private fun readNumber(reader: LL1StatefulReader): Token {
+private fun readNumber(reader: LL1StatefulReader): List<Token> {
     var numberString = StringBuilder()
 
     val location = reader.currentLocation
@@ -159,7 +159,14 @@ private fun readNumber(reader: LL1StatefulReader): Token {
         numberString.append(reader.next)
         reader.advance()
     } else {
-        return stringToInt(numberString.toString(), location)
+        return listOf(stringToInt(numberString.toString(), location))
+    }
+
+    // If next token is the beginning of an identifier, this is actually an access after an int
+    if (reader.hasNext && (reader.next.isLetter() || reader.next.equals('_'))) {
+        val numberWithDecimalPoint =  numberString.toString()
+        val intString = numberWithDecimalPoint.substring(0, numberWithDecimalPoint.length - 1)
+        return listOf(stringToInt(intString, location), PeriodToken(reader.currentLocation))
     }
 
     // Read digits after decimal point
@@ -173,7 +180,7 @@ private fun readNumber(reader: LL1StatefulReader): Token {
         numberString.append(reader.next)
         reader.advance()
     } else {
-        return stringToFloat(numberString.toString(), location)
+        return listOf(stringToFloat(numberString.toString(), location))
     }
 
     // Read exponent sign
@@ -181,7 +188,7 @@ private fun readNumber(reader: LL1StatefulReader): Token {
         numberString.append(reader.next)
         reader.advance()
     } else {
-        return stringToFloat(numberString.toString(), location)
+        return listOf(stringToFloat(numberString.toString(), location))
     }
 
     if (reader.hasNext && reader.next !in '0'..'9') {
@@ -194,7 +201,7 @@ private fun readNumber(reader: LL1StatefulReader): Token {
         reader.advance()
     }
 
-    return stringToFloat(numberString.toString(), location)
+    return listOf(stringToFloat(numberString.toString(), location))
 }
 
 /**
@@ -476,7 +483,7 @@ fun createTokens(input: Reader, fileName: String?): List<Token> {
                     tokens.add(token)
                 }
             }
-            in '0'..'9' -> tokens.add(readNumber(reader))
+            in '0'..'9' -> tokens.addAll(readNumber(reader))
             else -> {
                 // Identifiers and keywords must begin with an alphabetic character or underscore.
                 if (reader.current.isValidIdentifierCharacter()) {

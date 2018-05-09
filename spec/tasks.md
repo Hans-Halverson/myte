@@ -4,8 +4,6 @@
 
 - Add overloading of functions
 
-- Static functions in traits and implementations
-
 - Allow for traits to extend other traits
 
 

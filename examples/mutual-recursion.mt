@@ -29,16 +29,16 @@ type type1 = Int(int) | Type2(type2)
 type type2 = Bool(bool) | Type1(type1)
 
 def main() {
-    println(intToString(f(10)))
-    println(intToString(g(10)))
+    println(f(10).toString())
+    println(g(10).toString())
 
     let t1 = Int(1)
     let t2 = Type2(Bool(true))
     let t3 = Type2(Type1(Int(2)))
     let t4 = Type2(Type1(Type2(Bool(false))))
 
-    println(intToString(recursiveTypes(t1)))
-    println(intToString(recursiveTypes(t2)))
-    println(intToString(recursiveTypes(t3)))
-    println(intToString(recursiveTypes(t4)))
+    println(recursiveTypes(t1).toString())
+    println(recursiveTypes(t2).toString())
+    println(recursiveTypes(t3).toString())
+    println(recursiveTypes(t4).toString())
 }

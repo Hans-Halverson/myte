@@ -1,5 +1,6 @@
 package myte.eval
 
+import myte.eval.builtins.*
 import myte.eval.values.*
 import myte.ir.*
 import myte.ir.nodes.*
@@ -38,7 +39,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         packagesResult.nodes.forEach { node -> evaluate(node) }
     }
 
-    fun evaluateReplLine(replLineResult: ConvertReplLineResult) {
+    fun evaluateReplLine(replLineResult: ConvertReplLineResult, typeChecker: TypeChecker) {
         // First evaluate nodes to process, then evaluate nodes to evaluate and print values
         for (node in replLineResult.toProcess) {
             evaluate(node)
@@ -46,7 +47,9 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
 
         for (node in replLineResult.toEvaluate) {
             val value = evaluate(node)
-            printValue(value)
+            if (value !is UnitValue) {
+                println("${value} : ${formatType(typeChecker.currentRepType(value.type))}")
+            }
         }
     }
 
@@ -322,6 +325,33 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
                 throw EvaluationException("No method with name ${node.field} for " +
                         "type ${expr.type}", node.accessLocation)
             }
+        } else if (type is VectorType) {
+            val builtin = VECTOR_BUILTIN_METHODS[node.field]!!
+            return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
+        } else if (type is SetType) {
+            val builtin = SET_BUILTIN_METHODS[node.field]!!
+            return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
+        } else if (type is MapType) {
+            val builtin = MAP_BUILTIN_METHODS[node.field]!!
+            return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
+        } else if (type is IntType) {
+            val builtin = INT_BUILTIN_METHODS[node.field]!!
+            return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
+        } else if (type is FloatType) {
+            val builtin = FLOAT_BUILTIN_METHODS[node.field]!!
+            return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
+        } else if (type is StringType) {
+            val builtin = STRING_BUILTIN_METHODS[node.field]!!
+            return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
+        } else if (type is BoolType) {
+            val builtin = BOOL_BUILTIN_METHODS[node.field]!!
+            return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
+        } else if (type is UnitType) {
+            val builtin = UNIT_BUILTIN_METHODS[node.field]!!
+            return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
+        } else if (type is TupleType) {
+            val builtin = TUPLE_BUILTIN_METHODS[node.field]!!
+            return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
         } else {
             throw EvaluationException("No field or method with name ${node.field} for " +
                     "type ${expr.type}", node.accessLocation)
@@ -433,6 +463,10 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         if (closureValue is BuiltinValue) {
             val actualArgs: List<Value> = node.actualArgs.map { expr -> evaluate(expr, env) }
             return closureValue.func(actualArgs)
+        // If bound function is builtin method, use stored evaluation function applied to receiver
+        } else if (closureValue is BuiltinMethodValue) {
+            val actualArgs: List<Value> = node.actualArgs.map { expr -> evaluate(expr, env) }
+            return closureValue.func(actualArgs, closureValue.receiver)
         } else if (closureValue !is ClosureValue) {
             throw EvaluationException("Cannot call ${closureValue}, can only call functions",
                     node.startLocation)

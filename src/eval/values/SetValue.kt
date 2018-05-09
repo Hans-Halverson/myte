@@ -6,10 +6,10 @@ class SetValue(val elements: MutableSet<Value>, type: SetType) : Value(type) {
     override fun toString(): String {
         // Return special string for empty set
         if (elements.size == 0) {
-            return "{| |}"
+            return "{||}"
         }
         
-        return elements.joinToString(", ", "{| ", " |}")
+        return elements.joinToString(", ", "{|", "|}")
     }
     
     override fun equals(other: Any?): Boolean {

@@ -1,5 +1,6 @@
 package myte.ir
 
+import myte.eval.builtins.*
 import myte.ir.nodes.*
 import myte.shared.*
 
@@ -250,6 +251,7 @@ class AccessConstraint(
 ) : DeferredConstraint() {
     override fun apply(trigger: Type): Boolean {
         val exprType = trigger
+
         if (exprType is AlgebraicDataType) {
             // First check whether this function is defined as a concrete function in a trait
             // that this ADT extends.
@@ -344,12 +346,157 @@ class AccessConstraint(
             }
 
             return true
+        } else if (exprType is VectorType) {
+            val builtin = VECTOR_BUILTIN_METHODS[node.field]
+            if (builtin == null) {
+                throw IRConversionException("No method with name ${node.field} defined on type " +
+                        "vector", node.accessLocation)
+            }
+
+            // Find parameterized type of builtin method
+            val builtinReceiverType = builtin.receiverType as VectorType
+            val paramsMap = mapOf(builtinReceiverType.elementType as TypeVariable to
+                    exprType.elementType)
+            val builtinType = builtin.type.substitute(paramsMap)
+
+            if (!typeChecker.unify(node.type, builtinType)) {
+                val types = typeChecker.typesToString(node.type, builtinType)
+                throw IRConversionException("Method inferred to have type ${types[0]}, but " +
+                        "expected ${types[1]}", node.accessLocation)
+            }
+
+            return true
+        } else if (exprType is SetType) {
+            val builtin = SET_BUILTIN_METHODS[node.field]
+            if (builtin == null) {
+                throw IRConversionException("No method with name ${node.field} defined on type map",
+                        node.accessLocation)
+            }
+
+            // Find parameterized type of builtin method
+            val builtinReceiverType = builtin.receiverType as SetType
+            val paramsMap = mapOf(builtinReceiverType.elementType as TypeVariable to
+                    exprType.elementType)
+            val builtinType = builtin.type.substitute(paramsMap)
+
+            if (!typeChecker.unify(node.type, builtinType)) {
+                val types = typeChecker.typesToString(node.type, builtinType)
+                throw IRConversionException("Method inferred to have type ${types[0]}, but " +
+                        "expected ${types[1]}", node.accessLocation)
+            }
+
+            return true
+        } else if (exprType is MapType) {
+            val builtin = MAP_BUILTIN_METHODS[node.field]
+            if (builtin == null) {
+                throw IRConversionException("No method with name ${node.field} defined on type map",
+                        node.accessLocation)
+            }
+
+            // Find parameterized type of builtin method
+            val builtinReceiverType = builtin.receiverType as MapType
+            val paramsMap = mapOf(
+                    builtinReceiverType.keyType as TypeVariable to exprType.keyType,
+                    builtinReceiverType.valType as TypeVariable to exprType.valType
+            )
+            val builtinType = builtin.type.substitute(paramsMap)
+
+            if (!typeChecker.unify(node.type, builtinType)) {
+                val types = typeChecker.typesToString(node.type, builtinType)
+                throw IRConversionException("Method inferred to have type ${types[0]}, but " +
+                        "expected ${types[1]}", node.accessLocation)
+            }
+
+            return true
+        } else if (exprType is IntType) {
+            val builtin = INT_BUILTIN_METHODS[node.field]
+            if (builtin == null) {
+                throw IRConversionException("No method with name ${node.field} defined on type int",
+                        node.accessLocation)
+            }
+
+            if (!typeChecker.unify(node.type, builtin.type)) {
+                val types = typeChecker.typesToString(node.type, builtin.type)
+                throw IRConversionException("Method inferred to have type ${types[0]}, but " +
+                        "expected ${types[1]}", node.accessLocation)
+            }
+
+            return true
+        } else if (exprType is FloatType) {
+            val builtin = FLOAT_BUILTIN_METHODS[node.field]
+            if (builtin == null) {
+                throw IRConversionException("No method with name ${node.field} defined on type " +
+                        "float", node.accessLocation)
+            }
+
+            if (!typeChecker.unify(node.type, builtin.type)) {
+                val types = typeChecker.typesToString(node.type, builtin.type)
+                throw IRConversionException("Method inferred to have type ${types[0]}, but " +
+                        "expected ${types[1]}", node.accessLocation)
+            }
+
+            return true
+        } else if (exprType is StringType) {
+            val builtin = STRING_BUILTIN_METHODS[node.field]
+            if (builtin == null) {
+                throw IRConversionException("No method with name ${node.field} defined on type " +
+                        "string", node.accessLocation)
+            }
+
+            if (!typeChecker.unify(node.type, builtin.type)) {
+                val types = typeChecker.typesToString(node.type, builtin.type)
+                throw IRConversionException("Method inferred to have type ${types[0]}, but " +
+                        "expected ${types[1]}", node.accessLocation)
+            }
+
+            return true
+        } else if (exprType is BoolType) {
+            val builtin = BOOL_BUILTIN_METHODS[node.field]
+            if (builtin == null) {
+                throw IRConversionException("No method with name ${node.field} defined on type " +
+                        "bool", node.accessLocation)
+            }
+
+            if (!typeChecker.unify(node.type, builtin.type)) {
+                val types = typeChecker.typesToString(node.type, builtin.type)
+                throw IRConversionException("Method inferred to have type ${types[0]}, but " +
+                        "expected ${types[1]}", node.accessLocation)
+            }
+
+            return true
+        } else if (exprType is UnitType) {
+            val builtin = UNIT_BUILTIN_METHODS[node.field]
+            if (builtin == null) {
+                throw IRConversionException("No method with name ${node.field} defined on type " +
+                        "unit", node.accessLocation)
+            }
+
+            if (!typeChecker.unify(node.type, builtin.type)) {
+                val types = typeChecker.typesToString(node.type, builtin.type)
+                throw IRConversionException("Method inferred to have type ${types[0]}, but " +
+                        "expected ${types[1]}", node.accessLocation)
+            }
+
+            return true
+        } else if (exprType is TupleType) {
+            val builtin = TUPLE_BUILTIN_METHODS[node.field]
+            if (builtin == null) {
+                throw IRConversionException("No method with name ${node.field} defined on tuples",
+                        node.accessLocation)
+            }
+
+            if (!typeChecker.unify(node.type, builtin.type)) {
+                val types = typeChecker.typesToString(node.type, builtin.type)
+                throw IRConversionException("Method inferred to have type ${types[0]}, but " +
+                        "expected ${types[1]}", node.accessLocation)
+            }
+
+            return true
         } else if (exprType is TypeVariable) {
             return false
         } else {
-            val typeStr = typeChecker.typeToString(exprType)
-            throw IRConversionException("Can only access field on simple record type, found " +
-                    "${typeStr}", node.accessLocation)
+            throw IRConversionException("No method with name ${node.field} defined on ${exprType}",
+                    node.accessLocation)
         }
     }
 

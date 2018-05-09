@@ -27,7 +27,7 @@ abstract class Builtin(val name: String, val type: FunctionType) {
         val actualTypes = args.map { arg -> arg.type }
         if (actualTypes != type.argTypes) {
             throw Exception("${name} expected arguments of type ${type.argTypes}, but " +
-                    "found {actualTypes}")
+                    "found ${actualTypes}")
         }
 
         return eval(args)
@@ -43,7 +43,7 @@ abstract class Builtin(val name: String, val type: FunctionType) {
         info.type = type
 
         val builtin = BuiltinValue(this::evalWrapper, type)
-        environment.extend(ident, builtin)
+        environment.extendGlobal(ident, builtin)
 
         return ident
     }
@@ -55,13 +55,20 @@ abstract class Builtin(val name: String, val type: FunctionType) {
         }
 }
 
+abstract class BuiltinMethod(val name: String, val type: FunctionType, val receiverType: Type) {
+    /**
+     * Apply this builtin method to a list of values, with the specified receiver.
+     * @param args a list of values to be used as arguments to this builtin
+     * @param recv the value that the method is being called on
+     * @return a value that is the result of applying the builtin function to the
+     *         input list of values
+     */
+    abstract fun eval(args: List<Value>, recv: Value): Value
+}
+
 // List of all builtins
 val BUILTINS: Map<String, Builtin> = hashMapOf(
-    PRINT_LINE_BUILTIN to PrintLineBuiltin(),
-    INT_TO_FLOAT_BUILTIN to IntToFloatBuiltin(),
-    INT_TO_STRING_BUILTIN to IntToStringBuiltin(),
-    FLOAT_TO_INT_BUILTIN to FloatToIntBuiltin(),
-    FLOAT_TO_STRING_BUILTIN to FloatToStringBuiltin()
+    PRINT_LINE_BUILTIN to PrintLineBuiltin()
 )
 
 /**

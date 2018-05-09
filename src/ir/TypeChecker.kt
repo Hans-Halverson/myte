@@ -874,7 +874,12 @@ class TypeChecker(var symbolTable: SymbolTable) {
         // The evaluation type of this node is the type stored for the variable in the symbol table.
         // Since a type for an identifier is being found, a fresh version of that type must be
         // found (if applicable).
-        val expectedType = if (refresh) findRepType(info.type, boundVars) else info.type
+        val currentRepType = currentRepType(info.type)
+        val expectedType = if (refresh && currentRepType is FunctionType) {
+            findRepType(currentRepType, boundVars)
+        } else {
+            currentRepType
+        }
 
         if (!unify(node.type, expectedType)) {
             val types = typesToString(node.type, expectedType)

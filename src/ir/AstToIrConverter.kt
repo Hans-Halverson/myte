@@ -8,7 +8,7 @@ import myte.shared.*
 
 class AstToIrConverter(var symbolTable: SymbolTable) {
 
-    private val typeChecker = TypeChecker(symbolTable)
+    val typeChecker = TypeChecker(symbolTable)
 
     /**
      * Set the symbol table to new symbol table.
