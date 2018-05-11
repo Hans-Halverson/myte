@@ -205,7 +205,7 @@ class SymbolTable() {
      * @param scope the scope to add the identifier to
      * @param name the name of the new identifier
      * @param idClass the class of the new identifier (e.g. variable, function)
-     * @property location the location of the identifier in the source code
+     * @param location the location of the identifier in the source code
      * @param props the set of all properties of this identifier
      * @param isVariable whether to add this symbol as variable, or whether to add as a type
      */

@@ -1,4 +1,7 @@
-package List
+package std::list
+
+import std::option::{Some, None}
+import std::iterator::{Iterator, Iterable}
 
 type List<a> =
 | Cons(a, List<a>)
@@ -43,7 +46,17 @@ implement List<a> {
         | (Cons(hd1, tl1), Cons(hd2, tl2)) -> Cons((hd1, hd2), tl1.zip(tl2))
 }
 
-def main() {
-    let list = Cons(1, Cons(2, Cons(3, Nil)))
-    println(list.fold(fun (a, b) -> a + b, 0).toString())
+type ListIterator<a> = ListIterator{mut curr: List<a>}
+
+implement ListIterator<a> extends Iterator<a> {
+    def next() = match this.curr
+        | Cons(hd, tl) -> {
+            this.curr = tl
+            Some(hd)
+        }
+        | Nil -> None
+}
+
+implement List<a> extends Iterable<a> {
+    def iterator() = ListIterator{curr: this}
 }

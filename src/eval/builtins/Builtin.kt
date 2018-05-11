@@ -66,8 +66,9 @@ abstract class BuiltinMethod(val name: String, val type: FunctionType, val recei
     abstract fun eval(args: List<Value>, recv: Value): Value
 }
 
-// List of all builtins
+// Map of all builtin functions
 val BUILTINS: Map<String, Builtin> = hashMapOf(
+    PRINT_BUILTIN to PrintBuiltin(),
     PRINT_LINE_BUILTIN to PrintLineBuiltin()
 )
 
