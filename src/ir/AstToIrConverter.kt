@@ -426,6 +426,11 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             val lValue = convertKeyedAccess(expr.lValue)
             return KeyedAssignmentNode(lValue.container, lValue.key,
                     convert(expr.rValue, true), lValue.accessLocation)
+        // If the lValue is a field access, then this is a field assignment
+        } else if (expr.lValue is AccessExpression) {
+            val lValue = convertAccess(expr.lValue)
+            return FieldAssignmentNode(lValue.expr, lValue.field,
+                    convert(expr.rValue, true), lValue.accessLocation)
         // Else this must be a deconstruction assignment (which encompasses variable assignment)
         } else {
             val pattern = convertLValuePattern(expr.lValue, false)
@@ -673,7 +678,9 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         // Convert all record variants in type definition
         for ((variantIdent, fieldExprs) in typeDef.recordVariants) {
             // Create variant by parsing field types and add to ADT sig
-            val fields = fieldExprs.mapValues { (_, typeExpr) -> convertType(typeExpr) }
+            val fields = fieldExprs.mapValues { (_, typeAndMut) ->
+                Pair(convertType(typeAndMut.first), typeAndMut.second)
+            }
             val variant = RecordVariant(adtSig, variantIdent.name, fields)
             adtSig.variants.add(variant)
 

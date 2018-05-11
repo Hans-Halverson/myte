@@ -54,6 +54,7 @@ LAMBDA_BODY -> EXPR
              | BLOCK
 
 LVALUE -> IDENT
+        | IDENT.IDENT
         | ( LVALUE [, LVALUE]* )
         | SCOPED_IDENT ( LVALUE [, LVALUE]* )
 
@@ -91,7 +92,7 @@ TYPE_PARAM_LIST -> IDENT [, IDENT]*
 
 TYPE_VARIANT -> IDENT
               | IDENT ( TYPE_LIST )
-              | IDENT { IDENT : TYPE [, IDENT : TYPE]* }
+              | IDENT { [mut]? IDENT : TYPE [, IDENT : TYPE]* }
 
 
 IF_STATEMENT -> if ( EXPR ) STATEMENT [else STATEMENT]?

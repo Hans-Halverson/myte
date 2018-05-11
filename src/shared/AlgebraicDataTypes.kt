@@ -150,12 +150,13 @@ class TupleVariant(
 /**
  * A variant of an algebraic data type that is a record.
  * 
- * @property fields a map of field names to the type of that field for the record variant
+ * @property fields a map of field names to the type of that field for the record variant,
+ *           along with a flag that is true if the field is mutable, and false if immutable.
  */
 class RecordVariant(
     adtSig: AlgebraicDataTypeSignature,
     name: String,
-    val fields: Map<String, Type>
+    val fields: Map<String, Pair<Type, Boolean>>
 ) : AlgebraicDataTypeVariant(adtSig, name) {
     /**
      * Returns a version of the fields with the given params substituted in for the
@@ -163,6 +164,6 @@ class RecordVariant(
      */
     fun getFieldsWithParams(params: List<Type>): Map<String, Type> {
         val paramsMap = adtSig.typeParams.zip(params).toMap()
-        return fields.mapValues { (_, type) -> type.substitute(paramsMap) }
+        return fields.mapValues { (_, typeAndMut) -> typeAndMut.first.substitute(paramsMap) }
     }
 }

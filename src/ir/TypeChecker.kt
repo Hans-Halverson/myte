@@ -567,17 +567,17 @@ class TypeChecker(var symbolTable: SymbolTable) {
                     subtype(subType.returnType, superType.returnType, except) &&
                     subType.argTypes.zip(superType.argTypes)
                         .all({ (a1, a2) -> subtype(a2, a1, except) })
-        // Algebraic data types are covariant in their type parameters, since they are immutable
+        // Algebraic data types are invariant in their type parameters, since they are mutable
         } else if (subType is AlgebraicDataType && superType is AlgebraicDataType) {
             return subType.typeParams.size == superType.typeParams.size &&
                     subType.typeParams.zip(superType.typeParams)
-                        .all({ (p1, p2) -> subtype(p1, p2, except) })
-        // Trait types are covarian in their type parameters, since they can only be implemented by
-        // immutable algebraic data types, and contain no state of thier own.
+                        .all({ (p1, p2) -> unify(p1, p2) })
+        // Trait types are invariant in their type parameters, since they can only be implemented by
+        // mutable algebraic data types, and contain no state of thier own.
         } else if (subType is TraitType && superType is TraitType) {
             return subType.typeParams.size == superType.typeParams.size &&
                     subType.typeParams.zip(superType.typeParams)
-                        .all({ (p1, p2) -> subtype(p1, p2, except) })
+                        .all({ (p1, p2) -> unify(p1, p2) })
         // For an ADT to be a subtype of a trait, it must extend that trait
         } else if (subType is AlgebraicDataType && superType is TraitType) {
             val extendedTrait = subType.adtSig.traits.find { extTrait ->
@@ -637,6 +637,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
             is VariableNode -> typeCheckVariable(node, boundVars, refresh)
             is FunctionCallNode -> typeCheckFunctionCall(node, boundVars, refresh)
             is AccessNode -> typeCheckAccess(node, boundVars, refresh)
+            is FieldAssignmentNode -> typeCheckFieldAssignment(node, boundVars, refresh)
             is KeyedAccessNode -> typeCheckKeyedAccess(node, boundVars, refresh)
             is KeyedAssignmentNode -> typeCheckKeyedAssignment(node, boundVars, refresh)
             is VariableAssignmentNode -> typeCheckVariableAssignment(node, boundVars, refresh)
@@ -903,7 +904,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         }
 
         // Add deferred constraint to make sure node is int or float
-        val unaryMathOperatorConstraint = UnaryMathOperatorConstraint(node, boundVars, this)
+        val unaryMathOperatorConstraint = UnaryMathOperatorConstraint(node, this)
         addDeferredConstraint(node.type, unaryMathOperatorConstraint)
     }
 
@@ -924,7 +925,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         }
 
         // Add deferred constraint to make sure node is int or float
-        val binaryMathOperatorConstraint = BinaryMathOperatorConstraint(node, boundVars, this)
+        val binaryMathOperatorConstraint = BinaryMathOperatorConstraint(node, this)
         addDeferredConstraint(node.type, binaryMathOperatorConstraint)
     }
 
@@ -1060,6 +1061,18 @@ class TypeChecker(var symbolTable: SymbolTable) {
         addDeferredConstraint(node.expr.type, accessConstraint)
     }
 
+    fun typeCheckFieldAssignment(
+        node: FieldAssignmentNode,
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
+    ) {
+        typeCheck(node.expr, boundVars, refresh)
+        typeCheck(node.rValue, boundVars, refresh)
+
+        val fieldAssigmentConstraint = FieldAssignmentConstraint(node, this)
+        addDeferredConstraint(node.expr.type, fieldAssigmentConstraint)
+    }
+
     fun typeCheckKeyedAccess(
         node: KeyedAccessNode,
         boundVars: MutableSet<TypeVariable>,
@@ -1068,7 +1081,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         typeCheck(node.container, boundVars, refresh)
         typeCheck(node.key, boundVars, refresh)
 
-        val keyedAccessConstraint = KeyedAccessConstraint(node, boundVars, this)
+        val keyedAccessConstraint = KeyedAccessConstraint(node, this)
         addDeferredConstraint(node.container.type, keyedAccessConstraint)
     }
 
@@ -1081,7 +1094,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         typeCheck(node.key, boundVars, refresh)
         typeCheck(node.rValue, boundVars, refresh)
 
-        val keyedAssignmentConstraint = KeyedAssignmentConstraint(node, boundVars, this)
+        val keyedAssignmentConstraint = KeyedAssignmentConstraint(node, this)
         addDeferredConstraint(node.container.type, keyedAssignmentConstraint)
     }
 

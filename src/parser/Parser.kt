@@ -1685,8 +1685,8 @@ class Parser(
         tokenizer.next()
 
         val tupleVariants: MutableList<Pair<Identifier, List<TypeExpression>>> = mutableListOf()
-        val recordVariants: MutableList<Pair<Identifier, Map<String, TypeExpression>>> =
-                mutableListOf()
+        val recordVariants: MutableList<Pair<Identifier,
+                Map<String, Pair<TypeExpression, Boolean>>>> = mutableListOf()
         var firstVariant = true
 
         // Parse nonempty sequence of variant definitions
@@ -1739,10 +1739,18 @@ class Parser(
             if (tokenizer.current is LeftBraceToken) {
                 tokenizer.next()
 
-                val fields: MutableMap<String, TypeExpression> = mutableMapOf()
+                val fields: MutableMap<String, Pair<TypeExpression, Boolean>> = mutableMapOf()
 
                 // Parse comma separated list of fields, all within curly braces
                 fieldsLoop@ while (tokenizer.current !is RightBraceToken) {
+                    // Parse optional mutable flag
+                    val isMutable = if (tokenizer.current is MutToken) {
+                        tokenizer.next()
+                        true
+                    } else {
+                        false
+                    }
+
                     var token = tokenizer.next()
                     if (token !is IdentifierToken) {
                         throw ParseException("Field names must be identifiers", token)
@@ -1757,7 +1765,7 @@ class Parser(
                     assertCurrent(TokenType.COLON)
                     tokenizer.next()
 
-                    fields[token.str] = parseType()
+                    fields[token.str] = Pair(parseType(), isMutable)
 
                     // If a right brace is found, all fields have been parsed. If a comma is
                     // found, there must still be fields to parse. Otherwise, syntax is invalid.

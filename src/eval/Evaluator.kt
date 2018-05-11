@@ -77,6 +77,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             // Variables and functions
             is VariableNode -> env.lookup(node.ident)
             is AccessNode -> evalAccess(node, env)
+            is FieldAssignmentNode -> evalFieldAssignment(node, env)
             is KeyedAccessNode -> evalKeyedAccess(node, env)
             is KeyedAssignmentNode -> evalKeyedAssignment(node, env)
             is FunctionCallNode -> evalFunctionCall(node, env)
@@ -358,6 +359,19 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         }
     }
 
+    fun evalFieldAssignment(node: FieldAssignmentNode, env: Environment): Value {
+        val expr = evaluate(node.expr, env)
+        if (expr !is RecordVariantValue) {
+            throw EvaluationException("No method with name ${node.field} for type ${expr.type}",
+                    node.accessLocation)
+        }
+
+        val rValue = evaluate(node.rValue, env)
+        expr.fields[node.field] = rValue
+
+        return rValue
+    }
+
     fun evalKeyedAccess(node: KeyedAccessNode, env: Environment): Value {
         val container = evaluate(node.container, env)
         if (container is VectorValue) {
@@ -511,7 +525,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         env: Environment
     ): RecordVariantValue {
         val fields = node.fields.mapValues { (_, field) -> evaluate(field, env) }
-        return RecordVariantValue(node.adtVariant, fields, node.type)
+        return RecordVariantValue(node.adtVariant, fields.toMutableMap(), node.type)
     }
 
     fun evalVariableAssignment(node: VariableAssignmentNode, env: Environment): Value {

@@ -126,6 +126,7 @@ private fun getKeywordToken(str: String, location: Location): Token? {
         "trait" -> TraitToken(location)
         "sig" -> SigToken(location)
         "static" -> StaticToken(location)
+        "mut" -> MutToken(location)
         else -> null
     }
 }

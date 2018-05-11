@@ -194,4 +194,8 @@ class StaticToken(
     location: Location
 ) : IdentifierToken(TokenType.STATIC.toString(), location, TokenType.STATIC)
 
+class MutToken(
+    location: Location
+) : IdentifierToken(TokenType.MUT.toString(), location, TokenType.MUT)
+
 class NewLineToken(location: Location) : Token(location, TokenType.NEW_LINE)

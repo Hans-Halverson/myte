@@ -6,5 +6,5 @@ class TypeDefinitionStatement(
     val typeIdent: Identifier,
     val typeParamIdents: List<Identifier>,
     val tupleVariants: List<Pair<Identifier, List<TypeExpression>>>,
-    val recordVariants: List<Pair<Identifier, Map<String, TypeExpression>>>
+    val recordVariants: List<Pair<Identifier, Map<String, Pair<TypeExpression, Boolean>>>>
 ) : TopLevelStatement()

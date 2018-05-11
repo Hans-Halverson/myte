@@ -33,7 +33,7 @@ class TupleVariantValue(
 
 class RecordVariantValue(
     adtVariant: AlgebraicDataTypeVariant,
-    val fields: Map<String, Value>,
+    val fields: MutableMap<String, Value>,
     type: Type
 ) : AlgebraicDataTypeValue(adtVariant, type) {
     override fun toString(): String {

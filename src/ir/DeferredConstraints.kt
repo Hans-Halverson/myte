@@ -34,7 +34,6 @@ sealed class DeferredConstraint {
  */
 class KeyedAccessConstraint(
     val node: KeyedAccessNode,
-    val boundVars: MutableSet<TypeVariable>,
     val typeChecker: TypeChecker
 ) : DeferredConstraint() {
     override fun apply(trigger: Type): Boolean {
@@ -120,7 +119,6 @@ class KeyedAccessConstraint(
  */
 class KeyedAssignmentConstraint(
     val node: KeyedAssignmentNode,
-    val boundVars: MutableSet<TypeVariable>,
     val typeChecker: TypeChecker
 ) : DeferredConstraint() {
     override fun apply(trigger: Type): Boolean {
@@ -194,7 +192,6 @@ class KeyedAssignmentConstraint(
  */
 class UnaryMathOperatorConstraint(
     val node: UnaryMathOperatorNode,
-    val boundVars: MutableSet<TypeVariable>,
     val typeChecker: TypeChecker
 ) : DeferredConstraint() {
     override fun apply(trigger: Type): Boolean {
@@ -222,7 +219,6 @@ class UnaryMathOperatorConstraint(
  */
 class BinaryMathOperatorConstraint(
     val node: BinaryMathOperatorNode,
-    val boundVars: MutableSet<TypeVariable>,
     val typeChecker: TypeChecker
 ) : DeferredConstraint() {
     override fun apply(trigger: Type): Boolean {
@@ -496,6 +492,66 @@ class AccessConstraint(
             return false
         } else {
             throw IRConversionException("No method with name ${node.field} defined on ${exprType}",
+                    node.accessLocation)
+        }
+    }
+
+    override fun assertUnresolved() {
+        throw IRConversionException("Type could not be inferred, consider adding more type " +
+                "annotations", node.expr.startLocation)
+    }
+}
+
+class FieldAssignmentConstraint(
+    val node: FieldAssignmentNode,
+    val typeChecker: TypeChecker
+) : DeferredConstraint() {
+    override fun apply(trigger: Type): Boolean {
+        val exprType = trigger
+        if (exprType is AlgebraicDataType) {
+            // Error if expr is not resolved to a simple record type
+            val recordVariant = exprType.adtSig.variants[0]
+            if (exprType.adtSig.variants.size != 1 || recordVariant !is RecordVariant) {
+                val typeStr = typeChecker.typeToString(exprType)
+                throw IRConversionException("No field or method with name ${node.field} for " +
+                        "type ${typeStr}", node.accessLocation)
+            }
+
+            // Error if no field with the given name is defined on the record type
+            val fieldType = recordVariant.getFieldsWithParams(exprType.typeParams)[node.field]
+            if (fieldType == null) {
+                val typeStr = typeChecker.typeToString(exprType)
+                throw IRConversionException("No field or method with name ${node.field} for " +
+                        "type ${typeStr}", node.accessLocation)
+            }
+
+            // Make sure that field is mutable
+            if (!recordVariant.fields[node.field]?.second!!) {
+                val typeStr = typeChecker.typeToString(exprType)
+                throw IRConversionException("Field ${node.field} on type ${typeStr} is mutable " +
+                        "and can not be reassigned", node.accessLocation)
+            }
+
+            // Type of node is type of corresponding field or method
+            if (!typeChecker.unify(node.type, fieldType)) {
+                val types = typeChecker.typesToString(node.type, fieldType)
+                throw IRConversionException("Field or method inferred to have type ${types[0]}, " +
+                        "but expected ${types[1]}", node.accessLocation)
+            }
+
+            // Type of rValue must match type of field
+            if (!typeChecker.unify(fieldType, node.rValue.type)) {
+                val types = typeChecker.typesToString(fieldType, node.rValue.type)
+                throw IRConversionException("Field has type ${types[0]} but assigned ${types[1]}",
+                        node.accessLocation)
+            }
+
+            return true
+        } else if (exprType is TypeVariable) {
+            return false
+        } else {
+            val type = typeChecker.typeToString(exprType)
+            throw IRConversionException("Can only assign field on simple record type, found $type",
                     node.accessLocation)
         }
     }
