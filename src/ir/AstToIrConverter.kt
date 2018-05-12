@@ -153,7 +153,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             stmt is EqualityExpression -> convertEquality(stmt)
             stmt is ComparisonExpression -> convertComparison(stmt)
             // Control flow and structure
-            stmt is GroupExpression -> convert(stmt.expr, true)
+            stmt is GroupExpression -> convert(stmt.expr, isExpr)
             stmt is BlockStatement -> convertBlock(stmt, isExpr)
             stmt is IfStatement -> convertIf(stmt, isExpr)
             stmt is WhileStatement -> convertWhile(stmt)

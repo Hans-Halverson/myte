@@ -248,6 +248,19 @@ class AccessConstraint(
     override fun apply(trigger: Type): Boolean {
         val exprType = trigger
 
+        // The toString method is already defined on all types
+        if (node.field == "toString") {
+            // Type of node is type of toString (unit -> string)
+            val toStringType = FunctionType(listOf(), StringType)
+            if (!typeChecker.unify(node.type, toStringType)) {
+                val types = typeChecker.typesToString(node.type, toStringType)
+                throw IRConversionException("Method inferred to have type " +
+                        "${types[0]}, but expected ${types[1]}", node.accessLocation)
+            }
+
+            return true
+        }
+
         if (exprType is AlgebraicDataType) {
             // First check whether this function is defined as a concrete function in a trait
             // that this ADT extends.

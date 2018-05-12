@@ -294,24 +294,19 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
 
     fun evalAccess(node: AccessNode, env: Environment): Value {
         val expr = evaluate(node.expr, env)
-        val type = expr.type
 
-        // If a trait, find concrete method with the given name
-        if (type is TraitType) {
-            val methodIdent = type.traitSig.concreteMethods[node.field]!!
-            val methodValue = env.lookup(methodIdent) as MethodValue
-            return methodValue.withReceiver(expr, node.type)
         // If an ADT, find method with the given name, or concrete method on extended trait
-        } else if (type is AlgebraicDataType) {
+        if (expr is AlgebraicDataTypeValue) {
             // Find and return method with given name if one exists
-            val methodIdent = type.adtSig.methods[node.field]
+            val adtSig = expr.adtVariant.adtSig
+            val methodIdent = adtSig.methods[node.field]
             if (methodIdent != null) {
                 val methodValue = env.lookup(methodIdent) as MethodValue
                 return methodValue.withReceiver(expr, node.type)
             }
 
             // Find concrete method on extended trait with the given name
-            for (extendedTrait in type.adtSig.traits) {
+            for (extendedTrait in adtSig.traits) {
                 val traitMethodIdent = extendedTrait.traitSig.concreteMethods[node.field]
                 if (traitMethodIdent != null) {
                     val methodValue = env.lookup(traitMethodIdent) as MethodValue
@@ -326,31 +321,31 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
                 throw EvaluationException("No method with name ${node.field} for " +
                         "type ${expr.type}", node.accessLocation)
             }
-        } else if (type is VectorType) {
+        } else if (expr is VectorValue) {
             val builtin = VECTOR_BUILTIN_METHODS[node.field]!!
             return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
-        } else if (type is SetType) {
+        } else if (expr is SetValue) {
             val builtin = SET_BUILTIN_METHODS[node.field]!!
             return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
-        } else if (type is MapType) {
+        } else if (expr is MapValue) {
             val builtin = MAP_BUILTIN_METHODS[node.field]!!
             return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
-        } else if (type is IntType) {
+        } else if (expr is IntValue) {
             val builtin = INT_BUILTIN_METHODS[node.field]!!
             return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
-        } else if (type is FloatType) {
+        } else if (expr is FloatValue) {
             val builtin = FLOAT_BUILTIN_METHODS[node.field]!!
             return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
-        } else if (type is StringType) {
+        } else if (expr is StringValue) {
             val builtin = STRING_BUILTIN_METHODS[node.field]!!
             return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
-        } else if (type is BoolType) {
+        } else if (expr is BoolValue) {
             val builtin = BOOL_BUILTIN_METHODS[node.field]!!
             return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
-        } else if (type is UnitType) {
+        } else if (expr is UnitValue) {
             val builtin = UNIT_BUILTIN_METHODS[node.field]!!
             return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
-        } else if (type is TupleType) {
+        } else if (expr is TupleValue) {
             val builtin = TUPLE_BUILTIN_METHODS[node.field]!!
             return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
         } else {

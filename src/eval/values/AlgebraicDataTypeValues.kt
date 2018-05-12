@@ -38,8 +38,8 @@ class RecordVariantValue(
 ) : AlgebraicDataTypeValue(adtVariant, type) {
     override fun toString(): String {
         val fieldString = fields.map({ (fieldName, fieldValue) -> "${fieldName}: ${fieldValue}" })
-                .joinToString(", ", "{", "}")
-        return adtVariant.name + fieldString
+                .joinToString(", ", "{ ", " }")
+        return "${adtVariant.name} ${fieldString}"
     }
 
     override fun equals(other: Any?): Boolean {

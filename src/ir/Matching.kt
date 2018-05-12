@@ -542,8 +542,8 @@ class NestedMatchedCase(
 
             val fieldString = recordExample.map({ (fieldName, fieldValue) ->
                 "${fieldName}: ${fieldValue}"
-            }).joinToString(", ", "{", "}")
-            return variant.name + fieldString
+            }).joinToString(", ", "{ ", " }")
+            return "${variant.name} ${fieldString}"
         // Otherwise this must be a tuple
         } else {
             return elements.joinToString(", ", "(", ")")

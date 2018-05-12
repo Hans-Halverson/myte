@@ -8,7 +8,7 @@ class EvaluationException(
     location: Location
 ) : ExceptionWithLocation(message, location)
 
-class Return(val returnValue: Value) : Exception("Returned value ${returnValue}")
+class Return(val returnValue: Value) : Exception("Returned")
 
 object Continue : Exception("Continue")
 
