@@ -823,8 +823,6 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
 
         // Check that every method and field has a unique name
         val (methodNames, staticNames) = adtSig.getAllNames()
-        val sigNames: MutableSet<String> = mutableSetOf()
-        val staticSigNames: MutableSet<String> = mutableSetOf()
 
         for ((methodDef, isStatic) in typeImpl.methods) {
             if (isStatic) {
@@ -846,41 +844,12 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             }
         }
 
+        // Make sure that all signatures in trait are implemented by type
         for ((traitSymbol, _) in typeImpl.extendedTraits) {
             val traitIdent = traitSymbol.resolve()
             val traitSig = symbolTable.getInfo(traitIdent)?.traitSig!!
 
-            // Make sure that concrete methods defined on traits do not conflict with names in type
-            for ((concreteName, _) in traitSig.concreteMethods) {
-                if (methodNames.contains(concreteName)) {
-                    throw IRConversionException("Field or method with name ${concreteName} " +
-                            "already defined for type ${typeIdent.name}, conflicting with method " +
-                            "of same name from trait ${traitIdent.name}", thisInfo.location) 
-                } else {
-                    methodNames.add(concreteName)
-                }
-            }
-
-            // Make sure that static methods defined on traits do not conflict with names in type
-            for ((staticName, _) in traitSig.staticConcreteMethods) {
-                if (staticNames.contains(staticName)) {
-                    throw IRConversionException("Static method with name ${staticName} " +
-                            "already defined for type ${typeIdent.name}, conflicting with method " +
-                            "of same name from trait ${traitIdent.name}", thisInfo.location) 
-                } else {
-                    staticNames.add(staticName)
-                }
-            }
-
             for ((sigName, _) in traitSig.methodSignatures) {
-                // Make sure that no two method signatures have the same name
-                if (sigNames.contains(sigName)) {
-                    throw IRConversionException("${typeIdent.name} cannot implement two " +
-                            "methods with the same name: ${sigName}", thisInfo.location)
-                } else {
-                    sigNames.add(sigName)
-                }
-
                 // Make sure that all method signatures defined in trait are implemented by type
                 if (!methodNames.contains(sigName)) {
                     throw IRConversionException("Type ${typeIdent.name} cannot implement trait " +
@@ -890,14 +859,6 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             }
 
             for ((staticSigName, _) in traitSig.staticMethodSignatures) {
-                // Make sure that no two static method signatures have the same name
-                if (staticSigNames.contains(staticSigName)) {
-                    throw IRConversionException("${typeIdent.name} cannot implement two " +
-                            "methods with the same name: ${staticSigName}", thisInfo.location)
-                } else {
-                    staticSigNames.add(staticSigName)
-                }
-
                 // Make sure that all method signatures defined in trait are implemented by type
                 if (!staticNames.contains(staticSigName)) {
                     throw IRConversionException("Type ${typeIdent.name} cannot implement trait " +
@@ -907,8 +868,8 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             }
         }
 
-        val methodSigTypes: MutableMap<String, Type> = mutableMapOf()
-        val staticSigTypes: MutableMap<String, Type> = mutableMapOf()
+        val methodSigTypes: MutableMap<String, MutableList<Type>> = mutableMapOf()
+        val staticSigTypes: MutableMap<String, MutableList<Type>> = mutableMapOf()
 
         // Add implemented traits to adt's signature
         for ((traitSymbol, typeParamExprs) in typeImpl.extendedTraits) {
@@ -924,14 +885,26 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             for ((sigName, sigIdent) in traitSig.methodSignatures) {
                 val substMap = traitSig.typeParams.zip(typeParams).toMap()
                 val methodType = symbolTable.getInfo(sigIdent)?.type?.substitute(substMap)!!
-                methodSigTypes[sigName] = methodType
+
+                val methodSigTypeList = methodSigTypes[sigName]
+                if (methodSigTypeList == null) {
+                    methodSigTypes[sigName] = mutableListOf(methodType)
+                } else {
+                    methodSigTypeList.add(methodType)
+                }
             }
 
             // Generate static method types with correct parameters for this type implementation
             for ((staticSigName, staticSigIdent) in traitSig.staticMethodSignatures) {
                 val substMap = traitSig.typeParams.zip(typeParams).toMap()
                 val staticType = symbolTable.getInfo(staticSigIdent)?.type?.substitute(substMap)!!
-                staticSigTypes[staticSigName] = staticType
+
+                val staticSigTypeList = staticSigTypes[staticSigName]
+                if (staticSigTypeList == null) {
+                    staticSigTypes[staticSigName] = mutableListOf(staticType)
+                } else {
+                    staticSigTypeList.add(staticType)
+                }
             }
         }
 

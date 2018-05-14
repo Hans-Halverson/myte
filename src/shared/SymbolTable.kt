@@ -147,6 +147,15 @@ class SymbolTable() {
                 Location(-1, -1, null), hashSetOf(), true)
     }
 
+    fun addMethod(name: String, location: Location): Identifier {
+        val ident = Identifier(name)
+        val info = IdentifierInfo(name, IdentifierClass.FUNCTION, location, setOf())
+
+        identifiers[ident] = info
+
+        return ident
+    }
+
     fun addVariable(
         name: String,
         idClass: IdentifierClass,

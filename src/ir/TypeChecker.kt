@@ -1461,17 +1461,20 @@ class TypeChecker(var symbolTable: SymbolTable) {
             }            
         }
 
-        // If this function implements a method signature, this function type is a subtype
-        // of method signature type.
-        if (node.signature != null) {
-            val except = { ->
-                val types = typesToString(node.signature, funcType)
-                throw IRConversionException("Method signature ${node.ident.name} has type " +
-                        "${types[0]}, but implementation has type ${types[1]}", node.startLocation)
-            }
+        // If this function implements method signatures, this function type is a subtype
+        // of each method signature type.
+        if (node.signatures != null) {
+            for (signature in node.signatures) {
+                val except = { ->
+                    val types = typesToString(signature, funcType)
+                    throw IRConversionException("Method signature ${node.ident.name} has type " +
+                            "${types[0]}, but implementation has type ${types[1]}",
+                            node.startLocation)
+                }
 
-            if (!subtype(funcType, node.signature, except)) {
-                except()
+                if (!subtype(funcType, signature, except)) {
+                    except()
+                }
             }
         }
     }

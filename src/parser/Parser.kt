@@ -75,7 +75,7 @@ class Parser(
             is TypeToken -> pack.typeDefs.add(parseTypeDefinition())
             is ImplementToken -> pack.typeImpls.add(parseTypeImplementation())
             is TraitToken -> pack.traitDefs.add(parseTraitDefinition())
-            is DefToken -> pack.statements.add(parseFunctionDefinition(true, token))
+            is DefToken -> pack.statements.add(parseFunctionDefinition(true, false, token))
             is LetToken -> pack.statements.add(parseVariableDefinition(false, true, token))
             is ConstToken -> pack.statements.add(parseVariableDefinition(true, true, token))
             else -> throw ParseException("Top level statements can only be type, function, or " +
@@ -130,7 +130,7 @@ class Parser(
             // Function and variable definitions should be treated as if they are top level
             is LetToken -> parseVariableDefinition(false, true, token)
             is ConstToken -> parseVariableDefinition(true, true, token)
-            is DefToken -> parseFunctionDefinition(true, token)
+            is DefToken -> parseFunctionDefinition(true, false, token)
             else -> parseStatement(token)
         }
 
@@ -155,7 +155,7 @@ class Parser(
         return when (token) {
             is LetToken -> parseVariableDefinition(false, false, token)
             is ConstToken -> parseVariableDefinition(true, false, token)
-            is DefToken -> parseFunctionDefinition(false, token)
+            is DefToken -> parseFunctionDefinition(false, false, token)
             is WhileToken -> parseWhileStatement(token)
             is DoToken -> parseDoWhileStatement(token)
             is ForToken -> parseForStatement(token)
@@ -852,6 +852,7 @@ class Parser(
 
     fun parseFunctionDefinition(
         isTopLevel: Boolean,
+        isMethod: Boolean,
         defToken: DefToken
     ): FunctionDefinitionStatement {
         // If parseFunctionDefinition is called, the previous token must have been a def
@@ -873,8 +874,12 @@ class Parser(
         }
 
         // Add the function to the symbol table
-        val ident = symbolTable.addVariable(funcToken.str, IdentifierClass.FUNCTION,
-                funcToken.location)
+        val ident = if (isMethod) {
+            symbolTable.addMethod(funcToken.str, funcToken.location)
+        } else {
+            symbolTable.addVariable(funcToken.str, IdentifierClass.FUNCTION,
+                    funcToken.location)
+        }
 
         // Enter a new scope so that all variable names and types are scoped to this function
         symbolTable.enterScope(ScopeType.FUNCTION)
@@ -1914,7 +1919,7 @@ class Parser(
             assertCurrent(TokenType.DEF)
             tokenizer.next()
 
-            methods.add(Pair(parseFunctionDefinition(true, token as DefToken), isStatic))
+            methods.add(Pair(parseFunctionDefinition(true, true, token as DefToken), isStatic))
         }
 
         assertCurrent(TokenType.RIGHT_BRACE)
@@ -2045,7 +2050,7 @@ class Parser(
                 signatureDefs.add(Pair(parseFunctionSignatureDefinition(token), isStatic))
             } else if (token is DefToken) {
                 tokenizer.next()
-                concreteMethods.add(Pair(parseFunctionDefinition(true, token), isStatic))
+                concreteMethods.add(Pair(parseFunctionDefinition(true, true, token), isStatic))
             } else if (token is RightBraceToken){
                 break
             } else {
@@ -2074,8 +2079,7 @@ class Parser(
         }
 
         val funcToken = token
-        val ident = symbolTable.addVariable(funcToken.str, IdentifierClass.FUNCTION,
-                funcToken.location)
+        val ident = symbolTable.addMethod(funcToken.str, funcToken.location)
         val argTypes: MutableList<TypeExpression> = mutableListOf()
 
         assertCurrent(TokenType.LEFT_PAREN)

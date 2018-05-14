@@ -314,6 +314,12 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
                 }
             }
 
+            // Find builtin ADT method
+            val builtin = ALGEBRAIC_DATA_TYPE_BUILTIN_METHODS[node.field]
+            if (builtin != null) {
+                return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
+            }
+
             // If value is a record, find field with the given name
             if (expr is RecordVariantValue) {
                 return expr.fields[node.field]!!

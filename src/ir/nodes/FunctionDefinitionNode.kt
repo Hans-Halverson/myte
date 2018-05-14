@@ -9,7 +9,7 @@ import myte.shared.*
  * @property formalArgs a list of identifiers for the formal arguments to the function
  * @property body the body of the function
  * @property returnTypeAnnotation an optional return type annotation for this function
- * @property signature an optional type signature that this function must implement
+ * @property signatures an optional list of type signatures that this function must implement
  * @property identLocation the location for the identifier of the function
  */
 open class FunctionDefinitionNode(
@@ -17,7 +17,7 @@ open class FunctionDefinitionNode(
     val formalArgs: List<Identifier>,
     val body: IRNode,
     val returnTypeAnnotation: Type?,
-    val signature: Type?,
+    val signatures: List<Type>?,
     val identLocation: Location,
     startLocation: Location
 ) : IRNode(startLocation) {
@@ -33,7 +33,7 @@ class MethodDefinitionNode(
     body: IRNode,
     returnTypeAnnotation: Type?,
     val thisIdent: Identifier,
-    signature: Type?,
+    signatures: List<Type>?,
     identLocation: Location,
     startLocation: Location
 ) : FunctionDefinitionNode(
@@ -41,7 +41,7 @@ class MethodDefinitionNode(
         formalArgs,
         body,
         returnTypeAnnotation,
-        signature,
+        signatures,
         identLocation,
         startLocation
 )
