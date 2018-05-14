@@ -1,12 +1,13 @@
 package myte.eval.builtins
 
+import myte.eval.*
+import myte.eval.builtins.*
 import myte.eval.values.*
 import myte.shared.*
 
-const val UNIT_TO_STRING_METHOD = "toString"
 
 val UNIT_BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
-    UNIT_TO_STRING_METHOD to UnitToStringBuiltinMethod()
+    TO_STRING_METHOD to UnitToStringBuiltinMethod()
 )
 
 /**
@@ -14,14 +15,14 @@ val UNIT_BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
  */
 class UnitToStringBuiltinMethod(
 ) : BuiltinMethod(
-    UNIT_TO_STRING_METHOD,
-    FunctionType(listOf(), StringType),
+    TO_STRING_METHOD,
+    TO_STRING_TYPE,
     UnitType
 ) {
     /**
     * Converts a unit to a string.
     */
-    override fun eval(args: List<Value>, recv: Value): Value {
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as UnitValue
         return StringValue(receiver.toString())
     }

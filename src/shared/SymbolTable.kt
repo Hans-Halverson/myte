@@ -144,7 +144,7 @@ class SymbolTable() {
 
     fun addBuiltin(name: String): Identifier {
         return addSymbolInScope(rootScope, name, IdentifierClass.FUNCTION,
-                Location(-1, -1, null), hashSetOf(), true)
+                NO_LOCATION, hashSetOf(), true)
     }
 
     fun addMethod(name: String, location: Location): Identifier {

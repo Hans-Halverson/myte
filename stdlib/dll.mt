@@ -211,53 +211,36 @@ implement DLL<a> {
         }
     }
 
-    def printNode(node: DLLNode<a>) {
-        print("Node with item: ")
-        print(node.item.toString())
+    def toString() {
+        // Add the size of the list
+        let str = "List of size: " + this.size.toString()
 
-        print(", and prev: ")
-        match node.prev
-        | Some(prev) -> print(prev.item.toString())
-        | None -> print("None")
+        // Add the start node
+        let startStr = match this.start
+        | Some(DLLNode{ item: item }) -> item.toString()
+        | None -> "None"
 
-        print(", and next: ")
-        match node.next
-        | Some(next) -> print(next.item.toString())
-        | None -> print("None")
+        str = str + ", with start: " + startStr
 
-        println("")
-    }
+        // Add the end node
+        let endStr = match this.end
+        | Some(DLLNode{ item: item }) -> item.toString()
+        | None -> "None"
 
-    def printList() {
-        // Print the size of the list
-        print("List of size: ")
-        print(this.size.toString())
+        str = str + ", and end: " + endStr + "\n"
 
-        // Print the start node
-        print(", with start: ")
-        match this.start
-        | Some(DLLNode{ item: item }) -> print(item.toString())
-        | None -> print("None")
-
-        // Print the end node
-        print(", and end: ")
-        match this.end
-        | Some(DLLNode{ item: item }) -> print(item.toString())
-        | None -> print("None")
-        println("")
-
-        // Print a string representation of every node in the DLL
+        // Add a string representation of every node in the DLL
         let currNode = this.start
         while (true) {
             match currNode
             | Some(node) -> {
-                this.printNode(node)
+                str = str + node.toString() + "\n"
                 currNode = node.next
             }
             | None -> break
         }
 
-        println("End of list")
+        return str
     }
 }
 
@@ -272,4 +255,24 @@ implement DLLIterator<a> extends Iterator<a> {
             this.curr = next
             Some(item)
         }
+}
+
+implement DLLNode<a> {
+    def toString() {
+        let str = "Node with item: " + this.item.toString()
+
+        const prevStr = match this.prev
+        | Some(prev) -> prev.item.toString()
+        | None -> "None"
+
+        str = str + ", and prev: " + prevStr
+
+        const nextStr = match this.next
+        | Some(next) -> next.item.toString()
+        | None -> "None"
+
+        str = str + ", and next: " + nextStr
+
+        return str
+    }
 }

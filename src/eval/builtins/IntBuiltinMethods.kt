@@ -1,14 +1,15 @@
 package myte.eval.builtins
 
+import myte.eval.*
+import myte.eval.builtins.*
 import myte.eval.values.*
 import myte.shared.*
 
 const val INT_TO_FLOAT_METHOD = "toFloat"
-const val INT_TO_STRING_METHOD = "toString"
 
 val INT_BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
     INT_TO_FLOAT_METHOD to IntToFloatBuiltinMethod(),
-    INT_TO_STRING_METHOD to IntToStringBuiltinMethod()
+    TO_STRING_METHOD to IntToStringBuiltinMethod()
 )
 
 /**
@@ -23,7 +24,7 @@ class IntToFloatBuiltinMethod(
     /**
     * Converts an int to a float.
     */
-    override fun eval(args: List<Value>, recv: Value): Value {
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as IntValue
         return FloatValue(receiver.num.toDouble())
     }
@@ -34,14 +35,14 @@ class IntToFloatBuiltinMethod(
  */
 class IntToStringBuiltinMethod(
 ) : BuiltinMethod(
-    INT_TO_STRING_METHOD,
-    FunctionType(listOf(), StringType),
+    TO_STRING_METHOD,
+    TO_STRING_TYPE,
     IntType
 ) {
     /**
     * Converts an int to a string.
     */
-    override fun eval(args: List<Value>, recv: Value): Value {
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as IntValue
         return StringValue(receiver.toString())
     }

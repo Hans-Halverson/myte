@@ -4,11 +4,6 @@ import myte.shared.*
 
 class VectorValue(val elements: MutableList<Value>, type: VectorType) : Value(type) {
     override fun toString(): String {
-        // Return special string for empty vector
-        if (elements.size == 0) {
-            return "[]"
-        }
-
         return elements.joinToString(", ", "[", "]")
     }
     

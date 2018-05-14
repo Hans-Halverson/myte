@@ -58,7 +58,7 @@ class RecordVariantBeginTraceOption(
 
 class InexhaustiveMatchException(val trace: MatchTrace) : Exception()
 
-val VARIABLE_NODE = VariableNode(Identifier("_"), Location(1, 1, null))
+val VARIABLE_NODE = VariableNode(Identifier("_"), NO_LOCATION)
 
 /**
  * Check whether every match statement in the tree rooted at the given root has exhaustive match
@@ -425,11 +425,6 @@ class LiteralMatchedCase<T>(val literal: T) : MatchedCase() {
  */
 class WildcardVectorMatchedCase(val size: Int) : MatchedCase() {
     override fun toString(): String {
-        // Return special string for empty vector
-        if (size == 0) {
-            return "[]"
-        }
-
         // Create list of wildcards of given size
         val wildcard = WildcardMatchedCase.toString()
         val elements = (0 until size).map { _ -> wildcard }
@@ -443,11 +438,6 @@ class WildcardVectorMatchedCase(val size: Int) : MatchedCase() {
  */
 class WildcardSetMatchedCase(val size: Int) : MatchedCase() {
     override fun toString(): String {
-        // Return special string for empty set
-        if (size == 0) {
-            return "{||}"
-        }
-
         // Create list of wildcards of given size
         val wildcard = WildcardMatchedCase.toString()
         val elements = (0 until size).map { _ -> wildcard }
@@ -461,11 +451,6 @@ class WildcardSetMatchedCase(val size: Int) : MatchedCase() {
  */
 class WildcardMapMatchedCase(val size: Int) : MatchedCase() {
     override fun toString(): String {
-        // Return special string for empty map
-        if (size == 0) {
-            return "[||]"
-        }
-
         // Create list of wildcards of given size
         val wildcard = WildcardMatchedCase.toString()
         val elements = (0 until size).map { _ -> wildcard }

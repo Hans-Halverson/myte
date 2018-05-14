@@ -63,7 +63,7 @@ abstract class BuiltinMethod(val name: String, val type: FunctionType, val recei
      * @return a value that is the result of applying the builtin function to the
      *         input list of values
      */
-    abstract fun eval(args: List<Value>, recv: Value): Value
+    abstract fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value
 }
 
 // Map of all builtin functions

@@ -1,5 +1,6 @@
 package myte.eval.values
 
+import myte.eval.*
 import myte.shared.*
 
 class BuiltinValue(
@@ -10,7 +11,7 @@ class BuiltinValue(
 }
 
 class BuiltinMethodValue(
-    val func: (List<Value>, Value) -> Value,
+    val func: (List<Value>, Value, Environment, Evaluator) -> Value,
     val receiver: Value,
     type: FunctionType
 ) : Value(type) {

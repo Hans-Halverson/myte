@@ -435,7 +435,33 @@ private fun readStringLiteral(reader: LL1StatefulReader): StringLiteralToken {
 
     var str = StringBuilder()
     while (reader.current != '"') {
-        str.append(reader.current)
+        // Check for escaped characters
+        if (reader.current == '\\' && reader.hasNext) {
+            if (reader.next == '\\') {
+                reader.advance()
+                str.append("\\")
+            } else if (reader.next == 'n') {
+                reader.advance()
+                str.append("\n")
+            } else if (reader.next == 't') {
+                reader.advance()
+                str.append("\t")
+            } else if (reader.next == 'b') {
+                reader.advance()
+                str.append("\b")
+            } else if (reader.next == 'r') {
+                reader.advance()
+                str.append("\r")
+            } else if (reader.next == '"') {
+                reader.advance()
+                str.append("\"")
+            } else {
+                str.append(reader.current)
+            }
+        } else {
+            str.append(reader.current)
+        }
+
         if (reader.hasNext) {
             reader.advance()
         } else {

@@ -1,14 +1,15 @@
 package myte.eval.builtins
 
+import myte.eval.*
+import myte.eval.builtins.*
 import myte.eval.values.*
 import myte.shared.*
 
 const val STRING_SIZE_METHOD = "size"
-const val STRING_TO_STRING_METHOD = "toString"
 
 val STRING_BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
     STRING_SIZE_METHOD to StringSizeBuiltinMethod(),
-    STRING_TO_STRING_METHOD to StringToStringBuiltinMethod()
+    TO_STRING_METHOD to StringToStringBuiltinMethod()
 )
 
 /**
@@ -23,7 +24,7 @@ class StringSizeBuiltinMethod(
     /**
     * Returns the length of a string.
     */
-    override fun eval(args: List<Value>, recv: Value): Value {
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as StringValue
         return IntValue(receiver.str.length)
     }
@@ -34,14 +35,14 @@ class StringSizeBuiltinMethod(
  */
 class StringToStringBuiltinMethod(
 ) : BuiltinMethod(
-    STRING_TO_STRING_METHOD,
-    FunctionType(listOf(), StringType),
+    TO_STRING_METHOD,
+    TO_STRING_TYPE,
     StringType
 ) {
     /**
     * Converts a string to a string.
     */
-    override fun eval(args: List<Value>, recv: Value): Value {
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as StringValue
         return receiver
     }

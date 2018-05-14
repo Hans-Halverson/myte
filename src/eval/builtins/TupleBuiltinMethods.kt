@@ -1,14 +1,12 @@
 package myte.eval.builtins
 
+import myte.eval.*
+import myte.eval.builtins.*
 import myte.eval.values.*
 import myte.shared.*
 
-val BUILTIN_TUPLE_TYPE = TupleType(listOf())
-
-const val TUPLE_TO_STRING_METHOD = "toString"
-
 val TUPLE_BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
-    TUPLE_TO_STRING_METHOD to TupleToStringBuiltinMethod()
+    TO_STRING_METHOD to TupleToStringBuiltinMethod()
 )
 
 /**
@@ -16,15 +14,20 @@ val TUPLE_BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
  */
 class TupleToStringBuiltinMethod(
 ) : BuiltinMethod(
-    TUPLE_TO_STRING_METHOD,
-    FunctionType(listOf(), StringType),
-    BUILTIN_TUPLE_TYPE
+    TO_STRING_METHOD,
+    TO_STRING_TYPE,
+    UnitType
 ) {
     /**
     * Converts a tuple to a string.
     */
-    override fun eval(args: List<Value>, recv: Value): Value {
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as TupleValue
-        return StringValue(receiver.toString())
+
+        val elementStrings: List<String> = receiver.tuple.map { value ->
+            callToString(value, env, eval).str
+        }
+
+        return StringValue(elementStrings.joinToString(", ", "(", ")"))
     }
 }

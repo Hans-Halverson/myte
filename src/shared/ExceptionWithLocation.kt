@@ -19,6 +19,8 @@ class UnexpectedEOFException() : Exception("Unexpected EOF encountered")
  */
 data class Location(val charNum: Int, val lineNum: Int, val fileName: String?)
 
+val NO_LOCATION = Location(1, 1, null)
+
 const val ESC = "\u001B"
 const val RESET_ATTRIBUTES = ESC + "[0m"
 const val BOLD_ATTRIBUTE = ESC + "[1m"

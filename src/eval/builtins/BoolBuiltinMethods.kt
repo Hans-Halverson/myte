@@ -1,12 +1,13 @@
 package myte.eval.builtins
 
+import myte.eval.*
+import myte.eval.builtins.*
 import myte.eval.values.*
 import myte.shared.*
 
-const val BOOL_TO_STRING_METHOD = "toString"
 
 val BOOL_BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
-    BOOL_TO_STRING_METHOD to BoolToStringBuiltinMethod()
+    TO_STRING_METHOD to BoolToStringBuiltinMethod()
 )
 
 /**
@@ -14,14 +15,14 @@ val BOOL_BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
  */
 class BoolToStringBuiltinMethod(
 ) : BuiltinMethod(
-    BOOL_TO_STRING_METHOD,
-    FunctionType(listOf(), StringType),
+    TO_STRING_METHOD,
+    TO_STRING_TYPE,
     BoolType
 ) {
     /**
     * Converts a bool to a string.
     */
-    override fun eval(args: List<Value>, recv: Value): Value {
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as BoolValue
         return StringValue(receiver.toString())
     }

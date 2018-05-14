@@ -47,8 +47,9 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
 
         for (node in replLineResult.toEvaluate) {
             val value = evaluate(node)
+            val valueStr = callToString(value, environment, this).str
             if (value !is UnitValue) {
-                println("${value} : ${formatType(typeChecker.currentRepType(value.type))}")
+                println("${valueStr} : ${formatType(typeChecker.currentRepType(value.type))}")
             }
         }
     }
@@ -225,7 +226,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         }
     }
 
-    fun evalBinaryMathOperator(node: BinaryMathOperatorNode, env: Environment): NumberValue {
+    fun evalBinaryMathOperator(node: BinaryMathOperatorNode, env: Environment): Value {
         return when (node.type) {
             is IntType -> {
                 val left = evalInt(node.left, env)
@@ -238,6 +239,12 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
                 val right = evalFloat(node.right, env)
 
                 FloatValue(node.computeFloat(left.num, right.num))
+            }
+            is StringType -> {
+                val left = evaluate(node.left, env) as StringValue
+                val right = evaluate(node.right, env) as StringValue
+
+                StringValue(left.str + right.str)
             }
             else -> throw EvaluationException("Binary math operator must have a number type, " +
                     "given ${formatType(node.type)}", node.startLocation)
@@ -294,69 +301,78 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
 
     fun evalAccess(node: AccessNode, env: Environment): Value {
         val expr = evaluate(node.expr, env)
+        return accessValue(expr, node.field, node.type, node.accessLocation, env)
+    }
 
+    fun accessValue(
+        value: Value,
+        name: String,
+        type: Type,
+        location: Location,
+        env: Environment
+    ): Value {
         // If an ADT, find method with the given name, or concrete method on extended trait
-        if (expr is AlgebraicDataTypeValue) {
+        if (value is AlgebraicDataTypeValue) {
             // Find and return method with given name if one exists
-            val adtSig = expr.adtVariant.adtSig
-            val methodIdent = adtSig.methods[node.field]
+            val adtSig = value.adtVariant.adtSig
+            val methodIdent = adtSig.methods[name]
             if (methodIdent != null) {
                 val methodValue = env.lookup(methodIdent) as MethodValue
-                return methodValue.withReceiver(expr, node.type)
+                return methodValue.withReceiver(value, type)
             }
 
             // Find concrete method on extended trait with the given name
             for (extendedTrait in adtSig.traits) {
-                val traitMethodIdent = extendedTrait.traitSig.concreteMethods[node.field]
+                val traitMethodIdent = extendedTrait.traitSig.concreteMethods[name]
                 if (traitMethodIdent != null) {
                     val methodValue = env.lookup(traitMethodIdent) as MethodValue
-                    return methodValue.withReceiver(expr, node.type)
+                    return methodValue.withReceiver(value, type)
                 }
             }
 
             // Find builtin ADT method
-            val builtin = ALGEBRAIC_DATA_TYPE_BUILTIN_METHODS[node.field]
+            val builtin = ALGEBRAIC_DATA_TYPE_BUILTIN_METHODS[name]
             if (builtin != null) {
-                return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
+                return BuiltinMethodValue(builtin::eval, value, type as FunctionType)
             }
 
             // If value is a record, find field with the given name
-            if (expr is RecordVariantValue) {
-                return expr.fields[node.field]!!
+            if (value is RecordVariantValue) {
+                return value.fields[name]!!
             } else {
-                throw EvaluationException("No method with name ${node.field} for " +
-                        "type ${expr.type}", node.accessLocation)
+                throw EvaluationException("No method with name ${name} for " +
+                        "type ${value.type}", location)
             }
-        } else if (expr is VectorValue) {
-            val builtin = VECTOR_BUILTIN_METHODS[node.field]!!
-            return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
-        } else if (expr is SetValue) {
-            val builtin = SET_BUILTIN_METHODS[node.field]!!
-            return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
-        } else if (expr is MapValue) {
-            val builtin = MAP_BUILTIN_METHODS[node.field]!!
-            return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
-        } else if (expr is IntValue) {
-            val builtin = INT_BUILTIN_METHODS[node.field]!!
-            return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
-        } else if (expr is FloatValue) {
-            val builtin = FLOAT_BUILTIN_METHODS[node.field]!!
-            return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
-        } else if (expr is StringValue) {
-            val builtin = STRING_BUILTIN_METHODS[node.field]!!
-            return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
-        } else if (expr is BoolValue) {
-            val builtin = BOOL_BUILTIN_METHODS[node.field]!!
-            return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
-        } else if (expr is UnitValue) {
-            val builtin = UNIT_BUILTIN_METHODS[node.field]!!
-            return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
-        } else if (expr is TupleValue) {
-            val builtin = TUPLE_BUILTIN_METHODS[node.field]!!
-            return BuiltinMethodValue(builtin::eval, expr, node.type as FunctionType)
+        } else if (value is VectorValue) {
+            val builtin = VECTOR_BUILTIN_METHODS[name]!!
+            return BuiltinMethodValue(builtin::eval, value, type as FunctionType)
+        } else if (value is SetValue) {
+            val builtin = SET_BUILTIN_METHODS[name]!!
+            return BuiltinMethodValue(builtin::eval, value, type as FunctionType)
+        } else if (value is MapValue) {
+            val builtin = MAP_BUILTIN_METHODS[name]!!
+            return BuiltinMethodValue(builtin::eval, value, type as FunctionType)
+        } else if (value is IntValue) {
+            val builtin = INT_BUILTIN_METHODS[name]!!
+            return BuiltinMethodValue(builtin::eval, value, type as FunctionType)
+        } else if (value is FloatValue) {
+            val builtin = FLOAT_BUILTIN_METHODS[name]!!
+            return BuiltinMethodValue(builtin::eval, value, type as FunctionType)
+        } else if (value is StringValue) {
+            val builtin = STRING_BUILTIN_METHODS[name]!!
+            return BuiltinMethodValue(builtin::eval, value, type as FunctionType)
+        } else if (value is BoolValue) {
+            val builtin = BOOL_BUILTIN_METHODS[name]!!
+            return BuiltinMethodValue(builtin::eval, value, type as FunctionType)
+        } else if (value is UnitValue) {
+            val builtin = UNIT_BUILTIN_METHODS[name]!!
+            return BuiltinMethodValue(builtin::eval, value, type as FunctionType)
+        } else if (value is TupleValue) {
+            val builtin = TUPLE_BUILTIN_METHODS[name]!!
+            return BuiltinMethodValue(builtin::eval, value, type as FunctionType)
         } else {
-            throw EvaluationException("No field or method with name ${node.field} for " +
-                    "type ${expr.type}", node.accessLocation)
+            throw EvaluationException("No field or method with name ${name} for " +
+                    "type ${value.type}", location)
         }
     }
 
@@ -473,33 +489,40 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
 
     fun evalFunctionCall(node: FunctionCallNode, env: Environment): Value {
         val closureValue = evaluate(node.func, env)
+        val actualArgs = node.actualArgs.map { expr -> evaluate(expr, env) }
 
+        return applyFunction(closureValue, actualArgs, env, node.startLocation, node.type)
+    }
+
+    fun applyFunction(
+        closureValue: Value,
+        args: List<Value>,
+        env: Environment,
+        location: Location,
+        retType: Type
+    ): Value {
         // Check if bound function is a builtin. If so, use its stored evaluation function
         if (closureValue is BuiltinValue) {
-            val actualArgs: List<Value> = node.actualArgs.map { expr -> evaluate(expr, env) }
-            return closureValue.func(actualArgs)
+            return closureValue.func(args)
         // If bound function is builtin method, use stored evaluation function applied to receiver
         } else if (closureValue is BuiltinMethodValue) {
-            val actualArgs: List<Value> = node.actualArgs.map { expr -> evaluate(expr, env) }
-            return closureValue.func(actualArgs, closureValue.receiver)
+            return closureValue.func(args, closureValue.receiver, env, this)
         } else if (closureValue !is ClosureValue) {
             throw EvaluationException("Cannot call ${closureValue}, can only call functions",
-                    node.startLocation)
+                    location)
         }
 
         // Check that number of arguments is correct
-        if (node.actualArgs.size != closureValue.formalArgs.size) {
-            throw EvaluationException("${node.func} expected ${closureValue.formalArgs.size} " +
-                    "arguments, but received ${node.actualArgs.size}", node.startLocation)
+        if (args.size != closureValue.formalArgs.size) {
+            throw EvaluationException("Function expected ${closureValue.formalArgs.size} " +
+                    "arguments, but received ${args.size}", location)
         }
 
-        val actualArgs: List<Value> = node.actualArgs.map { expr -> evaluate(expr, env) }
-
         // Evaluate body of closure and retrieve return value
-        val returnValue = applyClosureToArgs(closureValue, actualArgs)
+        val returnValue = applyClosureToArgs(closureValue, args)
 
         // Set type of return value to match type of input arguments
-        returnValue.type = node.type
+        returnValue.type = retType
 
         return returnValue
     }

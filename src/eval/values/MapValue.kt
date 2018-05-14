@@ -4,11 +4,6 @@ import myte.shared.*
 
 class MapValue(val map: MutableMap<Value, Value>, type: MapType) : Value(type) {
     override fun toString(): String {
-        // Return special string for empty map
-        if (map.size == 0) {
-            return "[||]"
-        }
-
         val builder = StringBuilder()
         builder.append("[|")
 

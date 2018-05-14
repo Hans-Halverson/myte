@@ -225,6 +225,8 @@ class BinaryMathOperatorConstraint(
         val nodeType = trigger
         if (nodeType is IntType || nodeType is FloatType) {
             return true
+        } else if (node is AddNode && nodeType is StringType) {
+            return true
         } else if (nodeType is TypeVariable) {
             return false
         } else {
@@ -249,11 +251,10 @@ class AccessConstraint(
         val exprType = trigger
 
         // The toString method is already defined on all types
-        if (node.field == "toString") {
-            // Type of node is type of toString (unit -> string)
-            val toStringType = FunctionType(listOf(), StringType)
-            if (!typeChecker.unify(node.type, toStringType)) {
-                val types = typeChecker.typesToString(node.type, toStringType)
+        if (node.field == TO_STRING_METHOD) {
+            // Type of node is type of toString
+            if (!typeChecker.unify(node.type, TO_STRING_TYPE)) {
+                val types = typeChecker.typesToString(node.type, TO_STRING_TYPE)
                 throw IRConversionException("Method inferred to have type " +
                         "${types[0]}, but expected ${types[1]}", node.accessLocation)
             }

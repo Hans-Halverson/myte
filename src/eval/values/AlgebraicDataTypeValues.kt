@@ -2,7 +2,7 @@ package myte.eval.values
 
 import myte.shared.*
 
-abstract class AlgebraicDataTypeValue(
+sealed class AlgebraicDataTypeValue(
     val adtVariant: AlgebraicDataTypeVariant,
     type: Type
 ) : Value(type)

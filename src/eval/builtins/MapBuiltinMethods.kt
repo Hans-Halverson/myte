@@ -1,5 +1,7 @@
 package myte.eval.builtins
 
+import myte.eval.*
+import myte.eval.builtins.*
 import myte.eval.values.*
 import myte.shared.*
 
@@ -11,7 +13,6 @@ const val MAP_KEYS_METHOD = "keys"
 const val MAP_VALUES_METHOD = "values"
 const val MAP_CONTAINS_KEY_METHOD = "containsKey"
 const val MAP_CONTAINS_VALUE_METHOD = "containsValue"
-const val MAP_TO_STRING_METHOD = "toString"
 
 val MAP_BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
     MAP_REMOVE_METHOD to MapRemoveBuiltinMethod(),
@@ -20,7 +21,7 @@ val MAP_BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
     MAP_VALUES_METHOD to MapValuesBuiltinMethod(),
     MAP_CONTAINS_KEY_METHOD to MapContainsKeyBuiltinMethod(),
     MAP_CONTAINS_VALUE_METHOD to MapContainsValueBuiltinMethod(),
-    MAP_TO_STRING_METHOD to MapToStringBuiltinMethod()
+    TO_STRING_METHOD to MapToStringBuiltinMethod()
 )
 
 /**
@@ -35,7 +36,7 @@ class MapRemoveBuiltinMethod(
     /**
     * Remove a key and its associated value from a map.
     */
-    override fun eval(args: List<Value>, recv: Value): Value {
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as MapValue
         val newItem = args[0]
 
@@ -57,7 +58,7 @@ class MapSizeBuiltinMethod(
     /**
     * Return the size of a map.
     */
-    override fun eval(args: List<Value>, recv: Value): Value {
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as MapValue
         return IntValue(receiver.map.size)
     }
@@ -75,7 +76,7 @@ class MapKeysBuiltinMethod(
     /**
     * Return the set of all keys in a map.
     */
-    override fun eval(args: List<Value>, recv: Value): Value {
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as MapValue
         val receiverType = recv.type as MapType
         return SetValue(receiver.map.keys, SetType(receiverType.keyType))
@@ -94,7 +95,7 @@ class MapValuesBuiltinMethod(
     /**
     * Return the set of all values in a map.
     */
-    override fun eval(args: List<Value>, recv: Value): Value {
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as MapValue
         val receiverType = recv.type as MapType
         return VectorValue(receiver.map.values.toMutableList(), VectorType(receiverType.valType))
@@ -113,7 +114,7 @@ class MapContainsKeyBuiltinMethod(
     /**
     * Returns whether a map contains a key.
     */
-    override fun eval(args: List<Value>, recv: Value): Value {
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as MapValue
         val item = args[0]
 
@@ -133,7 +134,7 @@ class MapContainsValueBuiltinMethod(
     /**
     * Returns whether a map contains a value.
     */
-    override fun eval(args: List<Value>, recv: Value): Value {
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as MapValue
         val item = args[0]
 
@@ -146,16 +147,36 @@ class MapContainsValueBuiltinMethod(
  */
 class MapToStringBuiltinMethod(
 ) : BuiltinMethod(
-    MAP_TO_STRING_METHOD,
-    FunctionType(listOf(), StringType),
+    TO_STRING_METHOD,
+    TO_STRING_TYPE,
     BUILTIN_MAP_TYPE
 ) {
     /**
     * Converts a map to a string.
     */
-    override fun eval(args: List<Value>, recv: Value): Value {
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as MapValue
-        return StringValue(receiver.toString())
+        val builder = StringBuilder()
+        builder.append("[|")
+
+        var firstPair = true
+        for ((key, value) in receiver.map) {
+            // Add a comma separator between every two kvpairs
+            if (firstPair) {
+                firstPair = false
+            } else {
+                builder.append(", ")
+            }
+
+            // Add the pair itself to the string, formatted as key -> value
+            builder.append(callToString(key, env, eval).str)
+            builder.append(" -> ")
+            builder.append(callToString(value, env, eval).str)
+        }
+
+        builder.append("|]")
+
+        return StringValue(builder.toString())
     }
 }
 

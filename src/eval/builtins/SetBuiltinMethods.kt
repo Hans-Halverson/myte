@@ -1,5 +1,7 @@
 package myte.eval.builtins
 
+import myte.eval.*
+import myte.eval.builtins.*
 import myte.eval.values.*
 import myte.shared.*
 
@@ -9,14 +11,13 @@ const val SET_ADD_METHOD = "add"
 const val SET_CONTAINS_METHOD = "contains"
 const val SET_REMOVE_METHOD = "remove"
 const val SET_SIZE_METHOD = "size"
-const val SET_TO_STRING_METHOD = "toString"
 
 val SET_BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
     SET_ADD_METHOD to SetAddBuiltinMethod(),
     SET_CONTAINS_METHOD to SetContainsBuiltinMethod(),
     SET_REMOVE_METHOD to SetRemoveBuiltinMethod(),
     SET_SIZE_METHOD to SetSizeBuiltinMethod(),
-    SET_TO_STRING_METHOD to SetToStringBuiltinMethod()
+    TO_STRING_METHOD to SetToStringBuiltinMethod()
 )
 
 /**
@@ -31,7 +32,7 @@ class SetAddBuiltinMethod(
     /**
     * Add a single item to a set.
     */
-    override fun eval(args: List<Value>, recv: Value): Value {
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as SetValue
         val newItem = args[0]
 
@@ -53,7 +54,7 @@ class SetContainsBuiltinMethod(
     /**
     * Returns whether a set contains an item.
     */
-    override fun eval(args: List<Value>, recv: Value): Value {
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as SetValue
         val item = args[0]
 
@@ -73,7 +74,7 @@ class SetRemoveBuiltinMethod(
     /**
     * Remove an item from a set.
     */
-    override fun eval(args: List<Value>, recv: Value): Value {
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as SetValue
         val removeItem = args[0]
 
@@ -95,7 +96,7 @@ class SetSizeBuiltinMethod(
     /**
     * Return the size of a set.
     */
-    override fun eval(args: List<Value>, recv: Value): Value {
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as SetValue
         return IntValue(receiver.elements.size)
     }
@@ -106,16 +107,21 @@ class SetSizeBuiltinMethod(
  */
 class SetToStringBuiltinMethod(
 ) : BuiltinMethod(
-    SET_TO_STRING_METHOD,
-    FunctionType(listOf(), StringType),
+    TO_STRING_METHOD,
+    TO_STRING_TYPE,
     BUILTIN_SET_TYPE
 ) {
     /**
     * Converts a set to a string.
     */
-    override fun eval(args: List<Value>, recv: Value): Value {
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as SetValue
-        return StringValue(receiver.toString())
+
+        val elementTypes = receiver.elements.map { value ->
+            callToString(value, env, eval).str
+        }
+
+        return StringValue(elementTypes.joinToString(", ", "{|", "|}"))
     }
 }
 
