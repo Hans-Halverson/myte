@@ -47,8 +47,10 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
 
         for (node in replLineResult.toEvaluate) {
             val value = evaluate(node)
-            val valueStr = callToString(value, environment, this).str
-            if (value !is UnitValue) {
+            if (value is ClosureValue || value is BuiltinValue || value is BuiltinMethodValue) {
+                println("${value} : ${formatType(typeChecker.currentRepType(value.type))}")
+            } else if (value !is UnitValue) {
+                val valueStr = callToString(value, environment, this).str
                 println("${valueStr} : ${formatType(typeChecker.currentRepType(value.type))}")
             }
         }

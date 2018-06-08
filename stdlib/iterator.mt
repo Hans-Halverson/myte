@@ -21,6 +21,13 @@ trait Iterable<a> {
 
         return false
     }
+
+    def forEach(f) {
+        const iter = this.iterator()
+        for (let curr = iter.next(), curr != None, curr = iter.next()) {
+            curr.map(f)
+        }
+    }
 }
 
 type VecIterator<a> = VecIterator{vec: vec<a>, mut curr: int}

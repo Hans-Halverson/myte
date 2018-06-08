@@ -29,33 +29,27 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         packages.forEach { pack -> pack.typeDefs.forEach(this::createAdtSig) }
         packages.forEach { pack -> pack.typeDefs.forEach(this::createAdtVariants) }
 
-        inferTypes(listOf())
-
-        // Create traits, saving definition nodes in list of all IR nodes
+        // Create all traits
         val traitNodes = packages.flatMap({ pack ->
             pack.traitDefs.flatMap(this::createTrait)
         })
 
-        inferTypes(traitNodes)
-        traitNodes.forEach(this::assertIRStructure)
-
-        // Create implementations for ADTs, saving definition nodes in list of all IR nodes
+        // Create implementations for ADTs
         val implNodes = packages.flatMap({ pack ->
             pack.typeImpls.flatMap(this::createTypeImplementation)
         })
-
-        inferTypes(implNodes)
-        implNodes.forEach(this::assertIRStructure)
 
         // Convert all statements of each package
         val defNodes = packages.flatMap({ pack ->
             pack.statements.map({ convert(it, false) })
         })
 
-        inferTypes(defNodes)
-        defNodes.forEach(this::assertIRStructure)
+        // Infer all types and assert structure
+        val irNodes = traitNodes + implNodes + defNodes
+        inferTypes(irNodes)
+        irNodes.forEach(this::assertIRStructure)
 
-        return traitNodes + implNodes + defNodes
+        return irNodes
     }
 
     fun convertFiles(parseFilesResult: ParseFilesResult): ConvertFilesResult {
@@ -104,7 +98,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
                 else -> convert(statement, false)
             }
 
-            inferTypes(listOf(node))
+            inferTypes(listOf(node), false)
             assertIRStructure(node)
 
             return ConvertReplLineResult(listOf(node), listOf())
@@ -690,7 +684,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     }
 
     fun createTrait(traitDef: TraitDefinitionStatement): List<IRNode> {
-        // First annotate all type parameters identifiers with new type variables
+        // First annotate all type parameters' identifiers with new type variables
         val typeParams = traitDef.typeParamIdents.map { typeParamIdent ->
             val typeParam = TypeParameter()
             symbolTable.getInfo(typeParamIdent)?.type = typeParam
@@ -1068,17 +1062,18 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
      * in the symbol table.
      * 
      * @param nodes a list of IRNodes corresponding to the complete internal representation
+     * @param freezeSymbols whether or not to freeze all inferred symbol types
      * @throws IRConversionException if there are type clashes or if types can not be inferred
      *         for every node in the IR and for every symbol in the symbol table
      */
-    fun inferTypes(nodes: List<IRNode>) {
+    fun inferTypes(nodes: List<IRNode>, freezeSymbols: Boolean = true) {
         val boundVars: MutableSet<TypeVariable> = hashSetOf()
         nodes.forEach { node -> typeChecker.typeCheck(node, boundVars, true) }
 
         typeChecker.findFixedPoint()
 
-        typeChecker.inferFunctionTypes()
-        typeChecker.inferVariableTypes()
+        typeChecker.inferFunctionTypes(freezeSymbols)
+        typeChecker.inferVariableTypes(freezeSymbols)
 
         nodes.forEach(typeChecker::inferIRTypes)
     }
@@ -1197,4 +1192,3 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         }
     }
 }
-

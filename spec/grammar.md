@@ -60,11 +60,12 @@ LVALUE -> IDENT
 
 
 TYPE -> bool
+      | int
       | float
       | unit
+      | string
       | ( TYPE_LIST )
       | TYPE -> TYPE
-      | TYPE | TYPE
       | vec < TYPE >
       | map < TYPE, TYPE >
       | set < TYPE >

@@ -1780,14 +1780,19 @@ class TypeChecker(var symbolTable: SymbolTable) {
     /**
      * Infer types for every identifier of the specified class in the symbol table. Be sure to
      * only infer types after all type checking and unification has taken place.
+     * 
+     * @param freezeSymbols whether or not to freeze all inferred symbol types
      */
-    fun inferSymbolTypes(idClass: IdentifierClass) {
+    fun inferSymbolTypes(idClass: IdentifierClass, freezeSymbols: Boolean) {
         // Infer types for every identifier of the specified class
         for ((_, identInfo) in symbolTable.identifiers) {
             if (identInfo.typeShouldBeInferred && !identInfo.typeIsInferred &&
                     identInfo.idClass == idClass) {
                 identInfo.type = inferType(identInfo.type)
-                identInfo.typeIsInferred = true
+
+                if (freezeSymbols) {
+                    identInfo.typeIsInferred = true
+                }
             }
         }
     }
@@ -1795,17 +1800,21 @@ class TypeChecker(var symbolTable: SymbolTable) {
     /**
      * Infer types for every function in the symbol table. Be sure to only infer types after all
      * type checking and unification has taken place.
+     * 
+     * @param freezeSymbols whether or not to freeze all inferred symbol types
      */
-    fun inferFunctionTypes() {
-        inferSymbolTypes(IdentifierClass.FUNCTION)
+    fun inferFunctionTypes(freezeSymbols: Boolean) {
+        inferSymbolTypes(IdentifierClass.FUNCTION, freezeSymbols)
     }
 
     /**
      * Infer types for every function in the symbol table. Be sure to only infer types after all
      * type checking and unification has taken place, and after function types have been inferred.
+     * 
+     * @param freezeSymbols whether or not to freeze all inferred symbol types
      */
-    fun inferVariableTypes() {
-        inferSymbolTypes(IdentifierClass.VARIABLE)
+    fun inferVariableTypes(freezeSymbols: Boolean) {
+        inferSymbolTypes(IdentifierClass.VARIABLE, freezeSymbols)
     }
 
     /**
