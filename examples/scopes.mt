@@ -1,5 +1,7 @@
 package Scope
 
+import std::fmt::println
+
 def f() {
     return a
 }

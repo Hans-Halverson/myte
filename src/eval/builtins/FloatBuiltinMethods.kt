@@ -5,12 +5,8 @@ import myte.eval.builtins.*
 import myte.eval.values.*
 import myte.shared.*
 
-const val FLOAT_TO_INT_METHOD = "toInt"
-
-val FLOAT_BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
-    FLOAT_TO_INT_METHOD to FloatToIntBuiltinMethod(),
-    TO_STRING_METHOD to FloatToStringBuiltinMethod()
-)
+const val FLOAT_TO_INT_METHOD = "float.toInt"
+const val FLOAT_TO_STRING_METHOD = "float.toString"
 
 /**
  * A builtin which converts a float to an int.
@@ -35,7 +31,7 @@ class FloatToIntBuiltinMethod(
  */
 class FloatToStringBuiltinMethod(
 ) : BuiltinMethod(
-    TO_STRING_METHOD,
+    FLOAT_TO_STRING_METHOD,
     TO_STRING_TYPE,
     FloatType
 ) {

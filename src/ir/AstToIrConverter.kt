@@ -129,6 +129,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             // Variables and functions
             stmt is VariableExpression -> convertVariable(stmt)
             stmt is ApplicationExpression -> convertApplication(stmt)
+            stmt is BuiltinExpression -> convertBuiltin(stmt)
             stmt is RecordTypeConstructorExpression -> convertRecordTypeConstructor(stmt)
             stmt is KeyedAccessExpression -> convertKeyedAccess(stmt)
             stmt is AccessExpression -> convertAccess(stmt)
@@ -348,6 +349,28 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         } else {
             return FunctionCallNode(func, args, expr.callLocation, expr.startLocation)
         }
+    }
+
+    fun convertBuiltin(expr: BuiltinExpression): IRNode {
+        val args = expr.args.map({ convert(it, true) })
+
+        val builtin = BUILTINS[expr.builtin]
+        if (builtin != null) {
+            return BuiltinNode(builtin, args, expr.startLocation)
+        }
+
+        val builtinMethod = BUILTIN_METHODS[expr.builtin]
+        if (builtinMethod != null) {
+            if (args.isEmpty()) {
+                throw IRConversionException("Builtin method ${expr.builtin} expects a receiver, " +
+                        "but none found", expr.startLocation)
+            }
+
+            return BuiltinMethodNode(builtinMethod, args[0], args.drop(1), expr.startLocation)
+        }
+
+        throw IRConversionException("No builtin found with name ${expr.builtin}",
+                expr.startLocation)
     }
 
     fun convertRecordTypeConstructor(
@@ -651,7 +674,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         // Create initial ADT signature and annotate identifier with it
         val adtSig = AlgebraicDataTypeSignature(typeDef.typeIdent.name, typeParams)
         symbolTable.getInfo(typeDef.typeIdent)?.adtSig = adtSig
-        symbolTable.getInfo(typeDef.typeIdent)?.type = adtSig.getAdtWithParams(adtSig.typeParams)
+        symbolTable.getInfo(typeDef.typeIdent)?.type = adtSig.getTypeWithParams(adtSig.typeParams)
         symbolTable.getInfo(typeDef.typeIdent)?.typeShouldBeInferred = true
     }
 
@@ -695,7 +718,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         // Create initial trait signature and type, and annotate identifier with it
         val traitIdent = traitDef.traitIdent
         val traitSig = TraitSignature(traitDef.traitIdent.name, typeParams)
-        val traitType = traitSig.getTraitWithParams(typeParams)
+        val traitType = traitSig.getTypeWithParams(typeParams)
         symbolTable.getInfo(traitIdent)?.traitSig = traitSig
         symbolTable.getInfo(traitIdent)?.type = traitType
         symbolTable.getInfo(traitIdent)?.typeShouldBeInferred = true
@@ -762,9 +785,9 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         // Add concrete and static methods to trait
         traitDef.concreteMethods.map { (methodDef, isStatic) ->
             if (isStatic) {
-                traitSig.staticConcreteMethods[methodDef.ident.name] = methodDef.ident
+                traitSig.staticMethods[methodDef.ident.name] = methodDef.ident
             } else {
-                traitSig.concreteMethods[methodDef.ident.name] = methodDef.ident
+                traitSig.methods[methodDef.ident.name] = methodDef.ident
             }   
         }
 
@@ -788,41 +811,69 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     }
 
     fun createTypeImplementation(typeImpl: TypeImplementationStatement): List<IRNode> {
-        val typeIdent = typeImpl.typeIdent.resolve()
-        val typeInfo = symbolTable.getInfo(typeIdent)!!
-        val thisInfo = symbolTable.getInfo(typeImpl.thisIdent)!!
+        // Find the correct type signature to add an implementation to
+        val typeSig = if (typeImpl.typeIdent != null) {
+            val typeIdent = typeImpl.typeIdent.resolve()
+            val typeInfo = symbolTable.getInfo(typeIdent)!!
 
-        if (typeInfo.idClass != IdentifierClass.ALGEBRAIC_DATA_TYPE) {
-            throw IRConversionException("Can only define methods for user defined data types",
-                    thisInfo.location)
+            if (typeInfo.idClass != IdentifierClass.ALGEBRAIC_DATA_TYPE) {
+                throw IRConversionException("Can only define methods for user defined data types",
+                        typeImpl.typeLocation)
+            }
+
+            typeInfo.adtSig
+        } else if (typeImpl.builtinType == "unit") {
+            UnitTypeSignature
+        } else if (typeImpl.builtinType == "bool") {
+            BoolTypeSignature
+        } else if (typeImpl.builtinType == "int") {
+            IntTypeSignature
+        } else if (typeImpl.builtinType == "float") {
+            FloatTypeSignature
+        } else if (typeImpl.builtinType == "string") {
+            StringTypeSignature
+        } else if (typeImpl.builtinType == "vec") {
+            VectorTypeSignature
+        } else if (typeImpl.builtinType == "set") {
+            SetTypeSignature
+        } else if (typeImpl.builtinType == "map") {
+            MapTypeSignature
+        } else if (typeImpl.builtinType == "__tuple") {
+            TupleTypeSignature
+        } else if (typeImpl.builtinType == "__function") {
+            FunctionTypeSignature
+        } else {
+            throw IRConversionException("No type specified for type implementation",
+                    typeImpl.typeLocation)
         }
 
         // Make sure number of type parameters is correct
-        val adtSig = typeInfo.adtSig
-        if (adtSig.typeParams.size != typeImpl.typeParamIdents.size) {
-            throw IRConversionException("Type ${adtSig.name} expects " +
-                    "${adtSig.typeParams.size} type parameters, but received " +
-                    "${typeImpl.typeParamIdents.size}", thisInfo.location)
+        if (typeSig.typeParams.size != typeImpl.typeParamIdents.size) {
+            throw IRConversionException("Type ${typeSig.name} expects " +
+                    "${typeSig.typeParams.size} type parameters, but received " +
+                    "${typeImpl.typeParamIdents.size}", typeImpl.typeLocation)
         }
 
         // Annotate type parameter identifiers with new type variables
-        typeImpl.typeParamIdents.zip(adtSig.typeParams).forEach { (typeParamIdent, adtTypeParam) ->
-            symbolTable.getInfo(typeParamIdent)?.type = adtTypeParam
+        typeImpl.typeParamIdents.zip(typeSig.typeParams)
+                .forEach { (typeParamIdent, typeParam) ->
+            symbolTable.getInfo(typeParamIdent)?.type = typeParam
             symbolTable.getInfo(typeParamIdent)?.typeShouldBeInferred = true
         }
 
         // Annotate "this" with correctly parameterized type
-        thisInfo.type = adtSig.getAdtWithParams(adtSig.typeParams)
+        val thisInfo = symbolTable.getInfo(typeImpl.thisIdent)!!
+        thisInfo.type = typeSig.getTypeWithParams(typeSig.typeParams)
         thisInfo.typeShouldBeInferred = true
 
         // Check that every method and field has a unique name
-        val (methodNames, staticNames) = adtSig.getAllNames()
+        val (methodNames, staticNames) = typeSig.getAllNames()
 
         for ((methodDef, isStatic) in typeImpl.methods) {
             if (isStatic) {
                 if (staticNames.contains(methodDef.ident.name)) {
                     throw IRConversionException("Static method method with name " +
-                            "${methodDef.ident.name} already defined for type ${typeIdent.name}",
+                            "${methodDef.ident.name} already defined for type ${typeSig.name}",
                             methodDef.identLocation)
                 } else {
                     staticNames.add(methodDef.ident.name)
@@ -830,7 +881,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             } else {
                 if (methodNames.contains(methodDef.ident.name)) {
                     throw IRConversionException("Field or method with name " +
-                            "${methodDef.ident.name} already defined for type ${typeIdent.name}",
+                            "${methodDef.ident.name} already defined for type ${typeSig.name}",
                             methodDef.identLocation)
                 } else {
                     methodNames.add(methodDef.ident.name)
@@ -838,7 +889,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             }
         }
 
-        // Make sure that all signatures in trait are implemented by type
+        // Make sure that all signatures in traits are implemented by type
         for ((traitSymbol, _) in typeImpl.extendedTraits) {
             val traitIdent = traitSymbol.resolve()
             val traitSig = symbolTable.getInfo(traitIdent)?.traitSig!!
@@ -846,18 +897,18 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             for ((sigName, _) in traitSig.methodSignatures) {
                 // Make sure that all method signatures defined in trait are implemented by type
                 if (!methodNames.contains(sigName)) {
-                    throw IRConversionException("Type ${typeIdent.name} cannot implement trait " +
+                    throw IRConversionException("Type ${typeSig.name} cannot implement trait " +
                             "${traitIdent.name}, since method ${sigName} is " +
-                            "not implemented", thisInfo.location)
+                            "not implemented", typeImpl.typeLocation)
                 }
             }
 
             for ((staticSigName, _) in traitSig.staticMethodSignatures) {
                 // Make sure that all method signatures defined in trait are implemented by type
                 if (!staticNames.contains(staticSigName)) {
-                    throw IRConversionException("Type ${typeIdent.name} cannot implement trait " +
+                    throw IRConversionException("Type ${typeSig.name} cannot implement trait " +
                             "${traitIdent.name}, since static method ${staticSigName} is " +
-                            "not implemented", thisInfo.location)
+                            "not implemented", typeImpl.typeLocation)
                 }
             }
         }
@@ -871,9 +922,9 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             val traitSig = symbolTable.getInfo(traitIdent)?.traitSig!!
 
             val typeParams = typeParamExprs.map(this::convertType)
-            val traitType = traitSig.getTraitWithParams(typeParams)
+            val traitType = traitSig.getTypeWithParams(typeParams) as TraitType
 
-            adtSig.traits.add(traitType)
+            typeSig.traits.add(traitType)
 
             // Generate method types with correct parameters for this type implementation
             for ((sigName, sigIdent) in traitSig.methodSignatures) {
@@ -905,9 +956,9 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         // Add methods and static methods to ADT
         typeImpl.methods.map { (stmt, isStatic) ->
             if (isStatic) {
-                adtSig.staticMethods[stmt.ident.name] = stmt.ident
+                typeSig.staticMethods[stmt.ident.name] = stmt.ident
             } else {
-                adtSig.methods[stmt.ident.name] = stmt.ident
+                typeSig.methods[stmt.ident.name] = stmt.ident
             }
         }
 
@@ -974,7 +1025,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
                         "${typeParams.size}", typeExpr.startLocation)
             }
 
-            return adtSig.getAdtWithParams(typeParams)
+            return adtSig.getTypeWithParams(typeParams)
         } else if (info.idClass == IdentifierClass.TRAIT) {
             val typeParams = typeExpr.typeParams.map(this::convertType)
 
@@ -985,7 +1036,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
                         "${typeParams.size}", typeExpr.startLocation)
             }
 
-            return info.traitSig.getTraitWithParams(typeParams)
+            return info.traitSig.getTypeWithParams(typeParams)
         } else if (info.idClass == IdentifierClass.TYPE_PARAMETER) {
             if (!typeExpr.typeParams.isEmpty()) {
                 // Error if this is not an ADT but was given type parameters

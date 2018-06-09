@@ -29,17 +29,3 @@ trait Iterable<a> {
         }
     }
 }
-
-type VecIterator<a> = VecIterator{vec: vec<a>, mut curr: int}
-
-implement VecIterator<a> extends Iterator<a> {
-    def next() {
-        if (this.vec.size() == this.curr) {
-            return None
-        } else {
-            const currElement = this.vec[this.curr]
-            this.curr = this.curr + 1
-            return Some(currElement)
-        }
-    }
-}

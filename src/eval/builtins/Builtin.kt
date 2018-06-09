@@ -72,11 +72,33 @@ val BUILTINS: Map<String, Builtin> = hashMapOf(
     PRINT_LINE_BUILTIN to PrintLineBuiltin()
 )
 
-/**
- * Add all builtins to the symbol table and environment. This must be done before parsing.
- */
-fun registerBuiltins(symbolTable: SymbolTable, environment: Environment) {
-    for ((_, builtin) in BUILTINS) {
-        builtin.ident = builtin.register(symbolTable, environment)
-    }
-}
+val BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
+    INT_TO_FLOAT_METHOD to IntToFloatBuiltinMethod(),
+    INT_TO_STRING_METHOD to IntToStringBuiltinMethod(),
+
+    FLOAT_TO_INT_METHOD to FloatToIntBuiltinMethod(),
+    FLOAT_TO_STRING_METHOD to FloatToStringBuiltinMethod(),
+
+    STRING_SIZE_METHOD to StringSizeBuiltinMethod(),
+
+    VECTOR_ADD_METHOD to VectorAddBuiltinMethod(),
+    VECTOR_REMOVE_METHOD to VectorRemoveBuiltinMethod(),
+    VECTOR_SIZE_METHOD to VectorSizeBuiltinMethod(),
+    VECTOR_TO_STRING_METHOD to VectorToStringBuiltinMethod(),
+
+    SET_ADD_METHOD to SetAddBuiltinMethod(),
+    SET_CONTAINS_METHOD to SetContainsBuiltinMethod(),
+    SET_REMOVE_METHOD to SetRemoveBuiltinMethod(),
+    SET_SIZE_METHOD to SetSizeBuiltinMethod(),
+    SET_TO_STRING_METHOD to SetToStringBuiltinMethod(),
+
+    MAP_REMOVE_METHOD to MapRemoveBuiltinMethod(),
+    MAP_SIZE_METHOD to MapSizeBuiltinMethod(),
+    MAP_KEYS_METHOD to MapKeysBuiltinMethod(),
+    MAP_VALUES_METHOD to MapValuesBuiltinMethod(),
+    MAP_CONTAINS_KEY_METHOD to MapContainsKeyBuiltinMethod(),
+    MAP_CONTAINS_VALUE_METHOD to MapContainsValueBuiltinMethod(),
+    MAP_TO_STRING_METHOD to MapToStringBuiltinMethod(),
+
+    TUPLE_TO_STRING_METHOD to TupleToStringBuiltinMethod()
+)

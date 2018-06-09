@@ -3,8 +3,8 @@ package myte.eval.builtins
 import myte.eval.values.*
 import myte.shared.*
 
-const val PRINT_BUILTIN = "print"
-const val PRINT_LINE_BUILTIN = "println"
+const val PRINT_BUILTIN = "__print"
+const val PRINT_LINE_BUILTIN = "__println"
 
 /**
  * A builtin which prints out a single string without a newline.

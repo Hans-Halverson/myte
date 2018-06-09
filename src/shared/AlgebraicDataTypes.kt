@@ -4,45 +4,34 @@ package myte.shared
  * The signature for an algebraic data type - contains all the necessary information to construct
  * new instances of this adt, and serves as the master resource for defining the adt.
  *
- * @property name the name of the adt
- * @property typeParams a list of type variables that correspond to the type parameters for this adt
  * @property variants a list of all variants for this adt
  * @property id the unique id for this algebraic data type
  */
 class AlgebraicDataTypeSignature(
-    val name: String,
-    val typeParams: List<TypeVariable>,
+    name: String,
+    typeParams: List<TypeVariable>,
     val variants: MutableList<AlgebraicDataTypeVariant> = mutableListOf(),
-    val methods: MutableMap<String, Identifier> = mutableMapOf(),
-    val staticMethods: MutableMap<String, Identifier> = mutableMapOf(),
-    val traits: MutableList<TraitType> = mutableListOf(),
+    methods: MutableMap<String, Identifier> = mutableMapOf(),
+    staticMethods: MutableMap<String, Identifier> = mutableMapOf(),
+    traits: MutableList<TraitType> = mutableListOf(),
     val id: Long = newAdtId()
-) {
+) : TypeSignature(name, typeParams, methods, staticMethods, traits) {
     /**
      * Return an algebraic data type for this signature with fresh type parameters.
      */
     fun getFreshAdt(): AlgebraicDataType {
         val freshParams = typeParams.map { TypeVariable() }
-        return getAdtWithParams(freshParams)
+        return getTypeWithParams(freshParams) as AlgebraicDataType
     }
 
-    /**
-     * Return an algebraic data type for this signature with the given parameters.
-     */
-    fun getAdtWithParams(types: List<Type>): AlgebraicDataType {
-        if (types.size != typeParams.size) {
-            throw Exception("Type ${name} expects ${typeParams.size} type parameters, " +
-                    "but received ${types.size}")
-        }
-
-        return AlgebraicDataType(this, types)
-    }
+    override fun createTypeWithParams(types: List<Type>): AlgebraicDataType =
+            AlgebraicDataType(this, types)
 
     /**
      * Returns the set of all field and method names defined on this type, as well as the set of
      * all static method names defined on this type or its traits.
      */
-    fun getAllNames(): Pair<MutableSet<String>, MutableSet<String>> {
+    override fun getAllNames(): Pair<MutableSet<String>, MutableSet<String>> {
         val methodNames: MutableSet<String> = mutableSetOf()
         val staticNames: MutableSet<String> = mutableSetOf()
 
@@ -57,9 +46,9 @@ class AlgebraicDataTypeSignature(
         // Add all method names and static method name from traits
         for (extendedTrait in traits) {
             methodNames.addAll(extendedTrait.traitSig.methodSignatures.keys)
-            methodNames.addAll(extendedTrait.traitSig.concreteMethods.keys)
+            methodNames.addAll(extendedTrait.traitSig.methods.keys)
             staticNames.addAll(extendedTrait.traitSig.staticMethodSignatures.keys)
-            staticNames.addAll(extendedTrait.traitSig.staticConcreteMethods.keys)
+            staticNames.addAll(extendedTrait.traitSig.staticMethods.keys)
         }
 
         // Add all method names defined on this type

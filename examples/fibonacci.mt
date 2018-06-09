@@ -1,5 +1,7 @@
 package Fibonacci
 
+import std::fmt::println
+
 def fib(x) {
     if (x <= 1) {
         return 1

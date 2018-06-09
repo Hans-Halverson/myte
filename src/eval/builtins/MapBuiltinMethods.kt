@@ -7,22 +7,13 @@ import myte.shared.*
 
 val BUILTIN_MAP_TYPE = MapType(TypeVariable(), TypeVariable())
 
-const val MAP_REMOVE_METHOD = "remove"
-const val MAP_SIZE_METHOD = "size"
-const val MAP_KEYS_METHOD = "keys"
-const val MAP_VALUES_METHOD = "values"
-const val MAP_CONTAINS_KEY_METHOD = "containsKey"
-const val MAP_CONTAINS_VALUE_METHOD = "containsValue"
-
-val MAP_BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
-    MAP_REMOVE_METHOD to MapRemoveBuiltinMethod(),
-    MAP_SIZE_METHOD to MapSizeBuiltinMethod(),
-    MAP_KEYS_METHOD to MapKeysBuiltinMethod(),
-    MAP_VALUES_METHOD to MapValuesBuiltinMethod(),
-    MAP_CONTAINS_KEY_METHOD to MapContainsKeyBuiltinMethod(),
-    MAP_CONTAINS_VALUE_METHOD to MapContainsValueBuiltinMethod(),
-    TO_STRING_METHOD to MapToStringBuiltinMethod()
-)
+const val MAP_REMOVE_METHOD = "map.remove"
+const val MAP_SIZE_METHOD = "map.size"
+const val MAP_KEYS_METHOD = "map.keys"
+const val MAP_VALUES_METHOD = "map.values"
+const val MAP_CONTAINS_KEY_METHOD = "map.containsKey"
+const val MAP_CONTAINS_VALUE_METHOD = "map.containsValue"
+const val MAP_TO_STRING_METHOD = "map.toString"
 
 /**
  * A builtin which removes a key and its associated value from a map.
@@ -147,7 +138,7 @@ class MapContainsValueBuiltinMethod(
  */
 class MapToStringBuiltinMethod(
 ) : BuiltinMethod(
-    TO_STRING_METHOD,
+    MAP_TO_STRING_METHOD,
     TO_STRING_TYPE,
     BUILTIN_MAP_TYPE
 ) {

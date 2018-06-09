@@ -7,16 +7,10 @@ import myte.shared.*
 
 val BUILTIN_VECTOR_TYPE = VectorType(TypeVariable())
 
-const val VECTOR_ADD_METHOD = "add"
-const val VECTOR_REMOVE_METHOD = "remove"
-const val VECTOR_SIZE_METHOD = "size"
-
-val VECTOR_BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
-    VECTOR_ADD_METHOD to VectorAddBuiltinMethod(),
-    VECTOR_REMOVE_METHOD to VectorRemoveBuiltinMethod(),
-    VECTOR_SIZE_METHOD to VectorSizeBuiltinMethod(),
-    TO_STRING_METHOD to VectorToStringBuiltinMethod()
-)
+const val VECTOR_ADD_METHOD = "vec.add"
+const val VECTOR_REMOVE_METHOD = "vec.remove"
+const val VECTOR_SIZE_METHOD = "vec.size"
+const val VECTOR_TO_STRING_METHOD = "vec.toString"
 
 /**
  * A builtin which adds a single item to the end of a vector.
@@ -85,7 +79,7 @@ class VectorSizeBuiltinMethod(
  */
 class VectorToStringBuiltinMethod(
 ) : BuiltinMethod(
-    TO_STRING_METHOD,
+    VECTOR_TO_STRING_METHOD,
     TO_STRING_TYPE,
     BUILTIN_VECTOR_TYPE
 ) {

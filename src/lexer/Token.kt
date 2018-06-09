@@ -140,7 +140,7 @@ class BoolToken(
 
 class StringTypeToken(
     location: Location
-) : IdentifierToken(TokenType.BOOL.toString(), location, TokenType.STRING_TYPE)
+) : IdentifierToken(TokenType.STRING_TYPE.toString(), location, TokenType.STRING_TYPE)
 
 class IntToken(
     location: Location
@@ -197,5 +197,7 @@ class StaticToken(
 class MutToken(
     location: Location
 ) : IdentifierToken(TokenType.MUT.toString(), location, TokenType.MUT)
+
+class BuiltinToken(location: Location): Token(location, TokenType.BUILTIN)
 
 class NewLineToken(location: Location) : Token(location, TokenType.NEW_LINE)

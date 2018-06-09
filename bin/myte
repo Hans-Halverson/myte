@@ -23,4 +23,4 @@ if __name__ == '__main__':
 		stdlib_string = ' '.join(map(lambda x: os.path.join(args.stdlib[0], x),
 				os.listdir(args.stdlib[0]))) if args.stdlib is not None else ''
 		os.system('$MYTEPATH/scripts/run {0} --args {1} --packages {2}'.format(file_string,
-				args_string, stdlib_string + package_string))
+				args_string, stdlib_string + ' ' + package_string))

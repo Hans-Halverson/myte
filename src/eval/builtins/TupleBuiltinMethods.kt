@@ -5,18 +5,16 @@ import myte.eval.builtins.*
 import myte.eval.values.*
 import myte.shared.*
 
-val TUPLE_BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
-    TO_STRING_METHOD to TupleToStringBuiltinMethod()
-)
+const val TUPLE_TO_STRING_METHOD = "__tuple.toString"
 
 /**
  * A builtin which converts a tuple to a string.
  */
 class TupleToStringBuiltinMethod(
 ) : BuiltinMethod(
-    TO_STRING_METHOD,
+    TUPLE_TO_STRING_METHOD,
     TO_STRING_TYPE,
-    UnitType
+    TupleType(listOf())
 ) {
     /**
     * Converts a tuple to a string.

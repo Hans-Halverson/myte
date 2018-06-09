@@ -7,18 +7,11 @@ import myte.shared.*
 
 val BUILTIN_SET_TYPE = SetType(TypeVariable())
 
-const val SET_ADD_METHOD = "add"
-const val SET_CONTAINS_METHOD = "contains"
-const val SET_REMOVE_METHOD = "remove"
-const val SET_SIZE_METHOD = "size"
-
-val SET_BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
-    SET_ADD_METHOD to SetAddBuiltinMethod(),
-    SET_CONTAINS_METHOD to SetContainsBuiltinMethod(),
-    SET_REMOVE_METHOD to SetRemoveBuiltinMethod(),
-    SET_SIZE_METHOD to SetSizeBuiltinMethod(),
-    TO_STRING_METHOD to SetToStringBuiltinMethod()
-)
+const val SET_ADD_METHOD = "set.add"
+const val SET_CONTAINS_METHOD = "set.contains"
+const val SET_REMOVE_METHOD = "set.remove"
+const val SET_SIZE_METHOD = "set.size"
+const val SET_TO_STRING_METHOD = "set.toString"
 
 /**
  * A builtin which adds a single item to a set.
@@ -107,7 +100,7 @@ class SetSizeBuiltinMethod(
  */
 class SetToStringBuiltinMethod(
 ) : BuiltinMethod(
-    TO_STRING_METHOD,
+    SET_TO_STRING_METHOD,
     TO_STRING_TYPE,
     BUILTIN_SET_TYPE
 ) {

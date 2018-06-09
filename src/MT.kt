@@ -57,7 +57,6 @@ fun repl(packageFiles: List<String>) {
     // Set up compilation pipeline objects
     var symbolTable = SymbolTable()
     val environment = Environment()
-    registerBuiltins(symbolTable, environment)
 
     val parser = Parser(symbolTable)
     val converter = AstToIrConverter(symbolTable)
@@ -198,7 +197,6 @@ fun evaluateFiles(fileNames: List<String>, packageNames: List<String>, args: Lis
     // Set up symbol table and environment, and add all builtins
     val symbolTable = SymbolTable()
     val environment = Environment()
-    registerBuiltins(symbolTable, environment)
 
     // Set up parser, converter, and evaluator
     val parser = Parser(symbolTable)

@@ -281,6 +281,10 @@ enum class TokenType {
         override fun toString(): String = "mut"
     },
 
+    BUILTIN {
+        override fun toString(): String = "__builtin"
+    },
+
     NEW_LINE {
         override fun toString(): String = "\\n"
     }

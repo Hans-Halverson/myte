@@ -88,7 +88,7 @@ class VariableSymbolPendingResolution(
 
                     // If a trait, return concrete static method with the same name if one exists
                     if (identInfo.idClass == IdentifierClass.TRAIT) {
-                        val staticMethod = identInfo.traitSig.staticConcreteMethods[name]
+                        val staticMethod = identInfo.traitSig.staticMethods[name]
                         if (staticMethod != null) {
                             return staticMethod
                         }
@@ -117,7 +117,7 @@ class VariableSymbolPendingResolution(
 
                             // If a trait, return concrete static method with the same name if found
                             if (identInfo.idClass == IdentifierClass.TRAIT) {
-                                val staticMethod = identInfo.traitSig.staticConcreteMethods[name]
+                                val staticMethod = identInfo.traitSig.staticMethods[name]
                                 if (staticMethod != null) {
                                     return staticMethod
                                 }
@@ -152,7 +152,7 @@ class VariableSymbolPendingResolution(
                         val identInfo = symbolTable.getInfo(typeIdent)!!
                         // If a trait, return concrete static method with the same name if found
                         if (identInfo.idClass == IdentifierClass.TRAIT) {
-                            val staticMethod = identInfo.traitSig.staticConcreteMethods[name]
+                            val staticMethod = identInfo.traitSig.staticMethods[name]
                             if (staticMethod != null) {
                                 return staticMethod
                             }

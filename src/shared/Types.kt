@@ -3,7 +3,7 @@ package myte.shared
 /**
  * A type expression used in type inferrence.
  */
-sealed class Type {
+sealed class Type(val sig: TypeSignature) {
     /**
      * Return a list of all type variables contained in this type and its child types.
      */
@@ -20,16 +20,21 @@ sealed class Type {
      * type variable comes from the included map.
      */
     abstract fun formatToString(typeVars: Map<TypeVariable, String> = mapOf()): String
+
+    /**
+     * Return the type parameters of this type in a list
+     */
+    open fun listTypeParams(): List<Type> = listOf()
 }
 
-sealed class NumberType : Type()
+sealed class NumberType(sig: TypeSignature) : Type(sig)
 
 /**
  * A type variable in the type tree that stands in for a concrete type.
  *
  * @property id the unique id which identifies this type variable
  */
-open class TypeVariable(val id: Long = newTypeVariableId()) : Type() {
+open class TypeVariable(val id: Long = newTypeVariableId()) : Type(TypeVariableSignature) {
     override fun getAllVariables(): List<TypeVariable> = listOf(this)
 
     override fun substitute(typeMap: Map<TypeVariable, Type>): Type {
@@ -54,42 +59,44 @@ open class TypeVariable(val id: Long = newTypeVariableId()) : Type() {
 
 class TypeParameter() : TypeVariable()
 
-object UnitType : Type() {
+object UnitType : Type(UnitTypeSignature) {
     override fun formatToString(typeVars: Map<TypeVariable, String>): String = "unit"
 
     override fun toString(): String = formatToString()
 }
 
-object BoolType : Type() {
+object BoolType : Type(BoolTypeSignature) {
     override fun formatToString(typeVars: Map<TypeVariable, String>): String = "bool"
 
     override fun toString(): String = formatToString()
 }
 
-object IntType : NumberType() {
+object IntType : NumberType(IntTypeSignature) {
     override fun formatToString(typeVars: Map<TypeVariable, String>): String = "int"
 
     override fun toString(): String = formatToString()
 }
 
-object FloatType : NumberType() {
+object FloatType : NumberType(FloatTypeSignature) {
     override fun formatToString(typeVars: Map<TypeVariable, String>): String = "float"
 
     override fun toString(): String = formatToString()
 }
 
-object StringType : Type() {
+object StringType : Type(StringTypeSignature) {
     override fun formatToString(typeVars: Map<TypeVariable, String>): String = "string"
 
     override fun toString(): String = formatToString()
 }
 
-data class VectorType(val elementType: Type) : Type() {
+data class VectorType(val elementType: Type) : Type(VectorTypeSignature) {
     override fun getAllVariables(): List<TypeVariable> = elementType.getAllVariables()
 
     override fun substitute(typeMap: Map<TypeVariable, Type>): Type {
         return VectorType(elementType.substitute(typeMap))
     }
+
+    override fun listTypeParams(): List<Type> = listOf(elementType)
 
     override fun formatToString(typeVars: Map<TypeVariable, String>): String {
         return "vec<${elementType.formatToString(typeVars)}>"
@@ -98,12 +105,14 @@ data class VectorType(val elementType: Type) : Type() {
     override fun toString(): String = formatToString()
 }
 
-data class SetType(val elementType: Type) : Type() {
+data class SetType(val elementType: Type) : Type(SetTypeSignature) {
     override fun getAllVariables(): List<TypeVariable> = elementType.getAllVariables()
 
     override fun substitute(typeMap: Map<TypeVariable, Type>): Type {
         return SetType(elementType.substitute(typeMap))
     }
+
+    override fun listTypeParams(): List<Type> = listOf(elementType)
 
     override fun formatToString(typeVars: Map<TypeVariable, String>): String {
         return "set<${elementType.formatToString(typeVars)}>"
@@ -112,7 +121,7 @@ data class SetType(val elementType: Type) : Type() {
     override fun toString(): String = formatToString()
 }
 
-data class MapType(val keyType: Type, val valType: Type) : Type() {
+data class MapType(val keyType: Type, val valType: Type) : Type(MapTypeSignature) {
     override fun getAllVariables(): List<TypeVariable> {
         return keyType.getAllVariables() + valType.getAllVariables()
     }
@@ -121,6 +130,8 @@ data class MapType(val keyType: Type, val valType: Type) : Type() {
         return MapType(keyType.substitute(typeMap), valType.substitute(typeMap))
     }
 
+    override fun listTypeParams(): List<Type> = listOf(keyType, valType)
+
     override fun formatToString(typeVars: Map<TypeVariable, String>): String {
         return "map<${keyType.formatToString(typeVars)}, ${valType.formatToString(typeVars)}>"
     }
@@ -128,7 +139,7 @@ data class MapType(val keyType: Type, val valType: Type) : Type() {
     override fun toString(): String = formatToString()
 }
 
-data class TupleType(val elementTypes: List<Type>) : Type() {
+data class TupleType(val elementTypes: List<Type>) : Type(TupleTypeSignature) {
     override fun getAllVariables(): List<TypeVariable> {
         return elementTypes.map(Type::getAllVariables).flatten()
     }
@@ -148,7 +159,7 @@ data class TupleType(val elementTypes: List<Type>) : Type() {
 data class FunctionType(
     val argTypes: List<Type>,
     val returnType: Type
-) : Type() {
+) : Type(FunctionTypeSignature) {
 
     override fun getAllVariables(): List<TypeVariable> {
         val argVals = argTypes.map(Type::getAllVariables).flatten()
@@ -208,7 +219,7 @@ data class FunctionType(
 data class AlgebraicDataType(
     val adtSig: AlgebraicDataTypeSignature,
     val typeParams: List<Type>
-) : Type() {
+) : Type(adtSig) {
     override fun getAllVariables(): List<TypeVariable> {
         return typeParams.map(Type::getAllVariables).flatten()
     }
@@ -217,6 +228,8 @@ data class AlgebraicDataType(
         val substTypes = typeParams.map { typeParam -> typeParam.substitute(typeMap) }
         return AlgebraicDataType(adtSig, substTypes)
     }
+
+    override fun listTypeParams(): List<Type> = typeParams
 
     override fun formatToString(typeVars: Map<TypeVariable, String>): String {
         val builder = StringBuilder()
@@ -234,7 +247,7 @@ data class AlgebraicDataType(
     override fun toString(): String = formatToString()
 }
 
-data class TraitType(val traitSig: TraitSignature, val typeParams: List<Type>) : Type() {
+data class TraitType(val traitSig: TraitSignature, val typeParams: List<Type>) : Type(traitSig) {
     override fun getAllVariables(): List<TypeVariable> {
         return typeParams.map(Type::getAllVariables).flatten()
     }
@@ -243,6 +256,8 @@ data class TraitType(val traitSig: TraitSignature, val typeParams: List<Type>) :
         val substTypes = typeParams.map { typeParam -> typeParam.substitute(typeMap) }
         return TraitType(traitSig, substTypes)
     }
+
+    override fun listTypeParams(): List<Type> = typeParams
 
     override fun formatToString(typeVars: Map<TypeVariable, String>): String {
         val builder = StringBuilder()

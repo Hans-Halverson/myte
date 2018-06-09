@@ -636,6 +636,8 @@ class TypeChecker(var symbolTable: SymbolTable) {
             // Variables and functions
             is VariableNode -> typeCheckVariable(node, boundVars, refresh)
             is FunctionCallNode -> typeCheckFunctionCall(node, boundVars, refresh)
+            is BuiltinNode -> typeCheckBuiltin(node, boundVars, refresh)
+            is BuiltinMethodNode -> typeCheckBuiltinMethod(node, boundVars, refresh)
             is AccessNode -> typeCheckAccess(node, boundVars, refresh)
             is FieldAssignmentNode -> typeCheckFieldAssignment(node, boundVars, refresh)
             is KeyedAccessNode -> typeCheckKeyedAccess(node, boundVars, refresh)
@@ -1125,12 +1127,112 @@ class TypeChecker(var symbolTable: SymbolTable) {
             expectedArgType
         }
 
-        // Function call must evaluate to exact s
+        // Function call must evaluate to exact return type
         val expectedFuncType = FunctionType(expectedArgTypes, node.type)
         if (!unify(expectedFuncType, funcType)) {
             val types = typesToString(funcType, expectedFuncType)
             throw IRConversionException("Function inferred to have type " +
                     "${types[0]}, but used as if it had type ${types[1]}", node.startLocation)
+        }
+    }
+
+    fun typeCheckBuiltin(node: BuiltinNode, boundVars: MutableSet<TypeVariable>, refresh: Boolean) {
+        node.args.forEach { arg -> typeCheck(arg, boundVars, refresh) }
+
+        // Refresh type variables in builtin type
+        val funcType = findRepType(node.builtin.type, boundVars)
+
+        // Each argument's type must be a subtype of the expected argument type
+        val expectedArgTypes = node.args.map { arg ->
+            val expectedArgType = TypeVariable()
+
+            val except = { ->
+                val types = typesToString(expectedArgType, arg.type)
+                throw IRConversionException("Function expected argument of type " +
+                        "${types[0]}, but found ${types[1]}", arg.startLocation)
+            }
+
+            if (!subtype(arg.type, expectedArgType, except)) {
+                except()
+            }
+
+            expectedArgType
+        }
+
+        // Function call must evaluate to exact return type
+        val expectedFuncType = FunctionType(expectedArgTypes, node.type)
+        if (!unify(expectedFuncType, funcType)) {
+            val types = typesToString(funcType, expectedFuncType)
+            throw IRConversionException("Builtin function ${node.builtin.name} inferred to have " +
+                    "type ${types[0]}, but used as if it had type ${types[1]}", node.startLocation)
+        }
+    }
+
+    fun typeCheckBuiltinMethod(
+        node: BuiltinMethodNode,
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
+    ) {
+        typeCheck(node.recv, boundVars, refresh)
+        node.args.forEach { arg -> typeCheck(arg, boundVars, refresh) }
+
+        val (recvType, methodType) = if (node.builtin.receiverType is VectorType) {
+            val recvType = VectorType(TypeVariable())
+            val paramsMap = mapOf(node.builtin.receiverType.elementType as TypeVariable to
+                    recvType.elementType)
+            val methodType = node.builtin.type.substitute(paramsMap)
+
+            Pair(recvType, methodType)
+        } else if (node.builtin.receiverType is SetType) {
+            val recvType = SetType(TypeVariable())
+            val paramsMap = mapOf(node.builtin.receiverType.elementType as TypeVariable to
+                    recvType.elementType)
+            val methodType = node.builtin.type.substitute(paramsMap)
+
+            Pair(recvType, methodType)
+        } else if (node.builtin.receiverType is MapType) {
+            val recvType = MapType(TypeVariable(), TypeVariable())
+            val paramsMap = mapOf(
+                    node.builtin.receiverType.keyType as TypeVariable to recvType.keyType,
+                    node.builtin.receiverType.valType as TypeVariable to recvType.valType
+            )
+            val methodType = node.builtin.type.substitute(paramsMap)
+
+            Pair(recvType, methodType)
+        } else {
+            Pair(node.builtin.receiverType, node.builtin.type)
+        }
+
+        if (!unify(recvType, node.recv.type)) {
+            val types = typesToString(recvType, node.recv.type)
+            throw IRConversionException("Receiver for builtin method ${node.builtin.name} " +
+                    "expected to have type ${types[0]}, but found ${types[1]}",
+                    node.recv.startLocation)
+        }
+
+        // Each argument's type must be a subtype of the expected argument type
+        val expectedArgTypes = node.args.map { arg ->
+            val expectedArgType = TypeVariable()
+
+            val except = { ->
+                val types = typesToString(expectedArgType, arg.type)
+                throw IRConversionException("Builtin method ${node.builtin.name} expected " +
+                        "argument of type ${types[0]}, but found ${types[1]}", arg.startLocation)
+            }
+
+            if (!subtype(arg.type, expectedArgType, except)) {
+                except()
+            }
+
+            expectedArgType
+        }
+
+        // Method call must evaluate to exact return type
+        val expectedFuncType = FunctionType(expectedArgTypes, node.type)
+        if (!unify(expectedFuncType, methodType)) {
+            val types = typesToString(methodType, expectedFuncType)
+            throw IRConversionException("Builtin method ${node.builtin.name} inferred to have " +
+                    "type ${types[0]}, but used as if it had type ${types[1]}", node.startLocation)
         }
     }
 

@@ -207,6 +207,8 @@ class Parser(
             is LeftBraceToken -> parseBlock(firstToken)
             is IfToken -> parseIfStatement(firstToken)
             is MatchToken -> parseMatchStatement(firstToken)
+            // Builtin calls must have a specific structure
+            is BuiltinToken -> parseBuiltin(firstToken)
             // If the expression does not begin with a literal or prefix operator, it is not a
             // valid expression.
             else -> throw ParseException(firstToken)
@@ -524,6 +526,27 @@ class Parser(
         // If parseLogicalOrExpression is called, the previous token must have been a ||
         val expr = parseExpression(EXPR_LOGICAL_OR_PRECEDENCE)
         return LogicalOrExpression(prevExpr, expr)
+    }
+
+    fun parseBuiltin(builtinToken: BuiltinToken): BuiltinExpression {
+        assertCurrent(TokenType.LEFT_PAREN)
+        tokenizer.next()
+        
+        val nameToken = tokenizer.next()
+        if (nameToken !is StringLiteralToken) {
+            throw ParseException("Builtin call expects string containing builtin name", nameToken)
+        }
+
+        val args: MutableList<Expression> = mutableListOf()
+        while (tokenizer.current is CommaToken) {
+            tokenizer.next()
+            args.add(parseExpression())
+        }
+
+        assertCurrent(TokenType.RIGHT_PAREN)
+        tokenizer.next()
+
+        return BuiltinExpression(nameToken.str, args, builtinToken.location)
     }
 
     fun parseApplicationExpression(
@@ -1847,9 +1870,26 @@ class Parser(
         val name = identParts[identParts.size - 1]
         val scopes = identParts.take(identParts.size - 1)
 
-        // Find type in symbol table
-        val typeIdent = symbolTable.addTypeVariable(name, scopes, importContext,
-                typeStartToken.location, false)
+        // Determine whether this implementation is on a builtin or user-defined type
+        val (typeSig, typeIdent) = if (scopes.isEmpty() &&
+                (name == "unit" ||
+                 name == "bool" ||
+                 name == "int" ||
+                 name == "float" ||
+                 name == "string" ||
+                 name == "vec" ||
+                 name == "set" ||
+                 name == "map" ||
+                 name == "__tuple" ||
+                 name == "__function")) {
+            Pair(name, null)
+        } else {
+            // Find type in symbol table
+            val typeIdent = symbolTable.addTypeVariable(name, scopes, importContext,
+                    typeStartToken.location, false)
+            Pair(null, typeIdent)
+        }
+
         val typeParams: MutableList<Identifier> = mutableListOf()
         val typeParamNames: MutableSet<String> = mutableSetOf()
 
@@ -1927,8 +1967,8 @@ class Parser(
 
         symbolTable.exitScope()
 
-        return TypeImplementationStatement(typeIdent, typeParams, thisIdent, methods,
-                extendedTraits)
+        return TypeImplementationStatement(typeIdent, typeSig, typeParams, thisIdent, methods,
+                extendedTraits, typeStartToken.location)
     }
 
     fun parseExtendedTrait(): Pair<ResolvableSymbol, List<TypeExpression>> {

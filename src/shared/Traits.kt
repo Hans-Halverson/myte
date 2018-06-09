@@ -1,25 +1,16 @@
 package myte.shared
 
 class TraitSignature(
-    val name: String,
-    val typeParams: List<TypeVariable>,
+    name: String,
+    typeParams: List<TypeVariable>,
     val methodSignatures: MutableMap<String, Identifier> = mutableMapOf(),
-    val concreteMethods: MutableMap<String, Identifier> = mutableMapOf(),
+    methods: MutableMap<String, Identifier> = mutableMapOf(),
     val staticMethodSignatures: MutableMap<String, Identifier> = mutableMapOf(),
-    val staticConcreteMethods: MutableMap<String, Identifier> = mutableMapOf(),
+    staticMethods: MutableMap<String, Identifier> = mutableMapOf(),
     val id: Long = newTraitId()
-) {
-    /**
-     * Return a trait type for this signature with the given parameters.
-     */
-    fun getTraitWithParams(types: List<Type>): TraitType {
-        if (types.size != typeParams.size) {
-            throw Exception("Trait ${name} expects ${typeParams.size} type parameters, " +
-                    "but received ${types.size}")
-        }
-
-        return TraitType(this, types)
-    }
+) : TypeSignature(name, typeParams, methods, staticMethods, mutableListOf()) {
+    
+    override fun createTypeWithParams(types: List<Type>): TraitType = TraitType(this, types)
 
     override fun hashCode(): Int = id.hashCode()
 
