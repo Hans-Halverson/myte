@@ -10,7 +10,6 @@ if __name__ == '__main__':
 	parser.add_argument('FILE', nargs='*', help='File to process with myte interpreter')
 	parser.add_argument('--args', nargs='*', help='Command line arguments to pass to main')
 	parser.add_argument('--packages', nargs='*', help='Package files to include')
-	parser.add_argument('--stdlib', nargs=1, help='Include the standard library')
 
 	args = parser.parse_args()
 
@@ -20,7 +19,5 @@ if __name__ == '__main__':
 		file_string = ' '.join(args.FILE)
 		args_string = ' '.join(args.args) if args.args is not None else ''
 		package_string = ' '.join(args.packages) if args.packages is not None else ''
-		stdlib_string = ' '.join(map(lambda x: os.path.join(args.stdlib[0], x),
-				os.listdir(args.stdlib[0]))) if args.stdlib is not None else ''
 		os.system('$MYTEPATH/scripts/run {0} --args {1} --packages {2}'.format(file_string,
-				args_string, stdlib_string + ' ' + package_string))
+				args_string, '$MYTEPATH/stdlib/* ' + package_string))

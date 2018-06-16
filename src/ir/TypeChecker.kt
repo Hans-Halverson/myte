@@ -899,16 +899,29 @@ class TypeChecker(var symbolTable: SymbolTable) {
     ) {
         typeCheck(node.node, boundVars, refresh)
 
-        // Unify this node's type with its child's type
-        if (!unify(node.node.type, node.type)) {
-            val type = typeToString(node.node.type)
-            throw IRConversionException("Unary math operator expects a number, found ${type}",
-                    node.node.startLocation)
+        // Find the parameterized trait type for this operator based on the expression type
+        val traitType = when (node) {
+            is IdentityNode -> UNARY_PLUS_TRAIT_SIG.createTypeWithParams(listOf(node.node.type))
+            is NegateNode -> UNARY_MINUS_TRAIT_SIG.createTypeWithParams(listOf(node.node.type))
         }
 
-        // Add deferred constraint to make sure node is int or float
-        val unaryMathOperatorConstraint = UnaryMathOperatorConstraint(node, this)
-        addDeferredConstraint(node.type, unaryMathOperatorConstraint)
+        // The left hand side must implement the correct operator trait
+        val except = { ->
+            val types = typesToString(node.node.type, traitType)
+            throw IRConversionException("Inferred type ${types[0]} does not implement ${types[1]}",
+                    node.startLocation)
+        }
+
+        if (!subtype(node.node.type, traitType, except)) {
+            except()
+        }
+
+        // Unify this node's type with its child's type
+        if (!unify(node.node.type, node.type)) {
+            val types = typesToString(node.type, node.node.type)
+            throw IRConversionException("Unary operation expected to evaluate to ${types[0]}, " +
+                    "but found ${types[1]}", node.startLocation)
+        }
     }
 
     fun typeCheckBinaryMathOperator(
@@ -919,17 +932,33 @@ class TypeChecker(var symbolTable: SymbolTable) {
         typeCheck(node.left, boundVars, refresh)
         typeCheck(node.right, boundVars, refresh)
 
-        // Unify this node's type with both its children's types
-        if (!unify(node.left.type, node.type) ||
-                !unify(node.right.type, node.type)) {
-            val types = typesToString(node.left.type, node.right.type)
-            throw IRConversionException("Binary math operator expects two numbers of same type, " +
-                    "found ${types[0]} and ${types[1]}", node.right.startLocation)
+        // Find the parameterized trait type for this operator based on the right hand side
+        val traitType = when (node) {
+            is AddNode -> ADD_TRAIT_SIG.createTypeWithParams(listOf(node.right.type))
+            is SubtractNode -> SUBTRACT_TRAIT_SIG.createTypeWithParams(listOf(node.right.type))
+            is MultiplyNode -> MULTIPLY_TRAIT_SIG.createTypeWithParams(listOf(node.right.type))
+            is DivideNode -> DIVIDE_TRAIT_SIG.createTypeWithParams(listOf(node.right.type))
+            is ExponentNode -> POWER_TRAIT_SIG.createTypeWithParams(listOf(node.right.type))
+            is RemainderNode -> REMAINDER_TRAIT_SIG.createTypeWithParams(listOf(node.right.type))
         }
 
-        // Add deferred constraint to make sure node is int or float
-        val binaryMathOperatorConstraint = BinaryMathOperatorConstraint(node, this)
-        addDeferredConstraint(node.type, binaryMathOperatorConstraint)
+        // The left hand side must implement the correct operator trait
+        val except = { ->
+            val types = typesToString(node.left.type, traitType)
+            throw IRConversionException("Inferred type ${types[0]} does not implement ${types[1]}",
+                    node.left.startLocation)
+        }
+
+        if (!subtype(node.left.type, traitType, except)) {
+            except()
+        }
+
+        // The return type of this trait is the type of the right hand side
+        if (!unify(node.type, node.right.type)) {
+            val types = typesToString(node.type, node.right.type)
+            throw IRConversionException("Binary operation expected to evaluate to ${types[0]}, " +
+                    "but found ${types[1]}", node.startLocation)
+        }
     }
 
     fun typeCheckLogicalAnd(
@@ -1098,9 +1127,9 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
         // The container must be a subtype of the Index trait with the correct key and value types
         val except = { ->
-            val types = typesToString(indexTraitType, node.container.type)
-            throw IRConversionException("Container expected to have type ${types[0]}, " +
-                    "but found ${types[1]}", node.indexLocation)
+            val types = typesToString(node.container.type, indexTraitType)
+            throw IRConversionException("Inferred type ${types[0]} does not implement ${types[1]}",
+                    node.indexLocation)
         }
 
         if (!subtype(node.container.type, indexTraitType, except)) {
@@ -1129,9 +1158,9 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
         // The container must be a subtype of the IndexAssign trait with the correct key and value
         val except = { ->
-            val types = typesToString(indexAssignTraitType, node.container.type)
-            throw IRConversionException("Container expected to have type ${types[0]}, " +
-                    "but found ${types[1]}", node.indexLocation)
+            val types = typesToString(node.container.type, indexAssignTraitType)
+            throw IRConversionException("Inferred type ${types[0]} does not implement ${types[1]}",
+                    node.indexLocation)
         }
 
         if (!subtype(node.container.type, indexAssignTraitType, except)) {

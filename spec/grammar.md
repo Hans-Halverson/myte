@@ -34,6 +34,7 @@ INFIX -> EXPR + EXPR
        | EXPR * EXPR
        | EXPR / EXPR
        | EXPR ^ EXPR
+       | EXPR % EXPR
        | EXPR == EXPR
        | EXPR != EXPR
        | EXPR < EXPR

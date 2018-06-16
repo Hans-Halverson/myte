@@ -488,6 +488,7 @@ fun createTokens(input: Reader, fileName: String?): List<Token> {
             '-' -> tokens.add(readMinus(reader))
             '*' -> tokens.add(AsteriskToken(location))
             '^' -> tokens.add(CaretToken(location))
+            '%' -> tokens.add(PercentToken(location))
             '=' -> tokens.add(readEquals(reader))
             '<' -> tokens.add(readLessThan(reader))
             '>' -> tokens.add(readGreaterThan(reader))

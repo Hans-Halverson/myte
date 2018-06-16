@@ -24,6 +24,14 @@ trait Remainder<a> {
     sig remainder(a): a
 }
 
+trait UnaryPlus<a> {
+    sig unaryPlus(): a
+}
+
+trait UnaryMinus<a> {
+    sig unaryMinus(): a
+}
+
 trait Index<k, v> {
     sig index(k): v
 }

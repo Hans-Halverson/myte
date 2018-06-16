@@ -227,7 +227,8 @@ implement DLL<a> {
         | Some(DLLNode{ item: item }) -> item.toString()
         | None -> "None"
 
-        str = str + ", and end: " + endStr + "\n"
+        str = str + ", and end: " + endStr
+        str = str + "\n"
 
         // Add a string representation of every node in the DLL
         let currNode = this.start

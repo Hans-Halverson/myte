@@ -73,13 +73,30 @@ val BUILTINS: Map<String, Builtin> = hashMapOf(
 )
 
 val BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
+    INT_ADD_METHOD to IntAddBuiltinMethod(),
+    INT_SUBTRACT_METHOD to IntSubtractBuiltinMethod(),
+    INT_MULTIPLY_METHOD to IntMultiplyBuiltinMethod(),
+    INT_DIVIDE_METHOD to IntDivideBuiltinMethod(),
+    INT_POWER_METHOD to IntPowerBuiltinMethod(),
+    INT_REMAINDER_METHOD to IntRemainderBuiltinMethod(),
+    INT_UNARY_PLUS_METHOD to IntUnaryPlusBuiltinMethod(),
+    INT_UNARY_MINUS_METHOD to IntUnaryMinusBuiltinMethod(),
     INT_TO_FLOAT_METHOD to IntToFloatBuiltinMethod(),
     INT_TO_STRING_METHOD to IntToStringBuiltinMethod(),
 
+    FLOAT_ADD_METHOD to FloatAddBuiltinMethod(),
+    FLOAT_SUBTRACT_METHOD to FloatSubtractBuiltinMethod(),
+    FLOAT_MULTIPLY_METHOD to FloatMultiplyBuiltinMethod(),
+    FLOAT_DIVIDE_METHOD to FloatDivideBuiltinMethod(),
+    FLOAT_POWER_METHOD to FloatPowerBuiltinMethod(),
+    FLOAT_REMAINDER_METHOD to FloatRemainderBuiltinMethod(),
+    FLOAT_UNARY_PLUS_METHOD to FloatUnaryPlusBuiltinMethod(),
+    FLOAT_UNARY_MINUS_METHOD to FloatUnaryMinusBuiltinMethod(),
     FLOAT_TO_INT_METHOD to FloatToIntBuiltinMethod(),
     FLOAT_TO_STRING_METHOD to FloatToStringBuiltinMethod(),
 
     STRING_SIZE_METHOD to StringSizeBuiltinMethod(),
+    STRING_ADD_METHOD to StringAddBuiltinMethod(),
 
     VECTOR_INDEX_METHOD to VectorIndexBuiltinMethod(),
     VECTOR_INDEX_ASSIGN_METHOD to VectorIndexAssignBuiltinMethod(),

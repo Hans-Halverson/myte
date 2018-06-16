@@ -627,6 +627,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             is MultiplyExpression -> MultiplyNode(leftNode, rightNode)
             is DivideExpression -> DivideNode(leftNode, rightNode)
             is ExponentExpression -> ExponentNode(leftNode, rightNode)
+            is RemainderExpression -> RemainderNode(leftNode, rightNode)
         }
     }
 

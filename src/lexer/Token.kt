@@ -46,6 +46,8 @@ class ForwardSlashToken(location: Location) : Token(location, TokenType.FORWARD_
 
 class CaretToken(location: Location) : Token(location, TokenType.CARET)
 
+class PercentToken(location: Location) : Token(location, TokenType.PERCENT)
+
 class EqualsToken(location: Location) : Token(location, TokenType.EQUALS)
 
 class DoubleEqualsToken(location: Location) : Token(location, TokenType.DOUBLE_EQUALS)

@@ -228,6 +228,7 @@ class Parser(
                 is AsteriskToken -> parseMultiplyExpression(currentExpr)
                 is ForwardSlashToken -> parseDivideExpression(currentExpr)
                 is CaretToken -> parseExponentExpression(currentExpr)
+                is PercentToken -> parseRemainderExpression(currentExpr)
                 // Comparison operators
                 is EqualsToken -> parseAssignmentExpression(currentExpr, token)
                 is DoubleEqualsToken -> parseEqualsExpression(currentExpr)
@@ -471,6 +472,12 @@ class Parser(
         // Subtracting one from the precedence makes this operator right associative.
         val expr = parseExpression(rightAssociative(EXPR_EXPONENT_PRECEDENCE))
         return ExponentExpression(prevExpr, expr)
+    }
+
+    fun parseRemainderExpression(prevExpr: Expression): RemainderExpression {
+        // If parseRemainderExpression is called, the previous token must have been a %
+        val expr = parseExpression(EXPR_MULTIPLY_PRECEDENCE)
+        return RemainderExpression(prevExpr, expr)
     }
 
     fun parseAssignmentExpression(prevExpr: Expression, equalsToken: EqualsToken): Expression {

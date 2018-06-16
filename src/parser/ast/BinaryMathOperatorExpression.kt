@@ -29,3 +29,8 @@ class ExponentExpression(
     base: Expression,
     exponent: Expression
 ) : BinaryMathOperatorExpression(base, exponent)
+
+class RemainderExpression(
+    left: Expression,
+    right: Expression
+) : BinaryMathOperatorExpression(left, right)

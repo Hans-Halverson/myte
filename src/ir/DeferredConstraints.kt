@@ -28,62 +28,6 @@ sealed class DeferredConstraint {
     open fun inferOnFixedPointStall(trigger: Type): Boolean = false
 }
 
-/**
- * A constraint that waits until the type for a unary math operator is resolved, and then checks
- * that it is either an int or float.
- */
-class UnaryMathOperatorConstraint(
-    val node: UnaryMathOperatorNode,
-    val typeChecker: TypeChecker
-) : DeferredConstraint() {
-    override fun apply(trigger: Type): Boolean {
-        val nodeType = trigger
-        if (nodeType is IntType || nodeType is FloatType) {
-            return true
-        } else if (nodeType is TypeVariable) {
-            return false
-        } else {
-            val typeStr = typeChecker.typeToString(nodeType)
-            throw IRConversionException("Unary math operator expects arguments of type int or " +
-                    "float, but found ${typeStr}", node.startLocation)
-        }
-    }
-
-    override fun assertUnresolved() {
-        throw IRConversionException("Could not infer type between int and float, consider adding " +
-                "more type annotations", node.startLocation)
-    }
-}
-
-/**
- * A constraint that waits until the type for a binary math operator is resolved, and then checks
- * that it is either an int or float.
- */
-class BinaryMathOperatorConstraint(
-    val node: BinaryMathOperatorNode,
-    val typeChecker: TypeChecker
-) : DeferredConstraint() {
-    override fun apply(trigger: Type): Boolean {
-        val nodeType = trigger
-        if (nodeType is IntType || nodeType is FloatType) {
-            return true
-        } else if (node is AddNode && nodeType is StringType) {
-            return true
-        } else if (nodeType is TypeVariable) {
-            return false
-        } else {
-            val typeStr = typeChecker.typeToString(nodeType)
-            throw IRConversionException("Binary math operator expects arguments of type int or " +
-                    "float, but found ${typeStr}", node.startLocation)
-        }
-    }
-
-    override fun assertUnresolved() {
-        throw IRConversionException("Could not infer type between int and float, consider adding " +
-                "more type annotations", node.startLocation)
-    }
-}
-
 class AccessConstraint(
     val node: AccessNode,
     val boundVars: MutableSet<TypeVariable>,

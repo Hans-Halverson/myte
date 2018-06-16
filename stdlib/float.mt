@@ -1,11 +1,26 @@
 package std::float
 
-implement float {
-    def toInt(): int {
-        return __builtin("float.toInt", this)
-    }
+import std::ops::{Add, Subtract, Multiply, Divide, Power, Remainder, UnaryPlus, UnaryMinus}
 
-    def toString(): string {
-        return __builtin("float.toString", this)
-    }
+implement float extends Add<float>, Subtract<float>, Multiply<float>, Divide<float>, Power<float>,
+        Remainder<float>, UnaryPlus<float>, UnaryMinus<float> {
+    def add(f) = __builtin("float.add", this, f)
+
+    def subtract(f) = __builtin("float.subtract", this, f)
+
+    def multiply(f) = __builtin("float.multiply", this, f)
+
+    def divide(f) = __builtin("float.divide", this, f)
+
+    def power(f) = __builtin("float.power", this, f)
+
+    def remainder(f) = __builtin("float.remainder", this, f)
+
+    def unaryPlus() = __builtin("float.unaryPlus", this)
+
+    def unaryMinus() = __builtin("float.unaryMinus", this)
+
+    def toInt(): int = __builtin("float.toInt", this)
+
+    def toString(): string = __builtin("float.toString", this)
 }

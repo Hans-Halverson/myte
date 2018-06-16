@@ -12,6 +12,8 @@ const val MULTIPLY_TRAIT_NAME = "Multiply"
 const val DIVIDE_TRAIT_NAME = "Divide"
 const val POWER_TRAIT_NAME = "Power"
 const val REMAINDER_TRAIT_NAME = "Remainder"
+const val UNARY_PLUS_TRAIT_NAME = "UnaryPlus"
+const val UNARY_MINUS_TRAIT_NAME = "UnaryMinus"
 const val INDEX_TRAIT_NAME = "Index"
 const val INDEX_ASSIGN_TRAIT_NAME = "IndexAssign"
 
@@ -23,6 +25,8 @@ val MULTIPLY_TRAIT_SIG = TraitSignature(MULTIPLY_TRAIT_NAME, listOf(TypeParamete
 val DIVIDE_TRAIT_SIG = TraitSignature(DIVIDE_TRAIT_NAME, listOf(TypeParameter()))
 val POWER_TRAIT_SIG = TraitSignature(POWER_TRAIT_NAME, listOf(TypeParameter()))
 val REMAINDER_TRAIT_SIG = TraitSignature(REMAINDER_TRAIT_NAME, listOf(TypeParameter()))
+val UNARY_PLUS_TRAIT_SIG = TraitSignature(UNARY_PLUS_TRAIT_NAME, listOf(TypeParameter()))
+val UNARY_MINUS_TRAIT_SIG = TraitSignature(UNARY_MINUS_TRAIT_NAME, listOf(TypeParameter()))
 val INDEX_TRAIT_SIG = TraitSignature(INDEX_TRAIT_NAME, listOf(TypeParameter(), TypeParameter()))
 val INDEX_ASSIGN_TRAIT_SIG = TraitSignature(INDEX_ASSIGN_TRAIT_NAME,
         listOf(TypeParameter(), TypeParameter()))
@@ -38,6 +42,8 @@ val BUILTIN_TRAITS: Map<String, TraitSignature> = mapOf(
     DIVIDE_TRAIT_NAME to DIVIDE_TRAIT_SIG,
     POWER_TRAIT_NAME to POWER_TRAIT_SIG,
     REMAINDER_TRAIT_NAME to REMAINDER_TRAIT_SIG,
+    UNARY_PLUS_TRAIT_NAME to UNARY_PLUS_TRAIT_SIG,
+    UNARY_MINUS_TRAIT_NAME to UNARY_MINUS_TRAIT_SIG,
     INDEX_TRAIT_NAME to INDEX_TRAIT_SIG,
     INDEX_ASSIGN_TRAIT_NAME to INDEX_ASSIGN_TRAIT_SIG
 )

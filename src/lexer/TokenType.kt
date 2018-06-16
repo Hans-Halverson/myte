@@ -37,6 +37,10 @@ enum class TokenType {
         override fun toString(): String = "*"
     },
 
+    PERCENT {
+        override fun toString(): String = "%"
+    },
+
     FORWARD_SLASH {
         override fun toString(): String = "/"
     },

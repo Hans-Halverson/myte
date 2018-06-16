@@ -215,43 +215,26 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         return TupleValue(tuple, type)
     }
 
-    fun evalUnaryMathOperator(node: UnaryMathOperatorNode, env: Environment): NumberValue {
-        return when (node.type) {
-            is IntType -> {
-                val expr = evalInt(node.node, env)
-                IntValue(node.computeInt(expr.num))
-            }
-            is FloatType -> {
-                val expr = evalFloat(node.node, env)
-                FloatValue(node.computeFloat(expr.num))
-            }
-            else -> throw EvaluationException("Unary math operator must have a number type, " +
-                    "given ${formatType(node.type)}", node.startLocation)
+    fun evalUnaryMathOperator(node: UnaryMathOperatorNode, env: Environment): Value {
+        val expr = evaluate(node.node, env)
+
+        return when (node) {
+            is IdentityNode -> callOperator("unaryPlus", expr, listOf(), env)
+            is NegateNode -> callOperator("unaryMinus", expr, listOf(), env)
         }
     }
 
     fun evalBinaryMathOperator(node: BinaryMathOperatorNode, env: Environment): Value {
-        return when (node.type) {
-            is IntType -> {
-                val left = evalInt(node.left, env)
-                val right = evalInt(node.right, env)
+        val left = evaluate(node.left, env)
+        val right = evaluate(node.right, env)
 
-                IntValue(node.computeInt(left.num, right.num))
-            }
-            is FloatType -> {
-                val left = evalFloat(node.left, env)
-                val right = evalFloat(node.right, env)
-
-                FloatValue(node.computeFloat(left.num, right.num))
-            }
-            is StringType -> {
-                val left = evaluate(node.left, env) as StringValue
-                val right = evaluate(node.right, env) as StringValue
-
-                StringValue(left.str + right.str)
-            }
-            else -> throw EvaluationException("Binary math operator must have a number type, " +
-                    "given ${formatType(node.type)}", node.startLocation)
+        return when (node) {
+            is AddNode -> callOperator("add", left, listOf(right), env)
+            is SubtractNode -> callOperator("subtract", left, listOf(right), env)
+            is MultiplyNode -> callOperator("multiply", left, listOf(right), env)
+            is DivideNode -> callOperator("divide", left, listOf(right), env)
+            is ExponentNode -> callOperator("exponent", left, listOf(right), env)
+            is RemainderNode -> callOperator("remainder", left, listOf(right), env)
         }
     }
 
