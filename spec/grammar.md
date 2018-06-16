@@ -132,6 +132,8 @@ STATEMENT -> EXPR
            | FOR_STATEMENT
            | MATCH_STATEMENT
            | RETURN_STATEMENT
+           | continue
+           | break
 
 BLOCK -> { STATEMENT* }
 
