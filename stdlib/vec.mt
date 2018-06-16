@@ -1,7 +1,7 @@
 package std::vec
 
 import std::iterator::{Iterator, Iterable}
-import std::ops::{Indexed, IndexedAssignment}
+import std::ops::{Index, IndexAssign}
 import std::option::{Option, Some, None}
 
 implement vec<a> {
@@ -22,17 +22,17 @@ implement vec<a> {
     }
 }
 
-/*implement vec<a> extends Indexed<a>, IndexedAssignment<a> {
-    def __index(i: int) {
-        __builtin("vec.__index", this, i)
+implement vec<a> extends Index<int, a>, IndexAssign<int, a> {
+    def index(i: int): a {
+        return __builtin("vec.index", this, i)
     }
 
-    def __indexedAssignment(i: int, x: a) {
-        return __builtin("vec.__indexedAssignment", this, i, a)
+    def indexAssign(i: int, v: a): a {
+        return __builtin("vec.indexAssign", this, i, v)
     }
-}*/
+}
 
-type VecIterator<a> = VecIterator{vec: vec<a>, mut curr: int}
+type VecIterator<a> = VecIterator { vec: vec<a>, mut curr: int }
 
 implement VecIterator<a> extends Iterator<a> {
     def next() {
@@ -47,5 +47,5 @@ implement VecIterator<a> extends Iterator<a> {
 }
 
 implement vec<a> extends Iterable<a> {
-    def iterator() = VecIterator{vec: this, curr: 0}
+    def iterator() = VecIterator { vec: this, curr: 0 }
 }

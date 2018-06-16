@@ -8,13 +8,13 @@ import myte.shared.*
  * @property container the container which has an element reassigned
  * @property the key of the element in the container which should be reassigned
  * @property rValue the expression whose value is assigned to that element
-* @property accessLocation the location of the left bracket in the access
+ * @property indexLocation the location of the left bracket in the index
  */
-class KeyedAssignmentNode(
+class IndexAssignNode(
     val container: IRNode,
     val key: IRNode,
     val rValue: IRNode,
-    val accessLocation: Location
+    val indexLocation: Location
 ) : IRNode(container.startLocation) {
     override fun <T> map(func: (IRNode) -> T) {
         func(this)
@@ -23,12 +23,8 @@ class KeyedAssignmentNode(
         rValue.map(func)
     }
 
-    override fun toString(): String {
-        return "KeyedAssignmentNode(container=${container}, key=${key}, rValue=${rValue})"
-    }
-
     override fun equals(other: Any?): Boolean {
-        if (other !is KeyedAssignmentNode) {
+        if (other !is IndexAssignNode) {
             return false
         }
 

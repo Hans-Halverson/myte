@@ -239,9 +239,9 @@ class Parser(
                 // Logical operators
                 is LogicalAndToken -> parseLogicalAndExpression(currentExpr)
                 is LogicalOrToken -> parseLogicalOrExpression(currentExpr)
-                // Function call or access
+                // Function call or index
                 is LeftParenToken -> parseApplicationExpression(currentExpr, token)
-                is LeftBracketToken -> parseKeyedAccessExpression(currentExpr, token)
+                is LeftBracketToken -> parseIndexExpression(currentExpr, token)
                 is LeftBraceToken -> parseRecordTypeConstructorExpression(currentExpr, token)
                 is PeriodToken -> parseAccessExpression(currentExpr, token)
                 else -> throw ParseException(token)
@@ -573,17 +573,17 @@ class Parser(
         return ApplicationExpression(prevExpr, actualArgs, leftParenToken.location)
     }
 
-    fun parseKeyedAccessExpression(
+    fun parseIndexExpression(
         prevExpr: Expression,
         leftBracketToken: LeftBracketToken
-    ): KeyedAccessExpression {
-        // If parseKeyedAccessExpression is called, the previous token must have been a [
+    ): IndexExpression {
+        // If parseIndexExpression is called, the previous token must have been a [
         val keyExpr = parseExpression()
 
         assertCurrent(TokenType.RIGHT_BRACKET)
         tokenizer.next()
 
-        return KeyedAccessExpression(prevExpr, keyExpr, leftBracketToken.location)
+        return IndexExpression(prevExpr, keyExpr, leftBracketToken.location)
     }
 
     fun parseRecordTypeConstructorExpression(
@@ -627,7 +627,7 @@ class Parser(
     }
 
     fun parseAccessExpression(prevExpr: Expression, periodToken: PeriodToken): AccessExpression {
-        // If parseKeyedAccessExpression is called, the previous token must have been a .
+        // If parseAccessExpression is called, the previous token must have been a .
         val fieldToken = tokenizer.current
         if (fieldToken !is IdentifierToken) {
             throw ParseException("Expected a field name", fieldToken)

@@ -1,8 +1,8 @@
 package std::option
 
 type Option<a> =
-    | Some(a)
-    | None
+| Some(a)
+| None
 
 implement Option<a> {
     def getOrElse(other: a) = match this

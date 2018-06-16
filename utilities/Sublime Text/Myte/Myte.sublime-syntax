@@ -10,8 +10,10 @@ variables:
   # Pattern for all capitalized identifiers
   capIdent: '[A-Z][A-Za-z0-9_]*'
   # Keywords that pull context out of an expression
-  endOfExpression: '(?=\b(package|import|type|implement|def|sig|static|let|const|do|while|for|return|continue|break)\b|}|,)'
-
+  endOfExpression: '(?=\b(package|import|type|trait|implement|def|sig|static|let|const|do|while|for|return|continue|break)\b|}|,)'
+  # Keywords that pull context back to the top level
+  endOfTopLevel: '(?=\b(package|import|type|trait|implement|def|let|const)\b)'
+  
 contexts:
   main:
     - include: comments
@@ -81,7 +83,7 @@ contexts:
       scope: keyword.operator
       set:
         - include: comments
-        - match: '(?=\b(package|import|type|implement|def|let|const)\b)'
+        - match: '{{endOfTopLevel}}'
           pop: true
         - match: '\|'
           scope: keyword.operator
@@ -305,17 +307,7 @@ contexts:
 
   exprs:
     - include: comments
-    # Integer literals
-    - match: '((?:\+|-)?)(\d+(?:.\d+(?:(?:e|E)(?:\+|-)\d+)?)?)'
-      captures:
-        1: keyword.operator
-        2: constant.numeric
-    # String literals
-    - match: '"[^"]*"'
-      scope: string
-    # Bool literals
-    - match: '\b(true|false)\b'
-      scope: constant.language
+    - include: literals
     # Map literals
     - match: '\[\|'
       push:
@@ -370,15 +362,16 @@ contexts:
     # Match expressions
     - match: '\bmatch\b'
       scope: keyword.control
-    # Match operators
-    - match: '-\>|\|'
-      scope: keyword.operator
     # All operators
     - match: '\.|\+|\-|\*|\/|\^|%|!|=|\<|\>|==|!=|\<=|\>=|&&|\|\|'
       scope: keyword.operator
     # Accessing scopes
     - match: '::'
       scope: punctuation.accessor
+    # Match cases trigger a new context for highlighting patterns
+    - match: '\|'
+      scope: keyword.operator
+      push: matchPattern
     # "This" keyword should have special highlighting
     - match: '\bthis\b'
       scope: variable.language
@@ -411,6 +404,99 @@ contexts:
       scope: entity.name.type
     - match: '{{ident}}'
       scope: variable.other
+
+  literals:
+    # Integer literals
+    - match: '((?:\+|-)?)(\d+(?:.\d+(?:(?:e|E)(?:\+|-)\d+)?)?)'
+      captures:
+        1: keyword.operator
+        2: constant.numeric
+    # String literals
+    - match: '"[^"]*"'
+      scope: string
+    # Bool literals
+    - match: '\b(true|false)\b'
+      scope: constant.language
+
+  matchPattern:
+    - include: comments
+    - match: '\bwhen\b'
+      scope: keyword.other
+      set: matchWhenGuard
+    - match: '-\>'
+      scope: keyword.operator
+      pop: true
+    - include: literals
+    # Tuple variant patterns
+    - match: '({{ident}})\s*\('
+      captures:
+        1: entity.name.type
+    # Record variant patterns
+    - match: '({{ident}})\s*{'
+      captures:
+        1: entity.name.type
+      push: matchRecordPattern
+    # Capital identifiers are variant names
+    - match: '{{capIdent}}'
+      scope: entity.name.type
+    # All other identifiers are new variables created by the pattern
+    - match: '{{ident}}'
+      scope: variable.parameter
+    # Grouped patterns
+    - match: '\('
+      push:
+        - match: '\)'
+          pop: true
+        - include: matchPattern
+    # Map patterns
+    - match: '\[\|'
+      push:
+        - match: '\|\]'
+          pop: true
+        - match: '-\>'
+          scope: punctuation.separator
+        - match: ','
+          scope: punctuation.separator
+        - include: matchPattern
+    # Set patterns
+    - match: '{\|'
+      push:
+        - match: '\|}'
+          pop: true
+        - match: ','
+          scope: punctuation.separator
+        - include: matchPattern
+    # Vector patterns
+    - match: '\['
+      push:
+        - match: '\]'
+          pop: true
+        - match: ','
+          scope: punctuation.separator
+        - include: matchPattern
+
+  matchRecordPattern:
+    - include: comments
+    - match: '}'
+      pop: true
+    - match: '({{ident}})\s*(:)'
+      captures:
+        1: variable.other.member
+        2: punctuation.separator
+      set:
+        - include: comments
+        - match: ','
+          scope: punctuation.separator
+          set: matchRecordPattern
+        - match: '}'
+          pop: true
+        - include: matchPattern
+
+  matchWhenGuard:
+    - include: comments
+    - match: '-\>'
+      scope: keyword.operator
+      pop: true
 
   lambdaExpressionArgs:
     - include: comments

@@ -131,7 +131,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             stmt is ApplicationExpression -> convertApplication(stmt)
             stmt is BuiltinExpression -> convertBuiltin(stmt)
             stmt is RecordTypeConstructorExpression -> convertRecordTypeConstructor(stmt)
-            stmt is KeyedAccessExpression -> convertKeyedAccess(stmt)
+            stmt is IndexExpression -> convertIndex(stmt)
             stmt is AccessExpression -> convertAccess(stmt)
             stmt is AssignmentExpression -> convertAssignment(stmt)
             stmt is VariableDefinitionStatement -> convertVariableDefinition(stmt)
@@ -428,8 +428,8 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         return RecordTypeConstructorNode(adtVariant, fields, expr.startLocation)
     }
 
-    fun convertKeyedAccess(expr: KeyedAccessExpression): KeyedAccessNode {
-        return KeyedAccessNode(convert(expr.container, true),
+    fun convertIndex(expr: IndexExpression): IndexNode {
+        return IndexNode(convert(expr.container, true),
                 convert(expr.key, true), expr.accessLocation)
     }
 
@@ -438,11 +438,11 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     }
 
     fun convertAssignment(expr: AssignmentExpression): IRNode {
-        // If the lValue is a keyed access, then this is a keyed assignment
-        if (expr.lValue is KeyedAccessExpression) {
-            val lValue = convertKeyedAccess(expr.lValue)
-            return KeyedAssignmentNode(lValue.container, lValue.key,
-                    convert(expr.rValue, true), lValue.accessLocation)
+        // If the lValue is an index, then this is an indexed assignment
+        if (expr.lValue is IndexExpression) {
+            val lValue = convertIndex(expr.lValue)
+            return IndexAssignNode(lValue.container, lValue.key,
+                    convert(expr.rValue, true), lValue.indexLocation)
         // If the lValue is a field access, then this is a field assignment
         } else if (expr.lValue is AccessExpression) {
             val lValue = convertAccess(expr.lValue)
@@ -663,16 +663,22 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     ///////////////////////////////////////////////////////////////////////////
 
     fun createAdtSig(typeDef: TypeDefinitionStatement) {
-        // First annotate all type parameters identifiers with new type variables
-        val typeParams = typeDef.typeParamIdents.map { typeParamIdent ->
-            val typeParam = TypeParameter()
-            symbolTable.getInfo(typeParamIdent)?.type = typeParam
-            symbolTable.getInfo(typeParamIdent)?.typeShouldBeInferred = true
-            typeParam
+        // Use the builtin ADT sig if type is builtin, otherwise create new ADT sig
+        val builtinTypeSig = BUILTIN_TYPES[typeDef.typeIdent.name]
+        val adtSig = if (builtinTypeSig != null) {
+            builtinTypeSig
+        } else {
+            val typeParams = typeDef.typeParamIdents.map { TypeParameter() }
+            AlgebraicDataTypeSignature(typeDef.typeIdent.name, typeParams)
         }
 
-        // Create initial ADT signature and annotate identifier with it
-        val adtSig = AlgebraicDataTypeSignature(typeDef.typeIdent.name, typeParams)
+        // Annotate all type parameter identifiers with ADT sig's type paramters
+        typeDef.typeParamIdents.zip(adtSig.typeParams).map { (typeParamIdent, typeParam) ->
+            symbolTable.getInfo(typeParamIdent)?.type = typeParam
+            symbolTable.getInfo(typeParamIdent)?.typeShouldBeInferred = true
+        }
+
+        // Annotate identifier with ADT sig and type
         symbolTable.getInfo(typeDef.typeIdent)?.adtSig = adtSig
         symbolTable.getInfo(typeDef.typeIdent)?.type = adtSig.getTypeWithParams(adtSig.typeParams)
         symbolTable.getInfo(typeDef.typeIdent)?.typeShouldBeInferred = true
@@ -707,18 +713,24 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     }
 
     fun createTrait(traitDef: TraitDefinitionStatement): List<IRNode> {
-        // First annotate all type parameters' identifiers with new type variables
-        val typeParams = traitDef.typeParamIdents.map { typeParamIdent ->
-            val typeParam = TypeParameter()
-            symbolTable.getInfo(typeParamIdent)?.type = typeParam
-            symbolTable.getInfo(typeParamIdent)?.typeShouldBeInferred = true
-            typeParam
+        // Use the builtin trait sig if trait is builtin, otherwise create new trait sig
+        val builtinTraitSig = BUILTIN_TRAITS[traitDef.traitIdent.name]
+        val traitSig = if (builtinTraitSig != null) {
+            builtinTraitSig
+        } else {
+            val typeParams = traitDef.typeParamIdents.map { TypeParameter() }
+            TraitSignature(traitDef.traitIdent.name, typeParams)
         }
 
-        // Create initial trait signature and type, and annotate identifier with it
+        // Annotate all type parameter identifiers with ADT sig's type paramters
+        traitDef.typeParamIdents.zip(traitSig.typeParams).map { (typeParamIdent, typeParam) ->
+            symbolTable.getInfo(typeParamIdent)?.type = typeParam
+            symbolTable.getInfo(typeParamIdent)?.typeShouldBeInferred = true
+        }
+
+        // Annotate identifier with trait sig and type
         val traitIdent = traitDef.traitIdent
-        val traitSig = TraitSignature(traitDef.traitIdent.name, typeParams)
-        val traitType = traitSig.getTypeWithParams(typeParams)
+        val traitType = traitSig.getTypeWithParams(traitSig.typeParams)
         symbolTable.getInfo(traitIdent)?.traitSig = traitSig
         symbolTable.getInfo(traitIdent)?.type = traitType
         symbolTable.getInfo(traitIdent)?.typeShouldBeInferred = true

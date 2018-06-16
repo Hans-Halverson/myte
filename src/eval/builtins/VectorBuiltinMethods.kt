@@ -7,10 +7,63 @@ import myte.shared.*
 
 val BUILTIN_VECTOR_TYPE = VectorType(TypeVariable())
 
+const val VECTOR_INDEX_METHOD = "vec.index"
+const val VECTOR_INDEX_ASSIGN_METHOD = "vec.indexAssign"
 const val VECTOR_ADD_METHOD = "vec.add"
 const val VECTOR_REMOVE_METHOD = "vec.remove"
 const val VECTOR_SIZE_METHOD = "vec.size"
 const val VECTOR_TO_STRING_METHOD = "vec.toString"
+
+/**
+ * A builtin which returns the item at a particular index of a vector.
+ */
+class VectorIndexBuiltinMethod(
+) : BuiltinMethod(
+    VECTOR_INDEX_METHOD,
+    FunctionType(listOf(IntType), BUILTIN_VECTOR_TYPE.elementType),
+    BUILTIN_VECTOR_TYPE
+) {
+    /**
+    * Return the item at a particular index of a vector.
+    */
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
+        val receiver = recv as VectorValue
+        val index = args[0] as IntValue
+
+        if (index.num < 0 || index.num >= receiver.elements.size) {
+            throw ExceptionWithoutLocation("Index ${index.num} is outside bounds of vector")
+        }
+
+        return receiver.elements[index.num]
+    }
+}
+
+/**
+ * A builtin which assigns the item at a particular index of a vector.
+ */
+class VectorIndexAssignBuiltinMethod(
+) : BuiltinMethod(
+    VECTOR_INDEX_ASSIGN_METHOD,
+    FunctionType(listOf(IntType, BUILTIN_VECTOR_TYPE.elementType), BUILTIN_VECTOR_TYPE.elementType),
+    BUILTIN_VECTOR_TYPE
+) {
+    /**
+    * Assign and return the item at a particular index of a vector.
+    */
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
+        val receiver = recv as VectorValue
+        val index = args[0] as IntValue
+        val value = args[1]
+
+        if (index.num < 0 || index.num >= receiver.elements.size) {
+            throw ExceptionWithoutLocation("Index ${index.num} is outside bounds of vector")
+        }
+
+        receiver.elements[index.num] = value
+
+        return value
+    }
+}
 
 /**
  * A builtin which adds a single item to the end of a vector.

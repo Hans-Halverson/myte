@@ -81,6 +81,8 @@ val BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
 
     STRING_SIZE_METHOD to StringSizeBuiltinMethod(),
 
+    VECTOR_INDEX_METHOD to VectorIndexBuiltinMethod(),
+    VECTOR_INDEX_ASSIGN_METHOD to VectorIndexAssignBuiltinMethod(),
     VECTOR_ADD_METHOD to VectorAddBuiltinMethod(),
     VECTOR_REMOVE_METHOD to VectorRemoveBuiltinMethod(),
     VECTOR_SIZE_METHOD to VectorSizeBuiltinMethod(),
@@ -92,6 +94,8 @@ val BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
     SET_SIZE_METHOD to SetSizeBuiltinMethod(),
     SET_TO_STRING_METHOD to SetToStringBuiltinMethod(),
 
+    MAP_INDEX_METHOD to MapIndexBuiltinMethod(),
+    MAP_INDEX_ASSIGN_METHOD to MapIndexAssignBuiltinMethod(),
     MAP_REMOVE_METHOD to MapRemoveBuiltinMethod(),
     MAP_SIZE_METHOD to MapSizeBuiltinMethod(),
     MAP_KEYS_METHOD to MapKeysBuiltinMethod(),

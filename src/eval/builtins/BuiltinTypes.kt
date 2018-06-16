@@ -1,0 +1,56 @@
+package myte.eval.builtins
+
+import myte.shared.*
+
+const val OPTION_TYPE_NAME = "Option"
+const val OPTION_TYPE_NONE_VARIANT = "None"
+const val OPTION_TYPE_SOME_VARIANT = "Some"
+
+const val ADD_TRAIT_NAME = "Add"
+const val SUBTRACT_TRAIT_NAME = "Subtract"
+const val MULTIPLY_TRAIT_NAME = "Multiply"
+const val DIVIDE_TRAIT_NAME = "Divide"
+const val POWER_TRAIT_NAME = "Power"
+const val REMAINDER_TRAIT_NAME = "Remainder"
+const val INDEX_TRAIT_NAME = "Index"
+const val INDEX_ASSIGN_TRAIT_NAME = "IndexAssign"
+
+val OPTION_TYPE_SIG = AlgebraicDataTypeSignature(OPTION_TYPE_NAME, listOf(TypeParameter()))
+
+val ADD_TRAIT_SIG = TraitSignature(ADD_TRAIT_NAME, listOf(TypeParameter()))
+val SUBTRACT_TRAIT_SIG = TraitSignature(SUBTRACT_TRAIT_NAME, listOf(TypeParameter()))
+val MULTIPLY_TRAIT_SIG = TraitSignature(MULTIPLY_TRAIT_NAME, listOf(TypeParameter()))
+val DIVIDE_TRAIT_SIG = TraitSignature(DIVIDE_TRAIT_NAME, listOf(TypeParameter()))
+val POWER_TRAIT_SIG = TraitSignature(POWER_TRAIT_NAME, listOf(TypeParameter()))
+val REMAINDER_TRAIT_SIG = TraitSignature(REMAINDER_TRAIT_NAME, listOf(TypeParameter()))
+val INDEX_TRAIT_SIG = TraitSignature(INDEX_TRAIT_NAME, listOf(TypeParameter(), TypeParameter()))
+val INDEX_ASSIGN_TRAIT_SIG = TraitSignature(INDEX_ASSIGN_TRAIT_NAME,
+        listOf(TypeParameter(), TypeParameter()))
+
+val BUILTIN_TYPES: Map<String, AlgebraicDataTypeSignature> = mapOf(
+    OPTION_TYPE_NAME to OPTION_TYPE_SIG
+)
+
+val BUILTIN_TRAITS: Map<String, TraitSignature> = mapOf(
+    ADD_TRAIT_NAME to ADD_TRAIT_SIG,
+    SUBTRACT_TRAIT_NAME to SUBTRACT_TRAIT_SIG,
+    MULTIPLY_TRAIT_NAME to MULTIPLY_TRAIT_SIG,
+    DIVIDE_TRAIT_NAME to DIVIDE_TRAIT_SIG,
+    POWER_TRAIT_NAME to POWER_TRAIT_SIG,
+    REMAINDER_TRAIT_NAME to REMAINDER_TRAIT_SIG,
+    INDEX_TRAIT_NAME to INDEX_TRAIT_SIG,
+    INDEX_ASSIGN_TRAIT_NAME to INDEX_ASSIGN_TRAIT_SIG
+)
+
+fun getVariantForBuiltinType(
+    adtSig: AlgebraicDataTypeSignature,
+    variantName: String
+): AlgebraicDataTypeVariant {
+    val variant = adtSig.variants.find { variant -> variant.name == variantName }
+    if (variant == null) {
+        throw ExceptionWithoutLocation("Variant with name ${variantName} not defined for builtin " +
+                "type ${adtSig.name}. Have you included the standard library?")
+    }
+
+    return variant
+}

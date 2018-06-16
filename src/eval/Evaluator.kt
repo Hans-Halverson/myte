@@ -81,8 +81,8 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             is VariableNode -> env.lookup(node.ident)
             is AccessNode -> evalAccess(node, env)
             is FieldAssignmentNode -> evalFieldAssignment(node, env)
-            is KeyedAccessNode -> evalKeyedAccess(node, env)
-            is KeyedAssignmentNode -> evalKeyedAssignment(node, env)
+            is IndexNode -> evalIndex(node, env)
+            is IndexAssignNode -> evalIndexAssign(node, env)
             is FunctionCallNode -> evalFunctionCall(node, env)
             is BuiltinNode -> evalBuiltin(node, env)
             is BuiltinMethodNode -> evalBuiltinMethod(node, env)
@@ -362,72 +362,29 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         return rValue
     }
 
-    fun evalKeyedAccess(node: KeyedAccessNode, env: Environment): Value {
-        val container = evaluate(node.container, env)
-        if (container is VectorValue) {
-            val key = evalInt(node.key, env)
-
-            // Look up index in vector and return it, erroring if key is outside bounds of vector
-            if (key.num < 0 || key.num >= container.elements.size) {
-                throw EvaluationException("Index ${key.num} is outside bounds of vector",
-                        node.key.startLocation)
-            }
-
-            return container.elements[key.num]
-        } else if (container is MapValue) {
-            val key = evaluate(node.key, env)
-            val value = container.map[key]
-
-            // Look up key in map and return it, erroring if no value is found
-            if (value == null) {
-                throw EvaluationException("No value for key ${key} in ${container}",
-                        node.key.startLocation)
-            }
-            
-            return value
-        } else if (container is TupleValue) {
-            val key = evalInt(node.key, env)
-
-            // Look up index in tuple and return it, erroring if key is outside arity of tuple
-            if (key.num < 0 || key.num >= container.tuple.size) {
-                throw EvaluationException("Index ${key.num} is outside bounds of tuple",
-                        node.key.startLocation)
-            }
-
-            return container.tuple[key.num]
-        } else {
-            throw EvaluationException("Can't perform keyed access on " +
-                    "${formatType(container.type)}", node.startLocation)
-        }
+    fun callOperator(
+        op: String,
+        value: Value,
+        args: List<Value>,
+        env: Environment
+    ): Value {
+        val opFunction = accessValue(value, op, FunctionType(listOf(), UnitType), NO_LOCATION, env)
+        return applyFunction(opFunction, args, env, NO_LOCATION)
     }
 
-    fun evalKeyedAssignment(node: KeyedAssignmentNode, env: Environment): Value {
+    fun evalIndex(node: IndexNode, env: Environment): Value {
         val container = evaluate(node.container, env)
-        if (container is VectorValue) {
-            val key = evalInt(node.key, env)
+        val key = evaluate(node.key, env)
 
-            // Look up index in vector and assign to it, erroring if key is outside bounds of vector
-            if (key.num < 0 || key.num >= container.elements.size) {
-                throw EvaluationException("Index ${key.num} is outside bounds of vector",
-                        node.key.startLocation)
-            }
+        return callOperator("index", container, listOf(key), env)
+    }
 
-            val rValue = evaluate(node.rValue, env)
-            container.elements[key.num] = rValue
+    fun evalIndexAssign(node: IndexAssignNode, env: Environment): Value {
+        val container = evaluate(node.container, env)
+        val key = evaluate(node.key, env)
+        val rValue = evaluate(node.rValue, env)
 
-            return rValue
-        } else if (container is MapValue) {
-            val key = evaluate(node.key, env)
-            val value = evaluate(node.rValue, env)
-
-            // Add key to map, overwriting any value for that key that already exists
-            container.map[key] = value
-            
-            return value
-        } else {
-            throw EvaluationException("Can't perform keyed assignment on " +
-                    "${formatType(container.type)}", node.startLocation)
-        }
+        return callOperator("indexAssign", container, listOf(key, rValue), env)
     }
 
     fun applyClosureToArgs(closure: ClosureValue, args: List<Value>): Value {
@@ -464,7 +421,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         val closureValue = evaluate(node.func, env)
         val actualArgs = node.actualArgs.map { expr -> evaluate(expr, env) }
 
-        return applyFunction(closureValue, actualArgs, env, node.startLocation, node.type)
+        return applyFunction(closureValue, actualArgs, env, node.startLocation)
     }
 
     fun evalBuiltin(node: BuiltinNode, env: Environment): Value {
@@ -483,8 +440,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         closureValue: Value,
         args: List<Value>,
         env: Environment,
-        location: Location,
-        retType: Type
+        location: Location
     ): Value {
         // Check if bound function is a builtin. If so, use its stored evaluation function
         if (closureValue is BuiltinValue) {

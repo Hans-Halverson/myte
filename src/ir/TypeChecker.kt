@@ -1,5 +1,6 @@
 package myte.ir
 
+import myte.eval.builtins.*
 import myte.ir.nodes.*
 import myte.shared.*
 
@@ -579,8 +580,8 @@ class TypeChecker(var symbolTable: SymbolTable) {
                     subType.typeParams.zip(superType.typeParams)
                         .all({ (p1, p2) -> unify(p1, p2) })
         // For an ADT to be a subtype of a trait, it must extend that trait
-        } else if (subType is AlgebraicDataType && superType is TraitType) {
-            val extendedTrait = subType.adtSig.traits.find { extTrait ->
+        } else if (superType is TraitType) {
+            val extendedTrait = subType.sig.traits.find { extTrait ->
                 extTrait.traitSig == superType.traitSig
             }
 
@@ -590,7 +591,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
             // Find parameterized type of trait by performing rep substitution from trait sig params
             // to actual trait params in extended trait params.
-            val paramsMap = subType.adtSig.typeParams.zip(subType.typeParams).toMap()
+            val paramsMap = subType.sig.typeParams.zip(subType.listTypeParams()).toMap()
             val substTraitParams = extendedTrait.typeParams.map { typeParam ->
                 findRepSubstitution(typeParam, paramsMap)
             }
@@ -640,8 +641,8 @@ class TypeChecker(var symbolTable: SymbolTable) {
             is BuiltinMethodNode -> typeCheckBuiltinMethod(node, boundVars, refresh)
             is AccessNode -> typeCheckAccess(node, boundVars, refresh)
             is FieldAssignmentNode -> typeCheckFieldAssignment(node, boundVars, refresh)
-            is KeyedAccessNode -> typeCheckKeyedAccess(node, boundVars, refresh)
-            is KeyedAssignmentNode -> typeCheckKeyedAssignment(node, boundVars, refresh)
+            is IndexNode -> typeCheckIndex(node, boundVars, refresh)
+            is IndexAssignNode -> typeCheckIndexAssign(node, boundVars, refresh)
             is VariableAssignmentNode -> typeCheckVariableAssignment(node, boundVars, refresh)
             is PatternAssignmentNode -> typeCheckPatternAssignment(node, boundVars, refresh)
             is VariableDefinitionNode -> typeCheckVariableDefinition(node, boundVars, refresh)
@@ -1075,20 +1076,40 @@ class TypeChecker(var symbolTable: SymbolTable) {
         addDeferredConstraint(node.expr.type, fieldAssigmentConstraint)
     }
 
-    fun typeCheckKeyedAccess(
-        node: KeyedAccessNode,
+    fun typeCheckIndex(
+        node: IndexNode,
         boundVars: MutableSet<TypeVariable>,
         refresh: Boolean
     ) {
         typeCheck(node.container, boundVars, refresh)
         typeCheck(node.key, boundVars, refresh)
 
-        val keyedAccessConstraint = KeyedAccessConstraint(node, this)
-        addDeferredConstraint(node.container.type, keyedAccessConstraint)
+        // The result type of the index is unknown so far, so create type variable to hold it
+        val indexResultType = TypeVariable()
+        val indexTraitType = INDEX_TRAIT_SIG
+                .createTypeWithParams(listOf(node.key.type, indexResultType))
+
+        // The index operation must evaluate to the result type of the index
+        if (!unify(indexResultType, node.type)) {
+            val types = typesToString(indexResultType, node.type)
+            throw IRConversionException("Index operation expected to evaluate to ${types[0]}, " +
+                    "but found ${types[1]}", node.indexLocation)
+        }
+
+        // The container must be a subtype of the Index trait with the correct key and value types
+        val except = { ->
+            val types = typesToString(indexTraitType, node.container.type)
+            throw IRConversionException("Container expected to have type ${types[0]}, " +
+                    "but found ${types[1]}", node.indexLocation)
+        }
+
+        if (!subtype(node.container.type, indexTraitType, except)) {
+            except()
+        }
     }
 
-    fun typeCheckKeyedAssignment(
-        node: KeyedAssignmentNode,
+    fun typeCheckIndexAssign(
+        node: IndexAssignNode,
         boundVars: MutableSet<TypeVariable>,
         refresh: Boolean
     ) {
@@ -1096,8 +1117,26 @@ class TypeChecker(var symbolTable: SymbolTable) {
         typeCheck(node.key, boundVars, refresh)
         typeCheck(node.rValue, boundVars, refresh)
 
-        val keyedAssignmentConstraint = KeyedAssignmentConstraint(node, this)
-        addDeferredConstraint(node.container.type, keyedAssignmentConstraint)
+        val indexAssignTraitType = INDEX_ASSIGN_TRAIT_SIG
+                .createTypeWithParams(listOf(node.key.type, node.rValue.type))
+
+        // The index assign operation must evaluate to the result type of the index
+        if (!unify(node.rValue.type, node.type)) {
+            val types = typesToString(node.rValue.type, node.type)
+            throw IRConversionException("Index assign operation expected to evaluate to " +
+                    "${types[0]}, but found ${types[1]}", node.indexLocation)
+        }
+
+        // The container must be a subtype of the IndexAssign trait with the correct key and value
+        val except = { ->
+            val types = typesToString(indexAssignTraitType, node.container.type)
+            throw IRConversionException("Container expected to have type ${types[0]}, " +
+                    "but found ${types[1]}", node.indexLocation)
+        }
+
+        if (!subtype(node.container.type, indexAssignTraitType, except)) {
+            except()
+        }
     }
 
     fun typeCheckFunctionCall(

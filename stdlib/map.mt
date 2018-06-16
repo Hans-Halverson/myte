@@ -1,5 +1,8 @@
 package std::map
 
+import std::ops::{Index, IndexAssign}
+import std::option::Option
+
 implement map<k, v> {
     def remove(key: k) {
         __builtin("map.remove", this, key)
@@ -27,5 +30,15 @@ implement map<k, v> {
 
     def toString(): string {
         return __builtin("map.toString", this)
+    }
+}
+
+implement map<k, v> extends Index<k, Option<v>>, IndexAssign<k, v> {
+    def index(key: k): Option<v> {
+        return __builtin("map.index", this, key)
+    }
+
+    def indexAssign(key: k, value: v): v {
+        return __builtin("map.indexAssign", this, key, value)
     }
 }
