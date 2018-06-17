@@ -664,6 +664,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
             is WhileNode -> typeCheckWhile(node, boundVars, refresh)
             is DoWhileNode -> typeCheckDoWhile(node, boundVars, refresh)
             is ForNode -> typeCheckFor(node, boundVars, refresh)
+            is ForEachNode -> typeCheckForEach(node, boundVars, refresh)
             is MatchNode -> typeCheckMatch(node, boundVars, refresh)
             is ReturnNode -> typeCheckReturn(node, boundVars, refresh)
             is BreakNode -> typeCheckBreak(node)
@@ -1843,6 +1844,61 @@ class TypeChecker(var symbolTable: SymbolTable) {
             val type = typeToString(node.type)
             throw IRConversionException("For loop should evaluate to the unit type, but found " +
                     "${type}", node.startLocation)
+        }
+    }
+
+    fun typeCheckForEach(node: ForEachNode, boundVars: MutableSet<TypeVariable>, refresh: Boolean) {
+        typeCheck(node.lValue, boundVars, refresh)
+        typeCheck(node.iterable, boundVars, refresh)
+
+        // Iterable expression must implement iterable trait
+        val forEachPatternType = TypeVariable()
+        val iterableTraitType = ITERABLE_TRAIT_SIG.createTypeWithParams(listOf(forEachPatternType))
+
+        var except = { ->
+            val types = typesToString(node.iterable.type, iterableTraitType)
+            throw IRConversionException("Iterable in for each loop inferred to have type " +
+                    "${types[0]}, but must implement ${types[1]}", node.iterable.startLocation)
+        }
+
+        if (!subtype(node.iterable.type, iterableTraitType, except)) {
+            except()
+        }
+
+        if (node.typeAnnotation != null) {
+            // Patterns's type variable must be equal to the type annotation
+            if (!unify(node.typeAnnotation, node.lValue.type)) {
+                val types = typesToString(node.typeAnnotation, node.lValue.type)
+                throw IRConversionException("Pattern expected to have type ${types[0]}, but " +
+                        "found ${types[1]}", node.lValue.startLocation)
+            }
+
+            // If a type annotation is supplied, the iterable must be a subtype of the annotation
+            except = { ->
+                val types = typesToString(node.typeAnnotation, forEachPatternType)
+                throw IRConversionException("Pattern has type ${types[0]}, but assigned " +
+                        "${types[1]}", node.lValue.startLocation)
+            }
+
+            if (!subtype(forEachPatternType, node.typeAnnotation, except)) {
+                except()
+            }
+        } else {
+            // If no type annotation is supplied, inferred type is the iterable's inferred type
+            if (!unify(forEachPatternType, node.lValue.type)) {
+                val types = typesToString(node.lValue.type, forEachPatternType)
+                throw IRConversionException("Pattern has type ${types[0]}, but assigned " +
+                        "${types[1]}", node.lValue.startLocation)
+            }
+        }
+
+        typeCheck(node.body, boundVars, refresh)
+
+        // For node evaluates to unit value
+        if (!unify(node.type, UnitType)) {
+            val type = typeToString(node.type)
+            throw IRConversionException("For each loop should evaluate to the unit type, but " +
+                    "found ${type}", node.startLocation)
         }
     }
 

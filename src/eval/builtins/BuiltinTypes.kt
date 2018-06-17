@@ -16,6 +16,8 @@ const val UNARY_PLUS_TRAIT_NAME = "UnaryPlus"
 const val UNARY_MINUS_TRAIT_NAME = "UnaryMinus"
 const val INDEX_TRAIT_NAME = "Index"
 const val INDEX_ASSIGN_TRAIT_NAME = "IndexAssign"
+const val ITERATOR_TRAIT_NAME = "Iterator"
+const val ITERABLE_TRAIT_NAME = "Iterable"
 
 val OPTION_TYPE_SIG = AlgebraicDataTypeSignature(OPTION_TYPE_NAME, listOf(TypeParameter()))
 
@@ -30,6 +32,8 @@ val UNARY_MINUS_TRAIT_SIG = TraitSignature(UNARY_MINUS_TRAIT_NAME, listOf(TypePa
 val INDEX_TRAIT_SIG = TraitSignature(INDEX_TRAIT_NAME, listOf(TypeParameter(), TypeParameter()))
 val INDEX_ASSIGN_TRAIT_SIG = TraitSignature(INDEX_ASSIGN_TRAIT_NAME,
         listOf(TypeParameter(), TypeParameter()))
+val ITERATOR_TRAIT_SIG = TraitSignature(ITERATOR_TRAIT_NAME, listOf(TypeParameter()))
+val ITERABLE_TRAIT_SIG = TraitSignature(ITERABLE_TRAIT_NAME, listOf(TypeParameter()))
 
 val BUILTIN_TYPES: Map<String, AlgebraicDataTypeSignature> = mapOf(
     OPTION_TYPE_NAME to OPTION_TYPE_SIG
@@ -45,7 +49,9 @@ val BUILTIN_TRAITS: Map<String, TraitSignature> = mapOf(
     UNARY_PLUS_TRAIT_NAME to UNARY_PLUS_TRAIT_SIG,
     UNARY_MINUS_TRAIT_NAME to UNARY_MINUS_TRAIT_SIG,
     INDEX_TRAIT_NAME to INDEX_TRAIT_SIG,
-    INDEX_ASSIGN_TRAIT_NAME to INDEX_ASSIGN_TRAIT_SIG
+    INDEX_ASSIGN_TRAIT_NAME to INDEX_ASSIGN_TRAIT_SIG,
+    ITERATOR_TRAIT_NAME to ITERATOR_TRAIT_SIG,
+    ITERABLE_TRAIT_NAME to ITERABLE_TRAIT_SIG
 )
 
 fun getVariantForBuiltinType(

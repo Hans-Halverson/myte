@@ -11,6 +11,7 @@ const val SET_ADD_METHOD = "set.add"
 const val SET_CONTAINS_METHOD = "set.contains"
 const val SET_REMOVE_METHOD = "set.remove"
 const val SET_SIZE_METHOD = "set.size"
+const val SET_TO_VEC_METHOD = "set.toVec"
 const val SET_TO_STRING_METHOD = "set.toString"
 
 /**
@@ -92,6 +93,27 @@ class SetSizeBuiltinMethod(
     override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as SetValue
         return IntValue(receiver.elements.size)
+    }
+}
+
+/**
+ * A builtin which converts a set into a vec.
+ */
+class SetToVecBuiltinMethod(
+) : BuiltinMethod(
+    SET_TO_VEC_METHOD,
+    FunctionType(listOf(), VectorType(BUILTIN_SET_TYPE.elementType)),
+    BUILTIN_SET_TYPE
+) {
+    /**
+    * Convert a set into a vec.
+    */
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
+        val receiver = recv as SetValue
+        val receiverType = recv.type as SetType
+        val vectorType = VectorType(receiverType.elementType)
+
+        return VectorValue(receiver.elements.toList().toMutableList(), vectorType)
     }
 }
 

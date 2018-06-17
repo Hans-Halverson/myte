@@ -1,5 +1,8 @@
 package std::set
 
+import std::iterator::{Iterator, Iterable}
+import std::vec::VecIterator
+
 implement set<a> {
     def add(x: a) {
         __builtin("set.add", this, x)
@@ -17,7 +20,22 @@ implement set<a> {
         return __builtin("set.size", this)
     }
 
+    def toVec(): vec<a> {
+        return __builtin("set.toVec", this)
+    }
+
     def toString(): string {
         return __builtin("set.toString", this)
     }
+}
+
+type SetIterator<a> = SetIterator(VecIterator<a>)
+
+implement SetIterator<a> extends Iterator<a> {
+    def next() = match this
+        | SetIterator(vecIterator) -> vecIterator.next()
+}
+
+implement set<a> extends Iterable<a> {
+    def iterator() = SetIterator(this.toVec().iterator())
 }

@@ -1,7 +1,9 @@
 package std::map
 
+import std::iterator::{Iterator, Iterable}
 import std::ops::{Index, IndexAssign}
 import std::option::Option
+import std::vec::VecIterator
 
 implement map<k, v> {
     def remove(key: k) {
@@ -28,6 +30,10 @@ implement map<k, v> {
         return __builtin("map.containsValue", this, value)
     }
 
+    def toVec(): vec<(k, v)> {
+        return __builtin("map.toVec", this)
+    }
+
     def toString(): string {
         return __builtin("map.toString", this)
     }
@@ -41,4 +47,15 @@ implement map<k, v> extends Index<k, Option<v>>, IndexAssign<k, v> {
     def indexAssign(key: k, value: v): v {
         return __builtin("map.indexAssign", this, key, value)
     }
+}
+
+type MapIterator<k, v> = MapIterator(VecIterator<(k, v)>)
+
+implement MapIterator<k, v> extends Iterator<(k, v)> {
+    def next() = match this
+        | MapIterator(vecIterator) -> vecIterator.next()
+}
+
+implement map<k, v> extends Iterable<(k, v)> {
+    def iterator() = MapIterator(this.toVec().iterator())
 }

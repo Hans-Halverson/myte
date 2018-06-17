@@ -154,6 +154,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             stmt is WhileStatement -> convertWhile(stmt)
             stmt is DoWhileStatement -> convertDoWhile(stmt)
             stmt is ForStatement -> convertFor(stmt)
+            stmt is ForEachStatement -> convertForEach(stmt)
             stmt is MatchStatement -> convertMatch(stmt, isExpr)
             stmt is ReturnStatement -> convertReturn(stmt)
             stmt is BreakStatement -> BreakNode(stmt.breakLocation)
@@ -301,6 +302,25 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         val update = if (stmt.update != null) convert(stmt.update, false) else null
 
         return ForNode(init, cond, update, convert(stmt.body, false), stmt.startLocation)
+    }
+
+    fun convertForEach(stmt: ForEachStatement): ForEachNode {
+        if (stmt.lValue !is Expression) {
+            throw IRConversionException("For each loops require a pattern",
+                    stmt.lValue.startLocation)
+        }
+
+        val pattern = convertLValuePattern(stmt.lValue, true)
+        val type = if (stmt.typeAnnotation != null) {
+            convertType(stmt.typeAnnotation)
+        } else {
+            null
+        }
+
+        val iterable = convert(stmt.iterable, true)
+        val body = convert(stmt.body, false)
+
+        return ForEachNode(pattern, type, iterable, body, stmt.startLocation)
     }
 
     fun convertMatch(stmt: MatchStatement, isExpr: Boolean): MatchNode {

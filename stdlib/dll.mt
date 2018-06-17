@@ -231,14 +231,8 @@ implement DLL<a> {
         str = str + "\n"
 
         // Add a string representation of every node in the DLL
-        let currNode = this.start
-        while (true) {
-            match currNode
-            | Some(node) -> {
-                str = str + node.toString() + "\n"
-                currNode = node.next
-            }
-            | None -> break
+        forEach (node in this) {
+            str = str + node.toString() + "\n"
         }
 
         return str

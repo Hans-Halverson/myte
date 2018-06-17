@@ -108,6 +108,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             is WhileNode -> evalWhile(node, env)
             is DoWhileNode -> evalDoWhile(node, env)
             is ForNode -> evalFor(node, env)
+            is ForEachNode -> evalForEach(node, env)
             is MatchNode -> evalMatch(node, env)
             is ReturnNode -> evalReturn(node, env)
             is BreakNode -> throw Break
@@ -219,8 +220,8 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         val expr = evaluate(node.node, env)
 
         return when (node) {
-            is IdentityNode -> callOperator("unaryPlus", expr, listOf(), env)
-            is NegateNode -> callOperator("unaryMinus", expr, listOf(), env)
+            is IdentityNode -> callMethod("unaryPlus", expr, listOf(), env)
+            is NegateNode -> callMethod("unaryMinus", expr, listOf(), env)
         }
     }
 
@@ -229,12 +230,12 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         val right = evaluate(node.right, env)
 
         return when (node) {
-            is AddNode -> callOperator("add", left, listOf(right), env)
-            is SubtractNode -> callOperator("subtract", left, listOf(right), env)
-            is MultiplyNode -> callOperator("multiply", left, listOf(right), env)
-            is DivideNode -> callOperator("divide", left, listOf(right), env)
-            is ExponentNode -> callOperator("exponent", left, listOf(right), env)
-            is RemainderNode -> callOperator("remainder", left, listOf(right), env)
+            is AddNode -> callMethod("add", left, listOf(right), env)
+            is SubtractNode -> callMethod("subtract", left, listOf(right), env)
+            is MultiplyNode -> callMethod("multiply", left, listOf(right), env)
+            is DivideNode -> callMethod("divide", left, listOf(right), env)
+            is ExponentNode -> callMethod("exponent", left, listOf(right), env)
+            is RemainderNode -> callMethod("remainder", left, listOf(right), env)
         }
     }
 
@@ -345,7 +346,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         return rValue
     }
 
-    fun callOperator(
+    fun callMethod(
         op: String,
         value: Value,
         args: List<Value>,
@@ -359,7 +360,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         val container = evaluate(node.container, env)
         val key = evaluate(node.key, env)
 
-        return callOperator("index", container, listOf(key), env)
+        return callMethod("index", container, listOf(key), env)
     }
 
     fun evalIndexAssign(node: IndexAssignNode, env: Environment): Value {
@@ -367,7 +368,7 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         val key = evaluate(node.key, env)
         val rValue = evaluate(node.rValue, env)
 
-        return callOperator("indexAssign", container, listOf(key, rValue), env)
+        return callMethod("indexAssign", container, listOf(key, rValue), env)
     }
 
     fun applyClosureToArgs(closure: ClosureValue, args: List<Value>): Value {
@@ -633,6 +634,38 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
                 if (node.cond != null) {
                     condition = evalBool(node.cond, env).bool
                 }
+            }
+        // If a break is encountered, exit the loop
+        } catch (e: Break) {
+        } // Do nothing
+
+        env.exitScope()
+
+        return UnitValue
+    }
+
+    fun evalForEach(node: ForEachNode, env: Environment): UnitValue {
+        // Body of for leach oop must be in a new scope, since the assigned pattern must be local
+        // to just the body of the for loop.
+        env.enterScope()
+
+        // Find the current item from the iterable
+        val iterable = evaluate(node.iterable, env)
+        val iterator = callMethod("iterator", iterable, listOf(), env)
+        var currentItem = callMethod("next", iterator, listOf(), env) as TupleVariantValue
+
+        val noneVariant = getVariantForBuiltinType(OPTION_TYPE_SIG, OPTION_TYPE_NONE_VARIANT)
+
+        try {
+            // While there are still items in the iterable, evaluate body of for each loop
+            while (currentItem.adtVariant != noneVariant) {
+                // First match pattern to current item, binding all variables in pattern
+                if (!matchPattern(currentItem.fields[0], node.lValue, env, true)) {
+                    throw EvaluationException("Could not match value to pattern", node.startLocation)
+                }
+
+                evalUntilContinue(node.body, env)
+                currentItem = callMethod("next", iterator, listOf(), env) as TupleVariantValue
             }
         // If a break is encountered, exit the loop
         } catch (e: Break) {

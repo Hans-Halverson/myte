@@ -105,6 +105,8 @@ DO_WHILE_STATEMENT -> do STATEMENT while ( EXPR )
 
 FOR_STATEMENT -> for ( STATEMENT? , EXPR? , STATEMENT? ) STATEMENT
 
+FOR_EACH_STATEMENT -> forEach ( LVALUE [: TYPE]? in EXPR ) STATEMENT
+
 RETURN_STATEMENT -> return unit
                   | return EXPR
 
@@ -131,6 +133,7 @@ STATEMENT -> EXPR
            | WHILE_STATEMENT
            | DO_WHILE_STATEMENT
            | FOR_STATEMENT
+           | FOR_EACH_STATEMENT
            | MATCH_STATEMENT
            | RETURN_STATEMENT
            | continue

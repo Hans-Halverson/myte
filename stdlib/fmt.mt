@@ -1,9 +1,9 @@
 package std::fmt
 
-def print(str: string) {
-    __builtin("__print", str)
+def print(x) {
+    __builtin("__print", x.toString())
 }
 
-def println(str: string) {
-    __builtin("__println", str)
+def println(x) {
+    __builtin("__println", x.toString())
 }

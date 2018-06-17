@@ -12,6 +12,6 @@ def fib(x) {
 
 def main() {
     for (let i = 0, i <= 10, i = i + 1) {
-        println(fib(i).toString())
+        println(fib(i))
     }
 }

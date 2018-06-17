@@ -197,6 +197,14 @@ enum class TokenType {
         override fun toString(): String = "for"
     },
 
+    FOR_EACH {
+        override fun toString(): String = "forEach"
+    },
+
+    IN {
+        override fun toString(): String = "in"
+    },
+
     MATCH {
         override fun toString(): String = "match"
     },

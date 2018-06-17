@@ -10,7 +10,7 @@ variables:
   # Pattern for all capitalized identifiers
   capIdent: '[A-Z][A-Za-z0-9_]*'
   # Keywords that pull context out of an expression
-  endOfExpression: '(?=\b(package|import|type|trait|implement|def|sig|static|let|const|do|while|for|return|continue|break)\b|}|,)'
+  endOfExpression: '(?=\b(package|import|type|trait|implement|def|sig|static|let|const|do|while|for|forEach|return|continue|break)\b|}|,)'
   # Keywords that pull context back to the top level
   endOfTopLevel: '(?=\b(package|import|type|trait|implement|def|let|const)\b)'
   
@@ -299,6 +299,7 @@ contexts:
     - include: comments
     - match: '\b(return|break|continue)\b'
       scope: keyword.control
+    - include: forEach
     - match: '\b(for|while|do)\b'
       scope: keyword.control
     - include: functionDefinition
@@ -372,9 +373,6 @@ contexts:
     - match: '\|'
       scope: keyword.operator
       push: matchPattern
-    # "This" keyword should have special highlighting
-    - match: '\bthis\b'
-      scope: variable.language
     # Tuple type constructors
     - match: '({{capIdent}})\s*\('
       captures:
@@ -417,6 +415,33 @@ contexts:
     # Bool literals
     - match: '\b(true|false)\b'
       scope: constant.language
+
+  forEach:
+    - match: '\b(forEach)\b\s*\('
+      captures:
+        1: keyword.control
+      push:
+        - include: comments
+        - match: '\bin\b'
+          scope: keyword.other
+          set:
+            - include: comments
+            - match: '\)'
+              pop: true
+            - include: exprs
+        - match: ':'
+          scope: punctuation.separator
+          set:
+            - include: comments
+            - match: '\bin\b'
+              scope: keyword.other
+              set:
+                - include: comments
+                - match: '\)'
+                  pop: true
+                - include: exprs
+            - include: type
+        - include: matchPattern
 
   matchPattern:
     - include: comments

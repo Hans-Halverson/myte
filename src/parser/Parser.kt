@@ -159,6 +159,7 @@ class Parser(
             is WhileToken -> parseWhileStatement(token)
             is DoToken -> parseDoWhileStatement(token)
             is ForToken -> parseForStatement(token)
+            is ForEachToken -> parseForEachStatement(token)
             is ReturnToken -> parseReturnStatement(token)
             is BreakToken -> BreakStatement(token.location)
             is ContinueToken -> ContinueStatement(token.location)
@@ -1050,12 +1051,13 @@ class Parser(
 
     fun parseForStatement(forToken: ForToken): ForStatement {
         // If parseForStatement is called, the previous token must have been a for
-        assertCurrent(TokenType.LEFT_PAREN)
-        tokenizer.next()
-
-        // Entire for loop must be in a new scope, since the init and update could introduce
+        
+        // Entire for loop must be in a new scope, since the init or update could introduce
         // new bindings that should not exist outside the context of the for loop.
         symbolTable.enterScope(ScopeType.BLOCK)
+
+        assertCurrent(TokenType.LEFT_PAREN)
+        tokenizer.next()
 
         // Parse initializer statement if a comma is not seen
         var initializer: Statement? = null
@@ -1092,6 +1094,42 @@ class Parser(
         symbolTable.exitScope()
 
         return ForStatement(initializer, condition, update, statement, forToken.location)
+    }
+
+    fun parseForEachStatement(forEachToken: ForEachToken): ForEachStatement {
+        // If parseForEachStatement is called, the previous token must have been a forEach
+        
+        // Entire for loop must be in a new scope, since the lValue will introduce
+        // new bindings that should not exist outside the context of the for loop.
+        symbolTable.enterScope(ScopeType.BLOCK)
+
+        assertCurrent(TokenType.LEFT_PAREN)
+        tokenizer.next()
+        
+        val lValue = parseLValue(setOf())
+
+        // An optional type annotation can exist after the lValue
+        val typeAnnotation = if (tokenizer.current is ColonToken) {
+            parseTypeAnnotation()
+        } else {
+            null
+        }
+
+        assertCurrent(TokenType.IN)
+        tokenizer.next()
+
+        // Parse expression to loop over and the body of the for loop
+        val iterable = parseExpression()
+
+        assertCurrent(TokenType.RIGHT_PAREN)
+        tokenizer.next()
+
+        val statement = parseStatement()
+
+        symbolTable.exitScope()
+
+        return ForEachStatement(lValue, typeAnnotation, iterable, statement,
+                forEachToken.location)
     }
 
     fun parsePatternOrExpr(isPattern: Boolean): Expression {

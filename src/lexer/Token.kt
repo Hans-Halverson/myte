@@ -122,6 +122,10 @@ class DoToken(location: Location) : Token(location, TokenType.DO)
 
 class ForToken(location: Location) : Token(location, TokenType.FOR)
 
+class ForEachToken(location: Location) : Token(location, TokenType.FOR_EACH)
+
+class InToken(location: Location) : Token(location, TokenType.IN)
+
 class MatchToken(location: Location) : Token(location, TokenType.MATCH)
 
 class WhenToken(location: Location) : Token(location, TokenType.WHEN)

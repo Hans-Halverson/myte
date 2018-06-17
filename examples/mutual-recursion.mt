@@ -39,8 +39,8 @@ def main() {
     let t3 = Type2(Type1(Int(2)))
     let t4 = Type2(Type1(Type2(Bool(false))))
 
-    println(recursiveTypes(t1).toString())
-    println(recursiveTypes(t2).toString())
-    println(recursiveTypes(t3).toString())
-    println(recursiveTypes(t4).toString())
+    println(recursiveTypes(t1))
+    println(recursiveTypes(t2))
+    println(recursiveTypes(t3))
+    println(recursiveTypes(t4))
 }

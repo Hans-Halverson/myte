@@ -15,6 +15,7 @@ const val MAP_KEYS_METHOD = "map.keys"
 const val MAP_VALUES_METHOD = "map.values"
 const val MAP_CONTAINS_KEY_METHOD = "map.containsKey"
 const val MAP_CONTAINS_VALUE_METHOD = "map.containsValue"
+const val MAP_TO_VEC_METHOD = "map.toVec"
 const val MAP_TO_STRING_METHOD = "map.toString"
 
 val OPTION_VAL_TYPE = OPTION_TYPE_SIG.createTypeWithParams(listOf(BUILTIN_MAP_TYPE.valType))
@@ -184,6 +185,32 @@ class MapContainsValueBuiltinMethod(
         val item = args[0]
 
         return BoolValue(receiver.map.containsValue(item))
+    }
+}
+
+/**
+ * A builtin which converts a map to a vector.
+ */
+class MapToVecBuiltinMethod(
+) : BuiltinMethod(
+    MAP_TO_VEC_METHOD,
+    FunctionType(listOf(),
+            VectorType(TupleType(listOf(BUILTIN_MAP_TYPE.keyType, BUILTIN_MAP_TYPE.valType)))),
+    BUILTIN_MAP_TYPE
+) {
+    /**
+    * Converts a map into a vector.
+    */
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
+        val receiver = recv as MapValue
+        val receiverType = recv.type as MapType
+        val vecElementType = TupleType(listOf(receiverType.keyType, receiverType.valType))
+
+        val vec = receiver.map.map { (key, value) ->
+            TupleValue(mutableListOf(key, value), vecElementType)
+        }
+
+        return VectorValue(vec.toMutableList(), VectorType(vecElementType))
     }
 }
 

@@ -9,3 +9,11 @@ class ForStatement(
     val body: Statement,
     startLocation: Location
 ) : Statement(startLocation)
+
+class ForEachStatement(
+    val lValue: Statement,
+    val typeAnnotation: TypeExpression?,
+    val iterable: Expression,
+    val body: Statement,
+    startLocation: Location
+) : Statement(startLocation)

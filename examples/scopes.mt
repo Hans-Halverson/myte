@@ -47,9 +47,9 @@ type list<a> = Nil | Cons(a, list<a>)
 
 def main() {
     println(f())
-    println(g(100).toString())
-    println(h(200).toString())
-    println(shadowing(30).toString())
+    println(g(100))
+    println(h(200))
+    println(shadowing(30))
 
     patterns(Nil)
 }
