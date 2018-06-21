@@ -9,11 +9,20 @@ import myte.shared.*
  * @property body the body of the while loop
  */
 class WhileNode(
-    val cond: IRNode,
-    val body: IRNode, startLocation: Location
+    var cond: IRNode,
+    var body: IRNode,
+    startLocation: Location
 ) : IRNode(startLocation) {
-    override fun <T> map(func: (IRNode) -> T) {
+    override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
+        cond.forEach(func)
+        body.forEach(func)
+    }
+
+    override fun map(func: (IRNode) -> IRNode) {
+        cond = func(cond)
+        body = func(body)
+
         cond.map(func)
         body.map(func)
     }

@@ -10,19 +10,23 @@ import myte.shared.*
  * @property callLocation the location of the actual function call (pointing to the left paren)
  */
 class FunctionCallNode(
-    val func: IRNode,
-    val actualArgs: List<IRNode>,
+    var func: IRNode,
+    var actualArgs: List<IRNode>,
     val callLocation: Location,
     startLocation: Location
 ) : IRNode(startLocation) {
-    override fun <T> map(func: (IRNode) -> T) {
+    override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
-        this.func.map(func)
-        actualArgs.map { arg -> arg.map(func) }
+        this.func.forEach(func)
+        actualArgs.forEach { arg -> arg.forEach(func) }
     }
 
-    override fun toString(): String {
-        return "FunctionCallNode(func=${func}, actualArgs=${actualArgs})"
+    override fun map(func: (IRNode) -> IRNode) {
+        this.func = func(this.func)
+        actualArgs = actualArgs.map(func)
+
+        this.func.map(func)
+        actualArgs.forEach { arg -> arg.map(func) }
     }
 
     override fun equals(other: Any?): Boolean {

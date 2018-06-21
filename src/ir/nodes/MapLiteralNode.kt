@@ -9,13 +9,21 @@ import myte.shared.*
  * @property values the values in the map literal, one for each key
  */
 class MapLiteralNode(
-    val keys: List<IRNode>,
-    val values: List<IRNode>,
+    var keys: List<IRNode>,
+    var values: List<IRNode>,
     startLocation: Location
 ) : IRNode(startLocation) {
-    override fun <T> map(func: (IRNode) -> T) {
+    override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
-        keys.map { key -> key.map(func) }
-        values.map { value -> value.map(func) }
+        keys.forEach { key -> key.forEach(func) }
+        values.forEach { value -> value.forEach(func) }
+    }
+
+    override fun map(func: (IRNode) -> IRNode) {
+        keys = keys.map(func)
+        values = values.map(func)
+
+        keys.forEach { key -> key.map(func) }
+        values.forEach { value -> value.map(func) }
     }
 }

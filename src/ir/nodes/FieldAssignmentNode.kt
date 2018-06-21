@@ -11,13 +11,22 @@ import myte.shared.*
  * @property accessLocation the location of the dot in the access
  * */
 data class FieldAssignmentNode(
-    val expr: IRNode,
+    var expr: IRNode,
     val field: String,
-    val rValue: IRNode,
+    var rValue: IRNode,
     val accessLocation: Location
 ) : IRNode(expr.startLocation) {
-    override fun <T> map(func: (IRNode) -> T) {
+    override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
+        expr.forEach(func)
+        rValue.forEach(func)
+    }
+
+    override fun map(func: (IRNode) -> IRNode) {
+        expr = func(expr)
+        rValue = func(rValue)
+
+        expr.map(func)
         rValue.map(func)
     }
 }

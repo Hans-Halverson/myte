@@ -8,15 +8,23 @@ import myte.shared.*
  * @property left the left hand side of the equality comparison
  * @property right the right hand side of the equality comparison
  */
-sealed class EqualityNode(val left: IRNode, val right: IRNode) : IRNode(left.startLocation) {
+sealed class EqualityNode(var left: IRNode, var right: IRNode) : IRNode(left.startLocation) {
     
     /**
      * Return the result of comparing two values.
      */
     abstract fun compare(a: Any, b: Any): Boolean
 
-    override fun <T> map(func: (IRNode) -> T) {
+    override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
+        left.forEach(func)
+        right.forEach(func)
+    }
+
+    override fun map(func: (IRNode) -> IRNode) {
+        left = func(left)
+        right = func(right)
+
         left.map(func)
         right.map(func)
     }

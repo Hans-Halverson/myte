@@ -10,12 +10,20 @@ import myte.shared.*
  * @property accessLocation the location of the left bracket in the access
  */
 data class IndexNode(
-    val container: IRNode,
-    val key: IRNode,
+    var container: IRNode,
+    var key: IRNode,
     val indexLocation: Location
 ) : IRNode(container.startLocation) {
-    override fun <T> map(func: (IRNode) -> T) {
+    override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
+        container.forEach(func)
+        key.forEach(func)
+    }
+
+    override fun map(func: (IRNode) -> IRNode) {
+        container = func(container)
+        key = func(container)
+
         container.map(func)
         key.map(func)
     }

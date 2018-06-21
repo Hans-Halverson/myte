@@ -189,8 +189,8 @@ class Parser(
         // Match on all tokens that signal a prefix operator
         var currentExpr = when (firstToken) {
             // Literals
-            is IntLiteralToken -> IntLiteral(firstToken.num, firstToken.location)
-            is FloatLiteralToken -> FloatLiteral(firstToken.num, firstToken.location)
+            is IntegralLiteralToken -> IntegralLiteralExpression(firstToken.num, firstToken.location)
+            is DecimalLiteralToken -> DecimalLiteralExpression(firstToken.num, firstToken.location)
             is IdentifierToken -> parseVariableExpression(firstToken)
             is TrueToken -> BoolLiteralExpression(true, firstToken.location)
             is FalseToken -> BoolLiteralExpression(false, firstToken.location)
@@ -1144,8 +1144,8 @@ class Parser(
         var token = tokenizer.next()
         return when (token) {
             // Patterns only consist of literals and variables
-            is IntLiteralToken -> IntLiteral(token.num, token.location)
-            is FloatLiteralToken -> FloatLiteral(token.num, token.location)
+            is IntegralLiteralToken -> IntegralLiteralExpression(token.num, token.location)
+            is DecimalLiteralToken -> DecimalLiteralExpression(token.num, token.location)
             is StringLiteralToken -> StringLiteralExpression(token.str, token.location)
             is TrueToken -> BoolLiteralExpression(true, token.location)
             is FalseToken -> BoolLiteralExpression(false, token.location)
@@ -1156,10 +1156,10 @@ class Parser(
             // Plus tokens can prefix a number literal
             is PlusToken -> {
                 val currentToken = tokenizer.next()
-                if (currentToken is IntLiteralToken) {
-                    IntLiteral(currentToken.num, token.location)
-                } else if (currentToken is FloatLiteralToken) {
-                    FloatLiteral(currentToken.num, token.location)
+                if (currentToken is IntegralLiteralToken) {
+                    IntegralLiteralExpression(currentToken.num, token.location)
+                } else if (currentToken is DecimalLiteralToken) {
+                    DecimalLiteralExpression(currentToken.num, token.location)
                 } else {
                     throw ParseException("Patterns must only consist of literals and variables",
                         token)
@@ -1168,10 +1168,10 @@ class Parser(
             // Minus tokens can prefix a number literal
             is MinusToken -> {
                 val currentToken = tokenizer.next()
-                if (currentToken is IntLiteralToken) {
-                    IntLiteral(-currentToken.num, token.location)
-                } else if (currentToken is FloatLiteralToken) {
-                    FloatLiteral(-currentToken.num, token.location)
+                if (currentToken is IntegralLiteralToken) {
+                    IntegralLiteralExpression(-currentToken.num, token.location)
+                } else if (currentToken is DecimalLiteralToken) {
+                    DecimalLiteralExpression(-currentToken.num, token.location)
                 } else {
                     throw ParseException("Patterns must only consist of literals and variables",
                         token)
@@ -1536,8 +1536,10 @@ class Parser(
         var currentType = when (currentToken) {
             is BoolToken -> BoolTypeExpression
             is StringTypeToken -> StringTypeExpression
+            is ByteToken -> ByteTypeExpression
             is IntToken -> IntTypeExpression
             is FloatToken -> FloatTypeExpression
+            is DoubleToken -> DoubleTypeExpression
             is UnitToken -> UnitTypeExpression
             is LeftParenToken -> parseParenthesizedType(inFunctionDef)
             is VecToken -> parseVectorType(inFunctionDef)
@@ -1919,8 +1921,10 @@ class Parser(
         val (typeSig, typeIdent) = if (scopes.isEmpty() &&
                 (name == "unit" ||
                  name == "bool" ||
+                 name == "byte" ||
                  name == "int" ||
                  name == "float" ||
+                 name == "double" ||
                  name == "string" ||
                  name == "vec" ||
                  name == "set" ||

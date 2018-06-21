@@ -10,11 +10,16 @@ import myte.shared.*
  */
 class LambdaNode(
     val formalArgs: List<Identifier>,
-    val body: IRNode,
+    var body: IRNode,
     startLocation: Location
 ) : IRNode(startLocation) {
-    override fun <T> map(func: (IRNode) -> T) {
+    override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
+        body.forEach(func)
+    }
+
+    override fun map(func: (IRNode) -> IRNode) {
+        body = func(body)
         body.map(func)
     }
 }

@@ -20,7 +20,11 @@ implement float extends Add<float>, Subtract<float>, Multiply<float>, Divide<flo
 
     def unaryMinus() = __builtin("float.unaryMinus", this)
 
+    def toByte(): byte = __builtin("float.toByte", this)
+
     def toInt(): int = __builtin("float.toInt", this)
+
+    def toDouble(): double = __builtin("float.toDouble", this)
 
     def toString(): string = __builtin("float.toString", this)
 }

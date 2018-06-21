@@ -12,15 +12,29 @@ import myte.shared.*
  * @property isExpression whether this match should be treated like an expression
  */
 class MatchNode(
-    val expr: IRNode,
-    val cases: List<Triple<IRNode, IRNode?, IRNode>>,
+    var expr: IRNode,
+    var cases: List<Triple<IRNode, IRNode?, IRNode>>,
     val isExpression: Boolean,
     startLocation: Location
 ) : IRNode(startLocation) {
-    override fun <T> map(func: (IRNode) -> T) {
+    override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
+        expr.forEach(func)
+        cases.forEach { (pattern, guard, statement) ->
+            pattern.forEach(func)
+            guard?.forEach(func)
+            statement.forEach(func)
+        }
+    }
+
+    override fun map(func: (IRNode) -> IRNode) {
+        expr = func(expr)
+        cases = cases.map { (pattern, guard, statement) ->
+            Triple(func(pattern), guard?.let { func(it) }, func(statement))
+        }
+
         expr.map(func)
-        cases.map { (pattern, guard, statement) ->
+        cases.forEach { (pattern, guard, statement) ->
             pattern.map(func)
             guard?.map(func)
             statement.map(func)

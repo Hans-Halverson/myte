@@ -67,8 +67,10 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             // Literals and variables
             is BoolLiteralNode -> BoolValue(node.bool)
             is StringLiteralNode -> StringValue(node.str)
+            is ByteLiteralNode -> ByteValue(node.num)
             is IntLiteralNode -> IntValue(node.num)
             is FloatLiteralNode -> FloatValue(node.num)
+            is DoubleLiteralNode -> DoubleValue(node.num)
             is UnitLiteralNode -> UnitValue
             is VectorLiteralNode -> evalVectorLiteralNode(node, env)
             is SetLiteralNode -> evalSetLiteralNode(node, env)
@@ -113,6 +115,8 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             is ReturnNode -> evalReturn(node, env)
             is BreakNode -> throw Break
             is ContinueNode -> throw Continue
+            // Wrapper nodes should simply delegate to the wrapped node
+            is WrapperNode -> evaluate(node.node, env)
             else -> throw EvaluationException("Unknown IR node ${node}", node.startLocation)
         }
     }
@@ -270,6 +274,12 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
 
     fun evalComparison(node: ComparisonNode, env: Environment): BoolValue {
         return when (node.left.type) {
+            is ByteType -> {
+                val left = evaluate(node.left, env) as ByteValue
+                val right = evaluate(node.right, env) as ByteValue
+
+                BoolValue(node.compareBytes(left.num, right.num))
+            }
             is IntType -> {
                 val left = evalInt(node.left, env)
                 val right = evalInt(node.right, env)
@@ -281,6 +291,12 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
                 val right = evalFloat(node.right, env)
 
                 BoolValue(node.compareFloats(left.num, right.num))
+            }
+            is DoubleType -> {
+                val left = evaluate(node.left, env) as DoubleValue
+                val right = evaluate(node.right, env) as DoubleValue
+
+                BoolValue(node.compareDoubles(left.num, right.num))
             }
             else -> throw EvaluationException("Comparison must be between two numbers, "
                     + "given ${formatType(node.type)}", node.startLocation)
@@ -548,13 +564,14 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
 
     fun evalIf(node: IfNode, env: Environment): Value {
         val cond = evalBool(node.cond, env)
+        val altern = node.altern
 
         var result: Value = UnitValue
 
         if (cond.bool) {
             result = evaluate(node.conseq, env)
-        } else if (node.altern != null) {
-            result = evaluate(node.altern, env)
+        } else if (altern != null) {
+            result = evaluate(altern, env)
         }
 
         // If an expression, evaluate to evaluated case. If statement, always evaluate to unit.
@@ -613,13 +630,11 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         env.enterScope()
 
         // Evaluate init statement and condition before for loop enters, if they exist
-        if (node.init != null) {
-            evaluate(node.init, env)
-        }
+        node.init?.let { evaluate(it, env) }
 
         var condition = true
-        if (node.cond != null) {
-            condition = evalBool(node.cond, env).bool
+        node.cond?.let { cond ->
+            condition = evalBool(cond, env).bool
         }
 
         try {
@@ -627,12 +642,10 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
                 // If a continue is encountered, continue to next condition check
                 evalUntilContinue(node.body, env)
 
-                if (node.update != null) {
-                    evaluate(node.update, env)
-                }
+                node.update?.let { evaluate(it, env) }
 
-                if (node.cond != null) {
-                    condition = evalBool(node.cond, env).bool
+                node.cond?.let { cond ->
+                    condition = evalBool(cond, env).bool
                 }
             }
         // If a break is encountered, exit the loop
@@ -831,7 +844,8 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
 
     fun evalReturn(node: ReturnNode, env: Environment): UnitValue {
         // If no return value is specified, this return returns unit
-        val returnVal = if (node.expr != null) evaluate(node.expr, env) else UnitValue
+        val expr = node.expr
+        val returnVal = if (expr != null) evaluate(expr, env) else UnitValue
         throw Return(returnVal)
     }
 

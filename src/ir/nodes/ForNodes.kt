@@ -11,14 +11,26 @@ import myte.shared.*
  * @property body the body of the for loop
  */
 class ForNode(
-    val init: IRNode?,
-    val cond: IRNode?,
-    val update: IRNode?,
-    val body: IRNode,
+    var init: IRNode?,
+    var cond: IRNode?,
+    var update: IRNode?,
+    var body: IRNode,
     startLocation: Location
 ) : IRNode(startLocation) {
-    override fun <T> map(func: (IRNode) -> T) {
+    override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
+        init?.forEach(func)
+        cond?.forEach(func)
+        update?.forEach(func)
+        body.forEach(func)
+    }
+
+    override fun map(func: (IRNode) -> IRNode) {
+        init = init?.let { func(it) }
+        cond = cond?.let { func(it) }
+        update = update?.let { func(it) }
+        body = func(body)
+
         init?.map(func)
         cond?.map(func)
         update?.map(func)
@@ -35,14 +47,24 @@ class ForNode(
  * @property body the body of the for loop
  */
 class ForEachNode(
-    val lValue: IRNode,
+    var lValue: IRNode,
     val typeAnnotation: Type?,
-    val iterable: IRNode,
-    val body: IRNode,
+    var iterable: IRNode,
+    var body: IRNode,
     startLocation: Location
 ) : IRNode(startLocation) {
-    override fun <T> map(func: (IRNode) -> T) {
+    override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
+        lValue.forEach(func)
+        iterable.forEach(func)
+        body.forEach(func)
+    }
+
+    override fun map(func: (IRNode) -> IRNode) {
+        lValue = func(lValue)
+        iterable = func(iterable)
+        body = func(body)
+
         lValue.map(func)
         iterable.map(func)
         body.map(func)

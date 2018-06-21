@@ -73,6 +73,19 @@ val BUILTINS: Map<String, Builtin> = hashMapOf(
 )
 
 val BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
+    BYTE_ADD_METHOD to ByteAddBuiltinMethod(),
+    BYTE_SUBTRACT_METHOD to ByteSubtractBuiltinMethod(),
+    BYTE_MULTIPLY_METHOD to ByteMultiplyBuiltinMethod(),
+    BYTE_DIVIDE_METHOD to ByteDivideBuiltinMethod(),
+    BYTE_POWER_METHOD to BytePowerBuiltinMethod(),
+    BYTE_REMAINDER_METHOD to ByteRemainderBuiltinMethod(),
+    BYTE_UNARY_PLUS_METHOD to ByteUnaryPlusBuiltinMethod(),
+    BYTE_UNARY_MINUS_METHOD to ByteUnaryMinusBuiltinMethod(),
+    BYTE_TO_INT_METHOD to ByteToIntBuiltinMethod(),
+    BYTE_TO_FLOAT_METHOD to ByteToFloatBuiltinMethod(),
+    BYTE_TO_DOUBLE_METHOD to ByteToDoubleBuiltinMethod(),
+    BYTE_TO_STRING_METHOD to ByteToStringBuiltinMethod(),
+
     INT_ADD_METHOD to IntAddBuiltinMethod(),
     INT_SUBTRACT_METHOD to IntSubtractBuiltinMethod(),
     INT_MULTIPLY_METHOD to IntMultiplyBuiltinMethod(),
@@ -81,7 +94,9 @@ val BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
     INT_REMAINDER_METHOD to IntRemainderBuiltinMethod(),
     INT_UNARY_PLUS_METHOD to IntUnaryPlusBuiltinMethod(),
     INT_UNARY_MINUS_METHOD to IntUnaryMinusBuiltinMethod(),
+    INT_TO_BYTE_METHOD to IntToByteBuiltinMethod(),
     INT_TO_FLOAT_METHOD to IntToFloatBuiltinMethod(),
+    INT_TO_DOUBLE_METHOD to IntToDoubleBuiltinMethod(),
     INT_TO_STRING_METHOD to IntToStringBuiltinMethod(),
 
     FLOAT_ADD_METHOD to FloatAddBuiltinMethod(),
@@ -92,8 +107,23 @@ val BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
     FLOAT_REMAINDER_METHOD to FloatRemainderBuiltinMethod(),
     FLOAT_UNARY_PLUS_METHOD to FloatUnaryPlusBuiltinMethod(),
     FLOAT_UNARY_MINUS_METHOD to FloatUnaryMinusBuiltinMethod(),
+    FLOAT_TO_BYTE_METHOD to FloatToByteBuiltinMethod(),
     FLOAT_TO_INT_METHOD to FloatToIntBuiltinMethod(),
+    FLOAT_TO_DOUBLE_METHOD to FloatToDoubleBuiltinMethod(),
     FLOAT_TO_STRING_METHOD to FloatToStringBuiltinMethod(),
+
+    DOUBLE_ADD_METHOD to DoubleAddBuiltinMethod(),
+    DOUBLE_SUBTRACT_METHOD to DoubleSubtractBuiltinMethod(),
+    DOUBLE_MULTIPLY_METHOD to DoubleMultiplyBuiltinMethod(),
+    DOUBLE_DIVIDE_METHOD to DoubleDivideBuiltinMethod(),
+    DOUBLE_POWER_METHOD to DoublePowerBuiltinMethod(),
+    DOUBLE_REMAINDER_METHOD to DoubleRemainderBuiltinMethod(),
+    DOUBLE_UNARY_PLUS_METHOD to DoubleUnaryPlusBuiltinMethod(),
+    DOUBLE_UNARY_MINUS_METHOD to DoubleUnaryMinusBuiltinMethod(),
+    DOUBLE_TO_BYTE_METHOD to DoubleToByteBuiltinMethod(),
+    DOUBLE_TO_INT_METHOD to DoubleToIntBuiltinMethod(),
+    DOUBLE_TO_FLOAT_METHOD to DoubleToFloatBuiltinMethod(),
+    DOUBLE_TO_STRING_METHOD to DoubleToStringBuiltinMethod(),
 
     STRING_SIZE_METHOD to StringSizeBuiltinMethod(),
     STRING_ADD_METHOD to StringAddBuiltinMethod(),

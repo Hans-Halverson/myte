@@ -9,12 +9,17 @@ import myte.shared.*
  * @property isExpression whether this block should be treated like an expression
  */
 class BlockNode(
-    val nodes: List<IRNode>,
+    var nodes: List<IRNode>,
     val isExpression: Boolean,
     startLocation: Location
 ) : IRNode(startLocation) {
-    override fun <T> map(func: (IRNode) -> T) {
+    override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
-        nodes.map { node -> node.map(func) }
+        nodes.forEach { node -> node.forEach(func) }
+    }
+
+    override fun map(func: (IRNode) -> IRNode) {
+        nodes = nodes.map(func)
+        nodes.forEach { node -> node.map(func) }
     }
 }

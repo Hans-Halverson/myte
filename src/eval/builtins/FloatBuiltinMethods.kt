@@ -13,7 +13,9 @@ const val FLOAT_POWER_METHOD = "float.power"
 const val FLOAT_REMAINDER_METHOD = "float.remainder"
 const val FLOAT_UNARY_PLUS_METHOD = "float.unaryPlus"
 const val FLOAT_UNARY_MINUS_METHOD = "float.unaryMinus"
+const val FLOAT_TO_BYTE_METHOD = "float.toByte"
 const val FLOAT_TO_INT_METHOD = "float.toInt"
+const val FLOAT_TO_DOUBLE_METHOD = "float.toDouble"
 const val FLOAT_TO_STRING_METHOD = "float.toString"
 
 /**
@@ -107,7 +109,7 @@ class FloatPowerBuiltinMethod(
     override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as FloatValue
         val otherFloat = args[0] as FloatValue
-        return FloatValue(Math.pow(receiver.num, otherFloat.num))
+        return FloatValue(Math.pow(receiver.num.toDouble(), otherFloat.num.toDouble()).toFloat())
     }
 }
 
@@ -167,6 +169,24 @@ class FloatUnaryMinusBuiltinMethod(
 }
 
 /**
+ * A builtin which converts a float to a byte.
+ */
+class FloatToByteBuiltinMethod(
+) : BuiltinMethod(
+    FLOAT_TO_BYTE_METHOD,
+    FunctionType(listOf(), ByteType),
+    FloatType
+) {
+    /**
+    * Converts a float to a byte.
+    */
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
+        val receiver = recv as FloatValue
+        return ByteValue(receiver.num.toByte())
+    }
+}
+
+/**
  * A builtin which converts a float to an int.
  */
 class FloatToIntBuiltinMethod(
@@ -181,6 +201,24 @@ class FloatToIntBuiltinMethod(
     override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as FloatValue
         return IntValue(receiver.num.toInt())
+    }
+}
+
+/**
+ * A builtin which converts a float to a double.
+ */
+class FloatToDoubleBuiltinMethod(
+) : BuiltinMethod(
+    FLOAT_TO_DOUBLE_METHOD,
+    FunctionType(listOf(), DoubleType),
+    FloatType
+) {
+    /**
+    * Converts a float to a double.
+    */
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
+        val receiver = recv as FloatValue
+        return DoubleValue(receiver.num.toDouble())
     }
 }
 

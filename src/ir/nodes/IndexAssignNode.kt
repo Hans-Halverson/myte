@@ -11,13 +11,23 @@ import myte.shared.*
  * @property indexLocation the location of the left bracket in the index
  */
 class IndexAssignNode(
-    val container: IRNode,
-    val key: IRNode,
-    val rValue: IRNode,
+    var container: IRNode,
+    var key: IRNode,
+    var rValue: IRNode,
     val indexLocation: Location
 ) : IRNode(container.startLocation) {
-    override fun <T> map(func: (IRNode) -> T) {
+    override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
+        container.forEach(func)
+        key.forEach(func)
+        rValue.forEach(func)
+    }
+
+    override fun map(func: (IRNode) -> IRNode) {
+        container = func(container)
+        key = func(key)
+        rValue = func(rValue)
+
         container.map(func)
         key.map(func)
         rValue.map(func)

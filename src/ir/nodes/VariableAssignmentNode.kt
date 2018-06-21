@@ -11,16 +11,17 @@ import myte.shared.*
  */
 class VariableAssignmentNode(
     val lValue: Identifier,
-    val rValue: IRNode,
+    var rValue: IRNode,
     val identLocation: Location
 ) : IRNode(identLocation) {
-    override fun <T> map(func: (IRNode) -> T) {
+    override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
-        rValue.map(func)
+        rValue.forEach(func)
     }
 
-    override fun toString(): String {
-        return "VariableAssignmentNode(lValue=${lValue}, rValue=${rValue})"
+    override fun map(func: (IRNode) -> IRNode) {
+        rValue = func(rValue)
+        rValue.map(func)
     }
 
     override fun equals(other: Any?): Boolean {

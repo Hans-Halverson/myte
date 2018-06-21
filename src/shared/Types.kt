@@ -48,6 +48,8 @@ open class TypeVariable(val id: Long = newTypeVariableId()) : Type(TypeVariableS
 
     override fun toString(): String = formatToString()
 
+    override fun hashCode(): Int = id.hashCode()
+
     override fun equals(other: Any?): Boolean {
         if (other !is TypeVariable) {
             return false
@@ -71,6 +73,12 @@ object BoolType : Type(BoolTypeSignature) {
     override fun toString(): String = formatToString()
 }
 
+object ByteType : NumberType(ByteTypeSignature) {
+    override fun formatToString(typeVars: Map<TypeVariable, String>): String = "byte"
+
+    override fun toString(): String = formatToString()
+}
+
 object IntType : NumberType(IntTypeSignature) {
     override fun formatToString(typeVars: Map<TypeVariable, String>): String = "int"
 
@@ -79,6 +87,12 @@ object IntType : NumberType(IntTypeSignature) {
 
 object FloatType : NumberType(FloatTypeSignature) {
     override fun formatToString(typeVars: Map<TypeVariable, String>): String = "float"
+
+    override fun toString(): String = formatToString()
+}
+
+object DoubleType : NumberType(DoubleTypeSignature) {
+    override fun formatToString(typeVars: Map<TypeVariable, String>): String = "double"
 
     override fun toString(): String = formatToString()
 }

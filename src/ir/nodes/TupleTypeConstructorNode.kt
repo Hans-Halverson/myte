@@ -12,12 +12,17 @@ import myte.shared.*
  */
 class TupleTypeConstructorNode(
     val adtVariant: TupleVariant,
-    val actualArgs: List<IRNode>,
+    var actualArgs: List<IRNode>,
     identLocation: Location
 ) : IRNode(identLocation) {
-    override fun <T> map(func: (IRNode) -> T) {
+    override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
-        actualArgs.map { arg -> arg.map(func) }
+        actualArgs.forEach { arg -> arg.forEach(func) }
+    }
+
+    override fun map(func: (IRNode) -> IRNode) {
+        actualArgs = actualArgs.map(func)
+        actualArgs.forEach { arg -> arg.map(func) }
     }
 
     override fun equals(other: Any?): Boolean {

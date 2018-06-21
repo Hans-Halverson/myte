@@ -12,18 +12,19 @@ import myte.shared.*
  */
 class VariableDefinitionNode(
     val ident: Identifier,
-    val expr: IRNode,
+    var expr: IRNode,
     val typeAnnotation: Type?,
     val identLocation: Location,
     startLocation: Location
 ) : IRNode(startLocation) {
-    override fun <T> map(func: (IRNode) -> T) {
+    override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
-        expr.map(func)
+        expr.forEach(func)
     }
 
-    override fun toString(): String {
-        return "VariableDefinitionNode(ident=${ident}, expr=${expr})"
+    override fun map(func: (IRNode) -> IRNode) {
+        expr = func(expr)
+        expr.map(func)
     }
 
     override fun equals(other: Any?): Boolean {

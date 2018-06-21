@@ -13,7 +13,9 @@ const val INT_POWER_METHOD = "int.power"
 const val INT_REMAINDER_METHOD = "int.remainder"
 const val INT_UNARY_PLUS_METHOD = "int.unaryPlus"
 const val INT_UNARY_MINUS_METHOD = "int.unaryMinus"
+const val INT_TO_BYTE_METHOD = "int.toByte"
 const val INT_TO_FLOAT_METHOD = "int.toFloat"
+const val INT_TO_DOUBLE_METHOD = "int.toDouble"
 const val INT_TO_STRING_METHOD = "int.toString"
 
 /**
@@ -167,6 +169,24 @@ class IntUnaryMinusBuiltinMethod(
 }
 
 /**
+ * A builtin which converts an int to a byte.
+ */
+class IntToByteBuiltinMethod(
+) : BuiltinMethod(
+    INT_TO_BYTE_METHOD,
+    FunctionType(listOf(), ByteType),
+    IntType
+) {
+    /**
+    * Converts an int to a byte.
+    */
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
+        val receiver = recv as IntValue
+        return ByteValue(receiver.num.toByte())
+    }
+}
+
+/**
  * A builtin which converts an int to a float.
  */
 class IntToFloatBuiltinMethod(
@@ -180,7 +200,25 @@ class IntToFloatBuiltinMethod(
     */
     override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as IntValue
-        return FloatValue(receiver.num.toDouble())
+        return FloatValue(receiver.num.toFloat())
+    }
+}
+
+/**
+ * A builtin which converts an int to a double.
+ */
+class IntToDoubleBuiltinMethod(
+) : BuiltinMethod(
+    INT_TO_DOUBLE_METHOD,
+    FunctionType(listOf(), DoubleType),
+    IntType
+) {
+    /**
+    * Converts an int to a double.
+    */
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
+        val receiver = recv as IntValue
+        return DoubleValue(receiver.num.toDouble())
     }
 }
 

@@ -9,11 +9,19 @@ import myte.shared.*
  * @property right the right hand side of the arithmetic expression
  */
 sealed class BinaryMathOperatorNode(
-    val left: IRNode,
-    val right: IRNode
+    var left: IRNode,
+    var right: IRNode
 ) : IRNode(left.startLocation) {
-    override fun <T> map(func: (IRNode) -> T) {
+    override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
+        left.forEach(func)
+        right.forEach(func)
+    }
+
+    override fun map(func: (IRNode) -> IRNode) {
+        left = func(left)
+        right = func(right)   
+
         left.map(func)
         right.map(func)
     }

@@ -19,7 +19,15 @@ abstract class IRNode(val startLocation: Location) {
      *
      * @param func the function that will be applied to every node in the IR tree
      */
-    open fun <T> map(func: (IRNode) -> T) {
+    open fun <T> forEach(func: (IRNode) -> T) {
         func(this)
     }
+
+    /**
+     * Transform every node in the entire IR tree according to some function.
+     * The function will be applied in preorder.
+     * 
+     * @param func the function that will be applied to every node in the IR tree
+     */
+    open fun map(func: (IRNode) -> IRNode) {}
 }

@@ -28,6 +28,78 @@ sealed class DeferredConstraint {
     open fun inferOnFixedPointStall(trigger: Type): Boolean = false
 }
 
+class IntegralConstraint(
+    val node: IntegralLiteralNode,
+    val typeChecker: TypeChecker
+) : DeferredConstraint() {
+    override fun apply(trigger: Type): Boolean {
+        val nodeType = trigger
+ 
+        // Succeed if node's type is resolved to an integral type
+        if (nodeType is ByteType || nodeType is IntType) {
+            return true
+        } else if (nodeType is TypeVariable) {
+            return false
+        } else {
+            val type = typeChecker.typeToString(nodeType)
+            throw IRConversionException("Integral literal could not be inferred to have integral " +
+                    "type, found ${type}", node.startLocation)
+        }
+    }
+
+    override fun assertUnresolved() {
+        throw IRConversionException("Type could not be inferred, consider adding more type " +
+                "annotations", node.startLocation)
+    }
+
+    override fun inferOnFixedPointStall(trigger: Type): Boolean {
+        if (!typeChecker.unify(trigger, IntType)) {
+            val type = typeChecker.typeToString(trigger)
+            throw IRConversionException("Integral literal inferred to have type int, but " +
+                    "expected ${type}. If int was not the correct type, consider adding more " +
+                    "type annotations.", node.startLocation)
+        }
+
+        return true
+    }
+}
+
+class DecimalConstraint(
+    val node: DecimalLiteralNode,
+    val typeChecker: TypeChecker
+) : DeferredConstraint() {
+    override fun apply(trigger: Type): Boolean {
+        val nodeType = trigger
+ 
+        // Succeed if node's type is resolved to a decimal type
+        if (nodeType is FloatType || nodeType is DoubleType) {
+            return true
+        } else if (nodeType is TypeVariable) {
+            return false
+        } else {
+            val type = typeChecker.typeToString(nodeType)
+            throw IRConversionException("Decimal literal could not be inferred to have decimal " +
+                    "type, found ${type}", node.startLocation)
+        }
+    }
+
+    override fun assertUnresolved() {
+        throw IRConversionException("Type could not be inferred, consider adding more type " +
+                "annotations", node.startLocation)
+    }
+
+    override fun inferOnFixedPointStall(trigger: Type): Boolean {
+        if (!typeChecker.unify(trigger, DoubleType)) {
+            val type = typeChecker.typeToString(trigger)
+            throw IRConversionException("Decimal literal inferred to have type double, but " +
+                    "expected ${type}. If double was not the correct type, consider adding more " +
+                    "type annotations.", node.startLocation)
+        }
+
+        return true
+    }
+}
+
 class AccessConstraint(
     val node: AccessNode,
     val boundVars: MutableSet<TypeVariable>,
@@ -219,19 +291,10 @@ class SubtypeConstraint(
 ) : DeferredConstraint() {
     override fun apply(trigger: Type): Boolean {
         val superType = trigger
-        val repSubType = if (subType is TypeVariable) {
-            typeChecker.findRepNode(subType).resolvedType
-        } else {
-            subType
-        }
 
         // If the supertype is still a type variable, keep this constraint
         if (superType is TypeVariable) {
             return false
-        // If the subtype is still a type variable, remove this constraint since the
-        // super/subtype relation will be enforced by the supertype constraint on the subtype.
-        } else if (repSubType is TypeVariable) {
-            return true
         } else {
             if (!typeChecker.subtype(subType, superType, except)) {
                 except()
@@ -247,6 +310,10 @@ class SubtypeConstraint(
     }
 
     override fun inferOnFixedPointStall(trigger: Type): Boolean {
+        if (typeChecker.subtype(subType, trigger, except, false)) {
+            return true
+        }
+
         if (!typeChecker.unify(trigger, subType)) {
             except()
         }
@@ -262,19 +329,10 @@ class SupertypeConstraint(
 ) : DeferredConstraint() {
     override fun apply(trigger: Type): Boolean {
         val subType = trigger
-        val repSuperType = if (superType is TypeVariable) {
-            typeChecker.findRepNode(superType).resolvedType
-        } else {
-            superType
-        }
 
         // If the subtype is still a type variable, keep this constraint
         if (subType is TypeVariable) {
             return false
-        // If the supertype is still a type variable, remove this constraint since the
-        // super/subtype relation will be enforced by the subtype constraint on the supertype.
-        } else if (repSuperType is TypeVariable) {
-            return true
         } else {
             if (!typeChecker.subtype(subType, superType, except)) {
                 except()
@@ -290,7 +348,50 @@ class SupertypeConstraint(
     }
 
     override fun inferOnFixedPointStall(trigger: Type): Boolean {
+        if (typeChecker.subtype(trigger, superType, except, false)) {
+            return true
+        }
+
         if (!typeChecker.unify(trigger, superType)) {
+            except()
+        }
+
+        return true
+    }
+}
+
+class VariableSubtypingConstraint(
+    val subType: TypeVariable,
+    val superType: TypeVariable,
+    val except: () -> Unit,
+    val typeChecker: TypeChecker
+) : DeferredConstraint() {
+    override fun apply(trigger: Type): Boolean {
+        val repSubType = typeChecker.findRepNode(subType).resolvedType
+        val repSuperType = typeChecker.findRepNode(superType).resolvedType
+
+        if (repSubType is TypeVariable && repSuperType is TypeVariable) {
+            return false
+        } else {
+            if (!typeChecker.subtype(repSubType, repSuperType, except)) {
+                except()
+            }
+
+            return true
+        }
+    }
+
+    override fun assertUnresolved() {
+        throw ExceptionWithoutLocation("Subtype could not be inferred, consider adding more " +
+                "type annotations")
+    }
+
+    override fun inferOnFixedPointStall(trigger: Type): Boolean {
+        if (typeChecker.subtype(subType, superType, except, false)) {
+            return true
+        }
+
+        if (!typeChecker.unify(subType, superType)) {
             except()
         }
 

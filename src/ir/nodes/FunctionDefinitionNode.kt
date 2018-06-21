@@ -15,14 +15,19 @@ import myte.shared.*
 open class FunctionDefinitionNode(
     val ident: Identifier,
     val formalArgs: List<Identifier>,
-    val body: IRNode,
+    var body: IRNode,
     val returnTypeAnnotation: Type?,
     val signatures: List<Type>?,
     val identLocation: Location,
     startLocation: Location
 ) : IRNode(startLocation) {
-    override fun <T> map(func: (IRNode) -> T) {
+    override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
+        body.forEach(func)
+    }
+
+    override fun map(func: (IRNode) -> IRNode) {
+        body = func(body)
         body.map(func)
     }
 }

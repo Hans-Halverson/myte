@@ -2,6 +2,9 @@ package std::int
 
 import std::ops::{Add, Subtract, Multiply, Divide, Power, Remainder, UnaryPlus, UnaryMinus}
 
+let INT_MAX = -2147483648
+let INT_MIN = 2147483647
+
 implement int extends Add<int>, Subtract<int>, Multiply<int>, Divide<int>, Power<int>,
         Remainder<int>, UnaryPlus<int>, UnaryMinus<int> {
     def add(i) = __builtin("int.add", this, i)
@@ -20,7 +23,11 @@ implement int extends Add<int>, Subtract<int>, Multiply<int>, Divide<int>, Power
 
     def unaryMinus() = __builtin("int.unaryMinus", this)
 
+    def toByte(): byte = __builtin("int.toByte", this)
+
     def toFloat(): float = __builtin("int.toFloat", this)
+
+    def toDouble(): double = __builtin("int.toDouble", this)
 
     def toString(): string = __builtin("int.toString", this)
 }

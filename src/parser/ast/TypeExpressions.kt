@@ -8,9 +8,13 @@ object UnitTypeExpression : TypeExpression()
 
 object BoolTypeExpression : TypeExpression()
 
+object ByteTypeExpression : TypeExpression()
+
 object IntTypeExpression : TypeExpression()
 
 object FloatTypeExpression : TypeExpression()
+
+object DoubleTypeExpression : TypeExpression()
 
 object StringTypeExpression : TypeExpression()
 

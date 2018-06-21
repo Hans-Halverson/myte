@@ -1,19 +1,25 @@
 package myte.lexer
 
+import java.math.BigDecimal
+import java.math.BigInteger
+
 import myte.shared.*
 
 sealed class Token(val location: Location, val type: TokenType) {    
     override fun toString(): String = type.toString()
 }
 
-class IntLiteralToken(val num: Int, location: Location) : Token(location, TokenType.INT_LITERAL) {
+class IntegralLiteralToken(
+    val num: BigInteger,
+    location: Location
+) : Token(location, TokenType.INTEGRAL_LITERAL) {
     override fun toString(): String = num.toString()
 }
 
-class FloatLiteralToken(
-    val num: Double,
+class DecimalLiteralToken(
+    val num: BigDecimal,
     location: Location
-) : Token(location, TokenType.FLOAT_LITERAL) {
+) : Token(location, TokenType.DECIMAL_LITERAL) {
     override fun toString(): String = num.toString()
 }
 
@@ -148,6 +154,10 @@ class StringTypeToken(
     location: Location
 ) : IdentifierToken(TokenType.STRING_TYPE.toString(), location, TokenType.STRING_TYPE)
 
+class ByteToken(
+    location: Location
+) : IdentifierToken(TokenType.BYTE.toString(), location, TokenType.BYTE)
+
 class IntToken(
     location: Location
 ) : IdentifierToken(TokenType.INT.toString(), location, TokenType.INT)
@@ -155,6 +165,10 @@ class IntToken(
 class FloatToken(
     location: Location
 ) : IdentifierToken(TokenType.FLOAT.toString(), location, TokenType.FLOAT)
+
+class DoubleToken(
+    location: Location
+) : IdentifierToken(TokenType.DOUBLE.toString(), location, TokenType.DOUBLE)
 
 class VecToken(
     location: Location

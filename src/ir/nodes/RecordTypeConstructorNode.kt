@@ -11,12 +11,17 @@ import myte.shared.*
  */
 class RecordTypeConstructorNode(
     val adtVariant: RecordVariant,
-    val fields: Map<String, IRNode>,
+    var fields: Map<String, IRNode>,
     identLocation: Location
 ) : IRNode(identLocation) {
-    override fun <T> map(func: (IRNode) -> T) {
+    override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
-        fields.values.map { arg -> arg.map(func) }
+        fields.values.forEach { arg -> arg.forEach(func) }
+    }
+
+    override fun map(func: (IRNode) -> IRNode) {
+        fields = fields.mapValues { (_, value) -> func(value) }
+        fields.forEach { (_, value) -> value.map(func) }
     }
 
     override fun equals(other: Any?): Boolean {

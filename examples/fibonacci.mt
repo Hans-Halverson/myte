@@ -2,7 +2,7 @@ package Fibonacci
 
 import std::fmt::println
 
-def fib(x) {
+def fib(x): int {
     if (x <= 1) {
         return 1
     } else {

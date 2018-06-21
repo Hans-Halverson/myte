@@ -1,7 +1,5 @@
 # Core Progress
 
-- Add overloading of functions
-
 - Allow for traits to extend other traits
 
 

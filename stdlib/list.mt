@@ -40,7 +40,7 @@ implement List<a> {
         | Nil -> i
         | Cons(hd, tl) -> f(tl.fold(f, i), hd)
 
-    def zip(other: List<b>) = match (this, other)
+    def zip(other) = match (this, other)
         | (Nil, _) -> Nil
         | (_, Nil) -> Nil
         | (Cons(hd1, tl1), Cons(hd2, tl2)) -> Cons((hd1, hd2), tl1.zip(tl2))

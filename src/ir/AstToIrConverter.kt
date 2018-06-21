@@ -1,5 +1,7 @@
 package myte.ir
 
+import java.math.BigInteger
+
 import myte.eval.builtins.*
 import myte.ir.nodes.*
 import myte.parser.*
@@ -94,8 +96,8 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             // Convert node, infer types, and verify correct IR structure
             val node = when (statement) {
                 // Match statements on top level of REPL should be interpreted as expressions
-                is MatchStatement -> convert(statement, true)
-                else -> convert(statement, false)
+                is MatchStatement -> WrapperNode(convert(statement, true))
+                else -> WrapperNode(convert(statement, false))
             }
 
             inferTypes(listOf(node), false)
@@ -118,8 +120,8 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             // Literals
             stmt is BoolLiteralExpression -> BoolLiteralNode(stmt.bool, stmt.startLocation)
             stmt is StringLiteralExpression -> StringLiteralNode(stmt.str, stmt.startLocation)
-            stmt is IntLiteral -> IntLiteralNode(stmt.num, stmt.startLocation)
-            stmt is FloatLiteral -> FloatLiteralNode(stmt.num, stmt.startLocation)
+            stmt is IntegralLiteralExpression -> convertIntegralLiteral(stmt)
+            stmt is DecimalLiteralExpression -> convertDecimalLiteral(stmt)
             stmt is UnitLiteralExpression -> UnitLiteralNode(stmt.startLocation)
             stmt is VectorLiteralExpression -> convertVectorLiteral(stmt)
             stmt is SetLiteralExpression -> convertSetLiteral(stmt)
@@ -182,6 +184,14 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     // Conversion functions for each AST statement node
     //
     ///////////////////////////////////////////////////////////////////////////
+
+    fun convertIntegralLiteral(expr: IntegralLiteralExpression): IntegralLiteralNode {
+        return IntegralLiteralNode(expr.num, expr.startLocation)
+    }
+
+    fun convertDecimalLiteral(expr: DecimalLiteralExpression): DecimalLiteralNode {
+        return DecimalLiteralNode(expr.num, expr.startLocation)
+    }
 
     fun convertLambda(expr: LambdaExpression): LambdaNode {
         val formalArgs = expr.formalArgs.map { (arg, typeAnnotation) ->
@@ -652,29 +662,31 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     }
 
     fun convertUnaryPlus(expr: UnaryPlusExpression): IRNode {
-        val child = convert(expr.expr, true)
-
-        // If child is an int or float literal, can simply return the literals
-        if (child is IntLiteralNode) {
-            return IntLiteralNode(child.num, expr.startLocation)
-        } else if (child is FloatLiteralNode) {
-            return FloatLiteralNode(child.num, expr.startLocation)
-        } else {
-            return IdentityNode(child, expr.startLocation)
+        // If child is an integral or decimal literal, can simply return the literals
+        if (expr.expr is IntegralLiteralExpression) {
+            return convertIntegralLiteral(
+                    IntegralLiteralExpression(expr.expr.num, expr.startLocation))
+        } else if (expr.expr is DecimalLiteralExpression) {
+            return convertDecimalLiteral(
+                    DecimalLiteralExpression(expr.expr.num, expr.startLocation))
         }
+
+        val child = convert(expr.expr, true)
+        return IdentityNode(child, expr.startLocation)
     }
 
     fun convertUnaryMinus(expr: UnaryMinusExpression): IRNode {
-        val child = convert(expr.expr, true)
-
-        // If child is an int or float literal, can simply negate the literals
-        if (child is IntLiteralNode) {
-            return IntLiteralNode(-child.num, expr.startLocation)
-        } else if (child is FloatLiteralNode) {
-            return FloatLiteralNode(-child.num, expr.startLocation)
-        } else {
-            return NegateNode(child, expr.startLocation)
+        // If child is an integral or decimal literal, can simply return the negated literals
+        if (expr.expr is IntegralLiteralExpression) {
+            return convertIntegralLiteral(
+                    IntegralLiteralExpression(-expr.expr.num, expr.startLocation))
+        } else if (expr.expr is DecimalLiteralExpression) {
+            return convertDecimalLiteral(
+                    DecimalLiteralExpression(-expr.expr.num, expr.startLocation))
         }
+
+        val child = convert(expr.expr, true)
+        return NegateNode(child, expr.startLocation)
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -859,10 +871,14 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             UnitTypeSignature
         } else if (typeImpl.builtinType == "bool") {
             BoolTypeSignature
+        } else if (typeImpl.builtinType == "byte") {
+            ByteTypeSignature
         } else if (typeImpl.builtinType == "int") {
             IntTypeSignature
         } else if (typeImpl.builtinType == "float") {
             FloatTypeSignature
+        } else if (typeImpl.builtinType == "double") {
+            DoubleTypeSignature
         } else if (typeImpl.builtinType == "string") {
             StringTypeSignature
         } else if (typeImpl.builtinType == "vec") {
@@ -1029,8 +1045,10 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         return when (typeExpr) {
             is UnitTypeExpression -> UnitType
             is BoolTypeExpression -> BoolType
+            is ByteTypeExpression -> ByteType
             is IntTypeExpression -> IntType
             is FloatTypeExpression -> FloatType
+            is DoubleTypeExpression -> DoubleType
             is StringTypeExpression -> StringType
             is VectorTypeExpression -> VectorType(convertType(typeExpr.elementType))
             is SetTypeExpression -> SetType(convertType(typeExpr.elementType))
@@ -1168,9 +1186,57 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
      * valid locations). This must be called after type inference has taken place.
      */
     fun assertIRStructure(root: IRNode) {
+        convertNumberLiteralNodes(root)
         jumpsInAllowedPlaces(root, false, false)
         exhaustiveMatchCases(root)
         allFunctionsHaveReturn(root)
+    }
+
+    /**
+     * Convert all number literal nodes (both integral literals and decimal literals) to their
+     * appropriate number literal nodes according to their inferred types. For integral literals,
+     * make sure that the size is correct.
+     */
+    fun convertNumberLiteralNodes(root: IRNode) {
+        root.map { node ->
+            if (node is IntegralLiteralNode) {
+                if (node.type is ByteType) {
+                    // Make sure byte literal can fit into a single byte
+                    if (node.num.compareTo(BigInteger.valueOf(Byte.MAX_VALUE.toLong())) == 1 ||
+                            node.num.compareTo(BigInteger.valueOf(Byte.MIN_VALUE.toLong())) == -1) {
+                        throw IRConversionException("Value out of range for byte",
+                                node.startLocation)
+                    }
+
+                    return@map ByteLiteralNode(node.num.toByte(), node.startLocation)
+                } else if (node.type is IntType) {
+                    // Make sure int literal can fit into a single int
+                    if (node.num.compareTo(BigInteger.valueOf(Int.MAX_VALUE.toLong())) == 1 ||
+                            node.num.compareTo(BigInteger.valueOf(Int.MIN_VALUE.toLong())) == -1) {
+                        throw IRConversionException("Value out of range for int",
+                                node.startLocation)
+                    }
+
+                    return@map IntLiteralNode(node.num.toInt(), node.startLocation)
+                } else {
+                    val type = typeChecker.typeToString(node.type)
+                    throw IRConversionException("Integral literal must be inferred to have " +
+                            "integral type, found ${type}", node.startLocation)
+                }
+            } else if (node is DecimalLiteralNode) {
+                if (node.type is FloatType) {
+                    return@map FloatLiteralNode(node.num.toFloat(), node.startLocation)
+                } else if (node.type is DoubleType) {
+                    return@map DoubleLiteralNode(node.num.toDouble(), node.startLocation)
+                } else {
+                    val type = typeChecker.typeToString(node.type)
+                    throw IRConversionException("Decimal literal must be inferred to have " +
+                            "decimal type, found ${type}", node.startLocation)
+                }
+            } else {
+                return@map node
+            }
+        }
     }
 
     /**
@@ -1178,7 +1244,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
      * (unless they have the unit return type, in which case returns are not required).
      */
     fun allFunctionsHaveReturn(root: IRNode) {
-        root.map { node ->
+        root.forEach { node ->
             if (node is FunctionDefinitionNode) {
                 // Check that all paths in a non-unit function return a value
                 val funcType = symbolTable.getInfo(node.ident)?.type as FunctionType
@@ -1204,9 +1270,10 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     fun allPathsHaveReturn(node: IRNode): Boolean {
         return when (node) {
             is ReturnNode -> true
-            is IfNode -> allPathsHaveReturn(node.conseq) && 
-                    node.altern != null &&
-                    allPathsHaveReturn(node.altern)
+            is IfNode -> {
+                val altern = node.altern
+                allPathsHaveReturn(node.conseq) && altern != null && allPathsHaveReturn(altern)
+            }
             is MatchNode -> node.cases.map({ (_, _, stmt) -> allPathsHaveReturn(stmt) })
                                       .all({ x -> x })
             is BlockNode -> {
@@ -1217,7 +1284,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     }
 
     fun assertStaticMethod(staticMethod: FunctionDefinitionNode) {
-        staticMethod.map { node ->
+        staticMethod.forEach { node ->
             if (node is VariableNode && node.ident.name == "this") {
                 throw IRConversionException("Static method ${staticMethod.ident.name} cannot " +
                         "refer to this", node.startLocation)
@@ -1241,19 +1308,13 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             }
             is IfNode -> {
                 jumpsInAllowedPlaces(node.conseq, allowReturn, allowBreakOrContinue)
-                if (node.altern != null) {
-                    jumpsInAllowedPlaces(node.altern, allowReturn, allowBreakOrContinue)
-                }
+                node.altern?.let { jumpsInAllowedPlaces(it, allowReturn, allowBreakOrContinue) }
             }
             is WhileNode -> jumpsInAllowedPlaces(node.body, allowReturn, true)
             is DoWhileNode -> jumpsInAllowedPlaces(node.body, allowReturn, true)
             is ForNode -> {
-                if (node.init != null) {
-                    jumpsInAllowedPlaces(node.init, allowReturn, false)
-                }
-                if (node.update != null) {
-                    jumpsInAllowedPlaces(node.update, allowReturn, false)
-                }
+                node.init?.let { jumpsInAllowedPlaces(it, allowReturn, false) }
+                node.update?.let { jumpsInAllowedPlaces(it, allowReturn, false) }
                 jumpsInAllowedPlaces(node.body, allowReturn, true)
             }
             is MatchNode -> {

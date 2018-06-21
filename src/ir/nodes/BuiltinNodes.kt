@@ -11,12 +11,17 @@ import myte.shared.*
  */
 class BuiltinNode(
     val builtin: Builtin,
-    val args: List<IRNode>,
+    var args: List<IRNode>,
     startLocation: Location
 ) : IRNode(startLocation) {
-    override fun <T> map(func: (IRNode) -> T) {
+    override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
-        args.map { arg -> arg.map(func) }
+        args.forEach { arg -> arg.forEach(func) }
+    }
+
+    override fun map(func: (IRNode) -> IRNode) {
+        args = args.map(func)
+        args.forEach { arg -> arg.map(func) }
     }
 
     override fun equals(other: Any?): Boolean {
@@ -41,10 +46,10 @@ class BuiltinMethodNode(
     val args: List<IRNode>,
     startLocation: Location
 ) : IRNode(startLocation) {
-    override fun <T> map(func: (IRNode) -> T) {
+    override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
-        recv.map(func)
-        args.map { arg -> arg.map(func) }
+        recv.forEach(func)
+        args.forEach { arg -> arg.forEach(func) }
     }
 
     override fun equals(other: Any?): Boolean {

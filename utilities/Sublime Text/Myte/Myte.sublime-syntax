@@ -162,6 +162,8 @@ contexts:
 
   sigReturnType:
     - include: comments
+    - match: '(?=\b(sig|def|static)\b|})'
+      pop: true
     - match: ':'
       scope: punctuation.separator
       set:

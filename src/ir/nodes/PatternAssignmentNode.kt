@@ -10,12 +10,20 @@ import myte.shared.*
  * @property startLocation the location of the start of the pattern
  */
 class PatternAssignmentNode(
-    val pattern: IRNode,
-    val rValue: IRNode,
+    var pattern: IRNode,
+    var rValue: IRNode,
     startLocation: Location
 ) : IRNode(startLocation) {
-    override fun <T> map(func: (IRNode) -> T) {
+    override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
+        pattern.forEach(func)
+        rValue.forEach(func)
+    }
+
+    override fun map(func: (IRNode) -> IRNode) {
+        pattern = func(pattern)
+        rValue = func(rValue)
+
         pattern.map(func)
         rValue.map(func)
     }

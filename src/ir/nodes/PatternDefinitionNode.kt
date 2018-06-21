@@ -11,14 +11,22 @@ import myte.shared.*
  * @property patternLocation the location of the beginning of the pattern
  */
 class PatternDefinitionNode(
-    val pattern: IRNode,
-    val expr: IRNode,
+    var pattern: IRNode,
+    var expr: IRNode,
     val typeAnnotation: Type?,
     val patternLocation: Location,
     startLocation: Location
 ) : IRNode(startLocation) {
-    override fun <T> map(func: (IRNode) -> T) {
+    override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
+        pattern.forEach(func)
+        expr.forEach(func)
+    }
+
+    override fun map(func: (IRNode) -> IRNode) {
+        pattern = func(pattern)
+        expr = func(expr)
+
         pattern.map(func)
         expr.map(func)
     }

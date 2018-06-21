@@ -62,12 +62,20 @@ object BoolTypeSignature : TypeSignature("bool", listOf()) {
     override fun createTypeWithParams(types: List<Type>) = BoolType
 }
 
+object ByteTypeSignature : TypeSignature("byte", listOf()){
+    override fun createTypeWithParams(types: List<Type>) = ByteType
+}
+
 object IntTypeSignature : TypeSignature("int", listOf()){
     override fun createTypeWithParams(types: List<Type>) = IntType
 }
 
 object FloatTypeSignature : TypeSignature("float", listOf()){
     override fun createTypeWithParams(types: List<Type>) = FloatType
+}
+
+object DoubleTypeSignature : TypeSignature("double", listOf()){
+    override fun createTypeWithParams(types: List<Type>) = DoubleType
 }
 
 object StringTypeSignature : TypeSignature("string", listOf()){

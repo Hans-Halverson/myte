@@ -12,14 +12,24 @@ import myte.shared.*
  * @property isExpression whether this if should be treated like an expression
  */
 class IfNode(
-    val cond: IRNode,
-    val conseq: IRNode,
-    val altern: IRNode?,
+    var cond: IRNode,
+    var conseq: IRNode,
+    var altern: IRNode?,
     val isExpression: Boolean,
     startLocation: Location
 ) : IRNode(startLocation) {
-    override fun <T> map(func: (IRNode) -> T) {
+    override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
+        cond.forEach(func)
+        conseq.forEach(func)
+        altern?.forEach(func)
+    }
+
+    override fun map(func: (IRNode) -> IRNode) {
+        cond = func(cond)
+        conseq = func(conseq)
+        altern = altern?.let { func(it) }
+
         cond.map(func)
         conseq.map(func)
         altern?.map(func)

@@ -26,11 +26,17 @@ object EndNestingLevelTraceOption : MatchTraceOption()
 // A bool type, along with the bool value that was checked
 class BoolTraceOption(val bool: Boolean) : MatchTraceOption()
 
+// A byte type, along with all byte literals that were checked
+class ByteTraceOption(val bytes: Set<Byte>) : MatchTraceOption()
+
 // An int type, along with all int literals that were checked
 class IntTraceOption(val ints: Set<Int>) : MatchTraceOption()
 
 // A float type, along with all float literals that were checked
-class FloatTraceOption(val floats: Set<Double>) : MatchTraceOption()
+class FloatTraceOption(val floats: Set<Float>) : MatchTraceOption()
+
+// A double type, along with all double literals that were checked
+class DoubleTraceOption(val doubles: Set<Double>) : MatchTraceOption()
 
 // A string type, along with all string literals that were checked
 class StringTraceOption(val strings: Set<String>) : MatchTraceOption()
@@ -65,7 +71,7 @@ val VARIABLE_NODE = VariableNode(Identifier("_"), NO_LOCATION)
  * cases for its type.
  */
 fun exhaustiveMatchCases(root: IRNode) {
-    root.map { node -> 
+    root.forEach { node -> 
         if (node is MatchNode) {
             // Find all patterns without guards to check for exhaustive matching. Guarded cases
             // are ignored because the guard could evaluate to false at runtime.
@@ -296,6 +302,21 @@ private fun exhaustiveMatches(
                         trace + RecordVariantBeginTraceOption(variant, fieldsInOrder))
             }
         })
+    // Byte type can only be exhaustively matched by wildcard, but gather all literals for trace
+    } else if (typeToCheck is ByteType) {
+        val vars = filterPatterns(patterns) { _ -> false }
+
+        // Gather all byte literals for trace
+        val bytes = patterns.mapNotNull({ (pat, _) ->
+            val firstPattern = pat[0]
+            if (firstPattern is ByteLiteralNode) {
+                firstPattern.num
+            } else {
+                null
+            }
+        }).toSet()
+
+        exhaustiveMatches(nextTypes, vars, restOfTypes, varPatterns, trace + ByteTraceOption(bytes))
     // Int type can only be exhaustively matched by wildcard, but gather all literals for trace
     } else if (typeToCheck is IntType) {
         val vars = filterPatterns(patterns) { _ -> false }
@@ -327,6 +348,22 @@ private fun exhaustiveMatches(
 
         exhaustiveMatches(nextTypes, vars, restOfTypes, varPatterns,
                 trace + FloatTraceOption(floats))
+    // Double type can only be exhaustively matched by wildcard, but gather all literals for trace
+    } else if (typeToCheck is DoubleType) {
+        val vars = filterPatterns(patterns) { _ -> false }
+
+        // Gather all double literals for trace
+        val doubles = patterns.mapNotNull({ (pat, _) ->
+            val firstPattern = pat[0]
+            if (firstPattern is DoubleLiteralNode) {
+                firstPattern.num
+            } else {
+                null
+            }
+        }).toSet()
+
+        exhaustiveMatches(nextTypes, vars, restOfTypes, varPatterns,
+                trace + DoubleTraceOption(doubles))
     // String type can only be exhaustively matched by wildcard, but gather all literals for trace
     } else if (typeToCheck is StringType) {
         val vars = filterPatterns(patterns) { _ -> false }
@@ -623,6 +660,14 @@ private fun traceToMatchedCase(trace: MatchTrace, type: Type): MatchedCase {
                 typeStack[0].removeAt(0)
                 matchedCaseStack[0].elements.add(LiteralMatchedCase(traceOption.bool))
             }
+            // Bytes are added with an example byte that is the smallest whole number not matched
+            is ByteTraceOption -> {
+                val exampleByte = findSmallestUnmatchedWholeNumber(
+                        traceOption.bytes.map(Byte::toInt).toSet()).toByte()
+
+                typeStack[0].removeAt(0)
+                matchedCaseStack[0].elements.add(LiteralMatchedCase(exampleByte))
+            }
             // Ints are added with an example int that is the smallest whole number not matched
             is IntTraceOption -> {
                 val exampleInt = findSmallestUnmatchedWholeNumber(traceOption.ints)
@@ -633,12 +678,22 @@ private fun traceToMatchedCase(trace: MatchTrace, type: Type): MatchedCase {
             // Floats are added with an example float that is the smallest whole number not matched
             is FloatTraceOption -> {
                 // Find all floats that are equal to integers
-                val matchedWholeFloats = traceOption.floats.filter({ f -> f - f.toInt() == 0.0 })
-                        .map(Double::toInt).toSet()
-                val exampleFloat = findSmallestUnmatchedWholeNumber(matchedWholeFloats).toDouble()
+                val matchedWholeFloats = traceOption.floats.filter({ f -> f - f.toInt() == 0.0f })
+                        .map(Float::toInt).toSet()
+                val exampleFloat = findSmallestUnmatchedWholeNumber(matchedWholeFloats).toFloat()
 
                 typeStack[0].removeAt(0)
                 matchedCaseStack[0].elements.add(LiteralMatchedCase(exampleFloat))
+            }
+            // Doubles are added with an example double that is the smallest unmatched whole number
+            is DoubleTraceOption -> {
+                // Find all doubles that are equal to integers
+                val matchedWholeDoubles = traceOption.doubles.filter({ f -> f - f.toInt() == 0.0 })
+                        .map(Double::toInt).toSet()
+                val exampleDouble = findSmallestUnmatchedWholeNumber(matchedWholeDoubles).toDouble()
+
+                typeStack[0].removeAt(0)
+                matchedCaseStack[0].elements.add(LiteralMatchedCase(exampleDouble))
             }
             // Strings are added with an example string that is the first (lexicographically)
             // string that is not matched.

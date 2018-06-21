@@ -1,8 +1,10 @@
 package myte.lexer
 
-import myte.shared.*
-
 import java.io.Reader
+import java.math.BigDecimal
+import java.math.BigInteger
+
+import myte.shared.*
 
 /**
  * A reader which allows the user to inspect the current and next character from an input stream.
@@ -115,8 +117,10 @@ private fun getKeywordToken(str: String, location: Location): Token? {
         "unit" -> UnitToken(location)
         "bool" -> BoolToken(location)
         "string" -> StringTypeToken(location)
+        "byte" -> ByteToken(location)
         "int" -> IntToken(location)
         "float" -> FloatToken(location)
+        "double" -> DoubleToken(location)
         "vec" -> VecToken(location)
         "map" -> MapToken(location)
         "set" -> SetToken(location)
@@ -163,14 +167,15 @@ private fun readNumber(reader: LL1StatefulReader): List<Token> {
         numberString.append(reader.next)
         reader.advance()
     } else {
-        return listOf(stringToInt(numberString.toString(), location))
+        return listOf(IntegralLiteralToken(BigInteger(numberString.toString()), location))
     }
 
     // If next token is the beginning of an identifier, this is actually an access after an int
     if (reader.hasNext && (reader.next.isLetter() || reader.next.equals('_'))) {
         val numberWithDecimalPoint =  numberString.toString()
         val intString = numberWithDecimalPoint.substring(0, numberWithDecimalPoint.length - 1)
-        return listOf(stringToInt(intString, location), PeriodToken(reader.currentLocation))
+        return listOf(IntegralLiteralToken(BigInteger(intString), location),
+                PeriodToken(reader.currentLocation))
     }
 
     // Read digits after decimal point
@@ -184,7 +189,7 @@ private fun readNumber(reader: LL1StatefulReader): List<Token> {
         numberString.append(reader.next)
         reader.advance()
     } else {
-        return listOf(stringToFloat(numberString.toString(), location))
+        return listOf(DecimalLiteralToken(BigDecimal(numberString.toString()), location))
     }
 
     // Read exponent sign
@@ -192,7 +197,7 @@ private fun readNumber(reader: LL1StatefulReader): List<Token> {
         numberString.append(reader.next)
         reader.advance()
     } else {
-        return listOf(stringToFloat(numberString.toString(), location))
+        return listOf(DecimalLiteralToken(BigDecimal(numberString.toString()), location))
     }
 
     if (reader.hasNext && reader.next !in '0'..'9') {
@@ -205,31 +210,7 @@ private fun readNumber(reader: LL1StatefulReader): List<Token> {
         reader.advance()
     }
 
-    return listOf(stringToFloat(numberString.toString(), location))
-}
-
-/**
- * Convert a string to an int token.
- * @throws LexicalException if the string does not represent a valid int
- */
-private fun stringToInt(str: String, location: Location): IntLiteralToken {
-    try {
-        return IntLiteralToken(str.toInt(), location)
-    } catch (e: NumberFormatException) {
-        throw LexicalException("Malformed int ${str}", location)
-    }
-}
-
-/**
- * Convert a string to a float token.
- * @throws LexicalException if the string does not represent a valid float
- */
-private fun stringToFloat(str: String, location: Location): FloatLiteralToken {
-    try {
-        return FloatLiteralToken(str.toDouble(), location)
-    } catch (e: NumberFormatException) {
-        throw LexicalException("Malformed float ${str}", location)
-    }
+    return listOf(DecimalLiteralToken(BigDecimal(numberString.toString()), location))
 }
 
 /** 
