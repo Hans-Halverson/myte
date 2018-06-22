@@ -16,6 +16,8 @@ const val BYTE_UNARY_MINUS_METHOD = "byte.unaryMinus"
 const val BYTE_TO_INT_METHOD = "byte.toInt"
 const val BYTE_TO_FLOAT_METHOD = "byte.toFloat"
 const val BYTE_TO_DOUBLE_METHOD = "byte.toDouble"
+const val BYTE_COMPARE_METHOD = "byte.compare"
+const val BYTE_EQUALS_METHOD = "byte.equals"
 const val BYTE_TO_STRING_METHOD = "byte.toString"
 
 /**
@@ -219,6 +221,53 @@ class ByteToDoubleBuiltinMethod(
     override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as ByteValue
         return DoubleValue(receiver.num.toDouble())
+    }
+}
+
+/**
+ * A builtin which compares two bytes.
+ */
+class ByteCompareBuiltinMethod(
+) : BuiltinMethod(
+    BYTE_COMPARE_METHOD,
+    FunctionType(listOf(ByteType), COMPARISON_TYPE),
+    ByteType
+) {
+    /**
+    * Compare two bytes.
+    */
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
+        val receiver = recv as ByteValue
+        val other = args[0] as ByteValue
+
+        val variant = if (receiver.num < other.num) {
+            getVariantForBuiltinType(COMPARISON_TYPE_SIG, COMPARISON_TYPE_LESS_VARIANT)
+        } else if (receiver.num > other.num) {
+            getVariantForBuiltinType(COMPARISON_TYPE_SIG, COMPARISON_TYPE_GREATER_VARIANT)
+        } else {
+            getVariantForBuiltinType(COMPARISON_TYPE_SIG, COMPARISON_TYPE_EQUAL_VARIANT)
+        }
+
+        return TupleVariantValue(variant, listOf(), COMPARISON_TYPE)
+    }
+}
+
+/**
+ * A builtin which determines whether two bytes are equal.
+ */
+class ByteEqualsBuiltinMethod(
+) : BuiltinMethod(
+    BYTE_EQUALS_METHOD,
+    FunctionType(listOf(ByteType), BoolType),
+    ByteType
+) {
+    /**
+    * Determine whether two bytes are equal.
+    */
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
+        val receiver = recv as ByteValue
+        val other = args[0] as ByteValue
+        return BoolValue(receiver.num == other.num)
     }
 }
 

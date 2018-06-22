@@ -84,6 +84,8 @@ val BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
     BYTE_TO_INT_METHOD to ByteToIntBuiltinMethod(),
     BYTE_TO_FLOAT_METHOD to ByteToFloatBuiltinMethod(),
     BYTE_TO_DOUBLE_METHOD to ByteToDoubleBuiltinMethod(),
+    BYTE_COMPARE_METHOD to ByteCompareBuiltinMethod(),
+    BYTE_EQUALS_METHOD to ByteEqualsBuiltinMethod(),
     BYTE_TO_STRING_METHOD to ByteToStringBuiltinMethod(),
 
     INT_ADD_METHOD to IntAddBuiltinMethod(),
@@ -97,6 +99,8 @@ val BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
     INT_TO_BYTE_METHOD to IntToByteBuiltinMethod(),
     INT_TO_FLOAT_METHOD to IntToFloatBuiltinMethod(),
     INT_TO_DOUBLE_METHOD to IntToDoubleBuiltinMethod(),
+    INT_COMPARE_METHOD to IntCompareBuiltinMethod(),
+    INT_EQUALS_METHOD to IntEqualsBuiltinMethod(),
     INT_TO_STRING_METHOD to IntToStringBuiltinMethod(),
 
     FLOAT_ADD_METHOD to FloatAddBuiltinMethod(),
@@ -110,6 +114,8 @@ val BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
     FLOAT_TO_BYTE_METHOD to FloatToByteBuiltinMethod(),
     FLOAT_TO_INT_METHOD to FloatToIntBuiltinMethod(),
     FLOAT_TO_DOUBLE_METHOD to FloatToDoubleBuiltinMethod(),
+    FLOAT_COMPARE_METHOD to FloatCompareBuiltinMethod(),
+    FLOAT_EQUALS_METHOD to FloatEqualsBuiltinMethod(),
     FLOAT_TO_STRING_METHOD to FloatToStringBuiltinMethod(),
 
     DOUBLE_ADD_METHOD to DoubleAddBuiltinMethod(),
@@ -123,10 +129,14 @@ val BUILTIN_METHODS: Map<String, BuiltinMethod> = hashMapOf(
     DOUBLE_TO_BYTE_METHOD to DoubleToByteBuiltinMethod(),
     DOUBLE_TO_INT_METHOD to DoubleToIntBuiltinMethod(),
     DOUBLE_TO_FLOAT_METHOD to DoubleToFloatBuiltinMethod(),
+    DOUBLE_COMPARE_METHOD to DoubleCompareBuiltinMethod(),
+    DOUBLE_EQUALS_METHOD to DoubleEqualsBuiltinMethod(),
     DOUBLE_TO_STRING_METHOD to DoubleToStringBuiltinMethod(),
 
     STRING_SIZE_METHOD to StringSizeBuiltinMethod(),
     STRING_ADD_METHOD to StringAddBuiltinMethod(),
+    STRING_COMPARE_METHOD to StringCompareBuiltinMethod(),
+    STRING_EQUALS_METHOD to StringEqualsBuiltinMethod(),
 
     VECTOR_INDEX_METHOD to VectorIndexBuiltinMethod(),
     VECTOR_INDEX_ASSIGN_METHOD to VectorIndexAssignBuiltinMethod(),

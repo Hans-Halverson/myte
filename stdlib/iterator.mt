@@ -18,4 +18,24 @@ trait Iterable<a> {
 
         return false
     }
+
+    def all(p) {
+        forEach (item in this) {
+            if (!p(item)) {
+                return false
+            }
+        }
+
+        return true
+    }
+
+    def any(p) {
+        forEach (item in this) {
+            if (p(item)) {
+                return true
+            }
+        }
+
+        return false
+    }
 }

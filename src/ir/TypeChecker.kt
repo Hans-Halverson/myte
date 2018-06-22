@@ -1095,18 +1095,25 @@ class TypeChecker(var symbolTable: SymbolTable) {
         typeCheck(node.left, boundVars, refresh)
         typeCheck(node.right, boundVars, refresh)
 
-        // Comparison nodes evaluate to a bool
-        if (!unify(node.type, BoolType)) {
-            val type = typeToString(node.type)
-            throw IRConversionException("Could not infer bool type for result of comparison, " +
-                    "found ${type}", node.startLocation)
+        // Find the correctly parameterized comparable trait type (parameterized by right hand side)
+        val comparable = COMPARABLE_TRAIT_SIG.createTypeWithParams(listOf(node.right.type))
+
+        // The left hand side must implement the comparable trait
+        val except = { ->
+            val types = typesToString(node.left.type, comparable)
+            throw IRConversionException("Inferred type ${types[0]} does not implement ${types[1]}",
+                    node.left.startLocation)
         }
 
-        // Unify both child types together, as both children must have the same unknown type.
-        if (!unify(node.left.type, node.right.type)) {
-            val types = typesToString(node.left.type, node.right.type)
-            throw IRConversionException("Comparison expects two numbers of same type, found " +
-                    "${types[0]} and ${types[1]}", node.right.startLocation)
+        if (!subtype(node.left.type, comparable, except)) {
+            except()
+        }
+
+        // The return type of a comparison is always a boolean
+        if (!unify(node.type, BoolType)) {
+            val type = typeToString(node.type)
+            throw IRConversionException("Binary operation expected to evaluate to bool, " +
+                    "but found ${type}", node.startLocation)
         }
     }
 

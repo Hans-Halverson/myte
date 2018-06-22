@@ -1,10 +1,12 @@
 package std::vec
 
+import std::compare::Equal
 import std::iterator::{Iterator, Iterable}
 import std::ops::{Index, IndexAssign}
 import std::option::{Option, Some, None}
+import std::fmt::println
 
-implement vec<a> {
+implement vec<a> extends Equal<vec<a>> {
     def add(x: a) {
         __builtin("vec.add", this, x)
     }
@@ -15,6 +17,20 @@ implement vec<a> {
 
     def size(): int {
         return __builtin("vec.size", this)
+    }
+
+    def equals(other: vec<a>) {
+        if (this.size() != other.size()) {
+            return false
+        }
+
+        for (let i = 0, i < this.size(), i = i + 1) {
+            if (this[i] != other[i]) {
+                return false
+            }
+        }
+
+        return true
     }
 
     def toString(): string {

@@ -16,6 +16,8 @@ const val INT_UNARY_MINUS_METHOD = "int.unaryMinus"
 const val INT_TO_BYTE_METHOD = "int.toByte"
 const val INT_TO_FLOAT_METHOD = "int.toFloat"
 const val INT_TO_DOUBLE_METHOD = "int.toDouble"
+const val INT_COMPARE_METHOD = "int.compare"
+const val INT_EQUALS_METHOD = "int.equals"
 const val INT_TO_STRING_METHOD = "int.toString"
 
 /**
@@ -219,6 +221,53 @@ class IntToDoubleBuiltinMethod(
     override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as IntValue
         return DoubleValue(receiver.num.toDouble())
+    }
+}
+
+/**
+ * A builtin which compares two ints.
+ */
+class IntCompareBuiltinMethod(
+) : BuiltinMethod(
+    INT_COMPARE_METHOD,
+    FunctionType(listOf(IntType), COMPARISON_TYPE),
+    IntType
+) {
+    /**
+    * Compare two ints.
+    */
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
+        val receiver = recv as IntValue
+        val other = args[0] as IntValue
+
+        val variant = if (receiver.num < other.num) {
+            getVariantForBuiltinType(COMPARISON_TYPE_SIG, COMPARISON_TYPE_LESS_VARIANT)
+        } else if (receiver.num > other.num) {
+            getVariantForBuiltinType(COMPARISON_TYPE_SIG, COMPARISON_TYPE_GREATER_VARIANT)
+        } else {
+            getVariantForBuiltinType(COMPARISON_TYPE_SIG, COMPARISON_TYPE_EQUAL_VARIANT)
+        }
+
+        return TupleVariantValue(variant, listOf(), COMPARISON_TYPE)
+    }
+}
+
+/**
+ * A builtin which determines whether two ints are equal.
+ */
+class IntEqualsBuiltinMethod(
+) : BuiltinMethod(
+    INT_EQUALS_METHOD,
+    FunctionType(listOf(IntType), BoolType),
+    IntType
+) {
+    /**
+    * Determine whether two ints are equal.
+    */
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
+        val receiver = recv as IntValue
+        val other = args[0] as IntValue
+        return BoolValue(receiver.num == other.num)
     }
 }
 

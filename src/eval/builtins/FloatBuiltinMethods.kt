@@ -16,6 +16,8 @@ const val FLOAT_UNARY_MINUS_METHOD = "float.unaryMinus"
 const val FLOAT_TO_BYTE_METHOD = "float.toByte"
 const val FLOAT_TO_INT_METHOD = "float.toInt"
 const val FLOAT_TO_DOUBLE_METHOD = "float.toDouble"
+const val FLOAT_COMPARE_METHOD = "float.compare"
+const val FLOAT_EQUALS_METHOD = "float.equals"
 const val FLOAT_TO_STRING_METHOD = "float.toString"
 
 /**
@@ -219,6 +221,53 @@ class FloatToDoubleBuiltinMethod(
     override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as FloatValue
         return DoubleValue(receiver.num.toDouble())
+    }
+}
+
+/**
+ * A builtin which compares two floats.
+ */
+class FloatCompareBuiltinMethod(
+) : BuiltinMethod(
+    FLOAT_COMPARE_METHOD,
+    FunctionType(listOf(FloatType), COMPARISON_TYPE),
+    FloatType
+) {
+    /**
+    * Compare two floats.
+    */
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
+        val receiver = recv as FloatValue
+        val other = args[0] as FloatValue
+
+        val variant = if (receiver.num < other.num) {
+            getVariantForBuiltinType(COMPARISON_TYPE_SIG, COMPARISON_TYPE_LESS_VARIANT)
+        } else if (receiver.num > other.num) {
+            getVariantForBuiltinType(COMPARISON_TYPE_SIG, COMPARISON_TYPE_GREATER_VARIANT)
+        } else {
+            getVariantForBuiltinType(COMPARISON_TYPE_SIG, COMPARISON_TYPE_EQUAL_VARIANT)
+        }
+
+        return TupleVariantValue(variant, listOf(), COMPARISON_TYPE)
+    }
+}
+
+/**
+ * A builtin which determines whether two floats are equal.
+ */
+class FloatEqualsBuiltinMethod(
+) : BuiltinMethod(
+    FLOAT_EQUALS_METHOD,
+    FunctionType(listOf(FloatType), BoolType),
+    FloatType
+) {
+    /**
+    * Determine whether two floats are equal.
+    */
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
+        val receiver = recv as FloatValue
+        val other = args[0] as FloatValue
+        return BoolValue(receiver.num == other.num)
     }
 }
 

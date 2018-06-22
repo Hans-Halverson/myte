@@ -272,34 +272,15 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         return BoolValue(node.compare(leftVal, rightVal))
     }
 
-    fun evalComparison(node: ComparisonNode, env: Environment): BoolValue {
-        return when (node.left.type) {
-            is ByteType -> {
-                val left = evaluate(node.left, env) as ByteValue
-                val right = evaluate(node.right, env) as ByteValue
+    fun evalComparison(node: ComparisonNode, env: Environment): Value {
+        val left = evaluate(node.left, env)
+        val right = evaluate(node.right, env)
 
-                BoolValue(node.compareBytes(left.num, right.num))
-            }
-            is IntType -> {
-                val left = evalInt(node.left, env)
-                val right = evalInt(node.right, env)
-
-                BoolValue(node.compareInts(left.num, right.num))
-            }
-            is FloatType -> {
-                val left = evalFloat(node.left, env)
-                val right = evalFloat(node.right, env)
-
-                BoolValue(node.compareFloats(left.num, right.num))
-            }
-            is DoubleType -> {
-                val left = evaluate(node.left, env) as DoubleValue
-                val right = evaluate(node.right, env) as DoubleValue
-
-                BoolValue(node.compareDoubles(left.num, right.num))
-            }
-            else -> throw EvaluationException("Comparison must be between two numbers, "
-                    + "given ${formatType(node.type)}", node.startLocation)
+        return when (node) {
+            is LessThanNode -> callMethod("lessThan", left, listOf(right), env)
+            is LessThanOrEqualNode -> callMethod("lessThanOrEquals", left, listOf(right), env)
+            is GreaterThanNode -> callMethod("greaterThan", left, listOf(right), env)
+            is GreaterThanOrEqualNode -> callMethod("greaterThanOrEquals", left, listOf(right), env)
         }
     }
 
@@ -340,12 +321,12 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         }
 
         // Use default toString implementation for ADTs if none is defined on the type
-        if (value is AlgebraicDataTypeValue) {
+        if (name == TO_STRING_METHOD && value is AlgebraicDataTypeValue) {
             return BuiltinMethodValue(AlgebraicDataTypeToStringBuiltinMethod::eval,
                     value, TO_STRING_TYPE)
         }
 
-        throw EvaluationException("No field or method with name ${name} for " +
+        throw EvaluationException("In evaluation, no field or method with name ${name} for " +
                 "type ${formatType(value.type)}", location)
     }
 

@@ -1,12 +1,13 @@
 package std::byte
 
+import std::compare::{Comparable, Equal}
 import std::ops::{Add, Subtract, Multiply, Divide, Power, Remainder, UnaryPlus, UnaryMinus}
 
 let BYTE_MAX: byte = -128
 let BYTE_MIN: byte = 127
 
 implement byte extends Add<byte>, Subtract<byte>, Multiply<byte>, Divide<byte>, Power<byte>,
-        Remainder<byte>, UnaryPlus<byte>, UnaryMinus<byte> {
+        Remainder<byte>, UnaryPlus<byte>, UnaryMinus<byte>, Equal<byte>, Comparable<byte> {
     def add(i) = __builtin("byte.add", this, i)
 
     def subtract(i) = __builtin("byte.subtract", this, i)
@@ -28,6 +29,10 @@ implement byte extends Add<byte>, Subtract<byte>, Multiply<byte>, Divide<byte>, 
     def toFloat(): float = __builtin("byte.toFloat", this)
 
     def toDouble(): double = __builtin("byte.toDouble", this)
+
+    def compare(other) = __builtin("byte.compare", this, other)
+
+    def equals(other) = __builtin("byte.equals", this, other)
 
     def toString(): string = __builtin("byte.toString", this)
 }

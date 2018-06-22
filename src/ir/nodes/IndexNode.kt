@@ -22,7 +22,7 @@ data class IndexNode(
 
     override fun map(func: (IRNode) -> IRNode) {
         container = func(container)
-        key = func(container)
+        key = func(key)
 
         container.map(func)
         key.map(func)

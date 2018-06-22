@@ -16,6 +16,8 @@ const val DOUBLE_UNARY_MINUS_METHOD = "double.unaryMinus"
 const val DOUBLE_TO_BYTE_METHOD = "double.toByte"
 const val DOUBLE_TO_INT_METHOD = "double.toInt"
 const val DOUBLE_TO_FLOAT_METHOD = "double.toFloat"
+const val DOUBLE_COMPARE_METHOD = "double.compare"
+const val DOUBLE_EQUALS_METHOD = "double.equals"
 const val DOUBLE_TO_STRING_METHOD = "double.toString"
 
 /**
@@ -220,6 +222,53 @@ class DoubleToFloatBuiltinMethod(
     override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
         val receiver = recv as DoubleValue
         return FloatValue(receiver.num.toFloat())
+    }
+}
+
+/**
+ * A builtin which compares two doubles.
+ */
+class DoubleCompareBuiltinMethod(
+) : BuiltinMethod(
+    DOUBLE_COMPARE_METHOD,
+    FunctionType(listOf(DoubleType), COMPARISON_TYPE),
+    DoubleType
+) {
+    /**
+    * Compare two doubles.
+    */
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
+        val receiver = recv as DoubleValue
+        val other = args[0] as DoubleValue
+
+        val variant = if (receiver.num < other.num) {
+            getVariantForBuiltinType(COMPARISON_TYPE_SIG, COMPARISON_TYPE_LESS_VARIANT)
+        } else if (receiver.num > other.num) {
+            getVariantForBuiltinType(COMPARISON_TYPE_SIG, COMPARISON_TYPE_GREATER_VARIANT)
+        } else {
+            getVariantForBuiltinType(COMPARISON_TYPE_SIG, COMPARISON_TYPE_EQUAL_VARIANT)
+        }
+
+        return TupleVariantValue(variant, listOf(), COMPARISON_TYPE)
+    }
+}
+
+/**
+ * A builtin which determines whether two doubles are equal.
+ */
+class DoubleEqualsBuiltinMethod(
+) : BuiltinMethod(
+    DOUBLE_EQUALS_METHOD,
+    FunctionType(listOf(DoubleType), BoolType),
+    DoubleType
+) {
+    /**
+    * Determine whether two doubles are equal.
+    */
+    override fun eval(args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
+        val receiver = recv as DoubleValue
+        val other = args[0] as DoubleValue
+        return BoolValue(receiver.num == other.num)
     }
 }
 

@@ -1,9 +1,10 @@
 package std::float
 
+import std::compare::{Comparable, Equal}
 import std::ops::{Add, Subtract, Multiply, Divide, Power, Remainder, UnaryPlus, UnaryMinus}
 
 implement float extends Add<float>, Subtract<float>, Multiply<float>, Divide<float>, Power<float>,
-        Remainder<float>, UnaryPlus<float>, UnaryMinus<float> {
+        Remainder<float>, UnaryPlus<float>, UnaryMinus<float>, Equal<float>, Comparable<float> {
     def add(f) = __builtin("float.add", this, f)
 
     def subtract(f) = __builtin("float.subtract", this, f)
@@ -25,6 +26,10 @@ implement float extends Add<float>, Subtract<float>, Multiply<float>, Divide<flo
     def toInt(): int = __builtin("float.toInt", this)
 
     def toDouble(): double = __builtin("float.toDouble", this)
+
+    def compare(other) = __builtin("float.compare", this, other)
+
+    def equals(other) = __builtin("float.equals", this, other)
 
     def toString(): string = __builtin("float.toString", this)
 }

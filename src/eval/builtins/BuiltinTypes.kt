@@ -6,6 +6,11 @@ const val OPTION_TYPE_NAME = "Option"
 const val OPTION_TYPE_NONE_VARIANT = "None"
 const val OPTION_TYPE_SOME_VARIANT = "Some"
 
+const val COMPARISON_TYPE_NAME = "Comparison"
+const val COMPARISON_TYPE_EQUAL_VARIANT = "EqualComparison"
+const val COMPARISON_TYPE_LESS_VARIANT = "LessComparison"
+const val COMPARISON_TYPE_GREATER_VARIANT = "GreaterComparison"
+
 const val ADD_TRAIT_NAME = "Add"
 const val SUBTRACT_TRAIT_NAME = "Subtract"
 const val MULTIPLY_TRAIT_NAME = "Multiply"
@@ -18,8 +23,13 @@ const val INDEX_TRAIT_NAME = "Index"
 const val INDEX_ASSIGN_TRAIT_NAME = "IndexAssign"
 const val ITERATOR_TRAIT_NAME = "Iterator"
 const val ITERABLE_TRAIT_NAME = "Iterable"
+const val COMPARABLE_TRAIT_NAME = "Comparable"
+const val EQUAL_TRAIT_NAME = "Equal"
 
 val OPTION_TYPE_SIG = AlgebraicDataTypeSignature(OPTION_TYPE_NAME, listOf(TypeParameter()))
+val COMPARISON_TYPE_SIG = AlgebraicDataTypeSignature(COMPARISON_TYPE_NAME, listOf())
+
+val COMPARISON_TYPE = COMPARISON_TYPE_SIG.createTypeWithParams(listOf())
 
 val ADD_TRAIT_SIG = TraitSignature(ADD_TRAIT_NAME, listOf(TypeParameter()))
 val SUBTRACT_TRAIT_SIG = TraitSignature(SUBTRACT_TRAIT_NAME, listOf(TypeParameter()))
@@ -34,9 +44,12 @@ val INDEX_ASSIGN_TRAIT_SIG = TraitSignature(INDEX_ASSIGN_TRAIT_NAME,
         listOf(TypeParameter(), TypeParameter()))
 val ITERATOR_TRAIT_SIG = TraitSignature(ITERATOR_TRAIT_NAME, listOf(TypeParameter()))
 val ITERABLE_TRAIT_SIG = TraitSignature(ITERABLE_TRAIT_NAME, listOf(TypeParameter()))
+val COMPARABLE_TRAIT_SIG = TraitSignature(COMPARABLE_TRAIT_NAME, listOf(TypeParameter()))
+val EQUAL_TRAIT_SIG = TraitSignature(EQUAL_TRAIT_NAME, listOf(TypeParameter()))
 
 val BUILTIN_TYPES: Map<String, AlgebraicDataTypeSignature> = mapOf(
-    OPTION_TYPE_NAME to OPTION_TYPE_SIG
+    OPTION_TYPE_NAME to OPTION_TYPE_SIG,
+    COMPARISON_TYPE_NAME to COMPARISON_TYPE_SIG
 )
 
 val BUILTIN_TRAITS: Map<String, TraitSignature> = mapOf(
@@ -51,7 +64,9 @@ val BUILTIN_TRAITS: Map<String, TraitSignature> = mapOf(
     INDEX_TRAIT_NAME to INDEX_TRAIT_SIG,
     INDEX_ASSIGN_TRAIT_NAME to INDEX_ASSIGN_TRAIT_SIG,
     ITERATOR_TRAIT_NAME to ITERATOR_TRAIT_SIG,
-    ITERABLE_TRAIT_NAME to ITERABLE_TRAIT_SIG
+    ITERABLE_TRAIT_NAME to ITERABLE_TRAIT_SIG,
+    COMPARABLE_TRAIT_NAME to COMPARABLE_TRAIT_SIG,
+    EQUAL_TRAIT_NAME to EQUAL_TRAIT_SIG
 )
 
 fun getVariantForBuiltinType(

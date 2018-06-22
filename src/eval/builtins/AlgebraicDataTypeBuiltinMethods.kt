@@ -11,7 +11,12 @@ object AlgebraicDataTypeToStringBuiltinMethod {
     /**
     * Converts an ADT to a string.
     */
-    fun eval(@Suppress("UNUSED_PARAMETER") args: List<Value>, recv: Value, env: Environment, eval: Evaluator): Value {
+    fun eval(
+        @Suppress("UNUSED_PARAMETER") args: List<Value>,
+        recv: Value,
+        env: Environment,
+        eval: Evaluator
+    ): Value {
         val receiver = recv as AlgebraicDataTypeValue
         when (receiver) {
             is TupleVariantValue -> {
@@ -30,7 +35,7 @@ object AlgebraicDataTypeToStringBuiltinMethod {
                     "${fieldName}: ${callToString(fieldValue, env, eval).str}"
                 }).joinToString(", ", "{ ", " }")
 
-                return StringValue("${receiver.adtVariant.name}${fieldsString}")
+                return StringValue("${receiver.adtVariant.name} ${fieldsString}")
             }
         }
     }

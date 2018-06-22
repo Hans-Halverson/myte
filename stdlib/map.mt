@@ -1,8 +1,9 @@
 package std::map
 
+import std::compare::Equal
 import std::iterator::{Iterator, Iterable}
 import std::ops::{Index, IndexAssign}
-import std::option::Option
+import std::option::{Option, Some}
 import std::vec::VecIterator
 
 implement map<k, v> {
@@ -32,6 +33,17 @@ implement map<k, v> {
 
     def toVec(): vec<(k, v)> {
         return __builtin("map.toVec", this)
+    }
+
+    def equals(other: map<k, v>) {
+        if (this.size() != other.size()) {
+            return false
+        }
+
+        return this.all(fun kvPair -> {
+            let (key, value) = kvPair
+            other[key] == Some(value)
+        })
     }
 
     def toString(): string {

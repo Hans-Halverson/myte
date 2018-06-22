@@ -105,7 +105,7 @@ implement DLL<a> {
         | DLL { end: None } -> None
         | DLL { end: Some(DLLNode { item: item })} -> Some(item)
 
-    def get(i) {
+    def get(i: int) {
         if (i < 0 || i >= this.size) {
             return None
         }

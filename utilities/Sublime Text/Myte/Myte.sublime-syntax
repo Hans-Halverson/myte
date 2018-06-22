@@ -265,8 +265,11 @@ contexts:
       push:
         - match: '\)'
           pop: true
-        - match: ','
-          scope: punctuation.separator
+        - include: type
+    - match: '\<'
+      push:
+        - match: '\>'
+          pop: true
         - include: type
     - match: '({{ident}})\s*(-\>)'
       captures:
@@ -557,7 +560,7 @@ contexts:
         - match: ','
           scope: punctuation.separator
           set: lambdaExpressionInnerArgs
-        - match: '\)'
+        - match: '\)|(?=-\>)'
           set: functionDefinitionReturnType
         - include: type
     - match: '{{ident}}'

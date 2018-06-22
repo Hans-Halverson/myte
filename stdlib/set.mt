@@ -1,9 +1,10 @@
 package std::set
 
+import std::compare::Equal
 import std::iterator::{Iterator, Iterable}
 import std::vec::VecIterator
 
-implement set<a> {
+implement set<a> extends Equal<set<a>> {
     def add(x: a) {
         __builtin("set.add", this, x)
     }
@@ -22,6 +23,14 @@ implement set<a> {
 
     def toVec(): vec<a> {
         return __builtin("set.toVec", this)
+    }
+
+    def equals(other) {
+        if (this.size() != other.size()) {
+            return false
+        }
+
+        return this.all(fun x -> other.contains(x))
     }
 
     def toString(): string {
