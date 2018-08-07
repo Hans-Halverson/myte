@@ -25,7 +25,7 @@ implement set<a> extends Equal<set<a>> {
         return __builtin("set.toVec", this)
     }
 
-    def equals(other) {
+    def equals(other: set<a>) {
         if (this.size() != other.size()) {
             return false
         }

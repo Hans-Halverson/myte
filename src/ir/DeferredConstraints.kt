@@ -12,92 +12,23 @@ sealed class DeferredConstraint {
      * @return a list of deferred constraints (along with thier triggers) to add if this
      *         constraint has been satisfied, or null if this constraint has not been satisfied
      */
-    abstract fun apply(trigger: Type): Boolean
+    abstract fun tryApply(trigger: Type): Boolean
+
+    /**
+     * Force this constraint to be applied, asserting unresolved if it cannot be applied.
+     * @param trigger the type to apply this constraint to
+     */
+    fun forceApply(trigger: Type) {
+        if (!tryApply(trigger)) {
+            assertUnresolved()
+        }
+    }
 
     /**
      * Assert that this constraint is unresolved at the end of type inference. This should
      * throw an exception with an appropriate error message.
      */
     abstract fun assertUnresolved()
-
-    /**
-     * Attempt to infer types if the fixed point iteration has stalled.
-     * 
-     * @return whether a type could be inferred or not
-     */
-    open fun inferOnFixedPointStall(trigger: Type): Boolean = false
-}
-
-class IntegralConstraint(
-    val node: IntegralLiteralNode,
-    val typeChecker: TypeChecker
-) : DeferredConstraint() {
-    override fun apply(trigger: Type): Boolean {
-        val nodeType = trigger
- 
-        // Succeed if node's type is resolved to an integral type
-        if (nodeType is ByteType || nodeType is IntType) {
-            return true
-        } else if (nodeType is TypeVariable) {
-            return false
-        } else {
-            val type = typeChecker.typeToString(nodeType)
-            throw IRConversionException("Integral literal could not be inferred to have integral " +
-                    "type, found ${type}", node.startLocation)
-        }
-    }
-
-    override fun assertUnresolved() {
-        throw IRConversionException("Type could not be inferred, consider adding more type " +
-                "annotations", node.startLocation)
-    }
-
-    override fun inferOnFixedPointStall(trigger: Type): Boolean {
-        if (!typeChecker.unify(trigger, IntType)) {
-            val type = typeChecker.typeToString(trigger)
-            throw IRConversionException("Integral literal inferred to have type int, but " +
-                    "expected ${type}. If int was not the correct type, consider adding more " +
-                    "type annotations.", node.startLocation)
-        }
-
-        return true
-    }
-}
-
-class DecimalConstraint(
-    val node: DecimalLiteralNode,
-    val typeChecker: TypeChecker
-) : DeferredConstraint() {
-    override fun apply(trigger: Type): Boolean {
-        val nodeType = trigger
- 
-        // Succeed if node's type is resolved to a decimal type
-        if (nodeType is FloatType || nodeType is DoubleType) {
-            return true
-        } else if (nodeType is TypeVariable) {
-            return false
-        } else {
-            val type = typeChecker.typeToString(nodeType)
-            throw IRConversionException("Decimal literal could not be inferred to have decimal " +
-                    "type, found ${type}", node.startLocation)
-        }
-    }
-
-    override fun assertUnresolved() {
-        throw IRConversionException("Type could not be inferred, consider adding more type " +
-                "annotations", node.startLocation)
-    }
-
-    override fun inferOnFixedPointStall(trigger: Type): Boolean {
-        if (!typeChecker.unify(trigger, DoubleType)) {
-            val type = typeChecker.typeToString(trigger)
-            throw IRConversionException("Decimal literal inferred to have type double, but " +
-                    "expected ${type}. If double was not the correct type, consider adding more " +
-                    "type annotations.", node.startLocation)
-        }
-
-        return true
-    }
 }
 
 class AccessConstraint(
@@ -105,7 +36,7 @@ class AccessConstraint(
     val boundVars: MutableSet<TypeVariable>,
     val typeChecker: TypeChecker
 ) : DeferredConstraint() {
-    override fun apply(trigger: Type): Boolean {
+    override fun tryApply(trigger: Type): Boolean {
         val exprType = trigger
 
         // The toString method is already defined on all types
@@ -158,6 +89,8 @@ class AccessConstraint(
             val paramsMap = exprType.sig.typeParams.zip(exprType.listTypeParams()).toMap()
             val methodTypeWithParams = typeChecker.findRepSubstitution(methodType, paramsMap)
             val accessType = typeChecker.findRepType(methodTypeWithParams, boundVars)
+
+            println("Accessing ${node.field} gives $methodType, $paramsMap, $methodTypeWithParams, $accessType, and bound $boundVars")
 
             // Type of node is type of corresponding method
             if (!typeChecker.unify(node.type, accessType)) {
@@ -219,16 +152,35 @@ class AccessConstraint(
     }
 
     override fun assertUnresolved() {
+        val nn = typeChecker.findRepNode(node.expr.type as TypeVariable)
+        println(nn)
+        when (nn) {
+            is UnresolvedNode -> {
+                println(nn.subTypeVars.map(typeChecker::currentRepType))
+                println(nn.superTypeVars.map(typeChecker::currentRepType))
+
+                nn.superTypeVars.forEach { superTypeVar ->
+                    val nnn = typeChecker.findRepNode(superTypeVar)
+                    if (nnn is UnresolvedNode && nn.typeVar != nnn.typeVar) {
+                        println(nnn)
+                    }
+                }
+            }
+            is ResolvedNode -> {}
+        }
+
         throw IRConversionException("Type could not be inferred, consider adding more type " +
                 "annotations", node.expr.startLocation)
     }
+
+    override fun toString(): String = "AccessConstraint(${node.field}, ${typeChecker.currentRepType(node.type)})"
 }
 
 class FieldAssignmentConstraint(
     val node: FieldAssignmentNode,
     val typeChecker: TypeChecker
 ) : DeferredConstraint() {
-    override fun apply(trigger: Type): Boolean {
+    override fun tryApply(trigger: Type): Boolean {
         val exprType = trigger
         if (exprType is AlgebraicDataType) {
             // Error if expr is not resolved to a simple record type
@@ -279,122 +231,26 @@ class FieldAssignmentConstraint(
     }
 
     override fun assertUnresolved() {
+        val nn = typeChecker.findRepNode(node.expr.type as TypeVariable)
+        println(nn)
+        when (nn) {
+            is UnresolvedNode -> {
+                println(nn.subTypeVars.map(typeChecker::currentRepType))
+                println(nn.superTypeVars.map(typeChecker::currentRepType))
+
+                nn.superTypeVars.forEach { superTypeVar ->
+                    val nnn = typeChecker.findRepNode(superTypeVar)
+                    if (nnn is UnresolvedNode && nn.typeVar != nnn.typeVar) {
+                        println(nnn)
+                    }
+                }
+            }
+            is ResolvedNode -> {}
+        }
+
         throw IRConversionException("Type could not be inferred, consider adding more type " +
                 "annotations", node.expr.startLocation)
     }
-}
 
-class SubtypeConstraint(
-    val subType: Type,
-    val except: () -> Unit,
-    val typeChecker: TypeChecker
-) : DeferredConstraint() {
-    override fun apply(trigger: Type): Boolean {
-        val superType = trigger
-
-        // If the supertype is still a type variable, keep this constraint
-        if (superType is TypeVariable) {
-            return false
-        } else {
-            if (!typeChecker.subtype(subType, superType, except)) {
-                except()
-            }
-
-            return true
-        }
-    }
-
-    override fun assertUnresolved() {
-        throw ExceptionWithoutLocation("Supertype could not be inferred, consider adding more " +
-                "type annotations")
-    }
-
-    override fun inferOnFixedPointStall(trigger: Type): Boolean {
-        if (typeChecker.subtype(subType, trigger, except, false)) {
-            return true
-        }
-
-        if (!typeChecker.unify(trigger, subType)) {
-            except()
-        }
-
-        return true
-    }
-}
-
-class SupertypeConstraint(
-    val superType: Type,
-    val except: () -> Unit,
-    val typeChecker: TypeChecker
-) : DeferredConstraint() {
-    override fun apply(trigger: Type): Boolean {
-        val subType = trigger
-
-        // If the subtype is still a type variable, keep this constraint
-        if (subType is TypeVariable) {
-            return false
-        } else {
-            if (!typeChecker.subtype(subType, superType, except)) {
-                except()
-            }
-
-            return true
-        }
-    }
-
-    override fun assertUnresolved() {
-        throw ExceptionWithoutLocation("Subtype could not be inferred, consider adding more " +
-                "type annotations")
-    }
-
-    override fun inferOnFixedPointStall(trigger: Type): Boolean {
-        if (typeChecker.subtype(trigger, superType, except, false)) {
-            return true
-        }
-
-        if (!typeChecker.unify(trigger, superType)) {
-            except()
-        }
-
-        return true
-    }
-}
-
-class VariableSubtypingConstraint(
-    val subType: TypeVariable,
-    val superType: TypeVariable,
-    val except: () -> Unit,
-    val typeChecker: TypeChecker
-) : DeferredConstraint() {
-    override fun apply(trigger: Type): Boolean {
-        val repSubType = typeChecker.findRepNode(subType).resolvedType
-        val repSuperType = typeChecker.findRepNode(superType).resolvedType
-
-        if (repSubType is TypeVariable && repSuperType is TypeVariable) {
-            return false
-        } else {
-            if (!typeChecker.subtype(repSubType, repSuperType, except)) {
-                except()
-            }
-
-            return true
-        }
-    }
-
-    override fun assertUnresolved() {
-        throw ExceptionWithoutLocation("Subtype could not be inferred, consider adding more " +
-                "type annotations")
-    }
-
-    override fun inferOnFixedPointStall(trigger: Type): Boolean {
-        if (typeChecker.subtype(subType, superType, except, false)) {
-            return true
-        }
-
-        if (!typeChecker.unify(subType, superType)) {
-            except()
-        }
-
-        return true
-    }
+    override fun toString(): String = "FieldAssignmentConstraint(${node.field}, ${typeChecker.currentRepType(node.type)})"
 }

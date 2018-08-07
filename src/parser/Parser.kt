@@ -74,7 +74,7 @@ class Parser(
         when (token) {
             is TypeToken -> pack.typeDefs.add(parseTypeDefinition())
             is ImplementToken -> pack.typeImpls.add(parseTypeImplementation())
-            is TraitToken -> pack.traitDefs.add(parseTraitDefinition())
+            is TraitToken -> pack.traitDefs.add(parseTraitDefinition(token))
             is DefToken -> pack.statements.add(parseFunctionDefinition(true, false, token))
             is LetToken -> pack.statements.add(parseVariableDefinition(false, true, token))
             is ConstToken -> pack.statements.add(parseVariableDefinition(true, true, token))
@@ -126,7 +126,7 @@ class Parser(
             // Otherwise parse type definition, implementation, or statement
             is TypeToken -> parseTypeDefinition()
             is ImplementToken -> parseTypeImplementation()
-            is TraitToken -> parseTraitDefinition()
+            is TraitToken -> parseTraitDefinition(token)
             // Function and variable definitions should be treated as if they are top level
             is LetToken -> parseVariableDefinition(false, true, token)
             is ConstToken -> parseVariableDefinition(true, true, token)
@@ -2065,7 +2065,7 @@ class Parser(
         return Pair(traitIdent, typeParams)
     }
 
-    fun parseTraitDefinition(): TraitDefinitionStatement {
+    fun parseTraitDefinition(traitToken: TraitToken): TraitDefinitionStatement {
         var token = tokenizer.current
         if (token !is IdentifierToken) {
             throw ParseException("Trait name must be an identifier", token)
@@ -2154,7 +2154,7 @@ class Parser(
         symbolTable.exitScope()
 
         return TraitDefinitionStatement(traitIdent, typeParams, thisIdent, signatureDefs,
-                concreteMethods)
+                concreteMethods, traitToken.location)
     }
 
     fun parseFunctionSignatureDefinition(

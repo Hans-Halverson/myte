@@ -10,9 +10,9 @@ import myte.shared.*
 class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
 
     /**
-     * Set the symbol table to new symbol table.
+     * Reset the evaluator for another line from the REPL.
      */
-    fun resetSymbolTable(newSymbolTable: SymbolTable) {
+    fun resetForReplLine(newSymbolTable: SymbolTable) {
         symbolTable = newSymbolTable
     }
 
@@ -115,6 +115,8 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
             is ReturnNode -> evalReturn(node, env)
             is BreakNode -> throw Break
             is ContinueNode -> throw Continue
+            // Definition nodes
+            is TraitDefinitionNode -> UnitValue
             // Wrapper nodes should simply delegate to the wrapped node
             is WrapperNode -> evaluate(node.node, env)
             else -> throw EvaluationException("Unknown IR node ${node}", node.startLocation)
@@ -829,5 +831,4 @@ class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
         val returnVal = if (expr != null) evaluate(expr, env) else UnitValue
         throw Return(returnVal)
     }
-
 }

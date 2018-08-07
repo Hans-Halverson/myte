@@ -9,7 +9,7 @@ import myte.shared.*
  * @property field the field that is being accessed
  * @property accessLocation the location of the dot in the access
  */
-data class AccessNode(
+class AccessNode(
     var expr: IRNode,
     val field: String,
     val accessLocation: Location

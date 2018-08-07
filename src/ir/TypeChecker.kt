@@ -4,640 +4,55 @@ import myte.eval.builtins.*
 import myte.ir.nodes.*
 import myte.shared.*
 
-/**
- * A node in the forest of type equivalence classes.
- *
- * @property resolvedType the type contained at this node
- * @property parent the (optional) parent node in the forest of type equivalence classes. This type
- *           is in the same equivalence class as its parent, and if the parent is null, this type
- *           is the representative for its equivalence class.
- * @property rank an upper bound on the longest path from this node to a leaf
- */
-class TypeEquivalenceNode(
-    var resolvedType: Type,
-    var parent: TypeEquivalenceNode? = null,
-    var rank: Int = 0
-) {
-    // An equivalence node is a root only when it does not have a parent
-    val isRoot: Boolean
-        get() = parent == null
-
-    override fun equals(other: Any?): Boolean {
-        if (other !is TypeEquivalenceNode) {
-            return false
-        }
-
-        return (resolvedType == other.resolvedType)
-    }
-}
-
 class TypeChecker(var symbolTable: SymbolTable) {
-    private val typeVarToNode: MutableMap<TypeVariable, TypeEquivalenceNode> = mutableMapOf()
-    private val deferredConstraints: MutableMap<TypeVariable, MutableList<DeferredConstraint>> =
-            mutableMapOf()
+    val typeEnvironment = TypeEnvironment()
+    val typeGraph = TypeGraph(typeEnvironment)
 
     /**
-     * Set the symbol table to new symbol table.
+     * Reset the type checker for another line from the REPL.
      */
-    fun resetSymbolTable(newSymbolTable: SymbolTable) {
+    fun resetForReplLine(newSymbolTable: SymbolTable) {
         symbolTable = newSymbolTable
+        typeEnvironment.returnToGlobalScope()
     }
 
-    /**
-     * Add a type variable to the set of equivalence classes, if it does not already exist, and
-     * return the equivalence class node for this type variable.
-     */
-    private fun addTypeVar(typeVar: TypeVariable): TypeEquivalenceNode {
-        val typeEquivNode = typeVarToNode[typeVar]
-        if (typeEquivNode == null) {
-            val newEquivNode = TypeEquivalenceNode(typeVar)
-            typeVarToNode[typeVar] = newEquivNode
+    fun unify(type1: Type, type2: Type): Boolean = typeGraph.unify(type1, type2)
 
-            return newEquivNode
-        }
-
-        return typeEquivNode
+    fun subtype(
+        subType: Type,
+        superType: Type,
+        except: () -> Unit,
+        allowVars: Boolean = true
+    ): Boolean {
+        return typeGraph.subtype(subType, superType, except, allowVars)
     }
 
-    /**
-     * Find the root equivalence node for a given equivalence node, and compress the path
-     * to the root along the way.
-     */
-    private fun findRoot(node: TypeEquivalenceNode): TypeEquivalenceNode {
-        val parent = node.parent
-        // If this is not a root, find the root and set the parent to point directly to the root
-        if (parent != null) {
-            val root = findRoot(parent)
-            node.parent = root
-            return root
-        } else {
-            // Otherwise return this node since it is its own root
-            return node
-        }
-    }
+    fun currentRepType(type: Type): Type = typeGraph.currentRepType(type)
 
-    /**
-     * Find the representative equivalence class node for the given type variable.
-     */
-    fun findRepNode(typeVar: TypeVariable): TypeEquivalenceNode {
-        // The representative node of a type is found by finding the root of its equivalence node
-        var node = addTypeVar(typeVar)
-        return findRoot(node)
-    }
+    fun findRepNode(type: TypeVariable): TypeEquivalenceNode = typeGraph.findRepNode(type)
 
-    /**
-     * Set the representative node of the given type variable to be resolved to the given type.
-     * Returns true if successful, false if the type variable has already been resolved to an
-     * an incompatible type.
-     */
-    private fun resolveType(typeVar: TypeVariable, resolvedType: Type): Boolean {
-        val equivNode = findRepNode(typeVar)
-        if (equivNode.resolvedType !is TypeVariable && equivNode.resolvedType != resolvedType) {
-            return false
-        }
-
-        // Set resolved type
-        equivNode.resolvedType = resolvedType
-
-        // Apply all deferred constraints to newly resolved type, erroring if they cannot be applied
-        val constraints = deferredConstraints.remove(typeVar)
-        if (constraints != null) {
-            for (constraint in constraints) {
-                if (!constraint.apply(resolvedType)) {
-                    constraint.assertUnresolved()
-                }
-            }
-        }
-
-        return true
-    }
-
-    /**
-     * Add a deferred constraint to the given type variable.
-     */
-    fun addDeferredConstraint(type: Type, constraint: DeferredConstraint) {
-        val repType = if (type is TypeVariable) findRepNode(type).resolvedType else type
-        if (repType is TypeVariable) {
-            // If a type variable, add deferred constraint to list of constraints for the variable
-            val constraints = deferredConstraints[repType]
-            if (constraints == null) {
-                deferredConstraints[repType] = mutableListOf(constraint)
-            } else {
-                constraints.add(constraint)
-            }
-        } else {
-            // Attempt to apply this constraint to concrete type, fail if not possible since there
-            // will never be a point in the future in which it could be resolved.
-            if (!constraint.apply(repType)) {
-                constraint.assertUnresolved()
-            }
-        }
-    }
-
-    /**
-     * Infer a final type for the given input type.
-     */
-    private fun inferType(type: Type): Type {
-        return currentRepType(type)
-    }
-
-    /**
-     * Attempt to resolve all outstanding constraints, possibly reaching stalls and notifying
-     * constraints if there was a stall.
-     */
-    fun findFixedPoint() {
-        fixedPointLoop@ while (true) {
-            var foundFixedPoint = false
-            while (!foundFixedPoint) {
-                // Iterate through all constraints until no progress can be made
-                foundFixedPoint = true
-
-                val currentConstraints = deferredConstraints.toMap()
-                for ((type, constraints) in currentConstraints) {
-                    for (constraint in constraints.toList()) {
-                        // Attempt to apply each constraint, remembering if one succeeds
-                        if (constraint.apply(type)) {
-                            foundFixedPoint = false
-
-                            // Remove successfully applied constraints
-                            deferredConstraints[type]?.remove(constraint)
-                            if (deferredConstraints[type]?.isEmpty() == true) {
-                                deferredConstraints.remove(type)
-                            }
-                        }
-                    }
-                }
-            }
-
-            // If there are still deferred constraints but no progress can be made, notify all
-            // constraints that there has been a stall and attempt to infer types.
-            if (!deferredConstraints.isEmpty()) {
-                // Iterate through all constraints, notifying each that there has been a stall
-                var canBreakStall = false
-
-                val currentConstraints = deferredConstraints.toMap()
-                for ((type, constraints) in currentConstraints) {
-                    for (constraint in constraints.toList()) {
-                        // Notify each constraint that there has been a stall, attempting to infer
-                        if (constraint.inferOnFixedPointStall(type)) {
-                            canBreakStall = true
-
-                            // Remove succesfully applied constraints
-                            deferredConstraints[type]?.remove(constraint)
-                            if (deferredConstraints[type]?.isEmpty() == true) {
-                                deferredConstraints.remove(type)
-                            }
-                        }
-                    }
-                }
-
-                // If some progress was made by inferring constraints about the stall, repeat loop
-                if (canBreakStall) {
-                    continue@fixedPointLoop
-                } else {
-                    // If the stall could not be broken, show an example unresolved constraint
-                    for (constraints in currentConstraints.values) {
-                        for (constraint in constraints.toList()) {
-                            constraint.assertUnresolved()
-                        }
-                    }
-
-                    return
-                }
-            } else {
-                break@fixedPointLoop
-            }
-        }
-    }
-
-    /**
-     * Given a key and value, fill in the representative type variable to representative type
-     * mappings for all variable/type pairs in the key and value types.
-     *
-     * @param keyType the key type to fill in type variable mappings for
-     * @param valType the value type to associate with a type variable
-     * @param substMap the map from representative type variables to representative types
-     */
-    fun substituteReps(
-        keyType: Type,
-        valType: Type,
-        substMap: MutableMap<TypeVariable, Type>
-    ) {
-        val keyRepType = currentRepType(keyType)
-        val valRepType = currentRepType(valType)
-
-        when {
-            // For non type variables, simply recur into types
-            keyRepType is VectorType && valRepType is VectorType ->
-                substituteReps(keyRepType.elementType, valRepType.elementType, substMap)
-            keyRepType is SetType && valRepType is SetType ->
-                substituteReps(keyRepType.elementType, valRepType.elementType, substMap)
-            keyRepType is MapType && valRepType is MapType -> {
-                substituteReps(keyRepType.keyType, valRepType.keyType, substMap)
-                substituteReps(keyRepType.valType, valRepType.valType, substMap)
-            }
-            keyRepType is TupleType && valRepType is TupleType -> keyRepType.elementTypes
-                .zip(valRepType.elementTypes).forEach { (keyType, valType) ->
-                    substituteReps(keyType, valType, substMap)
-                }
-            keyRepType is FunctionType && valRepType is FunctionType -> {
-                keyRepType.argTypes.zip(valRepType.argTypes).forEach { (keyType, valType) ->
-                    substituteReps(keyType, valType, substMap)
-                }
-
-                substituteReps(keyRepType.returnType, valRepType.returnType, substMap)
-            }
-            keyRepType is AlgebraicDataType && valRepType is AlgebraicDataType ->
-                keyRepType.typeParams.zip(valRepType.typeParams).forEach { (keyType, valType) ->
-                    substituteReps(keyType, valType, substMap)
-                }
-            keyRepType is TraitType && valRepType is TraitType ->
-                keyRepType.typeParams.zip(valRepType.typeParams).forEach { (keyType, valType) ->
-                    substituteReps(keyType, valType, substMap)
-                }
-            // Add type variables to representative substitution map
-            keyRepType is TypeVariable -> {
-                substMap[keyRepType] = valRepType
-            }
-        }
-    }
-
-    /**
-     * Find the substitution given a map and a type, working on the representative types of both
-     * the type and the substitution.
-     */
-    fun findRepSubstitution(
-        type: Type,
-        substMap: Map<TypeVariable, Type>
-    ): Type {
-        // Find the representative substitution of the given substitution
-        val repSubstMap: MutableMap<TypeVariable, Type> = mutableMapOf()
-        substMap.forEach { (keyType, valType) ->
-            substituteReps(keyType, valType, repSubstMap)
-        }
-
-        // Use the representative substitutions on this type's representative type
-        val repType = currentRepType(type)
-
-        return repType.substitute(repSubstMap)
-    }
-
-    fun currentRepType(type: Type): Type {
-        return findRepType(type, mutableSetOf(), mutableMapOf(), false)
-    }
-
-    /**
-     * Recursively find a fresh representative type for a given type. This will return the
-     * representative type for this type, and the representative types for all child types
-     * if the given type is a type constructor. All free type variables in the representative
-     * type will also be remapped to fresh type vars.
-     *
-     * @param type the type to find the representative type for
-     * @param boundVars set of all bound type variables. If not supplied, defaults to the empty set.
-     * @param mappedVars map of old type variables to fresh type variables for all unbound type
-     *        variables encountered so far. If not supplied, defaults to the empty map.
-     * @param refresh whether to create a new type variable for all unbound type variables in type
-     */
     fun findRepType(
         type: Type,
         boundVars: MutableSet<TypeVariable>,
         mappedVars: MutableMap<TypeVariable, TypeVariable> = mutableMapOf(),
         refresh: Boolean = true
     ): Type {
-        // Find the representative type if this is a type variable, otherwise use the type
-        val repType = if (type is TypeVariable) findRepNode(type).resolvedType else type
-
-        return when (repType) {
-            // Find the rep type for vector element type and reconstruct vector type
-            is VectorType -> {
-                VectorType(findRepType(repType.elementType, boundVars, mappedVars, refresh))
-            }
-            // Find the rep type for set element type and reconstruct set type
-            is SetType -> {
-                SetType(findRepType(repType.elementType, boundVars, mappedVars, refresh))
-            }
-            // Find the rep type for map's key and value types and reconstruct map type
-            is MapType -> {
-                MapType(findRepType(repType.keyType, boundVars, mappedVars, refresh),
-                        findRepType(repType.valType, boundVars, mappedVars, refresh))
-            }
-            // Find the rep type for each tuple element and reconstruct tuple type
-            is TupleType -> {
-                val elementTypes = repType.elementTypes.map { elementType ->
-                    findRepType(elementType, boundVars, mappedVars, refresh)
-                }
-                
-                return TupleType(elementTypes)
-            }
-            // Find the rep type for each arg and return type, and reconstruct function type
-            is FunctionType -> {
-                val argTypes = repType.argTypes.map { argType ->
-                    findRepType(argType, boundVars, mappedVars, refresh)
-                }
-                val returnType = findRepType(repType.returnType, boundVars, mappedVars, refresh)
-
-                return FunctionType(argTypes, returnType)
-            }
-            // Find the rep type for each type parameter and reconstruct adt with correct adt sig
-            is AlgebraicDataType -> {
-                val typeParams = repType.typeParams.map { typeParam ->
-                    findRepType(typeParam, boundVars, mappedVars, refresh)
-                }
-
-                return AlgebraicDataType(repType.adtSig, typeParams)
-            }
-            // Find the rep type for each type parameter and reconstruct trait with correct sig
-            is TraitType -> {
-                val typeParams = repType.typeParams.map { typeParam ->
-                    findRepType(typeParam, boundVars, mappedVars, refresh)
-                }
-
-                return TraitType(repType.traitSig, typeParams)
-            }
-            is TypeVariable -> {
-                // If already bound (has same representative as bound var), then return
-                // existing type variable
-                val repBoundVars = boundVars.map { boundVar ->
-                    findRepNode(boundVar).resolvedType
-                }
-
-                if (repBoundVars.contains(repType)) {
-                    return repType
-                }
-
-                // If not yet bound, return mapped variable or add to map if not yet mapped
-                val mappedVar = mappedVars[repType]
-                if (mappedVar != null) {
-                    return mappedVar
-                // Generate new type variable if refresh flag is set, otherwise return rep type
-                } else if (refresh) {
-                    val newVar = TypeVariable()
-                    mappedVars[repType] = newVar
-                    return newVar
-                } else {
-                    return repType
-                }
-            }
-            else -> repType
-        }
+        return typeGraph.findRepType(type, boundVars, mappedVars, refresh)
     }
 
-    /**
-     * Merge two types into the same equivalence class, where at least one type is a type variable.
-     *
-     * @return whether the two types can be merged into the same equivalence class.
-     *         This is not possible if one is a type variable that appears in the other
-     *         type.
-     */
-    private fun mergeTypes(type1: Type, type2: Type): Boolean {
-        // If merging two type variables, set the first rep node to point to the second rep node
-        if (type1 is TypeVariable && type2 is TypeVariable) {
-            val rep1 = findRepNode(type1)
-            val rep2 = findRepNode(type2)
-
-            // Choose the type parameter to be the root node, or choose the lower ranked node
-            val firstIsParent = if (type1 is TypeParameter) {
-                true
-            } else if (type2 is TypeParameter) {
-                false
-            } else {
-                rep1.rank > rep2.rank
-            }
-
-            if (firstIsParent) {
-                replaceRoot(rep2, rep1)
-            } else {
-                replaceRoot(rep1, rep2)
-
-                // If ranks were equal, increment the rank of the newly non-root node
-                if (rep1.rank == rep2.rank) {
-                    rep2.rank++
-                }
-            }
-
-            return true
-        // If merging a type variable with a type, if occurs check passes resolve type variable
-        } else if (type1 is TypeVariable && type2 !is TypeVariable) {
-            if (occursIn(type1, type2)) {
-                return false
-            }
-
-            return resolveType(type1, type2)
-        // If merging a type with a type variable, if occurs check passes resolve type variable
-        } else if (type1 !is TypeVariable && type2 is TypeVariable) {
-            if (occursIn(type2, type1)) {
-                return false
-            }
-
-            return resolveType(type2, type1)
-        // Merge types should only be called if at least one type is a type variable
-        } else {
-            return false
-        }
+    fun findRepSubstitution(type: Type, substMap: Map<TypeVariable, Type>): Type {
+        return typeGraph.findRepSubstitution(type, substMap)
     }
 
-    private fun replaceRoot(oldRoot: TypeEquivalenceNode, newRoot: TypeEquivalenceNode) {
-        val oldType = oldRoot.resolvedType as TypeVariable
-        val newType = newRoot.resolvedType as TypeVariable
-
-        // Move all deferred constraints from the old root to the new root
-        val constraints = deferredConstraints.remove(oldType)
-        if (constraints != null) {
-            val newRootConstraints = deferredConstraints[newType]
-            if (newRootConstraints == null) {
-                deferredConstraints[newType] = constraints
-            } else {
-                newRootConstraints.addAll(constraints)
-            }
-        }
-
-        oldRoot.parent = newRoot
+    fun addDeferredConstraint(type: Type, constraint: DeferredConstraint) {
+        typeGraph.addDeferredConstraint(type, constraint)
     }
 
-    /**
-     * Returns whether the given type variable occurs anywhere in a given type.
-     */
-    private fun occursIn(typeVar: TypeVariable, subst: Type): Boolean {
-        return subst.getAllVariables().contains(typeVar)
-    }
+    fun typeToString(type: Type): String = typeGraph.typeToString(type)
 
-    /**
-     * Unify two types by merging their representative types (and recursively merging their
-     * child types) into the same equivalence class following the unification algorithm.
-     * 
-     * @return whether the two types can be unified or not
-     */
-    fun unify(t1: Type, t2: Type): Boolean {
-        // If type variables, work with their representative types
-        val type1 = if (t1 is TypeVariable) findRepNode(t1).resolvedType else t1
-        val type2 = if (t2 is TypeVariable) findRepNode(t2).resolvedType else t2
+    fun typesToString(t1: Type, t2: Type): List<String> = typeGraph.typesToString(t1, t2)
 
-        // If both types are already identical, they are already unified
-        if (type1 == type2) {
-            return true
-        // If at least one type is a type variable, merge types together
-        } else if (type1 is TypeVariable || type2 is TypeVariable) {
-            // Cannot merge a type parameter with anything except a type variable
-            if ((type1 is TypeParameter && type2 !is TypeVariable) ||
-                    (type1 !is TypeVariable && type2 is TypeParameter)) {
-                return false
-            }
-
-            return mergeTypes(type1, type2)
-        // If both representatives have vector type, merge reps and unify their child types
-        } else if (type1 is VectorType && type2 is VectorType) {
-            return unify(type1.elementType, type2.elementType)
-        // If both representatives have set type, merge reps and unify their child types
-        } else if (type1 is SetType && type2 is SetType) {
-            return unify(type1.elementType, type2.elementType)
-        } else if (type1 is MapType && type2 is MapType) {
-            return unify(type1.keyType, type2.keyType) &&
-                    unify(type1.valType, type2.valType)
-        // If both representatives have tuple types, merge reps of all element types
-        } else if (type1 is TupleType && type2 is TupleType) {
-            return type1.elementTypes.size == type2.elementTypes.size &&
-                    type1.elementTypes.zip(type2.elementTypes)
-                         .map({ (e1, e2) -> unify(e1, e2) })
-                         .all({ x -> x })
-        // If both representatives have function type, merge reps and unify their child types
-        } else if (type1 is FunctionType && type2 is FunctionType) {
-            return type1.argTypes.size == type2.argTypes.size &&
-                    unify(type1.returnType, type2.returnType) &&
-                    type1.argTypes.zip(type2.argTypes)
-                         .map({ (a1, a2) -> unify(a1, a2) })
-                         .all({ x -> x })
-        // If both representatives are the same adt, merge reps and unify parameter types
-        } else if (type1 is AlgebraicDataType && type2 is AlgebraicDataType) {
-            return type1.adtSig == type2.adtSig &&
-                    type1.typeParams.size == type2.typeParams.size &&
-                    type1.typeParams.zip(type2.typeParams)
-                         .map({ (p1, p2) -> unify(p1, p2) })
-                         .all({ x -> x })
-        // If both representatives are the same trait, merge reps and unify parameter types
-        } else if (type1 is TraitType && type2 is TraitType) {
-            return type1.traitSig == type2.traitSig &&
-                    type1.typeParams.size == type2.typeParams.size &&
-                    type1.typeParams.zip(type2.typeParams)
-                         .map({ (p1, p2) -> unify(p1, p2) })
-                         .all({ x -> x })
-        } else {
-            return false
-        }
-    }
-
-    fun subtype(sbType: Type, spType: Type, except: () -> Unit, allowVars: Boolean = true): Boolean {
-        // If type variables, work with their representative types
-        val subType = if (sbType is TypeVariable) findRepNode(sbType).resolvedType else sbType
-        val superType = if (spType is TypeVariable) findRepNode(spType).resolvedType else spType
-
-        // The subtype relation is reflexive
-        if (subType == superType) {
-            return true
-        // If not allowing variables, fail if either type is a type variable (when unequal)
-        } else if (!allowVars && (subType is TypeVariable || superType is TypeVariable)) {
-            return false
-        // If both types are type variables, add supertype and subtype bounds to type variables
-        } else if (subType is TypeVariable && superType is TypeVariable) {
-            val subtypingConstraint = VariableSubtypingConstraint(subType, superType, except, this)
-            addDeferredConstraint(subType, subtypingConstraint)
-            addDeferredConstraint(superType, subtypingConstraint)
-
-            return true
-        // If the supertype only is a type variable, add subtype bound to type variable
-        } else if (subType !is TypeVariable && superType is TypeVariable) {
-            val subtypeConstraint = SubtypeConstraint(subType, except, this)
-            addDeferredConstraint(superType, subtypeConstraint)
-            return true
-        // If the subtype only is a type variable, we can apply constraints unless super is trait
-        } else if (subType is TypeVariable) {
-            return when (superType) {
-                // If supertype is a basic, unparameterized type or a parameterized type with
-                // invariant type parameters, simply unify both types.
-                is UnitType -> unify(subType, superType)
-                is BoolType -> unify(subType, superType)
-                is ByteType -> unify(subType, superType)
-                is IntType -> unify(subType, superType)
-                is FloatType -> unify(subType, superType)
-                is DoubleType -> unify(subType, superType)
-                is StringType -> unify(subType, superType)
-                is AlgebraicDataType -> unify(subType, superType)
-                is VectorType -> unify(subType, superType)
-                is SetType -> unify(subType, superType)
-                is MapType -> unify(subType, superType)
-                // If supertype is a tuple, subtype must also be a tuple with covariant elements
-                is TupleType -> {
-                    val tupleSubType = TupleType(superType.elementTypes.map { TypeVariable() })
-                    return unify(subType, tupleSubType) &&
-                            subtype(tupleSubType, superType, except, allowVars)
-                }
-                // If supertype is a function, subtype must also be a func with correct variance
-                is FunctionType -> {
-                    val funcSubType = FunctionType(superType.argTypes.map { TypeVariable() },
-                            TypeVariable())
-                    return unify(subType, funcSubType) &&
-                            subtype(funcSubType, superType, except, allowVars)
-                }
-                // If supertype is a trait, add supertype bound to type variable
-                is TraitType -> {
-                    val supertypeConstraint = SupertypeConstraint(superType, except, this)
-                    addDeferredConstraint(subType, supertypeConstraint)
-                    return true
-                }
-                // This should never be reached, as the both types being variables is handled above
-                is TypeVariable -> throw Exception("This case should be unreachable")
-            }
-        // Tuples types are covariant in element types, since they are immutable
-        } else if (subType is TupleType && superType is TupleType) {
-            return subType.elementTypes.size == superType.elementTypes.size &&
-                    subType.elementTypes.zip(superType.elementTypes)
-                        .all({ (e1, e2) -> subtype(e1, e2, except, allowVars) })
-        // Function types are contravariant in their element types, and covariant in return type
-        } else if (subType is FunctionType && superType is FunctionType) {
-            return subType.argTypes.size == superType.argTypes.size &&
-                    subtype(subType.returnType, superType.returnType, except, allowVars) &&
-                    subType.argTypes.zip(superType.argTypes)
-                        .all({ (a1, a2) -> subtype(a2, a1, except, allowVars) })
-        // Algebraic data types are invariant in their type parameters, since they are mutable
-        } else if (subType is AlgebraicDataType && superType is AlgebraicDataType) {
-            return subType.typeParams.size == superType.typeParams.size &&
-                    subType.typeParams.zip(superType.typeParams)
-                        .all({ (p1, p2) -> unify(p1, p2) })
-        // Trait types are invariant in their type parameters, since they can only be implemented by
-        // mutable algebraic data types, and contain no state of thier own.
-        } else if (subType is TraitType && superType is TraitType) {
-            return subType.typeParams.size == superType.typeParams.size &&
-                    subType.typeParams.zip(superType.typeParams)
-                        .all({ (p1, p2) -> unify(p1, p2) })
-        // For an ADT to be a subtype of a trait, it must extend that trait
-        } else if (superType is TraitType) {
-            val extendedTrait = subType.sig.traits.find { extTrait ->
-                extTrait.traitSig == superType.traitSig
-            }
-
-            if (extendedTrait == null) {
-                return false
-            }
-
-            // Find parameterized type of trait by performing rep substitution from trait sig params
-            // to actual trait params in extended trait params.
-            val paramsMap = subType.sig.typeParams.zip(subType.listTypeParams()).toMap()
-            val substTraitParams = extendedTrait.typeParams.map { typeParam ->
-                findRepSubstitution(typeParam, paramsMap)
-            }
-
-            // Subtyping a trait is invariant in all type parameters
-            return substTraitParams.zip(superType.typeParams)
-                    .map({ (p1, p2) -> unify(p1, p2) })
-                    .all({ x -> x })
-        // Vector, set, and map types are all invariant in type parameters since they are mutable.
-        } else if ((subType is VectorType && superType is VectorType) ||
-                (subType is SetType && superType is SetType) ||
-                (subType is MapType && superType is MapType)) {
-            return unify(subType, superType)
-        } else {
-            return false
-        }
-    }
+    fun resolveAllVariables() = typeGraph.resolveAllVariables()
 
     /**
      * Type check and perform unification for an IR tree rooted at a given node.
@@ -698,6 +113,8 @@ class TypeChecker(var symbolTable: SymbolTable) {
             is ReturnNode -> typeCheckReturn(node, boundVars, refresh)
             is BreakNode -> typeCheckBreak(node)
             is ContinueNode -> typeCheckContinue(node)
+            // Definition wrappers
+            is TraitDefinitionNode -> typeCheckTraitDefinition(node, boundVars, refresh)
             // Wrapper nodes simply pass type checking to their children
             is WrapperNode -> typeCheck(node.node, boundVars, refresh)
             else -> return
@@ -729,13 +146,19 @@ class TypeChecker(var symbolTable: SymbolTable) {
     }
 
     fun typeCheckIntegralLiteral(node: IntegralLiteralNode) {
-        val integralConstraint = IntegralConstraint(node, this)
-        addDeferredConstraint(node.type, integralConstraint)
+        if (!unify(node.type, IntType)) {
+            val type = typeToString(node.type)
+            throw IRConversionException("Int literal coud not be inferred to have type int, " +
+                    "found ${type}", node.startLocation)
+        }
     }
 
     fun typeCheckDecimalLiteral(node: DecimalLiteralNode) {
-        val decimalConstraint = DecimalConstraint(node, this)
-        addDeferredConstraint(node.type, decimalConstraint)
+        if (!unify(node.type, DoubleType)) {
+            val type = typeToString(node.type)
+            throw IRConversionException("Double literal coud not be inferred to have type " +
+                    "double, found ${type}", node.startLocation)
+        }
     }
 
     fun typeCheckUnitLiteral(node: UnitLiteralNode) {
@@ -1406,7 +829,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         // Find constructor fields types given the current adt params and adt variant
         val expectedFieldTypes = node.adtVariant.getFieldsWithParams(nodeType.typeParams)
 
-        // Make sure that every field's type is a subtype of the corresponding expected field type has the correct type
+        // Make sure that every field's type is a subtype of the corresponding expected field type
         node.fields.forEach { (fieldName, field) ->
             val expectedFieldType = expectedFieldTypes[fieldName]!!
 
@@ -1668,6 +1091,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
             for (signature in node.signatures) {
                 val except = { ->
                     val types = typesToString(signature, funcType)
+                    println("oh no it failed on ${signature} and ${funcType} reps: ${currentRepType(signature)} ${currentRepType(funcType)}")
                     throw IRConversionException("Method signature ${node.ident.name} has type " +
                             "${types[0]}, but implementation has type ${types[1]}",
                             node.startLocation)
@@ -1685,7 +1109,10 @@ class TypeChecker(var symbolTable: SymbolTable) {
         val newBoundVars = boundVars.toHashSet()
 
         val argTypes = node.formalArgs.map { formalArg -> symbolTable.getInfo(formalArg)?.type!! }
-        argTypes.forEach { type -> newBoundVars.addAll(type.getAllVariables()) }
+        argTypes.forEach { argType ->
+            val argTypeVars = argType.getAllVariables()
+            newBoundVars.addAll(argTypeVars)
+        }
 
         typeCheck(node.body, newBoundVars, refresh)
 
@@ -2024,6 +1451,14 @@ class TypeChecker(var symbolTable: SymbolTable) {
         }
     }
 
+    fun typeCheckTraitDefinition(
+        node: TraitDefinitionNode,
+        boundVars: MutableSet<TypeVariable>,
+        refresh: Boolean
+    ) {
+        node.methods.forEach { method -> typeCheck(method, boundVars, refresh) }
+    }
+
     /**
      * Infer types for every identifier of the specified class in the symbol table. Be sure to
      * only infer types after all type checking and unification has taken place.
@@ -2032,10 +1467,12 @@ class TypeChecker(var symbolTable: SymbolTable) {
      */
     fun inferSymbolTypes(idClass: IdentifierClass, freezeSymbols: Boolean) {
         // Infer types for every identifier of the specified class
-        for ((_, identInfo) in symbolTable.identifiers) {
+        for ((ident, identInfo) in symbolTable.identifiers) {
             if (identInfo.typeShouldBeInferred && !identInfo.typeIsInferred &&
                     identInfo.idClass == idClass) {
-                identInfo.type = inferType(identInfo.type)
+                identInfo.type = currentRepType(identInfo.type)
+
+                println("${ident.name} was resolved to type ${identInfo.type}")
 
                 if (freezeSymbols) {
                     identInfo.typeIsInferred = true
@@ -2074,22 +1511,8 @@ class TypeChecker(var symbolTable: SymbolTable) {
         root.forEach { node ->
             // Wrapper nodes should be ignored
             if (node !is WrapperNode) {
-                node.type = inferType(node.type)
+                node.type = currentRepType(node.type)
             }
         }
-    }
-
-    /**
-     * Convert a single type into its string representation given a set of bound variables.
-     */
-    fun typeToString(type: Type): String {
-        return formatType(currentRepType(type))
-    }
-
-    /**
-     * Convert two types into their string representations given the same set of bound variables.
-     */
-    fun typesToString(type1: Type, type2: Type): List<String> {
-        return formatTypes(listOf(currentRepType(type1), currentRepType(type2)))
     }
 }

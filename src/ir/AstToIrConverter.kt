@@ -9,15 +9,14 @@ import myte.parser.ast.*
 import myte.shared.*
 
 class AstToIrConverter(var symbolTable: SymbolTable) {
-
     val typeChecker = TypeChecker(symbolTable)
 
     /**
-     * Set the symbol table to new symbol table.
+     * Reset the converter for another line from the REPL.
      */
-    fun resetSymbolTable(newSymbolTable: SymbolTable) {
+    fun resetForReplLine(newSymbolTable: SymbolTable) {
         symbolTable = newSymbolTable
-        typeChecker.resetSymbolTable(newSymbolTable)
+        typeChecker.resetForReplLine(newSymbolTable)
     }
 
     fun convertMyteFiles(parseFilesResult: ParseFilesResult): List<IRNode> {
@@ -33,7 +32,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
 
         // Create all traits
         val traitNodes = packages.flatMap({ pack ->
-            pack.traitDefs.flatMap(this::createTrait)
+            pack.traitDefs.map(this::createTrait)
         })
 
         // Create implementations for ADTs
@@ -42,12 +41,12 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         })
 
         // Convert all statements of each package
-        val defNodes = packages.flatMap({ pack ->
+        val statements = packages.flatMap({ pack ->
             pack.statements.map({ convert(it, false) })
         })
 
         // Infer all types and assert structure
-        val irNodes = traitNodes + implNodes + defNodes
+        val irNodes = traitNodes + implNodes + statements
         inferTypes(irNodes)
         irNodes.forEach(this::assertIRStructure)
 
@@ -78,12 +77,12 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             return ConvertReplLineResult(listOf(), listOf())
         } else if (statement is TraitDefinitionStatement) {
             // Create trait, then infer types and check structure of methods
-            val irNodes = createTrait(statement)
+            val traitDefNode = createTrait(statement)
 
-            inferTypes(irNodes)
-            irNodes.forEach(this::assertIRStructure)
+            inferTypes(listOf(traitDefNode))
+            assertIRStructure(traitDefNode)
 
-            return ConvertReplLineResult(listOf(), irNodes)
+            return ConvertReplLineResult(listOf(traitDefNode), listOf())
         } else if (statement is TypeImplementationStatement) {
             // Create type implementation, then infer types and check structure of methods
             val irNodes = createTypeImplementation(statement)
@@ -105,7 +104,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
 
             return ConvertReplLineResult(listOf(node), listOf())
         } else {
-            throw Exception("Unkown repl statement ${statement}")  
+            throw Exception("Unkown repl statement ${statement}")
         }
     }
 
@@ -180,7 +179,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     }
 
     ///////////////////////////////////////////////////////////////////////////
-    // 
+    //
     // Conversion functions for each AST statement node
     //
     ///////////////////////////////////////////////////////////////////////////
@@ -530,14 +529,14 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
                 val typeConstructor = expr.func
                 if (typeConstructor !is VariableExpression) {
                     throw IRConversionException("Pattern assignments must consist solely of " +
-                            "variables, tuples, and type constructors", expr.func.startLocation)  
+                            "variables, tuples, and type constructors", expr.func.startLocation)
                 }
 
                 val ident = typeConstructor.ident.resolve()
                 val info = symbolTable.getInfo(ident)!!
                 if (info.idClass != IdentifierClass.ALGEBRAIC_DATA_TYPE_VARIANT) {
                     throw IRConversionException("Pattern assignments must consist solely of " +
-                            "variables, tuples, and type constructors", expr.func.startLocation)   
+                            "variables, tuples, and type constructors", expr.func.startLocation)
                 }
 
                 val adtVariant = info.adtVariant
@@ -587,12 +586,12 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
                 return RecordTypeConstructorNode(adtVariant, fields, expr.startLocation)
             }
             else -> throw IRConversionException("Pattern assignments must consist solely of " +
-                    "variables, tuples, and type constructors", expr.startLocation) 
+                    "variables, tuples, and type constructors", expr.startLocation)
         }
     }
 
     fun convertReturn(expr: ReturnStatement): ReturnNode {
-        val returnVal = if (expr.expr != null) convert(expr.expr, true) else null 
+        val returnVal = if (expr.expr != null) convert(expr.expr, true) else null
         return ReturnNode(returnVal, expr.returnLocation)
     }
 
@@ -690,7 +689,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     }
 
     ///////////////////////////////////////////////////////////////////////////
-    // 
+    //
     // Conversion functions for type definitions
     //
     ///////////////////////////////////////////////////////////////////////////
@@ -745,7 +744,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         }
     }
 
-    fun createTrait(traitDef: TraitDefinitionStatement): List<IRNode> {
+    fun createTrait(traitDef: TraitDefinitionStatement): TraitDefinitionNode {
         // Use the builtin trait sig if trait is builtin, otherwise create new trait sig
         val builtinTraitSig = BUILTIN_TRAITS[traitDef.traitIdent.name]
         val traitSig = if (builtinTraitSig != null) {
@@ -754,6 +753,8 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             val typeParams = traitDef.typeParamIdents.map { TypeParameter() }
             TraitSignature(traitDef.traitIdent.name, typeParams)
         }
+
+        println("Trait ${traitSig.name} has params ${traitSig.typeParams}")
 
         // Annotate all type parameter identifiers with ADT sig's type paramters
         traitDef.typeParamIdents.zip(traitSig.typeParams).map { (typeParamIdent, typeParam) ->
@@ -833,7 +834,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
                 traitSig.staticMethods[methodDef.ident.name] = methodDef.ident
             } else {
                 traitSig.methods[methodDef.ident.name] = methodDef.ident
-            }   
+            }
         }
 
         // Convert concrete method definitions
@@ -852,7 +853,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             }
         }
 
-        return concreteNodes
+        return TraitDefinitionNode(traitSig, concreteNodes, traitDef.startLocation)
     }
 
     fun createTypeImplementation(typeImpl: TypeImplementationStatement): List<IRNode> {
@@ -1002,6 +1003,8 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             }
         }
 
+        println("Type impl for ${typeSig.name} has params ${typeSig.typeParams} and extends traits ${typeSig.traits}")
+
         // Add methods and static methods to ADT
         typeImpl.methods.map { (stmt, isStatic) ->
             if (isStatic) {
@@ -1036,7 +1039,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     }
 
     ///////////////////////////////////////////////////////////////////////////
-    // 
+    //
     // Conversion functions for each AST type node
     //
     ///////////////////////////////////////////////////////////////////////////
@@ -1102,7 +1105,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     }
 
     ///////////////////////////////////////////////////////////////////////////
-    // 
+    //
     // Type and structure checks after IR tree has been created
     //
     ///////////////////////////////////////////////////////////////////////////
@@ -1162,7 +1165,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     /**
      * Infer the types for the internal representation, and infer types for every symbol in
      * in the symbol table.
-     * 
+     *
      * @param nodes a list of IRNodes corresponding to the complete internal representation
      * @param freezeSymbols whether or not to freeze all inferred symbol types
      * @throws IRConversionException if there are type clashes or if types can not be inferred
@@ -1172,7 +1175,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         val boundVars: MutableSet<TypeVariable> = hashSetOf()
         nodes.forEach { node -> typeChecker.typeCheck(node, boundVars, true) }
 
-        typeChecker.findFixedPoint()
+        typeChecker.resolveAllVariables()
 
         typeChecker.inferFunctionTypes(freezeSymbols)
         typeChecker.inferVariableTypes(freezeSymbols)
@@ -1182,7 +1185,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
 
     /**
      * Assert that the IR has the correct physical structure (e.g. functions always return with
-     * the correct type, control flow statements like break, continue, return only occur in 
+     * the correct type, control flow statements like break, continue, return only occur in
      * valid locations). This must be called after type inference has taken place.
      */
     fun assertIRStructure(root: IRNode) {
@@ -1303,7 +1306,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
      */
     fun jumpsInAllowedPlaces(node: IRNode, allowReturn: Boolean, allowBreakOrContinue: Boolean) {
         when (node) {
-            is BlockNode -> node.nodes.map { n -> 
+            is BlockNode -> node.nodes.map { n ->
                 jumpsInAllowedPlaces(n, allowReturn, allowBreakOrContinue )
             }
             is IfNode -> {

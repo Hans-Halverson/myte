@@ -3,8 +3,8 @@ package std::byte
 import std::compare::{Comparable, Equal}
 import std::ops::{Add, Subtract, Multiply, Divide, Power, Remainder, UnaryPlus, UnaryMinus}
 
-let BYTE_MAX: byte = -128
-let BYTE_MIN: byte = 127
+let BYTE_MAX: byte = -128.toByte()
+let BYTE_MIN: byte = 127.toByte()
 
 implement byte extends Add<byte>, Subtract<byte>, Multiply<byte>, Divide<byte>, Power<byte>,
         Remainder<byte>, UnaryPlus<byte>, UnaryMinus<byte>, Equal<byte>, Comparable<byte> {

@@ -155,8 +155,8 @@ fun repl(packageFiles: List<String>) {
                     val symbolTableCopy = symbolTable.copyForRepl()
                     val importContextCopy = importContext.copyForRepl()
                     parser.resetForReplLine(symbolTableCopy, importContextCopy, seenBlankLine)
-                    converter.resetSymbolTable(symbolTableCopy)
-                    eval.resetSymbolTable(symbolTableCopy)
+                    converter.resetForReplLine(symbolTableCopy)
+                    eval.resetForReplLine(symbolTableCopy)
 
                     // Parse a single line of repl input, process the statement, and evaluate
                     val parseReplLineResult = parser.parseReplLine(tokens)

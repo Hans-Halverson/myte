@@ -7,4 +7,4 @@ import myte.shared.*
  *
  * @property continueLocation the location for the continue keyword
  */
-data class ContinueNode(val continueLocation: Location) : IRNode(continueLocation)
+class ContinueNode(val continueLocation: Location) : IRNode(continueLocation)

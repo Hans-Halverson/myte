@@ -2,15 +2,19 @@ package myte.eval.builtins
 
 import myte.shared.*
 
+
+// Option type and variant names
 const val OPTION_TYPE_NAME = "Option"
 const val OPTION_TYPE_NONE_VARIANT = "None"
 const val OPTION_TYPE_SOME_VARIANT = "Some"
 
+// Comparison type and variant names
 const val COMPARISON_TYPE_NAME = "Comparison"
 const val COMPARISON_TYPE_EQUAL_VARIANT = "EqualComparison"
 const val COMPARISON_TYPE_LESS_VARIANT = "LessComparison"
 const val COMPARISON_TYPE_GREATER_VARIANT = "GreaterComparison"
 
+// Trait names
 const val ADD_TRAIT_NAME = "Add"
 const val SUBTRACT_TRAIT_NAME = "Subtract"
 const val MULTIPLY_TRAIT_NAME = "Multiply"
@@ -26,11 +30,11 @@ const val ITERABLE_TRAIT_NAME = "Iterable"
 const val COMPARABLE_TRAIT_NAME = "Comparable"
 const val EQUAL_TRAIT_NAME = "Equal"
 
+// Builtin type signatures
 val OPTION_TYPE_SIG = AlgebraicDataTypeSignature(OPTION_TYPE_NAME, listOf(TypeParameter()))
 val COMPARISON_TYPE_SIG = AlgebraicDataTypeSignature(COMPARISON_TYPE_NAME, listOf())
 
-val COMPARISON_TYPE = COMPARISON_TYPE_SIG.createTypeWithParams(listOf())
-
+// Builtin trait signatures
 val ADD_TRAIT_SIG = TraitSignature(ADD_TRAIT_NAME, listOf(TypeParameter()))
 val SUBTRACT_TRAIT_SIG = TraitSignature(SUBTRACT_TRAIT_NAME, listOf(TypeParameter()))
 val MULTIPLY_TRAIT_SIG = TraitSignature(MULTIPLY_TRAIT_NAME, listOf(TypeParameter()))
@@ -46,6 +50,9 @@ val ITERATOR_TRAIT_SIG = TraitSignature(ITERATOR_TRAIT_NAME, listOf(TypeParamete
 val ITERABLE_TRAIT_SIG = TraitSignature(ITERABLE_TRAIT_NAME, listOf(TypeParameter()))
 val COMPARABLE_TRAIT_SIG = TraitSignature(COMPARABLE_TRAIT_NAME, listOf(TypeParameter()))
 val EQUAL_TRAIT_SIG = TraitSignature(EQUAL_TRAIT_NAME, listOf(TypeParameter()))
+
+// Builtin unparameterized types
+val COMPARISON_TYPE = COMPARISON_TYPE_SIG.createTypeWithParams(listOf())
 
 val BUILTIN_TYPES: Map<String, AlgebraicDataTypeSignature> = mapOf(
     OPTION_TYPE_NAME to OPTION_TYPE_SIG,

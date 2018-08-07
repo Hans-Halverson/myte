@@ -7,4 +7,4 @@ import myte.shared.*
  *
  * @property breakLocation the location for the break keyword
  */
-data class BreakNode(val breakLocation: Location) : IRNode(breakLocation)
+class BreakNode(val breakLocation: Location) : IRNode(breakLocation)

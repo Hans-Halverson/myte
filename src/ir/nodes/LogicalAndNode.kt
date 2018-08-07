@@ -8,7 +8,7 @@ import myte.shared.*
  * @property left the left hand side of the logical and expression
  * @property right the right hand side of the logical and expression
  */
-data class LogicalAndNode(var left: IRNode, var right: IRNode) : IRNode(left.startLocation) {
+class LogicalAndNode(var left: IRNode, var right: IRNode) : IRNode(left.startLocation) {
     override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
         left.forEach(func)

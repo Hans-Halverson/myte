@@ -9,7 +9,7 @@ import myte.shared.*
  * @property key the key used to index into the container
  * @property accessLocation the location of the left bracket in the access
  */
-data class IndexNode(
+class IndexNode(
     var container: IRNode,
     var key: IRNode,
     val indexLocation: Location

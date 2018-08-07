@@ -10,7 +10,7 @@ import myte.shared.*
  * @property rValue the value to assign to the given field
  * @property accessLocation the location of the dot in the access
  * */
-data class FieldAssignmentNode(
+class FieldAssignmentNode(
     var expr: IRNode,
     val field: String,
     var rValue: IRNode,

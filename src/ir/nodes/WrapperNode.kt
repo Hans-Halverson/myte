@@ -8,7 +8,7 @@ import myte.shared.*
  *
  * @property node the wrapped node
  */
-data class WrapperNode(var node: IRNode) : IRNode(NO_LOCATION) {
+class WrapperNode(var node: IRNode) : IRNode(NO_LOCATION) {
     override fun <T> forEach(func: (IRNode) -> T) {
         func(this)
         node.forEach(func)

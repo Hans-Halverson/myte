@@ -7,5 +7,6 @@ class TraitDefinitionStatement(
     val typeParamIdents: List<Identifier>,
     val thisIdent: Identifier,
     val methodSignatures: List<Pair<FunctionSignatureDefinitionStatement, Boolean>>,
-    val concreteMethods: List<Pair<FunctionDefinitionStatement, Boolean>>
+    val concreteMethods: List<Pair<FunctionDefinitionStatement, Boolean>>,
+    val startLocation: Location
 ) : TopLevelStatement()

@@ -182,15 +182,12 @@ implement DLL<a> {
 
         // Set pointers of previous and next node to point to each other, removing node
         match curr
-        | Some(DLLNode { next: next, prev: prev }) -> (match (next, prev)
-            | (Some(nextNode), Some(prevNode)) -> {
-                nextNode.prev = prev
-                prevNode.next = next
-            }
-            // This should never happen, as deleting from edges of list is already handled
-            | _ -> {})
-        // This should never happen, since node must be within bounds of list
-        | None -> {}
+        | Some(DLLNode { next: Some(next), prev: Some(prev) }) -> {
+            next.prev = Some(prev)
+            prev.next = Some(next)
+        }
+        // This should never happen, as deleting from edges of list is already handled
+        | _ -> {}
 
         this.size = this.size -1 1
     }
