@@ -32,8 +32,8 @@ class TypeEquivalenceNode(
 }
 
 class TypeChecker(var symbolTable: SymbolTable) {
-    private val typeVarToNode: MutableMap<TypeVariable, TypeEquivalenceNode> = mutableMapOf()
-    private val deferredConstraints: MutableMap<TypeVariable, MutableList<DeferredConstraint>> =
+    private val typeVarToNode: MutableMap<OpenTypeVariable, TypeEquivalenceNode> = mutableMapOf()
+    private val deferredConstraints: MutableMap<OpenTypeVariable, MutableList<DeferredConstraint>> =
             mutableMapOf()
 
     /**
@@ -47,7 +47,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
      * Add a type variable to the set of equivalence classes, if it does not already exist, and
      * return the equivalence class node for this type variable.
      */
-    private fun addTypeVar(typeVar: TypeVariable): TypeEquivalenceNode {
+    private fun addTypeVar(typeVar: OpenTypeVariable): TypeEquivalenceNode {
         val typeEquivNode = typeVarToNode[typeVar]
         if (typeEquivNode == null) {
             val newEquivNode = TypeEquivalenceNode(typeVar)
@@ -79,7 +79,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
     /**
      * Find the representative equivalence class node for the given type variable.
      */
-    fun findRepNode(typeVar: TypeVariable): TypeEquivalenceNode {
+    fun findRepNode(typeVar: OpenTypeVariable): TypeEquivalenceNode {
         // The representative node of a type is found by finding the root of its equivalence node
         var node = addTypeVar(typeVar)
         return findRoot(node)
@@ -90,9 +90,9 @@ class TypeChecker(var symbolTable: SymbolTable) {
      * Returns true if successful, false if the type variable has already been resolved to an
      * an incompatible type.
      */
-    private fun resolveType(typeVar: TypeVariable, resolvedType: Type): Boolean {
+    private fun resolveType(typeVar: OpenTypeVariable, resolvedType: Type): Boolean {
         val equivNode = findRepNode(typeVar)
-        if (equivNode.resolvedType !is TypeVariable && equivNode.resolvedType != resolvedType) {
+        if (equivNode.resolvedType !is OpenTypeVariable && equivNode.resolvedType != resolvedType) {
             return false
         }
 
@@ -116,8 +116,8 @@ class TypeChecker(var symbolTable: SymbolTable) {
      * Add a deferred constraint to the given type variable.
      */
     fun addDeferredConstraint(type: Type, constraint: DeferredConstraint) {
-        val repType = if (type is TypeVariable) findRepNode(type).resolvedType else type
-        if (repType is TypeVariable) {
+        val repType = if (type is OpenTypeVariable) findRepNode(type).resolvedType else type
+        if (repType is OpenTypeVariable) {
             // If a type variable, add deferred constraint to list of constraints for the variable
             val constraints = deferredConstraints[repType]
             if (constraints == null) {
@@ -305,7 +305,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         refresh: Boolean = true
     ): Type {
         // Find the representative type if this is a type variable, otherwise use the type
-        val repType = if (type is TypeVariable) findRepNode(type).resolvedType else type
+        val repType = if (type is OpenTypeVariable) findRepNode(type).resolvedType else type
 
         return when (repType) {
             // Find the rep type for vector element type and reconstruct vector type
@@ -358,7 +358,11 @@ class TypeChecker(var symbolTable: SymbolTable) {
                 // If already bound (has same representative as bound var), then return
                 // existing type variable
                 val repBoundVars = boundVars.map { boundVar ->
-                    findRepNode(boundVar).resolvedType
+                    if (boundVar is OpenTypeVariable) {
+                        findRepNode(boundVar).resolvedType
+                    } else {
+                        boundVar 
+                    }
                 }
 
                 if (repBoundVars.contains(repType)) {
@@ -371,7 +375,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
                     return mappedVar
                 // Generate new type variable if refresh flag is set, otherwise return rep type
                 } else if (refresh) {
-                    val newVar = TypeVariable()
+                    val newVar = OpenTypeVariable()
                     mappedVars[repType] = newVar
                     return newVar
                 } else {
@@ -391,20 +395,12 @@ class TypeChecker(var symbolTable: SymbolTable) {
      */
     private fun mergeTypes(type1: Type, type2: Type): Boolean {
         // If merging two type variables, set the first rep node to point to the second rep node
-        if (type1 is TypeVariable && type2 is TypeVariable) {
+        if (type1 is OpenTypeVariable && type2 is OpenTypeVariable) {
             val rep1 = findRepNode(type1)
             val rep2 = findRepNode(type2)
 
-            // Choose the type parameter to be the root node, or choose the lower ranked node
-            val firstIsParent = if (type1 is TypeParameter) {
-                true
-            } else if (type2 is TypeParameter) {
-                false
-            } else {
-                rep1.rank > rep2.rank
-            }
-
-            if (firstIsParent) {
+            // Choose the lower ranked node to be the root node
+            if (rep1.rank > rep2.rank) {
                 replaceRoot(rep2, rep1)
             } else {
                 replaceRoot(rep1, rep2)
@@ -417,14 +413,14 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
             return true
         // If merging a type variable with a type, if occurs check passes resolve type variable
-        } else if (type1 is TypeVariable && type2 !is TypeVariable) {
+        } else if (type1 is OpenTypeVariable && type2 !is OpenTypeVariable) {
             if (occursIn(type1, type2)) {
                 return false
             }
 
             return resolveType(type1, type2)
         // If merging a type with a type variable, if occurs check passes resolve type variable
-        } else if (type1 !is TypeVariable && type2 is TypeVariable) {
+        } else if (type1 !is OpenTypeVariable && type2 is OpenTypeVariable) {
             if (occursIn(type2, type1)) {
                 return false
             }
@@ -437,8 +433,8 @@ class TypeChecker(var symbolTable: SymbolTable) {
     }
 
     private fun replaceRoot(oldRoot: TypeEquivalenceNode, newRoot: TypeEquivalenceNode) {
-        val oldType = oldRoot.resolvedType as TypeVariable
-        val newType = newRoot.resolvedType as TypeVariable
+        val oldType = oldRoot.resolvedType as OpenTypeVariable
+        val newType = newRoot.resolvedType as OpenTypeVariable
 
         // Move all deferred constraints from the old root to the new root
         val constraints = deferredConstraints.remove(oldType)
@@ -469,20 +465,14 @@ class TypeChecker(var symbolTable: SymbolTable) {
      */
     fun unify(t1: Type, t2: Type): Boolean {
         // If type variables, work with their representative types
-        val type1 = if (t1 is TypeVariable) findRepNode(t1).resolvedType else t1
-        val type2 = if (t2 is TypeVariable) findRepNode(t2).resolvedType else t2
+        val type1 = if (t1 is OpenTypeVariable) findRepNode(t1).resolvedType else t1
+        val type2 = if (t2 is OpenTypeVariable) findRepNode(t2).resolvedType else t2
 
         // If both types are already identical, they are already unified
         if (type1 == type2) {
             return true
         // If at least one type is a type variable, merge types together
-        } else if (type1 is TypeVariable || type2 is TypeVariable) {
-            // Cannot merge a type parameter with anything except a type variable
-            if ((type1 is TypeParameter && type2 !is TypeVariable) ||
-                    (type1 !is TypeVariable && type2 is TypeParameter)) {
-                return false
-            }
-
+        } else if (type1 is OpenTypeVariable || type2 is OpenTypeVariable) {
             return mergeTypes(type1, type2)
         // If both representatives have vector type, merge reps and unify their child types
         } else if (type1 is VectorType && type2 is VectorType) {
@@ -527,29 +517,29 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
     fun subtype(sbType: Type, spType: Type, except: () -> Unit, allowVars: Boolean = true): Boolean {
         // If type variables, work with their representative types
-        val subType = if (sbType is TypeVariable) findRepNode(sbType).resolvedType else sbType
-        val superType = if (spType is TypeVariable) findRepNode(spType).resolvedType else spType
+        val subType = if (sbType is OpenTypeVariable) findRepNode(sbType).resolvedType else sbType
+        val superType = if (spType is OpenTypeVariable) findRepNode(spType).resolvedType else spType
 
         // The subtype relation is reflexive
         if (subType == superType) {
             return true
         // If not allowing variables, fail if either type is a type variable (when unequal)
-        } else if (!allowVars && (subType is TypeVariable || superType is TypeVariable)) {
+        } else if (!allowVars && (subType is OpenTypeVariable || superType is OpenTypeVariable)) {
             return false
         // If both types are type variables, add supertype and subtype bounds to type variables
-        } else if (subType is TypeVariable && superType is TypeVariable) {
+        } else if (subType is OpenTypeVariable && superType is OpenTypeVariable) {
             val subtypingConstraint = VariableSubtypingConstraint(subType, superType, except, this)
             addDeferredConstraint(subType, subtypingConstraint)
             addDeferredConstraint(superType, subtypingConstraint)
 
             return true
         // If the supertype only is a type variable, add subtype bound to type variable
-        } else if (subType !is TypeVariable && superType is TypeVariable) {
+        } else if (subType !is OpenTypeVariable && superType is OpenTypeVariable) {
             val subtypeConstraint = SubtypeConstraint(subType, except, this)
             addDeferredConstraint(superType, subtypeConstraint)
             return true
         // If the subtype only is a type variable, we can apply constraints unless super is trait
-        } else if (subType is TypeVariable) {
+        } else if (subType is OpenTypeVariable) {
             return when (superType) {
                 // If supertype is a basic, unparameterized type or a parameterized type with
                 // invariant type parameters, simply unify both types.
@@ -564,16 +554,17 @@ class TypeChecker(var symbolTable: SymbolTable) {
                 is VectorType -> unify(subType, superType)
                 is SetType -> unify(subType, superType)
                 is MapType -> unify(subType, superType)
+                is TypeParameter -> unify(subType, superType)
                 // If supertype is a tuple, subtype must also be a tuple with covariant elements
                 is TupleType -> {
-                    val tupleSubType = TupleType(superType.elementTypes.map { TypeVariable() })
+                    val tupleSubType = TupleType(superType.elementTypes.map { OpenTypeVariable() })
                     return unify(subType, tupleSubType) &&
                             subtype(tupleSubType, superType, except, allowVars)
                 }
                 // If supertype is a function, subtype must also be a func with correct variance
                 is FunctionType -> {
-                    val funcSubType = FunctionType(superType.argTypes.map { TypeVariable() },
-                            TypeVariable())
+                    val funcSubType = FunctionType(superType.argTypes.map { OpenTypeVariable() },
+                            OpenTypeVariable())
                     return unify(subType, funcSubType) &&
                             subtype(funcSubType, superType, except, allowVars)
                 }
@@ -584,7 +575,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
                     return true
                 }
                 // This should never be reached, as the both types being variables is handled above
-                is TypeVariable -> throw Exception("This case should be unreachable")
+                is OpenTypeVariable -> throw Exception("This case should be unreachable")
             }
         // Tuples types are covariant in element types, since they are immutable
         } else if (subType is TupleType && superType is TupleType) {
@@ -620,7 +611,8 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
             // Find parameterized type of trait by performing rep substitution from trait sig params
             // to actual trait params in extended trait params.
-            val paramsMap = subType.sig.typeParams.zip(subType.listTypeParams()).toMap()
+            val paramsMap = (subType.sig.typeParams as List<TypeVariable>)
+                    .zip(subType.listTypeParams()).toMap()
             val substTraitParams = extendedTrait.typeParams.map { typeParam ->
                 findRepSubstitution(typeParam, paramsMap)
             }
@@ -729,13 +721,19 @@ class TypeChecker(var symbolTable: SymbolTable) {
     }
 
     fun typeCheckIntegralLiteral(node: IntegralLiteralNode) {
-        val integralConstraint = IntegralConstraint(node, this)
-        addDeferredConstraint(node.type, integralConstraint)
+        if (!unify(node.type, IntType)) {
+            val type = typeToString(node.type)
+            throw IRConversionException("Int literal coud not be inferred to have type int, " +
+                    "found ${type}", node.startLocation)
+        }
     }
 
     fun typeCheckDecimalLiteral(node: DecimalLiteralNode) {
-        val decimalConstraint = DecimalConstraint(node, this)
-        addDeferredConstraint(node.type, decimalConstraint)
+        if (!unify(node.type, DoubleType)) {
+            val type = typeToString(node.type)
+            throw IRConversionException("Double literal coud not be inferred to have type " +
+                    "double, found ${type}", node.startLocation)
+        }
     }
 
     fun typeCheckUnitLiteral(node: UnitLiteralNode) {
@@ -755,7 +753,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         node.elements.forEach { element -> typeCheck(element, boundVars, refresh) }
 
         // Vector type is initially unknown, so set as vector type with new type variable param
-        val elementType = TypeVariable()
+        val elementType = OpenTypeVariable()
         val vectorType = VectorType(elementType)
 
         // Type of this vector literal must be a vector of the element type
@@ -787,7 +785,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         node.elements.forEach { element -> typeCheck(element, boundVars, refresh) }
 
         // Set type is initially unknown, so set as set type with new type variable param
-        val elementType = TypeVariable()
+        val elementType = OpenTypeVariable()
         val setType = SetType(elementType)
 
         // Type of this set literal must be a set of the element type
@@ -820,8 +818,8 @@ class TypeChecker(var symbolTable: SymbolTable) {
         node.values.forEach { value -> typeCheck(value, boundVars, refresh) }
 
         // Map type is initially unknown, so set as map type with new key and value params
-        val keyType = TypeVariable()
-        val valType = TypeVariable()
+        val keyType = OpenTypeVariable()
+        val valType = OpenTypeVariable()
         val mapType = MapType(keyType, valType)
 
         // Type of this map literal must be the new map type
@@ -865,27 +863,12 @@ class TypeChecker(var symbolTable: SymbolTable) {
     ) {
         node.elements.forEach { element -> typeCheck(element, boundVars, refresh) }
 
-        // Tuple type is initially unknown, so set as tuple type with type variables for fields
-        val nodeType = TupleType(node.elements.map { TypeVariable() })
-
-        // Type of this tuple literal must be the given tuple type
-        if (!unify(node.type, nodeType)) {
-            val types = typesToString(node.type, nodeType)
-            throw IRConversionException("Tuple literal could not be inferred to have tuple " +
-                    "type, found ${types[0]} but expected ${types[1]}", node.startLocation)
-        }
-
-        // Each element's type in the tuple must be a subtype of the corresponding element type
-        node.elements.zip(nodeType.elementTypes).forEach { (element, expectedElementType) ->
-            val except = { ->
-                val types = typesToString(element.type, expectedElementType)
-                throw IRConversionException("Cannot infer type for tuple element, expected " +
-                        "${types[0]} but found ${types[1]}", element.startLocation)
-            }
-
-            if (!subtype(element.type, expectedElementType, except)) {
-                except()
-            }
+        // Type of tuple node is constructed from types of elements
+        val tupleType = TupleType(node.elements.map { it.type })
+        if (!unify(node.type, tupleType)) {
+            val types = typesToString(node.type, tupleType)
+            throw IRConversionException("Tuple literal found to have type ${types[0]}, but " +
+                    "expected ${types[1]}", node.startLocation)
         }
     }
 
@@ -1145,7 +1128,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         typeCheck(node.key, boundVars, refresh)
 
         // The result type of the index is unknown so far, so create type variable to hold it
-        val indexResultType = TypeVariable()
+        val indexResultType = OpenTypeVariable()
         val indexTraitType = INDEX_TRAIT_SIG
                 .createTypeWithParams(listOf(node.key.type, indexResultType))
 
@@ -1211,7 +1194,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
         // Each actual argument's type must be a subtype of the expected argument type
         val expectedArgTypes = node.actualArgs.map { arg ->
-            val expectedArgType = TypeVariable()
+            val expectedArgType = OpenTypeVariable()
 
             val except = { ->
                 val types = typesToString(expectedArgType, arg.type)
@@ -1243,7 +1226,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
         // Each argument's type must be a subtype of the expected argument type
         val expectedArgTypes = node.args.map { arg ->
-            val expectedArgType = TypeVariable()
+            val expectedArgType = OpenTypeVariable()
 
             val except = { ->
                 val types = typesToString(expectedArgType, arg.type)
@@ -1276,21 +1259,21 @@ class TypeChecker(var symbolTable: SymbolTable) {
         node.args.forEach { arg -> typeCheck(arg, boundVars, refresh) }
 
         val (recvType, methodType) = if (node.builtin.receiverType is VectorType) {
-            val recvType = VectorType(TypeVariable())
+            val recvType = VectorType(OpenTypeVariable())
             val paramsMap = mapOf(node.builtin.receiverType.elementType as TypeVariable to
                     recvType.elementType)
             val methodType = node.builtin.type.substitute(paramsMap)
 
             Pair(recvType, methodType)
         } else if (node.builtin.receiverType is SetType) {
-            val recvType = SetType(TypeVariable())
+            val recvType = SetType(OpenTypeVariable())
             val paramsMap = mapOf(node.builtin.receiverType.elementType as TypeVariable to
                     recvType.elementType)
             val methodType = node.builtin.type.substitute(paramsMap)
 
             Pair(recvType, methodType)
         } else if (node.builtin.receiverType is MapType) {
-            val recvType = MapType(TypeVariable(), TypeVariable())
+            val recvType = MapType(OpenTypeVariable(), OpenTypeVariable())
             val paramsMap = mapOf(
                     node.builtin.receiverType.keyType as TypeVariable to recvType.keyType,
                     node.builtin.receiverType.valType as TypeVariable to recvType.valType
@@ -1311,7 +1294,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
         // Each argument's type must be a subtype of the expected argument type
         val expectedArgTypes = node.args.map { arg ->
-            val expectedArgType = TypeVariable()
+            val expectedArgType = OpenTypeVariable()
 
             val except = { ->
                 val types = typesToString(expectedArgType, arg.type)
@@ -1618,28 +1601,11 @@ class TypeChecker(var symbolTable: SymbolTable) {
                             "but found ${types[1]}", location)
             }
 
-            // If a type annotation does not exist, returned types must all be exactly equal to
-            // function's return type. If annotation does exist, returned types must only be
-            // subtypes of this annotated type.
-            val typesCheck = if (node.returnTypeAnnotation == null) {
-                unify(retType, funcType.returnType)
-            } else {
-                subtype(retType, funcType.returnType, except)
-            }
-
-            if (!typesCheck) {
+            // All returned types must be subtypes of the annotated type.
+            if (!subtype(retType, funcType.returnType, except)) {
                 except()
             }
         })
-
-        // If no return statements were found, this function returns unit
-        if (!foundReturn) {
-            if (!unify(funcType.returnType, UnitType)) {
-                val type = typeToString(funcType.returnType)
-                throw IRConversionException("${node.ident.name} inferred to return unit, but " +
-                        "expected ${type}", node.startLocation)
-            }
-        }
 
         // Main must always have return type int or unit, and a single optional argument
         // with type vec<string>.
@@ -1690,7 +1656,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         typeCheck(node.body, newBoundVars, refresh)
 
         // Create expected function type from argument list and new return type variable
-        val returnType = TypeVariable()
+        val returnType = OpenTypeVariable()
         val funcType = FunctionType(argTypes, returnType)
 
         // Lambda expression node evaluates to this function type
@@ -1875,7 +1841,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         typeCheck(node.iterable, boundVars, refresh)
 
         // Iterable expression must implement iterable trait
-        val forEachPatternType = TypeVariable()
+        val forEachPatternType = OpenTypeVariable()
         val iterableTraitType = ITERABLE_TRAIT_SIG.createTypeWithParams(listOf(forEachPatternType))
 
         var except = { ->
@@ -1965,7 +1931,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
 
         if (node.isExpression) {
             // Evaluation type of match expression is evaluation type of cases
-            val matchType = TypeVariable()
+            val matchType = OpenTypeVariable()
             if (!unify(node.type, matchType)) {
                 val types = typesToString(node.type, matchType)
                 throw IRConversionException("Match expression expected to have type " +

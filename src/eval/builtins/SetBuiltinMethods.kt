@@ -5,7 +5,7 @@ import myte.eval.builtins.*
 import myte.eval.values.*
 import myte.shared.*
 
-val BUILTIN_SET_TYPE = SetType(TypeVariable())
+val BUILTIN_SET_TYPE = SetType(TypeParameter())
 
 const val SET_ADD_METHOD = "set.add"
 const val SET_CONTAINS_METHOD = "set.contains"

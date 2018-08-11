@@ -19,7 +19,7 @@ implement vec<a> extends Equal<vec<a>> {
         return __builtin("vec.size", this)
     }
 
-    def equals(other: vec<a>) {
+    def equals(other: vec<a>): bool {
         if (this.size() != other.size()) {
             return false
         }
@@ -51,7 +51,7 @@ implement vec<a> extends Index<int, a>, IndexAssign<int, a> {
 type VecIterator<a> = VecIterator { vec: vec<a>, mut curr: int }
 
 implement VecIterator<a> extends Iterator<a> {
-    def next() {
+    def next(): Option<a> {
         if (this.vec.size() == this.curr) {
             return None
         } else {
@@ -63,5 +63,5 @@ implement VecIterator<a> extends Iterator<a> {
 }
 
 implement vec<a> extends Iterable<a> {
-    def iterator() = VecIterator { vec: this, curr: 0 }
+    def iterator(): VecIterator<a> = VecIterator { vec: this, curr: 0 }
 }

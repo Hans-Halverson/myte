@@ -34,7 +34,7 @@ sealed class NumberType(sig: TypeSignature) : Type(sig)
  *
  * @property id the unique id which identifies this type variable
  */
-open class TypeVariable(val id: Long = newTypeVariableId()) : Type(TypeVariableSignature) {
+sealed class TypeVariable(val id: Long = newTypeVariableId()) : Type(TypeVariableSignature) {
     override fun getAllVariables(): List<TypeVariable> = listOf(this)
 
     override fun substitute(typeMap: Map<TypeVariable, Type>): Type {
@@ -58,6 +58,8 @@ open class TypeVariable(val id: Long = newTypeVariableId()) : Type(TypeVariableS
         return id == other.id
     }
 }
+
+class OpenTypeVariable() : TypeVariable()
 
 class TypeParameter() : TypeVariable()
 

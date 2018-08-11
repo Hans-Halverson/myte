@@ -9,7 +9,7 @@ trait Iterator<a> {
 trait Iterable<a> {
     sig iterator(): Iterator<a>
 
-    def contains(x) {
+    def contains(x: a): bool {
         forEach (item in this) {
             if (item == x) {
                 return true
@@ -19,7 +19,7 @@ trait Iterable<a> {
         return false
     }
 
-    def all(p) {
+    def all(p: a -> bool): bool {
         forEach (item in this) {
             if (!p(item)) {
                 return false
@@ -29,7 +29,7 @@ trait Iterable<a> {
         return true
     }
 
-    def any(p) {
+    def any(p: a -> bool): bool {
         forEach (item in this) {
             if (p(item)) {
                 return true

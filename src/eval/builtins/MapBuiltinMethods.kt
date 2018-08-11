@@ -5,7 +5,7 @@ import myte.eval.builtins.*
 import myte.eval.values.*
 import myte.shared.*
 
-val BUILTIN_MAP_TYPE = MapType(TypeVariable(), TypeVariable())
+val BUILTIN_MAP_TYPE = MapType(TypeParameter(), TypeParameter())
 
 const val MAP_INDEX_METHOD = "map.index"
 const val MAP_INDEX_ASSIGN_METHOD = "map.indexAssign"

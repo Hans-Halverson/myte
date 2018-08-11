@@ -28,78 +28,6 @@ sealed class DeferredConstraint {
     open fun inferOnFixedPointStall(trigger: Type): Boolean = false
 }
 
-class IntegralConstraint(
-    val node: IntegralLiteralNode,
-    val typeChecker: TypeChecker
-) : DeferredConstraint() {
-    override fun apply(trigger: Type): Boolean {
-        val nodeType = trigger
- 
-        // Succeed if node's type is resolved to an integral type
-        if (nodeType is ByteType || nodeType is IntType) {
-            return true
-        } else if (nodeType is TypeVariable) {
-            return false
-        } else {
-            val type = typeChecker.typeToString(nodeType)
-            throw IRConversionException("Integral literal could not be inferred to have integral " +
-                    "type, found ${type}", node.startLocation)
-        }
-    }
-
-    override fun assertUnresolved() {
-        throw IRConversionException("Type could not be inferred, consider adding more type " +
-                "annotations", node.startLocation)
-    }
-
-    override fun inferOnFixedPointStall(trigger: Type): Boolean {
-        if (!typeChecker.unify(trigger, IntType)) {
-            val type = typeChecker.typeToString(trigger)
-            throw IRConversionException("Integral literal inferred to have type int, but " +
-                    "expected ${type}. If int was not the correct type, consider adding more " +
-                    "type annotations.", node.startLocation)
-        }
-
-        return true
-    }
-}
-
-class DecimalConstraint(
-    val node: DecimalLiteralNode,
-    val typeChecker: TypeChecker
-) : DeferredConstraint() {
-    override fun apply(trigger: Type): Boolean {
-        val nodeType = trigger
- 
-        // Succeed if node's type is resolved to a decimal type
-        if (nodeType is FloatType || nodeType is DoubleType) {
-            return true
-        } else if (nodeType is TypeVariable) {
-            return false
-        } else {
-            val type = typeChecker.typeToString(nodeType)
-            throw IRConversionException("Decimal literal could not be inferred to have decimal " +
-                    "type, found ${type}", node.startLocation)
-        }
-    }
-
-    override fun assertUnresolved() {
-        throw IRConversionException("Type could not be inferred, consider adding more type " +
-                "annotations", node.startLocation)
-    }
-
-    override fun inferOnFixedPointStall(trigger: Type): Boolean {
-        if (!typeChecker.unify(trigger, DoubleType)) {
-            val type = typeChecker.typeToString(trigger)
-            throw IRConversionException("Decimal literal inferred to have type double, but " +
-                    "expected ${type}. If double was not the correct type, consider adding more " +
-                    "type annotations.", node.startLocation)
-        }
-
-        return true
-    }
-}
-
 class AccessConstraint(
     val node: AccessNode,
     val boundVars: MutableSet<TypeVariable>,
@@ -120,7 +48,7 @@ class AccessConstraint(
             return true
         }
 
-        if (exprType is TypeVariable) {
+        if (exprType is OpenTypeVariable) {
             return false
         }
 
@@ -130,11 +58,13 @@ class AccessConstraint(
             if (concreteIdent != null) {
                 // First perform rep substitution from trait sig params to trait type params
                 val concreteType = typeChecker.symbolTable.getInfo(concreteIdent)?.type!!
-                val trtParamsMap = extTrait.traitSig.typeParams.zip(extTrait.typeParams).toMap()
+                val trtParamsMap = (extTrait.traitSig.typeParams as List<TypeVariable>)
+                        .zip(extTrait.typeParams).toMap()
                 val traitSubstType = typeChecker.findRepSubstitution(concreteType, trtParamsMap)
 
                 // Then perform rep substitution from type sig params to type params
-                val adtParamsMap = exprType.sig.typeParams.zip(exprType.listTypeParams()).toMap()
+                val adtParamsMap = (exprType.sig.typeParams as List<TypeVariable>)
+                        .zip(exprType.listTypeParams()).toMap()
                 val adtSubstType = typeChecker.findRepSubstitution(traitSubstType, adtParamsMap)
 
                 // Finally refresh all unbound variables
@@ -155,7 +85,8 @@ class AccessConstraint(
         val methodIdent = exprType.sig.methods[node.field]
         if (methodIdent != null) {
             val methodType = typeChecker.symbolTable.getInfo(methodIdent)?.type!!
-            val paramsMap = exprType.sig.typeParams.zip(exprType.listTypeParams()).toMap()
+            val paramsMap = (exprType.sig.typeParams as List<TypeVariable>)
+                    .zip(exprType.listTypeParams()).toMap()
             val methodTypeWithParams = typeChecker.findRepSubstitution(methodType, paramsMap)
             val accessType = typeChecker.findRepType(methodTypeWithParams, boundVars)
 
@@ -197,7 +128,8 @@ class AccessConstraint(
 
             if (methodSignatureIdent != null) {
                 val identType = typeChecker.symbolTable.getInfo(methodSignatureIdent)?.type!!
-                val paramsMap = exprType.traitSig.typeParams.zip(exprType.typeParams).toMap()
+                val paramsMap = (exprType.traitSig.typeParams as List<TypeVariable>)
+                        .zip(exprType.typeParams).toMap()
                 val methodType = typeChecker.findRepSubstitution(identType, paramsMap)
 
                 val freshMethodType = typeChecker.findRepType(methodType, boundVars)
@@ -269,7 +201,7 @@ class FieldAssignmentConstraint(
             }
 
             return true
-        } else if (exprType is TypeVariable) {
+        } else if (exprType is OpenTypeVariable) {
             return false
         } else {
             val type = typeChecker.typeToString(exprType)
@@ -293,7 +225,7 @@ class SubtypeConstraint(
         val superType = trigger
 
         // If the supertype is still a type variable, keep this constraint
-        if (superType is TypeVariable) {
+        if (superType is OpenTypeVariable) {
             return false
         } else {
             if (!typeChecker.subtype(subType, superType, except)) {
@@ -320,6 +252,10 @@ class SubtypeConstraint(
 
         return true
     }
+
+    override fun toString(): String {
+        return "SubtypeConstraint on $subType with rep ${typeChecker.currentRepType(subType)}"
+    }
 }
 
 class SupertypeConstraint(
@@ -331,7 +267,7 @@ class SupertypeConstraint(
         val subType = trigger
 
         // If the subtype is still a type variable, keep this constraint
-        if (subType is TypeVariable) {
+        if (subType is OpenTypeVariable) {
             return false
         } else {
             if (!typeChecker.subtype(subType, superType, except)) {
@@ -361,8 +297,8 @@ class SupertypeConstraint(
 }
 
 class VariableSubtypingConstraint(
-    val subType: TypeVariable,
-    val superType: TypeVariable,
+    val subType: OpenTypeVariable,
+    val superType: OpenTypeVariable,
     val except: () -> Unit,
     val typeChecker: TypeChecker
 ) : DeferredConstraint() {
@@ -370,7 +306,7 @@ class VariableSubtypingConstraint(
         val repSubType = typeChecker.findRepNode(subType).resolvedType
         val repSuperType = typeChecker.findRepNode(superType).resolvedType
 
-        if (repSubType is TypeVariable && repSuperType is TypeVariable) {
+        if (repSubType is OpenTypeVariable && repSuperType is OpenTypeVariable) {
             return false
         } else {
             if (!typeChecker.subtype(repSubType, repSuperType, except)) {

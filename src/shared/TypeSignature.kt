@@ -11,7 +11,7 @@ package myte.shared
  */
 abstract class TypeSignature(
     val name: String,
-    val typeParams: List<TypeVariable>,
+    val typeParams: List<TypeParameter>,
     val methods: MutableMap<String, Identifier> = mutableMapOf(),
     val staticMethods: MutableMap<String, Identifier> = mutableMapOf(),
     val traits: MutableList<TraitType> = mutableListOf()
@@ -51,7 +51,7 @@ abstract class TypeSignature(
 }
 
 object TypeVariableSignature : TypeSignature("", listOf()) {
-    override fun createTypeWithParams(types: List<Type>) = TypeVariable()
+    override fun createTypeWithParams(types: List<Type>) = OpenTypeVariable()
 }
 
 object UnitTypeSignature : TypeSignature("unit", listOf()) {
@@ -82,15 +82,15 @@ object StringTypeSignature : TypeSignature("string", listOf()){
     override fun createTypeWithParams(types: List<Type>) = StringType
 }
 
-object VectorTypeSignature : TypeSignature("vec", listOf(TypeVariable())){
+object VectorTypeSignature : TypeSignature("vec", listOf(TypeParameter())){
     override fun createTypeWithParams(types: List<Type>) = VectorType(types[0])
 }
 
-object SetTypeSignature : TypeSignature("set", listOf(TypeVariable())){
+object SetTypeSignature : TypeSignature("set", listOf(TypeParameter())){
     override fun createTypeWithParams(types: List<Type>) = SetType(types[0])
 }
 
-object MapTypeSignature : TypeSignature("map", listOf(TypeVariable(), TypeVariable())){
+object MapTypeSignature : TypeSignature("map", listOf(TypeParameter(), TypeParameter())){
     override fun createTypeWithParams(types: List<Type>) = MapType(types[0], types[1])
 }
 

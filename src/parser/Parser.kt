@@ -894,7 +894,7 @@ class Parser(
         }
 
         val funcToken = token
-        val formalArgs: MutableList<Pair<Identifier, TypeExpression?>> = mutableListOf()
+        val formalArgs: MutableList<Pair<Identifier, TypeExpression>> = mutableListOf()
 
         assertCurrent(TokenType.LEFT_PAREN)
         tokenizer.next()
@@ -922,12 +922,8 @@ class Parser(
                 throw ParseException("Formal arguments must be identifiers", token)
             }
 
-            // Parse optional type annotation
-            val typeAnnotation = if (tokenizer.current is ColonToken) {
-                parseTypeAnnotation(true)
-            } else {
-                null
-            }
+            // Parse required type annotation
+            val typeAnnotation = parseTypeAnnotation(true)
 
             val formalArg = symbolTable.addVariable(token.str, IdentifierClass.VARIABLE,
                     token.location)

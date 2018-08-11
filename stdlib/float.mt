@@ -1,25 +1,25 @@
 package std::float
 
-import std::compare::{Comparable, Equal}
+import std::compare::{Comparable, Comparison, Equal}
 import std::ops::{Add, Subtract, Multiply, Divide, Power, Remainder, UnaryPlus, UnaryMinus}
 
 implement float extends Add<float>, Subtract<float>, Multiply<float>, Divide<float>, Power<float>,
         Remainder<float>, UnaryPlus<float>, UnaryMinus<float>, Equal<float>, Comparable<float> {
-    def add(f) = __builtin("float.add", this, f)
+    def add(f: float): float = __builtin("float.add", this, f)
 
-    def subtract(f) = __builtin("float.subtract", this, f)
+    def subtract(f: float): float = __builtin("float.subtract", this, f)
 
-    def multiply(f) = __builtin("float.multiply", this, f)
+    def multiply(f: float): float = __builtin("float.multiply", this, f)
 
-    def divide(f) = __builtin("float.divide", this, f)
+    def divide(f: float): float = __builtin("float.divide", this, f)
 
-    def power(f) = __builtin("float.power", this, f)
+    def power(f: float): float = __builtin("float.power", this, f)
 
-    def remainder(f) = __builtin("float.remainder", this, f)
+    def remainder(f: float): float = __builtin("float.remainder", this, f)
 
-    def unaryPlus() = __builtin("float.unaryPlus", this)
+    def unaryPlus(): float = __builtin("float.unaryPlus", this)
 
-    def unaryMinus() = __builtin("float.unaryMinus", this)
+    def unaryMinus(): float = __builtin("float.unaryMinus", this)
 
     def toByte(): byte = __builtin("float.toByte", this)
 
@@ -27,9 +27,9 @@ implement float extends Add<float>, Subtract<float>, Multiply<float>, Divide<flo
 
     def toDouble(): double = __builtin("float.toDouble", this)
 
-    def compare(other) = __builtin("float.compare", this, other)
+    def compare(other: float): Comparison = __builtin("float.compare", this, other)
 
-    def equals(other) = __builtin("float.equals", this, other)
+    def equals(other: float): bool = __builtin("float.equals", this, other)
 
     def toString(): string = __builtin("float.toString", this)
 }

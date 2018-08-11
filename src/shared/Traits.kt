@@ -2,7 +2,7 @@ package myte.shared
 
 class TraitSignature(
     name: String,
-    typeParams: List<TypeVariable>,
+    typeParams: List<TypeParameter>,
     val methodSignatures: MutableMap<String, Identifier> = mutableMapOf(),
     methods: MutableMap<String, Identifier> = mutableMapOf(),
     val staticMethodSignatures: MutableMap<String, Identifier> = mutableMapOf(),

@@ -2,14 +2,14 @@ package Scope
 
 import std::fmt::println
 
-def f() {
+def f(): string {
     return a
 }
 
 const a = "hello"
 
 
-def g(x) {
+def g(x: int): int {
     if (x == 0) {
         return 0
     } else {
@@ -17,7 +17,7 @@ def g(x) {
     }
 }
 
-def h(x) {
+def h(x: int): int {
     if (x == 0) {
         return 0
     } else {
@@ -25,10 +25,10 @@ def h(x) {
     }
 }
 
-def shadowing(x) {
+def shadowing(x: a): int {
     let x = 100
     println(x.toString())
-    def moreShadowing(x) {
+    def moreShadowing(x: b): b {
         return x
     }
 
@@ -36,7 +36,7 @@ def shadowing(x) {
     return moreShadowing(x)
 }
 
-def patterns(x) {
+def patterns(x: list<a>): list<a> {
     match x
     | Nil -> return Nil
     | Cons(hd, tl) -> return Cons(hd, tl)
@@ -45,11 +45,13 @@ def patterns(x) {
 type list<a> = Nil | Cons(a, list<a>)
 
 
-def main() {
+def main(): int {
     println(f())
     println(g(100))
     println(h(200))
     println(shadowing(30))
 
     patterns(Nil)
+
+    return 0
 }

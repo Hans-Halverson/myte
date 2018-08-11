@@ -199,7 +199,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             val type = if (typeAnnotation != null) {
                 convertType(typeAnnotation)
             } else {
-                TypeVariable()
+                OpenTypeVariable()
             }
 
             symbolTable.getInfo(arg)?.type = type
@@ -214,11 +214,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     fun convertFunctionDefinition(stmt: FunctionDefinitionStatement): FunctionDefinitionNode {
         val (formalArgs, argTypes) = stmt.formalArgs.map({ (arg, typeAnnotation) ->
             // Annotate each formal argument with its optional type annotation or new type variable
-            val type = if (typeAnnotation != null) {
-                convertType(typeAnnotation)
-            } else {
-                TypeVariable()
-            }
+            val type = convertType(typeAnnotation)
 
             symbolTable.getInfo(arg)?.type = type
             symbolTable.getInfo(arg)?.typeShouldBeInferred = true
@@ -233,14 +229,15 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             null
         }
 
-        val returnType = returnTypeAnnotation ?: TypeVariable()
+        // If no type annotation is supplied, the return type must be unit
+        val returnType = returnTypeAnnotation ?: UnitType
 
         // Annotate function identifier with type from annotations
         symbolTable.getInfo(stmt.ident)?.type = FunctionType(argTypes, returnType)
         symbolTable.getInfo(stmt.ident)?.typeShouldBeInferred = true
 
         return FunctionDefinitionNode(stmt.ident, formalArgs, convert(stmt.body, false),
-                returnTypeAnnotation, null, stmt.identLocation, stmt.startLocation)
+                null, stmt.identLocation, stmt.startLocation)
     }
 
     fun convertFunctionSignatureDefinition(stmt: FunctionSignatureDefinitionStatement) {
@@ -264,7 +261,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
 
         // If this is a simple variable assignment, create variable definition node
         if (pattern is VariableNode) {
-            symbolTable.getInfo(pattern.ident)?.type = TypeVariable()
+            symbolTable.getInfo(pattern.ident)?.type = OpenTypeVariable()
             symbolTable.getInfo(pattern.ident)?.typeShouldBeInferred = true
             return VariableDefinitionNode(pattern.ident, convert(stmt.expr, true), typeAnnotation,
                     pattern.startLocation, stmt.startLocation)
@@ -502,7 +499,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
                 // If in a variable definition, need to annotate ident with new type variable,
                 // since every ident needs a type annotated when it is defined.
                 if (inDef) {
-                    symbolTable.getInfo(ident)?.type = TypeVariable()
+                    symbolTable.getInfo(ident)?.type = OpenTypeVariable()
                     symbolTable.getInfo(ident)?.typeShouldBeInferred = true
                 }
 
@@ -847,8 +844,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
             } else {
                 // Convert function definition node to method definition node
                 MethodDefinitionNode(funcDef.ident, funcDef.formalArgs, funcDef.body,
-                        funcDef.returnTypeAnnotation, traitDef.thisIdent, null,
-                        funcDef.identLocation, funcDef.startLocation)
+                        traitDef.thisIdent, null, funcDef.identLocation, funcDef.startLocation)
             }
         }
 
@@ -977,7 +973,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
 
             // Generate method types with correct parameters for this type implementation
             for ((sigName, sigIdent) in traitSig.methodSignatures) {
-                val substMap = traitSig.typeParams.zip(typeParams).toMap()
+                val substMap = (traitSig.typeParams as List<TypeVariable>).zip(typeParams).toMap()
                 val methodType = symbolTable.getInfo(sigIdent)?.type?.substitute(substMap)!!
 
                 val methodSigTypeList = methodSigTypes[sigName]
@@ -990,7 +986,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
 
             // Generate static method types with correct parameters for this type implementation
             for ((staticSigName, staticSigIdent) in traitSig.staticMethodSignatures) {
-                val substMap = traitSig.typeParams.zip(typeParams).toMap()
+                val substMap = (traitSig.typeParams as List<TypeVariable>).zip(typeParams).toMap()
                 val staticType = symbolTable.getInfo(staticSigIdent)?.type?.substitute(substMap)!!
 
                 val staticSigTypeList = staticSigTypes[staticSigName]
@@ -1020,14 +1016,13 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
 
                 // Add static sig type to function definition node
                 FunctionDefinitionNode(funcDef.ident, funcDef.formalArgs, funcDef.body,
-                        funcDef.returnTypeAnnotation, staticSigTypes[funcDef.ident.name],
-                        funcDef.identLocation, funcDef.startLocation)
+                        staticSigTypes[funcDef.ident.name], funcDef.identLocation,
+                        funcDef.startLocation)
             } else {
                 // Convert function definition node to method definition node
                 MethodDefinitionNode(funcDef.ident, funcDef.formalArgs, funcDef.body,
-                        funcDef.returnTypeAnnotation, typeImpl.thisIdent,
-                        methodSigTypes[funcDef.ident.name], funcDef.identLocation,
-                        funcDef.startLocation)
+                        typeImpl.thisIdent, methodSigTypes[funcDef.ident.name],
+                        funcDef.identLocation, funcDef.startLocation)
             }
 
         }

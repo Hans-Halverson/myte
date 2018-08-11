@@ -9,7 +9,7 @@ package myte.shared
  */
 class AlgebraicDataTypeSignature(
     name: String,
-    typeParams: List<TypeVariable>,
+    typeParams: List<TypeParameter>,
     val variants: MutableList<AlgebraicDataTypeVariant> = mutableListOf(),
     methods: MutableMap<String, Identifier> = mutableMapOf(),
     staticMethods: MutableMap<String, Identifier> = mutableMapOf(),
@@ -20,7 +20,7 @@ class AlgebraicDataTypeSignature(
      * Return an algebraic data type for this signature with fresh type parameters.
      */
     fun getFreshAdt(): AlgebraicDataType {
-        val freshParams = typeParams.map { TypeVariable() }
+        val freshParams = typeParams.map { OpenTypeVariable() }
         return getTypeWithParams(freshParams) as AlgebraicDataType
     }
 
@@ -122,7 +122,7 @@ class TupleVariant(
      * formal params in the adt signature.
      */
     fun getTypeConstructorWithParams(params: List<Type>): List<Type> {
-        val paramsMap = adtSig.typeParams.zip(params).toMap()
+        val paramsMap = (adtSig.typeParams as List<TypeVariable>).zip(params).toMap()
         return typeConstructor.map { type -> type.substitute(paramsMap) }
     }
 
@@ -152,7 +152,7 @@ class RecordVariant(
      * formal params in the adt signature.
      */
     fun getFieldsWithParams(params: List<Type>): Map<String, Type> {
-        val paramsMap = adtSig.typeParams.zip(params).toMap()
+        val paramsMap = (adtSig.typeParams as List<TypeVariable>).zip(params).toMap()
         return fields.mapValues { (_, typeAndMut) -> typeAndMut.first.substitute(paramsMap) }
     }
 }

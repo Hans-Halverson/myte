@@ -56,7 +56,7 @@ implement DLL<a> {
         this.size = this.size + 1
     }
 
-    def popFront() {
+    def popFront(): Option<a> {
         return match this.start
         // If removing the last element of the list, set start and end to None
         | Some(DLLNode { item: item, next: None }) -> {
@@ -77,7 +77,7 @@ implement DLL<a> {
         | None -> None
     }
 
-    def popBack() {
+    def popBack(): Option<a> {
         return match this.end
         // If removing the last element of the list, set start and end to None
         | Some(DLLNode { item: item, prev: None }) -> {
@@ -97,15 +97,15 @@ implement DLL<a> {
         | None -> None
     }
 
-    def front() = match this
+    def front(): Option<a> = match this
         | DLL { start: None } -> None
         | DLL { start: Some(DLLNode { item: item })} -> Some(item)
 
-    def back() = match this
+    def back(): Option<a> = match this
         | DLL { end: None } -> None
         | DLL { end: Some(DLLNode { item: item })} -> Some(item)
 
-    def get(i: int) {
+    def get(i: int): Option<a> {
         if (i < 0 || i >= this.size) {
             return None
         }
@@ -211,7 +211,7 @@ implement DLL<a> {
         }
     }
 
-    def toString() {
+    def toString(): string {
         // Add the size of the list
         let str = "List of size: " + this.size.toString()
 
@@ -240,11 +240,11 @@ implement DLL<a> {
 }
 
 implement DLL<a> extends Iterable<a> {
-    def iterator() = DLLIterator { curr: this.start }
+    def iterator(): DLLIterator<a> = DLLIterator { curr: this.start }
 }
 
 implement DLLIterator<a> extends Iterator<a> {
-    def next() = match this.curr
+    def next(): Option<a> = match this.curr
         | None -> None
         | Some(DLLNode { item: item, next: next }) -> {
             this.curr = next
@@ -253,7 +253,7 @@ implement DLLIterator<a> extends Iterator<a> {
 }
 
 implement DLLNode<a> {
-    def toString() {
+    def toString(): string {
         let str = "Node with item: " + this.item.toString()
 
         const prevStr = match this.prev

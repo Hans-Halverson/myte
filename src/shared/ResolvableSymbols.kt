@@ -242,7 +242,7 @@ class PatternSymbolPendingResolution(
                         IdentifierClass.VARIABLE, location, hashSetOf(), true)
 
                 // Annotate this new identifier with a new type variable
-                symbolTable.getInfo(patternIdent)?.type = TypeVariable()
+                symbolTable.getInfo(patternIdent)?.type = OpenTypeVariable()
 
                 return patternIdent
             } else {
@@ -276,7 +276,7 @@ class PatternSymbolPendingResolution(
  * @property name the name of the type
  * @property scopePrefixes a list of scope names that prefix this types's name
  * @property location the location of the beginning of the scope prefixed name
- * @property create whether to create a new type parameter variable if necessary
+ * @property inFunctionDef whether in a function definition or not
  * @property scope the scope that the variable needs to be resolved in
  * @property symbolTable the symbol table for this variable
  * @property importContext the import context that the variable needs to be resolved in
@@ -285,14 +285,14 @@ class TypeSymbolPendingResolution(
     val name: String,
     val scopePrefixes: List<String>,
     val location: Location,
-    val create: Boolean,
+    val inFunctionDef: Boolean,
     val scope: Scope,
     val symbolTable: SymbolTable,
     val importContext: ImportContext
 ) : ResolvableSymbol() {
     override fun resolve(): Identifier {
         // If there are no scope prefixes, this is either a type defined 1. In this package,
-        // 2. Directly imported, or 3. A new type variable to create if create flag is set.
+        // 2. Directly imported, or 3. A new type variable to create if inFunctionDef flag is set.
         if (scopePrefixes.isEmpty()) {
             // Look up type in current lexical scope
             val ident = scope.lookupType(name)
@@ -310,13 +310,13 @@ class TypeSymbolPendingResolution(
                 }
             }
 
-            // If no type was found yet, then create a type parameter if create flag is set
-            if (create) {
+            // If no type was found yet, then create a type parameter if inFunctionDef flag is set
+            if (inFunctionDef) {
                 val typeParamIdent = symbolTable.addSymbolInScope(scope, name,
                         IdentifierClass.TYPE_PARAMETER, location, hashSetOf(), false)
 
-                // Annotate type paramater ident with new type variable
-                symbolTable.getInfo(typeParamIdent)?.type = TypeVariable()
+                // Annotate type parameter ident with new type variable
+                symbolTable.getInfo(typeParamIdent)?.type = TypeParameter()
 
                 return typeParamIdent
             } else {

@@ -8,19 +8,19 @@ type Comparison =
 trait Comparable<a> {
     sig compare(a): Comparison
 
-    def lessThan(x) = match this.compare(x)
+    def lessThan(x: a): bool = match this.compare(x)
         | LessComparison -> true
         | _ -> false
 
-    def greaterThan(x) = match this.compare(x)
+    def greaterThan(x: a): bool = match this.compare(x)
         | GreaterComparison -> true
         | _ -> false
 
-    def lessThanOrEquals(x) = match this.compare(x)
+    def lessThanOrEquals(x: a): bool = match this.compare(x)
         | GreaterComparison -> false
         | _ -> true
 
-    def greaterThanOrEquals(x) = match this.compare(x)
+    def greaterThanOrEquals(x: a): bool = match this.compare(x)
         | LessComparison -> false
         | _ -> true
 }

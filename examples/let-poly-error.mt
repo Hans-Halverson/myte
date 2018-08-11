@@ -1,7 +1,7 @@
 package LetPolyError
 
-def g(y) {
-    def f(x) {
+def g(y: a): int {
+    def f(x: bool): a {
         return y
     }
 

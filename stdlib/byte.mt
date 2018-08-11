@@ -1,28 +1,28 @@
 package std::byte
 
-import std::compare::{Comparable, Equal}
+import std::compare::{Comparable, Comparison, Equal}
 import std::ops::{Add, Subtract, Multiply, Divide, Power, Remainder, UnaryPlus, UnaryMinus}
 
-let BYTE_MAX: byte = -128
-let BYTE_MIN: byte = 127
+let BYTE_MAX: byte = -128.toByte()
+let BYTE_MIN: byte = 127.toByte()
 
 implement byte extends Add<byte>, Subtract<byte>, Multiply<byte>, Divide<byte>, Power<byte>,
         Remainder<byte>, UnaryPlus<byte>, UnaryMinus<byte>, Equal<byte>, Comparable<byte> {
-    def add(i) = __builtin("byte.add", this, i)
+    def add(i: byte): byte = __builtin("byte.add", this, i)
 
-    def subtract(i) = __builtin("byte.subtract", this, i)
+    def subtract(i: byte): byte = __builtin("byte.subtract", this, i)
 
-    def multiply(i) = __builtin("byte.multiply", this, i)
+    def multiply(i: byte): byte = __builtin("byte.multiply", this, i)
 
-    def divide(i) = __builtin("byte.divide", this, i)
+    def divide(i: byte): byte = __builtin("byte.divide", this, i)
 
-    def power(i) = __builtin("byte.power", this, i)
+    def power(i: byte): byte = __builtin("byte.power", this, i)
 
-    def remainder(i) = __builtin("byte.remainder", this, i)
+    def remainder(i: byte): byte = __builtin("byte.remainder", this, i)
 
-    def unaryPlus() = __builtin("byte.unaryPlus", this)
+    def unaryPlus(): byte = __builtin("byte.unaryPlus", this)
 
-    def unaryMinus() = __builtin("byte.unaryMinus", this)
+    def unaryMinus(): byte = __builtin("byte.unaryMinus", this)
 
     def toInt(): int = __builtin("byte.toInt", this)
 
@@ -30,9 +30,9 @@ implement byte extends Add<byte>, Subtract<byte>, Multiply<byte>, Divide<byte>, 
 
     def toDouble(): double = __builtin("byte.toDouble", this)
 
-    def compare(other) = __builtin("byte.compare", this, other)
+    def compare(other: byte): Comparison = __builtin("byte.compare", this, other)
 
-    def equals(other) = __builtin("byte.equals", this, other)
+    def equals(other: byte): bool = __builtin("byte.equals", this, other)
 
     def toString(): string = __builtin("byte.toString", this)
 }

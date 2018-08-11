@@ -35,7 +35,7 @@ implement map<k, v> {
         return __builtin("map.toVec", this)
     }
 
-    def equals(other: map<k, v>) {
+    def equals(other: map<k, v>): bool {
         if (this.size() != other.size()) {
             return false
         }
@@ -64,10 +64,10 @@ implement map<k, v> extends Index<k, Option<v>>, IndexAssign<k, v> {
 type MapIterator<k, v> = MapIterator(VecIterator<(k, v)>)
 
 implement MapIterator<k, v> extends Iterator<(k, v)> {
-    def next() = match this
+    def next(): Option<(k, v)> = match this
         | MapIterator(vecIterator) -> vecIterator.next()
 }
 
 implement map<k, v> extends Iterable<(k, v)> {
-    def iterator() = MapIterator(this.toVec().iterator())
+    def iterator(): MapIterator<k, v> = MapIterator(this.toVec().iterator())
 }

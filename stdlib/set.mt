@@ -2,6 +2,7 @@ package std::set
 
 import std::compare::Equal
 import std::iterator::{Iterator, Iterable}
+import std::option::Option
 import std::vec::VecIterator
 
 implement set<a> extends Equal<set<a>> {
@@ -25,7 +26,7 @@ implement set<a> extends Equal<set<a>> {
         return __builtin("set.toVec", this)
     }
 
-    def equals(other) {
+    def equals(other: set<a>): bool {
         if (this.size() != other.size()) {
             return false
         }
@@ -41,10 +42,10 @@ implement set<a> extends Equal<set<a>> {
 type SetIterator<a> = SetIterator(VecIterator<a>)
 
 implement SetIterator<a> extends Iterator<a> {
-    def next() = match this
+    def next(): Option<a> = match this
         | SetIterator(vecIterator) -> vecIterator.next()
 }
 
 implement set<a> extends Iterable<a> {
-    def iterator() = SetIterator(this.toVec().iterator())
+    def iterator(): SetIterator<a> = SetIterator(this.toVec().iterator())
 }

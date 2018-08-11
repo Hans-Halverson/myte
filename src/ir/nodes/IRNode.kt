@@ -11,7 +11,7 @@ import myte.shared.*
  * @property startLocation the location for the start of the content contained at this node
  */
 abstract class IRNode(val startLocation: Location) {
-    var type: Type = TypeVariable()
+    var type: Type = OpenTypeVariable()
 
     /*
      * Apply a function over the entire IR tree rooted at this node in preorder.

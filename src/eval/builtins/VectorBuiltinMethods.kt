@@ -5,7 +5,7 @@ import myte.eval.builtins.*
 import myte.eval.values.*
 import myte.shared.*
 
-val BUILTIN_VECTOR_TYPE = VectorType(TypeVariable())
+val BUILTIN_VECTOR_TYPE = VectorType(TypeParameter())
 
 const val VECTOR_INDEX_METHOD = "vec.index"
 const val VECTOR_INDEX_ASSIGN_METHOD = "vec.indexAssign"
