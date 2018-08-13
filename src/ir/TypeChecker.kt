@@ -33,14 +33,14 @@ class TypeEquivalenceNode(
 
 class TypeChecker(var symbolTable: SymbolTable) {
     private val typeVarToNode: MutableMap<OpenTypeVariable, TypeEquivalenceNode> = mutableMapOf()
-    private val deferredConstraints: MutableMap<OpenTypeVariable, MutableList<DeferredConstraint>> =
-            mutableMapOf()
+    private var constraintGraph: ConstraintGraph = ConstraintGraph()
 
     /**
-     * Set the symbol table to new symbol table.
+     * Reset for a new line from the REPL.
      */
-    fun resetSymbolTable(newSymbolTable: SymbolTable) {
+    fun resetForReplLine(newSymbolTable: SymbolTable) {
         symbolTable = newSymbolTable
+        constraintGraph = ConstraintGraph()
     }
 
     /**
@@ -99,38 +99,37 @@ class TypeChecker(var symbolTable: SymbolTable) {
         // Set resolved type
         equivNode.resolvedType = resolvedType
 
-        // Apply all deferred constraints to newly resolved type, erroring if they cannot be applied
-        val constraints = deferredConstraints.remove(typeVar)
-        if (constraints != null) {
-            for (constraint in constraints) {
-                if (!constraint.apply(resolvedType)) {
-                    constraint.assertUnresolved()
-                }
-            }
-        }
+        constraintGraph.resolveVariable(typeVar)
 
         return true
     }
 
     /**
-     * Add a deferred constraint to the given type variable.
+     * Add a constraint to the given type variable.
      */
-    fun addDeferredConstraint(type: Type, constraint: DeferredConstraint) {
-        val repType = if (type is OpenTypeVariable) findRepNode(type).resolvedType else type
-        if (repType is OpenTypeVariable) {
-            // If a type variable, add deferred constraint to list of constraints for the variable
-            val constraints = deferredConstraints[repType]
-            if (constraints == null) {
-                deferredConstraints[repType] = mutableListOf(constraint)
+    fun addConstraint(
+        constraint: Constraint,
+        dependencies: Set<Type>
+    ) {
+        // Filter down to only dependencies whose rep types are still open type variables
+        val openTypeVars = dependencies.mapNotNull({
+            if (it is OpenTypeVariable) {
+                val repType = findRepNode(it).resolvedType
+                if (repType is OpenTypeVariable) {
+                    repType
+                } else {
+                    null
+                }
             } else {
-                constraints.add(constraint)
+                null
             }
+        }).toSet()
+
+        // Apply this constraint if there are no open type variables, otherwise add it to graph
+        if (openTypeVars.isEmpty()) {
+            constraint.resolve()
         } else {
-            // Attempt to apply this constraint to concrete type, fail if not possible since there
-            // will never be a point in the future in which it could be resolved.
-            if (!constraint.apply(repType)) {
-                constraint.assertUnresolved()
-            }
+            constraintGraph.addConstraint(constraint, openTypeVars)
         }
     }
 
@@ -142,70 +141,12 @@ class TypeChecker(var symbolTable: SymbolTable) {
     }
 
     /**
-     * Attempt to resolve all outstanding constraints, possibly reaching stalls and notifying
-     * constraints if there was a stall.
+     * Assert that all outstanding constraints are resolved.
      */
-    fun findFixedPoint() {
-        fixedPointLoop@ while (true) {
-            var foundFixedPoint = false
-            while (!foundFixedPoint) {
-                // Iterate through all constraints until no progress can be made
-                foundFixedPoint = true
-
-                val currentConstraints = deferredConstraints.toMap()
-                for ((type, constraints) in currentConstraints) {
-                    for (constraint in constraints.toList()) {
-                        // Attempt to apply each constraint, remembering if one succeeds
-                        if (constraint.apply(type)) {
-                            foundFixedPoint = false
-
-                            // Remove successfully applied constraints
-                            deferredConstraints[type]?.remove(constraint)
-                            if (deferredConstraints[type]?.isEmpty() == true) {
-                                deferredConstraints.remove(type)
-                            }
-                        }
-                    }
-                }
-            }
-
-            // If there are still deferred constraints but no progress can be made, notify all
-            // constraints that there has been a stall and attempt to infer types.
-            if (!deferredConstraints.isEmpty()) {
-                // Iterate through all constraints, notifying each that there has been a stall
-                var canBreakStall = false
-
-                val currentConstraints = deferredConstraints.toMap()
-                for ((type, constraints) in currentConstraints) {
-                    for (constraint in constraints.toList()) {
-                        // Notify each constraint that there has been a stall, attempting to infer
-                        if (constraint.inferOnFixedPointStall(type)) {
-                            canBreakStall = true
-
-                            // Remove succesfully applied constraints
-                            deferredConstraints[type]?.remove(constraint)
-                            if (deferredConstraints[type]?.isEmpty() == true) {
-                                deferredConstraints.remove(type)
-                            }
-                        }
-                    }
-                }
-
-                // If some progress was made by inferring constraints about the stall, repeat loop
-                if (canBreakStall) {
-                    continue@fixedPointLoop
-                } else {
-                    // If the stall could not be broken, show an example unresolved constraint
-                    for (constraints in currentConstraints.values) {
-                        for (constraint in constraints.toList()) {
-                            constraint.assertUnresolved()
-                        }
-                    }
-
-                    return
-                }
-            } else {
-                break@fixedPointLoop
+    fun assertConstraintsSolved() {
+        if (!constraintGraph.constraintDepends.isEmpty()) {
+            for ((cons, _) in constraintGraph.constraintDepends) {
+                cons.assertUnresolved()
             }
         }
     }
@@ -432,22 +373,17 @@ class TypeChecker(var symbolTable: SymbolTable) {
         }
     }
 
+    /**
+     * Replace the root of an unresolved type variable to a new unresolved type variable.
+     */
     private fun replaceRoot(oldRoot: TypeEquivalenceNode, newRoot: TypeEquivalenceNode) {
         val oldType = oldRoot.resolvedType as OpenTypeVariable
         val newType = newRoot.resolvedType as OpenTypeVariable
 
-        // Move all deferred constraints from the old root to the new root
-        val constraints = deferredConstraints.remove(oldType)
-        if (constraints != null) {
-            val newRootConstraints = deferredConstraints[newType]
-            if (newRootConstraints == null) {
-                deferredConstraints[newType] = constraints
-            } else {
-                newRootConstraints.addAll(constraints)
-            }
-        }
-
         oldRoot.parent = newRoot
+
+        // Move all constraints from old root to the new root
+        constraintGraph.moveConstraints(oldType, newType)
     }
 
     /**
@@ -528,15 +464,18 @@ class TypeChecker(var symbolTable: SymbolTable) {
             return false
         // If both types are type variables, add supertype and subtype bounds to type variables
         } else if (subType is OpenTypeVariable && superType is OpenTypeVariable) {
-            val subtypingConstraint = VariableSubtypingConstraint(subType, superType, except, this)
-            addDeferredConstraint(subType, subtypingConstraint)
-            addDeferredConstraint(superType, subtypingConstraint)
+            val subtypingConstraint =
+                    BidirectionalSubtypingConstraint(subType, superType, except, this)
+            val subtypingConstraint2 =
+                    BidirectionalSubtypingConstraint(subType, superType, except, this)
+            addConstraint(subtypingConstraint, setOf(subType))
+            addConstraint(subtypingConstraint2, setOf(superType))
 
             return true
         // If the supertype only is a type variable, add subtype bound to type variable
         } else if (subType !is OpenTypeVariable && superType is OpenTypeVariable) {
-            val subtypeConstraint = SubtypeConstraint(subType, except, this)
-            addDeferredConstraint(superType, subtypeConstraint)
+            val subtypeConstraint = SubtypeConstraint(subType, superType, except, this)
+            addConstraint(subtypeConstraint, setOf(superType))
             return true
         // If the subtype only is a type variable, we can apply constraints unless super is trait
         } else if (subType is OpenTypeVariable) {
@@ -570,8 +509,8 @@ class TypeChecker(var symbolTable: SymbolTable) {
                 }
                 // If supertype is a trait, add supertype bound to type variable
                 is TraitType -> {
-                    val supertypeConstraint = SupertypeConstraint(superType, except, this)
-                    addDeferredConstraint(subType, supertypeConstraint)
+                    val supertypeConstraint = SupertypeConstraint(subType, superType, except, this)
+                    addConstraint(supertypeConstraint, setOf(subType))
                     return true
                 }
                 // This should never be reached, as the both types being variables is handled above
@@ -753,8 +692,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         node.elements.forEach { element -> typeCheck(element, boundVars, refresh) }
 
         // Vector type is initially unknown, so set as vector type with new type variable param
-        val elementType = OpenTypeVariable()
-        val vectorType = VectorType(elementType)
+        val vectorType = VectorType(OpenTypeVariable())
 
         // Type of this vector literal must be a vector of the element type
         if (!unify(node.type, vectorType)) {
@@ -763,18 +701,11 @@ class TypeChecker(var symbolTable: SymbolTable) {
                     "type, found ${types[0]} but expected ${types[1]}", node.startLocation)
         }
 
-        // Every element in the vector's type must be a subtype of the vector's element type
-        node.elements.forEach({ element ->
-            val except = { ->
-                val types = typesToString(element.type, elementType)
-                throw IRConversionException("Vector must have elements of same type, found " +
-                        "${types[0]} and ${types[1]}", element.startLocation)
-            }
-
-            if (!subtype(element.type, elementType, except)) {
-                except()
-            }
-        })
+        // Add a constraint which will determine element type once all elements are resolved
+        if (!node.elements.isEmpty()) {
+            val vectorLiteralConstraint = VectorLiteralConstraint(node, this)
+            addConstraint(vectorLiteralConstraint, node.elements.map({ it.type }).toSet())
+        }
     }
 
     fun typeCheckSetLiteral(
@@ -785,8 +716,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         node.elements.forEach { element -> typeCheck(element, boundVars, refresh) }
 
         // Set type is initially unknown, so set as set type with new type variable param
-        val elementType = OpenTypeVariable()
-        val setType = SetType(elementType)
+        val setType = SetType(OpenTypeVariable())
 
         // Type of this set literal must be a set of the element type
         if (!unify(node.type, setType)) {
@@ -795,18 +725,11 @@ class TypeChecker(var symbolTable: SymbolTable) {
                     "type, found ${types[0]} but expected ${types[1]}", node.startLocation)
         }
 
-        // Each element in the set's type must be a suptype of the sets's element type
-        node.elements.forEach({ element ->
-            val except = { ->
-                val types = typesToString(element.type, elementType)
-                throw IRConversionException("Set must have elements of same type, found " +
-                        "${types[0]} and ${types[1]}", element.startLocation)
-            }
-
-            if (!subtype(element.type, elementType, except)) {
-                except()
-            }
-        })
+        // Add a constraint which will determine element type once all elements are resolved
+        if (!node.elements.isEmpty()) {
+            val setLiteralConstraint = SetLiteralConstraint(node, this)
+            addConstraint(setLiteralConstraint, node.elements.map({ it.type }).toSet())
+        }
     }
 
     fun typeCheckMapLiteral(
@@ -818,9 +741,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         node.values.forEach { value -> typeCheck(value, boundVars, refresh) }
 
         // Map type is initially unknown, so set as map type with new key and value params
-        val keyType = OpenTypeVariable()
-        val valType = OpenTypeVariable()
-        val mapType = MapType(keyType, valType)
+        val mapType = MapType(OpenTypeVariable(), OpenTypeVariable())
 
         // Type of this map literal must be the new map type
         if (!unify(node.type, mapType)) {
@@ -829,31 +750,12 @@ class TypeChecker(var symbolTable: SymbolTable) {
                 "found ${types[0]} but expected ${types[1]}", node.startLocation)
         }
 
-        // Each key in the map's type must be a subtype of the map's key type
-        node.keys.forEach({ key -> 
-            val except = { ->
-                val types = typesToString(key.type, keyType)
-                throw IRConversionException("Map must have keys of same type, found " +
-                        "${types[0]} and ${types[1]}", key.startLocation)
-            }
-
-            if (!subtype(key.type, keyType, except)) {
-                except()
-            }
-        })
-
-        // Each value in the map's type must be a subtype of the map's value type
-        node.values.forEach({ value ->
-            val except = { ->
-                val types = typesToString(value.type, valType)
-                throw IRConversionException("Map must have values of same type, found " +
-                            "${types[0]} and ${types[1]}", value.startLocation)
-            }
-
-            if (!subtype(value.type, valType, except)) {
-                except()
-            }
-        })
+        // Add a constraint which will determine key and value types once all elements are resolved
+        if (!node.keys.isEmpty()) {
+            val mapLiteralConstraint = MapLiteralConstraint(node, this)
+            addConstraint(mapLiteralConstraint,
+                    node.keys.map({ it.type }).toSet() + node.values.map({ it.type }).toSet())
+        }
     }
 
     fun typeCheckTupleLiteral(
@@ -1104,7 +1006,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         typeCheck(node.expr, boundVars, refresh)
         
         val accessConstraint = AccessConstraint(node, boundVars, this)
-        addDeferredConstraint(node.expr.type, accessConstraint)
+        addConstraint(accessConstraint, setOf(node.expr.type))
     }
 
     fun typeCheckFieldAssignment(
@@ -1116,7 +1018,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         typeCheck(node.rValue, boundVars, refresh)
 
         val fieldAssigmentConstraint = FieldAssignmentConstraint(node, this)
-        addDeferredConstraint(node.expr.type, fieldAssigmentConstraint)
+        addConstraint(fieldAssigmentConstraint, setOf(node.expr.type))
     }
 
     fun typeCheckIndex(
@@ -2040,6 +1942,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
         root.forEach { node ->
             // Wrapper nodes should be ignored
             if (node !is WrapperNode) {
+                //println("$node has tvar ${node.type}")
                 node.type = inferType(node.type)
             }
         }

@@ -10,9 +10,9 @@ import myte.shared.*
 class Evaluator(var symbolTable: SymbolTable, val environment: Environment) {
 
     /**
-     * Set the symbol table to new symbol table.
+     * Reset for a new line from the REPL.
      */
-    fun resetSymbolTable(newSymbolTable: SymbolTable) {
+    fun resetForReplLine(newSymbolTable: SymbolTable) {
         symbolTable = newSymbolTable
     }
 

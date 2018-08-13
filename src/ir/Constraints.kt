@@ -4,37 +4,27 @@ import myte.eval.builtins.*
 import myte.ir.nodes.*
 import myte.shared.*
 
-sealed class DeferredConstraint {
+sealed class Constraint() {
     /**
-     * Attempt to apply this constraint.
-     *
-     * @param trigger the new type to apply this constraint to
-     * @return a list of deferred constraints (along with thier triggers) to add if this
-     *         constraint has been satisfied, or null if this constraint has not been satisfied
+     * Resolve this constraint, enforcing it among all types and type variables in the program.
+     * Fail with an exception if the constraint could not be enforced.
      */
-    abstract fun apply(trigger: Type): Boolean
+    abstract fun resolve()
 
     /**
      * Assert that this constraint is unresolved at the end of type inference. This should
      * throw an exception with an appropriate error message.
      */
-    abstract fun assertUnresolved()
-
-    /**
-     * Attempt to infer types if the fixed point iteration has stalled.
-     * 
-     * @return whether a type could be inferred or not
-     */
-    open fun inferOnFixedPointStall(trigger: Type): Boolean = false
+    abstract fun assertUnresolved(): Nothing
 }
 
 class AccessConstraint(
     val node: AccessNode,
     val boundVars: MutableSet<TypeVariable>,
     val typeChecker: TypeChecker
-) : DeferredConstraint() {
-    override fun apply(trigger: Type): Boolean {
-        val exprType = trigger
+) : Constraint() {
+    override fun resolve() {
+        val exprType = typeChecker.currentRepType(node.expr.type)
 
         // The toString method is already defined on all types
         if (node.field == TO_STRING_METHOD) {
@@ -45,11 +35,11 @@ class AccessConstraint(
                         "${types[0]}, but expected ${types[1]}", node.accessLocation)
             }
 
-            return true
+            return
         }
 
         if (exprType is OpenTypeVariable) {
-            return false
+            assertUnresolved()
         }
 
         // First check whether there is a method with the given name in a trait this type implements
@@ -77,7 +67,7 @@ class AccessConstraint(
                             "${types[0]}, but expected ${types[1]}", node.accessLocation)
                 }
 
-                return true
+                return
             }
         }
 
@@ -97,7 +87,7 @@ class AccessConstraint(
                         "but expected ${types[1]}", node.accessLocation)
             }
 
-            return true
+            return
         }
 
         // If an algebriac data type, must still check simple record fields
@@ -119,7 +109,7 @@ class AccessConstraint(
                             "but expected ${types[1]}", node.accessLocation)
                 }
 
-                return true
+                return
             }
         // If a trait, must still check method signatures
         } else if (exprType is TraitType) {
@@ -141,7 +131,7 @@ class AccessConstraint(
                             "${types[0]}, but expected ${types[1]}", node.accessLocation)
                 }
 
-                return true
+                return
             }
         }
 
@@ -150,7 +140,7 @@ class AccessConstraint(
                 node.accessLocation)
     }
 
-    override fun assertUnresolved() {
+    override fun assertUnresolved(): Nothing {
         throw IRConversionException("Type could not be inferred, consider adding more type " +
                 "annotations", node.expr.startLocation)
     }
@@ -159,9 +149,9 @@ class AccessConstraint(
 class FieldAssignmentConstraint(
     val node: FieldAssignmentNode,
     val typeChecker: TypeChecker
-) : DeferredConstraint() {
-    override fun apply(trigger: Type): Boolean {
-        val exprType = trigger
+) : Constraint() {
+    override fun resolve() {
+        val exprType = typeChecker.currentRepType(node.expr.type)
         if (exprType is AlgebraicDataType) {
             // Error if expr is not resolved to a simple record type
             val recordVariant = exprType.adtSig.variants[0]
@@ -200,9 +190,9 @@ class FieldAssignmentConstraint(
                         node.accessLocation)
             }
 
-            return true
+            return
         } else if (exprType is OpenTypeVariable) {
-            return false
+            assertUnresolved()
         } else {
             val type = typeChecker.typeToString(exprType)
             throw IRConversionException("Can only assign field on simple record type, found $type",
@@ -210,127 +200,131 @@ class FieldAssignmentConstraint(
         }
     }
 
-    override fun assertUnresolved() {
+    override fun assertUnresolved(): Nothing {
         throw IRConversionException("Type could not be inferred, consider adding more type " +
                 "annotations", node.expr.startLocation)
     }
 }
 
+class VectorLiteralConstraint(
+    val node: VectorLiteralNode,
+    val typeChecker: TypeChecker
+) : Constraint() {
+    override fun resolve() {
+        // TODO: Infer the least common supertype of all element types
+    }
+
+    override fun assertUnresolved(): Nothing {
+        throw IRConversionException("Could not infer element type of vector literal, consider " +
+                "adding more type annotations", node.startLocation)
+    }
+}
+
+class SetLiteralConstraint(
+    val node: SetLiteralNode,
+    val typeChecker: TypeChecker
+) : Constraint() {
+    override fun resolve() {
+        // TODO: Infer the least common supertype of all element types
+    }
+
+    override fun assertUnresolved(): Nothing {
+        throw IRConversionException("Could not infer element type of set literal, consider " +
+                "adding more type annotations", node.startLocation)
+    }
+}
+
+class MapLiteralConstraint(
+    val node: MapLiteralNode,
+    val typeChecker: TypeChecker
+) : Constraint() {
+    override fun resolve() {
+        // TODO: Infer the least common supertype of all key and value types
+    }
+
+    override fun assertUnresolved(): Nothing {
+        throw IRConversionException("Could not infer key and value types of map literal, " +
+                "consider adding more type annotations", node.startLocation)
+    }
+}
+
 class SubtypeConstraint(
     val subType: Type,
+    val superType: OpenTypeVariable,
     val except: () -> Unit,
     val typeChecker: TypeChecker
-) : DeferredConstraint() {
-    override fun apply(trigger: Type): Boolean {
-        val superType = trigger
+) : Constraint() {
+    override fun resolve() {
+        val superType = typeChecker.currentRepType(superType)
 
         // If the supertype is still a type variable, keep this constraint
         if (superType is OpenTypeVariable) {
-            return false
+            assertUnresolved()
         } else {
             if (!typeChecker.subtype(subType, superType, except)) {
                 except()
             }
 
-            return true
+            return
         }
     }
 
-    override fun assertUnresolved() {
+    override fun assertUnresolved(): Nothing {
         throw ExceptionWithoutLocation("Supertype could not be inferred, consider adding more " +
                 "type annotations")
-    }
-
-    override fun inferOnFixedPointStall(trigger: Type): Boolean {
-        if (typeChecker.subtype(subType, trigger, except, false)) {
-            return true
-        }
-
-        if (!typeChecker.unify(trigger, subType)) {
-            except()
-        }
-
-        return true
-    }
-
-    override fun toString(): String {
-        return "SubtypeConstraint on $subType with rep ${typeChecker.currentRepType(subType)}"
     }
 }
 
 class SupertypeConstraint(
+    val subType: OpenTypeVariable,
     val superType: Type,
     val except: () -> Unit,
     val typeChecker: TypeChecker
-) : DeferredConstraint() {
-    override fun apply(trigger: Type): Boolean {
-        val subType = trigger
+) : Constraint() {
+    override fun resolve() {
+        val subType = typeChecker.currentRepType(subType)
 
         // If the subtype is still a type variable, keep this constraint
         if (subType is OpenTypeVariable) {
-            return false
+            assertUnresolved()
         } else {
             if (!typeChecker.subtype(subType, superType, except)) {
                 except()
             }
 
-            return true
+            return
         }
     }
 
-    override fun assertUnresolved() {
+    override fun assertUnresolved(): Nothing {
         throw ExceptionWithoutLocation("Subtype could not be inferred, consider adding more " +
                 "type annotations")
     }
-
-    override fun inferOnFixedPointStall(trigger: Type): Boolean {
-        if (typeChecker.subtype(trigger, superType, except, false)) {
-            return true
-        }
-
-        if (!typeChecker.unify(trigger, superType)) {
-            except()
-        }
-
-        return true
-    }
 }
 
-class VariableSubtypingConstraint(
+class BidirectionalSubtypingConstraint(
     val subType: OpenTypeVariable,
     val superType: OpenTypeVariable,
     val except: () -> Unit,
     val typeChecker: TypeChecker
-) : DeferredConstraint() {
-    override fun apply(trigger: Type): Boolean {
+) : Constraint() {
+    override fun resolve() {
         val repSubType = typeChecker.findRepNode(subType).resolvedType
         val repSuperType = typeChecker.findRepNode(superType).resolvedType
 
         if (repSubType is OpenTypeVariable && repSuperType is OpenTypeVariable) {
-            return false
+            assertUnresolved()
         } else {
             if (!typeChecker.subtype(repSubType, repSuperType, except)) {
                 except()
             }
 
-            return true
+            return
         }
     }
 
-    override fun assertUnresolved() {
+    override fun assertUnresolved(): Nothing {
         throw ExceptionWithoutLocation("Subtype could not be inferred, consider adding more " +
                 "type annotations")
-    }
-
-    override fun inferOnFixedPointStall(trigger: Type): Boolean {
-        if (typeChecker.subtype(subType, superType, except, false)) {
-            return true
-        }
-
-        if (!typeChecker.unify(subType, superType)) {
-            except()
-        }
-
-        return true
     }
 }

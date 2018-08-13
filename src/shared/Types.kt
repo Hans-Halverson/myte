@@ -34,7 +34,7 @@ sealed class NumberType(sig: TypeSignature) : Type(sig)
  *
  * @property id the unique id which identifies this type variable
  */
-sealed class TypeVariable(val id: Long = newTypeVariableId()) : Type(TypeVariableSignature) {
+sealed class TypeVariable(val id: Long) : Type(TypeVariableSignature) {
     override fun getAllVariables(): List<TypeVariable> = listOf(this)
 
     override fun substitute(typeMap: Map<TypeVariable, Type>): Type {
@@ -59,9 +59,9 @@ sealed class TypeVariable(val id: Long = newTypeVariableId()) : Type(TypeVariabl
     }
 }
 
-class OpenTypeVariable() : TypeVariable()
+class OpenTypeVariable(id: Long = newTypeVariableId()) : TypeVariable(id)
 
-class TypeParameter() : TypeVariable()
+class TypeParameter(id: Long = newTypeVariableId()) : TypeVariable(id)
 
 object UnitType : Type(UnitTypeSignature) {
     override fun formatToString(typeVars: Map<TypeVariable, String>): String = "unit"

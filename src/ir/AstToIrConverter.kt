@@ -13,11 +13,11 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
     val typeChecker = TypeChecker(symbolTable)
 
     /**
-     * Set the symbol table to new symbol table.
+     * Reset for a new line from the REPL.
      */
-    fun resetSymbolTable(newSymbolTable: SymbolTable) {
+    fun resetForReplLine(newSymbolTable: SymbolTable) {
         symbolTable = newSymbolTable
-        typeChecker.resetSymbolTable(newSymbolTable)
+        typeChecker.resetForReplLine(newSymbolTable)
     }
 
     fun convertMyteFiles(parseFilesResult: ParseFilesResult): List<IRNode> {
@@ -1167,7 +1167,7 @@ class AstToIrConverter(var symbolTable: SymbolTable) {
         val boundVars: MutableSet<TypeVariable> = hashSetOf()
         nodes.forEach { node -> typeChecker.typeCheck(node, boundVars, true) }
 
-        typeChecker.findFixedPoint()
+        typeChecker.assertConstraintsSolved()
 
         typeChecker.inferFunctionTypes(freezeSymbols)
         typeChecker.inferVariableTypes(freezeSymbols)

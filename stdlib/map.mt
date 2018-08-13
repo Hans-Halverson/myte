@@ -6,7 +6,7 @@ import std::ops::{Index, IndexAssign}
 import std::option::{Option, Some}
 import std::vec::VecIterator
 
-implement map<k, v> {
+implement map<k, v> extends Equal<map<k, v>> {
     def remove(key: k) {
         __builtin("map.remove", this, key)
     }
