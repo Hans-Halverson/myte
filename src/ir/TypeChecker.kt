@@ -533,7 +533,7 @@ class TypeChecker(var symbolTable: SymbolTable) {
                     subType.typeParams.zip(superType.typeParams)
                         .all({ (p1, p2) -> unify(p1, p2) })
         // Trait types are invariant in their type parameters, since they can only be implemented by
-        // mutable algebraic data types, and contain no state of thier own.
+        // mutable algebraic data types, and contain no state of their own.
         } else if (subType is TraitType && superType is TraitType) {
             return subType.typeParams.size == superType.typeParams.size &&
                     subType.typeParams.zip(superType.typeParams)
@@ -567,6 +567,164 @@ class TypeChecker(var symbolTable: SymbolTable) {
             return unify(subType, superType)
         } else {
             return false
+        }
+    }
+
+    /**
+     * Return the lowest shared supertype of the two given types.
+     */
+    fun lowestCommonSupertype(t1: Type, t2: Type): Type? {
+        val type1 = currentRepType(t1)
+        val type2 = currentRepType(t2)
+
+        return when {
+            // Unparameterized types must be equal
+            type1 is UnitType && type2 is UnitType ||
+            type1 is BoolType && type2 is BoolType ||
+            type1 is StringType && type2 is StringType ||
+            type1 is ByteType && type2 is ByteType ||
+            type1 is IntType && type2 is IntType ||
+            type1 is FloatType && type2 is FloatType ||
+            type1 is DoubleType && type2 is DoubleType -> type1
+            // Invariant types must be equal to have a shared type
+            type1 is VectorType && type2 is VectorType ||
+            type1 is SetType && type2 is SetType ||
+            type1 is MapType && type2 is MapType ||
+            type1 is AlgebraicDataType && type2 is AlgebraicDataType ||
+            type1 is TraitType && type2 is TraitType ||
+            type1 is TypeVariable && type2 is TypeVariable -> if (type1 == type2) type1 else null
+            // Tuples are covariant in element types, so the lowest common supertype is a tuple
+            // of the lowest common supertypes of the element pairs.
+            type1 is TupleType && type2 is TupleType -> {
+                val elementTypes = type1.elementTypes.zip(type2.elementTypes)
+                        .map({ (e1, e2) -> lowestCommonSupertype(e1, e2) })
+
+                if (elementTypes.any({ it == null })) {
+                    null
+                } else {
+                    TupleType(elementTypes.filterNotNull())
+                }
+            }
+            // Functions are covariant in arg types and contravariant in return type, so find the
+            // lowest common supertype of arg types and highest common subtype of return types.
+            type1 is FunctionType && type2 is FunctionType -> {
+                val argTypes = type1.argTypes.zip(type2.argTypes)
+                        .map({ (a1, a2) -> highestCommonSubtype(a1, a2) })
+                val returnType = lowestCommonSupertype(type1.returnType, type2.returnType)
+
+                if (argTypes.any({ it == null }) || returnType == null) {
+                    null
+                } else {
+                    FunctionType(argTypes.filterNotNull(), returnType)
+                }
+            }
+            else -> {
+                // Construct set of all trait types implemented by type1
+                val type1ParamsMap = (type1.sig.typeParams as List<TypeVariable>)
+                        .zip(type1.listTypeParams()).toMap()
+                val type1Traits = if (type1 is TraitType) {
+                    setOf(type1)
+                } else {
+                    type1.sig.traits.map({ findRepSubstitution(it, type1ParamsMap) }).toSet()
+                }
+
+                // Construct set of all trait types implemented by type2
+                val type2ParamsMap = (type2.sig.typeParams as List<TypeVariable>)
+                        .zip(type2.listTypeParams()).toMap()
+                val type2Traits = if (type2 is TraitType) {
+                    setOf(type2)
+                } else {
+                    type2.sig.traits.map({ findRepSubstitution(it, type2ParamsMap) }).toSet()
+                }
+
+                // If there is exactly one shared trait it is the common supertype, otherwise fail
+                val sharedTraits = type1Traits.intersect(type2Traits)
+                if (sharedTraits.size == 1) {
+                    sharedTraits.first()
+                } else {
+                    null
+                }
+            }
+        }
+    }
+
+    /**
+     * Return the highest shared subtype of the two given types.
+     */
+    fun highestCommonSubtype(t1: Type, t2: Type): Type? {
+        val type1 = currentRepType(t1)
+        val type2 = currentRepType(t2)
+
+        return when {
+            // Unparameterized types must be equal
+            type1 is UnitType && type2 is UnitType ||
+            type1 is BoolType && type2 is BoolType ||
+            type1 is StringType && type2 is StringType ||
+            type1 is ByteType && type2 is ByteType ||
+            type1 is IntType && type2 is IntType ||
+            type1 is FloatType && type2 is FloatType ||
+            type1 is DoubleType && type2 is DoubleType -> type1
+            // Invariant types must be equal to have a shared type
+            type1 is VectorType && type2 is VectorType ||
+            type1 is SetType && type2 is SetType ||
+            type1 is MapType && type2 is MapType ||
+            type1 is AlgebraicDataType && type2 is AlgebraicDataType ||
+            type1 is TraitType && type2 is TraitType ||
+            type1 is TypeVariable && type2 is TypeVariable -> if (type1 == type2) type1 else null
+            // Tuples are covariant in element types, so the highest common subtype is a tuple
+            // of the highest common subtypes of the element pairs.
+            type1 is TupleType && type2 is TupleType -> {
+                val elements = type1.elementTypes.zip(type2.elementTypes)
+                        .map({ (e1, e2) -> highestCommonSubtype(e1, e2) })
+
+                if (elements.any({ it == null })) {
+                    null
+                } else {
+                    TupleType(elements.filterNotNull())
+                }
+            }
+            // Functions are covariant in arg types and contravariant in return type, so find the
+            // highest common subtype of arg types and lowest common supertype of return types.
+            type1 is FunctionType && type2 is FunctionType -> {
+                val argTypes = type1.argTypes.zip(type2.argTypes)
+                        .map({ (a1, a2) -> lowestCommonSupertype(a1, a2) })
+                val returnType = highestCommonSubtype(type1.returnType, type2.returnType)
+
+                if (argTypes.any({ it == null }) || returnType == null) {
+                    null
+                } else {
+                    FunctionType(argTypes.filterNotNull(), returnType)
+                }
+            }
+            type1 is TraitType && type2 !is TraitType -> {
+                // Construct set of all trait types implemented by type2
+                val type2ParamsMap = (type2.sig.typeParams as List<TypeVariable>)
+                        .zip(type2.listTypeParams()).toMap()
+                val type2Traits = 
+                    type2.sig.traits.map({ findRepSubstitution(it, type2ParamsMap) }).toSet()
+
+                // Return type2 if type1 is a trait implemented by type2, otherwise fail
+                if (type2Traits.contains(type1)) {
+                    type2
+                } else {
+                    null
+                }
+            }
+            type1 !is TraitType && type2 is TraitType -> {
+                // Construct set of all trait types implemented by type1
+                val type1ParamsMap = (type1.sig.typeParams as List<TypeVariable>)
+                        .zip(type1.listTypeParams()).toMap()
+                val type1Traits = 
+                    type1.sig.traits.map({ findRepSubstitution(it, type1ParamsMap) }).toSet()
+
+                // Return type1 if type2 is a trait implemented by type1, otherwise fail
+                if (type1Traits.contains(type2)) {
+                    type1
+                } else {
+                    null
+                }
+            }
+            else -> null
         }
     }
 

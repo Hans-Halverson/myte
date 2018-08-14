@@ -211,7 +211,24 @@ class VectorLiteralConstraint(
     val typeChecker: TypeChecker
 ) : Constraint() {
     override fun resolve() {
-        // TODO: Infer the least common supertype of all element types
+        // Find the lowest common subtype of all elements in the vector literal
+        var elementType = node.elements.first().type
+        for (elementNode in node.elements.drop(1)) {
+            val lowestType = typeChecker.lowestCommonSupertype(elementType, elementNode.type)
+            if (lowestType == null) {
+                val types = typeChecker.typesToString(elementType, elementNode.type)
+                throw IRConversionException("Could not infer element type for vector literal, " +
+                        "${types[0]} and ${types[1]} have no common supertype", node.startLocation)
+            }
+
+            elementType = lowestType
+        }
+
+        if (!typeChecker.unify(node.type, VectorType(elementType))) {
+            val types = typeChecker.typesToString(node.type, VectorType(elementType))
+            throw IRConversionException("Vector literal inferred to have type ${types[0]}, but " +
+                    "used as if it had type ${types[1]}", node.startLocation)
+        }
     }
 
     override fun assertUnresolved(): Nothing {
@@ -225,7 +242,24 @@ class SetLiteralConstraint(
     val typeChecker: TypeChecker
 ) : Constraint() {
     override fun resolve() {
-        // TODO: Infer the least common supertype of all element types
+        // Find the lowest common subtype of all elements in the set literal
+        var elementType = node.elements.first().type
+        for (elementNode in node.elements.drop(1)) {
+            val lowestType = typeChecker.lowestCommonSupertype(elementType, elementNode.type)
+            if (lowestType == null) {
+                val types = typeChecker.typesToString(elementType, elementNode.type)
+                throw IRConversionException("Could not infer element type for set literal, " +
+                        "${types[0]} and ${types[1]} have no common supertype", node.startLocation)
+            }
+
+            elementType = lowestType
+        }
+
+        if (!typeChecker.unify(node.type, SetType(elementType))) {
+            val types = typeChecker.typesToString(node.type, SetType(elementType))
+            throw IRConversionException("Set literal inferred to have type ${types[0]}, but " +
+                    "used as if it had type ${types[1]}", node.startLocation)
+        }
     }
 
     override fun assertUnresolved(): Nothing {
@@ -239,7 +273,37 @@ class MapLiteralConstraint(
     val typeChecker: TypeChecker
 ) : Constraint() {
     override fun resolve() {
-        // TODO: Infer the least common supertype of all key and value types
+        // Find the lowest common subtype of all keys in the map literal
+        var keyType = node.keys.first().type
+        for (keyNode in node.keys.drop(1)) {
+            val lowestType = typeChecker.lowestCommonSupertype(keyType, keyNode.type)
+            if (lowestType == null) {
+                val types = typeChecker.typesToString(keyType, keyNode.type)
+                throw IRConversionException("Could not infer key type for map literal, " +
+                        "${types[0]} and ${types[1]} have no common supertype", node.startLocation)
+            }
+
+            keyType = lowestType
+        }
+
+        // Find the lowest common subtype of all values in the map literal
+        var valueType = node.values.first().type
+        for (valueNode in node.values.drop(1)) {
+            val lowestType = typeChecker.lowestCommonSupertype(valueType, valueNode.type)
+            if (lowestType == null) {
+                val types = typeChecker.typesToString(valueType, valueNode.type)
+                throw IRConversionException("Could not infer value type for map literal, " +
+                        "${types[0]} and ${types[1]} have no common supertype", node.startLocation)
+            }
+
+            valueType = lowestType
+        }
+
+        if (!typeChecker.unify(node.type, MapType(keyType, valueType))) {
+            val types = typeChecker.typesToString(node.type, MapType(keyType, valueType))
+            throw IRConversionException("Map literal inferred to have type ${types[0]}, but " +
+                    "used as if it had type ${types[1]}", node.startLocation)
+        }
     }
 
     override fun assertUnresolved(): Nothing {
