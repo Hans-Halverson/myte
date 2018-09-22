@@ -1,3 +1,0 @@
-#!/bin/bash
-mkdir -p ./builds
-kotlinc src/*.kt src/*/*.kt src/*/*/*.kt -include-runtime -d ./builds/myte.jar

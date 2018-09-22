@@ -14,10 +14,10 @@ if __name__ == '__main__':
 	args = parser.parse_args()
 
 	if args.rebuild:
-		os.system('$MYTEPATH/scripts/build')
+		os.system('$MYTEPATH/mytek/scripts/build')
 	else:
 		file_string = ' '.join(args.FILE)
 		args_string = ' '.join(args.args) if args.args is not None else ''
 		package_string = ' '.join(args.packages) if args.packages is not None else ''
-		os.system('$MYTEPATH/scripts/run {0} --args {1} --packages {2}'.format(file_string,
-				args_string, '$MYTEPATH/stdlib/* ' + package_string))
+		os.system('$MYTEPATH/mytek/scripts/run {0} --args {1} --packages {2}'.format(file_string,
+				args_string, '$MYTEPATH/mytek/stdlib/* ' + package_string))

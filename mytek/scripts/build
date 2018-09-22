@@ -1,0 +1,8 @@
+#!/bin/bash
+
+mkdir -p $MYTEPATH/mytek/builds
+kotlinc $MYTEPATH/mytek/src/*.kt \
+        $MYTEPATH/mytek/src/*/*.kt \
+        $MYTEPATH/mytek/src/*/*/*.kt \
+        -include-runtime \
+        -d $MYTEPATH/mytek/builds/mytek.jar
