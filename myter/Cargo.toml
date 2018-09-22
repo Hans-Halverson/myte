@@ -1,0 +1,6 @@
+[package]
+name = "myter"
+version = "0.1.0"
+authors = ["Hans-Halverson <hans_halverson@alumni.brown.edu>"]
+
+[dependencies]

@@ -1,0 +1,3 @@
+#!/bin/bash
+
+$MYTEPATH/myter/target/debug/myter $@

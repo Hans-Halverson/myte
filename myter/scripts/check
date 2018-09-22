@@ -1,0 +1,5 @@
+#!/bin/bash
+
+pushd $MYTEPATH/myter > /dev/null
+cargo check
+popd > /dev/null
