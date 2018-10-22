@@ -3,12 +3,18 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
+use common::error;
 use common::file_table::FileTable;
-use common::myte_error;
+use interpreter::evaluate;
+use ir::resolution;
 use lexer::tokenizer;
+use parser::parser::Parser;
 
 mod common;
+mod interpreter;
+mod ir;
 mod lexer;
+mod parser;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -35,14 +41,50 @@ fn main() {
         return;
     }
 
-    match tokenizer::tokenize(file_bytes, file_descriptor) {
+    let tokens = match tokenizer::tokenize(file_bytes, file_descriptor) {
         Ok(tokens) => tokens,
         Err(err) => {
-            if let Err(err) = myte_error::print_err(err, file_table) {
+            if let Err(err) = error::print_err(err, file_table) {
                 println!("{}", err);
             }
 
             return;
         }
     };
+
+    let mut parser = Parser::new(&tokens);
+    let ast = match parser.parse() {
+        Ok(ast) => ast,
+        Err(err) => {
+            if let Err(err) = error::print_err(err, file_table) {
+                println!("{}", err);
+            }
+
+            return;
+        }
+    };
+
+    let ir = match resolution::resolve_ast(ast) {
+        Ok(ir) => ir,
+        Err(err) => {
+            if let Err(err) = error::print_err(err, file_table) {
+                println!("{}", err);
+            }
+
+            return;
+        }
+    };
+
+    let value = match evaluate::evaluate(ir) {
+        Ok(value) => value,
+        Err(err) => {
+            if let Err(err) = error::print_err(err, file_table) {
+                println!("{}", err);
+            }
+
+            return;
+        }
+    };
+
+    println!("{}", value.to_string());
 }

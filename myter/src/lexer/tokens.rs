@@ -1,7 +1,7 @@
 use self::Token::*;
 use common::span::Span;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Token {
     IntLiteral(i64, Span),
     FloatLiteral(f64, Span),
@@ -81,7 +81,7 @@ pub enum Token {
 }
 
 impl Token {
-    fn get_span(&self) -> &Span {
+    pub fn span(&self) -> &Span {
         return match self {
             IntLiteral(_, span) => span,
             FloatLiteral(_, span) => span,

@@ -1,4 +1,4 @@
-use common::myte_error::{mkerr, MyteResult};
+use common::error::{mkerr, MyteResult};
 use common::span::Span;
 use lexer::tokens::Token;
 
@@ -126,10 +126,10 @@ fn read_block_comment(tokenizer: &mut Tokenizer) -> MyteResult<()> {
                     break;
                 }
                 Some(_) => {}
-                None => return mkerr("Unclosed block comment".to_owned(), comment_open_span),
+                None => return mkerr("Unclosed block comment".to_owned(), &comment_open_span),
             },
             Some(_) => {}
-            None => return mkerr("Unclosed block comment".to_owned(), comment_open_span),
+            None => return mkerr("Unclosed block comment".to_owned(), &comment_open_span),
         }
 
         tokenizer.advance();
@@ -212,7 +212,7 @@ fn read_string_literal(tokens: &mut Vec<Token>, tokenizer: &mut Tokenizer) -> My
         match tokenizer.next() {
             Some(b'"') => break,
             Some(byte) => identifier_bytes.push(byte),
-            None => return mkerr("Unclosed string literal".to_owned(), open_quote_span),
+            None => return mkerr("Unclosed string literal".to_owned(), &open_quote_span),
         }
 
         tokenizer.advance();
@@ -238,7 +238,7 @@ fn int_from_bytes(bytes: Vec<u8>, tokens: &mut Vec<Token>, span: Span) -> MyteRe
                 tokens.push(Token::IntLiteral(parsed_number, span));
                 return Ok(());
             }
-            _ => return mkerr(format!("Invalid int literal {}", int_string), span),
+            _ => return mkerr(format!("Invalid int literal {}", int_string), &span),
         }
     }
 }
@@ -251,7 +251,7 @@ fn float_from_bytes(bytes: Vec<u8>, tokens: &mut Vec<Token>, span: Span) -> Myte
                 tokens.push(Token::FloatLiteral(parsed_number, span));
                 return Ok(());
             }
-            _ => return mkerr(format!("Invalid float literal {}", float_string), span),
+            _ => return mkerr(format!("Invalid float literal {}", float_string), &span),
         }
     }
 }
@@ -394,10 +394,10 @@ pub fn tokenize(input_bytes: Vec<u8>, file_descriptor: u32) -> MyteResult<Vec<To
                 Some(byte) => {
                     return mkerr(
                         format!("Unknown symbol &{}", byte as char),
-                        tokenizer.mark_span_next(),
+                        &tokenizer.mark_span_next(),
                     )
                 }
-                None => return mkerr("Unkown symbol &".to_owned(), tokenizer.mark_span()),
+                None => return mkerr("Unkown symbol &".to_owned(), &tokenizer.mark_span()),
             },
             Some(b'|') => match tokenizer.next() {
                 Some(b'|') => advance_and_push(
@@ -453,7 +453,7 @@ pub fn tokenize(input_bytes: Vec<u8>, file_descriptor: u32) -> MyteResult<Vec<To
             Some(byte) => {
                 return mkerr(
                     String::from(format!("Unknown symbol {}", byte as char)),
-                    tokenizer.mark_span(),
+                    &tokenizer.mark_span(),
                 )
             }
             None => break,

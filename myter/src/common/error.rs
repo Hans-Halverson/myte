@@ -13,12 +13,15 @@ pub struct MyteError {
 pub type MyteResult<T> = Result<T, MyteError>;
 
 impl MyteError {
-    pub fn new(error: String, span: Span) -> MyteError {
-        MyteError { error, span }
+    pub fn new(error: String, span: &Span) -> MyteError {
+        MyteError {
+            error,
+            span: span.clone(),
+        }
     }
 }
 
-pub fn mkerr<T>(error: String, span: Span) -> MyteResult<T> {
+pub fn mkerr<T>(error: String, span: &Span) -> MyteResult<T> {
     Err(MyteError::new(error, span))
 }
 
