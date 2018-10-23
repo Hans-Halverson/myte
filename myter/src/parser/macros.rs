@@ -13,9 +13,10 @@ macro_rules! assert_current {
                     format!(
                         "{} expected, but {} found",
                         token_type!($expected),
-                        other.to_string()
+                        other.type_to_string(),
                     ),
                     other.span(),
+                    MyteErrorType::Parser,
                 ))
             }
         }

@@ -1,4 +1,4 @@
-use common::error::{mkerr, MyteResult};
+use common::error::{mkerr, MyteErrorType, MyteResult};
 use common::span::Span;
 use lexer::tokens::Token;
 
@@ -19,6 +19,7 @@ impl<'a> Tokenizer<'a> {
             mkerr(
                 "Unexpected end of file".to_string(),
                 &Span::end_point_span(self.tokens[self.tokens.len() - 1].span()),
+                MyteErrorType::UnexpectedEOF,
             )
         }
     }
@@ -30,6 +31,7 @@ impl<'a> Tokenizer<'a> {
             mkerr(
                 "Unexpected end of file".to_string(),
                 &Span::end_point_span(self.tokens[self.tokens.len() - 1].span()),
+                MyteErrorType::UnexpectedEOF,
             )
         }
     }
@@ -39,6 +41,7 @@ impl<'a> Tokenizer<'a> {
             mkerr(
                 "Unexpected end of file".to_string(),
                 &Span::end_point_span(self.tokens[self.tokens.len() - 1].span()),
+                MyteErrorType::UnexpectedEOF,
             )
         } else {
             let token = self.tokens[self.current].clone();

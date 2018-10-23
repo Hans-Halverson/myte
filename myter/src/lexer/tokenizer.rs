@@ -1,9 +1,9 @@
-use common::error::{mkerr, MyteResult};
+use common::error::{mkerr, MyteErrorType, MyteResult};
 use common::span::Span;
 use lexer::tokens::Token;
 
-struct Tokenizer {
-    bytes: Vec<u8>,
+struct Tokenizer<'a> {
+    bytes: &'a [u8],
     bytes_idx: usize,
     current_byte: u32,
     current_line: u32,
@@ -12,8 +12,8 @@ struct Tokenizer {
     file_descriptor: u32,
 }
 
-impl Tokenizer {
-    fn new(bytes: Vec<u8>, file_descriptor: u32) -> Tokenizer {
+impl<'a> Tokenizer<'a> {
+    fn new(bytes: &[u8], file_descriptor: u32) -> Tokenizer {
         Tokenizer {
             bytes,
             bytes_idx: 0,
@@ -126,10 +126,10 @@ fn read_block_comment(tokenizer: &mut Tokenizer) -> MyteResult<()> {
                     break;
                 }
                 Some(_) => {}
-                None => return mkerr("Unclosed block comment".to_owned(), &comment_open_span),
+                None => return mk_lex_err("Unclosed block comment".to_owned(), &comment_open_span),
             },
             Some(_) => {}
-            None => return mkerr("Unclosed block comment".to_owned(), &comment_open_span),
+            None => return mk_lex_err("Unclosed block comment".to_owned(), &comment_open_span),
         }
 
         tokenizer.advance();
@@ -212,7 +212,13 @@ fn read_string_literal(tokens: &mut Vec<Token>, tokenizer: &mut Tokenizer) -> My
         match tokenizer.next() {
             Some(b'"') => break,
             Some(byte) => identifier_bytes.push(byte),
-            None => return mkerr("Unclosed string literal".to_owned(), &open_quote_span),
+            None => {
+                return mkerr(
+                    "Unclosed string literal".to_owned(),
+                    &open_quote_span,
+                    MyteErrorType::UnexpectedEOF,
+                )
+            }
         }
 
         tokenizer.advance();
@@ -238,7 +244,7 @@ fn int_from_bytes(bytes: Vec<u8>, tokens: &mut Vec<Token>, span: Span) -> MyteRe
                 tokens.push(Token::IntLiteral(parsed_number, span));
                 return Ok(());
             }
-            _ => return mkerr(format!("Invalid int literal {}", int_string), &span),
+            _ => return mk_lex_err(format!("Invalid int literal {}", int_string), &span),
         }
     }
 }
@@ -251,7 +257,7 @@ fn float_from_bytes(bytes: Vec<u8>, tokens: &mut Vec<Token>, span: Span) -> Myte
                 tokens.push(Token::FloatLiteral(parsed_number, span));
                 return Ok(());
             }
-            _ => return mkerr(format!("Invalid float literal {}", float_string), &span),
+            _ => return mk_lex_err(format!("Invalid float literal {}", float_string), &span),
         }
     }
 }
@@ -320,7 +326,7 @@ fn read_number_literal(tokens: &mut Vec<Token>, tokenizer: &mut Tokenizer) -> My
     }
 }
 
-pub fn tokenize(input_bytes: Vec<u8>, file_descriptor: u32) -> MyteResult<Vec<Token>> {
+pub fn tokenize(input_bytes: &[u8], file_descriptor: u32) -> MyteResult<Vec<Token>> {
     let mut tokenizer = Tokenizer::new(input_bytes, file_descriptor);
     let mut tokens = Vec::new();
 
@@ -392,12 +398,12 @@ pub fn tokenize(input_bytes: Vec<u8>, file_descriptor: u32) -> MyteResult<Vec<To
                     &mut tokenizer,
                 ),
                 Some(byte) => {
-                    return mkerr(
+                    return mk_lex_err(
                         format!("Unknown symbol &{}", byte as char),
                         &tokenizer.mark_span_next(),
                     )
                 }
-                None => return mkerr("Unkown symbol &".to_owned(), &tokenizer.mark_span()),
+                None => return mk_lex_err("Unkown symbol &".to_owned(), &tokenizer.mark_span()),
             },
             Some(b'|') => match tokenizer.next() {
                 Some(b'|') => advance_and_push(
@@ -451,7 +457,7 @@ pub fn tokenize(input_bytes: Vec<u8>, file_descriptor: u32) -> MyteResult<Vec<To
             Some(byte) if is_identifier_byte(byte) => read_identifier(&mut tokens, &mut tokenizer),
             Some(byte) if is_whitespace_byte(byte) => {}
             Some(byte) => {
-                return mkerr(
+                return mk_lex_err(
                     String::from(format!("Unknown symbol {}", byte as char)),
                     &tokenizer.mark_span(),
                 )
@@ -463,4 +469,8 @@ pub fn tokenize(input_bytes: Vec<u8>, file_descriptor: u32) -> MyteResult<Vec<To
     }
 
     Ok(tokens)
+}
+
+fn mk_lex_err<T>(error: String, span: &Span) -> MyteResult<T> {
+    mkerr(error, span, MyteErrorType::Lexer)
 }

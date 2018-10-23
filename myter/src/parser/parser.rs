@@ -1,4 +1,4 @@
-use common::error::{MyteError, MyteResult};
+use common::error::{MyteError, MyteErrorType, MyteResult};
 use common::span::Span;
 use lexer::tokens::Token;
 use parser::ast::Ast;
@@ -155,8 +155,9 @@ impl<'a> Parser<'a> {
 
 fn unexpected_token(token: &Token) -> MyteError {
     MyteError::new(
-        format!("Unexpected {} encountered", token.to_string()),
+        format!("Unexpected {} encountered", token.type_to_string()),
         token.span(),
+        MyteErrorType::Parser,
     )
 }
 

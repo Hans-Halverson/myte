@@ -160,6 +160,16 @@ impl Token {
             Builtin(span) => span,
         };
     }
+
+    pub fn type_to_string(&self) -> String {
+        match self {
+            IntLiteral(..) => "int literal".to_string(),
+            FloatLiteral(..) => "float literal".to_string(),
+            StringLiteral(..) => "string literal".to_string(),
+            Identifier(..) => "identifier".to_string(),
+            _ => self.to_string(),
+        }
+    }
 }
 
 impl ToString for Token {

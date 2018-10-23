@@ -1,4 +1,5 @@
-use common::error::{mkerr, MyteResult};
+use common::error::{mkerr, MyteErrorType, MyteResult};
+use common::span::Span;
 use interpreter::value::Value;
 use ir::ir::Ir;
 
@@ -13,7 +14,7 @@ pub fn evaluate(ir: Ir) -> MyteResult<Value> {
             (Value::Float { num: left }, Value::Float { num: right }) => {
                 Ok(Value::Float { num: left + right })
             }
-            _ => mkerr(
+            _ => mk_eval_err(
                 "PRE-TYPES: Add given numbers of different types".to_string(),
                 &span,
             ),
@@ -25,7 +26,7 @@ pub fn evaluate(ir: Ir) -> MyteResult<Value> {
             (Value::Float { num: left }, Value::Float { num: right }) => {
                 Ok(Value::Float { num: left - right })
             }
-            _ => mkerr(
+            _ => mk_eval_err(
                 "PRE-TYPES: Subtract given numbers of different types".to_string(),
                 &span,
             ),
@@ -37,7 +38,7 @@ pub fn evaluate(ir: Ir) -> MyteResult<Value> {
             (Value::Float { num: left }, Value::Float { num: right }) => {
                 Ok(Value::Float { num: left * right })
             }
-            _ => mkerr(
+            _ => mk_eval_err(
                 "PRE-TYPES: Multiply given numbers of different types".to_string(),
                 &span,
             ),
@@ -49,7 +50,7 @@ pub fn evaluate(ir: Ir) -> MyteResult<Value> {
             (Value::Float { num: left }, Value::Float { num: right }) => {
                 Ok(Value::Float { num: left / right })
             }
-            _ => mkerr(
+            _ => mk_eval_err(
                 "PRE-TYPES: Divide given numbers of different types".to_string(),
                 &span,
             ),
@@ -61,7 +62,7 @@ pub fn evaluate(ir: Ir) -> MyteResult<Value> {
             (Value::Float { num: left }, Value::Float { num: right }) => {
                 Ok(Value::Float { num: left + right })
             }
-            _ => mkerr(
+            _ => mk_eval_err(
                 "PRE-TYPES: Exponentiate given numbers of different types".to_string(),
                 &span,
             ),
@@ -73,7 +74,7 @@ pub fn evaluate(ir: Ir) -> MyteResult<Value> {
             (Value::Float { num: left }, Value::Float { num: right }) => {
                 Ok(Value::Float { num: left % right })
             }
-            _ => mkerr(
+            _ => mk_eval_err(
                 "PRE-TYPES: Remainder given numbers of different types".to_string(),
                 &span,
             ),
@@ -85,4 +86,8 @@ pub fn evaluate(ir: Ir) -> MyteResult<Value> {
             Value::Float { num } => Ok(Value::Float { num: -num }),
         },
     }
+}
+
+fn mk_eval_err<T>(error: String, span: &Span) -> MyteResult<T> {
+    mkerr(error, span, MyteErrorType::Evaluate)
 }
