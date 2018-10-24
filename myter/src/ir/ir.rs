@@ -1,6 +1,17 @@
 use common::span::Span;
 
 pub enum Ir {
+    UnitLiteral {
+        span: Span,
+    },
+    BoolLiteral {
+        bool: bool,
+        span: Span,
+    },
+    StringLiteral {
+        string: String,
+        span: Span,
+    },
     IntLiteral {
         num: i64,
         span: Span,
@@ -49,6 +60,20 @@ pub enum Ir {
     },
     UnaryMinus {
         node: Box<Ir>,
+        span: Span,
+    },
+    LogicalNot {
+        node: Box<Ir>,
+        span: Span,
+    },
+    LogicalAnd {
+        left: Box<Ir>,
+        right: Box<Ir>,
+        span: Span,
+    },
+    LogicalOr {
+        left: Box<Ir>,
+        right: Box<Ir>,
         span: Span,
     },
 }

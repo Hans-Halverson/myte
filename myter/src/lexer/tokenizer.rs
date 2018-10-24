@@ -389,11 +389,11 @@ pub fn tokenize(input_bytes: &[u8], file_descriptor: u32) -> MyteResult<Vec<Toke
                     &mut tokens,
                     &mut tokenizer,
                 ),
-                _ => tokens.push(Token::LogicalNot(tokenizer.mark_span())),
+                _ => tokens.push(Token::Bang(tokenizer.mark_span())),
             },
             Some(b'&') => match tokenizer.next() {
                 Some(b'&') => advance_and_push(
-                    Token::LogicalAnd(tokenizer.mark_span_next()),
+                    Token::DoubleAmpersand(tokenizer.mark_span_next()),
                     &mut tokens,
                     &mut tokenizer,
                 ),
@@ -407,7 +407,7 @@ pub fn tokenize(input_bytes: &[u8], file_descriptor: u32) -> MyteResult<Vec<Toke
             },
             Some(b'|') => match tokenizer.next() {
                 Some(b'|') => advance_and_push(
-                    Token::LogicalOr(tokenizer.mark_span_next()),
+                    Token::DoublePipe(tokenizer.mark_span_next()),
                     &mut tokens,
                     &mut tokenizer,
                 ),
