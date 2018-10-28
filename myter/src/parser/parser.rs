@@ -1,22 +1,39 @@
-use common::error::{MyteError, MyteErrorType, MyteResult};
+use common::error::{ErrorContext, MyteError, MyteErrorType, MyteResult};
 use common::span::Span;
 use lexer::tokens::Token;
 use parser::ast::Ast;
 use parser::tokenizer::Tokenizer;
 
-pub struct Parser<'a> {
-    tokenizer: Tokenizer<'a>,
+pub struct Parser<'t, 'e> {
+    tokenizer: Tokenizer<'t>,
+    error_context: &'e mut ErrorContext,
 }
 
-impl<'a> Parser<'a> {
-    pub fn new(tokens: &'a [Token]) -> Parser<'a> {
+impl<'t, 'e> Parser<'t, 'e> {
+    pub fn new(tokens: &'t [Token], error_context: &'e mut ErrorContext) -> Parser<'t, 'e> {
         Parser {
             tokenizer: Tokenizer::new(tokens),
+            error_context,
         }
     }
 
-    pub fn parse(&mut self) -> MyteResult<Ast> {
-        self.parse_expr()
+    pub fn parse(&mut self) -> Option<Ast> {
+        let expr = self.parse_expr();
+        if !self.tokenizer.reached_end() {
+            if let Ok(token) = self.tokenizer.current() {
+                self.error_context.add_error(unexpected_token(&token))
+            }
+
+            return None;
+        }
+
+        match expr {
+            Ok(ast) => Some(ast),
+            Err(err) => {
+                self.error_context.add_error(err);
+                None
+            }
+        }
     }
 
     fn parse_expr(&mut self) -> MyteResult<Ast> {
@@ -33,8 +50,10 @@ impl<'a> Parser<'a> {
             Token::FloatLiteral(num, span) => Ast::FloatLiteral { num, span },
             Token::Plus(..) => self.parse_unary_plus(first_token)?,
             Token::Minus(..) => self.parse_unary_minus(first_token)?,
-            Token::LeftParen(..) => self.parse_parenthesized_expr(first_token)?,
             Token::Bang(..) => self.parse_logical_not(first_token)?,
+            Token::LeftParen(..) => self.parse_parenthesized_expr(first_token)?,
+            Token::LeftBrace(..) => self.parse_block(first_token)?,
+
             _ => return Err(unexpected_token(&first_token)),
         };
 
@@ -187,6 +206,22 @@ impl<'a> Parser<'a> {
             span: Span::concat(left_expr.span(), right_expr.span()),
             left: Box::new(left_expr),
             right: Box::new(right_expr),
+        })
+    }
+
+    fn parse_block(&mut self, left_brace: Token) -> MyteResult<Ast> {
+        let mut nodes = Vec::new();
+        while !is_current!(self, RightBrace) {
+            match self.parse_expr() {
+                Ok(node) => nodes.push(node),
+                Err(err) => self.error_context.add_error(err),
+            }
+        }
+
+        let right_brace = self.tokenizer.next()?;
+        Ok(Ast::Block {
+            nodes,
+            span: Span::concat(left_brace.span(), right_brace.span()),
         })
     }
 }

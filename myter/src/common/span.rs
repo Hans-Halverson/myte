@@ -1,4 +1,4 @@
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Span {
     pub start_byte: u32,
     pub end_byte: u32,

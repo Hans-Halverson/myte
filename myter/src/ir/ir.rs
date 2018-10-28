@@ -76,4 +76,8 @@ pub enum Ir {
         right: Box<Ir>,
         span: Span,
     },
+    Block {
+        nodes: Vec<Ir>,
+        span: Span,
+    },
 }

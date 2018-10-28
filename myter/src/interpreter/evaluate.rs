@@ -113,6 +113,14 @@ pub fn evaluate(ir: Ir) -> MyteResult<Value> {
             },
             _ => mk_eval_err("PRE-TYPES: Logical or expects bools".to_string(), &span),
         },
+        Ir::Block { nodes, .. } => {
+            let mut value = Value::Unit;
+            for node in nodes {
+                value = evaluate(node)?;
+            }
+
+            Ok(value)
+        }
     }
 }
 

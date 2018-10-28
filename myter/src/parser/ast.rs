@@ -1,5 +1,6 @@
 use common::span::Span;
 
+#[derive(Debug)]
 pub enum Ast {
     UnitLiteral {
         span: Span,
@@ -76,6 +77,10 @@ pub enum Ast {
         right: Box<Ast>,
         span: Span,
     },
+    Block {
+        nodes: Vec<Ast>,
+        span: Span,
+    },
 }
 
 impl Ast {
@@ -98,6 +103,7 @@ impl Ast {
             Ast::LogicalNot { span, .. } => span,
             Ast::LogicalAnd { span, .. } => span,
             Ast::LogicalOr { span, .. } => span,
+            Ast::Block { span, .. } => span,
         }
     }
 }

@@ -22,3 +22,12 @@ macro_rules! assert_current {
         }
     }};
 }
+
+macro_rules! is_current {
+    ($self:ident, $expected:ident) => {{
+        match $self.tokenizer.current()? {
+            Token::$expected(..) => true,
+            _ => false,
+        }
+    }};
+}
