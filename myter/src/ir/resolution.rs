@@ -1,7 +1,7 @@
 use common::error::ErrorContext;
 use common::span::Span;
 use ir::ir::Ir;
-use parser::ast::Ast;
+use parser::ast::{AstExpr, BinaryOp, UnaryOp};
 
 struct Resolver<'a> {
     error_context: &'a mut ErrorContext,
@@ -12,124 +12,64 @@ impl<'a> Resolver<'a> {
         Resolver { error_context }
     }
 
-    fn resolve_ast(&mut self, ast: Ast) -> Option<Ir> {
+    fn resolve_ast(&mut self, ast: AstExpr) -> Option<Ir> {
         match ast {
-            Ast::UnitLiteral { span } => Some(Ir::UnitLiteral { span }),
-            Ast::BoolLiteral { bool, span } => Some(Ir::BoolLiteral { bool, span }),
-            Ast::StringLiteral { string, span } => Some(Ir::StringLiteral { string, span }),
-            Ast::IntLiteral { num, span } => Some(Ir::IntLiteral { num, span }),
-            Ast::FloatLiteral { num, span } => Some(Ir::FloatLiteral { num, span }),
-            Ast::Add { left, right, span } => self.resolve_add(*left, *right, span),
-            Ast::Subtract { left, right, span } => self.resolve_subtract(*left, *right, span),
-            Ast::Multiply { left, right, span } => self.resolve_multiply(*left, *right, span),
-            Ast::Divide { left, right, span } => self.resolve_divide(*left, *right, span),
-            Ast::Exponentiate { left, right, span } => {
-                self.resolve_exponentiate(*left, *right, span)
-            }
-            Ast::Remainder { left, right, span } => self.resolve_remainder(*left, *right, span),
-            Ast::ParenthesizedGroup { node, span } => Some(Ir::ParenthesizedGroup {
+            AstExpr::UnitLiteral { span } => Some(Ir::UnitLiteral { span }),
+            AstExpr::BoolLiteral { bool, span } => Some(Ir::BoolLiteral { bool, span }),
+            AstExpr::StringLiteral { string, span } => Some(Ir::StringLiteral { string, span }),
+            AstExpr::IntLiteral { num, span } => Some(Ir::IntLiteral { num, span }),
+            AstExpr::FloatLiteral { num, span } => Some(Ir::FloatLiteral { num, span }),
+            AstExpr::UnaryOp { node, op, span } => self.resolve_unary_op(*node, op, span),
+            AstExpr::BinaryOp {
+                left,
+                right,
+                op,
+                span,
+            } => self.resolve_binary_op(*left, *right, op, span),
+            AstExpr::ParenthesizedGroup { node, span } => Some(Ir::ParenthesizedGroup {
                 node: Box::new(self.resolve_ast(*node)?),
                 span,
             }),
-            Ast::UnaryPlus { node, span } => Some(Ir::UnaryPlus {
-                node: Box::new(self.resolve_ast(*node)?),
-                span,
-            }),
-            Ast::UnaryMinus { node, span } => Some(Ir::UnaryMinus {
-                node: Box::new(self.resolve_ast(*node)?),
-                span,
-            }),
-            Ast::LogicalNot { node, span } => Some(Ir::LogicalNot {
-                node: Box::new(self.resolve_ast(*node)?),
-                span,
-            }),
-            Ast::LogicalAnd { left, right, span } => self.resolve_logical_and(*left, *right, span),
-            Ast::LogicalOr { left, right, span } => self.resolve_logical_or(*left, *right, span),
-            Ast::Block { nodes, span } => self.resolve_block(nodes, span),
+            AstExpr::Block { nodes, span } => self.resolve_block(nodes, span),
         }
     }
 
-    fn resolve_add(&mut self, left: Ast, right: Ast, span: Span) -> Option<Ir> {
+    fn resolve_binary_op(
+        &mut self,
+        left: AstExpr,
+        right: AstExpr,
+        op: BinaryOp,
+        span: Span,
+    ) -> Option<Ir> {
         let left_ir = self.resolve_ast(left);
         let right_ir = self.resolve_ast(right);
-        Some(Ir::Add {
-            left: Box::new(left_ir?),
-            right: Box::new(right_ir?),
-            span,
-        })
+
+        let left = Box::new(left_ir?);
+        let right = Box::new(right_ir?);
+
+        match op {
+            BinaryOp::Add => Some(Ir::Add { left, right, span }),
+            BinaryOp::Subtract => Some(Ir::Subtract { left, right, span }),
+            BinaryOp::Multiply => Some(Ir::Multiply { left, right, span }),
+            BinaryOp::Divide => Some(Ir::Divide { left, right, span }),
+            BinaryOp::Exponentiate => Some(Ir::Exponentiate { left, right, span }),
+            BinaryOp::Remainder => Some(Ir::Remainder { left, right, span }),
+            BinaryOp::LogicalAnd => Some(Ir::LogicalAnd { left, right, span }),
+            BinaryOp::LogicalOr => Some(Ir::LogicalOr { left, right, span }),
+        }
     }
 
-    fn resolve_subtract(&mut self, left: Ast, right: Ast, span: Span) -> Option<Ir> {
-        let left_ir = self.resolve_ast(left);
-        let right_ir = self.resolve_ast(right);
-        Some(Ir::Subtract {
-            left: Box::new(left_ir?),
-            right: Box::new(right_ir?),
-            span,
-        })
+    fn resolve_unary_op(&mut self, node: AstExpr, op: UnaryOp, span: Span) -> Option<Ir> {
+        let node_ir = self.resolve_ast(node);
+        let node = Box::new(node_ir?);
+        match op {
+            UnaryOp::Plus => Some(Ir::UnaryPlus { node, span }),
+            UnaryOp::Minus => Some(Ir::UnaryMinus { node, span }),
+            UnaryOp::LogicalNot => Some(Ir::LogicalNot { node, span }),
+        }
     }
 
-    fn resolve_multiply(&mut self, left: Ast, right: Ast, span: Span) -> Option<Ir> {
-        let left_ir = self.resolve_ast(left);
-        let right_ir = self.resolve_ast(right);
-        Some(Ir::Multiply {
-            left: Box::new(left_ir?),
-            right: Box::new(right_ir?),
-            span,
-        })
-    }
-
-    fn resolve_divide(&mut self, left: Ast, right: Ast, span: Span) -> Option<Ir> {
-        let left_ir = self.resolve_ast(left);
-        let right_ir = self.resolve_ast(right);
-        Some(Ir::Divide {
-            left: Box::new(left_ir?),
-            right: Box::new(right_ir?),
-            span,
-        })
-    }
-
-    fn resolve_exponentiate(&mut self, left: Ast, right: Ast, span: Span) -> Option<Ir> {
-        let left_ir = self.resolve_ast(left);
-        let right_ir = self.resolve_ast(right);
-        Some(Ir::Exponentiate {
-            left: Box::new(left_ir?),
-            right: Box::new(right_ir?),
-            span,
-        })
-    }
-
-    fn resolve_remainder(&mut self, left: Ast, right: Ast, span: Span) -> Option<Ir> {
-        let left_ir = self.resolve_ast(left);
-        let right_ir = self.resolve_ast(right);
-        Some(Ir::Remainder {
-            left: Box::new(left_ir?),
-            right: Box::new(right_ir?),
-            span,
-        })
-    }
-
-    fn resolve_logical_and(&mut self, left: Ast, right: Ast, span: Span) -> Option<Ir> {
-        let left_ir = self.resolve_ast(left);
-        let right_ir = self.resolve_ast(right);
-        Some(Ir::LogicalAnd {
-            left: Box::new(left_ir?),
-            right: Box::new(right_ir?),
-            span,
-        })
-    }
-
-    fn resolve_logical_or(&mut self, left: Ast, right: Ast, span: Span) -> Option<Ir> {
-        let left_ir = self.resolve_ast(left);
-        let right_ir = self.resolve_ast(right);
-        Some(Ir::LogicalOr {
-            left: Box::new(left_ir?),
-            right: Box::new(right_ir?),
-            span,
-        })
-    }
-
-    fn resolve_block(&mut self, nodes: Vec<Ast>, span: Span) -> Option<Ir> {
+    fn resolve_block(&mut self, nodes: Vec<AstExpr>, span: Span) -> Option<Ir> {
         let ir_nodes = nodes
             .into_iter()
             .map(|node| self.resolve_ast(node))
@@ -145,7 +85,7 @@ impl<'a> Resolver<'a> {
     }
 }
 
-pub fn resolve(ast: Ast, error_context: &mut ErrorContext) -> Option<Ir> {
+pub fn resolve(ast: AstExpr, error_context: &mut ErrorContext) -> Option<Ir> {
     let mut resolver = Resolver::new(error_context);
     resolver.resolve_ast(ast)
 }

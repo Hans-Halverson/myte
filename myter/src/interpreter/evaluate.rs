@@ -59,12 +59,12 @@ pub fn evaluate(ir: Ir) -> MyteResult<Value> {
             ),
         },
         Ir::Exponentiate { left, right, span } => match (evaluate(*left)?, evaluate(*right)?) {
-            (Value::Int { num: left }, Value::Int { num: right }) => {
-                Ok(Value::Int { num: left + right })
-            }
-            (Value::Float { num: left }, Value::Float { num: right }) => {
-                Ok(Value::Float { num: left + right })
-            }
+            (Value::Int { num: left }, Value::Int { num: right }) => Ok(Value::Int {
+                num: i64::pow(left, right as u32),
+            }),
+            (Value::Float { num: left }, Value::Float { num: right }) => Ok(Value::Float {
+                num: f64::powf(left, right),
+            }),
             _ => mk_eval_err(
                 "PRE-TYPES: Exponentiate expects numbers of same type".to_string(),
                 &span,

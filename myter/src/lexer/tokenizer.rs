@@ -1,4 +1,4 @@
-use common::error::{mkerr, MyteErrorType, MyteResult};
+use common::error::{mkerr, MyteErrorType, MyteResult, ERROR_TAB_WIDTH};
 use common::span::Span;
 use lexer::tokens::Token;
 
@@ -31,6 +31,9 @@ impl<'a> Tokenizer<'a> {
                 Some(b'\n') => {
                     self.current_byte = 0;
                     self.current_line += 1;
+                }
+                Some(b'\t') => {
+                    self.current_byte += ERROR_TAB_WIDTH;
                 }
                 Some(_) => self.current_byte += 1,
                 None => {}

@@ -1,7 +1,7 @@
 use common::error::{ErrorContext, MyteError, MyteErrorType, MyteResult};
 use common::span::Span;
 use lexer::tokens::Token;
-use parser::ast::Ast;
+use parser::ast::{AstExpr, BinaryOp, UnaryOp};
 use parser::tokenizer::Tokenizer;
 
 pub struct Parser<'t, 'e> {
@@ -17,7 +17,11 @@ impl<'t, 'e> Parser<'t, 'e> {
         }
     }
 
-    pub fn parse(&mut self) -> Option<Ast> {
+    pub fn parse(&mut self) -> Option<AstExpr> {
+        if self.tokenizer.reached_end() {
+            return None;
+        }
+
         let expr = self.parse_expr();
         if !self.tokenizer.reached_end() {
             if let Ok(token) = self.tokenizer.current() {
@@ -36,21 +40,25 @@ impl<'t, 'e> Parser<'t, 'e> {
         }
     }
 
-    fn parse_expr(&mut self) -> MyteResult<Ast> {
+    fn parse_expr(&mut self) -> MyteResult<AstExpr> {
         let first_token = self.tokenizer.next()?;
         self.parse_expr_precedence(first_token, EXPR_PRECEDENCE_NONE)
     }
 
-    fn parse_expr_precedence(&mut self, first_token: Token, precedence: u32) -> MyteResult<Ast> {
+    fn parse_expr_precedence(
+        &mut self,
+        first_token: Token,
+        precedence: u32,
+    ) -> MyteResult<AstExpr> {
         let mut expr = match first_token {
-            Token::True(span) => Ast::BoolLiteral { bool: true, span },
-            Token::False(span) => Ast::BoolLiteral { bool: false, span },
-            Token::StringLiteral(string, span) => Ast::StringLiteral { string, span },
-            Token::IntLiteral(num, span) => Ast::IntLiteral { num, span },
-            Token::FloatLiteral(num, span) => Ast::FloatLiteral { num, span },
-            Token::Plus(..) => self.parse_unary_plus(first_token)?,
-            Token::Minus(..) => self.parse_unary_minus(first_token)?,
-            Token::Bang(..) => self.parse_logical_not(first_token)?,
+            Token::True(span) => AstExpr::BoolLiteral { bool: true, span },
+            Token::False(span) => AstExpr::BoolLiteral { bool: false, span },
+            Token::StringLiteral(string, span) => AstExpr::StringLiteral { string, span },
+            Token::IntLiteral(num, span) => AstExpr::IntLiteral { num, span },
+            Token::FloatLiteral(num, span) => AstExpr::FloatLiteral { num, span },
+            Token::Plus(..) => self.parse_unary_op(first_token, UnaryOp::Plus)?,
+            Token::Minus(..) => self.parse_unary_op(first_token, UnaryOp::Minus)?,
+            Token::Bang(..) => self.parse_unary_op(first_token, UnaryOp::LogicalNot)?,
             Token::LeftParen(..) => self.parse_parenthesized_expr(first_token)?,
             Token::LeftBrace(..) => self.parse_block(first_token)?,
 
@@ -66,14 +74,14 @@ impl<'t, 'e> Parser<'t, 'e> {
         {
             let current_token = self.tokenizer.next()?;
             expr = match current_token {
-                Token::Plus(..) => self.parse_add(expr)?,
-                Token::Minus(..) => self.parse_subtract(expr)?,
-                Token::Asterisk(..) => self.parse_multiply(expr)?,
-                Token::ForwardSlash(..) => self.parse_divide(expr)?,
-                Token::Caret(..) => self.parse_exponentiate(expr)?,
-                Token::Percent(..) => self.parse_remainder(expr)?,
-                Token::DoubleAmpersand(..) => self.parse_logical_and(expr)?,
-                Token::DoublePipe(..) => self.parse_logical_or(expr)?,
+                Token::Plus(..) => self.parse_binary_op(expr, BinaryOp::Add)?,
+                Token::Minus(..) => self.parse_binary_op(expr, BinaryOp::Subtract)?,
+                Token::Asterisk(..) => self.parse_binary_op(expr, BinaryOp::Multiply)?,
+                Token::ForwardSlash(..) => self.parse_binary_op(expr, BinaryOp::Divide)?,
+                Token::Caret(..) => self.parse_binary_op(expr, BinaryOp::Exponentiate)?,
+                Token::Percent(..) => self.parse_binary_op(expr, BinaryOp::Remainder)?,
+                Token::DoubleAmpersand(..) => self.parse_binary_op(expr, BinaryOp::LogicalAnd)?,
+                Token::DoublePipe(..) => self.parse_binary_op(expr, BinaryOp::LogicalOr)?,
                 _ => return Err(unexpected_token(&current_token)),
             }
         }
@@ -81,90 +89,45 @@ impl<'t, 'e> Parser<'t, 'e> {
         Ok(expr)
     }
 
-    fn parse_unary_plus(&mut self, plus: Token) -> MyteResult<Ast> {
+    fn parse_unary_op(&mut self, op_token: Token, op: UnaryOp) -> MyteResult<AstExpr> {
         let next_token = self.tokenizer.next()?;
-        let node = self.parse_expr_precedence(next_token, EXPR_PRECEDENCE_NUMERIC_PREFIX)?;
-        Ok(Ast::UnaryPlus {
-            span: Span::concat(plus.span(), node.span()),
+        let precedence = match op {
+            UnaryOp::Plus | UnaryOp::Minus => EXPR_PRECEDENCE_NUMERIC_PREFIX,
+            UnaryOp::LogicalNot => EXPR_PRECEDENCE_LOGICAL_NOT,
+        };
+
+        let node = self.parse_expr_precedence(next_token, precedence)?;
+        Ok(AstExpr::UnaryOp {
+            op,
+            span: Span::concat(op_token.span(), node.span()),
             node: Box::new(node),
         })
     }
 
-    fn parse_unary_minus(&mut self, plus: Token) -> MyteResult<Ast> {
+    fn parse_binary_op(&mut self, left_expr: AstExpr, op: BinaryOp) -> MyteResult<AstExpr> {
         let next_token = self.tokenizer.next()?;
-        let node = self.parse_expr_precedence(next_token, EXPR_PRECEDENCE_NUMERIC_PREFIX)?;
-        Ok(Ast::UnaryMinus {
-            span: Span::concat(plus.span(), node.span()),
-            node: Box::new(node),
-        })
-    }
+        let precedence = match op {
+            BinaryOp::Add | BinaryOp::Subtract => EXPR_PRECEDENCE_ADD,
+            BinaryOp::Multiply | BinaryOp::Divide => EXPR_PRECEDENCE_MULTIPLY,
+            BinaryOp::Exponentiate => right_associative(EXPR_PRECEDENCE_EXPONENTIATE),
+            BinaryOp::Remainder => EXPR_PRECEDENCE_MULTIPLY,
+            BinaryOp::LogicalAnd => EXPR_PRECEDENCE_LOGICAL_AND,
+            BinaryOp::LogicalOr => EXPR_PRECEDENCE_LOGICAL_OR,
+        };
 
-    fn parse_add(&mut self, left_expr: Ast) -> MyteResult<Ast> {
-        let next_token = self.tokenizer.next()?;
-        let right_expr = self.parse_expr_precedence(next_token, EXPR_PRECEDENCE_ADD)?;
-        Ok(Ast::Add {
+        let right_expr = self.parse_expr_precedence(next_token, precedence)?;
+        Ok(AstExpr::BinaryOp {
+            op,
             span: Span::concat(left_expr.span(), right_expr.span()),
             left: Box::new(left_expr),
             right: Box::new(right_expr),
         })
     }
 
-    fn parse_subtract(&mut self, left_expr: Ast) -> MyteResult<Ast> {
-        let next_token = self.tokenizer.next()?;
-        let right_expr = self.parse_expr_precedence(next_token, EXPR_PRECEDENCE_ADD)?;
-        Ok(Ast::Subtract {
-            span: Span::concat(left_expr.span(), right_expr.span()),
-            left: Box::new(left_expr),
-            right: Box::new(right_expr),
-        })
-    }
-
-    fn parse_multiply(&mut self, left_expr: Ast) -> MyteResult<Ast> {
-        let next_token = self.tokenizer.next()?;
-        let right_expr = self.parse_expr_precedence(next_token, EXPR_PRECEDENCE_MULTIPLY)?;
-        Ok(Ast::Multiply {
-            span: Span::concat(left_expr.span(), right_expr.span()),
-            left: Box::new(left_expr),
-            right: Box::new(right_expr),
-        })
-    }
-
-    fn parse_divide(&mut self, left_expr: Ast) -> MyteResult<Ast> {
-        let next_token = self.tokenizer.next()?;
-        let right_expr = self.parse_expr_precedence(next_token, EXPR_PRECEDENCE_MULTIPLY)?;
-        Ok(Ast::Divide {
-            span: Span::concat(left_expr.span(), right_expr.span()),
-            left: Box::new(left_expr),
-            right: Box::new(right_expr),
-        })
-    }
-
-    fn parse_exponentiate(&mut self, left_expr: Ast) -> MyteResult<Ast> {
-        let next_token = self.tokenizer.next()?;
-        let right_expr = self
-            .parse_expr_precedence(next_token, right_associative(EXPR_PRECEDENCE_EXPONENTIATE))?;
-        Ok(Ast::Exponentiate {
-            span: Span::concat(left_expr.span(), right_expr.span()),
-            left: Box::new(left_expr),
-            right: Box::new(right_expr),
-        })
-    }
-
-    fn parse_remainder(&mut self, left_expr: Ast) -> MyteResult<Ast> {
-        let next_token = self.tokenizer.next()?;
-        let right_expr =
-            self.parse_expr_precedence(next_token, right_associative(EXPR_PRECEDENCE_MULTIPLY))?;
-        Ok(Ast::Remainder {
-            span: Span::concat(left_expr.span(), right_expr.span()),
-            left: Box::new(left_expr),
-            right: Box::new(right_expr),
-        })
-    }
-
-    fn parse_parenthesized_expr(&mut self, left_paren: Token) -> MyteResult<Ast> {
+    fn parse_parenthesized_expr(&mut self, left_paren: Token) -> MyteResult<AstExpr> {
         if let Token::RightParen(..) = self.tokenizer.current()? {
             let right_paren = self.tokenizer.next()?;
-            return Ok(Ast::UnitLiteral {
+            return Ok(AstExpr::UnitLiteral {
                 span: Span::concat(left_paren.span(), right_paren.span()),
             });
         }
@@ -174,42 +137,13 @@ impl<'t, 'e> Parser<'t, 'e> {
         assert_current!(self, RightParen);
         let right_paren = self.tokenizer.next()?;
 
-        Ok(Ast::ParenthesizedGroup {
+        Ok(AstExpr::ParenthesizedGroup {
             span: Span::concat(left_paren.span(), right_paren.span()),
             node: Box::new(node),
         })
     }
 
-    fn parse_logical_not(&mut self, bang: Token) -> MyteResult<Ast> {
-        let next_token = self.tokenizer.next()?;
-        let node = self.parse_expr_precedence(next_token, EXPR_PRECEDENCE_LOGICAL_NOT)?;
-        Ok(Ast::LogicalNot {
-            span: Span::concat(bang.span(), node.span()),
-            node: Box::new(node),
-        })
-    }
-
-    fn parse_logical_and(&mut self, left_expr: Ast) -> MyteResult<Ast> {
-        let next_token = self.tokenizer.next()?;
-        let right_expr = self.parse_expr_precedence(next_token, EXPR_PRECEDENCE_LOGICAL_AND)?;
-        Ok(Ast::LogicalAnd {
-            span: Span::concat(left_expr.span(), right_expr.span()),
-            left: Box::new(left_expr),
-            right: Box::new(right_expr),
-        })
-    }
-
-    fn parse_logical_or(&mut self, left_expr: Ast) -> MyteResult<Ast> {
-        let next_token = self.tokenizer.next()?;
-        let right_expr = self.parse_expr_precedence(next_token, EXPR_PRECEDENCE_LOGICAL_OR)?;
-        Ok(Ast::LogicalOr {
-            span: Span::concat(left_expr.span(), right_expr.span()),
-            left: Box::new(left_expr),
-            right: Box::new(right_expr),
-        })
-    }
-
-    fn parse_block(&mut self, left_brace: Token) -> MyteResult<Ast> {
+    fn parse_block(&mut self, left_brace: Token) -> MyteResult<AstExpr> {
         let mut nodes = Vec::new();
         while !is_current!(self, RightBrace) {
             match self.parse_expr() {
@@ -219,7 +153,7 @@ impl<'t, 'e> Parser<'t, 'e> {
         }
 
         let right_brace = self.tokenizer.next()?;
-        Ok(Ast::Block {
+        Ok(AstExpr::Block {
             nodes,
             span: Span::concat(left_brace.span(), right_brace.span()),
         })

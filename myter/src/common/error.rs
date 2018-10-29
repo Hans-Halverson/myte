@@ -1,6 +1,7 @@
 use common::source::{self, FileTable};
 use common::span::Span;
 
+use std::cmp::Ordering;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read};
 use std::path::Path;
@@ -21,6 +22,7 @@ pub struct MyteError {
 
 pub struct ErrorContext {
     errors: Vec<MyteError>,
+    unexpected_eof: Option<MyteError>,
 }
 
 pub type MyteResult<T> = Result<T, MyteError>;
@@ -41,19 +43,52 @@ pub fn mkerr<T>(error: String, span: &Span, ty: MyteErrorType) -> MyteResult<T> 
 
 impl ErrorContext {
     pub fn new() -> ErrorContext {
-        ErrorContext { errors: Vec::new() }
+        ErrorContext {
+            errors: Vec::new(),
+            unexpected_eof: None,
+        }
     }
 
     pub fn is_empty(&self) -> bool {
-        self.errors.is_empty()
+        self.errors.is_empty() && self.unexpected_eof.is_none()
     }
 
     pub fn add_error(&mut self, error: MyteError) {
-        self.errors.push(error);
+        if error.ty == MyteErrorType::UnexpectedEOF {
+            self.unexpected_eof = Some(error);
+        } else {
+            self.errors.push(error);
+        }
     }
 
     pub fn print_errors(&self, file_table: &FileTable) -> io::Result<()> {
-        for error in &self.errors {
+        let mut all_errors = Vec::new();
+        if let Some(err) = &self.unexpected_eof {
+            all_errors.push(err);
+        }
+
+        for err in &self.errors {
+            all_errors.push(err);
+        }
+
+        all_errors.sort_unstable_by(|err1, err2| {
+            let file1 = file_table.get_file(err1.span.file_descriptor);
+            let file2 = file_table.get_file(err2.span.file_descriptor);
+
+            let file_ord = file1.cmp(&file2);
+            if file_ord != Ordering::Equal {
+                return file_ord;
+            }
+
+            let line_ord = err1.span.start_line.cmp(&err2.span.start_line);
+            if line_ord != Ordering::Equal {
+                return line_ord;
+            }
+
+            err1.span.start_byte.cmp(&err2.span.start_byte)
+        });
+
+        for error in all_errors {
             print_err(error, file_table)?;
             println!("");
         }
@@ -62,7 +97,7 @@ impl ErrorContext {
     }
 
     pub fn is_unexpected_eof(&self) -> bool {
-        self.errors.len() == 1 && self.errors[0].ty == MyteErrorType::UnexpectedEOF
+        self.errors.len() == 0 && self.unexpected_eof.is_some()
     }
 }
 
@@ -71,6 +106,8 @@ impl ErrorContext {
 /// Error Formatting
 ///
 ///////////////////////////////////////////////////////////////////////////////
+
+pub const ERROR_TAB_WIDTH: u32 = 4;
 
 const RESET_ATTRIBUTES: &str = "\u{001B}[0m";
 const BOLD_ATTRIBUTE: &str = "\u{001B}[1m";
@@ -115,7 +152,9 @@ impl<T: Read> ErrorRead for ErrorReader<T> {
             self.current_line = self.current_line.trim_right().to_string();
         }
 
-        return Ok(self.current_line.clone());
+        return Ok(self
+            .current_line
+            .replace("\t", &" ".repeat(ERROR_TAB_WIDTH as usize)));
     }
 }
 

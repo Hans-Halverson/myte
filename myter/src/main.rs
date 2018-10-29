@@ -133,6 +133,7 @@ fn repl() {
                 ..
             }) => {
                 current_line += 1;
+                error_context = ErrorContext::new();
                 continue;
             }
             Err(err) => {
@@ -140,6 +141,9 @@ fn repl() {
                     println!("{}", err);
                 }
 
+                current_input.clear();
+                current_line = 0;
+                error_context = ErrorContext::new();
                 continue;
             }
         };
@@ -151,6 +155,7 @@ fn repl() {
             };
 
             if error_context.is_unexpected_eof() {
+                error_context = ErrorContext::new();
                 current_line += 1;
                 continue;
             } else if !error_context.is_empty() {
@@ -158,12 +163,20 @@ fn repl() {
                     println!("{}", err);
                 }
 
+                current_input.clear();
+                current_line = 0;
+                error_context = ErrorContext::new();
                 continue;
             }
 
             match ast_opt {
                 Some(ast) => ast,
-                None => continue,
+                None => {
+                    current_input.clear();
+                    current_line = 0;
+                    error_context = ErrorContext::new();
+                    continue;
+                }
             }
         };
 
@@ -174,6 +187,9 @@ fn repl() {
                     println!("{}", err);
                 }
 
+                current_input.clear();
+                current_line = 0;
+                error_context = ErrorContext::new();
                 continue;
             }
         };
@@ -185,6 +201,9 @@ fn repl() {
                     println!("{}", err);
                 }
 
+                current_input.clear();
+                current_line = 0;
+                error_context = ErrorContext::new();
                 continue;
             }
         };
@@ -193,6 +212,7 @@ fn repl() {
 
         current_input.clear();
         current_line = 0;
+        error_context = ErrorContext::new();
     }
 }
 
