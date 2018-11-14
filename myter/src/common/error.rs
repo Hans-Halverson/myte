@@ -11,6 +11,7 @@ pub enum MyteErrorType {
     UnexpectedEOF,
     Lexer,
     Parser,
+    Resolve,
     Evaluate,
 }
 

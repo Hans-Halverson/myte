@@ -1,9 +1,12 @@
 macro_rules! token_type {
+    (Identifier) => {
+        "identifier"
+    };
     (RightParen) => {
         ")"
     };
-    (Identifier) => {
-        "identifier"
+    (Equals) => {
+        "="
     };
 }
 

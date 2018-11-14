@@ -1,28 +1,35 @@
-use common::error::{ErrorContext, MyteError, MyteErrorType, MyteResult};
+use common::error::{mkerr, ErrorContext, MyteError, MyteErrorType, MyteResult};
+use common::ident::SymbolTable;
 use common::span::Span;
 use lexer::tokens::Token;
-use parser::ast::{AstExpr, BinaryOp, UnaryOp};
+use parser::ast::{AstExpr, AstPat, AstStmt, BinaryOp, UnaryOp};
 use parser::tokenizer::Tokenizer;
 
-pub struct Parser<'t, 'e> {
+pub struct Parser<'t, 's, 'e> {
     tokenizer: Tokenizer<'t>,
+    symbol_table: &'s mut SymbolTable,
     error_context: &'e mut ErrorContext,
 }
 
-impl<'t, 'e> Parser<'t, 'e> {
-    pub fn new(tokens: &'t [Token], error_context: &'e mut ErrorContext) -> Parser<'t, 'e> {
+impl<'t, 's, 'e> Parser<'t, 's, 'e> {
+    pub fn new(
+        tokens: &'t [Token],
+        symbol_table: &'s mut SymbolTable,
+        error_context: &'e mut ErrorContext,
+    ) -> Parser<'t, 's, 'e> {
         Parser {
             tokenizer: Tokenizer::new(tokens),
+            symbol_table,
             error_context,
         }
     }
 
-    pub fn parse(&mut self) -> Option<AstExpr> {
+    pub fn parse(&mut self) -> Option<AstStmt> {
         if self.tokenizer.reached_end() {
             return None;
         }
 
-        let expr = self.parse_expr();
+        let stmt = self.parse_stmt();
         if !self.tokenizer.reached_end() {
             if let Ok(token) = self.tokenizer.current() {
                 self.error_context.add_error(unexpected_token(&token))
@@ -31,12 +38,22 @@ impl<'t, 'e> Parser<'t, 'e> {
             return None;
         }
 
-        match expr {
+        match stmt {
             Ok(ast) => Some(ast),
             Err(err) => {
                 self.error_context.add_error(err);
                 None
             }
+        }
+    }
+
+    fn parse_stmt(&mut self) -> MyteResult<AstStmt> {
+        let token = self.tokenizer.next()?;
+        match token {
+            Token::Let(..) => self.parse_variable_definition(token),
+            _ => Ok(AstStmt::Expr {
+                expr: Box::new(self.parse_expr_precedence(token, EXPR_PRECEDENCE_NONE)?),
+            }),
         }
     }
 
@@ -56,6 +73,7 @@ impl<'t, 'e> Parser<'t, 'e> {
             Token::StringLiteral(string, span) => AstExpr::StringLiteral { string, span },
             Token::IntLiteral(num, span) => AstExpr::IntLiteral { num, span },
             Token::FloatLiteral(num, span) => AstExpr::FloatLiteral { num, span },
+            Token::Identifier(name, span) => self.parse_variable(name, span)?,
             Token::Plus(..) => self.parse_unary_op(first_token, UnaryOp::Plus)?,
             Token::Minus(..) => self.parse_unary_op(first_token, UnaryOp::Minus)?,
             Token::Bang(..) => self.parse_unary_op(first_token, UnaryOp::LogicalNot)?,
@@ -87,6 +105,13 @@ impl<'t, 'e> Parser<'t, 'e> {
         }
 
         Ok(expr)
+    }
+
+    fn parse_variable(&mut self, name: String, span: Span) -> MyteResult<AstExpr> {
+        Ok(AstExpr::Variable {
+            var: self.symbol_table.unresolved_variable(&name),
+            span,
+        })
     }
 
     fn parse_unary_op(&mut self, op_token: Token, op: UnaryOp) -> MyteResult<AstExpr> {
@@ -145,18 +170,52 @@ impl<'t, 'e> Parser<'t, 'e> {
 
     fn parse_block(&mut self, left_brace: Token) -> MyteResult<AstExpr> {
         let mut nodes = Vec::new();
+
+        self.symbol_table.enter_scope();
+
         while !is_current!(self, RightBrace) {
-            match self.parse_expr() {
+            match self.parse_stmt() {
                 Ok(node) => nodes.push(node),
                 Err(err) => self.error_context.add_error(err),
             }
         }
+
+        self.symbol_table.exit_scope();
 
         let right_brace = self.tokenizer.next()?;
         Ok(AstExpr::Block {
             nodes,
             span: Span::concat(left_brace.span(), right_brace.span()),
         })
+    }
+
+    fn parse_variable_definition(&mut self, start_token: Token) -> MyteResult<AstStmt> {
+        let lvalue = self.parse_pattern()?;
+
+        assert_current!(self, Equals);
+        self.tokenizer.next()?;
+
+        let rvalue = self.parse_expr()?;
+
+        Ok(AstStmt::VariableDefinition {
+            span: Span::concat(start_token.span(), rvalue.span()),
+            lvalue: Box::new(lvalue),
+            rvalue: Box::new(rvalue),
+        })
+    }
+
+    fn parse_pattern(&mut self) -> MyteResult<AstPat> {
+        match self.tokenizer.next()? {
+            Token::Identifier(name, span) => Ok(AstPat::Variable {
+                var: self.symbol_table.add_variable(&name),
+                span,
+            }),
+            token => mkerr(
+                format!("Expected pattern, found {}", token.type_to_string()),
+                token.span(),
+                MyteErrorType::Parser,
+            ),
+        }
     }
 }
 

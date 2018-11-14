@@ -1,3 +1,4 @@
+#[derive(Clone)]
 pub enum Value {
     Unit,
     Bool { bool: bool },

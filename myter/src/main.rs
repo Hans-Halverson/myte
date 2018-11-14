@@ -4,8 +4,11 @@ use std::io::{self, Read, Write};
 use std::path::Path;
 
 use common::error::{self, ErrorContext, MyteError, MyteErrorType};
+use common::ident::SymbolTable;
 use common::source::{FileTable, REPL_FILE_DESCRIPTOR};
+use interpreter::env::Environment;
 use interpreter::evaluate;
+use ir::ir::IrStmt;
 use ir::resolution;
 use lexer::tokenizer;
 use parser::parser::Parser;
@@ -19,7 +22,9 @@ mod parser;
 fn evaluate_file(file_name: &str) {
     let mut file_table = FileTable::new();
     let file_descriptor = file_table.add_file(file_name);
+    let mut symbol_table = SymbolTable::new();
     let mut error_context = ErrorContext::new();
+    let mut env = Environment::new();
 
     let path = Path::new(file_name);
     let mut file = match File::open(&path) {
@@ -49,7 +54,7 @@ fn evaluate_file(file_name: &str) {
 
     let ast = {
         let ast_opt = {
-            let mut parser = Parser::new(&tokens, &mut error_context);
+            let mut parser = Parser::new(&tokens, &mut symbol_table, &mut error_context);
             parser.parse()
         };
 
@@ -67,7 +72,7 @@ fn evaluate_file(file_name: &str) {
         }
     };
 
-    let ir = match resolution::resolve(ast, &mut error_context) {
+    let ir = match resolution::resolve(ast, &mut symbol_table, &mut error_context) {
         Some(ir) => ir,
         None => {
             if let Err(err) = error_context.print_errors(&file_table) {
@@ -78,7 +83,7 @@ fn evaluate_file(file_name: &str) {
         }
     };
 
-    let value = match evaluate::evaluate(ir) {
+    let value = match evaluate::evaluate(ir, &mut env) {
         Ok(value) => value,
         Err(err) => {
             if let Err(err) = error::print_err(&err, &file_table) {
@@ -94,7 +99,9 @@ fn evaluate_file(file_name: &str) {
 
 fn repl() {
     let mut file_table = FileTable::new();
+    let mut symbol_table = SymbolTable::new();
     let mut error_context = ErrorContext::new();
+    let mut env = Environment::new();
 
     let stdin = io::stdin();
     let mut stdout = io::stdout();
@@ -126,6 +133,9 @@ fn repl() {
 
         file_table.set_repl_contents(current_input.clone());
 
+        symbol_table.reset();
+        let old_symbol_table = symbol_table.clone();
+
         let tokens = match tokenizer::tokenize(current_input.as_bytes(), REPL_FILE_DESCRIPTOR) {
             Ok(tokens) => tokens,
             Err(MyteError {
@@ -144,13 +154,14 @@ fn repl() {
                 current_input.clear();
                 current_line = 0;
                 error_context = ErrorContext::new();
+                symbol_table = old_symbol_table;
                 continue;
             }
         };
 
         let ast = {
             let ast_opt = {
-                let mut parser = Parser::new(&tokens, &mut error_context);
+                let mut parser = Parser::new(&tokens, &mut symbol_table, &mut error_context);
                 parser.parse()
             };
 
@@ -166,6 +177,7 @@ fn repl() {
                 current_input.clear();
                 current_line = 0;
                 error_context = ErrorContext::new();
+                symbol_table = old_symbol_table;
                 continue;
             }
 
@@ -175,12 +187,13 @@ fn repl() {
                     current_input.clear();
                     current_line = 0;
                     error_context = ErrorContext::new();
+                    symbol_table = old_symbol_table;
                     continue;
                 }
             }
         };
 
-        let ir = match resolution::resolve(ast, &mut error_context) {
+        let ir = match resolution::resolve(ast, &mut symbol_table, &mut error_context) {
             Some(ir) => ir,
             None => {
                 if let Err(err) = error_context.print_errors(&file_table) {
@@ -190,11 +203,17 @@ fn repl() {
                 current_input.clear();
                 current_line = 0;
                 error_context = ErrorContext::new();
+                symbol_table = old_symbol_table;
                 continue;
             }
         };
 
-        let value = match evaluate::evaluate(ir) {
+        let is_expr = match ir {
+            IrStmt::Expr { .. } => true,
+            _ => false,
+        };
+
+        let value = match evaluate::evaluate(ir, &mut env) {
             Ok(value) => value,
             Err(err) => {
                 if let Err(err) = error::print_err(&err, &file_table) {
@@ -204,15 +223,19 @@ fn repl() {
                 current_input.clear();
                 current_line = 0;
                 error_context = ErrorContext::new();
+                symbol_table = old_symbol_table;
                 continue;
             }
         };
 
-        println!("{}", value.to_string());
+        if is_expr {
+            println!("{}", value.to_string())
+        }
 
         current_input.clear();
         current_line = 0;
         error_context = ErrorContext::new();
+        symbol_table.reset();
     }
 }
 
