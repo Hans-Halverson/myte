@@ -51,6 +51,7 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
         let token = self.tokenizer.next()?;
         match token {
             Token::Let(..) => self.parse_variable_definition(token),
+            Token::If(..) => self.parse_if_stmt(token),
             _ => Ok(AstStmt::Expr {
                 expr: Box::new(self.parse_expr_precedence(token, EXPR_PRECEDENCE_NONE)?),
             }),
@@ -79,7 +80,7 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
             Token::Bang(..) => self.parse_unary_op(first_token, UnaryOp::LogicalNot)?,
             Token::LeftParen(..) => self.parse_parenthesized_expr(first_token)?,
             Token::LeftBrace(..) => self.parse_block(first_token)?,
-
+            Token::If(..) => self.parse_if_expr(first_token)?,
             _ => return Err(unexpected_token(&first_token)),
         };
 
@@ -189,6 +190,23 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
         })
     }
 
+    fn parse_if_expr(&mut self, if_token: Token) -> MyteResult<AstExpr> {
+        let cond = self.parse_expr()?;
+        let conseq = self.parse_expr()?;
+
+        assert_current!(self, Else);
+        self.tokenizer.next()?;
+
+        let altern = self.parse_expr()?;
+
+        Ok(AstExpr::If {
+            span: Span::concat(if_token.span(), altern.span()),
+            cond: Box::new(cond),
+            conseq: Box::new(conseq),
+            altern: Box::new(altern),
+        })
+    }
+
     fn parse_variable_definition(&mut self, start_token: Token) -> MyteResult<AstStmt> {
         let lvalue = self.parse_pattern()?;
 
@@ -202,6 +220,38 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
             lvalue: Box::new(lvalue),
             rvalue: Box::new(rvalue),
         })
+    }
+
+    fn parse_if_stmt(&mut self, if_token: Token) -> MyteResult<AstStmt> {
+        let cond = self.parse_expr()?;
+        let conseq = self.parse_expr()?;
+
+        match self.tokenizer.current() {
+            Ok(Token::Else(..)) => {
+                self.tokenizer.next()?;
+
+                let altern = self.parse_expr()?;
+
+                Ok(AstStmt::Expr {
+                    expr: Box::new(AstExpr::If {
+                        span: Span::concat(if_token.span(), altern.span()),
+                        cond: Box::new(cond),
+                        conseq: Box::new(conseq),
+                        altern: Box::new(altern),
+                    }),
+                })
+            }
+            Ok(_)
+            | Err(MyteError {
+                ty: MyteErrorType::UnexpectedEOF,
+                ..
+            }) => Ok(AstStmt::If {
+                span: Span::concat(if_token.span(), conseq.span()),
+                cond: Box::new(cond),
+                conseq: Box::new(conseq),
+            }),
+            Err(err) => Err(err),
+        }
     }
 
     fn parse_pattern(&mut self) -> MyteResult<AstPat> {

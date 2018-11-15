@@ -8,6 +8,9 @@ macro_rules! token_type {
     (Equals) => {
         "="
     };
+    (Else) => {
+        "else"
+    };
 }
 
 macro_rules! incorrect_token {

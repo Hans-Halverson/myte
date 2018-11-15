@@ -45,6 +45,12 @@ pub enum AstExpr {
         nodes: Vec<AstStmt>,
         span: Span,
     },
+    If {
+        cond: Box<AstExpr>,
+        conseq: Box<AstExpr>,
+        altern: Box<AstExpr>,
+        span: Span,
+    },
 }
 
 #[derive(Debug)]
@@ -55,6 +61,11 @@ pub enum AstStmt {
     VariableDefinition {
         lvalue: Box<AstPat>,
         rvalue: Box<AstExpr>,
+        span: Span,
+    },
+    If {
+        cond: Box<AstExpr>,
+        conseq: Box<AstExpr>,
         span: Span,
     },
 }
@@ -96,6 +107,7 @@ impl AstExpr {
             AstExpr::BinaryOp { span, .. } => span,
             AstExpr::ParenthesizedGroup { span, .. } => span,
             AstExpr::Block { span, .. } => span,
+            AstExpr::If { span, .. } => span,
         }
     }
 }
@@ -105,6 +117,7 @@ impl AstStmt {
         match self {
             AstStmt::Expr { expr } => expr.span(),
             AstStmt::VariableDefinition { span, .. } => span,
+            AstStmt::If { span, .. } => span,
         }
     }
 }

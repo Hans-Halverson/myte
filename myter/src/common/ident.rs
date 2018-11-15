@@ -50,8 +50,8 @@ impl SymbolTable {
 
     pub fn enter_scope(&mut self) {
         let scope = Scope::new(Some(self.current_id));
-        self.scopes.push(scope);
         self.current_id = self.scopes.len();
+        self.scopes.push(scope);
     }
 
     pub fn exit_scope(&mut self) {

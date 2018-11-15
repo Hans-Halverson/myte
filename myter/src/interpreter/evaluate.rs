@@ -4,159 +4,231 @@ use interpreter::env::Environment;
 use interpreter::value::Value;
 use ir::ir::{IrExpr, IrPat, IrStmt};
 
-fn evaluate_expr(ir: IrExpr, env: &mut Environment) -> MyteResult<Value> {
-    match ir {
+fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
+    match *ir {
         IrExpr::UnitLiteral { .. } => Ok(Value::Unit),
         IrExpr::BoolLiteral { bool, .. } => Ok(Value::Bool { bool }),
-        IrExpr::StringLiteral { string, .. } => Ok(Value::String { string }),
+        IrExpr::StringLiteral { ref string, .. } => Ok(Value::String {
+            string: string.clone(),
+        }),
         IrExpr::IntLiteral { num, .. } => Ok(Value::Int { num }),
         IrExpr::FloatLiteral { num, .. } => Ok(Value::Float { num }),
         IrExpr::Variable { var, .. } => Ok(env.lookup(var)),
-        IrExpr::Add { left, right, span } => {
-            match (evaluate_expr(*left, env)?, evaluate_expr(*right, env)?) {
-                (Value::Int { num: left }, Value::Int { num: right }) => {
-                    Ok(Value::Int { num: left + right })
-                }
-                (Value::Float { num: left }, Value::Float { num: right }) => {
-                    Ok(Value::Float { num: left + right })
-                }
-                _ => mk_eval_err(
-                    "PRE-TYPES: Add expects numbers of same type".to_string(),
-                    &span,
-                ),
+        IrExpr::Add {
+            ref left,
+            ref right,
+            span,
+        } => match (
+            evaluate_expr(left.as_ref(), env)?,
+            evaluate_expr(right.as_ref(), env)?,
+        ) {
+            (Value::Int { num: left }, Value::Int { num: right }) => {
+                Ok(Value::Int { num: left + right })
             }
-        }
-        IrExpr::Subtract { left, right, span } => {
-            match (evaluate_expr(*left, env)?, evaluate_expr(*right, env)?) {
-                (Value::Int { num: left }, Value::Int { num: right }) => {
-                    Ok(Value::Int { num: left - right })
-                }
-                (Value::Float { num: left }, Value::Float { num: right }) => {
-                    Ok(Value::Float { num: left - right })
-                }
-                _ => mk_eval_err(
-                    "PRE-TYPES: Subtract expects numbers of same type".to_string(),
-                    &span,
-                ),
+            (Value::Float { num: left }, Value::Float { num: right }) => {
+                Ok(Value::Float { num: left + right })
             }
-        }
-        IrExpr::Multiply { left, right, span } => {
-            match (evaluate_expr(*left, env)?, evaluate_expr(*right, env)?) {
-                (Value::Int { num: left }, Value::Int { num: right }) => {
-                    Ok(Value::Int { num: left * right })
-                }
-                (Value::Float { num: left }, Value::Float { num: right }) => {
-                    Ok(Value::Float { num: left * right })
-                }
-                _ => mk_eval_err(
-                    "PRE-TYPES: Multiply expects numbers of same type".to_string(),
-                    &span,
-                ),
+            _ => mk_eval_err(
+                "PRE-TYPES: Add expects numbers of same type".to_string(),
+                &span,
+            ),
+        },
+        IrExpr::Subtract {
+            ref left,
+            ref right,
+            span,
+        } => match (
+            evaluate_expr(left.as_ref(), env)?,
+            evaluate_expr(right.as_ref(), env)?,
+        ) {
+            (Value::Int { num: left }, Value::Int { num: right }) => {
+                Ok(Value::Int { num: left - right })
             }
-        }
-        IrExpr::Divide { left, right, span } => {
-            match (evaluate_expr(*left, env)?, evaluate_expr(*right, env)?) {
-                (Value::Int { num: left }, Value::Int { num: right }) => {
-                    Ok(Value::Int { num: left / right })
-                }
-                (Value::Float { num: left }, Value::Float { num: right }) => {
-                    Ok(Value::Float { num: left / right })
-                }
-                _ => mk_eval_err(
-                    "PRE-TYPES: Divide expects numbers of same type".to_string(),
-                    &span,
-                ),
+            (Value::Float { num: left }, Value::Float { num: right }) => {
+                Ok(Value::Float { num: left - right })
             }
-        }
-        IrExpr::Exponentiate { left, right, span } => {
-            match (evaluate_expr(*left, env)?, evaluate_expr(*right, env)?) {
-                (Value::Int { num: left }, Value::Int { num: right }) => Ok(Value::Int {
-                    num: i64::pow(left, right as u32),
-                }),
-                (Value::Float { num: left }, Value::Float { num: right }) => Ok(Value::Float {
-                    num: f64::powf(left, right),
-                }),
-                _ => mk_eval_err(
-                    "PRE-TYPES: Exponentiate expects numbers of same type".to_string(),
-                    &span,
-                ),
+            _ => mk_eval_err(
+                "PRE-TYPES: Subtract expects numbers of same type".to_string(),
+                &span,
+            ),
+        },
+        IrExpr::Multiply {
+            ref left,
+            ref right,
+            span,
+        } => match (
+            evaluate_expr(left.as_ref(), env)?,
+            evaluate_expr(right.as_ref(), env)?,
+        ) {
+            (Value::Int { num: left }, Value::Int { num: right }) => {
+                Ok(Value::Int { num: left * right })
             }
-        }
-        IrExpr::Remainder { left, right, span } => {
-            match (evaluate_expr(*left, env)?, evaluate_expr(*right, env)?) {
-                (Value::Int { num: left }, Value::Int { num: right }) => {
-                    Ok(Value::Int { num: left % right })
-                }
-                (Value::Float { num: left }, Value::Float { num: right }) => {
-                    Ok(Value::Float { num: left % right })
-                }
-                _ => mk_eval_err(
-                    "PRE-TYPES: Remainder expects numbers of same type".to_string(),
-                    &span,
-                ),
+            (Value::Float { num: left }, Value::Float { num: right }) => {
+                Ok(Value::Float { num: left * right })
             }
-        }
-        IrExpr::ParenthesizedGroup { node, .. } => evaluate_expr(*node, env),
-        IrExpr::UnaryPlus { node, span } => match evaluate_expr(*node, env)? {
+            _ => mk_eval_err(
+                "PRE-TYPES: Multiply expects numbers of same type".to_string(),
+                &span,
+            ),
+        },
+        IrExpr::Divide {
+            ref left,
+            ref right,
+            span,
+        } => match (
+            evaluate_expr(left.as_ref(), env)?,
+            evaluate_expr(right.as_ref(), env)?,
+        ) {
+            (Value::Int { num: left }, Value::Int { num: right }) => {
+                Ok(Value::Int { num: left / right })
+            }
+            (Value::Float { num: left }, Value::Float { num: right }) => {
+                Ok(Value::Float { num: left / right })
+            }
+            _ => mk_eval_err(
+                "PRE-TYPES: Divide expects numbers of same type".to_string(),
+                &span,
+            ),
+        },
+        IrExpr::Exponentiate {
+            ref left,
+            ref right,
+            span,
+        } => match (
+            evaluate_expr(left.as_ref(), env)?,
+            evaluate_expr(right.as_ref(), env)?,
+        ) {
+            (Value::Int { num: left }, Value::Int { num: right }) => Ok(Value::Int {
+                num: i64::pow(left, right as u32),
+            }),
+            (Value::Float { num: left }, Value::Float { num: right }) => Ok(Value::Float {
+                num: f64::powf(left, right),
+            }),
+            _ => mk_eval_err(
+                "PRE-TYPES: Exponentiate expects numbers of same type".to_string(),
+                &span,
+            ),
+        },
+        IrExpr::Remainder {
+            ref left,
+            ref right,
+            span,
+        } => match (
+            evaluate_expr(left.as_ref(), env)?,
+            evaluate_expr(right.as_ref(), env)?,
+        ) {
+            (Value::Int { num: left }, Value::Int { num: right }) => {
+                Ok(Value::Int { num: left % right })
+            }
+            (Value::Float { num: left }, Value::Float { num: right }) => {
+                Ok(Value::Float { num: left % right })
+            }
+            _ => mk_eval_err(
+                "PRE-TYPES: Remainder expects numbers of same type".to_string(),
+                &span,
+            ),
+        },
+        IrExpr::ParenthesizedGroup { ref node, .. } => evaluate_expr(node.as_ref(), env),
+        IrExpr::UnaryPlus { ref node, span } => match evaluate_expr(node.as_ref(), env)? {
             Value::Int { num } => Ok(Value::Int { num }),
             Value::Float { num } => Ok(Value::Float { num }),
             _ => mk_eval_err("PRE-TYPES: Unary plus expects number".to_string(), &span),
         },
-        IrExpr::UnaryMinus { node, span } => match evaluate_expr(*node, env)? {
+        IrExpr::UnaryMinus { ref node, span } => match evaluate_expr(node.as_ref(), env)? {
             Value::Int { num } => Ok(Value::Int { num: -num }),
             Value::Float { num } => Ok(Value::Float { num: -num }),
             _ => mk_eval_err("PRE-TYPES: Unary minus expects number".to_string(), &span),
         },
-        IrExpr::LogicalNot { node, span } => match evaluate_expr(*node, env)? {
+        IrExpr::LogicalNot { ref node, span } => match evaluate_expr(node.as_ref(), env)? {
             Value::Bool { bool } => Ok(Value::Bool { bool: !bool }),
             _ => mk_eval_err("PRE-TYPES: Logical not expects bool".to_string(), &span),
         },
-        IrExpr::LogicalAnd { left, right, span } => match evaluate_expr(*left, env)? {
+        IrExpr::LogicalAnd {
+            ref left,
+            ref right,
+            span,
+        } => match evaluate_expr(left.as_ref(), env)? {
             Value::Bool { bool: false } => Ok(Value::Bool { bool: false }),
-            Value::Bool { bool: true } => match evaluate_expr(*right, env)? {
+            Value::Bool { bool: true } => match evaluate_expr(right.as_ref(), env)? {
                 Value::Bool { bool } => Ok(Value::Bool { bool }),
                 _ => mk_eval_err("PRE-TYPES: Logical and expects bools".to_string(), &span),
             },
             _ => mk_eval_err("PRE-TYPES: Logical and expects bools".to_string(), &span),
         },
-        IrExpr::LogicalOr { left, right, span } => match evaluate_expr(*left, env)? {
+        IrExpr::LogicalOr {
+            ref left,
+            ref right,
+            span,
+        } => match evaluate_expr(left.as_ref(), env)? {
             Value::Bool { bool: true } => Ok(Value::Bool { bool: true }),
-            Value::Bool { bool: false } => match evaluate_expr(*right, env)? {
+            Value::Bool { bool: false } => match evaluate_expr(right.as_ref(), env)? {
                 Value::Bool { bool } => Ok(Value::Bool { bool }),
                 _ => mk_eval_err("PRE-TYPES: Logical or expects bools".to_string(), &span),
             },
             _ => mk_eval_err("PRE-TYPES: Logical or expects bools".to_string(), &span),
         },
-        IrExpr::Block { nodes, .. } => {
+        IrExpr::Block { ref nodes, .. } => {
             let mut value = Value::Unit;
             for node in nodes {
-                value = evaluate_stmt(node, env)?;
+                value = evaluate_stmt(&node, env)?;
             }
 
             Ok(value)
         }
+        IrExpr::If {
+            ref cond,
+            ref conseq,
+            ref altern,
+            ..
+        } => match evaluate_expr(cond.as_ref(), env)? {
+            Value::Bool { bool: true } => evaluate_expr(conseq.as_ref(), env),
+            Value::Bool { bool: false } => evaluate_expr(altern.as_ref(), env),
+            _ => mk_eval_err(
+                "PRE-TYPES: Condition of if expression must be a bool".to_string(),
+                &cond.span(),
+            ),
+        },
     }
 }
 
-fn evaluate_stmt(ir: IrStmt, env: &mut Environment) -> MyteResult<Value> {
-    match ir {
-        IrStmt::Expr { expr, .. } => evaluate_expr(*expr, env),
-        IrStmt::VariableDefinition { lvalue, rvalue, .. } => {
-            let val = evaluate_expr(*rvalue, env)?;
-            bind_variables(*lvalue, val, env);
+fn evaluate_stmt(ir: &IrStmt, env: &mut Environment) -> MyteResult<Value> {
+    match *ir {
+        IrStmt::Expr { ref expr, .. } => evaluate_expr(expr.as_ref(), env),
+        IrStmt::VariableDefinition {
+            ref lvalue,
+            ref rvalue,
+            ..
+        } => {
+            let val = evaluate_expr(rvalue.as_ref(), env)?;
+            bind_variables((*lvalue).as_ref(), val, env);
             Ok(Value::Unit)
         }
+        IrStmt::If {
+            ref cond,
+            ref conseq,
+            ..
+        } => match evaluate_expr(cond.as_ref(), env)? {
+            Value::Bool { bool: true } => {
+                evaluate_expr(conseq.as_ref(), env)?;
+                Ok(Value::Unit)
+            }
+            Value::Bool { bool: false } => Ok(Value::Unit),
+            _ => mk_eval_err(
+                "PRE-TYPES: Condition of if statement must be a bool".to_string(),
+                &cond.span(),
+            ),
+        },
     }
 }
 
-fn bind_variables(pat: IrPat, expr: Value, env: &mut Environment) {
-    match pat {
+fn bind_variables(pat: &IrPat, expr: Value, env: &mut Environment) {
+    match *pat {
         IrPat::Variable { var, .. } => env.extend(var, expr),
     }
 }
 
 pub fn evaluate(ir: IrStmt, env: &mut Environment) -> MyteResult<Value> {
-    evaluate_stmt(ir, env)
+    evaluate_stmt(&ir, env)
 }
 
 fn mk_eval_err<T>(error: String, span: &Span) -> MyteResult<T> {

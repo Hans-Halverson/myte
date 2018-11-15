@@ -85,6 +85,12 @@ pub enum IrExpr {
         nodes: Vec<IrStmt>,
         span: Span,
     },
+    If {
+        cond: Box<IrExpr>,
+        conseq: Box<IrExpr>,
+        altern: Box<IrExpr>,
+        span: Span,
+    },
 }
 
 pub enum IrStmt {
@@ -96,8 +102,40 @@ pub enum IrStmt {
         rvalue: Box<IrExpr>,
         span: Span,
     },
+    If {
+        cond: Box<IrExpr>,
+        conseq: Box<IrExpr>,
+        span: Span,
+    },
 }
 
 pub enum IrPat {
     Variable { var: VariableID, span: Span },
+}
+
+impl IrExpr {
+    pub fn span(&self) -> &Span {
+        match self {
+            IrExpr::UnitLiteral { span } => span,
+            IrExpr::BoolLiteral { span, .. } => span,
+            IrExpr::StringLiteral { span, .. } => span,
+            IrExpr::IntLiteral { span, .. } => span,
+            IrExpr::FloatLiteral { span, .. } => span,
+            IrExpr::Variable { span, .. } => span,
+            IrExpr::UnaryPlus { span, .. } => span,
+            IrExpr::UnaryMinus { span, .. } => span,
+            IrExpr::LogicalNot { span, .. } => span,
+            IrExpr::Add { span, .. } => span,
+            IrExpr::Subtract { span, .. } => span,
+            IrExpr::Multiply { span, .. } => span,
+            IrExpr::Divide { span, .. } => span,
+            IrExpr::Exponentiate { span, .. } => span,
+            IrExpr::Remainder { span, .. } => span,
+            IrExpr::LogicalAnd { span, .. } => span,
+            IrExpr::LogicalOr { span, .. } => span,
+            IrExpr::ParenthesizedGroup { span, .. } => span,
+            IrExpr::Block { span, .. } => span,
+            IrExpr::If { span, .. } => span,
+        }
+    }
 }

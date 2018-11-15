@@ -40,6 +40,12 @@ impl<'s, 'e> Resolver<'s, 'e> {
                 span,
             }),
             AstExpr::Block { nodes, span } => self.resolve_block(nodes, span),
+            AstExpr::If {
+                cond,
+                conseq,
+                altern,
+                span,
+            } => self.resolve_if_expr(*cond, *conseq, *altern, span),
         }
     }
 
@@ -53,6 +59,7 @@ impl<'s, 'e> Resolver<'s, 'e> {
                 rvalue,
                 span,
             } => self.resolve_variable_definition(*lvalue, *rvalue, span),
+            AstStmt::If { cond, conseq, span } => self.resolve_if_stmt(*cond, *conseq, span),
         }
     }
 
@@ -128,6 +135,21 @@ impl<'s, 'e> Resolver<'s, 'e> {
         })
     }
 
+    fn resolve_if_expr(
+        &mut self,
+        cond: AstExpr,
+        conseq: AstExpr,
+        altern: AstExpr,
+        span: Span,
+    ) -> Option<IrExpr> {
+        Some(IrExpr::If {
+            cond: Box::new(self.resolve_expr(cond)?),
+            conseq: Box::new(self.resolve_expr(conseq)?),
+            altern: Box::new(self.resolve_expr(altern)?),
+            span,
+        })
+    }
+
     fn resolve_variable_definition(
         &mut self,
         lvalue: AstPat,
@@ -140,6 +162,14 @@ impl<'s, 'e> Resolver<'s, 'e> {
         Some(IrStmt::VariableDefinition {
             lvalue: Box::new(lvalue),
             rvalue: Box::new(rvalue),
+            span,
+        })
+    }
+
+    fn resolve_if_stmt(&mut self, cond: AstExpr, conseq: AstExpr, span: Span) -> Option<IrStmt> {
+        Some(IrStmt::If {
+            cond: Box::new(self.resolve_expr(cond)?),
+            conseq: Box::new(self.resolve_expr(conseq)?),
             span,
         })
     }
