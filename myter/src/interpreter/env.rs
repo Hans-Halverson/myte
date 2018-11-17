@@ -14,15 +14,26 @@ impl Environment {
         }
     }
 
-    pub fn extend(&mut self, var: VariableID, val: Value) {
+    pub fn extend(&mut self, var: VariableID, val: &Value) {
         let last_idx = self.variables.len() - 1;
-        self.variables[last_idx].insert(var, val);
+        self.variables[last_idx].insert(var, val.clone());
     }
 
     pub fn lookup(&self, var: VariableID) -> Value {
         for variables in self.variables.iter().rev() {
             if let Some(val) = variables.get(&var) {
                 return val.clone();
+            }
+        }
+
+        panic!("Variable not found in environment".to_string())
+    }
+
+    pub fn reassign(&mut self, var: VariableID, val: &Value) {
+        for variables in self.variables.iter_mut().rev() {
+            if variables.contains_key(&var) {
+                variables.insert(var, val.clone());
+                return;
             }
         }
 

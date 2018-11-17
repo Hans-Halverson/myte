@@ -49,6 +49,7 @@ impl<'s, 'e> Resolver<'s, 'e> {
             AstExpr::Application { func, args, span } => {
                 self.resolve_application(*func, args, span)
             }
+            AstExpr::Assignment { var, expr, span } => self.resolve_assignment(var, *expr, span),
         }
     }
 
@@ -182,6 +183,31 @@ impl<'s, 'e> Resolver<'s, 'e> {
         Some(IrExpr::Application {
             func: Box::new(self.resolve_expr(func)?),
             args: ir_args.into_iter().flatten().collect::<Vec<IrExpr>>(),
+            span,
+        })
+    }
+
+    fn resolve_assignment(
+        &mut self,
+        var: UnresolvedVariable,
+        expr: AstExpr,
+        span: Span,
+    ) -> Option<IrExpr> {
+        let var = match self.symbol_table.resolve_variable(&var) {
+            Some(var_id) => var_id,
+            None => {
+                self.error_context.add_error(MyteError::new(
+                    format!("Unkown variable {}", var.name),
+                    &span,
+                    MyteErrorType::Resolve,
+                ));
+                return None;
+            }
+        };
+
+        Some(IrExpr::Assignment {
+            var,
+            expr: Box::new(self.resolve_expr(expr)?),
             span,
         })
     }

@@ -56,6 +56,11 @@ pub enum AstExpr {
         args: Vec<AstExpr>,
         span: Span,
     },
+    Assignment {
+        var: UnresolvedVariable,
+        expr: Box<AstExpr>,
+        span: Span,
+    },
 }
 
 #[derive(Debug)]
@@ -126,6 +131,7 @@ impl AstExpr {
             AstExpr::Block { span, .. } => span,
             AstExpr::If { span, .. } => span,
             AstExpr::Application { span, .. } => span,
+            AstExpr::Assignment { span, .. } => span,
         }
     }
 }

@@ -351,7 +351,7 @@ fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
 
                 for (param, arg) in params.iter().zip(args) {
                     let arg_value = evaluate_expr(arg, env)?;
-                    env.extend(*param, arg_value);
+                    env.extend(*param, &arg_value);
                 }
 
                 let return_value = evaluate_expr(body.as_ref(), env)?;
@@ -365,6 +365,11 @@ fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
                 &span,
             ),
         },
+        IrExpr::Assignment { var, ref expr, .. } => {
+            let value = evaluate_expr(expr.as_ref(), env)?;
+            env.reassign(var, &value);
+            Ok(value)
+        }
     }
 }
 
@@ -377,7 +382,7 @@ fn evaluate_stmt(ir: &IrStmt, env: &mut Environment) -> MyteResult<Value> {
             ..
         } => {
             let val = evaluate_expr(rvalue.as_ref(), env)?;
-            bind_variables((*lvalue).as_ref(), val, env);
+            bind_variables((*lvalue).as_ref(), &val, env);
             Ok(Value::Unit)
         }
         IrStmt::FunctionDefinition {
@@ -388,7 +393,7 @@ fn evaluate_stmt(ir: &IrStmt, env: &mut Environment) -> MyteResult<Value> {
         } => {
             env.extend(
                 name,
-                Value::Closure {
+                &Value::Closure {
                     params: params.clone(),
                     body: body.clone(),
                 },
@@ -413,7 +418,7 @@ fn evaluate_stmt(ir: &IrStmt, env: &mut Environment) -> MyteResult<Value> {
     }
 }
 
-fn bind_variables(pat: &IrPat, val: Value, env: &mut Environment) {
+fn bind_variables(pat: &IrPat, val: &Value, env: &mut Environment) {
     match *pat {
         IrPat::Variable { var, .. } => env.extend(var, val),
     }

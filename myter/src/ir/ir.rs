@@ -127,6 +127,11 @@ pub enum IrExpr {
         args: Vec<IrExpr>,
         span: Span,
     },
+    Assignment {
+        var: VariableID,
+        expr: Box<IrExpr>,
+        span: Span,
+    },
 }
 
 #[derive(Clone)]
@@ -187,6 +192,7 @@ impl IrExpr {
             IrExpr::Block { span, .. } => span,
             IrExpr::If { span, .. } => span,
             IrExpr::Application { span, .. } => span,
+            IrExpr::Assignment { span, .. } => span,
         }
     }
 }

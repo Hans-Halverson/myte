@@ -113,6 +113,7 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
                     self.parse_binary_op(expr, BinaryOp::GreaterThanOrEqual)?
                 }
                 Token::LeftParen(..) => self.parse_application(expr)?,
+                Token::Equals(..) => self.parse_assignment(expr)?,
                 _ => return Err(unexpected_token(&current_token)),
             }
         }
@@ -191,6 +192,28 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
             func: Box::new(left_expr),
             args,
             span,
+        })
+    }
+
+    fn parse_assignment(&mut self, lvalue: AstExpr) -> MyteResult<AstExpr> {
+        let (var, var_span) = match lvalue {
+            AstExpr::Variable { var, span } => (var, span),
+            _ => {
+                return mkerr(
+                    "Left side of assignment must be variable".to_string(),
+                    lvalue.span(),
+                    MyteErrorType::Parser,
+                )
+            }
+        };
+
+        let next_token = self.tokenizer.next()?;
+        let expr = self.parse_expr_precedence(next_token, EXPR_PRECEDENCE_ASSIGNMENT)?;
+
+        Ok(AstExpr::Assignment {
+            span: Span::concat(&var_span, expr.span()),
+            var,
+            expr: Box::new(expr),
         })
     }
 
@@ -355,6 +378,12 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
                 var: self.symbol_table.add_variable(&name),
                 span,
             }),
+            Token::LeftParen(..) => {
+                let pat = self.parse_pattern()?;
+                assert_current!(self, RightParen);
+                self.tokenizer.next()?;
+                Ok(pat)
+            }
             token => mkerr(
                 format!("Expected pattern, found {}", token.type_to_string()),
                 token.span(),
@@ -385,15 +414,16 @@ fn unexpected_token(token: &Token) -> MyteError {
 ///////////////////////////////////////////////////////////////////////////////
 
 const EXPR_PRECEDENCE_NONE: u32 = 0;
-const EXPR_PRECEDENCE_LOGICAL_OR: u32 = 1;
-const EXPR_PRECEDENCE_LOGICAL_AND: u32 = 2;
-const EXPR_PRECEDENCE_LOGICAL_NOT: u32 = 3;
-const EXPR_PRECEDENCE_COMPARISON: u32 = 4;
-const EXPR_PRECEDENCE_ADD: u32 = 5;
-const EXPR_PRECEDENCE_MULTIPLY: u32 = 6;
-const EXPR_PRECEDENCE_EXPONENTIATE: u32 = 7;
-const EXPR_PRECEDENCE_NUMERIC_PREFIX: u32 = 8;
-const EXPR_APPLICATION: u32 = 9;
+const EXPR_PRECEDENCE_ASSIGNMENT: u32 = 1;
+const EXPR_PRECEDENCE_LOGICAL_OR: u32 = 2;
+const EXPR_PRECEDENCE_LOGICAL_AND: u32 = 3;
+const EXPR_PRECEDENCE_LOGICAL_NOT: u32 = 4;
+const EXPR_PRECEDENCE_COMPARISON: u32 = 5;
+const EXPR_PRECEDENCE_ADD: u32 = 6;
+const EXPR_PRECEDENCE_MULTIPLY: u32 = 7;
+const EXPR_PRECEDENCE_EXPONENTIATE: u32 = 8;
+const EXPR_PRECEDENCE_NUMERIC_PREFIX: u32 = 9;
+const EXPR_PRECEDENCE_APPLICATION: u32 = 10;
 
 fn expr_precedence(token: &Token) -> u32 {
     match token {
@@ -402,7 +432,8 @@ fn expr_precedence(token: &Token) -> u32 {
         Token::Plus(..) | Token::Minus(..) => EXPR_PRECEDENCE_ADD,
         Token::Asterisk(..) | Token::ForwardSlash(..) => EXPR_PRECEDENCE_MULTIPLY,
         Token::Caret(..) => EXPR_PRECEDENCE_EXPONENTIATE,
-        Token::LeftParen(..) => EXPR_APPLICATION,
+        Token::LeftParen(..) => EXPR_PRECEDENCE_APPLICATION,
+        Token::Equals(..) => EXPR_PRECEDENCE_ASSIGNMENT,
         Token::DoubleEquals(..)
         | Token::NotEqual(..)
         | Token::LessThan(..)
