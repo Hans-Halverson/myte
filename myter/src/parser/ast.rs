@@ -51,6 +51,11 @@ pub enum AstExpr {
         altern: Box<AstExpr>,
         span: Span,
     },
+    Application {
+        func: Box<AstExpr>,
+        args: Vec<AstExpr>,
+        span: Span,
+    },
 }
 
 #[derive(Debug)]
@@ -61,6 +66,12 @@ pub enum AstStmt {
     VariableDefinition {
         lvalue: Box<AstPat>,
         rvalue: Box<AstExpr>,
+        span: Span,
+    },
+    FunctionDefinition {
+        name: VariableID,
+        params: Vec<VariableID>,
+        body: Box<AstExpr>,
         span: Span,
     },
     If {
@@ -108,6 +119,7 @@ impl AstExpr {
             AstExpr::ParenthesizedGroup { span, .. } => span,
             AstExpr::Block { span, .. } => span,
             AstExpr::If { span, .. } => span,
+            AstExpr::Application { span, .. } => span,
         }
     }
 }
@@ -117,6 +129,7 @@ impl AstStmt {
         match self {
             AstStmt::Expr { expr } => expr.span(),
             AstStmt::VariableDefinition { span, .. } => span,
+            AstStmt::FunctionDefinition { span, .. } => span,
             AstStmt::If { span, .. } => span,
         }
     }

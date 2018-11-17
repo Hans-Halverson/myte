@@ -1,5 +1,5 @@
 use common::error::{ErrorContext, MyteError, MyteErrorType};
-use common::ident::{SymbolTable, UnresolvedVariable};
+use common::ident::{SymbolTable, UnresolvedVariable, VariableID};
 use common::span::Span;
 use ir::ir::{IrExpr, IrPat, IrStmt};
 use parser::ast::{AstExpr, AstPat, AstStmt, BinaryOp, UnaryOp};
@@ -46,6 +46,9 @@ impl<'s, 'e> Resolver<'s, 'e> {
                 altern,
                 span,
             } => self.resolve_if_expr(*cond, *conseq, *altern, span),
+            AstExpr::Application { func, args, span } => {
+                self.resolve_application(*func, args, span)
+            }
         }
     }
 
@@ -59,6 +62,12 @@ impl<'s, 'e> Resolver<'s, 'e> {
                 rvalue,
                 span,
             } => self.resolve_variable_definition(*lvalue, *rvalue, span),
+            AstStmt::FunctionDefinition {
+                name,
+                params,
+                body,
+                span,
+            } => self.resolve_function_definition(name, params, *body, span),
             AstStmt::If { cond, conseq, span } => self.resolve_if_stmt(*cond, *conseq, span),
         }
     }
@@ -150,6 +159,27 @@ impl<'s, 'e> Resolver<'s, 'e> {
         })
     }
 
+    fn resolve_application(
+        &mut self,
+        func: AstExpr,
+        args: Vec<AstExpr>,
+        span: Span,
+    ) -> Option<IrExpr> {
+        let ir_args = args
+            .into_iter()
+            .map(|arg| self.resolve_expr(arg))
+            .collect::<Vec<Option<IrExpr>>>();
+        if ir_args.iter().any(|arg| arg.is_none()) {
+            return None;
+        }
+
+        Some(IrExpr::Application {
+            func: Box::new(self.resolve_expr(func)?),
+            args: ir_args.into_iter().flatten().collect::<Vec<IrExpr>>(),
+            span,
+        })
+    }
+
     fn resolve_variable_definition(
         &mut self,
         lvalue: AstPat,
@@ -162,6 +192,23 @@ impl<'s, 'e> Resolver<'s, 'e> {
         Some(IrStmt::VariableDefinition {
             lvalue: Box::new(lvalue),
             rvalue: Box::new(rvalue),
+            span,
+        })
+    }
+
+    fn resolve_function_definition(
+        &mut self,
+        name: VariableID,
+        params: Vec<VariableID>,
+        body: AstExpr,
+        span: Span,
+    ) -> Option<IrStmt> {
+        let body = self.resolve_expr(body)?;
+
+        Some(IrStmt::FunctionDefinition {
+            name,
+            params,
+            body: Box::new(body),
             span,
         })
     }

@@ -73,8 +73,8 @@ impl ErrorContext {
         }
 
         all_errors.sort_unstable_by(|err1, err2| {
-            let file1 = file_table.get_file(err1.span.file_descriptor);
-            let file2 = file_table.get_file(err2.span.file_descriptor);
+            let file1 = file_table.get_file_name(err1.span.file_descriptor);
+            let file2 = file_table.get_file_name(err2.span.file_descriptor);
 
             let file_ord = file1.cmp(&file2);
             if file_ord != Ordering::Equal {
@@ -295,7 +295,7 @@ pub fn print_err(err: &MyteError, file_table: &FileTable) -> io::Result<()> {
         print_summary_line(err, None);
         Box::new(ErrorReader::<&[u8]>::from_repl(&repl_contents))
     } else {
-        let file_name = file_table.get_file(span.file_descriptor);
+        let file_name = file_table.get_file_name(span.file_descriptor);
         print_summary_line(err, Some(&file_name));
         Box::new(ErrorReader::<File>::from_file(file_name)?)
     };

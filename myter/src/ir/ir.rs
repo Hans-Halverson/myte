@@ -1,6 +1,7 @@
 use common::ident::VariableID;
 use common::span::Span;
 
+#[derive(Clone)]
 pub enum IrExpr {
     UnitLiteral {
         span: Span,
@@ -91,8 +92,14 @@ pub enum IrExpr {
         altern: Box<IrExpr>,
         span: Span,
     },
+    Application {
+        func: Box<IrExpr>,
+        args: Vec<IrExpr>,
+        span: Span,
+    },
 }
 
+#[derive(Clone)]
 pub enum IrStmt {
     Expr {
         expr: Box<IrExpr>,
@@ -102,6 +109,12 @@ pub enum IrStmt {
         rvalue: Box<IrExpr>,
         span: Span,
     },
+    FunctionDefinition {
+        name: VariableID,
+        params: Vec<VariableID>,
+        body: Box<IrExpr>,
+        span: Span,
+    },
     If {
         cond: Box<IrExpr>,
         conseq: Box<IrExpr>,
@@ -109,6 +122,7 @@ pub enum IrStmt {
     },
 }
 
+#[derive(Clone)]
 pub enum IrPat {
     Variable { var: VariableID, span: Span },
 }
@@ -136,6 +150,7 @@ impl IrExpr {
             IrExpr::ParenthesizedGroup { span, .. } => span,
             IrExpr::Block { span, .. } => span,
             IrExpr::If { span, .. } => span,
+            IrExpr::Application { span, .. } => span,
         }
     }
 }

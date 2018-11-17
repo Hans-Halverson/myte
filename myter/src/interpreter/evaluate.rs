@@ -188,6 +188,31 @@ fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
                 &cond.span(),
             ),
         },
+        IrExpr::Application {
+            ref func,
+            ref args,
+            span,
+        } => match evaluate_expr(func.as_ref(), env)? {
+            Value::Closure { params, body } => {
+                if params.len() != args.len() {
+                    return mk_eval_err(
+                        "PRE-TYPES: Incorrect number of arguments in application".to_string(),
+                        &span,
+                    );
+                }
+
+                for (param, arg) in params.iter().zip(args) {
+                    let arg_value = evaluate_expr(arg, env)?;
+                    env.extend(*param, arg_value);
+                }
+
+                Ok(evaluate_expr(body.as_ref(), env)?)
+            }
+            _ => mk_eval_err(
+                "PRE-TYPES: Left side of application must be a closure".to_string(),
+                &span,
+            ),
+        },
     }
 }
 
@@ -201,6 +226,21 @@ fn evaluate_stmt(ir: &IrStmt, env: &mut Environment) -> MyteResult<Value> {
         } => {
             let val = evaluate_expr(rvalue.as_ref(), env)?;
             bind_variables((*lvalue).as_ref(), val, env);
+            Ok(Value::Unit)
+        }
+        IrStmt::FunctionDefinition {
+            name,
+            ref params,
+            ref body,
+            ..
+        } => {
+            env.extend(
+                name,
+                Value::Closure {
+                    params: params.clone(),
+                    body: body.clone(),
+                },
+            );
             Ok(Value::Unit)
         }
         IrStmt::If {
@@ -221,9 +261,9 @@ fn evaluate_stmt(ir: &IrStmt, env: &mut Environment) -> MyteResult<Value> {
     }
 }
 
-fn bind_variables(pat: &IrPat, expr: Value, env: &mut Environment) {
+fn bind_variables(pat: &IrPat, val: Value, env: &mut Environment) {
     match *pat {
-        IrPat::Variable { var, .. } => env.extend(var, expr),
+        IrPat::Variable { var, .. } => env.extend(var, val),
     }
 }
 

@@ -1,10 +1,25 @@
+use common::ident::VariableID;
+use ir::ir::IrExpr;
+
 #[derive(Clone)]
 pub enum Value {
     Unit,
-    Bool { bool: bool },
-    String { string: String },
-    Int { num: i64 },
-    Float { num: f64 },
+    Bool {
+        bool: bool,
+    },
+    String {
+        string: String,
+    },
+    Int {
+        num: i64,
+    },
+    Float {
+        num: f64,
+    },
+    Closure {
+        params: Vec<VariableID>,
+        body: Box<IrExpr>,
+    },
 }
 
 impl ToString for Value {
@@ -15,6 +30,7 @@ impl ToString for Value {
             Value::String { string } => string.to_string(),
             Value::Int { num } => num.to_string(),
             Value::Float { num } => num.to_string(),
+            Value::Closure { .. } => "<function>".to_string(),
         }
     }
 }

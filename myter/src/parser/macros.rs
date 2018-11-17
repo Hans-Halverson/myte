@@ -2,6 +2,9 @@ macro_rules! token_type {
     (Identifier) => {
         "identifier"
     };
+    (LeftParen) => {
+        "("
+    };
     (RightParen) => {
         ")"
     };
@@ -17,7 +20,7 @@ macro_rules! incorrect_token {
     ($expected:ident, $actual:ident) => {
         MyteError::new(
             format!(
-                "{} expected, but {} found",
+                "Expected {}, but found {}",
                 token_type!($expected),
                 $actual.type_to_string(),
             ),

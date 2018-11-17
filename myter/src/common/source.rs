@@ -18,7 +18,11 @@ impl FileTable {
         return self.files.len() as u32;
     }
 
-    pub fn get_file(&self, file_descriptor: u32) -> String {
+    pub fn get_file_name(&self, file_descriptor: u32) -> String {
+        if file_descriptor == REPL_FILE_DESCRIPTOR {
+            return "REPL".to_string();
+        }
+
         self.files[(file_descriptor - 1) as usize].clone()
     }
 

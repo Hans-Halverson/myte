@@ -51,6 +51,7 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
         let token = self.tokenizer.next()?;
         match token {
             Token::Let(..) => self.parse_variable_definition(token),
+            Token::Def(..) => self.parse_function_definition(token),
             Token::If(..) => self.parse_if_stmt(token),
             _ => Ok(AstStmt::Expr {
                 expr: Box::new(self.parse_expr_precedence(token, EXPR_PRECEDENCE_NONE)?),
@@ -101,6 +102,7 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
                 Token::Percent(..) => self.parse_binary_op(expr, BinaryOp::Remainder)?,
                 Token::DoubleAmpersand(..) => self.parse_binary_op(expr, BinaryOp::LogicalAnd)?,
                 Token::DoublePipe(..) => self.parse_binary_op(expr, BinaryOp::LogicalOr)?,
+                Token::LeftParen(..) => self.parse_application(expr)?,
                 _ => return Err(unexpected_token(&current_token)),
             }
         }
@@ -147,6 +149,32 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
             span: Span::concat(left_expr.span(), right_expr.span()),
             left: Box::new(left_expr),
             right: Box::new(right_expr),
+        })
+    }
+
+    fn parse_application(&mut self, left_expr: AstExpr) -> MyteResult<AstExpr> {
+        let mut args = Vec::new();
+
+        while !is_current!(self, RightParen) {
+            args.push(self.parse_expr()?);
+
+            match self.tokenizer.current()? {
+                Token::RightParen(..) => break,
+                Token::Comma(..) => {
+                    self.tokenizer.next()?;
+                    continue;
+                }
+                other_token => return Err(unexpected_token(&other_token)),
+            }
+        }
+
+        let span = Span::concat(left_expr.span(), self.tokenizer.current()?.span());
+        self.tokenizer.next()?;
+
+        Ok(AstExpr::Application {
+            func: Box::new(left_expr),
+            args,
+            span,
         })
     }
 
@@ -219,6 +247,57 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
             span: Span::concat(start_token.span(), rvalue.span()),
             lvalue: Box::new(lvalue),
             rvalue: Box::new(rvalue),
+        })
+    }
+
+    fn parse_function_definition(&mut self, def_token: Token) -> MyteResult<AstStmt> {
+        let ident_token = self.tokenizer.next()?;
+        let name_id = if let Token::Identifier(name, ..) = ident_token {
+            self.symbol_table.add_variable(&name)
+        } else {
+            return Err(incorrect_token!(Identifier, ident_token));
+        };
+
+        let mut param_ids = Vec::new();
+        self.symbol_table.enter_scope();
+
+        assert_current!(self, LeftParen);
+        self.tokenizer.next()?;
+
+        while !is_current!(self, RightParen) {
+            let param_token = self.tokenizer.next()?;
+            let param_id = if let Token::Identifier(name, ..) = param_token {
+                self.symbol_table.add_variable(&name)
+            } else {
+                return Err(incorrect_token!(Identifier, param_token));
+            };
+
+            param_ids.push(param_id);
+
+            match self.tokenizer.current()? {
+                Token::RightParen(..) => break,
+                Token::Comma(..) => {
+                    self.tokenizer.next()?;
+                    continue;
+                }
+                other_token => return Err(unexpected_token(&other_token)),
+            }
+        }
+
+        self.tokenizer.next()?;
+
+        let current = self.tokenizer.next()?;
+        let body = match current {
+            Token::Equals(..) => self.parse_expr()?,
+            Token::LeftBrace(..) => self.parse_block(current)?,
+            other_token => return Err(unexpected_token(&other_token)),
+        };
+
+        Ok(AstStmt::FunctionDefinition {
+            span: Span::concat(def_token.span(), body.span()),
+            name: name_id,
+            params: param_ids,
+            body: Box::new(body),
         })
     }
 
@@ -297,6 +376,7 @@ const EXPR_PRECEDENCE_ADD: u32 = 4;
 const EXPR_PRECEDENCE_MULTIPLY: u32 = 5;
 const EXPR_PRECEDENCE_EXPONENTIATE: u32 = 6;
 const EXPR_PRECEDENCE_NUMERIC_PREFIX: u32 = 7;
+const EXPR_APPLICATION: u32 = 8;
 
 fn expr_precedence(token: &Token) -> u32 {
     match token {
@@ -305,6 +385,7 @@ fn expr_precedence(token: &Token) -> u32 {
         Token::Plus(..) | Token::Minus(..) => EXPR_PRECEDENCE_ADD,
         Token::Asterisk(..) | Token::ForwardSlash(..) => EXPR_PRECEDENCE_MULTIPLY,
         Token::Caret(..) => EXPR_PRECEDENCE_EXPONENTIATE,
+        Token::LeftParen(..) => EXPR_APPLICATION,
         _ => EXPR_PRECEDENCE_NONE,
     }
 }

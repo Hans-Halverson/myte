@@ -61,9 +61,17 @@ impl SymbolTable {
 
     pub fn add_variable(&mut self, name: &str) -> VariableID {
         let var_id = self.variables.len();
+
+        self.variables.insert(
+            var_id,
+            Identifier {
+                name: name.to_string(),
+            },
+        );
         self.scopes[self.current_id]
             .variables
             .insert(name.to_string(), var_id);
+
         var_id
     }
 
