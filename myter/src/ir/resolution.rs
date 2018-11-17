@@ -116,6 +116,12 @@ impl<'s, 'e> Resolver<'s, 'e> {
             BinaryOp::Remainder => Some(IrExpr::Remainder { left, right, span }),
             BinaryOp::LogicalAnd => Some(IrExpr::LogicalAnd { left, right, span }),
             BinaryOp::LogicalOr => Some(IrExpr::LogicalOr { left, right, span }),
+            BinaryOp::Equals => Some(IrExpr::Equals { left, right, span }),
+            BinaryOp::NotEqual => Some(IrExpr::NotEqual { left, right, span }),
+            BinaryOp::LessThan => Some(IrExpr::LessThan { left, right, span }),
+            BinaryOp::LessThanOrEqual => Some(IrExpr::LessThanOrEqual { left, right, span }),
+            BinaryOp::GreaterThan => Some(IrExpr::GreaterThan { left, right, span }),
+            BinaryOp::GreaterThanOrEqual => Some(IrExpr::GreaterThanOrEqual { left, right, span }),
         }
     }
 

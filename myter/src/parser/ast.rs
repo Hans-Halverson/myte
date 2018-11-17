@@ -103,6 +103,12 @@ pub enum BinaryOp {
     Remainder,
     LogicalAnd,
     LogicalOr,
+    Equals,
+    NotEqual,
+    LessThan,
+    LessThanOrEqual,
+    GreaterThan,
+    GreaterThanOrEqual,
 }
 
 impl AstExpr {

@@ -167,11 +167,157 @@ fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
             },
             _ => mk_eval_err("PRE-TYPES: Logical or expects bools".to_string(), &span),
         },
+        IrExpr::Equals {
+            ref left,
+            ref right,
+            ref span,
+        } => match (
+            evaluate_expr(left.as_ref(), env)?,
+            evaluate_expr(right.as_ref(), env)?,
+        ) {
+            (Value::Unit, Value::Unit) => Ok(Value::Bool { bool: true }),
+            (Value::Bool { bool: left }, Value::Bool { bool: right }) => Ok(Value::Bool {
+                bool: left == right,
+            }),
+            (Value::String { string: left }, Value::String { string: right }) => Ok(Value::Bool {
+                bool: left == right,
+            }),
+            (Value::Int { num: left }, Value::Int { num: right }) => Ok(Value::Bool {
+                bool: left == right,
+            }),
+            (Value::Float { num: left }, Value::Float { num: right }) => Ok(Value::Bool {
+                bool: left == right,
+            }),
+            (Value::Closure { .. }, Value::Closure { .. }) => Ok(Value::Bool { bool: false }),
+            _ => mk_eval_err(
+                "PRE-TYPES: Comparison expects values of same type".to_string(),
+                span,
+            ),
+        },
+        IrExpr::NotEqual {
+            ref left,
+            ref right,
+            ref span,
+        } => match (
+            evaluate_expr(left.as_ref(), env)?,
+            evaluate_expr(right.as_ref(), env)?,
+        ) {
+            (Value::Unit, Value::Unit) => Ok(Value::Bool { bool: false }),
+            (Value::Bool { bool: left }, Value::Bool { bool: right }) => Ok(Value::Bool {
+                bool: left != right,
+            }),
+            (Value::String { string: left }, Value::String { string: right }) => Ok(Value::Bool {
+                bool: left != right,
+            }),
+            (Value::Int { num: left }, Value::Int { num: right }) => Ok(Value::Bool {
+                bool: left != right,
+            }),
+            (Value::Float { num: left }, Value::Float { num: right }) => Ok(Value::Bool {
+                bool: left != right,
+            }),
+            (Value::Closure { .. }, Value::Closure { .. }) => Ok(Value::Bool { bool: true }),
+            _ => mk_eval_err(
+                "PRE-TYPES: Comparison expects values of same type".to_string(),
+                span,
+            ),
+        },
+        IrExpr::LessThan {
+            ref left,
+            ref right,
+            ref span,
+        } => match (
+            evaluate_expr(left.as_ref(), env)?,
+            evaluate_expr(right.as_ref(), env)?,
+        ) {
+            (Value::String { string: left }, Value::String { string: right }) => {
+                Ok(Value::Bool { bool: left < right })
+            }
+            (Value::Int { num: left }, Value::Int { num: right }) => {
+                Ok(Value::Bool { bool: left < right })
+            }
+            (Value::Float { num: left }, Value::Float { num: right }) => {
+                Ok(Value::Bool { bool: left < right })
+            }
+            _ => mk_eval_err(
+                "PRE-TYPES: Comparison expects comparable values of same type".to_string(),
+                span,
+            ),
+        },
+        IrExpr::LessThanOrEqual {
+            ref left,
+            ref right,
+            ref span,
+        } => match (
+            evaluate_expr(left.as_ref(), env)?,
+            evaluate_expr(right.as_ref(), env)?,
+        ) {
+            (Value::String { string: left }, Value::String { string: right }) => Ok(Value::Bool {
+                bool: left <= right,
+            }),
+            (Value::Int { num: left }, Value::Int { num: right }) => Ok(Value::Bool {
+                bool: left <= right,
+            }),
+            (Value::Float { num: left }, Value::Float { num: right }) => Ok(Value::Bool {
+                bool: left <= right,
+            }),
+            _ => mk_eval_err(
+                "PRE-TYPES: Comparison expects comparable values of same type".to_string(),
+                span,
+            ),
+        },
+        IrExpr::GreaterThan {
+            ref left,
+            ref right,
+            ref span,
+        } => match (
+            evaluate_expr(left.as_ref(), env)?,
+            evaluate_expr(right.as_ref(), env)?,
+        ) {
+            (Value::String { string: left }, Value::String { string: right }) => {
+                Ok(Value::Bool { bool: left > right })
+            }
+            (Value::Int { num: left }, Value::Int { num: right }) => {
+                Ok(Value::Bool { bool: left > right })
+            }
+            (Value::Float { num: left }, Value::Float { num: right }) => {
+                Ok(Value::Bool { bool: left > right })
+            }
+            _ => mk_eval_err(
+                "PRE-TYPES: Comparison expects comparable values of same type".to_string(),
+                span,
+            ),
+        },
+        IrExpr::GreaterThanOrEqual {
+            ref left,
+            ref right,
+            ref span,
+        } => match (
+            evaluate_expr(left.as_ref(), env)?,
+            evaluate_expr(right.as_ref(), env)?,
+        ) {
+            (Value::String { string: left }, Value::String { string: right }) => Ok(Value::Bool {
+                bool: left >= right,
+            }),
+            (Value::Int { num: left }, Value::Int { num: right }) => Ok(Value::Bool {
+                bool: left >= right,
+            }),
+            (Value::Float { num: left }, Value::Float { num: right }) => Ok(Value::Bool {
+                bool: left >= right,
+            }),
+            _ => mk_eval_err(
+                "PRE-TYPES: Comparison expects comparable values of same type".to_string(),
+                span,
+            ),
+        },
         IrExpr::Block { ref nodes, .. } => {
+            env.enter_scope();
+
             let mut value = Value::Unit;
             for node in nodes {
                 value = evaluate_stmt(&node, env)?;
             }
+
+            env.exit_scope();
 
             Ok(value)
         }
@@ -201,12 +347,18 @@ fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
                     );
                 }
 
+                env.enter_scope();
+
                 for (param, arg) in params.iter().zip(args) {
                     let arg_value = evaluate_expr(arg, env)?;
                     env.extend(*param, arg_value);
                 }
 
-                Ok(evaluate_expr(body.as_ref(), env)?)
+                let return_value = evaluate_expr(body.as_ref(), env)?;
+
+                env.exit_scope();
+
+                Ok(return_value)
             }
             _ => mk_eval_err(
                 "PRE-TYPES: Left side of application must be a closure".to_string(),

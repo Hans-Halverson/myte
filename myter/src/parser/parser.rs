@@ -102,6 +102,16 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
                 Token::Percent(..) => self.parse_binary_op(expr, BinaryOp::Remainder)?,
                 Token::DoubleAmpersand(..) => self.parse_binary_op(expr, BinaryOp::LogicalAnd)?,
                 Token::DoublePipe(..) => self.parse_binary_op(expr, BinaryOp::LogicalOr)?,
+                Token::DoubleEquals(..) => self.parse_binary_op(expr, BinaryOp::Equals)?,
+                Token::NotEqual(..) => self.parse_binary_op(expr, BinaryOp::NotEqual)?,
+                Token::LessThan(..) => self.parse_binary_op(expr, BinaryOp::LessThan)?,
+                Token::LessThanOrEqual(..) => {
+                    self.parse_binary_op(expr, BinaryOp::LessThanOrEqual)?
+                }
+                Token::GreaterThan(..) => self.parse_binary_op(expr, BinaryOp::GreaterThan)?,
+                Token::GreaterThanOrEqual(..) => {
+                    self.parse_binary_op(expr, BinaryOp::GreaterThanOrEqual)?
+                }
                 Token::LeftParen(..) => self.parse_application(expr)?,
                 _ => return Err(unexpected_token(&current_token)),
             }
@@ -141,6 +151,12 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
             BinaryOp::Remainder => EXPR_PRECEDENCE_MULTIPLY,
             BinaryOp::LogicalAnd => EXPR_PRECEDENCE_LOGICAL_AND,
             BinaryOp::LogicalOr => EXPR_PRECEDENCE_LOGICAL_OR,
+            BinaryOp::Equals
+            | BinaryOp::NotEqual
+            | BinaryOp::LessThan
+            | BinaryOp::LessThanOrEqual
+            | BinaryOp::GreaterThan
+            | BinaryOp::GreaterThanOrEqual => EXPR_PRECEDENCE_COMPARISON,
         };
 
         let right_expr = self.parse_expr_precedence(next_token, precedence)?;
@@ -372,11 +388,12 @@ const EXPR_PRECEDENCE_NONE: u32 = 0;
 const EXPR_PRECEDENCE_LOGICAL_OR: u32 = 1;
 const EXPR_PRECEDENCE_LOGICAL_AND: u32 = 2;
 const EXPR_PRECEDENCE_LOGICAL_NOT: u32 = 3;
-const EXPR_PRECEDENCE_ADD: u32 = 4;
-const EXPR_PRECEDENCE_MULTIPLY: u32 = 5;
-const EXPR_PRECEDENCE_EXPONENTIATE: u32 = 6;
-const EXPR_PRECEDENCE_NUMERIC_PREFIX: u32 = 7;
-const EXPR_APPLICATION: u32 = 8;
+const EXPR_PRECEDENCE_COMPARISON: u32 = 4;
+const EXPR_PRECEDENCE_ADD: u32 = 5;
+const EXPR_PRECEDENCE_MULTIPLY: u32 = 6;
+const EXPR_PRECEDENCE_EXPONENTIATE: u32 = 7;
+const EXPR_PRECEDENCE_NUMERIC_PREFIX: u32 = 8;
+const EXPR_APPLICATION: u32 = 9;
 
 fn expr_precedence(token: &Token) -> u32 {
     match token {
@@ -386,6 +403,12 @@ fn expr_precedence(token: &Token) -> u32 {
         Token::Asterisk(..) | Token::ForwardSlash(..) => EXPR_PRECEDENCE_MULTIPLY,
         Token::Caret(..) => EXPR_PRECEDENCE_EXPONENTIATE,
         Token::LeftParen(..) => EXPR_APPLICATION,
+        Token::DoubleEquals(..)
+        | Token::NotEqual(..)
+        | Token::LessThan(..)
+        | Token::LessThanOrEqual(..)
+        | Token::GreaterThan(..)
+        | Token::GreaterThanOrEqual(..) => EXPR_PRECEDENCE_COMPARISON,
         _ => EXPR_PRECEDENCE_NONE,
     }
 }

@@ -134,6 +134,7 @@ fn repl() {
         file_table.set_repl_contents(current_input.clone());
 
         symbol_table.reset();
+        env.reset();
         let old_symbol_table = symbol_table.clone();
 
         let tokens = match tokenizer::tokenize(current_input.as_bytes(), REPL_FILE_DESCRIPTOR) {
