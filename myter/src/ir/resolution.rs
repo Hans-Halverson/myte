@@ -84,7 +84,7 @@ impl<'s, 'e> Resolver<'s, 'e> {
             Some(var_id) => var_id,
             None => {
                 self.error_context.add_error(MyteError::new(
-                    format!("Unkown variable {}", var.name),
+                    format!("Unknown variable {}", var.name),
                     &span,
                     MyteErrorType::Resolve,
                 ));
@@ -197,7 +197,7 @@ impl<'s, 'e> Resolver<'s, 'e> {
             Some(var_id) => var_id,
             None => {
                 self.error_context.add_error(MyteError::new(
-                    format!("Unkown variable {}", var.name),
+                    format!("Unknown variable {}", var.name),
                     &span,
                     MyteErrorType::Resolve,
                 ));

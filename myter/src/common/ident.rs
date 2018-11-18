@@ -15,10 +15,21 @@ pub struct UnresolvedVariable {
 
 type ScopeID = usize;
 
+#[derive(Clone, PartialEq)]
+pub enum ScopeType {
+    Package,
+    Block,
+    Function,
+    FunctionBody,
+    Variable,
+}
+
 #[derive(Clone)]
 struct Scope {
+    id: ScopeID,
     parent_id: Option<ScopeID>,
     variables: HashMap<String, VariableID>,
+    ty: ScopeType,
 }
 
 #[derive(Clone)]
@@ -29,34 +40,40 @@ pub struct SymbolTable {
 }
 
 impl Scope {
-    fn new(parent_id: Option<ScopeID>) -> Scope {
+    fn new(id: ScopeID, parent_id: Option<ScopeID>, ty: ScopeType) -> Scope {
         Scope {
+            id,
             parent_id,
             variables: HashMap::new(),
+            ty,
         }
     }
 }
 
 impl SymbolTable {
     pub fn new() -> SymbolTable {
-        let root = Scope::new(None);
+        let root_id = 0;
+        let root = Scope::new(root_id, None, ScopeType::Package);
         let scopes = vec![root];
         SymbolTable {
             variables: HashMap::new(),
-            current_id: 0,
+            current_id: root_id,
             scopes,
         }
     }
 
-    pub fn enter_scope(&mut self) {
-        let scope = Scope::new(Some(self.current_id));
-        self.current_id = self.scopes.len();
+    pub fn enter_scope(&mut self, ty: ScopeType) {
+        let scope_id = self.scopes.len();
+        let scope = Scope::new(scope_id, Some(self.current_id), ty);
+        self.current_id = scope_id;
         self.scopes.push(scope);
     }
 
     pub fn exit_scope(&mut self) {
-        let parent_id = { self.get_scope(self.current_id).parent_id.unwrap() };
-        self.current_id = parent_id;
+        self.current_id = self
+            .get_scope(self.current_non_shadow_scope())
+            .parent_id
+            .unwrap();
     }
 
     pub fn add_variable(&mut self, name: &str) -> VariableID {
@@ -68,6 +85,34 @@ impl SymbolTable {
                 name: name.to_string(),
             },
         );
+
+        if self.get_scope(self.current_id).ty != ScopeType::Package {
+            self.enter_scope(ScopeType::Variable);
+        }
+
+        self.scopes[self.current_id]
+            .variables
+            .insert(name.to_string(), var_id);
+
+        var_id
+    }
+
+    pub fn add_function(&mut self, name: &str) -> VariableID {
+        let var_id = self.variables.len();
+
+        self.variables.insert(
+            var_id,
+            Identifier {
+                name: name.to_string(),
+            },
+        );
+
+        if self.get_scope(self.current_id).ty != ScopeType::Package
+            && self.get_scope(self.current_id).ty != ScopeType::Function
+        {
+            self.enter_scope(ScopeType::Function);
+        }
+
         self.scopes[self.current_id]
             .variables
             .insert(name.to_string(), var_id);
@@ -99,6 +144,15 @@ impl SymbolTable {
                 None => None,
             },
         }
+    }
+
+    fn current_non_shadow_scope(&self) -> ScopeID {
+        let mut current = self.get_scope(self.current_id);
+        while current.ty == ScopeType::Variable || current.ty == ScopeType::Function {
+            current = self.get_scope(current.parent_id.unwrap());
+        }
+
+        current.id
     }
 
     pub fn reset(&mut self) {

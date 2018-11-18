@@ -1,5 +1,5 @@
 use common::error::{mkerr, ErrorContext, MyteError, MyteErrorType, MyteResult};
-use common::ident::SymbolTable;
+use common::ident::{ScopeType, SymbolTable};
 use common::span::Span;
 use lexer::tokens::Token;
 use parser::ast::{AstExpr, AstPat, AstStmt, BinaryOp, UnaryOp};
@@ -239,7 +239,7 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
     fn parse_block(&mut self, left_brace: Token) -> MyteResult<AstExpr> {
         let mut nodes = Vec::new();
 
-        self.symbol_table.enter_scope();
+        self.symbol_table.enter_scope(ScopeType::Block);
 
         while !is_current!(self, RightBrace) {
             match self.parse_stmt() {
@@ -275,7 +275,7 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
     }
 
     fn parse_variable_definition(&mut self, start_token: Token) -> MyteResult<AstStmt> {
-        let lvalue = self.parse_pattern()?;
+        let lvalue = self.parse_lvalue()?;
 
         assert_current!(self, Equals);
         self.tokenizer.next()?;
@@ -284,7 +284,7 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
 
         Ok(AstStmt::VariableDefinition {
             span: Span::concat(start_token.span(), rvalue.span()),
-            lvalue: Box::new(lvalue),
+            lvalue: Box::new(self.lvalue_to_pat(lvalue)),
             rvalue: Box::new(rvalue),
         })
     }
@@ -292,13 +292,13 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
     fn parse_function_definition(&mut self, def_token: Token) -> MyteResult<AstStmt> {
         let ident_token = self.tokenizer.next()?;
         let name_id = if let Token::Identifier(name, ..) = ident_token {
-            self.symbol_table.add_variable(&name)
+            self.symbol_table.add_function(&name)
         } else {
             return Err(incorrect_token!(Identifier, ident_token));
         };
 
         let mut param_ids = Vec::new();
-        self.symbol_table.enter_scope();
+        self.symbol_table.enter_scope(ScopeType::FunctionBody);
 
         assert_current!(self, LeftParen);
         self.tokenizer.next()?;
@@ -331,6 +331,8 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
             Token::LeftBrace(..) => self.parse_block(current)?,
             other_token => return Err(unexpected_token(&other_token)),
         };
+
+        self.symbol_table.exit_scope();
 
         Ok(AstStmt::FunctionDefinition {
             span: Span::concat(def_token.span(), body.span()),
@@ -372,14 +374,11 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
         }
     }
 
-    fn parse_pattern(&mut self) -> MyteResult<AstPat> {
+    fn parse_lvalue(&mut self) -> MyteResult<Lvalue> {
         match self.tokenizer.next()? {
-            Token::Identifier(name, span) => Ok(AstPat::Variable {
-                var: self.symbol_table.add_variable(&name),
-                span,
-            }),
+            Token::Identifier(name, span) => Ok(Lvalue::Variable { var: name, span }),
             Token::LeftParen(..) => {
-                let pat = self.parse_pattern()?;
+                let pat = self.parse_lvalue()?;
                 assert_current!(self, RightParen);
                 self.tokenizer.next()?;
                 Ok(pat)
@@ -391,6 +390,19 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
             ),
         }
     }
+
+    fn lvalue_to_pat(&mut self, lvalue: Lvalue) -> AstPat {
+        match lvalue {
+            Lvalue::Variable { var, span } => AstPat::Variable {
+                var: self.symbol_table.add_variable(&var),
+                span,
+            },
+        }
+    }
+}
+
+enum Lvalue {
+    Variable { var: String, span: Span },
 }
 
 ///////////////////////////////////////////////////////////////////////////////
