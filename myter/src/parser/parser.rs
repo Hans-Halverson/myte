@@ -24,7 +24,19 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
         }
     }
 
-    pub fn parse(&mut self) -> Option<AstStmt> {
+    pub fn parse_file(&mut self) -> Vec<AstStmt> {
+        let mut definitions = Vec::new();
+        while !self.tokenizer.reached_end() {
+            match self.parse_top_level() {
+                Ok(definition) => definitions.push(definition),
+                Err(err) => self.error_context.add_error(err),
+            }
+        }
+
+        definitions
+    }
+
+    pub fn parse_repl_line(&mut self) -> Option<AstStmt> {
         if self.tokenizer.reached_end() {
             return None;
         }
@@ -44,6 +56,19 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
                 self.error_context.add_error(err);
                 None
             }
+        }
+    }
+
+    fn parse_top_level(&mut self) -> MyteResult<AstStmt> {
+        let token = self.tokenizer.next()?;
+        match token {
+            Token::Let(..) => self.parse_variable_definition(token),
+            Token::Def(..) => self.parse_function_definition(token),
+            _ => mkerr(
+                "Only variable and function definitions are allowed on top level".to_string(),
+                token.span(),
+                MyteErrorType::Parser,
+            ),
         }
     }
 
@@ -291,8 +316,9 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
 
     fn parse_function_definition(&mut self, def_token: Token) -> MyteResult<AstStmt> {
         let ident_token = self.tokenizer.next()?;
-        let name_id = if let Token::Identifier(name, ..) = ident_token {
-            self.symbol_table.add_function(&name)
+        let name_id = if let Token::Identifier(name, span) = ident_token {
+            self.symbol_table
+                .add_function(&name, &span, self.error_context)
         } else {
             return Err(incorrect_token!(Identifier, ident_token));
         };
@@ -305,8 +331,8 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
 
         while !is_current!(self, RightParen) {
             let param_token = self.tokenizer.next()?;
-            let param_id = if let Token::Identifier(name, ..) = param_token {
-                self.symbol_table.add_variable(&name)
+            let param_id = if let Token::Identifier(name, span) = param_token {
+                self.symbol_table.add_variable(&name, &span)
             } else {
                 return Err(incorrect_token!(Identifier, param_token));
             };
@@ -394,7 +420,7 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
     fn lvalue_to_pat(&mut self, lvalue: Lvalue) -> AstPat {
         match lvalue {
             Lvalue::Variable { var, span } => AstPat::Variable {
-                var: self.symbol_table.add_variable(&var),
+                var: self.symbol_table.add_variable(&var, &span),
                 span,
             },
         }

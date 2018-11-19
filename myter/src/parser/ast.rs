@@ -135,14 +135,3 @@ impl AstExpr {
         }
     }
 }
-
-impl AstStmt {
-    pub fn span(&self) -> &Span {
-        match self {
-            AstStmt::Expr { expr } => expr.span(),
-            AstStmt::VariableDefinition { span, .. } => span,
-            AstStmt::FunctionDefinition { span, .. } => span,
-            AstStmt::If { span, .. } => span,
-        }
-    }
-}

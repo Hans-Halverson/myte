@@ -1,4 +1,5 @@
 use common::error::{mkerr, MyteErrorType, MyteResult};
+use common::ident::{SymbolTable, VariableID};
 use common::span::Span;
 use interpreter::env::Environment;
 use interpreter::value::Value;
@@ -424,8 +425,43 @@ fn bind_variables(pat: &IrPat, val: &Value, env: &mut Environment) {
     }
 }
 
-pub fn evaluate(ir: IrStmt, env: &mut Environment) -> MyteResult<Value> {
+pub fn apply_main(
+    main_id: VariableID,
+    env: &mut Environment,
+    symbol_table: &SymbolTable,
+) -> MyteResult<Value> {
+    match env.lookup(main_id) {
+        Value::Closure { body, params } => {
+            if params.len() != 0 {
+                return mk_eval_err(
+                    "Main takes no arguments".to_string(),
+                    &symbol_table.get_ident(main_id).span,
+                );
+            }
+
+            env.enter_scope();
+            let return_value = evaluate_expr(body.as_ref(), env)?;
+            env.exit_scope();
+
+            Ok(return_value)
+        }
+        _ => mk_eval_err(
+            "Main must be a function".to_string(),
+            &symbol_table.get_ident(main_id).span,
+        ),
+    }
+}
+
+pub fn evaluate_repl_line(ir: IrStmt, env: &mut Environment) -> MyteResult<Value> {
     evaluate_stmt(&ir, env)
+}
+
+pub fn evaluate_files(irs: Vec<IrStmt>, env: &mut Environment) -> MyteResult<()> {
+    for ir in irs {
+        evaluate_stmt(&ir, env)?;
+    }
+
+    Ok(())
 }
 
 fn mk_eval_err<T>(error: String, span: &Span) -> MyteResult<T> {

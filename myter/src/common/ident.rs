@@ -1,10 +1,14 @@
 use std::collections::HashMap;
 
+use common::error::{ErrorContext, MyteError, MyteErrorType};
+use common::span::Span;
+
 pub type VariableID = usize;
 
 #[derive(Clone)]
-struct Identifier {
-    name: String,
+pub struct Identifier {
+    pub name: String,
+    pub span: Span,
 }
 
 #[derive(Debug)]
@@ -37,6 +41,7 @@ pub struct SymbolTable {
     variables: HashMap<VariableID, Identifier>,
     current_id: ScopeID,
     scopes: Vec<Scope>,
+    main_id: Option<VariableID>,
 }
 
 impl Scope {
@@ -59,6 +64,7 @@ impl SymbolTable {
             variables: HashMap::new(),
             current_id: root_id,
             scopes,
+            main_id: None,
         }
     }
 
@@ -76,13 +82,14 @@ impl SymbolTable {
             .unwrap();
     }
 
-    pub fn add_variable(&mut self, name: &str) -> VariableID {
+    pub fn add_variable(&mut self, name: &str, span: &Span) -> VariableID {
         let var_id = self.variables.len();
 
         self.variables.insert(
             var_id,
             Identifier {
                 name: name.to_string(),
+                span: span.clone(),
             },
         );
 
@@ -97,21 +104,38 @@ impl SymbolTable {
         var_id
     }
 
-    pub fn add_function(&mut self, name: &str) -> VariableID {
+    pub fn add_function(
+        &mut self,
+        name: &str,
+        span: &Span,
+        error_context: &mut ErrorContext,
+    ) -> VariableID {
         let var_id = self.variables.len();
+
+        match self.get_scope(self.current_id).ty {
+            ScopeType::Function => {}
+            ScopeType::Package => {
+                if name == "main" {
+                    match self.main_id {
+                        None => self.main_id = Some(var_id),
+                        Some(_) => error_context.add_error(MyteError::new(
+                            "main already defined".to_string(),
+                            span,
+                            MyteErrorType::Resolve,
+                        )),
+                    }
+                }
+            }
+            _ => self.enter_scope(ScopeType::Function),
+        }
 
         self.variables.insert(
             var_id,
             Identifier {
                 name: name.to_string(),
+                span: span.clone(),
             },
         );
-
-        if self.get_scope(self.current_id).ty != ScopeType::Package
-            && self.get_scope(self.current_id).ty != ScopeType::Function
-        {
-            self.enter_scope(ScopeType::Function);
-        }
 
         self.scopes[self.current_id]
             .variables
@@ -157,5 +181,13 @@ impl SymbolTable {
 
     pub fn reset(&mut self) {
         self.current_id = 0;
+    }
+
+    pub fn get_main_id(&self) -> Option<VariableID> {
+        self.main_id
+    }
+
+    pub fn get_ident(&self, var_id: VariableID) -> &Identifier {
+        &self.variables[&var_id]
     }
 }

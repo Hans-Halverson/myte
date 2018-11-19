@@ -354,3 +354,10 @@ pub fn print_err(err: &MyteError, file_table: &FileTable) -> io::Result<()> {
 
     Ok(())
 }
+
+pub fn print_err_string(error: &str) {
+    println!(
+        "{}{}error: {}{}{}",
+        BOLD_ATTRIBUTE, RED_COLOR, RESET_COLOR, error, RESET_ATTRIBUTES
+    );
+}

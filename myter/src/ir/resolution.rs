@@ -254,11 +254,23 @@ impl<'s, 'e> Resolver<'s, 'e> {
     }
 }
 
-pub fn resolve(
+pub fn resolve_repl_line(
     stmt: AstStmt,
     symbol_table: &mut SymbolTable,
     error_context: &mut ErrorContext,
 ) -> Option<IrStmt> {
     let mut resolver = Resolver::new(symbol_table, error_context);
     resolver.resolve_stmt(stmt)
+}
+
+pub fn resolve_file(
+    stmts: Vec<AstStmt>,
+    symbol_table: &mut SymbolTable,
+    error_context: &mut ErrorContext,
+) -> Vec<IrStmt> {
+    let mut resolver = Resolver::new(symbol_table, error_context);
+    stmts
+        .into_iter()
+        .filter_map(|stmt| resolver.resolve_stmt(stmt))
+        .collect()
 }
