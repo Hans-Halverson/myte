@@ -3,26 +3,23 @@ use common::ident::{SymbolTable, VariableID};
 use common::span::Span;
 use interpreter::env::Environment;
 use interpreter::value::Value;
-use ir::ir::{IrExpr, IrPat, IrStmt};
+use ir::ir::{IrExpr, IrExprType, IrPat, IrStmt, IrStmtType};
 
 fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
-    match *ir {
-        IrExpr::UnitLiteral { .. } => Ok(Value::Unit),
-        IrExpr::BoolLiteral { bool, .. } => Ok(Value::Bool { bool }),
-        IrExpr::StringLiteral { ref string, .. } => Ok(Value::String {
+    let IrExpr { span, node } = ir;
+    match *node {
+        IrExprType::UnitLiteral => Ok(Value::Unit),
+        IrExprType::BoolLiteral(bool) => Ok(Value::Bool { bool }),
+        IrExprType::StringLiteral(ref string) => Ok(Value::String {
             string: string.clone(),
         }),
-        IrExpr::IntLiteral { num, .. } => Ok(Value::Int { num }),
-        IrExpr::FloatLiteral { num, .. } => Ok(Value::Float { num }),
-        IrExpr::Variable { var, .. } => Ok(env.lookup(var)),
-        IrExpr::Add {
+        IrExprType::IntLiteral(num) => Ok(Value::Int { num }),
+        IrExprType::FloatLiteral(num) => Ok(Value::Float { num }),
+        IrExprType::Variable(var) => Ok(env.lookup(var)),
+        IrExprType::Add {
             ref left,
             ref right,
-            span,
-        } => match (
-            evaluate_expr(left.as_ref(), env)?,
-            evaluate_expr(right.as_ref(), env)?,
-        ) {
+        } => match (evaluate_expr(left, env)?, evaluate_expr(right, env)?) {
             (Value::Int { num: left }, Value::Int { num: right }) => {
                 Ok(Value::Int { num: left + right })
             }
@@ -34,14 +31,10 @@ fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
                 &span,
             ),
         },
-        IrExpr::Subtract {
+        IrExprType::Subtract {
             ref left,
             ref right,
-            span,
-        } => match (
-            evaluate_expr(left.as_ref(), env)?,
-            evaluate_expr(right.as_ref(), env)?,
-        ) {
+        } => match (evaluate_expr(left, env)?, evaluate_expr(right, env)?) {
             (Value::Int { num: left }, Value::Int { num: right }) => {
                 Ok(Value::Int { num: left - right })
             }
@@ -53,14 +46,10 @@ fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
                 &span,
             ),
         },
-        IrExpr::Multiply {
+        IrExprType::Multiply {
             ref left,
             ref right,
-            span,
-        } => match (
-            evaluate_expr(left.as_ref(), env)?,
-            evaluate_expr(right.as_ref(), env)?,
-        ) {
+        } => match (evaluate_expr(left, env)?, evaluate_expr(right, env)?) {
             (Value::Int { num: left }, Value::Int { num: right }) => {
                 Ok(Value::Int { num: left * right })
             }
@@ -72,14 +61,10 @@ fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
                 &span,
             ),
         },
-        IrExpr::Divide {
+        IrExprType::Divide {
             ref left,
             ref right,
-            span,
-        } => match (
-            evaluate_expr(left.as_ref(), env)?,
-            evaluate_expr(right.as_ref(), env)?,
-        ) {
+        } => match (evaluate_expr(left, env)?, evaluate_expr(right, env)?) {
             (Value::Int { num: left }, Value::Int { num: right }) => {
                 Ok(Value::Int { num: left / right })
             }
@@ -91,14 +76,10 @@ fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
                 &span,
             ),
         },
-        IrExpr::Exponentiate {
+        IrExprType::Exponentiate {
             ref left,
             ref right,
-            span,
-        } => match (
-            evaluate_expr(left.as_ref(), env)?,
-            evaluate_expr(right.as_ref(), env)?,
-        ) {
+        } => match (evaluate_expr(left, env)?, evaluate_expr(right, env)?) {
             (Value::Int { num: left }, Value::Int { num: right }) => Ok(Value::Int {
                 num: i64::pow(left, right as u32),
             }),
@@ -110,14 +91,10 @@ fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
                 &span,
             ),
         },
-        IrExpr::Remainder {
+        IrExprType::Remainder {
             ref left,
             ref right,
-            span,
-        } => match (
-            evaluate_expr(left.as_ref(), env)?,
-            evaluate_expr(right.as_ref(), env)?,
-        ) {
+        } => match (evaluate_expr(left, env)?, evaluate_expr(right, env)?) {
             (Value::Int { num: left }, Value::Int { num: right }) => {
                 Ok(Value::Int { num: left % right })
             }
@@ -129,53 +106,47 @@ fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
                 &span,
             ),
         },
-        IrExpr::ParenthesizedGroup { ref node, .. } => evaluate_expr(node.as_ref(), env),
-        IrExpr::UnaryPlus { ref node, span } => match evaluate_expr(node.as_ref(), env)? {
+        IrExprType::ParenthesizedGroup(ref node) => evaluate_expr(node, env),
+        IrExprType::UnaryPlus(ref node) => match evaluate_expr(node, env)? {
             Value::Int { num } => Ok(Value::Int { num }),
             Value::Float { num } => Ok(Value::Float { num }),
             _ => mk_eval_err("PRE-TYPES: Unary plus expects number".to_string(), &span),
         },
-        IrExpr::UnaryMinus { ref node, span } => match evaluate_expr(node.as_ref(), env)? {
+        IrExprType::UnaryMinus(ref node) => match evaluate_expr(node, env)? {
             Value::Int { num } => Ok(Value::Int { num: -num }),
             Value::Float { num } => Ok(Value::Float { num: -num }),
             _ => mk_eval_err("PRE-TYPES: Unary minus expects number".to_string(), &span),
         },
-        IrExpr::LogicalNot { ref node, span } => match evaluate_expr(node.as_ref(), env)? {
+        IrExprType::LogicalNot(ref node) => match evaluate_expr(node, env)? {
             Value::Bool { bool } => Ok(Value::Bool { bool: !bool }),
             _ => mk_eval_err("PRE-TYPES: Logical not expects bool".to_string(), &span),
         },
-        IrExpr::LogicalAnd {
+        IrExprType::LogicalAnd {
             ref left,
             ref right,
-            span,
-        } => match evaluate_expr(left.as_ref(), env)? {
+        } => match evaluate_expr(left, env)? {
             Value::Bool { bool: false } => Ok(Value::Bool { bool: false }),
-            Value::Bool { bool: true } => match evaluate_expr(right.as_ref(), env)? {
+            Value::Bool { bool: true } => match evaluate_expr(right, env)? {
                 Value::Bool { bool } => Ok(Value::Bool { bool }),
                 _ => mk_eval_err("PRE-TYPES: Logical and expects bools".to_string(), &span),
             },
             _ => mk_eval_err("PRE-TYPES: Logical and expects bools".to_string(), &span),
         },
-        IrExpr::LogicalOr {
+        IrExprType::LogicalOr {
             ref left,
             ref right,
-            span,
-        } => match evaluate_expr(left.as_ref(), env)? {
+        } => match evaluate_expr(left, env)? {
             Value::Bool { bool: true } => Ok(Value::Bool { bool: true }),
-            Value::Bool { bool: false } => match evaluate_expr(right.as_ref(), env)? {
+            Value::Bool { bool: false } => match evaluate_expr(right, env)? {
                 Value::Bool { bool } => Ok(Value::Bool { bool }),
                 _ => mk_eval_err("PRE-TYPES: Logical or expects bools".to_string(), &span),
             },
             _ => mk_eval_err("PRE-TYPES: Logical or expects bools".to_string(), &span),
         },
-        IrExpr::Equals {
+        IrExprType::Equals {
             ref left,
             ref right,
-            ref span,
-        } => match (
-            evaluate_expr(left.as_ref(), env)?,
-            evaluate_expr(right.as_ref(), env)?,
-        ) {
+        } => match (evaluate_expr(left, env)?, evaluate_expr(right, env)?) {
             (Value::Unit, Value::Unit) => Ok(Value::Bool { bool: true }),
             (Value::Bool { bool: left }, Value::Bool { bool: right }) => Ok(Value::Bool {
                 bool: left == right,
@@ -195,14 +166,10 @@ fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
                 span,
             ),
         },
-        IrExpr::NotEqual {
+        IrExprType::NotEqual {
             ref left,
             ref right,
-            ref span,
-        } => match (
-            evaluate_expr(left.as_ref(), env)?,
-            evaluate_expr(right.as_ref(), env)?,
-        ) {
+        } => match (evaluate_expr(left, env)?, evaluate_expr(right, env)?) {
             (Value::Unit, Value::Unit) => Ok(Value::Bool { bool: false }),
             (Value::Bool { bool: left }, Value::Bool { bool: right }) => Ok(Value::Bool {
                 bool: left != right,
@@ -222,14 +189,10 @@ fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
                 span,
             ),
         },
-        IrExpr::LessThan {
+        IrExprType::LessThan {
             ref left,
             ref right,
-            ref span,
-        } => match (
-            evaluate_expr(left.as_ref(), env)?,
-            evaluate_expr(right.as_ref(), env)?,
-        ) {
+        } => match (evaluate_expr(left, env)?, evaluate_expr(right, env)?) {
             (Value::String { string: left }, Value::String { string: right }) => {
                 Ok(Value::Bool { bool: left < right })
             }
@@ -244,14 +207,10 @@ fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
                 span,
             ),
         },
-        IrExpr::LessThanOrEqual {
+        IrExprType::LessThanOrEqual {
             ref left,
             ref right,
-            ref span,
-        } => match (
-            evaluate_expr(left.as_ref(), env)?,
-            evaluate_expr(right.as_ref(), env)?,
-        ) {
+        } => match (evaluate_expr(left, env)?, evaluate_expr(right, env)?) {
             (Value::String { string: left }, Value::String { string: right }) => Ok(Value::Bool {
                 bool: left <= right,
             }),
@@ -266,14 +225,10 @@ fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
                 span,
             ),
         },
-        IrExpr::GreaterThan {
+        IrExprType::GreaterThan {
             ref left,
             ref right,
-            ref span,
-        } => match (
-            evaluate_expr(left.as_ref(), env)?,
-            evaluate_expr(right.as_ref(), env)?,
-        ) {
+        } => match (evaluate_expr(left, env)?, evaluate_expr(right, env)?) {
             (Value::String { string: left }, Value::String { string: right }) => {
                 Ok(Value::Bool { bool: left > right })
             }
@@ -288,14 +243,10 @@ fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
                 span,
             ),
         },
-        IrExpr::GreaterThanOrEqual {
+        IrExprType::GreaterThanOrEqual {
             ref left,
             ref right,
-            ref span,
-        } => match (
-            evaluate_expr(left.as_ref(), env)?,
-            evaluate_expr(right.as_ref(), env)?,
-        ) {
+        } => match (evaluate_expr(left, env)?, evaluate_expr(right, env)?) {
             (Value::String { string: left }, Value::String { string: right }) => Ok(Value::Bool {
                 bool: left >= right,
             }),
@@ -310,7 +261,7 @@ fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
                 span,
             ),
         },
-        IrExpr::Block { ref nodes, .. } => {
+        IrExprType::Block(ref nodes) => {
             env.enter_scope();
 
             let mut value = Value::Unit;
@@ -322,25 +273,23 @@ fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
 
             Ok(value)
         }
-        IrExpr::If {
+        IrExprType::If {
             ref cond,
             ref conseq,
             ref altern,
-            ..
-        } => match evaluate_expr(cond.as_ref(), env)? {
-            Value::Bool { bool: true } => evaluate_expr(conseq.as_ref(), env),
-            Value::Bool { bool: false } => evaluate_expr(altern.as_ref(), env),
+        } => match evaluate_expr(cond, env)? {
+            Value::Bool { bool: true } => evaluate_expr(conseq, env),
+            Value::Bool { bool: false } => evaluate_expr(altern, env),
             _ => mk_eval_err(
                 "PRE-TYPES: Condition of if expression must be a bool".to_string(),
-                &cond.span(),
+                &cond.span,
             ),
         },
-        IrExpr::Application {
-            ref func,
-            ref args,
-            span,
-        } => match evaluate_expr(func.as_ref(), env)? {
-            Value::Closure { params, body } => {
+        IrExprType::Application { ref func, ref args } => match evaluate_expr(func, env)? {
+            Value::Closure {
+                ref params,
+                ref body,
+            } => {
                 if params.len() != args.len() {
                     return mk_eval_err(
                         "PRE-TYPES: Incorrect number of arguments in application".to_string(),
@@ -355,7 +304,7 @@ fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
                     env.extend(*param, &arg_value);
                 }
 
-                let return_value = evaluate_expr(body.as_ref(), env)?;
+                let return_value = evaluate_expr(body, env)?;
 
                 env.exit_scope();
 
@@ -366,8 +315,8 @@ fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
                 &span,
             ),
         },
-        IrExpr::Assignment { var, ref expr, .. } => {
-            let value = evaluate_expr(expr.as_ref(), env)?;
+        IrExprType::Assignment { var, ref expr } => {
+            let value = evaluate_expr(expr, env)?;
             env.reassign(var, &value);
             Ok(value)
         }
@@ -375,22 +324,20 @@ fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
 }
 
 fn evaluate_stmt(ir: &IrStmt, env: &mut Environment) -> MyteResult<Value> {
-    match *ir {
-        IrStmt::Expr { ref expr, .. } => evaluate_expr(expr.as_ref(), env),
-        IrStmt::VariableDefinition {
+    match (*ir).node {
+        IrStmtType::Expr(ref expr) => evaluate_expr(expr, env),
+        IrStmtType::VariableDefinition {
             ref lvalue,
             ref rvalue,
-            ..
         } => {
-            let val = evaluate_expr(rvalue.as_ref(), env)?;
-            bind_variables((*lvalue).as_ref(), &val, env);
+            let val = evaluate_expr(rvalue, env)?;
+            bind_variables(lvalue, &val, env);
             Ok(Value::Unit)
         }
-        IrStmt::FunctionDefinition {
+        IrStmtType::FunctionDefinition {
             name,
             ref params,
             ref body,
-            ..
         } => {
             env.extend(
                 name,
@@ -401,19 +348,18 @@ fn evaluate_stmt(ir: &IrStmt, env: &mut Environment) -> MyteResult<Value> {
             );
             Ok(Value::Unit)
         }
-        IrStmt::If {
+        IrStmtType::If {
             ref cond,
             ref conseq,
-            ..
-        } => match evaluate_expr(cond.as_ref(), env)? {
+        } => match evaluate_expr(cond, env)? {
             Value::Bool { bool: true } => {
-                evaluate_expr(conseq.as_ref(), env)?;
+                evaluate_expr(conseq, env)?;
                 Ok(Value::Unit)
             }
             Value::Bool { bool: false } => Ok(Value::Unit),
             _ => mk_eval_err(
                 "PRE-TYPES: Condition of if statement must be a bool".to_string(),
-                &cond.span(),
+                &cond.span,
             ),
         },
     }
@@ -431,7 +377,10 @@ pub fn apply_main(
     symbol_table: &SymbolTable,
 ) -> MyteResult<Value> {
     match env.lookup(main_id) {
-        Value::Closure { body, params } => {
+        Value::Closure {
+            ref body,
+            ref params,
+        } => {
             if params.len() != 0 {
                 return mk_eval_err(
                     "Main takes no arguments".to_string(),
@@ -440,7 +389,7 @@ pub fn apply_main(
             }
 
             env.enter_scope();
-            let return_value = evaluate_expr(body.as_ref(), env)?;
+            let return_value = evaluate_expr(body, env)?;
             env.exit_scope();
 
             Ok(return_value)

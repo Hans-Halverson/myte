@@ -18,7 +18,7 @@ impl<'a> Tokenizer<'a> {
         } else {
             mkerr(
                 "Unexpected end of file".to_string(),
-                &Span::end_point_span(self.tokens[self.tokens.len() - 1].span()),
+                &Span::end_point_span(&self.tokens[self.tokens.len() - 1].span),
                 MyteErrorType::UnexpectedEOF,
             )
         }
@@ -28,7 +28,7 @@ impl<'a> Tokenizer<'a> {
         if self.reached_end() {
             mkerr(
                 "Unexpected end of file".to_string(),
-                &Span::end_point_span(self.tokens[self.tokens.len() - 1].span()),
+                &Span::end_point_span(&self.tokens[self.tokens.len() - 1].span),
                 MyteErrorType::UnexpectedEOF,
             )
         } else {

@@ -1,8 +1,8 @@
 use common::error::{mkerr, ErrorContext, MyteError, MyteErrorType, MyteResult};
 use common::ident::{ScopeType, SymbolTable};
 use common::span::Span;
-use lexer::tokens::Token;
-use parser::ast::{AstExpr, AstPat, AstStmt, BinaryOp, UnaryOp};
+use lexer::tokens::{Token, TokenType};
+use parser::ast::{AstExpr, AstExprType, AstPat, AstStmt, BinaryOp, UnaryOp};
 use parser::tokenizer::Tokenizer;
 
 pub struct Parser<'t, 's, 'e> {
@@ -61,12 +61,12 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
 
     fn parse_top_level(&mut self) -> MyteResult<AstStmt> {
         let token = self.tokenizer.next()?;
-        match token {
-            Token::Let(..) => self.parse_variable_definition(token),
-            Token::Def(..) => self.parse_function_definition(token),
+        match token.ty {
+            TokenType::Let => self.parse_variable_definition(token),
+            TokenType::Def => self.parse_function_definition(token),
             _ => mkerr(
                 "Only variable and function definitions are allowed on top level".to_string(),
-                token.span(),
+                &token.span,
                 MyteErrorType::Parser,
             ),
         }
@@ -74,10 +74,10 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
 
     fn parse_stmt(&mut self) -> MyteResult<AstStmt> {
         let token = self.tokenizer.next()?;
-        match token {
-            Token::Let(..) => self.parse_variable_definition(token),
-            Token::Def(..) => self.parse_function_definition(token),
-            Token::If(..) => self.parse_if_stmt(token),
+        match token.ty {
+            TokenType::Let => self.parse_variable_definition(token),
+            TokenType::Def => self.parse_function_definition(token),
+            TokenType::If => self.parse_if_stmt(token),
             _ => Ok(AstStmt::Expr {
                 expr: Box::new(self.parse_expr_precedence(token, EXPR_PRECEDENCE_NONE)?),
             }),
@@ -94,19 +94,34 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
         first_token: Token,
         precedence: u32,
     ) -> MyteResult<AstExpr> {
-        let mut expr = match first_token {
-            Token::True(span) => AstExpr::BoolLiteral { bool: true, span },
-            Token::False(span) => AstExpr::BoolLiteral { bool: false, span },
-            Token::StringLiteral(string, span) => AstExpr::StringLiteral { string, span },
-            Token::IntLiteral(num, span) => AstExpr::IntLiteral { num, span },
-            Token::FloatLiteral(num, span) => AstExpr::FloatLiteral { num, span },
-            Token::Identifier(name, span) => self.parse_variable(name, span)?,
-            Token::Plus(..) => self.parse_unary_op(first_token, UnaryOp::Plus)?,
-            Token::Minus(..) => self.parse_unary_op(first_token, UnaryOp::Minus)?,
-            Token::Bang(..) => self.parse_unary_op(first_token, UnaryOp::LogicalNot)?,
-            Token::LeftParen(..) => self.parse_parenthesized_expr(first_token)?,
-            Token::LeftBrace(..) => self.parse_block(first_token)?,
-            Token::If(..) => self.parse_if_expr(first_token)?,
+        let mut expr = match first_token.ty {
+            TokenType::True => AstExpr {
+                span: first_token.span,
+                node: AstExprType::BoolLiteral(true),
+            },
+            TokenType::False => AstExpr {
+                span: first_token.span,
+                node: AstExprType::BoolLiteral(false),
+            },
+            TokenType::StringLiteral(string) => AstExpr {
+                span: first_token.span,
+                node: AstExprType::StringLiteral(string),
+            },
+            TokenType::IntLiteral(num) => AstExpr {
+                span: first_token.span,
+                node: AstExprType::IntLiteral(num),
+            },
+            TokenType::FloatLiteral(num) => AstExpr {
+                span: first_token.span,
+                node: AstExprType::FloatLiteral(num),
+            },
+            TokenType::Identifier(name) => self.parse_variable(name, first_token.span)?,
+            TokenType::Plus => self.parse_unary_op(first_token, UnaryOp::Plus)?,
+            TokenType::Minus => self.parse_unary_op(first_token, UnaryOp::Minus)?,
+            TokenType::Bang => self.parse_unary_op(first_token, UnaryOp::LogicalNot)?,
+            TokenType::LeftParen => self.parse_parenthesized_expr(first_token)?,
+            TokenType::LeftBrace => self.parse_block(first_token)?,
+            TokenType::If => self.parse_if_expr(first_token)?,
             _ => return Err(unexpected_token(&first_token)),
         };
 
@@ -118,27 +133,27 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
             && precedence < expr_precedence(&self.tokenizer.current()?)
         {
             let current_token = self.tokenizer.next()?;
-            expr = match current_token {
-                Token::Plus(..) => self.parse_binary_op(expr, BinaryOp::Add)?,
-                Token::Minus(..) => self.parse_binary_op(expr, BinaryOp::Subtract)?,
-                Token::Asterisk(..) => self.parse_binary_op(expr, BinaryOp::Multiply)?,
-                Token::ForwardSlash(..) => self.parse_binary_op(expr, BinaryOp::Divide)?,
-                Token::Caret(..) => self.parse_binary_op(expr, BinaryOp::Exponentiate)?,
-                Token::Percent(..) => self.parse_binary_op(expr, BinaryOp::Remainder)?,
-                Token::DoubleAmpersand(..) => self.parse_binary_op(expr, BinaryOp::LogicalAnd)?,
-                Token::DoublePipe(..) => self.parse_binary_op(expr, BinaryOp::LogicalOr)?,
-                Token::DoubleEquals(..) => self.parse_binary_op(expr, BinaryOp::Equals)?,
-                Token::NotEqual(..) => self.parse_binary_op(expr, BinaryOp::NotEqual)?,
-                Token::LessThan(..) => self.parse_binary_op(expr, BinaryOp::LessThan)?,
-                Token::LessThanOrEqual(..) => {
+            expr = match current_token.ty {
+                TokenType::Plus => self.parse_binary_op(expr, BinaryOp::Add)?,
+                TokenType::Minus => self.parse_binary_op(expr, BinaryOp::Subtract)?,
+                TokenType::Asterisk => self.parse_binary_op(expr, BinaryOp::Multiply)?,
+                TokenType::ForwardSlash => self.parse_binary_op(expr, BinaryOp::Divide)?,
+                TokenType::Caret => self.parse_binary_op(expr, BinaryOp::Exponentiate)?,
+                TokenType::Percent => self.parse_binary_op(expr, BinaryOp::Remainder)?,
+                TokenType::DoubleAmpersand => self.parse_binary_op(expr, BinaryOp::LogicalAnd)?,
+                TokenType::DoublePipe => self.parse_binary_op(expr, BinaryOp::LogicalOr)?,
+                TokenType::DoubleEquals => self.parse_binary_op(expr, BinaryOp::Equals)?,
+                TokenType::NotEqual => self.parse_binary_op(expr, BinaryOp::NotEqual)?,
+                TokenType::LessThan => self.parse_binary_op(expr, BinaryOp::LessThan)?,
+                TokenType::LessThanOrEqual => {
                     self.parse_binary_op(expr, BinaryOp::LessThanOrEqual)?
                 }
-                Token::GreaterThan(..) => self.parse_binary_op(expr, BinaryOp::GreaterThan)?,
-                Token::GreaterThanOrEqual(..) => {
+                TokenType::GreaterThan => self.parse_binary_op(expr, BinaryOp::GreaterThan)?,
+                TokenType::GreaterThanOrEqual => {
                     self.parse_binary_op(expr, BinaryOp::GreaterThanOrEqual)?
                 }
-                Token::LeftParen(..) => self.parse_application(expr)?,
-                Token::Equals(..) => self.parse_assignment(expr)?,
+                TokenType::LeftParen => self.parse_application(expr)?,
+                TokenType::Equals => self.parse_assignment(expr)?,
                 _ => return Err(unexpected_token(&current_token)),
             }
         }
@@ -147,9 +162,9 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
     }
 
     fn parse_variable(&mut self, name: String, span: Span) -> MyteResult<AstExpr> {
-        Ok(AstExpr::Variable {
-            var: self.symbol_table.unresolved_variable(&name),
+        Ok(AstExpr {
             span,
+            node: AstExprType::Variable(self.symbol_table.unresolved_variable(&name)),
         })
     }
 
@@ -161,10 +176,12 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
         };
 
         let node = self.parse_expr_precedence(next_token, precedence)?;
-        Ok(AstExpr::UnaryOp {
-            op,
-            span: Span::concat(op_token.span(), node.span()),
-            node: Box::new(node),
+        Ok(AstExpr {
+            span: Span::concat(&op_token.span, &node.span),
+            node: AstExprType::UnaryOp {
+                op,
+                node: Box::new(node),
+            },
         })
     }
 
@@ -186,11 +203,13 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
         };
 
         let right_expr = self.parse_expr_precedence(next_token, precedence)?;
-        Ok(AstExpr::BinaryOp {
-            op,
-            span: Span::concat(left_expr.span(), right_expr.span()),
-            left: Box::new(left_expr),
-            right: Box::new(right_expr),
+        Ok(AstExpr {
+            span: Span::concat(&left_expr.span, &right_expr.span),
+            node: AstExprType::BinaryOp {
+                op,
+                left: Box::new(left_expr),
+                right: Box::new(right_expr),
+            },
         })
     }
 
@@ -201,8 +220,14 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
             args.push(self.parse_expr()?);
 
             match self.tokenizer.current()? {
-                Token::RightParen(..) => break,
-                Token::Comma(..) => {
+                Token {
+                    ty: TokenType::RightParen,
+                    ..
+                } => break,
+                Token {
+                    ty: TokenType::Comma,
+                    ..
+                } => {
                     self.tokenizer.next()?;
                     continue;
                 }
@@ -210,23 +235,28 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
             }
         }
 
-        let span = Span::concat(left_expr.span(), self.tokenizer.current()?.span());
+        let span = Span::concat(&left_expr.span, &self.tokenizer.current()?.span);
         self.tokenizer.next()?;
 
-        Ok(AstExpr::Application {
-            func: Box::new(left_expr),
-            args,
+        Ok(AstExpr {
             span,
+            node: AstExprType::Application {
+                func: Box::new(left_expr),
+                args,
+            },
         })
     }
 
     fn parse_assignment(&mut self, lvalue: AstExpr) -> MyteResult<AstExpr> {
         let (var, var_span) = match lvalue {
-            AstExpr::Variable { var, span } => (var, span),
+            AstExpr {
+                span,
+                node: AstExprType::Variable(var),
+            } => (var, span),
             _ => {
                 return mkerr(
                     "Left side of assignment must be variable".to_string(),
-                    lvalue.span(),
+                    &lvalue.span,
                     MyteErrorType::Parser,
                 )
             }
@@ -235,18 +265,21 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
         let next_token = self.tokenizer.next()?;
         let expr = self.parse_expr_precedence(next_token, EXPR_PRECEDENCE_ASSIGNMENT)?;
 
-        Ok(AstExpr::Assignment {
-            span: Span::concat(&var_span, expr.span()),
-            var,
-            expr: Box::new(expr),
+        Ok(AstExpr {
+            span: Span::concat(&var_span, &expr.span),
+            node: AstExprType::Assignment {
+                var,
+                expr: Box::new(expr),
+            },
         })
     }
 
     fn parse_parenthesized_expr(&mut self, left_paren: Token) -> MyteResult<AstExpr> {
-        if let Token::RightParen(..) = self.tokenizer.current()? {
+        if let TokenType::RightParen = self.tokenizer.current()?.ty {
             let right_paren = self.tokenizer.next()?;
-            return Ok(AstExpr::UnitLiteral {
-                span: Span::concat(left_paren.span(), right_paren.span()),
+            return Ok(AstExpr {
+                span: Span::concat(&left_paren.span, &right_paren.span),
+                node: AstExprType::UnitLiteral,
             });
         }
 
@@ -255,9 +288,9 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
         assert_current!(self, RightParen);
         let right_paren = self.tokenizer.next()?;
 
-        Ok(AstExpr::ParenthesizedGroup {
-            span: Span::concat(left_paren.span(), right_paren.span()),
-            node: Box::new(node),
+        Ok(AstExpr {
+            span: Span::concat(&left_paren.span, &right_paren.span),
+            node: AstExprType::ParenthesizedGroup(Box::new(node)),
         })
     }
 
@@ -276,9 +309,9 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
         self.symbol_table.exit_scope();
 
         let right_brace = self.tokenizer.next()?;
-        Ok(AstExpr::Block {
-            nodes,
-            span: Span::concat(left_brace.span(), right_brace.span()),
+        Ok(AstExpr {
+            span: Span::concat(&left_brace.span, &right_brace.span),
+            node: AstExprType::Block(nodes),
         })
     }
 
@@ -291,11 +324,13 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
 
         let altern = self.parse_expr()?;
 
-        Ok(AstExpr::If {
-            span: Span::concat(if_token.span(), altern.span()),
-            cond: Box::new(cond),
-            conseq: Box::new(conseq),
-            altern: Box::new(altern),
+        Ok(AstExpr {
+            span: Span::concat(&if_token.span, &altern.span),
+            node: AstExprType::If {
+                cond: Box::new(cond),
+                conseq: Box::new(conseq),
+                altern: Box::new(altern),
+            },
         })
     }
 
@@ -308,7 +343,7 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
         let rvalue = self.parse_expr()?;
 
         Ok(AstStmt::VariableDefinition {
-            span: Span::concat(start_token.span(), rvalue.span()),
+            span: Span::concat(&start_token.span, &rvalue.span),
             lvalue: Box::new(self.lvalue_to_pat(lvalue)),
             rvalue: Box::new(rvalue),
         })
@@ -316,7 +351,11 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
 
     fn parse_function_definition(&mut self, def_token: Token) -> MyteResult<AstStmt> {
         let ident_token = self.tokenizer.next()?;
-        let name_id = if let Token::Identifier(name, span) = ident_token {
+        let name_id = if let Token {
+            ty: TokenType::Identifier(name),
+            span,
+        } = ident_token
+        {
             self.symbol_table
                 .add_function(&name, &span, self.error_context)
         } else {
@@ -331,7 +370,11 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
 
         while !is_current!(self, RightParen) {
             let param_token = self.tokenizer.next()?;
-            let param_id = if let Token::Identifier(name, span) = param_token {
+            let param_id = if let Token {
+                span,
+                ty: TokenType::Identifier(name),
+            } = param_token
+            {
                 self.symbol_table.add_variable(&name, &span)
             } else {
                 return Err(incorrect_token!(Identifier, param_token));
@@ -340,8 +383,14 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
             param_ids.push(param_id);
 
             match self.tokenizer.current()? {
-                Token::RightParen(..) => break,
-                Token::Comma(..) => {
+                Token {
+                    ty: TokenType::RightParen,
+                    ..
+                } => break,
+                Token {
+                    ty: TokenType::Comma,
+                    ..
+                } => {
                     self.tokenizer.next()?;
                     continue;
                 }
@@ -353,15 +402,21 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
 
         let current = self.tokenizer.next()?;
         let body = match current {
-            Token::Equals(..) => self.parse_expr()?,
-            Token::LeftBrace(..) => self.parse_block(current)?,
+            Token {
+                ty: TokenType::Equals,
+                ..
+            } => self.parse_expr()?,
+            Token {
+                ty: TokenType::LeftBrace,
+                ..
+            } => self.parse_block(current)?,
             other_token => return Err(unexpected_token(&other_token)),
         };
 
         self.symbol_table.exit_scope();
 
         Ok(AstStmt::FunctionDefinition {
-            span: Span::concat(def_token.span(), body.span()),
+            span: Span::concat(&def_token.span, &body.span),
             name: name_id,
             params: param_ids,
             body: Box::new(body),
@@ -373,17 +428,22 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
         let conseq = self.parse_expr()?;
 
         match self.tokenizer.current() {
-            Ok(Token::Else(..)) => {
+            Ok(Token {
+                ty: TokenType::Else,
+                ..
+            }) => {
                 self.tokenizer.next()?;
 
                 let altern = self.parse_expr()?;
 
                 Ok(AstStmt::Expr {
-                    expr: Box::new(AstExpr::If {
-                        span: Span::concat(if_token.span(), altern.span()),
-                        cond: Box::new(cond),
-                        conseq: Box::new(conseq),
-                        altern: Box::new(altern),
+                    expr: Box::new(AstExpr {
+                        span: Span::concat(&if_token.span, &altern.span),
+                        node: AstExprType::If {
+                            cond: Box::new(cond),
+                            conseq: Box::new(conseq),
+                            altern: Box::new(altern),
+                        },
                     }),
                 })
             }
@@ -392,7 +452,7 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
                 ty: MyteErrorType::UnexpectedEOF,
                 ..
             }) => Ok(AstStmt::If {
-                span: Span::concat(if_token.span(), conseq.span()),
+                span: Span::concat(&if_token.span, &conseq.span),
                 cond: Box::new(cond),
                 conseq: Box::new(conseq),
             }),
@@ -402,8 +462,14 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
 
     fn parse_lvalue(&mut self) -> MyteResult<Lvalue> {
         match self.tokenizer.next()? {
-            Token::Identifier(name, span) => Ok(Lvalue::Variable { var: name, span }),
-            Token::LeftParen(..) => {
+            Token {
+                ty: TokenType::Identifier(name),
+                span,
+            } => Ok(Lvalue::Variable { var: name, span }),
+            Token {
+                ty: TokenType::LeftParen,
+                ..
+            } => {
                 let pat = self.parse_lvalue()?;
                 assert_current!(self, RightParen);
                 self.tokenizer.next()?;
@@ -411,7 +477,7 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
             }
             token => mkerr(
                 format!("Expected pattern, found {}", token.type_to_string()),
-                token.span(),
+                &token.span,
                 MyteErrorType::Parser,
             ),
         }
@@ -440,7 +506,7 @@ enum Lvalue {
 fn unexpected_token(token: &Token) -> MyteError {
     MyteError::new(
         format!("Unexpected {} encountered", token.type_to_string()),
-        token.span(),
+        &token.span,
         MyteErrorType::Parser,
     )
 }
@@ -464,20 +530,20 @@ const EXPR_PRECEDENCE_NUMERIC_PREFIX: u32 = 9;
 const EXPR_PRECEDENCE_APPLICATION: u32 = 10;
 
 fn expr_precedence(token: &Token) -> u32 {
-    match token {
-        Token::DoublePipe(..) => EXPR_PRECEDENCE_LOGICAL_OR,
-        Token::DoubleAmpersand(..) => EXPR_PRECEDENCE_LOGICAL_AND,
-        Token::Plus(..) | Token::Minus(..) => EXPR_PRECEDENCE_ADD,
-        Token::Asterisk(..) | Token::ForwardSlash(..) => EXPR_PRECEDENCE_MULTIPLY,
-        Token::Caret(..) => EXPR_PRECEDENCE_EXPONENTIATE,
-        Token::LeftParen(..) => EXPR_PRECEDENCE_APPLICATION,
-        Token::Equals(..) => EXPR_PRECEDENCE_ASSIGNMENT,
-        Token::DoubleEquals(..)
-        | Token::NotEqual(..)
-        | Token::LessThan(..)
-        | Token::LessThanOrEqual(..)
-        | Token::GreaterThan(..)
-        | Token::GreaterThanOrEqual(..) => EXPR_PRECEDENCE_COMPARISON,
+    match token.ty {
+        TokenType::DoublePipe => EXPR_PRECEDENCE_LOGICAL_OR,
+        TokenType::DoubleAmpersand => EXPR_PRECEDENCE_LOGICAL_AND,
+        TokenType::Plus | TokenType::Minus => EXPR_PRECEDENCE_ADD,
+        TokenType::Asterisk | TokenType::ForwardSlash => EXPR_PRECEDENCE_MULTIPLY,
+        TokenType::Caret => EXPR_PRECEDENCE_EXPONENTIATE,
+        TokenType::LeftParen => EXPR_PRECEDENCE_APPLICATION,
+        TokenType::Equals => EXPR_PRECEDENCE_ASSIGNMENT,
+        TokenType::DoubleEquals
+        | TokenType::NotEqual
+        | TokenType::LessThan
+        | TokenType::LessThanOrEqual
+        | TokenType::GreaterThan
+        | TokenType::GreaterThanOrEqual => EXPR_PRECEDENCE_COMPARISON,
         _ => EXPR_PRECEDENCE_NONE,
     }
 }

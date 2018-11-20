@@ -5,7 +5,7 @@ use common::ident::SymbolTable;
 use common::source::{FileTable, REPL_FILE_DESCRIPTOR};
 use interpreter::env::Environment;
 use interpreter::evaluate;
-use ir::ir::IrStmt;
+use ir::ir::{IrStmt, IrStmtType};
 use ir::resolution;
 use lexer::tokenizer;
 use parser::parser::Parser;
@@ -125,7 +125,10 @@ pub fn repl() {
         };
 
         let is_expr = match ir {
-            IrStmt::Expr { .. } => true,
+            IrStmt {
+                node: IrStmtType::Expr(_),
+                ..
+            } => true,
             _ => false,
         };
 

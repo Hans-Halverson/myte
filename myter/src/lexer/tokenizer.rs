@@ -1,6 +1,6 @@
 use common::error::{mkerr, MyteErrorType, MyteResult, ERROR_TAB_WIDTH};
 use common::span::Span;
-use lexer::tokens::Token;
+use lexer::tokens::{Token, TokenType};
 
 struct Tokenizer<'a> {
     bytes: &'a [u8],
@@ -161,48 +161,50 @@ fn read_identifier(tokens: &mut Vec<Token>, tokenizer: &mut Tokenizer) {
 }
 
 fn token_from_identifier(identifier: String, span: Span) -> Token {
-    match identifier.as_ref() {
-        "true" => Token::True(span),
-        "false" => Token::False(span),
-        "let" => Token::Let(span),
-        "const" => Token::Const(span),
-        "def" => Token::Def(span),
-        "fun" => Token::Fun(span),
-        "if" => Token::If(span),
-        "else" => Token::Else(span),
-        "while" => Token::While(span),
-        "do" => Token::Do(span),
-        "for" => Token::For(span),
-        "forEach" => Token::ForEach(span),
-        "in" => Token::In(span),
-        "match" => Token::Match(span),
-        "when" => Token::When(span),
-        "return" => Token::Return(span),
-        "break" => Token::Break(span),
-        "continue" => Token::Continue(span),
-        "unit" => Token::UnitType(span),
-        "bool" => Token::BoolType(span),
-        "string" => Token::StringType(span),
-        "byte" => Token::ByteType(span),
-        "int" => Token::IntType(span),
-        "float" => Token::FloatType(span),
-        "double" => Token::DoubleType(span),
-        "vec" => Token::VecType(span),
-        "map" => Token::MapType(span),
-        "set" => Token::SetType(span),
-        "package" => Token::Package(span),
-        "import" => Token::Import(span),
-        "as" => Token::As(span),
-        "type" => Token::Type(span),
-        "trait" => Token::Trait(span),
-        "implement" => Token::Implement(span),
-        "extends" => Token::Extends(span),
-        "sig" => Token::Sig(span),
-        "static" => Token::Static(span),
-        "mut" => Token::Mut(span),
-        "__builtin" => Token::Builtin(span),
-        _ => Token::Identifier(identifier, span),
-    }
+    let ty = match identifier.as_ref() {
+        "true" => TokenType::True,
+        "false" => TokenType::False,
+        "let" => TokenType::Let,
+        "const" => TokenType::Const,
+        "def" => TokenType::Def,
+        "fun" => TokenType::Fun,
+        "if" => TokenType::If,
+        "else" => TokenType::Else,
+        "while" => TokenType::While,
+        "do" => TokenType::Do,
+        "for" => TokenType::For,
+        "forEach" => TokenType::ForEach,
+        "in" => TokenType::In,
+        "match" => TokenType::Match,
+        "when" => TokenType::When,
+        "return" => TokenType::Return,
+        "break" => TokenType::Break,
+        "continue" => TokenType::Continue,
+        "unit" => TokenType::UnitType,
+        "bool" => TokenType::BoolType,
+        "string" => TokenType::StringType,
+        "byte" => TokenType::ByteType,
+        "int" => TokenType::IntType,
+        "float" => TokenType::FloatType,
+        "double" => TokenType::DoubleType,
+        "vec" => TokenType::VecType,
+        "map" => TokenType::MapType,
+        "set" => TokenType::SetType,
+        "package" => TokenType::Package,
+        "import" => TokenType::Import,
+        "as" => TokenType::As,
+        "type" => TokenType::Type,
+        "trait" => TokenType::Trait,
+        "implement" => TokenType::Implement,
+        "extends" => TokenType::Extends,
+        "sig" => TokenType::Sig,
+        "static" => TokenType::Static,
+        "mut" => TokenType::Mut,
+        "__builtin" => TokenType::Builtin,
+        _ => TokenType::Identifier(identifier),
+    };
+
+    Token { span, ty }
 }
 
 fn read_string_literal(tokens: &mut Vec<Token>, tokenizer: &mut Tokenizer) -> MyteResult<()> {
@@ -230,10 +232,10 @@ fn read_string_literal(tokens: &mut Vec<Token>, tokenizer: &mut Tokenizer) -> My
     tokenizer.advance();
 
     unsafe {
-        tokens.push(Token::StringLiteral(
-            String::from_utf8_unchecked(identifier_bytes),
-            tokenizer.mark_span(),
-        ));
+        tokens.push(Token {
+            ty: TokenType::StringLiteral(String::from_utf8_unchecked(identifier_bytes)),
+            span: tokenizer.mark_span(),
+        });
     }
 
     Ok(())
@@ -244,7 +246,10 @@ fn int_from_bytes(bytes: Vec<u8>, tokens: &mut Vec<Token>, span: Span) -> MyteRe
         let int_string = String::from_utf8_unchecked(bytes);
         match int_string.parse::<i64>() {
             Ok(parsed_number) => {
-                tokens.push(Token::IntLiteral(parsed_number, span));
+                tokens.push(Token {
+                    ty: TokenType::IntLiteral(parsed_number),
+                    span,
+                });
                 return Ok(());
             }
             _ => return mk_lex_err(format!("Invalid int literal {}", int_string), &span),
@@ -257,7 +262,10 @@ fn float_from_bytes(bytes: Vec<u8>, tokens: &mut Vec<Token>, span: Span) -> Myte
         let float_string = String::from_utf8_unchecked(bytes);
         match float_string.parse::<f64>() {
             Ok(parsed_number) => {
-                tokens.push(Token::FloatLiteral(parsed_number, span));
+                tokens.push(Token {
+                    ty: TokenType::FloatLiteral(parsed_number),
+                    span,
+                });
                 return Ok(());
             }
             _ => return mk_lex_err(format!("Invalid float literal {}", float_string), &span),
@@ -329,6 +337,20 @@ fn read_number_literal(tokens: &mut Vec<Token>, tokenizer: &mut Tokenizer) -> My
     }
 }
 
+fn mark_token(ty: TokenType, tokenizer: &Tokenizer) -> Token {
+    Token {
+        ty,
+        span: tokenizer.mark_span(),
+    }
+}
+
+fn mark_next_token(ty: TokenType, tokenizer: &Tokenizer) -> Token {
+    Token {
+        ty,
+        span: tokenizer.mark_span_next(),
+    }
+}
+
 pub fn tokenize(input_bytes: &[u8], file_descriptor: u32) -> MyteResult<Vec<Token>> {
     let mut tokenizer = Tokenizer::new(input_bytes, file_descriptor);
     let mut tokens = Vec::new();
@@ -336,67 +358,67 @@ pub fn tokenize(input_bytes: &[u8], file_descriptor: u32) -> MyteResult<Vec<Toke
     loop {
         tokenizer.start_span();
         match tokenizer.current() {
-            Some(b'*') => tokens.push(Token::Asterisk(tokenizer.mark_span())),
-            Some(b'^') => tokens.push(Token::Caret(tokenizer.mark_span())),
-            Some(b'%') => tokens.push(Token::Percent(tokenizer.mark_span())),
-            Some(b'(') => tokens.push(Token::LeftParen(tokenizer.mark_span())),
-            Some(b')') => tokens.push(Token::RightParen(tokenizer.mark_span())),
-            Some(b'}') => tokens.push(Token::RightBrace(tokenizer.mark_span())),
-            Some(b']') => tokens.push(Token::RightBracket(tokenizer.mark_span())),
-            Some(b'.') => tokens.push(Token::Period(tokenizer.mark_span())),
-            Some(b',') => tokens.push(Token::Comma(tokenizer.mark_span())),
+            Some(b'*') => tokens.push(mark_token(TokenType::Asterisk, &tokenizer)),
+            Some(b'^') => tokens.push(mark_token(TokenType::Caret, &tokenizer)),
+            Some(b'%') => tokens.push(mark_token(TokenType::Percent, &tokenizer)),
+            Some(b'(') => tokens.push(mark_token(TokenType::LeftParen, &tokenizer)),
+            Some(b')') => tokens.push(mark_token(TokenType::RightParen, &tokenizer)),
+            Some(b'}') => tokens.push(mark_token(TokenType::RightBrace, &tokenizer)),
+            Some(b']') => tokens.push(mark_token(TokenType::RightBracket, &tokenizer)),
+            Some(b'.') => tokens.push(mark_token(TokenType::Period, &tokenizer)),
+            Some(b',') => tokens.push(mark_token(TokenType::Comma, &tokenizer)),
             Some(b'+') => match tokenizer.next() {
                 Some(byte) if is_number_byte(byte) => {
                     read_number_literal(&mut tokens, &mut tokenizer)?
                 }
-                _ => tokens.push(Token::Plus(tokenizer.mark_span())),
+                _ => tokens.push(mark_token(TokenType::Plus, &tokenizer)),
             },
             Some(b'-') => match tokenizer.next() {
                 Some(b'>') => advance_and_push(
-                    Token::Arrow(tokenizer.mark_span_next()),
+                    mark_next_token(TokenType::Arrow, &tokenizer),
                     &mut tokens,
                     &mut tokenizer,
                 ),
                 Some(byte) if is_number_byte(byte) => {
                     read_number_literal(&mut tokens, &mut tokenizer)?
                 }
-                _ => tokens.push(Token::Minus(tokenizer.mark_span())),
+                _ => tokens.push(mark_token(TokenType::Minus, &tokenizer)),
             },
             Some(b'=') => match tokenizer.next() {
                 Some(b'=') => advance_and_push(
-                    Token::DoubleEquals(tokenizer.mark_span_next()),
+                    mark_next_token(TokenType::DoubleEquals, &tokenizer),
                     &mut tokens,
                     &mut tokenizer,
                 ),
-                _ => tokens.push(Token::Equals(tokenizer.mark_span())),
+                _ => tokens.push(mark_token(TokenType::Equals, &tokenizer)),
             },
             Some(b'<') => match tokenizer.next() {
                 Some(b'=') => advance_and_push(
-                    Token::LessThanOrEqual(tokenizer.mark_span_next()),
+                    mark_next_token(TokenType::LessThanOrEqual, &tokenizer),
                     &mut tokens,
                     &mut tokenizer,
                 ),
-                _ => tokens.push(Token::LessThan(tokenizer.mark_span())),
+                _ => tokens.push(mark_token(TokenType::LessThan, &tokenizer)),
             },
             Some(b'>') => match tokenizer.next() {
                 Some(b'=') => advance_and_push(
-                    Token::GreaterThanOrEqual(tokenizer.mark_span_next()),
+                    mark_next_token(TokenType::GreaterThanOrEqual, &tokenizer),
                     &mut tokens,
                     &mut tokenizer,
                 ),
-                _ => tokens.push(Token::GreaterThan(tokenizer.mark_span())),
+                _ => tokens.push(mark_token(TokenType::GreaterThan, &tokenizer)),
             },
             Some(b'!') => match tokenizer.next() {
                 Some(b'=') => advance_and_push(
-                    Token::NotEqual(tokenizer.mark_span_next()),
+                    mark_next_token(TokenType::NotEqual, &tokenizer),
                     &mut tokens,
                     &mut tokenizer,
                 ),
-                _ => tokens.push(Token::Bang(tokenizer.mark_span())),
+                _ => tokens.push(mark_token(TokenType::Bang, &tokenizer)),
             },
             Some(b'&') => match tokenizer.next() {
                 Some(b'&') => advance_and_push(
-                    Token::DoubleAmpersand(tokenizer.mark_span_next()),
+                    mark_next_token(TokenType::DoubleAmpersand, &tokenizer),
                     &mut tokens,
                     &mut tokenizer,
                 ),
@@ -410,50 +432,50 @@ pub fn tokenize(input_bytes: &[u8], file_descriptor: u32) -> MyteResult<Vec<Toke
             },
             Some(b'|') => match tokenizer.next() {
                 Some(b'|') => advance_and_push(
-                    Token::DoublePipe(tokenizer.mark_span_next()),
+                    mark_next_token(TokenType::DoublePipe, &tokenizer),
                     &mut tokens,
                     &mut tokenizer,
                 ),
                 Some(b']') => advance_and_push(
-                    Token::RightMapLiteral(tokenizer.mark_span_next()),
+                    mark_next_token(TokenType::RightMapLiteral, &tokenizer),
                     &mut tokens,
                     &mut tokenizer,
                 ),
                 Some(b'}') => advance_and_push(
-                    Token::RightSetLiteral(tokenizer.mark_span_next()),
+                    mark_next_token(TokenType::RightSetLiteral, &tokenizer),
                     &mut tokens,
                     &mut tokenizer,
                 ),
-                _ => tokens.push(Token::Pipe(tokenizer.mark_span())),
+                _ => tokens.push(mark_token(TokenType::Pipe, &tokenizer)),
             },
             Some(b'{') => match tokenizer.next() {
                 Some(b'|') => advance_and_push(
-                    Token::LeftSetLiteral(tokenizer.mark_span_next()),
+                    mark_next_token(TokenType::LeftSetLiteral, &tokenizer),
                     &mut tokens,
                     &mut tokenizer,
                 ),
-                _ => tokens.push(Token::LeftBrace(tokenizer.mark_span())),
+                _ => tokens.push(mark_token(TokenType::LeftBrace, &tokenizer)),
             },
             Some(b'[') => match tokenizer.next() {
                 Some(b'|') => advance_and_push(
-                    Token::LeftMapLiteral(tokenizer.mark_span_next()),
+                    mark_next_token(TokenType::LeftMapLiteral, &tokenizer),
                     &mut tokens,
                     &mut tokenizer,
                 ),
-                _ => tokens.push(Token::LeftBracket(tokenizer.mark_span())),
+                _ => tokens.push(mark_token(TokenType::LeftBracket, &tokenizer)),
             },
             Some(b':') => match tokenizer.next() {
                 Some(b':') => advance_and_push(
-                    Token::Scope(tokenizer.mark_span_next()),
+                    mark_next_token(TokenType::Scope, &tokenizer),
                     &mut tokens,
                     &mut tokenizer,
                 ),
-                _ => tokens.push(Token::Colon(tokenizer.mark_span())),
+                _ => tokens.push(mark_token(TokenType::Colon, &tokenizer)),
             },
             Some(b'/') => match tokenizer.next() {
                 Some(b'/') => read_line_comment(&mut tokenizer),
                 Some(b'*') => read_block_comment(&mut tokenizer)?,
-                _ => tokens.push(Token::ForwardSlash(tokenizer.mark_span())),
+                _ => tokens.push(mark_token(TokenType::ForwardSlash, &tokenizer)),
             },
             Some(b'"') => read_string_literal(&mut tokens, &mut tokenizer)?,
             Some(byte) if is_number_byte(byte) => read_number_literal(&mut tokens, &mut tokenizer)?,

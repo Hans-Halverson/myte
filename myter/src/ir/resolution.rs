@@ -1,8 +1,8 @@
 use common::error::{ErrorContext, MyteError, MyteErrorType};
 use common::ident::{SymbolTable, UnresolvedVariable, VariableID};
 use common::span::Span;
-use ir::ir::{IrExpr, IrPat, IrStmt};
-use parser::ast::{AstExpr, AstPat, AstStmt, BinaryOp, UnaryOp};
+use ir::ir::{IrExpr, IrExprType, IrPat, IrStmt, IrStmtType};
+use parser::ast::{AstExpr, AstExprType, AstPat, AstStmt, BinaryOp, UnaryOp};
 
 struct Resolver<'s, 'e> {
     symbol_table: &'s mut SymbolTable,
@@ -21,42 +21,53 @@ impl<'s, 'e> Resolver<'s, 'e> {
     }
 
     fn resolve_expr(&mut self, expr: AstExpr) -> Option<IrExpr> {
-        match expr {
-            AstExpr::UnitLiteral { span } => Some(IrExpr::UnitLiteral { span }),
-            AstExpr::BoolLiteral { bool, span } => Some(IrExpr::BoolLiteral { bool, span }),
-            AstExpr::StringLiteral { string, span } => Some(IrExpr::StringLiteral { string, span }),
-            AstExpr::IntLiteral { num, span } => Some(IrExpr::IntLiteral { num, span }),
-            AstExpr::FloatLiteral { num, span } => Some(IrExpr::FloatLiteral { num, span }),
-            AstExpr::Variable { var, span } => self.resolve_variable(var, span),
-            AstExpr::UnaryOp { node, op, span } => self.resolve_unary_op(*node, op, span),
-            AstExpr::BinaryOp {
-                left,
-                right,
-                op,
+        let span = expr.span;
+        match expr.node {
+            AstExprType::UnitLiteral => Some(IrExpr {
                 span,
-            } => self.resolve_binary_op(*left, *right, op, span),
-            AstExpr::ParenthesizedGroup { node, span } => Some(IrExpr::ParenthesizedGroup {
-                node: Box::new(self.resolve_expr(*node)?),
-                span,
+                node: IrExprType::UnitLiteral,
             }),
-            AstExpr::Block { nodes, span } => self.resolve_block(nodes, span),
-            AstExpr::If {
+            AstExprType::BoolLiteral(bool) => Some(IrExpr {
+                span,
+                node: IrExprType::BoolLiteral(bool),
+            }),
+            AstExprType::StringLiteral(string) => Some(IrExpr {
+                span,
+                node: IrExprType::StringLiteral(string),
+            }),
+            AstExprType::IntLiteral(num) => Some(IrExpr {
+                span,
+                node: IrExprType::IntLiteral(num),
+            }),
+            AstExprType::FloatLiteral(num) => Some(IrExpr {
+                span,
+                node: IrExprType::FloatLiteral(num),
+            }),
+            AstExprType::Variable(var) => self.resolve_variable(var, span),
+            AstExprType::UnaryOp { node, op } => self.resolve_unary_op(*node, op, span),
+            AstExprType::BinaryOp { left, right, op } => {
+                self.resolve_binary_op(*left, *right, op, span)
+            }
+            AstExprType::ParenthesizedGroup(node) => Some(IrExpr {
+                span,
+                node: IrExprType::ParenthesizedGroup(Box::new(self.resolve_expr(*node)?)),
+            }),
+            AstExprType::Block(nodes) => self.resolve_block(nodes, span),
+            AstExprType::If {
                 cond,
                 conseq,
                 altern,
-                span,
             } => self.resolve_if_expr(*cond, *conseq, *altern, span),
-            AstExpr::Application { func, args, span } => {
-                self.resolve_application(*func, args, span)
-            }
-            AstExpr::Assignment { var, expr, span } => self.resolve_assignment(var, *expr, span),
+            AstExprType::Application { func, args } => self.resolve_application(*func, args, span),
+            AstExprType::Assignment { var, expr } => self.resolve_assignment(var, *expr, span),
         }
     }
 
     fn resolve_stmt(&mut self, stmt: AstStmt) -> Option<IrStmt> {
         match stmt {
-            AstStmt::Expr { expr } => Some(IrStmt::Expr {
-                expr: Box::new(self.resolve_expr(*expr)?),
+            AstStmt::Expr { expr } => Some(IrStmt {
+                span: expr.span,
+                node: IrStmtType::Expr(Box::new(self.resolve_expr(*expr)?)),
             }),
             AstStmt::VariableDefinition {
                 lvalue,
@@ -92,7 +103,10 @@ impl<'s, 'e> Resolver<'s, 'e> {
             }
         };
 
-        Some(IrExpr::Variable { var, span })
+        Some(IrExpr {
+            span,
+            node: IrExprType::Variable(var),
+        })
     }
 
     fn resolve_binary_op(
@@ -109,20 +123,62 @@ impl<'s, 'e> Resolver<'s, 'e> {
         let right = Box::new(right_ir?);
 
         match op {
-            BinaryOp::Add => Some(IrExpr::Add { left, right, span }),
-            BinaryOp::Subtract => Some(IrExpr::Subtract { left, right, span }),
-            BinaryOp::Multiply => Some(IrExpr::Multiply { left, right, span }),
-            BinaryOp::Divide => Some(IrExpr::Divide { left, right, span }),
-            BinaryOp::Exponentiate => Some(IrExpr::Exponentiate { left, right, span }),
-            BinaryOp::Remainder => Some(IrExpr::Remainder { left, right, span }),
-            BinaryOp::LogicalAnd => Some(IrExpr::LogicalAnd { left, right, span }),
-            BinaryOp::LogicalOr => Some(IrExpr::LogicalOr { left, right, span }),
-            BinaryOp::Equals => Some(IrExpr::Equals { left, right, span }),
-            BinaryOp::NotEqual => Some(IrExpr::NotEqual { left, right, span }),
-            BinaryOp::LessThan => Some(IrExpr::LessThan { left, right, span }),
-            BinaryOp::LessThanOrEqual => Some(IrExpr::LessThanOrEqual { left, right, span }),
-            BinaryOp::GreaterThan => Some(IrExpr::GreaterThan { left, right, span }),
-            BinaryOp::GreaterThanOrEqual => Some(IrExpr::GreaterThanOrEqual { left, right, span }),
+            BinaryOp::Add => Some(IrExpr {
+                span,
+                node: IrExprType::Add { left, right },
+            }),
+            BinaryOp::Subtract => Some(IrExpr {
+                span,
+                node: IrExprType::Subtract { left, right },
+            }),
+            BinaryOp::Multiply => Some(IrExpr {
+                span,
+                node: IrExprType::Multiply { left, right },
+            }),
+            BinaryOp::Divide => Some(IrExpr {
+                span,
+                node: IrExprType::Divide { left, right },
+            }),
+            BinaryOp::Exponentiate => Some(IrExpr {
+                span,
+                node: IrExprType::Exponentiate { left, right },
+            }),
+            BinaryOp::Remainder => Some(IrExpr {
+                span,
+                node: IrExprType::Remainder { left, right },
+            }),
+            BinaryOp::LogicalAnd => Some(IrExpr {
+                span,
+                node: IrExprType::LogicalAnd { left, right },
+            }),
+            BinaryOp::LogicalOr => Some(IrExpr {
+                span,
+                node: IrExprType::LogicalOr { left, right },
+            }),
+            BinaryOp::Equals => Some(IrExpr {
+                span,
+                node: IrExprType::Equals { left, right },
+            }),
+            BinaryOp::NotEqual => Some(IrExpr {
+                span,
+                node: IrExprType::NotEqual { left, right },
+            }),
+            BinaryOp::LessThan => Some(IrExpr {
+                span,
+                node: IrExprType::LessThan { left, right },
+            }),
+            BinaryOp::LessThanOrEqual => Some(IrExpr {
+                span,
+                node: IrExprType::LessThanOrEqual { left, right },
+            }),
+            BinaryOp::GreaterThan => Some(IrExpr {
+                span,
+                node: IrExprType::GreaterThan { left, right },
+            }),
+            BinaryOp::GreaterThanOrEqual => Some(IrExpr {
+                span,
+                node: IrExprType::GreaterThanOrEqual { left, right },
+            }),
         }
     }
 
@@ -130,9 +186,18 @@ impl<'s, 'e> Resolver<'s, 'e> {
         let node_ir = self.resolve_expr(node);
         let node = Box::new(node_ir?);
         match op {
-            UnaryOp::Plus => Some(IrExpr::UnaryPlus { node, span }),
-            UnaryOp::Minus => Some(IrExpr::UnaryMinus { node, span }),
-            UnaryOp::LogicalNot => Some(IrExpr::LogicalNot { node, span }),
+            UnaryOp::Plus => Some(IrExpr {
+                span,
+                node: IrExprType::UnaryPlus(node),
+            }),
+            UnaryOp::Minus => Some(IrExpr {
+                span,
+                node: IrExprType::UnaryMinus(node),
+            }),
+            UnaryOp::LogicalNot => Some(IrExpr {
+                span,
+                node: IrExprType::LogicalNot(node),
+            }),
         }
     }
 
@@ -145,9 +210,9 @@ impl<'s, 'e> Resolver<'s, 'e> {
             return None;
         }
 
-        Some(IrExpr::Block {
-            nodes: ir_nodes.into_iter().flatten().collect::<Vec<IrStmt>>(),
+        Some(IrExpr {
             span,
+            node: IrExprType::Block(ir_nodes.into_iter().flatten().collect::<Vec<IrStmt>>()),
         })
     }
 
@@ -158,11 +223,13 @@ impl<'s, 'e> Resolver<'s, 'e> {
         altern: AstExpr,
         span: Span,
     ) -> Option<IrExpr> {
-        Some(IrExpr::If {
-            cond: Box::new(self.resolve_expr(cond)?),
-            conseq: Box::new(self.resolve_expr(conseq)?),
-            altern: Box::new(self.resolve_expr(altern)?),
+        Some(IrExpr {
             span,
+            node: IrExprType::If {
+                cond: Box::new(self.resolve_expr(cond)?),
+                conseq: Box::new(self.resolve_expr(conseq)?),
+                altern: Box::new(self.resolve_expr(altern)?),
+            },
         })
     }
 
@@ -180,10 +247,12 @@ impl<'s, 'e> Resolver<'s, 'e> {
             return None;
         }
 
-        Some(IrExpr::Application {
-            func: Box::new(self.resolve_expr(func)?),
-            args: ir_args.into_iter().flatten().collect::<Vec<IrExpr>>(),
+        Some(IrExpr {
             span,
+            node: IrExprType::Application {
+                func: Box::new(self.resolve_expr(func)?),
+                args: ir_args.into_iter().flatten().collect::<Vec<IrExpr>>(),
+            },
         })
     }
 
@@ -205,10 +274,12 @@ impl<'s, 'e> Resolver<'s, 'e> {
             }
         };
 
-        Some(IrExpr::Assignment {
-            var,
-            expr: Box::new(self.resolve_expr(expr)?),
+        Some(IrExpr {
             span,
+            node: IrExprType::Assignment {
+                var,
+                expr: Box::new(self.resolve_expr(expr)?),
+            },
         })
     }
 
@@ -221,10 +292,12 @@ impl<'s, 'e> Resolver<'s, 'e> {
         let lvalue = self.resolve_pat(lvalue)?;
         let rvalue = self.resolve_expr(rvalue)?;
 
-        Some(IrStmt::VariableDefinition {
-            lvalue: Box::new(lvalue),
-            rvalue: Box::new(rvalue),
+        Some(IrStmt {
             span,
+            node: IrStmtType::VariableDefinition {
+                lvalue: Box::new(lvalue),
+                rvalue: Box::new(rvalue),
+            },
         })
     }
 
@@ -237,19 +310,23 @@ impl<'s, 'e> Resolver<'s, 'e> {
     ) -> Option<IrStmt> {
         let body = self.resolve_expr(body)?;
 
-        Some(IrStmt::FunctionDefinition {
-            name,
-            params,
-            body: Box::new(body),
+        Some(IrStmt {
             span,
+            node: IrStmtType::FunctionDefinition {
+                name,
+                params,
+                body: Box::new(body),
+            },
         })
     }
 
     fn resolve_if_stmt(&mut self, cond: AstExpr, conseq: AstExpr, span: Span) -> Option<IrStmt> {
-        Some(IrStmt::If {
-            cond: Box::new(self.resolve_expr(cond)?),
-            conseq: Box::new(self.resolve_expr(conseq)?),
+        Some(IrStmt {
             span,
+            node: IrStmtType::If {
+                cond: Box::new(self.resolve_expr(cond)?),
+                conseq: Box::new(self.resolve_expr(conseq)?),
+            },
         })
     }
 }

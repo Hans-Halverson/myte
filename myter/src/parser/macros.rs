@@ -24,7 +24,7 @@ macro_rules! incorrect_token {
                 token_type!($expected),
                 $actual.type_to_string(),
             ),
-            $actual.span(),
+            &$actual.span,
             MyteErrorType::Parser,
         )
     };
@@ -33,7 +33,10 @@ macro_rules! incorrect_token {
 macro_rules! assert_current {
     ($self:ident, $expected:ident) => {{
         match $self.tokenizer.current()? {
-            Token::$expected(..) => {}
+            Token {
+                ty: TokenType::$expected,
+                ..
+            } => {}
             other => return Err(incorrect_token!($expected, other)),
         }
     }};
@@ -42,7 +45,10 @@ macro_rules! assert_current {
 macro_rules! is_current {
     ($self:ident, $expected:ident) => {{
         match $self.tokenizer.current()? {
-            Token::$expected(..) => true,
+            Token {
+                ty: TokenType::$expected,
+                ..
+            } => true,
             _ => false,
         }
     }};

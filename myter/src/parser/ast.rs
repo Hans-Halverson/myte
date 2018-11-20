@@ -2,64 +2,42 @@ use common::ident::{UnresolvedVariable, VariableID};
 use common::span::Span;
 
 #[derive(Debug)]
-pub enum AstExpr {
-    UnitLiteral {
-        span: Span,
-    },
-    BoolLiteral {
-        bool: bool,
-        span: Span,
-    },
-    StringLiteral {
-        string: String,
-        span: Span,
-    },
-    IntLiteral {
-        num: i64,
-        span: Span,
-    },
-    FloatLiteral {
-        num: f64,
-        span: Span,
-    },
-    Variable {
-        var: UnresolvedVariable,
-        span: Span,
-    },
+pub struct AstExpr {
+    pub node: AstExprType,
+    pub span: Span,
+}
+
+#[derive(Debug)]
+pub enum AstExprType {
+    UnitLiteral,
+    BoolLiteral(bool),
+    StringLiteral(String),
+    IntLiteral(i64),
+    FloatLiteral(f64),
+    Variable(UnresolvedVariable),
     UnaryOp {
         op: UnaryOp,
         node: Box<AstExpr>,
-        span: Span,
     },
     BinaryOp {
         op: BinaryOp,
         left: Box<AstExpr>,
         right: Box<AstExpr>,
-        span: Span,
     },
-    ParenthesizedGroup {
-        node: Box<AstExpr>,
-        span: Span,
-    },
-    Block {
-        nodes: Vec<AstStmt>,
-        span: Span,
-    },
+    ParenthesizedGroup(Box<AstExpr>),
+    Block(Vec<AstStmt>),
     If {
         cond: Box<AstExpr>,
         conseq: Box<AstExpr>,
         altern: Box<AstExpr>,
-        span: Span,
     },
     Application {
         func: Box<AstExpr>,
         args: Vec<AstExpr>,
-        span: Span,
     },
     Assignment {
         var: UnresolvedVariable,
         expr: Box<AstExpr>,
-        span: Span,
     },
 }
 
@@ -114,24 +92,4 @@ pub enum BinaryOp {
     LessThanOrEqual,
     GreaterThan,
     GreaterThanOrEqual,
-}
-
-impl AstExpr {
-    pub fn span(&self) -> &Span {
-        match self {
-            AstExpr::UnitLiteral { span } => span,
-            AstExpr::BoolLiteral { span, .. } => span,
-            AstExpr::StringLiteral { span, .. } => span,
-            AstExpr::IntLiteral { span, .. } => span,
-            AstExpr::FloatLiteral { span, .. } => span,
-            AstExpr::Variable { span, .. } => span,
-            AstExpr::UnaryOp { span, .. } => span,
-            AstExpr::BinaryOp { span, .. } => span,
-            AstExpr::ParenthesizedGroup { span, .. } => span,
-            AstExpr::Block { span, .. } => span,
-            AstExpr::If { span, .. } => span,
-            AstExpr::Application { span, .. } => span,
-            AstExpr::Assignment { span, .. } => span,
-        }
-    }
 }
