@@ -1,8 +1,22 @@
 use common::ident::VariableID;
 use common::span::Span;
 
+pub type IrID = u32;
+
+#[derive(Clone)]
+pub struct IrContext {
+    pub next_ir_id: IrID,
+}
+
+impl IrContext {
+    pub fn new() -> IrContext {
+        IrContext { next_ir_id: 0 }
+    }
+}
+
 #[derive(Clone)]
 pub struct IrExpr {
+    pub id: IrID,
     pub node: IrExprType,
     pub span: Span,
 }
@@ -93,6 +107,7 @@ pub enum IrExprType {
 
 #[derive(Clone)]
 pub struct IrStmt {
+    pub id: IrID,
     pub node: IrStmtType,
     pub span: Span,
 }
@@ -117,5 +132,5 @@ pub enum IrStmtType {
 
 #[derive(Clone)]
 pub enum IrPat {
-    Variable { var: VariableID, span: Span },
+    Variable { id: IrID, var: VariableID, span: Span },
 }

@@ -24,7 +24,7 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
         while !self.tokenizer.reached_end() {
             match self.parse_top_level() {
                 Ok(definition) => definitions.push(definition),
-                Err(err) => self.ctx.error_context.add_error(err),
+                Err(err) => self.ctx.error_ctx.add_error(err),
             }
         }
 
@@ -39,7 +39,7 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
         let stmt = self.parse_stmt();
         if !self.tokenizer.reached_end() {
             if let Ok(token) = self.tokenizer.current() {
-                self.ctx.error_context.add_error(unexpected_token(&token))
+                self.ctx.error_ctx.add_error(unexpected_token(&token))
             }
 
             return None;
@@ -48,7 +48,7 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
         match stmt {
             Ok(ast) => Some(ast),
             Err(err) => {
-                self.ctx.error_context.add_error(err);
+                self.ctx.error_ctx.add_error(err);
                 None
             }
         }
@@ -297,7 +297,7 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
         while !is_current!(self, RightBrace) {
             match self.parse_stmt() {
                 Ok(node) => nodes.push(node),
-                Err(err) => self.ctx.error_context.add_error(err),
+                Err(err) => self.ctx.error_ctx.add_error(err),
             }
         }
 
@@ -353,7 +353,7 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
         {
             self.ctx
                 .symbol_table
-                .add_function(&name, &span, &mut self.ctx.error_context)
+                .add_function(&name, &span, &mut self.ctx.error_ctx)
         } else {
             return Err(incorrect_token!(Identifier, ident_token));
         };

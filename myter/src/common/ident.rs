@@ -108,7 +108,7 @@ impl SymbolTable {
         &mut self,
         name: &str,
         span: &Span,
-        error_context: &mut ErrorContext,
+        error_ctx: &mut ErrorContext,
     ) -> VariableID {
         let var_id = self.variables.len();
 
@@ -118,7 +118,7 @@ impl SymbolTable {
                 if name == "main" {
                     match self.main_id {
                         None => self.main_id = Some(var_id),
-                        Some(_) => error_context.add_error(MyteError::new(
+                        Some(_) => error_ctx.add_error(MyteError::new(
                             "main already defined".to_string(),
                             span,
                             MyteErrorType::Resolve,

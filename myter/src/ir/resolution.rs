@@ -2,7 +2,7 @@ use common::context::Context;
 use common::error::{MyteError, MyteErrorType};
 use common::ident::{UnresolvedVariable, VariableID};
 use common::span::Span;
-use ir::ir::{IrExpr, IrExprType, IrPat, IrStmt, IrStmtType};
+use ir::ir::{IrExpr, IrExprType, IrID, IrPat, IrStmt, IrStmtType};
 use parser::ast::{AstExpr, AstExprType, AstPat, AstStmt, BinaryOp, UnaryOp};
 
 struct Resolver<'ctx> {
@@ -14,27 +14,38 @@ impl<'ctx> Resolver<'ctx> {
         Resolver { ctx }
     }
 
+    fn new_id(&mut self) -> IrID {
+        let id = self.ctx.ir_ctx.next_ir_id;
+        self.ctx.ir_ctx.next_ir_id += 1;
+        id
+    }
+
     fn resolve_expr(&mut self, expr: AstExpr) -> Option<IrExpr> {
         let span = expr.span;
         match expr.node {
             AstExprType::UnitLiteral => Some(IrExpr {
                 span,
+                id: self.new_id(),
                 node: IrExprType::UnitLiteral,
             }),
             AstExprType::BoolLiteral(bool) => Some(IrExpr {
                 span,
+                id: self.new_id(),
                 node: IrExprType::BoolLiteral(bool),
             }),
             AstExprType::StringLiteral(string) => Some(IrExpr {
                 span,
+                id: self.new_id(),
                 node: IrExprType::StringLiteral(string),
             }),
             AstExprType::IntLiteral(num) => Some(IrExpr {
                 span,
+                id: self.new_id(),
                 node: IrExprType::IntLiteral(num),
             }),
             AstExprType::FloatLiteral(num) => Some(IrExpr {
                 span,
+                id: self.new_id(),
                 node: IrExprType::FloatLiteral(num),
             }),
             AstExprType::Variable(var) => self.resolve_variable(var, span),
@@ -44,6 +55,7 @@ impl<'ctx> Resolver<'ctx> {
             }
             AstExprType::ParenthesizedGroup(node) => Some(IrExpr {
                 span,
+                id: self.new_id(),
                 node: IrExprType::ParenthesizedGroup(Box::new(self.resolve_expr(*node)?)),
             }),
             AstExprType::Block(nodes) => self.resolve_block(nodes, span),
@@ -60,6 +72,7 @@ impl<'ctx> Resolver<'ctx> {
     fn resolve_stmt(&mut self, stmt: AstStmt) -> Option<IrStmt> {
         match stmt {
             AstStmt::Expr { expr } => Some(IrStmt {
+                id: self.new_id(),
                 span: expr.span,
                 node: IrStmtType::Expr(Box::new(self.resolve_expr(*expr)?)),
             }),
@@ -80,7 +93,7 @@ impl<'ctx> Resolver<'ctx> {
 
     fn resolve_pat(&mut self, pat: AstPat) -> Option<IrPat> {
         match pat {
-            AstPat::Variable { var, span } => Some(IrPat::Variable { var, span }),
+            AstPat::Variable { var, span } => Some(IrPat::Variable { var, span, id: self.new_id() }),
         }
     }
 
@@ -88,7 +101,7 @@ impl<'ctx> Resolver<'ctx> {
         let var = match self.ctx.symbol_table.resolve_variable(&var) {
             Some(var_id) => var_id,
             None => {
-                self.ctx.error_context.add_error(MyteError::new(
+                self.ctx.error_ctx.add_error(MyteError::new(
                     format!("Unknown variable {}", var.name),
                     &span,
                     MyteErrorType::Resolve,
@@ -99,6 +112,7 @@ impl<'ctx> Resolver<'ctx> {
 
         Some(IrExpr {
             span,
+            id: self.new_id(),
             node: IrExprType::Variable(var),
         })
     }
@@ -119,58 +133,72 @@ impl<'ctx> Resolver<'ctx> {
         match op {
             BinaryOp::Add => Some(IrExpr {
                 span,
+                id: self.new_id(),
                 node: IrExprType::Add { left, right },
             }),
             BinaryOp::Subtract => Some(IrExpr {
                 span,
+                id: self.new_id(),
                 node: IrExprType::Subtract { left, right },
             }),
             BinaryOp::Multiply => Some(IrExpr {
                 span,
+                id: self.new_id(),
                 node: IrExprType::Multiply { left, right },
             }),
             BinaryOp::Divide => Some(IrExpr {
                 span,
+                id: self.new_id(),
                 node: IrExprType::Divide { left, right },
             }),
             BinaryOp::Exponentiate => Some(IrExpr {
                 span,
+                id: self.new_id(),
                 node: IrExprType::Exponentiate { left, right },
             }),
             BinaryOp::Remainder => Some(IrExpr {
                 span,
+                id: self.new_id(),
                 node: IrExprType::Remainder { left, right },
             }),
             BinaryOp::LogicalAnd => Some(IrExpr {
                 span,
+                id: self.new_id(),
                 node: IrExprType::LogicalAnd { left, right },
             }),
             BinaryOp::LogicalOr => Some(IrExpr {
                 span,
+                id: self.new_id(),
                 node: IrExprType::LogicalOr { left, right },
             }),
             BinaryOp::Equals => Some(IrExpr {
                 span,
+                id: self.new_id(),
                 node: IrExprType::Equals { left, right },
             }),
             BinaryOp::NotEqual => Some(IrExpr {
                 span,
+                id: self.new_id(),
                 node: IrExprType::NotEqual { left, right },
             }),
             BinaryOp::LessThan => Some(IrExpr {
                 span,
+                id: self.new_id(),
                 node: IrExprType::LessThan { left, right },
             }),
             BinaryOp::LessThanOrEqual => Some(IrExpr {
                 span,
+                id: self.new_id(),
                 node: IrExprType::LessThanOrEqual { left, right },
             }),
             BinaryOp::GreaterThan => Some(IrExpr {
                 span,
+                id: self.new_id(),
                 node: IrExprType::GreaterThan { left, right },
             }),
             BinaryOp::GreaterThanOrEqual => Some(IrExpr {
                 span,
+                id: self.new_id(),
                 node: IrExprType::GreaterThanOrEqual { left, right },
             }),
         }
@@ -182,14 +210,17 @@ impl<'ctx> Resolver<'ctx> {
         match op {
             UnaryOp::Plus => Some(IrExpr {
                 span,
+                id: self.new_id(),
                 node: IrExprType::UnaryPlus(node),
             }),
             UnaryOp::Minus => Some(IrExpr {
                 span,
+                id: self.new_id(),
                 node: IrExprType::UnaryMinus(node),
             }),
             UnaryOp::LogicalNot => Some(IrExpr {
                 span,
+                id: self.new_id(),
                 node: IrExprType::LogicalNot(node),
             }),
         }
@@ -206,6 +237,7 @@ impl<'ctx> Resolver<'ctx> {
 
         Some(IrExpr {
             span,
+            id: self.new_id(),
             node: IrExprType::Block(ir_nodes.into_iter().flatten().collect::<Vec<IrStmt>>()),
         })
     }
@@ -219,6 +251,7 @@ impl<'ctx> Resolver<'ctx> {
     ) -> Option<IrExpr> {
         Some(IrExpr {
             span,
+            id: self.new_id(),
             node: IrExprType::If {
                 cond: Box::new(self.resolve_expr(cond)?),
                 conseq: Box::new(self.resolve_expr(conseq)?),
@@ -243,6 +276,7 @@ impl<'ctx> Resolver<'ctx> {
 
         Some(IrExpr {
             span,
+            id: self.new_id(),
             node: IrExprType::Application {
                 func: Box::new(self.resolve_expr(func)?),
                 args: ir_args.into_iter().flatten().collect::<Vec<IrExpr>>(),
@@ -259,7 +293,7 @@ impl<'ctx> Resolver<'ctx> {
         let var = match self.ctx.symbol_table.resolve_variable(&var) {
             Some(var_id) => var_id,
             None => {
-                self.ctx.error_context.add_error(MyteError::new(
+                self.ctx.error_ctx.add_error(MyteError::new(
                     format!("Unknown variable {}", var.name),
                     &span,
                     MyteErrorType::Resolve,
@@ -270,6 +304,7 @@ impl<'ctx> Resolver<'ctx> {
 
         Some(IrExpr {
             span,
+            id: self.new_id(),
             node: IrExprType::Assignment {
                 var,
                 expr: Box::new(self.resolve_expr(expr)?),
@@ -288,6 +323,7 @@ impl<'ctx> Resolver<'ctx> {
 
         Some(IrStmt {
             span,
+            id: self.new_id(),
             node: IrStmtType::VariableDefinition {
                 lvalue: Box::new(lvalue),
                 rvalue: Box::new(rvalue),
@@ -306,6 +342,7 @@ impl<'ctx> Resolver<'ctx> {
 
         Some(IrStmt {
             span,
+            id: self.new_id(),
             node: IrStmtType::FunctionDefinition {
                 name,
                 params,
@@ -317,6 +354,7 @@ impl<'ctx> Resolver<'ctx> {
     fn resolve_if_stmt(&mut self, cond: AstExpr, conseq: AstExpr, span: Span) -> Option<IrStmt> {
         Some(IrStmt {
             span,
+            id: self.new_id(),
             node: IrStmtType::If {
                 cond: Box::new(self.resolve_expr(cond)?),
                 conseq: Box::new(self.resolve_expr(conseq)?),

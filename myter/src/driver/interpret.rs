@@ -23,8 +23,8 @@ pub fn interpret(file_names: &[String]) {
         }
     };
 
-    if !ctx.error_context.is_empty() {
-        if let Err(err) = ctx.error_context.print_errors(&ctx) {
+    if !ctx.error_ctx.is_empty() {
+        if let Err(err) = ctx.error_ctx.print_errors(&ctx) {
             println!("{}", err);
         }
 
@@ -36,8 +36,8 @@ pub fn interpret(file_names: &[String]) {
         .flat_map(|ast| resolution::resolve_file(ast, &mut ctx))
         .collect();
 
-    if !ctx.error_context.is_empty() {
-        if let Err(err) = ctx.error_context.print_errors(&ctx) {
+    if !ctx.error_ctx.is_empty() {
+        if let Err(err) = ctx.error_ctx.print_errors(&ctx) {
             println!("{}", err);
         }
 
@@ -88,7 +88,7 @@ fn parse_files(file_names: &[String], ctx: &mut Context) -> io::Result<Vec<Vec<A
         let tokens = match tokenizer::tokenize(&file_bytes, file_descriptor) {
             Ok(tokens) => tokens,
             Err(err) => {
-                ctx.error_context.add_error(err);
+                ctx.error_ctx.add_error(err);
                 continue;
             }
         };

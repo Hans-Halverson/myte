@@ -7,7 +7,7 @@ use interpreter::value::Value;
 use ir::ir::{IrExpr, IrExprType, IrPat, IrStmt, IrStmtType};
 
 fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
-    let IrExpr { span, node } = ir;
+    let IrExpr { span, node, .. } = ir;
     match *node {
         IrExprType::UnitLiteral => Ok(Value::Unit),
         IrExprType::BoolLiteral(bool) => Ok(Value::Bool { bool }),

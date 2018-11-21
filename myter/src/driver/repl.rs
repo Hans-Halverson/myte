@@ -78,12 +78,12 @@ pub fn repl() {
                 parser.parse_repl_line()
             };
 
-            if ctx.error_context.is_unexpected_eof() {
+            if ctx.error_ctx.is_unexpected_eof() {
                 ctx = old_ctx;
                 current_line += 1;
                 continue;
-            } else if !ctx.error_context.is_empty() {
-                if let Err(err) = ctx.error_context.print_errors(&ctx) {
+            } else if !ctx.error_ctx.is_empty() {
+                if let Err(err) = ctx.error_ctx.print_errors(&ctx) {
                     println!("{}", err);
                 }
 
@@ -106,8 +106,8 @@ pub fn repl() {
 
         let ir = {
             let ir_opt = resolution::resolve_repl_line(ast, &mut ctx);
-            if !ctx.error_context.is_empty() {
-                if let Err(err) = ctx.error_context.print_errors(&ctx) {
+            if !ctx.error_ctx.is_empty() {
+                if let Err(err) = ctx.error_ctx.print_errors(&ctx) {
                     println!("{}", err);
                 }
 
