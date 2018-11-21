@@ -1,5 +1,6 @@
+use common::context::Context;
 use common::error::{mkerr, MyteErrorType, MyteResult};
-use common::ident::{SymbolTable, VariableID};
+use common::ident::VariableID;
 use common::span::Span;
 use interpreter::env::Environment;
 use interpreter::value::Value;
@@ -371,11 +372,7 @@ fn bind_variables(pat: &IrPat, val: &Value, env: &mut Environment) {
     }
 }
 
-pub fn apply_main(
-    main_id: VariableID,
-    env: &mut Environment,
-    symbol_table: &SymbolTable,
-) -> MyteResult<Value> {
+pub fn apply_main(main_id: VariableID, env: &mut Environment, ctx: &Context) -> MyteResult<Value> {
     match env.lookup(main_id) {
         Value::Closure {
             ref body,
@@ -384,7 +381,7 @@ pub fn apply_main(
             if params.len() != 0 {
                 return mk_eval_err(
                     "Main takes no arguments".to_string(),
-                    &symbol_table.get_ident(main_id).span,
+                    &ctx.symbol_table.get_ident(main_id).span,
                 );
             }
 
@@ -396,7 +393,7 @@ pub fn apply_main(
         }
         _ => mk_eval_err(
             "Main must be a function".to_string(),
-            &symbol_table.get_ident(main_id).span,
+            &ctx.symbol_table.get_ident(main_id).span,
         ),
     }
 }

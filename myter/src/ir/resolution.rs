@@ -1,23 +1,17 @@
-use common::error::{ErrorContext, MyteError, MyteErrorType};
-use common::ident::{SymbolTable, UnresolvedVariable, VariableID};
+use common::context::Context;
+use common::error::{MyteError, MyteErrorType};
+use common::ident::{UnresolvedVariable, VariableID};
 use common::span::Span;
 use ir::ir::{IrExpr, IrExprType, IrPat, IrStmt, IrStmtType};
 use parser::ast::{AstExpr, AstExprType, AstPat, AstStmt, BinaryOp, UnaryOp};
 
-struct Resolver<'s, 'e> {
-    symbol_table: &'s mut SymbolTable,
-    error_context: &'e mut ErrorContext,
+struct Resolver<'ctx> {
+    ctx: &'ctx mut Context,
 }
 
-impl<'s, 'e> Resolver<'s, 'e> {
-    pub fn new(
-        symbol_table: &'s mut SymbolTable,
-        error_context: &'e mut ErrorContext,
-    ) -> Resolver<'s, 'e> {
-        Resolver {
-            symbol_table,
-            error_context,
-        }
+impl<'ctx> Resolver<'ctx> {
+    pub fn new(ctx: &'ctx mut Context) -> Resolver<'ctx> {
+        Resolver { ctx }
     }
 
     fn resolve_expr(&mut self, expr: AstExpr) -> Option<IrExpr> {
@@ -91,10 +85,10 @@ impl<'s, 'e> Resolver<'s, 'e> {
     }
 
     fn resolve_variable(&mut self, var: UnresolvedVariable, span: Span) -> Option<IrExpr> {
-        let var = match self.symbol_table.resolve_variable(&var) {
+        let var = match self.ctx.symbol_table.resolve_variable(&var) {
             Some(var_id) => var_id,
             None => {
-                self.error_context.add_error(MyteError::new(
+                self.ctx.error_context.add_error(MyteError::new(
                     format!("Unknown variable {}", var.name),
                     &span,
                     MyteErrorType::Resolve,
@@ -262,10 +256,10 @@ impl<'s, 'e> Resolver<'s, 'e> {
         expr: AstExpr,
         span: Span,
     ) -> Option<IrExpr> {
-        let var = match self.symbol_table.resolve_variable(&var) {
+        let var = match self.ctx.symbol_table.resolve_variable(&var) {
             Some(var_id) => var_id,
             None => {
-                self.error_context.add_error(MyteError::new(
+                self.ctx.error_context.add_error(MyteError::new(
                     format!("Unknown variable {}", var.name),
                     &span,
                     MyteErrorType::Resolve,
@@ -331,21 +325,13 @@ impl<'s, 'e> Resolver<'s, 'e> {
     }
 }
 
-pub fn resolve_repl_line(
-    stmt: AstStmt,
-    symbol_table: &mut SymbolTable,
-    error_context: &mut ErrorContext,
-) -> Option<IrStmt> {
-    let mut resolver = Resolver::new(symbol_table, error_context);
+pub fn resolve_repl_line(stmt: AstStmt, ctx: &mut Context) -> Option<IrStmt> {
+    let mut resolver = Resolver::new(ctx);
     resolver.resolve_stmt(stmt)
 }
 
-pub fn resolve_file(
-    stmts: Vec<AstStmt>,
-    symbol_table: &mut SymbolTable,
-    error_context: &mut ErrorContext,
-) -> Vec<IrStmt> {
-    let mut resolver = Resolver::new(symbol_table, error_context);
+pub fn resolve_file(stmts: Vec<AstStmt>, ctx: &mut Context) -> Vec<IrStmt> {
+    let mut resolver = Resolver::new(ctx);
     stmts
         .into_iter()
         .filter_map(|stmt| resolver.resolve_stmt(stmt))

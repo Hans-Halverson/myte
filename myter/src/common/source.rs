@@ -1,5 +1,6 @@
 pub const REPL_FILE_DESCRIPTOR: u32 = 0;
 
+#[derive(Clone)]
 pub struct FileTable {
     repl_contents: String,
     files: Vec<String>,

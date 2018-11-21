@@ -1,26 +1,21 @@
-use common::error::{mkerr, ErrorContext, MyteError, MyteErrorType, MyteResult};
-use common::ident::{ScopeType, SymbolTable};
+use common::context::Context;
+use common::error::{mkerr, MyteError, MyteErrorType, MyteResult};
+use common::ident::ScopeType;
 use common::span::Span;
 use lexer::tokens::{Token, TokenType};
 use parser::ast::{AstExpr, AstExprType, AstPat, AstStmt, BinaryOp, UnaryOp};
 use parser::tokenizer::Tokenizer;
 
-pub struct Parser<'t, 's, 'e> {
-    tokenizer: Tokenizer<'t>,
-    symbol_table: &'s mut SymbolTable,
-    error_context: &'e mut ErrorContext,
+pub struct Parser<'tok, 'ctx> {
+    tokenizer: Tokenizer<'tok>,
+    ctx: &'ctx mut Context,
 }
 
-impl<'t, 's, 'e> Parser<'t, 's, 'e> {
-    pub fn new(
-        tokens: &'t [Token],
-        symbol_table: &'s mut SymbolTable,
-        error_context: &'e mut ErrorContext,
-    ) -> Parser<'t, 's, 'e> {
+impl<'tok, 'ctx> Parser<'tok, 'ctx> {
+    pub fn new(tokens: &'tok [Token], ctx: &'ctx mut Context) -> Parser<'tok, 'ctx> {
         Parser {
             tokenizer: Tokenizer::new(tokens),
-            symbol_table,
-            error_context,
+            ctx,
         }
     }
 
@@ -29,7 +24,7 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
         while !self.tokenizer.reached_end() {
             match self.parse_top_level() {
                 Ok(definition) => definitions.push(definition),
-                Err(err) => self.error_context.add_error(err),
+                Err(err) => self.ctx.error_context.add_error(err),
             }
         }
 
@@ -44,7 +39,7 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
         let stmt = self.parse_stmt();
         if !self.tokenizer.reached_end() {
             if let Ok(token) = self.tokenizer.current() {
-                self.error_context.add_error(unexpected_token(&token))
+                self.ctx.error_context.add_error(unexpected_token(&token))
             }
 
             return None;
@@ -53,7 +48,7 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
         match stmt {
             Ok(ast) => Some(ast),
             Err(err) => {
-                self.error_context.add_error(err);
+                self.ctx.error_context.add_error(err);
                 None
             }
         }
@@ -164,7 +159,7 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
     fn parse_variable(&mut self, name: String, span: Span) -> MyteResult<AstExpr> {
         Ok(AstExpr {
             span,
-            node: AstExprType::Variable(self.symbol_table.unresolved_variable(&name)),
+            node: AstExprType::Variable(self.ctx.symbol_table.unresolved_variable(&name)),
         })
     }
 
@@ -297,16 +292,16 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
     fn parse_block(&mut self, left_brace: Token) -> MyteResult<AstExpr> {
         let mut nodes = Vec::new();
 
-        self.symbol_table.enter_scope(ScopeType::Block);
+        self.ctx.symbol_table.enter_scope(ScopeType::Block);
 
         while !is_current!(self, RightBrace) {
             match self.parse_stmt() {
                 Ok(node) => nodes.push(node),
-                Err(err) => self.error_context.add_error(err),
+                Err(err) => self.ctx.error_context.add_error(err),
             }
         }
 
-        self.symbol_table.exit_scope();
+        self.ctx.symbol_table.exit_scope();
 
         let right_brace = self.tokenizer.next()?;
         Ok(AstExpr {
@@ -356,14 +351,15 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
             span,
         } = ident_token
         {
-            self.symbol_table
-                .add_function(&name, &span, self.error_context)
+            self.ctx
+                .symbol_table
+                .add_function(&name, &span, &mut self.ctx.error_context)
         } else {
             return Err(incorrect_token!(Identifier, ident_token));
         };
 
         let mut param_ids = Vec::new();
-        self.symbol_table.enter_scope(ScopeType::FunctionBody);
+        self.ctx.symbol_table.enter_scope(ScopeType::FunctionBody);
 
         assert_current!(self, LeftParen);
         self.tokenizer.next()?;
@@ -375,7 +371,7 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
                 ty: TokenType::Identifier(name),
             } = param_token
             {
-                self.symbol_table.add_variable(&name, &span)
+                self.ctx.symbol_table.add_variable(&name, &span)
             } else {
                 return Err(incorrect_token!(Identifier, param_token));
             };
@@ -413,7 +409,7 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
             other_token => return Err(unexpected_token(&other_token)),
         };
 
-        self.symbol_table.exit_scope();
+        self.ctx.symbol_table.exit_scope();
 
         Ok(AstStmt::FunctionDefinition {
             span: Span::concat(&def_token.span, &body.span),
@@ -486,7 +482,7 @@ impl<'t, 's, 'e> Parser<'t, 's, 'e> {
     fn lvalue_to_pat(&mut self, lvalue: Lvalue) -> AstPat {
         match lvalue {
             Lvalue::Variable { var, span } => AstPat::Variable {
-                var: self.symbol_table.add_variable(&var, &span),
+                var: self.ctx.symbol_table.add_variable(&var, &span),
                 span,
             },
         }

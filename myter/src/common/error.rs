@@ -1,4 +1,5 @@
-use common::source::{self, FileTable};
+use common::context::Context;
+use common::source;
 use common::span::Span;
 
 use std::cmp::Ordering;
@@ -6,7 +7,7 @@ use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read};
 use std::path::Path;
 
-#[derive(PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum MyteErrorType {
     UnexpectedEOF,
     Lexer,
@@ -15,12 +16,14 @@ pub enum MyteErrorType {
     Evaluate,
 }
 
+#[derive(Clone)]
 pub struct MyteError {
     pub error: String,
     pub span: Span,
     pub ty: MyteErrorType,
 }
 
+#[derive(Clone)]
 pub struct ErrorContext {
     errors: Vec<MyteError>,
     unexpected_eof: Option<MyteError>,
@@ -62,7 +65,7 @@ impl ErrorContext {
         }
     }
 
-    pub fn print_errors(&self, file_table: &FileTable) -> io::Result<()> {
+    pub fn print_errors(&self, ctx: &Context) -> io::Result<()> {
         let mut all_errors = Vec::new();
         if let Some(err) = &self.unexpected_eof {
             all_errors.push(err);
@@ -73,8 +76,8 @@ impl ErrorContext {
         }
 
         all_errors.sort_unstable_by(|err1, err2| {
-            let file1 = file_table.get_file_name(err1.span.file_descriptor);
-            let file2 = file_table.get_file_name(err2.span.file_descriptor);
+            let file1 = ctx.file_table.get_file_name(err1.span.file_descriptor);
+            let file2 = ctx.file_table.get_file_name(err2.span.file_descriptor);
 
             let file_ord = file1.cmp(&file2);
             if file_ord != Ordering::Equal {
@@ -90,7 +93,7 @@ impl ErrorContext {
         });
 
         for error in all_errors {
-            print_err(error, file_table)?;
+            print_err(error, ctx)?;
             println!("");
         }
 
@@ -288,14 +291,14 @@ fn print_dots_line(span: &Span) {
     );
 }
 
-pub fn print_err(err: &MyteError, file_table: &FileTable) -> io::Result<()> {
+pub fn print_err(err: &MyteError, ctx: &Context) -> io::Result<()> {
     let span = &err.span;
-    let repl_contents = file_table.get_repl_contents();
+    let repl_contents = ctx.file_table.get_repl_contents();
     let mut error_reader: Box<ErrorRead> = if span.file_descriptor == source::REPL_FILE_DESCRIPTOR {
         print_summary_line(err, None);
         Box::new(ErrorReader::<&[u8]>::from_repl(&repl_contents))
     } else {
-        let file_name = file_table.get_file_name(span.file_descriptor);
+        let file_name = ctx.file_table.get_file_name(span.file_descriptor);
         print_summary_line(err, Some(&file_name));
         Box::new(ErrorReader::<File>::from_file(file_name)?)
     };

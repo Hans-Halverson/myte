@@ -1,8 +1,8 @@
 use std::io::{self, Write};
 
-use common::error::{self, ErrorContext, MyteError, MyteErrorType};
-use common::ident::SymbolTable;
-use common::source::{FileTable, REPL_FILE_DESCRIPTOR};
+use common::context::Context;
+use common::error::{self, MyteError, MyteErrorType};
+use common::source;
 use interpreter::env::Environment;
 use interpreter::evaluate;
 use ir::ir::{IrStmt, IrStmtType};
@@ -11,9 +11,7 @@ use lexer::tokenizer;
 use parser::parser::Parser;
 
 pub fn repl() {
-    let mut file_table = FileTable::new();
-    let mut symbol_table = SymbolTable::new();
-    let mut error_context = ErrorContext::new();
+    let mut ctx = Context::new();
     let mut env = Environment::new();
 
     let stdin = io::stdin();
@@ -44,54 +42,54 @@ pub fn repl() {
             return;
         }
 
-        file_table.set_repl_contents(current_input.clone());
+        ctx.file_table.set_repl_contents(current_input.clone());
 
-        symbol_table.reset();
+        ctx.symbol_table.reset();
         env.reset();
-        let old_symbol_table = symbol_table.clone();
 
-        let tokens = match tokenizer::tokenize(current_input.as_bytes(), REPL_FILE_DESCRIPTOR) {
-            Ok(tokens) => tokens,
-            Err(MyteError {
-                ty: MyteErrorType::UnexpectedEOF,
-                ..
-            }) => {
-                current_line += 1;
-                error_context = ErrorContext::new();
-                continue;
-            }
-            Err(err) => {
-                if let Err(err) = error::print_err(&err, &file_table) {
-                    println!("{}", err);
+        let old_ctx = ctx.clone();
+
+        let tokens =
+            match tokenizer::tokenize(current_input.as_bytes(), source::REPL_FILE_DESCRIPTOR) {
+                Ok(tokens) => tokens,
+                Err(MyteError {
+                    ty: MyteErrorType::UnexpectedEOF,
+                    ..
+                }) => {
+                    current_line += 1;
+                    ctx = old_ctx;
+                    continue;
                 }
+                Err(err) => {
+                    if let Err(err) = error::print_err(&err, &ctx) {
+                        println!("{}", err);
+                    }
 
-                current_input.clear();
-                current_line = 0;
-                error_context = ErrorContext::new();
-                symbol_table = old_symbol_table;
-                continue;
-            }
-        };
+                    current_input.clear();
+                    current_line = 0;
+                    ctx = old_ctx;
+                    continue;
+                }
+            };
 
         let ast = {
             let ast_opt = {
-                let mut parser = Parser::new(&tokens, &mut symbol_table, &mut error_context);
+                let mut parser = Parser::new(&tokens, &mut ctx);
                 parser.parse_repl_line()
             };
 
-            if error_context.is_unexpected_eof() {
-                error_context = ErrorContext::new();
+            if ctx.error_context.is_unexpected_eof() {
+                ctx = old_ctx;
                 current_line += 1;
                 continue;
-            } else if !error_context.is_empty() {
-                if let Err(err) = error_context.print_errors(&file_table) {
+            } else if !ctx.error_context.is_empty() {
+                if let Err(err) = ctx.error_context.print_errors(&ctx) {
                     println!("{}", err);
                 }
 
                 current_input.clear();
                 current_line = 0;
-                error_context = ErrorContext::new();
-                symbol_table = old_symbol_table;
+                ctx = old_ctx;
                 continue;
             }
 
@@ -100,24 +98,22 @@ pub fn repl() {
                 None => {
                     current_input.clear();
                     current_line = 0;
-                    error_context = ErrorContext::new();
-                    symbol_table = old_symbol_table;
+                    ctx = old_ctx;
                     continue;
                 }
             }
         };
 
         let ir = {
-            let ir_opt = resolution::resolve_repl_line(ast, &mut symbol_table, &mut error_context);
-            if !error_context.is_empty() {
-                if let Err(err) = error_context.print_errors(&file_table) {
+            let ir_opt = resolution::resolve_repl_line(ast, &mut ctx);
+            if !ctx.error_context.is_empty() {
+                if let Err(err) = ctx.error_context.print_errors(&ctx) {
                     println!("{}", err);
                 }
 
                 current_input.clear();
                 current_line = 0;
-                error_context = ErrorContext::new();
-                symbol_table = old_symbol_table;
+                ctx = old_ctx;
                 continue;
             }
 
@@ -135,14 +131,13 @@ pub fn repl() {
         let value = match evaluate::evaluate_repl_line(ir, &mut env) {
             Ok(value) => value,
             Err(err) => {
-                if let Err(err) = error::print_err(&err, &file_table) {
+                if let Err(err) = error::print_err(&err, &ctx) {
                     println!("{}", err);
                 }
 
                 current_input.clear();
                 current_line = 0;
-                error_context = ErrorContext::new();
-                symbol_table = old_symbol_table;
+                ctx = old_ctx;
                 continue;
             }
         };
@@ -153,7 +148,5 @@ pub fn repl() {
 
         current_input.clear();
         current_line = 0;
-        error_context = ErrorContext::new();
-        symbol_table.reset();
     }
 }
