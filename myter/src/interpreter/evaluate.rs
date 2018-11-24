@@ -1,6 +1,6 @@
 use common::context::Context;
 use common::error::{mkerr, MyteErrorType, MyteResult};
-use common::ident::VariableID;
+use common::ident::IdentifierID;
 use common::span::Span;
 use interpreter::env::Environment;
 use interpreter::value::Value;
@@ -330,6 +330,7 @@ fn evaluate_stmt(ir: &IrStmt, env: &mut Environment) -> MyteResult<Value> {
         IrStmtType::VariableDefinition {
             ref lvalue,
             ref rvalue,
+            ..
         } => {
             let val = evaluate_expr(rvalue, env)?;
             bind_variables(lvalue, &val, env);
@@ -372,7 +373,11 @@ fn bind_variables(pat: &IrPat, val: &Value, env: &mut Environment) {
     }
 }
 
-pub fn apply_main(main_id: VariableID, env: &mut Environment, ctx: &Context) -> MyteResult<Value> {
+pub fn apply_main(
+    main_id: IdentifierID,
+    env: &mut Environment,
+    ctx: &Context,
+) -> MyteResult<Value> {
     match env.lookup(main_id) {
         Value::Closure {
             ref body,

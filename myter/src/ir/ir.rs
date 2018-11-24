@@ -1,16 +1,22 @@
-use common::ident::VariableID;
+use common::ident::IdentifierID;
 use common::span::Span;
 
 pub type IrID = u32;
 
 #[derive(Clone)]
 pub struct IrContext {
-    pub next_ir_id: IrID,
+    next_ir_id: IrID,
 }
 
 impl IrContext {
     pub fn new() -> IrContext {
         IrContext { next_ir_id: 0 }
+    }
+
+    pub fn new_ir_id(&mut self) -> IrID {
+        let id = self.next_ir_id;
+        self.next_ir_id += 1;
+        id
     }
 }
 
@@ -28,7 +34,7 @@ pub enum IrExprType {
     StringLiteral(String),
     IntLiteral(i64),
     FloatLiteral(f64),
-    Variable(VariableID),
+    Variable(IdentifierID),
     Add {
         left: Box<IrExpr>,
         right: Box<IrExpr>,
@@ -100,7 +106,7 @@ pub enum IrExprType {
         args: Vec<IrExpr>,
     },
     Assignment {
-        var: VariableID,
+        var: IdentifierID,
         expr: Box<IrExpr>,
     },
 }
@@ -118,10 +124,11 @@ pub enum IrStmtType {
     VariableDefinition {
         lvalue: Box<IrPat>,
         rvalue: Box<IrExpr>,
+        has_annot: bool,
     },
     FunctionDefinition {
-        name: VariableID,
-        params: Vec<VariableID>,
+        name: IdentifierID,
+        params: Vec<IdentifierID>,
         body: Box<IrExpr>,
     },
     If {
@@ -132,5 +139,9 @@ pub enum IrStmtType {
 
 #[derive(Clone)]
 pub enum IrPat {
-    Variable { id: IrID, var: VariableID, span: Span },
+    Variable {
+        id: IrID,
+        var: IdentifierID,
+        span: Span,
+    },
 }

@@ -3,7 +3,7 @@ use common::error::{mkerr, MyteError, MyteErrorType, MyteResult};
 use common::ident::ScopeType;
 use common::span::Span;
 use lexer::tokens::{Token, TokenType};
-use parser::ast::{AstExpr, AstExprType, AstPat, AstStmt, BinaryOp, UnaryOp};
+use parser::ast::{AstExpr, AstExprType, AstPat, AstStmt, AstType, AstTypeType, BinaryOp, UnaryOp};
 use parser::tokenizer::Tokenizer;
 
 pub struct Parser<'tok, 'ctx> {
@@ -36,7 +36,14 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
             return None;
         }
 
-        let stmt = self.parse_stmt();
+        let ast = match self.parse_stmt() {
+            Ok(ast) => Some(ast),
+            Err(err) => {
+                self.ctx.error_ctx.add_error(err);
+                return None;
+            }
+        };
+
         if !self.tokenizer.reached_end() {
             if let Ok(token) = self.tokenizer.current() {
                 self.ctx.error_ctx.add_error(unexpected_token(&token))
@@ -45,13 +52,7 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
             return None;
         }
 
-        match stmt {
-            Ok(ast) => Some(ast),
-            Err(err) => {
-                self.ctx.error_ctx.add_error(err);
-                None
-            }
-        }
+        ast
     }
 
     fn parse_top_level(&mut self) -> MyteResult<AstStmt> {
@@ -332,6 +333,13 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
     fn parse_variable_definition(&mut self, start_token: Token) -> MyteResult<AstStmt> {
         let lvalue = self.parse_lvalue()?;
 
+        let annot = if is_current!(self, Colon) {
+            self.tokenizer.next()?;
+            Some(Box::new(self.parse_type(false)?))
+        } else {
+            None
+        };
+
         assert_current!(self, Equals);
         self.tokenizer.next()?;
 
@@ -341,6 +349,7 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
             span: Span::concat(&start_token.span, &rvalue.span),
             lvalue: Box::new(self.lvalue_to_pat(lvalue)),
             rvalue: Box::new(rvalue),
+            annot,
         })
     }
 
@@ -376,7 +385,12 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
                 return Err(incorrect_token!(Identifier, param_token));
             };
 
-            param_ids.push(param_id);
+            assert_current!(self, Colon);
+            self.tokenizer.next()?;
+
+            let ty = self.parse_type(true)?;
+
+            param_ids.push((param_id, Box::new(ty)));
 
             match self.tokenizer.current()? {
                 Token {
@@ -395,6 +409,13 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
         }
 
         self.tokenizer.next()?;
+
+        let return_annot = if is_current!(self, Colon) {
+            self.tokenizer.next()?;
+            Some(Box::new(self.parse_type(false)?))
+        } else {
+            None
+        };
 
         let current = self.tokenizer.next()?;
         let body = match current {
@@ -416,6 +437,7 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
             name: name_id,
             params: param_ids,
             body: Box::new(body),
+            return_annot,
         })
     }
 
@@ -487,6 +509,96 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
             },
         }
     }
+
+    fn parse_type(&mut self, in_def: bool) -> MyteResult<AstType> {
+        self.parse_type_precedence(in_def, TYPE_PRECEDENCE_NONE)
+    }
+
+    fn parse_type_precedence(&mut self, in_def: bool, precedence: u32) -> MyteResult<AstType> {
+        let first_token = self.tokenizer.next()?;
+        let mut ty = match first_token.ty {
+            TokenType::UnitType => AstType {
+                span: first_token.span,
+                ty: AstTypeType::Unit,
+            },
+            TokenType::BoolType => AstType {
+                span: first_token.span,
+                ty: AstTypeType::Bool,
+            },
+            TokenType::IntType => AstType {
+                span: first_token.span,
+                ty: AstTypeType::Int,
+            },
+            TokenType::FloatType => AstType {
+                span: first_token.span,
+                ty: AstTypeType::Float,
+            },
+            TokenType::StringType => AstType {
+                span: first_token.span,
+                ty: AstTypeType::String,
+            },
+            TokenType::Identifier(name) => {
+                self.parse_variable_type(name, first_token.span, in_def)?
+            }
+            TokenType::LeftParen => self.parse_parenthesized_type(in_def)?,
+            _ => return Err(unexpected_token(&first_token)),
+        };
+
+        if self.tokenizer.reached_end() {
+            return Ok(ty);
+        }
+
+        while !self.tokenizer.reached_end()
+            && precedence < type_precedence(&self.tokenizer.current()?)
+        {
+            let current_token = self.tokenizer.next()?;
+            ty = match current_token.ty {
+                TokenType::Arrow => self.parse_function_type(ty, in_def)?,
+                _ => return Err(unexpected_token(&current_token)),
+            }
+        }
+
+        Ok(ty)
+    }
+
+    fn parse_variable_type(
+        &mut self,
+        name: String,
+        span: Span,
+        in_def: bool,
+    ) -> MyteResult<AstType> {
+        Ok(AstType {
+            span,
+            ty: AstTypeType::Variable(self.ctx.symbol_table.unresolved_type(&name, &span, in_def)),
+        })
+    }
+
+    fn parse_parenthesized_type(&mut self, in_def: bool) -> MyteResult<AstType> {
+        let ty = self.parse_type(in_def)?;
+
+        assert_current!(self, RightParen);
+        self.tokenizer.next()?;
+
+        Ok(ty)
+    }
+
+    fn parse_function_type(&mut self, left_ty: AstType, in_def: bool) -> MyteResult<AstType> {
+        let right_ty = self.parse_type(in_def)?;
+        let span = Span::concat(&left_ty.span, &right_ty.span);
+
+        let arg_tys = match left_ty.ty {
+            AstTypeType::Function(mut arg_tys, ret_ty) => {
+                arg_tys.push(*ret_ty);
+                arg_tys
+            }
+            _ => vec![left_ty],
+        };
+
+        Ok(AstType {
+            ty: AstTypeType::Function(arg_tys, Box::new(right_ty)),
+            span,
+        })
+    }
 }
 
 enum Lvalue {
@@ -525,6 +637,9 @@ const EXPR_PRECEDENCE_EXPONENTIATE: u32 = 8;
 const EXPR_PRECEDENCE_NUMERIC_PREFIX: u32 = 9;
 const EXPR_PRECEDENCE_APPLICATION: u32 = 10;
 
+const TYPE_PRECEDENCE_NONE: u32 = 0;
+const TYPE_PRECEDENCE_FUNCTION: u32 = 1;
+
 fn expr_precedence(token: &Token) -> u32 {
     match token.ty {
         TokenType::DoublePipe => EXPR_PRECEDENCE_LOGICAL_OR,
@@ -541,6 +656,13 @@ fn expr_precedence(token: &Token) -> u32 {
         | TokenType::GreaterThan
         | TokenType::GreaterThanOrEqual => EXPR_PRECEDENCE_COMPARISON,
         _ => EXPR_PRECEDENCE_NONE,
+    }
+}
+
+fn type_precedence(token: &Token) -> u32 {
+    match token.ty {
+        TokenType::Arrow => TYPE_PRECEDENCE_FUNCTION,
+        _ => TYPE_PRECEDENCE_NONE,
     }
 }
 

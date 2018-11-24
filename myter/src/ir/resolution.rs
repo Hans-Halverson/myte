@@ -1,9 +1,10 @@
 use common::context::Context;
 use common::error::{MyteError, MyteErrorType};
-use common::ident::{UnresolvedVariable, VariableID};
+use common::ident::{IdentifierID, UnresolvedType, UnresolvedVariable};
 use common::span::Span;
 use ir::ir::{IrExpr, IrExprType, IrID, IrPat, IrStmt, IrStmtType};
-use parser::ast::{AstExpr, AstExprType, AstPat, AstStmt, BinaryOp, UnaryOp};
+use parser::ast::{AstExpr, AstExprType, AstPat, AstStmt, AstType, AstTypeType, BinaryOp, UnaryOp};
+use types::infer::InferType;
 
 struct Resolver<'ctx> {
     ctx: &'ctx mut Context,
@@ -15,9 +16,18 @@ impl<'ctx> Resolver<'ctx> {
     }
 
     fn new_id(&mut self) -> IrID {
-        let id = self.ctx.ir_ctx.next_ir_id;
-        self.ctx.ir_ctx.next_ir_id += 1;
-        id
+        let Context {
+            ref mut ir_ctx,
+            ref mut infer_ctx,
+            ..
+        } = self.ctx;
+
+        let ir_id = ir_ctx.new_ir_id();
+        let infer_var_id = infer_ctx.new_infer_var_id();
+
+        infer_ctx.ir_to_type.insert(ir_id, infer_var_id);
+
+        ir_id
     }
 
     fn resolve_expr(&mut self, expr: AstExpr) -> Option<IrExpr> {
@@ -79,21 +89,39 @@ impl<'ctx> Resolver<'ctx> {
             AstStmt::VariableDefinition {
                 lvalue,
                 rvalue,
+                annot,
                 span,
-            } => self.resolve_variable_definition(*lvalue, *rvalue, span),
+            } => self.resolve_variable_definition(*lvalue, *rvalue, annot, span),
             AstStmt::FunctionDefinition {
                 name,
                 params,
                 body,
+                return_annot,
                 span,
-            } => self.resolve_function_definition(name, params, *body, span),
+            } => self.resolve_function_definition(name, params, *body, return_annot, span),
             AstStmt::If { cond, conseq, span } => self.resolve_if_stmt(*cond, *conseq, span),
         }
     }
 
     fn resolve_pat(&mut self, pat: AstPat) -> Option<IrPat> {
         match pat {
-            AstPat::Variable { var, span } => Some(IrPat::Variable { var, span, id: self.new_id() }),
+            AstPat::Variable { var, span } => Some(IrPat::Variable {
+                var,
+                span,
+                id: self.new_id(),
+            }),
+        }
+    }
+
+    fn resolve_type(&mut self, ty: AstType) -> Option<InferType> {
+        match ty.ty {
+            AstTypeType::Unit => Some(InferType::Unit),
+            AstTypeType::Bool => Some(InferType::Bool),
+            AstTypeType::Int => Some(InferType::Int),
+            AstTypeType::Float => Some(InferType::Float),
+            AstTypeType::String => Some(InferType::String),
+            AstTypeType::Variable(var) => self.resolve_variable_type(var, ty.span),
+            AstTypeType::Function(arg_tys, ret_ty) => self.resolve_function_type(arg_tys, *ret_ty),
         }
     }
 
@@ -316,10 +344,19 @@ impl<'ctx> Resolver<'ctx> {
         &mut self,
         lvalue: AstPat,
         rvalue: AstExpr,
+        annot: Option<Box<AstType>>,
         span: Span,
     ) -> Option<IrStmt> {
         let lvalue = self.resolve_pat(lvalue)?;
         let rvalue = self.resolve_expr(rvalue)?;
+        let has_annot = annot.is_some();
+
+        let ty = match annot {
+            None => InferType::InferVariable(self.ctx.infer_ctx.new_infer_var_id()),
+            Some(annot) => self.resolve_type(*annot)?,
+        };
+
+        self.match_annotated_pattern(&lvalue, &ty);
 
         Some(IrStmt {
             span,
@@ -327,25 +364,56 @@ impl<'ctx> Resolver<'ctx> {
             node: IrStmtType::VariableDefinition {
                 lvalue: Box::new(lvalue),
                 rvalue: Box::new(rvalue),
+                has_annot,
             },
         })
     }
 
+    fn match_annotated_pattern(&mut self, pat: &IrPat, ty: &InferType) {
+        let IrPat::Variable { var, .. } = pat;
+        self.ctx.infer_ctx.ident_to_type.insert(*var, ty.clone());
+    }
+
     fn resolve_function_definition(
         &mut self,
-        name: VariableID,
-        params: Vec<VariableID>,
+        name: IdentifierID,
+        params: Vec<(IdentifierID, Box<AstType>)>,
         body: AstExpr,
+        return_annot: Option<Box<AstType>>,
         span: Span,
     ) -> Option<IrStmt> {
         let body = self.resolve_expr(body)?;
+
+        let param_ids = params.iter().map(|(param_id, _)| *param_id).collect();
+        let param_tys = params
+            .into_iter()
+            .map(|(_, param_ty)| self.resolve_type(*param_ty))
+            .collect::<Vec<Option<InferType>>>();
+        let return_ty = match return_annot {
+            Some(annot) => self.resolve_type(*annot),
+            None => Some(InferType::Unit),
+        };
+
+        if param_tys
+            .iter()
+            .any(|node| node.is_none() || return_ty.is_none())
+        {
+            return None;
+        }
+
+        let func_ty = InferType::Function(
+            param_tys.into_iter().flatten().collect(),
+            Box::new(return_ty.unwrap()),
+        );
+
+        self.ctx.infer_ctx.type_ident_to_type.insert(name, func_ty);
 
         Some(IrStmt {
             span,
             id: self.new_id(),
             node: IrStmtType::FunctionDefinition {
                 name,
-                params,
+                params: param_ids,
                 body: Box::new(body),
             },
         })
@@ -360,6 +428,52 @@ impl<'ctx> Resolver<'ctx> {
                 conseq: Box::new(self.resolve_expr(conseq)?),
             },
         })
+    }
+
+    fn resolve_variable_type(&mut self, var: UnresolvedType, span: Span) -> Option<InferType> {
+        let var = match self.ctx.symbol_table.resolve_type(&var) {
+            Some(var_id) => var_id,
+            None => {
+                self.ctx.error_ctx.add_error(MyteError::new(
+                    format!("Unknown type {}", var.name),
+                    &span,
+                    MyteErrorType::Resolve,
+                ));
+                return None;
+            }
+        };
+
+        if self.ctx.infer_ctx.type_ident_to_type.contains_key(&var) {
+            Some(self.ctx.infer_ctx.type_ident_to_type[&var].clone())
+        } else {
+            let param_ty = InferType::ParamVariable(self.ctx.infer_ctx.new_param_var_id());
+            self.ctx
+                .infer_ctx
+                .type_ident_to_type
+                .insert(var, param_ty.clone());
+            Some(param_ty)
+        }
+    }
+
+    fn resolve_function_type(
+        &mut self,
+        arg_tys: Vec<AstType>,
+        ret_ty: AstType,
+    ) -> Option<InferType> {
+        let arg_tys = arg_tys
+            .into_iter()
+            .map(|ty| self.resolve_type(ty))
+            .collect::<Vec<Option<InferType>>>();
+        if arg_tys.iter().any(|ty| ty.is_none()) {
+            return None;
+        }
+
+        let ret_ty = self.resolve_type(ret_ty)?;
+
+        Some(InferType::Function(
+            arg_tys.into_iter().flatten().collect::<Vec<InferType>>(),
+            Box::new(ret_ty),
+        ))
     }
 }
 

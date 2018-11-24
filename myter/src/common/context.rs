@@ -3,6 +3,7 @@ use common::ident::SymbolTable;
 use common::source::FileTable;
 
 use ir::ir::IrContext;
+use types::infer::InferContext;
 
 #[derive(Clone)]
 pub struct Context {
@@ -10,6 +11,7 @@ pub struct Context {
     pub error_ctx: ErrorContext,
     pub file_table: FileTable,
     pub ir_ctx: IrContext,
+    pub infer_ctx: InferContext,
 }
 
 impl Context {
@@ -19,6 +21,7 @@ impl Context {
             error_ctx: ErrorContext::new(),
             file_table: FileTable::new(),
             ir_ctx: IrContext::new(),
+            infer_ctx: InferContext::new(),
         }
     }
 }

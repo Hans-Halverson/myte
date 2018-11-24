@@ -14,13 +14,16 @@ macro_rules! token_type {
     (Else) => {
         "else"
     };
+    (Colon) => {
+        ":"
+    };
 }
 
 macro_rules! incorrect_token {
     ($expected:ident, $actual:ident) => {
         MyteError::new(
             format!(
-                "Expected {}, but found {}",
+                "Expected {} but found {}",
                 token_type!($expected),
                 $actual.type_to_string(),
             ),

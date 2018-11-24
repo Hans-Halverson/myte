@@ -1,4 +1,4 @@
-use common::ident::{UnresolvedVariable, VariableID};
+use common::ident::{IdentifierID, UnresolvedType, UnresolvedVariable};
 use common::span::Span;
 
 #[derive(Debug)]
@@ -49,12 +49,14 @@ pub enum AstStmt {
     VariableDefinition {
         lvalue: Box<AstPat>,
         rvalue: Box<AstExpr>,
+        annot: Option<Box<AstType>>,
         span: Span,
     },
     FunctionDefinition {
-        name: VariableID,
-        params: Vec<VariableID>,
+        name: IdentifierID,
+        params: Vec<(IdentifierID, Box<AstType>)>,
         body: Box<AstExpr>,
+        return_annot: Option<Box<AstType>>,
         span: Span,
     },
     If {
@@ -66,7 +68,24 @@ pub enum AstStmt {
 
 #[derive(Debug)]
 pub enum AstPat {
-    Variable { var: VariableID, span: Span },
+    Variable { var: IdentifierID, span: Span },
+}
+
+#[derive(Debug)]
+pub struct AstType {
+    pub ty: AstTypeType,
+    pub span: Span,
+}
+
+#[derive(Debug)]
+pub enum AstTypeType {
+    Variable(UnresolvedType),
+    Unit,
+    Bool,
+    Int,
+    Float,
+    String,
+    Function(Vec<AstType>, Box<AstType>),
 }
 
 #[derive(Debug)]

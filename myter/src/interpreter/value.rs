@@ -1,4 +1,4 @@
-use common::ident::VariableID;
+use common::ident::IdentifierID;
 use ir::ir::IrExpr;
 
 #[derive(Clone)]
@@ -17,7 +17,7 @@ pub enum Value {
         num: f64,
     },
     Closure {
-        params: Vec<VariableID>,
+        params: Vec<IdentifierID>,
         body: Box<IrExpr>,
     },
 }

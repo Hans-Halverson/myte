@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use common::ident::VariableID;
+use common::ident::IdentifierID;
 use interpreter::value::Value;
 
 pub struct Environment {
-    variables: Vec<HashMap<VariableID, Value>>,
+    variables: Vec<HashMap<IdentifierID, Value>>,
 }
 
 impl Environment {
@@ -14,12 +14,12 @@ impl Environment {
         }
     }
 
-    pub fn extend(&mut self, var: VariableID, val: &Value) {
+    pub fn extend(&mut self, var: IdentifierID, val: &Value) {
         let last_idx = self.variables.len() - 1;
         self.variables[last_idx].insert(var, val.clone());
     }
 
-    pub fn lookup(&self, var: VariableID) -> Value {
+    pub fn lookup(&self, var: IdentifierID) -> Value {
         for variables in self.variables.iter().rev() {
             if let Some(val) = variables.get(&var) {
                 return val.clone();
@@ -29,7 +29,7 @@ impl Environment {
         panic!("Variable not found in environment".to_string())
     }
 
-    pub fn reassign(&mut self, var: VariableID, val: &Value) {
+    pub fn reassign(&mut self, var: IdentifierID, val: &Value) {
         for variables in self.variables.iter_mut().rev() {
             if variables.contains_key(&var) {
                 variables.insert(var, val.clone());
