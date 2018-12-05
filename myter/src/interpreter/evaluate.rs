@@ -4,7 +4,7 @@ use common::ident::IdentifierID;
 use common::span::Span;
 use interpreter::env::Environment;
 use interpreter::value::Value;
-use ir::ir::{IrExpr, IrExprType, IrPat, IrStmt, IrStmtType};
+use ir::ir::{IrExpr, IrExprType, IrPat, IrPatType, IrStmt, IrStmtType};
 
 fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
     let IrExpr { span, node, .. } = ir;
@@ -107,7 +107,6 @@ fn evaluate_expr(ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
                 &span,
             ),
         },
-        IrExprType::ParenthesizedGroup(ref node) => evaluate_expr(node, env),
         IrExprType::UnaryPlus(ref node) => match evaluate_expr(node, env)? {
             Value::Int { num } => Ok(Value::Int { num }),
             Value::Float { num } => Ok(Value::Float { num }),
@@ -368,8 +367,8 @@ fn evaluate_stmt(ir: &IrStmt, env: &mut Environment) -> MyteResult<Value> {
 }
 
 fn bind_variables(pat: &IrPat, val: &Value, env: &mut Environment) {
-    match *pat {
-        IrPat::Variable { var, .. } => env.extend(var, val),
+    match pat.pat {
+        IrPatType::Variable(var) => env.extend(var, val),
     }
 }
 

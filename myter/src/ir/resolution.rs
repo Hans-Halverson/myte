@@ -2,7 +2,7 @@ use common::context::Context;
 use common::error::{MyteError, MyteErrorType};
 use common::ident::{IdentifierID, UnresolvedType, UnresolvedVariable};
 use common::span::Span;
-use ir::ir::{IrExpr, IrExprType, IrID, IrPat, IrStmt, IrStmtType};
+use ir::ir::{IrExpr, IrExprType, IrID, IrPat, IrPatType, IrStmt, IrStmtType};
 use parser::ast::{AstExpr, AstExprType, AstPat, AstStmt, AstType, AstTypeType, BinaryOp, UnaryOp};
 use types::infer::InferType;
 
@@ -11,7 +11,7 @@ struct Resolver<'ctx> {
 }
 
 impl<'ctx> Resolver<'ctx> {
-    pub fn new(ctx: &'ctx mut Context) -> Resolver<'ctx> {
+    pub fn new(ctx: &mut Context) -> Resolver {
         Resolver { ctx }
     }
 
@@ -63,11 +63,7 @@ impl<'ctx> Resolver<'ctx> {
             AstExprType::BinaryOp { left, right, op } => {
                 self.resolve_binary_op(*left, *right, op, span)
             }
-            AstExprType::ParenthesizedGroup(node) => Some(IrExpr {
-                span,
-                id: self.new_id(),
-                node: IrExprType::ParenthesizedGroup(Box::new(self.resolve_expr(*node)?)),
-            }),
+            AstExprType::ParenthesizedGroup(node) => Some(self.resolve_expr(*node)?),
             AstExprType::Block(nodes) => self.resolve_block(nodes, span),
             AstExprType::If {
                 cond,
@@ -105,10 +101,10 @@ impl<'ctx> Resolver<'ctx> {
 
     fn resolve_pat(&mut self, pat: AstPat) -> Option<IrPat> {
         match pat {
-            AstPat::Variable { var, span } => Some(IrPat::Variable {
-                var,
+            AstPat::Variable { var, span } => Some(IrPat {
                 span,
                 id: self.new_id(),
+                pat: IrPatType::Variable(var),
             }),
         }
     }
@@ -370,7 +366,10 @@ impl<'ctx> Resolver<'ctx> {
     }
 
     fn match_annotated_pattern(&mut self, pat: &IrPat, ty: &InferType) {
-        let IrPat::Variable { var, .. } = pat;
+        let IrPat {
+            pat: IrPatType::Variable(var),
+            ..
+        } = pat;
         self.ctx.infer_ctx.ident_to_type.insert(*var, ty.clone());
     }
 
@@ -384,8 +383,8 @@ impl<'ctx> Resolver<'ctx> {
     ) -> Option<IrStmt> {
         let body = self.resolve_expr(body)?;
 
-        let param_ids = params.iter().map(|(param_id, _)| *param_id).collect();
-        let param_tys = params
+        let param_ids = params.iter().map(|(param_id, _)| *param_id).collect::<Vec<IdentifierID>>();
+        let param_opt_tys = params
             .into_iter()
             .map(|(_, param_ty)| self.resolve_type(*param_ty))
             .collect::<Vec<Option<InferType>>>();
@@ -394,19 +393,24 @@ impl<'ctx> Resolver<'ctx> {
             None => Some(InferType::Unit),
         };
 
-        if param_tys
+        if param_opt_tys
             .iter()
             .any(|node| node.is_none() || return_ty.is_none())
         {
             return None;
         }
 
+        let param_tys = param_opt_tys.into_iter().flatten().collect::<Vec<InferType>>();
+        for (param_id, param_ty) in param_ids.iter().zip(&param_tys) {
+            self.ctx.infer_ctx.ident_to_type.insert(*param_id, param_ty.clone());
+        }
+
         let func_ty = InferType::Function(
-            param_tys.into_iter().flatten().collect(),
+            param_tys,
             Box::new(return_ty.unwrap()),
         );
 
-        self.ctx.infer_ctx.type_ident_to_type.insert(name, func_ty);
+        self.ctx.infer_ctx.ident_to_type.insert(name, func_ty);
 
         Some(IrStmt {
             span,

@@ -9,6 +9,7 @@ use ir::ir::{IrStmt, IrStmtType};
 use ir::resolution;
 use lexer::tokenizer;
 use parser::parser::Parser;
+use types::check;
 
 pub fn repl() {
     let mut ctx = Context::new();
@@ -127,6 +128,18 @@ pub fn repl() {
             } => true,
             _ => false,
         };
+
+        check::type_check_repl_line(&ir, &mut ctx);
+        if !ctx.error_ctx.is_empty() {
+            if let Err(err) = ctx.error_ctx.print_errors(&ctx) {
+                println!("{}", err);
+            }
+
+            current_input.clear();
+            current_line = 0;
+            ctx = old_ctx;
+            continue;
+        }
 
         let value = match evaluate::evaluate_repl_line(ir, &mut env) {
             Ok(value) => value,

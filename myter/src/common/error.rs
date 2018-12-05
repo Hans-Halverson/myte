@@ -13,6 +13,7 @@ pub enum MyteErrorType {
     Lexer,
     Parser,
     Resolve,
+    Type,
     Evaluate,
 }
 

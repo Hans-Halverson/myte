@@ -59,7 +59,6 @@ pub enum IrExprType {
         left: Box<IrExpr>,
         right: Box<IrExpr>,
     },
-    ParenthesizedGroup(Box<IrExpr>),
     UnaryPlus(Box<IrExpr>),
     UnaryMinus(Box<IrExpr>),
     LogicalNot(Box<IrExpr>),
@@ -138,10 +137,13 @@ pub enum IrStmtType {
 }
 
 #[derive(Clone)]
-pub enum IrPat {
-    Variable {
-        id: IrID,
-        var: IdentifierID,
-        span: Span,
-    },
+pub struct IrPat {
+    pub id: IrID,
+    pub pat: IrPatType,
+    pub span: Span,
+}
+
+#[derive(Clone)]
+pub enum IrPatType {
+    Variable(IdentifierID),
 }

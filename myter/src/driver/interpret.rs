@@ -6,10 +6,12 @@ use common::context::Context;
 use common::error;
 use interpreter::env::Environment;
 use interpreter::evaluate;
+use ir::ir::IrStmt;
 use ir::resolution;
 use lexer::tokenizer;
 use parser::ast::AstStmt;
 use parser::parser::Parser;
+use types::check;
 
 pub fn interpret(file_names: &[String]) {
     let mut ctx = Context::new();
@@ -34,7 +36,17 @@ pub fn interpret(file_names: &[String]) {
     let ir = file_asts
         .into_iter()
         .flat_map(|ast| resolution::resolve_file(ast, &mut ctx))
-        .collect();
+        .collect::<Vec<IrStmt>>();
+
+    if !ctx.error_ctx.is_empty() {
+        if let Err(err) = ctx.error_ctx.print_errors(&ctx) {
+            println!("{}", err);
+        }
+
+        return;
+    }
+
+    check::type_check_files(&ir, &mut ctx);
 
     if !ctx.error_ctx.is_empty() {
         if let Err(err) = ctx.error_ctx.print_errors(&ctx) {
