@@ -381,9 +381,10 @@ impl<'ctx> Resolver<'ctx> {
         return_annot: Option<Box<AstType>>,
         span: Span,
     ) -> Option<IrStmt> {
-        let body = self.resolve_expr(body)?;
-
-        let param_ids = params.iter().map(|(param_id, _)| *param_id).collect::<Vec<IdentifierID>>();
+        let param_ids = params
+            .iter()
+            .map(|(param_id, _)| *param_id)
+            .collect::<Vec<IdentifierID>>();
         let param_opt_tys = params
             .into_iter()
             .map(|(_, param_ty)| self.resolve_type(*param_ty))
@@ -393,6 +394,8 @@ impl<'ctx> Resolver<'ctx> {
             None => Some(InferType::Unit),
         };
 
+        let body = self.resolve_expr(body)?;
+
         if param_opt_tys
             .iter()
             .any(|node| node.is_none() || return_ty.is_none())
@@ -400,15 +403,18 @@ impl<'ctx> Resolver<'ctx> {
             return None;
         }
 
-        let param_tys = param_opt_tys.into_iter().flatten().collect::<Vec<InferType>>();
+        let param_tys = param_opt_tys
+            .into_iter()
+            .flatten()
+            .collect::<Vec<InferType>>();
         for (param_id, param_ty) in param_ids.iter().zip(&param_tys) {
-            self.ctx.infer_ctx.ident_to_type.insert(*param_id, param_ty.clone());
+            self.ctx
+                .infer_ctx
+                .ident_to_type
+                .insert(*param_id, param_ty.clone());
         }
 
-        let func_ty = InferType::Function(
-            param_tys,
-            Box::new(return_ty.unwrap()),
-        );
+        let func_ty = InferType::Function(param_tys, Box::new(return_ty.unwrap()));
 
         self.ctx.infer_ctx.ident_to_type.insert(name, func_ty);
 

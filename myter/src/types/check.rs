@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
+use std::iter::FromIterator;
 
 use common::context::Context;
 use common::error::{MyteError, MyteErrorType};
@@ -9,11 +11,15 @@ use types::infer::{InferType, InferTypeVariable, InferVarID};
 
 struct TypeChecker<'ctx> {
     ctx: &'ctx mut Context,
+    bound_var_scopes: Vec<HashSet<InferTypeVariable>>,
 }
 
 impl<'ctx> TypeChecker<'ctx> {
     pub fn new(ctx: &mut Context) -> TypeChecker {
-        TypeChecker { ctx }
+        TypeChecker {
+            ctx,
+            bound_var_scopes: Vec::new(),
+        }
     }
 
     fn unify(&mut self, ty1: &InferType, ty2: &InferType) -> bool {
@@ -109,7 +115,9 @@ impl<'ctx> TypeChecker<'ctx> {
             IrStmtType::VariableDefinition { lvalue, rvalue, .. } => {
                 self.check_variable_definition(lvalue, rvalue, &ty, span)
             }
-            IrStmtType::FunctionDefinition { name, body, .. } => self.check_function_definition(name, body, &ty, span),
+            IrStmtType::FunctionDefinition { name, body, .. } => {
+                self.check_function_definition(name, body, &ty, span)
+            }
         }
     }
 
@@ -501,17 +509,19 @@ impl<'ctx> TypeChecker<'ctx> {
         ty: &InferType,
         span: &Span,
     ) {
-        self.check_expr(body);
-
-        let body_ty = self.expr_var(body);
-
         let name = self.ctx.symbol_table.get_ident(*var).name.clone();
         let func_ty = self.ctx.infer_ctx.ident_to_type[var].clone();
-        let ret_ty = if let InferType::Function(_, ret) = func_ty {
+        let ret_ty = if let InferType::Function(_, ret) = &func_ty {
             ret
         } else {
-            return;
+            panic!("Function must have function type")
         };
+
+        self.enter_bound_scope(&func_ty);
+        self.check_expr(body);
+        self.exit_bound_scope();
+
+        let body_ty = self.expr_var(body);
 
         if !self.unify(&ret_ty, &body_ty) {
             add_formatted_type_error!(
@@ -552,9 +562,30 @@ impl<'ctx> TypeChecker<'ctx> {
     }
 
     fn refresh(&mut self, ty: &InferType) -> InferType {
+        let mut rep_bound_vars = HashSet::new();
+        for bound_var_scope in self.bound_var_scopes.clone().iter() {
+            for bound_var in bound_var_scope.iter() {
+                let rep_ty = match bound_var {
+                    InferTypeVariable::Infer(var) => self.rep(&InferType::InferVariable(*var)),
+                    InferTypeVariable::Param(var) => self.rep(&InferType::ParamVariable(*var)),
+                };
+
+                match rep_ty {
+                    InferType::InferVariable(var) => {
+                        rep_bound_vars.insert(InferTypeVariable::Infer(var))
+                    }
+                    InferType::ParamVariable(var) => {
+                        rep_bound_vars.insert(InferTypeVariable::Param(var))
+                    }
+                    _ => true,
+                };
+            }
+        }
+
         let refreshed_vars = ty
             .get_vars()
             .into_iter()
+            .filter(|var| !rep_bound_vars.contains(var))
             .map(|var| (var, self.ctx.infer_ctx.new_infer_var_id()))
             .collect();
         self.refresh_with_vars(ty, &refreshed_vars)
@@ -566,12 +597,14 @@ impl<'ctx> TypeChecker<'ctx> {
         vars: &HashMap<InferTypeVariable, InferVarID>,
     ) -> InferType {
         match ty {
-            InferType::InferVariable(var) => {
-                InferType::InferVariable(vars[&InferTypeVariable::Infer(*var)])
-            }
-            InferType::ParamVariable(var) => {
-                InferType::InferVariable(vars[&InferTypeVariable::Param(*var)])
-            }
+            InferType::InferVariable(var) => match vars.get(&InferTypeVariable::Infer(*var)) {
+                Some(refreshed_var) => InferType::InferVariable(*refreshed_var),
+                None => ty.clone(),
+            },
+            InferType::ParamVariable(var) => match vars.get(&InferTypeVariable::Param(*var)) {
+                Some(refreshed_var) => InferType::InferVariable(*refreshed_var),
+                None => ty.clone(),
+            },
             InferType::Unit
             | InferType::Bool
             | InferType::Int
@@ -584,6 +617,16 @@ impl<'ctx> TypeChecker<'ctx> {
                 Box::new(self.refresh_with_vars(ret, vars)),
             ),
         }
+    }
+
+    fn enter_bound_scope(&mut self, ty: &InferType) {
+        let type_vars = ty.get_vars();
+        self.bound_var_scopes
+            .push(HashSet::from_iter(type_vars.into_iter()))
+    }
+
+    fn exit_bound_scope(&mut self) {
+        self.bound_var_scopes.pop();
     }
 }
 
