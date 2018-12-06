@@ -78,7 +78,7 @@ impl InferType {
                     args.iter()
                         .map(|arg| arg.format(vars))
                         .collect::<Vec<String>>()
-                        .join("->")
+                        .join(" -> ")
                 } else {
                     "unit".to_string()
                 };
@@ -148,7 +148,7 @@ impl fmt::Debug for InferType {
                     args.iter()
                         .map(|arg| format!("{:?}", arg))
                         .collect::<Vec<String>>()
-                        .join("->")
+                        .join(" -> ")
                 } else {
                     "unit".to_string()
                 };

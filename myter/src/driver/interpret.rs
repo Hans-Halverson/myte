@@ -12,6 +12,7 @@ use lexer::tokenizer;
 use parser::ast::AstStmt;
 use parser::parser::Parser;
 use types::check;
+use types::infer::InferType;
 
 pub fn interpret(file_names: &[String]) {
     let mut ctx = Context::new();
@@ -56,24 +57,9 @@ pub fn interpret(file_names: &[String]) {
         return;
     }
 
-    if let Err(err) = evaluate::evaluate_files(ir, &mut env) {
-        if let Err(err) = error::print_err(&err, &ctx) {
-            println!("{}", err);
-        }
-
-        return;
-    };
-
-    let main_id = match ctx.symbol_table.get_main_id() {
-        Some(id) => id,
-        None => {
-            error::print_err_string("No main function defined");
-            return;
-        }
-    };
-
-    let return_value = match evaluate::apply_main(main_id, &mut env, &ctx) {
-        Ok(value) => value,
+    let return_value = match evaluate::evaluate_files(ir, &mut env, &mut ctx) {
+        Ok(None) => return,
+        Ok(Some(value)) => value,
         Err(err) => {
             if let Err(err) = error::print_err(&err, &ctx) {
                 println!("{}", err);
@@ -83,7 +69,11 @@ pub fn interpret(file_names: &[String]) {
         }
     };
 
-    println!("{}", return_value.to_string())
+    println!(
+        "{} : {}",
+        return_value.to_string(),
+        InferType::format_types(vec!(&ctx.infer_ctx.graph.rep(&return_value.ty())))[0]
+    )
 }
 
 fn parse_files(file_names: &[String], ctx: &mut Context) -> io::Result<Vec<Vec<AstStmt>>> {

@@ -10,6 +10,7 @@ use ir::resolution;
 use lexer::tokenizer;
 use parser::parser::Parser;
 use types::check;
+use types::infer::InferType;
 
 pub fn repl() {
     let mut ctx = Context::new();
@@ -141,7 +142,7 @@ pub fn repl() {
             continue;
         }
 
-        let value = match evaluate::evaluate_repl_line(ir, &mut env) {
+        let value = match evaluate::evaluate_repl_line(ir, &mut env, &mut ctx) {
             Ok(value) => value,
             Err(err) => {
                 if let Err(err) = error::print_err(&err, &ctx) {
@@ -156,7 +157,11 @@ pub fn repl() {
         };
 
         if is_expr {
-            println!("{}", value.to_string())
+            println!(
+                "{} : {}",
+                value.to_string(),
+                InferType::format_types(vec!(&ctx.infer_ctx.graph.rep(&value.ty())))[0]
+            )
         }
 
         current_input.clear();
