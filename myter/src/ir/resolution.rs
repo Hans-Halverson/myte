@@ -2,8 +2,8 @@ use common::context::Context;
 use common::error::{MyteError, MyteErrorType};
 use common::ident::{IdentifierID, UnresolvedType, UnresolvedVariable};
 use common::span::Span;
-use ir::ir::{IrExpr, IrExprType, IrID, IrPat, IrPatType, IrStmt, IrStmtType};
-use parser::ast::{AstExpr, AstExprType, AstPat, AstStmt, AstType, AstTypeType, BinaryOp, UnaryOp};
+use ir::nodes::{IrExpr, IrExprType, IrID, IrPat, IrPatType, IrStmt, IrStmtType};
+use parse::ast::{AstExpr, AstExprType, AstPat, AstStmt, AstType, AstTypeType, BinaryOp, UnaryOp};
 use types::infer::InferType;
 
 struct Resolver<'ctx> {
@@ -58,7 +58,7 @@ impl<'ctx> Resolver<'ctx> {
                 id: self.new_id(),
                 node: IrExprType::FloatLiteral(num),
             }),
-            AstExprType::Variable(var) => self.resolve_variable(var, span),
+            AstExprType::Variable(var) => self.resolve_variable(&var, span),
             AstExprType::UnaryOp { node, op } => self.resolve_unary_op(*node, op, span),
             AstExprType::BinaryOp { left, right, op } => {
                 self.resolve_binary_op(*left, *right, op, span)
@@ -71,7 +71,7 @@ impl<'ctx> Resolver<'ctx> {
                 altern,
             } => self.resolve_if_expr(*cond, *conseq, *altern, span),
             AstExprType::Application { func, args } => self.resolve_application(*func, args, span),
-            AstExprType::Assignment { var, expr } => self.resolve_assignment(var, *expr, span),
+            AstExprType::Assignment { var, expr } => self.resolve_assignment(&var, *expr, span),
         }
     }
 
@@ -116,12 +116,12 @@ impl<'ctx> Resolver<'ctx> {
             AstTypeType::Int => Some(InferType::Int),
             AstTypeType::Float => Some(InferType::Float),
             AstTypeType::String => Some(InferType::String),
-            AstTypeType::Variable(var) => self.resolve_variable_type(var, ty.span),
+            AstTypeType::Variable(var) => self.resolve_variable_type(&var, ty.span),
             AstTypeType::Function(arg_tys, ret_ty) => self.resolve_function_type(arg_tys, *ret_ty),
         }
     }
 
-    fn resolve_variable(&mut self, var: UnresolvedVariable, span: Span) -> Option<IrExpr> {
+    fn resolve_variable(&mut self, var: &UnresolvedVariable, span: Span) -> Option<IrExpr> {
         let var = match self.ctx.symbol_table.resolve_variable(&var) {
             Some(var_id) => var_id,
             None => {
@@ -310,7 +310,7 @@ impl<'ctx> Resolver<'ctx> {
 
     fn resolve_assignment(
         &mut self,
-        var: UnresolvedVariable,
+        var: &UnresolvedVariable,
         expr: AstExpr,
         span: Span,
     ) -> Option<IrExpr> {
@@ -440,8 +440,8 @@ impl<'ctx> Resolver<'ctx> {
         })
     }
 
-    fn resolve_variable_type(&mut self, var: UnresolvedType, span: Span) -> Option<InferType> {
-        let var = match self.ctx.symbol_table.resolve_type(&var) {
+    fn resolve_variable_type(&mut self, var: &UnresolvedType, span: Span) -> Option<InferType> {
+        let var = match self.ctx.symbol_table.resolve_type(var) {
             Some(var_id) => var_id,
             None => {
                 self.ctx.error_ctx.add_error(MyteError::new(

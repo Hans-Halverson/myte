@@ -2,9 +2,9 @@ use common::context::Context;
 use common::error::{mkerr, MyteError, MyteErrorType, MyteResult};
 use common::ident::ScopeType;
 use common::span::Span;
-use lexer::tokens::{Token, TokenType};
-use parser::ast::{AstExpr, AstExprType, AstPat, AstStmt, AstType, AstTypeType, BinaryOp, UnaryOp};
-use parser::tokenizer::Tokenizer;
+use lex::tokens::{Token, TokenType};
+use parse::ast::{AstExpr, AstExprType, AstPat, AstStmt, AstType, AstTypeType, BinaryOp, UnaryOp};
+use parse::tokenizer::Tokenizer;
 
 pub struct Parser<'tok, 'ctx> {
     tokenizer: Tokenizer<'tok>,
@@ -58,8 +58,8 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
     fn parse_top_level(&mut self) -> MyteResult<AstStmt> {
         let token = self.tokenizer.next()?;
         match token.ty {
-            TokenType::Let => self.parse_variable_definition(token),
-            TokenType::Def => self.parse_function_definition(token),
+            TokenType::Let => self.parse_variable_definition(&token),
+            TokenType::Def => self.parse_function_definition(&token),
             _ => mkerr(
                 "Only variable and function definitions are allowed on top level".to_string(),
                 &token.span,
@@ -71,9 +71,9 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
     fn parse_stmt(&mut self) -> MyteResult<AstStmt> {
         let token = self.tokenizer.next()?;
         match token.ty {
-            TokenType::Let => self.parse_variable_definition(token),
-            TokenType::Def => self.parse_function_definition(token),
-            TokenType::If => self.parse_if_stmt(token),
+            TokenType::Let => self.parse_variable_definition(&token),
+            TokenType::Def => self.parse_function_definition(&token),
+            TokenType::If => self.parse_if_stmt(&token),
             _ => Ok(AstStmt::Expr {
                 expr: Box::new(self.parse_expr_precedence(token, EXPR_PRECEDENCE_NONE)?),
             }),
@@ -111,13 +111,13 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
                 span: first_token.span,
                 node: AstExprType::FloatLiteral(num),
             },
-            TokenType::Identifier(name) => self.parse_variable(name, first_token.span)?,
-            TokenType::Plus => self.parse_unary_op(first_token, UnaryOp::Plus)?,
-            TokenType::Minus => self.parse_unary_op(first_token, UnaryOp::Minus)?,
-            TokenType::Bang => self.parse_unary_op(first_token, UnaryOp::LogicalNot)?,
-            TokenType::LeftParen => self.parse_parenthesized_expr(first_token)?,
-            TokenType::LeftBrace => self.parse_block(first_token)?,
-            TokenType::If => self.parse_if_expr(first_token)?,
+            TokenType::Identifier(name) => self.parse_variable(&name, first_token.span)?,
+            TokenType::Plus => self.parse_unary_op(&first_token, UnaryOp::Plus)?,
+            TokenType::Minus => self.parse_unary_op(&first_token, UnaryOp::Minus)?,
+            TokenType::Bang => self.parse_unary_op(&first_token, UnaryOp::LogicalNot)?,
+            TokenType::LeftParen => self.parse_parenthesized_expr(&first_token)?,
+            TokenType::LeftBrace => self.parse_block(&first_token)?,
+            TokenType::If => self.parse_if_expr(&first_token)?,
             _ => return Err(unexpected_token(&first_token)),
         };
 
@@ -157,14 +157,14 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
         Ok(expr)
     }
 
-    fn parse_variable(&mut self, name: String, span: Span) -> MyteResult<AstExpr> {
+    fn parse_variable(&mut self, name: &str, span: Span) -> MyteResult<AstExpr> {
         Ok(AstExpr {
             span,
-            node: AstExprType::Variable(self.ctx.symbol_table.unresolved_variable(&name)),
+            node: AstExprType::Variable(self.ctx.symbol_table.unresolved_variable(name)),
         })
     }
 
-    fn parse_unary_op(&mut self, op_token: Token, op: UnaryOp) -> MyteResult<AstExpr> {
+    fn parse_unary_op(&mut self, op_token: &Token, op: UnaryOp) -> MyteResult<AstExpr> {
         let next_token = self.tokenizer.next()?;
         let precedence = match op {
             UnaryOp::Plus | UnaryOp::Minus => EXPR_PRECEDENCE_NUMERIC_PREFIX,
@@ -270,7 +270,7 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
         })
     }
 
-    fn parse_parenthesized_expr(&mut self, left_paren: Token) -> MyteResult<AstExpr> {
+    fn parse_parenthesized_expr(&mut self, left_paren: &Token) -> MyteResult<AstExpr> {
         if let TokenType::RightParen = self.tokenizer.current()?.ty {
             let right_paren = self.tokenizer.next()?;
             return Ok(AstExpr {
@@ -290,7 +290,7 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
         })
     }
 
-    fn parse_block(&mut self, left_brace: Token) -> MyteResult<AstExpr> {
+    fn parse_block(&mut self, left_brace: &Token) -> MyteResult<AstExpr> {
         let mut nodes = Vec::new();
 
         self.ctx.symbol_table.enter_scope(ScopeType::Block);
@@ -311,7 +311,7 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
         })
     }
 
-    fn parse_if_expr(&mut self, if_token: Token) -> MyteResult<AstExpr> {
+    fn parse_if_expr(&mut self, if_token: &Token) -> MyteResult<AstExpr> {
         let cond = self.parse_expr()?;
         let conseq = self.parse_expr()?;
 
@@ -330,7 +330,7 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
         })
     }
 
-    fn parse_variable_definition(&mut self, start_token: Token) -> MyteResult<AstStmt> {
+    fn parse_variable_definition(&mut self, start_token: &Token) -> MyteResult<AstStmt> {
         let lvalue = self.parse_lvalue()?;
 
         let annot = if is_current!(self, Colon) {
@@ -353,7 +353,7 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
         })
     }
 
-    fn parse_function_definition(&mut self, def_token: Token) -> MyteResult<AstStmt> {
+    fn parse_function_definition(&mut self, def_token: &Token) -> MyteResult<AstStmt> {
         let ident_token = self.tokenizer.next()?;
         let name_id = if let Token {
             ty: TokenType::Identifier(name),
@@ -426,7 +426,7 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
             Token {
                 ty: TokenType::LeftBrace,
                 ..
-            } => self.parse_block(current)?,
+            } => self.parse_block(&current)?,
             other_token => return Err(unexpected_token(&other_token)),
         };
 
@@ -441,7 +441,7 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
         })
     }
 
-    fn parse_if_stmt(&mut self, if_token: Token) -> MyteResult<AstStmt> {
+    fn parse_if_stmt(&mut self, if_token: &Token) -> MyteResult<AstStmt> {
         let cond = self.parse_expr()?;
         let conseq = self.parse_expr()?;
 
@@ -538,7 +538,7 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
                 ty: AstTypeType::String,
             },
             TokenType::Identifier(name) => {
-                self.parse_variable_type(name, first_token.span, in_def)?
+                self.parse_variable_type(&name, first_token.span, in_def)?
             }
             TokenType::LeftParen => self.parse_parenthesized_type(in_def)?,
             _ => return Err(unexpected_token(&first_token)),
@@ -561,12 +561,7 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
         Ok(ty)
     }
 
-    fn parse_variable_type(
-        &mut self,
-        name: String,
-        span: Span,
-        in_def: bool,
-    ) -> MyteResult<AstType> {
+    fn parse_variable_type(&mut self, name: &str, span: Span, in_def: bool) -> MyteResult<AstType> {
         Ok(AstType {
             span,
             ty: AstTypeType::Variable(self.ctx.symbol_table.unresolved_type(&name, &span, in_def)),

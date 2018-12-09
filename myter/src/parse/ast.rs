@@ -66,7 +66,7 @@ pub enum AstStmt {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum AstPat {
     Variable { var: IdentifierID, span: Span },
 }
@@ -88,14 +88,14 @@ pub enum AstTypeType {
     Function(Vec<AstType>, Box<AstType>),
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum UnaryOp {
     Plus,
     Minus,
     LogicalNot,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum BinaryOp {
     Add,
     Subtract,

@@ -1,5 +1,5 @@
 use common::ident::IdentifierID;
-use ir::ir::IrExpr;
+use ir::nodes::IrExpr;
 use types::infer::InferType;
 
 #[derive(Clone)]

@@ -106,7 +106,7 @@ impl SymbolTable {
 
         self.variables.push(Identifier {
             name: name.to_string(),
-            span: span.clone(),
+            span: *span,
         });
 
         if self.get_scope(self.current_id).ty != ScopeType::Package {
@@ -147,7 +147,7 @@ impl SymbolTable {
 
         self.variables.push(Identifier {
             name: name.to_string(),
-            span: span.clone(),
+            span: *span,
         });
 
         self.scopes[self.current_id]
@@ -168,13 +168,13 @@ impl SymbolTable {
         UnresolvedType {
             name: name.to_string(),
             scope_id: self.current_id,
-            span: span.clone(),
+            span: *span,
             in_def,
         }
     }
 
     pub fn resolve_variable(&self, var: &UnresolvedVariable) -> Option<IdentifierID> {
-        return self.lookup_variable_in_scope(var.scope_id, &var.name);
+        self.lookup_variable_in_scope(var.scope_id, &var.name)
     }
 
     pub fn resolve_type(&mut self, ty: &UnresolvedType) -> Option<TypeIdentifierID> {
@@ -188,7 +188,7 @@ impl SymbolTable {
 
             self.types.push(TypeIdentifier {
                 name: ty.name.to_string(),
-                span: ty.span.clone(),
+                span: ty.span,
             });
 
             self.scopes[type_scope_id]
@@ -202,13 +202,13 @@ impl SymbolTable {
     }
 
     fn get_scope(&self, scope_id: ScopeID) -> &Scope {
-        return &self.scopes[scope_id];
+        &self.scopes[scope_id]
     }
 
     fn lookup_variable_in_scope(&self, scope_id: ScopeID, name: &str) -> Option<IdentifierID> {
         let scope = self.get_scope(scope_id);
         match scope.variables.get(name) {
-            Some(ident) => Some(ident.clone()),
+            Some(ident) => Some(*ident),
             None => match &scope.parent_id {
                 Some(parent_id) => self.lookup_variable_in_scope(*parent_id, name),
                 None => None,
@@ -219,7 +219,7 @@ impl SymbolTable {
     fn lookup_type_in_scope(&self, scope_id: ScopeID, name: &str) -> Option<TypeIdentifierID> {
         let scope = self.get_scope(scope_id);
         match scope.types.get(name) {
-            Some(ident) => Some(ident.clone()),
+            Some(ident) => Some(*ident),
             None => match &scope.parent_id {
                 Some(parent_id) => self.lookup_variable_in_scope(*parent_id, name),
                 None => None,

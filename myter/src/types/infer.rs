@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt;
 
 use common::ident::{IdentifierID, TypeIdentifierID};
-use ir::ir::IrID;
+use ir::nodes::IrID;
 use types::graph::TypeGraph;
 
 pub type InferVarID = u32;
@@ -74,7 +74,7 @@ impl InferType {
             InferType::Float => "float".to_string(),
             InferType::String => "string".to_string(),
             InferType::Function(args, ret) => {
-                let args_format = if args.len() != 0 {
+                let args_format = if !args.is_empty() {
                     args.iter()
                         .map(|arg| arg.format(vars))
                         .collect::<Vec<String>>()
@@ -108,7 +108,7 @@ impl InferType {
         }
     }
 
-    pub fn format_types(tys: Vec<&InferType>) -> Vec<String> {
+    pub fn format_types(tys: &[InferType]) -> Vec<String> {
         let mut all_vars = tys
             .iter()
             .flat_map(|ty| ty.get_vars())
@@ -144,7 +144,7 @@ impl fmt::Debug for InferType {
             InferType::Float => write!(f, "float"),
             InferType::String => write!(f, "string"),
             InferType::Function(args, ret) => {
-                let args_format = if args.len() != 0 {
+                let args_format = if !args.is_empty() {
                     args.iter()
                         .map(|arg| format!("{:?}", arg))
                         .collect::<Vec<String>>()

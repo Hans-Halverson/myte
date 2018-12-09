@@ -6,7 +6,7 @@ use common::context::Context;
 use common::error::{MyteError, MyteErrorType};
 use common::ident::IdentifierID;
 use common::span::Span;
-use ir::ir::{IrExpr, IrExprType, IrPat, IrPatType, IrStmt, IrStmtType};
+use ir::nodes::{IrExpr, IrExprType, IrPat, IrPatType, IrStmt, IrStmtType};
 use types::infer::{InferType, InferTypeVariable, InferVarID};
 
 struct TypeChecker<'ctx> {
@@ -55,7 +55,7 @@ impl<'ctx> TypeChecker<'ctx> {
             IrExprType::StringLiteral(_) => {
                 self.check_literal(&ty, span, "string", &InferType::String)
             }
-            IrExprType::Variable(var) => self.check_variable(var, &ty, span),
+            IrExprType::Variable(var) => self.check_variable(*var, &ty, span),
             IrExprType::Add { left, right } => {
                 self.check_binary_math_expr(left, right, &ty, span, "add")
             }
@@ -102,7 +102,7 @@ impl<'ctx> TypeChecker<'ctx> {
                 altern,
             } => self.check_if_expr(cond, conseq, altern, &ty, span),
             IrExprType::Application { func, args } => self.check_application(func, args, &ty, span),
-            IrExprType::Assignment { var, expr } => self.check_assignment(var, expr, &ty, span),
+            IrExprType::Assignment { var, expr } => self.check_assignment(*var, expr, &ty, span),
         }
     }
 
@@ -116,7 +116,7 @@ impl<'ctx> TypeChecker<'ctx> {
                 self.check_variable_definition(lvalue, rvalue, &ty, span)
             }
             IrStmtType::FunctionDefinition { name, body, .. } => {
-                self.check_function_definition(name, body, &ty, span)
+                self.check_function_definition(*name, body, &ty, span)
             }
         }
     }
@@ -125,7 +125,7 @@ impl<'ctx> TypeChecker<'ctx> {
         let IrPat { pat, span, .. } = pattern;
         let ty = self.pat_var(pattern);
         match pat {
-            IrPatType::Variable(var) => self.check_variable_pat(var, &ty, span),
+            IrPatType::Variable(var) => self.check_variable_pat(*var, &ty, span),
         }
     }
 
@@ -142,9 +142,9 @@ impl<'ctx> TypeChecker<'ctx> {
         }
     }
 
-    fn check_variable(&mut self, var: &IdentifierID, ty: &InferType, span: &Span) {
-        let var_ty = self.ctx.infer_ctx.ident_to_type[var].clone();
-        let name = self.ctx.symbol_table.get_ident(*var).name.clone();
+    fn check_variable(&mut self, var: IdentifierID, ty: &InferType, span: &Span) {
+        let var_ty = self.ctx.infer_ctx.ident_to_type[&var].clone();
+        let name = self.ctx.symbol_table.get_ident(var).name.clone();
 
         let rep_ty = self.rep(&var_ty);
         let refreshed_rep_ty = self.refresh(&rep_ty);
@@ -396,12 +396,12 @@ impl<'ctx> TypeChecker<'ctx> {
         }
     }
 
-    fn check_assignment(&mut self, var: &IdentifierID, expr: &IrExpr, ty: &InferType, span: &Span) {
+    fn check_assignment(&mut self, var: IdentifierID, expr: &IrExpr, ty: &InferType, span: &Span) {
         self.check_expr(expr);
 
         let expr_ty = self.expr_var(expr);
-        let var_ty = self.ctx.infer_ctx.ident_to_type[var].clone();
-        let name = self.ctx.symbol_table.get_ident(*var).name.clone();
+        let var_ty = self.ctx.infer_ctx.ident_to_type[&var].clone();
+        let name = self.ctx.symbol_table.get_ident(var).name.clone();
 
         if !self.unify(&var_ty, &expr_ty) {
             add_formatted_type_error!(
@@ -504,13 +504,13 @@ impl<'ctx> TypeChecker<'ctx> {
 
     fn check_function_definition(
         &mut self,
-        var: &IdentifierID,
+        var: IdentifierID,
         body: &IrExpr,
         ty: &InferType,
         span: &Span,
     ) {
-        let name = self.ctx.symbol_table.get_ident(*var).name.clone();
-        let func_ty = self.ctx.infer_ctx.ident_to_type[var].clone();
+        let name = self.ctx.symbol_table.get_ident(var).name.clone();
+        let func_ty = self.ctx.infer_ctx.ident_to_type[&var].clone();
         let ret_ty = if let InferType::Function(_, ret) = &func_ty {
             ret
         } else {
@@ -545,9 +545,9 @@ impl<'ctx> TypeChecker<'ctx> {
         }
     }
 
-    fn check_variable_pat(&mut self, var: &IdentifierID, ty: &InferType, span: &Span) {
-        let var_ty = self.ctx.infer_ctx.ident_to_type[var].clone();
-        let name = self.ctx.symbol_table.get_ident(*var).name.clone();
+    fn check_variable_pat(&mut self, var: IdentifierID, ty: &InferType, span: &Span) {
+        let var_ty = self.ctx.infer_ctx.ident_to_type[&var].clone();
+        let name = self.ctx.symbol_table.get_ident(var).name.clone();
 
         if !self.unify(ty, &var_ty) {
             add_formatted_type_error!(

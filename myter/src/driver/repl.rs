@@ -5,10 +5,10 @@ use common::error::{self, MyteError, MyteErrorType};
 use common::source;
 use interpreter::env::Environment;
 use interpreter::evaluate;
-use ir::ir::{IrStmt, IrStmtType};
+use ir::nodes::{IrStmt, IrStmtType};
 use ir::resolution;
-use lexer::tokenizer;
-use parser::parser::Parser;
+use lex::tokenizer;
+use parse::parser::Parser;
 use types::check;
 use types::infer::InferType;
 
@@ -40,7 +40,7 @@ pub fn repl() {
         }
 
         // Exit REPL if EOF is hit
-        if current_input.len() == 0 {
+        if current_input.is_empty() {
             return;
         }
 
@@ -142,7 +142,7 @@ pub fn repl() {
             continue;
         }
 
-        let value = match evaluate::evaluate_repl_line(ir, &mut env, &mut ctx) {
+        let value = match evaluate::evaluate_repl_line(&ir, &mut env, &mut ctx) {
             Ok(value) => value,
             Err(err) => {
                 if let Err(err) = error::print_err(&err, &ctx) {
@@ -160,7 +160,7 @@ pub fn repl() {
             println!(
                 "{} : {}",
                 value.to_string(),
-                InferType::format_types(vec!(&ctx.infer_ctx.graph.rep(&value.ty())))[0]
+                InferType::format_types(&[ctx.infer_ctx.graph.rep(&value.ty())])[0]
             )
         }
 

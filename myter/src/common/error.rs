@@ -36,7 +36,7 @@ impl MyteError {
     pub fn new(error: String, span: &Span, ty: MyteErrorType) -> MyteError {
         MyteError {
             error,
-            span: span.clone(),
+            span: *span,
             ty,
         }
     }
@@ -95,14 +95,14 @@ impl ErrorContext {
 
         for error in all_errors {
             print_err(error, ctx)?;
-            println!("");
+            println!();
         }
 
         Ok(())
     }
 
     pub fn is_unexpected_eof(&self) -> bool {
-        self.errors.len() == 0 && self.unexpected_eof.is_some()
+        self.errors.is_empty() && self.unexpected_eof.is_some()
     }
 }
 
@@ -130,8 +130,8 @@ struct ErrorReader<T> {
 }
 
 impl<T: Read> ErrorReader<T> {
-    fn from_file(file_name: String) -> io::Result<ErrorReader<File>> {
-        let reader = BufReader::new(File::open(&Path::new(&file_name))?);
+    fn from_file(file_name: &str) -> io::Result<ErrorReader<File>> {
+        let reader = BufReader::new(File::open(&Path::new(file_name))?);
         Ok(ErrorReader {
             reader,
             current_line_num: 0,
@@ -157,15 +157,15 @@ impl<T: Read> ErrorRead for ErrorReader<T> {
             self.current_line = self.current_line.trim_right().to_string();
         }
 
-        return Ok(self
+        Ok(self
             .current_line
-            .replace("\t", &" ".repeat(ERROR_TAB_WIDTH as usize)));
+            .replace("\t", &" ".repeat(ERROR_TAB_WIDTH as usize)))
     }
 }
 
 /// Return the number of digits in the base-10 representation of a number.
 fn digit_count(n: u32) -> u32 {
-    return f64::log10(n as f64) as u32 + 1;
+    f64::log10(f64::from(n)) as u32 + 1
 }
 
 /// Pad a line number with whitespace for displaying in error messages.
@@ -301,7 +301,7 @@ pub fn print_err(err: &MyteError, ctx: &Context) -> io::Result<()> {
     } else {
         let file_name = ctx.file_table.get_file_name(span.file_descriptor);
         print_summary_line(err, Some(&file_name));
-        Box::new(ErrorReader::<File>::from_file(file_name)?)
+        Box::new(ErrorReader::<File>::from_file(&file_name)?)
     };
 
     // Print first line, or single line if span is on single line

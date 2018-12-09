@@ -1,11 +1,13 @@
+#![allow(clippy::map_entry)]
+
 use std::env;
 
 mod common;
 mod driver;
 mod interpreter;
 mod ir;
-mod lexer;
-mod parser;
+mod lex;
+mod parse;
 mod types;
 
 fn main() {

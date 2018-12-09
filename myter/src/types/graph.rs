@@ -82,11 +82,11 @@ impl TypeGraph {
                 true
             }
             (InferType::InferVariable(var), ty) => {
-                self.resolve_variable(var, ty);
+                self.resolve_variable(var, &ty);
                 true
             }
             (ty, InferType::InferVariable(var)) => {
-                self.resolve_variable(var, ty);
+                self.resolve_variable(var, &ty);
                 true
             }
             (_, _) => false,
@@ -111,7 +111,7 @@ impl TypeGraph {
         }
     }
 
-    fn resolve_variable(&mut self, var: InferVarID, ty: InferType) {
+    fn resolve_variable(&mut self, var: InferVarID, ty: &InferType) {
         let root_rc = self.find_root(var);
         let mut root = root_rc.borrow_mut();
 

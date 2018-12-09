@@ -6,11 +6,11 @@ use common::context::Context;
 use common::error;
 use interpreter::env::Environment;
 use interpreter::evaluate;
-use ir::ir::IrStmt;
+use ir::nodes::IrStmt;
 use ir::resolution;
-use lexer::tokenizer;
-use parser::ast::AstStmt;
-use parser::parser::Parser;
+use lex::tokenizer;
+use parse::ast::AstStmt;
+use parse::parser::Parser;
 use types::check;
 use types::infer::InferType;
 
@@ -72,7 +72,7 @@ pub fn interpret(file_names: &[String]) {
     println!(
         "{} : {}",
         return_value.to_string(),
-        InferType::format_types(vec!(&ctx.infer_ctx.graph.rep(&return_value.ty())))[0]
+        InferType::format_types(&[ctx.infer_ctx.graph.rep(&return_value.ty())])[0]
     )
 }
 

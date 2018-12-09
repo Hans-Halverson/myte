@@ -3,7 +3,7 @@ use common::error::{self, mkerr, MyteErrorType, MyteResult};
 use common::span::Span;
 use interpreter::env::Environment;
 use interpreter::value::Value;
-use ir::ir::{IrExpr, IrExprType, IrPat, IrPatType, IrStmt, IrStmtType};
+use ir::nodes::{IrExpr, IrExprType, IrPat, IrPatType, IrStmt, IrStmtType};
 
 struct Evaluator<'ctx> {
     ctx: &'ctx mut Context,
@@ -158,7 +158,9 @@ impl<'ctx> Evaluator<'ctx> {
                 (Value::Bool(left), Value::Bool(right)) => Ok(Value::Bool(left == right)),
                 (Value::String(left), Value::String(right)) => Ok(Value::Bool(left == right)),
                 (Value::Int(left), Value::Int(right)) => Ok(Value::Bool(left == right)),
-                (Value::Float(left), Value::Float(right)) => Ok(Value::Bool(left == right)),
+                (Value::Float(left), Value::Float(right)) => {
+                    Ok(Value::Bool((left - right).abs() < std::f64::EPSILON))
+                }
                 (Value::Closure { .. }, Value::Closure { .. }) => Ok(Value::Bool(false)),
                 _ => mk_eval_err(
                     "PRE-TYPES: Comparison expects values of same type".to_string(),
@@ -176,7 +178,9 @@ impl<'ctx> Evaluator<'ctx> {
                 (Value::Bool(left), Value::Bool(right)) => Ok(Value::Bool(left != right)),
                 (Value::String(left), Value::String(right)) => Ok(Value::Bool(left != right)),
                 (Value::Int(left), Value::Int(right)) => Ok(Value::Bool(left != right)),
-                (Value::Float(left), Value::Float(right)) => Ok(Value::Bool(left != right)),
+                (Value::Float(left), Value::Float(right)) => {
+                    Ok(Value::Bool((left - right).abs() >= std::f64::EPSILON))
+                }
                 (Value::Closure { .. }, Value::Closure { .. }) => Ok(Value::Bool(true)),
                 _ => mk_eval_err(
                     "PRE-TYPES: Comparison expects values of same type".to_string(),
@@ -370,7 +374,7 @@ impl<'ctx> Evaluator<'ctx> {
                 ref params,
                 ..
             } => {
-                if params.len() != 0 {
+                if !params.is_empty() {
                     return mk_eval_err(
                         "Main takes no arguments".to_string(),
                         &self.ctx.symbol_table.get_ident(main_id).span,
@@ -398,7 +402,7 @@ fn bind_variables(pat: &IrPat, val: &Value, env: &mut Environment) {
 }
 
 pub fn evaluate_repl_line(
-    ir: IrStmt,
+    ir: &IrStmt,
     env: &mut Environment,
     ctx: &mut Context,
 ) -> MyteResult<Value> {

@@ -1,6 +1,6 @@
 use common::error::{mkerr, MyteErrorType, MyteResult, ERROR_TAB_WIDTH};
 use common::span::Span;
-use lexer::tokens::{Token, TokenType};
+use lex::tokens::{Token, TokenType};
 
 struct Tokenizer<'a> {
     bytes: &'a [u8],
@@ -65,39 +65,39 @@ impl<'a> Tokenizer<'a> {
     }
 
     fn mark_span(&self) -> Span {
-        return Span::new(
+        Span::new(
             self.marked_byte,
             self.current_byte,
             self.marked_line,
             self.current_line,
             self.file_descriptor,
-        );
+        )
     }
 
     fn mark_span_next(&self) -> Span {
-        return Span::new(
+        Span::new(
             self.marked_byte,
             self.current_byte + 1,
             self.marked_line,
             self.current_line,
             self.file_descriptor,
-        );
+        )
     }
 }
 
 fn is_whitespace_byte(byte: u8) -> bool {
-    return byte == b' ' || byte == b'\t' || byte == b'\n';
+    byte == b' ' || byte == b'\t' || byte == b'\n'
 }
 
 fn is_number_byte(byte: u8) -> bool {
-    return byte >= b'0' && byte <= b'9';
+    byte >= b'0' && byte <= b'9'
 }
 
 fn is_identifier_byte(byte: u8) -> bool {
-    return (byte >= b'a' && byte <= b'z')
+    (byte >= b'a' && byte <= b'z')
         || (byte >= b'A' && byte <= b'Z')
         || (byte >= b'0' && byte < b'9')
-        || byte == b'_';
+        || byte == b'_'
 }
 
 fn advance_and_push(token: Token, tokens: &mut Vec<Token>, tokenizer: &mut Tokenizer) {
@@ -250,9 +250,9 @@ fn int_from_bytes(bytes: Vec<u8>, tokens: &mut Vec<Token>, span: Span) -> MyteRe
                     ty: TokenType::IntLiteral(parsed_number),
                     span,
                 });
-                return Ok(());
+                Ok(())
             }
-            _ => return mk_lex_err(format!("Invalid int literal {}", int_string), &span),
+            _ => mk_lex_err(format!("Invalid int literal {}", int_string), &span),
         }
     }
 }
@@ -266,9 +266,9 @@ fn float_from_bytes(bytes: Vec<u8>, tokens: &mut Vec<Token>, span: Span) -> Myte
                     ty: TokenType::FloatLiteral(parsed_number),
                     span,
                 });
-                return Ok(());
+                Ok(())
             }
-            _ => return mk_lex_err(format!("Invalid float literal {}", float_string), &span),
+            _ => mk_lex_err(format!("Invalid float literal {}", float_string), &span),
         }
     }
 }
@@ -483,7 +483,7 @@ pub fn tokenize(input_bytes: &[u8], file_descriptor: u32) -> MyteResult<Vec<Toke
             Some(byte) if is_whitespace_byte(byte) => {}
             Some(byte) => {
                 return mk_lex_err(
-                    String::from(format!("Unknown symbol {}", byte as char)),
+                    format!("Unknown symbol {}", byte as char),
                     &tokenizer.mark_span(),
                 )
             }

@@ -1,6 +1,6 @@
 use common::error::{mkerr, MyteErrorType, MyteResult};
 use common::span::Span;
-use lexer::tokens::Token;
+use lex::tokens::Token;
 
 pub struct Tokenizer<'a> {
     tokens: &'a [Token],
@@ -35,7 +35,7 @@ impl<'a> Tokenizer<'a> {
             let token = self.tokens[self.current].clone();
             self.current += 1;
 
-            return Ok(token);
+            Ok(token)
         }
     }
 
