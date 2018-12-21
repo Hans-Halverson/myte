@@ -108,6 +108,7 @@ pub enum IrExprType {
         var: IdentifierID,
         expr: Box<IrExpr>,
     },
+    Return(Box<IrExpr>),
 }
 
 #[derive(Clone)]

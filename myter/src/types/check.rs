@@ -103,6 +103,7 @@ impl<'ctx> TypeChecker<'ctx> {
             } => self.check_if_expr(cond, conseq, altern, &ty, span),
             IrExprType::Application { func, args } => self.check_application(func, args, &ty, span),
             IrExprType::Assignment { var, expr } => self.check_assignment(*var, expr, &ty, span),
+            IrExprType::Return(expr) => self.check_return(expr, &ty, span),
         }
     }
 
@@ -425,6 +426,20 @@ impl<'ctx> TypeChecker<'ctx> {
         }
     }
 
+    fn check_return(&mut self, expr: &IrExpr, ty: &InferType, span: &Span) {
+        self.check_expr(expr);
+
+        if !self.unify(&ty, &InferType::Never) {
+            add_type_error!(
+                self,
+                "Expected return to have type {}, but found {}",
+                &InferType::Never,
+                ty,
+                span
+            );
+        }
+    }
+
     fn check_stmt_expr(&mut self, expr: &IrExpr, ty: &InferType, span: &Span) {
         self.check_expr(expr);
 
@@ -605,7 +620,8 @@ impl<'ctx> TypeChecker<'ctx> {
                 Some(refreshed_var) => InferType::InferVariable(*refreshed_var),
                 None => ty.clone(),
             },
-            InferType::Unit
+            InferType::Never
+            | InferType::Unit
             | InferType::Bool
             | InferType::Int
             | InferType::Float

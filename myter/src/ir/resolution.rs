@@ -72,6 +72,11 @@ impl<'ctx> Resolver<'ctx> {
             } => self.resolve_if_expr(*cond, *conseq, *altern, span),
             AstExprType::Application { func, args } => self.resolve_application(*func, args, span),
             AstExprType::Assignment { var, expr } => self.resolve_assignment(&var, *expr, span),
+            AstExprType::Return(expr) => Some(IrExpr {
+                span,
+                id: self.new_id(),
+                node: IrExprType::Return(Box::new(self.resolve_expr(*expr)?)),
+            }),
         }
     }
 

@@ -118,6 +118,7 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
             TokenType::LeftParen => self.parse_parenthesized_expr(&first_token)?,
             TokenType::LeftBrace => self.parse_block(&first_token)?,
             TokenType::If => self.parse_if_expr(&first_token)?,
+            TokenType::Return => self.parse_return(&first_token)?,
             _ => return Err(unexpected_token(&first_token)),
         };
 
@@ -327,6 +328,14 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
                 conseq: Box::new(conseq),
                 altern: Box::new(altern),
             },
+        })
+    }
+
+    fn parse_return(&mut self, return_token: &Token) -> MyteResult<AstExpr> {
+        let expr = self.parse_expr()?;
+        Ok(AstExpr {
+            span: Span::concat(&return_token.span, &expr.span),
+            node: AstExprType::Return(Box::new(expr)),
         })
     }
 

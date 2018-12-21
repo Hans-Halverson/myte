@@ -5,6 +5,13 @@ use interpreter::env::Environment;
 use interpreter::value::Value;
 use ir::nodes::{IrExpr, IrExprType, IrPat, IrPatType, IrStmt, IrStmtType};
 
+enum EvalUnwind {
+    Error { err: String, span: Span },
+    Return(Value),
+}
+
+type EvalResult<T> = Result<T, EvalUnwind>;
+
 struct Evaluator<'ctx> {
     ctx: &'ctx mut Context,
 }
@@ -14,7 +21,7 @@ impl<'ctx> Evaluator<'ctx> {
         Evaluator { ctx }
     }
 
-    fn evaluate_expr(&mut self, ir: &IrExpr, env: &mut Environment) -> MyteResult<Value> {
+    fn evaluate_expr(&mut self, ir: &IrExpr, env: &mut Environment) -> EvalResult<Value> {
         let IrExpr { span, node, .. } = ir;
         match *node {
             IrExprType::UnitLiteral => Ok(Value::Unit),
@@ -248,14 +255,10 @@ impl<'ctx> Evaluator<'ctx> {
                 ),
             },
             IrExprType::Block(ref nodes) => {
-                env.enter_scope();
-
                 let mut value = Value::Unit;
                 for node in nodes {
                     value = self.evaluate_stmt(&node, env)?;
                 }
-
-                env.exit_scope();
 
                 Ok(value)
             }
@@ -293,7 +296,16 @@ impl<'ctx> Evaluator<'ctx> {
                             env.extend(*param, &arg_value);
                         }
 
-                        let return_value = self.evaluate_expr(body, env)?;
+                        let return_value = match self.evaluate_expr(body, env) {
+                            Err(EvalUnwind::Return(value)) => value,
+                            err @ Err(EvalUnwind::Error { .. }) => return err,
+                            Ok(_) => {
+                                return mk_eval_err(
+                                    "Function application finished without returning".to_string(),
+                                    &span,
+                                )
+                            }
+                        };
 
                         env.exit_scope();
 
@@ -310,10 +322,11 @@ impl<'ctx> Evaluator<'ctx> {
                 env.reassign(var, &value);
                 Ok(value)
             }
+            IrExprType::Return(ref expr) => Err(EvalUnwind::Return(self.evaluate_expr(expr, env)?)),
         }
     }
 
-    fn evaluate_stmt(&mut self, ir: &IrStmt, env: &mut Environment) -> MyteResult<Value> {
+    fn evaluate_stmt(&mut self, ir: &IrStmt, env: &mut Environment) -> EvalResult<Value> {
         match (*ir).node {
             IrStmtType::Expr(ref expr) => self.evaluate_expr(expr, env),
             IrStmtType::VariableDefinition {
@@ -359,7 +372,7 @@ impl<'ctx> Evaluator<'ctx> {
         }
     }
 
-    fn apply_main(&mut self, env: &mut Environment) -> MyteResult<Option<Value>> {
+    fn apply_main(&mut self, env: &mut Environment) -> EvalResult<Option<Value>> {
         let main_id = match self.ctx.symbol_table.get_main_id() {
             Some(id) => id,
             None => {
@@ -407,7 +420,7 @@ pub fn evaluate_repl_line(
     ctx: &mut Context,
 ) -> MyteResult<Value> {
     let mut evaluator = Evaluator::new(ctx);
-    evaluator.evaluate_stmt(&ir, env)
+    convert_result(evaluator.evaluate_stmt(&ir, env), &ir.span)
 }
 
 pub fn evaluate_files(
@@ -417,12 +430,31 @@ pub fn evaluate_files(
 ) -> MyteResult<Option<Value>> {
     let mut evaluator = Evaluator::new(ctx);
     for ir in irs {
-        evaluator.evaluate_stmt(&ir, env)?;
+        convert_result(evaluator.evaluate_stmt(&ir, env), &ir.span)?;
     }
 
-    Ok(evaluator.apply_main(env)?)
+    match evaluator.apply_main(env) {
+        Err(EvalUnwind::Return(value)) => Ok(Some(value)),
+        Err(EvalUnwind::Error { err, span }) => mkerr(err, &span, MyteErrorType::Evaluate),
+        Ok(_) => {
+            error::print_err_string("Main fuction finished without returning");
+            Ok(None)
+        }
+    }
 }
 
-fn mk_eval_err<T>(error: String, span: &Span) -> MyteResult<T> {
-    mkerr(error, span, MyteErrorType::Evaluate)
+fn convert_result<T>(err: EvalResult<T>, span: &Span) -> MyteResult<T> {
+    match err {
+        Ok(value) => Ok(value),
+        Err(EvalUnwind::Error { err, span }) => mkerr(err, &span, MyteErrorType::Evaluate),
+        Err(EvalUnwind::Return(_)) => mkerr(
+            "Returned outside a function call".to_string(),
+            span,
+            MyteErrorType::Evaluate,
+        ),
+    }
+}
+
+fn mk_eval_err<T>(err: String, span: &Span) -> EvalResult<T> {
+    Err(EvalUnwind::Error { err, span: *span })
 }

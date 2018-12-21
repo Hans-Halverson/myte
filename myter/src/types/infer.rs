@@ -49,6 +49,7 @@ impl InferContext {
 pub enum InferType {
     InferVariable(InferVarID),
     ParamVariable(ParamVarID),
+    Never,
     Unit,
     Bool,
     Int,
@@ -68,6 +69,7 @@ impl InferType {
         match self {
             InferType::InferVariable(var) => vars[&InferTypeVariable::Infer(*var)].clone(),
             InferType::ParamVariable(var) => vars[&InferTypeVariable::Param(*var)].clone(),
+            InferType::Never => "never".to_string(),
             InferType::Unit => "unit".to_string(),
             InferType::Bool => "bool".to_string(),
             InferType::Int => "int".to_string(),
@@ -92,7 +94,8 @@ impl InferType {
         match self {
             InferType::InferVariable(var) => vec![InferTypeVariable::Infer(*var)],
             InferType::ParamVariable(var) => vec![InferTypeVariable::Param(*var)],
-            InferType::Unit
+            InferType::Never
+            | InferType::Unit
             | InferType::Bool
             | InferType::Int
             | InferType::Float
@@ -138,6 +141,7 @@ impl fmt::Debug for InferType {
         match self {
             InferType::InferVariable(var) => write!(f, "{}", *var),
             InferType::ParamVariable(var) => write!(f, "{}", *var),
+            InferType::Never => write!(f, "never"),
             InferType::Unit => write!(f, "unit"),
             InferType::Bool => write!(f, "bool"),
             InferType::Int => write!(f, "int"),

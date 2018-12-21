@@ -39,6 +39,7 @@ pub enum AstExprType {
         var: UnresolvedVariable,
         expr: Box<AstExpr>,
     },
+    Return(Box<AstExpr>),
 }
 
 #[derive(Debug)]

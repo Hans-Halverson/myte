@@ -68,6 +68,7 @@ impl TypeGraph {
             | (InferType::Int, InferType::Int)
             | (InferType::Float, InferType::Float)
             | (InferType::String, InferType::String) => true,
+            (InferType::Never, _) | (_, InferType::Never) => true,
             (InferType::ParamVariable(p1), InferType::ParamVariable(p2)) => p1 == p2,
             (InferType::Function(ref args1, ref r1), InferType::Function(ref args2, ref r2)) => {
                 args1.len() == args2.len()
@@ -81,11 +82,7 @@ impl TypeGraph {
                 self.merge_variables(var1, var2);
                 true
             }
-            (InferType::InferVariable(var), ty) => {
-                self.resolve_variable(var, &ty);
-                true
-            }
-            (ty, InferType::InferVariable(var)) => {
+            (InferType::InferVariable(var), ty) | (ty, InferType::InferVariable(var)) => {
                 self.resolve_variable(var, &ty);
                 true
             }
@@ -120,7 +117,8 @@ impl TypeGraph {
 
     pub fn rep(&mut self, ty: &InferType) -> InferType {
         match ty {
-            InferType::Unit
+            InferType::Never
+            | InferType::Unit
             | InferType::Bool
             | InferType::Int
             | InferType::Float
