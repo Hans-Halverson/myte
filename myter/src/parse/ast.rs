@@ -40,6 +40,8 @@ pub enum AstExprType {
         expr: Box<AstExpr>,
     },
     Return(Box<AstExpr>),
+    Break,
+    Continue,
 }
 
 #[derive(Debug)]
@@ -63,6 +65,11 @@ pub enum AstStmt {
     If {
         cond: Box<AstExpr>,
         conseq: Box<AstExpr>,
+        span: Span,
+    },
+    While {
+        cond: Box<AstExpr>,
+        body: Box<AstExpr>,
         span: Span,
     },
 }

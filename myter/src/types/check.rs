@@ -104,6 +104,8 @@ impl<'ctx> TypeChecker<'ctx> {
             IrExprType::Application { func, args } => self.check_application(func, args, &ty, span),
             IrExprType::Assignment { var, expr } => self.check_assignment(*var, expr, &ty, span),
             IrExprType::Return(expr) => self.check_return(expr, &ty, span),
+            IrExprType::Break => self.check_break(&ty, span),
+            IrExprType::Continue => self.check_continue(&ty, span),
         }
     }
 
@@ -113,6 +115,7 @@ impl<'ctx> TypeChecker<'ctx> {
         match node {
             IrStmtType::Expr(expr) => self.check_stmt_expr(expr, &ty, span),
             IrStmtType::If { cond, conseq } => self.check_if_stmt(cond, conseq, &ty, span),
+            IrStmtType::While { cond, body } => self.check_while_stmt(cond, body, &ty, span),
             IrStmtType::VariableDefinition { lvalue, rvalue, .. } => {
                 self.check_variable_definition(lvalue, rvalue, &ty, span)
             }
@@ -440,6 +443,30 @@ impl<'ctx> TypeChecker<'ctx> {
         }
     }
 
+    fn check_break(&mut self, ty: &InferType, span: &Span) {
+        if !self.unify(&ty, &InferType::Never) {
+            add_type_error!(
+                self,
+                "Expected break to have type {}, but found {}",
+                &InferType::Never,
+                ty,
+                span
+            );
+        }
+    }
+
+    fn check_continue(&mut self, ty: &InferType, span: &Span) {
+        if !self.unify(&ty, &InferType::Never) {
+            add_type_error!(
+                self,
+                "Expected continue to have type {}, but found {}",
+                &InferType::Never,
+                ty,
+                span
+            );
+        }
+    }
+
     fn check_stmt_expr(&mut self, expr: &IrExpr, ty: &InferType, span: &Span) {
         self.check_expr(expr);
 
@@ -476,6 +503,33 @@ impl<'ctx> TypeChecker<'ctx> {
             add_type_error!(
                 self,
                 "Expected if statement to have type {}, but found {}",
+                &InferType::Unit,
+                ty,
+                span
+            );
+        }
+    }
+
+    fn check_while_stmt(&mut self, cond: &IrExpr, body: &IrExpr, ty: &InferType, span: &Span) {
+        self.check_expr(cond);
+        self.check_expr(body);
+
+        let cond_ty = self.expr_var(cond);
+
+        if !self.unify(&cond_ty, &InferType::Bool) {
+            add_type_error!(
+                self,
+                "Expected condition of while statement to have type {}, but found {}",
+                &InferType::Bool,
+                &cond_ty,
+                span
+            );
+        }
+
+        if !self.unify(ty, &InferType::Unit) {
+            add_type_error!(
+                self,
+                "Expected while statement to have type {}, but found {}",
                 &InferType::Unit,
                 ty,
                 span

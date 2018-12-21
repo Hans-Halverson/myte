@@ -109,6 +109,8 @@ pub enum IrExprType {
         expr: Box<IrExpr>,
     },
     Return(Box<IrExpr>),
+    Break,
+    Continue,
 }
 
 #[derive(Clone)]
@@ -134,6 +136,10 @@ pub enum IrStmtType {
     If {
         cond: Box<IrExpr>,
         conseq: Box<IrExpr>,
+    },
+    While {
+        cond: Box<IrExpr>,
+        body: Box<IrExpr>,
     },
 }
 

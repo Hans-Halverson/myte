@@ -8,6 +8,8 @@ use ir::nodes::{IrExpr, IrExprType, IrPat, IrPatType, IrStmt, IrStmtType};
 enum EvalUnwind {
     Error { err: String, span: Span },
     Return(Value),
+    Break,
+    Continue,
 }
 
 type EvalResult<T> = Result<T, EvalUnwind>;
@@ -298,7 +300,7 @@ impl<'ctx> Evaluator<'ctx> {
 
                         let return_value = match self.evaluate_expr(body, env) {
                             Err(EvalUnwind::Return(value)) => value,
-                            err @ Err(EvalUnwind::Error { .. }) => return err,
+                            err @ Err(_) => return err,
                             Ok(_) => {
                                 return mk_eval_err(
                                     "Function application finished without returning".to_string(),
@@ -323,6 +325,8 @@ impl<'ctx> Evaluator<'ctx> {
                 Ok(value)
             }
             IrExprType::Return(ref expr) => Err(EvalUnwind::Return(self.evaluate_expr(expr, env)?)),
+            IrExprType::Break => Err(EvalUnwind::Break),
+            IrExprType::Continue => Err(EvalUnwind::Continue),
         }
     }
 
@@ -369,6 +373,29 @@ impl<'ctx> Evaluator<'ctx> {
                     &cond.span,
                 ),
             },
+            IrStmtType::While { ref cond, ref body } => {
+                loop {
+                    match self.evaluate_expr(cond, env)? {
+                        Value::Bool(true) => match self.evaluate_expr(body, env) {
+                            Ok(_) => {}
+                            Err(EvalUnwind::Break) => break,
+                            Err(EvalUnwind::Continue) => {}
+                            err @ Err(EvalUnwind::Return(_))
+                            | err @ Err(EvalUnwind::Error { .. }) => return err,
+                        },
+                        Value::Bool(false) => break,
+                        _ => {
+                            return mk_eval_err(
+                                "PRE-TYPES: Condition of while statement must be a bool"
+                                    .to_string(),
+                                &cond.span,
+                            )
+                        }
+                    };
+                }
+
+                Ok(Value::Unit)
+            }
         }
     }
 
@@ -435,6 +462,14 @@ pub fn evaluate_files(
 
     match evaluator.apply_main(env) {
         Err(EvalUnwind::Return(value)) => Ok(Some(value)),
+        Err(EvalUnwind::Break) => {
+            error::print_err_string("Main fuction finished with a break");
+            Ok(None)
+        }
+        Err(EvalUnwind::Continue) => {
+            error::print_err_string("Main fuction finished with a continue");
+            Ok(None)
+        }
         Err(EvalUnwind::Error { err, span }) => mkerr(err, &span, MyteErrorType::Evaluate),
         Ok(_) => {
             error::print_err_string("Main fuction finished without returning");
@@ -449,6 +484,16 @@ fn convert_result<T>(err: EvalResult<T>, span: &Span) -> MyteResult<T> {
         Err(EvalUnwind::Error { err, span }) => mkerr(err, &span, MyteErrorType::Evaluate),
         Err(EvalUnwind::Return(_)) => mkerr(
             "Returned outside a function call".to_string(),
+            span,
+            MyteErrorType::Evaluate,
+        ),
+        Err(EvalUnwind::Break) => mkerr(
+            "Encountered break outside a function call".to_string(),
+            span,
+            MyteErrorType::Evaluate,
+        ),
+        Err(EvalUnwind::Continue) => mkerr(
+            "Encountered continue outside a function call".to_string(),
             span,
             MyteErrorType::Evaluate,
         ),

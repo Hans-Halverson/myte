@@ -77,6 +77,16 @@ impl<'ctx> Resolver<'ctx> {
                 id: self.new_id(),
                 node: IrExprType::Return(Box::new(self.resolve_expr(*expr)?)),
             }),
+            AstExprType::Break => Some(IrExpr {
+                span,
+                id: self.new_id(),
+                node: IrExprType::Break,
+            }),
+            AstExprType::Continue => Some(IrExpr {
+                span,
+                id: self.new_id(),
+                node: IrExprType::Continue,
+            }),
         }
     }
 
@@ -101,6 +111,7 @@ impl<'ctx> Resolver<'ctx> {
                 span,
             } => self.resolve_function_definition(name, params, *body, return_annot, span),
             AstStmt::If { cond, conseq, span } => self.resolve_if_stmt(*cond, *conseq, span),
+            AstStmt::While { cond, body, span } => self.resolve_while_stmt(*cond, *body, span),
         }
     }
 
@@ -441,6 +452,17 @@ impl<'ctx> Resolver<'ctx> {
             node: IrStmtType::If {
                 cond: Box::new(self.resolve_expr(cond)?),
                 conseq: Box::new(self.resolve_expr(conseq)?),
+            },
+        })
+    }
+
+    fn resolve_while_stmt(&mut self, cond: AstExpr, body: AstExpr, span: Span) -> Option<IrStmt> {
+        Some(IrStmt {
+            span,
+            id: self.new_id(),
+            node: IrStmtType::While {
+                cond: Box::new(self.resolve_expr(cond)?),
+                body: Box::new(self.resolve_expr(body)?),
             },
         })
     }

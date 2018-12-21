@@ -74,6 +74,7 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
             TokenType::Let => self.parse_variable_definition(&token),
             TokenType::Def => self.parse_function_definition(&token),
             TokenType::If => self.parse_if_stmt(&token),
+            TokenType::While => self.parse_while_stmt(&token),
             _ => Ok(AstStmt::Expr {
                 expr: Box::new(self.parse_expr_precedence(token, EXPR_PRECEDENCE_NONE)?),
             }),
@@ -119,6 +120,8 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
             TokenType::LeftBrace => self.parse_block(&first_token)?,
             TokenType::If => self.parse_if_expr(&first_token)?,
             TokenType::Return => self.parse_return(&first_token)?,
+            TokenType::Break => self.parse_break(&first_token)?,
+            TokenType::Continue => self.parse_continue(&first_token)?,
             _ => return Err(unexpected_token(&first_token)),
         };
 
@@ -339,6 +342,20 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
         })
     }
 
+    fn parse_break(&mut self, break_token: &Token) -> MyteResult<AstExpr> {
+        Ok(AstExpr {
+            span: break_token.span,
+            node: AstExprType::Break,
+        })
+    }
+
+    fn parse_continue(&mut self, continue_token: &Token) -> MyteResult<AstExpr> {
+        Ok(AstExpr {
+            span: continue_token.span,
+            node: AstExprType::Continue,
+        })
+    }
+
     fn parse_variable_definition(&mut self, start_token: &Token) -> MyteResult<AstStmt> {
         let lvalue = self.parse_lvalue()?;
 
@@ -485,6 +502,16 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
             }),
             Err(err) => Err(err),
         }
+    }
+
+    fn parse_while_stmt(&mut self, while_token: &Token) -> MyteResult<AstStmt> {
+        let cond = self.parse_expr()?;
+        let body = self.parse_expr()?;
+        Ok(AstStmt::While {
+            span: Span::concat(&while_token.span, &body.span),
+            cond: Box::new(cond),
+            body: Box::new(body),
+        })
     }
 
     fn parse_lvalue(&mut self) -> MyteResult<Lvalue> {
