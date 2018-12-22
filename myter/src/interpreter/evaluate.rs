@@ -31,6 +31,14 @@ impl<'ctx> Evaluator<'ctx> {
             IrExprType::StringLiteral(ref string) => Ok(Value::String(string.clone())),
             IrExprType::IntLiteral(num) => Ok(Value::Int(num)),
             IrExprType::FloatLiteral(num) => Ok(Value::Float(num)),
+            IrExprType::TupleLiteral(ref elements) => {
+                let mut element_values = Vec::new();
+                for element in elements {
+                    element_values.push(self.evaluate_expr(element, env)?);
+                }
+
+                Ok(Value::Tuple(element_values))
+            }
             IrExprType::Variable(var) => Ok(env.lookup(var)),
             IrExprType::Add {
                 ref left,

@@ -209,7 +209,6 @@ fn token_from_identifier(identifier: String, span: Span) -> Token {
 
 fn read_string_literal(tokens: &mut Vec<Token>, tokenizer: &mut Tokenizer) -> MyteResult<()> {
     let mut identifier_bytes = Vec::new();
-    identifier_bytes.push(tokenizer.current().unwrap());
 
     let open_quote_span = tokenizer.mark_span();
 

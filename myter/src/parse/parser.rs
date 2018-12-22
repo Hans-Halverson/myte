@@ -283,15 +283,28 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
             });
         }
 
-        let node = self.parse_expr()?;
+        let mut elements = vec![self.parse_expr()?];
+        while is_current!(self, Comma) {
+            self.tokenizer.next()?;
+            elements.push(self.parse_expr()?);
+        }
 
         assert_current!(self, RightParen);
         let right_paren = self.tokenizer.next()?;
 
-        Ok(AstExpr {
-            span: Span::concat(&left_paren.span, &right_paren.span),
-            node: AstExprType::ParenthesizedGroup(Box::new(node)),
-        })
+        if elements.len() == 1 {
+            Ok(AstExpr {
+                span: Span::concat(&left_paren.span, &right_paren.span),
+                node: AstExprType::ParenthesizedGroup(Box::new(
+                    elements.into_iter().nth(0).unwrap(),
+                )),
+            })
+        } else {
+            Ok(AstExpr {
+                span: Span::concat(&left_paren.span, &right_paren.span),
+                node: AstExprType::TupleLiteral(elements),
+            })
+        }
     }
 
     fn parse_block(&mut self, left_brace: &Token) -> MyteResult<AstExpr> {
@@ -576,7 +589,7 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
             TokenType::Identifier(name) => {
                 self.parse_variable_type(&name, first_token.span, in_def)?
             }
-            TokenType::LeftParen => self.parse_parenthesized_type(in_def)?,
+            TokenType::LeftParen => self.parse_parenthesized_type(first_token, in_def)?,
             _ => return Err(unexpected_token(&first_token)),
         };
 
@@ -604,13 +617,25 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
         })
     }
 
-    fn parse_parenthesized_type(&mut self, in_def: bool) -> MyteResult<AstType> {
-        let ty = self.parse_type(in_def)?;
+    fn parse_parenthesized_type(&mut self, left_paren: Token, in_def: bool) -> MyteResult<AstType> {
+        let mut tys = vec![self.parse_type(in_def)?];
+
+        while is_current!(self, Comma) {
+            self.tokenizer.next()?;
+            tys.push(self.parse_type(in_def)?);
+        }
 
         assert_current!(self, RightParen);
-        self.tokenizer.next()?;
+        let right_paren = self.tokenizer.next()?;
 
-        Ok(ty)
+        if tys.len() == 1 {
+            Ok(tys.into_iter().nth(0).unwrap())
+        } else {
+            Ok(AstType {
+                span: Span::concat(&left_paren.span, &right_paren.span),
+                ty: AstTypeType::Tuple(tys),
+            })
+        }
     }
 
     fn parse_function_type(&mut self, left_ty: AstType, in_def: bool) -> MyteResult<AstType> {

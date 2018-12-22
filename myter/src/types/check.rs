@@ -55,6 +55,7 @@ impl<'ctx> TypeChecker<'ctx> {
             IrExprType::StringLiteral(_) => {
                 self.check_literal(&ty, span, "string", &InferType::String)
             }
+            IrExprType::TupleLiteral(elements) => self.check_tuple_literal(elements, &ty, span),
             IrExprType::Variable(var) => self.check_variable(*var, &ty, span),
             IrExprType::Add { left, right } => {
                 self.check_binary_math_expr(left, right, &ty, span, "add")
@@ -160,6 +161,28 @@ impl<'ctx> TypeChecker<'ctx> {
                 name,
                 ty,
                 &refreshed_rep_ty,
+                span
+            );
+        }
+    }
+
+    fn check_tuple_literal(&mut self, elements: &[IrExpr], ty: &InferType, span: &Span) {
+        for element in elements {
+            self.check_expr(&element);
+        }
+
+        let element_vars = elements
+            .iter()
+            .map(|element| self.expr_var(element))
+            .collect();
+        let tuple_ty = InferType::Tuple(element_vars);
+
+        if !self.unify(ty, &tuple_ty) {
+            add_type_error!(
+                self,
+                "Expected tuple literal to have type {}, but found {}",
+                &tuple_ty,
+                &ty,
                 span
             );
         }
@@ -685,6 +708,12 @@ impl<'ctx> TypeChecker<'ctx> {
                     .map(|arg| self.refresh_with_vars(arg, vars))
                     .collect(),
                 Box::new(self.refresh_with_vars(ret, vars)),
+            ),
+            InferType::Tuple(elements) => InferType::Tuple(
+                elements
+                    .iter()
+                    .map(|ty| self.refresh_with_vars(ty, vars))
+                    .collect(),
             ),
         }
     }

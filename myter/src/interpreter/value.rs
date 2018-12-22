@@ -14,6 +14,7 @@ pub enum Value {
         body: Box<IrExpr>,
         ty: InferType,
     },
+    Tuple(Vec<Value>),
 }
 
 impl Value {
@@ -25,6 +26,9 @@ impl Value {
             Value::Int(_) => InferType::Int,
             Value::Float(_) => InferType::Float,
             Value::Closure { ty, .. } => ty.clone(),
+            Value::Tuple(elements) => {
+                InferType::Tuple(elements.iter().map(|val| val.ty()).collect())
+            }
         }
     }
 }
@@ -38,6 +42,15 @@ impl ToString for Value {
             Value::Int(num) => num.to_string(),
             Value::Float(num) => num.to_string(),
             Value::Closure { .. } => "<function>".to_string(),
+            Value::Tuple(elements) => {
+                let elements_format = elements
+                    .iter()
+                    .map(|element| element.to_string())
+                    .collect::<Vec<String>>()
+                    .join(", ");
+
+                format!("({})", elements_format)
+            }
         }
     }
 }

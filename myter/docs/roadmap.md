@@ -6,11 +6,18 @@
 - All execution paths must return
 
 - For loops
-- While loops
 - Do while loops
-- Break
-- Continue
 
 - Packages
 
+- Bytes
+- Doubles
+- Tuples
+- Vectors
+- Sets
+- Maps
+
 - Types
+
+- ADTs
+- Traits

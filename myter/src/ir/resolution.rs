@@ -58,6 +58,7 @@ impl<'ctx> Resolver<'ctx> {
                 id: self.new_id(),
                 node: IrExprType::FloatLiteral(num),
             }),
+            AstExprType::TupleLiteral(elements) => self.resolve_tuple_literal(elements, span),
             AstExprType::Variable(var) => self.resolve_variable(&var, span),
             AstExprType::UnaryOp { node, op } => self.resolve_unary_op(*node, op, span),
             AstExprType::BinaryOp { left, right, op } => {
@@ -134,6 +135,7 @@ impl<'ctx> Resolver<'ctx> {
             AstTypeType::String => Some(InferType::String),
             AstTypeType::Variable(var) => self.resolve_variable_type(&var, ty.span),
             AstTypeType::Function(arg_tys, ret_ty) => self.resolve_function_type(arg_tys, *ret_ty),
+            AstTypeType::Tuple(element_tys) => self.resolve_tuple_type(element_tys),
         }
     }
 
@@ -154,6 +156,22 @@ impl<'ctx> Resolver<'ctx> {
             span,
             id: self.new_id(),
             node: IrExprType::Variable(var),
+        })
+    }
+
+    fn resolve_tuple_literal(&mut self, elements: Vec<AstExpr>, span: Span) -> Option<IrExpr> {
+        let ir_elements = elements
+            .into_iter()
+            .map(|element| self.resolve_expr(element))
+            .collect::<Vec<Option<IrExpr>>>();
+        if ir_elements.iter().any(|element| element.is_none()) {
+            return None;
+        }
+
+        Some(IrExpr {
+            span,
+            id: self.new_id(),
+            node: IrExprType::TupleLiteral(ir_elements.into_iter().flatten().collect()),
         })
     }
 
@@ -278,7 +296,7 @@ impl<'ctx> Resolver<'ctx> {
         Some(IrExpr {
             span,
             id: self.new_id(),
-            node: IrExprType::Block(ir_nodes.into_iter().flatten().collect::<Vec<IrStmt>>()),
+            node: IrExprType::Block(ir_nodes.into_iter().flatten().collect()),
         })
     }
 
@@ -508,8 +526,22 @@ impl<'ctx> Resolver<'ctx> {
         let ret_ty = self.resolve_type(ret_ty)?;
 
         Some(InferType::Function(
-            arg_tys.into_iter().flatten().collect::<Vec<InferType>>(),
+            arg_tys.into_iter().flatten().collect(),
             Box::new(ret_ty),
+        ))
+    }
+
+    fn resolve_tuple_type(&mut self, element_tys: Vec<AstType>) -> Option<InferType> {
+        let element_tys = element_tys
+            .into_iter()
+            .map(|ty| self.resolve_type(ty))
+            .collect::<Vec<Option<InferType>>>();
+        if element_tys.iter().any(|ty| ty.is_none()) {
+            return None;
+        }
+
+        Some(InferType::Tuple(
+            element_tys.into_iter().flatten().collect(),
         ))
     }
 }

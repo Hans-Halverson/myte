@@ -78,8 +78,18 @@ impl TypeGraph {
                         .all(|(arg1, arg2)| self.unify(arg1, arg2))
                     && self.unify(r1, r2)
             }
+            (InferType::Tuple(ref elements1), InferType::Tuple(ref elements2)) => {
+                elements1.len() == elements2.len()
+                    && elements1
+                        .iter()
+                        .zip(elements2)
+                        .all(|(ty1, ty2)| self.unify(ty1, ty2))
+            }
             (InferType::InferVariable(var1), InferType::InferVariable(var2)) => {
-                self.merge_variables(var1, var2);
+                if var1 != var2 {
+                    self.merge_variables(var1, var2);
+                }
+
                 true
             }
             (InferType::InferVariable(var), ty) | (ty, InferType::InferVariable(var)) => {
@@ -116,23 +126,33 @@ impl TypeGraph {
     }
 
     pub fn rep(&mut self, ty: &InferType) -> InferType {
-        match ty {
+        let rep_ty = match ty {
+            InferType::InferVariable(var) => {
+                let root_rc = self.find_root(*var);
+                let root = root_rc.borrow();
+                root.ty.clone()
+            }
+            ty => ty.clone(),
+        };
+
+        match rep_ty {
             InferType::Never
             | InferType::Unit
             | InferType::Bool
             | InferType::Int
             | InferType::Float
             | InferType::String
-            | InferType::ParamVariable(_) => ty.clone(),
-            InferType::InferVariable(var) => {
-                let root_rc = self.find_root(*var);
-                let root = root_rc.borrow();
-                root.ty.clone()
-            }
-            InferType::Function(args, ret) => InferType::Function(
+            | InferType::ParamVariable(_)
+            | InferType::InferVariable(_) => rep_ty,
+            InferType::Function(ref args, ref ret) => InferType::Function(
                 args.iter().map(|arg| self.rep(arg)).collect(),
                 Box::new(self.rep(ret)),
             ),
+            InferType::Tuple(elements) => {
+                InferType::Tuple(elements.iter().map(|ty| self.rep(ty)).collect())
+            }
         }
     }
+
+
 }

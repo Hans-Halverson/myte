@@ -56,6 +56,7 @@ pub enum InferType {
     Float,
     String,
     Function(Vec<InferType>, Box<InferType>),
+    Tuple(Vec<InferType>),
 }
 
 #[derive(Clone, Hash, Eq, PartialEq)]
@@ -87,6 +88,14 @@ impl InferType {
 
                 format!("{} -> {}", args_format, ret.format(vars))
             }
+            InferType::Tuple(elements) => {
+                let elements_format = elements
+                    .iter()
+                    .map(|element| element.format(vars))
+                    .collect::<Vec<String>>()
+                    .join(", ");
+                format!("({})", elements_format)
+            }
         }
     }
 
@@ -108,6 +117,10 @@ impl InferType {
                 all_vars.extend(ret.get_vars());
                 all_vars
             }
+            InferType::Tuple(elements) => elements
+                .iter()
+                .flat_map(|element| element.get_vars())
+                .collect(),
         }
     }
 
@@ -158,6 +171,15 @@ impl fmt::Debug for InferType {
                 };
 
                 write!(f, "{} -> {}", args_format, format!("{:?}", ret))
+            }
+            InferType::Tuple(elements) => {
+                let elements_format = elements
+                    .iter()
+                    .map(|element| format!("{:?}", element))
+                    .collect::<Vec<String>>()
+                    .join(", ");
+
+                write!(f, "({})", elements_format)
             }
         }
     }

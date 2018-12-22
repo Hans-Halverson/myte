@@ -34,6 +34,7 @@ pub enum IrExprType {
     StringLiteral(String),
     IntLiteral(i64),
     FloatLiteral(f64),
+    TupleLiteral(Vec<IrExpr>),
     Variable(IdentifierID),
     Add {
         left: Box<IrExpr>,

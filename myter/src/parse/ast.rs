@@ -14,6 +14,7 @@ pub enum AstExprType {
     StringLiteral(String),
     IntLiteral(i64),
     FloatLiteral(f64),
+    TupleLiteral(Vec<AstExpr>),
     Variable(UnresolvedVariable),
     UnaryOp {
         op: UnaryOp,
@@ -94,6 +95,7 @@ pub enum AstTypeType {
     Float,
     String,
     Function(Vec<AstType>, Box<AstType>),
+    Tuple(Vec<AstType>),
 }
 
 #[derive(Clone, Copy, Debug)]
