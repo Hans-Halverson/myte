@@ -154,4 +154,5 @@ pub struct IrPat {
 #[derive(Clone)]
 pub enum IrPatType {
     Variable(IdentifierID),
+    Tuple(Vec<IrPat>),
 }

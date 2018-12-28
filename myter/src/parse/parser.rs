@@ -370,7 +370,7 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
     }
 
     fn parse_variable_definition(&mut self, start_token: &Token) -> MyteResult<AstStmt> {
-        let lvalue = self.parse_lvalue()?;
+        let lvalue = self.parse_unresolved_pat()?;
 
         let annot = if is_current!(self, Colon) {
             self.tokenizer.next()?;
@@ -386,7 +386,7 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
 
         Ok(AstStmt::VariableDefinition {
             span: Span::concat(&start_token.span, &rvalue.span),
-            lvalue: Box::new(self.lvalue_to_pat(lvalue)),
+            lvalue: Box::new(self.resolve_def_pat(lvalue)),
             rvalue: Box::new(rvalue),
             annot,
         })
@@ -475,7 +475,10 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
             span: Span::concat(&def_token.span, &body.span),
             name: name_id,
             params: param_ids,
-            body: Box::new(body),
+            body: Box::new(AstExpr {
+                span: body.span,
+                node: AstExprType::Return(Box::new(body)),
+            }),
             return_annot,
         })
     }
@@ -527,20 +530,33 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
         })
     }
 
-    fn parse_lvalue(&mut self) -> MyteResult<Lvalue> {
+    fn parse_unresolved_pat(&mut self) -> MyteResult<UnresolvedPat> {
         match self.tokenizer.next()? {
             Token {
                 ty: TokenType::Identifier(name),
                 span,
-            } => Ok(Lvalue::Variable { var: name, span }),
+            } => Ok(UnresolvedPat::Variable { var: name, span }),
             Token {
                 ty: TokenType::LeftParen,
-                ..
+                span,
             } => {
-                let pat = self.parse_lvalue()?;
+                let mut elements = vec![self.parse_unresolved_pat()?];
+                while is_current!(self, Comma) {
+                    self.tokenizer.next()?;
+                    elements.push(self.parse_unresolved_pat()?);
+                }
+
                 assert_current!(self, RightParen);
-                self.tokenizer.next()?;
-                Ok(pat)
+                let right_paren = self.tokenizer.next()?;
+
+                if elements.len() == 1 {
+                    Ok(elements.into_iter().nth(0).unwrap())
+                } else {
+                    Ok(UnresolvedPat::Tuple {
+                        elements,
+                        span: Span::concat(&span, &right_paren.span),
+                    })
+                }
             }
             token => mkerr(
                 format!("Expected pattern, found {}", token.type_to_string()),
@@ -550,10 +566,17 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
         }
     }
 
-    fn lvalue_to_pat(&mut self, lvalue: Lvalue) -> AstPat {
-        match lvalue {
-            Lvalue::Variable { var, span } => AstPat::Variable {
+    fn resolve_def_pat(&mut self, pat: UnresolvedPat) -> AstPat {
+        match pat {
+            UnresolvedPat::Variable { var, span } => AstPat::Variable {
                 var: self.ctx.symbol_table.add_variable(&var, &span),
+                span,
+            },
+            UnresolvedPat::Tuple { elements, span } => AstPat::Tuple {
+                elements: elements
+                    .into_iter()
+                    .map(|element| self.resolve_def_pat(element))
+                    .collect(),
                 span,
             },
         }
@@ -589,7 +612,7 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
             TokenType::Identifier(name) => {
                 self.parse_variable_type(&name, first_token.span, in_def)?
             }
-            TokenType::LeftParen => self.parse_parenthesized_type(first_token, in_def)?,
+            TokenType::LeftParen => self.parse_parenthesized_type(&first_token, in_def)?,
             _ => return Err(unexpected_token(&first_token)),
         };
 
@@ -617,7 +640,11 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
         })
     }
 
-    fn parse_parenthesized_type(&mut self, left_paren: Token, in_def: bool) -> MyteResult<AstType> {
+    fn parse_parenthesized_type(
+        &mut self,
+        left_paren: &Token,
+        in_def: bool,
+    ) -> MyteResult<AstType> {
         let mut tys = vec![self.parse_type(in_def)?];
 
         while is_current!(self, Comma) {
@@ -657,8 +684,15 @@ impl<'tok, 'ctx> Parser<'tok, 'ctx> {
     }
 }
 
-enum Lvalue {
-    Variable { var: String, span: Span },
+enum UnresolvedPat {
+    Variable {
+        var: String,
+        span: Span,
+    },
+    Tuple {
+        elements: Vec<UnresolvedPat>,
+        span: Span,
+    },
 }
 
 ///////////////////////////////////////////////////////////////////////////////

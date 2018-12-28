@@ -75,9 +75,10 @@ pub enum AstStmt {
     },
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum AstPat {
     Variable { var: IdentifierID, span: Span },
+    Tuple { elements: Vec<AstPat>, span: Span },
 }
 
 #[derive(Debug)]

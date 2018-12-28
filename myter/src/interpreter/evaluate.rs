@@ -347,7 +347,10 @@ impl<'ctx> Evaluator<'ctx> {
                 ..
             } => {
                 let val = self.evaluate_expr(rvalue, env)?;
-                bind_variables(lvalue, &val, env);
+                if let Err(err) = bind_variables(lvalue, &val, env) {
+                    return Err(err);
+                }
+
                 Ok(Value::Unit)
             }
             IrStmtType::FunctionDefinition {
@@ -443,9 +446,23 @@ impl<'ctx> Evaluator<'ctx> {
     }
 }
 
-fn bind_variables(pat: &IrPat, val: &Value, env: &mut Environment) {
-    match pat.pat {
-        IrPatType::Variable(var) => env.extend(var, val),
+fn bind_variables(pat: &IrPat, val: &Value, env: &mut Environment) -> EvalResult<()> {
+    match (&pat.pat, val) {
+        (IrPatType::Variable(var), val) => {
+            env.extend(*var, val);
+            Ok(())
+        }
+        (IrPatType::Tuple(ref pats), Value::Tuple(ref vals)) if pats.len() == vals.len() => {
+            for (pat, val) in pats.iter().zip(vals) {
+                bind_variables(pat, val, env)?
+            }
+
+            Ok(())
+        }
+        _ => mk_eval_err(
+            "MATCHING: Cannot bind value to pattern".to_string(),
+            &pat.span,
+        ),
     }
 }
 
