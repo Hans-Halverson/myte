@@ -131,6 +131,7 @@ impl<'ctx> TypeChecker<'ctx> {
         let ty = self.pat_var(pattern);
         match pat {
             IrPatType::Variable(var) => self.check_variable_pat(*var, &ty, span),
+            IrPatType::Tuple(pats) => self.check_tuple_pat(pats, &ty, span),
         }
     }
 
@@ -648,6 +649,25 @@ impl<'ctx> TypeChecker<'ctx> {
                 name,
                 ty,
                 &var_ty,
+                span
+            );
+        }
+    }
+
+    fn check_tuple_pat(&mut self, pats: &[IrPat], ty: &InferType, span: &Span) {
+        for pat in pats {
+            self.check_pat(&pat);
+        }
+
+        let pat_vars = pats.iter().map(|pat| self.pat_var(pat)).collect();
+        let tuple_ty = InferType::Tuple(pat_vars);
+
+        if !self.unify(ty, &tuple_ty) {
+            add_type_error!(
+                self,
+                "Expected tuple pattern to have type {}, but found {}",
+                &tuple_ty,
+                &ty,
                 span
             );
         }

@@ -123,6 +123,21 @@ impl<'ctx> Resolver<'ctx> {
                 id: self.new_id(),
                 pat: IrPatType::Variable(var),
             }),
+            AstPat::Tuple { elements, span } => {
+                let ir_elements = elements
+                    .into_iter()
+                    .map(|element| self.resolve_pat(element))
+                    .collect::<Vec<Option<IrPat>>>();
+                if ir_elements.iter().any(|element| element.is_none()) {
+                    return None;
+                }
+
+                Some(IrPat {
+                    span,
+                    id: self.new_id(),
+                    pat: IrPatType::Tuple(ir_elements.into_iter().flatten().collect()),
+                })
+            }
         }
     }
 
@@ -381,12 +396,15 @@ impl<'ctx> Resolver<'ctx> {
         let rvalue = self.resolve_expr(rvalue)?;
         let has_annot = annot.is_some();
 
-        let ty = match annot {
-            None => InferType::InferVariable(self.ctx.infer_ctx.new_infer_var_id()),
-            Some(annot) => self.resolve_type(*annot)?,
-        };
-
-        self.match_annotated_pattern(&lvalue, &ty);
+        match annot {
+            None => {
+                self.match_unannotated_pattern(&lvalue);
+            }
+            Some(annot) => {
+                let ty = self.resolve_type(*annot)?;
+                self.match_annotated_pattern(&lvalue, &ty);
+            }
+        }
 
         Some(IrStmt {
             span,
@@ -399,12 +417,44 @@ impl<'ctx> Resolver<'ctx> {
         })
     }
 
+    fn match_unannotated_pattern(&mut self, pat: &IrPat) {
+        match &pat.pat {
+            IrPatType::Variable(var) => {
+                let ty = InferType::InferVariable(self.ctx.infer_ctx.new_infer_var_id());
+                self.ctx.infer_ctx.ident_to_type.insert(*var, ty);
+            }
+            IrPatType::Tuple(ref pats) => {
+                for pat in pats {
+                    self.match_unannotated_pattern(pat);
+                }
+            }
+        }
+    }
+
     fn match_annotated_pattern(&mut self, pat: &IrPat, ty: &InferType) {
-        let IrPat {
-            pat: IrPatType::Variable(var),
-            ..
-        } = pat;
-        self.ctx.infer_ctx.ident_to_type.insert(*var, ty.clone());
+        match (&pat.pat, ty) {
+            (IrPatType::Variable(var), _) => {
+                self.ctx.infer_ctx.ident_to_type.insert(*var, ty.clone());
+            }
+            (IrPatType::Tuple(ref pats), InferType::Tuple(ref types))
+                if pats.len() == types.len() =>
+            {
+                for (pat, ty) in pats.iter().zip(types) {
+                    self.match_annotated_pattern(pat, ty)
+                }
+            }
+            _ => {
+                let formatted_types = InferType::format_types(&[ty.clone()]);
+                self.ctx.error_ctx.add_error(MyteError::new(
+                    format!(
+                        "Annotation does not match pattern. Pattern expected to match {}",
+                        formatted_types[0]
+                    ),
+                    &pat.span,
+                    MyteErrorType::Resolve,
+                ));
+            }
+        }
     }
 
     fn resolve_function_definition(

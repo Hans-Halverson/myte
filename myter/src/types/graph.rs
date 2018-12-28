@@ -153,6 +153,4 @@ impl TypeGraph {
             }
         }
     }
-
-
 }
