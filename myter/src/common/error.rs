@@ -154,7 +154,7 @@ impl<T: Read> ErrorRead for ErrorReader<T> {
             self.current_line_num += 1;
             self.current_line.clear();
             self.reader.read_line(&mut self.current_line)?;
-            self.current_line = self.current_line.trim_right().to_string();
+            self.current_line = self.current_line.trim_end().to_string();
         }
 
         Ok(self

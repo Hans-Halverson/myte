@@ -1,7 +1,5 @@
 # TODOs
 
-- Error on clashing function names
-- Error on multiple mains
 - Global variables cannot call functions
 - All execution paths must return
 
@@ -12,7 +10,6 @@
 
 - Bytes
 - Doubles
-- Tuples
 - Vectors
 - Sets
 - Maps
@@ -20,4 +17,5 @@
 - Types
 
 - ADTs
+- Pattern matching
 - Traits

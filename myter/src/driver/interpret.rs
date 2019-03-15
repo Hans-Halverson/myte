@@ -26,14 +26,6 @@ pub fn interpret(file_names: &[String]) {
         }
     };
 
-    if !ctx.error_ctx.is_empty() {
-        if let Err(err) = ctx.error_ctx.print_errors(&ctx) {
-            println!("{}", err);
-        }
-
-        return;
-    }
-
     let ir = file_asts
         .into_iter()
         .flat_map(|ast| resolution::resolve_file(ast, &mut ctx))

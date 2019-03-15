@@ -24,4 +24,14 @@ impl Context {
             infer_ctx: InferContext::new(),
         }
     }
+
+    pub fn new_for_repl() -> Context {
+        Context {
+            symbol_table: SymbolTable::new_for_repl(),
+            error_ctx: ErrorContext::new(),
+            file_table: FileTable::new(),
+            ir_ctx: IrContext::new(),
+            infer_ctx: InferContext::new(),
+        }
+    }
 }

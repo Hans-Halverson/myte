@@ -13,7 +13,7 @@ use types::check;
 use types::infer::InferType;
 
 pub fn repl() {
-    let mut ctx = Context::new();
+    let mut ctx = Context::new_for_repl();
     let mut env = Environment::new();
 
     let stdin = io::stdin();

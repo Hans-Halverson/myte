@@ -410,12 +410,12 @@ impl<'ctx> Evaluator<'ctx> {
         }
     }
 
-    fn apply_main(&mut self, env: &mut Environment) -> EvalResult<Option<Value>> {
+    fn apply_main(&mut self, env: &mut Environment) -> EvalResult<()> {
         let main_id = match self.ctx.symbol_table.get_main_id() {
             Some(id) => id,
             None => {
                 error::print_err_string("No main function defined");
-                return Ok(None);
+                return Ok(());
             }
         };
 
@@ -433,10 +433,11 @@ impl<'ctx> Evaluator<'ctx> {
                 }
 
                 env.enter_scope();
-                let return_value = self.evaluate_expr(body, env)?;
+                self.evaluate_expr(body, env)?;
                 env.exit_scope();
 
-                Ok(Some(return_value))
+                error::print_err_string("Main fuction finished without returning");
+                Ok(())
             }
             _ => mk_eval_err(
                 "Main must be a function".to_string(),
@@ -496,10 +497,7 @@ pub fn evaluate_files(
             Ok(None)
         }
         Err(EvalUnwind::Error { err, span }) => mkerr(err, &span, MyteErrorType::Evaluate),
-        Ok(_) => {
-            error::print_err_string("Main fuction finished without returning");
-            Ok(None)
-        }
+        Ok(_) => Ok(None),
     }
 }
 

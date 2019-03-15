@@ -34,9 +34,10 @@ pub struct UnresolvedType {
 
 type ScopeID = usize;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum ScopeType {
     Package,
+    Repl,
     Block,
     Function,
     FunctionBody,
@@ -75,8 +76,16 @@ impl Scope {
 
 impl SymbolTable {
     pub fn new() -> SymbolTable {
+        Self::new_impl(ScopeType::Package)
+    }
+
+    pub fn new_for_repl() -> SymbolTable {
+        Self::new_impl(ScopeType::Repl)
+    }
+
+    fn new_impl(root_type: ScopeType) -> SymbolTable {
         let root_id = 0;
-        let root = Scope::new(root_id, None, ScopeType::Package);
+        let root = Scope::new(root_id, None, root_type);
         let scopes = vec![root];
         SymbolTable {
             variables: Vec::new(),
@@ -109,7 +118,8 @@ impl SymbolTable {
             span: *span,
         });
 
-        if self.get_scope(self.current_id).ty != ScopeType::Package {
+        let current_scope_type = self.get_scope(self.current_id).ty;
+        if current_scope_type != ScopeType::Package && current_scope_type != ScopeType::Repl {
             self.enter_scope(ScopeType::Variable);
         }
 
@@ -129,7 +139,7 @@ impl SymbolTable {
         let var_id = self.variables.len() as u32;
 
         match self.get_scope(self.current_id).ty {
-            ScopeType::Function => {}
+            ScopeType::Function | ScopeType::Repl => {}
             ScopeType::Package => {
                 if name == "main" {
                     match self.main_id {
@@ -150,9 +160,18 @@ impl SymbolTable {
             span: *span,
         });
 
-        self.scopes[self.current_id]
-            .variables
-            .insert(name.to_string(), var_id);
+        let current_scope = &mut self.scopes[self.current_id];
+        if current_scope.variables.contains_key(name) && current_scope.ty != ScopeType::Repl {
+            error_ctx.add_error(MyteError::new(
+                format!("Function with name {} already defined in this scope", name),
+                span,
+                MyteErrorType::Resolve,
+            ));
+
+            return var_id;
+        }
+
+        current_scope.variables.insert(name.to_string(), var_id);
 
         var_id
     }
