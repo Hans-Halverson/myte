@@ -1,0 +1,18 @@
+#!/usr/bin/python
+
+import argparse
+import os
+import sys
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--rebuild', action='store_true', help='Build the myte language')
+    parser.add_argument('FILES', nargs='*', help='Files to process with myte interpreter')
+
+    args = parser.parse_args()
+
+    if args.rebuild:
+        os.system('$MYTEPATH/mytepp/scripts/build')
+    else:
+        files_string = ' '.join(args.FILES)
+        os.system('$MYTEPATH/mytepp/scripts/run {0}'.format(files_string))

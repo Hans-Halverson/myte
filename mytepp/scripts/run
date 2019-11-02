@@ -1,0 +1,3 @@
+#!/bin/bash
+
+$MYTEPATH/mytepp/builds/mytepp $@
