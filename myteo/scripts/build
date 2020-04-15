@@ -1,0 +1,8 @@
+#!/bin/zsh
+
+CURRENT_DIR=$0:A:h
+ROOT_DIR=$(dirname $CURRENT_DIR)
+
+pushd $ROOT_DIR/src
+dune build myte.exe --no-print-directory
+popd
