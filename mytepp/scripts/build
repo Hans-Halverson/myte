@@ -3,4 +3,5 @@
 mkdir -p $MYTEPATH/mytepp/builds
 clang++ -o $MYTEPATH/mytepp/builds/mytepp \
   -Wall -Wextra -Wpedantic \
-  $MYTEPATH/mytepp/src/*.cpp
+  $MYTEPATH/mytepp/src/*.cpp \
+  $MYTEPATH/mytepp/src/*/*.cpp
