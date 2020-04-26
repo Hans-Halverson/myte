@@ -1,0 +1,5 @@
+(library
+  (name parser)
+  (wrapped false)
+  (libraries sedlex)
+  (preprocess (pps sedlex.ppx)))
