@@ -1,0 +1,3 @@
+(executable
+  (name run_tests)
+  (libraries str myte_test parser_tests))
