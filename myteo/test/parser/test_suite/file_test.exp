@@ -1,0 +1,12 @@
+test/parser/test_suite/file_test.myte
+{
+  node: Program,
+  loc: 1:0-1:5,
+  statements: [
+    {
+      node: Identifier,
+      loc: 1:0-1:4,
+      name: "test",
+    },
+  ],
+}

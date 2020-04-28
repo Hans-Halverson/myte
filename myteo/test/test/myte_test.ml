@@ -17,19 +17,19 @@ and TestResult : sig
 end = TestResult
 
 and Suite : sig
-  type t = string * t'
-
-  and t' =
-    | Group of Suite.t list
-    | Tests of Test.t list
+  type t = {
+    name: string;
+    suites: Suite.t list;
+    tests: Test.t list;
+  }
 end = Suite
 
 and SuiteResult : sig
-  type t = string * t'
+  type result_or_skip = Test.result option
 
-  and t' =
-    | Group of SuiteResult.t list
-    | Tests of result_or_skip TestResult.t list
-
-  and result_or_skip = Test.result option
+  and t = {
+    name: string;
+    suites: t list;
+    tests: result_or_skip TestResult.t list
+  }
 end = SuiteResult

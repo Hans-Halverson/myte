@@ -27,7 +27,7 @@ let () =
   let tree = !(opts.tree) in
 
   let suite_results = Runner.run_suites filter [
-      ("parser", Parser_tests.suite ~bin ~record);
+      Parser_tests.suite ~bin ~record;
     ] in 
   let collated_results = Collate.collate_results suite_results in
   let formatted_results = Collate.pp ~tree collated_results in
