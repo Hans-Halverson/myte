@@ -9,7 +9,7 @@ test/parser/ast/binary_operation/basic.myte
       expression: {
         node: BinaryOperation,
         loc: 1:0-1:5,
-        op: +,
+        op: Add,
         left: {
           node: Identifier,
           loc: 1:0-1:1,
@@ -28,7 +28,7 @@ test/parser/ast/binary_operation/basic.myte
       expression: {
         node: BinaryOperation,
         loc: 3:0-3:5,
-        op: -,
+        op: Subtract,
         left: {
           node: Identifier,
           loc: 3:0-3:1,
@@ -47,7 +47,7 @@ test/parser/ast/binary_operation/basic.myte
       expression: {
         node: BinaryOperation,
         loc: 5:0-5:5,
-        op: *,
+        op: Multiply,
         left: {
           node: Identifier,
           loc: 5:0-5:1,
@@ -66,7 +66,7 @@ test/parser/ast/binary_operation/basic.myte
       expression: {
         node: BinaryOperation,
         loc: 7:0-7:5,
-        op: /,
+        op: Divide,
         left: {
           node: Identifier,
           loc: 7:0-7:1,

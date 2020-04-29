@@ -52,15 +52,18 @@ let tokenize lex =
   match %sedlex buf with
   | new_line -> Whitespace (mark_new_line lex)
   | white_space -> Whitespace lex
-  | identifier -> token_result (T_IDENTIFIER (lexeme buf))
   | ';' -> token_result T_SEMICOLON
   | '+' -> token_result T_PLUS
   | '-' -> token_result T_MINUS
   | '*' -> token_result T_MULTIPLY
   | '/' -> token_result T_DIVIDE
+  | '!' -> token_result T_LOGICAL_NOT
+  | "&&" -> token_result T_LOGICAL_AND
+  | "||" -> token_result T_LOGICAL_OR
   | "true" -> token_result (T_BOOL_LITERAL true)
   | "false" -> token_result (T_BOOL_LITERAL false)
   | eof -> token_result T_EOF
+  | identifier -> token_result (T_IDENTIFIER (lexeme buf))
   | int_literal ->
     let raw = lexeme buf in
     token_result (T_INT_LITERAL (int_of_string raw, raw))

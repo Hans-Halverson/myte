@@ -8,6 +8,9 @@ type t =
   | T_MINUS
   | T_MULTIPLY
   | T_DIVIDE
+  | T_LOGICAL_AND
+  | T_LOGICAL_OR
+  | T_LOGICAL_NOT
   | T_EOF
 
 let to_string token =
@@ -21,4 +24,7 @@ let to_string token =
   | T_MINUS -> "-"
   | T_MULTIPLY -> "*"
   | T_DIVIDE -> "/"
+  | T_LOGICAL_AND -> "&&"
+  | T_LOGICAL_OR -> "||"
+  | T_LOGICAL_NOT -> "!"
   | T_EOF -> "<EOF>"

@@ -40,11 +40,29 @@ and parse_expression_statement env =
   let loc = marker env in
   Statement.Expression (loc, expr)
 
-and parse_expression env = parse_binary_operation env
+and parse_expression env = parse_unary_expression env
+
+and parse_unary_expression env =
+  let open Expression.UnaryOperation in
+  let maybe_op env =
+    match Env.peek env with
+    | T_PLUS -> Some Plus
+    | T_MINUS -> Some Minus
+    | T_LOGICAL_NOT -> Some LogicalNot
+    | _ -> None
+  in
+  let marker = mark_loc env in
+  match maybe_op env with
+  | Some op ->
+    Env.advance env;
+    let operand = parse_expression env in
+    let loc = marker env in
+    Expression.UnaryOperation { loc; operand; op; t = () }
+  | None -> parse_binary_operation env
 
 and parse_binary_operation env =
   let open Expression.BinaryOperation in
-  let token_to_op env =
+  let maybe_op env =
     match Env.peek env with
     | T_PLUS -> Some Add
     | T_MINUS -> Some Subtract
@@ -53,14 +71,31 @@ and parse_binary_operation env =
     | _ -> None
   in
   let marker = mark_loc env in
-  let left = parse_terminal_expression env in
-  match token_to_op env with
+  let left = parse_logical_expression env in
+  match maybe_op env with
   | Some op ->
     Env.advance env;
-    let right = parse_terminal_expression env in
+    let right = parse_logical_expression env in
     let loc = marker env in
     Expression.BinaryOperation { loc; left; right; op; t = () }
   | None -> left
+
+and parse_logical_expression env =
+  let open Expression in
+  let marker = mark_loc env in
+  let left = parse_terminal_expression env in
+  match Env.peek env with
+  | T_LOGICAL_AND ->
+    Env.advance env;
+    let right = parse_terminal_expression env in
+    let loc = marker env in
+    LogicalAnd { LogicalAnd.loc; left; right; t = () }
+  | T_LOGICAL_OR ->
+    Env.advance env;
+    let right = parse_terminal_expression env in
+    let loc = marker env in
+    LogicalOr { LogicalOr.loc; left; right; t = () } 
+  | _ -> left
 
 and parse_terminal_expression env =
   let open Expression in

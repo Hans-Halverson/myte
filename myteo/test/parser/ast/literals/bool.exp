@@ -7,18 +7,18 @@ test/parser/ast/literals/bool.myte
       node: ExpressionStatement,
       loc: 1:0-1:5,
       expression: {
-        node: Identifier,
+        node: BoolLiteral,
         loc: 1:0-1:4,
-        name: "true",
+        value: true,
       },
     },
     {
       node: ExpressionStatement,
       loc: 2:0-2:6,
       expression: {
-        node: Identifier,
+        node: BoolLiteral,
         loc: 2:0-2:5,
-        name: "false",
+        value: false,
       },
     },
   ],

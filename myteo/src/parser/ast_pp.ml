@@ -45,13 +45,20 @@ let pp node =
   add_string "\n";
   Buffer.contents buf
 
+let string_of_unary_op op =
+  let open Expression.UnaryOperation in
+  match op with
+  | Plus -> "Plus"
+  | Minus -> "Minus"
+  | LogicalNot -> "LogicalNot"
+
 let string_of_binary_op op =
   let open Expression.BinaryOperation in
   match op with
-  | Add -> "+"
-  | Subtract -> "-"
-  | Multiply -> "*"
-  | Divide -> "/"
+  | Add -> "Add"
+  | Subtract -> "Subtract"
+  | Multiply -> "Multiply"
+  | Divide -> "Divide"
 
 let rec node_of_loc loc =
   let pp_pos pos =
@@ -84,7 +91,10 @@ and node_of_expression expr =
   | IntLiteral lit -> node_of_int_literal lit
   | StringLiteral lit -> node_of_string_literal lit
   | BoolLiteral lit -> node_of_bool_literal lit
+  | UnaryOperation unary -> node_of_unary_operation unary
   | BinaryOperation binary -> node_of_binary_operation binary
+  | LogicalAnd logical -> node_of_logical_and logical
+  | LogicalOr logical -> node_of_logical_or logical
 
 and node_of_identifier id =
   let { Identifier.loc; name; t = _ } = id in
@@ -102,12 +112,26 @@ and node_of_bool_literal lit =
   let { Expression.BoolLiteral.loc; value; t = _ } = lit in
   node "BoolLiteral" loc [("value", Bool value)]
 
+and node_of_unary_operation unary =
+  let { Expression.UnaryOperation.loc; operand; op; t = _ } = unary in
+  node "UnaryOperation" loc [
+    ("op", Raw (string_of_unary_op op));
+    ("operand", node_of_expression operand)]
+
 and node_of_binary_operation binary =
   let { Expression.BinaryOperation.loc; left; right; op; t = _ } = binary in
   node "BinaryOperation" loc [
     ("op", Raw (string_of_binary_op op));
     ("left", node_of_expression left);
     ("right", node_of_expression right)]
+
+and node_of_logical_and logical =
+  let { Expression.LogicalAnd.loc; left; right; t = _ } = logical in
+  node "LogicalAnd" loc [("left", node_of_expression left); ("right", node_of_expression right)]
+
+and node_of_logical_or logical =
+  let { Expression.LogicalOr.loc; left; right; t = _ } = logical in
+  node "LogicalOr" loc [("left", node_of_expression left); ("right", node_of_expression right)]
 
 and pp_program program =
   let node = node_of_program program in

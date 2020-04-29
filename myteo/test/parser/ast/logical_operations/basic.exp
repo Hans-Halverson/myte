@@ -1,0 +1,43 @@
+test/parser/ast/logical_operations/basic.myte
+{
+  node: Program,
+  loc: 1:0-2:14,
+  statements: [
+    {
+      node: ExpressionStatement,
+      loc: 1:0-1:14,
+      expression: {
+        node: LogicalAnd,
+        loc: 1:0-1:13,
+        left: {
+          node: BoolLiteral,
+          loc: 1:0-1:4,
+          value: true,
+        },
+        right: {
+          node: BoolLiteral,
+          loc: 1:8-1:13,
+          value: false,
+        },
+      },
+    },
+    {
+      node: ExpressionStatement,
+      loc: 2:0-2:14,
+      expression: {
+        node: LogicalOr,
+        loc: 2:0-2:13,
+        left: {
+          node: BoolLiteral,
+          loc: 2:0-2:4,
+          value: true,
+        },
+        right: {
+          node: BoolLiteral,
+          loc: 2:8-2:13,
+          value: false,
+        },
+      },
+    },
+  ],
+}
