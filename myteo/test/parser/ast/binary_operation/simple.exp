@@ -1,0 +1,83 @@
+test/parser/ast/binary_operation/simple.myte
+{
+  node: Program,
+  loc: 1:0-7:6,
+  statements: [
+    {
+      node: ExpressionStatement,
+      loc: 1:0-1:6,
+      expression: {
+        node: BinaryOperation,
+        loc: 1:0-1:5,
+        op: +,
+        left: {
+          node: Identifier,
+          loc: 1:0-1:1,
+          name: "a",
+        },
+        right: {
+          node: Identifier,
+          loc: 1:4-1:5,
+          name: "b",
+        },
+      },
+    },
+    {
+      node: ExpressionStatement,
+      loc: 3:0-3:6,
+      expression: {
+        node: BinaryOperation,
+        loc: 3:0-3:5,
+        op: -,
+        left: {
+          node: Identifier,
+          loc: 3:0-3:1,
+          name: "a",
+        },
+        right: {
+          node: Identifier,
+          loc: 3:4-3:5,
+          name: "b",
+        },
+      },
+    },
+    {
+      node: ExpressionStatement,
+      loc: 5:0-5:6,
+      expression: {
+        node: BinaryOperation,
+        loc: 5:0-5:5,
+        op: *,
+        left: {
+          node: Identifier,
+          loc: 5:0-5:1,
+          name: "a",
+        },
+        right: {
+          node: Identifier,
+          loc: 5:4-5:5,
+          name: "b",
+        },
+      },
+    },
+    {
+      node: ExpressionStatement,
+      loc: 7:0-7:6,
+      expression: {
+        node: BinaryOperation,
+        loc: 7:0-7:5,
+        op: /,
+        left: {
+          node: Identifier,
+          loc: 7:0-7:1,
+          name: "a",
+        },
+        right: {
+          node: Identifier,
+          loc: 7:4-7:5,
+          name: "b",
+        },
+      },
+    },
+  ],
+}

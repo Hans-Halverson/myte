@@ -18,10 +18,9 @@ let to_string error =
       (Token.to_string expected)
 
 let print (loc, error) =
-  let open Loc in
   let source =
     match loc with
     | { Loc.file = Some file; _ } -> Printf.sprintf "%s:" file
     | _ -> ""
   in
-  Printf.sprintf "%s%d:%d error: %s" source loc.start.line loc.start.col (to_string error)
+  Printf.sprintf "%s%d:%d error: %s" source Loc.(loc.start.line) Loc.(loc.start.col) (to_string error)

@@ -45,6 +45,14 @@ let pp node =
   add_string "\n";
   Buffer.contents buf
 
+let string_of_binary_op op =
+  let open Expression.BinaryOperation in
+  match op with
+  | Add -> "+"
+  | Subtract -> "-"
+  | Multiply -> "*"
+  | Divide -> "/"
+
 let rec node_of_loc loc =
   let pp_pos pos =
     let { Loc.line; col } = pos in
@@ -64,16 +72,27 @@ and node_of_program program =
 and node_of_statement stmt =
   let open Statement in
   match stmt with
-  | Expression expr -> node_of_expression expr
+  | Expression expr -> node_of_expression_stmt expr
+
+and node_of_expression_stmt (loc, expr) =
+  node "ExpressionStatement" loc [("expression", node_of_expression expr)]
 
 and node_of_expression expr =
   let open Expression in
   match expr with
   | Identifier id -> node_of_identifier id
+  | BinaryOperation binary -> node_of_binary_operation binary
 
 and node_of_identifier id =
   let { Identifier.loc; name; t = _ } = id in
   node "Identifier" loc [ ("name", String name) ]
+
+and node_of_binary_operation binary =
+  let { Expression.BinaryOperation.loc; left; right; op; t = _ } = binary in
+  node "BinaryOperation" loc [
+    ("op", Raw (string_of_binary_op op));
+    ("left", node_of_expression left);
+    ("right", node_of_expression right)]
 
 and pp_program program =
   let node = node_of_program program in

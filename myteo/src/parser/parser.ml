@@ -1,33 +1,16 @@
 open Ast
 open Token
+module Env = Parser_env.Env
 
-module Env = struct
-  type t = {
-    mutable lexer: Lexer.t;
-    mutable lex_result: Lexer.result;
-  }
+let mark_loc env =
+  let start_loc = Env.loc env in
+  (fun env -> Loc.between start_loc (Env.prev_loc env))
 
-  let mk lexer =
-    let (lexer, lex_result) = Lexer.next lexer in
-    { lexer; lex_result }
+let rec parse_file file = parse (Parser_env.from_file file)
 
-  let loc env = env.lex_result.loc
+and parse_string str = parse (Parser_env.from_string str)
 
-  let peek env = env.lex_result.token
-
-  let advance env =
-    let (lexer, lex_result) = Lexer.next env.lexer in
-    env.lex_result <- lex_result;
-    env.lexer <- lexer
-
-  let expect env expected =
-    let actual = peek env in
-    if actual <> expected then
-      Parse_error.fatal (Parse_error.(UnexpectedToken {actual; expected = Some expected}));
-    advance env
-end
-
-let rec parse env =
+and parse env =
   let rec helper stmts =
     match Env.peek env with
     | T_EOF -> List.rev stmts
@@ -51,11 +34,35 @@ and parse_statement env =
   | _ -> parse_expression_statement env
 
 and parse_expression_statement env =
+  let marker = mark_loc env in
   let expr = parse_expression env in
-  Env.expect env T_SEMICOLON;
-  Statement.Expression expr
+  Env.expect env T_SEMICOLON; 
+  let loc = marker env in
+  Statement.Expression (loc, expr)
 
-and parse_expression env =
+and parse_expression env = parse_binary_operation env
+
+and parse_binary_operation env =
+  let open Expression.BinaryOperation in
+  let token_to_op env =
+    match Env.peek env with
+    | T_PLUS -> Some Add
+    | T_MINUS -> Some Subtract
+    | T_MULTIPLY -> Some Multiply
+    | T_DIVIDE -> Some Divide
+    | _ -> None
+  in
+  let marker = mark_loc env in
+  let left = parse_single_expression env in
+  match token_to_op env with
+  | Some op ->
+    Env.advance env;
+    let right = parse_single_expression env in
+    let loc = marker env in
+    Expression.BinaryOperation { loc; left; right; op; t = () }
+  | None -> left
+
+and parse_single_expression env =
   let open Expression in
   match Env.peek env with
   | T_IDENTIFIER _ -> Identifier (parse_identifier env)
@@ -68,17 +75,3 @@ and parse_identifier env =
     Env.advance env;
     { Identifier.loc; name; t = () }
   | _ -> assert false
-
-
-let parse_file file =
-  let file_chan = open_in file in
-  let buf = Sedlexing.Utf8.from_channel file_chan in
-  let lexer = Lexer.mk (Some file) buf in
-  let env = Env.mk lexer in
-  parse env
-
-let parse_string str =
-  let buf = Sedlexing.Utf8.from_string str in
-  let lexer = Lexer.mk None buf in
-  let env = Env.mk lexer in
-  parse env
