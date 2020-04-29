@@ -4,7 +4,11 @@ let letter = [%sedlex.regexp? 'a'..'z' | 'A'..'Z']
 
 let digit = [%sedlex.regexp? '0'..'9']
 
-let identifier = [%sedlex.regexp? Plus (letter | digit | '_')]
+let identifier = [%sedlex.regexp? (letter | '_'), Star (letter | digit | '_')]
+
+let int_literal = [%sedlex.regexp? Plus digit]
+
+let string_literal = [%sedlex.regexp? '"', Star (Compl '"'), '"']
 
 let lexeme = Sedlexing.Utf8.lexeme
 
@@ -41,13 +45,6 @@ let mark_new_line lex =
     current_line_offset = new_current_line_offset
   }
 
-(* let rec skip_whitespace lex =
-   let { buf; _ } = lex in
-   match %sedlex buf with
-   | new_line -> skip_whitespace (mark_new_line lex)
-   | white_space -> skip_whitespace lex
-   | _ -> lex *)
-
 let tokenize lex =
   let open Token in
   let { buf; _ } = lex in
@@ -61,7 +58,16 @@ let tokenize lex =
   | '-' -> token_result T_MINUS
   | '*' -> token_result T_MULTIPLY
   | '/' -> token_result T_DIVIDE
+  | "true" -> token_result (T_BOOL_LITERAL true)
+  | "false" -> token_result (T_BOOL_LITERAL false)
   | eof -> token_result T_EOF
+  | int_literal ->
+    let raw = lexeme buf in
+    token_result (T_INT_LITERAL (int_of_string raw, raw))
+  | string_literal ->
+    let raw = lexeme buf in
+    let value = String.sub raw 1 (String.length raw - 2) in
+    token_result (T_STRING_LITERAL value)
   | _ -> Parse_error.(fatal (UnknownToken (lexeme buf)))
 
 let next lexer =

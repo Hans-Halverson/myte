@@ -1,0 +1,17 @@
+test/parser/ast/literals/int.myte
+{
+  node: Program,
+  loc: 1:0-1:2,
+  statements: [
+    {
+      node: ExpressionStatement,
+      loc: 1:0-1:2,
+      expression: {
+        node: IntLiteral,
+        loc: 1:0-1:1,
+        value: 1,
+        raw: "1",
+      },
+    },
+  ],
+}

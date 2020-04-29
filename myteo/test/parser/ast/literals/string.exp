@@ -1,0 +1,25 @@
+test/parser/ast/literals/string.myte
+{
+  node: Program,
+  loc: 1:0-2:9,
+  statements: [
+    {
+      node: ExpressionStatement,
+      loc: 1:0-1:3,
+      expression: {
+        node: StringLiteral,
+        loc: 1:0-1:2,
+        value: "",
+      },
+    },
+    {
+      node: ExpressionStatement,
+      loc: 2:0-2:9,
+      expression: {
+        node: StringLiteral,
+        loc: 2:0-2:8,
+        value: "string",
+      },
+    },
+  ],
+}

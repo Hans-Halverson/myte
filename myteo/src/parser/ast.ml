@@ -12,6 +12,31 @@ and Statement : sig
 end = Statement
 
 and Expression : sig
+  module IntLiteral : sig
+    type 'T t = {
+      t: 'T;
+      loc: Loc.t;
+      raw: string;
+      value: int;
+    }
+  end
+
+  module StringLiteral : sig
+    type 'T t = {
+      t: 'T;
+      loc: Loc.t;
+      value: string;
+    }
+  end
+
+  module BoolLiteral : sig
+    type 'T t = {
+      t: 'T;
+      loc: Loc.t;
+      value: bool;
+    }
+  end
+
   module BinaryOperation : sig
     type op =
       | Add
@@ -29,6 +54,9 @@ and Expression : sig
   end
 
   type 'T t =
+    | IntLiteral of 'T IntLiteral.t
+    | StringLiteral of 'T StringLiteral.t
+    | BoolLiteral of 'T BoolLiteral.t
     | Identifier of 'T Identifier.t
     | BinaryOperation of 'T BinaryOperation.t
 end = Expression

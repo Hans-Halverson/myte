@@ -81,11 +81,26 @@ and node_of_expression expr =
   let open Expression in
   match expr with
   | Identifier id -> node_of_identifier id
+  | IntLiteral lit -> node_of_int_literal lit
+  | StringLiteral lit -> node_of_string_literal lit
+  | BoolLiteral lit -> node_of_bool_literal lit
   | BinaryOperation binary -> node_of_binary_operation binary
 
 and node_of_identifier id =
   let { Identifier.loc; name; t = _ } = id in
   node "Identifier" loc [ ("name", String name) ]
+
+and node_of_int_literal lit =
+  let { Expression.IntLiteral.loc; raw; value; t = _ } = lit in
+  node "IntLiteral" loc [("value", Int value); ("raw", String raw)]
+
+and node_of_string_literal lit =
+  let { Expression.StringLiteral.loc; value; t = _ } = lit in
+  node "StringLiteral" loc [("value", String value)]
+
+and node_of_bool_literal lit =
+  let { Expression.BoolLiteral.loc; value; t = _ } = lit in
+  node "BoolLiteral" loc [("value", Bool value)]
 
 and node_of_binary_operation binary =
   let { Expression.BinaryOperation.loc; left; right; op; t = _ } = binary in

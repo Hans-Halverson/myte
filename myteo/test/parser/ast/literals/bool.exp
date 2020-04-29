@@ -1,0 +1,25 @@
+test/parser/ast/literals/bool.myte
+{
+  node: Program,
+  loc: 1:0-2:6,
+  statements: [
+    {
+      node: ExpressionStatement,
+      loc: 1:0-1:5,
+      expression: {
+        node: Identifier,
+        loc: 1:0-1:4,
+        name: "true",
+      },
+    },
+    {
+      node: ExpressionStatement,
+      loc: 2:0-2:6,
+      expression: {
+        node: Identifier,
+        loc: 2:0-2:5,
+        name: "false",
+      },
+    },
+  ],
+}

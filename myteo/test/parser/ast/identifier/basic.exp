@@ -1,0 +1,16 @@
+test/parser/ast/identifier/basic.myte
+{
+  node: Program,
+  loc: 1:0-1:11,
+  statements: [
+    {
+      node: ExpressionStatement,
+      loc: 1:0-1:11,
+      expression: {
+        node: Identifier,
+        loc: 1:0-1:10,
+        name: "identifier",
+      },
+    },
+  ],
+}

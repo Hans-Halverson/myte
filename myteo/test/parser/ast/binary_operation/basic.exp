@@ -1,4 +1,4 @@
-test/parser/ast/binary_operation/simple.myte
+test/parser/ast/binary_operation/basic.myte
 {
   node: Program,
   loc: 1:0-7:6,
