@@ -1,0 +1,43 @@
+test/parser/comment/block.myte
+{
+  node: Program,
+  loc: 1:0-10:17,
+  statements: [
+    {
+      node: ExpressionStatement,
+      loc: 1:0-1:16,
+      expression: {
+        node: StringLiteral,
+        loc: 1:0-1:15,
+        value: "empty comment",
+      },
+    },
+    {
+      node: ExpressionStatement,
+      loc: 3:0-3:14,
+      expression: {
+        node: StringLiteral,
+        loc: 3:0-3:13,
+        value: "single line",
+      },
+    },
+    {
+      node: ExpressionStatement,
+      loc: 5:0-5:12,
+      expression: {
+        node: StringLiteral,
+        loc: 5:0-5:11,
+        value: "multiline",
+      },
+    },
+    {
+      node: ExpressionStatement,
+      loc: 10:0-10:17,
+      expression: {
+        node: StringLiteral,
+        loc: 10:0-10:16,
+        value: "after comments",
+      },
+    },
+  ],
+}

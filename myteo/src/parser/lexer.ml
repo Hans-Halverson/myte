@@ -26,8 +26,8 @@ type result = {
 
 type tokenize_result =
   | Token of (t * result)
-  | Whitespace of t
-  | Malformed of (t * (Loc.t * Parse_error.t))
+  | Skip of t
+  | LexError of (t * (Loc.t * Parse_error.t))
 
 let mk file buf = { buf; file; current_line = 1; current_line_offset = 0 }
 
@@ -46,16 +46,36 @@ let mark_new_line lex =
     current_line_offset = new_current_line_offset
   }
 
+let rec skip_line_comment lex =
+  let { buf; _ } = lex in
+  match %sedlex buf with
+  | eof
+  | new_line -> Skip (mark_new_line lex)
+  | any -> skip_line_comment lex
+  | _ -> failwith "Unreachable"
+
+let rec skip_block_comment lex =
+  let { buf; _ } = lex in
+  match %sedlex buf with
+  | "*/" -> Skip lex
+  | eof ->
+    LexError (lex, (current_loc lex, Parse_error.UnexpectedToken { actual = T_EOF; expected = None }))
+  | new_line -> skip_block_comment (mark_new_line lex)
+  | any -> skip_block_comment lex
+  | _ -> failwith "Unreachable"
+
 let tokenize lex =
   let open Token in
   let { buf; _ } = lex in
   let token_result token = Token (lex, { loc = current_loc lex; token }) in
-  let malformed lex =
-    Malformed (lex, (current_loc lex, Parse_error.UnknownToken (lexeme buf)))
+  let lex_error lex =
+    LexError (lex, (current_loc lex, Parse_error.UnknownToken (lexeme buf)))
   in
   match %sedlex buf with
-  | new_line -> Whitespace (mark_new_line lex)
-  | white_space -> Whitespace lex
+  | new_line -> Skip (mark_new_line lex)
+  | white_space -> Skip lex
+  | "//" -> skip_line_comment lex
+  | "/*" -> skip_block_comment lex
   | "&&" -> token_result T_LOGICAL_AND
   | "||" -> token_result T_LOGICAL_OR
   | "==" -> token_result T_EQUALS
@@ -83,13 +103,13 @@ let tokenize lex =
     let raw = lexeme buf in
     let value = String.sub raw 1 (String.length raw - 2) in
     token_result (T_STRING_LITERAL value)
-  | _ -> malformed lex 
+  | _ -> lex_error lex 
 
 let next lexer =
-  let rec skip_whitespace lexer =
+  let rec find_next_token lexer =
     match tokenize lexer with
-    | Whitespace lexer -> skip_whitespace lexer
+    | Skip lexer -> find_next_token lexer
     | Token (lexer, result) -> (lexer, Ok result)
-    | Malformed (lexer, result) -> (lexer, Error result)
+    | LexError (lexer, result) -> (lexer, Error result)
   in
-  skip_whitespace lexer
+  find_next_token lexer

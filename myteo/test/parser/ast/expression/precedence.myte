@@ -1,3 +1,8 @@
+// Full precedence
++a * b + c < d == e && f || g;
+a || b && c == d < e + f * g;
+
+// Group precedence
 a * (b * c);
 (a * b) * c;
 a + (b + c);
@@ -11,6 +16,7 @@ a && (b && c);
 a || (b || c);
 (a || b) || c;
 
+// Unary precedence
 +(a + b);
 +a * b;
 +a + b;
@@ -19,6 +25,7 @@ a || (b || c);
 +a && b;
 +a || b;
 
+// Multiplication precedence
 a * b + c;
 a + b * c;
 a * b < c;
@@ -30,6 +37,7 @@ a && b * c;
 a * b || c;
 a || b * c;
 
+// Addition precedence
 a + b < c;
 a < b + c;
 a + b == c;
@@ -39,6 +47,7 @@ a && b + c;
 a + b || c;
 a || b + c;
 
+// Comparison precedence
 a < b == c;
 a == b < c;
 a < b && c;
@@ -46,10 +55,12 @@ a && b < c;
 a < b || c;
 a || b < c;
 
+// Equality precedence
 a == b && c;
 a && b == c;
 a == b || c;
 a || b == c;
 
+// Logical and precedence
 a && b || c;
 a || b && c;

@@ -1,0 +1,10 @@
+"empty comment";
+/**/
+"single line";
+/* comment */
+"multiline";
+/* comment1
+ * comment2
+ * comment3
+ */
+"after comments";

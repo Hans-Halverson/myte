@@ -44,15 +44,15 @@ and parse env =
     | T_EOF -> List.rev stmts
     | _ -> helper (parse_statement env :: stmts)
   in
-  let (statements, errors) =
+  let (loc, statements, errors) =
     try
       let statements = helper [] in
-      (statements, [])
+      let loc = Env.loc env in
+      (loc, statements, [])
     with
-      Parse_error.Fatal err ->
-      ([], [err])
+      Parse_error.Fatal (loc, err) ->
+      (loc, [], [(loc, err)])
   in
-  let loc = Env.loc env in
   let loc = { loc with Loc.start = Loc.first_pos } in
   ({ Program.loc; statements; t = () }, errors)
 

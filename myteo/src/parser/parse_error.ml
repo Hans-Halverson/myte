@@ -9,6 +9,7 @@ let fatal err = raise (Fatal err)
 let to_string error =
   match error with
   | UnknownToken raw -> Printf.sprintf "Unexpected token \"%s\"" raw
+  | UnexpectedToken { actual = T_EOF; expected = None } -> "Unexpected <EOF>"
   | UnexpectedToken { actual; expected = None } ->
     Printf.sprintf "Unexpected token \"%s\"" (Token.to_string actual)
   | UnexpectedToken { actual; expected = Some expected } ->

@@ -1,0 +1,7 @@
+"empty comment";
+//
+"with text";
+// comment
+////
+"terminated by eof";
+// comment
