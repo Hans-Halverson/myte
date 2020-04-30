@@ -1,4 +1,4 @@
-let command bin files = Printf.sprintf "%s --show-ast %s" bin (String.concat " " files)
+let command bin files = Printf.sprintf "%s --show-ast --no-pretty-print %s" bin (String.concat " " files)
 
 let suite ~bin ~record =
   let root = Sys.getcwd () in

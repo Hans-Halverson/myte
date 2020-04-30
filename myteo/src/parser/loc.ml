@@ -15,6 +15,8 @@ let between { file; start; _ } { _end; _ } = { file; start; _end }
 
 let pos_to_string { line; col } = Printf.sprintf "%d:%d" line col
 
+let is_single_line loc = loc.start.line = loc._end.line
+
 let to_string ?(source=false) loc =
   if source then
     match loc.file with

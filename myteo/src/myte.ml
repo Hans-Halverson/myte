@@ -1,16 +1,5 @@
 module SSet = Set.Make(String)
 
-type opts = {
-  show_ast: bool ref;
-}
-
-let opts = { show_ast = ref false }
-
-let spec = [
-  ("--show-ast", Arg.Set opts.show_ast, "Print the AST to stdout")
-]
-  |> Arg.align
-
 let normalize path =
   let path_length = String.length path in
   let root_length = String.length Files.absolute_root + 1 in
@@ -29,6 +18,6 @@ let show_ast files =
 
 let () =
   let files = ref SSet.empty in
-  Arg.parse spec (fun file -> files := SSet.add file !files) "Myte programming language";
-  if !(opts.show_ast) then
+  Arg.parse Opts.spec (fun file -> files := SSet.add file !files) "Myte programming language";
+  if Opts.show_ast () then
     show_ast files
