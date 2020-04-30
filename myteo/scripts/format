@@ -1,0 +1,10 @@
+#!/bin/zsh
+
+CURRENT_DIR=$0:A:h
+ROOT_DIR=$(dirname $CURRENT_DIR)
+
+pushd $ROOT_DIR
+ML_FILES=$(find src test -type f -name "*.ml")
+MLI_FILES=$(find src test -type f -name "*.mli")
+ocamlformat -i ${=ML_FILES} ${=MLI_FILES}
+popd

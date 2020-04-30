@@ -1,15 +1,11 @@
 type t =
   | UnknownToken of string
-  | UnexpectedToken of { actual: Token.t; expected: Token.t option }
+  | UnexpectedToken of {
+      actual: Token.t;
+      expected: Token.t option;
+    }
 
 exception Fatal of (Loc.t * t)
-
-let opt_formatting format = if Opts.print_plain () then "" else format
-
-let reset_attributes () = opt_formatting "\u{001B}[0m"
-let bold_attribute () = opt_formatting "\u{001B}[1m"
-let red_color () = opt_formatting "\u{001B}[31m"
-let reset_color () = opt_formatting "\u{001B}[39m"
 
 let fatal err = raise (Fatal err)
 
@@ -26,8 +22,7 @@ let to_string error =
       (Token.to_string expected)
 
 (* The number of digits in the base-10 representation of a number *)
-let num_digits n =
-  int_of_float (log10 (float_of_int n)) + 1
+let num_digits n = int_of_float (log10 (float_of_int n)) + 1
 
 (* Pad a line number with whitespace for displaying in error messages *)
 let pad_number n max_num_digits =
@@ -50,29 +45,32 @@ let print_summary_line loc error =
     Loc.(loc.start.line)
     Loc.(loc.start.col)
     (reset_attributes ())
-    (to_string error) 
+    (to_string error)
 
 let print_single_line loc snippet =
   let open Loc in
-  let { start = { line = start_line; col = start_col }; _end = { col = end_col; _  }; _ } = loc in
+  let { start = { line = start_line; col = start_col }; _end = { col = end_col; _ }; _ } = loc in
   let max_num_digits = num_digits start_line in
   let padded_line_num = pad_number start_line max_num_digits in
-  let end_col = if end_col = start_col then end_col + 1 else end_col in
+  let end_col =
+    if end_col = start_col then
+      end_col + 1
+    else
+      end_col
+  in
   let padded_carets =
-    Printf.sprintf "%s%s"
-      (String.make start_col ' ')
-      (String.make (end_col - start_col) '^')
+    Printf.sprintf "%s%s" (String.make start_col ' ') (String.make (end_col - start_col) '^')
   in
   let line = List.hd snippet in
-  Printf.sprintf "%s%s|%s %s" (bold_attribute ()) padded_line_num (reset_attributes ()) line ^
-  "\n" ^
-  Printf.sprintf
-    "%s%s|%s %s%s"
-    (bold_attribute ())
-    (String.make(max_num_digits + 2) ' ')
-    (red_color ())
-    padded_carets
-    (reset_attributes ())
+  Printf.sprintf "%s%s|%s %s" (bold_attribute ()) padded_line_num (reset_attributes ()) line
+  ^ "\n"
+  ^ Printf.sprintf
+      "%s%s|%s %s%s"
+      (bold_attribute ())
+      (String.make (max_num_digits + 2) ' ')
+      (red_color ())
+      padded_carets
+      (reset_attributes ())
 
 let print_first_line loc snippet =
   let open Loc in
@@ -83,23 +81,23 @@ let print_first_line loc snippet =
     Printf.sprintf
       "%s%s"
       (String.make loc.start.col ' ')
-      (String.make ((String.length line) - loc.start.col) '^')
+      (String.make (String.length line - loc.start.col) '^')
   in
-  (Printf.sprintf
-     "%s%s|%s / %s%s"
-     (bold_attribute ())
-     padded_line_num
-     (red_color ())
-     (reset_attributes ())
-     line) ^
-  "\n" ^
-  (Printf.sprintf
-     "%s%s|%s | %s%s"
-     (bold_attribute ())
-     (String.make (max_num_digits + 2) ' ')
-     (red_color ())
-     padded_carets
-     (reset_attributes ()))
+  Printf.sprintf
+    "%s%s|%s / %s%s"
+    (bold_attribute ())
+    padded_line_num
+    (red_color ())
+    (reset_attributes ())
+    line
+  ^ "\n"
+  ^ Printf.sprintf
+      "%s%s|%s | %s%s"
+      (bold_attribute ())
+      (String.make (max_num_digits + 2) ' ')
+      (red_color ())
+      padded_carets
+      (reset_attributes ())
 
 let print_last_line loc snippet =
   let open Loc in
@@ -107,21 +105,21 @@ let print_last_line loc snippet =
   let padded_line_num = pad_number loc._end.line max_num_digits in
   let line = List.nth snippet (loc._end.line - loc.start.line) in
   let padded_carets = String.make (loc._end.col + 1) '^' in
-  (Printf.sprintf
-     "%s%s|%s | %s%s"
-     (bold_attribute ())
-     padded_line_num
-     (red_color ())
-     (reset_attributes ())
-     line) ^
-  "\n" ^
-  (Printf.sprintf
-     "%s%s|%s \\ %s%s"
-     (bold_attribute ())
-     (String.make (max_num_digits + 2) ' ')
-     (red_color ())
-     padded_carets
-     (reset_attributes ()))
+  Printf.sprintf
+    "%s%s|%s | %s%s"
+    (bold_attribute ())
+    padded_line_num
+    (red_color ())
+    (reset_attributes ())
+    line
+  ^ "\n"
+  ^ Printf.sprintf
+      "%s%s|%s \\ %s%s"
+      (bold_attribute ())
+      (String.make (max_num_digits + 2) ' ')
+      (red_color ())
+      padded_carets
+      (reset_attributes ())
 
 let print_middle_line loc line_num snippet =
   let open Loc in
@@ -129,21 +127,21 @@ let print_middle_line loc line_num snippet =
   let padded_line_num = pad_number line_num max_num_digits in
   let line = List.nth snippet (line_num - loc.start.line) in
   let padded_carets = String.make (String.length line) '^' in
-  (Printf.sprintf
-     "%s%s|%s | %s%s"
-     (bold_attribute ())
-     padded_line_num
-     (red_color ())
-     (reset_attributes ())
-     line) ^
-  "\n" ^
-  (Printf.sprintf
-     "%s %s |%s | %s%s"
-     (bold_attribute ())
-     (String.make max_num_digits ' ')
-     (red_color ())
-     padded_carets
-     (reset_attributes ()))
+  Printf.sprintf
+    "%s%s|%s | %s%s"
+    (bold_attribute ())
+    padded_line_num
+    (red_color ())
+    (reset_attributes ())
+    line
+  ^ "\n"
+  ^ Printf.sprintf
+      "%s %s |%s | %s%s"
+      (bold_attribute ())
+      (String.make max_num_digits ' ')
+      (red_color ())
+      padded_carets
+      (reset_attributes ())
 
 let print_separator_line loc =
   let open Loc in
@@ -158,11 +156,10 @@ let snip_string loc lines =
   let (_, rev_snippet) =
     List.fold_left
       (fun (i, lines) line ->
-         if start_line - 1 <= i && i <= end_line - 1 then
-           (i + 1, line :: lines)
-         else
-           (i + 1, lines)
-      )
+        if start_line - 1 <= i && i <= end_line - 1 then
+          (i + 1, line :: lines)
+        else
+          (i + 1, lines))
       (0, [])
       lines
   in
@@ -172,7 +169,7 @@ let snippet loc =
   let open Loc in
   match loc.source with
   | None -> []
-  | Some (Source.File file) -> Io.file_read_lines_between file (loc.start.line) (loc._end.line)
+  | Some (Source.File file) -> Io.file_read_lines_between file loc.start.line loc._end.line
   | Some (Source.String str) -> snip_string loc (String.split_on_char '\n' str)
 
 let print (loc, error) =
@@ -193,7 +190,8 @@ let print (loc, error) =
     | 3 -> [first (); mid (off 1); last ()]
     | 4 -> [first (); mid (off 1); mid (off 2); last ()]
     | 5 -> [first (); mid (off 1); mid (off 2); mid (off 3); last ()]
-    | _ -> [first (); mid (off 1); mid (off 2); print_separator_line loc; mid (end_line - 1); last ()]
+    | _ ->
+      [first (); mid (off 1); mid (off 2); print_separator_line loc; mid (end_line - 1); last ()]
   in
   let lines = summary :: lines in
   String.concat "\n" lines

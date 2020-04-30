@@ -26,7 +26,11 @@ let to_string token =
   | T_IDENTIFIER name -> name
   | T_INT_LITERAL (_, raw) -> raw
   | T_STRING_LITERAL value -> "\"" ^ value ^ "\""
-  | T_BOOL_LITERAL value -> if value then "true" else "false"
+  | T_BOOL_LITERAL value ->
+    if value then
+      "true"
+    else
+      "false"
   | T_SEMICOLON -> ";"
   | T_PLUS -> "+"
   | T_MINUS -> "-"

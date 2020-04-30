@@ -1,14 +1,14 @@
-let new_line = [%sedlex.regexp? '\n' | '\r' | "\r\n" ]
+let new_line = [%sedlex.regexp? '\n' | '\r' | "\r\n"]
 
-let letter = [%sedlex.regexp? 'a'..'z' | 'A'..'Z']
+let letter = [%sedlex.regexp? 'a' .. 'z' | 'A' .. 'Z']
 
-let digit = [%sedlex.regexp? '0'..'9']
+let digit = [%sedlex.regexp? '0' .. '9']
 
-let identifier = [%sedlex.regexp? (letter | '_'), Star (letter | digit | '_')]
+let identifier = [%sedlex.regexp? ((letter | '_'), Star (letter | digit | '_'))]
 
 let int_literal = [%sedlex.regexp? Plus digit]
 
-let string_literal = [%sedlex.regexp? '"', Star (Compl '"'), '"']
+let string_literal = [%sedlex.regexp? ('"', Star (Compl '"'), '"')]
 
 let lexeme = Sedlexing.Utf8.lexeme
 
@@ -36,30 +36,32 @@ let pos_of_offset lex offset =
 
 let current_loc lex =
   let (start_offset, end_offset) = Sedlexing.loc lex.buf in
-  { Loc.source = lex.source; start = pos_of_offset lex start_offset; _end = pos_of_offset lex end_offset }
+  {
+    Loc.source = lex.source;
+    start = pos_of_offset lex start_offset;
+    _end = pos_of_offset lex end_offset;
+  }
 
 let mark_new_line lex =
   let new_current_line_offset = Sedlexing.lexeme_end lex.buf in
-  {
-    lex with
-    current_line = lex.current_line + 1;
-    current_line_offset = new_current_line_offset
-  }
+  { lex with current_line = lex.current_line + 1; current_line_offset = new_current_line_offset }
 
 let rec skip_line_comment lex =
   let { buf; _ } = lex in
-  match %sedlex buf with
+  match%sedlex buf with
   | eof
-  | new_line -> Skip (mark_new_line lex)
+  | new_line ->
+    Skip (mark_new_line lex)
   | any -> skip_line_comment lex
   | _ -> failwith "Unreachable"
 
 let rec skip_block_comment lex =
   let { buf; _ } = lex in
-  match %sedlex buf with
+  match%sedlex buf with
   | "*/" -> Skip lex
   | eof ->
-    LexError (lex, (current_loc lex, Parse_error.UnexpectedToken { actual = T_EOF; expected = None }))
+    LexError
+      (lex, (current_loc lex, Parse_error.UnexpectedToken { actual = T_EOF; expected = None }))
   | new_line -> skip_block_comment (mark_new_line lex)
   | any -> skip_block_comment lex
   | _ -> failwith "Unreachable"
@@ -68,10 +70,8 @@ let tokenize lex =
   let open Token in
   let { buf; _ } = lex in
   let token_result token = Token (lex, { loc = current_loc lex; token }) in
-  let lex_error lex =
-    LexError (lex, (current_loc lex, Parse_error.UnknownToken (lexeme buf)))
-  in
-  match %sedlex buf with
+  let lex_error lex = LexError (lex, (current_loc lex, Parse_error.UnknownToken (lexeme buf))) in
+  match%sedlex buf with
   | new_line -> Skip (mark_new_line lex)
   | white_space -> Skip lex
   | "//" -> skip_line_comment lex
@@ -103,7 +103,7 @@ let tokenize lex =
     let raw = lexeme buf in
     let value = String.sub raw 1 (String.length raw - 2) in
     token_result (T_STRING_LITERAL value)
-  | _ -> lex_error lex 
+  | _ -> lex_error lex
 
 let next lexer =
   let rec find_next_token lexer =

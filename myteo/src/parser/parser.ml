@@ -12,10 +12,11 @@ module Precedence = struct
     | Equality
     | LogicalAnd
     | LogicalOr
-    | None (* Binds weakest *)
+    | None
 
-  let level =
-    function
+  (* Binds weakest *)
+
+  let level = function
     | Group -> 8
     | Unary -> 7
     | Multiplication -> 6
@@ -26,8 +27,7 @@ module Precedence = struct
     | LogicalOr -> 1
     | None -> 0
 
-  let is_tighter p1 p2 =
-    level p1 > level p2
+  let is_tighter p1 p2 = level p1 > level p2
 end
 
 let mark_loc env =
@@ -51,9 +51,7 @@ and parse env =
       let statements = helper [] in
       let loc = Env.loc env in
       (loc, statements, Env.errors env)
-    with
-      Parse_error.Fatal (loc, err) ->
-      (loc, [], [(loc, err)])
+    with Parse_error.Fatal (loc, err) -> (loc, [], [(loc, err)])
   in
   let loc = { loc with Loc.start = Loc.first_pos } in
   ({ Program.loc; statements; t = () }, errors)
@@ -65,7 +63,7 @@ and parse_statement env =
 and parse_expression_statement env =
   let marker = mark_loc env in
   let expr = parse_expression env in
-  Env.expect env T_SEMICOLON; 
+  Env.expect env T_SEMICOLON;
   let loc = marker env in
   Statement.Expression (loc, expr)
 
@@ -87,7 +85,8 @@ and parse_expression_prefix env =
   | T_LEFT_PAREN -> parse_group_expression env
   | T_PLUS
   | T_MINUS
-  | T_LOGICAL_NOT -> parse_unary_expression env
+  | T_LOGICAL_NOT ->
+    parse_unary_expression env
   | T_IDENTIFIER _ -> Identifier (parse_identifier env)
   | T_INT_LITERAL (value, raw) ->
     let loc = Env.loc env in
@@ -101,22 +100,32 @@ and parse_expression_prefix env =
     let loc = Env.loc env in
     Env.advance env;
     BoolLiteral { BoolLiteral.loc; value; t = () }
-  | token -> Parse_error.fatal (Env.loc env, (UnexpectedToken { actual = token; expected = None })) 
+  | token -> Parse_error.fatal (Env.loc env, UnexpectedToken { actual = token; expected = None })
 
 and parse_expression_infix ~precedence env left marker =
   match Env.token env with
   | T_PLUS
-  | T_MINUS when Precedence.(is_tighter Addition precedence) -> parse_binary_operation env left marker
+  | T_MINUS
+    when Precedence.(is_tighter Addition precedence) ->
+    parse_binary_operation env left marker
   | T_MULTIPLY
-  | T_DIVIDE when Precedence.(is_tighter Multiplication precedence) -> parse_binary_operation env left marker
+  | T_DIVIDE
+    when Precedence.(is_tighter Multiplication precedence) ->
+    parse_binary_operation env left marker
   | T_LESS_THAN
   | T_GREATER_THAN
   | T_LESS_THAN_OR_EQUAL
-  | T_GREATER_THAN_OR_EQUAL when Precedence.(is_tighter Comparison precedence) -> parse_binary_operation env left marker
+  | T_GREATER_THAN_OR_EQUAL
+    when Precedence.(is_tighter Comparison precedence) ->
+    parse_binary_operation env left marker
   | T_EQUALS
-  | T_NOT_EQUALS when Precedence.(is_tighter Equality precedence) -> parse_binary_operation env left marker
-  | T_LOGICAL_AND when Precedence.(is_tighter LogicalAnd precedence) -> parse_logical_expression env left marker
-  | T_LOGICAL_OR when Precedence.(is_tighter LogicalOr precedence) -> parse_logical_expression env left marker
+  | T_NOT_EQUALS
+    when Precedence.(is_tighter Equality precedence) ->
+    parse_binary_operation env left marker
+  | T_LOGICAL_AND when Precedence.(is_tighter LogicalAnd precedence) ->
+    parse_logical_expression env left marker
+  | T_LOGICAL_OR when Precedence.(is_tighter LogicalOr precedence) ->
+    parse_logical_expression env left marker
   | _ -> left
 
 and parse_group_expression env =
@@ -173,7 +182,7 @@ and parse_logical_expression env left marker =
     Env.advance env;
     let right = parse_expression ~precedence:LogicalOr env in
     let loc = marker env in
-    LogicalOr { LogicalOr.loc; left; right; t = () } 
+    LogicalOr { LogicalOr.loc; left; right; t = () }
   | _ -> failwith "Invalid logical operator"
 
 and parse_identifier env =

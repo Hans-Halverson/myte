@@ -4,12 +4,13 @@ module rec Program : sig
     loc: Loc.t;
     statements: 'T Statement.t list;
   }
-end = Program
+end =
+  Program
 
 and Statement : sig
-  type 'T t =
-      Expression of (Loc.t * 'T Expression.t)
-end = Statement
+  type 'T t = Expression of (Loc.t * 'T Expression.t)
+end =
+  Statement
 
 and Expression : sig
   module IntLiteral : sig
@@ -100,7 +101,8 @@ and Expression : sig
     | BinaryOperation of 'T BinaryOperation.t
     | LogicalAnd of 'T LogicalAnd.t
     | LogicalOr of 'T LogicalOr.t
-end = Expression
+end =
+  Expression
 
 and Identifier : sig
   type 'T t = {
@@ -108,4 +110,5 @@ and Identifier : sig
     loc: Loc.t;
     name: string;
   }
-end = Identifier
+end =
+  Identifier

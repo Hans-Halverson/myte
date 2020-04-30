@@ -1,4 +1,4 @@
-module rec Test: sig
+module rec Test : sig
   type t = {
     name: string;
     run: unit -> result;
@@ -7,14 +7,16 @@ module rec Test: sig
   and result =
     | Passed
     | Failed of string
-end = Test
+end =
+  Test
 
 and TestResult : sig
   type 'a t = {
     name: string;
     result: 'a;
   }
-end = TestResult
+end =
+  TestResult
 
 and Suite : sig
   type t = {
@@ -22,7 +24,8 @@ and Suite : sig
     suites: Suite.t list;
     tests: Test.t list;
   }
-end = Suite
+end =
+  Suite
 
 and SuiteResult : sig
   type result_or_skip = Test.result option
@@ -30,6 +33,7 @@ and SuiteResult : sig
   and t = {
     name: string;
     suites: t list;
-    tests: result_or_skip TestResult.t list
+    tests: result_or_skip TestResult.t list;
   }
-end = SuiteResult
+end =
+  SuiteResult

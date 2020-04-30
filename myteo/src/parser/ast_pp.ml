@@ -18,27 +18,34 @@ let pp node =
     match node with
     | None -> add_string "None"
     | Int int -> add_string (string_of_int int)
-    | String str -> add_strings ["\""; str ;"\""]
-    | Bool bool -> add_string (if bool then "true" else "false")
+    | String str -> add_strings ["\""; str; "\""]
+    | Bool bool ->
+      add_string
+        ( if bool then
+          "true"
+        else
+          "false" )
     | Raw raw -> add_string raw
     | List [] -> add_string "[]"
-    | List nodes -> add_string "[\n";
+    | List nodes ->
+      add_string "[\n";
       List.iter
         (fun node ->
-           add_indent (indent + 1);
-           pp_node node (indent + 1);
-           add_string ",\n")
+          add_indent (indent + 1);
+          pp_node node (indent + 1);
+          add_string ",\n")
         nodes;
       add_indent indent;
       add_string "]"
     | Map [] -> add_string "{}"
-    | Map attrs -> add_string "{\n";
+    | Map attrs ->
+      add_string "{\n";
       List.iter
         (fun (name, node) ->
-           add_indent (indent + 1);
-           add_strings [name; ": "];
-           pp_node node (indent + 1);
-           add_string ",\n")
+          add_indent (indent + 1);
+          add_strings [name; ": "];
+          pp_node node (indent + 1);
+          add_string ",\n")
         attrs;
       add_indent indent;
       add_string "}"
@@ -77,12 +84,11 @@ let rec node_of_loc loc =
   let raw_loc = Printf.sprintf "%s-%s" (pp_pos start) (pp_pos _end) in
   Raw raw_loc
 
-and node name loc attributes =
-  Map (("node", Raw name) :: ("loc", node_of_loc loc) :: attributes)
+and node name loc attributes = Map (("node", Raw name) :: ("loc", node_of_loc loc) :: attributes)
 
 and node_of_program program =
   let { Program.loc; statements; t = _ } = program in
-  node "Program" loc [ "statements", List (List.map node_of_statement statements) ]
+  node "Program" loc [("statements", List (List.map node_of_statement statements))]
 
 and node_of_statement stmt =
   let open Statement in
@@ -106,7 +112,7 @@ and node_of_expression expr =
 
 and node_of_identifier id =
   let { Identifier.loc; name; t = _ } = id in
-  node "Identifier" loc [ ("name", String name) ]
+  node "Identifier" loc [("name", String name)]
 
 and node_of_int_literal lit =
   let { Expression.IntLiteral.loc; raw; value; t = _ } = lit in
@@ -122,16 +128,21 @@ and node_of_bool_literal lit =
 
 and node_of_unary_operation unary =
   let { Expression.UnaryOperation.loc; operand; op; t = _ } = unary in
-  node "UnaryOperation" loc [
-    ("op", Raw (string_of_unary_op op));
-    ("operand", node_of_expression operand)]
+  node
+    "UnaryOperation"
+    loc
+    [("op", Raw (string_of_unary_op op)); ("operand", node_of_expression operand)]
 
 and node_of_binary_operation binary =
   let { Expression.BinaryOperation.loc; left; right; op; t = _ } = binary in
-  node "BinaryOperation" loc [
-    ("op", Raw (string_of_binary_op op));
-    ("left", node_of_expression left);
-    ("right", node_of_expression right)]
+  node
+    "BinaryOperation"
+    loc
+    [
+      ("op", Raw (string_of_binary_op op));
+      ("left", node_of_expression left);
+      ("right", node_of_expression right);
+    ]
 
 and node_of_logical_and logical =
   let { Expression.LogicalAnd.loc; left; right; t = _ } = logical in
@@ -144,4 +155,3 @@ and node_of_logical_or logical =
 and pp_program program =
   let node = node_of_program program in
   pp node
-

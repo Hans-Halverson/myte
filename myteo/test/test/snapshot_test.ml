@@ -31,9 +31,13 @@ let first_diff_lines s1 s2 =
   in
   List.fold_left2
     (fun (i, first_diff) s1 s2 ->
-       match first_diff with
-       | Some _ -> (i, first_diff)
-       | None -> if String.equal s1 s2 then (i + 1, None) else (i, Some (s1, s2)))
+      match first_diff with
+      | Some _ -> (i, first_diff)
+      | None ->
+        if String.equal s1 s2 then
+          (i + 1, None)
+        else
+          (i, Some (s1, s2)))
     (1, None)
     s1_lines
     s2_lines
@@ -49,10 +53,7 @@ let run_snapshot_test ~command ~record ~myte_files ~exp_file =
     | _ -> failwith (Printf.sprintf "Command: %s failed to complete" formatted_command)
   end;
   (* Optionally re-record snapshot *)
-  let record_snapshot () =
-    if record then
-      write_file exp_file act_contents;
-  in
+  let record_snapshot () = if record then write_file exp_file act_contents in
   (* Read contents of exp file *)
   let exp_contents_result =
     try
@@ -66,23 +67,27 @@ let run_snapshot_test ~command ~record ~myte_files ~exp_file =
   if Result.is_error exp_contents_result then (
     record_snapshot ();
     Test.Failed (Result.get_error exp_contents_result)
-  ) else if String.equal act_contents exp_contents then (
+  ) else if String.equal act_contents exp_contents then
     Test.Passed
-  ) else (
+  else (
     record_snapshot ();
     (* Extract diff to display *)
     let (line_num, (exp_line, act_line)) =
       match first_diff_lines exp_contents act_contents with
-      | _, None -> failwith "Expected and actual files are expected to differ"
-      | line_num, Some lines -> (line_num, lines)
+      | (_, None) -> failwith "Expected and actual files are expected to differ"
+      | (line_num, Some lines) -> (line_num, lines)
     in
     (* Format error message *)
-    Test.Failed (
-      Printf.sprintf
-        ("Actual and expected differ on line %d:\n  Expected | %s\n  Actual   | %s")
-        line_num exp_line act_line))
+    Test.Failed
+      (Printf.sprintf
+         "Actual and expected differ on line %d:\n  Expected | %s\n  Actual   | %s"
+         line_num
+         exp_line
+         act_line)
+  )
 
-let rec node_of_file ~(record : bool) (absolute_file : string) (command : string list -> string) : node option =
+let rec node_of_file ~(record : bool) (absolute_file : string) (command : string list -> string) :
+    node option =
   if Sys.is_directory absolute_file then
     let files = Array.to_list (Sys.readdir absolute_file) in
     let files = List.sort String.compare files in
@@ -94,38 +99,38 @@ let rec node_of_file ~(record : bool) (absolute_file : string) (command : string
         |> List.map (Filename.concat absolute_file)
       in
       let exp_file = Filename.concat absolute_file exp_file_name in
-      let run () =  run_snapshot_test ~command ~record ~myte_files ~exp_file in
-      Some (Test { Test.name = Filename.basename absolute_file; run})
+      let run () = run_snapshot_test ~command ~record ~myte_files ~exp_file in
+      Some (Test { Test.name = Filename.basename absolute_file; run })
     else
       (* If there is no EXP file this is a regular directory *)
       let nodes =
         List.filter_map
           (fun file ->
-             let absolute_file = Filename.concat absolute_file file in
-             node_of_file ~record absolute_file command)
+            let absolute_file = Filename.concat absolute_file file in
+            node_of_file ~record absolute_file command)
           files
       in
       Some (Dir (Filename.basename absolute_file, nodes))
   else if Filename.check_suffix absolute_file myte_file_suffix then
     (* Myte files without neighboring OUT file are single file tests *)
     let name = Filename.chop_suffix absolute_file myte_file_suffix in
-    let myte_files = [ absolute_file ] in
+    let myte_files = [absolute_file] in
     let exp_file = name ^ exp_file_suffix in
     let run () = run_snapshot_test ~command ~record ~exp_file ~myte_files in
-    Some (Test { Test.name = Filename.basename name; run})
+    Some (Test { Test.name = Filename.basename name; run })
   else
     None
 
 let rec suite_of_nodes (dir : string) (nodes : node list) : Suite.t option =
   let (tests, suites) =
-    List.fold_left 
+    List.fold_left
       (fun (tests, suites) node ->
-         match node with
-         | Test test -> (test :: tests, suites)
-         | Dir (dir, nodes) ->
-           match suite_of_nodes dir nodes with
-           | None -> (tests, suites)
-           | Some suite -> (tests, suite :: suites))
+        match node with
+        | Test test -> (test :: tests, suites)
+        | Dir (dir, nodes) ->
+          (match suite_of_nodes dir nodes with
+          | None -> (tests, suites)
+          | Some suite -> (tests, suite :: suites)))
       ([], [])
       nodes
   in
@@ -142,5 +147,5 @@ let suite ~(record : bool) (absolute_dir : string) (command : string list -> str
   | Some (Test _) -> failwith (Printf.sprintf "Expected %s to not contain tests" absolute_dir)
   | Some (Dir (dir, nodes)) ->
     (match suite_of_nodes dir nodes with
-     | None -> fail_no_tests ()
-     | Some suite -> suite)
+    | None -> fail_no_tests ()
+    | Some suite -> suite)

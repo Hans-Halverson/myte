@@ -1,8 +1,8 @@
 module Env = struct
   type t = {
     mutable lexer: Lexer.t;
-    mutable lex_result: (Lexer.result, (Loc.t * Parse_error.t)) result;
-    mutable prev_lex_result: (Lexer.result, (Loc.t * Parse_error.t)) result  option;
+    mutable lex_result: (Lexer.result, Loc.t * Parse_error.t) result;
+    mutable prev_lex_result: (Lexer.result, Loc.t * Parse_error.t) result option;
     mutable errors: (Loc.t * Parse_error.t) list;
   }
 
@@ -10,7 +10,8 @@ module Env = struct
     let (lexer, lex_result) = Lexer.next lexer in
     { lexer; lex_result; prev_lex_result = None; errors = [] }
 
-  and lex_result env = match env.lex_result with
+  and lex_result env =
+    match env.lex_result with
     | Ok result -> result
     | Error err -> Parse_error.fatal err
 
@@ -35,11 +36,10 @@ module Env = struct
   and expect env expected =
     let actual = token env in
     if actual <> expected then
-      Parse_error.fatal (loc env, UnexpectedToken {actual; expected = Some expected});
+      Parse_error.fatal (loc env, UnexpectedToken { actual; expected = Some expected });
     advance env
 
-  and error env error =
-    env.errors <- error :: env.errors
+  and error env error = env.errors <- error :: env.errors
 end
 
 let from_file file =
