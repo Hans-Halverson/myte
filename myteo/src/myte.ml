@@ -11,11 +11,9 @@ let spec = [
 ]
   |> Arg.align
 
-let absolute_root = Sys.getcwd ()
-
 let normalize path =
   let path_length = String.length path in
-  let root_length = String.length absolute_root + 1 in
+  let root_length = String.length Files.absolute_root + 1 in
   String.sub path root_length (path_length - root_length)
 
 let show_ast files =

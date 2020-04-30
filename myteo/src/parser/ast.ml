@@ -57,6 +57,12 @@ and Expression : sig
       | Subtract
       | Multiply
       | Divide
+      | Equal
+      | NotEqual
+      | LessThan
+      | GreaterThan
+      | LessThanOrEqual
+      | GreaterThanOrEqual
 
     and 'T t = {
       t: 'T;

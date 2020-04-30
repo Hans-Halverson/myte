@@ -1,30 +1,38 @@
 module Env = struct
   type t = {
     mutable lexer: Lexer.t;
-    mutable lex_result: Lexer.result;
-    mutable prev_lex_result: Lexer.result option;
+    mutable lex_result: (Lexer.result, (Loc.t * Parse_error.t)) result;
+    mutable prev_lex_result: (Lexer.result, (Loc.t * Parse_error.t)) result  option;
   }
 
-  let mk lexer =
+  let rec mk lexer =
     let (lexer, lex_result) = Lexer.next lexer in
     { lexer; lex_result; prev_lex_result = None }
 
-  let loc env = env.lex_result.loc
+  and lex_result env = match env.lex_result with
+    | Ok result -> result
+    | Error err -> Parse_error.fatal err
 
-  let peek env = env.lex_result.token
+  and loc env = (lex_result env).loc
 
-  let prev_loc env = (Option.get env.prev_lex_result).loc
+  and token env = (lex_result env).token
 
-  let advance env =
+  and prev_loc env =
+    match env.prev_lex_result with
+    | Some (Ok { Lexer.loc; _ }) -> loc
+    | _ -> failwith "No previous location"
+
+  and advance env =
     let (lexer, lex_result) = Lexer.next env.lexer in
+    Result.iter_error Parse_error.fatal lex_result;
     env.prev_lex_result <- Some env.lex_result;
     env.lex_result <- lex_result;
     env.lexer <- lexer
 
-  let expect env expected =
-    let actual = peek env in
+  and expect env expected =
+    let actual = token env in
     if actual <> expected then
-      Parse_error.fatal (Parse_error.(UnexpectedToken {actual; expected = Some expected}));
+      Parse_error.fatal (loc env, UnexpectedToken {actual; expected = Some expected});
     advance env
 end
 

@@ -1,0 +1,1 @@
+/test/parser/ast/expression/empty-parens-error.myte:1:1 error: Unexpected token ")"

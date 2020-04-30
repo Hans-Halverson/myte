@@ -27,6 +27,7 @@ type result = {
 type tokenize_result =
   | Token of (t * result)
   | Whitespace of t
+  | Malformed of (t * (Loc.t * Parse_error.t))
 
 let mk file buf = { buf; file; current_line = 1; current_line_offset = 0 }
 
@@ -49,17 +50,28 @@ let tokenize lex =
   let open Token in
   let { buf; _ } = lex in
   let token_result token = Token (lex, { loc = current_loc lex; token }) in
+  let malformed lex =
+    Malformed (lex, (current_loc lex, Parse_error.UnknownToken (lexeme buf)))
+  in
   match %sedlex buf with
   | new_line -> Whitespace (mark_new_line lex)
   | white_space -> Whitespace lex
+  | "&&" -> token_result T_LOGICAL_AND
+  | "||" -> token_result T_LOGICAL_OR
+  | "==" -> token_result T_EQUALS
+  | "!=" -> token_result T_NOT_EQUALS
+  | "<" -> token_result T_LESS_THAN
+  | ">" -> token_result T_GREATER_THAN
+  | "<=" -> token_result T_LESS_THAN_OR_EQUAL
+  | ">=" -> token_result T_GREATER_THAN_OR_EQUAL
   | ';' -> token_result T_SEMICOLON
   | '+' -> token_result T_PLUS
   | '-' -> token_result T_MINUS
   | '*' -> token_result T_MULTIPLY
   | '/' -> token_result T_DIVIDE
   | '!' -> token_result T_LOGICAL_NOT
-  | "&&" -> token_result T_LOGICAL_AND
-  | "||" -> token_result T_LOGICAL_OR
+  | '(' -> token_result T_LEFT_PAREN
+  | ')' -> token_result T_RIGHT_PAREN
   | "true" -> token_result (T_BOOL_LITERAL true)
   | "false" -> token_result (T_BOOL_LITERAL false)
   | eof -> token_result T_EOF
@@ -71,12 +83,13 @@ let tokenize lex =
     let raw = lexeme buf in
     let value = String.sub raw 1 (String.length raw - 2) in
     token_result (T_STRING_LITERAL value)
-  | _ -> Parse_error.(fatal (UnknownToken (lexeme buf)))
+  | _ -> malformed lex 
 
 let next lexer =
   let rec skip_whitespace lexer =
     match tokenize lexer with
     | Whitespace lexer -> skip_whitespace lexer
-    | Token result -> result
+    | Token (lexer, result) -> (lexer, Ok result)
+    | Malformed (lexer, result) -> (lexer, Error result)
   in
   skip_whitespace lexer

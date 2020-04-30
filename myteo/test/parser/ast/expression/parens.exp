@@ -1,0 +1,27 @@
+test/parser/ast/expression/parens.myte
+{
+  node: Program,
+  loc: 1:0-2:8,
+  statements: [
+    {
+      node: ExpressionStatement,
+      loc: 1:0-1:4,
+      expression: {
+        node: IntLiteral,
+        loc: 1:1-1:2,
+        value: 1,
+        raw: "1",
+      },
+    },
+    {
+      node: ExpressionStatement,
+      loc: 2:0-2:8,
+      expression: {
+        node: IntLiteral,
+        loc: 2:3-2:4,
+        value: 1,
+        raw: "1",
+      },
+    },
+  ],
+}

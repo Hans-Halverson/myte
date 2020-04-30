@@ -1,0 +1,3 @@
+(library
+  (name myte_common)
+  (wrapped false))

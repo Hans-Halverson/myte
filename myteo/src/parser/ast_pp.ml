@@ -59,6 +59,12 @@ let string_of_binary_op op =
   | Subtract -> "Subtract"
   | Multiply -> "Multiply"
   | Divide -> "Divide"
+  | Equal -> "Equal"
+  | NotEqual -> "NotEqual"
+  | LessThan -> "LessThan"
+  | GreaterThan -> "GreaterThan"
+  | LessThanOrEqual -> "LessThanOrEqual"
+  | GreaterThanOrEqual -> "GreaterThanOrEqual"
 
 let rec node_of_loc loc =
   let pp_pos pos =
