@@ -1,4 +1,4 @@
 (library
   (name myte_test)
   (wrapped false)
-  (libraries unix))
+  (libraries unix myte_common))

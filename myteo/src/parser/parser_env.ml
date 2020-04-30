@@ -3,11 +3,12 @@ module Env = struct
     mutable lexer: Lexer.t;
     mutable lex_result: (Lexer.result, (Loc.t * Parse_error.t)) result;
     mutable prev_lex_result: (Lexer.result, (Loc.t * Parse_error.t)) result  option;
+    mutable errors: (Loc.t * Parse_error.t) list;
   }
 
   let rec mk lexer =
     let (lexer, lex_result) = Lexer.next lexer in
-    { lexer; lex_result; prev_lex_result = None }
+    { lexer; lex_result; prev_lex_result = None; errors = [] }
 
   and lex_result env = match env.lex_result with
     | Ok result -> result
@@ -16,6 +17,8 @@ module Env = struct
   and loc env = (lex_result env).loc
 
   and token env = (lex_result env).token
+
+  and errors env = List.rev env.errors
 
   and prev_loc env =
     match env.prev_lex_result with
@@ -34,15 +37,18 @@ module Env = struct
     if actual <> expected then
       Parse_error.fatal (loc env, UnexpectedToken {actual; expected = Some expected});
     advance env
+
+  and error env error =
+    env.errors <- error :: env.errors
 end
 
 let from_file file =
   let file_chan = open_in file in
   let buf = Sedlexing.Utf8.from_channel file_chan in
-  let lexer = Lexer.mk (Some file) buf in
+  let lexer = Lexer.mk (Some (File file)) buf in
   Env.mk lexer
 
 let from_string str =
   let buf = Sedlexing.Utf8.from_string str in
-  let lexer = Lexer.mk None buf in
+  let lexer = Lexer.mk (Some (String str)) buf in
   Env.mk lexer

@@ -42,13 +42,15 @@ and parse env =
   let rec helper stmts =
     match Env.token env with
     | T_EOF -> List.rev stmts
-    | _ -> helper (parse_statement env :: stmts)
+    | _ ->
+      let stmt = parse_statement env in
+      helper (stmt :: stmts)
   in
   let (loc, statements, errors) =
     try
       let statements = helper [] in
       let loc = Env.loc env in
-      (loc, statements, [])
+      (loc, statements, Env.errors env)
     with
       Parse_error.Fatal (loc, err) ->
       (loc, [], [(loc, err)])

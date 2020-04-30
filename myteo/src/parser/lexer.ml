@@ -14,7 +14,7 @@ let lexeme = Sedlexing.Utf8.lexeme
 
 type t = {
   buf: Sedlexing.lexbuf;
-  file: string option;
+  source: Source.t option;
   current_line: int;
   current_line_offset: int;
 }
@@ -29,14 +29,14 @@ type tokenize_result =
   | Skip of t
   | LexError of (t * (Loc.t * Parse_error.t))
 
-let mk file buf = { buf; file; current_line = 1; current_line_offset = 0 }
+let mk source buf = { buf; source; current_line = 1; current_line_offset = 0 }
 
 let pos_of_offset lex offset =
   { Loc.line = lex.current_line; col = offset - lex.current_line_offset }
 
 let current_loc lex =
   let (start_offset, end_offset) = Sedlexing.loc lex.buf in
-  { Loc.file = lex.file; start = pos_of_offset lex start_offset; _end = pos_of_offset lex end_offset }
+  { Loc.source = lex.source; start = pos_of_offset lex start_offset; _end = pos_of_offset lex end_offset }
 
 let mark_new_line lex =
   let new_current_line_offset = Sedlexing.lexeme_end lex.buf in

@@ -1,19 +1,14 @@
 module SSet = Set.Make(String)
 
-let normalize path =
-  let path_length = String.length path in
-  let root_length = String.length Files.absolute_root + 1 in
-  String.sub path root_length (path_length - root_length)
-
 let show_ast files =
   SSet.iter
     (fun file ->
        let (ast, errors) = Parser.parse_file file in
        if errors = [] then
          let pp_ast = Ast_pp.pp_program ast in
-         Printf.printf "%s\n%s" (normalize file) pp_ast
+         Printf.printf "%s\n%s" (Files.strip_root file) pp_ast
        else
-         List.iter (fun err -> Printf.printf "%s\n" (Parse_error.print err)) errors)
+         List.iter (fun err -> Printf.printf "%s\n\n" (Parse_error.print err)) errors)
     !files
 
 let () =

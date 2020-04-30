@@ -1,3 +1,3 @@
-/test/parser/ast/expression/empty-parens-error.myte:1:1 ERROR: Unexpected token ")"
- 1 | <<<LINE GOES HERE>>>
-   |  ^^
+ERROR: test/parser/ast/expression/empty-parens-error.myte:1:1 Unexpected token ")"
+ 1 | ();
+   |  ^

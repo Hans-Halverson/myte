@@ -10,18 +10,6 @@ let myte_file_suffix = ".myte"
 
 let exp_file_suffix = ".exp"
 
-let read_all_in chan =
-  let rec read_line lines =
-    try
-      let line = input_line chan in
-      line :: read_line lines
-    with
-      End_of_file -> List.rev lines
-  in
-  let lines = read_line [] in
-  let contents = String.concat "\n" lines in
-  contents
-
 let write_file file contents =
   let file_out = open_out file in
   output_string file_out contents;
@@ -54,7 +42,7 @@ let run_snapshot_test ~command ~record ~myte_files ~exp_file =
   (* Run command in separate process and read its stdout *)
   let formatted_command = command myte_files in
   let process_in = Unix.open_process_in formatted_command in
-  let act_contents = read_all_in process_in in
+  let act_contents = Io.chan_read_contents process_in in
   begin
     match Unix.close_process_in process_in with
     | Unix.WEXITED _ -> ()
@@ -69,7 +57,7 @@ let run_snapshot_test ~command ~record ~myte_files ~exp_file =
   let exp_contents_result =
     try
       let exp_in = open_in exp_file in
-      let exp_contents = read_all_in exp_in in
+      let exp_contents = Io.chan_read_contents exp_in in
       close_in exp_in;
       Ok exp_contents
     with Sys_error err -> Error (Printf.sprintf "Reading %s failed with error: %s" exp_file err)
