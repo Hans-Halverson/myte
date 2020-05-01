@@ -94,6 +94,7 @@ and node_of_statement stmt =
   let open Statement in
   match stmt with
   | Expression expr -> node_of_expression_stmt expr
+  | Block block -> node_of_block block
 
 and node_of_expression_stmt (loc, expr) =
   node "ExpressionStatement" loc [("expression", node_of_expression expr)]
@@ -151,6 +152,10 @@ and node_of_logical_and logical =
 and node_of_logical_or logical =
   let { Expression.LogicalOr.loc; left; right; t = _ } = logical in
   node "LogicalOr" loc [("left", node_of_expression left); ("right", node_of_expression right)]
+
+and node_of_block block =
+  let { Statement.Block.loc; statements; t = _ } = block in
+  node "Block" loc [("statements", List (List.map node_of_statement statements))]
 
 and pp_program program =
   let node = node_of_program program in

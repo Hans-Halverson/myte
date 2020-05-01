@@ -58,6 +58,7 @@ and parse env =
 
 and parse_statement env =
   match Env.token env with
+  | T_LEFT_BRACE -> parse_block env
   | _ -> parse_expression_statement env
 
 and parse_expression_statement env =
@@ -192,3 +193,20 @@ and parse_identifier env =
     Env.advance env;
     { Identifier.loc; name; t = () }
   | _ -> assert false
+
+and parse_block env =
+  let open Statement in
+  let marker = mark_loc env in
+  Env.expect env T_LEFT_BRACE;
+  let rec statements env =
+    match Env.token env with
+    | T_RIGHT_BRACE ->
+      Env.advance env;
+      []
+    | _ ->
+      let statement = parse_statement env in
+      statement :: statements env
+  in
+  let statements = statements env in
+  let loc = marker env in
+  Block { Block.loc; statements; t = () }

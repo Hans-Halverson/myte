@@ -22,19 +22,20 @@ let first_diff_lines s1 s2 =
   let s1_num_lines = List.length s1_lines in
   let s2_num_lines = List.length s2_lines in
   if s1_num_lines > s2_num_lines then
-    (s2_num_lines + 1, ("", (List.nth s1_lines s2_num_lines)))
+    (s2_num_lines + 1, ("", List.nth s1_lines s2_num_lines))
   else if s1_num_lines < s2_num_lines then
-    (s1_num_lines + 1, ((List.nth s2_lines s1_num_lines), ""))
+    (s1_num_lines + 1, (List.nth s2_lines s1_num_lines, ""))
   else
-    let (line_num, lines) = List.fold_left2
+    let (line_num, lines) =
+      List.fold_left2
         (fun (i, first_diff) s1 s2 ->
-           match first_diff with
-           | Some _ -> (i, first_diff)
-           | None ->
-             if String.equal s1 s2 then
-               (i + 1, None)
-             else
-               (i, Some (s1, s2)))
+          match first_diff with
+          | Some _ -> (i, first_diff)
+          | None ->
+            if String.equal s1 s2 then
+              (i + 1, None)
+            else
+              (i, Some (s1, s2)))
         (1, None)
         s1_lines
         s2_lines
@@ -83,7 +84,7 @@ let run_snapshot_test ~command ~record ~myte_files ~exp_file =
   )
 
 let rec node_of_file ~(record : bool) (absolute_file : string) (command : string list -> string) :
-  node option =
+    node option =
   if Sys.is_directory absolute_file then
     let files = Array.to_list (Sys.readdir absolute_file) in
     let files = List.sort String.compare files in
@@ -102,8 +103,8 @@ let rec node_of_file ~(record : bool) (absolute_file : string) (command : string
       let nodes =
         List.filter_map
           (fun file ->
-             let absolute_file = Filename.concat absolute_file file in
-             node_of_file ~record absolute_file command)
+            let absolute_file = Filename.concat absolute_file file in
+            node_of_file ~record absolute_file command)
           files
       in
       Some (Dir (Filename.basename absolute_file, nodes))
@@ -121,12 +122,12 @@ let rec suite_of_nodes (dir : string) (nodes : node list) : Suite.t option =
   let (tests, suites) =
     List.fold_left
       (fun (tests, suites) node ->
-         match node with
-         | Test test -> (test :: tests, suites)
-         | Dir (dir, nodes) ->
-           (match suite_of_nodes dir nodes with
-            | None -> (tests, suites)
-            | Some suite -> (tests, suite :: suites)))
+        match node with
+        | Test test -> (test :: tests, suites)
+        | Dir (dir, nodes) ->
+          (match suite_of_nodes dir nodes with
+          | None -> (tests, suites)
+          | Some suite -> (tests, suite :: suites)))
       ([], [])
       nodes
   in
@@ -143,5 +144,5 @@ let suite ~(record : bool) (absolute_dir : string) (command : string list -> str
   | Some (Test _) -> failwith (Printf.sprintf "Expected %s to not contain tests" absolute_dir)
   | Some (Dir (dir, nodes)) ->
     (match suite_of_nodes dir nodes with
-     | None -> fail_no_tests ()
-     | Some suite -> suite)
+    | None -> fail_no_tests ()
+    | Some suite -> suite)

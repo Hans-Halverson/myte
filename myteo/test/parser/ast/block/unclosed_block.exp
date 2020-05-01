@@ -1,0 +1,3 @@
+ERROR: test/parser/ast/block/unclosed_block.myte:1:1 Unexpected <EOF>
+ 1 | {
+   |  ^

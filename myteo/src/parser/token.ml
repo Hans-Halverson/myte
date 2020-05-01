@@ -19,6 +19,8 @@ type t =
   | T_GREATER_THAN_OR_EQUAL
   | T_LEFT_PAREN
   | T_RIGHT_PAREN
+  | T_LEFT_BRACE
+  | T_RIGHT_BRACE
   | T_EOF
 
 let to_string token =
@@ -47,4 +49,6 @@ let to_string token =
   | T_GREATER_THAN_OR_EQUAL -> ">="
   | T_LEFT_PAREN -> "("
   | T_RIGHT_PAREN -> ")"
+  | T_LEFT_BRACE -> "{"
+  | T_RIGHT_BRACE -> "}"
   | T_EOF -> "<EOF>"

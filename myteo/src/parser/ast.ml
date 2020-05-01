@@ -8,7 +8,17 @@ end =
   Program
 
 and Statement : sig
-  type 'T t = Expression of (Loc.t * 'T Expression.t)
+  module Block : sig
+    type 'T t = {
+      t: 'T;
+      loc: Loc.t;
+      statements: 'T Statement.t list;
+    }
+  end
+
+  type 'T t =
+    | Expression of (Loc.t * 'T Expression.t)
+    | Block of 'T Block.t
 end =
   Statement
 

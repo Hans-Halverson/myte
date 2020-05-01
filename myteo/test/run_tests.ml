@@ -8,13 +8,14 @@ type opts = {
 
 let default_bin = Filename.concat (Sys.getcwd ()) "_build/default/src/myte.exe"
 
-let opts = {
-  bin = ref default_bin;
-  filter = ref "";
-  record = ref false;
-  tree = ref false;
-  tree_full = ref false;
-}
+let opts =
+  {
+    bin = ref default_bin;
+    filter = ref "";
+    record = ref false;
+    tree = ref false;
+    tree_full = ref false;
+  }
 
 let spec =
   [
@@ -22,7 +23,9 @@ let spec =
     ("--filter", Arg.Set_string opts.filter, " Run only tests which match a regex");
     ("--record", Arg.Set opts.record, " Re-record snapshot tests");
     ("--tree", Arg.Set opts.tree, " Include tree of all test failures in output.");
-    ("--tree-full", Arg.Set opts.tree_full, " Include tree of all test passes and failures in output.");
+    ( "--tree-full",
+      Arg.Set opts.tree_full,
+      " Include tree of all test passes and failures in output." );
   ]
   |> Arg.align
 
