@@ -1,3 +1,5 @@
+open Pp
+
 type t =
   | UnknownToken of string
   | UnexpectedToken of {
@@ -37,14 +39,13 @@ let print_summary_line loc error =
     | _ -> ""
   in
   Printf.sprintf
-    "%s%sERROR: %s%s%d:%d %s%s"
-    (bold_attribute ())
-    (red_color ())
-    (reset_color ())
+    "%sERROR: %s%s%d:%d %s%s"
+    (style ~text:Red ~decorations:[Bold] ())
+    (style ~decorations:[Bold] ())
     source
     Loc.(loc.start.line)
     Loc.(loc.start.col)
-    (reset_attributes ())
+    (reset ())
     (to_string error)
 
 let print_single_line loc snippet =
@@ -62,15 +63,15 @@ let print_single_line loc snippet =
     Printf.sprintf "%s%s" (String.make start_col ' ') (String.make (end_col - start_col) '^')
   in
   let line = List.hd snippet in
-  Printf.sprintf "%s%s|%s %s" (bold_attribute ()) padded_line_num (reset_attributes ()) line
+  Printf.sprintf "%s%s|%s %s" (style ~decorations:[Bold] ()) padded_line_num (reset ()) line
   ^ "\n"
   ^ Printf.sprintf
       "%s%s|%s %s%s"
-      (bold_attribute ())
+      (style ~decorations:[Bold] ())
       (String.make (max_num_digits + 2) ' ')
-      (red_color ())
+      (style ~text:Red ~decorations:[Bold] ())
       padded_carets
-      (reset_attributes ())
+      (reset ())
 
 let print_first_line loc snippet =
   let open Loc in
@@ -85,19 +86,19 @@ let print_first_line loc snippet =
   in
   Printf.sprintf
     "%s%s|%s / %s%s"
-    (bold_attribute ())
+    (style ~decorations:[Bold] ())
     padded_line_num
-    (red_color ())
-    (reset_attributes ())
+    (style ~text:Red ~decorations:[Bold] ())
+    (reset ())
     line
   ^ "\n"
   ^ Printf.sprintf
       "%s%s|%s | %s%s"
-      (bold_attribute ())
+      (style ~decorations:[Bold] ())
       (String.make (max_num_digits + 2) ' ')
-      (red_color ())
+      (style ~text:Red ~decorations:[Bold] ())
       padded_carets
-      (reset_attributes ())
+      (reset ())
 
 let print_last_line loc snippet =
   let open Loc in
@@ -107,19 +108,19 @@ let print_last_line loc snippet =
   let padded_carets = String.make (loc._end.col + 1) '^' in
   Printf.sprintf
     "%s%s|%s | %s%s"
-    (bold_attribute ())
+    (style ~decorations:[Bold] ())
     padded_line_num
-    (red_color ())
-    (reset_attributes ())
+    (style ~text:Red ~decorations:[Bold] ())
+    (reset ())
     line
   ^ "\n"
   ^ Printf.sprintf
       "%s%s|%s \\ %s%s"
-      (bold_attribute ())
+      (style ~decorations:[Bold] ())
       (String.make (max_num_digits + 2) ' ')
-      (red_color ())
+      (style ~text:Red ~decorations:[Bold] ())
       padded_carets
-      (reset_attributes ())
+      (reset ())
 
 let print_middle_line loc line_num snippet =
   let open Loc in
@@ -129,25 +130,30 @@ let print_middle_line loc line_num snippet =
   let padded_carets = String.make (String.length line) '^' in
   Printf.sprintf
     "%s%s|%s | %s%s"
-    (bold_attribute ())
+    (style ~decorations:[Bold] ())
     padded_line_num
-    (red_color ())
-    (reset_attributes ())
+    (style ~text:Red ~decorations:[Bold] ())
+    (reset ())
     line
   ^ "\n"
   ^ Printf.sprintf
       "%s %s |%s | %s%s"
-      (bold_attribute ())
+      (style ~decorations:[Bold] ())
       (String.make max_num_digits ' ')
-      (red_color ())
+      (style ~text:Red ~decorations:[Bold] ())
       padded_carets
-      (reset_attributes ())
+      (reset ())
 
 let print_separator_line loc =
   let open Loc in
   let max_num_digits = num_digits loc._end.line in
   let padding = String.make (max_num_digits - 1) ' ' in
-  Printf.sprintf "%s ...%s%s |%s" (bold_attribute ()) padding (red_color ()) (reset_attributes ())
+  Printf.sprintf
+    "%s ...%s%s |%s"
+    (style ~decorations:[Bold] ())
+    padding
+    (style ~text:Red ~decorations:[Bold] ())
+    (reset ())
 
 let snip_string loc lines =
   let open Loc in
