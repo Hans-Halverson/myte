@@ -95,9 +95,7 @@ and node_of_statement stmt =
   match stmt with
   | Expression expr -> node_of_expression_stmt expr
   | Block block -> node_of_block block
-
-and node_of_expression_stmt (loc, expr) =
-  node "ExpressionStatement" loc [("expression", node_of_expression expr)]
+  | VariableDeclaration decl -> node_of_variable_decl decl
 
 and node_of_expression expr =
   let open Expression in
@@ -110,6 +108,14 @@ and node_of_expression expr =
   | BinaryOperation binary -> node_of_binary_operation binary
   | LogicalAnd logical -> node_of_logical_and logical
   | LogicalOr logical -> node_of_logical_or logical
+
+and node_of_pattern pat =
+  let open Pattern in
+  match pat with
+  | Identifier id -> node_of_identifier id
+
+and node_of_expression_stmt (loc, expr) =
+  node "ExpressionStatement" loc [("expression", node_of_expression expr)]
 
 and node_of_identifier id =
   let { Identifier.loc; name; t = _ } = id in
@@ -156,6 +162,18 @@ and node_of_logical_or logical =
 and node_of_block block =
   let { Statement.Block.loc; statements; t = _ } = block in
   node "Block" loc [("statements", List (List.map node_of_statement statements))]
+
+and node_of_variable_decl decl =
+  let { Statement.VariableDeclaration.loc; kind; pattern; init; t = _ } = decl in
+  let kind =
+    match kind with
+    | Immutable -> "Immutable"
+    | Mutable -> "Mutable"
+  in
+  node
+    "VariableDeclaration"
+    loc
+    [("kind", Raw kind); ("pattern", node_of_pattern pattern); ("init", node_of_expression init)]
 
 and pp_program program =
   let node = node_of_program program in

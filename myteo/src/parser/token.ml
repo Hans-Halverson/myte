@@ -12,6 +12,7 @@ type t =
   | T_LOGICAL_OR
   | T_LOGICAL_NOT
   | T_EQUALS
+  | T_DOUBLE_EQUALS
   | T_NOT_EQUALS
   | T_LESS_THAN
   | T_GREATER_THAN
@@ -21,6 +22,8 @@ type t =
   | T_RIGHT_PAREN
   | T_LEFT_BRACE
   | T_RIGHT_BRACE
+  | T_VAR
+  | T_VAL
   | T_EOF
 
 let to_string token =
@@ -41,7 +44,8 @@ let to_string token =
   | T_LOGICAL_AND -> "&&"
   | T_LOGICAL_OR -> "||"
   | T_LOGICAL_NOT -> "!"
-  | T_EQUALS -> "=="
+  | T_EQUALS -> "="
+  | T_DOUBLE_EQUALS -> "=="
   | T_NOT_EQUALS -> "!="
   | T_LESS_THAN -> "<"
   | T_GREATER_THAN -> ">"
@@ -51,4 +55,6 @@ let to_string token =
   | T_RIGHT_PAREN -> ")"
   | T_LEFT_BRACE -> "{"
   | T_RIGHT_BRACE -> "}"
+  | T_VAR -> "var"
+  | T_VAL -> "val"
   | T_EOF -> "<EOF>"

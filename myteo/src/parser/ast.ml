@@ -16,9 +16,24 @@ and Statement : sig
     }
   end
 
+  module VariableDeclaration : sig
+    type kind =
+      | Immutable
+      | Mutable
+
+    type 'T t = {
+      t: 'T;
+      loc: Loc.t;
+      kind: kind;
+      pattern: 'T Pattern.t;
+      init: 'T Expression.t;
+    }
+  end
+
   type 'T t =
     | Expression of (Loc.t * 'T Expression.t)
     | Block of 'T Block.t
+    | VariableDeclaration of 'T VariableDeclaration.t
 end =
   Statement
 
@@ -113,6 +128,11 @@ and Expression : sig
     | LogicalOr of 'T LogicalOr.t
 end =
   Expression
+
+and Pattern : sig
+  type 'T t = Identifier of 'T Identifier.t
+end =
+  Pattern
 
 and Identifier : sig
   type 'T t = {

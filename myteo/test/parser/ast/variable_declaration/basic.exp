@@ -1,0 +1,39 @@
+test/parser/ast/variable_declaration/basic.myte
+{
+  node: Program,
+  loc: 1:0-2:10,
+  statements: [
+    {
+      node: VariableDeclaration,
+      loc: 1:0-1:10,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 1:4-1:5,
+        name: "x",
+      },
+      init: {
+        node: IntLiteral,
+        loc: 1:8-1:9,
+        value: 1,
+        raw: "1",
+      },
+    },
+    {
+      node: VariableDeclaration,
+      loc: 2:0-2:10,
+      kind: Mutable,
+      pattern: {
+        node: Identifier,
+        loc: 2:4-2:5,
+        name: "y",
+      },
+      init: {
+        node: IntLiteral,
+        loc: 2:8-2:9,
+        value: 2,
+        raw: "2",
+      },
+    },
+  ],
+}

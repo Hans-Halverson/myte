@@ -78,13 +78,14 @@ let tokenize lex =
   | "/*" -> skip_block_comment lex
   | "&&" -> token_result T_LOGICAL_AND
   | "||" -> token_result T_LOGICAL_OR
-  | "==" -> token_result T_EQUALS
+  | "==" -> token_result T_DOUBLE_EQUALS
   | "!=" -> token_result T_NOT_EQUALS
   | "<" -> token_result T_LESS_THAN
   | ">" -> token_result T_GREATER_THAN
   | "<=" -> token_result T_LESS_THAN_OR_EQUAL
   | ">=" -> token_result T_GREATER_THAN_OR_EQUAL
   | ';' -> token_result T_SEMICOLON
+  | '=' -> token_result T_EQUALS
   | '+' -> token_result T_PLUS
   | '-' -> token_result T_MINUS
   | '*' -> token_result T_MULTIPLY
@@ -96,6 +97,8 @@ let tokenize lex =
   | '}' -> token_result T_RIGHT_BRACE
   | "true" -> token_result (T_BOOL_LITERAL true)
   | "false" -> token_result (T_BOOL_LITERAL false)
+  | "val" -> token_result T_VAL
+  | "var" -> token_result T_VAR
   | eof -> token_result T_EOF
   | identifier -> token_result (T_IDENTIFIER (lexeme buf))
   | int_literal ->

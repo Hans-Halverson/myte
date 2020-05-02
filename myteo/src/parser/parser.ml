@@ -59,6 +59,9 @@ and parse env =
 and parse_statement env =
   match Env.token env with
   | T_LEFT_BRACE -> parse_block env
+  | T_VAL
+  | T_VAR ->
+    parse_variable_declaration env
   | _ -> parse_expression_statement env
 
 and parse_expression_statement env =
@@ -119,7 +122,7 @@ and parse_expression_infix ~precedence env left marker =
   | T_GREATER_THAN_OR_EQUAL
     when Precedence.(is_tighter Comparison precedence) ->
     parse_binary_operation env left marker
-  | T_EQUALS
+  | T_DOUBLE_EQUALS
   | T_NOT_EQUALS
     when Precedence.(is_tighter Equality precedence) ->
     parse_binary_operation env left marker
@@ -158,7 +161,7 @@ and parse_binary_operation env left marker =
     | T_MINUS -> (Subtract, Precedence.Addition)
     | T_MULTIPLY -> (Multiply, Precedence.Multiplication)
     | T_DIVIDE -> (Divide, Precedence.Multiplication)
-    | T_EQUALS -> (Equal, Precedence.Equality)
+    | T_DOUBLE_EQUALS -> (Equal, Precedence.Equality)
     | T_NOT_EQUALS -> (NotEqual, Precedence.Equality)
     | T_LESS_THAN -> (LessThan, Precedence.Comparison)
     | T_GREATER_THAN -> (GreaterThan, Precedence.Comparison)
@@ -194,6 +197,11 @@ and parse_identifier env =
     { Identifier.loc; name; t = () }
   | _ -> assert false
 
+and parse_pattern env =
+  let open Pattern in
+  match Env.token env with
+  | _ -> Identifier (parse_identifier env)
+
 and parse_block env =
   let open Statement in
   let marker = mark_loc env in
@@ -210,3 +218,20 @@ and parse_block env =
   let statements = statements env in
   let loc = marker env in
   Block { Block.loc; statements; t = () }
+
+and parse_variable_declaration env =
+  let open Statement in
+  let marker = mark_loc env in
+  let kind =
+    match Env.token env with
+    | T_VAL -> VariableDeclaration.Immutable
+    | T_VAR -> VariableDeclaration.Mutable
+    | _ -> failwith "Must be called on variable declaration"
+  in
+  Env.advance env;
+  let pattern = parse_pattern env in
+  Env.expect env T_EQUALS;
+  let init = parse_expression env in
+  Env.expect env T_SEMICOLON;
+  let loc = marker env in
+  VariableDeclaration { VariableDeclaration.loc; kind; pattern; init; t = () }
