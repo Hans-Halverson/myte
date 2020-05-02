@@ -96,6 +96,7 @@ and node_of_statement stmt =
   | Expression expr -> node_of_expression_stmt expr
   | Block block -> node_of_block block
   | VariableDeclaration decl -> node_of_variable_decl decl
+  | FunctionDeclaration decl -> node_of_function decl
 
 and node_of_expression expr =
   let open Expression in
@@ -174,6 +175,23 @@ and node_of_variable_decl decl =
     "VariableDeclaration"
     loc
     [("kind", Raw kind); ("pattern", node_of_pattern pattern); ("init", node_of_expression init)]
+
+and node_of_function func =
+  let open Function in
+  let { loc; name; params; body; t = _ } = func in
+  let body =
+    match body with
+    | Block block -> node_of_block block
+    | Expression expr -> node_of_expression expr
+  in
+  node
+    "Function"
+    loc
+    [
+      ("name", node_of_identifier name);
+      ("params", List (List.map node_of_identifier params));
+      ("body", body);
+    ]
 
 and pp_program program =
   let node = node_of_program program in

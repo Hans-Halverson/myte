@@ -6,6 +6,7 @@ type t =
       actual: Token.t;
       expected: Token.t option;
     }
+  | MissingFunctionBody of Token.t
 
 exception Fatal of (Loc.t * t)
 
@@ -22,6 +23,10 @@ let to_string error =
       "Unexpected token \"%s\", expected \"%s\""
       (Token.to_string actual)
       (Token.to_string expected)
+  | MissingFunctionBody actual ->
+    Printf.sprintf
+      "Unexpected token \"%s\", expected start of function body"
+      (Token.to_string actual)
 
 (* The number of digits in the base-10 representation of a number *)
 let num_digits n = int_of_float (log10 (float_of_int n)) + 1

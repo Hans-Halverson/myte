@@ -34,6 +34,7 @@ and Statement : sig
     | Expression of (Loc.t * 'T Expression.t)
     | Block of 'T Block.t
     | VariableDeclaration of 'T VariableDeclaration.t
+    | FunctionDeclaration of 'T Function.t
 end =
   Statement
 
@@ -133,6 +134,21 @@ and Pattern : sig
   type 'T t = Identifier of 'T Identifier.t
 end =
   Pattern
+
+and Function : sig
+  type 'T t = {
+    t: 'T;
+    loc: Loc.t;
+    name: 'T Identifier.t;
+    params: 'T Identifier.t list;
+    body: 'T body;
+  }
+
+  and 'T body =
+    | Block of 'T Statement.Block.t
+    | Expression of 'T Expression.t
+end =
+  Function
 
 and Identifier : sig
   type 'T t = {

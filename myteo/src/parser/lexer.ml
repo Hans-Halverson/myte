@@ -85,6 +85,7 @@ let tokenize lex =
   | "<=" -> token_result T_LESS_THAN_OR_EQUAL
   | ">=" -> token_result T_GREATER_THAN_OR_EQUAL
   | ';' -> token_result T_SEMICOLON
+  | ',' -> token_result T_COMMA
   | '=' -> token_result T_EQUALS
   | '+' -> token_result T_PLUS
   | '-' -> token_result T_MINUS
@@ -99,6 +100,7 @@ let tokenize lex =
   | "false" -> token_result (T_BOOL_LITERAL false)
   | "val" -> token_result T_VAL
   | "var" -> token_result T_VAR
+  | "fun" -> token_result T_FUN
   | eof -> token_result T_EOF
   | identifier -> token_result (T_IDENTIFIER (lexeme buf))
   | int_literal ->

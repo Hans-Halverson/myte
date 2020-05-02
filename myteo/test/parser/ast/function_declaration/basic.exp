@@ -1,0 +1,100 @@
+test/parser/ast/function_declaration/basic.myte
+{
+  node: Program,
+  loc: 1:0-7:20,
+  statements: [
+    {
+      node: Function,
+      loc: 1:0-1:13,
+      name: {
+        node: Identifier,
+        loc: 1:4-1:7,
+        name: "foo",
+      },
+      params: [],
+      body: {
+        node: IntLiteral,
+        loc: 1:12-1:13,
+        value: 1,
+        raw: "1",
+      },
+    },
+    {
+      node: Function,
+      loc: 3:0-3:12,
+      name: {
+        node: Identifier,
+        loc: 3:4-3:7,
+        name: "foo",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 3:10-3:12,
+        statements: [],
+      },
+    },
+    {
+      node: Function,
+      loc: 5:0-5:19,
+      name: {
+        node: Identifier,
+        loc: 5:4-5:7,
+        name: "foo",
+      },
+      params: [
+        {
+          node: Identifier,
+          loc: 5:8-5:9,
+          name: "a",
+        },
+        {
+          node: Identifier,
+          loc: 5:11-5:12,
+          name: "b",
+        },
+        {
+          node: Identifier,
+          loc: 5:14-5:15,
+          name: "c",
+        },
+      ],
+      body: {
+        node: Block,
+        loc: 5:17-5:19,
+        statements: [],
+      },
+    },
+    {
+      node: Function,
+      loc: 7:0-7:20,
+      name: {
+        node: Identifier,
+        loc: 7:4-7:7,
+        name: "foo",
+      },
+      params: [
+        {
+          node: Identifier,
+          loc: 7:8-7:9,
+          name: "a",
+        },
+        {
+          node: Identifier,
+          loc: 7:11-7:12,
+          name: "b",
+        },
+        {
+          node: Identifier,
+          loc: 7:14-7:15,
+          name: "c",
+        },
+      ],
+      body: {
+        node: Block,
+        loc: 7:18-7:20,
+        statements: [],
+      },
+    },
+  ],
+}

@@ -1,0 +1,7 @@
+fun foo() = 1
+
+fun foo() {}
+
+fun foo(a, b, c) {}
+
+fun foo(a, b, c,) {}

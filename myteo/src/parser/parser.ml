@@ -57,11 +57,13 @@ and parse env =
   ({ Program.loc; statements; t = () }, errors)
 
 and parse_statement env =
+  let open Statement in
   match Env.token env with
-  | T_LEFT_BRACE -> parse_block env
+  | T_LEFT_BRACE -> Block (parse_block env)
   | T_VAL
   | T_VAR ->
     parse_variable_declaration env
+  | T_FUN -> FunctionDeclaration (parse_function env)
   | _ -> parse_expression_statement env
 
 and parse_expression_statement env =
@@ -217,7 +219,7 @@ and parse_block env =
   in
   let statements = statements env in
   let loc = marker env in
-  Block { Block.loc; statements; t = () }
+  { Block.loc; statements; t = () }
 
 and parse_variable_declaration env =
   let open Statement in
@@ -235,3 +237,36 @@ and parse_variable_declaration env =
   Env.expect env T_SEMICOLON;
   let loc = marker env in
   VariableDeclaration { VariableDeclaration.loc; kind; pattern; init; t = () }
+
+and parse_function env =
+  let open Function in
+  let marker = mark_loc env in
+  Env.expect env T_FUN;
+  let name = parse_identifier env in
+  Env.expect env T_LEFT_PAREN;
+  let rec params env =
+    match Env.token env with
+    | T_RIGHT_PAREN ->
+      Env.advance env;
+      []
+    | _ ->
+      let param = parse_identifier env in
+      begin
+        match Env.token env with
+        | T_RIGHT_PAREN -> ()
+        | T_COMMA -> Env.advance env
+        | _ -> Env.expect env T_RIGHT_PAREN
+      end;
+      param :: params env
+  in
+  let params = params env in
+  let body =
+    match Env.token env with
+    | T_LEFT_BRACE -> Block (parse_block env)
+    | T_EQUALS ->
+      Env.advance env;
+      Expression (parse_expression env)
+    | token -> Parse_error.fatal (Env.loc env, MissingFunctionBody token)
+  in
+  let loc = marker env in
+  { loc; name; params; body; t = () }

@@ -4,6 +4,7 @@ type t =
   | T_STRING_LITERAL of string
   | T_BOOL_LITERAL of bool
   | T_SEMICOLON
+  | T_COMMA
   | T_PLUS
   | T_MINUS
   | T_MULTIPLY
@@ -24,6 +25,7 @@ type t =
   | T_RIGHT_BRACE
   | T_VAR
   | T_VAL
+  | T_FUN
   | T_EOF
 
 let to_string token =
@@ -37,6 +39,7 @@ let to_string token =
     else
       "false"
   | T_SEMICOLON -> ";"
+  | T_COMMA -> ","
   | T_PLUS -> "+"
   | T_MINUS -> "-"
   | T_MULTIPLY -> "*"
@@ -57,4 +60,5 @@ let to_string token =
   | T_RIGHT_BRACE -> "}"
   | T_VAR -> "var"
   | T_VAL -> "val"
+  | T_FUN -> "fun"
   | T_EOF -> "<EOF>"
