@@ -5,6 +5,7 @@ module Env = Parser_env.Env
 module ExpressionPrecedence = struct
   type t =
     | (* Binds tightest *) Group
+    | Call
     | Unary
     | Multiplication
     | Addition
@@ -15,7 +16,8 @@ module ExpressionPrecedence = struct
     | (* Binds weakest *) None
 
   let level = function
-    | Group -> 8
+    | Group -> 9
+    | Call -> 8
     | Unary -> 7
     | Multiplication -> 6
     | Addition -> 5
@@ -144,6 +146,8 @@ and parse_expression_infix ~precedence env left marker =
     parse_logical_expression env left marker
   | T_LOGICAL_OR when ExpressionPrecedence.(is_tighter LogicalOr precedence) ->
     parse_logical_expression env left marker
+  | T_LEFT_PAREN when ExpressionPrecedence.(is_tighter Call precedence) ->
+    parse_call env left marker
   | _ -> left
 
 and parse_group_expression env =
@@ -203,13 +207,35 @@ and parse_logical_expression env left marker =
     LogicalOr { LogicalOr.loc; left; right; t = () }
   | _ -> failwith "Invalid logical operator"
 
+and parse_call env left marker =
+  let open Expression.Call in
+  Env.expect env T_LEFT_PAREN;
+  let rec args env =
+    match Env.token env with
+    | T_RIGHT_PAREN ->
+      Env.advance env;
+      []
+    | _ ->
+      let arg = parse_expression ~precedence:ExpressionPrecedence.Call env in
+      begin
+        match Env.token env with
+        | T_RIGHT_PAREN -> ()
+        | T_COMMA -> Env.advance env
+        | _ -> Env.expect env T_RIGHT_PAREN
+      end;
+      arg :: args env
+  in
+  let args = args env in
+  let loc = marker env in
+  Expression.Call { loc; func = left; args; t = () }
+
 and parse_identifier env =
   match Env.token env with
   | T_IDENTIFIER name ->
     let loc = Env.loc env in
     Env.advance env;
     { Identifier.loc; name; t = () }
-  | _ -> assert false
+  | _ -> failwith "Must be falled on identifier"
 
 and parse_pattern env =
   let open Pattern in

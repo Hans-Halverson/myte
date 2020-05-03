@@ -121,6 +121,7 @@ and node_of_expression expr =
   | BinaryOperation binary -> node_of_binary_operation binary
   | LogicalAnd logical -> node_of_logical_and logical
   | LogicalOr logical -> node_of_logical_or logical
+  | Call call -> node_of_call call
 
 and node_of_pattern pat =
   let open Pattern in
@@ -177,6 +178,13 @@ and node_of_logical_and logical =
 and node_of_logical_or logical =
   let { Expression.LogicalOr.loc; left; right; t = _ } = logical in
   node "LogicalOr" loc [("left", node_of_expression left); ("right", node_of_expression right)]
+
+and node_of_call call =
+  let { Expression.Call.loc; func; args; t = _ } = call in
+  node
+    "Call"
+    loc
+    [("func", node_of_expression func); ("args", List (List.map node_of_expression args))]
 
 and node_of_block block =
   let { Statement.Block.loc; statements; t = _ } = block in

@@ -72,6 +72,7 @@ class ['a, 'b] ast_visitor =
         | BinaryOperation e -> unchanged this#binary_operation e expr (fun e' -> BinaryOperation e')
         | LogicalAnd e -> unchanged this#logical_and e expr (fun e' -> LogicalAnd e')
         | LogicalOr e -> unchanged this#logical_or e expr (fun e' -> LogicalOr e')
+        | Call e -> unchanged this#call e expr (fun e' -> Call e')
 
     method pattern : 'a Pattern.t -> 'b Pattern.t =
       fun pat ->
@@ -180,6 +181,19 @@ class ['a, 'b] ast_visitor =
           logical
         else
           { t = t'; loc = loc'; left = left'; right = right' }
+
+    method call : 'a Expression.Call.t -> 'b Expression.Call.t =
+      fun call ->
+        let open Expression.Call in
+        let { t; loc; func; args } = call in
+        let t' = this#decorate t in
+        let loc' = this#loc loc in
+        let func' = this#expression func in
+        let args' = List.map this#expression args in
+        if t == t' && loc == loc' && func == func' && args == args' then
+          call
+        else
+          { t = t'; loc = loc'; func = func'; args = args' }
 
     method function_ : 'a Function.t -> 'b Function.t =
       fun func ->

@@ -119,6 +119,15 @@ and Expression : sig
     }
   end
 
+  module Call : sig
+    type 'T t = {
+      t: 'T;
+      loc: Loc.t;
+      func: 'T Expression.t;
+      args: 'T Expression.t list;
+    }
+  end
+
   type 'T t =
     | IntLiteral of 'T IntLiteral.t
     | StringLiteral of 'T StringLiteral.t
@@ -128,6 +137,7 @@ and Expression : sig
     | BinaryOperation of 'T BinaryOperation.t
     | LogicalAnd of 'T LogicalAnd.t
     | LogicalOr of 'T LogicalOr.t
+    | Call of 'T Call.t
 end =
   Expression
 
