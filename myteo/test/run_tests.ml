@@ -43,7 +43,9 @@ let () =
   let tree_full = !(opts.tree_full) in
   let tree = tree_full || !(opts.tree) in
 
-  let suite_results = Runner.run_suites filter [Parser_tests.suite ~bin ~record] in
+  let suite_results =
+    Runner.run_suites filter [Parser_tests.suite ~bin ~record; Analyze_tests.suite ~bin ~record]
+  in
   let collated_results = Collate.collate_results suite_results in
   let formatted_results = Collate.pp ~tree ~tree_full collated_results in
   Printf.printf "%s" formatted_results;

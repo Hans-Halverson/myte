@@ -1,0 +1,49 @@
+// Functions with unit return type do not need exhaustive returns
+fun foo() {}
+
+fun foo(): unit {}
+
+fun foo(): (((unit))) {}
+
+// Functions with expression bodies do not need exhaustive returns
+fun foo(): int = 1
+
+// All other functions require exhaustive returns
+fun foo(): int {
+  return 1;
+}
+
+fun foo(): int {
+  1;
+  2;
+  return 3;
+}
+
+fun foo(): int {
+  {
+    1;
+    return 2;
+  }
+}
+
+fun foo(): int {
+  if (true) {
+    return 1;
+  } else {
+    return 2;
+  }
+}
+
+fun foo(): int {
+  if (true) {
+    return 1;
+  }
+  2;
+  return 3;
+}
+
+fun foo(): int {
+  if (true) {}
+  2;
+  return 3;
+}

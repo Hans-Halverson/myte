@@ -1,0 +1,50 @@
+// Statement after exhaustive return errors
+fun foo(): int {
+  return 1;
+  2;
+}
+
+fun foo(): int {
+  return 1;
+  return 2;
+}
+
+fun foo(): int {
+  if (true) {
+    return 1;
+  } else {
+    return 2;
+  }
+
+  3;
+  return 4;
+}
+
+// Statement after inexhaustive return does not error
+fun foo(): int {
+  {
+    1;
+  }
+
+  return 2;
+}
+
+fun foo(): int {
+  if (true) {
+    return 1;
+  }
+
+  2;
+  return 3;
+}
+
+fun foo(): int {
+  if (true) {
+    1;
+  } else {
+    return 2;
+  }
+
+  3;
+  return 4;
+}

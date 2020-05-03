@@ -1,9 +1,7 @@
 module SSet = Set.Make (String)
 
 let print_errors errors =
-  Printf.printf
-    "%s"
-    (String.concat "\n\n" (List.map (fun (loc, err) -> Error_pp.pp loc err) errors))
+  Printf.printf "%s" (String.concat "\n" (List.map (fun (loc, err) -> Error_pp.pp loc err) errors))
 
 let print_parse_errors errors =
   print_errors (List.map (fun (loc, err) -> (loc, Parse_error.to_string err)) errors)
@@ -11,29 +9,41 @@ let print_parse_errors errors =
 let print_analyze_errors errors =
   print_errors (List.map (fun (loc, err) -> (loc, Analyze_error.to_string err)) errors)
 
+let parse_files files =
+  let (asts, errors) =
+    SSet.fold
+      (fun file (asts, errors) ->
+        let (ast, parse_errors) = Parser.parse_file file in
+        ((file, ast) :: asts, parse_errors :: errors))
+      files
+      ([], [])
+  in
+  let asts = List.rev asts in
+  let errors = List.flatten (List.rev errors) in
+  if errors <> [] then (
+    print_parse_errors errors;
+    exit 1
+  ) else
+    asts
+
 let show_ast files =
-  SSet.iter
-    (fun file ->
-      let (ast, errors) = Parser.parse_file file in
-      if errors <> [] then (
-        print_parse_errors errors;
-        exit 1
-      );
-      let pp_ast = Ast_pp.pp_program ast in
-      Printf.printf "%s\n%s" (Files.strip_root file) pp_ast)
-    files
+  let asts = parse_files files in
+  let pp_asts =
+    List.map
+      (fun (file, ast) ->
+        let pp_ast = Ast_pp.pp_program ast in
+        Printf.sprintf "%s\n%s" (Files.strip_root file) pp_ast)
+      asts
+  in
+  Printf.printf "%s" (String.concat "\n" pp_asts)
 
 let compile files =
-  SSet.iter
-    (fun file ->
-      let (ast, errors) = Parser.parse_file file in
-      if errors <> [] then begin
-        print_parse_errors errors;
-        exit 1
-      end;
-      let errors = Lex_analyze.analyze_program ast in
-      if errors <> [] then print_analyze_errors errors)
-    files
+  let asts = parse_files files in
+  let errors = asts |> List.map (fun (_, ast) -> Lex_analyze.analyze_program ast) |> List.flatten in
+  if errors <> [] then (
+    print_analyze_errors errors;
+    exit 1
+  )
 
 let () =
   let files = ref SSet.empty in

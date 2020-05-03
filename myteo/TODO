@@ -2,6 +2,9 @@
 - Add non-fatal parse errors with recovery
 - Parse recovery at statement bounds?
 - Make missing parens around if test have unique error message, and support recovery
+- Extra locs and help shown in errors
+  - For inexhaustive return, show func decl as well with label, or point to if statement/branch that is inexhaustive
+  - For unreachable statement after return, show loc of return as well?
 
 # Features
 - Assignment
@@ -25,7 +28,6 @@
 - Pattern matching exhaustiveness checking
 - Unused variable errors/warnings
 - Errors vs warnings
-- Exhaustive return statements
 - Return only in functions, break/continue only in statements, break/continue label analysis
 
 # FUN IDEAS

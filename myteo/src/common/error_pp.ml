@@ -16,7 +16,7 @@ let print_summary_line loc message =
     | _ -> ""
   in
   Printf.sprintf
-    "%sERROR: %s%s%d:%d %s%s"
+    "%sERROR: %s%s%d:%d %s%s\n"
     (style ~text:Red ~decorations:[Bold] ())
     (style ~decorations:[Bold] ())
     source
@@ -43,7 +43,7 @@ let print_single_line loc snippet =
   Printf.sprintf "%s%s|%s %s" (style ~decorations:[Bold] ()) padded_line_num (reset ()) line
   ^ "\n"
   ^ Printf.sprintf
-      "%s%s|%s %s%s"
+      "%s%s|%s %s%s\n"
       (style ~decorations:[Bold] ())
       (String.make (max_num_digits + 2) ' ')
       (style ~text:Red ~decorations:[Bold] ())
@@ -70,7 +70,7 @@ let print_first_line loc snippet =
     line
   ^ "\n"
   ^ Printf.sprintf
-      "%s%s|%s | %s%s"
+      "%s%s|%s | %s%s\n"
       (style ~decorations:[Bold] ())
       (String.make (max_num_digits + 2) ' ')
       (style ~text:Red ~decorations:[Bold] ())
@@ -92,7 +92,7 @@ let print_last_line loc snippet =
     line
   ^ "\n"
   ^ Printf.sprintf
-      "%s%s|%s \\ %s%s"
+      "%s%s|%s \\ %s%s\n"
       (style ~decorations:[Bold] ())
       (String.make (max_num_digits + 2) ' ')
       (style ~text:Red ~decorations:[Bold] ())
@@ -114,7 +114,7 @@ let print_middle_line loc line_num snippet =
     line
   ^ "\n"
   ^ Printf.sprintf
-      "%s %s |%s | %s%s"
+      "%s %s |%s | %s%s\n"
       (style ~decorations:[Bold] ())
       (String.make max_num_digits ' ')
       (style ~text:Red ~decorations:[Bold] ())
@@ -126,7 +126,7 @@ let print_separator_line loc =
   let max_num_digits = num_digits loc._end.line in
   let padding = String.make (max_num_digits - 1) ' ' in
   Printf.sprintf
-    "%s ...%s%s |%s"
+    "%s ...%s%s |%s\n"
     (style ~decorations:[Bold] ())
     padding
     (style ~text:Red ~decorations:[Bold] ())
@@ -177,4 +177,4 @@ let pp loc message =
       [first (); mid (off 1); mid (off 2); print_separator_line loc; mid (end_line - 1); last ()]
   in
   let lines = summary :: lines in
-  String.concat "\n" lines
+  String.concat "" lines
