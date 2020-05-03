@@ -1,0 +1,7 @@
+val x: int = 1;
+val x: string = "test";
+val x: bool = true;
+
+val x: int -> string = 1;
+val x: int -> string -> bool = 1;
+val x: int -> string -> bool -> string = 1;

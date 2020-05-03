@@ -75,6 +75,13 @@ let string_of_binary_op op =
   | LessThanOrEqual -> "LessThanOrEqual"
   | GreaterThanOrEqual -> "GreaterThanOrEqual"
 
+let string_of_primitive_type kind =
+  let open Type.Primitive in
+  match kind with
+  | Int -> "Int"
+  | String -> "String"
+  | Bool -> "Bool"
+
 let rec node_of_loc loc =
   let pp_pos pos =
     let { Loc.line; col } = pos in
@@ -85,6 +92,11 @@ let rec node_of_loc loc =
   Raw raw_loc
 
 and node name loc attributes = Map (("node", Raw name) :: ("loc", node_of_loc loc) :: attributes)
+
+and opt f x =
+  match x with
+  | Option.None -> None
+  | Some x -> f x
 
 and node_of_program program =
   let { Program.loc; statements; t = _ } = program in
@@ -114,6 +126,12 @@ and node_of_pattern pat =
   let open Pattern in
   match pat with
   | Identifier id -> node_of_identifier id
+
+and node_of_type ty =
+  let open Type in
+  match ty with
+  | Primitive prim -> node_of_primitive_type prim
+  | Function func -> node_of_function_type func
 
 and node_of_expression_stmt (loc, expr) =
   node "ExpressionStatement" loc [("expression", node_of_expression expr)]
@@ -165,7 +183,7 @@ and node_of_block block =
   node "Block" loc [("statements", List (List.map node_of_statement statements))]
 
 and node_of_variable_decl decl =
-  let { Statement.VariableDeclaration.loc; kind; pattern; init; t = _ } = decl in
+  let { Statement.VariableDeclaration.loc; kind; pattern; init; annot; t = _ } = decl in
   let kind =
     match kind with
     | Immutable -> "Immutable"
@@ -174,11 +192,16 @@ and node_of_variable_decl decl =
   node
     "VariableDeclaration"
     loc
-    [("kind", Raw kind); ("pattern", node_of_pattern pattern); ("init", node_of_expression init)]
+    [
+      ("kind", Raw kind);
+      ("pattern", node_of_pattern pattern);
+      ("init", node_of_expression init);
+      ("annot", opt node_of_type annot);
+    ]
 
 and node_of_function func =
   let open Function in
-  let { loc; name; params; body; t = _ } = func in
+  let { loc; name; params; body; return; t = _ } = func in
   let body =
     match body with
     | Block block -> node_of_block block
@@ -189,9 +212,26 @@ and node_of_function func =
     loc
     [
       ("name", node_of_identifier name);
-      ("params", List (List.map node_of_identifier params));
+      ("params", List (List.map node_of_function_param params));
       ("body", body);
+      ("return", opt node_of_type return);
     ]
+
+and node_of_function_param param =
+  let open Function.Param in
+  let { loc; name; annot; t = _ } = param in
+  node "Param" loc [("name", node_of_identifier name); ("annot", node_of_type annot)]
+
+and node_of_primitive_type p =
+  let { Type.Primitive.loc; kind; t = _ } = p in
+  node "PrimitiveType" loc [("kind", Raw (string_of_primitive_type kind))]
+
+and node_of_function_type func =
+  let { Type.Function.loc; params; return; t = _ } = func in
+  node
+    "FunctionType"
+    loc
+    [("params", List (List.map node_of_type params)); ("return", node_of_type return)]
 
 and pp_program program =
   let node = node_of_program program in

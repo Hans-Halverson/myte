@@ -27,6 +27,7 @@ and Statement : sig
       kind: kind;
       pattern: 'T Pattern.t;
       init: 'T Expression.t;
+      annot: 'T Type.t option;
     }
   end
 
@@ -135,18 +136,57 @@ and Pattern : sig
 end =
   Pattern
 
+and Type : sig
+  module Primitive : sig
+    type kind =
+      | Int
+      | String
+      | Bool
+
+    type 'T t = {
+      t: 'T;
+      loc: Loc.t;
+      kind: kind;
+    }
+  end
+
+  module Function : sig
+    type 'T t = {
+      t: 'T;
+      loc: Loc.t;
+      params: 'T Type.t list;
+      return: 'T Type.t;
+    }
+  end
+
+  type 'T t =
+    | Primitive of 'T Primitive.t
+    | Function of 'T Function.t
+end =
+  Type
+
 and Function : sig
-  type 'T t = {
+  module Param : sig
+    type 'T t = {
+      t: 'T;
+      loc: Loc.t;
+      name: 'T Identifier.t;
+      annot: 'T Type.t;
+    }
+  end
+
+  type 'T body =
+    | Block of 'T Statement.Block.t
+    | Expression of 'T Expression.t
+
+  and 'T t = {
     t: 'T;
     loc: Loc.t;
     name: 'T Identifier.t;
-    params: 'T Identifier.t list;
+    params: 'T Param.t list;
     body: 'T body;
+    return: 'T Type.t option;
   }
-
-  and 'T body =
-    | Block of 'T Statement.Block.t
-    | Expression of 'T Expression.t
 end =
   Function
 

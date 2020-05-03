@@ -7,6 +7,16 @@ let unchanged f n n' mk =
   else
     mk n''
 
+let unchanged_opt f x =
+  match x with
+  | None -> x
+  | Some x' ->
+    let x'' = f x' in
+    if x'' == x' then
+      x
+    else
+      Some x''
+
 let unchanged_list f lst =
   let rec helper rest acc changed =
     match rest with
@@ -68,6 +78,13 @@ class ['a, 'b] ast_visitor =
         let open Pattern in
         match pat with
         | Identifier p -> unchanged this#identifier p pat (fun p' -> Identifier p')
+
+    method type_ : 'a Type.t -> 'b Type.t =
+      fun ty ->
+        let open Type in
+        match ty with
+        | Primitive t -> unchanged this#primitive_type t ty (fun t' -> Primitive t')
+        | Function t -> unchanged this#function_type t ty (fun t' -> Function t')
 
     method identifier : 'a Identifier.t -> 'b Identifier.t =
       fun id ->
@@ -167,16 +184,37 @@ class ['a, 'b] ast_visitor =
     method function_ : 'a Function.t -> 'b Function.t =
       fun func ->
         let open Function in
-        let { t; loc; name; params; body } = func in
+        let { t; loc; name; params; body; return } = func in
         let t' = this#decorate t in
         let loc' = this#loc loc in
         let name' = this#identifier name in
-        let params' = unchanged_list this#identifier params in
+        let params' = unchanged_list this#function_param params in
         let body' = this#function_body body in
-        if t == t' && loc == loc' && name == name' && params == params' && body == body' then
+        let return' = unchanged_opt this#type_ return in
+        if
+          t == t'
+          && loc == loc'
+          && name == name'
+          && params == params'
+          && body == body'
+          && return == return'
+        then
           func
         else
-          { t = t'; loc = loc'; name = name'; params = params'; body = body' }
+          { t = t'; loc = loc'; name = name'; params = params'; body = body'; return = return' }
+
+    method function_param : 'a Function.Param.t -> 'b Function.Param.t =
+      fun param ->
+        let open Function.Param in
+        let { t; loc; name; annot } = param in
+        let t' = this#decorate t in
+        let loc' = this#loc loc in
+        let name' = this#identifier name in
+        let annot' = this#type_ annot in
+        if t == t' && loc == loc' && name == name' && annot == annot' then
+          param
+        else
+          { t = t'; loc = loc'; name = name'; annot = annot' }
 
     method function_body : 'a Function.body -> 'b Function.body =
       fun body ->
@@ -210,13 +248,38 @@ class ['a, 'b] ast_visitor =
         : 'a Statement.VariableDeclaration.t -> 'b Statement.VariableDeclaration.t =
       fun decl ->
         let open Statement.VariableDeclaration in
-        let { t; loc; kind; pattern; init } = decl in
+        let { t; loc; kind; pattern; init; annot } = decl in
         let t' = this#decorate t in
         let loc' = this#loc loc in
         let pattern' = this#pattern pattern in
         let init' = this#expression init in
-        if t == t' && loc == loc' && pattern == pattern' && init == init' then
+        let annot' = unchanged_opt this#type_ annot in
+        if t == t' && loc == loc' && pattern == pattern' && init == init' && annot == annot' then
           decl
         else
-          { t = t'; loc = loc'; kind; pattern = pattern'; init = init' }
+          { t = t'; loc = loc'; kind; pattern = pattern'; init = init'; annot = annot' }
+
+    method primitive_type : 'a Type.Primitive.t -> 'b Type.Primitive.t =
+      fun prim ->
+        let open Type.Primitive in
+        let { t; loc; kind } = prim in
+        let t' = this#decorate t in
+        let loc' = this#loc loc in
+        if t == t' && loc == loc' then
+          prim
+        else
+          { t = t'; loc = loc'; kind }
+
+    method function_type : 'a Type.Function.t -> 'b Type.Function.t =
+      fun func ->
+        let open Type.Function in
+        let { t; loc; params; return } = func in
+        let t' = this#decorate t in
+        let loc' = this#loc loc in
+        let params' = unchanged_list this#type_ params in
+        let return' = this#type_ return in
+        if t == t' && loc == loc' && params == params' && return == return' then
+          func
+        else
+          { t = t'; loc = loc'; params = params'; return = return' }
   end

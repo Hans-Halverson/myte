@@ -1,7 +1,7 @@
-fun foo() = 1
+fun foo(): int = 1
 
-fun foo() {}
+fun foo(): int {}
 
-fun foo(a, b, c) {}
+fun foo(a: int, b: string, c: bool): int {}
 
-fun foo(a, b, c,) {}
+fun foo(a: int, b: string, c: bool,): int {}

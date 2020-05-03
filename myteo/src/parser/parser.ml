@@ -2,9 +2,9 @@ open Ast
 open Token
 module Env = Parser_env.Env
 
-module Precedence = struct
+module ExpressionPrecedence = struct
   type t =
-    | Group (* Binds tightest *)
+    | (* Binds tightest *) Group
     | Unary
     | Multiplication
     | Addition
@@ -12,9 +12,7 @@ module Precedence = struct
     | Equality
     | LogicalAnd
     | LogicalOr
-    | None
-
-  (* Binds weakest *)
+    | (* Binds weakest *) None
 
   let level = function
     | Group -> 8
@@ -25,6 +23,20 @@ module Precedence = struct
     | Equality -> 3
     | LogicalAnd -> 2
     | LogicalOr -> 1
+    | None -> 0
+
+  let is_tighter p1 p2 = level p1 > level p2
+end
+
+module TypePrecedence = struct
+  type t =
+    | (* Binds tightest *) Group
+    | Function
+    | (* Binds weakest *) None
+
+  let level = function
+    | Group -> 2
+    | Function -> 1
     | None -> 0
 
   let is_tighter p1 p2 = level p1 > level p2
@@ -73,7 +85,7 @@ and parse_expression_statement env =
   let loc = marker env in
   Statement.Expression (loc, expr)
 
-and parse_expression ?(precedence = Precedence.None) env =
+and parse_expression ?(precedence = ExpressionPrecedence.None) env =
   let marker = mark_loc env in
   let expr = parse_expression_prefix env in
   let rec infix expr =
@@ -112,25 +124,25 @@ and parse_expression_infix ~precedence env left marker =
   match Env.token env with
   | T_PLUS
   | T_MINUS
-    when Precedence.(is_tighter Addition precedence) ->
+    when ExpressionPrecedence.(is_tighter Addition precedence) ->
     parse_binary_operation env left marker
   | T_MULTIPLY
   | T_DIVIDE
-    when Precedence.(is_tighter Multiplication precedence) ->
+    when ExpressionPrecedence.(is_tighter Multiplication precedence) ->
     parse_binary_operation env left marker
   | T_LESS_THAN
   | T_GREATER_THAN
   | T_LESS_THAN_OR_EQUAL
   | T_GREATER_THAN_OR_EQUAL
-    when Precedence.(is_tighter Comparison precedence) ->
+    when ExpressionPrecedence.(is_tighter Comparison precedence) ->
     parse_binary_operation env left marker
   | T_DOUBLE_EQUALS
   | T_NOT_EQUALS
-    when Precedence.(is_tighter Equality precedence) ->
+    when ExpressionPrecedence.(is_tighter Equality precedence) ->
     parse_binary_operation env left marker
-  | T_LOGICAL_AND when Precedence.(is_tighter LogicalAnd precedence) ->
+  | T_LOGICAL_AND when ExpressionPrecedence.(is_tighter LogicalAnd precedence) ->
     parse_logical_expression env left marker
-  | T_LOGICAL_OR when Precedence.(is_tighter LogicalOr precedence) ->
+  | T_LOGICAL_OR when ExpressionPrecedence.(is_tighter LogicalOr precedence) ->
     parse_logical_expression env left marker
   | _ -> left
 
@@ -159,16 +171,16 @@ and parse_binary_operation env left marker =
   let open Expression.BinaryOperation in
   let (op, precedence) =
     match Env.token env with
-    | T_PLUS -> (Add, Precedence.Addition)
-    | T_MINUS -> (Subtract, Precedence.Addition)
-    | T_MULTIPLY -> (Multiply, Precedence.Multiplication)
-    | T_DIVIDE -> (Divide, Precedence.Multiplication)
-    | T_DOUBLE_EQUALS -> (Equal, Precedence.Equality)
-    | T_NOT_EQUALS -> (NotEqual, Precedence.Equality)
-    | T_LESS_THAN -> (LessThan, Precedence.Comparison)
-    | T_GREATER_THAN -> (GreaterThan, Precedence.Comparison)
-    | T_LESS_THAN_OR_EQUAL -> (LessThanOrEqual, Precedence.Comparison)
-    | T_GREATER_THAN_OR_EQUAL -> (GreaterThanOrEqual, Precedence.Comparison)
+    | T_PLUS -> (Add, ExpressionPrecedence.Addition)
+    | T_MINUS -> (Subtract, ExpressionPrecedence.Addition)
+    | T_MULTIPLY -> (Multiply, ExpressionPrecedence.Multiplication)
+    | T_DIVIDE -> (Divide, ExpressionPrecedence.Multiplication)
+    | T_DOUBLE_EQUALS -> (Equal, ExpressionPrecedence.Equality)
+    | T_NOT_EQUALS -> (NotEqual, ExpressionPrecedence.Equality)
+    | T_LESS_THAN -> (LessThan, ExpressionPrecedence.Comparison)
+    | T_GREATER_THAN -> (GreaterThan, ExpressionPrecedence.Comparison)
+    | T_LESS_THAN_OR_EQUAL -> (LessThanOrEqual, ExpressionPrecedence.Comparison)
+    | T_GREATER_THAN_OR_EQUAL -> (GreaterThanOrEqual, ExpressionPrecedence.Comparison)
     | _ -> failwith "Invalid binary operator"
   in
   Env.advance env;
@@ -232,11 +244,18 @@ and parse_variable_declaration env =
   in
   Env.advance env;
   let pattern = parse_pattern env in
+  let annot =
+    match Env.token env with
+    | T_COLON ->
+      Env.advance env;
+      Some (parse_type env)
+    | _ -> None
+  in
   Env.expect env T_EQUALS;
   let init = parse_expression env in
   Env.expect env T_SEMICOLON;
   let loc = marker env in
-  VariableDeclaration { VariableDeclaration.loc; kind; pattern; init; t = () }
+  VariableDeclaration { VariableDeclaration.loc; kind; pattern; init; annot; t = () }
 
 and parse_function env =
   let open Function in
@@ -250,23 +269,92 @@ and parse_function env =
       Env.advance env;
       []
     | _ ->
-      let param = parse_identifier env in
+      let marker = mark_loc env in
+      let name = parse_identifier env in
+      Env.expect env T_COLON;
+      let annot = parse_type env in
+      let loc = marker env in
       begin
         match Env.token env with
         | T_RIGHT_PAREN -> ()
         | T_COMMA -> Env.advance env
         | _ -> Env.expect env T_RIGHT_PAREN
       end;
+      let param = { Param.loc; name; annot; t = () } in
       param :: params env
   in
   let params = params env in
+  let return =
+    match Env.token env with
+    | T_COLON ->
+      Env.advance env;
+      Some (parse_type env)
+    | _ -> None
+  in
   let body =
     match Env.token env with
     | T_LEFT_BRACE -> Block (parse_block env)
     | T_EQUALS ->
       Env.advance env;
       Expression (parse_expression env)
-    | token -> Parse_error.fatal (Env.loc env, MissingFunctionBody token)
+    | token -> Parse_error.fatal (Env.loc env, MalformedFunctionBody token)
   in
   let loc = marker env in
-  { loc; name; params; body; t = () }
+  { loc; name; params; body; return; t = () }
+
+and parse_type ?(precedence = TypePrecedence.None) env =
+  let open Type in
+  let marker = mark_loc env in
+  let ty = parse_type_prefix env in
+  match Env.token env with
+  | T_ARROW when TypePrecedence.(is_tighter Function precedence) ->
+    Function (parse_function_type env ty marker)
+  | _ -> ty
+
+and parse_type_prefix env =
+  let open Type in
+  match Env.token env with
+  | T_LEFT_PAREN -> parse_group_type env
+  | T_INT
+  | T_STRING
+  | T_BOOL ->
+    Primitive (parse_primitive_type env)
+  | token -> Parse_error.fatal (Env.loc env, MalformedType token)
+
+and parse_group_type env =
+  Env.expect env T_LEFT_PAREN;
+  let ty = parse_type env in
+  Env.expect env T_RIGHT_PAREN;
+  ty
+
+and parse_primitive_type env =
+  let open Type.Primitive in
+  let kind =
+    match Env.token env with
+    | T_INT -> Int
+    | T_STRING -> String
+    | T_BOOL -> Bool
+    | _ -> failwith "Must be called on primitive type"
+  in
+  let loc = Env.loc env in
+  Env.advance env;
+  { loc; kind; t = () }
+
+and parse_function_type env left marker =
+  let open Type.Function in
+  Env.expect env T_ARROW;
+  let rec helper acc =
+    let ty = parse_type ~precedence:TypePrecedence.Function env in
+    match Env.token env with
+    | T_ARROW ->
+      Env.advance env;
+      helper (ty :: acc)
+    | _ -> ty :: acc
+  in
+  let rev_tys = helper [left] in
+  match rev_tys with
+  | [] -> failwith "Function type must have at least one type"
+  | return :: rev_params ->
+    let params = List.rev rev_params in
+    let loc = marker env in
+    { loc; params; return; t = () }

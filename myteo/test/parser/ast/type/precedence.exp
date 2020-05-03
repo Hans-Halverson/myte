@@ -1,0 +1,93 @@
+test/parser/ast/type/precedence.myte
+{
+  node: Program,
+  loc: 1:0-3:35,
+  statements: [
+    {
+      node: VariableDeclaration,
+      loc: 2:0-2:35,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 2:4-2:5,
+        name: "x",
+      },
+      init: {
+        node: IntLiteral,
+        loc: 2:33-2:34,
+        value: 1,
+        raw: "1",
+      },
+      annot: {
+        node: FunctionType,
+        loc: 2:7-2:30,
+        params: [
+          {
+            node: FunctionType,
+            loc: 2:8-2:21,
+            params: [
+              {
+                node: PrimitiveType,
+                loc: 2:8-2:11,
+                kind: Int,
+              },
+            ],
+            return: {
+              node: PrimitiveType,
+              loc: 2:15-2:21,
+              kind: String,
+            },
+          },
+        ],
+        return: {
+          node: PrimitiveType,
+          loc: 2:26-2:30,
+          kind: Bool,
+        },
+      },
+    },
+    {
+      node: VariableDeclaration,
+      loc: 3:0-3:35,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 3:4-3:5,
+        name: "x",
+      },
+      init: {
+        node: IntLiteral,
+        loc: 3:33-3:34,
+        value: 1,
+        raw: "1",
+      },
+      annot: {
+        node: FunctionType,
+        loc: 3:7-3:30,
+        params: [
+          {
+            node: PrimitiveType,
+            loc: 3:7-3:10,
+            kind: Int,
+          },
+        ],
+        return: {
+          node: FunctionType,
+          loc: 3:15-3:29,
+          params: [
+            {
+              node: PrimitiveType,
+              loc: 3:15-3:21,
+              kind: String,
+            },
+          ],
+          return: {
+            node: PrimitiveType,
+            loc: 3:25-3:29,
+            kind: Bool,
+          },
+        },
+      },
+    },
+  ],
+}

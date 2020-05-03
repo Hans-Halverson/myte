@@ -1,2 +1,4 @@
 val x = 1;
 var y = 2;
+
+val x: int = 1;

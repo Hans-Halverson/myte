@@ -21,13 +21,13 @@ end =
   CollatedTestResult
 
 let collate_result suite_result =
-  let rec collate_result_inner parents { SuiteResult.name; suites; tests } =
+  let rec collate_result_inner parents { SuiteResult.name = suite_name; suites; tests } =
     let (num_results, suites) =
       List.fold_left
         (fun ((total_num_fail, total_num_pass, total_num_skip), col_results) result ->
           let ({ CollatedSuiteResult.num_results = (num_fail, num_pass, num_skip); _ } as col_result)
               =
-            collate_result_inner (name :: parents) result
+            collate_result_inner (suite_name :: parents) result
           in
           let num_results =
             (total_num_fail + num_fail, total_num_pass + num_pass, total_num_skip + num_skip)
@@ -45,7 +45,7 @@ let collate_result suite_result =
             | Some Test.Passed -> (num_fail, num_pass + 1, num_skip)
             | Some (Test.Failed _) -> (num_fail + 1, num_pass, num_skip)
           in
-          let names = List.rev (name :: parents) in
+          let names = List.rev (name :: suite_name :: parents) in
           let full_name = String.concat "/" names in
           let col_results =
             match result with
@@ -56,7 +56,7 @@ let collate_result suite_result =
         (num_results, [])
         tests
     in
-    { CollatedSuiteResult.name; num_results; suites; tests }
+    { CollatedSuiteResult.name = suite_name; num_results; suites; tests }
   in
   collate_result_inner [] suite_result
 

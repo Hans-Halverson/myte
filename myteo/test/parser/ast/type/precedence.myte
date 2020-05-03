@@ -1,0 +1,3 @@
+// Group precedence
+val x: (int -> string) -> bool = 1;
+val x: int -> (string -> bool) = 1;
