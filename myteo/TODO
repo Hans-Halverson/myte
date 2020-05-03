@@ -23,6 +23,13 @@
 - Indexing into collections
 - Pattern matching (syntax with optional: "| ?a -> 1" or "| ?(a, b) -> 1")
 - Pattern matching exhaustiveness checking
+- Unused variable errors/warnings
+- Errors vs warnings
+- Exhaustive return statements
+- Return only in functions, break/continue only in statements, break/continue label analysis
+
+# FUN IDEAS
+- MACROS (e.g. defined as functions that operate on the source ast and output another ast)
 
 # Full Pipeline
 - Parsing (In Progress)

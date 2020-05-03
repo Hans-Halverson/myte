@@ -1,0 +1,1 @@
+let analyze _program = []

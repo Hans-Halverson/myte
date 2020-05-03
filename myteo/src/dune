@@ -1,3 +1,3 @@
 (executable
   (name myte)
-  (libraries myte_common parser))
+  (libraries myte_common parser analyze))
