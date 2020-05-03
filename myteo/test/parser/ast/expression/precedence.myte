@@ -1,8 +1,10 @@
 // Full precedence
-+a * b + c < d == e && f || g;
++a() * b + c < d == e && f || g;
 a || b && c == d < e + f * g;
 
 // Group precedence
+a((b)(c));
+(a(b))(c);
 a * (b * c);
 (a * b) * c;
 a + (b + c);
@@ -15,6 +17,15 @@ a && (b && c);
 (a && b) && c;
 a || (b || c);
 (a || b) || c;
+
+// Call precedence
++a();
+a * b();
+a + b();
+a < b();
+a == b();
+a && b();
+a || b();
 
 // Unary precedence
 +(a + b);

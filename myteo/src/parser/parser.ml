@@ -125,6 +125,8 @@ and parse_expression_prefix env =
 
 and parse_expression_infix ~precedence env left marker =
   match Env.token env with
+  | T_LEFT_PAREN when ExpressionPrecedence.(is_tighter Call precedence) ->
+    parse_call env left marker
   | T_PLUS
   | T_MINUS
     when ExpressionPrecedence.(is_tighter Addition precedence) ->
@@ -147,8 +149,6 @@ and parse_expression_infix ~precedence env left marker =
     parse_logical_expression env left marker
   | T_LOGICAL_OR when ExpressionPrecedence.(is_tighter LogicalOr precedence) ->
     parse_logical_expression env left marker
-  | T_LEFT_PAREN when ExpressionPrecedence.(is_tighter Call precedence) ->
-    parse_call env left marker
   | _ -> left
 
 and parse_group_expression env =
@@ -224,7 +224,7 @@ and parse_call env left marker =
       Env.advance env;
       []
     | _ ->
-      let arg = parse_expression ~precedence:ExpressionPrecedence.Call env in
+      let arg = parse_expression env in
       begin
         match Env.token env with
         | T_RIGHT_PAREN -> ()

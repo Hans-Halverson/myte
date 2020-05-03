@@ -1,7 +1,7 @@
 test/parser/ast/call/basic.myte
 {
   node: Program,
-  loc: 1:0-7:17,
+  loc: 1:0-9:10,
   statements: [
     {
       node: ExpressionStatement,
@@ -137,6 +137,30 @@ test/parser/ast/call/basic.myte
             loc: 7:9-7:12,
             name: "bar",
           },
+        },
+        args: [],
+      },
+    },
+    {
+      node: ExpressionStatement,
+      loc: 9:0-9:10,
+      expression: {
+        node: Call,
+        loc: 9:0-9:9,
+        func: {
+          node: Call,
+          loc: 9:0-9:7,
+          func: {
+            node: Call,
+            loc: 9:0-9:5,
+            func: {
+              node: Identifier,
+              loc: 9:0-9:3,
+              name: "foo",
+            },
+            args: [],
+          },
+          args: [],
         },
         args: [],
       },
