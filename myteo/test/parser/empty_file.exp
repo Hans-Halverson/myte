@@ -2,5 +2,5 @@ test/parser/empty_file.myte
 {
   node: Program,
   loc: 1:0-1:0,
-  statements: [],
+  toplevels: [],
 }

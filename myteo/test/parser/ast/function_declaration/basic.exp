@@ -2,7 +2,7 @@ test/parser/ast/function_declaration/basic.myte
 {
   node: Program,
   loc: 1:0-7:44,
-  statements: [
+  toplevels: [
     {
       node: Function,
       loc: 1:0-1:18,

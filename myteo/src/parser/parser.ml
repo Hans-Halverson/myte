@@ -53,22 +53,31 @@ let rec parse_file file = parse (Parser_env.from_file file)
 and parse_string str = parse (Parser_env.from_string str)
 
 and parse env =
-  let rec helper stmts =
+  let rec helper toplevels =
     match Env.token env with
-    | T_EOF -> List.rev stmts
+    | T_EOF -> List.rev toplevels
     | _ ->
-      let stmt = parse_statement env in
-      helper (stmt :: stmts)
+      let toplevel = parse_toplevel env in
+      helper (toplevel :: toplevels)
   in
-  let (loc, statements, errors) =
+  let (loc, toplevels, errors) =
     try
-      let statements = helper [] in
+      let toplevels = helper [] in
       let loc = Env.loc env in
-      (loc, statements, Env.errors env)
+      (loc, toplevels, Env.errors env)
     with Parse_error.Fatal (loc, err) -> (loc, [], [(loc, err)])
   in
   let loc = { loc with Loc.start = Loc.first_pos } in
-  ({ Program.loc; statements; t = () }, errors)
+  ({ Program.loc; toplevels; t = () }, errors)
+
+and parse_toplevel env =
+  let open Program in
+  match Env.token env with
+  | T_VAL
+  | T_VAR ->
+    VariableDeclaration (parse_variable_declaration env)
+  | T_FUN -> FunctionDeclaration (parse_function env)
+  | token -> Parse_error.fatal (Env.loc env, MalformedTopLevel token)
 
 and parse_statement env =
   let open Statement in
@@ -78,7 +87,7 @@ and parse_statement env =
   | T_RETURN -> parse_return env
   | T_VAL
   | T_VAR ->
-    parse_variable_declaration env
+    VariableDeclaration (parse_variable_declaration env)
   | T_FUN -> FunctionDeclaration (parse_function env)
   | _ -> parse_expression_statement env
 
@@ -244,12 +253,15 @@ and parse_identifier env =
     let loc = Env.loc env in
     Env.advance env;
     { Identifier.loc; name; t = () }
-  | _ -> failwith "Must be falled on identifier"
+  | token ->
+    Parse_error.fatal
+      (Env.loc env, UnexpectedToken { actual = token; expected = Some (T_IDENTIFIER "") })
 
 and parse_pattern env =
   let open Pattern in
   match Env.token env with
-  | _ -> Identifier (parse_identifier env)
+  | T_IDENTIFIER _ -> Identifier (parse_identifier env)
+  | token -> Parse_error.fatal (Env.loc env, MalformedPattern token)
 
 and parse_block env =
   let open Statement in
@@ -317,7 +329,7 @@ and parse_variable_declaration env =
   let init = parse_expression env in
   Env.expect env T_SEMICOLON;
   let loc = marker env in
-  VariableDeclaration { VariableDeclaration.loc; kind; pattern; init; annot; t = () }
+  { VariableDeclaration.loc; kind; pattern; init; annot; t = () }
 
 and parse_function env =
   let open Function in

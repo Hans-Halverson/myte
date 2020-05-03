@@ -1,23 +1,40 @@
 test/parser/ast/expression/unit.myte
 {
   node: Program,
-  loc: 1:0-2:7,
-  statements: [
+  loc: 1:0-4:1,
+  toplevels: [
     {
-      node: ExpressionStatement,
-      loc: 1:0-1:3,
-      expression: {
-        node: Unit,
-        loc: 1:1-1:2,
+      node: Function,
+      loc: 1:0-4:1,
+      name: {
+        node: Identifier,
+        loc: 1:4-1:8,
+        name: "main",
       },
-    },
-    {
-      node: ExpressionStatement,
-      loc: 2:0-2:7,
-      expression: {
-        node: Unit,
-        loc: 2:3-2:4,
+      params: [],
+      body: {
+        node: Block,
+        loc: 1:11-4:1,
+        statements: [
+          {
+            node: ExpressionStatement,
+            loc: 2:2-2:5,
+            expression: {
+              node: Unit,
+              loc: 2:3-2:4,
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 3:2-3:9,
+            expression: {
+              node: Unit,
+              loc: 3:5-3:6,
+            },
+          },
+        ],
       },
+      return: None,
     },
   ],
 }

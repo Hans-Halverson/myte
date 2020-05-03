@@ -1,27 +1,44 @@
 test/parser/ast/expression/parens.myte
 {
   node: Program,
-  loc: 1:0-2:8,
-  statements: [
+  loc: 1:0-4:1,
+  toplevels: [
     {
-      node: ExpressionStatement,
-      loc: 1:0-1:4,
-      expression: {
-        node: IntLiteral,
-        loc: 1:1-1:2,
-        value: 1,
-        raw: "1",
+      node: Function,
+      loc: 1:0-4:1,
+      name: {
+        node: Identifier,
+        loc: 1:4-1:8,
+        name: "main",
       },
-    },
-    {
-      node: ExpressionStatement,
-      loc: 2:0-2:8,
-      expression: {
-        node: IntLiteral,
-        loc: 2:3-2:4,
-        value: 1,
-        raw: "1",
+      params: [],
+      body: {
+        node: Block,
+        loc: 1:11-4:1,
+        statements: [
+          {
+            node: ExpressionStatement,
+            loc: 2:2-2:6,
+            expression: {
+              node: IntLiteral,
+              loc: 2:3-2:4,
+              value: 1,
+              raw: "1",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 3:2-3:10,
+            expression: {
+              node: IntLiteral,
+              loc: 3:5-3:6,
+              value: 1,
+              raw: "1",
+            },
+          },
+        ],
       },
+      return: None,
     },
   ],
 }

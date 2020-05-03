@@ -1,1 +1,3 @@
-if test {}
+fun main() {
+  if test {}
+}

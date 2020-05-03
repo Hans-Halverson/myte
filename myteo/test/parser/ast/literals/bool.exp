@@ -1,25 +1,42 @@
 test/parser/ast/literals/bool.myte
 {
   node: Program,
-  loc: 1:0-2:6,
-  statements: [
+  loc: 1:0-4:1,
+  toplevels: [
     {
-      node: ExpressionStatement,
-      loc: 1:0-1:5,
-      expression: {
-        node: BoolLiteral,
-        loc: 1:0-1:4,
-        value: true,
+      node: Function,
+      loc: 1:0-4:1,
+      name: {
+        node: Identifier,
+        loc: 1:4-1:8,
+        name: "main",
       },
-    },
-    {
-      node: ExpressionStatement,
-      loc: 2:0-2:6,
-      expression: {
-        node: BoolLiteral,
-        loc: 2:0-2:5,
-        value: false,
+      params: [],
+      body: {
+        node: Block,
+        loc: 1:11-4:1,
+        statements: [
+          {
+            node: ExpressionStatement,
+            loc: 2:2-2:7,
+            expression: {
+              node: BoolLiteral,
+              loc: 2:2-2:6,
+              value: true,
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 3:2-3:8,
+            expression: {
+              node: BoolLiteral,
+              loc: 3:2-3:7,
+              value: false,
+            },
+          },
+        ],
       },
+      return: None,
     },
   ],
 }

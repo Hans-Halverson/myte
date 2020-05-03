@@ -2,7 +2,7 @@ test/parser/ast/type/precedence.myte
 {
   node: Program,
   loc: 1:0-3:35,
-  statements: [
+  toplevels: [
     {
       node: VariableDeclaration,
       loc: 2:0-2:35,

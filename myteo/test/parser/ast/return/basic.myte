@@ -1,2 +1,4 @@
-return ();
-return 1;
+fun main() {
+  return ();
+  return 1;
+}

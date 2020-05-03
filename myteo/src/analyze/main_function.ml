@@ -12,18 +12,19 @@ let programs_end_loc progs =
   | { Program.loc; _ } :: _ -> Loc.point_end loc
 
 let analyze_program acc prog =
-  let { Program.statements; _ } = prog in
+  let open Program in
+  let { toplevels; _ } = prog in
   List.fold_left
-    (fun acc stmt ->
-      match stmt with
-      | Statement.FunctionDeclaration { Function.name = { Identifier.name = "main"; loc; _ }; _ } ->
+    (fun acc toplevel ->
+      match toplevel with
+      | FunctionDeclaration { Function.name = { Identifier.name = "main"; loc; _ }; _ } ->
         (match acc with
         | MissingMain -> SingleMain
         | SingleMain -> MultipleMains loc
         | MultipleMains _ -> acc)
       | _ -> acc)
     acc
-    statements
+    toplevels
 
 let analyze progs =
   let result = List.fold_left (fun acc prog -> analyze_program acc prog) MissingMain progs in

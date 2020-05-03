@@ -40,14 +40,23 @@ class ['a, 'b] ast_mapper =
 
     method program : 'a Program.t -> 'b Program.t =
       fun program ->
-        let { Program.t; loc; statements } = program in
+        let { Program.t; loc; toplevels } = program in
         let t' = this#decorate t in
         let loc' = this#loc loc in
-        let statements' = unchanged_list this#statement statements in
-        if t == t' && loc == loc' && statements == statements' then
+        let toplevels' = unchanged_list this#toplevel toplevels in
+        if t == t' && loc == loc' && toplevels == toplevels' then
           program
         else
-          { Program.t = t'; loc = loc'; statements = statements' }
+          { Program.t = t'; loc = loc'; toplevels = toplevels' }
+
+    method toplevel : 'a Program.toplevel -> 'b Program.toplevel =
+      fun toplevel ->
+        let open Program in
+        match toplevel with
+        | VariableDeclaration t ->
+          unchanged this#variable_declaration t toplevel (fun t' -> VariableDeclaration t')
+        | FunctionDeclaration t ->
+          unchanged this#function_ t toplevel (fun t' -> FunctionDeclaration t')
 
     method statement : 'a Statement.t -> 'b Statement.t =
       fun stmt ->

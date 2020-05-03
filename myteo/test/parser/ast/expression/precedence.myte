@@ -1,77 +1,79 @@
-// Full precedence
-+a() * b + c < d == e && f || g;
-a || b && c == d < e + f * g;
+fun main() {
+  // Full precedence
+  +a() * b + c < d == e && f || g;
+  a || b && c == d < e + f * g;
 
-// Group precedence
-a((b)(c));
-(a(b))(c);
-a * (b * c);
-(a * b) * c;
-a + (b + c);
-(a + b) + c;
-a < (b < c);
-(a < b) < c;
-a == (b == c);
-(a == b) == c;
-a && (b && c);
-(a && b) && c;
-a || (b || c);
-(a || b) || c;
+  // Group precedence
+  a((b)(c));
+  (a(b))(c);
+  a * (b * c);
+  (a * b) * c;
+  a + (b + c);
+  (a + b) + c;
+  a < (b < c);
+  (a < b) < c;
+  a == (b == c);
+  (a == b) == c;
+  a && (b && c);
+  (a && b) && c;
+  a || (b || c);
+  (a || b) || c;
 
-// Call precedence
-+a();
-a * b();
-a + b();
-a < b();
-a == b();
-a && b();
-a || b();
+  // Call precedence
+  +a();
+  a * b();
+  a + b();
+  a < b();
+  a == b();
+  a && b();
+  a || b();
 
-// Unary precedence
-+(a + b);
-+a * b;
-+a + b;
-+a < b;
-+a == b;
-+a && b;
-+a || b;
+  // Unary precedence
+  +(a + b);
+  +a * b;
+  +a + b;
+  +a < b;
+  +a == b;
+  +a && b;
+  +a || b;
 
-// Multiplication precedence
-a * b + c;
-a + b * c;
-a * b < c;
-a < b * c;
-a * b == c;
-a == b * c;
-a * b && c;
-a && b * c;
-a * b || c;
-a || b * c;
+  // Multiplication precedence
+  a * b + c;
+  a + b * c;
+  a * b < c;
+  a < b * c;
+  a * b == c;
+  a == b * c;
+  a * b && c;
+  a && b * c;
+  a * b || c;
+  a || b * c;
 
-// Addition precedence
-a + b < c;
-a < b + c;
-a + b == c;
-a == b + c;
-a + b && c;
-a && b + c;
-a + b || c;
-a || b + c;
+  // Addition precedence
+  a + b < c;
+  a < b + c;
+  a + b == c;
+  a == b + c;
+  a + b && c;
+  a && b + c;
+  a + b || c;
+  a || b + c;
 
-// Comparison precedence
-a < b == c;
-a == b < c;
-a < b && c;
-a && b < c;
-a < b || c;
-a || b < c;
+  // Comparison precedence
+  a < b == c;
+  a == b < c;
+  a < b && c;
+  a && b < c;
+  a < b || c;
+  a || b < c;
 
-// Equality precedence
-a == b && c;
-a && b == c;
-a == b || c;
-a || b == c;
+  // Equality precedence
+  a == b && c;
+  a && b == c;
+  a == b || c;
+  a || b == c;
 
-// Logical and precedence
-a && b || c;
-a || b && c;
+  // Logical and precedence
+  a && b || c;
+  a || b && c;
+}

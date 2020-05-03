@@ -1,43 +1,60 @@
 test/parser/ast/logical_operations/basic.myte
 {
   node: Program,
-  loc: 1:0-2:14,
-  statements: [
+  loc: 1:0-4:1,
+  toplevels: [
     {
-      node: ExpressionStatement,
-      loc: 1:0-1:14,
-      expression: {
-        node: LogicalAnd,
-        loc: 1:0-1:13,
-        left: {
-          node: BoolLiteral,
-          loc: 1:0-1:4,
-          value: true,
-        },
-        right: {
-          node: BoolLiteral,
-          loc: 1:8-1:13,
-          value: false,
-        },
+      node: Function,
+      loc: 1:0-4:1,
+      name: {
+        node: Identifier,
+        loc: 1:4-1:8,
+        name: "main",
       },
-    },
-    {
-      node: ExpressionStatement,
-      loc: 2:0-2:14,
-      expression: {
-        node: LogicalOr,
-        loc: 2:0-2:13,
-        left: {
-          node: BoolLiteral,
-          loc: 2:0-2:4,
-          value: true,
-        },
-        right: {
-          node: BoolLiteral,
-          loc: 2:8-2:13,
-          value: false,
-        },
+      params: [],
+      body: {
+        node: Block,
+        loc: 1:11-4:1,
+        statements: [
+          {
+            node: ExpressionStatement,
+            loc: 2:2-2:16,
+            expression: {
+              node: LogicalAnd,
+              loc: 2:2-2:15,
+              left: {
+                node: BoolLiteral,
+                loc: 2:2-2:6,
+                value: true,
+              },
+              right: {
+                node: BoolLiteral,
+                loc: 2:10-2:15,
+                value: false,
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 3:2-3:16,
+            expression: {
+              node: LogicalOr,
+              loc: 3:2-3:15,
+              left: {
+                node: BoolLiteral,
+                loc: 3:2-3:6,
+                value: true,
+              },
+              right: {
+                node: BoolLiteral,
+                loc: 3:10-3:15,
+                value: false,
+              },
+            },
+          },
+        ],
       },
+      return: None,
     },
   ],
 }

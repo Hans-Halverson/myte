@@ -1,34 +1,51 @@
 test/parser/comment/line.myte
 {
   node: Program,
-  loc: 1:0-8:0,
-  statements: [
+  loc: 1:0-9:1,
+  toplevels: [
     {
-      node: ExpressionStatement,
-      loc: 1:0-1:16,
-      expression: {
-        node: StringLiteral,
-        loc: 1:0-1:15,
-        value: "empty comment",
+      node: Function,
+      loc: 1:0-9:1,
+      name: {
+        node: Identifier,
+        loc: 1:4-1:8,
+        name: "main",
       },
-    },
-    {
-      node: ExpressionStatement,
-      loc: 3:0-3:12,
-      expression: {
-        node: StringLiteral,
-        loc: 3:0-3:11,
-        value: "with text",
+      params: [],
+      body: {
+        node: Block,
+        loc: 1:11-9:1,
+        statements: [
+          {
+            node: ExpressionStatement,
+            loc: 2:2-2:18,
+            expression: {
+              node: StringLiteral,
+              loc: 2:2-2:17,
+              value: "empty comment",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 4:2-4:14,
+            expression: {
+              node: StringLiteral,
+              loc: 4:2-4:13,
+              value: "with text",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 7:2-7:22,
+            expression: {
+              node: StringLiteral,
+              loc: 7:2-7:21,
+              value: "terminated by eof",
+            },
+          },
+        ],
       },
-    },
-    {
-      node: ExpressionStatement,
-      loc: 6:0-6:20,
-      expression: {
-        node: StringLiteral,
-        loc: 6:0-6:19,
-        value: "terminated by eof",
-      },
+      return: None,
     },
   ],
 }

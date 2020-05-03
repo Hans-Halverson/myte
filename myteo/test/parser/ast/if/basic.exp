@@ -1,94 +1,111 @@
 test/parser/ast/if/basic.myte
 {
   node: Program,
-  loc: 1:0-12:1,
-  statements: [
+  loc: 1:0-14:1,
+  toplevels: [
     {
-      node: If,
-      loc: 1:0-1:12,
-      test: {
+      node: Function,
+      loc: 1:0-14:1,
+      name: {
         node: Identifier,
         loc: 1:4-1:8,
-        name: "test",
+        name: "main",
       },
-      conseq: {
-        node: ExpressionStatement,
-        loc: 1:10-1:12,
-        expression: {
-          node: IntLiteral,
-          loc: 1:10-1:11,
-          value: 1,
-          raw: "1",
-        },
-      },
-      altern: None,
-    },
-    {
-      node: If,
-      loc: 3:0-3:12,
-      test: {
-        node: Identifier,
-        loc: 3:4-3:8,
-        name: "test",
-      },
-      conseq: {
+      params: [],
+      body: {
         node: Block,
-        loc: 3:10-3:12,
-        statements: [],
+        loc: 1:11-14:1,
+        statements: [
+          {
+            node: If,
+            loc: 2:2-2:14,
+            test: {
+              node: Identifier,
+              loc: 2:6-2:10,
+              name: "test",
+            },
+            conseq: {
+              node: ExpressionStatement,
+              loc: 2:12-2:14,
+              expression: {
+                node: IntLiteral,
+                loc: 2:12-2:13,
+                value: 1,
+                raw: "1",
+              },
+            },
+            altern: None,
+          },
+          {
+            node: If,
+            loc: 4:2-4:14,
+            test: {
+              node: Identifier,
+              loc: 4:6-4:10,
+              name: "test",
+            },
+            conseq: {
+              node: Block,
+              loc: 4:12-4:14,
+              statements: [],
+            },
+            altern: None,
+          },
+          {
+            node: If,
+            loc: 6:2-8:3,
+            test: {
+              node: Identifier,
+              loc: 6:6-6:10,
+              name: "test",
+            },
+            conseq: {
+              node: Block,
+              loc: 6:12-7:3,
+              statements: [],
+            },
+            altern: {
+              node: Block,
+              loc: 7:9-8:3,
+              statements: [],
+            },
+          },
+          {
+            node: If,
+            loc: 10:2-13:3,
+            test: {
+              node: Identifier,
+              loc: 10:6-10:10,
+              name: "test",
+            },
+            conseq: {
+              node: Block,
+              loc: 10:12-11:3,
+              statements: [],
+            },
+            altern: {
+              node: If,
+              loc: 11:9-13:3,
+              test: {
+                node: Identifier,
+                loc: 11:13-11:18,
+                name: "test2",
+              },
+              conseq: {
+                node: Block,
+                loc: 11:20-12:3,
+                statements: [],
+              },
+              altern: {
+                node: Block,
+                loc: 12:9-13:3,
+                statements: [],
+              },
+            },
+          },
+        ],
       },
-      altern: None,
-    },
-    {
-      node: If,
-      loc: 5:0-7:1,
-      test: {
-        node: Identifier,
-        loc: 5:4-5:8,
-        name: "test",
-      },
-      conseq: {
-        node: Block,
-        loc: 5:10-6:1,
-        statements: [],
-      },
-      altern: {
-        node: Block,
-        loc: 6:7-7:1,
-        statements: [],
-      },
-    },
-    {
-      node: If,
-      loc: 9:0-12:1,
-      test: {
-        node: Identifier,
-        loc: 9:4-9:8,
-        name: "test",
-      },
-      conseq: {
-        node: Block,
-        loc: 9:10-10:1,
-        statements: [],
-      },
-      altern: {
-        node: If,
-        loc: 10:7-12:1,
-        test: {
-          node: Identifier,
-          loc: 10:11-10:16,
-          name: "test2",
-        },
-        conseq: {
-          node: Block,
-          loc: 10:18-11:1,
-          statements: [],
-        },
-        altern: {
-          node: Block,
-          loc: 11:7-12:1,
-          statements: [],
-        },
-      },
+      return: None,
     },
   ],
 }

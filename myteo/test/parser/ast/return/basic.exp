@@ -1,25 +1,42 @@
 test/parser/ast/return/basic.myte
 {
   node: Program,
-  loc: 1:0-2:9,
-  statements: [
+  loc: 1:0-4:1,
+  toplevels: [
     {
-      node: Return,
-      loc: 1:0-1:10,
-      arg: {
-        node: Unit,
-        loc: 1:8-1:9,
+      node: Function,
+      loc: 1:0-4:1,
+      name: {
+        node: Identifier,
+        loc: 1:4-1:8,
+        name: "main",
       },
-    },
-    {
-      node: Return,
-      loc: 2:0-2:9,
-      arg: {
-        node: IntLiteral,
-        loc: 2:7-2:8,
-        value: 1,
-        raw: "1",
+      params: [],
+      body: {
+        node: Block,
+        loc: 1:11-4:1,
+        statements: [
+          {
+            node: Return,
+            loc: 2:2-2:12,
+            arg: {
+              node: Unit,
+              loc: 2:10-2:11,
+            },
+          },
+          {
+            node: Return,
+            loc: 3:2-3:11,
+            arg: {
+              node: IntLiteral,
+              loc: 3:9-3:10,
+              value: 1,
+              raw: "1",
+            },
+          },
+        ],
       },
+      return: None,
     },
   ],
 }

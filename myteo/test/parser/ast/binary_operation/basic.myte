@@ -1,21 +1,23 @@
-a + b;
-a - b;
-a * b;
-a / b;
-a == b;
-a != b;
-a < b;
-a > b;
-a <= b;
-a >= b;
+fun main() {
+  a + b;
+  a - b;
+  a * b;
+  a / b;
+  a == b;
+  a != b;
+  a < b;
+  a > b;
+  a <= b;
+  a >= b;
 
-a + b + c;
-a - b - c;
-a * b * c;
-a / b / c;
-a == b == c;
-a != b != c;
-a < b < c;
-a > b > c;
-a <= b <= c;
-a >= b >= c;
+  a + b + c;
+  a - b - c;
+  a * b * c;
+  a / b / c;
+  a == b == c;
+  a != b != c;
+  a < b < c;
+  a > b > c;
+  a <= b <= c;
+  a >= b >= c;
+}

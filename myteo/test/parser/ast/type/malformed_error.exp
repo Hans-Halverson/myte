@@ -1,0 +1,3 @@
+ERROR: test/parser/ast/type/malformed_error.myte:1:7 Unexpected token "1", expected start of type
+ 1 | val x: 1 = 1;
+   |        ^

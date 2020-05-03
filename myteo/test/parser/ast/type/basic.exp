@@ -2,7 +2,7 @@ test/parser/ast/type/basic.myte
 {
   node: Program,
   loc: 1:0-9:0,
-  statements: [
+  toplevels: [
     {
       node: VariableDeclaration,
       loc: 1:0-1:17,

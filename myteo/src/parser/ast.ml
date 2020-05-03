@@ -1,8 +1,12 @@
 module rec Program : sig
+  type 'T toplevel =
+    | VariableDeclaration of 'T Statement.VariableDeclaration.t
+    | FunctionDeclaration of 'T Function.t
+
   type 'T t = {
     t: 'T;
     loc: Loc.t;
-    statements: 'T Statement.t list;
+    toplevels: 'T toplevel list;
   }
 end =
   Program

@@ -4,8 +4,15 @@ class ['a, 'b] ast_visitor =
   object (this)
     method program : 'a -> 'b Program.t -> unit =
       fun acc program ->
-        let { Program.t = _; loc = _; statements } = program in
-        List.iter (this#statement acc) statements
+        let { Program.t = _; loc = _; toplevels } = program in
+        List.iter (this#toplevel acc) toplevels
+
+    method toplevel : 'a -> 'b Program.toplevel -> unit =
+      fun acc toplevel ->
+        let open Program in
+        match toplevel with
+        | VariableDeclaration t -> this#variable_declaration acc t
+        | FunctionDeclaration t -> this#function_ acc t
 
     method statement : 'a -> 'b Statement.t -> unit =
       fun acc stmt ->

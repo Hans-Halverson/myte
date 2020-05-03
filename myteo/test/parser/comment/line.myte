@@ -1,7 +1,9 @@
-"empty comment";
-//
-"with text";
-// comment
-////
-"terminated by eof";
-// comment
+fun main() {
+  "empty comment";
+  //
+  "with text";
+  // comment
+  ////
+  "terminated by eof";
+  // comment
+}

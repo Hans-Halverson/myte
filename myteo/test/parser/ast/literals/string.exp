@@ -1,25 +1,42 @@
 test/parser/ast/literals/string.myte
 {
   node: Program,
-  loc: 1:0-2:9,
-  statements: [
+  loc: 1:0-4:1,
+  toplevels: [
     {
-      node: ExpressionStatement,
-      loc: 1:0-1:3,
-      expression: {
-        node: StringLiteral,
-        loc: 1:0-1:2,
-        value: "",
+      node: Function,
+      loc: 1:0-4:1,
+      name: {
+        node: Identifier,
+        loc: 1:4-1:8,
+        name: "main",
       },
-    },
-    {
-      node: ExpressionStatement,
-      loc: 2:0-2:9,
-      expression: {
-        node: StringLiteral,
-        loc: 2:0-2:8,
-        value: "string",
+      params: [],
+      body: {
+        node: Block,
+        loc: 1:11-4:1,
+        statements: [
+          {
+            node: ExpressionStatement,
+            loc: 2:2-2:5,
+            expression: {
+              node: StringLiteral,
+              loc: 2:2-2:4,
+              value: "",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 3:2-3:11,
+            expression: {
+              node: StringLiteral,
+              loc: 3:2-3:10,
+              value: "string",
+            },
+          },
+        ],
       },
+      return: None,
     },
   ],
 }

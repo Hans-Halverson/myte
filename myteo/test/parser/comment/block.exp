@@ -1,43 +1,60 @@
 test/parser/comment/block.myte
 {
   node: Program,
-  loc: 1:0-10:17,
-  statements: [
+  loc: 1:0-12:1,
+  toplevels: [
     {
-      node: ExpressionStatement,
-      loc: 1:0-1:16,
-      expression: {
-        node: StringLiteral,
-        loc: 1:0-1:15,
-        value: "empty comment",
+      node: Function,
+      loc: 1:0-12:1,
+      name: {
+        node: Identifier,
+        loc: 1:4-1:8,
+        name: "main",
       },
-    },
-    {
-      node: ExpressionStatement,
-      loc: 3:0-3:14,
-      expression: {
-        node: StringLiteral,
-        loc: 3:0-3:13,
-        value: "single line",
+      params: [],
+      body: {
+        node: Block,
+        loc: 1:11-12:1,
+        statements: [
+          {
+            node: ExpressionStatement,
+            loc: 2:2-2:18,
+            expression: {
+              node: StringLiteral,
+              loc: 2:2-2:17,
+              value: "empty comment",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 4:2-4:16,
+            expression: {
+              node: StringLiteral,
+              loc: 4:2-4:15,
+              value: "single line",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 6:2-6:14,
+            expression: {
+              node: StringLiteral,
+              loc: 6:2-6:13,
+              value: "multiline",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 11:2-11:19,
+            expression: {
+              node: StringLiteral,
+              loc: 11:2-11:18,
+              value: "after comments",
+            },
+          },
+        ],
       },
-    },
-    {
-      node: ExpressionStatement,
-      loc: 5:0-5:12,
-      expression: {
-        node: StringLiteral,
-        loc: 5:0-5:11,
-        value: "multiline",
-      },
-    },
-    {
-      node: ExpressionStatement,
-      loc: 10:0-10:17,
-      expression: {
-        node: StringLiteral,
-        loc: 10:0-10:16,
-        value: "after comments",
-      },
+      return: None,
     },
   ],
 }

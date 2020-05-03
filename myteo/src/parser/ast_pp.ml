@@ -101,8 +101,14 @@ and opt : 'a. ('a -> 'b) -> 'a option -> 'b =
   | Some x -> f x
 
 and node_of_program program =
-  let { Program.loc; statements; t = _ } = program in
-  node "Program" loc [("statements", List (List.map node_of_statement statements))]
+  let { Program.loc; toplevels; t = _ } = program in
+  node "Program" loc [("toplevels", List (List.map node_of_toplevel toplevels))]
+
+and node_of_toplevel toplevel =
+  let open Program in
+  match toplevel with
+  | VariableDeclaration decl -> node_of_variable_decl decl
+  | FunctionDeclaration decl -> node_of_function decl
 
 and node_of_statement stmt =
   let open Statement in
