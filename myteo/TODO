@@ -1,0 +1,31 @@
+# Errors
+- Add non-fatal parse errors with recovery
+- Parse recovery at statement bounds?
+- Make missing parens around if test have unique error message, and support recovery
+
+# Features
+- Assignment
+- Ternary Operator
+- For loops (traditional, for-each)
+- While loops
+- Do while loops
+- Break, continue and labels
+- Vecs, maps, and sets
+- Arrays and bitwise ops?
+- Anonymous Functions (fn x -> x)
+- Lex negative numbers
+- Floating point numbers
+- Hex/octal/binary representations, unicode encodings
+- Tuples
+- Algebraic data types
+- Destructuring
+- Optional/None type
+- Indexing into collections
+- Pattern matching (syntax with optional: "| ?a -> 1" or "| ?(a, b) -> 1")
+- Pattern matching exhaustiveness checking
+
+# Full Pipeline
+- Parsing (In Progress)
+- Structural Analysis (TODO)
+- Type Checking (TODO)
+- Back End (TODO)

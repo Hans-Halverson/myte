@@ -1,0 +1,3 @@
+ERROR: test/parser/ast/if/unparenthesized_test_error.myte:1:3 Unexpected token "test", expected "("
+ 1 | if test {}
+   |    ^^^^

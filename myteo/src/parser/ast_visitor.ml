@@ -55,6 +55,7 @@ class ['a, 'b] ast_visitor =
         match stmt with
         | Expression s -> unchanged this#expression_statement s stmt (fun s' -> Expression s')
         | Block s -> unchanged this#block s stmt (fun s' -> Block s')
+        | If s -> unchanged this#if_ s stmt (fun s' -> If s')
         | Return s -> unchanged this#return s stmt (fun s' -> Return s')
         | VariableDeclaration s ->
           unchanged this#variable_declaration s stmt (fun s' -> VariableDeclaration s')
@@ -270,6 +271,20 @@ class ['a, 'b] ast_visitor =
           block
         else
           { t = t'; loc = loc'; statements = statements' }
+
+    method if_ : 'a Statement.If.t -> 'b Statement.If.t =
+      fun if_ ->
+        let open Statement.If in
+        let { t; loc; test; conseq; altern } = if_ in
+        let t' = this#decorate t in
+        let loc' = this#loc loc in
+        let test' = this#expression test in
+        let conseq' = this#statement conseq in
+        let altern' = unchanged_opt this#statement altern in
+        if t == t' && loc == loc' && test == test' && conseq == conseq' && altern == altern' then
+          if_
+        else
+          { t = t'; loc = loc'; test = test'; conseq = conseq'; altern = altern' }
 
     method return : 'a Statement.Return.t -> 'b Statement.Return.t =
       fun return ->

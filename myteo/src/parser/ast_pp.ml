@@ -94,7 +94,8 @@ let rec node_of_loc loc =
 
 and node name loc attributes = Map (("node", Raw name) :: ("loc", node_of_loc loc) :: attributes)
 
-and opt f x =
+and opt : 'a. ('a -> 'b) -> 'a option -> 'b =
+ fun f x ->
   match x with
   | Option.None -> None
   | Some x -> f x
@@ -108,6 +109,7 @@ and node_of_statement stmt =
   match stmt with
   | Expression expr -> node_of_expression_stmt expr
   | Block block -> node_of_block block
+  | If if_ -> node_of_if if_
   | Return ret -> node_of_return ret
   | VariableDeclaration decl -> node_of_variable_decl decl
   | FunctionDeclaration decl -> node_of_function decl
@@ -196,6 +198,17 @@ and node_of_call call =
 and node_of_block block =
   let { Statement.Block.loc; statements; t = _ } = block in
   node "Block" loc [("statements", List (List.map node_of_statement statements))]
+
+and node_of_if if_ =
+  let { Statement.If.loc; test; conseq; altern; t = _ } = if_ in
+  node
+    "If"
+    loc
+    [
+      ("test", node_of_expression test);
+      ("conseq", node_of_statement conseq);
+      ("altern", opt node_of_statement altern);
+    ]
 
 and node_of_return ret =
   let { Statement.Return.loc; arg; t = _ } = ret in

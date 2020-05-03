@@ -16,6 +16,16 @@ and Statement : sig
     }
   end
 
+  module If : sig
+    type 'T t = {
+      t: 'T;
+      loc: Loc.t;
+      test: 'T Expression.t;
+      conseq: 'T Statement.t;
+      altern: 'T Statement.t option;
+    }
+  end
+
   module Return : sig
     type 'T t = {
       t: 'T;
@@ -42,6 +52,7 @@ and Statement : sig
   type 'T t =
     | Expression of (Loc.t * 'T Expression.t)
     | Block of 'T Block.t
+    | If of 'T If.t
     | Return of 'T Return.t
     | VariableDeclaration of 'T VariableDeclaration.t
     | FunctionDeclaration of 'T Function.t

@@ -1,0 +1,94 @@
+test/parser/ast/if/basic.myte
+{
+  node: Program,
+  loc: 1:0-12:1,
+  statements: [
+    {
+      node: If,
+      loc: 1:0-1:12,
+      test: {
+        node: Identifier,
+        loc: 1:4-1:8,
+        name: "test",
+      },
+      conseq: {
+        node: ExpressionStatement,
+        loc: 1:10-1:12,
+        expression: {
+          node: IntLiteral,
+          loc: 1:10-1:11,
+          value: 1,
+          raw: "1",
+        },
+      },
+      altern: None,
+    },
+    {
+      node: If,
+      loc: 3:0-3:12,
+      test: {
+        node: Identifier,
+        loc: 3:4-3:8,
+        name: "test",
+      },
+      conseq: {
+        node: Block,
+        loc: 3:10-3:12,
+        statements: [],
+      },
+      altern: None,
+    },
+    {
+      node: If,
+      loc: 5:0-7:1,
+      test: {
+        node: Identifier,
+        loc: 5:4-5:8,
+        name: "test",
+      },
+      conseq: {
+        node: Block,
+        loc: 5:10-6:1,
+        statements: [],
+      },
+      altern: {
+        node: Block,
+        loc: 6:7-7:1,
+        statements: [],
+      },
+    },
+    {
+      node: If,
+      loc: 9:0-12:1,
+      test: {
+        node: Identifier,
+        loc: 9:4-9:8,
+        name: "test",
+      },
+      conseq: {
+        node: Block,
+        loc: 9:10-10:1,
+        statements: [],
+      },
+      altern: {
+        node: If,
+        loc: 10:7-12:1,
+        test: {
+          node: Identifier,
+          loc: 10:11-10:16,
+          name: "test2",
+        },
+        conseq: {
+          node: Block,
+          loc: 10:18-11:1,
+          statements: [],
+        },
+        altern: {
+          node: Block,
+          loc: 11:7-12:1,
+          statements: [],
+        },
+      },
+    },
+  ],
+}

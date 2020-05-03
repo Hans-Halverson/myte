@@ -28,6 +28,8 @@ type t =
   | T_VAR
   | T_VAL
   | T_FUN
+  | T_IF
+  | T_ELSE
   | T_RETURN
   | T_UNIT
   | T_INT
@@ -70,6 +72,8 @@ let to_string token =
   | T_VAR -> "var"
   | T_VAL -> "val"
   | T_FUN -> "fun"
+  | T_IF -> "if"
+  | T_ELSE -> "else"
   | T_RETURN -> "return"
   | T_UNIT -> "unit"
   | T_INT -> "int"

@@ -1,0 +1,12 @@
+if (test) 1;
+
+if (test) {}
+
+if (test) {
+} else {
+}
+
+if (test) {
+} else if (test2) {
+} else {
+}
