@@ -81,6 +81,7 @@ let string_of_primitive_type kind =
   | Int -> "Int"
   | String -> "String"
   | Bool -> "Bool"
+  | Unit -> "Unit"
 
 let rec node_of_loc loc =
   let pp_pos pos =
@@ -107,12 +108,14 @@ and node_of_statement stmt =
   match stmt with
   | Expression expr -> node_of_expression_stmt expr
   | Block block -> node_of_block block
+  | Return ret -> node_of_return ret
   | VariableDeclaration decl -> node_of_variable_decl decl
   | FunctionDeclaration decl -> node_of_function decl
 
 and node_of_expression expr =
   let open Expression in
   match expr with
+  | Unit unit -> node_of_unit unit
   | Identifier id -> node_of_identifier id
   | IntLiteral lit -> node_of_int_literal lit
   | StringLiteral lit -> node_of_string_literal lit
@@ -140,6 +143,10 @@ and node_of_expression_stmt (loc, expr) =
 and node_of_identifier id =
   let { Identifier.loc; name; t = _ } = id in
   node "Identifier" loc [("name", String name)]
+
+and node_of_unit unit =
+  let { Expression.Unit.loc; t = _ } = unit in
+  node "Unit" loc []
 
 and node_of_int_literal lit =
   let { Expression.IntLiteral.loc; raw; value; t = _ } = lit in
@@ -189,6 +196,10 @@ and node_of_call call =
 and node_of_block block =
   let { Statement.Block.loc; statements; t = _ } = block in
   node "Block" loc [("statements", List (List.map node_of_statement statements))]
+
+and node_of_return ret =
+  let { Statement.Return.loc; arg; t = _ } = ret in
+  node "Return" loc [("arg", node_of_expression arg)]
 
 and node_of_variable_decl decl =
   let { Statement.VariableDeclaration.loc; kind; pattern; init; annot; t = _ } = decl in

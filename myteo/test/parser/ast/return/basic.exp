@@ -1,0 +1,25 @@
+test/parser/ast/return/basic.myte
+{
+  node: Program,
+  loc: 1:0-2:9,
+  statements: [
+    {
+      node: Return,
+      loc: 1:0-1:10,
+      arg: {
+        node: Unit,
+        loc: 1:8-1:9,
+      },
+    },
+    {
+      node: Return,
+      loc: 2:0-2:9,
+      arg: {
+        node: IntLiteral,
+        loc: 2:7-2:8,
+        value: 1,
+        raw: "1",
+      },
+    },
+  ],
+}

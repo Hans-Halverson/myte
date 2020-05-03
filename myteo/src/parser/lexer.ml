@@ -103,6 +103,8 @@ let tokenize lex =
   | "val" -> token_result T_VAL
   | "var" -> token_result T_VAR
   | "fun" -> token_result T_FUN
+  | "return" -> token_result T_RETURN
+  | "unit" -> token_result T_UNIT
   | "int" -> token_result T_INT
   | "string" -> token_result T_STRING
   | "bool" -> token_result T_BOOL

@@ -16,6 +16,14 @@ and Statement : sig
     }
   end
 
+  module Return : sig
+    type 'T t = {
+      t: 'T;
+      loc: Loc.t;
+      arg: 'T Expression.t;
+    }
+  end
+
   module VariableDeclaration : sig
     type kind =
       | Immutable
@@ -34,12 +42,20 @@ and Statement : sig
   type 'T t =
     | Expression of (Loc.t * 'T Expression.t)
     | Block of 'T Block.t
+    | Return of 'T Return.t
     | VariableDeclaration of 'T VariableDeclaration.t
     | FunctionDeclaration of 'T Function.t
 end =
   Statement
 
 and Expression : sig
+  module Unit : sig
+    type 'T t = {
+      t: 'T;
+      loc: Loc.t;
+    }
+  end
+
   module IntLiteral : sig
     type 'T t = {
       t: 'T;
@@ -129,6 +145,7 @@ and Expression : sig
   end
 
   type 'T t =
+    | Unit of 'T Unit.t
     | IntLiteral of 'T IntLiteral.t
     | StringLiteral of 'T StringLiteral.t
     | BoolLiteral of 'T BoolLiteral.t
@@ -149,6 +166,7 @@ end =
 and Type : sig
   module Primitive : sig
     type kind =
+      | Unit
       | Int
       | String
       | Bool

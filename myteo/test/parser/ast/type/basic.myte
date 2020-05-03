@@ -1,3 +1,4 @@
+val x: unit = ();
 val x: int = 1;
 val x: string = "test";
 val x: bool = true;

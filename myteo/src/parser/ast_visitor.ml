@@ -55,6 +55,7 @@ class ['a, 'b] ast_visitor =
         match stmt with
         | Expression s -> unchanged this#expression_statement s stmt (fun s' -> Expression s')
         | Block s -> unchanged this#block s stmt (fun s' -> Block s')
+        | Return s -> unchanged this#return s stmt (fun s' -> Return s')
         | VariableDeclaration s ->
           unchanged this#variable_declaration s stmt (fun s' -> VariableDeclaration s')
         | FunctionDeclaration s ->
@@ -64,6 +65,7 @@ class ['a, 'b] ast_visitor =
       fun expr ->
         let open Expression in
         match expr with
+        | Unit e -> unchanged this#unit e expr (fun e' -> Unit e')
         | IntLiteral e -> unchanged this#int_literal e expr (fun e' -> IntLiteral e')
         | StringLiteral e -> unchanged this#string_literal e expr (fun e' -> StringLiteral e')
         | BoolLiteral e -> unchanged this#bool_literal e expr (fun e' -> BoolLiteral e')
@@ -97,6 +99,17 @@ class ['a, 'b] ast_visitor =
           id
         else
           { t = t'; loc = loc'; name }
+
+    method unit : 'a Expression.Unit.t -> 'b Expression.Unit.t =
+      fun unit ->
+        let open Expression.Unit in
+        let { t; loc } = unit in
+        let t' = this#decorate t in
+        let loc' = this#loc loc in
+        if t == t' && loc == loc' then
+          unit
+        else
+          { t = t'; loc = loc' }
 
     method int_literal : 'a Expression.IntLiteral.t -> 'b Expression.IntLiteral.t =
       fun lit ->
@@ -257,6 +270,18 @@ class ['a, 'b] ast_visitor =
           block
         else
           { t = t'; loc = loc'; statements = statements' }
+
+    method return : 'a Statement.Return.t -> 'b Statement.Return.t =
+      fun return ->
+        let open Statement.Return in
+        let { t; loc; arg } = return in
+        let t' = this#decorate t in
+        let loc' = this#loc loc in
+        let arg' = this#expression arg in
+        if t == t' && loc == loc' && arg == arg' then
+          return
+        else
+          { t = t'; loc = loc'; arg = arg' }
 
     method variable_declaration
         : 'a Statement.VariableDeclaration.t -> 'b Statement.VariableDeclaration.t =

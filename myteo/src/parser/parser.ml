@@ -74,6 +74,7 @@ and parse_statement env =
   let open Statement in
   match Env.token env with
   | T_LEFT_BRACE -> Block (parse_block env)
+  | T_RETURN -> parse_return env
   | T_VAL
   | T_VAR ->
     parse_variable_declaration env
@@ -151,10 +152,17 @@ and parse_expression_infix ~precedence env left marker =
   | _ -> left
 
 and parse_group_expression env =
+  let open Expression in
   Env.expect env T_LEFT_PAREN;
-  let expr = parse_expression env in
-  Env.expect env T_RIGHT_PAREN;
-  expr
+  match Env.token env with
+  | T_RIGHT_PAREN ->
+    let loc = Env.loc env in
+    Env.advance env;
+    Unit { Unit.loc; t = () }
+  | _ ->
+    let expr = parse_expression env in
+    Env.expect env T_RIGHT_PAREN;
+    expr
 
 and parse_unary_expression env =
   let open Expression.UnaryOperation in
@@ -259,6 +267,15 @@ and parse_block env =
   let loc = marker env in
   { Block.loc; statements; t = () }
 
+and parse_return env =
+  let open Statement.Return in
+  let marker = mark_loc env in
+  Env.expect env T_RETURN;
+  let arg = parse_expression env in
+  Env.expect env T_SEMICOLON;
+  let loc = marker env in
+  Statement.Return { loc; arg; t = () }
+
 and parse_variable_declaration env =
   let open Statement in
   let marker = mark_loc env in
@@ -341,6 +358,7 @@ and parse_type_prefix env =
   let open Type in
   match Env.token env with
   | T_LEFT_PAREN -> parse_group_type env
+  | T_UNIT
   | T_INT
   | T_STRING
   | T_BOOL ->
@@ -357,6 +375,7 @@ and parse_primitive_type env =
   let open Type.Primitive in
   let kind =
     match Env.token env with
+    | T_UNIT -> Unit
     | T_INT -> Int
     | T_STRING -> String
     | T_BOOL -> Bool
