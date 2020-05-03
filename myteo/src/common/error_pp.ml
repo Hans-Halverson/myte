@@ -39,7 +39,7 @@ let print_single_line loc snippet =
   let padded_carets =
     Printf.sprintf "%s%s" (String.make start_col ' ') (String.make (end_col - start_col) '^')
   in
-  let line = List.hd snippet in
+  let line = List.nth_opt snippet 0 |> Option.value ~default:"" in
   Printf.sprintf "%s%s|%s %s" (style ~decorations:[Bold] ()) padded_line_num (reset ()) line
   ^ "\n"
   ^ Printf.sprintf
@@ -54,7 +54,7 @@ let print_first_line loc snippet =
   let open Loc in
   let max_num_digits = num_digits loc._end.line in
   let padded_line_num = pad_number loc.start.line max_num_digits in
-  let line = List.hd snippet in
+  let line = List.nth_opt snippet 0 |> Option.value ~default:"" in
   let padded_carets =
     Printf.sprintf
       "%s%s"
@@ -81,7 +81,7 @@ let print_last_line loc snippet =
   let open Loc in
   let max_num_digits = num_digits loc._end.line in
   let padded_line_num = pad_number loc._end.line max_num_digits in
-  let line = List.nth snippet (loc._end.line - loc.start.line) in
+  let line = List.nth_opt snippet (loc._end.line - loc.start.line) |> Option.value ~default:"" in
   let padded_carets = String.make (loc._end.col + 1) '^' in
   Printf.sprintf
     "%s%s|%s | %s%s"

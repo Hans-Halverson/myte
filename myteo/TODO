@@ -5,6 +5,7 @@
 - Extra locs and help shown in errors
   - For inexhaustive return, show func decl as well with label, or point to if statement/branch that is inexhaustive
   - For unreachable statement after return, show loc of return as well?
+  - For multiple main functions, show both
 
 # Features
 - Assignment

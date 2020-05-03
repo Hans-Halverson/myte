@@ -18,7 +18,7 @@ let point ?(source = None) pos =
 
 let point_start loc = point ~source:loc.source loc.start
 
-let point_end loc = point ~source:loc.source { loc._end with col = loc._end.col - 1 }
+let point_end loc = point ~source:loc.source { loc._end with col = max 0 (loc._end.col - 1) }
 
 let pos_to_string { line; col } = Printf.sprintf "%d:%d" line col
 

@@ -38,8 +38,8 @@ let show_ast files =
   Printf.printf "%s" (String.concat "\n" pp_asts)
 
 let compile files =
-  let asts = parse_files files in
-  let errors = asts |> List.map (fun (_, ast) -> Lex_analyze.analyze_program ast) |> List.flatten in
+  let asts = parse_files files |> List.map snd in
+  let errors = Lex_analyze.analyze_programs asts in
   if errors <> [] then (
     print_analyze_errors errors;
     exit 1

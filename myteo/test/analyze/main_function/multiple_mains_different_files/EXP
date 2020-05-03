@@ -1,0 +1,3 @@
+ERROR: test/analyze/main_function/multiple_mains_different_files/b.myte:1:4 Main function has already been declared
+ 1 | fun main() {}
+   |     ^^^^

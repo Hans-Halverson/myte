@@ -47,3 +47,5 @@ fun foo(): int {
   2;
   return 3;
 }
+
+fun main() {}
