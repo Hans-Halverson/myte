@@ -140,6 +140,7 @@ and node_of_expression expr =
   | LogicalAnd logical -> node_of_logical_and logical
   | LogicalOr logical -> node_of_logical_or logical
   | Call call -> node_of_call call
+  | Access access -> node_of_access access
 
 and node_of_pattern pat =
   let open Pattern in
@@ -237,6 +238,10 @@ and node_of_call call =
     "Call"
     loc
     [("func", node_of_expression func); ("args", List (List.map node_of_expression args))]
+
+and node_of_access binary =
+  let { Expression.Access.loc; left; right; t = _ } = binary in
+  node "Access" loc [("left", node_of_expression left); ("right", node_of_identifier right)]
 
 and node_of_block block =
   let { Statement.Block.loc; statements; t = _ } = block in

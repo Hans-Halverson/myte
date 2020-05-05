@@ -41,6 +41,7 @@ class ['a, 'b] ast_visitor =
         | LogicalAnd e -> this#logical_and acc e
         | LogicalOr e -> this#logical_or acc e
         | Call e -> this#call acc e
+        | Access e -> this#access acc e
 
     method pattern : 'a -> 'b Pattern.t -> unit =
       fun acc pat ->
@@ -117,6 +118,12 @@ class ['a, 'b] ast_visitor =
       let { t = _; loc = _; func; args } = call in
       this#expression acc func;
       List.iter (this#expression acc) args
+
+    method access acc access =
+      let open Expression.Access in
+      let { t = _; loc = _; left; right } = access in
+      this#expression acc left;
+      this#identifier acc right
 
     method function_ acc func =
       let open Function in

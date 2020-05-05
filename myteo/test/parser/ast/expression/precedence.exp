@@ -1,7 +1,7 @@
 test/parser/ast/expression/precedence.myte
 {
   node: Program,
-  loc: 1:0-82:0,
+  loc: 1:0-99:0,
   module: {
     node: ScopedIdentifier,
     loc: 1:7-1:11,
@@ -16,7 +16,7 @@ test/parser/ast/expression/precedence.myte
   toplevels: [
     {
       node: Function,
-      loc: 3:0-81:1,
+      loc: 3:0-98:1,
       name: {
         node: Identifier,
         loc: 3:4-3:8,
@@ -25,7 +25,7 @@ test/parser/ast/expression/precedence.myte
       params: [],
       body: {
         node: Block,
-        loc: 3:11-81:1,
+        loc: 3:11-98:1,
         statements: [
           {
             node: ExpressionStatement,
@@ -235,30 +235,28 @@ test/parser/ast/expression/precedence.myte
           },
           {
             node: ExpressionStatement,
-            loc: 11:2-11:14,
+            loc: 11:2-11:10,
             expression: {
-              node: BinaryOperation,
-              loc: 11:2-11:13,
-              op: Multiply,
+              node: Access,
+              loc: 11:2-11:9,
               left: {
-                node: Identifier,
-                loc: 11:2-11:3,
-                name: "a",
-              },
-              right: {
-                node: BinaryOperation,
-                loc: 11:7-11:12,
-                op: Multiply,
+                node: Access,
+                loc: 11:3-11:6,
                 left: {
                   node: Identifier,
-                  loc: 11:7-11:8,
-                  name: "b",
+                  loc: 11:3-11:4,
+                  name: "a",
                 },
                 right: {
                   node: Identifier,
-                  loc: 11:11-11:12,
-                  name: "c",
+                  loc: 11:5-11:6,
+                  name: "b",
                 },
+              },
+              right: {
+                node: Identifier,
+                loc: 11:8-11:9,
+                name: "c",
               },
             },
           },
@@ -270,24 +268,24 @@ test/parser/ast/expression/precedence.myte
               loc: 12:2-12:13,
               op: Multiply,
               left: {
+                node: Identifier,
+                loc: 12:2-12:3,
+                name: "a",
+              },
+              right: {
                 node: BinaryOperation,
-                loc: 12:3-12:8,
+                loc: 12:7-12:12,
                 op: Multiply,
                 left: {
-                  node: Identifier,
-                  loc: 12:3-12:4,
-                  name: "a",
-                },
-                right: {
                   node: Identifier,
                   loc: 12:7-12:8,
                   name: "b",
                 },
-              },
-              right: {
-                node: Identifier,
-                loc: 12:12-12:13,
-                name: "c",
+                right: {
+                  node: Identifier,
+                  loc: 12:11-12:12,
+                  name: "c",
+                },
               },
             },
           },
@@ -297,26 +295,26 @@ test/parser/ast/expression/precedence.myte
             expression: {
               node: BinaryOperation,
               loc: 13:2-13:13,
-              op: Add,
+              op: Multiply,
               left: {
-                node: Identifier,
-                loc: 13:2-13:3,
-                name: "a",
-              },
-              right: {
                 node: BinaryOperation,
-                loc: 13:7-13:12,
-                op: Add,
+                loc: 13:3-13:8,
+                op: Multiply,
                 left: {
+                  node: Identifier,
+                  loc: 13:3-13:4,
+                  name: "a",
+                },
+                right: {
                   node: Identifier,
                   loc: 13:7-13:8,
                   name: "b",
                 },
-                right: {
-                  node: Identifier,
-                  loc: 13:11-13:12,
-                  name: "c",
-                },
+              },
+              right: {
+                node: Identifier,
+                loc: 13:12-13:13,
+                name: "c",
               },
             },
           },
@@ -328,24 +326,24 @@ test/parser/ast/expression/precedence.myte
               loc: 14:2-14:13,
               op: Add,
               left: {
+                node: Identifier,
+                loc: 14:2-14:3,
+                name: "a",
+              },
+              right: {
                 node: BinaryOperation,
-                loc: 14:3-14:8,
+                loc: 14:7-14:12,
                 op: Add,
                 left: {
-                  node: Identifier,
-                  loc: 14:3-14:4,
-                  name: "a",
-                },
-                right: {
                   node: Identifier,
                   loc: 14:7-14:8,
                   name: "b",
                 },
-              },
-              right: {
-                node: Identifier,
-                loc: 14:12-14:13,
-                name: "c",
+                right: {
+                  node: Identifier,
+                  loc: 14:11-14:12,
+                  name: "c",
+                },
               },
             },
           },
@@ -355,26 +353,26 @@ test/parser/ast/expression/precedence.myte
             expression: {
               node: BinaryOperation,
               loc: 15:2-15:13,
-              op: LessThan,
+              op: Add,
               left: {
-                node: Identifier,
-                loc: 15:2-15:3,
-                name: "a",
-              },
-              right: {
                 node: BinaryOperation,
-                loc: 15:7-15:12,
-                op: LessThan,
+                loc: 15:3-15:8,
+                op: Add,
                 left: {
+                  node: Identifier,
+                  loc: 15:3-15:4,
+                  name: "a",
+                },
+                right: {
                   node: Identifier,
                   loc: 15:7-15:8,
                   name: "b",
                 },
-                right: {
-                  node: Identifier,
-                  loc: 15:11-15:12,
-                  name: "c",
-                },
+              },
+              right: {
+                node: Identifier,
+                loc: 15:12-15:13,
+                name: "c",
               },
             },
           },
@@ -386,53 +384,53 @@ test/parser/ast/expression/precedence.myte
               loc: 16:2-16:13,
               op: LessThan,
               left: {
+                node: Identifier,
+                loc: 16:2-16:3,
+                name: "a",
+              },
+              right: {
                 node: BinaryOperation,
-                loc: 16:3-16:8,
+                loc: 16:7-16:12,
                 op: LessThan,
                 left: {
-                  node: Identifier,
-                  loc: 16:3-16:4,
-                  name: "a",
-                },
-                right: {
                   node: Identifier,
                   loc: 16:7-16:8,
                   name: "b",
                 },
-              },
-              right: {
-                node: Identifier,
-                loc: 16:12-16:13,
-                name: "c",
+                right: {
+                  node: Identifier,
+                  loc: 16:11-16:12,
+                  name: "c",
+                },
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 17:2-17:16,
+            loc: 17:2-17:14,
             expression: {
               node: BinaryOperation,
-              loc: 17:2-17:15,
-              op: Equal,
+              loc: 17:2-17:13,
+              op: LessThan,
               left: {
-                node: Identifier,
-                loc: 17:2-17:3,
-                name: "a",
-              },
-              right: {
                 node: BinaryOperation,
-                loc: 17:8-17:14,
-                op: Equal,
+                loc: 17:3-17:8,
+                op: LessThan,
                 left: {
                   node: Identifier,
-                  loc: 17:8-17:9,
-                  name: "b",
+                  loc: 17:3-17:4,
+                  name: "a",
                 },
                 right: {
                   node: Identifier,
-                  loc: 17:13-17:14,
-                  name: "c",
+                  loc: 17:7-17:8,
+                  name: "b",
                 },
+              },
+              right: {
+                node: Identifier,
+                loc: 17:12-17:13,
+                name: "c",
               },
             },
           },
@@ -444,24 +442,24 @@ test/parser/ast/expression/precedence.myte
               loc: 18:2-18:15,
               op: Equal,
               left: {
+                node: Identifier,
+                loc: 18:2-18:3,
+                name: "a",
+              },
+              right: {
                 node: BinaryOperation,
-                loc: 18:3-18:9,
+                loc: 18:8-18:14,
                 op: Equal,
                 left: {
-                  node: Identifier,
-                  loc: 18:3-18:4,
-                  name: "a",
-                },
-                right: {
                   node: Identifier,
                   loc: 18:8-18:9,
                   name: "b",
                 },
-              },
-              right: {
-                node: Identifier,
-                loc: 18:14-18:15,
-                name: "c",
+                right: {
+                  node: Identifier,
+                  loc: 18:13-18:14,
+                  name: "c",
+                },
               },
             },
           },
@@ -469,26 +467,28 @@ test/parser/ast/expression/precedence.myte
             node: ExpressionStatement,
             loc: 19:2-19:16,
             expression: {
-              node: LogicalAnd,
+              node: BinaryOperation,
               loc: 19:2-19:15,
+              op: Equal,
               left: {
-                node: Identifier,
-                loc: 19:2-19:3,
-                name: "a",
-              },
-              right: {
-                node: LogicalAnd,
-                loc: 19:8-19:14,
+                node: BinaryOperation,
+                loc: 19:3-19:9,
+                op: Equal,
                 left: {
+                  node: Identifier,
+                  loc: 19:3-19:4,
+                  name: "a",
+                },
+                right: {
                   node: Identifier,
                   loc: 19:8-19:9,
                   name: "b",
                 },
-                right: {
-                  node: Identifier,
-                  loc: 19:13-19:14,
-                  name: "c",
-                },
+              },
+              right: {
+                node: Identifier,
+                loc: 19:14-19:15,
+                name: "c",
               },
             },
           },
@@ -499,23 +499,23 @@ test/parser/ast/expression/precedence.myte
               node: LogicalAnd,
               loc: 20:2-20:15,
               left: {
+                node: Identifier,
+                loc: 20:2-20:3,
+                name: "a",
+              },
+              right: {
                 node: LogicalAnd,
-                loc: 20:3-20:9,
+                loc: 20:8-20:14,
                 left: {
-                  node: Identifier,
-                  loc: 20:3-20:4,
-                  name: "a",
-                },
-                right: {
                   node: Identifier,
                   loc: 20:8-20:9,
                   name: "b",
                 },
-              },
-              right: {
-                node: Identifier,
-                loc: 20:14-20:15,
-                name: "c",
+                right: {
+                  node: Identifier,
+                  loc: 20:13-20:14,
+                  name: "c",
+                },
               },
             },
           },
@@ -523,26 +523,26 @@ test/parser/ast/expression/precedence.myte
             node: ExpressionStatement,
             loc: 21:2-21:16,
             expression: {
-              node: LogicalOr,
+              node: LogicalAnd,
               loc: 21:2-21:15,
               left: {
-                node: Identifier,
-                loc: 21:2-21:3,
-                name: "a",
-              },
-              right: {
-                node: LogicalOr,
-                loc: 21:8-21:14,
+                node: LogicalAnd,
+                loc: 21:3-21:9,
                 left: {
+                  node: Identifier,
+                  loc: 21:3-21:4,
+                  name: "a",
+                },
+                right: {
                   node: Identifier,
                   loc: 21:8-21:9,
                   name: "b",
                 },
-                right: {
-                  node: Identifier,
-                  loc: 21:13-21:14,
-                  name: "c",
-                },
+              },
+              right: {
+                node: Identifier,
+                loc: 21:14-21:15,
+                name: "c",
               },
             },
           },
@@ -553,64 +553,67 @@ test/parser/ast/expression/precedence.myte
               node: LogicalOr,
               loc: 22:2-22:15,
               left: {
+                node: Identifier,
+                loc: 22:2-22:3,
+                name: "a",
+              },
+              right: {
                 node: LogicalOr,
-                loc: 22:3-22:9,
+                loc: 22:8-22:14,
                 left: {
                   node: Identifier,
-                  loc: 22:3-22:4,
+                  loc: 22:8-22:9,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 22:13-22:14,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 23:2-23:16,
+            expression: {
+              node: LogicalOr,
+              loc: 23:2-23:15,
+              left: {
+                node: LogicalOr,
+                loc: 23:3-23:9,
+                left: {
+                  node: Identifier,
+                  loc: 23:3-23:4,
                   name: "a",
                 },
                 right: {
                   node: Identifier,
-                  loc: 22:8-22:9,
+                  loc: 23:8-23:9,
                   name: "b",
                 },
               },
               right: {
                 node: Identifier,
-                loc: 22:14-22:15,
+                loc: 23:14-23:15,
                 name: "c",
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 25:2-25:7,
+            loc: 26:2-26:7,
             expression: {
               node: UnaryOperation,
-              loc: 25:2-25:6,
+              loc: 26:2-26:6,
               op: Plus,
               operand: {
                 node: Call,
-                loc: 25:3-25:6,
+                loc: 26:3-26:6,
                 func: {
                   node: Identifier,
-                  loc: 25:3-25:4,
+                  loc: 26:3-26:4,
                   name: "a",
-                },
-                args: [],
-              },
-            },
-          },
-          {
-            node: ExpressionStatement,
-            loc: 26:2-26:10,
-            expression: {
-              node: BinaryOperation,
-              loc: 26:2-26:9,
-              op: Multiply,
-              left: {
-                node: Identifier,
-                loc: 26:2-26:3,
-                name: "a",
-              },
-              right: {
-                node: Call,
-                loc: 26:6-26:9,
-                func: {
-                  node: Identifier,
-                  loc: 26:6-26:7,
-                  name: "b",
                 },
                 args: [],
               },
@@ -620,24 +623,28 @@ test/parser/ast/expression/precedence.myte
             node: ExpressionStatement,
             loc: 27:2-27:10,
             expression: {
-              node: BinaryOperation,
+              node: Call,
               loc: 27:2-27:9,
-              op: Add,
-              left: {
-                node: Identifier,
-                loc: 27:2-27:3,
-                name: "a",
-              },
-              right: {
-                node: Call,
-                loc: 27:6-27:9,
-                func: {
+              func: {
+                node: Access,
+                loc: 27:2-27:7,
+                left: {
+                  node: Call,
+                  loc: 27:2-27:5,
+                  func: {
+                    node: Identifier,
+                    loc: 27:2-27:3,
+                    name: "a",
+                  },
+                  args: [],
+                },
+                right: {
                   node: Identifier,
                   loc: 27:6-27:7,
                   name: "b",
                 },
-                args: [],
               },
+              args: [],
             },
           },
           {
@@ -646,7 +653,7 @@ test/parser/ast/expression/precedence.myte
             expression: {
               node: BinaryOperation,
               loc: 28:2-28:9,
-              op: LessThan,
+              op: Multiply,
               left: {
                 node: Identifier,
                 loc: 28:2-28:3,
@@ -666,11 +673,11 @@ test/parser/ast/expression/precedence.myte
           },
           {
             node: ExpressionStatement,
-            loc: 29:2-29:11,
+            loc: 29:2-29:10,
             expression: {
               node: BinaryOperation,
-              loc: 29:2-29:10,
-              op: Equal,
+              loc: 29:2-29:9,
+              op: Add,
               left: {
                 node: Identifier,
                 loc: 29:2-29:3,
@@ -678,10 +685,10 @@ test/parser/ast/expression/precedence.myte
               },
               right: {
                 node: Call,
-                loc: 29:7-29:10,
+                loc: 29:6-29:9,
                 func: {
                   node: Identifier,
-                  loc: 29:7-29:8,
+                  loc: 29:6-29:7,
                   name: "b",
                 },
                 args: [],
@@ -690,10 +697,11 @@ test/parser/ast/expression/precedence.myte
           },
           {
             node: ExpressionStatement,
-            loc: 30:2-30:11,
+            loc: 30:2-30:10,
             expression: {
-              node: LogicalAnd,
-              loc: 30:2-30:10,
+              node: BinaryOperation,
+              loc: 30:2-30:9,
+              op: LessThan,
               left: {
                 node: Identifier,
                 loc: 30:2-30:3,
@@ -701,10 +709,10 @@ test/parser/ast/expression/precedence.myte
               },
               right: {
                 node: Call,
-                loc: 30:7-30:10,
+                loc: 30:6-30:9,
                 func: {
                   node: Identifier,
-                  loc: 30:7-30:8,
+                  loc: 30:6-30:7,
                   name: "b",
                 },
                 args: [],
@@ -715,8 +723,9 @@ test/parser/ast/expression/precedence.myte
             node: ExpressionStatement,
             loc: 31:2-31:11,
             expression: {
-              node: LogicalOr,
+              node: BinaryOperation,
               loc: 31:2-31:10,
+              op: Equal,
               left: {
                 node: Identifier,
                 loc: 31:2-31:3,
@@ -736,23 +745,68 @@ test/parser/ast/expression/precedence.myte
           },
           {
             node: ExpressionStatement,
-            loc: 34:2-34:11,
+            loc: 32:2-32:11,
+            expression: {
+              node: LogicalAnd,
+              loc: 32:2-32:10,
+              left: {
+                node: Identifier,
+                loc: 32:2-32:3,
+                name: "a",
+              },
+              right: {
+                node: Call,
+                loc: 32:7-32:10,
+                func: {
+                  node: Identifier,
+                  loc: 32:7-32:8,
+                  name: "b",
+                },
+                args: [],
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 33:2-33:11,
+            expression: {
+              node: LogicalOr,
+              loc: 33:2-33:10,
+              left: {
+                node: Identifier,
+                loc: 33:2-33:3,
+                name: "a",
+              },
+              right: {
+                node: Call,
+                loc: 33:7-33:10,
+                func: {
+                  node: Identifier,
+                  loc: 33:7-33:8,
+                  name: "b",
+                },
+                args: [],
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 36:2-36:7,
             expression: {
               node: UnaryOperation,
-              loc: 34:2-34:10,
+              loc: 36:2-36:6,
               op: Plus,
               operand: {
-                node: BinaryOperation,
-                loc: 34:4-34:9,
-                op: Add,
+                node: Access,
+                loc: 36:3-36:6,
                 left: {
                   node: Identifier,
-                  loc: 34:4-34:5,
+                  loc: 36:3-36:4,
                   name: "a",
                 },
                 right: {
                   node: Identifier,
-                  loc: 34:8-34:9,
+                  loc: 36:5-36:6,
                   name: "b",
                 },
               },
@@ -760,73 +814,29 @@ test/parser/ast/expression/precedence.myte
           },
           {
             node: ExpressionStatement,
-            loc: 35:2-35:9,
+            loc: 37:2-37:10,
             expression: {
               node: BinaryOperation,
-              loc: 35:2-35:8,
+              loc: 37:2-37:9,
               op: Multiply,
               left: {
-                node: UnaryOperation,
-                loc: 35:2-35:4,
-                op: Plus,
-                operand: {
+                node: Access,
+                loc: 37:2-37:5,
+                left: {
                   node: Identifier,
-                  loc: 35:3-35:4,
+                  loc: 37:2-37:3,
                   name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 37:4-37:5,
+                  name: "b",
                 },
               },
               right: {
                 node: Identifier,
-                loc: 35:7-35:8,
-                name: "b",
-              },
-            },
-          },
-          {
-            node: ExpressionStatement,
-            loc: 36:2-36:9,
-            expression: {
-              node: BinaryOperation,
-              loc: 36:2-36:8,
-              op: Add,
-              left: {
-                node: UnaryOperation,
-                loc: 36:2-36:4,
-                op: Plus,
-                operand: {
-                  node: Identifier,
-                  loc: 36:3-36:4,
-                  name: "a",
-                },
-              },
-              right: {
-                node: Identifier,
-                loc: 36:7-36:8,
-                name: "b",
-              },
-            },
-          },
-          {
-            node: ExpressionStatement,
-            loc: 37:2-37:9,
-            expression: {
-              node: BinaryOperation,
-              loc: 37:2-37:8,
-              op: LessThan,
-              left: {
-                node: UnaryOperation,
-                loc: 37:2-37:4,
-                op: Plus,
-                operand: {
-                  node: Identifier,
-                  loc: 37:3-37:4,
-                  name: "a",
-                },
-              },
-              right: {
-                node: Identifier,
-                loc: 37:7-37:8,
-                name: "b",
+                loc: 37:8-37:9,
+                name: "c",
               },
             },
           },
@@ -836,21 +846,25 @@ test/parser/ast/expression/precedence.myte
             expression: {
               node: BinaryOperation,
               loc: 38:2-38:9,
-              op: Equal,
+              op: Multiply,
               left: {
-                node: UnaryOperation,
-                loc: 38:2-38:4,
-                op: Plus,
-                operand: {
-                  node: Identifier,
-                  loc: 38:3-38:4,
-                  name: "a",
-                },
+                node: Identifier,
+                loc: 38:2-38:3,
+                name: "a",
               },
               right: {
-                node: Identifier,
-                loc: 38:8-38:9,
-                name: "b",
+                node: Access,
+                loc: 38:6-38:9,
+                left: {
+                  node: Identifier,
+                  loc: 38:6-38:7,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 38:8-38:9,
+                  name: "c",
+                },
               },
             },
           },
@@ -858,22 +872,27 @@ test/parser/ast/expression/precedence.myte
             node: ExpressionStatement,
             loc: 39:2-39:10,
             expression: {
-              node: LogicalAnd,
+              node: BinaryOperation,
               loc: 39:2-39:9,
+              op: Add,
               left: {
-                node: UnaryOperation,
-                loc: 39:2-39:4,
-                op: Plus,
-                operand: {
+                node: Access,
+                loc: 39:2-39:5,
+                left: {
                   node: Identifier,
-                  loc: 39:3-39:4,
+                  loc: 39:2-39:3,
                   name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 39:4-39:5,
+                  name: "b",
                 },
               },
               right: {
                 node: Identifier,
                 loc: 39:8-39:9,
-                name: "b",
+                name: "c",
               },
             },
           },
@@ -881,36 +900,96 @@ test/parser/ast/expression/precedence.myte
             node: ExpressionStatement,
             loc: 40:2-40:10,
             expression: {
-              node: LogicalOr,
+              node: BinaryOperation,
               loc: 40:2-40:9,
+              op: Add,
               left: {
-                node: UnaryOperation,
-                loc: 40:2-40:4,
-                op: Plus,
-                operand: {
-                  node: Identifier,
-                  loc: 40:3-40:4,
-                  name: "a",
-                },
+                node: Identifier,
+                loc: 40:2-40:3,
+                name: "a",
               },
               right: {
-                node: Identifier,
-                loc: 40:8-40:9,
-                name: "b",
+                node: Access,
+                loc: 40:6-40:9,
+                left: {
+                  node: Identifier,
+                  loc: 40:6-40:7,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 40:8-40:9,
+                  name: "c",
+                },
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 43:2-43:12,
+            loc: 41:2-41:10,
             expression: {
               node: BinaryOperation,
-              loc: 43:2-43:11,
-              op: Add,
+              loc: 41:2-41:9,
+              op: LessThan,
               left: {
-                node: BinaryOperation,
-                loc: 43:2-43:7,
-                op: Multiply,
+                node: Access,
+                loc: 41:2-41:5,
+                left: {
+                  node: Identifier,
+                  loc: 41:2-41:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 41:4-41:5,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 41:8-41:9,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 42:2-42:10,
+            expression: {
+              node: BinaryOperation,
+              loc: 42:2-42:9,
+              op: LessThan,
+              left: {
+                node: Identifier,
+                loc: 42:2-42:3,
+                name: "a",
+              },
+              right: {
+                node: Access,
+                loc: 42:6-42:9,
+                left: {
+                  node: Identifier,
+                  loc: 42:6-42:7,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 42:8-42:9,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 43:2-43:11,
+            expression: {
+              node: BinaryOperation,
+              loc: 43:2-43:10,
+              op: Equal,
+              left: {
+                node: Access,
+                loc: 43:2-43:5,
                 left: {
                   node: Identifier,
                   loc: 43:2-43:3,
@@ -918,41 +997,40 @@ test/parser/ast/expression/precedence.myte
                 },
                 right: {
                   node: Identifier,
-                  loc: 43:6-43:7,
+                  loc: 43:4-43:5,
                   name: "b",
                 },
               },
               right: {
                 node: Identifier,
-                loc: 43:10-43:11,
+                loc: 43:9-43:10,
                 name: "c",
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 44:2-44:12,
+            loc: 44:2-44:11,
             expression: {
               node: BinaryOperation,
-              loc: 44:2-44:11,
-              op: Add,
+              loc: 44:2-44:10,
+              op: Equal,
               left: {
                 node: Identifier,
                 loc: 44:2-44:3,
                 name: "a",
               },
               right: {
-                node: BinaryOperation,
-                loc: 44:6-44:11,
-                op: Multiply,
+                node: Access,
+                loc: 44:7-44:10,
                 left: {
                   node: Identifier,
-                  loc: 44:6-44:7,
+                  loc: 44:7-44:8,
                   name: "b",
                 },
                 right: {
                   node: Identifier,
-                  loc: 44:10-44:11,
+                  loc: 44:9-44:10,
                   name: "c",
                 },
               },
@@ -960,15 +1038,13 @@ test/parser/ast/expression/precedence.myte
           },
           {
             node: ExpressionStatement,
-            loc: 45:2-45:12,
+            loc: 45:2-45:11,
             expression: {
-              node: BinaryOperation,
-              loc: 45:2-45:11,
-              op: LessThan,
+              node: LogicalAnd,
+              loc: 45:2-45:10,
               left: {
-                node: BinaryOperation,
-                loc: 45:2-45:7,
-                op: Multiply,
+                node: Access,
+                loc: 45:2-45:5,
                 left: {
                   node: Identifier,
                   loc: 45:2-45:3,
@@ -976,41 +1052,39 @@ test/parser/ast/expression/precedence.myte
                 },
                 right: {
                   node: Identifier,
-                  loc: 45:6-45:7,
+                  loc: 45:4-45:5,
                   name: "b",
                 },
               },
               right: {
                 node: Identifier,
-                loc: 45:10-45:11,
+                loc: 45:9-45:10,
                 name: "c",
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 46:2-46:12,
+            loc: 46:2-46:11,
             expression: {
-              node: BinaryOperation,
-              loc: 46:2-46:11,
-              op: LessThan,
+              node: LogicalAnd,
+              loc: 46:2-46:10,
               left: {
                 node: Identifier,
                 loc: 46:2-46:3,
                 name: "a",
               },
               right: {
-                node: BinaryOperation,
-                loc: 46:6-46:11,
-                op: Multiply,
+                node: Access,
+                loc: 46:7-46:10,
                 left: {
                   node: Identifier,
-                  loc: 46:6-46:7,
+                  loc: 46:7-46:8,
                   name: "b",
                 },
                 right: {
                   node: Identifier,
-                  loc: 46:10-46:11,
+                  loc: 46:9-46:10,
                   name: "c",
                 },
               },
@@ -1018,15 +1092,13 @@ test/parser/ast/expression/precedence.myte
           },
           {
             node: ExpressionStatement,
-            loc: 47:2-47:13,
+            loc: 47:2-47:11,
             expression: {
-              node: BinaryOperation,
-              loc: 47:2-47:12,
-              op: Equal,
+              node: LogicalOr,
+              loc: 47:2-47:10,
               left: {
-                node: BinaryOperation,
-                loc: 47:2-47:7,
-                op: Multiply,
+                node: Access,
+                loc: 47:2-47:5,
                 left: {
                   node: Identifier,
                   loc: 47:2-47:3,
@@ -1034,33 +1106,31 @@ test/parser/ast/expression/precedence.myte
                 },
                 right: {
                   node: Identifier,
-                  loc: 47:6-47:7,
+                  loc: 47:4-47:5,
                   name: "b",
                 },
               },
               right: {
                 node: Identifier,
-                loc: 47:11-47:12,
+                loc: 47:9-47:10,
                 name: "c",
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 48:2-48:13,
+            loc: 48:2-48:11,
             expression: {
-              node: BinaryOperation,
-              loc: 48:2-48:12,
-              op: Equal,
+              node: LogicalOr,
+              loc: 48:2-48:10,
               left: {
                 node: Identifier,
                 loc: 48:2-48:3,
                 name: "a",
               },
               right: {
-                node: BinaryOperation,
-                loc: 48:7-48:12,
-                op: Multiply,
+                node: Access,
+                loc: 48:7-48:10,
                 left: {
                   node: Identifier,
                   loc: 48:7-48:8,
@@ -1068,7 +1138,7 @@ test/parser/ast/expression/precedence.myte
                 },
                 right: {
                   node: Identifier,
-                  loc: 48:11-48:12,
+                  loc: 48:9-48:10,
                   name: "c",
                 },
               },
@@ -1076,341 +1146,312 @@ test/parser/ast/expression/precedence.myte
           },
           {
             node: ExpressionStatement,
-            loc: 49:2-49:13,
+            loc: 51:2-51:11,
             expression: {
-              node: LogicalAnd,
-              loc: 49:2-49:12,
-              left: {
+              node: UnaryOperation,
+              loc: 51:2-51:10,
+              op: Plus,
+              operand: {
                 node: BinaryOperation,
-                loc: 49:2-49:7,
-                op: Multiply,
+                loc: 51:4-51:9,
+                op: Add,
                 left: {
                   node: Identifier,
-                  loc: 49:2-49:3,
+                  loc: 51:4-51:5,
                   name: "a",
                 },
                 right: {
                   node: Identifier,
-                  loc: 49:6-49:7,
+                  loc: 51:8-51:9,
                   name: "b",
-                },
-              },
-              right: {
-                node: Identifier,
-                loc: 49:11-49:12,
-                name: "c",
-              },
-            },
-          },
-          {
-            node: ExpressionStatement,
-            loc: 50:2-50:13,
-            expression: {
-              node: LogicalAnd,
-              loc: 50:2-50:12,
-              left: {
-                node: Identifier,
-                loc: 50:2-50:3,
-                name: "a",
-              },
-              right: {
-                node: BinaryOperation,
-                loc: 50:7-50:12,
-                op: Multiply,
-                left: {
-                  node: Identifier,
-                  loc: 50:7-50:8,
-                  name: "b",
-                },
-                right: {
-                  node: Identifier,
-                  loc: 50:11-50:12,
-                  name: "c",
                 },
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 51:2-51:13,
-            expression: {
-              node: LogicalOr,
-              loc: 51:2-51:12,
-              left: {
-                node: BinaryOperation,
-                loc: 51:2-51:7,
-                op: Multiply,
-                left: {
-                  node: Identifier,
-                  loc: 51:2-51:3,
-                  name: "a",
-                },
-                right: {
-                  node: Identifier,
-                  loc: 51:6-51:7,
-                  name: "b",
-                },
-              },
-              right: {
-                node: Identifier,
-                loc: 51:11-51:12,
-                name: "c",
-              },
-            },
-          },
-          {
-            node: ExpressionStatement,
-            loc: 52:2-52:13,
-            expression: {
-              node: LogicalOr,
-              loc: 52:2-52:12,
-              left: {
-                node: Identifier,
-                loc: 52:2-52:3,
-                name: "a",
-              },
-              right: {
-                node: BinaryOperation,
-                loc: 52:7-52:12,
-                op: Multiply,
-                left: {
-                  node: Identifier,
-                  loc: 52:7-52:8,
-                  name: "b",
-                },
-                right: {
-                  node: Identifier,
-                  loc: 52:11-52:12,
-                  name: "c",
-                },
-              },
-            },
-          },
-          {
-            node: ExpressionStatement,
-            loc: 55:2-55:12,
+            loc: 52:2-52:9,
             expression: {
               node: BinaryOperation,
-              loc: 55:2-55:11,
+              loc: 52:2-52:8,
+              op: Multiply,
+              left: {
+                node: UnaryOperation,
+                loc: 52:2-52:4,
+                op: Plus,
+                operand: {
+                  node: Identifier,
+                  loc: 52:3-52:4,
+                  name: "a",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 52:7-52:8,
+                name: "b",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 53:2-53:9,
+            expression: {
+              node: BinaryOperation,
+              loc: 53:2-53:8,
+              op: Add,
+              left: {
+                node: UnaryOperation,
+                loc: 53:2-53:4,
+                op: Plus,
+                operand: {
+                  node: Identifier,
+                  loc: 53:3-53:4,
+                  name: "a",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 53:7-53:8,
+                name: "b",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 54:2-54:9,
+            expression: {
+              node: BinaryOperation,
+              loc: 54:2-54:8,
               op: LessThan,
               left: {
-                node: BinaryOperation,
-                loc: 55:2-55:7,
-                op: Add,
-                left: {
+                node: UnaryOperation,
+                loc: 54:2-54:4,
+                op: Plus,
+                operand: {
                   node: Identifier,
-                  loc: 55:2-55:3,
+                  loc: 54:3-54:4,
                   name: "a",
                 },
-                right: {
-                  node: Identifier,
-                  loc: 55:6-55:7,
-                  name: "b",
-                },
               },
               right: {
                 node: Identifier,
-                loc: 55:10-55:11,
-                name: "c",
+                loc: 54:7-54:8,
+                name: "b",
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 56:2-56:12,
+            loc: 55:2-55:10,
             expression: {
               node: BinaryOperation,
-              loc: 56:2-56:11,
-              op: LessThan,
-              left: {
-                node: Identifier,
-                loc: 56:2-56:3,
-                name: "a",
-              },
-              right: {
-                node: BinaryOperation,
-                loc: 56:6-56:11,
-                op: Add,
-                left: {
-                  node: Identifier,
-                  loc: 56:6-56:7,
-                  name: "b",
-                },
-                right: {
-                  node: Identifier,
-                  loc: 56:10-56:11,
-                  name: "c",
-                },
-              },
-            },
-          },
-          {
-            node: ExpressionStatement,
-            loc: 57:2-57:13,
-            expression: {
-              node: BinaryOperation,
-              loc: 57:2-57:12,
+              loc: 55:2-55:9,
               op: Equal,
               left: {
-                node: BinaryOperation,
-                loc: 57:2-57:7,
-                op: Add,
-                left: {
+                node: UnaryOperation,
+                loc: 55:2-55:4,
+                op: Plus,
+                operand: {
                   node: Identifier,
-                  loc: 57:2-57:3,
+                  loc: 55:3-55:4,
                   name: "a",
                 },
-                right: {
-                  node: Identifier,
-                  loc: 57:6-57:7,
-                  name: "b",
-                },
               },
               right: {
                 node: Identifier,
-                loc: 57:11-57:12,
-                name: "c",
+                loc: 55:8-55:9,
+                name: "b",
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 58:2-58:13,
-            expression: {
-              node: BinaryOperation,
-              loc: 58:2-58:12,
-              op: Equal,
-              left: {
-                node: Identifier,
-                loc: 58:2-58:3,
-                name: "a",
-              },
-              right: {
-                node: BinaryOperation,
-                loc: 58:7-58:12,
-                op: Add,
-                left: {
-                  node: Identifier,
-                  loc: 58:7-58:8,
-                  name: "b",
-                },
-                right: {
-                  node: Identifier,
-                  loc: 58:11-58:12,
-                  name: "c",
-                },
-              },
-            },
-          },
-          {
-            node: ExpressionStatement,
-            loc: 59:2-59:13,
+            loc: 56:2-56:10,
             expression: {
               node: LogicalAnd,
-              loc: 59:2-59:12,
+              loc: 56:2-56:9,
               left: {
-                node: BinaryOperation,
-                loc: 59:2-59:7,
-                op: Add,
-                left: {
+                node: UnaryOperation,
+                loc: 56:2-56:4,
+                op: Plus,
+                operand: {
                   node: Identifier,
-                  loc: 59:2-59:3,
+                  loc: 56:3-56:4,
                   name: "a",
                 },
-                right: {
-                  node: Identifier,
-                  loc: 59:6-59:7,
-                  name: "b",
-                },
               },
               right: {
                 node: Identifier,
-                loc: 59:11-59:12,
-                name: "c",
+                loc: 56:8-56:9,
+                name: "b",
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 60:2-60:13,
-            expression: {
-              node: LogicalAnd,
-              loc: 60:2-60:12,
-              left: {
-                node: Identifier,
-                loc: 60:2-60:3,
-                name: "a",
-              },
-              right: {
-                node: BinaryOperation,
-                loc: 60:7-60:12,
-                op: Add,
-                left: {
-                  node: Identifier,
-                  loc: 60:7-60:8,
-                  name: "b",
-                },
-                right: {
-                  node: Identifier,
-                  loc: 60:11-60:12,
-                  name: "c",
-                },
-              },
-            },
-          },
-          {
-            node: ExpressionStatement,
-            loc: 61:2-61:13,
+            loc: 57:2-57:10,
             expression: {
               node: LogicalOr,
-              loc: 61:2-61:12,
+              loc: 57:2-57:9,
+              left: {
+                node: UnaryOperation,
+                loc: 57:2-57:4,
+                op: Plus,
+                operand: {
+                  node: Identifier,
+                  loc: 57:3-57:4,
+                  name: "a",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 57:8-57:9,
+                name: "b",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 60:2-60:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 60:2-60:11,
+              op: Add,
               left: {
                 node: BinaryOperation,
-                loc: 61:2-61:7,
-                op: Add,
+                loc: 60:2-60:7,
+                op: Multiply,
                 left: {
                   node: Identifier,
-                  loc: 61:2-61:3,
+                  loc: 60:2-60:3,
                   name: "a",
                 },
                 right: {
+                  node: Identifier,
+                  loc: 60:6-60:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 60:10-60:11,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 61:2-61:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 61:2-61:11,
+              op: Add,
+              left: {
+                node: Identifier,
+                loc: 61:2-61:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 61:6-61:11,
+                op: Multiply,
+                left: {
                   node: Identifier,
                   loc: 61:6-61:7,
                   name: "b",
                 },
+                right: {
+                  node: Identifier,
+                  loc: 61:10-61:11,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 62:2-62:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 62:2-62:11,
+              op: LessThan,
+              left: {
+                node: BinaryOperation,
+                loc: 62:2-62:7,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 62:2-62:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 62:6-62:7,
+                  name: "b",
+                },
               },
               right: {
                 node: Identifier,
-                loc: 61:11-61:12,
+                loc: 62:10-62:11,
                 name: "c",
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 62:2-62:13,
+            loc: 63:2-63:12,
             expression: {
-              node: LogicalOr,
-              loc: 62:2-62:12,
+              node: BinaryOperation,
+              loc: 63:2-63:11,
+              op: LessThan,
               left: {
                 node: Identifier,
-                loc: 62:2-62:3,
+                loc: 63:2-63:3,
                 name: "a",
               },
               right: {
                 node: BinaryOperation,
-                loc: 62:7-62:12,
-                op: Add,
+                loc: 63:6-63:11,
+                op: Multiply,
                 left: {
                   node: Identifier,
-                  loc: 62:7-62:8,
+                  loc: 63:6-63:7,
                   name: "b",
                 },
                 right: {
                   node: Identifier,
-                  loc: 62:11-62:12,
+                  loc: 63:10-63:11,
                   name: "c",
                 },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 64:2-64:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 64:2-64:12,
+              op: Equal,
+              left: {
+                node: BinaryOperation,
+                loc: 64:2-64:7,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 64:2-64:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 64:6-64:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 64:11-64:12,
+                name: "c",
               },
             },
           },
@@ -1422,24 +1463,24 @@ test/parser/ast/expression/precedence.myte
               loc: 65:2-65:12,
               op: Equal,
               left: {
+                node: Identifier,
+                loc: 65:2-65:3,
+                name: "a",
+              },
+              right: {
                 node: BinaryOperation,
-                loc: 65:2-65:7,
-                op: LessThan,
+                loc: 65:7-65:12,
+                op: Multiply,
                 left: {
                   node: Identifier,
-                  loc: 65:2-65:3,
-                  name: "a",
+                  loc: 65:7-65:8,
+                  name: "b",
                 },
                 right: {
                   node: Identifier,
-                  loc: 65:6-65:7,
-                  name: "b",
+                  loc: 65:11-65:12,
+                  name: "c",
                 },
-              },
-              right: {
-                node: Identifier,
-                loc: 65:11-65:12,
-                name: "c",
               },
             },
           },
@@ -1447,28 +1488,27 @@ test/parser/ast/expression/precedence.myte
             node: ExpressionStatement,
             loc: 66:2-66:13,
             expression: {
-              node: BinaryOperation,
+              node: LogicalAnd,
               loc: 66:2-66:12,
-              op: Equal,
               left: {
-                node: Identifier,
-                loc: 66:2-66:3,
-                name: "a",
-              },
-              right: {
                 node: BinaryOperation,
-                loc: 66:7-66:12,
-                op: LessThan,
+                loc: 66:2-66:7,
+                op: Multiply,
                 left: {
                   node: Identifier,
-                  loc: 66:7-66:8,
-                  name: "b",
+                  loc: 66:2-66:3,
+                  name: "a",
                 },
                 right: {
                   node: Identifier,
-                  loc: 66:11-66:12,
-                  name: "c",
+                  loc: 66:6-66:7,
+                  name: "b",
                 },
+              },
+              right: {
+                node: Identifier,
+                loc: 66:11-66:12,
+                name: "c",
               },
             },
           },
@@ -1479,24 +1519,24 @@ test/parser/ast/expression/precedence.myte
               node: LogicalAnd,
               loc: 67:2-67:12,
               left: {
+                node: Identifier,
+                loc: 67:2-67:3,
+                name: "a",
+              },
+              right: {
                 node: BinaryOperation,
-                loc: 67:2-67:7,
-                op: LessThan,
+                loc: 67:7-67:12,
+                op: Multiply,
                 left: {
                   node: Identifier,
-                  loc: 67:2-67:3,
-                  name: "a",
+                  loc: 67:7-67:8,
+                  name: "b",
                 },
                 right: {
                   node: Identifier,
-                  loc: 67:6-67:7,
-                  name: "b",
+                  loc: 67:11-67:12,
+                  name: "c",
                 },
-              },
-              right: {
-                node: Identifier,
-                loc: 67:11-67:12,
-                name: "c",
               },
             },
           },
@@ -1504,27 +1544,27 @@ test/parser/ast/expression/precedence.myte
             node: ExpressionStatement,
             loc: 68:2-68:13,
             expression: {
-              node: LogicalAnd,
+              node: LogicalOr,
               loc: 68:2-68:12,
               left: {
-                node: Identifier,
-                loc: 68:2-68:3,
-                name: "a",
-              },
-              right: {
                 node: BinaryOperation,
-                loc: 68:7-68:12,
-                op: LessThan,
+                loc: 68:2-68:7,
+                op: Multiply,
                 left: {
                   node: Identifier,
-                  loc: 68:7-68:8,
-                  name: "b",
+                  loc: 68:2-68:3,
+                  name: "a",
                 },
                 right: {
                   node: Identifier,
-                  loc: 68:11-68:12,
-                  name: "c",
+                  loc: 68:6-68:7,
+                  name: "b",
                 },
+              },
+              right: {
+                node: Identifier,
+                loc: 68:11-68:12,
+                name: "c",
               },
             },
           },
@@ -1535,50 +1575,22 @@ test/parser/ast/expression/precedence.myte
               node: LogicalOr,
               loc: 69:2-69:12,
               left: {
-                node: BinaryOperation,
-                loc: 69:2-69:7,
-                op: LessThan,
-                left: {
-                  node: Identifier,
-                  loc: 69:2-69:3,
-                  name: "a",
-                },
-                right: {
-                  node: Identifier,
-                  loc: 69:6-69:7,
-                  name: "b",
-                },
-              },
-              right: {
                 node: Identifier,
-                loc: 69:11-69:12,
-                name: "c",
-              },
-            },
-          },
-          {
-            node: ExpressionStatement,
-            loc: 70:2-70:13,
-            expression: {
-              node: LogicalOr,
-              loc: 70:2-70:12,
-              left: {
-                node: Identifier,
-                loc: 70:2-70:3,
+                loc: 69:2-69:3,
                 name: "a",
               },
               right: {
                 node: BinaryOperation,
-                loc: 70:7-70:12,
-                op: LessThan,
+                loc: 69:7-69:12,
+                op: Multiply,
                 left: {
                   node: Identifier,
-                  loc: 70:7-70:8,
+                  loc: 69:7-69:8,
                   name: "b",
                 },
                 right: {
                   node: Identifier,
-                  loc: 70:11-70:12,
+                  loc: 69:11-69:12,
                   name: "c",
                 },
               },
@@ -1586,55 +1598,57 @@ test/parser/ast/expression/precedence.myte
           },
           {
             node: ExpressionStatement,
-            loc: 73:2-73:14,
+            loc: 72:2-72:12,
             expression: {
-              node: LogicalAnd,
-              loc: 73:2-73:13,
+              node: BinaryOperation,
+              loc: 72:2-72:11,
+              op: LessThan,
               left: {
                 node: BinaryOperation,
-                loc: 73:2-73:8,
-                op: Equal,
+                loc: 72:2-72:7,
+                op: Add,
                 left: {
                   node: Identifier,
-                  loc: 73:2-73:3,
+                  loc: 72:2-72:3,
                   name: "a",
                 },
                 right: {
                   node: Identifier,
-                  loc: 73:7-73:8,
+                  loc: 72:6-72:7,
                   name: "b",
                 },
               },
               right: {
                 node: Identifier,
-                loc: 73:12-73:13,
+                loc: 72:10-72:11,
                 name: "c",
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 74:2-74:14,
+            loc: 73:2-73:12,
             expression: {
-              node: LogicalAnd,
-              loc: 74:2-74:13,
+              node: BinaryOperation,
+              loc: 73:2-73:11,
+              op: LessThan,
               left: {
                 node: Identifier,
-                loc: 74:2-74:3,
+                loc: 73:2-73:3,
                 name: "a",
               },
               right: {
                 node: BinaryOperation,
-                loc: 74:7-74:13,
-                op: Equal,
+                loc: 73:6-73:11,
+                op: Add,
                 left: {
                   node: Identifier,
-                  loc: 74:7-74:8,
+                  loc: 73:6-73:7,
                   name: "b",
                 },
                 right: {
                   node: Identifier,
-                  loc: 74:12-74:13,
+                  loc: 73:10-73:11,
                   name: "c",
                 },
               },
@@ -1642,55 +1656,57 @@ test/parser/ast/expression/precedence.myte
           },
           {
             node: ExpressionStatement,
-            loc: 75:2-75:14,
+            loc: 74:2-74:13,
             expression: {
-              node: LogicalOr,
-              loc: 75:2-75:13,
+              node: BinaryOperation,
+              loc: 74:2-74:12,
+              op: Equal,
               left: {
                 node: BinaryOperation,
-                loc: 75:2-75:8,
-                op: Equal,
+                loc: 74:2-74:7,
+                op: Add,
                 left: {
                   node: Identifier,
-                  loc: 75:2-75:3,
+                  loc: 74:2-74:3,
                   name: "a",
                 },
                 right: {
+                  node: Identifier,
+                  loc: 74:6-74:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 74:11-74:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 75:2-75:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 75:2-75:12,
+              op: Equal,
+              left: {
+                node: Identifier,
+                loc: 75:2-75:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 75:7-75:12,
+                op: Add,
+                left: {
                   node: Identifier,
                   loc: 75:7-75:8,
                   name: "b",
                 },
-              },
-              right: {
-                node: Identifier,
-                loc: 75:12-75:13,
-                name: "c",
-              },
-            },
-          },
-          {
-            node: ExpressionStatement,
-            loc: 76:2-76:14,
-            expression: {
-              node: LogicalOr,
-              loc: 76:2-76:13,
-              left: {
-                node: Identifier,
-                loc: 76:2-76:3,
-                name: "a",
-              },
-              right: {
-                node: BinaryOperation,
-                loc: 76:7-76:13,
-                op: Equal,
-                left: {
-                  node: Identifier,
-                  loc: 76:7-76:8,
-                  name: "b",
-                },
                 right: {
                   node: Identifier,
-                  loc: 76:12-76:13,
+                  loc: 75:11-75:12,
                   name: "c",
                 },
               },
@@ -1698,53 +1714,447 @@ test/parser/ast/expression/precedence.myte
           },
           {
             node: ExpressionStatement,
-            loc: 79:2-79:14,
+            loc: 76:2-76:13,
             expression: {
-              node: LogicalOr,
-              loc: 79:2-79:13,
+              node: LogicalAnd,
+              loc: 76:2-76:12,
               left: {
-                node: LogicalAnd,
-                loc: 79:2-79:8,
+                node: BinaryOperation,
+                loc: 76:2-76:7,
+                op: Add,
                 left: {
                   node: Identifier,
-                  loc: 79:2-79:3,
+                  loc: 76:2-76:3,
                   name: "a",
                 },
                 right: {
                   node: Identifier,
-                  loc: 79:7-79:8,
+                  loc: 76:6-76:7,
                   name: "b",
                 },
               },
               right: {
                 node: Identifier,
-                loc: 79:12-79:13,
+                loc: 76:11-76:12,
                 name: "c",
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 80:2-80:14,
+            loc: 77:2-77:13,
             expression: {
-              node: LogicalOr,
-              loc: 80:2-80:13,
+              node: LogicalAnd,
+              loc: 77:2-77:12,
               left: {
                 node: Identifier,
-                loc: 80:2-80:3,
+                loc: 77:2-77:3,
                 name: "a",
               },
               right: {
-                node: LogicalAnd,
-                loc: 80:7-80:13,
+                node: BinaryOperation,
+                loc: 77:7-77:12,
+                op: Add,
                 left: {
                   node: Identifier,
-                  loc: 80:7-80:8,
+                  loc: 77:7-77:8,
                   name: "b",
                 },
                 right: {
                   node: Identifier,
-                  loc: 80:12-80:13,
+                  loc: 77:11-77:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 78:2-78:13,
+            expression: {
+              node: LogicalOr,
+              loc: 78:2-78:12,
+              left: {
+                node: BinaryOperation,
+                loc: 78:2-78:7,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 78:2-78:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 78:6-78:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 78:11-78:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 79:2-79:13,
+            expression: {
+              node: LogicalOr,
+              loc: 79:2-79:12,
+              left: {
+                node: Identifier,
+                loc: 79:2-79:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 79:7-79:12,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 79:7-79:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 79:11-79:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 82:2-82:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 82:2-82:12,
+              op: Equal,
+              left: {
+                node: BinaryOperation,
+                loc: 82:2-82:7,
+                op: LessThan,
+                left: {
+                  node: Identifier,
+                  loc: 82:2-82:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 82:6-82:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 82:11-82:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 83:2-83:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 83:2-83:12,
+              op: Equal,
+              left: {
+                node: Identifier,
+                loc: 83:2-83:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 83:7-83:12,
+                op: LessThan,
+                left: {
+                  node: Identifier,
+                  loc: 83:7-83:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 83:11-83:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 84:2-84:13,
+            expression: {
+              node: LogicalAnd,
+              loc: 84:2-84:12,
+              left: {
+                node: BinaryOperation,
+                loc: 84:2-84:7,
+                op: LessThan,
+                left: {
+                  node: Identifier,
+                  loc: 84:2-84:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 84:6-84:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 84:11-84:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 85:2-85:13,
+            expression: {
+              node: LogicalAnd,
+              loc: 85:2-85:12,
+              left: {
+                node: Identifier,
+                loc: 85:2-85:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 85:7-85:12,
+                op: LessThan,
+                left: {
+                  node: Identifier,
+                  loc: 85:7-85:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 85:11-85:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 86:2-86:13,
+            expression: {
+              node: LogicalOr,
+              loc: 86:2-86:12,
+              left: {
+                node: BinaryOperation,
+                loc: 86:2-86:7,
+                op: LessThan,
+                left: {
+                  node: Identifier,
+                  loc: 86:2-86:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 86:6-86:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 86:11-86:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 87:2-87:13,
+            expression: {
+              node: LogicalOr,
+              loc: 87:2-87:12,
+              left: {
+                node: Identifier,
+                loc: 87:2-87:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 87:7-87:12,
+                op: LessThan,
+                left: {
+                  node: Identifier,
+                  loc: 87:7-87:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 87:11-87:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 90:2-90:14,
+            expression: {
+              node: LogicalAnd,
+              loc: 90:2-90:13,
+              left: {
+                node: BinaryOperation,
+                loc: 90:2-90:8,
+                op: Equal,
+                left: {
+                  node: Identifier,
+                  loc: 90:2-90:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 90:7-90:8,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 90:12-90:13,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 91:2-91:14,
+            expression: {
+              node: LogicalAnd,
+              loc: 91:2-91:13,
+              left: {
+                node: Identifier,
+                loc: 91:2-91:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 91:7-91:13,
+                op: Equal,
+                left: {
+                  node: Identifier,
+                  loc: 91:7-91:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 91:12-91:13,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 92:2-92:14,
+            expression: {
+              node: LogicalOr,
+              loc: 92:2-92:13,
+              left: {
+                node: BinaryOperation,
+                loc: 92:2-92:8,
+                op: Equal,
+                left: {
+                  node: Identifier,
+                  loc: 92:2-92:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 92:7-92:8,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 92:12-92:13,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 93:2-93:14,
+            expression: {
+              node: LogicalOr,
+              loc: 93:2-93:13,
+              left: {
+                node: Identifier,
+                loc: 93:2-93:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 93:7-93:13,
+                op: Equal,
+                left: {
+                  node: Identifier,
+                  loc: 93:7-93:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 93:12-93:13,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 96:2-96:14,
+            expression: {
+              node: LogicalOr,
+              loc: 96:2-96:13,
+              left: {
+                node: LogicalAnd,
+                loc: 96:2-96:8,
+                left: {
+                  node: Identifier,
+                  loc: 96:2-96:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 96:7-96:8,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 96:12-96:13,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 97:2-97:14,
+            expression: {
+              node: LogicalOr,
+              loc: 97:2-97:13,
+              left: {
+                node: Identifier,
+                loc: 97:2-97:3,
+                name: "a",
+              },
+              right: {
+                node: LogicalAnd,
+                loc: 97:7-97:13,
+                left: {
+                  node: Identifier,
+                  loc: 97:7-97:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 97:12-97:13,
                   name: "c",
                 },
               },

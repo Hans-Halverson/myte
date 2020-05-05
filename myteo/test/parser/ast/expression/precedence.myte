@@ -8,6 +8,7 @@ fun main() {
   // Group precedence
   a((b)(c));
   (a(b))(c);
+  (a.b).c;
   a * (b * c);
   (a * b) * c;
   a + (b + c);
@@ -23,12 +24,28 @@ fun main() {
 
   // Call precedence
   +a();
+  a().b();
   a * b();
   a + b();
   a < b();
   a == b();
   a && b();
   a || b();
+
+  // Member precedence
+  +a.b;
+  a.b * c;
+  a * b.c;
+  a.b + c;
+  a + b.c;
+  a.b < c;
+  a < b.c;
+  a.b == c;
+  a == b.c;
+  a.b && c;
+  a && b.c;
+  a.b || c;
+  a || b.c;
 
   // Unary precedence
   +(a + b);

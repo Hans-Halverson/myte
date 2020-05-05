@@ -6,6 +6,7 @@ module ExpressionPrecedence = struct
   type t =
     | (* Binds tightest *) Group
     | Call
+    | Access
     | Unary
     | Multiplication
     | Addition
@@ -18,6 +19,7 @@ module ExpressionPrecedence = struct
   let level = function
     | Group -> 9
     | Call -> 8
+    | Access -> 8
     | Unary -> 7
     | Multiplication -> 6
     | Addition -> 5
@@ -220,6 +222,8 @@ and parse_expression_infix ~precedence env left marker =
   match Env.token env with
   | T_LEFT_PAREN when ExpressionPrecedence.(is_tighter Call precedence) ->
     parse_call env left marker
+  | T_PERIOD when ExpressionPrecedence.(is_tighter Access precedence) ->
+    parse_access env left marker
   | T_PLUS
   | T_MINUS
     when ExpressionPrecedence.(is_tighter Addition precedence) ->
@@ -329,6 +333,13 @@ and parse_call env left marker =
   let args = args env in
   let loc = marker env in
   Expression.Call { loc; func = left; args; t = () }
+
+and parse_access env left marker =
+  let open Expression.Access in
+  Env.expect env T_PERIOD;
+  let right = parse_identifier env in
+  let loc = marker env in
+  Expression.Access { loc; left; right; t = () }
 
 and parse_identifier env =
   match Env.token env with

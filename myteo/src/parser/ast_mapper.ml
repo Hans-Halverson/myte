@@ -99,6 +99,7 @@ class ['a, 'b] ast_mapper =
         | LogicalAnd e -> unchanged this#logical_and e expr (fun e' -> LogicalAnd e')
         | LogicalOr e -> unchanged this#logical_or e expr (fun e' -> LogicalOr e')
         | Call e -> unchanged this#call e expr (fun e' -> Call e')
+        | Access e -> unchanged this#access e expr (fun e' -> Access e')
 
     method pattern : 'a Pattern.t -> 'b Pattern.t =
       fun pat ->
@@ -277,6 +278,19 @@ class ['a, 'b] ast_mapper =
           call
         else
           { t = t'; loc = loc'; func = func'; args = args' }
+
+    method access : 'a Expression.Access.t -> 'b Expression.Access.t =
+      fun access ->
+        let open Expression.Access in
+        let { t; loc; left; right } = access in
+        let t' = this#decorate t in
+        let loc' = this#loc loc in
+        let left' = this#expression left in
+        let right' = this#identifier right in
+        if t == t' && loc == loc' && left == left' && right == right' then
+          access
+        else
+          { t = t'; loc = loc'; left = left'; right = right' }
 
     method function_ : 'a Function.t -> 'b Function.t =
       fun func ->

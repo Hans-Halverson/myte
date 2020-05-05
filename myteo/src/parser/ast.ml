@@ -185,6 +185,15 @@ and Expression : sig
     }
   end
 
+  module Access : sig
+    type 'T t = {
+      t: 'T;
+      loc: Loc.t;
+      left: 'T Expression.t;
+      right: 'T Identifier.t;
+    }
+  end
+
   type 'T t =
     | Unit of 'T Unit.t
     | IntLiteral of 'T IntLiteral.t
@@ -196,6 +205,7 @@ and Expression : sig
     | LogicalAnd of 'T LogicalAnd.t
     | LogicalOr of 'T LogicalOr.t
     | Call of 'T Call.t
+    | Access of 'T Access.t
 end =
   Expression
 
