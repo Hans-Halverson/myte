@@ -1,4 +1,4 @@
-module rec Program : sig
+module rec Module : sig
   type 'T toplevel =
     | VariableDeclaration of 'T Statement.VariableDeclaration.t
     | FunctionDeclaration of 'T Function.t
@@ -30,12 +30,12 @@ module rec Program : sig
   type 'T t = {
     t: 'T;
     loc: Loc.t;
-    module_: 'T ScopedIdentifier.t;
+    name: 'T ScopedIdentifier.t;
     imports: 'T Import.t list;
     toplevels: 'T toplevel list;
   }
 end =
-  Program
+  Module
 
 and Statement : sig
   module Block : sig

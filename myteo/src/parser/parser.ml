@@ -62,12 +62,12 @@ and parse env =
       let toplevel = parse_toplevel env in
       helper (toplevel :: toplevels)
   in
-  let (module_, imports, toplevels, errors) =
+  let (name, imports, toplevels, errors) =
     try
-      let module_ = parse_module env in
+      let name = parse_module env in
       let imports = parse_imports env in
       let toplevels = helper [] in
-      (module_, imports, toplevels, Env.errors env)
+      (name, imports, toplevels, Env.errors env)
     with Parse_error.Fatal (loc, err) ->
       let dummy_module =
         {
@@ -80,7 +80,7 @@ and parse env =
       (dummy_module, [], [], [(loc, err)])
   in
   let loc = { (Env.loc env) with Loc.start = Loc.first_pos } in
-  ({ Program.loc; module_; imports; toplevels; t = () }, errors)
+  ({ Module.loc; name; imports; toplevels; t = () }, errors)
 
 and parse_module env =
   begin
@@ -91,7 +91,7 @@ and parse_module env =
   parse_scoped_identifier env
 
 and parse_imports env =
-  let open Program.Import in
+  let open Module.Import in
   let parse_import () =
     let marker = mark_loc env in
     Env.expect env T_IMPORT;
@@ -126,7 +126,7 @@ and parse_imports env =
   parse_imports ()
 
 and parse_complex_import env marker scopes =
-  let open Program.Import in
+  let open Module.Import in
   Env.expect env T_LEFT_BRACE;
   let rec parse_aliases () =
     let marker = mark_loc env in
@@ -156,7 +156,7 @@ and parse_complex_import env marker scopes =
   Complex { Complex.loc; scopes; aliases; t = () }
 
 and parse_toplevel env =
-  let open Program in
+  let open Module in
   match Env.token env with
   | T_VAL
   | T_VAR ->

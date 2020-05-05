@@ -1,8 +1,8 @@
 test/parser/ast/type/precedence.myte
 {
-  node: Program,
+  node: Module,
   loc: 1:0-5:35,
-  module: {
+  name: {
     node: ScopedIdentifier,
     loc: 1:7-1:11,
     scopes: [],

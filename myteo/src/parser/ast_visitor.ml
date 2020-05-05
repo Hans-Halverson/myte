@@ -2,16 +2,16 @@ open Ast
 
 class ['a, 'b] ast_visitor =
   object (this)
-    method program : 'a -> 'b Program.t -> unit =
-      fun acc program ->
-        let { Program.t = _; loc = _; toplevels; module_; imports } = program in
-        List.iter (this#toplevel acc) toplevels;
-        this#scoped_identifier acc module_;
-        List.iter (this#import acc) imports
+    method module_ : 'a -> 'b Module.t -> unit =
+      fun acc mod_ ->
+        let { Module.t = _; loc = _; name; imports; toplevels } = mod_ in
+        this#scoped_identifier acc name;
+        List.iter (this#import acc) imports;
+        List.iter (this#toplevel acc) toplevels
 
-    method toplevel : 'a -> 'b Program.toplevel -> unit =
+    method toplevel : 'a -> 'b Module.toplevel -> unit =
       fun acc toplevel ->
-        let open Program in
+        let open Module in
         match toplevel with
         | VariableDeclaration t -> this#variable_declaration acc t
         | FunctionDeclaration t -> this#function_ acc t
@@ -65,19 +65,19 @@ class ['a, 'b] ast_visitor =
       List.iter (this#identifier acc) scopes
 
     method import acc import =
-      let open Program.Import in
+      let open Module.Import in
       match import with
       | Simple i -> this#scoped_identifier acc i
       | Complex i -> this#complex_import acc i
 
     method complex_import acc import =
-      let open Program.Import.Complex in
+      let open Module.Import.Complex in
       let { t = _; loc = _; scopes; aliases } = import in
       List.iter (this#identifier acc) scopes;
       List.iter (this#import_alias acc) aliases
 
     method import_alias acc alias =
-      let open Program.Import.Alias in
+      let open Module.Import.Alias in
       let { t = _; loc = _; name; alias } = alias in
       this#identifier acc name;
       Option.iter (this#identifier acc) alias

@@ -1,8 +1,8 @@
 test/parser/ast/return/basic.myte
 {
-  node: Program,
+  node: Module,
   loc: 1:0-6:1,
-  module: {
+  name: {
     node: ScopedIdentifier,
     loc: 1:7-1:11,
     scopes: [],

@@ -11,5 +11,5 @@ let to_string error =
   | InexhaustiveReturn { Identifier.name; _ } ->
     Printf.sprintf "All branches of function %s must end in a return statement" name
   | UnreachableStatementAfterReturn -> "Unreachable statement after return"
-  | MissingMainFunction -> "No main function found in program"
+  | MissingMainFunction -> "No main function found in modules"
   | MultipleMainFunctions -> "Main function has already been declared"

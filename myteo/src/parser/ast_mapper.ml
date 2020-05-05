@@ -38,34 +38,23 @@ class ['a, 'b] ast_mapper =
 
     method loc : Loc.t -> Loc.t = (fun l -> l)
 
-    method program : 'a Program.t -> 'b Program.t =
-      fun program ->
-        let { Program.t; loc; toplevels; module_; imports } = program in
+    method module_ : 'a Module.t -> 'b Module.t =
+      fun mod_ ->
+        let { Module.t; loc; name; imports; toplevels } = mod_ in
         let t' = this#decorate t in
         let loc' = this#loc loc in
-        let toplevels' = unchanged_list this#toplevel toplevels in
-        let module_' = this#scoped_identifier module_ in
+        let name' = this#scoped_identifier name in
         let imports' = unchanged_list this#import imports in
-        if
-          t == t'
-          && loc == loc'
-          && toplevels == toplevels'
-          && module_ == module_'
-          && imports == imports'
+        let toplevels' = unchanged_list this#toplevel toplevels in
+        if t == t' && loc == loc' && name == name' && imports == imports' && toplevels == toplevels'
         then
-          program
+          mod_
         else
-          {
-            Program.t = t';
-            loc = loc';
-            toplevels = toplevels';
-            module_ = module_';
-            imports = imports';
-          }
+          { Module.t = t'; loc = loc'; name = name'; imports; toplevels = toplevels' }
 
-    method toplevel : 'a Program.toplevel -> 'b Program.toplevel =
+    method toplevel : 'a Module.toplevel -> 'b Module.toplevel =
       fun toplevel ->
-        let open Program in
+        let open Module in
         match toplevel with
         | VariableDeclaration t ->
           unchanged this#variable_declaration t toplevel (fun t' -> VariableDeclaration t')
@@ -138,16 +127,16 @@ class ['a, 'b] ast_mapper =
         else
           { t = t'; loc = loc'; scopes = scopes'; name = name' }
 
-    method import : 'a Program.Import.t -> 'b Program.Import.t =
+    method import : 'a Module.Import.t -> 'b Module.Import.t =
       fun import ->
-        let open Program.Import in
+        let open Module.Import in
         match import with
         | Simple i -> unchanged this#scoped_identifier i import (fun i' -> Simple i')
         | Complex i -> unchanged this#complex_import i import (fun i' -> Complex i')
 
-    method complex_import : 'a Program.Import.Complex.t -> 'b Program.Import.Complex.t =
+    method complex_import : 'a Module.Import.Complex.t -> 'b Module.Import.Complex.t =
       fun import ->
-        let open Program.Import.Complex in
+        let open Module.Import.Complex in
         let { t; loc; scopes; aliases } = import in
         let t' = this#decorate t in
         let loc' = this#loc loc in
@@ -158,9 +147,9 @@ class ['a, 'b] ast_mapper =
         else
           { t = t'; loc = loc'; scopes = scopes'; aliases = aliases' }
 
-    method import_alias : 'a Program.Import.Alias.t -> 'b Program.Import.Alias.t =
+    method import_alias : 'a Module.Import.Alias.t -> 'b Module.Import.Alias.t =
       fun import_alias ->
-        let open Program.Import.Alias in
+        let open Module.Import.Alias in
         let { t; loc; name; alias } = import_alias in
         let t' = this#decorate t in
         let loc' = this#loc loc in

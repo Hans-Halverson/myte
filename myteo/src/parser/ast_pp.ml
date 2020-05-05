@@ -100,19 +100,19 @@ and opt : 'a. ('a -> 'b) -> 'a option -> 'b =
   | Option.None -> None
   | Some x -> f x
 
-and node_of_program program =
-  let { Program.loc; module_; imports; toplevels; t = _ } = program in
+and node_of_module mod_ =
+  let { Module.loc; name; imports; toplevels; t = _ } = mod_ in
   node
-    "Program"
+    "Module"
     loc
     [
-      ("module", node_of_scoped_identifier module_);
+      ("name", node_of_scoped_identifier name);
       ("imports", List (List.map node_of_import imports));
       ("toplevels", List (List.map node_of_toplevel toplevels));
     ]
 
 and node_of_toplevel toplevel =
-  let open Program in
+  let open Module in
   match toplevel with
   | VariableDeclaration decl -> node_of_variable_decl decl
   | FunctionDeclaration decl -> node_of_function decl
@@ -168,13 +168,13 @@ and node_of_scoped_identifier id =
     [("scopes", List (List.map node_of_identifier scopes)); ("name", node_of_identifier name)]
 
 and node_of_import import =
-  let open Program.Import in
+  let open Module.Import in
   match import with
   | Simple i -> node_of_scoped_identifier i
   | Complex i -> node_of_complex_import i
 
 and node_of_complex_import import =
-  let { Program.Import.Complex.loc; scopes; aliases; t = _ } = import in
+  let { Module.Import.Complex.loc; scopes; aliases; t = _ } = import in
   node
     "ComplexImport"
     loc
@@ -184,7 +184,7 @@ and node_of_complex_import import =
     ]
 
 and node_of_import_alias alias =
-  let { Program.Import.Alias.loc; name; alias; t = _ } = alias in
+  let { Module.Import.Alias.loc; name; alias; t = _ } = alias in
   node
     "ImportAlias"
     loc
@@ -313,6 +313,6 @@ and node_of_function_type func =
     loc
     [("params", List (List.map node_of_type params)); ("return", node_of_type return)]
 
-and pp_program program =
-  let node = node_of_program program in
+and pp_module mod_ =
+  let node = node_of_module mod_ in
   pp node

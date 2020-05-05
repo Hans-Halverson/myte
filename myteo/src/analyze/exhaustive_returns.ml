@@ -77,7 +77,7 @@ class analyzer =
       super#function_ acc func
   end
 
-let analyze program =
+let analyze mod_ =
   let analyzer = new analyzer in
-  analyzer#program () program;
+  analyzer#module_ () mod_;
   analyzer#errors ()

@@ -31,7 +31,7 @@ let show_ast files =
   let pp_asts =
     List.map
       (fun (file, ast) ->
-        let pp_ast = Ast_pp.pp_program ast in
+        let pp_ast = Ast_pp.pp_module ast in
         Printf.sprintf "%s\n%s" (Files.strip_root file) pp_ast)
       asts
   in
@@ -39,7 +39,7 @@ let show_ast files =
 
 let compile files =
   let asts = parse_files files |> List.map snd in
-  let errors = Lex_analyze.analyze_programs asts in
+  let errors = Lex_analyze.analyze_modules asts in
   if errors <> [] then (
     print_analyze_errors errors;
     exit 1
