@@ -1,0 +1,16 @@
+module Test
+
+import A
+import A.B
+import A.B.C
+import A.B.C.D
+
+import A.{B}
+import A.B.C.{D}
+import A.{B, C, D}
+import A.{B, C, D,}
+import A.{B1 as B2}
+import A.{B1 as B2, C1 as C2, D1 as D3}
+import A.{B1 as B2, C1 as C2, D1 as D3,}
+import A.{B1 as B2, C}
+import A.{B, C1 as C2}

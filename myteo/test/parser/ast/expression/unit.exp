@@ -1,35 +1,46 @@
 test/parser/ast/expression/unit.myte
 {
   node: Program,
-  loc: 1:0-4:1,
+  loc: 1:0-6:1,
+  module: {
+    node: ScopedIdentifier,
+    loc: 1:7-1:11,
+    scopes: [],
+    name: {
+      node: Identifier,
+      loc: 1:7-1:11,
+      name: "Test",
+    },
+  },
+  imports: [],
   toplevels: [
     {
       node: Function,
-      loc: 1:0-4:1,
+      loc: 3:0-6:1,
       name: {
         node: Identifier,
-        loc: 1:4-1:8,
+        loc: 3:4-3:8,
         name: "main",
       },
       params: [],
       body: {
         node: Block,
-        loc: 1:11-4:1,
+        loc: 3:11-6:1,
         statements: [
           {
             node: ExpressionStatement,
-            loc: 2:2-2:5,
+            loc: 4:2-4:5,
             expression: {
               node: Unit,
-              loc: 2:3-2:4,
+              loc: 4:3-4:4,
             },
           },
           {
             node: ExpressionStatement,
-            loc: 3:2-3:9,
+            loc: 5:2-5:9,
             expression: {
               node: Unit,
-              loc: 3:5-3:6,
+              loc: 5:5-5:6,
             },
           },
         ],

@@ -1,3 +1,3 @@
-ERROR: test/analyze/main_function/missing_main.myte:2:0 No main function found in program
- 2 | 
+ERROR: test/analyze/main_function/missing_main.myte:4:0 No main function found in program
+ 4 | 
    | ^

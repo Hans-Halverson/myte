@@ -101,8 +101,15 @@ and opt : 'a. ('a -> 'b) -> 'a option -> 'b =
   | Some x -> f x
 
 and node_of_program program =
-  let { Program.loc; toplevels; t = _ } = program in
-  node "Program" loc [("toplevels", List (List.map node_of_toplevel toplevels))]
+  let { Program.loc; module_; imports; toplevels; t = _ } = program in
+  node
+    "Program"
+    loc
+    [
+      ("module", node_of_scoped_identifier module_);
+      ("imports", List (List.map node_of_import imports));
+      ("toplevels", List (List.map node_of_toplevel toplevels));
+    ]
 
 and node_of_toplevel toplevel =
   let open Program in
@@ -151,6 +158,36 @@ and node_of_expression_stmt (loc, expr) =
 and node_of_identifier id =
   let { Identifier.loc; name; t = _ } = id in
   node "Identifier" loc [("name", String name)]
+
+and node_of_scoped_identifier id =
+  let { ScopedIdentifier.loc; name; scopes; t = _ } = id in
+  node
+    "ScopedIdentifier"
+    loc
+    [("scopes", List (List.map node_of_identifier scopes)); ("name", node_of_identifier name)]
+
+and node_of_import import =
+  let open Program.Import in
+  match import with
+  | Simple i -> node_of_scoped_identifier i
+  | Complex i -> node_of_complex_import i
+
+and node_of_complex_import import =
+  let { Program.Import.Complex.loc; scopes; aliases; t = _ } = import in
+  node
+    "ComplexImport"
+    loc
+    [
+      ("scopes", List (List.map node_of_identifier scopes));
+      ("aliases", List (List.map node_of_import_alias aliases));
+    ]
+
+and node_of_import_alias alias =
+  let { Program.Import.Alias.loc; name; alias; t = _ } = alias in
+  node
+    "ImportAlias"
+    loc
+    [("name", node_of_identifier name); ("alias", opt node_of_identifier alias)]
 
 and node_of_unit unit =
   let { Expression.Unit.loc; t = _ } = unit in

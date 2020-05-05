@@ -1,51 +1,22 @@
 test/parser/ast/type/basic.myte
 {
   node: Program,
-  loc: 1:0-9:0,
+  loc: 1:0-11:0,
+  module: {
+    node: ScopedIdentifier,
+    loc: 1:7-1:11,
+    scopes: [],
+    name: {
+      node: Identifier,
+      loc: 1:7-1:11,
+      name: "Test",
+    },
+  },
+  imports: [],
   toplevels: [
     {
       node: VariableDeclaration,
-      loc: 1:0-1:17,
-      kind: Immutable,
-      pattern: {
-        node: Identifier,
-        loc: 1:4-1:5,
-        name: "x",
-      },
-      init: {
-        node: Unit,
-        loc: 1:15-1:16,
-      },
-      annot: {
-        node: PrimitiveType,
-        loc: 1:7-1:11,
-        kind: Unit,
-      },
-    },
-    {
-      node: VariableDeclaration,
-      loc: 2:0-2:15,
-      kind: Immutable,
-      pattern: {
-        node: Identifier,
-        loc: 2:4-2:5,
-        name: "x",
-      },
-      init: {
-        node: IntLiteral,
-        loc: 2:13-2:14,
-        value: 1,
-        raw: "1",
-      },
-      annot: {
-        node: PrimitiveType,
-        loc: 2:7-2:10,
-        kind: Int,
-      },
-    },
-    {
-      node: VariableDeclaration,
-      loc: 3:0-3:23,
+      loc: 3:0-3:17,
       kind: Immutable,
       pattern: {
         node: Identifier,
@@ -53,19 +24,18 @@ test/parser/ast/type/basic.myte
         name: "x",
       },
       init: {
-        node: StringLiteral,
-        loc: 3:16-3:22,
-        value: "test",
+        node: Unit,
+        loc: 3:15-3:16,
       },
       annot: {
         node: PrimitiveType,
-        loc: 3:7-3:13,
-        kind: String,
+        loc: 3:7-3:11,
+        kind: Unit,
       },
     },
     {
       node: VariableDeclaration,
-      loc: 4:0-4:19,
+      loc: 4:0-4:15,
       kind: Immutable,
       pattern: {
         node: Identifier,
@@ -73,19 +43,40 @@ test/parser/ast/type/basic.myte
         name: "x",
       },
       init: {
-        node: BoolLiteral,
-        loc: 4:14-4:18,
-        value: true,
+        node: IntLiteral,
+        loc: 4:13-4:14,
+        value: 1,
+        raw: "1",
       },
       annot: {
         node: PrimitiveType,
-        loc: 4:7-4:11,
-        kind: Bool,
+        loc: 4:7-4:10,
+        kind: Int,
       },
     },
     {
       node: VariableDeclaration,
-      loc: 6:0-6:25,
+      loc: 5:0-5:23,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 5:4-5:5,
+        name: "x",
+      },
+      init: {
+        node: StringLiteral,
+        loc: 5:16-5:22,
+        value: "test",
+      },
+      annot: {
+        node: PrimitiveType,
+        loc: 5:7-5:13,
+        kind: String,
+      },
+    },
+    {
+      node: VariableDeclaration,
+      loc: 6:0-6:19,
       kind: Immutable,
       pattern: {
         node: Identifier,
@@ -93,68 +84,19 @@ test/parser/ast/type/basic.myte
         name: "x",
       },
       init: {
-        node: IntLiteral,
-        loc: 6:23-6:24,
-        value: 1,
-        raw: "1",
+        node: BoolLiteral,
+        loc: 6:14-6:18,
+        value: true,
       },
       annot: {
-        node: FunctionType,
-        loc: 6:7-6:20,
-        params: [
-          {
-            node: PrimitiveType,
-            loc: 6:7-6:10,
-            kind: Int,
-          },
-        ],
-        return: {
-          node: PrimitiveType,
-          loc: 6:14-6:20,
-          kind: String,
-        },
+        node: PrimitiveType,
+        loc: 6:7-6:11,
+        kind: Bool,
       },
     },
     {
       node: VariableDeclaration,
-      loc: 7:0-7:33,
-      kind: Immutable,
-      pattern: {
-        node: Identifier,
-        loc: 7:4-7:5,
-        name: "x",
-      },
-      init: {
-        node: IntLiteral,
-        loc: 7:31-7:32,
-        value: 1,
-        raw: "1",
-      },
-      annot: {
-        node: FunctionType,
-        loc: 7:7-7:28,
-        params: [
-          {
-            node: PrimitiveType,
-            loc: 7:7-7:10,
-            kind: Int,
-          },
-          {
-            node: PrimitiveType,
-            loc: 7:14-7:20,
-            kind: String,
-          },
-        ],
-        return: {
-          node: PrimitiveType,
-          loc: 7:24-7:28,
-          kind: Bool,
-        },
-      },
-    },
-    {
-      node: VariableDeclaration,
-      loc: 8:0-8:43,
+      loc: 8:0-8:25,
       kind: Immutable,
       pattern: {
         node: Identifier,
@@ -163,33 +105,102 @@ test/parser/ast/type/basic.myte
       },
       init: {
         node: IntLiteral,
-        loc: 8:41-8:42,
+        loc: 8:23-8:24,
         value: 1,
         raw: "1",
       },
       annot: {
         node: FunctionType,
-        loc: 8:7-8:38,
+        loc: 8:7-8:20,
         params: [
           {
             node: PrimitiveType,
             loc: 8:7-8:10,
             kind: Int,
           },
+        ],
+        return: {
+          node: PrimitiveType,
+          loc: 8:14-8:20,
+          kind: String,
+        },
+      },
+    },
+    {
+      node: VariableDeclaration,
+      loc: 9:0-9:33,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 9:4-9:5,
+        name: "x",
+      },
+      init: {
+        node: IntLiteral,
+        loc: 9:31-9:32,
+        value: 1,
+        raw: "1",
+      },
+      annot: {
+        node: FunctionType,
+        loc: 9:7-9:28,
+        params: [
           {
             node: PrimitiveType,
-            loc: 8:14-8:20,
+            loc: 9:7-9:10,
+            kind: Int,
+          },
+          {
+            node: PrimitiveType,
+            loc: 9:14-9:20,
+            kind: String,
+          },
+        ],
+        return: {
+          node: PrimitiveType,
+          loc: 9:24-9:28,
+          kind: Bool,
+        },
+      },
+    },
+    {
+      node: VariableDeclaration,
+      loc: 10:0-10:43,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 10:4-10:5,
+        name: "x",
+      },
+      init: {
+        node: IntLiteral,
+        loc: 10:41-10:42,
+        value: 1,
+        raw: "1",
+      },
+      annot: {
+        node: FunctionType,
+        loc: 10:7-10:38,
+        params: [
+          {
+            node: PrimitiveType,
+            loc: 10:7-10:10,
+            kind: Int,
+          },
+          {
+            node: PrimitiveType,
+            loc: 10:14-10:20,
             kind: String,
           },
           {
             node: PrimitiveType,
-            loc: 8:24-8:28,
+            loc: 10:24-10:28,
             kind: Bool,
           },
         ],
         return: {
           node: PrimitiveType,
-          loc: 8:32-8:38,
+          loc: 10:32-10:38,
           kind: String,
         },
       },

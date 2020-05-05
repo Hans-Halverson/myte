@@ -3,9 +3,35 @@ module rec Program : sig
     | VariableDeclaration of 'T Statement.VariableDeclaration.t
     | FunctionDeclaration of 'T Function.t
 
+  module Import : sig
+    module Alias : sig
+      type 'T t = {
+        t: 'T;
+        loc: Loc.t;
+        name: 'T Identifier.t;
+        alias: 'T Identifier.t option;
+      }
+    end
+
+    module Complex : sig
+      type 'T t = {
+        t: 'T;
+        loc: Loc.t;
+        scopes: 'T Identifier.t list;
+        aliases: 'T Alias.t list;
+      }
+    end
+
+    type 'T t =
+      | Simple of 'T ScopedIdentifier.t
+      | Complex of 'T Complex.t
+  end
+
   type 'T t = {
     t: 'T;
     loc: Loc.t;
+    module_: 'T ScopedIdentifier.t;
+    imports: 'T Import.t list;
     toplevels: 'T toplevel list;
   }
 end =
@@ -241,3 +267,13 @@ and Identifier : sig
   }
 end =
   Identifier
+
+and ScopedIdentifier : sig
+  type 'T t = {
+    t: 'T;
+    loc: Loc.t;
+    scopes: 'T Identifier.t list;
+    name: 'T Identifier.t;
+  }
+end =
+  ScopedIdentifier

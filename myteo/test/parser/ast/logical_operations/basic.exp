@@ -1,53 +1,64 @@
 test/parser/ast/logical_operations/basic.myte
 {
   node: Program,
-  loc: 1:0-4:1,
+  loc: 1:0-6:1,
+  module: {
+    node: ScopedIdentifier,
+    loc: 1:7-1:11,
+    scopes: [],
+    name: {
+      node: Identifier,
+      loc: 1:7-1:11,
+      name: "Test",
+    },
+  },
+  imports: [],
   toplevels: [
     {
       node: Function,
-      loc: 1:0-4:1,
+      loc: 3:0-6:1,
       name: {
         node: Identifier,
-        loc: 1:4-1:8,
+        loc: 3:4-3:8,
         name: "main",
       },
       params: [],
       body: {
         node: Block,
-        loc: 1:11-4:1,
+        loc: 3:11-6:1,
         statements: [
           {
             node: ExpressionStatement,
-            loc: 2:2-2:16,
+            loc: 4:2-4:16,
             expression: {
               node: LogicalAnd,
-              loc: 2:2-2:15,
+              loc: 4:2-4:15,
               left: {
                 node: BoolLiteral,
-                loc: 2:2-2:6,
+                loc: 4:2-4:6,
                 value: true,
               },
               right: {
                 node: BoolLiteral,
-                loc: 2:10-2:15,
+                loc: 4:10-4:15,
                 value: false,
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 3:2-3:16,
+            loc: 5:2-5:16,
             expression: {
               node: LogicalOr,
-              loc: 3:2-3:15,
+              loc: 5:2-5:15,
               left: {
                 node: BoolLiteral,
-                loc: 3:2-3:6,
+                loc: 5:2-5:6,
                 value: true,
               },
               right: {
                 node: BoolLiteral,
-                loc: 3:10-3:15,
+                loc: 5:10-5:15,
                 value: false,
               },
             },

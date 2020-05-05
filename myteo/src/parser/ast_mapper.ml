@@ -40,14 +40,28 @@ class ['a, 'b] ast_mapper =
 
     method program : 'a Program.t -> 'b Program.t =
       fun program ->
-        let { Program.t; loc; toplevels } = program in
+        let { Program.t; loc; toplevels; module_; imports } = program in
         let t' = this#decorate t in
         let loc' = this#loc loc in
         let toplevels' = unchanged_list this#toplevel toplevels in
-        if t == t' && loc == loc' && toplevels == toplevels' then
+        let module_' = this#scoped_identifier module_ in
+        let imports' = unchanged_list this#import imports in
+        if
+          t == t'
+          && loc == loc'
+          && toplevels == toplevels'
+          && module_ == module_'
+          && imports == imports'
+        then
           program
         else
-          { Program.t = t'; loc = loc'; toplevels = toplevels' }
+          {
+            Program.t = t';
+            loc = loc';
+            toplevels = toplevels';
+            module_ = module_';
+            imports = imports';
+          }
 
     method toplevel : 'a Program.toplevel -> 'b Program.toplevel =
       fun toplevel ->
@@ -109,6 +123,52 @@ class ['a, 'b] ast_mapper =
           id
         else
           { t = t'; loc = loc'; name }
+
+    method scoped_identifier : 'a ScopedIdentifier.t -> 'b ScopedIdentifier.t =
+      fun id ->
+        let open ScopedIdentifier in
+        let { t; loc; scopes; name } = id in
+        let t' = this#decorate t in
+        let loc' = this#loc loc in
+        let scopes' = unchanged_list this#identifier scopes in
+        let name' = this#identifier name in
+        if t == t' && loc == loc' && scopes == scopes' && name == name' then
+          id
+        else
+          { t = t'; loc = loc'; scopes = scopes'; name = name' }
+
+    method import : 'a Program.Import.t -> 'b Program.Import.t =
+      fun import ->
+        let open Program.Import in
+        match import with
+        | Simple i -> unchanged this#scoped_identifier i import (fun i' -> Simple i')
+        | Complex i -> unchanged this#complex_import i import (fun i' -> Complex i')
+
+    method complex_import : 'a Program.Import.Complex.t -> 'b Program.Import.Complex.t =
+      fun import ->
+        let open Program.Import.Complex in
+        let { t; loc; scopes; aliases } = import in
+        let t' = this#decorate t in
+        let loc' = this#loc loc in
+        let scopes' = unchanged_list this#identifier scopes in
+        let aliases' = unchanged_list this#import_alias aliases in
+        if t == t' && loc == loc' && scopes == scopes' && aliases == aliases' then
+          import
+        else
+          { t = t'; loc = loc'; scopes = scopes'; aliases = aliases' }
+
+    method import_alias : 'a Program.Import.Alias.t -> 'b Program.Import.Alias.t =
+      fun import_alias ->
+        let open Program.Import.Alias in
+        let { t; loc; name; alias } = import_alias in
+        let t' = this#decorate t in
+        let loc' = this#loc loc in
+        let name' = this#identifier name in
+        let alias' = unchanged_opt this#identifier alias in
+        if t == t' && loc == loc' && name == name' && alias == alias' then
+          import_alias
+        else
+          { t = t'; loc = loc'; name = name'; alias = alias' }
 
     method unit : 'a Expression.Unit.t -> 'b Expression.Unit.t =
       fun unit ->

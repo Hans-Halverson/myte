@@ -1,20 +1,31 @@
 test/parser/ast/variable_declaration/basic.myte
 {
   node: Program,
-  loc: 1:0-4:15,
+  loc: 1:0-6:15,
+  module: {
+    node: ScopedIdentifier,
+    loc: 1:7-1:11,
+    scopes: [],
+    name: {
+      node: Identifier,
+      loc: 1:7-1:11,
+      name: "Test",
+    },
+  },
+  imports: [],
   toplevels: [
     {
       node: VariableDeclaration,
-      loc: 1:0-1:10,
+      loc: 3:0-3:10,
       kind: Immutable,
       pattern: {
         node: Identifier,
-        loc: 1:4-1:5,
+        loc: 3:4-3:5,
         name: "x",
       },
       init: {
         node: IntLiteral,
-        loc: 1:8-1:9,
+        loc: 3:8-3:9,
         value: 1,
         raw: "1",
       },
@@ -22,16 +33,16 @@ test/parser/ast/variable_declaration/basic.myte
     },
     {
       node: VariableDeclaration,
-      loc: 2:0-2:10,
+      loc: 4:0-4:10,
       kind: Mutable,
       pattern: {
         node: Identifier,
-        loc: 2:4-2:5,
+        loc: 4:4-4:5,
         name: "y",
       },
       init: {
         node: IntLiteral,
-        loc: 2:8-2:9,
+        loc: 4:8-4:9,
         value: 2,
         raw: "2",
       },
@@ -39,22 +50,22 @@ test/parser/ast/variable_declaration/basic.myte
     },
     {
       node: VariableDeclaration,
-      loc: 4:0-4:15,
+      loc: 6:0-6:15,
       kind: Immutable,
       pattern: {
         node: Identifier,
-        loc: 4:4-4:5,
+        loc: 6:4-6:5,
         name: "x",
       },
       init: {
         node: IntLiteral,
-        loc: 4:13-4:14,
+        loc: 6:13-6:14,
         value: 1,
         raw: "1",
       },
       annot: {
         node: PrimitiveType,
-        loc: 4:7-4:10,
+        loc: 6:7-6:10,
         kind: Int,
       },
     },

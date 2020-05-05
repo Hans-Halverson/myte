@@ -1,3 +1,5 @@
+module Exhaustive
+
 // Functions with unit return type do not need exhaustive returns
 fun foo() {}
 

@@ -1,3 +1,5 @@
+module Inexhaustive
+
 fun foo(): int {}
 
 fun foo(): int {

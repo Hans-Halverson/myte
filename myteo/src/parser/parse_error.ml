@@ -8,6 +8,7 @@ type t =
   | MalformedPattern of Token.t
   | MalformedFunctionBody of Token.t
   | MalformedType of Token.t
+  | MissingModule of Token.t
 
 exception Fatal of (Loc.t * t)
 
@@ -38,3 +39,7 @@ let to_string error =
       (Token.to_string actual)
   | MalformedType actual ->
     Printf.sprintf "Unexpected token \"%s\", expected start of type" (Token.to_string actual)
+  | MissingModule actual ->
+    Printf.sprintf
+      "File must start with a module declaration. Found \"%s\" but expected \"module\""
+      (Token.to_string actual)

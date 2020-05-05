@@ -21,26 +21,29 @@ let first_diff_lines s1 s2 =
   (* Pad shorter file to length of longer file with blank lines *)
   let s1_num_lines = List.length s1_lines in
   let s2_num_lines = List.length s2_lines in
-  if s1_num_lines > s2_num_lines then
-    (s2_num_lines + 1, ("", List.nth s1_lines s2_num_lines))
-  else if s1_num_lines < s2_num_lines then
-    (s1_num_lines + 1, (List.nth s2_lines s1_num_lines, ""))
-  else
-    let (line_num, lines) =
-      List.fold_left2
-        (fun (i, first_diff) s1 s2 ->
-          match first_diff with
-          | Some _ -> (i, first_diff)
-          | None ->
-            if String.equal s1 s2 then
-              (i + 1, None)
-            else
-              (i, Some (s1, s2)))
-        (1, None)
-        s1_lines
-        s2_lines
-    in
-    (line_num, Option.value ~default:("", "") lines)
+  let (s1_lines, s2_lines) =
+    if s1_num_lines > s2_num_lines then
+      (s1_lines, s2_lines @ List_utils.make (s1_num_lines - s2_num_lines) "")
+    else if s1_num_lines < s2_num_lines then
+      (s1_lines @ List_utils.make (s2_num_lines - s1_num_lines) "", s2_lines)
+    else
+      (s1_lines, s2_lines)
+  in
+  let (line_num, lines) =
+    List.fold_left2
+      (fun (i, first_diff) s1 s2 ->
+        match first_diff with
+        | Some _ -> (i, first_diff)
+        | None ->
+          if String.equal s1 s2 then
+            (i + 1, None)
+          else
+            (i, Some (s1, s2)))
+      (1, None)
+      s1_lines
+      s2_lines
+  in
+  (line_num, Option.value ~default:("", "") lines)
 
 let run_snapshot_test ~command ~record ~myte_files ~exp_file =
   (* Run command in separate process and read its stdout *)

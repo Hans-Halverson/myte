@@ -1,3 +1,5 @@
+module StatementAfterReturn
+
 // Statement after exhaustive return errors
 fun foo(): int {
   return 1;

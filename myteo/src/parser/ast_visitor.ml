@@ -4,8 +4,10 @@ class ['a, 'b] ast_visitor =
   object (this)
     method program : 'a -> 'b Program.t -> unit =
       fun acc program ->
-        let { Program.t = _; loc = _; toplevels } = program in
-        List.iter (this#toplevel acc) toplevels
+        let { Program.t = _; loc = _; toplevels; module_; imports } = program in
+        List.iter (this#toplevel acc) toplevels;
+        this#scoped_identifier acc module_;
+        List.iter (this#import acc) imports
 
     method toplevel : 'a -> 'b Program.toplevel -> unit =
       fun acc toplevel ->
@@ -54,6 +56,30 @@ class ['a, 'b] ast_visitor =
         | Function t -> this#function_type acc t
 
     method identifier _acc _id = ()
+
+    method scoped_identifier acc id =
+      let open ScopedIdentifier in
+      let { t = _; loc = _; name; scopes } = id in
+      this#identifier acc name;
+      List.iter (this#identifier acc) scopes
+
+    method import acc import =
+      let open Program.Import in
+      match import with
+      | Simple i -> this#scoped_identifier acc i
+      | Complex i -> this#complex_import acc i
+
+    method complex_import acc import =
+      let open Program.Import.Complex in
+      let { t = _; loc = _; scopes; aliases } = import in
+      List.iter (this#identifier acc) scopes;
+      List.iter (this#import_alias acc) aliases
+
+    method import_alias acc alias =
+      let open Program.Import.Alias in
+      let { t = _; loc = _; name; alias } = alias in
+      this#identifier acc name;
+      Option.iter (this#identifier acc) alias
 
     method unit _acc _unit = ()
 

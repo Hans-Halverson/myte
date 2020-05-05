@@ -1,54 +1,65 @@
 test/parser/comment/block.myte
 {
   node: Program,
-  loc: 1:0-12:1,
+  loc: 1:0-14:1,
+  module: {
+    node: ScopedIdentifier,
+    loc: 1:7-1:11,
+    scopes: [],
+    name: {
+      node: Identifier,
+      loc: 1:7-1:11,
+      name: "Test",
+    },
+  },
+  imports: [],
   toplevels: [
     {
       node: Function,
-      loc: 1:0-12:1,
+      loc: 3:0-14:1,
       name: {
         node: Identifier,
-        loc: 1:4-1:8,
+        loc: 3:4-3:8,
         name: "main",
       },
       params: [],
       body: {
         node: Block,
-        loc: 1:11-12:1,
+        loc: 3:11-14:1,
         statements: [
           {
             node: ExpressionStatement,
-            loc: 2:2-2:18,
+            loc: 4:2-4:18,
             expression: {
               node: StringLiteral,
-              loc: 2:2-2:17,
+              loc: 4:2-4:17,
               value: "empty comment",
             },
           },
           {
             node: ExpressionStatement,
-            loc: 4:2-4:16,
+            loc: 6:2-6:16,
             expression: {
               node: StringLiteral,
-              loc: 4:2-4:15,
+              loc: 6:2-6:15,
               value: "single line",
             },
           },
           {
             node: ExpressionStatement,
-            loc: 6:2-6:14,
+            loc: 8:2-8:14,
             expression: {
               node: StringLiteral,
-              loc: 6:2-6:13,
+              loc: 8:2-8:13,
               value: "multiline",
             },
           },
           {
             node: ExpressionStatement,
-            loc: 11:2-11:19,
+            loc: 13:2-13:19,
             expression: {
               node: StringLiteral,
-              loc: 11:2-11:18,
+              loc: 13:2-13:18,
               value: "after comments",
             },
           },

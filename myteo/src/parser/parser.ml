@@ -60,15 +60,98 @@ and parse env =
       let toplevel = parse_toplevel env in
       helper (toplevel :: toplevels)
   in
-  let (loc, toplevels, errors) =
+  let (module_, imports, toplevels, errors) =
     try
+      let module_ = parse_module env in
+      let imports = parse_imports env in
       let toplevels = helper [] in
-      let loc = Env.loc env in
-      (loc, toplevels, Env.errors env)
-    with Parse_error.Fatal (loc, err) -> (loc, [], [(loc, err)])
+      (module_, imports, toplevels, Env.errors env)
+    with Parse_error.Fatal (loc, err) ->
+      let dummy_module =
+        {
+          ScopedIdentifier.loc;
+          name = { Identifier.loc; name = "module"; t = () };
+          scopes = [];
+          t = ();
+        }
+      in
+      (dummy_module, [], [], [(loc, err)])
   in
-  let loc = { loc with Loc.start = Loc.first_pos } in
-  ({ Program.loc; toplevels; t = () }, errors)
+  let loc = { (Env.loc env) with Loc.start = Loc.first_pos } in
+  ({ Program.loc; module_; imports; toplevels; t = () }, errors)
+
+and parse_module env =
+  begin
+    match Env.token env with
+    | T_MODULE -> Env.advance env
+    | token -> Parse_error.fatal (Env.loc env, MissingModule token)
+  end;
+  parse_scoped_identifier env
+
+and parse_imports env =
+  let open Program.Import in
+  let parse_import () =
+    let marker = mark_loc env in
+    Env.expect env T_IMPORT;
+    let first = parse_identifier env in
+    let rec parse_scopes () =
+      match Env.token env with
+      | T_PERIOD ->
+        Env.advance env;
+        (match Env.token env with
+        | T_LEFT_BRACE -> []
+        | _ ->
+          let scope = parse_identifier env in
+          scope :: parse_scopes ())
+      | _ -> []
+    in
+    let scopes = first :: parse_scopes () in
+    match Env.token env with
+    | T_LEFT_BRACE -> parse_complex_import env marker scopes
+    | _ ->
+      let name = List_utils.last scopes in
+      let scopes = List_utils.drop_last scopes in
+      let loc = marker env in
+      Simple { ScopedIdentifier.loc; name; scopes; t = () }
+  in
+  let rec parse_imports () =
+    match Env.token env with
+    | T_IMPORT ->
+      let import = parse_import () in
+      import :: parse_imports ()
+    | _ -> []
+  in
+  parse_imports ()
+
+and parse_complex_import env marker scopes =
+  let open Program.Import in
+  Env.expect env T_LEFT_BRACE;
+  let rec parse_aliases () =
+    let marker = mark_loc env in
+    let name = parse_identifier env in
+    let alias =
+      match Env.token env with
+      | T_AS ->
+        Env.advance env;
+        Some (parse_identifier env)
+      | _ -> None
+    in
+    let loc = marker env in
+    let alias = { Alias.loc; name; alias; t = () } in
+    match Env.token env with
+    | T_RIGHT_BRACE -> [alias]
+    | T_COMMA ->
+      Env.advance env;
+      (match Env.token env with
+      | T_RIGHT_BRACE -> [alias]
+      | T_IDENTIFIER _ -> alias :: parse_aliases ()
+      | _ -> [alias])
+    | _ -> [alias]
+  in
+  let aliases = parse_aliases () in
+  Env.expect env T_RIGHT_BRACE;
+  let loc = marker env in
+  Complex { Complex.loc; scopes; aliases; t = () }
 
 and parse_toplevel env =
   let open Program in
@@ -256,6 +339,24 @@ and parse_identifier env =
   | token ->
     Parse_error.fatal
       (Env.loc env, UnexpectedToken { actual = token; expected = Some (T_IDENTIFIER "") })
+
+and parse_scoped_identifier env =
+  let marker = mark_loc env in
+  let rec parse_scoped_identifier () =
+    match Env.token env with
+    | T_PERIOD ->
+      Env.advance env;
+      let scope = parse_identifier env in
+      scope :: parse_scoped_identifier ()
+    | _ -> []
+  in
+  let first_scope = parse_identifier env in
+  let scopes = first_scope :: parse_scoped_identifier () in
+  let name = List_utils.last scopes in
+  let scopes = List_utils.drop_last scopes in
+
+  let loc = marker env in
+  { ScopedIdentifier.loc; name; scopes; t = () }
 
 and parse_pattern env =
   let open Pattern in

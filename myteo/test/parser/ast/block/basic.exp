@@ -1,37 +1,48 @@
 test/parser/ast/block/basic.myte
 {
   node: Program,
-  loc: 1:0-15:1,
+  loc: 1:0-17:1,
+  module: {
+    node: ScopedIdentifier,
+    loc: 1:7-1:11,
+    scopes: [],
+    name: {
+      node: Identifier,
+      loc: 1:7-1:11,
+      name: "Test",
+    },
+  },
+  imports: [],
   toplevels: [
     {
       node: Function,
-      loc: 1:0-15:1,
+      loc: 3:0-17:1,
       name: {
         node: Identifier,
-        loc: 1:4-1:8,
+        loc: 3:4-3:8,
         name: "main",
       },
       params: [],
       body: {
         node: Block,
-        loc: 1:11-15:1,
+        loc: 3:11-17:1,
         statements: [
           {
             node: Block,
-            loc: 2:2-2:4,
+            loc: 4:2-4:4,
             statements: [],
           },
           {
             node: Block,
-            loc: 4:2-8:3,
+            loc: 6:2-10:3,
             statements: [
               {
                 node: Block,
-                loc: 5:4-7:5,
+                loc: 7:4-9:5,
                 statements: [
                   {
                     node: Block,
-                    loc: 6:6-6:8,
+                    loc: 8:6-8:8,
                     statements: [],
                   },
                 ],
@@ -40,34 +51,34 @@ test/parser/ast/block/basic.myte
           },
           {
             node: Block,
-            loc: 10:2-14:3,
+            loc: 12:2-16:3,
             statements: [
-              {
-                node: ExpressionStatement,
-                loc: 11:4-11:6,
-                expression: {
-                  node: IntLiteral,
-                  loc: 11:4-11:5,
-                  value: 1,
-                  raw: "1",
-                },
-              },
-              {
-                node: ExpressionStatement,
-                loc: 12:4-12:6,
-                expression: {
-                  node: IntLiteral,
-                  loc: 12:4-12:5,
-                  value: 2,
-                  raw: "2",
-                },
-              },
               {
                 node: ExpressionStatement,
                 loc: 13:4-13:6,
                 expression: {
                   node: IntLiteral,
                   loc: 13:4-13:5,
+                  value: 1,
+                  raw: "1",
+                },
+              },
+              {
+                node: ExpressionStatement,
+                loc: 14:4-14:6,
+                expression: {
+                  node: IntLiteral,
+                  loc: 14:4-14:5,
+                  value: 2,
+                  raw: "2",
+                },
+              },
+              {
+                node: ExpressionStatement,
+                loc: 15:4-15:6,
+                expression: {
+                  node: IntLiteral,
+                  loc: 15:4-15:5,
                   value: 3,
                   raw: "3",
                 },

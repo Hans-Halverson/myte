@@ -1,3 +1,0 @@
-ERROR: test/analyze/main_function/empty_file.myte:1:0 No main function found in program
- 1 | 
-   | ^

@@ -1,6 +1,3 @@
-test/parser/empty_file.myte
-{
-  node: Program,
-  loc: 1:0-1:0,
-  toplevels: [],
-}
+ERROR: test/parser/empty_file.myte:1:0 File must start with a module declaration. Found "<EOF>" but expected "module"
+ 1 | 
+   | ^

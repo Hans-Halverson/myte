@@ -1,27 +1,38 @@
 test/parser/ast/identifier/basic.myte
 {
   node: Program,
-  loc: 1:0-3:1,
+  loc: 1:0-5:1,
+  module: {
+    node: ScopedIdentifier,
+    loc: 1:7-1:11,
+    scopes: [],
+    name: {
+      node: Identifier,
+      loc: 1:7-1:11,
+      name: "Test",
+    },
+  },
+  imports: [],
   toplevels: [
     {
       node: Function,
-      loc: 1:0-3:1,
+      loc: 3:0-5:1,
       name: {
         node: Identifier,
-        loc: 1:4-1:8,
+        loc: 3:4-3:8,
         name: "main",
       },
       params: [],
       body: {
         node: Block,
-        loc: 1:11-3:1,
+        loc: 3:11-5:1,
         statements: [
           {
             node: ExpressionStatement,
-            loc: 2:2-2:13,
+            loc: 4:2-4:13,
             expression: {
               node: Identifier,
-              loc: 2:2-2:12,
+              loc: 4:2-4:12,
               name: "identifier",
             },
           },

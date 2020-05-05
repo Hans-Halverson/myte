@@ -1,1 +1,3 @@
+module Test
+
 val x: 1 = 1;

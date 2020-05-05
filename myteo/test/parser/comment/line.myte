@@ -1,3 +1,5 @@
+module Test
+
 fun main() {
   "empty comment";
   //

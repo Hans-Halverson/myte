@@ -1,0 +1,17 @@
+test/parser/ast/module/unscoped.myte
+{
+  node: Program,
+  loc: 1:0-1:11,
+  module: {
+    node: ScopedIdentifier,
+    loc: 1:7-1:11,
+    scopes: [],
+    name: {
+      node: Identifier,
+      loc: 1:7-1:11,
+      name: "Test",
+    },
+  },
+  imports: [],
+  toplevels: [],
+}

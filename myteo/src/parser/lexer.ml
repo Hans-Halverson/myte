@@ -87,6 +87,7 @@ let tokenize lex =
   | "->" -> token_result T_ARROW
   | ';' -> token_result T_SEMICOLON
   | ':' -> token_result T_COLON
+  | '.' -> token_result T_PERIOD
   | ',' -> token_result T_COMMA
   | '=' -> token_result T_EQUALS
   | '+' -> token_result T_PLUS
@@ -106,6 +107,9 @@ let tokenize lex =
   | "if" -> token_result T_IF
   | "else" -> token_result T_ELSE
   | "return" -> token_result T_RETURN
+  | "module" -> token_result T_MODULE
+  | "import" -> token_result T_IMPORT
+  | "as" -> token_result T_AS
   | "unit" -> token_result T_UNIT
   | "int" -> token_result T_INT
   | "string" -> token_result T_STRING

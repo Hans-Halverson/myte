@@ -6,6 +6,7 @@ type t =
   | T_SEMICOLON
   | T_COLON
   | T_COMMA
+  | T_PERIOD
   | T_ARROW
   | T_PLUS
   | T_MINUS
@@ -31,6 +32,9 @@ type t =
   | T_IF
   | T_ELSE
   | T_RETURN
+  | T_MODULE
+  | T_IMPORT
+  | T_AS
   | T_UNIT
   | T_INT
   | T_STRING
@@ -50,6 +54,7 @@ let to_string token =
   | T_SEMICOLON -> ";"
   | T_COLON -> ":"
   | T_COMMA -> ","
+  | T_PERIOD -> "."
   | T_ARROW -> "->"
   | T_PLUS -> "+"
   | T_MINUS -> "-"
@@ -75,6 +80,9 @@ let to_string token =
   | T_IF -> "if"
   | T_ELSE -> "else"
   | T_RETURN -> "return"
+  | T_MODULE -> "module"
+  | T_IMPORT -> "import"
+  | T_AS -> "as"
   | T_UNIT -> "unit"
   | T_INT -> "int"
   | T_STRING -> "string"

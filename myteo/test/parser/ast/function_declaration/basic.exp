@@ -1,32 +1,22 @@
 test/parser/ast/function_declaration/basic.myte
 {
   node: Program,
-  loc: 1:0-7:44,
+  loc: 1:0-9:44,
+  module: {
+    node: ScopedIdentifier,
+    loc: 1:7-1:11,
+    scopes: [],
+    name: {
+      node: Identifier,
+      loc: 1:7-1:11,
+      name: "Test",
+    },
+  },
+  imports: [],
   toplevels: [
     {
       node: Function,
-      loc: 1:0-1:18,
-      name: {
-        node: Identifier,
-        loc: 1:4-1:7,
-        name: "foo",
-      },
-      params: [],
-      body: {
-        node: IntLiteral,
-        loc: 1:17-1:18,
-        value: 1,
-        raw: "1",
-      },
-      return: {
-        node: PrimitiveType,
-        loc: 1:11-1:14,
-        kind: Int,
-      },
-    },
-    {
-      node: Function,
-      loc: 3:0-3:17,
+      loc: 3:0-3:18,
       name: {
         node: Identifier,
         loc: 3:4-3:7,
@@ -34,9 +24,10 @@ test/parser/ast/function_declaration/basic.myte
       },
       params: [],
       body: {
-        node: Block,
-        loc: 3:15-3:17,
-        statements: [],
+        node: IntLiteral,
+        loc: 3:17-3:18,
+        value: 1,
+        raw: "1",
       },
       return: {
         node: PrimitiveType,
@@ -46,70 +37,27 @@ test/parser/ast/function_declaration/basic.myte
     },
     {
       node: Function,
-      loc: 5:0-5:43,
+      loc: 5:0-5:17,
       name: {
         node: Identifier,
         loc: 5:4-5:7,
         name: "foo",
       },
-      params: [
-        {
-          node: Param,
-          loc: 5:8-5:14,
-          name: {
-            node: Identifier,
-            loc: 5:8-5:9,
-            name: "a",
-          },
-          annot: {
-            node: PrimitiveType,
-            loc: 5:11-5:14,
-            kind: Int,
-          },
-        },
-        {
-          node: Param,
-          loc: 5:16-5:25,
-          name: {
-            node: Identifier,
-            loc: 5:16-5:17,
-            name: "b",
-          },
-          annot: {
-            node: PrimitiveType,
-            loc: 5:19-5:25,
-            kind: String,
-          },
-        },
-        {
-          node: Param,
-          loc: 5:27-5:34,
-          name: {
-            node: Identifier,
-            loc: 5:27-5:28,
-            name: "c",
-          },
-          annot: {
-            node: PrimitiveType,
-            loc: 5:30-5:34,
-            kind: Bool,
-          },
-        },
-      ],
+      params: [],
       body: {
         node: Block,
-        loc: 5:41-5:43,
+        loc: 5:15-5:17,
         statements: [],
       },
       return: {
         node: PrimitiveType,
-        loc: 5:37-5:40,
+        loc: 5:11-5:14,
         kind: Int,
       },
     },
     {
       node: Function,
-      loc: 7:0-7:44,
+      loc: 7:0-7:43,
       name: {
         node: Identifier,
         loc: 7:4-7:7,
@@ -161,12 +109,75 @@ test/parser/ast/function_declaration/basic.myte
       ],
       body: {
         node: Block,
-        loc: 7:42-7:44,
+        loc: 7:41-7:43,
         statements: [],
       },
       return: {
         node: PrimitiveType,
-        loc: 7:38-7:41,
+        loc: 7:37-7:40,
+        kind: Int,
+      },
+    },
+    {
+      node: Function,
+      loc: 9:0-9:44,
+      name: {
+        node: Identifier,
+        loc: 9:4-9:7,
+        name: "foo",
+      },
+      params: [
+        {
+          node: Param,
+          loc: 9:8-9:14,
+          name: {
+            node: Identifier,
+            loc: 9:8-9:9,
+            name: "a",
+          },
+          annot: {
+            node: PrimitiveType,
+            loc: 9:11-9:14,
+            kind: Int,
+          },
+        },
+        {
+          node: Param,
+          loc: 9:16-9:25,
+          name: {
+            node: Identifier,
+            loc: 9:16-9:17,
+            name: "b",
+          },
+          annot: {
+            node: PrimitiveType,
+            loc: 9:19-9:25,
+            kind: String,
+          },
+        },
+        {
+          node: Param,
+          loc: 9:27-9:34,
+          name: {
+            node: Identifier,
+            loc: 9:27-9:28,
+            name: "c",
+          },
+          annot: {
+            node: PrimitiveType,
+            loc: 9:30-9:34,
+            kind: Bool,
+          },
+        },
+      ],
+      body: {
+        node: Block,
+        loc: 9:42-9:44,
+        statements: [],
+      },
+      return: {
+        node: PrimitiveType,
+        loc: 9:38-9:41,
         kind: Int,
       },
     },

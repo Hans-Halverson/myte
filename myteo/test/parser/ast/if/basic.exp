@@ -1,41 +1,32 @@
 test/parser/ast/if/basic.myte
 {
   node: Program,
-  loc: 1:0-14:1,
+  loc: 1:0-16:1,
+  module: {
+    node: ScopedIdentifier,
+    loc: 1:7-1:11,
+    scopes: [],
+    name: {
+      node: Identifier,
+      loc: 1:7-1:11,
+      name: "Test",
+    },
+  },
+  imports: [],
   toplevels: [
     {
       node: Function,
-      loc: 1:0-14:1,
+      loc: 3:0-16:1,
       name: {
         node: Identifier,
-        loc: 1:4-1:8,
+        loc: 3:4-3:8,
         name: "main",
       },
       params: [],
       body: {
         node: Block,
-        loc: 1:11-14:1,
+        loc: 3:11-16:1,
         statements: [
-          {
-            node: If,
-            loc: 2:2-2:14,
-            test: {
-              node: Identifier,
-              loc: 2:6-2:10,
-              name: "test",
-            },
-            conseq: {
-              node: ExpressionStatement,
-              loc: 2:12-2:14,
-              expression: {
-                node: IntLiteral,
-                loc: 2:12-2:13,
-                value: 1,
-                raw: "1",
-              },
-            },
-            altern: None,
-          },
           {
             node: If,
             loc: 4:2-4:14,
@@ -45,15 +36,20 @@ test/parser/ast/if/basic.myte
               name: "test",
             },
             conseq: {
-              node: Block,
+              node: ExpressionStatement,
               loc: 4:12-4:14,
-              statements: [],
+              expression: {
+                node: IntLiteral,
+                loc: 4:12-4:13,
+                value: 1,
+                raw: "1",
+              },
             },
             altern: None,
           },
           {
             node: If,
-            loc: 6:2-8:3,
+            loc: 6:2-6:14,
             test: {
               node: Identifier,
               loc: 6:6-6:10,
@@ -61,44 +57,59 @@ test/parser/ast/if/basic.myte
             },
             conseq: {
               node: Block,
-              loc: 6:12-7:3,
+              loc: 6:12-6:14,
+              statements: [],
+            },
+            altern: None,
+          },
+          {
+            node: If,
+            loc: 8:2-10:3,
+            test: {
+              node: Identifier,
+              loc: 8:6-8:10,
+              name: "test",
+            },
+            conseq: {
+              node: Block,
+              loc: 8:12-9:3,
               statements: [],
             },
             altern: {
               node: Block,
-              loc: 7:9-8:3,
+              loc: 9:9-10:3,
               statements: [],
             },
           },
           {
             node: If,
-            loc: 10:2-13:3,
+            loc: 12:2-15:3,
             test: {
               node: Identifier,
-              loc: 10:6-10:10,
+              loc: 12:6-12:10,
               name: "test",
             },
             conseq: {
               node: Block,
-              loc: 10:12-11:3,
+              loc: 12:12-13:3,
               statements: [],
             },
             altern: {
               node: If,
-              loc: 11:9-13:3,
+              loc: 13:9-15:3,
               test: {
                 node: Identifier,
-                loc: 11:13-11:18,
+                loc: 13:13-13:18,
                 name: "test2",
               },
               conseq: {
                 node: Block,
-                loc: 11:20-12:3,
+                loc: 13:20-14:3,
                 statements: [],
               },
               altern: {
                 node: Block,
-                loc: 12:9-13:3,
+                loc: 14:9-15:3,
                 statements: [],
               },
             },

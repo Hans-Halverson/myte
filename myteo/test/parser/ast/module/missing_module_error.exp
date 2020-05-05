@@ -1,0 +1,3 @@
+ERROR: test/parser/ast/module/missing_module_error.myte:1:0 File must start with a module declaration. Found "1" but expected "module"
+ 1 | 1;
+   | ^

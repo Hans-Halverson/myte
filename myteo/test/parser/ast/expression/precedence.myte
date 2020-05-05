@@ -1,3 +1,5 @@
+module Test
+
 fun main() {
   // Full precedence
   +a() * b + c < d == e && f || g;

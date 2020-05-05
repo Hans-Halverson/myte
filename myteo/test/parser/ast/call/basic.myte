@@ -1,3 +1,5 @@
+module Test
+
 fun main() {
   foo();
   foo(1);
