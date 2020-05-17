@@ -1,0 +1,17 @@
+module Test
+
+fun test() {
+  val x: int = 0;
+
+  {
+    x;
+    val x: int = 1;
+    {
+      {
+        x;
+      }
+    }
+  }
+}
+
+fun main() {}

@@ -1,4 +1,4 @@
-module SSet = Set.Make (String)
+open Basic_collections
 
 let print_errors errors =
   Printf.printf "%s" (String.concat "\n" (List.map (fun (loc, err) -> Error_pp.pp loc err) errors))

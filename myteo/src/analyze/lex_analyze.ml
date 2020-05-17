@@ -4,5 +4,6 @@ let analyze_module mod_ =
 
 let analyze_modules mods =
   let main_errors = Main_function.analyze mods in
+  let (_, resolution_errors) = Name_resolution.analyze mods in
   let single_module_errors = List.flatten (List.map analyze_module mods) in
-  main_errors @ single_module_errors
+  List.concat [main_errors; resolution_errors; single_module_errors]

@@ -30,6 +30,7 @@
 - Unused variable errors/warnings
 - Errors vs warnings
 - Return only in functions, break/continue only in statements, break/continue label analysis
+- Allow mutually recursive adjacent functions in a block
 
 # FUN IDEAS
 - MACROS (e.g. defined as functions that operate on the source ast and output another ast)

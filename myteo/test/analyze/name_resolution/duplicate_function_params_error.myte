@@ -1,0 +1,12 @@
+module Test
+
+// Errors
+fun test1(a: int, a: int) {}
+
+// Errors
+fun test2(a: int, b: int, a: string) {}
+
+// Doesn't error as param can have same name as function
+fun test3(test3: int) {}
+
+fun main() {}

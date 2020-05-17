@@ -1,0 +1,11 @@
+ERROR: test/analyze/name_resolution/duplicate_toplevels_error.myte:4:4 Name "foo" already bound in module
+ 4 | val foo: int = 1;
+   |     ^^^
+
+ERROR: test/analyze/name_resolution/duplicate_toplevels_error.myte:7:4 Name "bar" already bound in module
+ 7 | fun bar() {}
+   |     ^^^
+
+ERROR: test/analyze/name_resolution/duplicate_toplevels_error.myte:10:4 Name "baz" already bound in module
+ 10 | val baz: int = 1;
+    |     ^^^

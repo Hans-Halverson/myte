@@ -1,0 +1,31 @@
+module Test
+
+fun test(x: int, y: string) {
+  test;
+  x;
+  y;
+
+  {
+    test;
+    x;
+    y;
+  }
+
+  fun test2(z: int) {
+    test;
+    x;
+    y;
+    z;
+  }
+
+  fun test3(x: int, y: string) {
+    x;
+    y;
+  }
+
+  fun test() {
+    test;
+  }
+}
+
+fun main() {}

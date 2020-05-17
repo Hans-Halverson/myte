@@ -1,0 +1,27 @@
+ERROR: test/analyze/name_resolution/unresolved_name_error.myte:6:2 Could not resolve name "x"
+ 6 |   x;
+   |   ^
+
+ERROR: test/analyze/name_resolution/unresolved_name_error.myte:7:2 Could not resolve name "y"
+ 7 |   y;
+   |   ^
+
+ERROR: test/analyze/name_resolution/unresolved_name_error.myte:29:2 Could not resolve name "x"
+ 29 |   x;
+    |   ^
+
+ERROR: test/analyze/name_resolution/unresolved_name_error.myte:30:2 Could not resolve name "y"
+ 30 |   y;
+    |   ^
+
+ERROR: test/analyze/name_resolution/unresolved_name_error.myte:45:2 Could not resolve name "x"
+ 45 |   x;
+    |   ^
+
+ERROR: test/analyze/name_resolution/unresolved_name_error.myte:46:2 Could not resolve name "y"
+ 46 |   y; 
+    |   ^
+
+ERROR: test/analyze/name_resolution/unresolved_name_error.myte:57:2 Could not resolve name "x"
+ 57 |   x;
+    |   ^

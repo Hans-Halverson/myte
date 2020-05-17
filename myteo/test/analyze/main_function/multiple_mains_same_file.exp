@@ -1,3 +1,7 @@
 ERROR: test/analyze/main_function/multiple_mains_same_file.myte:5:4 Main function has already been declared
  5 | fun main() {}
    |     ^^^^
+
+ERROR: test/analyze/main_function/multiple_mains_same_file.myte:5:4 Name "main" already bound in module
+ 5 | fun main() {}
+   |     ^^^^

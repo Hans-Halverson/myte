@@ -1,17 +1,17 @@
 module StatementAfterReturn
 
 // Statement after exhaustive return errors
-fun foo(): int {
+fun test1(): int {
   return 1;
   2;
 }
 
-fun foo(): int {
+fun test2(): int {
   return 1;
   return 2;
 }
 
-fun foo(): int {
+fun test3(): int {
   if (true) {
     return 1;
   } else {
@@ -23,7 +23,7 @@ fun foo(): int {
 }
 
 // Statement after inexhaustive return does not error
-fun foo(): int {
+fun test4(): int {
   {
     1;
   }
@@ -31,7 +31,7 @@ fun foo(): int {
   return 2;
 }
 
-fun foo(): int {
+fun test5(): int {
   if (true) {
     return 1;
   }
@@ -40,7 +40,7 @@ fun foo(): int {
   return 3;
 }
 
-fun foo(): int {
+fun test6(): int {
   if (true) {
     1;
   } else {

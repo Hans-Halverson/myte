@@ -1,0 +1,12 @@
+module Test
+
+fun foo() {}
+val foo: int = 1;
+
+fun bar() {}
+fun bar() {}
+
+val baz: int = 1;
+val baz: int = 1;
+
+fun main() {}

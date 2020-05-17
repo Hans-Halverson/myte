@@ -1,6 +1,6 @@
 open Ast
 
-class ['a, 'b] ast_visitor =
+class ['a, 'b] visitor =
   object (this)
     method module_ : 'a -> 'b Module.t -> unit =
       fun acc mod_ ->

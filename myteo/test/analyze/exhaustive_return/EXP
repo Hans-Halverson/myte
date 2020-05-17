@@ -1,32 +1,32 @@
-ERROR: test/analyze/exhaustive_return/inexhaustive.myte:3:16 All branches of function foo must end in a return statement
- 3 | fun foo(): int {}
-   |                 ^
+ERROR: test/analyze/exhaustive_return/inexhaustive.myte:3:18 All branches of function test1 must end in a return statement
+ 3 | fun test1(): int {}
+   |                   ^
 
-ERROR: test/analyze/exhaustive_return/inexhaustive.myte:7:0 All branches of function foo must end in a return statement
+ERROR: test/analyze/exhaustive_return/inexhaustive.myte:7:0 All branches of function test2 must end in a return statement
  7 | }
    | ^
 
-ERROR: test/analyze/exhaustive_return/inexhaustive.myte:12:2 All branches of function foo must end in a return statement
+ERROR: test/analyze/exhaustive_return/inexhaustive.myte:12:2 All branches of function test3 must end in a return statement
  12 |   }
     |   ^
 
-ERROR: test/analyze/exhaustive_return/inexhaustive.myte:18:2 All branches of function foo must end in a return statement
+ERROR: test/analyze/exhaustive_return/inexhaustive.myte:18:2 All branches of function test4 must end in a return statement
  18 |   }
     |   ^
 
-ERROR: test/analyze/exhaustive_return/inexhaustive.myte:26:2 All branches of function foo must end in a return statement
+ERROR: test/analyze/exhaustive_return/inexhaustive.myte:26:2 All branches of function test5 must end in a return statement
  26 |   }
     |   ^
 
-ERROR: test/analyze/exhaustive_return/inexhaustive.myte:32:2 All branches of function foo must end in a return statement
+ERROR: test/analyze/exhaustive_return/inexhaustive.myte:32:2 All branches of function test6 must end in a return statement
  32 |   } else {
     |   ^
 
-ERROR: test/analyze/exhaustive_return/inexhaustive.myte:39:0 All branches of function foo must end in a return statement
+ERROR: test/analyze/exhaustive_return/inexhaustive.myte:39:0 All branches of function test7 must end in a return statement
  39 | }
     | ^
 
-ERROR: test/analyze/exhaustive_return/inexhaustive.myte:43:0 All branches of function foo must end in a return statement
+ERROR: test/analyze/exhaustive_return/inexhaustive.myte:43:0 All branches of function test8 must end in a return statement
  43 | }
     | ^
 

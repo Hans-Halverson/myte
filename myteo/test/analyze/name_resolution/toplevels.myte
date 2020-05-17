@@ -1,0 +1,50 @@
+module Test
+
+// Top level names can be referenced before they are defined
+fun topLevelBeforeTest() {
+  topLevelFunc;
+  topLevelVal;
+
+  {
+    topLevelFunc;
+    topLevelVal;
+  }
+
+  fun inner() {
+    topLevelFunc;
+    topLevelVal;
+  }
+}
+
+fun topLevelFunc() {}
+val topLevelVal: int = 1;
+
+// Top level names can be referenced after they are defined
+fun topLevelAfterTest() {
+  topLevelFunc;
+  topLevelVal;
+
+  {
+    topLevelFunc;
+    topLevelVal;
+  }
+
+  fun inner() {
+    topLevelFunc;
+    topLevelVal;
+  }
+}
+
+// Mutually recursive toplevel references
+val topLevelRecVar1: int = topLevelRecVar2;
+val topLevelRecVar2: int = topLevelRecVar1;
+
+fun topLevelRecFunc1() {
+  topLevelRecFunc2();
+}
+
+fun topLevelRecFunc2() {
+  topLevelRecFunc1();
+}
+
+fun main() {}

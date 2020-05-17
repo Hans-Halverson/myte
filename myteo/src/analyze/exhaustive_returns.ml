@@ -9,7 +9,7 @@ type exhaustive =
 
 class analyzer =
   object (this)
-    inherit [unit, unit] Ast_visitor.ast_visitor as super
+    inherit [unit, unit] Ast_visitor.visitor as super
 
     val mutable errors = []
 

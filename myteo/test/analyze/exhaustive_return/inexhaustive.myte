@@ -1,24 +1,24 @@
 module Inexhaustive
 
-fun foo(): int {}
+fun test1(): int {}
 
-fun foo(): int {
+fun test2(): int {
   1;
 }
 
-fun foo(): int {
+fun test3(): int {
   if (true) {
     1;
   }
 }
 
-fun foo(): int {
+fun test4(): int {
   if (true) {
     return 1;
   }
 }
 
-fun foo(): int {
+fun test5(): int {
   if (true) {
     return 1;
   } else {
@@ -26,7 +26,7 @@ fun foo(): int {
   }
 }
 
-fun foo(): int {
+fun test6(): int {
   if (true) {
     1;
   } else {
@@ -34,20 +34,20 @@ fun foo(): int {
   }
 }
 
-fun foo(): int {
+fun test7(): int {
   val x = 1;
 }
 
-fun foo(): int {
+fun test8(): int {
   fun bar(): int = 1
 }
 
-fun foo(): int {
+fun test9(): int {
   fun bar(): int {}
   return 1;
 }
 
-fun foo(): int {
+fun test10(): int {
   fun bar(): int {
     fun baz(): int {}
     return 1;
