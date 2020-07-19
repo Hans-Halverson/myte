@@ -8,6 +8,7 @@ type t =
   | UnresolvedName of string
   | DuplicateToplevelNames of string
   | DuplicateParameterNames of string * string
+  | DuplicateModuleNames of string
 
 let to_string error =
   match error with
@@ -20,3 +21,4 @@ let to_string error =
   | DuplicateToplevelNames name -> Printf.sprintf "Name \"%s\" already bound in module" name
   | DuplicateParameterNames (param, func) ->
     Printf.sprintf "Name \"%s\" already bound in parameters of function \"%s\"" param func
+  | DuplicateModuleNames name -> Printf.sprintf "Module already declared with name \"%s\"" name
