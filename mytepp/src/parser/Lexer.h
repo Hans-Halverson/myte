@@ -4,7 +4,9 @@
 
 #include "common/Loc.h"
 
-enum Token { Plus, Minus, Multiply, Divide, Eof };
+enum Token { Identifier, IntLiteral, Plus, Minus, Multiply, Divide, Eof };
+
+const char *tokenToString(Token);
 
 struct LexResult {
   Token token;
@@ -15,22 +17,30 @@ class Lexer {
  public:
   Lexer(char *file);
 
-  Token Peek();
-  Token Advance();
-  Loc *GetLoc();
+  Token peek();
+  Token advance();
+  Loc *loc();
 
  private:
   char *file_;
   std::ifstream istream_;
 
-  uint32_t line_;
-  uint32_t col_;
-  Pos start_pos_;
+  bool isPrimed_ = false;
+  char currentChar_ = 0;
+  char nextChar_ = 0;
+  bool isCurrentEOF_ = false;
+  bool isNextEOF_ = false;
+  uint32_t line_ = 1;
+  uint32_t col_ = 0;
+  Pos startPos_ = Pos{1, 0};
 
-  LexResult lex_result_;
+  LexResult lexResult_ = LexResult{Token::Eof, nullptr};
+  std::string lexString_ = std::string();
 
-  void Lex();
-  Loc *FinalizeLoc();
-  void FinalizeLexResult(Token);
-  char NextChar();
+  void lex();
+  void newStringWithChar();
+  void addCharToString();
+  Loc *finalizeLoc();
+  void finalizeLexResult(Token);
+  void nextChar();
 };

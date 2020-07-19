@@ -6,5 +6,5 @@ ROOT_DIR=$(dirname $CURRENT_DIR)
 CPP_FILES=$(find $ROOT_DIR/src -name "*.cpp")
 HEADER_FILES=$(find $ROOT_DIR/src -name "*.h")
 
-clang-format -i --style=Google --sort-includes \
+clang-format -i --style=file --sort-includes \
   ${=CPP_FILES} ${=HEADER_FILES}

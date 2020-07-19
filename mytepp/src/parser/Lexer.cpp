@@ -5,66 +5,121 @@
 
 #include "common/Loc.h"
 
-Lexer::Lexer(char *file)
-    : file_(file),
-      line_(1),
-      col_(-1),
-      start_pos_(Pos{0, 0}),
-      lex_result_(LexResult{Token::Eof, nullptr}) {
-  std::ifstream istream_(file);
+Lexer::Lexer(char *file) : file_(file), istream_(std::ifstream(file)) {}
+
+Token Lexer::peek() { return this->lexResult_.token; }
+
+Token Lexer::advance() {
+  this->lex();
+  return this->lexResult_.token;
 }
 
-Token Lexer::Peek() { return this->lex_result_.token; }
+Loc *Lexer::loc() { return this->lexResult_.loc; }
 
-Token Lexer::Advance() {
-  this->Lex();
-  return this->lex_result_.token;
-}
+void Lexer::nextChar() {
+  if (!this->isPrimed_) {
+    this->istream_.get(this->currentChar_);
+    this->isCurrentEOF_ = this->istream_.eof();
+    this->istream_.get(this->nextChar_);
+    this->isNextEOF_ = this->istream_.eof();
+    this->isPrimed_ = true;
+    return;
+  }
 
-Loc *Lexer::GetLoc() { return this->lex_result_.loc; }
-
-char Lexer::NextChar() {
-  char c;
-  this->istream_.get(c);
+  this->currentChar_ = this->nextChar_;
+  this->isCurrentEOF_ = this->isNextEOF_;
+  this->istream_.get(this->nextChar_);
+  this->isNextEOF_ = this->istream_.eof();
   this->col_++;
-
-  return c;
 }
 
-void Lexer::Lex() {
-  char c = this->NextChar();
-  this->start_pos_ = Pos{this->line_, this->col_};
+bool isAlphabetic(char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); }
 
-  switch (c) {
+bool isNumeric(char c) { return (c >= '0' && c <= '9'); }
+
+void Lexer::newStringWithChar() { this->lexString_ = std::string(1, this->currentChar_); }
+
+void Lexer::addCharToString() { this->lexString_.push_back(this->currentChar_); }
+
+void Lexer::lex() {
+  this->nextChar();
+  this->startPos_ = Pos{this->line_, this->col_};
+
+  if (this->isCurrentEOF_) {
+    this->finalizeLexResult(Token::Eof);
+    return;
+  }
+
+  // Identifiers consist of alphabetic, numeric, and underscore characters and must start with an
+  // alphabetic or underscore character.
+  if (isAlphabetic(this->currentChar_) || this->currentChar_ == '_') {
+    this->newStringWithChar();
+    while (!this->isNextEOF_ && (isAlphabetic(this->nextChar_) || isNumeric(this->nextChar_) ||
+                                 this->nextChar_ == '_')) {
+      this->nextChar();
+      this->addCharToString();
+    }
+
+    return this->finalizeLexResult(Token::Identifier);
+  }
+
+  // Int literals consist of a sequence of numeric characters
+  if (isNumeric(this->currentChar_)) {
+    this->newStringWithChar();
+    while (!this->isNextEOF_ && isNumeric(this->nextChar_)) {
+      this->nextChar();
+      this->addCharToString();
+    }
+
+    return this->finalizeLexResult(Token::IntLiteral);
+  }
+
+  switch (this->currentChar_) {
     case '\n':
       this->line_++;
       break;
     case ' ':
     case '\t':
-      this->Lex();
+      this->lex();
       break;
     case '+':
-      this->FinalizeLexResult(Token::Plus);
+      this->finalizeLexResult(Token::Plus);
       break;
     case '-':
-      this->FinalizeLexResult(Token::Minus);
+      this->finalizeLexResult(Token::Minus);
       break;
     case '*':
-      this->FinalizeLexResult(Token::Multiply);
+      this->finalizeLexResult(Token::Multiply);
       break;
     case '/':
-      this->FinalizeLexResult(Token::Divide);
-      break;
-    case EOF:
-      this->FinalizeLexResult(Token::Eof);
+      this->finalizeLexResult(Token::Divide);
       break;
   }
 }
 
-Loc *Lexer::FinalizeLoc() {
-  return new Loc{this->file_, this->start_pos_, Pos{this->line_, this->col_}};
+Loc *Lexer::finalizeLoc() {
+  return new Loc{this->file_, this->startPos_, Pos{this->line_, this->col_}};
 }
 
-void Lexer::FinalizeLexResult(Token token) {
-  this->lex_result_ = LexResult{token, this->FinalizeLoc()};
+void Lexer::finalizeLexResult(Token token) {
+  this->lexResult_ = LexResult{token, this->finalizeLoc()};
+}
+
+const char *tokenToString(Token token) {
+  switch (token) {
+    case Token::Plus:
+      return "+";
+    case Token::Minus:
+      return "-";
+    case Token::Multiply:
+      return "*";
+    case Token::Divide:
+      return "/";
+    case Token::Eof:
+      return "<EOF>";
+    case Token::Identifier:
+      return "<IDENTIFIER>";
+    case Token::IntLiteral:
+      return "<INT_LITERAL>";
+  }
 }
