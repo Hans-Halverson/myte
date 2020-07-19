@@ -1,7 +1,14 @@
-#!/bin/bash
+#!/bin/zsh
 
-mkdir -p $MYTEPATH/mytepp/builds
-clang++ -o $MYTEPATH/mytepp/builds/mytepp \
+CURRENT_DIR=$0:A:h
+ROOT_DIR=$(dirname $CURRENT_DIR)
+
+CPP_FILES=$(find $ROOT_DIR/src -name "*.cpp")
+
+# Build myte executable
+mkdir -p $ROOT_DIR/builds
+clang++ -o $ROOT_DIR/builds/mytepp \
   -Wall -Wextra -Wpedantic \
-  $MYTEPATH/mytepp/src/*.cpp \
-  $MYTEPATH/mytepp/src/*/*.cpp
+  -std=c++17 \
+  -Isrc \
+  ${=CPP_FILES}

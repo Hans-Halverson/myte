@@ -1,0 +1,10 @@
+#!/bin/zsh
+
+CURRENT_DIR=$0:A:h
+ROOT_DIR=$(dirname $CURRENT_DIR)
+
+CPP_FILES=$(find $ROOT_DIR/src -name "*.cpp")
+HEADER_FILES=$(find $ROOT_DIR/src -name "*.h")
+
+clang-format -i --style=Google --sort-includes \
+  ${=CPP_FILES} ${=HEADER_FILES}
