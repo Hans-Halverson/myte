@@ -1,20 +1,15 @@
 #include "parser/Lexer.h"
 
 #include <string>
-#include <vector>
 
 #include "common/Loc.h"
 
 Lexer::Lexer(char *file) : file_(file), istream_(std::ifstream(file)) {}
 
-Token Lexer::peek() { return this->lexResult_.token; }
-
-Token Lexer::advance() {
+LexResult Lexer::next() {
   this->lex();
-  return this->lexResult_.token;
+  return this->lexResult_;
 }
-
-Loc *Lexer::loc() { return this->lexResult_.loc; }
 
 void Lexer::nextChar() {
   if (!this->isPrimed_) {
@@ -66,9 +61,12 @@ void Lexer::lex() {
   // Int literals consist of a sequence of numeric characters
   if (isNumeric(this->currentChar_)) {
     this->newStringWithChar();
+    this->lexInt_ = this->currentChar_ - '0';
     while (!this->isNextEOF_ && isNumeric(this->nextChar_)) {
       this->nextChar();
       this->addCharToString();
+      this->lexInt_ *= 10;
+      this->lexInt_ += this->currentChar_ - '0';
     }
 
     return this->finalizeLexResult(Token::IntLiteral);
@@ -77,6 +75,7 @@ void Lexer::lex() {
   switch (this->currentChar_) {
     case '\n':
       this->line_++;
+      this->col_ = 0;
       break;
     case ' ':
     case '\t':
@@ -98,7 +97,7 @@ void Lexer::lex() {
 }
 
 Loc *Lexer::finalizeLoc() {
-  return new Loc{this->file_, this->startPos_, Pos{this->line_, this->col_}};
+  return new Loc{this->file_, this->startPos_, Pos{this->line_, this->col_ + 1}};
 }
 
 void Lexer::finalizeLexResult(Token token) {

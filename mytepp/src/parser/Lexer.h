@@ -4,7 +4,7 @@
 
 #include "common/Loc.h"
 
-enum Token { Identifier, IntLiteral, Plus, Minus, Multiply, Divide, Eof };
+enum class Token { Identifier, IntLiteral, Plus, Minus, Multiply, Divide, Eof };
 
 const char *tokenToString(Token);
 
@@ -17,9 +17,9 @@ class Lexer {
  public:
   Lexer(char *file);
 
-  Token peek();
-  Token advance();
-  Loc *loc();
+  LexResult next();
+  std::string lexString() { return lexString_; }
+  int64_t lexInt() { return lexInt_; }
 
  private:
   char *file_;
@@ -36,6 +36,7 @@ class Lexer {
 
   LexResult lexResult_ = LexResult{Token::Eof, nullptr};
   std::string lexString_ = std::string();
+  int64_t lexInt_ = 0;
 
   void lex();
   void newStringWithChar();
