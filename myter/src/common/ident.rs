@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use common::error::{ErrorContext, MyteError, MyteErrorType};
-use common::span::Span;
+use common::loc::Loc;
 
 pub type IdentifierID = u32;
 pub type TypeIdentifierID = u32;
@@ -9,13 +9,13 @@ pub type TypeIdentifierID = u32;
 #[derive(Clone)]
 pub struct Identifier {
     pub name: String,
-    pub span: Span,
+    pub loc: Loc,
 }
 
 #[derive(Clone)]
 pub struct TypeIdentifier {
     pub name: String,
-    pub span: Span,
+    pub loc: Loc,
 }
 
 #[derive(Debug)]
@@ -28,7 +28,7 @@ pub struct UnresolvedVariable {
 pub struct UnresolvedType {
     pub name: String,
     scope_id: ScopeID,
-    span: Span,
+    loc: Loc,
     in_def: bool,
 }
 
@@ -110,12 +110,12 @@ impl SymbolTable {
             .unwrap();
     }
 
-    pub fn add_variable(&mut self, name: &str, span: &Span) -> IdentifierID {
+    pub fn add_variable(&mut self, name: &str, loc: &Loc) -> IdentifierID {
         let var_id = self.variables.len() as u32;
 
         self.variables.push(Identifier {
             name: name.to_string(),
-            span: *span,
+            loc: *loc,
         });
 
         let current_scope_type = self.get_scope(self.current_id).ty;
@@ -133,7 +133,7 @@ impl SymbolTable {
     pub fn add_function(
         &mut self,
         name: &str,
-        span: &Span,
+        loc: &Loc,
         error_ctx: &mut ErrorContext,
     ) -> IdentifierID {
         let var_id = self.variables.len() as u32;
@@ -146,7 +146,7 @@ impl SymbolTable {
                         None => self.main_id = Some(var_id),
                         Some(_) => error_ctx.add_error(MyteError::new(
                             "main already defined".to_string(),
-                            span,
+                            loc,
                             MyteErrorType::Resolve,
                         )),
                     }
@@ -157,14 +157,14 @@ impl SymbolTable {
 
         self.variables.push(Identifier {
             name: name.to_string(),
-            span: *span,
+            loc: *loc,
         });
 
         let current_scope = &mut self.scopes[self.current_id];
         if current_scope.variables.contains_key(name) && current_scope.ty != ScopeType::Repl {
             error_ctx.add_error(MyteError::new(
                 format!("Function with name {} already defined in this scope", name),
-                span,
+                loc,
                 MyteErrorType::Resolve,
             ));
 
@@ -183,11 +183,11 @@ impl SymbolTable {
         }
     }
 
-    pub fn unresolved_type(&self, name: &str, span: &Span, in_def: bool) -> UnresolvedType {
+    pub fn unresolved_type(&self, name: &str, loc: &Loc, in_def: bool) -> UnresolvedType {
         UnresolvedType {
             name: name.to_string(),
             scope_id: self.current_id,
-            span: *span,
+            loc: *loc,
             in_def,
         }
     }
@@ -207,7 +207,7 @@ impl SymbolTable {
 
             self.types.push(TypeIdentifier {
                 name: ty.name.to_string(),
-                span: ty.span,
+                loc: ty.loc,
             });
 
             self.scopes[type_scope_id]

@@ -1,6 +1,6 @@
 use common::context::Context;
 use common::source;
-use common::span::Span;
+use common::loc::Loc;
 
 use std::cmp::Ordering;
 use std::fs::File;
@@ -20,7 +20,7 @@ pub enum MyteErrorType {
 #[derive(Clone)]
 pub struct MyteError {
     pub error: String,
-    pub span: Span,
+    pub loc: Loc,
     pub ty: MyteErrorType,
 }
 
@@ -33,17 +33,17 @@ pub struct ErrorContext {
 pub type MyteResult<T> = Result<T, MyteError>;
 
 impl MyteError {
-    pub fn new(error: String, span: &Span, ty: MyteErrorType) -> MyteError {
+    pub fn new(error: String, loc: &Loc, ty: MyteErrorType) -> MyteError {
         MyteError {
             error,
-            span: *span,
+            loc: *loc,
             ty,
         }
     }
 }
 
-pub fn mkerr<T>(error: String, span: &Span, ty: MyteErrorType) -> MyteResult<T> {
-    Err(MyteError::new(error, span, ty))
+pub fn mkerr<T>(error: String, loc: &Loc, ty: MyteErrorType) -> MyteResult<T> {
+    Err(MyteError::new(error, loc, ty))
 }
 
 impl ErrorContext {
@@ -77,20 +77,20 @@ impl ErrorContext {
         }
 
         all_errors.sort_unstable_by(|err1, err2| {
-            let file1 = ctx.file_table.get_file_name(err1.span.file_descriptor);
-            let file2 = ctx.file_table.get_file_name(err2.span.file_descriptor);
+            let file1 = ctx.file_table.get_file_name(err1.loc.file_descriptor);
+            let file2 = ctx.file_table.get_file_name(err2.loc.file_descriptor);
 
             let file_ord = file1.cmp(&file2);
             if file_ord != Ordering::Equal {
                 return file_ord;
             }
 
-            let line_ord = err1.span.start_line.cmp(&err2.span.start_line);
+            let line_ord = err1.loc.start_line.cmp(&err2.loc.start_line);
             if line_ord != Ordering::Equal {
                 return line_ord;
             }
 
-            err1.span.start_byte.cmp(&err2.span.start_byte)
+            err1.loc.start_byte.cmp(&err2.loc.start_byte)
         });
 
         for error in all_errors {
@@ -179,7 +179,7 @@ fn pad_number(n: u32, max_num_digits: u32) -> String {
 }
 
 fn print_summary_line(err: &MyteError, file_name: Option<&str>) {
-    let MyteError { error, span, .. } = err;
+    let MyteError { error, loc, .. } = err;
     let file_name_prefix = match file_name {
         Some(file_name) => format!("{}:", file_name),
         None => String::new(),
@@ -188,8 +188,8 @@ fn print_summary_line(err: &MyteError, file_name: Option<&str>) {
     println!(
         "{}{}:{}:{}{} error: {}{}{}",
         file_name_prefix,
-        span.start_line + 1,
-        span.start_byte + 1,
+        loc.start_line + 1,
+        loc.start_byte + 1,
         BOLD_ATTRIBUTE,
         RED_COLOR,
         RESET_COLOR,
@@ -198,13 +198,13 @@ fn print_summary_line(err: &MyteError, file_name: Option<&str>) {
     );
 }
 
-fn print_single_line(line: &str, span: &Span) {
-    let max_num_digits = digit_count(span.start_line + 1);
-    let padded_line_num = pad_number(span.start_line + 1, max_num_digits);
+fn print_single_line(line: &str, loc: &Loc) {
+    let max_num_digits = digit_count(loc.start_line + 1);
+    let padded_line_num = pad_number(loc.start_line + 1, max_num_digits);
     let padded_carets = format!(
         "{}{}",
-        " ".repeat(span.start_byte as usize),
-        "^".repeat((span.end_byte - span.start_byte + 1) as usize)
+        " ".repeat(loc.start_byte as usize),
+        "^".repeat((loc.end_byte - loc.start_byte + 1) as usize)
     );
 
     println!(
@@ -221,13 +221,13 @@ fn print_single_line(line: &str, span: &Span) {
     );
 }
 
-fn print_first_line(line: &str, span: &Span) {
-    let max_num_digits = digit_count(span.end_line + 1);
-    let padded_line_num = pad_number(span.start_line + 1, max_num_digits);
+fn print_first_line(line: &str, loc: &Loc) {
+    let max_num_digits = digit_count(loc.end_line + 1);
+    let padded_line_num = pad_number(loc.start_line + 1, max_num_digits);
     let padded_carets = format!(
         "{}{}",
-        " ".repeat(span.start_byte as usize),
-        "^".repeat(line.len() - (span.start_byte as usize))
+        " ".repeat(loc.start_byte as usize),
+        "^".repeat(line.len() - (loc.start_byte as usize))
     );
 
     println!(
@@ -244,10 +244,10 @@ fn print_first_line(line: &str, span: &Span) {
     );
 }
 
-fn print_last_line(line: &str, span: &Span) {
-    let max_num_digits = digit_count(span.end_line + 1);
-    let padded_line_num = pad_number(span.end_line + 1, max_num_digits);
-    let padded_carets = "^".repeat((span.end_byte + 1) as usize);
+fn print_last_line(line: &str, loc: &Loc) {
+    let max_num_digits = digit_count(loc.end_line + 1);
+    let padded_line_num = pad_number(loc.end_line + 1, max_num_digits);
+    let padded_carets = "^".repeat((loc.end_byte + 1) as usize);
 
     println!(
         "{}{}|{} | {}{}",
@@ -263,8 +263,8 @@ fn print_last_line(line: &str, span: &Span) {
     );
 }
 
-fn print_middle_line(line: &str, span: &Span, line_num: u32) {
-    let max_num_digits = digit_count(span.end_line + 1);
+fn print_middle_line(line: &str, loc: &Loc, line_num: u32) {
+    let max_num_digits = digit_count(loc.end_line + 1);
     let padded_line_num = pad_number(line_num + 1, max_num_digits);
     let padded_carets = "^".repeat(line.len());
 
@@ -282,8 +282,8 @@ fn print_middle_line(line: &str, span: &Span, line_num: u32) {
     );
 }
 
-fn print_dots_line(span: &Span) {
-    let max_num_digits = digit_count(span.end_line + 1);
+fn print_dots_line(loc: &Loc) {
+    let max_num_digits = digit_count(loc.end_line + 1);
     let padding = " ".repeat((max_num_digits - 1) as usize);
 
     println!(
@@ -293,68 +293,68 @@ fn print_dots_line(span: &Span) {
 }
 
 pub fn print_err(err: &MyteError, ctx: &Context) -> io::Result<()> {
-    let span = &err.span;
+    let loc = &err.loc;
     let repl_contents = ctx.file_table.get_repl_contents();
-    let mut error_reader: Box<ErrorRead> = if span.file_descriptor == source::REPL_FILE_DESCRIPTOR {
+    let mut error_reader: Box<ErrorRead> = if loc.file_descriptor == source::REPL_FILE_DESCRIPTOR {
         print_summary_line(err, None);
         Box::new(ErrorReader::<&[u8]>::from_repl(&repl_contents))
     } else {
-        let file_name = ctx.file_table.get_file_name(span.file_descriptor);
+        let file_name = ctx.file_table.get_file_name(loc.file_descriptor);
         print_summary_line(err, Some(&file_name));
         Box::new(ErrorReader::<File>::from_file(&file_name)?)
     };
 
-    // Print first line, or single line if span is on single line
-    let first_line = error_reader.read_line(span.start_line)?;
-    if span.start_line == span.end_line {
-        print_single_line(&first_line, span);
+    // Print first line, or single line if loc is on single line
+    let first_line = error_reader.read_line(loc.start_line)?;
+    if loc.start_line == loc.end_line {
+        print_single_line(&first_line, loc);
         return Ok(());
     } else {
-        print_first_line(&first_line, span);
+        print_first_line(&first_line, loc);
     }
 
-    // Print second line, or last line if two line span
-    let second_line = error_reader.read_line(span.start_line + 1)?;
-    if span.end_line == span.start_line + 1 {
-        print_last_line(&second_line, span);
+    // Print second line, or last line if two line loc
+    let second_line = error_reader.read_line(loc.start_line + 1)?;
+    if loc.end_line == loc.start_line + 1 {
+        print_last_line(&second_line, loc);
         return Ok(());
     } else {
-        print_middle_line(&second_line, span, span.start_line + 1);
+        print_middle_line(&second_line, loc, loc.start_line + 1);
     }
 
-    // Print third line, or last line if three line span
-    let third_line = error_reader.read_line(span.start_line + 2)?;
-    if span.end_line == span.start_line + 2 {
-        print_last_line(&third_line, span);
+    // Print third line, or last line if three line loc
+    let third_line = error_reader.read_line(loc.start_line + 2)?;
+    if loc.end_line == loc.start_line + 2 {
+        print_last_line(&third_line, loc);
         return Ok(());
     } else {
-        print_middle_line(&third_line, span, span.start_line + 2);
+        print_middle_line(&third_line, loc, loc.start_line + 2);
     }
 
-    // Print last line if four line span
-    let fourth_line = error_reader.read_line(span.start_line + 3)?;
-    if span.end_line == span.start_line + 3 {
-        print_last_line(&fourth_line, span);
+    // Print last line if four line loc
+    let fourth_line = error_reader.read_line(loc.start_line + 3)?;
+    if loc.end_line == loc.start_line + 3 {
+        print_last_line(&fourth_line, loc);
         return Ok(());
-    // Print fourth and last lines if five line span
-    } else if span.end_line == span.start_line + 4 {
-        print_middle_line(&fourth_line, span, span.start_line + 3);
+    // Print fourth and last lines if five line loc
+    } else if loc.end_line == loc.start_line + 4 {
+        print_middle_line(&fourth_line, loc, loc.start_line + 3);
 
-        let fifth_line = error_reader.read_line(span.start_line + 4)?;
-        print_last_line(&fifth_line, span);
+        let fifth_line = error_reader.read_line(loc.start_line + 4)?;
+        print_last_line(&fifth_line, loc);
 
         return Ok(());
     }
 
-    // If greater than five line span, print dots after third line
-    print_dots_line(span);
+    // If greater than five line loc, print dots after third line
+    print_dots_line(loc);
 
     // Print second to last and last lines
-    let second_to_last_line = error_reader.read_line(span.end_line - 1)?;
-    print_middle_line(&second_to_last_line, span, span.end_line - 1);
+    let second_to_last_line = error_reader.read_line(loc.end_line - 1)?;
+    print_middle_line(&second_to_last_line, loc, loc.end_line - 1);
 
-    let last_line = error_reader.read_line(span.end_line)?;
-    print_last_line(&last_line, span);
+    let last_line = error_reader.read_line(loc.end_line)?;
+    print_last_line(&last_line, loc);
 
     Ok(())
 }

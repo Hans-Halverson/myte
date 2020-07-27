@@ -1,10 +1,10 @@
 use common::ident::{IdentifierID, UnresolvedType, UnresolvedVariable};
-use common::span::Span;
+use common::loc::Loc;
 
 #[derive(Debug)]
 pub struct AstExpr {
     pub node: AstExprType,
-    pub span: Span,
+    pub loc: Loc,
 }
 
 #[derive(Debug)]
@@ -54,37 +54,37 @@ pub enum AstStmt {
         lvalue: Box<AstPat>,
         rvalue: Box<AstExpr>,
         annot: Option<Box<AstType>>,
-        span: Span,
+        loc: Loc,
     },
     FunctionDefinition {
         name: IdentifierID,
         params: Vec<(IdentifierID, Box<AstType>)>,
         body: Box<AstExpr>,
         return_annot: Option<Box<AstType>>,
-        span: Span,
+        loc: Loc,
     },
     If {
         cond: Box<AstExpr>,
         conseq: Box<AstExpr>,
-        span: Span,
+        loc: Loc,
     },
     While {
         cond: Box<AstExpr>,
         body: Box<AstExpr>,
-        span: Span,
+        loc: Loc,
     },
 }
 
 #[derive(Debug, Clone)]
 pub enum AstPat {
-    Variable { var: IdentifierID, span: Span },
-    Tuple { elements: Vec<AstPat>, span: Span },
+    Variable { var: IdentifierID, loc: Loc },
+    Tuple { elements: Vec<AstPat>, loc: Loc },
 }
 
 #[derive(Debug)]
 pub struct AstType {
     pub ty: AstTypeType,
-    pub span: Span,
+    pub loc: Loc,
 }
 
 #[derive(Debug)]

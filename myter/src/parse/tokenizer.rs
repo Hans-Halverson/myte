@@ -1,5 +1,5 @@
 use common::error::{mkerr, MyteErrorType, MyteResult};
-use common::span::Span;
+use common::loc::Loc;
 use lex::tokens::Token;
 
 pub struct Tokenizer<'a> {
@@ -18,7 +18,7 @@ impl<'a> Tokenizer<'a> {
         } else {
             mkerr(
                 "Unexpected end of file".to_string(),
-                &Span::end_point_span(&self.tokens[self.tokens.len() - 1].span),
+                &Loc::end_point_loc(&self.tokens[self.tokens.len() - 1].loc),
                 MyteErrorType::UnexpectedEOF,
             )
         }
@@ -28,7 +28,7 @@ impl<'a> Tokenizer<'a> {
         if self.reached_end() {
             mkerr(
                 "Unexpected end of file".to_string(),
-                &Span::end_point_span(&self.tokens[self.tokens.len() - 1].span),
+                &Loc::end_point_loc(&self.tokens[self.tokens.len() - 1].loc),
                 MyteErrorType::UnexpectedEOF,
             )
         } else {

@@ -1,12 +1,12 @@
 use common::context::Context;
 use common::error::{self, mkerr, MyteErrorType, MyteResult};
-use common::span::Span;
+use common::loc::Loc;
 use interpreter::env::Environment;
 use interpreter::value::Value;
 use ir::nodes::{IrExpr, IrExprType, IrPat, IrPatType, IrStmt, IrStmtType};
 
 enum EvalUnwind {
-    Error { err: String, span: Span },
+    Error { err: String, loc: Loc },
     Return(Value),
     Break,
     Continue,
@@ -24,7 +24,7 @@ impl<'ctx> Evaluator<'ctx> {
     }
 
     fn evaluate_expr(&mut self, ir: &IrExpr, env: &mut Environment) -> EvalResult<Value> {
-        let IrExpr { span, node, .. } = ir;
+        let IrExpr { loc, node, .. } = ir;
         match *node {
             IrExprType::UnitLiteral => Ok(Value::Unit),
             IrExprType::BoolLiteral(bool) => Ok(Value::Bool(bool)),
@@ -51,7 +51,7 @@ impl<'ctx> Evaluator<'ctx> {
                 (Value::Float(left), Value::Float(right)) => Ok(Value::Float(left + right)),
                 _ => mk_eval_err(
                     "PRE-TYPES: Add expects numbers of same type".to_string(),
-                    &span,
+                    &loc,
                 ),
             },
             IrExprType::Subtract {
@@ -65,7 +65,7 @@ impl<'ctx> Evaluator<'ctx> {
                 (Value::Float(left), Value::Float(right)) => Ok(Value::Float(left - right)),
                 _ => mk_eval_err(
                     "PRE-TYPES: Subtract expects numbers of same type".to_string(),
-                    &span,
+                    &loc,
                 ),
             },
             IrExprType::Multiply {
@@ -79,7 +79,7 @@ impl<'ctx> Evaluator<'ctx> {
                 (Value::Float(left), Value::Float(right)) => Ok(Value::Float(left * right)),
                 _ => mk_eval_err(
                     "PRE-TYPES: Multiply expects numbers of same type".to_string(),
-                    &span,
+                    &loc,
                 ),
             },
             IrExprType::Divide {
@@ -93,7 +93,7 @@ impl<'ctx> Evaluator<'ctx> {
                 (Value::Float(left), Value::Float(right)) => Ok(Value::Float(left / right)),
                 _ => mk_eval_err(
                     "PRE-TYPES: Divide expects numbers of same type".to_string(),
-                    &span,
+                    &loc,
                 ),
             },
             IrExprType::Exponentiate {
@@ -111,7 +111,7 @@ impl<'ctx> Evaluator<'ctx> {
                 }
                 _ => mk_eval_err(
                     "PRE-TYPES: Exponentiate expects numbers of same type".to_string(),
-                    &span,
+                    &loc,
                 ),
             },
             IrExprType::Remainder {
@@ -125,22 +125,22 @@ impl<'ctx> Evaluator<'ctx> {
                 (Value::Float(left), Value::Float(right)) => Ok(Value::Float(left % right)),
                 _ => mk_eval_err(
                     "PRE-TYPES: Remainder expects numbers of same type".to_string(),
-                    &span,
+                    &loc,
                 ),
             },
             IrExprType::UnaryPlus(ref node) => match self.evaluate_expr(node, env)? {
                 Value::Int(num) => Ok(Value::Int(num)),
                 Value::Float(num) => Ok(Value::Float(num)),
-                _ => mk_eval_err("PRE-TYPES: Unary plus expects number".to_string(), &span),
+                _ => mk_eval_err("PRE-TYPES: Unary plus expects number".to_string(), &loc),
             },
             IrExprType::UnaryMinus(ref node) => match self.evaluate_expr(node, env)? {
                 Value::Int(num) => Ok(Value::Int(-num)),
                 Value::Float(num) => Ok(Value::Float(-num)),
-                _ => mk_eval_err("PRE-TYPES: Unary minus expects number".to_string(), &span),
+                _ => mk_eval_err("PRE-TYPES: Unary minus expects number".to_string(), &loc),
             },
             IrExprType::LogicalNot(ref node) => match self.evaluate_expr(node, env)? {
                 Value::Bool(bool) => Ok(Value::Bool(!bool)),
-                _ => mk_eval_err("PRE-TYPES: Logical not expects bool".to_string(), &span),
+                _ => mk_eval_err("PRE-TYPES: Logical not expects bool".to_string(), &loc),
             },
             IrExprType::LogicalAnd {
                 ref left,
@@ -149,9 +149,9 @@ impl<'ctx> Evaluator<'ctx> {
                 Value::Bool(false) => Ok(Value::Bool(false)),
                 Value::Bool(true) => match self.evaluate_expr(right, env)? {
                     Value::Bool(bool) => Ok(Value::Bool(bool)),
-                    _ => mk_eval_err("PRE-TYPES: Logical and expects bools".to_string(), &span),
+                    _ => mk_eval_err("PRE-TYPES: Logical and expects bools".to_string(), &loc),
                 },
-                _ => mk_eval_err("PRE-TYPES: Logical and expects bools".to_string(), &span),
+                _ => mk_eval_err("PRE-TYPES: Logical and expects bools".to_string(), &loc),
             },
             IrExprType::LogicalOr {
                 ref left,
@@ -160,9 +160,9 @@ impl<'ctx> Evaluator<'ctx> {
                 Value::Bool(true) => Ok(Value::Bool(true)),
                 Value::Bool(false) => match self.evaluate_expr(right, env)? {
                     Value::Bool(bool) => Ok(Value::Bool(bool)),
-                    _ => mk_eval_err("PRE-TYPES: Logical or expects bools".to_string(), &span),
+                    _ => mk_eval_err("PRE-TYPES: Logical or expects bools".to_string(), &loc),
                 },
-                _ => mk_eval_err("PRE-TYPES: Logical or expects bools".to_string(), &span),
+                _ => mk_eval_err("PRE-TYPES: Logical or expects bools".to_string(), &loc),
             },
             IrExprType::Equals {
                 ref left,
@@ -181,7 +181,7 @@ impl<'ctx> Evaluator<'ctx> {
                 (Value::Closure { .. }, Value::Closure { .. }) => Ok(Value::Bool(false)),
                 _ => mk_eval_err(
                     "PRE-TYPES: Comparison expects values of same type".to_string(),
-                    span,
+                    loc,
                 ),
             },
             IrExprType::NotEqual {
@@ -201,7 +201,7 @@ impl<'ctx> Evaluator<'ctx> {
                 (Value::Closure { .. }, Value::Closure { .. }) => Ok(Value::Bool(true)),
                 _ => mk_eval_err(
                     "PRE-TYPES: Comparison expects values of same type".to_string(),
-                    span,
+                    loc,
                 ),
             },
             IrExprType::LessThan {
@@ -216,7 +216,7 @@ impl<'ctx> Evaluator<'ctx> {
                 (Value::Float(left), Value::Float(right)) => Ok(Value::Bool(left < right)),
                 _ => mk_eval_err(
                     "PRE-TYPES: Comparison expects comparable values of same type".to_string(),
-                    span,
+                    loc,
                 ),
             },
             IrExprType::LessThanOrEqual {
@@ -231,7 +231,7 @@ impl<'ctx> Evaluator<'ctx> {
                 (Value::Float(left), Value::Float(right)) => Ok(Value::Bool(left <= right)),
                 _ => mk_eval_err(
                     "PRE-TYPES: Comparison expects comparable values of same type".to_string(),
-                    span,
+                    loc,
                 ),
             },
             IrExprType::GreaterThan {
@@ -246,7 +246,7 @@ impl<'ctx> Evaluator<'ctx> {
                 (Value::Float(left), Value::Float(right)) => Ok(Value::Bool(left > right)),
                 _ => mk_eval_err(
                     "PRE-TYPES: Comparison expects comparable values of same type".to_string(),
-                    span,
+                    loc,
                 ),
             },
             IrExprType::GreaterThanOrEqual {
@@ -261,7 +261,7 @@ impl<'ctx> Evaluator<'ctx> {
                 (Value::Float(left), Value::Float(right)) => Ok(Value::Bool(left >= right)),
                 _ => mk_eval_err(
                     "PRE-TYPES: Comparison expects comparable values of same type".to_string(),
-                    span,
+                    loc,
                 ),
             },
             IrExprType::Block(ref nodes) => {
@@ -281,7 +281,7 @@ impl<'ctx> Evaluator<'ctx> {
                 Value::Bool(false) => self.evaluate_expr(altern, env),
                 _ => mk_eval_err(
                     "PRE-TYPES: Condition of if expression must be a bool".to_string(),
-                    &cond.span,
+                    &cond.loc,
                 ),
             },
             IrExprType::Application { ref func, ref args } => {
@@ -295,7 +295,7 @@ impl<'ctx> Evaluator<'ctx> {
                             return mk_eval_err(
                                 "PRE-TYPES: Incorrect number of arguments in application"
                                     .to_string(),
-                                &span,
+                                &loc,
                             );
                         }
 
@@ -312,7 +312,7 @@ impl<'ctx> Evaluator<'ctx> {
                             Ok(_) => {
                                 return mk_eval_err(
                                     "Function application finished without returning".to_string(),
-                                    &span,
+                                    &loc,
                                 )
                             }
                         };
@@ -323,7 +323,7 @@ impl<'ctx> Evaluator<'ctx> {
                     }
                     _ => mk_eval_err(
                         "PRE-TYPES: Left side of application must be a closure".to_string(),
-                        &span,
+                        &loc,
                     ),
                 }
             }
@@ -381,7 +381,7 @@ impl<'ctx> Evaluator<'ctx> {
                 Value::Bool(false) => Ok(Value::Unit),
                 _ => mk_eval_err(
                     "PRE-TYPES: Condition of if statement must be a bool".to_string(),
-                    &cond.span,
+                    &cond.loc,
                 ),
             },
             IrStmtType::While { ref cond, ref body } => {
@@ -399,7 +399,7 @@ impl<'ctx> Evaluator<'ctx> {
                             return mk_eval_err(
                                 "PRE-TYPES: Condition of while statement must be a bool"
                                     .to_string(),
-                                &cond.span,
+                                &cond.loc,
                             )
                         }
                     };
@@ -428,7 +428,7 @@ impl<'ctx> Evaluator<'ctx> {
                 if !params.is_empty() {
                     return mk_eval_err(
                         "Main takes no arguments".to_string(),
-                        &self.ctx.symbol_table.get_ident(main_id).span,
+                        &self.ctx.symbol_table.get_ident(main_id).loc,
                     );
                 }
 
@@ -441,7 +441,7 @@ impl<'ctx> Evaluator<'ctx> {
             }
             _ => mk_eval_err(
                 "Main must be a function".to_string(),
-                &self.ctx.symbol_table.get_ident(main_id).span,
+                &self.ctx.symbol_table.get_ident(main_id).loc,
             ),
         }
     }
@@ -462,7 +462,7 @@ fn bind_variables(pat: &IrPat, val: &Value, env: &mut Environment) -> EvalResult
         }
         _ => mk_eval_err(
             "MATCHING: Cannot bind value to pattern".to_string(),
-            &pat.span,
+            &pat.loc,
         ),
     }
 }
@@ -473,7 +473,7 @@ pub fn evaluate_repl_line(
     ctx: &mut Context,
 ) -> MyteResult<Value> {
     let mut evaluator = Evaluator::new(ctx);
-    convert_result(evaluator.evaluate_stmt(&ir, env), &ir.span)
+    convert_result(evaluator.evaluate_stmt(&ir, env), &ir.loc)
 }
 
 pub fn evaluate_files(
@@ -483,7 +483,7 @@ pub fn evaluate_files(
 ) -> MyteResult<Option<Value>> {
     let mut evaluator = Evaluator::new(ctx);
     for ir in irs {
-        convert_result(evaluator.evaluate_stmt(&ir, env), &ir.span)?;
+        convert_result(evaluator.evaluate_stmt(&ir, env), &ir.loc)?;
     }
 
     match evaluator.apply_main(env) {
@@ -496,33 +496,33 @@ pub fn evaluate_files(
             error::print_err_string("Main fuction finished with a continue");
             Ok(None)
         }
-        Err(EvalUnwind::Error { err, span }) => mkerr(err, &span, MyteErrorType::Evaluate),
+        Err(EvalUnwind::Error { err, loc }) => mkerr(err, &loc, MyteErrorType::Evaluate),
         Ok(_) => Ok(None),
     }
 }
 
-fn convert_result<T>(err: EvalResult<T>, span: &Span) -> MyteResult<T> {
+fn convert_result<T>(err: EvalResult<T>, loc: &Loc) -> MyteResult<T> {
     match err {
         Ok(value) => Ok(value),
-        Err(EvalUnwind::Error { err, span }) => mkerr(err, &span, MyteErrorType::Evaluate),
+        Err(EvalUnwind::Error { err, loc }) => mkerr(err, &loc, MyteErrorType::Evaluate),
         Err(EvalUnwind::Return(_)) => mkerr(
             "Returned outside a function call".to_string(),
-            span,
+            loc,
             MyteErrorType::Evaluate,
         ),
         Err(EvalUnwind::Break) => mkerr(
             "Encountered break outside a function call".to_string(),
-            span,
+            loc,
             MyteErrorType::Evaluate,
         ),
         Err(EvalUnwind::Continue) => mkerr(
             "Encountered continue outside a function call".to_string(),
-            span,
+            loc,
             MyteErrorType::Evaluate,
         ),
     }
 }
 
-fn mk_eval_err<T>(err: String, span: &Span) -> EvalResult<T> {
-    Err(EvalUnwind::Error { err, span: *span })
+fn mk_eval_err<T>(err: String, loc: &Loc) -> EvalResult<T> {
+    Err(EvalUnwind::Error { err, loc: *loc })
 }

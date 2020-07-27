@@ -1,5 +1,5 @@
 use common::error::{mkerr, MyteErrorType, MyteResult, ERROR_TAB_WIDTH};
-use common::span::Span;
+use common::loc::Loc;
 use lex::tokens::{Token, TokenType};
 
 struct Tokenizer<'a> {
@@ -59,13 +59,13 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    fn start_span(&mut self) {
+    fn start_loc(&mut self) {
         self.marked_byte = self.current_byte;
         self.marked_line = self.current_line;
     }
 
-    fn mark_span(&self) -> Span {
-        Span::new(
+    fn mark_loc(&self) -> Loc {
+        Loc::new(
             self.marked_byte,
             self.current_byte,
             self.marked_line,
@@ -74,8 +74,8 @@ impl<'a> Tokenizer<'a> {
         )
     }
 
-    fn mark_span_next(&self) -> Span {
-        Span::new(
+    fn mark_loc_next(&self) -> Loc {
+        Loc::new(
             self.marked_byte,
             self.current_byte + 1,
             self.marked_line,
@@ -117,7 +117,7 @@ fn read_line_comment(tokenizer: &mut Tokenizer) {
 fn read_block_comment(tokenizer: &mut Tokenizer) -> MyteResult<()> {
     tokenizer.advance();
 
-    let comment_open_span = tokenizer.mark_span();
+    let comment_open_loc = tokenizer.mark_loc();
 
     tokenizer.advance();
 
@@ -129,10 +129,10 @@ fn read_block_comment(tokenizer: &mut Tokenizer) -> MyteResult<()> {
                     break;
                 }
                 Some(_) => {}
-                None => return mk_lex_err("Unclosed block comment".to_owned(), &comment_open_span),
+                None => return mk_lex_err("Unclosed block comment".to_owned(), &comment_open_loc),
             },
             Some(_) => {}
-            None => return mk_lex_err("Unclosed block comment".to_owned(), &comment_open_span),
+            None => return mk_lex_err("Unclosed block comment".to_owned(), &comment_open_loc),
         }
 
         tokenizer.advance();
@@ -156,11 +156,11 @@ fn read_identifier(tokens: &mut Vec<Token>, tokenizer: &mut Tokenizer) {
 
     unsafe {
         let identifier = String::from_utf8_unchecked(identifier_bytes);
-        tokens.push(token_from_identifier(identifier, tokenizer.mark_span()));
+        tokens.push(token_from_identifier(identifier, tokenizer.mark_loc()));
     }
 }
 
-fn token_from_identifier(identifier: String, span: Span) -> Token {
+fn token_from_identifier(identifier: String, loc: Loc) -> Token {
     let ty = match identifier.as_ref() {
         "true" => TokenType::True,
         "false" => TokenType::False,
@@ -204,13 +204,13 @@ fn token_from_identifier(identifier: String, span: Span) -> Token {
         _ => TokenType::Identifier(identifier),
     };
 
-    Token { span, ty }
+    Token { loc, ty }
 }
 
 fn read_string_literal(tokens: &mut Vec<Token>, tokenizer: &mut Tokenizer) -> MyteResult<()> {
     let mut identifier_bytes = Vec::new();
 
-    let open_quote_span = tokenizer.mark_span();
+    let open_quote_loc = tokenizer.mark_loc();
 
     loop {
         match tokenizer.next() {
@@ -219,7 +219,7 @@ fn read_string_literal(tokens: &mut Vec<Token>, tokenizer: &mut Tokenizer) -> My
             None => {
                 return mkerr(
                     "Unclosed string literal".to_owned(),
-                    &open_quote_span,
+                    &open_quote_loc,
                     MyteErrorType::UnexpectedEOF,
                 )
             }
@@ -233,41 +233,41 @@ fn read_string_literal(tokens: &mut Vec<Token>, tokenizer: &mut Tokenizer) -> My
     unsafe {
         tokens.push(Token {
             ty: TokenType::StringLiteral(String::from_utf8_unchecked(identifier_bytes)),
-            span: tokenizer.mark_span(),
+            loc: tokenizer.mark_loc(),
         });
     }
 
     Ok(())
 }
 
-fn int_from_bytes(bytes: Vec<u8>, tokens: &mut Vec<Token>, span: Span) -> MyteResult<()> {
+fn int_from_bytes(bytes: Vec<u8>, tokens: &mut Vec<Token>, loc: Loc) -> MyteResult<()> {
     unsafe {
         let int_string = String::from_utf8_unchecked(bytes);
         match int_string.parse::<i64>() {
             Ok(parsed_number) => {
                 tokens.push(Token {
                     ty: TokenType::IntLiteral(parsed_number),
-                    span,
+                    loc,
                 });
                 Ok(())
             }
-            _ => mk_lex_err(format!("Invalid int literal {}", int_string), &span),
+            _ => mk_lex_err(format!("Invalid int literal {}", int_string), &loc),
         }
     }
 }
 
-fn float_from_bytes(bytes: Vec<u8>, tokens: &mut Vec<Token>, span: Span) -> MyteResult<()> {
+fn float_from_bytes(bytes: Vec<u8>, tokens: &mut Vec<Token>, loc: Loc) -> MyteResult<()> {
     unsafe {
         let float_string = String::from_utf8_unchecked(bytes);
         match float_string.parse::<f64>() {
             Ok(parsed_number) => {
                 tokens.push(Token {
                     ty: TokenType::FloatLiteral(parsed_number),
-                    span,
+                    loc,
                 });
                 Ok(())
             }
-            _ => mk_lex_err(format!("Invalid float literal {}", float_string), &span),
+            _ => mk_lex_err(format!("Invalid float literal {}", float_string), &loc),
         }
     }
 }
@@ -281,7 +281,7 @@ fn read_number_literal(tokens: &mut Vec<Token>, tokenizer: &mut Tokenizer) -> My
         match tokenizer.next() {
             Some(byte) if is_number_byte(byte) => number_bytes.push(byte),
             Some(_) => break,
-            None => return int_from_bytes(number_bytes, tokens, tokenizer.mark_span()),
+            None => return int_from_bytes(number_bytes, tokens, tokenizer.mark_loc()),
         }
 
         tokenizer.advance();
@@ -290,7 +290,7 @@ fn read_number_literal(tokens: &mut Vec<Token>, tokenizer: &mut Tokenizer) -> My
     // Collect decimal point
     match tokenizer.next() {
         Some(b'.') => number_bytes.push(b'.'),
-        _ => return int_from_bytes(number_bytes, tokens, tokenizer.mark_span()),
+        _ => return int_from_bytes(number_bytes, tokens, tokenizer.mark_loc()),
     }
 
     tokenizer.advance();
@@ -300,7 +300,7 @@ fn read_number_literal(tokens: &mut Vec<Token>, tokenizer: &mut Tokenizer) -> My
         match tokenizer.next() {
             Some(byte) if is_number_byte(byte) => number_bytes.push(byte),
             Some(_) => break,
-            None => return float_from_bytes(number_bytes, tokens, tokenizer.mark_span()),
+            None => return float_from_bytes(number_bytes, tokens, tokenizer.mark_loc()),
         }
 
         tokenizer.advance();
@@ -310,7 +310,7 @@ fn read_number_literal(tokens: &mut Vec<Token>, tokenizer: &mut Tokenizer) -> My
     match tokenizer.next() {
         Some(b'e') => number_bytes.push(b'e'),
         Some(b'E') => number_bytes.push(b'E'),
-        _ => return float_from_bytes(number_bytes, tokens, tokenizer.mark_span()),
+        _ => return float_from_bytes(number_bytes, tokens, tokenizer.mark_loc()),
     }
 
     tokenizer.advance();
@@ -320,7 +320,7 @@ fn read_number_literal(tokens: &mut Vec<Token>, tokenizer: &mut Tokenizer) -> My
         Some(byte) if byte == b'+' || byte == b'-' || is_number_byte(byte) => {
             number_bytes.push(byte)
         }
-        _ => return float_from_bytes(number_bytes, tokens, tokenizer.mark_span()),
+        _ => return float_from_bytes(number_bytes, tokens, tokenizer.mark_loc()),
     }
 
     tokenizer.advance();
@@ -329,7 +329,7 @@ fn read_number_literal(tokens: &mut Vec<Token>, tokenizer: &mut Tokenizer) -> My
     loop {
         match tokenizer.next() {
             Some(byte) if is_number_byte(byte) => number_bytes.push(byte),
-            _ => return float_from_bytes(number_bytes, tokens, tokenizer.mark_span()),
+            _ => return float_from_bytes(number_bytes, tokens, tokenizer.mark_loc()),
         }
 
         tokenizer.advance();
@@ -339,14 +339,14 @@ fn read_number_literal(tokens: &mut Vec<Token>, tokenizer: &mut Tokenizer) -> My
 fn mark_token(ty: TokenType, tokenizer: &Tokenizer) -> Token {
     Token {
         ty,
-        span: tokenizer.mark_span(),
+        loc: tokenizer.mark_loc(),
     }
 }
 
 fn mark_next_token(ty: TokenType, tokenizer: &Tokenizer) -> Token {
     Token {
         ty,
-        span: tokenizer.mark_span_next(),
+        loc: tokenizer.mark_loc_next(),
     }
 }
 
@@ -355,7 +355,7 @@ pub fn tokenize(input_bytes: &[u8], file_descriptor: u32) -> MyteResult<Vec<Toke
     let mut tokens = Vec::new();
 
     loop {
-        tokenizer.start_span();
+        tokenizer.start_loc();
         match tokenizer.current() {
             Some(b'*') => tokens.push(mark_token(TokenType::Asterisk, &tokenizer)),
             Some(b'^') => tokens.push(mark_token(TokenType::Caret, &tokenizer)),
@@ -424,10 +424,10 @@ pub fn tokenize(input_bytes: &[u8], file_descriptor: u32) -> MyteResult<Vec<Toke
                 Some(byte) => {
                     return mk_lex_err(
                         format!("Unknown symbol &{}", byte as char),
-                        &tokenizer.mark_span_next(),
+                        &tokenizer.mark_loc_next(),
                     )
                 }
-                None => return mk_lex_err("Unkown symbol &".to_owned(), &tokenizer.mark_span()),
+                None => return mk_lex_err("Unkown symbol &".to_owned(), &tokenizer.mark_loc()),
             },
             Some(b'|') => match tokenizer.next() {
                 Some(b'|') => advance_and_push(
@@ -483,7 +483,7 @@ pub fn tokenize(input_bytes: &[u8], file_descriptor: u32) -> MyteResult<Vec<Toke
             Some(byte) => {
                 return mk_lex_err(
                     format!("Unknown symbol {}", byte as char),
-                    &tokenizer.mark_span(),
+                    &tokenizer.mark_loc(),
                 )
             }
             None => break,
@@ -495,6 +495,6 @@ pub fn tokenize(input_bytes: &[u8], file_descriptor: u32) -> MyteResult<Vec<Toke
     Ok(tokens)
 }
 
-fn mk_lex_err<T>(error: String, span: &Span) -> MyteResult<T> {
-    mkerr(error, span, MyteErrorType::Lexer)
+fn mk_lex_err<T>(error: String, loc: &Loc) -> MyteResult<T> {
+    mkerr(error, loc, MyteErrorType::Lexer)
 }

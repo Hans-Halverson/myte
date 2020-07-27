@@ -1,5 +1,5 @@
 use common::ident::IdentifierID;
-use common::span::Span;
+use common::loc::Loc;
 
 pub type IrID = u32;
 
@@ -24,7 +24,7 @@ impl IrContext {
 pub struct IrExpr {
     pub id: IrID,
     pub node: IrExprType,
-    pub span: Span,
+    pub loc: Loc,
 }
 
 #[derive(Clone)]
@@ -118,7 +118,7 @@ pub enum IrExprType {
 pub struct IrStmt {
     pub id: IrID,
     pub node: IrStmtType,
-    pub span: Span,
+    pub loc: Loc,
 }
 
 #[derive(Clone)]
@@ -148,7 +148,7 @@ pub enum IrStmtType {
 pub struct IrPat {
     pub id: IrID,
     pub pat: IrPatType,
-    pub span: Span,
+    pub loc: Loc,
 }
 
 #[derive(Clone)]

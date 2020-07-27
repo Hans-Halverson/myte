@@ -1,10 +1,10 @@
 use self::TokenType::*;
-use common::span::Span;
+use common::loc::Loc;
 
 #[derive(Clone, Debug)]
 pub struct Token {
     pub ty: TokenType,
-    pub span: Span,
+    pub loc: Loc,
 }
 
 #[derive(Clone, Debug)]

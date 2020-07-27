@@ -27,7 +27,7 @@ macro_rules! incorrect_token {
                 token_type!($expected),
                 $actual.type_to_string(),
             ),
-            &$actual.span,
+            &$actual.loc,
             MyteErrorType::Parser,
         )
     };
