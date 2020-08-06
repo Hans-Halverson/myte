@@ -166,7 +166,6 @@ fn token_from_identifier(identifier: String, loc: Loc) -> Token {
         "false" => TokenType::False,
         "let" => TokenType::Let,
         "const" => TokenType::Const,
-        "def" => TokenType::Def,
         "fun" => TokenType::Fun,
         "if" => TokenType::If,
         "else" => TokenType::Else,

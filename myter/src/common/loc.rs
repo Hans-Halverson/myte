@@ -34,7 +34,7 @@ impl Loc {
         }
     }
 
-    pub fn concat(first: &Loc, second: &Loc) -> Loc {
+    pub fn between(first: &Loc, second: &Loc) -> Loc {
         Loc {
             start_byte: first.start_byte,
             end_byte: second.end_byte,

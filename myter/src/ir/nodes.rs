@@ -95,7 +95,6 @@ pub enum IrExprType {
         left: Box<IrExpr>,
         right: Box<IrExpr>,
     },
-    Block(Vec<IrStmt>),
     If {
         cond: Box<IrExpr>,
         conseq: Box<IrExpr>,
@@ -109,9 +108,6 @@ pub enum IrExprType {
         var: IdentifierID,
         expr: Box<IrExpr>,
     },
-    Return(Box<IrExpr>),
-    Break,
-    Continue,
 }
 
 #[derive(Clone)]
@@ -132,8 +128,9 @@ pub enum IrStmtType {
     FunctionDefinition {
         name: IdentifierID,
         params: Vec<IdentifierID>,
-        body: Box<IrExpr>,
+        body: Box<IrStmt>,
     },
+    Block(Vec<IrStmt>),
     If {
         cond: Box<IrExpr>,
         conseq: Box<IrExpr>,
@@ -142,6 +139,9 @@ pub enum IrStmtType {
         cond: Box<IrExpr>,
         body: Box<IrExpr>,
     },
+    Return(Box<IrExpr>),
+    Break,
+    Continue,
 }
 
 #[derive(Clone)]

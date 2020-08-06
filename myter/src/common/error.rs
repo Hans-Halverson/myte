@@ -1,6 +1,6 @@
 use common::context::Context;
-use common::source;
 use common::loc::Loc;
+use common::source;
 
 use std::cmp::Ordering;
 use std::fs::File;

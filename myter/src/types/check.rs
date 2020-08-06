@@ -49,9 +49,7 @@ impl<'ctx> TypeChecker<'ctx> {
             IrExprType::UnitLiteral => self.check_literal(&ty, loc, "unit", &InferType::Unit),
             IrExprType::BoolLiteral(_) => self.check_literal(&ty, loc, "bool", &InferType::Bool),
             IrExprType::IntLiteral(_) => self.check_literal(&ty, loc, "int", &InferType::Int),
-            IrExprType::FloatLiteral(_) => {
-                self.check_literal(&ty, loc, "float", &InferType::Float)
-            }
+            IrExprType::FloatLiteral(_) => self.check_literal(&ty, loc, "float", &InferType::Float),
             IrExprType::StringLiteral(_) => {
                 self.check_literal(&ty, loc, "string", &InferType::String)
             }
@@ -75,9 +73,7 @@ impl<'ctx> TypeChecker<'ctx> {
             IrExprType::Remainder { left, right } => {
                 self.check_binary_math_expr(left, right, &ty, loc, "remainder")
             }
-            IrExprType::UnaryPlus(node) => {
-                self.check_unary_math_expr(node, &ty, loc, "unary plus")
-            }
+            IrExprType::UnaryPlus(node) => self.check_unary_math_expr(node, &ty, loc, "unary plus"),
             IrExprType::UnaryMinus(node) => {
                 self.check_unary_math_expr(node, &ty, loc, "unary minus")
             }
@@ -96,7 +92,6 @@ impl<'ctx> TypeChecker<'ctx> {
             | IrExprType::GreaterThanOrEqual { left, right } => {
                 self.check_comparison(left, right, &ty, loc)
             }
-            IrExprType::Block(nodes) => self.check_block(nodes, &ty, loc),
             IrExprType::If {
                 cond,
                 conseq,
@@ -104,9 +99,6 @@ impl<'ctx> TypeChecker<'ctx> {
             } => self.check_if_expr(cond, conseq, altern, &ty, loc),
             IrExprType::Application { func, args } => self.check_application(func, args, &ty, loc),
             IrExprType::Assignment { var, expr } => self.check_assignment(*var, expr, &ty, loc),
-            IrExprType::Return(expr) => self.check_return(expr, &ty, loc),
-            IrExprType::Break => self.check_break(&ty, loc),
-            IrExprType::Continue => self.check_continue(&ty, loc),
         }
     }
 
@@ -123,6 +115,10 @@ impl<'ctx> TypeChecker<'ctx> {
             IrStmtType::FunctionDefinition { name, body, .. } => {
                 self.check_function_definition(*name, body, &ty, loc)
             }
+            IrStmtType::Block(nodes) => self.check_block(nodes, &ty, loc),
+            IrStmtType::Return(expr) => self.check_return(expr, &ty, loc),
+            IrStmtType::Break => self.check_break(&ty, loc),
+            IrStmtType::Continue => self.check_continue(&ty, loc),
         }
     }
 
@@ -598,7 +594,7 @@ impl<'ctx> TypeChecker<'ctx> {
     fn check_function_definition(
         &mut self,
         var: IdentifierID,
-        body: &IrExpr,
+        body: &IrStmt,
         ty: &InferType,
         loc: &Loc,
     ) {
@@ -611,10 +607,10 @@ impl<'ctx> TypeChecker<'ctx> {
         };
 
         self.enter_bound_scope(&func_ty);
-        self.check_expr(body);
+        self.check_stmt(body);
         self.exit_bound_scope();
 
-        let body_ty = self.expr_var(body);
+        let body_ty = self.stmt_var(body);
 
         if !self.unify(&ret_ty, &body_ty) {
             add_formatted_type_error!(

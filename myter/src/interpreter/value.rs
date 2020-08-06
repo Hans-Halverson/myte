@@ -1,5 +1,5 @@
 use common::ident::IdentifierID;
-use ir::nodes::IrExpr;
+use ir::nodes::IrStmt;
 use types::infer::InferType;
 
 #[derive(Clone)]
@@ -11,7 +11,7 @@ pub enum Value {
     Float(f64),
     Closure {
         params: Vec<IdentifierID>,
-        body: Box<IrExpr>,
+        body: Box<IrStmt>,
         ty: InferType,
     },
     Tuple(Vec<Value>),

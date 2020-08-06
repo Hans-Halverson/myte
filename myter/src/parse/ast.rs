@@ -2,101 +2,106 @@ use common::ident::{IdentifierID, UnresolvedType, UnresolvedVariable};
 use common::loc::Loc;
 
 #[derive(Debug)]
-pub struct AstExpr {
-    pub node: AstExprType,
+pub struct Module {
+    pub top_levels: Vec<TopLevel>,
+}
+
+#[derive(Debug)]
+pub struct TopLevel {
+    pub kind: TopLevelKind,
     pub loc: Loc,
 }
 
 #[derive(Debug)]
-pub enum AstExprType {
-    UnitLiteral,
-    BoolLiteral(bool),
-    StringLiteral(String),
-    IntLiteral(i64),
-    FloatLiteral(f64),
-    TupleLiteral(Vec<AstExpr>),
-    Variable(UnresolvedVariable),
-    UnaryOp {
-        op: UnaryOp,
-        node: Box<AstExpr>,
-    },
-    BinaryOp {
-        op: BinaryOp,
-        left: Box<AstExpr>,
-        right: Box<AstExpr>,
-    },
-    ParenthesizedGroup(Box<AstExpr>),
-    Block(Vec<AstStmt>),
-    If {
-        cond: Box<AstExpr>,
-        conseq: Box<AstExpr>,
-        altern: Box<AstExpr>,
-    },
-    Application {
-        func: Box<AstExpr>,
-        args: Vec<AstExpr>,
-    },
-    Assignment {
-        var: UnresolvedVariable,
-        expr: Box<AstExpr>,
-    },
-    Return(Box<AstExpr>),
+pub enum TopLevelKind {
+    VarDecl(VarDecl),
+    FuncDecl(FuncDecl),
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Statements
+//
+///////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug)]
+pub struct Stmt {
+    pub kind: StmtKind,
+    pub loc: Loc,
+}
+
+#[derive(Debug)]
+pub enum StmtKind {
+    Expr(Box<Expr>),
+    Block(Vec<Stmt>),
+    VarDecl(VarDecl),
+    FuncDecl(FuncDecl),
+    If { cond: Box<Expr>, conseq: Box<Expr> },
+    While { cond: Box<Expr>, body: Box<Expr> },
+    Return(Box<Expr>),
     Break,
     Continue,
 }
 
 #[derive(Debug)]
-pub enum AstStmt {
-    Expr {
-        expr: Box<AstExpr>,
-    },
-    VariableDefinition {
-        lvalue: Box<AstPat>,
-        rvalue: Box<AstExpr>,
-        annot: Option<Box<AstType>>,
-        loc: Loc,
-    },
-    FunctionDefinition {
-        name: IdentifierID,
-        params: Vec<(IdentifierID, Box<AstType>)>,
-        body: Box<AstExpr>,
-        return_annot: Option<Box<AstType>>,
-        loc: Loc,
-    },
-    If {
-        cond: Box<AstExpr>,
-        conseq: Box<AstExpr>,
-        loc: Loc,
-    },
-    While {
-        cond: Box<AstExpr>,
-        body: Box<AstExpr>,
-        loc: Loc,
-    },
-}
-
-#[derive(Debug, Clone)]
-pub enum AstPat {
-    Variable { var: IdentifierID, loc: Loc },
-    Tuple { elements: Vec<AstPat>, loc: Loc },
+pub struct VarDecl {
+    pub lvalue: Box<Pat>,
+    pub rvalue: Box<Expr>,
+    pub annot: Option<Box<Type>>,
 }
 
 #[derive(Debug)]
-pub struct AstType {
-    pub ty: AstTypeType,
+pub struct FuncDecl {
+    pub name: IdentifierID,
+    pub params: Vec<(IdentifierID, Box<Type>)>,
+    pub body: Box<Stmt>,
+    pub return_annot: Option<Box<Type>>,
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Expressions
+//
+///////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug)]
+pub struct Expr {
+    pub kind: ExprKind,
     pub loc: Loc,
 }
 
 #[derive(Debug)]
-pub enum AstTypeType {
-    Variable(UnresolvedType),
-    Unit,
-    Bool,
-    Int,
-    Float,
-    String,
-    Function(Vec<AstType>, Box<AstType>),
-    Tuple(Vec<AstType>),
+pub enum ExprKind {
+    UnitLiteral,
+    BoolLiteral(bool),
+    StringLiteral(String),
+    IntLiteral(i64),
+    FloatLiteral(f64),
+    TupleLiteral(Vec<Expr>),
+    Variable(UnresolvedVariable),
+    UnaryOp {
+        op: UnaryOp,
+        node: Box<Expr>,
+    },
+    BinaryOp {
+        op: BinaryOp,
+        left: Box<Expr>,
+        right: Box<Expr>,
+    },
+    ParenthesizedGroup(Box<Expr>),
+    If {
+        cond: Box<Expr>,
+        conseq: Box<Expr>,
+        altern: Box<Expr>,
+    },
+    Application {
+        func: Box<Expr>,
+        args: Vec<Expr>,
+    },
+    Assignment {
+        var: UnresolvedVariable,
+        expr: Box<Expr>,
+    },
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -122,4 +127,46 @@ pub enum BinaryOp {
     LessThanOrEqual,
     GreaterThan,
     GreaterThanOrEqual,
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Patterns
+//
+///////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Clone)]
+pub struct Pat {
+    pub kind: PatKind,
+    pub loc: Loc,
+}
+
+#[derive(Debug, Clone)]
+pub enum PatKind {
+    Variable(IdentifierID),
+    Tuple(Vec<Pat>),
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Types
+//
+///////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug)]
+pub struct Type {
+    pub kind: TypeKind,
+    pub loc: Loc,
+}
+
+#[derive(Debug)]
+pub enum TypeKind {
+    Variable(UnresolvedType),
+    Unit,
+    Bool,
+    Int,
+    Float,
+    String,
+    Function(Vec<Type>, Box<Type>),
+    Tuple(Vec<Type>),
 }

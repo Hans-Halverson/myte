@@ -264,14 +264,6 @@ impl<'ctx> Evaluator<'ctx> {
                     loc,
                 ),
             },
-            IrExprType::Block(ref nodes) => {
-                let mut value = Value::Unit;
-                for node in nodes {
-                    value = self.evaluate_stmt(&node, env)?;
-                }
-
-                Ok(value)
-            }
             IrExprType::If {
                 ref cond,
                 ref conseq,
@@ -306,7 +298,7 @@ impl<'ctx> Evaluator<'ctx> {
                             env.extend(*param, &arg_value);
                         }
 
-                        let return_value = match self.evaluate_expr(body, env) {
+                        let return_value = match self.evaluate_stmt(body, env) {
                             Err(EvalUnwind::Return(value)) => value,
                             err @ Err(_) => return err,
                             Ok(_) => {
@@ -332,9 +324,6 @@ impl<'ctx> Evaluator<'ctx> {
                 env.reassign(var, &value);
                 Ok(value)
             }
-            IrExprType::Return(ref expr) => Err(EvalUnwind::Return(self.evaluate_expr(expr, env)?)),
-            IrExprType::Break => Err(EvalUnwind::Break),
-            IrExprType::Continue => Err(EvalUnwind::Continue),
         }
     }
 
@@ -369,6 +358,14 @@ impl<'ctx> Evaluator<'ctx> {
                     },
                 );
                 Ok(Value::Unit)
+            }
+            IrStmtType::Block(ref nodes) => {
+                let mut value = Value::Unit;
+                for node in nodes {
+                    value = self.evaluate_stmt(&node, env)?;
+                }
+
+                Ok(value)
             }
             IrStmtType::If {
                 ref cond,
@@ -407,6 +404,9 @@ impl<'ctx> Evaluator<'ctx> {
 
                 Ok(Value::Unit)
             }
+            IrStmtType::Return(ref expr) => Err(EvalUnwind::Return(self.evaluate_expr(expr, env)?)),
+            IrStmtType::Break => Err(EvalUnwind::Break),
+            IrStmtType::Continue => Err(EvalUnwind::Continue),
         }
     }
 
@@ -433,7 +433,7 @@ impl<'ctx> Evaluator<'ctx> {
                 }
 
                 env.enter_scope();
-                self.evaluate_expr(body, env)?;
+                self.evaluate_stmt(body, env)?;
                 env.exit_scope();
 
                 error::print_err_string("Main fuction finished without returning");

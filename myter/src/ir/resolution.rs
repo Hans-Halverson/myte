@@ -3,7 +3,10 @@ use common::error::{MyteError, MyteErrorType};
 use common::ident::{IdentifierID, UnresolvedType, UnresolvedVariable};
 use common::loc::Loc;
 use ir::nodes::{IrExpr, IrExprType, IrID, IrPat, IrPatType, IrStmt, IrStmtType};
-use parse::ast::{AstExpr, AstExprType, AstPat, AstStmt, AstType, AstTypeType, BinaryOp, UnaryOp};
+use parse::ast::{
+    BinaryOp, Expr, ExprKind, FuncDecl, Module, Pat, PatKind, Stmt, StmtKind, TopLevel,
+    TopLevelKind, Type, TypeKind, UnaryOp, VarDecl,
+};
 use types::infer::InferType;
 
 struct Resolver<'ctx> {
@@ -30,100 +33,116 @@ impl<'ctx> Resolver<'ctx> {
         ir_id
     }
 
-    fn resolve_expr(&mut self, expr: AstExpr) -> Option<IrExpr> {
+    fn resolve_expr(&mut self, expr: Expr) -> Option<IrExpr> {
         let loc = expr.loc;
-        match expr.node {
-            AstExprType::UnitLiteral => Some(IrExpr {
+        match expr.kind {
+            ExprKind::UnitLiteral => Some(IrExpr {
                 loc,
                 id: self.new_id(),
                 node: IrExprType::UnitLiteral,
             }),
-            AstExprType::BoolLiteral(bool) => Some(IrExpr {
+            ExprKind::BoolLiteral(bool) => Some(IrExpr {
                 loc,
                 id: self.new_id(),
                 node: IrExprType::BoolLiteral(bool),
             }),
-            AstExprType::StringLiteral(string) => Some(IrExpr {
+            ExprKind::StringLiteral(string) => Some(IrExpr {
                 loc,
                 id: self.new_id(),
                 node: IrExprType::StringLiteral(string),
             }),
-            AstExprType::IntLiteral(num) => Some(IrExpr {
+            ExprKind::IntLiteral(num) => Some(IrExpr {
                 loc,
                 id: self.new_id(),
                 node: IrExprType::IntLiteral(num),
             }),
-            AstExprType::FloatLiteral(num) => Some(IrExpr {
+            ExprKind::FloatLiteral(num) => Some(IrExpr {
                 loc,
                 id: self.new_id(),
                 node: IrExprType::FloatLiteral(num),
             }),
-            AstExprType::TupleLiteral(elements) => self.resolve_tuple_literal(elements, loc),
-            AstExprType::Variable(var) => self.resolve_variable(&var, loc),
-            AstExprType::UnaryOp { node, op } => self.resolve_unary_op(*node, op, loc),
-            AstExprType::BinaryOp { left, right, op } => {
+            ExprKind::TupleLiteral(elements) => self.resolve_tuple_literal(elements, loc),
+            ExprKind::Variable(var) => self.resolve_variable(&var, loc),
+            ExprKind::UnaryOp { node, op } => self.resolve_unary_op(*node, op, loc),
+            ExprKind::BinaryOp { left, right, op } => {
                 self.resolve_binary_op(*left, *right, op, loc)
             }
-            AstExprType::ParenthesizedGroup(node) => Some(self.resolve_expr(*node)?),
-            AstExprType::Block(nodes) => self.resolve_block(nodes, loc),
-            AstExprType::If {
+            ExprKind::ParenthesizedGroup(node) => Some(self.resolve_expr(*node)?),
+            ExprKind::If {
                 cond,
                 conseq,
                 altern,
             } => self.resolve_if_expr(*cond, *conseq, *altern, loc),
-            AstExprType::Application { func, args } => self.resolve_application(*func, args, loc),
-            AstExprType::Assignment { var, expr } => self.resolve_assignment(&var, *expr, loc),
-            AstExprType::Return(expr) => Some(IrExpr {
-                loc,
-                id: self.new_id(),
-                node: IrExprType::Return(Box::new(self.resolve_expr(*expr)?)),
-            }),
-            AstExprType::Break => Some(IrExpr {
-                loc,
-                id: self.new_id(),
-                node: IrExprType::Break,
-            }),
-            AstExprType::Continue => Some(IrExpr {
-                loc,
-                id: self.new_id(),
-                node: IrExprType::Continue,
-            }),
+            ExprKind::Application { func, args } => self.resolve_application(*func, args, loc),
+            ExprKind::Assignment { var, expr } => self.resolve_assignment(&var, *expr, loc),
         }
     }
 
-    fn resolve_stmt(&mut self, stmt: AstStmt) -> Option<IrStmt> {
-        match stmt {
-            AstStmt::Expr { expr } => Some(IrStmt {
-                id: self.new_id(),
-                loc: expr.loc,
-                node: IrStmtType::Expr(Box::new(self.resolve_expr(*expr)?)),
-            }),
-            AstStmt::VariableDefinition {
+    fn resolve_top_level(&mut self, top_level: TopLevel) -> Option<IrStmt> {
+        match top_level.kind {
+            TopLevelKind::VarDecl(VarDecl {
                 lvalue,
                 rvalue,
                 annot,
-                loc,
-            } => self.resolve_variable_definition(*lvalue, *rvalue, annot, loc),
-            AstStmt::FunctionDefinition {
+            }) => self.resolve_variable_definition(*lvalue, *rvalue, annot, top_level.loc),
+            TopLevelKind::FuncDecl(FuncDecl {
                 name,
                 params,
                 body,
                 return_annot,
-                loc,
-            } => self.resolve_function_definition(name, params, *body, return_annot, loc),
-            AstStmt::If { cond, conseq, loc } => self.resolve_if_stmt(*cond, *conseq, loc),
-            AstStmt::While { cond, body, loc } => self.resolve_while_stmt(*cond, *body, loc),
+            }) => {
+                self.resolve_function_definition(name, params, *body, return_annot, top_level.loc)
+            }
         }
     }
 
-    fn resolve_pat(&mut self, pat: AstPat) -> Option<IrPat> {
-        match pat {
-            AstPat::Variable { var, loc } => Some(IrPat {
-                loc,
+    fn resolve_stmt(&mut self, stmt: Stmt) -> Option<IrStmt> {
+        match stmt.kind {
+            StmtKind::Expr(expr) => Some(IrStmt {
+                id: self.new_id(),
+                loc: stmt.loc,
+                node: IrStmtType::Expr(Box::new(self.resolve_expr(*expr)?)),
+            }),
+            StmtKind::VarDecl(VarDecl {
+                lvalue,
+                rvalue,
+                annot,
+            }) => self.resolve_variable_definition(*lvalue, *rvalue, annot, stmt.loc),
+            StmtKind::FuncDecl(FuncDecl {
+                name,
+                params,
+                body,
+                return_annot,
+            }) => self.resolve_function_definition(name, params, *body, return_annot, stmt.loc),
+            StmtKind::Block(nodes) => self.resolve_block(nodes, stmt.loc),
+            StmtKind::If { cond, conseq } => self.resolve_if_stmt(*cond, *conseq, stmt.loc),
+            StmtKind::While { cond, body } => self.resolve_while_stmt(*cond, *body, stmt.loc),
+            StmtKind::Return(expr) => Some(IrStmt {
+                id: self.new_id(),
+                loc: stmt.loc,
+                node: IrStmtType::Return(Box::new(self.resolve_expr(*expr)?)),
+            }),
+            StmtKind::Break => Some(IrStmt {
+                id: self.new_id(),
+                loc: stmt.loc,
+                node: IrStmtType::Break,
+            }),
+            StmtKind::Continue => Some(IrStmt {
+                id: self.new_id(),
+                loc: stmt.loc,
+                node: IrStmtType::Continue,
+            }),
+        }
+    }
+
+    fn resolve_pat(&mut self, pat: Pat) -> Option<IrPat> {
+        match pat.kind {
+            PatKind::Variable(var) => Some(IrPat {
+                loc: pat.loc,
                 id: self.new_id(),
                 pat: IrPatType::Variable(var),
             }),
-            AstPat::Tuple { elements, loc } => {
+            PatKind::Tuple(elements) => {
                 let ir_elements = elements
                     .into_iter()
                     .map(|element| self.resolve_pat(element))
@@ -133,7 +152,7 @@ impl<'ctx> Resolver<'ctx> {
                 }
 
                 Some(IrPat {
-                    loc,
+                    loc: pat.loc,
                     id: self.new_id(),
                     pat: IrPatType::Tuple(ir_elements.into_iter().flatten().collect()),
                 })
@@ -141,16 +160,16 @@ impl<'ctx> Resolver<'ctx> {
         }
     }
 
-    fn resolve_type(&mut self, ty: AstType) -> Option<InferType> {
-        match ty.ty {
-            AstTypeType::Unit => Some(InferType::Unit),
-            AstTypeType::Bool => Some(InferType::Bool),
-            AstTypeType::Int => Some(InferType::Int),
-            AstTypeType::Float => Some(InferType::Float),
-            AstTypeType::String => Some(InferType::String),
-            AstTypeType::Variable(var) => self.resolve_variable_type(&var, ty.loc),
-            AstTypeType::Function(arg_tys, ret_ty) => self.resolve_function_type(arg_tys, *ret_ty),
-            AstTypeType::Tuple(element_tys) => self.resolve_tuple_type(element_tys),
+    fn resolve_type(&mut self, ty: Type) -> Option<InferType> {
+        match ty.kind {
+            TypeKind::Unit => Some(InferType::Unit),
+            TypeKind::Bool => Some(InferType::Bool),
+            TypeKind::Int => Some(InferType::Int),
+            TypeKind::Float => Some(InferType::Float),
+            TypeKind::String => Some(InferType::String),
+            TypeKind::Variable(var) => self.resolve_variable_type(&var, ty.loc),
+            TypeKind::Function(arg_tys, ret_ty) => self.resolve_function_type(arg_tys, *ret_ty),
+            TypeKind::Tuple(element_tys) => self.resolve_tuple_type(element_tys),
         }
     }
 
@@ -174,7 +193,7 @@ impl<'ctx> Resolver<'ctx> {
         })
     }
 
-    fn resolve_tuple_literal(&mut self, elements: Vec<AstExpr>, loc: Loc) -> Option<IrExpr> {
+    fn resolve_tuple_literal(&mut self, elements: Vec<Expr>, loc: Loc) -> Option<IrExpr> {
         let ir_elements = elements
             .into_iter()
             .map(|element| self.resolve_expr(element))
@@ -192,8 +211,8 @@ impl<'ctx> Resolver<'ctx> {
 
     fn resolve_binary_op(
         &mut self,
-        left: AstExpr,
-        right: AstExpr,
+        left: Expr,
+        right: Expr,
         op: BinaryOp,
         loc: Loc,
     ) -> Option<IrExpr> {
@@ -277,7 +296,7 @@ impl<'ctx> Resolver<'ctx> {
         }
     }
 
-    fn resolve_unary_op(&mut self, node: AstExpr, op: UnaryOp, loc: Loc) -> Option<IrExpr> {
+    fn resolve_unary_op(&mut self, node: Expr, op: UnaryOp, loc: Loc) -> Option<IrExpr> {
         let node_ir = self.resolve_expr(node);
         let node = Box::new(node_ir?);
         match op {
@@ -299,7 +318,7 @@ impl<'ctx> Resolver<'ctx> {
         }
     }
 
-    fn resolve_block(&mut self, nodes: Vec<AstStmt>, loc: Loc) -> Option<IrExpr> {
+    fn resolve_block(&mut self, nodes: Vec<Stmt>, loc: Loc) -> Option<IrStmt> {
         let ir_nodes = nodes
             .into_iter()
             .map(|node| self.resolve_stmt(node))
@@ -308,18 +327,18 @@ impl<'ctx> Resolver<'ctx> {
             return None;
         }
 
-        Some(IrExpr {
+        Some(IrStmt {
             loc,
             id: self.new_id(),
-            node: IrExprType::Block(ir_nodes.into_iter().flatten().collect()),
+            node: IrStmtType::Block(ir_nodes.into_iter().flatten().collect()),
         })
     }
 
     fn resolve_if_expr(
         &mut self,
-        cond: AstExpr,
-        conseq: AstExpr,
-        altern: AstExpr,
+        cond: Expr,
+        conseq: Expr,
+        altern: Expr,
         loc: Loc,
     ) -> Option<IrExpr> {
         Some(IrExpr {
@@ -333,12 +352,7 @@ impl<'ctx> Resolver<'ctx> {
         })
     }
 
-    fn resolve_application(
-        &mut self,
-        func: AstExpr,
-        args: Vec<AstExpr>,
-        loc: Loc,
-    ) -> Option<IrExpr> {
+    fn resolve_application(&mut self, func: Expr, args: Vec<Expr>, loc: Loc) -> Option<IrExpr> {
         let ir_args = args
             .into_iter()
             .map(|arg| self.resolve_expr(arg))
@@ -360,7 +374,7 @@ impl<'ctx> Resolver<'ctx> {
     fn resolve_assignment(
         &mut self,
         var: &UnresolvedVariable,
-        expr: AstExpr,
+        expr: Expr,
         loc: Loc,
     ) -> Option<IrExpr> {
         let var = match self.ctx.symbol_table.resolve_variable(&var) {
@@ -387,9 +401,9 @@ impl<'ctx> Resolver<'ctx> {
 
     fn resolve_variable_definition(
         &mut self,
-        lvalue: AstPat,
-        rvalue: AstExpr,
-        annot: Option<Box<AstType>>,
+        lvalue: Pat,
+        rvalue: Expr,
+        annot: Option<Box<Type>>,
         loc: Loc,
     ) -> Option<IrStmt> {
         let lvalue = self.resolve_pat(lvalue)?;
@@ -460,9 +474,9 @@ impl<'ctx> Resolver<'ctx> {
     fn resolve_function_definition(
         &mut self,
         name: IdentifierID,
-        params: Vec<(IdentifierID, Box<AstType>)>,
-        body: AstExpr,
-        return_annot: Option<Box<AstType>>,
+        params: Vec<(IdentifierID, Box<Type>)>,
+        body: Stmt,
+        return_annot: Option<Box<Type>>,
         loc: Loc,
     ) -> Option<IrStmt> {
         let param_ids = params
@@ -478,7 +492,7 @@ impl<'ctx> Resolver<'ctx> {
             None => Some(InferType::Unit),
         };
 
-        let body = self.resolve_expr(body)?;
+        let body = self.resolve_stmt(body)?;
 
         if param_opt_tys
             .iter()
@@ -513,7 +527,7 @@ impl<'ctx> Resolver<'ctx> {
         })
     }
 
-    fn resolve_if_stmt(&mut self, cond: AstExpr, conseq: AstExpr, loc: Loc) -> Option<IrStmt> {
+    fn resolve_if_stmt(&mut self, cond: Expr, conseq: Expr, loc: Loc) -> Option<IrStmt> {
         Some(IrStmt {
             loc,
             id: self.new_id(),
@@ -524,7 +538,7 @@ impl<'ctx> Resolver<'ctx> {
         })
     }
 
-    fn resolve_while_stmt(&mut self, cond: AstExpr, body: AstExpr, loc: Loc) -> Option<IrStmt> {
+    fn resolve_while_stmt(&mut self, cond: Expr, body: Expr, loc: Loc) -> Option<IrStmt> {
         Some(IrStmt {
             loc,
             id: self.new_id(),
@@ -560,11 +574,7 @@ impl<'ctx> Resolver<'ctx> {
         }
     }
 
-    fn resolve_function_type(
-        &mut self,
-        arg_tys: Vec<AstType>,
-        ret_ty: AstType,
-    ) -> Option<InferType> {
+    fn resolve_function_type(&mut self, arg_tys: Vec<Type>, ret_ty: Type) -> Option<InferType> {
         let arg_tys = arg_tys
             .into_iter()
             .map(|ty| self.resolve_type(ty))
@@ -581,7 +591,7 @@ impl<'ctx> Resolver<'ctx> {
         ))
     }
 
-    fn resolve_tuple_type(&mut self, element_tys: Vec<AstType>) -> Option<InferType> {
+    fn resolve_tuple_type(&mut self, element_tys: Vec<Type>) -> Option<InferType> {
         let element_tys = element_tys
             .into_iter()
             .map(|ty| self.resolve_type(ty))
@@ -596,15 +606,16 @@ impl<'ctx> Resolver<'ctx> {
     }
 }
 
-pub fn resolve_repl_line(stmt: AstStmt, ctx: &mut Context) -> Option<IrStmt> {
+pub fn resolve_repl_line(stmt: Stmt, ctx: &mut Context) -> Option<IrStmt> {
     let mut resolver = Resolver::new(ctx);
     resolver.resolve_stmt(stmt)
 }
 
-pub fn resolve_file(stmts: Vec<AstStmt>, ctx: &mut Context) -> Vec<IrStmt> {
+pub fn resolve_file(module: Module, ctx: &mut Context) -> Vec<IrStmt> {
     let mut resolver = Resolver::new(ctx);
-    stmts
+    module
+        .top_levels
         .into_iter()
-        .filter_map(|stmt| resolver.resolve_stmt(stmt))
+        .filter_map(|top_level| resolver.resolve_top_level(top_level))
         .collect()
 }

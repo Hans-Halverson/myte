@@ -9,7 +9,7 @@ use interpreter::evaluate;
 use ir::nodes::IrStmt;
 use ir::resolution;
 use lex::tokenizer;
-use parse::ast::AstStmt;
+use parse::ast::Module;
 use parse::parser::Parser;
 use types::check;
 use types::infer::InferType;
@@ -68,7 +68,7 @@ pub fn interpret(file_names: &[String]) {
     )
 }
 
-fn parse_files(file_names: &[String], ctx: &mut Context) -> io::Result<Vec<Vec<AstStmt>>> {
+fn parse_files(file_names: &[String], ctx: &mut Context) -> io::Result<Vec<Module>> {
     let mut file_asts = Vec::new();
 
     for file_name in file_names {
