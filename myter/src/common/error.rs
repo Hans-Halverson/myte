@@ -295,14 +295,15 @@ fn print_dots_line(loc: &Loc) {
 pub fn print_err(err: &MyteError, ctx: &Context) -> io::Result<()> {
     let loc = &err.loc;
     let repl_contents = ctx.file_table.get_repl_contents();
-    let mut error_reader: Box<ErrorRead> = if loc.file_descriptor == source::REPL_FILE_DESCRIPTOR {
-        print_summary_line(err, None);
-        Box::new(ErrorReader::<&[u8]>::from_repl(&repl_contents))
-    } else {
-        let file_name = ctx.file_table.get_file_name(loc.file_descriptor);
-        print_summary_line(err, Some(&file_name));
-        Box::new(ErrorReader::<File>::from_file(&file_name)?)
-    };
+    let mut error_reader: Box<dyn ErrorRead> =
+        if loc.file_descriptor == source::REPL_FILE_DESCRIPTOR {
+            print_summary_line(err, None);
+            Box::new(ErrorReader::<&[u8]>::from_repl(&repl_contents))
+        } else {
+            let file_name = ctx.file_table.get_file_name(loc.file_descriptor);
+            print_summary_line(err, Some(&file_name));
+            Box::new(ErrorReader::<File>::from_file(&file_name)?)
+        };
 
     // Print first line, or single line if loc is on single line
     let first_line = error_reader.read_line(loc.start_line)?;

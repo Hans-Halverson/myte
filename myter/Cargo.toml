@@ -3,4 +3,14 @@ name = "myter"
 version = "0.1.0"
 authors = ["Hans-Halverson <hans_halverson@alumni.brown.edu>"]
 
-[dependencies]
+[lib]
+name = "myte"
+path = "src/lib.rs"
+
+[[bin]]
+name = "myter"
+path = "src/main.rs"
+
+[[bin]]
+name = "run_tests"
+path = "test/run_tests.rs"

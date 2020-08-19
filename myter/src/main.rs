@@ -2,19 +2,11 @@
 
 use std::env;
 
-mod common;
-mod driver;
-mod interpreter;
-mod ir;
-mod lex;
-mod parse;
-mod types;
-
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() == 1 {
-        driver::repl::repl();
+        myte::driver::repl::repl();
     } else {
-        driver::interpret::interpret(&args[1..]);
+        myte::driver::interpret::interpret(&args[1..]);
     }
 }

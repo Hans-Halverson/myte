@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if [[ "$(basename $(pwd))" != "myter" ]]; then
+  echo "Error: Must run from myter directory"
+  exit 1
+fi
+
+./target/debug/run_tests $@
