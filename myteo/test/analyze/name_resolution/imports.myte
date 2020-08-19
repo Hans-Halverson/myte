@@ -1,0 +1,20 @@
+module Test
+
+import A
+import A.B
+import E.C
+import A.{D, remote as local}
+import {E, F as G}
+
+fun main() {
+  A;
+  B;
+  C;
+  D;
+  E;
+  G;
+  local;
+  remote;
+  F;
+  nonexistent;
+}

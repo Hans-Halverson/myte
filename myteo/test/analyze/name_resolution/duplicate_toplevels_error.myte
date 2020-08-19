@@ -1,5 +1,11 @@
 module Test
 
+import A
+import B.A
+import C.{A, B, C as B}
+
+import imported
+
 fun foo() {}
 val foo: int = 1;
 
@@ -8,5 +14,8 @@ fun bar() {}
 
 val baz: int = 1;
 val baz: int = 1;
+
+fun imported() {}
+val imported: int = 1;
 
 fun main() {}

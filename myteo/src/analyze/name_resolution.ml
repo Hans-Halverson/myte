@@ -28,7 +28,7 @@ let identifier_in_pattern pat =
   match pat with
   | Identifier id -> id
 
-class bindings_builder ~module_info =
+class bindings_builder =
   object (this)
     inherit [unit, unit] Ast_visitor.visitor as super
 
@@ -71,21 +71,41 @@ class bindings_builder ~module_info =
 
     method! module_ acc mod_ =
       let open Ast.Module in
-      let { toplevels; _ } = mod_ in
-      (* Gather toplevel declarations add add them to toplevel scope *)
+      let add_name loc name =
+        if SMap.mem name (List.hd scopes) then this#add_error loc (DuplicateToplevelNames name);
+        this#add_declaration loc name
+      in
+      let { toplevels; imports; _ } = mod_ in
       this#enter_scope ();
+      (* Gather imports and add them to toplevel scope *)
+      List.iter
+        (fun import ->
+          let open Import in
+          match import with
+          | Simple { name; _ } ->
+            let { Ast.Identifier.loc; name; _ } = name in
+            add_name loc name
+          | Complex { Complex.aliases; _ } ->
+            List.iter
+              (fun alias ->
+                match alias with
+                | { Alias.alias = Some name; _ }
+                | { Alias.name; _ } ->
+                  let { Ast.Identifier.loc; name; _ } = name in
+                  add_name loc name)
+              aliases)
+        imports;
+      (* Gather toplevel declarations add add them to toplevel scope *)
       List.iter
         (fun toplevel ->
           match toplevel with
           | VariableDeclaration { Ast.Statement.VariableDeclaration.pattern; _ } ->
             let id = identifier_in_pattern pattern in
             let { Ast.Identifier.loc; name; _ } = id in
-            if SMap.mem name (List.hd scopes) then this#add_error loc (DuplicateToplevelNames name);
-            this#add_declaration loc name
+            add_name loc name
           | FunctionDeclaration { Ast.Function.name; _ } ->
             let { Ast.Identifier.loc; name; _ } = name in
-            if SMap.mem name (List.hd scopes) then this#add_error loc (DuplicateToplevelNames name);
-            this#add_declaration loc name)
+            add_name loc name)
         toplevels;
       (* Then visit child nodes once toplevel scope is complete *)
       List.iter
@@ -95,14 +115,6 @@ class bindings_builder ~module_info =
           | FunctionDeclaration decl -> this#visit_function_declaration acc decl ~add:false)
         toplevels;
       this#exit_scope ()
-
-    method! import acc import =
-      let open Ast.Module.Import in
-      match import with
-      | Simple { Ast.ScopedIdentifier.loc; scopes; name } ->
-
-      | _ -> ();
-      super#import acc import
 
     method! statement acc stmt =
       let open Ast.Statement in

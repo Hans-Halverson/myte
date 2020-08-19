@@ -95,26 +95,29 @@ and parse_imports env =
   let parse_import () =
     let marker = mark_loc env in
     Env.expect env T_IMPORT;
-    let first = parse_identifier env in
-    let rec parse_scopes () =
-      match Env.token env with
-      | T_PERIOD ->
-        Env.advance env;
-        (match Env.token env with
-        | T_LEFT_BRACE -> []
-        | _ ->
-          let scope = parse_identifier env in
-          scope :: parse_scopes ())
-      | _ -> []
-    in
-    let scopes = first :: parse_scopes () in
     match Env.token env with
-    | T_LEFT_BRACE -> parse_complex_import env marker scopes
+    | T_LEFT_BRACE -> parse_complex_import env marker []
     | _ ->
-      let name = List_utils.last scopes in
-      let scopes = List_utils.drop_last scopes in
-      let loc = marker env in
-      Simple { ScopedIdentifier.loc; name; scopes; t = () }
+      let first = parse_identifier env in
+      let rec parse_scopes () =
+        match Env.token env with
+        | T_PERIOD ->
+          Env.advance env;
+          (match Env.token env with
+          | T_LEFT_BRACE -> []
+          | _ ->
+            let scope = parse_identifier env in
+            scope :: parse_scopes ())
+        | _ -> []
+      in
+      let scopes = first :: parse_scopes () in
+      (match Env.token env with
+      | T_LEFT_BRACE -> parse_complex_import env marker scopes
+      | _ ->
+        let name = List_utils.last scopes in
+        let scopes = List_utils.drop_last scopes in
+        let loc = marker env in
+        Simple { ScopedIdentifier.loc; name; scopes; t = () })
   in
   let rec parse_imports () =
     match Env.token env with
