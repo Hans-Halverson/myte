@@ -62,33 +62,42 @@ and parse env =
       let toplevel = parse_toplevel env in
       helper (toplevel :: toplevels)
   in
-  let (name, imports, toplevels, errors) =
+  let (module_, imports, toplevels, errors) =
     try
-      let name = parse_module env in
+      let module_ = parse_module env in
       let imports = parse_imports env in
       let toplevels = helper [] in
-      (name, imports, toplevels, Env.errors env)
+      (module_, imports, toplevels, Env.errors env)
     with Parse_error.Fatal (loc, err) ->
       let dummy_module =
         {
-          ScopedIdentifier.loc;
-          name = { Identifier.loc; name = "module"; t = () };
-          scopes = [];
+          Module.Module.loc;
+          name =
+            {
+              ScopedIdentifier.loc;
+              name = { Identifier.loc; name = "module"; t = () };
+              scopes = [];
+              t = ();
+            };
           t = ();
         }
       in
       (dummy_module, [], [], [(loc, err)])
   in
   let loc = { (Env.loc env) with Loc.start = Loc.first_pos } in
-  ({ Module.loc; name; imports; toplevels; t = () }, errors)
+  ({ Module.loc; module_; imports; toplevels; t = () }, errors)
 
 and parse_module env =
+  let open Module in
+  let marker = mark_loc env in
   begin
     match Env.token env with
     | T_MODULE -> Env.advance env
     | token -> Parse_error.fatal (Env.loc env, MissingModule token)
   end;
-  parse_scoped_identifier env
+  let name = parse_scoped_identifier env in
+  let loc = marker env in
+  { Module.loc; name; t = () }
 
 and parse_imports env =
   let open Module.Import in

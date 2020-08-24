@@ -1,0 +1,7 @@
+ERROR: test/analyze/module_tree/duplicate_modules/b.myte:1:0 Module already declared with name "A"
+ 1 | module A
+   | ^^^^^^^^
+
+ERROR: test/analyze/module_tree/duplicate_modules/a.b.2.myte:1:0 Module already declared with name "a.b"
+ 1 | module a.b
+   | ^^^^^^^^^^

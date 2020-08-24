@@ -4,10 +4,16 @@ class ['a, 'b] visitor =
   object (this)
     method module_ : 'a -> 'b Module.t -> unit =
       fun acc mod_ ->
-        let { Module.t = _; loc = _; name; imports; toplevels } = mod_ in
-        this#scoped_identifier acc name;
+        let { Module.t = _; loc = _; module_; imports; toplevels } = mod_ in
+        this#module_module acc module_;
         List.iter (this#import acc) imports;
         List.iter (this#toplevel acc) toplevels
+
+    method module_module : 'a -> 'b Module.Module.t -> unit =
+      fun acc module_ ->
+        let open Module.Module in
+        let { t = _; loc = _; name } = module_ in
+        this#scoped_identifier acc name
 
     method toplevel : 'a -> 'b Module.toplevel -> unit =
       fun acc toplevel ->

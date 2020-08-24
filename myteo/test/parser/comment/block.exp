@@ -2,14 +2,18 @@ test/parser/comment/block.myte
 {
   node: Module,
   loc: 1:0-14:1,
-  name: {
-    node: ScopedIdentifier,
-    loc: 1:7-1:11,
-    scopes: [],
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
     name: {
-      node: Identifier,
+      node: ScopedIdentifier,
       loc: 1:7-1:11,
-      name: "Test",
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "Test",
+      },
     },
   },
   imports: [],

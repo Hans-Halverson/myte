@@ -1,0 +1,7 @@
+ERROR: test/analyze/module_tree/module_export_overlap/zzb.c.d.myte:1:0 Module and export with same name "d" in module "b.c"
+ 1 | module b.c.d
+   | ^^^^^^^^^^^^
+
+ERROR: test/analyze/module_tree/module_export_overlap/a.b.myte:3:0 Module and export with same name "c" in module "a.b"
+ 3 | fun c() {}
+   | ^^^^^^^^^^

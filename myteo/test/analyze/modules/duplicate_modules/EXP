@@ -1,3 +1,0 @@
-ERROR: test/analyze/modules/duplicate_modules/b.myte:1:0 Module already declared with name "A"
- 1 | module A
-   | ^^^^^^^^

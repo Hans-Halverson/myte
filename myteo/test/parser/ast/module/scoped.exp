@@ -2,25 +2,29 @@ test/parser/ast/module/scoped.myte
 {
   node: Module,
   loc: 1:0-1:18,
-  name: {
-    node: ScopedIdentifier,
-    loc: 1:7-1:18,
-    scopes: [
-      {
-        node: Identifier,
-        loc: 1:7-1:10,
-        name: "Foo",
-      },
-      {
-        node: Identifier,
-        loc: 1:11-1:14,
-        name: "Bar",
-      },
-    ],
+  module: {
+    node: Module,
+    loc: 1:0-1:18,
     name: {
-      node: Identifier,
-      loc: 1:15-1:18,
-      name: "Baz",
+      node: ScopedIdentifier,
+      loc: 1:7-1:18,
+      scopes: [
+        {
+          node: Identifier,
+          loc: 1:7-1:10,
+          name: "Foo",
+        },
+        {
+          node: Identifier,
+          loc: 1:11-1:14,
+          name: "Bar",
+        },
+      ],
+      name: {
+        node: Identifier,
+        loc: 1:15-1:18,
+        name: "Baz",
+      },
     },
   },
   imports: [],

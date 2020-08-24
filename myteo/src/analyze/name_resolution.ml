@@ -164,40 +164,7 @@ class bindings_builder =
       | _ -> super#expression acc expr
   end
 
-let string_of_scoped_id scoped =
-  let { Ast.ScopedIdentifier.scopes; name; _ } = scoped in
-  let names = List.map (fun { Ast.Identifier.name; _ } -> name) (scopes @ [name]) in
-  String.concat "." names
-
-type module_exports = unit Ast.Identifier.t SMap.t
-
-type module_info = module_exports SMap.t
-
-let build_module_info asts =
-  let rec gather_toplevel_ids toplevels =
-    let open Ast.Module in
-    match toplevels with
-    | [] -> SMap.empty
-    | VariableDeclaration { Ast.Statement.VariableDeclaration.pattern; _ } :: rest ->
-      let ({ Ast.Identifier.name; _ } as id) = identifier_in_pattern pattern in
-      SMap.add name id (gather_toplevel_ids rest)
-    | FunctionDeclaration { Ast.Function.name = { Ast.Identifier.name; _ } as id; _ } :: rest ->
-      SMap.add name id (gather_toplevel_ids rest)
-  in
-  List.fold_left
-    (fun (modules, errors) { Ast.Module.loc; name; toplevels; _ } ->
-      let module_name = string_of_scoped_id name in
-      if SMap.mem module_name modules then
-        let error = (loc, DuplicateModuleNames module_name) in
-        (modules, error :: errors)
-      else
-        let toplevels = gather_toplevel_ids toplevels in
-        (SMap.add module_name toplevels modules, errors))
-    (SMap.empty, [])
-    asts
-
 let analyze modules =
-  let (_module_info, module_errors) = build_module_info modules in
   let results =
     List.map
       (fun mod_ ->
@@ -210,5 +177,5 @@ let analyze modules =
   let bindings =
     List.fold_left (fun bindings acc -> LocMap.fold LocMap.add bindings acc) LocMap.empty bindings
   in
-  let errors = List.concat [module_errors; List.flatten bindings_errors] in
+  let errors = List.flatten bindings_errors in
   (bindings, errors)

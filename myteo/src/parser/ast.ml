@@ -3,6 +3,14 @@ module rec Module : sig
     | VariableDeclaration of 'T Statement.VariableDeclaration.t
     | FunctionDeclaration of 'T Function.t
 
+  module Module : sig
+    type 'T t = {
+      t: 'T;
+      loc: Loc.t;
+      name: 'T ScopedIdentifier.t;
+    }
+  end
+
   module Import : sig
     module Alias : sig
       type 'T t = {
@@ -30,7 +38,7 @@ module rec Module : sig
   type 'T t = {
     t: 'T;
     loc: Loc.t;
-    name: 'T ScopedIdentifier.t;
+    module_: 'T Module.t;
     imports: 'T Import.t list;
     toplevels: 'T toplevel list;
   }

@@ -1,0 +1,3 @@
+module b.c
+
+var d: int = 1;

@@ -9,6 +9,7 @@ type t =
   | DuplicateToplevelNames of string
   | DuplicateParameterNames of string * string
   | DuplicateModuleNames of string
+  | ModuleAndExportDuplicateNames of string * string
 
 let to_string error =
   match error with
@@ -22,3 +23,5 @@ let to_string error =
   | DuplicateParameterNames (param, func) ->
     Printf.sprintf "Name \"%s\" already bound in parameters of function \"%s\"" param func
   | DuplicateModuleNames name -> Printf.sprintf "Module already declared with name \"%s\"" name
+  | ModuleAndExportDuplicateNames (name, module_) ->
+    Printf.sprintf "Module and export with same name \"%s\" in module \"%s\"" name module_
