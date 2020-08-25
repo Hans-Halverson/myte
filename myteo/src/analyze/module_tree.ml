@@ -123,3 +123,25 @@ let analyze modules =
       | (module_tree, new_errors) -> (module_tree, new_errors @ errors))
     (SMap.empty, [])
     modules
+
+type lookup_result =
+  | LookupResultExport of unit Ast.Identifier.t
+  | LookupResultModule of string option * module_tree
+  | LookupResultError of Loc.t * Analyze_error.t
+
+let lookup name_parts module_tree =
+  let rec lookup_inner prev_name_parts name_parts module_tree =
+    match name_parts with
+    | [] ->
+      let prev_name = List.nth_opt prev_name_parts (List.length prev_name_parts - 1) in
+      LookupResultModule (prev_name, module_tree)
+    | { Ast.Identifier.loc; name = current_name; _ } :: rest_parts ->
+      (match SMap.find_opt current_name module_tree with
+      | None -> LookupResultError (loc, ImportNonexist (current_name, List.rev prev_name_parts))
+      | Some (Export export) when rest_parts = [] -> LookupResultExport export
+      | Some (Export _) ->
+        LookupResultError (loc, ImportChildOfExport (current_name, List.rev prev_name_parts))
+      | Some (Module (name, module_tree) | Empty (name, module_tree)) ->
+        lookup_inner (name :: prev_name_parts) rest_parts module_tree)
+  in
+  lookup_inner [] name_parts module_tree

@@ -1,0 +1,9 @@
+module a
+
+import a.a1
+import b
+import c.c1
+import d.d1.d2
+import e.e1.e2.e3
+
+fun main() {}

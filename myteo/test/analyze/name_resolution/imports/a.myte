@@ -1,0 +1,7 @@
+module A
+
+fun B() {}
+
+fun D() {}
+
+fun remote() {}

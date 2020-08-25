@@ -10,6 +10,8 @@ type t =
   | DuplicateParameterNames of string * string
   | DuplicateModuleNames of string
   | ModuleAndExportDuplicateNames of string * string
+  | ImportNonexist of string * string list
+  | ImportChildOfExport of string * string list
 
 let to_string error =
   match error with
@@ -25,3 +27,16 @@ let to_string error =
   | DuplicateModuleNames name -> Printf.sprintf "Module already declared with name \"%s\"" name
   | ModuleAndExportDuplicateNames (name, module_) ->
     Printf.sprintf "Module and export with same name \"%s\" in module \"%s\"" name module_
+  | ImportNonexist (name, []) -> Printf.sprintf "No toplevel module with name \"%s\" found" name
+  | ImportNonexist (name, module_parts) ->
+    Printf.sprintf
+      "No module or export with name \"%s\" found in module \"%s\""
+      name
+      (String.concat "." module_parts)
+  | ImportChildOfExport (name, module_parts) ->
+    let module_parts_string = String.concat "." module_parts in
+    Printf.sprintf
+      "\"%s\" is an export of module \"%s\", there are no items beneath \"%s\""
+      name
+      module_parts_string
+      (module_parts_string ^ "." ^ name)

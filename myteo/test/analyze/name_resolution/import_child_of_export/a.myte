@@ -1,0 +1,6 @@
+module a
+
+import b.export.b1
+import b.export.b1.b2
+
+fun main() {}

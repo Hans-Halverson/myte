@@ -28,7 +28,7 @@ let identifier_in_pattern pat =
   match pat with
   | Identifier id -> id
 
-class bindings_builder =
+class bindings_builder ~module_tree =
   object (this)
     inherit [unit, unit] Ast_visitor.visitor as super
 
@@ -81,17 +81,28 @@ class bindings_builder =
       List.iter
         (fun import ->
           let open Import in
+          let store_declaration name scopes =
+            let name_parts = scopes @ [name] in
+            match Module_tree.lookup name_parts module_tree with
+            | Module_tree.LookupResultExport _export_id -> (* TODO: Store declarations *) ()
+            | Module_tree.LookupResultModule (_, _module_tree) -> (* TODO: Store declarations *) ()
+            | Module_tree.LookupResultError (loc, error) -> this#add_error loc error
+          in
           match import with
-          | Simple { name; _ } ->
-            let { Ast.Identifier.loc; name; _ } = name in
+          | Simple { name = name_id; scopes; _ } ->
+            let { Ast.Identifier.loc; name; _ } = name_id in
+            (* Add name to toplevel scope *)
+            store_declaration name_id scopes;
             add_name loc name
-          | Complex { Complex.aliases; _ } ->
+          | Complex { Complex.aliases; scopes; _ } ->
+            (* Add local names to toplevel scope *)
             List.iter
               (fun alias ->
                 match alias with
-                | { Alias.alias = Some name; _ }
-                | { Alias.name; _ } ->
-                  let { Ast.Identifier.loc; name; _ } = name in
+                | { Alias.name; alias = Some local_name; _ }
+                | { Alias.name = _ as name as local_name; _ } ->
+                  store_declaration name scopes;
+                  let { Ast.Identifier.loc; name; _ } = local_name in
                   add_name loc name)
               aliases)
         imports;
@@ -164,11 +175,11 @@ class bindings_builder =
       | _ -> super#expression acc expr
   end
 
-let analyze modules =
+let analyze modules module_tree =
   let results =
     List.map
       (fun mod_ ->
-        let bindings_builder = new bindings_builder in
+        let bindings_builder = new bindings_builder ~module_tree in
         bindings_builder#module_ () mod_;
         bindings_builder#results ())
       modules
