@@ -8,22 +8,23 @@ let pad_number n max_num_digits =
   let num_digits = num_digits n in
   Printf.sprintf " %d%s " n (String.make (max_num_digits - num_digits) ' ')
 
-let print_summary_line loc message =
+let print_summary_lines loc message =
   let source =
     match loc with
-    | { Loc.source = Some (Source.File file); _ } -> Printf.sprintf "%s:" (Files.strip_root file)
-    | { Loc.source = Some (Source.String _); _ } -> "<STRING>:"
+    | { Loc.source = Some (Source.File file); _ } -> (Files.strip_root file)
+    | { Loc.source = Some (Source.String _); _ } -> "<STRING>"
     | _ -> ""
   in
-  Printf.sprintf
-    "%sERROR: %s%s%d:%d %s%s\n"
-    (style ~text:Red ~decorations:[Bold] ())
-    (style ~decorations:[Bold] ())
-    source
-    Loc.(loc.start.line)
-    Loc.(loc.start.col)
-    (reset ())
-    message
+  [
+    Printf.sprintf "%sError:%s %s\n" (style ~text:Red ~decorations:[Bold] ()) (reset ()) message;
+    Printf.sprintf
+      "%s%s:%d:%d%s\n"
+      (style ~decorations:[Bold] ())
+      source
+      Loc.(loc.start.line)
+      Loc.(loc.start.col)
+      (reset ());
+  ]
 
 let print_single_line loc snippet =
   let open Loc in
@@ -158,7 +159,7 @@ let snippet loc =
 let pp loc message =
   let open Loc in
   let snippet = snippet loc in
-  let summary = print_summary_line loc message in
+  let summary_lines = print_summary_lines loc message in
   let lines =
     let start_line = loc.start.line in
     let end_line = loc._end.line in
@@ -176,5 +177,5 @@ let pp loc message =
     | _ ->
       [first (); mid (off 1); mid (off 2); print_separator_line loc; mid (end_line - 1); last ()]
   in
-  let lines = summary :: lines in
+  let lines = summary_lines @ lines in
   String.concat "" lines

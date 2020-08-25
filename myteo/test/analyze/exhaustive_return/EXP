@@ -1,51 +1,64 @@
-ERROR: test/analyze/exhaustive_return/inexhaustive.myte:3:18 All branches of function test1 must end in a return statement
+Error: All branches of function test1 must end in a return statement
+test/analyze/exhaustive_return/inexhaustive.myte:3:18
  3 | fun test1(): int {}
    |                   ^
 
-ERROR: test/analyze/exhaustive_return/inexhaustive.myte:7:0 All branches of function test2 must end in a return statement
+Error: All branches of function test2 must end in a return statement
+test/analyze/exhaustive_return/inexhaustive.myte:7:0
  7 | }
    | ^
 
-ERROR: test/analyze/exhaustive_return/inexhaustive.myte:12:2 All branches of function test3 must end in a return statement
+Error: All branches of function test3 must end in a return statement
+test/analyze/exhaustive_return/inexhaustive.myte:12:2
  12 |   }
     |   ^
 
-ERROR: test/analyze/exhaustive_return/inexhaustive.myte:18:2 All branches of function test4 must end in a return statement
+Error: All branches of function test4 must end in a return statement
+test/analyze/exhaustive_return/inexhaustive.myte:18:2
  18 |   }
     |   ^
 
-ERROR: test/analyze/exhaustive_return/inexhaustive.myte:26:2 All branches of function test5 must end in a return statement
+Error: All branches of function test5 must end in a return statement
+test/analyze/exhaustive_return/inexhaustive.myte:26:2
  26 |   }
     |   ^
 
-ERROR: test/analyze/exhaustive_return/inexhaustive.myte:32:2 All branches of function test6 must end in a return statement
+Error: All branches of function test6 must end in a return statement
+test/analyze/exhaustive_return/inexhaustive.myte:32:2
  32 |   } else {
     |   ^
 
-ERROR: test/analyze/exhaustive_return/inexhaustive.myte:39:0 All branches of function test7 must end in a return statement
+Error: All branches of function test7 must end in a return statement
+test/analyze/exhaustive_return/inexhaustive.myte:39:0
  39 | }
     | ^
 
-ERROR: test/analyze/exhaustive_return/inexhaustive.myte:43:0 All branches of function test8 must end in a return statement
+Error: All branches of function test8 must end in a return statement
+test/analyze/exhaustive_return/inexhaustive.myte:43:0
  43 | }
     | ^
 
-ERROR: test/analyze/exhaustive_return/inexhaustive.myte:46:18 All branches of function bar must end in a return statement
+Error: All branches of function bar must end in a return statement
+test/analyze/exhaustive_return/inexhaustive.myte:46:18
  46 |   fun bar(): int {}
     |                   ^
 
-ERROR: test/analyze/exhaustive_return/inexhaustive.myte:52:20 All branches of function baz must end in a return statement
+Error: All branches of function baz must end in a return statement
+test/analyze/exhaustive_return/inexhaustive.myte:52:20
  52 |     fun baz(): int {}
     |                     ^
 
-ERROR: test/analyze/exhaustive_return/statement_after_return.myte:6:2 Unreachable statement after return
+Error: Unreachable statement after return
+test/analyze/exhaustive_return/statement_after_return.myte:6:2
  6 |   2;
    |   ^^
 
-ERROR: test/analyze/exhaustive_return/statement_after_return.myte:11:2 Unreachable statement after return
+Error: Unreachable statement after return
+test/analyze/exhaustive_return/statement_after_return.myte:11:2
  11 |   return 2;
     |   ^^^^^^^^^
 
-ERROR: test/analyze/exhaustive_return/statement_after_return.myte:21:2 Unreachable statement after return
+Error: Unreachable statement after return
+test/analyze/exhaustive_return/statement_after_return.myte:21:2
  21 |   3;
     |   ^^

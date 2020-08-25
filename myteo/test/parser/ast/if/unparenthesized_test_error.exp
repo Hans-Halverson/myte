@@ -1,3 +1,4 @@
-ERROR: test/parser/ast/if/unparenthesized_test_error.myte:4:5 Unexpected token "test", expected "("
+Error: Unexpected token "test", expected "("
+test/parser/ast/if/unparenthesized_test_error.myte:4:5
  4 |   if test {}
    |      ^^^^

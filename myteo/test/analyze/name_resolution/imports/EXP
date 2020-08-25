@@ -1,11 +1,14 @@
-ERROR: test/analyze/name_resolution/imports/imports.myte:17:2 Could not resolve name "remote"
+Error: Could not resolve name "remote"
+test/analyze/name_resolution/imports/imports.myte:17:2
  17 |   remote;
     |   ^^^^^^
 
-ERROR: test/analyze/name_resolution/imports/imports.myte:18:2 Could not resolve name "F"
+Error: Could not resolve name "F"
+test/analyze/name_resolution/imports/imports.myte:18:2
  18 |   F;
     |   ^
 
-ERROR: test/analyze/name_resolution/imports/imports.myte:19:2 Could not resolve name "nonexistent"
+Error: Could not resolve name "nonexistent"
+test/analyze/name_resolution/imports/imports.myte:19:2
  19 |   nonexistent;
     |   ^^^^^^^^^^^

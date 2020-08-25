@@ -1,31 +1,39 @@
-ERROR: test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:4:9 Name "A" already bound in module
+Error: Name "A" already bound in module
+test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:4:9
  4 | import B.A
    |          ^
 
-ERROR: test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:5:10 Name "A" already bound in module
+Error: Name "A" already bound in module
+test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:5:10
  5 | import C.{A, B, C as B}
    |           ^
 
-ERROR: test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:5:21 Name "B" already bound in module
+Error: Name "B" already bound in module
+test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:5:21
  5 | import C.{A, B, C as B}
    |                      ^
 
-ERROR: test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:10:4 Name "foo" already bound in module
+Error: Name "foo" already bound in module
+test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:10:4
  10 | val foo: int = 1;
     |     ^^^
 
-ERROR: test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:13:4 Name "bar" already bound in module
+Error: Name "bar" already bound in module
+test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:13:4
  13 | fun bar() {}
     |     ^^^
 
-ERROR: test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:16:4 Name "baz" already bound in module
+Error: Name "baz" already bound in module
+test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:16:4
  16 | val baz: int = 1;
     |     ^^^
 
-ERROR: test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:18:4 Name "imported" already bound in module
+Error: Name "imported" already bound in module
+test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:18:4
  18 | fun imported() {}
     |     ^^^^^^^^
 
-ERROR: test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:19:4 Name "imported" already bound in module
+Error: Name "imported" already bound in module
+test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:19:4
  19 | val imported: int = 1;
     |     ^^^^^^^^

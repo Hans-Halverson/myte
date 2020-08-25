@@ -1,3 +1,4 @@
-ERROR: test/analyze/main_function/missing_main.myte:4:0 No main function found in modules
+Error: No main function found in modules
+test/analyze/main_function/missing_main.myte:4:0
  4 | 
    | ^

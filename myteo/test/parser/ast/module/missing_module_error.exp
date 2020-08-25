@@ -1,3 +1,4 @@
-ERROR: test/parser/ast/module/missing_module_error.myte:1:0 File must start with a module declaration. Found "1" but expected "module"
+Error: File must start with a module declaration. Found "1" but expected "module"
+test/parser/ast/module/missing_module_error.myte:1:0
  1 | 1;
    | ^

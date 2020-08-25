@@ -1,27 +1,34 @@
-ERROR: test/analyze/name_resolution/unresolved_name_error.myte:6:2 Could not resolve name "x"
+Error: Could not resolve name "x"
+test/analyze/name_resolution/unresolved_name_error.myte:6:2
  6 |   x;
    |   ^
 
-ERROR: test/analyze/name_resolution/unresolved_name_error.myte:7:2 Could not resolve name "y"
+Error: Could not resolve name "y"
+test/analyze/name_resolution/unresolved_name_error.myte:7:2
  7 |   y;
    |   ^
 
-ERROR: test/analyze/name_resolution/unresolved_name_error.myte:29:2 Could not resolve name "x"
+Error: Could not resolve name "x"
+test/analyze/name_resolution/unresolved_name_error.myte:29:2
  29 |   x;
     |   ^
 
-ERROR: test/analyze/name_resolution/unresolved_name_error.myte:30:2 Could not resolve name "y"
+Error: Could not resolve name "y"
+test/analyze/name_resolution/unresolved_name_error.myte:30:2
  30 |   y;
     |   ^
 
-ERROR: test/analyze/name_resolution/unresolved_name_error.myte:45:2 Could not resolve name "x"
+Error: Could not resolve name "x"
+test/analyze/name_resolution/unresolved_name_error.myte:45:2
  45 |   x;
     |   ^
 
-ERROR: test/analyze/name_resolution/unresolved_name_error.myte:46:2 Could not resolve name "y"
+Error: Could not resolve name "y"
+test/analyze/name_resolution/unresolved_name_error.myte:46:2
  46 |   y; 
     |   ^
 
-ERROR: test/analyze/name_resolution/unresolved_name_error.myte:57:2 Could not resolve name "x"
+Error: Could not resolve name "x"
+test/analyze/name_resolution/unresolved_name_error.myte:57:2
  57 |   x;
     |   ^
