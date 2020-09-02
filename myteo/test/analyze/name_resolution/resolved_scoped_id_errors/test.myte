@@ -1,0 +1,40 @@
+module test
+
+import c1
+import {c1 as c1Alias}
+
+import d1.d2
+import d1.{d2 as d2Alias}
+
+fun test() {
+  // Module exists but used as value
+  a1.a2.a3;
+
+  // Module exists but export does not
+  a1.a2.a3.a4;
+
+  // Module exists but export does not, including nested accesses
+  a1.a2.a3.a4.a5;
+
+  // No module or export with name, but child module does exist
+  b1.b2.b3;
+
+  // No module or export with name
+  nonexist1;
+  nonexist1.nonexist2;
+  nonexist1.nonexist2.nonexist3;
+
+  // No module or export with name
+  c1.c2;
+  c1Alias.c2;
+
+  // Accessing imported module as value
+  d2;
+  d2Alias;
+
+  // Nonexistent export of imported module
+  d2.d3;
+  d2Alias.d3;
+}
+
+fun main () {}

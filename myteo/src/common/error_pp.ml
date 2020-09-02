@@ -11,7 +11,7 @@ let pad_number n max_num_digits =
 let print_summary_lines loc message =
   let source =
     match loc with
-    | { Loc.source = Some (Source.File file); _ } -> (Files.strip_root file)
+    | { Loc.source = Some (Source.File file); _ } -> Files.strip_root file
     | { Loc.source = Some (Source.String _); _ } -> "<STRING>"
     | _ -> ""
   in

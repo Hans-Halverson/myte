@@ -12,6 +12,9 @@ type t =
   | ModuleAndExportDuplicateNames of string * string
   | ImportNonexist of string * string list
   | ImportChildOfExport of string * string list
+  | ModuleInValuePosition of string list
+  | NoExportInModule of string * string list
+  | NoModuleWithName of string list
 
 let to_string error =
   match error with
@@ -40,3 +43,15 @@ let to_string error =
       name
       module_parts_string
       (module_parts_string ^ "." ^ name)
+  | ModuleInValuePosition module_parts ->
+    Printf.sprintf "Module \"%s\" cannot be used as a value" (String.concat "." module_parts)
+  | NoExportInModule (export, module_parts) ->
+    let module_parts_string = String.concat "." module_parts in
+    Printf.sprintf
+      "Could not resolve \"%s.%s\". Module \"%s\" does not have export with name \"%s\"."
+      module_parts_string
+      export
+      module_parts_string
+      export
+  | NoModuleWithName module_parts ->
+    Printf.sprintf "No module or export with name \"%s\" found" (String.concat "." module_parts)

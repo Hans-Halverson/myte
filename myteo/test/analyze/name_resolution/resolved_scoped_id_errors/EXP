@@ -1,0 +1,64 @@
+Error: Module "a1.a2.a3" cannot be used as a value
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:11:2
+ 11 |   a1.a2.a3;
+    |   ^^^^^^^^
+
+Error: Could not resolve "a1.a2.a3.a4". Module "a1.a2.a3" does not have export with name "a4".
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:14:2
+ 14 |   a1.a2.a3.a4;
+    |   ^^^^^^^^^^^
+
+Error: Could not resolve "a1.a2.a3.a4". Module "a1.a2.a3" does not have export with name "a4".
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:17:2
+ 17 |   a1.a2.a3.a4.a5;
+    |   ^^^^^^^^^^^
+
+Error: No module or export with name "b1.b2.b3" found
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:20:2
+ 20 |   b1.b2.b3;
+    |   ^^^^^^^^
+
+Error: Could not resolve name "nonexist1"
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:23:2
+ 23 |   nonexist1;
+    |   ^^^^^^^^^
+
+Error: Could not resolve name "nonexist1"
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:24:2
+ 24 |   nonexist1.nonexist2;
+    |   ^^^^^^^^^
+
+Error: Could not resolve name "nonexist1"
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:25:2
+ 25 |   nonexist1.nonexist2.nonexist3;
+    |   ^^^^^^^^^
+
+Error: No module or export with name "c1.c2" found
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:28:2
+ 28 |   c1.c2;
+    |   ^^^^^
+
+Error: No module or export with name "c1Alias.c2" found
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:29:2
+ 29 |   c1Alias.c2;
+    |   ^^^^^^^^^^
+
+Error: Module "d2" cannot be used as a value
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:32:2
+ 32 |   d2;
+    |   ^^
+
+Error: Module "d2Alias" cannot be used as a value
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:33:2
+ 33 |   d2Alias;
+    |   ^^^^^^^
+
+Error: No module or export with name "d2.d3" found
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:36:2
+ 36 |   d2.d3;
+    |   ^^^^^
+
+Error: No module or export with name "d2Alias.d3" found
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:37:2
+ 37 |   d2Alias.d3;
+    |   ^^^^^^^^^^

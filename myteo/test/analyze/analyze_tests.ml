@@ -1,4 +1,9 @@
-let command bin files = Printf.sprintf "%s --no-pretty-print %s" bin (String.concat " " files)
+let command ~config bin files =
+  Printf.sprintf
+    "%s --no-pretty-print %s %s"
+    bin
+    (Option.value ~default:"" config)
+    (String.concat " " files)
 
 let suite ~bin ~record =
   let root = Sys.getcwd () in

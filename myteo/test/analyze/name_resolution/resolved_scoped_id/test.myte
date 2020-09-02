@@ -1,0 +1,34 @@
+module test
+
+import c1
+import {c1 as c1Alias}
+
+import d1.d2
+import d1.{d2 as d2Alias}
+
+fun test() {
+  // Valid export is correctly converted to scoped id
+  a1.export;
+  a1.a2.export;
+
+  // Accesses on exports are preserved
+  a1.export.child;
+  a1.export.child1.child2;
+  a1.a2.export.child;
+  a1.a2.export.child1.child2;
+
+  // Valid export which has empty module tree parents
+  b1.b2.b3.export;
+
+  // Valid exports which are children of module imports
+  c1.export;
+  c1.export.child;
+  c1Alias.export;
+  c1Alias.export.child;
+  d2.export;
+  d2.export.child;
+  d2Alias.export;
+  d2Alias.export.child;
+}
+
+fun main() {}

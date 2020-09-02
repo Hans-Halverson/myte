@@ -14,16 +14,26 @@ let map_list f xs =
     List.fold_left
       (fun (has_changed, xs') x ->
         let x' = f x in
-        (has_changed || x == x', x' :: xs'))
+        (has_changed || x != x', x' :: xs'))
       (false, [])
       xs
   in
   if has_changed then
-    xs'
+    List.rev xs'
   else
     xs
 
-class ['a] visitor =
+let map_opt f x =
+  match x with
+  | None -> None
+  | Some x' ->
+    let x'' = f x' in
+    if x' == x'' then
+      x
+    else
+      Some x''
+
+class ['a] mapper =
   object (this)
     method module_ : 'a Module.t -> 'a Module.t =
       fun mod_ ->
@@ -75,6 +85,7 @@ class ['a] visitor =
         | StringLiteral e -> map this#string_literal e expr (fun e' -> StringLiteral e')
         | BoolLiteral e -> map this#bool_literal e expr (fun e' -> BoolLiteral e')
         | Identifier e -> map this#identifier e expr (fun e' -> Identifier e')
+        | ScopedIdentifier e -> map this#scoped_identifier e expr (fun e' -> ScopedIdentifier e')
         | UnaryOperation e -> map this#unary_operation e expr (fun e' -> UnaryOperation e')
         | BinaryOperation e -> map this#binary_operation e expr (fun e' -> BinaryOperation e')
         | LogicalAnd e -> map this#logical_and e expr (fun e' -> LogicalAnd e')
@@ -127,7 +138,7 @@ class ['a] visitor =
       let open Module.Import.Alias in
       let { t; loc; name; alias } = alias_ in
       let name' = this#identifier name in
-      let alias' = Option.map this#identifier alias in
+      let alias' = map_opt this#identifier alias in
       if name == name' && alias == alias' then
         alias_
       else
@@ -206,7 +217,7 @@ class ['a] visitor =
       let name' = this#identifier name in
       let params' = map_list this#function_param params in
       let body' = this#function_body body in
-      let return' = Option.map this#type_ return in
+      let return' = map_opt this#type_ return in
       if name == name' && params == params' && body == body' && return == return' then
         func
       else
@@ -220,7 +231,7 @@ class ['a] visitor =
       if name == name' && annot == annot' then
         param
       else
-        { t; loc; name; annot = annot' }
+        { t; loc; name = name'; annot = annot' }
 
     method function_body body =
       let open Function in
@@ -250,7 +261,7 @@ class ['a] visitor =
       let { t; loc; test; conseq; altern } = if_ in
       let test' = this#expression test in
       let conseq' = this#statement conseq in
-      let altern' = Option.map this#statement altern in
+      let altern' = map_opt this#statement altern in
       if test == test' && conseq == conseq' && altern == altern' then
         if_
       else
@@ -270,7 +281,7 @@ class ['a] visitor =
       let { t; loc; kind; pattern; init; annot } = decl in
       let pattern' = this#pattern pattern in
       let init' = this#expression init in
-      let annot' = Option.map this#type_ annot in
+      let annot' = map_opt this#type_ annot in
       if pattern == pattern' && init == init' && annot == annot' then
         decl
       else

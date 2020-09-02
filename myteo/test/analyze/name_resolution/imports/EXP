@@ -1,3 +1,18 @@
+Error: Module "A" cannot be used as a value
+test/analyze/name_resolution/imports/imports.myte:10:2
+ 10 |   A;
+    |   ^
+
+Error: Module "E" cannot be used as a value
+test/analyze/name_resolution/imports/imports.myte:14:2
+ 14 |   E;
+    |   ^
+
+Error: Module "G" cannot be used as a value
+test/analyze/name_resolution/imports/imports.myte:15:2
+ 15 |   G;
+    |   ^
+
 Error: Could not resolve name "remote"
 test/analyze/name_resolution/imports/imports.myte:17:2
  17 |   remote;

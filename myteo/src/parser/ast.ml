@@ -208,6 +208,7 @@ and Expression : sig
     | StringLiteral of 'T StringLiteral.t
     | BoolLiteral of 'T BoolLiteral.t
     | Identifier of 'T Identifier.t
+    | ScopedIdentifier of 'T ScopedIdentifier.t
     | UnaryOperation of 'T UnaryOperation.t
     | BinaryOperation of 'T BinaryOperation.t
     | LogicalAnd of 'T LogicalAnd.t

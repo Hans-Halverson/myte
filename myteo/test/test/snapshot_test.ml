@@ -4,16 +4,30 @@ type node =
   | Dir of string * node list
   | Test of Test.t
 
+type config = string option
+
 let exp_file_name = "EXP"
+
+let config_file_name = "CONFIG"
 
 let myte_file_suffix = ".myte"
 
 let exp_file_suffix = ".exp"
 
+let config_file_suffix = ".config"
+
 let write_file file contents =
   let file_out = open_out file in
   output_string file_out contents;
   close_out file_out
+
+let parse_config_file config_file =
+  try
+    let config_in = open_in config_file in
+    let config_contents = Io.chan_read_contents config_in in
+    close_in config_in;
+    Some config_contents
+  with Sys_error _ -> None
 
 let first_diff_lines s1 s2 =
   let s1_lines = String.split_on_char '\n' s1 in
@@ -45,9 +59,9 @@ let first_diff_lines s1 s2 =
   in
   (line_num, Option.value ~default:("", "") lines)
 
-let run_snapshot_test ~command ~record ~myte_files ~exp_file =
+let run_snapshot_test ~command ~config ~record ~myte_files ~exp_file =
   (* Run command in separate process and read its stdout *)
-  let formatted_command = command myte_files in
+  let formatted_command = command ~config myte_files in
   let process_in = Unix.open_process_in formatted_command in
   let act_contents = Io.chan_read_contents process_in in
   begin
@@ -86,7 +100,8 @@ let run_snapshot_test ~command ~record ~myte_files ~exp_file =
            act_line)
   )
 
-let rec node_of_file ~(record : bool) (absolute_file : string) (command : string list -> string) :
+let rec node_of_file
+    ~(record : bool) (absolute_file : string) (command : config:config -> string list -> string) :
     node option =
   if Sys.is_directory absolute_file then
     let files = Array.to_list (Sys.readdir absolute_file) in
@@ -99,7 +114,8 @@ let rec node_of_file ~(record : bool) (absolute_file : string) (command : string
         |> List.map (Filename.concat absolute_file)
       in
       let exp_file = Filename.concat absolute_file exp_file_name in
-      let run () = run_snapshot_test ~command ~record ~myte_files ~exp_file in
+      let config = parse_config_file (Filename.concat absolute_file config_file_name) in
+      let run () = run_snapshot_test ~command ~config ~record ~myte_files ~exp_file in
       Some (Test { Test.name = Filename.basename absolute_file; run })
     else
       (* If there is no EXP file this is a regular directory *)
@@ -112,11 +128,12 @@ let rec node_of_file ~(record : bool) (absolute_file : string) (command : string
       in
       Some (Dir (Filename.basename absolute_file, nodes))
   else if Filename.check_suffix absolute_file myte_file_suffix then
-    (* Myte files without neighboring OUT file are single file tests *)
+    (* Myte files without neighboring EXP file are single file tests *)
     let name = Filename.chop_suffix absolute_file myte_file_suffix in
     let myte_files = [absolute_file] in
     let exp_file = name ^ exp_file_suffix in
-    let run () = run_snapshot_test ~command ~record ~exp_file ~myte_files in
+    let config = parse_config_file (name ^ config_file_suffix) in
+    let run () = run_snapshot_test ~command ~config ~record ~exp_file ~myte_files in
     Some (Test { Test.name = Filename.basename name; run })
   else
     None
@@ -138,7 +155,9 @@ let rec suite_of_nodes (dir : string) (nodes : node list) : Suite.t option =
   | ([], []) -> None
   | _ -> Some { Suite.name = dir; tests; suites }
 
-let suite ~(record : bool) (absolute_dir : string) (command : string list -> string) : Suite.t =
+let suite
+    ~(record : bool) (absolute_dir : string) (command : config:config -> string list -> string) :
+    Suite.t =
   let fail_no_tests () =
     failwith (Printf.sprintf "Expected %s to recursively contain tests" absolute_dir)
   in

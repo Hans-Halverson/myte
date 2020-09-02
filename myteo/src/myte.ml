@@ -26,29 +26,30 @@ let parse_files files =
   ) else
     asts
 
-let show_ast files =
-  let asts = parse_files files in
-  let pp_asts =
+let pp_asts asts =
+  let ast_strings =
     List.map
       (fun (file, ast) ->
         let pp_ast = Ast_pp.pp_module ast in
         Printf.sprintf "%s\n%s" (Files.strip_root file) pp_ast)
       asts
   in
-  Printf.printf "%s" (String.concat "\n" pp_asts)
+  Printf.printf "%s" (String.concat "\n" ast_strings)
 
 let compile files =
-  let asts = parse_files files |> List.map snd in
-  let errors = Lex_analyze.analyze_modules asts in
-  if errors <> [] then (
-    print_analyze_errors errors;
-    exit 1
-  )
+  let asts = parse_files files in
+  if Opts.dump_ast () then (
+    pp_asts asts;
+    exit 0
+  ) else
+    let (resolved_asts, errors) = Lex_analyze.analyze_modules asts in
+    if errors <> [] then (
+      print_analyze_errors errors;
+      exit 1
+    );
+    if Opts.dump_resolved_ast () then pp_asts resolved_asts
 
 let () =
   let files = ref SSet.empty in
   Arg.parse Opts.spec (fun file -> files := SSet.add file !files) "Myte programming language";
-  if Opts.show_ast () then
-    show_ast !files
-  else
-    compile !files
+  compile !files

@@ -1,5 +1,5 @@
-let command bin files =
-  Printf.sprintf "%s --show-ast --no-pretty-print %s" bin (String.concat " " files)
+let command ~config:_ bin files =
+  Printf.sprintf "%s --dump-ast --no-pretty-print %s" bin (String.concat " " files)
 
 let suite ~bin ~record =
   let root = Sys.getcwd () in

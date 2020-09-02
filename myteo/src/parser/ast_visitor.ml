@@ -42,6 +42,7 @@ class ['a, 'b] visitor =
         | StringLiteral e -> this#string_literal acc e
         | BoolLiteral e -> this#bool_literal acc e
         | Identifier e -> this#identifier acc e
+        | ScopedIdentifier e -> this#scoped_identifier acc e
         | UnaryOperation e -> this#unary_operation acc e
         | BinaryOperation e -> this#binary_operation acc e
         | LogicalAnd e -> this#logical_and acc e
