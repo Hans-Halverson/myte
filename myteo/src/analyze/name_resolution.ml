@@ -41,7 +41,7 @@ let map_list = Ast_mapper.map_list
 
 class bindings_builder ~module_tree =
   object (this)
-    inherit [unit] Ast_mapper.mapper as super
+    inherit Ast_mapper.mapper as super
 
     val mutable bindings : binding_builder LocMap.t = LocMap.empty
 
@@ -224,7 +224,7 @@ class bindings_builder ~module_tree =
           let full_loc = Loc.between (List.hd prev_parts).loc loc in
           let scoped_id =
             Ast.Expression.ScopedIdentifier
-              { Ast.ScopedIdentifier.t = (); loc = full_loc; name = part; scopes = prev_parts }
+              { Ast.ScopedIdentifier.loc = full_loc; name = part; scopes = prev_parts }
           in
           (* Make sure new scoped id only replaces accesses that were matched, using number of
              unmatched accesses to know how how many to preserve. *)

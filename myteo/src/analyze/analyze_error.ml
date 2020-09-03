@@ -1,7 +1,7 @@
 open Ast
 
 type t =
-  | InexhaustiveReturn of unit Identifier.t
+  | InexhaustiveReturn of Identifier.t
   | UnreachableStatementAfterReturn
   | MissingMainFunction
   | MultipleMainFunctions

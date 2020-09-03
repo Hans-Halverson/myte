@@ -101,7 +101,7 @@ and opt : 'a. ('a -> 'b) -> 'a option -> 'b =
   | Some x -> f x
 
 and node_of_module mod_ =
-  let { Module.loc; module_; imports; toplevels; t = _ } = mod_ in
+  let { Module.loc; module_; imports; toplevels } = mod_ in
   node
     "Module"
     loc
@@ -112,7 +112,7 @@ and node_of_module mod_ =
     ]
 
 and node_of_module_module module_ =
-  let { Module.Module.loc; name; t = _ } = module_ in
+  let { Module.Module.loc; name } = module_ in
   node "Module" loc [("name", node_of_scoped_identifier name)]
 
 and node_of_toplevel toplevel =
@@ -162,11 +162,11 @@ and node_of_expression_stmt (loc, expr) =
   node "ExpressionStatement" loc [("expression", node_of_expression expr)]
 
 and node_of_identifier id =
-  let { Identifier.loc; name; t = _ } = id in
+  let { Identifier.loc; name } = id in
   node "Identifier" loc [("name", String name)]
 
 and node_of_scoped_identifier id =
-  let { ScopedIdentifier.loc; name; scopes; t = _ } = id in
+  let { ScopedIdentifier.loc; name; scopes } = id in
   node
     "ScopedIdentifier"
     loc
@@ -179,7 +179,7 @@ and node_of_import import =
   | Complex i -> node_of_complex_import i
 
 and node_of_complex_import import =
-  let { Module.Import.Complex.loc; scopes; aliases; t = _ } = import in
+  let { Module.Import.Complex.loc; scopes; aliases } = import in
   node
     "ComplexImport"
     loc
@@ -189,37 +189,37 @@ and node_of_complex_import import =
     ]
 
 and node_of_import_alias alias =
-  let { Module.Import.Alias.loc; name; alias; t = _ } = alias in
+  let { Module.Import.Alias.loc; name; alias } = alias in
   node
     "ImportAlias"
     loc
     [("name", node_of_identifier name); ("alias", opt node_of_identifier alias)]
 
 and node_of_unit unit =
-  let { Expression.Unit.loc; t = _ } = unit in
+  let { Expression.Unit.loc } = unit in
   node "Unit" loc []
 
 and node_of_int_literal lit =
-  let { Expression.IntLiteral.loc; raw; value; t = _ } = lit in
+  let { Expression.IntLiteral.loc; raw; value } = lit in
   node "IntLiteral" loc [("value", Int value); ("raw", String raw)]
 
 and node_of_string_literal lit =
-  let { Expression.StringLiteral.loc; value; t = _ } = lit in
+  let { Expression.StringLiteral.loc; value } = lit in
   node "StringLiteral" loc [("value", String value)]
 
 and node_of_bool_literal lit =
-  let { Expression.BoolLiteral.loc; value; t = _ } = lit in
+  let { Expression.BoolLiteral.loc; value } = lit in
   node "BoolLiteral" loc [("value", Bool value)]
 
 and node_of_unary_operation unary =
-  let { Expression.UnaryOperation.loc; operand; op; t = _ } = unary in
+  let { Expression.UnaryOperation.loc; operand; op } = unary in
   node
     "UnaryOperation"
     loc
     [("op", Raw (string_of_unary_op op)); ("operand", node_of_expression operand)]
 
 and node_of_binary_operation binary =
-  let { Expression.BinaryOperation.loc; left; right; op; t = _ } = binary in
+  let { Expression.BinaryOperation.loc; left; right; op } = binary in
   node
     "BinaryOperation"
     loc
@@ -230,30 +230,30 @@ and node_of_binary_operation binary =
     ]
 
 and node_of_logical_and logical =
-  let { Expression.LogicalAnd.loc; left; right; t = _ } = logical in
+  let { Expression.LogicalAnd.loc; left; right } = logical in
   node "LogicalAnd" loc [("left", node_of_expression left); ("right", node_of_expression right)]
 
 and node_of_logical_or logical =
-  let { Expression.LogicalOr.loc; left; right; t = _ } = logical in
+  let { Expression.LogicalOr.loc; left; right } = logical in
   node "LogicalOr" loc [("left", node_of_expression left); ("right", node_of_expression right)]
 
 and node_of_call call =
-  let { Expression.Call.loc; func; args; t = _ } = call in
+  let { Expression.Call.loc; func; args } = call in
   node
     "Call"
     loc
     [("func", node_of_expression func); ("args", List (List.map node_of_expression args))]
 
 and node_of_access binary =
-  let { Expression.Access.loc; left; right; t = _ } = binary in
+  let { Expression.Access.loc; left; right } = binary in
   node "Access" loc [("left", node_of_expression left); ("right", node_of_identifier right)]
 
 and node_of_block block =
-  let { Statement.Block.loc; statements; t = _ } = block in
+  let { Statement.Block.loc; statements } = block in
   node "Block" loc [("statements", List (List.map node_of_statement statements))]
 
 and node_of_if if_ =
-  let { Statement.If.loc; test; conseq; altern; t = _ } = if_ in
+  let { Statement.If.loc; test; conseq; altern } = if_ in
   node
     "If"
     loc
@@ -264,11 +264,11 @@ and node_of_if if_ =
     ]
 
 and node_of_return ret =
-  let { Statement.Return.loc; arg; t = _ } = ret in
+  let { Statement.Return.loc; arg } = ret in
   node "Return" loc [("arg", node_of_expression arg)]
 
 and node_of_variable_decl decl =
-  let { Statement.VariableDeclaration.loc; kind; pattern; init; annot; t = _ } = decl in
+  let { Statement.VariableDeclaration.loc; kind; pattern; init; annot } = decl in
   let kind =
     match kind with
     | Immutable -> "Immutable"
@@ -286,7 +286,7 @@ and node_of_variable_decl decl =
 
 and node_of_function func =
   let open Function in
-  let { loc; name; params; body; return; t = _ } = func in
+  let { loc; name; params; body; return } = func in
   let body =
     match body with
     | Block block -> node_of_block block
@@ -304,15 +304,15 @@ and node_of_function func =
 
 and node_of_function_param param =
   let open Function.Param in
-  let { loc; name; annot; t = _ } = param in
+  let { loc; name; annot } = param in
   node "Param" loc [("name", node_of_identifier name); ("annot", node_of_type annot)]
 
 and node_of_primitive_type p =
-  let { Type.Primitive.loc; kind; t = _ } = p in
+  let { Type.Primitive.loc; kind } = p in
   node "PrimitiveType" loc [("kind", Raw (string_of_primitive_type kind))]
 
 and node_of_function_type func =
-  let { Type.Function.loc; params; return; t = _ } = func in
+  let { Type.Function.loc; params; return } = func in
   node
     "FunctionType"
     loc

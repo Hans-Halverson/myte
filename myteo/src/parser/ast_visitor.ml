@@ -1,28 +1,28 @@
 open Ast
 
-class ['a, 'b] visitor =
+class ['a] visitor =
   object (this)
-    method module_ : 'a -> 'b Module.t -> unit =
+    method module_ : 'a -> Module.t -> unit =
       fun acc mod_ ->
-        let { Module.t = _; loc = _; module_; imports; toplevels } = mod_ in
+        let { Module.loc = _; module_; imports; toplevels } = mod_ in
         this#module_module acc module_;
         List.iter (this#import acc) imports;
         List.iter (this#toplevel acc) toplevels
 
-    method module_module : 'a -> 'b Module.Module.t -> unit =
+    method module_module : 'a -> Module.Module.t -> unit =
       fun acc module_ ->
         let open Module.Module in
-        let { t = _; loc = _; name } = module_ in
+        let { loc = _; name } = module_ in
         this#scoped_identifier acc name
 
-    method toplevel : 'a -> 'b Module.toplevel -> unit =
+    method toplevel : 'a -> Module.toplevel -> unit =
       fun acc toplevel ->
         let open Module in
         match toplevel with
         | VariableDeclaration t -> this#variable_declaration acc t
         | FunctionDeclaration t -> this#function_ acc t
 
-    method statement : 'a -> 'b Statement.t -> unit =
+    method statement : 'a -> Statement.t -> unit =
       fun acc stmt ->
         let open Statement in
         match stmt with
@@ -33,7 +33,7 @@ class ['a, 'b] visitor =
         | VariableDeclaration s -> this#variable_declaration acc s
         | FunctionDeclaration s -> this#function_ acc s
 
-    method expression : 'a -> 'b Expression.t -> unit =
+    method expression : 'a -> Expression.t -> unit =
       fun acc expr ->
         let open Expression in
         match expr with
@@ -50,13 +50,13 @@ class ['a, 'b] visitor =
         | Call e -> this#call acc e
         | Access e -> this#access acc e
 
-    method pattern : 'a -> 'b Pattern.t -> unit =
+    method pattern : 'a -> Pattern.t -> unit =
       fun acc pat ->
         let open Pattern in
         match pat with
         | Identifier p -> this#identifier acc p
 
-    method type_ : 'a -> 'b Type.t -> unit =
+    method type_ : 'a -> Type.t -> unit =
       fun acc ty ->
         let open Type in
         match ty with
@@ -67,7 +67,7 @@ class ['a, 'b] visitor =
 
     method scoped_identifier acc id =
       let open ScopedIdentifier in
-      let { t = _; loc = _; name; scopes } = id in
+      let { loc = _; name; scopes } = id in
       this#identifier acc name;
       List.iter (this#identifier acc) scopes
 
@@ -79,13 +79,13 @@ class ['a, 'b] visitor =
 
     method complex_import acc import =
       let open Module.Import.Complex in
-      let { t = _; loc = _; scopes; aliases } = import in
+      let { loc = _; scopes; aliases } = import in
       List.iter (this#identifier acc) scopes;
       List.iter (this#import_alias acc) aliases
 
     method import_alias acc alias =
       let open Module.Import.Alias in
-      let { t = _; loc = _; name; alias } = alias in
+      let { loc = _; name; alias } = alias in
       this#identifier acc name;
       Option.iter (this#identifier acc) alias
 
@@ -99,42 +99,42 @@ class ['a, 'b] visitor =
 
     method unary_operation acc unary =
       let open Expression.UnaryOperation in
-      let { t = _; loc = _; op = _; operand } = unary in
+      let { loc = _; op = _; operand } = unary in
       this#expression acc operand
 
     method binary_operation acc binary =
       let open Expression.BinaryOperation in
-      let { t = _; loc = _; op = _; left; right } = binary in
+      let { loc = _; op = _; left; right } = binary in
       this#expression acc left;
       this#expression acc right
 
     method logical_and acc logical =
       let open Expression.LogicalAnd in
-      let { t = _; loc = _; left; right } = logical in
+      let { loc = _; left; right } = logical in
       this#expression acc left;
       this#expression acc right
 
     method logical_or acc logical =
       let open Expression.LogicalOr in
-      let { t = _; loc = _; left; right } = logical in
+      let { loc = _; left; right } = logical in
       this#expression acc left;
       this#expression acc right
 
     method call acc call =
       let open Expression.Call in
-      let { t = _; loc = _; func; args } = call in
+      let { loc = _; func; args } = call in
       this#expression acc func;
       List.iter (this#expression acc) args
 
     method access acc access =
       let open Expression.Access in
-      let { t = _; loc = _; left; right } = access in
+      let { loc = _; left; right } = access in
       this#expression acc left;
       this#identifier acc right
 
     method function_ acc func =
       let open Function in
-      let { t = _; loc = _; name; params; body; return } = func in
+      let { loc = _; name; params; body; return } = func in
       this#identifier acc name;
       List.iter (this#function_param acc) params;
       this#function_body acc body;
@@ -142,7 +142,7 @@ class ['a, 'b] visitor =
 
     method function_param acc param =
       let open Function.Param in
-      let { t = _; loc = _; name; annot } = param in
+      let { loc = _; name; annot } = param in
       this#identifier acc name;
       this#type_ acc annot
 
@@ -158,24 +158,24 @@ class ['a, 'b] visitor =
 
     method block acc block =
       let open Statement.Block in
-      let { t = _; loc = _; statements } = block in
+      let { loc = _; statements } = block in
       List.iter (this#statement acc) statements
 
     method if_ acc if_ =
       let open Statement.If in
-      let { t = _; loc = _; test; conseq; altern } = if_ in
+      let { loc = _; test; conseq; altern } = if_ in
       this#expression acc test;
       this#statement acc conseq;
       Option.iter (this#statement acc) altern
 
     method return acc return =
       let open Statement.Return in
-      let { t = _; loc = _; arg } = return in
+      let { loc = _; arg } = return in
       this#expression acc arg
 
     method variable_declaration acc decl =
       let open Statement.VariableDeclaration in
-      let { t = _; loc = _; kind = _; pattern; init; annot } = decl in
+      let { loc = _; kind = _; pattern; init; annot } = decl in
       this#pattern acc pattern;
       this#expression acc init;
       Option.iter (this#type_ acc) annot
@@ -184,7 +184,7 @@ class ['a, 'b] visitor =
 
     method function_type acc func =
       let open Type.Function in
-      let { t = _; loc = _; params; return } = func in
+      let { loc = _; params; return } = func in
       List.iter (this#type_ acc) params;
       this#type_ acc return
   end

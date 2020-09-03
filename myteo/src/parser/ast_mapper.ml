@@ -33,30 +33,30 @@ let map_opt f x =
     else
       Some x''
 
-class ['a] mapper =
+class mapper =
   object (this)
-    method module_ : 'a Module.t -> 'a Module.t =
+    method module_ : Module.t -> Module.t =
       fun mod_ ->
-        let { Module.t; loc; module_; imports; toplevels } = mod_ in
+        let { Module.loc; module_; imports; toplevels } = mod_ in
         let module' = this#module_module module_ in
         let imports' = map_list this#import imports in
         let toplevels' = map_list this#toplevel toplevels in
         if module_ == module' && imports == imports' && toplevels == toplevels' then
           mod_
         else
-          { Module.t; loc; module_ = module'; imports = imports'; toplevels = toplevels' }
+          { Module.loc; module_ = module'; imports = imports'; toplevels = toplevels' }
 
-    method module_module : 'a Module.Module.t -> 'a Module.Module.t =
+    method module_module : Module.Module.t -> Module.Module.t =
       fun module_ ->
         let open Module.Module in
-        let { t; loc; name } = module_ in
+        let { loc; name } = module_ in
         let name' = this#scoped_identifier name in
         if name == name' then
           module_
         else
-          { t; loc; name = name' }
+          { loc; name = name' }
 
-    method toplevel : 'a Module.toplevel -> 'a Module.toplevel =
+    method toplevel : Module.toplevel -> Module.toplevel =
       fun toplevel ->
         let open Module in
         match toplevel with
@@ -64,7 +64,7 @@ class ['a] mapper =
           map this#variable_declaration t toplevel (fun t' -> VariableDeclaration t')
         | FunctionDeclaration t -> map this#function_ t toplevel (fun t' -> FunctionDeclaration t')
 
-    method statement : 'a Statement.t -> 'a Statement.t =
+    method statement : Statement.t -> Statement.t =
       fun stmt ->
         let open Statement in
         match stmt with
@@ -76,7 +76,7 @@ class ['a] mapper =
           map this#variable_declaration s stmt (fun s' -> VariableDeclaration s')
         | FunctionDeclaration s -> map this#function_ s stmt (fun s' -> FunctionDeclaration s')
 
-    method expression : 'a Expression.t -> 'a Expression.t =
+    method expression : Expression.t -> Expression.t =
       fun expr ->
         let open Expression in
         match expr with
@@ -93,13 +93,13 @@ class ['a] mapper =
         | Call e -> map this#call e expr (fun e' -> Call e')
         | Access e -> map this#access e expr (fun e' -> Access e')
 
-    method pattern : 'a Pattern.t -> 'a Pattern.t =
+    method pattern : Pattern.t -> Pattern.t =
       fun pat ->
         let open Pattern in
         match pat with
         | Identifier p -> map this#identifier p pat (fun p' -> Identifier p')
 
-    method type_ : 'a Type.t -> 'a Type.t =
+    method type_ : Type.t -> Type.t =
       fun ty ->
         let open Type in
         match ty with
@@ -110,13 +110,13 @@ class ['a] mapper =
 
     method scoped_identifier id =
       let open ScopedIdentifier in
-      let { t; loc; name; scopes } = id in
+      let { loc; name; scopes } = id in
       let name' = this#identifier name in
       let scopes' = map_list this#identifier scopes in
       if name == name' && scopes == scopes' then
         id
       else
-        { t; loc; name = name'; scopes = scopes' }
+        { loc; name = name'; scopes = scopes' }
 
     method import import =
       let open Module.Import in
@@ -126,23 +126,23 @@ class ['a] mapper =
 
     method complex_import import =
       let open Module.Import.Complex in
-      let { t; loc; scopes; aliases } = import in
+      let { loc; scopes; aliases } = import in
       let scopes' = map_list this#identifier scopes in
       let aliases' = map_list this#import_alias aliases in
       if scopes == scopes' && aliases == aliases' then
         import
       else
-        { t; loc; scopes = scopes'; aliases = aliases' }
+        { loc; scopes = scopes'; aliases = aliases' }
 
     method import_alias alias_ =
       let open Module.Import.Alias in
-      let { t; loc; name; alias } = alias_ in
+      let { loc; name; alias } = alias_ in
       let name' = this#identifier name in
       let alias' = map_opt this#identifier alias in
       if name == name' && alias == alias' then
         alias_
       else
-        { t; loc; name = name'; alias = alias' }
+        { loc; name = name'; alias = alias' }
 
     method unit unit = unit
 
@@ -154,66 +154,66 @@ class ['a] mapper =
 
     method unary_operation unary =
       let open Expression.UnaryOperation in
-      let { t; loc; op; operand } = unary in
+      let { loc; op; operand } = unary in
       let operand' = this#expression operand in
       if operand == operand' then
         unary
       else
-        { t; loc; op; operand = operand' }
+        { loc; op; operand = operand' }
 
     method binary_operation binary =
       let open Expression.BinaryOperation in
-      let { t; loc; op; left; right } = binary in
+      let { loc; op; left; right } = binary in
       let left' = this#expression left in
       let right' = this#expression right in
       if left == left' && right == right' then
         binary
       else
-        { t; loc; op; left = left'; right = right' }
+        { loc; op; left = left'; right = right' }
 
     method logical_and logical =
       let open Expression.LogicalAnd in
-      let { t; loc; left; right } = logical in
+      let { loc; left; right } = logical in
       let left' = this#expression left in
       let right' = this#expression right in
       if left == left' && right == right' then
         logical
       else
-        { t; loc; left = left'; right = right' }
+        { loc; left = left'; right = right' }
 
     method logical_or logical =
       let open Expression.LogicalOr in
-      let { t; loc; left; right } = logical in
+      let { loc; left; right } = logical in
       let left' = this#expression left in
       let right' = this#expression right in
       if left == left' && right == right' then
         logical
       else
-        { t; loc; left = left'; right = right' }
+        { loc; left = left'; right = right' }
 
     method call call =
       let open Expression.Call in
-      let { t; loc; func; args } = call in
+      let { loc; func; args } = call in
       let func' = this#expression func in
       let args' = map_list this#expression args in
       if func == func' && args == args' then
         call
       else
-        { t; loc; func = func'; args = args' }
+        { loc; func = func'; args = args' }
 
     method access access =
       let open Expression.Access in
-      let { t; loc; left; right } = access in
+      let { loc; left; right } = access in
       let left' = this#expression left in
       let right' = this#identifier right in
       if left == left' && right == right' then
         access
       else
-        { t; loc; left = left'; right = right' }
+        { loc; left = left'; right = right' }
 
     method function_ func =
       let open Function in
-      let { t; loc; name; params; body; return } = func in
+      let { loc; name; params; body; return } = func in
       let name' = this#identifier name in
       let params' = map_list this#function_param params in
       let body' = this#function_body body in
@@ -221,17 +221,17 @@ class ['a] mapper =
       if name == name' && params == params' && body == body' && return == return' then
         func
       else
-        { t; loc; name = name'; params = params'; body = body'; return = return' }
+        { loc; name = name'; params = params'; body = body'; return = return' }
 
     method function_param param =
       let open Function.Param in
-      let { t; loc; name; annot } = param in
+      let { loc; name; annot } = param in
       let name' = this#identifier name in
       let annot' = this#type_ annot in
       if name == name' && annot == annot' then
         param
       else
-        { t; loc; name = name'; annot = annot' }
+        { loc; name = name'; annot = annot' }
 
     method function_body body =
       let open Function in
@@ -249,53 +249,53 @@ class ['a] mapper =
 
     method block block =
       let open Statement.Block in
-      let { t; loc; statements } = block in
+      let { loc; statements } = block in
       let statements' = map_list this#statement statements in
       if statements == statements' then
         block
       else
-        { t; loc; statements = statements' }
+        { loc; statements = statements' }
 
     method if_ if_ =
       let open Statement.If in
-      let { t; loc; test; conseq; altern } = if_ in
+      let { loc; test; conseq; altern } = if_ in
       let test' = this#expression test in
       let conseq' = this#statement conseq in
       let altern' = map_opt this#statement altern in
       if test == test' && conseq == conseq' && altern == altern' then
         if_
       else
-        { t; loc; test = test'; conseq = conseq'; altern = altern' }
+        { loc; test = test'; conseq = conseq'; altern = altern' }
 
     method return return =
       let open Statement.Return in
-      let { t; loc; arg } = return in
+      let { loc; arg } = return in
       let arg' = this#expression arg in
       if arg == arg' then
         return
       else
-        { t; loc; arg = arg' }
+        { loc; arg = arg' }
 
     method variable_declaration decl =
       let open Statement.VariableDeclaration in
-      let { t; loc; kind; pattern; init; annot } = decl in
+      let { loc; kind; pattern; init; annot } = decl in
       let pattern' = this#pattern pattern in
       let init' = this#expression init in
       let annot' = map_opt this#type_ annot in
       if pattern == pattern' && init == init' && annot == annot' then
         decl
       else
-        { t; loc; kind; pattern = pattern'; init = init'; annot = annot' }
+        { loc; kind; pattern = pattern'; init = init'; annot = annot' }
 
     method primitive_type prim = prim
 
     method function_type func =
       let open Type.Function in
-      let { t; loc; params; return } = func in
+      let { loc; params; return } = func in
       let params' = map_list this#type_ params in
       let return' = this#type_ return in
       if params == params' && return == return' then
         func
       else
-        { t; loc; params = params'; return = return' }
+        { loc; params = params'; return = return' }
   end

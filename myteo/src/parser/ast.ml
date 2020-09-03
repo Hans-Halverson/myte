@@ -1,74 +1,67 @@
 module rec Module : sig
-  type 'T toplevel =
-    | VariableDeclaration of 'T Statement.VariableDeclaration.t
-    | FunctionDeclaration of 'T Function.t
+  type toplevel =
+    | VariableDeclaration of Statement.VariableDeclaration.t
+    | FunctionDeclaration of Function.t
 
   module Module : sig
-    type 'T t = {
-      t: 'T;
+    type t = {
       loc: Loc.t;
-      name: 'T ScopedIdentifier.t;
+      name: ScopedIdentifier.t;
     }
   end
 
   module Import : sig
     module Alias : sig
-      type 'T t = {
-        t: 'T;
+      type t = {
         loc: Loc.t;
-        name: 'T Identifier.t;
-        alias: 'T Identifier.t option;
+        name: Identifier.t;
+        alias: Identifier.t option;
       }
     end
 
     module Complex : sig
-      type 'T t = {
-        t: 'T;
+      type t = {
         loc: Loc.t;
-        scopes: 'T Identifier.t list;
-        aliases: 'T Alias.t list;
+        scopes: Identifier.t list;
+        aliases: Alias.t list;
       }
     end
 
-    type 'T t =
-      | Simple of 'T ScopedIdentifier.t
-      | Complex of 'T Complex.t
+    type t =
+      | Simple of ScopedIdentifier.t
+      | Complex of Complex.t
   end
 
-  type 'T t = {
-    t: 'T;
+  type t = {
     loc: Loc.t;
-    module_: 'T Module.t;
-    imports: 'T Import.t list;
-    toplevels: 'T toplevel list;
+    module_: Module.t;
+    imports: Import.t list;
+    toplevels: toplevel list;
   }
 end =
   Module
 
 and Statement : sig
   module Block : sig
-    type 'T t = {
-      t: 'T;
+    type t = {
       loc: Loc.t;
-      statements: 'T Statement.t list;
+      statements: Statement.t list;
     }
   end
 
   module If : sig
-    type 'T t = {
-      t: 'T;
+    type t = {
       loc: Loc.t;
-      test: 'T Expression.t;
-      conseq: 'T Statement.t;
-      altern: 'T Statement.t option;
+      test: Expression.t;
+      conseq: Statement.t;
+      altern: Statement.t option;
     }
   end
 
   module Return : sig
-    type 'T t = {
-      t: 'T;
+    type t = {
       loc: Loc.t;
-      arg: 'T Expression.t;
+      arg: Expression.t;
     }
   end
 
@@ -77,37 +70,32 @@ and Statement : sig
       | Immutable
       | Mutable
 
-    type 'T t = {
-      t: 'T;
+    type t = {
       loc: Loc.t;
       kind: kind;
-      pattern: 'T Pattern.t;
-      init: 'T Expression.t;
-      annot: 'T Type.t option;
+      pattern: Pattern.t;
+      init: Expression.t;
+      annot: Type.t option;
     }
   end
 
-  type 'T t =
-    | Expression of (Loc.t * 'T Expression.t)
-    | Block of 'T Block.t
-    | If of 'T If.t
-    | Return of 'T Return.t
-    | VariableDeclaration of 'T VariableDeclaration.t
-    | FunctionDeclaration of 'T Function.t
+  type t =
+    | Expression of (Loc.t * Expression.t)
+    | Block of Block.t
+    | If of If.t
+    | Return of Return.t
+    | VariableDeclaration of VariableDeclaration.t
+    | FunctionDeclaration of Function.t
 end =
   Statement
 
 and Expression : sig
   module Unit : sig
-    type 'T t = {
-      t: 'T;
-      loc: Loc.t;
-    }
+    type t = { loc: Loc.t }
   end
 
   module IntLiteral : sig
-    type 'T t = {
-      t: 'T;
+    type t = {
       loc: Loc.t;
       raw: string;
       value: int;
@@ -115,16 +103,14 @@ and Expression : sig
   end
 
   module StringLiteral : sig
-    type 'T t = {
-      t: 'T;
+    type t = {
       loc: Loc.t;
       value: string;
     }
   end
 
   module BoolLiteral : sig
-    type 'T t = {
-      t: 'T;
+    type t = {
       loc: Loc.t;
       value: bool;
     }
@@ -136,10 +122,9 @@ and Expression : sig
       | Minus
       | LogicalNot
 
-    and 'T t = {
-      t: 'T;
+    and t = {
       loc: Loc.t;
-      operand: 'T Expression.t;
+      operand: Expression.t;
       op: op;
     }
   end
@@ -157,69 +142,64 @@ and Expression : sig
       | LessThanOrEqual
       | GreaterThanOrEqual
 
-    and 'T t = {
-      t: 'T;
+    and t = {
       loc: Loc.t;
-      left: 'T Expression.t;
-      right: 'T Expression.t;
+      left: Expression.t;
+      right: Expression.t;
       op: op;
     }
   end
 
   module LogicalAnd : sig
-    type 'T t = {
-      t: 'T;
+    type t = {
       loc: Loc.t;
-      left: 'T Expression.t;
-      right: 'T Expression.t;
+      left: Expression.t;
+      right: Expression.t;
     }
   end
 
   module LogicalOr : sig
-    type 'T t = {
-      t: 'T;
+    type t = {
       loc: Loc.t;
-      left: 'T Expression.t;
-      right: 'T Expression.t;
+      left: Expression.t;
+      right: Expression.t;
     }
   end
 
   module Call : sig
-    type 'T t = {
-      t: 'T;
+    type t = {
       loc: Loc.t;
-      func: 'T Expression.t;
-      args: 'T Expression.t list;
+      func: Expression.t;
+      args: Expression.t list;
     }
   end
 
   module Access : sig
-    type 'T t = {
-      t: 'T;
+    type t = {
       loc: Loc.t;
-      left: 'T Expression.t;
-      right: 'T Identifier.t;
+      left: Expression.t;
+      right: Identifier.t;
     }
   end
 
-  type 'T t =
-    | Unit of 'T Unit.t
-    | IntLiteral of 'T IntLiteral.t
-    | StringLiteral of 'T StringLiteral.t
-    | BoolLiteral of 'T BoolLiteral.t
-    | Identifier of 'T Identifier.t
-    | ScopedIdentifier of 'T ScopedIdentifier.t
-    | UnaryOperation of 'T UnaryOperation.t
-    | BinaryOperation of 'T BinaryOperation.t
-    | LogicalAnd of 'T LogicalAnd.t
-    | LogicalOr of 'T LogicalOr.t
-    | Call of 'T Call.t
-    | Access of 'T Access.t
+  type t =
+    | Unit of Unit.t
+    | IntLiteral of IntLiteral.t
+    | StringLiteral of StringLiteral.t
+    | BoolLiteral of BoolLiteral.t
+    | Identifier of Identifier.t
+    | ScopedIdentifier of ScopedIdentifier.t
+    | UnaryOperation of UnaryOperation.t
+    | BinaryOperation of BinaryOperation.t
+    | LogicalAnd of LogicalAnd.t
+    | LogicalOr of LogicalOr.t
+    | Call of Call.t
+    | Access of Access.t
 end =
   Expression
 
 and Pattern : sig
-  type 'T t = Identifier of 'T Identifier.t
+  type t = Identifier of Identifier.t
 end =
   Pattern
 
@@ -231,56 +211,51 @@ and Type : sig
       | String
       | Bool
 
-    type 'T t = {
-      t: 'T;
+    type t = {
       loc: Loc.t;
       kind: kind;
     }
   end
 
   module Function : sig
-    type 'T t = {
-      t: 'T;
+    type t = {
       loc: Loc.t;
-      params: 'T Type.t list;
-      return: 'T Type.t;
+      params: Type.t list;
+      return: Type.t;
     }
   end
 
-  type 'T t =
-    | Primitive of 'T Primitive.t
-    | Function of 'T Function.t
+  type t =
+    | Primitive of Primitive.t
+    | Function of Function.t
 end =
   Type
 
 and Function : sig
   module Param : sig
-    type 'T t = {
-      t: 'T;
+    type t = {
       loc: Loc.t;
-      name: 'T Identifier.t;
-      annot: 'T Type.t;
+      name: Identifier.t;
+      annot: Type.t;
     }
   end
 
-  type 'T body =
-    | Block of 'T Statement.Block.t
-    | Expression of 'T Expression.t
+  type body =
+    | Block of Statement.Block.t
+    | Expression of Expression.t
 
-  and 'T t = {
-    t: 'T;
+  and t = {
     loc: Loc.t;
-    name: 'T Identifier.t;
-    params: 'T Param.t list;
-    body: 'T body;
-    return: 'T Type.t option;
+    name: Identifier.t;
+    params: Param.t list;
+    body: body;
+    return: Type.t option;
   }
 end =
   Function
 
 and Identifier : sig
-  type 'T t = {
-    t: 'T;
+  type t = {
     loc: Loc.t;
     name: string;
   }
@@ -288,11 +263,10 @@ end =
   Identifier
 
 and ScopedIdentifier : sig
-  type 'T t = {
-    t: 'T;
+  type t = {
     loc: Loc.t;
-    scopes: 'T Identifier.t list;
-    name: 'T Identifier.t;
+    scopes: Identifier.t list;
+    name: Identifier.t;
   }
 end =
   ScopedIdentifier

@@ -15,7 +15,7 @@ type module_tree = module_tree_node SMap.t
 and module_tree_node =
   | Empty of string * module_tree
   | Module of string * module_tree
-  | Export of unit Ast.Identifier.t
+  | Export of Ast.Identifier.t
 
 let gather_exports module_ submodules =
   let open Ast.Module in
@@ -125,7 +125,7 @@ let analyze modules =
     modules
 
 type lookup_result =
-  | LookupResultExport of unit Ast.Identifier.t
+  | LookupResultExport of Ast.Identifier.t
   | LookupResultModule of string option * module_tree
   | LookupResultError of Loc.t * Analyze_error.t
 

@@ -72,20 +72,13 @@ and parse env =
       let dummy_module =
         {
           Module.Module.loc;
-          name =
-            {
-              ScopedIdentifier.loc;
-              name = { Identifier.loc; name = "module"; t = () };
-              scopes = [];
-              t = ();
-            };
-          t = ();
+          name = { ScopedIdentifier.loc; name = { Identifier.loc; name = "module" }; scopes = [] };
         }
       in
       (dummy_module, [], [], [(loc, err)])
   in
   let loc = { (Env.loc env) with Loc.start = Loc.first_pos } in
-  ({ Module.loc; module_; imports; toplevels; t = () }, errors)
+  ({ Module.loc; module_; imports; toplevels }, errors)
 
 and parse_module env =
   let open Module in
@@ -97,7 +90,7 @@ and parse_module env =
   end;
   let name = parse_scoped_identifier env in
   let loc = marker env in
-  { Module.loc; name; t = () }
+  { Module.loc; name }
 
 and parse_imports env =
   let open Module.Import in
@@ -126,7 +119,7 @@ and parse_imports env =
         let name = List_utils.last scopes in
         let scopes = List_utils.drop_last scopes in
         let loc = marker env in
-        Simple { ScopedIdentifier.loc; name; scopes; t = () })
+        Simple { ScopedIdentifier.loc; name; scopes })
   in
   let rec parse_imports () =
     match Env.token env with
@@ -151,7 +144,7 @@ and parse_complex_import env marker scopes =
       | _ -> None
     in
     let loc = marker env in
-    let alias = { Alias.loc; name; alias; t = () } in
+    let alias = { Alias.loc; name; alias } in
     match Env.token env with
     | T_RIGHT_BRACE -> [alias]
     | T_COMMA ->
@@ -165,7 +158,7 @@ and parse_complex_import env marker scopes =
   let aliases = parse_aliases () in
   Env.expect env T_RIGHT_BRACE;
   let loc = marker env in
-  Complex { Complex.loc; scopes; aliases; t = () }
+  Complex { Complex.loc; scopes; aliases }
 
 and parse_toplevel env =
   let open Module in
@@ -219,15 +212,15 @@ and parse_expression_prefix env =
   | T_INT_LITERAL (value, raw) ->
     let loc = Env.loc env in
     Env.advance env;
-    IntLiteral { IntLiteral.loc; raw; value; t = () }
+    IntLiteral { IntLiteral.loc; raw; value }
   | T_STRING_LITERAL value ->
     let loc = Env.loc env in
     Env.advance env;
-    StringLiteral { StringLiteral.loc; value; t = () }
+    StringLiteral { StringLiteral.loc; value }
   | T_BOOL_LITERAL value ->
     let loc = Env.loc env in
     Env.advance env;
-    BoolLiteral { BoolLiteral.loc; value; t = () }
+    BoolLiteral { BoolLiteral.loc; value }
   | token -> Parse_error.fatal (Env.loc env, UnexpectedToken { actual = token; expected = None })
 
 and parse_expression_infix ~precedence env left marker =
@@ -267,7 +260,7 @@ and parse_group_expression env =
   | T_RIGHT_PAREN ->
     let loc = Env.loc env in
     Env.advance env;
-    Unit { Unit.loc; t = () }
+    Unit { Unit.loc }
   | _ ->
     let expr = parse_expression env in
     Env.expect env T_RIGHT_PAREN;
@@ -286,7 +279,7 @@ and parse_unary_expression env =
   Env.advance env;
   let operand = parse_expression ~precedence:Unary env in
   let loc = marker env in
-  Expression.UnaryOperation { loc; operand; op; t = () }
+  Expression.UnaryOperation { loc; operand; op }
 
 and parse_binary_operation env left marker =
   let open Expression.BinaryOperation in
@@ -307,7 +300,7 @@ and parse_binary_operation env left marker =
   Env.advance env;
   let right = parse_expression ~precedence env in
   let loc = marker env in
-  Expression.BinaryOperation { loc; left; right; op; t = () }
+  Expression.BinaryOperation { loc; left; right; op }
 
 and parse_logical_expression env left marker =
   let open Expression in
@@ -316,12 +309,12 @@ and parse_logical_expression env left marker =
     Env.advance env;
     let right = parse_expression ~precedence:LogicalAnd env in
     let loc = marker env in
-    LogicalAnd { LogicalAnd.loc; left; right; t = () }
+    LogicalAnd { LogicalAnd.loc; left; right }
   | T_LOGICAL_OR ->
     Env.advance env;
     let right = parse_expression ~precedence:LogicalOr env in
     let loc = marker env in
-    LogicalOr { LogicalOr.loc; left; right; t = () }
+    LogicalOr { LogicalOr.loc; left; right }
   | _ -> failwith "Invalid logical operator"
 
 and parse_call env left marker =
@@ -344,21 +337,21 @@ and parse_call env left marker =
   in
   let args = args env in
   let loc = marker env in
-  Expression.Call { loc; func = left; args; t = () }
+  Expression.Call { loc; func = left; args }
 
 and parse_access env left marker =
   let open Expression.Access in
   Env.expect env T_PERIOD;
   let right = parse_identifier env in
   let loc = marker env in
-  Expression.Access { loc; left; right; t = () }
+  Expression.Access { loc; left; right }
 
 and parse_identifier env =
   match Env.token env with
   | T_IDENTIFIER name ->
     let loc = Env.loc env in
     Env.advance env;
-    { Identifier.loc; name; t = () }
+    { Identifier.loc; name }
   | token ->
     Parse_error.fatal
       (Env.loc env, UnexpectedToken { actual = token; expected = Some (T_IDENTIFIER "") })
@@ -379,7 +372,7 @@ and parse_scoped_identifier env =
   let scopes = List_utils.drop_last scopes in
 
   let loc = marker env in
-  { ScopedIdentifier.loc; name; scopes; t = () }
+  { ScopedIdentifier.loc; name; scopes }
 
 and parse_pattern env =
   let open Pattern in
@@ -402,7 +395,7 @@ and parse_block env =
   in
   let statements = statements env in
   let loc = marker env in
-  { Block.loc; statements; t = () }
+  { Block.loc; statements }
 
 and parse_if env =
   let open Statement.If in
@@ -420,7 +413,7 @@ and parse_if env =
     | _ -> None
   in
   let loc = marker env in
-  Statement.If { loc; test; conseq; altern; t = () }
+  Statement.If { loc; test; conseq; altern }
 
 and parse_return env =
   let open Statement.Return in
@@ -429,7 +422,7 @@ and parse_return env =
   let arg = parse_expression env in
   Env.expect env T_SEMICOLON;
   let loc = marker env in
-  Statement.Return { loc; arg; t = () }
+  Statement.Return { loc; arg }
 
 and parse_variable_declaration env =
   let open Statement in
@@ -453,7 +446,7 @@ and parse_variable_declaration env =
   let init = parse_expression env in
   Env.expect env T_SEMICOLON;
   let loc = marker env in
-  { VariableDeclaration.loc; kind; pattern; init; annot; t = () }
+  { VariableDeclaration.loc; kind; pattern; init; annot }
 
 and parse_function env =
   let open Function in
@@ -478,7 +471,7 @@ and parse_function env =
         | T_COMMA -> Env.advance env
         | _ -> Env.expect env T_RIGHT_PAREN
       end;
-      let param = { Param.loc; name; annot; t = () } in
+      let param = { Param.loc; name; annot } in
       param :: params env
   in
   let params = params env in
@@ -498,7 +491,7 @@ and parse_function env =
     | token -> Parse_error.fatal (Env.loc env, MalformedFunctionBody token)
   in
   let loc = marker env in
-  { loc; name; params; body; return; t = () }
+  { loc; name; params; body; return }
 
 and parse_type ?(precedence = TypePrecedence.None) env =
   let open Type in
@@ -538,7 +531,7 @@ and parse_primitive_type env =
   in
   let loc = Env.loc env in
   Env.advance env;
-  { loc; kind; t = () }
+  { loc; kind }
 
 and parse_function_type env left marker =
   let open Type.Function in
@@ -557,4 +550,4 @@ and parse_function_type env left marker =
   | return :: rev_params ->
     let params = List.rev rev_params in
     let loc = marker env in
-    { loc; params; return; t = () }
+    { loc; params; return }
