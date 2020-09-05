@@ -105,6 +105,7 @@ class mapper =
         let open Type in
         match ty with
         | Primitive t -> map this#primitive_type t ty (fun t' -> Primitive t')
+        | Custom t -> map this#custom_type t ty (fun t' -> Custom t')
         | Function t -> map this#function_type t ty (fun t' -> Function t')
 
     method identifier id = id
@@ -299,6 +300,15 @@ class mapper =
         { loc; name = name'; ty = ty' }
 
     method primitive_type prim = prim
+
+    method custom_type custom =
+      let open Type.Custom in
+      let { loc; name } = custom in
+      let name' = this#scoped_identifier name in
+      if name == name' then
+        custom
+      else
+        { loc; name = name' }
 
     method function_type func =
       let open Type.Function in

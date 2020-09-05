@@ -1,7 +1,7 @@
 test/parser/ast/type/basic.myte
 {
   node: Module,
-  loc: 1:0-11:0,
+  loc: 1:0-14:65,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -206,6 +206,159 @@ test/parser/ast/type/basic.myte
           node: PrimitiveType,
           loc: 10:32-10:38,
           kind: String,
+        },
+      },
+    },
+    {
+      node: VariableDeclaration,
+      loc: 12:0-12:19,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 12:4-12:5,
+        name: "x",
+      },
+      init: {
+        node: IntLiteral,
+        loc: 12:17-12:18,
+        value: 1,
+        raw: "1",
+      },
+      annot: {
+        node: CustomType,
+        loc: 12:7-12:14,
+        name: {
+          node: ScopedIdentifier,
+          loc: 12:7-12:14,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 12:7-12:14,
+            name: "Custom1",
+          },
+        },
+      },
+    },
+    {
+      node: VariableDeclaration,
+      loc: 13:0-13:35,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 13:4-13:5,
+        name: "x",
+      },
+      init: {
+        node: IntLiteral,
+        loc: 13:33-13:34,
+        value: 1,
+        raw: "1",
+      },
+      annot: {
+        node: CustomType,
+        loc: 13:7-13:30,
+        name: {
+          node: ScopedIdentifier,
+          loc: 13:7-13:30,
+          scopes: [
+            {
+              node: Identifier,
+              loc: 13:7-13:14,
+              name: "Custom1",
+            },
+            {
+              node: Identifier,
+              loc: 13:15-13:22,
+              name: "Custom2",
+            },
+          ],
+          name: {
+            node: Identifier,
+            loc: 13:23-13:30,
+            name: "Custom3",
+          },
+        },
+      },
+    },
+    {
+      node: VariableDeclaration,
+      loc: 14:0-14:65,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 14:4-14:5,
+        name: "x",
+      },
+      init: {
+        node: IntLiteral,
+        loc: 14:63-14:64,
+        value: 1,
+        raw: "1",
+      },
+      annot: {
+        node: FunctionType,
+        loc: 14:7-14:60,
+        params: [
+          {
+            node: CustomType,
+            loc: 14:7-14:22,
+            name: {
+              node: ScopedIdentifier,
+              loc: 14:7-14:22,
+              scopes: [
+                {
+                  node: Identifier,
+                  loc: 14:7-14:14,
+                  name: "Custom1",
+                },
+              ],
+              name: {
+                node: Identifier,
+                loc: 14:15-14:22,
+                name: "Custom2",
+              },
+            },
+          },
+          {
+            node: CustomType,
+            loc: 14:26-14:41,
+            name: {
+              node: ScopedIdentifier,
+              loc: 14:26-14:41,
+              scopes: [
+                {
+                  node: Identifier,
+                  loc: 14:26-14:33,
+                  name: "Custom3",
+                },
+              ],
+              name: {
+                node: Identifier,
+                loc: 14:34-14:41,
+                name: "Custom4",
+              },
+            },
+          },
+        ],
+        return: {
+          node: CustomType,
+          loc: 14:45-14:60,
+          name: {
+            node: ScopedIdentifier,
+            loc: 14:45-14:60,
+            scopes: [
+              {
+                node: Identifier,
+                loc: 14:45-14:52,
+                name: "Custom5",
+              },
+            ],
+            name: {
+              node: Identifier,
+              loc: 14:53-14:60,
+              name: "Custom6",
+            },
+          },
         },
       },
     },

@@ -522,6 +522,7 @@ and parse_type_prefix env =
   | T_STRING
   | T_BOOL ->
     Primitive (parse_primitive_type env)
+  | T_IDENTIFIER _ -> Custom (parse_custom_type env)
   | token -> Parse_error.fatal (Env.loc env, MalformedType token)
 
 and parse_group_type env =
@@ -543,6 +544,13 @@ and parse_primitive_type env =
   let loc = Env.loc env in
   Env.advance env;
   { loc; kind }
+
+and parse_custom_type env =
+  let open Type.Custom in
+  let marker = mark_loc env in
+  let name = parse_scoped_identifier env in
+  let loc = marker env in
+  { loc; name }
 
 and parse_function_type env left marker =
   let open Type.Function in

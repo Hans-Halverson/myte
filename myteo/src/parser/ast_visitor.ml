@@ -62,6 +62,7 @@ class ['a] visitor =
         let open Type in
         match ty with
         | Primitive t -> this#primitive_type acc t
+        | Custom t -> this#custom_type acc t
         | Function t -> this#function_type acc t
 
     method identifier _acc _id = ()
@@ -188,6 +189,11 @@ class ['a] visitor =
       this#type_ acc ty
 
     method primitive_type _acc _prim = ()
+
+    method custom_type acc custom =
+      let open Type.Custom in
+      let { loc = _; name } = custom in
+      this#scoped_identifier acc name
 
     method function_type acc func =
       let open Type.Function in

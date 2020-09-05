@@ -157,6 +157,7 @@ and node_of_type ty =
   let open Type in
   match ty with
   | Primitive prim -> node_of_primitive_type prim
+  | Custom custom -> node_of_custom_type custom
   | Function func -> node_of_function_type func
 
 and node_of_expression_stmt (loc, expr) =
@@ -315,6 +316,10 @@ and node_of_function_param param =
 and node_of_primitive_type p =
   let { Type.Primitive.loc; kind } = p in
   node "PrimitiveType" loc [("kind", Raw (string_of_primitive_type kind))]
+
+and node_of_custom_type named =
+  let { Type.Custom.loc; name } = named in
+  node "CustomType" loc [("name", node_of_scoped_identifier name)]
 
 and node_of_function_type func =
   let { Type.Function.loc; params; return } = func in

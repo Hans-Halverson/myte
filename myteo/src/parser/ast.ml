@@ -218,6 +218,13 @@ and Type : sig
     }
   end
 
+  module Custom : sig
+    type t = {
+      loc: Loc.t;
+      name: ScopedIdentifier.t;
+    }
+  end
+
   module Function : sig
     type t = {
       loc: Loc.t;
@@ -228,6 +235,7 @@ and Type : sig
 
   type t =
     | Primitive of Primitive.t
+    | Custom of Custom.t
     | Function of Function.t
 end =
   Type
