@@ -1,0 +1,11 @@
+module Test
+
+import a.{export as exportA}
+import a.b.{export as exportB}
+import a.b.c.{export as exportC}
+
+import z.{export as exportZ}
+import z.y.{export as exportY}
+import z.y.x.{export as exportX}
+
+fun main() {}

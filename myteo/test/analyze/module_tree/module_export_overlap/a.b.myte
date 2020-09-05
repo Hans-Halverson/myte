@@ -2,4 +2,6 @@ module a.b
 
 fun c() {}
 
+type c = unit
+
 fun main() {}

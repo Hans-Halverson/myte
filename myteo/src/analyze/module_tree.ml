@@ -15,46 +15,58 @@ type module_tree = module_tree_node SMap.t
 and module_tree_node =
   | Empty of string * module_tree
   | Module of string * module_tree
-  | Export of Ast.Identifier.t
+  | Export of export_info
 
-let gather_exports module_ submodules =
+and export_info = {
+  value: Ast.Identifier.t option;
+  ty: Ast.Identifier.t option;
+}
+
+let add_exports module_ submodule_tree =
   let open Ast.Module in
-  let rec gather_exports_inner toplevels =
+  let rec add_exports_inner toplevels =
+    let add_export ~is_type id loc rest =
+      let { Ast.Identifier.name; _ } = id in
+      let (submodule_tree, errors) = add_exports_inner rest in
+      match SMap.find_opt name submodule_tree with
+      | None ->
+        let export_info =
+          if is_type then
+            { value = None; ty = Some id }
+          else
+            { value = Some id; ty = None }
+        in
+        (SMap.add name (Export export_info) submodule_tree, errors)
+      | Some (Export export_info) ->
+        let export_info =
+          if is_type then
+            { export_info with ty = Some id }
+          else
+            { export_info with value = Some id }
+        in
+        (SMap.add name (Export export_info) submodule_tree, errors)
+      | Some (Module _ | Empty _) ->
+        (* Error for export with same name as module *)
+        let {
+          module_ = { Module.name = { Ast.ScopedIdentifier.name = name_ident; scopes; _ }; _ };
+          _;
+        } =
+          module_
+        in
+        let scopes_string = string_of_name_parts (scopes @ [name_ident]) in
+        (submodule_tree, (loc, ModuleAndExportDuplicateNames (name, scopes_string)) :: errors)
+    in
     match toplevels with
-    | [] -> (SMap.empty, [])
+    | [] -> (submodule_tree, [])
     | VariableDeclaration { Ast.Statement.VariableDeclaration.loc; pattern; _ } :: rest ->
-      let ({ Ast.Identifier.name; _ } as id) = identifier_in_pattern pattern in
-      let (exports, errors) = gather_exports_inner rest in
-      if SMap.mem name submodules then
-        let {
-          module_ = { Module.name = { Ast.ScopedIdentifier.name = name_ident; scopes; _ }; _ };
-          _;
-        } =
-          module_
-        in
-        let scopes_string = string_of_name_parts (scopes @ [name_ident]) in
-        (exports, (loc, ModuleAndExportDuplicateNames (name, scopes_string)) :: errors)
-      else
-        (SMap.add name (Export id) exports, errors)
-    | FunctionDeclaration { Ast.Function.loc; name = { Ast.Identifier.name; _ } as id; _ } :: rest
-      ->
-      let (exports, errors) = gather_exports_inner rest in
-      if SMap.mem name submodules then
-        let {
-          module_ = { Module.name = { Ast.ScopedIdentifier.name = name_ident; scopes; _ }; _ };
-          _;
-        } =
-          module_
-        in
-        let scopes_string = string_of_name_parts (scopes @ [name_ident]) in
-        (exports, (loc, ModuleAndExportDuplicateNames (name, scopes_string)) :: errors)
-      else
-        (SMap.add name (Export id) exports, errors)
-    | TypeDeclaration _ :: rest ->
-      (* TODO: Save name as type export *)
-      gather_exports_inner rest
+      let id = identifier_in_pattern pattern in
+      add_export ~is_type:false id loc rest
+    | FunctionDeclaration { Ast.Function.loc; name = id; _ } :: rest ->
+      add_export ~is_type:false id loc rest
+    | TypeDeclaration { Ast.TypeDeclaration.loc; name = id; _ } :: rest ->
+      add_export ~is_type:true id loc rest
   in
-  gather_exports_inner module_.toplevels
+  add_exports_inner module_.toplevels
 
 let add_to_module_tree module_ module_tree =
   let {
@@ -80,21 +92,13 @@ let add_to_module_tree module_ module_tree =
     | (Some (Module _), []) ->
       (SMap.empty, [(loc, DuplicateModuleNames (string_of_name_parts module_name_parts))])
     | (Some (Empty (_, submodule_tree)), []) ->
-      let submodule_names =
-        SMap.filter
-          (fun _ node ->
-            match node with
-            | Module _ -> true
-            | _ -> false)
-          submodule_tree
-      in
-      let (exports, errors) = gather_exports module_ submodule_names in
-      let new_module_node = Module (current_part.name, exports) in
+      let (submodule_tree, errors) = add_exports module_ submodule_tree in
+      let new_module_node = Module (current_part.name, submodule_tree) in
       (SMap.add current_part.name new_module_node module_tree, errors)
     (* Create submodule leaf node *)
     | (None, []) ->
-      let (exports, errors) = gather_exports module_ SMap.empty in
-      let new_module_node = Module (current_part.name, exports) in
+      let (submodule_tree, errors) = add_exports module_ SMap.empty in
+      let new_module_node = Module (current_part.name, submodule_tree) in
       (SMap.add current_part.name new_module_node module_tree, errors)
     (* Submodule path does not exist *)
     | (None, rest_parts) ->
@@ -128,7 +132,7 @@ let analyze modules =
     modules
 
 type lookup_result =
-  | LookupResultExport of Ast.Identifier.t
+  | LookupResultExport of export_info
   | LookupResultModule of string option * module_tree
   | LookupResultError of Loc.t * Analyze_error.t
 

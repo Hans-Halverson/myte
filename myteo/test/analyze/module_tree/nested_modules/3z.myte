@@ -1,0 +1,3 @@
+module z
+
+type export = unit

@@ -1,1 +1,3 @@
 module a.b.c
+
+fun export() {}

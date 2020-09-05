@@ -1,0 +1,7 @@
+module Test
+
+type A = unit
+
+fun A() {}
+
+fun main() {}
