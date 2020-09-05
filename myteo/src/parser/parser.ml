@@ -167,6 +167,7 @@ and parse_toplevel env =
   | T_VAR ->
     VariableDeclaration (parse_variable_declaration env)
   | T_FUN -> FunctionDeclaration (parse_function env)
+  | T_TYPE -> TypeDeclaration (parse_type_declaration env)
   | token -> Parse_error.fatal (Env.loc env, MalformedTopLevel token)
 
 and parse_statement env =
@@ -423,6 +424,16 @@ and parse_return env =
   Env.expect env T_SEMICOLON;
   let loc = marker env in
   Statement.Return { loc; arg }
+
+and parse_type_declaration env =
+  let open TypeDeclaration in
+  let marker = mark_loc env in
+  Env.expect env T_TYPE;
+  let name = parse_identifier env in
+  Env.expect env T_EQUALS;
+  let ty = parse_type env in
+  let loc = marker env in
+  { loc; name; ty }
 
 and parse_variable_declaration env =
   let open Statement in

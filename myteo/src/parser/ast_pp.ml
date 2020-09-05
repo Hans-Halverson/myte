@@ -120,6 +120,7 @@ and node_of_toplevel toplevel =
   match toplevel with
   | VariableDeclaration decl -> node_of_variable_decl decl
   | FunctionDeclaration decl -> node_of_function decl
+  | TypeDeclaration decl -> node_of_type_decl decl
 
 and node_of_statement stmt =
   let open Statement in
@@ -283,6 +284,10 @@ and node_of_variable_decl decl =
       ("init", node_of_expression init);
       ("annot", opt node_of_type annot);
     ]
+
+and node_of_type_decl decl =
+  let { TypeDeclaration.loc; name; ty } = decl in
+  node "TypeDeclaration" loc [("name", node_of_identifier name); ("type", node_of_type ty)]
 
 and node_of_function func =
   let open Function in

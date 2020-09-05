@@ -35,6 +35,7 @@ type t =
   | T_MODULE
   | T_IMPORT
   | T_AS
+  | T_TYPE
   | T_UNIT
   | T_INT
   | T_STRING
@@ -83,6 +84,7 @@ let to_string token =
   | T_MODULE -> "module"
   | T_IMPORT -> "import"
   | T_AS -> "as"
+  | T_TYPE -> "type"
   | T_UNIT -> "unit"
   | T_INT -> "int"
   | T_STRING -> "string"

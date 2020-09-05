@@ -50,6 +50,9 @@ let gather_exports module_ submodules =
         (exports, (loc, ModuleAndExportDuplicateNames (name, scopes_string)) :: errors)
       else
         (SMap.add name (Export id) exports, errors)
+    | TypeDeclaration _ :: rest ->
+      (* TODO: Save name as type export *)
+      gather_exports_inner rest
   in
   gather_exports_inner module_.toplevels
 

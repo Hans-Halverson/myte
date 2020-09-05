@@ -21,6 +21,7 @@ class ['a] visitor =
         match toplevel with
         | VariableDeclaration t -> this#variable_declaration acc t
         | FunctionDeclaration t -> this#function_ acc t
+        | TypeDeclaration t -> this#type_declaration acc t
 
     method statement : 'a -> Statement.t -> unit =
       fun acc stmt ->
@@ -179,6 +180,12 @@ class ['a] visitor =
       this#pattern acc pattern;
       this#expression acc init;
       Option.iter (this#type_ acc) annot
+
+    method type_declaration acc decl =
+      let open TypeDeclaration in
+      let { loc = _; name; ty } = decl in
+      this#identifier acc name;
+      this#type_ acc ty
 
     method primitive_type _acc _prim = ()
 

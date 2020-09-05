@@ -63,6 +63,7 @@ class mapper =
         | VariableDeclaration t ->
           map this#variable_declaration t toplevel (fun t' -> VariableDeclaration t')
         | FunctionDeclaration t -> map this#function_ t toplevel (fun t' -> FunctionDeclaration t')
+        | TypeDeclaration t -> map this#type_declaration t toplevel (fun t' -> TypeDeclaration t')
 
     method statement : Statement.t -> Statement.t =
       fun stmt ->
@@ -286,6 +287,16 @@ class mapper =
         decl
       else
         { loc; kind; pattern = pattern'; init = init'; annot = annot' }
+
+    method type_declaration decl =
+      let open TypeDeclaration in
+      let { loc; name; ty } = decl in
+      let name' = this#identifier name in
+      let ty' = this#type_ ty in
+      if name == name' && ty == ty' then
+        decl
+      else
+        { loc; name = name'; ty = ty' }
 
     method primitive_type prim = prim
 

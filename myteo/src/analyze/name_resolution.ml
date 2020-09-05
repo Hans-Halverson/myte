@@ -129,7 +129,8 @@ class bindings_builder ~module_tree =
             add_name loc VarDecl name
           | FunctionDeclaration { Ast.Function.name; _ } ->
             let { Ast.Identifier.loc; name; _ } = name in
-            add_name loc FunDecl name)
+            add_name loc FunDecl name
+          | TypeDeclaration _ -> (* TODO: Add type to scope *) ())
         toplevels;
       (* Then visit child nodes once toplevel scope is complete *)
       let toplevels' =
@@ -141,7 +142,8 @@ class bindings_builder ~module_tree =
                   VariableDeclaration decl')
             | FunctionDeclaration decl ->
               map (this#visit_function_declaration ~add:false) decl toplevel (fun decl' ->
-                  FunctionDeclaration decl'))
+                  FunctionDeclaration decl')
+            | TypeDeclaration _ -> toplevel)
           toplevels
       in
       this#exit_scope ();

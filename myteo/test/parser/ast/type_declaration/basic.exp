@@ -1,0 +1,80 @@
+test/parser/ast/type_declaration/basic.myte
+{
+  node: Module,
+  loc: 1:0-7:32,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "Test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: TypeDeclaration,
+      loc: 3:0-3:14,
+      name: {
+        node: Identifier,
+        loc: 3:5-3:7,
+        name: "t1",
+      },
+      type: {
+        node: PrimitiveType,
+        loc: 3:10-3:14,
+        kind: Unit,
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 5:0-5:13,
+      name: {
+        node: Identifier,
+        loc: 5:5-5:7,
+        name: "t2",
+      },
+      type: {
+        node: PrimitiveType,
+        loc: 5:10-5:13,
+        kind: Int,
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 7:0-7:32,
+      name: {
+        node: Identifier,
+        loc: 7:5-7:7,
+        name: "t3",
+      },
+      type: {
+        node: FunctionType,
+        loc: 7:10-7:32,
+        params: [
+          {
+            node: PrimitiveType,
+            loc: 7:10-7:16,
+            kind: String,
+          },
+          {
+            node: PrimitiveType,
+            loc: 7:20-7:24,
+            kind: Bool,
+          },
+        ],
+        return: {
+          node: PrimitiveType,
+          loc: 7:28-7:32,
+          kind: Unit,
+        },
+      },
+    },
+  ],
+}

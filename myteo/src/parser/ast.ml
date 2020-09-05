@@ -2,6 +2,7 @@ module rec Module : sig
   type toplevel =
     | VariableDeclaration of Statement.VariableDeclaration.t
     | FunctionDeclaration of Function.t
+    | TypeDeclaration of TypeDeclaration.t
 
   module Module : sig
     type t = {
@@ -253,6 +254,15 @@ and Function : sig
   }
 end =
   Function
+
+and TypeDeclaration : sig
+  type t = {
+    loc: Loc.t;
+    name: Identifier.t;
+    ty: Type.t;
+  }
+end =
+  TypeDeclaration
 
 and Identifier : sig
   type t = {
