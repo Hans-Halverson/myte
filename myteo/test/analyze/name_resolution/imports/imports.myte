@@ -19,7 +19,7 @@ fun main() {
   remote;
   F;
   nonexistent;
-  val _: ty = 1;
-  val _: local = 1;
-  val _: nonexistent = 1;
+  (1: ty);
+  (1: local);
+  (1: nonexistent);
 }

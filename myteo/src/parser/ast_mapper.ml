@@ -87,6 +87,7 @@ class mapper =
         | BoolLiteral e -> map this#bool_literal e expr (fun e' -> BoolLiteral e')
         | Identifier e -> map this#identifier e expr (fun e' -> Identifier e')
         | ScopedIdentifier e -> map this#scoped_identifier e expr (fun e' -> ScopedIdentifier e')
+        | TypeCast e -> map this#type_cast e expr (fun e' -> TypeCast e')
         | UnaryOperation e -> map this#unary_operation e expr (fun e' -> UnaryOperation e')
         | BinaryOperation e -> map this#binary_operation e expr (fun e' -> BinaryOperation e')
         | LogicalAnd e -> map this#logical_and e expr (fun e' -> LogicalAnd e')
@@ -153,6 +154,16 @@ class mapper =
     method string_literal lit = lit
 
     method bool_literal lit = lit
+
+    method type_cast cast =
+      let open Expression.TypeCast in
+      let { loc; expr; ty } = cast in
+      let expr' = this#expression expr in
+      let ty' = this#type_ ty in
+      if expr == expr' && ty == ty' then
+        cast
+      else
+        { loc; expr = expr'; ty = ty' }
 
     method unary_operation unary =
       let open Expression.UnaryOperation in

@@ -4,18 +4,18 @@ module Test
 fun topLevelBeforeTest() {
   topLevelFunc;
   topLevelVal;
-  val _: topLevelType = 1;
+  (1: topLevelType);
 
   {
     topLevelFunc;
     topLevelVal;
-    val _: topLevelType = 1;
+    (1: topLevelType);
   }
 
   fun inner() {
     topLevelFunc;
     topLevelVal;
-    val _: topLevelType = 1;
+    (1: topLevelType);
   }
 }
 
@@ -27,18 +27,18 @@ type topLevelType = unit
 fun topLevelAfterTest() {
   topLevelFunc;
   topLevelVal;
-  val _: topLevelType = 1;
+  (1: topLevelType);
 
   {
     topLevelFunc;
     topLevelVal;
-    val _: topLevelType = 1;
+    (1: topLevelType);
   }
 
   fun inner() {
     topLevelFunc;
     topLevelVal;
-    val _: topLevelType = 1;
+    (1: topLevelType);
   }
 }
 

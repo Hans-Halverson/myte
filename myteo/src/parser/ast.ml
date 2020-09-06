@@ -117,6 +117,14 @@ and Expression : sig
     }
   end
 
+  module TypeCast : sig
+    type t = {
+      loc: Loc.t;
+      expr: Expression.t;
+      ty: Type.t;
+    }
+  end
+
   module UnaryOperation : sig
     type op =
       | Plus
@@ -190,6 +198,7 @@ and Expression : sig
     | BoolLiteral of BoolLiteral.t
     | Identifier of Identifier.t
     | ScopedIdentifier of ScopedIdentifier.t
+    | TypeCast of TypeCast.t
     | UnaryOperation of UnaryOperation.t
     | BinaryOperation of BinaryOperation.t
     | LogicalAnd of LogicalAnd.t

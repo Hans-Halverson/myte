@@ -1,0 +1,8 @@
+module Test
+
+fun test() {
+  (1: unit);
+  ((1: unit));
+}
+
+fun main() {}

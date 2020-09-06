@@ -141,6 +141,7 @@ and node_of_expression expr =
   | IntLiteral lit -> node_of_int_literal lit
   | StringLiteral lit -> node_of_string_literal lit
   | BoolLiteral lit -> node_of_bool_literal lit
+  | TypeCast cast -> node_of_type_cast cast
   | UnaryOperation unary -> node_of_unary_operation unary
   | BinaryOperation binary -> node_of_binary_operation binary
   | LogicalAnd logical -> node_of_logical_and logical
@@ -212,6 +213,10 @@ and node_of_string_literal lit =
 and node_of_bool_literal lit =
   let { Expression.BoolLiteral.loc; value } = lit in
   node "BoolLiteral" loc [("value", Bool value)]
+
+and node_of_type_cast cast =
+  let { Expression.TypeCast.loc; expr; ty } = cast in
+  node "TypeCast" loc [("expr", node_of_expression expr); ("type", node_of_type ty)]
 
 and node_of_unary_operation unary =
   let { Expression.UnaryOperation.loc; operand; op } = unary in

@@ -204,7 +204,7 @@ and parse_expression ?(precedence = ExpressionPrecedence.None) env =
 and parse_expression_prefix env =
   let open Expression in
   match Env.token env with
-  | T_LEFT_PAREN -> parse_group_expression env
+  | T_LEFT_PAREN -> parse_parenthesized_expression env
   | T_PLUS
   | T_MINUS
   | T_LOGICAL_NOT ->
@@ -254,8 +254,9 @@ and parse_expression_infix ~precedence env left marker =
     parse_logical_expression env left marker
   | _ -> left
 
-and parse_group_expression env =
+and parse_parenthesized_expression env =
   let open Expression in
+  let marker = mark_loc env in
   Env.expect env T_LEFT_PAREN;
   match Env.token env with
   | T_RIGHT_PAREN ->
@@ -264,8 +265,16 @@ and parse_group_expression env =
     Unit { Unit.loc }
   | _ ->
     let expr = parse_expression env in
-    Env.expect env T_RIGHT_PAREN;
-    expr
+    (match Env.token env with
+    | T_COLON ->
+      Env.advance env;
+      let ty = parse_type env in
+      Env.expect env T_RIGHT_PAREN;
+      let loc = marker env in
+      TypeCast { TypeCast.loc; expr; ty }
+    | _ ->
+      Env.expect env T_RIGHT_PAREN;
+      expr)
 
 and parse_unary_expression env =
   let open Expression.UnaryOperation in

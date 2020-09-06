@@ -29,6 +29,6 @@ test/analyze/name_resolution/imports/imports.myte:21:2
     |   ^^^^^^^^^^^
 
 Error: Could not resolve name "nonexistent" to type
-test/analyze/name_resolution/imports/imports.myte:24:9
- 24 |   val _: nonexistent = 1;
-    |          ^^^^^^^^^^^
+test/analyze/name_resolution/imports/imports.myte:24:6
+ 24 |   (1: nonexistent);
+    |       ^^^^^^^^^^^

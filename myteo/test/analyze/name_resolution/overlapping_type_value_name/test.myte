@@ -3,9 +3,9 @@ module Test
 import a.{typeAndValue, ty, value}
 
 fun test() {
-  val _: typeAndValue = typeAndValue;
-  val _: ty = ty;
-  val _: value = value;
+  (typeAndValue: typeAndValue);
+  (ty: ty);
+  (value: value);
 }
 
 fun main() {}

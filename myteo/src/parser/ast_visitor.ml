@@ -44,6 +44,7 @@ class ['a] visitor =
         | BoolLiteral e -> this#bool_literal acc e
         | Identifier e -> this#identifier acc e
         | ScopedIdentifier e -> this#scoped_identifier acc e
+        | TypeCast e -> this#type_cast acc e
         | UnaryOperation e -> this#unary_operation acc e
         | BinaryOperation e -> this#binary_operation acc e
         | LogicalAnd e -> this#logical_and acc e
@@ -98,6 +99,12 @@ class ['a] visitor =
     method string_literal _acc _lit = ()
 
     method bool_literal _acc _lit = ()
+
+    method type_cast acc cast =
+      let open Expression.TypeCast in
+      let { loc = _; expr; ty } = cast in
+      this#expression acc expr;
+      this#type_ acc ty
 
     method unary_operation acc unary =
       let open Expression.UnaryOperation in
