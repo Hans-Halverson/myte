@@ -4,34 +4,41 @@ module Test
 fun topLevelBeforeTest() {
   topLevelFunc;
   topLevelVal;
+  val _: topLevelType = 1;
 
   {
     topLevelFunc;
     topLevelVal;
+    val _: topLevelType = 1;
   }
 
   fun inner() {
     topLevelFunc;
     topLevelVal;
+    val _: topLevelType = 1;
   }
 }
 
 fun topLevelFunc() {}
 val topLevelVal: int = 1;
+type topLevelType = unit
 
 // Top level names can be referenced after they are defined
 fun topLevelAfterTest() {
   topLevelFunc;
   topLevelVal;
+  val _: topLevelType = 1;
 
   {
     topLevelFunc;
     topLevelVal;
+    val _: topLevelType = 1;
   }
 
   fun inner() {
     topLevelFunc;
     topLevelVal;
+    val _: topLevelType = 1;
   }
 }
 
@@ -46,5 +53,8 @@ fun topLevelRecFunc1() {
 fun topLevelRecFunc2() {
   topLevelRecFunc1();
 }
+
+type topLevelRecType1 = topLevelRecType2
+type topLevelRecType2 = topLevelRecType1
 
 fun main() {}

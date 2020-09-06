@@ -17,5 +17,9 @@ val baz: int = 1;
 
 fun imported() {}
 val imported: int = 1;
+type imported = unit
+
+type foo = unit
+type foo = int
 
 fun main() {}

@@ -1,0 +1,19 @@
+Error: Could not resolve name "ty" to value
+test/analyze/name_resolution/overlapping_type_value_name/a.myte:12:14
+ 12 |   val _: ty = ty;
+    |               ^^
+
+Error: Could not resolve name "value" to type
+test/analyze/name_resolution/overlapping_type_value_name/a.myte:13:9
+ 13 |   val _: value = value;
+    |          ^^^^^
+
+Error: Could not resolve name "ty" to value
+test/analyze/name_resolution/overlapping_type_value_name/test.myte:7:14
+ 7 |   val _: ty = ty;
+   |               ^^
+
+Error: Could not resolve name "value" to type
+test/analyze/name_resolution/overlapping_type_value_name/test.myte:8:9
+ 8 |   val _: value = value;
+   |          ^^^^^

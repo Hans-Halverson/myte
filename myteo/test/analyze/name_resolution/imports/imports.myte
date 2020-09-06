@@ -5,6 +5,8 @@ import A.B
 import E.C
 import A.{D, remote as local}
 import {E, F as G}
+import A.ty
+import A.{ty as local}
 
 fun main() {
   A;
@@ -17,4 +19,7 @@ fun main() {
   remote;
   F;
   nonexistent;
+  val _: ty = 1;
+  val _: local = 1;
+  val _: nonexistent = 1;
 }

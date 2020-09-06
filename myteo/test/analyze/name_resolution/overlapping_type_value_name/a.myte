@@ -1,0 +1,14 @@
+module a
+
+type typeAndValue = unit
+fun typeAndValue() {}
+
+type ty = unit
+
+fun value() {}
+
+fun test() {
+  val _: typeAndValue = typeAndValue;
+  val _: ty = ty;
+  val _: value = value;
+}

@@ -5,3 +5,5 @@ fun B() {}
 fun D() {}
 
 fun remote() {}
+
+type ty = unit

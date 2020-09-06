@@ -7,34 +7,47 @@ import d1.d2
 import d1.{d2 as d2Alias}
 
 fun test() {
-  // Module exists but used as value
+  // Module exists but used as value or type
   a1.a2.a3;
+  val _: a1.a2.a3 = 1;
 
   // Module exists but export does not
   a1.a2.a3.a4;
+  val _: a1.a2.a3.a4 = 1;
 
   // Module exists but export does not, including nested accesses
   a1.a2.a3.a4.a5;
+  val _: a1.a2.a3.a4.a5 = 1;
 
   // No module or export with name, but child module does exist
   b1.b2.b3;
+  val _: b1.b2.b3 = 1;
 
   // No module or export with name
   nonexist1;
   nonexist1.nonexist2;
   nonexist1.nonexist2.nonexist3;
+  val _: nonexist1 = 1;
+  val _: nonexist1.nonexist2 = 1;
+  val _: nonexist1.nonexist2.nonexist3 = 1;
 
   // No module or export with name
   c1.c2;
   c1Alias.c2;
+  val _: c1.c2 = 1;
+  val _: c1Alias.c2 = 1;
 
   // Accessing imported module as value
   d2;
   d2Alias;
+  val _: d2 = 1;
+  val _: d2Alias = 1;
 
   // Nonexistent export of imported module
   d2.d3;
   d2Alias.d3;
+  val _: d2.d3 = 1;
+  val _: d2Alias.d3 = 1;
 }
 
 fun main () {}

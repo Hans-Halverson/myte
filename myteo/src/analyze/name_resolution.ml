@@ -2,31 +2,49 @@ open Analyze_error
 open Ast
 open Basic_collections
 
-type declaration =
+type value_declaration =
   | VarDecl
   | FunDecl
-  | ImportedExport
+  | ImportedValue
   | ImportedModule of Module_tree.module_tree
   | FunParam
 
-module Binding = struct
+type type_declaration =
+  | TypeDecl
+  | ImportedType
+  | ImportedModule of Module_tree.module_tree
+
+module ValueBinding = struct
   type t = {
     name: string;
-    declaration: Loc.t * declaration;
+    declaration: Loc.t * value_declaration;
+    uses: LocSet.t;
+  }
+end
+
+module TypeBinding = struct
+  type t = {
+    name: string;
+    declaration: Loc.t * type_declaration;
     uses: LocSet.t;
   }
 end
 
 type t = {
-  use_to_binding: Binding.t LocMap.t;
-  declaration_to_binding: Binding.t LocMap.t;
+  use_to_binding: ValueBinding.t LocMap.t;
+  declaration_to_binding: ValueBinding.t LocMap.t;
 }
 
-type scopes = Loc.t SMap.t list
+type scope = {
+  local_values: Loc.t SMap.t;
+  local_types: Loc.t SMap.t;
+}
 
-type binding_builder = {
+type scopes = scope list
+
+type 'a binding_builder = {
   name: string;
-  declaration: Loc.t * declaration;
+  declaration: Loc.t * 'a;
   mutable uses: LocSet.t;
 }
 
@@ -43,48 +61,84 @@ class bindings_builder ~module_tree =
   object (this)
     inherit Ast_mapper.mapper as super
 
-    val mutable bindings : binding_builder LocMap.t = LocMap.empty
+    val mutable value_bindings : value_declaration binding_builder LocMap.t = LocMap.empty
+
+    val mutable type_bindings : type_declaration binding_builder LocMap.t = LocMap.empty
 
     val mutable errors : (Loc.t * Analyze_error.t) list = []
 
-    val mutable scopes : Loc.t SMap.t list = []
+    val mutable scopes : scopes = []
 
     method add_error loc err = errors <- (loc, err) :: errors
 
-    method add_declaration loc kind name =
-      bindings <- LocMap.add loc { name; declaration = (loc, kind); uses = LocSet.empty } bindings;
+    method add_value_declaration loc kind name =
+      value_bindings <-
+        LocMap.add loc { name; declaration = (loc, kind); uses = LocSet.empty } value_bindings;
       match scopes with
       | [] -> failwith "There must always be a scope"
-      | scope :: rest -> scopes <- SMap.add name loc scope :: rest
+      | { local_values; local_types } :: rest ->
+        scopes <- { local_values = SMap.add name loc local_values; local_types } :: rest
 
-    method add_use declaration use =
-      let binding = LocMap.find declaration bindings in
+    method add_type_declaration loc kind name =
+      type_bindings <-
+        LocMap.add loc { name; declaration = (loc, kind); uses = LocSet.empty } type_bindings;
+      match scopes with
+      | [] -> failwith "There must always be a scope"
+      | { local_values; local_types } :: rest ->
+        scopes <- { local_types = SMap.add name loc local_types; local_values } :: rest
+
+    method add_value_use declaration use =
+      let binding = LocMap.find declaration value_bindings in
       binding.uses <- LocSet.add use binding.uses
 
-    method enter_scope () = scopes <- SMap.empty :: scopes
+    method add_type_use declaration use =
+      let binding = LocMap.find declaration type_bindings in
+      binding.uses <- LocSet.add use binding.uses
+
+    method enter_scope () =
+      scopes <- { local_values = SMap.empty; local_types = SMap.empty } :: scopes
 
     method exit_scope () = scopes <- List.tl scopes
 
-    method lookup_in_scope name scopes =
+    method lookup_value_in_scope name scopes =
       match scopes with
       | [] -> None
-      | scope :: rest ->
-        (match SMap.find_opt name scope with
-        | None -> this#lookup_in_scope name rest
+      | { local_values; _ } :: rest ->
+        (match SMap.find_opt name local_values with
+        | None -> this#lookup_value_in_scope name rest
+        | Some declaration -> Some declaration)
+
+    method lookup_type_in_scope name scopes =
+      match scopes with
+      | [] -> None
+      | { local_types; _ } :: rest ->
+        (match SMap.find_opt name local_types with
+        | None -> this#lookup_type_in_scope name rest
         | Some declaration -> Some declaration)
 
     method results () =
       let bindings =
-        LocMap.map (fun { name; declaration; uses } -> { Binding.name; declaration; uses }) bindings
+        LocMap.map
+          (fun { name; declaration; uses } -> { ValueBinding.name; declaration; uses })
+          value_bindings
       in
       let errors = List.rev errors in
       (bindings, errors)
 
     method! module_ mod_ =
       let open Ast.Module in
-      let add_name loc kind name =
-        if SMap.mem name (List.hd scopes) then this#add_error loc (DuplicateToplevelNames name);
-        this#add_declaration loc kind name
+      let add_value_name kind name =
+        let { Ast.Identifier.loc; name } = name in
+        let is_duplicate = SMap.mem name (List.hd scopes).local_values in
+        if is_duplicate then this#add_error loc (DuplicateToplevelNames (name, true));
+        this#add_value_declaration loc kind name;
+        is_duplicate
+      in
+      let add_type_name kind name =
+        let { Ast.Identifier.loc; name } = name in
+        if SMap.mem name (List.hd scopes).local_types then
+          this#add_error loc (DuplicateToplevelNames (name, false));
+        this#add_type_declaration loc kind name
       in
       let { toplevels; imports; _ } = mod_ in
       this#enter_scope ();
@@ -92,21 +146,26 @@ class bindings_builder ~module_tree =
       List.iter
         (fun import ->
           let open Import in
-          let resolve_import name scopes =
+          let resolve_import name local_name scopes =
+            let open Module_tree in
             let name_parts = scopes @ [name] in
-            match Module_tree.lookup name_parts module_tree with
-            | Module_tree.LookupResultExport _export_id -> ImportedExport
-            | Module_tree.LookupResultModule (_, module_tree) -> ImportedModule module_tree
-            | Module_tree.LookupResultError (loc, error) ->
-              this#add_error loc error;
-              ImportedExport
+            match lookup name_parts module_tree with
+            | LookupResultExport export_info ->
+              ignore
+                (Option.map (fun _ -> add_value_name ImportedValue local_name) export_info.value);
+              Option.iter (fun _ -> add_type_name ImportedType local_name) export_info.ty
+            | LookupResultModule (_, module_tree) ->
+              (* Do not report a duplicate error for both value and type conflicting with a module *)
+              if not (add_value_name (ImportedModule module_tree) local_name) then
+                add_type_name (ImportedModule module_tree) local_name
+            | LookupResultError (loc, error) -> this#add_error loc error
+            (* TODO: Figure out error case*)
+            (* ImportedExport { Module_tree.value = None; ty = None } *)
           in
           match import with
-          | Simple { name = name_id; scopes; _ } ->
-            let { Ast.Identifier.loc; name; _ } = name_id in
+          | Simple { name; scopes; _ } ->
             (* Add name to toplevel scope *)
-            let kind = resolve_import name_id scopes in
-            add_name loc kind name
+            resolve_import name name scopes
           | Complex { Complex.aliases; scopes; _ } ->
             (* Add local names to toplevel scope *)
             List.iter
@@ -114,9 +173,7 @@ class bindings_builder ~module_tree =
                 match alias with
                 | { Alias.name; alias = Some local_name; _ }
                 | { Alias.name = _ as name as local_name; _ } ->
-                  let kind = resolve_import name scopes in
-                  let { Ast.Identifier.loc; name; _ } = local_name in
-                  add_name loc kind name)
+                  resolve_import name local_name scopes)
               aliases)
         imports;
       (* Gather toplevel declarations add add them to toplevel scope *)
@@ -125,12 +182,9 @@ class bindings_builder ~module_tree =
           match toplevel with
           | VariableDeclaration { Ast.Statement.VariableDeclaration.pattern; _ } ->
             let id = identifier_in_pattern pattern in
-            let { Ast.Identifier.loc; name; _ } = id in
-            add_name loc VarDecl name
-          | FunctionDeclaration { Ast.Function.name; _ } ->
-            let { Ast.Identifier.loc; name; _ } = name in
-            add_name loc FunDecl name
-          | TypeDeclaration _ -> (* TODO: Add type to scope *) ())
+            ignore (add_value_name VarDecl id)
+          | FunctionDeclaration { Ast.Function.name; _ } -> ignore (add_value_name FunDecl name)
+          | TypeDeclaration { Ast.TypeDeclaration.name; _ } -> add_type_name TypeDecl name)
         toplevels;
       (* Then visit child nodes once toplevel scope is complete *)
       let toplevels' =
@@ -174,20 +228,20 @@ class bindings_builder ~module_tree =
       let { Ast.Statement.VariableDeclaration.pattern; _ } = decl in
       let id = identifier_in_pattern pattern in
       let { Ast.Identifier.loc; name; _ } = id in
-      if add then this#add_declaration loc VarDecl name;
+      if add then this#add_value_declaration loc VarDecl name;
       super#variable_declaration decl
 
     method visit_function_declaration ~add decl =
       let open Ast.Function in
       let { name = { Ast.Identifier.loc; name = func_name; _ }; params; _ } = decl in
-      if add then this#add_declaration loc FunDecl func_name;
+      if add then this#add_value_declaration loc FunDecl func_name;
       this#enter_scope ();
       let _ =
         List.fold_left
           (fun param_names { Param.name = { Ast.Identifier.loc; name; _ }; _ } ->
             if SSet.mem name param_names then
               this#add_error loc (DuplicateParameterNames (name, func_name));
-            this#add_declaration loc FunParam name;
+            this#add_value_declaration loc FunParam name;
             SSet.add name param_names)
           SSet.empty
           params
@@ -198,7 +252,7 @@ class bindings_builder ~module_tree =
 
     (* Match a sequence of module parts against the module tree, returning the same AST with the
        matched access chain replaced with a scoped id if a match exists. Otherwise error. *)
-    method match_module_parts module_tree prev_parts rest_parts prev_is_module expr =
+    method match_module_parts ~is_value module_tree prev_parts rest_parts prev_is_module on_export =
       let open Ast.Identifier in
       let open Module_tree in
       match rest_parts with
@@ -211,17 +265,42 @@ class bindings_builder ~module_tree =
           let full_loc = Loc.between (List.hd prev_parts).loc loc in
           let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
           if prev_is_module then
-            this#add_error full_loc (NoExportInModule (name, prev_parts_names))
+            this#add_error full_loc (NoExportInModule (name, prev_parts_names, is_value))
           else
-            this#add_error full_loc (NoModuleWithName (prev_parts_names @ [name]));
+            this#add_error full_loc (NoModuleWithName (prev_parts_names @ [name], is_value));
           None
         | (Some (Module _), []) ->
-          (* Error if resolved to module as modules are not values *)
+          (* Error if resolved to module as modules are not types or values *)
           let full_loc = Loc.between (List.hd prev_parts).loc loc in
           let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
-          this#add_error full_loc (ModuleInValuePosition (prev_parts_names @ [name]));
+          this#add_error full_loc (ModuleInvalidPosition (prev_parts_names @ [name], is_value));
           None
-        | (Some (Export _), _) ->
+        | (Some (Export _), _) -> on_export prev_parts part rest_parts
+        | (Some (Empty (_, module_tree)), rest_parts) ->
+          this#match_module_parts
+            ~is_value
+            module_tree
+            (prev_parts @ [part])
+            rest_parts
+            false
+            on_export
+        | (Some (Module (_, module_tree)), rest_parts) ->
+          this#match_module_parts
+            ~is_value
+            module_tree
+            (prev_parts @ [part])
+            rest_parts
+            true
+            on_export)
+
+    method match_module_parts_value module_tree prev_parts rest_parts expr =
+      this#match_module_parts
+        ~is_value:true
+        module_tree
+        prev_parts
+        rest_parts
+        false
+        (fun prev_parts ({ Ast.Identifier.loc; _ } as part) rest_parts ->
           (* Resolved to export - convert nested accesses to scoped identifier *)
           let full_loc = Loc.between (List.hd prev_parts).loc loc in
           let scoped_id =
@@ -240,23 +319,29 @@ class bindings_builder ~module_tree =
                   { access with left = insert_scoped_id left (depth - 1) scoped_id }
             | _ -> failwith "Must be nested access expression"
           in
-          Some (insert_scoped_id expr (List.length rest_parts) scoped_id)
-        | (Some (Empty (_, module_tree)), rest_parts) ->
-          this#match_module_parts module_tree (prev_parts @ [part]) rest_parts false expr
-        | (Some (Module (_, module_tree)), rest_parts) ->
-          this#match_module_parts module_tree (prev_parts @ [part]) rest_parts true expr)
+          Some (insert_scoped_id expr (List.length rest_parts) scoped_id))
+
+    method match_module_parts_type module_tree first_part rest_parts =
+      ignore
+        (this#match_module_parts
+           ~is_value:false
+           module_tree
+           [first_part]
+           rest_parts
+           false
+           (fun _ _ _ -> None))
 
     method! expression expr =
       let open Ast.Expression in
       match expr with
       | Identifier { loc; name; _ } ->
-        (match this#lookup_in_scope name scopes with
-        | None -> this#add_error loc (UnresolvedName name)
+        (match this#lookup_value_in_scope name scopes with
+        | None -> this#add_error loc (UnresolvedName (name, true))
         | Some decl_loc ->
-          let (_, declaration) = (LocMap.find decl_loc bindings).declaration in
+          let (_, declaration) = (LocMap.find decl_loc value_bindings).declaration in
           (match declaration with
-          | ImportedModule _ -> this#add_error loc (ModuleInValuePosition [name])
-          | _ -> this#add_use decl_loc loc));
+          | ImportedModule _ -> this#add_error loc (ModuleInvalidPosition ([name], true))
+          | _ -> this#add_value_use decl_loc loc));
         expr
       | Access { left; right; _ } ->
         (* Gather all potential module parts in order if there is an unbroken chain of accesses
@@ -274,29 +359,66 @@ class bindings_builder ~module_tree =
           let open Ast.Identifier in
           let first_part = List.hd parts in
           let rest_parts = List.tl parts in
-          (match this#lookup_in_scope first_part.name scopes with
+          (match this#lookup_value_in_scope first_part.name scopes with
           | None ->
             (match SMap.find_opt first_part.name module_tree with
             | None ->
               (* Error if first part of access chain cannot be resolved *)
-              this#add_error first_part.loc (UnresolvedName first_part.name);
+              this#add_error first_part.loc (UnresolvedName (first_part.name, true));
               expr
             | Some (Export _) -> failwith "Exports cannot appear at top level of module tree"
             | Some (Empty (_, module_tree) | Module (_, module_tree)) ->
               (* If some portion of the access chain resolves to an export, replace with scoped id *)
-              (match this#match_module_parts module_tree [first_part] rest_parts false expr with
+              (match this#match_module_parts_value module_tree [first_part] rest_parts expr with
               | None -> expr
               | Some resolved_ast -> resolved_ast))
           | Some decl_loc ->
-            this#add_use decl_loc first_part.loc;
-            let (_, declaration) = (LocMap.find decl_loc bindings).declaration in
+            this#add_value_use decl_loc first_part.loc;
+            let (_, declaration) = (LocMap.find decl_loc value_bindings).declaration in
             (match declaration with
             | ImportedModule module_tree ->
-              (match this#match_module_parts module_tree [first_part] rest_parts false expr with
+              (match this#match_module_parts_value module_tree [first_part] rest_parts expr with
               | None -> expr
               | Some resolved_ast -> resolved_ast)
             | _ -> expr)))
       | _ -> super#expression expr
+
+    method! type_ ty =
+      let open Ast.Type in
+      match ty with
+      | Custom { name = { Ast.ScopedIdentifier.name; scopes = scope_ids; _ }; _ } ->
+        let all_parts = scope_ids @ [name] in
+        let open Ast.Identifier in
+        let first_part = List.hd all_parts in
+        let rest_parts = List.tl all_parts in
+        (match this#lookup_type_in_scope first_part.name scopes with
+        | None ->
+          (match SMap.find_opt first_part.name module_tree with
+          | None ->
+            (* Error if first part of scoped id cannot be resolved *)
+            this#add_error first_part.loc (UnresolvedName (first_part.name, false));
+            ty
+          | Some (Export _) -> failwith "Exports cannot appear at top level of module tree"
+          | Some (Empty (_, module_tree) | Module (_, module_tree)) ->
+            (match rest_parts with
+            | [] ->
+              let { Ast.Identifier.loc; name } = first_part in
+              this#add_error loc (ModuleInvalidPosition ([name], false))
+            | _ :: _ -> this#match_module_parts_type module_tree first_part rest_parts);
+            ty)
+        | Some decl_loc ->
+          this#add_type_use decl_loc first_part.loc;
+          let (_, declaration) = (LocMap.find decl_loc type_bindings).declaration in
+          (match declaration with
+          | ImportedModule module_tree ->
+            (match rest_parts with
+            | [] ->
+              let { Ast.Identifier.loc; name } = first_part in
+              this#add_error loc (ModuleInvalidPosition ([name], false))
+            | _ :: _ -> this#match_module_parts_type module_tree first_part rest_parts);
+            ty
+          | _ -> ty))
+      | _ -> super#type_ ty
   end
 
 let analyze modules module_tree =
