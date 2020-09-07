@@ -1,4 +1,4 @@
 Error: File must start with a module declaration. Found "<EOF>" but expected "module"
-test/parser/empty_file.myte:1:0
+test/parser/empty_file.myte:1:0-0
  1 | 
    | ^

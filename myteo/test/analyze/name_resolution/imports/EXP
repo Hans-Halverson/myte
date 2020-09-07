@@ -14,7 +14,7 @@ test/analyze/name_resolution/imports/imports.myte:17:2
     |   ^
 
 Error: Could not resolve name "remote" to value
-test/analyze/name_resolution/imports/imports.myte:19:2
+test/analyze/name_resolution/imports/imports.myte:19:2-8
  19 |   remote;
     |   ^^^^^^
 
@@ -24,11 +24,11 @@ test/analyze/name_resolution/imports/imports.myte:20:2
     |   ^
 
 Error: Could not resolve name "nonexistent" to value
-test/analyze/name_resolution/imports/imports.myte:21:2
+test/analyze/name_resolution/imports/imports.myte:21:2-13
  21 |   nonexistent;
     |   ^^^^^^^^^^^
 
 Error: Could not resolve name "nonexistent" to type
-test/analyze/name_resolution/imports/imports.myte:24:6
+test/analyze/name_resolution/imports/imports.myte:24:6-17
  24 |   (1: nonexistent);
     |       ^^^^^^^^^^^

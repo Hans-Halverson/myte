@@ -1,5 +1,5 @@
 Error: No module or export with name "a1" found in module "a"
-test/analyze/name_resolution/import_nonexist/a.myte:3:9
+test/analyze/name_resolution/import_nonexist/a.myte:3:9-11
  3 | import a.a1
    |          ^^
 
@@ -19,6 +19,6 @@ test/analyze/name_resolution/import_nonexist/a.myte:6:7
    |        ^
 
 Error: No module or export with name "e1" found in module "e"
-test/analyze/name_resolution/import_nonexist/a.myte:7:9
+test/analyze/name_resolution/import_nonexist/a.myte:7:9-11
  7 | import e.e1.e2.e3
    |          ^^

@@ -18,11 +18,10 @@ let print_summary_lines loc message =
   [
     Printf.sprintf "%sError:%s %s\n" (style ~text:Red ~decorations:[Bold] ()) (reset ()) message;
     Printf.sprintf
-      "%s%s:%d:%d%s\n"
+      "%s%s:%s%s\n"
       (style ~decorations:[Bold] ())
       source
-      Loc.(loc.start.line)
-      Loc.(loc.start.col)
+      (Loc.to_string loc)
       (reset ());
   ]
 

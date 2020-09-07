@@ -49,16 +49,16 @@ test/analyze/exhaustive_return/inexhaustive.myte:52:20
     |                     ^
 
 Error: Unreachable statement after return
-test/analyze/exhaustive_return/statement_after_return.myte:6:2
+test/analyze/exhaustive_return/statement_after_return.myte:6:2-4
  6 |   2;
    |   ^^
 
 Error: Unreachable statement after return
-test/analyze/exhaustive_return/statement_after_return.myte:11:2
+test/analyze/exhaustive_return/statement_after_return.myte:11:2-11
  11 |   return 2;
     |   ^^^^^^^^^
 
 Error: Unreachable statement after return
-test/analyze/exhaustive_return/statement_after_return.myte:21:2
+test/analyze/exhaustive_return/statement_after_return.myte:21:2-4
  21 |   3;
     |   ^^

@@ -1,129 +1,129 @@
 Error: Module "a1.a2.a3" cannot be used as a value
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:11:2
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:11:2-10
  11 |   a1.a2.a3;
     |   ^^^^^^^^
 
 Error: Module "a1.a2.a3" cannot be used as a type
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:12:6
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:12:6-14
  12 |   (1: a1.a2.a3);
     |       ^^^^^^^^
 
 Error: Could not resolve "a1.a2.a3.a4". Module "a1.a2.a3" does not have exported value with name "a4".
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:15:2
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:15:2-13
  15 |   a1.a2.a3.a4;
     |   ^^^^^^^^^^^
 
 Error: Could not resolve "a1.a2.a3.a4". Module "a1.a2.a3" does not have exported type with name "a4".
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:16:6
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:16:6-17
  16 |   (1: a1.a2.a3.a4);
     |       ^^^^^^^^^^^
 
 Error: Could not resolve "a1.a2.a3.a4". Module "a1.a2.a3" does not have exported value with name "a4".
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:19:2
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:19:2-13
  19 |   a1.a2.a3.a4.a5;
     |   ^^^^^^^^^^^
 
 Error: Could not resolve "a1.a2.a3.a4". Module "a1.a2.a3" does not have exported type with name "a4".
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:20:6
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:20:6-17
  20 |   (1: a1.a2.a3.a4.a5);
     |       ^^^^^^^^^^^
 
 Error: No module or exported value with name "b1.b2.b3" found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:23:2
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:23:2-10
  23 |   b1.b2.b3;
     |   ^^^^^^^^
 
 Error: No module or exported type with name "b1.b2.b3" found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:24:6
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:24:6-14
  24 |   (1: b1.b2.b3);
     |       ^^^^^^^^
 
 Error: Could not resolve name "nonexist1" to value
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:27:2
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:27:2-11
  27 |   nonexist1;
     |   ^^^^^^^^^
 
 Error: Could not resolve name "nonexist1" to value
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:28:2
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:28:2-11
  28 |   nonexist1.nonexist2;
     |   ^^^^^^^^^
 
 Error: Could not resolve name "nonexist1" to value
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:29:2
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:29:2-11
  29 |   nonexist1.nonexist2.nonexist3;
     |   ^^^^^^^^^
 
 Error: Could not resolve name "nonexist1" to type
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:30:6
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:30:6-15
  30 |   (1: nonexist1);
     |       ^^^^^^^^^
 
 Error: Could not resolve name "nonexist1" to type
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:31:6
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:31:6-15
  31 |   (1: nonexist1.nonexist2);
     |       ^^^^^^^^^
 
 Error: Could not resolve name "nonexist1" to type
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:32:6
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:32:6-15
  32 |   (1: nonexist1.nonexist2.nonexist3);
     |       ^^^^^^^^^
 
 Error: No module or exported value with name "c1.c2" found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:35:2
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:35:2-7
  35 |   c1.c2;
     |   ^^^^^
 
 Error: No module or exported value with name "c1Alias.c2" found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:36:2
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:36:2-12
  36 |   c1Alias.c2;
     |   ^^^^^^^^^^
 
 Error: No module or exported type with name "c1.c2" found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:37:6
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:37:6-11
  37 |   (1: c1.c2);
     |       ^^^^^
 
 Error: No module or exported type with name "c1Alias.c2" found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:38:6
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:38:6-16
  38 |   (1: c1Alias.c2);
     |       ^^^^^^^^^^
 
 Error: Module "d2" cannot be used as a value
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:41:2
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:41:2-4
  41 |   d2;
     |   ^^
 
 Error: Module "d2Alias" cannot be used as a value
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:42:2
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:42:2-9
  42 |   d2Alias;
     |   ^^^^^^^
 
 Error: Module "d2" cannot be used as a type
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:43:6
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:43:6-8
  43 |   (1: d2);
     |       ^^
 
 Error: Module "d2Alias" cannot be used as a type
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:44:6
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:44:6-13
  44 |   (1: d2Alias);
     |       ^^^^^^^
 
 Error: No module or exported value with name "d2.d3" found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:47:2
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:47:2-7
  47 |   d2.d3;
     |   ^^^^^
 
 Error: No module or exported value with name "d2Alias.d3" found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:48:2
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:48:2-12
  48 |   d2Alias.d3;
     |   ^^^^^^^^^^
 
 Error: No module or exported type with name "d2.d3" found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:49:6
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:49:6-11
  49 |   (1: d2.d3);
     |       ^^^^^
 
 Error: No module or exported type with name "d2Alias.d3" found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:50:6
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:50:6-16
  50 |   (1: d2Alias.d3);
     |       ^^^^^^^^^^

@@ -1,14 +1,14 @@
 Error: Type aliases cannot be recursive. rec_type2 cannot be defined as rec_type2
-test/analyze/type_check/recursive_aliases_error/single_file.myte:4:0
+test/analyze/type_check/recursive_aliases_error/single_file.myte:4:0-26
  4 | type rec_type2 = rec_type1
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Error: Type aliases cannot be recursive. rec_type4 cannot be defined as unit -> rec_type4
-test/analyze/type_check/recursive_aliases_error/single_file.myte:7:0
+test/analyze/type_check/recursive_aliases_error/single_file.myte:7:0-26
  7 | type rec_type4 = rec_type3
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Error: Type aliases cannot be recursive. rec_type7 cannot be defined as unit -> unit -> unit -> unit -> unit -> unit -> rec_type7
-test/analyze/type_check/recursive_aliases_error/single_file.myte:11:0
+test/analyze/type_check/recursive_aliases_error/single_file.myte:11:0-42
  11 | type rec_type7 = unit -> rec_type5 -> unit
     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

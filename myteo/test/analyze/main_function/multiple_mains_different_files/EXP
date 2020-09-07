@@ -1,4 +1,4 @@
 Error: Main function has already been declared
-test/analyze/main_function/multiple_mains_different_files/b.myte:3:4
+test/analyze/main_function/multiple_mains_different_files/b.myte:3:4-8
  3 | fun main() {}
    |     ^^^^

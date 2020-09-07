@@ -54,4 +54,10 @@ let to_string ?(source = false) loc =
     else
       ""
   in
-  Printf.sprintf "%s%s-%s" source (pos_to_string loc.start) (pos_to_string loc._end)
+  if loc.start.line = loc._end.line then
+    if loc.start.col = loc._end.col - 1 then
+      Printf.sprintf "%s%s" source (pos_to_string loc.start)
+    else
+      Printf.sprintf "%s%s-%d" source (pos_to_string loc.start) loc._end.col
+  else
+    Printf.sprintf "%s%s-%s" source (pos_to_string loc.start) (pos_to_string loc._end)
