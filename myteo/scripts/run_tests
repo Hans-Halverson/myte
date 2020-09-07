@@ -4,5 +4,5 @@ CURRENT_DIR=$0:A:h
 ROOT_DIR=$(dirname $CURRENT_DIR)
 
 pushd $ROOT_DIR
-./_build/default/test/run_tests.exe $@
+OCAMLRUNPARAM=b ./_build/default/test/run_tests.exe $@
 popd

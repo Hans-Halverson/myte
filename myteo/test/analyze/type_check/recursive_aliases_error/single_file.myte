@@ -1,0 +1,13 @@
+module Test
+
+type rec_type1 = rec_type2
+type rec_type2 = rec_type1
+
+type rec_type3 = rec_type4 -> unit
+type rec_type4 = rec_type3
+
+type rec_type5 = unit -> rec_type6 -> unit
+type rec_type6 = unit -> rec_type7 -> unit
+type rec_type7 = unit -> rec_type5 -> unit
+
+fun main() {}

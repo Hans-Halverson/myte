@@ -17,33 +17,29 @@ and module_tree_node =
   | Module of string * module_tree
   | Export of export_info
 
+and value_export_kind =
+  | VarDecl
+  | FunDecl
+
+and type_export_kind = TypeDecl
+
 and export_info = {
-  value: Ast.Identifier.t option;
-  ty: Ast.Identifier.t option;
+  value: (value_export_kind * Ast.Identifier.t) option;
+  ty: (type_export_kind * Ast.Identifier.t) option;
 }
 
 let add_exports module_ submodule_tree =
   let open Ast.Module in
   let rec add_exports_inner toplevels =
-    let add_export ~is_type id loc rest =
+    let add_export id loc rest mut_export_info =
       let { Ast.Identifier.name; _ } = id in
       let (submodule_tree, errors) = add_exports_inner rest in
       match SMap.find_opt name submodule_tree with
       | None ->
-        let export_info =
-          if is_type then
-            { value = None; ty = Some id }
-          else
-            { value = Some id; ty = None }
-        in
+        let export_info = mut_export_info { value = None; ty = None } in
         (SMap.add name (Export export_info) submodule_tree, errors)
       | Some (Export export_info) ->
-        let export_info =
-          if is_type then
-            { export_info with ty = Some id }
-          else
-            { export_info with value = Some id }
-        in
+        let export_info = mut_export_info export_info in
         (SMap.add name (Export export_info) submodule_tree, errors)
       | Some (Module _ | Empty _) ->
         (* Error for export with same name as module *)
@@ -60,11 +56,11 @@ let add_exports module_ submodule_tree =
     | [] -> (submodule_tree, [])
     | VariableDeclaration { Ast.Statement.VariableDeclaration.loc; pattern; _ } :: rest ->
       let id = identifier_in_pattern pattern in
-      add_export ~is_type:false id loc rest
+      add_export id loc rest (fun export_info -> { export_info with value = Some (VarDecl, id) })
     | FunctionDeclaration { Ast.Function.loc; name = id; _ } :: rest ->
-      add_export ~is_type:false id loc rest
+      add_export id loc rest (fun export_info -> { export_info with value = Some (FunDecl, id) })
     | TypeDeclaration { Ast.TypeDeclaration.loc; name = id; _ } :: rest ->
-      add_export ~is_type:true id loc rest
+      add_export id loc rest (fun export_info -> { export_info with ty = Some (TypeDecl, id) })
   in
   add_exports_inner module_.toplevels
 
@@ -152,3 +148,25 @@ let lookup name_parts module_tree =
         lookup_inner (name :: prev_name_parts) rest_parts module_tree)
   in
   lookup_inner [] name_parts module_tree
+
+let get_all_exports module_tree =
+  let rec get_all_exports_of_node module_tree_node =
+    match module_tree_node with
+    | Export { value; ty } ->
+      ( Option.map (fun v -> [v]) value |> Option.value ~default:[],
+        Option.map (fun t -> [t]) ty |> Option.value ~default:[] )
+    | Empty (_, module_tree)
+    | Module (_, module_tree) ->
+      SMap.fold
+        (fun _ module_tree_node (values_acc, types_acc) ->
+          let (values, types) = get_all_exports_of_node module_tree_node in
+          (values @ values_acc, types @ types_acc))
+        module_tree
+        ([], [])
+  in
+  SMap.fold
+    (fun _ module_tree_node (values_acc, types_acc) ->
+      let (values, types) = get_all_exports_of_node module_tree_node in
+      (values @ values_acc, types @ types_acc))
+    module_tree
+    ([], [])

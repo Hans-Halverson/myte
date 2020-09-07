@@ -1,4 +1,5 @@
 open Ast
+open Basic_collections
 
 type t =
   | InexhaustiveReturn of Identifier.t
@@ -15,6 +16,7 @@ type t =
   | ModuleInvalidPosition of string list * bool
   | NoExportInModule of string * string list * bool
   | NoModuleWithName of string list * bool
+  | RecursiveTypeAlias of string * Types.tvar_id * Types.t
 
 let to_string error =
   let value_or_type is_value =
@@ -76,3 +78,8 @@ let to_string error =
       "No module or exported %s with name \"%s\" found"
       (value_or_type is_value)
       (String.concat "." module_parts)
+  | RecursiveTypeAlias (name, id_tvar, ty) ->
+    Printf.sprintf
+      "Type aliases cannot be recursive. %s cannot be defined as %s"
+      name
+      (Types.pp ~tvar_to_name:(IMap.singleton id_tvar name) ty)

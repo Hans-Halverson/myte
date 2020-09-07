@@ -1,17 +1,18 @@
 open Analyze_error
 open Ast
 open Basic_collections
+open Immutable_utils
 
 type value_declaration =
   | VarDecl
   | FunDecl
-  | ImportedValue
+  | ImportedValue of Identifier.t
   | ImportedModule of Module_tree.module_tree
   | FunParam
 
 type type_declaration =
   | TypeDecl
-  | ImportedType
+  | ImportedType of Identifier.t
   | ImportedModule of Module_tree.module_tree
 
 module ValueBinding = struct
@@ -19,6 +20,7 @@ module ValueBinding = struct
     name: string;
     declaration: Loc.t * value_declaration;
     uses: LocSet.t;
+    tvar_id: Types.tvar_id;
   }
 end
 
@@ -27,13 +29,35 @@ module TypeBinding = struct
     name: string;
     declaration: Loc.t * type_declaration;
     uses: LocSet.t;
+    tvar_id: Types.tvar_id;
   }
 end
 
-type t = {
-  use_to_binding: ValueBinding.t LocMap.t;
-  declaration_to_binding: ValueBinding.t LocMap.t;
-}
+module Bindings = struct
+  type t = {
+    value_bindings: ValueBinding.t LocMap.t;
+    type_bindings: TypeBinding.t LocMap.t;
+    value_use_to_decl: Loc.t LocMap.t;
+    type_use_to_decl: Loc.t LocMap.t;
+  }
+
+  let empty =
+    {
+      value_bindings = LocMap.empty;
+      type_bindings = LocMap.empty;
+      value_use_to_decl = LocMap.empty;
+      type_use_to_decl = LocMap.empty;
+    }
+
+  let merge b1 b2 =
+    let union a b = LocMap.union (fun _ v1 _ -> Some v1) a b in
+    {
+      value_bindings = union b1.value_bindings b2.value_bindings;
+      type_bindings = union b1.type_bindings b2.type_bindings;
+      value_use_to_decl = union b1.value_use_to_decl b2.value_use_to_decl;
+      type_use_to_decl = union b1.type_use_to_decl b2.type_use_to_decl;
+    }
+end
 
 type scope = {
   local_values: Loc.t SMap.t;
@@ -48,22 +72,49 @@ type 'a binding_builder = {
   mutable uses: LocSet.t;
 }
 
+let mk_binding_builder loc name kind = { name; declaration = (loc, kind); uses = LocSet.empty }
+
 let identifier_in_pattern pat =
   let open Pattern in
   match pat with
   | Identifier id -> id
 
-let map = Ast_mapper.map
-
-let map_list = Ast_mapper.map_list
-
 class bindings_builder ~module_tree =
+  let (exported_value_ids, exported_type_ids) = Module_tree.get_all_exports module_tree in
+  let exported_value_bindings =
+    List.fold_left
+      (fun acc (kind, { Ast.Identifier.loc; name }) ->
+        let kind =
+          match kind with
+          | Module_tree.VarDecl -> VarDecl
+          | Module_tree.FunDecl -> FunDecl
+        in
+        LocMap.add loc (mk_binding_builder loc name kind) acc)
+      LocMap.empty
+      exported_value_ids
+  in
+  let exported_type_bindings =
+    List.fold_left
+      (fun acc (kind, { Ast.Identifier.loc; name }) ->
+        let kind =
+          match kind with
+          | Module_tree.TypeDecl -> TypeDecl
+        in
+        LocMap.add loc (mk_binding_builder loc name kind) acc)
+      LocMap.empty
+      exported_type_ids
+  in
   object (this)
     inherit Ast_mapper.mapper as super
 
-    val mutable value_bindings : value_declaration binding_builder LocMap.t = LocMap.empty
+    val mutable value_bindings : value_declaration binding_builder LocMap.t =
+      exported_value_bindings
 
-    val mutable type_bindings : type_declaration binding_builder LocMap.t = LocMap.empty
+    val mutable type_bindings : type_declaration binding_builder LocMap.t = exported_type_bindings
+
+    val mutable value_use_to_decl : Loc.t LocMap.t = LocMap.empty
+
+    val mutable type_use_to_decl : Loc.t LocMap.t = LocMap.empty
 
     val mutable errors : (Loc.t * Analyze_error.t) list = []
 
@@ -89,11 +140,13 @@ class bindings_builder ~module_tree =
 
     method add_value_use declaration use =
       let binding = LocMap.find declaration value_bindings in
-      binding.uses <- LocSet.add use binding.uses
+      binding.uses <- LocSet.add use binding.uses;
+      value_use_to_decl <- LocMap.add use declaration value_use_to_decl
 
     method add_type_use declaration use =
       let binding = LocMap.find declaration type_bindings in
-      binding.uses <- LocSet.add use binding.uses
+      binding.uses <- LocSet.add use binding.uses;
+      type_use_to_decl <- LocMap.add use declaration type_use_to_decl
 
     method enter_scope () =
       scopes <- { local_values = SMap.empty; local_types = SMap.empty } :: scopes
@@ -117,13 +170,20 @@ class bindings_builder ~module_tree =
         | Some declaration -> Some declaration)
 
     method results () =
-      let bindings =
+      let value_bindings =
         LocMap.map
-          (fun { name; declaration; uses } -> { ValueBinding.name; declaration; uses })
+          (fun { name; declaration; uses } ->
+            { ValueBinding.name; declaration; uses; tvar_id = Types.mk_tvar_id () })
           value_bindings
       in
+      let type_bindings =
+        LocMap.map
+          (fun { name; declaration; uses } ->
+            { TypeBinding.name; declaration; uses; tvar_id = Types.mk_tvar_id () })
+          type_bindings
+      in
       let errors = List.rev errors in
-      (bindings, errors)
+      ({ Bindings.value_bindings; type_bindings; value_use_to_decl; type_use_to_decl }, errors)
 
     method! module_ mod_ =
       let open Ast.Module in
@@ -152,15 +212,15 @@ class bindings_builder ~module_tree =
             match lookup name_parts module_tree with
             | LookupResultExport export_info ->
               ignore
-                (Option.map (fun _ -> add_value_name ImportedValue local_name) export_info.value);
-              Option.iter (fun _ -> add_type_name ImportedType local_name) export_info.ty
+                (Option.map
+                   (fun (_, id) -> add_value_name (ImportedValue id) local_name)
+                   export_info.value);
+              Option.iter (fun (_, id) -> add_type_name (ImportedType id) local_name) export_info.ty
             | LookupResultModule (_, module_tree) ->
               (* Do not report a duplicate error for both value and type conflicting with a module *)
               if not (add_value_name (ImportedModule module_tree) local_name) then
                 add_type_name (ImportedModule module_tree) local_name
             | LookupResultError (loc, error) -> this#add_error loc error
-            (* TODO: Figure out error case*)
-            (* ImportedExport { Module_tree.value = None; ty = None } *)
           in
           match import with
           | Simple { name; scopes; _ } ->
@@ -188,16 +248,18 @@ class bindings_builder ~module_tree =
         toplevels;
       (* Then visit child nodes once toplevel scope is complete *)
       let toplevels' =
-        map_list
+        id_map_list
           (fun toplevel ->
             match toplevel with
             | VariableDeclaration decl ->
-              map (this#visit_variable_declaration ~add:false) decl toplevel (fun decl' ->
+              id_map (this#visit_variable_declaration ~add:false) decl toplevel (fun decl' ->
                   VariableDeclaration decl')
             | FunctionDeclaration decl ->
-              map (this#visit_function_declaration ~add:false) decl toplevel (fun decl' ->
+              id_map (this#visit_function_declaration ~add:false) decl toplevel (fun decl' ->
                   FunctionDeclaration decl')
-            | TypeDeclaration _ -> toplevel)
+            | TypeDeclaration { TypeDeclaration.ty; _ } ->
+              ignore (this#type_ ty);
+              toplevel)
           toplevels
       in
       this#exit_scope ();
@@ -210,12 +272,12 @@ class bindings_builder ~module_tree =
       let open Ast.Statement in
       match stmt with
       | VariableDeclaration decl ->
-        map (this#visit_variable_declaration ~add:true) decl stmt (fun decl' ->
+        id_map (this#visit_variable_declaration ~add:true) decl stmt (fun decl' ->
             VariableDeclaration decl')
       | FunctionDeclaration decl ->
-        map (this#visit_function_declaration ~add:true) decl stmt (fun decl' ->
+        id_map (this#visit_function_declaration ~add:true) decl stmt (fun decl' ->
             FunctionDeclaration decl')
-      | Block block -> map this#block block stmt (fun block' -> Block block')
+      | Block block -> id_map this#block block stmt (fun block' -> Block block')
       | _ -> super#statement stmt
 
     method! block block =
@@ -275,7 +337,16 @@ class bindings_builder ~module_tree =
           let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
           this#add_error full_loc (ModuleInvalidPosition (prev_parts_names @ [name], is_value));
           None
-        | (Some (Export _), _) -> on_export prev_parts part rest_parts
+        | (Some (Export { value; ty }), _) ->
+          if is_value then
+            Option.iter
+              (fun (_, { Ast.Identifier.loc = decl_loc; _ }) -> this#add_value_use decl_loc loc)
+              value
+          else
+            Option.iter
+              (fun (_, { Ast.Identifier.loc = decl_loc; _ }) -> this#add_type_use decl_loc loc)
+              ty;
+          on_export prev_parts part rest_parts
         | (Some (Empty (_, module_tree)), rest_parts) ->
           this#match_module_parts
             ~is_value
@@ -432,8 +503,6 @@ let analyze modules module_tree =
       modules
   in
   let (modules', bindings, bindings_errors) = List_utils.split3 results in
-  let bindings =
-    List.fold_left (fun bindings acc -> LocMap.fold LocMap.add bindings acc) LocMap.empty bindings
-  in
+  let bindings = List.fold_left Bindings.merge Bindings.empty bindings in
   let errors = List.flatten bindings_errors in
   (modules', bindings, errors)

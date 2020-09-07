@@ -1,3 +1,4 @@
+module ISet = Set.Make (Int)
 module IMap = Map.Make (Int)
 module SSet = Set.Make (String)
 module SMap = Map.Make (String)

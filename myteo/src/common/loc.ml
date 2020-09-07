@@ -9,6 +9,8 @@ type t = {
   _end: pos;
 }
 
+let none = { source = None; start = { line = 0; col = 0 }; _end = { line = 0; col = 0 } }
+
 let first_pos = { line = 1; col = 0 }
 
 let between { source; start; _ } { _end; _ } = { source; start; _end }

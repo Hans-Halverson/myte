@@ -62,10 +62,10 @@ let first_diff_lines s1 s2 =
 let run_snapshot_test ~command ~config ~record ~myte_files ~exp_file =
   (* Run command in separate process and read its stdout *)
   let formatted_command = command ~config myte_files in
-  let process_in = Unix.open_process_in formatted_command in
-  let act_contents = Io.chan_read_contents process_in in
+  let process_stdout = Unix.open_process_in formatted_command in
+  let act_contents = Io.chan_read_contents process_stdout in
   begin
-    match Unix.close_process_in process_in with
+    match Unix.close_process_in process_stdout with
     | Unix.WEXITED _ -> ()
     | _ -> failwith (Printf.sprintf "Command: %s failed to complete" formatted_command)
   end;

@@ -54,7 +54,4 @@ fun topLevelRecFunc2() {
   topLevelRecFunc1();
 }
 
-type topLevelRecType1 = topLevelRecType2
-type topLevelRecType2 = topLevelRecType1
-
 fun main() {}
