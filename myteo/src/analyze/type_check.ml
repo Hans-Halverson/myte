@@ -18,7 +18,7 @@ let rec build_type ~cx ty =
     let source_binding = Type_context.get_source_type_binding ~cx loc in
     TVar source_binding.TypeBinding.tvar_id
 
-let visit_type_declarations ~cx module_ =
+and visit_type_declarations ~cx module_ =
   let open Ast.Module in
   let { toplevels; _ } = module_ in
   List.iter
@@ -45,61 +45,76 @@ let visit_type_declarations ~cx module_ =
       | _ -> ())
     toplevels
 
-let visit_value_declarations ~cx module_ =
+and visit_value_declarations ~cx module_ =
   let open Ast.Module in
   let { toplevels; _ } = module_ in
   List.iter
     (fun toplevel ->
       match toplevel with
-      | VariableDeclaration { loc; pattern; annot; _ } ->
-        (match annot with
-        | None -> Type_context.add_error ~cx loc ToplevelVarWithoutAnnotation
-        | Some annot ->
-          let { Ast.Identifier.loc = id_loc; _ } = identifier_in_pattern pattern in
-          let tvar_id = Type_context.get_tvar_id_from_value_decl ~cx id_loc in
-          let annot_ty = build_type ~cx annot in
-          if not (Type_context.unify ~cx annot_ty (TVar tvar_id)) then
-            failwith "Unexpected unification failure")
-      | FunctionDeclaration { name = { Ast.Identifier.loc = id_loc; _ }; params; return; _ } ->
-        let open Ast.Function.Param in
-        let tvar_id = Type_context.get_tvar_id_from_value_decl ~cx id_loc in
-        let param_tys = List.map (fun param -> build_type ~cx param.annot) params in
-        let return_ty =
-          Option.fold ~none:Types.Unit ~some:(fun return -> build_type ~cx return) return
-        in
-        let function_ty = Types.Function { params = param_tys; return = return_ty } in
-        if not (Type_context.unify ~cx function_ty (TVar tvar_id)) then
-          failwith "Unexpected unification failure"
+      | VariableDeclaration decl -> check_variable_declaration ~cx ~decl_pass:true decl
+      | FunctionDeclaration decl -> check_function_declaration ~cx ~decl_pass:true decl
       | _ -> ())
     toplevels
 
-let rec check_module ~cx module_ =
+and check_module ~cx module_ =
   let open Ast.Module in
   let { toplevels; _ } = module_ in
   List.iter
     (fun toplevel ->
       match toplevel with
-      | VariableDeclaration decl ->
-        check_variable_declaration ~cx decl;
-        ()
-      | FunctionDeclaration _ -> (* TODO: Func decls *) ()
+      | VariableDeclaration decl -> check_variable_declaration ~cx ~decl_pass:false decl
+      | FunctionDeclaration decl -> check_function_declaration ~cx ~decl_pass:false decl
       | TypeDeclaration _ -> ())
     toplevels
 
-and check_variable_declaration ~cx decl =
+and check_variable_declaration ~cx ~decl_pass decl =
   let open Ast.Statement.VariableDeclaration in
-  let { pattern; init; _ } = decl in
-  let (expr_loc, expr_tvar_id) = check_expression ~cx init in
+  let { loc; pattern; init; annot; _ } = decl in
   let { Ast.Identifier.loc = id_loc; _ } = identifier_in_pattern pattern in
   let tvar_id = Type_context.get_tvar_id_from_value_decl ~cx id_loc in
-  if not (Type_context.is_subtype ~cx (TVar expr_tvar_id) (TVar tvar_id)) then
-    Type_context.add_error
-      ~cx
-      expr_loc
-      (IncompatibleTypes
-         ( Type_context.find_rep_type ~cx (TVar expr_tvar_id),
-           Type_context.find_rep_type ~cx (TVar tvar_id) ));
-  ()
+  begin
+    match annot with
+    | None -> if decl_pass then Type_context.add_error ~cx loc ToplevelVarWithoutAnnotation
+    | Some annot ->
+      let annot_ty = build_type ~cx annot in
+      ignore (Type_context.unify ~cx annot_ty (TVar tvar_id))
+  end;
+  if not decl_pass then
+    let (expr_loc, expr_tvar_id) = check_expression ~cx init in
+    match annot with
+    | None ->
+      (* TODO: Unify id's tvar type with expr's type if expr's type is fully resolved, otherwise error *)
+      ()
+    | Some _ ->
+      if not (Type_context.is_subtype ~cx (TVar expr_tvar_id) (TVar tvar_id)) then
+        Type_context.add_error
+          ~cx
+          expr_loc
+          (IncompatibleTypes
+             ( Type_context.find_rep_type ~cx (TVar expr_tvar_id),
+               Type_context.find_rep_type ~cx (TVar tvar_id) ))
+
+and check_function_declaration ~cx ~decl_pass decl =
+  let open Ast.Function in
+  let open Ast.Function.Param in
+  let { name = { Ast.Identifier.loc = id_loc; _ }; params; return; body; _ } = decl in
+
+  (* Bind annotated function type to function identifier *)
+  let tvar_id = Type_context.get_tvar_id_from_value_decl ~cx id_loc in
+  let param_tys = List.map (fun param -> build_type ~cx param.annot) params in
+  let return_ty = Option.fold ~none:Types.Unit ~some:(fun return -> build_type ~cx return) return in
+  let function_ty = Types.Function { params = param_tys; return = return_ty } in
+
+  ignore (Type_context.unify ~cx function_ty (TVar tvar_id));
+  if not decl_pass then
+    (* TODO: Bind param id tvars to their annotated types by unifying with func name id's tvar *)
+    match body with
+    | Expression expr ->
+      (* TODO: Check that expr's return type is subtype of annotated return type *)
+      ignore (check_expression ~cx expr)
+    | Block block ->
+      (* TODO: Check that every return statement's expr is subtype of annotated return type *)
+      check_statement ~cx (Ast.Statement.Block block)
 
 and check_expression ~cx expr =
   let open Ast.Expression in
@@ -139,6 +154,18 @@ and check_expression ~cx expr =
   | Call { Call.loc; _ }
   | Access { Access.loc; _ } ->
     (loc, Type_context.mk_tvar_id ~cx ~loc)
+
+and check_statement ~cx stmt =
+  let open Ast.Statement in
+  match stmt with
+  | VariableDeclaration decl -> check_variable_declaration ~cx ~decl_pass:false decl
+  | FunctionDeclaration decl -> check_function_declaration ~cx ~decl_pass:false decl
+  | Expression (_, expr) -> ignore (check_expression ~cx expr)
+  | Block { Block.statements; _ } -> List.iter (check_statement ~cx) statements
+  | If _
+  | Return _ ->
+    (* TODO: Implement remaining expressions *)
+    ()
 
 let analyze modules bindings =
   let cx = Type_context.mk ~bindings in
