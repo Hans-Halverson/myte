@@ -260,8 +260,8 @@ and parse_parenthesized_expression env =
   Env.expect env T_LEFT_PAREN;
   match Env.token env with
   | T_RIGHT_PAREN ->
-    let loc = Env.loc env in
     Env.advance env;
+    let loc = marker env in
     Unit { Unit.loc }
   | _ ->
     let expr = parse_expression env in

@@ -6,6 +6,7 @@ module Bindings = Name_resolution.Bindings
 type t = {
   bindings: Bindings.t;
   mutable errors: (Loc.t * Analyze_error.t) list;
+  mutable loc_to_tvar: Types.tvar_id LocMap.t;
   mutable union_forest_nodes: union_forest_node IMap.t;
 }
 
@@ -16,7 +17,8 @@ and union_forest_node =
     }
   | Link of Types.tvar_id
 
-let mk ~bindings = { bindings; errors = []; union_forest_nodes = IMap.empty }
+let mk ~bindings =
+  { bindings; errors = []; loc_to_tvar = LocMap.empty; union_forest_nodes = IMap.empty }
 
 let add_error ~cx loc error = cx.errors <- (loc, error) :: cx.errors
 
@@ -40,6 +42,32 @@ let get_source_type_binding ~cx use_loc =
     LocMap.find source_decl_loc cx.bindings.type_bindings
   | _ -> local_binding
 
+let get_tvar_id_from_value_decl ~cx decl_loc =
+  let open Bindings in
+  let open Name_resolution.ValueBinding in
+  let binding = LocMap.find decl_loc cx.bindings.value_bindings in
+  binding.tvar_id
+
+let get_tvar_id_from_type_decl ~cx decl_loc =
+  let open Bindings in
+  let open Name_resolution.TypeBinding in
+  let binding = LocMap.find decl_loc cx.bindings.type_bindings in
+  binding.tvar_id
+
+let get_tvar_id_from_value_use ~cx use_loc =
+  let open Name_resolution.ValueBinding in
+  let binding = get_source_value_binding ~cx use_loc in
+  binding.tvar_id
+
+let get_tvar_id_from_type_use ~cx use_loc =
+  let open Name_resolution.TypeBinding in
+  let binding = get_source_type_binding ~cx use_loc in
+  binding.tvar_id
+
+let get_tvar_from_loc ~cx loc = LocMap.find loc cx.loc_to_tvar
+
+let set_tvar_for_loc ~cx tvar loc = cx.loc_to_tvar <- LocMap.add loc tvar cx.loc_to_tvar
+
 let set_union_find_node ~cx tvar_id node =
   cx.union_forest_nodes <- IMap.add tvar_id node cx.union_forest_nodes
 
@@ -47,6 +75,16 @@ let add_tvar ~cx tvar_id =
   let node = Rep { ty = TVar tvar_id; rank = 0 } in
   set_union_find_node ~cx tvar_id node;
   node
+
+let mk_tvar_id ?loc ~cx =
+  let tvar_id = Types.mk_tvar_id () in
+  ignore (add_tvar ~cx tvar_id);
+  begin
+    match loc with
+    | None -> ()
+    | Some loc -> set_tvar_for_loc ~cx tvar_id loc
+  end;
+  tvar_id
 
 let lookup_union_find_node ~cx tvar_id =
   match IMap.find_opt tvar_id cx.union_forest_nodes with
@@ -141,4 +179,28 @@ let rec unify ~cx ty1 ty2 =
     List.length params1 = List.length params2
     && List.combine params1 params2 |> List.for_all (fun (ty1, ty2) -> unify ~cx ty1 ty2)
     && unify ~cx return1 return2
+  | _ -> false
+
+let rec is_subtype ~cx sub sup =
+  let rep_sub = find_union_rep_type ~cx sub in
+  let rep_sup = find_union_rep_type ~cx sup in
+  match (rep_sub, rep_sup) with
+  | (TVar _, _)
+  | (_, TVar _) ->
+    (* TODO: Error on unresolved tvars. Should check for nested unresolved tvars to
+             see if type is fully resolved at start of is_subtype. Error if not, pointing
+             to type and displaying as much of type as could be resolved in error, saying to provide
+             annotation for unannotated parts. If entire tvar cannot be resolved and there is
+             no useful structure to show, just say to add annotations)*)
+    failwith "Unimplemented"
+  | (Unit, Unit)
+  | (Bool, Bool)
+  | (Int, Int)
+  | (String, String) ->
+    true
+  | ( Function { params = sub_params; return = sub_return },
+      Function { params = sup_params; return = sup_return } ) ->
+    List.length sub_params = List.length sup_params
+    && List.combine sub_params sup_params |> List.for_all (fun (sub, sup) -> is_subtype ~cx sup sub)
+    && is_subtype ~cx sub_return sup_return
   | _ -> false

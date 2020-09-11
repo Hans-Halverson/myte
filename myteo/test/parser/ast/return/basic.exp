@@ -36,7 +36,7 @@ test/parser/ast/return/basic.myte
             loc: 4:2-4:12,
             arg: {
               node: Unit,
-              loc: 4:10-4:11,
+              loc: 4:9-4:11,
             },
           },
           {

@@ -17,6 +17,8 @@ type t =
   | NoExportInModule of string * string list * bool
   | NoModuleWithName of string list * bool
   | RecursiveTypeAlias of string * Types.tvar_id * Types.t
+  | ToplevelVarWithoutAnnotation
+  | IncompatibleTypes of Types.t * Types.t
 
 let to_string error =
   let value_or_type is_value =
@@ -83,3 +85,9 @@ let to_string error =
       "Type aliases cannot be recursive. %s cannot be defined as %s"
       name
       (Types.pp ~tvar_to_name:(IMap.singleton id_tvar name) ty)
+  | ToplevelVarWithoutAnnotation -> Printf.sprintf "Toplevel variables must have type annotations"
+  | IncompatibleTypes (actual, expected) ->
+    let type_strings = Types.pps [expected; actual] in
+    let expected_string = List.hd type_strings in
+    let actual_string = List.nth type_strings 1 in
+    Printf.sprintf "Expected type %s but found %s" expected_string actual_string

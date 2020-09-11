@@ -29,7 +29,7 @@ test/parser/ast/type/basic.myte
       },
       init: {
         node: Unit,
-        loc: 3:15-3:16,
+        loc: 3:14-3:16,
       },
       annot: {
         node: PrimitiveType,

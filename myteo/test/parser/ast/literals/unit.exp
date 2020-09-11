@@ -1,7 +1,7 @@
-test/parser/ast/expression/unit.myte
+test/parser/ast/literals/unit.myte
 {
   node: Module,
-  loc: 1:0-6:1,
+  loc: 1:0-5:1,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -20,7 +20,7 @@ test/parser/ast/expression/unit.myte
   toplevels: [
     {
       node: Function,
-      loc: 3:0-6:1,
+      loc: 3:0-5:1,
       name: {
         node: Identifier,
         loc: 3:4-3:8,
@@ -29,23 +29,22 @@ test/parser/ast/expression/unit.myte
       params: [],
       body: {
         node: Block,
-        loc: 3:11-6:1,
+        loc: 3:11-5:1,
         statements: [
           {
-            node: ExpressionStatement,
-            loc: 4:2-4:5,
-            expression: {
-              node: Unit,
-              loc: 4:2-4:4,
+            node: VariableDeclaration,
+            loc: 4:2-4:13,
+            kind: Immutable,
+            pattern: {
+              node: Identifier,
+              loc: 4:6-4:7,
+              name: "u",
             },
-          },
-          {
-            node: ExpressionStatement,
-            loc: 5:2-5:9,
-            expression: {
+            init: {
               node: Unit,
-              loc: 5:4-5:6,
+              loc: 4:10-4:12,
             },
+            annot: None,
           },
         ],
       },

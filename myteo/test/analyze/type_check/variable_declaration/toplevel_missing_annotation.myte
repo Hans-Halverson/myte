@@ -1,0 +1,7 @@
+module test
+
+val x = 1;
+
+var y = ();
+
+fun main() {}
