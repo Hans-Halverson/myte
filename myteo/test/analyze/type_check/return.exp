@@ -1,0 +1,34 @@
+Error: Expected type int but found string
+test/analyze/type_check/return.myte:19:11-13
+ 19 |     return "";
+    |            ^^
+
+Error: Expected type int but found bool
+test/analyze/type_check/return.myte:22:13-17
+ 22 |       return true;
+    |              ^^^^
+
+Error: Expected type int but found unit -> unit
+test/analyze/type_check/return.myte:27:11-29
+ 27 |     return explicitUnitReturn;
+    |            ^^^^^^^^^^^^^^^^^^
+
+Error: Expected type unit but found int
+test/analyze/type_check/return.myte:44:9
+ 44 |   return 1;
+    |          ^
+
+Error: Expected type unit but found int
+test/analyze/type_check/return.myte:47:28
+ 47 | fun implicitUnitReturn6() = 1
+    |                             ^
+
+Error: Expected type unit but found int
+test/analyze/type_check/return.myte:54:13
+ 54 |       return 1;
+    |              ^
+
+Error: Expected type int but found unit
+test/analyze/type_check/return.myte:59:11-13
+ 59 |     return ();
+    |            ^^

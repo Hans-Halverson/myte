@@ -1,6 +1,7 @@
+open Analyze_error
+open Basic_collections
 open Name_resolution
 open Type_context
-open Analyze_error
 
 let rec build_type ~cx ty =
   let open Ast.Type in
@@ -126,11 +127,28 @@ and check_function_declaration ~cx ~decl_pass decl =
            ignore (Type_context.unify ~cx param_ty (TVar param_tvar_id)));
     match body with
     | Expression expr ->
-      (* TODO: Check that expr's return type is subtype of annotated return type *)
-      ignore (check_expression ~cx expr)
+      (* Expression body must be subtype of return type *)
+      let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
+      if not (Type_context.is_subtype ~cx (TVar expr_tvar_id) return_ty) then
+        Type_context.add_error
+          ~cx
+          expr_loc
+          (IncompatibleTypes
+             ( Type_context.find_rep_type ~cx (TVar expr_tvar_id),
+               Type_context.find_rep_type ~cx return_ty ))
     | Block block ->
-      (* TODO: Check that every return statement's expr is subtype of annotated return type *)
-      check_statement ~cx (Ast.Statement.Block block)
+      let open Ast.Statement in
+      let block_stmt = Block block in
+      (* Annotate each return statement node with this function's return type *)
+      Ast_utils.statement_visitor
+        ~enter_functions:false
+        ~f:(fun stmt ->
+          match stmt with
+          | Return { Return.loc; _ } ->
+            Type_context.(cx.return_types <- LocMap.add loc return_ty cx.return_types)
+          | _ -> ())
+        block_stmt;
+      check_statement ~cx block_stmt
   end
 
 and check_expression ~cx expr =
@@ -196,9 +214,22 @@ and check_statement ~cx stmt =
         (IncompatibleTypes (Type_context.find_rep_type ~cx (TVar test_tvar_id), Bool));
     check_statement ~cx conseq;
     Option.iter (check_statement ~cx) altern
-  | Return _ ->
-    (* TODO: Implement remaining expressions *)
-    ()
+  | Return { Return.loc; arg } ->
+    let (arg_loc, arg_ty) =
+      match arg with
+      | None -> (loc, Types.Unit)
+      | Some arg ->
+        let (arg_loc, arg_tvar_id) = check_expression ~cx arg in
+        (arg_loc, TVar arg_tvar_id)
+    in
+    (* Return argument must be subtype of function's return type stored in return type map *)
+    let return_ty = Type_context.(LocMap.find loc cx.return_types) in
+    if not (Type_context.is_subtype ~cx arg_ty return_ty) then
+      Type_context.add_error
+        ~cx
+        arg_loc
+        (IncompatibleTypes
+           (Type_context.find_rep_type ~cx arg_ty, Type_context.find_rep_type ~cx return_ty))
 
 let analyze modules bindings =
   let cx = Type_context.mk ~bindings in

@@ -8,6 +8,8 @@ type t = {
   mutable errors: (Loc.t * Analyze_error.t) list;
   mutable loc_to_tvar: Types.tvar_id LocMap.t;
   mutable union_forest_nodes: union_forest_node IMap.t;
+  (* Map of return node locs to the return type for that function *)
+  mutable return_types: Types.t LocMap.t;
 }
 
 and union_forest_node =
@@ -18,7 +20,13 @@ and union_forest_node =
   | Link of Types.tvar_id
 
 let mk ~bindings =
-  { bindings; errors = []; loc_to_tvar = LocMap.empty; union_forest_nodes = IMap.empty }
+  {
+    bindings;
+    errors = [];
+    loc_to_tvar = LocMap.empty;
+    union_forest_nodes = IMap.empty;
+    return_types = LocMap.empty;
+  }
 
 let add_error ~cx loc error = cx.errors <- (loc, error) :: cx.errors
 

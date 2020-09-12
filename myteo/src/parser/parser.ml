@@ -429,7 +429,11 @@ and parse_return env =
   let open Statement.Return in
   let marker = mark_loc env in
   Env.expect env T_RETURN;
-  let arg = parse_expression env in
+  let arg =
+    match Env.token env with
+    | T_SEMICOLON -> None
+    | _ -> Some (parse_expression env)
+  in
   Env.expect env T_SEMICOLON;
   let loc = marker env in
   Statement.Return { loc; arg }

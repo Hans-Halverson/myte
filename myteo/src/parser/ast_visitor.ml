@@ -180,7 +180,7 @@ class ['a] visitor =
     method return acc return =
       let open Statement.Return in
       let { loc = _; arg } = return in
-      this#expression acc arg
+      Option.iter (this#expression acc) arg
 
     method variable_declaration acc decl =
       let open Statement.VariableDeclaration in

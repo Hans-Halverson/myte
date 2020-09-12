@@ -62,7 +62,7 @@ and Statement : sig
   module Return : sig
     type t = {
       loc: Loc.t;
-      arg: Expression.t;
+      arg: Expression.t option;
     }
   end
 

@@ -272,7 +272,7 @@ and node_of_if if_ =
 
 and node_of_return ret =
   let { Statement.Return.loc; arg } = ret in
-  node "Return" loc [("arg", node_of_expression arg)]
+  node "Return" loc [("arg", opt node_of_expression arg)]
 
 and node_of_variable_decl decl =
   let { Statement.VariableDeclaration.loc; kind; pattern; init; annot } = decl in

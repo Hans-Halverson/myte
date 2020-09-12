@@ -255,7 +255,7 @@ class mapper =
     method return return =
       let open Statement.Return in
       let { loc; arg } = return in
-      let arg' = this#expression arg in
+      let arg' = id_map_opt this#expression arg in
       if arg == arg' then
         return
       else

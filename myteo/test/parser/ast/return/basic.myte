@@ -3,4 +3,5 @@ module Test
 fun main() {
   return ();
   return 1;
+  return;
 }

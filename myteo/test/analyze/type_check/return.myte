@@ -1,0 +1,65 @@
+module Test
+
+fun validReturn(): int {
+  if (true) {
+    return 1;
+  } else {
+    if (true) {
+      return 2;
+    }
+  }
+
+  {
+    return 3;
+  }
+}
+
+fun invalidReturn(): int {
+  if (true) {
+    return "";
+  } else {
+    if (true) {
+      return true;
+    }
+  }
+
+  {
+    return explicitUnitReturn;
+  }
+}
+
+fun explicitUnitReturn(): unit {}
+fun explicitUnitReturn2(): unit {
+  return;
+}
+
+fun implicitUnitReturn() {}
+fun implicitUnitReturn2() {
+  return;
+}
+fun implicitUnitReturn3() {
+  return ();
+}
+fun implicitUnitReturn4() {
+  return 1;
+}
+fun implicitUnitReturn5() = ()
+fun implicitUnitReturn6() = 1
+
+fun nestedFunctionReturn(): int {
+  fun inner(): unit {
+    if (true) {
+      return ();
+    } else {
+      return 1;
+    }
+  }
+
+  if (true) {
+    return ();
+  } else {
+    return 1;
+  }
+}
+
+fun main() {}
