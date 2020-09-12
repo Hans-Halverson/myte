@@ -1,0 +1,18 @@
+module test
+
+fun intToString(x: int): string {
+  return "";
+}
+
+fun main() {
+  ((): unit);
+  (1: int);
+  (true: bool);
+  ("": string);
+
+  ((): int);
+  (intToString: int);
+
+  val x: bool = true;
+  (x: unit);
+}

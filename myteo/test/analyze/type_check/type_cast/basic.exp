@@ -1,0 +1,14 @@
+Error: Expected type int but found unit
+test/analyze/type_check/type_cast/basic.myte:13:3-5
+ 13 |   ((): int);
+    |    ^^
+
+Error: Expected type int but found int -> string
+test/analyze/type_check/type_cast/basic.myte:14:3-14
+ 14 |   (intToString: int);
+    |    ^^^^^^^^^^^
+
+Error: Expected type unit but found bool
+test/analyze/type_check/type_cast/basic.myte:17:3
+ 17 |   (x: unit);
+    |    ^

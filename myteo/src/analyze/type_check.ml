@@ -141,11 +141,19 @@ and check_expression ~cx expr =
     let decl_tvar_id = Type_context.get_tvar_id_from_value_use ~cx loc in
     ignore (Type_context.unify ~cx (TVar decl_tvar_id) (TVar tvar_id));
     (loc, tvar_id)
-  | TypeCast { TypeCast.loc; ty; _ } ->
+  | TypeCast { TypeCast.loc; expr; ty } ->
+    let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let ty = build_type ~cx ty in
     ignore (Type_context.unify ~cx ty (TVar tvar_id));
-    (* TODO: Verify expr's type is subtype of annot *) (loc, tvar_id)
+    (* Expr must be a subtype of annotated type *)
+    if not (Type_context.is_subtype ~cx (TVar expr_tvar_id) ty) then
+      Type_context.add_error
+        ~cx
+        expr_loc
+        (IncompatibleTypes
+           (Type_context.find_rep_type ~cx (TVar expr_tvar_id), Type_context.find_rep_type ~cx ty));
+    (loc, tvar_id)
   (* TODO: Implement remaining expressions *)
   | UnaryOperation { UnaryOperation.loc; _ }
   | BinaryOperation { BinaryOperation.loc; _ }
