@@ -187,7 +187,15 @@ and check_statement ~cx stmt =
   | FunctionDeclaration decl -> check_function_declaration ~cx ~decl_pass:false decl
   | Expression (_, expr) -> ignore (check_expression ~cx expr)
   | Block { Block.statements; _ } -> List.iter (check_statement ~cx) statements
-  | If _
+  | If { If.test; conseq; altern; _ } ->
+    let (test_loc, test_tvar_id) = check_expression ~cx test in
+    if not (Type_context.unify ~cx Bool (TVar test_tvar_id)) then
+      Type_context.add_error
+        ~cx
+        test_loc
+        (IncompatibleTypes (Type_context.find_rep_type ~cx (TVar test_tvar_id), Bool));
+    check_statement ~cx conseq;
+    Option.iter (check_statement ~cx) altern
   | Return _ ->
     (* TODO: Implement remaining expressions *)
     ()
