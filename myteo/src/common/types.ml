@@ -53,9 +53,13 @@ let rec pp_with_names ~tvar_to_name ty =
   | Int -> "int"
   | String -> "string"
   | Function { params; return } ->
-    (List.map (pp_with_names ~tvar_to_name) params |> String.concat " -> ")
-    ^ " -> "
-    ^ pp_with_names ~tvar_to_name return
+    let pp_function_part ty =
+      let pp_param = pp_with_names ~tvar_to_name ty in
+      match ty with
+      | Function _ -> "(" ^ pp_param ^ ")"
+      | _ -> pp_param
+    in
+    (List.map pp_function_part params |> String.concat " -> ") ^ " -> " ^ pp_function_part return
   | TVar tvar_id -> IMap.find tvar_id tvar_to_name
 
 let name_id_to_string name_id =

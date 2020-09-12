@@ -8,7 +8,7 @@ test/analyze/type_check/recursive_aliases_error/single_file.myte:7:0-26
  7 | type rec_type4 = rec_type3
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Error: Type aliases cannot be recursive. rec_type7 cannot be defined as unit -> unit -> unit -> rec_type7 -> unit -> unit -> unit
+Error: Type aliases cannot be recursive. rec_type7 cannot be defined as unit -> (unit -> (unit -> rec_type7 -> unit) -> unit) -> unit
 test/analyze/type_check/recursive_aliases_error/single_file.myte:11:0-42
  11 | type rec_type7 = unit -> rec_type5 -> unit
     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
