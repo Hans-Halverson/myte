@@ -93,11 +93,14 @@ let rec build_tvar_to_name ~use_tvar_ids (tvar_to_name_acc, names_acc) next_name
         next_name_id
         tl
 
-let pps ?(tvar_to_name = IMap.empty) ?(use_tvar_ids = false) tys =
+let pps_with_tvar_map ?(tvar_to_name = IMap.empty) ?(use_tvar_ids = false) tys =
   let all_tvars = get_all_tvars tys in
   let used_names = IMap.fold (fun _ name acc -> SSet.add name acc) tvar_to_name SSet.empty in
   let (tvar_to_name, _) = build_tvar_to_name ~use_tvar_ids (tvar_to_name, used_names) 0 all_tvars in
-  List.map (pp_with_names ~tvar_to_name) tys
+  (List.map (pp_with_names ~tvar_to_name) tys, tvar_to_name)
+
+let pps ?(tvar_to_name = IMap.empty) ?(use_tvar_ids = false) tys =
+  fst (pps_with_tvar_map ~tvar_to_name ~use_tvar_ids tys)
 
 let pp ?(tvar_to_name = IMap.empty) ?(use_tvar_ids = false) ty =
   pps ~tvar_to_name ~use_tvar_ids [ty] |> List.hd

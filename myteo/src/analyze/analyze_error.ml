@@ -19,6 +19,7 @@ type t =
   | RecursiveTypeAlias of string * Types.tvar_id * Types.t
   | ToplevelVarWithoutAnnotation
   | IncompatibleTypes of Types.t * Types.t
+  | VarDeclNeedsAnnotation of string * (Types.t * Types.tvar_id) option
 
 let to_string error =
   let value_or_type is_value =
@@ -91,3 +92,19 @@ let to_string error =
     let expected_string = List.hd type_strings in
     let actual_string = List.nth type_strings 1 in
     Printf.sprintf "Expected type %s but found %s" expected_string actual_string
+  | VarDeclNeedsAnnotation (name, partial) ->
+    let partial_string =
+      match partial with
+      | None -> ""
+      | Some (partial_type, unresolved_tvar_id) ->
+        let (partial_type_string, tvar_to_name) = Types.pps_with_tvar_map [partial_type] in
+        let unresolved_tvar_name = IMap.find unresolved_tvar_id tvar_to_name in
+        Printf.sprintf
+          "Partially inferred %s but was unable to resolve %s. "
+          (List.hd partial_type_string)
+          unresolved_tvar_name
+    in
+    Printf.sprintf
+      "Cannot infer type for \"%s\". %sPlease provide additional type hints such as a type annotation."
+      name
+      partial_string

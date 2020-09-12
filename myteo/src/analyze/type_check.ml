@@ -70,7 +70,7 @@ and check_module ~cx module_ =
 and check_variable_declaration ~cx ~decl_pass decl =
   let open Ast.Statement.VariableDeclaration in
   let { loc; pattern; init; annot; _ } = decl in
-  let { Ast.Identifier.loc = id_loc; _ } = identifier_in_pattern pattern in
+  let { Ast.Identifier.loc = id_loc; name } = identifier_in_pattern pattern in
   let tvar_id = Type_context.get_tvar_id_from_value_decl ~cx id_loc in
   begin
     match annot with
@@ -83,8 +83,20 @@ and check_variable_declaration ~cx ~decl_pass decl =
     let (expr_loc, expr_tvar_id) = check_expression ~cx init in
     match annot with
     | None ->
-      (* TODO: Unify id's tvar type with expr's type if expr's type is fully resolved, otherwise error *)
-      ()
+      (* If expression's type is fully resolved then use as type of id, otherwise error
+         requesting an annotation. *)
+      let rep_ty = Type_context.find_rep_type ~cx (TVar expr_tvar_id) in
+      let unresolved_tvars = Types.get_all_tvars_with_duplicates rep_ty in
+      if unresolved_tvars = [] then
+        ignore (Type_context.unify ~cx (TVar expr_tvar_id) (TVar tvar_id))
+      else
+        (* TODO: Test this error once we support unresolved tvars *)
+        let partial =
+          match rep_ty with
+          | TVar _ -> None
+          | _ -> Some (rep_ty, List.hd unresolved_tvars)
+        in
+        Type_context.add_error ~cx loc (VarDeclNeedsAnnotation (name, partial))
     | Some _ ->
       if not (Type_context.is_subtype ~cx (TVar expr_tvar_id) (TVar tvar_id)) then
         Type_context.add_error

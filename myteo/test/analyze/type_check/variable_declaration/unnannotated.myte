@@ -1,0 +1,20 @@
+module Test
+
+fun intToString(x: int): string = "test"
+
+fun main() {
+  val x1 = ();
+  (x1: unit);
+  (x1: int);
+
+  val x2 = 1;
+  (x2: string);
+
+  val x3 = intToString;
+  (x3: bool);
+
+  {
+    val x3 = true;
+    (x3: int -> string);
+  }
+}
