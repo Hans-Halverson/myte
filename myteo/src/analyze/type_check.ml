@@ -15,8 +15,7 @@ let rec build_type ~cx ty =
   | Function { Function.params; return; _ } ->
     Types.Function { params = List.map (build_type ~cx) params; return = build_type ~cx return }
   | Custom { Custom.name = { Ast.ScopedIdentifier.name = { Ast.Identifier.loc; _ }; _ }; _ } ->
-    let source_binding = Type_context.get_source_type_binding ~cx loc in
-    TVar source_binding.TypeBinding.tvar_id
+    TVar (Type_context.get_tvar_id_from_type_use ~cx loc)
 
 and visit_type_declarations ~cx module_ =
   let open Ast.Module in
@@ -107,9 +106,10 @@ and check_variable_declaration ~cx ~decl_pass decl =
                Type_context.find_rep_type ~cx (TVar tvar_id) ))
 
 and check_function_declaration ~cx ~decl_pass decl =
+  let open Ast.Identifier in
   let open Ast.Function in
   let open Ast.Function.Param in
-  let { name = { Ast.Identifier.loc = id_loc; _ }; params; return; body; _ } = decl in
+  let { name = { loc = id_loc; _ }; params; return; body; _ } = decl in
 
   (* Bind annotated function type to function identifier *)
   let tvar_id = Type_context.get_tvar_id_from_value_decl ~cx id_loc in
@@ -118,8 +118,12 @@ and check_function_declaration ~cx ~decl_pass decl =
   let function_ty = Types.Function { params = param_tys; return = return_ty } in
 
   ignore (Type_context.unify ~cx function_ty (TVar tvar_id));
-  if not decl_pass then
-    (* TODO: Bind param id tvars to their annotated types by unifying with func name id's tvar *)
+  if not decl_pass then begin
+    (* Bind param id tvars to their annotated types *)
+    List.combine params param_tys
+    |> List.iter (fun (param, param_ty) ->
+           let param_tvar_id = Type_context.get_tvar_id_from_value_decl ~cx param.name.loc in
+           ignore (Type_context.unify ~cx param_ty (TVar param_tvar_id)));
     match body with
     | Expression expr ->
       (* TODO: Check that expr's return type is subtype of annotated return type *)
@@ -127,6 +131,7 @@ and check_function_declaration ~cx ~decl_pass decl =
     | Block block ->
       (* TODO: Check that every return statement's expr is subtype of annotated return type *)
       check_statement ~cx (Ast.Statement.Block block)
+  end
 
 and check_expression ~cx expr =
   let open Ast.Expression in
