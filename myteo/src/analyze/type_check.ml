@@ -97,14 +97,7 @@ and check_variable_declaration ~cx ~decl_pass decl =
           | _ -> Some (rep_ty, List.hd unresolved_tvars)
         in
         Type_context.add_error ~cx loc (VarDeclNeedsAnnotation (name, partial))
-    | Some _ ->
-      if not (Type_context.is_subtype ~cx (TVar expr_tvar_id) (TVar tvar_id)) then
-        Type_context.add_error
-          ~cx
-          expr_loc
-          (IncompatibleTypes
-             ( Type_context.find_rep_type ~cx (TVar expr_tvar_id),
-               Type_context.find_rep_type ~cx (TVar tvar_id) ))
+    | Some _ -> Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) (TVar tvar_id)
 
 and check_function_declaration ~cx ~decl_pass decl =
   let open Ast.Identifier in
@@ -129,13 +122,7 @@ and check_function_declaration ~cx ~decl_pass decl =
     | Expression expr ->
       (* Expression body must be subtype of return type *)
       let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
-      if not (Type_context.is_subtype ~cx (TVar expr_tvar_id) return_ty) then
-        Type_context.add_error
-          ~cx
-          expr_loc
-          (IncompatibleTypes
-             ( Type_context.find_rep_type ~cx (TVar expr_tvar_id),
-               Type_context.find_rep_type ~cx return_ty ))
+      Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) return_ty
     | Block block ->
       let open Ast.Statement in
       let block_stmt = Block block in
@@ -182,18 +169,91 @@ and check_expression ~cx expr =
     let ty = build_type ~cx ty in
     ignore (Type_context.unify ~cx ty (TVar tvar_id));
     (* Expr must be a subtype of annotated type *)
-    if not (Type_context.is_subtype ~cx (TVar expr_tvar_id) ty) then
+    Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) ty;
+    (loc, tvar_id)
+  | UnaryOperation { UnaryOperation.loc; op; operand } ->
+    let open UnaryOperation in
+    let ty =
+      match op with
+      | Plus
+      | Minus ->
+        Types.Int
+      | LogicalNot -> Types.Bool
+    in
+    let (operand_loc, operand_tvar_id) = check_expression ~cx operand in
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    ignore (Type_context.unify ~cx ty (TVar tvar_id));
+    Type_context.assert_unify ~cx operand_loc ty (TVar operand_tvar_id);
+    (loc, tvar_id)
+  | BinaryOperation { BinaryOperation.loc; op; left; right } ->
+    let open BinaryOperation in
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    let (left_loc, left_tvar_id) = check_expression ~cx left in
+    let (right_loc, right_tvar_id) = check_expression ~cx right in
+    let is_int_or_string tvar_id =
+      let rep_ty = Type_context.find_rep_type ~cx (TVar tvar_id) in
+      match rep_ty with
+      | Types.Int
+      | Types.String ->
+        true
+      | _ -> false
+    in
+    let error_int_or_string loc tvar_id =
       Type_context.add_error
         ~cx
-        expr_loc
-        (IncompatibleTypes
-           (Type_context.find_rep_type ~cx (TVar expr_tvar_id), Type_context.find_rep_type ~cx ty));
+        loc
+        (IncompatibleTypes (Type_context.find_rep_type ~cx (TVar tvar_id), [Types.Int; Types.String]))
+    in
+    (match op with
+    | Add ->
+      (* If a child expression is an int or string propagate type to other child and expression *)
+      if is_int_or_string left_tvar_id then (
+        Type_context.assert_unify ~cx right_loc (TVar left_tvar_id) (TVar right_tvar_id);
+        ignore (Type_context.unify ~cx (TVar left_tvar_id) (TVar tvar_id))
+      ) else if is_int_or_string right_tvar_id then (
+        Type_context.assert_unify ~cx left_loc (TVar right_tvar_id) (TVar left_tvar_id);
+        ignore (Type_context.unify ~cx (TVar right_tvar_id) (TVar tvar_id))
+      ) else (
+        (* Otherwise force expression's type to be any to avoid erroring at uses *)
+        error_int_or_string left_loc left_tvar_id;
+        error_int_or_string right_loc right_tvar_id;
+        ignore (Type_context.unify ~cx Any (TVar tvar_id))
+      )
+    | LessThan
+    | GreaterThan
+    | LessThanOrEqual
+    | GreaterThanOrEqual ->
+      (* If a child expression is an int or string propagate type to other child *)
+      if is_int_or_string left_tvar_id then
+        Type_context.assert_unify ~cx right_loc (TVar left_tvar_id) (TVar right_tvar_id)
+      else if is_int_or_string right_tvar_id then
+        Type_context.assert_unify ~cx left_loc (TVar right_tvar_id) (TVar left_tvar_id)
+      else (
+        error_int_or_string left_loc left_tvar_id;
+        error_int_or_string right_loc right_tvar_id
+      );
+      ignore (Type_context.unify ~cx Types.Bool (TVar tvar_id))
+    | Subtract
+    | Multiply
+    | Divide ->
+      Type_context.assert_unify ~cx left_loc Types.Int (TVar left_tvar_id);
+      Type_context.assert_unify ~cx right_loc Types.Int (TVar right_tvar_id);
+      ignore (Type_context.unify ~cx Types.Int (TVar tvar_id))
+    | Equal
+    | NotEqual ->
+      Type_context.assert_unify ~cx right_loc (TVar left_tvar_id) (TVar right_tvar_id);
+      ignore (Type_context.unify ~cx Types.Bool (TVar tvar_id)));
+    (loc, tvar_id)
+  | LogicalAnd { LogicalAnd.loc; left; right }
+  | LogicalOr { LogicalOr.loc; left; right } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    let (left_loc, left_tvar_id) = check_expression ~cx left in
+    let (right_loc, right_tvar_id) = check_expression ~cx right in
+    Type_context.assert_unify ~cx left_loc Types.Bool (TVar left_tvar_id);
+    Type_context.assert_unify ~cx right_loc Types.Bool (TVar right_tvar_id);
+    ignore (Type_context.unify ~cx Types.Bool (TVar tvar_id));
     (loc, tvar_id)
   (* TODO: Implement remaining expressions *)
-  | UnaryOperation { UnaryOperation.loc; _ }
-  | BinaryOperation { BinaryOperation.loc; _ }
-  | LogicalAnd { LogicalAnd.loc; _ }
-  | LogicalOr { LogicalOr.loc; _ }
   | Call { Call.loc; _ }
   | Access { Access.loc; _ } ->
     (loc, Type_context.mk_tvar_id ~cx ~loc)
@@ -207,11 +267,7 @@ and check_statement ~cx stmt =
   | Block { Block.statements; _ } -> List.iter (check_statement ~cx) statements
   | If { If.test; conseq; altern; _ } ->
     let (test_loc, test_tvar_id) = check_expression ~cx test in
-    if not (Type_context.unify ~cx Bool (TVar test_tvar_id)) then
-      Type_context.add_error
-        ~cx
-        test_loc
-        (IncompatibleTypes (Type_context.find_rep_type ~cx (TVar test_tvar_id), Bool));
+    Type_context.assert_unify ~cx test_loc Bool (TVar test_tvar_id);
     check_statement ~cx conseq;
     Option.iter (check_statement ~cx) altern
   | Return { Return.loc; arg } ->
@@ -224,12 +280,7 @@ and check_statement ~cx stmt =
     in
     (* Return argument must be subtype of function's return type stored in return type map *)
     let return_ty = Type_context.(LocMap.find loc cx.return_types) in
-    if not (Type_context.is_subtype ~cx arg_ty return_ty) then
-      Type_context.add_error
-        ~cx
-        arg_loc
-        (IncompatibleTypes
-           (Type_context.find_rep_type ~cx arg_ty, Type_context.find_rep_type ~cx return_ty))
+    Type_context.assert_is_subtype ~cx arg_loc arg_ty return_ty
 
 let analyze modules bindings =
   let cx = Type_context.mk ~bindings in

@@ -4,6 +4,7 @@ type tvar_id = int
 
 type t =
   | TVar of tvar_id
+  | Any
   | Unit
   | Bool
   | Int
@@ -48,6 +49,7 @@ let tvar_occurs_in tvar_id ty = get_all_tvars [ty] |> List.exists (fun t -> t = 
 
 let rec pp_with_names ~tvar_to_name ty =
   match ty with
+  | Any -> "any"
   | Unit -> "unit"
   | Bool -> "bool"
   | Int -> "int"

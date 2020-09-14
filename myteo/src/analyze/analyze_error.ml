@@ -18,7 +18,7 @@ type t =
   | NoModuleWithName of string list * bool
   | RecursiveTypeAlias of string * Types.tvar_id * Types.t
   | ToplevelVarWithoutAnnotation
-  | IncompatibleTypes of Types.t * Types.t
+  | IncompatibleTypes of Types.t * Types.t list
   | VarDeclNeedsAnnotation of string * (Types.t * Types.tvar_id) option
 
 let to_string error =
@@ -87,11 +87,16 @@ let to_string error =
       name
       (Types.pp ~tvar_to_name:(IMap.singleton id_tvar name) ty)
   | ToplevelVarWithoutAnnotation -> Printf.sprintf "Toplevel variables must have type annotations"
-  | IncompatibleTypes (actual, expected) ->
-    let type_strings = Types.pps [expected; actual] in
-    let expected_string = List.hd type_strings in
-    let actual_string = List.nth type_strings 1 in
-    Printf.sprintf "Expected type %s but found %s" expected_string actual_string
+  | IncompatibleTypes (actual, expecteds) ->
+    let type_strings = Types.pps (expecteds @ [actual]) in
+    let expected_strings = List_utils.drop_last type_strings in
+    let actual_string = List_utils.last type_strings in
+    let expected_string =
+      match expected_strings with
+      | [expected_string] -> "type " ^ expected_string
+      | _ -> "types " ^ String.concat " or " expected_strings
+    in
+    Printf.sprintf "Expected %s but found %s" expected_string actual_string
   | VarDeclNeedsAnnotation (name, partial) ->
     let partial_string =
       match partial with

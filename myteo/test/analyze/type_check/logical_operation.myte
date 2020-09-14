@@ -1,0 +1,10 @@
+module Test
+
+fun main() {
+  (true && false: bool);
+  (true || false: bool);
+
+  (1 && false: bool);
+  (false && 1: bool);
+  (() && "a": bool);
+}

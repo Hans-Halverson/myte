@@ -1,0 +1,19 @@
+module Test
+
+fun main() {
+  // Non-erroring cases
+  (1 < 2: bool);
+  (1 > 2: bool);
+  (1 <= 2: bool);
+  (1 >= 2: bool);
+  ("a" < "b": bool);
+
+  // Error when both types are comparable but incompatible
+  (1 < "a": bool);
+  ("a" < 1: bool);
+
+  // Error on non-comparable arguments
+  (1 < true: bool);
+  (true < "a": bool);
+  (true + (): bool);
+}

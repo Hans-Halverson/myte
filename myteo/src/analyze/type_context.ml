@@ -113,6 +113,7 @@ let find_rep_tvar_id ~cx tvar_id =
 
 let rec find_rep_type ~cx ty =
   match ty with
+  | Any
   | Unit
   | Bool
   | Int
@@ -177,6 +178,8 @@ let rec unify ~cx ty1 ty2 =
   | (TVar _, _)
   | (_, TVar _) ->
     union_tvars ~cx rep_ty1 rep_ty2
+  | (Any, _)
+  | (_, Any)
   | (Unit, Unit)
   | (Bool, Bool)
   | (Int, Int)
@@ -201,6 +204,8 @@ let rec is_subtype ~cx sub sup =
              annotation for unannotated parts. If entire tvar cannot be resolved and there is
              no useful structure to show, just say to add annotations)*)
     failwith "Unimplemented"
+  | (Any, _)
+  | (_, Any)
   | (Unit, Unit)
   | (Bool, Bool)
   | (Int, Int)
@@ -212,3 +217,14 @@ let rec is_subtype ~cx sub sup =
     && List.combine sub_params sup_params |> List.for_all (fun (sub, sup) -> is_subtype ~cx sup sub)
     && is_subtype ~cx sub_return sup_return
   | _ -> false
+
+let assert_unify ~cx loc expected actual =
+  if not (unify ~cx expected actual) then
+    add_error ~cx loc (IncompatibleTypes (find_rep_type ~cx actual, [find_rep_type ~cx expected]))
+
+let assert_is_subtype ~cx loc sub sup =
+  if not (is_subtype ~cx sub sup) then
+    add_error
+      ~cx
+      loc
+      (Analyze_error.IncompatibleTypes (find_rep_type ~cx sub, [find_rep_type ~cx sup]))
