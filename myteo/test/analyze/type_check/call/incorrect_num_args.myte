@@ -1,0 +1,22 @@
+module Test
+
+fun zeroArgs() {}
+fun oneArg(x: int) {}
+fun twoArgs(x: int, y: int) {}
+
+fun main() {
+  zeroArgs();
+  zeroArgs(1);
+  zeroArgs(1, 2);
+
+  oneArg();
+  oneArg(1);
+  oneArg(1, 2);
+
+  twoArgs();
+  twoArgs(1);
+  twoArgs(1, 2);
+
+  // Calls with incorrect arguments do not have return type enforced
+  (zeroArgs(1): bool);
+}

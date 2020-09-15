@@ -20,6 +20,14 @@ type t =
   | ToplevelVarWithoutAnnotation
   | IncompatibleTypes of Types.t * Types.t list
   | VarDeclNeedsAnnotation of string * (Types.t * Types.tvar_id) option
+  | NonFunctionCalled of Types.t
+  | IncorrectFunctionArity of int * int
+
+let plural n str =
+  if n = 1 then
+    str
+  else
+    str ^ "s"
 
 let to_string error =
   let value_or_type is_value =
@@ -113,3 +121,13 @@ let to_string error =
       "Cannot infer type for \"%s\". %sPlease provide additional type hints such as a type annotation."
       name
       partial_string
+  | IncorrectFunctionArity (actual, expected) ->
+    Printf.sprintf
+      "Incorrect number of arguments supplied to function. Expected %d %s but found %d."
+      expected
+      (plural expected "argument")
+      actual
+  | NonFunctionCalled ty ->
+    Printf.sprintf
+      "Only functions can be called, but this expression is inferred to have type %s."
+      (Types.pp ty)

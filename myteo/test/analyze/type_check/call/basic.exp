@@ -1,0 +1,54 @@
+Error: Expected type int but found unit
+test/analyze/type_check/call/basic.myte:12:9-11
+ 12 |   intArg(());
+    |          ^^
+
+Error: Expected type int but found unit
+test/analyze/type_check/call/basic.myte:13:12-14
+ 13 |   threeArgs((), true, "a");
+    |             ^^
+
+Error: Expected type bool but found unit
+test/analyze/type_check/call/basic.myte:14:15-17
+ 14 |   threeArgs(1, (), "a");
+    |                ^^
+
+Error: Expected type string but found unit
+test/analyze/type_check/call/basic.myte:15:21-23
+ 15 |   threeArgs(1, true, ());
+    |                      ^^
+
+Error: Expected type int but found string
+test/analyze/type_check/call/basic.myte:16:12-15
+ 16 |   threeArgs("b", true, 2);
+    |             ^^^
+
+Error: Expected type string but found int
+test/analyze/type_check/call/basic.myte:16:23
+ 16 |   threeArgs("b", true, 2);
+    |                        ^
+
+Error: Expected type int but found string
+test/analyze/type_check/call/basic.myte:17:12-15
+ 17 |   threeArgs("b", (), 2);
+    |             ^^^
+
+Error: Expected type bool but found unit
+test/analyze/type_check/call/basic.myte:17:17-19
+ 17 |   threeArgs("b", (), 2);
+    |                  ^^
+
+Error: Expected type string but found int
+test/analyze/type_check/call/basic.myte:17:21
+ 17 |   threeArgs("b", (), 2);
+    |                      ^
+
+Error: Expected type int but found unit
+test/analyze/type_check/call/basic.myte:20:10-12
+ 20 |   (intArg(()): unit);
+    |           ^^
+
+Error: Expected type unit but found bool
+test/analyze/type_check/call/basic.myte:20:3-13
+ 20 |   (intArg(()): unit);
+    |    ^^^^^^^^^^

@@ -1,0 +1,21 @@
+module Test
+
+fun intArg(x: int): bool = true
+fun threeArgs(x: int, y: bool, z: string): unit = ()
+
+fun main() {
+  // No errors and return type is correctly inferred
+  (intArg(1): bool);
+  (threeArgs(1, true, "a"): unit);
+
+  // Error on incorrect arguments
+  intArg(());
+  threeArgs((), true, "a");
+  threeArgs(1, (), "a");
+  threeArgs(1, true, ());
+  threeArgs("b", true, 2);
+  threeArgs("b", (), 2);
+
+  // Arguments have type error but return value is still inferred
+  (intArg(()): unit);
+}

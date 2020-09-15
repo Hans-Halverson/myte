@@ -1,0 +1,34 @@
+Error: Incorrect number of arguments supplied to function. Expected 0 arguments but found 1.
+test/analyze/type_check/call/incorrect_num_args.myte:9:2-13
+ 9 |   zeroArgs(1);
+   |   ^^^^^^^^^^^
+
+Error: Incorrect number of arguments supplied to function. Expected 0 arguments but found 2.
+test/analyze/type_check/call/incorrect_num_args.myte:10:2-16
+ 10 |   zeroArgs(1, 2);
+    |   ^^^^^^^^^^^^^^
+
+Error: Incorrect number of arguments supplied to function. Expected 1 argument but found 0.
+test/analyze/type_check/call/incorrect_num_args.myte:12:2-10
+ 12 |   oneArg();
+    |   ^^^^^^^^
+
+Error: Incorrect number of arguments supplied to function. Expected 1 argument but found 2.
+test/analyze/type_check/call/incorrect_num_args.myte:14:2-14
+ 14 |   oneArg(1, 2);
+    |   ^^^^^^^^^^^^
+
+Error: Incorrect number of arguments supplied to function. Expected 2 arguments but found 0.
+test/analyze/type_check/call/incorrect_num_args.myte:16:2-11
+ 16 |   twoArgs();
+    |   ^^^^^^^^^
+
+Error: Incorrect number of arguments supplied to function. Expected 2 arguments but found 1.
+test/analyze/type_check/call/incorrect_num_args.myte:17:2-12
+ 17 |   twoArgs(1);
+    |   ^^^^^^^^^^
+
+Error: Incorrect number of arguments supplied to function. Expected 0 arguments but found 1.
+test/analyze/type_check/call/incorrect_num_args.myte:21:3-14
+ 21 |   (zeroArgs(1): bool);
+    |    ^^^^^^^^^^^

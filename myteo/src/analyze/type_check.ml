@@ -253,9 +253,34 @@ and check_expression ~cx expr =
     Type_context.assert_unify ~cx right_loc Types.Bool (TVar right_tvar_id);
     ignore (Type_context.unify ~cx Types.Bool (TVar tvar_id));
     (loc, tvar_id)
-  (* TODO: Implement remaining expressions *)
-  | Call { Call.loc; _ }
+  | Call { Call.loc; func; args } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    let (func_loc, func_tvar_id) = check_expression ~cx func in
+    let args_locs_and_tvar_ids = List.map (check_expression ~cx) args in
+    let func_rep_ty = Type_context.find_rep_type ~cx (TVar func_tvar_id) in
+    (match func_rep_ty with
+    | Function { params; _ } when List.length params <> List.length args ->
+      (* Error on incorrect number of arguments *)
+      Type_context.add_error ~cx loc (IncorrectFunctionArity (List.length args, List.length params));
+      ignore (Type_context.unify ~cx Any (TVar tvar_id))
+    | Function { params; return } ->
+      (* Supplied arguments must each be a subtype of the annotated parameter type *)
+      List.iter2
+        (fun (arg_loc, arg_tvar_id) param ->
+          Type_context.assert_is_subtype ~cx arg_loc (TVar arg_tvar_id) param)
+        args_locs_and_tvar_ids
+        params;
+      ignore (Type_context.unify ~cx return (TVar tvar_id))
+    | _ ->
+      (* Error if type other than a function is called *)
+      Type_context.add_error
+        ~cx
+        func_loc
+        (NonFunctionCalled (Type_context.find_rep_type ~cx (TVar func_tvar_id)));
+      ignore (Type_context.unify ~cx Any (TVar tvar_id)));
+    (loc, tvar_id)
   | Access { Access.loc; _ } ->
+    (* TODO: Implement access once we have properties to access in the first place *)
     (loc, Type_context.mk_tvar_id ~cx ~loc)
 
 and check_statement ~cx stmt =
