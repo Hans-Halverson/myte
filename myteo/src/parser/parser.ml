@@ -32,20 +32,6 @@ module ExpressionPrecedence = struct
   let is_tighter p1 p2 = level p1 > level p2
 end
 
-module TypePrecedence = struct
-  type t =
-    | (* Binds tightest *) Group
-    | Function
-    | (* Binds weakest *) None
-
-  let level = function
-    | Group -> 2
-    | Function -> 1
-    | None -> 0
-
-  let is_tighter p1 p2 = level p1 > level p2
-end
-
 let mark_loc env =
   let start_loc = Env.loc env in
   (fun env -> Loc.between start_loc (Env.prev_loc env))
@@ -517,32 +503,24 @@ and parse_function env =
   let loc = marker env in
   { loc; name; params; body; return }
 
-and parse_type ?(precedence = TypePrecedence.None) env =
-  let open Type in
+and parse_type env =
   let marker = mark_loc env in
   let ty = parse_type_prefix env in
   match Env.token env with
-  | T_ARROW when TypePrecedence.(is_tighter Function precedence) ->
-    Function (parse_function_type env ty marker)
+  | T_BIG_ARROW -> parse_function_type env [ty] marker
   | _ -> ty
 
 and parse_type_prefix env =
   let open Type in
   match Env.token env with
-  | T_LEFT_PAREN -> parse_group_type env
   | T_UNIT
   | T_INT
   | T_STRING
   | T_BOOL ->
     Primitive (parse_primitive_type env)
+  | T_LEFT_PAREN -> parse_parenthesized_type env
   | T_IDENTIFIER _ -> Custom (parse_custom_type env)
   | token -> Parse_error.fatal (Env.loc env, MalformedType token)
-
-and parse_group_type env =
-  Env.expect env T_LEFT_PAREN;
-  let ty = parse_type env in
-  Env.expect env T_RIGHT_PAREN;
-  ty
 
 and parse_primitive_type env =
   let open Type.Primitive in
@@ -558,6 +536,35 @@ and parse_primitive_type env =
   Env.advance env;
   { loc; kind }
 
+and parse_parenthesized_type env =
+  let marker = mark_loc env in
+  Env.expect env T_LEFT_PAREN;
+  let rec tys ~trailing_comma env =
+    match Env.token env with
+    | T_RIGHT_PAREN ->
+      Env.advance env;
+      ([], trailing_comma)
+    | _ ->
+      let ty = parse_type env in
+      let trailing_comma =
+        match Env.token env with
+        | T_RIGHT_PAREN -> false
+        | T_COMMA ->
+          Env.advance env;
+          true
+        | _ ->
+          Env.expect env T_RIGHT_PAREN;
+          false
+      in
+      let (tys, trailing_comma) = tys ~trailing_comma env in
+      (ty :: tys, trailing_comma)
+  in
+  let (tys, trailing_comma) = tys ~trailing_comma:false env in
+  if Env.token env = T_BIG_ARROW || List.length tys <> 1 || trailing_comma then
+    parse_function_type env tys marker
+  else
+    List.hd tys
+
 and parse_custom_type env =
   let open Type.Custom in
   let marker = mark_loc env in
@@ -565,21 +572,9 @@ and parse_custom_type env =
   let loc = marker env in
   { loc; name }
 
-and parse_function_type env left marker =
-  let open Type.Function in
-  Env.expect env T_ARROW;
-  let rec helper acc =
-    let ty = parse_type ~precedence:TypePrecedence.Function env in
-    match Env.token env with
-    | T_ARROW ->
-      Env.advance env;
-      helper (ty :: acc)
-    | _ -> ty :: acc
-  in
-  let rev_tys = helper [left] in
-  match rev_tys with
-  | [] -> failwith "Function type must have at least one type"
-  | return :: rev_params ->
-    let params = List.rev rev_params in
-    let loc = marker env in
-    { loc; params; return }
+and parse_function_type env params marker =
+  let open Ast.Type in
+  Env.expect env T_BIG_ARROW;
+  let return = parse_type env in
+  let loc = marker env in
+  Function { Function.loc; params; return }

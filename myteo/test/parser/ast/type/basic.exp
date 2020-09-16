@@ -154,16 +154,22 @@ test/parser/ast/type/basic.myte
             loc: 9:7-9:10,
             kind: Int,
           },
-          {
-            node: PrimitiveType,
-            loc: 9:14-9:20,
-            kind: String,
-          },
         ],
         return: {
-          node: PrimitiveType,
-          loc: 9:24-9:28,
-          kind: Bool,
+          node: FunctionType,
+          loc: 9:14-9:28,
+          params: [
+            {
+              node: PrimitiveType,
+              loc: 9:14-9:20,
+              kind: String,
+            },
+          ],
+          return: {
+            node: PrimitiveType,
+            loc: 9:24-9:28,
+            kind: Bool,
+          },
         },
       },
     },
@@ -191,21 +197,33 @@ test/parser/ast/type/basic.myte
             loc: 10:7-10:10,
             kind: Int,
           },
-          {
-            node: PrimitiveType,
-            loc: 10:14-10:20,
-            kind: String,
-          },
-          {
-            node: PrimitiveType,
-            loc: 10:24-10:28,
-            kind: Bool,
-          },
         ],
         return: {
-          node: PrimitiveType,
-          loc: 10:32-10:38,
-          kind: String,
+          node: FunctionType,
+          loc: 10:14-10:38,
+          params: [
+            {
+              node: PrimitiveType,
+              loc: 10:14-10:20,
+              kind: String,
+            },
+          ],
+          return: {
+            node: FunctionType,
+            loc: 10:24-10:38,
+            params: [
+              {
+                node: PrimitiveType,
+                loc: 10:24-10:28,
+                kind: Bool,
+              },
+            ],
+            return: {
+              node: PrimitiveType,
+              loc: 10:32-10:38,
+              kind: String,
+            },
+          },
         },
       },
     },
@@ -319,44 +337,50 @@ test/parser/ast/type/basic.myte
               },
             },
           },
-          {
+        ],
+        return: {
+          node: FunctionType,
+          loc: 14:26-14:60,
+          params: [
+            {
+              node: CustomType,
+              loc: 14:26-14:41,
+              name: {
+                node: ScopedIdentifier,
+                loc: 14:26-14:41,
+                scopes: [
+                  {
+                    node: Identifier,
+                    loc: 14:26-14:33,
+                    name: "Custom3",
+                  },
+                ],
+                name: {
+                  node: Identifier,
+                  loc: 14:34-14:41,
+                  name: "Custom4",
+                },
+              },
+            },
+          ],
+          return: {
             node: CustomType,
-            loc: 14:26-14:41,
+            loc: 14:45-14:60,
             name: {
               node: ScopedIdentifier,
-              loc: 14:26-14:41,
+              loc: 14:45-14:60,
               scopes: [
                 {
                   node: Identifier,
-                  loc: 14:26-14:33,
-                  name: "Custom3",
+                  loc: 14:45-14:52,
+                  name: "Custom5",
                 },
               ],
               name: {
                 node: Identifier,
-                loc: 14:34-14:41,
-                name: "Custom4",
+                loc: 14:53-14:60,
+                name: "Custom6",
               },
-            },
-          },
-        ],
-        return: {
-          node: CustomType,
-          loc: 14:45-14:60,
-          name: {
-            node: ScopedIdentifier,
-            loc: 14:45-14:60,
-            scopes: [
-              {
-                node: Identifier,
-                loc: 14:45-14:52,
-                name: "Custom5",
-              },
-            ],
-            name: {
-              node: Identifier,
-              loc: 14:53-14:60,
-              name: "Custom6",
             },
           },
         },

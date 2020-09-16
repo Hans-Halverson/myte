@@ -2,17 +2,17 @@ module Test
 
 type IntAlias = int
 
-fun foo(p1: unit, p2: int, p3: string, p4: int -> string -> bool, p5: IntAlias) {
+fun foo(p1: unit, p2: int, p3: string, p4: (int, string) => bool, p5: IntAlias) {
   (p1: unit);
   (p2: int);
   (p2: IntAlias);
   (p3: string);
-  (p4: int -> string -> bool);
+  (p4: (int, string) => bool);
   (p5: IntAlias);
   (p5: int);
 
   (p1: bool);
-  (p4: int -> bool);
+  (p4: int => bool);
   (p5: unit);
 
   {

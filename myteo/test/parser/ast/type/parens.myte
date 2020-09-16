@@ -2,4 +2,4 @@ module Test
 
 val x: (int) = 1;
 val x: (((int))) = 1;
-val x: (int -> string) = 1;
+val x: (int => string) = 1;

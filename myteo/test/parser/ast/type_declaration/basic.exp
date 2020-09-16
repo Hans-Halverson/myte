@@ -60,12 +60,12 @@ test/parser/ast/type_declaration/basic.myte
         params: [
           {
             node: PrimitiveType,
-            loc: 7:10-7:16,
+            loc: 7:11-7:17,
             kind: String,
           },
           {
             node: PrimitiveType,
-            loc: 7:20-7:24,
+            loc: 7:19-7:23,
             kind: Bool,
           },
         ],

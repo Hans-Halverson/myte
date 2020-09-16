@@ -4,7 +4,7 @@ val v1: unit = ();
 val v2: bool = true;
 val v3: int = 1;
 val v4: string = "";
-val v5: int -> int = intToInt;
+val v5: int => int = intToInt;
 
 fun intToInt(x: int): int {
   return x;
@@ -15,7 +15,7 @@ val v7: bool = "";
 val v8: string = 1;
 val v9: int = ();
 val v10: int = intToInt;
-val v11: int -> unit = intToInt;
-val v12: unit -> int = intToInt;
+val v11: int => unit = intToInt;
+val v12: unit => int = intToInt;
 
 fun main() {}

@@ -3,9 +3,9 @@ test/analyze/type_check/function_params.myte:14:3-5
  14 |   (p1: bool);
     |    ^^
 
-Error: Expected type int -> bool but found int -> string -> bool
+Error: Expected type int => bool but found (int, string) => bool
 test/analyze/type_check/function_params.myte:15:3-5
- 15 |   (p4: int -> bool);
+ 15 |   (p4: int => bool);
     |    ^^
 
 Error: Expected type unit but found int

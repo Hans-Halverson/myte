@@ -17,5 +17,5 @@ fun main() {
   ("a" + 1: string);
 
   // If neither type is addable error on both sides but do not enforce type for expression
-  (true + (): int -> int);
+  (true + (): int => int);
 }

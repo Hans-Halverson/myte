@@ -1,0 +1,13 @@
+module Test
+
+type t1 = int => string
+type t2 = () => string
+type t3 = (int) => string
+type t4 = (((int))) => string
+type t5 = (int, string) => unit
+type t6 = (int, string, bool) => unit
+type t7 = (int, string) => (bool, unit) => string
+type t8 = (int, string,) => unit
+type t9 = (int,) => unit
+
+fun main() {}

@@ -33,32 +33,32 @@ test/analyze/type_check/alias/substitution.myte:29:3-5
  29 |   ((): intAlias);
     |    ^^
 
-Error: Expected type int but found int -> unit
+Error: Expected type int but found int => unit
 test/analyze/type_check/alias/substitution.myte:37:5-7
  37 |     (c1: int);
     |      ^^
 
-Error: Expected type int but found (int -> unit) -> bool
+Error: Expected type int but found (int => unit) => bool
 test/analyze/type_check/alias/substitution.myte:41:5-7
  41 |     (c2: int);
     |      ^^
 
-Error: Expected type int -> unit -> bool but found (int -> unit) -> bool
+Error: Expected type (int, unit) => bool but found (int => unit) => bool
 test/analyze/type_check/alias/substitution.myte:44:5-7
- 44 |     (c2: int -> unit -> bool);
+ 44 |     (c2: (int, unit) => bool);
     |      ^^
 
-Error: Expected type int but found (int -> unit) -> string -> ((int -> unit) -> bool)
+Error: Expected type int but found (int => unit, string) => ((int => unit) => bool)
 test/analyze/type_check/alias/substitution.myte:46:5-7
  46 |     (c3: int);
     |      ^^
 
-Error: Expected type int -> unit -> string -> int -> unit -> bool but found (int -> unit) -> string -> ((int -> unit) -> bool)
+Error: Expected type (int, unit, string, int, unit) => bool but found (int => unit, string) => ((int => unit) => bool)
 test/analyze/type_check/alias/substitution.myte:49:5-7
- 49 |     (c3: int -> unit -> string -> int -> unit -> bool);
+ 49 |     (c3: (int, unit, string, int, unit) => bool);
     |      ^^
 
-Error: Expected type (int -> unit) -> string -> (int -> unit) -> bool but found (int -> unit) -> string -> ((int -> unit) -> bool)
+Error: Expected type (int => unit, string, int => unit) => bool but found (int => unit, string) => ((int => unit) => bool)
 test/analyze/type_check/alias/substitution.myte:50:5-7
- 50 |     (c3: (int -> unit) -> string -> (int -> unit) -> bool);
+ 50 |     (c3: ((int => unit), string, (int => unit)) => bool);
     |      ^^

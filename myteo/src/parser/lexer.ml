@@ -85,6 +85,7 @@ let tokenize lex =
   | "<=" -> token_result T_LESS_THAN_OR_EQUAL
   | ">=" -> token_result T_GREATER_THAN_OR_EQUAL
   | "->" -> token_result T_ARROW
+  | "=>" -> token_result T_BIG_ARROW
   | ';' -> token_result T_SEMICOLON
   | ':' -> token_result T_COLON
   | '.' -> token_result T_PERIOD

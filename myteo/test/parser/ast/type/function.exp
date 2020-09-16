@@ -1,0 +1,298 @@
+test/parser/ast/type/function.myte
+{
+  node: Module,
+  loc: 1:0-13:13,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "Test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: TypeDeclaration,
+      loc: 3:0-3:23,
+      name: {
+        node: Identifier,
+        loc: 3:5-3:7,
+        name: "t1",
+      },
+      type: {
+        node: FunctionType,
+        loc: 3:10-3:23,
+        params: [
+          {
+            node: PrimitiveType,
+            loc: 3:10-3:13,
+            kind: Int,
+          },
+        ],
+        return: {
+          node: PrimitiveType,
+          loc: 3:17-3:23,
+          kind: String,
+        },
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 4:0-4:22,
+      name: {
+        node: Identifier,
+        loc: 4:5-4:7,
+        name: "t2",
+      },
+      type: {
+        node: FunctionType,
+        loc: 4:10-4:22,
+        params: [],
+        return: {
+          node: PrimitiveType,
+          loc: 4:16-4:22,
+          kind: String,
+        },
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 5:0-5:25,
+      name: {
+        node: Identifier,
+        loc: 5:5-5:7,
+        name: "t3",
+      },
+      type: {
+        node: FunctionType,
+        loc: 5:10-5:25,
+        params: [
+          {
+            node: PrimitiveType,
+            loc: 5:11-5:14,
+            kind: Int,
+          },
+        ],
+        return: {
+          node: PrimitiveType,
+          loc: 5:19-5:25,
+          kind: String,
+        },
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 6:0-6:29,
+      name: {
+        node: Identifier,
+        loc: 6:5-6:7,
+        name: "t4",
+      },
+      type: {
+        node: FunctionType,
+        loc: 6:10-6:29,
+        params: [
+          {
+            node: PrimitiveType,
+            loc: 6:13-6:16,
+            kind: Int,
+          },
+        ],
+        return: {
+          node: PrimitiveType,
+          loc: 6:23-6:29,
+          kind: String,
+        },
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 7:0-7:31,
+      name: {
+        node: Identifier,
+        loc: 7:5-7:7,
+        name: "t5",
+      },
+      type: {
+        node: FunctionType,
+        loc: 7:10-7:31,
+        params: [
+          {
+            node: PrimitiveType,
+            loc: 7:11-7:14,
+            kind: Int,
+          },
+          {
+            node: PrimitiveType,
+            loc: 7:16-7:22,
+            kind: String,
+          },
+        ],
+        return: {
+          node: PrimitiveType,
+          loc: 7:27-7:31,
+          kind: Unit,
+        },
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 8:0-8:37,
+      name: {
+        node: Identifier,
+        loc: 8:5-8:7,
+        name: "t6",
+      },
+      type: {
+        node: FunctionType,
+        loc: 8:10-8:37,
+        params: [
+          {
+            node: PrimitiveType,
+            loc: 8:11-8:14,
+            kind: Int,
+          },
+          {
+            node: PrimitiveType,
+            loc: 8:16-8:22,
+            kind: String,
+          },
+          {
+            node: PrimitiveType,
+            loc: 8:24-8:28,
+            kind: Bool,
+          },
+        ],
+        return: {
+          node: PrimitiveType,
+          loc: 8:33-8:37,
+          kind: Unit,
+        },
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 9:0-9:49,
+      name: {
+        node: Identifier,
+        loc: 9:5-9:7,
+        name: "t7",
+      },
+      type: {
+        node: FunctionType,
+        loc: 9:10-9:49,
+        params: [
+          {
+            node: PrimitiveType,
+            loc: 9:11-9:14,
+            kind: Int,
+          },
+          {
+            node: PrimitiveType,
+            loc: 9:16-9:22,
+            kind: String,
+          },
+        ],
+        return: {
+          node: FunctionType,
+          loc: 9:27-9:49,
+          params: [
+            {
+              node: PrimitiveType,
+              loc: 9:28-9:32,
+              kind: Bool,
+            },
+            {
+              node: PrimitiveType,
+              loc: 9:34-9:38,
+              kind: Unit,
+            },
+          ],
+          return: {
+            node: PrimitiveType,
+            loc: 9:43-9:49,
+            kind: String,
+          },
+        },
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 10:0-10:32,
+      name: {
+        node: Identifier,
+        loc: 10:5-10:7,
+        name: "t8",
+      },
+      type: {
+        node: FunctionType,
+        loc: 10:10-10:32,
+        params: [
+          {
+            node: PrimitiveType,
+            loc: 10:11-10:14,
+            kind: Int,
+          },
+          {
+            node: PrimitiveType,
+            loc: 10:16-10:22,
+            kind: String,
+          },
+        ],
+        return: {
+          node: PrimitiveType,
+          loc: 10:28-10:32,
+          kind: Unit,
+        },
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 11:0-11:24,
+      name: {
+        node: Identifier,
+        loc: 11:5-11:7,
+        name: "t9",
+      },
+      type: {
+        node: FunctionType,
+        loc: 11:10-11:24,
+        params: [
+          {
+            node: PrimitiveType,
+            loc: 11:11-11:14,
+            kind: Int,
+          },
+        ],
+        return: {
+          node: PrimitiveType,
+          loc: 11:20-11:24,
+          kind: Unit,
+        },
+      },
+    },
+    {
+      node: Function,
+      loc: 13:0-13:13,
+      name: {
+        node: Identifier,
+        loc: 13:4-13:8,
+        name: "main",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 13:11-13:13,
+        statements: [],
+      },
+      return: None,
+    },
+  ],
+}

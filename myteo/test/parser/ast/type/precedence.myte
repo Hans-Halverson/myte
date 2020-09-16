@@ -1,5 +1,7 @@
 module Test
 
 // Group precedence
-val x: (int -> string) -> bool = 1;
-val x: int -> (string -> bool) = 1;
+type t1 = (int => string) => bool
+type t2 = int => (string => bool)
+type t3 = int => string => bool
+
