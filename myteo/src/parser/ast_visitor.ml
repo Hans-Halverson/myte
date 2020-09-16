@@ -143,11 +143,12 @@ class ['a] visitor =
 
     method function_ acc func =
       let open Function in
-      let { loc = _; name; params; body; return } = func in
+      let { loc = _; name; params; body; return; type_params } = func in
       this#identifier acc name;
       List.iter (this#function_param acc) params;
       this#function_body acc body;
-      Option.iter (this#type_ acc) return
+      Option.iter (this#type_ acc) return;
+      List.iter (this#identifier acc) type_params
 
     method function_param acc param =
       let open Function.Param in
@@ -204,7 +205,8 @@ class ['a] visitor =
 
     method function_type acc func =
       let open Type.Function in
-      let { loc = _; params; return } = func in
+      let { loc = _; params; return; type_params } = func in
       List.iter (this#type_ acc) params;
-      this#type_ acc return
+      this#type_ acc return;
+      List.iter (this#identifier acc) type_params
   end

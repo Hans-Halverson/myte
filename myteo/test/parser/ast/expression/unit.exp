@@ -50,6 +50,7 @@ test/parser/ast/expression/unit.myte
         ],
       },
       return: None,
+      type_params: [],
     },
   ],
 }

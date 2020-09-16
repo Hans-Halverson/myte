@@ -463,6 +463,12 @@ and parse_function env =
   let marker = mark_loc env in
   Env.expect env T_FUN;
   let name = parse_identifier env in
+  let type_params =
+    if Env.token env = T_LESS_THAN then
+      parse_type_params env
+    else
+      []
+  in
   Env.expect env T_LEFT_PAREN;
   let rec params env =
     match Env.token env with
@@ -501,13 +507,13 @@ and parse_function env =
     | token -> Parse_error.fatal (Env.loc env, MalformedFunctionBody token)
   in
   let loc = marker env in
-  { loc; name; params; body; return }
+  { loc; name; params; body; return; type_params }
 
 and parse_type env =
   let marker = mark_loc env in
   let ty = parse_type_prefix env in
   match Env.token env with
-  | T_BIG_ARROW -> parse_function_type env [ty] marker
+  | T_BIG_ARROW -> parse_function_type env [ty] [] marker
   | _ -> ty
 
 and parse_type_prefix env =
@@ -519,6 +525,7 @@ and parse_type_prefix env =
   | T_BOOL ->
     Primitive (parse_primitive_type env)
   | T_LEFT_PAREN -> parse_parenthesized_type env
+  | T_LESS_THAN -> parse_function_type_with_type_params env
   | T_IDENTIFIER _ -> Custom (parse_custom_type env)
   | token -> Parse_error.fatal (Env.loc env, MalformedType token)
 
@@ -539,31 +546,31 @@ and parse_primitive_type env =
 and parse_parenthesized_type env =
   let marker = mark_loc env in
   Env.expect env T_LEFT_PAREN;
-  let rec tys ~trailing_comma env =
-    match Env.token env with
-    | T_RIGHT_PAREN ->
-      Env.advance env;
-      ([], trailing_comma)
-    | _ ->
-      let ty = parse_type env in
-      let trailing_comma =
-        match Env.token env with
-        | T_RIGHT_PAREN -> false
-        | T_COMMA ->
-          Env.advance env;
-          true
-        | _ ->
-          Env.expect env T_RIGHT_PAREN;
-          false
-      in
-      let (tys, trailing_comma) = tys ~trailing_comma env in
-      (ty :: tys, trailing_comma)
-  in
-  let (tys, trailing_comma) = tys ~trailing_comma:false env in
+  let (tys, trailing_comma) = parse_parenthesized_type_or_params env in
   if Env.token env = T_BIG_ARROW || List.length tys <> 1 || trailing_comma then
-    parse_function_type env tys marker
+    parse_function_type env tys [] marker
   else
     List.hd tys
+
+and parse_parenthesized_type_or_params ?(trailing_comma = false) env =
+  match Env.token env with
+  | T_RIGHT_PAREN ->
+    Env.advance env;
+    ([], trailing_comma)
+  | _ ->
+    let ty = parse_type env in
+    let trailing_comma =
+      match Env.token env with
+      | T_RIGHT_PAREN -> false
+      | T_COMMA ->
+        Env.advance env;
+        true
+      | _ ->
+        Env.expect env T_RIGHT_PAREN;
+        false
+    in
+    let (tys, trailing_comma) = parse_parenthesized_type_or_params ~trailing_comma env in
+    (ty :: tys, trailing_comma)
 
 and parse_custom_type env =
   let open Type.Custom in
@@ -572,9 +579,40 @@ and parse_custom_type env =
   let loc = marker env in
   { loc; name }
 
-and parse_function_type env params marker =
+and parse_function_type env params type_params marker =
   let open Ast.Type in
   Env.expect env T_BIG_ARROW;
   let return = parse_type env in
   let loc = marker env in
-  Function { Function.loc; params; return }
+  Function { Function.loc; params; return; type_params }
+
+and parse_function_type_with_type_params env =
+  let marker = mark_loc env in
+  let type_params = parse_type_params env in
+  Env.expect env T_LEFT_PAREN;
+  let (params, _) = parse_parenthesized_type_or_params env in
+  parse_function_type env params type_params marker
+
+and parse_type_params env =
+  Env.expect env T_LESS_THAN;
+  (* List of type params must be nonempty *)
+  if Env.token env = T_GREATER_THAN then (
+    Env.expect env (T_IDENTIFIER "");
+    []
+  ) else
+    let rec type_params env =
+      match Env.token env with
+      | T_GREATER_THAN ->
+        Env.advance env;
+        []
+      | _ ->
+        let type_param = parse_identifier env in
+        begin
+          match Env.token env with
+          | T_GREATER_THAN -> ()
+          | T_COMMA -> Env.advance env
+          | _ -> Env.expect env T_GREATER_THAN
+        end;
+        type_param :: type_params env
+    in
+    type_params env

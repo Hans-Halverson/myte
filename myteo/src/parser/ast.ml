@@ -239,6 +239,7 @@ and Type : sig
       loc: Loc.t;
       params: Type.t list;
       return: Type.t;
+      type_params: Identifier.t list;
     }
   end
 
@@ -268,6 +269,7 @@ and Function : sig
     params: Param.t list;
     body: body;
     return: Type.t option;
+    type_params: Identifier.t list;
   }
 end =
   Function

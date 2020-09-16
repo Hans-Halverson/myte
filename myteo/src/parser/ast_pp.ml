@@ -297,7 +297,7 @@ and node_of_type_decl decl =
 
 and node_of_function func =
   let open Function in
-  let { loc; name; params; body; return } = func in
+  let { loc; name; type_params; params; body; return } = func in
   let body =
     match body with
     | Block block -> node_of_block block
@@ -311,6 +311,7 @@ and node_of_function func =
       ("params", List (List.map node_of_function_param params));
       ("body", body);
       ("return", opt node_of_type return);
+      ("type_params", List (List.map node_of_identifier type_params));
     ]
 
 and node_of_function_param param =
@@ -327,11 +328,15 @@ and node_of_custom_type named =
   node "CustomType" loc [("name", node_of_scoped_identifier name)]
 
 and node_of_function_type func =
-  let { Type.Function.loc; params; return } = func in
+  let { Type.Function.loc; params; return; type_params } = func in
   node
     "FunctionType"
     loc
-    [("params", List (List.map node_of_type params)); ("return", node_of_type return)]
+    [
+      ("params", List (List.map node_of_type params));
+      ("return", node_of_type return);
+      ("type_params", List (List.map node_of_identifier type_params));
+    ]
 
 and pp_module mod_ =
   let node = node_of_module mod_ in

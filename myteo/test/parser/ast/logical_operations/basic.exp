@@ -70,6 +70,7 @@ test/parser/ast/logical_operations/basic.myte
         ],
       },
       return: None,
+      type_params: [],
     },
   ],
 }

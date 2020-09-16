@@ -198,15 +198,29 @@ class mapper =
 
     method function_ func =
       let open Function in
-      let { loc; name; params; body; return } = func in
+      let { loc; name; params; body; return; type_params } = func in
       let name' = this#identifier name in
       let params' = id_map_list this#function_param params in
       let body' = this#function_body body in
       let return' = id_map_opt this#type_ return in
-      if name == name' && params == params' && body == body' && return == return' then
+      let type_params' = id_map_list this#identifier type_params in
+      if
+        name == name'
+        && params == params'
+        && body == body'
+        && return == return'
+        && type_params == type_params'
+      then
         func
       else
-        { loc; name = name'; params = params'; body = body'; return = return' }
+        {
+          loc;
+          name = name';
+          params = params';
+          body = body';
+          return = return';
+          type_params = type_params';
+        }
 
     method function_param param =
       let open Function.Param in
@@ -295,11 +309,12 @@ class mapper =
 
     method function_type func =
       let open Type.Function in
-      let { loc; params; return } = func in
+      let { loc; params; return; type_params } = func in
       let params' = id_map_list this#type_ params in
       let return' = this#type_ return in
-      if params == params' && return == return' then
+      let type_params' = id_map_list this#identifier type_params in
+      if params == params' && return == return' && type_params == type_params' then
         func
       else
-        { loc; params = params'; return = return' }
+        { loc; params = params'; return = return'; type_params = type_params' }
   end

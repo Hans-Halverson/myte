@@ -43,6 +43,7 @@ test/parser/ast/identifier/basic.myte
         ],
       },
       return: None,
+      type_params: [],
     },
   ],
 }

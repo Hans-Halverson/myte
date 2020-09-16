@@ -49,6 +49,7 @@ test/parser/ast/literals/unit.myte
         ],
       },
       return: None,
+      type_params: [],
     },
   ],
 }
