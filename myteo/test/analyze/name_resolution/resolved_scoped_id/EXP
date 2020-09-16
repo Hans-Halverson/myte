@@ -33,6 +33,7 @@ test/analyze/name_resolution/resolved_scoped_id/a1.myte
         statements: [],
       },
       return: None,
+      type_params: [],
     },
   ],
 }
@@ -78,6 +79,7 @@ test/analyze/name_resolution/resolved_scoped_id/a2.myte
         statements: [],
       },
       return: None,
+      type_params: [],
     },
   ],
 }
@@ -128,6 +130,7 @@ test/analyze/name_resolution/resolved_scoped_id/b.myte
         statements: [],
       },
       return: None,
+      type_params: [],
     },
   ],
 }
@@ -167,6 +170,7 @@ test/analyze/name_resolution/resolved_scoped_id/c.myte
         statements: [],
       },
       return: None,
+      type_params: [],
     },
   ],
 }
@@ -212,6 +216,7 @@ test/analyze/name_resolution/resolved_scoped_id/d.myte
         statements: [],
       },
       return: None,
+      type_params: [],
     },
   ],
 }
@@ -742,6 +747,7 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
         ],
       },
       return: None,
+      type_params: [],
     },
     {
       node: Function,
@@ -758,6 +764,7 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
         statements: [],
       },
       return: None,
+      type_params: [],
     },
   ],
 }

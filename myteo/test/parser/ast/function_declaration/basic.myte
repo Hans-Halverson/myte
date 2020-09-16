@@ -7,3 +7,11 @@ fun foo(): int {}
 fun foo(a: int, b: string, c: bool): int {}
 
 fun foo(a: int, b: string, c: bool,): int {}
+
+fun foo<A>() {}
+
+fun foo<A>(a: A) {}
+
+fun foo<A, B, C,>(a: A, b: B): C {}
+
+fun foo<A, B, C,>(a: A, b: B): C {}

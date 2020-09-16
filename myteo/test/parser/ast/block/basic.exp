@@ -92,6 +92,7 @@ test/parser/ast/block/basic.myte
         ],
       },
       return: None,
+      type_params: [],
     },
   ],
 }

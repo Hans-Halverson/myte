@@ -74,6 +74,7 @@ test/parser/ast/type_declaration/basic.myte
           loc: 7:28-7:32,
           kind: Unit,
         },
+        type_params: [],
       },
     },
   ],

@@ -79,6 +79,7 @@ test/parser/ast/access/basic.myte
         ],
       },
       return: None,
+      type_params: [],
     },
   ],
 }

@@ -57,6 +57,7 @@ test/parser/ast/return/basic.myte
         ],
       },
       return: None,
+      type_params: [],
     },
   ],
 }

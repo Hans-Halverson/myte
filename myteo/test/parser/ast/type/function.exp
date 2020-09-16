@@ -1,7 +1,7 @@
 test/parser/ast/type/function.myte
 {
   node: Module,
-  loc: 1:0-13:13,
+  loc: 1:0-17:13,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -41,6 +41,7 @@ test/parser/ast/type/function.myte
           loc: 3:17-3:23,
           kind: String,
         },
+        type_params: [],
       },
     },
     {
@@ -60,6 +61,7 @@ test/parser/ast/type/function.myte
           loc: 4:16-4:22,
           kind: String,
         },
+        type_params: [],
       },
     },
     {
@@ -85,6 +87,7 @@ test/parser/ast/type/function.myte
           loc: 5:19-5:25,
           kind: String,
         },
+        type_params: [],
       },
     },
     {
@@ -110,6 +113,7 @@ test/parser/ast/type/function.myte
           loc: 6:23-6:29,
           kind: String,
         },
+        type_params: [],
       },
     },
     {
@@ -140,6 +144,7 @@ test/parser/ast/type/function.myte
           loc: 7:27-7:31,
           kind: Unit,
         },
+        type_params: [],
       },
     },
     {
@@ -175,6 +180,7 @@ test/parser/ast/type/function.myte
           loc: 8:33-8:37,
           kind: Unit,
         },
+        type_params: [],
       },
     },
     {
@@ -220,7 +226,9 @@ test/parser/ast/type/function.myte
             loc: 9:43-9:49,
             kind: String,
           },
+          type_params: [],
         },
+        type_params: [],
       },
     },
     {
@@ -251,6 +259,7 @@ test/parser/ast/type/function.myte
           loc: 10:28-10:32,
           kind: Unit,
         },
+        type_params: [],
       },
     },
     {
@@ -276,23 +285,219 @@ test/parser/ast/type/function.myte
           loc: 11:20-11:24,
           kind: Unit,
         },
+        type_params: [],
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 12:0-12:22,
+      name: {
+        node: Identifier,
+        loc: 12:5-12:8,
+        name: "t10",
+      },
+      type: {
+        node: FunctionType,
+        loc: 12:11-12:22,
+        params: [
+          {
+            node: CustomType,
+            loc: 12:15-12:16,
+            name: {
+              node: ScopedIdentifier,
+              loc: 12:15-12:16,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 12:15-12:16,
+                name: "A",
+              },
+            },
+          },
+        ],
+        return: {
+          node: CustomType,
+          loc: 12:21-12:22,
+          name: {
+            node: ScopedIdentifier,
+            loc: 12:21-12:22,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 12:21-12:22,
+              name: "A",
+            },
+          },
+        },
+        type_params: [
+          {
+            node: Identifier,
+            loc: 12:12-12:13,
+            name: "A",
+          },
+        ],
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 13:0-13:23,
+      name: {
+        node: Identifier,
+        loc: 13:5-13:8,
+        name: "t11",
+      },
+      type: {
+        node: FunctionType,
+        loc: 13:11-13:23,
+        params: [
+          {
+            node: CustomType,
+            loc: 13:16-13:17,
+            name: {
+              node: ScopedIdentifier,
+              loc: 13:16-13:17,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 13:16-13:17,
+                name: "A",
+              },
+            },
+          },
+        ],
+        return: {
+          node: CustomType,
+          loc: 13:22-13:23,
+          name: {
+            node: ScopedIdentifier,
+            loc: 13:22-13:23,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 13:22-13:23,
+              name: "A",
+            },
+          },
+        },
+        type_params: [
+          {
+            node: Identifier,
+            loc: 13:12-13:13,
+            name: "A",
+          },
+        ],
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 14:0-14:41,
+      name: {
+        node: Identifier,
+        loc: 14:5-14:8,
+        name: "t12",
+      },
+      type: {
+        node: FunctionType,
+        loc: 14:11-14:41,
+        params: [
+          {
+            node: PrimitiveType,
+            loc: 14:21-14:24,
+            kind: Int,
+          },
+          {
+            node: PrimitiveType,
+            loc: 14:26-14:32,
+            kind: String,
+          },
+        ],
+        return: {
+          node: PrimitiveType,
+          loc: 14:37-14:41,
+          kind: Unit,
+        },
+        type_params: [
+          {
+            node: Identifier,
+            loc: 14:12-14:13,
+            name: "A",
+          },
+          {
+            node: Identifier,
+            loc: 14:15-14:16,
+            name: "B",
+          },
+          {
+            node: Identifier,
+            loc: 14:18-14:19,
+            name: "C",
+          },
+        ],
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 15:0-15:42,
+      name: {
+        node: Identifier,
+        loc: 15:5-15:8,
+        name: "t13",
+      },
+      type: {
+        node: FunctionType,
+        loc: 15:11-15:42,
+        params: [
+          {
+            node: PrimitiveType,
+            loc: 15:22-15:25,
+            kind: Int,
+          },
+          {
+            node: PrimitiveType,
+            loc: 15:27-15:33,
+            kind: String,
+          },
+        ],
+        return: {
+          node: PrimitiveType,
+          loc: 15:38-15:42,
+          kind: Unit,
+        },
+        type_params: [
+          {
+            node: Identifier,
+            loc: 15:12-15:13,
+            name: "A",
+          },
+          {
+            node: Identifier,
+            loc: 15:15-15:16,
+            name: "B",
+          },
+          {
+            node: Identifier,
+            loc: 15:18-15:19,
+            name: "C",
+          },
+        ],
       },
     },
     {
       node: Function,
-      loc: 13:0-13:13,
+      loc: 17:0-17:13,
       name: {
         node: Identifier,
-        loc: 13:4-13:8,
+        loc: 17:4-17:8,
         name: "main",
       },
       params: [],
       body: {
         node: Block,
-        loc: 13:11-13:13,
+        loc: 17:11-17:13,
         statements: [],
       },
       return: None,
+      type_params: [],
     },
   ],
 }

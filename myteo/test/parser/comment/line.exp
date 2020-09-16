@@ -61,6 +61,7 @@ test/parser/comment/line.myte
         ],
       },
       return: None,
+      type_params: [],
     },
   ],
 }

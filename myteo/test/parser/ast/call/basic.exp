@@ -196,6 +196,7 @@ test/parser/ast/call/basic.myte
         ],
       },
       return: None,
+      type_params: [],
     },
   ],
 }

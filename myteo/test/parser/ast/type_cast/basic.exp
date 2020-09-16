@@ -72,6 +72,7 @@ test/parser/ast/type_cast/basic.myte
         ],
       },
       return: None,
+      type_params: [],
     },
     {
       node: Function,
@@ -88,6 +89,7 @@ test/parser/ast/type_cast/basic.myte
         statements: [],
       },
       return: None,
+      type_params: [],
     },
   ],
 }

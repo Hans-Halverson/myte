@@ -1,0 +1,4 @@
+Error: Unexpected token ">", expected identifier
+test/parser/ast/type/function_empty_type_params.myte:3:10
+ 3 | type t = <>(int) => string
+   |           ^

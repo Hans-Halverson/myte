@@ -52,6 +52,7 @@ test/parser/ast/literals/bool.myte
         ],
       },
       return: None,
+      type_params: [],
     },
   ],
 }

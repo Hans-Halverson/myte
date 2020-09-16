@@ -121,6 +121,7 @@ test/parser/ast/if/basic.myte
         ],
       },
       return: None,
+      type_params: [],
     },
   ],
 }

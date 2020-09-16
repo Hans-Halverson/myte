@@ -70,6 +70,7 @@ test/parser/comment/block.myte
         ],
       },
       return: None,
+      type_params: [],
     },
   ],
 }

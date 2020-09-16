@@ -1,7 +1,7 @@
 test/parser/ast/function_declaration/basic.myte
 {
   node: Module,
-  loc: 1:0-9:44,
+  loc: 1:0-17:35,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -38,6 +38,7 @@ test/parser/ast/function_declaration/basic.myte
         loc: 3:11-3:14,
         kind: Int,
       },
+      type_params: [],
     },
     {
       node: Function,
@@ -58,6 +59,7 @@ test/parser/ast/function_declaration/basic.myte
         loc: 5:11-5:14,
         kind: Int,
       },
+      type_params: [],
     },
     {
       node: Function,
@@ -121,6 +123,7 @@ test/parser/ast/function_declaration/basic.myte
         loc: 7:37-7:40,
         kind: Int,
       },
+      type_params: [],
     },
     {
       node: Function,
@@ -184,6 +187,263 @@ test/parser/ast/function_declaration/basic.myte
         loc: 9:38-9:41,
         kind: Int,
       },
+      type_params: [],
+    },
+    {
+      node: Function,
+      loc: 11:0-11:15,
+      name: {
+        node: Identifier,
+        loc: 11:4-11:7,
+        name: "foo",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 11:13-11:15,
+        statements: [],
+      },
+      return: None,
+      type_params: [
+        {
+          node: Identifier,
+          loc: 11:8-11:9,
+          name: "A",
+        },
+      ],
+    },
+    {
+      node: Function,
+      loc: 13:0-13:19,
+      name: {
+        node: Identifier,
+        loc: 13:4-13:7,
+        name: "foo",
+      },
+      params: [
+        {
+          node: Param,
+          loc: 13:11-13:15,
+          name: {
+            node: Identifier,
+            loc: 13:11-13:12,
+            name: "a",
+          },
+          annot: {
+            node: CustomType,
+            loc: 13:14-13:15,
+            name: {
+              node: ScopedIdentifier,
+              loc: 13:14-13:15,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 13:14-13:15,
+                name: "A",
+              },
+            },
+          },
+        },
+      ],
+      body: {
+        node: Block,
+        loc: 13:17-13:19,
+        statements: [],
+      },
+      return: None,
+      type_params: [
+        {
+          node: Identifier,
+          loc: 13:8-13:9,
+          name: "A",
+        },
+      ],
+    },
+    {
+      node: Function,
+      loc: 15:0-15:35,
+      name: {
+        node: Identifier,
+        loc: 15:4-15:7,
+        name: "foo",
+      },
+      params: [
+        {
+          node: Param,
+          loc: 15:18-15:22,
+          name: {
+            node: Identifier,
+            loc: 15:18-15:19,
+            name: "a",
+          },
+          annot: {
+            node: CustomType,
+            loc: 15:21-15:22,
+            name: {
+              node: ScopedIdentifier,
+              loc: 15:21-15:22,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 15:21-15:22,
+                name: "A",
+              },
+            },
+          },
+        },
+        {
+          node: Param,
+          loc: 15:24-15:28,
+          name: {
+            node: Identifier,
+            loc: 15:24-15:25,
+            name: "b",
+          },
+          annot: {
+            node: CustomType,
+            loc: 15:27-15:28,
+            name: {
+              node: ScopedIdentifier,
+              loc: 15:27-15:28,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 15:27-15:28,
+                name: "B",
+              },
+            },
+          },
+        },
+      ],
+      body: {
+        node: Block,
+        loc: 15:33-15:35,
+        statements: [],
+      },
+      return: {
+        node: CustomType,
+        loc: 15:31-15:32,
+        name: {
+          node: ScopedIdentifier,
+          loc: 15:31-15:32,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 15:31-15:32,
+            name: "C",
+          },
+        },
+      },
+      type_params: [
+        {
+          node: Identifier,
+          loc: 15:8-15:9,
+          name: "A",
+        },
+        {
+          node: Identifier,
+          loc: 15:11-15:12,
+          name: "B",
+        },
+        {
+          node: Identifier,
+          loc: 15:14-15:15,
+          name: "C",
+        },
+      ],
+    },
+    {
+      node: Function,
+      loc: 17:0-17:35,
+      name: {
+        node: Identifier,
+        loc: 17:4-17:7,
+        name: "foo",
+      },
+      params: [
+        {
+          node: Param,
+          loc: 17:18-17:22,
+          name: {
+            node: Identifier,
+            loc: 17:18-17:19,
+            name: "a",
+          },
+          annot: {
+            node: CustomType,
+            loc: 17:21-17:22,
+            name: {
+              node: ScopedIdentifier,
+              loc: 17:21-17:22,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 17:21-17:22,
+                name: "A",
+              },
+            },
+          },
+        },
+        {
+          node: Param,
+          loc: 17:24-17:28,
+          name: {
+            node: Identifier,
+            loc: 17:24-17:25,
+            name: "b",
+          },
+          annot: {
+            node: CustomType,
+            loc: 17:27-17:28,
+            name: {
+              node: ScopedIdentifier,
+              loc: 17:27-17:28,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 17:27-17:28,
+                name: "B",
+              },
+            },
+          },
+        },
+      ],
+      body: {
+        node: Block,
+        loc: 17:33-17:35,
+        statements: [],
+      },
+      return: {
+        node: CustomType,
+        loc: 17:31-17:32,
+        name: {
+          node: ScopedIdentifier,
+          loc: 17:31-17:32,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 17:31-17:32,
+            name: "C",
+          },
+        },
+      },
+      type_params: [
+        {
+          node: Identifier,
+          loc: 17:8-17:9,
+          name: "A",
+        },
+        {
+          node: Identifier,
+          loc: 17:11-17:12,
+          name: "B",
+        },
+        {
+          node: Identifier,
+          loc: 17:14-17:15,
+          name: "C",
+        },
+      ],
     },
   ],
 }

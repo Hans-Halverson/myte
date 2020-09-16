@@ -45,6 +45,7 @@ test/parser/ast/type/precedence.myte
               loc: 4:18-4:24,
               kind: String,
             },
+            type_params: [],
           },
         ],
         return: {
@@ -52,6 +53,7 @@ test/parser/ast/type/precedence.myte
           loc: 4:29-4:33,
           kind: Bool,
         },
+        type_params: [],
       },
     },
     {
@@ -87,7 +89,9 @@ test/parser/ast/type/precedence.myte
             loc: 5:28-5:32,
             kind: Bool,
           },
+          type_params: [],
         },
+        type_params: [],
       },
     },
     {
@@ -123,7 +127,9 @@ test/parser/ast/type/precedence.myte
             loc: 6:27-6:31,
             kind: Bool,
           },
+          type_params: [],
         },
+        type_params: [],
       },
     },
   ],
