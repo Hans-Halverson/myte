@@ -39,7 +39,7 @@ and Global : sig
   type t = {
     loc: Loc.t;
     id: var_id;
-    init: Block.id;
+    init: Block.id list;
   }
 end =
   Global
@@ -47,7 +47,7 @@ end =
 and Function : sig
   type t = {
     loc: Loc.t;
-    body: Block.id;
+    body: Block.id list;
   }
 end =
   Function

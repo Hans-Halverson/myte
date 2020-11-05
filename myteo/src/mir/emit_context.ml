@@ -9,6 +9,8 @@ type t = {
   mutable funcs: Function.t LocMap.t;
   (* Instructions in the block currently being built, in reverse *)
   mutable current_instructions: (Loc.t * Instruction.t) list;
+  (* Block ids in the current sequence, in reverse *)
+  mutable current_block_sequence_ids: Block.id list;
 }
 
 let mk () =
@@ -18,6 +20,7 @@ let mk () =
     globals = LocMap.empty;
     funcs = LocMap.empty;
     current_instructions = [];
+    current_block_sequence_ids = [];
   }
 
 let add_global ~ecx loc id init = ecx.globals <- LocMap.add loc { Global.loc; id; init } ecx.globals
@@ -33,11 +36,15 @@ let finish_block_halt ~ecx ?(debug = false) label =
     else
       Block.Label label
   in
-  let block = {
-    Block.id = mk_block_id ();
-    label;
-    instructions = List.rev ecx.current_instructions;
-    next = Halt;
-  } in
+  let block_id = mk_block_id () in
+  let block =
+    { Block.id = block_id; label; instructions = List.rev ecx.current_instructions; next = Halt }
+  in
+  add_block ~ecx block;
   ecx.current_instructions <- [];
-  block
+  ecx.current_block_sequence_ids <- block_id :: ecx.current_block_sequence_ids
+
+let pop_block_sequence ~ecx =
+  let block_ids = List.rev ecx.current_block_sequence_ids in
+  ecx.current_block_sequence_ids <- [];
+  block_ids

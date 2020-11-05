@@ -13,6 +13,7 @@ and emit_module ~pcx ~ecx (_, mod_) =
     (fun toplevel ->
       match toplevel with
       | VariableDeclaration decl -> emit_toplevel_variable_declaration ~pcx ~ecx decl
+      | FunctionDeclaration decl -> emit_toplevel_function_declaration ~pcx ~ecx decl
       | _ -> ())
     mod_.toplevels
 
@@ -20,9 +21,11 @@ and emit_toplevel_variable_declaration ~pcx ~ecx decl =
   let { Statement.VariableDeclaration.loc; pattern; init; _ } = decl in
   let init_var = emit_expression ~pcx ~ecx init in
   let { Identifier.name; _ } = Ast_utils.id_of_pattern pattern in
-  let block = Ecx.finish_block_halt ~ecx ~debug:true name in
-  Ecx.add_block ~ecx block;
-  Ecx.add_global ~ecx loc init_var block.Block.id
+  Ecx.finish_block_halt ~ecx ~debug:true name;
+  let block_ids = Ecx.pop_block_sequence ~ecx in
+  Ecx.add_global ~ecx loc init_var block_ids
+
+and emit_toplevel_function_declaration ~pcx:_ ~ecx:_ _decl = ()
 
 and emit_expression ~pcx ~ecx expr =
   let open Expression in
@@ -59,6 +62,25 @@ and emit_expression ~pcx ~ecx expr =
     let left_var_id = emit_expression ~pcx ~ecx left in
     let right_var_id = emit_expression ~pcx ~ecx right in
     Ecx.emit ~ecx loc (LogOr (var_id, left_var_id, right_var_id));
+    var_id
+  | BinaryOperation { loc; op; left; right } ->
+    let open BinaryOperation in
+    let left_var_id = emit_expression ~pcx ~ecx left in
+    let right_var_id = emit_expression ~pcx ~ecx right in
+    let mk_instr id1 id2 id3 =
+      match op with
+      | Add -> AddInt (id1, id2, id3)
+      | Subtract -> SubInt (id1, id2, id3)
+      | Multiply -> MulInt (id1, id2, id3)
+      | Divide -> DivInt (id1, id2, id3)
+      | Equal -> EqInt (id1, id2, id3)
+      | NotEqual -> NeqInt (id1, id2, id3)
+      | LessThan -> LtInt (id1, id2, id3)
+      | GreaterThan -> GtInt (id1, id2, id3)
+      | LessThanOrEqual -> LteqInt (id1, id2, id3)
+      | GreaterThanOrEqual -> GteqInt (id1, id2, id3)
+    in
+    Ecx.emit ~ecx loc (mk_instr var_id left_var_id right_var_id);
     var_id
   | _ ->
     prerr_endline (Ast_pp.pp (Ast_pp.node_of_expression expr));
