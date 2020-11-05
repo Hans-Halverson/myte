@@ -1,0 +1,4 @@
+(library
+  (name mir)
+  (wrapped false)
+  (libraries myte_common parser analyze))

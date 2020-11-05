@@ -1,0 +1,8 @@
+DEBUG__x:
+  0 := LoadUnit
+DEBUG__y:
+  1 := LoadInt 1
+DEBUG__z:
+  2 := LoadString "test"
+DEBUG__a1:
+  3 := LoadBool true

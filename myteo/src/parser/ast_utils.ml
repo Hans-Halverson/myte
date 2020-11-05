@@ -26,3 +26,8 @@ let rec statement_visitor ~f ?(enter_functions = true) stmt =
   | Expression _
   | Return _ ->
     ()
+
+let id_of_pattern patt =
+  let open Pattern in
+  match patt with
+  | Identifier id -> id

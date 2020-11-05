@@ -36,18 +36,31 @@ let pp_asts asts =
   in
   Printf.printf "%s" (String.concat "\n" ast_strings)
 
+let pp_irs irs =
+  let ir_strings = List.map Mir_pp.pp_program irs in
+  String.concat "\n" ir_strings
+
 let compile files =
   let asts = parse_files files in
   if Opts.dump_ast () then (
     pp_asts asts;
     exit 0
-  ) else
-    let (resolved_asts, errors) = Lex_analyze.analyze_modules asts in
-    if errors <> [] then (
-      print_analyze_errors errors;
-      exit 1
-    );
-    if Opts.dump_resolved_ast () then pp_asts resolved_asts
+  );
+  match Lex_analyze.analyze_modules asts with
+  | Error errors ->
+    print_analyze_errors errors;
+    exit 1
+  | Ok program_cx ->
+    if Opts.dump_resolved_ast () then begin
+      Lex_analyze.(pp_asts program_cx.modules);
+      exit 0
+    end;
+    if Opts.check () then exit 0;
+    let program_ir = Emit.emit_program program_cx in
+    if Opts.dump_ir () then begin
+      print_string (Mir_pp.pp_program program_ir);
+      exit 0
+    end
 
 let () =
   let files = ref SSet.empty in
