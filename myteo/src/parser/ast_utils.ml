@@ -11,6 +11,24 @@ let statement_loc stmt =
   | FunctionDeclaration { Function.loc; _ } ->
     loc
 
+let expression_loc expr =
+  let open Expression in
+  match expr with
+  | Unit { loc }
+  | IntLiteral { loc; _ }
+  | StringLiteral { loc; _ }
+  | BoolLiteral { loc; _ }
+  | Identifier { loc; _ }
+  | ScopedIdentifier { loc; _ }
+  | TypeCast { loc; _ }
+  | UnaryOperation { loc; _ }
+  | BinaryOperation { loc; _ }
+  | LogicalAnd { loc; _ }
+  | LogicalOr { loc; _ }
+  | Call { loc; _ }
+  | Access { loc; _ } ->
+    loc
+
 let rec statement_visitor ~f ?(enter_functions = true) stmt =
   let open Statement in
   f stmt;

@@ -1,0 +1,12 @@
+FUNC__empty:
+FUNC__emptyParams:
+FUNC__shorthand:
+  0 := LoadInt 1
+  Ret 0
+FUNC__withBody:
+  1 := LoadInt 10
+  2 := LoadBool true
+  3 := LoadBool false
+  4 := LogAnd 2 3
+FUNC__main:
+  5 := LoadBool true

@@ -23,8 +23,8 @@ and Block : sig
   and id = int
 
   and label =
-    | Label of string
-    | DebugLabel of string
+    | GlobalLabel of string
+    | FuncLabel of string
 
   and next =
     | Halt
@@ -47,6 +47,8 @@ end =
 and Function : sig
   type t = {
     loc: Loc.t;
+    name: string;
+    params: var_id list;
     body: Block.id list;
   }
 end =
@@ -59,6 +61,8 @@ and Instruction : sig
     | LoadInt of var_id * int
     | LoadString of var_id * string
     | LoadBool of var_id * bool
+    (* Functions *)
+    | Ret of var_id
     (* Logical ops *)
     | LogNot of var_id * var_id
     | LogAnd of var_id * var_id * var_id

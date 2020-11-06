@@ -1,8 +1,9 @@
-DEBUG__x:
+GLOBAL__x:
   0 := LoadUnit
-DEBUG__y:
+GLOBAL__y:
   1 := LoadInt 1
-DEBUG__z:
+GLOBAL__z:
   2 := LoadString "test"
-DEBUG__a1:
+GLOBAL__a1:
   3 := LoadBool true
+FUNC__main:

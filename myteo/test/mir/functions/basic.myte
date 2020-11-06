@@ -1,0 +1,16 @@
+module test
+
+fun empty() {}
+
+fun emptyParams(x: int, y: bool) {}
+
+fun shorthand(x: int): int = 1
+
+fun withBody(x: int, y: bool) {
+  val z: int = 10;
+  val zz: bool = true && false;
+}
+
+fun main() {
+  val a = true;
+}

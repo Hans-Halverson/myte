@@ -1,4 +1,4 @@
-DEBUG__x:
+GLOBAL__x:
   0 := LoadInt 1
   1 := LoadInt 2
   2 := LoadInt 3
@@ -8,3 +8,4 @@ DEBUG__x:
   6 := AddInt 0 5
   7 := LoadInt 67
   8 := SubInt 6 7
+FUNC__main:

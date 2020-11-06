@@ -13,13 +13,18 @@ end
 let rec pp_program program =
   let open Program in
   let cx = Context.empty in
-  let globals_strings =
-    LocMap.fold
-      (fun _ global globals_strings -> pp_global ~cx ~program global :: globals_strings)
-      program.globals
-      []
+  let get_loc_keys m = LocMap.fold (fun loc _ locs -> loc :: locs) m [] in
+  let block_locs = get_loc_keys program.globals @ get_loc_keys program.funcs in
+  let sorted_block_locs = List.sort Loc.compare block_locs in
+  let blocks_strings =
+    List.map
+      (fun loc ->
+        match LocMap.find_opt loc program.globals with
+        | Some global -> pp_global ~cx ~program global
+        | None -> pp_func ~cx ~program (LocMap.find loc program.funcs))
+      sorted_block_locs
   in
-  String.concat "\n" (List.rev globals_strings)
+  String.concat "\n" blocks_strings
 
 and pp_global ~cx ~program global =
   let init_strings =
@@ -31,12 +36,22 @@ and pp_global ~cx ~program global =
   in
   String.concat "\n" (List.rev init_strings)
 
+and pp_func ~cx ~program func =
+  let body_strings =
+    List.map
+      (fun block_id ->
+        let block = IMap.find block_id program.Program.blocks in
+        pp_block ~cx block)
+      func.Function.body
+  in
+  String.concat "\n" (List.rev body_strings)
+
 and pp_block ~cx block =
   let open Block in
   let label =
     match block.label with
-    | Label label -> label
-    | DebugLabel label -> "DEBUG__" ^ label
+    | GlobalLabel label -> "GLOBAL__" ^ label
+    | FuncLabel label -> "FUNC__" ^ label
   in
   let label_line = label ^ ":" in
   let instr_lines = List.map (pp_instruction ~cx) block.instructions in
@@ -75,6 +90,7 @@ and pp_instruction ~cx (_, instr) =
              "true"
            else
              "false" ))
+    | Ret var_id -> Printf.sprintf "Ret %d" (prid var_id)
     | LogNot (var_id, arg_id) -> pp_instr var_id (Printf.sprintf "LogNot %d" (prid arg_id))
     | LogAnd (var_id, left_id, right_id) ->
       pp_instr var_id (Printf.sprintf "LogAnd %d %d" (prid left_id) (prid right_id))
