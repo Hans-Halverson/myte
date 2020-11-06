@@ -1,0 +1,9 @@
+FUNC__main:
+  0 := LoadInt 1
+  1 := LoadInt 1
+  2 := LoadInt 2
+  3 := LoadInt 3
+  4 := MulInt 2 3
+  5 := LoadInt 4
+  6 := DivInt 4 5
+  7 := AddInt 1 6

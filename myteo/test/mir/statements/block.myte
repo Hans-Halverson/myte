@@ -1,0 +1,17 @@
+module test
+
+fun main() {
+  val x = 8;
+  {
+    val x = 77;
+    77 * 34;
+
+    {
+      true;
+
+      {}
+    }
+
+    {}
+  }
+}

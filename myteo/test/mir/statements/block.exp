@@ -1,0 +1,7 @@
+FUNC__main:
+  0 := LoadInt 8
+  1 := LoadInt 77
+  2 := LoadInt 77
+  3 := LoadInt 34
+  4 := MulInt 2 3
+  5 := LoadBool true

@@ -90,7 +90,12 @@ and pp_instruction ~cx (_, instr) =
              "true"
            else
              "false" ))
-    | Ret var_id -> Printf.sprintf "Ret %d" (prid var_id)
+    | Ret var_id_opt ->
+      "Ret"
+      ^
+      (match var_id_opt with
+      | Some var_id -> Printf.sprintf " %d" (prid var_id)
+      | None -> "")
     | LogNot (var_id, arg_id) -> pp_instr var_id (Printf.sprintf "LogNot %d" (prid arg_id))
     | LogAnd (var_id, left_id, right_id) ->
       pp_instr var_id (Printf.sprintf "LogAnd %d %d" (prid left_id) (prid right_id))

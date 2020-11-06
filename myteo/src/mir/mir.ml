@@ -62,7 +62,7 @@ and Instruction : sig
     | LoadString of var_id * string
     | LoadBool of var_id * bool
     (* Functions *)
-    | Ret of var_id
+    | Ret of var_id option
     (* Logical ops *)
     | LogNot of var_id * var_id
     | LogAnd of var_id * var_id * var_id

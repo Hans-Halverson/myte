@@ -1,0 +1,12 @@
+module test
+
+fun test1(): unit {
+  val x: int = 1;
+  return;
+}
+
+fun test2(): int {
+  return 99;
+}
+
+fun main() {}

@@ -40,7 +40,7 @@ and emit_toplevel_function_declaration ~pcx ~ecx decl =
     | Expression expr ->
       let ret_var = emit_expression ~pcx ~ecx expr in
       let expr_loc = Ast_utils.expression_loc expr in
-      Ecx.emit ~ecx expr_loc (Ret ret_var);
+      Ecx.emit ~ecx expr_loc (Ret (Some ret_var));
       Ecx.finish_block_halt ~ecx;
       Ecx.get_block_sequence ~ecx
   in
@@ -108,7 +108,13 @@ and emit_expression ~pcx ~ecx expr =
 and emit_statement ~pcx ~ecx stmt =
   let open Statement in
   match stmt with
+  | Expression (_, expr) -> ignore (emit_expression ~pcx ~ecx expr)
+  | Block { statements; _ } -> List.iter (emit_statement ~pcx ~ecx) statements
+  | If _ -> failwith "If statement not yet converted to IR"
+  | Return { loc; arg } ->
+    let arg_var_id = Option.map (emit_expression ~pcx ~ecx) arg in
+    Ecx.emit ~ecx loc (Ret arg_var_id)
   | VariableDeclaration { init; _ } ->
     let init_var = emit_expression ~pcx ~ecx init in
     ignore init_var
-  | _ -> failwith "Statement has not yet been converted to IR"
+  | FunctionDeclaration _ -> failwith "Function declaration not yet converted to IR"

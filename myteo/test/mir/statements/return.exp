@@ -1,0 +1,7 @@
+FUNC__test1:
+  0 := LoadInt 1
+  Ret
+FUNC__test2:
+  1 := LoadInt 99
+  Ret 1
+FUNC__main:
