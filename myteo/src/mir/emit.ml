@@ -52,21 +52,21 @@ and emit_expression ~pcx ~ecx expr =
   let var_id = mk_var_id () in
   match expr with
   | Unit { loc } ->
-    Ecx.emit ~ecx loc (LitUnit var_id);
+    Ecx.emit ~ecx loc (Lit (var_id, LitValue.Unit));
     var_id
   | IntLiteral { loc; value; _ } ->
-    Ecx.emit ~ecx loc (LitInt (var_id, value));
+    Ecx.emit ~ecx loc (Lit (var_id, LitValue.Int value));
     var_id
   | StringLiteral { loc; value; _ } ->
-    Ecx.emit ~ecx loc (LitString (var_id, value));
+    Ecx.emit ~ecx loc (Lit (var_id, LitValue.String value));
     var_id
   | BoolLiteral { loc; value; _ } ->
-    Ecx.emit ~ecx loc (LitBool (var_id, value));
+    Ecx.emit ~ecx loc (Lit (var_id, LitValue.Bool value));
     var_id
   | UnaryOperation { op = Plus; operand; _ } -> emit_expression ~pcx ~ecx operand
   | UnaryOperation { op = Minus; loc; operand } ->
     let operand_var_id = emit_expression ~pcx ~ecx operand in
-    Ecx.emit ~ecx loc (NegInt (var_id, operand_var_id));
+    Ecx.emit ~ecx loc (Neg (NumericType.Int, var_id, operand_var_id));
     var_id
   | UnaryOperation { op = LogicalNot; loc; operand } ->
     let operand_var_id = emit_expression ~pcx ~ecx operand in
@@ -88,16 +88,16 @@ and emit_expression ~pcx ~ecx expr =
     let right_var_id = emit_expression ~pcx ~ecx right in
     let mk_instr id1 id2 id3 =
       match op with
-      | Add -> AddInt (id1, id2, id3)
-      | Subtract -> SubInt (id1, id2, id3)
-      | Multiply -> MulInt (id1, id2, id3)
-      | Divide -> DivInt (id1, id2, id3)
-      | Equal -> EqInt (id1, id2, id3)
-      | NotEqual -> NeqInt (id1, id2, id3)
-      | LessThan -> LtInt (id1, id2, id3)
-      | GreaterThan -> GtInt (id1, id2, id3)
-      | LessThanOrEqual -> LteqInt (id1, id2, id3)
-      | GreaterThanOrEqual -> GteqInt (id1, id2, id3)
+      | Add -> Instruction.Add (NumericType.Int, id1, id2, id3)
+      | Subtract -> Sub (NumericType.Int, id1, id2, id3)
+      | Multiply -> Mul (NumericType.Int, id1, id2, id3)
+      | Divide -> Div (NumericType.Int, id1, id2, id3)
+      | Equal -> Eq (NumericType.Int, id1, id2, id3)
+      | NotEqual -> Neq (NumericType.Int, id1, id2, id3)
+      | LessThan -> Lt (NumericType.Int, id1, id2, id3)
+      | GreaterThan -> Gt (NumericType.Int, id1, id2, id3)
+      | LessThanOrEqual -> LtEq (NumericType.Int, id1, id2, id3)
+      | GreaterThanOrEqual -> GtEq (NumericType.Int, id1, id2, id3)
     in
     Ecx.emit ~ecx loc (mk_instr var_id left_var_id right_var_id);
     var_id

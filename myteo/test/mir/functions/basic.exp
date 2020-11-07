@@ -1,12 +1,12 @@
 FUNC__empty:
 FUNC__emptyParams:
 FUNC__shorthand:
-  0 := LitInt 1
+  0 := Lit int 1
   Ret 0
 FUNC__withBody:
-  1 := LitInt 10
-  2 := LitBool true
-  3 := LitBool false
+  1 := Lit int 10
+  2 := Lit bool true
+  3 := Lit bool false
   4 := LogAnd 2 3
 FUNC__main:
-  5 := LitBool true
+  5 := Lit bool true

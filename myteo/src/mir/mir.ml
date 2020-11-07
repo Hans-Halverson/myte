@@ -55,31 +55,40 @@ end =
   Function
 
 and Instruction : sig
+  module LitValue : sig
+    type t =
+      | Unit
+      | Int of int
+      | String of string
+      | Bool of bool
+  end
+
+  module NumericType : sig
+    type t = Int
+  end
+
   type t =
     (* Literals *)
-    | LitUnit of var_id
-    | LitInt of var_id * int
-    | LitString of var_id * string
-    | LitBool of var_id * bool
+    | Lit of var_id * LitValue.t
     (* Functions *)
     | Ret of var_id option
     (* Logical ops *)
     | LogNot of var_id * var_id
     | LogAnd of var_id * var_id * var_id
     | LogOr of var_id * var_id * var_id
-    (* Unary int ops *)
-    | NegInt of var_id * var_id
-    (* Binary int ops *)
-    | AddInt of var_id * var_id * var_id
-    | SubInt of var_id * var_id * var_id
-    | MulInt of var_id * var_id * var_id
-    | DivInt of var_id * var_id * var_id
-    | EqInt of var_id * var_id * var_id
-    | NeqInt of var_id * var_id * var_id
-    | LtInt of var_id * var_id * var_id
-    | LteqInt of var_id * var_id * var_id
-    | GtInt of var_id * var_id * var_id
-    | GteqInt of var_id * var_id * var_id
+    (* Unary numeric ops *)
+    | Neg of NumericType.t * var_id * var_id
+    (* Binary numeric ops *)
+    | Add of NumericType.t * var_id * var_id * var_id
+    | Sub of NumericType.t * var_id * var_id * var_id
+    | Mul of NumericType.t * var_id * var_id * var_id
+    | Div of NumericType.t * var_id * var_id * var_id
+    | Eq of NumericType.t * var_id * var_id * var_id
+    | Neq of NumericType.t * var_id * var_id * var_id
+    | Lt of NumericType.t * var_id * var_id * var_id
+    | LtEq of NumericType.t * var_id * var_id * var_id
+    | Gt of NumericType.t * var_id * var_id * var_id
+    | GtEq of NumericType.t * var_id * var_id * var_id
 end =
   Instruction
 

@@ -1,11 +1,11 @@
 GLOBAL__x:
-  0 := LitInt 1
-  1 := LitInt 2
-  2 := LitInt 3
-  3 := MulInt 1 2
-  4 := LitInt 4
-  5 := DivInt 3 4
-  6 := AddInt 0 5
-  7 := LitInt 67
-  8 := SubInt 6 7
+  0 := Lit int 1
+  1 := Lit int 2
+  2 := Lit int 3
+  3 := Mul int 1 2
+  4 := Lit int 4
+  5 := Div int 3 4
+  6 := Add int 0 5
+  7 := Lit int 67
+  8 := Sub int 6 7
 FUNC__main:

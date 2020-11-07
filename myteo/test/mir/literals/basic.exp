@@ -1,9 +1,9 @@
 GLOBAL__x:
-  0 := LitUnit
+  0 := Lit unit
 GLOBAL__y:
-  1 := LitInt 1
+  1 := Lit int 1
 GLOBAL__z:
-  2 := LitString "test"
+  2 := Lit string "test"
 GLOBAL__a1:
-  3 := LitBool true
+  3 := Lit bool true
 FUNC__main:

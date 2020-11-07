@@ -73,23 +73,32 @@ and prid ~cx var_id =
     cx.max_print_id <- print_id + 1;
     print_id
 
+and pp_numeric_type ty =
+  let open Instruction.NumericType in
+  match ty with
+  | Int -> "int"
+
 and pp_instruction ~cx (_, instr) =
   let prid = prid ~cx in
   let pp_instr var_id instr = Printf.sprintf "%d := %s" (prid var_id) instr in
   let instr_string =
     match instr with
-    | LitUnit var_id -> pp_instr var_id "LitUnit"
-    | LitInt (var_id, int) -> pp_instr var_id (Printf.sprintf "LitInt %d" int)
-    | LitString (var_id, string) -> pp_instr var_id (Printf.sprintf "LitString \"%s\"" string)
-    | LitBool (var_id, bool) ->
-      pp_instr
-        var_id
-        (Printf.sprintf
-           "LitBool %s"
-           ( if bool then
-             "true"
-           else
-             "false" ))
+    | Lit (var_id, value) ->
+      let type_and_value =
+        let open Instruction in
+        match value with
+        | LitValue.Unit -> "unit"
+        | LitValue.Int i -> Printf.sprintf "int %d" i
+        | LitValue.String s -> Printf.sprintf "string \"%s\"" s
+        | LitValue.Bool b ->
+          Printf.sprintf
+            "bool %s"
+            ( if b then
+              "true"
+            else
+              "false" )
+      in
+      pp_instr var_id ("Lit " ^ type_and_value)
     | Ret var_id_opt ->
       "Ret"
       ^
@@ -101,26 +110,47 @@ and pp_instruction ~cx (_, instr) =
       pp_instr var_id (Printf.sprintf "LogAnd %d %d" (prid left_id) (prid right_id))
     | LogOr (var_id, left_id, right_id) ->
       pp_instr var_id (Printf.sprintf "LogAnd %d %d" (prid left_id) (prid right_id))
-    | NegInt (var_id, arg_id) -> pp_instr var_id (Printf.sprintf "NegInt %d" (prid arg_id))
-    | AddInt (var_id, left_id, right_id) ->
-      pp_instr var_id (Printf.sprintf "AddInt %d %d" (prid left_id) (prid right_id))
-    | SubInt (var_id, left_id, right_id) ->
-      pp_instr var_id (Printf.sprintf "SubInt %d %d" (prid left_id) (prid right_id))
-    | MulInt (var_id, left_id, right_id) ->
-      pp_instr var_id (Printf.sprintf "MulInt %d %d" (prid left_id) (prid right_id))
-    | DivInt (var_id, left_id, right_id) ->
-      pp_instr var_id (Printf.sprintf "DivInt %d %d" (prid left_id) (prid right_id))
-    | EqInt (var_id, left_id, right_id) ->
-      pp_instr var_id (Printf.sprintf "EqInt %d %d" (prid left_id) (prid right_id))
-    | NeqInt (var_id, left_id, right_id) ->
-      pp_instr var_id (Printf.sprintf "NeqInt %d %d" (prid left_id) (prid right_id))
-    | LtInt (var_id, left_id, right_id) ->
-      pp_instr var_id (Printf.sprintf "LtInt %d %d" (prid left_id) (prid right_id))
-    | LteqInt (var_id, left_id, right_id) ->
-      pp_instr var_id (Printf.sprintf "LteqInt %d %d" (prid left_id) (prid right_id))
-    | GtInt (var_id, left_id, right_id) ->
-      pp_instr var_id (Printf.sprintf "GtInt %d %d" (prid left_id) (prid right_id))
-    | GteqInt (var_id, left_id, right_id) ->
-      pp_instr var_id (Printf.sprintf "GteqInt %d %d" (prid left_id) (prid right_id))
+    | Neg (ty, var_id, arg_id) ->
+      pp_instr var_id (Printf.sprintf "Neg %s %d" (pp_numeric_type ty) (prid arg_id))
+    | Add (ty, var_id, left_id, right_id) ->
+      pp_instr
+        var_id
+        (Printf.sprintf "Add %s %d %d" (pp_numeric_type ty) (prid left_id) (prid right_id))
+    | Sub (ty, var_id, left_id, right_id) ->
+      pp_instr
+        var_id
+        (Printf.sprintf "Sub %s %d %d" (pp_numeric_type ty) (prid left_id) (prid right_id))
+    | Mul (ty, var_id, left_id, right_id) ->
+      pp_instr
+        var_id
+        (Printf.sprintf "Mul %s %d %d" (pp_numeric_type ty) (prid left_id) (prid right_id))
+    | Div (ty, var_id, left_id, right_id) ->
+      pp_instr
+        var_id
+        (Printf.sprintf "Div %s %d %d" (pp_numeric_type ty) (prid left_id) (prid right_id))
+    | Eq (ty, var_id, left_id, right_id) ->
+      pp_instr
+        var_id
+        (Printf.sprintf "Eq %s %d %d" (pp_numeric_type ty) (prid left_id) (prid right_id))
+    | Neq (ty, var_id, left_id, right_id) ->
+      pp_instr
+        var_id
+        (Printf.sprintf "Neq %s %d %d" (pp_numeric_type ty) (prid left_id) (prid right_id))
+    | Lt (ty, var_id, left_id, right_id) ->
+      pp_instr
+        var_id
+        (Printf.sprintf "Lt %s %d %d" (pp_numeric_type ty) (prid left_id) (prid right_id))
+    | LtEq (ty, var_id, left_id, right_id) ->
+      pp_instr
+        var_id
+        (Printf.sprintf "LtEq %s %d %d" (pp_numeric_type ty) (prid left_id) (prid right_id))
+    | Gt (ty, var_id, left_id, right_id) ->
+      pp_instr
+        var_id
+        (Printf.sprintf "Gt %s %d %d" (pp_numeric_type ty) (prid left_id) (prid right_id))
+    | GtEq (ty, var_id, left_id, right_id) ->
+      pp_instr
+        var_id
+        (Printf.sprintf "GtEq %s %d %d" (pp_numeric_type ty) (prid left_id) (prid right_id))
   in
   "  " ^ instr_string

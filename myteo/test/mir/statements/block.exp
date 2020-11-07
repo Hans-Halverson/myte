@@ -1,7 +1,7 @@
 FUNC__main:
-  0 := LitInt 8
-  1 := LitInt 77
-  2 := LitInt 77
-  3 := LitInt 34
-  4 := MulInt 2 3
-  5 := LitBool true
+  0 := Lit int 8
+  1 := Lit int 77
+  2 := Lit int 77
+  3 := Lit int 34
+  4 := Mul int 2 3
+  5 := Lit bool true

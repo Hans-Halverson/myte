@@ -1,9 +1,9 @@
 FUNC__main:
-  0 := LitInt 1
-  1 := LitInt 1
-  2 := LitInt 2
-  3 := LitInt 3
-  4 := MulInt 2 3
-  5 := LitInt 4
-  6 := DivInt 4 5
-  7 := AddInt 1 6
+  0 := Lit int 1
+  1 := Lit int 1
+  2 := Lit int 2
+  3 := Lit int 3
+  4 := Mul int 2 3
+  5 := Lit int 4
+  6 := Div int 4 5
+  7 := Add int 1 6
