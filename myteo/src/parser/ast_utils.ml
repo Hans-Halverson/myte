@@ -3,12 +3,13 @@ open Ast
 let statement_loc stmt =
   let open Statement in
   match stmt with
+  | VariableDeclaration { VariableDeclaration.loc; _ }
+  | FunctionDeclaration { Function.loc; _ }
   | Expression (loc, _)
   | Block { Block.loc; _ }
   | If { If.loc; _ }
   | Return { Return.loc; _ }
-  | VariableDeclaration { VariableDeclaration.loc; _ }
-  | FunctionDeclaration { Function.loc; _ } ->
+  | Assignment { Assignment.loc; _ } ->
     loc
 
 let expression_loc expr =
@@ -42,7 +43,8 @@ let rec statement_visitor ~f ?(enter_functions = true) stmt =
   | FunctionDeclaration { Function.body = Function.Expression _; _ }
   | VariableDeclaration _
   | Expression _
-  | Return _ ->
+  | Return _
+  | Assignment _ ->
     ()
 
 let id_of_pattern patt =

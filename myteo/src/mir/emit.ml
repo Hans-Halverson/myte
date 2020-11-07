@@ -128,6 +128,7 @@ and emit_statement ~pcx ~ecx stmt =
   | Return { loc; arg } ->
     let arg_var_id = Option.map (emit_expression ~pcx ~ecx) arg in
     Ecx.emit ~ecx loc (Ret arg_var_id)
+  | Assignment _ -> failwith "Assignment not yet converted to IR"
   | VariableDeclaration { init; _ } ->
     let init_var = emit_expression ~pcx ~ecx init in
     ignore init_var

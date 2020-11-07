@@ -66,6 +66,14 @@ and Statement : sig
     }
   end
 
+  module Assignment : sig
+    type t = {
+      loc: Loc.t;
+      pattern: Pattern.t;
+      expr: Expression.t;
+    }
+  end
+
   module VariableDeclaration : sig
     type kind =
       | Immutable
@@ -81,12 +89,13 @@ and Statement : sig
   end
 
   type t =
+    | VariableDeclaration of VariableDeclaration.t
+    | FunctionDeclaration of Function.t
     | Expression of (Loc.t * Expression.t)
     | Block of Block.t
     | If of If.t
     | Return of Return.t
-    | VariableDeclaration of VariableDeclaration.t
-    | FunctionDeclaration of Function.t
+    | Assignment of Assignment.t
 end =
   Statement
 

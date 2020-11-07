@@ -27,12 +27,13 @@ class ['a] visitor =
       fun acc stmt ->
         let open Statement in
         match stmt with
+        | VariableDeclaration s -> this#variable_declaration acc s
+        | FunctionDeclaration s -> this#function_ acc s
         | Expression s -> this#expression_statement acc s
         | Block s -> this#block acc s
         | If s -> this#if_ acc s
         | Return s -> this#return acc s
-        | VariableDeclaration s -> this#variable_declaration acc s
-        | FunctionDeclaration s -> this#function_ acc s
+        | Assignment s -> this#assignment acc s
 
     method expression : 'a -> Expression.t -> unit =
       fun acc expr ->
@@ -182,6 +183,12 @@ class ['a] visitor =
       let open Statement.Return in
       let { loc = _; arg } = return in
       Option.iter (this#expression acc) arg
+
+    method assignment acc assign =
+      let open Statement.Assignment in
+      let { loc = _; pattern; expr } = assign in
+      this#pattern acc pattern;
+      this#expression acc expr
 
     method variable_declaration acc decl =
       let open Statement.VariableDeclaration in

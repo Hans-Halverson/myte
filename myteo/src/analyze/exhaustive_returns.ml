@@ -22,6 +22,7 @@ class analyzer =
       match stmt with
       | Return _ -> Exhaustive
       | Expression _
+      | Assignment _
       | VariableDeclaration _
       | FunctionDeclaration _ ->
         AtomicInexhaustiveStatement

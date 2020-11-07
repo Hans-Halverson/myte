@@ -41,13 +41,14 @@ class mapper =
       fun stmt ->
         let open Statement in
         match stmt with
+        | VariableDeclaration s ->
+          id_map this#variable_declaration s stmt (fun s' -> VariableDeclaration s')
+        | FunctionDeclaration s -> id_map this#function_ s stmt (fun s' -> FunctionDeclaration s')
         | Expression s -> id_map this#expression_statement s stmt (fun s' -> Expression s')
         | Block s -> id_map this#block s stmt (fun s' -> Block s')
         | If s -> id_map this#if_ s stmt (fun s' -> If s')
         | Return s -> id_map this#return s stmt (fun s' -> Return s')
-        | VariableDeclaration s ->
-          id_map this#variable_declaration s stmt (fun s' -> VariableDeclaration s')
-        | FunctionDeclaration s -> id_map this#function_ s stmt (fun s' -> FunctionDeclaration s')
+        | Assignment s -> id_map this#assignment s stmt (fun s' -> Assignment s')
 
     method expression : Expression.t -> Expression.t =
       fun expr ->
@@ -274,6 +275,16 @@ class mapper =
         return
       else
         { loc; arg = arg' }
+
+    method assignment assign =
+      let open Statement.Assignment in
+      let { loc; pattern; expr } = assign in
+      let pattern' = this#pattern pattern in
+      let expr' = this#expression expr in
+      if pattern == pattern' && expr == expr' then
+        assign
+      else
+        { loc; pattern = pattern'; expr = expr' }
 
     method variable_declaration decl =
       let open Statement.VariableDeclaration in

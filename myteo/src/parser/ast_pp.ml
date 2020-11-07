@@ -125,12 +125,13 @@ and node_of_toplevel toplevel =
 and node_of_statement stmt =
   let open Statement in
   match stmt with
+  | VariableDeclaration decl -> node_of_variable_decl decl
+  | FunctionDeclaration decl -> node_of_function decl
   | Expression expr -> node_of_expression_stmt expr
   | Block block -> node_of_block block
   | If if_ -> node_of_if if_
   | Return ret -> node_of_return ret
-  | VariableDeclaration decl -> node_of_variable_decl decl
-  | FunctionDeclaration decl -> node_of_function decl
+  | Assignment assign -> node_of_assignment assign
 
 and node_of_expression expr =
   let open Expression in
@@ -273,6 +274,10 @@ and node_of_if if_ =
 and node_of_return ret =
   let { Statement.Return.loc; arg } = ret in
   node "Return" loc [("arg", opt node_of_expression arg)]
+
+and node_of_assignment assign =
+  let { Statement.Assignment.loc; pattern; expr } = assign in
+  node "Assignment" loc [("pattern", node_of_pattern pattern); ("expr", node_of_expression expr)]
 
 and node_of_variable_decl decl =
   let { Statement.VariableDeclaration.loc; kind; pattern; init; annot } = decl in

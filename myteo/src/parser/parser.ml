@@ -166,14 +166,23 @@ and parse_statement env =
   | T_VAR ->
     VariableDeclaration (parse_variable_declaration env)
   | T_FUN -> FunctionDeclaration (parse_function env)
-  | _ -> parse_expression_statement env
+  | _ -> parse_assignment_or_expression_statement env
 
-and parse_expression_statement env =
+and parse_assignment_or_expression_statement env =
   let marker = mark_loc env in
   let expr = parse_expression env in
-  Env.expect env T_SEMICOLON;
-  let loc = marker env in
-  Statement.Expression (loc, expr)
+  match Env.token env with
+  | T_EQUALS ->
+    let pattern = reparse_expression_as_pattern expr in
+    Env.advance env;
+    let expr = parse_expression env in
+    Env.expect env T_SEMICOLON;
+    let loc = marker env in
+    Statement.Assignment { loc; pattern; expr }
+  | _ ->
+    Env.expect env T_SEMICOLON;
+    let loc = marker env in
+    Statement.Expression (loc, expr)
 
 and parse_expression ?(precedence = ExpressionPrecedence.None) env =
   let marker = mark_loc env in
@@ -616,3 +625,9 @@ and parse_type_params env =
         type_param :: type_params env
     in
     type_params env
+
+and reparse_expression_as_pattern expr =
+  let open Expression in
+  match expr with
+  | Identifier { loc; name } -> Pattern.Identifier { loc; name }
+  | _ -> Parse_error.fatal (Ast_utils.expression_loc expr, Parse_error.InvalidAssignmentPattern)

@@ -1,0 +1,8 @@
+module Test
+
+fun main() {
+  val x: int = 1;
+  x = 2;
+  x = 3;
+  x = ();
+}

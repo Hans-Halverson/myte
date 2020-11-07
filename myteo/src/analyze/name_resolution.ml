@@ -347,17 +347,21 @@ class bindings_builder ~module_tree =
            false
            (fun _ _ _ -> None))
 
+    method resolve_value_id_use id =
+      let { Identifier.loc; name; _ } = id in
+      match this#lookup_value_in_scope name scopes with
+      | None -> this#add_error loc (UnresolvedName (name, true))
+      | Some decl_loc ->
+        let (_, declaration) = (LocMap.find decl_loc value_bindings).declaration in
+        (match declaration with
+        | ImportedModule _ -> this#add_error loc (ModuleInvalidPosition ([name], true))
+        | _ -> this#add_value_use decl_loc loc)
+
     method! expression expr =
       let open Ast.Expression in
       match expr with
-      | Identifier { loc; name; _ } ->
-        (match this#lookup_value_in_scope name scopes with
-        | None -> this#add_error loc (UnresolvedName (name, true))
-        | Some decl_loc ->
-          let (_, declaration) = (LocMap.find decl_loc value_bindings).declaration in
-          (match declaration with
-          | ImportedModule _ -> this#add_error loc (ModuleInvalidPosition ([name], true))
-          | _ -> this#add_value_use decl_loc loc));
+      | Identifier id ->
+        this#resolve_value_id_use id;
         expr
       | Access { left; right; _ } ->
         (* Gather all potential module parts in order if there is an unbroken chain of accesses
@@ -435,6 +439,13 @@ class bindings_builder ~module_tree =
             ty
           | _ -> ty))
       | _ -> super#type_ ty
+
+    method! pattern patt =
+      let open Ast.Pattern in
+      match patt with
+      | Identifier id ->
+        this#resolve_value_id_use id;
+        patt
   end
 
 let analyze modules module_tree =
