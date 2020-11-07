@@ -52,16 +52,16 @@ and emit_expression ~pcx ~ecx expr =
   let var_id = mk_var_id () in
   match expr with
   | Unit { loc } ->
-    Ecx.emit ~ecx loc (LoadUnit var_id);
+    Ecx.emit ~ecx loc (LitUnit var_id);
     var_id
   | IntLiteral { loc; value; _ } ->
-    Ecx.emit ~ecx loc (LoadInt (var_id, value));
+    Ecx.emit ~ecx loc (LitInt (var_id, value));
     var_id
   | StringLiteral { loc; value; _ } ->
-    Ecx.emit ~ecx loc (LoadString (var_id, value));
+    Ecx.emit ~ecx loc (LitString (var_id, value));
     var_id
   | BoolLiteral { loc; value; _ } ->
-    Ecx.emit ~ecx loc (LoadBool (var_id, value));
+    Ecx.emit ~ecx loc (LitBool (var_id, value));
     var_id
   | UnaryOperation { op = Plus; operand; _ } -> emit_expression ~pcx ~ecx operand
   | UnaryOperation { op = Minus; loc; operand } ->

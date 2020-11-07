@@ -56,11 +56,11 @@ end =
 
 and Instruction : sig
   type t =
-    (* Literal loads *)
-    | LoadUnit of var_id
-    | LoadInt of var_id * int
-    | LoadString of var_id * string
-    | LoadBool of var_id * bool
+    (* Literals *)
+    | LitUnit of var_id
+    | LitInt of var_id * int
+    | LitString of var_id * string
+    | LitBool of var_id * bool
     (* Functions *)
     | Ret of var_id option
     (* Logical ops *)

@@ -78,14 +78,14 @@ and pp_instruction ~cx (_, instr) =
   let pp_instr var_id instr = Printf.sprintf "%d := %s" (prid var_id) instr in
   let instr_string =
     match instr with
-    | LoadUnit var_id -> pp_instr var_id "LoadUnit"
-    | LoadInt (var_id, int) -> pp_instr var_id (Printf.sprintf "LoadInt %d" int)
-    | LoadString (var_id, string) -> pp_instr var_id (Printf.sprintf "LoadString \"%s\"" string)
-    | LoadBool (var_id, bool) ->
+    | LitUnit var_id -> pp_instr var_id "LitUnit"
+    | LitInt (var_id, int) -> pp_instr var_id (Printf.sprintf "LitInt %d" int)
+    | LitString (var_id, string) -> pp_instr var_id (Printf.sprintf "LitString \"%s\"" string)
+    | LitBool (var_id, bool) ->
       pp_instr
         var_id
         (Printf.sprintf
-           "LoadBool %s"
+           "LitBool %s"
            ( if bool then
              "true"
            else

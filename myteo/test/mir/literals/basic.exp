@@ -1,9 +1,9 @@
 GLOBAL__x:
-  0 := LoadUnit
+  0 := LitUnit
 GLOBAL__y:
-  1 := LoadInt 1
+  1 := LitInt 1
 GLOBAL__z:
-  2 := LoadString "test"
+  2 := LitString "test"
 GLOBAL__a1:
-  3 := LoadBool true
+  3 := LitBool true
 FUNC__main:

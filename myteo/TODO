@@ -9,6 +9,8 @@
 
 # Features
 - Assignment
+  - Enforce immutable variables
+  - Errors for reassigning param?
 - Ternary Operator
 - For loops (traditional, for-each)
 - While loops
@@ -39,4 +41,5 @@
 - Parsing (In Progress)
 - Structural Analysis (TODO)
 - Type Checking (TODO)
-- Back End (TODO)
+- IR Generation
+- 
