@@ -1,7 +1,7 @@
 open Basic_collections
+open Bindings
 open Immutable_utils
 open Types
-module Bindings = Name_resolution.Bindings
 
 type t = {
   bindings: Bindings.t;
@@ -30,47 +30,17 @@ let mk ~bindings =
 
 let add_error ~cx loc error = cx.errors <- (loc, error) :: cx.errors
 
-let get_source_value_binding ~cx use_loc =
-  let open Name_resolution in
-  let open Bindings in
-  let local_decl_loc = LocMap.find use_loc cx.bindings.value_use_to_decl in
-  let local_binding = LocMap.find local_decl_loc cx.bindings.value_bindings in
-  match local_binding.ValueBinding.declaration with
-  | (_, ImportedValue { Ast.Identifier.loc = source_decl_loc; _ }) ->
-    LocMap.find source_decl_loc cx.bindings.value_bindings
-  | _ -> local_binding
+let get_source_value_binding ~cx use_loc = get_source_value_binding cx.bindings use_loc
 
-let get_source_type_binding ~cx use_loc =
-  let open Name_resolution in
-  let open Bindings in
-  let local_decl_loc = LocMap.find use_loc cx.bindings.type_use_to_decl in
-  let local_binding = LocMap.find local_decl_loc cx.bindings.type_bindings in
-  match local_binding.TypeBinding.declaration with
-  | (_, ImportedType { Ast.Identifier.loc = source_decl_loc; _ }) ->
-    LocMap.find source_decl_loc cx.bindings.type_bindings
-  | _ -> local_binding
+let get_source_type_binding ~cx use_loc = get_source_type_binding cx.bindings use_loc
 
-let get_tvar_id_from_value_decl ~cx decl_loc =
-  let open Bindings in
-  let open Name_resolution.ValueBinding in
-  let binding = LocMap.find decl_loc cx.bindings.value_bindings in
-  binding.tvar_id
+let get_tvar_id_from_value_decl ~cx decl_loc = get_tvar_id_from_value_decl cx.bindings decl_loc
 
-let get_tvar_id_from_type_decl ~cx decl_loc =
-  let open Bindings in
-  let open Name_resolution.TypeBinding in
-  let binding = LocMap.find decl_loc cx.bindings.type_bindings in
-  binding.tvar_id
+let get_tvar_id_from_type_decl ~cx decl_loc = get_tvar_id_from_type_decl cx.bindings decl_loc
 
-let get_tvar_id_from_value_use ~cx use_loc =
-  let open Name_resolution.ValueBinding in
-  let binding = get_source_value_binding ~cx use_loc in
-  binding.tvar_id
+let get_tvar_id_from_value_use ~cx use_loc = get_tvar_id_from_value_use cx.bindings use_loc
 
-let get_tvar_id_from_type_use ~cx use_loc =
-  let open Name_resolution.TypeBinding in
-  let binding = get_source_type_binding ~cx use_loc in
-  binding.tvar_id
+let get_tvar_id_from_type_use ~cx use_loc = get_tvar_id_from_type_use cx.bindings use_loc
 
 let get_tvar_from_loc ~cx loc = LocMap.find loc cx.loc_to_tvar
 

@@ -313,4 +313,5 @@ let analyze modules bindings =
   List.iter (fun (_, module_) -> visit_type_declarations ~cx module_) modules;
   List.iter (fun (_, module_) -> visit_value_declarations ~cx module_) modules;
   if cx.errors = [] then List.iter (fun (_, module_) -> check_module ~cx module_) modules;
-  List.rev cx.errors
+  cx.errors <- List.rev cx.errors;
+  cx

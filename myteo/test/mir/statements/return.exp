@@ -1,7 +1,7 @@
-FUNC__test1:
+func unit test1():
   0 := Lit int 1
   Ret
-FUNC__test2:
+func int test2():
   1 := Lit int 99
   Ret 1
-FUNC__main:
+func unit main():

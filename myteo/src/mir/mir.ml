@@ -15,16 +15,11 @@ end =
 and Block : sig
   type t = {
     id: id;
-    label: label;
     instructions: (Loc.t * Instruction.t) list;
     next: next;
   }
 
   and id = int
-
-  and label =
-    | GlobalLabel of string
-    | FuncLabel of string
 
   and next =
     | Halt
@@ -38,7 +33,8 @@ end =
 and Global : sig
   type t = {
     loc: Loc.t;
-    id: var_id;
+    name: string;
+    ty: ValueType.t;
     init: Block.id list;
   }
 end =
@@ -48,7 +44,8 @@ and Function : sig
   type t = {
     loc: Loc.t;
     name: string;
-    params: var_id list;
+    params: (var_id * ValueType.t) list;
+    return_ty: ValueType.t;
     body: Block.id list;
   }
 end =
@@ -68,9 +65,7 @@ and Instruction : sig
   end
 
   type t =
-    (* Literals *)
     | Lit of var_id * LitValue.t
-    (* Functions *)
     | Ret of var_id option
     (* Logical ops *)
     | LogNot of var_id * var_id
@@ -91,6 +86,15 @@ and Instruction : sig
     | GtEq of NumericType.t * var_id * var_id * var_id
 end =
   Instruction
+
+and ValueType : sig
+  type t =
+    | Unit
+    | Int
+    | String
+    | Bool
+end =
+  ValueType
 
 let max_block_id = ref 0
 

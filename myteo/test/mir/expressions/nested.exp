@@ -1,4 +1,4 @@
-GLOBAL__x:
+global int x:
   0 := Lit int 1
   1 := Lit int 2
   2 := Lit int 3
@@ -8,4 +8,4 @@ GLOBAL__x:
   6 := Add int 0 5
   7 := Lit int 67
   8 := Sub int 6 7
-FUNC__main:
+func unit main():

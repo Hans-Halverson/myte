@@ -1,4 +1,4 @@
-FUNC__main:
+func unit main():
   0 := Lit int 8
   1 := Lit int 77
   2 := Lit int 77

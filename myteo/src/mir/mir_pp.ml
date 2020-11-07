@@ -27,16 +27,27 @@ let rec pp_program program =
   String.concat "\n" blocks_strings
 
 and pp_global ~cx ~program global =
+  let open Global in
+  let global_label = Printf.sprintf "global %s %s:" (pp_value_type global.ty) global.name in
   let init_strings =
     List.map
       (fun block_id ->
         let block = IMap.find block_id program.Program.blocks in
         pp_block ~cx block)
-      global.Global.init
+      global.init
   in
-  String.concat "\n" (List.rev init_strings)
+  String.concat "\n" (global_label :: List.rev init_strings)
 
 and pp_func ~cx ~program func =
+  let open Function in
+  let func_params =
+    func.params
+    |> List.map (fun (var_id, ty) -> Printf.sprintf "%s %d" (pp_value_type ty) (prid ~cx var_id))
+    |> String.concat ", "
+  in
+  let func_label =
+    Printf.sprintf "func %s %s(%s):" (pp_value_type func.return_ty) func.name func_params
+  in
   let body_strings =
     List.map
       (fun block_id ->
@@ -44,21 +55,14 @@ and pp_func ~cx ~program func =
         pp_block ~cx block)
       func.Function.body
   in
-  String.concat "\n" (List.rev body_strings)
+  String.concat "\n" (func_label :: List.rev body_strings)
 
 and pp_block ~cx block =
   let open Block in
-  let label =
-    match block.label with
-    | GlobalLabel label -> "GLOBAL__" ^ label
-    | FuncLabel label -> "FUNC__" ^ label
-  in
-  let label_line = label ^ ":" in
   let instr_lines = List.map (pp_instruction ~cx) block.instructions in
-  let lines = label_line :: instr_lines in
   let lines =
     match block.next with
-    | Halt -> lines
+    | Halt -> instr_lines
     | Branch _ -> failwith "Unimplemented"
   in
   String.concat "\n" lines
@@ -77,6 +81,14 @@ and pp_numeric_type ty =
   let open Instruction.NumericType in
   match ty with
   | Int -> "int"
+
+and pp_value_type ty =
+  let open ValueType in
+  match ty with
+  | Unit -> "unit"
+  | Int -> "int"
+  | Bool -> "bool"
+  | String -> "string"
 
 and pp_instruction ~cx (_, instr) =
   let prid = prid ~cx in

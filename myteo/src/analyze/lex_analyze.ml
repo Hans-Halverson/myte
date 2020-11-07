@@ -1,8 +1,9 @@
 type program_context = {
   modules: (string * Ast.Module.t) list;
-  bindings: Name_resolution.Bindings.t;
+  bindings: Bindings.Bindings.t;
   module_tree: Module_tree.module_tree_node Basic_collections.SMap.t;
   main_loc: Loc.t;
+  type_ctx: Type_context.t;
 }
 
 let analyze_module mod_ =
@@ -25,8 +26,10 @@ let analyze_modules mods_and_files =
   if List.length pre_typecheck_errors <> 0 then
     Error pre_typecheck_errors
   else
-    let type_check_errors = Type_check.analyze resolved_mods bindings in
+    let type_ctx = Type_check.analyze resolved_mods bindings in
+    let type_check_errors = type_ctx.errors in
     if List.length type_check_errors <> 0 then
       Error type_check_errors
     else
-      Ok { modules = resolved_mods; bindings; module_tree; main_loc = Option.get main_loc }
+      Ok
+        { modules = resolved_mods; bindings; module_tree; main_loc = Option.get main_loc; type_ctx }

@@ -1,9 +1,9 @@
-GLOBAL__x:
+global unit x:
   0 := Lit unit
-GLOBAL__y:
+global int y:
   1 := Lit int 1
-GLOBAL__z:
+global string z:
   2 := Lit string "test"
-GLOBAL__a1:
+global bool a1:
   3 := Lit bool true
-FUNC__main:
+func unit main():

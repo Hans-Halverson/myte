@@ -19,19 +19,24 @@ and emit_module ~pcx ~ecx (_, mod_) =
 
 and emit_toplevel_variable_declaration ~pcx ~ecx decl =
   let { Statement.VariableDeclaration.loc; pattern; init; _ } = decl in
-  let { Identifier.name; _ } = Ast_utils.id_of_pattern pattern in
-  Ecx.start_block_sequence ~ecx (Block.GlobalLabel name);
-  let init_var = emit_expression ~pcx ~ecx init in
+  let { Identifier.loc = id_loc; name } = Ast_utils.id_of_pattern pattern in
+  (* Build IR for variable init *)
+  Ecx.start_block_sequence ~ecx;
+  ignore (emit_expression ~pcx ~ecx init);
   Ecx.finish_block_halt ~ecx;
   let block_ids = Ecx.get_block_sequence ~ecx in
-  Ecx.add_global ~ecx loc init_var block_ids
+  (* Find value type of variable *)
+  let tvar_id = Bindings.get_tvar_id_from_value_decl pcx.bindings id_loc in
+  let ty = Type_context.find_rep_type ~cx:pcx.type_ctx (Types.TVar tvar_id) |> type_to_value_type in
+  Ecx.add_global ~ecx { Global.loc; name; ty; init = block_ids }
 
 and emit_toplevel_function_declaration ~pcx ~ecx decl =
   let open Ast.Function in
   let { name = { Identifier.loc; name }; params; body; _ } = decl in
+  (* Build IR for function body *)
   let param_ids = List.map (fun _ -> mk_var_id ()) params in
   let block_ids =
-    Ecx.start_block_sequence ~ecx (Block.FuncLabel name);
+    Ecx.start_block_sequence ~ecx;
     match body with
     | Block { Statement.Block.statements; _ } ->
       List.iter (emit_statement ~pcx ~ecx) statements;
@@ -44,7 +49,16 @@ and emit_toplevel_function_declaration ~pcx ~ecx decl =
       Ecx.finish_block_halt ~ecx;
       Ecx.get_block_sequence ~ecx
   in
-  Ecx.add_function ~ecx { Function.loc; name; params = param_ids; body = block_ids }
+  (* Find value type of function *)
+  let func_tvar_id = Bindings.get_tvar_id_from_value_decl pcx.bindings loc in
+  let (param_tys, return_ty) =
+    match Type_context.find_rep_type ~cx:pcx.type_ctx (Types.TVar func_tvar_id) with
+    | Types.Function { params; return } ->
+      (List.map type_to_value_type params, type_to_value_type return)
+    | _ -> failwith "Function must resolve to function type"
+  in
+  let params = List.combine param_ids param_tys in
+  Ecx.add_function ~ecx { Function.loc; name; params; return_ty; body = block_ids }
 
 and emit_expression ~pcx ~ecx expr =
   let open Expression in
@@ -118,3 +132,13 @@ and emit_statement ~pcx ~ecx stmt =
     let init_var = emit_expression ~pcx ~ecx init in
     ignore init_var
   | FunctionDeclaration _ -> failwith "Function declaration not yet converted to IR"
+
+and type_to_value_type ty =
+  match ty with
+  | Types.Unit -> ValueType.Unit
+  | Types.Bool -> ValueType.Bool
+  | Types.Int -> ValueType.Int
+  | Types.String -> ValueType.String
+  | Types.Function _ -> failwith "Functions not yet supported as value type in IR"
+  | Types.TVar _ -> failwith "TVars must be resolved for all values in IR"
+  | Types.Any -> failwith "Any not allowed as value in IR"
