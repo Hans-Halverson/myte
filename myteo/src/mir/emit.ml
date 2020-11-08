@@ -13,28 +13,43 @@ and emit_module ~pcx ~ecx (_, mod_) =
     (fun toplevel ->
       match toplevel with
       | VariableDeclaration decl -> emit_toplevel_variable_declaration ~pcx ~ecx decl
+      | _ -> ())
+    mod_.toplevels;
+  List.iter
+    (fun toplevel ->
+      match toplevel with
       | FunctionDeclaration decl -> emit_toplevel_function_declaration ~pcx ~ecx decl
       | _ -> ())
     mod_.toplevels
 
 and emit_toplevel_variable_declaration ~pcx ~ecx decl =
-  let { Statement.VariableDeclaration.loc; pattern; init; _ } = decl in
-  let { Identifier.loc = id_loc; name } = Ast_utils.id_of_pattern pattern in
+  let { Statement.VariableDeclaration.pattern; init; _ } = decl in
+  let { Identifier.loc; name } = Ast_utils.id_of_pattern pattern in
+  (* Find value type of variable *)
+  let tvar_id = Bindings.get_tvar_id_from_value_decl pcx.bindings loc in
+  let ty = Type_context.find_rep_type ~cx:pcx.type_ctx (Types.TVar tvar_id) |> type_to_value_type in
   (* Build IR for variable init *)
   Ecx.start_block_sequence ~ecx;
-  ignore (emit_expression ~pcx ~ecx init);
+  let var_id = emit_expression ~pcx ~ecx init in
+  Ecx.emit ~ecx loc (Store (var_id, loc));
   Ecx.finish_block_halt ~ecx;
   let block_ids = Ecx.get_block_sequence ~ecx in
-  (* Find value type of variable *)
-  let tvar_id = Bindings.get_tvar_id_from_value_decl pcx.bindings id_loc in
-  let ty = Type_context.find_rep_type ~cx:pcx.type_ctx (Types.TVar tvar_id) |> type_to_value_type in
-  Ecx.add_global ~ecx { Global.loc; name; ty; init = block_ids }
+  Ecx.add_global ~ecx { Global.loc; name; var_id; ty; init = block_ids };
+  Ecx.add_variable ~ecx loc var_id
 
 and emit_toplevel_function_declaration ~pcx ~ecx decl =
   let open Ast.Function in
   let { name = { Identifier.loc; name }; params; body; _ } = decl in
   (* Build IR for function body *)
-  let param_ids = List.map (fun _ -> mk_var_id ()) params in
+  Ecx.enter_variable_scope ~ecx;
+  let param_ids =
+    List.map
+      (fun { Param.name = { Identifier.loc; _ }; _ } ->
+        let var_id = mk_var_id () in
+        Ecx.add_variable ~ecx loc var_id;
+        var_id)
+      params
+  in
   let block_ids =
     Ecx.start_block_sequence ~ecx;
     match body with
@@ -49,6 +64,7 @@ and emit_toplevel_function_declaration ~pcx ~ecx decl =
       Ecx.finish_block_halt ~ecx;
       Ecx.get_block_sequence ~ecx
   in
+  Ecx.exit_variable_scope ~ecx;
   (* Find value type of function *)
   let func_tvar_id = Bindings.get_tvar_id_from_value_decl pcx.bindings loc in
   let (param_tys, return_ty) =
@@ -115,6 +131,10 @@ and emit_expression ~pcx ~ecx expr =
     in
     Ecx.emit ~ecx loc (mk_instr var_id left_var_id right_var_id);
     var_id
+  | Identifier { loc; _ }
+  | ScopedIdentifier { name = { Identifier.loc; _ }; _ } ->
+    let decl_loc = Bindings.get_source_decl_loc_from_value_use pcx.bindings loc in
+    Ecx.lookup_variable ~ecx decl_loc
   | _ ->
     prerr_endline (Ast_pp.pp (Ast_pp.node_of_expression expr));
     failwith "Expression has not yet been converted to IR"

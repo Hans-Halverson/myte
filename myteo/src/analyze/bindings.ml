@@ -83,16 +83,17 @@ let get_tvar_id_from_value_decl bindings decl_loc =
 
 let get_tvar_id_from_type_decl bindings decl_loc =
   let open Bindings in
-  let open TypeBinding in
   let binding = LocMap.find decl_loc bindings.type_bindings in
   binding.tvar_id
 
+let get_source_decl_loc_from_value_use bindings use_loc =
+  let binding = get_source_value_binding bindings use_loc in
+  fst binding.declaration
+
 let get_tvar_id_from_value_use bindings use_loc =
-  let open ValueBinding in
   let binding = get_source_value_binding bindings use_loc in
   binding.tvar_id
 
 let get_tvar_id_from_type_use bindings use_loc =
-  let open TypeBinding in
   let binding = get_source_type_binding bindings use_loc in
   binding.tvar_id

@@ -1,9 +1,13 @@
-global unit x:
-  0 := Lit unit
-global int y:
-  1 := Lit int 1
-global string z:
-  2 := Lit string "test"
-global bool a1:
-  3 := Lit bool true
-func unit main():
+global unit %x:
+  %0 := Lit unit
+  Store %0 %x
+global int %y:
+  %1 := Lit int 1
+  Store %1 %y
+global string %z:
+  %2 := Lit string "test"
+  Store %2 %z
+global bool %a1:
+  %3 := Lit bool true
+  Store %3 %a1
+func unit @main():

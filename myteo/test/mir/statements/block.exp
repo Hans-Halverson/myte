@@ -1,7 +1,7 @@
-func unit main():
-  0 := Lit int 8
-  1 := Lit int 77
-  2 := Lit int 77
-  3 := Lit int 34
-  4 := Mul int 2 3
-  5 := Lit bool true
+func unit @main():
+  %0 := Lit int 8
+  %1 := Lit int 77
+  %2 := Lit int 77
+  %3 := Lit int 34
+  %4 := Mul int %2 %3
+  %5 := Lit bool true

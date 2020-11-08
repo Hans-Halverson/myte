@@ -1,0 +1,8 @@
+global int %x:
+  %0 := Lit int 1
+  Store %0 %x
+func unit @test1(int %1, unit %2):
+  %3 := Lit int 2
+  %4 := Mul int %3 %1
+  %5 := Add int %0 %4
+func unit @main():

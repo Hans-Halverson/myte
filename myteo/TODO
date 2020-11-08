@@ -6,6 +6,8 @@
   - For inexhaustive return, show func decl as well with label, or point to if statement/branch that is inexhaustive
   - For unreachable statement after return, show loc of return as well?
   - For multiple main functions, show both
+- Enforce initialization order for globals
+- Enforce what expressions can appear in global initializers
 
 # Features
 - Assignment

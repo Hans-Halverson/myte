@@ -11,6 +11,8 @@ type t = {
   mutable current_instructions: (Loc.t * Instruction.t) list;
   (* Block ids in the current sequence, in reverse *)
   mutable current_block_sequence_ids: Block.id list;
+  (* Current IR variables for all program variables in scope *)
+  mutable current_var_ids: var_id LocMap.t list;
 }
 
 let mk () =
@@ -21,6 +23,7 @@ let mk () =
     funcs = LocMap.empty;
     current_instructions = [];
     current_block_sequence_ids = [];
+    current_var_ids = [LocMap.empty];
   }
 
 let add_block ~ecx block = ecx.blocks <- IMap.add block.Block.id block ecx.blocks
@@ -47,3 +50,35 @@ let start_block_sequence ~ecx =
 let get_block_sequence ~ecx =
   let block_ids = List.rev ecx.current_block_sequence_ids in
   block_ids
+
+let add_variable ~ecx decl_loc var_id =
+  match ecx.current_var_ids with
+  | [] -> ()
+  | hd :: tl -> ecx.current_var_ids <- LocMap.add decl_loc var_id hd :: tl
+
+let update_variable ~ecx decl_loc var_id =
+  let rec update_variable_list var_ids_list =
+    match var_ids_list with
+    | [] -> []
+    | hd :: tl ->
+      if LocMap.mem decl_loc hd then
+        LocMap.add decl_loc var_id hd :: tl
+      else
+        hd :: update_variable_list tl
+  in
+  ecx.current_var_ids <- update_variable_list ecx.current_var_ids
+
+let lookup_variable ~ecx decl_loc =
+  let rec lookup lst =
+    match lst with
+    | [] -> failwith "Declaration must have been added"
+    | hd :: tl ->
+      (match LocMap.find_opt decl_loc hd with
+      | None -> lookup tl
+      | Some var_id -> var_id)
+  in
+  lookup ecx.current_var_ids
+
+let enter_variable_scope ~ecx = ecx.current_var_ids <- LocMap.empty :: ecx.current_var_ids
+
+let exit_variable_scope ~ecx = ecx.current_var_ids <- List.tl ecx.current_var_ids

@@ -34,6 +34,7 @@ and Global : sig
   type t = {
     loc: Loc.t;
     name: string;
+    var_id: var_id;
     ty: ValueType.t;
     init: Block.id list;
   }
@@ -66,6 +67,7 @@ and Instruction : sig
 
   type t =
     | Lit of var_id * LitValue.t
+    | Store of var_id * Loc.t
     | Ret of var_id option
     (* Logical ops *)
     | LogNot of var_id * var_id
