@@ -1,9 +1,4 @@
 func unit @main():
-  %0 := Lit int 1
-  %1 := Lit int 1
-  %2 := Lit int 2
-  %3 := Lit int 3
-  %4 := Mul int %2 %3
-  %5 := Lit int 4
-  %6 := Div int %4 %5
-  %7 := Add int %1 %6
+  %0 := Mul int 2 3
+  %1 := Div int %0 4
+  %2 := Add int 1 %1

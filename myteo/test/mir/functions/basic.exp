@@ -3,12 +3,9 @@ func unit @empty():
 func unit @emptyParams(int %0, bool %1):
 
 func int @shorthand(int %2):
-  %3 := Lit int 1
-  Ret %3
-func unit @withBody(int %4, bool %5):
-  %6 := Lit int 10
-  %7 := Lit bool true
-  %8 := Lit bool false
-  %9 := LogAnd %7 %8
+  Ret 1
+func unit @withBody(int %3, bool %4):
+  %5 := Lit int 10
+  %6 := LogAnd true false
 func unit @main():
-  %10 := Lit bool true
+  %7 := Lit bool true

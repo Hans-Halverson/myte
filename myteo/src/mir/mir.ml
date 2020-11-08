@@ -53,39 +53,59 @@ end =
   Function
 
 and Instruction : sig
-  module LitValue : sig
+  module UnitValue : sig
     type t =
-      | Unit
-      | Int of int
-      | String of string
-      | Bool of bool
+      | Lit
+      | Var of var_id
   end
 
-  module NumericType : sig
-    type t = Int
+  module BoolValue : sig
+    type t =
+      | Lit of bool
+      | Var of var_id
+  end
+
+  module StringValue : sig
+    type t =
+      | Lit of string
+      | Var of var_id
+  end
+
+  module NumericValue : sig
+    type t =
+      | IntLit of int
+      | IntVar of var_id
+  end
+
+  module Value : sig
+    type t =
+      | Unit of UnitValue.t
+      | Numeric of NumericValue.t
+      | String of StringValue.t
+      | Bool of BoolValue.t
   end
 
   type t =
-    | Lit of var_id * LitValue.t
-    | Store of var_id * Loc.t
-    | Ret of var_id option
+    | Lit of var_id * Value.t
+    | Store of Value.t * Loc.t
+    | Ret of Value.t option
     (* Logical ops *)
-    | LogNot of var_id * var_id
-    | LogAnd of var_id * var_id * var_id
-    | LogOr of var_id * var_id * var_id
+    | LogNot of var_id * BoolValue.t
+    | LogAnd of var_id * BoolValue.t * BoolValue.t
+    | LogOr of var_id * BoolValue.t * BoolValue.t
     (* Unary numeric ops *)
-    | Neg of NumericType.t * var_id * var_id
+    | Neg of var_id * NumericValue.t
     (* Binary numeric ops *)
-    | Add of NumericType.t * var_id * var_id * var_id
-    | Sub of NumericType.t * var_id * var_id * var_id
-    | Mul of NumericType.t * var_id * var_id * var_id
-    | Div of NumericType.t * var_id * var_id * var_id
-    | Eq of NumericType.t * var_id * var_id * var_id
-    | Neq of NumericType.t * var_id * var_id * var_id
-    | Lt of NumericType.t * var_id * var_id * var_id
-    | LtEq of NumericType.t * var_id * var_id * var_id
-    | Gt of NumericType.t * var_id * var_id * var_id
-    | GtEq of NumericType.t * var_id * var_id * var_id
+    | Add of var_id * NumericValue.t * NumericValue.t
+    | Sub of var_id * NumericValue.t * NumericValue.t
+    | Mul of var_id * NumericValue.t * NumericValue.t
+    | Div of var_id * NumericValue.t * NumericValue.t
+    | Eq of var_id * NumericValue.t * NumericValue.t
+    | Neq of var_id * NumericValue.t * NumericValue.t
+    | Lt of var_id * NumericValue.t * NumericValue.t
+    | LtEq of var_id * NumericValue.t * NumericValue.t
+    | Gt of var_id * NumericValue.t * NumericValue.t
+    | GtEq of var_id * NumericValue.t * NumericValue.t
 end =
   Instruction
 
@@ -111,3 +131,29 @@ let mk_var_id () =
   let var_id = !max_var_id in
   max_var_id := var_id + 1;
   var_id
+
+let type_of_value v =
+  let open Instruction in
+  match v with
+  | Value.Unit _ -> ValueType.Unit
+  | Value.Bool _ -> ValueType.Bool
+  | Value.String _ -> ValueType.String
+  | Value.Numeric (IntLit _ | IntVar _) -> ValueType.Int
+
+let var_value_of_type var_id ty =
+  let open Instruction in
+  match ty with
+  | ValueType.Unit -> Value.Unit (Var var_id)
+  | ValueType.Bool -> Value.Bool (Var var_id)
+  | ValueType.String -> Value.String (Var var_id)
+  | ValueType.Int -> Value.Numeric (IntVar var_id)
+
+let var_id_of_value_opt v =
+  let open Instruction in
+  match v with
+  | Value.Unit (Var var_id)
+  | Value.Bool (Var var_id)
+  | Value.String (Var var_id)
+  | Value.Numeric (IntVar var_id) ->
+    Some var_id
+  | _ -> None

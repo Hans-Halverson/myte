@@ -2,6 +2,5 @@ func unit @test1():
   %0 := Lit int 1
   Ret
 func int @test2():
-  %1 := Lit int 99
-  Ret %1
+  Ret 99
 func unit @main():
