@@ -1,0 +1,8 @@
+global int %x:
+  %x := Lit int 1
+global int %y:
+  %y := Lit int %x
+func unit @main():
+  %0 := Lit int 1
+  %1 := Add int %x %y
+  %2 := Add int %0 %0

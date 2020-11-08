@@ -57,4 +57,9 @@ fun test4() {
   x;
 }
 
+// Names cannot be reference in initialize before they are defined
+fun test5() {
+  val x: int = x;
+}
+
 fun main() {}

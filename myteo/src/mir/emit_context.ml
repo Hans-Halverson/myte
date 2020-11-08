@@ -7,6 +7,7 @@ type t = {
   mutable blocks: Block.t IMap.t;
   mutable globals: Global.t LocMap.t;
   mutable funcs: Function.t LocMap.t;
+  mutable global_ids: ISet.t;
   (* Instructions in the block currently being built, in reverse *)
   mutable current_instructions: (Loc.t * Instruction.t) list;
   (* Block ids in the current sequence, in reverse *)
@@ -21,6 +22,7 @@ let mk () =
     blocks = IMap.empty;
     globals = LocMap.empty;
     funcs = LocMap.empty;
+    global_ids = ISet.empty;
     current_instructions = [];
     current_block_sequence_ids = [];
     current_var_ids = [LocMap.empty];
@@ -28,9 +30,13 @@ let mk () =
 
 let add_block ~ecx block = ecx.blocks <- IMap.add block.Block.id block ecx.blocks
 
-let add_global ~ecx global = ecx.globals <- LocMap.add global.Global.loc global ecx.globals
+let add_global ~ecx global =
+  ecx.globals <- LocMap.add global.Global.loc global ecx.globals;
+  ecx.global_ids <- ISet.add global.Global.var_id ecx.global_ids
 
 let add_function ~ecx func = ecx.funcs <- LocMap.add func.Function.loc func ecx.funcs
+
+let is_global ~ecx var_id = ISet.mem var_id ecx.global_ids
 
 let emit ~ecx loc inst = ecx.current_instructions <- (loc, inst) :: ecx.current_instructions
 

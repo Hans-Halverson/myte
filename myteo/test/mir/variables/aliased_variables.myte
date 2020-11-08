@@ -1,0 +1,15 @@
+module test
+
+val x: int = 1;
+val y: int = x;
+
+fun main() {
+  val a = 1;
+  val b = a;
+
+  // Aliased toplevels must have two different variables
+  x + y;
+
+  // Aliased locals use same variable instead of forming separate variables
+  a + b;
+}

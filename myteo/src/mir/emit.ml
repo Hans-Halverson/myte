@@ -37,7 +37,7 @@ and emit_toplevel_variable_declaration ~pcx ~ecx decl =
   let init_val = emit_expression ~pcx ~ecx init in
   let var_id =
     match var_id_of_value_opt init_val with
-    | Some var_id -> var_id
+    | Some var_id when not (Ecx.is_global ~ecx var_id) -> var_id
     | _ ->
       let var_id = mk_var_id () in
       Ecx.emit ~ecx loc (Lit (var_id, init_val));
@@ -176,8 +176,8 @@ and emit_statement ~pcx ~ecx stmt =
     let init_val = emit_expression ~pcx ~ecx init in
     let var_id =
       match var_id_of_value_opt init_val with
-      | Some var_id -> var_id
-      | None ->
+      | Some var_id when not (Ecx.is_global ~ecx var_id) -> var_id
+      | _ ->
         let var_id = mk_var_id () in
         Ecx.emit ~ecx loc (Lit (var_id, init_val));
         var_id

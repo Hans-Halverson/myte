@@ -181,7 +181,7 @@ class bindings_builder ~module_tree =
                   resolve_import name local_name scopes)
               aliases)
         imports;
-      (* Gather toplevel declarations add add them to toplevel scope *)
+      (* Gather toplevel declarations and add them to toplevel scope *)
       List.iter
         (fun toplevel ->
           match toplevel with
@@ -232,11 +232,15 @@ class bindings_builder ~module_tree =
       block'
 
     method visit_variable_declaration ~add decl =
-      let { Ast.Statement.VariableDeclaration.pattern; _ } = decl in
+      let { Ast.Statement.VariableDeclaration.pattern; init; _ } = decl in
       let id = identifier_in_pattern pattern in
       let { Ast.Identifier.loc; name; _ } = id in
+      let init' = this#expression init in
       if add then this#add_value_declaration loc VarDecl name;
-      super#variable_declaration decl
+      if init == init' then
+        decl
+      else
+        { decl with init = init' }
 
     method visit_function_declaration ~add decl =
       let open Ast.Function in

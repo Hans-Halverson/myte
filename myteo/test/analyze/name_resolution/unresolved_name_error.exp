@@ -32,3 +32,8 @@ Error: Could not resolve name "x" to value
 test/analyze/name_resolution/unresolved_name_error.myte:57:2
  57 |   x;
     |   ^
+
+Error: Could not resolve name "x" to value
+test/analyze/name_resolution/unresolved_name_error.myte:62:15
+ 62 |   val x: int = x;
+    |                ^
