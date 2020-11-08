@@ -87,7 +87,6 @@ and Instruction : sig
 
   type t =
     | Lit of var_id * Value.t
-    | Store of Value.t * Loc.t
     | Ret of Value.t option
     (* Logical ops *)
     | LogNot of var_id * BoolValue.t

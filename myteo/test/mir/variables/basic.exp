@@ -1,6 +1,9 @@
 global int %x:
-  Store 1 %x
+  %x := Lit int 1
 func unit @test1(int %0, unit %1):
   %2 := Mul int 2 %0
-  %4 := Add int %3 %2
+  %3 := Add int %x %2
+func unit @test2():
+  %4 := Lit int 1
+  %5 := Mul int 4 34
 func unit @main():

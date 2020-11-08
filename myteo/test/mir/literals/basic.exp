@@ -1,9 +1,9 @@
 global unit %x:
-  Store () %x
+  %x := Lit unit ()
 global int %y:
-  Store 1 %y
+  %y := Lit int 1
 global string %z:
-  Store "test" %z
+  %z := Lit string "test"
 global bool %a1:
-  Store true %a1
+  %a1 := Lit bool true
 func unit @main():

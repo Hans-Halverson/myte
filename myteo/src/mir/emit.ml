@@ -38,9 +38,11 @@ and emit_toplevel_variable_declaration ~pcx ~ecx decl =
   let var_id =
     match var_id_of_value_opt init_val with
     | Some var_id -> var_id
-    | _ -> mk_var_id ()
+    | _ ->
+      let var_id = mk_var_id () in
+      Ecx.emit ~ecx loc (Lit (var_id, init_val));
+      var_id
   in
-  Ecx.emit ~ecx loc (Store (init_val, loc));
   Ecx.finish_block_halt ~ecx;
   let block_ids = Ecx.get_block_sequence ~ecx in
   Ecx.add_global ~ecx { Global.loc; name; var_id; ty; init = block_ids };

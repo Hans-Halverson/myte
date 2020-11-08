@@ -7,4 +7,9 @@ fun test1(y: int, z: unit) {
   z;
 }
 
+fun test2() {
+  val x: int = 1;
+  val y: int = 4 * 34;
+}
+
 fun main() {}

@@ -5,14 +5,22 @@ module Context = struct
   type t = {
     mutable print_id_map: int IMap.t;
     mutable max_print_id: int;
+    global_names: string IMap.t;
   }
 
-  let empty = { print_id_map = IMap.empty; max_print_id = 0 }
+  let mk program =
+    let global_names =
+      LocMap.fold
+        (fun _ { Global.var_id; name; _ } globals -> IMap.add var_id name globals)
+        program.Program.globals
+        IMap.empty
+    in
+    { print_id_map = IMap.empty; max_print_id = 0; global_names }
 end
 
 let rec pp_program program =
   let open Program in
-  let cx = Context.empty in
+  let cx = Context.mk program in
   let get_loc_keys m = LocMap.fold (fun loc _ locs -> loc :: locs) m [] in
   let block_locs = get_loc_keys program.globals @ get_loc_keys program.funcs in
   let sorted_block_locs = List.sort Loc.compare block_locs in
@@ -33,7 +41,7 @@ and pp_global ~cx ~program global =
     List.map
       (fun block_id ->
         let block = IMap.find block_id program.Program.blocks in
-        pp_block ~cx ~program block)
+        pp_block ~cx block)
       global.init
   in
   String.concat "\n" (global_label :: List.rev init_strings)
@@ -53,14 +61,14 @@ and pp_func ~cx ~program func =
     List.map
       (fun block_id ->
         let block = IMap.find block_id program.Program.blocks in
-        pp_block ~cx ~program block)
+        pp_block ~cx block)
       func.Function.body
   in
   String.concat "\n" (func_label :: List.rev body_strings)
 
-and pp_block ~cx ~program block =
+and pp_block ~cx block =
   let open Block in
-  let instr_lines = List.map (pp_instruction ~cx ~program) block.instructions in
+  let instr_lines = List.map (pp_instruction ~cx) block.instructions in
   let lines =
     match block.next with
     | Halt -> instr_lines
@@ -70,16 +78,19 @@ and pp_block ~cx ~program block =
 
 and pp_var_id ~cx var_id =
   let open Context in
-  let print_id =
-    match IMap.find_opt var_id cx.print_id_map with
-    | Some print_id -> print_id
-    | None ->
-      let print_id = cx.max_print_id in
-      cx.print_id_map <- IMap.add var_id print_id cx.print_id_map;
-      cx.max_print_id <- print_id + 1;
-      print_id
-  in
-  Printf.sprintf "%%%d" print_id
+  match IMap.find_opt var_id cx.global_names with
+  | Some global_name -> "%" ^ global_name
+  | None ->
+    let print_id =
+      match IMap.find_opt var_id cx.print_id_map with
+      | Some print_id -> print_id
+      | None ->
+        let print_id = cx.max_print_id in
+        cx.print_id_map <- IMap.add var_id print_id cx.print_id_map;
+        cx.max_print_id <- print_id + 1;
+        print_id
+    in
+    Printf.sprintf "%%%d" print_id
 
 and pp_unit_value ~cx v =
   let open Instruction.UnitValue in
@@ -131,15 +142,12 @@ and pp_type_of_numeric_value v =
   | IntVar _ ->
     "int"
 
-and pp_instruction ~cx ~program (_, instr) =
+and pp_instruction ~cx (_, instr) =
   let pp_instr var_id instr = Printf.sprintf "%s := %s" (pp_var_id ~cx var_id) instr in
   let instr_string =
     match instr with
     | Lit (var_id, lit) ->
       pp_instr var_id (Printf.sprintf "Lit %s %s" (pp_type_of_value lit) (pp_value ~cx lit))
-    | Store (init, global_loc) ->
-      let global = LocMap.find global_loc program.globals in
-      Printf.sprintf "Store %s %%%s" (pp_value ~cx init) global.name
     | Ret val_opt ->
       "Ret"
       ^
