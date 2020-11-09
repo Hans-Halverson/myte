@@ -1,6 +1,14 @@
 open Basic_collections
 open Mir
 
+module BlockBuilder = struct
+  type t = {
+    id: Block.id;
+    (* Instructions in the block currently being built, in reverse *)
+    mutable instructions: (Loc.t * Instruction.t) list;
+  }
+end
+
 type t = {
   (* Data structures for MIR *)
   main_id: Block.id;
@@ -8,8 +16,7 @@ type t = {
   mutable globals: Global.t LocMap.t;
   mutable funcs: Function.t LocMap.t;
   mutable global_ids: ISet.t;
-  (* Instructions in the block currently being built, in reverse *)
-  mutable current_instructions: (Loc.t * Instruction.t) list;
+  mutable current_block_builder: BlockBuilder.t;
   (* Block ids in the current sequence, in reverse *)
   mutable current_block_sequence_ids: Block.id list;
   (* Current IR variables for all program variables in scope *)
@@ -23,7 +30,7 @@ let mk () =
     globals = LocMap.empty;
     funcs = LocMap.empty;
     global_ids = ISet.empty;
-    current_instructions = [];
+    current_block_builder = { id = 0; instructions = [] };
     current_block_sequence_ids = [];
     current_var_ids = [LocMap.empty];
   }
@@ -38,20 +45,27 @@ let add_function ~ecx func = ecx.funcs <- LocMap.add func.Function.loc func ecx.
 
 let is_global_id ~ecx var_id = ISet.mem var_id ecx.global_ids
 
-let emit ~ecx loc inst = ecx.current_instructions <- (loc, inst) :: ecx.current_instructions
+let emit ~ecx loc inst =
+  ecx.current_block_builder.instructions <- (loc, inst) :: ecx.current_block_builder.instructions
 
-let finish_block_halt ~ecx =
+let mk_block_builder () = { BlockBuilder.id = mk_block_id (); instructions = [] }
+
+let set_block_builder ~ecx builder = ecx.current_block_builder <- builder
+
+let start_block ~ecx =
   let block_id = mk_block_id () in
-  let block =
-    { Block.id = block_id; instructions = List.rev ecx.current_instructions; next = Halt }
-  in
-  add_block ~ecx block;
-  ecx.current_instructions <- [];
-  ecx.current_block_sequence_ids <- block_id :: ecx.current_block_sequence_ids
+  ecx.current_block_builder <- { id = block_id; instructions = [] };
+  block_id
 
-let start_block_sequence ~ecx =
-  ecx.current_instructions <- [];
-  ecx.current_block_sequence_ids <- []
+let finish_block ~ecx next =
+  let builder = ecx.current_block_builder in
+  let block = { Block.id = builder.id; instructions = List.rev builder.instructions; next } in
+  add_block ~ecx block;
+  ecx.current_block_sequence_ids <- builder.id :: ecx.current_block_sequence_ids
+
+let finish_block_halt ~ecx = finish_block ~ecx Halt
+
+let start_block_sequence ~ecx = ecx.current_block_sequence_ids <- []
 
 let get_block_sequence ~ecx =
   let block_ids = List.rev ecx.current_block_sequence_ids in
@@ -91,7 +105,7 @@ let exit_variable_scope ~ecx = ecx.current_var_ids <- List.tl ecx.current_var_id
 
 let update_last_instruction_variable ~ecx var_id =
   let open Instruction in
-  match ecx.current_instructions with
+  match ecx.current_block_builder.instructions with
   | [] -> ()
   | (loc, instr) :: instrs ->
     let instr' =
@@ -113,4 +127,4 @@ let update_last_instruction_variable ~ecx var_id =
       | Gt (_, left, right) -> Gt (var_id, left, right)
       | GtEq (_, left, right) -> GtEq (var_id, left, right)
     in
-    ecx.current_instructions <- (loc, instr') :: instrs
+    ecx.current_block_builder.instructions <- (loc, instr') :: instrs

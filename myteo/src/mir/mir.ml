@@ -23,7 +23,9 @@ and Block : sig
 
   and next =
     | Halt
+    | Continue of id
     | Branch of {
+        test: Instruction.BoolValue.t;
         jump: id;
         continue: id;
       }

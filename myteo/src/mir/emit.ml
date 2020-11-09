@@ -35,6 +35,7 @@ and emit_toplevel_variable_declaration ~pcx ~ecx decl =
   let ty = value_type_of_decl_loc ~pcx loc in
   (* Build IR for variable init *)
   Ecx.start_block_sequence ~ecx;
+  ignore (Ecx.start_block ~ecx);
   let init_val = emit_expression ~pcx ~ecx init in
   let var_id = emit_local_var_from_val ~ecx loc init_val in
   Ecx.finish_block_halt ~ecx;
@@ -57,17 +58,15 @@ and emit_toplevel_function_declaration ~pcx ~ecx decl =
   in
   let block_ids =
     Ecx.start_block_sequence ~ecx;
-    match body with
-    | Block { Statement.Block.statements; _ } ->
-      List.iter (emit_statement ~pcx ~ecx) statements;
-      Ecx.finish_block_halt ~ecx;
-      Ecx.get_block_sequence ~ecx
+    ignore (Ecx.start_block ~ecx);
+    (match body with
+    | Block { Statement.Block.statements; _ } -> List.iter (emit_statement ~pcx ~ecx) statements
     | Expression expr ->
       let ret_val = emit_expression ~pcx ~ecx expr in
       let expr_loc = Ast_utils.expression_loc expr in
-      Ecx.emit ~ecx expr_loc (Ret (Some ret_val));
-      Ecx.finish_block_halt ~ecx;
-      Ecx.get_block_sequence ~ecx
+      Ecx.emit ~ecx expr_loc (Ret (Some ret_val)));
+    Ecx.finish_block_halt ~ecx;
+    Ecx.get_block_sequence ~ecx
   in
   Ecx.exit_variable_scope ~ecx;
   (* Find value type of function *)
@@ -84,16 +83,6 @@ and emit_toplevel_function_declaration ~pcx ~ecx decl =
 and emit_expression ~pcx ~ecx expr : Instruction.Value.t =
   let open Expression in
   let open Instruction in
-  let emit_bool_expression ~pcx ~ecx expr =
-    match emit_expression ~pcx ~ecx expr with
-    | Value.Bool v -> v
-    | _ -> failwith "Expected bool value"
-  in
-  let emit_numeric_expression ~pcx ~ecx expr =
-    match emit_expression ~pcx ~ecx expr with
-    | Value.Numeric v -> v
-    | _ -> failwith "Expected numeric value"
-  in
   match expr with
   | Unit _ -> Unit Lit
   | IntLiteral { value; _ } -> Numeric (IntLit value)
@@ -153,6 +142,18 @@ and emit_expression ~pcx ~ecx expr : Instruction.Value.t =
     prerr_endline (Ast_pp.pp (Ast_pp.node_of_expression expr));
     failwith "Expression has not yet been converted to IR"
 
+and emit_bool_expression ~pcx ~ecx expr =
+  let open Instruction in
+  match emit_expression ~pcx ~ecx expr with
+  | Value.Bool v -> v
+  | _ -> failwith "Expected bool value"
+
+and emit_numeric_expression ~pcx ~ecx expr =
+  let open Instruction in
+  match emit_expression ~pcx ~ecx expr with
+  | Value.Numeric v -> v
+  | _ -> failwith "Expected numeric value"
+
 and emit_statement ~pcx ~ecx stmt =
   let open Statement in
   match stmt with
@@ -161,10 +162,42 @@ and emit_statement ~pcx ~ecx stmt =
     Ecx.enter_variable_scope ~ecx;
     List.iter (emit_statement ~pcx ~ecx) statements;
     Ecx.exit_variable_scope ~ecx
-  | If _ -> failwith "If statement not yet converted to IR"
+  | If { loc = _; test; conseq; altern = None } ->
+    (* Branch to conseq or join blocks *)
+    let test_val = emit_bool_expression ~pcx ~ecx test in
+    let conseq_builder = Ecx.mk_block_builder () in
+    let join_builder = Ecx.mk_block_builder () in
+    Ecx.finish_block
+      ~ecx
+      (Branch { test = test_val; continue = conseq_builder.id; jump = join_builder.id });
+    (* Emit conseq and continue to join block*)
+    Ecx.set_block_builder ~ecx conseq_builder;
+    emit_statement ~pcx ~ecx conseq;
+    Ecx.finish_block ~ecx (Continue join_builder.id);
+    (* Join block creates phi nodes *)
+    Ecx.set_block_builder ~ecx join_builder
+  | If { loc = _; test; conseq; altern = Some altern } ->
+    (* Branch to conseq or altern blocks *)
+    let test_val = emit_bool_expression ~pcx ~ecx test in
+    let conseq_builder = Ecx.mk_block_builder () in
+    let altern_builder = Ecx.mk_block_builder () in
+    let join_builder = Ecx.mk_block_builder () in
+    Ecx.finish_block
+      ~ecx
+      (Branch { test = test_val; continue = conseq_builder.id; jump = altern_builder.id });
+    (* Emit conseq and continue to join block *)
+    Ecx.set_block_builder ~ecx conseq_builder;
+    emit_statement ~pcx ~ecx conseq;
+    Ecx.finish_block ~ecx (Continue join_builder.id);
+    (* Emit altern and continue to join block *)
+    Ecx.set_block_builder ~ecx altern_builder;
+    emit_statement ~pcx ~ecx altern;
+    Ecx.finish_block ~ecx (Continue join_builder.id);
+    (* Join block creates phi nodes *)
+    Ecx.set_block_builder ~ecx join_builder
   | Return { loc; arg } ->
-    let arg_var_id = Option.map (emit_expression ~pcx ~ecx) arg in
-    Ecx.emit ~ecx loc (Ret arg_var_id)
+    let arg_val = Option.map (emit_expression ~pcx ~ecx) arg in
+    Ecx.emit ~ecx loc (Ret arg_val)
   | Assignment { loc; pattern; expr } ->
     let { Identifier.loc = use_loc; _ } = Ast_utils.id_of_pattern pattern in
     let decl_loc = Bindings.get_source_decl_loc_from_value_use pcx.bindings use_loc in
