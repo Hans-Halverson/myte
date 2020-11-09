@@ -1,0 +1,21 @@
+module test
+
+val x: int = 0;
+
+fun testReassignGlobals() {
+  x = 1;
+  x = 2 + 3;
+  x = x * x;
+}
+
+fun testReassignLocals() {
+  val y = 0;
+  -y; // To see new variable for y
+  y = 1;
+  -y; // To see new variable for y
+  y = 2 + 3;
+  -y; // To see new variable for y
+  y = y * y;
+}
+
+fun main() {}

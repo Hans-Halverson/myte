@@ -1,5 +1,5 @@
 func unit @test1():
-  %0 := Lit int 1
+  %0 := Mov int 1
   Ret
 func int @test2():
   Ret 99

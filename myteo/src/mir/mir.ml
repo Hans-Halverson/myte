@@ -86,7 +86,7 @@ and Instruction : sig
   end
 
   type t =
-    | Lit of var_id * Value.t
+    | Mov of var_id * Value.t
     | Ret of Value.t option
     (* Logical ops *)
     | LogNot of var_id * BoolValue.t

@@ -36,7 +36,7 @@ let add_global ~ecx global =
 
 let add_function ~ecx func = ecx.funcs <- LocMap.add func.Function.loc func ecx.funcs
 
-let is_global ~ecx var_id = ISet.mem var_id ecx.global_ids
+let is_global_id ~ecx var_id = ISet.mem var_id ecx.global_ids
 
 let emit ~ecx loc inst = ecx.current_instructions <- (loc, inst) :: ecx.current_instructions
 
@@ -88,3 +88,29 @@ let lookup_variable ~ecx decl_loc =
 let enter_variable_scope ~ecx = ecx.current_var_ids <- LocMap.empty :: ecx.current_var_ids
 
 let exit_variable_scope ~ecx = ecx.current_var_ids <- List.tl ecx.current_var_ids
+
+let update_last_instruction_variable ~ecx var_id =
+  let open Instruction in
+  match ecx.current_instructions with
+  | [] -> ()
+  | (loc, instr) :: instrs ->
+    let instr' =
+      match instr with
+      | Mov (_, arg) -> Mov (var_id, arg)
+      | Ret _ -> instr
+      | LogNot (_, arg) -> LogNot (var_id, arg)
+      | LogAnd (_, left, right) -> LogAnd (var_id, left, right)
+      | LogOr (_, left, right) -> LogOr (var_id, left, right)
+      | Neg (_, arg) -> Neg (var_id, arg)
+      | Add (_, left, right) -> Add (var_id, left, right)
+      | Sub (_, left, right) -> Sub (var_id, left, right)
+      | Mul (_, left, right) -> Mul (var_id, left, right)
+      | Div (_, left, right) -> Div (var_id, left, right)
+      | Eq (_, left, right) -> Eq (var_id, left, right)
+      | Neq (_, left, right) -> Neq (var_id, left, right)
+      | Lt (_, left, right) -> Lt (var_id, left, right)
+      | LtEq (_, left, right) -> LtEq (var_id, left, right)
+      | Gt (_, left, right) -> Gt (var_id, left, right)
+      | GtEq (_, left, right) -> GtEq (var_id, left, right)
+    in
+    ecx.current_instructions <- (loc, instr') :: instrs

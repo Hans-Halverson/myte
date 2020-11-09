@@ -1,4 +1,5 @@
 open Ast
+open Basic_collections
 open Mir
 module Ecx = Emit_context
 
@@ -35,14 +36,7 @@ and emit_toplevel_variable_declaration ~pcx ~ecx decl =
   (* Build IR for variable init *)
   Ecx.start_block_sequence ~ecx;
   let init_val = emit_expression ~pcx ~ecx init in
-  let var_id =
-    match var_id_of_value_opt init_val with
-    | Some var_id when not (Ecx.is_global ~ecx var_id) -> var_id
-    | _ ->
-      let var_id = mk_var_id () in
-      Ecx.emit ~ecx loc (Lit (var_id, init_val));
-      var_id
-  in
+  let var_id = emit_local_var_from_val ~ecx loc init_val in
   Ecx.finish_block_halt ~ecx;
   let block_ids = Ecx.get_block_sequence ~ecx in
   Ecx.add_global ~ecx { Global.loc; name; var_id; ty; init = block_ids };
@@ -154,6 +148,7 @@ and emit_expression ~pcx ~ecx expr : Instruction.Value.t =
     let var_id = Ecx.lookup_variable ~ecx decl_loc in
     let ty = value_type_of_decl_loc ~pcx decl_loc in
     var_value_of_type var_id ty
+  | TypeCast { expr; _ } -> emit_expression ~pcx ~ecx expr
   | _ ->
     prerr_endline (Ast_pp.pp (Ast_pp.node_of_expression expr));
     failwith "Expression has not yet been converted to IR"
@@ -170,20 +165,43 @@ and emit_statement ~pcx ~ecx stmt =
   | Return { loc; arg } ->
     let arg_var_id = Option.map (emit_expression ~pcx ~ecx) arg in
     Ecx.emit ~ecx loc (Ret arg_var_id)
-  | Assignment _ -> failwith "Assignment not yet converted to IR"
+  | Assignment { loc; pattern; expr } ->
+    let { Identifier.loc = use_loc; _ } = Ast_utils.id_of_pattern pattern in
+    let decl_loc = Bindings.get_source_decl_loc_from_value_use pcx.bindings use_loc in
+    let expr_val = emit_expression ~pcx ~ecx expr in
+    let var_id =
+      match (var_id_of_value_opt expr_val, LocMap.find_opt decl_loc ecx.globals) with
+      | (Some _, Some { Global.var_id; _ }) ->
+        Ecx.update_last_instruction_variable ~ecx var_id;
+        var_id
+      | (Some expr_var_id, None) -> expr_var_id
+      | (None, global_opt) ->
+        let var_id =
+          match global_opt with
+          | None -> mk_var_id ()
+          | Some { Global.var_id; _ } -> var_id
+        in
+        Ecx.emit ~ecx loc (Mov (var_id, expr_val));
+        var_id
+    in
+    Ecx.update_variable ~ecx decl_loc var_id
   | VariableDeclaration { pattern; init; _ } ->
     let { Identifier.loc; _ } = Ast_utils.id_of_pattern pattern in
     let init_val = emit_expression ~pcx ~ecx init in
-    let var_id =
-      match var_id_of_value_opt init_val with
-      | Some var_id when not (Ecx.is_global ~ecx var_id) -> var_id
-      | _ ->
-        let var_id = mk_var_id () in
-        Ecx.emit ~ecx loc (Lit (var_id, init_val));
-        var_id
-    in
+    let var_id = emit_local_var_from_val ~ecx loc init_val in
     Ecx.add_variable ~ecx loc var_id
   | FunctionDeclaration _ -> failwith "Function declaration not yet converted to IR"
+
+and emit_local_var_from_val ~ecx loc expr_val =
+  match var_id_of_value_opt expr_val with
+  | Some var_id when not (Ecx.is_global_id ~ecx var_id) ->
+    (* Locals can reuse the existing local var *)
+    var_id
+  | _ ->
+    (* Otherwise add an instruction moving expr to local var *)
+    let var_id = mk_var_id () in
+    Ecx.emit ~ecx loc (Mov (var_id, expr_val));
+    var_id
 
 and type_to_value_type ty =
   match ty with

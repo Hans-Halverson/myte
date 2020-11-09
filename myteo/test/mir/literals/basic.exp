@@ -1,9 +1,9 @@
 global unit %x:
-  %x := Lit unit ()
+  %x := Mov unit ()
 global int %y:
-  %y := Lit int 1
+  %y := Mov int 1
 global string %z:
-  %z := Lit string "test"
+  %z := Mov string "test"
 global bool %a1:
-  %a1 := Lit bool true
+  %a1 := Mov bool true
 func unit @main():

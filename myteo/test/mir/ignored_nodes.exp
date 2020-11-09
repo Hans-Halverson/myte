@@ -1,0 +1,3 @@
+func unit @main():
+  %0 := Mov int 1
+  %1 := Mov int 1

@@ -1,8 +1,8 @@
 global int %x:
-  %x := Lit int 1
+  %x := Mov int 1
 global int %y:
-  %y := Lit int %x
+  %y := Mov int %x
 func unit @main():
-  %0 := Lit int 1
+  %0 := Mov int 1
   %1 := Add int %x %y
   %2 := Add int %0 %0

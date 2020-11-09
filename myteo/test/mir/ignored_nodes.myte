@@ -1,0 +1,9 @@
+module test
+
+fun main() {
+  // Type cast ignored, inner expression used
+  val t1 = (1: int);
+
+  // Unary plus ignored, inner numeric used
+  val t2 = +(1);
+}

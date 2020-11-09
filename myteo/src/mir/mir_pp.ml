@@ -146,8 +146,8 @@ and pp_instruction ~cx (_, instr) =
   let pp_instr var_id instr = Printf.sprintf "%s := %s" (pp_var_id ~cx var_id) instr in
   let instr_string =
     match instr with
-    | Lit (var_id, lit) ->
-      pp_instr var_id (Printf.sprintf "Lit %s %s" (pp_type_of_value lit) (pp_value ~cx lit))
+    | Mov (var_id, right) ->
+      pp_instr var_id (Printf.sprintf "Mov %s %s" (pp_type_of_value right) (pp_value ~cx right))
     | Ret val_opt ->
       "Ret"
       ^

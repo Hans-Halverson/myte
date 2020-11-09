@@ -1,4 +1,4 @@
 func unit @main():
-  %0 := Lit int 8
-  %1 := Lit int 77
+  %0 := Mov int 8
+  %1 := Mov int 77
   %2 := Mul int 77 34
