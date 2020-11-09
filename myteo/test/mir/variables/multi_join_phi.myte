@@ -1,0 +1,94 @@
+module test
+
+fun testNeitherUpdated() {
+  val x = 1;
+
+  if (true) {
+    val y = 0;
+  } else {
+    val y = 1;
+  }
+
+  -x;
+}
+
+fun testOnlyFirstUpdated() {
+  val x = 1;
+
+  if (true) {
+    x = 2;
+  } else {
+    val y = 0;
+  }
+
+  -x;
+}
+
+fun testOnlySecondUpdated() {
+  val x = 1;
+
+  if (true) {
+    val y = 0;
+  } else {
+    x = 2;
+  }
+
+  -x;
+}
+
+fun testBothUpdated() {
+   val x = 1;
+
+   if (true) {
+     x = 2;
+   } else {
+     x = 3;
+   }
+
+   -x;
+}
+
+fun testMultiple() {
+  val x = 0;
+  val y = 1;
+  val z = 2;
+
+  if (true) {
+    x = 3;
+  } else {
+    y = 4;
+  }
+
+  -x;
+  -y;
+  -z;
+}
+
+val glob: int = 1;
+fun testGlobal() {
+  if (true) {
+    glob = 2;
+  } else {
+    val y = 0;
+  }
+
+  -glob;
+
+  if (true) {
+    val y = 0;
+  } else {
+    glob = 3;
+  }
+
+  -glob;
+
+  if (true) {
+    glob = 4;
+  } else {
+    glob = 5;
+  }
+
+  -glob;
+}
+
+fun main() {}

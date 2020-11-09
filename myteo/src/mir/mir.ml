@@ -90,6 +90,7 @@ and Instruction : sig
   type t =
     | Mov of var_id * Value.t
     | Ret of Value.t option
+    | Phi of var_id * var_id * var_id
     (* Logical ops *)
     | LogNot of var_id * BoolValue.t
     | LogAnd of var_id * BoolValue.t * BoolValue.t

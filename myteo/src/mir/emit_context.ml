@@ -21,6 +21,8 @@ type t = {
   mutable current_block_sequence_ids: Block.id list;
   (* Current IR variables for all program variables in scope *)
   mutable current_var_ids: var_id LocMap.t list;
+  (* Updated IR variables that have been captured *)
+  mutable current_updated_vars: var_id LocMap.t;
 }
 
 let mk () =
@@ -33,6 +35,7 @@ let mk () =
     current_block_builder = { id = 0; instructions = [] };
     current_block_sequence_ids = [];
     current_var_ids = [LocMap.empty];
+    current_updated_vars = LocMap.empty;
   }
 
 let add_block ~ecx block = ecx.blocks <- IMap.add block.Block.id block ecx.blocks
@@ -44,6 +47,8 @@ let add_global ~ecx global =
 let add_function ~ecx func = ecx.funcs <- LocMap.add func.Function.loc func ecx.funcs
 
 let is_global_id ~ecx var_id = ISet.mem var_id ecx.global_ids
+
+let is_global_loc ~ecx decl_loc = LocMap.mem decl_loc ecx.globals
 
 let emit ~ecx loc inst =
   ecx.current_block_builder.instructions <- (loc, inst) :: ecx.current_block_builder.instructions
@@ -86,9 +91,17 @@ let update_variable ~ecx decl_loc var_id =
       else
         hd :: update_variable_list tl
   in
-  ecx.current_var_ids <- update_variable_list ecx.current_var_ids
+  ecx.current_var_ids <- update_variable_list ecx.current_var_ids;
+  ecx.current_updated_vars <- LocMap.add decl_loc var_id ecx.current_updated_vars
 
-let lookup_variable ~ecx decl_loc =
+let capture_updates ~ecx f =
+  let current_var_ids = ecx.current_var_ids in
+  ecx.current_updated_vars <- LocMap.empty;
+  f ();
+  ecx.current_var_ids <- current_var_ids;
+  ecx.current_updated_vars
+
+let lookup_variable_in_scope decl_loc scopes =
   let rec lookup lst =
     match lst with
     | [] -> failwith "Declaration must have been added"
@@ -97,11 +110,15 @@ let lookup_variable ~ecx decl_loc =
       | None -> lookup tl
       | Some var_id -> var_id)
   in
-  lookup ecx.current_var_ids
+  lookup scopes
+
+let lookup_variable ~ecx decl_loc = lookup_variable_in_scope decl_loc ecx.current_var_ids
 
 let enter_variable_scope ~ecx = ecx.current_var_ids <- LocMap.empty :: ecx.current_var_ids
 
 let exit_variable_scope ~ecx = ecx.current_var_ids <- List.tl ecx.current_var_ids
+
+let get_variable_scopes ~ecx = ecx.current_var_ids
 
 let update_last_instruction_variable ~ecx var_id =
   let open Instruction in
@@ -112,6 +129,7 @@ let update_last_instruction_variable ~ecx var_id =
       match instr with
       | Mov (_, arg) -> Mov (var_id, arg)
       | Ret _ -> instr
+      | Phi (_, arg1, arg2) -> Phi (var_id, arg1, arg2)
       | LogNot (_, arg) -> LogNot (var_id, arg)
       | LogAnd (_, left, right) -> LogAnd (var_id, left, right)
       | LogOr (_, left, right) -> LogOr (var_id, left, right)

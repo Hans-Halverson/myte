@@ -1,0 +1,61 @@
+func unit @testNotUpdated() {
+  %0 := Mov int 1
+  branch true, @0, @1
+label @0:
+  %1 := Mov int 1
+  continue @1
+label @1:
+  %2 := Neg int %0
+}
+
+func unit @testUpdated() {
+  %3 := Mov int 1
+  branch true, @2, @3
+label @2:
+  %4 := Mov int 2
+  continue @3
+label @3:
+  %5 := Phi %3, %4
+  %6 := Neg int %5
+}
+
+func unit @testMultiple() {
+  %7 := Mov int 1
+  %8 := Mov int 2
+  %9 := Mov int 3
+  branch true, @4, @5
+label @4:
+  %10 := Mov int 4
+  %11 := Mov int 5
+  continue @5
+label @5:
+  %12 := Phi %7, %10
+  %13 := Phi %8, %11
+  %14 := Neg int %12
+  %15 := Neg int %13
+  %16 := Neg int %9
+  branch true, @6, @7
+label @6:
+  %17 := Mov int 6
+  continue @7
+label @7:
+  %18 := Phi %12, %17
+  %19 := Neg int %18
+}
+
+global int %glob {
+  %glob := Mov int 1
+}
+
+func unit @testGlobal() {
+  branch true, @8, @9
+label @8:
+  %glob := Mov int 2
+  continue @9
+label @9:
+  %20 := Neg int %glob
+}
+
+func unit @main() {
+
+}

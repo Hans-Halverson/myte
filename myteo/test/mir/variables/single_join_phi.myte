@@ -1,0 +1,53 @@
+module test
+
+fun testNotUpdated() {
+  val x = 1;
+
+  if (true) {
+    val y = 1;
+  }
+
+  -x;
+}
+
+fun testUpdated() {
+  val x = 1;
+
+  if (true) {
+    x = 2;
+  }
+
+  -x;
+}
+
+fun testMultiple() {
+  val x = 1;
+  val y = 2;
+  val z = 3;
+
+  if (true) {
+    x = 4;
+    y = 5;
+  }
+
+  -x;
+  -y;
+  -z;
+
+  if (true) {
+    x = 6;
+  }
+
+  -x;
+}
+
+val glob: int = 1;
+fun testGlobal() {
+  if (true) {
+    glob = 2;
+  }
+
+  -glob;
+}
+
+fun main() {}

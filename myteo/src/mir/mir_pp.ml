@@ -203,6 +203,8 @@ and pp_instruction ~cx (_, instr) =
       (match val_opt with
       | Some v -> " " ^ pp_value ~cx v
       | None -> "")
+    | Phi (var_id, arg1, arg2) ->
+      pp_instr var_id (Printf.sprintf "Phi %s, %s" (pp_var_id ~cx arg1) (pp_var_id ~cx arg2))
     | LogNot (var_id, arg) -> pp_instr var_id (Printf.sprintf "LogNot %s" (pp_bool_value ~cx arg))
     | LogAnd (var_id, left, right) ->
       pp_instr

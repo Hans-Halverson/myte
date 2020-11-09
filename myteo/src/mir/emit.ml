@@ -162,39 +162,43 @@ and emit_statement ~pcx ~ecx stmt =
     Ecx.enter_variable_scope ~ecx;
     List.iter (emit_statement ~pcx ~ecx) statements;
     Ecx.exit_variable_scope ~ecx
-  | If { loc = _; test; conseq; altern = None } ->
+  | If { loc; test; conseq; altern = None } ->
     (* Branch to conseq or join blocks *)
     let test_val = emit_bool_expression ~pcx ~ecx test in
     let conseq_builder = Ecx.mk_block_builder () in
     let join_builder = Ecx.mk_block_builder () in
+    let pre_scopes = Ecx.get_variable_scopes ~ecx in
     Ecx.finish_block
       ~ecx
       (Branch { test = test_val; continue = conseq_builder.id; jump = join_builder.id });
     (* Emit conseq and continue to join block*)
     Ecx.set_block_builder ~ecx conseq_builder;
-    emit_statement ~pcx ~ecx conseq;
+    let conseq_updates = Ecx.capture_updates ~ecx (fun _ -> emit_statement ~pcx ~ecx conseq) in
     Ecx.finish_block ~ecx (Continue join_builder.id);
     (* Join block creates phi nodes *)
-    Ecx.set_block_builder ~ecx join_builder
-  | If { loc = _; test; conseq; altern = Some altern } ->
+    Ecx.set_block_builder ~ecx join_builder;
+    emit_phi_at_single_join ~ecx loc pre_scopes conseq_updates
+  | If { loc; test; conseq; altern = Some altern } ->
     (* Branch to conseq or altern blocks *)
     let test_val = emit_bool_expression ~pcx ~ecx test in
     let conseq_builder = Ecx.mk_block_builder () in
     let altern_builder = Ecx.mk_block_builder () in
     let join_builder = Ecx.mk_block_builder () in
+    let pre_scopes = Ecx.get_variable_scopes ~ecx in
     Ecx.finish_block
       ~ecx
       (Branch { test = test_val; continue = conseq_builder.id; jump = altern_builder.id });
     (* Emit conseq and continue to join block *)
     Ecx.set_block_builder ~ecx conseq_builder;
-    emit_statement ~pcx ~ecx conseq;
+    let conseq_updates = Ecx.capture_updates ~ecx (fun _ -> emit_statement ~pcx ~ecx conseq) in
     Ecx.finish_block ~ecx (Continue join_builder.id);
     (* Emit altern and continue to join block *)
     Ecx.set_block_builder ~ecx altern_builder;
-    emit_statement ~pcx ~ecx altern;
+    let altern_updates = Ecx.capture_updates ~ecx (fun _ -> emit_statement ~pcx ~ecx altern) in
     Ecx.finish_block ~ecx (Continue join_builder.id);
     (* Join block creates phi nodes *)
-    Ecx.set_block_builder ~ecx join_builder
+    Ecx.set_block_builder ~ecx join_builder;
+    emit_phi_at_multi_join ~ecx loc pre_scopes conseq_updates altern_updates
   | Return { loc; arg } ->
     let arg_val = Option.map (emit_expression ~pcx ~ecx) arg in
     Ecx.emit ~ecx loc (Ret arg_val)
@@ -235,6 +239,40 @@ and emit_local_var_from_val ~ecx loc expr_val =
     let var_id = mk_var_id () in
     Ecx.emit ~ecx loc (Mov (var_id, expr_val));
     var_id
+
+and emit_phi_at_single_join ~ecx instr_loc old_scopes updates =
+  (* Variables were updated in only one path so phi with var before branch *)
+  LocMap.iter
+    (fun loc var_id ->
+      if not (Ecx.is_global_loc ~ecx loc) then (
+        let old_var_id = Ecx.lookup_variable_in_scope loc old_scopes in
+        let new_var_id = mk_var_id () in
+        Ecx.emit ~ecx instr_loc (Phi (new_var_id, old_var_id, var_id));
+        Ecx.update_variable ~ecx loc new_var_id
+      ))
+    updates
+
+and emit_phi_at_multi_join ~ecx instr_loc old_scopes updates1 updates2 =
+  let get_loc_keys m = LocMap.fold (fun loc _ locs -> LocSet.add loc locs) m LocSet.empty in
+  let locs = LocSet.union (get_loc_keys updates1) (get_loc_keys updates2) in
+  LocSet.iter
+    (fun loc ->
+      if not (Ecx.is_global_loc ~ecx loc) then
+        match (LocMap.find_opt loc updates1, LocMap.find_opt loc updates2) with
+        (* Variable was updated in both paths so phi both new vars *)
+        | (Some var_id1, Some var_id2) ->
+          let new_var_id = mk_var_id () in
+          Ecx.emit ~ecx instr_loc (Phi (new_var_id, var_id1, var_id2));
+          Ecx.update_variable ~ecx loc new_var_id
+        (* Variable was updated in only one path so phi with var before branch *)
+        | (Some var_id, None)
+        | (None, Some var_id) ->
+          let old_var_id = Ecx.lookup_variable_in_scope loc old_scopes in
+          let new_var_id = mk_var_id () in
+          Ecx.emit ~ecx instr_loc (Phi (new_var_id, old_var_id, var_id));
+          Ecx.update_variable ~ecx loc new_var_id
+        | (None, None) -> failwith "Loc must appear in at least one map")
+    locs
 
 and type_to_value_type ty =
   match ty with
