@@ -44,7 +44,7 @@ let rec pp_program program =
 
 and pp_global ~cx ~program global =
   let open Global in
-  let global_label = Printf.sprintf "global %s %%%s:" (pp_value_type global.ty) global.name in
+  let global_label = Printf.sprintf "global %s %%%s {" (pp_value_type global.ty) global.name in
   calc_print_block_ids ~cx (List.tl global.init);
   let init_strings =
     List.mapi
@@ -53,7 +53,7 @@ and pp_global ~cx ~program global =
         pp_block ~cx ~label:(i <> 0) block)
       global.init
   in
-  String.concat "\n" (global_label :: init_strings)
+  String.concat "\n" ((global_label :: init_strings) @ ["}\n"])
 
 and pp_func ~cx ~program func =
   let open Function in
@@ -64,7 +64,7 @@ and pp_func ~cx ~program func =
     |> String.concat ", "
   in
   let func_label =
-    Printf.sprintf "func %s @%s(%s):" (pp_value_type func.return_ty) func.name func_params
+    Printf.sprintf "func %s @%s(%s) {" (pp_value_type func.return_ty) func.name func_params
   in
   calc_print_block_ids ~cx (List.tl func.Function.body);
   let body_strings =
@@ -74,7 +74,7 @@ and pp_func ~cx ~program func =
         pp_block ~cx ~label:(i <> 0) block)
       func.Function.body
   in
-  String.concat "\n" (func_label :: body_strings)
+  String.concat "\n" ((func_label :: body_strings) @ ["}\n"])
 
 and pp_block ~cx ~label block =
   let open Block in
@@ -93,7 +93,7 @@ and pp_block ~cx ~label block =
       lines
       @ [
           Printf.sprintf
-            "  branch %s %s %s"
+            "  branch %s, %s, %s"
             (pp_bool_value ~cx test)
             (pp_block_id ~cx continue)
             (pp_block_id ~cx jump);
@@ -207,11 +207,11 @@ and pp_instruction ~cx (_, instr) =
     | LogAnd (var_id, left, right) ->
       pp_instr
         var_id
-        (Printf.sprintf "LogAnd %s %s" (pp_bool_value ~cx left) (pp_bool_value ~cx right))
+        (Printf.sprintf "LogAnd %s, %s" (pp_bool_value ~cx left) (pp_bool_value ~cx right))
     | LogOr (var_id, left, right) ->
       pp_instr
         var_id
-        (Printf.sprintf "LogAnd %s %s" (pp_bool_value ~cx left) (pp_bool_value ~cx right))
+        (Printf.sprintf "LogAnd %s, %s" (pp_bool_value ~cx left) (pp_bool_value ~cx right))
     | Neg (var_id, arg) ->
       pp_instr
         var_id
@@ -220,7 +220,7 @@ and pp_instruction ~cx (_, instr) =
       pp_instr
         var_id
         (Printf.sprintf
-           "Add %s %s %s"
+           "Add %s %s, %s"
            (pp_type_of_numeric_value left)
            (pp_numeric_value ~cx left)
            (pp_numeric_value ~cx right))
@@ -228,7 +228,7 @@ and pp_instruction ~cx (_, instr) =
       pp_instr
         var_id
         (Printf.sprintf
-           "Sub %s %s %s"
+           "Sub %s %s, %s"
            (pp_type_of_numeric_value left)
            (pp_numeric_value ~cx left)
            (pp_numeric_value ~cx right))
@@ -236,7 +236,7 @@ and pp_instruction ~cx (_, instr) =
       pp_instr
         var_id
         (Printf.sprintf
-           "Mul %s %s %s"
+           "Mul %s %s, %s"
            (pp_type_of_numeric_value left)
            (pp_numeric_value ~cx left)
            (pp_numeric_value ~cx right))
@@ -244,7 +244,7 @@ and pp_instruction ~cx (_, instr) =
       pp_instr
         var_id
         (Printf.sprintf
-           "Div %s %s %s"
+           "Div %s %s, %s"
            (pp_type_of_numeric_value left)
            (pp_numeric_value ~cx left)
            (pp_numeric_value ~cx right))
@@ -252,7 +252,7 @@ and pp_instruction ~cx (_, instr) =
       pp_instr
         var_id
         (Printf.sprintf
-           "Eq %s %s %s"
+           "Eq %s %s, %s"
            (pp_type_of_numeric_value left)
            (pp_numeric_value ~cx left)
            (pp_numeric_value ~cx right))
@@ -260,7 +260,7 @@ and pp_instruction ~cx (_, instr) =
       pp_instr
         var_id
         (Printf.sprintf
-           "Neq %s %s %s"
+           "Neq %s %s, %s"
            (pp_type_of_numeric_value left)
            (pp_numeric_value ~cx left)
            (pp_numeric_value ~cx right))
@@ -268,7 +268,7 @@ and pp_instruction ~cx (_, instr) =
       pp_instr
         var_id
         (Printf.sprintf
-           "Lt %s %s %s"
+           "Lt %s %s, %s"
            (pp_type_of_numeric_value left)
            (pp_numeric_value ~cx left)
            (pp_numeric_value ~cx right))
@@ -276,7 +276,7 @@ and pp_instruction ~cx (_, instr) =
       pp_instr
         var_id
         (Printf.sprintf
-           "LtEq %s %s %s"
+           "LtEq %s %s, %s"
            (pp_type_of_numeric_value left)
            (pp_numeric_value ~cx left)
            (pp_numeric_value ~cx right))
@@ -284,7 +284,7 @@ and pp_instruction ~cx (_, instr) =
       pp_instr
         var_id
         (Printf.sprintf
-           "Gt %s %s %s"
+           "Gt %s %s, %s"
            (pp_type_of_numeric_value left)
            (pp_numeric_value ~cx left)
            (pp_numeric_value ~cx right))
@@ -292,7 +292,7 @@ and pp_instruction ~cx (_, instr) =
       pp_instr
         var_id
         (Printf.sprintf
-           "GtEq %s %s %s"
+           "GtEq %s %s, %s"
            (pp_type_of_numeric_value left)
            (pp_numeric_value ~cx left)
            (pp_numeric_value ~cx right))

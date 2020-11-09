@@ -1,9 +1,19 @@
-global unit %x:
+global unit %x {
   %x := Mov unit ()
-global int %y:
+}
+
+global int %y {
   %y := Mov int 1
-global string %z:
+}
+
+global string %z {
   %z := Mov string "test"
-global bool %a1:
+}
+
+global bool %a1 {
   %a1 := Mov bool true
-func unit @main():
+}
+
+func unit @main() {
+
+}
