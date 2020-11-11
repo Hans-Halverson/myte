@@ -12,9 +12,17 @@ func int @shorthand(int %2) {
 
 func unit @withBody(int %3, bool %4) {
   %5 := Mov int 10
-  %6 := LogAnd true, false
+  branch true, @0, @1
+label @0:
+  %6 := Mov bool false
+  continue @2
+label @1:
+  %7 := Mov bool false
+  continue @2
+label @2:
+  %8 := Phi %6, %7
 }
 
 func unit @main() {
-  %7 := Mov bool true
+  %9 := Mov bool true
 }

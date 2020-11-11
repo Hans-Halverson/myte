@@ -1,0 +1,8 @@
+module test
+
+fun main() {
+  val x = true;
+  val y = false;
+
+  x && y;
+}

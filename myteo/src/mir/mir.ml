@@ -26,8 +26,8 @@ and Block : sig
     | Continue of id
     | Branch of {
         test: Instruction.BoolValue.t;
-        jump: id;
         continue: id;
+        jump: id;
       }
 end =
   Block
@@ -159,3 +159,7 @@ let var_id_of_value_opt v =
   | Value.Numeric (IntVar var_id) ->
     Some var_id
   | _ -> None
+
+let mk_continue continue = Block.Continue continue
+
+let mk_branch test continue jump = Block.Branch { test; continue; jump }

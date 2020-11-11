@@ -100,16 +100,50 @@ and emit_expression ~pcx ~ecx expr : Instruction.Value.t =
     Ecx.emit ~ecx loc (LogNot (var_id, operand_val));
     var_value_of_type var_id Bool
   | LogicalAnd { loc; left; right } ->
-    let var_id = mk_var_id () in
+    (* Short circuit when lhs is false by jumping to false case *)
+    let rhs_builder = Ecx.mk_block_builder () in
+    let false_builder = Ecx.mk_block_builder () in
+    let join_builder = Ecx.mk_block_builder () in
     let left_val = emit_bool_expression ~pcx ~ecx left in
-    let right_val = emit_bool_expression ~pcx ~ecx right in
-    Ecx.emit ~ecx loc (LogAnd (var_id, left_val, right_val));
+    Ecx.finish_block ~ecx (mk_branch left_val rhs_builder.id false_builder.id);
+    (* Emit right hand side when lhs is true and continue to join block *)
+    Ecx.set_block_builder ~ecx rhs_builder;
+    let right_val = emit_expression ~pcx ~ecx right in
+    let right_var_id = mk_var_id () in
+    Ecx.emit ~ecx loc (Mov (right_var_id, right_val));
+    Ecx.finish_block ~ecx (mk_continue join_builder.id);
+    (* Emit false literal when lhs is false and continue to join block *)
+    Ecx.set_block_builder ~ecx false_builder;
+    let false_var_id = mk_var_id () in
+    Ecx.emit ~ecx loc (Mov (false_var_id, Bool (BoolValue.Lit false)));
+    Ecx.finish_block ~ecx (mk_continue join_builder.id);
+    (* Join cases together and emit phi *)
+    Ecx.set_block_builder ~ecx join_builder;
+    let var_id = mk_var_id () in
+    Ecx.emit ~ecx loc (Phi (var_id, right_var_id, false_var_id));
     var_value_of_type var_id Bool
   | LogicalOr { loc; left; right } ->
-    let var_id = mk_var_id () in
+    (* Short circuit when lhs is true by jumping to true case *)
+    let rhs_builder = Ecx.mk_block_builder () in
+    let true_builder = Ecx.mk_block_builder () in
+    let join_builder = Ecx.mk_block_builder () in
     let left_val = emit_bool_expression ~pcx ~ecx left in
-    let right_val = emit_bool_expression ~pcx ~ecx right in
-    Ecx.emit ~ecx loc (LogOr (var_id, left_val, right_val));
+    Ecx.finish_block ~ecx (mk_branch left_val rhs_builder.id true_builder.id);
+    (* Emit right hand side when lhs is false and continue to join block *)
+    Ecx.set_block_builder ~ecx rhs_builder;
+    let right_val = emit_expression ~pcx ~ecx right in
+    let right_var_id = mk_var_id () in
+    Ecx.emit ~ecx loc (Mov (right_var_id, right_val));
+    Ecx.finish_block ~ecx (mk_continue join_builder.id);
+    (* Emit true literal when lhs is true and continue to join block *)
+    Ecx.set_block_builder ~ecx true_builder;
+    let true_var_id = mk_var_id () in
+    Ecx.emit ~ecx loc (Mov (true_var_id, Bool (BoolValue.Lit true)));
+    Ecx.finish_block ~ecx (mk_continue join_builder.id);
+    (* Join cases together and emit phi *)
+    Ecx.set_block_builder ~ecx join_builder;
+    let var_id = mk_var_id () in
+    Ecx.emit ~ecx loc (Phi (var_id, right_var_id, true_var_id));
     var_value_of_type var_id Bool
   | BinaryOperation { loc; op; left; right } ->
     let open BinaryOperation in
