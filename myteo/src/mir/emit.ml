@@ -233,6 +233,22 @@ and emit_statement ~pcx ~ecx stmt =
     (* Join block creates phi nodes *)
     Ecx.set_block_builder ~ecx join_builder;
     emit_phi_at_multi_join ~ecx loc pre_scopes conseq_updates altern_updates
+  | While { loc; test; body } ->
+    let test_builder = Ecx.mk_block_builder () in
+    let body_builder = Ecx.mk_block_builder () in
+    let finish_builder = Ecx.mk_block_builder () in
+    Ecx.finish_block ~ecx (mk_continue test_builder.id);
+    (* Emit test block which branches to finish or body blocks *)
+    Ecx.set_block_builder ~ecx test_builder;
+    let test_val = emit_bool_expression ~pcx ~ecx test in
+    Ecx.finish_block ~ecx (mk_branch test_val body_builder.id finish_builder.id);
+    (* Emit body block which continues to test block *)
+    Ecx.set_block_builder ~ecx body_builder;
+    let body_updates = Ecx.capture_updates ~ecx (fun _ -> emit_statement ~pcx ~ecx body) in
+    Ecx.finish_block ~ecx (mk_continue test_builder.id);
+    (* Join branches at finish and create phi nodes *)
+    (* TODO create phi nodes *)
+    Ecx.set_block_builder ~ecx finish_builder
   | Return { loc; arg } ->
     let arg_val = Option.map (emit_expression ~pcx ~ecx) arg in
     Ecx.emit ~ecx loc (Ret arg_val)

@@ -59,6 +59,14 @@ and Statement : sig
     }
   end
 
+  module While : sig
+    type t = {
+      loc: Loc.t;
+      test: Expression.t;
+      body: Statement.t;
+    }
+  end
+
   module Return : sig
     type t = {
       loc: Loc.t;
@@ -94,6 +102,7 @@ and Statement : sig
     | Expression of (Loc.t * Expression.t)
     | Block of Block.t
     | If of If.t
+    | While of While.t
     | Return of Return.t
     | Assignment of Assignment.t
 end =

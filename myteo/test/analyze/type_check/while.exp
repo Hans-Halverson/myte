@@ -1,0 +1,4 @@
+Error: Expected type bool but found int
+test/analyze/type_check/while.myte:5:9
+ 5 |   while (1) {}
+   |          ^

@@ -1,0 +1,9 @@
+module test
+
+fun test() {
+  while (true) {}
+
+  while (x) {
+    x = x + 1;
+  }
+}

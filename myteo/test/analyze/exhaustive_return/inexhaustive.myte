@@ -54,3 +54,11 @@ fun test10(): int {
   }
   return 2;
 }
+
+fun testWhile(): int {
+  while (true) {}
+
+  while (true) {
+    return 1;
+  }
+}

@@ -8,6 +8,7 @@ let statement_loc stmt =
   | Expression (loc, _)
   | Block { Block.loc; _ }
   | If { If.loc; _ }
+  | While { While.loc; _ }
   | Return { Return.loc; _ }
   | Assignment { Assignment.loc; _ } ->
     loc
@@ -38,6 +39,7 @@ let rec statement_visitor ~f ?(enter_functions = true) stmt =
   | If { If.conseq; altern; _ } ->
     statement_visitor ~f conseq;
     Option.iter (statement_visitor ~f) altern
+  | While { While.body; _ } -> statement_visitor ~f body
   | FunctionDeclaration { Function.body = Function.Block block; _ } ->
     if enter_functions then statement_visitor ~f (Block block)
   | FunctionDeclaration { Function.body = Function.Expression _; _ }

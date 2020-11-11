@@ -161,6 +161,7 @@ and parse_statement env =
   match Env.token env with
   | T_LEFT_BRACE -> Block (parse_block env)
   | T_IF -> parse_if env
+  | T_WHILE -> parse_while env
   | T_RETURN -> parse_return env
   | T_VAL
   | T_VAR ->
@@ -419,6 +420,16 @@ and parse_if env =
   in
   let loc = marker env in
   Statement.If { loc; test; conseq; altern }
+
+and parse_while env =
+  let marker = mark_loc env in
+  Env.expect env T_WHILE;
+  Env.expect env T_LEFT_PAREN;
+  let test = parse_expression env in
+  Env.expect env T_RIGHT_PAREN;
+  let body = parse_statement env in
+  let loc = marker env in
+  Statement.While { loc; test; body }
 
 and parse_return env =
   let open Statement.Return in

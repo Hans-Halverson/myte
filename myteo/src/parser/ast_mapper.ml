@@ -47,6 +47,7 @@ class mapper =
         | Expression s -> id_map this#expression_statement s stmt (fun s' -> Expression s')
         | Block s -> id_map this#block s stmt (fun s' -> Block s')
         | If s -> id_map this#if_ s stmt (fun s' -> If s')
+        | While s -> id_map this#while_ s stmt (fun s' -> While s')
         | Return s -> id_map this#return s stmt (fun s' -> Return s')
         | Assignment s -> id_map this#assignment s stmt (fun s' -> Assignment s')
 
@@ -266,6 +267,16 @@ class mapper =
         if_
       else
         { loc; test = test'; conseq = conseq'; altern = altern' }
+
+    method while_ while_ =
+      let open Statement.While in
+      let { loc; test; body } = while_ in
+      let test' = this#expression test in
+      let body' = this#statement body in
+      if test == test' && body == body' then
+        while_
+      else
+        { loc; test = test'; body = body' }
 
     method return return =
       let open Statement.Return in

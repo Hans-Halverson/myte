@@ -23,6 +23,7 @@ class analyzer =
       | Return _ -> Exhaustive
       | Expression _
       | Assignment _
+      | While _
       | VariableDeclaration _
       | FunctionDeclaration _ ->
         AtomicInexhaustiveStatement

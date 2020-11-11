@@ -48,6 +48,11 @@ test/analyze/exhaustive_return/inexhaustive.myte:52:20
  52 |     fun baz(): int {}
     |                     ^
 
+Error: All branches of function testWhile must end in a return statement
+test/analyze/exhaustive_return/inexhaustive.myte:64:0
+ 64 | }
+    | ^
+
 Error: Unreachable statement after return
 test/analyze/exhaustive_return/statement_after_return.myte:6:2-4
  6 |   2;

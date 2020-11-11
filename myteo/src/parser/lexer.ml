@@ -107,6 +107,7 @@ let tokenize lex =
   | "fun" -> token_result T_FUN
   | "if" -> token_result T_IF
   | "else" -> token_result T_ELSE
+  | "while" -> token_result T_WHILE
   | "return" -> token_result T_RETURN
   | "module" -> token_result T_MODULE
   | "import" -> token_result T_IMPORT

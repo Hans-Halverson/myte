@@ -32,6 +32,7 @@ type t =
   | T_FUN
   | T_IF
   | T_ELSE
+  | T_WHILE
   | T_RETURN
   | T_MODULE
   | T_IMPORT
@@ -82,6 +83,7 @@ let to_string token =
   | T_FUN -> "fun"
   | T_IF -> "if"
   | T_ELSE -> "else"
+  | T_WHILE -> "while"
   | T_RETURN -> "return"
   | T_MODULE -> "module"
   | T_IMPORT -> "import"

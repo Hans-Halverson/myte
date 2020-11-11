@@ -295,6 +295,10 @@ and check_statement ~cx stmt =
     Type_context.assert_unify ~cx test_loc Bool (TVar test_tvar_id);
     check_statement ~cx conseq;
     Option.iter (check_statement ~cx) altern
+  | While { While.test; body; _ } ->
+    let (test_loc, test_tvar_id) = check_expression ~cx test in
+    Type_context.assert_unify ~cx test_loc Bool (TVar test_tvar_id);
+    check_statement ~cx body
   | Return { Return.loc; arg } ->
     let (arg_loc, arg_ty) =
       match arg with

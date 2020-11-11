@@ -130,6 +130,7 @@ and node_of_statement stmt =
   | Expression expr -> node_of_expression_stmt expr
   | Block block -> node_of_block block
   | If if_ -> node_of_if if_
+  | While while_ -> node_of_while while_
   | Return ret -> node_of_return ret
   | Assignment assign -> node_of_assignment assign
 
@@ -270,6 +271,10 @@ and node_of_if if_ =
       ("conseq", node_of_statement conseq);
       ("altern", opt node_of_statement altern);
     ]
+
+and node_of_while while_ =
+  let { Statement.While.loc; test; body } = while_ in
+  node "While" loc [("test", node_of_expression test); ("body", node_of_statement body)]
 
 and node_of_return ret =
   let { Statement.Return.loc; arg } = ret in

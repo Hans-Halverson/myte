@@ -32,6 +32,7 @@ class ['a] visitor =
         | Expression s -> this#expression_statement acc s
         | Block s -> this#block acc s
         | If s -> this#if_ acc s
+        | While s -> this#while_ acc s
         | Return s -> this#return acc s
         | Assignment s -> this#assignment acc s
 
@@ -178,6 +179,12 @@ class ['a] visitor =
       this#expression acc test;
       this#statement acc conseq;
       Option.iter (this#statement acc) altern
+
+    method while_ acc while_ =
+      let open Statement.While in
+      let { loc = _; test; body } = while_ in
+      this#expression acc test;
+      this#statement acc body
 
     method return acc return =
       let open Statement.Return in
