@@ -73,37 +73,40 @@ label @14:
 }
 
 global int %glob {
-  %glob := Mov int 1
+  StoreGlobal %glob, 1
 }
 
 func unit @testGlobal() {
   branch true, @15, @16
 label @15:
-  %glob := Mov int 2
+  StoreGlobal %glob, 2
   continue @17
 label @16:
   %29 := Mov int 0
   continue @17
 label @17:
-  %30 := Neg int %glob
+  %30 := LoadGlobal %glob
+  %31 := Neg int %30
   branch true, @18, @19
 label @18:
-  %31 := Mov int 0
+  %32 := Mov int 0
   continue @20
 label @19:
-  %glob := Mov int 3
+  StoreGlobal %glob, 3
   continue @20
 label @20:
-  %32 := Neg int %glob
+  %33 := LoadGlobal %glob
+  %34 := Neg int %33
   branch true, @21, @22
 label @21:
-  %glob := Mov int 4
+  StoreGlobal %glob, 4
   continue @23
 label @22:
-  %glob := Mov int 5
+  StoreGlobal %glob, 5
   continue @23
 label @23:
-  %33 := Neg int %glob
+  %35 := LoadGlobal %glob
+  %36 := Neg int %35
 }
 
 func unit @main() {

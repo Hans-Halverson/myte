@@ -42,11 +42,10 @@ and emit_toplevel_variable_declaration ~pcx ~ecx decl =
   Ecx.start_block_sequence ~ecx;
   ignore (Ecx.start_block ~ecx);
   let init_val = emit_expression ~pcx ~ecx init in
-  let var_id = emit_local_var_from_val ~ecx loc init_val in
+  Ecx.emit ~ecx loc (StoreGlobal (loc, init_val));
   Ecx.finish_block_halt ~ecx;
   let block_ids = Ecx.get_block_sequence ~ecx in
-  Ecx.add_global ~ecx { Global.loc; name; var_id; ty; init = block_ids };
-  Ecx.add_variable ~ecx loc var_id
+  Ecx.add_global ~ecx { Global.loc; name; ty; init = block_ids }
 
 and emit_toplevel_function_declaration ~pcx ~ecx decl =
   let open Ast.Function in
@@ -173,8 +172,15 @@ and emit_expression ~pcx ~ecx expr : Instruction.Value.t =
   | Identifier { loc; _ }
   | ScopedIdentifier { name = { Identifier.loc; _ }; _ } ->
     let decl_loc = Bindings.get_source_decl_loc_from_value_use pcx.bindings loc in
-    let var_id = Ecx.lookup_variable ~ecx decl_loc in
     let ty = value_type_of_decl_loc ~pcx decl_loc in
+    let var_id =
+      if Ecx.is_global_loc ~ecx decl_loc then (
+        let var_id = mk_var_id () in
+        Ecx.emit ~ecx loc (LoadGlobal (var_id, decl_loc));
+        var_id
+      ) else
+        Ecx.lookup_variable ~ecx decl_loc
+    in
     var_value_of_type var_id ty
   | TypeCast { expr; _ } -> emit_expression ~pcx ~ecx expr
   | _ ->
@@ -261,22 +267,11 @@ and emit_statement ~pcx ~ecx stmt =
     let { Identifier.loc = use_loc; _ } = Ast_utils.id_of_pattern pattern in
     let decl_loc = Bindings.get_source_decl_loc_from_value_use pcx.bindings use_loc in
     let expr_val = emit_expression ~pcx ~ecx expr in
-    let var_id =
-      match (var_id_of_value_opt expr_val, LocMap.find_opt decl_loc ecx.globals) with
-      | (Some _, Some { Global.var_id; _ }) ->
-        Ecx.update_last_instruction_variable ~ecx var_id;
-        var_id
-      | (Some expr_var_id, None) -> expr_var_id
-      | (None, global_opt) ->
-        let var_id =
-          match global_opt with
-          | None -> mk_var_id ()
-          | Some { Global.var_id; _ } -> var_id
-        in
-        Ecx.emit ~ecx loc (Mov (var_id, expr_val));
-        var_id
-    in
-    Ecx.update_variable ~ecx decl_loc var_id
+    if Ecx.is_global_loc ~ecx decl_loc then
+      Ecx.emit ~ecx loc (StoreGlobal (decl_loc, expr_val))
+    else
+      let var_id = emit_local_var_from_val ~ecx loc expr_val in
+      Ecx.update_variable ~ecx decl_loc var_id
   | VariableDeclaration { pattern; init; _ } ->
     let { Identifier.loc; _ } = Ast_utils.id_of_pattern pattern in
     let init_val = emit_expression ~pcx ~ecx init in
@@ -286,7 +281,7 @@ and emit_statement ~pcx ~ecx stmt =
 
 and emit_local_var_from_val ~ecx loc expr_val =
   match var_id_of_value_opt expr_val with
-  | Some var_id when not (Ecx.is_global_id ~ecx var_id) ->
+  | Some var_id ->
     (* Locals can reuse the existing local var *)
     var_id
   | _ ->

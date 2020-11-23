@@ -1,17 +1,17 @@
 global unit %x {
-  %x := Mov unit ()
+  StoreGlobal %x, ()
 }
 
 global int %y {
-  %y := Mov int 1
+  StoreGlobal %y, 1
 }
 
 global string %z {
-  %z := Mov string "test"
+  StoreGlobal %z, "test"
 }
 
 global bool %a1 {
-  %a1 := Mov bool true
+  StoreGlobal %a1, true
 }
 
 func unit @main() {

@@ -2,7 +2,8 @@ global int %x {
   %0 := Mul int 2, 3
   %1 := Div int %0, 4
   %2 := Add int 1, %1
-  %x := Sub int %2, 67
+  %3 := Sub int %2, 67
+  StoreGlobal %x, %3
 }
 
 func unit @main() {

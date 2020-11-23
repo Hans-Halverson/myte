@@ -1,13 +1,16 @@
 global int %x {
-  %x := Mov int 1
+  StoreGlobal %x, 1
 }
 
 global int %y {
-  %y := Mov int %x
+  %0 := LoadGlobal %x
+  StoreGlobal %y, %0
 }
 
 func unit @main() {
-  %0 := Mov int 1
-  %1 := Add int %x, %y
-  %2 := Add int %0, %0
+  %1 := Mov int 1
+  %2 := LoadGlobal %x
+  %3 := LoadGlobal %y
+  %4 := Add int %2, %3
+  %5 := Add int %1, %1
 }

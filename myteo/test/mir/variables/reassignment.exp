@@ -1,21 +1,25 @@
 global int %x {
-  %x := Mov int 0
+  StoreGlobal %x, 0
 }
 
 func unit @testReassignGlobals() {
-  %x := Mov int 1
-  %x := Add int 2, 3
-  %x := Mul int %x, %x
+  StoreGlobal %x, 1
+  %0 := Add int 2, 3
+  StoreGlobal %x, %0
+  %1 := LoadGlobal %x
+  %2 := LoadGlobal %x
+  %3 := Mul int %1, %2
+  StoreGlobal %x, %3
 }
 
 func unit @testReassignLocals() {
-  %0 := Mov int 0
-  %1 := Neg int %0
-  %2 := Mov int 1
-  %3 := Neg int %2
-  %4 := Add int 2, 3
+  %4 := Mov int 0
   %5 := Neg int %4
-  %6 := Mul int %4, %4
+  %6 := Mov int 1
+  %7 := Neg int %6
+  %8 := Add int 2, 3
+  %9 := Neg int %8
+  %10 := Mul int %8, %8
 }
 
 func unit @main() {

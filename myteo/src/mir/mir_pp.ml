@@ -7,22 +7,16 @@ module Context = struct
     mutable max_print_var_id: int;
     mutable print_block_id_map: int IMap.t;
     mutable max_print_block_id: int;
-    global_names: string IMap.t;
+    globals: Global.t LocMap.t;
   }
 
   let mk program =
-    let global_names =
-      LocMap.fold
-        (fun _ { Global.var_id; name; _ } globals -> IMap.add var_id name globals)
-        program.Program.globals
-        IMap.empty
-    in
     {
       print_var_id_map = IMap.empty;
       max_print_var_id = 0;
       print_block_id_map = IMap.empty;
       max_print_block_id = 0;
-      global_names;
+      globals = program.Program.globals;
     }
 end
 
@@ -103,19 +97,16 @@ and pp_block ~cx ~label block =
 
 and pp_var_id ~cx var_id =
   let open Context in
-  match IMap.find_opt var_id cx.global_names with
-  | Some global_name -> "%" ^ global_name
-  | None ->
-    let print_id =
-      match IMap.find_opt var_id cx.print_var_id_map with
-      | Some print_id -> print_id
-      | None ->
-        let print_id = cx.max_print_var_id in
-        cx.print_var_id_map <- IMap.add var_id print_id cx.print_var_id_map;
-        cx.max_print_var_id <- print_id + 1;
-        print_id
-    in
-    Printf.sprintf "%%%d" print_id
+  let print_id =
+    match IMap.find_opt var_id cx.print_var_id_map with
+    | Some print_id -> print_id
+    | None ->
+      let print_id = cx.max_print_var_id in
+      cx.print_var_id_map <- IMap.add var_id print_id cx.print_var_id_map;
+      cx.max_print_var_id <- print_id + 1;
+      print_id
+  in
+  Printf.sprintf "%%%d" print_id
 
 and calc_print_block_ids ~cx block_ids =
   List.iter
@@ -193,6 +184,10 @@ and pp_type_of_numeric_value v =
 
 and pp_instruction ~cx (_, instr) =
   let pp_instr var_id instr = Printf.sprintf "%s := %s" (pp_var_id ~cx var_id) instr in
+  let pp_global global_loc =
+    let global = LocMap.find global_loc cx.globals in
+    "%" ^ global.name
+  in
   let instr_string =
     match instr with
     | Mov (var_id, right) ->
@@ -206,6 +201,10 @@ and pp_instruction ~cx (_, instr) =
     | Phi (var_id, args) ->
       let args = String.concat ", " (List.map (pp_var_id ~cx) args) in
       pp_instr var_id (Printf.sprintf "Phi %s" args)
+    | LoadGlobal (var_id, global_loc) ->
+      pp_instr var_id (Printf.sprintf "LoadGlobal %s" (pp_global global_loc))
+    | StoreGlobal (global_loc, right) ->
+      Printf.sprintf "StoreGlobal %s, %s" (pp_global global_loc) (pp_value ~cx right)
     | LogNot (var_id, arg) -> pp_instr var_id (Printf.sprintf "LogNot %s" (pp_bool_value ~cx arg))
     | LogAnd (var_id, left, right) ->
       pp_instr

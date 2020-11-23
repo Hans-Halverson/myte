@@ -25,7 +25,6 @@ type t = {
   mutable blocks: BlockBuilder.t IMap.t;
   mutable globals: Global.t LocMap.t;
   mutable funcs: Function.t LocMap.t;
-  mutable global_ids: ISet.t;
   mutable current_block_builder: BlockBuilder.t;
   (* Block ids in the current sequence, in reverse *)
   mutable current_block_sequence_ids: Block.id list;
@@ -41,7 +40,6 @@ let mk () =
     blocks = IMap.empty;
     globals = LocMap.empty;
     funcs = LocMap.empty;
-    global_ids = ISet.empty;
     current_block_builder = { id = 0; phis = []; instructions = []; next = Halt };
     current_block_sequence_ids = [];
     current_var_ids = [LocMap.empty];
@@ -61,13 +59,9 @@ let builders_to_blocks builders : Block.t IMap.t =
 let add_block ~ecx block_builder =
   ecx.blocks <- IMap.add block_builder.BlockBuilder.id block_builder ecx.blocks
 
-let add_global ~ecx global =
-  ecx.globals <- LocMap.add global.Global.loc global ecx.globals;
-  ecx.global_ids <- ISet.add global.Global.var_id ecx.global_ids
+let add_global ~ecx global = ecx.globals <- LocMap.add global.Global.loc global ecx.globals
 
 let add_function ~ecx func = ecx.funcs <- LocMap.add func.Function.loc func ecx.funcs
-
-let is_global_id ~ecx var_id = ISet.mem var_id ecx.global_ids
 
 let is_global_loc ~ecx decl_loc = LocMap.mem decl_loc ecx.globals
 
@@ -141,30 +135,3 @@ let enter_variable_scope ~ecx = ecx.current_var_ids <- LocMap.empty :: ecx.curre
 let exit_variable_scope ~ecx = ecx.current_var_ids <- List.tl ecx.current_var_ids
 
 let get_variable_scopes ~ecx = ecx.current_var_ids
-
-let update_last_instruction_variable ~ecx var_id =
-  let open Instruction in
-  match ecx.current_block_builder.instructions with
-  | [] -> ()
-  | (loc, instr) :: instrs ->
-    let instr' =
-      match instr with
-      | Mov (_, arg) -> Mov (var_id, arg)
-      | Ret _ -> instr
-      | Phi (_, args) -> Phi (var_id, args)
-      | LogNot (_, arg) -> LogNot (var_id, arg)
-      | LogAnd (_, left, right) -> LogAnd (var_id, left, right)
-      | LogOr (_, left, right) -> LogOr (var_id, left, right)
-      | Neg (_, arg) -> Neg (var_id, arg)
-      | Add (_, left, right) -> Add (var_id, left, right)
-      | Sub (_, left, right) -> Sub (var_id, left, right)
-      | Mul (_, left, right) -> Mul (var_id, left, right)
-      | Div (_, left, right) -> Div (var_id, left, right)
-      | Eq (_, left, right) -> Eq (var_id, left, right)
-      | Neq (_, left, right) -> Neq (var_id, left, right)
-      | Lt (_, left, right) -> Lt (var_id, left, right)
-      | LtEq (_, left, right) -> LtEq (var_id, left, right)
-      | Gt (_, left, right) -> Gt (var_id, left, right)
-      | GtEq (_, left, right) -> GtEq (var_id, left, right)
-    in
-    ecx.current_block_builder.instructions <- (loc, instr') :: instrs

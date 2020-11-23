@@ -1,15 +1,16 @@
 global int %x {
-  %x := Mov int 1
+  StoreGlobal %x, 1
 }
 
 func unit @test1(int %0, unit %1) {
-  %2 := Mul int 2, %0
-  %3 := Add int %x, %2
+  %2 := LoadGlobal %x
+  %3 := Mul int 2, %0
+  %4 := Add int %2, %3
 }
 
 func unit @test2() {
-  %4 := Mov int %x
-  %5 := Mul int 4, 34
+  %5 := LoadGlobal %x
+  %6 := Mul int 4, 34
 }
 
 func unit @main() {
