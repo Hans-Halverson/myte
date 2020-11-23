@@ -6,7 +6,12 @@ module Ecx = Emit_context
 let rec emit_program (pcx : Lex_analyze.program_context) =
   let ecx = Emit_context.mk () in
   List.iter (emit_module ~pcx ~ecx) pcx.modules;
-  { Program.main_id = ecx.main_id; blocks = ecx.blocks; globals = ecx.globals; funcs = ecx.funcs }
+  {
+    Program.main_id = ecx.main_id;
+    blocks = Ecx.builders_to_blocks ecx.blocks;
+    globals = ecx.globals;
+    funcs = ecx.funcs;
+  }
 
 and emit_module ~pcx ~ecx (_, mod_) =
   let open Module in
@@ -120,7 +125,7 @@ and emit_expression ~pcx ~ecx expr : Instruction.Value.t =
     (* Join cases together and emit phi *)
     Ecx.set_block_builder ~ecx join_builder;
     let var_id = mk_var_id () in
-    Ecx.emit ~ecx loc (Phi (var_id, right_var_id, false_var_id));
+    Ecx.emit ~ecx loc (Phi (var_id, [right_var_id; false_var_id]));
     var_value_of_type var_id Bool
   | LogicalOr { loc; left; right } ->
     (* Short circuit when lhs is true by jumping to true case *)
@@ -143,7 +148,7 @@ and emit_expression ~pcx ~ecx expr : Instruction.Value.t =
     (* Join cases together and emit phi *)
     Ecx.set_block_builder ~ecx join_builder;
     let var_id = mk_var_id () in
-    Ecx.emit ~ecx loc (Phi (var_id, right_var_id, true_var_id));
+    Ecx.emit ~ecx loc (Phi (var_id, [right_var_id; true_var_id]));
     var_value_of_type var_id Bool
   | BinaryOperation { loc; op; left; right } ->
     let open BinaryOperation in
@@ -233,7 +238,7 @@ and emit_statement ~pcx ~ecx stmt =
     (* Join block creates phi nodes *)
     Ecx.set_block_builder ~ecx join_builder;
     emit_phi_at_multi_join ~ecx loc pre_scopes conseq_updates altern_updates
-  | While { loc; test; body } ->
+  | While { loc = _; test; body } ->
     let test_builder = Ecx.mk_block_builder () in
     let body_builder = Ecx.mk_block_builder () in
     let finish_builder = Ecx.mk_block_builder () in
@@ -244,7 +249,7 @@ and emit_statement ~pcx ~ecx stmt =
     Ecx.finish_block ~ecx (mk_branch test_val body_builder.id finish_builder.id);
     (* Emit body block which continues to test block *)
     Ecx.set_block_builder ~ecx body_builder;
-    let body_updates = Ecx.capture_updates ~ecx (fun _ -> emit_statement ~pcx ~ecx body) in
+    emit_statement ~pcx ~ecx body;
     Ecx.finish_block ~ecx (mk_continue test_builder.id);
     (* Join branches at finish and create phi nodes *)
     (* TODO create phi nodes *)
@@ -297,7 +302,7 @@ and emit_phi_at_single_join ~ecx instr_loc old_scopes updates =
       if not (Ecx.is_global_loc ~ecx loc) then (
         let old_var_id = Ecx.lookup_variable_in_scope loc old_scopes in
         let new_var_id = mk_var_id () in
-        Ecx.emit ~ecx instr_loc (Phi (new_var_id, old_var_id, var_id));
+        Ecx.emit ~ecx instr_loc (Phi (new_var_id, [old_var_id; var_id]));
         Ecx.update_variable ~ecx loc new_var_id
       ))
     updates
@@ -312,14 +317,14 @@ and emit_phi_at_multi_join ~ecx instr_loc old_scopes updates1 updates2 =
         (* Variable was updated in both paths so phi both new vars *)
         | (Some var_id1, Some var_id2) ->
           let new_var_id = mk_var_id () in
-          Ecx.emit ~ecx instr_loc (Phi (new_var_id, var_id1, var_id2));
+          Ecx.emit ~ecx instr_loc (Phi (new_var_id, [var_id1; var_id2]));
           Ecx.update_variable ~ecx loc new_var_id
         (* Variable was updated in only one path so phi with var before branch *)
         | (Some var_id, None)
         | (None, Some var_id) ->
           let old_var_id = Ecx.lookup_variable_in_scope loc old_scopes in
           let new_var_id = mk_var_id () in
-          Ecx.emit ~ecx instr_loc (Phi (new_var_id, old_var_id, var_id));
+          Ecx.emit ~ecx instr_loc (Phi (new_var_id, [old_var_id; var_id]));
           Ecx.update_variable ~ecx loc new_var_id
         | (None, None) -> failwith "Loc must appear in at least one map")
     locs

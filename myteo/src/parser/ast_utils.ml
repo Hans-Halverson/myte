@@ -53,3 +53,14 @@ let id_of_pattern patt =
   let open Pattern in
   match patt with
   | Identifier id -> id
+
+let split_toplevels toplevels =
+  let open Module in
+  let rec helper (vars, funcs) toplevels =
+    match toplevels with
+    | [] -> (List.rev vars, List.rev funcs)
+    | VariableDeclaration decl :: toplevels -> helper (decl :: vars, funcs) toplevels
+    | FunctionDeclaration decl :: toplevels -> helper (vars, decl :: funcs) toplevels
+    | TypeDeclaration _ :: toplevels -> helper (vars, funcs) toplevels
+  in
+  helper ([], []) toplevels
