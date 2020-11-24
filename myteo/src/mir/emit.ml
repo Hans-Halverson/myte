@@ -84,7 +84,7 @@ and emit_toplevel_function_declaration ~pcx ~ecx decl =
   let params = List.combine param_ids param_tys in
   Ecx.add_function ~ecx { Function.loc; name; params; return_ty; body = block_ids }
 
-and emit_expression ~pcx ~ecx expr : Instruction.Value.t =
+and emit_expression ~pcx ~ecx expr =
   let open Expression in
   let open Instruction in
   match expr with

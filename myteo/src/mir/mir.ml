@@ -2,6 +2,74 @@ open Basic_collections
 
 type var_id = int
 
+module rec Instruction : sig
+  module UnitValue : sig
+    type 'a t =
+      | Lit
+      | Var of 'a
+  end
+
+  module BoolValue : sig
+    type 'a t =
+      | Lit of bool
+      | Var of 'a
+  end
+
+  module StringValue : sig
+    type 'a t =
+      | Lit of string
+      | Var of 'a
+  end
+
+  module NumericValue : sig
+    type 'a t =
+      | IntLit of int
+      | IntVar of 'a
+  end
+
+  module Value : sig
+    type 'a t =
+      | Unit of 'a UnitValue.t
+      | Numeric of 'a NumericValue.t
+      | String of 'a StringValue.t
+      | Bool of 'a BoolValue.t
+  end
+
+  type 'a t =
+    | Mov of var_id * 'a Value.t
+    | Ret of 'a Value.t option
+    | Phi of var_id * var_id list
+    (* Globals *)
+    | LoadGlobal of var_id * Loc.t
+    | StoreGlobal of Loc.t * 'a Value.t
+    (* Logical ops *)
+    | LogNot of var_id * 'a BoolValue.t
+    | LogAnd of var_id * 'a BoolValue.t * 'a BoolValue.t
+    | LogOr of var_id * 'a BoolValue.t * 'a BoolValue.t
+    (* Unary numeric ops *)
+    | Neg of var_id * 'a NumericValue.t
+    (* Binary numeric ops *)
+    | Add of var_id * 'a NumericValue.t * 'a NumericValue.t
+    | Sub of var_id * 'a NumericValue.t * 'a NumericValue.t
+    | Mul of var_id * 'a NumericValue.t * 'a NumericValue.t
+    | Div of var_id * 'a NumericValue.t * 'a NumericValue.t
+    | Eq of var_id * 'a NumericValue.t * 'a NumericValue.t
+    | Neq of var_id * 'a NumericValue.t * 'a NumericValue.t
+    | Lt of var_id * 'a NumericValue.t * 'a NumericValue.t
+    | LtEq of var_id * 'a NumericValue.t * 'a NumericValue.t
+    | Gt of var_id * 'a NumericValue.t * 'a NumericValue.t
+    | GtEq of var_id * 'a NumericValue.t * 'a NumericValue.t
+end =
+  Instruction
+
+type ssa_instruction = var_id Instruction.t
+
+type cf_instruction = cf_var Instruction.t
+
+and cf_var =
+  | Id of var_id
+  | Local of Loc.t
+
 module rec Program : sig
   type t = {
     main_id: Block.id;
@@ -15,17 +83,17 @@ end =
 and Block : sig
   type t = {
     id: id;
-    instructions: (Loc.t * Instruction.t) list;
-    next: next;
+    instructions: (Loc.t * ssa_instruction) list;
+    next: var_id next;
   }
 
   and id = int
 
-  and next =
+  and 'a next =
     | Halt
     | Continue of id
     | Branch of {
-        test: Instruction.BoolValue.t;
+        test: 'a Instruction.BoolValue.t;
         continue: id;
         jump: id;
       }
@@ -52,66 +120,6 @@ and Function : sig
   }
 end =
   Function
-
-and Instruction : sig
-  module UnitValue : sig
-    type t =
-      | Lit
-      | Var of var_id
-  end
-
-  module BoolValue : sig
-    type t =
-      | Lit of bool
-      | Var of var_id
-  end
-
-  module StringValue : sig
-    type t =
-      | Lit of string
-      | Var of var_id
-  end
-
-  module NumericValue : sig
-    type t =
-      | IntLit of int
-      | IntVar of var_id
-  end
-
-  module Value : sig
-    type t =
-      | Unit of UnitValue.t
-      | Numeric of NumericValue.t
-      | String of StringValue.t
-      | Bool of BoolValue.t
-  end
-
-  type t =
-    | Mov of var_id * Value.t
-    | Ret of Value.t option
-    | Phi of var_id * var_id list
-    (* Globals *)
-    | LoadGlobal of var_id * Loc.t
-    | StoreGlobal of Loc.t * Value.t
-    (* Logical ops *)
-    | LogNot of var_id * BoolValue.t
-    | LogAnd of var_id * BoolValue.t * BoolValue.t
-    | LogOr of var_id * BoolValue.t * BoolValue.t
-    (* Unary numeric ops *)
-    | Neg of var_id * NumericValue.t
-    (* Binary numeric ops *)
-    | Add of var_id * NumericValue.t * NumericValue.t
-    | Sub of var_id * NumericValue.t * NumericValue.t
-    | Mul of var_id * NumericValue.t * NumericValue.t
-    | Div of var_id * NumericValue.t * NumericValue.t
-    | Eq of var_id * NumericValue.t * NumericValue.t
-    | Neq of var_id * NumericValue.t * NumericValue.t
-    | Lt of var_id * NumericValue.t * NumericValue.t
-    | LtEq of var_id * NumericValue.t * NumericValue.t
-    | Gt of var_id * NumericValue.t * NumericValue.t
-    | GtEq of var_id * NumericValue.t * NumericValue.t
-end =
-  Instruction
 
 and ValueType : sig
   type t =

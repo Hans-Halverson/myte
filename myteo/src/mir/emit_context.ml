@@ -1,6 +1,8 @@
 open Basic_collections
 open Mir
 
+type instr_id = int
+
 module BlockBuilder = struct
   module Phi = struct
     type t = {
@@ -14,8 +16,8 @@ module BlockBuilder = struct
     id: Block.id;
     mutable phis: Phi.t list;
     (* Instructions in the block currently being built, in reverse *)
-    mutable instructions: (Loc.t * Instruction.t) list;
-    mutable next: Block.next;
+    mutable instructions: (instr_id * Loc.t * ssa_instruction) list;
+    mutable next: var_id Block.next;
   }
 end
 
@@ -51,7 +53,8 @@ let builders_to_blocks builders : Block.t IMap.t =
     (fun builder ->
       {
         Block.id = builder.BlockBuilder.id;
-        instructions = List.rev builder.instructions;
+        instructions =
+          List.rev (List.map (fun (_, loc, instr) -> (loc, instr)) builder.instructions);
         next = builder.next;
       })
     builders
@@ -65,8 +68,16 @@ let add_function ~ecx func = ecx.funcs <- LocMap.add func.Function.loc func ecx.
 
 let is_global_loc ~ecx decl_loc = LocMap.mem decl_loc ecx.globals
 
+let max_instr_id = ref 0
+
+let mk_instr_id () =
+  let instr_id = !max_instr_id in
+  max_instr_id := instr_id + 1;
+  instr_id
+
 let emit ~ecx loc inst =
-  ecx.current_block_builder.instructions <- (loc, inst) :: ecx.current_block_builder.instructions
+  ecx.current_block_builder.instructions <-
+    (mk_instr_id (), loc, inst) :: ecx.current_block_builder.instructions
 
 let mk_block_builder () =
   { BlockBuilder.id = mk_block_id (); phis = []; instructions = []; next = Halt }
