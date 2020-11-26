@@ -75,9 +75,9 @@ end =
 and Block : sig
   type 'var t = {
     id: id;
-    phis: ('var * 'var list) list;
-    instructions: (Loc.t * 'var Instruction.t) list;
-    next: 'var next;
+    mutable phis: ('var * 'var list) list;
+    mutable instructions: (Loc.t * 'var Instruction.t) list;
+    mutable next: 'var next;
   }
 
   and id = int

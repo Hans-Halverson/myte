@@ -21,14 +21,12 @@ open Mir
     Also for each block, save the source for each variable currently in scope. The source will
     either be a concrete location or a phi chain node.
 
-    Also for each variable use in each block save the "local" source, which will be either the
-    write location if it is within the same block, otherwise it is marked as a write coming from
-    before the block.
+    Also for each variable use in each block save the source, which will be either be a concrete
+    location or a phi chain node.
 
   Realize Phi Nodes:
     Determine the minimal set of phi nodes needed for the SSA IR. For each of the saved variables
-    from above that are used from a write before their block, look up their source and if it is a
-    phi node mark it as realized (giving it a variable id).
+    whose source is a phi, mark the phi node as realized (giving it a variable id).
     
     Later, when determining the concrete write locations which are args to each phi node, we simply
     need to traverse the phi chain node graph and collecting all concrete write locations that are
@@ -70,6 +68,8 @@ type cx = {
   mutable use_sources: source LocMap.t;
   (* Write loc to (potentially new) var id *)
   mutable write_var_ids: var_id LocMap.t;
+  (* Block ids to the set of blocks that precede that block *)
+  mutable prev_blocks: ISet.t IMap.t;
 }
 
 let mk_cx () =
@@ -81,6 +81,7 @@ let mk_cx () =
     realized_phis = IMap.empty;
     use_sources = LocMap.empty;
     write_var_ids = LocMap.empty;
+    prev_blocks = IMap.empty;
   }
 
 let max_phi_chain_node_id = ref 0
@@ -108,6 +109,17 @@ let add_realized_phi ~cx block_id decl_loc node_id =
     | Some decls -> LocMap.add decl_loc node_id decls
   in
   cx.realized_phis <- IMap.add block_id phis cx.realized_phis
+
+let add_block_link ~cx prev_id next_id =
+  let add_to_multimap key value mmap =
+    let values =
+      match IMap.find_opt key mmap with
+      | None -> ISet.singleton value
+      | Some values -> ISet.add value values
+    in
+    IMap.add key values mmap
+  in
+  cx.prev_blocks <- add_to_multimap next_id prev_id cx.prev_blocks
 
 let rec control_flow_ir_to_ssa pcx ir =
   let cx = mk_cx () in
@@ -151,8 +163,12 @@ and find_join_points ~pcx ~cx program =
     List.iter (visit_instruction ~sources) block.instructions;
     match block.next with
     | Halt -> ()
-    | Continue continue -> maybe_visit_block !sources continue
+    | Continue continue ->
+      add_block_link ~cx block_id continue;
+      maybe_visit_block !sources continue
     | Branch { continue; jump; _ } ->
+      add_block_link ~cx block_id continue;
+      add_block_link ~cx block_id jump;
       maybe_visit_block !sources continue;
       maybe_visit_block !sources jump
   and visit_instruction ~sources (_, instruction) =
@@ -492,6 +508,47 @@ and map_to_ssa ~cx program =
   visit_block program.main_id;
   LocMap.iter (fun _ { Global.init; _ } -> visit_block (List.hd init)) program.globals;
   LocMap.iter (fun _ { Function.body; _ } -> visit_block (List.hd body)) program.funcs;
+  (* Strip empty blocks *)
+  IMap.iter
+    (fun block_id { Block.phis; instructions; next; _ } ->
+      match next with
+      | Continue continue_id when instructions = [] ->
+        (match IMap.find_opt block_id cx.prev_blocks with
+        | None -> ()
+        | Some prev_blocks when ISet.is_empty prev_blocks -> ()
+        | Some prev_blocks ->
+          (* Previous nodes point to next node *)
+          ISet.iter
+            (fun prev_block_id ->
+              let map_next_id id =
+                if id = block_id then
+                  continue_id
+                else
+                  id
+              in
+              let block = IMap.find prev_block_id cx.blocks in
+              let next' =
+                match block.next with
+                | Halt -> Block.Halt
+                | Continue continue -> Continue (map_next_id continue)
+                | Branch { test; continue; jump } ->
+                  Branch { test; continue = map_next_id continue; jump = map_next_id jump }
+              in
+              block.next <- next')
+            prev_blocks;
+          (* Move phis to next node *)
+          let next_node = IMap.find continue_id cx.blocks in
+          next_node.phis <- phis @ next_node.phis;
+          (* Remove this empty node *)
+          cx.blocks <- IMap.remove block_id cx.blocks;
+          cx.prev_blocks <- IMap.remove block_id cx.prev_blocks;
+          cx.prev_blocks <-
+            IMap.add
+              continue_id
+              (ISet.union prev_blocks (IMap.find continue_id cx.prev_blocks))
+              cx.prev_blocks)
+      | _ -> ())
+    cx.blocks;
   (* Not all blocks will be visited, strip those that are ignored *)
   let funcs =
     LocMap.map

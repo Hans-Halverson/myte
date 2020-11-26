@@ -15,7 +15,7 @@ label @3:
   branch false, @4, @5
 label @4:
   %5 := Mov int 5
-  continue @8
+  continue @7
 label @5:
   %6 := Mov int 6
   branch false, @6, @7
@@ -23,8 +23,6 @@ label @6:
   %7 := Neg int %3
   continue @7
 label @7:
-  continue @8
-label @8:
   %8 := Phi %5, %6
   %9 := Neg int %8
 }

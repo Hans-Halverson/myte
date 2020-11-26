@@ -15,9 +15,8 @@
   - Errors for reassigning param?
 - Ternary Operator
 - For loops (traditional, for-each)
-- While loops
 - Do while loops
-- Break, continue and labels
+- Labels for break and continue
 - Vecs, maps, and sets
 - Arrays and bitwise ops?
 - Anonymous Functions (fn x -> x)
@@ -41,7 +40,10 @@
 
 # Full Pipeline
 - Parsing (In Progress)
-- Structural Analysis (TODO)
-- Type Checking (TODO)
-- IR Generation
-- 
+- Structural Analysis (In Progress)
+- Type Checking (In Progress)
+- IR Generation (In Progress)
+- Compile IR (TODO)
+  - Convert to LLVM IR
+  - Custom convert to x86 or ARM assembly
+  - Convert to bytecode and write VM

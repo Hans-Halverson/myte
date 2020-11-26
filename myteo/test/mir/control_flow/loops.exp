@@ -80,44 +80,42 @@ func unit @inexhaustiveBreakAndContinue() {
   continue @20
 label @20:
   %28 := Phi %25, %26, %27
-  branch false, @21, @27
+  branch false, @21, @26
 label @21:
   %29 := Gt int %28, 1
   branch %29, @22, @23
 label @22:
   %30 := Mov int 2
-  continue @27
+  continue @26
 label @23:
   branch true, @24, @25
 label @24:
   %26 := Mov int 3
   continue @20
 label @25:
-  continue @26
-label @26:
   %27 := Mov int 4
   continue @20
-label @27:
+label @26:
   %31 := Phi %28, %30
   %32 := Neg int %31
 }
 
 func unit @exhaustiveBreakAndContinue() {
   %33 := Mov int 1
-  continue @28
-label @28:
+  continue @27
+label @27:
   %35 := Phi %33, %34
-  branch false, @29, @32
-label @29:
+  branch false, @28, @31
+label @28:
   %36 := Gt int %35, 1
-  branch %36, @30, @31
-label @30:
+  branch %36, @29, @30
+label @29:
   %37 := Mov int 2
-  continue @32
-label @31:
+  continue @31
+label @30:
   %34 := Mov int 3
-  continue @28
-label @32:
+  continue @27
+label @31:
   %38 := Phi %35, %37
   %39 := Neg int %38
 }
