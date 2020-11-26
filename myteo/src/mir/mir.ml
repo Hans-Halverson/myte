@@ -35,45 +35,36 @@ module rec Instruction : sig
       | Bool of 'a BoolValue.t
   end
 
-  type 'a t =
-    | Mov of var_id * 'a Value.t
-    | Ret of 'a Value.t option
-    | Phi of var_id * var_id list
+  type 'var t =
+    | Mov of 'var * 'var Value.t
+    | Ret of 'var Value.t option
     (* Globals *)
-    | LoadGlobal of var_id * Loc.t
-    | StoreGlobal of Loc.t * 'a Value.t
+    | LoadGlobal of 'var * Loc.t
+    | StoreGlobal of Loc.t * 'var Value.t
     (* Logical ops *)
-    | LogNot of var_id * 'a BoolValue.t
-    | LogAnd of var_id * 'a BoolValue.t * 'a BoolValue.t
-    | LogOr of var_id * 'a BoolValue.t * 'a BoolValue.t
+    | LogNot of 'var * 'var BoolValue.t
+    | LogAnd of 'var * 'var BoolValue.t * 'var BoolValue.t
+    | LogOr of 'var * 'var BoolValue.t * 'var BoolValue.t
     (* Unary numeric ops *)
-    | Neg of var_id * 'a NumericValue.t
+    | Neg of 'var * 'var NumericValue.t
     (* Binary numeric ops *)
-    | Add of var_id * 'a NumericValue.t * 'a NumericValue.t
-    | Sub of var_id * 'a NumericValue.t * 'a NumericValue.t
-    | Mul of var_id * 'a NumericValue.t * 'a NumericValue.t
-    | Div of var_id * 'a NumericValue.t * 'a NumericValue.t
-    | Eq of var_id * 'a NumericValue.t * 'a NumericValue.t
-    | Neq of var_id * 'a NumericValue.t * 'a NumericValue.t
-    | Lt of var_id * 'a NumericValue.t * 'a NumericValue.t
-    | LtEq of var_id * 'a NumericValue.t * 'a NumericValue.t
-    | Gt of var_id * 'a NumericValue.t * 'a NumericValue.t
-    | GtEq of var_id * 'a NumericValue.t * 'a NumericValue.t
+    | Add of 'var * 'var NumericValue.t * 'var NumericValue.t
+    | Sub of 'var * 'var NumericValue.t * 'var NumericValue.t
+    | Mul of 'var * 'var NumericValue.t * 'var NumericValue.t
+    | Div of 'var * 'var NumericValue.t * 'var NumericValue.t
+    | Eq of 'var * 'var NumericValue.t * 'var NumericValue.t
+    | Neq of 'var * 'var NumericValue.t * 'var NumericValue.t
+    | Lt of 'var * 'var NumericValue.t * 'var NumericValue.t
+    | LtEq of 'var * 'var NumericValue.t * 'var NumericValue.t
+    | Gt of 'var * 'var NumericValue.t * 'var NumericValue.t
+    | GtEq of 'var * 'var NumericValue.t * 'var NumericValue.t
 end =
   Instruction
 
-type ssa_instruction = var_id Instruction.t
-
-type cf_instruction = cf_var Instruction.t
-
-and cf_var =
-  | Id of var_id
-  | Local of Loc.t
-
 module rec Program : sig
-  type t = {
+  type 'var t = {
     main_id: Block.id;
-    blocks: Block.t IMap.t;
+    blocks: 'var Block.t IMap.t;
     globals: Global.t LocMap.t;
     funcs: Function.t LocMap.t;
   }
@@ -81,19 +72,20 @@ end =
   Program
 
 and Block : sig
-  type t = {
+  type 'var t = {
     id: id;
-    instructions: (Loc.t * ssa_instruction) list;
-    next: var_id next;
+    phis: ('var * 'var list) list;
+    instructions: (Loc.t * 'var Instruction.t) list;
+    next: 'var next;
   }
 
   and id = int
 
-  and 'a next =
+  and 'var next =
     | Halt
     | Continue of id
     | Branch of {
-        test: 'a Instruction.BoolValue.t;
+        test: 'var Instruction.BoolValue.t;
         continue: id;
         jump: id;
       }
@@ -114,7 +106,7 @@ and Function : sig
   type t = {
     loc: Loc.t;
     name: string;
-    params: (var_id * ValueType.t) list;
+    params: (Loc.t * var_id * ValueType.t) list;
     return_ty: ValueType.t;
     body: Block.id list;
   }
@@ -129,6 +121,22 @@ and ValueType : sig
     | Bool
 end =
   ValueType
+
+type cf_var =
+  | Id of var_id
+  | Local of Loc.t
+
+type cf_instruction = cf_var Instruction.t
+
+type ssa_instruction = var_id Instruction.t
+
+type cf_block = cf_var Block.t
+
+type ssa_block = var_id Block.t
+
+type cf_program = cf_var Program.t
+
+type ssa_program = cf_var Program.t
 
 let max_block_id = ref 0
 
@@ -160,16 +168,38 @@ let var_value_of_type var_id ty =
   | ValueType.String -> Value.String (Var var_id)
   | ValueType.Int -> Value.Numeric (IntVar var_id)
 
-let var_id_of_value_opt v =
-  let open Instruction in
-  match v with
-  | Value.Unit (Var var_id)
-  | Value.Bool (Var var_id)
-  | Value.String (Var var_id)
-  | Value.Numeric (IntVar var_id) ->
-    Some var_id
-  | _ -> None
-
 let mk_continue continue = Block.Continue continue
 
 let mk_branch test continue jump = Block.Branch { test; continue; jump }
+
+let rec map_value ~f value =
+  let open Instruction.Value in
+  match value with
+  | Unit v -> Unit (map_unit_value ~f v)
+  | String v -> String (map_string_value ~f v)
+  | Bool v -> Bool (map_bool_value ~f v)
+  | Numeric v -> Numeric (map_numeric_value ~f v)
+
+and map_unit_value ~f value =
+  let open Instruction.UnitValue in
+  match value with
+  | Lit -> Lit
+  | Var var -> Var (f var)
+
+and map_string_value ~f value =
+  let open Instruction.StringValue in
+  match value with
+  | Lit lit -> Lit lit
+  | Var var -> Var (f var)
+
+and map_bool_value ~f value =
+  let open Instruction.BoolValue in
+  match value with
+  | Lit lit -> Lit lit
+  | Var var -> Var (f var)
+
+and map_numeric_value ~f value =
+  let open Instruction.NumericValue in
+  match value with
+  | IntLit lit -> IntLit lit
+  | IntVar var -> IntVar (f var)

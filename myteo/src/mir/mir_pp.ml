@@ -53,7 +53,7 @@ and pp_func ~cx ~program func =
   let open Function in
   let func_params =
     func.params
-    |> List.map (fun (var_id, ty) ->
+    |> List.map (fun (_, var_id, ty) ->
            Printf.sprintf "%s %s" (pp_value_type ty) (pp_var_id ~cx var_id))
     |> String.concat ", "
   in
@@ -72,27 +72,44 @@ and pp_func ~cx ~program func =
 
 and pp_block ~cx ~label block =
   let open Block in
-  let lines =
+  let label_lines =
+    let debug_id =
+      if Opts.dump_debug () then
+        Printf.sprintf "(Block #%d) " block.id
+      else
+        ""
+    in
     if label then
-      [Printf.sprintf "label %s:" (pp_block_id ~cx block.id)]
+      [Printf.sprintf "%slabel %s:" debug_id (pp_block_id ~cx block.id)]
+    else if Opts.dump_debug () then
+      [debug_id]
     else
       []
   in
-  let lines = lines @ List.map (pp_instruction ~cx) block.instructions in
-  let lines =
-    match block.next with
-    | Halt -> lines
-    | Continue block_id -> lines @ [Printf.sprintf "  continue %s" (pp_block_id ~cx block_id)]
-    | Branch { test; jump; continue } ->
-      lines
-      @ [
-          Printf.sprintf
-            "  branch %s, %s, %s"
-            (pp_bool_value ~cx test)
-            (pp_block_id ~cx continue)
-            (pp_block_id ~cx jump);
-        ]
+  let phi_lines =
+    List.map
+      (fun (var_id, args) ->
+        Printf.sprintf
+          "  %s := Phi %s"
+          (pp_var_id ~cx var_id)
+          (String.concat ", " (List.map (pp_var_id ~cx) args)))
+      block.phis
   in
+  let instruction_lines = List.map (pp_instruction ~cx) block.instructions in
+  let next_lines =
+    match block.next with
+    | Halt -> []
+    | Continue block_id -> [Printf.sprintf "  continue %s" (pp_block_id ~cx block_id)]
+    | Branch { test; jump; continue } ->
+      [
+        Printf.sprintf
+          "  branch %s, %s, %s"
+          (pp_bool_value ~cx test)
+          (pp_block_id ~cx continue)
+          (pp_block_id ~cx jump);
+      ]
+  in
+  let lines = List.concat [label_lines; phi_lines; instruction_lines; next_lines] in
   String.concat "\n" lines
 
 and pp_var_id ~cx var_id =
@@ -198,9 +215,6 @@ and pp_instruction ~cx (_, instr) =
       (match val_opt with
       | Some v -> " " ^ pp_value ~cx v
       | None -> "")
-    | Phi (var_id, args) ->
-      let args = String.concat ", " (List.map (pp_var_id ~cx) args) in
-      pp_instr var_id (Printf.sprintf "Phi %s" args)
     | LoadGlobal (var_id, global_loc) ->
       pp_instr var_id (Printf.sprintf "LoadGlobal %s" (pp_global global_loc))
     | StoreGlobal (global_loc, right) ->

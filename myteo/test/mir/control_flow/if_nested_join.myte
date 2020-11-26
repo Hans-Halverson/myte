@@ -1,0 +1,91 @@
+module test
+
+fun test1() {
+  val x = 1;
+  val y = 2;
+
+  if (true) {
+    if (false) {
+      x = 3;
+      y = 4;
+    }
+  } else {
+    if (false) {
+      y = 5;
+    }
+  }
+
+  -x;
+  -y;
+}
+
+fun test2() {
+  val x = 1;
+  val y = 2;
+
+  if (true) {
+    if (false) {
+      x = 3;
+      y = 4;
+    }
+
+    // Realize phi node
+    -y;
+  } else {
+    if (false) {
+      y = 5;
+    }
+  }
+
+  -x;
+  -y;
+}
+
+fun test3() {
+  val x = 1;
+  val y = 2;
+
+  if (true) {
+    if (false) {
+      x = 3;
+      y = 4;
+    }
+  } else {
+    if (false) {
+      y = 5;
+    }
+
+    // Realize phi node
+    -y;
+  }
+
+  -x;
+  -y;
+}
+
+fun test4() {
+  val x = 1;
+  val y = 2;
+
+  if (true) {
+    if (false) {
+      x = 3;
+      y = 4;
+    }
+
+    // Realize phi node
+    -y;
+  } else {
+    if (false) {
+      y = 5;
+    }
+
+    // Realize node
+    -y;
+  }
+
+  -x;
+  -y;
+}
+
+fun main() {}

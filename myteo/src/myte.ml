@@ -56,9 +56,10 @@ let compile files =
       exit 0
     end;
     if Opts.check () then exit 0;
-    let program_ir = Emit.emit_program program_cx in
+    let program_cf_ir = Emit.emit_control_flow_ir program_cx in
+    let program_ssa_ir = Ssa.control_flow_ir_to_ssa program_cx program_cf_ir in
     if Opts.dump_ir () then begin
-      print_string (Mir_pp.pp_program program_ir);
+      print_string (Mir_pp.pp_program program_ssa_ir);
       exit 0
     end
 

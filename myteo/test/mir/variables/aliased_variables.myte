@@ -7,9 +7,7 @@ fun main() {
   val a = 1;
   val b = a;
 
-  // Aliased toplevels must have two different variables
+  // Aliased locals and toplevels must have two different variables
   x + y;
-
-  // Aliased locals use same variable instead of forming separate variables
   a + b;
 }

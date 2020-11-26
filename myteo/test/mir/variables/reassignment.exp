@@ -18,8 +18,10 @@ func unit @testReassignLocals() {
   %6 := Mov int 1
   %7 := Neg int %6
   %8 := Add int 2, 3
-  %9 := Neg int %8
-  %10 := Mul int %8, %8
+  %9 := Mov int %8
+  %10 := Neg int %9
+  %11 := Mul int %9, %9
+  %12 := Mov int %11
 }
 
 func unit @main() {

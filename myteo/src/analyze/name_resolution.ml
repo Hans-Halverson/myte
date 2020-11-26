@@ -73,7 +73,8 @@ class bindings_builder ~module_tree =
       match scopes with
       | [] -> failwith "There must always be a scope"
       | { local_values; local_types } :: rest ->
-        scopes <- { local_values = SMap.add name loc local_values; local_types } :: rest
+        scopes <- { local_values = SMap.add name loc local_values; local_types } :: rest;
+        this#add_value_use loc loc
 
     method add_type_declaration loc kind name =
       type_bindings <-
@@ -81,7 +82,8 @@ class bindings_builder ~module_tree =
       match scopes with
       | [] -> failwith "There must always be a scope"
       | { local_values; local_types } :: rest ->
-        scopes <- { local_types = SMap.add name loc local_types; local_values } :: rest
+        scopes <- { local_types = SMap.add name loc local_types; local_values } :: rest;
+        this#add_type_use loc loc
 
     method add_value_use declaration use =
       let binding = LocMap.find declaration value_bindings in

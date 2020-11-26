@@ -9,8 +9,9 @@ global int %y {
 
 func unit @main() {
   %1 := Mov int 1
-  %2 := LoadGlobal %x
-  %3 := LoadGlobal %y
-  %4 := Add int %2, %3
-  %5 := Add int %1, %1
+  %2 := Mov int %1
+  %3 := LoadGlobal %x
+  %4 := LoadGlobal %y
+  %5 := Add int %3, %4
+  %6 := Add int %1, %2
 }

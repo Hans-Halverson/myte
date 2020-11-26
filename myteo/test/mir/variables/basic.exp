@@ -10,7 +10,9 @@ func unit @test1(int %0, unit %1) {
 
 func unit @test2() {
   %5 := LoadGlobal %x
-  %6 := Mul int 4, 34
+  %6 := Mov int %5
+  %7 := Mul int 4, 34
+  %8 := Mov int %7
 }
 
 func unit @main() {

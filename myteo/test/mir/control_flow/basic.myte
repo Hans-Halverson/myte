@@ -1,0 +1,28 @@
+module test
+
+fun testLatest() {
+  var x = 1;
+  var y = 2;
+  if (true) {
+    x = 3;
+  }
+  // <-- Phi for x inserted here
+
+  if (true) {
+    y = 4;
+  }
+
+  if (false) {
+    y = 5;
+  } else {
+    y = 6;
+    if (false) {
+      // Phi is inserted at earliest point above
+      -x;
+    }
+  }
+
+  -y;
+}
+
+fun main() {}
