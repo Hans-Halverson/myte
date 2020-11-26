@@ -49,6 +49,8 @@ class mapper =
         | If s -> id_map this#if_ s stmt (fun s' -> If s')
         | While s -> id_map this#while_ s stmt (fun s' -> While s')
         | Return s -> id_map this#return s stmt (fun s' -> Return s')
+        | Break s -> id_map this#break s stmt (fun s' -> Break s')
+        | Continue s -> id_map this#continue s stmt (fun s' -> Continue s')
         | Assignment s -> id_map this#assignment s stmt (fun s' -> Assignment s')
 
     method expression : Expression.t -> Expression.t =
@@ -286,6 +288,10 @@ class mapper =
         return
       else
         { loc; arg = arg' }
+
+    method break break = break
+
+    method continue continue = continue
 
     method assignment assign =
       let open Statement.Assignment in

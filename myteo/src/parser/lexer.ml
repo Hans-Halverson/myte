@@ -109,6 +109,8 @@ let tokenize lex =
   | "else" -> token_result T_ELSE
   | "while" -> token_result T_WHILE
   | "return" -> token_result T_RETURN
+  | "break" -> token_result T_BREAK
+  | "continue" -> token_result T_CONTINUE
   | "module" -> token_result T_MODULE
   | "import" -> token_result T_IMPORT
   | "as" -> token_result T_AS

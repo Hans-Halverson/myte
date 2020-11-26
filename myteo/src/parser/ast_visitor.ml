@@ -34,6 +34,8 @@ class ['a] visitor =
         | If s -> this#if_ acc s
         | While s -> this#while_ acc s
         | Return s -> this#return acc s
+        | Break s -> this#break acc s
+        | Continue s -> this#continue acc s
         | Assignment s -> this#assignment acc s
 
     method expression : 'a -> Expression.t -> unit =
@@ -190,6 +192,10 @@ class ['a] visitor =
       let open Statement.Return in
       let { loc = _; arg } = return in
       Option.iter (this#expression acc) arg
+
+    method break _acc _break = ()
+
+    method continue _acc _return = ()
 
     method assignment acc assign =
       let open Statement.Assignment in

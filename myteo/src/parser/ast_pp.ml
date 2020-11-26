@@ -132,6 +132,8 @@ and node_of_statement stmt =
   | If if_ -> node_of_if if_
   | While while_ -> node_of_while while_
   | Return ret -> node_of_return ret
+  | Break break -> node_of_break break
+  | Continue continue -> node_of_continue continue
   | Assignment assign -> node_of_assignment assign
 
 and node_of_expression expr =
@@ -279,6 +281,14 @@ and node_of_while while_ =
 and node_of_return ret =
   let { Statement.Return.loc; arg } = ret in
   node "Return" loc [("arg", opt node_of_expression arg)]
+
+and node_of_break break =
+  let { Statement.Break.loc } = break in
+  node "Break" loc []
+
+and node_of_continue continue =
+  let { Statement.Continue.loc } = continue in
+  node "Continue" loc []
 
 and node_of_assignment assign =
   let { Statement.Assignment.loc; pattern; expr } = assign in

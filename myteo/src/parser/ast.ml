@@ -74,6 +74,14 @@ and Statement : sig
     }
   end
 
+  module Break : sig
+    type t = { loc: Loc.t }
+  end
+
+  module Continue : sig
+    type t = { loc: Loc.t }
+  end
+
   module Assignment : sig
     type t = {
       loc: Loc.t;
@@ -104,6 +112,8 @@ and Statement : sig
     | If of If.t
     | While of While.t
     | Return of Return.t
+    | Break of Break.t
+    | Continue of Continue.t
     | Assignment of Assignment.t
 end =
   Statement

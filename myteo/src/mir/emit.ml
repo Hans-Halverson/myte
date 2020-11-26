@@ -39,7 +39,7 @@ and emit_toplevel_variable_declaration ~pcx ~ecx decl =
   let ty = value_type_of_decl_loc ~pcx loc in
   (* Build IR for variable init *)
   Ecx.start_block_sequence ~ecx;
-  ignore (Ecx.start_block ~ecx);
+  ignore (Ecx.start_new_block ~ecx);
   let init_val = emit_expression ~pcx ~ecx init in
   Ecx.emit ~ecx loc (StoreGlobal (loc, init_val));
   Ecx.finish_block_halt ~ecx;
@@ -55,8 +55,8 @@ and emit_toplevel_function_declaration ~pcx ~ecx decl =
   in
   let block_ids =
     Ecx.start_block_sequence ~ecx;
-    ignore (Ecx.start_block ~ecx);
-    if loc = pcx.main_loc then ecx.main_id <- ecx.current_block_builder.id;
+    let block_id = Ecx.start_new_block ~ecx in
+    if loc = pcx.main_loc then ecx.main_id <- block_id;
     (match body with
     | Block { Statement.Block.statements; _ } -> List.iter (emit_statement ~pcx ~ecx) statements
     | Expression expr ->
@@ -98,9 +98,9 @@ and emit_expression ~pcx ~ecx expr =
     var_value_of_type var_id Bool
   | LogicalAnd { loc; left; right } ->
     (* Short circuit when lhs is false by jumping to false case *)
-    let rhs_builder = Ecx.mk_block_builder () in
-    let false_builder = Ecx.mk_block_builder () in
-    let join_builder = Ecx.mk_block_builder () in
+    let rhs_builder = Ecx.mk_block_builder ~ecx in
+    let false_builder = Ecx.mk_block_builder ~ecx in
+    let join_builder = Ecx.mk_block_builder ~ecx in
     let left_val = emit_bool_expression ~pcx ~ecx left in
     Ecx.finish_block_branch ~ecx left_val rhs_builder.id false_builder.id;
     (* Emit right hand side when lhs is true and continue to join block *)
@@ -121,9 +121,9 @@ and emit_expression ~pcx ~ecx expr =
     var_value_of_type var_id Bool
   | LogicalOr { loc; left; right } ->
     (* Short circuit when lhs is true by jumping to true case *)
-    let rhs_builder = Ecx.mk_block_builder () in
-    let true_builder = Ecx.mk_block_builder () in
-    let join_builder = Ecx.mk_block_builder () in
+    let rhs_builder = Ecx.mk_block_builder ~ecx in
+    let true_builder = Ecx.mk_block_builder ~ecx in
+    let join_builder = Ecx.mk_block_builder ~ecx in
     let left_val = emit_bool_expression ~pcx ~ecx left in
     Ecx.finish_block_branch ~ecx left_val rhs_builder.id true_builder.id;
     (* Emit right hand side when lhs is false and continue to join block *)
@@ -200,8 +200,8 @@ and emit_statement ~pcx ~ecx stmt =
   | If { loc = _; test; conseq; altern = None } ->
     (* Branch to conseq or join blocks *)
     let test_val = emit_bool_expression ~pcx ~ecx test in
-    let conseq_builder = Ecx.mk_block_builder () in
-    let join_builder = Ecx.mk_block_builder () in
+    let conseq_builder = Ecx.mk_block_builder ~ecx in
+    let join_builder = Ecx.mk_block_builder ~ecx in
     Ecx.finish_block_branch ~ecx test_val conseq_builder.id join_builder.id;
     (* Emit conseq and continue to join block *)
     Ecx.set_block_builder ~ecx conseq_builder;
@@ -212,9 +212,9 @@ and emit_statement ~pcx ~ecx stmt =
   | If { loc = _; test; conseq; altern = Some altern } ->
     (* Branch to conseq or altern blocks *)
     let test_val = emit_bool_expression ~pcx ~ecx test in
-    let conseq_builder = Ecx.mk_block_builder () in
-    let altern_builder = Ecx.mk_block_builder () in
-    let join_builder = Ecx.mk_block_builder () in
+    let conseq_builder = Ecx.mk_block_builder ~ecx in
+    let altern_builder = Ecx.mk_block_builder ~ecx in
+    let join_builder = Ecx.mk_block_builder ~ecx in
     Ecx.finish_block_branch ~ecx test_val conseq_builder.id altern_builder.id;
     (* Emit conseq and continue to join block *)
     Ecx.set_block_builder ~ecx conseq_builder;
@@ -227,23 +227,31 @@ and emit_statement ~pcx ~ecx stmt =
     (* Start join block *)
     Ecx.set_block_builder ~ecx join_builder
   | While { loc = _; test; body } ->
-    let test_builder = Ecx.mk_block_builder () in
-    let body_builder = Ecx.mk_block_builder () in
-    let finish_builder = Ecx.mk_block_builder () in
+    let test_builder = Ecx.mk_block_builder ~ecx in
+    let body_builder = Ecx.mk_block_builder ~ecx in
+    let finish_builder = Ecx.mk_block_builder ~ecx in
     Ecx.finish_block_continue ~ecx test_builder.id;
     (* Emit test block which branches to finish or body blocks *)
     Ecx.set_block_builder ~ecx test_builder;
     let test_val = emit_bool_expression ~pcx ~ecx test in
     Ecx.finish_block_branch ~ecx test_val body_builder.id finish_builder.id;
     (* Emit body block which continues to test block *)
+    Ecx.push_loop_context ~ecx finish_builder.id test_builder.id;
     Ecx.set_block_builder ~ecx body_builder;
     emit_statement ~pcx ~ecx body;
     Ecx.finish_block_continue ~ecx test_builder.id;
+    Ecx.pop_loop_context ~ecx;
     (* Start join block *)
     Ecx.set_block_builder ~ecx finish_builder
   | Return { loc; arg } ->
     let arg_val = Option.map (emit_expression ~pcx ~ecx) arg in
     Ecx.emit ~ecx loc (Ret arg_val)
+  | Continue _ ->
+    let (_, continue_id) = Ecx.get_loop_context ~ecx in
+    Ecx.finish_block_continue ~ecx continue_id
+  | Break _ ->
+    let (break_id, _) = Ecx.get_loop_context ~ecx in
+    Ecx.finish_block_continue ~ecx break_id
   | Assignment { loc; pattern; expr } ->
     let { Identifier.loc = use_loc; _ } = Ast_utils.id_of_pattern pattern in
     let decl_loc = Bindings.get_source_decl_loc_from_value_use pcx.bindings use_loc in

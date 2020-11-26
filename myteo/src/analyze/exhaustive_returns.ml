@@ -24,6 +24,8 @@ class analyzer =
       | Expression _
       | Assignment _
       | While _
+      | Break _
+      | Continue _
       | VariableDeclaration _
       | FunctionDeclaration _ ->
         AtomicInexhaustiveStatement

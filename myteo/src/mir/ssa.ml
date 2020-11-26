@@ -234,7 +234,8 @@ and build_phi_nodes ~pcx ~cx program =
             (match source with
             | WriteLocation (_, write_loc) ->
               node.write_locs <- LocSet.add write_loc node.write_locs
-            | PhiChainJoin prev_node -> node.prev_nodes <- ISet.add prev_node node.prev_nodes))
+            | PhiChainJoin prev_node ->
+              if prev_node <> node_id then node.prev_nodes <- ISet.add prev_node node.prev_nodes))
         new_sources
   in
   let rec visit_block ~sources block_id =
@@ -491,9 +492,12 @@ and map_to_ssa ~cx program =
   visit_block program.main_id;
   LocMap.iter (fun _ { Global.init; _ } -> visit_block (List.hd init)) program.globals;
   LocMap.iter (fun _ { Function.body; _ } -> visit_block (List.hd body)) program.funcs;
-  {
-    Program.main_id = program.main_id;
-    blocks = cx.blocks;
-    globals = program.globals;
-    funcs = program.funcs;
-  }
+  (* Not all blocks will be visited, strip those that are ignored *)
+  let funcs =
+    LocMap.map
+      (fun func ->
+        let open Function in
+        { func with body = List.filter (fun block_id -> IMap.mem block_id cx.blocks) func.body })
+      program.funcs
+  in
+  { Program.main_id = program.main_id; blocks = cx.blocks; globals = program.globals; funcs }

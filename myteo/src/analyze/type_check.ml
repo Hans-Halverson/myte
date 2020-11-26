@@ -310,6 +310,9 @@ and check_statement ~cx stmt =
     (* Return argument must be subtype of function's return type stored in return type map *)
     let return_ty = Type_context.(LocMap.find loc cx.return_types) in
     Type_context.assert_is_subtype ~cx arg_loc arg_ty return_ty
+  | Break _
+  | Continue _ ->
+    ()
   | Assignment { Assignment.pattern; expr; _ } ->
     let { Ast.Identifier.loc = id_loc; _ } = identifier_in_pattern pattern in
     let tvar_id = Type_context.get_tvar_id_from_value_use ~cx id_loc in

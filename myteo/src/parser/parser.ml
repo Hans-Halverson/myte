@@ -163,6 +163,8 @@ and parse_statement env =
   | T_IF -> parse_if env
   | T_WHILE -> parse_while env
   | T_RETURN -> parse_return env
+  | T_BREAK -> parse_break env
+  | T_CONTINUE -> parse_continue env
   | T_VAL
   | T_VAR ->
     VariableDeclaration (parse_variable_declaration env)
@@ -443,6 +445,20 @@ and parse_return env =
   Env.expect env T_SEMICOLON;
   let loc = marker env in
   Statement.Return { loc; arg }
+
+and parse_break env =
+  let marker = mark_loc env in
+  Env.expect env T_BREAK;
+  Env.expect env T_SEMICOLON;
+  let loc = marker env in
+  Statement.Break { loc }
+
+and parse_continue env =
+  let marker = mark_loc env in
+  Env.expect env T_CONTINUE;
+  Env.expect env T_SEMICOLON;
+  let loc = marker env in
+  Statement.Continue { loc }
 
 and parse_type_declaration env =
   let open TypeDeclaration in

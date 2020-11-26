@@ -10,6 +10,8 @@ let statement_loc stmt =
   | If { If.loc; _ }
   | While { While.loc; _ }
   | Return { Return.loc; _ }
+  | Break { Break.loc; _ }
+  | Continue { Continue.loc }
   | Assignment { Assignment.loc; _ } ->
     loc
 
@@ -46,6 +48,8 @@ let rec statement_visitor ~f ?(enter_functions = true) stmt =
   | VariableDeclaration _
   | Expression _
   | Return _
+  | Break _
+  | Continue _
   | Assignment _ ->
     ()
 

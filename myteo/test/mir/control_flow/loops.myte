@@ -1,0 +1,93 @@
+module test
+
+fun inexhaustiveContinue() {
+  var x = 1;
+  while (false) {
+    if (x > 2) {
+      x = 3;
+      continue;
+    }
+
+    x = 4;
+  }
+
+  -x;
+}
+
+fun inexhaustiveBreak() {
+  var x = 1;
+  while (false) {
+    if (x > 2) {
+      x = 3;
+      break;
+    }
+
+    x = 4;
+  }
+
+  -x;
+}
+
+fun exhaustiveContinues() {
+  var x = 1;
+  while (false) {
+    if (x > 1) {
+      x = 2;
+      continue;
+    } else {
+      x = 3;
+      continue;
+    }
+  }
+
+  -x;
+}
+
+fun exhaustiveBreaks() {
+  var x = 1;
+  while (false) {
+    if (x > 1) {
+      x = 2;
+      break;
+    } else {
+      x = 3;
+      break;
+    }
+  }
+
+  -x;
+}
+
+fun inexhaustiveBreakAndContinue() {
+  var x = 1;
+  while (false) {
+    if (x > 1) {
+      x = 2;
+      break;
+    } else if (true) {
+      x = 3;
+      continue;
+    }
+
+    x = 4;
+  }
+
+  -x;
+}
+
+fun exhaustiveBreakAndContinue() {
+  var x = 1;
+  while (false) {
+    if (x > 1) {
+      x = 2;
+      break;
+    } else {
+      x = 3;
+      continue;
+    }
+  }
+
+  -x;
+}
+
+fun main() {}

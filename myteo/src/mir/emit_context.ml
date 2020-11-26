@@ -13,15 +13,20 @@ module BlockBuilder = struct
   }
 end
 
+(* Break block id and continue block id for a loop *)
+type loop_context = Block.id * Block.id
+
 type t = {
   (* Data structures for MIR *)
   mutable main_id: Block.id;
   mutable blocks: BlockBuilder.t IMap.t;
   mutable globals: Global.t LocMap.t;
   mutable funcs: Function.t LocMap.t;
-  mutable current_block_builder: BlockBuilder.t;
+  mutable current_block_builder: BlockBuilder.t option;
   (* Block ids in the current sequence, in reverse *)
   mutable current_block_sequence_ids: Block.id list;
+  (* Stack of loop contexts for all loops we are currently inside *)
+  mutable current_loop_contexts: loop_context list;
 }
 
 let mk () =
@@ -30,8 +35,9 @@ let mk () =
     blocks = IMap.empty;
     globals = LocMap.empty;
     funcs = LocMap.empty;
-    current_block_builder = { id = 0; phis = []; instructions = []; next = Halt };
+    current_block_builder = None;
     current_block_sequence_ids = [];
+    current_loop_contexts = [];
   }
 
 let builders_to_blocks builders =
@@ -45,9 +51,6 @@ let builders_to_blocks builders =
         next = builder.next;
       })
     builders
-
-let add_block ~ecx block_builder =
-  ecx.blocks <- IMap.add block_builder.BlockBuilder.id block_builder ecx.blocks
 
 let add_global ~ecx global = ecx.globals <- LocMap.add global.Global.loc global ecx.globals
 
@@ -63,27 +66,35 @@ let mk_instr_id () =
   instr_id
 
 let emit ~ecx loc inst =
-  ecx.current_block_builder.instructions <-
-    (mk_instr_id (), loc, inst) :: ecx.current_block_builder.instructions
+  match ecx.current_block_builder with
+  | None -> ()
+  | Some builder -> builder.instructions <- (mk_instr_id (), loc, inst) :: builder.instructions
 
 let emit_phi ~ecx var_id args =
-  ecx.current_block_builder.phis <- (var_id, args) :: ecx.current_block_builder.phis
+  match ecx.current_block_builder with
+  | None -> ()
+  | Some builder -> builder.phis <- (var_id, args) :: builder.phis
 
-let mk_block_builder () =
-  { BlockBuilder.id = mk_block_id (); instructions = []; phis = []; next = Halt }
-
-let set_block_builder ~ecx builder = ecx.current_block_builder <- builder
-
-let start_block ~ecx =
+let mk_block_builder ~ecx =
   let block_id = mk_block_id () in
-  ecx.current_block_builder <- { id = block_id; instructions = []; phis = []; next = Halt };
-  block_id
+  let builder = { BlockBuilder.id = block_id; instructions = []; phis = []; next = Halt } in
+  ecx.blocks <- IMap.add block_id builder ecx.blocks;
+  builder
+
+let set_block_builder ~ecx builder = ecx.current_block_builder <- Some builder
+
+let start_new_block ~ecx =
+  let builder = mk_block_builder ~ecx in
+  set_block_builder ~ecx builder;
+  builder.id
 
 let finish_block ~ecx next =
-  let builder = ecx.current_block_builder in
-  builder.next <- next;
-  add_block ~ecx builder;
-  ecx.current_block_sequence_ids <- builder.id :: ecx.current_block_sequence_ids
+  match ecx.current_block_builder with
+  | None -> ()
+  | Some builder ->
+    builder.next <- next;
+    ecx.current_block_sequence_ids <- builder.id :: ecx.current_block_sequence_ids;
+    ecx.current_block_builder <- None
 
 let finish_block_branch ~ecx test continue jump =
   finish_block ~ecx (Branch { test; continue; jump })
@@ -97,3 +108,10 @@ let start_block_sequence ~ecx = ecx.current_block_sequence_ids <- []
 let get_block_sequence ~ecx =
   let block_ids = List.rev ecx.current_block_sequence_ids in
   block_ids
+
+let push_loop_context ~ecx break_id continue_id =
+  ecx.current_loop_contexts <- (break_id, continue_id) :: ecx.current_loop_contexts
+
+let pop_loop_context ~ecx = ecx.current_loop_contexts <- List.tl ecx.current_loop_contexts
+
+let get_loop_context ~ecx = List.hd ecx.current_loop_contexts
