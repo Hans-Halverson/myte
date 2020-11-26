@@ -1,0 +1,12 @@
+func unit @main() {
+  %0 := Add int 1, 2
+  %1 := Sub int 1, 2
+  %2 := Mul int 1, 2
+  %3 := Div int 1, 2
+  %4 := Eq int 1, 2
+  %5 := Neq int 1, 2
+  %6 := Lt int 1, 2
+  %7 := LtEq int 1, 2
+  %8 := Gt int 1, 2
+  %9 := GtEq int 1, 2
+}

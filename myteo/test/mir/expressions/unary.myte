@@ -1,0 +1,6 @@
+module test
+
+fun main() {
+  !true;
+  -(1);
+}

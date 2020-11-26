@@ -147,21 +147,21 @@ and emit_expression ~pcx ~ecx expr =
     let var_id = mk_cf_var_id () in
     let left_val = emit_numeric_expression ~pcx ~ecx left in
     let right_val = emit_numeric_expression ~pcx ~ecx right in
-    let mk_instr var_id left right =
+    let (instr, ty) =
       match op with
-      | Add -> Instruction.Add (var_id, left, right)
-      | Subtract -> Sub (var_id, left, right)
-      | Multiply -> Mul (var_id, left, right)
-      | Divide -> Div (var_id, left, right)
-      | Equal -> Eq (var_id, left, right)
-      | NotEqual -> Neq (var_id, left, right)
-      | LessThan -> Lt (var_id, left, right)
-      | GreaterThan -> Gt (var_id, left, right)
-      | LessThanOrEqual -> LtEq (var_id, left, right)
-      | GreaterThanOrEqual -> GtEq (var_id, left, right)
+      | Add -> (Instruction.Add (var_id, left_val, right_val), ValueType.Int)
+      | Subtract -> (Sub (var_id, left_val, right_val), Int)
+      | Multiply -> (Mul (var_id, left_val, right_val), Int)
+      | Divide -> (Div (var_id, left_val, right_val), Int)
+      | Equal -> (Eq (var_id, left_val, right_val), Bool)
+      | NotEqual -> (Neq (var_id, left_val, right_val), Bool)
+      | LessThan -> (Lt (var_id, left_val, right_val), Bool)
+      | GreaterThan -> (Gt (var_id, left_val, right_val), Bool)
+      | LessThanOrEqual -> (LtEq (var_id, left_val, right_val), Bool)
+      | GreaterThanOrEqual -> (GtEq (var_id, left_val, right_val), Bool)
     in
-    Ecx.emit ~ecx loc (mk_instr var_id left_val right_val);
-    var_value_of_type var_id Int
+    Ecx.emit ~ecx loc instr;
+    var_value_of_type var_id ty
   | Identifier { loc; _ }
   | ScopedIdentifier { name = { Identifier.loc; _ }; _ } ->
     let decl_loc = Bindings.get_source_decl_loc_from_value_use pcx.bindings loc in

@@ -1,0 +1,4 @@
+func unit @main() {
+  %0 := LogNot true
+  %1 := Neg int 1
+}

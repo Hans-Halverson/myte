@@ -52,6 +52,7 @@ module rec Instruction : sig
     | Sub of 'var * 'var NumericValue.t * 'var NumericValue.t
     | Mul of 'var * 'var NumericValue.t * 'var NumericValue.t
     | Div of 'var * 'var NumericValue.t * 'var NumericValue.t
+    (* Comparisons *)
     | Eq of 'var * 'var NumericValue.t * 'var NumericValue.t
     | Neq of 'var * 'var NumericValue.t * 'var NumericValue.t
     | Lt of 'var * 'var NumericValue.t * 'var NumericValue.t

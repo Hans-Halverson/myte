@@ -1,0 +1,17 @@
+module test
+
+fun main() {
+  // Numeric operations
+  1 + 2;
+  1 - 2;
+  1 * 2;
+  1 / 2;
+
+  // Comparisons
+  1 == 2;
+  1 != 2;
+  1 < 2;
+  1 <= 2;
+  1 > 2;
+  1 >= 2;
+}
