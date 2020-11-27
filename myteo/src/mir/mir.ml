@@ -27,16 +27,24 @@ module rec Instruction : sig
       | IntVar of 'a
   end
 
+  module FunctionValue : sig
+    type 'a t =
+      | Lit of Loc.t
+      | Var of 'a
+  end
+
   module Value : sig
     type 'a t =
       | Unit of 'a UnitValue.t
       | Numeric of 'a NumericValue.t
       | String of 'a StringValue.t
       | Bool of 'a BoolValue.t
+      | Function of 'a FunctionValue.t
   end
 
   type 'var t =
     | Mov of 'var * 'var Value.t
+    | Call of 'var * 'var FunctionValue.t * 'var Value.t list
     | Ret of 'var Value.t option
     (* Globals *)
     | LoadGlobal of 'var * Loc.t
@@ -120,6 +128,7 @@ and ValueType : sig
     | Int
     | String
     | Bool
+    | Function
 end =
   ValueType
 
@@ -137,7 +146,7 @@ type ssa_block = var_id Block.t
 
 type cf_program = cf_var Program.t
 
-type ssa_program = cf_var Program.t
+type ssa_program = var_id Program.t
 
 let max_block_id = ref 0
 
@@ -160,6 +169,7 @@ let type_of_value v =
   | Value.Bool _ -> ValueType.Bool
   | Value.String _ -> ValueType.String
   | Value.Numeric (IntLit _ | IntVar _) -> ValueType.Int
+  | Value.Function _ -> ValueType.Function
 
 let var_value_of_type var_id ty =
   let open Instruction in
@@ -168,6 +178,7 @@ let var_value_of_type var_id ty =
   | ValueType.Bool -> Value.Bool (Var var_id)
   | ValueType.String -> Value.String (Var var_id)
   | ValueType.Int -> Value.Numeric (IntVar var_id)
+  | ValueType.Function -> Value.Function (Var var_id)
 
 let mk_continue continue = Block.Continue continue
 
@@ -180,6 +191,7 @@ let rec map_value ~f value =
   | String v -> String (map_string_value ~f v)
   | Bool v -> Bool (map_bool_value ~f v)
   | Numeric v -> Numeric (map_numeric_value ~f v)
+  | Function v -> Function (map_function_value ~f v)
 
 and map_unit_value ~f value =
   let open Instruction.UnitValue in
@@ -204,3 +216,9 @@ and map_numeric_value ~f value =
   match value with
   | IntLit lit -> IntLit lit
   | IntVar var -> IntVar (f var)
+
+and map_function_value ~f value =
+  let open Instruction.FunctionValue in
+  match value with
+  | Lit lit -> Lit lit
+  | Var var -> Var (f var)

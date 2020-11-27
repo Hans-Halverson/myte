@@ -178,6 +178,7 @@ and find_join_points ~pcx ~cx program =
     | StoreGlobal _ ->
       ()
     | Mov (result, _)
+    | Call (result, _, _)
     | LoadGlobal (result, _)
     | Neg (result, _)
     | LogNot (result, _)
@@ -317,6 +318,11 @@ and build_phi_nodes ~pcx ~cx program =
     match v with
     | Lit _ -> ()
     | Var var -> visit_var var sources
+  and visit_function_value v sources =
+    let open Instruction.FunctionValue in
+    match v with
+    | Lit _ -> ()
+    | Var var -> visit_var var sources
   and visit_value v sources =
     let open Instruction.Value in
     match v with
@@ -328,15 +334,21 @@ and build_phi_nodes ~pcx ~cx program =
       visit_var var sources
     | Bool bool -> visit_bool_value bool sources
     | Numeric numeric -> visit_numeric_value numeric sources
+    | Function func -> visit_function_value func sources
   and visit_instruction ~sources block_id (_, instruction) =
     let open Instruction in
     let visit_result v = visit_result v block_id sources in
     let visit_numeric_value v = visit_numeric_value v sources in
     let visit_bool_value v = visit_bool_value v sources in
+    let visit_function_value v = visit_function_value v sources in
     let visit_value v = visit_value v sources in
     match instruction with
     | Mov (result, arg) ->
       visit_value arg;
+      visit_result result
+    | Call (result, func, args) ->
+      visit_function_value func;
+      List.iter visit_value args;
       visit_result result
     | Ret arg -> Option.iter visit_value arg
     | LoadGlobal (result, _) -> visit_result result
@@ -472,8 +484,11 @@ and map_to_ssa ~cx program =
     let map_value = map_value ~f:map_read_var in
     let map_bool_value = map_bool_value ~f:map_read_var in
     let map_numeric_value = map_numeric_value ~f:map_read_var in
+    let map_function_value = map_function_value ~f:map_read_var in
     match instruction with
     | Mov (return, arg) -> Mov (map_return return, map_value arg)
+    | Call (return, func, args) ->
+      Call (map_return return, map_function_value func, List.map map_value args)
     | Ret arg -> Ret (Option.map map_value arg)
     | LoadGlobal (return, global_loc) -> LoadGlobal (map_return return, global_loc)
     | StoreGlobal (global_loc, arg) -> StoreGlobal (global_loc, map_value arg)

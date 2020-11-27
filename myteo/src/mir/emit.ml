@@ -27,11 +27,6 @@ and emit_module ~pcx ~ecx (_, mod_) =
       | _ -> ())
     mod_.toplevels
 
-and value_type_of_decl_loc ~pcx loc =
-  let open Lex_analyze in
-  let tvar_id = Bindings.get_tvar_id_from_value_decl pcx.bindings loc in
-  Type_context.find_rep_type ~cx:pcx.type_ctx (Types.TVar tvar_id) |> type_to_value_type
-
 and emit_toplevel_variable_declaration ~pcx ~ecx decl =
   let { Statement.VariableDeclaration.pattern; init; _ } = decl in
   let { Identifier.loc; name } = Ast_utils.id_of_pattern pattern in
@@ -164,18 +159,34 @@ and emit_expression ~pcx ~ecx expr =
     var_value_of_type var_id ty
   | Identifier { loc; _ }
   | ScopedIdentifier { name = { Identifier.loc; _ }; _ } ->
-    let decl_loc = Bindings.get_source_decl_loc_from_value_use pcx.bindings loc in
-    let ty = value_type_of_decl_loc ~pcx decl_loc in
-    let var =
-      if Ecx.is_global_loc ~ecx decl_loc then (
-        let var_id = mk_cf_var_id () in
-        Ecx.emit ~ecx loc (LoadGlobal (var_id, decl_loc));
-        var_id
-      ) else
-        mk_cf_local loc
-    in
-    var_value_of_type var ty
+    let binding = Bindings.get_source_value_binding pcx.Lex_analyze.bindings loc in
+    let decl_loc = fst binding.declaration in
+    (match snd binding.declaration with
+    | ImportedModule _ -> failwith "Modules cannot appear in a value position"
+    (* Create function literal for functions *)
+    | FunDecl
+    | ImportedFunDecl _ ->
+      Function (Lit decl_loc)
+    (* Variables may be either globals or locals *)
+    | VarDecl _
+    | ImportedVarDecl _
+    | FunParam ->
+      let var =
+        if Ecx.is_global_loc ~ecx decl_loc then (
+          let var_id = mk_cf_var_id () in
+          Ecx.emit ~ecx loc (LoadGlobal (var_id, decl_loc));
+          var_id
+        ) else
+          mk_cf_local loc
+      in
+      var_value_of_type var (value_type_of_decl_loc ~pcx decl_loc))
   | TypeCast { expr; _ } -> emit_expression ~pcx ~ecx expr
+  | Call { loc; func; args } ->
+    let var_id = mk_cf_var_id () in
+    let func_val = emit_function_expression ~pcx ~ecx func in
+    let arg_vals = List.map (emit_expression ~pcx ~ecx) args in
+    Ecx.emit ~ecx loc (Call (var_id, func_val, arg_vals));
+    var_value_of_type var_id (value_type_of_loc ~pcx loc)
   | _ ->
     prerr_endline (Ast_pp.pp (Ast_pp.node_of_expression expr));
     failwith "Expression has not yet been converted to IR"
@@ -191,6 +202,12 @@ and emit_numeric_expression ~pcx ~ecx expr =
   match emit_expression ~pcx ~ecx expr with
   | Value.Numeric v -> v
   | _ -> failwith "Expected numeric value"
+
+and emit_function_expression ~pcx ~ecx expr =
+  let open Instruction in
+  match emit_expression ~pcx ~ecx expr with
+  | Value.Function v -> v
+  | _ -> failwith "Expected function value"
 
 and emit_statement ~pcx ~ecx stmt =
   let open Statement in
@@ -276,6 +293,17 @@ and type_to_value_type ty =
   | Types.Bool -> ValueType.Bool
   | Types.Int -> ValueType.Int
   | Types.String -> ValueType.String
-  | Types.Function _ -> failwith "Functions not yet supported as value type in IR"
+  | Types.Function _ -> ValueType.Function
   | Types.TVar _ -> failwith "TVars must be resolved for all values in IR"
   | Types.Any -> failwith "Any not allowed as value in IR"
+
+and value_type_of_loc ~pcx loc =
+  let tvar_id = Type_context.get_tvar_from_loc ~cx:pcx.type_ctx loc in
+  let ty = Type_context.find_rep_type ~cx:pcx.type_ctx (Types.TVar tvar_id) in
+  type_to_value_type ty
+
+and value_type_of_decl_loc ~pcx loc =
+  let open Lex_analyze in
+  let tvar_id = Bindings.get_tvar_id_from_value_decl pcx.bindings loc in
+  let ty = Type_context.find_rep_type ~cx:pcx.type_ctx (Types.TVar tvar_id) in
+  type_to_value_type ty

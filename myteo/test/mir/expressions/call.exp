@@ -1,0 +1,54 @@
+func unit @noArgsFunc() {
+
+}
+
+func int @singleArgFunc(int %0) {
+  Ret %0
+}
+
+func int @singleArgFunc2(int %1) {
+  %2 := Add int %1, 1
+  Ret %2
+}
+
+func unit @multiArgsFunc(int %3, int %4, string %5) {
+
+}
+
+func unit @directCalls() {
+  %6 := Mov bool true
+  %7 := Mov string "str"
+  %8 := Call @noArgsFunc()
+  %9 := Mov unit %8
+  %10 := Call @singleArgFunc(33)
+  %11 := Mov int %10
+  %12 := Call @multiArgsFunc(29, 98, "test")
+  %13 := Mov unit %12
+  %14 := Call @singleArgFunc(%11)
+  %15 := Mov int %14
+  %16 := Call @singleArgFunc(45)
+  %17 := Mul int 5, 6
+  %18 := Add int 2, %17
+  %19 := Call @multiArgsFunc(%16, %18, %7)
+  %20 := Mov unit %19
+}
+
+func unit @indirectCalls() {
+  %21 := Mov function @singleArgFunc
+  branch true, @0, @1
+label @0:
+  %22 := Mov function @singleArgFunc2
+  continue @1
+label @1:
+  %23 := Phi %21, %22
+  %24 := Call %23(10)
+  %25 := Mov int %24
+  %26 := Add int 1, 2
+  %27 := Call %23(%26)
+  %28 := Add int 3, %27
+  %29 := Mov int %28
+}
+
+func unit @main() {
+
+}

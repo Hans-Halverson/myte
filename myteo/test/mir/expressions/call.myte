@@ -1,0 +1,35 @@
+module test
+
+fun noArgsFunc() {}
+
+fun singleArgFunc(x: int): int = x
+
+fun singleArgFunc2(x: int): int = x + 1
+
+fun multiArgsFunc(x: int, y: int, z: string) {}
+
+fun directCalls() {
+  val b = true;
+  val s = "str";
+
+  // Direct calls with literals
+  val x1 = noArgsFunc();
+  val x2 = singleArgFunc(33);
+  val x3 = multiArgsFunc(29, 98, "test");
+
+  // Direct calls with complex arguments
+  val x4 = singleArgFunc(x2);
+  val x5 = multiArgsFunc(singleArgFunc(45), 2 + 5 * 6, s);
+}
+
+fun indirectCalls() {
+  var x = singleArgFunc;
+  if (true) {
+    x = singleArgFunc2;
+  }
+
+  val t1 = x(10);
+  val t2 = 3 + x(1 + 2);
+}
+
+fun main() {}

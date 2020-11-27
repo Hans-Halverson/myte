@@ -7,7 +7,7 @@ module Context = struct
     mutable max_print_var_id: int;
     mutable print_block_id_map: int IMap.t;
     mutable max_print_block_id: int;
-    globals: Global.t LocMap.t;
+    program: ssa_program;
   }
 
   let mk program =
@@ -16,7 +16,7 @@ module Context = struct
       max_print_var_id = 0;
       print_block_id_map = IMap.empty;
       max_print_block_id = 0;
-      globals = program.Program.globals;
+      program;
     }
 end
 
@@ -174,6 +174,14 @@ and pp_numeric_value ~cx v =
   | IntLit i -> string_of_int i
   | IntVar var_id -> pp_var_id ~cx var_id
 
+and pp_function_value ~cx v =
+  let open Instruction.FunctionValue in
+  match v with
+  | Lit func_loc ->
+    let func = LocMap.find func_loc cx.Context.program.funcs in
+    "@" ^ func.name
+  | Var var_id -> pp_var_id ~cx var_id
+
 and pp_value ~cx v =
   let open Instruction.Value in
   match v with
@@ -181,6 +189,7 @@ and pp_value ~cx v =
   | Bool v -> pp_bool_value ~cx v
   | String v -> pp_string_value ~cx v
   | Numeric v -> pp_numeric_value ~cx v
+  | Function v -> pp_function_value ~cx v
 
 and pp_value_type ty =
   let open ValueType in
@@ -189,6 +198,7 @@ and pp_value_type ty =
   | Int -> "int"
   | Bool -> "bool"
   | String -> "string"
+  | Function -> "function"
 
 and pp_type_of_value v = pp_value_type (type_of_value v)
 
@@ -202,13 +212,16 @@ and pp_type_of_numeric_value v =
 and pp_instruction ~cx (_, instr) =
   let pp_instr var_id instr = Printf.sprintf "%s := %s" (pp_var_id ~cx var_id) instr in
   let pp_global global_loc =
-    let global = LocMap.find global_loc cx.globals in
+    let global = LocMap.find global_loc cx.program.globals in
     "%" ^ global.name
   in
   let instr_string =
     match instr with
     | Mov (var_id, right) ->
       pp_instr var_id (Printf.sprintf "Mov %s %s" (pp_type_of_value right) (pp_value ~cx right))
+    | Call (var_id, func, args) ->
+      let args_string = List.map (pp_value ~cx) args |> String.concat ", " in
+      pp_instr var_id (Printf.sprintf "Call %s(%s)" (pp_function_value ~cx func) args_string)
     | Ret val_opt ->
       "Ret"
       ^
