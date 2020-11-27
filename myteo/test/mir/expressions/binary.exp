@@ -9,4 +9,5 @@ func unit @main() {
   %7 := LtEq int 1, 2
   %8 := Gt int 1, 2
   %9 := GtEq int 1, 2
+  Ret
 }

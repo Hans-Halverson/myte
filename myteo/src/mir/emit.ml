@@ -53,7 +53,12 @@ and emit_toplevel_function_declaration ~pcx ~ecx decl =
     let block_id = Ecx.start_new_block ~ecx in
     if loc = pcx.main_loc then ecx.main_id <- block_id;
     (match body with
-    | Block { Statement.Block.statements; _ } -> List.iter (emit_statement ~pcx ~ecx) statements
+    | Block { Statement.Block.statements; _ } ->
+      List.iter (emit_statement ~pcx ~ecx) statements;
+      (* Add an implicit return if the last instruction is not a return *)
+      (match ecx.current_block_builder with
+      | Some { Ecx.BlockBuilder.instructions = (_, Ret _) :: _; _ } -> ()
+      | _ -> Ecx.emit ~ecx loc (Ret None))
     | Expression expr ->
       let ret_val = emit_expression ~pcx ~ecx expr in
       let expr_loc = Ast_utils.expression_loc expr in

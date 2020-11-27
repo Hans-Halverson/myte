@@ -10,6 +10,7 @@ func unit @testReassignGlobals() {
   %2 := LoadGlobal %x
   %3 := Mul int %1, %2
   StoreGlobal %x, %3
+  Ret
 }
 
 func unit @testReassignLocals() {
@@ -22,8 +23,9 @@ func unit @testReassignLocals() {
   %10 := Neg int %9
   %11 := Mul int %9, %9
   %12 := Mov int %11
+  Ret
 }
 
 func unit @main() {
-
+  Ret
 }

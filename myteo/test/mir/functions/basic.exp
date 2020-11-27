@@ -1,9 +1,9 @@
 func unit @empty() {
-
+  Ret
 }
 
 func unit @emptyParams(int %0, bool %1) {
-
+  Ret
 }
 
 func int @shorthand(int %2) {
@@ -22,8 +22,10 @@ label @1:
 label @2:
   %8 := Phi %6, %7
   %9 := Mov bool %8
+  Ret
 }
 
 func unit @main() {
   %10 := Mov bool true
+  Ret
 }

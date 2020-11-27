@@ -6,6 +6,7 @@ func unit @test1(int %0, unit %1) {
   %2 := LoadGlobal %x
   %3 := Mul int 2, %0
   %4 := Add int %2, %3
+  Ret
 }
 
 func unit @test2() {
@@ -13,8 +14,9 @@ func unit @test2() {
   %6 := Mov int %5
   %7 := Mul int 4, 34
   %8 := Mov int %7
+  Ret
 }
 
 func unit @main() {
-
+  Ret
 }

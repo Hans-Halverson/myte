@@ -8,5 +8,5 @@ func int @test2() {
 }
 
 func unit @main() {
-
+  Ret
 }

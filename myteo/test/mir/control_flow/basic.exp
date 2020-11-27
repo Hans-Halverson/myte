@@ -25,8 +25,9 @@ label @6:
 label @7:
   %8 := Phi %5, %6
   %9 := Neg int %8
+  Ret
 }
 
 func unit @main() {
-
+  Ret
 }

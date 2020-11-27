@@ -1,5 +1,5 @@
 func unit @noArgsFunc() {
-
+  Ret
 }
 
 func int @singleArgFunc(int %0) {
@@ -12,7 +12,7 @@ func int @singleArgFunc2(int %1) {
 }
 
 func unit @multiArgsFunc(int %3, int %4, string %5) {
-
+  Ret
 }
 
 func unit @directCalls() {
@@ -31,6 +31,7 @@ func unit @directCalls() {
   %18 := Add int 2, %17
   %19 := Call @multiArgsFunc(%16, %18, %7)
   %20 := Mov unit %19
+  Ret
 }
 
 func unit @indirectCalls() {
@@ -47,8 +48,9 @@ label @1:
   %27 := Call %23(%26)
   %28 := Add int 3, %27
   %29 := Mov int %28
+  Ret
 }
 
 func unit @main() {
-
+  Ret
 }

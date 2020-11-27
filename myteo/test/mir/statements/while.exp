@@ -26,4 +26,5 @@ label @8:
   %6 := Add int 4, 4
   continue @4
 label @9:
+  Ret
 }

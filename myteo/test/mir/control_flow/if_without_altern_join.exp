@@ -6,6 +6,7 @@ label @0:
   continue @1
 label @1:
   %2 := Neg int %0
+  Ret
 }
 
 func unit @testUpdated() {
@@ -17,6 +18,7 @@ label @2:
 label @3:
   %5 := Phi %3, %4
   %6 := Neg int %5
+  Ret
 }
 
 func unit @testMultiple() {
@@ -41,6 +43,7 @@ label @6:
 label @7:
   %18 := Phi %12, %17
   %19 := Neg int %18
+  Ret
 }
 
 global int %glob {
@@ -55,8 +58,9 @@ label @8:
 label @9:
   %20 := LoadGlobal %glob
   %21 := Neg int %20
+  Ret
 }
 
 func unit @main() {
-
+  Ret
 }

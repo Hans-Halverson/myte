@@ -21,8 +21,9 @@ label @4:
   continue @3
 label @5:
   %9 := Neg int %6
+  Ret
 }
 
 func unit @main() {
-
+  Ret
 }

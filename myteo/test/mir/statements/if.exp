@@ -6,6 +6,7 @@ label @0:
   continue @1
 label @1:
   %2 := Mov int 3
+  Ret
 }
 
 func unit @testWithAltern() {
@@ -19,6 +20,7 @@ label @3:
   continue @4
 label @4:
   %6 := Mov int 4
+  Ret
 }
 
 func unit @nested() {
@@ -49,8 +51,9 @@ label @12:
   %15 := Mov int 9
   continue @13
 label @13:
+  Ret
 }
 
 func unit @main() {
-
+  Ret
 }

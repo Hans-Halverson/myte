@@ -7,5 +7,5 @@ global int %x {
 }
 
 func unit @main() {
-
+  Ret
 }

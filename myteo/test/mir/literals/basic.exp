@@ -15,5 +15,5 @@ global bool %a1 {
 }
 
 func unit @main() {
-
+  Ret
 }
