@@ -1,0 +1,102 @@
+module StatementAfterReturn
+
+// Unreachable statements
+fun unreachableAfterReturn(): int {
+  return 1;
+  return 2;
+}
+
+fun unreachableAfterBreak(): int {
+  while (true) {
+    break;
+    return 1;
+  }
+
+  return 2;
+}
+
+fun unreachableAfterContinue(): int {
+  while (true) {
+    continue;
+    return 1;
+  }
+
+  return 2;
+}
+
+fun unreachableAfterIf(): int {
+  if (true) {
+    return 1;
+  } else {
+    return 2;
+  }
+
+  3;
+  return 4;
+}
+
+fun unreachableAfterBlock(): int {
+  {
+    return 1;
+  }
+
+  return 2;
+}
+
+fun unreachableWithinNestedFunction(): int {
+  fun inner(): int {
+    return 1;
+    return 2;
+  }
+
+  return 3;
+}
+
+fun unreachableComplexReason():int {
+  while (true) {
+    if (true) {
+      break;
+    } else {
+      continue;
+    }
+
+    return 1;
+  }
+
+  return 2;
+}
+
+// Reachable statements
+fun reachableAfterBlock(): int {
+  {
+    1;
+  }
+
+  return 2;
+}
+
+fun reachableAfterIf(): int {
+  if (true) {
+    return 1;
+  }
+
+  if (true) {
+    2;
+  } else {
+    return 3;
+  }
+
+  4;
+  return 5;
+}
+
+fun reachableAfterWhile(): int {
+  while (true) {
+    return 1;
+  }
+
+  2;
+  return 3;
+}
+
+fun main() {}

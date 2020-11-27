@@ -1,0 +1,5 @@
+module continue_outside_loop
+
+fun test() {
+  continue;
+}

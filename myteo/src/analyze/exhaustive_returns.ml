@@ -37,10 +37,9 @@ class analyzer =
             | AtomicInexhaustiveStatement -> BlockMissingReturn loc
             | other -> other)
           | stmt :: stmts ->
-            if prev_exhaustive = Exhaustive then (
-              this#add_error (Ast_utils.statement_loc stmt) UnreachableStatementAfterReturn;
+            if prev_exhaustive = Exhaustive then
               Exhaustive
-            ) else
+            else
               let exhaustive = this#exhaustive stmt in
               visit_statements ~prev_exhaustive:exhaustive stmts
         in

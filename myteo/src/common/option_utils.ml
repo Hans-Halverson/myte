@@ -9,3 +9,8 @@ let to_list o =
   match o with
   | None -> []
   | Some x -> [x]
+
+let value_map f ~default o =
+  match o with
+  | None -> default
+  | Some x -> f x

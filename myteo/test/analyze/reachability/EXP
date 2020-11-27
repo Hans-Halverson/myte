@@ -1,0 +1,44 @@
+Error: Break cannot appear outside a loop
+test/analyze/reachability/break_outside_loop.myte:4:2-8
+ 4 |   break;
+   |   ^^^^^^
+
+Error: Continue cannot appear outside a loop
+test/analyze/reachability/continue_outside_loop.myte:4:2-11
+ 4 |   continue;
+   |   ^^^^^^^^^
+
+Error: Unreachable statement after return
+test/analyze/reachability/reachability.myte:6:2-11
+ 6 |   return 2;
+   |   ^^^^^^^^^
+
+Error: Unreachable statement after break
+test/analyze/reachability/reachability.myte:12:4-13
+ 12 |     return 1;
+    |     ^^^^^^^^^
+
+Error: Unreachable statement after continue
+test/analyze/reachability/reachability.myte:21:4-13
+ 21 |     return 1;
+    |     ^^^^^^^^^
+
+Error: Unreachable statement after return
+test/analyze/reachability/reachability.myte:34:2-4
+ 34 |   3;
+    |   ^^
+
+Error: Unreachable statement after return
+test/analyze/reachability/reachability.myte:43:2-11
+ 43 |   return 2;
+    |   ^^^^^^^^^
+
+Error: Unreachable statement after return
+test/analyze/reachability/reachability.myte:49:4-13
+ 49 |     return 2;
+    |     ^^^^^^^^^
+
+Error: Unreachable statement
+test/analyze/reachability/reachability.myte:63:4-13
+ 63 |     return 1;
+    |     ^^^^^^^^^

@@ -3,7 +3,9 @@ open Basic_collections
 
 type t =
   | InexhaustiveReturn of Identifier.t
-  | UnreachableStatementAfterReturn
+  | UnreachableStatement of unreachable_statement_reason option
+  | BreakOutsideLoop
+  | ContinueOutsideLoop
   | MissingMainFunction
   | MultipleMainFunctions
   | UnresolvedName of string * bool
@@ -23,6 +25,11 @@ type t =
   | NonFunctionCalled of Types.t
   | IncorrectFunctionArity of int * int
 
+and unreachable_statement_reason =
+  | AfterReturn
+  | AfterBreak
+  | AfterContinue
+
 let plural n str =
   if n = 1 then
     str
@@ -39,7 +46,17 @@ let to_string error =
   match error with
   | InexhaustiveReturn { Identifier.name; _ } ->
     Printf.sprintf "All branches of function %s must end in a return statement" name
-  | UnreachableStatementAfterReturn -> "Unreachable statement after return"
+  | UnreachableStatement reason ->
+    let reason_string =
+      match reason with
+      | None -> ""
+      | Some AfterReturn -> " after return"
+      | Some AfterBreak -> " after break"
+      | Some AfterContinue -> " after continue"
+    in
+    "Unreachable statement" ^ reason_string
+  | BreakOutsideLoop -> "Break cannot appear outside a loop"
+  | ContinueOutsideLoop -> "Continue cannot appear outside a loop"
   | MissingMainFunction -> "No main function found in modules"
   | MultipleMainFunctions -> "Main function has already been declared"
   | UnresolvedName (name, is_value) ->

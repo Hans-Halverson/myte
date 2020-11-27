@@ -7,8 +7,9 @@ type program_context = {
 }
 
 let analyze_module mod_ =
-  let errors = Exhaustive_returns.analyze mod_ in
-  errors
+  let exhaustive_returns_errors = Exhaustive_returns.analyze mod_ in
+  let reachability_errors = Reachability.analyze mod_ in
+  exhaustive_returns_errors @ reachability_errors
 
 let analyze_modules mods_and_files =
   let mods = List.map snd mods_and_files in
