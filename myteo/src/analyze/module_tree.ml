@@ -18,7 +18,7 @@ and module_tree_node =
   | Export of export_info
 
 and value_export_kind =
-  | VarDecl
+  | VarDecl of Statement.VariableDeclaration.kind
   | FunDecl
 
 and type_export_kind = TypeDecl
@@ -54,9 +54,10 @@ let add_exports module_ submodule_tree =
     in
     match toplevels with
     | [] -> (submodule_tree, [])
-    | VariableDeclaration { Ast.Statement.VariableDeclaration.loc; pattern; _ } :: rest ->
+    | VariableDeclaration { Ast.Statement.VariableDeclaration.loc; kind; pattern; _ } :: rest ->
       let id = identifier_in_pattern pattern in
-      add_export id loc rest (fun export_info -> { export_info with value = Some (VarDecl, id) })
+      add_export id loc rest (fun export_info ->
+          { export_info with value = Some (VarDecl kind, id) })
     | FunctionDeclaration { Ast.Function.loc; name = id; _ } :: rest ->
       add_export id loc rest (fun export_info -> { export_info with value = Some (FunDecl, id) })
     | TypeDeclaration { Ast.TypeDeclaration.loc; name = id; _ } :: rest ->

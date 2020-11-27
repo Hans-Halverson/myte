@@ -1,17 +1,17 @@
 module test
 
 fun testNotUpdated() {
-  val x = 1;
+  var x = 1;
 
   if (true) {
-    val y = 1;
+    var y = 1;
   }
 
   -x;
 }
 
 fun testUpdated() {
-  val x = 1;
+  var x = 1;
 
   if (true) {
     x = 2;
@@ -21,9 +21,9 @@ fun testUpdated() {
 }
 
 fun testMultiple() {
-  val x = 1;
-  val y = 2;
-  val z = 3;
+  var x = 1;
+  var y = 2;
+  var z = 3;
 
   if (true) {
     x = 4;
@@ -41,7 +41,7 @@ fun testMultiple() {
   -x;
 }
 
-val glob: int = 1;
+var glob: int = 1;
 fun testGlobal() {
   if (true) {
     glob = 2;

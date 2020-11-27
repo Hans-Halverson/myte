@@ -1,8 +1,8 @@
 module test
 
 fun test1() {
-  val x = 1;
-  val y = 2;
+  var x = 1;
+  var y = 2;
 
   if (true) {
     if (false) {
@@ -20,8 +20,8 @@ fun test1() {
 }
 
 fun test2() {
-  val x = 1;
-  val y = 2;
+  var x = 1;
+  var y = 2;
 
   if (true) {
     if (false) {
@@ -42,8 +42,8 @@ fun test2() {
 }
 
 fun test3() {
-  val x = 1;
-  val y = 2;
+  var x = 1;
+  var y = 2;
 
   if (true) {
     if (false) {
@@ -64,8 +64,8 @@ fun test3() {
 }
 
 fun test4() {
-  val x = 1;
-  val y = 2;
+  var x = 1;
+  var y = 2;
 
   if (true) {
     if (false) {

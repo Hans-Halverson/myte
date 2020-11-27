@@ -2,9 +2,10 @@ open Ast
 open Basic_collections
 
 type value_declaration =
-  | VarDecl
+  | VarDecl of Statement.VariableDeclaration.kind
   | FunDecl
-  | ImportedValue of Identifier.t
+  | ImportedVarDecl of Identifier.t * Statement.VariableDeclaration.kind
+  | ImportedFunDecl of Identifier.t
   | ImportedModule of Module_tree.module_tree
   | FunParam
 
@@ -62,7 +63,8 @@ let get_source_value_binding bindings use_loc =
   let local_decl_loc = LocMap.find use_loc bindings.value_use_to_decl in
   let local_binding = LocMap.find local_decl_loc bindings.value_bindings in
   match local_binding.ValueBinding.declaration with
-  | (_, ImportedValue { Ast.Identifier.loc = source_decl_loc; _ }) ->
+  | (_, ImportedVarDecl ({ Ast.Identifier.loc = source_decl_loc; _ }, _))
+  | (_, ImportedFunDecl { Ast.Identifier.loc = source_decl_loc; _ }) ->
     LocMap.find source_decl_loc bindings.value_bindings
   | _ -> local_binding
 

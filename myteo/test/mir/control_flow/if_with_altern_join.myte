@@ -1,34 +1,34 @@
 module test
 
 fun testNeitherUpdated() {
-  val x = 1;
+  var x = 1;
 
   if (true) {
-    val y = 0;
+    var y = 0;
   } else {
-    val y = 1;
+    var y = 1;
   }
 
   -x;
 }
 
 fun testOnlyFirstUpdated() {
-  val x = 1;
+  var x = 1;
 
   if (true) {
     x = 2;
   } else {
-    val y = 0;
+    var y = 0;
   }
 
   -x;
 }
 
 fun testOnlySecondUpdated() {
-  val x = 1;
+  var x = 1;
 
   if (true) {
-    val y = 0;
+    var y = 0;
   } else {
     x = 2;
   }
@@ -37,7 +37,7 @@ fun testOnlySecondUpdated() {
 }
 
 fun testBothUpdated() {
-   val x = 1;
+   var x = 1;
 
    if (true) {
      x = 2;
@@ -49,9 +49,9 @@ fun testBothUpdated() {
 }
 
 fun testMultiple() {
-  val x = 0;
-  val y = 1;
-  val z = 2;
+  var x = 0;
+  var y = 1;
+  var z = 2;
 
   if (true) {
     x = 3;
@@ -64,18 +64,18 @@ fun testMultiple() {
   -z;
 }
 
-val glob: int = 1;
+var glob: int = 1;
 fun testGlobal() {
   if (true) {
     glob = 2;
   } else {
-    val y = 0;
+    var y = 0;
   }
 
   -glob;
 
   if (true) {
-    val y = 0;
+    var y = 0;
   } else {
     glob = 3;
   }

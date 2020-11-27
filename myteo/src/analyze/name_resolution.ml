@@ -31,7 +31,7 @@ class bindings_builder ~module_tree =
       (fun acc (kind, { Ast.Identifier.loc; name }) ->
         let kind =
           match kind with
-          | Module_tree.VarDecl -> VarDecl
+          | Module_tree.VarDecl kind -> VarDecl kind
           | Module_tree.FunDecl -> FunDecl
         in
         LocMap.add loc (mk_binding_builder loc name kind) acc)
@@ -160,7 +160,13 @@ class bindings_builder ~module_tree =
             | LookupResultExport export_info ->
               ignore
                 (Option.map
-                   (fun (_, id) -> add_value_name (ImportedValue id) local_name)
+                   (fun (kind, id) ->
+                     let kind =
+                       match kind with
+                       | VarDecl kind -> ImportedVarDecl (id, kind)
+                       | FunDecl -> ImportedFunDecl id
+                     in
+                     add_value_name kind local_name)
                    export_info.value);
               Option.iter (fun (_, id) -> add_type_name (ImportedType id) local_name) export_info.ty
             | LookupResultModule (_, module_tree) ->
@@ -187,9 +193,9 @@ class bindings_builder ~module_tree =
       List.iter
         (fun toplevel ->
           match toplevel with
-          | VariableDeclaration { Ast.Statement.VariableDeclaration.pattern; _ } ->
+          | VariableDeclaration { Ast.Statement.VariableDeclaration.kind; pattern; _ } ->
             let id = identifier_in_pattern pattern in
-            ignore (add_value_name VarDecl id)
+            ignore (add_value_name (VarDecl kind) id)
           | FunctionDeclaration { Ast.Function.name; _ } -> ignore (add_value_name FunDecl name)
           | TypeDeclaration { Ast.TypeDeclaration.name; _ } -> add_type_name TypeDecl name)
         toplevels;
@@ -234,11 +240,11 @@ class bindings_builder ~module_tree =
       block'
 
     method visit_variable_declaration ~add decl =
-      let { Ast.Statement.VariableDeclaration.pattern; init; _ } = decl in
+      let { Ast.Statement.VariableDeclaration.kind; pattern; init; _ } = decl in
       let id = identifier_in_pattern pattern in
       let { Ast.Identifier.loc; name; _ } = id in
       let init' = this#expression init in
-      if add then this#add_value_declaration loc VarDecl name;
+      if add then this#add_value_declaration loc (VarDecl kind) name;
       if init == init' then
         decl
       else
@@ -262,6 +268,28 @@ class bindings_builder ~module_tree =
       let function_ = super#function_ decl in
       this#exit_scope ();
       function_
+
+    method! assignment assign =
+      let open Statement.Assignment in
+      let id = Ast_utils.id_of_pattern assign.pattern in
+      (match this#lookup_value_in_scope id.name scopes with
+      | None -> ()
+      | Some decl_loc ->
+        let add_invalid_assign_error kind =
+          this#add_error id.loc (InvalidAssignment (id.name, kind))
+        in
+        let (_, declaration) = (LocMap.find decl_loc value_bindings).declaration in
+        (match declaration with
+        | VarDecl kind
+        | ImportedVarDecl (_, kind) ->
+          if kind = Statement.VariableDeclaration.Immutable then
+            add_invalid_assign_error InvalidAssignmentImmutableVariable
+        | FunDecl
+        | ImportedFunDecl _ ->
+          add_invalid_assign_error InvalidAssignmentFunction
+        | FunParam -> add_invalid_assign_error InvalidAssignmentFunctionParam
+        | ImportedModule _ -> (* Direct module use will error elsewhere *) ()));
+      super#assignment assign
 
     (* Match a sequence of module parts against the module tree, returning the same AST with the
        matched access chain replaced with a scoped id if a match exists. Otherwise error. *)

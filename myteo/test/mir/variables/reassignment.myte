@@ -1,6 +1,6 @@
 module test
 
-val x: int = 0;
+var x: int = 0;
 
 fun testReassignGlobals() {
   x = 1;
@@ -9,7 +9,7 @@ fun testReassignGlobals() {
 }
 
 fun testReassignLocals() {
-  val y = 0;
+  var y = 0;
   -y; // To see new variable for y
   y = 1;
   -y; // To see new variable for y

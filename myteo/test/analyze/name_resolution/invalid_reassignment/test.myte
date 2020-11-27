@@ -1,0 +1,34 @@
+module test
+
+import foo
+import foo.{importedMutableVar, importedImmutableVar, importedFunc}
+
+val immutableGlobal: int = 0;
+var mutableGlobal: int = 0;
+
+fun func(funcParam: int) {
+  val immutableLocal = 0;
+  var mutableLocal = 0;
+
+  // Do not error when reassigning mutable variables
+  mutableLocal = 1;
+  mutableGlobal = 1;
+  importedMutableVar = 1;
+
+  // Error when reassigning immutable variables
+  immutableLocal = 1;
+  immutableGlobal = 1;
+  importedImmutableVar = 1;
+
+  // Error when reassigning functions
+  func = 1;
+  importedFunc = 1;
+
+  // Error when reassigning function params
+  funcParam = 1;
+
+  // Error when reassigning module
+  foo = 1;
+}
+
+fun main() {}

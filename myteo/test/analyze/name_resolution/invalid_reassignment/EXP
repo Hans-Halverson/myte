@@ -1,0 +1,34 @@
+Error: Cannot reassign immutable variable immutableLocal
+test/analyze/name_resolution/invalid_reassignment/test.myte:19:2-16
+ 19 |   immutableLocal = 1;
+    |   ^^^^^^^^^^^^^^
+
+Error: Cannot reassign immutable variable immutableGlobal
+test/analyze/name_resolution/invalid_reassignment/test.myte:20:2-17
+ 20 |   immutableGlobal = 1;
+    |   ^^^^^^^^^^^^^^^
+
+Error: Cannot reassign immutable variable importedImmutableVar
+test/analyze/name_resolution/invalid_reassignment/test.myte:21:2-22
+ 21 |   importedImmutableVar = 1;
+    |   ^^^^^^^^^^^^^^^^^^^^
+
+Error: Cannot reassign function func
+test/analyze/name_resolution/invalid_reassignment/test.myte:24:2-6
+ 24 |   func = 1;
+    |   ^^^^
+
+Error: Cannot reassign function importedFunc
+test/analyze/name_resolution/invalid_reassignment/test.myte:25:2-14
+ 25 |   importedFunc = 1;
+    |   ^^^^^^^^^^^^
+
+Error: Cannot reassign function parameter funcParam
+test/analyze/name_resolution/invalid_reassignment/test.myte:28:2-11
+ 28 |   funcParam = 1;
+    |   ^^^^^^^^^
+
+Error: Module "foo" cannot be used as a value
+test/analyze/name_resolution/invalid_reassignment/test.myte:31:2-5
+ 31 |   foo = 1;
+    |   ^^^

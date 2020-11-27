@@ -9,6 +9,7 @@ type t =
   | MissingMainFunction
   | MultipleMainFunctions
   | UnresolvedName of string * bool
+  | InvalidAssignment of string * invalid_assignment_kind
   | DuplicateToplevelNames of string * bool
   | DuplicateParameterNames of string * string
   | DuplicateModuleNames of string
@@ -29,6 +30,11 @@ and unreachable_statement_reason =
   | AfterReturn
   | AfterBreak
   | AfterContinue
+
+and invalid_assignment_kind =
+  | InvalidAssignmentImmutableVariable
+  | InvalidAssignmentFunction
+  | InvalidAssignmentFunctionParam
 
 let plural n str =
   if n = 1 then
@@ -61,6 +67,14 @@ let to_string error =
   | MultipleMainFunctions -> "Main function has already been declared"
   | UnresolvedName (name, is_value) ->
     Printf.sprintf "Could not resolve name \"%s\" to %s" name (value_or_type is_value)
+  | InvalidAssignment (name, kind) ->
+    let kind_string =
+      match kind with
+      | InvalidAssignmentImmutableVariable -> "immutable variable"
+      | InvalidAssignmentFunction -> "function"
+      | InvalidAssignmentFunctionParam -> "function parameter"
+    in
+    Printf.sprintf "Cannot reassign %s %s" kind_string name
   | DuplicateToplevelNames (name, is_value) ->
     Printf.sprintf
       "%s with name \"%s\" already bound in module"
