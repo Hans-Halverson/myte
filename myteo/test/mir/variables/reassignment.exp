@@ -1,19 +1,19 @@
-global int %x {
-  StoreGlobal %x, 0
+global int %test.x {
+  StoreGlobal %test.x, 0
 }
 
-func unit @testReassignGlobals() {
-  StoreGlobal %x, 1
+func unit @test.testReassignGlobals() {
+  StoreGlobal %test.x, 1
   %0 := Add int 2, 3
-  StoreGlobal %x, %0
-  %1 := LoadGlobal %x
-  %2 := LoadGlobal %x
+  StoreGlobal %test.x, %0
+  %1 := LoadGlobal %test.x
+  %2 := LoadGlobal %test.x
   %3 := Mul int %1, %2
-  StoreGlobal %x, %3
+  StoreGlobal %test.x, %3
   Ret
 }
 
-func unit @testReassignLocals() {
+func unit @test.testReassignLocals() {
   %4 := Mov int 0
   %5 := Neg int %4
   %6 := Mov int 1
@@ -26,6 +26,6 @@ func unit @testReassignLocals() {
   Ret
 }
 
-func unit @main() {
+func unit @test.main() {
   Ret
 }

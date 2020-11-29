@@ -1,12 +1,12 @@
-func unit @test1() {
+func unit @test.test1() {
   %0 := Mov int 1
   Ret
 }
 
-func int @test2() {
+func int @test.test2() {
   Ret 99
 }
 
-func unit @main() {
+func unit @test.main() {
   Ret
 }

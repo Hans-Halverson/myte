@@ -1,44 +1,44 @@
-func unit @noArgsFunc() {
+func unit @test.noArgsFunc() {
   Ret
 }
 
-func int @singleArgFunc(int %0) {
+func int @test.singleArgFunc(int %0) {
   Ret %0
 }
 
-func int @singleArgFunc2(int %1) {
+func int @test.singleArgFunc2(int %1) {
   %2 := Add int %1, 1
   Ret %2
 }
 
-func unit @multiArgsFunc(int %3, int %4, string %5) {
+func unit @test.multiArgsFunc(int %3, int %4, string %5) {
   Ret
 }
 
-func unit @directCalls() {
+func unit @test.directCalls() {
   %6 := Mov bool true
   %7 := Mov string "str"
-  %8 := Call @noArgsFunc()
+  %8 := Call @test.noArgsFunc()
   %9 := Mov unit %8
-  %10 := Call @singleArgFunc(33)
+  %10 := Call @test.singleArgFunc(33)
   %11 := Mov int %10
-  %12 := Call @multiArgsFunc(29, 98, "test")
+  %12 := Call @test.multiArgsFunc(29, 98, "test")
   %13 := Mov unit %12
-  %14 := Call @singleArgFunc(%11)
+  %14 := Call @test.singleArgFunc(%11)
   %15 := Mov int %14
-  %16 := Call @singleArgFunc(45)
+  %16 := Call @test.singleArgFunc(45)
   %17 := Mul int 5, 6
   %18 := Add int 2, %17
-  %19 := Call @multiArgsFunc(%16, %18, %7)
+  %19 := Call @test.multiArgsFunc(%16, %18, %7)
   %20 := Mov unit %19
   Ret
 }
 
-func unit @indirectCalls() {
-  %21 := Mov function @singleArgFunc
+func unit @test.indirectCalls() {
+  %21 := Mov function @test.singleArgFunc
   branch true, @0, @1
 label @0:
-  %22 := Mov function @singleArgFunc2
+  %22 := Mov function @test.singleArgFunc2
   continue @1
 label @1:
   %23 := Phi %21, %22
@@ -51,6 +51,6 @@ label @1:
   Ret
 }
 
-func unit @main() {
+func unit @test.main() {
   Ret
 }

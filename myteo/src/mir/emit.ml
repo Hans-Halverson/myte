@@ -4,16 +4,24 @@ module Ecx = Emit_context
 
 let rec emit_control_flow_ir (pcx : Lex_analyze.program_context) : cf_program =
   let ecx = Emit_context.mk () in
-  List.iter (emit_module ~pcx ~ecx) pcx.modules;
+  List.iter
+    (fun mod_ ->
+      let open Ast.Module in
+      let name = Ast_utils.string_of_scoped_ident (snd mod_).module_.name in
+      Ecx.start_module ~ecx name;
+      emit_module ~pcx ~ecx mod_;
+      Ecx.end_module ~ecx)
+    pcx.modules;
   {
     Program.main_id = ecx.main_id;
     blocks = Ecx.builders_to_blocks ecx.blocks;
     globals = ecx.globals;
     funcs = ecx.funcs;
+    modules = ecx.modules;
   }
 
 and emit_module ~pcx ~ecx (_, mod_) =
-  let open Module in
+  let open Ast.Module in
   List.iter
     (fun toplevel ->
       match toplevel with
@@ -30,13 +38,14 @@ and emit_module ~pcx ~ecx (_, mod_) =
 and emit_toplevel_variable_declaration ~pcx ~ecx decl =
   let { Statement.VariableDeclaration.pattern; init; _ } = decl in
   let { Identifier.loc; name } = Ast_utils.id_of_pattern pattern in
+  let name = Printf.sprintf "%s.%s" (Ecx.get_module_builder ~ecx).name name in
   (* Find value type of variable *)
   let ty = value_type_of_decl_loc ~pcx loc in
   (* Build IR for variable init *)
   Ecx.start_block_sequence ~ecx;
   ignore (Ecx.start_new_block ~ecx);
   let init_val = emit_expression ~pcx ~ecx init in
-  Ecx.emit ~ecx loc (StoreGlobal (loc, init_val));
+  Ecx.emit ~ecx loc (StoreGlobal (name, init_val));
   Ecx.finish_block_halt ~ecx;
   let block_ids = Ecx.get_block_sequence ~ecx in
   Ecx.add_global ~ecx { Global.loc; name; ty; init = block_ids }
@@ -44,6 +53,7 @@ and emit_toplevel_variable_declaration ~pcx ~ecx decl =
 and emit_toplevel_function_declaration ~pcx ~ecx decl =
   let open Ast.Function in
   let { name = { Identifier.loc; name }; params; body; _ } = decl in
+  let name = Printf.sprintf "%s.%s" (Ecx.get_module_builder ~ecx).name name in
   (* Build IR for function body *)
   let param_locs_and_ids =
     List.map (fun { Param.name = { Identifier.loc; _ }; _ } -> (loc, mk_var_id ())) params
@@ -171,15 +181,15 @@ and emit_expression ~pcx ~ecx expr =
     (* Create function literal for functions *)
     | FunDecl
     | ImportedFunDecl _ ->
-      Function (Lit decl_loc)
+      Function (Lit (mk_binding_name binding))
     (* Variables may be either globals or locals *)
     | VarDecl _
     | ImportedVarDecl _
     | FunParam ->
       let var =
-        if Ecx.is_global_loc ~ecx decl_loc then (
+        if Bindings.is_global_decl pcx.bindings decl_loc then (
           let var_id = mk_cf_var_id () in
-          Ecx.emit ~ecx loc (LoadGlobal (var_id, decl_loc));
+          Ecx.emit ~ecx loc (LoadGlobal (var_id, mk_binding_name binding));
           var_id
         ) else
           mk_cf_local loc
@@ -276,10 +286,11 @@ and emit_statement ~pcx ~ecx stmt =
     Ecx.finish_block_continue ~ecx break_id
   | Assignment { loc; pattern; expr } ->
     let { Identifier.loc = use_loc; _ } = Ast_utils.id_of_pattern pattern in
-    let decl_loc = Bindings.get_source_decl_loc_from_value_use pcx.bindings use_loc in
+    let binding = Bindings.get_source_value_binding pcx.bindings use_loc in
+    let decl_loc = fst binding.declaration in
     let expr_val = emit_expression ~pcx ~ecx expr in
-    if Ecx.is_global_loc ~ecx decl_loc then
-      Ecx.emit ~ecx loc (StoreGlobal (decl_loc, expr_val))
+    if Bindings.is_global_decl pcx.bindings decl_loc then
+      Ecx.emit ~ecx loc (StoreGlobal (mk_binding_name binding, expr_val))
     else
       Ecx.emit ~ecx loc (Mov (mk_cf_local use_loc, expr_val))
   | VariableDeclaration { pattern; init; _ } ->
@@ -291,6 +302,8 @@ and emit_statement ~pcx ~ecx stmt =
 and mk_cf_var_id () = Id (mk_var_id ())
 
 and mk_cf_local loc = Local loc
+
+and mk_binding_name binding = String.concat "." (binding.module_ @ [binding.name])
 
 and type_to_value_type ty =
   match ty with

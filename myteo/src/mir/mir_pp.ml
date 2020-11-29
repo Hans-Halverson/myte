@@ -23,18 +23,31 @@ end
 let rec pp_program program =
   let open Program in
   let cx = Context.mk program in
-  let get_loc_keys m = LocMap.fold (fun loc _ locs -> loc :: locs) m [] in
-  let block_locs = get_loc_keys program.globals @ get_loc_keys program.funcs in
-  let sorted_block_locs = List.sort Loc.compare block_locs in
-  let blocks_strings =
-    List.map
-      (fun loc ->
-        match LocMap.find_opt loc program.globals with
-        | Some global -> pp_global ~cx ~program global
-        | None -> pp_func ~cx ~program (LocMap.find loc program.funcs))
-      sorted_block_locs
+  (* Collect printed blocks along with their names *)
+  let blocks =
+    SMap.fold
+      (fun _ mod_ blocks ->
+        let open Module in
+        let blocks =
+          SSet.fold
+            (fun name blocks ->
+              let global = SMap.find name program.globals in
+              (global.loc, fun _ -> pp_global ~cx ~program global) :: blocks)
+            mod_.globals
+            blocks
+        in
+        SSet.fold
+          (fun name blocks ->
+            let func = SMap.find name program.funcs in
+            (func.loc, fun _ -> pp_func ~cx ~program func) :: blocks)
+          mod_.funcs
+          blocks)
+      program.modules
+      []
   in
-  String.concat "\n" blocks_strings
+  (* Sort by block name *)
+  let sorted_blocks = List.sort (fun (l1, _) (l2, _) -> Loc.compare l1 l2) blocks in
+  String.concat "\n" (List.map (fun (_, mk_block) -> mk_block ()) sorted_blocks)
 
 and pp_global ~cx ~program global =
   let open Global in
@@ -177,9 +190,7 @@ and pp_numeric_value ~cx v =
 and pp_function_value ~cx v =
   let open Instruction.FunctionValue in
   match v with
-  | Lit func_loc ->
-    let func = LocMap.find func_loc cx.Context.program.funcs in
-    "@" ^ func.name
+  | Lit func_name -> "@" ^ func_name
   | Var var_id -> pp_var_id ~cx var_id
 
 and pp_value ~cx v =
@@ -211,10 +222,7 @@ and pp_type_of_numeric_value v =
 
 and pp_instruction ~cx (_, instr) =
   let pp_instr var_id instr = Printf.sprintf "%s := %s" (pp_var_id ~cx var_id) instr in
-  let pp_global global_loc =
-    let global = LocMap.find global_loc cx.program.globals in
-    "%" ^ global.name
-  in
+  let pp_global global_name = "%" ^ global_name in
   let instr_string =
     match instr with
     | Mov (var_id, right) ->
@@ -228,10 +236,10 @@ and pp_instruction ~cx (_, instr) =
       (match val_opt with
       | Some v -> " " ^ pp_value ~cx v
       | None -> "")
-    | LoadGlobal (var_id, global_loc) ->
-      pp_instr var_id (Printf.sprintf "LoadGlobal %s" (pp_global global_loc))
-    | StoreGlobal (global_loc, right) ->
-      Printf.sprintf "StoreGlobal %s, %s" (pp_global global_loc) (pp_value ~cx right)
+    | LoadGlobal (var_id, global_name) ->
+      pp_instr var_id (Printf.sprintf "LoadGlobal %s" (pp_global global_name))
+    | StoreGlobal (global_name, right) ->
+      Printf.sprintf "StoreGlobal %s, %s" (pp_global global_name) (pp_value ~cx right)
     | LogNot (var_id, arg) -> pp_instr var_id (Printf.sprintf "LogNot %s" (pp_bool_value ~cx arg))
     | LogAnd (var_id, left, right) ->
       pp_instr

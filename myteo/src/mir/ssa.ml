@@ -203,7 +203,7 @@ and find_join_points ~pcx ~cx program =
         sources := LocMap.add decl_loc write_loc !sources)
   in
   (* Visit all function bodies *)
-  LocMap.iter
+  SMap.iter
     (fun _ { Function.params; body; _ } ->
       let block_id = List.hd body in
       let sources =
@@ -380,7 +380,7 @@ and build_phi_nodes ~pcx ~cx program =
   in
   (* Visit bodies of all functions *)
   cx.visited_blocks <- ISet.empty;
-  LocMap.iter
+  SMap.iter
     (fun _ { Function.params; body; _ } ->
       let block_id = List.hd body in
       (* Set up sources for every param *)
@@ -521,8 +521,8 @@ and map_to_ssa ~cx program =
   in
   cx.visited_blocks <- ISet.empty;
   visit_block program.main_id;
-  LocMap.iter (fun _ { Global.init; _ } -> visit_block (List.hd init)) program.globals;
-  LocMap.iter (fun _ { Function.body; _ } -> visit_block (List.hd body)) program.funcs;
+  SMap.iter (fun _ { Global.init; _ } -> visit_block (List.hd init)) program.globals;
+  SMap.iter (fun _ { Function.body; _ } -> visit_block (List.hd body)) program.funcs;
   (* Strip empty blocks *)
   IMap.iter
     (fun block_id { Block.phis; instructions; next; _ } ->
@@ -566,10 +566,16 @@ and map_to_ssa ~cx program =
     cx.blocks;
   (* Not all blocks will be visited, strip those that are ignored *)
   let funcs =
-    LocMap.map
+    SMap.map
       (fun func ->
         let open Function in
         { func with body = List.filter (fun block_id -> IMap.mem block_id cx.blocks) func.body })
       program.funcs
   in
-  { Program.main_id = program.main_id; blocks = cx.blocks; globals = program.globals; funcs }
+  {
+    Program.main_id = program.main_id;
+    blocks = cx.blocks;
+    globals = program.globals;
+    funcs;
+    modules = program.modules;
+  }

@@ -1,4 +1,4 @@
-func unit @main() {
+func unit @test.main() {
   continue @0
 label @0:
   branch true, @0, @1

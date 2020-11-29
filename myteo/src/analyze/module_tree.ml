@@ -7,9 +7,6 @@ let identifier_in_pattern pat =
   match pat with
   | Identifier id -> id
 
-let string_of_name_parts name_parts =
-  name_parts |> List.map (fun { Ast.Identifier.name; _ } -> name) |> String.concat "."
-
 type module_tree = module_tree_node SMap.t
 
 and module_tree_node =
@@ -49,7 +46,7 @@ let add_exports module_ submodule_tree =
         } =
           module_
         in
-        let scopes_string = string_of_name_parts (scopes @ [name_ident]) in
+        let scopes_string = Ast_utils.string_of_name_parts (scopes @ [name_ident]) in
         (submodule_tree, (loc, ModuleAndExportDuplicateNames (name, scopes_string)) :: errors)
     in
     match toplevels with
@@ -84,10 +81,10 @@ let add_to_module_tree module_ module_tree =
         [
           ( loc,
             ModuleAndExportDuplicateNames
-              (current_part.name, string_of_name_parts (List.rev prev_name_parts)) );
+              (current_part.name, Ast_utils.string_of_name_parts (List.rev prev_name_parts)) );
         ] )
     | (Some (Module _), []) ->
-      (SMap.empty, [(loc, DuplicateModuleNames (string_of_name_parts module_name_parts))])
+      (SMap.empty, [(loc, DuplicateModuleNames (Ast_utils.string_of_name_parts module_name_parts))])
     | (Some (Empty (_, submodule_tree)), []) ->
       let (submodule_tree, errors) = add_exports module_ submodule_tree in
       let new_module_node = Module (current_part.name, submodule_tree) in

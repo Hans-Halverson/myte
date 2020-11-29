@@ -1,4 +1,4 @@
-func unit @main() {
+func unit @test.main() {
   %0 := Add int 1, 2
   %1 := Sub int 1, 2
   %2 := Mul int 1, 2

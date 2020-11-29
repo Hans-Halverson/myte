@@ -1,4 +1,4 @@
-func unit @testWithoutAltern() {
+func unit @test.testWithoutAltern() {
   %0 := Mov int 1
   branch true, @0, @1
 label @0:
@@ -9,7 +9,7 @@ label @1:
   Ret
 }
 
-func unit @testWithAltern() {
+func unit @test.testWithAltern() {
   %3 := Mov int 1
   branch true, @2, @3
 label @2:
@@ -23,7 +23,7 @@ label @4:
   Ret
 }
 
-func unit @nested() {
+func unit @test.nested() {
   %7 := Mov int 1
   branch true, @5, @9
 label @5:
@@ -54,6 +54,6 @@ label @13:
   Ret
 }
 
-func unit @main() {
+func unit @test.main() {
   Ret
 }

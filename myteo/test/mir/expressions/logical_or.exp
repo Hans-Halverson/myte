@@ -1,4 +1,4 @@
-func unit @main() {
+func unit @test.main() {
   %0 := Mov bool true
   %1 := Mov bool false
   branch %0, @0, @1

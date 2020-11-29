@@ -20,6 +20,8 @@ module ValueBinding = struct
     declaration: Loc.t * value_declaration;
     uses: LocSet.t;
     tvar_id: Types.tvar_id;
+    is_global: bool;
+    module_: string list;
   }
 end
 
@@ -29,6 +31,7 @@ module TypeBinding = struct
     declaration: Loc.t * type_declaration;
     uses: LocSet.t;
     tvar_id: Types.tvar_id;
+    module_: string list;
   }
 end
 
@@ -99,3 +102,8 @@ let get_tvar_id_from_value_use bindings use_loc =
 let get_tvar_id_from_type_use bindings use_loc =
   let binding = get_source_type_binding bindings use_loc in
   binding.tvar_id
+
+let is_global_decl bindings decl_loc =
+  let open Bindings in
+  let binding = LocMap.find decl_loc bindings.value_bindings in
+  binding.is_global

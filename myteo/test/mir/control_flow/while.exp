@@ -1,4 +1,4 @@
-func unit @writeInBody() {
+func unit @test.writeInBody() {
   %0 := Mov int 1
   continue @0
 label @0:
@@ -24,6 +24,6 @@ label @5:
   Ret
 }
 
-func unit @main() {
+func unit @test.main() {
   Ret
 }

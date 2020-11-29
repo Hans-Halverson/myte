@@ -1,16 +1,16 @@
-func unit @empty() {
+func unit @test.empty() {
   Ret
 }
 
-func unit @emptyParams(int %0, bool %1) {
+func unit @test.emptyParams(int %0, bool %1) {
   Ret
 }
 
-func int @shorthand(int %2) {
+func int @test.shorthand(int %2) {
   Ret 1
 }
 
-func unit @withBody(int %3, bool %4) {
+func unit @test.withBody(int %3, bool %4) {
   %5 := Mov int 10
   branch true, @0, @1
 label @0:
@@ -25,7 +25,7 @@ label @2:
   Ret
 }
 
-func unit @main() {
+func unit @test.main() {
   %10 := Mov bool true
   Ret
 }

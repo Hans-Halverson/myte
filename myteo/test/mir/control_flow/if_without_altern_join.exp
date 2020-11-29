@@ -1,4 +1,4 @@
-func unit @testNotUpdated() {
+func unit @test.testNotUpdated() {
   %0 := Mov int 1
   branch true, @0, @1
 label @0:
@@ -9,7 +9,7 @@ label @1:
   Ret
 }
 
-func unit @testUpdated() {
+func unit @test.testUpdated() {
   %3 := Mov int 1
   branch true, @2, @3
 label @2:
@@ -21,7 +21,7 @@ label @3:
   Ret
 }
 
-func unit @testMultiple() {
+func unit @test.testMultiple() {
   %7 := Mov int 1
   %8 := Mov int 2
   %9 := Mov int 3
@@ -46,21 +46,21 @@ label @7:
   Ret
 }
 
-global int %glob {
-  StoreGlobal %glob, 1
+global int %test.glob {
+  StoreGlobal %test.glob, 1
 }
 
-func unit @testGlobal() {
+func unit @test.testGlobal() {
   branch true, @8, @9
 label @8:
-  StoreGlobal %glob, 2
+  StoreGlobal %test.glob, 2
   continue @9
 label @9:
-  %20 := LoadGlobal %glob
+  %20 := LoadGlobal %test.glob
   %21 := Neg int %20
   Ret
 }
 
-func unit @main() {
+func unit @test.main() {
   Ret
 }

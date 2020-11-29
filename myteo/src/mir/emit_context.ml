@@ -18,9 +18,11 @@ type t = {
   (* Data structures for MIR *)
   mutable main_id: Block.id;
   mutable blocks: BlockBuilder.t IMap.t;
-  mutable globals: Global.t LocMap.t;
-  mutable funcs: Function.t LocMap.t;
+  mutable globals: Global.t SMap.t;
+  mutable funcs: Function.t SMap.t;
+  mutable modules: Module.t SMap.t;
   mutable current_block_builder: BlockBuilder.t option;
+  mutable current_module_builder: Module.t option;
   (* Block ids in the current sequence, in reverse *)
   mutable current_block_sequence_ids: Block.id list;
   (* Stack of loop contexts for all loops we are currently inside *)
@@ -31,9 +33,11 @@ let mk () =
   {
     main_id = 0;
     blocks = IMap.empty;
-    globals = LocMap.empty;
-    funcs = LocMap.empty;
+    globals = SMap.empty;
+    funcs = SMap.empty;
+    modules = SMap.empty;
     current_block_builder = None;
+    current_module_builder = None;
     current_block_sequence_ids = [];
     current_loop_contexts = [];
   }
@@ -49,11 +53,17 @@ let builders_to_blocks builders =
       })
     builders
 
-let add_global ~ecx global = ecx.globals <- LocMap.add global.Global.loc global ecx.globals
+let add_global ~ecx global =
+  let name = global.Global.name in
+  let builder = Option.get ecx.current_module_builder in
+  ecx.globals <- SMap.add name global ecx.globals;
+  builder.globals <- SSet.add name builder.globals
 
-let add_function ~ecx func = ecx.funcs <- LocMap.add func.Function.loc func ecx.funcs
-
-let is_global_loc ~ecx decl_loc = LocMap.mem decl_loc ecx.globals
+let add_function ~ecx func =
+  let name = func.Function.name in
+  let builder = Option.get ecx.current_module_builder in
+  ecx.funcs <- SMap.add name func ecx.funcs;
+  builder.funcs <- SSet.add name builder.funcs
 
 let emit ~ecx loc inst =
   match ecx.current_block_builder with
@@ -105,3 +115,13 @@ let push_loop_context ~ecx break_id continue_id =
 let pop_loop_context ~ecx = ecx.current_loop_contexts <- List.tl ecx.current_loop_contexts
 
 let get_loop_context ~ecx = List.hd ecx.current_loop_contexts
+
+let get_module_builder ~ecx = Option.get ecx.current_module_builder
+
+let start_module ~ecx name =
+  ecx.current_module_builder <- Some { Module.name; funcs = SSet.empty; globals = SSet.empty }
+
+let end_module ~ecx =
+  let mod_ = get_module_builder ~ecx in
+  ecx.modules <- SMap.add mod_.name mod_ ecx.modules;
+  ecx.current_module_builder <- None

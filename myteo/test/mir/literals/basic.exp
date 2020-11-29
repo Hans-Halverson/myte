@@ -1,19 +1,19 @@
-global unit %x {
-  StoreGlobal %x, ()
+global unit %test.x {
+  StoreGlobal %test.x, ()
 }
 
-global int %y {
-  StoreGlobal %y, 1
+global int %test.y {
+  StoreGlobal %test.y, 1
 }
 
-global string %z {
-  StoreGlobal %z, "test"
+global string %test.z {
+  StoreGlobal %test.z, "test"
 }
 
-global bool %a1 {
-  StoreGlobal %a1, true
+global bool %test.a1 {
+  StoreGlobal %test.a1, true
 }
 
-func unit @main() {
+func unit @test.main() {
   Ret
 }

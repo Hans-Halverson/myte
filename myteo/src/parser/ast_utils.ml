@@ -73,3 +73,14 @@ let modules_end_loc mods =
   match List.rev mods with
   | [] -> failwith "There is always at least one module"
   | { Module.loc; _ } :: _ -> Loc.point_end loc
+
+let name_parts_of_scoped_ident id =
+  let open ScopedIdentifier in
+  List.map (fun { Identifier.name; _ } -> name) id.scopes @ [id.name.name]
+
+let string_of_name_parts name_parts =
+  name_parts |> List.map (fun { Ast.Identifier.name; _ } -> name) |> String.concat "."
+
+let string_of_scoped_ident id =
+  let open ScopedIdentifier in
+  string_of_name_parts (id.scopes @ [id.name])

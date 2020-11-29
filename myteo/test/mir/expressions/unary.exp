@@ -1,4 +1,4 @@
-func unit @main() {
+func unit @test.main() {
   %0 := LogNot true
   %1 := Neg int 1
   Ret

@@ -29,7 +29,7 @@ module rec Instruction : sig
 
   module FunctionValue : sig
     type 'a t =
-      | Lit of Loc.t
+      | Lit of string
       | Var of 'a
   end
 
@@ -47,8 +47,8 @@ module rec Instruction : sig
     | Call of 'var * 'var FunctionValue.t * 'var Value.t list
     | Ret of 'var Value.t option
     (* Globals *)
-    | LoadGlobal of 'var * Loc.t
-    | StoreGlobal of Loc.t * 'var Value.t
+    | LoadGlobal of 'var * string
+    | StoreGlobal of string * 'var Value.t
     (* Logical ops *)
     | LogNot of 'var * 'var BoolValue.t
     | LogAnd of 'var * 'var BoolValue.t * 'var BoolValue.t
@@ -72,13 +72,23 @@ end =
 
 module rec Program : sig
   type 'var t = {
-    main_id: Block.id;
-    blocks: 'var Block.t IMap.t;
-    globals: Global.t LocMap.t;
-    funcs: Function.t LocMap.t;
+    mutable main_id: Block.id;
+    mutable blocks: 'var Block.t IMap.t;
+    mutable globals: Global.t SMap.t;
+    mutable funcs: Function.t SMap.t;
+    mutable modules: Module.t SMap.t;
   }
 end =
   Program
+
+and Module : sig
+  type t = {
+    name: string;
+    mutable globals: SSet.t;
+    mutable funcs: SSet.t;
+  }
+end =
+  Module
 
 and Block : sig
   type 'var t = {

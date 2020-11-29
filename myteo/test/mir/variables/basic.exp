@@ -1,22 +1,22 @@
-global int %x {
-  StoreGlobal %x, 1
+global int %test.x {
+  StoreGlobal %test.x, 1
 }
 
-func unit @test1(int %0, unit %1) {
-  %2 := LoadGlobal %x
+func unit @test.test1(int %0, unit %1) {
+  %2 := LoadGlobal %test.x
   %3 := Mul int 2, %0
   %4 := Add int %2, %3
   Ret
 }
 
-func unit @test2() {
-  %5 := LoadGlobal %x
+func unit @test.test2() {
+  %5 := LoadGlobal %test.x
   %6 := Mov int %5
   %7 := Mul int 4, 34
   %8 := Mov int %7
   Ret
 }
 
-func unit @main() {
+func unit @test.main() {
   Ret
 }

@@ -1,4 +1,4 @@
-func unit @testLatest() {
+func unit @test.testLatest() {
   %0 := Mov int 1
   %1 := Mov int 2
   branch true, @0, @1
@@ -28,6 +28,6 @@ label @7:
   Ret
 }
 
-func unit @main() {
+func unit @test.main() {
   Ret
 }

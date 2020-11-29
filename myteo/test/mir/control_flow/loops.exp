@@ -1,4 +1,4 @@
-func unit @inexhaustiveContinue() {
+func unit @test.inexhaustiveContinue() {
   %0 := Mov int 1
   continue @0
 label @0:
@@ -18,7 +18,7 @@ label @4:
   Ret
 }
 
-func unit @inexhaustiveBreak() {
+func unit @test.inexhaustiveBreak() {
   %6 := Mov int 1
   continue @5
 label @5:
@@ -39,7 +39,7 @@ label @9:
   Ret
 }
 
-func unit @exhaustiveContinues() {
+func unit @test.exhaustiveContinues() {
   %13 := Mov int 1
   continue @10
 label @10:
@@ -59,7 +59,7 @@ label @14:
   Ret
 }
 
-func unit @exhaustiveBreaks() {
+func unit @test.exhaustiveBreaks() {
   %19 := Mov int 1
   continue @15
 label @15:
@@ -79,7 +79,7 @@ label @19:
   Ret
 }
 
-func unit @inexhaustiveBreakAndContinue() {
+func unit @test.inexhaustiveBreakAndContinue() {
   %25 := Mov int 1
   continue @20
 label @20:
@@ -105,7 +105,7 @@ label @26:
   Ret
 }
 
-func unit @exhaustiveBreakAndContinue() {
+func unit @test.exhaustiveBreakAndContinue() {
   %33 := Mov int 1
   continue @27
 label @27:
@@ -126,6 +126,6 @@ label @31:
   Ret
 }
 
-func unit @main() {
+func unit @test.main() {
   Ret
 }

@@ -1,4 +1,4 @@
-func unit @test1() {
+func unit @test.test1() {
   %0 := Mov int 1
   %1 := Mov int 2
   branch true, @0, @2
@@ -21,7 +21,7 @@ label @4:
   Ret
 }
 
-func unit @test2() {
+func unit @test.test2() {
   %9 := Mov int 1
   %10 := Mov int 2
   branch true, @5, @8
@@ -48,7 +48,7 @@ label @10:
   Ret
 }
 
-func unit @test3() {
+func unit @test.test3() {
   %20 := Mov int 1
   %21 := Mov int 2
   branch true, @11, @13
@@ -75,7 +75,7 @@ label @16:
   Ret
 }
 
-func unit @test4() {
+func unit @test.test4() {
   %31 := Mov int 1
   %32 := Mov int 2
   branch true, @17, @20
@@ -106,6 +106,6 @@ label @23:
   Ret
 }
 
-func unit @main() {
+func unit @test.main() {
   Ret
 }

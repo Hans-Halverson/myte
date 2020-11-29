@@ -1,4 +1,4 @@
-func unit @main() {
+func unit @test.main() {
   %0 := Mov int 8
   %1 := Mov int 77
   %2 := Mul int 77, 34

@@ -15,9 +15,12 @@ type 'a binding_builder = {
   name: string;
   declaration: Loc.t * 'a;
   mutable uses: LocSet.t;
+  is_global: bool;
+  module_: string list;
 }
 
-let mk_binding_builder loc name kind = { name; declaration = (loc, kind); uses = LocSet.empty }
+let mk_binding_builder ~loc ~name ~kind ~is_global ~module_ =
+  { name; declaration = (loc, kind); uses = LocSet.empty; is_global; module_ }
 
 let identifier_in_pattern pat =
   let open Pattern in
@@ -34,7 +37,8 @@ class bindings_builder ~module_tree =
           | Module_tree.VarDecl kind -> VarDecl kind
           | Module_tree.FunDecl -> FunDecl
         in
-        LocMap.add loc (mk_binding_builder loc name kind) acc)
+        (* TODO: CHeck if this is accurate for modules*)
+        LocMap.add loc (mk_binding_builder ~loc ~name ~kind ~is_global:true ~module_:[]) acc)
       LocMap.empty
       exported_value_ids
   in
@@ -45,7 +49,7 @@ class bindings_builder ~module_tree =
           match kind with
           | Module_tree.TypeDecl -> TypeDecl
         in
-        LocMap.add loc (mk_binding_builder loc name kind) acc)
+        LocMap.add loc (mk_binding_builder ~loc ~name ~kind ~is_global:true ~module_:[]) acc)
       LocMap.empty
       exported_type_ids
   in
@@ -65,11 +69,16 @@ class bindings_builder ~module_tree =
 
     val mutable scopes : scopes = []
 
+    val mutable module_name : string list = []
+
     method add_error loc err = errors <- (loc, err) :: errors
 
-    method add_value_declaration loc kind name =
+    method add_value_declaration loc kind name is_global =
       value_bindings <-
-        LocMap.add loc { name; declaration = (loc, kind); uses = LocSet.empty } value_bindings;
+        LocMap.add
+          loc
+          { name; declaration = (loc, kind); uses = LocSet.empty; is_global; module_ = module_name }
+          value_bindings;
       match scopes with
       | [] -> failwith "There must always be a scope"
       | { local_values; local_types } :: rest ->
@@ -78,7 +87,16 @@ class bindings_builder ~module_tree =
 
     method add_type_declaration loc kind name =
       type_bindings <-
-        LocMap.add loc { name; declaration = (loc, kind); uses = LocSet.empty } type_bindings;
+        LocMap.add
+          loc
+          {
+            name;
+            declaration = (loc, kind);
+            uses = LocSet.empty;
+            is_global = true;
+            module_ = module_name;
+          }
+          type_bindings;
       match scopes with
       | [] -> failwith "There must always be a scope"
       | { local_values; local_types } :: rest ->
@@ -119,14 +137,21 @@ class bindings_builder ~module_tree =
     method results () =
       let value_bindings =
         LocMap.map
-          (fun { name; declaration; uses } ->
-            { ValueBinding.name; declaration; uses; tvar_id = Types.mk_tvar_id () })
+          (fun { name; declaration; uses; is_global; module_ } ->
+            {
+              ValueBinding.name;
+              declaration;
+              uses;
+              tvar_id = Types.mk_tvar_id ();
+              is_global;
+              module_;
+            })
           value_bindings
       in
       let type_bindings =
         LocMap.map
-          (fun { name; declaration; uses } ->
-            { TypeBinding.name; declaration; uses; tvar_id = Types.mk_tvar_id () })
+          (fun { name; declaration; uses; module_; _ } ->
+            { TypeBinding.name; declaration; uses; tvar_id = Types.mk_tvar_id (); module_ })
           type_bindings
       in
       let errors = List.rev errors in
@@ -138,7 +163,7 @@ class bindings_builder ~module_tree =
         let { Ast.Identifier.loc; name } = name in
         let is_duplicate = SMap.mem name (List.hd scopes).local_values in
         if is_duplicate then this#add_error loc (DuplicateToplevelNames (name, true));
-        this#add_value_declaration loc kind name;
+        this#add_value_declaration loc kind name true;
         is_duplicate
       in
       let add_type_name kind name =
@@ -147,7 +172,8 @@ class bindings_builder ~module_tree =
           this#add_error loc (DuplicateToplevelNames (name, false));
         this#add_type_declaration loc kind name
       in
-      let { toplevels; imports; _ } = mod_ in
+      let { module_; toplevels; imports; _ } = mod_ in
+      module_name <- Ast_utils.name_parts_of_scoped_ident module_.name;
       this#enter_scope ();
       (* Gather imports and add them to toplevel scope *)
       List.iter
@@ -205,10 +231,10 @@ class bindings_builder ~module_tree =
           (fun toplevel ->
             match toplevel with
             | VariableDeclaration decl ->
-              id_map (this#visit_variable_declaration ~add:false) decl toplevel (fun decl' ->
+              id_map (this#visit_variable_declaration ~toplevel:true) decl toplevel (fun decl' ->
                   VariableDeclaration decl')
             | FunctionDeclaration decl ->
-              id_map (this#visit_function_declaration ~add:false) decl toplevel (fun decl' ->
+              id_map (this#visit_function_declaration ~toplevel:true) decl toplevel (fun decl' ->
                   FunctionDeclaration decl')
             | TypeDeclaration { TypeDeclaration.ty; _ } ->
               ignore (this#type_ ty);
@@ -225,10 +251,10 @@ class bindings_builder ~module_tree =
       let open Ast.Statement in
       match stmt with
       | VariableDeclaration decl ->
-        id_map (this#visit_variable_declaration ~add:true) decl stmt (fun decl' ->
+        id_map (this#visit_variable_declaration ~toplevel:false) decl stmt (fun decl' ->
             VariableDeclaration decl')
       | FunctionDeclaration decl ->
-        id_map (this#visit_function_declaration ~add:true) decl stmt (fun decl' ->
+        id_map (this#visit_function_declaration ~toplevel:false) decl stmt (fun decl' ->
             FunctionDeclaration decl')
       | Block block -> id_map this#block block stmt (fun block' -> Block block')
       | _ -> super#statement stmt
@@ -239,28 +265,28 @@ class bindings_builder ~module_tree =
       this#exit_scope ();
       block'
 
-    method visit_variable_declaration ~add decl =
+    method visit_variable_declaration ~toplevel decl =
       let { Ast.Statement.VariableDeclaration.kind; pattern; init; _ } = decl in
       let id = identifier_in_pattern pattern in
       let { Ast.Identifier.loc; name; _ } = id in
       let init' = this#expression init in
-      if add then this#add_value_declaration loc (VarDecl kind) name;
+      if not toplevel then this#add_value_declaration loc (VarDecl kind) name toplevel;
       if init == init' then
         decl
       else
         { decl with init = init' }
 
-    method visit_function_declaration ~add decl =
+    method visit_function_declaration ~toplevel decl =
       let open Ast.Function in
       let { name = { Ast.Identifier.loc; name = func_name; _ }; params; _ } = decl in
-      if add then this#add_value_declaration loc FunDecl func_name;
+      if not toplevel then this#add_value_declaration loc FunDecl func_name false;
       this#enter_scope ();
       let _ =
         List.fold_left
           (fun param_names { Param.name = { Ast.Identifier.loc; name; _ }; _ } ->
             if SSet.mem name param_names then
               this#add_error loc (DuplicateParameterNames (name, func_name));
-            this#add_value_declaration loc FunParam name;
+            this#add_value_declaration loc FunParam name false;
             SSet.add name param_names)
           SSet.empty
           params

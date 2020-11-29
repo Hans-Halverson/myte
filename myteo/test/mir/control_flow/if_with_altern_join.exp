@@ -1,4 +1,4 @@
-func unit @testNeitherUpdated() {
+func unit @test.testNeitherUpdated() {
   %0 := Mov int 1
   branch true, @0, @1
 label @0:
@@ -12,7 +12,7 @@ label @2:
   Ret
 }
 
-func unit @testOnlyFirstUpdated() {
+func unit @test.testOnlyFirstUpdated() {
   %4 := Mov int 1
   branch true, @3, @4
 label @3:
@@ -27,7 +27,7 @@ label @5:
   Ret
 }
 
-func unit @testOnlySecondUpdated() {
+func unit @test.testOnlySecondUpdated() {
   %9 := Mov int 1
   branch true, @6, @7
 label @6:
@@ -42,7 +42,7 @@ label @8:
   Ret
 }
 
-func unit @testBothUpdated() {
+func unit @test.testBothUpdated() {
   %14 := Mov int 1
   branch true, @9, @10
 label @9:
@@ -57,7 +57,7 @@ label @11:
   Ret
 }
 
-func unit @testMultiple() {
+func unit @test.testMultiple() {
   %19 := Mov int 0
   %20 := Mov int 1
   %21 := Mov int 2
@@ -77,44 +77,44 @@ label @14:
   Ret
 }
 
-global int %glob {
-  StoreGlobal %glob, 1
+global int %test.glob {
+  StoreGlobal %test.glob, 1
 }
 
-func unit @testGlobal() {
+func unit @test.testGlobal() {
   branch true, @15, @16
 label @15:
-  StoreGlobal %glob, 2
+  StoreGlobal %test.glob, 2
   continue @17
 label @16:
   %29 := Mov int 0
   continue @17
 label @17:
-  %30 := LoadGlobal %glob
+  %30 := LoadGlobal %test.glob
   %31 := Neg int %30
   branch true, @18, @19
 label @18:
   %32 := Mov int 0
   continue @20
 label @19:
-  StoreGlobal %glob, 3
+  StoreGlobal %test.glob, 3
   continue @20
 label @20:
-  %33 := LoadGlobal %glob
+  %33 := LoadGlobal %test.glob
   %34 := Neg int %33
   branch true, @21, @22
 label @21:
-  StoreGlobal %glob, 4
+  StoreGlobal %test.glob, 4
   continue @23
 label @22:
-  StoreGlobal %glob, 5
+  StoreGlobal %test.glob, 5
   continue @23
 label @23:
-  %35 := LoadGlobal %glob
+  %35 := LoadGlobal %test.glob
   %36 := Neg int %35
   Ret
 }
 
-func unit @main() {
+func unit @test.main() {
   Ret
 }
