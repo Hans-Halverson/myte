@@ -6,11 +6,6 @@ type module_result =
   | SingleMain of Loc.t
   | MultipleMains of Loc.t
 
-let modules_end_loc mods =
-  match List.rev mods with
-  | [] -> failwith "There is always at least one module"
-  | { Module.loc; _ } :: _ -> Loc.point_end loc
-
 let analyze_module acc mod_ =
   let open Module in
   let { toplevels; _ } = mod_ in
@@ -30,5 +25,5 @@ let analyze mods =
   let result = List.fold_left (fun acc mod_ -> analyze_module acc mod_) MissingMain mods in
   match result with
   | SingleMain loc -> (Some loc, [])
-  | MissingMain -> (None, [(modules_end_loc mods, MissingMainFunction)])
+  | MissingMain -> (None, [(Ast_utils.modules_end_loc mods, MissingMainFunction)])
   | MultipleMains loc -> (None, [(loc, MultipleMainFunctions)])

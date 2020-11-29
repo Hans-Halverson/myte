@@ -1,0 +1,4 @@
+(library
+  (name gen_x86)
+  (wrapped false)
+  (libraries myte_common mir))

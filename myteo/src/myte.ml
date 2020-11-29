@@ -3,6 +3,8 @@ open Basic_collections
 let print_errors errors =
   Printf.printf "%s" (String.concat "\n" (List.map (fun (loc, err) -> Error_pp.pp loc err) errors))
 
+let print_error_message msg = print_string (Error_pp.print_message_line msg)
+
 let print_parse_errors errors =
   print_errors (List.map (fun (loc, err) -> (loc, Parse_error.to_string err)) errors)
 
@@ -41,11 +43,13 @@ let pp_irs irs =
   String.concat "\n" ir_strings
 
 let compile files =
+  (* Parse files *)
   let asts = parse_files files in
   if Opts.dump_ast () then (
     pp_asts asts;
     exit 0
   );
+  (* Perform analysis passes *)
   match Lex_analyze.analyze_modules asts with
   | Error errors ->
     print_analyze_errors errors;
@@ -56,14 +60,56 @@ let compile files =
       exit 0
     end;
     if Opts.check () then exit 0;
+    (* Lower to IR *)
     let program_cf_ir = Emit.emit_control_flow_ir program_cx in
     let program_ssa_ir = Ssa.control_flow_ir_to_ssa program_cx program_cf_ir in
     if Opts.dump_ir () then begin
       print_string (Mir_pp.pp_program program_ssa_ir);
       exit 0
-    end
+    end;
+    (* Generate executable *)
+    let executable = X86_gen.gen_x86_executable program_ssa_ir in
+    let executable_file = X86_pp.pp_x86_executable executable in
+    if Opts.dump_asm () then begin
+      print_string executable_file;
+      exit 0
+    end;
+    let output_file =
+      match Opts.output_file () with
+      | None ->
+        print_error_message "Must specify output file with -o option";
+        exit 1
+      | Some output_file -> output_file
+    in
+    (* Write executable file *)
+    (try
+       let out_chan = open_out output_file in
+       output_string out_chan executable_file;
+       close_out out_chan
+     with Sys_error err ->
+       print_error_message err;
+       exit 1);
+    (* Compile with assembler *)
+    let quoted_output_file = Filename.quote output_file in
+    let ret = Sys.command (Printf.sprintf "as -o %s %s" quoted_output_file quoted_output_file) in
+    if ret <> 0 then (
+      print_error_message (Printf.sprintf "Assembler failed with exit code %d" ret);
+      exit 1
+    );
+    (* Link *)
+    let ret =
+      Sys.command (Printf.sprintf "ld -lSystem -o %s %s" quoted_output_file quoted_output_file)
+    in
+    if ret <> 0 then (
+      print_error_message (Printf.sprintf "Linker failed with exit code %d" ret);
+      exit 1
+    )
 
 let () =
   let files = ref SSet.empty in
-  Arg.parse Opts.spec (fun file -> files := SSet.add file !files) "Myte programming language";
+  Arg.parse Opts.spec (fun file -> files := SSet.add file !files) Opts.usage_message;
+  if SSet.is_empty !files then (
+    Arg.usage Opts.spec Opts.usage_message;
+    exit 1
+  );
   compile !files

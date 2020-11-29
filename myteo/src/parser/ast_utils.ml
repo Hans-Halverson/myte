@@ -68,3 +68,8 @@ let split_toplevels toplevels =
     | TypeDeclaration _ :: toplevels -> helper (vars, funcs) toplevels
   in
   helper ([], []) toplevels
+
+let modules_end_loc mods =
+  match List.rev mods with
+  | [] -> failwith "There is always at least one module"
+  | { Module.loc; _ } :: _ -> Loc.point_end loc

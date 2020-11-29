@@ -20,8 +20,17 @@
 - Lex negative numbers
 - Floating point numbers
 - Hex/octal/binary representations, unicode encodings
-- Tuples
 - Algebraic data types
+  - Tuples
+  - Named tuples
+  - Named records
+  - Tagged unions
+  - ADT methods
+- Match statements/expressions
+  - Exhaustiveness checking
+  - Counterexample shown in error
+- Classes (with this = type in block syntax, restricted to simple records)
+- Traits (with extends keyword, multiple inheritance, sigs, interface keyword)
 - Destructuring
 - Optional/None type
 - Indexing into collections
@@ -40,6 +49,8 @@
 - Type Checking (In Progress)
 - IR Generation (In Progress)
 - Compile IR (TODO)
-  - Convert to LLVM IR
-  - Custom convert to x86 or ARM assembly
+  - LLVM IR backend
+  - custom x86-64 backend
+  - custom arm64 backend
+  - custom wasm backend
   - Convert to bytecode and write VM

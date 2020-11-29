@@ -8,6 +8,9 @@ let pad_number n max_num_digits =
   let num_digits = num_digits n in
   Printf.sprintf " %d%s " n (String.make (max_num_digits - num_digits) ' ')
 
+let print_message_line message =
+  Printf.sprintf "%sError:%s %s\n" (style ~text:Red ~decorations:[Bold] ()) (reset ()) message
+
 let print_summary_lines loc message =
   let source =
     match loc with
@@ -16,7 +19,7 @@ let print_summary_lines loc message =
     | _ -> ""
   in
   [
-    Printf.sprintf "%sError:%s %s\n" (style ~text:Red ~decorations:[Bold] ()) (reset ()) message;
+    print_message_line message;
     Printf.sprintf
       "%s%s:%s%s\n"
       (style ~decorations:[Bold] ())
