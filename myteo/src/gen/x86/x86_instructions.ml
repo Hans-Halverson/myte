@@ -47,22 +47,22 @@ type memory_address_scale =
   | Scale4
   | Scale8
 
-type memory_address = {
+type 'reg memory_address = {
   offset: memory_address_offset option;
-  base_register: register;
-  index_and_scale: (register * memory_address_scale) option;
+  base_register: 'reg;
+  index_and_scale: ('reg * memory_address_scale) option;
 }
 
-type source =
-  | Immediate of immediate
-  | RegisterRead of register
-  | MemoryRead of memory_address
+type 'reg source =
+  | ImmediateSource of immediate
+  | RegisterSource of 'reg
+  | MemorySource of 'reg memory_address
 
-type destination =
-  | RegisterWrite of register
-  | MemoryWrite of memory_address
+type 'reg destination =
+  | RegisterDest of 'reg
+  | MemoryDest of 'reg memory_address
 
-type conditional_type =
+type cond_jmp_kind =
   | Equal
   | NotEqual
   | LessThan
@@ -70,35 +70,46 @@ type conditional_type =
   | LessThanEqual
   | GreaterThanEqual
 
-type instruction =
+type set_cmp_kind =
+  | SetE
+  | SetNE
+  | SetL
+  | SetLE
+  | SetG
+  | SetGE
+
+type 'reg instruction =
   (* Stack instructions *)
-  | Push of source
-  | Pop of destination
+  | Push of 'reg source
+  | Pop of 'reg destination
   (* Data instructions *)
-  | Mov of source * destination
-  | Lea of memory_address * register
+  | Mov of 'reg source * 'reg destination
+  | Lea of 'reg memory_address * 'reg
   (* Numeric operations *)
-  | Neg of destination
-  | Add of source * destination
-  | Sub of source * destination
-  | IMul of source * destination
-  | IDiv of source * destination
+  | Neg of 'reg destination
+  | Add of 'reg source * 'reg destination
+  | Sub of 'reg source * 'reg destination
+  | IMul of 'reg source * 'reg
+  | IDiv of 'reg source
   (* Bitwise operations *)
-  | Not of destination
-  | And of source * destination
-  | Or of source * destination
+  | Not of 'reg destination
+  | And of 'reg source * 'reg destination
+  | Or of 'reg source * 'reg destination
+  (* Comparisons *)
+  | Cmp of 'reg source * 'reg source
+  | Test of 'reg source * 'reg source
+  | SetCmp of set_cmp_kind * 'reg
   (* Control flow *)
   | Jmp of label
-  | CondJmp of conditional_type * label
-  | Call of label
-  | Cmp of source * source
+  | CondJmp of cond_jmp_kind * label
+  | Call of 'reg source
   | Leave
   | Ret
   | Syscall
 
-type block = {
+type 'reg block = {
   label: label;
-  instructions: instruction list;
+  mutable instructions: 'reg instruction list;
 }
 
 type data_value =
@@ -110,8 +121,21 @@ type data = {
   value: data_value;
 }
 
-type executable = {
-  text: block list;
+type bss_data = {
+  label: label;
+  size: int;
+}
+
+type 'reg executable = {
+  text: 'reg block list;
   data: data list;
+  bss: bss_data list;
   rodata: data list;
 }
+
+let bytes_of_size size =
+  match size with
+  | Byte -> 1
+  | Word -> 2
+  | Long -> 4
+  | Quad -> 8

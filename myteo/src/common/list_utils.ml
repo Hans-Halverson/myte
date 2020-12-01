@@ -28,3 +28,9 @@ let hd_opt lst =
   match lst with
   | [] -> None
   | hd :: _ -> Some hd
+
+let rec drop i lst =
+  match (i, lst) with
+  | (_, []) -> []
+  | (i, lst) when i <= 0 -> lst
+  | (i, _ :: tl) -> drop (i - 1) tl

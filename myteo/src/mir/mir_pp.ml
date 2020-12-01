@@ -23,29 +23,21 @@ end
 let rec pp_program program =
   let open Program in
   let cx = Context.mk program in
-  (* Collect printed blocks along with their names *)
+  (* Collect printed blocks along with their source locations *)
   let blocks =
     SMap.fold
-      (fun _ mod_ blocks ->
-        let open Module in
-        let blocks =
-          SSet.fold
-            (fun name blocks ->
-              let global = SMap.find name program.globals in
-              (global.loc, fun _ -> pp_global ~cx ~program global) :: blocks)
-            mod_.globals
-            blocks
-        in
-        SSet.fold
-          (fun name blocks ->
-            let func = SMap.find name program.funcs in
-            (func.loc, fun _ -> pp_func ~cx ~program func) :: blocks)
-          mod_.funcs
-          blocks)
-      program.modules
+      (fun _ global blocks ->
+        (global.Global.loc, (fun _ -> pp_global ~cx ~program global)) :: blocks)
+      program.globals
       []
   in
-  (* Sort by block name *)
+  let blocks =
+    SMap.fold
+      (fun _ func blocks -> (func.Function.loc, (fun _ -> pp_func ~cx ~program func)) :: blocks)
+      program.funcs
+      blocks
+  in
+  (* Sort by block source location *)
   let sorted_blocks = List.sort (fun (l1, _) (l2, _) -> Loc.compare l1 l2) blocks in
   String.concat "\n" (List.map (fun (_, mk_block) -> mk_block ()) sorted_blocks)
 

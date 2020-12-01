@@ -2,7 +2,7 @@ module test
 
 fun writeInBody() {
   var x = 1;
-  while (false) {
+  while (x > 1) {
     x = x + 1;
   }
 

@@ -232,3 +232,5 @@ and map_function_value ~f value =
   match value with
   | Lit lit -> Lit lit
   | Var var -> Var (f var)
+
+let get_block ~ir block_id = IMap.find block_id ir.Program.blocks
