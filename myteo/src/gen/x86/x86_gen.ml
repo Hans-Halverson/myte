@@ -45,7 +45,7 @@ let imm_byte_of_bool b =
     else
       0 )
 
-let imm_quad imm = ImmediateSource (QuadImmediate (Int64.of_int imm))
+let imm_quad imm = ImmediateSource (QuadImmediate imm)
 
 module InstructionBuilder = struct
   type 'reg t =
@@ -469,7 +469,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
   | Instruction.Add (var_id, left_val, right_val) :: rest_instructions ->
     (match (left_val, right_val) with
     | (IntLit left_lit, IntLit right_lit) ->
-      Gcx.ib_emit ~gcx (IB.Mov (imm_quad (left_lit + right_lit), RegisterDest var_id))
+      Gcx.ib_emit ~gcx (IB.Mov (imm_quad (Int64.add left_lit right_lit), RegisterDest var_id))
     | (IntLit lit, IntVar arg_var_id)
     | (IntVar arg_var_id, IntLit lit) ->
       Gcx.ib_emit ~gcx (IB.Add (arg_var_id, imm_quad lit))
@@ -483,7 +483,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
   | Instruction.Sub (var_id, left_val, right_val) :: rest_instructions ->
     (match (left_val, right_val) with
     | (IntLit left_lit, IntLit right_lit) ->
-      Gcx.ib_emit ~gcx (IB.Mov (imm_quad (left_lit - right_lit), RegisterDest var_id))
+      Gcx.ib_emit ~gcx (IB.Mov (imm_quad (Int64.sub left_lit right_lit), RegisterDest var_id))
     | (IntLit left_lit, IntVar right_var_id) ->
       Gcx.ib_emit ~gcx (IB.Mov (imm_quad left_lit, RegisterDest var_id));
       Gcx.ib_emit ~gcx (IB.Sub (var_id, RegisterSource right_var_id))
@@ -500,7 +500,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
   | Instruction.Mul (var_id, left_val, right_val) :: rest_instructions ->
     (match (left_val, right_val) with
     | (IntLit left_lit, IntLit right_lit) ->
-      Gcx.ib_emit ~gcx (IB.Mov (imm_quad (left_lit * right_lit), RegisterDest var_id))
+      Gcx.ib_emit ~gcx (IB.Mov (imm_quad (Int64.mul left_lit right_lit), RegisterDest var_id))
     | (IntLit lit, IntVar arg_var_id)
     | (IntVar arg_var_id, IntLit lit) ->
       Gcx.ib_emit ~gcx (IB.IMul (arg_var_id, imm_quad lit))
@@ -514,7 +514,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
   | Instruction.Div (var_id, left_val, right_val) :: rest_instructions ->
     (match (left_val, right_val) with
     | (IntLit left_lit, IntLit right_lit) ->
-      Gcx.ib_emit ~gcx (IB.Mov (imm_quad (left_lit / right_lit), RegisterDest var_id))
+      Gcx.ib_emit ~gcx (IB.Mov (imm_quad (Int64.div left_lit right_lit), RegisterDest var_id))
     | (IntLit lit, IntVar arg_var_id) ->
       Gcx.ib_emit ~gcx (IB.Mov (imm_quad lit, RegisterDest var_id));
       Gcx.ib_emit ~gcx (IB.IDiv (RegisterSource arg_var_id))
@@ -765,7 +765,7 @@ and get_source_value_info value =
          else
            0 ))
   | Bool (Var var_id) -> SVVariable (var_id, Byte)
-  | Numeric (IntLit i) -> SVImmediate (QuadImmediate (Int64.of_int i))
+  | Numeric (IntLit i) -> SVImmediate (QuadImmediate i)
   | Numeric (IntVar var_id) -> SVVariable (var_id, Quad)
   | Function (Lit name) -> SVLabel (name, Quad)
   | Function (Var var_id) -> SVVariable (var_id, Quad)

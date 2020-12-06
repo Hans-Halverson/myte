@@ -4,8 +4,9 @@ open Mir
 module BlockBuilder = struct
   type t = {
     id: Block.id;
+    source: Block.source;
     (* Instructions in the block currently being built, in reverse *)
-    mutable instructions: (Loc.t * cf_instruction) list;
+    mutable instructions: cf_instruction list;
     mutable phis: (cf_var * cf_var list) list;
     mutable next: cf_var Block.next;
   }
@@ -23,6 +24,7 @@ type t = {
   mutable modules: Module.t SMap.t;
   mutable current_block_builder: BlockBuilder.t option;
   mutable current_module_builder: Module.t option;
+  mutable current_block_source: Block.source;
   (* Block ids in the current sequence, in reverse *)
   mutable current_block_sequence_ids: Block.id list;
   (* Stack of loop contexts for all loops we are currently inside *)
@@ -38,6 +40,7 @@ let mk () =
     modules = SMap.empty;
     current_block_builder = None;
     current_module_builder = None;
+    current_block_source = GlobalInit "";
     current_block_sequence_ids = [];
     current_loop_contexts = [];
   }
@@ -50,6 +53,7 @@ let builders_to_blocks builders =
         instructions = List.rev builder.instructions;
         phis = builder.phis;
         next = builder.next;
+        source = builder.source;
       })
     builders
 
@@ -65,10 +69,10 @@ let add_function ~ecx func =
   ecx.funcs <- SMap.add name func ecx.funcs;
   builder.funcs <- SSet.add name builder.funcs
 
-let emit ~ecx loc inst =
+let emit ~ecx inst =
   match ecx.current_block_builder with
   | None -> ()
-  | Some builder -> builder.instructions <- (loc, inst) :: builder.instructions
+  | Some builder -> builder.instructions <- (mk_instr_id (), inst) :: builder.instructions
 
 let emit_phi ~ecx var_id args =
   match ecx.current_block_builder with
@@ -77,7 +81,15 @@ let emit_phi ~ecx var_id args =
 
 let mk_block_builder ~ecx =
   let block_id = mk_block_id () in
-  let builder = { BlockBuilder.id = block_id; instructions = []; phis = []; next = Halt } in
+  let builder =
+    {
+      BlockBuilder.id = block_id;
+      source = ecx.current_block_source;
+      instructions = [];
+      phis = [];
+      next = Halt;
+    }
+  in
   ecx.blocks <- IMap.add block_id builder ecx.blocks;
   builder
 
@@ -89,6 +101,11 @@ let start_new_block ~ecx =
   builder.id
 
 let finish_block ~ecx next =
+  let next =
+    match ecx.current_block_builder with
+    | Some { instructions = (_, Ret _) :: _; _ } -> Block.Halt
+    | _ -> next
+  in
   match ecx.current_block_builder with
   | None -> ()
   | Some builder ->
@@ -103,7 +120,9 @@ let finish_block_continue ~ecx continue = finish_block ~ecx (Continue continue)
 
 let finish_block_halt ~ecx = finish_block ~ecx Halt
 
-let start_block_sequence ~ecx = ecx.current_block_sequence_ids <- []
+let start_block_sequence ~ecx source =
+  ecx.current_block_sequence_ids <- [];
+  ecx.current_block_source <- source
 
 let get_block_sequence ~ecx =
   let block_ids = List.rev ecx.current_block_sequence_ids in

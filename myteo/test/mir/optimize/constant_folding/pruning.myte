@@ -1,0 +1,82 @@
+module t
+
+fun func(x: int) {}
+fun rand(): bool = true
+
+fun ifStatement() {
+  // Consequent skipped
+  if (false) {
+    func(1);
+  }
+
+  // Consequent skipped with alternate
+  if (false) {
+    func(2);
+  } else {
+    func(3);
+  }
+
+  // Consequent always taken
+  if (true) {
+    func(4);
+  }
+
+  // Alternate skipped
+  if (true) {
+    func(5);
+  } else {
+    func(6);
+  }
+}
+
+fun whileTrue() {
+  while (true) {
+    func(1);
+  }
+
+  func(2);
+}
+
+fun whileFalse() {
+  while (false) {
+    func(1);
+  }
+
+  while (false) {
+    if (rand()) {
+      func(2);
+      break;
+    }
+  }
+
+  func(3);
+}
+
+fun whileTrueWithReturn() {
+  while (true) {
+    func(1);
+    return;
+  }
+
+  func(2);
+}
+
+fun whileTrueWithBreak() {
+  while (true) {
+    func(1);
+    break;
+  }
+
+  func(2);
+}
+
+fun whileTrueWithContinue() {
+  while (true) {
+    func(1);
+    continue;
+  }
+
+  func(2);
+}
+
+fun main() {}

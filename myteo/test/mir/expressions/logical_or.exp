@@ -1,7 +1,7 @@
 func unit @test.main() {
   %0 := Mov bool true
   %1 := Mov bool false
-  branch %0, @0, @1
+  branch %0, @1, @0
 label @0:
   %2 := Mov bool %1
   continue @2

@@ -1,0 +1,44 @@
+func unit @t.func(int %0) {
+  Ret
+}
+
+func bool @t.rand() {
+  Ret true
+}
+
+func unit @t.ifStatement() {
+  %1 := Call @t.func(3)
+  %2 := Call @t.func(4)
+  %3 := Call @t.func(5)
+  Ret
+}
+
+func unit @t.whileTrue() {
+  %4 := Call @t.func(1)
+  continue @t.whileTrue
+}
+
+func unit @t.whileFalse() {
+  %5 := Call @t.func(3)
+  Ret
+}
+
+func unit @t.whileTrueWithReturn() {
+  %6 := Call @t.func(1)
+  Ret
+}
+
+func unit @t.whileTrueWithBreak() {
+  %7 := Call @t.func(1)
+  %8 := Call @t.func(2)
+  Ret
+}
+
+func unit @t.whileTrueWithContinue() {
+  %9 := Call @t.func(1)
+  continue @t.whileTrueWithContinue
+}
+
+func unit @t.main() {
+  Ret
+}

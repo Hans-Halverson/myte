@@ -2,7 +2,7 @@ open Ast
 
 type pp_node =
   | None
-  | Int of int
+  | Int of Int64.t
   | String of string
   | Bool of bool
   | Raw of string
@@ -17,7 +17,7 @@ let pp node =
   let rec pp_node node indent =
     match node with
     | None -> add_string "None"
-    | Int int -> add_string (string_of_int int)
+    | Int int -> add_string (Int64.to_string int)
     | String str -> add_strings ["\""; str; "\""]
     | Bool bool ->
       add_string

@@ -1,6 +1,6 @@
 type t =
   | T_IDENTIFIER of string
-  | T_INT_LITERAL of int * string
+  | T_INT_LITERAL of Int64.t * string
   | T_STRING_LITERAL of string
   | T_BOOL_LITERAL of bool
   | T_SEMICOLON

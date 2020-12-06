@@ -1,0 +1,39 @@
+global int %t.int1 {
+  StoreGlobal %t.int1, 3
+}
+
+global bool %t.bool1 {
+  StoreGlobal %t.bool1, false
+}
+
+global int %t.int2 {
+  StoreGlobal %t.int2, -286
+}
+
+global bool %t.bool2 {
+  StoreGlobal %t.bool2, true
+}
+
+global bool %t.mixed {
+  StoreGlobal %t.mixed, true
+}
+
+func unit @t.useBool(bool %0) {
+  Ret
+}
+
+func unit @t.useInt(int %1) {
+  Ret
+}
+
+func bool @t.rand() {
+  Ret true
+}
+
+func unit @t.main() {
+  %2 := Call @t.useInt(6)
+  %3 := Call @t.useBool(false)
+  %4 := Call @t.rand()
+  %5 := Call @t.useBool(true)
+  Ret
+}

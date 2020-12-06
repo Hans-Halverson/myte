@@ -5,7 +5,7 @@ module Context = struct
   type t = {
     mutable print_var_id_map: int IMap.t;
     mutable max_print_var_id: int;
-    mutable print_block_id_map: int IMap.t;
+    mutable print_block_id_map: string IMap.t;
     mutable max_print_block_id: int;
     program: ssa_program;
   }
@@ -44,6 +44,7 @@ let rec pp_program program =
 and pp_global ~cx ~program global =
   let open Global in
   let global_label = Printf.sprintf "global %s %%%s {" (pp_value_type global.ty) global.name in
+  cx.print_block_id_map <- IMap.add (List.hd global.init) global.name cx.print_block_id_map;
   calc_print_block_ids ~cx (List.tl global.init);
   let init_strings =
     List.mapi
@@ -65,6 +66,7 @@ and pp_func ~cx ~program func =
   let func_label =
     Printf.sprintf "func %s @%s(%s) {" (pp_value_type func.return_ty) func.name func_params
   in
+  cx.print_block_id_map <- IMap.add (List.hd func.Function.body) func.name cx.print_block_id_map;
   calc_print_block_ids ~cx (List.tl func.Function.body);
   let body_strings =
     List.mapi
@@ -104,7 +106,14 @@ and pp_block ~cx ~label block =
   let next_lines =
     match block.next with
     | Halt -> []
-    | Continue block_id -> [Printf.sprintf "  continue %s" (pp_block_id ~cx block_id)]
+    | Continue block_id ->
+      let debug_id =
+        if Opts.dump_debug () then
+          Printf.sprintf "(Block #%d) " block_id
+        else
+          ""
+      in
+      [Printf.sprintf "  continue %s%s" debug_id (pp_block_id ~cx block_id)]
     | Branch { test; jump; continue } ->
       [
         Printf.sprintf
@@ -120,13 +129,16 @@ and pp_block ~cx ~label block =
 and pp_var_id ~cx var_id =
   let open Context in
   let print_id =
-    match IMap.find_opt var_id cx.print_var_id_map with
-    | Some print_id -> print_id
-    | None ->
-      let print_id = cx.max_print_var_id in
-      cx.print_var_id_map <- IMap.add var_id print_id cx.print_var_id_map;
-      cx.max_print_var_id <- print_id + 1;
-      print_id
+    if Opts.dump_debug () then
+      var_id
+    else
+      match IMap.find_opt var_id cx.print_var_id_map with
+      | Some print_id -> print_id
+      | None ->
+        let print_id = cx.max_print_var_id in
+        cx.print_var_id_map <- IMap.add var_id print_id cx.print_var_id_map;
+        cx.max_print_var_id <- print_id + 1;
+        print_id
   in
   Printf.sprintf "%%%d" print_id
 
@@ -137,8 +149,8 @@ and calc_print_block_ids ~cx block_ids =
       | Some _ -> ()
       | None ->
         let print_id = cx.max_print_block_id in
-        cx.print_block_id_map <- IMap.add block_id print_id cx.print_block_id_map;
-        cx.max_print_block_id <- print_id + 1)
+        cx.max_print_block_id <- print_id + 1;
+        cx.print_block_id_map <- IMap.add block_id (string_of_int print_id) cx.print_block_id_map)
     block_ids
 
 and pp_block_id ~cx block_id =
@@ -148,11 +160,11 @@ and pp_block_id ~cx block_id =
     | Some print_id -> print_id
     | None ->
       let print_id = cx.max_print_block_id in
-      cx.print_block_id_map <- IMap.add block_id print_id cx.print_block_id_map;
+      cx.print_block_id_map <- IMap.add block_id (string_of_int print_id) cx.print_block_id_map;
       cx.max_print_block_id <- print_id + 1;
-      print_id
+      string_of_int print_id
   in
-  Printf.sprintf "@%d" print_id
+  "@" ^ print_id
 
 and pp_unit_value ~cx v =
   let open Instruction.UnitValue in
@@ -176,7 +188,7 @@ and pp_string_value ~cx v =
 and pp_numeric_value ~cx v =
   let open Instruction.NumericValue in
   match v with
-  | IntLit i -> string_of_int i
+  | IntLit i -> Int64.to_string i
   | IntVar var_id -> pp_var_id ~cx var_id
 
 and pp_function_value ~cx v =

@@ -9,4 +9,15 @@ fun test2(): int {
   return 99;
 }
 
+fun returnPreventsContinue() {
+  // Continue should not follow ret
+  if (true) {
+    return;
+  }
+
+  while (true) {
+    return;
+  }
+}
+
 fun main() {}

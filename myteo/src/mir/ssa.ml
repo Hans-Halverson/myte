@@ -442,7 +442,15 @@ and map_to_ssa ~cx program =
         maybe_visit_block jump;
         Branch { test; continue; jump }
     in
-    let block = { Block.id = block_id; phis = explicit_phis @ realized_phis; instructions; next } in
+    let block =
+      {
+        Block.id = block_id;
+        phis = explicit_phis @ realized_phis;
+        instructions;
+        next;
+        source = block.source;
+      }
+    in
     cx.blocks <- IMap.add block.id block cx.blocks
   (* Traverse phi chain graph to gather all variable ids for a given phi node. The phi chain
      graph is deeply traversed until realized nodes are encountered. *)

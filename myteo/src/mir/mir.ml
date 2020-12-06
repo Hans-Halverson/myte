@@ -2,6 +2,8 @@ open Basic_collections
 
 type var_id = int
 
+type instr_id = int
+
 module rec Instruction : sig
   module UnitValue : sig
     type 'a t =
@@ -23,7 +25,7 @@ module rec Instruction : sig
 
   module NumericValue : sig
     type 'a t =
-      | IntLit of int
+      | IntLit of Int64.t
       | IntVar of 'a
   end
 
@@ -42,7 +44,9 @@ module rec Instruction : sig
       | Function of 'a FunctionValue.t
   end
 
-  type 'var t =
+  type 'var t = instr_id * 'var t'
+
+  and 'var t' =
     | Mov of 'var * 'var Value.t
     | Call of 'var * 'var FunctionValue.t * 'var Value.t list
     | Ret of 'var Value.t option
@@ -93,8 +97,9 @@ end =
 and Block : sig
   type 'var t = {
     id: id;
+    source: source;
     mutable phis: ('var * 'var list) list;
-    mutable instructions: (Loc.t * 'var Instruction.t) list;
+    mutable instructions: 'var Instruction.t list;
     mutable next: 'var next;
   }
 
@@ -108,26 +113,30 @@ and Block : sig
         continue: id;
         jump: id;
       }
+
+  and source =
+    | FunctionBody of string
+    | GlobalInit of string
 end =
   Block
 
 and Global : sig
   type t = {
-    loc: Loc.t;
     name: string;
+    loc: Loc.t;
     ty: ValueType.t;
-    init: Block.id list;
+    mutable init: Block.id list;
   }
 end =
   Global
 
 and Function : sig
   type t = {
-    loc: Loc.t;
     name: string;
+    loc: Loc.t;
     params: (Loc.t * var_id * ValueType.t) list;
     return_ty: ValueType.t;
-    body: Block.id list;
+    mutable body: Block.id list;
   }
 end =
   Function
@@ -171,6 +180,13 @@ let mk_var_id () =
   let var_id = !max_var_id in
   max_var_id := var_id + 1;
   var_id
+
+let max_instr_id = ref 0
+
+let mk_instr_id () =
+  let instr_id = !max_instr_id in
+  max_instr_id := instr_id + 1;
+  instr_id
 
 let type_of_value v =
   let open Instruction in

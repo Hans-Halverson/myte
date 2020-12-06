@@ -42,10 +42,10 @@ and emit_toplevel_variable_declaration ~pcx ~ecx decl =
   (* Find value type of variable *)
   let ty = value_type_of_decl_loc ~pcx loc in
   (* Build IR for variable init *)
-  Ecx.start_block_sequence ~ecx;
+  Ecx.start_block_sequence ~ecx (GlobalInit name);
   ignore (Ecx.start_new_block ~ecx);
   let init_val = emit_expression ~pcx ~ecx init in
-  Ecx.emit ~ecx loc (StoreGlobal (name, init_val));
+  Ecx.emit ~ecx (StoreGlobal (name, init_val));
   Ecx.finish_block_halt ~ecx;
   let block_ids = Ecx.get_block_sequence ~ecx in
   Ecx.add_global ~ecx { Global.loc; name; ty; init = block_ids }
@@ -59,7 +59,7 @@ and emit_toplevel_function_declaration ~pcx ~ecx decl =
     List.map (fun { Param.name = { Identifier.loc; _ }; _ } -> (loc, mk_var_id ())) params
   in
   let block_ids =
-    Ecx.start_block_sequence ~ecx;
+    Ecx.start_block_sequence ~ecx (FunctionBody name);
     let block_id = Ecx.start_new_block ~ecx in
     if loc = pcx.main_loc then ecx.main_id <- block_id;
     (match body with
@@ -68,11 +68,10 @@ and emit_toplevel_function_declaration ~pcx ~ecx decl =
       (* Add an implicit return if the last instruction is not a return *)
       (match ecx.current_block_builder with
       | Some { Ecx.BlockBuilder.instructions = (_, Ret _) :: _; _ } -> ()
-      | _ -> Ecx.emit ~ecx loc (Ret None))
+      | _ -> Ecx.emit ~ecx (Ret None))
     | Expression expr ->
       let ret_val = emit_expression ~pcx ~ecx expr in
-      let expr_loc = Ast_utils.expression_loc expr in
-      Ecx.emit ~ecx expr_loc (Ret (Some ret_val)));
+      Ecx.emit ~ecx (Ret (Some ret_val)));
     Ecx.finish_block_halt ~ecx;
     Ecx.get_block_sequence ~ecx
   in
@@ -96,17 +95,17 @@ and emit_expression ~pcx ~ecx expr =
   | StringLiteral { value; _ } -> String (Lit value)
   | BoolLiteral { value; _ } -> Bool (Lit value)
   | UnaryOperation { op = Plus; operand; _ } -> emit_expression ~pcx ~ecx operand
-  | UnaryOperation { op = Minus; loc; operand } ->
+  | UnaryOperation { op = Minus; loc = _; operand } ->
     let var_id = mk_cf_var_id () in
     let operand_val = emit_numeric_expression ~pcx ~ecx operand in
-    Ecx.emit ~ecx loc (Neg (var_id, operand_val));
+    Ecx.emit ~ecx (Neg (var_id, operand_val));
     var_value_of_type var_id Int
-  | UnaryOperation { op = LogicalNot; loc; operand } ->
+  | UnaryOperation { op = LogicalNot; loc = _; operand } ->
     let var_id = mk_cf_var_id () in
     let operand_val = emit_bool_expression ~pcx ~ecx operand in
-    Ecx.emit ~ecx loc (LogNot (var_id, operand_val));
+    Ecx.emit ~ecx (LogNot (var_id, operand_val));
     var_value_of_type var_id Bool
-  | LogicalAnd { loc; left; right } ->
+  | LogicalAnd { loc = _; left; right } ->
     (* Short circuit when lhs is false by jumping to false case *)
     let rhs_builder = Ecx.mk_block_builder ~ecx in
     let false_builder = Ecx.mk_block_builder ~ecx in
@@ -117,42 +116,42 @@ and emit_expression ~pcx ~ecx expr =
     Ecx.set_block_builder ~ecx rhs_builder;
     let right_val = emit_expression ~pcx ~ecx right in
     let right_var_id = mk_cf_var_id () in
-    Ecx.emit ~ecx loc (Mov (right_var_id, right_val));
+    Ecx.emit ~ecx (Mov (right_var_id, right_val));
     Ecx.finish_block_continue ~ecx join_builder.id;
     (* Emit false literal when lhs is false and continue to join block *)
     Ecx.set_block_builder ~ecx false_builder;
     let false_var_id = mk_cf_var_id () in
-    Ecx.emit ~ecx loc (Mov (false_var_id, Bool (BoolValue.Lit false)));
+    Ecx.emit ~ecx (Mov (false_var_id, Bool (BoolValue.Lit false)));
     Ecx.finish_block_continue ~ecx join_builder.id;
     (* Join cases together and emit explicit phi *)
     Ecx.set_block_builder ~ecx join_builder;
     let var_id = mk_cf_var_id () in
     Ecx.emit_phi ~ecx var_id [right_var_id; false_var_id];
     var_value_of_type var_id Bool
-  | LogicalOr { loc; left; right } ->
+  | LogicalOr { loc = _; left; right } ->
     (* Short circuit when lhs is true by jumping to true case *)
     let rhs_builder = Ecx.mk_block_builder ~ecx in
     let true_builder = Ecx.mk_block_builder ~ecx in
     let join_builder = Ecx.mk_block_builder ~ecx in
     let left_val = emit_bool_expression ~pcx ~ecx left in
-    Ecx.finish_block_branch ~ecx left_val rhs_builder.id true_builder.id;
+    Ecx.finish_block_branch ~ecx left_val true_builder.id rhs_builder.id;
     (* Emit right hand side when lhs is false and continue to join block *)
     Ecx.set_block_builder ~ecx rhs_builder;
     let right_val = emit_expression ~pcx ~ecx right in
     let right_var_id = mk_cf_var_id () in
-    Ecx.emit ~ecx loc (Mov (right_var_id, right_val));
+    Ecx.emit ~ecx (Mov (right_var_id, right_val));
     Ecx.finish_block_continue ~ecx join_builder.id;
     (* Emit true literal when lhs is true and continue to join block *)
     Ecx.set_block_builder ~ecx true_builder;
     let true_var_id = mk_cf_var_id () in
-    Ecx.emit ~ecx loc (Mov (true_var_id, Bool (BoolValue.Lit true)));
+    Ecx.emit ~ecx (Mov (true_var_id, Bool (BoolValue.Lit true)));
     Ecx.finish_block_continue ~ecx join_builder.id;
     (* Join cases together and emit explicit phi *)
     Ecx.set_block_builder ~ecx join_builder;
     let var_id = mk_cf_var_id () in
     Ecx.emit_phi ~ecx var_id [right_var_id; true_var_id];
     var_value_of_type var_id Bool
-  | BinaryOperation { loc; op; left; right } ->
+  | BinaryOperation { loc = _; op; left; right } ->
     let open BinaryOperation in
     let var_id = mk_cf_var_id () in
     let left_val = emit_numeric_expression ~pcx ~ecx left in
@@ -170,7 +169,7 @@ and emit_expression ~pcx ~ecx expr =
       | LessThanOrEqual -> (LtEq (var_id, left_val, right_val), Bool)
       | GreaterThanOrEqual -> (GtEq (var_id, left_val, right_val), Bool)
     in
-    Ecx.emit ~ecx loc instr;
+    Ecx.emit ~ecx instr;
     var_value_of_type var_id ty
   | Identifier { loc; _ }
   | ScopedIdentifier { name = { Identifier.loc; _ }; _ } ->
@@ -189,7 +188,7 @@ and emit_expression ~pcx ~ecx expr =
       let var =
         if Bindings.is_global_decl pcx.bindings decl_loc then (
           let var_id = mk_cf_var_id () in
-          Ecx.emit ~ecx loc (LoadGlobal (var_id, mk_binding_name binding));
+          Ecx.emit ~ecx (LoadGlobal (var_id, mk_binding_name binding));
           var_id
         ) else
           mk_cf_local loc
@@ -200,7 +199,7 @@ and emit_expression ~pcx ~ecx expr =
     let var_id = mk_cf_var_id () in
     let func_val = emit_function_expression ~pcx ~ecx func in
     let arg_vals = List.map (emit_expression ~pcx ~ecx) args in
-    Ecx.emit ~ecx loc (Call (var_id, func_val, arg_vals));
+    Ecx.emit ~ecx (Call (var_id, func_val, arg_vals));
     var_value_of_type var_id (value_type_of_loc ~pcx loc)
   | _ ->
     prerr_endline (Ast_pp.pp (Ast_pp.node_of_expression expr));
@@ -275,28 +274,28 @@ and emit_statement ~pcx ~ecx stmt =
     Ecx.pop_loop_context ~ecx;
     (* Start join block *)
     Ecx.set_block_builder ~ecx finish_builder
-  | Return { loc; arg } ->
+  | Return { loc = _; arg } ->
     let arg_val = Option.map (emit_expression ~pcx ~ecx) arg in
-    Ecx.emit ~ecx loc (Ret arg_val)
+    Ecx.emit ~ecx (Ret arg_val)
   | Continue _ ->
     let (_, continue_id) = Ecx.get_loop_context ~ecx in
     Ecx.finish_block_continue ~ecx continue_id
   | Break _ ->
     let (break_id, _) = Ecx.get_loop_context ~ecx in
     Ecx.finish_block_continue ~ecx break_id
-  | Assignment { loc; pattern; expr } ->
+  | Assignment { loc = _; pattern; expr } ->
     let { Identifier.loc = use_loc; _ } = Ast_utils.id_of_pattern pattern in
     let binding = Bindings.get_source_value_binding pcx.bindings use_loc in
     let decl_loc = fst binding.declaration in
     let expr_val = emit_expression ~pcx ~ecx expr in
     if Bindings.is_global_decl pcx.bindings decl_loc then
-      Ecx.emit ~ecx loc (StoreGlobal (mk_binding_name binding, expr_val))
+      Ecx.emit ~ecx (StoreGlobal (mk_binding_name binding, expr_val))
     else
-      Ecx.emit ~ecx loc (Mov (mk_cf_local use_loc, expr_val))
+      Ecx.emit ~ecx (Mov (mk_cf_local use_loc, expr_val))
   | VariableDeclaration { pattern; init; _ } ->
     let { Identifier.loc; _ } = Ast_utils.id_of_pattern pattern in
     let init_val = emit_expression ~pcx ~ecx init in
-    Ecx.emit ~ecx loc (Mov (mk_cf_local loc, init_val))
+    Ecx.emit ~ecx (Mov (mk_cf_local loc, init_val))
   | FunctionDeclaration _ -> failwith "Function declaration not yet converted to IR"
 
 and mk_cf_var_id () = Id (mk_var_id ())

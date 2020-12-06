@@ -123,7 +123,7 @@ let tokenize lex =
   | identifier -> token_result (T_IDENTIFIER (lexeme buf))
   | int_literal ->
     let raw = lexeme buf in
-    token_result (T_INT_LITERAL (int_of_string raw, raw))
+    token_result (T_INT_LITERAL (Int64.of_string raw, raw))
   | string_literal ->
     let raw = lexeme buf in
     let value = String.sub raw 1 (String.length raw - 2) in

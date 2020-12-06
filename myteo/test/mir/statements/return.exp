@@ -7,6 +7,18 @@ func int @test.test2() {
   Ret 99
 }
 
+func unit @test.returnPreventsContinue() {
+  branch true, @0, @1
+label @0:
+  Ret
+label @1:
+  branch true, @2, @3
+label @2:
+  Ret
+label @3:
+  Ret
+}
+
 func unit @test.main() {
   Ret
 }
