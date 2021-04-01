@@ -2,25 +2,14 @@ open Basic_collections
 open Mir
 open X86_instructions
 
-let imm_quad imm = ImmediateSource (QuadImmediate imm)
-
 let imm_byte_of_bool bool =
-  ImmediateSource
-    (ByteImmediate
-       ( if bool then
-         1
-       else
-         0 ))
+  ByteImmediate
+    ( if bool then
+      1
+    else
+      0 )
 
-module type ABSTRACT_REGISTER = sig
-  type t
-
-  val mk : unit -> t
-
-  val of_var_id : var_id -> t
-end
-
-module SSARegister = struct
+module VirtualRegister = struct
   type t = var_id
 
   let mk () = mk_var_id ()
@@ -28,71 +17,24 @@ module SSARegister = struct
   let of_var_id var_id = var_id
 end
 
-module CFRegister = struct
-  type t = cf_var
-
-  let mk () = Id (mk_var_id ())
-
-  let of_var_id var_id = Id var_id
-end
-
-module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
-  type t =
-    (* Stack instructions *)
-    | Push of Reg.t source
-    | Pop of Reg.t destination
-    (* Data instructions *)
-    | Mov of Reg.t source * Reg.t destination
-    | Lea of Reg.t memory_address * Reg.t
-    (* Numeric operations *)
-    | Neg of Reg.t destination
-    | Add of Reg.t * Reg.t source (* Operands do not have order *)
-    | Sub of Reg.t * Reg.t source (* Left hand side is also dest *)
-    | IMul of Reg.t * Reg.t source (* Operands do not have order *)
-    | IDiv of Reg.t source
-    (* Bitwise operations *)
-    | Not of Reg.t destination
-    | And of Reg.t * Reg.t source (* Operands do not have order *)
-    | Or of Reg.t * Reg.t source (* Operands do not have order *)
-    (* Comparisons *)
-    | Cmp of Reg.t source * Reg.t source
-    | Test of Reg.t source * Reg.t source
-    | SetCmp of set_cmp_kind * Reg.t
-    (* Control flow *)
-    | Jmp of label
-    | CondJmp of cond_jmp_kind * label * label (* kind, continue, jump *)
-    | Call of Reg.t source
-    | Leave
-    | Ret
-    | Syscall
-
-  type block = {
-    label: label;
-    mutable instructions: t list;
-  }
-
-  type abstract_result = {
-    blocks: block SMap.t;
-    init_blocks: block list;
-    data: data list;
-    bss: bss_data list;
-    rodata: data list;
-  }
+module VirtualInstruction = struct
+  type virtual_block = var_id block
 
   module Gcx = struct
     type t = {
       mutable visited_blocks: SSet.t;
-      mutable init_builders: block list;
+      mutable init_builders: virtual_block list;
       mutable in_init: bool;
+      mutable text: virtual_block list;
       mutable data: data list;
       mutable bss: bss_data list;
       mutable rodata: data list;
-      mutable current_block_builder: block option;
-      mutable block_builders: block SMap.t;
+      mutable current_block_builder: virtual_block option;
+      mutable block_builders: virtual_block SMap.t;
       mutable max_string_literal_id: int;
       mutable max_label_id: int;
       mutable block_labels: label IMap.t;
-      ip_var_id: Reg.t;
+      ip_var_id: VirtualRegister.t;
     }
 
     let mk () =
@@ -100,6 +42,7 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
         visited_blocks = SSet.empty;
         init_builders = [];
         in_init = true;
+        text = [];
         data = [];
         bss = [];
         rodata = [];
@@ -108,7 +51,7 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
         max_string_literal_id = 0;
         max_label_id = 0;
         block_labels = IMap.empty;
-        ip_var_id = Reg.mk ();
+        ip_var_id = VirtualRegister.mk ();
       }
 
     let check_visited_block ~gcx label =
@@ -120,8 +63,7 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
 
     let finish_builders ~gcx =
       {
-        blocks = gcx.block_builders;
-        init_blocks = List.rev gcx.init_builders;
+        text = List.rev gcx.text;
         data = List.rev gcx.data;
         bss = List.rev gcx.bss;
         rodata = List.rev gcx.rodata;
@@ -155,6 +97,7 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
       let block = Option.get gcx.current_block_builder in
       block.instructions <- List.rev block.instructions;
       gcx.block_builders <- SMap.add block.label block gcx.block_builders;
+      gcx.text <- block :: gcx.text;
       if gcx.in_init then gcx.init_builders <- block :: gcx.init_builders;
       gcx.current_block_builder <- None
 
@@ -178,10 +121,10 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
   type source_value_info =
     | SVImmediate of immediate
     | SVLabel of label * size
-    | SVVariable of Reg.t * size
+    | SVVariable of VirtualRegister.t * size
     | SVStringImmediate of string
 
-  let rec gen (ir : Reg.t Mir.Program.t) =
+  let rec gen (ir : VirtualRegister.t Mir.Program.t) =
     let gcx = Gcx.mk () in
     (* Add init block *)
     Gcx.start_block_builder ~gcx "_init";
@@ -218,7 +161,9 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
       Gcx.add_bss ~gcx bss_data;
       (* Emit init block to move label's address to global *)
       Gcx.start_block_builder ~gcx ("_init_" ^ global.name);
-      Gcx.emit ~gcx (Mov (mk_label_memory_read ~gcx label, mk_label_memory_write ~gcx global.name));
+      let reg = VirtualRegister.mk () in
+      Gcx.emit ~gcx (MovMR (mk_label_memory_address ~gcx label, reg));
+      Gcx.emit ~gcx (MovRM (reg, mk_label_memory_address ~gcx global.name));
       Gcx.finish_block_builder ~gcx
     | SVVariable (var_id, size) ->
       (* Global is not initialized to a constant, so it must have its own initialization block.
@@ -227,7 +172,7 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
       Gcx.add_bss ~gcx bss_data;
       let init_start_block = IMap.find (List.hd global.init) ir.blocks in
       gen_block ~gcx ~ir ~label:("_init_" ^ global.name) init_start_block;
-      Gcx.emit ~gcx (Mov (RegisterSource var_id, mk_label_memory_write ~gcx global.name));
+      Gcx.emit ~gcx (MovRM (var_id, mk_label_memory_address ~gcx global.name));
       Gcx.finish_block_builder ~gcx
 
   and gen_function_instruction_builder ~gcx ~ir func =
@@ -278,10 +223,10 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
       | (IntLit _, IntLit _) -> failwith "Constants must be folded before gen"
       | (IntLit lit, IntVar var_id)
       | (IntVar var_id, IntLit lit) ->
-        Gcx.emit ~gcx (Cmp (RegisterSource var_id, imm_quad lit))
-      | (IntVar arg1, IntVar arg2) -> Gcx.emit ~gcx (Cmp (RegisterSource arg1, RegisterSource arg2)));
-      let (continue, jump) = get_branches () in
-      Gcx.emit ~gcx (CondJmp (kind, Gcx.get_label ~gcx continue, Gcx.get_label ~gcx jump))
+        Gcx.emit ~gcx (CmpRI (var_id, QuadImmediate lit))
+      | (IntVar arg1, IntVar arg2) -> Gcx.emit ~gcx (CmpRR (arg1, arg2)));
+      let (_, jump) = get_branches () in
+      Gcx.emit ~gcx (CondJmp (kind, Gcx.get_label ~gcx jump))
     in
     match instructions with
     | [] ->
@@ -291,9 +236,9 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
       | Continue continue ->
         (* TODO: Create better structure for tracking relative block locations *)
         Gcx.emit ~gcx (Jmp (Gcx.get_label ~gcx continue))
-      | Branch { test = Var var_id; continue; jump } ->
-        Gcx.emit ~gcx (Test (RegisterSource var_id, RegisterSource var_id));
-        Gcx.emit ~gcx (CondJmp (NotEqual, Gcx.get_label ~gcx continue, Gcx.get_label ~gcx jump))
+      | Branch { test = Var var_id; jump; continue = _ } ->
+        Gcx.emit ~gcx (TestRR (var_id, var_id));
+        Gcx.emit ~gcx (CondJmp (NotEqual, Gcx.get_label ~gcx jump))
       | _ -> ())
     (*
      * ===========================================
@@ -301,8 +246,16 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
      * ===========================================
      *)
     | Instruction.Mov (var_id, value) :: rest_instructions ->
-      let source = get_source_value ~gcx value in
-      Gcx.emit ~gcx (Mov (source, RegisterDest var_id));
+      let instr =
+        match get_source_value_info value with
+        | SVImmediate imm -> MovIR (imm, var_id)
+        | SVLabel (label, _) -> MovMR (mk_label_memory_address ~gcx label, var_id)
+        | SVVariable (src_var_id, _) -> MovRR (src_var_id, var_id)
+        | SVStringImmediate str ->
+          let label = Gcx.add_string_literal ~gcx str in
+          MovMR (mk_label_memory_address ~gcx label, var_id)
+      in
+      Gcx.emit ~gcx instr;
       gen_instructions rest_instructions
     (*
      * ===========================================
@@ -319,16 +272,16 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
             let reg =
               match get_source_value_info arg_val with
               | SVImmediate imm ->
-                let reg = Reg.mk () in
-                Gcx.emit ~gcx (Mov (ImmediateSource imm, RegisterDest reg));
+                let reg = VirtualRegister.mk () in
+                Gcx.emit ~gcx (MovIR (imm, reg));
                 reg
               | SVStringImmediate str ->
-                let reg = Reg.mk () in
+                let reg = VirtualRegister.mk () in
                 let label = Gcx.add_string_literal ~gcx str in
                 Gcx.emit ~gcx (Lea (mk_label_memory_address ~gcx label, reg));
                 reg
               | SVLabel (label, _) ->
-                let reg = Reg.mk () in
+                let reg = VirtualRegister.mk () in
                 Gcx.emit ~gcx (Lea (mk_label_memory_address ~gcx label, reg));
                 reg
               | SVVariable (var_id, _) -> var_id
@@ -340,19 +293,21 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
       List.iter
         (fun arg_val ->
           match get_source_value_info arg_val with
-          | SVImmediate imm -> Gcx.emit ~gcx (Push (ImmediateSource imm))
+          (* Push does not support 64-bit immediates. Must instead move onto stack. *)
+          | SVImmediate (QuadImmediate _) -> failwith "Unimplemented"
+          | SVImmediate imm -> Gcx.emit ~gcx (PushI imm)
           | SVStringImmediate str ->
             let label = Gcx.add_string_literal ~gcx str in
-            Gcx.emit ~gcx (Push (mk_label_memory_read ~gcx label))
-          | SVLabel (label, _) -> Gcx.emit ~gcx (Push (mk_label_memory_read ~gcx label))
-          | SVVariable (var_id, _) -> Gcx.emit ~gcx (Push (RegisterSource var_id)))
+            Gcx.emit ~gcx (PushM (mk_label_memory_address ~gcx label))
+          | SVLabel (label, _) -> Gcx.emit ~gcx (PushM (mk_label_memory_address ~gcx label))
+          | SVVariable (var_id, _) -> Gcx.emit ~gcx (PushR var_id))
         rest_arg_vals;
-      let func =
+      let inst =
         match func_val with
-        | Instruction.FunctionValue.Lit label -> mk_label_memory_read ~gcx label
-        | Instruction.FunctionValue.Var var_id -> RegisterSource var_id
+        | Instruction.FunctionValue.Lit label -> CallM (mk_label_memory_address ~gcx label)
+        | Instruction.FunctionValue.Var var_id -> CallR var_id
       in
-      Gcx.emit ~gcx (Call func);
+      Gcx.emit ~gcx inst;
       gen_instructions rest_instructions
     (*
      * ===========================================
@@ -363,16 +318,17 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
       (match value with
       | None -> ()
       | Some value ->
-        let emit_mov source =
-          let reg = Reg.mk () in
-          Gcx.emit ~gcx (Mov (source, RegisterDest reg))
-        in
         (match get_source_value_info value with
-        | SVImmediate imm -> emit_mov (ImmediateSource imm)
-        | SVLabel (label, _) -> emit_mov (mk_label_memory_read ~gcx label)
+        | SVImmediate imm ->
+          let reg = VirtualRegister.mk () in
+          Gcx.emit ~gcx (MovIR (imm, reg))
+        | SVLabel (label, _) ->
+          let reg = VirtualRegister.mk () in
+          Gcx.emit ~gcx (MovMR (mk_label_memory_address ~gcx label, reg))
         | SVStringImmediate str ->
           let label = Gcx.add_string_literal ~gcx str in
-          emit_mov (mk_label_memory_read ~gcx label)
+          let reg = VirtualRegister.mk () in
+          Gcx.emit ~gcx (MovMR (mk_label_memory_address ~gcx label, reg))
         | SVVariable _ -> ()));
       Gcx.emit ~gcx Leave;
       Gcx.emit ~gcx Ret;
@@ -383,7 +339,7 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
      * ===========================================
      *)
     | Instruction.LoadGlobal (var_id, label) :: rest_instructions ->
-      Gcx.emit ~gcx (Mov (mk_label_memory_read ~gcx label, RegisterDest var_id));
+      Gcx.emit ~gcx (MovMR (mk_label_memory_address ~gcx label, var_id));
       gen_instructions rest_instructions
     (*
      * ===========================================
@@ -391,21 +347,18 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
      * ===========================================
      *)
     | Instruction.StoreGlobal (label, value) :: rest_instructions ->
-      let source =
-        match get_source_value_info value with
-        | SVImmediate imm -> ImmediateSource imm
-        | SVStringImmediate str ->
-          let label = Gcx.add_string_literal ~gcx str in
-          let reg = Reg.mk () in
-          Gcx.emit ~gcx (Mov (mk_label_memory_read ~gcx label, RegisterDest reg));
-          RegisterSource reg
-        | SVLabel (label, _) ->
-          let reg = Reg.mk () in
-          Gcx.emit ~gcx (Mov (mk_label_memory_read ~gcx label, RegisterDest reg));
-          RegisterSource reg
-        | SVVariable (reg, _) -> RegisterSource reg
-      in
-      Gcx.emit ~gcx (Mov (source, mk_label_memory_write ~gcx label));
+      (match get_source_value_info value with
+      | SVImmediate imm -> Gcx.emit ~gcx (MovIM (imm, mk_label_memory_address ~gcx label))
+      | SVStringImmediate str ->
+        let label = Gcx.add_string_literal ~gcx str in
+        let reg = VirtualRegister.mk () in
+        Gcx.emit ~gcx (MovMR (mk_label_memory_address ~gcx label, reg));
+        Gcx.emit ~gcx (MovRM (reg, mk_label_memory_address ~gcx label))
+      | SVLabel (label, _) ->
+        let reg = VirtualRegister.mk () in
+        Gcx.emit ~gcx (MovMR (mk_label_memory_address ~gcx label, reg));
+        Gcx.emit ~gcx (MovRM (reg, mk_label_memory_address ~gcx label))
+      | SVVariable (reg, _) -> Gcx.emit ~gcx (MovRM (reg, mk_label_memory_address ~gcx label)));
       gen_instructions rest_instructions
     (*
      * ===========================================
@@ -415,11 +368,11 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
     | Instruction.Add (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (IntLit left_lit, IntLit right_lit) ->
-        Gcx.emit ~gcx (Mov (imm_quad (Int64.add left_lit right_lit), RegisterDest var_id))
+        Gcx.emit ~gcx (MovIR (QuadImmediate (Int64.add left_lit right_lit), var_id))
       | (IntLit lit, IntVar arg_var_id)
       | (IntVar arg_var_id, IntLit lit) ->
-        Gcx.emit ~gcx (Add (arg_var_id, imm_quad lit))
-      | (IntVar var1, IntVar var2) -> Gcx.emit ~gcx (Add (var1, RegisterSource var2)));
+        Gcx.emit ~gcx (AddIR (QuadImmediate lit, arg_var_id))
+      | (IntVar var1, IntVar var2) -> Gcx.emit ~gcx (AddRR (var1, var2)));
       gen_instructions rest_instructions
     (*
      * ===========================================
@@ -429,14 +382,13 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
     | Instruction.Sub (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (IntLit left_lit, IntLit right_lit) ->
-        Gcx.emit ~gcx (Mov (imm_quad (Int64.sub left_lit right_lit), RegisterDest var_id))
+        Gcx.emit ~gcx (MovIR (QuadImmediate (Int64.sub left_lit right_lit), var_id))
       | (IntLit left_lit, IntVar right_var_id) ->
-        Gcx.emit ~gcx (Mov (imm_quad left_lit, RegisterDest var_id));
-        Gcx.emit ~gcx (Sub (var_id, RegisterSource right_var_id))
+        Gcx.emit ~gcx (MovIR (QuadImmediate left_lit, var_id));
+        Gcx.emit ~gcx (SubRR (var_id, right_var_id))
       | (IntVar left_var_id, IntLit right_lit) ->
-        Gcx.emit ~gcx (Sub (left_var_id, imm_quad right_lit))
-      | (IntVar left_var, IntVar right_var) ->
-        Gcx.emit ~gcx (Sub (left_var, RegisterSource right_var)));
+        Gcx.emit ~gcx (SubIR (QuadImmediate right_lit, left_var_id))
+      | (IntVar left_var, IntVar right_var) -> Gcx.emit ~gcx (SubRR (left_var, right_var)));
       gen_instructions rest_instructions
     (*
      * ===========================================
@@ -446,11 +398,11 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
     | Instruction.Mul (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (IntLit left_lit, IntLit right_lit) ->
-        Gcx.emit ~gcx (Mov (imm_quad (Int64.mul left_lit right_lit), RegisterDest var_id))
+        Gcx.emit ~gcx (MovIR (QuadImmediate (Int64.mul left_lit right_lit), var_id))
       | (IntLit lit, IntVar arg_var_id)
       | (IntVar arg_var_id, IntLit lit) ->
-        Gcx.emit ~gcx (IMul (arg_var_id, imm_quad lit))
-      | (IntVar var1, IntVar var2) -> Gcx.emit ~gcx (IMul (var1, RegisterSource var2)));
+        Gcx.emit ~gcx (IMulRIR (arg_var_id, QuadImmediate lit, var_id))
+      | (IntVar var1, IntVar var2) -> Gcx.emit ~gcx (IMulRR (var1, var2)));
       gen_instructions rest_instructions
     (*
      * ===========================================
@@ -460,15 +412,15 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
     | Instruction.Div (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (IntLit left_lit, IntLit right_lit) ->
-        Gcx.emit ~gcx (Mov (imm_quad (Int64.div left_lit right_lit), RegisterDest var_id))
+        Gcx.emit ~gcx (MovIR (QuadImmediate (Int64.div left_lit right_lit), var_id))
       | (IntLit lit, IntVar arg_var_id) ->
-        Gcx.emit ~gcx (Mov (imm_quad lit, RegisterDest var_id));
-        Gcx.emit ~gcx (IDiv (RegisterSource arg_var_id))
+        Gcx.emit ~gcx (MovIR (QuadImmediate lit, var_id));
+        Gcx.emit ~gcx (IDivR arg_var_id)
       | (IntVar _arg_var_id, IntLit lit) ->
-        let reg = Reg.mk () in
-        Gcx.emit ~gcx (Mov (imm_quad lit, RegisterDest reg));
-        Gcx.emit ~gcx (IDiv (RegisterSource reg))
-      | (IntVar _var1, IntVar var2) -> Gcx.emit ~gcx (IDiv (RegisterSource var2)));
+        let reg = VirtualRegister.mk () in
+        Gcx.emit ~gcx (MovIR (QuadImmediate lit, reg));
+        Gcx.emit ~gcx (IDivR reg)
+      | (IntVar _var1, IntVar var2) -> Gcx.emit ~gcx (IDivR var2));
       gen_instructions rest_instructions
     (*
      * ===========================================
@@ -481,7 +433,7 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
         | IntLit _ -> failwith "Constant folding must have already occurred"
         | IntVar var_id -> var_id
       in
-      Gcx.emit ~gcx (Neg (RegisterDest var_id));
+      Gcx.emit ~gcx (NegR var_id);
       gen_instructions rest_instructions
     (*
      * ===========================================
@@ -494,7 +446,7 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
         | Lit _ -> failwith "Constant folding must have already occurred"
         | Var var_id -> var_id
       in
-      Gcx.emit ~gcx (Not (RegisterDest var_id));
+      Gcx.emit ~gcx (NotR var_id);
       gen_instructions rest_instructions
     (*
      * ===========================================
@@ -504,11 +456,11 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
     | Instruction.LogAnd (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (Lit left_lit, Lit right_lit) ->
-        Gcx.emit ~gcx (Mov (imm_byte_of_bool (left_lit && right_lit), RegisterDest var_id))
+        Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit && right_lit), var_id))
       | (Lit lit, Var arg_var_id)
       | (Var arg_var_id, Lit lit) ->
-        Gcx.emit ~gcx (And (arg_var_id, imm_byte_of_bool lit))
-      | (Var var1, Var var2) -> Gcx.emit ~gcx (And (var1, RegisterSource var2)));
+        Gcx.emit ~gcx (AndIR (imm_byte_of_bool lit, arg_var_id))
+      | (Var var1, Var var2) -> Gcx.emit ~gcx (AndRR (var1, var2)));
       gen_instructions rest_instructions
     (*
      * ===========================================
@@ -518,11 +470,11 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
     | Instruction.LogOr (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (Lit left_lit, Lit right_lit) ->
-        Gcx.emit ~gcx (Mov (imm_byte_of_bool (left_lit || right_lit), RegisterDest var_id))
+        Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit || right_lit), var_id))
       | (Lit lit, Var arg_var_id)
       | (Var arg_var_id, Lit lit) ->
-        Gcx.emit ~gcx (Or (arg_var_id, imm_byte_of_bool lit))
-      | (Var var1, Var var2) -> Gcx.emit ~gcx (Or (var1, RegisterSource var2)));
+        Gcx.emit ~gcx (OrIR (imm_byte_of_bool lit, arg_var_id))
+      | (Var var1, Var var2) -> Gcx.emit ~gcx (OrRR (var1, var2)));
       gen_instructions rest_instructions
     (*
      * ===========================================
@@ -534,13 +486,13 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
     | Instruction.Eq (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (IntLit left_lit, IntLit right_lit) ->
-        Gcx.emit ~gcx (Mov (imm_byte_of_bool (left_lit = right_lit), RegisterDest var_id))
+        Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit = right_lit), var_id))
       | (IntLit lit, IntVar arg_var_id)
       | (IntVar arg_var_id, IntLit lit) ->
-        Gcx.emit ~gcx (Cmp (imm_quad lit, RegisterSource arg_var_id));
+        Gcx.emit ~gcx (CmpRI (arg_var_id, QuadImmediate lit));
         Gcx.emit ~gcx (SetCmp (SetE, var_id))
       | (IntVar var1, IntVar var2) ->
-        Gcx.emit ~gcx (Cmp (RegisterSource var1, RegisterSource var2));
+        Gcx.emit ~gcx (CmpRR (var1, var2));
         Gcx.emit ~gcx (SetCmp (SetE, var_id)));
       gen_instructions rest_instructions
     (*
@@ -553,13 +505,13 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
     | Instruction.Neq (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (IntLit left_lit, IntLit right_lit) ->
-        Gcx.emit ~gcx (Mov (imm_byte_of_bool (left_lit <> right_lit), RegisterDest var_id))
+        Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit <> right_lit), var_id))
       | (IntLit lit, IntVar arg_var_id)
       | (IntVar arg_var_id, IntLit lit) ->
-        Gcx.emit ~gcx (Cmp (imm_quad lit, RegisterSource arg_var_id));
+        Gcx.emit ~gcx (CmpRI (arg_var_id, QuadImmediate lit));
         Gcx.emit ~gcx (SetCmp (SetNE, var_id))
       | (IntVar var1, IntVar var2) ->
-        Gcx.emit ~gcx (Cmp (RegisterSource var1, RegisterSource var2));
+        Gcx.emit ~gcx (CmpRR (var1, var2));
         Gcx.emit ~gcx (SetCmp (SetNE, var_id)));
       gen_instructions rest_instructions
     (*
@@ -572,13 +524,13 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
     | Instruction.Lt (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (IntLit left_lit, IntLit right_lit) ->
-        Gcx.emit ~gcx (Mov (imm_byte_of_bool (left_lit < right_lit), RegisterDest var_id))
+        Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit < right_lit), var_id))
       | (IntLit lit, IntVar arg_var_id)
       | (IntVar arg_var_id, IntLit lit) ->
-        Gcx.emit ~gcx (Cmp (imm_quad lit, RegisterSource arg_var_id));
+        Gcx.emit ~gcx (CmpRI (arg_var_id, QuadImmediate lit));
         Gcx.emit ~gcx (SetCmp (SetL, var_id))
       | (IntVar var1, IntVar var2) ->
-        Gcx.emit ~gcx (Cmp (RegisterSource var1, RegisterSource var2));
+        Gcx.emit ~gcx (CmpRR (var1, var2));
         Gcx.emit ~gcx (SetCmp (SetL, var_id)));
       gen_instructions rest_instructions
     (*
@@ -591,13 +543,13 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
     | Instruction.LtEq (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (IntLit left_lit, IntLit right_lit) ->
-        Gcx.emit ~gcx (Mov (imm_byte_of_bool (left_lit <= right_lit), RegisterDest var_id))
+        Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit <= right_lit), var_id))
       | (IntLit lit, IntVar arg_var_id)
       | (IntVar arg_var_id, IntLit lit) ->
-        Gcx.emit ~gcx (Cmp (imm_quad lit, RegisterSource arg_var_id));
+        Gcx.emit ~gcx (CmpRI (arg_var_id, QuadImmediate lit));
         Gcx.emit ~gcx (SetCmp (SetLE, var_id))
       | (IntVar var1, IntVar var2) ->
-        Gcx.emit ~gcx (Cmp (RegisterSource var1, RegisterSource var2));
+        Gcx.emit ~gcx (CmpRR (var1, var2));
         Gcx.emit ~gcx (SetCmp (SetLE, var_id)));
       gen_instructions rest_instructions
     (*
@@ -610,13 +562,13 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
     | Instruction.Gt (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (IntLit left_lit, IntLit right_lit) ->
-        Gcx.emit ~gcx (Mov (imm_byte_of_bool (left_lit > right_lit), RegisterDest var_id))
+        Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit > right_lit), var_id))
       | (IntLit lit, IntVar arg_var_id)
       | (IntVar arg_var_id, IntLit lit) ->
-        Gcx.emit ~gcx (Cmp (imm_quad lit, RegisterSource arg_var_id));
+        Gcx.emit ~gcx (CmpRI (arg_var_id, QuadImmediate lit));
         Gcx.emit ~gcx (SetCmp (SetG, var_id))
       | (IntVar var1, IntVar var2) ->
-        Gcx.emit ~gcx (Cmp (RegisterSource var1, RegisterSource var2));
+        Gcx.emit ~gcx (CmpRR (var1, var2));
         Gcx.emit ~gcx (SetCmp (SetG, var_id)));
       gen_instructions rest_instructions
     (*
@@ -629,13 +581,13 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
     | Instruction.GtEq (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (IntLit left_lit, IntLit right_lit) ->
-        Gcx.emit ~gcx (Mov (imm_byte_of_bool (left_lit >= right_lit), RegisterDest var_id))
+        Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit >= right_lit), var_id))
       | (IntLit lit, IntVar arg_var_id)
       | (IntVar arg_var_id, IntLit lit) ->
-        Gcx.emit ~gcx (Cmp (imm_quad lit, RegisterSource arg_var_id));
+        Gcx.emit ~gcx (CmpRI (arg_var_id, QuadImmediate lit));
         Gcx.emit ~gcx (SetCmp (SetGE, var_id))
       | (IntVar var1, IntVar var2) ->
-        Gcx.emit ~gcx (Cmp (RegisterSource var1, RegisterSource var2));
+        Gcx.emit ~gcx (CmpRR (var1, var2));
         Gcx.emit ~gcx (SetCmp (SetGE, var_id)));
       gen_instructions rest_instructions
 
@@ -659,22 +611,6 @@ module AbstractInstruction (Reg : ABSTRACT_REGISTER) = struct
     | String (Lit str) -> SVStringImmediate str
     | String (Var var_id) -> SVVariable (var_id, Quad)
 
-  and get_source_value ~gcx value =
-    match get_source_value_info value with
-    | SVImmediate imm -> ImmediateSource imm
-    | SVLabel (label, _) -> mk_label_memory_read ~gcx label
-    | SVVariable (var_id, _) -> RegisterSource var_id
-    | SVStringImmediate str ->
-      let label = Gcx.add_string_literal ~gcx str in
-      mk_label_memory_read ~gcx label
-
   and mk_label_memory_address ~gcx label =
     { offset = Some (LabelOffset label); base_register = gcx.ip_var_id; index_and_scale = None }
-
-  and mk_label_memory_read ~gcx label = MemorySource (mk_label_memory_address ~gcx label)
-
-  and mk_label_memory_write ~gcx label = MemoryDest (mk_label_memory_address ~gcx label)
 end
-
-module CFAbstractInstruction = AbstractInstruction (CFRegister)
-module SSAAbstractInstruction = AbstractInstruction (SSARegister)

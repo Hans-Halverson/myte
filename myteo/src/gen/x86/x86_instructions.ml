@@ -53,15 +53,6 @@ type 'reg memory_address = {
   index_and_scale: ('reg * memory_address_scale) option;
 }
 
-type 'reg source =
-  | ImmediateSource of immediate
-  | RegisterSource of 'reg
-  | MemorySource of 'reg memory_address
-
-type 'reg destination =
-  | RegisterDest of 'reg
-  | MemoryDest of 'reg memory_address
-
 type cond_jmp_kind =
   | Equal
   | NotEqual
@@ -79,30 +70,48 @@ type set_cmp_kind =
   | SetGE
 
 type 'reg instruction =
+  (* Instruction Suffixes:
+         R - virtual register
+         I - immediate
+         M - memory location
+
+       When multiple suffixes are used, first is source and second is dest when applicable. *)
   (* Stack instructions *)
-  | Push of 'reg source
-  | Pop of 'reg destination
+  | PushR of 'reg
+  | PushI of immediate (* Only supports 8, 16, and 32-bit immediates *)
+  | PushM of 'reg memory_address
   (* Data instructions *)
-  | Mov of 'reg source * 'reg destination
+  | MovRR of 'reg * 'reg
+  | MovRM of 'reg * 'reg memory_address
+  | MovMR of 'reg memory_address * 'reg
+  | MovIR of immediate * 'reg
+  | MovIM of immediate * 'reg memory_address
   | Lea of 'reg memory_address * 'reg
   (* Numeric operations *)
-  | Neg of 'reg destination
-  | Add of 'reg source * 'reg destination
-  | Sub of 'reg source * 'reg destination
-  | IMul of 'reg source * 'reg
-  | IDiv of 'reg source
+  | NegR of 'reg
+  | AddRR of 'reg * 'reg
+  | AddIR of immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
+  | SubRR of 'reg * 'reg
+  | SubIR of immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
+  | IMulRR of 'reg * 'reg
+  | IMulRIR of 'reg * immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
+  | IDivR of 'reg
   (* Bitwise operations *)
-  | Not of 'reg destination
-  | And of 'reg source * 'reg destination
-  | Or of 'reg source * 'reg destination
+  | NotR of 'reg
+  | AndRR of 'reg * 'reg
+  | AndIR of immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
+  | OrRR of 'reg * 'reg
+  | OrIR of immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
   (* Comparisons *)
-  | Cmp of 'reg source * 'reg source
-  | Test of 'reg source * 'reg source
+  | CmpRR of 'reg * 'reg
+  | CmpRI of 'reg * immediate (* Only supports 8, 16, and 32-bit immediates *)
+  | TestRR of 'reg * 'reg
   | SetCmp of set_cmp_kind * 'reg
   (* Control flow *)
   | Jmp of label
   | CondJmp of cond_jmp_kind * label
-  | Call of 'reg source
+  | CallR of 'reg
+  | CallM of 'reg memory_address
   | Leave
   | Ret
   | Syscall

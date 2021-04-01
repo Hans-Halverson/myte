@@ -156,17 +156,6 @@ let pp_memory_address ~buf mem =
   end;
   add_char ~buf ')'
 
-let pp_source ~buf source =
-  match source with
-  | ImmediateSource imm -> pp_immediate ~buf imm
-  | RegisterSource reg -> pp_register ~buf reg
-  | MemorySource mem -> pp_memory_address ~buf mem
-
-let pp_destination ~buf dest =
-  match dest with
-  | RegisterDest reg -> pp_register ~buf reg
-  | MemoryDest mem -> pp_memory_address ~buf mem
-
 let pp_instruction ~buf instruction =
   add_line ~buf (fun buf ->
       let add_string = add_string ~buf in
@@ -174,74 +163,129 @@ let pp_instruction ~buf instruction =
         add_string op;
         add_char ~buf ' '
       in
-      let pp_source = pp_source ~buf in
-      let pp_destination = pp_destination ~buf in
       let pp_register = pp_register ~buf in
+      let pp_immediate = pp_immediate ~buf in
+      let pp_memory_address = pp_memory_address ~buf in
       let pp_args_separator () = add_string ", " in
       match instruction with
-      | Push source ->
+      | PushR reg ->
         pp_op "push";
-        pp_source source
-      | Pop dest ->
-        pp_op "dest";
-        pp_destination dest
-      | Mov (source, dest) ->
+        pp_register reg
+      | PushI imm ->
+        pp_op "push";
+        pp_immediate imm
+      | PushM addr ->
+        pp_op "push";
+        pp_memory_address addr
+      | MovRR (src_reg, dest_reg) ->
         pp_op "mov";
-        pp_source source;
+        pp_register src_reg;
         pp_args_separator ();
-        pp_destination dest
+        pp_register dest_reg
+      | MovRM (src_reg, dest_addr) ->
+        pp_op "mov";
+        pp_register src_reg;
+        pp_args_separator ();
+        pp_memory_address dest_addr
+      | MovMR (src_addr, dest_reg) ->
+        pp_op "mov";
+        pp_memory_address src_addr;
+        pp_args_separator ();
+        pp_register dest_reg
+      | MovIR (src_imm, dest_reg) ->
+        pp_op "mov";
+        pp_immediate src_imm;
+        pp_args_separator ();
+        pp_register dest_reg
+      | MovIM (src_imm, dest_addr) ->
+        pp_op "mov";
+        pp_immediate src_imm;
+        pp_args_separator ();
+        pp_memory_address dest_addr
       | Lea (mem, reg) ->
         pp_op "lea";
-        pp_memory_address ~buf mem;
+        pp_memory_address mem;
         pp_args_separator ();
         pp_register reg
       (* Numeric operations *)
-      | Neg dest ->
+      | NegR reg ->
         pp_op "neg";
-        pp_destination dest
-      | Add (source, dest) ->
+        pp_register reg
+      | AddRR (src_reg, dest_reg) ->
         pp_op "add";
-        pp_source source;
+        pp_register src_reg;
         pp_args_separator ();
-        pp_destination dest
-      | Sub (source, dest) ->
+        pp_register dest_reg
+      | AddIR (imm, dest_reg) ->
+        pp_op "add";
+        pp_immediate imm;
+        pp_args_separator ();
+        pp_register dest_reg
+      | SubRR (src_reg, dest_reg) ->
         pp_op "sub";
-        pp_source source;
+        pp_register src_reg;
         pp_args_separator ();
-        pp_destination dest
-      | IMul (source, dest) ->
+        pp_register dest_reg
+      | SubIR (imm, dest_reg) ->
+        pp_op "sub";
+        pp_immediate imm;
+        pp_args_separator ();
+        pp_register dest_reg
+      | IMulRR (src_reg, dest_reg) ->
         pp_op "imul";
-        pp_source source;
+        pp_register src_reg;
         pp_args_separator ();
-        pp_register dest
-      | IDiv arg ->
+        pp_register dest_reg
+      | IMulRIR (src_reg, imm, dest_reg) ->
+        pp_op "imul";
+        pp_register src_reg;
+        pp_args_separator ();
+        pp_immediate imm;
+        pp_args_separator ();
+        pp_register dest_reg
+      | IDivR reg ->
         pp_op "idiv";
-        pp_source arg
+        pp_register reg
       (* Bitwise operations *)
-      | Not dest ->
+      | NotR reg ->
         pp_op "not";
-        pp_destination dest
-      | And (source, dest) ->
+        pp_register reg
+      | AndRR (src_reg, dest_reg) ->
         pp_op "and";
-        pp_source source;
+        pp_register src_reg;
         pp_args_separator ();
-        pp_destination dest
-      | Or (source, dest) ->
+        pp_register dest_reg
+      | AndIR (imm, dest_reg) ->
+        pp_op "and";
+        pp_immediate imm;
+        pp_args_separator ();
+        pp_register dest_reg
+      | OrRR (src_reg, dest_reg) ->
         pp_op "or";
-        pp_source source;
+        pp_register src_reg;
         pp_args_separator ();
-        pp_destination dest
+        pp_register dest_reg
+      | OrIR (imm, dest_reg) ->
+        pp_op "or";
+        pp_immediate imm;
+        pp_args_separator ();
+        pp_register dest_reg
       (* Comparisons *)
-      | Cmp (arg1, arg2) ->
+      | CmpRR (reg1, reg2) ->
         pp_op "cmp";
-        pp_source arg1;
+        pp_register reg1;
         pp_args_separator ();
-        pp_source arg2
-      | Test (arg1, arg2) ->
+        pp_register reg2
+      | CmpRI (reg, imm) ->
+        pp_op "cmp";
+        pp_register reg;
+        pp_args_separator ();
+        pp_immediate imm
+      | TestRR (reg1, reg2) ->
         pp_op "test";
-        pp_source arg1;
+        pp_register reg1;
         pp_args_separator ();
-        pp_source arg2
+        pp_register reg2
       | SetCmp (kind, reg) ->
         let op_str =
           match kind with
@@ -270,9 +314,12 @@ let pp_instruction ~buf instruction =
         in
         pp_op op;
         add_string label
-      | Call label ->
+      | CallR reg ->
         pp_op "call";
-        pp_source label
+        pp_register reg
+      | CallM addr ->
+        pp_op "call";
+        pp_memory_address addr
       | Leave -> add_string "leave"
       | Ret -> add_string "ret"
       | Syscall -> add_string "syscall")
