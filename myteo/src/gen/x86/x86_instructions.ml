@@ -116,10 +116,22 @@ type 'reg instruction =
   | Ret
   | Syscall
 
-type 'reg block = {
-  label: label;
-  mutable instructions: 'reg instruction list;
-}
+module Block = struct
+  type id = int
+
+  and 'reg t = {
+    id: id;
+    label: label;
+    mutable instructions: 'reg instruction list;
+  }
+
+  let max_id = ref 0
+
+  let mk_id () =
+    let id = !max_id in
+    max_id := id + 1;
+    id
+end
 
 type data_value =
   | ImmediateData of immediate
@@ -136,7 +148,7 @@ type bss_data = {
 }
 
 type 'reg executable = {
-  text: 'reg block list;
+  text: 'reg Block.t list;
   data: data list;
   bss: bss_data list;
   rodata: data list;

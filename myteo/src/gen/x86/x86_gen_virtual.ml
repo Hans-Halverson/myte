@@ -18,11 +18,11 @@ module VirtualRegister = struct
 end
 
 module VirtualInstruction = struct
-  type virtual_block = var_id block
+  type virtual_block = var_id Block.t
 
   module Gcx = struct
     type t = {
-      mutable visited_blocks: SSet.t;
+      mutable visited_mir_blocks: ISet.t;
       mutable init_builders: virtual_block list;
       mutable in_init: bool;
       mutable text: virtual_block list;
@@ -30,16 +30,18 @@ module VirtualInstruction = struct
       mutable bss: bss_data list;
       mutable rodata: data list;
       mutable current_block_builder: virtual_block option;
-      mutable block_builders: virtual_block SMap.t;
+      mutable blocks_by_id: virtual_block IMap.t;
+      mutable mir_block_id_to_x86_block_id: Block.id IMap.t;
+      mutable x86_block_id_to_mir_block_id: Mir.Block.id IMap.t;
       mutable max_string_literal_id: int;
       mutable max_label_id: int;
-      mutable block_labels: label IMap.t;
+      mutable mir_block_id_to_label: label IMap.t;
       ip_var_id: VirtualRegister.t;
     }
 
     let mk () =
       {
-        visited_blocks = SSet.empty;
+        visited_mir_blocks = ISet.empty;
         init_builders = [];
         in_init = true;
         text = [];
@@ -47,19 +49,21 @@ module VirtualInstruction = struct
         bss = [];
         rodata = [];
         current_block_builder = None;
-        block_builders = SMap.empty;
+        blocks_by_id = IMap.empty;
+        mir_block_id_to_x86_block_id = IMap.empty;
+        x86_block_id_to_mir_block_id = IMap.empty;
         max_string_literal_id = 0;
         max_label_id = 0;
-        block_labels = IMap.empty;
+        mir_block_id_to_label = IMap.empty;
         ip_var_id = VirtualRegister.mk ();
       }
 
-    let check_visited_block ~gcx label =
-      let is_visited = SSet.mem label gcx.visited_blocks in
-      if not is_visited then gcx.visited_blocks <- SSet.add label gcx.visited_blocks;
+    let check_visited_block ~gcx (mir_block : var_id Mir.Block.t) =
+      let is_visited = ISet.mem mir_block.id gcx.visited_mir_blocks in
+      if not is_visited then gcx.visited_mir_blocks <- ISet.add mir_block.id gcx.visited_mir_blocks;
       is_visited
 
-    let reset_visited_blocks ~gcx = gcx.visited_blocks <- SSet.empty
+    let reset_visited_blocks ~gcx = gcx.visited_mir_blocks <- ISet.empty
 
     let finish_builders ~gcx =
       {
@@ -90,13 +94,21 @@ module VirtualInstruction = struct
 
     let end_init ~gcx = gcx.in_init <- false
 
-    let start_block_builder ~gcx label =
-      gcx.current_block_builder <- Some { label; instructions = [] }
+    let start_block ~gcx ~label ~mir_block =
+      let id = Block.mk_id () in
+      Option.iter
+        (fun { Mir.Block.id = mir_block_id; _ } ->
+          gcx.mir_block_id_to_x86_block_id <-
+            IMap.add mir_block_id id gcx.mir_block_id_to_x86_block_id;
+          gcx.x86_block_id_to_mir_block_id <-
+            IMap.add id mir_block_id gcx.x86_block_id_to_mir_block_id)
+        mir_block;
+      gcx.current_block_builder <- Some { id; label; instructions = [] }
 
-    let finish_block_builder ~gcx =
+    let finish_block ~gcx =
       let block = Option.get gcx.current_block_builder in
       block.instructions <- List.rev block.instructions;
-      gcx.block_builders <- SMap.add block.label block gcx.block_builders;
+      gcx.blocks_by_id <- IMap.add block.id block gcx.blocks_by_id;
       gcx.text <- block :: gcx.text;
       if gcx.in_init then gcx.init_builders <- block :: gcx.init_builders;
       gcx.current_block_builder <- None
@@ -105,16 +117,14 @@ module VirtualInstruction = struct
       let current_block = Option.get gcx.current_block_builder in
       current_block.instructions <- instr :: current_block.instructions
 
-    let get_block_builder ~gcx label = SMap.find label gcx.block_builders
-
-    let get_label ~gcx block_id =
-      match IMap.find_opt block_id gcx.block_labels with
+    let get_label_from_mir_block_id ~gcx mir_block_id =
+      match IMap.find_opt mir_block_id gcx.mir_block_id_to_label with
       | Some label -> label
       | None ->
         let id = gcx.max_label_id in
         gcx.max_label_id <- gcx.max_label_id + 1;
         let label = ".L" ^ string_of_int id in
-        gcx.block_labels <- IMap.add block_id label gcx.block_labels;
+        gcx.mir_block_id_to_label <- IMap.add mir_block_id label gcx.mir_block_id_to_label;
         label
   end
 
@@ -124,15 +134,18 @@ module VirtualInstruction = struct
     | SVVariable of VirtualRegister.t * size
     | SVStringImmediate of string
 
-  let rec gen (ir : VirtualRegister.t Mir.Program.t) =
+  let rec gen (ir : ssa_program) =
     let gcx = Gcx.mk () in
-    (* Add init block *)
-    Gcx.start_block_builder ~gcx "_init";
-    Gcx.finish_block_builder ~gcx;
+    (* Add init block with initialization of globals *)
+    Gcx.start_block ~gcx ~label:"_init" ~mir_block:None;
+    Gcx.finish_block ~gcx;
     SMap.iter (fun _ global -> gen_global_instruction_builder ~gcx ~ir global) ir.globals;
     (* Remove init block if there are no init sections *)
-    if (List.hd gcx.init_builders).label = "_init" then
-      gcx.init_builders <- List.tl gcx.init_builders;
+    if (List.hd gcx.init_builders).label = "_init" then begin
+      gcx.init_builders <- [];
+      gcx.text <- [];
+      gcx.blocks_by_id <- IMap.empty
+    end;
     Gcx.end_init ~gcx;
     SMap.iter (fun _ func -> gen_function_instruction_builder ~gcx ~ir func) ir.funcs;
     Gcx.finish_builders ~gcx
@@ -140,7 +153,7 @@ module VirtualInstruction = struct
   and gen_global_instruction_builder ~gcx ~ir global =
     let last_init_block = get_block ~ir (List.hd (List.rev global.init)) in
     let init_val =
-      match List.rev last_init_block.Block.instructions with
+      match List.rev Mir.Block.(last_init_block.instructions) with
       | (_, StoreGlobal (_, init_val)) :: _ -> init_val
       | _ -> failwith "Global init must end with StoreGlobal instruction"
     in
@@ -160,11 +173,11 @@ module VirtualInstruction = struct
       let bss_data = { label = global.name; size = bytes_of_size size } in
       Gcx.add_bss ~gcx bss_data;
       (* Emit init block to move label's address to global *)
-      Gcx.start_block_builder ~gcx ("_init_" ^ global.name);
+      Gcx.start_block ~gcx ~label:("_init_" ^ global.name) ~mir_block:None;
       let reg = VirtualRegister.mk () in
       Gcx.emit ~gcx (MovMR (mk_label_memory_address ~gcx label, reg));
       Gcx.emit ~gcx (MovRM (reg, mk_label_memory_address ~gcx global.name));
-      Gcx.finish_block_builder ~gcx
+      Gcx.finish_block ~gcx
     | SVVariable (var_id, size) ->
       (* Global is not initialized to a constant, so it must have its own initialization block.
          Place global in uninitialized (bss) section. *)
@@ -173,34 +186,34 @@ module VirtualInstruction = struct
       let init_start_block = IMap.find (List.hd global.init) ir.blocks in
       gen_block ~gcx ~ir ~label:("_init_" ^ global.name) init_start_block;
       Gcx.emit ~gcx (MovRM (var_id, mk_label_memory_address ~gcx global.name));
-      Gcx.finish_block_builder ~gcx
+      Gcx.finish_block ~gcx
 
   and gen_function_instruction_builder ~gcx ~ir func =
     Gcx.reset_visited_blocks ~gcx;
     let func_start_block = IMap.find (List.hd func.body) ir.blocks in
     gen_block ~gcx ~ir ~label:func.name func_start_block
 
-  and gen_block ~gcx ~ir ?label block =
+  and gen_block ~gcx ~ir ?label mir_block =
     let label =
       match label with
-      | None -> Gcx.get_label ~gcx block.id
+      | None -> Gcx.get_label_from_mir_block_id ~gcx mir_block.id
       | Some label -> label
     in
-    if Gcx.check_visited_block ~gcx label then
+    if Gcx.check_visited_block ~gcx mir_block then
       ()
     else (
-      Gcx.start_block_builder ~gcx label;
-      gen_instructions ~gcx ~ir ~block (List.map snd block.instructions);
-      match block.next with
-      | Halt -> Gcx.finish_block_builder ~gcx
+      Gcx.start_block ~gcx ~label ~mir_block:(Some mir_block);
+      gen_instructions ~gcx ~ir ~block:mir_block (List.map snd mir_block.instructions);
+      match mir_block.next with
+      | Halt -> Gcx.finish_block ~gcx
       | Continue block_id ->
         let block = IMap.find block_id ir.blocks in
-        Gcx.finish_block_builder ~gcx;
+        Gcx.finish_block ~gcx;
         gen_block ~gcx ~ir block
       | Branch { continue; jump; _ } ->
         let continue_block = IMap.find continue ir.blocks in
         let jump_block = IMap.find jump ir.blocks in
-        Gcx.finish_block_builder ~gcx;
+        Gcx.finish_block ~gcx;
         gen_block ~gcx ~ir continue_block;
         gen_block ~gcx ~ir jump_block
     )
@@ -226,7 +239,7 @@ module VirtualInstruction = struct
         Gcx.emit ~gcx (CmpRI (var_id, QuadImmediate lit))
       | (IntVar arg1, IntVar arg2) -> Gcx.emit ~gcx (CmpRR (arg1, arg2)));
       let (_, jump) = get_branches () in
-      Gcx.emit ~gcx (CondJmp (kind, Gcx.get_label ~gcx jump))
+      Gcx.emit ~gcx (CondJmp (kind, Gcx.get_label_from_mir_block_id ~gcx jump))
     in
     match instructions with
     | [] ->
@@ -235,10 +248,10 @@ module VirtualInstruction = struct
       | Branch { test = Lit _; _ } -> failwith "Dead branch pruning must have already occurred"
       | Continue continue ->
         (* TODO: Create better structure for tracking relative block locations *)
-        Gcx.emit ~gcx (Jmp (Gcx.get_label ~gcx continue))
+        Gcx.emit ~gcx (Jmp (Gcx.get_label_from_mir_block_id ~gcx continue))
       | Branch { test = Var var_id; jump; continue = _ } ->
         Gcx.emit ~gcx (TestRR (var_id, var_id));
-        Gcx.emit ~gcx (CondJmp (NotEqual, Gcx.get_label ~gcx jump))
+        Gcx.emit ~gcx (CondJmp (NotEqual, Gcx.get_label_from_mir_block_id ~gcx jump))
       | _ -> ())
     (*
      * ===========================================
@@ -330,7 +343,6 @@ module VirtualInstruction = struct
           let reg = VirtualRegister.mk () in
           Gcx.emit ~gcx (MovMR (mk_label_memory_address ~gcx label, reg))
         | SVVariable _ -> ()));
-      Gcx.emit ~gcx Leave;
       Gcx.emit ~gcx Ret;
       gen_instructions rest_instructions
     (*

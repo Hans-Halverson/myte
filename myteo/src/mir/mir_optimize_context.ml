@@ -102,6 +102,17 @@ let remove_block ~ocx block_id =
   (match IMap.find_opt block_id ocx.next_blocks with
   | None -> ()
   | Some next_blocks ->
+    (* Remove references to this removed block from phi nodes of next blocks *)
+    (* ISet.iter
+       (fun next_block_id ->
+         let next_block = get_block ~ocx next_block_id in
+         next_block.phis <-
+           List.map
+             (fun (dest_var_id, sources) ->
+               ( dest_var_id,
+                 List.filter (fun (prev_block_id, _) -> prev_block_id != block_id) sources ))
+             next_block.phis)
+       next_blocks; *)
     (* Remove prev pointers from next blocks to this removed block *)
     ISet.iter
       (fun next_block_id ->
@@ -316,20 +327,12 @@ let normalize ~ocx =
     (fun _ block ->
       block.phis <-
         List.filter_map
-          (fun (dest, sources) ->
-            let new_sources =
-              List.filter_map
-                (fun source ->
-                  if ISet.mem source vars then
-                    Some source
-                  else
-                    None)
-                sources
-            in
-            if new_sources = [] then
+          (fun (dest, args) ->
+            let args' = IMap.filter (fun _ source_var_id -> ISet.mem source_var_id vars) args in
+            if IMap.is_empty args' then
               None
             else
-              Some (dest, new_sources))
+              Some (dest, args'))
           block.phis)
     ocx.program.blocks;
   (* Find and remove empty blocks *)

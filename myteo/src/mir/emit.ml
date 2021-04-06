@@ -1,4 +1,5 @@
 open Ast
+open Basic_collections
 open Mir
 module Ecx = Emit_context
 
@@ -117,6 +118,7 @@ and emit_expression ~pcx ~ecx expr =
     let right_val = emit_expression ~pcx ~ecx right in
     let right_var_id = mk_cf_var_id () in
     Ecx.emit ~ecx (Mov (right_var_id, right_val));
+    let rhs_end_block_id = Ecx.get_block_builder_id_throws ~ecx in
     Ecx.finish_block_continue ~ecx join_builder.id;
     (* Emit false literal when lhs is false and continue to join block *)
     Ecx.set_block_builder ~ecx false_builder;
@@ -126,7 +128,10 @@ and emit_expression ~pcx ~ecx expr =
     (* Join cases together and emit explicit phi *)
     Ecx.set_block_builder ~ecx join_builder;
     let var_id = mk_cf_var_id () in
-    Ecx.emit_phi ~ecx var_id [right_var_id; false_var_id];
+    Ecx.emit_phi
+      ~ecx
+      var_id
+      (IMap.add rhs_end_block_id right_var_id (IMap.singleton false_builder.id false_var_id));
     var_value_of_type var_id Bool
   | LogicalOr { loc = _; left; right } ->
     (* Short circuit when lhs is true by jumping to true case *)
@@ -140,6 +145,7 @@ and emit_expression ~pcx ~ecx expr =
     let right_val = emit_expression ~pcx ~ecx right in
     let right_var_id = mk_cf_var_id () in
     Ecx.emit ~ecx (Mov (right_var_id, right_val));
+    let rhs_end_block_id = Ecx.get_block_builder_id_throws ~ecx in
     Ecx.finish_block_continue ~ecx join_builder.id;
     (* Emit true literal when lhs is true and continue to join block *)
     Ecx.set_block_builder ~ecx true_builder;
@@ -149,7 +155,10 @@ and emit_expression ~pcx ~ecx expr =
     (* Join cases together and emit explicit phi *)
     Ecx.set_block_builder ~ecx join_builder;
     let var_id = mk_cf_var_id () in
-    Ecx.emit_phi ~ecx var_id [right_var_id; true_var_id];
+    Ecx.emit_phi
+      ~ecx
+      var_id
+      (IMap.add rhs_end_block_id right_var_id (IMap.singleton true_builder.id true_var_id));
     var_value_of_type var_id Bool
   | BinaryOperation { loc = _; op; left; right } ->
     let open BinaryOperation in

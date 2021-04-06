@@ -7,7 +7,7 @@ module BlockBuilder = struct
     source: Block.source;
     (* Instructions in the block currently being built, in reverse *)
     mutable instructions: cf_instruction list;
-    mutable phis: (cf_var * cf_var list) list;
+    mutable phis: (cf_var * cf_var IMap.t) list;
     mutable next: cf_var Block.next;
   }
 end
@@ -94,6 +94,11 @@ let mk_block_builder ~ecx =
   builder
 
 let set_block_builder ~ecx builder = ecx.current_block_builder <- Some builder
+
+let get_block_builder_id_throws ~ecx =
+  match ecx.current_block_builder with
+  | Some { id; _ } -> id
+  | None -> failwith "No current block builder"
 
 let start_new_block ~ecx =
   let builder = mk_block_builder ~ecx in
