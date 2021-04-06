@@ -1,108 +1,124 @@
 func unit @test.test1() {
   %0 := Mov int 1
   %1 := Mov int 2
-  branch true, @0, @2
+  branch true, @0, @3
 label @0:
-  branch false, @1, @4
+  branch false, @1, @2
 label @1:
   %2 := Mov int 3
   %3 := Mov int 4
-  continue @4
+  continue @2
 label @2:
-  branch false, @3, @4
+  %4 := Phi @0:%0, @1:%2
+  %5 := Phi @0:%1, @1:%3
+  continue @6
 label @3:
-  %4 := Mov int 5
-  continue @4
+  branch false, @4, @5
 label @4:
-  %5 := Phi %0, %2
-  %6 := Phi %1, %3, %4
-  %7 := Neg int %5
-  %8 := Neg int %6
+  %6 := Mov int 5
+  continue @5
+label @5:
+  %7 := Phi @3:%1, @4:%6
+  continue @6
+label @6:
+  %8 := Phi @2:%4, @5:%0
+  %9 := Phi @2:%5, @5:%7
+  %10 := Neg int %8
+  %11 := Neg int %9
   Ret
 }
 
 func unit @test.test2() {
-  %9 := Mov int 1
-  %10 := Mov int 2
-  branch true, @5, @8
-label @5:
-  branch false, @6, @7
-label @6:
-  %11 := Mov int 3
-  %12 := Mov int 4
-  continue @7
+  %12 := Mov int 1
+  %13 := Mov int 2
+  branch true, @7, @10
 label @7:
-  %13 := Phi %10, %12
-  %14 := Neg int %13
-  continue @10
+  branch false, @8, @9
 label @8:
-  branch false, @9, @10
+  %14 := Mov int 3
+  %15 := Mov int 4
+  continue @9
 label @9:
-  %15 := Mov int 5
-  continue @10
+  %16 := Phi @7:%12, @8:%14
+  %17 := Phi @7:%13, @8:%15
+  %18 := Neg int %17
+  continue @13
 label @10:
-  %16 := Phi %9, %11
-  %17 := Phi %10, %13, %15
-  %18 := Neg int %16
-  %19 := Neg int %17
+  branch false, @11, @12
+label @11:
+  %19 := Mov int 5
+  continue @12
+label @12:
+  %20 := Phi @10:%13, @11:%19
+  continue @13
+label @13:
+  %21 := Phi @9:%16, @12:%12
+  %22 := Phi @9:%17, @12:%20
+  %23 := Neg int %21
+  %24 := Neg int %22
   Ret
 }
 
 func unit @test.test3() {
-  %20 := Mov int 1
-  %21 := Mov int 2
-  branch true, @11, @13
-label @11:
-  branch false, @12, @16
-label @12:
-  %22 := Mov int 3
-  %23 := Mov int 4
-  continue @16
-label @13:
-  branch false, @14, @15
+  %25 := Mov int 1
+  %26 := Mov int 2
+  branch true, @14, @17
 label @14:
-  %24 := Mov int 5
-  continue @15
+  branch false, @15, @16
 label @15:
-  %25 := Phi %21, %24
-  %26 := Neg int %25
+  %27 := Mov int 3
+  %28 := Mov int 4
   continue @16
 label @16:
-  %27 := Phi %20, %22
-  %28 := Phi %21, %23, %25
-  %29 := Neg int %27
-  %30 := Neg int %28
+  %29 := Phi @14:%25, @15:%27
+  %30 := Phi @14:%26, @15:%28
+  continue @20
+label @17:
+  branch false, @18, @19
+label @18:
+  %31 := Mov int 5
+  continue @19
+label @19:
+  %32 := Phi @17:%26, @18:%31
+  %33 := Neg int %32
+  continue @20
+label @20:
+  %34 := Phi @16:%29, @19:%25
+  %35 := Phi @16:%30, @19:%32
+  %36 := Neg int %34
+  %37 := Neg int %35
   Ret
 }
 
 func unit @test.test4() {
-  %31 := Mov int 1
-  %32 := Mov int 2
-  branch true, @17, @20
-label @17:
-  branch false, @18, @19
-label @18:
-  %33 := Mov int 3
-  %34 := Mov int 4
-  continue @19
-label @19:
-  %35 := Phi %32, %34
-  %36 := Neg int %35
-  continue @23
-label @20:
-  branch false, @21, @22
+  %38 := Mov int 1
+  %39 := Mov int 2
+  branch true, @21, @24
 label @21:
-  %37 := Mov int 5
-  continue @22
+  branch false, @22, @23
 label @22:
-  %38 := Phi %32, %37
-  %39 := Neg int %38
+  %40 := Mov int 3
+  %41 := Mov int 4
   continue @23
 label @23:
-  %40 := Phi %31, %33
-  %41 := Phi %35, %38
-  %42 := Neg int %40
-  %43 := Neg int %41
+  %42 := Phi @21:%38, @22:%40
+  %43 := Phi @21:%39, @22:%41
+  %44 := Neg int %43
+  continue @27
+label @24:
+  branch false, @25, @26
+label @25:
+  %45 := Mov int 5
+  continue @26
+label @26:
+  %46 := Phi @24:%39, @25:%45
+  %47 := Neg int %46
+  continue @27
+label @27:
+  %48 := Phi @23:%42, @26:%38
+  %49 := Phi @23:%43, @26:%46
+  %50 := Neg int %48
+  %51 := Neg int %49
   Ret
 }
 

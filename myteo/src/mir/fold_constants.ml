@@ -92,16 +92,16 @@ class calc_constants_visitor ~ocx =
       | None ->
         (* Gather all constant sources in phi node *)
         let (constants, is_constant) =
-          List.fold_left
-            (fun (constants, is_constant) source_id ->
+          IMap.fold
+            (fun _ source_id (constants, is_constant) ->
               if ISet.mem source_id removed_vars then
                 (constants, is_constant)
               else
                 match this#lookup_constant source_id with
                 | None -> (constants, false)
                 | Some constant -> (constant :: constants, is_constant))
-            ([], true)
             sources
+            ([], true)
         in
         (* If all non-removed sources are the same constant, propogate constant through
            to result variable *)

@@ -22,7 +22,7 @@ label @4:
   %6 := Mov int 0
   continue @5
 label @5:
-  %7 := Phi %4, %5
+  %7 := Phi @3:%5, @4:%4
   %8 := Neg int %7
   Ret
 }
@@ -37,7 +37,7 @@ label @7:
   %11 := Mov int 2
   continue @8
 label @8:
-  %12 := Phi %9, %11
+  %12 := Phi @6:%9, @7:%11
   %13 := Neg int %12
   Ret
 }
@@ -52,7 +52,7 @@ label @10:
   %16 := Mov int 3
   continue @11
 label @11:
-  %17 := Phi %15, %16
+  %17 := Phi @9:%15, @10:%16
   %18 := Neg int %17
   Ret
 }
@@ -69,8 +69,8 @@ label @13:
   %23 := Mov int 4
   continue @14
 label @14:
-  %24 := Phi %19, %22
-  %25 := Phi %20, %23
+  %24 := Phi @12:%22, @13:%19
+  %25 := Phi @12:%20, @13:%23
   %26 := Neg int %24
   %27 := Neg int %25
   %28 := Neg int %21

@@ -343,7 +343,7 @@ let pp_data ~buf (data : data) =
       add_char ~buf ' ';
       add_string ~buf value_string)
 
-let pp_block ~buf (block : int block) =
+let pp_block ~buf (block : int Block.t) =
   add_label_line ~buf block.label;
   List.iter (pp_instruction ~buf) block.instructions
 

@@ -99,7 +99,12 @@ and pp_block ~cx ~label block =
         Printf.sprintf
           "  %s := Phi %s"
           (pp_var_id ~cx var_id)
-          (String.concat ", " (List.map (pp_var_id ~cx) args)))
+          (String.concat
+             ", "
+             (List.map
+                (fun (prev_block_id, arg_var_id) ->
+                  pp_block_id ~cx prev_block_id ^ ":" ^ pp_var_id ~cx arg_var_id)
+                (IMap.bindings args))))
       block.phis
   in
   let instruction_lines = List.map (pp_instruction ~cx) block.instructions in

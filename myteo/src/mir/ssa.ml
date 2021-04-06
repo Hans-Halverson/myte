@@ -44,8 +44,10 @@ module PhiChainNode = struct
   type t = {
     id: id;
     block_id: Block.id;
-    mutable prev_nodes: ISet.t;
-    mutable write_locs: LocSet.t;
+    (* Previous phi nodes in the phi chain graph, mapped to the previous block that they flowed from *)
+    mutable prev_nodes: Block.id IMap.t;
+    (* Write locations for this node, mapped to the previous block that they flowed from *)
+    mutable write_locs: Block.id LocMap.t;
     mutable realized: var_id option;
   }
 end
@@ -91,12 +93,18 @@ let mk_phi_chain_node_id () =
   max_phi_chain_node_id := id + 1;
   id
 
-let mk_phi_chain_node ~cx block_id prev_nodes write_locs =
+let mk_phi_chain_node ~cx block_id =
   let id = mk_phi_chain_node_id () in
   cx.phi_chain_nodes <-
     IMap.add
       id
-      { PhiChainNode.id; block_id; prev_nodes; write_locs; realized = None }
+      {
+        PhiChainNode.id;
+        block_id;
+        prev_nodes = IMap.empty;
+        write_locs = LocMap.empty;
+        realized = None;
+      }
       cx.phi_chain_nodes;
   id
 
@@ -221,7 +229,7 @@ and find_join_points ~pcx ~cx program =
               if LocSet.cardinal sources <= 1 then
                 nodes
               else
-                let node_id = mk_phi_chain_node ~cx block_id ISet.empty LocSet.empty in
+                let node_id = mk_phi_chain_node ~cx block_id in
                 LocMap.add decl_loc node_id nodes)
             sources
             LocMap.empty
@@ -238,7 +246,7 @@ and build_phi_nodes ~pcx ~cx program =
   (* Update phi nodes at the given block with the new sources. If source is a write locations add
      it directly to the phi node. Otherwise if the source is another phi node then add link to
      create phi chain. *)
-  let update_phis_from_sources block_id new_sources =
+  let update_phis_from_sources block_id prev_block_id new_sources =
     match IMap.find_opt block_id cx.block_nodes with
     | None -> ()
     | Some decl_nodes ->
@@ -250,20 +258,23 @@ and build_phi_nodes ~pcx ~cx program =
             let node = get_node ~cx node_id in
             (match source with
             | WriteLocation (_, write_loc) ->
-              node.write_locs <- LocSet.add write_loc node.write_locs
+              if not (LocMap.mem write_loc node.write_locs) then
+                node.write_locs <- LocMap.add write_loc prev_block_id node.write_locs
             | PhiChainJoin prev_node ->
-              if prev_node <> node_id then node.prev_nodes <- ISet.add prev_node node.prev_nodes))
+              if prev_node <> node_id && not (IMap.mem prev_node node.prev_nodes) then
+                node.prev_nodes <- IMap.add prev_node prev_block_id node.prev_nodes))
         new_sources
   in
-  let rec visit_block ~sources block_id =
+  let phi_nodes_to_realize = ref IMap.empty in
+  let rec visit_block ~sources ~prev_block_id block_id =
     let maybe_visit_block sources next_block_id =
       if ISet.mem next_block_id cx.visited_blocks then
-        update_phis_from_sources next_block_id sources
+        update_phis_from_sources next_block_id block_id sources
       else
-        visit_block ~sources next_block_id
+        visit_block ~sources ~prev_block_id:block_id next_block_id
     in
     cx.visited_blocks <- ISet.add block_id cx.visited_blocks;
-    update_phis_from_sources block_id sources;
+    update_phis_from_sources block_id prev_block_id sources;
     let sources = ref sources in
     (* Add phi chain join nodes as current sources *)
     begin
@@ -288,13 +299,11 @@ and build_phi_nodes ~pcx ~cx program =
     let decl_loc = Bindings.get_source_decl_loc_from_value_use pcx.Lex_analyze.bindings read_loc in
     let source = LocMap.find decl_loc !sources in
     cx.use_sources <- LocMap.add read_loc source cx.use_sources;
-    (* If source is a phi node, that phi node should be realized *)
+    (* If source is a phi node it should be realized *)
     match source with
     | WriteLocation _ -> ()
     | PhiChainJoin node_id ->
-      let node = get_node ~cx node_id in
-      if Option.is_none node.realized then node.realized <- Some (mk_var_id ());
-      add_realized_phi ~cx node.block_id decl_loc node_id
+      phi_nodes_to_realize := IMap.add node_id decl_loc !phi_nodes_to_realize
   and add_write write_loc block_id sources =
     (* Source for this variable is now this write location *)
     let decl_loc = Bindings.get_source_decl_loc_from_value_use pcx.Lex_analyze.bindings write_loc in
@@ -392,8 +401,16 @@ and build_phi_nodes ~pcx ~cx program =
           LocMap.empty
           params
       in
-      visit_block ~sources block_id)
-    program.funcs
+      visit_block ~sources ~prev_block_id:block_id block_id)
+    program.funcs;
+  (* To realize a phi node, that phi node and its entire phi chain graph should be realized *)
+  let rec realize_phi_chain_graph node_id decl_loc =
+    let node = get_node ~cx node_id in
+    if Option.is_none node.realized then node.realized <- Some (mk_var_id ());
+    add_realized_phi ~cx node.block_id decl_loc node_id;
+    IMap.iter (fun prev_node_id _ -> realize_phi_chain_graph prev_node_id decl_loc) node.prev_nodes
+  in
+  IMap.iter realize_phi_chain_graph !phi_nodes_to_realize
 
 and map_to_ssa ~cx program =
   cx.visited_blocks <- ISet.empty;
@@ -407,7 +424,7 @@ and map_to_ssa ~cx program =
     in
     let block = IMap.find block_id program.blocks in
     let explicit_phis =
-      List.map (fun (return, args) -> (map_write_var return, List.map map_read_var args)) block.phis
+      List.map (fun (return, args) -> (map_write_var return, IMap.map map_read_var args)) block.phis
     in
     let realized_phis =
       match IMap.find_opt block_id cx.realized_phis with
@@ -423,8 +440,7 @@ and map_to_ssa ~cx program =
             realized_phis
             []
         in
-        let phis = List.rev phis in
-        List.map (fun (var_id, args) -> (var_id, args |> ISet.to_seq |> List.of_seq)) phis
+        List.rev phis
     in
     let instructions =
       List.map (fun (loc, instruction) -> (loc, map_instruction instruction)) block.instructions
@@ -454,25 +470,29 @@ and map_to_ssa ~cx program =
     cx.blocks <- IMap.add block.id block cx.blocks
   (* Traverse phi chain graph to gather all variable ids for a given phi node. The phi chain
      graph is deeply traversed until realized nodes are encountered. *)
-  and gather_phi_var_ids node_id =
-    let var_ids = ref ISet.empty in
-    let add_var_id var_id = var_ids := ISet.add var_id !var_ids in
-    let rec visit_phi_node node_id =
+  and gather_phi_var_ids (node_id : PhiChainNode.id) : Block.id IMap.t =
+    let var_ids = ref IMap.empty in
+    let add_var_id prev_block_id var_id = var_ids := IMap.add prev_block_id var_id !var_ids in
+    let rec visit_phi_node node_id prev_block_id =
       let node = get_node ~cx node_id in
       match node.realized with
       (* Do not descend into realized nodes, use their realized var id *)
-      | Some var_id -> add_var_id var_id
+      | Some var_id -> add_var_id prev_block_id var_id
       (* Descend into unrealized nodes, gather local writes and phi chain nodes *)
       | _ ->
-        LocSet.iter (fun write_loc -> add_var_id (write_var_id write_loc)) node.write_locs;
-        ISet.iter visit_phi_node node.prev_nodes
+        LocMap.iter
+          (fun write_loc _ -> add_var_id prev_block_id (write_var_id write_loc))
+          node.write_locs;
+        IMap.iter (fun node_id _ -> visit_phi_node node_id prev_block_id) node.prev_nodes
     in
     let node = get_node ~cx node_id in
-    LocSet.iter (fun write_loc -> add_var_id (write_var_id write_loc)) node.write_locs;
-    ISet.iter visit_phi_node node.prev_nodes;
+    LocMap.iter
+      (fun write_loc prev_block_id -> add_var_id prev_block_id (write_var_id write_loc))
+      node.write_locs;
+    IMap.iter visit_phi_node node.prev_nodes;
     !var_ids
   and write_var_id loc = LocMap.find loc cx.write_var_ids
-  and map_read_var cf_var =
+  and map_read_var (cf_var : cf_var) : var_id =
     match cf_var with
     | Id var_id -> var_id
     | Local loc ->
@@ -535,7 +555,7 @@ and map_to_ssa ~cx program =
   IMap.iter
     (fun block_id { Block.phis; instructions; next; _ } ->
       match next with
-      | Continue continue_id when instructions = [] ->
+      | Continue continue_id when instructions = [] && phis = [] ->
         (match IMap.find_opt block_id cx.prev_blocks with
         | None -> ()
         | Some prev_blocks when ISet.is_empty prev_blocks -> ()
@@ -559,9 +579,24 @@ and map_to_ssa ~cx program =
               in
               block.next <- next')
             prev_blocks;
-          (* Move phis to next node *)
+          (* Next node may have phis that point the removed block. Rewrite them to instead point to
+             previous blocks. *)
           let next_node = IMap.find continue_id cx.blocks in
-          next_node.phis <- phis @ next_node.phis;
+          next_node.phis <-
+            List.map
+              (fun (var_id, args) ->
+                let args' =
+                  match IMap.find_opt block_id args with
+                  | None -> args
+                  | Some arg_var_id ->
+                    let args' = IMap.remove block_id args in
+                    ISet.fold
+                      (fun prev_block_id -> IMap.add prev_block_id arg_var_id)
+                      prev_blocks
+                      args'
+                in
+                (var_id, args'))
+              next_node.phis;
           (* Remove this empty node *)
           cx.blocks <- IMap.remove block_id cx.blocks;
           cx.prev_blocks <- IMap.remove block_id cx.prev_blocks;
@@ -573,6 +608,13 @@ and map_to_ssa ~cx program =
       | _ -> ())
     cx.blocks;
   (* Not all blocks will be visited, strip those that are ignored *)
+  let globals =
+    SMap.map
+      (fun glob ->
+        let open Global in
+        { glob with init = List.filter (fun block_id -> IMap.mem block_id cx.blocks) glob.init })
+      program.globals
+  in
   let funcs =
     SMap.map
       (fun func ->
@@ -583,7 +625,7 @@ and map_to_ssa ~cx program =
   {
     Program.main_id = program.main_id;
     blocks = cx.blocks;
-    globals = program.globals;
+    globals;
     funcs;
     modules = program.modules;
   }
