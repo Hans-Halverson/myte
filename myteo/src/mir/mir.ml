@@ -98,7 +98,7 @@ and Block : sig
   type 'var t = {
     id: id;
     source: source;
-    mutable phis: ('var * 'var IMap.t) list;
+    mutable phis: (ValueType.t * 'var * 'var IMap.t) list;
     mutable instructions: 'var Instruction.t list;
     mutable next: 'var next;
   }

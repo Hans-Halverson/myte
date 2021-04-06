@@ -327,12 +327,12 @@ let normalize ~ocx =
     (fun _ block ->
       block.phis <-
         List.filter_map
-          (fun (dest, args) ->
+          (fun (value_type, dest, args) ->
             let args' = IMap.filter (fun _ source_var_id -> ISet.mem source_var_id vars) args in
             if IMap.is_empty args' then
               None
             else
-              Some (dest, args'))
+              Some (value_type, dest, args'))
           block.phis)
     ocx.program.blocks;
   (* Find and remove empty blocks *)

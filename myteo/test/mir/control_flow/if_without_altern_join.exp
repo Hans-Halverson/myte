@@ -16,7 +16,7 @@ label @2:
   %4 := Mov int 2
   continue @3
 label @3:
-  %5 := Phi @test.testUpdated:%3, @2:%4
+  %5 := Phi int @test.testUpdated:%3, @2:%4
   %6 := Neg int %5
   Ret
 }
@@ -31,8 +31,8 @@ label @4:
   %11 := Mov int 5
   continue @5
 label @5:
-  %12 := Phi @test.testMultiple:%7, @4:%10
-  %13 := Phi @test.testMultiple:%8, @4:%11
+  %12 := Phi int @test.testMultiple:%7, @4:%10
+  %13 := Phi int @test.testMultiple:%8, @4:%11
   %14 := Neg int %12
   %15 := Neg int %13
   %16 := Neg int %9
@@ -41,7 +41,7 @@ label @6:
   %17 := Mov int 6
   continue @7
 label @7:
-  %18 := Phi @5:%12, @6:%17
+  %18 := Phi int @5:%12, @6:%17
   %19 := Neg int %18
   Ret
 }

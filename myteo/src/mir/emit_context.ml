@@ -7,7 +7,7 @@ module BlockBuilder = struct
     source: Block.source;
     (* Instructions in the block currently being built, in reverse *)
     mutable instructions: cf_instruction list;
-    mutable phis: (cf_var * cf_var IMap.t) list;
+    mutable phis: (ValueType.t * cf_var * cf_var IMap.t) list;
     mutable next: cf_var Block.next;
   }
 end
@@ -74,10 +74,10 @@ let emit ~ecx inst =
   | None -> ()
   | Some builder -> builder.instructions <- (mk_instr_id (), inst) :: builder.instructions
 
-let emit_phi ~ecx var_id args =
+let emit_phi ~ecx value_type var_id args =
   match ecx.current_block_builder with
   | None -> ()
-  | Some builder -> builder.phis <- (var_id, args) :: builder.phis
+  | Some builder -> builder.phis <- (value_type, var_id, args) :: builder.phis
 
 let mk_block_builder ~ecx =
   let block_id = mk_block_id () in

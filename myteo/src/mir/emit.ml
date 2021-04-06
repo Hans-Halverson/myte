@@ -130,6 +130,7 @@ and emit_expression ~pcx ~ecx expr =
     let var_id = mk_cf_var_id () in
     Ecx.emit_phi
       ~ecx
+      ValueType.Bool
       var_id
       (IMap.add rhs_end_block_id right_var_id (IMap.singleton false_builder.id false_var_id));
     var_value_of_type var_id Bool
@@ -157,6 +158,7 @@ and emit_expression ~pcx ~ecx expr =
     let var_id = mk_cf_var_id () in
     Ecx.emit_phi
       ~ecx
+      ValueType.Bool
       var_id
       (IMap.add rhs_end_block_id right_var_id (IMap.singleton true_builder.id true_var_id));
     var_value_of_type var_id Bool

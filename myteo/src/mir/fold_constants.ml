@@ -86,7 +86,7 @@ class calc_constants_visitor ~ocx =
       )
 
     (* Visit all phi nodes and propagate constants through if possible *)
-    method visit_phi_node (var_id, sources) =
+    method visit_phi_node (_, var_id, sources) =
       match this#lookup_constant var_id with
       | Some _ -> ()
       | None ->

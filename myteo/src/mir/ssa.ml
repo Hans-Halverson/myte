@@ -133,7 +133,7 @@ let rec control_flow_ir_to_ssa pcx ir =
   let cx = mk_cx () in
   find_join_points ~pcx ~cx ir;
   build_phi_nodes ~pcx ~cx ir;
-  map_to_ssa ~cx ir
+  map_to_ssa ~pcx ~cx ir
 
 and find_join_points ~pcx ~cx program =
   let open Program in
@@ -412,7 +412,7 @@ and build_phi_nodes ~pcx ~cx program =
   in
   IMap.iter realize_phi_chain_graph !phi_nodes_to_realize
 
-and map_to_ssa ~cx program =
+and map_to_ssa ~pcx ~cx program =
   cx.visited_blocks <- ISet.empty;
   let rec visit_block block_id =
     cx.visited_blocks <- ISet.add block_id cx.visited_blocks;
@@ -424,7 +424,10 @@ and map_to_ssa ~cx program =
     in
     let block = IMap.find block_id program.blocks in
     let explicit_phis =
-      List.map (fun (return, args) -> (map_write_var return, IMap.map map_read_var args)) block.phis
+      List.map
+        (fun (value_type, return, args) ->
+          (value_type, map_write_var return, IMap.map map_read_var args))
+        block.phis
     in
     let realized_phis =
       match IMap.find_opt block_id cx.realized_phis with
@@ -432,11 +435,12 @@ and map_to_ssa ~cx program =
       | Some realized_phis ->
         let phis =
           LocMap.fold
-            (fun _ node_id phis ->
+            (fun decl_loc node_id phis ->
               let node = get_node ~cx node_id in
+              let value_type = Emit.value_type_of_decl_loc ~pcx decl_loc in
               let var_id = Option.get node.realized in
               let args = gather_phi_var_ids node_id in
-              (var_id, args) :: phis)
+              (value_type, var_id, args) :: phis)
             realized_phis
             []
         in
@@ -584,7 +588,7 @@ and map_to_ssa ~cx program =
           let next_node = IMap.find continue_id cx.blocks in
           next_node.phis <-
             List.map
-              (fun (var_id, args) ->
+              (fun (value_type, var_id, args) ->
                 let args' =
                   match IMap.find_opt block_id args with
                   | None -> args
@@ -595,7 +599,7 @@ and map_to_ssa ~cx program =
                       prev_blocks
                       args'
                 in
-                (var_id, args'))
+                (value_type, var_id, args'))
               next_node.phis;
           (* Remove this empty node *)
           cx.blocks <- IMap.remove block_id cx.blocks;

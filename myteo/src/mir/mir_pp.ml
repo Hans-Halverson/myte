@@ -95,10 +95,11 @@ and pp_block ~cx ~label block =
   in
   let phi_lines =
     List.map
-      (fun (var_id, args) ->
+      (fun (value_type, var_id, args) ->
         Printf.sprintf
-          "  %s := Phi %s"
+          "  %s := Phi %s %s"
           (pp_var_id ~cx var_id)
+          (pp_value_type value_type)
           (String.concat
              ", "
              (List.map

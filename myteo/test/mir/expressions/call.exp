@@ -41,7 +41,7 @@ label @0:
   %22 := Mov function @test.singleArgFunc2
   continue @1
 label @1:
-  %23 := Phi @test.indirectCalls:%21, @0:%22
+  %23 := Phi function @test.indirectCalls:%21, @0:%22
   %24 := Call %23(10)
   %25 := Mov int %24
   %26 := Add int 1, 2
