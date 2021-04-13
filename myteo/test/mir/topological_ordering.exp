@@ -1,0 +1,72 @@
+func unit @test.main() {
+  %0 := Mov int 1
+  continue @0
+label @0:
+  branch false, @1, @23
+label @1:
+  branch true, @2, @6
+label @2:
+  %1 := Mov int 2
+  branch false, @3, @4
+label @3:
+  %2 := Mov int 3
+  continue @5
+label @4:
+  %3 := Mov int 4
+  continue @5
+label @5:
+  %4 := Mov int 5
+  continue @10
+label @6:
+  %5 := Mov int 6
+  branch false, @7, @8
+label @7:
+  %6 := Mov int 7
+  continue @9
+label @8:
+  %7 := Mov int 8
+  continue @9
+label @9:
+  %8 := Mov int 9
+  continue @10
+label @10:
+  %9 := Mov int 10
+  continue @11
+label @11:
+  branch false, @12, @22
+label @12:
+  branch true, @13, @17
+label @13:
+  %10 := Mov int 11
+  branch false, @14, @15
+label @14:
+  %11 := Mov int 12
+  continue @16
+label @15:
+  %12 := Mov int 13
+  continue @16
+label @16:
+  %13 := Mov int 14
+  continue @21
+label @17:
+  %14 := Mov int 15
+  branch false, @18, @19
+label @18:
+  %15 := Mov int 16
+  continue @20
+label @19:
+  %16 := Mov int 17
+  continue @20
+label @20:
+  %17 := Mov int 18
+  continue @21
+label @21:
+  %18 := Mov int 19
+  continue @11
+label @22:
+  %19 := Mov int 20
+  continue @0
+label @23:
+  %20 := Mov int 21
+  Ret
+}

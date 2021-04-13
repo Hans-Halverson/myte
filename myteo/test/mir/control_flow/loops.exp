@@ -22,19 +22,19 @@ func unit @test.inexhaustiveBreak() {
   %6 := Mov int 1
   continue @5
 label @5:
-  %8 := Phi int @test.inexhaustiveBreak:%6, @8:%7
+  %8 := Phi int @test.inexhaustiveBreak:%6, @7:%7
   branch false, @6, @9
 label @6:
   %9 := Gt int %8, 2
-  branch %9, @7, @8
+  branch %9, @8, @7
 label @7:
-  %10 := Mov int 3
-  continue @9
-label @8:
   %7 := Mov int 4
   continue @5
+label @8:
+  %10 := Mov int 3
+  continue @9
 label @9:
-  %11 := Phi int @5:%8, @7:%10
+  %11 := Phi int @5:%8, @8:%10
   %12 := Neg int %11
   Ret
 }
@@ -83,24 +83,24 @@ func unit @test.inexhaustiveBreakAndContinue() {
   %25 := Mov int 1
   continue @20
 label @20:
-  %28 := Phi int @test.inexhaustiveBreakAndContinue:%25, @25:%26, @24:%27
+  %28 := Phi int @test.inexhaustiveBreakAndContinue:%25, @24:%26, @23:%27
   branch false, @21, @26
 label @21:
   %29 := Gt int %28, 1
-  branch %29, @22, @23
+  branch %29, @25, @22
 label @22:
-  %30 := Mov int 2
-  continue @26
+  branch true, @23, @24
 label @23:
-  branch true, @24, @25
-label @24:
   %27 := Mov int 3
   continue @20
-label @25:
+label @24:
   %26 := Mov int 4
   continue @20
+label @25:
+  %30 := Mov int 2
+  continue @26
 label @26:
-  %31 := Phi int @20:%28, @22:%30
+  %31 := Phi int @20:%28, @25:%30
   %32 := Neg int %31
   Ret
 }
@@ -109,19 +109,19 @@ func unit @test.exhaustiveBreakAndContinue() {
   %33 := Mov int 1
   continue @27
 label @27:
-  %35 := Phi int @test.exhaustiveBreakAndContinue:%33, @30:%34
+  %35 := Phi int @test.exhaustiveBreakAndContinue:%33, @29:%34
   branch false, @28, @31
 label @28:
   %36 := Gt int %35, 1
-  branch %36, @29, @30
+  branch %36, @30, @29
 label @29:
-  %37 := Mov int 2
-  continue @31
-label @30:
   %34 := Mov int 3
   continue @27
+label @30:
+  %37 := Mov int 2
+  continue @31
 label @31:
-  %38 := Phi int @27:%35, @29:%37
+  %38 := Phi int @27:%35, @30:%37
   %39 := Neg int %38
   Ret
 }

@@ -45,13 +45,14 @@ and pp_global ~cx ~program global =
   let open Global in
   let global_label = Printf.sprintf "global %s %%%s {" (pp_value_type global.ty) global.name in
   cx.print_block_id_map <- IMap.add (List.hd global.init) global.name cx.print_block_id_map;
-  calc_print_block_ids ~cx (List.tl global.init);
+  let init_blocks = Block_ordering.order_blocks ~program (List.hd global.init) in
+  calc_print_block_ids ~cx (List.tl init_blocks);
   let init_strings =
     List.mapi
       (fun i block_id ->
         let block = IMap.find block_id program.Program.blocks in
         pp_block ~cx ~label:(i <> 0) block)
-      global.init
+      init_blocks
   in
   String.concat "\n" ((global_label :: init_strings) @ ["}\n"])
 
@@ -67,13 +68,14 @@ and pp_func ~cx ~program func =
     Printf.sprintf "func %s @%s(%s) {" (pp_value_type func.return_ty) func.name func_params
   in
   cx.print_block_id_map <- IMap.add (List.hd func.Function.body) func.name cx.print_block_id_map;
-  calc_print_block_ids ~cx (List.tl func.Function.body);
+  let body_blocks = Block_ordering.order_blocks ~program (List.hd func.Function.body) in
+  calc_print_block_ids ~cx (List.tl body_blocks);
   let body_strings =
     List.mapi
       (fun i block_id ->
         let block = IMap.find block_id program.Program.blocks in
         pp_block ~cx ~label:(i <> 0) block)
-      func.Function.body
+      body_blocks
   in
   String.concat "\n" ((func_label :: body_strings) @ ["}\n"])
 
