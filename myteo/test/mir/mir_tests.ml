@@ -4,15 +4,12 @@ let config_equals config str =
   | _ -> false
 
 let command ~config bin files =
-  let mode =
-    if config_equals config "optimized" then
-      "--dump-optimized-ir"
-    else if config_equals config "both" then
-      "--dump-ir --dump-optimized-ir"
-    else
-      "--dump-ir"
+  let config =
+    match config with
+    | None -> ""
+    | Some config -> config ^ " "
   in
-  Printf.sprintf "%s --no-pretty-print %s %s" bin mode (String.concat " " files)
+  Printf.sprintf "%s --no-pretty-print --dump-ir %s%s" bin config (String.concat " " files)
 
 let suite ~bin ~record =
   let root = Sys.getcwd () in

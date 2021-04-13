@@ -3,7 +3,7 @@ type t = {
   dump_ast: bool ref;
   dump_resolved_ast: bool ref;
   dump_ir: bool ref;
-  dump_optimized_ir: bool ref;
+  dump_ir_transforms: string list ref;
   dump_asm: bool ref;
   dump_debug: bool ref;
   print_plain: bool ref;
@@ -16,12 +16,14 @@ let opts =
     dump_ast = ref false;
     dump_resolved_ast = ref false;
     dump_ir = ref false;
-    dump_optimized_ir = ref false;
+    dump_ir_transforms = ref [];
     dump_asm = ref false;
     dump_debug = ref false;
     print_plain = ref false;
     output_file = ref None;
   }
+
+let split_comma_list string_list = String.split_on_char ',' string_list
 
 let spec =
   [
@@ -29,7 +31,9 @@ let spec =
     ("--dump-ast", Arg.Set opts.dump_ast, " Print the AST to stdout");
     ("--dump-resolved-ast", Arg.Set opts.dump_resolved_ast, " Print the resolved AST to stdout");
     ("--dump-ir", Arg.Set opts.dump_ir, " Print the IR to stdout");
-    ("--dump-optimized-ir", Arg.Set opts.dump_optimized_ir, " Print the optimized IR to stdout");
+    ( "--dump-ir-transforms",
+      Arg.String (fun transforms -> opts.dump_ir_transforms := split_comma_list transforms),
+      " Transforms to apply to IR before printing to stdout" );
     ("--dump-asm", Arg.Set opts.dump_asm, " Print the assembly to stdout");
     ("--dump-debug", Arg.Set opts.dump_debug, " Include debug info when printing other commands");
     ("--no-pretty-print", Arg.Set opts.print_plain, " Do not pretty print output");
@@ -51,7 +55,7 @@ let dump_resolved_ast () = !(opts.dump_resolved_ast)
 
 let dump_ir () = !(opts.dump_ir)
 
-let dump_optimized_ir () = !(opts.dump_optimized_ir)
+let dump_ir_transforms () = !(opts.dump_ir_transforms)
 
 let dump_asm () = !(opts.dump_asm)
 

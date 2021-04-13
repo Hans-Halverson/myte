@@ -1,0 +1,28 @@
+module move_in_previous_block
+
+fun main() {
+  var x = 1;
+
+  if (true) {
+    x = 2;
+  } else {
+    x = 3;
+  }
+
+  (-x);
+}
+
+fun multiple() {
+  var x = 1;
+  var y = 2;
+
+  if (true) {
+    x = 3;
+    y = 4;
+  } else {
+    x = 5;
+    y = 6;
+  }
+
+  (x + y);
+}

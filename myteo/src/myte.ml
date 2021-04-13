@@ -64,16 +64,20 @@ let compile files =
     let program_cf_ir = Emit.emit_control_flow_ir program_cx in
     let program_ssa_ir = Ssa.control_flow_ir_to_ssa program_cx program_cf_ir in
     if Opts.dump_ir () then begin
-      print_string (Mir_pp.pp_program program_ssa_ir);
-      if not (Opts.dump_optimized_ir ()) then exit 0
-    end;
-    let optimized_ir = Mir_optimize.optimize program_ssa_ir in
-    if Opts.dump_optimized_ir () then begin
-      print_string (Mir_pp.pp_program optimized_ir);
+      let transforms =
+        let open Mir_transforms in
+        Opts.dump_ir_transforms ()
+        |> List.filter_map MirTransform.of_string
+        |> MirTransformSet.of_list
+      in
+      let transformed_ir = Mir_transforms.apply_transforms program_ssa_ir transforms in
+      print_string (Mir_pp.pp_program transformed_ir);
       exit 0
     end;
+    let optimized_ir = Mir_optimize.optimize program_ssa_ir in
+    let destructed_ir = Ssa_destruction.destruct_ssa optimized_ir in
     (* Generate executable *)
-    let executable = X86_gen.gen_x86_executable optimized_ir in
+    let executable = X86_gen.gen_x86_executable destructed_ir in
     let executable_file = X86_pp.pp_x86_executable executable in
     if Opts.dump_asm () then begin
       print_string executable_file;
