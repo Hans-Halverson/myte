@@ -19,7 +19,7 @@ type t = {
   (* Data structures for MIR *)
   mutable main_id: Block.id;
   mutable blocks: BlockBuilder.t IMap.t;
-  mutable globals: Global.t SMap.t;
+  mutable globals: cf_var Global.t SMap.t;
   mutable funcs: Function.t SMap.t;
   mutable modules: Module.t SMap.t;
   mutable current_block_builder: BlockBuilder.t option;

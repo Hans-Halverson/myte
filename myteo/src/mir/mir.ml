@@ -78,7 +78,7 @@ module rec Program : sig
   type 'var t = {
     mutable main_id: Block.id;
     mutable blocks: 'var Block.t IMap.t;
-    mutable globals: Global.t SMap.t;
+    mutable globals: 'var Global.t SMap.t;
     mutable funcs: Function.t SMap.t;
     mutable modules: Module.t SMap.t;
   }
@@ -121,11 +121,12 @@ end =
   Block
 
 and Global : sig
-  type t = {
+  type 'var t = {
     name: string;
     loc: Loc.t;
     ty: ValueType.t;
-    mutable init: Block.id list;
+    mutable init_start_block: Block.id;
+    init_val: 'var Instruction.Value.t;
   }
 end =
   Global
@@ -136,7 +137,7 @@ and Function : sig
     loc: Loc.t;
     params: (Loc.t * var_id * ValueType.t) list;
     return_ty: ValueType.t;
-    mutable body: Block.id list;
+    mutable body_start_block: Block.id;
   }
 end =
   Function

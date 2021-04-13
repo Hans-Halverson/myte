@@ -212,12 +212,11 @@ and find_join_points ~pcx ~cx program =
   in
   (* Visit all function bodies *)
   SMap.iter
-    (fun _ { Function.params; body; _ } ->
-      let block_id = List.hd body in
+    (fun _ { Function.params; body_start_block; _ } ->
       let sources =
         List.fold_left (fun sources (loc, _, _) -> LocMap.add loc loc sources) LocMap.empty params
       in
-      visit_block ~sources block_id)
+      visit_block ~sources body_start_block)
     program.funcs;
   (* Create phi chain nodes for all join points in program *)
   cx.block_nodes <-
@@ -390,18 +389,17 @@ and build_phi_nodes ~pcx ~cx program =
   (* Visit bodies of all functions *)
   cx.visited_blocks <- ISet.empty;
   SMap.iter
-    (fun _ { Function.params; body; _ } ->
-      let block_id = List.hd body in
+    (fun _ { Function.params; body_start_block; _ } ->
       (* Set up sources for every param *)
       let sources =
         List.fold_left
           (fun sources (loc, var_id, _) ->
             cx.write_var_ids <- LocMap.add loc var_id cx.write_var_ids;
-            LocMap.add loc (WriteLocation (block_id, loc)) sources)
+            LocMap.add loc (WriteLocation (body_start_block, loc)) sources)
           LocMap.empty
           params
       in
-      visit_block ~sources ~prev_block_id:block_id block_id)
+      visit_block ~sources ~prev_block_id:body_start_block body_start_block)
     program.funcs;
   (* To realize a phi node, that phi node and its entire phi chain graph should be realized *)
   let rec realize_phi_chain_graph node_id decl_loc =
@@ -553,8 +551,8 @@ and map_to_ssa ~pcx ~cx program =
   in
   cx.visited_blocks <- ISet.empty;
   visit_block program.main_id;
-  SMap.iter (fun _ { Global.init; _ } -> visit_block (List.hd init)) program.globals;
-  SMap.iter (fun _ { Function.body; _ } -> visit_block (List.hd body)) program.funcs;
+  SMap.iter (fun _ { Global.init_start_block; _ } -> visit_block init_start_block) program.globals;
+  SMap.iter (fun _ { Function.body_start_block; _ } -> visit_block body_start_block) program.funcs;
   (* Strip empty blocks *)
   IMap.iter
     (fun block_id { Block.phis; instructions; next; _ } ->
@@ -611,25 +609,17 @@ and map_to_ssa ~pcx ~cx program =
               cx.prev_blocks)
       | _ -> ())
     cx.blocks;
-  (* Not all blocks will be visited, strip those that are ignored *)
   let globals =
     SMap.map
-      (fun glob ->
+      (fun global ->
         let open Global in
-        { glob with init = List.filter (fun block_id -> IMap.mem block_id cx.blocks) glob.init })
+        { global with init_val = map_value ~f:map_read_var global.init_val })
       program.globals
-  in
-  let funcs =
-    SMap.map
-      (fun func ->
-        let open Function in
-        { func with body = List.filter (fun block_id -> IMap.mem block_id cx.blocks) func.body })
-      program.funcs
   in
   {
     Program.main_id = program.main_id;
     blocks = cx.blocks;
     globals;
-    funcs;
+    funcs = program.funcs;
     modules = program.modules;
   }

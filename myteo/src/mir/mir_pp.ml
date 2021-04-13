@@ -44,8 +44,8 @@ let rec pp_program program =
 and pp_global ~cx ~program global =
   let open Global in
   let global_label = Printf.sprintf "global %s %%%s {" (pp_value_type global.ty) global.name in
-  cx.print_block_id_map <- IMap.add (List.hd global.init) global.name cx.print_block_id_map;
-  let init_blocks = Block_ordering.order_blocks ~program (List.hd global.init) in
+  cx.print_block_id_map <- IMap.add global.init_start_block global.name cx.print_block_id_map;
+  let init_blocks = Block_ordering.order_blocks ~program global.init_start_block in
   calc_print_block_ids ~cx (List.tl init_blocks);
   let init_strings =
     List.mapi
@@ -67,8 +67,8 @@ and pp_func ~cx ~program func =
   let func_label =
     Printf.sprintf "func %s @%s(%s) {" (pp_value_type func.return_ty) func.name func_params
   in
-  cx.print_block_id_map <- IMap.add (List.hd func.Function.body) func.name cx.print_block_id_map;
-  let body_blocks = Block_ordering.order_blocks ~program (List.hd func.Function.body) in
+  cx.print_block_id_map <- IMap.add func.body_start_block func.name cx.print_block_id_map;
+  let body_blocks = Block_ordering.order_blocks ~program func.body_start_block in
   calc_print_block_ids ~cx (List.tl body_blocks);
   let body_strings =
     List.mapi

@@ -44,12 +44,11 @@ and emit_toplevel_variable_declaration ~pcx ~ecx decl =
   let ty = value_type_of_decl_loc ~pcx loc in
   (* Build IR for variable init *)
   Ecx.start_block_sequence ~ecx (GlobalInit name);
-  ignore (Ecx.start_new_block ~ecx);
+  let init_start_block = Ecx.start_new_block ~ecx in
   let init_val = emit_expression ~pcx ~ecx init in
   Ecx.emit ~ecx (StoreGlobal (name, init_val));
   Ecx.finish_block_halt ~ecx;
-  let block_ids = Ecx.get_block_sequence ~ecx in
-  Ecx.add_global ~ecx { Global.loc; name; ty; init = block_ids }
+  Ecx.add_global ~ecx { Global.loc; name; ty; init_start_block; init_val }
 
 and emit_toplevel_function_declaration ~pcx ~ecx decl =
   let open Ast.Function in
@@ -59,10 +58,10 @@ and emit_toplevel_function_declaration ~pcx ~ecx decl =
   let param_locs_and_ids =
     List.map (fun { Param.name = { Identifier.loc; _ }; _ } -> (loc, mk_var_id ())) params
   in
-  let block_ids =
+  let body_start_block =
     Ecx.start_block_sequence ~ecx (FunctionBody name);
-    let block_id = Ecx.start_new_block ~ecx in
-    if loc = pcx.main_loc then ecx.main_id <- block_id;
+    let body_start_block = Ecx.start_new_block ~ecx in
+    if loc = pcx.main_loc then ecx.main_id <- body_start_block;
     (match body with
     | Block { Statement.Block.statements; _ } ->
       List.iter (emit_statement ~pcx ~ecx) statements;
@@ -74,7 +73,7 @@ and emit_toplevel_function_declaration ~pcx ~ecx decl =
       let ret_val = emit_expression ~pcx ~ecx expr in
       Ecx.emit ~ecx (Ret (Some ret_val)));
     Ecx.finish_block_halt ~ecx;
-    Ecx.get_block_sequence ~ecx
+    body_start_block
   in
   (* Find value type of function *)
   let func_tvar_id = Bindings.get_tvar_id_from_value_decl pcx.bindings loc in
@@ -85,7 +84,7 @@ and emit_toplevel_function_declaration ~pcx ~ecx decl =
     | _ -> failwith "Function must resolve to function type"
   in
   let params = List.map2 (fun (loc, var_id) ty -> (loc, var_id, ty)) param_locs_and_ids param_tys in
-  Ecx.add_function ~ecx { Function.loc; name; params; return_ty; body = block_ids }
+  Ecx.add_function ~ecx { Function.loc; name; params; return_ty; body_start_block }
 
 and emit_expression ~pcx ~ecx expr =
   let open Expression in

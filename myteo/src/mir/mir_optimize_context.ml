@@ -40,12 +40,21 @@ let remove_block_link ~ocx prev_block next_block =
   ocx.next_blocks <- remove_from_multimap prev_block next_block ocx.next_blocks;
   ocx.prev_blocks <- remove_from_multimap next_block prev_block ocx.prev_blocks
 
-let is_empty_block (block : var_id Block.t) =
+let can_remove_block ~ocx (block : var_id Block.t) =
+  let is_start_block () =
+    match block.source with
+    | GlobalInit name ->
+      let global = SMap.find name ocx.program.globals in
+      global.init_start_block = block.id
+    | FunctionBody name ->
+      let func = SMap.find name ocx.program.funcs in
+      func.body_start_block = block.id
+  in
   block.instructions = []
   && block.phis = []
   &&
   match block.next with
-  | Halt -> true
+  | Halt -> not (is_start_block ())
   | Continue _ -> true
   | Branch _ -> false
 
@@ -60,13 +69,16 @@ let remove_block ~ocx block_id =
         IMap.add key (ISet.remove value values) mmap
   in
   let block = get_block ~ocx block_id in
-  (match block.source with
-  | GlobalInit name ->
+  (* This may be the first block in a global or function. If so, update the global or function to
+     point to the next block as the start. *)
+  (match (block.source, block.next) with
+  | (GlobalInit name, Continue continue_block) ->
     let global = SMap.find name ocx.program.globals in
-    global.init <- List.filter (( != ) block_id) global.init
-  | FunctionBody name ->
+    if global.init_start_block = block_id then global.init_start_block <- continue_block
+  | (FunctionBody name, Continue continue_block) ->
     let func = SMap.find name ocx.program.funcs in
-    func.body <- List.filter (( != ) block_id) func.body);
+    if func.body_start_block = block_id then func.body_start_block <- continue_block
+  | _ -> ());
   (match IMap.find_opt block_id ocx.prev_blocks with
   | None -> ()
   | Some prev_blocks ->
@@ -159,11 +171,11 @@ module IRVisitor = struct
         SMap.iter (fun _ func -> this#visit_function func) program.funcs
 
       method visit_global global =
-        let block = get_block ~ocx (List.hd global.init) in
+        let block = get_block ~ocx global.init_start_block in
         this#visit_block block
 
       method visit_function func =
-        let block = get_block ~ocx (List.hd func.body) in
+        let block = get_block ~ocx func.body_start_block in
         this#visit_block block
 
       method visit_block (block : var_id Block.t) =
@@ -337,7 +349,7 @@ let normalize ~ocx =
     ocx.program.blocks;
   (* Find and remove empty blocks *)
   IMap.iter
-    (fun block_id block -> if is_empty_block block then remove_block ~ocx block_id)
+    (fun block_id block -> if can_remove_block ~ocx block then remove_block ~ocx block_id)
     ocx.program.blocks;
   (* Consolidate blocks into a single large block when possible *)
   IMap.iter

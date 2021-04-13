@@ -151,13 +151,7 @@ module VirtualInstruction = struct
     Gcx.finish_builders ~gcx
 
   and gen_global_instruction_builder ~gcx ~ir global =
-    let last_init_block = get_block ~ir (List.hd (List.rev global.init)) in
-    let init_val =
-      match List.rev Mir.Block.(last_init_block.instructions) with
-      | (_, StoreGlobal (_, init_val)) :: _ -> init_val
-      | _ -> failwith "Global init must end with StoreGlobal instruction"
-    in
-    let init_val_info = get_source_value_info init_val in
+    let init_val_info = get_source_value_info global.init_val in
     match init_val_info with
     | SVImmediate imm ->
       (* Global is initialized to immediate, so insert into initialized data section *)
@@ -183,14 +177,14 @@ module VirtualInstruction = struct
          Place global in uninitialized (bss) section. *)
       let bss_data = { label = global.name; size = bytes_of_size size } in
       Gcx.add_bss ~gcx bss_data;
-      let init_start_block = IMap.find (List.hd global.init) ir.blocks in
+      let init_start_block = IMap.find global.init_start_block ir.blocks in
       gen_block ~gcx ~ir ~label:("_init_" ^ global.name) init_start_block;
       Gcx.emit ~gcx (MovRM (var_id, mk_label_memory_address ~gcx global.name));
       Gcx.finish_block ~gcx
 
   and gen_function_instruction_builder ~gcx ~ir func =
     Gcx.reset_visited_blocks ~gcx;
-    let func_start_block = IMap.find (List.hd func.body) ir.blocks in
+    let func_start_block = IMap.find func.body_start_block ir.blocks in
     gen_block ~gcx ~ir ~label:func.name func_start_block
 
   and gen_block ~gcx ~ir ?label mir_block =
