@@ -139,7 +139,11 @@ let pp_memory_address ~buf mem =
     | Some (LabelOffset label) -> add_string ~buf label
   end;
   add_char ~buf '(';
-  pp_register ~buf mem.base_register;
+  begin
+    match mem.base with
+    | BaseRegister reg -> pp_register ~buf reg
+    | IP -> add_string ~buf "%rip"
+  end;
   begin
     match mem.index_and_scale with
     | None -> ()

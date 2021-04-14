@@ -20,7 +20,7 @@ let folded_constants_equal c1 c2 =
    Additionally prune dead branches, some of which may be exposed by constant folding. *)
 class calc_constants_visitor ~ocx =
   object (this)
-    inherit Ocx.IRVisitor.t ~ocx
+    inherit Ocx.IRVisitor.t ~program:ocx.Ocx.program
 
     val mutable var_id_constants : folded_constant IMap.t = IMap.empty
 
@@ -57,7 +57,7 @@ class calc_constants_visitor ~ocx =
             if not (ISet.mem block_id visited_blocks) then (
               Ocx.remove_block ~ocx block_id;
               (* Collect all removed variables so they can be excluded from constant folding *)
-              let gatherer = new Ocx.var_gatherer ~ocx in
+              let gatherer = new Ocx.var_gatherer ~program:ocx.program in
               gatherer#visit_instructions ~block block.instructions;
               removed_vars <- ISet.union gatherer#vars removed_vars
             ))

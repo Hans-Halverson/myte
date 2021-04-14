@@ -8,6 +8,9 @@ type t = {
   mutable next_blocks: ISet.t IMap.t;
   (* Block id to the previous blocks that jump to it *)
   mutable prev_blocks: ISet.t IMap.t;
+  (* Variable id to the block taht defines it.
+     Not updated on block or variable deletions! *)
+  mutable var_def_blocks: Block.id IMap.t;
   (* Variable id to the set of blocks that use it.
      Not updated on block or variable deletions! *)
   mutable var_use_blocks: ISet.t IMap.t;
@@ -142,13 +145,13 @@ let remove_block ~ocx block_id =
     ocx.prev_blocks <- IMap.remove block_id ocx.prev_blocks
 
 module IRVisitor = struct
-  class t ~ocx =
+  class t ~program =
     object (this)
-      val program : ssa_program = ocx.program
-
       val mutable visited_blocks : ISet.t = ISet.empty
 
       val mutable constant_vars : var_id Instruction.Value.t IMap.t = IMap.empty
+
+      val get_block = (fun block_id -> IMap.find block_id program.Program.blocks)
 
       method check_visited_block block_id =
         if ISet.mem block_id visited_blocks then
@@ -171,11 +174,11 @@ module IRVisitor = struct
         SMap.iter (fun _ func -> this#visit_function func) program.funcs
 
       method visit_global global =
-        let block = get_block ~ocx global.init_start_block in
+        let block = get_block global.init_start_block in
         this#visit_block block
 
       method visit_function func =
-        let block = get_block ~ocx func.body_start_block in
+        let block = get_block func.body_start_block in
         this#visit_block block
 
       method visit_block (block : var_id Block.t) =
@@ -183,16 +186,28 @@ module IRVisitor = struct
           ()
         else (
           this#visit_instructions ~block block.instructions;
-          this#visit_next block.next
+          this#visit_next ~block block.next
         )
 
-      method visit_next next =
+      method visit_next ~block next =
         match next with
         | Halt -> ()
-        | Continue id -> this#visit_block (get_block ~ocx id)
-        | Branch { continue; jump; _ } ->
-          this#visit_block (get_block ~ocx continue);
-          this#visit_block (get_block ~ocx jump)
+        | Continue id ->
+          let continue_block = get_block id in
+          this#visit_edge block continue_block;
+          this#visit_block continue_block
+        | Branch { test; continue; jump } ->
+          (match test with
+          | Lit _ -> ()
+          | Var var_id -> this#visit_branch_use_variable ~block var_id);
+          let continue_block = get_block continue in
+          let jump_block = get_block jump in
+          this#visit_edge block continue_block;
+          this#visit_edge block jump_block;
+          this#visit_block continue_block;
+          this#visit_block jump_block
+
+      method visit_edge _b1 _b2 = ()
 
       method visit_instructions ~block instructions =
         List.iter (this#visit_instruction ~block) instructions
@@ -236,7 +251,12 @@ module IRVisitor = struct
 
       method visit_result_variable ~block:_ ~instruction:_ _var_id = ()
 
-      method visit_use_variable ~block:_ ~instruction:_ _var_id = ()
+      method visit_instruction_use_variable ~block ~instruction:_ var_id =
+        this#visit_use_variable ~block var_id
+
+      method visit_branch_use_variable = this#visit_use_variable
+
+      method visit_use_variable ~block:_ _var_id = ()
 
       method visit_value ~block ~instruction value =
         match value with
@@ -249,58 +269,40 @@ module IRVisitor = struct
       method visit_unit_value ~block ~instruction value =
         match value with
         | Lit -> ()
-        | Var var_id -> this#visit_use_variable ~block ~instruction var_id
+        | Var var_id -> this#visit_instruction_use_variable ~block ~instruction var_id
 
       method visit_bool_value ~block ~instruction value =
         match value with
         | Lit _ -> ()
-        | Var var_id -> this#visit_use_variable ~block ~instruction var_id
+        | Var var_id -> this#visit_instruction_use_variable ~block ~instruction var_id
 
       method visit_string_value ~block ~instruction value =
         match value with
         | Lit _ -> ()
-        | Var var_id -> this#visit_use_variable ~block ~instruction var_id
+        | Var var_id -> this#visit_instruction_use_variable ~block ~instruction var_id
 
       method visit_numeric_value ~block ~instruction value =
         match value with
         | IntLit _ -> ()
-        | IntVar var_id -> this#visit_use_variable ~block ~instruction var_id
+        | IntVar var_id -> this#visit_instruction_use_variable ~block ~instruction var_id
 
       method visit_function_value ~block ~instruction value =
         match value with
         | Lit _ -> ()
-        | Var var_id -> this#visit_use_variable ~block ~instruction var_id
+        | Var var_id -> this#visit_instruction_use_variable ~block ~instruction var_id
     end
 end
 
 class init_visitor ~ocx =
-  object (this)
-    inherit IRVisitor.t ~ocx
+  object
+    inherit IRVisitor.t ~program:ocx.program
 
-    method! visit_block block =
-      if this#check_visited_block block.id then
-        ()
-      else (
-        if not (IMap.mem block.id ocx.next_blocks) then
-          ocx.next_blocks <- IMap.add block.id ISet.empty ocx.next_blocks;
-        if not (IMap.mem block.id ocx.prev_blocks) then
-          ocx.prev_blocks <- IMap.add block.id ISet.empty ocx.prev_blocks;
-        List.iter (this#visit_instruction ~block) block.instructions;
-        (match block.next with
-        | Halt -> ()
-        | Continue next -> add_block_link ~ocx block.id next
-        | Branch { test; continue; jump } ->
-          (match test with
-          | Lit _ -> ()
-          | Var var_id -> this#add_use_variable ~block var_id);
-          add_block_link ~ocx block.id continue;
-          add_block_link ~ocx block.id jump);
-        this#visit_next block.next
-      )
+    method! visit_edge b1 b2 = add_block_link ~ocx b1.id b2.id
 
-    method! visit_use_variable ~block ~instruction:_ var_id = this#add_use_variable ~block var_id
+    method! visit_result_variable ~block ~instruction:_ var_id =
+      ocx.var_def_blocks <- IMap.add var_id block.id ocx.var_def_blocks
 
-    method add_use_variable ~block var_id =
+    method! visit_use_variable ~block var_id =
       let new_blocks =
         match IMap.find_opt var_id ocx.var_use_blocks with
         | None -> ISet.singleton block.id
@@ -310,16 +312,29 @@ class init_visitor ~ocx =
   end
 
 let mk program =
+  (* Initialize prev and next block maps *)
+  let init_block_mmaps =
+    IMap.fold
+      (fun block_id _ mmap -> IMap.add block_id ISet.empty mmap)
+      program.Program.blocks
+      IMap.empty
+  in
   let ocx =
-    { program; next_blocks = IMap.empty; prev_blocks = IMap.empty; var_use_blocks = IMap.empty }
+    {
+      program;
+      next_blocks = init_block_mmaps;
+      prev_blocks = init_block_mmaps;
+      var_def_blocks = IMap.empty;
+      var_use_blocks = IMap.empty;
+    }
   in
   let init_visitor = new init_visitor ~ocx in
   init_visitor#run ();
   ocx
 
-class var_gatherer ~ocx =
+class var_gatherer ~program =
   object
-    inherit IRVisitor.t ~ocx
+    inherit IRVisitor.t ~program
 
     val mutable vars : ISet.t = ISet.empty
 
@@ -331,7 +346,7 @@ class var_gatherer ~ocx =
 let normalize ~ocx =
   let open Block in
   (* Gather all vars defined in program *)
-  let gatherer = new var_gatherer ~ocx in
+  let gatherer = new var_gatherer ~program:ocx.program in
   gatherer#run ();
   let vars = gatherer#vars in
   (* Update and potentially prune phi nodes with missing vars *)

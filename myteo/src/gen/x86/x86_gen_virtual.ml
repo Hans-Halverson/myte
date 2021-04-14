@@ -36,7 +36,6 @@ module VirtualInstruction = struct
       mutable max_string_literal_id: int;
       mutable max_label_id: int;
       mutable mir_block_id_to_label: label IMap.t;
-      ip_var_id: VirtualRegister.t;
     }
 
     let mk () =
@@ -55,7 +54,6 @@ module VirtualInstruction = struct
         max_string_literal_id = 0;
         max_label_id = 0;
         mir_block_id_to_label = IMap.empty;
-        ip_var_id = VirtualRegister.mk ();
       }
 
     let check_visited_block ~gcx (mir_block : var_id Mir.Block.t) =
@@ -169,8 +167,8 @@ module VirtualInstruction = struct
       (* Emit init block to move label's address to global *)
       Gcx.start_block ~gcx ~label:("_init_" ^ global.name) ~mir_block:None;
       let reg = VirtualRegister.mk () in
-      Gcx.emit ~gcx (MovMR (mk_label_memory_address ~gcx label, reg));
-      Gcx.emit ~gcx (MovRM (reg, mk_label_memory_address ~gcx global.name));
+      Gcx.emit ~gcx (MovMR (mk_label_memory_address label, reg));
+      Gcx.emit ~gcx (MovRM (reg, mk_label_memory_address global.name));
       Gcx.finish_block ~gcx
     | SVVariable (var_id, size) ->
       (* Global is not initialized to a constant, so it must have its own initialization block.
@@ -179,7 +177,7 @@ module VirtualInstruction = struct
       Gcx.add_bss ~gcx bss_data;
       let init_start_block = IMap.find global.init_start_block ir.blocks in
       gen_block ~gcx ~ir ~label:("_init_" ^ global.name) init_start_block;
-      Gcx.emit ~gcx (MovRM (var_id, mk_label_memory_address ~gcx global.name));
+      Gcx.emit ~gcx (MovRM (var_id, mk_label_memory_address global.name));
       Gcx.finish_block ~gcx
 
   and gen_function_instruction_builder ~gcx ~ir func =
@@ -256,11 +254,11 @@ module VirtualInstruction = struct
       let instr =
         match get_source_value_info value with
         | SVImmediate imm -> MovIR (imm, var_id)
-        | SVLabel (label, _) -> MovMR (mk_label_memory_address ~gcx label, var_id)
+        | SVLabel (label, _) -> MovMR (mk_label_memory_address label, var_id)
         | SVVariable (src_var_id, _) -> MovRR (src_var_id, var_id)
         | SVStringImmediate str ->
           let label = Gcx.add_string_literal ~gcx str in
-          MovMR (mk_label_memory_address ~gcx label, var_id)
+          MovMR (mk_label_memory_address label, var_id)
       in
       Gcx.emit ~gcx instr;
       gen_instructions rest_instructions
@@ -285,11 +283,11 @@ module VirtualInstruction = struct
               | SVStringImmediate str ->
                 let reg = VirtualRegister.mk () in
                 let label = Gcx.add_string_literal ~gcx str in
-                Gcx.emit ~gcx (Lea (mk_label_memory_address ~gcx label, reg));
+                Gcx.emit ~gcx (Lea (mk_label_memory_address label, reg));
                 reg
               | SVLabel (label, _) ->
                 let reg = VirtualRegister.mk () in
-                Gcx.emit ~gcx (Lea (mk_label_memory_address ~gcx label, reg));
+                Gcx.emit ~gcx (Lea (mk_label_memory_address label, reg));
                 reg
               | SVVariable (var_id, _) -> var_id
             in
@@ -305,13 +303,13 @@ module VirtualInstruction = struct
           | SVImmediate imm -> Gcx.emit ~gcx (PushI imm)
           | SVStringImmediate str ->
             let label = Gcx.add_string_literal ~gcx str in
-            Gcx.emit ~gcx (PushM (mk_label_memory_address ~gcx label))
-          | SVLabel (label, _) -> Gcx.emit ~gcx (PushM (mk_label_memory_address ~gcx label))
+            Gcx.emit ~gcx (PushM (mk_label_memory_address label))
+          | SVLabel (label, _) -> Gcx.emit ~gcx (PushM (mk_label_memory_address label))
           | SVVariable (var_id, _) -> Gcx.emit ~gcx (PushR var_id))
         rest_arg_vals;
       let inst =
         match func_val with
-        | Instruction.FunctionValue.Lit label -> CallM (mk_label_memory_address ~gcx label)
+        | Instruction.FunctionValue.Lit label -> CallM (mk_label_memory_address label)
         | Instruction.FunctionValue.Var var_id -> CallR var_id
       in
       Gcx.emit ~gcx inst;
@@ -331,11 +329,11 @@ module VirtualInstruction = struct
           Gcx.emit ~gcx (MovIR (imm, reg))
         | SVLabel (label, _) ->
           let reg = VirtualRegister.mk () in
-          Gcx.emit ~gcx (MovMR (mk_label_memory_address ~gcx label, reg))
+          Gcx.emit ~gcx (MovMR (mk_label_memory_address label, reg))
         | SVStringImmediate str ->
           let label = Gcx.add_string_literal ~gcx str in
           let reg = VirtualRegister.mk () in
-          Gcx.emit ~gcx (MovMR (mk_label_memory_address ~gcx label, reg))
+          Gcx.emit ~gcx (MovMR (mk_label_memory_address label, reg))
         | SVVariable _ -> ()));
       Gcx.emit ~gcx Ret;
       gen_instructions rest_instructions
@@ -345,7 +343,7 @@ module VirtualInstruction = struct
      * ===========================================
      *)
     | Instruction.LoadGlobal (var_id, label) :: rest_instructions ->
-      Gcx.emit ~gcx (MovMR (mk_label_memory_address ~gcx label, var_id));
+      Gcx.emit ~gcx (MovMR (mk_label_memory_address label, var_id));
       gen_instructions rest_instructions
     (*
      * ===========================================
@@ -354,17 +352,17 @@ module VirtualInstruction = struct
      *)
     | Instruction.StoreGlobal (label, value) :: rest_instructions ->
       (match get_source_value_info value with
-      | SVImmediate imm -> Gcx.emit ~gcx (MovIM (imm, mk_label_memory_address ~gcx label))
+      | SVImmediate imm -> Gcx.emit ~gcx (MovIM (imm, mk_label_memory_address label))
       | SVStringImmediate str ->
         let label = Gcx.add_string_literal ~gcx str in
         let reg = VirtualRegister.mk () in
-        Gcx.emit ~gcx (MovMR (mk_label_memory_address ~gcx label, reg));
-        Gcx.emit ~gcx (MovRM (reg, mk_label_memory_address ~gcx label))
+        Gcx.emit ~gcx (MovMR (mk_label_memory_address label, reg));
+        Gcx.emit ~gcx (MovRM (reg, mk_label_memory_address label))
       | SVLabel (label, _) ->
         let reg = VirtualRegister.mk () in
-        Gcx.emit ~gcx (MovMR (mk_label_memory_address ~gcx label, reg));
-        Gcx.emit ~gcx (MovRM (reg, mk_label_memory_address ~gcx label))
-      | SVVariable (reg, _) -> Gcx.emit ~gcx (MovRM (reg, mk_label_memory_address ~gcx label)));
+        Gcx.emit ~gcx (MovMR (mk_label_memory_address label, reg));
+        Gcx.emit ~gcx (MovRM (reg, mk_label_memory_address label))
+      | SVVariable (reg, _) -> Gcx.emit ~gcx (MovRM (reg, mk_label_memory_address label)));
       gen_instructions rest_instructions
     (*
      * ===========================================
@@ -617,6 +615,6 @@ module VirtualInstruction = struct
     | String (Lit str) -> SVStringImmediate str
     | String (Var var_id) -> SVVariable (var_id, Quad)
 
-  and mk_label_memory_address ~gcx label =
-    { offset = Some (LabelOffset label); base_register = gcx.ip_var_id; index_and_scale = None }
+  and mk_label_memory_address label =
+    { offset = Some (LabelOffset label); base = IP; index_and_scale = None }
 end

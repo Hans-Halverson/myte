@@ -47,9 +47,13 @@ type memory_address_scale =
   | Scale4
   | Scale8
 
+type 'reg memory_address_base =
+  | BaseRegister of 'reg
+  | IP
+
 type 'reg memory_address = {
   offset: memory_address_offset option;
-  base_register: 'reg;
+  base: 'reg memory_address_base;
   index_and_scale: ('reg * memory_address_scale) option;
 }
 
