@@ -113,7 +113,7 @@ module VirtualInstruction = struct
 
     let emit ~gcx instr =
       let current_block = Option.get gcx.current_block_builder in
-      current_block.instructions <- instr :: current_block.instructions
+      current_block.instructions <- (Instruction.mk_id (), instr) :: current_block.instructions
 
     let get_label_from_mir_block_id ~gcx mir_block_id =
       match IMap.find_opt mir_block_id gcx.mir_block_id_to_label with
@@ -149,6 +149,7 @@ module VirtualInstruction = struct
     Gcx.finish_builders ~gcx
 
   and gen_global_instruction_builder ~gcx ~ir global =
+    let open Instruction in
     let init_val_info = get_source_value_info global.init_val in
     match init_val_info with
     | SVImmediate imm ->
@@ -183,7 +184,8 @@ module VirtualInstruction = struct
   and gen_function_instruction_builder ~gcx ~ir func =
     Gcx.reset_visited_blocks ~gcx;
     let func_start_block = IMap.find func.body_start_block ir.blocks in
-    gen_block ~gcx ~ir ~label:func.name func_start_block
+    gen_block ~gcx ~ir ~label:func.name func_start_block;
+    Gcx.finish_block ~gcx
 
   and gen_block ~gcx ~ir ?label mir_block =
     let label =
@@ -197,7 +199,7 @@ module VirtualInstruction = struct
       Gcx.start_block ~gcx ~label ~mir_block:(Some mir_block);
       gen_instructions ~gcx ~ir ~block:mir_block (List.map snd mir_block.instructions);
       match mir_block.next with
-      | Halt -> Gcx.finish_block ~gcx
+      | Halt -> ()
       | Continue block_id ->
         let block = IMap.find block_id ir.blocks in
         Gcx.finish_block ~gcx;
@@ -211,6 +213,7 @@ module VirtualInstruction = struct
     )
 
   and gen_instructions ~gcx ~ir ~block instructions =
+    let open Instruction in
     let gen_instructions = gen_instructions ~gcx ~ir ~block in
     let is_cond_jump var_id =
       match block.next with
@@ -223,7 +226,7 @@ module VirtualInstruction = struct
       | _ -> failwith "Only called on blocks with conditional branches"
     in
     let gen_cond_jmp kind left_val right_val =
-      let open Instruction.NumericValue in
+      let open Mir.Instruction.NumericValue in
       (match (left_val, right_val) with
       | (IntLit _, IntLit _) -> failwith "Constants must be folded before gen"
       | (IntLit lit, IntVar var_id)
@@ -250,7 +253,7 @@ module VirtualInstruction = struct
      *                   Mov
      * ===========================================
      *)
-    | Instruction.Mov (var_id, value) :: rest_instructions ->
+    | Mir.Instruction.Mov (var_id, value) :: rest_instructions ->
       let instr =
         match get_source_value_info value with
         | SVImmediate imm -> MovIR (imm, var_id)
@@ -267,7 +270,7 @@ module VirtualInstruction = struct
      *                   Call
      * ===========================================
      *)
-    | Instruction.Call (_var_id, func_val, arg_vals) :: rest_instructions ->
+    | Mir.Instruction.Call (_var_id, func_val, arg_vals) :: rest_instructions ->
       (* First six arguments are placed in registers %rdi​, ​%rsi​, ​%rdx​, ​%rcx​, ​%r8​, and ​%r9​ *)
       List.iteri
         (fun i arg_val ->
@@ -309,8 +312,8 @@ module VirtualInstruction = struct
         rest_arg_vals;
       let inst =
         match func_val with
-        | Instruction.FunctionValue.Lit label -> CallM (mk_label_memory_address label)
-        | Instruction.FunctionValue.Var var_id -> CallR var_id
+        | Mir.Instruction.FunctionValue.Lit label -> CallM (mk_label_memory_address label)
+        | Mir.Instruction.FunctionValue.Var var_id -> CallR var_id
       in
       Gcx.emit ~gcx inst;
       gen_instructions rest_instructions
@@ -319,7 +322,7 @@ module VirtualInstruction = struct
      *                   Ret
      * ===========================================
      *)
-    | Instruction.Ret value :: rest_instructions ->
+    | Mir.Instruction.Ret value :: rest_instructions ->
       (match value with
       | None -> ()
       | Some value ->
@@ -342,7 +345,7 @@ module VirtualInstruction = struct
      *                Load Global
      * ===========================================
      *)
-    | Instruction.LoadGlobal (var_id, label) :: rest_instructions ->
+    | Mir.Instruction.LoadGlobal (var_id, label) :: rest_instructions ->
       Gcx.emit ~gcx (MovMR (mk_label_memory_address label, var_id));
       gen_instructions rest_instructions
     (*
@@ -350,7 +353,7 @@ module VirtualInstruction = struct
      *                Store Global
      * ===========================================
      *)
-    | Instruction.StoreGlobal (label, value) :: rest_instructions ->
+    | Mir.Instruction.StoreGlobal (label, value) :: rest_instructions ->
       (match get_source_value_info value with
       | SVImmediate imm -> Gcx.emit ~gcx (MovIM (imm, mk_label_memory_address label))
       | SVStringImmediate str ->
@@ -369,7 +372,7 @@ module VirtualInstruction = struct
      *                   Add
      * ===========================================
      *)
-    | Instruction.Add (var_id, left_val, right_val) :: rest_instructions ->
+    | Mir.Instruction.Add (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (IntLit left_lit, IntLit right_lit) ->
         Gcx.emit ~gcx (MovIR (QuadImmediate (Int64.add left_lit right_lit), var_id))
@@ -383,7 +386,7 @@ module VirtualInstruction = struct
      *                    Sub
      * ===========================================
      *)
-    | Instruction.Sub (var_id, left_val, right_val) :: rest_instructions ->
+    | Mir.Instruction.Sub (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (IntLit left_lit, IntLit right_lit) ->
         Gcx.emit ~gcx (MovIR (QuadImmediate (Int64.sub left_lit right_lit), var_id))
@@ -399,7 +402,7 @@ module VirtualInstruction = struct
      *                   Mul
      * ===========================================
      *)
-    | Instruction.Mul (var_id, left_val, right_val) :: rest_instructions ->
+    | Mir.Instruction.Mul (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (IntLit left_lit, IntLit right_lit) ->
         Gcx.emit ~gcx (MovIR (QuadImmediate (Int64.mul left_lit right_lit), var_id))
@@ -413,7 +416,7 @@ module VirtualInstruction = struct
      *                   Div
      * ===========================================
      *)
-    | Instruction.Div (var_id, left_val, right_val) :: rest_instructions ->
+    | Mir.Instruction.Div (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (IntLit left_lit, IntLit right_lit) ->
         Gcx.emit ~gcx (MovIR (QuadImmediate (Int64.div left_lit right_lit), var_id))
@@ -431,7 +434,7 @@ module VirtualInstruction = struct
      *                   Neg
      * ===========================================
      *)
-    | Instruction.Neg (_var_id, arg) :: rest_instructions ->
+    | Mir.Instruction.Neg (_var_id, arg) :: rest_instructions ->
       let var_id =
         match arg with
         | IntLit _ -> failwith "Constant folding must have already occurred"
@@ -444,7 +447,7 @@ module VirtualInstruction = struct
      *                  LogNot
      * ===========================================
      *)
-    | Instruction.LogNot (_var_id, arg) :: rest_instructions ->
+    | Mir.Instruction.LogNot (_var_id, arg) :: rest_instructions ->
       let var_id =
         match arg with
         | Lit _ -> failwith "Constant folding must have already occurred"
@@ -457,7 +460,7 @@ module VirtualInstruction = struct
      *                  LogAnd
      * ===========================================
      *)
-    | Instruction.LogAnd (var_id, left_val, right_val) :: rest_instructions ->
+    | Mir.Instruction.LogAnd (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (Lit left_lit, Lit right_lit) ->
         Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit && right_lit), var_id))
@@ -471,7 +474,7 @@ module VirtualInstruction = struct
      *                  LogOr
      * ===========================================
      *)
-    | Instruction.LogOr (var_id, left_val, right_val) :: rest_instructions ->
+    | Mir.Instruction.LogOr (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (Lit left_lit, Lit right_lit) ->
         Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit || right_lit), var_id))
@@ -485,9 +488,9 @@ module VirtualInstruction = struct
      *                   Eq
      * ===========================================
      *)
-    | [Instruction.Eq (var_id, left_val, right_val)] when is_cond_jump var_id ->
+    | [Mir.Instruction.Eq (var_id, left_val, right_val)] when is_cond_jump var_id ->
       gen_cond_jmp Equal left_val right_val
-    | Instruction.Eq (var_id, left_val, right_val) :: rest_instructions ->
+    | Mir.Instruction.Eq (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (IntLit left_lit, IntLit right_lit) ->
         Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit = right_lit), var_id))
@@ -504,9 +507,9 @@ module VirtualInstruction = struct
      *                    Neq
      * ===========================================
      *)
-    | [Instruction.Neq (var_id, left_val, right_val)] when is_cond_jump var_id ->
+    | [Mir.Instruction.Neq (var_id, left_val, right_val)] when is_cond_jump var_id ->
       gen_cond_jmp NotEqual left_val right_val
-    | Instruction.Neq (var_id, left_val, right_val) :: rest_instructions ->
+    | Mir.Instruction.Neq (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (IntLit left_lit, IntLit right_lit) ->
         Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit <> right_lit), var_id))
@@ -523,9 +526,9 @@ module VirtualInstruction = struct
      *                    Lt
      * ===========================================
      *)
-    | [Instruction.Lt (var_id, left_val, right_val)] when is_cond_jump var_id ->
+    | [Mir.Instruction.Lt (var_id, left_val, right_val)] when is_cond_jump var_id ->
       gen_cond_jmp LessThan left_val right_val
-    | Instruction.Lt (var_id, left_val, right_val) :: rest_instructions ->
+    | Mir.Instruction.Lt (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (IntLit left_lit, IntLit right_lit) ->
         Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit < right_lit), var_id))
@@ -542,9 +545,9 @@ module VirtualInstruction = struct
      *                   LtEq
      * ===========================================
      *)
-    | [Instruction.LtEq (var_id, left_val, right_val)] when is_cond_jump var_id ->
+    | [Mir.Instruction.LtEq (var_id, left_val, right_val)] when is_cond_jump var_id ->
       gen_cond_jmp LessThanEqual left_val right_val
-    | Instruction.LtEq (var_id, left_val, right_val) :: rest_instructions ->
+    | Mir.Instruction.LtEq (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (IntLit left_lit, IntLit right_lit) ->
         Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit <= right_lit), var_id))
@@ -561,9 +564,9 @@ module VirtualInstruction = struct
      *                    Gt
      * ===========================================
      *)
-    | [Instruction.Gt (var_id, left_val, right_val)] when is_cond_jump var_id ->
+    | [Mir.Instruction.Gt (var_id, left_val, right_val)] when is_cond_jump var_id ->
       gen_cond_jmp GreaterThan left_val right_val
-    | Instruction.Gt (var_id, left_val, right_val) :: rest_instructions ->
+    | Mir.Instruction.Gt (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (IntLit left_lit, IntLit right_lit) ->
         Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit > right_lit), var_id))
@@ -580,9 +583,9 @@ module VirtualInstruction = struct
      *                   GtEq
      * ===========================================
      *)
-    | [Instruction.GtEq (var_id, left_val, right_val)] when is_cond_jump var_id ->
+    | [Mir.Instruction.GtEq (var_id, left_val, right_val)] when is_cond_jump var_id ->
       gen_cond_jmp GreaterThanEqual left_val right_val
-    | Instruction.GtEq (var_id, left_val, right_val) :: rest_instructions ->
+    | Mir.Instruction.GtEq (var_id, left_val, right_val) :: rest_instructions ->
       (match (left_val, right_val) with
       | (IntLit left_lit, IntLit right_lit) ->
         Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit >= right_lit), var_id))
@@ -596,7 +599,7 @@ module VirtualInstruction = struct
       gen_instructions rest_instructions
 
   and get_source_value_info value =
-    let open Instruction.Value in
+    let open Mir.Instruction.Value in
     match value with
     | Unit Lit -> SVImmediate (ByteImmediate 0)
     | Unit (Var var_id) -> SVVariable (var_id, Byte)

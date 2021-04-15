@@ -73,52 +73,65 @@ type set_cmp_kind =
   | SetG
   | SetGE
 
-type 'reg instruction =
-  (* Instruction Suffixes:
-         R - virtual register
-         I - immediate
-         M - memory location
+module Instruction = struct
+  type id = int
 
-       When multiple suffixes are used, first is source and second is dest when applicable. *)
-  (* Stack instructions *)
-  | PushR of 'reg
-  | PushI of immediate (* Only supports 8, 16, and 32-bit immediates *)
-  | PushM of 'reg memory_address
-  (* Data instructions *)
-  | MovRR of 'reg * 'reg
-  | MovRM of 'reg * 'reg memory_address
-  | MovMR of 'reg memory_address * 'reg
-  | MovIR of immediate * 'reg
-  | MovIM of immediate * 'reg memory_address
-  | Lea of 'reg memory_address * 'reg
-  (* Numeric operations *)
-  | NegR of 'reg
-  | AddRR of 'reg * 'reg
-  | AddIR of immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
-  | SubRR of 'reg * 'reg
-  | SubIR of immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
-  | IMulRR of 'reg * 'reg
-  | IMulRIR of 'reg * immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
-  | IDivR of 'reg
-  (* Bitwise operations *)
-  | NotR of 'reg
-  | AndRR of 'reg * 'reg
-  | AndIR of immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
-  | OrRR of 'reg * 'reg
-  | OrIR of immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
-  (* Comparisons *)
-  | CmpRR of 'reg * 'reg
-  | CmpRI of 'reg * immediate (* Only supports 8, 16, and 32-bit immediates *)
-  | TestRR of 'reg * 'reg
-  | SetCmp of set_cmp_kind * 'reg
-  (* Control flow *)
-  | Jmp of label
-  | CondJmp of cond_jmp_kind * label
-  | CallR of 'reg
-  | CallM of 'reg memory_address
-  | Leave
-  | Ret
-  | Syscall
+  type 'reg t' =
+    (* Instruction Suffixes:
+          R - virtual register
+          I - immediate
+          M - memory location
+
+        When multiple suffixes are used, first is source and second is dest when applicable. *)
+    (* Stack instructions *)
+    | PushR of 'reg
+    | PushI of immediate (* Only supports 8, 16, and 32-bit immediates *)
+    | PushM of 'reg memory_address
+    (* Data instructions *)
+    | MovRR of 'reg * 'reg
+    | MovRM of 'reg * 'reg memory_address
+    | MovMR of 'reg memory_address * 'reg
+    | MovIR of immediate * 'reg
+    | MovIM of immediate * 'reg memory_address
+    | Lea of 'reg memory_address * 'reg
+    (* Numeric operations *)
+    | NegR of 'reg
+    | AddRR of 'reg * 'reg
+    | AddIR of immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
+    | SubRR of 'reg * 'reg
+    | SubIR of immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
+    | IMulRR of 'reg * 'reg
+    | IMulRIR of 'reg * immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
+    | IDivR of 'reg
+    (* Bitwise operations *)
+    | NotR of 'reg
+    | AndRR of 'reg * 'reg
+    | AndIR of immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
+    | OrRR of 'reg * 'reg
+    | OrIR of immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
+    (* Comparisons *)
+    | CmpRR of 'reg * 'reg
+    | CmpRI of 'reg * immediate (* Only supports 8, 16, and 32-bit immediates *)
+    | TestRR of 'reg * 'reg
+    | SetCmp of set_cmp_kind * 'reg
+    (* Control flow *)
+    | Jmp of label
+    | CondJmp of cond_jmp_kind * label
+    | CallR of 'reg
+    | CallM of 'reg memory_address
+    | Leave
+    | Ret
+    | Syscall
+  
+  type 'reg t = id * 'reg t'
+
+  let max_id = ref 0
+
+  let mk_id () =
+    let id = !max_id in
+    max_id := id + 1;
+    id
+end
 
 module Block = struct
   type id = int
@@ -126,7 +139,7 @@ module Block = struct
   and 'reg t = {
     id: id;
     label: label;
-    mutable instructions: 'reg instruction list;
+    mutable instructions: 'reg Instruction.t list;
   }
 
   let max_id = ref 0

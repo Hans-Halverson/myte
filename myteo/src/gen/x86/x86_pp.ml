@@ -161,6 +161,7 @@ let pp_memory_address ~buf mem =
   add_char ~buf ')'
 
 let pp_instruction ~buf instruction =
+  let open Instruction in
   add_line ~buf (fun buf ->
       let add_string = add_string ~buf in
       let pp_op op =
@@ -171,7 +172,7 @@ let pp_instruction ~buf instruction =
       let pp_immediate = pp_immediate ~buf in
       let pp_memory_address = pp_memory_address ~buf in
       let pp_args_separator () = add_string ", " in
-      match instruction with
+      match snd instruction with
       | PushR reg ->
         pp_op "push";
         pp_register reg
