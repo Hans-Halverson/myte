@@ -122,7 +122,7 @@ module Instruction = struct
     | Leave
     | Ret
     | Syscall
-  
+
   type 'reg t = id * 'reg t'
 
   let max_id = ref 0

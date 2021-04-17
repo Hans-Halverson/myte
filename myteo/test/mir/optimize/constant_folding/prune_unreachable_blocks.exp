@@ -13,6 +13,10 @@ func unit @t.ifStatement() {
   Ret
 }
 
+func int @t.nestedIfStatements() {
+  Ret 2
+}
+
 func unit @t.whileTrue() {
   %4 := Call @t.func(1)
   continue @t.whileTrue

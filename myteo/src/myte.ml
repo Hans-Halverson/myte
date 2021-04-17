@@ -42,7 +42,7 @@ let pp_irs irs =
   let ir_strings = List.map Mir_pp.pp_program irs in
   String.concat "\n" ir_strings
 
-let compile files =
+let rec compile files =
   (* Parse files *)
   let asts = parse_files files in
   if Opts.dump_ast () then (
@@ -63,19 +63,14 @@ let compile files =
     (* Lower to IR *)
     let program_cf_ir = Emit.emit_control_flow_ir program_cx in
     let program_ssa_ir = Ssa.control_flow_ir_to_ssa program_cx program_cf_ir in
-    if Opts.dump_ir () then begin
-      let transforms =
-        let open Mir_transforms in
-        Opts.dump_ir_transforms ()
-        |> List.filter_map MirTransform.of_string
-        |> MirTransformSet.of_list
-      in
-      let transformed_ir = Mir_transforms.apply_transforms program_ssa_ir transforms in
-      print_string (Mir_pp.pp_program transformed_ir);
-      exit 0
-    end;
-    let optimized_ir = Mir_optimize.optimize program_ssa_ir in
-    let destructed_ir = Ssa_destruction.destruct_ssa optimized_ir in
+    if Opts.dump_ir () then dump_ir program_ssa_ir;
+    let ir =
+      if Opts.optimize () then
+        Mir_optimize.optimize program_ssa_ir
+      else
+        Mir_optimize.transform_for_assembly program_ssa_ir
+    in
+    let destructed_ir = Ssa_destruction.destruct_ssa ir in
     (* Generate executable *)
     let executable = X86_gen.gen_x86_executable destructed_ir in
     let executable_file = X86_pp.pp_x86_executable executable in
@@ -113,6 +108,22 @@ let compile files =
       print_error_message (Printf.sprintf "Linker failed with exit code %d" ret);
       exit 1
     )
+
+and dump_ir ir =
+  let open Mir_optimize in
+  let transforms =
+    Opts.dump_ir_transforms () |> List.filter_map MirTransform.of_string |> MirTransformSet.of_list
+  in
+  let ir =
+    if not (MirTransformSet.is_empty transforms) then
+      Mir_optimize.apply_transforms ir transforms
+    else if Opts.optimize () then
+      Mir_optimize.optimize ir
+    else
+      ir
+  in
+  print_string (Mir_pp.pp_program ir);
+  exit 0
 
 let () =
   let files = ref SSet.empty in

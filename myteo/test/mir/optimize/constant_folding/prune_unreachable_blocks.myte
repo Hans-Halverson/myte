@@ -29,6 +29,30 @@ fun ifStatement() {
   }
 }
 
+fun nestedIfStatements(): int {
+  var x = 1;
+  if (true) {
+    x = 2;
+    if (false) {
+      x = 3;
+      if (true) {
+        x = 5;
+      } else {
+        x = 5;
+      }
+      x = 6;
+    }
+  } else {
+    if (true) {
+      x = 7;
+    } else {
+      x = 8;
+    }
+  }
+
+  return x;
+}
+
 fun whileTrue() {
   while (true) {
     func(1);

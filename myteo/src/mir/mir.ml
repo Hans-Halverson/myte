@@ -98,12 +98,14 @@ and Block : sig
   type 'var t = {
     id: id;
     source: source;
-    mutable phis: (ValueType.t * 'var * 'var IMap.t) list;
+    mutable phis: 'var phi list;
     mutable instructions: 'var Instruction.t list;
     mutable next: 'var next;
   }
 
   and id = int
+
+  and 'var phi = ValueType.t * 'var * 'var IMap.t
 
   and 'var next =
     | Halt

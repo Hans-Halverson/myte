@@ -1,5 +1,6 @@
 open Basic_collections
 open Mir
+open Mir_visitor
 module Ocx = Mir_optimize_context
 
 let add_to_multimap key value mmap =
@@ -17,7 +18,7 @@ let in_multimap key value mmap =
 
 class liveness_init_visitor ~program =
   object
-    inherit Ocx.IRVisitor.t ~program
+    inherit IRVisitor.t ~program
 
     val mutable prev_blocks =
       IMap.fold (fun block_id _ acc -> IMap.add block_id ISet.empty acc) program.blocks IMap.empty

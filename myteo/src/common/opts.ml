@@ -6,8 +6,9 @@ type t = {
   dump_ir_transforms: string list ref;
   dump_asm: bool ref;
   dump_debug: bool ref;
-  print_plain: bool ref;
+  optimize: bool ref;
   output_file: string option ref;
+  print_plain: bool ref;
 }
 
 let opts =
@@ -19,8 +20,9 @@ let opts =
     dump_ir_transforms = ref [];
     dump_asm = ref false;
     dump_debug = ref false;
-    print_plain = ref false;
+    optimize = ref false;
     output_file = ref None;
+    print_plain = ref false;
   }
 
 let split_comma_list string_list = String.split_on_char ',' string_list
@@ -38,6 +40,7 @@ let spec =
     ("--dump-debug", Arg.Set opts.dump_debug, " Include debug info when printing other commands");
     ("--no-pretty-print", Arg.Set opts.print_plain, " Do not pretty print output");
     ("-o", Arg.String (fun file -> opts.output_file := Some file), " Write output to file");
+    ("-O", Arg.Set opts.optimize, " Compile with optimizations");
   ]
   |> Arg.align
 
@@ -61,6 +64,8 @@ let dump_asm () = !(opts.dump_asm)
 
 let dump_debug () = !(opts.dump_debug)
 
-let print_plain () = !(opts.print_plain)
+let optimize () = !(opts.optimize)
 
 let output_file () = !(opts.output_file)
+
+let print_plain () = !(opts.print_plain)

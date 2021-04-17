@@ -1,0 +1,4 @@
+(library
+  (name mir_optimizations)
+  (wrapped false)
+  (libraries myte_common mir))

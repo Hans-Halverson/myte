@@ -1,5 +1,6 @@
 open Basic_collections
 open Mir
+open Mir_visitor
 module Ocx = Mir_optimize_context
 
 type folded_constant =
@@ -16,19 +17,25 @@ let folded_constants_equal c1 c2 =
   | (FunctionConstant s1, FunctionConstant s2) -> s1 = s2
   | _ -> false
 
+let mir_value_of_constant constant =
+  let open Instruction in
+  let open Value in
+  match constant with
+  | UnitConstant -> Unit UnitValue.Lit
+  | BoolConstant b -> Bool (BoolValue.Lit b)
+  | IntConstant i -> Numeric (NumericValue.IntLit i)
+  | FunctionConstant f -> Function (FunctionValue.Lit f)
+
 (* Perform iterative passes to calculate folded constants for all variables.
    Additionally prune dead branches, some of which may be exposed by constant folding. *)
 class calc_constants_visitor ~ocx =
   object (this)
-    inherit Ocx.IRVisitor.t ~program:ocx.Ocx.program
+    inherit IRVisitor.t ~program:ocx.Ocx.program
 
     val mutable var_id_constants : folded_constant IMap.t = IMap.empty
 
     (* Whether a new constant was created on this pass *)
     val mutable has_new_constant = false
-
-    (* Set of all blocks which had an incoming path removed, and may potentially be pruned *)
-    val mutable prune_candidates : ISet.t = ISet.empty
 
     (* Set of all variables that have been removed during this run *)
     val mutable removed_vars : ISet.t = ISet.empty
@@ -45,6 +52,8 @@ class calc_constants_visitor ~ocx =
 
     method get_var_id_constants () = var_id_constants
 
+    method get_removed_vars () = removed_vars
+
     method! run () =
       (* Fold constants until fixed point is found *)
       let rec iter () =
@@ -57,7 +66,8 @@ class calc_constants_visitor ~ocx =
             if not (ISet.mem block_id visited_blocks) then (
               Ocx.remove_block ~ocx block_id;
               (* Collect all removed variables so they can be excluded from constant folding *)
-              let gatherer = new Ocx.var_gatherer ~program:ocx.program in
+              let gatherer = new Mir_normalizer.var_gatherer ~program:ocx.program in
+              List.iter (gatherer#visit_phi_node ~block) block.phis;
               gatherer#visit_instructions ~block block.instructions;
               removed_vars <- ISet.union gatherer#vars removed_vars
             ))
@@ -73,37 +83,63 @@ class calc_constants_visitor ~ocx =
       if this#check_visited_block block.id then
         ()
       else (
-        List.iter this#visit_phi_node block.phis;
+        List.iter (this#visit_phi_node ~block) block.phis;
         List.iter (this#visit_instruction ~block) block.instructions;
-        this#visit_branch_test block;
-        (* Visit the next blocks *)
+        (* Check for branches that can be pruned *)
         match block.next with
         | Halt -> ()
-        | Continue next_block -> this#visit_block (Ocx.get_block ~ocx next_block)
-        | Branch { test = _; continue; jump } ->
-          this#visit_block (Ocx.get_block ~ocx continue);
-          this#visit_block (Ocx.get_block ~ocx jump)
+        | Continue continue -> this#visit_block (Ocx.get_block ~ocx continue)
+        | Branch { test; continue; jump } ->
+          (* Determine whether test is a constant value *)
+          let test_constant_opt =
+            match test with
+            | Lit lit -> Some lit
+            | Var var_id ->
+              (match this#lookup_constant var_id with
+              | None -> None
+              | Some (BoolConstant test) -> Some test
+              | Some _ -> failwith "Expected BoolConstant")
+          in
+          (match test_constant_opt with
+          | None ->
+            this#visit_block (Ocx.get_block ~ocx continue);
+            this#visit_block (Ocx.get_block ~ocx jump)
+          | Some test_constant ->
+            (* Determine which branch should be pruned *)
+            let (to_continue, to_prune) =
+              if test_constant then
+                (continue, jump)
+              else
+                (jump, continue)
+            in
+            (* Remove block link and set to continue to unpruned block *)
+            Ocx.remove_block_link ~ocx block.id to_prune;
+            Ocx.remove_phi_backreferences_for_block ~ocx block.id to_prune;
+            block.next <- Continue to_continue;
+            has_new_constant <- true;
+            (* Only contine to remaining unpruned block *)
+            this#visit_block (Ocx.get_block ~ocx to_continue))
       )
 
     (* Visit all phi nodes and propagate constants through if possible *)
-    method visit_phi_node (_, var_id, sources) =
+    method! visit_phi_node ~block:_ (_, var_id, args) =
       match this#lookup_constant var_id with
       | Some _ -> ()
       | None ->
-        (* Gather all constant sources in phi node *)
+        (* Gather all constant args in phi node *)
         let (constants, is_constant) =
           IMap.fold
-            (fun _ source_id (constants, is_constant) ->
-              if ISet.mem source_id removed_vars then
+            (fun _ arg_var_id (constants, is_constant) ->
+              if ISet.mem arg_var_id removed_vars then
                 (constants, is_constant)
               else
-                match this#lookup_constant source_id with
+                match this#lookup_constant arg_var_id with
                 | None -> (constants, false)
                 | Some constant -> (constant :: constants, is_constant))
-            sources
+            args
             ([], true)
         in
-        (* If all non-removed sources are the same constant, propogate constant through
+        (* If all non-removed args are the same constant, propagate constant through
            to result variable *)
         if is_constant && constants <> [] then
           let constant = List.hd constants in
@@ -114,35 +150,6 @@ class calc_constants_visitor ~ocx =
               other_constants
           in
           if is_single_constant then this#add_constant var_id constant
-
-    method visit_branch_test block =
-      (* Check for branches that can be pruned *)
-      match block.next with
-      | Halt
-      | Continue _ ->
-        ()
-      | Branch { test; continue; jump } ->
-        let prune_branch_from_test test =
-          (* Determine which branch should be pruned *)
-          let (to_continue, to_prune) =
-            if test then
-              (continue, jump)
-            else
-              (jump, continue)
-          in
-          (* Remove block link and set to continue to unpruned block *)
-          Ocx.remove_block_link ~ocx block.id to_prune;
-          prune_candidates <- ISet.add block.id prune_candidates;
-          block.next <- Continue to_continue;
-          has_new_constant <- true
-        in
-        (match test with
-        | Lit lit -> prune_branch_from_test lit
-        | Var var_id ->
-          (match this#lookup_constant var_id with
-          | None -> ()
-          | Some (BoolConstant test) -> prune_branch_from_test test
-          | Some _ -> failwith "Expected BoolConstant"))
 
     method! visit_instruction ~block:_ instruction =
       let open Instruction in
@@ -233,17 +240,26 @@ class calc_constants_visitor ~ocx =
       | _ -> ()
   end
 
-class update_constants_mapper ~ocx var_id_constants =
+class update_constants_mapper ~ocx var_id_constants constants_in_phis =
   object (this)
     inherit Mir_mapper.InstructionsMapper.t ~ocx
 
-    (* If the result is a constant the entire instruction should be removed *)
-    method! map_result_variable ~block:_ ~instruction:_ var_id =
-      if IMap.mem var_id var_id_constants then this#mark_instruction_removed ();
+    (* If the result is a constant the entire instruction should be removed unless the result
+       appears in non-constant phis. If the result appears in non-constant phis then the
+       instruction should be replaced with a move of the constant to the result variable. *)
+    method! map_result_variable ~block:_ var_id =
+      (match IMap.find_opt var_id var_id_constants with
+      | None -> ()
+      | Some constant ->
+        if ISet.mem var_id constants_in_phis then
+          this#replace_instruction
+            [(mk_instr_id (), Instruction.Mov (var_id, mir_value_of_constant constant))]
+        else
+          this#mark_instruction_removed ());
       var_id
 
     (* Convert constant vars to constant values in MIR *)
-    method! map_bool_value ~block:_ ~instruction:_ value =
+    method! map_bool_value ~block:_ value =
       match value with
       | Lit _ -> value
       | Var var_id ->
@@ -251,7 +267,7 @@ class update_constants_mapper ~ocx var_id_constants =
         | Some (BoolConstant const) -> Lit const
         | _ -> value)
 
-    method! map_numeric_value ~block:_ ~instruction:_ value =
+    method! map_numeric_value ~block:_ value =
       match value with
       | IntLit _ -> value
       | IntVar var_id ->
@@ -260,17 +276,50 @@ class update_constants_mapper ~ocx var_id_constants =
         | _ -> value)
   end
 
-let update_constants ~ocx var_id_constants =
-  let mapper = new update_constants_mapper ~ocx var_id_constants in
-  let all_blocks = ocx.program.blocks in
+(* Find constant variables that appear in non-constant phis, as these variables will need to keep
+   a definition as constants cannot be inlined into phis. *)
+let find_constants_in_phis ~ocx var_id_constants removed_vars =
+  let constants_in_phis = ref ISet.empty in
   IMap.iter
     (fun _ block ->
-      let open Block in
-      block.instructions <- mapper#map_instructions ~block block.instructions)
-    all_blocks
+      List.iter
+        (fun (_, var_id, args) ->
+          if (not (IMap.mem var_id var_id_constants)) && not (ISet.mem var_id removed_vars) then
+            IMap.iter
+              (fun _ arg_var_id ->
+                if IMap.mem arg_var_id var_id_constants && not (ISet.mem arg_var_id removed_vars)
+                then
+                  constants_in_phis := ISet.add arg_var_id !constants_in_phis)
+              args)
+        block.Block.phis)
+    ocx.Ocx.program.blocks;
+  !constants_in_phis
 
 let fold_constants_and_prune ~ocx =
   let calc_visitor = new calc_constants_visitor ~ocx in
   ignore (calc_visitor#run ());
   let var_id_constants = calc_visitor#get_var_id_constants () in
-  update_constants ~ocx var_id_constants
+  let removed_vars = calc_visitor#get_removed_vars () in
+  let constants_in_phis = find_constants_in_phis ~ocx var_id_constants removed_vars in
+  let update_constants_mapper =
+    new update_constants_mapper ~ocx var_id_constants constants_in_phis
+  in
+  IMap.iter
+    (fun _ block ->
+      let open Block in
+      (* Remove constant phis, however if the phi result variable appears in some non-constant
+         phi then an instruction should inserted moving the constant to the phi result variable. *)
+      block.phis <-
+        List.filter
+          (fun (_, var_id, _) ->
+            match IMap.find_opt var_id var_id_constants with
+            | None -> true
+            | Some constant ->
+              if ISet.mem var_id constants_in_phis then
+                block.instructions <-
+                  (mk_instr_id (), Mov (var_id, mir_value_of_constant constant))
+                  :: block.instructions;
+              false)
+          block.phis;
+      block.instructions <- update_constants_mapper#map_instructions ~block block.instructions)
+    ocx.Ocx.program.blocks
