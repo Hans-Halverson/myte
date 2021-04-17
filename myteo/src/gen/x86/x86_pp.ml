@@ -1,3 +1,5 @@
+open Basic_collections
+open X86_gen_context
 open X86_instructions
 
 let mk_buf ?(size = 1024) () = Buffer.create size
@@ -160,7 +162,7 @@ let pp_memory_address ~buf mem =
   end;
   add_char ~buf ')'
 
-let pp_instruction ~buf instruction =
+let pp_instruction ~gcx ~buf instruction =
   let open Instruction in
   add_line ~buf (fun buf ->
       let add_string = add_string ~buf in
@@ -304,10 +306,11 @@ let pp_instruction ~buf instruction =
         pp_op op_str;
         pp_register reg
       (* Control flow *)
-      | Jmp label ->
+      | Jmp block_id ->
+        let block = IMap.find block_id gcx.Gcx.blocks_by_id in
         pp_op "jmp";
-        add_string label
-      | CondJmp (cond_type, label) ->
+        add_string block.label
+      | CondJmp (cond_type, block_id) ->
         let op =
           match cond_type with
           | Equal -> "je"
@@ -317,8 +320,9 @@ let pp_instruction ~buf instruction =
           | LessThanEqual -> "jle"
           | GreaterThanEqual -> "jge"
         in
+        let block = IMap.find block_id gcx.Gcx.blocks_by_id in
         pp_op op;
-        add_string label
+        add_string block.label
       | CallR reg ->
         pp_op "call";
         pp_register reg
@@ -348,33 +352,33 @@ let pp_data ~buf (data : data) =
       add_char ~buf ' ';
       add_string ~buf value_string)
 
-let pp_block ~buf (block : int Block.t) =
+let pp_block ~gcx ~buf (block : int Block.t) =
   add_label_line ~buf block.label;
-  List.iter (pp_instruction ~buf) block.instructions
+  List.iter (pp_instruction ~gcx ~buf) block.instructions
 
-let pp_x86_executable executable =
+let pp_x86_program ~gcx program =
   let buf = mk_buf () in
   (* Add global directive *)
   add_line ~buf (fun buf -> add_string ~buf ".global _main");
-  if executable.bss <> [] then
+  if program.bss <> [] then
     List.iter
       (fun { label; size } ->
         add_line ~buf (fun buf -> add_string ~buf (Printf.sprintf ".lcomm %s, %d" label size)))
-      executable.bss;
+      program.bss;
   (* Add rodata section *)
-  if executable.rodata <> [] then (
+  if program.rodata <> [] then (
     add_blank_line ~buf;
     add_line ~buf (fun buf -> add_string ~buf ".section \"r\", rodata");
-    List.iter (pp_data ~buf) executable.rodata
+    List.iter (pp_data ~buf) program.rodata
   );
   (* Add data section *)
-  if executable.data <> [] then (
+  if program.data <> [] then (
     add_blank_line ~buf;
     add_line ~buf (fun buf -> add_string ~buf ".data");
-    List.iter (pp_data ~buf) executable.data
+    List.iter (pp_data ~buf) program.data
   );
   (* Add text section *)
   add_blank_line ~buf;
   add_line ~buf (fun buf -> add_string ~buf ".text");
-  List.iter (pp_block ~buf) executable.text;
+  List.iter (pp_block ~gcx ~buf) program.text;
   Buffer.contents buf

@@ -16,10 +16,9 @@ type source_value_info =
   | SVVariable of VirtualRegister.t * size
   | SVStringImmediate of string
 
-let rec gen (ir : ssa_program) =
-  let gcx = Gcx.mk () in
+let rec gen ~gcx (ir : ssa_program) =
   (* Add init block with initialization of globals *)
-  Gcx.start_block ~gcx ~label:"_init";
+  Gcx.start_block ~gcx ~label:"_init" ~mir_block_id:None;
   Gcx.finish_block ~gcx;
   SMap.iter (fun _ global -> gen_global_instruction_builder ~gcx ~ir global) ir.globals;
   (* Remove init block if there are no init sections *)
@@ -48,7 +47,7 @@ and gen_global_instruction_builder ~gcx ~ir global =
     let bss_data = { label = global.name; size = bytes_of_size size } in
     Gcx.add_bss ~gcx bss_data;
     (* Emit init block to move label's address to global *)
-    Gcx.start_block ~gcx ~label:("_init_" ^ global.name);
+    Gcx.start_block ~gcx ~label:("_init_" ^ global.name) ~mir_block_id:None;
     let reg = VirtualRegister.mk () in
     Gcx.emit ~gcx (MovMR (mk_label_memory_address label, reg));
     Gcx.emit ~gcx (MovRM (reg, mk_label_memory_address global.name));
@@ -72,9 +71,9 @@ and gen_blocks ~gcx ~ir start_block_id label =
         if i = 0 then
           label
         else
-          Gcx.get_label_from_mir_block_id ~gcx mir_block_id
+          Gcx.mk_new_label ~gcx
       in
-      Gcx.start_block ~gcx ~label;
+      Gcx.start_block ~gcx ~label ~mir_block_id:(Some mir_block_id);
       gen_instructions ~gcx ~ir ~block:mir_block (List.map snd mir_block.instructions);
       Gcx.finish_block ~gcx)
     ordered_blocks
@@ -101,8 +100,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
       Gcx.emit ~gcx (CmpRI (var_id, QuadImmediate lit))
     | (IntVar arg1, IntVar arg2) -> Gcx.emit ~gcx (CmpRR (arg1, arg2)));
     let (continue, jump) = get_branches () in
-    Gcx.emit ~gcx (CondJmp (kind, Gcx.get_label_from_mir_block_id ~gcx jump));
-    Gcx.emit ~gcx (Jmp (Gcx.get_label_from_mir_block_id ~gcx continue))
+    Gcx.emit ~gcx (CondJmp (kind, Gcx.get_block_id_from_mir_block_id ~gcx jump));
+    Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx continue))
   in
   match instructions with
   | [] ->
@@ -111,11 +110,11 @@ and gen_instructions ~gcx ~ir ~block instructions =
     | Branch { test = Lit _; _ } -> failwith "Dead branch pruning must have already occurred"
     | Continue continue ->
       (* TODO: Create better structure for tracking relative block locations *)
-      Gcx.emit ~gcx (Jmp (Gcx.get_label_from_mir_block_id ~gcx continue))
+      Gcx.emit ~gcx (Jmp continue)
     | Branch { test = Var var_id; jump; continue } ->
       Gcx.emit ~gcx (TestRR (var_id, var_id));
-      Gcx.emit ~gcx (CondJmp (NotEqual, Gcx.get_label_from_mir_block_id ~gcx jump));
-      Gcx.emit ~gcx (Jmp (Gcx.get_label_from_mir_block_id ~gcx continue))
+      Gcx.emit ~gcx (CondJmp (NotEqual, Gcx.get_block_id_from_mir_block_id ~gcx jump));
+      Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx continue))
     | _ -> ())
   (*
    * ===========================================

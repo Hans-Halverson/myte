@@ -24,11 +24,12 @@ module Gcx = struct
     mutable current_block_builder: virtual_block option;
     (* All blocks, indexed by id *)
     mutable blocks_by_id: virtual_block IMap.t;
+    (* Blocks indexed by their corresponding MIR block. Not all blocks may be in this map. *)
+    mutable mir_block_id_to_block_id: Block.id IMap.t;
     (* Map from instruction id to the block that contains it *)
     mutable instruction_to_block: Block.id IMap.t;
     mutable max_string_literal_id: int;
     mutable max_label_id: int;
-    mutable mir_block_id_to_label: label IMap.t;
   }
 
   let mk () =
@@ -39,10 +40,10 @@ module Gcx = struct
       rodata = [];
       current_block_builder = None;
       blocks_by_id = IMap.empty;
+      mir_block_id_to_block_id = IMap.empty;
       instruction_to_block = IMap.empty;
       max_string_literal_id = 0;
       max_label_id = 0;
-      mir_block_id_to_label = IMap.empty;
     }
 
   let finish_builders ~gcx =
@@ -70,8 +71,20 @@ module Gcx = struct
 
   let add_bss ~gcx bd = gcx.bss <- bd :: gcx.bss
 
-  let start_block ~gcx ~label =
-    let id = Block.mk_id () in
+  let get_block_id_from_mir_block_id ~gcx mir_block_id =
+    match IMap.find_opt mir_block_id gcx.mir_block_id_to_block_id with
+    | Some block_id -> block_id
+    | None ->
+      let block_id = Block.mk_id () in
+      gcx.mir_block_id_to_block_id <- IMap.add mir_block_id block_id gcx.mir_block_id_to_block_id;
+      block_id
+
+  let start_block ~gcx ~label ~mir_block_id =
+    let id =
+      match mir_block_id with
+      | None -> Block.mk_id ()
+      | Some mir_block_id -> get_block_id_from_mir_block_id ~gcx mir_block_id
+    in
     gcx.current_block_builder <- Some { id; label; instructions = [] }
 
   let finish_block ~gcx =
@@ -87,15 +100,10 @@ module Gcx = struct
     current_block.instructions <- (instr_id, instr) :: current_block.instructions;
     gcx.instruction_to_block <- IMap.add instr_id current_block.id gcx.instruction_to_block
 
-  let get_label_from_mir_block_id ~gcx mir_block_id =
-    match IMap.find_opt mir_block_id gcx.mir_block_id_to_label with
-    | Some label -> label
-    | None ->
-      let id = gcx.max_label_id in
-      gcx.max_label_id <- gcx.max_label_id + 1;
-      let label = ".L" ^ string_of_int id in
-      gcx.mir_block_id_to_label <- IMap.add mir_block_id label gcx.mir_block_id_to_label;
-      label
+  let mk_new_label ~gcx =
+    let id = gcx.max_label_id in
+    gcx.max_label_id <- gcx.max_label_id + 1;
+    ".L" ^ string_of_int id
 
   let get_instruction ~gcx instr_id =
     let block_id = IMap.find instr_id gcx.instruction_to_block in

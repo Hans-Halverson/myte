@@ -71,11 +71,11 @@ let rec compile files =
         Mir_optimize.transform_for_assembly program_ssa_ir
     in
     let destructed_ir = Ssa_destruction.destruct_ssa ir in
-    (* Generate executable *)
-    let executable = X86_gen.gen_x86_executable destructed_ir in
-    let executable_file = X86_pp.pp_x86_executable executable in
+    (* Generate x86 program  *)
+    let (gcx, x86_program) = X86_gen.gen_x86_program destructed_ir in
+    let x86_program_file = X86_pp.pp_x86_program ~gcx x86_program in
     if Opts.dump_asm () then begin
-      print_string executable_file;
+      print_string x86_program_file;
       exit 0
     end;
     let output_file =
@@ -85,10 +85,10 @@ let rec compile files =
         exit 1
       | Some output_file -> output_file
     in
-    (* Write executable file *)
+    (* Write x86 file *)
     (try
        let out_chan = open_out output_file in
-       output_string out_chan executable_file;
+       output_string out_chan x86_program_file;
        close_out out_chan
      with Sys_error err ->
        print_error_message err;

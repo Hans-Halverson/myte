@@ -73,6 +73,8 @@ type set_cmp_kind =
   | SetG
   | SetGE
 
+type block_id = int
+
 module Instruction = struct
   type id = int
 
@@ -115,8 +117,8 @@ module Instruction = struct
     | TestRR of 'reg * 'reg
     | SetCmp of set_cmp_kind * 'reg
     (* Control flow *)
-    | Jmp of label
-    | CondJmp of cond_jmp_kind * label
+    | Jmp of block_id
+    | CondJmp of cond_jmp_kind * block_id
     | CallR of 'reg
     | CallM of 'reg memory_address
     | Leave
@@ -134,7 +136,7 @@ module Instruction = struct
 end
 
 module Block = struct
-  type id = int
+  type id = block_id
 
   and 'reg t = {
     id: id;
@@ -164,7 +166,7 @@ type bss_data = {
   size: int;
 }
 
-type 'reg executable = {
+type 'reg program = {
   text: 'reg Block.t list;
   data: data list;
   bss: bss_data list;
