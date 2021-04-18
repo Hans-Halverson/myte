@@ -45,6 +45,13 @@ let pp_size_suffix ~buf size =
     | Long -> 'l'
     | Quad -> 'q')
 
+let pp_label_debug_prefix ~buf block_id =
+  if Opts.dump_debug () then (
+    add_char ~buf '(';
+    add_string ~buf (string_of_int block_id);
+    add_string ~buf ") "
+  )
+
 let pp_register ~buf reg =
   add_char ~buf '%';
   add_string ~buf (string_of_int reg)
@@ -184,6 +191,9 @@ let pp_instruction ~gcx ~buf instruction =
       | PushM addr ->
         pp_op "push";
         pp_memory_address addr
+      | PopR reg ->
+        pp_op "pop";
+        pp_register reg
       | MovRR (src_reg, dest_reg) ->
         pp_op "mov";
         pp_register src_reg;
@@ -309,6 +319,7 @@ let pp_instruction ~gcx ~buf instruction =
       | Jmp block_id ->
         let block = IMap.find block_id gcx.Gcx.blocks_by_id in
         pp_op "jmp";
+        pp_label_debug_prefix ~buf block_id;
         add_string block.label
       | CondJmp (cond_type, block_id) ->
         let op =
@@ -322,6 +333,7 @@ let pp_instruction ~gcx ~buf instruction =
         in
         let block = IMap.find block_id gcx.Gcx.blocks_by_id in
         pp_op op;
+        pp_label_debug_prefix ~buf block_id;
         add_string block.label
       | CallR reg ->
         pp_op "call";
@@ -353,6 +365,7 @@ let pp_data ~buf (data : data) =
       add_string ~buf value_string)
 
 let pp_block ~gcx ~buf (block : int Block.t) =
+  pp_label_debug_prefix ~buf block.id;
   add_label_line ~buf block.label;
   List.iter (pp_instruction ~gcx ~buf) block.instructions
 

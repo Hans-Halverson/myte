@@ -100,7 +100,9 @@ and gen_instructions ~gcx ~ir ~block instructions =
       Gcx.emit ~gcx (CmpRI (var_id, QuadImmediate lit))
     | (IntVar arg1, IntVar arg2) -> Gcx.emit ~gcx (CmpRR (arg1, arg2)));
     let (continue, jump) = get_branches () in
-    Gcx.emit ~gcx (CondJmp (kind, Gcx.get_block_id_from_mir_block_id ~gcx jump));
+    Gcx.emit
+      ~gcx
+      (CondJmp (invert_cond_jump_kind kind, Gcx.get_block_id_from_mir_block_id ~gcx jump));
     Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx continue))
   in
   match instructions with
@@ -110,10 +112,10 @@ and gen_instructions ~gcx ~ir ~block instructions =
     | Branch { test = Lit _; _ } -> failwith "Dead branch pruning must have already occurred"
     | Continue continue ->
       (* TODO: Create better structure for tracking relative block locations *)
-      Gcx.emit ~gcx (Jmp continue)
-    | Branch { test = Var var_id; jump; continue } ->
+      Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx continue))
+    | Branch { test = Var var_id; continue; jump } ->
       Gcx.emit ~gcx (TestRR (var_id, var_id));
-      Gcx.emit ~gcx (CondJmp (NotEqual, Gcx.get_block_id_from_mir_block_id ~gcx jump));
+      Gcx.emit ~gcx (CondJmp (Equal, Gcx.get_block_id_from_mir_block_id ~gcx jump));
       Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx continue))
     | _ -> ())
   (*
@@ -246,7 +248,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
       Gcx.emit ~gcx (MovIR (QuadImmediate (Int64.add left_lit right_lit), var_id))
     | (IntLit lit, IntVar arg_var_id)
     | (IntVar arg_var_id, IntLit lit) ->
-      Gcx.emit ~gcx (AddIR (QuadImmediate lit, arg_var_id))
+      Gcx.emit ~gcx (MovRR (arg_var_id, var_id));
+      Gcx.emit ~gcx (AddIR (QuadImmediate lit, var_id))
     | (IntVar var1, IntVar var2) -> Gcx.emit ~gcx (AddRR (var1, var2)));
     gen_instructions rest_instructions
   (*
@@ -260,10 +263,10 @@ and gen_instructions ~gcx ~ir ~block instructions =
       Gcx.emit ~gcx (MovIR (QuadImmediate (Int64.sub left_lit right_lit), var_id))
     | (IntLit left_lit, IntVar right_var_id) ->
       Gcx.emit ~gcx (MovIR (QuadImmediate left_lit, var_id));
-      Gcx.emit ~gcx (SubRR (var_id, right_var_id))
+      Gcx.emit ~gcx (SubRR (right_var_id, var_id))
     | (IntVar left_var_id, IntLit right_lit) ->
       Gcx.emit ~gcx (SubIR (QuadImmediate right_lit, left_var_id))
-    | (IntVar left_var, IntVar right_var) -> Gcx.emit ~gcx (SubRR (left_var, right_var)));
+    | (IntVar left_var, IntVar right_var) -> Gcx.emit ~gcx (SubRR (right_var, left_var)));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -302,13 +305,14 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                   Neg
    * ===========================================
    *)
-  | Mir.Instruction.Neg (_var_id, arg) :: rest_instructions ->
-    let var_id =
+  | Mir.Instruction.Neg (dest_vreg_id, arg) :: rest_instructions ->
+    let src_vreg_id =
       match arg with
       | IntLit _ -> failwith "Constant folding must have already occurred"
-      | IntVar var_id -> var_id
+      | IntVar vreg_id -> vreg_id
     in
-    Gcx.emit ~gcx (NegR var_id);
+    Gcx.emit ~gcx (MovRR (src_vreg_id, dest_vreg_id));
+    Gcx.emit ~gcx (NegR dest_vreg_id);
     gen_instructions rest_instructions
   (*
    * ===========================================

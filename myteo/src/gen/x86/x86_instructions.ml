@@ -89,6 +89,7 @@ module Instruction = struct
     | PushR of 'reg
     | PushI of immediate (* Only supports 8, 16, and 32-bit immediates *)
     | PushM of 'reg memory_address
+    | PopR of 'reg
     (* Data instructions *)
     | MovRR of 'reg * 'reg
     | MovRM of 'reg * 'reg memory_address
@@ -179,3 +180,12 @@ let bytes_of_size size =
   | Word -> 2
   | Long -> 4
   | Quad -> 8
+
+let invert_cond_jump_kind kind =
+  match kind with
+  | Equal -> NotEqual
+  | NotEqual -> Equal
+  | LessThan -> GreaterThanEqual
+  | GreaterThan -> LessThanEqual
+  | LessThanEqual -> GreaterThan
+  | GreaterThanEqual -> LessThan
