@@ -9,7 +9,8 @@ let mk_blocks blocks =
         id
         {
           Block.id;
-          label;
+          label = Some label;
+          func = 0;
           instructions = List.map (fun instr -> (Instruction.mk_id (), instr)) instructions;
         }
         blocks)
@@ -31,7 +32,7 @@ let tests =
   [
     ( "use_without_def",
       (* If there is no def for a use the vreg is live in (and assumed to have come from another
-       source such as function parameters. *)
+         source such as function parameters. *)
       fun _ ->
         let sets = find_liveness_sets [(0, "start", [PushR 1; Ret])] in
         assert_liveness_sets sets 0 ~live_in:[1] ~live_out:[] );

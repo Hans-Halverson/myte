@@ -72,8 +72,8 @@ let rec compile files =
     in
     let destructed_ir = Ssa_destruction.destruct_ssa ir in
     (* Generate x86 program  *)
-    let (gcx, x86_program) = X86_gen.gen_x86_program destructed_ir in
-    let x86_program_file = X86_pp.pp_x86_program ~gcx x86_program in
+    let gcx = X86_gen.gen_x86_program destructed_ir in
+    let x86_program_file = X86_pp.pp_x86_program ~gcx in
     if Opts.dump_asm () then begin
       print_string x86_program_file;
       exit 0

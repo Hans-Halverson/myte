@@ -2,6 +2,49 @@ open Basic_collections
 open X86_gen_context
 open X86_instructions
 
+type print_context = { mutable block_print_labels: string IMap.t }
+
+class incoming_jump_blocks_visitor ~(gcx : Gcx.t) =
+  object (this)
+    inherit X86_visitor.instruction_visitor
+
+    val mutable incoming_jump_blocks = ISet.empty
+
+    method incoming_jump_blocks = incoming_jump_blocks
+
+    method run () = IMap.iter (fun _ block -> this#visit_block block) gcx.blocks_by_id
+
+    method visit_block block = List.iter (this#visit_instruction ~block) block.instructions
+
+    method! visit_block_edge ~block:_ next_block_id =
+      incoming_jump_blocks <- ISet.add next_block_id incoming_jump_blocks
+  end
+
+let find_incoming_jump_blocks ~gcx =
+  let visitor = new incoming_jump_blocks_visitor ~gcx in
+  visitor#run ();
+  visitor#incoming_jump_blocks
+
+let mk_pcx ~gcx =
+  let pcx = { block_print_labels = IMap.empty } in
+  (* Determine labels for every unlabed block in program that has an incoming jump *)
+  let max_label_id = ref 0 in
+  let incoming_jump_blocks = find_incoming_jump_blocks ~gcx in
+  List.iter
+    (fun block ->
+      let open Block in
+      match block.label with
+      | Some _ -> ()
+      | None ->
+        if ISet.mem block.id incoming_jump_blocks then (
+          let id = !max_label_id in
+          max_label_id := !max_label_id + 1;
+          pcx.block_print_labels <-
+            IMap.add block.id (".L" ^ string_of_int id) pcx.block_print_labels
+        ))
+    gcx.text;
+  pcx
+
 let mk_buf ?(size = 1024) () = Buffer.create size
 
 let add_char ~buf c = Buffer.add_char buf c
@@ -52,13 +95,25 @@ let pp_label_debug_prefix ~buf block_id =
     add_string ~buf ") "
   )
 
-let pp_register ~buf reg =
-  add_char ~buf '%';
-  add_string ~buf (string_of_int reg)
+let pp_label ~pcx block =
+  let open Block in
+  match block.label with
+  | Some label -> Some label
+  | None -> IMap.find_opt block.id pcx.block_print_labels
 
-(* add_string
-   ~buf
-   (match reg with
+let pp_register ~gcx ~buf reg =
+  let reg_alias = Gcx.get_vreg_alias ~gcx reg in
+  add_char ~buf '%';
+  match IMap.find_opt reg_alias gcx.Gcx.vreg_to_color with
+  | None -> add_string ~buf (string_of_int reg_alias)
+  | Some reg ->
+    add_string ~buf (debug_string_of_reg reg);
+    if Opts.dump_debug () then (
+      add_char ~buf ':';
+      add_string ~buf (string_of_int reg_alias)
+    )
+
+(* (match reg with
    (* Quad registers *)
    | (A, Quad) -> "rax"
    | (B, Quad) -> "rbx"
@@ -127,7 +182,7 @@ let pp_register ~buf reg =
    | (R12, Byte) -> "r12b"
    | (R13, Byte) -> "r13b"
    | (R14, Byte) -> "r14b"
-   | (R15, Byte) -> "r15b") *)
+   | (R15, Byte) -> "r15b" *)
 
 let pp_immediate ~buf imm =
   add_char ~buf '$';
@@ -140,7 +195,7 @@ let pp_immediate ~buf imm =
     | LongImmediate imm -> Int32.to_string imm
     | QuadImmediate imm -> Int64.to_string imm)
 
-let pp_memory_address ~buf mem =
+let pp_memory_address ~gcx ~buf mem =
   begin
     match mem.offset with
     | None -> ()
@@ -149,16 +204,11 @@ let pp_memory_address ~buf mem =
   end;
   add_char ~buf '(';
   begin
-    match mem.base with
-    | BaseRegister reg -> pp_register ~buf reg
-    | IP -> add_string ~buf "%rip"
-  end;
-  begin
     match mem.index_and_scale with
     | None -> ()
     | Some (index_register, scale) ->
       add_string ~buf ", ";
-      pp_register ~buf index_register;
+      pp_register ~gcx ~buf index_register;
       begin
         match scale with
         | Scale1 -> ()
@@ -169,17 +219,24 @@ let pp_memory_address ~buf mem =
   end;
   add_char ~buf ')'
 
-let pp_instruction ~gcx ~buf instruction =
+let pp_instruction ~gcx ~pcx ~buf instruction =
   let open Instruction in
+  if Opts.dump_debug () then (
+    let instr_id = string_of_int (fst instruction) in
+    let padding_size = max 0 (4 - String.length instr_id) in
+    add_char ~buf '#';
+    add_string ~buf instr_id;
+    add_string ~buf (String.make padding_size ' ')
+  );
   add_line ~buf (fun buf ->
       let add_string = add_string ~buf in
       let pp_op op =
         add_string op;
         add_char ~buf ' '
       in
-      let pp_register = pp_register ~buf in
+      let pp_register = pp_register ~gcx ~buf in
       let pp_immediate = pp_immediate ~buf in
-      let pp_memory_address = pp_memory_address ~buf in
+      let pp_memory_address = pp_memory_address ~gcx ~buf in
       let pp_args_separator () = add_string ", " in
       match snd instruction with
       | PushR reg ->
@@ -295,9 +352,9 @@ let pp_instruction ~gcx ~buf instruction =
         pp_register reg2
       | CmpRI (reg, imm) ->
         pp_op "cmp";
-        pp_register reg;
+        pp_immediate imm;
         pp_args_separator ();
-        pp_immediate imm
+        pp_register reg
       | TestRR (reg1, reg2) ->
         pp_op "test";
         pp_register reg1;
@@ -320,7 +377,7 @@ let pp_instruction ~gcx ~buf instruction =
         let block = IMap.find block_id gcx.Gcx.blocks_by_id in
         pp_op "jmp";
         pp_label_debug_prefix ~buf block_id;
-        add_string block.label
+        add_string (Option.get (pp_label ~pcx block))
       | CondJmp (cond_type, block_id) ->
         let op =
           match cond_type with
@@ -334,13 +391,13 @@ let pp_instruction ~gcx ~buf instruction =
         let block = IMap.find block_id gcx.Gcx.blocks_by_id in
         pp_op op;
         pp_label_debug_prefix ~buf block_id;
-        add_string block.label
-      | CallR reg ->
+        add_string (Option.get (pp_label ~pcx block))
+      | CallR (reg, _) ->
         pp_op "call";
         pp_register reg
-      | CallM addr ->
+      | CallL (label, _) ->
         pp_op "call";
-        pp_memory_address addr
+        add_string label
       | Leave -> add_string "leave"
       | Ret -> add_string "ret"
       | Syscall -> add_string "syscall")
@@ -364,34 +421,39 @@ let pp_data ~buf (data : data) =
       add_char ~buf ' ';
       add_string ~buf value_string)
 
-let pp_block ~gcx ~buf (block : int Block.t) =
-  pp_label_debug_prefix ~buf block.id;
-  add_label_line ~buf block.label;
-  List.iter (pp_instruction ~gcx ~buf) block.instructions
+let pp_block ~gcx ~pcx ~buf (block : int Block.t) =
+  (match pp_label ~pcx block with
+  | None -> ()
+  | Some label ->
+    pp_label_debug_prefix ~buf block.id;
+    add_label_line ~buf label);
+  List.iter (pp_instruction ~gcx ~pcx ~buf) block.instructions
 
-let pp_x86_program ~gcx program =
+let pp_x86_program ~gcx =
+  let open Gcx in
+  let pcx = mk_pcx ~gcx in
   let buf = mk_buf () in
   (* Add global directive *)
   add_line ~buf (fun buf -> add_string ~buf ".global _main");
-  if program.bss <> [] then
+  if gcx.bss <> [] then
     List.iter
       (fun { label; size } ->
         add_line ~buf (fun buf -> add_string ~buf (Printf.sprintf ".lcomm %s, %d" label size)))
-      program.bss;
+      gcx.bss;
   (* Add rodata section *)
-  if program.rodata <> [] then (
+  if gcx.rodata <> [] then (
     add_blank_line ~buf;
     add_line ~buf (fun buf -> add_string ~buf ".section \"r\", rodata");
-    List.iter (pp_data ~buf) program.rodata
+    List.iter (pp_data ~buf) gcx.rodata
   );
   (* Add data section *)
-  if program.data <> [] then (
+  if gcx.data <> [] then (
     add_blank_line ~buf;
     add_line ~buf (fun buf -> add_string ~buf ".data");
-    List.iter (pp_data ~buf) program.data
+    List.iter (pp_data ~buf) gcx.data
   );
   (* Add text section *)
   add_blank_line ~buf;
   add_line ~buf (fun buf -> add_string ~buf ".text");
-  List.iter (pp_block ~gcx ~buf) program.text;
+  List.iter (pp_block ~gcx ~pcx ~buf) gcx.text;
   Buffer.contents buf

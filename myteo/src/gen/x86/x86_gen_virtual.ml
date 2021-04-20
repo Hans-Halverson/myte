@@ -18,9 +18,13 @@ type source_value_info =
 
 let rec gen ~gcx (ir : ssa_program) =
   (* Add init block with initialization of globals *)
-  Gcx.start_block ~gcx ~label:"_init" ~mir_block_id:None;
+  let init_func = Gcx.mk_function ~gcx [] 0 in
+  Gcx.start_block ~gcx ~label:(Some "_init") ~func:init_func ~mir_block_id:None;
+  let prologue_block_id = (Option.get gcx.current_block_builder).id in
+  let machine_func = IMap.find init_func gcx.funcs_by_id in
+  machine_func.prologue <- prologue_block_id;
   Gcx.finish_block ~gcx;
-  SMap.iter (fun _ global -> gen_global_instruction_builder ~gcx ~ir global) ir.globals;
+  SMap.iter (fun _ global -> gen_global_instruction_builder ~gcx ~ir global init_func) ir.globals;
   (* Remove init block if there are no init sections *)
   if List.length gcx.text = 1 then begin
     gcx.text <- [];
@@ -29,7 +33,7 @@ let rec gen ~gcx (ir : ssa_program) =
   SMap.iter (fun _ func -> gen_function_instruction_builder ~gcx ~ir func) ir.funcs;
   Gcx.finish_builders ~gcx
 
-and gen_global_instruction_builder ~gcx ~ir global =
+and gen_global_instruction_builder ~gcx ~ir global init_func =
   let open Instruction in
   let init_val_info = get_source_value_info global.init_val in
   match init_val_info with
@@ -47,7 +51,7 @@ and gen_global_instruction_builder ~gcx ~ir global =
     let bss_data = { label = global.name; size = bytes_of_size size } in
     Gcx.add_bss ~gcx bss_data;
     (* Emit init block to move label's address to global *)
-    Gcx.start_block ~gcx ~label:("_init_" ^ global.name) ~mir_block_id:None;
+    Gcx.start_block ~gcx ~label:(Some ("_init_" ^ global.name)) ~func:init_func ~mir_block_id:None;
     let reg = VirtualRegister.mk () in
     Gcx.emit ~gcx (MovMR (mk_label_memory_address label, reg));
     Gcx.emit ~gcx (MovRM (reg, mk_label_memory_address global.name));
@@ -57,12 +61,41 @@ and gen_global_instruction_builder ~gcx ~ir global =
        Place global in uninitialized (bss) section. *)
     let bss_data = { label = global.name; size = bytes_of_size size } in
     Gcx.add_bss ~gcx bss_data;
-    gen_blocks ~gcx ~ir global.init_start_block ("_init_" ^ global.name)
+    gen_blocks ~gcx ~ir global.init_start_block (Some ("_init_" ^ global.name)) init_func
 
 and gen_function_instruction_builder ~gcx ~ir func =
-  gen_blocks ~gcx ~ir func.body_start_block func.name
+  let params = List.map (fun (_, vreg, _) -> vreg) func.params in
+  let label =
+    if func.body_start_block = ir.main_id then
+      "_main"
+    else
+      func.name
+  in
+  let func_id = Gcx.mk_function ~gcx params 0 in
+  (* Create function prologue which copies all params from physical registers to temporaries *)
+  Gcx.start_block ~gcx ~label:(Some label) ~func:func_id ~mir_block_id:None;
+  let prologue_block_id = (Option.get gcx.current_block_builder).id in
+  let machine_func = IMap.find func_id gcx.funcs_by_id in
+  machine_func.prologue <- prologue_block_id;
+  List.iteri
+    (fun i param ->
+      let color =
+        match i with
+        | 0 -> DI
+        | 1 -> SI
+        | 2 -> D
+        | 3 -> C
+        | 4 -> R8
+        | 5 -> R9
+        | _ -> failwith "TODO: Cannot yet generate code for 6+ argument functions"
+      in
+      Gcx.emit ~gcx (MovRR (Gcx.mk_precolored ~gcx color, param)))
+    params;
+  Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx func.body_start_block));
+  Gcx.finish_block ~gcx;
+  gen_blocks ~gcx ~ir func.body_start_block None func_id
 
-and gen_blocks ~gcx ~ir start_block_id label =
+and gen_blocks ~gcx ~ir start_block_id label func =
   let ordered_blocks = Block_ordering.order_blocks ~program:ir start_block_id in
   List.iteri
     (fun i mir_block_id ->
@@ -71,9 +104,9 @@ and gen_blocks ~gcx ~ir start_block_id label =
         if i = 0 then
           label
         else
-          Gcx.mk_new_label ~gcx
+          None
       in
-      Gcx.start_block ~gcx ~label ~mir_block_id:(Some mir_block_id);
+      Gcx.start_block ~gcx ~label ~func ~mir_block_id:(Some mir_block_id);
       gen_instructions ~gcx ~ir ~block:mir_block (List.map snd mir_block.instructions);
       Gcx.finish_block ~gcx)
     ordered_blocks
@@ -140,31 +173,24 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                   Call
    * ===========================================
    *)
-  | Mir.Instruction.Call (_var_id, func_val, arg_vals) :: rest_instructions ->
+  | Mir.Instruction.Call (return_vreg, func_val, arg_vals) :: rest_instructions ->
     (* First six arguments are placed in registers %rdi​, ​%rsi​, ​%rdx​, ​%rcx​, ​%r8​, and ​%r9​ *)
     List.iteri
       (fun i arg_val ->
         if i >= 6 then
           ()
         else
-          let reg =
-            match get_source_value_info arg_val with
-            | SVImmediate imm ->
-              let reg = VirtualRegister.mk () in
-              Gcx.emit ~gcx (MovIR (imm, reg));
-              reg
+          match register_of_param i with
+          | None -> ()
+          | Some color ->
+            let vreg = Gcx.mk_precolored ~gcx color in
+            (match get_source_value_info arg_val with
+            | SVImmediate imm -> Gcx.emit ~gcx (MovIR (imm, vreg))
             | SVStringImmediate str ->
-              let reg = VirtualRegister.mk () in
               let label = Gcx.add_string_literal ~gcx str in
-              Gcx.emit ~gcx (Lea (mk_label_memory_address label, reg));
-              reg
-            | SVLabel (label, _) ->
-              let reg = VirtualRegister.mk () in
-              Gcx.emit ~gcx (Lea (mk_label_memory_address label, reg));
-              reg
-            | SVVariable (var_id, _) -> var_id
-          in
-          ignore reg)
+              Gcx.emit ~gcx (Lea (mk_label_memory_address label, vreg))
+            | SVLabel (label, _) -> Gcx.emit ~gcx (Lea (mk_label_memory_address label, vreg))
+            | SVVariable (source_vreg, _) -> Gcx.emit ~gcx (MovRR (source_vreg, vreg))))
       arg_vals;
     (* Later arguments are pushed on stack in reverse order *)
     let rest_arg_vals = List.rev (List_utils.drop 6 arg_vals) in
@@ -180,12 +206,30 @@ and gen_instructions ~gcx ~ir ~block instructions =
         | SVLabel (label, _) -> Gcx.emit ~gcx (PushM (mk_label_memory_address label))
         | SVVariable (var_id, _) -> Gcx.emit ~gcx (PushR var_id))
       rest_arg_vals;
+    (* Emit move instructions that store all caller saved registers into temporaries *)
+    (* let caller_saved_stores =
+         RegSet.fold
+           (fun reg acc ->
+             let color_vreg = Gcx.get_vreg_of_color ~gcx reg in
+             let store_vreg = VirtualRegister.mk () in
+             Gcx.emit ~gcx (MovRR (color_vreg, store_vreg));
+             (color_vreg, store_vreg) :: acc)
+           caller_saved_registers
+           []
+       in *)
+    (* Emit call instruction and move result from register A to return vreg *)
+    let precolored_return_vreg = Gcx.mk_precolored ~gcx A in
     let inst =
       match func_val with
-      | Mir.Instruction.FunctionValue.Lit label -> CallM (mk_label_memory_address label)
-      | Mir.Instruction.FunctionValue.Var var_id -> CallR var_id
+      | Mir.Instruction.FunctionValue.Lit label -> CallL (label, precolored_return_vreg)
+      | Mir.Instruction.FunctionValue.Var var_id -> CallR (var_id, precolored_return_vreg)
     in
     Gcx.emit ~gcx inst;
+    Gcx.emit ~gcx (MovRR (precolored_return_vreg, return_vreg));
+    (* Emit move instructions that restore all caller saved registers from temporaries *)
+    (* List.iter
+       (fun (color_vreg, store_vreg) -> Gcx.emit ~gcx (MovRR (store_vreg, color_vreg)))
+       caller_saved_stores; *)
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -198,16 +242,18 @@ and gen_instructions ~gcx ~ir ~block instructions =
     | Some value ->
       (match get_source_value_info value with
       | SVImmediate imm ->
-        let reg = VirtualRegister.mk () in
-        Gcx.emit ~gcx (MovIR (imm, reg))
+        let vreg = Gcx.mk_precolored ~gcx A in
+        Gcx.emit ~gcx (MovIR (imm, vreg))
       | SVLabel (label, _) ->
-        let reg = VirtualRegister.mk () in
-        Gcx.emit ~gcx (MovMR (mk_label_memory_address label, reg))
+        let vreg = Gcx.mk_precolored ~gcx A in
+        Gcx.emit ~gcx (MovMR (mk_label_memory_address label, vreg))
       | SVStringImmediate str ->
         let label = Gcx.add_string_literal ~gcx str in
-        let reg = VirtualRegister.mk () in
-        Gcx.emit ~gcx (MovMR (mk_label_memory_address label, reg))
-      | SVVariable _ -> ()));
+        let vreg = Gcx.mk_precolored ~gcx A in
+        Gcx.emit ~gcx (MovMR (mk_label_memory_address label, vreg))
+      | SVVariable (vreg, _) ->
+        let vreg_copy = Gcx.mk_precolored ~gcx A in
+        Gcx.emit ~gcx (MovRR (vreg, vreg_copy))));
     Gcx.emit ~gcx Ret;
     gen_instructions rest_instructions
   (*
@@ -250,23 +296,28 @@ and gen_instructions ~gcx ~ir ~block instructions =
     | (IntVar arg_var_id, IntLit lit) ->
       Gcx.emit ~gcx (MovRR (arg_var_id, var_id));
       Gcx.emit ~gcx (AddIR (QuadImmediate lit, var_id))
-    | (IntVar var1, IntVar var2) -> Gcx.emit ~gcx (AddRR (var1, var2)));
+    | (IntVar var1, IntVar var2) ->
+      Gcx.emit ~gcx (MovRR (var2, var_id));
+      Gcx.emit ~gcx (AddRR (var1, var_id)));
     gen_instructions rest_instructions
   (*
    * ===========================================
    *                    Sub
    * ===========================================
    *)
-  | Mir.Instruction.Sub (var_id, left_val, right_val) :: rest_instructions ->
+  | Mir.Instruction.Sub (vreg, left_val, right_val) :: rest_instructions ->
     (match (left_val, right_val) with
     | (IntLit left_lit, IntLit right_lit) ->
-      Gcx.emit ~gcx (MovIR (QuadImmediate (Int64.sub left_lit right_lit), var_id))
+      Gcx.emit ~gcx (MovIR (QuadImmediate (Int64.sub left_lit right_lit), vreg))
     | (IntLit left_lit, IntVar right_var_id) ->
-      Gcx.emit ~gcx (MovIR (QuadImmediate left_lit, var_id));
-      Gcx.emit ~gcx (SubRR (right_var_id, var_id))
+      Gcx.emit ~gcx (MovIR (QuadImmediate left_lit, vreg));
+      Gcx.emit ~gcx (SubRR (right_var_id, vreg))
     | (IntVar left_var_id, IntLit right_lit) ->
-      Gcx.emit ~gcx (SubIR (QuadImmediate right_lit, left_var_id))
-    | (IntVar left_var, IntVar right_var) -> Gcx.emit ~gcx (SubRR (right_var, left_var)));
+      Gcx.emit ~gcx (MovRR (left_var_id, vreg));
+      Gcx.emit ~gcx (SubIR (QuadImmediate right_lit, vreg))
+    | (IntVar left_var, IntVar right_var) ->
+      Gcx.emit ~gcx (MovRR (left_var, vreg));
+      Gcx.emit ~gcx (SubRR (right_var, vreg)));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -491,4 +542,4 @@ and get_source_value_info value =
   | String (Var var_id) -> SVVariable (var_id, Quad)
 
 and mk_label_memory_address label =
-  { offset = Some (LabelOffset label); base = IP; index_and_scale = None }
+  { offset = Some (LabelOffset label); base = None; index_and_scale = None }

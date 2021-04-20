@@ -4,6 +4,7 @@ type t = {
   dump_resolved_ast: bool ref;
   dump_ir: bool ref;
   dump_ir_transforms: string list ref;
+  dump_virtual_asm: bool ref;
   dump_asm: bool ref;
   dump_debug: bool ref;
   optimize: bool ref;
@@ -18,6 +19,7 @@ let opts =
     dump_resolved_ast = ref false;
     dump_ir = ref false;
     dump_ir_transforms = ref [];
+    dump_virtual_asm = ref false;
     dump_asm = ref false;
     dump_debug = ref false;
     optimize = ref false;
@@ -36,6 +38,7 @@ let spec =
     ( "--dump-ir-transforms",
       Arg.String (fun transforms -> opts.dump_ir_transforms := split_comma_list transforms),
       " Transforms to apply to IR before printing to stdout" );
+    ("--dump-virtual-asm", Arg.Set opts.dump_virtual_asm, " Print the virtual assembly to stdout");
     ("--dump-asm", Arg.Set opts.dump_asm, " Print the assembly to stdout");
     ("--dump-debug", Arg.Set opts.dump_debug, " Include debug info when printing other commands");
     ("--no-pretty-print", Arg.Set opts.print_plain, " Do not pretty print output");
@@ -59,6 +62,8 @@ let dump_resolved_ast () = !(opts.dump_resolved_ast)
 let dump_ir () = !(opts.dump_ir)
 
 let dump_ir_transforms () = !(opts.dump_ir_transforms)
+
+let dump_virtual_asm () = !(opts.dump_virtual_asm)
 
 let dump_asm () = !(opts.dump_asm)
 

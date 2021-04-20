@@ -27,7 +27,22 @@ type register_slot =
   | R13
   | R14
   | R15
-  | IP
+
+module RegCollection = struct
+  type t = register_slot
+
+  let compare = Stdlib.compare
+end
+
+module RegSet = Set.Make (RegCollection)
+module RegMap = Map.Make (RegCollection)
+
+let all_registers =
+  RegSet.of_list [A; B; C; D; SI; DI; SP; BP; R8; R9; R10; R11; R12; R13; R14; R15]
+
+let callee_saved_registers = RegSet.of_list [B; SP; BP; R12; R13; R14; R15]
+
+let caller_saved_registers = RegSet.of_list [A; C; D; SI; DI; R8; R9; R10; R11]
 
 type register = register_slot * size
 
@@ -47,13 +62,9 @@ type memory_address_scale =
   | Scale4
   | Scale8
 
-type 'reg memory_address_base =
-  | BaseRegister of 'reg
-  | IP
-
 type 'reg memory_address = {
   offset: memory_address_offset option;
-  base: 'reg memory_address_base;
+  base: 'reg option;
   index_and_scale: ('reg * memory_address_scale) option;
 }
 
@@ -120,8 +131,8 @@ module Instruction = struct
     (* Control flow *)
     | Jmp of block_id
     | CondJmp of cond_jmp_kind * block_id
-    | CallR of 'reg
-    | CallM of 'reg memory_address
+    | CallR of 'reg * (* Implicitly defined register for return value *) 'reg
+    | CallL of label * (* Implicitly defined register for return value *) 'reg
     | Leave
     | Ret
     | Syscall
@@ -136,12 +147,30 @@ module Instruction = struct
     id
 end
 
+module Function = struct
+  type id = int
+
+  type 'reg t = {
+    id: id;
+    params: 'reg list;
+    mutable prologue: block_id;
+  }
+
+  let max_id = ref 0
+
+  let mk_id () =
+    let id = !max_id in
+    max_id := id + 1;
+    id
+end
+
 module Block = struct
   type id = block_id
 
   and 'reg t = {
     id: id;
-    label: label;
+    label: label option;
+    func: Function.id;
     mutable instructions: 'reg Instruction.t list;
   }
 
@@ -189,3 +218,36 @@ let invert_cond_jump_kind kind =
   | GreaterThan -> LessThanEqual
   | LessThanEqual -> GreaterThan
   | GreaterThanEqual -> LessThan
+
+let register_of_param i =
+  if i < 6 then
+    Some
+      (match i with
+      | 0 -> DI
+      | 1 -> SI
+      | 2 -> D
+      | 3 -> C
+      | 4 -> R8
+      | 5 -> R9
+      | _ -> R9)
+  else
+    None
+
+let debug_string_of_reg reg =
+  match reg with
+  | A -> "rax"
+  | B -> "rbx"
+  | C -> "rcx"
+  | D -> "rdx"
+  | SI -> "rsi"
+  | DI -> "rdi"
+  | SP -> "rsp"
+  | BP -> "rbp"
+  | R8 -> "r8"
+  | R9 -> "r9"
+  | R10 -> "r10"
+  | R11 -> "r11"
+  | R12 -> "r12"
+  | R13 -> "r13"
+  | R14 -> "r14"
+  | R15 -> "r15"
