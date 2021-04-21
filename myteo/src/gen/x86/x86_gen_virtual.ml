@@ -28,7 +28,8 @@ let rec gen ~gcx (ir : ssa_program) =
   (* Remove init block if there are no init sections *)
   if List.length gcx.text = 1 then begin
     gcx.text <- [];
-    gcx.blocks_by_id <- IMap.empty
+    gcx.blocks_by_id <- IMap.empty;
+    gcx.funcs_by_id <- IMap.remove init_func gcx.funcs_by_id
   end;
   SMap.iter (fun _ func -> gen_function_instruction_builder ~gcx ~ir func) ir.funcs;
   Gcx.finish_builders ~gcx
@@ -206,30 +207,14 @@ and gen_instructions ~gcx ~ir ~block instructions =
         | SVLabel (label, _) -> Gcx.emit ~gcx (PushM (mk_label_memory_address label))
         | SVVariable (var_id, _) -> Gcx.emit ~gcx (PushR var_id))
       rest_arg_vals;
-    (* Emit move instructions that store all caller saved registers into temporaries *)
-    (* let caller_saved_stores =
-         RegSet.fold
-           (fun reg acc ->
-             let color_vreg = Gcx.get_vreg_of_color ~gcx reg in
-             let store_vreg = VirtualRegister.mk () in
-             Gcx.emit ~gcx (MovRR (color_vreg, store_vreg));
-             (color_vreg, store_vreg) :: acc)
-           caller_saved_registers
-           []
-       in *)
     (* Emit call instruction and move result from register A to return vreg *)
-    let precolored_return_vreg = Gcx.mk_precolored ~gcx A in
     let inst =
       match func_val with
-      | Mir.Instruction.FunctionValue.Lit label -> CallL (label, precolored_return_vreg)
-      | Mir.Instruction.FunctionValue.Var var_id -> CallR (var_id, precolored_return_vreg)
+      | Mir.Instruction.FunctionValue.Lit label -> CallL label
+      | Mir.Instruction.FunctionValue.Var var_id -> CallR var_id
     in
     Gcx.emit ~gcx inst;
-    Gcx.emit ~gcx (MovRR (precolored_return_vreg, return_vreg));
-    (* Emit move instructions that restore all caller saved registers from temporaries *)
-    (* List.iter
-       (fun (color_vreg, store_vreg) -> Gcx.emit ~gcx (MovRR (store_vreg, color_vreg)))
-       caller_saved_stores; *)
+    Gcx.emit ~gcx (MovRR (Gcx.mk_precolored ~gcx A, return_vreg));
     gen_instructions rest_instructions
   (*
    * ===========================================

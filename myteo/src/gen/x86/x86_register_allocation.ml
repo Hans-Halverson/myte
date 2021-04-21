@@ -422,6 +422,31 @@ let select_spill ~(gcx : Gcx.t) =
   gcx.simplify_worklist <- ISet.add vreg gcx.simplify_worklist;
   freeze_moves ~gcx vreg
 
+(* Select a color for a vreg from a set of possible colors to choose from. Only spill a new callee
+   saved register if we need to. *)
+let select_color_for_vreg ~(gcx : Gcx.t) vreg possible_regs =
+  let func = IMap.find vreg gcx.vreg_to_func in
+  let used_callee_saved_regs =
+    IMap.find_opt func gcx.func_to_spilled_callee_saved_reg |> Option.value ~default:RegSet.empty
+  in
+  let unused_callee_saved_regs = RegSet.diff callee_saved_registers used_callee_saved_regs in
+  let possible_not_unused_callee_saved_regs = RegSet.diff possible_regs unused_callee_saved_regs in
+  match RegSet.min_elt_opt possible_not_unused_callee_saved_regs with
+  | Some reg -> Some reg
+  | None ->
+    let possible_unused_callee_saved_regs = RegSet.inter possible_regs unused_callee_saved_regs in
+    (match RegSet.min_elt_opt possible_unused_callee_saved_regs with
+    | None -> None
+    | Some reg ->
+      gcx.func_to_spilled_callee_saved_reg <-
+        IMap.add
+          func
+          (match IMap.find_opt func gcx.func_to_spilled_callee_saved_reg with
+          | None -> RegSet.singleton reg
+          | Some regs -> RegSet.add reg regs)
+          gcx.func_to_spilled_callee_saved_reg;
+      Some reg)
+
 (* Pop nodes off the select stack and greedily assign colors to them. If no color can be assigned,
    add vreg to spill worklist. *)
 let assign_colors ~(gcx : Gcx.t) =
@@ -439,13 +464,11 @@ let assign_colors ~(gcx : Gcx.t) =
           ok_registers := RegSet.remove (IMap.find interfering_vreg gcx.vreg_to_color) !ok_registers)
       interfering_vregs;
     (* Choose an arbitrary color from the remaining set, otherwise spill *)
-    if RegSet.is_empty !ok_registers then
-      gcx.spilled_vregs <- ISet.add vreg gcx.spilled_vregs
-    else (
+    match select_color_for_vreg ~gcx vreg !ok_registers with
+    | None -> gcx.spilled_vregs <- ISet.add vreg gcx.spilled_vregs
+    | Some physical_reg ->
       gcx.colored_vregs <- ISet.add vreg gcx.colored_vregs;
-      let physical_reg = RegSet.min_elt !ok_registers in
       gcx.vreg_to_color <- IMap.add vreg physical_reg gcx.vreg_to_color
-    )
   done;
   ISet.iter
     (fun vreg ->
@@ -474,6 +497,58 @@ let remove_coalesced_moves ~(gcx : Gcx.t) =
               get_alias ~gcx source_vreg <> get_alias ~gcx dest_vreg
             | _ -> true)
           block.instructions)
+    gcx.blocks_by_id
+
+(* Write all function prologues by pushing the used callee saved registers on the stack *)
+let write_function_prologues ~(gcx : Gcx.t) =
+  IMap.iter
+    (fun func_id func ->
+      let prologue = IMap.find func.Function.prologue gcx.blocks_by_id in
+      let spilled_callee_saved_regs =
+        IMap.find_opt func_id gcx.func_to_spilled_callee_saved_reg
+        |> Option.value ~default:RegSet.empty
+      in
+      let push_instrs =
+        RegSet.fold
+          (fun reg acc ->
+            if RegSet.mem reg spilled_callee_saved_regs then
+              Instruction.(mk_id (), PushR (Gcx.mk_precolored ~gcx reg)) :: acc
+            else
+              acc)
+          callee_saved_registers
+          []
+      in
+      prologue.instructions <- List.rev push_instrs @ prologue.instructions)
+    gcx.funcs_by_id
+
+(* Write all function epilogues by pushing the used callee saved registers on the stack *)
+let write_function_epilogues ~(gcx : Gcx.t) =
+  IMap.iter
+    (fun _ block ->
+      let open Block in
+      let spilled_callee_saved_regs =
+        IMap.find_opt block.func gcx.func_to_spilled_callee_saved_reg
+        |> Option.value ~default:RegSet.empty
+      in
+      let offset = ref 0 in
+      block.instructions <-
+        List.map
+          (fun ((_, instr) as instr_with_id) ->
+            let open Instruction in
+            match instr with
+            | Ret ->
+              RegSet.fold
+                (fun reg acc ->
+                  if RegSet.mem reg spilled_callee_saved_regs then (
+                    offset := !offset + 1;
+                    Instruction.(mk_id (), PopR (Gcx.mk_precolored ~gcx reg)) :: acc
+                  ) else
+                    acc)
+                callee_saved_registers
+                [instr_with_id]
+            | _ -> [instr_with_id])
+          block.instructions
+        |> List.flatten)
     gcx.blocks_by_id
 
 (* Allocate physical registers (colors) to each virtual register using iterated register coalescing.
@@ -516,4 +591,6 @@ let allocate_registers ~(gcx : Gcx.t) =
   iter ();
   remove_coalesced_moves ~gcx;
   Gcx.compress_jump_aliases ~gcx;
-  Gcx.remove_redundant_instructions ~gcx
+  Gcx.remove_redundant_instructions ~gcx;
+  write_function_prologues ~gcx;
+  write_function_epilogues ~gcx

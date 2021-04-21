@@ -86,8 +86,12 @@ module Gcx = struct
     mutable vreg_to_alias: VReg.t IMap.t;
     (* Map from virtual register to the physical register they are colored to *)
     mutable vreg_to_color: register_slot IMap.t;
+    (* Map from virtual register to the function it is a part of *)
+    mutable vreg_to_func: Function.id IMap.t;
     (* Map from physical register to a precolored virtual register *)
     mutable color_to_vreg: VReg.t RegMap.t;
+    (* Map from function to its spilled callee saved registers *)
+    mutable func_to_spilled_callee_saved_reg: RegSet.t IMap.t;
   }
 
   let mk () =
@@ -136,7 +140,9 @@ module Gcx = struct
       move_list = IMap.empty;
       vreg_to_alias = IMap.empty;
       vreg_to_color;
+      vreg_to_func = IMap.empty;
       color_to_vreg;
+      func_to_spilled_callee_saved_reg = IMap.empty;
     }
 
   let finish_builders ~gcx =
@@ -188,6 +194,11 @@ module Gcx = struct
   let emit ~gcx instr =
     let current_block = Option.get gcx.current_block_builder in
     let instr_id = Instruction.mk_id () in
+    let add_func_to_vreg =
+      new X86_visitor.instruction_vreg_apply (fun vreg ->
+          gcx.vreg_to_func <- IMap.add vreg current_block.func gcx.vreg_to_func)
+    in
+    add_func_to_vreg#visit_instruction ~block:current_block (instr_id, instr);
     current_block.instructions <- (instr_id, instr) :: current_block.instructions;
     gcx.instruction_to_block <- IMap.add instr_id current_block.id gcx.instruction_to_block;
     match instr with

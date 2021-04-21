@@ -1,18 +1,16 @@
-open X86_gen_context
 open X86_instructions
 
 class instruction_visitor =
   object (this)
-    method visit_instruction ~(block : VReg.t Block.t) (instr : VReg.t Instruction.t) =
+    method visit_instruction ~(block : vreg_id Block.t) (instr : vreg_id Instruction.t) =
       let open Instruction in
       let (_, instr) = instr in
       match instr with
       | PushR read_vreg
+      | CallR read_vreg
       | IDivR read_vreg ->
         this#visit_read_vreg ~block read_vreg
-      | PopR write_vreg
-      | CallL (_, write_vreg) ->
-        this#visit_write_vreg ~block write_vreg
+      | PopR write_vreg -> this#visit_write_vreg ~block write_vreg
       | NegR read_write_vreg
       | NotR read_write_vreg
       | AddIR (_, read_write_vreg)
@@ -27,7 +25,6 @@ class instruction_visitor =
         this#visit_read_vreg ~block read_vreg1;
         this#visit_read_vreg ~block read_vreg2
       | MovRR (read_vreg, write_vreg)
-      | CallR (read_vreg, write_vreg)
       | IMulRIR (read_vreg, _, write_vreg) ->
         this#visit_read_vreg ~block read_vreg;
         this#visit_write_vreg ~block write_vreg
@@ -55,6 +52,7 @@ class instruction_visitor =
       | CondJmp (_, next_block_id) ->
         this#visit_block_edge ~block next_block_id
       | PushI _
+      | CallL _
       | Leave
       | Ret
       | Syscall ->
@@ -71,4 +69,13 @@ class instruction_visitor =
     method visit_read_vreg ~block:_ _vreg_id = ()
 
     method visit_write_vreg ~block:_ _vreg_id = ()
+  end
+
+class instruction_vreg_apply f =
+  object
+    inherit instruction_visitor
+
+    method! visit_read_vreg ~block:_ vreg_id = f vreg_id
+
+    method! visit_write_vreg ~block:_ vreg_id = f vreg_id
   end

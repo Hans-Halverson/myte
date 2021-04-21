@@ -86,6 +86,8 @@ type set_cmp_kind =
 
 type block_id = int
 
+type vreg_id = int
+
 module Instruction = struct
   type id = int
 
@@ -131,8 +133,8 @@ module Instruction = struct
     (* Control flow *)
     | Jmp of block_id
     | CondJmp of cond_jmp_kind * block_id
-    | CallR of 'reg * (* Implicitly defined register for return value *) 'reg
-    | CallL of label * (* Implicitly defined register for return value *) 'reg
+    | CallR of 'reg
+    | CallL of label
     | Leave
     | Ret
     | Syscall

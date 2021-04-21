@@ -392,10 +392,10 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_op op;
         pp_label_debug_prefix ~buf block_id;
         add_string (Option.get (pp_label ~pcx block))
-      | CallR (reg, _) ->
+      | CallR reg ->
         pp_op "call";
         pp_register reg
-      | CallL (label, _) ->
+      | CallL label ->
         pp_op "call";
         add_string label
       | Leave -> add_string "leave"
