@@ -1,0 +1,14 @@
+module test
+
+fun zeroArgFunction(): int = 1
+fun testOneArgFunction(p1: int): int = p1
+fun testTwoArgFunction(p1: int, p2: int): int = p1 + p2
+fun testThreeArgFunction(p1: int, p2: int, p3: int): int = p1 + p2 + p3
+fun testFourArgFunction(p1: int, p2: int, p3: int, p4: int): int = p1 + p2 + p3 + p4
+fun testFiveArgFunction(p1: int, p2: int, p3: int, p4: int, p5: int): int = p1 + p2 + p3 + p4 + p5
+fun testSixArgFunction(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int): int = p1 + p2 + p3 + p4 + p5 + p6
+fun testSevenArgFunction(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p7: int): int = p1 + p2 + p3 + p4 + p5 + p6 + p7
+fun testEightArgFunction(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p7: int, p8: int): int = p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8
+fun testNineArgFunction(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int,  p7: int, p8: int, p9: int): int = p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9
+
+fun main() {}

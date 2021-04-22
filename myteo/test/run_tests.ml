@@ -50,7 +50,7 @@ let () =
         Parser_tests.suite ~bin ~record;
         Analyze_tests.suite ~bin ~record;
         Mir_tests.suite ~bin ~record;
-        Codegen_tests.suite ();
+        Codegen_tests.suite ~bin ~record;
       ]
   in
   let collated_results = Collate.collate_results suite_results in

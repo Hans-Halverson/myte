@@ -170,7 +170,7 @@ module Gcx = struct
     gcx.instruction_to_block <- IMap.add instr_id current_block.id gcx.instruction_to_block;
     match instr with
     | Jmp next_block_id
-    | CondJmp (_, next_block_id) ->
+    | JmpCC (_, next_block_id) ->
       gcx.prev_blocks <- add_to_multimap next_block_id current_block.id gcx.prev_blocks
     | _ -> ()
 
@@ -258,9 +258,9 @@ module Gcx = struct
               | Jmp next_block_id when IMap.mem next_block_id !jump_aliases ->
                 let resolved_alias = resolve_jump_alias next_block_id in
                 (instr_id, Jmp resolved_alias)
-              | CondJmp (cond, next_block_id) when IMap.mem next_block_id !jump_aliases ->
+              | JmpCC (cond, next_block_id) when IMap.mem next_block_id !jump_aliases ->
                 let resolved_alias = resolve_jump_alias next_block_id in
-                (instr_id, CondJmp (cond, resolved_alias))
+                (instr_id, JmpCC (cond, resolved_alias))
               | _ -> instr_with_id)
             block.instructions)
       gcx.blocks_by_id

@@ -95,7 +95,7 @@ let tests =
                   PopR (mk_vreg 1);
                   PopR (mk_vreg 2);
                   PopR (mk_vreg 3);
-                  CondJmp (Equal, 1);
+                  JmpCC (E, 1);
                   Jmp 2;
                 ] );
               (1, "L1", [PushR (mk_vreg 0); PushR (mk_vreg 3); Jmp 3]);
@@ -112,7 +112,7 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              (0, "start", [PopR (mk_vreg 0); PopR (mk_vreg 1); CondJmp (Equal, 1); Jmp 3]);
+              (0, "start", [PopR (mk_vreg 0); PopR (mk_vreg 1); JmpCC (E, 1); Jmp 3]);
               (1, "L1", [PushR (mk_vreg 0); Jmp 2]);
               (2, "L2", [PushR (mk_vreg 1); Jmp 0]);
               (3, "L3", [PushR (mk_vreg 0); Ret]);
@@ -128,7 +128,7 @@ let tests =
           find_liveness_sets
             [
               (0, "start", [PopR (mk_vreg 0); PopR (mk_vreg 1); Jmp 1]);
-              (1, "L1", [PushR (mk_vreg 0); CondJmp (Equal, 2); Jmp 4]);
+              (1, "L1", [PushR (mk_vreg 0); JmpCC (E, 2); Jmp 4]);
               (2, "L2", [Jmp 3]);
               (3, "L3", [PopR (mk_vreg 1); Jmp 1]);
               (4, "L4", [PushR (mk_vreg 1); Ret]);

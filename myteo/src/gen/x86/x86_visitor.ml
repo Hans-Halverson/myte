@@ -32,7 +32,8 @@ class instruction_visitor =
       | SubRR (read_vreg, read_write_vreg)
       | IMulRR (read_vreg, read_write_vreg)
       | AndRR (read_vreg, read_write_vreg)
-      | OrRR (read_vreg, read_write_vreg) ->
+      | OrRR (read_vreg, read_write_vreg)
+      | XorRR (read_vreg, read_write_vreg) ->
         this#visit_read_vreg ~block read_vreg;
         this#visit_read_vreg ~block read_write_vreg;
         this#visit_write_vreg ~block read_write_vreg
@@ -44,12 +45,12 @@ class instruction_visitor =
         this#visit_read_vreg ~block read_vreg;
         this#visit_memory_address ~block mem
       | MovIR (_, write_vreg)
-      | SetCmp (_, write_vreg) ->
+      | SetCC (_, write_vreg) ->
         this#visit_write_vreg ~block write_vreg
       | MovIM (_, mem) -> this#visit_memory_address ~block mem
       | CmpRI (read_vreg, _) -> this#visit_read_vreg ~block read_vreg
       | Jmp next_block_id
-      | CondJmp (_, next_block_id) ->
+      | JmpCC (_, next_block_id) ->
         this#visit_block_edge ~block next_block_id
       | PushI _
       | CallL _

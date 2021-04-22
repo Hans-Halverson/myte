@@ -1,0 +1,49 @@
+  .global _main
+
+  .text
+fib.fibIterative:
+  mov $1, %rax
+  mov $1, %rcx
+.L0:
+  cmp $2, %rdi
+  jl .L1
+  mov %rax, %rdx
+  add %rcx, %rdx
+  mov %rax, %rcx
+  sub $1, %rdi
+  mov %rdx, %rax
+  jmp .L0
+.L1:
+  ret
+fib.fibRecursive:
+  push %rbx
+  push %r12
+  mov %rdi, %rbx
+  cmp $1, %rbx
+  jg .L2
+  mov %rbx, %rax
+  pop %r12
+  pop %rbx
+  ret
+.L2:
+  mov %rbx, %rdi
+  sub $1, %rdi
+  call fib.fibRecursive
+  mov %rax, %r12
+  sub $2, %rbx
+  mov %rbx, %rdi
+  call fib.fibRecursive
+  add %r12, %rax
+  pop %r12
+  pop %rbx
+  ret
+_main:
+  mov $1, %rdi
+  call fib.fibIterative
+  mov $2, %rdi
+  call fib.fibIterative
+  mov $3, %rdi
+  call fib.fibIterative
+  mov $8, %rdi
+  call fib.fibIterative
+  ret

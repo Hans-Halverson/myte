@@ -1,0 +1,68 @@
+  .global _main
+
+  .text
+_main:
+  ret
+test.testEightArgFunction:
+  add %rdi, %rsi
+  add %rsi, %rdx
+  add %rdx, %rcx
+  add %rcx, %r8
+  add %r8, %r9
+  add %r9, %r10
+  add %r10, %rax
+  ret
+test.testFiveArgFunction:
+  add %rdi, %rsi
+  add %rsi, %rdx
+  add %rdx, %rcx
+  add %rcx, %r8
+  mov %r8, %rax
+  ret
+test.testFourArgFunction:
+  add %rdi, %rsi
+  add %rsi, %rdx
+  add %rdx, %rcx
+  mov %rcx, %rax
+  ret
+test.testNineArgFunction:
+  add %rdi, %rsi
+  add %rsi, %rdx
+  add %rdx, %rcx
+  add %rcx, %r8
+  add %r8, %r9
+  add %r9, %r11
+  add %r11, %r10
+  add %r10, %rax
+  ret
+test.testOneArgFunction:
+  mov %rdi, %rax
+  ret
+test.testSevenArgFunction:
+  add %rdi, %rsi
+  add %rsi, %rdx
+  add %rdx, %rcx
+  add %rcx, %r8
+  add %r8, %r9
+  add %r9, %rax
+  ret
+test.testSixArgFunction:
+  add %rdi, %rsi
+  add %rsi, %rdx
+  add %rdx, %rcx
+  add %rcx, %r8
+  add %r8, %r9
+  mov %r9, %rax
+  ret
+test.testThreeArgFunction:
+  add %rdi, %rsi
+  add %rsi, %rdx
+  mov %rdx, %rax
+  ret
+test.testTwoArgFunction:
+  add %rdi, %rsi
+  mov %rsi, %rax
+  ret
+test.zeroArgFunction:
+  mov $1, %rax
+  ret

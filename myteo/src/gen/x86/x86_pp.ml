@@ -101,6 +101,15 @@ let pp_label ~pcx block =
   | Some label -> Some label
   | None -> IMap.find_opt block.id pcx.block_print_labels
 
+let pp_condition_code cc =
+  match cc with
+  | E -> "e"
+  | NE -> "ne"
+  | L -> "l"
+  | G -> "g"
+  | LE -> "le"
+  | GE -> "ge"
+
 let pp_register ~buf reg =
   let reg_alias = VReg.get_vreg_alias reg in
   add_char ~buf '%';
@@ -273,6 +282,11 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_immediate imm;
         pp_args_separator ();
         pp_register dest_reg
+      | XorRR (src_reg, dest_reg) ->
+        pp_op "xor";
+        pp_register src_reg;
+        pp_args_separator ();
+        pp_register dest_reg
       (* Comparisons *)
       | CmpRR (reg1, reg2) ->
         pp_op "cmp";
@@ -289,17 +303,8 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_register reg1;
         pp_args_separator ();
         pp_register reg2
-      | SetCmp (kind, reg) ->
-        let op_str =
-          match kind with
-          | SetE -> "sete"
-          | SetNE -> "setne"
-          | SetL -> "setl"
-          | SetLE -> "setle"
-          | SetG -> "setg"
-          | SetGE -> "setge"
-        in
-        pp_op op_str;
+      | SetCC (cc, reg) ->
+        pp_op ("set" ^ pp_condition_code cc);
         pp_register reg
       (* Control flow *)
       | Jmp block_id ->
@@ -307,18 +312,9 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_op "jmp";
         pp_label_debug_prefix ~buf block_id;
         add_string (Option.get (pp_label ~pcx block))
-      | CondJmp (cond_type, block_id) ->
-        let op =
-          match cond_type with
-          | Equal -> "je"
-          | NotEqual -> "jne"
-          | LessThan -> "jl"
-          | GreaterThan -> "jg"
-          | LessThanEqual -> "jle"
-          | GreaterThanEqual -> "jge"
-        in
+      | JmpCC (cc, block_id) ->
         let block = IMap.find block_id gcx.Gcx.blocks_by_id in
-        pp_op op;
+        pp_op ("j" ^ pp_condition_code cc);
         pp_label_debug_prefix ~buf block_id;
         add_string (Option.get (pp_label ~pcx block))
       | CallR reg ->

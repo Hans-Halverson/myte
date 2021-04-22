@@ -69,13 +69,6 @@ and gen_global_instruction_builder ~gcx ~ir global init_func =
 
 and gen_function_instruction_builder ~gcx ~ir func =
   let func_ = Gcx.mk_function ~gcx [] 0 in
-  let params =
-    List.map
-      (fun (_, var_id, _) ->
-        VReg.of_var_id ~resolution:(StackSlot None) ~func:(Some func_.id) var_id)
-      func.params
-  in
-  func_.params <- params;
   let label =
     if func.body_start_block = ir.main_id then
       "_main"
@@ -86,20 +79,35 @@ and gen_function_instruction_builder ~gcx ~ir func =
   Gcx.start_block ~gcx ~label:(Some label) ~func:func_.id ~mir_block_id:None;
   let prologue_block_id = (Option.get gcx.current_block_builder).id in
   func_.prologue <- prologue_block_id;
-  List.iteri
-    (fun i param ->
-      let color =
+  func_.params <-
+    List.mapi
+      (fun i (_, var_id, _) ->
+        (* First 6 parameters are passed in known registers *)
+        let move_from_precolored color =
+          let param_vreg = VReg.of_var_id ~resolution:Unresolved ~func:(Some func_.id) var_id in
+          Gcx.emit ~gcx (MovRR (Gcx.mk_precolored ~gcx color, param_vreg));
+          param_vreg
+        in
         match i with
-        | 0 -> DI
-        | 1 -> SI
-        | 2 -> D
-        | 3 -> C
-        | 4 -> R8
-        | 5 -> R9
-        | _ -> failwith "TODO: Cannot yet generate code for 6+ argument functions"
-      in
-      Gcx.emit ~gcx (MovRR (Gcx.mk_precolored ~gcx color, param)))
-    params;
+        | 0 -> move_from_precolored DI
+        | 1 -> move_from_precolored SI
+        | 2 -> move_from_precolored D
+        | 3 -> move_from_precolored C
+        | 4 -> move_from_precolored R8
+        | 5 -> move_from_precolored R9
+        (* All other parameters pushed onto stack before call *)
+        | n ->
+          let resolution =
+            VReg.StackSlot
+              (Some
+                 {
+                   base = Some (Gcx.mk_precolored ~gcx BP);
+                   offset = Some (ImmediateOffset (Int64.of_int (4 * (n - 5))));
+                   index_and_scale = None;
+                 })
+          in
+          VReg.of_var_id ~resolution ~func:(Some func_.id) var_id)
+      func.params;
   Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx func.body_start_block));
   Gcx.finish_block ~gcx;
   gen_blocks ~gcx ~ir func.body_start_block None func_.id
@@ -144,10 +152,24 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       Gcx.emit ~gcx (CmpRI (vreg_of_var var_id, QuadImmediate lit))
     | (IntVar arg1, IntVar arg2) -> Gcx.emit ~gcx (CmpRR (vreg_of_var arg1, vreg_of_var arg2)));
     let (continue, jump) = get_branches () in
-    Gcx.emit
-      ~gcx
-      (CondJmp (invert_cond_jump_kind kind, Gcx.get_block_id_from_mir_block_id ~gcx jump));
+    Gcx.emit ~gcx (JmpCC (invert_condition_code kind, Gcx.get_block_id_from_mir_block_id ~gcx jump));
     Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx continue))
+  in
+  let gen_set_cc cc result_var_id left_val right_val =
+    let open Mir.Instruction.NumericValue in
+    let result_vreg = vreg_of_var result_var_id in
+    match (left_val, right_val) with
+    | (IntLit left_lit, IntLit right_lit) ->
+      Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit = right_lit), result_vreg))
+    | (IntLit lit, IntVar arg_var_id)
+    | (IntVar arg_var_id, IntLit lit) ->
+      Gcx.emit ~gcx (XorRR (result_vreg, result_vreg));
+      Gcx.emit ~gcx (CmpRI (vreg_of_var arg_var_id, QuadImmediate lit));
+      Gcx.emit ~gcx (SetCC (cc, result_vreg))
+    | (IntVar var1, IntVar var2) ->
+      Gcx.emit ~gcx (XorRR (result_vreg, result_vreg));
+      Gcx.emit ~gcx (CmpRR (vreg_of_var var1, vreg_of_var var2));
+      Gcx.emit ~gcx (SetCC (cc, result_vreg))
   in
   match instructions with
   | [] ->
@@ -159,7 +181,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx continue))
     | Branch { test = Var var_id; continue; jump } ->
       Gcx.emit ~gcx (TestRR (vreg_of_var var_id, vreg_of_var var_id));
-      Gcx.emit ~gcx (CondJmp (Equal, Gcx.get_block_id_from_mir_block_id ~gcx jump));
+      Gcx.emit ~gcx (JmpCC (E, Gcx.get_block_id_from_mir_block_id ~gcx jump));
       Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx continue))
     | _ -> ())
   (*
@@ -415,19 +437,9 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | [Mir.Instruction.Eq (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp Equal left_val right_val
+    gen_cond_jmp E left_val right_val
   | Mir.Instruction.Eq (result_var_id, left_val, right_val) :: rest_instructions ->
-    let result_vreg = vreg_of_var result_var_id in
-    (match (left_val, right_val) with
-    | (IntLit left_lit, IntLit right_lit) ->
-      Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit = right_lit), result_vreg))
-    | (IntLit lit, IntVar arg_var_id)
-    | (IntVar arg_var_id, IntLit lit) ->
-      Gcx.emit ~gcx (CmpRI (vreg_of_var arg_var_id, QuadImmediate lit));
-      Gcx.emit ~gcx (SetCmp (SetE, result_vreg))
-    | (IntVar var1, IntVar var2) ->
-      Gcx.emit ~gcx (CmpRR (vreg_of_var var1, vreg_of_var var2));
-      Gcx.emit ~gcx (SetCmp (SetE, result_vreg)));
+    gen_set_cc E result_var_id left_val right_val;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -435,19 +447,9 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | [Mir.Instruction.Neq (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp NotEqual left_val right_val
+    gen_cond_jmp NE left_val right_val
   | Mir.Instruction.Neq (result_var_id, left_val, right_val) :: rest_instructions ->
-    let result_vreg = vreg_of_var result_var_id in
-    (match (left_val, right_val) with
-    | (IntLit left_lit, IntLit right_lit) ->
-      Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit <> right_lit), result_vreg))
-    | (IntLit lit, IntVar arg_var_id)
-    | (IntVar arg_var_id, IntLit lit) ->
-      Gcx.emit ~gcx (CmpRI (vreg_of_var arg_var_id, QuadImmediate lit));
-      Gcx.emit ~gcx (SetCmp (SetNE, result_vreg))
-    | (IntVar var1, IntVar var2) ->
-      Gcx.emit ~gcx (CmpRR (vreg_of_var var1, vreg_of_var var2));
-      Gcx.emit ~gcx (SetCmp (SetNE, result_vreg)));
+    gen_set_cc NE result_var_id left_val right_val;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -455,19 +457,9 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | [Mir.Instruction.Lt (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp LessThan left_val right_val
+    gen_cond_jmp L left_val right_val
   | Mir.Instruction.Lt (result_var_id, left_val, right_val) :: rest_instructions ->
-    let result_vreg = vreg_of_var result_var_id in
-    (match (left_val, right_val) with
-    | (IntLit left_lit, IntLit right_lit) ->
-      Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit < right_lit), result_vreg))
-    | (IntLit lit, IntVar arg_var_id)
-    | (IntVar arg_var_id, IntLit lit) ->
-      Gcx.emit ~gcx (CmpRI (vreg_of_var arg_var_id, QuadImmediate lit));
-      Gcx.emit ~gcx (SetCmp (SetL, result_vreg))
-    | (IntVar var1, IntVar var2) ->
-      Gcx.emit ~gcx (CmpRR (vreg_of_var var1, vreg_of_var var2));
-      Gcx.emit ~gcx (SetCmp (SetL, result_vreg)));
+    gen_set_cc L result_var_id left_val right_val;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -475,19 +467,9 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | [Mir.Instruction.LtEq (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp LessThanEqual left_val right_val
+    gen_cond_jmp LE left_val right_val
   | Mir.Instruction.LtEq (result_var_id, left_val, right_val) :: rest_instructions ->
-    let result_vreg = vreg_of_var result_var_id in
-    (match (left_val, right_val) with
-    | (IntLit left_lit, IntLit right_lit) ->
-      Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit <= right_lit), result_vreg))
-    | (IntLit lit, IntVar arg_var_id)
-    | (IntVar arg_var_id, IntLit lit) ->
-      Gcx.emit ~gcx (CmpRI (vreg_of_var arg_var_id, QuadImmediate lit));
-      Gcx.emit ~gcx (SetCmp (SetLE, result_vreg))
-    | (IntVar var1, IntVar var2) ->
-      Gcx.emit ~gcx (CmpRR (vreg_of_var var1, vreg_of_var var2));
-      Gcx.emit ~gcx (SetCmp (SetLE, result_vreg)));
+    gen_set_cc LE result_var_id left_val right_val;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -495,19 +477,9 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | [Mir.Instruction.Gt (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp GreaterThan left_val right_val
+    gen_cond_jmp G left_val right_val
   | Mir.Instruction.Gt (result_var_id, left_val, right_val) :: rest_instructions ->
-    let result_vreg = vreg_of_var result_var_id in
-    (match (left_val, right_val) with
-    | (IntLit left_lit, IntLit right_lit) ->
-      Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit > right_lit), result_vreg))
-    | (IntLit lit, IntVar arg_var_id)
-    | (IntVar arg_var_id, IntLit lit) ->
-      Gcx.emit ~gcx (CmpRI (vreg_of_var arg_var_id, QuadImmediate lit));
-      Gcx.emit ~gcx (SetCmp (SetG, result_vreg))
-    | (IntVar var1, IntVar var2) ->
-      Gcx.emit ~gcx (CmpRR (vreg_of_var var1, vreg_of_var var2));
-      Gcx.emit ~gcx (SetCmp (SetG, result_vreg)));
+    gen_set_cc G result_var_id left_val right_val;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -515,19 +487,9 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | [Mir.Instruction.GtEq (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp GreaterThanEqual left_val right_val
+    gen_cond_jmp GE left_val right_val
   | Mir.Instruction.GtEq (result_var_id, left_val, right_val) :: rest_instructions ->
-    let result_vreg = vreg_of_var result_var_id in
-    (match (left_val, right_val) with
-    | (IntLit left_lit, IntLit right_lit) ->
-      Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit >= right_lit), result_vreg))
-    | (IntLit lit, IntVar arg_var_id)
-    | (IntVar arg_var_id, IntLit lit) ->
-      Gcx.emit ~gcx (CmpRI (vreg_of_var arg_var_id, QuadImmediate lit));
-      Gcx.emit ~gcx (SetCmp (SetGE, result_vreg))
-    | (IntVar var1, IntVar var2) ->
-      Gcx.emit ~gcx (CmpRR (vreg_of_var var1, vreg_of_var var2));
-      Gcx.emit ~gcx (SetCmp (SetGE, result_vreg)));
+    gen_set_cc GE result_var_id left_val right_val;
     gen_instructions rest_instructions
 
 and get_source_value_info ~func value =

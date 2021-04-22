@@ -72,21 +72,13 @@ type 'reg memory_address = {
 
 let empty_memory_address = { offset = None; base = None; index_and_scale = None }
 
-type cond_jmp_kind =
-  | Equal
-  | NotEqual
-  | LessThan
-  | GreaterThan
-  | LessThanEqual
-  | GreaterThanEqual
-
-type set_cmp_kind =
-  | SetE
-  | SetNE
-  | SetL
-  | SetLE
-  | SetG
-  | SetGE
+type condition_code =
+  | E
+  | NE
+  | L
+  | LE
+  | G
+  | GE
 
 type block_id = int
 
@@ -129,14 +121,15 @@ module Instruction = struct
     | AndIR of immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
     | OrRR of 'reg * 'reg
     | OrIR of immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
+    | XorRR of 'reg * 'reg
     (* Comparisons *)
     | CmpRR of 'reg * 'reg
     | CmpRI of 'reg * immediate (* Only supports 8, 16, and 32-bit immediates *)
     | TestRR of 'reg * 'reg
-    | SetCmp of set_cmp_kind * 'reg
+    | SetCC of condition_code * 'reg
     (* Control flow *)
     | Jmp of block_id
-    | CondJmp of cond_jmp_kind * block_id
+    | JmpCC of condition_code * block_id
     | CallR of 'reg
     | CallL of label
     | Leave
@@ -225,7 +218,7 @@ module VirtualRegister = struct
     (* This vreg has been mapped to a physical register in a particular register slot *)
     | Physical of register_slot
     (* This vreg has been mapped to a slot on the stack. May be explicit or result from spills. *)
-    | StackSlot of id memory_address option
+    | StackSlot of t memory_address option
     (* This vreg has not yet been resolved to a physical location *)
     | Unresolved
 
@@ -268,14 +261,14 @@ let bytes_of_size size =
   | Long -> 4
   | Quad -> 8
 
-let invert_cond_jump_kind kind =
-  match kind with
-  | Equal -> NotEqual
-  | NotEqual -> Equal
-  | LessThan -> GreaterThanEqual
-  | GreaterThan -> LessThanEqual
-  | LessThanEqual -> GreaterThan
-  | GreaterThanEqual -> LessThan
+let invert_condition_code cc =
+  match cc with
+  | E -> NE
+  | NE -> E
+  | L -> GE
+  | G -> LE
+  | LE -> G
+  | GE -> L
 
 let register_of_param i =
   if i < 6 then

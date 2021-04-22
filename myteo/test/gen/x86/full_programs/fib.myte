@@ -1,0 +1,31 @@
+module fib
+
+fun fibRecursive(x: int): int {
+  if (x <= 1) {
+    return x;
+  } else {
+    return fibRecursive(x - 1) + fibRecursive(x - 2);
+  }
+}
+
+fun fibIterative(x: int): int {
+  var current = 1;
+  var prev = 1;
+  var i = x;
+  while (i >= 2) {
+    val oldCurrent = current;
+    current = prev + current;
+    prev = oldCurrent;
+    i = i - 1;
+  }
+
+  return current;
+}
+
+fun main(): int {
+  fibIterative(1);
+  fibIterative(2);
+  fibIterative(3);
+
+  return fibIterative(8);
+}

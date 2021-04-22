@@ -1,0 +1,68 @@
+  .global _main
+
+  .text
+_main:
+  ret
+test.testComparisonConditionals:
+  cmp $3, %rdi
+  jne .L0
+  mov $1, %rax
+  ret
+.L0:
+  cmp $3, %rdi
+  je .L1
+  mov $2, %rax
+  ret
+.L1:
+  cmp $3, %rdi
+  jge .L2
+  mov $3, %rax
+  ret
+.L2:
+  cmp $3, %rdi
+  jg .L3
+  mov $4, %rax
+  ret
+.L3:
+  cmp $3, %rdi
+  jle .L4
+  mov $5, %rax
+  ret
+.L4:
+  cmp $3, %rdi
+  jl .L5
+  mov $6, %rax
+  ret
+.L5:
+  mov $7, %rax
+  ret
+test.testEq:
+  xor %rax, %rax
+  cmp $3, %rdi
+  sete %rax
+  ret
+test.testGe:
+  xor %rax, %rax
+  cmp $3, %rdi
+  setge %rax
+  ret
+test.testGt:
+  xor %rax, %rax
+  cmp $3, %rdi
+  setg %rax
+  ret
+test.testLe:
+  xor %rax, %rax
+  cmp $3, %rdi
+  setle %rax
+  ret
+test.testLt:
+  xor %rax, %rax
+  cmp $3, %rdi
+  setl %rax
+  ret
+test.testNe:
+  xor %rax, %rax
+  cmp $3, %rdi
+  setne %rax
+  ret
