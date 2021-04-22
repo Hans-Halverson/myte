@@ -1,3 +1,5 @@
+open Basic_collections
+
 type label = string
 
 type size =
@@ -67,6 +69,8 @@ type 'reg memory_address = {
   base: 'reg option;
   index_and_scale: ('reg * memory_address_scale) option;
 }
+
+let empty_memory_address = { offset = None; base = None; index_and_scale = None }
 
 type cond_jmp_kind =
   | Equal
@@ -154,8 +158,9 @@ module Function = struct
 
   type 'reg t = {
     id: id;
-    params: 'reg list;
+    mutable params: 'reg list;
     mutable prologue: block_id;
+    mutable spilled_callee_saved_regs: RegSet.t;
   }
 
   let max_id = ref 0
@@ -204,6 +209,57 @@ type 'reg program = {
   bss: bss_data list;
   rodata: data list;
 }
+
+module VirtualRegister = struct
+  type id = int
+
+  type t = {
+    id: id;
+    mutable resolution: resolution;
+    mutable func: Function.id option;
+  }
+
+  and resolution =
+    (* This vreg has been aliased to another. The resolution is the resolution of the alias vreg. *)
+    | Alias of t
+    (* This vreg has been mapped to a physical register in a particular register slot *)
+    | Physical of register_slot
+    (* This vreg has been mapped to a slot on the stack. May be explicit or result from spills. *)
+    | StackSlot of id memory_address option
+    (* This vreg has not yet been resolved to a physical location *)
+    | Unresolved
+
+  let vregs_by_id = ref IMap.empty
+
+  let of_var_id ~resolution ~func var_id =
+    match IMap.find_opt var_id !vregs_by_id with
+    | None ->
+      let new_vreg = { id = var_id; resolution; func } in
+      vregs_by_id := IMap.add var_id new_vreg !vregs_by_id;
+      new_vreg
+    | Some existing_vreg -> existing_vreg
+
+  let mk ~resolution ~func = { id = Mir.mk_var_id (); resolution; func }
+
+  let compare v1 v2 = Int.compare v1.id v2.id
+
+  let rec get_vreg_alias vreg =
+    match vreg.resolution with
+    | Alias alias -> get_vreg_alias alias
+    | _ -> vreg
+
+  let get_resolution vreg = (get_vreg_alias vreg).resolution
+end
+
+module VReg = VirtualRegister
+module VRegSet = Set.Make (VirtualRegister)
+module VRegMap = Map.Make (VirtualRegister)
+
+type virtual_instruction = VReg.t Instruction.t
+
+type virtual_block = VReg.t Block.t
+
+type virtual_program = VReg.t program
 
 let bytes_of_size size =
   match size with

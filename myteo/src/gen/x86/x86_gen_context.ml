@@ -1,18 +1,5 @@
 open Basic_collections
-open Mir
 open X86_instructions
-
-type vreg_id = int
-
-module VirtualRegister = struct
-  type t = int
-
-  let mk () = mk_var_id ()
-end
-
-module VReg = VirtualRegister
-
-type virtual_block = VReg.t Block.t
 
 let add_to_multimap key value mmap =
   let new_values =
@@ -52,20 +39,19 @@ module Gcx = struct
     mutable instruction_to_block: Block.id IMap.t;
     mutable funcs_by_id: VReg.t Function.t IMap.t;
     mutable max_string_literal_id: int;
-    mutable max_label_id: int;
     (* Data structures used for register allocation *)
     (* Map of virtual registers live at the beginning of each block *)
     mutable live_out: VReg.t list IMap.t;
     (* Every virtual register is in exactly one of these sets *)
-    mutable precolored_vregs: ISet.t;
-    mutable initial_vregs: ISet.t;
-    (* Low degree, non move related nodes *)
-    mutable simplify_worklist: ISet.t;
-    mutable freeze_worklist: ISet.t;
-    mutable spill_worklist: ISet.t;
-    mutable spilled_vregs: ISet.t;
-    mutable coalesced_vregs: ISet.t;
-    mutable colored_vregs: ISet.t;
+    mutable precolored_vregs: VRegSet.t;
+    mutable initial_vregs: VRegSet.t;
+    (* Low degree, non move related vregs *)
+    mutable simplify_worklist: VRegSet.t;
+    mutable freeze_worklist: VRegSet.t;
+    mutable spill_worklist: VRegSet.t;
+    mutable spilled_vregs: VRegSet.t;
+    mutable coalesced_vregs: VRegSet.t;
+    mutable colored_vregs: VRegSet.t;
     (* Stack of vregs that are ready for an attempt to have colors assigned to them *)
     mutable select_stack: VReg.t list;
     (* Every move is in exactly one of these sets *)
@@ -77,35 +63,26 @@ module Gcx = struct
     mutable active_moves: ISet.t;
     (* Adjacency list representation of interference graph. Maps from virtual register to a set of
        all virtual registers that interfere with it. *)
-    mutable interference_graph: ISet.t IMap.t;
+    mutable interference_graph: VRegSet.t VRegMap.t;
     (* Degree of each virtual register in interference graph *)
-    mutable interference_degree: int IMap.t;
+    mutable interference_degree: int VRegMap.t;
     (* Map from virtual register to instruction ids of all moves it is a part of *)
-    mutable move_list: ISet.t IMap.t;
-    (* Map from virtual registers to the virtual registers they are aliased to *)
-    mutable vreg_to_alias: VReg.t IMap.t;
-    (* Map from virtual register to the physical register they are colored to *)
-    mutable vreg_to_color: register_slot IMap.t;
-    (* Map from virtual register to the function it is a part of *)
-    mutable vreg_to_func: Function.id IMap.t;
+    mutable move_list: ISet.t VRegMap.t;
     (* Map from physical register to a precolored virtual register *)
     mutable color_to_vreg: VReg.t RegMap.t;
-    (* Map from function to its spilled callee saved registers *)
-    mutable func_to_spilled_callee_saved_reg: RegSet.t IMap.t;
   }
 
   let mk () =
     (* Initialize representative precolored vregs *)
-    let (color_to_vreg, vreg_to_color, precolored_vregs, interference_degree) =
+    let (color_to_vreg, precolored_vregs, interference_degree) =
       RegSet.fold
-        (fun reg (color_to_vreg, vreg_to_color, precolored_vregs, interference_degree) ->
-          let vreg = VirtualRegister.mk () in
+        (fun reg (color_to_vreg, precolored_vregs, interference_degree) ->
+          let vreg = VirtualRegister.mk ~func:None ~resolution:(Physical reg) in
           ( RegMap.add reg vreg color_to_vreg,
-            IMap.add vreg reg vreg_to_color,
-            ISet.add vreg precolored_vregs,
-            IMap.add vreg Int.max_int interference_degree ))
+            VRegSet.add vreg precolored_vregs,
+            VRegMap.add vreg Int.max_int interference_degree ))
         all_registers
-        (RegMap.empty, IMap.empty, ISet.empty, IMap.empty)
+        (RegMap.empty, VRegSet.empty, VRegMap.empty)
     in
     {
       text = [];
@@ -119,30 +96,25 @@ module Gcx = struct
       instruction_to_block = IMap.empty;
       funcs_by_id = IMap.empty;
       max_string_literal_id = 0;
-      max_label_id = 0;
       live_out = IMap.empty;
       precolored_vregs;
-      initial_vregs = ISet.empty;
-      simplify_worklist = ISet.empty;
-      freeze_worklist = ISet.empty;
-      spill_worklist = ISet.empty;
-      spilled_vregs = ISet.empty;
-      coalesced_vregs = ISet.empty;
-      colored_vregs = ISet.empty;
+      initial_vregs = VRegSet.empty;
+      simplify_worklist = VRegSet.empty;
+      freeze_worklist = VRegSet.empty;
+      spill_worklist = VRegSet.empty;
+      spilled_vregs = VRegSet.empty;
+      coalesced_vregs = VRegSet.empty;
+      colored_vregs = VRegSet.empty;
       select_stack = [];
       coalesced_moves = ISet.empty;
       constrained_moves = ISet.empty;
       frozen_moves = ISet.empty;
       worklist_moves = ISet.empty;
       active_moves = ISet.empty;
-      interference_graph = IMap.empty;
+      interference_graph = VRegMap.empty;
       interference_degree;
-      move_list = IMap.empty;
-      vreg_to_alias = IMap.empty;
-      vreg_to_color;
-      vreg_to_func = IMap.empty;
+      move_list = VRegMap.empty;
       color_to_vreg;
-      func_to_spilled_callee_saved_reg = IMap.empty;
     }
 
   let finish_builders ~gcx =
@@ -194,11 +166,6 @@ module Gcx = struct
   let emit ~gcx instr =
     let current_block = Option.get gcx.current_block_builder in
     let instr_id = Instruction.mk_id () in
-    let add_func_to_vreg =
-      new X86_visitor.instruction_vreg_apply (fun vreg ->
-          gcx.vreg_to_func <- IMap.add vreg current_block.func gcx.vreg_to_func)
-    in
-    add_func_to_vreg#visit_instruction ~block:current_block (instr_id, instr);
     current_block.instructions <- (instr_id, instr) :: current_block.instructions;
     gcx.instruction_to_block <- IMap.add instr_id current_block.id gcx.instruction_to_block;
     match instr with
@@ -207,19 +174,13 @@ module Gcx = struct
       gcx.prev_blocks <- add_to_multimap next_block_id current_block.id gcx.prev_blocks
     | _ -> ()
 
-  let rec get_vreg_alias ~gcx vreg =
-    if ISet.mem vreg gcx.coalesced_vregs then
-      get_vreg_alias ~gcx (IMap.find vreg gcx.vreg_to_alias)
-    else
-      vreg
-
   let mk_precolored ~gcx color = RegMap.find color gcx.color_to_vreg
 
   let mk_function ~gcx params prologue =
     let id = Function.mk_id () in
-    let func = { Function.id; params; prologue } in
+    let func = { Function.id; params; prologue; spilled_callee_saved_regs = RegSet.empty } in
     gcx.funcs_by_id <- IMap.add id func gcx.funcs_by_id;
-    id
+    func
 
   let get_instruction ~gcx instr_id =
     let block_id = IMap.find instr_id gcx.instruction_to_block in
@@ -248,10 +209,10 @@ module Gcx = struct
           List.filter
             (fun (_, instr) ->
               match instr with
-              | Instruction.MovRR (vreg1, vreg2)
-                when IMap.find (get_vreg_alias ~gcx vreg1) gcx.vreg_to_color
-                     = IMap.find (get_vreg_alias ~gcx vreg2) gcx.vreg_to_color ->
-                false
+              | Instruction.MovRR (vreg1, vreg2) ->
+                (match (VReg.get_resolution vreg1, VReg.get_resolution vreg2) with
+                | (Physical reg1, Physical reg2) when reg1 = reg2 -> false
+                | _ -> true)
               | _ -> true)
             block.instructions)
       gcx.blocks_by_id

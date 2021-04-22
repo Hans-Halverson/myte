@@ -101,88 +101,17 @@ let pp_label ~pcx block =
   | Some label -> Some label
   | None -> IMap.find_opt block.id pcx.block_print_labels
 
-let pp_register ~gcx ~buf reg =
-  let reg_alias = Gcx.get_vreg_alias ~gcx reg in
+let pp_register ~buf reg =
+  let reg_alias = VReg.get_vreg_alias reg in
   add_char ~buf '%';
-  match IMap.find_opt reg_alias gcx.Gcx.vreg_to_color with
-  | None -> add_string ~buf (string_of_int reg_alias)
-  | Some reg ->
+  match reg_alias.resolution with
+  | Physical reg ->
     add_string ~buf (debug_string_of_reg reg);
     if Opts.dump_debug () then (
       add_char ~buf ':';
-      add_string ~buf (string_of_int reg_alias)
+      add_string ~buf (string_of_int reg_alias.id)
     )
-
-(* (match reg with
-   (* Quad registers *)
-   | (A, Quad) -> "rax"
-   | (B, Quad) -> "rbx"
-   | (C, Quad) -> "rcx"
-   | (D, Quad) -> "rdx"
-   | (SI, Quad) -> "rsi"
-   | (DI, Quad) -> "rdi"
-   | (SP, Quad) -> "rsp"
-   | (BP, Quad) -> "rbp"
-   | (R8, Quad) -> "r8"
-   | (R9, Quad) -> "r9"
-   | (R10, Quad) -> "r10"
-   | (R11, Quad) -> "r11"
-   | (R12, Quad) -> "r12"
-   | (R13, Quad) -> "r13"
-   | (R14, Quad) -> "r14"
-   | (R15, Quad) -> "r15"
-   | (IP, _) -> "rip"
-   (* Long registers *)
-   | (A, Long) -> "eax"
-   | (B, Long) -> "ebx"
-   | (C, Long) -> "ecx"
-   | (D, Long) -> "edx"
-   | (SI, Long) -> "esi"
-   | (DI, Long) -> "edi"
-   | (SP, Long) -> "esp"
-   | (BP, Long) -> "ebp"
-   | (R8, Long) -> "r8d"
-   | (R9, Long) -> "r9d"
-   | (R10, Long) -> "r10d"
-   | (R11, Long) -> "r11d"
-   | (R12, Long) -> "r12d"
-   | (R13, Long) -> "r13d"
-   | (R14, Long) -> "r14d"
-   | (R15, Long) -> "r15d"
-   (* Word registers *)
-   | (A, Word) -> "ax"
-   | (B, Word) -> "bx"
-   | (C, Word) -> "cx"
-   | (D, Word) -> "dx"
-   | (SI, Word) -> "si"
-   | (DI, Word) -> "di"
-   | (SP, Word) -> "sp"
-   | (BP, Word) -> "bp"
-   | (R8, Word) -> "r8w"
-   | (R9, Word) -> "r9w"
-   | (R10, Word) -> "r10w"
-   | (R11, Word) -> "r11w"
-   | (R12, Word) -> "r12w"
-   | (R13, Word) -> "r13w"
-   | (R14, Word) -> "r14w"
-   | (R15, Word) -> "r15w"
-   (* Byte registers *)
-   | (A, Byte) -> "al"
-   | (B, Byte) -> "bl"
-   | (C, Byte) -> "cl"
-   | (D, Byte) -> "dl"
-   | (SI, Byte) -> "sil"
-   | (DI, Byte) -> "dil"
-   | (SP, Byte) -> "spl"
-   | (BP, Byte) -> "bpl"
-   | (R8, Byte) -> "r8b"
-   | (R9, Byte) -> "r9b"
-   | (R10, Byte) -> "r10b"
-   | (R11, Byte) -> "r11b"
-   | (R12, Byte) -> "r12b"
-   | (R13, Byte) -> "r13b"
-   | (R14, Byte) -> "r14b"
-   | (R15, Byte) -> "r15b" *)
+  | _ -> add_string ~buf (string_of_int reg_alias.id)
 
 let pp_immediate ~buf imm =
   add_char ~buf '$';
@@ -195,7 +124,7 @@ let pp_immediate ~buf imm =
     | LongImmediate imm -> Int32.to_string imm
     | QuadImmediate imm -> Int64.to_string imm)
 
-let pp_memory_address ~gcx ~buf mem =
+let pp_memory_address ~buf mem =
   begin
     match mem.offset with
     | None -> ()
@@ -208,7 +137,7 @@ let pp_memory_address ~gcx ~buf mem =
     | None -> ()
     | Some (index_register, scale) ->
       add_string ~buf ", ";
-      pp_register ~gcx ~buf index_register;
+      pp_register ~buf index_register;
       begin
         match scale with
         | Scale1 -> ()
@@ -234,9 +163,9 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         add_string op;
         add_char ~buf ' '
       in
-      let pp_register = pp_register ~gcx ~buf in
+      let pp_register = pp_register ~buf in
       let pp_immediate = pp_immediate ~buf in
-      let pp_memory_address = pp_memory_address ~gcx ~buf in
+      let pp_memory_address = pp_memory_address ~buf in
       let pp_args_separator () = add_string ", " in
       match snd instruction with
       | PushR reg ->
@@ -421,7 +350,7 @@ let pp_data ~buf (data : data) =
       add_char ~buf ' ';
       add_string ~buf value_string)
 
-let pp_block ~gcx ~pcx ~buf (block : int Block.t) =
+let pp_block ~gcx ~pcx ~buf (block : virtual_block) =
   (match pp_label ~pcx block with
   | None -> ()
   | Some label ->

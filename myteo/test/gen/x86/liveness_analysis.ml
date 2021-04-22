@@ -2,6 +2,8 @@ open Basic_collections
 open Myte_test
 open X86_instructions
 
+let mk_vreg id = VReg.of_var_id ~resolution:Unresolved ~func:None id
+
 let mk_blocks blocks =
   List.fold_left
     (fun blocks (id, label, instructions) ->
@@ -18,10 +20,15 @@ let mk_blocks blocks =
     blocks
 
 let find_liveness_sets blocks =
+  let open VirtualRegister in
   let blocks_by_id = mk_blocks blocks in
   let (live_in, live_out) = X86_register_allocation.liveness_analysis_from_blocks blocks_by_id in
-  ( IMap.map (fun set_as_list -> ISet.of_list set_as_list) live_in,
-    IMap.map (fun set_as_list -> ISet.of_list set_as_list) live_out )
+  ( IMap.map
+      (fun set_as_list -> List.fold_left (fun acc v -> ISet.add v.id acc) ISet.empty set_as_list)
+      live_in,
+    IMap.map
+      (fun set_as_list -> List.fold_left (fun acc v -> ISet.add v.id acc) ISet.empty set_as_list)
+      live_out )
 
 let assert_liveness_sets (all_live_in, all_live_out) block_id ~live_in ~live_out =
   assert_iset_equals (IMap.find block_id all_live_in) live_in;
@@ -34,16 +41,16 @@ let tests =
       (* If there is no def for a use the vreg is live in (and assumed to have come from another
          source such as function parameters. *)
       fun _ ->
-        let sets = find_liveness_sets [(0, "start", [PushR 1; Ret])] in
+        let sets = find_liveness_sets [(0, "start", [PushR (mk_vreg 1); Ret])] in
         assert_liveness_sets sets 0 ~live_in:[1] ~live_out:[] );
     ( "use_stops_propagation",
       fun _ ->
         let sets =
           find_liveness_sets
             [
-              (0, "start", [PopR 0; PopR 1; Jmp 1]);
-              (1, "L1", [PushR 0; Jmp 2]);
-              (2, "L2", [PushR 1; Jmp 3]);
+              (0, "start", [PopR (mk_vreg 0); PopR (mk_vreg 1); Jmp 1]);
+              (1, "L1", [PushR (mk_vreg 0); Jmp 2]);
+              (2, "L2", [PushR (mk_vreg 1); Jmp 3]);
               (3, "L3", [Ret]);
             ]
         in
@@ -55,7 +62,10 @@ let tests =
       fun _ ->
         let sets =
           find_liveness_sets
-            [(0, "start", [PopR 0; PushR 0; Jmp 1]); (1, "L1", [PopR 1; PushR 1; Ret])]
+            [
+              (0, "start", [PopR (mk_vreg 0); PushR (mk_vreg 0); Jmp 1]);
+              (1, "L1", [PopR (mk_vreg 1); PushR (mk_vreg 1); Ret]);
+            ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[];
         assert_liveness_sets sets 1 ~live_in:[] ~live_out:[] );
@@ -65,9 +75,9 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              (0, "start", [PopR 0; Jmp 1]);
-              (1, "L1", [PushR 0; PopR 0; Jmp 2]);
-              (2, "L2", [PushR 0; Ret]);
+              (0, "start", [PopR (mk_vreg 0); Jmp 1]);
+              (1, "L1", [PushR (mk_vreg 0); PopR (mk_vreg 0); Jmp 2]);
+              (2, "L2", [PushR (mk_vreg 0); Ret]);
             ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[0];
@@ -78,10 +88,19 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              (0, "start", [PopR 0; PopR 1; PopR 2; PopR 3; CondJmp (Equal, 1); Jmp 2]);
-              (1, "L1", [PushR 0; PushR 3; Jmp 3]);
-              (2, "L2", [PushR 1; Jmp 3]);
-              (3, "L3", [PushR 2; PushR 3; Ret]);
+              ( 0,
+                "start",
+                [
+                  PopR (mk_vreg 0);
+                  PopR (mk_vreg 1);
+                  PopR (mk_vreg 2);
+                  PopR (mk_vreg 3);
+                  CondJmp (Equal, 1);
+                  Jmp 2;
+                ] );
+              (1, "L1", [PushR (mk_vreg 0); PushR (mk_vreg 3); Jmp 3]);
+              (2, "L2", [PushR (mk_vreg 1); Jmp 3]);
+              (3, "L3", [PushR (mk_vreg 2); PushR (mk_vreg 3); Ret]);
             ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[0; 1; 2; 3];
@@ -93,10 +112,10 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              (0, "start", [PopR 0; PopR 1; CondJmp (Equal, 1); Jmp 3]);
-              (1, "L1", [PushR 0; Jmp 2]);
-              (2, "L2", [PushR 1; Jmp 0]);
-              (3, "L3", [PushR 0; Ret]);
+              (0, "start", [PopR (mk_vreg 0); PopR (mk_vreg 1); CondJmp (Equal, 1); Jmp 3]);
+              (1, "L1", [PushR (mk_vreg 0); Jmp 2]);
+              (2, "L2", [PushR (mk_vreg 1); Jmp 0]);
+              (3, "L3", [PushR (mk_vreg 0); Ret]);
             ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[0; 1];
@@ -108,11 +127,11 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              (0, "start", [PopR 0; PopR 1; Jmp 1]);
-              (1, "L1", [PushR 0; CondJmp (Equal, 2); Jmp 4]);
+              (0, "start", [PopR (mk_vreg 0); PopR (mk_vreg 1); Jmp 1]);
+              (1, "L1", [PushR (mk_vreg 0); CondJmp (Equal, 2); Jmp 4]);
               (2, "L2", [Jmp 3]);
-              (3, "L3", [PopR 1; Jmp 1]);
-              (4, "L4", [PushR 1; Ret]);
+              (3, "L3", [PopR (mk_vreg 1); Jmp 1]);
+              (4, "L4", [PushR (mk_vreg 1); Ret]);
             ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[0; 1];

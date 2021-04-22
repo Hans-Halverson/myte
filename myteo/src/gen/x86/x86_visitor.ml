@@ -2,7 +2,7 @@ open X86_instructions
 
 class instruction_visitor =
   object (this)
-    method visit_instruction ~(block : vreg_id Block.t) (instr : vreg_id Instruction.t) =
+    method visit_instruction ~(block : virtual_block) (instr : virtual_instruction) =
       let open Instruction in
       let (_, instr) = instr in
       match instr with
@@ -69,13 +69,4 @@ class instruction_visitor =
     method visit_read_vreg ~block:_ _vreg_id = ()
 
     method visit_write_vreg ~block:_ _vreg_id = ()
-  end
-
-class instruction_vreg_apply f =
-  object
-    inherit instruction_visitor
-
-    method! visit_read_vreg ~block:_ vreg_id = f vreg_id
-
-    method! visit_write_vreg ~block:_ vreg_id = f vreg_id
   end
