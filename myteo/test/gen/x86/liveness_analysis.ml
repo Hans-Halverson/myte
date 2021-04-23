@@ -41,16 +41,16 @@ let tests =
       (* If there is no def for a use the vreg is live in (and assumed to have come from another
          source such as function parameters. *)
       fun _ ->
-        let sets = find_liveness_sets [(0, "start", [PushR (mk_vreg 1); Ret])] in
+        let sets = find_liveness_sets [(0, "start", [PushM (Reg (mk_vreg 1)); Ret])] in
         assert_liveness_sets sets 0 ~live_in:[1] ~live_out:[] );
     ( "use_stops_propagation",
       fun _ ->
         let sets =
           find_liveness_sets
             [
-              (0, "start", [PopR (mk_vreg 0); PopR (mk_vreg 1); Jmp 1]);
-              (1, "L1", [PushR (mk_vreg 0); Jmp 2]);
-              (2, "L2", [PushR (mk_vreg 1); Jmp 3]);
+              (0, "start", [PopM (Reg (mk_vreg 0)); PopM (Reg (mk_vreg 1)); Jmp 1]);
+              (1, "L1", [PushM (Reg (mk_vreg 0)); Jmp 2]);
+              (2, "L2", [PushM (Reg (mk_vreg 1)); Jmp 3]);
               (3, "L3", [Ret]);
             ]
         in
@@ -63,8 +63,8 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              (0, "start", [PopR (mk_vreg 0); PushR (mk_vreg 0); Jmp 1]);
-              (1, "L1", [PopR (mk_vreg 1); PushR (mk_vreg 1); Ret]);
+              (0, "start", [PopM (Reg (mk_vreg 0)); PushM (Reg (mk_vreg 0)); Jmp 1]);
+              (1, "L1", [PopM (Reg (mk_vreg 1)); PushM (Reg (mk_vreg 1)); Ret]);
             ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[];
@@ -75,9 +75,9 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              (0, "start", [PopR (mk_vreg 0); Jmp 1]);
-              (1, "L1", [PushR (mk_vreg 0); PopR (mk_vreg 0); Jmp 2]);
-              (2, "L2", [PushR (mk_vreg 0); Ret]);
+              (0, "start", [PopM (Reg (mk_vreg 0)); Jmp 1]);
+              (1, "L1", [PushM (Reg (mk_vreg 0)); PopM (Reg (mk_vreg 0)); Jmp 2]);
+              (2, "L2", [PushM (Reg (mk_vreg 0)); Ret]);
             ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[0];
@@ -91,16 +91,16 @@ let tests =
               ( 0,
                 "start",
                 [
-                  PopR (mk_vreg 0);
-                  PopR (mk_vreg 1);
-                  PopR (mk_vreg 2);
-                  PopR (mk_vreg 3);
+                  PopM (Reg (mk_vreg 0));
+                  PopM (Reg (mk_vreg 1));
+                  PopM (Reg (mk_vreg 2));
+                  PopM (Reg (mk_vreg 3));
                   JmpCC (E, 1);
                   Jmp 2;
                 ] );
-              (1, "L1", [PushR (mk_vreg 0); PushR (mk_vreg 3); Jmp 3]);
-              (2, "L2", [PushR (mk_vreg 1); Jmp 3]);
-              (3, "L3", [PushR (mk_vreg 2); PushR (mk_vreg 3); Ret]);
+              (1, "L1", [PushM (Reg (mk_vreg 0)); PushM (Reg (mk_vreg 3)); Jmp 3]);
+              (2, "L2", [PushM (Reg (mk_vreg 1)); Jmp 3]);
+              (3, "L3", [PushM (Reg (mk_vreg 2)); PushM (Reg (mk_vreg 3)); Ret]);
             ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[0; 1; 2; 3];
@@ -112,10 +112,10 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              (0, "start", [PopR (mk_vreg 0); PopR (mk_vreg 1); JmpCC (E, 1); Jmp 3]);
-              (1, "L1", [PushR (mk_vreg 0); Jmp 2]);
-              (2, "L2", [PushR (mk_vreg 1); Jmp 0]);
-              (3, "L3", [PushR (mk_vreg 0); Ret]);
+              (0, "start", [PopM (Reg (mk_vreg 0)); PopM (Reg (mk_vreg 1)); JmpCC (E, 1); Jmp 3]);
+              (1, "L1", [PushM (Reg (mk_vreg 0)); Jmp 2]);
+              (2, "L2", [PushM (Reg (mk_vreg 1)); Jmp 0]);
+              (3, "L3", [PushM (Reg (mk_vreg 0)); Ret]);
             ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[0; 1];
@@ -127,11 +127,11 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              (0, "start", [PopR (mk_vreg 0); PopR (mk_vreg 1); Jmp 1]);
-              (1, "L1", [PushR (mk_vreg 0); JmpCC (E, 2); Jmp 4]);
+              (0, "start", [PopM (Reg (mk_vreg 0)); PopM (Reg (mk_vreg 1)); Jmp 1]);
+              (1, "L1", [PushM (Reg (mk_vreg 0)); JmpCC (E, 2); Jmp 4]);
               (2, "L2", [Jmp 3]);
-              (3, "L3", [PopR (mk_vreg 1); Jmp 1]);
-              (4, "L4", [PushR (mk_vreg 1); Ret]);
+              (3, "L3", [PopM (Reg (mk_vreg 1)); Jmp 1]);
+              (4, "L4", [PushM (Reg (mk_vreg 1)); Ret]);
             ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[0; 1];

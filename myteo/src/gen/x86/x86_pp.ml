@@ -165,6 +165,12 @@ let pp_memory_address ~buf mem =
     end;
     add_char ~buf ')'
 
+let pp_mem ~buf mem =
+  let open Instruction in
+  match mem with
+  | Reg reg -> pp_register ~buf reg
+  | Mem addr -> pp_memory_address ~buf addr
+
 let pp_instruction ~gcx ~pcx ~buf instruction =
   let open Instruction in
   if Opts.dump_debug () then (
@@ -181,47 +187,30 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         add_char ~buf ' '
       in
       let pp_register = pp_register ~buf in
+      let pp_mem = pp_mem ~buf in
       let pp_immediate = pp_immediate ~buf in
       let pp_memory_address = pp_memory_address ~buf in
       let pp_args_separator () = add_string ", " in
       match snd instruction with
-      | PushR reg ->
-        pp_op "push";
-        pp_register reg
       | PushI imm ->
         pp_op "push";
         pp_immediate imm
-      | PushM addr ->
+      | PushM mem ->
         pp_op "push";
-        pp_memory_address addr
-      | PopR reg ->
+        pp_mem mem
+      | PopM mem ->
         pp_op "pop";
-        pp_register reg
-      | MovRR (src_reg, dest_reg) ->
+        pp_mem mem
+      | MovMM (src_mem, dest_mem) ->
         pp_op "mov";
-        pp_register src_reg;
+        pp_mem src_mem;
         pp_args_separator ();
-        pp_register dest_reg
-      | MovRM (src_reg, dest_addr) ->
-        pp_op "mov";
-        pp_register src_reg;
-        pp_args_separator ();
-        pp_memory_address dest_addr
-      | MovMR (src_addr, dest_reg) ->
-        pp_op "mov";
-        pp_memory_address src_addr;
-        pp_args_separator ();
-        pp_register dest_reg
-      | MovIR (src_imm, dest_reg) ->
+        pp_mem dest_mem
+      | MovIM (src_imm, dest_mem) ->
         pp_op "mov";
         pp_immediate src_imm;
         pp_args_separator ();
-        pp_register dest_reg
-      | MovIM (src_imm, dest_addr) ->
-        pp_op "mov";
-        pp_immediate src_imm;
-        pp_args_separator ();
-        pp_memory_address dest_addr
+        pp_mem dest_mem
       | Lea (mem, reg) ->
         pp_op "lea";
         pp_memory_address mem;
@@ -290,42 +279,27 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_immediate imm;
         pp_args_separator ();
         pp_register dest_reg
-      | XorRR (src_reg, dest_reg) ->
+      | XorMM (src_mem, dest_mem) ->
         pp_op "xor";
-        pp_register src_reg;
+        pp_mem src_mem;
         pp_args_separator ();
-        pp_register dest_reg
+        pp_mem dest_mem
       (* Comparisons - arguments intentionally flipped *)
-      | CmpRR (reg1, reg2) ->
+      | CmpMM (mem1, mem2) ->
         pp_op "cmp";
-        pp_register reg2;
+        pp_mem mem2;
         pp_args_separator ();
-        pp_register reg1
-      | CmpRI (reg, imm) ->
-        pp_op "cmpq";
-        pp_immediate imm;
-        pp_args_separator ();
-        pp_register reg
+        pp_mem mem1
       | CmpMI (mem, imm) ->
         pp_op "cmpq";
         pp_immediate imm;
         pp_args_separator ();
-        pp_memory_address mem
-      | CmpMR (mem, reg) ->
-        pp_op "cmp";
-        pp_register reg;
-        pp_args_separator ();
-        pp_memory_address mem
-      | CmpRM (reg, mem) ->
-        pp_op "cmp";
-        pp_memory_address mem;
+        pp_mem mem
+      | TestMR (mem, reg) ->
+        pp_op "test";
+        pp_mem mem;
         pp_args_separator ();
         pp_register reg
-      | TestRR (reg1, reg2) ->
-        pp_op "test";
-        pp_register reg1;
-        pp_args_separator ();
-        pp_register reg2
       | SetCC (cc, reg) ->
         pp_op ("set" ^ pp_condition_code cc);
         pp_register reg

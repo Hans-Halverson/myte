@@ -87,24 +87,25 @@ type vreg_id = int
 module Instruction = struct
   type id = int
 
+  type 'reg memory =
+    | Reg of 'reg
+    | Mem of 'reg memory_address
+
   type 'reg t' =
     (* Instruction Suffixes:
           R - virtual register
           I - immediate
-          M - memory location
+          M - memory location or virtual register
 
-        When multiple suffixes are used, first is source and second is dest when applicable. *)
+        When multiple suffixes are used, first is source and second is dest when applicable.
+        All MM instructions must contain at least one register as an argument. *)
     (* Stack instructions *)
-    | PushR of 'reg
-    | PushI of immediate (* Only supports 8, 16, and 32-bit immediates *)
-    | PushM of 'reg memory_address
-    | PopR of 'reg
+    | PushI of immediate (* Only supports 16 and 32-bit immediates *)
+    | PushM of 'reg memory (* Does not support 8-bit memory due to stack alignment *)
+    | PopM of 'reg memory (* Does not support 8-bit memory due to stack alignment *)
     (* Data instructions *)
-    | MovRR of 'reg * 'reg
-    | MovRM of 'reg * 'reg memory_address
-    | MovMR of 'reg memory_address * 'reg
-    | MovIR of immediate * 'reg
-    | MovIM of immediate * 'reg memory_address
+    | MovIM of immediate * 'reg memory
+    | MovMM of 'reg memory * 'reg memory
     | Lea of 'reg memory_address * 'reg
     (* Numeric operations *)
     | NegR of 'reg
@@ -121,14 +122,11 @@ module Instruction = struct
     | AndIR of immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
     | OrRR of 'reg * 'reg
     | OrIR of immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
-    | XorRR of 'reg * 'reg
+    | XorMM of 'reg memory * 'reg memory
     (* Comparisons *)
-    | CmpRR of 'reg * 'reg
-    | CmpMR of 'reg memory_address * 'reg
-    | CmpRM of 'reg * 'reg memory_address
-    | CmpRI of 'reg * immediate (* Only supports 8, 16, and 32-bit immediates *)
-    | CmpMI of 'reg memory_address * immediate (* Only supports 8, 16, and 32-bit immediates *)
-    | TestRR of 'reg * 'reg
+    | CmpMI of 'reg memory * immediate (* Only supports 8, 16, and 32-bit immediates *)
+    | CmpMM of 'reg memory * 'reg memory
+    | TestMR of 'reg memory * 'reg
     | SetCC of condition_code * 'reg
     (* Control flow *)
     | Jmp of block_id

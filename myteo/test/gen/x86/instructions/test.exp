@@ -1,0 +1,22 @@
+  .global _main
+
+  .text
+_main:
+  ret
+test.testMemory:
+  mov 4(%rbp), %rax
+  test %rax, %rax
+  je .L0
+  mov $1, %rax
+  ret
+.L0:
+  mov $2, %rax
+  ret
+test.testRegister:
+  test %rdi, %rdi
+  je .L1
+  mov $1, %rax
+  ret
+.L1:
+  mov $2, %rax
+  ret

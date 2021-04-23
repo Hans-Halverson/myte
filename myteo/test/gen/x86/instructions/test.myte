@@ -1,0 +1,17 @@
+module test
+
+fun testRegister(p1: bool): int {
+  if (p1) {
+    return 1;
+  }
+  return 2;
+}
+
+fun testMemory(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p7: bool): int {
+  if (p7) {
+    return 1;
+  }
+  return 2;
+}
+
+fun main() {}

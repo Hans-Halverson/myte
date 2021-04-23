@@ -59,7 +59,7 @@ and gen_global_instruction_builder ~gcx ~ir global init_func =
       ~mir_block_id:None;
     let reg = VReg.mk ~resolution:Unresolved ~func:(Some init_func.id) in
     Gcx.emit ~gcx (Lea (addr, reg));
-    Gcx.emit ~gcx (MovRM (reg, mk_label_memory_address global.name));
+    Gcx.emit ~gcx (MovMM (Reg reg, Mem (mk_label_memory_address global.name)));
     Gcx.finish_block ~gcx
   | SMem (mem, size) ->
     (* Global is initialized to value at a memory location. This must be read at runtime so place in
@@ -73,8 +73,8 @@ and gen_global_instruction_builder ~gcx ~ir global init_func =
       ~func:init_func.id
       ~mir_block_id:None;
     let reg = VReg.mk ~resolution:Unresolved ~func:(Some init_func.id) in
-    Gcx.emit ~gcx (MovMR (mem, reg));
-    Gcx.emit ~gcx (MovRM (reg, mk_label_memory_address global.name));
+    Gcx.emit ~gcx (MovMM (Mem mem, Reg reg));
+    Gcx.emit ~gcx (MovMM (Reg reg, Mem (mk_label_memory_address global.name)));
     Gcx.finish_block ~gcx
   | SVReg (_, size) ->
     (* Global is not initialized to a constant, so it must have its own initialization block.
@@ -101,7 +101,7 @@ and gen_function_instruction_builder ~gcx ~ir func =
         (* First 6 parameters are passed in known registers *)
         let move_from_precolored color =
           let param_vreg = VReg.of_var_id ~resolution:Unresolved ~func:(Some func_.id) var_id in
-          Gcx.emit ~gcx (MovRR (Gcx.mk_precolored ~gcx color, param_vreg));
+          Gcx.emit ~gcx (MovMM (Reg (Gcx.mk_precolored ~gcx color), Reg param_vreg));
           param_vreg
         in
         match i with
@@ -154,50 +154,39 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     | Branch { test = Var test_var_id; _ } when test_var_id = var_id -> true
     | _ -> false
   in
-  let emit_addr_or_vreg addr_or_vreg =
-    match addr_or_vreg with
+  let emit_mem mem =
+    match mem with
+    | SVReg (vreg, _) -> Reg vreg
+    | SMem (mem, _) -> Mem mem
     | SAddr addr ->
       let vreg = mk_vreg () in
       Gcx.emit ~gcx (Lea (addr, vreg));
-      vreg
-    | SVReg (vreg, _) -> vreg
-    | _ -> failwith "Only called on address or vreg"
+      Reg vreg
+    | _ -> failwith "Only called on address, memory location, or vreg"
   in
   (* Generate a cmp instruction between two arguments. Return whether order was swapped. *)
   let gen_cmp left_val right_val =
     match (get_resolved_source_value ~func left_val, get_resolved_source_value ~func right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
-    | (SImm imm, SMem (mem, _)) ->
-      Gcx.emit ~gcx (CmpMI (mem, imm));
-      true
+    (* Comparison to immediate - swap arguments if necessary *)
     | (SImm imm, other) ->
-      let other_vreg = emit_addr_or_vreg other in
-      Gcx.emit ~gcx (CmpRI (other_vreg, imm));
+      let other_mem = emit_mem other in
+      Gcx.emit ~gcx (CmpMI (other_mem, imm));
       true
-    | (SMem (mem, _), SImm imm) ->
-      Gcx.emit ~gcx (CmpMI (mem, imm));
-      false
     | (other, SImm imm) ->
-      let other_vreg = emit_addr_or_vreg other in
-      Gcx.emit ~gcx (CmpRI (other_vreg, imm));
+      let other_mem = emit_mem other in
+      Gcx.emit ~gcx (CmpMI (other_mem, imm));
       false
+    (* Cannot compare two memory locations at the same time *)
     | (SMem (mem1, _), SMem (mem2, _)) ->
       let vreg = mk_vreg () in
-      Gcx.emit ~gcx (MovMR (mem1, vreg));
-      Gcx.emit ~gcx (CmpRM (vreg, mem2));
-      false
-    | (SMem (mem, _), other) ->
-      let other_vreg = emit_addr_or_vreg other in
-      Gcx.emit ~gcx (CmpMR (mem, other_vreg));
-      false
-    | (other, SMem (mem, _)) ->
-      let other_vreg = emit_addr_or_vreg other in
-      Gcx.emit ~gcx (CmpRM (other_vreg, mem));
+      Gcx.emit ~gcx (MovMM (Mem mem1, Reg vreg));
+      Gcx.emit ~gcx (CmpMM (Reg vreg, Mem mem2));
       false
     | (v1, v2) ->
-      let v1 = emit_addr_or_vreg v1 in
-      let v2 = emit_addr_or_vreg v2 in
-      Gcx.emit ~gcx (CmpRR (v1, v2));
+      let mem1 = emit_mem v1 in
+      let mem2 = emit_mem v2 in
+      Gcx.emit ~gcx (CmpMM (mem1, mem2));
       false
   in
   let gen_cond_jmp cc left_val right_val =
@@ -219,7 +208,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   in
   let gen_set_cc cc result_var_id left_val right_val =
     let result_vreg = vreg_of_var result_var_id in
-    Gcx.emit ~gcx (XorRR (result_vreg, result_vreg));
+    Gcx.emit ~gcx (XorMM (Reg result_vreg, Reg result_vreg));
     let swapped = gen_cmp (Numeric left_val) (Numeric right_val) in
     let cc =
       if swapped then
@@ -237,9 +226,17 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     | Continue continue ->
       (* TODO: Create better structure for tracking relative block locations *)
       Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx continue))
-    | Branch { test = Var var_id; continue; jump } ->
-      let vreg = vreg_of_var var_id in
-      Gcx.emit ~gcx (TestRR (vreg, vreg));
+    | Branch { test = Var _ as test; continue; jump } ->
+      let vreg =
+        match get_resolved_source_value ~func (Bool test) with
+        | SVReg (vreg, _) -> vreg
+        | SMem (mem, _) ->
+          let vreg = mk_vreg () in
+          Gcx.emit ~gcx (MovMM (Mem mem, Reg vreg));
+          vreg
+        | _ -> failwith "Boolean variable can only be vreg or memory location"
+      in
+      Gcx.emit ~gcx (TestMR (Reg vreg, vreg));
       Gcx.emit ~gcx (JmpCC (E, Gcx.get_block_id_from_mir_block_id ~gcx jump));
       Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx continue))
     | _ -> ())
@@ -252,10 +249,10 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     let dest_vreg = vreg_of_var dest_var_id in
     let instr =
       match get_resolved_source_value ~func value with
-      | SImm imm -> MovIR (imm, dest_vreg)
+      | SImm imm -> MovIM (imm, Reg dest_vreg)
       | SAddr addr -> Lea (addr, dest_vreg)
-      | SMem (mem, _) -> MovMR (mem, dest_vreg)
-      | SVReg (src_var_id, _) -> MovRR (src_var_id, dest_vreg)
+      | SMem (mem, _) -> MovMM (Mem mem, Reg dest_vreg)
+      | SVReg (src_var_id, _) -> MovMM (Reg src_var_id, Reg dest_vreg)
     in
     Gcx.emit ~gcx instr;
     gen_instructions rest_instructions
@@ -276,10 +273,10 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
           | Some color ->
             let vreg = Gcx.mk_precolored ~gcx color in
             (match get_resolved_source_value ~func arg_val with
-            | SImm imm -> Gcx.emit ~gcx (MovIR (imm, vreg))
+            | SImm imm -> Gcx.emit ~gcx (MovIM (imm, Reg vreg))
             | SAddr addr -> Gcx.emit ~gcx (Lea (addr, vreg))
-            | SMem (mem, _) -> Gcx.emit ~gcx (MovMR (mem, vreg))
-            | SVReg (source_vreg, _) -> Gcx.emit ~gcx (MovRR (source_vreg, vreg))))
+            | SMem (mem, _) -> Gcx.emit ~gcx (MovMM (Mem mem, Reg vreg))
+            | SVReg (source_vreg, _) -> Gcx.emit ~gcx (MovMM (Reg source_vreg, Reg vreg))))
       arg_vals;
     (* Later arguments are pushed on stack in reverse order *)
     let rest_arg_vals = List.rev (List_utils.drop 6 arg_vals) in
@@ -293,9 +290,9 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
         | SAddr addr ->
           let vreg = mk_vreg () in
           Gcx.emit ~gcx (Lea (addr, vreg));
-          Gcx.emit ~gcx (PushR vreg)
-        | SMem (mem, _) -> Gcx.emit ~gcx (PushM mem)
-        | SVReg (var_id, _) -> Gcx.emit ~gcx (PushR var_id))
+          Gcx.emit ~gcx (PushM (Reg vreg))
+        | SMem (mem, _) -> Gcx.emit ~gcx (PushM (Mem mem))
+        | SVReg (var_id, _) -> Gcx.emit ~gcx (PushM (Reg var_id)))
       rest_arg_vals;
     (* Emit call instruction and move result from register A to return vreg *)
     let inst =
@@ -304,7 +301,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       | Mir.Instruction.FunctionValue.Var var_id -> CallR (vreg_of_var var_id)
     in
     Gcx.emit ~gcx inst;
-    Gcx.emit ~gcx (MovRR (Gcx.mk_precolored ~gcx A, vreg_of_var return_var_id));
+    Gcx.emit ~gcx (MovMM (Reg (Gcx.mk_precolored ~gcx A), Reg (vreg_of_var return_var_id)));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -317,10 +314,10 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     | Some value ->
       let precolored_vreg = Gcx.mk_precolored ~gcx A in
       (match get_resolved_source_value ~func value with
-      | SImm imm -> Gcx.emit ~gcx (MovIR (imm, precolored_vreg))
+      | SImm imm -> Gcx.emit ~gcx (MovIM (imm, Reg precolored_vreg))
       | SAddr addr -> Gcx.emit ~gcx (Lea (addr, precolored_vreg))
-      | SMem (mem, _) -> Gcx.emit ~gcx (MovMR (mem, precolored_vreg))
-      | SVReg (vreg, _) -> Gcx.emit ~gcx (MovRR (vreg, precolored_vreg))));
+      | SMem (mem, _) -> Gcx.emit ~gcx (MovMM (Mem mem, Reg precolored_vreg))
+      | SVReg (vreg, _) -> Gcx.emit ~gcx (MovMM (Reg vreg, Reg precolored_vreg))));
     Gcx.emit ~gcx Ret;
     gen_instructions rest_instructions
   (*
@@ -329,7 +326,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.LoadGlobal (var_id, label) :: rest_instructions ->
-    Gcx.emit ~gcx (MovMR (mk_label_memory_address label, vreg_of_var var_id));
+    Gcx.emit ~gcx (MovMM (Mem (mk_label_memory_address label), Reg (vreg_of_var var_id)));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -337,17 +334,18 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.StoreGlobal (label, value) :: rest_instructions ->
+    let global_address = mk_label_memory_address label in
     (match get_resolved_source_value ~func value with
-    | SImm imm -> Gcx.emit ~gcx (MovIM (imm, mk_label_memory_address label))
+    | SImm imm -> Gcx.emit ~gcx (MovIM (imm, Mem global_address))
     | SAddr addr ->
       let vreg = mk_vreg () in
       Gcx.emit ~gcx (Lea (addr, vreg));
-      Gcx.emit ~gcx (MovRM (vreg, mk_label_memory_address label))
+      Gcx.emit ~gcx (MovMM (Reg vreg, Mem global_address))
     | SMem (mem, _) ->
       let vreg = mk_vreg () in
-      Gcx.emit ~gcx (MovMR (mem, vreg));
-      Gcx.emit ~gcx (MovRM (vreg, mk_label_memory_address label))
-    | SVReg (reg, _) -> Gcx.emit ~gcx (MovRM (reg, mk_label_memory_address label)));
+      Gcx.emit ~gcx (MovMM (Mem mem, Reg vreg));
+      Gcx.emit ~gcx (MovMM (Reg vreg, Mem global_address))
+    | SVReg (reg, _) -> Gcx.emit ~gcx (MovMM (Reg reg, Mem global_address)));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -358,13 +356,13 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     let result_vreg = vreg_of_var result_var_id in
     (match (left_val, right_val) with
     | (IntLit left_lit, IntLit right_lit) ->
-      Gcx.emit ~gcx (MovIR (QuadImmediate (Int64.add left_lit right_lit), result_vreg))
+      Gcx.emit ~gcx (MovIM (QuadImmediate (Int64.add left_lit right_lit), Reg result_vreg))
     | (IntLit lit, IntVar arg_var_id)
     | (IntVar arg_var_id, IntLit lit) ->
-      Gcx.emit ~gcx (MovRR (vreg_of_var arg_var_id, result_vreg));
+      Gcx.emit ~gcx (MovMM (Reg (vreg_of_var arg_var_id), Reg result_vreg));
       Gcx.emit ~gcx (AddIR (QuadImmediate lit, result_vreg))
     | (IntVar left_var_id, IntVar right_var_id) ->
-      Gcx.emit ~gcx (MovRR (vreg_of_var right_var_id, result_vreg));
+      Gcx.emit ~gcx (MovMM (Reg (vreg_of_var right_var_id), Reg result_vreg));
       Gcx.emit ~gcx (AddRR (vreg_of_var left_var_id, result_vreg)));
     gen_instructions rest_instructions
   (*
@@ -376,15 +374,15 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     let result_vreg = vreg_of_var result_var_id in
     (match (left_val, right_val) with
     | (IntLit left_lit, IntLit right_lit) ->
-      Gcx.emit ~gcx (MovIR (QuadImmediate (Int64.sub left_lit right_lit), result_vreg))
+      Gcx.emit ~gcx (MovIM (QuadImmediate (Int64.sub left_lit right_lit), Reg result_vreg))
     | (IntLit left_lit, IntVar right_var_id) ->
-      Gcx.emit ~gcx (MovIR (QuadImmediate left_lit, result_vreg));
+      Gcx.emit ~gcx (MovIM (QuadImmediate left_lit, Reg result_vreg));
       Gcx.emit ~gcx (SubRR (vreg_of_var right_var_id, result_vreg))
     | (IntVar left_var_id, IntLit right_lit) ->
-      Gcx.emit ~gcx (MovRR (vreg_of_var left_var_id, result_vreg));
+      Gcx.emit ~gcx (MovMM (Reg (vreg_of_var left_var_id), Reg result_vreg));
       Gcx.emit ~gcx (SubIR (QuadImmediate right_lit, result_vreg))
     | (IntVar left_var_id, IntVar right_var_id) ->
-      Gcx.emit ~gcx (MovRR (vreg_of_var left_var_id, result_vreg));
+      Gcx.emit ~gcx (MovMM (Reg (vreg_of_var left_var_id), Reg result_vreg));
       Gcx.emit ~gcx (SubRR (vreg_of_var right_var_id, result_vreg)));
     gen_instructions rest_instructions
   (*
@@ -396,7 +394,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     let result_vreg = vreg_of_var result_var_id in
     (match (left_val, right_val) with
     | (IntLit left_lit, IntLit right_lit) ->
-      Gcx.emit ~gcx (MovIR (QuadImmediate (Int64.mul left_lit right_lit), result_vreg))
+      Gcx.emit ~gcx (MovIM (QuadImmediate (Int64.mul left_lit right_lit), Reg result_vreg))
     | (IntLit lit, IntVar arg_var_id)
     | (IntVar arg_var_id, IntLit lit) ->
       Gcx.emit ~gcx (IMulRIR (vreg_of_var arg_var_id, QuadImmediate lit, result_vreg))
@@ -411,13 +409,13 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     let result_vreg = vreg_of_var result_var_id in
     (match (left_val, right_val) with
     | (IntLit left_lit, IntLit right_lit) ->
-      Gcx.emit ~gcx (MovIR (QuadImmediate (Int64.div left_lit right_lit), result_vreg))
+      Gcx.emit ~gcx (MovIM (QuadImmediate (Int64.div left_lit right_lit), Reg result_vreg))
     | (IntLit lit, IntVar arg_var_id) ->
-      Gcx.emit ~gcx (MovIR (QuadImmediate lit, result_vreg));
+      Gcx.emit ~gcx (MovIM (QuadImmediate lit, Reg result_vreg));
       Gcx.emit ~gcx (IDivR (vreg_of_var arg_var_id))
     | (IntVar _arg_var_id, IntLit lit) ->
       let reg = mk_vreg () in
-      Gcx.emit ~gcx (MovIR (QuadImmediate lit, reg));
+      Gcx.emit ~gcx (MovIM (QuadImmediate lit, Reg reg));
       Gcx.emit ~gcx (IDivR reg)
     | (IntVar _var1, IntVar var2) -> Gcx.emit ~gcx (IDivR (vreg_of_var var2)));
     gen_instructions rest_instructions
@@ -433,7 +431,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       | IntVar var_id -> vreg_of_var var_id
     in
     let result_vreg = vreg_of_var result_var_id in
-    Gcx.emit ~gcx (MovRR (arg_vreg, result_vreg));
+    Gcx.emit ~gcx (MovMM (Reg arg_vreg, Reg result_vreg));
     Gcx.emit ~gcx (NegR result_vreg);
     gen_instructions rest_instructions
   (*
@@ -458,7 +456,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     let result_vreg = vreg_of_var result_var_id in
     (match (left_val, right_val) with
     | (Lit left_lit, Lit right_lit) ->
-      Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit && right_lit), result_vreg))
+      Gcx.emit ~gcx (MovIM (imm_byte_of_bool (left_lit && right_lit), Reg result_vreg))
     | (Lit lit, Var arg_var_id)
     | (Var arg_var_id, Lit lit) ->
       Gcx.emit ~gcx (AndIR (imm_byte_of_bool lit, vreg_of_var arg_var_id))
@@ -473,7 +471,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     let result_vreg = vreg_of_var result_var_id in
     (match (left_val, right_val) with
     | (Lit left_lit, Lit right_lit) ->
-      Gcx.emit ~gcx (MovIR (imm_byte_of_bool (left_lit || right_lit), result_vreg))
+      Gcx.emit ~gcx (MovIM (imm_byte_of_bool (left_lit || right_lit), Reg result_vreg))
     | (Lit lit, Var arg_var_id)
     | (Var arg_var_id, Lit lit) ->
       Gcx.emit ~gcx (OrIR (imm_byte_of_bool lit, vreg_of_var arg_var_id))

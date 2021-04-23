@@ -224,7 +224,7 @@ let build_interference_graph ~(gcx : Gcx.t) =
         (fun ((instr_id, instr) as instr_with_id) ->
           begin
             match instr with
-            | Instruction.MovRR (src_vreg, dest_vreg) ->
+            | Instruction.MovMM (Reg src_vreg, Reg dest_vreg) ->
               live := VRegSet.remove src_vreg !live;
               gcx.move_list <- add_to_multimap src_vreg instr_id gcx.move_list;
               gcx.move_list <- add_to_multimap dest_vreg instr_id gcx.move_list;
@@ -380,7 +380,7 @@ let combine_vregs ~(gcx : Gcx.t) alias_vreg vreg =
 let source_dest_vregs_of_move ~(gcx : Gcx.t) move_instr_id =
   let move_instruction = Gcx.get_instruction ~gcx move_instr_id in
   match move_instruction with
-  | Instruction.MovRR (source_vreg, dest_vreg) -> (source_vreg, dest_vreg)
+  | Instruction.MovMM (Reg source_vreg, Reg dest_vreg) -> (source_vreg, dest_vreg)
   | _ -> failwith "Expected id of virtual register to virtual register move instruction"
 
 (* Choose a move from the worklist and try to  combine its virtual registers if doing so would
@@ -530,7 +530,7 @@ let remove_coalesced_moves ~(gcx : Gcx.t) =
         List.filter
           (fun (_, instr) ->
             match instr with
-            | Instruction.MovRR (source_vreg, dest_vreg) ->
+            | Instruction.MovMM (Reg source_vreg, Reg dest_vreg) ->
               VReg.get_vreg_alias source_vreg <> VReg.get_vreg_alias dest_vreg
             | _ -> true)
           block.instructions)
@@ -545,7 +545,7 @@ let write_function_prologues ~(gcx : Gcx.t) =
         RegSet.fold
           (fun reg acc ->
             if RegSet.mem reg func.spilled_callee_saved_regs then
-              Instruction.(mk_id (), PushR (Gcx.mk_precolored ~gcx reg)) :: acc
+              Instruction.(mk_id (), PushM (Reg (Gcx.mk_precolored ~gcx reg))) :: acc
             else
               acc)
           callee_saved_registers
@@ -571,7 +571,7 @@ let write_function_epilogues ~(gcx : Gcx.t) =
                 (fun reg acc ->
                   if RegSet.mem reg func.spilled_callee_saved_regs then (
                     offset := !offset + 1;
-                    Instruction.(mk_id (), PopR (Gcx.mk_precolored ~gcx reg)) :: acc
+                    Instruction.(mk_id (), PopM (Reg (Gcx.mk_precolored ~gcx reg))) :: acc
                   ) else
                     acc)
                 callee_saved_registers
