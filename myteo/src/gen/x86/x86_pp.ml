@@ -134,28 +134,36 @@ let pp_immediate ~buf imm =
     | QuadImmediate imm -> Int64.to_string imm)
 
 let pp_memory_address ~buf mem =
-  begin
-    match mem.offset with
-    | None -> ()
-    | Some (ImmediateOffset imm) -> add_string ~buf (Int64.to_string imm)
-    | Some (LabelOffset label) -> add_string ~buf label
-  end;
-  add_char ~buf '(';
-  begin
-    match mem.index_and_scale with
-    | None -> ()
-    | Some (index_register, scale) ->
-      add_string ~buf ", ";
-      pp_register ~buf index_register;
-      begin
-        match scale with
-        | Scale1 -> ()
-        | Scale2 -> add_string ~buf ", 2"
-        | Scale4 -> add_string ~buf ", 4"
-        | Scale8 -> add_string ~buf ", 8"
-      end
-  end;
-  add_char ~buf ')'
+  match mem with
+  | VirtualStackSlot _ -> failwith "Virtual stack slot must have been resolved before printing"
+  | PhysicalAddress mem ->
+    begin
+      match mem.offset with
+      | None -> ()
+      | Some (ImmediateOffset imm) -> add_string ~buf (Int64.to_string imm)
+      | Some (LabelOffset label) -> add_string ~buf label
+    end;
+    add_char ~buf '(';
+    begin
+      match mem.base with
+      | None -> ()
+      | Some reg -> pp_register ~buf reg
+    end;
+    begin
+      match mem.index_and_scale with
+      | None -> ()
+      | Some (index_register, scale) ->
+        add_string ~buf ", ";
+        pp_register ~buf index_register;
+        begin
+          match scale with
+          | Scale1 -> ()
+          | Scale2 -> add_string ~buf ", 2"
+          | Scale4 -> add_string ~buf ", 4"
+          | Scale8 -> add_string ~buf ", 8"
+        end
+    end;
+    add_char ~buf ')'
 
 let pp_instruction ~gcx ~pcx ~buf instruction =
   let open Instruction in
@@ -287,15 +295,30 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_register src_reg;
         pp_args_separator ();
         pp_register dest_reg
-      (* Comparisons *)
+      (* Comparisons - arguments intentionally flipped *)
       | CmpRR (reg1, reg2) ->
         pp_op "cmp";
-        pp_register reg1;
+        pp_register reg2;
         pp_args_separator ();
-        pp_register reg2
+        pp_register reg1
       | CmpRI (reg, imm) ->
-        pp_op "cmp";
+        pp_op "cmpq";
         pp_immediate imm;
+        pp_args_separator ();
+        pp_register reg
+      | CmpMI (mem, imm) ->
+        pp_op "cmpq";
+        pp_immediate imm;
+        pp_args_separator ();
+        pp_memory_address mem
+      | CmpMR (mem, reg) ->
+        pp_op "cmp";
+        pp_register reg;
+        pp_args_separator ();
+        pp_memory_address mem
+      | CmpRM (reg, mem) ->
+        pp_op "cmp";
+        pp_memory_address mem;
         pp_args_separator ();
         pp_register reg
       | TestRR (reg1, reg2) ->

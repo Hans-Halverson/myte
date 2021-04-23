@@ -64,13 +64,13 @@ type memory_address_scale =
   | Scale4
   | Scale8
 
-type 'reg memory_address = {
-  offset: memory_address_offset option;
-  base: 'reg option;
-  index_and_scale: ('reg * memory_address_scale) option;
-}
-
-let empty_memory_address = { offset = None; base = None; index_and_scale = None }
+type 'reg memory_address =
+  | VirtualStackSlot of 'reg
+  | PhysicalAddress of {
+      offset: memory_address_offset option;
+      base: 'reg option;
+      index_and_scale: ('reg * memory_address_scale) option;
+    }
 
 type condition_code =
   | E
@@ -124,7 +124,10 @@ module Instruction = struct
     | XorRR of 'reg * 'reg
     (* Comparisons *)
     | CmpRR of 'reg * 'reg
+    | CmpMR of 'reg memory_address * 'reg
+    | CmpRM of 'reg * 'reg memory_address
     | CmpRI of 'reg * immediate (* Only supports 8, 16, and 32-bit immediates *)
+    | CmpMI of 'reg memory_address * immediate (* Only supports 8, 16, and 32-bit immediates *)
     | TestRR of 'reg * 'reg
     | SetCC of condition_code * 'reg
     (* Control flow *)
@@ -218,7 +221,7 @@ module VirtualRegister = struct
     (* This vreg has been mapped to a physical register in a particular register slot *)
     | Physical of register_slot
     (* This vreg has been mapped to a slot on the stack. May be explicit or result from spills. *)
-    | StackSlot of t memory_address option
+    | StackSlot of t memory_address
     (* This vreg has not yet been resolved to a physical location *)
     | Unresolved
 
@@ -261,10 +264,22 @@ let bytes_of_size size =
   | Long -> 4
   | Quad -> 8
 
+(* Return the opposite of a condition code (NOT CC) *)
 let invert_condition_code cc =
   match cc with
   | E -> NE
   | NE -> E
+  | L -> GE
+  | G -> LE
+  | LE -> G
+  | GE -> L
+
+(* Return the condition code that results from swapping the arguments *)
+let swap_condition_code_order cc =
+  match cc with
+  | E
+  | NE ->
+    cc
   | L -> GE
   | G -> LE
   | LE -> G

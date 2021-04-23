@@ -1,27 +1,146 @@
 module test
 
-fun testEq(x: int): bool = x == 3
-fun testNe(x: int): bool = x != 3
-fun testLt(x: int): bool = x < 3
-fun testLe(x: int): bool = x <= 3
-fun testGt(x: int): bool = x > 3
-fun testGe(x: int): bool = x >= 3
-
-fun testComparisonConditionals(x: int): int {
+fun testCompareRegisterImmediate(x: int): bool {
   if (x == 3) {
-    return 1;
+    return x == 3;
   } else if (x != 3) {
-    return 2;
+    return x != 3;
   } else if (x < 3) {
-    return 3;
+    return x < 3;
   } else if (x <= 3) {
-    return 4;
+    return x <= 3;
   } else if (x > 3) {
-    return 5;
+    return x > 3;
   } else if (x >= 3) {
-    return 6;
+    return x >= 3;
   } else {
-    return 7;
+    return true;
+  }
+}
+
+fun testCompareImmediateRegister(x: int): bool {
+  if (3 == x) {
+    return 3 == x;
+  } else if (3 != x) {
+    return 3 != x;
+  } else if (3 < x) {
+    return 3 < x;
+  } else if (3 <= x) {
+    return 3 <= x;
+  } else if (3 > x) {
+    return 3 > x;
+  } else if (3 >= x) {
+    return 3 >= x;
+  } else {
+    return true;
+  }
+}
+
+fun testCompareMemoryImmediate(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p7: int): bool {
+  if (p7 == 3) {
+    return p7 == 3;
+  } else if (p7 != 3) {
+    return p7 != 3;
+  } else if (p7 < 3) {
+    return p7 < 3;
+  } else if (p7 <= 3) {
+    return p7 <= 3;
+  } else if (p7 > 3) {
+    return p7 > 3;
+  } else if (p7 >= 3) {
+    return p7 >= 3;
+  } else {
+    return true;
+  }
+}
+
+fun testCompareImmediateMemory(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p7: int): bool {
+  if (3 == p7) {
+    return 3 == p7;
+  } else if (3 != p7) {
+    return 3 != p7;
+  } else if (3 < p7) {
+    return 3 < p7;
+  } else if (3 <= p7) {
+    return 3 <= p7;
+  } else if (3 > p7) {
+    return 3 > p7;
+  } else if (3 >= p7) {
+    return 3 >= p7;
+  } else {
+    return true;
+  }
+}
+
+fun testCompareMemoryMemory(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p7: int, p8: int): bool {
+  if (p7 == p8) {
+    return p7 == p8;
+  } else if (p7 != p8) {
+    return p7 != p8;
+  } else if (p7 < p8) {
+    return p7 < p8;
+  } else if (p7 <= p8) {
+    return p7 <= p8;
+  } else if (p7 > p8) {
+    return p7 > p8;
+  } else if (p7 >= p8) {
+    return p7 >= p8;
+  } else {
+    return true;
+  }
+}
+
+fun testCompareMemoryRegister(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p7: int): bool {
+  if (p7 == p1) {
+    return p7 == p1;
+  } else if (p7 != p1) {
+    return p7 != p1;
+  } else if (p7 < p1) {
+    return p7 < p1;
+  } else if (p7 <= p1) {
+    return p7 <= p1;
+  } else if (p7 > p1) {
+    return p7 > p1;
+  } else if (p7 >= p1) {
+    return p7 >= p1;
+  } else {
+    return true;
+  }
+}
+
+fun testCompareRegisterMemory(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p7: int): bool {
+  if (p1 == p7) {
+    return p1 == p7;
+  } else if (p1 != p7) {
+    return p1 != p7;
+  } else if (p1 < p7) {
+    return p1 < p7;
+  } else if (p1 <= p7) {
+    return p1 <= p7;
+  } else if (p1 > p7) {
+    return p1 > p7;
+  } else if (p1 >= p7) {
+    return p1 >= p7;
+  } else {
+    return true;
+  }
+}
+
+fun testCompareRegisterRegister(p1: int, p2: int): bool {
+  if (p1 == p2) {
+    return p1 == p2;
+  } else if (p1 != p2) {
+    return p1 != p2;
+  } else if (p1 < p2) {
+    return p1 < p2;
+  } else if (p1 <= p2) {
+    return p1 <= p2;
+  } else if (p1 > p2) {
+    return p1 > p2;
+  } else if (p1 >= p2) {
+    return p1 >= p2;
+  } else {
+    return true;
   }
 }
 

@@ -5,7 +5,7 @@ fib.fibIterative:
   mov $1, %rax
   mov $1, %rcx
 .L0:
-  cmp $2, %rdi
+  cmpq $2, %rdi
   jl .L1
   mov %rax, %rdx
   add %rcx, %rdx
@@ -19,7 +19,7 @@ fib.fibRecursive:
   push %rbx
   push %r12
   mov %rdi, %rbx
-  cmp $1, %rbx
+  cmpq $1, %rbx
   jg .L2
   mov %rbx, %rax
   pop %r12
