@@ -174,11 +174,25 @@ module Gcx = struct
       gcx.prev_blocks <- add_to_multimap next_block_id current_block.id gcx.prev_blocks
     | _ -> ()
 
+  let mk_instr_id_for_block ~gcx block =
+    let instr_id = Instruction.mk_id () in
+    gcx.instruction_to_block <- IMap.add instr_id block.Block.id gcx.instruction_to_block;
+    instr_id
+
   let mk_precolored ~gcx color = RegMap.find color gcx.color_to_vreg
 
   let mk_function ~gcx params prologue =
     let id = Function.mk_id () in
-    let func = { Function.id; params; prologue; spilled_callee_saved_regs = RegSet.empty } in
+    let func =
+      {
+        Function.id;
+        params;
+        prologue;
+        spilled_callee_saved_regs = RegSet.empty;
+        spilled_vregs = VRegSet.empty;
+        num_stack_frame_slots = 0;
+      }
+    in
     gcx.funcs_by_id <- IMap.add id func gcx.funcs_by_id;
     func
 

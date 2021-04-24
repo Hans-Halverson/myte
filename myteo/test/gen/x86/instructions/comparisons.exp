@@ -4,45 +4,45 @@
 _main:
   ret
 test.testCompareImmediateMemory:
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   jne .L0
   xor %rax, %rax
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   sete %rax
   ret
 .L0:
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   je .L1
   xor %rax, %rax
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   setne %rax
   ret
 .L1:
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   jl .L2
   xor %rax, %rax
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   setge %rax
   ret
 .L2:
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   jle .L3
   xor %rax, %rax
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   setg %rax
   ret
 .L3:
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   jg .L4
   xor %rax, %rax
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   setle %rax
   ret
 .L4:
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   jge .L5
   xor %rax, %rax
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   setl %rax
   ret
 .L5:
@@ -94,147 +94,147 @@ test.testCompareImmediateRegister:
   mov $1, %rax
   ret
 test.testCompareMemoryImmediate:
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   jne .L12
   xor %rax, %rax
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   sete %rax
   ret
 .L12:
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   je .L13
   xor %rax, %rax
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   setne %rax
   ret
 .L13:
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   jge .L14
   xor %rax, %rax
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   setl %rax
   ret
 .L14:
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   jg .L15
   xor %rax, %rax
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   setle %rax
   ret
 .L15:
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   jle .L16
   xor %rax, %rax
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   setg %rax
   ret
 .L16:
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   jl .L17
   xor %rax, %rax
-  cmpq $3, 4(%rbp)
+  cmpq $3, 8(%rsp)
   setge %rax
   ret
 .L17:
   mov $1, %rax
   ret
 test.testCompareMemoryMemory:
-  mov 4(%rbp), %rcx
-  cmp 8(%rbp), %rcx
+  mov 8(%rsp), %rcx
+  cmp 16(%rsp), %rcx
   jne .L18
   xor %rax, %rax
-  mov 4(%rbp), %rax
-  cmp 8(%rbp), %rax
+  mov 8(%rsp), %rax
+  cmp 16(%rsp), %rax
   sete %rax
   ret
 .L18:
-  mov 4(%rbp), %rcx
-  cmp 8(%rbp), %rcx
+  mov 8(%rsp), %rcx
+  cmp 16(%rsp), %rcx
   je .L19
   xor %rax, %rax
-  mov 4(%rbp), %rax
-  cmp 8(%rbp), %rax
+  mov 8(%rsp), %rax
+  cmp 16(%rsp), %rax
   setne %rax
   ret
 .L19:
-  mov 4(%rbp), %rcx
-  cmp 8(%rbp), %rcx
+  mov 8(%rsp), %rcx
+  cmp 16(%rsp), %rcx
   jge .L20
   xor %rax, %rax
-  mov 4(%rbp), %rax
-  cmp 8(%rbp), %rax
+  mov 8(%rsp), %rax
+  cmp 16(%rsp), %rax
   setl %rax
   ret
 .L20:
-  mov 4(%rbp), %rcx
-  cmp 8(%rbp), %rcx
+  mov 8(%rsp), %rcx
+  cmp 16(%rsp), %rcx
   jg .L21
   xor %rax, %rax
-  mov 4(%rbp), %rax
-  cmp 8(%rbp), %rax
+  mov 8(%rsp), %rax
+  cmp 16(%rsp), %rax
   setle %rax
   ret
 .L21:
-  mov 4(%rbp), %rcx
-  cmp 8(%rbp), %rcx
+  mov 8(%rsp), %rcx
+  cmp 16(%rsp), %rcx
   jle .L22
   xor %rax, %rax
-  mov 4(%rbp), %rax
-  cmp 8(%rbp), %rax
+  mov 8(%rsp), %rax
+  cmp 16(%rsp), %rax
   setg %rax
   ret
 .L22:
-  mov 4(%rbp), %rcx
-  cmp 8(%rbp), %rcx
+  mov 8(%rsp), %rcx
+  cmp 16(%rsp), %rcx
   jl .L23
   xor %rax, %rax
-  mov 4(%rbp), %rax
-  cmp 8(%rbp), %rax
+  mov 8(%rsp), %rax
+  cmp 16(%rsp), %rax
   setge %rax
   ret
 .L23:
   mov $1, %rax
   ret
 test.testCompareMemoryRegister:
-  cmp %rdi, 4(%rbp)
+  cmp %rdi, 8(%rsp)
   jne .L24
   xor %rax, %rax
-  cmp %rdi, 4(%rbp)
+  cmp %rdi, 8(%rsp)
   sete %rax
   ret
 .L24:
-  cmp %rdi, 4(%rbp)
+  cmp %rdi, 8(%rsp)
   je .L25
   xor %rax, %rax
-  cmp %rdi, 4(%rbp)
+  cmp %rdi, 8(%rsp)
   setne %rax
   ret
 .L25:
-  cmp %rdi, 4(%rbp)
+  cmp %rdi, 8(%rsp)
   jge .L26
   xor %rax, %rax
-  cmp %rdi, 4(%rbp)
+  cmp %rdi, 8(%rsp)
   setl %rax
   ret
 .L26:
-  cmp %rdi, 4(%rbp)
+  cmp %rdi, 8(%rsp)
   jg .L27
   xor %rax, %rax
-  cmp %rdi, 4(%rbp)
+  cmp %rdi, 8(%rsp)
   setle %rax
   ret
 .L27:
-  cmp %rdi, 4(%rbp)
+  cmp %rdi, 8(%rsp)
   jle .L28
   xor %rax, %rax
-  cmp %rdi, 4(%rbp)
+  cmp %rdi, 8(%rsp)
   setg %rax
   ret
 .L28:
-  cmp %rdi, 4(%rbp)
+  cmp %rdi, 8(%rsp)
   jl .L29
   xor %rax, %rax
-  cmp %rdi, 4(%rbp)
+  cmp %rdi, 8(%rsp)
   setge %rax
   ret
 .L29:
@@ -286,45 +286,45 @@ test.testCompareRegisterImmediate:
   mov $1, %rax
   ret
 test.testCompareRegisterMemory:
-  cmp 4(%rbp), %rdi
+  cmp 8(%rsp), %rdi
   jne .L36
   xor %rax, %rax
-  cmp 4(%rbp), %rdi
+  cmp 8(%rsp), %rdi
   sete %rax
   ret
 .L36:
-  cmp 4(%rbp), %rdi
+  cmp 8(%rsp), %rdi
   je .L37
   xor %rax, %rax
-  cmp 4(%rbp), %rdi
+  cmp 8(%rsp), %rdi
   setne %rax
   ret
 .L37:
-  cmp 4(%rbp), %rdi
+  cmp 8(%rsp), %rdi
   jge .L38
   xor %rax, %rax
-  cmp 4(%rbp), %rdi
+  cmp 8(%rsp), %rdi
   setl %rax
   ret
 .L38:
-  cmp 4(%rbp), %rdi
+  cmp 8(%rsp), %rdi
   jg .L39
   xor %rax, %rax
-  cmp 4(%rbp), %rdi
+  cmp 8(%rsp), %rdi
   setle %rax
   ret
 .L39:
-  cmp 4(%rbp), %rdi
+  cmp 8(%rsp), %rdi
   jle .L40
   xor %rax, %rax
-  cmp 4(%rbp), %rdi
+  cmp 8(%rsp), %rdi
   setg %rax
   ret
 .L40:
-  cmp 4(%rbp), %rdi
+  cmp 8(%rsp), %rdi
   jl .L41
   xor %rax, %rax
-  cmp 4(%rbp), %rdi
+  cmp 8(%rsp), %rdi
   setge %rax
   ret
 .L41:

@@ -4,7 +4,7 @@
 _main:
   ret
 test.testMemory:
-  mov 4(%rbp), %rax
+  mov 8(%rsp), %rax
   test %rax, %rax
   je .L0
   mov $1, %rax

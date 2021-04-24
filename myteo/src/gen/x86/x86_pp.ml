@@ -120,7 +120,7 @@ let pp_register ~buf reg =
       add_char ~buf ':';
       add_string ~buf (string_of_int reg_alias.id)
     )
-  | _ -> add_string ~buf (string_of_int reg_alias.id)
+  | _ -> failwith "All registers must be resolved to a physical registers before printing"
 
 let pp_immediate ~buf imm =
   add_char ~buf '$';
@@ -133,9 +133,13 @@ let pp_immediate ~buf imm =
     | LongImmediate imm -> Int32.to_string imm
     | QuadImmediate imm -> Int64.to_string imm)
 
-let pp_memory_address ~buf mem =
+let rec pp_memory_address ~buf mem =
   match mem with
   | VirtualStackSlot _ -> failwith "Virtual stack slot must have been resolved before printing"
+  | FunctionStackArgument vreg ->
+    (match VReg.get_resolution vreg with
+    | StackSlot (PhysicalAddress _ as addr) -> pp_memory_address ~buf addr
+    | _ -> failwith "Function stack argument must have been resolved before printing")
   | PhysicalAddress mem ->
     begin
       match mem.offset with
@@ -168,7 +172,18 @@ let pp_memory_address ~buf mem =
 let pp_mem ~buf mem =
   let open Instruction in
   match mem with
-  | Reg reg -> pp_register ~buf reg
+  | Reg reg ->
+    let reg_alias = VReg.get_vreg_alias reg in
+    (match reg_alias.resolution with
+    | Physical reg ->
+      add_char ~buf '%';
+      add_string ~buf (debug_string_of_reg reg);
+      if Opts.dump_debug () then (
+        add_char ~buf ':';
+        add_string ~buf (string_of_int reg_alias.id)
+      )
+    | StackSlot (PhysicalAddress _ as addr) -> pp_memory_address ~buf addr
+    | _ -> failwith "All mems must be resolved to physical registers and addresses before printing")
   | Mem addr -> pp_memory_address ~buf addr
 
 let pp_instruction ~gcx ~pcx ~buf instruction =
@@ -252,7 +267,7 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_immediate imm;
         pp_args_separator ();
         pp_register dest_reg
-      | IDivM mem ->
+      | IDiv mem ->
         pp_op "idiv";
         pp_mem mem
       (* Bitwise operations *)

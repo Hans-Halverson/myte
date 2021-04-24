@@ -111,18 +111,12 @@ and gen_function_instruction_builder ~gcx ~ir func =
         | 3 -> move_from_precolored C
         | 4 -> move_from_precolored R8
         | 5 -> move_from_precolored R9
-        (* All other parameters pushed onto stack before call *)
-        | n ->
-          let resolution =
-            VReg.StackSlot
-              (PhysicalAddress
-                 {
-                   base = Some (Gcx.mk_precolored ~gcx BP);
-                   offset = Some (ImmediateOffset (Int64.of_int (4 * (n - 5))));
-                   index_and_scale = None;
-                 })
-          in
-          VReg.of_var_id ~resolution ~func:(Some func_.id) var_id)
+        (* All other parameters pushed onto stack before call. Address will be calculated once
+           we know stack frame size after stack coloring. *)
+        | _ ->
+          let vreg = VReg.of_var_id ~resolution:Unresolved ~func:(Some func_.id) var_id in
+          vreg.resolution <- StackSlot (FunctionStackArgument vreg);
+          vreg)
       func.params;
   Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx func.body_start_block));
   Gcx.finish_block ~gcx;
@@ -435,18 +429,18 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     | (SImm dividend_imm, divisor) ->
       let divisor_mem = emit_mem divisor in
       Gcx.emit ~gcx (MovIM (dividend_imm, Reg precolored_a));
-      Gcx.emit ~gcx (IDivM divisor_mem)
+      Gcx.emit ~gcx (IDiv divisor_mem)
     | (dividend, SImm divisor_imm) ->
       let dividend_mem = emit_mem dividend in
       let divisor_vreg = mk_vreg () in
       Gcx.emit ~gcx (MovMM (dividend_mem, Reg precolored_a));
       Gcx.emit ~gcx (MovIM (divisor_imm, Reg divisor_vreg));
-      Gcx.emit ~gcx (IDivM (Reg divisor_vreg))
+      Gcx.emit ~gcx (IDiv (Reg divisor_vreg))
     | (dividend, divisor) ->
       let dividend_mem = emit_mem dividend in
       let divisor_mem = emit_mem divisor in
       Gcx.emit ~gcx (MovMM (dividend_mem, Reg precolored_a));
-      Gcx.emit ~gcx (IDivM divisor_mem));
+      Gcx.emit ~gcx (IDiv divisor_mem));
     Gcx.emit ~gcx (MovMM (Reg precolored_a, Reg result_vreg));
     gen_instructions rest_instructions
   (*

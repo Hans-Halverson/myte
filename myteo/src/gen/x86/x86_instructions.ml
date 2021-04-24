@@ -66,11 +66,14 @@ type memory_address_scale =
 
 type 'reg memory_address =
   | VirtualStackSlot of 'reg
+  | FunctionStackArgument of 'reg
   | PhysicalAddress of {
       offset: memory_address_offset option;
       base: 'reg option;
       index_and_scale: ('reg * memory_address_scale) option;
     }
+
+let empty_memory_address = PhysicalAddress { offset = None; base = None; index_and_scale = None }
 
 type condition_code =
   | E
@@ -82,7 +85,54 @@ type condition_code =
 
 type block_id = int
 
+type func_id = int
+
 type vreg_id = int
+
+module VirtualRegister = struct
+  type id = int
+
+  type t = {
+    id: id;
+    mutable resolution: resolution;
+    mutable func: func_id option;
+  }
+
+  and resolution =
+    (* This vreg has been aliased to another. The resolution is the resolution of the alias vreg. *)
+    | Alias of t
+    (* This vreg has been mapped to a physical register in a particular register slot *)
+    | Physical of register_slot
+    (* This vreg has been mapped to a slot on the stack. May be explicit or result from spills. *)
+    | StackSlot of t memory_address
+    (* This vreg has not yet been resolved to a physical location *)
+    | Unresolved
+
+  let vregs_by_id = ref IMap.empty
+
+  let of_var_id ~resolution ~func var_id =
+    match IMap.find_opt var_id !vregs_by_id with
+    | None ->
+      let new_vreg = { id = var_id; resolution; func } in
+      vregs_by_id := IMap.add var_id new_vreg !vregs_by_id;
+      new_vreg
+    | Some existing_vreg -> existing_vreg
+
+  let mk ~resolution ~func = { id = Mir.mk_var_id (); resolution; func }
+
+  let compare v1 v2 = Int.compare v1.id v2.id
+
+  let rec get_vreg_alias vreg =
+    match vreg.resolution with
+    | Alias alias -> get_vreg_alias alias
+    | _ -> vreg
+
+  let get_resolution vreg = (get_vreg_alias vreg).resolution
+end
+
+module VReg = VirtualRegister
+module VRegSet = Set.Make (VirtualRegister)
+module VRegMap = Map.Make (VirtualRegister)
 
 module Instruction = struct
   type id = int
@@ -116,7 +166,7 @@ module Instruction = struct
     | SubMM of 'reg memory * 'reg memory
     | IMulMR of 'reg memory * 'reg
     | IMulMIR of 'reg memory * immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
-    | IDivM of 'reg memory
+    | IDiv of 'reg memory
     (* Bitwise operations *)
     | NotM of 'reg memory
     | AndIM of immediate * 'reg memory (* Only supports 8, 16, and 32-bit immediates *)
@@ -156,6 +206,8 @@ module Function = struct
     mutable params: 'reg list;
     mutable prologue: block_id;
     mutable spilled_callee_saved_regs: RegSet.t;
+    mutable spilled_vregs: VRegSet.t;
+    mutable num_stack_frame_slots: int;
   }
 
   let max_id = ref 0
@@ -204,51 +256,6 @@ type 'reg program = {
   bss: bss_data list;
   rodata: data list;
 }
-
-module VirtualRegister = struct
-  type id = int
-
-  type t = {
-    id: id;
-    mutable resolution: resolution;
-    mutable func: Function.id option;
-  }
-
-  and resolution =
-    (* This vreg has been aliased to another. The resolution is the resolution of the alias vreg. *)
-    | Alias of t
-    (* This vreg has been mapped to a physical register in a particular register slot *)
-    | Physical of register_slot
-    (* This vreg has been mapped to a slot on the stack. May be explicit or result from spills. *)
-    | StackSlot of t memory_address
-    (* This vreg has not yet been resolved to a physical location *)
-    | Unresolved
-
-  let vregs_by_id = ref IMap.empty
-
-  let of_var_id ~resolution ~func var_id =
-    match IMap.find_opt var_id !vregs_by_id with
-    | None ->
-      let new_vreg = { id = var_id; resolution; func } in
-      vregs_by_id := IMap.add var_id new_vreg !vregs_by_id;
-      new_vreg
-    | Some existing_vreg -> existing_vreg
-
-  let mk ~resolution ~func = { id = Mir.mk_var_id (); resolution; func }
-
-  let compare v1 v2 = Int.compare v1.id v2.id
-
-  let rec get_vreg_alias vreg =
-    match vreg.resolution with
-    | Alias alias -> get_vreg_alias alias
-    | _ -> vreg
-
-  let get_resolution vreg = (get_vreg_alias vreg).resolution
-end
-
-module VReg = VirtualRegister
-module VRegSet = Set.Make (VirtualRegister)
-module VRegMap = Map.Make (VirtualRegister)
 
 type virtual_instruction = VReg.t Instruction.t
 

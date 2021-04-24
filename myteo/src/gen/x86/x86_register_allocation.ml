@@ -76,104 +76,9 @@ let in_multimap key value mmap =
   | None -> false
   | Some values -> ISet.mem value values
 
-class liveness_init_visitor (blocks_by_id : virtual_block IMap.t) =
-  object (this)
-    inherit X86_visitor.instruction_visitor
-
-    val mutable prev_blocks =
-      IMap.fold (fun block_id _ acc -> IMap.add block_id ISet.empty acc) blocks_by_id IMap.empty
-
-    val mutable vreg_use_blocks = VRegMap.empty
-
-    val mutable vreg_def_blocks = VRegMap.empty
-
-    val mutable vreg_use_before_def_blocks = VRegMap.empty
-
-    method prev_blocks = prev_blocks
-
-    method vreg_use_blocks = vreg_use_blocks
-
-    method vreg_def_blocks = vreg_def_blocks
-
-    method vreg_use_before_def_blocks = vreg_use_before_def_blocks
-
-    method run () = IMap.iter (fun _ block -> this#visit_block block) blocks_by_id
-
-    method visit_block block = List.iter (this#visit_instruction ~block) block.instructions
-
-    method! visit_block_edge ~block next_block_id =
-      prev_blocks <-
-        IMap.add next_block_id (ISet.add block.id (IMap.find next_block_id prev_blocks)) prev_blocks
-
-    method! visit_read_vreg ~block vreg_id =
-      vreg_use_blocks <- add_to_vi_multimap vreg_id block.id vreg_use_blocks
-
-    method! visit_write_vreg ~block vreg_id =
-      if
-        in_vi_multimap vreg_id block.id vreg_use_blocks
-        && not (in_vi_multimap vreg_id block.id vreg_def_blocks)
-      then
-        vreg_use_before_def_blocks <- add_to_vi_multimap vreg_id block.id vreg_use_before_def_blocks;
-      vreg_def_blocks <- add_to_vi_multimap vreg_id block.id vreg_def_blocks
-  end
-
-let rec liveness_analysis ~(gcx : Gcx.t) =
-  let (_, live_out) = liveness_analysis_from_blocks gcx.blocks_by_id in
+let liveness_analysis ~(gcx : Gcx.t) =
+  let (_, live_out) = X86_liveness_analysis.analyze_vregs gcx.blocks_by_id in
   gcx.live_out <- live_out
-
-and liveness_analysis_from_blocks blocks_by_id =
-  (* Calculate use and def blocks for each variable *)
-  let init_visitor = new liveness_init_visitor blocks_by_id in
-  init_visitor#run ();
-
-  let prev_blocks = init_visitor#prev_blocks in
-  let vreg_use_blocks = init_visitor#vreg_use_blocks in
-  let vreg_def_blocks = init_visitor#vreg_def_blocks in
-  let vreg_use_before_def_blocks = init_visitor#vreg_use_before_def_blocks in
-
-  (* Initialize liveness sets *)
-  let live_in = ref IMap.empty in
-  let live_out = ref IMap.empty in
-  IMap.iter
-    (fun block_id _ ->
-      live_in := IMap.add block_id [] !live_in;
-      live_out := IMap.add block_id [] !live_out)
-    blocks_by_id;
-
-  (* Propagate a single variable backwards through the program, building liveness sets as we go *)
-  let set_contains set block_id var_id =
-    match IMap.find block_id !set with
-    | hd :: _ when hd = var_id -> true
-    | _ -> false
-  in
-  let set_add set block_id var_id =
-    set := IMap.add block_id (var_id :: IMap.find block_id !set) !set
-  in
-  let rec propagate_backwards ~block_id ~vreg_id =
-    (* Stop backwards propagation if we reach a block that has already been visited or where the
-       vreg is defined (unless the vreg is used in the block before it is defined in the block) *)
-    if
-      (not (set_contains live_in block_id vreg_id))
-      && ( (not (in_vi_multimap vreg_id block_id vreg_def_blocks))
-         || in_vi_multimap vreg_id block_id vreg_use_before_def_blocks )
-    then (
-      set_add live_in block_id vreg_id;
-      let prev_blocks = IMap.find block_id prev_blocks in
-      ISet.iter
-        (fun prev_block ->
-          if not (set_contains live_out prev_block vreg_id) then set_add live_out prev_block vreg_id;
-          propagate_backwards ~block_id:prev_block ~vreg_id)
-        prev_blocks
-    )
-  in
-
-  (* Liveness is calculated for all variables in program *)
-  VRegMap.iter
-    (fun vreg_id use_blocks ->
-      ISet.iter (fun block_id -> propagate_backwards ~block_id ~vreg_id) use_blocks)
-    vreg_use_blocks;
-
-  (!live_in, !live_out)
 
 class use_def_finder =
   object
@@ -514,9 +419,20 @@ let assign_colors ~(gcx : Gcx.t) =
     gcx.coalesced_vregs
 
 let rewrite_program ~(gcx : Gcx.t) =
-  (* TODO: Rewrite program for each vreg in gcx.spilled_vregs, and collect new temporaries *)
+  (* Resolve spilled vregs to virtual stack slots *)
+  VRegSet.iter
+    (fun vreg ->
+      let func = IMap.find (Option.get vreg.func) gcx.funcs_by_id in
+      func.spilled_vregs <- VRegSet.add vreg func.spilled_vregs;
+      vreg.resolution <- StackSlot (VirtualStackSlot vreg))
+    gcx.spilled_vregs;
+  (* Then rewrite program to include newly resolved memory locations *)
+  let spill_writer = new X86_spill_writer.spill_writer ~gcx in
+  IMap.iter (fun _ block -> spill_writer#write_block_spills block) gcx.blocks_by_id;
+  (* Reset state of register allocator *)
+  let new_vregs = spill_writer#new_vregs in
   gcx.spilled_vregs <- VRegSet.empty;
-  gcx.initial_vregs <- VRegSet.union gcx.colored_vregs gcx.coalesced_vregs;
+  gcx.initial_vregs <- VRegSet.union new_vregs (VRegSet.union gcx.colored_vregs gcx.coalesced_vregs);
   gcx.colored_vregs <- VRegSet.empty;
   gcx.coalesced_vregs <- VRegSet.empty
 
@@ -534,51 +450,6 @@ let remove_coalesced_moves ~(gcx : Gcx.t) =
               VReg.get_vreg_alias source_vreg <> VReg.get_vreg_alias dest_vreg
             | _ -> true)
           block.instructions)
-    gcx.blocks_by_id
-
-(* Write all function prologues by pushing the used callee saved registers on the stack *)
-let write_function_prologues ~(gcx : Gcx.t) =
-  IMap.iter
-    (fun _ func ->
-      let prologue = IMap.find func.Function.prologue gcx.blocks_by_id in
-      let push_instrs =
-        RegSet.fold
-          (fun reg acc ->
-            if RegSet.mem reg func.spilled_callee_saved_regs then
-              Instruction.(mk_id (), PushM (Reg (Gcx.mk_precolored ~gcx reg))) :: acc
-            else
-              acc)
-          callee_saved_registers
-          []
-      in
-      prologue.instructions <- List.rev push_instrs @ prologue.instructions)
-    gcx.funcs_by_id
-
-(* Write all function epilogues by pushing the used callee saved registers on the stack *)
-let write_function_epilogues ~(gcx : Gcx.t) =
-  IMap.iter
-    (fun _ block ->
-      let open Block in
-      let func = IMap.find block.func gcx.funcs_by_id in
-      let offset = ref 0 in
-      block.instructions <-
-        List.map
-          (fun ((_, instr) as instr_with_id) ->
-            let open Instruction in
-            match instr with
-            | Ret ->
-              RegSet.fold
-                (fun reg acc ->
-                  if RegSet.mem reg func.spilled_callee_saved_regs then (
-                    offset := !offset + 1;
-                    Instruction.(mk_id (), PopM (Reg (Gcx.mk_precolored ~gcx reg))) :: acc
-                  ) else
-                    acc)
-                callee_saved_registers
-                [instr_with_id]
-            | _ -> [instr_with_id])
-          block.instructions
-        |> List.flatten)
     gcx.blocks_by_id
 
 (* Allocate physical registers (colors) to each virtual register using iterated register coalescing.
@@ -621,6 +492,4 @@ let allocate_registers ~(gcx : Gcx.t) =
   iter ();
   remove_coalesced_moves ~gcx;
   Gcx.compress_jump_aliases ~gcx;
-  Gcx.remove_redundant_instructions ~gcx;
-  write_function_prologues ~gcx;
-  write_function_epilogues ~gcx
+  Gcx.remove_redundant_instructions ~gcx

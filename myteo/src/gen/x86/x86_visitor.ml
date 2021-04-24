@@ -13,7 +13,7 @@ class instruction_visitor =
       | PushM read_mem
       | CmpMI (read_mem, _)
       | CallM read_mem
-      | IDivM read_mem ->
+      | IDiv read_mem ->
         visit_read_mem read_mem
       | PopM write_mem
       | MovIM (_, write_mem)
@@ -69,6 +69,7 @@ class instruction_visitor =
     method visit_memory_address ~block memory_address =
       match memory_address with
       | VirtualStackSlot _ -> ()
+      | FunctionStackArgument _ -> ()
       | PhysicalAddress mem ->
         Option.iter (this#visit_read_vreg ~block) mem.base;
         (match mem.index_and_scale with
