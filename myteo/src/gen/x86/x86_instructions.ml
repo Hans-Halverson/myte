@@ -108,31 +108,32 @@ module Instruction = struct
     | MovMM of 'reg memory * 'reg memory
     | Lea of 'reg memory_address * 'reg
     (* Numeric operations *)
-    | NegR of 'reg
-    | AddRR of 'reg * 'reg
-    | AddIR of immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
-    | SubRR of 'reg * 'reg
-    | SubIR of immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
-    | IMulRR of 'reg * 'reg
-    | IMulRIR of 'reg * immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
-    | IDivR of 'reg
+    | NegM of 'reg memory
+    | AddIM of immediate * 'reg memory (* Only supports 8, 16, and 32-bit immediates *)
+    | AddMM of 'reg memory * 'reg memory
+    (* For sub instructions, right/dest := right/dest - left/src *)
+    | SubIM of immediate * 'reg memory (* Only supports 8, 16, and 32-bit immediates *)
+    | SubMM of 'reg memory * 'reg memory
+    | IMulMR of 'reg memory * 'reg
+    | IMulMIR of 'reg memory * immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
+    | IDivM of 'reg memory
     (* Bitwise operations *)
-    | NotR of 'reg
-    | AndRR of 'reg * 'reg
-    | AndIR of immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
-    | OrRR of 'reg * 'reg
-    | OrIR of immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
+    | NotM of 'reg memory
+    | AndIM of immediate * 'reg memory (* Only supports 8, 16, and 32-bit immediates *)
+    | AndMM of 'reg memory * 'reg memory
+    | OrIM of immediate * 'reg memory (* Only supports 8, 16, and 32-bit immediates *)
+    | OrMM of 'reg memory * 'reg memory
     | XorMM of 'reg memory * 'reg memory
     (* Comparisons *)
     | CmpMI of 'reg memory * immediate (* Only supports 8, 16, and 32-bit immediates *)
     | CmpMM of 'reg memory * 'reg memory
     | TestMR of 'reg memory * 'reg
-    | SetCC of condition_code * 'reg
+    | SetCC of condition_code * 'reg memory (* Only supports 8-bit location *)
     (* Control flow *)
     | Jmp of block_id
     | JmpCC of condition_code * block_id
-    | CallR of 'reg
     | CallL of label
+    | CallM of 'reg memory
     | Leave
     | Ret
     | Syscall

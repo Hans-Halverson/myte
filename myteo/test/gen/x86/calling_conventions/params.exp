@@ -9,8 +9,9 @@ test.testEightArgFunction:
   add %rdx, %rcx
   add %rcx, %r8
   add %r8, %r9
-  add %r9, %r10
-  add %r10, %rax
+  add 4(%rbp), %r9
+  add 8(%rbp), %r9
+  mov %r9, %rax
   ret
 test.testFiveArgFunction:
   add %rdi, %rsi
@@ -31,9 +32,10 @@ test.testNineArgFunction:
   add %rdx, %rcx
   add %rcx, %r8
   add %r8, %r9
-  add %r9, %r11
-  add %r11, %r10
-  add %r10, %rax
+  add 4(%rbp), %r9
+  add 8(%rbp), %r9
+  add 12(%rbp), %r9
+  mov %r9, %rax
   ret
 test.testOneArgFunction:
   mov %rdi, %rax
@@ -44,7 +46,8 @@ test.testSevenArgFunction:
   add %rdx, %rcx
   add %rcx, %r8
   add %r8, %r9
-  add %r9, %rax
+  add 4(%rbp), %r9
+  mov %r9, %rax
   ret
 test.testSixArgFunction:
   add %rdi, %rsi

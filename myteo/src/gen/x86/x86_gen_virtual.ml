@@ -39,7 +39,7 @@ let rec gen ~gcx (ir : ssa_program) =
 
 and gen_global_instruction_builder ~gcx ~ir global init_func =
   let open Instruction in
-  let init_val_info = get_resolved_source_value ~func:init_func.id global.init_val in
+  let init_val_info = resolve_ir_value ~func:init_func.id global.init_val in
   match init_val_info with
   | SImm imm ->
     (* Global is initialized to immediate, so insert into initialized data section *)
@@ -149,6 +149,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   let gen_instructions = gen_instructions ~gcx ~ir ~func ~block in
   let vreg_of_var var_id = VReg.of_var_id ~resolution:Unresolved ~func:(Some func) var_id in
   let mk_vreg () = VReg.mk ~resolution:Unresolved ~func:(Some func) in
+  let resolve_ir_value v = resolve_ir_value ~func v in
   let is_cond_jump var_id =
     match block.next with
     | Branch { test = Var test_var_id; _ } when test_var_id = var_id -> true
@@ -164,9 +165,17 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       Reg vreg
     | _ -> failwith "Only called on address, memory location, or vreg"
   in
+  (* Return preferred (source, dest) args for a commutative binary operation. We try to avoid having
+     the destination be a memory location, so source always contains memory location if one exists. *)
+  let choose_commutative_source_dest_arg_order v1 v2 =
+    match (v1, v2) with
+    | (SMem _, _) -> (v1, v2)
+    | (_, SMem _) -> (v2, v1)
+    | _ -> (v1, v2)
+  in
   (* Generate a cmp instruction between two arguments. Return whether order was swapped. *)
   let gen_cmp left_val right_val =
-    match (get_resolved_source_value ~func left_val, get_resolved_source_value ~func right_val) with
+    match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     (* Comparison to immediate - swap arguments if necessary *)
     | (SImm imm, other) ->
@@ -216,7 +225,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       else
         cc
     in
-    Gcx.emit ~gcx (SetCC (cc, result_vreg))
+    Gcx.emit ~gcx (SetCC (cc, Reg result_vreg))
   in
   match instructions with
   | [] ->
@@ -228,13 +237,13 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx continue))
     | Branch { test = Var _ as test; continue; jump } ->
       let vreg =
-        match get_resolved_source_value ~func (Bool test) with
+        match resolve_ir_value (Bool test) with
         | SVReg (vreg, _) -> vreg
         | SMem (mem, _) ->
           let vreg = mk_vreg () in
           Gcx.emit ~gcx (MovMM (Mem mem, Reg vreg));
           vreg
-        | _ -> failwith "Boolean variable can only be vreg or memory location"
+        | _ -> failwith "Boolean variable must be vreg or memory location"
       in
       Gcx.emit ~gcx (TestMR (Reg vreg, vreg));
       Gcx.emit ~gcx (JmpCC (E, Gcx.get_block_id_from_mir_block_id ~gcx jump));
@@ -248,7 +257,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   | Mir.Instruction.Mov (dest_var_id, value) :: rest_instructions ->
     let dest_vreg = vreg_of_var dest_var_id in
     let instr =
-      match get_resolved_source_value ~func value with
+      match resolve_ir_value value with
       | SImm imm -> MovIM (imm, Reg dest_vreg)
       | SAddr addr -> Lea (addr, dest_vreg)
       | SMem (mem, _) -> MovMM (Mem mem, Reg dest_vreg)
@@ -272,7 +281,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
           | None -> ()
           | Some color ->
             let vreg = Gcx.mk_precolored ~gcx color in
-            (match get_resolved_source_value ~func arg_val with
+            (match resolve_ir_value arg_val with
             | SImm imm -> Gcx.emit ~gcx (MovIM (imm, Reg vreg))
             | SAddr addr -> Gcx.emit ~gcx (Lea (addr, vreg))
             | SMem (mem, _) -> Gcx.emit ~gcx (MovMM (Mem mem, Reg vreg))
@@ -282,7 +291,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     let rest_arg_vals = List.rev (List_utils.drop 6 arg_vals) in
     List.iter
       (fun arg_val ->
-        match get_resolved_source_value ~func arg_val with
+        match resolve_ir_value arg_val with
         (* Push does not support 64-bit immediates. Must instead move onto stack. *)
         | SImm (QuadImmediate _) -> failwith "Unimplemented"
         | SImm imm -> Gcx.emit ~gcx (PushI imm)
@@ -298,7 +307,9 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     let inst =
       match func_val with
       | Mir.Instruction.FunctionValue.Lit label -> CallL label
-      | Mir.Instruction.FunctionValue.Var var_id -> CallR (vreg_of_var var_id)
+      | Mir.Instruction.FunctionValue.Var _ ->
+        let func_mem = emit_mem (resolve_ir_value (Function func_val)) in
+        CallM func_mem
     in
     Gcx.emit ~gcx inst;
     Gcx.emit ~gcx (MovMM (Reg (Gcx.mk_precolored ~gcx A), Reg (vreg_of_var return_var_id)));
@@ -313,7 +324,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     | None -> ()
     | Some value ->
       let precolored_vreg = Gcx.mk_precolored ~gcx A in
-      (match get_resolved_source_value ~func value with
+      (match resolve_ir_value value with
       | SImm imm -> Gcx.emit ~gcx (MovIM (imm, Reg precolored_vreg))
       | SAddr addr -> Gcx.emit ~gcx (Lea (addr, precolored_vreg))
       | SMem (mem, _) -> Gcx.emit ~gcx (MovMM (Mem mem, Reg precolored_vreg))
@@ -335,7 +346,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    *)
   | Mir.Instruction.StoreGlobal (label, value) :: rest_instructions ->
     let global_address = mk_label_memory_address label in
-    (match get_resolved_source_value ~func value with
+    (match resolve_ir_value value with
     | SImm imm -> Gcx.emit ~gcx (MovIM (imm, Mem global_address))
     | SAddr addr ->
       let vreg = mk_vreg () in
@@ -354,16 +365,19 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    *)
   | Mir.Instruction.Add (result_var_id, left_val, right_val) :: rest_instructions ->
     let result_vreg = vreg_of_var result_var_id in
-    (match (left_val, right_val) with
-    | (IntLit left_lit, IntLit right_lit) ->
-      Gcx.emit ~gcx (MovIM (QuadImmediate (Int64.add left_lit right_lit), Reg result_vreg))
-    | (IntLit lit, IntVar arg_var_id)
-    | (IntVar arg_var_id, IntLit lit) ->
-      Gcx.emit ~gcx (MovMM (Reg (vreg_of_var arg_var_id), Reg result_vreg));
-      Gcx.emit ~gcx (AddIR (QuadImmediate lit, result_vreg))
-    | (IntVar left_var_id, IntVar right_var_id) ->
-      Gcx.emit ~gcx (MovMM (Reg (vreg_of_var right_var_id), Reg result_vreg));
-      Gcx.emit ~gcx (AddRR (vreg_of_var left_var_id, result_vreg)));
+    (match (resolve_ir_value (Numeric left_val), resolve_ir_value (Numeric right_val)) with
+    | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
+    | (SImm imm, other)
+    | (other, SImm imm) ->
+      let other_mem = emit_mem other in
+      Gcx.emit ~gcx (MovMM (other_mem, Reg result_vreg));
+      Gcx.emit ~gcx (AddIM (imm, Reg result_vreg))
+    | (v1, v2) ->
+      let (v1, v2) = choose_commutative_source_dest_arg_order v1 v2 in
+      let mem1 = emit_mem v1 in
+      let mem2 = emit_mem v2 in
+      Gcx.emit ~gcx (MovMM (mem2, Reg result_vreg));
+      Gcx.emit ~gcx (AddMM (mem1, Reg result_vreg)));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -372,18 +386,21 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    *)
   | Mir.Instruction.Sub (result_var_id, left_val, right_val) :: rest_instructions ->
     let result_vreg = vreg_of_var result_var_id in
-    (match (left_val, right_val) with
-    | (IntLit left_lit, IntLit right_lit) ->
-      Gcx.emit ~gcx (MovIM (QuadImmediate (Int64.sub left_lit right_lit), Reg result_vreg))
-    | (IntLit left_lit, IntVar right_var_id) ->
-      Gcx.emit ~gcx (MovIM (QuadImmediate left_lit, Reg result_vreg));
-      Gcx.emit ~gcx (SubRR (vreg_of_var right_var_id, result_vreg))
-    | (IntVar left_var_id, IntLit right_lit) ->
-      Gcx.emit ~gcx (MovMM (Reg (vreg_of_var left_var_id), Reg result_vreg));
-      Gcx.emit ~gcx (SubIR (QuadImmediate right_lit, result_vreg))
-    | (IntVar left_var_id, IntVar right_var_id) ->
-      Gcx.emit ~gcx (MovMM (Reg (vreg_of_var left_var_id), Reg result_vreg));
-      Gcx.emit ~gcx (SubRR (vreg_of_var right_var_id, result_vreg)));
+    (match (resolve_ir_value (Numeric left_val), resolve_ir_value (Numeric right_val)) with
+    | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
+    | (SImm left_imm, right) ->
+      let right_mem = emit_mem right in
+      Gcx.emit ~gcx (MovIM (left_imm, Reg result_vreg));
+      Gcx.emit ~gcx (SubMM (right_mem, Reg result_vreg))
+    | (left, SImm right_imm) ->
+      let left_mem = emit_mem left in
+      Gcx.emit ~gcx (MovMM (left_mem, Reg result_vreg));
+      Gcx.emit ~gcx (SubIM (right_imm, Reg result_vreg))
+    | (left, right) ->
+      let left_mem = emit_mem left in
+      let right_mem = emit_mem right in
+      Gcx.emit ~gcx (MovMM (left_mem, Reg result_vreg));
+      Gcx.emit ~gcx (SubMM (right_mem, Reg result_vreg)));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -392,13 +409,18 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    *)
   | Mir.Instruction.Mul (result_var_id, left_val, right_val) :: rest_instructions ->
     let result_vreg = vreg_of_var result_var_id in
-    (match (left_val, right_val) with
-    | (IntLit left_lit, IntLit right_lit) ->
-      Gcx.emit ~gcx (MovIM (QuadImmediate (Int64.mul left_lit right_lit), Reg result_vreg))
-    | (IntLit lit, IntVar arg_var_id)
-    | (IntVar arg_var_id, IntLit lit) ->
-      Gcx.emit ~gcx (IMulRIR (vreg_of_var arg_var_id, QuadImmediate lit, result_vreg))
-    | (IntVar var1, IntVar var2) -> Gcx.emit ~gcx (IMulRR (vreg_of_var var1, vreg_of_var var2)));
+    (match (resolve_ir_value (Numeric left_val), resolve_ir_value (Numeric right_val)) with
+    | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
+    | (SImm imm, other)
+    | (other, SImm imm) ->
+      let other_mem = emit_mem other in
+      Gcx.emit ~gcx (IMulMIR (other_mem, imm, result_vreg))
+    | (v1, v2) ->
+      let (v1, v2) = choose_commutative_source_dest_arg_order v1 v2 in
+      let mem1 = emit_mem v1 in
+      let mem2 = emit_mem v2 in
+      Gcx.emit ~gcx (MovMM (mem2, Reg result_vreg));
+      Gcx.emit ~gcx (IMulMR (mem1, result_vreg)));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -407,17 +429,25 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    *)
   | Mir.Instruction.Div (result_var_id, left_val, right_val) :: rest_instructions ->
     let result_vreg = vreg_of_var result_var_id in
-    (match (left_val, right_val) with
-    | (IntLit left_lit, IntLit right_lit) ->
-      Gcx.emit ~gcx (MovIM (QuadImmediate (Int64.div left_lit right_lit), Reg result_vreg))
-    | (IntLit lit, IntVar arg_var_id) ->
-      Gcx.emit ~gcx (MovIM (QuadImmediate lit, Reg result_vreg));
-      Gcx.emit ~gcx (IDivR (vreg_of_var arg_var_id))
-    | (IntVar _arg_var_id, IntLit lit) ->
-      let reg = mk_vreg () in
-      Gcx.emit ~gcx (MovIM (QuadImmediate lit, Reg reg));
-      Gcx.emit ~gcx (IDivR reg)
-    | (IntVar _var1, IntVar var2) -> Gcx.emit ~gcx (IDivR (vreg_of_var var2)));
+    let precolored_a = Gcx.mk_precolored ~gcx A in
+    (match (resolve_ir_value (Numeric left_val), resolve_ir_value (Numeric right_val)) with
+    | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
+    | (SImm dividend_imm, divisor) ->
+      let divisor_mem = emit_mem divisor in
+      Gcx.emit ~gcx (MovIM (dividend_imm, Reg precolored_a));
+      Gcx.emit ~gcx (IDivM divisor_mem)
+    | (dividend, SImm divisor_imm) ->
+      let dividend_mem = emit_mem dividend in
+      let divisor_vreg = mk_vreg () in
+      Gcx.emit ~gcx (MovMM (dividend_mem, Reg precolored_a));
+      Gcx.emit ~gcx (MovIM (divisor_imm, Reg divisor_vreg));
+      Gcx.emit ~gcx (IDivM (Reg divisor_vreg))
+    | (dividend, divisor) ->
+      let dividend_mem = emit_mem dividend in
+      let divisor_mem = emit_mem divisor in
+      Gcx.emit ~gcx (MovMM (dividend_mem, Reg precolored_a));
+      Gcx.emit ~gcx (IDivM divisor_mem));
+    Gcx.emit ~gcx (MovMM (Reg precolored_a, Reg result_vreg));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -425,27 +455,21 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.Neg (result_var_id, arg) :: rest_instructions ->
-    let arg_vreg =
-      match arg with
-      | IntLit _ -> failwith "Constant folding must have already occurred"
-      | IntVar var_id -> vreg_of_var var_id
-    in
+    let arg_mem = emit_mem (resolve_ir_value (Numeric arg)) in
     let result_vreg = vreg_of_var result_var_id in
-    Gcx.emit ~gcx (MovMM (Reg arg_vreg, Reg result_vreg));
-    Gcx.emit ~gcx (NegR result_vreg);
+    Gcx.emit ~gcx (MovMM (arg_mem, Reg result_vreg));
+    Gcx.emit ~gcx (NegM (Reg result_vreg));
     gen_instructions rest_instructions
   (*
    * ===========================================
    *                  LogNot
    * ===========================================
    *)
-  | Mir.Instruction.LogNot (_var_id, arg) :: rest_instructions ->
-    let arg_vreg =
-      match arg with
-      | Lit _ -> failwith "Constant folding must have already occurred"
-      | Var var_id -> vreg_of_var var_id
-    in
-    Gcx.emit ~gcx (NotR arg_vreg);
+  | Mir.Instruction.LogNot (result_var_id, arg) :: rest_instructions ->
+    let arg_mem = emit_mem (resolve_ir_value (Bool arg)) in
+    let result_vreg = vreg_of_var result_var_id in
+    Gcx.emit ~gcx (MovMM (arg_mem, Reg result_vreg));
+    Gcx.emit ~gcx (NotM (Reg result_vreg));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -454,13 +478,19 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    *)
   | Mir.Instruction.LogAnd (result_var_id, left_val, right_val) :: rest_instructions ->
     let result_vreg = vreg_of_var result_var_id in
-    (match (left_val, right_val) with
-    | (Lit left_lit, Lit right_lit) ->
-      Gcx.emit ~gcx (MovIM (imm_byte_of_bool (left_lit && right_lit), Reg result_vreg))
-    | (Lit lit, Var arg_var_id)
-    | (Var arg_var_id, Lit lit) ->
-      Gcx.emit ~gcx (AndIR (imm_byte_of_bool lit, vreg_of_var arg_var_id))
-    | (Var var1, Var var2) -> Gcx.emit ~gcx (AndRR (vreg_of_var var1, vreg_of_var var2)));
+    (match (resolve_ir_value (Bool left_val), resolve_ir_value (Bool right_val)) with
+    | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
+    | (SImm imm, other)
+    | (other, SImm imm) ->
+      let other_mem = emit_mem other in
+      Gcx.emit ~gcx (MovMM (other_mem, Reg result_vreg));
+      Gcx.emit ~gcx (AndIM (imm, Reg result_vreg))
+    | (v1, v2) ->
+      let (v1, v2) = choose_commutative_source_dest_arg_order v1 v2 in
+      let mem1 = emit_mem v1 in
+      let mem2 = emit_mem v2 in
+      Gcx.emit ~gcx (MovMM (mem2, Reg result_vreg));
+      Gcx.emit ~gcx (AndMM (mem1, Reg result_vreg)));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -469,13 +499,19 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    *)
   | Mir.Instruction.LogOr (result_var_id, left_val, right_val) :: rest_instructions ->
     let result_vreg = vreg_of_var result_var_id in
-    (match (left_val, right_val) with
-    | (Lit left_lit, Lit right_lit) ->
-      Gcx.emit ~gcx (MovIM (imm_byte_of_bool (left_lit || right_lit), Reg result_vreg))
-    | (Lit lit, Var arg_var_id)
-    | (Var arg_var_id, Lit lit) ->
-      Gcx.emit ~gcx (OrIR (imm_byte_of_bool lit, vreg_of_var arg_var_id))
-    | (Var var1, Var var2) -> Gcx.emit ~gcx (OrRR (vreg_of_var var1, vreg_of_var var2)));
+    (match (resolve_ir_value (Bool left_val), resolve_ir_value (Bool right_val)) with
+    | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
+    | (SImm imm, other)
+    | (other, SImm imm) ->
+      let other_mem = emit_mem other in
+      Gcx.emit ~gcx (MovMM (other_mem, Reg result_vreg));
+      Gcx.emit ~gcx (OrIM (imm, Reg result_vreg))
+    | (v1, v2) ->
+      let (v1, v2) = choose_commutative_source_dest_arg_order v1 v2 in
+      let mem1 = emit_mem v1 in
+      let mem2 = emit_mem v2 in
+      Gcx.emit ~gcx (MovMM (mem2, Reg result_vreg));
+      Gcx.emit ~gcx (OrMM (mem1, Reg result_vreg)));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -538,7 +574,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     gen_set_cc GE result_var_id left_val right_val;
     gen_instructions rest_instructions
 
-and get_resolved_source_value ~func value =
+and resolve_ir_value ~func value =
   let open Mir.Instruction.Value in
   let vreg_of_var var_id size =
     let vreg = VReg.of_var_id ~resolution:Unresolved ~func:(Some func) var_id in

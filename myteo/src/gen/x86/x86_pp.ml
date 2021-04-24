@@ -217,68 +217,68 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_args_separator ();
         pp_register reg
       (* Numeric operations *)
-      | NegR reg ->
+      | NegM mem ->
         pp_op "neg";
-        pp_register reg
-      | AddRR (src_reg, dest_reg) ->
+        pp_mem mem
+      | AddMM (src_mem, dest_mem) ->
         pp_op "add";
-        pp_register src_reg;
+        pp_mem src_mem;
         pp_args_separator ();
-        pp_register dest_reg
-      | AddIR (imm, dest_reg) ->
+        pp_mem dest_mem
+      | AddIM (imm, dest_mem) ->
         pp_op "add";
         pp_immediate imm;
         pp_args_separator ();
-        pp_register dest_reg
-      | SubRR (src_reg, dest_reg) ->
+        pp_mem dest_mem
+      | SubMM (src_mem, dest_mem) ->
         pp_op "sub";
-        pp_register src_reg;
+        pp_mem src_mem;
         pp_args_separator ();
-        pp_register dest_reg
-      | SubIR (imm, dest_reg) ->
+        pp_mem dest_mem
+      | SubIM (imm, dest_mem) ->
         pp_op "sub";
         pp_immediate imm;
         pp_args_separator ();
-        pp_register dest_reg
-      | IMulRR (src_reg, dest_reg) ->
+        pp_mem dest_mem
+      | IMulMR (src_mem, dest_reg) ->
         pp_op "imul";
-        pp_register src_reg;
+        pp_mem src_mem;
         pp_args_separator ();
         pp_register dest_reg
-      | IMulRIR (src_reg, imm, dest_reg) ->
+      | IMulMIR (src_mem, imm, dest_reg) ->
         pp_op "imul";
-        pp_register src_reg;
+        pp_mem src_mem;
         pp_args_separator ();
         pp_immediate imm;
         pp_args_separator ();
         pp_register dest_reg
-      | IDivR reg ->
+      | IDivM mem ->
         pp_op "idiv";
-        pp_register reg
+        pp_mem mem
       (* Bitwise operations *)
-      | NotR reg ->
+      | NotM mem ->
         pp_op "not";
-        pp_register reg
-      | AndRR (src_reg, dest_reg) ->
+        pp_mem mem
+      | AndMM (src_mem, dest_mem) ->
         pp_op "and";
-        pp_register src_reg;
+        pp_mem src_mem;
         pp_args_separator ();
-        pp_register dest_reg
-      | AndIR (imm, dest_reg) ->
+        pp_mem dest_mem
+      | AndIM (imm, dest_mem) ->
         pp_op "and";
         pp_immediate imm;
         pp_args_separator ();
-        pp_register dest_reg
-      | OrRR (src_reg, dest_reg) ->
+        pp_mem dest_mem
+      | OrMM (src_mem, dest_mem) ->
         pp_op "or";
-        pp_register src_reg;
+        pp_mem src_mem;
         pp_args_separator ();
-        pp_register dest_reg
-      | OrIR (imm, dest_reg) ->
+        pp_mem dest_mem
+      | OrIM (imm, dest_mem) ->
         pp_op "or";
         pp_immediate imm;
         pp_args_separator ();
-        pp_register dest_reg
+        pp_mem dest_mem
       | XorMM (src_mem, dest_mem) ->
         pp_op "xor";
         pp_mem src_mem;
@@ -300,9 +300,9 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_mem mem;
         pp_args_separator ();
         pp_register reg
-      | SetCC (cc, reg) ->
+      | SetCC (cc, mem) ->
         pp_op ("set" ^ pp_condition_code cc);
-        pp_register reg
+        pp_mem mem
       (* Control flow *)
       | Jmp block_id ->
         let block = IMap.find block_id gcx.Gcx.blocks_by_id in
@@ -314,9 +314,9 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_op ("j" ^ pp_condition_code cc);
         pp_label_debug_prefix ~buf block_id;
         add_string (Option.get (pp_label ~pcx block))
-      | CallR reg ->
+      | CallM mem ->
         pp_op "call";
-        pp_register reg
+        pp_mem mem
       | CallL label ->
         pp_op "call";
         add_string label

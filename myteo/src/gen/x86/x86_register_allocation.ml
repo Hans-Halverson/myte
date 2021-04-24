@@ -232,7 +232,7 @@ let build_interference_graph ~(gcx : Gcx.t) =
             (* Caller saved registers are modeled by creating interferences with all live registers
                at call instructions. *)
             | Instruction.CallL _
-            | Instruction.CallR _ ->
+            | Instruction.CallM _ ->
               RegSet.iter
                 (fun reg ->
                   let color_vreg = RegMap.find reg gcx.color_to_vreg in
