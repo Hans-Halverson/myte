@@ -10,7 +10,7 @@ _main:
   movl $5, %r8d
   movl $6, %r9d
   call test.testSingleSpillUsingAllRegisters
-  addl $8, %esp
+  addq $8, %rsp
   ret
 test.testCallerSavedRegistersSpilledAcrossFunctionCalls:
   push %rbx
@@ -18,7 +18,7 @@ test.testCallerSavedRegistersSpilledAcrossFunctionCalls:
   push %r13
   push %r14
   push %r15
-  subl $8, %esp
+  subq $8, %rsp
   movl %edi, 8(%rsp)
   movl %esi, %r12d
   movl %edx, %r14d
@@ -33,7 +33,7 @@ test.testCallerSavedRegistersSpilledAcrossFunctionCalls:
   addl %r15d, %r13d
   addl %r13d, %ebx
   movl %ebx, %eax
-  addl $8, %esp
+  addq $8, %rsp
   pop %r15
   pop %r14
   pop %r13
@@ -46,7 +46,7 @@ test.testSingleSpillUsingAllRegisters:
   push %r13
   push %r14
   push %r15
-  subl $8, %esp
+  subq $8, %rsp
   movl %esi, %eax
   addl %edi, %eax
   movl %eax, 8(%rsp)
@@ -82,7 +82,7 @@ test.testSingleSpillUsingAllRegisters:
   addl %r10d, %ebx
   addl %ebx, %eax
   addl 56(%rsp), %eax
-  addl $8, %esp
+  addq $8, %rsp
   pop %r15
   pop %r14
   pop %r13

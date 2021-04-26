@@ -12,7 +12,7 @@ test.testMultipleInterferingSpillsInDifferentStackSlots:
   push %r13
   push %r14
   push %r15
-  subl $32, %esp
+  subq $32, %rsp
   movl %edi, %r14d
   movl %esi, 32(%rsp)
   movl %edx, 24(%rsp)
@@ -45,7 +45,7 @@ test.testMultipleInterferingSpillsInDifferentStackSlots:
   addl %ebx, %ecx
   movl 8(%rsp), %eax
   addl %ecx, %eax
-  addl $32, %esp
+  addq $32, %rsp
   pop %r15
   pop %r14
   pop %r13
@@ -58,7 +58,7 @@ test.testNonInterferingSpillsReuseStackSlots:
   push %r13
   push %r14
   push %r15
-  subl $40, %esp
+  subq $40, %rsp
   call test.cond
   movl $1, %r15d
   movl $2, %r14d
@@ -120,7 +120,7 @@ test.testNonInterferingSpillsReuseStackSlots:
   addl %edx, %ecx
   addl %ecx, %ebx
   addl %ebx, %eax
-  addl $40, %esp
+  addq $40, %rsp
   pop %r15
   pop %r14
   pop %r13

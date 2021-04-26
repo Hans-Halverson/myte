@@ -172,10 +172,14 @@ module Instruction = struct
     | Lea of size * 'reg memory_address * 'reg (* Only supports 32 or 64 bit register argument *)
     (* Numeric operations *)
     | NegM of size * 'reg memory
-    | AddIM of immediate * 'reg memory (* Only supports 8, 16, and 32-bit immediates *)
+    (* Only supports 8, 16, and 32-bit immediates. Instruction size matches immediate size
+       except for 64-bit mems which can use 8 or 32-bit immediates. *)
+    | AddIM of immediate * 'reg memory * size
     | AddMM of size * 'reg memory * 'reg memory
     (* For sub instructions, right/dest := right/dest - left/src *)
-    | SubIM of immediate * 'reg memory (* Only supports 8, 16, and 32-bit immediates *)
+    (* Only supports 8, 16, and 32-bit immediates. Instruction size matches immediate size
+       except for 64-bit mems which can use 8 or 32-bit immediates. *)
+    | SubIM of immediate * 'reg memory * size (* Only supports 8, 16, and 32-bit immediates *)
     | SubMM of size * 'reg memory * 'reg memory
     | IMulMR of size * 'reg memory * 'reg (* Only supports 16, 32, and 64-bit arguments *)
     | IMulMIR of 'reg memory * immediate * 'reg (* Only supports 16 and 32-bit immediates *)

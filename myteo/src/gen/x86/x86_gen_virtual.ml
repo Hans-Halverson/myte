@@ -316,7 +316,8 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     if num_stack_arg_vals <> 0 then
       Gcx.emit
         ~gcx
-        (AddIM (Imm32 (Int32.of_int (num_stack_arg_vals * 8)), Reg (Gcx.mk_precolored ~gcx SP)));
+        (AddIM
+           (Imm32 (Int32.of_int (num_stack_arg_vals * 8)), Reg (Gcx.mk_precolored ~gcx SP), Size64));
     (* Move result from register A to return vreg *)
     let return_size = size_of_mir_value_type ret_ty in
     Gcx.emit
@@ -383,8 +384,9 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     | (SImm imm, other)
     | (other, SImm imm) ->
       let other_mem = emit_mem other in
-      Gcx.emit ~gcx (MovMM (size_of_immediate imm, other_mem, Reg result_vreg));
-      Gcx.emit ~gcx (AddIM (imm, Reg result_vreg))
+      let size = size_of_immediate imm in
+      Gcx.emit ~gcx (MovMM (size, other_mem, Reg result_vreg));
+      Gcx.emit ~gcx (AddIM (imm, Reg result_vreg, size))
     | (v1, v2) ->
       let size = size_of_svalue v1 in
       let (v1, v2) = choose_commutative_source_dest_arg_order v1 v2 in
@@ -408,8 +410,9 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       Gcx.emit ~gcx (SubMM (size_of_immediate left_imm, right_mem, Reg result_vreg))
     | (left, SImm right_imm) ->
       let left_mem = emit_mem left in
-      Gcx.emit ~gcx (MovMM (size_of_immediate right_imm, left_mem, Reg result_vreg));
-      Gcx.emit ~gcx (SubIM (right_imm, Reg result_vreg))
+      let size = size_of_immediate right_imm in
+      Gcx.emit ~gcx (MovMM (size, left_mem, Reg result_vreg));
+      Gcx.emit ~gcx (SubIM (right_imm, Reg result_vreg, size))
     | (left, right) ->
       let left_mem = emit_mem left in
       let right_mem = emit_mem right in

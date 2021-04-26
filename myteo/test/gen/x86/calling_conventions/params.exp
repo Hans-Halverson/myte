@@ -14,7 +14,7 @@ test.passedInRegistersAndStack:
   movl $5, %r8d
   movl $6, %r9d
   call test.testNineArgFunction
-  addl $24, %esp
+  addq $24, %rsp
   ret
 test.testEightArgFunction:
   addl %edi, %esi
@@ -54,7 +54,7 @@ test.testFunctionStackParamsOffsetByStackFrameAndPushedCalleeSavedRegisters:
   push %r13
   push %r14
   push %r15
-  subl $8, %esp
+  subq $8, %rsp
   movl %edi, 8(%rsp)
   movl %esi, %r12d
   movl %edx, %r14d
@@ -71,7 +71,7 @@ test.testFunctionStackParamsOffsetByStackFrameAndPushedCalleeSavedRegisters:
   addl 56(%rsp), %ebx
   addl 64(%rsp), %ebx
   movl %ebx, %eax
-  addl $8, %esp
+  addq $8, %rsp
   pop %r15
   pop %r14
   pop %r13

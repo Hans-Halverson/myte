@@ -34,7 +34,7 @@ test.callerSavedRegistersSavedAcrossFunctionCallsWithSpills:
   push %r13
   push %r14
   push %r15
-  subl $32, %esp
+  subq $32, %rsp
   movl %edi, %r15d
   movl %esi, 32(%rsp)
   movl %edx, 24(%rsp)
@@ -67,7 +67,7 @@ test.callerSavedRegistersSavedAcrossFunctionCallsWithSpills:
   addl %eax, %ebx
   addl %ebx, %r14d
   movl %r14d, %eax
-  addl $32, %esp
+  addq $32, %rsp
   pop %r15
   pop %r14
   pop %r13

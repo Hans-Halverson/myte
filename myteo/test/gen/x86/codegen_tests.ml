@@ -1,5 +1,18 @@
 let snapshots_command ~config:_ bin files =
-  Printf.sprintf "%s --dump-asm --no-pretty-print %s" bin (String.concat " " files)
+  let files = String.concat " " files in
+  Printf.sprintf
+    {|
+      %s --dump-asm --no-pretty-print %s && %s %s -o t.out;
+      ./t.out;
+      if [[ $? -eq 139 ]]; then
+        echo "ERROR: Segfault when running executable!"
+      fi
+      rm t.out
+    |}
+    bin
+    files
+    bin
+    files
 
 let snapshot_suite ~bin ~record =
   let root = Sys.getcwd () in
