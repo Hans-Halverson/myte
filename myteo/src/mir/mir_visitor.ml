@@ -77,7 +77,7 @@ module IRVisitor = struct
         | Mov (result, arg) ->
           this#visit_result_variable ~block ~instruction result;
           this#visit_value ~block ~instruction arg
-        | Call (ret, func, args) ->
+        | Call (ret, _ret_ty, func, args) ->
           this#visit_result_variable ~block ~instruction ret;
           this#visit_function_value ~block ~instruction func;
           List.iter (this#visit_value ~block ~instruction) args

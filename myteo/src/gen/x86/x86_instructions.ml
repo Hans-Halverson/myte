@@ -159,42 +159,44 @@ module Instruction = struct
           M - memory location or virtual register
 
         When multiple suffixes are used, first is source and second is dest when applicable.
-        All MM instructions must contain at least one register as an argument. *)
+        All MM instructions must contain at least one register as an argument.
+
+        If instruction has an immediate, that immediate encodes size for the instruction. *)
     (* Stack instructions *)
-    | PushI of immediate (* Only supports 16 and 32-bit immediates *)
-    | PushM of 'reg memory (* Does not support 8-bit memory due to stack alignment *)
-    | PopM of 'reg memory (* Does not support 8-bit memory due to stack alignment *)
+    | PushI of immediate (* Only supports 8, 16, and 32-bit immediates - sign extended to 64 bits *)
+    | PushM of 'reg memory
+    | PopM of 'reg memory
     (* Data instructions *)
-    | MovIM of immediate * 'reg memory
-    | MovMM of 'reg memory * 'reg memory
-    | Lea of 'reg memory_address * 'reg
+    | MovIM of immediate * 'reg memory (* TODO: Cannot mov 64-bit immediate to memory *)
+    | MovMM of size * 'reg memory * 'reg memory
+    | Lea of size * 'reg memory_address * 'reg (* Only supports 32 or 64 bit register argument *)
     (* Numeric operations *)
-    | NegM of 'reg memory
+    | NegM of size * 'reg memory
     | AddIM of immediate * 'reg memory (* Only supports 8, 16, and 32-bit immediates *)
-    | AddMM of 'reg memory * 'reg memory
+    | AddMM of size * 'reg memory * 'reg memory
     (* For sub instructions, right/dest := right/dest - left/src *)
     | SubIM of immediate * 'reg memory (* Only supports 8, 16, and 32-bit immediates *)
-    | SubMM of 'reg memory * 'reg memory
-    | IMulMR of 'reg memory * 'reg
-    | IMulMIR of 'reg memory * immediate * 'reg (* Only supports 8, 16, and 32-bit immediates *)
-    | IDiv of 'reg memory
+    | SubMM of size * 'reg memory * 'reg memory
+    | IMulMR of size * 'reg memory * 'reg (* Only supports 16, 32, and 64-bit arguments *)
+    | IMulMIR of 'reg memory * immediate * 'reg (* Only supports 16 and 32-bit immediates *)
+    | IDiv of size * 'reg memory
     (* Bitwise operations *)
-    | NotM of 'reg memory
+    | NotM of size * 'reg memory
     | AndIM of immediate * 'reg memory (* Only supports 8, 16, and 32-bit immediates *)
-    | AndMM of 'reg memory * 'reg memory
+    | AndMM of size * 'reg memory * 'reg memory
     | OrIM of immediate * 'reg memory (* Only supports 8, 16, and 32-bit immediates *)
-    | OrMM of 'reg memory * 'reg memory
-    | XorMM of 'reg memory * 'reg memory
+    | OrMM of size * 'reg memory * 'reg memory
+    | XorMM of size * 'reg memory * 'reg memory
     (* Comparisons *)
     | CmpMI of 'reg memory * immediate (* Only supports 8, 16, and 32-bit immediates *)
-    | CmpMM of 'reg memory * 'reg memory
-    | TestMR of 'reg memory * 'reg
-    | SetCC of condition_code * 'reg memory (* Only supports 8-bit location *)
+    | CmpMM of size * 'reg memory * 'reg memory
+    | TestMR of size * 'reg memory * 'reg
+    | SetCC of condition_code * 'reg memory (* Only supports 8-bit destination *)
     (* Control flow *)
     | Jmp of block_id
     | JmpCC of condition_code * block_id
     | CallL of label
-    | CallM of 'reg memory
+    | CallM of size * 'reg memory
     | Leave
     | Ret
     | Syscall
@@ -283,6 +285,13 @@ let bytes_of_size size =
   | Size16 -> 2
   | Size32 -> 4
   | Size64 -> 8
+
+let size_of_immediate imm =
+  match imm with
+  | Imm8 _ -> Size8
+  | Imm16 _ -> Size16
+  | Imm32 _ -> Size32
+  | Imm64 _ -> Size64
 
 (* Return the opposite of a condition code (NOT CC) *)
 let invert_condition_code cc =

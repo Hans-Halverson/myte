@@ -2,48 +2,48 @@
 
   .text
 fib.fibIterative:
-  movq $1, %rax
-  movq $1, %rcx
+  movl $1, %eax
+  movl $1, %ecx
 .L0:
-  cmpq $2, %rdi
+  cmpl $2, %edi
   jl .L1
-  mov %rax, %rdx
-  add %rcx, %rdx
-  mov %rax, %rcx
-  sub $1, %rdi
-  mov %rdx, %rax
+  movl %eax, %edx
+  addl %ecx, %edx
+  movl %eax, %ecx
+  subl $1, %edi
+  movl %edx, %eax
   jmp .L0
 .L1:
   ret
 fib.fibRecursive:
   push %rbx
   push %r12
-  mov %rdi, %rbx
-  cmpq $1, %rbx
+  movl %edi, %ebx
+  cmpl $1, %ebx
   jg .L2
-  mov %rbx, %rax
+  movl %ebx, %eax
   pop %r12
   pop %rbx
   ret
 .L2:
-  mov %rbx, %rdi
-  sub $1, %rdi
+  movl %ebx, %edi
+  subl $1, %edi
   call fib.fibRecursive
-  mov %rax, %r12
-  sub $2, %rbx
-  mov %rbx, %rdi
+  movl %eax, %r12d
+  subl $2, %ebx
+  movl %ebx, %edi
   call fib.fibRecursive
-  add %r12, %rax
+  addl %r12d, %eax
   pop %r12
   pop %rbx
   ret
 _main:
-  movq $1, %rdi
+  movl $1, %edi
   call fib.fibIterative
-  movq $2, %rdi
+  movl $2, %edi
   call fib.fibIterative
-  movq $3, %rdi
+  movl $3, %edi
   call fib.fibIterative
-  movq $8, %rdi
+  movl $8, %edi
   call fib.fibIterative
   ret

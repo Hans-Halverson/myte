@@ -4,19 +4,19 @@
 _main:
   ret
 test.testMemory:
-  mov 8(%rsp), %rax
-  test %rax, %rax
+  movb 8(%rsp), %al
+  testb %al, %al
   je .L0
-  movq $1, %rax
+  movl $1, %eax
   ret
 .L0:
-  movq $2, %rax
+  movl $2, %eax
   ret
 test.testRegister:
-  test %rdi, %rdi
+  testb %dil, %dil
   je .L1
-  movq $1, %rax
+  movl $1, %eax
   ret
 .L1:
-  movq $2, %rax
+  movl $2, %eax
   ret

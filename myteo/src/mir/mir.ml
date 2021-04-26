@@ -4,6 +4,15 @@ type var_id = int
 
 type instr_id = int
 
+module ValueType = struct
+  type t =
+    | Unit
+    | Int
+    | String
+    | Bool
+    | Function
+end
+
 module rec Instruction : sig
   module UnitValue : sig
     type 'a t =
@@ -48,7 +57,7 @@ module rec Instruction : sig
 
   and 'var t' =
     | Mov of 'var * 'var Value.t
-    | Call of 'var * 'var FunctionValue.t * 'var Value.t list
+    | Call of 'var * (* Return type *) ValueType.t * 'var FunctionValue.t * 'var Value.t list
     | Ret of 'var Value.t option
     (* Globals *)
     | LoadGlobal of 'var * string
@@ -143,16 +152,6 @@ and Function : sig
   }
 end =
   Function
-
-and ValueType : sig
-  type t =
-    | Unit
-    | Int
-    | String
-    | Bool
-    | Function
-end =
-  ValueType
 
 type cf_var =
   | Id of var_id

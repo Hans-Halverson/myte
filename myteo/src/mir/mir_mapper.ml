@@ -44,14 +44,14 @@ module InstructionsMapper = struct
             [instruction]
           else
             mk_instr (Mov (result', arg'))
-        | Call (ret, func, args) ->
+        | Call (ret, ret_ty, func, args) ->
           let ret' = this#map_result_variable ~block ret in
           let func' = this#map_function_value ~block func in
           let args' = id_map_list (this#map_value ~block) args in
           if ret == ret' && func == func' && args == args' then
             [instruction]
           else
-            mk_instr (Call (ret', func', args'))
+            mk_instr (Call (ret', ret_ty, func', args'))
         | Ret arg_opt ->
           let arg_opt' = id_map_opt (this#map_value ~block) arg_opt in
           if arg_opt == arg_opt' then

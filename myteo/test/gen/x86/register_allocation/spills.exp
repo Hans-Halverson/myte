@@ -3,14 +3,14 @@
   .text
 _main:
   push $16
-  movq $1, %rdi
-  movq $2, %rsi
-  movq $3, %rdx
-  movq $4, %rcx
-  movq $5, %r8
-  movq $6, %r9
+  movl $1, %edi
+  movl $2, %esi
+  movl $3, %edx
+  movl $4, %ecx
+  movl $5, %r8d
+  movl $6, %r9d
   call test.testSingleSpillUsingAllRegisters
-  add $8, %rsp
+  addl $8, %esp
   ret
 test.testCallerSavedRegistersSpilledAcrossFunctionCalls:
   push %rbx
@@ -18,22 +18,22 @@ test.testCallerSavedRegistersSpilledAcrossFunctionCalls:
   push %r13
   push %r14
   push %r15
-  sub $8, %rsp
-  mov %rdi, 8(%rsp)
-  mov %rsi, %r12
-  mov %rdx, %r14
-  mov %rcx, %r15
-  mov %r8, %r13
-  mov %r9, %rbx
-  movq $3, %rdi
+  subl $8, %esp
+  movl %edi, 8(%rsp)
+  movl %esi, %r12d
+  movl %edx, %r14d
+  movl %ecx, %r15d
+  movl %r8d, %r13d
+  movl %r9d, %ebx
+  movl $3, %edi
   call test.use
-  add 8(%rsp), %r12
-  add %r12, %r14
-  add %r14, %r15
-  add %r15, %r13
-  add %r13, %rbx
-  mov %rbx, %rax
-  add $8, %rsp
+  addl 8(%rsp), %r12d
+  addl %r12d, %r14d
+  addl %r14d, %r15d
+  addl %r15d, %r13d
+  addl %r13d, %ebx
+  movl %ebx, %eax
+  addl $8, %esp
   pop %r15
   pop %r14
   pop %r13
@@ -46,43 +46,43 @@ test.testSingleSpillUsingAllRegisters:
   push %r13
   push %r14
   push %r15
-  sub $8, %rsp
-  mov %rsi, %rax
-  add %rdi, %rax
-  mov %rax, 8(%rsp)
-  mov %rdx, %r15
-  add %rdi, %r15
-  mov %rcx, %r14
-  add %rdi, %r14
-  mov %r8, %r13
-  add %rdi, %r13
-  mov %r9, %r12
-  add %rdi, %r12
-  mov %rdx, %r11
-  add %rsi, %r11
-  mov %rcx, %r10
-  add %rsi, %r10
-  mov %r8, %rbx
-  add %rsi, %rbx
-  mov %r9, %rax
-  add %rsi, %rax
-  add %rdi, %rsi
-  add %rsi, %rdx
-  add %rdx, %rcx
-  add %rcx, %r8
-  add %r8, %r9
-  mov 8(%rsp), %rcx
-  add %r9, %rcx
-  add %rcx, %r15
-  add %r15, %r14
-  add %r14, %r13
-  add %r13, %r12
-  add %r12, %r11
-  add %r11, %r10
-  add %r10, %rbx
-  add %rbx, %rax
-  add 56(%rsp), %rax
-  add $8, %rsp
+  subl $8, %esp
+  movl %esi, %eax
+  addl %edi, %eax
+  movl %eax, 8(%rsp)
+  movl %edx, %r15d
+  addl %edi, %r15d
+  movl %ecx, %r14d
+  addl %edi, %r14d
+  movl %r8d, %r13d
+  addl %edi, %r13d
+  movl %r9d, %r12d
+  addl %edi, %r12d
+  movl %edx, %r11d
+  addl %esi, %r11d
+  movl %ecx, %r10d
+  addl %esi, %r10d
+  movl %r8d, %ebx
+  addl %esi, %ebx
+  movl %r9d, %eax
+  addl %esi, %eax
+  addl %edi, %esi
+  addl %esi, %edx
+  addl %edx, %ecx
+  addl %ecx, %r8d
+  addl %r8d, %r9d
+  movl 8(%rsp), %ecx
+  addl %r9d, %ecx
+  addl %ecx, %r15d
+  addl %r15d, %r14d
+  addl %r14d, %r13d
+  addl %r13d, %r12d
+  addl %r12d, %r11d
+  addl %r11d, %r10d
+  addl %r10d, %ebx
+  addl %ebx, %eax
+  addl 56(%rsp), %eax
+  addl $8, %esp
   pop %r15
   pop %r14
   pop %r13
@@ -90,5 +90,5 @@ test.testSingleSpillUsingAllRegisters:
   pop %rbx
   ret
 test.use:
-  mov %rdi, %rax
+  movl %edi, %eax
   ret

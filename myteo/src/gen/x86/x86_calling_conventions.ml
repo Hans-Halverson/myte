@@ -21,7 +21,7 @@ let write_function_prologues ~(gcx : Gcx.t) =
           [
             (Gcx.mk_instr_id_for_block ~gcx prologue, PushM (Reg (Gcx.mk_precolored ~gcx BP)));
             ( Gcx.mk_instr_id_for_block ~gcx prologue,
-              MovMM (Reg (Gcx.mk_precolored ~gcx SP), Reg (Gcx.mk_precolored ~gcx BP)) );
+              MovMM (Size64, Reg (Gcx.mk_precolored ~gcx SP), Reg (Gcx.mk_precolored ~gcx BP)) );
           ]
         else
           []
@@ -101,7 +101,9 @@ let write_function_epilogues ~(gcx : Gcx.t) =
                 if func_should_save_base_pointer func then
                   [
                     ( Gcx.mk_instr_id_for_block ~gcx block,
-                      MovMM (Reg (Gcx.mk_precolored ~gcx BP), Reg (Gcx.mk_precolored ~gcx SP)) );
+                      MovMM
+                        (Size64, Reg (Gcx.mk_precolored ~gcx BP), Reg (Gcx.mk_precolored ~gcx SP))
+                    );
                     (Gcx.mk_instr_id_for_block ~gcx block, PopM (Reg (Gcx.mk_precolored ~gcx BP)));
                   ]
                 else

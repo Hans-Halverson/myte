@@ -239,9 +239,15 @@ and pp_instruction ~cx (_, instr) =
     match instr with
     | Mov (var_id, right) ->
       pp_instr var_id (Printf.sprintf "Mov %s %s" (pp_type_of_value right) (pp_value ~cx right))
-    | Call (var_id, func, args) ->
+    | Call (var_id, ret_ty, func, args) ->
       let args_string = List.map (pp_value ~cx) args |> String.concat ", " in
-      pp_instr var_id (Printf.sprintf "Call %s(%s)" (pp_function_value ~cx func) args_string)
+      pp_instr
+        var_id
+        (Printf.sprintf
+           "Call %s %s(%s)"
+           (pp_value_type ret_ty)
+           (pp_function_value ~cx func)
+           args_string)
     | Ret val_opt ->
       "Ret"
       ^

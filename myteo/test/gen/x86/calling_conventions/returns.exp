@@ -9,14 +9,14 @@ test.testNestedReturnNoReturnRegisterMove:
 test.testReturnRegisterClobberAcrossCall:
   push %rbx
   call test.testReturnsInMain
-  mov %rax, %rbx
+  movl %eax, %ebx
   call test.testReturnsInMain
-  add %rbx, %rax
+  addl %ebx, %eax
   pop %rbx
   ret
 test.testReturnsInMain:
-  movq $1, %rax
+  movl $1, %eax
   ret
 test.testReturnsInMain2:
-  mov %rdi, %rax
+  movl %edi, %eax
   ret

@@ -147,7 +147,7 @@ module RegisterAllocator = struct
           (fun ((instr_id, instr) as instr_with_id) ->
             begin
               match instr with
-              | Instruction.MovMM (Reg src_vreg, Reg dest_vreg) ->
+              | Instruction.MovMM (_, Reg src_vreg, Reg dest_vreg) ->
                 live := VRegSet.remove src_vreg !live;
                 ra.move_list <- VIMMap.add src_vreg instr_id ra.move_list;
                 ra.move_list <- VIMMap.add dest_vreg instr_id ra.move_list;
@@ -301,7 +301,7 @@ module RegisterAllocator = struct
   let source_dest_vregs_of_move ~(ra : t) move_instr_id =
     let move_instruction = Gcx.get_instruction ~gcx:ra.gcx move_instr_id in
     match move_instruction with
-    | Instruction.MovMM (Reg source_vreg, Reg dest_vreg) -> (source_vreg, dest_vreg)
+    | Instruction.MovMM (_, Reg source_vreg, Reg dest_vreg) -> (source_vreg, dest_vreg)
     | _ -> failwith "Expected id of virtual register to virtual register move instruction"
 
   let rec get_vreg_alias ~ra vreg =
@@ -493,7 +493,7 @@ module RegisterAllocator = struct
           List.filter
             (fun (_, instr) ->
               match instr with
-              | Instruction.MovMM (Reg source_vreg, Reg dest_vreg) ->
+              | Instruction.MovMM (_, Reg source_vreg, Reg dest_vreg) ->
                 get_vreg_alias ~ra source_vreg != get_vreg_alias ~ra dest_vreg
               | _ -> true)
             block.instructions)

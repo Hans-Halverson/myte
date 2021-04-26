@@ -163,7 +163,7 @@ module Gcx = struct
           List.filter
             (fun (_, instr) ->
               match instr with
-              | MovMM (Reg vreg1, Reg vreg2) ->
+              | MovMM (_, Reg vreg1, Reg vreg2) ->
                 (match (VReg.get_vreg_resolution vreg1, VReg.get_vreg_resolution vreg2) with
                 | (Physical reg1, Physical reg2) when reg1 = reg2 -> false
                 | _ -> true)

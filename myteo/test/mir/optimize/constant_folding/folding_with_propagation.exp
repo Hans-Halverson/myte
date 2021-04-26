@@ -31,9 +31,9 @@ func bool @t.rand() {
 }
 
 func unit @t.main() {
-  %2 := Call @t.useInt(6)
-  %3 := Call @t.useBool(false)
-  %4 := Call @t.rand()
-  %5 := Call @t.useBool(true)
+  %2 := Call unit @t.useInt(6)
+  %3 := Call unit @t.useBool(false)
+  %4 := Call bool @t.rand()
+  %5 := Call unit @t.useBool(true)
   Ret
 }

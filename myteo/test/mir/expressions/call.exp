@@ -18,18 +18,18 @@ func unit @test.multiArgsFunc(int %3, int %4, string %5) {
 func unit @test.directCalls() {
   %6 := Mov bool true
   %7 := Mov string "str"
-  %8 := Call @test.noArgsFunc()
+  %8 := Call unit @test.noArgsFunc()
   %9 := Mov unit %8
-  %10 := Call @test.singleArgFunc(33)
+  %10 := Call int @test.singleArgFunc(33)
   %11 := Mov int %10
-  %12 := Call @test.multiArgsFunc(29, 98, "test")
+  %12 := Call unit @test.multiArgsFunc(29, 98, "test")
   %13 := Mov unit %12
-  %14 := Call @test.singleArgFunc(%11)
+  %14 := Call int @test.singleArgFunc(%11)
   %15 := Mov int %14
-  %16 := Call @test.singleArgFunc(45)
+  %16 := Call int @test.singleArgFunc(45)
   %17 := Mul int 5, 6
   %18 := Add int 2, %17
-  %19 := Call @test.multiArgsFunc(%16, %18, %7)
+  %19 := Call unit @test.multiArgsFunc(%16, %18, %7)
   %20 := Mov unit %19
   Ret
 }
@@ -42,10 +42,10 @@ label @0:
   continue @1
 label @1:
   %23 := Phi function @test.indirectCalls:%21, @0:%22
-  %24 := Call %23(10)
+  %24 := Call int %23(10)
   %25 := Mov int %24
   %26 := Add int 1, 2
-  %27 := Call %23(%26)
+  %27 := Call int %23(%26)
   %28 := Add int 3, %27
   %29 := Mov int %28
   Ret

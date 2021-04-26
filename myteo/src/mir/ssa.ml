@@ -177,7 +177,7 @@ and find_join_points ~pcx ~cx program =
     | StoreGlobal _ ->
       ()
     | Mov (result, _)
-    | Call (result, _, _)
+    | Call (result, _, _, _)
     | LoadGlobal (result, _)
     | Neg (result, _)
     | LogNot (result, _)
@@ -345,7 +345,7 @@ and build_phi_nodes ~pcx ~cx program =
     | Mov (result, arg) ->
       visit_value arg;
       visit_result result
-    | Call (result, func, args) ->
+    | Call (result, _, func, args) ->
       visit_function_value func;
       List.iter visit_value args;
       visit_result result
@@ -508,8 +508,8 @@ and map_to_ssa ~pcx ~cx program =
     let map_function_value = map_function_value ~f:map_read_var in
     match instruction with
     | Mov (return, arg) -> Mov (map_return return, map_value arg)
-    | Call (return, func, args) ->
-      Call (map_return return, map_function_value func, List.map map_value args)
+    | Call (return, ret_ty, func, args) ->
+      Call (map_return return, ret_ty, map_function_value func, List.map map_value args)
     | Ret arg -> Ret (Option.map map_value arg)
     | LoadGlobal (return, global_loc) -> LoadGlobal (map_return return, global_loc)
     | StoreGlobal (global_loc, arg) -> StoreGlobal (global_loc, map_value arg)

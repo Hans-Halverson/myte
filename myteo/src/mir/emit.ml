@@ -209,8 +209,9 @@ and emit_expression ~pcx ~ecx expr =
     let var_id = mk_cf_var_id () in
     let func_val = emit_function_expression ~pcx ~ecx func in
     let arg_vals = List.map (emit_expression ~pcx ~ecx) args in
-    Ecx.emit ~ecx (Call (var_id, func_val, arg_vals));
-    var_value_of_type var_id (value_type_of_loc ~pcx loc)
+    let ret_ty = value_type_of_loc ~pcx loc in
+    Ecx.emit ~ecx (Call (var_id, ret_ty, func_val, arg_vals));
+    var_value_of_type var_id ret_ty
   | _ ->
     prerr_endline (Ast_pp.pp (Ast_pp.node_of_expression expr));
     failwith "Expression has not yet been converted to IR"
