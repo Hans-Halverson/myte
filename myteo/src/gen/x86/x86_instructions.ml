@@ -121,6 +121,13 @@ module VirtualRegister = struct
   let mk ~resolution ~func = { id = Mir.mk_var_id (); resolution; func }
 
   let compare v1 v2 = Int.compare v1.id v2.id
+
+  let rec get_vreg_alias vreg =
+    match vreg.resolution with
+    | Alias alias -> get_vreg_alias alias
+    | _ -> vreg
+
+  let get_vreg_resolution vreg = (get_vreg_alias vreg).resolution
 end
 
 module VReg = VirtualRegister
@@ -128,6 +135,15 @@ module VRegSet = Set.Make (VirtualRegister)
 module VRegMap = Map.Make (VirtualRegister)
 module VVMMap = MultiMap.Make (VReg) (VReg)
 module VIMMap = MultiMap.Make (VReg) (Int)
+
+let string_of_vset vset =
+  let elements =
+    VRegSet.to_seq vset
+    |> List.of_seq
+    |> List.map (fun vreg -> string_of_int vreg.VReg.id)
+    |> String.concat ", "
+  in
+  "(" ^ elements ^ ")"
 
 module Instruction = struct
   type id = int
@@ -256,6 +272,8 @@ type 'reg program = {
 type virtual_instruction = VReg.t Instruction.t
 
 type virtual_block = VReg.t Block.t
+
+type virtual_function = VReg.t Function.t
 
 type virtual_program = VReg.t program
 

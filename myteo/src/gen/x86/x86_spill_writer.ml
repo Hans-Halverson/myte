@@ -40,7 +40,7 @@ class spill_writer ~gcx =
       in
       (* Must have a register not a memory address - if necessary create new register then move *)
       let force_register_write reg f =
-        match Gcx.get_vreg_resolution ~gcx reg with
+        match VReg.get_vreg_resolution reg with
         | StackSlot mem ->
           let vreg_dest = mk_vreg () in
           [
@@ -81,7 +81,7 @@ class spill_writer ~gcx =
       | CmpMM (src_mem, dest_mem) ->
         resolve_binop_single_mem src_mem dest_mem (fun s d -> CmpMM (s, d))
       | TestMR (mem, reg) ->
-        (match Gcx.get_vreg_resolution ~gcx reg with
+        (match VReg.get_vreg_resolution reg with
         | StackSlot reg_resolve_mem ->
           (* If register was resolved to memory location but memory was resolved to register, swap *)
           (match this#resolve_mem mem with
@@ -109,7 +109,7 @@ class spill_writer ~gcx =
       let open Instruction in
       match mem with
       | Reg vreg ->
-        (match Gcx.get_vreg_resolution ~gcx vreg with
+        (match VReg.get_vreg_resolution vreg with
         | StackSlot mem -> Mem mem
         | _ -> mem)
       | _ -> mem

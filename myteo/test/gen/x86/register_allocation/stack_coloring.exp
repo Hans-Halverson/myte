@@ -13,41 +13,38 @@ test.testMultipleInterferingSpillsInDifferentStackSlots:
   push %r14
   push %r15
   sub $32, %rsp
-  mov %rdi, %r15
+  mov %rdi, %r14
   mov %rsi, 32(%rsp)
   mov %rdx, 24(%rsp)
   mov %rcx, 16(%rsp)
   mov %r8, 8(%rsp)
-  movq $1, %rbx
-  movq $2, %r14
+  movq $1, %r12
+  movq $2, %rbx
   movq $3, %r13
-  movq $4, %r12
-  cmpq $1, %r15
+  movq $4, %r15
+  cmpq $1, %r14
   jne .L0
-  movq $101, %rbx
-  movq $102, %r14
+  movq $101, %r12
+  movq $102, %rbx
   movq $103, %r13
-  movq $104, %r12
+  movq $104, %r15
   jmp .L1
 .L0:
 .L1:
   movq $3, %rdi
   call test.use
-  add %rbx, %r14
-  mov %r13, %rax
+  add %r12, %rbx
+  add %rbx, %r13
+  add %r13, %r15
+  add %r15, %r14
+  mov 32(%rsp), %rax
   add %r14, %rax
-  mov %r12, %rbx
+  mov 24(%rsp), %rbx
   add %rax, %rbx
-  mov %r15, %rax
-  add %rbx, %rax
-  mov 32(%rsp), %rbx
-  add %rax, %rbx
-  mov 24(%rsp), %rax
-  add %rbx, %rax
-  mov 16(%rsp), %rbx
-  add %rax, %rbx
+  mov 16(%rsp), %rcx
+  add %rbx, %rcx
   mov 8(%rsp), %rax
-  add %rbx, %rax
+  add %rcx, %rax
   add $32, %rsp
   pop %r15
   pop %r14

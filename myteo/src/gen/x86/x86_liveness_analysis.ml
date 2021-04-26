@@ -2,12 +2,12 @@ open Basic_collections
 open X86_gen_context
 open X86_instructions
 
-class analyze_vregs_init_visitor (blocks_by_id : virtual_block IMap.t) =
+class analyze_vregs_init_visitor (blocks : virtual_block List.t) =
   object (this)
     inherit X86_visitor.instruction_visitor
 
     val mutable prev_blocks =
-      IMap.fold (fun block_id _ acc -> IMap.add block_id ISet.empty acc) blocks_by_id IMap.empty
+      List.fold_left (fun acc block -> IMap.add block.Block.id ISet.empty acc) IMap.empty blocks
 
     val mutable vreg_use_blocks = VRegMap.empty
 
@@ -23,7 +23,7 @@ class analyze_vregs_init_visitor (blocks_by_id : virtual_block IMap.t) =
 
     method vreg_use_before_def_blocks = vreg_use_before_def_blocks
 
-    method run () = IMap.iter (fun _ block -> this#visit_block block) blocks_by_id
+    method run () = List.iter (fun block -> this#visit_block block) blocks
 
     method visit_block block = List.iter (this#visit_instruction ~block) block.instructions
 
@@ -43,9 +43,9 @@ class analyze_vregs_init_visitor (blocks_by_id : virtual_block IMap.t) =
       vreg_def_blocks <- VIMMap.add vreg_id block.id vreg_def_blocks
   end
 
-let analyze_vregs blocks_by_id =
+let analyze_vregs blocks =
   (* Calculate use and def blocks for each variable *)
-  let init_visitor = new analyze_vregs_init_visitor blocks_by_id in
+  let init_visitor = new analyze_vregs_init_visitor blocks in
   init_visitor#run ();
 
   let prev_blocks = init_visitor#prev_blocks in
@@ -56,11 +56,12 @@ let analyze_vregs blocks_by_id =
   (* Initialize liveness sets *)
   let live_in = ref IMap.empty in
   let live_out = ref IMap.empty in
-  IMap.iter
-    (fun block_id _ ->
-      live_in := IMap.add block_id [] !live_in;
-      live_out := IMap.add block_id [] !live_out)
-    blocks_by_id;
+  List.iter
+    (fun block ->
+      let open Block in
+      live_in := IMap.add block.id [] !live_in;
+      live_out := IMap.add block.id [] !live_out)
+    blocks;
 
   (* Propagate a single variable backwards through the program, building liveness sets as we go *)
   let set_contains set block_id var_id =

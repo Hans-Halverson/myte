@@ -7,16 +7,14 @@ let mk_vreg id = VReg.of_var_id ~resolution:Unresolved ~func:None id
 let mk_blocks blocks =
   List.fold_left
     (fun blocks (id, label, instructions) ->
-      IMap.add
-        id
-        {
-          Block.id;
-          label = Some label;
-          func = 0;
-          instructions = List.map (fun instr -> (Instruction.mk_id (), instr)) instructions;
-        }
-        blocks)
-    IMap.empty
+      {
+        Block.id;
+        label = Some label;
+        func = 0;
+        instructions = List.map (fun instr -> (Instruction.mk_id (), instr)) instructions;
+      }
+      :: blocks)
+    []
     blocks
 
 let find_liveness_sets blocks =

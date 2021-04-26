@@ -22,466 +22,548 @@ let general_purpose_registers =
 
 let num_allocatable_registers = RegSet.cardinal general_purpose_registers - 1
 
-let liveness_analysis ~(gcx : Gcx.t) =
-  let (_, live_out) = X86_liveness_analysis.analyze_vregs gcx.blocks_by_id in
-  gcx.live_out <- live_out
+module RegisterAllocator = struct
+  type t = {
+    func: virtual_function;
+    gcx: Gcx.t;
+    (* Map of virtual registers live at the beginning of each block *)
+    mutable live_out: VReg.t list IMap.t;
+    (* Every virtual register is in exactly one of these sets *)
+    mutable precolored_vregs: VRegSet.t;
+    mutable initial_vregs: VRegSet.t;
+    (* Low degree, non move related vregs *)
+    mutable simplify_worklist: VRegSet.t;
+    mutable freeze_worklist: VRegSet.t;
+    mutable spill_worklist: VRegSet.t;
+    mutable spilled_vregs: VRegSet.t;
+    mutable coalesced_vregs: VRegSet.t;
+    mutable colored_vregs: VRegSet.t;
+    (* Stack of vregs that are ready for an attempt to have colors assigned to them *)
+    mutable select_stack: VReg.t list;
+    (* Every move is in exactly one of these sets *)
+    mutable coalesced_moves: ISet.t;
+    mutable constrained_moves: ISet.t;
+    mutable frozen_moves: ISet.t;
+    (* Candidates for coalescing *)
+    mutable worklist_moves: ISet.t;
+    mutable active_moves: ISet.t;
+    (* Adjacency list representation of interference graph. Maps from virtual register to a set of
+       all virtual registers that interfere with it. *)
+    mutable interference_graph: VVMMap.t;
+    (* Degree of each virtual register in interference graph *)
+    mutable interference_degree: int VRegMap.t;
+    (* Map from virtual register to instruction ids of all moves it is a part of *)
+    mutable move_list: VIMMap.t;
+  }
 
-class use_def_finder =
-  object
-    inherit X86_visitor.instruction_visitor
+  let mk ~(gcx : Gcx.t) ~func =
+    (* Initialize representative precolored vregs *)
+    let (precolored_vregs, interference_degree) =
+      RegMap.fold
+        (fun _ vreg (precolored_vregs, interference_degree) ->
+          (VRegSet.add vreg precolored_vregs, VRegMap.add vreg Int.max_int interference_degree))
+        gcx.color_to_vreg
+        (VRegSet.empty, VRegMap.empty)
+    in
+    {
+      func;
+      gcx;
+      live_out = IMap.empty;
+      precolored_vregs;
+      initial_vregs = VRegSet.empty;
+      simplify_worklist = VRegSet.empty;
+      freeze_worklist = VRegSet.empty;
+      spill_worklist = VRegSet.empty;
+      spilled_vregs = VRegSet.empty;
+      coalesced_vregs = VRegSet.empty;
+      colored_vregs = VRegSet.empty;
+      select_stack = [];
+      coalesced_moves = ISet.empty;
+      constrained_moves = ISet.empty;
+      frozen_moves = ISet.empty;
+      worklist_moves = ISet.empty;
+      active_moves = ISet.empty;
+      interference_graph = VVMMap.empty;
+      interference_degree;
+      move_list = VIMMap.empty;
+    }
 
-    val mutable vreg_uses = VRegSet.empty
+  let liveness_analysis ~(ra : t) =
+    let (_, live_out) = X86_liveness_analysis.analyze_vregs ra.func.blocks in
+    ra.live_out <- live_out
 
-    val mutable vreg_defs = VRegSet.empty
+  class use_def_finder =
+    object
+      inherit X86_visitor.instruction_visitor
 
-    method vreg_uses = vreg_uses
+      val mutable vreg_uses = VRegSet.empty
 
-    method vreg_defs = vreg_defs
+      val mutable vreg_defs = VRegSet.empty
 
-    method reset =
-      vreg_uses <- VRegSet.empty;
-      vreg_defs <- VRegSet.empty
+      method vreg_uses = vreg_uses
 
-    method! visit_read_vreg ~block:_ vreg = vreg_uses <- VRegSet.add vreg vreg_uses
+      method vreg_defs = vreg_defs
 
-    method! visit_write_vreg ~block:_ vreg = vreg_defs <- VRegSet.add vreg vreg_defs
-  end
+      method reset =
+        vreg_uses <- VRegSet.empty;
+        vreg_defs <- VRegSet.empty
 
-(* Add an interference edge between two virtual registers, also updating degree *)
-let add_interference_edge ~(gcx : Gcx.t) vreg1 vreg2 =
-  let inc_degree vreg =
-    gcx.interference_degree <-
-      (match VRegMap.find_opt vreg gcx.interference_degree with
-      | None -> VRegMap.add vreg 1 gcx.interference_degree
-      | Some degree -> VRegMap.add vreg (degree + 1) gcx.interference_degree)
-  in
-  if (not (VVMMap.contains vreg1 vreg2 gcx.interference_graph)) && vreg1 != vreg2 then (
-    if not (VRegSet.mem vreg1 gcx.precolored_vregs) then (
-      gcx.interference_graph <- VVMMap.add vreg1 vreg2 gcx.interference_graph;
-      inc_degree vreg1
-    );
-    if not (VRegSet.mem vreg2 gcx.precolored_vregs) then (
-      gcx.interference_graph <- VVMMap.add vreg2 vreg1 gcx.interference_graph;
-      inc_degree vreg2
+      method! visit_read_vreg ~block:_ vreg = vreg_uses <- VRegSet.add vreg vreg_uses
+
+      method! visit_write_vreg ~block:_ vreg = vreg_defs <- VRegSet.add vreg vreg_defs
+    end
+
+  (* Add an interference edge between two virtual registers, also updating degree *)
+  let add_interference_edge ~(ra : t) vreg1 vreg2 =
+    let inc_degree vreg =
+      ra.interference_degree <-
+        (match VRegMap.find_opt vreg ra.interference_degree with
+        | None -> VRegMap.add vreg 1 ra.interference_degree
+        | Some degree -> VRegMap.add vreg (degree + 1) ra.interference_degree)
+    in
+    if (not (VVMMap.contains vreg1 vreg2 ra.interference_graph)) && vreg1 != vreg2 then (
+      if not (VRegSet.mem vreg1 ra.precolored_vregs) then (
+        ra.interference_graph <- VVMMap.add vreg1 vreg2 ra.interference_graph;
+        inc_degree vreg1
+      );
+      if not (VRegSet.mem vreg2 ra.precolored_vregs) then (
+        ra.interference_graph <- VVMMap.add vreg2 vreg1 ra.interference_graph;
+        inc_degree vreg2
+      )
     )
-  )
 
-let build_interference_graph ~(gcx : Gcx.t) =
-  let use_def_finder = new use_def_finder in
-  let find_use_defs block instr =
-    use_def_finder#reset;
-    use_def_finder#visit_instruction ~block instr;
-    (use_def_finder#vreg_uses, use_def_finder#vreg_defs)
-  in
-  IMap.iter
-    (fun block_id block ->
-      let live = ref (IMap.find block_id gcx.live_out |> VRegSet.of_list) in
-      List.iter
-        (fun ((instr_id, instr) as instr_with_id) ->
-          begin
-            match instr with
-            | Instruction.MovMM (Reg src_vreg, Reg dest_vreg) ->
-              live := VRegSet.remove src_vreg !live;
-              gcx.move_list <- VIMMap.add src_vreg instr_id gcx.move_list;
-              gcx.move_list <- VIMMap.add dest_vreg instr_id gcx.move_list;
-              gcx.worklist_moves <- ISet.add instr_id gcx.worklist_moves
-            (* Caller saved registers are modeled by creating interferences with all live registers
-               at call instructions. *)
-            | Instruction.CallL _
-            | Instruction.CallM _ ->
-              RegSet.iter
-                (fun reg ->
-                  let color_vreg = RegMap.find reg gcx.color_to_vreg in
-                  VRegSet.iter
-                    (fun live_vreg -> add_interference_edge ~gcx live_vreg color_vreg)
-                    !live)
-                caller_saved_registers
-            | _ -> ()
-          end;
-          let (vreg_uses, vreg_defs) = find_use_defs block instr_with_id in
-          live := VRegSet.union vreg_defs !live;
-          VRegSet.iter
-            (fun vreg_def ->
-              VRegSet.iter (fun live_vreg -> add_interference_edge ~gcx live_vreg vreg_def) !live)
-            vreg_defs;
-          live := VRegSet.union vreg_uses (VRegSet.diff !live vreg_defs))
-        (List.rev block.Block.instructions))
-    gcx.blocks_by_id
+  let build_interference_graph ~(ra : t) =
+    let use_def_finder = new use_def_finder in
+    let find_use_defs block instr =
+      use_def_finder#reset;
+      use_def_finder#visit_instruction ~block instr;
+      (use_def_finder#vreg_uses, use_def_finder#vreg_defs)
+    in
+    List.iter
+      (fun block ->
+        let open Block in
+        let live = ref (IMap.find block.id ra.live_out |> VRegSet.of_list) in
+        List.iter
+          (fun ((instr_id, instr) as instr_with_id) ->
+            begin
+              match instr with
+              | Instruction.MovMM (Reg src_vreg, Reg dest_vreg) ->
+                live := VRegSet.remove src_vreg !live;
+                ra.move_list <- VIMMap.add src_vreg instr_id ra.move_list;
+                ra.move_list <- VIMMap.add dest_vreg instr_id ra.move_list;
+                ra.worklist_moves <- ISet.add instr_id ra.worklist_moves
+              (* Caller saved registers are modeled by creating interferences with all live registers
+                 at call instructions. *)
+              | Instruction.CallL _
+              | Instruction.CallM _ ->
+                RegSet.iter
+                  (fun reg ->
+                    let color_vreg = RegMap.find reg ra.gcx.color_to_vreg in
+                    VRegSet.iter
+                      (fun live_vreg -> add_interference_edge ~ra live_vreg color_vreg)
+                      !live)
+                  caller_saved_registers
+              | _ -> ()
+            end;
+            let (vreg_uses, vreg_defs) = find_use_defs block instr_with_id in
+            live := VRegSet.union vreg_defs !live;
+            VRegSet.iter
+              (fun vreg_def ->
+                VRegSet.iter (fun live_vreg -> add_interference_edge ~ra live_vreg vreg_def) !live)
+              vreg_defs;
+            live := VRegSet.union vreg_uses (VRegSet.diff !live vreg_defs))
+          (List.rev block.Block.instructions))
+      ra.func.blocks
 
-let adjacent ~(gcx : Gcx.t) vreg =
-  let adjacent_vregs = VVMMap.find_all vreg gcx.interference_graph in
-  let to_ignore = VRegSet.union (VRegSet.of_list gcx.select_stack) gcx.coalesced_vregs in
-  VRegSet.diff adjacent_vregs to_ignore
+  let adjacent ~(ra : t) vreg =
+    let adjacent_vregs = VVMMap.find_all vreg ra.interference_graph in
+    let to_ignore = VRegSet.union (VRegSet.of_list ra.select_stack) ra.coalesced_vregs in
+    VRegSet.diff adjacent_vregs to_ignore
 
-let node_moves ~(gcx : Gcx.t) vreg =
-  ISet.inter (VIMMap.find_all vreg gcx.move_list) (ISet.union gcx.active_moves gcx.worklist_moves)
+  let node_moves ~(ra : t) vreg =
+    ISet.inter (VIMMap.find_all vreg ra.move_list) (ISet.union ra.active_moves ra.worklist_moves)
 
-let move_related ~gcx vreg = not (ISet.is_empty (node_moves ~gcx vreg))
+  let move_related ~ra vreg = not (ISet.is_empty (node_moves ~ra vreg))
 
-let degree ~(gcx : Gcx.t) vreg =
-  VRegMap.find_opt vreg gcx.interference_degree |> Option.value ~default:0
+  let degree ~(ra : t) vreg =
+    VRegMap.find_opt vreg ra.interference_degree |> Option.value ~default:0
 
-let make_worklist ~(gcx : Gcx.t) =
-  VRegSet.iter
-    (fun vreg ->
-      gcx.initial_vregs <- VRegSet.remove vreg gcx.initial_vregs;
-      if degree ~gcx vreg >= num_allocatable_registers then
-        gcx.spill_worklist <- VRegSet.add vreg gcx.spill_worklist
-      else if move_related ~gcx vreg then
-        gcx.freeze_worklist <- VRegSet.add vreg gcx.freeze_worklist
-      else
-        gcx.simplify_worklist <- VRegSet.add vreg gcx.simplify_worklist)
-    gcx.initial_vregs
-
-let enable_moves ~(gcx : Gcx.t) vregs =
-  VRegSet.iter
-    (fun vreg ->
-      let node_moves = node_moves ~gcx vreg in
-      ISet.iter
-        (fun move_instr_id ->
-          if ISet.mem move_instr_id gcx.active_moves then (
-            gcx.active_moves <- ISet.remove move_instr_id gcx.active_moves;
-            gcx.worklist_moves <- ISet.add move_instr_id gcx.worklist_moves
-          ))
-        node_moves)
-    vregs
-
-let decrement_degree ~(gcx : Gcx.t) vreg =
-  let degree = degree ~gcx vreg in
-  gcx.interference_degree <- VRegMap.add vreg (max 0 (degree - 1)) gcx.interference_degree;
-  if degree = num_allocatable_registers then (
-    enable_moves ~gcx (VRegSet.add vreg (adjacent ~gcx vreg));
-    gcx.spill_worklist <- VRegSet.remove vreg gcx.spill_worklist;
-    if move_related ~gcx vreg then
-      gcx.freeze_worklist <- VRegSet.add vreg gcx.freeze_worklist
-    else
-      gcx.simplify_worklist <- VRegSet.add vreg gcx.simplify_worklist
-  )
-
-(* Choose a vreg from the worklist of low degree, non move related vregs. Remove this vreg from
-   the graph, adding it to the select stack, and decrement the degree of all its neighbors. *)
-let simplify ~(gcx : Gcx.t) =
-  let vreg = VRegSet.choose gcx.simplify_worklist in
-  gcx.simplify_worklist <- VRegSet.remove vreg gcx.simplify_worklist;
-  gcx.select_stack <- vreg :: gcx.select_stack;
-  let adjacent_vregs = adjacent ~gcx vreg in
-  VRegSet.iter (fun adjacent_vreg -> decrement_degree ~gcx adjacent_vreg) adjacent_vregs
-
-let add_to_simplify_work_list ~(gcx : Gcx.t) vreg =
-  if
-    (not (VRegSet.mem vreg gcx.precolored_vregs))
-    && (not (move_related ~gcx vreg))
-    && degree ~gcx vreg < num_allocatable_registers
-  then (
-    gcx.freeze_worklist <- VRegSet.remove vreg gcx.freeze_worklist;
-    gcx.simplify_worklist <- VRegSet.add vreg gcx.simplify_worklist
-  )
-
-(* A virtual register can only be coalesced with a precolored register if the coalescing would
-   not increase the degree of any adjacent vregs to K or greater. *)
-let can_coalesce_with_precolored ~(gcx : Gcx.t) precolored vreg =
-  VRegSet.for_all
-    (fun adjacent_vreg ->
-      (* Degree stays the same since vreg gains and loses a neighbor *)
-      degree ~gcx adjacent_vreg < num_allocatable_registers
-      (* All precolored registers interfere so degree does not change *)
-      || VRegSet.mem adjacent_vreg gcx.precolored_vregs
-      (* Already interferes so degree does not change *)
-      || VVMMap.contains adjacent_vreg precolored gcx.interference_graph)
-    (adjacent ~gcx vreg)
-
-(* Briggs conservative coalescing heuristic:
-   If there are fewer than K neighbor vregs of significant degree, then coalescing cannot make
-   the graph non-K colorable. *)
-let can_conservative_coalesce ~(gcx : Gcx.t) vreg1 vreg2 =
-  let neighbor_vregs = VRegSet.union (adjacent ~gcx vreg1) (adjacent ~gcx vreg2) in
-  let k = ref 0 in
-  VRegSet.iter
-    (fun vreg -> if degree ~gcx vreg >= num_allocatable_registers then k := !k + 1)
-    neighbor_vregs;
-  !k < num_allocatable_registers
-
-(* Combine two vregs, making them alias to each other, combining their moves and interference edges.
-   *)
-let combine_vregs ~(gcx : Gcx.t) alias_vreg vreg =
-  if VRegSet.mem vreg gcx.freeze_worklist then
-    gcx.freeze_worklist <- VRegSet.remove vreg gcx.freeze_worklist
-  else
-    gcx.spill_worklist <- VRegSet.remove vreg gcx.spill_worklist;
-  gcx.coalesced_vregs <- VRegSet.add vreg gcx.coalesced_vregs;
-  vreg.resolution <- Alias alias_vreg;
-  gcx.move_list <-
-    VRegMap.add
-      alias_vreg
-      (ISet.union (VIMMap.find_all alias_vreg gcx.move_list) (VIMMap.find_all vreg gcx.move_list))
-      gcx.move_list;
-  VRegSet.iter
-    (fun adjacent_vreg ->
-      add_interference_edge ~gcx adjacent_vreg alias_vreg;
-      decrement_degree ~gcx adjacent_vreg)
-    (adjacent ~gcx vreg);
-  if
-    degree ~gcx alias_vreg >= num_allocatable_registers
-    && VRegSet.mem alias_vreg gcx.freeze_worklist
-  then (
-    gcx.freeze_worklist <- VRegSet.remove alias_vreg gcx.freeze_worklist;
-    gcx.spill_worklist <- VRegSet.add alias_vreg gcx.spill_worklist
-  )
-
-(* Return the source and destination vregs for a particular instruction (MovRR (source, dest)) *)
-let source_dest_vregs_of_move ~(gcx : Gcx.t) move_instr_id =
-  let move_instruction = Gcx.get_instruction ~gcx move_instr_id in
-  match move_instruction with
-  | Instruction.MovMM (Reg source_vreg, Reg dest_vreg) -> (source_vreg, dest_vreg)
-  | _ -> failwith "Expected id of virtual register to virtual register move instruction"
-
-(* Choose a move from the worklist and try to  combine its virtual registers if doing so would
-   not make the graph uncolorable *)
-let coalesce ~(gcx : Gcx.t) =
-  (* Choose an abitrary move instruction *)
-  let move_instr_id = ISet.choose gcx.worklist_moves in
-  gcx.worklist_moves <- ISet.remove move_instr_id gcx.worklist_moves;
-  let (source_vreg, dest_vreg) = source_dest_vregs_of_move ~gcx move_instr_id in
-  let source_vreg = Gcx.get_vreg_alias ~gcx source_vreg in
-  let dest_vreg = Gcx.get_vreg_alias ~gcx dest_vreg in
-  let (vreg1, vreg2) =
-    if VRegSet.mem dest_vreg gcx.precolored_vregs then
-      (dest_vreg, source_vreg)
-    else
-      (source_vreg, dest_vreg)
-  in
-  if vreg1 = vreg2 then (
-    gcx.coalesced_moves <- ISet.add move_instr_id gcx.coalesced_moves;
-    add_to_simplify_work_list ~gcx vreg1
-  ) else if
-      VRegSet.mem vreg2 gcx.precolored_vregs || VVMMap.contains vreg2 vreg1 gcx.interference_graph
-    then (
-    gcx.constrained_moves <- ISet.add move_instr_id gcx.constrained_moves;
-    add_to_simplify_work_list ~gcx vreg1;
-    add_to_simplify_work_list ~gcx vreg2
-  ) else if
-      (VRegSet.mem vreg1 gcx.precolored_vregs && can_coalesce_with_precolored ~gcx vreg1 vreg2)
-      || (not (VRegSet.mem vreg1 gcx.precolored_vregs))
-         && can_conservative_coalesce ~gcx vreg1 vreg2
-    then (
-    gcx.coalesced_moves <- ISet.add move_instr_id gcx.coalesced_moves;
-    combine_vregs ~gcx vreg1 vreg2;
-    add_to_simplify_work_list ~gcx vreg1
-  ) else
-    gcx.active_moves <- ISet.add move_instr_id gcx.active_moves
-
-(* Freeze all the moves associated with a vreg. This makes them no longer eligible for coalescing. *)
-let freeze_moves ~(gcx : Gcx.t) vreg =
-  let vreg_moves = node_moves ~gcx vreg in
-  ISet.iter
-    (fun move_instr_id ->
-      if ISet.mem move_instr_id gcx.active_moves then
-        gcx.active_moves <- ISet.remove move_instr_id gcx.active_moves
-      else
-        gcx.worklist_moves <- ISet.remove move_instr_id gcx.worklist_moves;
-      gcx.frozen_moves <- ISet.add move_instr_id gcx.frozen_moves;
-      let (source_vreg, dest_vreg) = source_dest_vregs_of_move ~gcx move_instr_id in
-      let other_vreg =
-        if source_vreg = vreg then
-          dest_vreg
-        else if dest_vreg = vreg then
-          source_vreg
-        else
-          failwith "Moves in move list must be indexed by register in that move"
-      in
-      if
-        ISet.is_empty (node_moves ~gcx other_vreg)
-        && degree ~gcx other_vreg < num_allocatable_registers
-      then (
-        gcx.freeze_worklist <- VRegSet.remove other_vreg gcx.freeze_worklist;
-        gcx.simplify_worklist <- VRegSet.add other_vreg gcx.simplify_worklist
-      ))
-    vreg_moves
-
-(* Choose a vreg from the freeze worklist and freeze all the moves associated with it. Vreg can now
-   be simplified. *)
-let freeze ~(gcx : Gcx.t) =
-  let vreg = VRegSet.choose gcx.freeze_worklist in
-  gcx.freeze_worklist <- VRegSet.remove vreg gcx.freeze_worklist;
-  gcx.simplify_worklist <- VRegSet.add vreg gcx.simplify_worklist;
-  freeze_moves ~gcx vreg
-
-(* Choose a vreg from the spill worklist and freeze all the moves associated with it. Vreg can now
-   be simplified.*)
-let select_spill ~(gcx : Gcx.t) vreg_num_use_defs =
-  (* Simple spill heuristic - minimize cost C where C = (#uses + #defs) / degree *)
-  let heuristic_chosen_vreg =
-    VRegSet.fold
-      (fun vreg chosen_vreg_opt ->
-        let num_use_defs = Float.of_int (VRegMap.find vreg vreg_num_use_defs) in
-        let degree = Float.of_int (degree ~gcx vreg) in
-        let cost = num_use_defs /. degree in
-        match chosen_vreg_opt with
-        | None -> Some (vreg, cost)
-        | Some (_, chosen_cost) ->
-          if cost < chosen_cost then
-            Some (vreg, cost)
-          else
-            chosen_vreg_opt)
-      gcx.spill_worklist
-      None
-  in
-  let potential_spill_vreg =
-    match heuristic_chosen_vreg with
-    | Some (vreg, _) -> vreg
-    | None -> VRegSet.choose gcx.spill_worklist
-  in
-  gcx.spill_worklist <- VRegSet.remove potential_spill_vreg gcx.spill_worklist;
-  gcx.simplify_worklist <- VRegSet.add potential_spill_vreg gcx.simplify_worklist;
-  freeze_moves ~gcx potential_spill_vreg
-
-(* Select a color for a vreg from a set of possible colors to choose from. Only spill a new callee
-   saved register if we need to. *)
-let select_color_for_vreg ~(gcx : Gcx.t) vreg possible_regs =
-  (* Unresolved vregs must always be part of a function *)
-  let func = Option.get vreg.VReg.func in
-  let func = IMap.find func gcx.funcs_by_id in
-  let unused_callee_saved_regs =
-    RegSet.diff callee_saved_registers func.spilled_callee_saved_regs
-  in
-  let possible_not_unused_callee_saved_regs = RegSet.diff possible_regs unused_callee_saved_regs in
-  match RegSet.min_elt_opt possible_not_unused_callee_saved_regs with
-  | Some reg -> Some reg
-  | None ->
-    let possible_unused_callee_saved_regs = RegSet.inter possible_regs unused_callee_saved_regs in
-    (match RegSet.min_elt_opt possible_unused_callee_saved_regs with
-    | None -> None
-    | Some reg ->
-      func.spilled_callee_saved_regs <- RegSet.add reg func.spilled_callee_saved_regs;
-      Some reg)
-
-(* Pop nodes off the select stack and greedily assign colors to them. If no color can be assigned,
-   add vreg to spill worklist. *)
-let assign_colors ~(gcx : Gcx.t) =
-  while gcx.select_stack <> [] do
-    let vreg = List.hd gcx.select_stack in
-    gcx.select_stack <- List.tl gcx.select_stack;
-    let interfering_vregs = VVMMap.find_all vreg gcx.interference_graph in
-    (* Create a set of all registers and remove colors of all neighbors in interference graph *)
-    let ok_registers = ref general_purpose_registers in
+  let make_worklist ~(ra : t) =
     VRegSet.iter
-      (fun interfering_vreg ->
-        let alias = Gcx.get_vreg_alias ~gcx interfering_vreg in
-        if VRegSet.mem alias gcx.colored_vregs || VRegSet.mem alias gcx.precolored_vregs then
-          match alias.resolution with
-          | Physical reg -> ok_registers := RegSet.remove reg !ok_registers
-          | _ -> ())
-      interfering_vregs;
-    (* Choose an arbitrary color from the remaining set, otherwise spill *)
-    match select_color_for_vreg ~gcx vreg !ok_registers with
-    | None -> gcx.spilled_vregs <- VRegSet.add vreg gcx.spilled_vregs
-    | Some physical_reg ->
-      gcx.colored_vregs <- VRegSet.add vreg gcx.colored_vregs;
-      vreg.resolution <- Physical physical_reg
-  done;
-  VRegSet.iter
-    (fun vreg ->
-      match Gcx.get_vreg_resolution ~gcx vreg with
-      | Physical _ as alias_resolution -> vreg.resolution <- alias_resolution
-      | _ -> failwith "Alias must be colored")
-    gcx.coalesced_vregs
+      (fun vreg ->
+        ra.initial_vregs <- VRegSet.remove vreg ra.initial_vregs;
+        if degree ~ra vreg >= num_allocatable_registers then
+          ra.spill_worklist <- VRegSet.add vreg ra.spill_worklist
+        else if move_related ~ra vreg then
+          ra.freeze_worklist <- VRegSet.add vreg ra.freeze_worklist
+        else
+          ra.simplify_worklist <- VRegSet.add vreg ra.simplify_worklist)
+      ra.initial_vregs
 
-let rewrite_program ~(gcx : Gcx.t) =
-  (* Resolve spilled vregs to virtual stack slots *)
-  VRegSet.iter
-    (fun vreg ->
-      let func = IMap.find (Option.get vreg.func) gcx.funcs_by_id in
-      func.spilled_vregs <- VRegSet.add vreg func.spilled_vregs;
-      vreg.resolution <- StackSlot (VirtualStackSlot vreg))
-    gcx.spilled_vregs;
-  (* Then rewrite program to include newly resolved memory locations *)
-  let spill_writer = new X86_spill_writer.spill_writer ~gcx in
-  IMap.iter (fun _ block -> spill_writer#write_block_spills block) gcx.blocks_by_id;
-  (* Reset state of register allocator *)
-  let new_vregs = spill_writer#new_vregs in
-  gcx.spilled_vregs <- VRegSet.empty;
-  gcx.initial_vregs <- VRegSet.union new_vregs (VRegSet.union gcx.colored_vregs gcx.coalesced_vregs);
-  gcx.colored_vregs <- VRegSet.empty;
-  gcx.coalesced_vregs <- VRegSet.empty;
-  gcx.move_list <- VRegMap.empty
+  let enable_moves ~(ra : t) vregs =
+    VRegSet.iter
+      (fun vreg ->
+        let node_moves = node_moves ~ra vreg in
+        ISet.iter
+          (fun move_instr_id ->
+            if ISet.mem move_instr_id ra.active_moves then (
+              ra.active_moves <- ISet.remove move_instr_id ra.active_moves;
+              ra.worklist_moves <- ISet.add move_instr_id ra.worklist_moves
+            ))
+          node_moves)
+      vregs
 
-(* Remove all moves where both the source and destination alias to the same register, as they are
-   unnecessary. *)
-let remove_coalesced_moves ~(gcx : Gcx.t) =
-  let open Block in
-  IMap.iter
-    (fun _ block ->
-      block.instructions <-
-        List.filter
-          (fun (_, instr) ->
-            match instr with
-            | Instruction.MovMM (Reg source_vreg, Reg dest_vreg) ->
-              Gcx.get_vreg_alias ~gcx source_vreg != Gcx.get_vreg_alias ~gcx dest_vreg
-            | _ -> true)
-          block.instructions)
-    gcx.blocks_by_id
-
-class allocate_init_visitor =
-  object (this)
-    inherit X86_visitor.instruction_visitor
-
-    val mutable vreg_num_use_defs = VRegMap.empty
-
-    method vreg_num_use_defs = vreg_num_use_defs
-
-    method all_vregs =
-      VRegMap.fold (fun vreg _ vregs -> VRegSet.add vreg vregs) vreg_num_use_defs VRegSet.empty
-
-    method visit_vreg vreg =
-      vreg_num_use_defs <-
-        VRegMap.add
-          vreg
-          (match VRegMap.find_opt vreg vreg_num_use_defs with
-          | None -> 0
-          | Some prev_count -> prev_count + 1)
-          vreg_num_use_defs
-
-    method! visit_read_vreg ~block:_ vreg = this#visit_vreg vreg
-
-    method! visit_write_vreg ~block:_ vreg = this#visit_vreg vreg
-  end
-
-(* Allocate physical registers (colors) to each virtual register using iterated register coalescing.
-   Simply the graph afterwards to remove unnecessary instructions. *)
-let allocate_registers ~(gcx : Gcx.t) =
-  (* Collect all registers in program, then remove precolored to create initial vreg list *)
-  let init_visitor = new allocate_init_visitor in
-  IMap.iter
-    (fun _ block ->
-      List.iter (fun instr -> init_visitor#visit_instruction ~block instr) block.instructions)
-    gcx.blocks_by_id;
-  let vreg_num_use_defs = init_visitor#vreg_num_use_defs in
-  gcx.initial_vregs <- VRegSet.diff init_visitor#all_vregs gcx.precolored_vregs;
-  let rec iter () =
-    liveness_analysis ~gcx;
-    build_interference_graph ~gcx;
-    make_worklist ~gcx;
-    while
-      not
-        ( VRegSet.is_empty gcx.simplify_worklist
-        && ISet.is_empty gcx.worklist_moves
-        && VRegSet.is_empty gcx.freeze_worklist
-        && VRegSet.is_empty gcx.spill_worklist )
-    do
-      if not (VRegSet.is_empty gcx.simplify_worklist) then
-        simplify ~gcx
-      else if not (ISet.is_empty gcx.worklist_moves) then
-        coalesce ~gcx
-      else if not (VRegSet.is_empty gcx.freeze_worklist) then
-        freeze ~gcx
-      else if not (VRegSet.is_empty gcx.spill_worklist) then
-        select_spill ~gcx vreg_num_use_defs
-    done;
-    assign_colors ~gcx;
-    if not (VRegSet.is_empty gcx.spilled_vregs) then (
-      rewrite_program ~gcx;
-      iter ()
+  let decrement_degree ~(ra : t) vreg =
+    let degree = degree ~ra vreg in
+    ra.interference_degree <- VRegMap.add vreg (max 0 (degree - 1)) ra.interference_degree;
+    if degree = num_allocatable_registers then (
+      enable_moves ~ra (VRegSet.add vreg (adjacent ~ra vreg));
+      ra.spill_worklist <- VRegSet.remove vreg ra.spill_worklist;
+      if move_related ~ra vreg then
+        ra.freeze_worklist <- VRegSet.add vreg ra.freeze_worklist
+      else
+        ra.simplify_worklist <- VRegSet.add vreg ra.simplify_worklist
     )
-  in
-  iter ();
-  remove_coalesced_moves ~gcx
+
+  (* Choose a vreg from the worklist of low degree, non move related vregs. Remove this vreg from
+     the graph, adding it to the select stack, and decrement the degree of all its neighbors. *)
+  let simplify ~(ra : t) =
+    let vreg = VRegSet.choose ra.simplify_worklist in
+    ra.simplify_worklist <- VRegSet.remove vreg ra.simplify_worklist;
+    ra.select_stack <- vreg :: ra.select_stack;
+    let adjacent_vregs = adjacent ~ra vreg in
+    VRegSet.iter (fun adjacent_vreg -> decrement_degree ~ra adjacent_vreg) adjacent_vregs
+
+  let add_to_simplify_work_list ~(ra : t) vreg =
+    if
+      (not (VRegSet.mem vreg ra.precolored_vregs))
+      && (not (move_related ~ra vreg))
+      && degree ~ra vreg < num_allocatable_registers
+    then (
+      ra.freeze_worklist <- VRegSet.remove vreg ra.freeze_worklist;
+      ra.simplify_worklist <- VRegSet.add vreg ra.simplify_worklist
+    )
+
+  (* A virtual register can only be coalesced with a precolored register if the coalescing would
+     not increase the degree of any adjacent vregs to K or greater. *)
+  let can_coalesce_with_precolored ~(ra : t) precolored vreg =
+    VRegSet.for_all
+      (fun adjacent_vreg ->
+        (* Degree stays the same since vreg gains and loses a neighbor *)
+        degree ~ra adjacent_vreg < num_allocatable_registers
+        (* All precolored registers interfere so degree does not change *)
+        || VRegSet.mem adjacent_vreg ra.precolored_vregs
+        (* Already interferes so degree does not change *)
+        || VVMMap.contains adjacent_vreg precolored ra.interference_graph)
+      (adjacent ~ra vreg)
+
+  (* Briggs conservative coalescing heuristic:
+     If there are fewer than K neighbor vregs of significant degree, then coalescing cannot make
+     the graph non-K colorable. *)
+  let can_conservative_coalesce ~(ra : t) vreg1 vreg2 =
+    let neighbor_vregs = VRegSet.union (adjacent ~ra vreg1) (adjacent ~ra vreg2) in
+    let k = ref 0 in
+    VRegSet.iter
+      (fun vreg -> if degree ~ra vreg >= num_allocatable_registers then k := !k + 1)
+      neighbor_vregs;
+    (* Printf.printf "can_conservative_coalesce(%d, %d) = %d, %s\n" vreg1.id vreg2.id !k (string_of_iset (VRegSet.fold (fun vreg vregs -> ISet.add vreg.id vregs) neighbor_vregs ISet.empty)); *)
+    !k < num_allocatable_registers
+
+  (* Combine two vregs, making them alias to each other, combining their moves and interference edges.
+   *)
+  let combine_vregs ~(ra : t) alias_vreg vreg =
+    if VRegSet.mem vreg ra.freeze_worklist then
+      ra.freeze_worklist <- VRegSet.remove vreg ra.freeze_worklist
+    else
+      ra.spill_worklist <- VRegSet.remove vreg ra.spill_worklist;
+    ra.coalesced_vregs <- VRegSet.add vreg ra.coalesced_vregs;
+    vreg.resolution <- Alias alias_vreg;
+    (* Printf.printf "combine_vregs(%d, %d)\n" vreg.id alias_vreg.id; *)
+    ra.move_list <-
+      VRegMap.add
+        alias_vreg
+        (ISet.union (VIMMap.find_all alias_vreg ra.move_list) (VIMMap.find_all vreg ra.move_list))
+        ra.move_list;
+    VRegSet.iter
+      (fun adjacent_vreg ->
+        add_interference_edge ~ra adjacent_vreg alias_vreg;
+        decrement_degree ~ra adjacent_vreg)
+      (adjacent ~ra vreg);
+    if
+      degree ~ra alias_vreg >= num_allocatable_registers
+      && VRegSet.mem alias_vreg ra.freeze_worklist
+    then (
+      ra.freeze_worklist <- VRegSet.remove alias_vreg ra.freeze_worklist;
+      ra.spill_worklist <- VRegSet.add alias_vreg ra.spill_worklist
+    )
+
+  (* Return the source and destination vregs for a particular instruction (MovRR (source, dest)) *)
+  let source_dest_vregs_of_move ~(ra : t) move_instr_id =
+    let move_instruction = Gcx.get_instruction ~gcx:ra.gcx move_instr_id in
+    match move_instruction with
+    | Instruction.MovMM (Reg source_vreg, Reg dest_vreg) -> (source_vreg, dest_vreg)
+    | _ -> failwith "Expected id of virtual register to virtual register move instruction"
+
+  let rec get_vreg_alias ~ra vreg =
+    match vreg.VReg.resolution with
+    | Alias alias when VRegSet.mem vreg ra.coalesced_vregs -> get_vreg_alias ~ra alias
+    | _ -> vreg
+
+  let get_vreg_resolution ~ra vreg = (get_vreg_alias ~ra vreg).resolution
+
+  (* Choose a move from the worklist and try to combine its virtual registers if doing so would
+     not make the graph uncolorable *)
+  let coalesce ~(ra : t) =
+    (* Choose an abitrary move instruction *)
+    let move_instr_id = ISet.choose ra.worklist_moves in
+    ra.worklist_moves <- ISet.remove move_instr_id ra.worklist_moves;
+    let (source_vreg, dest_vreg) = source_dest_vregs_of_move ~ra move_instr_id in
+    let source_vreg = get_vreg_alias ~ra source_vreg in
+    let dest_vreg = get_vreg_alias ~ra dest_vreg in
+    let (vreg1, vreg2) =
+      if VRegSet.mem dest_vreg ra.precolored_vregs then
+        (dest_vreg, source_vreg)
+      else
+        (source_vreg, dest_vreg)
+    in
+    (* Printf.printf "coalesce(%d, %d) for %d\n" vreg1.id vreg2.id move_instr_id;
+       Printf.printf "%B %B %B %B\n" (VRegSet.mem vreg1 ra.precolored_vregs) (VRegSet.mem vreg1 ra.precolored_vregs && can_coalesce_with_precolored ~ra vreg1 vreg2) (not (VRegSet.mem vreg1 ra.precolored_vregs)) ((not (VRegSet.mem vreg1 ra.precolored_vregs))
+              && can_conservative_coalesce ~ra vreg1 vreg2); *)
+    if vreg1 = vreg2 then (
+      ra.coalesced_moves <- ISet.add move_instr_id ra.coalesced_moves;
+      add_to_simplify_work_list ~ra vreg1
+    ) else if
+        VRegSet.mem vreg2 ra.precolored_vregs || VVMMap.contains vreg2 vreg1 ra.interference_graph
+      then (
+      ra.constrained_moves <- ISet.add move_instr_id ra.constrained_moves;
+      add_to_simplify_work_list ~ra vreg1;
+      add_to_simplify_work_list ~ra vreg2
+    ) else if
+        (VRegSet.mem vreg1 ra.precolored_vregs && can_coalesce_with_precolored ~ra vreg1 vreg2)
+        || (not (VRegSet.mem vreg1 ra.precolored_vregs))
+           && can_conservative_coalesce ~ra vreg1 vreg2
+      then (
+      ra.coalesced_moves <- ISet.add move_instr_id ra.coalesced_moves;
+      combine_vregs ~ra vreg1 vreg2;
+      add_to_simplify_work_list ~ra vreg1
+    ) else
+      ra.active_moves <- ISet.add move_instr_id ra.active_moves
+
+  (* Freeze all the moves associated with a vreg. This makes them no longer eligible for coalescing. *)
+  let freeze_moves ~(ra : t) vreg =
+    let vreg_moves = node_moves ~ra vreg in
+    ISet.iter
+      (fun move_instr_id ->
+        if ISet.mem move_instr_id ra.active_moves then
+          ra.active_moves <- ISet.remove move_instr_id ra.active_moves
+        else
+          ra.worklist_moves <- ISet.remove move_instr_id ra.worklist_moves;
+        ra.frozen_moves <- ISet.add move_instr_id ra.frozen_moves;
+        let (source_vreg, dest_vreg) = source_dest_vregs_of_move ~ra move_instr_id in
+        let other_vreg =
+          if source_vreg = vreg then
+            dest_vreg
+          else if dest_vreg = vreg then
+            source_vreg
+          else
+            failwith "Moves in move list must be indexed by register in that move"
+        in
+        if
+          ISet.is_empty (node_moves ~ra other_vreg)
+          && degree ~ra other_vreg < num_allocatable_registers
+        then (
+          ra.freeze_worklist <- VRegSet.remove other_vreg ra.freeze_worklist;
+          ra.simplify_worklist <- VRegSet.add other_vreg ra.simplify_worklist
+        ))
+      vreg_moves
+
+  (* Choose a vreg from the freeze worklist and freeze all the moves associated with it. Vreg can now
+     be simplified. *)
+  let freeze ~(ra : t) =
+    let vreg = VRegSet.choose ra.freeze_worklist in
+    ra.freeze_worklist <- VRegSet.remove vreg ra.freeze_worklist;
+    ra.simplify_worklist <- VRegSet.add vreg ra.simplify_worklist;
+    freeze_moves ~ra vreg
+
+  (* Choose a vreg from the spill worklist and freeze all the moves associated with it. Vreg can now
+     be simplified.*)
+  let select_spill ~(ra : t) vreg_num_use_defs =
+    (* Simple spill heuristic - minimize cost C where C = (#uses + #defs) / degree *)
+    let heuristic_chosen_vreg =
+      VRegSet.fold
+        (fun vreg chosen_vreg_opt ->
+          let num_use_defs = Float.of_int (VRegMap.find vreg vreg_num_use_defs) in
+          let degree = Float.of_int (degree ~ra vreg) in
+          let cost = num_use_defs /. degree in
+          match chosen_vreg_opt with
+          | None -> Some (vreg, cost)
+          | Some (_, chosen_cost) ->
+            if cost < chosen_cost then
+              Some (vreg, cost)
+            else
+              chosen_vreg_opt)
+        ra.spill_worklist
+        None
+    in
+    let potential_spill_vreg =
+      match heuristic_chosen_vreg with
+      | Some (vreg, _) -> vreg
+      | None -> VRegSet.choose ra.spill_worklist
+    in
+    ra.spill_worklist <- VRegSet.remove potential_spill_vreg ra.spill_worklist;
+    ra.simplify_worklist <- VRegSet.add potential_spill_vreg ra.simplify_worklist;
+    freeze_moves ~ra potential_spill_vreg
+
+  (* Select a color for a vreg from a set of possible colors to choose from. Only spill a new callee
+     saved register if we need to. *)
+  let select_color_for_vreg ~(ra : t) possible_regs =
+    (* Unresolved vregs must always be part of a function *)
+    let unused_callee_saved_regs =
+      RegSet.diff callee_saved_registers ra.func.spilled_callee_saved_regs
+    in
+    let possible_not_unused_callee_saved_regs =
+      RegSet.diff possible_regs unused_callee_saved_regs
+    in
+    match RegSet.min_elt_opt possible_not_unused_callee_saved_regs with
+    | Some reg -> Some reg
+    | None ->
+      let possible_unused_callee_saved_regs = RegSet.inter possible_regs unused_callee_saved_regs in
+      (match RegSet.min_elt_opt possible_unused_callee_saved_regs with
+      | None -> None
+      | Some reg ->
+        ra.func.spilled_callee_saved_regs <- RegSet.add reg ra.func.spilled_callee_saved_regs;
+        Some reg)
+
+  (* Pop nodes off the select stack and greedily assign colors to them. If no color can be assigned,
+     add vreg to spill worklist. *)
+  let assign_colors ~(ra : t) =
+    while ra.select_stack <> [] do
+      let vreg = List.hd ra.select_stack in
+      ra.select_stack <- List.tl ra.select_stack;
+      let interfering_vregs = VVMMap.find_all vreg ra.interference_graph in
+      (* Create a set of all registers and remove colors of all neighbors in interference graph *)
+      let ok_registers = ref general_purpose_registers in
+      VRegSet.iter
+        (fun interfering_vreg ->
+          let alias = get_vreg_alias ~ra interfering_vreg in
+          if VRegSet.mem alias ra.colored_vregs || VRegSet.mem alias ra.precolored_vregs then
+            match alias.resolution with
+            | Physical reg -> ok_registers := RegSet.remove reg !ok_registers
+            | _ -> ())
+        interfering_vregs;
+      (* Choose an arbitrary color from the remaining set, otherwise spill *)
+      match select_color_for_vreg ~ra !ok_registers with
+      | None -> ra.spilled_vregs <- VRegSet.add vreg ra.spilled_vregs
+      | Some physical_reg ->
+        ra.colored_vregs <- VRegSet.add vreg ra.colored_vregs;
+        vreg.resolution <- Physical physical_reg
+    done;
+    VRegSet.iter
+      (fun vreg ->
+        match get_vreg_resolution ~ra vreg with
+        | Physical _ as alias_resolution -> vreg.resolution <- alias_resolution
+        | _ -> failwith "Alias must be colored")
+      ra.coalesced_vregs
+
+  let rewrite_program ~(ra : t) =
+    (* Resolve spilled vregs to virtual stack slots *)
+    VRegSet.iter
+      (fun vreg ->
+        ra.func.spilled_vregs <- VRegSet.add vreg ra.func.spilled_vregs;
+        vreg.resolution <- StackSlot (VirtualStackSlot vreg))
+      ra.spilled_vregs;
+    (* Then rewrite program to include newly resolved memory locations *)
+    let spill_writer = new X86_spill_writer.spill_writer ~gcx:ra.gcx in
+    List.iter (fun block -> spill_writer#write_block_spills block) ra.func.blocks;
+    (* Reset state of register allocator *)
+    let new_vregs = spill_writer#new_vregs in
+    ra.spilled_vregs <- VRegSet.empty;
+    ra.initial_vregs <- VRegSet.union new_vregs (VRegSet.union ra.colored_vregs ra.coalesced_vregs);
+    ra.colored_vregs <- VRegSet.empty;
+    ra.coalesced_vregs <- VRegSet.empty;
+    ra.move_list <- VRegMap.empty
+
+  (* Remove all moves where both the source and destination alias to the same register, as they are
+     unnecessary. *)
+  let remove_coalesced_moves ~(ra : t) =
+    let open Block in
+    List.iter
+      (fun block ->
+        block.instructions <-
+          List.filter
+            (fun (_, instr) ->
+              match instr with
+              | Instruction.MovMM (Reg source_vreg, Reg dest_vreg) ->
+                get_vreg_alias ~ra source_vreg != get_vreg_alias ~ra dest_vreg
+              | _ -> true)
+            block.instructions)
+      ra.func.blocks
+
+  class allocate_init_visitor =
+    object (this)
+      inherit X86_visitor.instruction_visitor
+
+      val mutable vreg_num_use_defs = VRegMap.empty
+
+      method vreg_num_use_defs = vreg_num_use_defs
+
+      method all_vregs =
+        VRegMap.fold (fun vreg _ vregs -> VRegSet.add vreg vregs) vreg_num_use_defs VRegSet.empty
+
+      method visit_vreg vreg =
+        vreg_num_use_defs <-
+          VRegMap.add
+            vreg
+            (match VRegMap.find_opt vreg vreg_num_use_defs with
+            | None -> 0
+            | Some prev_count -> prev_count + 1)
+            vreg_num_use_defs
+
+      method! visit_read_vreg ~block:_ vreg = this#visit_vreg vreg
+
+      method! visit_write_vreg ~block:_ vreg = this#visit_vreg vreg
+    end
+
+  (* Allocate physical registers (colors) to each virtual register using iterated register coalescing.
+     Simply the graph afterwards to remove unnecessary instructions. *)
+  let allocate_registers ~(ra : t) =
+    (* Printf.printf "Precolored are %s\n" (string_of_vset ra.precolored_vregs); *)
+    (* Collect all registers in program, then remove precolored to create initial vreg list *)
+    let init_visitor = new allocate_init_visitor in
+    List.iter
+      (fun block ->
+        List.iter (fun instr -> init_visitor#visit_instruction ~block instr) block.instructions)
+      ra.func.blocks;
+    let vreg_num_use_defs = init_visitor#vreg_num_use_defs in
+    ra.initial_vregs <- VRegSet.diff init_visitor#all_vregs ra.precolored_vregs;
+    let rec iter () =
+      liveness_analysis ~ra;
+      build_interference_graph ~ra;
+
+      (* VRegMap.iter (fun v vs -> Printf.printf "Interference: %d -> %s\n" (v.VReg.id) (string_of_vset vs)) ra.interference_graph; *)
+      make_worklist ~ra;
+      while
+        not
+          ( VRegSet.is_empty ra.simplify_worklist
+          && ISet.is_empty ra.worklist_moves
+          && VRegSet.is_empty ra.freeze_worklist
+          && VRegSet.is_empty ra.spill_worklist )
+      do
+        if not (VRegSet.is_empty ra.simplify_worklist) then
+          simplify ~ra
+        else if not (ISet.is_empty ra.worklist_moves) then
+          coalesce ~ra
+        else if not (VRegSet.is_empty ra.freeze_worklist) then
+          freeze ~ra
+        else if not (VRegSet.is_empty ra.spill_worklist) then
+          select_spill ~ra vreg_num_use_defs
+      done;
+      assign_colors ~ra;
+      if not (VRegSet.is_empty ra.spilled_vregs) then (
+        rewrite_program ~ra;
+        iter ()
+      )
+    in
+    iter ();
+    remove_coalesced_moves ~ra
+end

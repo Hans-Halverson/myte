@@ -133,7 +133,7 @@ let pp_function_stack_argument ~buf vreg =
   add_string ~buf (string_of_int vreg.VReg.id)
 
 let rec pp_register ~gcx ~buf reg =
-  let reg_alias = Gcx.get_vreg_alias ~gcx reg in
+  let reg_alias = VReg.get_vreg_alias reg in
   match reg_alias.resolution with
   | Physical reg ->
     add_char ~buf '%';
@@ -153,12 +153,12 @@ let rec pp_register ~gcx ~buf reg =
 and pp_memory_address ~gcx ~buf mem =
   match mem with
   | VirtualStackSlot vreg ->
-    (match Gcx.get_vreg_resolution ~gcx vreg with
+    (match VReg.get_vreg_resolution vreg with
     | StackSlot (PhysicalAddress _ as addr) -> pp_memory_address ~gcx ~buf addr
     | StackSlot (VirtualStackSlot vreg) -> pp_virtual_stack_slot ~buf vreg
     | _ -> failwith "Virtual stack slot must have been resolved before printing")
   | FunctionStackArgument vreg ->
-    (match Gcx.get_vreg_resolution ~gcx vreg with
+    (match VReg.get_vreg_resolution vreg with
     | StackSlot (PhysicalAddress _ as addr) -> pp_memory_address ~gcx ~buf addr
     | StackSlot (FunctionStackArgument vreg) -> pp_function_stack_argument ~buf vreg
     | _ -> failwith "Function stack argument must have been resolved before printing")
