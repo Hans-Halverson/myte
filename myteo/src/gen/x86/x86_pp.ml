@@ -30,19 +30,22 @@ let mk_pcx ~gcx =
   (* Determine labels for every unlabed block in program that has an incoming jump *)
   let max_label_id = ref 0 in
   let incoming_jump_blocks = find_incoming_jump_blocks ~gcx in
-  List.iter
-    (fun block ->
-      let open Block in
-      match block.label with
-      | Some _ -> ()
-      | None ->
-        if ISet.mem block.id incoming_jump_blocks then (
-          let id = !max_label_id in
-          max_label_id := !max_label_id + 1;
-          pcx.block_print_labels <-
-            IMap.add block.id (".L" ^ string_of_int id) pcx.block_print_labels
-        ))
-    gcx.text;
+  IMap.iter
+    (fun _ func ->
+      List.iter
+        (fun block ->
+          let open Block in
+          match block.label with
+          | Some _ -> ()
+          | None ->
+            if ISet.mem block.id incoming_jump_blocks then (
+              let id = !max_label_id in
+              max_label_id := !max_label_id + 1;
+              pcx.block_print_labels <-
+                IMap.add block.id (".L" ^ string_of_int id) pcx.block_print_labels
+            ))
+        func.Function.blocks)
+    gcx.funcs_by_id;
   pcx
 
 let mk_buf ?(size = 1024) () = Buffer.create size
@@ -400,5 +403,5 @@ let pp_x86_program ~gcx =
   (* Add text section *)
   add_blank_line ~buf;
   add_line ~buf (fun buf -> add_string ~buf ".text");
-  List.iter (pp_block ~gcx ~pcx ~buf) gcx.text;
+  IMap.iter (fun _ func -> List.iter (pp_block ~gcx ~pcx ~buf) func.Function.blocks) gcx.funcs_by_id;
   Buffer.contents buf

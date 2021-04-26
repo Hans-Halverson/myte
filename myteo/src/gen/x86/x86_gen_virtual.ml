@@ -22,15 +22,15 @@ type resolved_source_value =
 
 let rec gen ~gcx (ir : ssa_program) =
   (* Add init block with initialization of globals *)
-  let func = Gcx.mk_function ~gcx [] 0 in
+  let func = Gcx.start_function ~gcx [] 0 in
   Gcx.start_block ~gcx ~label:(Some "_init") ~func:func.id ~mir_block_id:None;
   let prologue_block_id = (Option.get gcx.current_block_builder).id in
   func.prologue <- prologue_block_id;
   Gcx.finish_block ~gcx;
   SMap.iter (fun _ global -> gen_global_instruction_builder ~gcx ~ir global func) ir.globals;
+  Gcx.finish_function ~gcx;
   (* Remove init block if there are no init sections *)
-  if List.length gcx.text = 1 then begin
-    gcx.text <- [];
+  if List.length func.blocks = 1 then begin
     gcx.blocks_by_id <- IMap.empty;
     gcx.funcs_by_id <- IMap.remove func.id gcx.funcs_by_id
   end;
@@ -84,7 +84,7 @@ and gen_global_instruction_builder ~gcx ~ir global init_func =
     gen_blocks ~gcx ~ir global.init_start_block (Some ("_init_" ^ global.name)) init_func.id
 
 and gen_function_instruction_builder ~gcx ~ir func =
-  let func_ = Gcx.mk_function ~gcx [] 0 in
+  let func_ = Gcx.start_function ~gcx [] 0 in
   let label =
     if func.body_start_block = ir.main_id then
       "_main"
@@ -120,7 +120,8 @@ and gen_function_instruction_builder ~gcx ~ir func =
       func.params;
   Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx func.body_start_block));
   Gcx.finish_block ~gcx;
-  gen_blocks ~gcx ~ir func.body_start_block None func_.id
+  gen_blocks ~gcx ~ir func.body_start_block None func_.id;
+  Gcx.finish_function ~gcx
 
 and gen_blocks ~gcx ~ir start_block_id label func =
   let ordered_blocks = Block_ordering.order_blocks ~program:ir start_block_id in

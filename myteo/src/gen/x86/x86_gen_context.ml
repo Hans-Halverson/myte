@@ -25,11 +25,11 @@ let get_from_multimap key mmap =
 module Gcx = struct
   type t = {
     (* Virtual blocks and builders *)
-    mutable text: virtual_block list;
     mutable data: data list;
     mutable bss: bss_data list;
     mutable rodata: data list;
     mutable current_block_builder: virtual_block option;
+    mutable current_func_builder: VReg.t Function.t option;
     (* All blocks, indexed by id *)
     mutable blocks_by_id: virtual_block IMap.t;
     mutable prev_blocks: ISet.t IMap.t;
@@ -85,11 +85,11 @@ module Gcx = struct
         (RegMap.empty, VRegSet.empty, VRegMap.empty)
     in
     {
-      text = [];
       data = [];
       bss = [];
       rodata = [];
       current_block_builder = None;
+      current_func_builder = None;
       blocks_by_id = IMap.empty;
       prev_blocks = IMap.empty;
       mir_block_id_to_block_id = IMap.empty;
@@ -118,7 +118,6 @@ module Gcx = struct
     }
 
   let finish_builders ~gcx =
-    gcx.text <- List.rev gcx.text;
     gcx.data <- List.rev gcx.data;
     gcx.bss <- List.rev gcx.bss;
     gcx.rodata <- List.rev gcx.rodata
@@ -160,7 +159,8 @@ module Gcx = struct
     let block = Option.get gcx.current_block_builder in
     block.instructions <- List.rev block.instructions;
     gcx.blocks_by_id <- IMap.add block.id block gcx.blocks_by_id;
-    gcx.text <- block :: gcx.text;
+    let func = IMap.find block.func gcx.funcs_by_id in
+    func.blocks <- block :: func.blocks;
     gcx.current_block_builder <- None
 
   let emit ~gcx instr =
@@ -189,20 +189,27 @@ module Gcx = struct
 
   let get_vreg_resolution ~gcx vreg = (get_vreg_alias ~gcx vreg).resolution
 
-  let mk_function ~gcx params prologue =
+  let start_function ~gcx params prologue =
     let id = Function.mk_id () in
     let func =
       {
         Function.id;
         params;
         prologue;
+        blocks = [];
         spilled_callee_saved_regs = RegSet.empty;
         spilled_vregs = VRegSet.empty;
         num_stack_frame_slots = 0;
       }
     in
+    gcx.current_func_builder <- Some func;
     gcx.funcs_by_id <- IMap.add id func gcx.funcs_by_id;
     func
+
+  let finish_function ~gcx =
+    let current_func = Option.get gcx.current_func_builder in
+    current_func.blocks <- List.rev current_func.blocks;
+    gcx.current_func_builder <- None
 
   let get_instruction ~gcx instr_id =
     let block_id = IMap.find instr_id gcx.instruction_to_block in
@@ -223,7 +230,7 @@ module Gcx = struct
         merge (block2 :: tl)
       | _ -> ()
     in
-    merge gcx.text;
+    IMap.iter (fun _ func -> merge func.Function.blocks) gcx.funcs_by_id;
     (* Remove reflexive move instructions *)
     IMap.iter
       (fun _ block ->
@@ -254,17 +261,21 @@ module Gcx = struct
         | _ -> ())
       gcx.blocks_by_id;
     (* Filter out jump alias blocks *)
-    gcx.text <-
-      List.filter
-        (fun block ->
-          let func = IMap.find block.func gcx.funcs_by_id in
-          if IMap.mem block.id !jump_aliases && func.prologue <> block.id then (
-            gcx.blocks_by_id <- IMap.remove block.id gcx.blocks_by_id;
-            gcx.prev_blocks <- IMap.remove block.id gcx.prev_blocks;
-            false
-          ) else
-            true)
-        gcx.text;
+    IMap.iter
+      (fun _ func ->
+        let open Function in
+        func.blocks <-
+          List.filter
+            (fun block ->
+              let func = IMap.find block.func gcx.funcs_by_id in
+              if IMap.mem block.id !jump_aliases && func.prologue != block.id then (
+                gcx.blocks_by_id <- IMap.remove block.id gcx.blocks_by_id;
+                gcx.prev_blocks <- IMap.remove block.id gcx.prev_blocks;
+                false
+              ) else
+                true)
+            func.blocks)
+      gcx.funcs_by_id;
     (* Rewrite jumps to skip over jump alias blocks *)
     let rec resolve_jump_alias block_id =
       match IMap.find_opt block_id !jump_aliases with

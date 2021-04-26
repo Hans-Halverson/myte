@@ -191,16 +191,14 @@ module Instruction = struct
     id
 end
 
-module Function = struct
-  type id = int
+module Block = struct
+  type id = block_id
 
-  type 'reg t = {
+  and 'reg t = {
     id: id;
-    mutable params: 'reg list;
-    mutable prologue: block_id;
-    mutable spilled_callee_saved_regs: RegSet.t;
-    mutable spilled_vregs: VRegSet.t;
-    mutable num_stack_frame_slots: int;
+    label: label option;
+    func: func_id;
+    mutable instructions: 'reg Instruction.t list;
   }
 
   let max_id = ref 0
@@ -211,14 +209,17 @@ module Function = struct
     id
 end
 
-module Block = struct
-  type id = block_id
+module Function = struct
+  type id = int
 
-  and 'reg t = {
+  type 'reg t = {
     id: id;
-    label: label option;
-    func: Function.id;
-    mutable instructions: 'reg Instruction.t list;
+    mutable params: 'reg list;
+    mutable prologue: block_id;
+    mutable blocks: 'reg Block.t list;
+    mutable spilled_callee_saved_regs: RegSet.t;
+    mutable spilled_vregs: VRegSet.t;
+    mutable num_stack_frame_slots: int;
   }
 
   let max_id = ref 0
