@@ -4,7 +4,7 @@ open X86_gen_context
 open X86_instructions
 
 let imm_byte_of_bool bool =
-  ByteImmediate
+  Imm8
     ( if bool then
       1
     else
@@ -49,7 +49,7 @@ and gen_global_instruction_builder ~gcx ~ir global init_func =
     (* Global is initialized to address. Since this is position independent code we must calculate
        the address at runtime as it cannot be known statically, so place in uninitialized
        (bss) section. *)
-    let bss_data = { label = global.name; size = bytes_of_size Quad } in
+    let bss_data = { label = global.name; size = bytes_of_size Size64 } in
     Gcx.add_bss ~gcx bss_data;
     (* Emit init block to move address to global *)
     Gcx.start_block
@@ -273,7 +273,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       (fun arg_val ->
         match resolve_ir_value arg_val with
         (* Push does not support 64-bit immediates. Must instead load in register first. *)
-        | SImm (QuadImmediate _ as imm) ->
+        | SImm (Imm64 _ as imm) ->
           let vreg = mk_vreg () in
           Gcx.emit ~gcx (MovIM (imm, Reg vreg));
           Gcx.emit ~gcx (PushM (Reg vreg))
@@ -315,8 +315,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     if num_stack_arg_vals <> 0 then
       Gcx.emit
         ~gcx
-        (AddIM
-           (QuadImmediate (Int64.of_int (num_stack_arg_vals * 8)), Reg (Gcx.mk_precolored ~gcx SP)));
+        (AddIM (Imm32 (Int32.of_int (num_stack_arg_vals * 8)), Reg (Gcx.mk_precolored ~gcx SP)));
     Gcx.emit ~gcx (MovMM (Reg (Gcx.mk_precolored ~gcx A), Reg (vreg_of_var return_var_id)));
     gen_instructions rest_instructions
   (*
@@ -588,20 +587,20 @@ and resolve_ir_value ~func value =
     | _ -> SVReg (vreg, size)
   in
   match value with
-  | Unit Lit -> SImm (ByteImmediate 0)
-  | Unit (Var var_id) -> vreg_of_var var_id Byte
+  | Unit Lit -> SImm (Imm8 0)
+  | Unit (Var var_id) -> vreg_of_var var_id Size8
   | Bool (Lit b) ->
     SImm
-      (ByteImmediate
+      (Imm8
          ( if b then
            1
          else
            0 ))
-  | Bool (Var var_id) -> vreg_of_var var_id Byte
-  | Numeric (IntLit i) -> SImm (QuadImmediate i)
-  | Numeric (IntVar var_id) -> vreg_of_var var_id Quad
+  | Bool (Var var_id) -> vreg_of_var var_id Size8
+  | Numeric (IntLit i) -> SImm (Imm32 i)
+  | Numeric (IntVar var_id) -> vreg_of_var var_id Size32
   | Function (Lit name) -> SAddr (mk_label_memory_address name)
-  | Function (Var var_id) -> vreg_of_var var_id Quad
+  | Function (Var var_id) -> vreg_of_var var_id Size64
   | String _ -> failwith "TODO: Cannot compile string literals"
 
 and mk_label_memory_address label =

@@ -4,12 +4,9 @@
 _main:
   ret
 test.passedInRegistersAndStack:
-  movq $9, %rcx
-  push %rcx
-  movq $8, %rcx
-  push %rcx
-  movq $7, %rcx
-  push %rcx
+  push $9
+  push $8
+  push $7
   movq $1, %rdi
   movq $2, %rsi
   movq $3, %rdx

@@ -43,8 +43,7 @@ let write_function_prologues ~(gcx : Gcx.t) =
           let stack_frame_size = func_stack_frame_size func in
           [
             ( Gcx.mk_instr_id_for_block ~gcx prologue,
-              SubIM (QuadImmediate (Int64.of_int stack_frame_size), Reg (Gcx.mk_precolored ~gcx SP))
-            );
+              SubIM (Imm32 (Int32.of_int stack_frame_size), Reg (Gcx.mk_precolored ~gcx SP)) );
           ]
         else
           []
@@ -76,9 +75,8 @@ let write_function_epilogues ~(gcx : Gcx.t) =
                   let stack_frame_size = func_stack_frame_size func in
                   [
                     ( Gcx.mk_instr_id_for_block ~gcx block,
-                      AddIM
-                        ( QuadImmediate (Int64.of_int stack_frame_size),
-                          Reg (Gcx.mk_precolored ~gcx SP) ) );
+                      AddIM (Imm32 (Int32.of_int stack_frame_size), Reg (Gcx.mk_precolored ~gcx SP))
+                    );
                   ]
                 else
                   []

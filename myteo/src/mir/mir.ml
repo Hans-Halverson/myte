@@ -25,7 +25,7 @@ module rec Instruction : sig
 
   module NumericValue : sig
     type 'a t =
-      | IntLit of Int64.t
+      | IntLit of Int32.t
       | IntVar of 'a
   end
 

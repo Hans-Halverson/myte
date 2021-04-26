@@ -2,8 +2,7 @@
 
   .text
 _main:
-  movq $16, %rcx
-  push %rcx
+  push $16
   movq $1, %rdi
   movq $2, %rsi
   movq $3, %rdx

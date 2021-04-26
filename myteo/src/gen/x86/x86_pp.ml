@@ -86,10 +86,10 @@ let pp_size_suffix ~buf size =
   add_char
     ~buf
     (match size with
-    | Byte -> 'b'
-    | Word -> 'w'
-    | Long -> 'l'
-    | Quad -> 'q')
+    | Size8 -> 'b'
+    | Size16 -> 'w'
+    | Size32 -> 'l'
+    | Size64 -> 'q')
 
 let pp_label_debug_prefix ~buf block_id =
   if Opts.dump_debug () then (
@@ -118,11 +118,11 @@ let pp_immediate ~buf imm =
   add_string
     ~buf
     (match imm with
-    | ByteImmediate imm
-    | WordImmediate imm ->
+    | Imm8 imm
+    | Imm16 imm ->
       string_of_int imm
-    | LongImmediate imm -> Int32.to_string imm
-    | QuadImmediate imm -> Int64.to_string imm)
+    | Imm32 imm -> Int32.to_string imm
+    | Imm64 imm -> Int64.to_string imm)
 
 let pp_virtual_stack_slot ~buf vreg =
   add_string ~buf "VSLOT:";
@@ -358,10 +358,10 @@ let pp_data ~buf (data : data) =
   add_line ~buf (fun buf ->
       let (directive_string, value_string) =
         match data.value with
-        | ImmediateData (ByteImmediate imm) -> ("byte", string_of_int imm)
-        | ImmediateData (WordImmediate imm) -> ("value", string_of_int imm)
-        | ImmediateData (LongImmediate imm) -> ("long", Int32.to_string imm)
-        | ImmediateData (QuadImmediate imm) -> ("quad", Int64.to_string imm)
+        | ImmediateData (Imm8 imm) -> ("byte", string_of_int imm)
+        | ImmediateData (Imm16 imm) -> ("value", string_of_int imm)
+        | ImmediateData (Imm32 imm) -> ("long", Int32.to_string imm)
+        | ImmediateData (Imm64 imm) -> ("quad", Int64.to_string imm)
         | AsciiData str -> ("ascii", quote_string str)
       in
       add_char ~buf '.';

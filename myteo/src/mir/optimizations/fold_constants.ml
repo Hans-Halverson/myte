@@ -5,14 +5,14 @@ module Ocx = Mir_optimize_context
 
 type folded_constant =
   | UnitConstant
-  | IntConstant of Int64.t
+  | IntConstant of Int32.t
   | BoolConstant of bool
   | FunctionConstant of string
 
 let folded_constants_equal c1 c2 =
   match (c1, c2) with
   | (UnitConstant, UnitConstant) -> true
-  | (IntConstant i1, IntConstant i2) -> Int64.equal i1 i2
+  | (IntConstant i1, IntConstant i2) -> Int32.equal i1 i2
   | (BoolConstant b1, BoolConstant b2) -> b1 = b2
   | (FunctionConstant s1, FunctionConstant s2) -> s1 = s2
   | _ -> false
@@ -206,15 +206,15 @@ class calc_constants_visitor ~ocx =
       let try_fold_comparison var_id left right f =
         match (get_numeric_lit_opt left, get_numeric_lit_opt right) with
         | (Some left, Some right) ->
-          this#add_constant var_id (BoolConstant (f (Int64.compare left right) 0))
+          this#add_constant var_id (BoolConstant (f (Int32.compare left right) 0))
         | _ -> ()
       in
       match snd instruction with
-      | Neg (var_id, arg) -> try_fold_numeric_constant var_id arg Int64.neg
-      | Add (var_id, left, right) -> try_fold_numeric_constants var_id left right Int64.add
-      | Sub (var_id, left, right) -> try_fold_numeric_constants var_id left right Int64.sub
-      | Mul (var_id, left, right) -> try_fold_numeric_constants var_id left right Int64.mul
-      | Div (var_id, left, right) -> try_fold_numeric_constants var_id left right Int64.div
+      | Neg (var_id, arg) -> try_fold_numeric_constant var_id arg Int32.neg
+      | Add (var_id, left, right) -> try_fold_numeric_constants var_id left right Int32.add
+      | Sub (var_id, left, right) -> try_fold_numeric_constants var_id left right Int32.sub
+      | Mul (var_id, left, right) -> try_fold_numeric_constants var_id left right Int32.mul
+      | Div (var_id, left, right) -> try_fold_numeric_constants var_id left right Int32.div
       | LogNot (var_id, arg) -> try_fold_bool_constant var_id arg not
       | LogAnd (var_id, left, right) -> try_fold_bool_constants var_id left right ( && )
       | LogOr (var_id, left, right) -> try_fold_bool_constants var_id left right ( || )

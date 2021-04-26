@@ -196,7 +196,7 @@ and pp_string_value ~cx v =
 and pp_numeric_value ~cx v =
   let open Instruction.NumericValue in
   match v with
-  | IntLit i -> Int64.to_string i
+  | IntLit i -> Int32.to_string i
   | IntVar var_id -> pp_var_id ~cx var_id
 
 and pp_function_value ~cx v =

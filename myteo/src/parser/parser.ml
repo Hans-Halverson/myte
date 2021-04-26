@@ -211,7 +211,7 @@ and parse_expression_prefix env =
   | T_INT_LITERAL (value, raw) ->
     let loc = Env.loc env in
     Env.advance env;
-    IntLiteral { IntLiteral.loc; raw; value }
+    IntLiteral { IntLiteral.loc; raw; value = Int64.to_int32 value }
   | T_STRING_LITERAL value ->
     let loc = Env.loc env in
     Env.advance env;
