@@ -265,6 +265,26 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.Call (return_var_id, func_val, arg_vals) :: rest_instructions ->
+    (* Arguments 7+ are pushed on stack in reverse order *)
+    let stack_arg_vals = List.rev (List_utils.drop 6 arg_vals) in
+    let num_stack_arg_vals = List.length stack_arg_vals in
+    List.iter
+      (fun arg_val ->
+        match resolve_ir_value arg_val with
+        (* Push does not support 64-bit immediates. Must instead load in register first. *)
+        | SImm (QuadImmediate _ as imm) ->
+          let vreg = mk_vreg () in
+          Gcx.emit ~gcx (MovIM (imm, Reg vreg));
+          Gcx.emit ~gcx (PushM (Reg vreg))
+        | SImm imm -> Gcx.emit ~gcx (PushI imm)
+        (* Address must be calculated in a register and then pushed onto stack *)
+        | SAddr addr ->
+          let vreg = mk_vreg () in
+          Gcx.emit ~gcx (Lea (addr, vreg));
+          Gcx.emit ~gcx (PushM (Reg vreg))
+        | SMem (mem, _) -> Gcx.emit ~gcx (PushM (Mem mem))
+        | SVReg (var_id, _) -> Gcx.emit ~gcx (PushM (Reg var_id)))
+      stack_arg_vals;
     (* First six arguments are placed in registers %rdi​, ​%rsi​, ​%rdx​, ​%rcx​, ​%r8​, and ​%r9​ *)
     List.iteri
       (fun i arg_val ->
@@ -281,22 +301,6 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
             | SMem (mem, _) -> Gcx.emit ~gcx (MovMM (Mem mem, Reg vreg))
             | SVReg (source_vreg, _) -> Gcx.emit ~gcx (MovMM (Reg source_vreg, Reg vreg))))
       arg_vals;
-    (* Later arguments are pushed on stack in reverse order *)
-    let rest_arg_vals = List.rev (List_utils.drop 6 arg_vals) in
-    List.iter
-      (fun arg_val ->
-        match resolve_ir_value arg_val with
-        (* Push does not support 64-bit immediates. Must instead move onto stack. *)
-        | SImm (QuadImmediate _) -> failwith "Unimplemented"
-        | SImm imm -> Gcx.emit ~gcx (PushI imm)
-        (* Address must be calculated in a register and then pushed onto stack *)
-        | SAddr addr ->
-          let vreg = mk_vreg () in
-          Gcx.emit ~gcx (Lea (addr, vreg));
-          Gcx.emit ~gcx (PushM (Reg vreg))
-        | SMem (mem, _) -> Gcx.emit ~gcx (PushM (Mem mem))
-        | SVReg (var_id, _) -> Gcx.emit ~gcx (PushM (Reg var_id)))
-      rest_arg_vals;
     (* Emit call instruction and move result from register A to return vreg *)
     let inst =
       match func_val with
@@ -306,6 +310,12 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
         CallM func_mem
     in
     Gcx.emit ~gcx inst;
+    (* Return stack pointer to address before arguments were pushed onto stack *)
+    if num_stack_arg_vals <> 0 then
+      Gcx.emit
+        ~gcx
+        (AddIM
+           (QuadImmediate (Int64.of_int (num_stack_arg_vals * 8)), Reg (Gcx.mk_precolored ~gcx SP)));
     Gcx.emit ~gcx (MovMM (Reg (Gcx.mk_precolored ~gcx A), Reg (vreg_of_var return_var_id)));
     gen_instructions rest_instructions
   (*

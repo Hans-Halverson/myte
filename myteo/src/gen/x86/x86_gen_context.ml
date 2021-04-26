@@ -181,6 +181,14 @@ module Gcx = struct
 
   let mk_precolored ~gcx color = RegMap.find color gcx.color_to_vreg
 
+  let rec get_vreg_alias ~gcx vreg =
+    let open VReg in
+    match vreg.resolution with
+    | Alias alias when VRegSet.mem vreg gcx.coalesced_vregs -> get_vreg_alias ~gcx alias
+    | _ -> vreg
+
+  let get_vreg_resolution ~gcx vreg = (get_vreg_alias ~gcx vreg).resolution
+
   let mk_function ~gcx params prologue =
     let id = Function.mk_id () in
     let func =
@@ -225,7 +233,7 @@ module Gcx = struct
             (fun (_, instr) ->
               match instr with
               | MovMM (Reg vreg1, Reg vreg2) ->
-                (match (VReg.get_resolution vreg1, VReg.get_resolution vreg2) with
+                (match (get_vreg_resolution ~gcx vreg1, get_vreg_resolution ~gcx vreg2) with
                 | (Physical reg1, Physical reg2) when reg1 = reg2 -> false
                 | _ -> true)
               | _ -> true)

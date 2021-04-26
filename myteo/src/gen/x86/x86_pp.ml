@@ -110,18 +110,6 @@ let pp_condition_code cc =
   | LE -> "le"
   | GE -> "ge"
 
-let pp_register ~buf reg =
-  let reg_alias = VReg.get_vreg_alias reg in
-  add_char ~buf '%';
-  match reg_alias.resolution with
-  | Physical reg ->
-    add_string ~buf (debug_string_of_reg reg);
-    if Opts.dump_debug () then (
-      add_char ~buf ':';
-      add_string ~buf (string_of_int reg_alias.id)
-    )
-  | _ -> failwith "All registers must be resolved to a physical registers before printing"
-
 let pp_immediate ~buf imm =
   add_char ~buf '$';
   add_string
@@ -133,12 +121,43 @@ let pp_immediate ~buf imm =
     | LongImmediate imm -> Int32.to_string imm
     | QuadImmediate imm -> Int64.to_string imm)
 
-let rec pp_memory_address ~buf mem =
+let pp_virtual_stack_slot ~buf vreg =
+  add_string ~buf "VSLOT:";
+  add_string ~buf (string_of_int vreg.VReg.id)
+
+let pp_function_stack_argument ~buf vreg =
+  add_string ~buf "STACK_ARG:";
+  add_string ~buf (string_of_int vreg.VReg.id)
+
+let rec pp_register ~gcx ~buf reg =
+  let reg_alias = Gcx.get_vreg_alias ~gcx reg in
+  match reg_alias.resolution with
+  | Physical reg ->
+    add_char ~buf '%';
+    add_string ~buf (debug_string_of_reg reg);
+    if Opts.dump_debug () then (
+      add_char ~buf ':';
+      add_string ~buf (string_of_int reg_alias.id)
+    )
+  | StackSlot (PhysicalAddress _ as addr) -> pp_memory_address ~gcx ~buf addr
+  | StackSlot (VirtualStackSlot vreg) -> pp_virtual_stack_slot ~buf vreg
+  | StackSlot (FunctionStackArgument vreg) -> pp_function_stack_argument ~buf vreg
+  | Unresolved ->
+    add_char ~buf '%';
+    add_string ~buf (string_of_int reg_alias.id)
+  | Alias _ -> failwith "Alias cannot be final resolution"
+
+and pp_memory_address ~gcx ~buf mem =
   match mem with
-  | VirtualStackSlot _ -> failwith "Virtual stack slot must have been resolved before printing"
+  | VirtualStackSlot vreg ->
+    (match Gcx.get_vreg_resolution ~gcx vreg with
+    | StackSlot (PhysicalAddress _ as addr) -> pp_memory_address ~gcx ~buf addr
+    | StackSlot (VirtualStackSlot vreg) -> pp_virtual_stack_slot ~buf vreg
+    | _ -> failwith "Virtual stack slot must have been resolved before printing")
   | FunctionStackArgument vreg ->
-    (match VReg.get_resolution vreg with
-    | StackSlot (PhysicalAddress _ as addr) -> pp_memory_address ~buf addr
+    (match Gcx.get_vreg_resolution ~gcx vreg with
+    | StackSlot (PhysicalAddress _ as addr) -> pp_memory_address ~gcx ~buf addr
+    | StackSlot (FunctionStackArgument vreg) -> pp_function_stack_argument ~buf vreg
     | _ -> failwith "Function stack argument must have been resolved before printing")
   | PhysicalAddress mem ->
     begin
@@ -151,14 +170,14 @@ let rec pp_memory_address ~buf mem =
     begin
       match mem.base with
       | None -> ()
-      | Some reg -> pp_register ~buf reg
+      | Some reg -> pp_register ~gcx ~buf reg
     end;
     begin
       match mem.index_and_scale with
       | None -> ()
       | Some (index_register, scale) ->
         add_string ~buf ", ";
-        pp_register ~buf index_register;
+        pp_register ~gcx ~buf index_register;
         begin
           match scale with
           | Scale1 -> ()
@@ -169,22 +188,11 @@ let rec pp_memory_address ~buf mem =
     end;
     add_char ~buf ')'
 
-let pp_mem ~buf mem =
+let pp_mem ~gcx ~buf mem =
   let open Instruction in
   match mem with
-  | Reg reg ->
-    let reg_alias = VReg.get_vreg_alias reg in
-    (match reg_alias.resolution with
-    | Physical reg ->
-      add_char ~buf '%';
-      add_string ~buf (debug_string_of_reg reg);
-      if Opts.dump_debug () then (
-        add_char ~buf ':';
-        add_string ~buf (string_of_int reg_alias.id)
-      )
-    | StackSlot (PhysicalAddress _ as addr) -> pp_memory_address ~buf addr
-    | _ -> failwith "All mems must be resolved to physical registers and addresses before printing")
-  | Mem addr -> pp_memory_address ~buf addr
+  | Reg reg -> pp_register ~gcx ~buf reg
+  | Mem addr -> pp_memory_address ~gcx ~buf addr
 
 let pp_instruction ~gcx ~pcx ~buf instruction =
   let open Instruction in
@@ -201,10 +209,10 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         add_string op;
         add_char ~buf ' '
       in
-      let pp_register = pp_register ~buf in
-      let pp_mem = pp_mem ~buf in
+      let pp_register = pp_register ~gcx ~buf in
+      let pp_mem = pp_mem ~gcx ~buf in
       let pp_immediate = pp_immediate ~buf in
-      let pp_memory_address = pp_memory_address ~buf in
+      let pp_memory_address = pp_memory_address ~gcx ~buf in
       let pp_args_separator () = add_string ", " in
       match snd instruction with
       | PushI imm ->
@@ -222,7 +230,7 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_args_separator ();
         pp_mem dest_mem
       | MovIM (src_imm, dest_mem) ->
-        pp_op "mov";
+        pp_op "movq";
         pp_immediate src_imm;
         pp_args_separator ();
         pp_mem dest_mem

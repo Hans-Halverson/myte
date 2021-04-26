@@ -92,15 +92,14 @@ class use_def_finder =
 
     method vreg_defs = vreg_defs
 
+    method reset =
+      vreg_uses <- VRegSet.empty;
+      vreg_defs <- VRegSet.empty
+
     method! visit_read_vreg ~block:_ vreg = vreg_uses <- VRegSet.add vreg vreg_uses
 
     method! visit_write_vreg ~block:_ vreg = vreg_defs <- VRegSet.add vreg vreg_defs
   end
-
-let find_use_defs block instruction =
-  let finder = new use_def_finder in
-  finder#visit_instruction ~block instruction;
-  (finder#vreg_uses, finder#vreg_defs)
 
 (* Add an interference edge between two virtual registers, also updating degree *)
 let add_interference_edge ~(gcx : Gcx.t) vreg1 vreg2 =
@@ -110,7 +109,7 @@ let add_interference_edge ~(gcx : Gcx.t) vreg1 vreg2 =
       | None -> VRegMap.add vreg 1 gcx.interference_degree
       | Some degree -> VRegMap.add vreg (degree + 1) gcx.interference_degree)
   in
-  if (not (in_vv_multimap vreg1 vreg2 gcx.interference_graph)) && vreg1 <> vreg2 then (
+  if (not (in_vv_multimap vreg1 vreg2 gcx.interference_graph)) && vreg1 != vreg2 then (
     if not (VRegSet.mem vreg1 gcx.precolored_vregs) then (
       gcx.interference_graph <- add_to_vv_multimap vreg1 vreg2 gcx.interference_graph;
       inc_degree vreg1
@@ -122,6 +121,12 @@ let add_interference_edge ~(gcx : Gcx.t) vreg1 vreg2 =
   )
 
 let build_interference_graph ~(gcx : Gcx.t) =
+  let use_def_finder = new use_def_finder in
+  let find_use_defs block instr =
+    use_def_finder#reset;
+    use_def_finder#visit_instruction ~block instr;
+    (use_def_finder#vreg_uses, use_def_finder#vreg_defs)
+  in
   IMap.iter
     (fun block_id block ->
       let live = ref (IMap.find block_id gcx.live_out |> VRegSet.of_list) in
@@ -295,8 +300,8 @@ let coalesce ~(gcx : Gcx.t) =
   let move_instr_id = ISet.choose gcx.worklist_moves in
   gcx.worklist_moves <- ISet.remove move_instr_id gcx.worklist_moves;
   let (source_vreg, dest_vreg) = source_dest_vregs_of_move ~gcx move_instr_id in
-  let source_vreg = VReg.get_vreg_alias source_vreg in
-  let dest_vreg = VReg.get_vreg_alias dest_vreg in
+  let source_vreg = Gcx.get_vreg_alias ~gcx source_vreg in
+  let dest_vreg = Gcx.get_vreg_alias ~gcx dest_vreg in
   let (vreg1, vreg2) =
     if VRegSet.mem dest_vreg gcx.precolored_vregs then
       (dest_vreg, source_vreg)
@@ -361,12 +366,32 @@ let freeze ~(gcx : Gcx.t) =
 
 (* Choose a vreg from the spill worklist and freeze all the moves associated with it. Vreg can now
    be simplified.*)
-let select_spill ~(gcx : Gcx.t) =
-  (* TODO: Choose a good heuristic for selection of vreg to spill *)
-  let vreg = VRegSet.choose gcx.spill_worklist in
-  gcx.spill_worklist <- VRegSet.remove vreg gcx.spill_worklist;
-  gcx.simplify_worklist <- VRegSet.add vreg gcx.simplify_worklist;
-  freeze_moves ~gcx vreg
+let select_spill ~(gcx : Gcx.t) vreg_num_use_defs =
+  (* Simple spill heuristic - minimize cost C where C = (#uses + #defs) / degree *)
+  let heuristic_chosen_vreg =
+    VRegSet.fold
+      (fun vreg chosen_vreg_opt ->
+        let num_use_defs = Float.of_int (VRegMap.find vreg vreg_num_use_defs) in
+        let degree = Float.of_int (degree ~gcx vreg) in
+        let cost = num_use_defs /. degree in
+        match chosen_vreg_opt with
+        | None -> Some (vreg, cost)
+        | Some (_, chosen_cost) ->
+          if cost < chosen_cost then
+            Some (vreg, cost)
+          else
+            chosen_vreg_opt)
+      gcx.spill_worklist
+      None
+  in
+  let potential_spill_vreg =
+    match heuristic_chosen_vreg with
+    | Some (vreg, _) -> vreg
+    | None -> VRegSet.choose gcx.spill_worklist
+  in
+  gcx.spill_worklist <- VRegSet.remove potential_spill_vreg gcx.spill_worklist;
+  gcx.simplify_worklist <- VRegSet.add potential_spill_vreg gcx.simplify_worklist;
+  freeze_moves ~gcx potential_spill_vreg
 
 (* Select a color for a vreg from a set of possible colors to choose from. Only spill a new callee
    saved register if we need to. *)
@@ -399,9 +424,11 @@ let assign_colors ~(gcx : Gcx.t) =
     let ok_registers = ref general_purpose_registers in
     VRegSet.iter
       (fun interfering_vreg ->
-        match VReg.get_resolution interfering_vreg with
-        | Physical reg -> ok_registers := RegSet.remove reg !ok_registers
-        | _ -> ())
+        let alias = Gcx.get_vreg_alias ~gcx interfering_vreg in
+        if VRegSet.mem alias gcx.colored_vregs || VRegSet.mem alias gcx.precolored_vregs then
+          match alias.resolution with
+          | Physical reg -> ok_registers := RegSet.remove reg !ok_registers
+          | _ -> ())
       interfering_vregs;
     (* Choose an arbitrary color from the remaining set, otherwise spill *)
     match select_color_for_vreg ~gcx vreg !ok_registers with
@@ -412,8 +439,7 @@ let assign_colors ~(gcx : Gcx.t) =
   done;
   VRegSet.iter
     (fun vreg ->
-      let vreg_alias = VReg.get_vreg_alias vreg in
-      match vreg_alias.resolution with
+      match Gcx.get_vreg_resolution ~gcx vreg with
       | Physical _ as alias_resolution -> vreg.resolution <- alias_resolution
       | _ -> failwith "Alias must be colored")
     gcx.coalesced_vregs
@@ -434,7 +460,8 @@ let rewrite_program ~(gcx : Gcx.t) =
   gcx.spilled_vregs <- VRegSet.empty;
   gcx.initial_vregs <- VRegSet.union new_vregs (VRegSet.union gcx.colored_vregs gcx.coalesced_vregs);
   gcx.colored_vregs <- VRegSet.empty;
-  gcx.coalesced_vregs <- VRegSet.empty
+  gcx.coalesced_vregs <- VRegSet.empty;
+  gcx.move_list <- VRegMap.empty
 
 (* Remove all moves where both the source and destination alias to the same register, as they are
    unnecessary. *)
@@ -447,22 +474,47 @@ let remove_coalesced_moves ~(gcx : Gcx.t) =
           (fun (_, instr) ->
             match instr with
             | Instruction.MovMM (Reg source_vreg, Reg dest_vreg) ->
-              VReg.get_vreg_alias source_vreg <> VReg.get_vreg_alias dest_vreg
+              Gcx.get_vreg_alias ~gcx source_vreg != Gcx.get_vreg_alias ~gcx dest_vreg
             | _ -> true)
           block.instructions)
     gcx.blocks_by_id
+
+class allocate_init_visitor =
+  object (this)
+    inherit X86_visitor.instruction_visitor
+
+    val mutable vreg_num_use_defs = VRegMap.empty
+
+    method vreg_num_use_defs = vreg_num_use_defs
+
+    method all_vregs =
+      VRegMap.fold (fun vreg _ vregs -> VRegSet.add vreg vregs) vreg_num_use_defs VRegSet.empty
+
+    method visit_vreg vreg =
+      vreg_num_use_defs <-
+        VRegMap.add
+          vreg
+          (match VRegMap.find_opt vreg vreg_num_use_defs with
+          | None -> 0
+          | Some prev_count -> prev_count + 1)
+          vreg_num_use_defs
+
+    method! visit_read_vreg ~block:_ vreg = this#visit_vreg vreg
+
+    method! visit_write_vreg ~block:_ vreg = this#visit_vreg vreg
+  end
 
 (* Allocate physical registers (colors) to each virtual register using iterated register coalescing.
    Simply the graph afterwards to remove unnecessary instructions. *)
 let allocate_registers ~(gcx : Gcx.t) =
   (* Collect all registers in program, then remove precolored to create initial vreg list *)
-  let finder = new use_def_finder in
+  let init_visitor = new allocate_init_visitor in
   IMap.iter
     (fun _ block ->
-      List.iter (fun instr -> finder#visit_instruction ~block instr) block.instructions)
+      List.iter (fun instr -> init_visitor#visit_instruction ~block instr) block.instructions)
     gcx.blocks_by_id;
-  let all_vregs = VRegSet.union finder#vreg_uses finder#vreg_defs in
-  gcx.initial_vregs <- VRegSet.diff all_vregs gcx.precolored_vregs;
+  let vreg_num_use_defs = init_visitor#vreg_num_use_defs in
+  gcx.initial_vregs <- VRegSet.diff init_visitor#all_vregs gcx.precolored_vregs;
   let rec iter () =
     liveness_analysis ~gcx;
     build_interference_graph ~gcx;
@@ -481,7 +533,7 @@ let allocate_registers ~(gcx : Gcx.t) =
       else if not (VRegSet.is_empty gcx.freeze_worklist) then
         freeze ~gcx
       else if not (VRegSet.is_empty gcx.spill_worklist) then
-        select_spill ~gcx
+        select_spill ~gcx vreg_num_use_defs
     done;
     assign_colors ~gcx;
     if not (VRegSet.is_empty gcx.spilled_vregs) then (
@@ -490,6 +542,4 @@ let allocate_registers ~(gcx : Gcx.t) =
     )
   in
   iter ();
-  remove_coalesced_moves ~gcx;
-  Gcx.compress_jump_aliases ~gcx;
-  Gcx.remove_redundant_instructions ~gcx
+  remove_coalesced_moves ~gcx

@@ -121,13 +121,6 @@ module VirtualRegister = struct
   let mk ~resolution ~func = { id = Mir.mk_var_id (); resolution; func }
 
   let compare v1 v2 = Int.compare v1.id v2.id
-
-  let rec get_vreg_alias vreg =
-    match vreg.resolution with
-    | Alias alias -> get_vreg_alias alias
-    | _ -> vreg
-
-  let get_resolution vreg = (get_vreg_alias vreg).resolution
 end
 
 module VReg = VirtualRegister

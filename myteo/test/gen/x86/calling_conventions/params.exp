@@ -3,6 +3,22 @@
   .text
 _main:
   ret
+test.passedInRegistersAndStack:
+  movq $9, %rcx
+  push %rcx
+  movq $8, %rcx
+  push %rcx
+  movq $7, %rcx
+  push %rcx
+  movq $1, %rdi
+  movq $2, %rsi
+  movq $3, %rdx
+  movq $4, %rcx
+  movq $5, %r8
+  movq $6, %r9
+  call test.testNineArgFunction
+  add $24, %rsp
+  ret
 test.testEightArgFunction:
   add %rdi, %rsi
   add %rsi, %rdx
@@ -25,6 +41,45 @@ test.testFourArgFunction:
   add %rsi, %rdx
   add %rdx, %rcx
   mov %rcx, %rax
+  ret
+test.testFunctionStackParamsOffsetByPushedCalleeSavedRegisters:
+  push %rbx
+  mov %rdi, %rbx
+  movq $3, %rdi
+  call test.use
+  add 16(%rsp), %rbx
+  mov %rbx, %rax
+  pop %rbx
+  ret
+test.testFunctionStackParamsOffsetByStackFrameAndPushedCalleeSavedRegisters:
+  push %rbx
+  push %r12
+  push %r13
+  push %r14
+  push %r15
+  sub $8, %rsp
+  mov %rdi, 8(%rsp)
+  mov %rsi, %r12
+  mov %rdx, %r14
+  mov %rcx, %r15
+  mov %r8, %r13
+  mov %r9, %rbx
+  movq $3, %rdi
+  call test.use
+  add 8(%rsp), %r12
+  add %r12, %r14
+  add %r14, %r15
+  add %r15, %r13
+  add %r13, %rbx
+  add 56(%rsp), %rbx
+  add 64(%rsp), %rbx
+  mov %rbx, %rax
+  add $8, %rsp
+  pop %r15
+  pop %r14
+  pop %r13
+  pop %r12
+  pop %rbx
   ret
 test.testNineArgFunction:
   add %rdi, %rsi
@@ -66,6 +121,9 @@ test.testTwoArgFunction:
   add %rdi, %rsi
   mov %rsi, %rax
   ret
+test.use:
+  mov %rdi, %rax
+  ret
 test.zeroArgFunction:
-  mov $1, %rax
+  movq $1, %rax
   ret

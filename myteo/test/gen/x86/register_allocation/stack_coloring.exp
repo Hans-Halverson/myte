@@ -1,0 +1,135 @@
+  .global _main
+
+  .text
+test.cond:
+  movq $1, %rax
+  ret
+_main:
+  ret
+test.testMultipleInterferingSpillsInDifferentStackSlots:
+  push %rbx
+  push %r12
+  push %r13
+  push %r14
+  push %r15
+  sub $32, %rsp
+  mov %rdi, %r15
+  mov %rsi, 32(%rsp)
+  mov %rdx, 24(%rsp)
+  mov %rcx, 16(%rsp)
+  mov %r8, 8(%rsp)
+  movq $1, %rbx
+  movq $2, %r14
+  movq $3, %r13
+  movq $4, %r12
+  cmpq $1, %r15
+  jne .L0
+  movq $101, %rbx
+  movq $102, %r14
+  movq $103, %r13
+  movq $104, %r12
+  jmp .L1
+.L0:
+.L1:
+  movq $3, %rdi
+  call test.use
+  add %rbx, %r14
+  mov %r13, %rax
+  add %r14, %rax
+  mov %r12, %rbx
+  add %rax, %rbx
+  mov %r15, %rax
+  add %rbx, %rax
+  mov 32(%rsp), %rbx
+  add %rax, %rbx
+  mov 24(%rsp), %rax
+  add %rbx, %rax
+  mov 16(%rsp), %rbx
+  add %rax, %rbx
+  mov 8(%rsp), %rax
+  add %rbx, %rax
+  add $32, %rsp
+  pop %r15
+  pop %r14
+  pop %r13
+  pop %r12
+  pop %rbx
+  ret
+test.testNonInterferingSpillsReuseStackSlots:
+  push %rbx
+  push %r12
+  push %r13
+  push %r14
+  push %r15
+  sub $40, %rsp
+  call test.cond
+  movq $1, %r15
+  movq $2, %r14
+  movq $3, %r13
+  movq $4, 40(%rsp)
+  movq $5, %r12
+  movq $6, 32(%rsp)
+  movq $7, %r10
+  movq $8, %r9
+  movq $9, %r8
+  movq $10, %rdi
+  movq $11, %rsi
+  movq $12, %rdx
+  movq $13, 24(%rsp)
+  movq $14, 16(%rsp)
+  movq $15, 8(%rsp)
+  test %rax, %rax
+  je .L2
+  movq $101, %r15
+  movq $102, %r14
+  movq $103, %r13
+  movq $104, 40(%rsp)
+  movq $105, %r12
+  movq $106, %r11
+  movq $107, %r10
+  movq $108, %r9
+  movq $109, %r8
+  movq $110, %rdi
+  movq $111, %rsi
+  movq $112, %rdx
+  movq $113, %rcx
+  movq $114, 32(%rsp)
+  movq $115, 24(%rsp)
+  mov 40(%rsp), %rax
+  mov %rax, 40(%rsp)
+  mov 32(%rsp), %rbx
+  mov 24(%rsp), %rax
+  jmp .L3
+.L2:
+  mov 40(%rsp), %rax
+  mov %rax, 40(%rsp)
+  mov 32(%rsp), %r11
+  mov 24(%rsp), %rcx
+  mov 16(%rsp), %rbx
+  mov 8(%rsp), %rax
+.L3:
+  add %r15, %r14
+  add %r14, %r13
+  mov 40(%rsp), %r14
+  add %r13, %r14
+  add %r14, %r12
+  add %r12, %r11
+  add %r11, %r10
+  add %r10, %r9
+  add %r9, %r8
+  add %r8, %rdi
+  add %rdi, %rsi
+  add %rsi, %rdx
+  add %rdx, %rcx
+  add %rcx, %rbx
+  add %rbx, %rax
+  add $40, %rsp
+  pop %r15
+  pop %r14
+  pop %r13
+  pop %r12
+  pop %rbx
+  ret
+test.use:
+  mov %rdi, %rax
+  ret

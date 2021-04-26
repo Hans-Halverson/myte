@@ -83,7 +83,7 @@ let analyze_vregs blocks_by_id =
   (* Propagate a single variable backwards through the program, building liveness sets as we go *)
   let set_contains set block_id var_id =
     match IMap.find block_id !set with
-    | hd :: _ when hd = var_id -> true
+    | hd :: _ when hd == var_id -> true
     | _ -> false
   in
   let set_add set block_id var_id =
@@ -144,15 +144,17 @@ class analyze_virtual_stack_slots_init_visitor ~(gcx : Gcx.t) =
       prev_blocks <-
         IMap.add next_block_id (ISet.add block.id (IMap.find next_block_id prev_blocks)) prev_blocks
 
-    method! visit_read_vreg ~block vreg =
-      match VReg.get_resolution vreg with
-      | StackSlot (VirtualStackSlot vreg) ->
+    method! visit_read_mem ~block mem =
+      let open Instruction in
+      match mem with
+      | Mem (VirtualStackSlot vreg) ->
         vslot_use_blocks <- add_to_vi_multimap vreg block.id vslot_use_blocks
       | _ -> ()
 
-    method! visit_write_vreg ~block vreg =
-      match VReg.get_resolution vreg with
-      | StackSlot (VirtualStackSlot vreg) ->
+    method! visit_write_mem ~block mem =
+      let open Instruction in
+      match mem with
+      | Mem (VirtualStackSlot vreg) ->
         if
           in_vi_multimap vreg block.id vslot_use_blocks
           && not (in_vi_multimap vreg block.id vslot_def_blocks)
@@ -185,7 +187,7 @@ let analyze_virtual_stack_slots ~(gcx : Gcx.t) =
   (* Propagate a single variable backwards through the program, building liveness sets as we go *)
   let set_contains set block_id var_id =
     match IMap.find block_id !set with
-    | hd :: _ when hd = var_id -> true
+    | hd :: _ when hd == var_id -> true
     | _ -> false
   in
   let set_add set block_id var_id =

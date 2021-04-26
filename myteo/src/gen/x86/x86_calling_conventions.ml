@@ -6,7 +6,7 @@ let func_should_save_base_pointer _func = false
 
 let func_has_stack_frame func = func.Function.num_stack_frame_slots <> 0
 
-let func_stack_frame_size func = func.Function.num_stack_frame_slots
+let func_stack_frame_size func = func.Function.num_stack_frame_slots * 8
 
 (* Write all function prologues by saving the base pointer, pushing the used callee saved registers
    on the stack, and allocating a stack frame when applicable. *)

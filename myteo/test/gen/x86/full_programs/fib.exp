@@ -2,8 +2,8 @@
 
   .text
 fib.fibIterative:
-  mov $1, %rax
-  mov $1, %rcx
+  movq $1, %rax
+  movq $1, %rcx
 .L0:
   cmpq $2, %rdi
   jl .L1
@@ -38,12 +38,12 @@ fib.fibRecursive:
   pop %rbx
   ret
 _main:
-  mov $1, %rdi
+  movq $1, %rdi
   call fib.fibIterative
-  mov $2, %rdi
+  movq $2, %rdi
   call fib.fibIterative
-  mov $3, %rdi
+  movq $3, %rdi
   call fib.fibIterative
-  mov $8, %rdi
+  movq $8, %rdi
   call fib.fibIterative
   ret

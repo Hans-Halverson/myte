@@ -1,5 +1,7 @@
 module test
 
+fun use(x: int): int = x
+
 fun zeroArgFunction(): int = 1
 fun testOneArgFunction(p1: int): int = p1
 fun testTwoArgFunction(p1: int, p2: int): int = p1 + p2
@@ -10,5 +12,20 @@ fun testSixArgFunction(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int): in
 fun testSevenArgFunction(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p7: int): int = p1 + p2 + p3 + p4 + p5 + p6 + p7
 fun testEightArgFunction(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p7: int, p8: int): int = p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8
 fun testNineArgFunction(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int,  p7: int, p8: int, p9: int): int = p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9
+
+fun passedInRegistersAndStack() {
+  testNineArgFunction(1, 2, 3, 4, 5, 6, 7, 8, 9);
+}
+
+fun testFunctionStackParamsOffsetByPushedCalleeSavedRegisters(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p7: int): int {
+  use(3);
+  return p1 + p7;
+}
+
+fun testFunctionStackParamsOffsetByStackFrameAndPushedCalleeSavedRegisters(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p7: int, p8: int): int {
+  // There aren't enough callee saved registers so one parameter must be spilled
+  use(3);
+  return p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8;
+}
 
 fun main() {}

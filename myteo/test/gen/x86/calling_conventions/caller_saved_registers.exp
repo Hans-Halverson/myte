@@ -1,0 +1,129 @@
+  .global _main
+
+  .text
+test.callerSavedRegistersSavedAcrossFunctionCalls:
+  push %rbx
+  push %r12
+  push %r13
+  push %r14
+  push %r15
+  mov %rdi, %r12
+  mov %rsi, %r13
+  mov %rdx, %r15
+  mov %rcx, %r14
+  mov %r8, %rbx
+  movq $3, %rdi
+  call test.use
+  add %r12, %r13
+  add %r13, %r15
+  add %r15, %r14
+  add %r14, %rbx
+  mov %rbx, %rax
+  pop %r15
+  pop %r14
+  pop %r13
+  pop %r12
+  pop %rbx
+  ret
+test.callerSavedRegistersSavedAcrossFunctionCallsWithSpills:
+  push %rbx
+  push %r12
+  push %r13
+  push %r14
+  push %r15
+  sub $32, %rsp
+  mov %rdi, %r15
+  mov %rsi, 32(%rsp)
+  mov %rdx, 24(%rsp)
+  mov %rcx, 16(%rsp)
+  mov %r8, 8(%rsp)
+  mov %r9, %r14
+  movq $1, %r13
+  movq $2, %rbx
+  movq $3, %r12
+  cmpq $1, %r15
+  jne .L0
+  movq $101, %r13
+  movq $102, %rbx
+  movq $103, %r12
+  jmp .L1
+.L0:
+.L1:
+  movq $3, %rdi
+  call test.use
+  add %r13, %rbx
+  add %rbx, %r12
+  add %r12, %r15
+  mov 32(%rsp), %rax
+  add %r15, %rax
+  mov 24(%rsp), %rbx
+  add %rax, %rbx
+  mov 16(%rsp), %rax
+  add %rbx, %rax
+  mov 8(%rsp), %rbx
+  add %rax, %rbx
+  add %rbx, %r14
+  mov %r14, %rax
+  add $32, %rsp
+  pop %r15
+  pop %r14
+  pop %r13
+  pop %r12
+  pop %rbx
+  ret
+_main:
+  ret
+test.testDefaultToCalleeSaveRegistersIfAcrossFunctionCall:
+  push %rbx
+  push %r12
+  movq $1, %r12
+  movq $2, %rbx
+  test %rdi, %rdi
+  je .L2
+  movq $101, %r12
+  movq $102, %rbx
+  jmp .L3
+.L2:
+.L3:
+  movq $3, %rdi
+  call test.use
+  mov %r12, %rdi
+  call test.use
+  mov %rbx, %rdi
+  call test.use
+  pop %r12
+  pop %rbx
+  ret
+test.testDefaultToCallerSaveRegisters:
+  movq $1, %r11
+  movq $2, %r10
+  movq $3, %r9
+  movq $4, %r8
+  movq $5, %rdi
+  movq $6, %rdx
+  movq $7, %rcx
+  movq $8, %rax
+  test %rsi, %rsi
+  je .L4
+  movq $101, %r11
+  movq $102, %r10
+  movq $103, %r9
+  movq $104, %r8
+  movq $105, %rdi
+  movq $106, %rdx
+  movq $107, %rcx
+  movq $108, %rax
+  jmp .L5
+.L4:
+.L5:
+  add %r11, %r10
+  add %r10, %r9
+  add %r9, %r8
+  add %r8, %rdi
+  add %rdi, %rdx
+  add %rdx, %rcx
+  add %rcx, %rax
+  ret
+test.use:
+  mov %rdi, %rax
+  ret

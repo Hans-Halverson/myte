@@ -1,0 +1,22 @@
+  .global _main
+
+  .text
+_main:
+  ret
+test.testNestedReturnNoReturnRegisterMove:
+  call test.testReturnsInMain
+  ret
+test.testReturnRegisterClobberAcrossCall:
+  push %rbx
+  call test.testReturnsInMain
+  mov %rax, %rbx
+  call test.testReturnsInMain
+  add %rbx, %rax
+  pop %rbx
+  ret
+test.testReturnsInMain:
+  movq $1, %rax
+  ret
+test.testReturnsInMain2:
+  mov %rdi, %rax
+  ret

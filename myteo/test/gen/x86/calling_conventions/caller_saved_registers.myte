@@ -1,0 +1,70 @@
+module test
+
+fun use(x: int): int = x
+
+// Default to caller saved registers if not crossing a function call
+fun testDefaultToCallerSaveRegisters(p: int, cond: bool): int {
+  var x = 1;
+  var y = 2;
+  var z = 3;
+  var a = 4;
+  var b = 5;
+  var c = 6; 
+  var d = 7;
+  var e = 8;
+
+  if (cond)  {
+    x = 101;
+    y = 102;
+    z = 103;
+    a = 104;
+    b = 105;
+    c = 106;
+    d = 107;
+    e = 108;
+  }
+
+  return x + y + z + a + b + c + d + e;
+}
+
+fun testDefaultToCalleeSaveRegistersIfAcrossFunctionCall(cond: bool) {
+  // Placed in caller save register
+  var x = 1;
+  var y = 2;
+
+  if (cond) {
+    x = 101;
+    y = 102;
+  }
+
+  // Must be saved across function call
+  use(3);
+
+  // As it is used afterwards
+  use(x);
+  use(y);
+}
+
+fun callerSavedRegistersSavedAcrossFunctionCalls(p1: int, p2: int, p3: int, p4: int, p5: int): int {
+  // Push callee saved registers then move caller saved args to them to pass this function call
+  use(3);
+  return p1 + p2 + p3 + p4 + p5;
+}
+
+fun callerSavedRegistersSavedAcrossFunctionCallsWithSpills(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int): int {
+  var x = 1;
+  var y = 2;
+  var z = 3;
+
+  if (p1 == 1) {
+    x = 101;
+    y = 102;
+    z = 103;
+  }
+
+  use(3);
+
+  return x + y + z + p1 + p2 + p3 + p4 + p5 + p6;
+}
+
+fun main() {}

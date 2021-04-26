@@ -46,7 +46,7 @@ test.testCompareImmediateMemory:
   setl %rax
   ret
 .L5:
-  mov $1, %rax
+  movq $1, %rax
   ret
 test.testCompareImmediateRegister:
   cmpq $3, %rdi
@@ -91,7 +91,7 @@ test.testCompareImmediateRegister:
   setl %rax
   ret
 .L11:
-  mov $1, %rax
+  movq $1, %rax
   ret
 test.testCompareMemoryImmediate:
   cmpq $3, 8(%rsp)
@@ -136,7 +136,7 @@ test.testCompareMemoryImmediate:
   setge %rax
   ret
 .L17:
-  mov $1, %rax
+  movq $1, %rax
   ret
 test.testCompareMemoryMemory:
   mov 8(%rsp), %rcx
@@ -193,7 +193,7 @@ test.testCompareMemoryMemory:
   setge %rax
   ret
 .L23:
-  mov $1, %rax
+  movq $1, %rax
   ret
 test.testCompareMemoryRegister:
   cmp %rdi, 8(%rsp)
@@ -238,7 +238,7 @@ test.testCompareMemoryRegister:
   setge %rax
   ret
 .L29:
-  mov $1, %rax
+  movq $1, %rax
   ret
 test.testCompareRegisterImmediate:
   cmpq $3, %rdi
@@ -283,7 +283,7 @@ test.testCompareRegisterImmediate:
   setge %rax
   ret
 .L35:
-  mov $1, %rax
+  movq $1, %rax
   ret
 test.testCompareRegisterMemory:
   cmp 8(%rsp), %rdi
@@ -328,7 +328,7 @@ test.testCompareRegisterMemory:
   setge %rax
   ret
 .L41:
-  mov $1, %rax
+  movq $1, %rax
   ret
 test.testCompareRegisterRegister:
   cmp %rsi, %rdi
@@ -373,5 +373,5 @@ test.testCompareRegisterRegister:
   setge %rax
   ret
 .L47:
-  mov $1, %rax
+  movq $1, %rax
   ret

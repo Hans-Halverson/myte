@@ -27,14 +27,16 @@ class vslot_use_def_finder =
 
     method vslot_defs = vslot_defs
 
-    method! visit_read_vreg ~block:_ vreg =
-      match VReg.get_resolution vreg with
-      | StackSlot (VirtualStackSlot vreg) -> vslot_uses <- VRegSet.add vreg vslot_uses
+    method! visit_read_mem ~block:_ mem =
+      let open Instruction in
+      match mem with
+      | Mem (VirtualStackSlot vreg) -> vslot_uses <- VRegSet.add vreg vslot_uses
       | _ -> ()
 
-    method! visit_write_vreg ~block:_ vreg =
-      match VReg.get_resolution vreg with
-      | StackSlot (VirtualStackSlot vreg) -> vslot_defs <- VRegSet.add vreg vslot_defs
+    method! visit_write_mem ~block:_ mem =
+      let open Instruction in
+      match mem with
+      | Mem (VirtualStackSlot vreg) -> vslot_defs <- VRegSet.add vreg vslot_defs
       | _ -> ()
   end
 
@@ -57,7 +59,7 @@ let liveness_analysis ~(gcx : Gcx.t) =
             (fun vslot_def ->
               VRegSet.iter
                 (fun live_vslot ->
-                  if (not (in_vv_multimap live_vslot vslot_def !graph)) && live_vslot <> vslot_def
+                  if (not (in_vv_multimap live_vslot vslot_def !graph)) && live_vslot != vslot_def
                   then (
                     graph := add_to_vv_multimap live_vslot vslot_def !graph;
                     graph := add_to_vv_multimap vslot_def live_vslot !graph

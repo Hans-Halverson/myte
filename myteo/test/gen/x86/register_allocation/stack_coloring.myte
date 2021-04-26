@@ -1,0 +1,67 @@
+module test
+
+fun use(x: int): int = x
+fun cond(): bool = true
+
+fun testMultipleInterferingSpillsInDifferentStackSlots(p1: int, p2: int, p3: int, p4: int, p5: int): int {
+  // Create four spilled vars
+  var a = 1;
+  var b = 2;
+  var c = 3;
+  var d = 4;
+
+  if (p1 == 1) {
+    a = 101;
+    b = 102;
+    c = 103;
+    d = 104;
+  }
+
+  use(3);
+
+  // All spilled vars used at same point, so interfere and must live in different stack slots
+  return a + b + c + d + p1 + p2 + p3 + p4 + p5;
+}
+
+fun testNonInterferingSpillsReuseStackSlots(): int {
+  val cond = cond();
+  var x1 = 1;
+  var x2 = 2;
+  var x3 = 3;
+  var x4 = 4;
+  var x5 = 5;
+  var x6 = 6;
+  var x7 = 7;
+  var x8 = 8;
+  var x9 = 9;
+  var x10 = 10;
+  var x11 = 11;
+  var x12 = 12;
+  var x13 = 13;
+  var x14 = 14;
+  var x15 = 15;
+
+  if (cond) {
+    x1 = 101;
+    x2 = 102;
+    x3 = 103;
+    x4 = 104;
+    x5 = 105;
+    x6 = 106;
+    x7 = 107;
+    x8 = 108;
+    x9 = 109;
+    x10 = 110;
+    x11 = 111;
+    x12 = 112;
+    x13 = 113;
+    x14 = 114;
+    x15 = 115;
+  }
+
+  // TODO: Investigate why more stack slots are created than necessary as we add more vars
+  // Also investigate why changing number of vars between 15 and 16 affects compilation of other functions...
+  return x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14 + x15;
+}
+
+fun main() {}

@@ -1,0 +1,29 @@
+module test
+
+fun use(x: int): int = x
+
+fun testSingleSpillUsingAllRegisters(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p16: int): int {
+  val p7 = p1 + p2;
+  val p8 = p1 + p3;
+  val p9 = p1 + p4;
+  val p10 = p1 + p5;
+  val p11 = p1 + p6;
+  val p12 = p2 + p3;
+  val p13 = p2 + p4;
+  val p14 = p2 + p5;
+
+  // Spill
+  val p15 = p2 + p6;
+
+  return p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9 + p10 + p11 + p12 + p13 + p14 + p15 + p16;
+}
+
+fun testCallerSavedRegistersSpilledAcrossFunctionCalls(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int): int {
+  // There aren't enough callee saved registers so one parameter must be spilled
+  use(3);
+  return p1 + p2 + p3 + p4 + p5 + p6;
+}
+
+fun main(): int {
+  return testSingleSpillUsingAllRegisters(1, 2, 3, 4, 5, 6, 16); // Returns 88
+}
