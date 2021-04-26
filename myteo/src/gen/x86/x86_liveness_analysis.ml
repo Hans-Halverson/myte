@@ -2,24 +2,6 @@ open Basic_collections
 open X86_gen_context
 open X86_instructions
 
-let add_to_vi_multimap key value mmap =
-  let new_values =
-    match VRegMap.find_opt key mmap with
-    | None -> ISet.singleton value
-    | Some values -> ISet.add value values
-  in
-  VRegMap.add key new_values mmap
-
-let in_vi_multimap key value mmap =
-  match VRegMap.find_opt key mmap with
-  | None -> false
-  | Some values -> ISet.mem value values
-
-let get_from_vi_multimap key mmap =
-  match VRegMap.find_opt key mmap with
-  | None -> ISet.empty
-  | Some value -> value
-
 class analyze_vregs_init_visitor (blocks_by_id : virtual_block IMap.t) =
   object (this)
     inherit X86_visitor.instruction_visitor
@@ -50,15 +32,15 @@ class analyze_vregs_init_visitor (blocks_by_id : virtual_block IMap.t) =
         IMap.add next_block_id (ISet.add block.id (IMap.find next_block_id prev_blocks)) prev_blocks
 
     method! visit_read_vreg ~block vreg_id =
-      vreg_use_blocks <- add_to_vi_multimap vreg_id block.id vreg_use_blocks
+      vreg_use_blocks <- VIMMap.add vreg_id block.id vreg_use_blocks
 
     method! visit_write_vreg ~block vreg_id =
       if
-        in_vi_multimap vreg_id block.id vreg_use_blocks
-        && not (in_vi_multimap vreg_id block.id vreg_def_blocks)
+        VIMMap.contains vreg_id block.id vreg_use_blocks
+        && not (VIMMap.contains vreg_id block.id vreg_def_blocks)
       then
-        vreg_use_before_def_blocks <- add_to_vi_multimap vreg_id block.id vreg_use_before_def_blocks;
-      vreg_def_blocks <- add_to_vi_multimap vreg_id block.id vreg_def_blocks
+        vreg_use_before_def_blocks <- VIMMap.add vreg_id block.id vreg_use_before_def_blocks;
+      vreg_def_blocks <- VIMMap.add vreg_id block.id vreg_def_blocks
   end
 
 let analyze_vregs blocks_by_id =
@@ -94,8 +76,8 @@ let analyze_vregs blocks_by_id =
        vreg is defined (unless the vreg is used in the block before it is defined in the block) *)
     if
       (not (set_contains live_in block_id vreg_id))
-      && ( (not (in_vi_multimap vreg_id block_id vreg_def_blocks))
-         || in_vi_multimap vreg_id block_id vreg_use_before_def_blocks )
+      && ( (not (VIMMap.contains vreg_id block_id vreg_def_blocks))
+         || VIMMap.contains vreg_id block_id vreg_use_before_def_blocks )
     then (
       set_add live_in block_id vreg_id;
       let prev_blocks = IMap.find block_id prev_blocks in
@@ -147,8 +129,7 @@ class analyze_virtual_stack_slots_init_visitor ~(gcx : Gcx.t) =
     method! visit_read_mem ~block mem =
       let open Instruction in
       match mem with
-      | Mem (VirtualStackSlot vreg) ->
-        vslot_use_blocks <- add_to_vi_multimap vreg block.id vslot_use_blocks
+      | Mem (VirtualStackSlot vreg) -> vslot_use_blocks <- VIMMap.add vreg block.id vslot_use_blocks
       | _ -> ()
 
     method! visit_write_mem ~block mem =
@@ -156,12 +137,11 @@ class analyze_virtual_stack_slots_init_visitor ~(gcx : Gcx.t) =
       match mem with
       | Mem (VirtualStackSlot vreg) ->
         if
-          in_vi_multimap vreg block.id vslot_use_blocks
-          && not (in_vi_multimap vreg block.id vslot_def_blocks)
+          VIMMap.contains vreg block.id vslot_use_blocks
+          && not (VIMMap.contains vreg block.id vslot_def_blocks)
         then
-          vslot_use_before_def_blocks <-
-            add_to_vi_multimap vreg block.id vslot_use_before_def_blocks;
-        vslot_def_blocks <- add_to_vi_multimap vreg block.id vslot_def_blocks
+          vslot_use_before_def_blocks <- VIMMap.add vreg block.id vslot_use_before_def_blocks;
+        vslot_def_blocks <- VIMMap.add vreg block.id vslot_def_blocks
       | _ -> ()
   end
 
@@ -198,8 +178,8 @@ let analyze_virtual_stack_slots ~(gcx : Gcx.t) =
        var is defined (unless the var is used in the block before it is defined in the block) *)
     if
       (not (set_contains live_in block_id vreg_id))
-      && ( (not (in_vi_multimap vreg_id block_id vslot_def_blocks))
-         || in_vi_multimap vreg_id block_id vslot_use_before_def_blocks )
+      && ( (not (VIMMap.contains vreg_id block_id vslot_def_blocks))
+         || VIMMap.contains vreg_id block_id vslot_use_before_def_blocks )
     then (
       set_add live_in block_id vreg_id;
       let prev_blocks = IMap.find block_id prev_blocks in

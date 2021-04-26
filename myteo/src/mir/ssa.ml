@@ -118,16 +118,7 @@ let add_realized_phi ~cx block_id decl_loc node_id =
   in
   cx.realized_phis <- IMap.add block_id phis cx.realized_phis
 
-let add_block_link ~cx prev_id next_id =
-  let add_to_multimap key value mmap =
-    let values =
-      match IMap.find_opt key mmap with
-      | None -> ISet.singleton value
-      | Some values -> ISet.add value values
-    in
-    IMap.add key values mmap
-  in
-  cx.prev_blocks <- add_to_multimap next_id prev_id cx.prev_blocks
+let add_block_link ~cx prev_id next_id = cx.prev_blocks <- IIMMap.add next_id prev_id cx.prev_blocks
 
 let rec control_flow_ir_to_ssa pcx ir =
   let cx = mk_cx () in

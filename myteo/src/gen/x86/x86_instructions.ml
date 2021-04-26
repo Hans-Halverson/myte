@@ -126,6 +126,8 @@ end
 module VReg = VirtualRegister
 module VRegSet = Set.Make (VirtualRegister)
 module VRegMap = Map.Make (VirtualRegister)
+module VVMMap = MultiMap.Make (VReg) (VReg)
+module VIMMap = MultiMap.Make (VReg) (Int)
 
 module Instruction = struct
   type id = int

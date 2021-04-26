@@ -1,27 +1,6 @@
 open Basic_collections
 open X86_instructions
 
-let add_to_multimap key value mmap =
-  let new_values =
-    match IMap.find_opt key mmap with
-    | None -> ISet.singleton value
-    | Some values -> ISet.add value values
-  in
-  IMap.add key new_values mmap
-
-let remove_from_multimap key value mmap =
-  let new_values =
-    match IMap.find_opt key mmap with
-    | None -> ISet.empty
-    | Some values -> ISet.remove value values
-  in
-  IMap.add key new_values mmap
-
-let get_from_multimap key mmap =
-  match IMap.find_opt key mmap with
-  | None -> ISet.empty
-  | Some value -> value
-
 module Gcx = struct
   type t = {
     (* Virtual blocks and builders *)
@@ -32,7 +11,7 @@ module Gcx = struct
     mutable current_func_builder: VReg.t Function.t option;
     (* All blocks, indexed by id *)
     mutable blocks_by_id: virtual_block IMap.t;
-    mutable prev_blocks: ISet.t IMap.t;
+    mutable prev_blocks: IIMMap.t;
     (* Blocks indexed by their corresponding MIR block. Not all blocks may be in this map. *)
     mutable mir_block_id_to_block_id: Block.id IMap.t;
     (* Map from instruction id to the block that contains it *)
@@ -63,11 +42,11 @@ module Gcx = struct
     mutable active_moves: ISet.t;
     (* Adjacency list representation of interference graph. Maps from virtual register to a set of
        all virtual registers that interfere with it. *)
-    mutable interference_graph: VRegSet.t VRegMap.t;
+    mutable interference_graph: VVMMap.t;
     (* Degree of each virtual register in interference graph *)
     mutable interference_degree: int VRegMap.t;
     (* Map from virtual register to instruction ids of all moves it is a part of *)
-    mutable move_list: ISet.t VRegMap.t;
+    mutable move_list: VIMMap.t;
     (* Map from physical register to a precolored virtual register *)
     mutable color_to_vreg: VReg.t RegMap.t;
   }
@@ -91,7 +70,7 @@ module Gcx = struct
       current_block_builder = None;
       current_func_builder = None;
       blocks_by_id = IMap.empty;
-      prev_blocks = IMap.empty;
+      prev_blocks = IIMMap.empty;
       mir_block_id_to_block_id = IMap.empty;
       instruction_to_block = IMap.empty;
       funcs_by_id = IMap.empty;
@@ -111,9 +90,9 @@ module Gcx = struct
       frozen_moves = ISet.empty;
       worklist_moves = ISet.empty;
       active_moves = ISet.empty;
-      interference_graph = VRegMap.empty;
+      interference_graph = VVMMap.empty;
       interference_degree;
-      move_list = VRegMap.empty;
+      move_list = VIMMap.empty;
       color_to_vreg;
     }
 
@@ -171,7 +150,7 @@ module Gcx = struct
     match instr with
     | Jmp next_block_id
     | JmpCC (_, next_block_id) ->
-      gcx.prev_blocks <- add_to_multimap next_block_id current_block.id gcx.prev_blocks
+      gcx.prev_blocks <- IIMMap.add next_block_id current_block.id gcx.prev_blocks
     | _ -> ()
 
   let mk_instr_id_for_block ~gcx block =
@@ -270,7 +249,7 @@ module Gcx = struct
               let func = IMap.find block.func gcx.funcs_by_id in
               if IMap.mem block.id !jump_aliases && func.prologue != block.id then (
                 gcx.blocks_by_id <- IMap.remove block.id gcx.blocks_by_id;
-                gcx.prev_blocks <- IMap.remove block.id gcx.prev_blocks;
+                gcx.prev_blocks <- IIMMap.remove_key block.id gcx.prev_blocks;
                 false
               ) else
                 true)

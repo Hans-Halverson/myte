@@ -22,60 +22,6 @@ let general_purpose_registers =
 
 let num_allocatable_registers = RegSet.cardinal general_purpose_registers - 1
 
-let add_to_vi_multimap key value mmap =
-  let new_values =
-    match VRegMap.find_opt key mmap with
-    | None -> ISet.singleton value
-    | Some values -> ISet.add value values
-  in
-  VRegMap.add key new_values mmap
-
-let in_vi_multimap key value mmap =
-  match VRegMap.find_opt key mmap with
-  | None -> false
-  | Some values -> ISet.mem value values
-
-let get_from_vi_multimap key mmap =
-  match VRegMap.find_opt key mmap with
-  | None -> ISet.empty
-  | Some value -> value
-
-let add_to_vv_multimap key value mmap =
-  let new_values =
-    match VRegMap.find_opt key mmap with
-    | None -> VRegSet.singleton value
-    | Some values -> VRegSet.add value values
-  in
-  VRegMap.add key new_values mmap
-
-let in_vv_multimap key value mmap =
-  match VRegMap.find_opt key mmap with
-  | None -> false
-  | Some values -> VRegSet.mem value values
-
-let get_from_vv_multimap key mmap =
-  match VRegMap.find_opt key mmap with
-  | None -> VRegSet.empty
-  | Some value -> value
-
-let add_to_multimap key value mmap =
-  let new_values =
-    match VRegMap.find_opt key mmap with
-    | None -> ISet.singleton value
-    | Some values -> ISet.add value values
-  in
-  VRegMap.add key new_values mmap
-
-let get_from_multimap key mmap =
-  match IMap.find_opt key mmap with
-  | None -> ISet.empty
-  | Some value -> value
-
-let in_multimap key value mmap =
-  match IMap.find_opt key mmap with
-  | None -> false
-  | Some values -> ISet.mem value values
-
 let liveness_analysis ~(gcx : Gcx.t) =
   let (_, live_out) = X86_liveness_analysis.analyze_vregs gcx.blocks_by_id in
   gcx.live_out <- live_out
@@ -109,13 +55,13 @@ let add_interference_edge ~(gcx : Gcx.t) vreg1 vreg2 =
       | None -> VRegMap.add vreg 1 gcx.interference_degree
       | Some degree -> VRegMap.add vreg (degree + 1) gcx.interference_degree)
   in
-  if (not (in_vv_multimap vreg1 vreg2 gcx.interference_graph)) && vreg1 != vreg2 then (
+  if (not (VVMMap.contains vreg1 vreg2 gcx.interference_graph)) && vreg1 != vreg2 then (
     if not (VRegSet.mem vreg1 gcx.precolored_vregs) then (
-      gcx.interference_graph <- add_to_vv_multimap vreg1 vreg2 gcx.interference_graph;
+      gcx.interference_graph <- VVMMap.add vreg1 vreg2 gcx.interference_graph;
       inc_degree vreg1
     );
     if not (VRegSet.mem vreg2 gcx.precolored_vregs) then (
-      gcx.interference_graph <- add_to_vv_multimap vreg2 vreg1 gcx.interference_graph;
+      gcx.interference_graph <- VVMMap.add vreg2 vreg1 gcx.interference_graph;
       inc_degree vreg2
     )
   )
@@ -136,8 +82,8 @@ let build_interference_graph ~(gcx : Gcx.t) =
             match instr with
             | Instruction.MovMM (Reg src_vreg, Reg dest_vreg) ->
               live := VRegSet.remove src_vreg !live;
-              gcx.move_list <- add_to_multimap src_vreg instr_id gcx.move_list;
-              gcx.move_list <- add_to_multimap dest_vreg instr_id gcx.move_list;
+              gcx.move_list <- VIMMap.add src_vreg instr_id gcx.move_list;
+              gcx.move_list <- VIMMap.add dest_vreg instr_id gcx.move_list;
               gcx.worklist_moves <- ISet.add instr_id gcx.worklist_moves
             (* Caller saved registers are modeled by creating interferences with all live registers
                at call instructions. *)
@@ -163,14 +109,12 @@ let build_interference_graph ~(gcx : Gcx.t) =
     gcx.blocks_by_id
 
 let adjacent ~(gcx : Gcx.t) vreg =
-  let adjacent_vregs = get_from_vv_multimap vreg gcx.interference_graph in
+  let adjacent_vregs = VVMMap.find_all vreg gcx.interference_graph in
   let to_ignore = VRegSet.union (VRegSet.of_list gcx.select_stack) gcx.coalesced_vregs in
   VRegSet.diff adjacent_vregs to_ignore
 
 let node_moves ~(gcx : Gcx.t) vreg =
-  ISet.inter
-    (get_from_vi_multimap vreg gcx.move_list)
-    (ISet.union gcx.active_moves gcx.worklist_moves)
+  ISet.inter (VIMMap.find_all vreg gcx.move_list) (ISet.union gcx.active_moves gcx.worklist_moves)
 
 let move_related ~gcx vreg = not (ISet.is_empty (node_moves ~gcx vreg))
 
@@ -243,7 +187,7 @@ let can_coalesce_with_precolored ~(gcx : Gcx.t) precolored vreg =
       (* All precolored registers interfere so degree does not change *)
       || VRegSet.mem adjacent_vreg gcx.precolored_vregs
       (* Already interferes so degree does not change *)
-      || in_vv_multimap adjacent_vreg precolored gcx.interference_graph)
+      || VVMMap.contains adjacent_vreg precolored gcx.interference_graph)
     (adjacent ~gcx vreg)
 
 (* Briggs conservative coalescing heuristic:
@@ -269,9 +213,7 @@ let combine_vregs ~(gcx : Gcx.t) alias_vreg vreg =
   gcx.move_list <-
     VRegMap.add
       alias_vreg
-      (ISet.union
-         (get_from_vi_multimap alias_vreg gcx.move_list)
-         (get_from_vi_multimap vreg gcx.move_list))
+      (ISet.union (VIMMap.find_all alias_vreg gcx.move_list) (VIMMap.find_all vreg gcx.move_list))
       gcx.move_list;
   VRegSet.iter
     (fun adjacent_vreg ->
@@ -312,7 +254,7 @@ let coalesce ~(gcx : Gcx.t) =
     gcx.coalesced_moves <- ISet.add move_instr_id gcx.coalesced_moves;
     add_to_simplify_work_list ~gcx vreg1
   ) else if
-      VRegSet.mem vreg2 gcx.precolored_vregs || in_vv_multimap vreg2 vreg1 gcx.interference_graph
+      VRegSet.mem vreg2 gcx.precolored_vregs || VVMMap.contains vreg2 vreg1 gcx.interference_graph
     then (
     gcx.constrained_moves <- ISet.add move_instr_id gcx.constrained_moves;
     add_to_simplify_work_list ~gcx vreg1;
@@ -419,7 +361,7 @@ let assign_colors ~(gcx : Gcx.t) =
   while gcx.select_stack <> [] do
     let vreg = List.hd gcx.select_stack in
     gcx.select_stack <- List.tl gcx.select_stack;
-    let interfering_vregs = get_from_vv_multimap vreg gcx.interference_graph in
+    let interfering_vregs = VVMMap.find_all vreg gcx.interference_graph in
     (* Create a set of all registers and remove colors of all neighbors in interference graph *)
     let ok_registers = ref general_purpose_registers in
     VRegSet.iter

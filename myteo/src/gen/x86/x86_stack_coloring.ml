@@ -2,19 +2,6 @@ open Basic_collections
 open X86_gen_context
 open X86_instructions
 
-let add_to_vv_multimap key value mmap =
-  let new_values =
-    match VRegMap.find_opt key mmap with
-    | None -> VRegSet.singleton value
-    | Some values -> VRegSet.add value values
-  in
-  VRegMap.add key new_values mmap
-
-let in_vv_multimap key value mmap =
-  match VRegMap.find_opt key mmap with
-  | None -> false
-  | Some values -> VRegSet.mem value values
-
 class vslot_use_def_finder =
   object
     inherit X86_visitor.instruction_visitor
@@ -59,10 +46,10 @@ let liveness_analysis ~(gcx : Gcx.t) =
             (fun vslot_def ->
               VRegSet.iter
                 (fun live_vslot ->
-                  if (not (in_vv_multimap live_vslot vslot_def !graph)) && live_vslot != vslot_def
+                  if (not (VVMMap.contains live_vslot vslot_def !graph)) && live_vslot != vslot_def
                   then (
-                    graph := add_to_vv_multimap live_vslot vslot_def !graph;
-                    graph := add_to_vv_multimap vslot_def live_vslot !graph
+                    graph := VVMMap.add live_vslot vslot_def !graph;
+                    graph := VVMMap.add vslot_def live_vslot !graph
                   ))
                 !live)
             vslot_defs;
@@ -92,7 +79,7 @@ let allocate_stack_slots ~(gcx : Gcx.t) =
                 | None ->
                   if
                     VRegSet.for_all
-                      (fun stack_slot -> not (in_vv_multimap vslot stack_slot interference_graph))
+                      (fun stack_slot -> not (VVMMap.contains vslot stack_slot interference_graph))
                       stack_slots
                   then
                     Some color

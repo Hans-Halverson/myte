@@ -6,39 +6,26 @@ type t = {
   (* The program we are optimizing, is internally mutable *)
   program: ssa_program;
   (* Block id to the blocks it jumps to *)
-  mutable next_blocks: ISet.t IMap.t;
+  mutable next_blocks: IIMMap.t;
   (* Block id to the previous blocks that jump to it *)
-  mutable prev_blocks: ISet.t IMap.t;
+  mutable prev_blocks: IIMMap.t;
   (* Variable id to the block that defines it.
      Not updated on block or variable deletions! *)
   mutable var_def_blocks: Block.id IMap.t;
   (* Variable id to the set of blocks that use it.
      Not updated on block or variable deletions! *)
-  mutable var_use_blocks: ISet.t IMap.t;
+  mutable var_use_blocks: IIMMap.t;
 }
 
 let get_block ~ocx block_id = IMap.find block_id ocx.program.blocks
 
-let add_to_multimap key value mmap =
-  let new_values =
-    match IMap.find_opt key mmap with
-    | None -> ISet.singleton value
-    | Some values -> ISet.add value values
-  in
-  IMap.add key new_values mmap
-
-let remove_from_multimap key value mmap =
-  match IMap.find_opt key mmap with
-  | None -> mmap
-  | Some values -> IMap.add key (ISet.remove value values) mmap
-
 let add_block_link ~ocx prev_block next_block =
-  ocx.next_blocks <- add_to_multimap prev_block next_block ocx.next_blocks;
-  ocx.prev_blocks <- add_to_multimap next_block prev_block ocx.prev_blocks
+  ocx.next_blocks <- IIMMap.add prev_block next_block ocx.next_blocks;
+  ocx.prev_blocks <- IIMMap.add next_block prev_block ocx.prev_blocks
 
 let remove_block_link ~ocx prev_block next_block =
-  ocx.next_blocks <- remove_from_multimap prev_block next_block ocx.next_blocks;
-  ocx.prev_blocks <- remove_from_multimap next_block prev_block ocx.prev_blocks
+  ocx.next_blocks <- IIMMap.remove prev_block next_block ocx.next_blocks;
+  ocx.prev_blocks <- IIMMap.remove next_block prev_block ocx.prev_blocks
 
 (* Remove all references to a block from phi nodes of on of its next blocks.
    This may be needed when removing a block or block link. *)
@@ -134,13 +121,11 @@ let remove_block ~ocx block_id =
   (* Remove prev pointers from next blocks to this removed block *)
   let next_blocks = IMap.find block_id ocx.next_blocks in
   ISet.iter
-    (fun next_block_id ->
-      ocx.prev_blocks <- remove_from_multimap next_block_id block_id ocx.prev_blocks)
+    (fun next_block_id -> ocx.prev_blocks <- IIMMap.remove next_block_id block_id ocx.prev_blocks)
     next_blocks;
   (* Remove next pointers from prev blocks to this removed block *)
   ISet.iter
-    (fun prev_block_id ->
-      ocx.next_blocks <- remove_from_multimap prev_block_id block_id ocx.next_blocks)
+    (fun prev_block_id -> ocx.next_blocks <- IIMMap.remove prev_block_id block_id ocx.next_blocks)
     prev_blocks;
   (* Remove block from remaining maps in context *)
   ocx.prev_blocks <- IMap.remove block_id ocx.prev_blocks;
