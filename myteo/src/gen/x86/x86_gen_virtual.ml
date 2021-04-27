@@ -3,13 +3,6 @@ open Mir
 open X86_gen_context
 open X86_instructions
 
-let imm_byte_of_bool bool =
-  Imm8
-    ( if bool then
-      1
-    else
-      0 )
-
 type resolved_source_value =
   (* An immediate value *)
   | SImm of immediate

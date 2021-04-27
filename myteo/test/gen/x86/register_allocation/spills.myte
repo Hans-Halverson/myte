@@ -1,5 +1,6 @@
 module test
 
+fun cond(): bool = true
 fun use(x: int): int = x
 
 fun testSingleSpillUsingAllRegisters(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p16: int): int {
@@ -22,6 +23,43 @@ fun testCallerSavedRegistersSpilledAcrossFunctionCalls(p1: int, p2: int, p3: int
   // There aren't enough callee saved registers so one parameter must be spilled
   use(3);
   return p1 + p2 + p3 + p4 + p5 + p6;
+}
+
+fun testSingleSpillUsingAllRegistersFromLocals(): int {
+  val cond = cond();
+  var x1 = 1;
+  var x2 = 2;
+  var x3 = 3;
+  var x4 = 4;
+  var x5 = 5;
+  var x6 = 6;
+  var x7 = 7;
+  var x8 = 8;
+  var x9 = 9;
+  var x10 = 10;
+  var x11 = 11;
+  var x12 = 12;
+  var x13 = 13;
+  var x14 = 14;
+
+  if (cond) {
+    x1 = 101;
+    x2 = 102;
+    x3 = 103;
+    x4 = 104;
+    x5 = 105;
+    x6 = 106;
+    x7 = 107;
+    x8 = 108;
+    x9 = 109;
+    x10 = 110;
+    x11 = 111;
+    x12 = 112;
+    x13 = 113;
+    x14 = 114;
+  }
+
+  return x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14;
 }
 
 fun main(): int {

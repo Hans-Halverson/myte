@@ -60,6 +60,8 @@ let liveness_analysis ~(gcx : Gcx.t) =
 
 let allocate_stack_slots ~(gcx : Gcx.t) =
   let interference_graph = liveness_analysis ~gcx in
+
+  (* VRegMap.iter (fun vreg vregs -> Printf.printf "%d -> %s\n" vreg.id (string_of_vset vregs)) interference_graph; *)
   IMap.iter
     (fun _ func ->
       let open Function in

@@ -14,14 +14,11 @@ test.callerSavedRegistersSavedAcrossFunctionCalls:
   movl %r8d, %ebx
   movl $3, %edi
   call test.use
-  movl %r14d, %eax
-  addl %r15d, %eax
-  movl %r13d, %ecx
-  addl %eax, %ecx
-  movl %r12d, %edx
-  addl %ecx, %edx
+  addl %r15d, %r14d
+  addl %r14d, %r13d
+  addl %r13d, %r12d
   movl %ebx, %eax
-  addl %edx, %eax
+  addl %r12d, %eax
   pop %r15
   pop %r14
   pop %r13
@@ -35,38 +32,38 @@ test.callerSavedRegistersSavedAcrossFunctionCallsWithSpills:
   push %r14
   push %r15
   subq $32, %rsp
-  movl %edi, %r15d
+  movl %edi, %r14d
   movl %esi, 32(%rsp)
   movl %edx, 24(%rsp)
   movl %ecx, 16(%rsp)
   movl %r8d, 8(%rsp)
-  movl %r9d, %r14d
+  movl %r9d, %r15d
   movl $1, %r13d
-  movl $2, %ebx
-  movl $3, %r12d
-  cmpl $1, %r15d
+  movl $2, %r12d
+  movl $3, %ebx
+  cmpl $1, %r14d
   jne .L0
   movl $101, %r13d
-  movl $102, %ebx
-  movl $103, %r12d
+  movl $102, %r12d
+  movl $103, %ebx
   jmp .L1
 .L0:
 .L1:
   movl $3, %edi
   call test.use
-  addl %r13d, %ebx
-  addl %ebx, %r12d
-  addl %r12d, %r15d
+  addl %r13d, %r12d
+  addl %r12d, %ebx
+  addl %ebx, %r14d
   movl 32(%rsp), %eax
-  addl %r15d, %eax
+  addl %r14d, %eax
   movl 24(%rsp), %ebx
   addl %eax, %ebx
   movl 16(%rsp), %eax
   addl %ebx, %eax
   movl 8(%rsp), %ebx
   addl %eax, %ebx
-  addl %ebx, %r14d
-  movl %r14d, %eax
+  movl %r15d, %eax
+  addl %ebx, %eax
   addq $32, %rsp
   pop %r15
   pop %r14

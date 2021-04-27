@@ -56,21 +56,21 @@ test.testFunctionStackParamsOffsetByStackFrameAndPushedCalleeSavedRegisters:
   push %r15
   subq $8, %rsp
   movl %edi, 8(%rsp)
-  movl %esi, %r12d
+  movl %esi, %r15d
   movl %edx, %r14d
-  movl %ecx, %r15d
-  movl %r8d, %r13d
+  movl %ecx, %r13d
+  movl %r8d, %r12d
   movl %r9d, %ebx
   movl $3, %edi
   call test.use
-  addl 8(%rsp), %r12d
-  addl %r12d, %r14d
-  addl %r14d, %r15d
-  addl %r15d, %r13d
-  addl %r13d, %ebx
-  addl 56(%rsp), %ebx
-  addl 64(%rsp), %ebx
+  addl 8(%rsp), %r15d
+  addl %r15d, %r14d
+  addl %r14d, %r13d
+  addl %r13d, %r12d
   movl %ebx, %eax
+  addl %r12d, %eax
+  addl 56(%rsp), %eax
+  addl 64(%rsp), %eax
   addq $8, %rsp
   pop %r15
   pop %r14

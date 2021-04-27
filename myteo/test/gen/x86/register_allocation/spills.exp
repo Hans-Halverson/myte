@@ -1,6 +1,9 @@
   .global _main
 
   .text
+test.cond:
+  movb $1, %al
+  ret
 _main:
   push $16
   movl $1, %edi
@@ -20,19 +23,19 @@ test.testCallerSavedRegistersSpilledAcrossFunctionCalls:
   push %r15
   subq $8, %rsp
   movl %edi, 8(%rsp)
-  movl %esi, %r12d
+  movl %esi, %r15d
   movl %edx, %r14d
-  movl %ecx, %r15d
-  movl %r8d, %r13d
+  movl %ecx, %r13d
+  movl %r8d, %r12d
   movl %r9d, %ebx
   movl $3, %edi
   call test.use
-  addl 8(%rsp), %r12d
-  addl %r12d, %r14d
-  addl %r14d, %r15d
-  addl %r15d, %r13d
-  addl %r13d, %ebx
+  addl 8(%rsp), %r15d
+  addl %r15d, %r14d
+  addl %r14d, %r13d
+  addl %r13d, %r12d
   movl %ebx, %eax
+  addl %r12d, %eax
   addq $8, %rsp
   pop %r15
   pop %r14
@@ -82,6 +85,68 @@ test.testSingleSpillUsingAllRegisters:
   addl %r10d, %ebx
   addl %ebx, %eax
   addl 56(%rsp), %eax
+  addq $8, %rsp
+  pop %r15
+  pop %r14
+  pop %r13
+  pop %r12
+  pop %rbx
+  ret
+test.testSingleSpillUsingAllRegistersFromLocals:
+  push %rbx
+  push %r12
+  push %r13
+  push %r14
+  push %r15
+  subq $8, %rsp
+  call test.cond
+  movl $1, %r15d
+  movl $2, %r14d
+  movl $3, %r13d
+  movl $4, %r12d
+  movl $5, %r11d
+  movl $6, %r10d
+  movl $7, %r9d
+  movl $8, %r8d
+  movl $9, %edi
+  movl $10, %esi
+  movl $11, %edx
+  movl $12, %ecx
+  movl $13, %ebx
+  movl $14, 8(%rsp)
+  testb %al, %al
+  je .L0
+  movl $101, %r15d
+  movl $102, %r14d
+  movl $103, %r13d
+  movl $104, %r12d
+  movl $105, %r11d
+  movl $106, %r10d
+  movl $107, %r9d
+  movl $108, %r8d
+  movl $109, %edi
+  movl $110, %esi
+  movl $111, %edx
+  movl $112, %ecx
+  movl $113, %ebx
+  movl $114, %eax
+  jmp .L1
+.L0:
+  movl 8(%rsp), %eax
+.L1:
+  addl %r15d, %r14d
+  addl %r14d, %r13d
+  addl %r13d, %r12d
+  addl %r12d, %r11d
+  addl %r11d, %r10d
+  addl %r10d, %r9d
+  addl %r9d, %r8d
+  addl %r8d, %edi
+  addl %edi, %esi
+  addl %esi, %edx
+  addl %edx, %ecx
+  addl %ecx, %ebx
+  addl %ebx, %eax
   addq $8, %rsp
   pop %r15
   pop %r14
