@@ -1,0 +1,4 @@
+Error: Unexpected token ",", expected ")"
+test/parser/ast/tuple/single_element_trailing_comma_error.myte:3:10
+ 3 | val x = (1,);
+   |           ^

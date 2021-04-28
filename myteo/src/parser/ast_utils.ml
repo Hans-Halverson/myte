@@ -24,13 +24,16 @@ let expression_loc expr =
   | BoolLiteral { loc; _ }
   | Identifier { loc; _ }
   | ScopedIdentifier { loc; _ }
+  | Record { loc; _ }
+  | Tuple { loc; _ }
   | TypeCast { loc; _ }
   | UnaryOperation { loc; _ }
   | BinaryOperation { loc; _ }
   | LogicalAnd { loc; _ }
   | LogicalOr { loc; _ }
   | Call { loc; _ }
-  | Access { loc; _ } ->
+  | IndexedAccess { loc; _ }
+  | NamedAccess { loc; _ } ->
     loc
 
 let rec statement_visitor ~f ?(enter_functions = true) stmt =

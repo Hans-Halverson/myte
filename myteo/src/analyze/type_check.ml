@@ -279,8 +279,11 @@ and check_expression ~cx expr =
         (NonFunctionCalled (Type_context.find_rep_type ~cx (TVar func_tvar_id)));
       ignore (Type_context.unify ~cx Any (TVar tvar_id)));
     (loc, tvar_id)
-  | Access { Access.loc; _ } ->
-    (* TODO: Implement access once we have properties to access in the first place *)
+  | Record { Record.loc; _ }
+  | Tuple { Tuple.loc; _ }
+  | IndexedAccess { IndexedAccess.loc; _ }
+  | NamedAccess { NamedAccess.loc; _ } ->
+    (* TODO: Implement type checking for these AST nodes *)
     (loc, Type_context.mk_tvar_id ~cx ~loc)
 
 and check_statement ~cx stmt =

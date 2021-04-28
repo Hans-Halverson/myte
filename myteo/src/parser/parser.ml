@@ -207,7 +207,7 @@ and parse_expression_prefix env =
   | T_MINUS
   | T_LOGICAL_NOT ->
     parse_unary_expression env
-  | T_IDENTIFIER _ -> Identifier (parse_identifier env)
+  | T_IDENTIFIER _ -> parse_identifier_or_record_expression env
   | T_INT_LITERAL (value, raw) ->
     let loc = Env.loc env in
     Env.advance env;
@@ -227,7 +227,9 @@ and parse_expression_infix ~precedence env left marker =
   | T_LEFT_PAREN when ExpressionPrecedence.(is_tighter Call precedence) ->
     parse_call env left marker
   | T_PERIOD when ExpressionPrecedence.(is_tighter Access precedence) ->
-    parse_access env left marker
+    parse_named_access env left marker
+  | T_LEFT_BRACKET when ExpressionPrecedence.(is_tighter Access precedence) ->
+    parse_indexed_access env left marker
   | T_PLUS
   | T_MINUS
     when ExpressionPrecedence.(is_tighter Addition precedence) ->
@@ -270,6 +272,16 @@ and parse_parenthesized_expression env =
       Env.expect env T_RIGHT_PAREN;
       let loc = marker env in
       TypeCast { TypeCast.loc; expr; ty }
+    | T_COMMA ->
+      let comma_loc = Env.loc env in
+      Env.advance env;
+      (* Error if this would be parsed as a single element tuple with a trailing comma *)
+      (match Env.token env with
+      | T_RIGHT_PAREN ->
+        Parse_error.fatal
+          (comma_loc, UnexpectedToken { actual = T_COMMA; expected = Some T_RIGHT_PAREN })
+      | _ -> ());
+      parse_anonymous_tuple_expression env expr marker
     | _ ->
       Env.expect env T_RIGHT_PAREN;
       expr)
@@ -325,6 +337,27 @@ and parse_logical_expression env left marker =
     LogicalOr { LogicalOr.loc; left; right }
   | _ -> failwith "Invalid logical operator"
 
+and parse_anonymous_tuple_expression env first_element marker =
+  let open Expression in
+  let rec parse_elements () =
+    match Env.token env with
+    | T_RIGHT_PAREN ->
+      Env.advance env;
+      []
+    | _ ->
+      let element = parse_expression env in
+      begin
+        match Env.token env with
+        | T_RIGHT_PAREN -> ()
+        | T_COMMA -> Env.advance env
+        | _ -> Env.expect env T_RIGHT_PAREN
+      end;
+      element :: parse_elements ()
+  in
+  let elements = first_element :: parse_elements () in
+  let loc = marker env in
+  Tuple { Tuple.loc; name = None; elements }
+
 and parse_call env left marker =
   let open Expression.Call in
   Env.expect env T_LEFT_PAREN;
@@ -347,12 +380,68 @@ and parse_call env left marker =
   let loc = marker env in
   Expression.Call { loc; func = left; args }
 
-and parse_access env left marker =
-  let open Expression.Access in
-  Env.expect env T_PERIOD;
-  let right = parse_identifier env in
+and parse_identifier_or_record_expression env =
+  let marker = mark_loc env in
+  let id = parse_identifier env in
+  match Env.token env with
+  | T_LEFT_BRACE -> parse_record env id marker
+  | _ -> Expression.Identifier id
+
+and parse_record env name marker =
+  let open Expression in
+  Env.expect env T_LEFT_BRACE;
+  let rec parse_fields () =
+    let open Record in
+    match Env.token env with
+    | T_RIGHT_BRACE ->
+      Env.advance env;
+      []
+    | T_IDENTIFIER _ ->
+      let marker = mark_loc env in
+      let name = parse_identifier env in
+      let field =
+        match Env.token env with
+        | T_RIGHT_BRACE ->
+          let loc = marker env in
+          { Field.loc; name; value = None }
+        | T_COMMA ->
+          let loc = marker env in
+          Env.advance env;
+          { Field.loc; name; value = None }
+        | _ ->
+          Env.expect env T_COLON;
+          let value = parse_expression env in
+          let loc = marker env in
+          (match Env.token env with
+          | T_RIGHT_BRACE -> ()
+          | T_COMMA -> Env.advance env
+          | _ -> Env.expect env T_RIGHT_BRACE);
+          { Field.loc; name; value = Some value }
+      in
+      field :: parse_fields ()
+    | token ->
+      Parse_error.fatal
+        (Env.loc env, UnexpectedToken { actual = token; expected = Some T_RIGHT_BRACE })
+  in
+  let fields = parse_fields () in
   let loc = marker env in
-  Expression.Access { loc; left; right }
+  if fields = [] then Parse_error.fatal (loc, EmptyRecord);
+  Record { loc; name; fields }
+
+and parse_named_access env left marker =
+  let open Expression.NamedAccess in
+  Env.expect env T_PERIOD;
+  let name = parse_identifier env in
+  let loc = marker env in
+  Expression.NamedAccess { loc; target = left; name }
+
+and parse_indexed_access env left marker =
+  let open Expression.IndexedAccess in
+  Env.expect env T_LEFT_BRACKET;
+  let index = parse_expression env in
+  Env.expect env T_RIGHT_BRACKET;
+  let loc = marker env in
+  Expression.IndexedAccess { loc; target = left; index }
 
 and parse_identifier env =
   match Env.token env with

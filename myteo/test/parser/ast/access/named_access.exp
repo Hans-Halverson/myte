@@ -1,4 +1,4 @@
-test/parser/ast/access/basic.myte
+test/parser/ast/access/named_access.myte
 {
   node: Module,
   loc: 1:0-6:1,
@@ -35,14 +35,14 @@ test/parser/ast/access/basic.myte
             node: ExpressionStatement,
             loc: 4:2-4:6,
             expression: {
-              node: Access,
+              node: NamedAccess,
               loc: 4:2-4:5,
-              left: {
+              target: {
                 node: Identifier,
                 loc: 4:2-4:3,
                 name: "a",
               },
-              right: {
+              name: {
                 node: Identifier,
                 loc: 4:4-4:5,
                 name: "b",
@@ -53,23 +53,23 @@ test/parser/ast/access/basic.myte
             node: ExpressionStatement,
             loc: 5:2-5:8,
             expression: {
-              node: Access,
+              node: NamedAccess,
               loc: 5:2-5:7,
-              left: {
-                node: Access,
+              target: {
+                node: NamedAccess,
                 loc: 5:2-5:5,
-                left: {
+                target: {
                   node: Identifier,
                   loc: 5:2-5:3,
                   name: "a",
                 },
-                right: {
+                name: {
                   node: Identifier,
                   loc: 5:4-5:5,
                   name: "b",
                 },
               },
-              right: {
+              name: {
                 node: Identifier,
                 loc: 5:6-5:7,
                 name: "c",

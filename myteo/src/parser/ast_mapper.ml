@@ -63,13 +63,16 @@ class mapper =
         | BoolLiteral e -> id_map this#bool_literal e expr (fun e' -> BoolLiteral e')
         | Identifier e -> id_map this#identifier e expr (fun e' -> Identifier e')
         | ScopedIdentifier e -> id_map this#scoped_identifier e expr (fun e' -> ScopedIdentifier e')
+        | Record e -> id_map this#record_expression e expr (fun e' -> Record e')
+        | Tuple e -> id_map this#tuple_expression e expr (fun e' -> Tuple e')
         | TypeCast e -> id_map this#type_cast e expr (fun e' -> TypeCast e')
         | UnaryOperation e -> id_map this#unary_operation e expr (fun e' -> UnaryOperation e')
         | BinaryOperation e -> id_map this#binary_operation e expr (fun e' -> BinaryOperation e')
         | LogicalAnd e -> id_map this#logical_and e expr (fun e' -> LogicalAnd e')
         | LogicalOr e -> id_map this#logical_or e expr (fun e' -> LogicalOr e')
         | Call e -> id_map this#call e expr (fun e' -> Call e')
-        | Access e -> id_map this#access e expr (fun e' -> Access e')
+        | IndexedAccess e -> id_map this#indexed_access e expr (fun e' -> IndexedAccess e')
+        | NamedAccess e -> id_map this#named_access e expr (fun e' -> NamedAccess e')
 
     method pattern : Pattern.t -> Pattern.t =
       fun pat ->
@@ -131,6 +134,36 @@ class mapper =
 
     method bool_literal lit = lit
 
+    method record_expression record =
+      let open Expression.Record in
+      let { loc; name; fields } = record in
+      let name' = this#identifier name in
+      let fields' = id_map_list this#record_expression_field fields in
+      if name == name' && fields == fields' then
+        record
+      else
+        { loc; name = name'; fields = fields' }
+
+    method record_expression_field field =
+      let open Expression.Record.Field in
+      let { loc; name; value } = field in
+      let name' = this#identifier name in
+      let value' = id_map_opt this#expression value in
+      if name == name' && value == value' then
+        field
+      else
+        { loc; name = name'; value = value' }
+
+    method tuple_expression tuple =
+      let open Expression.Tuple in
+      let { loc; name; elements } = tuple in
+      let name' = id_map_opt this#identifier name in
+      let elements' = id_map_list this#expression elements in
+      if name == name' && elements == elements' then
+        tuple
+      else
+        { loc; name = name'; elements = elements' }
+
     method type_cast cast =
       let open Expression.TypeCast in
       let { loc; expr; ty } = cast in
@@ -190,15 +223,25 @@ class mapper =
       else
         { loc; func = func'; args = args' }
 
-    method access access =
-      let open Expression.Access in
-      let { loc; left; right } = access in
-      let left' = this#expression left in
-      let right' = this#identifier right in
-      if left == left' && right == right' then
+    method indexed_access access =
+      let open Expression.IndexedAccess in
+      let { loc; target; index } = access in
+      let target' = this#expression target in
+      let index' = this#expression index in
+      if target == target' && index == index' then
         access
       else
-        { loc; left = left'; right = right' }
+        { loc; target = target'; index = index' }
+
+    method named_access access =
+      let open Expression.NamedAccess in
+      let { loc; target; name } = access in
+      let target' = this#expression target in
+      let name' = this#identifier name in
+      if target == target' && name == name' then
+        access
+      else
+        { loc; target = target'; name = name' }
 
     method function_ func =
       let open Function in

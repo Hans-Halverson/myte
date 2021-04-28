@@ -48,13 +48,16 @@ class ['a] visitor =
         | BoolLiteral e -> this#bool_literal acc e
         | Identifier e -> this#identifier acc e
         | ScopedIdentifier e -> this#scoped_identifier acc e
+        | Record e -> this#record_expression acc e
+        | Tuple e -> this#tuple_expression acc e
         | TypeCast e -> this#type_cast acc e
         | UnaryOperation e -> this#unary_operation acc e
         | BinaryOperation e -> this#binary_operation acc e
         | LogicalAnd e -> this#logical_and acc e
         | LogicalOr e -> this#logical_or acc e
         | Call e -> this#call acc e
-        | Access e -> this#access acc e
+        | IndexedAccess e -> this#indexed_access acc e
+        | NamedAccess e -> this#named_access acc e
 
     method pattern : 'a -> Pattern.t -> unit =
       fun acc pat ->
@@ -104,6 +107,24 @@ class ['a] visitor =
 
     method bool_literal _acc _lit = ()
 
+    method record_expression acc record =
+      let open Expression.Record in
+      let { loc = _; name; fields } = record in
+      this#identifier acc name;
+      List.iter (this#record_expression_field acc) fields
+
+    method record_expression_field acc field =
+      let open Expression.Record.Field in
+      let { loc = _; name; value } = field in
+      this#identifier acc name;
+      Option.iter (this#expression acc) value
+
+    method tuple_expression acc tuple =
+      let open Expression.Tuple in
+      let { loc = _; name; elements } = tuple in
+      Option.iter (this#identifier acc) name;
+      List.iter (this#expression acc) elements
+
     method type_cast acc cast =
       let open Expression.TypeCast in
       let { loc = _; expr; ty } = cast in
@@ -139,11 +160,17 @@ class ['a] visitor =
       this#expression acc func;
       List.iter (this#expression acc) args
 
-    method access acc access =
-      let open Expression.Access in
-      let { loc = _; left; right } = access in
-      this#expression acc left;
-      this#identifier acc right
+    method indexed_access acc access =
+      let open Expression.IndexedAccess in
+      let { loc = _; target; index } = access in
+      this#expression acc target;
+      this#expression acc index
+
+    method named_access acc access =
+      let open Expression.NamedAccess in
+      let { loc = _; target; name } = access in
+      this#expression acc target;
+      this#identifier acc name
 
     method function_ acc func =
       let open Function in

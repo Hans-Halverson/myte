@@ -32,7 +32,7 @@ fun main() {
   a && b();
   a || b();
 
-  // Member precedence
+  // Access precedence
   +a.b;
   a.b * c;
   a * b.c;
@@ -46,6 +46,20 @@ fun main() {
   a && b.c;
   a.b || c;
   a || b.c;
+
+  +a[b];
+  a[b] * c;
+  a * b[c];
+  a[b] + c;
+  a + b[c];
+  a[b] < c;
+  a < b[c];
+  a[b] == c;
+  a == b[c];
+  a[b] && c;
+  a && b[c];
+  a[b] || c;
+  a || b[c];
 
   // Unary precedence
   +(a + b);

@@ -1,0 +1,6 @@
+module test
+
+fun main() {
+  var a = 1[2];
+  var b = a[2 + 4][3][5];
+}

@@ -27,6 +27,8 @@ type t =
   | T_RIGHT_PAREN
   | T_LEFT_BRACE
   | T_RIGHT_BRACE
+  | T_LEFT_BRACKET
+  | T_RIGHT_BRACKET
   | T_VAR
   | T_VAL
   | T_FUN
@@ -80,6 +82,8 @@ let to_string token =
   | T_RIGHT_PAREN -> ")"
   | T_LEFT_BRACE -> "{"
   | T_RIGHT_BRACE -> "}"
+  | T_LEFT_BRACKET -> "["
+  | T_RIGHT_BRACKET -> "]"
   | T_VAR -> "var"
   | T_VAL -> "val"
   | T_FUN -> "fun"

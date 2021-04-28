@@ -387,12 +387,12 @@ class bindings_builder ~module_tree =
              unmatched accesses to know how how many to preserve. *)
           let rec insert_scoped_id expr depth scoped_id =
             match expr with
-            | Ast.Expression.Access ({ left; _ } as access) ->
+            | Ast.Expression.NamedAccess ({ target; _ } as access) ->
               if depth = 0 then
                 scoped_id
               else
-                Ast.Expression.Access
-                  { access with left = insert_scoped_id left (depth - 1) scoped_id }
+                Ast.Expression.NamedAccess
+                  { access with target = insert_scoped_id target (depth - 1) scoped_id }
             | _ -> failwith "Must be nested access expression"
           in
           Some (insert_scoped_id expr (List.length rest_parts) scoped_id))
@@ -423,16 +423,16 @@ class bindings_builder ~module_tree =
       | Identifier id ->
         this#resolve_value_id_use id;
         expr
-      | Access { left; right; _ } ->
+      | NamedAccess { target; name; _ } ->
         (* Gather all potential module parts in order if there is an unbroken chain of accesses
            ending in an id *)
         let rec gather_potential_module_parts expr parts =
           match expr with
           | Identifier id -> Some (id :: parts)
-          | Access { left; right; _ } -> gather_potential_module_parts left (right :: parts)
+          | NamedAccess { target; name; _ } -> gather_potential_module_parts target (name :: parts)
           | _ -> None
         in
-        let parts = gather_potential_module_parts left [right] in
+        let parts = gather_potential_module_parts target [name] in
         (match parts with
         | None -> super#expression expr
         | Some parts ->

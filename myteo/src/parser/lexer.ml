@@ -100,6 +100,8 @@ let tokenize lex =
   | ')' -> token_result T_RIGHT_PAREN
   | '{' -> token_result T_LEFT_BRACE
   | '}' -> token_result T_RIGHT_BRACE
+  | '[' -> token_result T_LEFT_BRACKET
+  | ']' -> token_result T_RIGHT_BRACKET
   | "true" -> token_result (T_BOOL_LITERAL true)
   | "false" -> token_result (T_BOOL_LITERAL false)
   | "val" -> token_result T_VAL

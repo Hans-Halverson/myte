@@ -145,6 +145,30 @@ and Expression : sig
     }
   end
 
+  module Record : sig
+    module Field : sig
+      type t = {
+        loc: Loc.t;
+        name: Identifier.t;
+        value: Expression.t option;
+      }
+    end
+
+    type t = {
+      loc: Loc.t;
+      name: Identifier.t;
+      fields: Field.t list;
+    }
+  end
+
+  module Tuple : sig
+    type t = {
+      loc: Loc.t;
+      name: Identifier.t option;
+      elements: Expression.t list;
+    }
+  end
+
   module TypeCast : sig
     type t = {
       loc: Loc.t;
@@ -211,11 +235,19 @@ and Expression : sig
     }
   end
 
-  module Access : sig
+  module IndexedAccess : sig
     type t = {
       loc: Loc.t;
-      left: Expression.t;
-      right: Identifier.t;
+      target: Expression.t;
+      index: Expression.t;
+    }
+  end
+
+  module NamedAccess : sig
+    type t = {
+      loc: Loc.t;
+      target: Expression.t;
+      name: Identifier.t;
     }
   end
 
@@ -226,13 +258,16 @@ and Expression : sig
     | BoolLiteral of BoolLiteral.t
     | Identifier of Identifier.t
     | ScopedIdentifier of ScopedIdentifier.t
+    | Tuple of Tuple.t
+    | Record of Record.t
     | TypeCast of TypeCast.t
     | UnaryOperation of UnaryOperation.t
     | BinaryOperation of BinaryOperation.t
     | LogicalAnd of LogicalAnd.t
     | LogicalOr of LogicalOr.t
     | Call of Call.t
-    | Access of Access.t
+    | IndexedAccess of IndexedAccess.t
+    | NamedAccess of NamedAccess.t
 end =
   Expression
 

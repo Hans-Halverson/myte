@@ -1,0 +1,14 @@
+module test
+
+val x1 = Foo { bar: 1 };
+val x2 = Foo { bar: 2 + 3, baz: "str" };
+val x3 = Foo { bar };
+val x4 = Foo { bar, baz };
+val x5 = Foo { bar: 1, baz, buzz, bzz: () };
+
+// Nested
+val x6 = Foo { bar: Bar { baz, }, buzz };
+
+// Trailing comma
+val trailingValue = Foo { bar: 1, baz: 2, };
+val trailingName = Foo { bar, baz, };

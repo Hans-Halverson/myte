@@ -1,0 +1,4 @@
+Error: Record must have at least one field
+test/parser/ast/record/empty_record_error.myte:3:8-15
+ 3 | val x = Foo { };
+   |         ^^^^^^^

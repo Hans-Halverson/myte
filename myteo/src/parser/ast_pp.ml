@@ -145,13 +145,16 @@ and node_of_expression expr =
   | IntLiteral lit -> node_of_int_literal lit
   | StringLiteral lit -> node_of_string_literal lit
   | BoolLiteral lit -> node_of_bool_literal lit
+  | Record record -> node_of_record_expression record
+  | Tuple tuple -> node_of_tuple_expression tuple
   | TypeCast cast -> node_of_type_cast cast
   | UnaryOperation unary -> node_of_unary_operation unary
   | BinaryOperation binary -> node_of_binary_operation binary
   | LogicalAnd logical -> node_of_logical_and logical
   | LogicalOr logical -> node_of_logical_or logical
   | Call call -> node_of_call call
-  | Access access -> node_of_access access
+  | IndexedAccess access -> node_of_indexed_access access
+  | NamedAccess access -> node_of_named_access access
 
 and node_of_pattern pat =
   let open Pattern in
@@ -218,6 +221,33 @@ and node_of_bool_literal lit =
   let { Expression.BoolLiteral.loc; value } = lit in
   node "BoolLiteral" loc [("value", Bool value)]
 
+and node_of_record_expression record =
+  let { Expression.Record.loc; name; fields } = record in
+  node
+    "Record"
+    loc
+    [
+      ("name", node_of_identifier name);
+      ("fields", List (List.map node_of_record_expression_field fields));
+    ]
+
+and node_of_record_expression_field field =
+  let { Expression.Record.Field.loc; name; value } = field in
+  node
+    "RecordField"
+    loc
+    [("name", node_of_identifier name); ("value", opt node_of_expression value)]
+
+and node_of_tuple_expression tuple =
+  let { Expression.Tuple.loc; name; elements } = tuple in
+  node
+    "Tuple"
+    loc
+    [
+      ("name", opt node_of_identifier name);
+      ("elements", List (List.map node_of_expression elements));
+    ]
+
 and node_of_type_cast cast =
   let { Expression.TypeCast.loc; expr; ty } = cast in
   node "TypeCast" loc [("expr", node_of_expression expr); ("type", node_of_type ty)]
@@ -255,9 +285,16 @@ and node_of_call call =
     loc
     [("func", node_of_expression func); ("args", List (List.map node_of_expression args))]
 
-and node_of_access binary =
-  let { Expression.Access.loc; left; right } = binary in
-  node "Access" loc [("left", node_of_expression left); ("right", node_of_identifier right)]
+and node_of_indexed_access access =
+  let { Expression.IndexedAccess.loc; target; index } = access in
+  node
+    "IndexedAccess"
+    loc
+    [("target", node_of_expression target); ("index", node_of_expression index)]
+
+and node_of_named_access access =
+  let { Expression.NamedAccess.loc; target; name } = access in
+  node "NamedAccess" loc [("target", node_of_expression target); ("name", node_of_identifier name)]
 
 and node_of_block block =
   let { Statement.Block.loc; statements } = block in
