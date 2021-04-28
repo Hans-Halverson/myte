@@ -26,9 +26,14 @@ and visit_type_declarations ~cx module_ =
     (fun toplevel ->
       match toplevel with
       | TypeDeclaration
-          { Ast.TypeDeclaration.loc; name = { Ast.Identifier.loc = id_loc; name }; ty; _ } ->
+          {
+            Ast.TypeDeclaration.loc;
+            name = { Ast.Identifier.loc = id_loc; name };
+            decl = Alias alias;
+            _;
+          } ->
         let tvar_id = Type_context.get_tvar_id_from_type_decl ~cx id_loc in
-        let ty = build_type ~cx ty in
+        let ty = build_type ~cx alias in
         (* Check if the right hand side is a tvar that has been already unified with this type.
            This can only happen for recursive type aliases. *)
         let rep_ty1 = find_union_rep_type ~cx ty in
@@ -43,6 +48,7 @@ and visit_type_declarations ~cx module_ =
             ~cx
             loc
             (RecursiveTypeAlias (name, find_rep_tvar_id ~cx tvar_id, find_rep_type ~cx ty))
+      | TypeDeclaration _ -> failwith "TODO: Implement type checking for new type declarations"
       | _ -> ())
     toplevels
 

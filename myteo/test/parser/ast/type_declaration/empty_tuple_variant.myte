@@ -1,0 +1,5 @@
+module test
+
+type Foo =
+  | Bar ()
+  | Baz { key: int }

@@ -1,0 +1,409 @@
+test/parser/ast/type_declaration/variant.myte
+{
+  node: Module,
+  loc: 1:0-23:0,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: TypeDeclaration,
+      loc: 3:0-3:19,
+      name: {
+        node: Identifier,
+        loc: 3:5-3:7,
+        name: "t1",
+      },
+      variants: [
+        {
+          node: Identifier,
+          loc: 3:10-3:13,
+          name: "Foo",
+        },
+        {
+          node: Identifier,
+          loc: 3:16-3:19,
+          name: "Bar",
+        },
+      ],
+    },
+    {
+      node: TypeDeclaration,
+      loc: 5:0-5:21,
+      name: {
+        node: Identifier,
+        loc: 5:5-5:7,
+        name: "t2",
+      },
+      variants: [
+        {
+          node: Identifier,
+          loc: 5:12-5:15,
+          name: "Foo",
+        },
+        {
+          node: Identifier,
+          loc: 5:18-5:21,
+          name: "Bar",
+        },
+      ],
+    },
+    {
+      node: TypeDeclaration,
+      loc: 7:0-10:28,
+      name: {
+        node: Identifier,
+        loc: 7:5-7:7,
+        name: "t3",
+      },
+      variants: [
+        {
+          node: TupleVariant,
+          loc: 8:4-8:13,
+          name: {
+            node: Identifier,
+            loc: 8:4-8:7,
+            name: "Foo",
+          },
+          elements: [
+            {
+              node: PrimitiveType,
+              loc: 8:9-8:12,
+              kind: Int,
+            },
+          ],
+        },
+        {
+          node: TupleVariant,
+          loc: 9:4-9:14,
+          name: {
+            node: Identifier,
+            loc: 9:4-9:7,
+            name: "Bar",
+          },
+          elements: [
+            {
+              node: PrimitiveType,
+              loc: 9:9-9:12,
+              kind: Int,
+            },
+          ],
+        },
+        {
+          node: TupleVariant,
+          loc: 10:4-10:28,
+          name: {
+            node: Identifier,
+            loc: 10:4-10:7,
+            name: "Baz",
+          },
+          elements: [
+            {
+              node: PrimitiveType,
+              loc: 10:9-10:15,
+              kind: String,
+            },
+            {
+              node: PrimitiveType,
+              loc: 10:17-10:21,
+              kind: Bool,
+            },
+            {
+              node: PrimitiveType,
+              loc: 10:23-10:27,
+              kind: Unit,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      node: TypeDeclaration,
+      loc: 12:0-15:42,
+      name: {
+        node: Identifier,
+        loc: 12:5-12:7,
+        name: "t4",
+      },
+      variants: [
+        {
+          node: RecordVariant,
+          loc: 13:4-13:19,
+          name: {
+            node: Identifier,
+            loc: 13:4-13:7,
+            name: "Foo",
+          },
+          fields: [
+            {
+              node: RecordVariantField,
+              loc: 13:4-13:17,
+              name: {
+                node: Identifier,
+                loc: 13:10-13:12,
+                name: "k1",
+              },
+              type: {
+                node: PrimitiveType,
+                loc: 13:14-13:17,
+                kind: Int,
+              },
+            },
+          ],
+        },
+        {
+          node: RecordVariant,
+          loc: 14:4-14:20,
+          name: {
+            node: Identifier,
+            loc: 14:4-14:7,
+            name: "Bar",
+          },
+          fields: [
+            {
+              node: RecordVariantField,
+              loc: 14:4-14:17,
+              name: {
+                node: Identifier,
+                loc: 14:10-14:12,
+                name: "k2",
+              },
+              type: {
+                node: PrimitiveType,
+                loc: 14:14-14:17,
+                kind: Int,
+              },
+            },
+          ],
+        },
+        {
+          node: RecordVariant,
+          loc: 15:4-15:42,
+          name: {
+            node: Identifier,
+            loc: 15:4-15:7,
+            name: "Baz",
+          },
+          fields: [
+            {
+              node: RecordVariantField,
+              loc: 15:4-15:20,
+              name: {
+                node: Identifier,
+                loc: 15:10-15:12,
+                name: "k3",
+              },
+              type: {
+                node: PrimitiveType,
+                loc: 15:14-15:20,
+                kind: String,
+              },
+            },
+            {
+              node: RecordVariantField,
+              loc: 15:4-15:30,
+              name: {
+                node: Identifier,
+                loc: 15:22-15:24,
+                name: "k4",
+              },
+              type: {
+                node: PrimitiveType,
+                loc: 15:26-15:30,
+                kind: Bool,
+              },
+            },
+            {
+              node: RecordVariantField,
+              loc: 15:4-15:40,
+              name: {
+                node: Identifier,
+                loc: 15:32-15:34,
+                name: "k5",
+              },
+              type: {
+                node: PrimitiveType,
+                loc: 15:36-15:40,
+                kind: Unit,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      node: TypeDeclaration,
+      loc: 17:0-17:43,
+      name: {
+        node: Identifier,
+        loc: 17:5-17:7,
+        name: "t5",
+      },
+      variants: [
+        {
+          node: Identifier,
+          loc: 17:10-17:13,
+          name: "Foo",
+        },
+        {
+          node: TupleVariant,
+          loc: 17:16-17:25,
+          name: {
+            node: Identifier,
+            loc: 17:16-17:19,
+            name: "Bar",
+          },
+          elements: [
+            {
+              node: PrimitiveType,
+              loc: 17:21-17:24,
+              kind: Int,
+            },
+          ],
+        },
+        {
+          node: RecordVariant,
+          loc: 17:28-17:43,
+          name: {
+            node: Identifier,
+            loc: 17:28-17:31,
+            name: "Baz",
+          },
+          fields: [
+            {
+              node: RecordVariantField,
+              loc: 17:28-17:41,
+              name: {
+                node: Identifier,
+                loc: 17:34-17:35,
+                name: "k",
+              },
+              type: {
+                node: PrimitiveType,
+                loc: 17:37-17:41,
+                kind: Bool,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      node: TypeDeclaration,
+      loc: 19:0-22:23,
+      name: {
+        node: Identifier,
+        loc: 19:5-19:7,
+        name: "t6",
+      },
+      variants: [
+        {
+          node: TupleVariant,
+          loc: 20:3-20:22,
+          name: {
+            node: Identifier,
+            loc: 20:3-20:6,
+            name: "Foo",
+          },
+          elements: [
+            {
+              node: TupleType,
+              loc: 20:8-20:21,
+              elements: [
+                {
+                  node: PrimitiveType,
+                  loc: 20:9-20:12,
+                  kind: Int,
+                },
+                {
+                  node: PrimitiveType,
+                  loc: 20:14-20:20,
+                  kind: String,
+                },
+              ],
+            },
+          ],
+        },
+        {
+          node: TupleVariant,
+          loc: 21:3-21:30,
+          name: {
+            node: Identifier,
+            loc: 21:3-21:6,
+            name: "Bar",
+          },
+          elements: [
+            {
+              node: FunctionType,
+              loc: 21:8-21:29,
+              params: [
+                {
+                  node: PrimitiveType,
+                  loc: 21:9-21:12,
+                  kind: Int,
+                },
+                {
+                  node: PrimitiveType,
+                  loc: 21:14-21:20,
+                  kind: String,
+                },
+              ],
+              return: {
+                node: PrimitiveType,
+                loc: 21:25-21:29,
+                kind: Bool,
+              },
+              type_params: [],
+            },
+          ],
+        },
+        {
+          node: RecordVariant,
+          loc: 22:3-22:23,
+          name: {
+            node: Identifier,
+            loc: 22:3-22:6,
+            name: "Baz",
+          },
+          fields: [
+            {
+              node: RecordVariantField,
+              loc: 22:3-22:21,
+              name: {
+                node: Identifier,
+                loc: 22:9-22:10,
+                name: "k",
+              },
+              type: {
+                node: CustomType,
+                loc: 22:12-22:21,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 22:12-22:21,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 22:12-22:21,
+                    name: "OtherType",
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    },
+  ],
+}

@@ -20,29 +20,29 @@ test/parser/ast/type/precedence.myte
   toplevels: [
     {
       node: TypeDeclaration,
-      loc: 4:0-4:33,
+      loc: 4:0-4:39,
       name: {
         node: Identifier,
-        loc: 4:5-4:7,
+        loc: 4:11-4:13,
         name: "t1",
       },
-      type: {
+      alias: {
         node: FunctionType,
-        loc: 4:10-4:33,
+        loc: 4:16-4:39,
         params: [
           {
             node: FunctionType,
-            loc: 4:11-4:24,
+            loc: 4:17-4:30,
             params: [
               {
                 node: PrimitiveType,
-                loc: 4:11-4:14,
+                loc: 4:17-4:20,
                 kind: Int,
               },
             ],
             return: {
               node: PrimitiveType,
-              loc: 4:18-4:24,
+              loc: 4:24-4:30,
               kind: String,
             },
             type_params: [],
@@ -50,7 +50,7 @@ test/parser/ast/type/precedence.myte
         ],
         return: {
           node: PrimitiveType,
-          loc: 4:29-4:33,
+          loc: 4:35-4:39,
           kind: Bool,
         },
         type_params: [],
@@ -58,35 +58,35 @@ test/parser/ast/type/precedence.myte
     },
     {
       node: TypeDeclaration,
-      loc: 5:0-5:33,
+      loc: 5:0-5:39,
       name: {
         node: Identifier,
-        loc: 5:5-5:7,
+        loc: 5:11-5:13,
         name: "t2",
       },
-      type: {
+      alias: {
         node: FunctionType,
-        loc: 5:10-5:33,
+        loc: 5:16-5:39,
         params: [
           {
             node: PrimitiveType,
-            loc: 5:10-5:13,
+            loc: 5:16-5:19,
             kind: Int,
           },
         ],
         return: {
           node: FunctionType,
-          loc: 5:18-5:32,
+          loc: 5:24-5:38,
           params: [
             {
               node: PrimitiveType,
-              loc: 5:18-5:24,
+              loc: 5:24-5:30,
               kind: String,
             },
           ],
           return: {
             node: PrimitiveType,
-            loc: 5:28-5:32,
+            loc: 5:34-5:38,
             kind: Bool,
           },
           type_params: [],
@@ -96,35 +96,35 @@ test/parser/ast/type/precedence.myte
     },
     {
       node: TypeDeclaration,
-      loc: 6:0-6:31,
+      loc: 6:0-6:37,
       name: {
         node: Identifier,
-        loc: 6:5-6:7,
+        loc: 6:11-6:13,
         name: "t3",
       },
-      type: {
+      alias: {
         node: FunctionType,
-        loc: 6:10-6:31,
+        loc: 6:16-6:37,
         params: [
           {
             node: PrimitiveType,
-            loc: 6:10-6:13,
+            loc: 6:16-6:19,
             kind: Int,
           },
         ],
         return: {
           node: FunctionType,
-          loc: 6:17-6:31,
+          loc: 6:23-6:37,
           params: [
             {
               node: PrimitiveType,
-              loc: 6:17-6:23,
+              loc: 6:23-6:29,
               kind: String,
             },
           ],
           return: {
             node: PrimitiveType,
-            loc: 6:27-6:31,
+            loc: 6:33-6:37,
             kind: Bool,
           },
           type_params: [],

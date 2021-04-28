@@ -1,7 +1,7 @@
 test/parser/ast/type/tuple.myte
 {
   node: Module,
-  loc: 1:0-10:33,
+  loc: 1:0-10:39,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -20,29 +20,29 @@ test/parser/ast/type/tuple.myte
   toplevels: [
     {
       node: TypeDeclaration,
-      loc: 3:0-3:29,
+      loc: 3:0-3:35,
       name: {
         node: Identifier,
-        loc: 3:5-3:7,
+        loc: 3:11-3:13,
         name: "t1",
       },
-      type: {
+      alias: {
         node: TupleType,
-        loc: 3:10-3:29,
+        loc: 3:16-3:35,
         elements: [
           {
             node: PrimitiveType,
-            loc: 3:11-3:14,
+            loc: 3:17-3:20,
             kind: Int,
           },
           {
             node: PrimitiveType,
-            loc: 3:16-3:22,
+            loc: 3:22-3:28,
             kind: String,
           },
           {
             node: PrimitiveType,
-            loc: 3:24-3:28,
+            loc: 3:30-3:34,
             kind: Bool,
           },
         ],
@@ -50,58 +50,58 @@ test/parser/ast/type/tuple.myte
     },
     {
       node: TypeDeclaration,
-      loc: 4:0-4:57,
+      loc: 4:0-4:63,
       name: {
         node: Identifier,
-        loc: 4:5-4:7,
+        loc: 4:11-4:13,
         name: "t2",
       },
-      type: {
+      alias: {
         node: TupleType,
-        loc: 4:10-4:57,
+        loc: 4:16-4:63,
         elements: [
           {
             node: TupleType,
-            loc: 4:11-4:24,
+            loc: 4:17-4:30,
             elements: [
               {
                 node: PrimitiveType,
-                loc: 4:12-4:15,
+                loc: 4:18-4:21,
                 kind: Int,
               },
               {
                 node: PrimitiveType,
-                loc: 4:17-4:23,
+                loc: 4:23-4:29,
                 kind: String,
               },
             ],
           },
           {
             node: TupleType,
-            loc: 4:26-4:56,
+            loc: 4:32-4:62,
             elements: [
               {
                 node: PrimitiveType,
-                loc: 4:27-4:31,
+                loc: 4:33-4:37,
                 kind: Bool,
               },
               {
                 node: TupleType,
-                loc: 4:33-4:55,
+                loc: 4:39-4:61,
                 elements: [
                   {
                     node: PrimitiveType,
-                    loc: 4:34-4:40,
+                    loc: 4:40-4:46,
                     kind: String,
                   },
                   {
                     node: PrimitiveType,
-                    loc: 4:42-4:48,
+                    loc: 4:48-4:54,
                     kind: String,
                   },
                   {
                     node: PrimitiveType,
-                    loc: 4:50-4:54,
+                    loc: 4:56-4:60,
                     kind: Unit,
                   },
                 ],
@@ -113,24 +113,24 @@ test/parser/ast/type/tuple.myte
     },
     {
       node: TypeDeclaration,
-      loc: 7:0-7:25,
+      loc: 7:0-7:31,
       name: {
         node: Identifier,
-        loc: 7:5-7:7,
+        loc: 7:11-7:13,
         name: "t3",
       },
-      type: {
+      alias: {
         node: TupleType,
-        loc: 7:10-7:25,
+        loc: 7:16-7:31,
         elements: [
           {
             node: PrimitiveType,
-            loc: 7:11-7:14,
+            loc: 7:17-7:20,
             kind: Int,
           },
           {
             node: PrimitiveType,
-            loc: 7:16-7:22,
+            loc: 7:22-7:28,
             kind: String,
           },
         ],
@@ -138,28 +138,28 @@ test/parser/ast/type/tuple.myte
     },
     {
       node: TypeDeclaration,
-      loc: 10:0-10:33,
+      loc: 10:0-10:39,
       name: {
         node: Identifier,
-        loc: 10:5-10:7,
+        loc: 10:11-10:13,
         name: "t4",
       },
-      type: {
+      alias: {
         node: FunctionType,
-        loc: 10:10-10:33,
+        loc: 10:16-10:39,
         params: [
           {
             node: TupleType,
-            loc: 10:11-10:24,
+            loc: 10:17-10:30,
             elements: [
               {
                 node: PrimitiveType,
-                loc: 10:12-10:15,
+                loc: 10:18-10:21,
                 kind: Int,
               },
               {
                 node: PrimitiveType,
-                loc: 10:17-10:23,
+                loc: 10:23-10:29,
                 kind: String,
               },
             ],
@@ -167,7 +167,7 @@ test/parser/ast/type/tuple.myte
         ],
         return: {
           node: PrimitiveType,
-          loc: 10:29-10:33,
+          loc: 10:35-10:39,
           kind: Unit,
         },
         type_params: [],

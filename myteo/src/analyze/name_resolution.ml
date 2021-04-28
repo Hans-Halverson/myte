@@ -236,9 +236,11 @@ class bindings_builder ~module_tree =
             | FunctionDeclaration decl ->
               id_map (this#visit_function_declaration ~toplevel:true) decl toplevel (fun decl' ->
                   FunctionDeclaration decl')
-            | TypeDeclaration { TypeDeclaration.ty; _ } ->
-              ignore (this#type_ ty);
-              toplevel)
+            | TypeDeclaration { TypeDeclaration.decl = Alias alias; _ } ->
+              ignore (this#type_ alias);
+              toplevel
+            | TypeDeclaration _ ->
+              failwith "TODO: Implement name resolution for new type declarations")
           toplevels
       in
       this#exit_scope ();

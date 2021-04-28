@@ -358,15 +358,63 @@ class mapper =
       else
         { loc; kind; pattern = pattern'; init = init'; annot = annot' }
 
-    method type_declaration decl =
+    method type_declaration declaration =
       let open TypeDeclaration in
-      let { loc; name; ty } = decl in
+      let { loc; name; decl } = declaration in
+      let name' = this#identifier name in
+      let decl' =
+        match decl with
+        | Alias a -> id_map this#type_ a decl (fun a' -> Alias a')
+        | Record r -> id_map this#record_variant r decl (fun r' -> Record r')
+        | Tuple t -> id_map this#tuple_variant t decl (fun t' -> Tuple t')
+        | Variant variants ->
+          let variants' = id_map_list this#type_declaration_variant variants in
+          if variants == variants' then
+            decl
+          else
+            Variant variants'
+      in
+      if name == name' && decl == decl' then
+        declaration
+      else
+        { loc; name = name'; decl = decl' }
+
+    method type_declaration_variant variant =
+      let open TypeDeclaration in
+      match variant with
+      | RecordVariant r -> id_map this#record_variant r variant (fun r' -> RecordVariant r')
+      | TupleVariant t -> id_map this#tuple_variant t variant (fun t' -> TupleVariant t')
+      | EnumVariant i -> id_map this#identifier i variant (fun i' -> EnumVariant i')
+
+    method record_variant record =
+      let open TypeDeclaration.Record in
+      let { loc; name; fields } = record in
+      let name' = this#identifier name in
+      let fields' = id_map_list this#record_variant_field fields in
+      if name == name' && fields == fields' then
+        record
+      else
+        { loc; name = name'; fields = fields' }
+
+    method record_variant_field field =
+      let open TypeDeclaration.Record.Field in
+      let { loc; name; ty } = field in
       let name' = this#identifier name in
       let ty' = this#type_ ty in
       if name == name' && ty == ty' then
-        decl
+        field
       else
         { loc; name = name'; ty = ty' }
+
+    method tuple_variant tuple =
+      let open TypeDeclaration.Tuple in
+      let { loc; name; elements } = tuple in
+      let name' = this#identifier name in
+      let elements' = id_map_list this#type_ elements in
+      if name == name' && elements == elements' then
+        tuple
+      else
+        { loc; name = name'; elements = elements' }
 
     method primitive_type prim = prim
 

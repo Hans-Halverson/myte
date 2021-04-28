@@ -6,4 +6,4 @@ fun D() {}
 
 fun remote() {}
 
-type ty = unit
+type alias ty = unit

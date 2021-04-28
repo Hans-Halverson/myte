@@ -88,6 +88,7 @@ let tokenize lex =
   | "=>" -> token_result T_BIG_ARROW
   | ';' -> token_result T_SEMICOLON
   | ':' -> token_result T_COLON
+  | '|' -> token_result T_PIPE
   | '.' -> token_result T_PERIOD
   | ',' -> token_result T_COMMA
   | '=' -> token_result T_EQUALS
@@ -117,6 +118,7 @@ let tokenize lex =
   | "import" -> token_result T_IMPORT
   | "as" -> token_result T_AS
   | "type" -> token_result T_TYPE
+  | "alias" -> token_result T_ALIAS
   | "unit" -> token_result T_UNIT
   | "int" -> token_result T_INT
   | "string" -> token_result T_STRING

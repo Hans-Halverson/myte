@@ -21,7 +21,7 @@ fun topLevelBeforeTest() {
 
 fun topLevelFunc() {}
 val topLevelVal: int = 1;
-type topLevelType = int
+type alias topLevelType = int
 
 // Top level names can be referenced after they are defined
 fun topLevelAfterTest() {

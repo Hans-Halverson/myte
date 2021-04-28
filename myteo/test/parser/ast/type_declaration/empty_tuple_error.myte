@@ -1,0 +1,3 @@
+module test
+
+type t()

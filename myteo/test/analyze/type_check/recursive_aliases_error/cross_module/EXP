@@ -1,9 +1,9 @@
 Error: Type aliases cannot be recursive. rec_type2 cannot be defined as rec_type2
-test/analyze/type_check/recursive_aliases_error/cross_module/test.myte:3:0-28
- 3 | type rec_type2 = A.rec_type1
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test/analyze/type_check/recursive_aliases_error/cross_module/test.myte:3:0-34
+ 3 | type alias rec_type2 = A.rec_type1
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Error: Type aliases cannot be recursive. rec_type4 cannot be defined as rec_type4 => unit
-test/analyze/type_check/recursive_aliases_error/cross_module/test.myte:4:0-28
- 4 | type rec_type4 = A.rec_type3
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test/analyze/type_check/recursive_aliases_error/cross_module/test.myte:4:0-34
+ 4 | type alias rec_type4 = A.rec_type3
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

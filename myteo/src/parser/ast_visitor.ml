@@ -240,9 +240,42 @@ class ['a] visitor =
 
     method type_declaration acc decl =
       let open TypeDeclaration in
-      let { loc = _; name; ty } = decl in
+      let { loc = _; name; decl } = decl in
+      this#identifier acc name;
+      this#type_declaration_declaration acc decl
+
+    method type_declaration_declaration acc decl =
+      let open TypeDeclaration in
+      match decl with
+      | Alias ty -> this#type_ acc ty
+      | Record record -> this#record_variant acc record
+      | Tuple tuple -> this#tuple_variant acc tuple
+      | Variant variants -> List.iter (this#variant_declaration acc) variants
+
+    method variant_declaration acc variant =
+      let open TypeDeclaration in
+      match variant with
+      | RecordVariant record -> this#record_variant acc record
+      | TupleVariant tuple -> this#tuple_variant acc tuple
+      | EnumVariant id -> this#identifier acc id
+
+    method record_variant acc record =
+      let open TypeDeclaration.Record in
+      let { loc = _; name; fields } = record in
+      this#identifier acc name;
+      List.iter (this#record_variant_field acc) fields
+
+    method record_variant_field acc field =
+      let open TypeDeclaration.Record.Field in
+      let { loc = _; name; ty } = field in
       this#identifier acc name;
       this#type_ acc ty
+
+    method tuple_variant acc tuple =
+      let open TypeDeclaration.Tuple in
+      let { loc = _; name; elements } = tuple in
+      this#identifier acc name;
+      List.iter (this#type_ acc) elements
 
     method primitive_type _acc _prim = ()
 

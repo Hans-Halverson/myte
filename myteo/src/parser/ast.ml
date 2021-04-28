@@ -346,10 +346,45 @@ end =
   Function
 
 and TypeDeclaration : sig
+  module Record : sig
+    module Field : sig
+      type t = {
+        loc: Loc.t;
+        name: Identifier.t;
+        ty: Type.t;
+      }
+    end
+
+    type t = {
+      loc: Loc.t;
+      name: Identifier.t;
+      fields: Field.t list;
+    }
+  end
+
+  module Tuple : sig
+    type t = {
+      loc: Loc.t;
+      name: Identifier.t;
+      elements: Type.t list;
+    }
+  end
+
+  type variant =
+    | RecordVariant of Record.t
+    | TupleVariant of Tuple.t
+    | EnumVariant of Identifier.t
+
+  type decl =
+    | Alias of Type.t
+    | Record of Record.t
+    | Tuple of Tuple.t
+    | Variant of variant list
+
   type t = {
     loc: Loc.t;
     name: Identifier.t;
-    ty: Type.t;
+    decl: decl;
   }
 end =
   TypeDeclaration

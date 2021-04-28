@@ -1,7 +1,7 @@
 module Test
 
 // Group precedence
-type t1 = (int => string) => bool
-type t2 = int => (string => bool)
-type t3 = int => string => bool
+type alias t1 = (int => string) => bool
+type alias t2 = int => (string => bool)
+type alias t3 = int => string => bool
 

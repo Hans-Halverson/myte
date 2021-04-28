@@ -1,7 +1,0 @@
-module Test
-
-type t1 = unit
-
-type t2 = int
-
-type t3 = (string, bool) => unit

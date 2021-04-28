@@ -1,9 +1,9 @@
 module a
 
-type typeAndValue = unit
+type alias typeAndValue = unit
 fun typeAndValue() {}
 
-type ty = unit
+type alias ty = unit
 
 fun value() {}
 

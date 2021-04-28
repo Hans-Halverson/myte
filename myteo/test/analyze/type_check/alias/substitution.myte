@@ -1,16 +1,16 @@
 module Test
 
-type equiv1 = equiv2
-type equiv2 = equiv3
-type equiv3 = equiv4
-type equiv4 = equiv5
-type equiv5 = bool
+type alias equiv1 = equiv2
+type alias equiv2 = equiv3
+type alias equiv3 = equiv4
+type alias equiv4 = equiv5
+type alias equiv5 = bool
 
-type unitAlias = unit
-type intAlias = int
-type complex1 = intAlias => unitAlias
-type complex2 = complex1 => bool
-type complex3 = (complex1, string) => complex2
+type alias unitAlias = unit
+type alias intAlias = int
+type alias complex1 = intAlias => unitAlias
+type alias complex2 = complex1 => bool
+type alias complex3 = (complex1, string) => complex2
 
 fun main() {
   (1: equiv1);

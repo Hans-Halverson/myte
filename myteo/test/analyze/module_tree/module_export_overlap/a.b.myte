@@ -2,6 +2,6 @@ module a.b
 
 fun c() {}
 
-type c = unit
+type alias c = unit
 
 fun main() {}

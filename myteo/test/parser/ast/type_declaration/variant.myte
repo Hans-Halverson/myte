@@ -1,0 +1,22 @@
+module test
+
+type t1 = Foo | Bar
+
+type t2 = | Foo | Bar
+
+type t3 =
+  | Foo (int)
+  | Bar (int,)
+  | Baz (string, bool, unit)
+
+type t4 =
+  | Foo { k1: int }
+  | Bar { k2: int, }
+  | Baz { k3: string, k4: bool, k5: unit }
+
+type t5 = Foo | Bar (int) | Baz { k: bool }
+
+type t6 =
+ | Foo ((int, string))
+ | Bar ((int, string) => bool)
+ | Baz { k: OtherType }

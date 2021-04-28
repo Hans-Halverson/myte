@@ -1,0 +1,304 @@
+test/parser/ast/type_declaration/record.myte
+{
+  node: Module,
+  loc: 1:0-11:74,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: TypeDeclaration,
+      loc: 3:0-3:20,
+      name: {
+        node: Identifier,
+        loc: 3:5-3:7,
+        name: "r1",
+      },
+      record: {
+        node: RecordVariant,
+        loc: 3:5-3:20,
+        name: {
+          node: Identifier,
+          loc: 3:5-3:7,
+          name: "r1",
+        },
+        fields: [
+          {
+            node: RecordVariantField,
+            loc: 3:5-3:18,
+            name: {
+              node: Identifier,
+              loc: 3:10-3:13,
+              name: "foo",
+            },
+            type: {
+              node: PrimitiveType,
+              loc: 3:15-3:18,
+              kind: Int,
+            },
+          },
+        ],
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 5:0-5:21,
+      name: {
+        node: Identifier,
+        loc: 5:5-5:7,
+        name: "r2",
+      },
+      record: {
+        node: RecordVariant,
+        loc: 5:5-5:21,
+        name: {
+          node: Identifier,
+          loc: 5:5-5:7,
+          name: "r2",
+        },
+        fields: [
+          {
+            node: RecordVariantField,
+            loc: 5:5-5:18,
+            name: {
+              node: Identifier,
+              loc: 5:10-5:13,
+              name: "foo",
+            },
+            type: {
+              node: PrimitiveType,
+              loc: 5:15-5:18,
+              kind: Int,
+            },
+          },
+        ],
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 7:0-7:44,
+      name: {
+        node: Identifier,
+        loc: 7:5-7:7,
+        name: "r3",
+      },
+      record: {
+        node: RecordVariant,
+        loc: 7:5-7:44,
+        name: {
+          node: Identifier,
+          loc: 7:5-7:7,
+          name: "r3",
+        },
+        fields: [
+          {
+            node: RecordVariantField,
+            loc: 7:5-7:18,
+            name: {
+              node: Identifier,
+              loc: 7:10-7:13,
+              name: "foo",
+            },
+            type: {
+              node: PrimitiveType,
+              loc: 7:15-7:18,
+              kind: Int,
+            },
+          },
+          {
+            node: RecordVariantField,
+            loc: 7:5-7:29,
+            name: {
+              node: Identifier,
+              loc: 7:20-7:23,
+              name: "bar",
+            },
+            type: {
+              node: PrimitiveType,
+              loc: 7:25-7:29,
+              kind: Bool,
+            },
+          },
+          {
+            node: RecordVariantField,
+            loc: 7:5-7:42,
+            name: {
+              node: Identifier,
+              loc: 7:31-7:34,
+              name: "baz",
+            },
+            type: {
+              node: PrimitiveType,
+              loc: 7:36-7:42,
+              kind: String,
+            },
+          },
+        ],
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 9:0-9:45,
+      name: {
+        node: Identifier,
+        loc: 9:5-9:7,
+        name: "r4",
+      },
+      record: {
+        node: RecordVariant,
+        loc: 9:5-9:45,
+        name: {
+          node: Identifier,
+          loc: 9:5-9:7,
+          name: "r4",
+        },
+        fields: [
+          {
+            node: RecordVariantField,
+            loc: 9:5-9:18,
+            name: {
+              node: Identifier,
+              loc: 9:10-9:13,
+              name: "foo",
+            },
+            type: {
+              node: PrimitiveType,
+              loc: 9:15-9:18,
+              kind: Int,
+            },
+          },
+          {
+            node: RecordVariantField,
+            loc: 9:5-9:29,
+            name: {
+              node: Identifier,
+              loc: 9:20-9:23,
+              name: "bar",
+            },
+            type: {
+              node: PrimitiveType,
+              loc: 9:25-9:29,
+              kind: Bool,
+            },
+          },
+          {
+            node: RecordVariantField,
+            loc: 9:5-9:42,
+            name: {
+              node: Identifier,
+              loc: 9:31-9:34,
+              name: "baz",
+            },
+            type: {
+              node: PrimitiveType,
+              loc: 9:36-9:42,
+              kind: String,
+            },
+          },
+        ],
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 11:0-11:74,
+      name: {
+        node: Identifier,
+        loc: 11:5-11:7,
+        name: "r5",
+      },
+      record: {
+        node: RecordVariant,
+        loc: 11:5-11:74,
+        name: {
+          node: Identifier,
+          loc: 11:5-11:7,
+          name: "r5",
+        },
+        fields: [
+          {
+            node: RecordVariantField,
+            loc: 11:5-11:22,
+            name: {
+              node: Identifier,
+              loc: 11:10-11:13,
+              name: "foo",
+            },
+            type: {
+              node: PrimitiveType,
+              loc: 11:17-11:20,
+              kind: Int,
+            },
+          },
+          {
+            node: RecordVariantField,
+            loc: 11:5-11:51,
+            name: {
+              node: Identifier,
+              loc: 11:24-11:27,
+              name: "bar",
+            },
+            type: {
+              node: FunctionType,
+              loc: 11:29-11:51,
+              params: [
+                {
+                  node: PrimitiveType,
+                  loc: 11:30-11:34,
+                  kind: Bool,
+                },
+                {
+                  node: PrimitiveType,
+                  loc: 11:36-11:42,
+                  kind: String,
+                },
+              ],
+              return: {
+                node: PrimitiveType,
+                loc: 11:47-11:51,
+                kind: Unit,
+              },
+              type_params: [],
+            },
+          },
+          {
+            node: RecordVariantField,
+            loc: 11:5-11:72,
+            name: {
+              node: Identifier,
+              loc: 11:53-11:56,
+              name: "baz",
+            },
+            type: {
+              node: TupleType,
+              loc: 11:58-11:72,
+              elements: [
+                {
+                  node: PrimitiveType,
+                  loc: 11:59-11:65,
+                  kind: String,
+                },
+                {
+                  node: PrimitiveType,
+                  loc: 11:67-11:71,
+                  kind: Unit,
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  ],
+}

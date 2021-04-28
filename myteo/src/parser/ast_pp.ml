@@ -350,8 +350,52 @@ and node_of_variable_decl decl =
     ]
 
 and node_of_type_decl decl =
-  let { TypeDeclaration.loc; name; ty } = decl in
-  node "TypeDeclaration" loc [("name", node_of_identifier name); ("type", node_of_type ty)]
+  let open TypeDeclaration in
+  let { loc; name; decl } = decl in
+  node
+    "TypeDeclaration"
+    loc
+    [
+      ("name", node_of_identifier name);
+      (match decl with
+      | Alias alias -> ("alias", node_of_type alias)
+      | Record record -> ("record", node_of_record_variant record)
+      | Tuple tuple -> ("tuple", node_of_tuple_variant tuple)
+      | Variant variants ->
+        ( "variants",
+          List
+            (List.map
+               (fun variant ->
+                 match variant with
+                 | RecordVariant record -> node_of_record_variant record
+                 | TupleVariant tuple -> node_of_tuple_variant tuple
+                 | EnumVariant id -> node_of_identifier id)
+               variants) ));
+    ]
+
+and node_of_record_variant record =
+  let open TypeDeclaration.Record in
+  let { loc; name; fields } = record in
+  node
+    "RecordVariant"
+    loc
+    [
+      ("name", node_of_identifier name);
+      ("fields", List (List.map node_of_record_variant_field fields));
+    ]
+
+and node_of_record_variant_field field =
+  let open TypeDeclaration.Record.Field in
+  let { loc; name; ty } = field in
+  node "RecordVariantField" loc [("name", node_of_identifier name); ("type", node_of_type ty)]
+
+and node_of_tuple_variant tuple =
+  let open TypeDeclaration.Tuple in
+  let { loc; name; elements } = tuple in
+  node
+    "TupleVariant"
+    loc
+    [("name", node_of_identifier name); ("elements", List (List.map node_of_type elements))]
 
 and node_of_function func =
   let open Function in

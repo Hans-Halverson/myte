@@ -1,7 +1,7 @@
-test/parser/ast/type_declaration/basic.myte
+test/parser/ast/type_declaration/alias.myte
 {
   node: Module,
-  loc: 1:0-7:32,
+  loc: 1:0-7:38,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -20,58 +20,58 @@ test/parser/ast/type_declaration/basic.myte
   toplevels: [
     {
       node: TypeDeclaration,
-      loc: 3:0-3:14,
+      loc: 3:0-3:20,
       name: {
         node: Identifier,
-        loc: 3:5-3:7,
+        loc: 3:11-3:13,
         name: "t1",
       },
-      type: {
+      alias: {
         node: PrimitiveType,
-        loc: 3:10-3:14,
+        loc: 3:16-3:20,
         kind: Unit,
       },
     },
     {
       node: TypeDeclaration,
-      loc: 5:0-5:13,
+      loc: 5:0-5:19,
       name: {
         node: Identifier,
-        loc: 5:5-5:7,
+        loc: 5:11-5:13,
         name: "t2",
       },
-      type: {
+      alias: {
         node: PrimitiveType,
-        loc: 5:10-5:13,
+        loc: 5:16-5:19,
         kind: Int,
       },
     },
     {
       node: TypeDeclaration,
-      loc: 7:0-7:32,
+      loc: 7:0-7:38,
       name: {
         node: Identifier,
-        loc: 7:5-7:7,
+        loc: 7:11-7:13,
         name: "t3",
       },
-      type: {
+      alias: {
         node: FunctionType,
-        loc: 7:10-7:32,
+        loc: 7:16-7:38,
         params: [
           {
             node: PrimitiveType,
-            loc: 7:11-7:17,
+            loc: 7:17-7:23,
             kind: String,
           },
           {
             node: PrimitiveType,
-            loc: 7:19-7:23,
+            loc: 7:25-7:29,
             kind: Bool,
           },
         ],
         return: {
           node: PrimitiveType,
-          loc: 7:28-7:32,
+          loc: 7:34-7:38,
           kind: Unit,
         },
         type_params: [],

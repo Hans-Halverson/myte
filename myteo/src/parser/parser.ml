@@ -553,11 +553,105 @@ and parse_type_declaration env =
   let open TypeDeclaration in
   let marker = mark_loc env in
   Env.expect env T_TYPE;
-  let name = parse_identifier env in
-  Env.expect env T_EQUALS;
-  let ty = parse_type env in
+  match Env.token env with
+  | T_ALIAS ->
+    Env.advance env;
+    let name = parse_identifier env in
+    Env.expect env T_EQUALS;
+    let alias = parse_type env in
+    let loc = marker env in
+    { loc; name; decl = Alias alias }
+  | _ ->
+    let name_marker = mark_loc env in
+    let name = parse_identifier env in
+    (match Env.token env with
+    | T_LEFT_PAREN ->
+      let tuple = parse_tuple_variant env name name_marker in
+      let loc = marker env in
+      { loc; name; decl = Tuple tuple }
+    | T_LEFT_BRACE ->
+      let record = parse_record_variant env name name_marker in
+      let loc = marker env in
+      { loc; name; decl = Record record }
+    | T_EQUALS ->
+      Env.advance env;
+      parse_variant env name marker
+    | token -> Parse_error.fatal (Env.loc env, MalformedTypeDeclaration token))
+
+and parse_variant env name marker =
+  (match Env.token env with
+  | T_PIPE -> Env.advance env
+  | _ -> ());
+  let rec parse_variants () =
+    let open TypeDeclaration in
+    let marker = mark_loc env in
+    let name = parse_identifier env in
+    let variant =
+      match Env.token env with
+      | T_LEFT_BRACE -> RecordVariant (parse_record_variant env name marker)
+      | T_LEFT_PAREN -> TupleVariant (parse_tuple_variant env name marker)
+      | _ -> EnumVariant name
+    in
+    match Env.token env with
+    | T_PIPE ->
+      Env.advance env;
+      variant :: parse_variants ()
+    | _ -> [variant]
+  in
+  let variants = parse_variants () in
   let loc = marker env in
-  { loc; name; ty }
+  if List.length variants = 1 then Parse_error.fatal (loc, SingleVariant);
+  { loc; name; decl = Variant variants }
+
+and parse_record_variant env name marker =
+  let open TypeDeclaration.Record in
+  Env.expect env T_LEFT_BRACE;
+  let rec parse_fields () =
+    match Env.token env with
+    | T_RIGHT_BRACE ->
+      Env.advance env;
+      []
+    | _ ->
+      let name = parse_identifier env in
+      Env.expect env T_COLON;
+      let field =
+        let ty = parse_type env in
+        let loc = marker env in
+        (match Env.token env with
+        | T_RIGHT_BRACE -> ()
+        | T_COMMA -> Env.advance env
+        | _ -> Env.expect env T_RIGHT_BRACE);
+        { Field.loc; name; ty }
+      in
+      field :: parse_fields ()
+  in
+  let fields = parse_fields () in
+  let loc = marker env in
+  if fields = [] then Parse_error.fatal (loc, EmptyRecord);
+  { loc; name; fields }
+
+and parse_tuple_variant env name marker =
+  let open TypeDeclaration.Tuple in
+  Env.expect env T_LEFT_PAREN;
+  let rec parse_elements () =
+    match Env.token env with
+    | T_RIGHT_PAREN ->
+      Env.advance env;
+      []
+    | _ ->
+      let element = parse_type env in
+      begin
+        match Env.token env with
+        | T_RIGHT_PAREN -> ()
+        | T_COMMA -> Env.advance env
+        | _ -> Env.expect env T_RIGHT_PAREN
+      end;
+      element :: parse_elements ()
+  in
+  let elements = parse_elements () in
+  let loc = marker env in
+  if elements = [] then Parse_error.fatal (loc, EmptyTuple);
+  { loc; name; elements }
 
 and parse_variable_declaration env =
   let open Statement in

@@ -5,6 +5,7 @@ type t =
   | T_BOOL_LITERAL of bool
   | T_SEMICOLON
   | T_COLON
+  | T_PIPE
   | T_COMMA
   | T_PERIOD
   | T_ARROW
@@ -42,6 +43,7 @@ type t =
   | T_IMPORT
   | T_AS
   | T_TYPE
+  | T_ALIAS
   | T_UNIT
   | T_INT
   | T_STRING
@@ -60,6 +62,7 @@ let to_string token =
       "false"
   | T_SEMICOLON -> ";"
   | T_COLON -> ":"
+  | T_PIPE -> "|"
   | T_COMMA -> ","
   | T_PERIOD -> "."
   | T_ARROW -> "->"
@@ -97,6 +100,7 @@ let to_string token =
   | T_IMPORT -> "import"
   | T_AS -> "as"
   | T_TYPE -> "type"
+  | T_ALIAS -> "alias"
   | T_UNIT -> "unit"
   | T_INT -> "int"
   | T_STRING -> "string"

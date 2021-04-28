@@ -39,11 +39,11 @@ test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error
     |     ^^^^^^^^
 
 Error: Type with name "imported" already bound in module
-test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:20:5-13
- 20 | type imported = unit
-    |      ^^^^^^^^
+test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:20:11-19
+ 20 | type alias imported = unit
+    |            ^^^^^^^^
 
 Error: Type with name "foo" already bound in module
-test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:23:5-8
- 23 | type foo = int
-    |      ^^^
+test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:23:11-14
+ 23 | type alias foo = int
+    |            ^^^

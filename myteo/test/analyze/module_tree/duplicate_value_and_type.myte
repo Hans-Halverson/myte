@@ -1,6 +1,6 @@
 module Test
 
-type A = unit
+type alias A = unit
 
 fun A() {}
 

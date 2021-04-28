@@ -1,0 +1,11 @@
+module test
+
+type r1 { foo: int }
+
+type r2 { foo: int, }
+
+type r3 { foo: int, bar: bool, baz: string }
+
+type r4 { foo: int, bar: bool, baz: string, }
+
+type r5 { foo: ((int)), bar: (bool, string) => unit, baz: (string, unit) }

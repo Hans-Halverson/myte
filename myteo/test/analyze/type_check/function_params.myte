@@ -1,6 +1,6 @@
 module Test
 
-type IntAlias = int
+type alias IntAlias = int
 
 fun foo(p1: unit, p2: int, p3: string, p4: (int, string) => bool, p5: IntAlias) {
   (p1: unit);

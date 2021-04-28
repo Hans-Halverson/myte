@@ -7,10 +7,13 @@ type t =
   | MalformedTopLevel of Token.t
   | MalformedPattern of Token.t
   | MalformedFunctionBody of Token.t
+  | MalformedTypeDeclaration of Token.t
   | MalformedType of Token.t
   | MissingModule of Token.t
   | InvalidAssignmentPattern
   | EmptyRecord
+  | EmptyTuple
+  | SingleVariant
 
 exception Fatal of (Loc.t * t)
 
@@ -39,6 +42,10 @@ let to_string error =
     Printf.sprintf
       "Unexpected token \"%s\", expected start of function body"
       (Token.to_string actual)
+  | MalformedTypeDeclaration actual ->
+    Printf.sprintf
+      "Unexpected token \"%s\", expected start of type declaration"
+      (Token.to_string actual)
   | MalformedType actual ->
     Printf.sprintf "Unexpected token \"%s\", expected start of type" (Token.to_string actual)
   | MissingModule actual ->
@@ -47,3 +54,5 @@ let to_string error =
       (Token.to_string actual)
   | InvalidAssignmentPattern -> "Left side of assignment must be a pattern"
   | EmptyRecord -> "Record must have at least one field"
+  | EmptyTuple -> "Tuple must have at least one element"
+  | SingleVariant -> "Variant type must have at least two variants"
