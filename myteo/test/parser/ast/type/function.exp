@@ -1,7 +1,7 @@
 test/parser/ast/type/function.myte
 {
   node: Module,
-  loc: 1:0-17:13,
+  loc: 1:0-18:13,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -290,7 +290,7 @@ test/parser/ast/type/function.myte
     },
     {
       node: TypeDeclaration,
-      loc: 12:0-12:22,
+      loc: 12:0-12:35,
       name: {
         node: Identifier,
         loc: 12:5-12:8,
@@ -298,49 +298,36 @@ test/parser/ast/type/function.myte
       },
       type: {
         node: FunctionType,
-        loc: 12:11-12:22,
+        loc: 12:11-12:35,
         params: [
           {
-            node: CustomType,
-            loc: 12:15-12:16,
-            name: {
-              node: ScopedIdentifier,
-              loc: 12:15-12:16,
-              scopes: [],
-              name: {
-                node: Identifier,
-                loc: 12:15-12:16,
-                name: "A",
+            node: TupleType,
+            loc: 12:12-12:25,
+            elements: [
+              {
+                node: PrimitiveType,
+                loc: 12:13-12:16,
+                kind: Int,
               },
-            },
+              {
+                node: PrimitiveType,
+                loc: 12:18-12:24,
+                kind: String,
+              },
+            ],
           },
         ],
         return: {
-          node: CustomType,
-          loc: 12:21-12:22,
-          name: {
-            node: ScopedIdentifier,
-            loc: 12:21-12:22,
-            scopes: [],
-            name: {
-              node: Identifier,
-              loc: 12:21-12:22,
-              name: "A",
-            },
-          },
+          node: PrimitiveType,
+          loc: 12:31-12:35,
+          kind: Unit,
         },
-        type_params: [
-          {
-            node: Identifier,
-            loc: 12:12-12:13,
-            name: "A",
-          },
-        ],
+        type_params: [],
       },
     },
     {
       node: TypeDeclaration,
-      loc: 13:0-13:23,
+      loc: 13:0-13:22,
       name: {
         node: Identifier,
         loc: 13:5-13:8,
@@ -348,18 +335,18 @@ test/parser/ast/type/function.myte
       },
       type: {
         node: FunctionType,
-        loc: 13:11-13:23,
+        loc: 13:11-13:22,
         params: [
           {
             node: CustomType,
-            loc: 13:16-13:17,
+            loc: 13:15-13:16,
             name: {
               node: ScopedIdentifier,
-              loc: 13:16-13:17,
+              loc: 13:15-13:16,
               scopes: [],
               name: {
                 node: Identifier,
-                loc: 13:16-13:17,
+                loc: 13:15-13:16,
                 name: "A",
               },
             },
@@ -367,14 +354,14 @@ test/parser/ast/type/function.myte
         ],
         return: {
           node: CustomType,
-          loc: 13:22-13:23,
+          loc: 13:21-13:22,
           name: {
             node: ScopedIdentifier,
-            loc: 13:22-13:23,
+            loc: 13:21-13:22,
             scopes: [],
             name: {
               node: Identifier,
-              loc: 13:22-13:23,
+              loc: 13:21-13:22,
               name: "A",
             },
           },
@@ -390,7 +377,7 @@ test/parser/ast/type/function.myte
     },
     {
       node: TypeDeclaration,
-      loc: 14:0-14:41,
+      loc: 14:0-14:23,
       name: {
         node: Identifier,
         loc: 14:5-14:8,
@@ -398,23 +385,36 @@ test/parser/ast/type/function.myte
       },
       type: {
         node: FunctionType,
-        loc: 14:11-14:41,
+        loc: 14:11-14:23,
         params: [
           {
-            node: PrimitiveType,
-            loc: 14:21-14:24,
-            kind: Int,
-          },
-          {
-            node: PrimitiveType,
-            loc: 14:26-14:32,
-            kind: String,
+            node: CustomType,
+            loc: 14:16-14:17,
+            name: {
+              node: ScopedIdentifier,
+              loc: 14:16-14:17,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 14:16-14:17,
+                name: "A",
+              },
+            },
           },
         ],
         return: {
-          node: PrimitiveType,
-          loc: 14:37-14:41,
-          kind: Unit,
+          node: CustomType,
+          loc: 14:22-14:23,
+          name: {
+            node: ScopedIdentifier,
+            loc: 14:22-14:23,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 14:22-14:23,
+              name: "A",
+            },
+          },
         },
         type_params: [
           {
@@ -422,22 +422,12 @@ test/parser/ast/type/function.myte
             loc: 14:12-14:13,
             name: "A",
           },
-          {
-            node: Identifier,
-            loc: 14:15-14:16,
-            name: "B",
-          },
-          {
-            node: Identifier,
-            loc: 14:18-14:19,
-            name: "C",
-          },
         ],
       },
     },
     {
       node: TypeDeclaration,
-      loc: 15:0-15:42,
+      loc: 15:0-15:41,
       name: {
         node: Identifier,
         loc: 15:5-15:8,
@@ -445,22 +435,22 @@ test/parser/ast/type/function.myte
       },
       type: {
         node: FunctionType,
-        loc: 15:11-15:42,
+        loc: 15:11-15:41,
         params: [
           {
             node: PrimitiveType,
-            loc: 15:22-15:25,
+            loc: 15:21-15:24,
             kind: Int,
           },
           {
             node: PrimitiveType,
-            loc: 15:27-15:33,
+            loc: 15:26-15:32,
             kind: String,
           },
         ],
         return: {
           node: PrimitiveType,
-          loc: 15:38-15:42,
+          loc: 15:37-15:41,
           kind: Unit,
         },
         type_params: [
@@ -483,17 +473,64 @@ test/parser/ast/type/function.myte
       },
     },
     {
-      node: Function,
-      loc: 17:0-17:13,
+      node: TypeDeclaration,
+      loc: 16:0-16:42,
       name: {
         node: Identifier,
-        loc: 17:4-17:8,
+        loc: 16:5-16:8,
+        name: "t14",
+      },
+      type: {
+        node: FunctionType,
+        loc: 16:11-16:42,
+        params: [
+          {
+            node: PrimitiveType,
+            loc: 16:22-16:25,
+            kind: Int,
+          },
+          {
+            node: PrimitiveType,
+            loc: 16:27-16:33,
+            kind: String,
+          },
+        ],
+        return: {
+          node: PrimitiveType,
+          loc: 16:38-16:42,
+          kind: Unit,
+        },
+        type_params: [
+          {
+            node: Identifier,
+            loc: 16:12-16:13,
+            name: "A",
+          },
+          {
+            node: Identifier,
+            loc: 16:15-16:16,
+            name: "B",
+          },
+          {
+            node: Identifier,
+            loc: 16:18-16:19,
+            name: "C",
+          },
+        ],
+      },
+    },
+    {
+      node: Function,
+      loc: 18:0-18:13,
+      name: {
+        node: Identifier,
+        loc: 18:4-18:8,
         name: "main",
       },
       params: [],
       body: {
         node: Block,
-        loc: 17:11-17:13,
+        loc: 18:11-18:13,
         statements: [],
       },
       return: None,

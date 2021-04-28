@@ -35,7 +35,7 @@ test/parser/ast/tuple/expression.myte
             node: ExpressionStatement,
             loc: 4:2-4:12,
             expression: {
-              node: Tuple,
+              node: TupleExpression,
               loc: 4:2-4:11,
               name: None,
               elements: [
@@ -64,12 +64,12 @@ test/parser/ast/tuple/expression.myte
             node: ExpressionStatement,
             loc: 7:2-7:25,
             expression: {
-              node: Tuple,
+              node: TupleExpression,
               loc: 7:2-7:24,
               name: None,
               elements: [
                 {
-                  node: Tuple,
+                  node: TupleExpression,
                   loc: 7:3-7:9,
                   name: None,
                   elements: [
@@ -87,7 +87,7 @@ test/parser/ast/tuple/expression.myte
                   ],
                 },
                 {
-                  node: Tuple,
+                  node: TupleExpression,
                   loc: 7:11-7:20,
                   name: None,
                   elements: [
@@ -120,7 +120,7 @@ test/parser/ast/tuple/expression.myte
             node: ExpressionStatement,
             loc: 10:2-10:10,
             expression: {
-              node: Tuple,
+              node: TupleExpression,
               loc: 10:2-10:9,
               name: None,
               elements: [

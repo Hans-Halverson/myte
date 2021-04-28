@@ -86,6 +86,7 @@ class mapper =
         match ty with
         | Primitive t -> id_map this#primitive_type t ty (fun t' -> Primitive t')
         | Custom t -> id_map this#custom_type t ty (fun t' -> Custom t')
+        | Tuple t -> id_map this#tuple_type t ty (fun t' -> Tuple t')
         | Function t -> id_map this#function_type t ty (fun t' -> Function t')
 
     method identifier id = id
@@ -377,6 +378,15 @@ class mapper =
         custom
       else
         { loc; name = name' }
+
+    method tuple_type tuple =
+      let open Type.Tuple in
+      let { loc; elements } = tuple in
+      let elements' = id_map_list this#type_ elements in
+      if elements == elements' then
+        tuple
+      else
+        { loc; elements = elements' }
 
     method function_type func =
       let open Type.Function in

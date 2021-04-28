@@ -1,0 +1,10 @@
+module Test
+
+type t1 = (int, string, bool)
+type t2 = ((int, string), (bool, (string, string, unit)))
+
+// Trailing comma
+type t3 = (int, string, )
+
+// As function parameter
+type t4 = ((int, string)) => unit

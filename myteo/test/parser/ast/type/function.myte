@@ -9,9 +9,10 @@ type t6 = (int, string, bool) => unit
 type t7 = (int, string) => (bool, unit) => string
 type t8 = (int, string,) => unit
 type t9 = (int,) => unit
-type t10 = <A>(A) => A
-type t11 = <A,>(A) => A
-type t12 = <A, B, C>(int, string) => unit
-type t13 = <A, B, C,>(int, string) => unit
+type t10 = ((int, string),) => unit
+type t11 = <A>(A) => A
+type t12 = <A,>(A) => A
+type t13 = <A, B, C>(int, string) => unit
+type t14 = <A, B, C,>(int, string) => unit
 
 fun main() {}

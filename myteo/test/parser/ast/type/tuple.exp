@@ -1,0 +1,177 @@
+test/parser/ast/type/tuple.myte
+{
+  node: Module,
+  loc: 1:0-10:33,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "Test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: TypeDeclaration,
+      loc: 3:0-3:29,
+      name: {
+        node: Identifier,
+        loc: 3:5-3:7,
+        name: "t1",
+      },
+      type: {
+        node: TupleType,
+        loc: 3:10-3:29,
+        elements: [
+          {
+            node: PrimitiveType,
+            loc: 3:11-3:14,
+            kind: Int,
+          },
+          {
+            node: PrimitiveType,
+            loc: 3:16-3:22,
+            kind: String,
+          },
+          {
+            node: PrimitiveType,
+            loc: 3:24-3:28,
+            kind: Bool,
+          },
+        ],
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 4:0-4:57,
+      name: {
+        node: Identifier,
+        loc: 4:5-4:7,
+        name: "t2",
+      },
+      type: {
+        node: TupleType,
+        loc: 4:10-4:57,
+        elements: [
+          {
+            node: TupleType,
+            loc: 4:11-4:24,
+            elements: [
+              {
+                node: PrimitiveType,
+                loc: 4:12-4:15,
+                kind: Int,
+              },
+              {
+                node: PrimitiveType,
+                loc: 4:17-4:23,
+                kind: String,
+              },
+            ],
+          },
+          {
+            node: TupleType,
+            loc: 4:26-4:56,
+            elements: [
+              {
+                node: PrimitiveType,
+                loc: 4:27-4:31,
+                kind: Bool,
+              },
+              {
+                node: TupleType,
+                loc: 4:33-4:55,
+                elements: [
+                  {
+                    node: PrimitiveType,
+                    loc: 4:34-4:40,
+                    kind: String,
+                  },
+                  {
+                    node: PrimitiveType,
+                    loc: 4:42-4:48,
+                    kind: String,
+                  },
+                  {
+                    node: PrimitiveType,
+                    loc: 4:50-4:54,
+                    kind: Unit,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 7:0-7:25,
+      name: {
+        node: Identifier,
+        loc: 7:5-7:7,
+        name: "t3",
+      },
+      type: {
+        node: TupleType,
+        loc: 7:10-7:25,
+        elements: [
+          {
+            node: PrimitiveType,
+            loc: 7:11-7:14,
+            kind: Int,
+          },
+          {
+            node: PrimitiveType,
+            loc: 7:16-7:22,
+            kind: String,
+          },
+        ],
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 10:0-10:33,
+      name: {
+        node: Identifier,
+        loc: 10:5-10:7,
+        name: "t4",
+      },
+      type: {
+        node: FunctionType,
+        loc: 10:10-10:33,
+        params: [
+          {
+            node: TupleType,
+            loc: 10:11-10:24,
+            elements: [
+              {
+                node: PrimitiveType,
+                loc: 10:12-10:15,
+                kind: Int,
+              },
+              {
+                node: PrimitiveType,
+                loc: 10:17-10:23,
+                kind: String,
+              },
+            ],
+          },
+        ],
+        return: {
+          node: PrimitiveType,
+          loc: 10:29-10:33,
+          kind: Unit,
+        },
+        type_params: [],
+      },
+    },
+  ],
+}

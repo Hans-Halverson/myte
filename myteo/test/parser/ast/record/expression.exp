@@ -28,7 +28,7 @@ test/parser/ast/record/expression.myte
         name: "x1",
       },
       init: {
-        node: Record,
+        node: RecordExpression,
         loc: 3:9-3:23,
         name: {
           node: Identifier,
@@ -37,7 +37,7 @@ test/parser/ast/record/expression.myte
         },
         fields: [
           {
-            node: RecordField,
+            node: RecordExpressionField,
             loc: 3:15-3:21,
             name: {
               node: Identifier,
@@ -65,7 +65,7 @@ test/parser/ast/record/expression.myte
         name: "x2",
       },
       init: {
-        node: Record,
+        node: RecordExpression,
         loc: 4:9-4:39,
         name: {
           node: Identifier,
@@ -74,7 +74,7 @@ test/parser/ast/record/expression.myte
         },
         fields: [
           {
-            node: RecordField,
+            node: RecordExpressionField,
             loc: 4:15-4:25,
             name: {
               node: Identifier,
@@ -100,7 +100,7 @@ test/parser/ast/record/expression.myte
             },
           },
           {
-            node: RecordField,
+            node: RecordExpressionField,
             loc: 4:27-4:37,
             name: {
               node: Identifier,
@@ -127,7 +127,7 @@ test/parser/ast/record/expression.myte
         name: "x3",
       },
       init: {
-        node: Record,
+        node: RecordExpression,
         loc: 5:9-5:20,
         name: {
           node: Identifier,
@@ -136,7 +136,7 @@ test/parser/ast/record/expression.myte
         },
         fields: [
           {
-            node: RecordField,
+            node: RecordExpressionField,
             loc: 5:15-5:18,
             name: {
               node: Identifier,
@@ -159,7 +159,7 @@ test/parser/ast/record/expression.myte
         name: "x4",
       },
       init: {
-        node: Record,
+        node: RecordExpression,
         loc: 6:9-6:25,
         name: {
           node: Identifier,
@@ -168,7 +168,7 @@ test/parser/ast/record/expression.myte
         },
         fields: [
           {
-            node: RecordField,
+            node: RecordExpressionField,
             loc: 6:15-6:18,
             name: {
               node: Identifier,
@@ -178,7 +178,7 @@ test/parser/ast/record/expression.myte
             value: None,
           },
           {
-            node: RecordField,
+            node: RecordExpressionField,
             loc: 6:20-6:23,
             name: {
               node: Identifier,
@@ -201,7 +201,7 @@ test/parser/ast/record/expression.myte
         name: "x5",
       },
       init: {
-        node: Record,
+        node: RecordExpression,
         loc: 7:9-7:43,
         name: {
           node: Identifier,
@@ -210,7 +210,7 @@ test/parser/ast/record/expression.myte
         },
         fields: [
           {
-            node: RecordField,
+            node: RecordExpressionField,
             loc: 7:15-7:21,
             name: {
               node: Identifier,
@@ -225,7 +225,7 @@ test/parser/ast/record/expression.myte
             },
           },
           {
-            node: RecordField,
+            node: RecordExpressionField,
             loc: 7:23-7:26,
             name: {
               node: Identifier,
@@ -235,7 +235,7 @@ test/parser/ast/record/expression.myte
             value: None,
           },
           {
-            node: RecordField,
+            node: RecordExpressionField,
             loc: 7:28-7:32,
             name: {
               node: Identifier,
@@ -245,7 +245,7 @@ test/parser/ast/record/expression.myte
             value: None,
           },
           {
-            node: RecordField,
+            node: RecordExpressionField,
             loc: 7:34-7:41,
             name: {
               node: Identifier,
@@ -271,7 +271,7 @@ test/parser/ast/record/expression.myte
         name: "x6",
       },
       init: {
-        node: Record,
+        node: RecordExpression,
         loc: 10:9-10:40,
         name: {
           node: Identifier,
@@ -280,7 +280,7 @@ test/parser/ast/record/expression.myte
         },
         fields: [
           {
-            node: RecordField,
+            node: RecordExpressionField,
             loc: 10:15-10:32,
             name: {
               node: Identifier,
@@ -288,7 +288,7 @@ test/parser/ast/record/expression.myte
               name: "bar",
             },
             value: {
-              node: Record,
+              node: RecordExpression,
               loc: 10:20-10:32,
               name: {
                 node: Identifier,
@@ -297,7 +297,7 @@ test/parser/ast/record/expression.myte
               },
               fields: [
                 {
-                  node: RecordField,
+                  node: RecordExpressionField,
                   loc: 10:26-10:29,
                   name: {
                     node: Identifier,
@@ -310,7 +310,7 @@ test/parser/ast/record/expression.myte
             },
           },
           {
-            node: RecordField,
+            node: RecordExpressionField,
             loc: 10:34-10:38,
             name: {
               node: Identifier,
@@ -333,7 +333,7 @@ test/parser/ast/record/expression.myte
         name: "trailingValue",
       },
       init: {
-        node: Record,
+        node: RecordExpression,
         loc: 13:20-13:43,
         name: {
           node: Identifier,
@@ -342,7 +342,7 @@ test/parser/ast/record/expression.myte
         },
         fields: [
           {
-            node: RecordField,
+            node: RecordExpressionField,
             loc: 13:26-13:32,
             name: {
               node: Identifier,
@@ -357,7 +357,7 @@ test/parser/ast/record/expression.myte
             },
           },
           {
-            node: RecordField,
+            node: RecordExpressionField,
             loc: 13:34-13:40,
             name: {
               node: Identifier,
@@ -385,7 +385,7 @@ test/parser/ast/record/expression.myte
         name: "trailingName",
       },
       init: {
-        node: Record,
+        node: RecordExpression,
         loc: 14:19-14:36,
         name: {
           node: Identifier,
@@ -394,7 +394,7 @@ test/parser/ast/record/expression.myte
         },
         fields: [
           {
-            node: RecordField,
+            node: RecordExpressionField,
             loc: 14:25-14:28,
             name: {
               node: Identifier,
@@ -404,7 +404,7 @@ test/parser/ast/record/expression.myte
             value: None,
           },
           {
-            node: RecordField,
+            node: RecordExpressionField,
             loc: 14:30-14:33,
             name: {
               node: Identifier,

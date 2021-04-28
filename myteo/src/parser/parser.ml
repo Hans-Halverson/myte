@@ -669,33 +669,46 @@ and parse_primitive_type env =
   { loc; kind }
 
 and parse_parenthesized_type env =
+  let open Type in
   let marker = mark_loc env in
   Env.expect env T_LEFT_PAREN;
-  let (tys, trailing_comma) = parse_parenthesized_type_or_params env in
-  if Env.token env = T_BIG_ARROW || List.length tys <> 1 || trailing_comma then
+  let (tys, trailing_comma_loc) = parse_parenthesized_type_or_params env in
+  (* A parenthesized list followed by an arrow is a function type *)
+  if Env.token env = T_BIG_ARROW then
     parse_function_type env tys [] marker
-  else
+  (* A parenthesized list of two or more elements not followed by an arrow is a tuple *)
+  else if List.length tys <> 1 then
+    let loc = marker env in
+    Tuple { Tuple.loc; elements = tys }
+  else (
+    (* Error if there was a trailing comma after a single parenthesized element *)
+    (match trailing_comma_loc with
+    | Some loc ->
+      Parse_error.fatal (loc, UnexpectedToken { actual = T_COMMA; expected = Some T_RIGHT_PAREN })
+    | _ -> ());
     List.hd tys
+  )
 
-and parse_parenthesized_type_or_params ?(trailing_comma = false) env =
+and parse_parenthesized_type_or_params ?(trailing_comma_loc = None) env =
   match Env.token env with
   | T_RIGHT_PAREN ->
     Env.advance env;
-    ([], trailing_comma)
+    ([], trailing_comma_loc)
   | _ ->
     let ty = parse_type env in
-    let trailing_comma =
+    let trailing_comma_loc =
       match Env.token env with
-      | T_RIGHT_PAREN -> false
+      | T_RIGHT_PAREN -> None
       | T_COMMA ->
+        let loc = Env.loc env in
         Env.advance env;
-        true
+        Some loc
       | _ ->
         Env.expect env T_RIGHT_PAREN;
-        false
+        None
     in
-    let (tys, trailing_comma) = parse_parenthesized_type_or_params ~trailing_comma env in
-    (ty :: tys, trailing_comma)
+    let (tys, trailing_comma_loc) = parse_parenthesized_type_or_params ~trailing_comma_loc env in
+    (ty :: tys, trailing_comma_loc)
 
 and parse_custom_type env =
   let open Type.Custom in

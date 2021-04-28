@@ -297,6 +297,13 @@ and Type : sig
     }
   end
 
+  module Tuple : sig
+    type t = {
+      loc: Loc.t;
+      elements: Type.t list;
+    }
+  end
+
   module Function : sig
     type t = {
       loc: Loc.t;
@@ -309,6 +316,7 @@ and Type : sig
   type t =
     | Primitive of Primitive.t
     | Custom of Custom.t
+    | Tuple of Tuple.t
     | Function of Function.t
 end =
   Type

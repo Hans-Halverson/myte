@@ -13,6 +13,7 @@ let rec build_type ~cx ty =
     | Int -> Types.Int
     | String -> Types.String
     | Bool -> Types.Bool)
+  | Tuple _ -> failwith "TODO: Implement type checking for tuples"
   | Function { Function.params; return; _ } ->
     Types.Function { params = List.map (build_type ~cx) params; return = build_type ~cx return }
   | Custom { Custom.name = { Ast.ScopedIdentifier.name = { Ast.Identifier.loc; _ }; _ }; _ } ->

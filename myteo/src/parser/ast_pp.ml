@@ -166,6 +166,7 @@ and node_of_type ty =
   match ty with
   | Primitive prim -> node_of_primitive_type prim
   | Custom custom -> node_of_custom_type custom
+  | Tuple tuple -> node_of_tuple_type tuple
   | Function func -> node_of_function_type func
 
 and node_of_expression_stmt (loc, expr) =
@@ -224,7 +225,7 @@ and node_of_bool_literal lit =
 and node_of_record_expression record =
   let { Expression.Record.loc; name; fields } = record in
   node
-    "Record"
+    "RecordExpression"
     loc
     [
       ("name", node_of_identifier name);
@@ -234,14 +235,14 @@ and node_of_record_expression record =
 and node_of_record_expression_field field =
   let { Expression.Record.Field.loc; name; value } = field in
   node
-    "RecordField"
+    "RecordExpressionField"
     loc
     [("name", node_of_identifier name); ("value", opt node_of_expression value)]
 
 and node_of_tuple_expression tuple =
   let { Expression.Tuple.loc; name; elements } = tuple in
   node
-    "Tuple"
+    "TupleExpression"
     loc
     [
       ("name", opt node_of_identifier name);
@@ -383,6 +384,10 @@ and node_of_primitive_type p =
 and node_of_custom_type named =
   let { Type.Custom.loc; name } = named in
   node "CustomType" loc [("name", node_of_scoped_identifier name)]
+
+and node_of_tuple_type tuple =
+  let { Type.Tuple.loc; elements } = tuple in
+  node "TupleType" loc [("elements", List (List.map node_of_type elements))]
 
 and node_of_function_type func =
   let { Type.Function.loc; params; return; type_params } = func in
