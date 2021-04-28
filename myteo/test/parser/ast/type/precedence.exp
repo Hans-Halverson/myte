@@ -26,6 +26,7 @@ test/parser/ast/type/precedence.myte
         loc: 4:11-4:13,
         name: "t1",
       },
+      type_params: [],
       alias: {
         node: FunctionType,
         loc: 4:16-4:39,
@@ -64,6 +65,7 @@ test/parser/ast/type/precedence.myte
         loc: 5:11-5:13,
         name: "t2",
       },
+      type_params: [],
       alias: {
         node: FunctionType,
         loc: 5:16-5:39,
@@ -102,6 +104,7 @@ test/parser/ast/type/precedence.myte
         loc: 6:11-6:13,
         name: "t3",
       },
+      type_params: [],
       alias: {
         node: FunctionType,
         loc: 6:16-6:37,

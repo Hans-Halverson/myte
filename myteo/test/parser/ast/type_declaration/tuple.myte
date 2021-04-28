@@ -9,3 +9,7 @@ type t3(int, bool, string)
 type t4(int, bool, string,)
 
 type t5((int, bool), string)
+
+type t6<T>(unit)
+
+type t7<T, U, V>(int)

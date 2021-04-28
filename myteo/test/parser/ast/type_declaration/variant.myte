@@ -20,3 +20,7 @@ type t6 =
  | Foo ((int, string))
  | Bar ((int, string) => bool)
  | Baz { k: OtherType }
+
+type t7<T> = None | Some (T)
+
+type t8<T, U, V> = TVariant (T) | UVariant (U) | VVariant (V)

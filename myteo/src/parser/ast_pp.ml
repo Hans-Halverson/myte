@@ -351,12 +351,13 @@ and node_of_variable_decl decl =
 
 and node_of_type_decl decl =
   let open TypeDeclaration in
-  let { loc; name; decl } = decl in
+  let { loc; name; type_params; decl } = decl in
   node
     "TypeDeclaration"
     loc
     [
       ("name", node_of_identifier name);
+      ("type_params", List (List.map node_of_type_parameter type_params));
       (match decl with
       | Alias alias -> ("alias", node_of_type alias)
       | Record record -> ("record", node_of_record_variant record)
@@ -413,13 +414,18 @@ and node_of_function func =
       ("params", List (List.map node_of_function_param params));
       ("body", body);
       ("return", opt node_of_type return);
-      ("type_params", List (List.map node_of_identifier type_params));
+      ("type_params", List (List.map node_of_type_parameter type_params));
     ]
 
 and node_of_function_param param =
   let open Function.Param in
   let { loc; name; annot } = param in
   node "Param" loc [("name", node_of_identifier name); ("annot", node_of_type annot)]
+
+and node_of_type_parameter param =
+  let open TypeParameter in
+  let { loc; name } = param in
+  node "TypeParameter" loc [("name", node_of_identifier name)]
 
 and node_of_primitive_type p =
   let { Type.Primitive.loc; kind } = p in
@@ -441,7 +447,7 @@ and node_of_function_type func =
     [
       ("params", List (List.map node_of_type params));
       ("return", node_of_type return);
-      ("type_params", List (List.map node_of_identifier type_params));
+      ("type_params", List (List.map node_of_type_parameter type_params));
     ]
 
 and pp_module mod_ =

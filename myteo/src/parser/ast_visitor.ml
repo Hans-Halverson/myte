@@ -180,13 +180,18 @@ class ['a] visitor =
       List.iter (this#function_param acc) params;
       this#function_body acc body;
       Option.iter (this#type_ acc) return;
-      List.iter (this#identifier acc) type_params
+      List.iter (this#type_parameter acc) type_params
 
     method function_param acc param =
       let open Function.Param in
       let { loc = _; name; annot } = param in
       this#identifier acc name;
       this#type_ acc annot
+
+    method type_parameter acc param =
+      let open TypeParameter in
+      let { loc = _; name } = param in
+      this#identifier acc name
 
     method function_body acc body =
       let open Function in
@@ -240,8 +245,9 @@ class ['a] visitor =
 
     method type_declaration acc decl =
       let open TypeDeclaration in
-      let { loc = _; name; decl } = decl in
+      let { loc = _; name; type_params; decl } = decl in
       this#identifier acc name;
+      List.iter (this#type_parameter acc) type_params;
       this#type_declaration_declaration acc decl
 
     method type_declaration_declaration acc decl =
@@ -294,5 +300,5 @@ class ['a] visitor =
       let { loc = _; params; return; type_params } = func in
       List.iter (this#type_ acc) params;
       this#type_ acc return;
-      List.iter (this#identifier acc) type_params
+      List.iter (this#type_parameter acc) type_params
   end

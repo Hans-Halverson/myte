@@ -1,7 +1,7 @@
 test/parser/ast/type_declaration/alias.myte
 {
   node: Module,
-  loc: 1:0-7:38,
+  loc: 1:0-11:28,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -26,6 +26,7 @@ test/parser/ast/type_declaration/alias.myte
         loc: 3:11-3:13,
         name: "t1",
       },
+      type_params: [],
       alias: {
         node: PrimitiveType,
         loc: 3:16-3:20,
@@ -40,6 +41,7 @@ test/parser/ast/type_declaration/alias.myte
         loc: 5:11-5:13,
         name: "t2",
       },
+      type_params: [],
       alias: {
         node: PrimitiveType,
         loc: 5:16-5:19,
@@ -54,6 +56,7 @@ test/parser/ast/type_declaration/alias.myte
         loc: 7:11-7:13,
         name: "t3",
       },
+      type_params: [],
       alias: {
         node: FunctionType,
         loc: 7:16-7:38,
@@ -75,6 +78,74 @@ test/parser/ast/type_declaration/alias.myte
           kind: Unit,
         },
         type_params: [],
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 9:0-9:23,
+      name: {
+        node: Identifier,
+        loc: 9:11-9:13,
+        name: "t4",
+      },
+      type_params: [
+        {
+          node: TypeParameter,
+          loc: 9:14-9:15,
+          name: {
+            node: Identifier,
+            loc: 9:14-9:15,
+            name: "T",
+          },
+        },
+      ],
+      alias: {
+        node: PrimitiveType,
+        loc: 9:19-9:23,
+        kind: Unit,
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 11:0-11:28,
+      name: {
+        node: Identifier,
+        loc: 11:11-11:13,
+        name: "t5",
+      },
+      type_params: [
+        {
+          node: TypeParameter,
+          loc: 11:14-11:15,
+          name: {
+            node: Identifier,
+            loc: 11:14-11:15,
+            name: "T",
+          },
+        },
+        {
+          node: TypeParameter,
+          loc: 11:17-11:18,
+          name: {
+            node: Identifier,
+            loc: 11:17-11:18,
+            name: "U",
+          },
+        },
+        {
+          node: TypeParameter,
+          loc: 11:20-11:21,
+          name: {
+            node: Identifier,
+            loc: 11:20-11:21,
+            name: "V",
+          },
+        },
+      ],
+      alias: {
+        node: PrimitiveType,
+        loc: 11:25-11:28,
+        kind: Int,
       },
     },
   ],

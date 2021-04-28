@@ -251,7 +251,7 @@ class mapper =
       let params' = id_map_list this#function_param params in
       let body' = this#function_body body in
       let return' = id_map_opt this#type_ return in
-      let type_params' = id_map_list this#identifier type_params in
+      let type_params' = id_map_list this#type_parameter type_params in
       if
         name == name'
         && params == params'
@@ -358,10 +358,20 @@ class mapper =
       else
         { loc; kind; pattern = pattern'; init = init'; annot = annot' }
 
+    method type_parameter param =
+      let open TypeParameter in
+      let { loc; name } = param in
+      let name' = this#identifier name in
+      if name == name' then
+        param
+      else
+        { loc; name = name' }
+
     method type_declaration declaration =
       let open TypeDeclaration in
-      let { loc; name; decl } = declaration in
+      let { loc; name; type_params; decl } = declaration in
       let name' = this#identifier name in
+      let type_params' = id_map_list this#type_parameter type_params in
       let decl' =
         match decl with
         | Alias a -> id_map this#type_ a decl (fun a' -> Alias a')
@@ -374,10 +384,10 @@ class mapper =
           else
             Variant variants'
       in
-      if name == name' && decl == decl' then
+      if name == name' && type_params == type_params' && decl == decl' then
         declaration
       else
-        { loc; name = name'; decl = decl' }
+        { loc; name = name'; decl = decl'; type_params = type_params' }
 
     method type_declaration_variant variant =
       let open TypeDeclaration in
@@ -441,7 +451,7 @@ class mapper =
       let { loc; params; return; type_params } = func in
       let params' = id_map_list this#type_ params in
       let return' = this#type_ return in
-      let type_params' = id_map_list this#identifier type_params in
+      let type_params' = id_map_list this#type_parameter type_params in
       if params == params' && return == return' && type_params == type_params' then
         func
       else

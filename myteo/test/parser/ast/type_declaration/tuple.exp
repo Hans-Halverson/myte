@@ -1,7 +1,7 @@
 test/parser/ast/type_declaration/tuple.myte
 {
   node: Module,
-  loc: 1:0-11:28,
+  loc: 1:0-15:21,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -26,6 +26,7 @@ test/parser/ast/type_declaration/tuple.myte
         loc: 3:5-3:7,
         name: "t1",
       },
+      type_params: [],
       tuple: {
         node: TupleVariant,
         loc: 3:5-3:12,
@@ -51,6 +52,7 @@ test/parser/ast/type_declaration/tuple.myte
         loc: 5:5-5:7,
         name: "t2",
       },
+      type_params: [],
       tuple: {
         node: TupleVariant,
         loc: 5:5-5:16,
@@ -76,6 +78,7 @@ test/parser/ast/type_declaration/tuple.myte
         loc: 7:5-7:7,
         name: "t3",
       },
+      type_params: [],
       tuple: {
         node: TupleVariant,
         loc: 7:5-7:26,
@@ -111,6 +114,7 @@ test/parser/ast/type_declaration/tuple.myte
         loc: 9:5-9:7,
         name: "t4",
       },
+      type_params: [],
       tuple: {
         node: TupleVariant,
         loc: 9:5-9:27,
@@ -146,6 +150,7 @@ test/parser/ast/type_declaration/tuple.myte
         loc: 11:5-11:7,
         name: "t5",
       },
+      type_params: [],
       tuple: {
         node: TupleVariant,
         loc: 11:5-11:28,
@@ -175,6 +180,96 @@ test/parser/ast/type_declaration/tuple.myte
             node: PrimitiveType,
             loc: 11:21-11:27,
             kind: String,
+          },
+        ],
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 13:0-13:16,
+      name: {
+        node: Identifier,
+        loc: 13:5-13:7,
+        name: "t6",
+      },
+      type_params: [
+        {
+          node: TypeParameter,
+          loc: 13:8-13:9,
+          name: {
+            node: Identifier,
+            loc: 13:8-13:9,
+            name: "T",
+          },
+        },
+      ],
+      tuple: {
+        node: TupleVariant,
+        loc: 13:5-13:16,
+        name: {
+          node: Identifier,
+          loc: 13:5-13:7,
+          name: "t6",
+        },
+        elements: [
+          {
+            node: PrimitiveType,
+            loc: 13:11-13:15,
+            kind: Unit,
+          },
+        ],
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 15:0-15:21,
+      name: {
+        node: Identifier,
+        loc: 15:5-15:7,
+        name: "t7",
+      },
+      type_params: [
+        {
+          node: TypeParameter,
+          loc: 15:8-15:9,
+          name: {
+            node: Identifier,
+            loc: 15:8-15:9,
+            name: "T",
+          },
+        },
+        {
+          node: TypeParameter,
+          loc: 15:11-15:12,
+          name: {
+            node: Identifier,
+            loc: 15:11-15:12,
+            name: "U",
+          },
+        },
+        {
+          node: TypeParameter,
+          loc: 15:14-15:15,
+          name: {
+            node: Identifier,
+            loc: 15:14-15:15,
+            name: "V",
+          },
+        },
+      ],
+      tuple: {
+        node: TupleVariant,
+        loc: 15:5-15:21,
+        name: {
+          node: Identifier,
+          loc: 15:5-15:7,
+          name: "t7",
+        },
+        elements: [
+          {
+            node: PrimitiveType,
+            loc: 15:17-15:20,
+            kind: Int,
           },
         ],
       },

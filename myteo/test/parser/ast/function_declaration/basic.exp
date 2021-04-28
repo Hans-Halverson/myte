@@ -206,9 +206,13 @@ test/parser/ast/function_declaration/basic.myte
       return: None,
       type_params: [
         {
-          node: Identifier,
+          node: TypeParameter,
           loc: 11:8-11:9,
-          name: "A",
+          name: {
+            node: Identifier,
+            loc: 11:8-11:9,
+            name: "A",
+          },
         },
       ],
     },
@@ -253,9 +257,13 @@ test/parser/ast/function_declaration/basic.myte
       return: None,
       type_params: [
         {
-          node: Identifier,
+          node: TypeParameter,
           loc: 13:8-13:9,
-          name: "A",
+          name: {
+            node: Identifier,
+            loc: 13:8-13:9,
+            name: "A",
+          },
         },
       ],
     },
@@ -336,19 +344,31 @@ test/parser/ast/function_declaration/basic.myte
       },
       type_params: [
         {
-          node: Identifier,
+          node: TypeParameter,
           loc: 15:8-15:9,
-          name: "A",
+          name: {
+            node: Identifier,
+            loc: 15:8-15:9,
+            name: "A",
+          },
         },
         {
-          node: Identifier,
+          node: TypeParameter,
           loc: 15:11-15:12,
-          name: "B",
+          name: {
+            node: Identifier,
+            loc: 15:11-15:12,
+            name: "B",
+          },
         },
         {
-          node: Identifier,
+          node: TypeParameter,
           loc: 15:14-15:15,
-          name: "C",
+          name: {
+            node: Identifier,
+            loc: 15:14-15:15,
+            name: "C",
+          },
         },
       ],
     },
@@ -429,19 +449,31 @@ test/parser/ast/function_declaration/basic.myte
       },
       type_params: [
         {
-          node: Identifier,
+          node: TypeParameter,
           loc: 17:8-17:9,
-          name: "A",
+          name: {
+            node: Identifier,
+            loc: 17:8-17:9,
+            name: "A",
+          },
         },
         {
-          node: Identifier,
+          node: TypeParameter,
           loc: 17:11-17:12,
-          name: "B",
+          name: {
+            node: Identifier,
+            loc: 17:11-17:12,
+            name: "B",
+          },
         },
         {
-          node: Identifier,
+          node: TypeParameter,
           loc: 17:14-17:15,
-          name: "C",
+          name: {
+            node: Identifier,
+            loc: 17:14-17:15,
+            name: "C",
+          },
         },
       ],
     },

@@ -1,7 +1,7 @@
 test/parser/ast/type_declaration/record.myte
 {
   node: Module,
-  loc: 1:0-11:74,
+  loc: 1:0-15:35,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -26,6 +26,7 @@ test/parser/ast/type_declaration/record.myte
         loc: 3:5-3:7,
         name: "r1",
       },
+      type_params: [],
       record: {
         node: RecordVariant,
         loc: 3:5-3:20,
@@ -60,6 +61,7 @@ test/parser/ast/type_declaration/record.myte
         loc: 5:5-5:7,
         name: "r2",
       },
+      type_params: [],
       record: {
         node: RecordVariant,
         loc: 5:5-5:21,
@@ -94,6 +96,7 @@ test/parser/ast/type_declaration/record.myte
         loc: 7:5-7:7,
         name: "r3",
       },
+      type_params: [],
       record: {
         node: RecordVariant,
         loc: 7:5-7:44,
@@ -156,6 +159,7 @@ test/parser/ast/type_declaration/record.myte
         loc: 9:5-9:7,
         name: "r4",
       },
+      type_params: [],
       record: {
         node: RecordVariant,
         loc: 9:5-9:45,
@@ -218,6 +222,7 @@ test/parser/ast/type_declaration/record.myte
         loc: 11:5-11:7,
         name: "r5",
       },
+      type_params: [],
       record: {
         node: RecordVariant,
         loc: 11:5-11:74,
@@ -293,6 +298,166 @@ test/parser/ast/type_declaration/record.myte
                   node: PrimitiveType,
                   loc: 11:67-11:71,
                   kind: Unit,
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 13:0-13:21,
+      name: {
+        node: Identifier,
+        loc: 13:5-13:7,
+        name: "t6",
+      },
+      type_params: [
+        {
+          node: TypeParameter,
+          loc: 13:8-13:9,
+          name: {
+            node: Identifier,
+            loc: 13:8-13:9,
+            name: "T",
+          },
+        },
+      ],
+      record: {
+        node: RecordVariant,
+        loc: 13:5-13:21,
+        name: {
+          node: Identifier,
+          loc: 13:5-13:7,
+          name: "t6",
+        },
+        fields: [
+          {
+            node: RecordVariantField,
+            loc: 13:5-13:19,
+            name: {
+              node: Identifier,
+              loc: 13:13-13:16,
+              name: "foo",
+            },
+            type: {
+              node: CustomType,
+              loc: 13:18-13:19,
+              name: {
+                node: ScopedIdentifier,
+                loc: 13:18-13:19,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 13:18-13:19,
+                  name: "T",
+                },
+              },
+            },
+          },
+        ],
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 15:0-15:35,
+      name: {
+        node: Identifier,
+        loc: 15:5-15:7,
+        name: "t7",
+      },
+      type_params: [
+        {
+          node: TypeParameter,
+          loc: 15:8-15:9,
+          name: {
+            node: Identifier,
+            loc: 15:8-15:9,
+            name: "T",
+          },
+        },
+        {
+          node: TypeParameter,
+          loc: 15:11-15:12,
+          name: {
+            node: Identifier,
+            loc: 15:11-15:12,
+            name: "U",
+          },
+        },
+        {
+          node: TypeParameter,
+          loc: 15:14-15:15,
+          name: {
+            node: Identifier,
+            loc: 15:14-15:15,
+            name: "V",
+          },
+        },
+      ],
+      record: {
+        node: RecordVariant,
+        loc: 15:5-15:35,
+        name: {
+          node: Identifier,
+          loc: 15:5-15:7,
+          name: "t7",
+        },
+        fields: [
+          {
+            node: RecordVariantField,
+            loc: 15:5-15:33,
+            name: {
+              node: Identifier,
+              loc: 15:19-15:22,
+              name: "foo",
+            },
+            type: {
+              node: TupleType,
+              loc: 15:24-15:33,
+              elements: [
+                {
+                  node: CustomType,
+                  loc: 15:25-15:26,
+                  name: {
+                    node: ScopedIdentifier,
+                    loc: 15:25-15:26,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 15:25-15:26,
+                      name: "V",
+                    },
+                  },
+                },
+                {
+                  node: CustomType,
+                  loc: 15:28-15:29,
+                  name: {
+                    node: ScopedIdentifier,
+                    loc: 15:28-15:29,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 15:28-15:29,
+                      name: "U",
+                    },
+                  },
+                },
+                {
+                  node: CustomType,
+                  loc: 15:31-15:32,
+                  name: {
+                    node: ScopedIdentifier,
+                    loc: 15:31-15:32,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 15:31-15:32,
+                      name: "T",
+                    },
+                  },
                 },
               ],
             },

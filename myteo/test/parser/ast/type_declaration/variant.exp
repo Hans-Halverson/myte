@@ -1,7 +1,7 @@
 test/parser/ast/type_declaration/variant.myte
 {
   node: Module,
-  loc: 1:0-23:0,
+  loc: 1:0-26:61,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -26,6 +26,7 @@ test/parser/ast/type_declaration/variant.myte
         loc: 3:5-3:7,
         name: "t1",
       },
+      type_params: [],
       variants: [
         {
           node: Identifier,
@@ -47,6 +48,7 @@ test/parser/ast/type_declaration/variant.myte
         loc: 5:5-5:7,
         name: "t2",
       },
+      type_params: [],
       variants: [
         {
           node: Identifier,
@@ -68,6 +70,7 @@ test/parser/ast/type_declaration/variant.myte
         loc: 7:5-7:7,
         name: "t3",
       },
+      type_params: [],
       variants: [
         {
           node: TupleVariant,
@@ -137,6 +140,7 @@ test/parser/ast/type_declaration/variant.myte
         loc: 12:5-12:7,
         name: "t4",
       },
+      type_params: [],
       variants: [
         {
           node: RecordVariant,
@@ -251,6 +255,7 @@ test/parser/ast/type_declaration/variant.myte
         loc: 17:5-17:7,
         name: "t5",
       },
+      type_params: [],
       variants: [
         {
           node: Identifier,
@@ -308,6 +313,7 @@ test/parser/ast/type_declaration/variant.myte
         loc: 19:5-19:7,
         name: "t6",
       },
+      type_params: [],
       variants: [
         {
           node: TupleVariant,
@@ -398,6 +404,173 @@ test/parser/ast/type_declaration/variant.myte
                     loc: 22:12-22:21,
                     name: "OtherType",
                   },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      node: TypeDeclaration,
+      loc: 24:0-24:28,
+      name: {
+        node: Identifier,
+        loc: 24:5-24:7,
+        name: "t7",
+      },
+      type_params: [
+        {
+          node: TypeParameter,
+          loc: 24:8-24:9,
+          name: {
+            node: Identifier,
+            loc: 24:8-24:9,
+            name: "T",
+          },
+        },
+      ],
+      variants: [
+        {
+          node: Identifier,
+          loc: 24:13-24:17,
+          name: "None",
+        },
+        {
+          node: TupleVariant,
+          loc: 24:20-24:28,
+          name: {
+            node: Identifier,
+            loc: 24:20-24:24,
+            name: "Some",
+          },
+          elements: [
+            {
+              node: CustomType,
+              loc: 24:26-24:27,
+              name: {
+                node: ScopedIdentifier,
+                loc: 24:26-24:27,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 24:26-24:27,
+                  name: "T",
+                },
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      node: TypeDeclaration,
+      loc: 26:0-26:61,
+      name: {
+        node: Identifier,
+        loc: 26:5-26:7,
+        name: "t8",
+      },
+      type_params: [
+        {
+          node: TypeParameter,
+          loc: 26:8-26:9,
+          name: {
+            node: Identifier,
+            loc: 26:8-26:9,
+            name: "T",
+          },
+        },
+        {
+          node: TypeParameter,
+          loc: 26:11-26:12,
+          name: {
+            node: Identifier,
+            loc: 26:11-26:12,
+            name: "U",
+          },
+        },
+        {
+          node: TypeParameter,
+          loc: 26:14-26:15,
+          name: {
+            node: Identifier,
+            loc: 26:14-26:15,
+            name: "V",
+          },
+        },
+      ],
+      variants: [
+        {
+          node: TupleVariant,
+          loc: 26:19-26:31,
+          name: {
+            node: Identifier,
+            loc: 26:19-26:27,
+            name: "TVariant",
+          },
+          elements: [
+            {
+              node: CustomType,
+              loc: 26:29-26:30,
+              name: {
+                node: ScopedIdentifier,
+                loc: 26:29-26:30,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 26:29-26:30,
+                  name: "T",
+                },
+              },
+            },
+          ],
+        },
+        {
+          node: TupleVariant,
+          loc: 26:34-26:46,
+          name: {
+            node: Identifier,
+            loc: 26:34-26:42,
+            name: "UVariant",
+          },
+          elements: [
+            {
+              node: CustomType,
+              loc: 26:44-26:45,
+              name: {
+                node: ScopedIdentifier,
+                loc: 26:44-26:45,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 26:44-26:45,
+                  name: "U",
+                },
+              },
+            },
+          ],
+        },
+        {
+          node: TupleVariant,
+          loc: 26:49-26:61,
+          name: {
+            node: Identifier,
+            loc: 26:49-26:57,
+            name: "VVariant",
+          },
+          elements: [
+            {
+              node: CustomType,
+              loc: 26:59-26:60,
+              name: {
+                node: ScopedIdentifier,
+                loc: 26:59-26:60,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 26:59-26:60,
+                  name: "V",
                 },
               },
             },

@@ -553,32 +553,39 @@ and parse_type_declaration env =
   let open TypeDeclaration in
   let marker = mark_loc env in
   Env.expect env T_TYPE;
+  let parse_type_params_opt () =
+    match Env.token env with
+    | T_LESS_THAN -> parse_type_params env
+    | _ -> []
+  in
   match Env.token env with
   | T_ALIAS ->
     Env.advance env;
     let name = parse_identifier env in
+    let type_params = parse_type_params_opt () in
     Env.expect env T_EQUALS;
     let alias = parse_type env in
     let loc = marker env in
-    { loc; name; decl = Alias alias }
+    { loc; name; type_params; decl = Alias alias }
   | _ ->
     let name_marker = mark_loc env in
     let name = parse_identifier env in
+    let type_params = parse_type_params_opt () in
     (match Env.token env with
     | T_LEFT_PAREN ->
       let tuple = parse_tuple_variant env name name_marker in
       let loc = marker env in
-      { loc; name; decl = Tuple tuple }
+      { loc; name; type_params; decl = Tuple tuple }
     | T_LEFT_BRACE ->
       let record = parse_record_variant env name name_marker in
       let loc = marker env in
-      { loc; name; decl = Record record }
+      { loc; name; type_params; decl = Record record }
     | T_EQUALS ->
       Env.advance env;
-      parse_variant env name marker
+      parse_variant env name type_params marker
     | token -> Parse_error.fatal (Env.loc env, MalformedTypeDeclaration token))
 
-and parse_variant env name marker =
+and parse_variant env name type_params marker =
   (match Env.token env with
   | T_PIPE -> Env.advance env
   | _ -> ());
@@ -601,7 +608,7 @@ and parse_variant env name marker =
   let variants = parse_variants () in
   let loc = marker env in
   if List.length variants = 1 then Parse_error.fatal (loc, SingleVariant);
-  { loc; name; decl = Variant variants }
+  { loc; name; type_params; decl = Variant variants }
 
 and parse_record_variant env name marker =
   let open TypeDeclaration.Record in
@@ -838,14 +845,16 @@ and parse_type_params env =
         Env.advance env;
         []
       | _ ->
-        let type_param = parse_identifier env in
+        let marker = mark_loc env in
+        let name = parse_identifier env in
+        let loc = marker env in
         begin
           match Env.token env with
           | T_GREATER_THAN -> ()
           | T_COMMA -> Env.advance env
           | _ -> Env.expect env T_GREATER_THAN
         end;
-        type_param :: type_params env
+        { TypeParameter.loc; name } :: type_params env
     in
     type_params env
 

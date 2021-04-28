@@ -309,7 +309,7 @@ and Type : sig
       loc: Loc.t;
       params: Type.t list;
       return: Type.t;
-      type_params: Identifier.t list;
+      type_params: TypeParameter.t list;
     }
   end
 
@@ -320,6 +320,14 @@ and Type : sig
     | Function of Function.t
 end =
   Type
+
+and TypeParameter : sig
+  type t = {
+    loc: Loc.t;
+    name: Identifier.t;
+  }
+end =
+  TypeParameter
 
 and Function : sig
   module Param : sig
@@ -340,7 +348,7 @@ and Function : sig
     params: Param.t list;
     body: body;
     return: Type.t option;
-    type_params: Identifier.t list;
+    type_params: TypeParameter.t list;
   }
 end =
   Function
@@ -384,6 +392,7 @@ and TypeDeclaration : sig
   type t = {
     loc: Loc.t;
     name: Identifier.t;
+    type_params: TypeParameter.t list;
     decl: decl;
   }
 end =
