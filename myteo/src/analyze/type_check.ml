@@ -13,7 +13,7 @@ let rec build_type ~cx ty =
     | Int -> Types.Int
     | String -> Types.String
     | Bool -> Types.Bool)
-  | Tuple _ -> failwith "TODO: Implement type checking for tuples"
+  | Tuple _ -> (* TODO: Implement type checking for tuples *) Types.Any
   | Function { Function.params; return; _ } ->
     Types.Function { params = List.map (build_type ~cx) params; return = build_type ~cx return }
   | Custom { Custom.name = { Ast.ScopedIdentifier.name = { Ast.Identifier.loc; _ }; _ }; _ } ->
@@ -29,9 +29,10 @@ and visit_type_declarations ~cx module_ =
           {
             Ast.TypeDeclaration.loc;
             name = { Ast.Identifier.loc = id_loc; name };
+            type_params;
             decl = Alias alias;
-            _;
           } ->
+        check_type_parameters ~cx type_params;
         let tvar_id = Type_context.get_tvar_id_from_type_decl ~cx id_loc in
         let ty = build_type ~cx alias in
         (* Check if the right hand side is a tvar that has been already unified with this type.
@@ -48,7 +49,7 @@ and visit_type_declarations ~cx module_ =
             ~cx
             loc
             (RecursiveTypeAlias (name, find_rep_tvar_id ~cx tvar_id, find_rep_type ~cx ty))
-      | TypeDeclaration _ -> failwith "TODO: Implement type checking for new type declarations"
+      | TypeDeclaration _ -> (* TODO: Implement type checking for new type declarations *) ()
       | _ -> ())
     toplevels
 
@@ -106,11 +107,20 @@ and check_variable_declaration ~cx ~decl_pass decl =
         Type_context.add_error ~cx loc (VarDeclNeedsAnnotation (name, partial))
     | Some _ -> Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) (TVar tvar_id)
 
+and check_type_parameters ~cx params =
+  (* TODO: Add type checking for type parameters *)
+  List.iter
+    (fun { Ast.TypeParameter.loc; _ } ->
+      let param_tvar_id = Type_context.get_tvar_id_from_type_decl ~cx loc in
+      ignore (Type_context.unify ~cx Any (TVar param_tvar_id)))
+    params
+
 and check_function_declaration ~cx ~decl_pass decl =
   let open Ast.Identifier in
   let open Ast.Function in
   let open Ast.Function.Param in
-  let { name = { loc = id_loc; _ }; params; return; body; _ } = decl in
+  let { name = { loc = id_loc; _ }; params; return; body; type_params; loc = _ } = decl in
+  check_type_parameters ~cx type_params;
 
   (* Bind annotated function type to function identifier *)
   let tvar_id = Type_context.get_tvar_id_from_value_decl ~cx id_loc in

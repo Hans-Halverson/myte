@@ -1,39 +1,69 @@
-Error: Could not resolve name "x" to value
-test/analyze/name_resolution/unresolved_name_error.myte:6:2
- 6 |   x;
-   |   ^
+Error: Could not resolve name "Nonexistent" to type
+test/analyze/name_resolution/unresolved_name_error.myte:4:17-28
+ 4 | type alias ty2 = Nonexistent
+   |                  ^^^^^^^^^^^
 
-Error: Could not resolve name "y" to value
-test/analyze/name_resolution/unresolved_name_error.myte:7:2
- 7 |   y;
-   |   ^
+Error: Could not resolve name "Nonexistent" to type
+test/analyze/name_resolution/unresolved_name_error.myte:8:10-21
+ 8 |   val x1: Nonexistent = 1;
+   |           ^^^^^^^^^^^
+
+Error: Could not resolve name "x" to type
+test/analyze/name_resolution/unresolved_name_error.myte:15:11
+ 15 |   val x2: (x, test1) = 1;
+    |            ^
+
+Error: Could not resolve name "test1" to type
+test/analyze/name_resolution/unresolved_name_error.myte:15:14-19
+ 15 |   val x2: (x, test1) = 1;
+    |               ^^^^^
+
+Error: Could not resolve name "ty" to value
+test/analyze/name_resolution/unresolved_name_error.myte:18:3-5
+ 18 |   (ty: int);
+    |    ^^
+
+Error: Could not resolve name "T" to value
+test/analyze/name_resolution/unresolved_name_error.myte:19:3
+ 19 |   (T: int);
+    |    ^
 
 Error: Could not resolve name "x" to value
-test/analyze/name_resolution/unresolved_name_error.myte:29:2
- 29 |   x;
+test/analyze/name_resolution/unresolved_name_error.myte:25:2
+ 25 |   x;
     |   ^
 
 Error: Could not resolve name "y" to value
-test/analyze/name_resolution/unresolved_name_error.myte:30:2
- 30 |   y;
+test/analyze/name_resolution/unresolved_name_error.myte:26:2
+ 26 |   y;
     |   ^
 
 Error: Could not resolve name "x" to value
-test/analyze/name_resolution/unresolved_name_error.myte:45:2
- 45 |   x;
+test/analyze/name_resolution/unresolved_name_error.myte:48:2
+ 48 |   x;
     |   ^
 
 Error: Could not resolve name "y" to value
-test/analyze/name_resolution/unresolved_name_error.myte:46:2
- 46 |   y; 
+test/analyze/name_resolution/unresolved_name_error.myte:49:2
+ 49 |   y;
     |   ^
 
 Error: Could not resolve name "x" to value
-test/analyze/name_resolution/unresolved_name_error.myte:57:2
- 57 |   x;
+test/analyze/name_resolution/unresolved_name_error.myte:64:2
+ 64 |   x;
+    |   ^
+
+Error: Could not resolve name "y" to value
+test/analyze/name_resolution/unresolved_name_error.myte:65:2
+ 65 |   y; 
     |   ^
 
 Error: Could not resolve name "x" to value
-test/analyze/name_resolution/unresolved_name_error.myte:62:15
- 62 |   val x: int = x;
+test/analyze/name_resolution/unresolved_name_error.myte:76:2
+ 76 |   x;
+    |   ^
+
+Error: Could not resolve name "x" to value
+test/analyze/name_resolution/unresolved_name_error.myte:81:15
+ 81 |   val x: int = x;
     |                ^

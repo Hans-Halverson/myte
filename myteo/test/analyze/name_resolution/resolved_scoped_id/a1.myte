@@ -1,3 +1,5 @@
 module a1
 
 fun export() {}
+
+type ExportType (int)

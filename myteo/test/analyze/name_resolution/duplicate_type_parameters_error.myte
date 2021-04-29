@@ -1,0 +1,11 @@
+module test
+
+type alias t1<T, T> = int
+
+type t2<T, T>(int)
+
+type t3<T, T>{ foo: int }
+
+fun fun1<T, T>(x: T): T = x
+
+fun main() {}

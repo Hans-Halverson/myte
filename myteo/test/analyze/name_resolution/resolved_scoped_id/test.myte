@@ -6,6 +6,24 @@ import {c1 as c1Alias}
 import d1.d2
 import d1.{d2 as d2Alias}
 
+// Valid export is correctly converted to scoped id
+type alias t1 = a1.ExportType
+type alias t2 = a1.a2.ExportType
+
+// Valid export which has empty module tree parents
+type alias t3 = b1.b2.b3.ExportType
+
+// Valid export which are children of module imports
+type alias t4 = c1.ExportType
+type alias t5 = c1Alias.ExportType
+type alias t6 = d2.ExportType
+type alias t7 = d2Alias.ExportType
+
+// Names resolved in all type declarations
+type t8 (a1.ExportType)
+type t9 { a: a1.ExportType }
+type t10 = Foo (a1.ExportType) | Bar { a: a1.ExportType }
+
 fun test() {
   // Valid export is correctly converted to scoped id
   a1.export;

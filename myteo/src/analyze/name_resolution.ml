@@ -236,11 +236,27 @@ class bindings_builder ~module_tree =
             | FunctionDeclaration decl ->
               id_map (this#visit_function_declaration ~toplevel:true) decl toplevel (fun decl' ->
                   FunctionDeclaration decl')
-            | TypeDeclaration { TypeDeclaration.decl = Alias alias; _ } ->
-              ignore (this#type_ alias);
-              toplevel
-            | TypeDeclaration _ ->
-              failwith "TODO: Implement name resolution for new type declarations")
+            | TypeDeclaration
+                { TypeDeclaration.name = { Ast.Identifier.name; _ }; decl; type_params; _ } ->
+              if type_params <> [] then this#enter_scope ();
+              this#add_type_parameter_declarations type_params (TypeName name);
+              let type_decl =
+                match decl with
+                | Alias alias ->
+                  ignore (this#type_ alias);
+                  toplevel
+                | Record record ->
+                  ignore (this#record_variant record);
+                  toplevel
+                | Tuple tuple ->
+                  ignore (this#tuple_variant tuple);
+                  toplevel
+                | Variant variants ->
+                  List.iter (fun v -> ignore (this#type_declaration_variant v)) variants;
+                  toplevel
+              in
+              if type_params <> [] then this#exit_scope ();
+              type_decl)
           toplevels
       in
       this#exit_scope ();
@@ -268,21 +284,34 @@ class bindings_builder ~module_tree =
       block'
 
     method visit_variable_declaration ~toplevel decl =
-      let { Ast.Statement.VariableDeclaration.kind; pattern; init; _ } = decl in
+      let { Ast.Statement.VariableDeclaration.kind; pattern; init; annot; loc = _ } = decl in
       let id = identifier_in_pattern pattern in
       let { Ast.Identifier.loc; name; _ } = id in
+      let annot' = id_map_opt this#type_ annot in
       let init' = this#expression init in
       if not toplevel then this#add_value_declaration loc (VarDecl kind) name toplevel;
-      if init == init' then
+      if init == init' && annot == annot' then
         decl
       else
-        { decl with init = init' }
+        { decl with annot = annot'; init = init' }
+
+    method add_type_parameter_declarations params source =
+      ignore
+        ((List.fold_left
+            (fun param_names { TypeParameter.name = { Ast.Identifier.loc; name }; _ } ->
+              if SSet.mem name param_names then
+                this#add_error loc (DuplicateTypeParameterNames (name, source));
+              this#add_type_declaration loc TypeParam name;
+              SSet.add name param_names)
+            SSet.empty)
+           params)
 
     method visit_function_declaration ~toplevel decl =
       let open Ast.Function in
-      let { name = { Ast.Identifier.loc; name = func_name; _ }; params; _ } = decl in
+      let { name = { Ast.Identifier.loc; name = func_name; _ }; params; type_params; _ } = decl in
       if not toplevel then this#add_value_declaration loc FunDecl func_name false;
       this#enter_scope ();
+      this#add_type_parameter_declarations type_params (FunctionName func_name);
       let _ =
         List.fold_left
           (fun param_names { Param.name = { Ast.Identifier.loc; name; _ }; _ } ->
@@ -327,7 +356,14 @@ class bindings_builder ~module_tree =
       match rest_parts with
       | [] -> failwith "There must be at least two parts in a scoped identifier"
       | ({ name; loc; _ } as part) :: rest_parts ->
-        (match (SMap.find_opt name module_tree, rest_parts) with
+        (* Only return an export node if there actually is a value/type exported *)
+        let find_name ~is_value name module_tree =
+          match SMap.find_opt name module_tree with
+          | Some (Export { value = None; _ }) when is_value -> None
+          | Some (Export { ty = None; _ }) when not is_value -> None
+          | result -> result
+        in
+        (match (find_name ~is_value name module_tree, rest_parts) with
         | (None, _)
         | (Some (Empty _), []) ->
           (* Error on no match - but check if parent module exists for better error message *)
@@ -344,16 +380,23 @@ class bindings_builder ~module_tree =
           let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
           this#add_error full_loc (ModuleInvalidPosition (prev_parts_names @ [name], is_value));
           None
-        | (Some (Export { value; ty }), _) ->
-          if is_value then
-            Option.iter
-              (fun (_, { Ast.Identifier.loc = decl_loc; _ }) -> this#add_value_use decl_loc loc)
-              value
-          else
-            Option.iter
-              (fun (_, { Ast.Identifier.loc = decl_loc; _ }) -> this#add_type_use decl_loc loc)
-              ty;
+        | (Some (Export { value; ty = _ }), _) when is_value ->
+          (* Values may have additional name parts, as these will be field accesses *)
+          let (_, { Ast.Identifier.loc = decl_loc; _ }) = Option.get value in
+          this#add_value_use decl_loc loc;
           on_export prev_parts part rest_parts
+        | (Some (Export { value = _; ty }), []) ->
+          (* Types are only fully resolved if all name parts have been matched *)
+          let (_, { Ast.Identifier.loc = decl_loc; _ }) = Option.get ty in
+          this#add_type_use decl_loc loc;
+          on_export prev_parts part rest_parts
+        | (Some (Export { value = _; ty }), next_part :: _) ->
+          (* Type was fully resolved, but there are still name parts to resolve *)
+          let full_loc = Loc.between (List.hd prev_parts).loc next_part.loc in
+          let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
+          let (_, ty_name) = Option.get ty in
+          this#add_error full_loc (TypeWithAccess (prev_parts_names @ [ty_name.name]));
+          None
         | (Some (Empty (_, module_tree)), rest_parts) ->
           this#match_module_parts
             ~is_value

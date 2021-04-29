@@ -1,3 +1,5 @@
 module c1
 
 fun export() {}
+
+type ExportType = Foo | Bar

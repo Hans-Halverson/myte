@@ -1,3 +1,5 @@
 module a1.a2
 
 fun export() {}
+
+type ExportType { field: int }

@@ -127,3 +127,13 @@ Error: No module or exported type with name "d2Alias.d3" found
 test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:50:6-16
  50 |   (1: d2Alias.d3);
     |       ^^^^^^^^^^
+
+Error: Could not resolve "a1.a2.a3.exportedValue". Module "a1.a2.a3" does not have exported type with name "exportedValue".
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:53:6-28
+ 53 |   (1: a1.a2.a3.exportedValue);
+    |       ^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Could not resolve "a1.a2.a3.exportedType". Module "a1.a2.a3" does not have exported value with name "exportedType".
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:54:3-24
+ 54 |   (a1.a2.a3.exportedType: int);
+    |    ^^^^^^^^^^^^^^^^^^^^^

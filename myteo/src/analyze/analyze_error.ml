@@ -12,6 +12,7 @@ type t =
   | InvalidAssignment of string * invalid_assignment_kind
   | DuplicateToplevelNames of string * bool
   | DuplicateParameterNames of string * string
+  | DuplicateTypeParameterNames of string * name_source
   | DuplicateModuleNames of string
   | ModuleAndExportDuplicateNames of string * string
   | ImportNonexist of string * string list
@@ -19,6 +20,7 @@ type t =
   | ModuleInvalidPosition of string list * bool
   | NoExportInModule of string * string list * bool
   | NoModuleWithName of string list * bool
+  | TypeWithAccess of string list
   | RecursiveTypeAlias of string * Types.tvar_id * Types.t
   | ToplevelVarWithoutAnnotation
   | IncompatibleTypes of Types.t * Types.t list
@@ -36,11 +38,20 @@ and invalid_assignment_kind =
   | InvalidAssignmentFunction
   | InvalidAssignmentFunctionParam
 
+and name_source =
+  | FunctionName of string
+  | TypeName of string
+
 let plural n str =
   if n = 1 then
     str
   else
     str ^ "s"
+
+let string_of_name_source source =
+  match source with
+  | FunctionName name -> Printf.sprintf "function \"%s\"" name
+  | TypeName name -> Printf.sprintf "type \"%s\"" name
 
 let to_string error =
   let value_or_type is_value =
@@ -85,6 +96,11 @@ let to_string error =
       name
   | DuplicateParameterNames (param, func) ->
     Printf.sprintf "Name \"%s\" already bound in parameters of function \"%s\"" param func
+  | DuplicateTypeParameterNames (param, source) ->
+    Printf.sprintf
+      "Name \"%s\" already bound in type parameters of %s"
+      param
+      (string_of_name_source source)
   | DuplicateModuleNames name -> Printf.sprintf "Module already declared with name \"%s\"" name
   | ModuleAndExportDuplicateNames (name, module_) ->
     Printf.sprintf "Module and export with same name \"%s\" in module \"%s\"" name module_
@@ -120,6 +136,10 @@ let to_string error =
       "No module or exported %s with name \"%s\" found"
       (value_or_type is_value)
       (String.concat "." module_parts)
+  | TypeWithAccess type_name_parts ->
+    Printf.sprintf
+      "Could not resolve access on type \"%s\". Types do not have members that can be accessed."
+      (String.concat "." type_name_parts)
   | RecursiveTypeAlias (name, id_tvar, ty) ->
     Printf.sprintf
       "Type aliases cannot be recursive. %s cannot be defined as %s"

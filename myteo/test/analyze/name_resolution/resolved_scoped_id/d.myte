@@ -1,3 +1,5 @@
 module d1.d2
 
 fun export() {}
+
+type alias ExportType = int

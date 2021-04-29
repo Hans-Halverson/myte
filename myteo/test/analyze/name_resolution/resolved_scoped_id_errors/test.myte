@@ -48,6 +48,10 @@ fun test() {
   d2Alias.d3;
   (1: d2.d3);
   (1: d2Alias.d3);
+
+  // Using an existing type as value, and vice versa
+  (1: a1.a2.a3.exportedValue);
+  (a1.a2.a3.exportedType: int);
 }
 
 fun main () {}

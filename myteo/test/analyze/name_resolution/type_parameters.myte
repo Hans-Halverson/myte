@@ -1,0 +1,15 @@
+module test
+
+fun func1<T, U, V>(x: T, y: V, z: U) {}
+
+fun func2<T, U, V>() {
+  val x: (T, V, U) = 1;
+}
+
+type alias a1<T> = T
+
+type t1<T>(T)
+
+type r1<T> { field: T }
+
+fun main() {}

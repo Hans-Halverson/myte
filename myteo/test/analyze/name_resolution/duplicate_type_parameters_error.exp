@@ -1,0 +1,19 @@
+Error: Name "T" already bound in type parameters of type "t1"
+test/analyze/name_resolution/duplicate_type_parameters_error.myte:3:17
+ 3 | type alias t1<T, T> = int
+   |                  ^
+
+Error: Name "T" already bound in type parameters of type "t2"
+test/analyze/name_resolution/duplicate_type_parameters_error.myte:5:11
+ 5 | type t2<T, T>(int)
+   |            ^
+
+Error: Name "T" already bound in type parameters of type "t3"
+test/analyze/name_resolution/duplicate_type_parameters_error.myte:7:11
+ 7 | type t3<T, T>{ foo: int }
+   |            ^
+
+Error: Name "T" already bound in type parameters of function "fun1"
+test/analyze/name_resolution/duplicate_type_parameters_error.myte:9:12
+ 9 | fun fun1<T, T>(x: T): T = x
+   |             ^
