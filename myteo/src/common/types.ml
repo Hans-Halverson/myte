@@ -9,6 +9,7 @@ type t =
   | Bool
   | Int
   | String
+  | Tuple of t list
   | Function of {
       params: t list;
       return: t;
@@ -54,6 +55,9 @@ let rec pp_with_names ~tvar_to_name ty =
   | Bool -> "bool"
   | Int -> "int"
   | String -> "string"
+  | Tuple elements ->
+    let element_names = List.map (pp_with_names ~tvar_to_name) elements in
+    "(" ^ String.concat ", " element_names ^ ")"
   | Function { params; return } ->
     let pp_function_part ty =
       let pp_param = pp_with_names ~tvar_to_name ty in

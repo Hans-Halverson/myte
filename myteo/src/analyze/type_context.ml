@@ -89,6 +89,12 @@ let rec find_rep_type ~cx ty =
   | Int
   | String ->
     ty
+  | Tuple elements ->
+    let elements' = id_map_list (find_rep_type ~cx) elements in
+    if elements == elements' then
+      ty
+    else
+      Tuple elements'
   | Function { params; return } ->
     let params' = id_map_list (find_rep_type ~cx) params in
     let return' = find_rep_type ~cx return in
@@ -155,6 +161,11 @@ let rec unify ~cx ty1 ty2 =
   | (Int, Int)
   | (String, String) ->
     true
+  (* Tuples unify all their elements if they have the same arity *)
+  | (Tuple elements1, Tuple elements2) ->
+    List.length elements1 = List.length elements2
+    && List.combine elements1 elements2 |> List.for_all (fun (ty1, ty2) -> unify ~cx ty1 ty2)
+  (* Functions unify all their parameter and return types if they have the same arity *)
   | ( Function { params = params1; return = return1 },
       Function { params = params2; return = return2 } ) ->
     List.length params1 = List.length params2
@@ -181,6 +192,12 @@ let rec is_subtype ~cx sub sup =
   | (Int, Int)
   | (String, String) ->
     true
+  (* Tuple element types are covariant *)
+  | (Tuple sub_elements, Tuple sup_elements) ->
+    List.length sub_elements = List.length sup_elements
+    && List.combine sub_elements sup_elements
+       |> List.for_all (fun (sub, sup) -> is_subtype ~cx sup sub)
+  (* Function parameters are contravariant and return type is covariant *)
   | ( Function { params = sub_params; return = sub_return },
       Function { params = sup_params; return = sup_return } ) ->
     List.length sub_params = List.length sup_params

@@ -13,7 +13,7 @@ let rec build_type ~cx ty =
     | Int -> Types.Int
     | String -> Types.String
     | Bool -> Types.Bool)
-  | Tuple _ -> (* TODO: Implement type checking for tuples *) Types.Any
+  | Tuple { Tuple.elements; _ } -> Types.Tuple (List.map (build_type ~cx) elements)
   | Function { Function.params; return; _ } ->
     Types.Function { params = List.map (build_type ~cx) params; return = build_type ~cx return }
   | Custom { Custom.name = { Ast.ScopedIdentifier.name = { Ast.Identifier.loc; _ }; _ }; _ } ->
@@ -59,7 +59,7 @@ and visit_value_declarations ~cx module_ =
   List.iter
     (fun toplevel ->
       match toplevel with
-      | VariableDeclaration decl -> check_variable_declaration ~cx ~decl_pass:true decl
+      | VariableDeclaration decl -> check_toplevel_variable_declaration_prepass ~cx decl
       | FunctionDeclaration decl -> check_function_declaration ~cx ~decl_pass:true decl
       | _ -> ())
     toplevels
@@ -70,42 +70,49 @@ and check_module ~cx module_ =
   List.iter
     (fun toplevel ->
       match toplevel with
-      | VariableDeclaration decl -> check_variable_declaration ~cx ~decl_pass:false decl
+      | VariableDeclaration decl -> check_variable_declaration ~cx decl
       | FunctionDeclaration decl -> check_function_declaration ~cx ~decl_pass:false decl
       | TypeDeclaration _ -> ())
     toplevels
 
-and check_variable_declaration ~cx ~decl_pass decl =
+(* Prepass to fill types of all global variables (and error if they are unannotated) *)
+and check_toplevel_variable_declaration_prepass ~cx decl =
+  let open Ast.Statement.VariableDeclaration in
+  let { loc; pattern; annot; _ } = decl in
+  let { Ast.Identifier.loc = id_loc; name = _ } = identifier_in_pattern pattern in
+  let tvar_id = Type_context.get_tvar_id_from_value_decl ~cx id_loc in
+  match annot with
+  | None -> Type_context.add_error ~cx loc ToplevelVarWithoutAnnotation
+  | Some annot ->
+    let annot_ty = build_type ~cx annot in
+    ignore (Type_context.unify ~cx annot_ty (TVar tvar_id))
+
+and check_variable_declaration ~cx decl =
   let open Ast.Statement.VariableDeclaration in
   let { loc; pattern; init; annot; _ } = decl in
   let { Ast.Identifier.loc = id_loc; name } = identifier_in_pattern pattern in
   let tvar_id = Type_context.get_tvar_id_from_value_decl ~cx id_loc in
-  begin
-    match annot with
-    | None -> if decl_pass then Type_context.add_error ~cx loc ToplevelVarWithoutAnnotation
-    | Some annot ->
-      let annot_ty = build_type ~cx annot in
-      ignore (Type_context.unify ~cx annot_ty (TVar tvar_id))
-  end;
-  if not decl_pass then
-    let (expr_loc, expr_tvar_id) = check_expression ~cx init in
-    match annot with
-    | None ->
-      (* If expression's type is fully resolved then use as type of id, otherwise error
-         requesting an annotation. *)
-      let rep_ty = Type_context.find_rep_type ~cx (TVar expr_tvar_id) in
-      let unresolved_tvars = Types.get_all_tvars_with_duplicates rep_ty in
-      if unresolved_tvars = [] then
-        ignore (Type_context.unify ~cx (TVar expr_tvar_id) (TVar tvar_id))
-      else
-        (* TODO: Test this error once we support unresolved tvars *)
-        let partial =
-          match rep_ty with
-          | TVar _ -> None
-          | _ -> Some (rep_ty, List.hd unresolved_tvars)
-        in
-        Type_context.add_error ~cx loc (VarDeclNeedsAnnotation (name, partial))
-    | Some _ -> Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) (TVar tvar_id)
+  let (expr_loc, expr_tvar_id) = check_expression ~cx init in
+  match annot with
+  | None ->
+    (* If expression's type is fully resolved then use as type of id, otherwise error
+       requesting an annotation. *)
+    let rep_ty = Type_context.find_rep_type ~cx (TVar expr_tvar_id) in
+    let unresolved_tvars = Types.get_all_tvars_with_duplicates rep_ty in
+    if unresolved_tvars = [] then
+      ignore (Type_context.unify ~cx (TVar expr_tvar_id) (TVar tvar_id))
+    else
+      (* TODO: Test this error once we support unresolved tvars *)
+      let partial =
+        match rep_ty with
+        | TVar _ -> None
+        | _ -> Some (rep_ty, List.hd unresolved_tvars)
+      in
+      Type_context.add_error ~cx loc (VarDeclNeedsAnnotation (name, partial))
+  | Some annot ->
+    let annot_ty = build_type ~cx annot in
+    ignore (Type_context.unify ~cx annot_ty (TVar tvar_id));
+    Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) (TVar tvar_id)
 
 and check_type_parameters ~cx params =
   (* TODO: Add type checking for type parameters *)
@@ -179,6 +186,13 @@ and check_expression ~cx expr =
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let decl_tvar_id = Type_context.get_tvar_id_from_value_use ~cx loc in
     ignore (Type_context.unify ~cx (TVar decl_tvar_id) (TVar tvar_id));
+    (loc, tvar_id)
+  | Tuple { Tuple.loc; name = _; elements } ->
+    (* TODO: Add support for checking named tuple constructors *)
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    let element_locs_and_tvar_ids = List.map (check_expression ~cx) elements in
+    let element_tys = List.map (fun (_, tvar_id) -> Types.TVar tvar_id) element_locs_and_tvar_ids in
+    ignore (Type_context.unify ~cx (Types.Tuple element_tys) (TVar tvar_id));
     (loc, tvar_id)
   | TypeCast { TypeCast.loc; expr; ty } ->
     let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
@@ -297,7 +311,6 @@ and check_expression ~cx expr =
       ignore (Type_context.unify ~cx Any (TVar tvar_id)));
     (loc, tvar_id)
   | Record { Record.loc; _ }
-  | Tuple { Tuple.loc; _ }
   | IndexedAccess { IndexedAccess.loc; _ }
   | NamedAccess { NamedAccess.loc; _ } ->
     (* TODO: Implement type checking for these AST nodes *)
@@ -306,7 +319,7 @@ and check_expression ~cx expr =
 and check_statement ~cx stmt =
   let open Ast.Statement in
   match stmt with
-  | VariableDeclaration decl -> check_variable_declaration ~cx ~decl_pass:false decl
+  | VariableDeclaration decl -> check_variable_declaration ~cx decl
   | FunctionDeclaration decl -> check_function_declaration ~cx ~decl_pass:false decl
   | Expression (_, expr) -> ignore (check_expression ~cx expr)
   | Block { Block.statements; _ } -> List.iter (check_statement ~cx) statements
