@@ -1,7 +1,7 @@
 test/parser/ast/unary_operation/basic.myte
 {
   node: Module,
-  loc: 1:0-9:1,
+  loc: 1:0-10:1,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -20,7 +20,7 @@ test/parser/ast/unary_operation/basic.myte
   toplevels: [
     {
       node: Function,
-      loc: 3:0-9:1,
+      loc: 3:0-10:1,
       name: {
         node: Identifier,
         loc: 3:4-3:8,
@@ -29,7 +29,7 @@ test/parser/ast/unary_operation/basic.myte
       params: [],
       body: {
         node: Block,
-        loc: 3:11-9:1,
+        loc: 3:11-10:1,
         statements: [
           {
             node: ExpressionStatement,
@@ -48,14 +48,14 @@ test/parser/ast/unary_operation/basic.myte
           },
           {
             node: ExpressionStatement,
-            loc: 5:2-5:5,
+            loc: 5:2-5:7,
             expression: {
               node: UnaryOperation,
-              loc: 5:2-5:4,
+              loc: 5:2-5:6,
               op: Minus,
               operand: {
                 node: IntLiteral,
-                loc: 5:3-5:4,
+                loc: 5:4-5:5,
                 value: 1,
                 raw: "1",
               },
@@ -77,18 +77,38 @@ test/parser/ast/unary_operation/basic.myte
           },
           {
             node: ExpressionStatement,
-            loc: 8:2-8:6,
+            loc: 8:2-8:8,
             expression: {
               node: UnaryOperation,
-              loc: 8:2-8:5,
+              loc: 8:2-8:7,
               op: Plus,
               operand: {
                 node: UnaryOperation,
-                loc: 8:3-8:5,
+                loc: 8:3-8:7,
                 op: Minus,
                 operand: {
                   node: IntLiteral,
-                  loc: 8:4-8:5,
+                  loc: 8:5-8:6,
+                  value: 1,
+                  raw: "1",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 9:2-9:6,
+            expression: {
+              node: UnaryOperation,
+              loc: 9:2-9:5,
+              op: Minus,
+              operand: {
+                node: UnaryOperation,
+                loc: 9:3-9:5,
+                op: Plus,
+                operand: {
+                  node: IntLiteral,
+                  loc: 9:4-9:5,
                   value: 1,
                   raw: "1",
                 },

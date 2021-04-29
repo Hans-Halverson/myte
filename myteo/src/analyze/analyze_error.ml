@@ -27,6 +27,9 @@ type t =
   | VarDeclNeedsAnnotation of string * (Types.t * Types.tvar_id) option
   | NonFunctionCalled of Types.t
   | IncorrectFunctionArity of int * int
+  | NonIndexableIndexed of Types.t
+  | TupleIndexIsNotLiteral
+  | TupleIndexOutOfBounds of int
 
 and unreachable_statement_reason =
   | AfterReturn
@@ -182,3 +185,10 @@ let to_string error =
     Printf.sprintf
       "Only functions can be called, but this expression is inferred to have type %s."
       (Types.pp ty)
+  | NonIndexableIndexed ty -> Printf.sprintf "Cannot index into value of type %s" (Types.pp ty)
+  | TupleIndexIsNotLiteral -> Printf.sprintf "Tuple indices must be int literals"
+  | TupleIndexOutOfBounds actual_size ->
+    Printf.sprintf
+      "Tuple index out of range. Tuple has %d elements so only indices 0 through %d are allowed."
+      actual_size
+      (actual_size - 1)

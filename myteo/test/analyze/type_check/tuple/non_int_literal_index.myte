@@ -1,0 +1,9 @@
+module test
+
+fun main() {
+  val x: (int, string) = (1, "str");
+  x[true];
+  x[()];
+  x[1 + 2];
+  x["a"];
+}

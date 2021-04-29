@@ -1,0 +1,21 @@
+module test
+
+fun main() {
+  val x: (int, string, bool) = (1, "str", true);
+  val y: (int, (unit, bool, (string, unit))) = (1, ((), true, ("str", ())));
+
+  // Correct types
+  (x[0]: int);
+  (x[1]: string);
+  (x[2]: bool);
+  (y[1][0]: unit);
+  (y[1][1]: bool);
+  (y[1][2]: (string, unit));
+  (y[1][2][0]: string);
+  (y[1][2][1]: unit);
+
+  // Incorrect types
+  (x[0]: string);
+  (y[1][2]: int);
+  (y[1][2][0]: int); 
+}

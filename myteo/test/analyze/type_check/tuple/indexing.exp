@@ -1,0 +1,14 @@
+Error: Expected type string but found int
+test/analyze/type_check/tuple/indexing.myte:18:3-7
+ 18 |   (x[0]: string);
+    |    ^^^^
+
+Error: Expected type int but found (string, unit)
+test/analyze/type_check/tuple/indexing.myte:19:3-10
+ 19 |   (y[1][2]: int);
+    |    ^^^^^^^
+
+Error: Expected type int but found string
+test/analyze/type_check/tuple/indexing.myte:20:3-13
+ 20 |   (y[1][2][0]: int); 
+    |    ^^^^^^^^^^

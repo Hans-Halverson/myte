@@ -1,29 +1,29 @@
 Error: Expected type (int, string, bool) but found (int, string)
-test/analyze/type_check/tuple/basic.myte:8:30-40
+test/analyze/type_check/tuple/anonymous_construction.myte:8:30-40
  8 | val g3: (int, string, bool) = (1, "str");
    |                               ^^^^^^^^^^
 
 Error: Expected type (int, string, bool) but found (int, string, bool, unit)
-test/analyze/type_check/tuple/basic.myte:9:30-50
+test/analyze/type_check/tuple/anonymous_construction.myte:9:30-50
  9 | val g4: (int, string, bool) = (1, "str", true, ());
    |                               ^^^^^^^^^^^^^^^^^^^^
 
 Error: Expected type (int, string) but found (string, int)
-test/analyze/type_check/tuple/basic.myte:12:24-34
+test/analyze/type_check/tuple/anonymous_construction.myte:12:24-34
  12 | val g5: (int, string) = ("str", 1);
     |                         ^^^^^^^^^^
 
 Error: Expected type (int, string, int) but found (int, int, int)
-test/analyze/type_check/tuple/basic.myte:13:29-38
+test/analyze/type_check/tuple/anonymous_construction.myte:13:29-38
  13 | val g6: (int, string, int) = (1, 2, 3);
     |                              ^^^^^^^^^
 
 Error: Expected type (int, (int, string), bool) but found (int, (int, int), bool)
-test/analyze/type_check/tuple/basic.myte:14:37-54
+test/analyze/type_check/tuple/anonymous_construction.myte:14:37-54
  14 | val g7: (int, (int, string), bool) = (1, (2, 3), true);
     |                                      ^^^^^^^^^^^^^^^^^
 
 Error: Expected type (int, int) but found string
-test/analyze/type_check/tuple/basic.myte:15:21-26
+test/analyze/type_check/tuple/anonymous_construction.myte:15:21-26
  15 | val g8: (int, int) = "str";
     |                      ^^^^^

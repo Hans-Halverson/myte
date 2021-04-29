@@ -1,7 +1,7 @@
 test/parser/ast/literals/int.myte
 {
   node: Module,
-  loc: 1:0-5:1,
+  loc: 1:0-10:1,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -20,7 +20,7 @@ test/parser/ast/literals/int.myte
   toplevels: [
     {
       node: Function,
-      loc: 3:0-5:1,
+      loc: 3:0-10:1,
       name: {
         node: Identifier,
         loc: 3:4-3:8,
@@ -29,7 +29,7 @@ test/parser/ast/literals/int.myte
       params: [],
       body: {
         node: Block,
-        loc: 3:11-5:1,
+        loc: 3:11-10:1,
         statements: [
           {
             node: ExpressionStatement,
@@ -37,8 +37,43 @@ test/parser/ast/literals/int.myte
             expression: {
               node: IntLiteral,
               loc: 4:2-4:3,
+              value: 0,
+              raw: "0",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 5:2-5:4,
+            expression: {
+              node: IntLiteral,
+              loc: 5:2-5:3,
               value: 1,
               raw: "1",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 6:2-6:5,
+            expression: {
+              node: IntLiteral,
+              loc: 6:2-6:4,
+              value: -1,
+              raw: "-1",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 9:2-9:6,
+            expression: {
+              node: UnaryOperation,
+              loc: 9:2-9:5,
+              op: Minus,
+              operand: {
+                node: IntLiteral,
+                loc: 9:4-9:5,
+                value: 1,
+                raw: "1",
+              },
             },
           },
         ],

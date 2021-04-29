@@ -310,8 +310,29 @@ and check_expression ~cx expr =
         (NonFunctionCalled (Type_context.find_rep_type ~cx (TVar func_tvar_id)));
       ignore (Type_context.unify ~cx Any (TVar tvar_id)));
     (loc, tvar_id)
+  | IndexedAccess { IndexedAccess.loc; target; index } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    let (target_loc, target_tvar_id) = check_expression ~cx target in
+    let (index_loc, _) = check_expression ~cx index in
+    let target_rep_ty = Type_context.find_rep_type ~cx (TVar target_tvar_id) in
+    (match target_rep_ty with
+    | Tuple elements ->
+      (match index with
+      | IntLiteral { value; _ } ->
+        let index = Int32.to_int value in
+        let ty =
+          if index >= 0 && index < List.length elements then
+            List.nth elements index
+          else (
+            Type_context.add_error ~cx index_loc (TupleIndexOutOfBounds (List.length elements));
+            Any
+          )
+        in
+        ignore (Type_context.unify ~cx ty (TVar tvar_id))
+      | _ -> Type_context.add_error ~cx index_loc TupleIndexIsNotLiteral)
+    | target_rep_ty -> Type_context.add_error ~cx target_loc (NonIndexableIndexed target_rep_ty));
+    (loc, tvar_id)
   | Record { Record.loc; _ }
-  | IndexedAccess { IndexedAccess.loc; _ }
   | NamedAccess { NamedAccess.loc; _ } ->
     (* TODO: Implement type checking for these AST nodes *)
     (loc, Type_context.mk_tvar_id ~cx ~loc)

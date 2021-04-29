@@ -26,6 +26,8 @@ let pos_to_string { line; col } = Printf.sprintf "%d:%d" line col
 
 let is_single_line loc = loc.start.line = loc._end.line
 
+let pos_equal pos1 pos2 = pos1.line = pos2.line && pos1.col = pos2.col
+
 let pos_compare pos1 pos2 =
   let result = Int.compare pos1.line pos2.line in
   if result <> 0 then

@@ -296,10 +296,21 @@ and parse_unary_expression env =
     | T_LOGICAL_NOT -> LogicalNot
     | _ -> failwith "Invalid prefix operator"
   in
+  let op_loc = Env.loc env in
   Env.advance env;
-  let operand = parse_expression ~precedence:Unary env in
-  let loc = marker env in
-  Expression.UnaryOperation { loc; operand; op }
+  let next_loc = Env.loc env in
+  let no_whitespace_after_op = Loc.pos_equal op_loc._end next_loc.start in
+  (* A minus sign directly in front of a numeric literal should be treated as part of that literal *)
+  match Env.token env with
+  | T_INT_LITERAL (value, raw) when op = Minus && no_whitespace_after_op ->
+    Env.advance env;
+    let loc = marker env in
+    IntLiteral
+      { Expression.IntLiteral.loc; raw = "-" ^ raw; value = Int32.neg (Int64.to_int32 value) }
+  | _ ->
+    let operand = parse_expression ~precedence:Unary env in
+    let loc = marker env in
+    Expression.UnaryOperation { loc; operand; op }
 
 and parse_binary_operation env left marker =
   let open Expression.BinaryOperation in

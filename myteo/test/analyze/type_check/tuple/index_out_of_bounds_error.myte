@@ -1,0 +1,9 @@
+module test
+
+fun main() {
+  val x: (int, string, bool) = (1, "str", true);
+
+  x[-1];
+  x[3];
+  x[4];
+}
