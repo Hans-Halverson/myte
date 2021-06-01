@@ -394,7 +394,9 @@ class mapper =
       match variant with
       | RecordVariant r -> id_map this#record_variant r variant (fun r' -> RecordVariant r')
       | TupleVariant t -> id_map this#tuple_variant t variant (fun t' -> TupleVariant t')
-      | EnumVariant i -> id_map this#identifier i variant (fun i' -> EnumVariant i')
+      | EnumVariant i -> id_map this#enum_variant i variant (fun i' -> EnumVariant i')
+
+    method enum_variant id = this#identifier id
 
     method record_variant record =
       let open TypeDeclaration.Record in

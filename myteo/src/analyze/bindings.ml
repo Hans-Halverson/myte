@@ -8,6 +8,7 @@ type value_declaration =
   | ImportedFunDecl of Identifier.t
   | ImportedModule of Module_tree.module_tree
   | FunParam
+  | Constructor
 
 type type_declaration =
   | TypeDecl

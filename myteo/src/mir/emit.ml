@@ -187,6 +187,7 @@ and emit_expression ~pcx ~ecx expr =
     let decl_loc = fst binding.declaration in
     (match snd binding.declaration with
     | ImportedModule _ -> failwith "Modules cannot appear in a value position"
+    | Constructor -> failwith "Constructors cannot appear in a value position"
     (* Create function literal for functions *)
     | FunDecl
     | ImportedFunDecl _ ->

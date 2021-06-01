@@ -3,6 +3,13 @@ module test
 import foo
 import foo.{importedMutableVar, importedImmutableVar, importedFunc}
 
+type TupleCtor (int)
+type RecordCtor { field: int }
+type VariantType =
+  | EnumVariantCtor
+  | TupleVariantCtor (int)
+  | RecordVariantCtor { field: int }
+
 val immutableGlobal: int = 0;
 var mutableGlobal: int = 0;
 
@@ -23,6 +30,13 @@ fun func(funcParam: int) {
   // Error when reassigning functions
   func = 1;
   importedFunc = 1;
+
+  // Error when reassigning type constructors
+  TupleCtor = 1;
+  RecordCtor = 1;
+  EnumVariantCtor = 1;
+  TupleVariantCtor = 1;
+  RecordVariantCtor = 1;
 
   // Error when reassigning function params
   funcParam = 1;

@@ -1,0 +1,14 @@
+Error: Cycle detected in definition of type "rec_type2"
+test/analyze/type_check/recursive_aliases_error/alias.myte:4:0-32
+ 4 | type alias rec_type2 = rec_type1
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Cycle detected in definition of type "rec_type4"
+test/analyze/type_check/recursive_aliases_error/alias.myte:7:0-32
+ 7 | type alias rec_type4 = rec_type3
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Cycle detected in definition of type "rec_type7"
+test/analyze/type_check/recursive_aliases_error/alias.myte:11:0-48
+ 11 | type alias rec_type7 = (unit, rec_type5) => unit
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

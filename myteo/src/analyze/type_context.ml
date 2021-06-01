@@ -77,6 +77,13 @@ let rec find_union_rep_node ~cx tvar_id =
     set_union_find_node ~cx tvar_id (Link rep_id);
     result
 
+let find_union_rep_type ~cx ty =
+  match ty with
+  | TVar tvar_id ->
+    let (_, rep_ty, _) = find_union_rep_node ~cx tvar_id in
+    rep_ty
+  | _ -> ty
+
 let find_rep_tvar_id ~cx tvar_id =
   let (rep_tvar_id, _, _) = find_union_rep_node ~cx tvar_id in
   rep_tvar_id
@@ -112,6 +119,19 @@ let rec find_rep_type ~cx ty =
         rep_ty
     | _ -> find_rep_type ~cx rep_ty)
 
+let rec tvar_occurs_in ~cx tvar ty =
+  match find_union_rep_type ~cx ty with
+  | Any
+  | Unit
+  | Bool
+  | Int
+  | String ->
+    false
+  | Tuple elements -> List.exists (tvar_occurs_in ~cx tvar) elements
+  | Function { params; return } ->
+    List.exists (tvar_occurs_in ~cx tvar) params || tvar_occurs_in ~cx tvar return
+  | TVar rep_tvar -> tvar = rep_tvar
+
 let union_tvars ~cx ty1 ty2 =
   match (ty1, ty2) with
   | (TVar tvar1, TVar tvar2) when tvar1 = tvar2 -> true
@@ -130,22 +150,14 @@ let union_tvars ~cx ty1 ty2 =
     true
   | (TVar tvar, ty)
   | (ty, TVar tvar) ->
-    let (rep_id, _, rank) = find_union_rep_node ~cx tvar in
-    let rep_ty = find_rep_type ~cx ty in
-    if Types.tvar_occurs_in rep_id rep_ty then
+    let (rep_tvar, _, rank) = find_union_rep_node ~cx tvar in
+    if tvar_occurs_in ~cx rep_tvar ty then
       false
-    else (
+    else
+      let rep_ty = find_rep_type ~cx ty in
       set_union_find_node ~cx tvar (Rep { ty = rep_ty; rank = rank + 1 });
       true
-    )
   | _ -> failwith "At least one argument to union must be a tvar"
-
-let find_union_rep_type ~cx ty =
-  match ty with
-  | TVar tvar_id ->
-    let (_, rep_ty, _) = find_union_rep_node ~cx tvar_id in
-    rep_ty
-  | _ -> ty
 
 let rec unify ~cx ty1 ty2 =
   let rep_ty1 = find_union_rep_type ~cx ty1 in

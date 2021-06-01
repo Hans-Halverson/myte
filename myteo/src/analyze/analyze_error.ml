@@ -21,7 +21,7 @@ type t =
   | NoExportInModule of string * string list * bool
   | NoModuleWithName of string list * bool
   | TypeWithAccess of string list
-  | RecursiveTypeAlias of string * Types.tvar_id * Types.t
+  | CyclicTypeAlias of string
   | ToplevelVarWithoutAnnotation
   | IncompatibleTypes of Types.t * Types.t list
   | VarDeclNeedsAnnotation of string * (Types.t * Types.tvar_id) option
@@ -40,6 +40,7 @@ and invalid_assignment_kind =
   | InvalidAssignmentImmutableVariable
   | InvalidAssignmentFunction
   | InvalidAssignmentFunctionParam
+  | InvalidAssignmentConstructor
 
 and name_source =
   | FunctionName of string
@@ -87,6 +88,7 @@ let to_string error =
       | InvalidAssignmentImmutableVariable -> "immutable variable"
       | InvalidAssignmentFunction -> "function"
       | InvalidAssignmentFunctionParam -> "function parameter"
+      | InvalidAssignmentConstructor -> "constructor"
     in
     Printf.sprintf "Cannot reassign %s %s" kind_string name
   | DuplicateToplevelNames (name, is_value) ->
@@ -143,11 +145,7 @@ let to_string error =
     Printf.sprintf
       "Could not resolve access on type \"%s\". Types do not have members that can be accessed."
       (String.concat "." type_name_parts)
-  | RecursiveTypeAlias (name, id_tvar, ty) ->
-    Printf.sprintf
-      "Type aliases cannot be recursive. %s cannot be defined as %s"
-      name
-      (Types.pp ~tvar_to_name:(IMap.singleton id_tvar name) ty)
+  | CyclicTypeAlias name -> Printf.sprintf "Cycle detected in definition of type \"%s\"" name
   | ToplevelVarWithoutAnnotation -> Printf.sprintf "Toplevel variables must have type annotations"
   | IncompatibleTypes (actual, expecteds) ->
     let type_strings = Types.pps (expecteds @ [actual]) in

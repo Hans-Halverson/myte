@@ -46,8 +46,6 @@ let get_all_tvars tys =
   in
   remove_duplicates ISet.empty tvars_with_duplicates
 
-let tvar_occurs_in tvar_id ty = get_all_tvars [ty] |> List.exists (fun t -> t = tvar_id)
-
 let rec pp_with_names ~tvar_to_name ty =
   match ty with
   | Any -> "any"

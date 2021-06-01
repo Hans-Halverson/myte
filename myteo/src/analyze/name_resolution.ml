@@ -265,6 +265,26 @@ class bindings_builder ~module_tree =
       else
         { mod_ with toplevels = toplevels' }
 
+    method! tuple_variant tuple =
+      let open Ast.TypeDeclaration.Tuple in
+      let { loc; name; _ } = tuple in
+      let { Ast.Identifier.name; _ } = name in
+      this#add_value_declaration loc Constructor name true;
+      super#tuple_variant tuple
+
+    method! record_variant record =
+      let open Ast.TypeDeclaration.Record in
+      let { loc; name; _ } = record in
+      let { Ast.Identifier.name; _ } = name in
+      this#add_value_declaration loc Constructor name true;
+      super#record_variant record
+
+    method! enum_variant id =
+      let open Ast.Identifier in
+      let { loc; name } = id in
+      this#add_value_declaration loc Constructor name true;
+      super#enum_variant id
+
     method! statement stmt =
       let open Ast.Statement in
       match stmt with
@@ -345,6 +365,7 @@ class bindings_builder ~module_tree =
         | ImportedFunDecl _ ->
           add_invalid_assign_error InvalidAssignmentFunction
         | FunParam -> add_invalid_assign_error InvalidAssignmentFunctionParam
+        | Constructor -> add_invalid_assign_error InvalidAssignmentConstructor
         | ImportedModule _ -> (* Direct module use will error elsewhere *) ()));
       super#assignment assign
 

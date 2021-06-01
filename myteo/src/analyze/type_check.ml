@@ -21,17 +21,13 @@ let rec build_type ~cx ty =
 
 and visit_type_declarations ~cx module_ =
   let open Ast.Module in
-  let { toplevels; _ } = module_ in
+  let { Ast.Module.toplevels; _ } = module_ in
   List.iter
     (fun toplevel ->
+      let open Ast.TypeDeclaration in
       match toplevel with
       | TypeDeclaration
-          {
-            Ast.TypeDeclaration.loc;
-            name = { Ast.Identifier.loc = id_loc; name };
-            type_params;
-            decl = Alias alias;
-          } ->
+          { loc; name = { Ast.Identifier.loc = id_loc; name }; type_params; decl = Alias alias } ->
         check_type_parameters ~cx type_params;
         let tvar_id = Type_context.get_tvar_id_from_type_decl ~cx id_loc in
         let ty = build_type ~cx alias in
@@ -45,10 +41,21 @@ and visit_type_declarations ~cx module_ =
           | _ -> false
         in
         if is_recursive || not (Type_context.unify ~cx ty (TVar tvar_id)) then
-          Type_context.add_error
-            ~cx
-            loc
-            (RecursiveTypeAlias (name, find_rep_tvar_id ~cx tvar_id, find_rep_type ~cx ty))
+          Type_context.add_error ~cx loc (CyclicTypeAlias name)
+      | TypeDeclaration
+          { loc; name = { Ast.Identifier.loc = id_loc; name }; type_params; decl = Tuple tuple } ->
+        check_type_parameters ~cx type_params;
+        let tvar_id = Type_context.get_tvar_id_from_type_decl ~cx id_loc in
+        let ty = Types.Tuple (List.map (build_type ~cx) tuple.elements) in
+        let rep_ty1 = find_union_rep_type ~cx ty in
+        let rep_ty2 = find_union_rep_type ~cx (TVar tvar_id) in
+        let is_recursive =
+          match (rep_ty1, rep_ty2) with
+          | (TVar rep_tvar1, TVar rep_tvar2) when rep_tvar1 = rep_tvar2 -> true
+          | _ -> false
+        in
+        if is_recursive || not (Type_context.unify ~cx ty (TVar tvar_id)) then
+          Type_context.add_error ~cx loc (CyclicTypeAlias name)
       | TypeDeclaration _ -> (* TODO: Implement type checking for new type declarations *) ()
       | _ -> ())
     toplevels
