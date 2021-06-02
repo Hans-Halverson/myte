@@ -1,4 +1,4 @@
-Error: Could not resolve access on type "a1.a2.a3.ExportedType". Types do not have members that can be accessed.
+Error: Could not resolve access on type `a1.a2.a3.ExportedType`. Types do not have members that can be accessed.
 test/analyze/name_resolution/type_with_access_error/test.myte:3:15-40
  3 | type alias t = a1.a2.a3.ExportedType.foo
    |                ^^^^^^^^^^^^^^^^^^^^^^^^^

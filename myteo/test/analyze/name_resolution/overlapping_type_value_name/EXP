@@ -1,19 +1,19 @@
-Error: Could not resolve name "ty" to value
+Error: Could not resolve name `ty` to value
 test/analyze/name_resolution/overlapping_type_value_name/a.myte:12:3-5
  12 |   (ty: ty);
     |    ^^
 
-Error: Could not resolve name "value" to type
+Error: Could not resolve name `value` to type
 test/analyze/name_resolution/overlapping_type_value_name/a.myte:13:10-15
  13 |   (value: value);
     |           ^^^^^
 
-Error: Could not resolve name "ty" to value
+Error: Could not resolve name `ty` to value
 test/analyze/name_resolution/overlapping_type_value_name/test.myte:7:3-5
  7 |   (ty: ty);
    |    ^^
 
-Error: Could not resolve name "value" to type
+Error: Could not resolve name `value` to type
 test/analyze/name_resolution/overlapping_type_value_name/test.myte:8:10-15
  8 |   (value: value);
    |           ^^^^^

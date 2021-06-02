@@ -1,9 +1,9 @@
-Error: "export" is an export of module "b", there are no items beneath "b.export"
+Error: `export` is an export of module `b`, there are no items beneath `b.export`
 test/analyze/name_resolution/import_child_of_export/a.myte:3:9-15
  3 | import b.export.b1
    |          ^^^^^^
 
-Error: "export" is an export of module "b", there are no items beneath "b.export"
+Error: `export` is an export of module `b`, there are no items beneath `b.export`
 test/analyze/name_resolution/import_child_of_export/a.myte:4:9-15
  4 | import b.export.b1.b2
    |          ^^^^^^

@@ -1,9 +1,9 @@
-Error: Module already declared with name "A"
+Error: Module already declared with name `A`
 test/analyze/module_tree/duplicate_modules/b.myte:1:0-8
  1 | module A
    | ^^^^^^^^
 
-Error: Module already declared with name "a.b"
+Error: Module already declared with name `a.b`
 test/analyze/module_tree/duplicate_modules/a.b.2.myte:1:0-10
  1 | module a.b
    | ^^^^^^^^^^

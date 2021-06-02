@@ -56,8 +56,8 @@ let plural n str =
 
 let string_of_name_source source =
   match source with
-  | FunctionName name -> Printf.sprintf "function \"%s\"" name
-  | TypeName name -> Printf.sprintf "type \"%s\"" name
+  | FunctionName name -> Printf.sprintf "function `%s`" name
+  | TypeName name -> Printf.sprintf "type `%s`" name
 
 let concat_with_and strs =
   match strs with
@@ -77,7 +77,7 @@ let to_string error =
   in
   match error with
   | InexhaustiveReturn { Identifier.name; _ } ->
-    Printf.sprintf "All branches of function %s must end in a return statement" name
+    Printf.sprintf "All branches of function `%s` must end in a return statement" name
   | UnreachableStatement reason ->
     let reason_string =
       match reason with
@@ -92,7 +92,7 @@ let to_string error =
   | MissingMainFunction -> "No main function found in modules"
   | MultipleMainFunctions -> "Main function has already been declared"
   | UnresolvedName (name, is_value) ->
-    Printf.sprintf "Could not resolve name \"%s\" to %s" name (value_or_type is_value)
+    Printf.sprintf "Could not resolve name `%s` to %s" name (value_or_type is_value)
   | InvalidAssignment (name, kind) ->
     let kind_string =
       match kind with
@@ -101,47 +101,47 @@ let to_string error =
       | InvalidAssignmentFunctionParam -> "function parameter"
       | InvalidAssignmentConstructor -> "constructor"
     in
-    Printf.sprintf "Cannot reassign %s %s" kind_string name
+    Printf.sprintf "Cannot reassign %s `%s`" kind_string name
   | DuplicateToplevelNames (name, is_value) ->
     Printf.sprintf
-      "%s with name \"%s\" already bound in module"
+      "%s with name `%s` already bound in module"
       ( if is_value then
         "Value"
       else
         "Type" )
       name
   | DuplicateParameterNames (param, func) ->
-    Printf.sprintf "Name \"%s\" already bound in parameters of function \"%s\"" param func
+    Printf.sprintf "Name `%s` already bound in parameters of function `%s`" param func
   | DuplicateTypeParameterNames (param, source) ->
     Printf.sprintf
-      "Name \"%s\" already bound in type parameters of %s"
+      "Name `%s` already bound in type parameters of %s"
       param
       (string_of_name_source source)
-  | DuplicateModuleNames name -> Printf.sprintf "Module already declared with name \"%s\"" name
+  | DuplicateModuleNames name -> Printf.sprintf "Module already declared with name `%s`" name
   | ModuleAndExportDuplicateNames (name, module_) ->
-    Printf.sprintf "Module and export with same name \"%s\" in module \"%s\"" name module_
-  | ImportNonexist (name, []) -> Printf.sprintf "No toplevel module with name \"%s\" found" name
+    Printf.sprintf "Module and export with same name `%s` in module `%s`" name module_
+  | ImportNonexist (name, []) -> Printf.sprintf "No toplevel module with name `%s` found" name
   | ImportNonexist (name, module_parts) ->
     Printf.sprintf
-      "No module or export with name \"%s\" found in module \"%s\""
+      "No module or export with name `%s` found in module `%s`"
       name
       (String.concat "." module_parts)
   | ImportChildOfExport (name, module_parts) ->
     let module_parts_string = String.concat "." module_parts in
     Printf.sprintf
-      "\"%s\" is an export of module \"%s\", there are no items beneath \"%s\""
+      "`%s` is an export of module `%s`, there are no items beneath `%s`"
       name
       module_parts_string
       (module_parts_string ^ "." ^ name)
   | ModuleInvalidPosition (module_parts, is_value) ->
     Printf.sprintf
-      "Module \"%s\" cannot be used as a %s"
+      "Module `%s` cannot be used as a %s"
       (String.concat "." module_parts)
       (value_or_type is_value)
   | NoExportInModule (export, module_parts, is_value) ->
     let module_parts_string = String.concat "." module_parts in
     Printf.sprintf
-      "Could not resolve \"%s.%s\". Module \"%s\" does not have exported %s with name \"%s\"."
+      "Could not resolve `%s.%s`. Module `%s` does not have exported %s with name `%s`."
       module_parts_string
       export
       module_parts_string
@@ -149,14 +149,14 @@ let to_string error =
       export
   | NoModuleWithName (module_parts, is_value) ->
     Printf.sprintf
-      "No module or exported %s with name \"%s\" found"
+      "No module or exported %s with name `%s` found"
       (value_or_type is_value)
       (String.concat "." module_parts)
   | TypeWithAccess type_name_parts ->
     Printf.sprintf
-      "Could not resolve access on type \"%s\". Types do not have members that can be accessed."
+      "Could not resolve access on type `%s`. Types do not have members that can be accessed."
       (String.concat "." type_name_parts)
-  | CyclicTypeAlias name -> Printf.sprintf "Cycle detected in definition of type \"%s\"" name
+  | CyclicTypeAlias name -> Printf.sprintf "Cycle detected in definition of type `%s`" name
   | ToplevelVarWithoutAnnotation -> Printf.sprintf "Toplevel variables must have type annotations"
   | IncompatibleTypes (actual, expecteds) ->
     let type_strings = Types.pps (expecteds @ [actual]) in
@@ -181,7 +181,7 @@ let to_string error =
           unresolved_tvar_name
     in
     Printf.sprintf
-      "Cannot infer type for \"%s\". %sPlease provide additional type hints such as a type annotation."
+      "Cannot infer type for `%s`. %sPlease provide additional type hints such as a type annotation."
       name
       partial_string
   | IncorrectFunctionArity (actual, expected) ->
@@ -197,9 +197,9 @@ let to_string error =
       (plural expected "argument")
       actual
   | MissingRecordConstructorFields field_names ->
-    let field_names = List.map (fun name -> "\"" ^ name ^ "\"") field_names in
+    let field_names = List.map (fun name -> "`" ^ name ^ "`") field_names in
     Printf.sprintf
-      "Record constructor is missing %s %s."
+      "Record constructor is missing %s %s"
       (plural (List.length field_names) "field")
       (concat_with_and field_names)
   | NonFunctionCalled ty ->

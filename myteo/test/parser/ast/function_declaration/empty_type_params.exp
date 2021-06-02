@@ -1,4 +1,4 @@
-Error: Unexpected token ">", expected identifier
+Error: Unexpected token `>`, expected identifier
 test/parser/ast/function_declaration/empty_type_params.myte:3:8
  3 | fun foo<>() {}
    |         ^

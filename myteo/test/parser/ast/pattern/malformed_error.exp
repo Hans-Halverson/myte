@@ -1,4 +1,4 @@
-Error: Unexpected token "1", expected start of pattern
+Error: Unexpected token `1`, expected start of pattern
 test/parser/ast/pattern/malformed_error.myte:4:6
  4 |   val 1 = 1;
    |       ^

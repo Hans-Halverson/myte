@@ -1,54 +1,54 @@
-Error: All branches of function test1 must end in a return statement
+Error: All branches of function `test1` must end in a return statement
 test/analyze/exhaustive_return/inexhaustive.myte:3:18
  3 | fun test1(): int {}
    |                   ^
 
-Error: All branches of function test2 must end in a return statement
+Error: All branches of function `test2` must end in a return statement
 test/analyze/exhaustive_return/inexhaustive.myte:7:0
  7 | }
    | ^
 
-Error: All branches of function test3 must end in a return statement
+Error: All branches of function `test3` must end in a return statement
 test/analyze/exhaustive_return/inexhaustive.myte:12:2
  12 |   }
     |   ^
 
-Error: All branches of function test4 must end in a return statement
+Error: All branches of function `test4` must end in a return statement
 test/analyze/exhaustive_return/inexhaustive.myte:18:2
  18 |   }
     |   ^
 
-Error: All branches of function test5 must end in a return statement
+Error: All branches of function `test5` must end in a return statement
 test/analyze/exhaustive_return/inexhaustive.myte:26:2
  26 |   }
     |   ^
 
-Error: All branches of function test6 must end in a return statement
+Error: All branches of function `test6` must end in a return statement
 test/analyze/exhaustive_return/inexhaustive.myte:32:2
  32 |   } else {
     |   ^
 
-Error: All branches of function test7 must end in a return statement
+Error: All branches of function `test7` must end in a return statement
 test/analyze/exhaustive_return/inexhaustive.myte:39:0
  39 | }
     | ^
 
-Error: All branches of function test8 must end in a return statement
+Error: All branches of function `test8` must end in a return statement
 test/analyze/exhaustive_return/inexhaustive.myte:43:0
  43 | }
     | ^
 
-Error: All branches of function bar must end in a return statement
+Error: All branches of function `bar` must end in a return statement
 test/analyze/exhaustive_return/inexhaustive.myte:46:18
  46 |   fun bar(): int {}
     |                   ^
 
-Error: All branches of function baz must end in a return statement
+Error: All branches of function `baz` must end in a return statement
 test/analyze/exhaustive_return/inexhaustive.myte:52:20
  52 |     fun baz(): int {}
     |                     ^
 
-Error: All branches of function testWhile must end in a return statement
+Error: All branches of function `testWhile` must end in a return statement
 test/analyze/exhaustive_return/inexhaustive.myte:64:0
  64 | }
     | ^
