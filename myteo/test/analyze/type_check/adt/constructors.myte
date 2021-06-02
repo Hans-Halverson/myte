@@ -1,12 +1,13 @@
 module test
 
 type TupleADT (int)
+type LongTupleADT (int, string, bool)
 
 type RecordADT { field: int }
 
 type VariantADT =
   | EnumVariant
-  | TupleVariant (int)
+  | TupleVariant (int, string)
   | RecordVariant1 { field1: int, field2: int }
   | RecordVariant2 { field1: int, field2: int, field3: int }
 
@@ -20,4 +21,21 @@ fun main() {
   (TupleVariant: VariantADT);
   (RecordVariant1: VariantADT);
   (RecordVariant2: VariantADT);
+
+  // Correct arguments for tuple constructors
+  (TupleADT(123): TupleADT);
+  (TupleVariant(123, "a"): VariantADT);
+
+  // Incorrect arguments for tuple constructors
+  (TupleADT(true, 2, 3): TupleADT);
+  (TupleADT("a"): TupleADT);
+  (TupleVariant(1, false): VariantADT);
+
+  // Tuple constructor types are ADTs, not tuple literals
+  (LongTupleADT(1, "a", true): (int, string, bool));
+  (TupleVariant(1, "a"): (int, string));
+
+  // Enum and record constructors cannot be called as functions
+  EnumVariant();
+  RecordVariant1();
 }

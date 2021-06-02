@@ -240,14 +240,8 @@ and node_of_record_expression_field field =
     [("name", node_of_identifier name); ("value", opt node_of_expression value)]
 
 and node_of_tuple_expression tuple =
-  let { Expression.Tuple.loc; name; elements } = tuple in
-  node
-    "TupleExpression"
-    loc
-    [
-      ("name", opt node_of_identifier name);
-      ("elements", List (List.map node_of_expression elements));
-    ]
+  let { Expression.Tuple.loc; elements } = tuple in
+  node "TupleExpression" loc [("elements", List (List.map node_of_expression elements))]
 
 and node_of_type_cast cast =
   let { Expression.TypeCast.loc; expr; ty } = cast in

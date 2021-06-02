@@ -164,7 +164,6 @@ and Expression : sig
   module Tuple : sig
     type t = {
       loc: Loc.t;
-      name: Identifier.t option;
       elements: Expression.t list;
     }
   end

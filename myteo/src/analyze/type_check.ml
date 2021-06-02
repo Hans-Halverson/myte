@@ -290,8 +290,7 @@ and check_expression ~cx expr =
     in
     ignore (Type_context.unify ~cx decl_ty (TVar tvar_id));
     (loc, tvar_id)
-  | Tuple { Tuple.loc; name = _; elements } ->
-    (* TODO: Add support for checking named tuple constructors *)
+  | Tuple { Tuple.loc; elements } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let element_locs_and_tvar_ids = List.map (check_expression ~cx) elements in
     let element_tys = List.map (fun (_, tvar_id) -> Types.TVar tvar_id) element_locs_and_tvar_ids in
@@ -389,29 +388,80 @@ and check_expression ~cx expr =
     (loc, tvar_id)
   | Call { Call.loc; func; args } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    let (func_loc, func_tvar_id) = check_expression ~cx func in
-    let args_locs_and_tvar_ids = List.map (check_expression ~cx) args in
-    let func_rep_ty = Type_context.find_rep_type ~cx (TVar func_tvar_id) in
-    (match func_rep_ty with
-    | Function { params; _ } when List.length params <> List.length args ->
+    (* Determine if this call expression is a tuple constructor. If so handle tuple constructor
+       directly by looking up ADT sig instead of recursing into function node. *)
+    let is_ctor =
+      match func with
+      | Identifier { Ast.Identifier.loc; name }
+      | ScopedIdentifier { Ast.ScopedIdentifier.name = { Ast.Identifier.loc; name }; _ } ->
+        let binding = Type_context.get_source_value_binding ~cx loc in
+        (match snd binding.declaration with
+        | Constructor ->
+          let adt = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
+          let adt_sig =
+            match adt with
+            | Types.ADT { adt_sig; _ } -> adt_sig
+            | _ -> failwith "Expected ADT"
+          in
+          (match SMap.find name adt_sig.variant_sigs with
+          (* Error on incorrect number of arguments *)
+          | TupleVariantSig elements when List.length elements <> List.length args ->
+            Type_context.add_error
+              ~cx
+              loc
+              (IncorrectTupleConstructorArity (List.length args, List.length elements));
+            ignore (Type_context.unify ~cx Any (TVar tvar_id));
+            true
+          (* Supplied arguments must each be a subtype of the element types. Overall expression
+             type is the ADT's type. *)
+          | TupleVariantSig elements ->
+            let args_locs_and_tvar_ids = List.map (check_expression ~cx) args in
+            List.iter2
+              (fun (arg_loc, arg_tvar_id) element ->
+                Type_context.assert_is_subtype ~cx arg_loc (TVar arg_tvar_id) element)
+              args_locs_and_tvar_ids
+              elements;
+            ignore (Type_context.unify ~cx adt (TVar tvar_id));
+            true
+          (* Special error if record constructor is called as a function *)
+          | RecordVariantSig _ ->
+            Type_context.add_error ~cx loc (RecordConstructorCalled name);
+            ignore (Type_context.unify ~cx Any (TVar tvar_id));
+            true
+          | EnumVariantSig -> false)
+        | _ -> false)
+      | _ -> false
+    in
+    (* Otherwise this is a regular function call *)
+    ( if not is_ctor then
+      let (func_loc, func_tvar_id) = check_expression ~cx func in
+      let args_locs_and_tvar_ids = List.map (check_expression ~cx) args in
+      let func_rep_ty = Type_context.find_rep_type ~cx (TVar func_tvar_id) in
+      match func_rep_ty with
       (* Error on incorrect number of arguments *)
-      Type_context.add_error ~cx loc (IncorrectFunctionArity (List.length args, List.length params));
-      ignore (Type_context.unify ~cx Any (TVar tvar_id))
-    | Function { params; return } ->
-      (* Supplied arguments must each be a subtype of the annotated parameter type *)
-      List.iter2
-        (fun (arg_loc, arg_tvar_id) param ->
-          Type_context.assert_is_subtype ~cx arg_loc (TVar arg_tvar_id) param)
-        args_locs_and_tvar_ids
-        params;
-      ignore (Type_context.unify ~cx return (TVar tvar_id))
-    | _ ->
+      | Function { params; _ } when List.length params <> List.length args ->
+        Type_context.add_error
+          ~cx
+          loc
+          (IncorrectFunctionArity (List.length args, List.length params));
+        ignore (Type_context.unify ~cx Any (TVar tvar_id))
+        (* Supplied arguments must each be a subtype of the annotated parameter type *)
+      | Function { params; return } ->
+        List.iter2
+          (fun (arg_loc, arg_tvar_id) param ->
+            Type_context.assert_is_subtype ~cx arg_loc (TVar arg_tvar_id) param)
+          args_locs_and_tvar_ids
+          params;
+        ignore (Type_context.unify ~cx return (TVar tvar_id))
+      (* Do not error on any being called *)
+      | Any -> ignore (Type_context.unify ~cx Any (TVar tvar_id))
       (* Error if type other than a function is called *)
-      Type_context.add_error
-        ~cx
-        func_loc
-        (NonFunctionCalled (Type_context.find_rep_type ~cx (TVar func_tvar_id)));
-      ignore (Type_context.unify ~cx Any (TVar tvar_id)));
+      | _ ->
+        Type_context.add_error
+          ~cx
+          func_loc
+          (NonFunctionCalled (Type_context.find_rep_type ~cx (TVar func_tvar_id)));
+        ignore (Type_context.unify ~cx Any (TVar tvar_id)) );
     (loc, tvar_id)
   | IndexedAccess { IndexedAccess.loc; target; index } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in

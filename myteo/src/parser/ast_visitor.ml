@@ -122,8 +122,7 @@ class ['a] visitor =
 
     method tuple_expression acc tuple =
       let open Expression.Tuple in
-      let { loc = _; name; elements } = tuple in
-      Option.iter (this#identifier acc) name;
+      let { loc = _; elements } = tuple in
       List.iter (this#expression acc) elements
 
     method type_cast acc cast =

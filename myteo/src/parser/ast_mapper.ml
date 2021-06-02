@@ -157,13 +157,12 @@ class mapper =
 
     method tuple_expression tuple =
       let open Expression.Tuple in
-      let { loc; name; elements } = tuple in
-      let name' = id_map_opt this#identifier name in
+      let { loc; elements } = tuple in
       let elements' = id_map_list this#expression elements in
-      if name == name' && elements == elements' then
+      if elements == elements' then
         tuple
       else
-        { loc; name = name'; elements = elements' }
+        { loc; elements = elements' }
 
     method type_cast cast =
       let open Expression.TypeCast in

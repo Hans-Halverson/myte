@@ -26,6 +26,7 @@ type t =
   | IncompatibleTypes of Types.t * Types.t list
   | VarDeclNeedsAnnotation of string * (Types.t * Types.tvar_id) option
   | NonFunctionCalled of Types.t
+  | RecordConstructorCalled of string
   | IncorrectFunctionArity of int * int
   | IncorrectTupleConstructorArity of int * int
   | MissingRecordConstructorFields of string list
@@ -206,6 +207,8 @@ let to_string error =
     Printf.sprintf
       "Only functions can be called, but this expression is inferred to have type %s."
       (Types.pp ty)
+  | RecordConstructorCalled name ->
+    Printf.sprintf "`%s` is a record constructor and cannot be called as a function" name
   | NonIndexableIndexed ty -> Printf.sprintf "Cannot index into value of type %s" (Types.pp ty)
   | TupleIndexIsNotLiteral -> Printf.sprintf "Tuple indices must be int literals"
   | TupleIndexOutOfBounds actual_size ->

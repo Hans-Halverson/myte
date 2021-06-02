@@ -367,7 +367,7 @@ and parse_anonymous_tuple_expression env first_element marker =
   in
   let elements = first_element :: parse_elements () in
   let loc = marker env in
-  Tuple { Tuple.loc; name = None; elements }
+  Tuple { Tuple.loc; elements }
 
 and parse_call env left marker =
   let open Expression.Call in

@@ -1,24 +1,59 @@
 Error: Incorrect number of arguments supplied to tuple constructor. Expected 1 argument but found 0.
-test/analyze/type_check/adt/constructors.myte:18:3-11
- 18 |   (TupleADT: TupleADT);
+test/analyze/type_check/adt/constructors.myte:19:3-11
+ 19 |   (TupleADT: TupleADT);
     |    ^^^^^^^^
 
 Error: Record constructor is missing field `field`
-test/analyze/type_check/adt/constructors.myte:19:3-12
- 19 |   (RecordADT: RecordADT);
+test/analyze/type_check/adt/constructors.myte:20:3-12
+ 20 |   (RecordADT: RecordADT);
     |    ^^^^^^^^^
 
-Error: Incorrect number of arguments supplied to tuple constructor. Expected 1 argument but found 0.
-test/analyze/type_check/adt/constructors.myte:20:3-15
- 20 |   (TupleVariant: VariantADT);
+Error: Incorrect number of arguments supplied to tuple constructor. Expected 2 arguments but found 0.
+test/analyze/type_check/adt/constructors.myte:21:3-15
+ 21 |   (TupleVariant: VariantADT);
     |    ^^^^^^^^^^^^
 
 Error: Record constructor is missing fields `field1` and `field2`
-test/analyze/type_check/adt/constructors.myte:21:3-17
- 21 |   (RecordVariant1: VariantADT);
+test/analyze/type_check/adt/constructors.myte:22:3-17
+ 22 |   (RecordVariant1: VariantADT);
     |    ^^^^^^^^^^^^^^
 
 Error: Record constructor is missing fields `field1`, `field2`, and `field3`
-test/analyze/type_check/adt/constructors.myte:22:3-17
- 22 |   (RecordVariant2: VariantADT);
+test/analyze/type_check/adt/constructors.myte:23:3-17
+ 23 |   (RecordVariant2: VariantADT);
     |    ^^^^^^^^^^^^^^
+
+Error: Incorrect number of arguments supplied to tuple constructor. Expected 1 argument but found 3.
+test/analyze/type_check/adt/constructors.myte:30:3-11
+ 30 |   (TupleADT(true, 2, 3): TupleADT);
+    |    ^^^^^^^^
+
+Error: Expected type int but found string
+test/analyze/type_check/adt/constructors.myte:31:12-15
+ 31 |   (TupleADT("a"): TupleADT);
+    |             ^^^
+
+Error: Expected type string but found bool
+test/analyze/type_check/adt/constructors.myte:32:19-24
+ 32 |   (TupleVariant(1, false): VariantADT);
+    |                    ^^^^^
+
+Error: Expected type (int, string, bool) but found LongTupleADT
+test/analyze/type_check/adt/constructors.myte:35:3-29
+ 35 |   (LongTupleADT(1, "a", true): (int, string, bool));
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Expected type (int, string) but found VariantADT
+test/analyze/type_check/adt/constructors.myte:36:3-23
+ 36 |   (TupleVariant(1, "a"): (int, string));
+    |    ^^^^^^^^^^^^^^^^^^^^
+
+Error: Only functions can be called, but this expression is inferred to have type VariantADT.
+test/analyze/type_check/adt/constructors.myte:39:2-13
+ 39 |   EnumVariant();
+    |   ^^^^^^^^^^^
+
+Error: `RecordVariant1` is a record constructor and cannot be called as a function
+test/analyze/type_check/adt/constructors.myte:40:2-16
+ 40 |   RecordVariant1();
+    |   ^^^^^^^^^^^^^^
