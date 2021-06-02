@@ -111,7 +111,7 @@ class ['a] visitor =
     method record_expression acc record =
       let open Expression.Record in
       let { loc = _; name; fields } = record in
-      this#scoped_identifier acc name;
+      this#expression acc name;
       List.iter (this#record_expression_field acc) fields
 
     method record_expression_field acc field =

@@ -533,6 +533,15 @@ class bindings_builder ~module_tree =
             | _ -> expr)))
       | _ -> super#expression expr
 
+    (* If field shorthand is used, field name is also a variable that must be resolved *)
+    method! record_expression_field field =
+      let open Expression.Record.Field in
+      let { loc = _; name; value } = field in
+      (match value with
+      | None -> this#resolve_value_id_use name
+      | Some _ -> ());
+      super#record_expression_field field
+
     method! type_ ty =
       let open Ast.Type in
       match ty with

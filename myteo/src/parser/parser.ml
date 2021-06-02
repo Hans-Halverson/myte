@@ -227,26 +227,7 @@ and parse_expression_infix ~precedence env left marker =
   | T_LEFT_PAREN when ExpressionPrecedence.(is_tighter Call precedence) ->
     parse_call env left marker
   | T_LEFT_BRACE when ExpressionPrecedence.(is_tighter Call precedence) ->
-    (* If the left hand side is a named access chain, convert to scoped id and parse record *)
-    let rec named_access_chain_to_scope_ids expr =
-      match expr with
-      | Expression.Identifier id -> Some [id]
-      | Expression.NamedAccess { target; name; _ } ->
-        named_access_chain_to_scope_ids target |> Option.map (fun rev_ids -> name :: rev_ids)
-      | _ -> None
-    in
-    (match named_access_chain_to_scope_ids left with
-    | Some (name :: rev_scopes) ->
-      let scopes = List.rev rev_scopes in
-      let start_loc =
-        if scopes = [] then
-          name.loc
-        else
-          (List.hd scopes).loc
-      in
-      let name = { ScopedIdentifier.loc = Loc.between start_loc name.loc; name; scopes } in
-      parse_record env name marker
-    | _ -> left)
+    parse_record env left marker
   | T_PERIOD when ExpressionPrecedence.(is_tighter Access precedence) ->
     parse_named_access env left marker
   | T_LEFT_BRACKET when ExpressionPrecedence.(is_tighter Access precedence) ->

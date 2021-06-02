@@ -3,7 +3,7 @@ test/analyze/type_check/adt/constructors.myte:19:3-11
  19 |   (TupleADT: TupleADT);
     |    ^^^^^^^^
 
-Error: Record constructor is missing field `field`
+Error: Record is missing field `field`
 test/analyze/type_check/adt/constructors.myte:20:3-12
  20 |   (RecordADT: RecordADT);
     |    ^^^^^^^^^
@@ -13,12 +13,12 @@ test/analyze/type_check/adt/constructors.myte:21:3-15
  21 |   (TupleVariant: VariantADT);
     |    ^^^^^^^^^^^^
 
-Error: Record constructor is missing fields `field1` and `field2`
+Error: Record is missing fields `field1` and `field2`
 test/analyze/type_check/adt/constructors.myte:22:3-17
  22 |   (RecordVariant1: VariantADT);
     |    ^^^^^^^^^^^^^^
 
-Error: Record constructor is missing fields `field1`, `field2`, and `field3`
+Error: Record is missing fields `field1`, `field2`, and `field3`
 test/analyze/type_check/adt/constructors.myte:23:3-17
  23 |   (RecordVariant2: VariantADT);
     |    ^^^^^^^^^^^^^^
@@ -57,3 +57,68 @@ Error: `RecordVariant1` is a record constructor and cannot be called as a functi
 test/analyze/type_check/adt/constructors.myte:40:2-16
  40 |   RecordVariant1();
     |   ^^^^^^^^^^^^^^
+
+Error: Expected type int but found string
+test/analyze/type_check/adt/constructors.myte:56:28-34
+ 56 |   (RecordVariant1 { field1: "test", field2: 1} : VariantADT);
+    |                             ^^^^^^
+
+Error: Expected type int but found string
+test/analyze/type_check/adt/constructors.myte:57:28-34
+ 57 |   (RecordVariant2 { field1: "test", field2: "test", field3 }: VariantADT);
+    |                             ^^^^^^
+
+Error: Expected type bool but found string
+test/analyze/type_check/adt/constructors.myte:57:52-58
+ 57 |   (RecordVariant2 { field1: "test", field2: "test", field3 }: VariantADT);
+    |                                                     ^^^^^^
+
+Error: Record is missing field `field2`
+test/analyze/type_check/adt/constructors.myte:60:3-31
+ 60 |   (RecordVariant1 { field1: 1 }: int);
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Record is missing fields `field1` and `field3`
+test/analyze/type_check/adt/constructors.myte:61:3-36
+ 61 |   (RecordVariant2 { field2: "test" }: int);
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Record `RecordADT` does not have a field named `nonexist1`
+test/analyze/type_check/adt/constructors.myte:64:25-34
+ 64 |   (RecordADT { field: 1, nonexist1: 0, nonexist2: 0 }: int);
+    |                          ^^^^^^^^^
+
+Error: Record `RecordADT` does not have a field named `nonexist2`
+test/analyze/type_check/adt/constructors.myte:64:39-48
+ 64 |   (RecordADT { field: 1, nonexist1: 0, nonexist2: 0 }: int);
+    |                                        ^^^^^^^^^
+
+Error: Record `RecordVariant2` does not have a field named `nonexist`
+test/analyze/type_check/adt/constructors.myte:67:36-44
+ 67 |   (RecordVariant2 { field1: "test", nonexist: 1 }: int);
+    |                                     ^^^^^^^^
+
+Error: Expected type int but found string
+test/analyze/type_check/adt/constructors.myte:67:28-34
+ 67 |   (RecordVariant2 { field1: "test", nonexist: 1 }: int);
+    |                             ^^^^^^
+
+Error: Expected a record constructor
+test/analyze/type_check/adt/constructors.myte:70:3-14
+ 70 |   (EnumVariant { field: 1 }: int);
+    |    ^^^^^^^^^^^
+
+Error: Expected a record constructor
+test/analyze/type_check/adt/constructors.myte:71:3-15
+ 71 |   (TupleVariant { field: 1 }: int);
+    |    ^^^^^^^^^^^^
+
+Error: Expected a record constructor
+test/analyze/type_check/adt/constructors.myte:72:3
+ 72 |   (1 { field: 1 }: int);
+    |    ^
+
+Error: Expected a record constructor
+test/analyze/type_check/adt/constructors.myte:73:3-9
+ 73 |   (field1 { field: 1 }: int);
+    |    ^^^^^^

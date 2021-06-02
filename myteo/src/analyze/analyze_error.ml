@@ -27,9 +27,11 @@ type t =
   | VarDeclNeedsAnnotation of string * (Types.t * Types.tvar_id) option
   | NonFunctionCalled of Types.t
   | RecordConstructorCalled of string
+  | ExpectedRecordConstructor
   | IncorrectFunctionArity of int * int
   | IncorrectTupleConstructorArity of int * int
   | MissingRecordConstructorFields of string list
+  | UnexpectedRecordConstructorField of string * string
   | NonIndexableIndexed of Types.t
   | TupleIndexIsNotLiteral
   | TupleIndexOutOfBounds of int
@@ -200,15 +202,18 @@ let to_string error =
   | MissingRecordConstructorFields field_names ->
     let field_names = List.map (fun name -> "`" ^ name ^ "`") field_names in
     Printf.sprintf
-      "Record constructor is missing %s %s"
+      "Record is missing %s %s"
       (plural (List.length field_names) "field")
       (concat_with_and field_names)
+  | UnexpectedRecordConstructorField (record_name, field_name) ->
+    Printf.sprintf "Record `%s` does not have a field named `%s`" record_name field_name
   | NonFunctionCalled ty ->
     Printf.sprintf
       "Only functions can be called, but this expression is inferred to have type %s."
       (Types.pp ty)
   | RecordConstructorCalled name ->
     Printf.sprintf "`%s` is a record constructor and cannot be called as a function" name
+  | ExpectedRecordConstructor -> Printf.sprintf "Expected a record constructor"
   | NonIndexableIndexed ty -> Printf.sprintf "Cannot index into value of type %s" (Types.pp ty)
   | TupleIndexIsNotLiteral -> Printf.sprintf "Tuple indices must be int literals"
   | TupleIndexOutOfBounds actual_size ->

@@ -9,15 +9,14 @@ fun main() {
   (TupleADT("test"): TupleADT);
 
   // Imported record constructors
-//  (a.RecordADT { field: "test" }: a.RecordADT);
-//  (RecordADT { field: "test" }: RecordADT);
-
+  (a.RecordADT { field: "test" }: a.RecordADT);
+  (RecordADT { field: "test" }: RecordADT);
 
   // Imported variant constructors
   (a.EnumVariant: a.VariantADT);
   (EnumVariant: VariantADT);
   (a.TupleVariant(1): a.VariantADT);
   (TupleVariant(1): VariantADT);
-//  (a.RecordVariant { field: 1 }: a.VariantADT);
-//  (RecordVariant { field: 1}: VariantADT);
+  (a.RecordVariant { field: 1 }: a.VariantADT);
+  (RecordVariant { field: 1}: VariantADT);
 }

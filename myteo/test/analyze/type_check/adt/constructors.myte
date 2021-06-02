@@ -9,7 +9,7 @@ type VariantADT =
   | EnumVariant
   | TupleVariant (int, string)
   | RecordVariant1 { field1: int, field2: int }
-  | RecordVariant2 { field1: int, field2: int, field3: int }
+  | RecordVariant2 { field1: int, field2: string, field3: bool }
 
 fun main() {
   // Enum variant constructors can be used as values
@@ -38,4 +38,37 @@ fun main() {
   // Enum and record constructors cannot be called as functions
   EnumVariant();
   RecordVariant1();
+
+  // Correct arguments for record constructors
+  (RecordADT { field: 1 }: RecordADT);
+  (RecordVariant1 { field1: 1, field2: 2 }: VariantADT);
+  (RecordVariant2 { field1: 1, field2: "a", field3: true }: VariantADT);
+  
+  // Record constructor field shorthand
+  val field1: int = 1;
+  val field2: int = 2;
+  (RecordVariant1 { field1, field2 }: VariantADT);
+  (RecordVariant1 { field1: 3, field2 }: VariantADT);
+  (RecordVariant1 { field1, field2: 3 }: VariantADT);
+
+  // Incorrect argument types for record constructors
+  val field3: string = "test";
+  (RecordVariant1 { field1: "test", field2: 1} : VariantADT);
+  (RecordVariant2 { field1: "test", field2: "test", field3 }: VariantADT);
+
+  // Missing record fields
+  (RecordVariant1 { field1: 1 }: int);
+  (RecordVariant2 { field2: "test" }: int);
+
+  // Unexpected record fields
+  (RecordADT { field: 1, nonexist1: 0, nonexist2: 0 }: int);
+
+  // If there are missing and unexpected fields only show missing, as well as type errors
+  (RecordVariant2 { field1: "test", nonexist: 1 }: int);
+
+  // Error on invalid record constructors
+  (EnumVariant { field: 1 }: int);
+  (TupleVariant { field: 1 }: int);
+  (1 { field: 1 }: int);
+  (field1 { field: 1 }: int);
 }

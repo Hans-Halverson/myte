@@ -16,3 +16,6 @@ val trailingName = Foo { bar, baz, };
 // Scoped name
 val scopedName1 = Foo.Bar { bar: 1 };
 val scopedName2 = Foo.Bar.Baz.Bazz { bar: 1 };
+
+// Valid parse but does not typecheck
+val invalidRecord1 = 1 { field: 1 };

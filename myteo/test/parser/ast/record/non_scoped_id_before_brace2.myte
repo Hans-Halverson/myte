@@ -1,5 +1,0 @@
-module test
-
-fun main() {
-    Foo.Bar().Baz { field = 1 };
-}

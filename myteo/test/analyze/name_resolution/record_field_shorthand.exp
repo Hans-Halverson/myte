@@ -1,0 +1,4 @@
+Error: Could not resolve name `field2` to value
+test/analyze/name_resolution/record_field_shorthand.myte:12:9-15
+ 12 |   Rec2 { field2 };
+    |          ^^^^^^

@@ -386,6 +386,11 @@ and check_expression ~cx expr =
     Type_context.assert_unify ~cx right_loc Types.Bool (TVar right_tvar_id);
     ignore (Type_context.unify ~cx Types.Bool (TVar tvar_id));
     (loc, tvar_id)
+  (* 
+   * ============================
+   * Call or Tuple Constructor
+   * ============================
+   *)
   | Call { Call.loc; func; args } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     (* Determine if this call expression is a tuple constructor. If so handle tuple constructor
@@ -463,6 +468,99 @@ and check_expression ~cx expr =
           (NonFunctionCalled (Type_context.find_rep_type ~cx (TVar func_tvar_id)));
         ignore (Type_context.unify ~cx Any (TVar tvar_id)) );
     (loc, tvar_id)
+  (*
+   * ============================
+   * Record Constructor
+   * ============================
+   *)
+  | Record { Record.loc; name; fields } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    (* Determine whether scoped id is a record constructor *)
+    let is_record_ty =
+      match name with
+      | Identifier { Ast.Identifier.loc = name_loc; name }
+      | ScopedIdentifier { Ast.ScopedIdentifier.name = { Ast.Identifier.loc = name_loc; name }; _ }
+        ->
+        let binding = Type_context.get_source_value_binding ~cx name_loc in
+        (match snd binding.declaration with
+        | CtorDecl ->
+          let adt = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
+          let adt_sig =
+            match adt with
+            | Types.ADT { adt_sig; _ } -> adt_sig
+            | _ -> failwith "Expected ADT"
+          in
+          (match SMap.find name adt_sig.variant_sigs with
+          | RecordVariantSig field_sigs ->
+            (* Recurse into fields and collect all fields that are not a part of this record *)
+            let (field_args, unexpected_fields) =
+              List.fold_left
+                (fun (field_args, unexpected_fields)
+                     { Record.Field.name = { Ast.Identifier.name; loc } as name_id; value; _ } ->
+                  let field_arg =
+                    match value with
+                    | None -> check_expression ~cx (Identifier name_id)
+                    | Some value -> check_expression ~cx value
+                  in
+                  if SMap.mem name field_sigs then
+                    (SMap.add name field_arg field_args, unexpected_fields)
+                  else
+                    (field_args, (loc, name) :: unexpected_fields))
+                (SMap.empty, [])
+                fields
+            in
+            (* Collect all expected fields that are missing from this constructor invocation *)
+            let missing_fields =
+              SMap.fold
+                (fun field_name _ missing_fields ->
+                  if SMap.mem field_name field_args then
+                    missing_fields
+                  else
+                    field_name :: missing_fields)
+                field_sigs
+                []
+            in
+            (* Error on unexpected or missing fields, only displaying missing fields if there are no
+               unexpected fields. *)
+            if unexpected_fields <> [] then
+              List.iter
+                (fun (loc, field_name) ->
+                  Type_context.add_error
+                    ~cx
+                    loc
+                    (UnexpectedRecordConstructorField (name, field_name)))
+                (List.rev unexpected_fields)
+            else if missing_fields <> [] then
+              Type_context.add_error
+                ~cx
+                loc
+                (MissingRecordConstructorFields (List.rev missing_fields));
+            (* Supplied arguments must each be a subtype of the field types *)
+            SMap.iter
+              (fun field_name (arg_loc, arg_tvar_id) ->
+                let field_sig_ty = SMap.find field_name field_sigs in
+                Type_context.assert_is_subtype ~cx arg_loc (TVar arg_tvar_id) field_sig_ty)
+              field_args;
+            (* Result is algebraic data type unless the fields do not match,
+               in which case propagate any *)
+            let result_ty =
+              if missing_fields = [] && unexpected_fields = [] then
+                adt
+              else
+                Any
+            in
+            ignore (Type_context.unify ~cx result_ty (TVar tvar_id));
+            true
+          | _ -> false)
+        | _ -> false)
+      | _ -> false
+    in
+    (* Error if scoped id is not a record constructor *)
+    if not is_record_ty then (
+      Type_context.add_error ~cx (Ast_utils.expression_loc name) ExpectedRecordConstructor;
+      ignore (Type_context.unify ~cx Any (TVar tvar_id))
+    );
+    (loc, tvar_id)
   | IndexedAccess { IndexedAccess.loc; target; index } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let (target_loc, target_tvar_id) = check_expression ~cx target in
@@ -485,7 +583,6 @@ and check_expression ~cx expr =
       | _ -> Type_context.add_error ~cx index_loc TupleIndexIsNotLiteral)
     | target_rep_ty -> Type_context.add_error ~cx target_loc (NonIndexableIndexed target_rep_ty));
     (loc, tvar_id)
-  | Record { Record.loc; _ }
   | NamedAccess { NamedAccess.loc; _ } ->
     (* TODO: Implement type checking for these AST nodes *)
     (loc, Type_context.mk_tvar_id ~cx ~loc)

@@ -1,5 +1,0 @@
-module test
-
-fun main() {
-  1 { field = 1 };
-}

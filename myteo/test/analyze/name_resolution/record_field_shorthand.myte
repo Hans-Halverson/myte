@@ -1,0 +1,13 @@
+module test
+
+type Rec1 { field1: int }
+type Rec2 { field2: int }
+
+fun main() {
+  val field1: int = 1;
+
+  // Does not error as field1 exists
+  Rec1 { field1 };
+  // Error as field2 does not exist
+  Rec2 { field2 };
+}
