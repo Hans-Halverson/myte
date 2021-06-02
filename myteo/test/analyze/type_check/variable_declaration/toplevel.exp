@@ -1,34 +1,34 @@
 Error: Expected type unit but found bool
 test/analyze/type_check/variable_declaration/toplevel.myte:13:15-19
- 13 | val v6: unit = true;
+ 13 | val v6: unit = true
     |                ^^^^
 
 Error: Expected type bool but found string
 test/analyze/type_check/variable_declaration/toplevel.myte:14:15-17
- 14 | val v7: bool = "";
+ 14 | val v7: bool = ""
     |                ^^
 
 Error: Expected type string but found int
 test/analyze/type_check/variable_declaration/toplevel.myte:15:17
- 15 | val v8: string = 1;
+ 15 | val v8: string = 1
     |                  ^
 
 Error: Expected type int but found unit
 test/analyze/type_check/variable_declaration/toplevel.myte:16:14-16
- 16 | val v9: int = ();
+ 16 | val v9: int = ()
     |               ^^
 
 Error: Expected type int but found int => int
 test/analyze/type_check/variable_declaration/toplevel.myte:17:15-23
- 17 | val v10: int = intToInt;
+ 17 | val v10: int = intToInt
     |                ^^^^^^^^
 
 Error: Expected type int => unit but found int => int
 test/analyze/type_check/variable_declaration/toplevel.myte:18:23-31
- 18 | val v11: int => unit = intToInt;
+ 18 | val v11: int => unit = intToInt
     |                        ^^^^^^^^
 
 Error: Expected type unit => int but found int => int
 test/analyze/type_check/variable_declaration/toplevel.myte:19:23-31
- 19 | val v12: unit => int = intToInt;
+ 19 | val v12: unit => int = intToInt
     |                        ^^^^^^^^

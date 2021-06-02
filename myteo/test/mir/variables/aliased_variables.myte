@@ -1,7 +1,7 @@
 module test
 
-val x: int = 1;
-val y: int = x;
+val x: int = 1
+val y: int = x
 
 fun main() {
   val a = 1;

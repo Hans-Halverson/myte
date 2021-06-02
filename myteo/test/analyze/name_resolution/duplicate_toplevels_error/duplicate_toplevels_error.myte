@@ -7,16 +7,16 @@ import C.{A, B, C as B}
 import imported
 
 fun foo() {}
-val foo: int = 1;
+val foo: int = 1
 
 fun bar() {}
 fun bar() {}
 
-val baz: int = 1;
-val baz: int = 1;
+val baz: int = 1
+val baz: int = 1
 
 fun imported() {}
-val imported: int = 1;
+val imported: int = 1
 type alias imported = unit
 
 type alias foo = unit

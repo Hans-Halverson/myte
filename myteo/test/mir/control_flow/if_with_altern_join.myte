@@ -64,7 +64,7 @@ fun testMultiple() {
   -z;
 }
 
-var glob: int = 1;
+var glob: int = 1
 fun testGlobal() {
   if (true) {
     glob = 2;

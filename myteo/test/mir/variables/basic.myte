@@ -1,6 +1,6 @@
 module test
 
-val x: int = 1;
+val x: int = 1
 
 fun test1(y: int, z: unit) {
   x + 2 * y;

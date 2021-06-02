@@ -151,7 +151,7 @@ and parse_toplevel env =
   match Env.token env with
   | T_VAL
   | T_VAR ->
-    VariableDeclaration (parse_variable_declaration env)
+    VariableDeclaration (parse_variable_declaration ~is_toplevel:true env)
   | T_FUN -> FunctionDeclaration (parse_function env)
   | T_TYPE -> TypeDeclaration (parse_type_declaration env)
   | token -> Parse_error.fatal (Env.loc env, MalformedTopLevel token)
@@ -167,7 +167,7 @@ and parse_statement env =
   | T_CONTINUE -> parse_continue env
   | T_VAL
   | T_VAR ->
-    VariableDeclaration (parse_variable_declaration env)
+    VariableDeclaration (parse_variable_declaration ~is_toplevel:false env)
   | T_FUN -> FunctionDeclaration (parse_function env)
   | _ -> parse_assignment_or_expression_statement env
 
@@ -666,7 +666,7 @@ and parse_tuple_variant env name marker =
   if elements = [] then Parse_error.fatal (loc, EmptyTuple);
   { loc; name; elements }
 
-and parse_variable_declaration env =
+and parse_variable_declaration ~is_toplevel env =
   let open Statement in
   let marker = mark_loc env in
   let kind =
@@ -686,7 +686,7 @@ and parse_variable_declaration env =
   in
   Env.expect env T_EQUALS;
   let init = parse_expression env in
-  Env.expect env T_SEMICOLON;
+  if not is_toplevel then Env.expect env T_SEMICOLON;
   let loc = marker env in
   { VariableDeclaration.loc; kind; pattern; init; annot }
 

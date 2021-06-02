@@ -1,6 +1,6 @@
 module foo
 
-val importedImmutableVar = 0;
-var importedMutableVar = 0;
+val importedImmutableVar = 0
+var importedMutableVar = 0
 
 fun importedFunc() {}

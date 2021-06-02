@@ -1,11 +1,11 @@
 module test
 
-val x: unit = ();
+val x: unit = ()
 
-val y: int = 1;
+val y: int = 1
 
-val z: string = "test";
+val z: string = "test"
 
-val a1: bool = true;
+val a1: bool = true
 
 fun main() {}

@@ -1,9 +1,9 @@
 Error: Toplevel variables must have type annotations
-test/analyze/type_check/variable_declaration/toplevel_missing_annotation.myte:3:0-10
- 3 | val x = 1;
-   | ^^^^^^^^^^
+test/analyze/type_check/variable_declaration/toplevel_missing_annotation.myte:3:0-9
+ 3 | val x = 1
+   | ^^^^^^^^^
 
 Error: Toplevel variables must have type annotations
-test/analyze/type_check/variable_declaration/toplevel_missing_annotation.myte:5:0-11
- 5 | var y = ();
-   | ^^^^^^^^^^^
+test/analyze/type_check/variable_declaration/toplevel_missing_annotation.myte:5:0-10
+ 5 | var y = ()
+   | ^^^^^^^^^^

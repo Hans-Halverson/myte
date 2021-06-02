@@ -1,7 +1,7 @@
 test/parser/ast/type/basic.myte
 {
   node: Module,
-  loc: 1:0-14:65,
+  loc: 1:0-14:64,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -20,7 +20,7 @@ test/parser/ast/type/basic.myte
   toplevels: [
     {
       node: VariableDeclaration,
-      loc: 3:0-3:17,
+      loc: 3:0-3:16,
       kind: Immutable,
       pattern: {
         node: Identifier,
@@ -39,7 +39,7 @@ test/parser/ast/type/basic.myte
     },
     {
       node: VariableDeclaration,
-      loc: 4:0-4:15,
+      loc: 4:0-4:14,
       kind: Immutable,
       pattern: {
         node: Identifier,
@@ -60,7 +60,7 @@ test/parser/ast/type/basic.myte
     },
     {
       node: VariableDeclaration,
-      loc: 5:0-5:23,
+      loc: 5:0-5:22,
       kind: Immutable,
       pattern: {
         node: Identifier,
@@ -80,7 +80,7 @@ test/parser/ast/type/basic.myte
     },
     {
       node: VariableDeclaration,
-      loc: 6:0-6:19,
+      loc: 6:0-6:18,
       kind: Immutable,
       pattern: {
         node: Identifier,
@@ -100,7 +100,7 @@ test/parser/ast/type/basic.myte
     },
     {
       node: VariableDeclaration,
-      loc: 8:0-8:25,
+      loc: 8:0-8:24,
       kind: Immutable,
       pattern: {
         node: Identifier,
@@ -133,7 +133,7 @@ test/parser/ast/type/basic.myte
     },
     {
       node: VariableDeclaration,
-      loc: 9:0-9:33,
+      loc: 9:0-9:32,
       kind: Immutable,
       pattern: {
         node: Identifier,
@@ -178,7 +178,7 @@ test/parser/ast/type/basic.myte
     },
     {
       node: VariableDeclaration,
-      loc: 10:0-10:43,
+      loc: 10:0-10:42,
       kind: Immutable,
       pattern: {
         node: Identifier,
@@ -235,7 +235,7 @@ test/parser/ast/type/basic.myte
     },
     {
       node: VariableDeclaration,
-      loc: 12:0-12:19,
+      loc: 12:0-12:18,
       kind: Immutable,
       pattern: {
         node: Identifier,
@@ -265,7 +265,7 @@ test/parser/ast/type/basic.myte
     },
     {
       node: VariableDeclaration,
-      loc: 13:0-13:35,
+      loc: 13:0-13:34,
       kind: Immutable,
       pattern: {
         node: Identifier,
@@ -306,7 +306,7 @@ test/parser/ast/type/basic.myte
     },
     {
       node: VariableDeclaration,
-      loc: 14:0-14:65,
+      loc: 14:0-14:64,
       kind: Immutable,
       pattern: {
         node: Identifier,

@@ -1,6 +1,6 @@
 module test
 
-var x: int = 0;
+var x: int = 0
 
 fun testReassignGlobals() {
   x = 1;

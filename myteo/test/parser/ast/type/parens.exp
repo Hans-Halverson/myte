@@ -1,7 +1,7 @@
 test/parser/ast/type/parens.myte
 {
   node: Module,
-  loc: 1:0-5:27,
+  loc: 1:0-5:26,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -20,7 +20,7 @@ test/parser/ast/type/parens.myte
   toplevels: [
     {
       node: VariableDeclaration,
-      loc: 3:0-3:17,
+      loc: 3:0-3:16,
       kind: Immutable,
       pattern: {
         node: Identifier,
@@ -41,7 +41,7 @@ test/parser/ast/type/parens.myte
     },
     {
       node: VariableDeclaration,
-      loc: 4:0-4:21,
+      loc: 4:0-4:20,
       kind: Immutable,
       pattern: {
         node: Identifier,
@@ -62,7 +62,7 @@ test/parser/ast/type/parens.myte
     },
     {
       node: VariableDeclaration,
-      loc: 5:0-5:27,
+      loc: 5:0-5:26,
       kind: Immutable,
       pattern: {
         node: Identifier,

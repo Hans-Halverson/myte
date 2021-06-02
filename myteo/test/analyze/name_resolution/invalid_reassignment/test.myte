@@ -10,8 +10,8 @@ type VariantType =
   | TupleVariantCtor (int)
   | RecordVariantCtor { field: int }
 
-val immutableGlobal: int = 0;
-var mutableGlobal: int = 0;
+val immutableGlobal: int = 0
+var mutableGlobal: int = 0
 
 fun func(funcParam: int) {
   val immutableLocal = 0;

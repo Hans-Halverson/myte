@@ -1,6 +1,6 @@
 module Test
 
-val x = 1;
-var y = 2;
+val x = 1
+var y = 2
 
-val x: int = 1;
+val x: int = 1
