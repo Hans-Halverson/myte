@@ -1,0 +1,23 @@
+module test
+
+type TupleADT (int)
+
+type RecordADT { field: int }
+
+type VariantADT =
+  | EnumVariant
+  | TupleVariant (int)
+  | RecordVariant1 { field1: int, field2: int }
+  | RecordVariant2 { field1: int, field2: int, field3: int }
+
+fun main() {
+  // Enum variant constructors can be used as values
+  (EnumVariant: VariantADT);
+
+  // Tuple and record constructors cannot be used as values
+  (TupleADT: TupleADT);
+  (RecordADT: RecordADT);
+  (TupleVariant: VariantADT);
+  (RecordVariant1: VariantADT);
+  (RecordVariant2: VariantADT);
+}

@@ -27,6 +27,8 @@ type t =
   | VarDeclNeedsAnnotation of string * (Types.t * Types.tvar_id) option
   | NonFunctionCalled of Types.t
   | IncorrectFunctionArity of int * int
+  | IncorrectTupleConstructorArity of int * int
+  | MissingRecordConstructorFields of string list
   | NonIndexableIndexed of Types.t
   | TupleIndexIsNotLiteral
   | TupleIndexOutOfBounds of int
@@ -56,6 +58,15 @@ let string_of_name_source source =
   match source with
   | FunctionName name -> Printf.sprintf "function \"%s\"" name
   | TypeName name -> Printf.sprintf "type \"%s\"" name
+
+let concat_with_and strs =
+  match strs with
+  | [] -> ""
+  | [str] -> str
+  | [str1; str2] -> str1 ^ " and " ^ str2
+  | strs ->
+    let (strs, last_str) = List_utils.split_last strs in
+    String.concat ", " strs ^ ", and " ^ last_str
 
 let to_string error =
   let value_or_type is_value =
@@ -179,6 +190,18 @@ let to_string error =
       expected
       (plural expected "argument")
       actual
+  | IncorrectTupleConstructorArity (actual, expected) ->
+    Printf.sprintf
+      "Incorrect number of arguments supplied to tuple constructor. Expected %d %s but found %d."
+      expected
+      (plural expected "argument")
+      actual
+  | MissingRecordConstructorFields field_names ->
+    let field_names = List.map (fun name -> "\"" ^ name ^ "\"") field_names in
+    Printf.sprintf
+      "Record constructor is missing %s %s."
+      (plural (List.length field_names) "field")
+      (concat_with_and field_names)
   | NonFunctionCalled ty ->
     Printf.sprintf
       "Only functions can be called, but this expression is inferred to have type %s."

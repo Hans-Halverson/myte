@@ -324,6 +324,7 @@ and type_to_value_type ty =
   | Types.String -> ValueType.String
   | Types.Tuple _ -> failwith "TODO: Implement MIR emission for tuple types"
   | Types.Function _ -> ValueType.Function
+  | Types.ADT _ -> failwith "TODO: Implement MIR emission for ADTs"
   | Types.TVar _ -> failwith "TVars must be resolved for all values in IR"
   | Types.Any -> failwith "Any not allowed as value in IR"
 

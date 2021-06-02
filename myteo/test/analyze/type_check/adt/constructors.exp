@@ -1,0 +1,24 @@
+Error: Incorrect number of arguments supplied to tuple constructor. Expected 1 argument but found 0.
+test/analyze/type_check/adt/constructors.myte:18:3-11
+ 18 |   (TupleADT: TupleADT);
+    |    ^^^^^^^^
+
+Error: Record constructor is missing field "field".
+test/analyze/type_check/adt/constructors.myte:19:3-12
+ 19 |   (RecordADT: RecordADT);
+    |    ^^^^^^^^^
+
+Error: Incorrect number of arguments supplied to tuple constructor. Expected 1 argument but found 0.
+test/analyze/type_check/adt/constructors.myte:20:3-15
+ 20 |   (TupleVariant: VariantADT);
+    |    ^^^^^^^^^^^^
+
+Error: Record constructor is missing fields "field1" and "field2".
+test/analyze/type_check/adt/constructors.myte:21:3-17
+ 21 |   (RecordVariant1: VariantADT);
+    |    ^^^^^^^^^^^^^^
+
+Error: Record constructor is missing fields "field1", "field2", and "field3".
+test/analyze/type_check/adt/constructors.myte:22:3-17
+ 22 |   (RecordVariant2: VariantADT);
+    |    ^^^^^^^^^^^^^^

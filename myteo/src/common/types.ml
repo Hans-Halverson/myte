@@ -14,6 +14,21 @@ type t =
       params: t list;
       return: t;
     }
+  | ADT of {
+      adt_sig: adt_sig;
+      tparams: t list;
+    }
+
+and adt_sig = {
+  name: string;
+  mutable tvar_sigs: tvar_id list;
+  mutable variant_sigs: variant_sig SMap.t;
+}
+
+and variant_sig =
+  | EnumVariantSig
+  | TupleVariantSig of t list
+  | RecordVariantSig of t SMap.t
 
 let max_tvar_id = ref 0
 
@@ -46,6 +61,8 @@ let get_all_tvars tys =
   in
   remove_duplicates ISet.empty tvars_with_duplicates
 
+let concat_and_wrap (pre, post) elements = pre ^ String.concat ", " elements ^ post
+
 let rec pp_with_names ~tvar_to_name ty =
   match ty with
   | Any -> "any"
@@ -55,7 +72,7 @@ let rec pp_with_names ~tvar_to_name ty =
   | String -> "string"
   | Tuple elements ->
     let element_names = List.map (pp_with_names ~tvar_to_name) elements in
-    "(" ^ String.concat ", " element_names ^ ")"
+    concat_and_wrap ("(", ")") element_names
   | Function { params; return } ->
     let pp_function_part ty =
       let pp_param = pp_with_names ~tvar_to_name ty in
@@ -68,9 +85,15 @@ let rec pp_with_names ~tvar_to_name ty =
       | [param] -> pp_function_part param
       | _ ->
         let pp_params = List.map (fun param -> pp_with_names ~tvar_to_name param) params in
-        "(" ^ String.concat ", " pp_params ^ ")"
+        concat_and_wrap ("(", ")") pp_params
     in
     pp_params ^ " => " ^ pp_function_part return
+  | ADT { adt_sig = { name; _ }; tparams } ->
+    if tparams = [] then
+      name
+    else
+      let pp_tparams = List.map (pp_with_names ~tvar_to_name) tparams in
+      concat_and_wrap (name ^ "<", ">") pp_tparams
   | TVar tvar_id -> IMap.find tvar_id tvar_to_name
 
 let name_id_to_string name_id =

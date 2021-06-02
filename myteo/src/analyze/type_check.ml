@@ -19,13 +19,37 @@ let rec build_type ~cx ty =
   | Custom { Custom.name = { Ast.ScopedIdentifier.name = { Ast.Identifier.loc; _ }; _ }; _ } ->
     TVar (Type_context.get_tvar_id_from_type_use ~cx loc)
 
+and visit_type_declarations_prepass ~cx module_ =
+  let open Ast.Module in
+  let { toplevels; _ } = module_ in
+  List.iter
+    (fun toplevel ->
+      (* Create empty ADT sig for each algebraic data type definition *)
+      let open Ast.TypeDeclaration in
+      match toplevel with
+      | TypeDeclaration
+          { name = { Ast.Identifier.loc = id_loc; name }; decl = Tuple _ | Record _ | Variant _; _ }
+        ->
+        let tvar_id = Type_context.get_tvar_id_from_type_decl ~cx id_loc in
+        let adt =
+          Types.ADT { adt_sig = { name; tvar_sigs = []; variant_sigs = SMap.empty }; tparams = [] }
+        in
+        ignore (Type_context.unify ~cx adt (Types.TVar tvar_id))
+      | _ -> ())
+    toplevels
+
 and visit_type_declarations ~cx module_ =
   let open Ast.Module in
-  let { Ast.Module.toplevels; _ } = module_ in
+  let { toplevels; _ } = module_ in
   List.iter
     (fun toplevel ->
       let open Ast.TypeDeclaration in
       match toplevel with
+      (*
+       * Type Alias
+       * 
+       * Type aliases have their tvar unified with the aliased type.
+       *)
       | TypeDeclaration
           { loc; name = { Ast.Identifier.loc = id_loc; name }; type_params; decl = Alias alias } ->
         check_type_parameters ~cx type_params;
@@ -42,21 +66,68 @@ and visit_type_declarations ~cx module_ =
         in
         if is_recursive || not (Type_context.unify ~cx ty (TVar tvar_id)) then
           Type_context.add_error ~cx loc (CyclicTypeAlias name)
-      | TypeDeclaration
-          { loc; name = { Ast.Identifier.loc = id_loc; name }; type_params; decl = Tuple tuple } ->
+      (*
+       * Algebraic Data Type
+       *
+       * Build variant signatures for each variant in this ADT. Each variant's constructor id is
+       * also unified with ADT.
+       *)
+      | TypeDeclaration { loc = _; name = { Ast.Identifier.loc = id_loc; name }; type_params; decl }
+        ->
         check_type_parameters ~cx type_params;
+        (* Get ADT signature from ADT id's tvar *)
         let tvar_id = Type_context.get_tvar_id_from_type_decl ~cx id_loc in
-        let ty = Types.Tuple (List.map (build_type ~cx) tuple.elements) in
-        let rep_ty1 = find_union_rep_type ~cx ty in
-        let rep_ty2 = find_union_rep_type ~cx (TVar tvar_id) in
-        let is_recursive =
-          match (rep_ty1, rep_ty2) with
-          | (TVar rep_tvar1, TVar rep_tvar2) when rep_tvar1 = rep_tvar2 -> true
-          | _ -> false
+        let adt = Type_context.find_rep_type ~cx (TVar tvar_id) in
+        let adt_sig =
+          match adt with
+          | Types.ADT { adt_sig; _ } -> adt_sig
+          | _ -> failwith "Expected ADT"
         in
-        if is_recursive || not (Type_context.unify ~cx ty (TVar tvar_id)) then
-          Type_context.add_error ~cx loc (CyclicTypeAlias name)
-      | TypeDeclaration _ -> (* TODO: Implement type checking for new type declarations *) ()
+        let build_element_tys ~cx elements = List.map (build_type ~cx) elements in
+        let build_field_tys ~cx fields =
+          List.fold_left
+            (fun field_tys field ->
+              let { Record.Field.name = { Ast.Identifier.name; _ }; ty; _ } = field in
+              let field_ty = build_type ~cx ty in
+              SMap.add name field_ty field_tys)
+            SMap.empty
+            fields
+        in
+        let unify_constructor_with_adt ctor_decl_loc =
+          let ctor_tvar = Type_context.get_tvar_id_from_value_decl ~cx ctor_decl_loc in
+          ignore (Type_context.unify ~cx adt (TVar ctor_tvar))
+        in
+        (match decl with
+        | Tuple { name = { Ast.Identifier.loc; _ }; elements; _ } ->
+          unify_constructor_with_adt loc;
+          let element_tys = build_element_tys ~cx elements in
+          adt_sig.variant_sigs <- SMap.singleton name (Types.TupleVariantSig element_tys)
+        | Record { name = { Ast.Identifier.loc; _ }; fields; _ } ->
+          unify_constructor_with_adt loc;
+          let field_tys = build_field_tys ~cx fields in
+          adt_sig.variant_sigs <- SMap.singleton name (Types.RecordVariantSig field_tys)
+        | Variant variants ->
+          let variant_sigs =
+            List.fold_left
+              (fun variant_sigs variant ->
+                let open Ast.Identifier in
+                match variant with
+                | EnumVariant { loc; name } ->
+                  unify_constructor_with_adt loc;
+                  SMap.add name Types.EnumVariantSig variant_sigs
+                | TupleVariant { name = { loc; name }; elements; _ } ->
+                  unify_constructor_with_adt loc;
+                  let element_tys = build_element_tys ~cx elements in
+                  SMap.add name (Types.TupleVariantSig element_tys) variant_sigs
+                | RecordVariant { name = { loc; name }; fields; _ } ->
+                  unify_constructor_with_adt loc;
+                  let field_tys = build_field_tys ~cx fields in
+                  SMap.add name (Types.RecordVariantSig field_tys) variant_sigs)
+              SMap.empty
+              variants
+          in
+          adt_sig.variant_sigs <- variant_sigs
+        | Alias _ -> ())
       | _ -> ())
     toplevels
 
@@ -188,11 +259,36 @@ and check_expression ~cx expr =
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     ignore (Type_context.unify ~cx Types.Bool (TVar tvar_id));
     (loc, tvar_id)
-  | Identifier { Ast.Identifier.loc; _ }
-  | ScopedIdentifier { Ast.ScopedIdentifier.name = { Ast.Identifier.loc; _ }; _ } ->
+  | Identifier { Ast.Identifier.loc; name }
+  | ScopedIdentifier { Ast.ScopedIdentifier.name = { Ast.Identifier.loc; name }; _ } ->
+    let open Types in
+    let open Bindings.ValueBinding in
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    let decl_tvar_id = Type_context.get_tvar_id_from_value_use ~cx loc in
-    ignore (Type_context.unify ~cx (TVar decl_tvar_id) (TVar tvar_id));
+    let binding = Type_context.get_source_value_binding ~cx loc in
+    let decl_ty =
+      match snd binding.declaration with
+      (* If id is a constructor look up corresponding ADT to use as type. Error on tuple and record
+         constructors as they are handled elsewhere. *)
+      | Constructor ->
+        let adt = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
+        let adt_sig =
+          match adt with
+          | Types.ADT { adt_sig; _ } -> adt_sig
+          | _ -> failwith "Expected ADT"
+        in
+        (match SMap.find name adt_sig.variant_sigs with
+        | EnumVariantSig -> adt
+        | TupleVariantSig elements ->
+          Type_context.add_error ~cx loc (IncorrectTupleConstructorArity (0, List.length elements));
+          Any
+        | RecordVariantSig fields ->
+          let field_names = SMap.fold (fun name _ names -> name :: names) fields [] |> List.rev in
+          Type_context.add_error ~cx loc (MissingRecordConstructorFields field_names);
+          Any)
+      (* Otherwise identifier has same type as its declaration *)
+      | _ -> TVar binding.tvar_id
+    in
+    ignore (Type_context.unify ~cx decl_ty (TVar tvar_id));
     (loc, tvar_id)
   | Tuple { Tuple.loc; name = _; elements } ->
     (* TODO: Add support for checking named tuple constructors *)
@@ -383,6 +479,7 @@ and check_statement ~cx stmt =
 let analyze modules bindings =
   let cx = Type_context.mk ~bindings in
   (* First visit type declarations, building type aliases *)
+  List.iter (fun (_, module_) -> visit_type_declarations_prepass ~cx module_) modules;
   List.iter (fun (_, module_) -> visit_type_declarations ~cx module_) modules;
   List.iter (fun (_, module_) -> visit_value_declarations ~cx module_) modules;
   if cx.errors = [] then List.iter (fun (_, module_) -> check_module ~cx module_) modules;

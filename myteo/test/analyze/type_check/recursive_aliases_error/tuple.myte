@@ -1,9 +1,0 @@
-module test
-
-type Tup1 (Tup1)
-type Tup2 (int, Tup2, string)
-
-type Tup3 (int, Tup4, bool)
-type Tup4 (bool, Tup3, int)
-
-fun main() {}

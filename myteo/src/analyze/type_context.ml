@@ -109,6 +109,12 @@ let rec find_rep_type ~cx ty =
       ty
     else
       Function { params = params'; return = return' }
+  | ADT { adt_sig; tparams } ->
+    let tparams' = id_map_list (find_rep_type ~cx) tparams in
+    if tparams == tparams' then
+      ty
+    else
+      ADT { adt_sig; tparams = tparams' }
   | TVar tvar_id ->
     let (_, rep_ty, _) = find_union_rep_node ~cx tvar_id in
     (match rep_ty with
@@ -130,6 +136,7 @@ let rec tvar_occurs_in ~cx tvar ty =
   | Tuple elements -> List.exists (tvar_occurs_in ~cx tvar) elements
   | Function { params; return } ->
     List.exists (tvar_occurs_in ~cx tvar) params || tvar_occurs_in ~cx tvar return
+  | ADT { adt_sig = _; tparams } -> List.exists (tvar_occurs_in ~cx tvar) tparams
   | TVar rep_tvar -> tvar = rep_tvar
 
 let union_tvars ~cx ty1 ty2 =
@@ -183,6 +190,11 @@ let rec unify ~cx ty1 ty2 =
     List.length params1 = List.length params2
     && List.combine params1 params2 |> List.for_all (fun (ty1, ty2) -> unify ~cx ty1 ty2)
     && unify ~cx return1 return2
+  (* Algebraic data types must have same signature and type params *)
+  | (ADT { adt_sig = adt_sig1; tparams = tparams1 }, ADT { adt_sig = adt_sig2; tparams = tparams2 })
+    ->
+    adt_sig1 == adt_sig2
+    && List.combine tparams1 tparams2 |> List.for_all (fun (ty1, ty2) -> unify ~cx ty1 ty2)
   | _ -> false
 
 let rec is_subtype ~cx sub sup =
@@ -215,6 +227,12 @@ let rec is_subtype ~cx sub sup =
     List.length sub_params = List.length sup_params
     && List.combine sub_params sup_params |> List.for_all (fun (sub, sup) -> is_subtype ~cx sup sub)
     && is_subtype ~cx sub_return sup_return
+  (* Algebraic type parameters are invariant *)
+  | (ADT { adt_sig = adt_sig1; tparams = tparams1 }, ADT { adt_sig = adt_sig2; tparams = tparams2 })
+    ->
+    adt_sig1 == adt_sig2
+    && List.combine tparams1 tparams2
+       |> List.for_all (fun (ty1, ty2) -> is_subtype ~cx ty1 ty2 && is_subtype ~cx ty2 ty1)
   | _ -> false
 
 let assert_unify ~cx loc expected actual =

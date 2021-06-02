@@ -267,15 +267,15 @@ class bindings_builder ~module_tree =
 
     method! tuple_variant tuple =
       let open Ast.TypeDeclaration.Tuple in
-      let { loc; name; _ } = tuple in
-      let { Ast.Identifier.name; _ } = name in
+      let { name; _ } = tuple in
+      let { Ast.Identifier.name; loc } = name in
       this#add_value_declaration loc Constructor name true;
       super#tuple_variant tuple
 
     method! record_variant record =
       let open Ast.TypeDeclaration.Record in
-      let { loc; name; _ } = record in
-      let { Ast.Identifier.name; _ } = name in
+      let { name; _ } = record in
+      let { Ast.Identifier.name; loc } = name in
       this#add_value_declaration loc Constructor name true;
       super#record_variant record
 
