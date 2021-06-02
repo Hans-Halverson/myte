@@ -228,7 +228,7 @@ and node_of_record_expression record =
     "RecordExpression"
     loc
     [
-      ("name", node_of_identifier name);
+      ("name", node_of_scoped_identifier name);
       ("fields", List (List.map node_of_record_expression_field fields));
     ]
 

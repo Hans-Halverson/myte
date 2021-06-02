@@ -156,7 +156,7 @@ and Expression : sig
 
     type t = {
       loc: Loc.t;
-      name: Identifier.t;
+      name: ScopedIdentifier.t;
       fields: Field.t list;
     }
   end

@@ -138,7 +138,7 @@ class mapper =
     method record_expression record =
       let open Expression.Record in
       let { loc; name; fields } = record in
-      let name' = this#identifier name in
+      let name' = this#scoped_identifier name in
       let fields' = id_map_list this#record_expression_field fields in
       if name == name' && fields == fields' then
         record

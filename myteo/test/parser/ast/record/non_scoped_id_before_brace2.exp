@@ -1,0 +1,4 @@
+Error: Unexpected token `{`, expected `;`
+test/parser/ast/record/non_scoped_id_before_brace2.myte:4:18
+ 4 |     Foo.Bar().Baz { field = 1 };
+   |                   ^

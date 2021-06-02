@@ -1,0 +1,4 @@
+Error: Unexpected token `{`, expected `;`
+test/parser/ast/record/non_scoped_id_before_brace1.myte:4:4
+ 4 |   1 { field = 1 };
+   |     ^

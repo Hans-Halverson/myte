@@ -36,6 +36,7 @@ class bindings_builder ~module_tree =
           match kind with
           | Module_tree.VarDecl kind -> VarDecl kind
           | Module_tree.FunDecl -> FunDecl
+          | Module_tree.CtorDecl -> CtorDecl
         in
         (* TODO: CHeck if this is accurate for modules*)
         LocMap.add loc (mk_binding_builder ~loc ~name ~kind ~is_global:true ~module_:[]) acc)
@@ -191,6 +192,7 @@ class bindings_builder ~module_tree =
                        match kind with
                        | VarDecl kind -> ImportedVarDecl (id, kind)
                        | FunDecl -> ImportedFunDecl id
+                       | CtorDecl -> ImportedCtorDecl id
                      in
                      add_value_name kind local_name)
                    export_info.value);
@@ -269,20 +271,20 @@ class bindings_builder ~module_tree =
       let open Ast.TypeDeclaration.Tuple in
       let { name; _ } = tuple in
       let { Ast.Identifier.name; loc } = name in
-      this#add_value_declaration loc Constructor name true;
+      this#add_value_declaration loc CtorDecl name true;
       super#tuple_variant tuple
 
     method! record_variant record =
       let open Ast.TypeDeclaration.Record in
       let { name; _ } = record in
       let { Ast.Identifier.name; loc } = name in
-      this#add_value_declaration loc Constructor name true;
+      this#add_value_declaration loc CtorDecl name true;
       super#record_variant record
 
     method! enum_variant id =
       let open Ast.Identifier in
       let { loc; name } = id in
-      this#add_value_declaration loc Constructor name true;
+      this#add_value_declaration loc CtorDecl name true;
       super#enum_variant id
 
     method! statement stmt =
@@ -365,7 +367,9 @@ class bindings_builder ~module_tree =
         | ImportedFunDecl _ ->
           add_invalid_assign_error InvalidAssignmentFunction
         | FunParam -> add_invalid_assign_error InvalidAssignmentFunctionParam
-        | Constructor -> add_invalid_assign_error InvalidAssignmentConstructor
+        | ImportedCtorDecl _
+        | CtorDecl ->
+          add_invalid_assign_error InvalidAssignmentConstructor
         | ImportedModule _ -> (* Direct module use will error elsewhere *) ()));
       super#assignment assign
 

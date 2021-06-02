@@ -207,7 +207,7 @@ and parse_expression_prefix env =
   | T_MINUS
   | T_LOGICAL_NOT ->
     parse_unary_expression env
-  | T_IDENTIFIER _ -> parse_identifier_or_record_expression env
+  | T_IDENTIFIER _ -> Expression.Identifier (parse_identifier env)
   | T_INT_LITERAL (value, raw) ->
     let loc = Env.loc env in
     Env.advance env;
@@ -226,6 +226,27 @@ and parse_expression_infix ~precedence env left marker =
   match Env.token env with
   | T_LEFT_PAREN when ExpressionPrecedence.(is_tighter Call precedence) ->
     parse_call env left marker
+  | T_LEFT_BRACE when ExpressionPrecedence.(is_tighter Call precedence) ->
+    (* If the left hand side is a named access chain, convert to scoped id and parse record *)
+    let rec named_access_chain_to_scope_ids expr =
+      match expr with
+      | Expression.Identifier id -> Some [id]
+      | Expression.NamedAccess { target; name; _ } ->
+        named_access_chain_to_scope_ids target |> Option.map (fun rev_ids -> name :: rev_ids)
+      | _ -> None
+    in
+    (match named_access_chain_to_scope_ids left with
+    | Some (name :: rev_scopes) ->
+      let scopes = List.rev rev_scopes in
+      let start_loc =
+        if scopes = [] then
+          name.loc
+        else
+          (List.hd scopes).loc
+      in
+      let name = { ScopedIdentifier.loc = Loc.between start_loc name.loc; name; scopes } in
+      parse_record env name marker
+    | _ -> left)
   | T_PERIOD when ExpressionPrecedence.(is_tighter Access precedence) ->
     parse_named_access env left marker
   | T_LEFT_BRACKET when ExpressionPrecedence.(is_tighter Access precedence) ->
@@ -390,13 +411,6 @@ and parse_call env left marker =
   let args = args env in
   let loc = marker env in
   Expression.Call { loc; func = left; args }
-
-and parse_identifier_or_record_expression env =
-  let marker = mark_loc env in
-  let id = parse_identifier env in
-  match Env.token env with
-  | T_LEFT_BRACE -> parse_record env id marker
-  | _ -> Expression.Identifier id
 
 and parse_record env name marker =
   let open Expression in

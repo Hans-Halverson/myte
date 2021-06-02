@@ -2,4 +2,4 @@ module a1.a2.a3
 
 val exportedValue: int = 1;
 
-type ExportedType (int)
+type alias exportedType = int

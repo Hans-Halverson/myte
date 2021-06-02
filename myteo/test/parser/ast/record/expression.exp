@@ -1,7 +1,7 @@
 test/parser/ast/record/expression.myte
 {
   node: Module,
-  loc: 1:0-14:37,
+  loc: 1:0-18:46,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -31,9 +31,14 @@ test/parser/ast/record/expression.myte
         node: RecordExpression,
         loc: 3:9-3:23,
         name: {
-          node: Identifier,
+          node: ScopedIdentifier,
           loc: 3:9-3:12,
-          name: "Foo",
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 3:9-3:12,
+            name: "Foo",
+          },
         },
         fields: [
           {
@@ -68,9 +73,14 @@ test/parser/ast/record/expression.myte
         node: RecordExpression,
         loc: 4:9-4:39,
         name: {
-          node: Identifier,
+          node: ScopedIdentifier,
           loc: 4:9-4:12,
-          name: "Foo",
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 4:9-4:12,
+            name: "Foo",
+          },
         },
         fields: [
           {
@@ -130,9 +140,14 @@ test/parser/ast/record/expression.myte
         node: RecordExpression,
         loc: 5:9-5:20,
         name: {
-          node: Identifier,
+          node: ScopedIdentifier,
           loc: 5:9-5:12,
-          name: "Foo",
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 5:9-5:12,
+            name: "Foo",
+          },
         },
         fields: [
           {
@@ -162,9 +177,14 @@ test/parser/ast/record/expression.myte
         node: RecordExpression,
         loc: 6:9-6:25,
         name: {
-          node: Identifier,
+          node: ScopedIdentifier,
           loc: 6:9-6:12,
-          name: "Foo",
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 6:9-6:12,
+            name: "Foo",
+          },
         },
         fields: [
           {
@@ -204,9 +224,14 @@ test/parser/ast/record/expression.myte
         node: RecordExpression,
         loc: 7:9-7:43,
         name: {
-          node: Identifier,
+          node: ScopedIdentifier,
           loc: 7:9-7:12,
-          name: "Foo",
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 7:9-7:12,
+            name: "Foo",
+          },
         },
         fields: [
           {
@@ -274,9 +299,14 @@ test/parser/ast/record/expression.myte
         node: RecordExpression,
         loc: 10:9-10:40,
         name: {
-          node: Identifier,
+          node: ScopedIdentifier,
           loc: 10:9-10:12,
-          name: "Foo",
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 10:9-10:12,
+            name: "Foo",
+          },
         },
         fields: [
           {
@@ -291,9 +321,14 @@ test/parser/ast/record/expression.myte
               node: RecordExpression,
               loc: 10:20-10:32,
               name: {
-                node: Identifier,
+                node: ScopedIdentifier,
                 loc: 10:20-10:23,
-                name: "Bar",
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 10:20-10:23,
+                  name: "Bar",
+                },
               },
               fields: [
                 {
@@ -336,9 +371,14 @@ test/parser/ast/record/expression.myte
         node: RecordExpression,
         loc: 13:20-13:43,
         name: {
-          node: Identifier,
+          node: ScopedIdentifier,
           loc: 13:20-13:23,
-          name: "Foo",
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 13:20-13:23,
+            name: "Foo",
+          },
         },
         fields: [
           {
@@ -388,9 +428,14 @@ test/parser/ast/record/expression.myte
         node: RecordExpression,
         loc: 14:19-14:36,
         name: {
-          node: Identifier,
+          node: ScopedIdentifier,
           loc: 14:19-14:22,
-          name: "Foo",
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 14:19-14:22,
+            name: "Foo",
+          },
         },
         fields: [
           {
@@ -412,6 +457,112 @@ test/parser/ast/record/expression.myte
               name: "baz",
             },
             value: None,
+          },
+        ],
+      },
+      annot: None,
+    },
+    {
+      node: VariableDeclaration,
+      loc: 17:0-17:37,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 17:4-17:15,
+        name: "scopedName1",
+      },
+      init: {
+        node: RecordExpression,
+        loc: 17:18-17:36,
+        name: {
+          node: ScopedIdentifier,
+          loc: 17:18-17:25,
+          scopes: [
+            {
+              node: Identifier,
+              loc: 17:18-17:21,
+              name: "Foo",
+            },
+          ],
+          name: {
+            node: Identifier,
+            loc: 17:22-17:25,
+            name: "Bar",
+          },
+        },
+        fields: [
+          {
+            node: RecordExpressionField,
+            loc: 17:28-17:34,
+            name: {
+              node: Identifier,
+              loc: 17:28-17:31,
+              name: "bar",
+            },
+            value: {
+              node: IntLiteral,
+              loc: 17:33-17:34,
+              value: 1,
+              raw: "1",
+            },
+          },
+        ],
+      },
+      annot: None,
+    },
+    {
+      node: VariableDeclaration,
+      loc: 18:0-18:46,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 18:4-18:15,
+        name: "scopedName2",
+      },
+      init: {
+        node: RecordExpression,
+        loc: 18:18-18:45,
+        name: {
+          node: ScopedIdentifier,
+          loc: 18:18-18:34,
+          scopes: [
+            {
+              node: Identifier,
+              loc: 18:18-18:21,
+              name: "Foo",
+            },
+            {
+              node: Identifier,
+              loc: 18:22-18:25,
+              name: "Bar",
+            },
+            {
+              node: Identifier,
+              loc: 18:26-18:29,
+              name: "Baz",
+            },
+          ],
+          name: {
+            node: Identifier,
+            loc: 18:30-18:34,
+            name: "Bazz",
+          },
+        },
+        fields: [
+          {
+            node: RecordExpressionField,
+            loc: 18:37-18:43,
+            name: {
+              node: Identifier,
+              loc: 18:37-18:40,
+              name: "bar",
+            },
+            value: {
+              node: IntLiteral,
+              loc: 18:42-18:43,
+              value: 1,
+              raw: "1",
+            },
           },
         ],
       },

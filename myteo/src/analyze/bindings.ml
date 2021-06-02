@@ -4,11 +4,12 @@ open Basic_collections
 type value_declaration =
   | VarDecl of Statement.VariableDeclaration.kind
   | FunDecl
+  | CtorDecl
   | ImportedVarDecl of Identifier.t * Statement.VariableDeclaration.kind
   | ImportedFunDecl of Identifier.t
+  | ImportedCtorDecl of Identifier.t
   | ImportedModule of Module_tree.module_tree
   | FunParam
-  | Constructor
 
 type type_declaration =
   | TypeDecl
@@ -69,7 +70,8 @@ let get_source_value_binding bindings use_loc =
   let local_binding = LocMap.find local_decl_loc bindings.value_bindings in
   match local_binding.ValueBinding.declaration with
   | (_, ImportedVarDecl ({ Ast.Identifier.loc = source_decl_loc; _ }, _))
-  | (_, ImportedFunDecl { Ast.Identifier.loc = source_decl_loc; _ }) ->
+  | (_, ImportedFunDecl { Ast.Identifier.loc = source_decl_loc; _ })
+  | (_, ImportedCtorDecl { Ast.Identifier.loc = source_decl_loc; _ }) ->
     LocMap.find source_decl_loc bindings.value_bindings
   | _ -> local_binding
 

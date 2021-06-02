@@ -269,7 +269,7 @@ and check_expression ~cx expr =
       match snd binding.declaration with
       (* If id is a constructor look up corresponding ADT to use as type. Error on tuple and record
          constructors as they are handled elsewhere. *)
-      | Constructor ->
+      | CtorDecl ->
         let adt = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
         let adt_sig =
           match adt with
@@ -396,7 +396,7 @@ and check_expression ~cx expr =
       | ScopedIdentifier { Ast.ScopedIdentifier.name = { Ast.Identifier.loc; name }; _ } ->
         let binding = Type_context.get_source_value_binding ~cx loc in
         (match snd binding.declaration with
-        | Constructor ->
+        | CtorDecl ->
           let adt = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
           let adt_sig =
             match adt with

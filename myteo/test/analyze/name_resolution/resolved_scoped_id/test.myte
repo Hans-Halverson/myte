@@ -7,7 +7,7 @@ import d1.d2
 import d1.{d2 as d2Alias}
 
 // Valid export is correctly converted to scoped id
-type alias t1 = a1.ExportType
+type alias t1 = (a1.ExportType, a1.ExportVariant)
 type alias t2 = a1.a2.ExportType
 
 // Valid export which has empty module tree parents
@@ -28,6 +28,9 @@ fun test() {
   // Valid export is correctly converted to scoped id
   a1.export;
   a1.a2.export;
+  a1.EnumVariant;
+  a1.TupleVariant(1);
+  a1.RecordVariant { field: 1 };
 
   // Accesses on exports are preserved
   a1.export.child;

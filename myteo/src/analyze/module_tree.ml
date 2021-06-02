@@ -17,6 +17,7 @@ and module_tree_node =
 and value_export_kind =
   | VarDecl of Statement.VariableDeclaration.kind
   | FunDecl
+  | CtorDecl
 
 and type_export_kind = TypeDecl
 
@@ -28,37 +29,70 @@ and export_info = {
 let add_exports module_ submodule_tree =
   let open Ast.Module in
   let rec add_exports_inner toplevels =
-    let add_export id loc rest mut_export_info =
-      let { Ast.Identifier.name; _ } = id in
+    (* Add all exports to the submodule tree, given a list of all exports in a list of
+       (id, loc, mutator fn) tuples. *)
+    let add_exports_to_tree rest exports =
       let (submodule_tree, errors) = add_exports_inner rest in
-      match SMap.find_opt name submodule_tree with
-      | None ->
-        let export_info = mut_export_info { value = None; ty = None } in
-        (SMap.add name (Export export_info) submodule_tree, errors)
-      | Some (Export export_info) ->
-        let export_info = mut_export_info export_info in
-        (SMap.add name (Export export_info) submodule_tree, errors)
-      | Some (Module _ | Empty _) ->
-        (* Error for export with same name as module *)
-        let {
-          module_ = { Module.name = { Ast.ScopedIdentifier.name = name_ident; scopes; _ }; _ };
-          _;
-        } =
-          module_
-        in
-        let scopes_string = Ast_utils.string_of_name_parts (scopes @ [name_ident]) in
-        (submodule_tree, (loc, ModuleAndExportDuplicateNames (name, scopes_string)) :: errors)
+      List.fold_left
+        (fun (submodule_tree, errors) (id, loc, mut_export_info) ->
+          let { Ast.Identifier.name; _ } = id in
+          match SMap.find_opt name submodule_tree with
+          | None ->
+            let export_info = mut_export_info { value = None; ty = None } in
+            (SMap.add name (Export export_info) submodule_tree, errors)
+          | Some (Export export_info) ->
+            let export_info = mut_export_info export_info in
+            (SMap.add name (Export export_info) submodule_tree, errors)
+          | Some (Module _ | Empty _) ->
+            (* Error for export with same name as module *)
+            let {
+              module_ = { Module.name = { Ast.ScopedIdentifier.name = name_ident; scopes; _ }; _ };
+              _;
+            } =
+              module_
+            in
+            let scopes_string = Ast_utils.string_of_name_parts (scopes @ [name_ident]) in
+            (submodule_tree, (loc, ModuleAndExportDuplicateNames (name, scopes_string)) :: errors))
+        (submodule_tree, errors)
+        exports
     in
     match toplevels with
     | [] -> (submodule_tree, [])
     | VariableDeclaration { Ast.Statement.VariableDeclaration.loc; kind; pattern; _ } :: rest ->
       let id = identifier_in_pattern pattern in
-      add_export id loc rest (fun export_info ->
-          { export_info with value = Some (VarDecl kind, id) })
+      add_exports_to_tree
+        rest
+        [(id, loc, (fun export_info -> { export_info with value = Some (VarDecl kind, id) }))]
     | FunctionDeclaration { Ast.Function.loc; name = id; _ } :: rest ->
-      add_export id loc rest (fun export_info -> { export_info with value = Some (FunDecl, id) })
-    | TypeDeclaration { Ast.TypeDeclaration.loc; name = id; _ } :: rest ->
-      add_export id loc rest (fun export_info -> { export_info with ty = Some (TypeDecl, id) })
+      add_exports_to_tree
+        rest
+        [(id, loc, (fun export_info -> { export_info with value = Some (FunDecl, id) }))]
+    | TypeDeclaration { Ast.TypeDeclaration.loc; name = id; decl; _ } :: rest ->
+      let open Ast.TypeDeclaration in
+      let exports =
+        [(id, loc, (fun export_info -> { export_info with ty = Some (TypeDecl, id) }))]
+      in
+      (* Export all constructors in this type declaration *)
+      let exports =
+        match decl with
+        | Alias _ -> exports
+        | Tuple { Tuple.loc; name; _ }
+        | Record { Record.loc; name; _ } ->
+          (name, loc, (fun export_info -> { export_info with value = Some (CtorDecl, name) }))
+          :: exports
+        | Variant variants ->
+          List.fold_left
+            (fun exports variant ->
+              match variant with
+              | EnumVariant ({ loc; _ } as name)
+              | TupleVariant { loc; name; _ }
+              | RecordVariant { loc; name; _ } ->
+                (name, loc, (fun export_info -> { export_info with value = Some (CtorDecl, name) }))
+                :: exports)
+            exports
+            variants
+      in
+      add_exports_to_tree rest (List.rev exports)
   in
   add_exports_inner module_.toplevels
 

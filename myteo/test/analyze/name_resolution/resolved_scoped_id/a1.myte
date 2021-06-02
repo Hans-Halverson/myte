@@ -3,3 +3,8 @@ module a1
 fun export() {}
 
 type ExportType (int)
+
+type ExportVariant =
+  | EnumVariant
+  | TupleVariant (int)
+  | RecordVariant { field: int }
