@@ -1,0 +1,29 @@
+Error: Expected type string but found int
+test/analyze/type_check/record/accessing.myte:21:3-9
+ 21 |   (x1.foo: string);
+    |    ^^^^^^
+
+Error: Expected type string but found bool
+test/analyze/type_check/record/accessing.myte:22:3-12
+ 22 |   (x1.baz[1]: string);
+    |    ^^^^^^^^^
+
+Error: Expected type string but found Rec1
+test/analyze/type_check/record/accessing.myte:23:3-9
+ 23 |   (x2.foo: string);
+    |    ^^^^^^
+
+Error: Expected type string but found int
+test/analyze/type_check/record/accessing.myte:24:3-13
+ 24 |   (x2.foo.foo: string);
+    |    ^^^^^^^^^^
+
+Error: Expected type string but found (unit, bool)
+test/analyze/type_check/record/accessing.myte:25:3-13
+ 25 |   (x2.foo.baz: string);
+    |    ^^^^^^^^^^
+
+Error: Expected type string but found bool
+test/analyze/type_check/record/accessing.myte:26:3-16
+ 26 |   (x2.foo.baz[1]: string);
+    |    ^^^^^^^^^^^^^

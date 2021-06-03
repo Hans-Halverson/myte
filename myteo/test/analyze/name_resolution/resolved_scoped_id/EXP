@@ -1,7 +1,7 @@
 test/analyze/name_resolution/resolved_scoped_id/a1.myte
 {
   node: Module,
-  loc: 1:0-10:32,
+  loc: 1:0-13:32,
   module: {
     node: Module,
     loc: 1:0-1:9,
@@ -19,43 +19,204 @@ test/analyze/name_resolution/resolved_scoped_id/a1.myte
   imports: [],
   toplevels: [
     {
-      node: Function,
-      loc: 3:0-3:15,
+      node: TypeDeclaration,
+      loc: 3:0-3:37,
       name: {
         node: Identifier,
-        loc: 3:4-3:10,
-        name: "export",
+        loc: 3:5-3:8,
+        name: "Rec",
       },
-      params: [],
-      body: {
-        node: Block,
-        loc: 3:13-3:15,
-        statements: [],
-      },
-      return: None,
       type_params: [],
+      record: {
+        node: RecordVariant,
+        loc: 3:5-3:37,
+        name: {
+          node: Identifier,
+          loc: 3:5-3:8,
+          name: "Rec",
+        },
+        fields: [
+          {
+            node: RecordVariantField,
+            loc: 3:5-3:21,
+            name: {
+              node: Identifier,
+              loc: 3:11-3:16,
+              name: "child",
+            },
+            type: {
+              node: PrimitiveType,
+              loc: 3:18-3:21,
+              kind: Int,
+            },
+          },
+          {
+            node: RecordVariantField,
+            loc: 3:5-3:35,
+            name: {
+              node: Identifier,
+              loc: 3:23-3:29,
+              name: "child1",
+            },
+            type: {
+              node: CustomType,
+              loc: 3:31-3:35,
+              name: {
+                node: ScopedIdentifier,
+                loc: 3:31-3:35,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 3:31-3:35,
+                  name: "Rec2",
+                },
+              },
+            },
+          },
+        ],
+      },
     },
     {
       node: TypeDeclaration,
-      loc: 5:0-5:21,
+      loc: 4:0-4:25,
       name: {
         node: Identifier,
-        loc: 5:5-5:15,
+        loc: 4:5-4:9,
+        name: "Rec2",
+      },
+      type_params: [],
+      record: {
+        node: RecordVariant,
+        loc: 4:5-4:25,
+        name: {
+          node: Identifier,
+          loc: 4:5-4:9,
+          name: "Rec2",
+        },
+        fields: [
+          {
+            node: RecordVariantField,
+            loc: 4:5-4:23,
+            name: {
+              node: Identifier,
+              loc: 4:12-4:18,
+              name: "child2",
+            },
+            type: {
+              node: PrimitiveType,
+              loc: 4:20-4:23,
+              kind: Int,
+            },
+          },
+        ],
+      },
+    },
+    {
+      node: VariableDeclaration,
+      loc: 6:0-6:62,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 6:4-6:10,
+        name: "export",
+      },
+      init: {
+        node: RecordExpression,
+        loc: 6:18-6:62,
+        name: {
+          node: Identifier,
+          loc: 6:18-6:21,
+          name: "Rec",
+        },
+        fields: [
+          {
+            node: RecordExpressionField,
+            loc: 6:24-6:32,
+            name: {
+              node: Identifier,
+              loc: 6:24-6:29,
+              name: "child",
+            },
+            value: {
+              node: IntLiteral,
+              loc: 6:31-6:32,
+              value: 1,
+              raw: "1",
+            },
+          },
+          {
+            node: RecordExpressionField,
+            loc: 6:34-6:60,
+            name: {
+              node: Identifier,
+              loc: 6:34-6:40,
+              name: "child1",
+            },
+            value: {
+              node: RecordExpression,
+              loc: 6:42-6:60,
+              name: {
+                node: Identifier,
+                loc: 6:42-6:46,
+                name: "Rec2",
+              },
+              fields: [
+                {
+                  node: RecordExpressionField,
+                  loc: 6:49-6:58,
+                  name: {
+                    node: Identifier,
+                    loc: 6:49-6:55,
+                    name: "child2",
+                  },
+                  value: {
+                    node: IntLiteral,
+                    loc: 6:57-6:58,
+                    value: 2,
+                    raw: "2",
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+      annot: {
+        node: CustomType,
+        loc: 6:12-6:15,
+        name: {
+          node: ScopedIdentifier,
+          loc: 6:12-6:15,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 6:12-6:15,
+            name: "Rec",
+          },
+        },
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 8:0-8:21,
+      name: {
+        node: Identifier,
+        loc: 8:5-8:15,
         name: "ExportType",
       },
       type_params: [],
       tuple: {
         node: TupleVariant,
-        loc: 5:5-5:21,
+        loc: 8:5-8:21,
         name: {
           node: Identifier,
-          loc: 5:5-5:15,
+          loc: 8:5-8:15,
           name: "ExportType",
         },
         elements: [
           {
             node: PrimitiveType,
-            loc: 5:17-5:20,
+            loc: 8:17-8:20,
             kind: Int,
           },
         ],
@@ -63,55 +224,55 @@ test/analyze/name_resolution/resolved_scoped_id/a1.myte
     },
     {
       node: TypeDeclaration,
-      loc: 7:0-10:32,
+      loc: 10:0-13:32,
       name: {
         node: Identifier,
-        loc: 7:5-7:18,
+        loc: 10:5-10:18,
         name: "ExportVariant",
       },
       type_params: [],
       variants: [
         {
           node: Identifier,
-          loc: 8:4-8:15,
+          loc: 11:4-11:15,
           name: "EnumVariant",
         },
         {
           node: TupleVariant,
-          loc: 9:4-9:22,
+          loc: 12:4-12:22,
           name: {
             node: Identifier,
-            loc: 9:4-9:16,
+            loc: 12:4-12:16,
             name: "TupleVariant",
           },
           elements: [
             {
               node: PrimitiveType,
-              loc: 9:18-9:21,
+              loc: 12:18-12:21,
               kind: Int,
             },
           ],
         },
         {
           node: RecordVariant,
-          loc: 10:4-10:32,
+          loc: 13:4-13:32,
           name: {
             node: Identifier,
-            loc: 10:4-10:17,
+            loc: 13:4-13:17,
             name: "RecordVariant",
           },
           fields: [
             {
               node: RecordVariantField,
-              loc: 10:4-10:30,
+              loc: 13:4-13:30,
               name: {
                 node: Identifier,
-                loc: 10:20-10:25,
+                loc: 13:20-13:25,
                 name: "field",
               },
               type: {
                 node: PrimitiveType,
-                loc: 10:27-10:30,
+                loc: 13:27-13:30,
                 kind: Int,
               },
             },
@@ -125,7 +286,7 @@ test/analyze/name_resolution/resolved_scoped_id/a1.myte
 test/analyze/name_resolution/resolved_scoped_id/a2.myte
 {
   node: Module,
-  loc: 1:0-5:30,
+  loc: 1:0-8:30,
   module: {
     node: Module,
     loc: 1:0-1:12,
@@ -149,51 +310,212 @@ test/analyze/name_resolution/resolved_scoped_id/a2.myte
   imports: [],
   toplevels: [
     {
-      node: Function,
-      loc: 3:0-3:15,
+      node: TypeDeclaration,
+      loc: 3:0-3:37,
       name: {
         node: Identifier,
-        loc: 3:4-3:10,
-        name: "export",
+        loc: 3:5-3:8,
+        name: "Rec",
       },
-      params: [],
-      body: {
-        node: Block,
-        loc: 3:13-3:15,
-        statements: [],
-      },
-      return: None,
       type_params: [],
+      record: {
+        node: RecordVariant,
+        loc: 3:5-3:37,
+        name: {
+          node: Identifier,
+          loc: 3:5-3:8,
+          name: "Rec",
+        },
+        fields: [
+          {
+            node: RecordVariantField,
+            loc: 3:5-3:21,
+            name: {
+              node: Identifier,
+              loc: 3:11-3:16,
+              name: "child",
+            },
+            type: {
+              node: PrimitiveType,
+              loc: 3:18-3:21,
+              kind: Int,
+            },
+          },
+          {
+            node: RecordVariantField,
+            loc: 3:5-3:35,
+            name: {
+              node: Identifier,
+              loc: 3:23-3:29,
+              name: "child1",
+            },
+            type: {
+              node: CustomType,
+              loc: 3:31-3:35,
+              name: {
+                node: ScopedIdentifier,
+                loc: 3:31-3:35,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 3:31-3:35,
+                  name: "Rec2",
+                },
+              },
+            },
+          },
+        ],
+      },
     },
     {
       node: TypeDeclaration,
-      loc: 5:0-5:30,
+      loc: 4:0-4:25,
       name: {
         node: Identifier,
-        loc: 5:5-5:15,
+        loc: 4:5-4:9,
+        name: "Rec2",
+      },
+      type_params: [],
+      record: {
+        node: RecordVariant,
+        loc: 4:5-4:25,
+        name: {
+          node: Identifier,
+          loc: 4:5-4:9,
+          name: "Rec2",
+        },
+        fields: [
+          {
+            node: RecordVariantField,
+            loc: 4:5-4:23,
+            name: {
+              node: Identifier,
+              loc: 4:12-4:18,
+              name: "child2",
+            },
+            type: {
+              node: PrimitiveType,
+              loc: 4:20-4:23,
+              kind: Int,
+            },
+          },
+        ],
+      },
+    },
+    {
+      node: VariableDeclaration,
+      loc: 6:0-6:62,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 6:4-6:10,
+        name: "export",
+      },
+      init: {
+        node: RecordExpression,
+        loc: 6:18-6:62,
+        name: {
+          node: Identifier,
+          loc: 6:18-6:21,
+          name: "Rec",
+        },
+        fields: [
+          {
+            node: RecordExpressionField,
+            loc: 6:24-6:32,
+            name: {
+              node: Identifier,
+              loc: 6:24-6:29,
+              name: "child",
+            },
+            value: {
+              node: IntLiteral,
+              loc: 6:31-6:32,
+              value: 1,
+              raw: "1",
+            },
+          },
+          {
+            node: RecordExpressionField,
+            loc: 6:34-6:60,
+            name: {
+              node: Identifier,
+              loc: 6:34-6:40,
+              name: "child1",
+            },
+            value: {
+              node: RecordExpression,
+              loc: 6:42-6:60,
+              name: {
+                node: Identifier,
+                loc: 6:42-6:46,
+                name: "Rec2",
+              },
+              fields: [
+                {
+                  node: RecordExpressionField,
+                  loc: 6:49-6:58,
+                  name: {
+                    node: Identifier,
+                    loc: 6:49-6:55,
+                    name: "child2",
+                  },
+                  value: {
+                    node: IntLiteral,
+                    loc: 6:57-6:58,
+                    value: 2,
+                    raw: "2",
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+      annot: {
+        node: CustomType,
+        loc: 6:12-6:15,
+        name: {
+          node: ScopedIdentifier,
+          loc: 6:12-6:15,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 6:12-6:15,
+            name: "Rec",
+          },
+        },
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 8:0-8:30,
+      name: {
+        node: Identifier,
+        loc: 8:5-8:15,
         name: "ExportType",
       },
       type_params: [],
       record: {
         node: RecordVariant,
-        loc: 5:5-5:30,
+        loc: 8:5-8:30,
         name: {
           node: Identifier,
-          loc: 5:5-5:15,
+          loc: 8:5-8:15,
           name: "ExportType",
         },
         fields: [
           {
             node: RecordVariantField,
-            loc: 5:5-5:28,
+            loc: 8:5-8:28,
             name: {
               node: Identifier,
-              loc: 5:18-5:23,
+              loc: 8:18-8:23,
               name: "field",
             },
             type: {
               node: PrimitiveType,
-              loc: 5:25-5:28,
+              loc: 8:25-8:28,
               kind: Int,
             },
           },
@@ -272,7 +594,7 @@ test/analyze/name_resolution/resolved_scoped_id/b.myte
 test/analyze/name_resolution/resolved_scoped_id/c.myte
 {
   node: Module,
-  loc: 1:0-5:27,
+  loc: 1:0-7:27,
   module: {
     node: Module,
     loc: 1:0-1:9,
@@ -290,40 +612,108 @@ test/analyze/name_resolution/resolved_scoped_id/c.myte
   imports: [],
   toplevels: [
     {
-      node: Function,
-      loc: 3:0-3:15,
+      node: TypeDeclaration,
+      loc: 3:0-3:23,
       name: {
         node: Identifier,
-        loc: 3:4-3:10,
+        loc: 3:5-3:8,
+        name: "Rec",
+      },
+      type_params: [],
+      record: {
+        node: RecordVariant,
+        loc: 3:5-3:23,
+        name: {
+          node: Identifier,
+          loc: 3:5-3:8,
+          name: "Rec",
+        },
+        fields: [
+          {
+            node: RecordVariantField,
+            loc: 3:5-3:21,
+            name: {
+              node: Identifier,
+              loc: 3:11-3:16,
+              name: "child",
+            },
+            type: {
+              node: PrimitiveType,
+              loc: 3:18-3:21,
+              kind: Int,
+            },
+          },
+        ],
+      },
+    },
+    {
+      node: VariableDeclaration,
+      loc: 5:0-5:34,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 5:4-5:10,
         name: "export",
       },
-      params: [],
-      body: {
-        node: Block,
-        loc: 3:13-3:15,
-        statements: [],
+      init: {
+        node: RecordExpression,
+        loc: 5:18-5:34,
+        name: {
+          node: Identifier,
+          loc: 5:18-5:21,
+          name: "Rec",
+        },
+        fields: [
+          {
+            node: RecordExpressionField,
+            loc: 5:24-5:32,
+            name: {
+              node: Identifier,
+              loc: 5:24-5:29,
+              name: "child",
+            },
+            value: {
+              node: IntLiteral,
+              loc: 5:31-5:32,
+              value: 1,
+              raw: "1",
+            },
+          },
+        ],
       },
-      return: None,
-      type_params: [],
+      annot: {
+        node: CustomType,
+        loc: 5:12-5:15,
+        name: {
+          node: ScopedIdentifier,
+          loc: 5:12-5:15,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 5:12-5:15,
+            name: "Rec",
+          },
+        },
+      },
     },
     {
       node: TypeDeclaration,
-      loc: 5:0-5:27,
+      loc: 7:0-7:27,
       name: {
         node: Identifier,
-        loc: 5:5-5:15,
+        loc: 7:5-7:15,
         name: "ExportType",
       },
       type_params: [],
       variants: [
         {
           node: Identifier,
-          loc: 5:18-5:21,
+          loc: 7:18-7:21,
           name: "Foo",
         },
         {
           node: Identifier,
-          loc: 5:24-5:27,
+          loc: 7:24-7:27,
           name: "Bar",
         },
       ],
@@ -334,7 +724,7 @@ test/analyze/name_resolution/resolved_scoped_id/c.myte
 test/analyze/name_resolution/resolved_scoped_id/d.myte
 {
   node: Module,
-  loc: 1:0-5:27,
+  loc: 1:0-7:27,
   module: {
     node: Module,
     loc: 1:0-1:12,
@@ -358,34 +748,102 @@ test/analyze/name_resolution/resolved_scoped_id/d.myte
   imports: [],
   toplevels: [
     {
-      node: Function,
-      loc: 3:0-3:15,
+      node: TypeDeclaration,
+      loc: 3:0-3:23,
       name: {
         node: Identifier,
-        loc: 3:4-3:10,
+        loc: 3:5-3:8,
+        name: "Rec",
+      },
+      type_params: [],
+      record: {
+        node: RecordVariant,
+        loc: 3:5-3:23,
+        name: {
+          node: Identifier,
+          loc: 3:5-3:8,
+          name: "Rec",
+        },
+        fields: [
+          {
+            node: RecordVariantField,
+            loc: 3:5-3:21,
+            name: {
+              node: Identifier,
+              loc: 3:11-3:16,
+              name: "child",
+            },
+            type: {
+              node: PrimitiveType,
+              loc: 3:18-3:21,
+              kind: Int,
+            },
+          },
+        ],
+      },
+    },
+    {
+      node: VariableDeclaration,
+      loc: 5:0-5:34,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 5:4-5:10,
         name: "export",
       },
-      params: [],
-      body: {
-        node: Block,
-        loc: 3:13-3:15,
-        statements: [],
+      init: {
+        node: RecordExpression,
+        loc: 5:18-5:34,
+        name: {
+          node: Identifier,
+          loc: 5:18-5:21,
+          name: "Rec",
+        },
+        fields: [
+          {
+            node: RecordExpressionField,
+            loc: 5:24-5:32,
+            name: {
+              node: Identifier,
+              loc: 5:24-5:29,
+              name: "child",
+            },
+            value: {
+              node: IntLiteral,
+              loc: 5:31-5:32,
+              value: 1,
+              raw: "1",
+            },
+          },
+        ],
       },
-      return: None,
-      type_params: [],
+      annot: {
+        node: CustomType,
+        loc: 5:12-5:15,
+        name: {
+          node: ScopedIdentifier,
+          loc: 5:12-5:15,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 5:12-5:15,
+            name: "Rec",
+          },
+        },
+      },
     },
     {
       node: TypeDeclaration,
-      loc: 5:0-5:27,
+      loc: 7:0-7:27,
       name: {
         node: Identifier,
-        loc: 5:11-5:21,
+        loc: 7:11-7:21,
         name: "ExportType",
       },
       type_params: [],
       alias: {
         node: PrimitiveType,
-        loc: 5:24-5:27,
+        loc: 7:24-7:27,
         kind: Int,
       },
     },

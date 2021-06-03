@@ -1,0 +1,13 @@
+module test
+
+type Tup (int)
+
+type RecordVariants =
+  | Record1 { field: int }
+  | Record2 { field: string }
+
+fun main() {
+  1.field;
+  (Tup(1)).field;
+  (Record1 { field: 1 }).field;
+}

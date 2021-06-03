@@ -1,9 +1,20 @@
 module test
 
+type Tup (int, string)
+
 fun main() {
   val x: (int, string) = (1, "str");
-  x[true];
-  x[()];
-  x[1 + 2];
-  x["a"];
+  val y: Tup = Tup (1, "str");
+
+  (x[true]: unit);
+  (y[true]: unit);
+
+  (x[()]: unit);
+  (y[()]: unit);
+
+  (x[1 + 2]: unit);
+  (y[1 + 2]: unit);
+
+  (x["a"]: unit);
+  (y["a"]: unit);
 }

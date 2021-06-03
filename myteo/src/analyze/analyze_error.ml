@@ -33,8 +33,10 @@ type t =
   | MissingRecordConstructorFields of string list
   | UnexpectedRecordConstructorField of string * string
   | NonIndexableIndexed of Types.t
+  | NonAccessableAccessed of string * Types.t
   | TupleIndexIsNotLiteral
   | TupleIndexOutOfBounds of int
+  | NamedAccessNonexistentField of string * string
 
 and unreachable_statement_reason =
   | AfterReturn
@@ -215,9 +217,13 @@ let to_string error =
     Printf.sprintf "`%s` is a record constructor and cannot be called as a function" name
   | ExpectedRecordConstructor -> Printf.sprintf "Expected a record constructor"
   | NonIndexableIndexed ty -> Printf.sprintf "Cannot index into value of type %s" (Types.pp ty)
+  | NonAccessableAccessed (field_name, ty) ->
+    Printf.sprintf "Cannot access field `%s` on non-record type `%s`" field_name (Types.pp ty)
   | TupleIndexIsNotLiteral -> Printf.sprintf "Tuple indices must be int literals"
   | TupleIndexOutOfBounds actual_size ->
     Printf.sprintf
       "Tuple index out of range. Tuple has %d elements so only indices 0 through %d are allowed."
       actual_size
       (actual_size - 1)
+  | NamedAccessNonexistentField (record_name, field_name) ->
+    Printf.sprintf "Record `%s` does not have a field named `%s`" record_name field_name

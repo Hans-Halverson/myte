@@ -1,0 +1,14 @@
+module test
+
+type Rec { field: int }
+
+type TupleVariants =
+  | Tuple1 (int)
+  | Tuple2 (string)
+
+fun main() {
+  1[0];
+  (Rec { field: 1 })[0];
+  (Tuple1(1))[0];
+
+}

@@ -1,0 +1,11 @@
+module test
+
+type Rec { field: int }
+
+fun main() {
+  val x: Rec = Rec { field: 1 };
+
+  (x.foo: unit);
+  (x.fiel: unit);
+  (x.fieldd: unit);
+}

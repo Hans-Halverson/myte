@@ -1,0 +1,27 @@
+module test
+
+type Rec1 { foo: int, bar: string, baz: (unit, bool) }
+type Rec2 { foo: Rec1 }
+
+fun main() {
+  val x1: Rec1 = Rec1 { foo: 1, bar: "a", baz: ((), true) };
+  val x2: Rec2 = Rec2 { foo: x1 };
+
+  // Correct types
+  (x1.foo: int);
+  (x1.bar: string);
+  (x1.baz: (unit, bool));
+  (x1.baz[1]: bool);
+  (x2.foo: Rec1);
+  (x2.foo.foo: int);
+  (x2.foo.bar: string);
+  (x2.foo.baz[0]: unit);
+
+  // Incorrect types
+  (x1.foo: string);
+  (x1.baz[1]: string);
+  (x2.foo: string);
+  (x2.foo.foo: string);
+  (x2.foo.baz: string);
+  (x2.foo.baz[1]: string);
+}

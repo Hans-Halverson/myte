@@ -1,5 +1,7 @@
 module c1
 
-fun export() {}
+type Rec { child: int }
+
+val export: Rec = Rec { child: 1 }
 
 type ExportType = Foo | Bar

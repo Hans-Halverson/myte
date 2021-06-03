@@ -1,21 +1,40 @@
 module test
 
+type Tup1 (int, string, bool)
+type Tup2 (int, Tup3)
+type Tup3 (unit, bool, Tup4)
+type Tup4 (string, unit)
+
 fun main() {
   val x: (int, string, bool) = (1, "str", true);
+  val x2: Tup1 = Tup1(1, "str", true);
+
   val y: (int, (unit, bool, (string, unit))) = (1, ((), true, ("str", ())));
+  val y2: Tup2 = Tup2(1, Tup3((), true, Tup4("str", ())));
 
   // Correct types
   (x[0]: int);
+  (x2[0]: int);
   (x[1]: string);
+  (x2[1]: string);
   (x[2]: bool);
+  (x2[2]: bool);
   (y[1][0]: unit);
+  (y2[1][0]: unit);
   (y[1][1]: bool);
+  (y2[1][1]: bool);
   (y[1][2]: (string, unit));
+  (y2[1][2]: Tup4);
   (y[1][2][0]: string);
+  (y2[1][2][0]: string);
   (y[1][2][1]: unit);
+  (y2[1][2][1]: unit);
 
   // Incorrect types
   (x[0]: string);
+  (x2[0]: string);
   (y[1][2]: int);
+  (y2[1][2]: int);
   (y[1][2][0]: int); 
+  (y2[1][2][0]: int); 
 }

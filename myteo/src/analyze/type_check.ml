@@ -561,14 +561,17 @@ and check_expression ~cx expr =
       ignore (Type_context.unify ~cx Any (TVar tvar_id))
     );
     (loc, tvar_id)
+  (*
+   * ============================
+   * Indexed Access
+   * ============================
+   *)
   | IndexedAccess { IndexedAccess.loc; target; index } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let (target_loc, target_tvar_id) = check_expression ~cx target in
     let (index_loc, _) = check_expression ~cx index in
-    let target_rep_ty = Type_context.find_rep_type ~cx (TVar target_tvar_id) in
-    (match target_rep_ty with
-    | Tuple elements ->
-      (match index with
+    let check_tuple_indexed_access elements =
+      match index with
       | IntLiteral { value; _ } ->
         let index = Int32.to_int value in
         let ty =
@@ -576,16 +579,76 @@ and check_expression ~cx expr =
             List.nth elements index
           else (
             Type_context.add_error ~cx index_loc (TupleIndexOutOfBounds (List.length elements));
-            Any
+            Types.Any
           )
         in
         ignore (Type_context.unify ~cx ty (TVar tvar_id))
-      | _ -> Type_context.add_error ~cx index_loc TupleIndexIsNotLiteral)
-    | target_rep_ty -> Type_context.add_error ~cx target_loc (NonIndexableIndexed target_rep_ty));
+      | _ ->
+        Type_context.add_error ~cx index_loc TupleIndexIsNotLiteral;
+        ignore (Type_context.unify ~cx Any (TVar tvar_id))
+    in
+    let target_rep_ty = Type_context.find_rep_type ~cx (TVar target_tvar_id) in
+    let is_indexable_ty =
+      match target_rep_ty with
+      (* Can index into tuple literal types *)
+      | Tuple elements ->
+        check_tuple_indexed_access elements;
+        true
+      (* Can only index into ADTs with a single tuple variant *)
+      | ADT { adt_sig = { variant_sigs; _ }; _ } ->
+        (match SMap.choose_opt variant_sigs with
+        | Some (_, Types.TupleVariantSig element_sigs) when SMap.cardinal variant_sigs = 1 ->
+          check_tuple_indexed_access element_sigs;
+          true
+        | _ -> false)
+      (* Propagate anys *)
+      | Any ->
+        ignore (Type_context.unify ~cx Any (TVar tvar_id));
+        true
+      | _ -> false
+    in
+    if not is_indexable_ty then (
+      Type_context.add_error ~cx target_loc (NonIndexableIndexed target_rep_ty);
+      ignore (Type_context.unify ~cx Any (TVar tvar_id))
+    );
     (loc, tvar_id)
-  | NamedAccess { NamedAccess.loc; _ } ->
-    (* TODO: Implement type checking for these AST nodes *)
-    (loc, Type_context.mk_tvar_id ~cx ~loc)
+  (*
+   * ============================
+   * Named Access
+   * ============================
+   *)
+  | NamedAccess { NamedAccess.loc; target; name = { Ast.Identifier.name = field_name; _ } } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    let (target_loc, target_tvar_id) = check_expression ~cx target in
+    let target_rep_ty = Type_context.find_rep_type ~cx (TVar target_tvar_id) in
+    let is_record_ty =
+      match target_rep_ty with
+      (* Can only index into ADTs with a single record variant *)
+      | ADT { adt_sig = { name; variant_sigs; _ }; _ } ->
+        (match SMap.choose_opt variant_sigs with
+        | Some (_, Types.RecordVariantSig field_sigs) when SMap.cardinal variant_sigs = 1 ->
+          (* Look up field in field signatures, erroring if field does not exist *)
+          let result_ty =
+            match SMap.find_opt field_name field_sigs with
+            | None ->
+              Type_context.add_error ~cx loc (NamedAccessNonexistentField (name, field_name));
+              Types.Any
+            | Some field_sig_ty -> field_sig_ty
+          in
+          ignore (Type_context.unify ~cx result_ty (TVar tvar_id));
+          true
+        | _ -> false)
+      (* Propagate anys *)
+      | Any ->
+        ignore (Type_context.unify ~cx Any (TVar tvar_id));
+        true
+      | _ -> false
+    in
+    if not is_record_ty then (
+      Type_context.add_error ~cx target_loc (NonAccessableAccessed (field_name, target_rep_ty));
+      ignore (Type_context.unify ~cx Types.Any (TVar tvar_id))
+    );
+    (loc, tvar_id)
 
 and check_statement ~cx stmt =
   let open Ast.Statement in
