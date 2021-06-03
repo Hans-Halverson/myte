@@ -10,6 +10,8 @@ type t = {
   mutable union_forest_nodes: union_forest_node IMap.t;
   (* Map of return node locs to the return type for that function *)
   mutable return_types: Types.t LocMap.t;
+  (* Set of all int literal locs that have not been resolved *)
+  mutable unresolved_int_literals: LocSet.t;
 }
 
 and union_forest_node =
@@ -26,6 +28,7 @@ let mk ~bindings =
     loc_to_tvar = LocMap.empty;
     union_forest_nodes = IMap.empty;
     return_types = LocMap.empty;
+    unresolved_int_literals = LocSet.empty;
   }
 
 let add_error ~cx loc error = cx.errors <- (loc, error) :: cx.errors
@@ -54,35 +57,72 @@ let add_tvar ~cx tvar_id =
   set_union_find_node ~cx tvar_id node;
   node
 
-let mk_tvar_id ?loc ~cx =
+let mk_tvar_id ~cx ~loc =
   let tvar_id = Types.mk_tvar_id () in
   ignore (add_tvar ~cx tvar_id);
-  begin
-    match loc with
-    | None -> ()
-    | Some loc -> set_tvar_for_loc ~cx tvar_id loc
-  end;
+  set_tvar_for_loc ~cx tvar_id loc;
   tvar_id
+
+(* Find representative type for a given type following rep chains within type instead of
+   union forest. At the moment this only resolves int literal types to their representative type. *)
+let rec find_non_union_rep_type ty =
+  match ty with
+  | IntLiteral ({ resolved = Some ty; _ } as lit_ty) ->
+    let ty = find_non_union_rep_type ty in
+    lit_ty.resolved <- Some ty;
+    ty
+  | _ -> ty
+
+(* Combine two int literal types ty1 and ty2, which makes ty2 the representative of ty1 and moves
+   all referenced int literals from ty1 to ty2. *)
+let union_int_literals (ty1 : Types.int_literal) (ty2 : Types.int_literal) ty2_full =
+  (* Already unioned if same type variables *)
+  if ty1 != ty2 then (
+    ty2.values <- ty1.values @ ty2.values;
+    ty1.values <- [];
+    ty1.resolved <- Some ty2_full
+  )
+
+(* Resolve an int literal with an integer type, which will set the reperesentative type for the
+   int literal type and error for each referenced int literal that is out of range. *)
+let resolve_int_literal ~cx lit_ty =
+  List.iter
+    (fun (loc, value_opt) ->
+      let is_out_of_range =
+        match value_opt with
+        | None -> true
+        | Some value ->
+          Int64.compare (Int64.of_int32 Int32.min_int) value = 1
+          || Int64.compare (Int64.of_int32 Int32.max_int) value = -1
+      in
+      if is_out_of_range then add_error ~cx loc (Analyze_error.IntLiteralOutOfRange Int);
+      cx.unresolved_int_literals <- LocSet.remove loc cx.unresolved_int_literals)
+    lit_ty.values;
+  lit_ty.resolved <- Some Int
 
 let lookup_union_find_node ~cx tvar_id =
   match IMap.find_opt tvar_id cx.union_forest_nodes with
   | Some node -> node
   | None -> add_tvar ~cx tvar_id
 
-let rec find_union_rep_node ~cx tvar_id =
-  match lookup_union_find_node ~cx tvar_id with
-  | Rep { ty; rank } -> (tvar_id, ty, rank)
-  | Link next_tvar_id ->
-    let ((rep_id, _, _) as result) = find_union_rep_node ~cx next_tvar_id in
-    set_union_find_node ~cx tvar_id (Link rep_id);
-    result
+let find_union_rep_node ~cx tvar_id =
+  let rec helper ~cx tvar_id =
+    match lookup_union_find_node ~cx tvar_id with
+    | Rep { ty; rank } -> (tvar_id, ty, rank)
+    | Link next_tvar_id ->
+      let ((rep_id, _, _) as result) = helper ~cx next_tvar_id in
+      set_union_find_node ~cx tvar_id (Link rep_id);
+      result
+  in
+  let (rep_id, ty, rank) = helper ~cx tvar_id in
+  (rep_id, find_non_union_rep_type ty, rank)
 
 let find_union_rep_type ~cx ty =
   match ty with
   | TVar tvar_id ->
     let (_, rep_ty, _) = find_union_rep_node ~cx tvar_id in
     rep_ty
-  | _ -> ty
+  | _ -> find_non_union_rep_type ty
 
 let find_rep_tvar_id ~cx tvar_id =
   let (rep_tvar_id, _, _) = find_union_rep_node ~cx tvar_id in
@@ -94,8 +134,10 @@ let rec find_rep_type ~cx ty =
   | Unit
   | Bool
   | Int
+  | IntLiteral { resolved = None; _ }
   | String ->
     ty
+  | IntLiteral { resolved = Some ty; _ } -> find_non_union_rep_type ty
   | Tuple elements ->
     let elements' = id_map_list (find_rep_type ~cx) elements in
     if elements == elements' then
@@ -131,6 +173,7 @@ let rec tvar_occurs_in ~cx tvar ty =
   | Unit
   | Bool
   | Int
+  | IntLiteral _
   | String ->
     false
   | Tuple elements -> List.exists (tvar_occurs_in ~cx tvar) elements
@@ -195,6 +238,16 @@ let rec unify ~cx ty1 ty2 =
     ->
     adt_sig1 == adt_sig2
     && List.combine tparams1 tparams2 |> List.for_all (fun (ty1, ty2) -> unify ~cx ty1 ty2)
+  (* Unresolved int literals can be unified *)
+  | (IntLiteral lit_ty1, (IntLiteral lit_ty2 as ty2)) ->
+    union_int_literals lit_ty1 lit_ty2 ty2;
+    true
+  (* An unresolved int literal can be unified with any integer type *)
+  | (Int, IntLiteral lit_ty)
+  | (IntLiteral lit_ty, Int) ->
+    resolve_int_literal ~cx lit_ty;
+    true
+  (* All other combinations of types cannot be unified *)
   | _ -> false
 
 let rec is_subtype ~cx sub sup =
@@ -233,6 +286,15 @@ let rec is_subtype ~cx sub sup =
     adt_sig1 == adt_sig2
     && List.combine tparams1 tparams2
        |> List.for_all (fun (ty1, ty2) -> is_subtype ~cx ty1 ty2 && is_subtype ~cx ty2 ty1)
+  (* Int literals are not subtyped so they must be unified *)
+  | (IntLiteral lit_ty1, (IntLiteral lit_ty2 as ty2)) ->
+    union_int_literals lit_ty1 lit_ty2 ty2;
+    true
+  (* Integer types are not subtyped so unify types *)
+  | (Int, IntLiteral lit_ty)
+  | (IntLiteral lit_ty, Int) ->
+    resolve_int_literal ~cx lit_ty;
+    true
   | _ -> false
 
 let assert_unify ~cx loc expected actual =
@@ -245,3 +307,7 @@ let assert_is_subtype ~cx loc sub sup =
       ~cx
       loc
       (Analyze_error.IncompatibleTypes (find_rep_type ~cx sub, [find_rep_type ~cx sup]))
+
+let mk_int_literal_ty ~cx loc raw =
+  cx.unresolved_int_literals <- LocSet.add loc cx.unresolved_int_literals;
+  IntLiteral { values = [(loc, Int64.of_string_opt raw)]; resolved = None }

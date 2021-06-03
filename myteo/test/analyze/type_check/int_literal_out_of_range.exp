@@ -1,0 +1,29 @@
+Error: Integer literal out of range for type `int`
+test/analyze/type_check/int_literal_out_of_ranger.myte:14:2-12
+ 14 |   2147483648;
+    |   ^^^^^^^^^^
+
+Error: Integer literal out of range for type `int`
+test/analyze/type_check/int_literal_out_of_ranger.myte:15:2-12
+ 15 |   0x80000000;
+    |   ^^^^^^^^^^
+
+Error: Integer literal out of range for type `int`
+test/analyze/type_check/int_literal_out_of_ranger.myte:16:2-36
+ 16 |   0b10000000000000000000000000000000;
+    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Integer literal out of range for type `int`
+test/analyze/type_check/int_literal_out_of_ranger.myte:24:2-13
+ 24 |   -2147483649;
+    |   ^^^^^^^^^^^
+
+Error: Integer literal out of range for type `int`
+test/analyze/type_check/int_literal_out_of_ranger.myte:25:2-13
+ 25 |   -0x80000001;
+    |   ^^^^^^^^^^^
+
+Error: Integer literal out of range for type `int`
+test/analyze/type_check/int_literal_out_of_ranger.myte:26:2-37
+ 26 |   -0b10000000000000000000000000000001;
+    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

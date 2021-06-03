@@ -8,6 +8,7 @@ type t =
   | Unit
   | Bool
   | Int
+  | IntLiteral of int_literal
   | String
   | Tuple of t list
   | Function of {
@@ -18,6 +19,14 @@ type t =
       adt_sig: adt_sig;
       tparams: t list;
     }
+
+and int_literal = {
+  (* Locations of int literals (and their tvars) along with the value of the int literal at
+         that location (or None if it is out of range for 64 bit ints) *)
+  mutable values: (Loc.t * Int64.t option) list;
+  (* Integer type this int literal is resolved to, if it has been resolved *)
+  mutable resolved: t option;
+}
 
 and adt_sig = {
   name: string;
@@ -69,6 +78,8 @@ let rec pp_with_names ~tvar_to_name ty =
   | Unit -> "unit"
   | Bool -> "bool"
   | Int -> "int"
+  | IntLiteral { resolved = None; _ } -> "<integer>"
+  | IntLiteral { resolved = Some resolved; _ } -> pp_with_names ~tvar_to_name resolved
   | String -> "string"
   | Tuple elements ->
     let element_names = List.map (pp_with_names ~tvar_to_name) elements in

@@ -1,0 +1,11 @@
+#!/bin/zsh
+
+CURRENT_DIR=$0:A:h
+ROOT_DIR=$(dirname $CURRENT_DIR)
+
+# Build myte bytecode
+pushd $ROOT_DIR/src
+dune build myte.bc --no-print-directory
+popd
+
+ocamldebug $ROOT_DIR/_build/default/src/myte.bc $@

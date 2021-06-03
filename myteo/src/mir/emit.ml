@@ -323,6 +323,7 @@ and type_to_value_type ty =
   | Types.Unit -> ValueType.Unit
   | Types.Bool -> ValueType.Bool
   | Types.Int -> ValueType.Int
+  | Types.IntLiteral { resolved; _ } -> type_to_value_type (Option.get resolved)
   | Types.String -> ValueType.String
   | Types.Tuple _ -> failwith "TODO: Implement MIR emission for tuple types"
   | Types.Function _ -> ValueType.Function

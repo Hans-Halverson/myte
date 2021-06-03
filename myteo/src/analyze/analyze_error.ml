@@ -37,6 +37,7 @@ type t =
   | TupleIndexIsNotLiteral
   | TupleIndexOutOfBounds of int
   | NamedAccessNonexistentField of string * string
+  | IntLiteralOutOfRange of Types.t
 
 and unreachable_statement_reason =
   | AfterReturn
@@ -227,3 +228,5 @@ let to_string error =
       (actual_size - 1)
   | NamedAccessNonexistentField (record_name, field_name) ->
     Printf.sprintf "Record `%s` does not have a field named `%s`" record_name field_name
+  | IntLiteralOutOfRange ty ->
+    Printf.sprintf "Integer literal out of range for type `%s`" (Types.pp ty)

@@ -7,7 +7,7 @@ let snapshots_command ~config:_ bin files =
       if [[ $? -eq 139 ]]; then
         echo "ERROR: Segfault when running executable!"
       fi
-      rm t.out
+      rm t.out 2> /dev/null
     |}
     bin
     files

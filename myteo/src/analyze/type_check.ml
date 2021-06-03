@@ -247,9 +247,10 @@ and check_expression ~cx expr =
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     ignore (Type_context.unify ~cx Types.Unit (TVar tvar_id));
     (loc, tvar_id)
-  | IntLiteral { IntLiteral.loc; _ } ->
+  | IntLiteral { IntLiteral.loc; raw } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    ignore (Type_context.unify ~cx Types.Int (TVar tvar_id));
+    let int_literal_ty = Type_context.mk_int_literal_ty ~cx loc raw in
+    ignore (Type_context.unify ~cx int_literal_ty (TVar tvar_id));
     (loc, tvar_id)
   | StringLiteral { StringLiteral.loc; _ } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
@@ -327,6 +328,7 @@ and check_expression ~cx expr =
       let rep_ty = Type_context.find_rep_type ~cx (TVar tvar_id) in
       match rep_ty with
       | Types.Int
+      | Types.IntLiteral _
       | Types.String ->
         true
       | _ -> false
@@ -686,6 +688,16 @@ and check_statement ~cx stmt =
     let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
     Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) (TVar tvar_id)
 
+let resolve_unresolved_int_literals ~cx =
+  while not (LocSet.is_empty cx.unresolved_int_literals) do
+    let loc = LocSet.choose cx.unresolved_int_literals in
+    let tvar = LocMap.find loc cx.loc_to_tvar in
+    let ty = Type_context.find_rep_type ~cx (TVar tvar) in
+    match ty with
+    | IntLiteral ({ resolved = None; _ } as lit_ty) -> resolve_int_literal ~cx lit_ty
+    | _ -> failwith "Unresolved int literal has already been resolved"
+  done
+
 let analyze modules bindings =
   let cx = Type_context.mk ~bindings in
   (* First visit type declarations, building type aliases *)
@@ -693,5 +705,6 @@ let analyze modules bindings =
   List.iter (fun (_, module_) -> visit_type_declarations ~cx module_) modules;
   List.iter (fun (_, module_) -> visit_value_declarations ~cx module_) modules;
   if cx.errors = [] then List.iter (fun (_, module_) -> check_module ~cx module_) modules;
+  resolve_unresolved_int_literals ~cx;
   cx.errors <- List.rev cx.errors;
   cx
