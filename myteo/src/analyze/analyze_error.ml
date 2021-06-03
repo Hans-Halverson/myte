@@ -164,7 +164,7 @@ let to_string error =
   | CyclicTypeAlias name -> Printf.sprintf "Cycle detected in definition of type `%s`" name
   | ToplevelVarWithoutAnnotation -> Printf.sprintf "Toplevel variables must have type annotations"
   | IncompatibleTypes (actual, expecteds) ->
-    let type_strings = Types.pps (expecteds @ [actual]) in
+    let type_strings = Types.pps (expecteds @ [actual]) |> List.map (fun str -> "`" ^ str ^ "`") in
     let expected_strings = List_utils.drop_last type_strings in
     let actual_string = List_utils.last type_strings in
     let expected_string =
@@ -181,7 +181,7 @@ let to_string error =
         let (partial_type_string, tvar_to_name) = Types.pps_with_tvar_map [partial_type] in
         let unresolved_tvar_name = IMap.find unresolved_tvar_id tvar_to_name in
         Printf.sprintf
-          "Partially inferred %s but was unable to resolve %s. "
+          "Partially inferred `%s` but was unable to resolve `%s`. "
           (List.hd partial_type_string)
           unresolved_tvar_name
     in
@@ -211,12 +211,12 @@ let to_string error =
     Printf.sprintf "Record `%s` does not have a field named `%s`" record_name field_name
   | NonFunctionCalled ty ->
     Printf.sprintf
-      "Only functions can be called, but this expression is inferred to have type %s."
+      "Only functions can be called, but this expression is inferred to have type `%s`"
       (Types.pp ty)
   | RecordConstructorCalled name ->
     Printf.sprintf "`%s` is a record constructor and cannot be called as a function" name
   | ExpectedRecordConstructor -> Printf.sprintf "Expected a record constructor"
-  | NonIndexableIndexed ty -> Printf.sprintf "Cannot index into value of type %s" (Types.pp ty)
+  | NonIndexableIndexed ty -> Printf.sprintf "Cannot index into value of type `%s`" (Types.pp ty)
   | NonAccessableAccessed (field_name, ty) ->
     Printf.sprintf "Cannot access field `%s` on non-record type `%s`" field_name (Types.pp ty)
   | TupleIndexIsNotLiteral -> Printf.sprintf "Tuple indices must be int literals"

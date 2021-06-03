@@ -1,19 +1,19 @@
-Error: Expected type bool but found int
+Error: Expected type `bool` but found `int`
 test/analyze/type_check/logical_operation.myte:7:3
  7 |   (1 && false: bool);
    |    ^
 
-Error: Expected type bool but found int
+Error: Expected type `bool` but found `int`
 test/analyze/type_check/logical_operation.myte:8:12
  8 |   (false && 1: bool);
    |             ^
 
-Error: Expected type bool but found unit
+Error: Expected type `bool` but found `unit`
 test/analyze/type_check/logical_operation.myte:9:3-5
  9 |   (() && "a": bool);
    |    ^^
 
-Error: Expected type bool but found string
+Error: Expected type `bool` but found `string`
 test/analyze/type_check/logical_operation.myte:9:9-12
  9 |   (() && "a": bool);
    |          ^^^

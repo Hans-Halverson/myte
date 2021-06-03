@@ -1,19 +1,19 @@
-Error: Expected type int but found unit
+Error: Expected type `int` but found `unit`
 test/analyze/type_check/variable_declaration/unnannotated.myte:8:3-5
  8 |   (x1: int);
    |    ^^
 
-Error: Expected type string but found int
+Error: Expected type `string` but found `int`
 test/analyze/type_check/variable_declaration/unnannotated.myte:11:3-5
  11 |   (x2: string);
     |    ^^
 
-Error: Expected type bool but found int => string
+Error: Expected type `bool` but found `int => string`
 test/analyze/type_check/variable_declaration/unnannotated.myte:14:3-5
  14 |   (x3: bool);
     |    ^^
 
-Error: Expected type int => string but found bool
+Error: Expected type `int => string` but found `bool`
 test/analyze/type_check/variable_declaration/unnannotated.myte:18:5-7
  18 |     (x3: int => string);
     |      ^^

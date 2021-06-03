@@ -1,14 +1,14 @@
-Error: Expected type int but found bool
+Error: Expected type `int` but found `bool`
 test/analyze/type_check/binary_operation/equality.myte:13:8-12
  13 |   (1 == true: bool);
     |         ^^^^
 
-Error: Expected type bool but found int
+Error: Expected type `bool` but found `int`
 test/analyze/type_check/binary_operation/equality.myte:14:11
  14 |   (true == 1: bool);
     |            ^
 
-Error: Expected type int => int but found int => string
+Error: Expected type `int => int` but found `int => string`
 test/analyze/type_check/binary_operation/equality.myte:15:15-26
  15 |   (intToInt == intToString: bool);
     |                ^^^^^^^^^^^

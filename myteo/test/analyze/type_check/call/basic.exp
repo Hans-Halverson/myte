@@ -1,59 +1,59 @@
-Error: Expected type int but found unit
+Error: Expected type `int` but found `unit`
 test/analyze/type_check/call/basic.myte:14:9-11
  14 |   intArg(());
     |          ^^
 
-Error: Expected type int but found unit
+Error: Expected type `int` but found `unit`
 test/analyze/type_check/call/basic.myte:15:12-14
  15 |   threeArgs((), true, "a");
     |             ^^
 
-Error: Expected type bool but found unit
+Error: Expected type `bool` but found `unit`
 test/analyze/type_check/call/basic.myte:16:15-17
  16 |   threeArgs(1, (), "a");
     |                ^^
 
-Error: Expected type string but found unit
+Error: Expected type `string` but found `unit`
 test/analyze/type_check/call/basic.myte:17:21-23
  17 |   threeArgs(1, true, ());
     |                      ^^
 
-Error: Expected type int but found string
+Error: Expected type `int` but found `string`
 test/analyze/type_check/call/basic.myte:18:12-15
  18 |   threeArgs("b", true, 2);
     |             ^^^
 
-Error: Expected type string but found int
+Error: Expected type `string` but found `int`
 test/analyze/type_check/call/basic.myte:18:23
  18 |   threeArgs("b", true, 2);
     |                        ^
 
-Error: Expected type int but found string
+Error: Expected type `int` but found `string`
 test/analyze/type_check/call/basic.myte:19:12-15
  19 |   threeArgs("b", (), 2);
     |             ^^^
 
-Error: Expected type bool but found unit
+Error: Expected type `bool` but found `unit`
 test/analyze/type_check/call/basic.myte:19:17-19
  19 |   threeArgs("b", (), 2);
     |                  ^^
 
-Error: Expected type string but found int
+Error: Expected type `string` but found `int`
 test/analyze/type_check/call/basic.myte:19:21
  19 |   threeArgs("b", (), 2);
     |                      ^
 
-Error: Expected type (int, bool, (string, unit)) but found (int, bool, (unit, string))
+Error: Expected type `(int, bool, (string, unit))` but found `(int, bool, (unit, string))`
 test/analyze/type_check/call/basic.myte:20:11-33
  20 |   tupleArg((1, true, ((), "str")));
     |            ^^^^^^^^^^^^^^^^^^^^^^
 
-Error: Expected type int but found unit
+Error: Expected type `int` but found `unit`
 test/analyze/type_check/call/basic.myte:23:10-12
  23 |   (intArg(()): unit);
     |           ^^
 
-Error: Expected type unit but found bool
+Error: Expected type `unit` but found `bool`
 test/analyze/type_check/call/basic.myte:23:3-13
  23 |   (intArg(()): unit);
     |    ^^^^^^^^^^

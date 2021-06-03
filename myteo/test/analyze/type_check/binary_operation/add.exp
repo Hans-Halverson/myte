@@ -1,29 +1,29 @@
-Error: Expected type int but found bool
+Error: Expected type `int` but found `bool`
 test/analyze/type_check/binary_operation/add.myte:11:7-11
  11 |   (1 + true: int);
     |        ^^^^
 
-Error: Expected type string but found bool
+Error: Expected type `string` but found `bool`
 test/analyze/type_check/binary_operation/add.myte:12:3-7
  12 |   (true + "a": string);
     |    ^^^^
 
-Error: Expected type int but found string
+Error: Expected type `int` but found `string`
 test/analyze/type_check/binary_operation/add.myte:16:7-10
  16 |   (1 + "a": int);
     |        ^^^
 
-Error: Expected type string but found int
+Error: Expected type `string` but found `int`
 test/analyze/type_check/binary_operation/add.myte:17:9
  17 |   ("a" + 1: string);
     |          ^
 
-Error: Expected types int or string but found bool
+Error: Expected types `int` or `string` but found `bool`
 test/analyze/type_check/binary_operation/add.myte:20:3-7
  20 |   (true + (): int => int);
     |    ^^^^
 
-Error: Expected types int or string but found unit
+Error: Expected types `int` or `string` but found `unit`
 test/analyze/type_check/binary_operation/add.myte:20:10-12
  20 |   (true + (): int => int);
     |           ^^

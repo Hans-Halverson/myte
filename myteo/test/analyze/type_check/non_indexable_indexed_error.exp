@@ -1,14 +1,14 @@
-Error: Cannot index into value of type int
+Error: Cannot index into value of type `int`
 test/analyze/type_check/non_indexable_indexed_error.myte:10:2
  10 |   1[0];
     |   ^
 
-Error: Cannot index into value of type Rec
+Error: Cannot index into value of type `Rec`
 test/analyze/type_check/non_indexable_indexed_error.myte:11:3-19
  11 |   (Rec { field: 1 })[0];
     |    ^^^^^^^^^^^^^^^^
 
-Error: Cannot index into value of type TupleVariants
+Error: Cannot index into value of type `TupleVariants`
 test/analyze/type_check/non_indexable_indexed_error.myte:12:3-12
  12 |   (Tuple1(1))[0];
     |    ^^^^^^^^^
