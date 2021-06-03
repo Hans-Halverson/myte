@@ -225,6 +225,15 @@ and Expression : sig
     }
   end
 
+  module Ternary : sig
+    type t = {
+      loc: Loc.t;
+      test: Expression.t;
+      conseq: Expression.t;
+      altern: Expression.t;
+    }
+  end
+
   module Call : sig
     type t = {
       loc: Loc.t;
@@ -263,6 +272,7 @@ and Expression : sig
     | BinaryOperation of BinaryOperation.t
     | LogicalAnd of LogicalAnd.t
     | LogicalOr of LogicalOr.t
+    | Ternary of Ternary.t
     | Call of Call.t
     | IndexedAccess of IndexedAccess.t
     | NamedAccess of NamedAccess.t

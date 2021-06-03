@@ -19,7 +19,7 @@
 - Anonymous Functions (fn x -> x)
 - Lex negative numbers
 - Floating point numbers
-- Hex/octal/binary representations, unicode encodings
+- unicode encodings
 - Algebraic data types
   - Tuples
   - Named tuples

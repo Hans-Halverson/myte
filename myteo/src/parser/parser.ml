@@ -14,19 +14,23 @@ module ExpressionPrecedence = struct
     | Equality
     | LogicalAnd
     | LogicalOr
+    | Ternary (* Precedence for checking ternary operator *)
+    | TernaryRightAssociative (* Precedence for parsing ternary operator *)
     | (* Binds weakest *) None
 
   let level = function
-    | Group -> 9
-    | Call -> 8
-    | Access -> 8
-    | Unary -> 7
-    | Multiplication -> 6
-    | Addition -> 5
-    | Comparison -> 4
-    | Equality -> 3
-    | LogicalAnd -> 2
-    | LogicalOr -> 1
+    | Group -> 11
+    | Call -> 10
+    | Access -> 10
+    | Unary -> 8
+    | Multiplication -> 8
+    | Addition -> 7
+    | Comparison -> 6
+    | Equality -> 5
+    | LogicalAnd -> 4
+    | LogicalOr -> 3
+    | Ternary -> 2
+    | TernaryRightAssociative -> 1
     | None -> 0
 
   let is_tighter p1 p2 = level p1 > level p2
@@ -254,6 +258,8 @@ and parse_expression_infix ~precedence env left marker =
     parse_logical_expression env left marker
   | T_LOGICAL_OR when ExpressionPrecedence.(is_tighter LogicalOr precedence) ->
     parse_logical_expression env left marker
+  | T_QUESTION when ExpressionPrecedence.(is_tighter Ternary precedence) ->
+    parse_ternary env left marker
   | _ -> left
 
 and parse_parenthesized_expression env =
@@ -348,6 +354,14 @@ and parse_logical_expression env left marker =
     let loc = marker env in
     LogicalOr { LogicalOr.loc; left; right }
   | _ -> failwith "Invalid logical operator"
+
+and parse_ternary env test marker =
+  Env.expect env T_QUESTION;
+  let conseq = parse_expression ~precedence:TernaryRightAssociative env in
+  Env.expect env T_COLON;
+  let altern = parse_expression ~precedence:TernaryRightAssociative env in
+  let loc = marker env in
+  Expression.Ternary { loc; test; conseq; altern }
 
 and parse_anonymous_tuple_expression env first_element marker =
   let open Expression in

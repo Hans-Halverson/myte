@@ -5,6 +5,7 @@ type t =
   | T_BOOL_LITERAL of bool
   | T_SEMICOLON
   | T_COLON
+  | T_QUESTION
   | T_PIPE
   | T_COMMA
   | T_PERIOD
@@ -62,6 +63,7 @@ let to_string token =
       "false"
   | T_SEMICOLON -> ";"
   | T_COLON -> ":"
+  | T_QUESTION -> "?"
   | T_PIPE -> "|"
   | T_COMMA -> ","
   | T_PERIOD -> "."

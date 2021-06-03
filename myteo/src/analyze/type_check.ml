@@ -648,6 +648,7 @@ and check_expression ~cx expr =
       ignore (Type_context.unify ~cx Types.Any (TVar tvar_id))
     );
     (loc, tvar_id)
+  | Ternary _ -> failwith "TODO: Type checking for ternary expression"
 
 and check_statement ~cx stmt =
   let open Ast.Statement in

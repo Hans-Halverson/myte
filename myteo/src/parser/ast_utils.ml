@@ -31,6 +31,7 @@ let expression_loc expr =
   | BinaryOperation { loc; _ }
   | LogicalAnd { loc; _ }
   | LogicalOr { loc; _ }
+  | Ternary { loc; _ }
   | Call { loc; _ }
   | IndexedAccess { loc; _ }
   | NamedAccess { loc; _ } ->

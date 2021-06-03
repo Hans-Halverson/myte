@@ -55,6 +55,7 @@ class ['a] visitor =
         | BinaryOperation e -> this#binary_operation acc e
         | LogicalAnd e -> this#logical_and acc e
         | LogicalOr e -> this#logical_or acc e
+        | Ternary e -> this#ternary acc e
         | Call e -> this#call acc e
         | IndexedAccess e -> this#indexed_access acc e
         | NamedAccess e -> this#named_access acc e
@@ -153,6 +154,13 @@ class ['a] visitor =
       let { loc = _; left; right } = logical in
       this#expression acc left;
       this#expression acc right
+
+    method ternary acc ternary =
+      let open Expression.Ternary in
+      let { loc = _; test; conseq; altern } = ternary in
+      this#expression acc test;
+      this#expression acc conseq;
+      this#expression acc altern
 
     method call acc call =
       let open Expression.Call in

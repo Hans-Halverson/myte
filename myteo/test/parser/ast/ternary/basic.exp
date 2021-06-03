@@ -1,0 +1,211 @@
+test/parser/ast/ternary/basic.myte
+{
+  node: Module,
+  loc: 1:0-12:1,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: Function,
+      loc: 3:0-12:1,
+      name: {
+        node: Identifier,
+        loc: 3:4-3:8,
+        name: "main",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 3:11-12:1,
+        statements: [
+          {
+            node: ExpressionStatement,
+            loc: 4:2-4:12,
+            expression: {
+              node: Ternary,
+              loc: 4:2-4:11,
+              test: {
+                node: Identifier,
+                loc: 4:2-4:3,
+                name: "a",
+              },
+              conseq: {
+                node: Identifier,
+                loc: 4:6-4:7,
+                name: "b",
+              },
+              altern: {
+                node: Identifier,
+                loc: 4:10-4:11,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 6:2-6:20,
+            expression: {
+              node: Ternary,
+              loc: 6:2-6:19,
+              test: {
+                node: Identifier,
+                loc: 6:2-6:3,
+                name: "a",
+              },
+              conseq: {
+                node: Identifier,
+                loc: 6:6-6:7,
+                name: "b",
+              },
+              altern: {
+                node: Ternary,
+                loc: 6:10-6:19,
+                test: {
+                  node: Identifier,
+                  loc: 6:10-6:11,
+                  name: "c",
+                },
+                conseq: {
+                  node: Identifier,
+                  loc: 6:14-6:15,
+                  name: "d",
+                },
+                altern: {
+                  node: Identifier,
+                  loc: 6:18-6:19,
+                  name: "e",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 7:2-7:22,
+            expression: {
+              node: Ternary,
+              loc: 7:2-7:21,
+              test: {
+                node: Identifier,
+                loc: 7:2-7:3,
+                name: "a",
+              },
+              conseq: {
+                node: Identifier,
+                loc: 7:6-7:7,
+                name: "b",
+              },
+              altern: {
+                node: Ternary,
+                loc: 7:11-7:20,
+                test: {
+                  node: Identifier,
+                  loc: 7:11-7:12,
+                  name: "c",
+                },
+                conseq: {
+                  node: Identifier,
+                  loc: 7:15-7:16,
+                  name: "d",
+                },
+                altern: {
+                  node: Identifier,
+                  loc: 7:19-7:20,
+                  name: "e",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 10:2-10:20,
+            expression: {
+              node: Ternary,
+              loc: 10:2-10:19,
+              test: {
+                node: Identifier,
+                loc: 10:2-10:3,
+                name: "a",
+              },
+              conseq: {
+                node: Ternary,
+                loc: 10:6-10:15,
+                test: {
+                  node: Identifier,
+                  loc: 10:6-10:7,
+                  name: "b",
+                },
+                conseq: {
+                  node: Identifier,
+                  loc: 10:10-10:11,
+                  name: "c",
+                },
+                altern: {
+                  node: Identifier,
+                  loc: 10:14-10:15,
+                  name: "d",
+                },
+              },
+              altern: {
+                node: Identifier,
+                loc: 10:18-10:19,
+                name: "e",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 11:2-11:22,
+            expression: {
+              node: Ternary,
+              loc: 11:2-11:21,
+              test: {
+                node: Identifier,
+                loc: 11:2-11:3,
+                name: "a",
+              },
+              conseq: {
+                node: Ternary,
+                loc: 11:7-11:16,
+                test: {
+                  node: Identifier,
+                  loc: 11:7-11:8,
+                  name: "b",
+                },
+                conseq: {
+                  node: Identifier,
+                  loc: 11:11-11:12,
+                  name: "c",
+                },
+                altern: {
+                  node: Identifier,
+                  loc: 11:15-11:16,
+                  name: "d",
+                },
+              },
+              altern: {
+                node: Identifier,
+                loc: 11:20-11:21,
+                name: "e",
+              },
+            },
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+    },
+  ],
+}

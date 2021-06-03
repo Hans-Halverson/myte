@@ -152,6 +152,7 @@ and node_of_expression expr =
   | BinaryOperation binary -> node_of_binary_operation binary
   | LogicalAnd logical -> node_of_logical_and logical
   | LogicalOr logical -> node_of_logical_or logical
+  | Ternary ternary -> node_of_ternary ternary
   | Call call -> node_of_call call
   | IndexedAccess access -> node_of_indexed_access access
   | NamedAccess access -> node_of_named_access access
@@ -272,6 +273,17 @@ and node_of_logical_and logical =
 and node_of_logical_or logical =
   let { Expression.LogicalOr.loc; left; right } = logical in
   node "LogicalOr" loc [("left", node_of_expression left); ("right", node_of_expression right)]
+
+and node_of_ternary ternary =
+  let { Expression.Ternary.loc; test; conseq; altern } = ternary in
+  node
+    "Ternary"
+    loc
+    [
+      ("test", node_of_expression test);
+      ("conseq", node_of_expression conseq);
+      ("altern", node_of_expression altern);
+    ]
 
 and node_of_call call =
   let { Expression.Call.loc; func; args } = call in
