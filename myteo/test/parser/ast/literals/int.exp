@@ -1,7 +1,7 @@
 test/parser/ast/literals/int.myte
 {
   node: Module,
-  loc: 1:0-10:1,
+  loc: 1:0-19:1,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -20,7 +20,7 @@ test/parser/ast/literals/int.myte
   toplevels: [
     {
       node: Function,
-      loc: 3:0-10:1,
+      loc: 3:0-19:1,
       name: {
         node: Identifier,
         loc: 3:4-3:8,
@@ -29,7 +29,7 @@ test/parser/ast/literals/int.myte
       params: [],
       body: {
         node: Block,
-        loc: 3:11-10:1,
+        loc: 3:11-19:1,
         statements: [
           {
             node: ExpressionStatement,
@@ -37,7 +37,6 @@ test/parser/ast/literals/int.myte
             expression: {
               node: IntLiteral,
               loc: 4:2-4:3,
-              value: 0,
               raw: "0",
             },
           },
@@ -47,7 +46,6 @@ test/parser/ast/literals/int.myte
             expression: {
               node: IntLiteral,
               loc: 5:2-5:3,
-              value: 1,
               raw: "1",
             },
           },
@@ -57,21 +55,82 @@ test/parser/ast/literals/int.myte
             expression: {
               node: IntLiteral,
               loc: 6:2-6:4,
-              value: -1,
               raw: "-1",
             },
           },
           {
             node: ExpressionStatement,
-            loc: 9:2-9:6,
+            loc: 8:2-8:6,
+            expression: {
+              node: IntLiteral,
+              loc: 8:2-8:5,
+              raw: "0x0",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 9:2-9:21,
+            expression: {
+              node: IntLiteral,
+              loc: 9:2-9:20,
+              raw: "0x1234567890abcdef",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 10:2-10:21,
+            expression: {
+              node: IntLiteral,
+              loc: 10:2-10:20,
+              raw: "0x1234567890ABCDEF",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 11:2-11:8,
+            expression: {
+              node: IntLiteral,
+              loc: 11:2-11:7,
+              raw: "-0xFF",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 13:2-13:6,
+            expression: {
+              node: IntLiteral,
+              loc: 13:2-13:5,
+              raw: "0b0",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 14:2-14:12,
+            expression: {
+              node: IntLiteral,
+              loc: 14:2-14:11,
+              raw: "0b1010111",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 15:2-15:8,
+            expression: {
+              node: IntLiteral,
+              loc: 15:2-15:7,
+              raw: "-0b10",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 18:2-18:6,
             expression: {
               node: UnaryOperation,
-              loc: 9:2-9:5,
+              loc: 18:2-18:5,
               op: Minus,
               operand: {
                 node: IntLiteral,
-                loc: 9:4-9:5,
-                value: 1,
+                loc: 18:4-18:5,
                 raw: "1",
               },
             },

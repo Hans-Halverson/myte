@@ -30,7 +30,6 @@ test/parser/ast/function_declaration/basic.myte
       body: {
         node: IntLiteral,
         loc: 3:17-3:18,
-        value: 1,
         raw: "1",
       },
       return: {

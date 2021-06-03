@@ -41,19 +41,16 @@ test/parser/ast/tuple/expression.myte
                 {
                   node: IntLiteral,
                   loc: 4:3-4:4,
-                  value: 1,
                   raw: "1",
                 },
                 {
                   node: IntLiteral,
                   loc: 4:6-4:7,
-                  value: 3,
                   raw: "3",
                 },
                 {
                   node: IntLiteral,
                   loc: 4:9-4:10,
-                  value: 2,
                   raw: "2",
                 },
               ],
@@ -78,7 +75,6 @@ test/parser/ast/tuple/expression.myte
                     {
                       node: IntLiteral,
                       loc: 7:7-7:8,
-                      value: 1,
                       raw: "1",
                     },
                   ],
@@ -122,13 +118,11 @@ test/parser/ast/tuple/expression.myte
                 {
                   node: IntLiteral,
                   loc: 10:3-10:4,
-                  value: 1,
                   raw: "1",
                 },
                 {
                   node: IntLiteral,
                   loc: 10:6-10:7,
-                  value: 2,
                   raw: "2",
                 },
               ],

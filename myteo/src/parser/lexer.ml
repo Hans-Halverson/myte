@@ -4,9 +4,13 @@ let letter = [%sedlex.regexp? 'a' .. 'z' | 'A' .. 'Z']
 
 let digit = [%sedlex.regexp? '0' .. '9']
 
+let hex_digit = [%sedlex.regexp? '0' .. '9' | 'a' .. 'f' | 'A' .. 'F']
+
+let bin_digit = [%sedlex.regexp? '0' .. '1']
+
 let identifier = [%sedlex.regexp? ((letter | '_'), Star (letter | digit | '_'))]
 
-let int_literal = [%sedlex.regexp? Plus digit]
+let int_literal = [%sedlex.regexp? Plus digit | ("0x", Plus hex_digit) | ("0b", Plus bin_digit)]
 
 let string_literal = [%sedlex.regexp? ('"', Star (Compl '"'), '"')]
 
@@ -127,7 +131,7 @@ let tokenize lex =
   | identifier -> token_result (T_IDENTIFIER (lexeme buf))
   | int_literal ->
     let raw = lexeme buf in
-    token_result (T_INT_LITERAL (Int64.of_string raw, raw))
+    token_result (T_INT_LITERAL raw)
   | string_literal ->
     let raw = lexeme buf in
     let value = String.sub raw 1 (String.length raw - 2) in

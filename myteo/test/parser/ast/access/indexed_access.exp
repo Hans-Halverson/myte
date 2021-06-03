@@ -46,13 +46,11 @@ test/parser/ast/access/indexed_access.myte
               target: {
                 node: IntLiteral,
                 loc: 4:10-4:11,
-                value: 1,
                 raw: "1",
               },
               index: {
                 node: IntLiteral,
                 loc: 4:12-4:13,
-                value: 2,
                 raw: "2",
               },
             },
@@ -88,13 +86,11 @@ test/parser/ast/access/indexed_access.myte
                     left: {
                       node: IntLiteral,
                       loc: 5:12-5:13,
-                      value: 2,
                       raw: "2",
                     },
                     right: {
                       node: IntLiteral,
                       loc: 5:16-5:17,
-                      value: 4,
                       raw: "4",
                     },
                   },
@@ -102,14 +98,12 @@ test/parser/ast/access/indexed_access.myte
                 index: {
                   node: IntLiteral,
                   loc: 5:19-5:20,
-                  value: 3,
                   raw: "3",
                 },
               },
               index: {
                 node: IntLiteral,
                 loc: 5:22-5:23,
-                value: 5,
                 raw: "5",
               },
             },

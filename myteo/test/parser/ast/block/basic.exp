@@ -63,7 +63,6 @@ test/parser/ast/block/basic.myte
                 expression: {
                   node: IntLiteral,
                   loc: 13:4-13:5,
-                  value: 1,
                   raw: "1",
                 },
               },
@@ -73,7 +72,6 @@ test/parser/ast/block/basic.myte
                 expression: {
                   node: IntLiteral,
                   loc: 14:4-14:5,
-                  value: 2,
                   raw: "2",
                 },
               },
@@ -83,7 +81,6 @@ test/parser/ast/block/basic.myte
                 expression: {
                   node: IntLiteral,
                   loc: 15:4-15:5,
-                  value: 3,
                   raw: "3",
                 },
               },

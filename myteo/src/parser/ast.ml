@@ -127,7 +127,6 @@ and Expression : sig
     type t = {
       loc: Loc.t;
       raw: string;
-      value: Int32.t;
     }
   end
 

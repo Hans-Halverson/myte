@@ -30,7 +30,6 @@ test/parser/ast/variable_declaration/basic.myte
       init: {
         node: IntLiteral,
         loc: 3:8-3:9,
-        value: 1,
         raw: "1",
       },
       annot: None,
@@ -47,7 +46,6 @@ test/parser/ast/variable_declaration/basic.myte
       init: {
         node: IntLiteral,
         loc: 4:8-4:9,
-        value: 2,
         raw: "2",
       },
       annot: None,
@@ -64,7 +62,6 @@ test/parser/ast/variable_declaration/basic.myte
       init: {
         node: IntLiteral,
         loc: 6:13-6:14,
-        value: 1,
         raw: "1",
       },
       annot: {

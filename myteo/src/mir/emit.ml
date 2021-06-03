@@ -91,7 +91,7 @@ and emit_expression ~pcx ~ecx expr =
   let open Instruction in
   match expr with
   | Unit _ -> Unit Lit
-  | IntLiteral { value; _ } -> Numeric (IntLit value)
+  | IntLiteral { raw; _ } -> Numeric (IntLit (Int32.of_string raw))
   | StringLiteral { value; _ } -> String (Lit value)
   | BoolLiteral { value; _ } -> Bool (Lit value)
   | UnaryOperation { op = Plus; operand; _ } -> emit_expression ~pcx ~ecx operand

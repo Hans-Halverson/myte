@@ -40,7 +40,6 @@ test/parser/ast/type_cast/basic.myte
               expr: {
                 node: IntLiteral,
                 loc: 4:3-4:4,
-                value: 1,
                 raw: "1",
               },
               type: {
@@ -59,7 +58,6 @@ test/parser/ast/type_cast/basic.myte
               expr: {
                 node: IntLiteral,
                 loc: 5:4-5:5,
-                value: 1,
                 raw: "1",
               },
               type: {

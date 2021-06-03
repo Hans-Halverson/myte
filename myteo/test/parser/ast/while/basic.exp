@@ -77,7 +77,6 @@ test/parser/ast/while/basic.myte
                     right: {
                       node: IntLiteral,
                       loc: 7:12-7:13,
-                      value: 1,
                       raw: "1",
                     },
                   },

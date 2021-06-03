@@ -30,7 +30,6 @@ test/parser/ast/type/parens.myte
       init: {
         node: IntLiteral,
         loc: 3:15-3:16,
-        value: 1,
         raw: "1",
       },
       annot: {
@@ -51,7 +50,6 @@ test/parser/ast/type/parens.myte
       init: {
         node: IntLiteral,
         loc: 4:19-4:20,
-        value: 1,
         raw: "1",
       },
       annot: {
@@ -72,7 +70,6 @@ test/parser/ast/type/parens.myte
       init: {
         node: IntLiteral,
         loc: 5:25-5:26,
-        value: 1,
         raw: "1",
       },
       annot: {

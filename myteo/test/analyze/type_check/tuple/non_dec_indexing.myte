@@ -1,0 +1,23 @@
+module test
+
+type alias Tup = (int, string, bool, unit, int, string, bool, unit, int, string, bool, unit)
+
+fun test(x: Tup) {
+  // Valid indices
+  (x[0x0]: int);
+  (x[0x1]: string);
+  (x[0xA]: bool);
+
+  (x[0b0]: int);
+  (x[0b1]: string);
+  (x[0b1010]: bool);
+
+  // Invalid indices
+  (x[-0x1]: unit);
+  (x[0xFF]: unit);
+
+  (x[-0b1]: unit);
+  (x[0b11110]: unit);
+}
+
+fun main() {}

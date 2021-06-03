@@ -45,7 +45,6 @@ test/parser/ast/return/basic.myte
             arg: {
               node: IntLiteral,
               loc: 5:9-5:10,
-              value: 1,
               raw: "1",
             },
           },

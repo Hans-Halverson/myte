@@ -5,6 +5,15 @@ fun main() {
   1;
   -1;
 
+  0x0;
+  0x1234567890abcdef;
+  0x1234567890ABCDEF;
+  -0xFF;
+
+  0b0;
+  0b1010111;
+  -0b10;
+
   // Any whitespace separation means minus is treated as operator
   - 1;
 }

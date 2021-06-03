@@ -208,10 +208,10 @@ and parse_expression_prefix env =
   | T_LOGICAL_NOT ->
     parse_unary_expression env
   | T_IDENTIFIER _ -> Expression.Identifier (parse_identifier env)
-  | T_INT_LITERAL (value, raw) ->
+  | T_INT_LITERAL raw ->
     let loc = Env.loc env in
     Env.advance env;
-    IntLiteral { IntLiteral.loc; raw; value = Int64.to_int32 value }
+    IntLiteral { IntLiteral.loc; raw }
   | T_STRING_LITERAL value ->
     let loc = Env.loc env in
     Env.advance env;
@@ -304,11 +304,10 @@ and parse_unary_expression env =
   let no_whitespace_after_op = Loc.pos_equal op_loc._end next_loc.start in
   (* A minus sign directly in front of a numeric literal should be treated as part of that literal *)
   match Env.token env with
-  | T_INT_LITERAL (value, raw) when op = Minus && no_whitespace_after_op ->
+  | T_INT_LITERAL raw when op = Minus && no_whitespace_after_op ->
     Env.advance env;
     let loc = marker env in
-    IntLiteral
-      { Expression.IntLiteral.loc; raw = "-" ^ raw; value = Int32.neg (Int64.to_int32 value) }
+    IntLiteral { Expression.IntLiteral.loc; raw = "-" ^ raw }
   | _ ->
     let operand = parse_expression ~precedence:Unary env in
     let loc = marker env in

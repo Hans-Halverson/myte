@@ -41,7 +41,6 @@ test/parser/ast/unary_operation/basic.myte
               operand: {
                 node: IntLiteral,
                 loc: 4:3-4:4,
-                value: 1,
                 raw: "1",
               },
             },
@@ -56,7 +55,6 @@ test/parser/ast/unary_operation/basic.myte
               operand: {
                 node: IntLiteral,
                 loc: 5:4-5:5,
-                value: 1,
                 raw: "1",
               },
             },
@@ -89,7 +87,6 @@ test/parser/ast/unary_operation/basic.myte
                 operand: {
                   node: IntLiteral,
                   loc: 8:5-8:6,
-                  value: 1,
                   raw: "1",
                 },
               },
@@ -109,7 +106,6 @@ test/parser/ast/unary_operation/basic.myte
                 operand: {
                   node: IntLiteral,
                   loc: 9:4-9:5,
-                  value: 1,
                   raw: "1",
                 },
               },

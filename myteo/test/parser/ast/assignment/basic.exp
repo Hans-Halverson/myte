@@ -42,7 +42,6 @@ test/parser/ast/assignment/basic.myte
             expr: {
               node: IntLiteral,
               loc: 4:6-4:7,
-              value: 1,
               raw: "1",
             },
           },

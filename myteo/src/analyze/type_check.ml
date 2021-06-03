@@ -572,15 +572,14 @@ and check_expression ~cx expr =
     let (index_loc, _) = check_expression ~cx index in
     let check_tuple_indexed_access elements =
       match index with
-      | IntLiteral { value; _ } ->
-        let index = Int32.to_int value in
+      | IntLiteral { raw; _ } ->
+        let index_opt = Int64.of_string_opt raw |> Option.map Int64.to_int in
         let ty =
-          if index >= 0 && index < List.length elements then
-            List.nth elements index
-          else (
+          match index_opt with
+          | Some index when index >= 0 && index < List.length elements -> List.nth elements index
+          | _ ->
             Type_context.add_error ~cx index_loc (TupleIndexOutOfBounds (List.length elements));
             Types.Any
-          )
         in
         ignore (Type_context.unify ~cx ty (TVar tvar_id))
       | _ ->

@@ -1,6 +1,6 @@
 type t =
   | T_IDENTIFIER of string
-  | T_INT_LITERAL of Int64.t * string
+  | T_INT_LITERAL of string
   | T_STRING_LITERAL of string
   | T_BOOL_LITERAL of bool
   | T_SEMICOLON
@@ -53,7 +53,7 @@ type t =
 let to_string token =
   match token with
   | T_IDENTIFIER name -> name
-  | T_INT_LITERAL (_, raw) -> raw
+  | T_INT_LITERAL raw -> raw
   | T_STRING_LITERAL value -> "\"" ^ value ^ "\""
   | T_BOOL_LITERAL value ->
     if value then

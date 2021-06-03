@@ -45,7 +45,6 @@ test/parser/ast/if/basic.myte
               expression: {
                 node: IntLiteral,
                 loc: 4:12-4:13,
-                value: 1,
                 raw: "1",
               },
             },

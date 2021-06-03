@@ -211,8 +211,8 @@ and node_of_unit unit =
   node "Unit" loc []
 
 and node_of_int_literal lit =
-  let { Expression.IntLiteral.loc; raw; value } = lit in
-  node "IntLiteral" loc [("value", Int value); ("raw", String raw)]
+  let { Expression.IntLiteral.loc; raw } = lit in
+  node "IntLiteral" loc [("raw", String raw)]
 
 and node_of_string_literal lit =
   let { Expression.StringLiteral.loc; value } = lit in
