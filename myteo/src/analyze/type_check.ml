@@ -10,7 +10,9 @@ let rec build_type ~cx ty =
     let open Primitive in
     (match kind with
     | Unit -> Types.Unit
+    | Byte -> Types.Byte
     | Int -> Types.Int
+    | Long -> Types.Long
     | String -> Types.String
     | Bool -> Types.Bool)
   | Tuple { Tuple.elements; _ } -> Types.Tuple (List.map (build_type ~cx) elements)
@@ -247,9 +249,9 @@ and check_expression ~cx expr =
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     ignore (Type_context.unify ~cx Types.Unit (TVar tvar_id));
     (loc, tvar_id)
-  | IntLiteral { IntLiteral.loc; raw } ->
+  | IntLiteral { IntLiteral.loc; raw; base } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    let int_literal_ty = Type_context.mk_int_literal_ty ~cx loc raw in
+    let int_literal_ty = Type_context.mk_int_literal_ty ~cx loc raw base in
     ignore (Type_context.unify ~cx int_literal_ty (TVar tvar_id));
     (loc, tvar_id)
   | StringLiteral { StringLiteral.loc; _ } ->
@@ -305,33 +307,71 @@ and check_expression ~cx expr =
     (* Expr must be a subtype of annotated type *)
     Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) ty;
     (loc, tvar_id)
+  (* 
+   * ============================
+   * Unary Operation
+   * ============================
+   *)
   | UnaryOperation { UnaryOperation.loc; op; operand } ->
     let open UnaryOperation in
-    let ty =
-      match op with
-      | Plus
-      | Minus ->
-        Types.Int
-      | LogicalNot -> Types.Bool
-    in
-    let (operand_loc, operand_tvar_id) = check_expression ~cx operand in
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    ignore (Type_context.unify ~cx ty (TVar tvar_id));
-    Type_context.assert_unify ~cx operand_loc ty (TVar operand_tvar_id);
+    let (operand_loc, operand_tvar_id) = check_expression ~cx operand in
+    let operand_rep_ty = Type_context.find_rep_type ~cx (TVar operand_tvar_id) in
+    let result_ty =
+      match (operand_rep_ty, op) with
+      | ((Byte | Int | Long | IntLiteral _), (Plus | Minus))
+      | (Bool, LogicalNot)
+      | (Any, _) ->
+        operand_rep_ty
+      | _ ->
+        let expected_ty =
+          match op with
+          | Plus
+          | Minus ->
+            Types.Int
+          | LogicalNot -> Types.Bool
+        in
+        Type_context.add_error ~cx operand_loc (IncompatibleTypes (operand_rep_ty, [expected_ty]));
+        Any
+    in
+    ignore (Type_context.unify ~cx result_ty (TVar tvar_id));
     (loc, tvar_id)
+  (* 
+   * ============================
+   * Binary Operation
+   * ============================
+   *)
   | BinaryOperation { BinaryOperation.loc; op; left; right } ->
     let open BinaryOperation in
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let (left_loc, left_tvar_id) = check_expression ~cx left in
     let (right_loc, right_tvar_id) = check_expression ~cx right in
+    let is_int tvar_id =
+      let rep_ty = Type_context.find_rep_type ~cx (TVar tvar_id) in
+      match rep_ty with
+      | Byte
+      | Int
+      | Long
+      | IntLiteral _ ->
+        true
+      | _ -> false
+    in
     let is_int_or_string tvar_id =
       let rep_ty = Type_context.find_rep_type ~cx (TVar tvar_id) in
       match rep_ty with
-      | Types.Int
-      | Types.IntLiteral _
-      | Types.String ->
+      | Byte
+      | Int
+      | Long
+      | IntLiteral _
+      | String ->
         true
       | _ -> false
+    in
+    let error_int loc tvar_id =
+      Type_context.add_error
+        ~cx
+        loc
+        (IncompatibleTypes (Type_context.find_rep_type ~cx (TVar tvar_id), [Types.Int]))
     in
     let error_int_or_string loc tvar_id =
       Type_context.add_error
@@ -354,6 +394,26 @@ and check_expression ~cx expr =
         error_int_or_string right_loc right_tvar_id;
         ignore (Type_context.unify ~cx Any (TVar tvar_id))
       )
+    | Subtract
+    | Multiply
+    | Divide ->
+      (* If a child expression is an int propagate type to other child and expression *)
+      if is_int left_tvar_id then (
+        Type_context.assert_unify ~cx right_loc (TVar left_tvar_id) (TVar right_tvar_id);
+        ignore (Type_context.unify ~cx (TVar left_tvar_id) (TVar tvar_id))
+      ) else if is_int right_tvar_id then (
+        Type_context.assert_unify ~cx left_loc (TVar right_tvar_id) (TVar left_tvar_id);
+        ignore (Type_context.unify ~cx (TVar right_tvar_id) (TVar tvar_id))
+      ) else (
+        (* Otherwise force expression's type to be any to avoid erroring at uses *)
+        error_int left_loc left_tvar_id;
+        error_int right_loc right_tvar_id;
+        ignore (Type_context.unify ~cx Any (TVar tvar_id))
+      )
+    | Equal
+    | NotEqual ->
+      Type_context.assert_unify ~cx right_loc (TVar left_tvar_id) (TVar right_tvar_id);
+      ignore (Type_context.unify ~cx Types.Bool (TVar tvar_id))
     | LessThan
     | GreaterThan
     | LessThanOrEqual
@@ -367,16 +427,6 @@ and check_expression ~cx expr =
         error_int_or_string left_loc left_tvar_id;
         error_int_or_string right_loc right_tvar_id
       );
-      ignore (Type_context.unify ~cx Types.Bool (TVar tvar_id))
-    | Subtract
-    | Multiply
-    | Divide ->
-      Type_context.assert_unify ~cx left_loc Types.Int (TVar left_tvar_id);
-      Type_context.assert_unify ~cx right_loc Types.Int (TVar right_tvar_id);
-      ignore (Type_context.unify ~cx Types.Int (TVar tvar_id))
-    | Equal
-    | NotEqual ->
-      Type_context.assert_unify ~cx right_loc (TVar left_tvar_id) (TVar right_tvar_id);
       ignore (Type_context.unify ~cx Types.Bool (TVar tvar_id)));
     (loc, tvar_id)
   | LogicalAnd { LogicalAnd.loc; left; right }
@@ -571,13 +621,14 @@ and check_expression ~cx expr =
   | IndexedAccess { IndexedAccess.loc; target; index } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let (target_loc, target_tvar_id) = check_expression ~cx target in
-    let (index_loc, _) = check_expression ~cx index in
+    let (index_loc, index_tvar_id) = check_expression ~cx index in
     let check_tuple_indexed_access elements =
-      match index with
-      | IntLiteral { raw; _ } ->
-        let index_opt = Int64.of_string_opt raw |> Option.map Int64.to_int in
+      let index_rep_ty = Type_context.find_rep_type ~cx (TVar index_tvar_id) in
+      match (index, index_rep_ty) with
+      | (IntLiteral _, Types.IntLiteral { values = [(_, value)]; _ }) ->
+        let value = Option.map Int64.to_int value in
         let ty =
-          match index_opt with
+          match value with
           | Some index when index >= 0 && index < List.length elements -> List.nth elements index
           | _ ->
             Type_context.add_error ~cx index_loc (TupleIndexOutOfBounds (List.length elements));
@@ -694,7 +745,7 @@ let resolve_unresolved_int_literals ~cx =
     let tvar = LocMap.find loc cx.loc_to_tvar in
     let ty = Type_context.find_rep_type ~cx (TVar tvar) in
     match ty with
-    | IntLiteral ({ resolved = None; _ } as lit_ty) -> resolve_int_literal ~cx lit_ty
+    | IntLiteral ({ resolved = None; _ } as lit_ty) -> resolve_int_literal ~cx lit_ty Types.Int
     | _ -> failwith "Unresolved int literal has already been resolved"
   done
 

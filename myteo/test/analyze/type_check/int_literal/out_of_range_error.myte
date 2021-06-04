@@ -1,0 +1,97 @@
+module test
+
+fun ints() {
+  // In range
+  0;
+  -0;
+  0x0;
+  -0x0;
+  1;
+  -1;
+
+  // Max int is in range
+  2147483647;
+  0x7FFFFFFF;
+  0b01111111111111111111111111111111;
+
+  // Above max int is out of range
+  2147483648;
+  0x80000000;
+  0b10000000000000000000000000000000;
+
+  // Min int is in range
+  -2147483648;
+  -0x80000000;
+  -0b10000000000000000000000000000000;
+
+  // Below min int is out of range
+  -2147483649;
+  -0x80000001;
+  -0b10000000000000000000000000000001;
+
+  // Outside representable 64-bit range
+  0x8000000000000000;
+  -0x8000000000000001;
+}
+
+fun bytes() {
+  // In range
+  (0: byte);
+  (-0: byte);
+  (1: byte);
+  (-1: byte);
+
+  // Max byte is in range
+  (127: byte);
+  (0x7F: byte);
+  (0b01111111: byte);
+
+  // Above max byte is out of range
+  (128: byte);
+  (0x80: byte);
+  (0b10000000: byte);
+
+  // Min byte is in range
+  (-128: byte);
+  (-0x80: byte);
+  (-0b10000000: byte);
+
+  // Below min byte is out of range
+  (-129: byte);
+  (-0x81: byte);
+  (-0b10000001: byte);
+
+  // Outside representable 64-bit range
+  (0x8000000000000000: byte);
+  (-0x8000000000000001: byte);
+}
+
+fun longs() {
+  // In range
+  (0: long);
+  (-0: long);
+  (1: long);
+  (-1: long);
+
+  // Max long is in range
+  (9223372036854775807: long);
+  (0x7FFFFFFFFFFFFFFF: long);
+  (0b0111111111111111111111111111111111111111111111111111111111111111: long);
+
+  // Above max long is out of range
+  (9223372036854775808: long);
+  (0x8000000000000000: long);
+  (0b1000000000000000000000000000000000000000000000000000000000000000: long);
+
+  // Min long is in range
+  (-9223372036854775808: long);
+  (-0x8000000000000000: long);
+  (-0b1000000000000000000000000000000000000000000000000000000000000000: long);
+
+  // Below min long is out of range
+  (-9223372036854775809: long);
+  (-0x8000000000000001: long);
+  (-0b1000000000000000000000000000000000000000000000000000000000000001: long);
+}
+
+fun main() {}

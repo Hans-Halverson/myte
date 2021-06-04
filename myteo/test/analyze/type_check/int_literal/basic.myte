@@ -1,0 +1,54 @@
+module test
+
+fun useInt(x: int) {}
+fun useByte(x: byte) {}
+fun useLong(x: long) {}
+fun useUnit(x: unit) {}
+
+fun localInference() {
+  // Literals can be inferred as any integer type
+  val x1 = 1;
+  useInt(x1);
+
+  val x2 = 1;
+  useByte(x2);
+
+  val x3 = 1;
+  useLong(x3);
+}
+
+fun localInferenceConflict() {
+  // Inferred as conflicting integer types
+  val x = 1;
+  useInt(x);
+  useByte(x);
+  useLong(x);
+
+  // Integer type used as non-integer
+  val y = 1;
+  useUnit(y);
+}
+
+fun localInferenceThroughUnaryExpression() {
+  val x1 = 1;
+  (-(-x1): int);
+
+  val x2 = 1;
+  (-(-x2): byte);
+
+  val x3 = 1;
+  (-(-x3): long);
+}
+
+fun localInferenceThroughBinaryExpression() {
+  val x1 = 1;
+  (x1 + 1: int);
+
+  val x2 = 1;
+  (x2 + 1: byte);
+
+  val x3 = 1;
+  (x3 + 1: long);
+}
+
+fun main() {}

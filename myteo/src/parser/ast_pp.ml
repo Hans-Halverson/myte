@@ -78,7 +78,9 @@ let string_of_binary_op op =
 let string_of_primitive_type kind =
   let open Type.Primitive in
   match kind with
+  | Byte -> "Byte"
   | Int -> "Int"
+  | Long -> "Long"
   | String -> "String"
   | Bool -> "Bool"
   | Unit -> "Unit"
@@ -212,8 +214,14 @@ and node_of_unit unit =
   node "Unit" loc []
 
 and node_of_int_literal lit =
-  let { Expression.IntLiteral.loc; raw } = lit in
-  node "IntLiteral" loc [("raw", String raw)]
+  let { Expression.IntLiteral.loc; raw; base } = lit in
+  let base_node =
+    match base with
+    | Dec -> []
+    | Bin -> [("base", String "Bin")]
+    | Hex -> [("base", String "Hex")]
+  in
+  node "IntLiteral" loc ([("raw", String raw)] @ base_node)
 
 and node_of_string_literal lit =
   let { Expression.StringLiteral.loc; value } = lit in

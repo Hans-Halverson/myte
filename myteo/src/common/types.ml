@@ -7,7 +7,9 @@ type t =
   | Any
   | Unit
   | Bool
+  | Byte
   | Int
+  | Long
   | IntLiteral of int_literal
   | String
   | Tuple of t list
@@ -77,7 +79,9 @@ let rec pp_with_names ~tvar_to_name ty =
   | Any -> "any"
   | Unit -> "unit"
   | Bool -> "bool"
+  | Byte -> "byte"
   | Int -> "int"
+  | Long -> "long"
   | IntLiteral { resolved = None; _ } -> "<integer>"
   | IntLiteral { resolved = Some resolved; _ } -> pp_with_names ~tvar_to_name resolved
   | String -> "string"

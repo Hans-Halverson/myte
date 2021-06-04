@@ -212,10 +212,10 @@ and parse_expression_prefix env =
   | T_LOGICAL_NOT ->
     parse_unary_expression env
   | T_IDENTIFIER _ -> Expression.Identifier (parse_identifier env)
-  | T_INT_LITERAL raw ->
+  | T_INT_LITERAL (raw, base) ->
     let loc = Env.loc env in
     Env.advance env;
-    IntLiteral { IntLiteral.loc; raw }
+    IntLiteral { IntLiteral.loc; raw; base }
   | T_STRING_LITERAL value ->
     let loc = Env.loc env in
     Env.advance env;
@@ -310,10 +310,10 @@ and parse_unary_expression env =
   let no_whitespace_after_op = Loc.pos_equal op_loc._end next_loc.start in
   (* A minus sign directly in front of a numeric literal should be treated as part of that literal *)
   match Env.token env with
-  | T_INT_LITERAL raw when op = Minus && no_whitespace_after_op ->
+  | T_INT_LITERAL (raw, base) when op = Minus && no_whitespace_after_op ->
     Env.advance env;
     let loc = marker env in
-    IntLiteral { Expression.IntLiteral.loc; raw = "-" ^ raw }
+    IntLiteral { Expression.IntLiteral.loc; raw = "-" ^ raw; base }
   | _ ->
     let operand = parse_expression ~precedence:Unary env in
     let loc = marker env in
@@ -765,7 +765,9 @@ and parse_type_prefix env =
   let open Type in
   match Env.token env with
   | T_UNIT
+  | T_BYTE
   | T_INT
+  | T_LONG
   | T_STRING
   | T_BOOL ->
     Primitive (parse_primitive_type env)
@@ -780,6 +782,8 @@ and parse_primitive_type env =
     match Env.token env with
     | T_UNIT -> Unit
     | T_INT -> Int
+    | T_BYTE -> Byte
+    | T_LONG -> Long
     | T_STRING -> String
     | T_BOOL -> Bool
     | _ -> failwith "Must be called on primitive type"

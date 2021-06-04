@@ -2,6 +2,8 @@ module Test
 
 val x: unit = ()
 val x: int = 1
+val x: byte = 1
+val x: long = 1
 val x: string = "test"
 val x: bool = true
 

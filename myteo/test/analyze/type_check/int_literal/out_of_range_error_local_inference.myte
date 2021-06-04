@@ -1,0 +1,32 @@
+module test
+
+fun useInt(x: int) {}
+fun useByte(x: byte) {}
+fun useLong(x: long) {}
+
+fun inferredThroughExpressions1() {
+  val x1 = 2147483648;
+  useInt(-(-x1));
+  useInt(x1 + 1);
+
+  val x2 = 128;
+  useByte(-(-x2));
+  useByte(x2 + 1);
+
+  val x3 = 0x8000000000000000;
+  useLong(-(-x3));
+  useLong(x3 + 1);
+}
+
+fun inferredThroughExpressions2() {
+  val x1 = 2147483648;
+  useInt(x1 + 1);
+
+  val x2 = 128;
+  useByte(x2 + 1);
+
+  val x3 = 0x8000000000000000;
+  useLong(x3 + 1);
+}
+
+fun main() {}

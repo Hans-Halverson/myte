@@ -322,7 +322,9 @@ and type_to_value_type ty =
   match ty with
   | Types.Unit -> ValueType.Unit
   | Types.Bool -> ValueType.Bool
+  | Types.Byte -> failwith "TODO: Implement MIR emission for bytes"
   | Types.Int -> ValueType.Int
+  | Types.Long -> failwith "TODO: Implement MIR emission for longs"
   | Types.IntLiteral { resolved; _ } -> type_to_value_type (Option.get resolved)
   | Types.String -> ValueType.String
   | Types.Tuple _ -> failwith "TODO: Implement MIR emission for tuple types"

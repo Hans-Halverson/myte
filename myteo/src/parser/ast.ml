@@ -127,6 +127,7 @@ and Expression : sig
     type t = {
       loc: Loc.t;
       raw: string;
+      base: Integers.base;
     }
   end
 
@@ -288,7 +289,9 @@ and Type : sig
   module Primitive : sig
     type kind =
       | Unit
+      | Byte
       | Int
+      | Long
       | String
       | Bool
 

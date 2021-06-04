@@ -1,7 +1,7 @@
 test/parser/ast/type/basic.myte
 {
   node: Module,
-  loc: 1:0-14:64,
+  loc: 1:0-16:64,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -59,7 +59,7 @@ test/parser/ast/type/basic.myte
     },
     {
       node: VariableDeclaration,
-      loc: 5:0-5:22,
+      loc: 5:0-5:15,
       kind: Immutable,
       pattern: {
         node: Identifier,
@@ -67,19 +67,19 @@ test/parser/ast/type/basic.myte
         name: "x",
       },
       init: {
-        node: StringLiteral,
-        loc: 5:16-5:22,
-        value: "test",
+        node: IntLiteral,
+        loc: 5:14-5:15,
+        raw: "1",
       },
       annot: {
         node: PrimitiveType,
-        loc: 5:7-5:13,
-        kind: String,
+        loc: 5:7-5:11,
+        kind: Byte,
       },
     },
     {
       node: VariableDeclaration,
-      loc: 6:0-6:18,
+      loc: 6:0-6:15,
       kind: Immutable,
       pattern: {
         node: Identifier,
@@ -87,19 +87,39 @@ test/parser/ast/type/basic.myte
         name: "x",
       },
       init: {
-        node: BoolLiteral,
-        loc: 6:14-6:18,
-        value: true,
+        node: IntLiteral,
+        loc: 6:14-6:15,
+        raw: "1",
       },
       annot: {
         node: PrimitiveType,
         loc: 6:7-6:11,
-        kind: Bool,
+        kind: Long,
       },
     },
     {
       node: VariableDeclaration,
-      loc: 8:0-8:24,
+      loc: 7:0-7:22,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 7:4-7:5,
+        name: "x",
+      },
+      init: {
+        node: StringLiteral,
+        loc: 7:16-7:22,
+        value: "test",
+      },
+      annot: {
+        node: PrimitiveType,
+        loc: 7:7-7:13,
+        kind: String,
+      },
+    },
+    {
+      node: VariableDeclaration,
+      loc: 8:0-8:18,
       kind: Immutable,
       pattern: {
         node: Identifier,
@@ -107,23 +127,43 @@ test/parser/ast/type/basic.myte
         name: "x",
       },
       init: {
+        node: BoolLiteral,
+        loc: 8:14-8:18,
+        value: true,
+      },
+      annot: {
+        node: PrimitiveType,
+        loc: 8:7-8:11,
+        kind: Bool,
+      },
+    },
+    {
+      node: VariableDeclaration,
+      loc: 10:0-10:24,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 10:4-10:5,
+        name: "x",
+      },
+      init: {
         node: IntLiteral,
-        loc: 8:23-8:24,
+        loc: 10:23-10:24,
         raw: "1",
       },
       annot: {
         node: FunctionType,
-        loc: 8:7-8:20,
+        loc: 10:7-10:20,
         params: [
           {
             node: PrimitiveType,
-            loc: 8:7-8:10,
+            loc: 10:7-10:10,
             kind: Int,
           },
         ],
         return: {
           node: PrimitiveType,
-          loc: 8:14-8:20,
+          loc: 10:14-10:20,
           kind: String,
         },
         type_params: [],
@@ -131,41 +171,41 @@ test/parser/ast/type/basic.myte
     },
     {
       node: VariableDeclaration,
-      loc: 9:0-9:32,
+      loc: 11:0-11:32,
       kind: Immutable,
       pattern: {
         node: Identifier,
-        loc: 9:4-9:5,
+        loc: 11:4-11:5,
         name: "x",
       },
       init: {
         node: IntLiteral,
-        loc: 9:31-9:32,
+        loc: 11:31-11:32,
         raw: "1",
       },
       annot: {
         node: FunctionType,
-        loc: 9:7-9:28,
+        loc: 11:7-11:28,
         params: [
           {
             node: PrimitiveType,
-            loc: 9:7-9:10,
+            loc: 11:7-11:10,
             kind: Int,
           },
         ],
         return: {
           node: FunctionType,
-          loc: 9:14-9:28,
+          loc: 11:14-11:28,
           params: [
             {
               node: PrimitiveType,
-              loc: 9:14-9:20,
+              loc: 11:14-11:20,
               kind: String,
             },
           ],
           return: {
             node: PrimitiveType,
-            loc: 9:24-9:28,
+            loc: 11:24-11:28,
             kind: Bool,
           },
           type_params: [],
@@ -175,51 +215,51 @@ test/parser/ast/type/basic.myte
     },
     {
       node: VariableDeclaration,
-      loc: 10:0-10:42,
+      loc: 12:0-12:42,
       kind: Immutable,
       pattern: {
         node: Identifier,
-        loc: 10:4-10:5,
+        loc: 12:4-12:5,
         name: "x",
       },
       init: {
         node: IntLiteral,
-        loc: 10:41-10:42,
+        loc: 12:41-12:42,
         raw: "1",
       },
       annot: {
         node: FunctionType,
-        loc: 10:7-10:38,
+        loc: 12:7-12:38,
         params: [
           {
             node: PrimitiveType,
-            loc: 10:7-10:10,
+            loc: 12:7-12:10,
             kind: Int,
           },
         ],
         return: {
           node: FunctionType,
-          loc: 10:14-10:38,
+          loc: 12:14-12:38,
           params: [
             {
               node: PrimitiveType,
-              loc: 10:14-10:20,
+              loc: 12:14-12:20,
               kind: String,
             },
           ],
           return: {
             node: FunctionType,
-            loc: 10:24-10:38,
+            loc: 12:24-12:38,
             params: [
               {
                 node: PrimitiveType,
-                loc: 10:24-10:28,
+                loc: 12:24-12:28,
                 kind: Bool,
               },
             ],
             return: {
               node: PrimitiveType,
-              loc: 10:32-10:38,
+              loc: 12:32-12:38,
               kind: String,
             },
             type_params: [],
@@ -231,76 +271,7 @@ test/parser/ast/type/basic.myte
     },
     {
       node: VariableDeclaration,
-      loc: 12:0-12:18,
-      kind: Immutable,
-      pattern: {
-        node: Identifier,
-        loc: 12:4-12:5,
-        name: "x",
-      },
-      init: {
-        node: IntLiteral,
-        loc: 12:17-12:18,
-        raw: "1",
-      },
-      annot: {
-        node: CustomType,
-        loc: 12:7-12:14,
-        name: {
-          node: ScopedIdentifier,
-          loc: 12:7-12:14,
-          scopes: [],
-          name: {
-            node: Identifier,
-            loc: 12:7-12:14,
-            name: "Custom1",
-          },
-        },
-      },
-    },
-    {
-      node: VariableDeclaration,
-      loc: 13:0-13:34,
-      kind: Immutable,
-      pattern: {
-        node: Identifier,
-        loc: 13:4-13:5,
-        name: "x",
-      },
-      init: {
-        node: IntLiteral,
-        loc: 13:33-13:34,
-        raw: "1",
-      },
-      annot: {
-        node: CustomType,
-        loc: 13:7-13:30,
-        name: {
-          node: ScopedIdentifier,
-          loc: 13:7-13:30,
-          scopes: [
-            {
-              node: Identifier,
-              loc: 13:7-13:14,
-              name: "Custom1",
-            },
-            {
-              node: Identifier,
-              loc: 13:15-13:22,
-              name: "Custom2",
-            },
-          ],
-          name: {
-            node: Identifier,
-            loc: 13:23-13:30,
-            name: "Custom3",
-          },
-        },
-      },
-    },
-    {
-      node: VariableDeclaration,
-      loc: 14:0-14:64,
+      loc: 14:0-14:18,
       kind: Immutable,
       pattern: {
         node: Identifier,
@@ -309,29 +280,98 @@ test/parser/ast/type/basic.myte
       },
       init: {
         node: IntLiteral,
-        loc: 14:63-14:64,
+        loc: 14:17-14:18,
+        raw: "1",
+      },
+      annot: {
+        node: CustomType,
+        loc: 14:7-14:14,
+        name: {
+          node: ScopedIdentifier,
+          loc: 14:7-14:14,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 14:7-14:14,
+            name: "Custom1",
+          },
+        },
+      },
+    },
+    {
+      node: VariableDeclaration,
+      loc: 15:0-15:34,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 15:4-15:5,
+        name: "x",
+      },
+      init: {
+        node: IntLiteral,
+        loc: 15:33-15:34,
+        raw: "1",
+      },
+      annot: {
+        node: CustomType,
+        loc: 15:7-15:30,
+        name: {
+          node: ScopedIdentifier,
+          loc: 15:7-15:30,
+          scopes: [
+            {
+              node: Identifier,
+              loc: 15:7-15:14,
+              name: "Custom1",
+            },
+            {
+              node: Identifier,
+              loc: 15:15-15:22,
+              name: "Custom2",
+            },
+          ],
+          name: {
+            node: Identifier,
+            loc: 15:23-15:30,
+            name: "Custom3",
+          },
+        },
+      },
+    },
+    {
+      node: VariableDeclaration,
+      loc: 16:0-16:64,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 16:4-16:5,
+        name: "x",
+      },
+      init: {
+        node: IntLiteral,
+        loc: 16:63-16:64,
         raw: "1",
       },
       annot: {
         node: FunctionType,
-        loc: 14:7-14:60,
+        loc: 16:7-16:60,
         params: [
           {
             node: CustomType,
-            loc: 14:7-14:22,
+            loc: 16:7-16:22,
             name: {
               node: ScopedIdentifier,
-              loc: 14:7-14:22,
+              loc: 16:7-16:22,
               scopes: [
                 {
                   node: Identifier,
-                  loc: 14:7-14:14,
+                  loc: 16:7-16:14,
                   name: "Custom1",
                 },
               ],
               name: {
                 node: Identifier,
-                loc: 14:15-14:22,
+                loc: 16:15-16:22,
                 name: "Custom2",
               },
             },
@@ -339,24 +379,24 @@ test/parser/ast/type/basic.myte
         ],
         return: {
           node: FunctionType,
-          loc: 14:26-14:60,
+          loc: 16:26-16:60,
           params: [
             {
               node: CustomType,
-              loc: 14:26-14:41,
+              loc: 16:26-16:41,
               name: {
                 node: ScopedIdentifier,
-                loc: 14:26-14:41,
+                loc: 16:26-16:41,
                 scopes: [
                   {
                     node: Identifier,
-                    loc: 14:26-14:33,
+                    loc: 16:26-16:33,
                     name: "Custom3",
                   },
                 ],
                 name: {
                   node: Identifier,
-                  loc: 14:34-14:41,
+                  loc: 16:34-16:41,
                   name: "Custom4",
                 },
               },
@@ -364,20 +404,20 @@ test/parser/ast/type/basic.myte
           ],
           return: {
             node: CustomType,
-            loc: 14:45-14:60,
+            loc: 16:45-16:60,
             name: {
               node: ScopedIdentifier,
-              loc: 14:45-14:60,
+              loc: 16:45-16:60,
               scopes: [
                 {
                   node: Identifier,
-                  loc: 14:45-14:52,
+                  loc: 16:45-16:52,
                   name: "Custom5",
                 },
               ],
               name: {
                 node: Identifier,
-                loc: 14:53-14:60,
+                loc: 16:53-16:60,
                 name: "Custom6",
               },
             },

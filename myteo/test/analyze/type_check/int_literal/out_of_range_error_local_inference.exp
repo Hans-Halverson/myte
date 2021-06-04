@@ -1,0 +1,29 @@
+Error: Integer literal out of range for type `int`
+test/analyze/type_check/int_literal/out_of_range_error_local_inference.myte:8:11-21
+ 8 |   val x1 = 2147483648;
+   |            ^^^^^^^^^^
+
+Error: Integer literal out of range for type `byte`
+test/analyze/type_check/int_literal/out_of_range_error_local_inference.myte:12:11-14
+ 12 |   val x2 = 128;
+    |            ^^^
+
+Error: Integer literal out of range for type `long`
+test/analyze/type_check/int_literal/out_of_range_error_local_inference.myte:16:11-29
+ 16 |   val x3 = 0x8000000000000000;
+    |            ^^^^^^^^^^^^^^^^^^
+
+Error: Integer literal out of range for type `int`
+test/analyze/type_check/int_literal/out_of_range_error_local_inference.myte:22:11-21
+ 22 |   val x1 = 2147483648;
+    |            ^^^^^^^^^^
+
+Error: Integer literal out of range for type `byte`
+test/analyze/type_check/int_literal/out_of_range_error_local_inference.myte:25:11-14
+ 25 |   val x2 = 128;
+    |            ^^^
+
+Error: Integer literal out of range for type `long`
+test/analyze/type_check/int_literal/out_of_range_error_local_inference.myte:28:11-29
+ 28 |   val x3 = 0x8000000000000000;
+    |            ^^^^^^^^^^^^^^^^^^

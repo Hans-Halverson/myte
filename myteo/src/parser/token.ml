@@ -1,6 +1,6 @@
 type t =
   | T_IDENTIFIER of string
-  | T_INT_LITERAL of string
+  | T_INT_LITERAL of string * Integers.base
   | T_STRING_LITERAL of string
   | T_BOOL_LITERAL of bool
   | T_SEMICOLON
@@ -46,7 +46,9 @@ type t =
   | T_TYPE
   | T_ALIAS
   | T_UNIT
+  | T_BYTE
   | T_INT
+  | T_LONG
   | T_STRING
   | T_BOOL
   | T_EOF
@@ -54,7 +56,7 @@ type t =
 let to_string token =
   match token with
   | T_IDENTIFIER name -> name
-  | T_INT_LITERAL raw -> raw
+  | T_INT_LITERAL (raw, _) -> raw
   | T_STRING_LITERAL value -> "\"" ^ value ^ "\""
   | T_BOOL_LITERAL value ->
     if value then
@@ -104,7 +106,9 @@ let to_string token =
   | T_TYPE -> "type"
   | T_ALIAS -> "alias"
   | T_UNIT -> "unit"
+  | T_BYTE -> "byte"
   | T_INT -> "int"
+  | T_LONG -> "long"
   | T_STRING -> "string"
   | T_BOOL -> "bool"
   | T_EOF -> "<EOF>"

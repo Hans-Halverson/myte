@@ -85,20 +85,24 @@ let union_int_literals (ty1 : Types.int_literal) (ty2 : Types.int_literal) ty2_f
 
 (* Resolve an int literal with an integer type, which will set the reperesentative type for the
    int literal type and error for each referenced int literal that is out of range. *)
-let resolve_int_literal ~cx lit_ty =
+let resolve_int_literal ~cx lit_ty ty =
+  let open Integers in
   List.iter
     (fun (loc, value_opt) ->
       let is_out_of_range =
         match value_opt with
         | None -> true
         | Some value ->
-          Int64.compare (Int64.of_int32 Int32.min_int) value = 1
-          || Int64.compare (Int64.of_int32 Int32.max_int) value = -1
+          (match ty with
+          | Byte -> Int64.compare min_byte value = 1 || Int64.compare max_byte value = -1
+          | Int -> Int64.compare min_int value = 1 || Int64.compare max_int value = -1
+          | Long -> false
+          | _ -> failwith "Int literal must be resolved to an int")
       in
-      if is_out_of_range then add_error ~cx loc (Analyze_error.IntLiteralOutOfRange Int);
+      if is_out_of_range then add_error ~cx loc (Analyze_error.IntLiteralOutOfRange ty);
       cx.unresolved_int_literals <- LocSet.remove loc cx.unresolved_int_literals)
     lit_ty.values;
-  lit_ty.resolved <- Some Int
+  lit_ty.resolved <- Some ty
 
 let lookup_union_find_node ~cx tvar_id =
   match IMap.find_opt tvar_id cx.union_forest_nodes with
@@ -133,7 +137,9 @@ let rec find_rep_type ~cx ty =
   | Any
   | Unit
   | Bool
+  | Byte
   | Int
+  | Long
   | IntLiteral { resolved = None; _ }
   | String ->
     ty
@@ -172,7 +178,9 @@ let rec tvar_occurs_in ~cx tvar ty =
   | Any
   | Unit
   | Bool
+  | Byte
   | Int
+  | Long
   | IntLiteral _
   | String ->
     false
@@ -220,7 +228,9 @@ let rec unify ~cx ty1 ty2 =
   | (_, Any)
   | (Unit, Unit)
   | (Bool, Bool)
+  | (Byte, Byte)
   | (Int, Int)
+  | (Long, Long)
   | (String, String) ->
     true
   (* Tuples unify all their elements if they have the same arity *)
@@ -243,9 +253,9 @@ let rec unify ~cx ty1 ty2 =
     union_int_literals lit_ty1 lit_ty2 ty2;
     true
   (* An unresolved int literal can be unified with any integer type *)
-  | (Int, IntLiteral lit_ty)
-  | (IntLiteral lit_ty, Int) ->
-    resolve_int_literal ~cx lit_ty;
+  | (((Byte | Int | Long) as ty), IntLiteral lit_ty)
+  | (IntLiteral lit_ty, ((Byte | Int | Long) as ty)) ->
+    resolve_int_literal ~cx lit_ty ty;
     true
   (* All other combinations of types cannot be unified *)
   | _ -> false
@@ -266,7 +276,9 @@ let rec is_subtype ~cx sub sup =
   | (_, Any)
   | (Unit, Unit)
   | (Bool, Bool)
+  | (Byte, Byte)
   | (Int, Int)
+  | (Long, Long)
   | (String, String) ->
     true
   (* Tuple element types are covariant *)
@@ -291,9 +303,9 @@ let rec is_subtype ~cx sub sup =
     union_int_literals lit_ty1 lit_ty2 ty2;
     true
   (* Integer types are not subtyped so unify types *)
-  | (Int, IntLiteral lit_ty)
-  | (IntLiteral lit_ty, Int) ->
-    resolve_int_literal ~cx lit_ty;
+  | (((Byte | Int | Long) as ty), IntLiteral lit_ty)
+  | (IntLiteral lit_ty, ((Byte | Int | Long) as ty)) ->
+    resolve_int_literal ~cx lit_ty ty;
     true
   | _ -> false
 
@@ -308,6 +320,24 @@ let assert_is_subtype ~cx loc sub sup =
       loc
       (Analyze_error.IncompatibleTypes (find_rep_type ~cx sub, [find_rep_type ~cx sup]))
 
-let mk_int_literal_ty ~cx loc raw =
+let mk_int_literal_ty ~cx loc raw base =
   cx.unresolved_int_literals <- LocSet.add loc cx.unresolved_int_literals;
-  IntLiteral { values = [(loc, Int64.of_string_opt raw)]; resolved = None }
+  let value =
+    match Int64.of_string_opt raw with
+    | None -> None
+    | Some value ->
+      (match base with
+      | Integers.Dec -> Some value
+      | Integers.Hex
+      | Integers.Bin ->
+        (* OCaml's Int64.of_string treats hex and bin literals as unsigned. Check for overflow by
+           checking for the existance of a minus sign in the raw string vs whether the parsed
+           value is negative (excluding 0). *)
+        let should_be_negative = raw.[0] = '-' in
+        let value_is_negative = Int64.compare value Int64.zero = -1 in
+        if value <> Int64.zero && value_is_negative <> should_be_negative then
+          None
+        else
+          Some value)
+  in
+  IntLiteral { values = [(loc, value)]; resolved = None }

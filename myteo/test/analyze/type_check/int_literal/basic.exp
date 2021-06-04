@@ -1,0 +1,14 @@
+Error: Expected type `byte` but found `int`
+test/analyze/type_check/int_literal/basic.myte:24:10
+ 24 |   useByte(x);
+    |           ^
+
+Error: Expected type `long` but found `int`
+test/analyze/type_check/int_literal/basic.myte:25:10
+ 25 |   useLong(x);
+    |           ^
+
+Error: Expected type `unit` but found `int`
+test/analyze/type_check/int_literal/basic.myte:29:10
+ 29 |   useUnit(y);
+    |           ^

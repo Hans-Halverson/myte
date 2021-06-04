@@ -1,0 +1,109 @@
+Error: Integer literal out of range for type `byte`
+test/analyze/type_check/int_literal/out_of_range_error.myte:50:3-6
+ 50 |   (128: byte);
+    |    ^^^
+
+Error: Integer literal out of range for type `byte`
+test/analyze/type_check/int_literal/out_of_range_error.myte:51:3-7
+ 51 |   (0x80: byte);
+    |    ^^^^
+
+Error: Integer literal out of range for type `byte`
+test/analyze/type_check/int_literal/out_of_range_error.myte:52:3-13
+ 52 |   (0b10000000: byte);
+    |    ^^^^^^^^^^
+
+Error: Integer literal out of range for type `byte`
+test/analyze/type_check/int_literal/out_of_range_error.myte:60:3-7
+ 60 |   (-129: byte);
+    |    ^^^^
+
+Error: Integer literal out of range for type `byte`
+test/analyze/type_check/int_literal/out_of_range_error.myte:61:3-8
+ 61 |   (-0x81: byte);
+    |    ^^^^^
+
+Error: Integer literal out of range for type `byte`
+test/analyze/type_check/int_literal/out_of_range_error.myte:62:3-14
+ 62 |   (-0b10000001: byte);
+    |    ^^^^^^^^^^^
+
+Error: Integer literal out of range for type `byte`
+test/analyze/type_check/int_literal/out_of_range_error.myte:65:3-21
+ 65 |   (0x8000000000000000: byte);
+    |    ^^^^^^^^^^^^^^^^^^
+
+Error: Integer literal out of range for type `byte`
+test/analyze/type_check/int_literal/out_of_range_error.myte:66:3-22
+ 66 |   (-0x8000000000000001: byte);
+    |    ^^^^^^^^^^^^^^^^^^^
+
+Error: Integer literal out of range for type `long`
+test/analyze/type_check/int_literal/out_of_range_error.myte:82:3-22
+ 82 |   (9223372036854775808: long);
+    |    ^^^^^^^^^^^^^^^^^^^
+
+Error: Integer literal out of range for type `long`
+test/analyze/type_check/int_literal/out_of_range_error.myte:83:3-21
+ 83 |   (0x8000000000000000: long);
+    |    ^^^^^^^^^^^^^^^^^^
+
+Error: Integer literal out of range for type `long`
+test/analyze/type_check/int_literal/out_of_range_error.myte:84:3-69
+ 84 |   (0b1000000000000000000000000000000000000000000000000000000000000000: long);
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Integer literal out of range for type `long`
+test/analyze/type_check/int_literal/out_of_range_error.myte:92:3-23
+ 92 |   (-9223372036854775809: long);
+    |    ^^^^^^^^^^^^^^^^^^^^
+
+Error: Integer literal out of range for type `long`
+test/analyze/type_check/int_literal/out_of_range_error.myte:93:3-22
+ 93 |   (-0x8000000000000001: long);
+    |    ^^^^^^^^^^^^^^^^^^^
+
+Error: Integer literal out of range for type `long`
+test/analyze/type_check/int_literal/out_of_range_error.myte:94:3-70
+ 94 |   (-0b1000000000000000000000000000000000000000000000000000000000000001: long);
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Integer literal out of range for type `int`
+test/analyze/type_check/int_literal/out_of_range_error.myte:18:2-12
+ 18 |   2147483648;
+    |   ^^^^^^^^^^
+
+Error: Integer literal out of range for type `int`
+test/analyze/type_check/int_literal/out_of_range_error.myte:19:2-12
+ 19 |   0x80000000;
+    |   ^^^^^^^^^^
+
+Error: Integer literal out of range for type `int`
+test/analyze/type_check/int_literal/out_of_range_error.myte:20:2-36
+ 20 |   0b10000000000000000000000000000000;
+    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Integer literal out of range for type `int`
+test/analyze/type_check/int_literal/out_of_range_error.myte:28:2-13
+ 28 |   -2147483649;
+    |   ^^^^^^^^^^^
+
+Error: Integer literal out of range for type `int`
+test/analyze/type_check/int_literal/out_of_range_error.myte:29:2-13
+ 29 |   -0x80000001;
+    |   ^^^^^^^^^^^
+
+Error: Integer literal out of range for type `int`
+test/analyze/type_check/int_literal/out_of_range_error.myte:30:2-37
+ 30 |   -0b10000000000000000000000000000001;
+    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Integer literal out of range for type `int`
+test/analyze/type_check/int_literal/out_of_range_error.myte:33:2-20
+ 33 |   0x8000000000000000;
+    |   ^^^^^^^^^^^^^^^^^^
+
+Error: Integer literal out of range for type `int`
+test/analyze/type_check/int_literal/out_of_range_error.myte:34:2-21
+ 34 |   -0x8000000000000001;
+    |   ^^^^^^^^^^^^^^^^^^^
