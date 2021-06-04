@@ -745,7 +745,20 @@ let resolve_unresolved_int_literals ~cx =
     let tvar = LocMap.find loc cx.loc_to_tvar in
     let ty = Type_context.find_rep_type ~cx (TVar tvar) in
     match ty with
-    | IntLiteral ({ resolved = None; _ } as lit_ty) -> resolve_int_literal ~cx lit_ty Types.Int
+    | IntLiteral ({ resolved = None; values; _ } as lit_ty) ->
+      (* Default to int if all literals are within int range, otherwise use long *)
+      let resolved_ty =
+        List.fold_left
+          (fun resolved_ty (_, value) ->
+            match value with
+            | Some value when Integers.is_out_of_int_range value -> Types.Long
+            | Some _
+            | None ->
+              resolved_ty)
+          Types.Int
+          values
+      in
+      resolve_int_literal ~cx lit_ty resolved_ty
     | _ -> failwith "Unresolved int literal has already been resolved"
   done
 

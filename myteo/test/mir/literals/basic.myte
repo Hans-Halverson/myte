@@ -2,10 +2,25 @@ module test
 
 val x: unit = ()
 
-val y: int = 1
+val y1: int = 500
+
+val y2: byte = 1
+
+val y3: long = 2147483648
 
 val z: string = "test"
 
 val a1: bool = true
 
-fun main() {}
+fun main() {
+  // Within int range, inferred as ints
+  val x1 = 0;
+  val x2 = 2147483647;
+
+  // Outside int range, inferred as long
+  val x3 = 2147483648;
+
+  // Multiple int literals
+  val x4 = 2 + 4 + 6;
+  val x5 = 2 + 2147483648 + 6;
+}

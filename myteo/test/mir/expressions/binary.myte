@@ -1,6 +1,6 @@
 module test
 
-fun main() {
+fun ints() {
   // Numeric operations
   1 + 2;
   1 - 2;
@@ -15,3 +15,33 @@ fun main() {
   1 > 2;
   1 >= 2;
 }
+
+fun bytes(x: byte, y: byte) {
+  x + y;
+  x - y;
+  x * y;
+  x / y;
+
+  x == y;
+  x != y;
+  x < y;
+  x <= y;
+  x > y;
+  x >= y;
+}
+
+fun longs(x: long, y: long) {
+  x + y;
+  x - y;
+  x * y;
+  x / y;
+
+  x == y;
+  x != y;
+  x < y;
+  x <= y;
+  x > y;
+  x >= y;
+}
+
+fun main() {}

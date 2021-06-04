@@ -310,8 +310,14 @@ and build_phi_nodes ~pcx ~cx program =
   and visit_numeric_value v sources =
     let open Instruction.NumericValue in
     match v with
-    | IntLit _ -> ()
-    | IntVar var -> visit_var var sources
+    | ByteLit _
+    | IntLit _
+    | LongLit _ ->
+      ()
+    | ByteVar var
+    | IntVar var
+    | LongVar var ->
+      visit_var var sources
   and visit_bool_value v sources =
     let open Instruction.BoolValue in
     match v with

@@ -12,3 +12,18 @@ Error: Expected type `unit` but found `int`
 test/analyze/type_check/int_literal/basic.myte:29:10
  29 |   useUnit(y);
     |           ^
+
+Error: Expected type `int` but found `byte`
+test/analyze/type_check/int_literal/basic.myte:59:6
+ 59 |   x + y;
+    |       ^
+
+Error: Expected type `int` but found `long`
+test/analyze/type_check/int_literal/basic.myte:60:6
+ 60 |   x + z;
+    |       ^
+
+Error: Expected type `byte` but found `long`
+test/analyze/type_check/int_literal/basic.myte:61:6
+ 61 |   y + z;
+    |       ^

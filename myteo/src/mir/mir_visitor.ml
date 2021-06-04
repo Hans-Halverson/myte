@@ -143,8 +143,14 @@ module IRVisitor = struct
 
       method visit_numeric_value ~block ~instruction value =
         match value with
-        | IntLit _ -> ()
-        | IntVar var_id -> this#visit_instruction_use_variable ~block ~instruction var_id
+        | ByteLit _
+        | IntLit _
+        | LongLit _ ->
+          ()
+        | ByteVar var_id
+        | IntVar var_id
+        | LongVar var_id ->
+          this#visit_instruction_use_variable ~block ~instruction var_id
 
       method visit_function_value ~block ~instruction value =
         match value with

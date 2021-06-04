@@ -1,4 +1,4 @@
-func unit @test.main() {
+func unit @test.ints() {
   %0 := Add int 1, 2
   %1 := Sub int 1, 2
   %2 := Mul int 1, 2
@@ -9,5 +9,37 @@ func unit @test.main() {
   %7 := LtEq int 1, 2
   %8 := Gt int 1, 2
   %9 := GtEq int 1, 2
+  Ret
+}
+
+func unit @test.bytes(byte %10, byte %11) {
+  %12 := Add byte %10, %11
+  %13 := Sub byte %10, %11
+  %14 := Mul byte %10, %11
+  %15 := Div byte %10, %11
+  %16 := Eq byte %10, %11
+  %17 := Neq byte %10, %11
+  %18 := Lt byte %10, %11
+  %19 := LtEq byte %10, %11
+  %20 := Gt byte %10, %11
+  %21 := GtEq byte %10, %11
+  Ret
+}
+
+func unit @test.longs(long %22, long %23) {
+  %24 := Add long %22, %23
+  %25 := Sub long %22, %23
+  %26 := Mul long %22, %23
+  %27 := Div long %22, %23
+  %28 := Eq long %22, %23
+  %29 := Neq long %22, %23
+  %30 := Lt long %22, %23
+  %31 := LtEq long %22, %23
+  %32 := Gt long %22, %23
+  %33 := GtEq long %22, %23
+  Ret
+}
+
+func unit @test.main() {
   Ret
 }

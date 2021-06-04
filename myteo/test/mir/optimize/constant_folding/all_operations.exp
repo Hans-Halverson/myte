@@ -1,0 +1,87 @@
+global int %test.i0 {
+  StoreGlobal %test.i0, -56
+}
+
+global int %test.i1 {
+  StoreGlobal %test.i1, 3
+}
+
+global int %test.i2 {
+  StoreGlobal %test.i2, -1
+}
+
+global int %test.i3 {
+  StoreGlobal %test.i3, 14
+}
+
+global int %test.i4 {
+  StoreGlobal %test.i4, 8
+}
+
+global bool %test.i5 {
+  StoreGlobal %test.i5, false
+}
+
+global byte %test.b0 {
+  StoreGlobal %test.b0, -56
+}
+
+global byte %test.b1 {
+  StoreGlobal %test.b1, 3
+}
+
+global byte %test.b2 {
+  StoreGlobal %test.b2, -1
+}
+
+global byte %test.b3 {
+  StoreGlobal %test.b3, 14
+}
+
+global byte %test.b4 {
+  StoreGlobal %test.b4, 8
+}
+
+global bool %test.b5 {
+  StoreGlobal %test.b5, false
+}
+
+global long %test.l0 {
+  StoreGlobal %test.l0, -56
+}
+
+global long %test.l1 {
+  StoreGlobal %test.l1, 3
+}
+
+global long %test.l2 {
+  StoreGlobal %test.l2, -1
+}
+
+global long %test.l3 {
+  StoreGlobal %test.l3, 14
+}
+
+global long %test.l4 {
+  StoreGlobal %test.l4, 8
+}
+
+global bool %test.l5 {
+  StoreGlobal %test.l5, false
+}
+
+global bool %test.bool0 {
+  StoreGlobal %test.bool0, false
+}
+
+global bool %test.bool1 {
+  StoreGlobal %test.bool1, false
+}
+
+global bool %test.bool2 {
+  StoreGlobal %test.bool2, true
+}
+
+func unit @test.main() {
+  Ret
+}

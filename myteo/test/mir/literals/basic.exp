@@ -2,8 +2,16 @@ global unit %test.x {
   StoreGlobal %test.x, ()
 }
 
-global int %test.y {
-  StoreGlobal %test.y, 1
+global int %test.y1 {
+  StoreGlobal %test.y1, 500
+}
+
+global byte %test.y2 {
+  StoreGlobal %test.y2, 1
+}
+
+global long %test.y3 {
+  StoreGlobal %test.y3, 2147483648
 }
 
 global string %test.z {
@@ -15,5 +23,14 @@ global bool %test.a1 {
 }
 
 func unit @test.main() {
+  %0 := Mov int 0
+  %1 := Mov int 2147483647
+  %2 := Mov long 2147483648
+  %3 := Add int 2, 4
+  %4 := Add int %3, 6
+  %5 := Mov int %4
+  %6 := Add long 2, 2147483648
+  %7 := Add long %6, 6
+  %8 := Mov long %7
   Ret
 }

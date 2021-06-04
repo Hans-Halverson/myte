@@ -213,9 +213,16 @@ module InstructionsMapper = struct
 
       method map_numeric_value ~block value =
         match value with
-        | IntLit _ -> value
+        | ByteLit _
+        | IntLit _
+        | LongLit _ ->
+          value
+        | ByteVar var_id ->
+          id_map (this#map_use_variable ~block) var_id value (fun var_id' -> ByteVar var_id')
         | IntVar var_id ->
           id_map (this#map_use_variable ~block) var_id value (fun var_id' -> IntVar var_id')
+        | LongVar var_id ->
+          id_map (this#map_use_variable ~block) var_id value (fun var_id' -> LongVar var_id')
 
       method map_function_value ~block value =
         match value with

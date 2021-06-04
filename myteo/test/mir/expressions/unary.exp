@@ -1,5 +1,23 @@
+func unit @test.bools(bool %0) {
+  %1 := LogNot %0
+  Ret
+}
+
+func unit @test.ints(int %2) {
+  %3 := Neg int %2
+  Ret
+}
+
+func unit @test.bytes(byte %4) {
+  %5 := Neg byte %4
+  Ret
+}
+
+func unit @test.longs(long %6) {
+  %7 := Neg long %6
+  Ret
+}
+
 func unit @test.main() {
-  %0 := LogNot true
-  %1 := Neg int 1
   Ret
 }

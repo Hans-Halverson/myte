@@ -7,7 +7,9 @@ type instr_id = int
 module ValueType = struct
   type t =
     | Unit
+    | Byte
     | Int
+    | Long
     | String
     | Bool
     | Function
@@ -34,8 +36,12 @@ module rec Instruction : sig
 
   module NumericValue : sig
     type 'a t =
+      | ByteLit of int
+      | ByteVar of 'a
       | IntLit of Int32.t
       | IntVar of 'a
+      | LongLit of Int64.t
+      | LongVar of 'a
   end
 
   module FunctionValue : sig
@@ -196,7 +202,9 @@ let type_of_value v =
   | Value.Unit _ -> ValueType.Unit
   | Value.Bool _ -> ValueType.Bool
   | Value.String _ -> ValueType.String
+  | Value.Numeric (ByteLit _ | ByteVar _) -> ValueType.Byte
   | Value.Numeric (IntLit _ | IntVar _) -> ValueType.Int
+  | Value.Numeric (LongLit _ | LongVar _) -> ValueType.Long
   | Value.Function _ -> ValueType.Function
 
 let var_value_of_type var_id ty =
@@ -205,7 +213,9 @@ let var_value_of_type var_id ty =
   | ValueType.Unit -> Value.Unit (Var var_id)
   | ValueType.Bool -> Value.Bool (Var var_id)
   | ValueType.String -> Value.String (Var var_id)
+  | ValueType.Byte -> Value.Numeric (ByteVar var_id)
   | ValueType.Int -> Value.Numeric (IntVar var_id)
+  | ValueType.Long -> Value.Numeric (LongVar var_id)
   | ValueType.Function -> Value.Function (Var var_id)
 
 let mk_continue continue = Block.Continue continue
@@ -242,8 +252,12 @@ and map_bool_value ~f value =
 and map_numeric_value ~f value =
   let open Instruction.NumericValue in
   match value with
+  | ByteLit lit -> ByteLit lit
+  | ByteVar var -> ByteVar (f var)
   | IntLit lit -> IntLit lit
   | IntVar var -> IntVar (f var)
+  | LongLit lit -> LongLit lit
+  | LongVar var -> LongVar (f var)
 
 and map_function_value ~f value =
   let open Instruction.FunctionValue in

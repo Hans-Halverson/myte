@@ -1,6 +1,19 @@
 module test
 
-fun main() {
-  !true;
-  -(1);
+fun bools(x: bool) {
+  !x;
 }
+
+fun ints(x: int) {
+  -x;
+}
+
+fun bytes(x: byte) {
+  -x;
+}
+
+fun longs(x: long) {
+  -x;
+}
+
+fun main() {}

@@ -91,15 +91,23 @@ and emit_expression ~pcx ~ecx expr =
   let open Instruction in
   match expr with
   | Unit _ -> Unit Lit
-  | IntLiteral { raw; _ } -> Numeric (IntLit (Int32.of_string raw))
+  | IntLiteral { loc; raw; base } ->
+    let value = Integers.int64_of_string_opt raw base |> Option.get in
+    let ty = value_type_of_loc ~pcx loc in
+    (match ty with
+    | ValueType.Byte -> Numeric (ByteLit (Int64.to_int value))
+    | ValueType.Int -> Numeric (IntLit (Int64.to_int32 value))
+    | ValueType.Long -> Numeric (LongLit value)
+    | _ -> failwith "Int literal must have integer type")
   | StringLiteral { value; _ } -> String (Lit value)
   | BoolLiteral { value; _ } -> Bool (Lit value)
   | UnaryOperation { op = Plus; operand; _ } -> emit_expression ~pcx ~ecx operand
-  | UnaryOperation { op = Minus; loc = _; operand } ->
+  | UnaryOperation { loc; op = Minus; operand } ->
     let var_id = mk_cf_var_id () in
     let operand_val = emit_numeric_expression ~pcx ~ecx operand in
+    let ty = value_type_of_loc ~pcx loc in
     Ecx.emit ~ecx (Neg (var_id, operand_val));
-    var_value_of_type var_id Int
+    var_value_of_type var_id ty
   | UnaryOperation { op = LogicalNot; loc = _; operand } ->
     let var_id = mk_cf_var_id () in
     let operand_val = emit_bool_expression ~pcx ~ecx operand in
@@ -161,17 +169,18 @@ and emit_expression ~pcx ~ecx expr =
       var_id
       (IMap.add rhs_end_block_id right_var_id (IMap.singleton true_builder.id true_var_id));
     var_value_of_type var_id Bool
-  | BinaryOperation { loc = _; op; left; right } ->
+  | BinaryOperation { loc; op; left; right } ->
     let open BinaryOperation in
     let var_id = mk_cf_var_id () in
     let left_val = emit_numeric_expression ~pcx ~ecx left in
     let right_val = emit_numeric_expression ~pcx ~ecx right in
+    let ty = value_type_of_loc ~pcx loc in
     let (instr, ty) =
       match op with
-      | Add -> (Instruction.Add (var_id, left_val, right_val), ValueType.Int)
-      | Subtract -> (Sub (var_id, left_val, right_val), Int)
-      | Multiply -> (Mul (var_id, left_val, right_val), Int)
-      | Divide -> (Div (var_id, left_val, right_val), Int)
+      | Add -> (Instruction.Add (var_id, left_val, right_val), ty)
+      | Subtract -> (Sub (var_id, left_val, right_val), ty)
+      | Multiply -> (Mul (var_id, left_val, right_val), ty)
+      | Divide -> (Div (var_id, left_val, right_val), ty)
       | Equal -> (Eq (var_id, left_val, right_val), Bool)
       | NotEqual -> (Neq (var_id, left_val, right_val), Bool)
       | LessThan -> (Lt (var_id, left_val, right_val), Bool)
@@ -322,9 +331,9 @@ and type_to_value_type ty =
   match ty with
   | Types.Unit -> ValueType.Unit
   | Types.Bool -> ValueType.Bool
-  | Types.Byte -> failwith "TODO: Implement MIR emission for bytes"
+  | Types.Byte -> ValueType.Byte
   | Types.Int -> ValueType.Int
-  | Types.Long -> failwith "TODO: Implement MIR emission for longs"
+  | Types.Long -> ValueType.Long
   | Types.IntLiteral { resolved; _ } -> type_to_value_type (Option.get resolved)
   | Types.String -> ValueType.String
   | Types.Tuple _ -> failwith "TODO: Implement MIR emission for tuple types"

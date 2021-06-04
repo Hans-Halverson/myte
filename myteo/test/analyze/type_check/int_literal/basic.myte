@@ -51,4 +51,14 @@ fun localInferenceThroughBinaryExpression() {
   (x3 + 1: long);
 }
 
+fun conflictingBinaryExpression() {
+  val x: int = 1;
+  val y: byte = 1;
+  val z: long = 1;
+
+  x + y;
+  x + z;
+  y + z;
+}
+
 fun main() {}

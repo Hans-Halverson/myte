@@ -196,8 +196,13 @@ and pp_string_value ~cx v =
 and pp_numeric_value ~cx v =
   let open Instruction.NumericValue in
   match v with
+  | ByteLit i -> string_of_int i
   | IntLit i -> Int32.to_string i
-  | IntVar var_id -> pp_var_id ~cx var_id
+  | LongLit i -> Int64.to_string i
+  | ByteVar var_id
+  | IntVar var_id
+  | LongVar var_id ->
+    pp_var_id ~cx var_id
 
 and pp_function_value ~cx v =
   let open Instruction.FunctionValue in
@@ -218,7 +223,9 @@ and pp_value_type ty =
   let open ValueType in
   match ty with
   | Unit -> "unit"
+  | Byte -> "byte"
   | Int -> "int"
+  | Long -> "long"
   | Bool -> "bool"
   | String -> "string"
   | Function -> "function"
@@ -228,9 +235,15 @@ and pp_type_of_value v = pp_value_type (type_of_value v)
 and pp_type_of_numeric_value v =
   let open Instruction.NumericValue in
   match v with
+  | ByteLit _
+  | ByteVar _ ->
+    "byte"
   | IntLit _
   | IntVar _ ->
     "int"
+  | LongLit _
+  | LongVar _ ->
+    "long"
 
 and pp_instruction ~cx (_, instr) =
   let pp_instr var_id instr = Printf.sprintf "%s := %s" (pp_var_id ~cx var_id) instr in

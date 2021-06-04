@@ -621,6 +621,7 @@ and resolve_ir_value ~func value =
   | Bool (Var var_id) -> vreg_of_var var_id Size8
   | Numeric (IntLit i) -> SImm (Imm32 i)
   | Numeric (IntVar var_id) -> vreg_of_var var_id Size32
+  | Numeric _ -> failwith "TODO: Implement virtual asm gen for non-int integer types"
   | Function (Lit name) -> SAddr (mk_label_memory_address name)
   | Function (Var var_id) -> vreg_of_var var_id Size64
   | String _ -> failwith "TODO: Cannot compile string literals"
@@ -629,10 +630,13 @@ and size_of_mir_value_type value_type =
   let open ValueType in
   match value_type with
   | Unit
-  | Bool ->
+  | Bool
+  | Byte ->
     Size8
   | Int -> Size32
-  | Function -> Size64
+  | Long
+  | Function ->
+    Size64
   | String -> failwith "TODO: Cannot compile string literals"
 
 and size_of_svalue value =

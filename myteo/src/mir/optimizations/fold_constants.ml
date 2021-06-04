@@ -5,14 +5,56 @@ module Ocx = Mir_optimize_context
 
 type folded_constant =
   | UnitConstant
+  | ByteConstant of int
   | IntConstant of Int32.t
+  | LongConstant of Int64.t
   | BoolConstant of bool
   | FunctionConstant of string
+
+type numeric_constant_op = NegOp
+
+type numeric_constants_op =
+  | AddOp
+  | SubOp
+  | MulOp
+  | DivOp
+
+let fold_numeric_constant op x =
+  match (op, x) with
+  | (NegOp, ByteConstant x) -> ByteConstant (-x)
+  | (NegOp, IntConstant x) -> IntConstant (Int32.neg x)
+  | (NegOp, LongConstant x) -> LongConstant (Int64.neg x)
+  | _ -> failwith "Invalid operation"
+
+let fold_numeric_constants op x y =
+  match (op, x, y) with
+  | (AddOp, ByteConstant x, ByteConstant y) -> ByteConstant (x + y)
+  | (AddOp, IntConstant x, IntConstant y) -> IntConstant (Int32.add x y)
+  | (AddOp, LongConstant x, LongConstant y) -> LongConstant (Int64.add x y)
+  | (SubOp, ByteConstant x, ByteConstant y) -> ByteConstant (x - y)
+  | (SubOp, IntConstant x, IntConstant y) -> IntConstant (Int32.sub x y)
+  | (SubOp, LongConstant x, LongConstant y) -> LongConstant (Int64.sub x y)
+  | (MulOp, ByteConstant x, ByteConstant y) -> ByteConstant (x * y)
+  | (MulOp, IntConstant x, IntConstant y) -> IntConstant (Int32.mul x y)
+  | (MulOp, LongConstant x, LongConstant y) -> LongConstant (Int64.mul x y)
+  | (DivOp, ByteConstant x, ByteConstant y) -> ByteConstant (x / y)
+  | (DivOp, IntConstant x, IntConstant y) -> IntConstant (Int32.div x y)
+  | (DivOp, LongConstant x, LongConstant y) -> LongConstant (Int64.div x y)
+  | _ -> failwith "Invalid operation"
+
+let fold_constants_compare x y =
+  match (x, y) with
+  | (ByteConstant x, ByteConstant y) -> Int.compare x y
+  | (IntConstant x, IntConstant y) -> Int32.compare x y
+  | (LongConstant x, LongConstant y) -> Int64.compare x y
+  | _ -> failwith "Invalid operation"
 
 let folded_constants_equal c1 c2 =
   match (c1, c2) with
   | (UnitConstant, UnitConstant) -> true
+  | (ByteConstant i1, ByteConstant i2) -> i1 = i2
   | (IntConstant i1, IntConstant i2) -> Int32.equal i1 i2
+  | (LongConstant i1, LongConstant i2) -> Int64.equal i1 i2
   | (BoolConstant b1, BoolConstant b2) -> b1 = b2
   | (FunctionConstant s1, FunctionConstant s2) -> s1 = s2
   | _ -> false
@@ -23,7 +65,9 @@ let mir_value_of_constant constant =
   match constant with
   | UnitConstant -> Unit UnitValue.Lit
   | BoolConstant b -> Bool (BoolValue.Lit b)
+  | ByteConstant i -> Numeric (NumericValue.ByteLit i)
   | IntConstant i -> Numeric (NumericValue.IntLit i)
+  | LongConstant i -> Numeric (NumericValue.LongLit i)
   | FunctionConstant f -> Function (FunctionValue.Lit f)
 
 (* Perform iterative passes to calculate folded constants for all variables.
@@ -166,11 +210,23 @@ class calc_constants_visitor ~ocx =
       let get_numeric_lit_opt value =
         let open NumericValue in
         match value with
-        | IntLit lit -> Some lit
+        | ByteLit lit -> Some (ByteConstant lit)
+        | ByteVar var_id ->
+          (match IMap.find_opt var_id var_id_constants with
+          | None -> None
+          | Some (ByteConstant _ as lit) -> Some lit
+          | _ -> failwith "Expected numeric value")
+        | IntLit lit -> Some (IntConstant lit)
         | IntVar var_id ->
           (match IMap.find_opt var_id var_id_constants with
           | None -> None
-          | Some (IntConstant i) -> Some i
+          | Some (IntConstant _ as lit) -> Some lit
+          | _ -> failwith "Expected numeric value")
+        | LongLit lit -> Some (LongConstant lit)
+        | LongVar var_id ->
+          (match IMap.find_opt var_id var_id_constants with
+          | None -> None
+          | Some (LongConstant _ as lit) -> Some lit
           | _ -> failwith "Expected numeric value")
       in
       let get_function_lit_opt value =
@@ -188,33 +244,33 @@ class calc_constants_visitor ~ocx =
         | None -> ()
         | Some arg -> this#add_constant var_id (BoolConstant (f arg))
       in
-      let try_fold_numeric_constant var_id arg f =
+      let try_fold_numeric_constant var_id arg op =
         match get_numeric_lit_opt arg with
         | None -> ()
-        | Some arg -> this#add_constant var_id (IntConstant (f arg))
+        | Some arg -> this#add_constant var_id (fold_numeric_constant op arg)
       in
       let try_fold_bool_constants var_id left right f =
         match (get_bool_lit_opt left, get_bool_lit_opt right) with
         | (Some left, Some right) -> this#add_constant var_id (BoolConstant (f left right))
         | _ -> ()
       in
-      let try_fold_numeric_constants var_id left right f =
+      let try_fold_numeric_constants op var_id left right =
         match (get_numeric_lit_opt left, get_numeric_lit_opt right) with
-        | (Some left, Some right) -> this#add_constant var_id (IntConstant (f left right))
+        | (Some left, Some right) -> this#add_constant var_id (fold_numeric_constants op left right)
         | _ -> ()
       in
       let try_fold_comparison var_id left right f =
         match (get_numeric_lit_opt left, get_numeric_lit_opt right) with
         | (Some left, Some right) ->
-          this#add_constant var_id (BoolConstant (f (Int32.compare left right) 0))
+          this#add_constant var_id (BoolConstant (f (fold_constants_compare left right) 0))
         | _ -> ()
       in
       match snd instruction with
-      | Neg (var_id, arg) -> try_fold_numeric_constant var_id arg Int32.neg
-      | Add (var_id, left, right) -> try_fold_numeric_constants var_id left right Int32.add
-      | Sub (var_id, left, right) -> try_fold_numeric_constants var_id left right Int32.sub
-      | Mul (var_id, left, right) -> try_fold_numeric_constants var_id left right Int32.mul
-      | Div (var_id, left, right) -> try_fold_numeric_constants var_id left right Int32.div
+      | Neg (var_id, arg) -> try_fold_numeric_constant var_id arg NegOp
+      | Add (var_id, left, right) -> try_fold_numeric_constants AddOp var_id left right
+      | Sub (var_id, left, right) -> try_fold_numeric_constants SubOp var_id left right
+      | Mul (var_id, left, right) -> try_fold_numeric_constants MulOp var_id left right
+      | Div (var_id, left, right) -> try_fold_numeric_constants DivOp var_id left right
       | LogNot (var_id, arg) -> try_fold_bool_constant var_id arg not
       | LogAnd (var_id, left, right) -> try_fold_bool_constants var_id left right ( && )
       | LogOr (var_id, left, right) -> try_fold_bool_constants var_id left right ( || )
@@ -232,7 +288,7 @@ class calc_constants_visitor ~ocx =
           | String _ -> None
           | Function v -> get_function_lit_opt v |> Option.map (fun x -> FunctionConstant x)
           | Bool v -> get_bool_lit_opt v |> Option.map (fun x -> BoolConstant x)
-          | Numeric v -> get_numeric_lit_opt v |> Option.map (fun x -> IntConstant x)
+          | Numeric v -> get_numeric_lit_opt v
         in
         (match constant with
         | None -> ()
@@ -269,10 +325,20 @@ class update_constants_mapper ~ocx var_id_constants constants_in_phis =
 
     method! map_numeric_value ~block:_ value =
       match value with
+      | ByteLit _ -> value
+      | ByteVar var_id ->
+        (match IMap.find_opt var_id var_id_constants with
+        | Some (ByteConstant const) -> ByteLit const
+        | _ -> value)
       | IntLit _ -> value
       | IntVar var_id ->
         (match IMap.find_opt var_id var_id_constants with
         | Some (IntConstant const) -> IntLit const
+        | _ -> value)
+      | LongLit _ -> value
+      | LongVar var_id ->
+        (match IMap.find_opt var_id var_id_constants with
+        | Some (LongConstant const) -> LongLit const
         | _ -> value)
   end
 
