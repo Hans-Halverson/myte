@@ -1,13 +1,3 @@
-Error: Module and export with same name `d` in module `b.c`
-test/analyze/module_tree/module_export_overlap/zzb.c.d.myte:1:0-12
- 1 | module b.c.d
-   | ^^^^^^^^^^^^
-
-Error: Module and export with same name `e` in module `c.d`
-test/analyze/module_tree/module_export_overlap/zz.c.d.e.myte:1:0-12
- 1 | module c.d.e
-   | ^^^^^^^^^^^^
-
 Error: Module and export with same name `c` in module `a.b`
 test/analyze/module_tree/module_export_overlap/a.b.myte:3:0-10
  3 | fun c() {}
@@ -17,3 +7,13 @@ Error: Module and export with same name `c` in module `a.b`
 test/analyze/module_tree/module_export_overlap/a.b.myte:5:0-19
  5 | type alias c = unit
    | ^^^^^^^^^^^^^^^^^^^
+
+Error: Module and export with same name `e` in module `c.d`
+test/analyze/module_tree/module_export_overlap/zz.c.d.e.myte:1:0-12
+ 1 | module c.d.e
+   | ^^^^^^^^^^^^
+
+Error: Module and export with same name `d` in module `b.c`
+test/analyze/module_tree/module_export_overlap/zzb.c.d.myte:1:0-12
+ 1 | module b.c.d
+   | ^^^^^^^^^^^^

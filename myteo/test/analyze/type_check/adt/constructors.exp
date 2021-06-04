@@ -93,15 +93,15 @@ test/analyze/type_check/adt/constructors.myte:64:39-48
  64 |   (RecordADT { field: 1, nonexist1: 0, nonexist2: 0 }: int);
     |                                        ^^^^^^^^^
 
-Error: Record `RecordVariant2` does not have a field named `nonexist`
-test/analyze/type_check/adt/constructors.myte:67:36-44
- 67 |   (RecordVariant2 { field1: "test", nonexist: 1 }: int);
-    |                                     ^^^^^^^^
-
 Error: Expected type `int` but found `string`
 test/analyze/type_check/adt/constructors.myte:67:28-34
  67 |   (RecordVariant2 { field1: "test", nonexist: 1 }: int);
     |                             ^^^^^^
+
+Error: Record `RecordVariant2` does not have a field named `nonexist`
+test/analyze/type_check/adt/constructors.myte:67:36-44
+ 67 |   (RecordVariant2 { field1: "test", nonexist: 1 }: int);
+    |                                     ^^^^^^^^
 
 Error: Expected a record constructor
 test/analyze/type_check/adt/constructors.myte:70:3-14

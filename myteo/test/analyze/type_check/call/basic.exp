@@ -48,12 +48,12 @@ test/analyze/type_check/call/basic.myte:20:11-33
  20 |   tupleArg((1, true, ((), "str")));
     |            ^^^^^^^^^^^^^^^^^^^^^^
 
-Error: Expected type `int` but found `unit`
-test/analyze/type_check/call/basic.myte:23:10-12
- 23 |   (intArg(()): unit);
-    |           ^^
-
 Error: Expected type `unit` but found `bool`
 test/analyze/type_check/call/basic.myte:23:3-13
  23 |   (intArg(()): unit);
     |    ^^^^^^^^^^
+
+Error: Expected type `int` but found `unit`
+test/analyze/type_check/call/basic.myte:23:10-12
+ 23 |   (intArg(()): unit);
+    |           ^^
