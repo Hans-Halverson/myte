@@ -1,0 +1,5 @@
+module test
+
+fun main() {
+   A().B.C (A) = 1;
+}

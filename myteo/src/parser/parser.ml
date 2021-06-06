@@ -998,6 +998,44 @@ and parse_type_params env =
 
 and reparse_expression_as_pattern expr =
   let open Expression in
+  let invalid_pattern_error expr =
+    Parse_error.fatal (Ast_utils.expression_loc expr, Parse_error.InvalidAssignmentPattern)
+  in
+  let reparse_name_parts name =
+    let rec reparse_name_parts expr acc =
+      match expr with
+      | Identifier id -> id :: acc
+      | NamedAccess { NamedAccess.target; name; _ } -> reparse_name_parts target (name :: acc)
+      | _ -> invalid_pattern_error expr
+    in
+    let name_parts = reparse_name_parts name [] in
+    let (scopes, name) = List_utils.split_last name_parts in
+    let name_loc =
+      match scopes with
+      | [] -> name.loc
+      | hd :: _ -> Loc.between hd.loc name.loc
+    in
+    { ScopedIdentifier.loc = name_loc; scopes; name }
+  in
   match expr with
   | Identifier { loc; name } -> Pattern.Identifier { loc; name }
-  | _ -> Parse_error.fatal (Ast_utils.expression_loc expr, Parse_error.InvalidAssignmentPattern)
+  | Tuple { loc; elements } ->
+    Pattern.Tuple { loc; name = None; elements = List.map reparse_expression_as_pattern elements }
+  | Call { loc; func; args } ->
+    let name = reparse_name_parts func in
+    let elements = List.map reparse_expression_as_pattern args in
+    Pattern.Tuple { loc; name = Some name; elements }
+  | Record { loc; name; fields } ->
+    let name = reparse_name_parts name in
+    let fields =
+      List.map
+        (fun { Record.Field.loc; name; value } ->
+          match value with
+          | None -> { Pattern.Record.Field.loc; name = None; value = Pattern.Identifier name }
+          | Some value ->
+            let value = reparse_expression_as_pattern value in
+            { Pattern.Record.Field.loc; name = Some name; value })
+        fields
+    in
+    Pattern.Record { loc; name; fields }
+  | _ -> invalid_pattern_error expr
