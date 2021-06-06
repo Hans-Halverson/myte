@@ -7,21 +7,27 @@ import d1.d2
 import d1.{d2 as d2Alias}
 
 fun test() {
+  var field: int = 1;
+
   // Module exists but used as value or type
   a1.a2.a3;
   (1: a1.a2.a3);
+  a1.a2.a3 { field } = 1;
 
   // Module exists but export does not
   a1.a2.a3.a4;
   (1: a1.a2.a3.a4);
+  a1.a2.a3.a4 { field } = 1;
 
   // Module exists but export does not, including nested accesses
   a1.a2.a3.a4.a5;
   (1: a1.a2.a3.a4.a5);
+  a1.a2.a3.a4.a5 { field } = 1;
 
   // No module or export with name, but child module does exist
   b1.b2.b3;
   (1: b1.b2.b3);
+  b1.b2.b3 { field } = 1;
 
   // No module or export with name
   nonexist1;
@@ -30,24 +36,33 @@ fun test() {
   (1: nonexist1);
   (1: nonexist1.nonexist2);
   (1: nonexist1.nonexist2.nonexist3);
+  nonexist1 { field } = 1;
+  nonexist1.nonexist2 { field } = 1;
+  nonexist1.nonexist2.nonexist3 { field } = 1;
 
   // No module or export with name
   c1.c2;
   c1Alias.c2;
   (1: c1.c2);
   (1: c1Alias.c2);
+  c1.c2 { field } = 1;
+  c1Alias.c2 { field } = 1;
 
   // Accessing imported module as value
   d2;
   d2Alias;
   (1: d2);
   (1: d2Alias);
+  d2 { field } = 1;
+  d2Alias { field} = 1;
 
   // Nonexistent export of imported module
   d2.d3;
   d2Alias.d3;
   (1: d2.d3);
   (1: d2Alias.d3);
+  d2.d3 { field } = 1;
+  d2Alias.d3 { field } = 1;
 
   // Using an existing type as value, and vice versa
   (1: a1.a2.a3.exportedValue);

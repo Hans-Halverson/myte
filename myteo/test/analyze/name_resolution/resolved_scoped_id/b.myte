@@ -3,3 +3,5 @@ module b1.b2.b3
 fun export() {}
 
 type alias ExportType = int
+
+type Tup (int)

@@ -10,6 +10,11 @@ let rec last lst =
   | [last] -> last
   | _ :: rest -> last rest
 
+let split_first lst =
+  match lst with
+  | [] -> failwith "Expected nonempty list"
+  | hd :: tl -> (hd, tl)
+
 let split_last lst =
   let rec helper acc lst =
     match lst with

@@ -305,11 +305,11 @@ class bindings_builder ~module_tree =
       let annot' = id_map_opt this#type_ annot in
       let init' = this#expression init in
       let ids = Ast_utils.ids_of_pattern pattern in
-      if not toplevel then
-        List.iter
-          (fun { Ast.Identifier.loc; name; _ } ->
-            this#add_value_declaration loc (VarDecl kind) name toplevel)
-          ids;
+      this#visit_pattern ~decl:true ~toplevel pattern;
+      List.iter
+        (fun { Ast.Identifier.loc; name; _ } ->
+          this#add_value_declaration loc (VarDecl kind) name toplevel)
+        ids;
       if init == init' && annot == annot' then
         decl
       else
@@ -468,6 +468,16 @@ class bindings_builder ~module_tree =
           in
           Some (insert_scoped_id expr (List.length rest_parts) scoped_id))
 
+    method match_module_parts_pattern module_tree first_part rest_parts =
+      ignore
+        (this#match_module_parts
+           ~is_value:true
+           module_tree
+           [first_part]
+           rest_parts
+           false
+           (fun _ _ _ -> None))
+
     method match_module_parts_type module_tree first_part rest_parts =
       ignore
         (this#match_module_parts
@@ -508,8 +518,7 @@ class bindings_builder ~module_tree =
         | None -> super#expression expr
         | Some parts ->
           let open Ast.Identifier in
-          let first_part = List.hd parts in
-          let rest_parts = List.tl parts in
+          let (first_part, rest_parts) = List_utils.split_first parts in
           (match this#lookup_value_in_scope first_part.name scopes with
           | None ->
             (match SMap.find_opt first_part.name module_tree with
@@ -547,10 +556,16 @@ class bindings_builder ~module_tree =
       let open Ast.Type in
       match ty with
       | Custom { name = { Ast.ScopedIdentifier.name; scopes = scope_ids; _ }; _ } ->
-        let all_parts = scope_ids @ [name] in
         let open Ast.Identifier in
-        let first_part = List.hd all_parts in
-        let rest_parts = List.tl all_parts in
+        let all_parts = scope_ids @ [name] in
+        let (first_part, rest_parts) = List_utils.split_first all_parts in
+        let match_module_parts module_tree =
+          match rest_parts with
+          | [] ->
+            let { Ast.Identifier.loc; name } = first_part in
+            this#add_error loc (ModuleInvalidPosition ([name], false))
+          | _ :: _ -> this#match_module_parts_type module_tree first_part rest_parts
+        in
         (match this#lookup_type_in_scope first_part.name scopes with
         | None ->
           (match SMap.find_opt first_part.name module_tree with
@@ -560,40 +575,78 @@ class bindings_builder ~module_tree =
             ty
           | Some (Export _) -> failwith "Exports cannot appear at top level of module tree"
           | Some (Empty (_, module_tree) | Module (_, module_tree)) ->
-            (match rest_parts with
-            | [] ->
-              let { Ast.Identifier.loc; name } = first_part in
-              this#add_error loc (ModuleInvalidPosition ([name], false))
-            | _ :: _ -> this#match_module_parts_type module_tree first_part rest_parts);
+            match_module_parts module_tree;
             ty)
         | Some decl_loc ->
           this#add_type_use decl_loc first_part.loc;
           let (_, declaration) = (LocMap.find decl_loc type_bindings).declaration in
           (match declaration with
           | ImportedModule module_tree ->
-            (match rest_parts with
-            | [] ->
-              let { Ast.Identifier.loc; name } = first_part in
-              this#add_error loc (ModuleInvalidPosition ([name], false))
-            | _ :: _ -> this#match_module_parts_type module_tree first_part rest_parts);
+            match_module_parts module_tree;
             ty
           | _ -> ty))
       | _ -> super#type_ ty
 
     method! pattern patt =
+      this#visit_pattern ~decl:false ~toplevel:false patt;
+      patt
+
+    method resolve_scoped_value_id id =
+      let open Ast.ScopedIdentifier in
+      let { scopes = scope_ids; name; _ } = id in
+      let all_parts = scope_ids @ [name] in
+      let (first_part, rest_parts) = List_utils.split_first all_parts in
+      let match_module_parts module_tree =
+        match rest_parts with
+        | [] ->
+          let { Ast.Identifier.loc; name } = first_part in
+          this#add_error loc (ModuleInvalidPosition ([name], false))
+        | _ :: _ -> this#match_module_parts_pattern module_tree first_part rest_parts
+      in
+      match this#lookup_value_in_scope first_part.name scopes with
+      | None ->
+        (match SMap.find_opt first_part.name module_tree with
+        | None ->
+          (* Error if first part of scoped id cannot be resolved *)
+          this#add_error first_part.loc (UnresolvedName (first_part.name, true))
+        | Some (Export _) -> failwith "Exports cannot appear at top level of module tree"
+        | Some (Empty (_, module_tree) | Module (_, module_tree)) -> match_module_parts module_tree)
+      | Some decl_loc ->
+        this#add_value_use decl_loc first_part.loc;
+        let (_, declaration) = (LocMap.find decl_loc value_bindings).declaration in
+        (match declaration with
+        | ImportedModule module_tree -> match_module_parts module_tree
+        | _ -> ())
+
+    method visit_pattern ~decl ~toplevel patt =
       let open Ast.Pattern in
-      match patt with
-      | Identifier id ->
-        this#resolve_value_id_use id;
-        patt
-      | Tuple { Tuple.name = _; elements; _ } ->
-        (* TODO: Resolve optional tuple name, which may be a scoped id *)
-        List.iter (fun element -> ignore (this#pattern element)) elements;
-        patt
-      | Record { Record.name = _; fields; _ } ->
-        (* TODO: Resolve optional tuple name, which may be a scoped id *)
-        List.iter (fun { Record.Field.value; _ } -> ignore (this#pattern value)) fields;
-        patt
+      (* Check for the same name appearing twice in a pattern *)
+      let ids = Ast_utils.ids_of_pattern patt in
+      if not toplevel then
+        ignore
+          (List.fold_left
+             (fun names { Identifier.loc; name } ->
+               if SSet.mem name names then (
+                 this#add_error loc (DuplicatePatternNames name);
+                 names
+               ) else
+                 SSet.add name names)
+             SSet.empty
+             ids);
+      (* If this is a use then resolve all ids *)
+      if not decl then List.iter this#resolve_value_id_use ids;
+      (* Resolve all scoped ids in named tuple and record patterns *)
+      let rec resolve_scoped_ids patt =
+        match patt with
+        | Identifier _ -> ()
+        | Tuple { Tuple.name; elements; _ } ->
+          Option.iter this#resolve_scoped_value_id name;
+          List.iter (fun element -> resolve_scoped_ids element) elements
+        | Record { Record.name; fields; _ } ->
+          this#resolve_scoped_value_id name;
+          List.iter (fun { Record.Field.value; _ } -> resolve_scoped_ids value) fields
+      in
+      resolve_scoped_ids patt
   end
 
 let analyze modules module_tree =

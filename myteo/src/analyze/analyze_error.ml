@@ -12,6 +12,7 @@ type t =
   | InvalidAssignment of string * invalid_assignment_kind
   | DuplicateToplevelNames of string * bool
   | DuplicateParameterNames of string * string
+  | DuplicatePatternNames of string
   | DuplicateTypeParameterNames of string * name_source
   | DuplicateModuleNames of string
   | ModuleAndExportDuplicateNames of string * string
@@ -118,6 +119,7 @@ let to_string error =
       name
   | DuplicateParameterNames (param, func) ->
     Printf.sprintf "Name `%s` already bound in parameters of function `%s`" param func
+  | DuplicatePatternNames name -> Printf.sprintf "Name `%s` already bound in pattern" name
   | DuplicateTypeParameterNames (param, source) ->
     Printf.sprintf
       "Name `%s` already bound in type parameters of %s"

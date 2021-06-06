@@ -1,0 +1,54 @@
+Error: Value with name `x` already bound in module
+test/analyze/name_resolution/duplicate_pattern_names_error.myte:6:8
+ 6 | val (x, x): int = 1
+   |         ^
+
+Error: Name `x` already bound in pattern
+test/analyze/name_resolution/duplicate_pattern_names_error.myte:10:10
+ 10 |   val (x, x) = 1;
+    |           ^
+
+Error: Name `x` already bound in pattern
+test/analyze/name_resolution/duplicate_pattern_names_error.myte:11:10
+ 11 |   val (x, x, x, x) = 1;
+    |           ^
+
+Error: Name `x` already bound in pattern
+test/analyze/name_resolution/duplicate_pattern_names_error.myte:11:13
+ 11 |   val (x, x, x, x) = 1;
+    |              ^
+
+Error: Name `x` already bound in pattern
+test/analyze/name_resolution/duplicate_pattern_names_error.myte:11:16
+ 11 |   val (x, x, x, x) = 1;
+    |                 ^
+
+Error: Name `x` already bound in pattern
+test/analyze/name_resolution/duplicate_pattern_names_error.myte:12:16
+ 12 |   val (x, y, z, x) = 1;
+    |                 ^
+
+Error: Name `field2` already bound in pattern
+test/analyze/name_resolution/duplicate_pattern_names_error.myte:13:33-39
+ 13 |   val Rec { field1: (x, field2), field2, field3: x } = 1;
+    |                                  ^^^^^^
+
+Error: Name `x` already bound in pattern
+test/analyze/name_resolution/duplicate_pattern_names_error.myte:13:49
+ 13 |   val Rec { field1: (x, field2), field2, field3: x } = 1;
+    |                                                  ^
+
+Error: Name `y` already bound in pattern
+test/analyze/name_resolution/duplicate_pattern_names_error.myte:16:6
+ 16 |   (y, y) = 1;
+    |       ^
+
+Error: Name `y` already bound in pattern
+test/analyze/name_resolution/duplicate_pattern_names_error.myte:17:7
+ 17 |   (y, (y, y)) = 1;
+    |        ^
+
+Error: Name `y` already bound in pattern
+test/analyze/name_resolution/duplicate_pattern_names_error.myte:17:10
+ 17 |   (y, (y, y)) = 1;
+    |           ^

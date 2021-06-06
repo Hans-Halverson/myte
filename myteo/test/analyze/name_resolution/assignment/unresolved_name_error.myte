@@ -1,0 +1,17 @@
+module test
+
+type Tup (int)
+type Rec { field1: int, y: int }
+
+fun main() {
+  // Unresolved
+  x = 1;
+  (x, y) = 1;
+  Rec { field1: Tup (x), y } = 1;
+
+  // Resolved
+  var (x, y) = 1;
+  x = 1;
+  (x, y) = 1;
+  Rec { field1: Tup (x), y } = 1;
+}

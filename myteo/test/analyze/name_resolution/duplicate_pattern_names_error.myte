@@ -1,0 +1,18 @@
+module test
+
+type Rec { field1: (int, int), field2: int, field3: int }
+
+// Errors on duplicate names bound in module, not duplicate names bound in pattern
+val (x, x): int = 1
+
+fun main() {
+  val x = 1;
+  val (x, x) = 1;
+  val (x, x, x, x) = 1;
+  val (x, y, z, x) = 1;
+  val Rec { field1: (x, field2), field2, field3: x } = 1;
+
+  var y = 1;
+  (y, y) = 1;
+  (y, (y, y)) = 1;
+}
