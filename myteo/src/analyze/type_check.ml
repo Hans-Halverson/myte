@@ -1,6 +1,5 @@
 open Analyze_error
 open Basic_collections
-open Name_resolution
 open Type_context
 
 let rec build_type ~cx ty =
@@ -159,7 +158,8 @@ and check_module ~cx module_ =
 and check_toplevel_variable_declaration_prepass ~cx decl =
   let open Ast.Statement.VariableDeclaration in
   let { loc; pattern; annot; _ } = decl in
-  let { Ast.Identifier.loc = id_loc; name = _ } = identifier_in_pattern pattern in
+  (* TODO: Type check arbitrary patterns *)
+  let { Ast.Identifier.loc = id_loc; name = _ } = List.hd (Ast_utils.ids_of_pattern pattern) in
   let tvar_id = Type_context.get_tvar_id_from_value_decl ~cx id_loc in
   match annot with
   | None -> Type_context.add_error ~cx loc ToplevelVarWithoutAnnotation
@@ -170,7 +170,8 @@ and check_toplevel_variable_declaration_prepass ~cx decl =
 and check_variable_declaration ~cx decl =
   let open Ast.Statement.VariableDeclaration in
   let { loc; pattern; init; annot; _ } = decl in
-  let { Ast.Identifier.loc = id_loc; name } = identifier_in_pattern pattern in
+  (* TODO: Type check arbitrary patterns *)
+  let { Ast.Identifier.loc = id_loc; name } = List.hd (Ast_utils.ids_of_pattern pattern) in
   let tvar_id = Type_context.get_tvar_id_from_value_decl ~cx id_loc in
   let (expr_loc, expr_tvar_id) = check_expression ~cx init in
   match annot with
@@ -734,7 +735,8 @@ and check_statement ~cx stmt =
   | Continue _ ->
     ()
   | Assignment { Assignment.pattern; expr; _ } ->
-    let { Ast.Identifier.loc = id_loc; _ } = identifier_in_pattern pattern in
+    (* TODO: Type check arbitrary patterns *)
+    let { Ast.Identifier.loc = id_loc; _ } = List.hd (Ast_utils.ids_of_pattern pattern) in
     let tvar_id = Type_context.get_tvar_id_from_value_use ~cx id_loc in
     let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
     Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) (TVar tvar_id)

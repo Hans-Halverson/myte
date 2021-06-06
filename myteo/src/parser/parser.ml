@@ -491,10 +491,125 @@ and parse_scoped_identifier env =
   { ScopedIdentifier.loc; name; scopes }
 
 and parse_pattern env =
-  let open Pattern in
   match Env.token env with
-  | T_IDENTIFIER _ -> Identifier (parse_identifier env)
+  | T_IDENTIFIER _ -> parse_identifier_pattern env
+  | T_LEFT_PAREN -> parse_anonymous_tuple_pattern env
   | token -> Parse_error.fatal (Env.loc env, MalformedPattern token)
+
+and parse_identifier_pattern env =
+  let open Pattern in
+  let marker = mark_loc env in
+  let id = parse_identifier env in
+  match Env.token env with
+  | T_PERIOD
+  | T_LEFT_PAREN
+  | T_LEFT_BRACE ->
+    let rec parse_parts () =
+      match Env.token env with
+      | T_PERIOD ->
+        Env.advance env;
+        let id = parse_identifier env in
+        id :: parse_parts ()
+      | _ -> []
+    in
+    let parts = id :: parse_parts () in
+    let (scopes, name) = List_utils.split_last parts in
+    let loc = marker env in
+    let scoped_id = { Ast.ScopedIdentifier.loc; scopes; name } in
+    (match Env.token env with
+    | T_LEFT_PAREN -> parse_tuple_pattern env scoped_id marker
+    | T_LEFT_BRACE -> parse_record_pattern env scoped_id marker
+    | token -> Parse_error.fatal (Env.loc env, MalformedPattern token))
+  | _ -> Identifier id
+
+and parse_anonymous_tuple_pattern env =
+  let open Pattern in
+  let marker = mark_loc env in
+  Env.expect env T_LEFT_PAREN;
+  let first_element = parse_pattern env in
+  Env.expect env T_COMMA;
+  let rec parse_elements () =
+    match Env.token env with
+    | T_RIGHT_PAREN ->
+      Env.advance env;
+      []
+    | _ ->
+      let element = parse_pattern env in
+      begin
+        match Env.token env with
+        | T_RIGHT_PAREN -> ()
+        | T_COMMA -> Env.advance env
+        | _ -> Env.expect env T_RIGHT_PAREN
+      end;
+      element :: parse_elements ()
+  in
+  let elements = first_element :: parse_elements () in
+  let loc = marker env in
+  Tuple { loc; name = None; elements }
+
+and parse_tuple_pattern env name marker =
+  let open Pattern in
+  Env.expect env T_LEFT_PAREN;
+  let rec parse_elements () =
+    match Env.token env with
+    | T_RIGHT_PAREN ->
+      Env.advance env;
+      []
+    | _ ->
+      let element = parse_pattern env in
+      begin
+        match Env.token env with
+        | T_RIGHT_PAREN -> ()
+        | T_COMMA -> Env.advance env
+        | _ -> Env.expect env T_RIGHT_PAREN
+      end;
+      element :: parse_elements ()
+  in
+  let elements = parse_elements () in
+  let loc = marker env in
+  if elements = [] then Parse_error.fatal (loc, EmptyTuple);
+  Tuple { loc; name = Some name; elements }
+
+and parse_record_pattern env name marker =
+  let open Pattern in
+  Env.expect env T_LEFT_BRACE;
+  let rec parse_fields () =
+    let open Record in
+    match Env.token env with
+    | T_RIGHT_BRACE ->
+      Env.advance env;
+      []
+    | T_IDENTIFIER _ ->
+      let marker = mark_loc env in
+      let name = parse_identifier env in
+      let field =
+        match Env.token env with
+        | T_RIGHT_BRACE ->
+          let loc = marker env in
+          { Field.loc; name = None; value = Identifier name }
+        | T_COMMA ->
+          let loc = marker env in
+          Env.advance env;
+          { Field.loc; name = None; value = Identifier name }
+        | _ ->
+          Env.expect env T_COLON;
+          let value = parse_pattern env in
+          let loc = marker env in
+          (match Env.token env with
+          | T_RIGHT_BRACE -> ()
+          | T_COMMA -> Env.advance env
+          | _ -> Env.expect env T_RIGHT_BRACE);
+          { Field.loc; name = Some name; value }
+      in
+      field :: parse_fields ()
+    | token ->
+      Parse_error.fatal
+        (Env.loc env, UnexpectedToken { actual = token; expected = Some T_RIGHT_BRACE })
+  in
+  let fields = parse_fields () in
+  let loc = marker env in
+  if fields = [] then Parse_error.fatal (loc, EmptyRecord);
+  Record { loc; name; fields }
 
 and parse_block env =
   let open Statement in

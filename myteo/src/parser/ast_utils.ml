@@ -57,10 +57,17 @@ let rec statement_visitor ~f ?(enter_functions = true) stmt =
   | Assignment _ ->
     ()
 
-let id_of_pattern patt =
-  let open Pattern in
-  match patt with
-  | Identifier id -> id
+let ids_of_pattern patt =
+  let rec helper patt acc =
+    let open Pattern in
+    match patt with
+    | Identifier id -> id :: acc
+    | Tuple { Tuple.elements; _ } ->
+      List.fold_left (fun acc element -> helper element acc) acc elements
+    | Record { Record.fields; _ } ->
+      List.fold_left (fun acc { Record.Field.value; _ } -> helper value acc) acc fields
+  in
+  List.rev (helper patt [])
 
 let split_toplevels toplevels =
   let open Module in

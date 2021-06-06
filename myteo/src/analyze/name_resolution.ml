@@ -22,11 +22,6 @@ type 'a binding_builder = {
 let mk_binding_builder ~loc ~name ~kind ~is_global ~module_ =
   { name; declaration = (loc, kind); uses = LocSet.empty; is_global; module_ }
 
-let identifier_in_pattern pat =
-  let open Pattern in
-  match pat with
-  | Identifier id -> id
-
 class bindings_builder ~module_tree =
   let (exported_value_ids, exported_type_ids) = Module_tree.get_all_exports module_tree in
   let exported_value_bindings =
@@ -222,8 +217,8 @@ class bindings_builder ~module_tree =
         (fun toplevel ->
           match toplevel with
           | VariableDeclaration { Ast.Statement.VariableDeclaration.kind; pattern; _ } ->
-            let id = identifier_in_pattern pattern in
-            ignore (add_value_name (VarDecl kind) id)
+            let ids = Ast_utils.ids_of_pattern pattern in
+            List.iter (fun id -> ignore (add_value_name (VarDecl kind) id)) ids
           | FunctionDeclaration { Ast.Function.name; _ } -> ignore (add_value_name FunDecl name)
           | TypeDeclaration { Ast.TypeDeclaration.name; _ } -> add_type_name TypeDecl name)
         toplevels;
@@ -307,11 +302,14 @@ class bindings_builder ~module_tree =
 
     method visit_variable_declaration ~toplevel decl =
       let { Ast.Statement.VariableDeclaration.kind; pattern; init; annot; loc = _ } = decl in
-      let id = identifier_in_pattern pattern in
-      let { Ast.Identifier.loc; name; _ } = id in
       let annot' = id_map_opt this#type_ annot in
       let init' = this#expression init in
-      if not toplevel then this#add_value_declaration loc (VarDecl kind) name toplevel;
+      let ids = Ast_utils.ids_of_pattern pattern in
+      if not toplevel then
+        List.iter
+          (fun { Ast.Identifier.loc; name; _ } ->
+            this#add_value_declaration loc (VarDecl kind) name toplevel)
+          ids;
       if init == init' && annot == annot' then
         decl
       else
@@ -350,27 +348,30 @@ class bindings_builder ~module_tree =
 
     method! assignment assign =
       let open Statement.Assignment in
-      let id = Ast_utils.id_of_pattern assign.pattern in
-      (match this#lookup_value_in_scope id.name scopes with
-      | None -> ()
-      | Some decl_loc ->
-        let add_invalid_assign_error kind =
-          this#add_error id.loc (InvalidAssignment (id.name, kind))
-        in
-        let (_, declaration) = (LocMap.find decl_loc value_bindings).declaration in
-        (match declaration with
-        | VarDecl kind
-        | ImportedVarDecl (_, kind) ->
-          if kind = Statement.VariableDeclaration.Immutable then
-            add_invalid_assign_error InvalidAssignmentImmutableVariable
-        | FunDecl
-        | ImportedFunDecl _ ->
-          add_invalid_assign_error InvalidAssignmentFunction
-        | FunParam -> add_invalid_assign_error InvalidAssignmentFunctionParam
-        | ImportedCtorDecl _
-        | CtorDecl ->
-          add_invalid_assign_error InvalidAssignmentConstructor
-        | ImportedModule _ -> (* Direct module use will error elsewhere *) ()));
+      let ids = Ast_utils.ids_of_pattern assign.pattern in
+      List.iter
+        (fun { Identifier.loc; name } ->
+          match this#lookup_value_in_scope name scopes with
+          | None -> ()
+          | Some decl_loc ->
+            let add_invalid_assign_error kind =
+              this#add_error loc (InvalidAssignment (name, kind))
+            in
+            let (_, declaration) = (LocMap.find decl_loc value_bindings).declaration in
+            (match declaration with
+            | VarDecl kind
+            | ImportedVarDecl (_, kind) ->
+              if kind = Statement.VariableDeclaration.Immutable then
+                add_invalid_assign_error InvalidAssignmentImmutableVariable
+            | FunDecl
+            | ImportedFunDecl _ ->
+              add_invalid_assign_error InvalidAssignmentFunction
+            | FunParam -> add_invalid_assign_error InvalidAssignmentFunctionParam
+            | ImportedCtorDecl _
+            | CtorDecl ->
+              add_invalid_assign_error InvalidAssignmentConstructor
+            | ImportedModule _ -> (* Direct module use will error elsewhere *) ()))
+        ids;
       super#assignment assign
 
     (* Match a sequence of module parts against the module tree, returning the same AST with the
@@ -584,6 +585,14 @@ class bindings_builder ~module_tree =
       match patt with
       | Identifier id ->
         this#resolve_value_id_use id;
+        patt
+      | Tuple { Tuple.name = _; elements; _ } ->
+        (* TODO: Resolve optional tuple name, which may be a scoped id *)
+        List.iter (fun element -> ignore (this#pattern element)) elements;
+        patt
+      | Record { Record.name = _; fields; _ } ->
+        (* TODO: Resolve optional tuple name, which may be a scoped id *)
+        List.iter (fun { Record.Field.value; _ } -> ignore (this#pattern value)) fields;
         patt
   end
 

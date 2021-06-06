@@ -65,6 +65,8 @@ class ['a] visitor =
         let open Pattern in
         match pat with
         | Identifier p -> this#identifier acc p
+        | Tuple t -> this#tuple_pattern acc t
+        | Record r -> this#record_pattern acc r
 
     method type_ : 'a -> Type.t -> unit =
       fun acc ty ->
@@ -179,6 +181,24 @@ class ['a] visitor =
       let { loc = _; target; name } = access in
       this#expression acc target;
       this#identifier acc name
+
+    method record_pattern acc record =
+      let open Pattern.Record in
+      let { loc = _; name; fields } = record in
+      this#scoped_identifier acc name;
+      List.iter (this#record_pattern_field acc) fields
+
+    method record_pattern_field acc field =
+      let open Pattern.Record.Field in
+      let { loc = _; name; value } = field in
+      Option.iter (this#identifier acc) name;
+      this#pattern acc value
+
+    method tuple_pattern acc tuple =
+      let open Pattern.Tuple in
+      let { loc = _; name; elements } = tuple in
+      Option.iter (this#scoped_identifier acc) name;
+      List.iter (this#pattern acc) elements
 
     method function_ acc func =
       let open Function in

@@ -281,7 +281,34 @@ end =
   Expression
 
 and Pattern : sig
-  type t = Identifier of Identifier.t
+  module Tuple : sig
+    type t = {
+      loc: Loc.t;
+      name: ScopedIdentifier.t option;
+      elements: Pattern.t list;
+    }
+  end
+
+  module Record : sig
+    module Field : sig
+      type t = {
+        loc: Loc.t;
+        name: Identifier.t option;
+        value: Pattern.t;
+      }
+    end
+
+    type t = {
+      loc: Loc.t;
+      name: ScopedIdentifier.t;
+      fields: Field.t list;
+    }
+  end
+
+  type t =
+    | Identifier of Identifier.t
+    | Tuple of Tuple.t
+    | Record of Record.t
 end =
   Pattern
 

@@ -80,6 +80,8 @@ class mapper =
         let open Pattern in
         match pat with
         | Identifier p -> id_map this#identifier p pat (fun p' -> Identifier p')
+        | Tuple e -> id_map this#tuple_pattern e pat (fun e' -> Tuple e')
+        | Record e -> id_map this#record_pattern e pat (fun e' -> Record e')
 
     method type_ : Type.t -> Type.t =
       fun ty ->
@@ -254,6 +256,36 @@ class mapper =
         access
       else
         { loc; target = target'; name = name' }
+
+    method record_pattern record =
+      let open Pattern.Record in
+      let { loc; name; fields } = record in
+      let name' = this#scoped_identifier name in
+      let fields' = id_map_list this#record_pattern_field fields in
+      if name == name' && fields == fields' then
+        record
+      else
+        { loc; name = name'; fields = fields' }
+
+    method record_pattern_field field =
+      let open Pattern.Record.Field in
+      let { loc; name; value } = field in
+      let name' = id_map_opt this#identifier name in
+      let value' = this#pattern value in
+      if name == name' && value == value' then
+        field
+      else
+        { loc; name = name'; value = value' }
+
+    method tuple_pattern tuple =
+      let open Pattern.Tuple in
+      let { loc; name; elements } = tuple in
+      let name' = id_map_opt this#scoped_identifier name in
+      let elements' = id_map_list this#pattern elements in
+      if name == name' && elements == elements' then
+        tuple
+      else
+        { loc; name = name'; elements = elements' }
 
     method function_ func =
       let open Function in

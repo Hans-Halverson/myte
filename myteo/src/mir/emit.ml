@@ -38,7 +38,8 @@ and emit_module ~pcx ~ecx (_, mod_) =
 
 and emit_toplevel_variable_declaration ~pcx ~ecx decl =
   let { Statement.VariableDeclaration.pattern; init; _ } = decl in
-  let { Identifier.loc; name } = Ast_utils.id_of_pattern pattern in
+  (* TODO: Emit MIR for arbitrary patterns *)
+  let { Identifier.loc; name } = List.hd (Ast_utils.ids_of_pattern pattern) in
   let name = Printf.sprintf "%s.%s" (Ecx.get_module_builder ~ecx).name name in
   (* Find value type of variable *)
   let ty = value_type_of_decl_loc ~pcx loc in
@@ -307,7 +308,8 @@ and emit_statement ~pcx ~ecx stmt =
     let (break_id, _) = Ecx.get_loop_context ~ecx in
     Ecx.finish_block_continue ~ecx break_id
   | Assignment { loc = _; pattern; expr } ->
-    let { Identifier.loc = use_loc; _ } = Ast_utils.id_of_pattern pattern in
+    (* TODO: Emit MIR for arbitrary patterns *)
+    let { Identifier.loc = use_loc; _ } = List.hd (Ast_utils.ids_of_pattern pattern) in
     let binding = Bindings.get_source_value_binding pcx.bindings use_loc in
     let decl_loc = fst binding.declaration in
     let expr_val = emit_expression ~pcx ~ecx expr in
@@ -316,7 +318,8 @@ and emit_statement ~pcx ~ecx stmt =
     else
       Ecx.emit ~ecx (Mov (mk_cf_local use_loc, expr_val))
   | VariableDeclaration { pattern; init; _ } ->
-    let { Identifier.loc; _ } = Ast_utils.id_of_pattern pattern in
+    (* TODO: Emit MIR for arbitrary patterns *)
+    let { Identifier.loc; _ } = List.hd (Ast_utils.ids_of_pattern pattern) in
     let init_val = emit_expression ~pcx ~ecx init in
     Ecx.emit ~ecx (Mov (mk_cf_local loc, init_val))
   | FunctionDeclaration _ -> failwith "Function declaration not yet converted to IR"

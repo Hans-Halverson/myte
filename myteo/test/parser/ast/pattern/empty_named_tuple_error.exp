@@ -1,0 +1,4 @@
+Error: Tuple must have at least one element
+test/parser/ast/pattern/empty_named_tuple_error.myte:3:4-10
+ 3 | val Tup (): int = 1
+   |     ^^^^^^

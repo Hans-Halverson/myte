@@ -2,11 +2,6 @@ open Analyze_error
 open Ast
 open Basic_collections
 
-let identifier_in_pattern pat =
-  let open Pattern in
-  match pat with
-  | Identifier id -> id
-
 type module_tree = module_tree_node SMap.t
 
 and module_tree_node =
@@ -59,10 +54,10 @@ let add_exports module_ submodule_tree =
     match toplevels with
     | [] -> (submodule_tree, [])
     | VariableDeclaration { Ast.Statement.VariableDeclaration.loc; kind; pattern; _ } :: rest ->
-      let id = identifier_in_pattern pattern in
-      add_exports_to_tree
-        rest
-        [(id, loc, (fun export_info -> { export_info with value = Some (VarDecl kind, id) }))]
+      let ids = Ast_utils.ids_of_pattern pattern in
+      let mut_export_info id export_info = { export_info with value = Some (VarDecl kind, id) } in
+      let exports = List.map (fun id -> (id, loc, mut_export_info id)) ids in
+      add_exports_to_tree rest exports
     | FunctionDeclaration { Ast.Function.loc; name = id; _ } :: rest ->
       add_exports_to_tree
         rest

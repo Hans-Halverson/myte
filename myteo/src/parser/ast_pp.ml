@@ -163,6 +163,8 @@ and node_of_pattern pat =
   let open Pattern in
   match pat with
   | Identifier id -> node_of_identifier id
+  | Tuple t -> node_of_tuple_pattern t
+  | Record r -> node_of_record_pattern r
 
 and node_of_type ty =
   let open Type in
@@ -310,6 +312,33 @@ and node_of_indexed_access access =
 and node_of_named_access access =
   let { Expression.NamedAccess.loc; target; name } = access in
   node "NamedAccess" loc [("target", node_of_expression target); ("name", node_of_identifier name)]
+
+and node_of_tuple_pattern tuple =
+  let { Pattern.Tuple.loc; name; elements } = tuple in
+  node
+    "TuplePattern"
+    loc
+    [
+      ("name", opt node_of_scoped_identifier name);
+      ("elements", List (List.map node_of_pattern elements));
+    ]
+
+and node_of_record_pattern record =
+  let { Pattern.Record.loc; name; fields } = record in
+  node
+    "RecordPattern"
+    loc
+    [
+      ("name", node_of_scoped_identifier name);
+      ("fields", List (List.map node_of_record_pattern_field fields));
+    ]
+
+and node_of_record_pattern_field field =
+  let { Pattern.Record.Field.loc; name; value } = field in
+  node
+    "RecordPatternField"
+    loc
+    [("name", opt node_of_identifier name); ("value", node_of_pattern value)]
 
 and node_of_block block =
   let { Statement.Block.loc; statements } = block in
