@@ -873,7 +873,7 @@ and parse_type env =
   let marker = mark_loc env in
   let ty = parse_type_prefix env in
   match Env.token env with
-  | T_BIG_ARROW -> parse_function_type env [ty] [] marker
+  | T_ARROW -> parse_function_type env [ty] [] marker
   | _ -> ty
 
 and parse_type_prefix env =
@@ -913,7 +913,7 @@ and parse_parenthesized_type env =
   Env.expect env T_LEFT_PAREN;
   let (tys, trailing_comma_loc) = parse_parenthesized_type_or_params env in
   (* A parenthesized list followed by an arrow is a function type *)
-  if Env.token env = T_BIG_ARROW then
+  if Env.token env = T_ARROW then
     parse_function_type env tys [] marker
   (* A parenthesized list of two or more elements not followed by an arrow is a tuple *)
   else if List.length tys <> 1 then
@@ -985,7 +985,7 @@ and parse_identifier_type env =
 
 and parse_function_type env params type_params marker =
   let open Ast.Type in
-  Env.expect env T_BIG_ARROW;
+  Env.expect env T_ARROW;
   let return = parse_type env in
   let loc = marker env in
   Function { Function.loc; params; return; type_params }

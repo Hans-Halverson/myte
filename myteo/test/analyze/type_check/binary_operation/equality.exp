@@ -8,7 +8,7 @@ test/analyze/type_check/binary_operation/equality.myte:14:11
  14 |   (true == 1: bool);
     |            ^
 
-Error: Expected type `int => int` but found `int => string`
+Error: Expected type `int -> int` but found `int -> string`
 test/analyze/type_check/binary_operation/equality.myte:15:15-26
  15 |   (intToInt == intToString: bool);
     |                ^^^^^^^^^^^

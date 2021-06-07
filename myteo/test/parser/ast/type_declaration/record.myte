@@ -8,7 +8,7 @@ type r3 { foo: int, bar: bool, baz: string }
 
 type r4 { foo: int, bar: bool, baz: string, }
 
-type r5 { foo: ((int)), bar: (bool, string) => unit, baz: (string, unit) }
+type r5 { foo: ((int)), bar: (bool, string) -> unit, baz: (string, unit) }
 
 type t6<T> { foo: T }
 

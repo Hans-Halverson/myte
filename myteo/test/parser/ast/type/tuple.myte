@@ -7,4 +7,4 @@ type alias t2 = ((int, string), (bool, (string, string, unit)))
 type alias t3 = (int, string, )
 
 // As function parameter
-type alias t4 = ((int, string)) => unit
+type alias t4 = ((int, string)) -> unit

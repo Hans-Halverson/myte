@@ -4,7 +4,7 @@ type alias t1 = unit
 
 type alias t2 = int
 
-type alias t3 = (string, bool) => unit
+type alias t3 = (string, bool) -> unit
 
 type alias t4<T> = unit
 

@@ -20,10 +20,10 @@ test/analyze/type_check/binary_operation/add.myte:17:9
 
 Error: Expected types `int` or `string` but found `bool`
 test/analyze/type_check/binary_operation/add.myte:20:3-7
- 20 |   (true + (): int => int);
+ 20 |   (true + (): int -> int);
     |    ^^^^
 
 Error: Expected types `int` or `string` but found `unit`
 test/analyze/type_check/binary_operation/add.myte:20:10-12
- 20 |   (true + (): int => int);
+ 20 |   (true + (): int -> int);
     |           ^^

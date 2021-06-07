@@ -1,18 +1,18 @@
 module Test
 
-type alias t1 = int => string
-type alias t2 = () => string
-type alias t3 = (int) => string
-type alias t4 = (((int))) => string
-type alias t5 = (int, string) => unit
-type alias t6 = (int, string, bool) => unit
-type alias t7 = (int, string) => (bool, unit) => string
-type alias t8 = (int, string,) => unit
-type alias t9 = (int,) => unit
-type alias t10 = ((int, string),) => unit
-type alias t11 = <A>(A) => A
-type alias t12 = <A,>(A) => A
-type alias t13 = <A, B, C>(int, string) => unit
-type alias t14 = <A, B, C,>(int, string) => unit
+type alias t1 = int -> string
+type alias t2 = () -> string
+type alias t3 = (int) -> string
+type alias t4 = (((int))) -> string
+type alias t5 = (int, string) -> unit
+type alias t6 = (int, string, bool) -> unit
+type alias t7 = (int, string) -> (bool, unit) -> string
+type alias t8 = (int, string,) -> unit
+type alias t9 = (int,) -> unit
+type alias t10 = ((int, string),) -> unit
+type alias t11 = <A>(A) -> A
+type alias t12 = <A,>(A) -> A
+type alias t13 = <A, B, C>(int, string) -> unit
+type alias t14 = <A, B, C,>(int, string) -> unit
 
 fun main() {}

@@ -10,7 +10,6 @@ type t =
   | T_COMMA
   | T_PERIOD
   | T_ARROW
-  | T_BIG_ARROW
   | T_PLUS
   | T_MINUS
   | T_MULTIPLY
@@ -70,7 +69,6 @@ let to_string token =
   | T_COMMA -> ","
   | T_PERIOD -> "."
   | T_ARROW -> "->"
-  | T_BIG_ARROW -> "=>"
   | T_PLUS -> "+"
   | T_MINUS -> "-"
   | T_MULTIPLY -> "*"

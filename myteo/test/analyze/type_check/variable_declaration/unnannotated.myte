@@ -15,7 +15,7 @@ fun simple() {
 
   {
     val x3 = true;
-    (x3: int => string);
+    (x3: int -> string);
   }
 }
 

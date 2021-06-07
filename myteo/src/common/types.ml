@@ -106,7 +106,7 @@ let rec pp_with_names ~tvar_to_name ty =
         let pp_params = List.map (fun param -> pp_with_names ~tvar_to_name param) params in
         concat_and_wrap ("(", ")") pp_params
     in
-    pp_params ^ " => " ^ pp_function_part return
+    pp_params ^ " -> " ^ pp_function_part return
   | ADT { adt_sig = { name; _ }; tparams } ->
     if tparams = [] then
       name

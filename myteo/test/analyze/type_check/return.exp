@@ -8,7 +8,7 @@ test/analyze/type_check/return.myte:22:13-17
  22 |       return true;
     |              ^^^^
 
-Error: Expected type `int` but found `() => unit`
+Error: Expected type `int` but found `() -> unit`
 test/analyze/type_check/return.myte:27:11-29
  27 |     return explicitUnitReturn;
     |            ^^^^^^^^^^^^^^^^^^

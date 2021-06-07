@@ -18,7 +18,7 @@ type t5 = Foo | Bar (int) | Baz { k: bool }
 
 type t6 =
  | Foo ((int, string))
- | Bar ((int, string) => bool)
+ | Bar ((int, string) -> bool)
  | Baz { k: OtherType }
 
 type t7<T> = None | Some (T)

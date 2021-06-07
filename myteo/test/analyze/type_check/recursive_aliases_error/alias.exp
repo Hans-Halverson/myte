@@ -10,5 +10,5 @@ test/analyze/type_check/recursive_aliases_error/alias.myte:7:0-32
 
 Error: Cycle detected in definition of type `rec_type7`
 test/analyze/type_check/recursive_aliases_error/alias.myte:11:0-48
- 11 | type alias rec_type7 = (unit, rec_type5) => unit
+ 11 | type alias rec_type7 = (unit, rec_type5) -> unit
     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
