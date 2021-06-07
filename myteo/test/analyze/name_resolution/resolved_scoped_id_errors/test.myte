@@ -67,6 +67,10 @@ fun test() {
   // Using an existing type as value, and vice versa
   (1: a1.a2.a3.exportedValue);
   (a1.a2.a3.exportedType: int);
+
+  // Named accesses on functions or constructors fail
+  a1.a2.a3.exportedFun.field (field) = 1;
+  a1.a2.a3.Tup.field (field) = 1;
 }
 
 fun main () {}

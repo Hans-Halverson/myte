@@ -202,3 +202,13 @@ Error: Could not resolve `a1.a2.a3.exportedType`. Module `a1.a2.a3` does not hav
 test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:69:3-24
  69 |   (a1.a2.a3.exportedType: int);
     |    ^^^^^^^^^^^^^^^^^^^^^
+
+Error: `exportedFun` is an export of module `a1.a2.a3`, there are no items beneath `a1.a2.a3.exportedFun`
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:72:11-22
+ 72 |   a1.a2.a3.exportedFun.field (field) = 1;
+    |            ^^^^^^^^^^^
+
+Error: `Tup` is an export of module `a1.a2.a3`, there are no items beneath `a1.a2.a3.Tup`
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:73:11-14
+ 73 |   a1.a2.a3.Tup.field (field) = 1;
+    |            ^^^

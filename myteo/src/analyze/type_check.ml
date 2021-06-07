@@ -170,9 +170,7 @@ and check_toplevel_variable_declaration_prepass ~cx decl =
 and check_variable_declaration ~cx decl =
   let open Ast.Statement.VariableDeclaration in
   let { loc; pattern; init; annot; _ } = decl in
-  (* TODO: Type check arbitrary patterns *)
-  let { Ast.Identifier.loc = id_loc; name } = List.hd (Ast_utils.ids_of_pattern pattern) in
-  let tvar_id = Type_context.get_tvar_id_from_value_decl ~cx id_loc in
+  let (pattern_loc, pattern_ty) = check_pattern ~cx pattern in
   let (expr_loc, expr_tvar_id) = check_expression ~cx init in
   match annot with
   | None ->
@@ -181,7 +179,7 @@ and check_variable_declaration ~cx decl =
     let rep_ty = Type_context.find_rep_type ~cx (TVar expr_tvar_id) in
     let unresolved_tvars = Types.get_all_tvars_with_duplicates rep_ty in
     if unresolved_tvars = [] then
-      ignore (Type_context.unify ~cx (TVar expr_tvar_id) (TVar tvar_id))
+      Type_context.assert_unify ~cx expr_loc (TVar expr_tvar_id) pattern_ty
     else
       (* TODO: Test this error once we support unresolved tvars *)
       let partial =
@@ -189,11 +187,11 @@ and check_variable_declaration ~cx decl =
         | TVar _ -> None
         | _ -> Some (rep_ty, List.hd unresolved_tvars)
       in
-      Type_context.add_error ~cx loc (VarDeclNeedsAnnotation (name, partial))
+      Type_context.add_error ~cx loc (VarDeclNeedsAnnotation partial)
   | Some annot ->
     let annot_ty = build_type ~cx annot in
-    ignore (Type_context.unify ~cx annot_ty (TVar tvar_id));
-    Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) (TVar tvar_id)
+    Type_context.assert_unify ~cx pattern_loc annot_ty pattern_ty;
+    Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) pattern_ty
 
 and check_type_parameters ~cx params =
   (* TODO: Add type checking for type parameters *)
@@ -698,11 +696,131 @@ and check_expression ~cx expr =
       | _ -> false
     in
     if not is_record_ty then (
-      Type_context.add_error ~cx target_loc (NonAccessableAccessed (field_name, target_rep_ty));
+      Type_context.add_error ~cx target_loc (NonAccessibleAccessed (field_name, target_rep_ty));
       ignore (Type_context.unify ~cx Types.Any (TVar tvar_id))
     );
     (loc, tvar_id)
   | Ternary _ -> failwith "TODO: Type checking for ternary expression"
+
+and check_pattern ~cx patt =
+  let open Ast.Pattern in
+  match patt with
+  | Identifier { Ast.Identifier.loc; _ } ->
+    (loc, Types.TVar (Type_context.get_tvar_id_from_value_use ~cx loc))
+  | Tuple { loc; name = None; elements } ->
+    (loc, Types.Tuple (List.map (fun element -> snd (check_pattern ~cx element)) elements))
+  | Tuple { loc; name = Some scoped_id; elements } ->
+    (* TODO: Handle parameterized types by refreshing adt_sig's tvars then unifying actual element
+       types with argument to refreshed variant sig *)
+    let _ = List.map (fun element -> snd (check_pattern ~cx element)) elements in
+    let tuple_adt_ty_opt =
+      let { Ast.ScopedIdentifier.name = { Ast.Identifier.loc = name_loc; name }; _ } = scoped_id in
+      let binding = Type_context.get_source_value_binding ~cx name_loc in
+      match snd binding.declaration with
+      | CtorDecl ->
+        let adt = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
+        let adt_sig =
+          match adt with
+          | Types.ADT { adt_sig; _ } -> adt_sig
+          | _ -> failwith "Expected ADT"
+        in
+        (match SMap.find name adt_sig.variant_sigs with
+        | TupleVariantSig element_sigs when List.length element_sigs <> List.length elements ->
+          Type_context.add_error
+            ~cx
+            loc
+            (IncorrectTupleConstructorArity (List.length elements, List.length element_sigs));
+          Some Types.Any
+        | TupleVariantSig _ -> Some adt
+        | _ -> None)
+      | _ -> None
+    in
+    (* Error if scoped id is not a tuple constructor *)
+    let ty =
+      match tuple_adt_ty_opt with
+      | None ->
+        Type_context.add_error ~cx scoped_id.loc ExpectedTupleConstructor;
+        Types.Any
+      | Some ty -> ty
+    in
+    (loc, ty)
+  | Record { loc; name = scoped_id; fields; _ } ->
+    (* TODO: Handle parameterized types by refreshing adt_sig's tvars then unifying actual element
+       types with argument to refreshed variant sig *)
+    let record_adt_ty_opt =
+      let { Ast.ScopedIdentifier.name = { Ast.Identifier.loc = name_loc; name }; _ } = scoped_id in
+      let binding = Type_context.get_source_value_binding ~cx name_loc in
+      match snd binding.declaration with
+      | CtorDecl ->
+        let adt = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
+        let adt_sig =
+          match adt with
+          | Types.ADT { adt_sig; _ } -> adt_sig
+          | _ -> failwith "Expected ADT"
+        in
+        (match SMap.find name adt_sig.variant_sigs with
+        | RecordVariantSig field_sigs ->
+          (* Recurse into fields and collect all fields that are not a part of this record *)
+          let (field_params, unexpected_fields) =
+            List.fold_left
+              (fun (field_params, unexpected_fields) { Record.Field.name; value; _ } ->
+                let { Ast.Identifier.name; loc } =
+                  match name with
+                  | None ->
+                    (match value with
+                    | Identifier id -> id
+                    | _ -> failwith "Record shorthand field value must be an identifier")
+                  | Some name -> name
+                in
+                let field_param = check_pattern ~cx value |> snd in
+                if SMap.mem name field_sigs then
+                  (SMap.add name field_param field_params, unexpected_fields)
+                else
+                  (field_params, (loc, name) :: unexpected_fields))
+              (SMap.empty, [])
+              fields
+          in
+          (* Collect all expected fields that are missing from this constructor invocation *)
+          let missing_fields =
+            SMap.fold
+              (fun field_name _ missing_fields ->
+                if SMap.mem field_name field_params then
+                  missing_fields
+                else
+                  field_name :: missing_fields)
+              field_sigs
+              []
+          in
+          (* Error on unexpected or missing fields, only displaying missing fields if there are no
+             unexpected fields. *)
+          if unexpected_fields <> [] then
+            List.iter
+              (fun (loc, field_name) ->
+                Type_context.add_error ~cx loc (UnexpectedRecordConstructorField (name, field_name)))
+              (List.rev unexpected_fields)
+          else if missing_fields <> [] then
+            Type_context.add_error
+              ~cx
+              loc
+              (MissingRecordConstructorFields (List.rev missing_fields));
+          (* Result is algebraic data type unless the fields do not match,
+             in which case propagate any *)
+          if missing_fields = [] && unexpected_fields = [] then
+            Some adt
+          else
+            Some Any
+        | _ -> None)
+      | _ -> None
+    in
+    (* Error if scoped id is not a record constructor *)
+    let ty =
+      match record_adt_ty_opt with
+      | None ->
+        Type_context.add_error ~cx scoped_id.loc ExpectedRecordConstructor;
+        Types.Any
+      | Some ty -> ty
+    in
+    (loc, ty)
 
 and check_statement ~cx stmt =
   let open Ast.Statement in
@@ -735,11 +853,9 @@ and check_statement ~cx stmt =
   | Continue _ ->
     ()
   | Assignment { Assignment.pattern; expr; _ } ->
-    (* TODO: Type check arbitrary patterns *)
-    let { Ast.Identifier.loc = id_loc; _ } = List.hd (Ast_utils.ids_of_pattern pattern) in
-    let tvar_id = Type_context.get_tvar_id_from_value_use ~cx id_loc in
+    let (_, pattern_ty) = check_pattern ~cx pattern in
     let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
-    Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) (TVar tvar_id)
+    Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) pattern_ty
 
 let resolve_unresolved_int_literals ~cx =
   while not (LocSet.is_empty cx.unresolved_int_literals) do

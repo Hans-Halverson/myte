@@ -5,3 +5,5 @@ fun export() {}
 type alias ExportType = int
 
 type Tup (int)
+
+val tup: Tup = Tup (1)

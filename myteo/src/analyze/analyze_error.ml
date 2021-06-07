@@ -17,7 +17,7 @@ type t =
   | DuplicateModuleNames of string
   | ModuleAndExportDuplicateNames of string * string
   | ImportNonexist of string * string list
-  | ImportChildOfExport of string * string list
+  | ReferenceChildOfExport of string * string list
   | ModuleInvalidPosition of string list * bool
   | NoExportInModule of string * string list * bool
   | NoModuleWithName of string list * bool
@@ -25,16 +25,17 @@ type t =
   | CyclicTypeAlias of string
   | ToplevelVarWithoutAnnotation
   | IncompatibleTypes of Types.t * Types.t list
-  | VarDeclNeedsAnnotation of string * (Types.t * Types.tvar_id) option
+  | VarDeclNeedsAnnotation of (Types.t * Types.tvar_id) option
   | NonFunctionCalled of Types.t
   | RecordConstructorCalled of string
   | ExpectedRecordConstructor
+  | ExpectedTupleConstructor
   | IncorrectFunctionArity of int * int
   | IncorrectTupleConstructorArity of int * int
   | MissingRecordConstructorFields of string list
   | UnexpectedRecordConstructorField of string * string
   | NonIndexableIndexed of Types.t
-  | NonAccessableAccessed of string * Types.t
+  | NonAccessibleAccessed of string * Types.t
   | TupleIndexIsNotLiteral
   | TupleIndexOutOfBounds of int
   | NamedAccessNonexistentField of string * string
@@ -134,7 +135,7 @@ let to_string error =
       "No module or export with name `%s` found in module `%s`"
       name
       (String.concat "." module_parts)
-  | ImportChildOfExport (name, module_parts) ->
+  | ReferenceChildOfExport (name, module_parts) ->
     let module_parts_string = String.concat "." module_parts in
     Printf.sprintf
       "`%s` is an export of module `%s`, there are no items beneath `%s`"
@@ -176,7 +177,7 @@ let to_string error =
       | _ -> "types " ^ String.concat " or " expected_strings
     in
     Printf.sprintf "Expected %s but found %s" expected_string actual_string
-  | VarDeclNeedsAnnotation (name, partial) ->
+  | VarDeclNeedsAnnotation partial ->
     let partial_string =
       match partial with
       | None -> ""
@@ -189,8 +190,7 @@ let to_string error =
           unresolved_tvar_name
     in
     Printf.sprintf
-      "Cannot infer type for `%s`. %sPlease provide additional type hints such as a type annotation."
-      name
+      "Cannot infer type for variable declaration. %sPlease provide additional type hints such as a type annotation."
       partial_string
   | IncorrectFunctionArity (actual, expected) ->
     Printf.sprintf
@@ -219,8 +219,9 @@ let to_string error =
   | RecordConstructorCalled name ->
     Printf.sprintf "`%s` is a record constructor and cannot be called as a function" name
   | ExpectedRecordConstructor -> Printf.sprintf "Expected a record constructor"
+  | ExpectedTupleConstructor -> Printf.sprintf "Expected a tuple constructor"
   | NonIndexableIndexed ty -> Printf.sprintf "Cannot index into value of type `%s`" (Types.pp ty)
-  | NonAccessableAccessed (field_name, ty) ->
+  | NonAccessibleAccessed (field_name, ty) ->
     Printf.sprintf "Cannot access field `%s` on non-record type `%s`" field_name (Types.pp ty)
   | TupleIndexIsNotLiteral -> Printf.sprintf "Tuple indices must be int literals"
   | TupleIndexOutOfBounds actual_size ->

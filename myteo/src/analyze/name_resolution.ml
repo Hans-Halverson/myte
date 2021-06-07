@@ -376,7 +376,8 @@ class bindings_builder ~module_tree =
 
     (* Match a sequence of module parts against the module tree, returning the same AST with the
        matched access chain replaced with a scoped id if a match exists. Otherwise error. *)
-    method match_module_parts ~is_value module_tree prev_parts rest_parts prev_is_module on_export =
+    method match_module_parts
+        ~is_value ~resolve_full module_tree prev_parts rest_parts prev_is_module on_export =
       let open Ast.Identifier in
       let open Module_tree in
       match rest_parts with
@@ -406,11 +407,16 @@ class bindings_builder ~module_tree =
           let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
           this#add_error full_loc (ModuleInvalidPosition (prev_parts_names @ [name], is_value));
           None
-        | (Some (Export { value; ty = _ }), _) when is_value ->
+        | (Some (Export { value; ty = _ }), rest_parts)
+          when is_value && ((not resolve_full) || rest_parts = []) ->
           (* Values may have additional name parts, as these will be field accesses *)
           let (_, { Ast.Identifier.loc = decl_loc; _ }) = Option.get value in
           this#add_value_use decl_loc loc;
           on_export prev_parts part rest_parts
+        | (Some (Export _), _) when is_value ->
+          let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
+          this#add_error loc (ReferenceChildOfExport (name, prev_parts_names));
+          None
         | (Some (Export { value = _; ty }), []) ->
           (* Types are only fully resolved if all name parts have been matched *)
           let (_, { Ast.Identifier.loc = decl_loc; _ }) = Option.get ty in
@@ -426,6 +432,7 @@ class bindings_builder ~module_tree =
         | (Some (Empty (_, module_tree)), rest_parts) ->
           this#match_module_parts
             ~is_value
+            ~resolve_full
             module_tree
             (prev_parts @ [part])
             rest_parts
@@ -434,6 +441,7 @@ class bindings_builder ~module_tree =
         | (Some (Module (_, module_tree)), rest_parts) ->
           this#match_module_parts
             ~is_value
+            ~resolve_full
             module_tree
             (prev_parts @ [part])
             rest_parts
@@ -443,6 +451,7 @@ class bindings_builder ~module_tree =
     method match_module_parts_value module_tree prev_parts rest_parts expr =
       this#match_module_parts
         ~is_value:true
+        ~resolve_full:false
         module_tree
         prev_parts
         rest_parts
@@ -472,6 +481,7 @@ class bindings_builder ~module_tree =
       ignore
         (this#match_module_parts
            ~is_value:true
+           ~resolve_full:true
            module_tree
            [first_part]
            rest_parts
@@ -482,6 +492,7 @@ class bindings_builder ~module_tree =
       ignore
         (this#match_module_parts
            ~is_value:false
+           ~resolve_full:true
            module_tree
            [first_part]
            rest_parts

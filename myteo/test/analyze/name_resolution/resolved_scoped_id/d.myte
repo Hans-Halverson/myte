@@ -5,3 +5,5 @@ type Rec { child: int }
 val export: Rec = Rec { child: 1 }
 
 type alias ExportType = int
+
+val rec: Rec = Rec { child: 1 }

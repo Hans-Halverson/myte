@@ -5,3 +5,5 @@ type Rec { child: int }
 val export: Rec = Rec { child: 1 }
 
 type ExportType = Foo | Bar (int)
+
+val bar: ExportType = Bar (1)

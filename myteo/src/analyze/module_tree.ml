@@ -170,7 +170,7 @@ let lookup name_parts module_tree =
       | None -> LookupResultError (loc, ImportNonexist (current_name, List.rev prev_name_parts))
       | Some (Export export) when rest_parts = [] -> LookupResultExport export
       | Some (Export _) ->
-        LookupResultError (loc, ImportChildOfExport (current_name, List.rev prev_name_parts))
+        LookupResultError (loc, ReferenceChildOfExport (current_name, List.rev prev_name_parts))
       | Some (Module (name, module_tree) | Empty (name, module_tree)) ->
         lookup_inner (name :: prev_name_parts) rest_parts module_tree)
   in
