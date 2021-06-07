@@ -11,6 +11,7 @@ type t =
   | MalformedType of Token.t
   | MissingModule of Token.t
   | InvalidAssignmentPattern
+  | LiteralInPattern
   | EmptyRecord
   | EmptyTuple
   | SingleVariant
@@ -51,6 +52,7 @@ let to_string error =
       "File must start with a module declaration. Found `%s` but expected `module`."
       (Token.to_string actual)
   | InvalidAssignmentPattern -> "Left side of assignment must be a pattern"
+  | LiteralInPattern -> "Literals cannot appear in variable declaration patterns"
   | EmptyRecord -> "Record must have at least one field"
   | EmptyTuple -> "Tuple must have at least one element"
   | SingleVariant -> "Variant type must have at least two variants"

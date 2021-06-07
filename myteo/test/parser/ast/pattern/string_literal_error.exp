@@ -1,0 +1,4 @@
+Error: Literals cannot appear in variable declaration patterns
+test/parser/ast/pattern/string_literal_error.myte:3:8-14
+ 3 | val (x, "asdf", y): int = 1
+   |         ^^^^^^

@@ -1,0 +1,3 @@
+module test
+
+val (x, true, y): int = 1

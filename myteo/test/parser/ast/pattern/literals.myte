@@ -1,0 +1,9 @@
+module test
+
+fun main() {
+  match (x) {
+    | ((), true, 1, "") -> 1
+    | -1 -> 2
+    | Tup (-1, true) -> 3
+  }
+}

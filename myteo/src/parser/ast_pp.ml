@@ -137,6 +137,7 @@ and node_of_statement stmt =
   | Break break -> node_of_break break
   | Continue continue -> node_of_continue continue
   | Assignment assign -> node_of_assignment assign
+  | Match match_ -> node_of_match match_
 
 and node_of_expression expr =
   let open Expression in
@@ -158,6 +159,7 @@ and node_of_expression expr =
   | Call call -> node_of_call call
   | IndexedAccess access -> node_of_indexed_access access
   | NamedAccess access -> node_of_named_access access
+  | Match match_ -> node_of_match match_
 
 and node_of_pattern pat =
   let open Pattern in
@@ -165,6 +167,7 @@ and node_of_pattern pat =
   | Identifier id -> node_of_identifier id
   | Tuple t -> node_of_tuple_pattern t
   | Record r -> node_of_record_pattern r
+  | Literal l -> node_of_literal_pattern l
 
 and node_of_type ty =
   let open Type in
@@ -340,6 +343,14 @@ and node_of_record_pattern_field field =
     loc
     [("name", opt node_of_identifier name); ("value", node_of_pattern value)]
 
+and node_of_literal_pattern lit =
+  let open Pattern.Literal in
+  match lit with
+  | Unit unit -> node_of_unit unit
+  | Bool lit -> node_of_bool_literal lit
+  | Int lit -> node_of_int_literal lit
+  | String lit -> node_of_string_literal lit
+
 and node_of_block block =
   let { Statement.Block.loc; statements } = block in
   node "Block" loc [("statements", List (List.map node_of_statement statements))]
@@ -374,6 +385,31 @@ and node_of_continue continue =
 and node_of_assignment assign =
   let { Statement.Assignment.loc; pattern; expr } = assign in
   node "Assignment" loc [("pattern", node_of_pattern pattern); ("expr", node_of_expression expr)]
+
+and node_of_match match_ =
+  let { Match.loc; args; cases } = match_ in
+  node
+    "Match"
+    loc
+    [
+      ("args", List (List.map node_of_expression args));
+      ("cases", List (List.map node_of_match_case cases));
+    ]
+
+and node_of_match_case case =
+  let open Match.Case in
+  let { loc; pattern; guard; right } = case in
+  node
+    "MatchCase"
+    loc
+    [
+      ("pattern", node_of_pattern pattern);
+      ("guard", opt node_of_expression guard);
+      ( "right",
+        match right with
+        | Expression expr -> node_of_expression expr
+        | Statement stmt -> node_of_statement stmt );
+    ]
 
 and node_of_variable_decl decl =
   let { Statement.VariableDeclaration.loc; kind; pattern; init; annot } = decl in

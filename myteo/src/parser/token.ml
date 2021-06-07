@@ -39,6 +39,8 @@ type t =
   | T_RETURN
   | T_BREAK
   | T_CONTINUE
+  | T_MATCH
+  | T_WHEN
   | T_MODULE
   | T_IMPORT
   | T_AS
@@ -98,6 +100,8 @@ let to_string token =
   | T_RETURN -> "return"
   | T_BREAK -> "break"
   | T_CONTINUE -> "continue"
+  | T_MATCH -> "match"
+  | T_WHEN -> "when"
   | T_MODULE -> "module"
   | T_IMPORT -> "import"
   | T_AS -> "as"

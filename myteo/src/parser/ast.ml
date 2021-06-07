@@ -115,6 +115,7 @@ and Statement : sig
     | Break of Break.t
     | Continue of Continue.t
     | Assignment of Assignment.t
+    | Match of Match.t
 end =
   Statement
 
@@ -277,6 +278,7 @@ and Expression : sig
     | Call of Call.t
     | IndexedAccess of IndexedAccess.t
     | NamedAccess of NamedAccess.t
+    | Match of Match.t
 end =
   Expression
 
@@ -305,10 +307,19 @@ and Pattern : sig
     }
   end
 
+  module Literal : sig
+    type t =
+      | Unit of Expression.Unit.t
+      | Bool of Expression.BoolLiteral.t
+      | Int of Expression.IntLiteral.t
+      | String of Expression.StringLiteral.t
+  end
+
   type t =
     | Identifier of Identifier.t
     | Tuple of Tuple.t
     | Record of Record.t
+    | Literal of Literal.t
 end =
   Pattern
 
@@ -444,6 +455,28 @@ and Identifier : sig
   }
 end =
   Identifier
+
+and Match : sig
+  module Case : sig
+    type right =
+      | Expression of Expression.t
+      | Statement of Statement.t
+
+    and t = {
+      loc: Loc.t;
+      pattern: Pattern.t;
+      guard: Expression.t option;
+      right: right;
+    }
+  end
+
+  type t = {
+    loc: Loc.t;
+    args: Expression.t list;
+    cases: Case.t list;
+  }
+end =
+  Match
 
 and ScopedIdentifier : sig
   type t = {

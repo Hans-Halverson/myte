@@ -1,3 +1,0 @@
-module test
-
-val (): int = 1

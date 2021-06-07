@@ -649,7 +649,9 @@ class bindings_builder ~module_tree =
       (* Resolve all scoped ids in named tuple and record patterns *)
       let rec resolve_scoped_ids patt =
         match patt with
-        | Identifier _ -> ()
+        | Literal _
+        | Identifier _ ->
+          ()
         | Tuple { Tuple.name; elements; _ } ->
           Option.iter this#resolve_scoped_value_id name;
           List.iter (fun element -> resolve_scoped_ids element) elements

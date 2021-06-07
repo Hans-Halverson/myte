@@ -702,6 +702,7 @@ and check_expression ~cx expr =
     );
     (loc, tvar_id)
   | Ternary _ -> failwith "TODO: Type checking for ternary expression"
+  | Match _ -> failwith "TODO: Type check match expressions"
 
 and check_pattern ~cx patt =
   let open Ast.Pattern in
@@ -847,6 +848,7 @@ and check_pattern ~cx patt =
     in
     ignore (Type_context.unify ~cx ty (TVar tvar_id));
     (loc, tvar_id)
+  | Literal _ -> failwith "TODO: Type check pattern literals"
 
 and check_statement ~cx stmt =
   let open Ast.Statement in
@@ -882,6 +884,7 @@ and check_statement ~cx stmt =
     let (_, pattern_tvar_id) = check_pattern ~cx pattern in
     let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
     Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) (TVar pattern_tvar_id)
+  | Match _ -> failwith "TODO: Type check match statements"
 
 let resolve_unresolved_int_literals ~cx =
   while not (LocSet.is_empty cx.unresolved_int_literals) do

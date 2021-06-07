@@ -165,10 +165,11 @@ and parse_statement env =
   match Env.token env with
   | T_LEFT_BRACE -> Block (parse_block env)
   | T_IF -> parse_if env
+  | T_MATCH -> Match (parse_match env)
   | T_WHILE -> parse_while env
-  | T_RETURN -> parse_return env
-  | T_BREAK -> parse_break env
-  | T_CONTINUE -> parse_continue env
+  | T_RETURN -> parse_return ~in_match_case:false env
+  | T_BREAK -> parse_break ~in_match_case:false env
+  | T_CONTINUE -> parse_continue ~in_match_case:false env
   | T_VAL
   | T_VAR ->
     VariableDeclaration (parse_variable_declaration ~is_toplevel:false env)
@@ -211,6 +212,7 @@ and parse_expression_prefix env =
   | T_MINUS
   | T_LOGICAL_NOT ->
     parse_unary_expression env
+  | T_MATCH -> Match (parse_match env)
   | T_IDENTIFIER _ -> Expression.Identifier (parse_identifier env)
   | T_INT_LITERAL (raw, base) ->
     let loc = Env.loc env in
@@ -294,6 +296,22 @@ and parse_parenthesized_expression env =
       Env.expect env T_RIGHT_PAREN;
       expr)
 
+(* When current token is a minus, if next token is an int literal then consume the minus and
+   int literal and return the negative int literal, otherwise consume the minus and return None. *)
+and maybe_parse_negative_int_literal env =
+  let marker = mark_loc env in
+  let minus_loc = Env.loc env in
+  Env.expect env T_MINUS;
+  let next_loc = Env.loc env in
+  let no_whitespace_after_op = Loc.pos_equal minus_loc._end next_loc.start in
+  (* A minus sign directly in front of a numeric literal should be treated as part of that literal *)
+  match Env.token env with
+  | T_INT_LITERAL (raw, base) when no_whitespace_after_op ->
+    Env.advance env;
+    let loc = marker env in
+    Some { Expression.IntLiteral.loc; raw = "-" ^ raw; base }
+  | _ -> None
+
 and parse_unary_expression env =
   let open Expression.UnaryOperation in
   let marker = mark_loc env in
@@ -304,20 +322,19 @@ and parse_unary_expression env =
     | T_LOGICAL_NOT -> LogicalNot
     | _ -> failwith "Invalid prefix operator"
   in
-  let op_loc = Env.loc env in
-  Env.advance env;
-  let next_loc = Env.loc env in
-  let no_whitespace_after_op = Loc.pos_equal op_loc._end next_loc.start in
-  (* A minus sign directly in front of a numeric literal should be treated as part of that literal *)
-  match Env.token env with
-  | T_INT_LITERAL (raw, base) when op = Minus && no_whitespace_after_op ->
+  if op = Minus then
+    match maybe_parse_negative_int_literal env with
+    | Some lit -> IntLiteral lit
+    | None ->
+      let operand = parse_expression ~precedence:Unary env in
+      let loc = marker env in
+      Expression.UnaryOperation { loc; operand; op }
+  else (
     Env.advance env;
-    let loc = marker env in
-    IntLiteral { Expression.IntLiteral.loc; raw = "-" ^ raw; base }
-  | _ ->
     let operand = parse_expression ~precedence:Unary env in
     let loc = marker env in
     Expression.UnaryOperation { loc; operand; op }
+  )
 
 and parse_binary_operation env left marker =
   let open Expression.BinaryOperation in
@@ -490,13 +507,39 @@ and parse_scoped_identifier env =
   let loc = marker env in
   { ScopedIdentifier.loc; name; scopes }
 
-and parse_pattern env =
+and parse_pattern ~is_decl env =
+  let open Pattern in
   match Env.token env with
-  | T_IDENTIFIER _ -> parse_identifier_pattern env
-  | T_LEFT_PAREN -> parse_anonymous_tuple_pattern env
+  | T_IDENTIFIER _ -> parse_identifier_pattern ~is_decl env
+  | T_LEFT_PAREN -> parse_parenthesized_pattern ~is_decl env
+  (* Literals are not allowed in declaration patterns *)
+  | T_BOOL_LITERAL _
+  | T_INT_LITERAL _
+  | T_STRING_LITERAL _
+    when is_decl ->
+    Parse_error.fatal (Env.loc env, LiteralInPattern)
+  (* Literals in declaration patterns are allowed *)
+  | T_BOOL_LITERAL value ->
+    let loc = Env.loc env in
+    Env.advance env;
+    Literal (Literal.Bool { Expression.BoolLiteral.loc; value })
+  | T_INT_LITERAL (raw, base) ->
+    let loc = Env.loc env in
+    Env.advance env;
+    Literal (Literal.Int { Expression.IntLiteral.loc; raw; base })
+  | T_STRING_LITERAL value ->
+    let loc = Env.loc env in
+    Env.advance env;
+    Literal (Literal.String { Expression.StringLiteral.loc; value })
+  (* Minus may be start of negative int literal if not in declaration *)
+  | T_MINUS when not is_decl ->
+    let minus_loc = Env.loc env in
+    (match maybe_parse_negative_int_literal env with
+    | Some lit -> Literal (Literal.Int lit)
+    | None -> Parse_error.fatal (minus_loc, MalformedPattern T_MINUS))
   | token -> Parse_error.fatal (Env.loc env, MalformedPattern token)
 
-and parse_identifier_pattern env =
+and parse_identifier_pattern ~is_decl env =
   let open Pattern in
   let marker = mark_loc env in
   let id = parse_identifier env in
@@ -517,37 +560,48 @@ and parse_identifier_pattern env =
     let loc = marker env in
     let scoped_id = { Ast.ScopedIdentifier.loc; scopes; name } in
     (match Env.token env with
-    | T_LEFT_PAREN -> parse_tuple_pattern env scoped_id marker
-    | T_LEFT_BRACE -> parse_record_pattern env scoped_id marker
+    | T_LEFT_PAREN -> parse_tuple_pattern ~is_decl env scoped_id marker
+    | T_LEFT_BRACE -> parse_record_pattern ~is_decl env scoped_id marker
     | token -> Parse_error.fatal (Env.loc env, MalformedPattern token))
   | _ -> Identifier id
 
-and parse_anonymous_tuple_pattern env =
+and parse_parenthesized_pattern ~is_decl env =
   let open Pattern in
   let marker = mark_loc env in
   Env.expect env T_LEFT_PAREN;
-  let first_element = parse_pattern env in
-  Env.expect env T_COMMA;
-  let rec parse_elements () =
-    match Env.token env with
-    | T_RIGHT_PAREN ->
-      Env.advance env;
-      []
-    | _ ->
-      let element = parse_pattern env in
-      begin
-        match Env.token env with
-        | T_RIGHT_PAREN -> ()
-        | T_COMMA -> Env.advance env
-        | _ -> Env.expect env T_RIGHT_PAREN
-      end;
-      element :: parse_elements ()
-  in
-  let elements = first_element :: parse_elements () in
-  let loc = marker env in
-  Tuple { loc; name = None; elements }
+  match Env.token env with
+  (* A unit literal can appear in non-declaration patterns *)
+  | T_RIGHT_PAREN ->
+    Env.advance env;
+    let loc = marker env in
+    if is_decl then
+      Parse_error.fatal (loc, LiteralInPattern)
+    else
+      Literal (Literal.Unit { Expression.Unit.loc })
+  (* Otherwise this is an anonymous tuple pattern *)
+  | _ ->
+    let first_element = parse_pattern ~is_decl env in
+    Env.expect env T_COMMA;
+    let rec parse_elements () =
+      match Env.token env with
+      | T_RIGHT_PAREN ->
+        Env.advance env;
+        []
+      | _ ->
+        let element = parse_pattern ~is_decl env in
+        begin
+          match Env.token env with
+          | T_RIGHT_PAREN -> ()
+          | T_COMMA -> Env.advance env
+          | _ -> Env.expect env T_RIGHT_PAREN
+        end;
+        element :: parse_elements ()
+    in
+    let elements = first_element :: parse_elements () in
+    let loc = marker env in
+    Tuple { loc; name = None; elements }
 
-and parse_tuple_pattern env name marker =
+and parse_tuple_pattern ~is_decl env name marker =
   let open Pattern in
   Env.expect env T_LEFT_PAREN;
   let rec parse_elements () =
@@ -556,7 +610,7 @@ and parse_tuple_pattern env name marker =
       Env.advance env;
       []
     | _ ->
-      let element = parse_pattern env in
+      let element = parse_pattern ~is_decl env in
       begin
         match Env.token env with
         | T_RIGHT_PAREN -> ()
@@ -570,7 +624,7 @@ and parse_tuple_pattern env name marker =
   if elements = [] then Parse_error.fatal (loc, EmptyTuple);
   Tuple { loc; name = Some name; elements }
 
-and parse_record_pattern env name marker =
+and parse_record_pattern ~is_decl env name marker =
   let open Pattern in
   Env.expect env T_LEFT_BRACE;
   let rec parse_fields () =
@@ -593,7 +647,7 @@ and parse_record_pattern env name marker =
           { Field.loc; name = None; value = Identifier name }
         | _ ->
           Env.expect env T_COLON;
-          let value = parse_pattern env in
+          let value = parse_pattern ~is_decl env in
           let loc = marker env in
           (match Env.token env with
           | T_RIGHT_BRACE -> ()
@@ -610,6 +664,73 @@ and parse_record_pattern env name marker =
   let loc = marker env in
   if fields = [] then Parse_error.fatal (loc, EmptyRecord);
   Record { loc; name; fields }
+
+and parse_match env =
+  let open Match in
+  let marker = mark_loc env in
+  Env.expect env T_MATCH;
+  (* Parse arguments *)
+  Env.expect env T_LEFT_PAREN;
+  let rec parse_args () =
+    let arg = parse_expression env in
+    match Env.token env with
+    | T_RIGHT_PAREN -> [arg]
+    | T_COMMA ->
+      Env.advance env;
+      (* Optionally accept trailing comma *)
+      (match Env.token env with
+      | T_RIGHT_PAREN -> [arg]
+      | _ -> arg :: parse_args ())
+    | _ ->
+      Env.expect env T_RIGHT_PAREN;
+      []
+  in
+  let args = parse_args () in
+  Env.expect env T_RIGHT_PAREN;
+  (* Parse match cases *)
+  Env.expect env T_LEFT_BRACE;
+  (* Pipe for first variant is optional *)
+  (match Env.token env with
+  | T_PIPE -> Env.advance env
+  | _ -> ());
+  let rec parse_cases () =
+    let marker = mark_loc env in
+    let pattern = parse_pattern ~is_decl:false env in
+    let guard =
+      match Env.token env with
+      | T_WHEN ->
+        Env.advance env;
+        Some (parse_expression env)
+      | _ -> None
+    in
+    Env.expect env T_ARROW;
+    let right =
+      match Env.token env with
+      (* Only certain statements are allowed as right hand side *)
+      | T_LEFT_BRACE -> Case.Statement (Statement.Block (parse_block env))
+      | T_IF -> Case.Statement (parse_if env)
+      | T_MATCH -> Case.Statement (Statement.Match (parse_match env))
+      | T_WHILE -> Case.Statement (parse_while env)
+      | T_RETURN -> Case.Statement (parse_return ~in_match_case:true env)
+      | T_BREAK -> Case.Statement (parse_break ~in_match_case:true env)
+      | T_CONTINUE -> Case.Statement (parse_continue ~in_match_case:true env)
+      | _ -> Case.Expression (parse_expression env)
+    in
+    let loc = marker env in
+    let case = { Case.loc; pattern; guard; right } in
+    match Env.token env with
+    | T_PIPE ->
+      Env.advance env;
+      case :: parse_cases ()
+    | T_RIGHT_BRACE -> [case]
+    | _ ->
+      Env.expect env T_RIGHT_BRACE;
+      []
+  in
+  let cases = parse_cases () in
+  Env.expect env T_RIGHT_BRACE;
+  let loc = marker env in
+  { loc; args; cases }
 
 and parse_block env =
   let open Statement in
@@ -656,30 +777,43 @@ and parse_while env =
   let loc = marker env in
   Statement.While { loc; test; body }
 
-and parse_return env =
+and parse_return ~in_match_case env =
   let open Statement.Return in
   let marker = mark_loc env in
   Env.expect env T_RETURN;
   let arg =
     match Env.token env with
     | T_SEMICOLON -> None
+    (* Handle the following cases:
+       match (x) {
+         | a -> return
+       }
+
+       match (x) {
+         | a -> return
+         | b -> c
+       } *)
+    | T_PIPE
+    | T_RIGHT_BRACE
+      when in_match_case ->
+      None
     | _ -> Some (parse_expression env)
   in
-  Env.expect env T_SEMICOLON;
+  if not in_match_case then Env.expect env T_SEMICOLON;
   let loc = marker env in
   Statement.Return { loc; arg }
 
-and parse_break env =
+and parse_break ~in_match_case env =
   let marker = mark_loc env in
   Env.expect env T_BREAK;
-  Env.expect env T_SEMICOLON;
+  if not in_match_case then Env.expect env T_SEMICOLON;
   let loc = marker env in
   Statement.Break { loc }
 
-and parse_continue env =
+and parse_continue ~in_match_case env =
   let marker = mark_loc env in
   Env.expect env T_CONTINUE;
-  Env.expect env T_SEMICOLON;
+  if not in_match_case then Env.expect env T_SEMICOLON;
   let loc = marker env in
   Statement.Continue { loc }
 
@@ -804,7 +938,7 @@ and parse_variable_declaration ~is_toplevel env =
     | _ -> failwith "Must be called on variable declaration"
   in
   Env.advance env;
-  let pattern = parse_pattern env in
+  let pattern = parse_pattern ~is_decl:true env in
   let annot =
     match Env.token env with
     | T_COLON ->

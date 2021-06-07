@@ -1,0 +1,96 @@
+module test
+
+fun optionalLeadingPipe() {
+  // Without leading pipe
+  match (x) {
+      a -> a
+  }
+
+  match (x) {
+      a -> a
+    | b -> b
+    | c -> c
+  }
+
+  // With leading pipe
+  match (x) {
+    | a -> a
+  }
+
+  match (x) {
+    | a -> a
+    | b -> b
+    | c -> c
+  }
+}
+
+fun matchExpression() {
+  val x = match (x) {
+    | a -> a
+  };
+}
+
+fun multipleArgs() {
+  match (x, 1 + 2, foo()) {
+    | a -> a
+  }
+}
+
+fun argsTrailingComma() {
+  match (x,) {
+    | a -> a
+  }
+
+  match (x, y, z,) {
+    | a -> a
+  }
+}
+
+fun guards() {
+  match (x) {
+    | a when a > 1 -> a
+    | b -> b
+    | c when c > 1 -> c
+  }
+}
+
+fun complexPatterns() {
+  match (x) {
+    | (a, b, c) -> 1
+    | Tup (d, e) -> 2
+    | Rec { field } -> 3
+  }
+}
+
+fun literalsInPatterns() {
+  match (x) {
+    | () -> a
+    | true -> b
+    | 1 -> c
+    | "" -> d
+  }
+}
+
+fun rightHandExpression() {
+  match (x) {
+    | a -> 1 + a * 2
+  }
+}
+
+fun rightHandStatements() {
+  // All statements allowed on the right hand side of match cases
+  match (x) {
+    | a -> { 1; }
+    | b -> if (true) { 1; } else { 2; }
+    | c -> while (true) { 1; }
+    | d -> return
+    | e -> return 1
+    | f -> break
+    | g -> continue
+  }
+
+  // Handle return without argument at end
+  match (x) {
+    | a -> return
+  }
+}

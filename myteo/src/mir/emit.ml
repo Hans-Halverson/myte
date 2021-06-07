@@ -317,6 +317,7 @@ and emit_statement ~pcx ~ecx stmt =
       Ecx.emit ~ecx (StoreGlobal (mk_binding_name binding, expr_val))
     else
       Ecx.emit ~ecx (Mov (mk_cf_local use_loc, expr_val))
+  | Match _ -> failwith "TODO: Convert match statements to IR"
   | VariableDeclaration { pattern; init; _ } ->
     (* TODO: Emit MIR for arbitrary patterns *)
     let { Identifier.loc; _ } = List.hd (Ast_utils.ids_of_pattern pattern) in

@@ -1,0 +1,7 @@
+module test
+
+fun main() {
+  match () {
+    | a -> a
+  }
+}

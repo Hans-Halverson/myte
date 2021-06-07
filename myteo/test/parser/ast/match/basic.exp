@@ -1,0 +1,1048 @@
+test/parser/ast/match/basic.myte
+{
+  node: Module,
+  loc: 1:0-96:1,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: Function,
+      loc: 3:0-25:1,
+      name: {
+        node: Identifier,
+        loc: 3:4-3:23,
+        name: "optionalLeadingPipe",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 3:26-25:1,
+        statements: [
+          {
+            node: Match,
+            loc: 5:2-7:3,
+            args: [
+              {
+                node: Identifier,
+                loc: 5:9-5:10,
+                name: "x",
+              },
+            ],
+            cases: [
+              {
+                node: MatchCase,
+                loc: 6:6-6:12,
+                pattern: {
+                  node: Identifier,
+                  loc: 6:6-6:7,
+                  name: "a",
+                },
+                guard: None,
+                right: {
+                  node: Identifier,
+                  loc: 6:11-6:12,
+                  name: "a",
+                },
+              },
+            ],
+          },
+          {
+            node: Match,
+            loc: 9:2-13:3,
+            args: [
+              {
+                node: Identifier,
+                loc: 9:9-9:10,
+                name: "x",
+              },
+            ],
+            cases: [
+              {
+                node: MatchCase,
+                loc: 10:6-10:12,
+                pattern: {
+                  node: Identifier,
+                  loc: 10:6-10:7,
+                  name: "a",
+                },
+                guard: None,
+                right: {
+                  node: Identifier,
+                  loc: 10:11-10:12,
+                  name: "a",
+                },
+              },
+              {
+                node: MatchCase,
+                loc: 11:6-11:12,
+                pattern: {
+                  node: Identifier,
+                  loc: 11:6-11:7,
+                  name: "b",
+                },
+                guard: None,
+                right: {
+                  node: Identifier,
+                  loc: 11:11-11:12,
+                  name: "b",
+                },
+              },
+              {
+                node: MatchCase,
+                loc: 12:6-12:12,
+                pattern: {
+                  node: Identifier,
+                  loc: 12:6-12:7,
+                  name: "c",
+                },
+                guard: None,
+                right: {
+                  node: Identifier,
+                  loc: 12:11-12:12,
+                  name: "c",
+                },
+              },
+            ],
+          },
+          {
+            node: Match,
+            loc: 16:2-18:3,
+            args: [
+              {
+                node: Identifier,
+                loc: 16:9-16:10,
+                name: "x",
+              },
+            ],
+            cases: [
+              {
+                node: MatchCase,
+                loc: 17:6-17:12,
+                pattern: {
+                  node: Identifier,
+                  loc: 17:6-17:7,
+                  name: "a",
+                },
+                guard: None,
+                right: {
+                  node: Identifier,
+                  loc: 17:11-17:12,
+                  name: "a",
+                },
+              },
+            ],
+          },
+          {
+            node: Match,
+            loc: 20:2-24:3,
+            args: [
+              {
+                node: Identifier,
+                loc: 20:9-20:10,
+                name: "x",
+              },
+            ],
+            cases: [
+              {
+                node: MatchCase,
+                loc: 21:6-21:12,
+                pattern: {
+                  node: Identifier,
+                  loc: 21:6-21:7,
+                  name: "a",
+                },
+                guard: None,
+                right: {
+                  node: Identifier,
+                  loc: 21:11-21:12,
+                  name: "a",
+                },
+              },
+              {
+                node: MatchCase,
+                loc: 22:6-22:12,
+                pattern: {
+                  node: Identifier,
+                  loc: 22:6-22:7,
+                  name: "b",
+                },
+                guard: None,
+                right: {
+                  node: Identifier,
+                  loc: 22:11-22:12,
+                  name: "b",
+                },
+              },
+              {
+                node: MatchCase,
+                loc: 23:6-23:12,
+                pattern: {
+                  node: Identifier,
+                  loc: 23:6-23:7,
+                  name: "c",
+                },
+                guard: None,
+                right: {
+                  node: Identifier,
+                  loc: 23:11-23:12,
+                  name: "c",
+                },
+              },
+            ],
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+    },
+    {
+      node: Function,
+      loc: 27:0-31:1,
+      name: {
+        node: Identifier,
+        loc: 27:4-27:19,
+        name: "matchExpression",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 27:22-31:1,
+        statements: [
+          {
+            node: VariableDeclaration,
+            loc: 28:2-30:4,
+            kind: Immutable,
+            pattern: {
+              node: Identifier,
+              loc: 28:6-28:7,
+              name: "x",
+            },
+            init: {
+              node: Match,
+              loc: 28:10-30:3,
+              args: [
+                {
+                  node: Identifier,
+                  loc: 28:17-28:18,
+                  name: "x",
+                },
+              ],
+              cases: [
+                {
+                  node: MatchCase,
+                  loc: 29:6-29:12,
+                  pattern: {
+                    node: Identifier,
+                    loc: 29:6-29:7,
+                    name: "a",
+                  },
+                  guard: None,
+                  right: {
+                    node: Identifier,
+                    loc: 29:11-29:12,
+                    name: "a",
+                  },
+                },
+              ],
+            },
+            annot: None,
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+    },
+    {
+      node: Function,
+      loc: 33:0-37:1,
+      name: {
+        node: Identifier,
+        loc: 33:4-33:16,
+        name: "multipleArgs",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 33:19-37:1,
+        statements: [
+          {
+            node: Match,
+            loc: 34:2-36:3,
+            args: [
+              {
+                node: Identifier,
+                loc: 34:9-34:10,
+                name: "x",
+              },
+              {
+                node: BinaryOperation,
+                loc: 34:12-34:17,
+                op: Add,
+                left: {
+                  node: IntLiteral,
+                  loc: 34:12-34:13,
+                  raw: "1",
+                },
+                right: {
+                  node: IntLiteral,
+                  loc: 34:16-34:17,
+                  raw: "2",
+                },
+              },
+              {
+                node: Call,
+                loc: 34:19-34:24,
+                func: {
+                  node: Identifier,
+                  loc: 34:19-34:22,
+                  name: "foo",
+                },
+                args: [],
+              },
+            ],
+            cases: [
+              {
+                node: MatchCase,
+                loc: 35:6-35:12,
+                pattern: {
+                  node: Identifier,
+                  loc: 35:6-35:7,
+                  name: "a",
+                },
+                guard: None,
+                right: {
+                  node: Identifier,
+                  loc: 35:11-35:12,
+                  name: "a",
+                },
+              },
+            ],
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+    },
+    {
+      node: Function,
+      loc: 39:0-47:1,
+      name: {
+        node: Identifier,
+        loc: 39:4-39:21,
+        name: "argsTrailingComma",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 39:24-47:1,
+        statements: [
+          {
+            node: Match,
+            loc: 40:2-42:3,
+            args: [
+              {
+                node: Identifier,
+                loc: 40:9-40:10,
+                name: "x",
+              },
+            ],
+            cases: [
+              {
+                node: MatchCase,
+                loc: 41:6-41:12,
+                pattern: {
+                  node: Identifier,
+                  loc: 41:6-41:7,
+                  name: "a",
+                },
+                guard: None,
+                right: {
+                  node: Identifier,
+                  loc: 41:11-41:12,
+                  name: "a",
+                },
+              },
+            ],
+          },
+          {
+            node: Match,
+            loc: 44:2-46:3,
+            args: [
+              {
+                node: Identifier,
+                loc: 44:9-44:10,
+                name: "x",
+              },
+              {
+                node: Identifier,
+                loc: 44:12-44:13,
+                name: "y",
+              },
+              {
+                node: Identifier,
+                loc: 44:15-44:16,
+                name: "z",
+              },
+            ],
+            cases: [
+              {
+                node: MatchCase,
+                loc: 45:6-45:12,
+                pattern: {
+                  node: Identifier,
+                  loc: 45:6-45:7,
+                  name: "a",
+                },
+                guard: None,
+                right: {
+                  node: Identifier,
+                  loc: 45:11-45:12,
+                  name: "a",
+                },
+              },
+            ],
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+    },
+    {
+      node: Function,
+      loc: 49:0-55:1,
+      name: {
+        node: Identifier,
+        loc: 49:4-49:10,
+        name: "guards",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 49:13-55:1,
+        statements: [
+          {
+            node: Match,
+            loc: 50:2-54:3,
+            args: [
+              {
+                node: Identifier,
+                loc: 50:9-50:10,
+                name: "x",
+              },
+            ],
+            cases: [
+              {
+                node: MatchCase,
+                loc: 51:6-51:23,
+                pattern: {
+                  node: Identifier,
+                  loc: 51:6-51:7,
+                  name: "a",
+                },
+                guard: {
+                  node: BinaryOperation,
+                  loc: 51:13-51:18,
+                  op: GreaterThan,
+                  left: {
+                    node: Identifier,
+                    loc: 51:13-51:14,
+                    name: "a",
+                  },
+                  right: {
+                    node: IntLiteral,
+                    loc: 51:17-51:18,
+                    raw: "1",
+                  },
+                },
+                right: {
+                  node: Identifier,
+                  loc: 51:22-51:23,
+                  name: "a",
+                },
+              },
+              {
+                node: MatchCase,
+                loc: 52:6-52:12,
+                pattern: {
+                  node: Identifier,
+                  loc: 52:6-52:7,
+                  name: "b",
+                },
+                guard: None,
+                right: {
+                  node: Identifier,
+                  loc: 52:11-52:12,
+                  name: "b",
+                },
+              },
+              {
+                node: MatchCase,
+                loc: 53:6-53:23,
+                pattern: {
+                  node: Identifier,
+                  loc: 53:6-53:7,
+                  name: "c",
+                },
+                guard: {
+                  node: BinaryOperation,
+                  loc: 53:13-53:18,
+                  op: GreaterThan,
+                  left: {
+                    node: Identifier,
+                    loc: 53:13-53:14,
+                    name: "c",
+                  },
+                  right: {
+                    node: IntLiteral,
+                    loc: 53:17-53:18,
+                    raw: "1",
+                  },
+                },
+                right: {
+                  node: Identifier,
+                  loc: 53:22-53:23,
+                  name: "c",
+                },
+              },
+            ],
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+    },
+    {
+      node: Function,
+      loc: 57:0-63:1,
+      name: {
+        node: Identifier,
+        loc: 57:4-57:19,
+        name: "complexPatterns",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 57:22-63:1,
+        statements: [
+          {
+            node: Match,
+            loc: 58:2-62:3,
+            args: [
+              {
+                node: Identifier,
+                loc: 58:9-58:10,
+                name: "x",
+              },
+            ],
+            cases: [
+              {
+                node: MatchCase,
+                loc: 59:6-59:20,
+                pattern: {
+                  node: TuplePattern,
+                  loc: 59:6-59:15,
+                  name: None,
+                  elements: [
+                    {
+                      node: Identifier,
+                      loc: 59:7-59:8,
+                      name: "a",
+                    },
+                    {
+                      node: Identifier,
+                      loc: 59:10-59:11,
+                      name: "b",
+                    },
+                    {
+                      node: Identifier,
+                      loc: 59:13-59:14,
+                      name: "c",
+                    },
+                  ],
+                },
+                guard: None,
+                right: {
+                  node: IntLiteral,
+                  loc: 59:19-59:20,
+                  raw: "1",
+                },
+              },
+              {
+                node: MatchCase,
+                loc: 60:6-60:21,
+                pattern: {
+                  node: TuplePattern,
+                  loc: 60:6-60:16,
+                  name: {
+                    node: ScopedIdentifier,
+                    loc: 60:6-60:9,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 60:6-60:9,
+                      name: "Tup",
+                    },
+                  },
+                  elements: [
+                    {
+                      node: Identifier,
+                      loc: 60:11-60:12,
+                      name: "d",
+                    },
+                    {
+                      node: Identifier,
+                      loc: 60:14-60:15,
+                      name: "e",
+                    },
+                  ],
+                },
+                guard: None,
+                right: {
+                  node: IntLiteral,
+                  loc: 60:20-60:21,
+                  raw: "2",
+                },
+              },
+              {
+                node: MatchCase,
+                loc: 61:6-61:24,
+                pattern: {
+                  node: RecordPattern,
+                  loc: 61:6-61:19,
+                  name: {
+                    node: ScopedIdentifier,
+                    loc: 61:6-61:9,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 61:6-61:9,
+                      name: "Rec",
+                    },
+                  },
+                  fields: [
+                    {
+                      node: RecordPatternField,
+                      loc: 61:12-61:17,
+                      name: None,
+                      value: {
+                        node: Identifier,
+                        loc: 61:12-61:17,
+                        name: "field",
+                      },
+                    },
+                  ],
+                },
+                guard: None,
+                right: {
+                  node: IntLiteral,
+                  loc: 61:23-61:24,
+                  raw: "3",
+                },
+              },
+            ],
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+    },
+    {
+      node: Function,
+      loc: 65:0-72:1,
+      name: {
+        node: Identifier,
+        loc: 65:4-65:22,
+        name: "literalsInPatterns",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 65:25-72:1,
+        statements: [
+          {
+            node: Match,
+            loc: 66:2-71:3,
+            args: [
+              {
+                node: Identifier,
+                loc: 66:9-66:10,
+                name: "x",
+              },
+            ],
+            cases: [
+              {
+                node: MatchCase,
+                loc: 67:6-67:13,
+                pattern: {
+                  node: Unit,
+                  loc: 67:6-67:8,
+                },
+                guard: None,
+                right: {
+                  node: Identifier,
+                  loc: 67:12-67:13,
+                  name: "a",
+                },
+              },
+              {
+                node: MatchCase,
+                loc: 68:6-68:15,
+                pattern: {
+                  node: BoolLiteral,
+                  loc: 68:6-68:10,
+                  value: true,
+                },
+                guard: None,
+                right: {
+                  node: Identifier,
+                  loc: 68:14-68:15,
+                  name: "b",
+                },
+              },
+              {
+                node: MatchCase,
+                loc: 69:6-69:12,
+                pattern: {
+                  node: IntLiteral,
+                  loc: 69:6-69:7,
+                  raw: "1",
+                },
+                guard: None,
+                right: {
+                  node: Identifier,
+                  loc: 69:11-69:12,
+                  name: "c",
+                },
+              },
+              {
+                node: MatchCase,
+                loc: 70:6-70:13,
+                pattern: {
+                  node: StringLiteral,
+                  loc: 70:6-70:8,
+                  value: "",
+                },
+                guard: None,
+                right: {
+                  node: Identifier,
+                  loc: 70:12-70:13,
+                  name: "d",
+                },
+              },
+            ],
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+    },
+    {
+      node: Function,
+      loc: 74:0-78:1,
+      name: {
+        node: Identifier,
+        loc: 74:4-74:23,
+        name: "rightHandExpression",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 74:26-78:1,
+        statements: [
+          {
+            node: Match,
+            loc: 75:2-77:3,
+            args: [
+              {
+                node: Identifier,
+                loc: 75:9-75:10,
+                name: "x",
+              },
+            ],
+            cases: [
+              {
+                node: MatchCase,
+                loc: 76:6-76:20,
+                pattern: {
+                  node: Identifier,
+                  loc: 76:6-76:7,
+                  name: "a",
+                },
+                guard: None,
+                right: {
+                  node: BinaryOperation,
+                  loc: 76:11-76:20,
+                  op: Add,
+                  left: {
+                    node: IntLiteral,
+                    loc: 76:11-76:12,
+                    raw: "1",
+                  },
+                  right: {
+                    node: BinaryOperation,
+                    loc: 76:15-76:20,
+                    op: Multiply,
+                    left: {
+                      node: Identifier,
+                      loc: 76:15-76:16,
+                      name: "a",
+                    },
+                    right: {
+                      node: IntLiteral,
+                      loc: 76:19-76:20,
+                      raw: "2",
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+    },
+    {
+      node: Function,
+      loc: 80:0-96:1,
+      name: {
+        node: Identifier,
+        loc: 80:4-80:23,
+        name: "rightHandStatements",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 80:26-96:1,
+        statements: [
+          {
+            node: Match,
+            loc: 82:2-90:3,
+            args: [
+              {
+                node: Identifier,
+                loc: 82:9-82:10,
+                name: "x",
+              },
+            ],
+            cases: [
+              {
+                node: MatchCase,
+                loc: 83:6-83:17,
+                pattern: {
+                  node: Identifier,
+                  loc: 83:6-83:7,
+                  name: "a",
+                },
+                guard: None,
+                right: {
+                  node: Block,
+                  loc: 83:11-83:17,
+                  statements: [
+                    {
+                      node: ExpressionStatement,
+                      loc: 83:13-83:15,
+                      expression: {
+                        node: IntLiteral,
+                        loc: 83:13-83:14,
+                        raw: "1",
+                      },
+                    },
+                  ],
+                },
+              },
+              {
+                node: MatchCase,
+                loc: 84:6-84:39,
+                pattern: {
+                  node: Identifier,
+                  loc: 84:6-84:7,
+                  name: "b",
+                },
+                guard: None,
+                right: {
+                  node: If,
+                  loc: 84:11-84:39,
+                  test: {
+                    node: BoolLiteral,
+                    loc: 84:15-84:19,
+                    value: true,
+                  },
+                  conseq: {
+                    node: Block,
+                    loc: 84:21-84:27,
+                    statements: [
+                      {
+                        node: ExpressionStatement,
+                        loc: 84:23-84:25,
+                        expression: {
+                          node: IntLiteral,
+                          loc: 84:23-84:24,
+                          raw: "1",
+                        },
+                      },
+                    ],
+                  },
+                  altern: {
+                    node: Block,
+                    loc: 84:33-84:39,
+                    statements: [
+                      {
+                        node: ExpressionStatement,
+                        loc: 84:35-84:37,
+                        expression: {
+                          node: IntLiteral,
+                          loc: 84:35-84:36,
+                          raw: "2",
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+              {
+                node: MatchCase,
+                loc: 85:6-85:30,
+                pattern: {
+                  node: Identifier,
+                  loc: 85:6-85:7,
+                  name: "c",
+                },
+                guard: None,
+                right: {
+                  node: While,
+                  loc: 85:11-85:30,
+                  test: {
+                    node: BoolLiteral,
+                    loc: 85:18-85:22,
+                    value: true,
+                  },
+                  body: {
+                    node: Block,
+                    loc: 85:24-85:30,
+                    statements: [
+                      {
+                        node: ExpressionStatement,
+                        loc: 85:26-85:28,
+                        expression: {
+                          node: IntLiteral,
+                          loc: 85:26-85:27,
+                          raw: "1",
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+              {
+                node: MatchCase,
+                loc: 86:6-86:17,
+                pattern: {
+                  node: Identifier,
+                  loc: 86:6-86:7,
+                  name: "d",
+                },
+                guard: None,
+                right: {
+                  node: Return,
+                  loc: 86:11-86:17,
+                  arg: None,
+                },
+              },
+              {
+                node: MatchCase,
+                loc: 87:6-87:19,
+                pattern: {
+                  node: Identifier,
+                  loc: 87:6-87:7,
+                  name: "e",
+                },
+                guard: None,
+                right: {
+                  node: Return,
+                  loc: 87:11-87:19,
+                  arg: {
+                    node: IntLiteral,
+                    loc: 87:18-87:19,
+                    raw: "1",
+                  },
+                },
+              },
+              {
+                node: MatchCase,
+                loc: 88:6-88:16,
+                pattern: {
+                  node: Identifier,
+                  loc: 88:6-88:7,
+                  name: "f",
+                },
+                guard: None,
+                right: {
+                  node: Break,
+                  loc: 88:11-88:16,
+                },
+              },
+              {
+                node: MatchCase,
+                loc: 89:6-89:19,
+                pattern: {
+                  node: Identifier,
+                  loc: 89:6-89:7,
+                  name: "g",
+                },
+                guard: None,
+                right: {
+                  node: Continue,
+                  loc: 89:11-89:19,
+                },
+              },
+            ],
+          },
+          {
+            node: Match,
+            loc: 93:2-95:3,
+            args: [
+              {
+                node: Identifier,
+                loc: 93:9-93:10,
+                name: "x",
+              },
+            ],
+            cases: [
+              {
+                node: MatchCase,
+                loc: 94:6-94:17,
+                pattern: {
+                  node: Identifier,
+                  loc: 94:6-94:7,
+                  name: "a",
+                },
+                guard: None,
+                right: {
+                  node: Return,
+                  loc: 94:11-94:17,
+                  arg: None,
+                },
+              },
+            ],
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+    },
+  ],
+}

@@ -52,6 +52,7 @@ class mapper =
         | Break s -> id_map this#break s stmt (fun s' -> Break s')
         | Continue s -> id_map this#continue s stmt (fun s' -> Continue s')
         | Assignment s -> id_map this#assignment s stmt (fun s' -> Assignment s')
+        | Match s -> id_map this#match_ s stmt (fun s' -> Match s')
 
     method expression : Expression.t -> Expression.t =
       fun expr ->
@@ -74,6 +75,7 @@ class mapper =
         | Call e -> id_map this#call e expr (fun e' -> Call e')
         | IndexedAccess e -> id_map this#indexed_access e expr (fun e' -> IndexedAccess e')
         | NamedAccess e -> id_map this#named_access e expr (fun e' -> NamedAccess e')
+        | Match e -> id_map this#match_ e expr (fun e' -> Match e')
 
     method pattern : Pattern.t -> Pattern.t =
       fun pat ->
@@ -82,6 +84,7 @@ class mapper =
         | Identifier p -> id_map this#identifier p pat (fun p' -> Identifier p')
         | Tuple e -> id_map this#tuple_pattern e pat (fun e' -> Tuple e')
         | Record e -> id_map this#record_pattern e pat (fun e' -> Record e')
+        | Literal e -> id_map this#literal_pattern e pat (fun e' -> Literal e')
 
     method type_ : Type.t -> Type.t =
       fun ty ->
@@ -277,6 +280,14 @@ class mapper =
       else
         { loc; name = name'; value = value' }
 
+    method literal_pattern lit =
+      let open Pattern.Literal in
+      match lit with
+      | Unit l -> id_map this#unit l lit (fun l' -> Unit l')
+      | Bool l -> id_map this#bool_literal l lit (fun l' -> Bool l')
+      | Int l -> id_map this#int_literal l lit (fun l' -> Int l')
+      | String l -> id_map this#string_literal l lit (fun l' -> String l')
+
     method tuple_pattern tuple =
       let open Pattern.Tuple in
       let { loc; name; elements } = tuple in
@@ -389,6 +400,31 @@ class mapper =
         assign
       else
         { loc; pattern = pattern'; expr = expr' }
+
+    method match_ match_ =
+      let open Match in
+      let { loc; args; cases } = match_ in
+      let args' = id_map_list this#expression args in
+      let cases' = id_map_list this#match_case cases in
+      if args == args' && cases == cases' then
+        match_
+      else
+        { loc; args = args'; cases = cases' }
+
+    method match_case case =
+      let open Match.Case in
+      let { loc; pattern; guard; right } = case in
+      let pattern' = this#pattern pattern in
+      let guard' = id_map_opt this#expression guard in
+      let right' =
+        match right with
+        | Expression e -> id_map this#expression e right (fun e' -> Expression e')
+        | Statement s -> id_map this#statement s right (fun s' -> Statement s')
+      in
+      if pattern == pattern' && guard == guard' && right == right' then
+        case
+      else
+        { loc; pattern = pattern'; guard = guard'; right = right' }
 
     method variable_declaration decl =
       let open Statement.VariableDeclaration in

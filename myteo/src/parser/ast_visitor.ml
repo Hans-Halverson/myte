@@ -37,6 +37,7 @@ class ['a] visitor =
         | Break s -> this#break acc s
         | Continue s -> this#continue acc s
         | Assignment s -> this#assignment acc s
+        | Match s -> this#match_ acc s
 
     method expression : 'a -> Expression.t -> unit =
       fun acc expr ->
@@ -59,6 +60,7 @@ class ['a] visitor =
         | Call e -> this#call acc e
         | IndexedAccess e -> this#indexed_access acc e
         | NamedAccess e -> this#named_access acc e
+        | Match e -> this#match_ acc e
 
     method pattern : 'a -> Pattern.t -> unit =
       fun acc pat ->
@@ -67,6 +69,7 @@ class ['a] visitor =
         | Identifier p -> this#identifier acc p
         | Tuple t -> this#tuple_pattern acc t
         | Record r -> this#record_pattern acc r
+        | Literal l -> this#literal_pattern acc l
 
     method type_ : 'a -> Type.t -> unit =
       fun acc ty ->
@@ -194,6 +197,14 @@ class ['a] visitor =
       Option.iter (this#identifier acc) name;
       this#pattern acc value
 
+    method literal_pattern acc lit =
+      let open Pattern.Literal in
+      match lit with
+      | Unit lit -> this#unit acc lit
+      | Bool lit -> this#bool_literal acc lit
+      | Int lit -> this#int_literal acc lit
+      | String lit -> this#string_literal acc lit
+
     method tuple_pattern acc tuple =
       let open Pattern.Tuple in
       let { loc = _; name; elements } = tuple in
@@ -262,6 +273,21 @@ class ['a] visitor =
       let { loc = _; pattern; expr } = assign in
       this#pattern acc pattern;
       this#expression acc expr
+
+    method match_ acc match_ =
+      let open Match in
+      let { loc = _; args; cases } = match_ in
+      List.iter (this#expression acc) args;
+      List.iter (this#match_case acc) cases
+
+    method match_case acc case =
+      let open Match.Case in
+      let { loc = _; pattern; guard; right } = case in
+      this#pattern acc pattern;
+      Option.iter (this#expression acc) guard;
+      match right with
+      | Expression expr -> this#expression acc expr
+      | Statement stmt -> this#statement acc stmt
 
     method variable_declaration acc decl =
       let open Statement.VariableDeclaration in

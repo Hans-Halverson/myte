@@ -1,5 +1,5 @@
 module Test
 
 fun main() {
-  val 1 = 1;
+  val / = 1;
 }

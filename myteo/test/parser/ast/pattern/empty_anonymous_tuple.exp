@@ -1,4 +1,0 @@
-Error: Unexpected token `)`, expected start of pattern
-test/parser/ast/pattern/empty_anonymous_tuple.myte:3:5
- 3 | val (): int = 1
-   |      ^

@@ -12,7 +12,8 @@ let statement_loc stmt =
   | Return { Return.loc; _ }
   | Break { Break.loc; _ }
   | Continue { Continue.loc }
-  | Assignment { Assignment.loc; _ } ->
+  | Assignment { Assignment.loc; _ }
+  | Match { Match.loc; _ } ->
     loc
 
 let expression_loc expr =
@@ -34,7 +35,8 @@ let expression_loc expr =
   | Ternary { loc; _ }
   | Call { loc; _ }
   | IndexedAccess { loc; _ }
-  | NamedAccess { loc; _ } ->
+  | NamedAccess { loc; _ }
+  | Match { loc; _ } ->
     loc
 
 let rec statement_visitor ~f ?(enter_functions = true) stmt =
@@ -48,6 +50,13 @@ let rec statement_visitor ~f ?(enter_functions = true) stmt =
   | While { While.body; _ } -> statement_visitor ~f body
   | FunctionDeclaration { Function.body = Function.Block block; _ } ->
     if enter_functions then statement_visitor ~f (Block block)
+  | Match { Match.cases; _ } ->
+    List.iter
+      (fun { Match.Case.right; _ } ->
+        match right with
+        | Match.Case.Statement stmt -> statement_visitor ~f stmt
+        | _ -> ())
+      cases
   | FunctionDeclaration { Function.body = Function.Expression _; _ }
   | VariableDeclaration _
   | Expression _
@@ -61,6 +70,7 @@ let ids_of_pattern patt =
   let rec helper patt acc =
     let open Pattern in
     match patt with
+    | Literal _ -> acc
     | Identifier id -> id :: acc
     | Tuple { Tuple.elements; _ } ->
       List.fold_left (fun acc element -> helper element acc) acc elements

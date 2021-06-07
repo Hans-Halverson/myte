@@ -122,6 +122,8 @@ let tokenize lex =
   | "return" -> token_result T_RETURN
   | "break" -> token_result T_BREAK
   | "continue" -> token_result T_CONTINUE
+  | "match" -> token_result T_MATCH
+  | "when" -> token_result T_WHEN
   | "module" -> token_result T_MODULE
   | "import" -> token_result T_IMPORT
   | "as" -> token_result T_AS
