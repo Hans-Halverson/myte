@@ -349,7 +349,7 @@ test/parser/ast/type/function.myte
         loc: 13:17-13:28,
         params: [
           {
-            node: CustomType,
+            node: IdentifierType,
             loc: 13:21-13:22,
             name: {
               node: ScopedIdentifier,
@@ -361,10 +361,11 @@ test/parser/ast/type/function.myte
                 name: "A",
               },
             },
+            type_params: [],
           },
         ],
         return: {
-          node: CustomType,
+          node: IdentifierType,
           loc: 13:27-13:28,
           name: {
             node: ScopedIdentifier,
@@ -376,6 +377,7 @@ test/parser/ast/type/function.myte
               name: "A",
             },
           },
+          type_params: [],
         },
         type_params: [
           {
@@ -404,7 +406,7 @@ test/parser/ast/type/function.myte
         loc: 14:17-14:29,
         params: [
           {
-            node: CustomType,
+            node: IdentifierType,
             loc: 14:22-14:23,
             name: {
               node: ScopedIdentifier,
@@ -416,10 +418,11 @@ test/parser/ast/type/function.myte
                 name: "A",
               },
             },
+            type_params: [],
           },
         ],
         return: {
-          node: CustomType,
+          node: IdentifierType,
           loc: 14:28-14:29,
           name: {
             node: ScopedIdentifier,
@@ -431,6 +434,7 @@ test/parser/ast/type/function.myte
               name: "A",
             },
           },
+          type_params: [],
         },
         type_params: [
           {

@@ -73,7 +73,7 @@ class ['a] visitor =
         let open Type in
         match ty with
         | Primitive t -> this#primitive_type acc t
-        | Custom t -> this#custom_type acc t
+        | Identifier t -> this#identifier_type acc t
         | Tuple t -> this#tuple_type acc t
         | Function t -> this#function_type acc t
 
@@ -312,10 +312,11 @@ class ['a] visitor =
 
     method primitive_type _acc _prim = ()
 
-    method custom_type acc custom =
-      let open Type.Custom in
-      let { loc = _; name } = custom in
-      this#scoped_identifier acc name
+    method identifier_type acc id =
+      let open Type.Identifier in
+      let { loc = _; name; type_params } = id in
+      this#scoped_identifier acc name;
+      List.iter (this#type_ acc) type_params
 
     method tuple_type acc tuple =
       let open Type.Tuple in

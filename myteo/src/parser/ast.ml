@@ -328,10 +328,11 @@ and Type : sig
     }
   end
 
-  module Custom : sig
+  module Identifier : sig
     type t = {
       loc: Loc.t;
       name: ScopedIdentifier.t;
+      type_params: Type.t list;
     }
   end
 
@@ -353,7 +354,7 @@ and Type : sig
 
   type t =
     | Primitive of Primitive.t
-    | Custom of Custom.t
+    | Identifier of Identifier.t
     | Tuple of Tuple.t
     | Function of Function.t
 end =

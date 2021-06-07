@@ -393,7 +393,7 @@ test/parser/ast/type_declaration/variant.myte
                 name: "k",
               },
               type: {
-                node: CustomType,
+                node: IdentifierType,
                 loc: 22:12-22:21,
                 name: {
                   node: ScopedIdentifier,
@@ -405,6 +405,7 @@ test/parser/ast/type_declaration/variant.myte
                     name: "OtherType",
                   },
                 },
+                type_params: [],
               },
             },
           ],
@@ -446,7 +447,7 @@ test/parser/ast/type_declaration/variant.myte
           },
           elements: [
             {
-              node: CustomType,
+              node: IdentifierType,
               loc: 24:26-24:27,
               name: {
                 node: ScopedIdentifier,
@@ -458,6 +459,7 @@ test/parser/ast/type_declaration/variant.myte
                   name: "T",
                 },
               },
+              type_params: [],
             },
           ],
         },
@@ -511,7 +513,7 @@ test/parser/ast/type_declaration/variant.myte
           },
           elements: [
             {
-              node: CustomType,
+              node: IdentifierType,
               loc: 26:29-26:30,
               name: {
                 node: ScopedIdentifier,
@@ -523,6 +525,7 @@ test/parser/ast/type_declaration/variant.myte
                   name: "T",
                 },
               },
+              type_params: [],
             },
           ],
         },
@@ -536,7 +539,7 @@ test/parser/ast/type_declaration/variant.myte
           },
           elements: [
             {
-              node: CustomType,
+              node: IdentifierType,
               loc: 26:44-26:45,
               name: {
                 node: ScopedIdentifier,
@@ -548,6 +551,7 @@ test/parser/ast/type_declaration/variant.myte
                   name: "U",
                 },
               },
+              type_params: [],
             },
           ],
         },
@@ -561,7 +565,7 @@ test/parser/ast/type_declaration/variant.myte
           },
           elements: [
             {
-              node: CustomType,
+              node: IdentifierType,
               loc: 26:59-26:60,
               name: {
                 node: ScopedIdentifier,
@@ -573,6 +577,7 @@ test/parser/ast/type_declaration/variant.myte
                   name: "V",
                 },
               },
+              type_params: [],
             },
           ],
         },

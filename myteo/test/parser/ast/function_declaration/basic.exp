@@ -233,7 +233,7 @@ test/parser/ast/function_declaration/basic.myte
             name: "a",
           },
           annot: {
-            node: CustomType,
+            node: IdentifierType,
             loc: 13:14-13:15,
             name: {
               node: ScopedIdentifier,
@@ -245,6 +245,7 @@ test/parser/ast/function_declaration/basic.myte
                 name: "A",
               },
             },
+            type_params: [],
           },
         },
       ],
@@ -284,7 +285,7 @@ test/parser/ast/function_declaration/basic.myte
             name: "a",
           },
           annot: {
-            node: CustomType,
+            node: IdentifierType,
             loc: 15:21-15:22,
             name: {
               node: ScopedIdentifier,
@@ -296,6 +297,7 @@ test/parser/ast/function_declaration/basic.myte
                 name: "A",
               },
             },
+            type_params: [],
           },
         },
         {
@@ -307,7 +309,7 @@ test/parser/ast/function_declaration/basic.myte
             name: "b",
           },
           annot: {
-            node: CustomType,
+            node: IdentifierType,
             loc: 15:27-15:28,
             name: {
               node: ScopedIdentifier,
@@ -319,6 +321,7 @@ test/parser/ast/function_declaration/basic.myte
                 name: "B",
               },
             },
+            type_params: [],
           },
         },
       ],
@@ -328,7 +331,7 @@ test/parser/ast/function_declaration/basic.myte
         statements: [],
       },
       return: {
-        node: CustomType,
+        node: IdentifierType,
         loc: 15:31-15:32,
         name: {
           node: ScopedIdentifier,
@@ -340,6 +343,7 @@ test/parser/ast/function_declaration/basic.myte
             name: "C",
           },
         },
+        type_params: [],
       },
       type_params: [
         {
@@ -389,7 +393,7 @@ test/parser/ast/function_declaration/basic.myte
             name: "a",
           },
           annot: {
-            node: CustomType,
+            node: IdentifierType,
             loc: 17:21-17:22,
             name: {
               node: ScopedIdentifier,
@@ -401,6 +405,7 @@ test/parser/ast/function_declaration/basic.myte
                 name: "A",
               },
             },
+            type_params: [],
           },
         },
         {
@@ -412,7 +417,7 @@ test/parser/ast/function_declaration/basic.myte
             name: "b",
           },
           annot: {
-            node: CustomType,
+            node: IdentifierType,
             loc: 17:27-17:28,
             name: {
               node: ScopedIdentifier,
@@ -424,6 +429,7 @@ test/parser/ast/function_declaration/basic.myte
                 name: "B",
               },
             },
+            type_params: [],
           },
         },
       ],
@@ -433,7 +439,7 @@ test/parser/ast/function_declaration/basic.myte
         statements: [],
       },
       return: {
-        node: CustomType,
+        node: IdentifierType,
         loc: 17:31-17:32,
         name: {
           node: ScopedIdentifier,
@@ -445,6 +451,7 @@ test/parser/ast/function_declaration/basic.myte
             name: "C",
           },
         },
+        type_params: [],
       },
       type_params: [
         {

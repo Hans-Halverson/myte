@@ -17,7 +17,8 @@ let rec build_type ~cx ty =
   | Tuple { Tuple.elements; _ } -> Types.Tuple (List.map (build_type ~cx) elements)
   | Function { Function.params; return; _ } ->
     Types.Function { params = List.map (build_type ~cx) params; return = build_type ~cx return }
-  | Custom { Custom.name = { Ast.ScopedIdentifier.name = { Ast.Identifier.loc; _ }; _ }; _ } ->
+  | Identifier { Identifier.name = { Ast.ScopedIdentifier.name = { Ast.Identifier.loc; _ }; _ }; _ }
+    ->
     TVar (Type_context.get_tvar_id_from_type_use ~cx loc)
 
 and visit_type_declarations_prepass ~cx module_ =

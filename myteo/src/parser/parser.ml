@@ -888,7 +888,7 @@ and parse_type_prefix env =
     Primitive (parse_primitive_type env)
   | T_LEFT_PAREN -> parse_parenthesized_type env
   | T_LESS_THAN -> parse_function_type_with_type_params env
-  | T_IDENTIFIER _ -> Custom (parse_custom_type env)
+  | T_IDENTIFIER _ -> Identifier (parse_identifier_type env)
   | token -> Parse_error.fatal (Env.loc env, MalformedType token)
 
 and parse_primitive_type env =
@@ -949,12 +949,39 @@ and parse_parenthesized_type_or_params ?(trailing_comma_loc = None) env =
     let (tys, trailing_comma_loc) = parse_parenthesized_type_or_params ~trailing_comma_loc env in
     (ty :: tys, trailing_comma_loc)
 
-and parse_custom_type env =
-  let open Type.Custom in
+and parse_identifier_type env =
+  let open Type.Identifier in
   let marker = mark_loc env in
   let name = parse_scoped_identifier env in
+  let type_params =
+    match Env.token env with
+    | T_LESS_THAN ->
+      Env.advance env;
+      (* List of type params must be nonempty *)
+      if Env.token env = T_GREATER_THAN then (
+        Env.expect env (T_IDENTIFIER "");
+        []
+      ) else
+        let rec type_params env =
+          match Env.token env with
+          | T_GREATER_THAN ->
+            Env.advance env;
+            []
+          | _ ->
+            let ty = parse_type env in
+            begin
+              match Env.token env with
+              | T_GREATER_THAN -> ()
+              | T_COMMA -> Env.advance env
+              | _ -> Env.expect env T_GREATER_THAN
+            end;
+            ty :: type_params env
+        in
+        type_params env
+    | _ -> []
+  in
   let loc = marker env in
-  { loc; name }
+  { loc; name; type_params }
 
 and parse_function_type env params type_params marker =
   let open Ast.Type in

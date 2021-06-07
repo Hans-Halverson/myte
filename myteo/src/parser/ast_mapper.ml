@@ -88,7 +88,7 @@ class mapper =
         let open Type in
         match ty with
         | Primitive t -> id_map this#primitive_type t ty (fun t' -> Primitive t')
-        | Custom t -> id_map this#custom_type t ty (fun t' -> Custom t')
+        | Identifier t -> id_map this#identifier_type t ty (fun t' -> Identifier t')
         | Tuple t -> id_map this#tuple_type t ty (fun t' -> Tuple t')
         | Function t -> id_map this#function_type t ty (fun t' -> Function t')
 
@@ -473,14 +473,15 @@ class mapper =
 
     method primitive_type prim = prim
 
-    method custom_type custom =
-      let open Type.Custom in
-      let { loc; name } = custom in
+    method identifier_type id =
+      let open Type.Identifier in
+      let { loc; name; type_params } = id in
       let name' = this#scoped_identifier name in
-      if name == name' then
-        custom
+      let type_params' = id_map_list this#type_ type_params in
+      if name == name' && type_params == type_params' then
+        id
       else
-        { loc; name = name' }
+        { loc; name = name'; type_params = type_params' }
 
     method tuple_type tuple =
       let open Type.Tuple in

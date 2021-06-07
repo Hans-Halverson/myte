@@ -14,3 +14,10 @@ val x: int => string => bool => string = 1
 val x: Custom1 = 1
 val x: Custom1.Custom2.Custom3 = 1
 val x: Custom1.Custom2 => Custom3.Custom4 => Custom5.Custom6 = 1
+
+// Type parameters
+val x: Id<A> = 1
+val x: ID<A, B, C> = 1
+val x: ID<A, B, C,> = 1
+val x: ID<ID<ID<A>>> = 1
+val x: ID<(A, int)> = 1

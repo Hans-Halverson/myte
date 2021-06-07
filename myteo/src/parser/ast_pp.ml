@@ -170,7 +170,7 @@ and node_of_type ty =
   let open Type in
   match ty with
   | Primitive prim -> node_of_primitive_type prim
-  | Custom custom -> node_of_custom_type custom
+  | Identifier id -> node_of_identifier_type id
   | Tuple tuple -> node_of_tuple_type tuple
   | Function func -> node_of_function_type func
 
@@ -474,9 +474,15 @@ and node_of_primitive_type p =
   let { Type.Primitive.loc; kind } = p in
   node "PrimitiveType" loc [("kind", Raw (string_of_primitive_type kind))]
 
-and node_of_custom_type named =
-  let { Type.Custom.loc; name } = named in
-  node "CustomType" loc [("name", node_of_scoped_identifier name)]
+and node_of_identifier_type id =
+  let { Type.Identifier.loc; name; type_params } = id in
+  node
+    "IdentifierType"
+    loc
+    [
+      ("name", node_of_scoped_identifier name);
+      ("type_params", List (List.map node_of_type type_params));
+    ]
 
 and node_of_tuple_type tuple =
   let { Type.Tuple.loc; elements } = tuple in

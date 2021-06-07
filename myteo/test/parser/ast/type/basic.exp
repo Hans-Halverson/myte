@@ -1,7 +1,7 @@
 test/parser/ast/type/basic.myte
 {
   node: Module,
-  loc: 1:0-16:64,
+  loc: 1:0-23:23,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -284,7 +284,7 @@ test/parser/ast/type/basic.myte
         raw: "1",
       },
       annot: {
-        node: CustomType,
+        node: IdentifierType,
         loc: 14:7-14:14,
         name: {
           node: ScopedIdentifier,
@@ -296,6 +296,7 @@ test/parser/ast/type/basic.myte
             name: "Custom1",
           },
         },
+        type_params: [],
       },
     },
     {
@@ -313,7 +314,7 @@ test/parser/ast/type/basic.myte
         raw: "1",
       },
       annot: {
-        node: CustomType,
+        node: IdentifierType,
         loc: 15:7-15:30,
         name: {
           node: ScopedIdentifier,
@@ -336,6 +337,7 @@ test/parser/ast/type/basic.myte
             name: "Custom3",
           },
         },
+        type_params: [],
       },
     },
     {
@@ -357,7 +359,7 @@ test/parser/ast/type/basic.myte
         loc: 16:7-16:60,
         params: [
           {
-            node: CustomType,
+            node: IdentifierType,
             loc: 16:7-16:22,
             name: {
               node: ScopedIdentifier,
@@ -375,6 +377,7 @@ test/parser/ast/type/basic.myte
                 name: "Custom2",
               },
             },
+            type_params: [],
           },
         ],
         return: {
@@ -382,7 +385,7 @@ test/parser/ast/type/basic.myte
           loc: 16:26-16:60,
           params: [
             {
-              node: CustomType,
+              node: IdentifierType,
               loc: 16:26-16:41,
               name: {
                 node: ScopedIdentifier,
@@ -400,10 +403,11 @@ test/parser/ast/type/basic.myte
                   name: "Custom4",
                 },
               },
+              type_params: [],
             },
           ],
           return: {
-            node: CustomType,
+            node: IdentifierType,
             loc: 16:45-16:60,
             name: {
               node: ScopedIdentifier,
@@ -421,10 +425,344 @@ test/parser/ast/type/basic.myte
                 name: "Custom6",
               },
             },
+            type_params: [],
           },
           type_params: [],
         },
         type_params: [],
+      },
+    },
+    {
+      node: VariableDeclaration,
+      loc: 19:0-19:16,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 19:4-19:5,
+        name: "x",
+      },
+      init: {
+        node: IntLiteral,
+        loc: 19:15-19:16,
+        raw: "1",
+      },
+      annot: {
+        node: IdentifierType,
+        loc: 19:7-19:12,
+        name: {
+          node: ScopedIdentifier,
+          loc: 19:7-19:9,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 19:7-19:9,
+            name: "Id",
+          },
+        },
+        type_params: [
+          {
+            node: IdentifierType,
+            loc: 19:10-19:11,
+            name: {
+              node: ScopedIdentifier,
+              loc: 19:10-19:11,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 19:10-19:11,
+                name: "A",
+              },
+            },
+            type_params: [],
+          },
+        ],
+      },
+    },
+    {
+      node: VariableDeclaration,
+      loc: 20:0-20:22,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 20:4-20:5,
+        name: "x",
+      },
+      init: {
+        node: IntLiteral,
+        loc: 20:21-20:22,
+        raw: "1",
+      },
+      annot: {
+        node: IdentifierType,
+        loc: 20:7-20:18,
+        name: {
+          node: ScopedIdentifier,
+          loc: 20:7-20:9,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 20:7-20:9,
+            name: "ID",
+          },
+        },
+        type_params: [
+          {
+            node: IdentifierType,
+            loc: 20:10-20:11,
+            name: {
+              node: ScopedIdentifier,
+              loc: 20:10-20:11,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 20:10-20:11,
+                name: "A",
+              },
+            },
+            type_params: [],
+          },
+          {
+            node: IdentifierType,
+            loc: 20:13-20:14,
+            name: {
+              node: ScopedIdentifier,
+              loc: 20:13-20:14,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 20:13-20:14,
+                name: "B",
+              },
+            },
+            type_params: [],
+          },
+          {
+            node: IdentifierType,
+            loc: 20:16-20:17,
+            name: {
+              node: ScopedIdentifier,
+              loc: 20:16-20:17,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 20:16-20:17,
+                name: "C",
+              },
+            },
+            type_params: [],
+          },
+        ],
+      },
+    },
+    {
+      node: VariableDeclaration,
+      loc: 21:0-21:23,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 21:4-21:5,
+        name: "x",
+      },
+      init: {
+        node: IntLiteral,
+        loc: 21:22-21:23,
+        raw: "1",
+      },
+      annot: {
+        node: IdentifierType,
+        loc: 21:7-21:19,
+        name: {
+          node: ScopedIdentifier,
+          loc: 21:7-21:9,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 21:7-21:9,
+            name: "ID",
+          },
+        },
+        type_params: [
+          {
+            node: IdentifierType,
+            loc: 21:10-21:11,
+            name: {
+              node: ScopedIdentifier,
+              loc: 21:10-21:11,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 21:10-21:11,
+                name: "A",
+              },
+            },
+            type_params: [],
+          },
+          {
+            node: IdentifierType,
+            loc: 21:13-21:14,
+            name: {
+              node: ScopedIdentifier,
+              loc: 21:13-21:14,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 21:13-21:14,
+                name: "B",
+              },
+            },
+            type_params: [],
+          },
+          {
+            node: IdentifierType,
+            loc: 21:16-21:17,
+            name: {
+              node: ScopedIdentifier,
+              loc: 21:16-21:17,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 21:16-21:17,
+                name: "C",
+              },
+            },
+            type_params: [],
+          },
+        ],
+      },
+    },
+    {
+      node: VariableDeclaration,
+      loc: 22:0-22:24,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 22:4-22:5,
+        name: "x",
+      },
+      init: {
+        node: IntLiteral,
+        loc: 22:23-22:24,
+        raw: "1",
+      },
+      annot: {
+        node: IdentifierType,
+        loc: 22:7-22:20,
+        name: {
+          node: ScopedIdentifier,
+          loc: 22:7-22:9,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 22:7-22:9,
+            name: "ID",
+          },
+        },
+        type_params: [
+          {
+            node: IdentifierType,
+            loc: 22:10-22:19,
+            name: {
+              node: ScopedIdentifier,
+              loc: 22:10-22:12,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 22:10-22:12,
+                name: "ID",
+              },
+            },
+            type_params: [
+              {
+                node: IdentifierType,
+                loc: 22:13-22:18,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 22:13-22:15,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 22:13-22:15,
+                    name: "ID",
+                  },
+                },
+                type_params: [
+                  {
+                    node: IdentifierType,
+                    loc: 22:16-22:17,
+                    name: {
+                      node: ScopedIdentifier,
+                      loc: 22:16-22:17,
+                      scopes: [],
+                      name: {
+                        node: Identifier,
+                        loc: 22:16-22:17,
+                        name: "A",
+                      },
+                    },
+                    type_params: [],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      node: VariableDeclaration,
+      loc: 23:0-23:23,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 23:4-23:5,
+        name: "x",
+      },
+      init: {
+        node: IntLiteral,
+        loc: 23:22-23:23,
+        raw: "1",
+      },
+      annot: {
+        node: IdentifierType,
+        loc: 23:7-23:19,
+        name: {
+          node: ScopedIdentifier,
+          loc: 23:7-23:9,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 23:7-23:9,
+            name: "ID",
+          },
+        },
+        type_params: [
+          {
+            node: TupleType,
+            loc: 23:10-23:18,
+            elements: [
+              {
+                node: IdentifierType,
+                loc: 23:11-23:12,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 23:11-23:12,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 23:11-23:12,
+                    name: "A",
+                  },
+                },
+                type_params: [],
+              },
+              {
+                node: PrimitiveType,
+                loc: 23:14-23:17,
+                kind: Int,
+              },
+            ],
+          },
+        ],
       },
     },
   ],

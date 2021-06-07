@@ -566,7 +566,7 @@ class bindings_builder ~module_tree =
     method! type_ ty =
       let open Ast.Type in
       match ty with
-      | Custom { name = { Ast.ScopedIdentifier.name; scopes = scope_ids; _ }; _ } ->
+      | Identifier { name = { Ast.ScopedIdentifier.name; scopes = scope_ids; _ }; _ } ->
         let open Ast.Identifier in
         let all_parts = scope_ids @ [name] in
         let (first_part, rest_parts) = List_utils.split_first all_parts in
