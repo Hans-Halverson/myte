@@ -1,0 +1,9 @@
+Error: Expected a tuple constructor
+test/analyze/type_check/destructuring/expected_tuple_constructor_error.myte:9:2-5
+ 9 |   Rec (x) = Rec { field: 1 };
+   |   ^^^
+
+Error: Expected a tuple constructor
+test/analyze/type_check/destructuring/expected_tuple_constructor_error.myte:10:2-8
+ 10 |   global (x) = 1;
+    |   ^^^^^^

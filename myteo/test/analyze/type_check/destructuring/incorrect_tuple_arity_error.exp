@@ -1,0 +1,4 @@
+Error: Incorrect number of arguments supplied to tuple constructor. Expected 2 arguments but found 3.
+test/analyze/type_check/destructuring/incorrect_tuple_arity_error.myte:10:2-15
+ 10 |   Tup (x, y, z) = Tup (1, "");
+    |   ^^^^^^^^^^^^^

@@ -1,0 +1,9 @@
+Error: Expected a record constructor
+test/analyze/type_check/destructuring/expected_record_constructor_error.myte:9:2-5
+ 9 |   Tup { field } = Tup (1);
+   |   ^^^
+
+Error: Expected a record constructor
+test/analyze/type_check/destructuring/expected_record_constructor_error.myte:10:2-8
+ 10 |   global { field } = 1;
+    |   ^^^^^^

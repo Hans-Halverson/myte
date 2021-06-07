@@ -1,0 +1,11 @@
+module test
+
+type Tup (int, string)
+
+fun main() {
+  var x: int = 1;
+  var y: string = "";
+  var z: bool = true;
+
+  Tup (x, y, z) = Tup (1, "");
+}

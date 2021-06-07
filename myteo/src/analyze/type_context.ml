@@ -308,16 +308,14 @@ let rec is_subtype ~cx sub sup =
     true
   | _ -> false
 
+let add_incompatible_types_error ~cx loc ty1 ty2 =
+  add_error ~cx loc (IncompatibleTypes (find_rep_type ~cx ty1, [find_rep_type ~cx ty2]))
+
 let assert_unify ~cx loc expected actual =
-  if not (unify ~cx expected actual) then
-    add_error ~cx loc (IncompatibleTypes (find_rep_type ~cx actual, [find_rep_type ~cx expected]))
+  if not (unify ~cx expected actual) then add_incompatible_types_error ~cx loc actual expected
 
 let assert_is_subtype ~cx loc sub sup =
-  if not (is_subtype ~cx sub sup) then
-    add_error
-      ~cx
-      loc
-      (Analyze_error.IncompatibleTypes (find_rep_type ~cx sub, [find_rep_type ~cx sup]))
+  if not (is_subtype ~cx sub sup) then add_incompatible_types_error ~cx loc sub sup
 
 let mk_int_literal_ty ~cx loc raw base =
   cx.unresolved_int_literals <- LocSet.add loc cx.unresolved_int_literals;

@@ -1,0 +1,29 @@
+Error: Record is missing field `field2`
+test/analyze/type_check/destructuring/mismatched_record_fields_errors.myte:9:2-17
+ 9 |   Rec1 { field1 } = rec1;
+   |   ^^^^^^^^^^^^^^^
+
+Error: Record is missing fields `field1` and `field3`
+test/analyze/type_check/destructuring/mismatched_record_fields_errors.myte:12:2-17
+ 12 |   Rec2 { field2 } = rec2;
+    |   ^^^^^^^^^^^^^^^
+
+Error: Record `Rec3` does not have a field named `nonexist1`
+test/analyze/type_check/destructuring/mismatched_record_fields_errors.myte:19:16-25
+ 19 |   Rec3 { field, nonexist1, nonexist2 } = rec3;
+    |                 ^^^^^^^^^
+
+Error: Record `Rec3` does not have a field named `nonexist2`
+test/analyze/type_check/destructuring/mismatched_record_fields_errors.myte:19:27-36
+ 19 |   Rec3 { field, nonexist1, nonexist2 } = rec3;
+    |                            ^^^^^^^^^
+
+Error: Expected type `int` but found `string`
+test/analyze/type_check/destructuring/mismatched_record_fields_errors.myte:27:9-15
+ 27 |   Rec2 { field1, nonexist } = rec2;
+    |          ^^^^^^
+
+Error: Record `Rec2` does not have a field named `nonexist`
+test/analyze/type_check/destructuring/mismatched_record_fields_errors.myte:27:17-25
+ 27 |   Rec2 { field1, nonexist } = rec2;
+    |                  ^^^^^^^^

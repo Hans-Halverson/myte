@@ -2,7 +2,7 @@ module Test
 
 fun intToString(x: int): string = "test"
 
-fun main() {
+fun simple() {
   val x1 = ();
   (x1: unit);
   (x1: int);
@@ -18,3 +18,17 @@ fun main() {
     (x3: int => string);
   }
 }
+
+
+type Tup (int, string, bool)
+type Rec { field1: int, field2: string, field3: bool }
+
+fun destructuring() {
+  val (a, b) = (1, "");
+  val Tup (c, d, _) = Tup (1, "", true);
+  val Rec { field1: e, field2: f, field3: _ } = Rec { field1: 1, field2: "", field3: true };
+
+  ((a, b, c, d, e, f): (int, string, int, string, int, string));
+}
+
+fun main() {}

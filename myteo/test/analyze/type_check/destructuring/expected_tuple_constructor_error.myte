@@ -1,0 +1,11 @@
+module test
+
+type Rec { field: int }
+
+val global: int = 1
+
+fun main() {
+  var x: int = 1;
+  Rec (x) = Rec { field: 1 };
+  global (x) = 1;
+}

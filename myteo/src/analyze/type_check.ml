@@ -158,19 +158,17 @@ and check_module ~cx module_ =
 and check_toplevel_variable_declaration_prepass ~cx decl =
   let open Ast.Statement.VariableDeclaration in
   let { loc; pattern; annot; _ } = decl in
-  (* TODO: Type check arbitrary patterns *)
-  let { Ast.Identifier.loc = id_loc; name = _ } = List.hd (Ast_utils.ids_of_pattern pattern) in
-  let tvar_id = Type_context.get_tvar_id_from_value_decl ~cx id_loc in
+  let (pattern_loc, pattern_tvar_id) = check_pattern ~cx pattern in
   match annot with
   | None -> Type_context.add_error ~cx loc ToplevelVarWithoutAnnotation
   | Some annot ->
     let annot_ty = build_type ~cx annot in
-    ignore (Type_context.unify ~cx annot_ty (TVar tvar_id))
+    Type_context.assert_unify ~cx pattern_loc annot_ty (Types.TVar pattern_tvar_id)
 
 and check_variable_declaration ~cx decl =
   let open Ast.Statement.VariableDeclaration in
   let { loc; pattern; init; annot; _ } = decl in
-  let (pattern_loc, pattern_ty) = check_pattern ~cx pattern in
+  let (pattern_loc, pattern_tvar_id) = check_pattern ~cx pattern in
   let (expr_loc, expr_tvar_id) = check_expression ~cx init in
   match annot with
   | None ->
@@ -179,7 +177,7 @@ and check_variable_declaration ~cx decl =
     let rep_ty = Type_context.find_rep_type ~cx (TVar expr_tvar_id) in
     let unresolved_tvars = Types.get_all_tvars_with_duplicates rep_ty in
     if unresolved_tvars = [] then
-      Type_context.assert_unify ~cx expr_loc (TVar expr_tvar_id) pattern_ty
+      Type_context.assert_unify ~cx expr_loc (TVar expr_tvar_id) (TVar pattern_tvar_id)
     else
       (* TODO: Test this error once we support unresolved tvars *)
       let partial =
@@ -190,8 +188,10 @@ and check_variable_declaration ~cx decl =
       Type_context.add_error ~cx loc (VarDeclNeedsAnnotation partial)
   | Some annot ->
     let annot_ty = build_type ~cx annot in
-    Type_context.assert_unify ~cx pattern_loc annot_ty pattern_ty;
-    Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) pattern_ty
+    if Type_context.unify ~cx annot_ty (TVar pattern_tvar_id) then
+      Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) (TVar pattern_tvar_id)
+    else
+      Type_context.add_incompatible_types_error ~cx pattern_loc (TVar pattern_tvar_id) annot_ty
 
 and check_type_parameters ~cx params =
   (* TODO: Add type checking for type parameters *)
@@ -706,13 +706,23 @@ and check_pattern ~cx patt =
   let open Ast.Pattern in
   match patt with
   | Identifier { Ast.Identifier.loc; _ } ->
-    (loc, Types.TVar (Type_context.get_tvar_id_from_value_use ~cx loc))
+    let decl_tvar_id = Type_context.get_tvar_id_from_value_use ~cx loc in
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    ignore (Type_context.unify ~cx (TVar decl_tvar_id) (TVar tvar_id));
+    (loc, tvar_id)
   | Tuple { loc; name = None; elements } ->
-    (loc, Types.Tuple (List.map (fun element -> snd (check_pattern ~cx element)) elements))
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    let element_tys =
+      List.map (fun element -> Types.TVar (snd (check_pattern ~cx element))) elements
+    in
+    let tuple_ty = Types.Tuple element_tys in
+    ignore (Type_context.unify ~cx tuple_ty (Types.TVar tvar_id));
+    (loc, tvar_id)
   | Tuple { loc; name = Some scoped_id; elements } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     (* TODO: Handle parameterized types by refreshing adt_sig's tvars then unifying actual element
        types with argument to refreshed variant sig *)
-    let _ = List.map (fun element -> snd (check_pattern ~cx element)) elements in
+    let element_locs_and_tvar_ids = List.map (fun element -> check_pattern ~cx element) elements in
     let tuple_adt_ty_opt =
       let { Ast.ScopedIdentifier.name = { Ast.Identifier.loc = name_loc; name }; _ } = scoped_id in
       let binding = Type_context.get_source_value_binding ~cx name_loc in
@@ -731,7 +741,13 @@ and check_pattern ~cx patt =
             loc
             (IncorrectTupleConstructorArity (List.length elements, List.length element_sigs));
           Some Types.Any
-        | TupleVariantSig _ -> Some adt
+        | TupleVariantSig element_sigs ->
+          List.iter2
+            (fun (element_loc, element_tvar_id) element_sig_ty ->
+              Type_context.assert_unify ~cx element_loc element_sig_ty (TVar element_tvar_id))
+            element_locs_and_tvar_ids
+            element_sigs;
+          Some adt
         | _ -> None)
       | _ -> None
     in
@@ -743,8 +759,10 @@ and check_pattern ~cx patt =
         Types.Any
       | Some ty -> ty
     in
-    (loc, ty)
+    ignore (Type_context.unify ~cx ty (TVar tvar_id));
+    (loc, tvar_id)
   | Record { loc; name = scoped_id; fields; _ } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     (* TODO: Handle parameterized types by refreshing adt_sig's tvars then unifying actual element
        types with argument to refreshed variant sig *)
     let record_adt_ty_opt =
@@ -772,7 +790,7 @@ and check_pattern ~cx patt =
                     | _ -> failwith "Record shorthand field value must be an identifier")
                   | Some name -> name
                 in
-                let field_param = check_pattern ~cx value |> snd in
+                let field_param = check_pattern ~cx value in
                 if SMap.mem name field_sigs then
                   (SMap.add name field_param field_params, unexpected_fields)
                 else
@@ -803,6 +821,12 @@ and check_pattern ~cx patt =
               ~cx
               loc
               (MissingRecordConstructorFields (List.rev missing_fields));
+          (* Supplied fields must each be a subtype of the field types *)
+          SMap.iter
+            (fun field_name (param_loc, param_tvar_id) ->
+              let field_sig_ty = SMap.find field_name field_sigs in
+              Type_context.assert_unify ~cx param_loc field_sig_ty (TVar param_tvar_id))
+            field_params;
           (* Result is algebraic data type unless the fields do not match,
              in which case propagate any *)
           if missing_fields = [] && unexpected_fields = [] then
@@ -820,7 +844,8 @@ and check_pattern ~cx patt =
         Types.Any
       | Some ty -> ty
     in
-    (loc, ty)
+    ignore (Type_context.unify ~cx ty (TVar tvar_id));
+    (loc, tvar_id)
 
 and check_statement ~cx stmt =
   let open Ast.Statement in
@@ -853,9 +878,9 @@ and check_statement ~cx stmt =
   | Continue _ ->
     ()
   | Assignment { Assignment.pattern; expr; _ } ->
-    let (_, pattern_ty) = check_pattern ~cx pattern in
+    let (_, pattern_tvar_id) = check_pattern ~cx pattern in
     let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
-    Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) pattern_ty
+    Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) (TVar pattern_tvar_id)
 
 let resolve_unresolved_int_literals ~cx =
   while not (LocSet.is_empty cx.unresolved_int_literals) do

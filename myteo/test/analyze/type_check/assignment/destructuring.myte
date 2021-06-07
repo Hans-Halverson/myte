@@ -1,0 +1,61 @@
+module test
+
+fun anonymousTuple() {
+  var x: int = 1;
+  var y: string = "";
+
+  // Success
+  (x, y) = (1, "");
+
+  // Type mismatch on overall pattern
+  (x, y) = 1;
+
+  // Type mismatch on subpattern
+  (x, y) = (1, 1);
+}
+
+type Tup (int, string, bool)
+
+fun namedTuple() {
+  var x: int = 1;
+  var y: string = "";
+  var z: bool = true;
+  Tup (x, y, z) = Tup (1, "", true);
+}
+
+type Rec { field1: int, field2: string, field3: bool }
+
+fun record() {
+  var x: int = 1;
+  var y: string = "";
+  var field3: bool = true;
+  Rec { field1: x, field2: y, field3 } = Rec { field1: 1, field2: "", field3: true };
+}
+
+fun nestedPatterns1() {
+  var a: int = 1;
+  var b: string = "";
+  var c: bool = true;
+  (a, (b, c)) = (1, ("", true));
+
+  var d: int = 1;
+  var e: (string, bool) = ("", true);
+  (d, e) = (1, ("", true));
+}
+
+type Tup2 ((int, string), bool)
+type Rec2 { field1: int, field2: Tup2 }
+
+fun nestedPatterns2(rec2: Rec2) {
+  var field1: int = 1;
+  var x: int = 1;
+  var y: string = "";
+  var z: bool = true;
+  Rec2 { field1, field2: Tup2 ((x, y), z) } = rec2;
+
+  var _: int = 1;
+  var field2: Tup2 = Tup2 ((1, ""), true);
+  Rec2 { field1: _, field2 } = rec2;
+}
+
+fun main() {}

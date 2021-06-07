@@ -7,3 +7,8 @@ Error: Toplevel variables must have type annotations
 test/analyze/type_check/variable_declaration/toplevel_missing_annotation.myte:5:0-10
  5 | var y = ()
    | ^^^^^^^^^^
+
+Error: Toplevel variables must have type annotations
+test/analyze/type_check/variable_declaration/toplevel_missing_annotation.myte:7:0-22
+ 7 | val (a, b) = (1, true)
+   | ^^^^^^^^^^^^^^^^^^^^^^

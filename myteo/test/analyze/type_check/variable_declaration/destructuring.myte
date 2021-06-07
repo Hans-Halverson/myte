@@ -1,0 +1,82 @@
+module test
+
+// Destructuring simple patterns
+
+fun anonymousTuple() {
+  val (x, y, z): (int, string, bool) = (1, "", true);
+
+  (x: int);
+  (y: string);
+  (z: bool);
+
+  // Display all type names
+  ((x, y, z): unit);
+}
+
+type Tup (int, string, bool)
+
+fun namedTuple() {
+  val Tup (x, y, z): Tup = Tup (1, "", true);
+
+  (x: int);
+  (y: string);
+  (z: bool);
+
+  // Display all type names
+  ((x, y, z): unit);
+}
+
+type Rec { field1: int, field2: string, field3: bool }
+
+fun record() {
+  val Rec { field1: x, field2: y, field3 }: Rec = Rec { field1: 1, field2: "", field3: true };
+
+  (x: int);
+  (y: string);
+  (field3: bool);
+
+  // Display all type names
+  ((x, y, field3): unit);
+}
+
+// Destructuring nested patterns
+
+fun nestedPatterns1() {
+  val (a, (b, c)): (int, (string, bool)) = (1, ("", true));
+  (a: int);
+  (b: string);
+  (c: bool);
+
+  val (d, e): (int, (string, bool)) = (1, ("", true));
+  (d: int);
+  (e: (string, bool));
+}
+
+type Tup2 ((int, string), bool)
+type Rec2 { field1: int, field2: Tup2 }
+
+fun nestedPatterns2(rec2: Rec2) {
+  val Rec2 { field1, field2: Tup2 ((x, y), z) }: Rec2 = rec2;
+  (field1: int);
+  (x: int);
+  (y: string);
+  (z: bool);
+
+  val Rec2 { field1: _, field2 }: Rec2 = rec2;
+  (field2: Tup2);
+}
+
+// Errors
+
+fun typeMismatchErrors() {
+  // Type mismatch on annotation
+  val (a, b): int = 1;
+
+  // Type mismatch on overall pattern
+  val (c, d): (int, string) = 1;
+
+  // Type mismatch on subpattern
+  val (e, f): (int, string) = (1, 1);
+}
+
+fun main() {}

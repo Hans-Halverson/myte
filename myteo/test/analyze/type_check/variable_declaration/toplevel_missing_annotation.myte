@@ -4,4 +4,6 @@ val x = 1
 
 var y = ()
 
+val (a, b) = (1, true)
+
 fun main() {}

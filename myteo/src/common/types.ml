@@ -50,14 +50,18 @@ let mk_tvar_id () =
 
 let mk_tvar () = TVar (mk_tvar_id ())
 
-let rec get_all_tvars_with_duplicates ty =
-  match ty with
-  | TVar tvar_id -> [tvar_id]
-  | Function { params; return } ->
-    List.map get_all_tvars_with_duplicates params
-    |> List.concat
-    |> List.append (get_all_tvars_with_duplicates return)
-  | _ -> []
+let get_all_tvars_with_duplicates ty =
+  let rec inner acc ty =
+    match ty with
+    | TVar tvar_id -> tvar_id :: acc
+    | Tuple elements -> List.fold_left inner acc elements
+    | Function { params; return } ->
+      let acc = List.fold_left inner acc params in
+      inner acc return
+    | ADT { tparams; _ } -> List.fold_left inner acc tparams
+    | _ -> acc
+  in
+  inner [] ty |> List.rev
 
 let get_all_tvars tys =
   let tvars_with_duplicates = List.map get_all_tvars_with_duplicates tys |> List.concat in
@@ -109,7 +113,9 @@ let rec pp_with_names ~tvar_to_name ty =
     else
       let pp_tparams = List.map (pp_with_names ~tvar_to_name) tparams in
       concat_and_wrap (name ^ "<", ">") pp_tparams
-  | TVar tvar_id -> IMap.find tvar_id tvar_to_name
+  | TVar tvar_id ->
+    let x = IMap.find tvar_id tvar_to_name in
+    x
 
 let name_id_to_string name_id =
   let quot = name_id / 26 in
