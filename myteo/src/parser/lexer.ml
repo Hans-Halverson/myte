@@ -104,7 +104,10 @@ let tokenize lex =
   | '-' -> token_result T_MINUS
   | '*' -> token_result T_MULTIPLY
   | '/' -> token_result T_DIVIDE
-  | '!' -> token_result T_LOGICAL_NOT
+  | '%' -> token_result T_PERCENT
+  | '!' -> token_result T_BANG
+  | '&' -> token_result T_AMPERSAND
+  | '^' -> token_result T_CARET
   | '(' -> token_result T_LEFT_PAREN
   | ')' -> token_result T_RIGHT_PAREN
   | '{' -> token_result T_LEFT_BRACE

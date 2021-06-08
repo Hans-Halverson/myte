@@ -319,19 +319,19 @@ and check_expression ~cx expr =
     let operand_rep_ty = Type_context.find_rep_type ~cx (TVar operand_tvar_id) in
     let result_ty =
       match (operand_rep_ty, op) with
-      | ((Byte | Int | Long | IntLiteral _), (Plus | Minus))
-      | (Bool, LogicalNot)
+      | ((Byte | Int | Long | IntLiteral _), (Plus | Minus | Not))
+      | (Bool, Not)
       | (Any, _) ->
         operand_rep_ty
       | _ ->
-        let expected_ty =
+        let expected_tys =
           match op with
           | Plus
           | Minus ->
-            Types.Int
-          | LogicalNot -> Types.Bool
+            [Types.Int]
+          | Not -> [Types.Bool; Types.Int]
         in
-        Type_context.add_error ~cx operand_loc (IncompatibleTypes (operand_rep_ty, [expected_ty]));
+        Type_context.add_error ~cx operand_loc (IncompatibleTypes (operand_rep_ty, expected_tys));
         Any
     in
     ignore (Type_context.unify ~cx result_ty (TVar tvar_id));
@@ -396,7 +396,14 @@ and check_expression ~cx expr =
       )
     | Subtract
     | Multiply
-    | Divide ->
+    | Divide
+    | Remainder
+    | BitwiseAnd
+    | BitwiseOr
+    | BitwiseXor
+    | LeftShift
+    | ArithmeticRightShift
+    | LogicalRightShift ->
       (* If a child expression is an int propagate type to other child and expression *)
       if is_int left_tvar_id then (
         Type_context.assert_unify ~cx right_loc (TVar left_tvar_id) (TVar right_tvar_id);

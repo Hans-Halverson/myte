@@ -39,3 +39,7 @@ let style ?(text = Default) ?(background = Default) ?(decorations = []) () =
   let decorations = String.concat "" (List.map decoration decorations) in
   opt_formatting
     (Printf.sprintf "%s%s%s" (text_color text) (background_color background) decorations)
+
+let red_and_bold = style ~text:Red ~decorations:[Bold] ()
+
+let green_and_bold = style ~text:Green ~decorations:[Bold] ()

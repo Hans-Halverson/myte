@@ -48,3 +48,10 @@ let rec drop i lst =
   | (_, []) -> []
   | (i, lst) when i <= 0 -> lst
   | (i, _ :: tl) -> drop (i - 1) tl
+
+let rec take i lst =
+  match (i, lst) with
+  | (0, _)
+  | (_, []) ->
+    []
+  | (i, hd :: tl) -> hd :: take (i - 1) tl

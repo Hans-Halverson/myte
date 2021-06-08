@@ -29,7 +29,7 @@ let parse_config_file config_file =
     Some config_contents
   with Sys_error _ -> None
 
-let first_diff_lines s1 s2 =
+let mk_diff_snippet s1 s2 =
   let s1_lines = String.split_on_char '\n' s1 in
   let s2_lines = String.split_on_char '\n' s2 in
   (* Pad shorter file to length of longer file with blank lines *)
@@ -43,7 +43,7 @@ let first_diff_lines s1 s2 =
     else
       (s1_lines, s2_lines)
   in
-  let (line_num, lines) =
+  let (line_num, snippet) =
     List.fold_left2
       (fun (i, first_diff) s1 s2 ->
         match first_diff with
@@ -52,12 +52,22 @@ let first_diff_lines s1 s2 =
           if String.equal s1 s2 then
             (i + 1, None)
           else
-            (i, Some (s1, s2)))
+            let extract_snippet lines prefix =
+              let snip_lines = List_utils.drop i lines |> List_utils.take 5 in
+              let snip_lines = List.map (fun line -> prefix ^ line) snip_lines in
+              let snip_lines = String.concat "\n" snip_lines in
+              snip_lines ^ Pp.reset ()
+            in
+            ( i,
+              Some
+                ( extract_snippet s1_lines (Pp.red_and_bold ^ "- ")
+                ^ "\n"
+                ^ extract_snippet s2_lines (Pp.green_and_bold ^ "+ ") ) ))
       (1, None)
       s1_lines
       s2_lines
   in
-  (line_num, Option.value ~default:("", "") lines)
+  (line_num, Option.value ~default:"" snippet)
 
 let run_snapshot_test ~command ~config ~record ~myte_files ~exp_file =
   (* Run command in separate process and read its stdout *)
@@ -89,15 +99,11 @@ let run_snapshot_test ~command ~config ~record ~myte_files ~exp_file =
   else (
     record_snapshot ();
     (* Extract diff to display *)
-    match first_diff_lines exp_contents act_contents with
-    | (line_num, (exp_line, act_line)) ->
+    match mk_diff_snippet exp_contents act_contents with
+    | (line_num, diff_snippet) ->
       (* Format error message *)
       Test.Failed
-        (Printf.sprintf
-           "Actual and expected differ on line %d:\n  Expected | %s\n  Actual   | %s"
-           line_num
-           exp_line
-           act_line)
+        (Printf.sprintf "Actual and expected differ on line %d:\n%s" line_num diff_snippet)
   )
 
 let rec node_of_file

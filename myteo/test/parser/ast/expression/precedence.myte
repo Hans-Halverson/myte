@@ -2,8 +2,8 @@ module Test
 
 fun main() {
   // Full precedence
-  +a() * b + c < d == e && f || g ? h : i;
-  a ? b : c || d && e == f < g + h * i;
+  +a() * b + c << d & e ^ f | g < h == i && j || k ? l : m;
+  a ? b : c || d && e == f < g | h ^ i & j << k + l * m;
 
   // Group precedence
   a((b)(c));
@@ -13,6 +13,14 @@ fun main() {
   (a * b) * c;
   a + (b + c);
   (a + b) + c;
+  a << (b << c);
+  (a << b) << c;
+  a & (b & c);
+  (a & b) & c;
+  a ^ (b ^ c);
+  (a ^ b) ^ c;
+  a | (b | c);
+  (a | b) | c;
   a < (b < c);
   (a < b) < c;
   a == (b == c);
@@ -27,6 +35,10 @@ fun main() {
   a().b();
   a * b();
   a + b();
+  a << b();
+  a & b();
+  a ^ b();
+  a | b();
   a < b();
   a == b();
   a && b();
@@ -39,6 +51,14 @@ fun main() {
   a * b.c;
   a.b + c;
   a + b.c;
+  a.b << c;
+  a << b.c;
+  a.b & c;
+  a & b.c;
+  a.b ^ c;
+  a ^ b.c;
+  a.b | c;
+  a | b.c;
   a.b < c;
   a < b.c;
   a.b == c;
@@ -56,6 +76,14 @@ fun main() {
   a * b[c];
   a[b] + c;
   a + b[c];
+  a[b] << c;
+  a << b[c];
+  a[b] & c;
+  a & b[c];
+  a[b] ^ c;
+  a ^ b[c];
+  a[b] | c;
+  a | b[c];
   a[b] < c;
   a < b[c];
   a[b] == c;
@@ -72,6 +100,10 @@ fun main() {
   +(a + b);
   +a * b;
   +a + b;
+  +a << +b;
+  +a & +b;
+  +a ^ +b;
+  +a | +b;
   +a < b;
   +a == b;
   +a && b;
@@ -81,6 +113,14 @@ fun main() {
   // Multiplication precedence
   a * b + c;
   a + b * c;
+  a * b << c;
+  a << b * c;
+  a * b & c;
+  a & b * c;
+  a * b ^ c;
+  a ^ b * c;
+  a * b | c;
+  a | b * c;
   a * b < c;
   a < b * c;
   a * b == c;
@@ -93,6 +133,14 @@ fun main() {
   a ? b : c * d;
 
   // Addition precedence
+  a + b << c;
+  a << b + c;
+  a + b & c;
+  a & b + c;
+  a + b ^ c;
+  a ^ b + c;
+  a + b | c;
+  a | b + c;
   a + b < c;
   a < b + c;
   a + b == c;
@@ -103,6 +151,66 @@ fun main() {
   a || b + c;
   a + b ? c : d;
   a ? b : c + d;
+
+  // Bitwise shift precedence
+  a << b & c;
+  a & b << c;
+  a << b ^ c;
+  a ^ b << c;
+  a << b | c;
+  a | b << c;
+  a << b < c;
+  a < b << c;
+  a << b == c;
+  a == b << c;
+  a << b && c;
+  a && b << c;
+  a << b || c;
+  a || b << c;
+  a << b ? c : d;
+  a ? b : c << d;
+
+  // Bitwise and precedence
+  a & b ^ c;
+  a ^ b & c;
+  a & b | c;
+  a | b & c;
+  a & b < c;
+  a < b & c;
+  a & b == c;
+  a == b & c;
+  a & b && c;
+  a && b & c;
+  a & b || c;
+  a || b & c;
+  a & b ? c : d;
+  a ? b : c & d;
+
+  // Bitwise xor precedence
+  a ^ b | c;
+  a | b ^ c;
+  a ^ b < c;
+  a < b ^ c;
+  a ^ b == c;
+  a == b ^ c;
+  a ^ b && c;
+  a && b & c;
+  a ^ b || c;
+  a || b ^ c;
+  a ^ b ? c : d;
+  a ? b : c ^ d;
+
+  // Bitwise or precedence
+  a | b < c;
+  a < b | c;
+  a | b == c;
+  a == b | c;
+  a | b && c;
+  a && b & c;
+  a | b || c;
+  a || b | c;
+  a | b ? c : d;
+  a ? b : c | d;
 
   // Comparison precedence
   a < b == c;

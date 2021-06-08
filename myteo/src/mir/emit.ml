@@ -109,7 +109,7 @@ and emit_expression ~pcx ~ecx expr =
     let ty = value_type_of_loc ~pcx loc in
     Ecx.emit ~ecx (Neg (var_id, operand_val));
     var_value_of_type var_id ty
-  | UnaryOperation { op = LogicalNot; loc = _; operand } ->
+  | UnaryOperation { op = Not; loc = _; operand } ->
     let var_id = mk_cf_var_id () in
     let operand_val = emit_bool_expression ~pcx ~ecx operand in
     Ecx.emit ~ecx (LogNot (var_id, operand_val));
@@ -188,6 +188,7 @@ and emit_expression ~pcx ~ecx expr =
       | GreaterThan -> (Gt (var_id, left_val, right_val), Bool)
       | LessThanOrEqual -> (LtEq (var_id, left_val, right_val), Bool)
       | GreaterThanOrEqual -> (GtEq (var_id, left_val, right_val), Bool)
+      | _ -> failwith "TODO: Emit MIR for binary operation"
     in
     Ecx.emit ~ecx instr;
     var_value_of_type var_id ty

@@ -59,7 +59,7 @@ let string_of_unary_op op =
   match op with
   | Plus -> "Plus"
   | Minus -> "Minus"
-  | LogicalNot -> "LogicalNot"
+  | Not -> "Not"
 
 let string_of_binary_op op =
   let open Expression.BinaryOperation in
@@ -68,12 +68,19 @@ let string_of_binary_op op =
   | Subtract -> "Subtract"
   | Multiply -> "Multiply"
   | Divide -> "Divide"
+  | Remainder -> "Remainder"
   | Equal -> "Equal"
   | NotEqual -> "NotEqual"
   | LessThan -> "LessThan"
   | GreaterThan -> "GreaterThan"
   | LessThanOrEqual -> "LessThanOrEqual"
   | GreaterThanOrEqual -> "GreaterThanOrEqual"
+  | BitwiseAnd -> "BitwiseAnd"
+  | BitwiseOr -> "BitwiseOr"
+  | BitwiseXor -> "BitwiseXor"
+  | LeftShift -> "LeftShift"
+  | ArithmeticRightShift -> "ArithmeticRightShift"
+  | LogicalRightShift -> "LogicalRightShift"
 
 let string_of_primitive_type kind =
   let open Type.Primitive in

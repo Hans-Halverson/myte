@@ -181,7 +181,7 @@ and Expression : sig
     type op =
       | Plus
       | Minus
-      | LogicalNot
+      | Not
 
     and t = {
       loc: Loc.t;
@@ -196,12 +196,19 @@ and Expression : sig
       | Subtract
       | Multiply
       | Divide
+      | Remainder
       | Equal
       | NotEqual
       | LessThan
       | GreaterThan
       | LessThanOrEqual
       | GreaterThanOrEqual
+      | BitwiseAnd
+      | BitwiseOr
+      | BitwiseXor
+      | LeftShift
+      | ArithmeticRightShift
+      | LogicalRightShift
 
     and t = {
       loc: Loc.t;

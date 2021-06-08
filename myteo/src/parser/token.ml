@@ -14,9 +14,10 @@ type t =
   | T_MINUS
   | T_MULTIPLY
   | T_DIVIDE
+  | T_PERCENT
   | T_LOGICAL_AND
   | T_LOGICAL_OR
-  | T_LOGICAL_NOT
+  | T_BANG
   | T_EQUALS
   | T_DOUBLE_EQUALS
   | T_NOT_EQUALS
@@ -24,6 +25,8 @@ type t =
   | T_GREATER_THAN
   | T_LESS_THAN_OR_EQUAL
   | T_GREATER_THAN_OR_EQUAL
+  | T_AMPERSAND
+  | T_CARET
   | T_LEFT_PAREN
   | T_RIGHT_PAREN
   | T_LEFT_BRACE
@@ -75,9 +78,10 @@ let to_string token =
   | T_MINUS -> "-"
   | T_MULTIPLY -> "*"
   | T_DIVIDE -> "/"
+  | T_PERCENT -> "%"
   | T_LOGICAL_AND -> "&&"
   | T_LOGICAL_OR -> "||"
-  | T_LOGICAL_NOT -> "!"
+  | T_BANG -> "!"
   | T_EQUALS -> "="
   | T_DOUBLE_EQUALS -> "=="
   | T_NOT_EQUALS -> "!="
@@ -85,6 +89,8 @@ let to_string token =
   | T_GREATER_THAN -> ">"
   | T_LESS_THAN_OR_EQUAL -> "<="
   | T_GREATER_THAN_OR_EQUAL -> ">="
+  | T_AMPERSAND -> "&"
+  | T_CARET -> "^"
   | T_LEFT_PAREN -> "("
   | T_RIGHT_PAREN -> ")"
   | T_LEFT_BRACE -> "{"

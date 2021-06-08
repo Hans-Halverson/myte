@@ -1,7 +1,7 @@
 test/parser/ast/unary_operation/basic.myte
 {
   node: Module,
-  loc: 1:0-10:1,
+  loc: 1:0-12:1,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -20,7 +20,7 @@ test/parser/ast/unary_operation/basic.myte
   toplevels: [
     {
       node: Function,
-      loc: 3:0-10:1,
+      loc: 3:0-12:1,
       name: {
         node: Identifier,
         loc: 3:4-3:8,
@@ -29,7 +29,7 @@ test/parser/ast/unary_operation/basic.myte
       params: [],
       body: {
         node: Block,
-        loc: 3:11-10:1,
+        loc: 3:11-12:1,
         statements: [
           {
             node: ExpressionStatement,
@@ -61,32 +61,46 @@ test/parser/ast/unary_operation/basic.myte
           },
           {
             node: ExpressionStatement,
-            loc: 6:2-6:8,
+            loc: 6:2-6:5,
             expression: {
               node: UnaryOperation,
-              loc: 6:2-6:7,
-              op: LogicalNot,
+              loc: 6:2-6:4,
+              op: Not,
+              operand: {
+                node: IntLiteral,
+                loc: 6:3-6:4,
+                raw: "1",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 7:2-7:8,
+            expression: {
+              node: UnaryOperation,
+              loc: 7:2-7:7,
+              op: Not,
               operand: {
                 node: BoolLiteral,
-                loc: 6:3-6:7,
+                loc: 7:3-7:7,
                 value: true,
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 8:2-8:8,
+            loc: 9:2-9:8,
             expression: {
               node: UnaryOperation,
-              loc: 8:2-8:7,
+              loc: 9:2-9:7,
               op: Plus,
               operand: {
                 node: UnaryOperation,
-                loc: 8:3-8:7,
+                loc: 9:3-9:7,
                 op: Minus,
                 operand: {
                   node: IntLiteral,
-                  loc: 8:5-8:6,
+                  loc: 9:5-9:6,
                   raw: "1",
                 },
               },
@@ -94,18 +108,37 @@ test/parser/ast/unary_operation/basic.myte
           },
           {
             node: ExpressionStatement,
-            loc: 9:2-9:6,
+            loc: 10:2-10:6,
             expression: {
               node: UnaryOperation,
-              loc: 9:2-9:5,
+              loc: 10:2-10:5,
               op: Minus,
               operand: {
                 node: UnaryOperation,
-                loc: 9:3-9:5,
+                loc: 10:3-10:5,
                 op: Plus,
                 operand: {
                   node: IntLiteral,
-                  loc: 9:4-9:5,
+                  loc: 10:4-10:5,
+                  raw: "1",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 11:2-11:6,
+            expression: {
+              node: UnaryOperation,
+              loc: 11:2-11:5,
+              op: Minus,
+              operand: {
+                node: UnaryOperation,
+                loc: 11:3-11:5,
+                op: Not,
+                operand: {
+                  node: IntLiteral,
+                  loc: 11:4-11:5,
                   raw: "1",
                 },
               },

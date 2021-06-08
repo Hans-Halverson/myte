@@ -35,6 +35,8 @@ let pos_compare pos1 pos2 =
   else
     Int.compare pos1.col pos2.col
 
+let are_adjacent loc1 loc2 = pos_equal loc1._end loc2.start
+
 let compare loc1 loc2 =
   let result = Option_utils.compare_opt Source.compare loc1.source loc2.source in
   if result <> 0 then

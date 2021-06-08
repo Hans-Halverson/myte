@@ -10,6 +10,10 @@ module ExpressionPrecedence = struct
     | Unary
     | Multiplication
     | Addition
+    | BitwiseShift
+    | BitwiseAnd
+    | BitwiseXor
+    | BitwiseOr
     | Comparison
     | Equality
     | LogicalAnd
@@ -19,12 +23,16 @@ module ExpressionPrecedence = struct
     | (* Binds weakest *) None
 
   let level = function
-    | Group -> 11
-    | Call -> 10
-    | Access -> 10
-    | Unary -> 8
-    | Multiplication -> 8
-    | Addition -> 7
+    | Group -> 15
+    | Call -> 14
+    | Access -> 14
+    | Unary -> 13
+    | Multiplication -> 12
+    | Addition -> 11
+    | BitwiseShift -> 10
+    | BitwiseAnd -> 9
+    | BitwiseXor -> 8
+    | BitwiseOr -> 7
     | Comparison -> 6
     | Equality -> 5
     | LogicalAnd -> 4
@@ -210,7 +218,7 @@ and parse_expression_prefix env =
   | T_LEFT_PAREN -> parse_parenthesized_expression env
   | T_PLUS
   | T_MINUS
-  | T_LOGICAL_NOT ->
+  | T_BANG ->
     parse_unary_expression env
   | T_MATCH -> Match (parse_match env)
   | T_IDENTIFIER _ -> Expression.Identifier (parse_identifier env)
@@ -244,10 +252,18 @@ and parse_expression_infix ~precedence env left marker =
     parse_binary_operation env left marker
   | T_MULTIPLY
   | T_DIVIDE
+  | T_PERCENT
     when ExpressionPrecedence.(is_tighter Multiplication precedence) ->
     parse_binary_operation env left marker
-  | T_LESS_THAN
-  | T_GREATER_THAN
+  | T_AMPERSAND when ExpressionPrecedence.(is_tighter BitwiseAnd precedence) ->
+    parse_binary_operation env left marker
+  | T_PIPE when ExpressionPrecedence.(is_tighter BitwiseOr precedence) && Env.can_use_bitwise_or env
+    ->
+    parse_binary_operation env left marker
+  | T_CARET when ExpressionPrecedence.(is_tighter BitwiseXor precedence) ->
+    parse_binary_operation env left marker
+  | T_LESS_THAN -> parse_less_than_infix_expression ~precedence env left marker
+  | T_GREATER_THAN -> parse_greater_than_infix_expression ~precedence env left marker
   | T_LESS_THAN_OR_EQUAL
   | T_GREATER_THAN_OR_EQUAL
     when ExpressionPrecedence.(is_tighter Comparison precedence) ->
@@ -263,6 +279,62 @@ and parse_expression_infix ~precedence env left marker =
   | T_QUESTION when ExpressionPrecedence.(is_tighter Ternary precedence) ->
     parse_ternary env left marker
   | _ -> left
+
+and parse_less_than_infix_expression ~precedence env left marker =
+  let first_loc = Env.loc env in
+  let (second_loc, second_token) = Env.peek env in
+  if
+    second_token = T_LESS_THAN
+    && ExpressionPrecedence.(is_tighter BitwiseShift precedence)
+    && Loc.are_adjacent first_loc second_loc
+  then (
+    (* Two adjacent less thans are a left shift *)
+    Env.expect env T_LESS_THAN;
+    Env.expect env T_LESS_THAN;
+    let right = parse_expression ~precedence:BitwiseShift env in
+    let loc = marker env in
+    Expression.BinaryOperation { loc; left; right; op = LeftShift }
+  ) else if ExpressionPrecedence.(is_tighter Comparison precedence) then (
+    (* Otherwise this is a less than comparison *)
+    Env.expect env T_LESS_THAN;
+    let right = parse_expression ~precedence:Comparison env in
+    let loc = marker env in
+    Expression.BinaryOperation { loc; left; right; op = LessThan }
+  ) else
+    left
+
+and parse_greater_than_infix_expression ~precedence env left marker =
+  let first_loc = Env.loc env in
+  let (second_loc, second_token) = Env.peek env in
+  (* Two adjacent greater thans are a right shift of some form *)
+  if
+    second_token = T_GREATER_THAN
+    && ExpressionPrecedence.(is_tighter BitwiseShift precedence)
+    && Loc.are_adjacent first_loc second_loc
+  then (
+    Env.expect env T_GREATER_THAN;
+    Env.expect env T_GREATER_THAN;
+    let third_loc = Env.loc env in
+    let third_token = Env.token env in
+    if third_token = T_GREATER_THAN && Loc.are_adjacent second_loc third_loc then (
+      Env.expect env T_GREATER_THAN;
+      (* Three adjacent greater thans are a logical right shift *)
+      let right = parse_expression ~precedence:BitwiseShift env in
+      let loc = marker env in
+      Expression.BinaryOperation { loc; left; right; op = LogicalRightShift }
+    ) else
+      (* Two adjacent greater thans are an arithmetic right shift *)
+      let right = parse_expression ~precedence:BitwiseShift env in
+      let loc = marker env in
+      Expression.BinaryOperation { loc; left; right; op = ArithmeticRightShift }
+  ) else if ExpressionPrecedence.(is_tighter Comparison precedence) then (
+    (* Otherwise this is a greater than comparison *)
+    Env.expect env T_GREATER_THAN;
+    let right = parse_expression ~precedence:Comparison env in
+    let loc = marker env in
+    Expression.BinaryOperation { loc; left; right; op = GreaterThan }
+  ) else
+    left
 
 and parse_parenthesized_expression env =
   let open Expression in
@@ -291,7 +363,8 @@ and parse_parenthesized_expression env =
         Parse_error.fatal
           (comma_loc, UnexpectedToken { actual = T_COMMA; expected = Some T_RIGHT_PAREN })
       | _ -> ());
-      parse_anonymous_tuple_expression env expr marker
+      let tuple = parse_anonymous_tuple_expression env expr marker in
+      tuple
     | _ ->
       Env.expect env T_RIGHT_PAREN;
       expr)
@@ -319,7 +392,7 @@ and parse_unary_expression env =
     match Env.token env with
     | T_PLUS -> Plus
     | T_MINUS -> Minus
-    | T_LOGICAL_NOT -> LogicalNot
+    | T_BANG -> Not
     | _ -> failwith "Invalid prefix operator"
   in
   if op = Minus then
@@ -344,6 +417,10 @@ and parse_binary_operation env left marker =
     | T_MINUS -> (Subtract, ExpressionPrecedence.Addition)
     | T_MULTIPLY -> (Multiply, ExpressionPrecedence.Multiplication)
     | T_DIVIDE -> (Divide, ExpressionPrecedence.Multiplication)
+    | T_PERCENT -> (Remainder, ExpressionPrecedence.Multiplication)
+    | T_AMPERSAND -> (BitwiseAnd, ExpressionPrecedence.BitwiseAnd)
+    | T_PIPE -> (BitwiseOr, ExpressionPrecedence.BitwiseOr)
+    | T_CARET -> (BitwiseXor, ExpressionPrecedence.BitwiseXor)
     | T_DOUBLE_EQUALS -> (Equal, ExpressionPrecedence.Equality)
     | T_NOT_EQUALS -> (NotEqual, ExpressionPrecedence.Equality)
     | T_LESS_THAN -> (LessThan, ExpressionPrecedence.Comparison)
@@ -689,6 +766,7 @@ and parse_match env =
   Env.expect env T_RIGHT_PAREN;
   (* Parse match cases *)
   Env.expect env T_LEFT_BRACE;
+  Env.enter_match env;
   (* Pipe for first variant is optional *)
   (match Env.token env with
   | T_PIPE -> Env.advance env
@@ -729,6 +807,7 @@ and parse_match env =
   in
   let cases = parse_cases () in
   Env.expect env T_RIGHT_BRACE;
+  Env.exit_match env;
   let loc = marker env in
   { loc; args; cases }
 

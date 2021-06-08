@@ -1,14 +1,14 @@
 Error: Expected type `int` but found `bool`
-test/analyze/type_check/unary_operation.myte:8:4-8
- 8 |   (+true: int);
+test/analyze/type_check/unary_operation.myte:9:4-8
+ 9 |   (+true: int);
    |     ^^^^
 
 Error: Expected type `int` but found `bool`
-test/analyze/type_check/unary_operation.myte:9:4-8
- 9 |   (-true: int);
-   |     ^^^^
+test/analyze/type_check/unary_operation.myte:10:4-8
+ 10 |   (-true: int);
+    |     ^^^^
 
-Error: Expected type `bool` but found `int`
-test/analyze/type_check/unary_operation.myte:10:4
- 10 |   (!1: bool);
-    |     ^
+Error: Expected types `bool` or `int` but found `string`
+test/analyze/type_check/unary_operation.myte:11:4-6
+ 11 |   (!"": bool);
+    |     ^^
