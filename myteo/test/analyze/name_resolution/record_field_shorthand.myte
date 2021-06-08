@@ -1,10 +1,10 @@
 module test
 
-type Rec1 { field1: int }
-type Rec2 { field2: int }
+type Rec1 { field1: Int }
+type Rec2 { field2: Int }
 
 fun main() {
-  val field1: int = 1;
+  val field1: Int = 1;
 
   // Does not error as field1 exists
   Rec1 { field1 };

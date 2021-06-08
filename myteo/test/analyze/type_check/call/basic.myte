@@ -1,14 +1,14 @@
 module Test
 
-fun intArg(x: int): bool = true
-fun threeArgs(x: int, y: bool, z: string): unit = ()
-fun tupleArg(x: (int, bool, (string, unit))): unit = ()
+fun intArg(x: Int): Bool = true
+fun threeArgs(x: Int, y: Bool, z: String): Unit = ()
+fun tupleArg(x: (Int, Bool, (String, Unit))): Unit = ()
 
 fun main() {
   // No errors and return type is correctly inferred
-  (intArg(1): bool);
-  (threeArgs(1, true, "a"): unit);
-  (tupleArg((1, true, ("str", ()))): unit);
+  (intArg(1): Bool);
+  (threeArgs(1, true, "a"): Unit);
+  (tupleArg((1, true, ("str", ()))): Unit);
 
   // Error on incorrect arguments
   intArg(());
@@ -20,5 +20,5 @@ fun main() {
   tupleArg((1, true, ((), "str")));
 
   // Arguments have type error but return value is still inferred
-  (intArg(()): unit);
+  (intArg(()): Unit);
 }

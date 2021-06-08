@@ -3,4 +3,4 @@ module C
 fun A() {}
 fun B() {}
 
-var C: int = 0
+var C: Int = 0

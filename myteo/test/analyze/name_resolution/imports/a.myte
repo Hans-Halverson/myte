@@ -6,6 +6,6 @@ fun D() {}
 
 fun remote() {}
 
-type alias ty = unit
+type alias ty = Unit
 
-val _: int = 1
+val _: Int = 1

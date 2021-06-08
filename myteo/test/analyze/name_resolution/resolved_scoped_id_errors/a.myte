@@ -1,9 +1,9 @@
 module a1.a2.a3
 
-val exportedValue: int = 1
+val exportedValue: Int = 1
 
-type alias exportedType = int
+type alias exportedType = Int
 
-type Tup (int)
+type Tup (Int)
 
 fun exportedFun() {}

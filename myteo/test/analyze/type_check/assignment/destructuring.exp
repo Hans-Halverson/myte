@@ -1,9 +1,9 @@
-Error: Expected type `(int, string)` but found `int`
+Error: Expected type `(Int, String)` but found `Int`
 test/analyze/type_check/assignment/destructuring.myte:11:11
  11 |   (x, y) = 1;
     |            ^
 
-Error: Expected type `(int, string)` but found `(int, int)`
+Error: Expected type `(Int, String)` but found `(Int, Int)`
 test/analyze/type_check/assignment/destructuring.myte:14:11-17
  14 |   (x, y) = (1, 1);
     |            ^^^^^^

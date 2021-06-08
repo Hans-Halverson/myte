@@ -1,4 +1,4 @@
-Error: Expected type `bool` but found `int`
+Error: Expected type `Bool` but found `Int`
 test/analyze/type_check/while.myte:5:9
  5 |   while (1) {}
    |          ^

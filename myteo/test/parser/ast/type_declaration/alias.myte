@@ -1,11 +1,11 @@
 module Test
 
-type alias t1 = unit
+type alias t1 = Unit
 
-type alias t2 = int
+type alias t2 = Int
 
-type alias t3 = (string, bool) -> unit
+type alias t3 = (String, Bool) -> Unit
 
-type alias t4<T> = unit
+type alias t4<T> = Unit
 
-type alias t5<T, U, V> = int
+type alias t5<T, U, V> = Int

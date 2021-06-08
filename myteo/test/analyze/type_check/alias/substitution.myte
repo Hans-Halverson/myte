@@ -4,13 +4,13 @@ type alias equiv1 = equiv2
 type alias equiv2 = equiv3
 type alias equiv3 = equiv4
 type alias equiv4 = equiv5
-type alias equiv5 = bool
+type alias equiv5 = Bool
 
-type alias unitAlias = unit
-type alias intAlias = int
+type alias unitAlias = Unit
+type alias intAlias = Int
 type alias complex1 = intAlias -> unitAlias
-type alias complex2 = complex1 -> bool
-type alias complex3 = (complex1, string) -> complex2
+type alias complex2 = complex1 -> Bool
+type alias complex3 = (complex1, String) -> complex2
 
 fun main() {
   (1: equiv1);
@@ -34,19 +34,19 @@ fun main() {
     c2: complex2,
     c3: complex3,
   ) {
-    (c1: int);
+    (c1: Int);
     (c1: intAlias -> unitAlias);
-    (c1: int -> unit);
+    (c1: Int -> Unit);
 
-    (c2: int);
-    (c2: (intAlias -> unitAlias) -> bool);
-    (c2: (int -> unit) -> bool);
-    (c2: (int, unit) -> bool);
+    (c2: Int);
+    (c2: (intAlias -> unitAlias) -> Bool);
+    (c2: (Int -> Unit) -> Bool);
+    (c2: (Int, Unit) -> Bool);
 
-    (c3: int);
-    (c3: ((intAlias -> unitAlias), string) -> ((intAlias -> unitAlias) -> bool));
-    (c3: ((int -> unit), string) -> ((int -> unit) -> bool));
-    (c3: (int, unit, string, int, unit) -> bool);
-    (c3: ((int -> unit), string, (int -> unit)) -> bool);
+    (c3: Int);
+    (c3: ((intAlias -> unitAlias), String) -> ((intAlias -> unitAlias) -> Bool));
+    (c3: ((Int -> Unit), String) -> ((Int -> Unit) -> Bool));
+    (c3: (Int, Unit, String, Int, Unit) -> Bool);
+    (c3: ((Int -> Unit), String, (Int -> Unit)) -> Bool);
   }
 }

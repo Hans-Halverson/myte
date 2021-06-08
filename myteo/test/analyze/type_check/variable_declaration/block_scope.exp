@@ -1,14 +1,14 @@
-Error: Expected type `int` but found `unit`
+Error: Expected type `Int` but found `Unit`
 test/analyze/type_check/variable_declaration/block_scope.myte:5:16-18
- 5 |   val t2: int = ();
+ 5 |   val t2: Int = ();
    |                 ^^
 
-Error: Expected type `int` but found `unit`
+Error: Expected type `Int` but found `Unit`
 test/analyze/type_check/variable_declaration/block_scope.myte:9:18-20
- 9 |     val t4: int = ();
+ 9 |     val t4: Int = ();
    |                   ^^
 
-Error: Expected type `int` but found `unit`
+Error: Expected type `Int` but found `Unit`
 test/analyze/type_check/variable_declaration/block_scope.myte:14:18-20
- 14 |     val t6: int = ();
+ 14 |     val t6: Int = ();
     |                   ^^

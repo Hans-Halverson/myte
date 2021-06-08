@@ -1,24 +1,24 @@
-Error: Expected type `unit` but found `int`
+Error: Expected type `Unit` but found `Int`
 test/analyze/type_check/if.myte:5:5
- 5 |     (1: unit);
+ 5 |     (1: Unit);
    |      ^
 
-Error: Expected type `unit` but found `int`
+Error: Expected type `Unit` but found `Int`
 test/analyze/type_check/if.myte:7:5
- 7 |     (2: unit);
+ 7 |     (2: Unit);
    |      ^
 
-Error: Expected type `bool` but found `int`
+Error: Expected type `Bool` but found `Int`
 test/analyze/type_check/if.myte:15:6
  15 |   if (1) {}
     |       ^
 
-Error: Expected type `bool` but found `unit`
+Error: Expected type `Bool` but found `Unit`
 test/analyze/type_check/if.myte:16:6-8
  16 |   if (()) {}
     |       ^^
 
-Error: Expected type `bool` but found `int`
+Error: Expected type `Bool` but found `Int`
 test/analyze/type_check/if.myte:19:6
  19 |   if (b) {}
     |       ^

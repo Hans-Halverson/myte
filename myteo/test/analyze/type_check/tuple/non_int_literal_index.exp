@@ -1,39 +1,39 @@
 Error: Tuple indices must be int literals
 test/analyze/type_check/tuple/non_int_literal_index.myte:9:5-9
- 9 |   (x[true]: unit);
+ 9 |   (x[true]: Unit);
    |      ^^^^
 
 Error: Tuple indices must be int literals
 test/analyze/type_check/tuple/non_int_literal_index.myte:10:5-9
- 10 |   (y[true]: unit);
+ 10 |   (y[true]: Unit);
     |      ^^^^
 
 Error: Tuple indices must be int literals
 test/analyze/type_check/tuple/non_int_literal_index.myte:12:5-7
- 12 |   (x[()]: unit);
+ 12 |   (x[()]: Unit);
     |      ^^
 
 Error: Tuple indices must be int literals
 test/analyze/type_check/tuple/non_int_literal_index.myte:13:5-7
- 13 |   (y[()]: unit);
+ 13 |   (y[()]: Unit);
     |      ^^
 
 Error: Tuple indices must be int literals
 test/analyze/type_check/tuple/non_int_literal_index.myte:15:5-10
- 15 |   (x[1 + 2]: unit);
+ 15 |   (x[1 + 2]: Unit);
     |      ^^^^^
 
 Error: Tuple indices must be int literals
 test/analyze/type_check/tuple/non_int_literal_index.myte:16:5-10
- 16 |   (y[1 + 2]: unit);
+ 16 |   (y[1 + 2]: Unit);
     |      ^^^^^
 
 Error: Tuple indices must be int literals
 test/analyze/type_check/tuple/non_int_literal_index.myte:18:5-8
- 18 |   (x["a"]: unit);
+ 18 |   (x["a"]: Unit);
     |      ^^^
 
 Error: Tuple indices must be int literals
 test/analyze/type_check/tuple/non_int_literal_index.myte:19:5-8
- 19 |   (y["a"]: unit);
+ 19 |   (y["a"]: Unit);
     |      ^^^

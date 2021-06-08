@@ -1,29 +1,29 @@
-Error: Expected type `byte` but found `int`
+Error: Expected type `Byte` but found `Int`
 test/analyze/type_check/int_literal/basic.myte:24:10
  24 |   useByte(x);
     |           ^
 
-Error: Expected type `long` but found `int`
+Error: Expected type `Long` but found `Int`
 test/analyze/type_check/int_literal/basic.myte:25:10
  25 |   useLong(x);
     |           ^
 
-Error: Expected type `unit` but found `int`
+Error: Expected type `Unit` but found `Int`
 test/analyze/type_check/int_literal/basic.myte:29:10
  29 |   useUnit(y);
     |           ^
 
-Error: Expected type `int` but found `byte`
+Error: Expected type `Int` but found `Byte`
 test/analyze/type_check/int_literal/basic.myte:59:6
  59 |   x + y;
     |       ^
 
-Error: Expected type `int` but found `long`
+Error: Expected type `Int` but found `Long`
 test/analyze/type_check/int_literal/basic.myte:60:6
  60 |   x + z;
     |       ^
 
-Error: Expected type `byte` but found `long`
+Error: Expected type `Byte` but found `Long`
 test/analyze/type_check/int_literal/basic.myte:61:6
  61 |   y + z;
     |       ^

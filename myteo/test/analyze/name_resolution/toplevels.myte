@@ -20,8 +20,8 @@ fun topLevelBeforeTest() {
 }
 
 fun topLevelFunc() {}
-val topLevelVal: int = 1
-type alias topLevelType = int
+val topLevelVal: Int = 1
+type alias topLevelType = Int
 
 // Top level names can be referenced after they are defined
 fun topLevelAfterTest() {
@@ -43,8 +43,8 @@ fun topLevelAfterTest() {
 }
 
 // Mutually recursive toplevel references
-val topLevelRecVar1: int = topLevelRecVar2
-val topLevelRecVar2: int = topLevelRecVar1
+val topLevelRecVar1: Int = topLevelRecVar2
+val topLevelRecVar2: Int = topLevelRecVar1
 
 fun topLevelRecFunc1() {
   topLevelRecFunc2();

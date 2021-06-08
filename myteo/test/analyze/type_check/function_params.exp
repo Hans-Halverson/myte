@@ -1,29 +1,29 @@
-Error: Expected type `bool` but found `unit`
+Error: Expected type `Bool` but found `Unit`
 test/analyze/type_check/function_params.myte:14:3-5
- 14 |   (p1: bool);
+ 14 |   (p1: Bool);
     |    ^^
 
-Error: Expected type `int -> bool` but found `(int, string) -> bool`
+Error: Expected type `Int -> Bool` but found `(Int, String) -> Bool`
 test/analyze/type_check/function_params.myte:15:3-5
- 15 |   (p4: int -> bool);
+ 15 |   (p4: Int -> Bool);
     |    ^^
 
-Error: Expected type `unit` but found `int`
+Error: Expected type `Unit` but found `Int`
 test/analyze/type_check/function_params.myte:16:3-5
- 16 |   (p5: unit);
+ 16 |   (p5: Unit);
     |    ^^
 
-Error: Expected type `unit` but found `int`
+Error: Expected type `Unit` but found `Int`
 test/analyze/type_check/function_params.myte:20:5-7
- 20 |     (p1: unit);
+ 20 |     (p1: Unit);
     |      ^^
 
-Error: Expected type `unit` but found `string`
+Error: Expected type `Unit` but found `String`
 test/analyze/type_check/function_params.myte:23:7-9
- 23 |       (p1: unit);
+ 23 |       (p1: Unit);
     |        ^^
 
-Error: Expected type `int` but found `string`
+Error: Expected type `Int` but found `String`
 test/analyze/type_check/function_params.myte:24:7-9
- 24 |       (p1: int);
+ 24 |       (p1: Int);
     |        ^^

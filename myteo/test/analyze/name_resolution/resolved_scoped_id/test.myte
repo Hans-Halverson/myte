@@ -25,7 +25,7 @@ type t9 { a: a1.ExportType }
 type t10 = Foo (a1.ExportType) | Bar { a: a1.ExportType }
 
 fun test() {
-  var x: int = 1;
+  var x: Int = 1;
 
   // Valid export is correctly converted to scoped id
   a1.export;

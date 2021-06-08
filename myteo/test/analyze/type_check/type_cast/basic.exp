@@ -1,14 +1,14 @@
-Error: Expected type `int` but found `unit`
+Error: Expected type `Int` but found `Unit`
 test/analyze/type_check/type_cast/basic.myte:13:3-5
- 13 |   ((): int);
+ 13 |   ((): Int);
     |    ^^
 
-Error: Expected type `int` but found `int -> string`
+Error: Expected type `Int` but found `Int -> String`
 test/analyze/type_check/type_cast/basic.myte:14:3-14
- 14 |   (intToString: int);
+ 14 |   (intToString: Int);
     |    ^^^^^^^^^^^
 
-Error: Expected type `unit` but found `bool`
+Error: Expected type `Unit` but found `Bool`
 test/analyze/type_check/type_cast/basic.myte:17:3
- 17 |   (x: unit);
+ 17 |   (x: Unit);
     |    ^

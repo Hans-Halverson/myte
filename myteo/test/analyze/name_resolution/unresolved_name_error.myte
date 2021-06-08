@@ -1,6 +1,6 @@
 module Test
 
-type alias ty1 = int
+type alias ty1 = Int
 type alias ty2 = Nonexistent
 
 // Nonexistent type names
@@ -15,8 +15,8 @@ fun test1<T>() {
   val x2: (x, test1) = 1;
 
   // Types do not count as value names
-  (ty: int);
-  (T: int);
+  (ty: Int);
+  (T: Int);
 }
 
 // Names cannot be referenced before they are declared
@@ -25,7 +25,7 @@ fun test2() {
   x;
   y;
 
-  val x: int = 1;
+  val x: Int = 1;
   fun y() {}
 
   // Succeed
@@ -36,7 +36,7 @@ fun test2() {
 // Names cannot be referenced outside block scope
 fun test3() {
   {
-    val x: int = 1;
+    val x: Int = 1;
     fun y() {}
 
     // Succeed
@@ -52,7 +52,7 @@ fun test3() {
 // Names cannot be referenced outside function scope
 fun test4() {
   fun inner() {
-    val x: int = 1;
+    val x: Int = 1;
     fun y() {}
 
     // Succeed
@@ -67,7 +67,7 @@ fun test4() {
 
 // Params cannot be referenced outside function scope
 fun test5() {
-  fun inner(x: int) {
+  fun inner(x: Int) {
     // Succeed
     x;
   }
@@ -78,7 +78,7 @@ fun test5() {
 
 // Names cannot be reference in initialize before they are defined
 fun test6() {
-  val x: int = x;
+  val x: Int = x;
 }
 
 fun main() {}

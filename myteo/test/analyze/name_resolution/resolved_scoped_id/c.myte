@@ -1,9 +1,9 @@
 module c1
 
-type Rec { child: int }
+type Rec { child: Int }
 
 val export: Rec = Rec { child: 1 }
 
-type ExportType = Foo | Bar (int)
+type ExportType = Foo | Bar (Int)
 
 val bar: ExportType = Bar (1)

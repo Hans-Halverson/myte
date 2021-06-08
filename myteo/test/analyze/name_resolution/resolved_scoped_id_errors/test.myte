@@ -7,7 +7,7 @@ import d1.d2
 import d1.{d2 as d2Alias}
 
 fun test() {
-  var field: int = 1;
+  var field: Int = 1;
 
   // Module exists but used as value or type
   a1.a2.a3;
@@ -66,7 +66,7 @@ fun test() {
 
   // Using an existing type as value, and vice versa
   (1: a1.a2.a3.exportedValue);
-  (a1.a2.a3.exportedType: int);
+  (a1.a2.a3.exportedType: Int);
 
   // Named accesses on functions or constructors fail
   a1.a2.a3.exportedFun.field (field) = 1;

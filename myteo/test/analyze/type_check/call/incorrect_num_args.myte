@@ -1,8 +1,8 @@
 module Test
 
 fun zeroArgs() {}
-fun oneArg(x: int) {}
-fun twoArgs(x: int, y: int) {}
+fun oneArg(x: Int) {}
+fun twoArgs(x: Int, y: Int) {}
 
 fun main() {
   zeroArgs();
@@ -18,5 +18,5 @@ fun main() {
   twoArgs(1, 2);
 
   // Calls with incorrect arguments do not have return type enforced
-  (zeroArgs(1): bool);
+  (zeroArgs(1): Bool);
 }

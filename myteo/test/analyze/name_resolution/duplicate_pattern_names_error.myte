@@ -1,9 +1,9 @@
 module test
 
-type Rec { field1: (int, int), field2: int, field3: int }
+type Rec { field1: (Int, Int), field2: Int, field3: Int }
 
 // Errors on duplicate names bound in module, not duplicate names bound in pattern
-val (x, x): int = 1
+val (x, x): Int = 1
 
 fun main() {
   val x = 1;

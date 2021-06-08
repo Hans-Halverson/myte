@@ -1,6 +1,6 @@
 module Test
 
-fun validReturn(): int {
+fun validReturn(): Int {
   if (true) {
     return 1;
   } else {
@@ -14,7 +14,7 @@ fun validReturn(): int {
   }
 }
 
-fun invalidReturn(): int {
+fun invalidReturn(): Int {
   if (true) {
     return "";
   } else {
@@ -28,8 +28,8 @@ fun invalidReturn(): int {
   }
 }
 
-fun explicitUnitReturn(): unit {}
-fun explicitUnitReturn2(): unit {
+fun explicitUnitReturn(): Unit {}
+fun explicitUnitReturn2(): Unit {
   return;
 }
 
@@ -46,8 +46,8 @@ fun implicitUnitReturn4() {
 fun implicitUnitReturn5() = ()
 fun implicitUnitReturn6() = 1
 
-fun nestedFunctionReturn(): int {
-  fun inner(): unit {
+fun nestedFunctionReturn(): Int {
+  fun inner(): Unit {
     if (true) {
       return ();
     } else {

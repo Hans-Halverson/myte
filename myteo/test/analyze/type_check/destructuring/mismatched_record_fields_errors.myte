@@ -1,29 +1,29 @@
 module test
 
-type Rec1 { field1: int, field2: int }
-type Rec2 { field1: int, field2: string, field3: bool }
-type Rec3 { field: int }
+type Rec1 { field1: Int, field2: Int }
+type Rec2 { field1: Int, field2: String, field3: Bool }
+type Rec3 { field: Int }
 
 fun missingFields(rec1: Rec1, rec2: Rec2) {
-  var field1: int = 1;
+  var field1: Int = 1;
   Rec1 { field1 } = rec1;
   
-  var field2: string = "";
+  var field2: String = "";
   Rec2 { field2 } = rec2;
 }
 
 fun unexpectedFields(rec3: Rec3) {
-  var field: int = 1;
-  var nonexist1: int = 1;
-  var nonexist2: int = 1;
+  var field: Int = 1;
+  var nonexist1: Int = 1;
+  var nonexist2: Int = 1;
   Rec3 { field, nonexist1, nonexist2 } = rec3;
 
 }
 
 fun missingAndUnexpectedFields(rec2: Rec2) {
   // If there are missing and unexpected fields only show missing, as well as type errors
-  var field1: string = "";
-  var nonexist: int = 1;
+  var field1: String = "";
+  var nonexist: Int = 1;
   Rec2 { field1, nonexist } = rec2;
 }
 

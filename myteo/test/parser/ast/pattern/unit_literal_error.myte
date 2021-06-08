@@ -1,3 +1,3 @@
 module test
 
-val (x, (), y): int = 1;
+val (x, (), y): Int = 1;

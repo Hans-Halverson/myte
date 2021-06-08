@@ -1,28 +1,28 @@
 module test
 
-fun use(x: int): int = x
+fun use(x: Int): Int = x
 
-fun zeroArgFunction(): int = 1
-fun testOneArgFunction(p1: int): int = p1
-fun testTwoArgFunction(p1: int, p2: int): int = p1 + p2
-fun testThreeArgFunction(p1: int, p2: int, p3: int): int = p1 + p2 + p3
-fun testFourArgFunction(p1: int, p2: int, p3: int, p4: int): int = p1 + p2 + p3 + p4
-fun testFiveArgFunction(p1: int, p2: int, p3: int, p4: int, p5: int): int = p1 + p2 + p3 + p4 + p5
-fun testSixArgFunction(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int): int = p1 + p2 + p3 + p4 + p5 + p6
-fun testSevenArgFunction(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p7: int): int = p1 + p2 + p3 + p4 + p5 + p6 + p7
-fun testEightArgFunction(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p7: int, p8: int): int = p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8
-fun testNineArgFunction(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int,  p7: int, p8: int, p9: int): int = p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9
+fun zeroArgFunction(): Int = 1
+fun testOneArgFunction(p1: Int): Int = p1
+fun testTwoArgFunction(p1: Int, p2: Int): Int = p1 + p2
+fun testThreeArgFunction(p1: Int, p2: Int, p3: Int): Int = p1 + p2 + p3
+fun testFourArgFunction(p1: Int, p2: Int, p3: Int, p4: Int): Int = p1 + p2 + p3 + p4
+fun testFiveArgFunction(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int): Int = p1 + p2 + p3 + p4 + p5
+fun testSixArgFunction(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int): Int = p1 + p2 + p3 + p4 + p5 + p6
+fun testSevenArgFunction(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int): Int = p1 + p2 + p3 + p4 + p5 + p6 + p7
+fun testEightArgFunction(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int, p8: Int): Int = p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8
+fun testNineArgFunction(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int,  p7: Int, p8: Int, p9: Int): Int = p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9
 
 fun passedInRegistersAndStack() {
   testNineArgFunction(1, 2, 3, 4, 5, 6, 7, 8, 9);
 }
 
-fun testFunctionStackParamsOffsetByPushedCalleeSavedRegisters(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p7: int): int {
+fun testFunctionStackParamsOffsetByPushedCalleeSavedRegisters(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int): Int {
   use(3);
   return p1 + p7;
 }
 
-fun testFunctionStackParamsOffsetByStackFrameAndPushedCalleeSavedRegisters(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p7: int, p8: int): int {
+fun testFunctionStackParamsOffsetByStackFrameAndPushedCalleeSavedRegisters(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int, p8: Int): Int {
   // There aren't enough callee saved registers so one parameter must be spilled
   use(3);
   return p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8;

@@ -1,6 +1,6 @@
 module Test
 
-fun test(x: int, y: string) {
+fun test(x: Int, y: String) {
   test;
   x;
   y;
@@ -11,14 +11,14 @@ fun test(x: int, y: string) {
     y;
   }
 
-  fun test2(z: int) {
+  fun test2(z: Int) {
     test;
     x;
     y;
     z;
   }
 
-  fun test3(x: int, y: string) {
+  fun test3(x: Int, y: String) {
     x;
     y;
   }

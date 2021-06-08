@@ -1,11 +1,11 @@
 module Test
 
 fun test() {
-  val x: int = 0;
+  val x: Int = 0;
 
   {
     x;
-    val x: int = 1;
+    val x: Int = 1;
     {
       {
         x;

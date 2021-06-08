@@ -1,10 +1,10 @@
 module Test
 
 fun main() {
-  (true && false: bool);
-  (true || false: bool);
+  (true && false: Bool);
+  (true || false: Bool);
 
-  (1 && false: bool);
-  (false && 1: bool);
-  (() && "a": bool);
+  (1 && false: Bool);
+  (false && 1: Bool);
+  (() && "a": Bool);
 }

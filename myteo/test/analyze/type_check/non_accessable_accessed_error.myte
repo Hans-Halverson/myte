@@ -1,10 +1,10 @@
 module test
 
-type Tup (int)
+type Tup (Int)
 
 type RecordVariants =
-  | Record1 { field: int }
-  | Record2 { field: string }
+  | Record1 { field: Int }
+  | Record2 { field: String }
 
 fun main() {
   1.field;

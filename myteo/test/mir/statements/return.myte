@@ -1,11 +1,11 @@
 module test
 
-fun test1(): unit {
-  val x: int = 1;
+fun test1(): Unit {
+  val x: Int = 1;
   return;
 }
 
-fun test2(): int {
+fun test2(): Int {
   return 99;
 }
 

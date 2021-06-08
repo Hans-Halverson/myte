@@ -136,12 +136,12 @@ let tokenize lex =
   | "as" -> token_result T_AS
   | "type" -> token_result T_TYPE
   | "alias" -> token_result T_ALIAS
-  | "unit" -> token_result T_UNIT
-  | "byte" -> token_result T_BYTE
-  | "int" -> token_result T_INT
-  | "long" -> token_result T_LONG
-  | "string" -> token_result T_STRING
-  | "bool" -> token_result T_BOOL
+  | "Unit" -> token_result T_UNIT
+  | "Byte" -> token_result T_BYTE
+  | "Int" -> token_result T_INT
+  | "Long" -> token_result T_LONG
+  | "String" -> token_result T_STRING
+  | "Bool" -> token_result T_BOOL
   | eof -> token_result T_EOF
   | identifier -> token_result (T_IDENTIFIER (lexeme buf))
   | dec_literal ->

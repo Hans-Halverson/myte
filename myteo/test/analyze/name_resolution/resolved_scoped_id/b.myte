@@ -2,8 +2,8 @@ module b1.b2.b3
 
 fun export() {}
 
-type alias ExportType = int
+type alias ExportType = Int
 
-type Tup (int)
+type Tup (Int)
 
 val tup: Tup = Tup (1)

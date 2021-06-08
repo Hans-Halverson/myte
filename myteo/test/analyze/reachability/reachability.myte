@@ -1,12 +1,12 @@
 module StatementAfterReturn
 
 // Unreachable statements
-fun unreachableAfterReturn(): int {
+fun unreachableAfterReturn(): Int {
   return 1;
   return 2;
 }
 
-fun unreachableAfterBreak(): int {
+fun unreachableAfterBreak(): Int {
   while (true) {
     break;
     return 1;
@@ -15,7 +15,7 @@ fun unreachableAfterBreak(): int {
   return 2;
 }
 
-fun unreachableAfterContinue(): int {
+fun unreachableAfterContinue(): Int {
   while (true) {
     continue;
     return 1;
@@ -24,7 +24,7 @@ fun unreachableAfterContinue(): int {
   return 2;
 }
 
-fun unreachableAfterIf(): int {
+fun unreachableAfterIf(): Int {
   if (true) {
     return 1;
   } else {
@@ -35,7 +35,7 @@ fun unreachableAfterIf(): int {
   return 4;
 }
 
-fun unreachableAfterMatchSingleCase(): int {
+fun unreachableAfterMatchSingleCase(): Int {
   val _ = 1;
   match (1) {
     | _ -> return 1
@@ -44,7 +44,7 @@ fun unreachableAfterMatchSingleCase(): int {
   return 2;
 }
 
-fun unreachableAfterMatchMultipleCases(): int {
+fun unreachableAfterMatchMultipleCases(): Int {
   val _ = 1;
   match (1) {
     | _ -> return 1
@@ -55,7 +55,7 @@ fun unreachableAfterMatchMultipleCases(): int {
   return 4;
 }
 
-fun unreachableAfterBlock(): int {
+fun unreachableAfterBlock(): Int {
   {
     return 1;
   }
@@ -63,8 +63,8 @@ fun unreachableAfterBlock(): int {
   return 2;
 }
 
-fun unreachableWithinNestedFunction(): int {
-  fun inner(): int {
+fun unreachableWithinNestedFunction(): Int {
+  fun inner(): Int {
     return 1;
     return 2;
   }
@@ -72,7 +72,7 @@ fun unreachableWithinNestedFunction(): int {
   return 3;
 }
 
-fun unreachableComplexReason():int {
+fun unreachableComplexReason():Int {
   while (true) {
     if (true) {
       break;
@@ -87,7 +87,7 @@ fun unreachableComplexReason():int {
 }
 
 // Reachable statements
-fun reachableAfterBlock(): int {
+fun reachableAfterBlock(): Int {
   {
     1;
   }
@@ -95,7 +95,7 @@ fun reachableAfterBlock(): int {
   return 2;
 }
 
-fun reachableAfterIf(): int {
+fun reachableAfterIf(): Int {
   if (true) {
     return 1;
   }
@@ -110,7 +110,7 @@ fun reachableAfterIf(): int {
   return 5;
 }
 
-fun reachableAfterWhile(): int {
+fun reachableAfterWhile(): Int {
   while (true) {
     return 1;
   }
@@ -119,7 +119,7 @@ fun reachableAfterWhile(): int {
   return 3;
 }
 
-fun reachableAfterMatch(): int {
+fun reachableAfterMatch(): Int {
   val _ = 1;
 
   match (1) {

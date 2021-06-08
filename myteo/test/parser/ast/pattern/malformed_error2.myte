@@ -1,6 +1,6 @@
 module Test
 
 fun main() {
-  // Minus has special handling as it could be the start of a negative integer literal
+  // Minus has special handling as it could be the start of a negative (Int)eger literal
   val - = 1;
 }

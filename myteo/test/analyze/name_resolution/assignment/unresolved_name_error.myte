@@ -1,7 +1,7 @@
 module test
 
-type Tup (int)
-type Rec { field1: int, y: int }
+type Tup (Int)
+type Rec { field1: Int, y: Int }
 
 fun main() {
   // Unresolved

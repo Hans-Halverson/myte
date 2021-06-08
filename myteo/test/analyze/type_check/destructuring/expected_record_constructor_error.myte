@@ -1,11 +1,11 @@
 module test
 
-type Tup (int)
+type Tup (Int)
 
-val global: int = 1
+val global: Int = 1
 
 fun main() {
-  var field: int = 1;
+  var field: Int = 1;
   Tup { field } = Tup (1);
   global { field } = 1;
 }

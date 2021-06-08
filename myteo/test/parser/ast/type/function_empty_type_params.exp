@@ -1,4 +1,4 @@
 Error: Unexpected token `>`, expected identifier
 test/parser/ast/type/function_empty_type_params.myte:3:16
- 3 | type alias t = <>(int) -> string
+ 3 | type alias t = <>((Int)) -> String
    |                 ^

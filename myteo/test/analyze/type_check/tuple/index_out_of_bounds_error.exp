@@ -1,29 +1,29 @@
 Error: Tuple index out of range. Tuple has 3 elements so only indices 0 through 2 are allowed.
 test/analyze/type_check/tuple/index_out_of_bounds_error.myte:9:5-7
- 9 |   (x[-1]: unit);
+ 9 |   (x[-1]: Unit);
    |      ^^
 
 Error: Tuple index out of range. Tuple has 3 elements so only indices 0 through 2 are allowed.
 test/analyze/type_check/tuple/index_out_of_bounds_error.myte:10:5-7
- 10 |   (y[-1]: unit);
+ 10 |   (y[-1]: Unit);
     |      ^^
 
 Error: Tuple index out of range. Tuple has 3 elements so only indices 0 through 2 are allowed.
 test/analyze/type_check/tuple/index_out_of_bounds_error.myte:11:5
- 11 |   (x[3]: unit);
+ 11 |   (x[3]: Unit);
     |      ^
 
 Error: Tuple index out of range. Tuple has 3 elements so only indices 0 through 2 are allowed.
 test/analyze/type_check/tuple/index_out_of_bounds_error.myte:12:5
- 12 |   (y[3]: unit);
+ 12 |   (y[3]: Unit);
     |      ^
 
 Error: Tuple index out of range. Tuple has 3 elements so only indices 0 through 2 are allowed.
 test/analyze/type_check/tuple/index_out_of_bounds_error.myte:13:5
- 13 |   (x[4]: unit);
+ 13 |   (x[4]: Unit);
     |      ^
 
 Error: Tuple index out of range. Tuple has 3 elements so only indices 0 through 2 are allowed.
 test/analyze/type_check/tuple/index_out_of_bounds_error.myte:14:5
- 14 |   (y[4]: unit);
+ 14 |   (y[4]: Unit);
     |      ^

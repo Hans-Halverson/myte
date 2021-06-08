@@ -1,6 +1,6 @@
 module test
 
-type Rec1 { foo: int, bar: string, baz: (unit, bool) }
+type Rec1 { foo: Int, bar: String, baz: (Unit, Bool) }
 type Rec2 { foo: Rec1 }
 
 fun main() {
@@ -8,20 +8,20 @@ fun main() {
   val x2: Rec2 = Rec2 { foo: x1 };
 
   // Correct types
-  (x1.foo: int);
-  (x1.bar: string);
-  (x1.baz: (unit, bool));
-  (x1.baz[1]: bool);
+  (x1.foo: Int);
+  (x1.bar: String);
+  (x1.baz: (Unit, Bool));
+  (x1.baz[1]: Bool);
   (x2.foo: Rec1);
-  (x2.foo.foo: int);
-  (x2.foo.bar: string);
-  (x2.foo.baz[0]: unit);
+  (x2.foo.foo: Int);
+  (x2.foo.bar: String);
+  (x2.foo.baz[0]: Unit);
 
   // Incorrect types
-  (x1.foo: string);
-  (x1.baz[1]: string);
-  (x2.foo: string);
-  (x2.foo.foo: string);
-  (x2.foo.baz: string);
-  (x2.foo.baz[1]: string);
+  (x1.foo: String);
+  (x1.baz[1]: String);
+  (x2.foo: String);
+  (x2.foo.foo: String);
+  (x2.foo.baz: String);
+  (x2.foo.baz[1]: String);
 }

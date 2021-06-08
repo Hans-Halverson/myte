@@ -1,14 +1,14 @@
 module test
 
-fun testReturnsInMain(): int = 1
-fun testReturnsInMain2(x: int): int = x
+fun testReturnsInMain(): Int = 1
+fun testReturnsInMain2(x: Int): Int = x
 
-fun testNestedReturnNoReturnRegisterMove(): int {
+fun testNestedReturnNoReturnRegisterMove(): Int {
   // Reuse return register without move
   return testReturnsInMain();
 }
 
-fun testReturnRegisterClobberAcrossCall(): int {
+fun testReturnRegisterClobberAcrossCall(): Int {
   val x = testReturnsInMain();
   val y = testReturnsInMain();
   return x + y;

@@ -1,17 +1,17 @@
 module t
 
 // Simple constant folding
-val int1: int = 1 + 2
-val bool1: bool = true && false
+val int1: Int = 1 + 2
+val bool1: Bool = true && false
 
 // Complex constant folding
-val int2: int = 8 * -(34) - 2 * 7
-val bool2: bool = (true || false) && (!false || false)
-val mixed: bool = (2 * 6) == (3 * 4)
+val int2: Int = 8 * -(34) - 2 * 7
+val bool2: Bool = (true || false) && (!false || false)
+val mixed: Bool = (2 * 6) == (3 * 4)
 
-fun useBool(b: bool) {}
-fun useInt(i: int) {}
-fun rand(): bool = true
+fun useBool(b: Bool) {}
+fun useInt(i: Int) {}
+fun rand(): Bool = true
 
 fun main() {
   // In function bodies

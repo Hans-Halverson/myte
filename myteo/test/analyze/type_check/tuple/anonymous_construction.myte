@@ -1,17 +1,17 @@
 module test
 
 // Type checks correctly
-val g1: (int, string) = (1, "str")
-val g2: (int, (bool, string), unit) = (1, (true, "str"), ())
+val g1: (Int, String) = (1, "str")
+val g2: (Int, (Bool, String), Unit) = (1, (true, "str"), ())
 
 // Incorrect arity
-val g3: (int, string, bool) = (1, "str")
-val g4: (int, string, bool) = (1, "str", true, ())
+val g3: (Int, String, Bool) = (1, "str")
+val g4: (Int, String, Bool) = (1, "str", true, ())
 
 // Incorrect types
-val g5: (int, string) = ("str", 1)
-val g6: (int, string, int) = (1, 2, 3)
-val g7: (int, (int, string), bool) = (1, (2, 3), true)
-val g8: (int, int) = "str"
+val g5: (Int, String) = ("str", 1)
+val g6: (Int, String, Int) = (1, 2, 3)
+val g7: (Int, (Int, String), Bool) = (1, (2, 3), true)
+val g8: (Int, Int) = "str"
 
 fun main() {}

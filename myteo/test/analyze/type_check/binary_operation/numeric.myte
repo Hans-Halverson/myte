@@ -1,12 +1,12 @@
 module Test
 
 fun main() {
-  (1 - 2: int);
-  (1 * 2: int);
-  (1 / 2: int);
-  (1 % 2: int);
+  (1 - 2: Int);
+  (1 * 2: Int);
+  (1 / 2: Int);
+  (1 % 2: Int);
 
-  (1 - true: int);
-  (true - 1: int);
-  (true - (): int);
+  (1 - true: Int);
+  (true - 1: Int);
+  (true - (): Int);
 }

@@ -1,6 +1,6 @@
 module fib
 
-fun fibRecursive(x: int): int {
+fun fibRecursive(x: Int): Int {
   if (x <= 1) {
     return x;
   } else {
@@ -8,7 +8,7 @@ fun fibRecursive(x: int): int {
   }
 }
 
-fun fibIterative(x: int): int {
+fun fibIterative(x: Int): Int {
   var current = 1;
   var prev = 1;
   var i = x;
@@ -22,7 +22,7 @@ fun fibIterative(x: int): int {
   return current;
 }
 
-fun main(): int {
+fun main(): Int {
   fibIterative(1);
   fibIterative(2);
   fibIterative(3);

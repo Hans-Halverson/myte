@@ -1,8 +1,8 @@
 module test
 
 fun anonymousTuple() {
-  var x: int = 1;
-  var y: string = "";
+  var x: Int = 1;
+  var y: String = "";
 
   // Success
   (x, y) = (1, "");
@@ -14,43 +14,43 @@ fun anonymousTuple() {
   (x, y) = (1, 1);
 }
 
-type Tup (int, string, bool)
+type Tup (Int, String, Bool)
 
 fun namedTuple() {
-  var x: int = 1;
-  var y: string = "";
-  var z: bool = true;
+  var x: Int = 1;
+  var y: String = "";
+  var z: Bool = true;
   Tup (x, y, z) = Tup (1, "", true);
 }
 
-type Rec { field1: int, field2: string, field3: bool }
+type Rec { field1: Int, field2: String, field3: Bool }
 
 fun record() {
-  var x: int = 1;
-  var y: string = "";
-  var field3: bool = true;
+  var x: Int = 1;
+  var y: String = "";
+  var field3: Bool = true;
   Rec { field1: x, field2: y, field3 } = Rec { field1: 1, field2: "", field3: true };
 }
 
 fun nestedPatterns1() {
-  var a: int = 1;
-  var b: string = "";
-  var c: bool = true;
+  var a: Int = 1;
+  var b: String = "";
+  var c: Bool = true;
   (a, (b, c)) = (1, ("", true));
 
-  var d: int = 1;
-  var e: (string, bool) = ("", true);
+  var d: Int = 1;
+  var e: (String, Bool) = ("", true);
   (d, e) = (1, ("", true));
 }
 
-type Tup2 ((int, string), bool)
-type Rec2 { field1: int, field2: Tup2 }
+type Tup2 ((Int, String), Bool)
+type Rec2 { field1: Int, field2: Tup2 }
 
 fun nestedPatterns2(rec2: Rec2) {
-  var field1: int = 1;
-  var x: int = 1;
-  var y: string = "";
-  var z: bool = true;
+  var field1: Int = 1;
+  var x: Int = 1;
+  var y: String = "";
+  var z: Bool = true;
   Rec2 { field1, field2: Tup2 ((x, y), z) } = rec2;
 
   var field2: Tup2 = Tup2 ((1, ""), true);

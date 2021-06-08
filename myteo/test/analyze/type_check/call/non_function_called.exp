@@ -1,19 +1,19 @@
-Error: Only functions can be called, but this expression is inferred to have type `int`
+Error: Only functions can be called, but this expression is inferred to have type `Int`
 test/analyze/type_check/call/non_function_called.myte:6:2
  6 |   1();
    |   ^
 
-Error: Only functions can be called, but this expression is inferred to have type `int`
+Error: Only functions can be called, but this expression is inferred to have type `Int`
 test/analyze/type_check/call/non_function_called.myte:7:3-8
  7 |   (1 + 2)(1, 2);
    |    ^^^^^
 
-Error: Only functions can be called, but this expression is inferred to have type `bool`
+Error: Only functions can be called, but this expression is inferred to have type `Bool`
 test/analyze/type_check/call/non_function_called.myte:8:2-10
  8 |   isOne(1)();
    |   ^^^^^^^^
 
-Error: Only functions can be called, but this expression is inferred to have type `int`
+Error: Only functions can be called, but this expression is inferred to have type `Int`
 test/analyze/type_check/call/non_function_called.myte:11:3
- 11 |   (1(): bool);
+ 11 |   (1(): Bool);
     |    ^

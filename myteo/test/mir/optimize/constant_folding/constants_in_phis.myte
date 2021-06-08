@@ -1,7 +1,7 @@
 module test
 
 // Different constants appear in same phi, so phi is not a constant.
-fun test1(cond: bool): int {
+fun test1(cond: Bool): Int {
   var x = 1;
   if (cond) {
     x = 2;
@@ -13,7 +13,7 @@ fun test1(cond: bool): int {
 }
 
 // Constant appears in phi but phi is not constant overall, so a move for the constant is inserted.
-fun test2(cond: bool, i: int): int {
+fun test2(cond: Bool, i: Int): Int {
   var x = 1;
   var y = 2;
   if (cond) {

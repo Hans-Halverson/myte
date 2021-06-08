@@ -1,6 +1,6 @@
 Error: All branches of function `test1` must end in a return statement
 test/analyze/exhaustive_return/inexhaustive.myte:3:18
- 3 | fun test1(): int {}
+ 3 | fun test1(): Int {}
    |                   ^
 
 Error: All branches of function `test2` must end in a return statement
@@ -40,12 +40,12 @@ test/analyze/exhaustive_return/inexhaustive.myte:43:0
 
 Error: All branches of function `bar` must end in a return statement
 test/analyze/exhaustive_return/inexhaustive.myte:46:18
- 46 |   fun bar(): int {}
+ 46 |   fun bar(): Int {}
     |                   ^
 
 Error: All branches of function `baz` must end in a return statement
 test/analyze/exhaustive_return/inexhaustive.myte:52:20
- 52 |     fun baz(): int {}
+ 52 |     fun baz(): Int {}
     |                     ^
 
 Error: All branches of function `testWhile1` must end in a return statement

@@ -1,3 +1,3 @@
 module z.y
 
-type alias export = unit
+type alias export = Unit

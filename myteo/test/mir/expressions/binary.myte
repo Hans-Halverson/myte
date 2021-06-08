@@ -25,7 +25,7 @@ fun ints() {
   1 >= 2;
 }
 
-fun bytes(x: byte, y: byte) {
+fun bytes(x: Byte, y: Byte) {
   x + y;
   x - y;
   x * y;
@@ -48,7 +48,7 @@ fun bytes(x: byte, y: byte) {
   x >= y;
 }
 
-fun longs(x: long, y: long) {
+fun longs(x: Long, y: Long) {
   x + y;
   x - y;
   x * y;

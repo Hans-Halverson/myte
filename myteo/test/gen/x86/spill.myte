@@ -1,6 +1,6 @@
 module test
 
-fun testSpill(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p16: int): int {
+fun testSpill(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p16: Int): Int {
   val p7 = p1 + p2;
   val p8 = p1 + p3;
   val p9 = p1 + p4;
@@ -16,6 +16,6 @@ fun testSpill(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p16: int): i
   return p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9 + p10 + p11 + p12 + p13 + p14 + p15 + p16;
 }
 
-fun main(): int {
+fun main(): Int {
   return testSpill(1, 2, 3, 4, 5, 6, 16); // Returns 88
 }

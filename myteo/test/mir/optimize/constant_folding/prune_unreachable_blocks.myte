@@ -1,7 +1,7 @@
 module t
 
-fun func(x: int) {}
-fun rand(): bool = true
+fun func(x: Int) {}
+fun rand(): Bool = true
 
 fun ifStatement() {
   // Consequent skipped
@@ -29,7 +29,7 @@ fun ifStatement() {
   }
 }
 
-fun nestedIfStatements(): int {
+fun nestedIfStatements(): Int {
   var x = 1;
   if (true) {
     x = 2;

@@ -1,20 +1,20 @@
 module test
 
-fun bools(x: bool) {
+fun bools(x: Bool) {
   !x;
 }
 
-fun ints(x: int) {
+fun ints(x: Int) {
   -x;
   !x;
 }
 
-fun bytes(x: byte) {
+fun bytes(x: Byte) {
   -x;
   !x;
 }
 
-fun longs(x: long) {
+fun longs(x: Long) {
   -x;
   !x;
 }

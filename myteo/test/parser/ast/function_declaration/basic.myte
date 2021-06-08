@@ -1,12 +1,12 @@
 module Test
 
-fun foo(): int = 1
+fun foo(): Int = 1
 
-fun foo(): int {}
+fun foo(): Int {}
 
-fun foo(a: int, b: string, c: bool): int {}
+fun foo(a: Int, b: String, c: Bool): Int {}
 
-fun foo(a: int, b: string, c: bool,): int {}
+fun foo(a: Int, b: String, c: Bool,): Int {}
 
 fun foo<A>() {}
 

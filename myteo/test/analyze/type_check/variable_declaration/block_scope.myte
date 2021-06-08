@@ -1,20 +1,20 @@
 module Test
 
 fun main() {
-  val t1: unit = ();
-  val t2: int = ();
+  val t1: Unit = ();
+  val t2: Int = ();
 
   {
-    val t3: unit = ();
-    val t4: int = ();
+    val t3: Unit = ();
+    val t4: Int = ();
   }
 
   fun nested() {
-    val t5: unit = ();
-    val t6: int = ();
+    val t5: Unit = ();
+    val t6: Int = ();
   }
 
   {
-    val t2: string = "";
+    val t2: String = "";
   }
 }

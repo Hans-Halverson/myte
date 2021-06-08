@@ -1,11 +1,11 @@
 module test
 
-type Rec { field: int }
+type Rec { field: Int }
 
 fun main() {
   val x: Rec = Rec { field: 1 };
 
-  (x.foo: unit);
-  (x.fiel: unit);
-  (x.fieldd: unit);
+  (x.foo: Unit);
+  (x.fiel: Unit);
+  (x.fieldd: Unit);
 }

@@ -2,96 +2,96 @@ module test
 
 fun ints() {
   // In range
-  (0: int);
-  (-0: int);
-  (0x0: int);
-  (-0x0: int);
-  (1: int);
-  (-1: int);
+  (0: Int);
+  (-0: Int);
+  (0x0: Int);
+  (-0x0: Int);
+  (1: Int);
+  (-1: Int);
 
-  // Max int is in range
-  (2147483647: int);
-  (0x7FFFFFFF: int);
-  (0b01111111111111111111111111111111: int);
+  // Max Int is in range
+  (2147483647: Int);
+  (0x7FFFFFFF: Int);
+  (0b01111111111111111111111111111111: Int);
 
-  // Above max int is out of range
-  (2147483648: int);
-  (0x80000000: int);
-  (0b10000000000000000000000000000000: int);
+  // Above max Int is out of range
+  (2147483648: Int);
+  (0x80000000: Int);
+  (0b10000000000000000000000000000000: Int);
 
-  // Min int is in range
-  (-2147483648: int);
-  (-0x80000000: int);
-  (-0b10000000000000000000000000000000: int);
+  // Min Int is in range
+  (-2147483648: Int);
+  (-0x80000000: Int);
+  (-0b10000000000000000000000000000000: Int);
 
-   // Below min int is out of range
-  (-2147483649: int);
-  (-0x80000001: int);
-  (-0b10000000000000000000000000000001: int);
+   // Below min Int is out of range
+  (-2147483649: Int);
+  (-0x80000001: Int);
+  (-0b10000000000000000000000000000001: Int);
 
   // Outside representable 64-bit range
-  (0x8000000000000000: int);
-  (-0x8000000000000001: int);
+  (0x8000000000000000: Int);
+  (-0x8000000000000001: Int);
 }
 
 fun bytes() {
   // In range
-  (0: byte);
-  (-0: byte);
-  (1: byte);
-  (-1: byte);
+  (0: Byte);
+  (-0: Byte);
+  (1: Byte);
+  (-1: Byte);
 
-  // Max byte is in range
-  (127: byte);
-  (0x7F: byte);
-  (0b01111111: byte);
+  // Max Byte is in range
+  (127: Byte);
+  (0x7F: Byte);
+  (0b01111111: Byte);
 
-  // Above max byte is out of range
-  (128: byte);
-  (0x80: byte);
-  (0b10000000: byte);
+  // Above max Byte is out of range
+  (128: Byte);
+  (0x80: Byte);
+  (0b10000000: Byte);
 
-  // Min byte is in range
-  (-128: byte);
-  (-0x80: byte);
-  (-0b10000000: byte);
+  // Min Byte is in range
+  (-128: Byte);
+  (-0x80: Byte);
+  (-0b10000000: Byte);
 
-  // Below min byte is out of range
-  (-129: byte);
-  (-0x81: byte);
-  (-0b10000001: byte);
+  // Below min Byte is out of range
+  (-129: Byte);
+  (-0x81: Byte);
+  (-0b10000001: Byte);
 
   // Outside representable 64-bit range
-  (0x8000000000000000: byte);
-  (-0x8000000000000001: byte);
+  (0x8000000000000000: Byte);
+  (-0x8000000000000001: Byte);
 }
 
 fun longs() {
   // In range
-  (0: long);
-  (-0: long);
-  (1: long);
-  (-1: long);
+  (0: Long);
+  (-0: Long);
+  (1: Long);
+  (-1: Long);
 
-  // Max long is in range
-  (9223372036854775807: long);
-  (0x7FFFFFFFFFFFFFFF: long);
-  (0b0111111111111111111111111111111111111111111111111111111111111111: long);
+  // Max Long is in range
+  (9223372036854775807: Long);
+  (0x7FFFFFFFFFFFFFFF: Long);
+  (0b0111111111111111111111111111111111111111111111111111111111111111: Long);
 
-  // Above max long is out of range
-  (9223372036854775808: long);
-  (0x8000000000000000: long);
-  (0b1000000000000000000000000000000000000000000000000000000000000000: long);
+  // Above max Long is out of range
+  (9223372036854775808: Long);
+  (0x8000000000000000: Long);
+  (0b1000000000000000000000000000000000000000000000000000000000000000: Long);
 
-  // Min long is in range
-  (-9223372036854775808: long);
-  (-0x8000000000000000: long);
-  (-0b1000000000000000000000000000000000000000000000000000000000000000: long);
+  // Min Long is in range
+  (-9223372036854775808: Long);
+  (-0x8000000000000000: Long);
+  (-0b1000000000000000000000000000000000000000000000000000000000000000: Long);
 
-  // Below min long is out of range
-  (-9223372036854775809: long);
-  (-0x8000000000000001: long);
-  (-0b1000000000000000000000000000000000000000000000000000000000000001: long);
+  // Below min Long is out of range
+  (-9223372036854775809: Long);
+  (-0x8000000000000001: Long);
+  (-0b1000000000000000000000000000000000000000000000000000000000000001: Long);
 }
 
 fun main() {}

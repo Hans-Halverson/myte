@@ -1,19 +1,19 @@
 Error: Tuple index out of range. Tuple has 12 elements so only indices 0 through 11 are allowed.
 test/analyze/type_check/tuple/non_dec_indexing.myte:16:5-9
- 16 |   (x[-0x1]: unit);
+ 16 |   (x[-0x1]: Unit);
     |      ^^^^
 
 Error: Tuple index out of range. Tuple has 12 elements so only indices 0 through 11 are allowed.
 test/analyze/type_check/tuple/non_dec_indexing.myte:17:5-9
- 17 |   (x[0xFF]: unit);
+ 17 |   (x[0xFF]: Unit);
     |      ^^^^
 
 Error: Tuple index out of range. Tuple has 12 elements so only indices 0 through 11 are allowed.
 test/analyze/type_check/tuple/non_dec_indexing.myte:19:5-9
- 19 |   (x[-0b1]: unit);
+ 19 |   (x[-0b1]: Unit);
     |      ^^^^
 
 Error: Tuple index out of range. Tuple has 12 elements so only indices 0 through 11 are allowed.
 test/analyze/type_check/tuple/non_dec_indexing.myte:20:5-12
- 20 |   (x[0b11110]: unit);
+ 20 |   (x[0b11110]: Unit);
     |      ^^^^^^^

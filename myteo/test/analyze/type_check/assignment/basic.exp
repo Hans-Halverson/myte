@@ -1,4 +1,4 @@
-Error: Expected type `int` but found `unit`
+Error: Expected type `Int` but found `Unit`
 test/analyze/type_check/assignment/basic.myte:7:6-8
  7 |   x = ();
    |       ^^

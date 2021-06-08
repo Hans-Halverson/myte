@@ -1,8 +1,8 @@
 module a1.a2
 
-type Rec { child: int, child1: Rec2 }
-type Rec2 { child2: int }
+type Rec { child: Int, child1: Rec2 }
+type Rec2 { child2: Int }
 
 val export: Rec = Rec { child: 1, child1: Rec2 { child2: 2 } }
 
-type ExportType { field: int }
+type ExportType { field: Int }

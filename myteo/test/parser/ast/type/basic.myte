@@ -1,15 +1,15 @@
 module Test
 
-val x: unit = ()
-val x: int = 1
-val x: byte = 1
-val x: long = 1
-val x: string = "test"
-val x: bool = true
+val x: Unit = ()
+val x: Int = 1
+val x: Byte = 1
+val x: Long = 1
+val x: String = "test"
+val x: Bool = true
 
-val x: int -> string = 1
-val x: int -> string -> bool = 1
-val x: int -> string -> bool -> string = 1
+val x: Int -> String = 1
+val x: Int -> String -> Bool = 1
+val x: Int -> String -> Bool -> String = 1
 
 val x: Custom1 = 1
 val x: Custom1.Custom2.Custom3 = 1
@@ -20,4 +20,4 @@ val x: Id<A> = 1
 val x: ID<A, B, C> = 1
 val x: ID<A, B, C,> = 1
 val x: ID<ID<ID<A>>> = 1
-val x: ID<(A, int)> = 1
+val x: ID<(A, Int)> = 1

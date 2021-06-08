@@ -5,7 +5,7 @@ test/analyze/module_tree/module_export_overlap/a.b.myte:3:0-10
 
 Error: Module and export with same name `c` in module `a.b`
 test/analyze/module_tree/module_export_overlap/a.b.myte:5:0-19
- 5 | type alias c = unit
+ 5 | type alias c = Unit
    | ^^^^^^^^^^^^^^^^^^^
 
 Error: Module and export with same name `e` in module `c.d`

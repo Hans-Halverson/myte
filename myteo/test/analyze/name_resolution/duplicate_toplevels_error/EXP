@@ -15,7 +15,7 @@ test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error
 
 Error: Value with name `foo` already bound in module
 test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:10:4-7
- 10 | val foo: int = 1
+ 10 | val foo: Int = 1
     |     ^^^
 
 Error: Value with name `bar` already bound in module
@@ -25,7 +25,7 @@ test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error
 
 Error: Value with name `baz` already bound in module
 test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:16:4-7
- 16 | val baz: int = 1
+ 16 | val baz: Int = 1
     |     ^^^
 
 Error: Value with name `imported` already bound in module
@@ -35,15 +35,15 @@ test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error
 
 Error: Value with name `imported` already bound in module
 test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:19:4-12
- 19 | val imported: int = 1
+ 19 | val imported: Int = 1
     |     ^^^^^^^^
 
 Error: Type with name `imported` already bound in module
 test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:20:11-19
- 20 | type alias imported = unit
+ 20 | type alias imported = Unit
     |            ^^^^^^^^
 
 Error: Type with name `foo` already bound in module
 test/analyze/name_resolution/duplicate_toplevels_error/duplicate_toplevels_error.myte:23:11-14
- 23 | type alias foo = int
+ 23 | type alias foo = Int
     |            ^^^

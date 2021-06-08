@@ -2,9 +2,9 @@ module Test
 
 fun main() {
   if (true) {
-    (1: unit);
+    (1: Unit);
   } else {
-    (2: unit);
+    (2: Unit);
   }
 
   if (false) {}

@@ -2,13 +2,13 @@ module test
 
 fun empty() {}
 
-fun emptyParams(x: int, y: bool) {}
+fun emptyParams(x: Int, y: Bool) {}
 
-fun shorthand(x: int): int = 1
+fun shorthand(x: Int): Int = 1
 
-fun withBody(x: int, y: bool) {
-  val z: int = 10;
-  val zz: bool = true && false;
+fun withBody(x: Int, y: Bool) {
+  val z: Int = 10;
+  val zz: Bool = true && false;
 }
 
 fun main() {

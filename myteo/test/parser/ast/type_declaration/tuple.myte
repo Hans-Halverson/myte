@@ -1,15 +1,15 @@
 module test
 
-type t1(int)
+type t1(Int)
 
-type t2(((int)))
+type t2(((Int)))
 
-type t3(int, bool, string)
+type t3(Int, Bool, String)
 
-type t4(int, bool, string,)
+type t4(Int, Bool, String,)
 
-type t5((int, bool), string)
+type t5((Int, Bool), String)
 
-type t6<T>(unit)
+type t6<T>(Unit)
 
-type t7<T, U, V>(int)
+type t7<T, U, V>(Int)

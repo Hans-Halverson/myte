@@ -1,16 +1,16 @@
 module Test
 
-fun intToInt(x: int): int = x
-fun intToString(x: int): string = "test"
+fun intToInt(x: Int): Int = x
+fun intToString(x: Int): String = "test"
 
 fun main() {
-  (1 == 1: bool);
-  ("a" == "b": bool);
-  (() == (): bool);
-  (true == false: bool);
-  (1 != 2: bool);
+  (1 == 1: Bool);
+  ("a" == "b": Bool);
+  (() == (): Bool);
+  (true == false: Bool);
+  (1 != 2: Bool);
 
-  (1 == true: bool);
-  (true == 1: bool);
-  (intToInt == intToString: bool);
+  (1 == true: Bool);
+  (true == 1: Bool);
+  (intToInt == intToString: Bool);
 }

@@ -1,29 +1,29 @@
-Error: Expected type `string` but found `int`
+Error: Expected type `String` but found `Int`
 test/analyze/type_check/tuple/indexing.myte:34:3-7
- 34 |   (x[0]: string);
+ 34 |   (x[0]: String);
     |    ^^^^
 
-Error: Expected type `string` but found `int`
+Error: Expected type `String` but found `Int`
 test/analyze/type_check/tuple/indexing.myte:35:3-8
- 35 |   (x2[0]: string);
+ 35 |   (x2[0]: String);
     |    ^^^^^
 
-Error: Expected type `int` but found `(string, unit)`
+Error: Expected type `Int` but found `(String, Unit)`
 test/analyze/type_check/tuple/indexing.myte:36:3-10
- 36 |   (y[1][2]: int);
+ 36 |   (y[1][2]: Int);
     |    ^^^^^^^
 
-Error: Expected type `int` but found `Tup4`
+Error: Expected type `Int` but found `Tup4`
 test/analyze/type_check/tuple/indexing.myte:37:3-11
- 37 |   (y2[1][2]: int);
+ 37 |   (y2[1][2]: Int);
     |    ^^^^^^^^
 
-Error: Expected type `int` but found `string`
+Error: Expected type `Int` but found `String`
 test/analyze/type_check/tuple/indexing.myte:38:3-13
- 38 |   (y[1][2][0]: int); 
+ 38 |   (y[1][2][0]: Int); 
     |    ^^^^^^^^^^
 
-Error: Expected type `int` but found `string`
+Error: Expected type `Int` but found `String`
 test/analyze/type_check/tuple/indexing.myte:39:3-14
- 39 |   (y2[1][2][0]: int); 
+ 39 |   (y2[1][2][0]: Int); 
     |    ^^^^^^^^^^^

@@ -2,28 +2,28 @@ module test
 
 fun bitwise() {
   // Non-erroring cases
-  (1 & 1: int);
-  (1 & 2 & 3 & 4: int);
-  (1 | 2: int);
-  (1 ^ 2: int);
-  (1 << 2: int);
-  (1 >> 2: int);
-  (1 >>> 2: int);
+  (1 & 1: Int);
+  (1 & 2 & 3 & 4: Int);
+  (1 | 2: Int);
+  (1 ^ 2: Int);
+  (1 << 2: Int);
+  (1 >> 2: Int);
+  (1 >>> 2: Int);
 
   // If only one type is addable error and type expression with that type
-  (1 & true: int);
-  (true & "a": string);
+  (1 & true: Int);
+  (true & "a": String);
 
   // If both types are addable but incompatible error and type expression with
   // left hand type.
-  val i: int = 1;
-  val b: byte = 2;
-  (i & b: int);
-  (b & i: byte);
+  val i: Int = 1;
+  val b: Byte = 2;
+  (i & b: Int);
+  (b & i: Byte);
 
-  // Literal inferred as correct int type
-  (1 & b: int);
-  (b & 1: int);
+  // Literal inferred as correct Int type
+  (1 & b: Int);
+  (b & 1: Int);
 }
 
 fun main() {}

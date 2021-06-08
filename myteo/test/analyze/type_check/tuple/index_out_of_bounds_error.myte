@@ -1,15 +1,15 @@
 module test
 
-type Tup (int, string, bool)
+type Tup (Int, String, Bool)
 
 fun main() {
-  val x: (int, string, bool) = (1, "str", true);
+  val x: (Int, String, Bool) = (1, "str", true);
   val y: Tup = Tup (1, "str", true);
 
-  (x[-1]: unit);
-  (y[-1]: unit);
-  (x[3]: unit);
-  (y[3]: unit);
-  (x[4]: unit);
-  (y[4]: unit);
+  (x[-1]: Unit);
+  (y[-1]: Unit);
+  (x[3]: Unit);
+  (y[3]: Unit);
+  (x[4]: Unit);
+  (y[4]: Unit);
 }

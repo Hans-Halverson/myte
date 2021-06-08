@@ -1,11 +1,11 @@
 module test
 
-type Tup (int, string)
+type Tup (Int, String)
 
 fun main() {
-  var x: int = 1;
-  var y: string = "";
-  var z: bool = true;
+  var x: Int = 1;
+  var y: String = "";
+  var z: Bool = true;
 
   Tup (x, y, z) = Tup (1, "");
 }

@@ -1,29 +1,29 @@
-Error: Expected type `unit` but found `(int, string, bool)`
+Error: Expected type `Unit` but found `(Int, String, Bool)`
 test/analyze/type_check/variable_declaration/destructuring.myte:13:3-12
- 13 |   ((x, y, z): unit);
+ 13 |   ((x, y, z): Unit);
     |    ^^^^^^^^^
 
-Error: Expected type `unit` but found `(int, string, bool)`
+Error: Expected type `Unit` but found `(Int, String, Bool)`
 test/analyze/type_check/variable_declaration/destructuring.myte:26:3-12
- 26 |   ((x, y, z): unit);
+ 26 |   ((x, y, z): Unit);
     |    ^^^^^^^^^
 
-Error: Expected type `unit` but found `(int, string, bool)`
+Error: Expected type `Unit` but found `(Int, String, Bool)`
 test/analyze/type_check/variable_declaration/destructuring.myte:39:3-17
- 39 |   ((x, y, field3): unit);
+ 39 |   ((x, y, field3): Unit);
     |    ^^^^^^^^^^^^^^
 
-Error: Expected type `int` but found `(a, b)`
+Error: Expected type `Int` but found `(a, b)`
 test/analyze/type_check/variable_declaration/destructuring.myte:73:6-12
- 73 |   val (a, b): int = 1;
+ 73 |   val (a, b): Int = 1;
     |       ^^^^^^
 
-Error: Expected type `(int, string)` but found `int`
+Error: Expected type `(Int, String)` but found `Int`
 test/analyze/type_check/variable_declaration/destructuring.myte:76:30
- 76 |   val (c, d): (int, string) = 1;
+ 76 |   val (c, d): (Int, String) = 1;
     |                               ^
 
-Error: Expected type `(int, string)` but found `(int, int)`
+Error: Expected type `(Int, String)` but found `(Int, Int)`
 test/analyze/type_check/variable_declaration/destructuring.myte:79:30-36
- 79 |   val (e, f): (int, string) = (1, 1);
+ 79 |   val (e, f): (Int, String) = (1, 1);
     |                               ^^^^^^

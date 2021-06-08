@@ -1,24 +1,24 @@
 module Inexhaustive
 
-fun test1(): int {}
+fun test1(): Int {}
 
-fun test2(): int {
+fun test2(): Int {
   1;
 }
 
-fun test3(): int {
+fun test3(): Int {
   if (true) {
     1;
   }
 }
 
-fun test4(): int {
+fun test4(): Int {
   if (true) {
     return 1;
   }
 }
 
-fun test5(): int {
+fun test5(): Int {
   if (true) {
     return 1;
   } else {
@@ -26,7 +26,7 @@ fun test5(): int {
   }
 }
 
-fun test6(): int {
+fun test6(): Int {
   if (true) {
     1;
   } else {
@@ -34,45 +34,45 @@ fun test6(): int {
   }
 }
 
-fun test7(): int {
+fun test7(): Int {
   val x = 1;
 }
 
-fun test8(): int {
-  fun bar(): int = 1
+fun test8(): Int {
+  fun bar(): Int = 1
 }
 
-fun test9(): int {
-  fun bar(): int {}
+fun test9(): Int {
+  fun bar(): Int {}
   return 1;
 }
 
-fun test10(): int {
-  fun bar(): int {
-    fun baz(): int {}
+fun test10(): Int {
+  fun bar(): Int {
+    fun baz(): Int {}
     return 1;
   }
   return 2;
 }
 
-fun testWhile1(): int {
+fun testWhile1(): Int {
   while (true) {}
 }
 
-fun testWhile2(): int {
+fun testWhile2(): Int {
   while (true) {
     return 1;
   }
 }
 
-fun testMatchSingleCase(): int {
+fun testMatchSingleCase(): Int {
   val _ = 1;
   match (1) {
     | _ -> 1
   }
 }
 
-fun testMatchMultipleCases(): int {
+fun testMatchMultipleCases(): Int {
   val _ = 1;
   match (1) {
     | _ -> return 1
@@ -81,7 +81,7 @@ fun testMatchMultipleCases(): int {
   }
 }
 
-fun testMatchNested(): int {
+fun testMatchNested(): Int {
   val _ = 1;
   match (1) {
     | _ -> return 1

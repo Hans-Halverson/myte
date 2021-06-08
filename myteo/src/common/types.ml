@@ -80,15 +80,15 @@ let concat_and_wrap (pre, post) elements = pre ^ String.concat ", " elements ^ p
 
 let rec pp_with_names ~tvar_to_name ty =
   match ty with
-  | Any -> "any"
-  | Unit -> "unit"
-  | Bool -> "bool"
-  | Byte -> "byte"
-  | Int -> "int"
-  | Long -> "long"
-  | IntLiteral { resolved = None; _ } -> "<integer>"
+  | Any -> "Any"
+  | Unit -> "Unit"
+  | Bool -> "Bool"
+  | Byte -> "Byte"
+  | Int -> "Int"
+  | Long -> "Long"
+  | IntLiteral { resolved = None; _ } -> "<Integer>"
   | IntLiteral { resolved = Some resolved; _ } -> pp_with_names ~tvar_to_name resolved
-  | String -> "string"
+  | String -> "String"
   | Tuple elements ->
     let element_names = List.map (pp_with_names ~tvar_to_name) elements in
     concat_and_wrap ("(", ")") element_names

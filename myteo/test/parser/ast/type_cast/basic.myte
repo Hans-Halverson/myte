@@ -1,8 +1,8 @@
 module Test
 
 fun test() {
-  (1: unit);
-  ((1: unit));
+  (1: Unit);
+  ((1: Unit));
 }
 
 fun main() {}

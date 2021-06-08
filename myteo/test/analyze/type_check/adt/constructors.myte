@@ -1,15 +1,15 @@
 module test
 
-type TupleADT (int)
-type LongTupleADT (int, string, bool)
+type TupleADT (Int)
+type LongTupleADT (Int, String, Bool)
 
-type RecordADT { field: int }
+type RecordADT { field: Int }
 
 type VariantADT =
   | EnumVariant
-  | TupleVariant (int, string)
-  | RecordVariant1 { field1: int, field2: int }
-  | RecordVariant2 { field1: int, field2: string, field3: bool }
+  | TupleVariant (Int, String)
+  | RecordVariant1 { field1: Int, field2: Int }
+  | RecordVariant2 { field1: Int, field2: String, field3: Bool }
 
 fun main() {
   // Enum variant constructors can be used as values
@@ -32,8 +32,8 @@ fun main() {
   (TupleVariant(1, false): VariantADT);
 
   // Tuple constructor types are ADTs, not tuple literals
-  (LongTupleADT(1, "a", true): (int, string, bool));
-  (TupleVariant(1, "a"): (int, string));
+  (LongTupleADT(1, "a", true): (Int, String, Bool));
+  (TupleVariant(1, "a"): (Int, String));
 
   // Enum and record constructors cannot be called as functions
   EnumVariant();
@@ -45,30 +45,30 @@ fun main() {
   (RecordVariant2 { field1: 1, field2: "a", field3: true }: VariantADT);
   
   // Record constructor field shorthand
-  val field1: int = 1;
-  val field2: int = 2;
+  val field1: Int = 1;
+  val field2: Int = 2;
   (RecordVariant1 { field1, field2 }: VariantADT);
   (RecordVariant1 { field1: 3, field2 }: VariantADT);
   (RecordVariant1 { field1, field2: 3 }: VariantADT);
 
   // Incorrect argument types for record constructors
-  val field3: string = "test";
+  val field3: String = "test";
   (RecordVariant1 { field1: "test", field2: 1} : VariantADT);
   (RecordVariant2 { field1: "test", field2: "test", field3 }: VariantADT);
 
   // Missing record fields
-  (RecordVariant1 { field1: 1 }: int);
-  (RecordVariant2 { field2: "test" }: int);
+  (RecordVariant1 { field1: 1 }: Int);
+  (RecordVariant2 { field2: "test" }: Int);
 
   // Unexpected record fields
-  (RecordADT { field: 1, nonexist1: 0, nonexist2: 0 }: int);
+  (RecordADT { field: 1, nonexist1: 0, nonexist2: 0 }: Int);
 
   // If there are missing and unexpected fields only show missing, as well as type errors
-  (RecordVariant2 { field1: "test", nonexist: 1 }: int);
+  (RecordVariant2 { field1: "test", nonexist: 1 }: Int);
 
   // Error on invalid record constructors
-  (EnumVariant { field: 1 }: int);
-  (TupleVariant { field: 1 }: int);
-  (1 { field: 1 }: int);
-  (field1 { field: 1 }: int);
+  (EnumVariant { field: 1 }: Int);
+  (TupleVariant { field: 1 }: Int);
+  (1 { field: 1 }: Int);
+  (field1 { field: 1 }: Int);
 }

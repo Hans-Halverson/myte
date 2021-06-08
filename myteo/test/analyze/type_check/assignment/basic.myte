@@ -1,7 +1,7 @@
 module Test
 
 fun main() {
-  var x: int = 1;
+  var x: Int = 1;
   x = 2;
   x = 3;
   x = ();

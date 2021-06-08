@@ -1,4 +1,4 @@
 module A
 
 type alias rec_type1 = Test.rec_type2
-type alias rec_type3 = Test.rec_type4 -> unit
+type alias rec_type3 = Test.rec_type4 -> Unit

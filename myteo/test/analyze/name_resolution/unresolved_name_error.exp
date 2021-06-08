@@ -20,12 +20,12 @@ test/analyze/name_resolution/unresolved_name_error.myte:15:14-19
 
 Error: Could not resolve name `ty` to value
 test/analyze/name_resolution/unresolved_name_error.myte:18:3-5
- 18 |   (ty: int);
+ 18 |   (ty: Int);
     |    ^^
 
 Error: Could not resolve name `T` to value
 test/analyze/name_resolution/unresolved_name_error.myte:19:3
- 19 |   (T: int);
+ 19 |   (T: Int);
     |    ^
 
 Error: Could not resolve name `x` to value
@@ -65,5 +65,5 @@ test/analyze/name_resolution/unresolved_name_error.myte:76:2
 
 Error: Could not resolve name `x` to value
 test/analyze/name_resolution/unresolved_name_error.myte:81:15
- 81 |   val x: int = x;
+ 81 |   val x: Int = x;
     |                ^

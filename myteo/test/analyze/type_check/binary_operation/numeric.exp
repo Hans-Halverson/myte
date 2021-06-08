@@ -1,19 +1,19 @@
-Error: Expected type `int` but found `bool`
+Error: Expected type `Int` but found `Bool`
 test/analyze/type_check/binary_operation/numeric.myte:9:7-11
- 9 |   (1 - true: int);
+ 9 |   (1 - true: Int);
    |        ^^^^
 
-Error: Expected type `int` but found `bool`
+Error: Expected type `Int` but found `Bool`
 test/analyze/type_check/binary_operation/numeric.myte:10:3-7
- 10 |   (true - 1: int);
+ 10 |   (true - 1: Int);
     |    ^^^^
 
-Error: Expected type `int` but found `bool`
+Error: Expected type `Int` but found `Bool`
 test/analyze/type_check/binary_operation/numeric.myte:11:3-7
- 11 |   (true - (): int);
+ 11 |   (true - (): Int);
     |    ^^^^
 
-Error: Expected type `int` but found `unit`
+Error: Expected type `Int` but found `Unit`
 test/analyze/type_check/binary_operation/numeric.myte:11:10-12
- 11 |   (true - (): int);
+ 11 |   (true - (): Int);
     |           ^^

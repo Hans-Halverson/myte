@@ -1,10 +1,10 @@
 module test
 
-type Rec { field: int }
+type Rec { field: Int }
 
 type TupleVariants =
-  | Tuple1 (int)
-  | Tuple2 (string)
+  | Tuple1 (Int)
+  | Tuple2 (String)
 
 fun main() {
   1[0];

@@ -1,28 +1,28 @@
 module Test
 
-type alias IntAlias = int
+type alias IntAlias = Int
 
-fun foo(p1: unit, p2: int, p3: string, p4: (int, string) -> bool, p5: IntAlias) {
-  (p1: unit);
-  (p2: int);
+fun foo(p1: Unit, p2: Int, p3: String, p4: (Int, String) -> Bool, p5: IntAlias) {
+  (p1: Unit);
+  (p2: Int);
   (p2: IntAlias);
-  (p3: string);
-  (p4: (int, string) -> bool);
+  (p3: String);
+  (p4: (Int, String) -> Bool);
   (p5: IntAlias);
-  (p5: int);
+  (p5: Int);
 
-  (p1: bool);
-  (p4: int -> bool);
-  (p5: unit);
+  (p1: Bool);
+  (p4: Int -> Bool);
+  (p5: Unit);
 
   {
-    val p1: int = 1;
-    (p1: unit);
+    val p1: Int = 1;
+    (p1: Unit);
 
-    fun inner(p1: string) {
-      (p1: unit);
-      (p1: int);
-      (p1: string);
+    fun inner(p1: String) {
+      (p1: Unit);
+      (p1: Int);
+      (p1: String);
     }
   }
 }

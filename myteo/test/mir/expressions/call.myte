@@ -2,11 +2,11 @@ module test
 
 fun noArgsFunc() {}
 
-fun singleArgFunc(x: int): int = x
+fun singleArgFunc(x: Int): Int = x
 
-fun singleArgFunc2(x: int): int = x + 1
+fun singleArgFunc2(x: Int): Int = x + 1
 
-fun multiArgsFunc(x: int, y: int, z: string) {}
+fun multiArgsFunc(x: Int, y: Int, z: String) {}
 
 fun directCalls() {
   val b = true;

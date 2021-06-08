@@ -2,41 +2,41 @@ module test
 
 // Int
 
-val i0: int = -(56)
+val i0: Int = -(56)
 
-val i1: int = 1 + 2
-val i2: int = 1 - 2
-val i3: int = 2 * 7
-val i4: int = 24 / 3
+val i1: Int = 1 + 2
+val i2: Int = 1 - 2
+val i3: Int = 2 * 7
+val i4: Int = 24 / 3
 
-val i5: bool = (5: int) > 7
+val i5: Bool = (5: Int) > 7
 
 // Byte
 
-val b0: byte = -(56)
+val b0: Byte = -(56)
 
-val b1: byte = 1 + 2
-val b2: byte = 1 - 2
-val b3: byte = 2 * 7
-val b4: byte = 24 / 3
+val b1: Byte = 1 + 2
+val b2: Byte = 1 - 2
+val b3: Byte = 2 * 7
+val b4: Byte = 24 / 3
 
-val b5: bool = (5: byte) > 7
+val b5: Bool = (5: Byte) > 7
 
 // Long
 
-val l0: long = -(56)
+val l0: Long = -(56)
 
-val l1: long = 1 + 2
-val l2: long = 1 - 2
-val l3: long = 2 * 7
-val l4: long = 24 / 3
+val l1: Long = 1 + 2
+val l2: Long = 1 - 2
+val l3: Long = 2 * 7
+val l4: Long = 24 / 3
 
-val l5: bool = (5: long) > 7
+val l5: Bool = (5: Long) > 7
 
 // Bools
-val bool0: bool = !true
+val bool0: Bool = !true
 
-val bool1: bool = true && false
-val bool2: bool = true || false
+val bool1: Bool = true && false
+val bool2: Bool = true || false
 
 fun main() {}

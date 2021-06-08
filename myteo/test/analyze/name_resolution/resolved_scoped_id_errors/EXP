@@ -200,7 +200,7 @@ test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:68:6-28
 
 Error: Could not resolve `a1.a2.a3.exportedType`. Module `a1.a2.a3` does not have exported value with name `exportedType`.
 test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:69:3-24
- 69 |   (a1.a2.a3.exportedType: int);
+ 69 |   (a1.a2.a3.exportedType: Int);
     |    ^^^^^^^^^^^^^^^^^^^^^
 
 Error: `exportedFun` is an export of module `a1.a2.a3`, there are no items beneath `a1.a2.a3.exportedFun`

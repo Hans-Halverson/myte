@@ -1,3 +1,3 @@
 module test
 
-val Tup (): int = 1
+val Tup (): Int = 1

@@ -1,9 +1,9 @@
 module test
 
-fun use(x: int): int = x
-fun cond(): bool = true
+fun use(x: Int): Int = x
+fun cond(): Bool = true
 
-fun testMultipleInterferingSpillsInDifferentStackSlots(p1: int, p2: int, p3: int, p4: int, p5: int): int {
+fun testMultipleInterferingSpillsInDifferentStackSlots(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int): Int {
   // Create four spilled vars
   var a = 1;
   var b = 2;
@@ -24,7 +24,7 @@ fun testMultipleInterferingSpillsInDifferentStackSlots(p1: int, p2: int, p3: int
 }
 
 // Create three individual spills in a sequence, all reuse the same stack slot
-fun testNonInterferingSpillsReuseStackSlots(): int {
+fun testNonInterferingSpillsReuseStackSlots(): Int {
   val cond1 = cond();
   var x1 = 1;
   var x2 = 2;
@@ -134,7 +134,7 @@ fun testNonInterferingSpillsReuseStackSlots(): int {
 }
 
 // Create a double spill then a single spill then another double spill
-fun testPartialReuseStackSlots(): int {
+fun testPartialReuseStackSlots(): Int {
   val cond1 = cond();
   var x1 = 1;
   var x2 = 2;

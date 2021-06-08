@@ -1,34 +1,34 @@
-Error: Expected type `unit` but found `bool`
+Error: Expected type `Unit` but found `Bool`
 test/analyze/type_check/variable_declaration/toplevel.myte:13:15-19
- 13 | val v6: unit = true
+ 13 | val v6: Unit = true
     |                ^^^^
 
-Error: Expected type `bool` but found `string`
+Error: Expected type `Bool` but found `String`
 test/analyze/type_check/variable_declaration/toplevel.myte:14:15-17
- 14 | val v7: bool = ""
+ 14 | val v7: Bool = ""
     |                ^^
 
-Error: Expected type `string` but found `int`
+Error: Expected type `String` but found `Int`
 test/analyze/type_check/variable_declaration/toplevel.myte:15:17
- 15 | val v8: string = 1
+ 15 | val v8: String = 1
     |                  ^
 
-Error: Expected type `int` but found `unit`
+Error: Expected type `Int` but found `Unit`
 test/analyze/type_check/variable_declaration/toplevel.myte:16:14-16
- 16 | val v9: int = ()
+ 16 | val v9: Int = ()
     |               ^^
 
-Error: Expected type `int` but found `int -> int`
+Error: Expected type `Int` but found `Int -> Int`
 test/analyze/type_check/variable_declaration/toplevel.myte:17:15-23
- 17 | val v10: int = intToInt
+ 17 | val v10: Int = intToInt
     |                ^^^^^^^^
 
-Error: Expected type `int -> unit` but found `int -> int`
+Error: Expected type `Int -> Unit` but found `Int -> Int`
 test/analyze/type_check/variable_declaration/toplevel.myte:18:23-31
- 18 | val v11: int -> unit = intToInt
+ 18 | val v11: Int -> Unit = intToInt
     |                        ^^^^^^^^
 
-Error: Expected type `unit -> int` but found `int -> int`
+Error: Expected type `Unit -> Int` but found `Int -> Int`
 test/analyze/type_check/variable_declaration/toplevel.myte:19:23-31
- 19 | val v12: unit -> int = intToInt
+ 19 | val v12: Unit -> Int = intToInt
     |                        ^^^^^^^^

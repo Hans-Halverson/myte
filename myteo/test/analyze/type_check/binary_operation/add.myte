@@ -2,20 +2,20 @@ module Test
 
 fun main() {
   // Non-erroring cases
-  (1 + 1: int);
-  (1 + 2 + 3 + 4: int);
-  ("a" + "a": string);
-  ("a" + "b" + "c" + "": string);
+  (1 + 1: Int);
+  (1 + 2 + 3 + 4: Int);
+  ("a" + "a": String);
+  ("a" + "b" + "c" + "": String);
 
   // If only one type is addable error and type expression with that type
-  (1 + true: int);
-  (true + "a": string);
+  (1 + true: Int);
+  (true + "a": String);
 
   // If both types are addable but incompatible error and type expression with
   // left hand type.
-  (1 + "a": int);
-  ("a" + 1: string);
+  (1 + "a": Int);
+  ("a" + 1: String);
 
   // If neither type is addable error on both sides but do not enforce type for expression
-  (true + (): int -> int);
+  (true + (): Int -> Int);
 }

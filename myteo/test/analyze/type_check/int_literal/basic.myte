@@ -1,9 +1,9 @@
 module test
 
-fun useInt(x: int) {}
-fun useByte(x: byte) {}
-fun useLong(x: long) {}
-fun useUnit(x: unit) {}
+fun useInt(x: Int) {}
+fun useByte(x: Byte) {}
+fun useLong(x: Long) {}
+fun useUnit(x: Unit) {}
 
 fun localInference() {
   // Literals can be inferred as any integer type
@@ -31,30 +31,30 @@ fun localInferenceConflict() {
 
 fun localInferenceThroughUnaryExpression() {
   val x1 = 1;
-  (-(-x1): int);
+  (-(-x1): Int);
 
   val x2 = 1;
-  (-(-x2): byte);
+  (-(-x2): Byte);
 
   val x3 = 1;
-  (-(-x3): long);
+  (-(-x3): Long);
 }
 
 fun localInferenceThroughBinaryExpression() {
   val x1 = 1;
-  (x1 + 1: int);
+  (x1 + 1: Int);
 
   val x2 = 1;
-  (x2 + 1: byte);
+  (x2 + 1: Byte);
 
   val x3 = 1;
-  (x3 + 1: long);
+  (x3 + 1: Long);
 }
 
 fun conflictingBinaryExpression() {
-  val x: int = 1;
-  val y: byte = 1;
-  val z: long = 1;
+  val x: Int = 1;
+  val y: Byte = 1;
+  val z: Long = 1;
 
   x + y;
   x + z;

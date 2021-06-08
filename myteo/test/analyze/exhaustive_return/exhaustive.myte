@@ -1,34 +1,34 @@
 module Exhaustive
 
-// Functions with unit return type do not need exhaustive returns
+// Functions with Unit return type do not need exhaustive returns
 fun test1() {}
 
-fun test2(): unit {}
+fun test2(): Unit {}
 
-fun test3(): (((unit))) {}
+fun test3(): (((Unit))) {}
 
 // Functions with expression bodies do not need exhaustive returns
-fun test4(): int = 1
+fun test4(): Int = 1
 
 // All other functions require exhaustive returns
-fun test5(): int {
+fun test5(): Int {
   return 1;
 }
 
-fun test6(): int {
+fun test6(): Int {
   1;
   2;
   return 3;
 }
 
-fun test7(): int {
+fun test7(): Int {
   {
     1;
     return 2;
   }
 }
 
-fun test8(): int {
+fun test8(): Int {
   if (true) {
     return 1;
   } else {
@@ -36,7 +36,7 @@ fun test8(): int {
   }
 }
 
-fun test9(): int {
+fun test9(): Int {
   if (true) {
     return 1;
   }
@@ -44,20 +44,20 @@ fun test9(): int {
   return 3;
 }
 
-fun test10(): int {
+fun test10(): Int {
   if (true) {}
   2;
   return 3;
 }
 
-fun testMatchSingleCase(): int {
+fun testMatchSingleCase(): Int {
   val _ = 1;
   match (1) {
     | _ -> return 1
   }
 }
 
-fun testMatchMultipleCases(): int {
+fun testMatchMultipleCases(): Int {
   val _ = 1;
 
   match (1) {
@@ -67,7 +67,7 @@ fun testMatchMultipleCases(): int {
   }
 }
 
-fun testMatchNested(): int {
+fun testMatchNested(): Int {
   val _ = 1;
   match (1) {
     | _ -> return 1

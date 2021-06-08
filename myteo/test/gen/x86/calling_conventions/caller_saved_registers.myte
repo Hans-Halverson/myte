@@ -1,9 +1,9 @@
 module test
 
-fun use(x: int): int = x
+fun use(x: Int): Int = x
 
 // Default to caller saved registers if not crossing a function call
-fun testDefaultToCallerSaveRegisters(p: int, cond: bool): int {
+fun testDefaultToCallerSaveRegisters(p: Int, cond: Bool): Int {
   var x = 1;
   var y = 2;
   var z = 3;
@@ -27,7 +27,7 @@ fun testDefaultToCallerSaveRegisters(p: int, cond: bool): int {
   return x + y + z + a + b + c + d + e;
 }
 
-fun testDefaultToCalleeSaveRegistersIfAcrossFunctionCall(cond: bool) {
+fun testDefaultToCalleeSaveRegistersIfAcrossFunctionCall(cond: Bool) {
   // Placed in caller save register
   var x = 1;
   var y = 2;
@@ -45,13 +45,13 @@ fun testDefaultToCalleeSaveRegistersIfAcrossFunctionCall(cond: bool) {
   use(y);
 }
 
-fun callerSavedRegistersSavedAcrossFunctionCalls(p1: int, p2: int, p3: int, p4: int, p5: int): int {
+fun callerSavedRegistersSavedAcrossFunctionCalls(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int): Int {
   // Push callee saved registers then move caller saved args to them to pass this function call
   use(3);
   return p1 + p2 + p3 + p4 + p5;
 }
 
-fun callerSavedRegistersSavedAcrossFunctionCallsWithSpills(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int): int {
+fun callerSavedRegistersSavedAcrossFunctionCallsWithSpills(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int): Int {
   var x = 1;
   var y = 2;
   var z = 3;

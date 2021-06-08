@@ -3,17 +3,17 @@ module test
 import foo
 import foo.{importedMutableVar, importedImmutableVar, importedFunc}
 
-type TupleCtor (int)
-type RecordCtor { field: int }
+type TupleCtor (Int)
+type RecordCtor { field: Int }
 type VariantType =
   | EnumVariantCtor
-  | TupleVariantCtor (int)
-  | RecordVariantCtor { field: int }
+  | TupleVariantCtor (Int)
+  | RecordVariantCtor { field: Int }
 
-val immutableGlobal: int = 0
-var mutableGlobal: int = 0
+val immutableGlobal: Int = 0
+var mutableGlobal: Int = 0
 
-fun func(funcParam: int) {
+fun func(funcParam: Int) {
   val immutableLocal = 0;
   var mutableLocal = 0;
 

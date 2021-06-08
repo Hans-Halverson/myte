@@ -5,20 +5,20 @@ type t1 = Foo | Bar
 type t2 = | Foo | Bar
 
 type t3 =
-  | Foo (int)
-  | Bar (int,)
-  | Baz (string, bool, unit)
+  | Foo (Int)
+  | Bar (Int,)
+  | Baz (String, Bool, Unit)
 
 type t4 =
-  | Foo { k1: int }
-  | Bar { k2: int, }
-  | Baz { k3: string, k4: bool, k5: unit }
+  | Foo { k1: Int }
+  | Bar { k2: Int, }
+  | Baz { k3: String, k4: Bool, k5: Unit }
 
-type t5 = Foo | Bar (int) | Baz { k: bool }
+type t5 = Foo | Bar (Int) | Baz { k: Bool }
 
 type t6 =
- | Foo ((int, string))
- | Bar ((int, string) -> bool)
+ | Foo ((Int, String))
+ | Bar ((Int, String) -> Bool)
  | Baz { k: OtherType }
 
 type t7<T> = None | Some (T)

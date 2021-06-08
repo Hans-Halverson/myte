@@ -1,4 +1,4 @@
-Error: Cannot index into value of type `int`
+Error: Cannot index into value of type `Int`
 test/analyze/type_check/non_indexable_indexed_error.myte:10:2
  10 |   1[0];
     |   ^

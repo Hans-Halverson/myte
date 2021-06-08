@@ -28,24 +28,24 @@ test/analyze/type_check/adt/constructors.myte:30:3-11
  30 |   (TupleADT(true, 2, 3): TupleADT);
     |    ^^^^^^^^
 
-Error: Expected type `int` but found `string`
+Error: Expected type `Int` but found `String`
 test/analyze/type_check/adt/constructors.myte:31:12-15
  31 |   (TupleADT("a"): TupleADT);
     |             ^^^
 
-Error: Expected type `string` but found `bool`
+Error: Expected type `String` but found `Bool`
 test/analyze/type_check/adt/constructors.myte:32:19-24
  32 |   (TupleVariant(1, false): VariantADT);
     |                    ^^^^^
 
-Error: Expected type `(int, string, bool)` but found `LongTupleADT`
+Error: Expected type `(Int, String, Bool)` but found `LongTupleADT`
 test/analyze/type_check/adt/constructors.myte:35:3-29
- 35 |   (LongTupleADT(1, "a", true): (int, string, bool));
+ 35 |   (LongTupleADT(1, "a", true): (Int, String, Bool));
     |    ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Error: Expected type `(int, string)` but found `VariantADT`
+Error: Expected type `(Int, String)` but found `VariantADT`
 test/analyze/type_check/adt/constructors.myte:36:3-23
- 36 |   (TupleVariant(1, "a"): (int, string));
+ 36 |   (TupleVariant(1, "a"): (Int, String));
     |    ^^^^^^^^^^^^^^^^^^^^
 
 Error: Only functions can be called, but this expression is inferred to have type `VariantADT`
@@ -58,67 +58,67 @@ test/analyze/type_check/adt/constructors.myte:40:2-16
  40 |   RecordVariant1();
     |   ^^^^^^^^^^^^^^
 
-Error: Expected type `int` but found `string`
+Error: Expected type `Int` but found `String`
 test/analyze/type_check/adt/constructors.myte:56:28-34
  56 |   (RecordVariant1 { field1: "test", field2: 1} : VariantADT);
     |                             ^^^^^^
 
-Error: Expected type `int` but found `string`
+Error: Expected type `Int` but found `String`
 test/analyze/type_check/adt/constructors.myte:57:28-34
  57 |   (RecordVariant2 { field1: "test", field2: "test", field3 }: VariantADT);
     |                             ^^^^^^
 
-Error: Expected type `bool` but found `string`
+Error: Expected type `Bool` but found `String`
 test/analyze/type_check/adt/constructors.myte:57:52-58
  57 |   (RecordVariant2 { field1: "test", field2: "test", field3 }: VariantADT);
     |                                                     ^^^^^^
 
 Error: Record is missing field `field2`
 test/analyze/type_check/adt/constructors.myte:60:3-31
- 60 |   (RecordVariant1 { field1: 1 }: int);
+ 60 |   (RecordVariant1 { field1: 1 }: Int);
     |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Error: Record is missing fields `field1` and `field3`
 test/analyze/type_check/adt/constructors.myte:61:3-36
- 61 |   (RecordVariant2 { field2: "test" }: int);
+ 61 |   (RecordVariant2 { field2: "test" }: Int);
     |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Error: Record `RecordADT` does not have a field named `nonexist1`
 test/analyze/type_check/adt/constructors.myte:64:25-34
- 64 |   (RecordADT { field: 1, nonexist1: 0, nonexist2: 0 }: int);
+ 64 |   (RecordADT { field: 1, nonexist1: 0, nonexist2: 0 }: Int);
     |                          ^^^^^^^^^
 
 Error: Record `RecordADT` does not have a field named `nonexist2`
 test/analyze/type_check/adt/constructors.myte:64:39-48
- 64 |   (RecordADT { field: 1, nonexist1: 0, nonexist2: 0 }: int);
+ 64 |   (RecordADT { field: 1, nonexist1: 0, nonexist2: 0 }: Int);
     |                                        ^^^^^^^^^
 
-Error: Expected type `int` but found `string`
+Error: Expected type `Int` but found `String`
 test/analyze/type_check/adt/constructors.myte:67:28-34
- 67 |   (RecordVariant2 { field1: "test", nonexist: 1 }: int);
+ 67 |   (RecordVariant2 { field1: "test", nonexist: 1 }: Int);
     |                             ^^^^^^
 
 Error: Record `RecordVariant2` does not have a field named `nonexist`
 test/analyze/type_check/adt/constructors.myte:67:36-44
- 67 |   (RecordVariant2 { field1: "test", nonexist: 1 }: int);
+ 67 |   (RecordVariant2 { field1: "test", nonexist: 1 }: Int);
     |                                     ^^^^^^^^
 
 Error: Expected a record constructor
 test/analyze/type_check/adt/constructors.myte:70:3-14
- 70 |   (EnumVariant { field: 1 }: int);
+ 70 |   (EnumVariant { field: 1 }: Int);
     |    ^^^^^^^^^^^
 
 Error: Expected a record constructor
 test/analyze/type_check/adt/constructors.myte:71:3-15
- 71 |   (TupleVariant { field: 1 }: int);
+ 71 |   (TupleVariant { field: 1 }: Int);
     |    ^^^^^^^^^^^^
 
 Error: Expected a record constructor
 test/analyze/type_check/adt/constructors.myte:72:3
- 72 |   (1 { field: 1 }: int);
+ 72 |   (1 { field: 1 }: Int);
     |    ^
 
 Error: Expected a record constructor
 test/analyze/type_check/adt/constructors.myte:73:3-9
- 73 |   (field1 { field: 1 }: int);
+ 73 |   (field1 { field: 1 }: Int);
     |    ^^^^^^

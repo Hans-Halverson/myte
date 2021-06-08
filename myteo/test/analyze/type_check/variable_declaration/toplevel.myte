@@ -1,21 +1,21 @@
 module test
 
-val v1: unit = ()
-val v2: bool = true
-val v3: int = 1
-val v4: string = ""
-val v5: int -> int = intToInt
+val v1: Unit = ()
+val v2: Bool = true
+val v3: Int = 1
+val v4: String = ""
+val v5: Int -> Int = intToInt
 
-fun intToInt(x: int): int {
+fun intToInt(x: Int): Int {
   return x;
 }
 
-val v6: unit = true
-val v7: bool = ""
-val v8: string = 1
-val v9: int = ()
-val v10: int = intToInt
-val v11: int -> unit = intToInt
-val v12: unit -> int = intToInt
+val v6: Unit = true
+val v7: Bool = ""
+val v8: String = 1
+val v9: Int = ()
+val v10: Int = intToInt
+val v11: Int -> Unit = intToInt
+val v12: Unit -> Int = intToInt
 
 fun main() {}

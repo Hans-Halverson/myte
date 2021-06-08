@@ -18,7 +18,7 @@ test/analyze/type_check/destructuring/mismatched_record_fields_errors.myte:19:27
  19 |   Rec3 { field, nonexist1, nonexist2 } = rec3;
     |                            ^^^^^^^^^
 
-Error: Expected type `int` but found `string`
+Error: Expected type `Int` but found `String`
 test/analyze/type_check/destructuring/mismatched_record_fields_errors.myte:27:9-15
  27 |   Rec2 { field1, nonexist } = rec2;
     |          ^^^^^^

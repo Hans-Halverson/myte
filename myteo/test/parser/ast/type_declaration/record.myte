@@ -1,14 +1,14 @@
 module test
 
-type r1 { foo: int }
+type r1 { foo: Int }
 
-type r2 { foo: int, }
+type r2 { foo: Int, }
 
-type r3 { foo: int, bar: bool, baz: string }
+type r3 { foo: Int, bar: Bool, baz: String }
 
-type r4 { foo: int, bar: bool, baz: string, }
+type r4 { foo: Int, bar: Bool, baz: String, }
 
-type r5 { foo: ((int)), bar: (bool, string) -> unit, baz: (string, unit) }
+type r5 { foo: ((Int)), bar: (Bool, String) -> Unit, baz: (String, Unit) }
 
 type t6<T> { foo: T }
 

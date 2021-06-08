@@ -30,5 +30,5 @@ test/analyze/type_check/call/incorrect_num_args.myte:17:2-12
 
 Error: Incorrect number of arguments supplied to function. Expected 0 arguments but found 1.
 test/analyze/type_check/call/incorrect_num_args.myte:21:3-14
- 21 |   (zeroArgs(1): bool);
+ 21 |   (zeroArgs(1): Bool);
     |    ^^^^^^^^^^^

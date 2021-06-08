@@ -1,14 +1,14 @@
 Error: Record `Rec` does not have a field named `foo`
 test/analyze/type_check/record/nonexistent_field_error.myte:8:3-8
- 8 |   (x.foo: unit);
+ 8 |   (x.foo: Unit);
    |    ^^^^^
 
 Error: Record `Rec` does not have a field named `fiel`
 test/analyze/type_check/record/nonexistent_field_error.myte:9:3-9
- 9 |   (x.fiel: unit);
+ 9 |   (x.fiel: Unit);
    |    ^^^^^^
 
 Error: Record `Rec` does not have a field named `fieldd`
 test/analyze/type_check/record/nonexistent_field_error.myte:10:3-11
- 10 |   (x.fieldd: unit);
+ 10 |   (x.fieldd: Unit);
     |    ^^^^^^^^

@@ -1,10 +1,10 @@
 module Test
 
-type alias t1 = (int, string, bool)
-type alias t2 = ((int, string), (bool, (string, string, unit)))
+type alias t1 = (Int, String, Bool)
+type alias t2 = ((Int, String), (Bool, (String, String, Unit)))
 
 // Trailing comma
-type alias t3 = (int, string, )
+type alias t3 = (Int, String, )
 
 // As function parameter
-type alias t4 = ((int, string)) -> unit
+type alias t4 = ((Int, String)) -> Unit

@@ -1,6 +1,6 @@
 module test
 
-fun testCompareRegisterImmediate(x: int): bool {
+fun testCompareRegisterImmediate(x: Int): Bool {
   if (x == 3) {
     return x == 3;
   } else if (x != 3) {
@@ -18,7 +18,7 @@ fun testCompareRegisterImmediate(x: int): bool {
   }
 }
 
-fun testCompareImmediateRegister(x: int): bool {
+fun testCompareImmediateRegister(x: Int): Bool {
   if (3 == x) {
     return 3 == x;
   } else if (3 != x) {
@@ -36,7 +36,7 @@ fun testCompareImmediateRegister(x: int): bool {
   }
 }
 
-fun testCompareMemoryImmediate(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p7: int): bool {
+fun testCompareMemoryImmediate(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int): Bool {
   if (p7 == 3) {
     return p7 == 3;
   } else if (p7 != 3) {
@@ -54,7 +54,7 @@ fun testCompareMemoryImmediate(p1: int, p2: int, p3: int, p4: int, p5: int, p6: 
   }
 }
 
-fun testCompareImmediateMemory(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p7: int): bool {
+fun testCompareImmediateMemory(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int): Bool {
   if (3 == p7) {
     return 3 == p7;
   } else if (3 != p7) {
@@ -72,7 +72,7 @@ fun testCompareImmediateMemory(p1: int, p2: int, p3: int, p4: int, p5: int, p6: 
   }
 }
 
-fun testCompareMemoryMemory(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p7: int, p8: int): bool {
+fun testCompareMemoryMemory(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int, p8: Int): Bool {
   if (p7 == p8) {
     return p7 == p8;
   } else if (p7 != p8) {
@@ -90,7 +90,7 @@ fun testCompareMemoryMemory(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int
   }
 }
 
-fun testCompareMemoryRegister(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p7: int): bool {
+fun testCompareMemoryRegister(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int): Bool {
   if (p7 == p1) {
     return p7 == p1;
   } else if (p7 != p1) {
@@ -108,7 +108,7 @@ fun testCompareMemoryRegister(p1: int, p2: int, p3: int, p4: int, p5: int, p6: i
   }
 }
 
-fun testCompareRegisterMemory(p1: int, p2: int, p3: int, p4: int, p5: int, p6: int, p7: int): bool {
+fun testCompareRegisterMemory(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int): Bool {
   if (p1 == p7) {
     return p1 == p7;
   } else if (p1 != p7) {
@@ -126,7 +126,7 @@ fun testCompareRegisterMemory(p1: int, p2: int, p3: int, p4: int, p5: int, p6: i
   }
 }
 
-fun testCompareRegisterRegister(p1: int, p2: int): bool {
+fun testCompareRegisterRegister(p1: Int, p2: Int): Bool {
   if (p1 == p2) {
     return p1 == p2;
   } else if (p1 != p2) {

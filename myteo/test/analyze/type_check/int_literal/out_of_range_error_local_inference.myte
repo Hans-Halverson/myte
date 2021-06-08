@@ -1,8 +1,8 @@
 module test
 
-fun useInt(x: int) {}
-fun useByte(x: byte) {}
-fun useLong(x: long) {}
+fun useInt(x: Int) {}
+fun useByte(x: Byte) {}
+fun useLong(x: Long) {}
 
 fun inferredThroughExpressions1() {
   val x1 = 2147483648;

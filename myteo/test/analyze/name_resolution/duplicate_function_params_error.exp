@@ -1,9 +1,9 @@
 Error: Name `a` already bound in parameters of function `test1`
 test/analyze/name_resolution/duplicate_function_params_error.myte:4:18
- 4 | fun test1(a: int, a: int) {}
+ 4 | fun test1(a: Int, a: Int) {}
    |                   ^
 
 Error: Name `a` already bound in parameters of function `test2`
 test/analyze/name_resolution/duplicate_function_params_error.myte:7:26
- 7 | fun test2(a: int, b: int, a: string) {}
+ 7 | fun test2(a: Int, b: Int, a: String) {}
    |                           ^
