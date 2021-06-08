@@ -35,6 +35,26 @@ fun unreachableAfterIf(): int {
   return 4;
 }
 
+fun unreachableAfterMatchSingleCase(): int {
+  val _ = 1;
+  match (1) {
+    | _ -> return 1
+  }
+
+  return 2;
+}
+
+fun unreachableAfterMatchMultipleCases(): int {
+  val _ = 1;
+  match (1) {
+    | _ -> return 1
+    | _ -> return 2
+    | _ -> return 3
+  }
+
+  return 4;
+}
+
 fun unreachableAfterBlock(): int {
   {
     return 1;
@@ -96,6 +116,22 @@ fun reachableAfterWhile(): int {
   }
 
   2;
+  return 3;
+}
+
+fun reachableAfterMatch(): int {
+  val _ = 1;
+
+  match (1) {
+    | _ -> ()
+  }
+
+  match (1) {
+    | _ -> return 1
+    | _ -> ()
+    | _ -> return 2
+  }
+
   return 3;
 }
 

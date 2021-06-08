@@ -48,7 +48,27 @@ test/analyze/exhaustive_return/inexhaustive.myte:52:20
  52 |     fun baz(): int {}
     |                     ^
 
-Error: All branches of function `testWhile` must end in a return statement
-test/analyze/exhaustive_return/inexhaustive.myte:64:0
- 64 | }
+Error: All branches of function `testWhile1` must end in a return statement
+test/analyze/exhaustive_return/inexhaustive.myte:60:0
+ 60 | }
     | ^
+
+Error: All branches of function `testWhile2` must end in a return statement
+test/analyze/exhaustive_return/inexhaustive.myte:66:0
+ 66 | }
+    | ^
+
+Error: All branches of function `testMatchSingleCase` must end in a return statement
+test/analyze/exhaustive_return/inexhaustive.myte:71:11
+ 71 |     | _ -> 1
+    |            ^
+
+Error: All branches of function `testMatchMultipleCases` must end in a return statement
+test/analyze/exhaustive_return/inexhaustive.myte:79:11
+ 79 |     | _ -> 2
+    |            ^
+
+Error: All branches of function `testMatchNested` must end in a return statement
+test/analyze/exhaustive_return/inexhaustive.myte:90:13
+ 90 |       | _ -> 3
+    |              ^

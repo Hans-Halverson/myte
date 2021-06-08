@@ -29,16 +29,26 @@ test/analyze/reachability/reachability.myte:34:2-4
     |   ^^
 
 Error: Unreachable statement after return
-test/analyze/reachability/reachability.myte:43:2-11
- 43 |   return 2;
+test/analyze/reachability/reachability.myte:44:2-11
+ 44 |   return 2;
     |   ^^^^^^^^^
 
 Error: Unreachable statement after return
-test/analyze/reachability/reachability.myte:49:4-13
- 49 |     return 2;
+test/analyze/reachability/reachability.myte:55:2-11
+ 55 |   return 4;
+    |   ^^^^^^^^^
+
+Error: Unreachable statement after return
+test/analyze/reachability/reachability.myte:63:2-11
+ 63 |   return 2;
+    |   ^^^^^^^^^
+
+Error: Unreachable statement after return
+test/analyze/reachability/reachability.myte:69:4-13
+ 69 |     return 2;
     |     ^^^^^^^^^
 
 Error: Unreachable statement
-test/analyze/reachability/reachability.myte:63:4-13
- 63 |     return 1;
+test/analyze/reachability/reachability.myte:83:4-13
+ 83 |     return 1;
     |     ^^^^^^^^^

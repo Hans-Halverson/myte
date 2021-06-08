@@ -65,13 +65,15 @@ let rec visit_statement ~cx stmt =
     in
     join_reachabilities [conseq_reachability; altern_reachability]
   | Match { cases; _ } ->
-    List.iter
-      (fun { Match.Case.right; _ } ->
-        match right with
-        | Match.Case.Statement stmt -> ignore (visit_statement ~cx stmt)
-        | _ -> ())
-      cases;
-    Reachable
+    let case_reachabilities =
+      List.map
+        (fun { Match.Case.right; _ } ->
+          match right with
+          | Match.Case.Statement stmt -> visit_statement ~cx stmt
+          | _ -> Reachable)
+        cases
+    in
+    join_reachabilities case_reachabilities
   | While { While.body; _ } ->
     enter_loop ~cx;
     ignore (visit_statement ~cx body);

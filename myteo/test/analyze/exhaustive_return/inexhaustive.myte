@@ -55,10 +55,39 @@ fun test10(): int {
   return 2;
 }
 
-fun testWhile(): int {
+fun testWhile1(): int {
   while (true) {}
+}
 
+fun testWhile2(): int {
   while (true) {
     return 1;
+  }
+}
+
+fun testMatchSingleCase(): int {
+  val _ = 1;
+  match (1) {
+    | _ -> 1
+  }
+}
+
+fun testMatchMultipleCases(): int {
+  val _ = 1;
+  match (1) {
+    | _ -> return 1
+    | _ -> 2
+    | _ -> return 3
+  }
+}
+
+fun testMatchNested(): int {
+  val _ = 1;
+  match (1) {
+    | _ -> return 1
+    | _ -> match (2) {
+      | _ -> return 2
+      | _ -> 3
+    }
   }
 }

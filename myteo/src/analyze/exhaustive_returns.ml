@@ -91,6 +91,7 @@ class analyzer =
           (match exhaustive with
           | BlockMissingReturn loc
           | IfMissingAltern loc
+          | MatchInexhaustiveCase loc
             when requires_exhaustive ->
             this#add_error (Loc.point_end loc) (InexhaustiveReturn name)
           | AtomicInexhaustiveStatement when requires_exhaustive ->

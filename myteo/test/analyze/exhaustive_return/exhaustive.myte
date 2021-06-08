@@ -50,4 +50,32 @@ fun test10(): int {
   return 3;
 }
 
+fun testMatchSingleCase(): int {
+  val _ = 1;
+  match (1) {
+    | _ -> return 1
+  }
+}
+
+fun testMatchMultipleCases(): int {
+  val _ = 1;
+
+  match (1) {
+    | _ -> return 1
+    | _ -> return 2
+    | _ -> return 3
+  }
+}
+
+fun testMatchNested(): int {
+  val _ = 1;
+  match (1) {
+    | _ -> return 1
+    | _ -> match (2) {
+      | _ -> return 2
+      | _ -> return 3
+    }
+  }
+}
+
 fun main() {}
