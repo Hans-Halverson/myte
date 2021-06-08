@@ -1,0 +1,34 @@
+Error: Expected type `int` but found `bool`
+test/analyze/type_check/binary_operation/bitwise.myte:14:7-11
+ 14 |   (1 & true: int);
+    |        ^^^^
+
+Error: Expected type `int` but found `bool`
+test/analyze/type_check/binary_operation/bitwise.myte:15:3-7
+ 15 |   (true & "a": string);
+    |    ^^^^
+
+Error: Expected type `int` but found `string`
+test/analyze/type_check/binary_operation/bitwise.myte:15:10-13
+ 15 |   (true & "a": string);
+    |           ^^^
+
+Error: Expected type `int` but found `byte`
+test/analyze/type_check/binary_operation/bitwise.myte:21:7
+ 21 |   (i & b: int);
+    |        ^
+
+Error: Expected type `byte` but found `int`
+test/analyze/type_check/binary_operation/bitwise.myte:22:7
+ 22 |   (b & i: byte);
+    |        ^
+
+Error: Expected type `int` but found `byte`
+test/analyze/type_check/binary_operation/bitwise.myte:25:3-8
+ 25 |   (1 & b: int);
+    |    ^^^^^
+
+Error: Expected type `int` but found `byte`
+test/analyze/type_check/binary_operation/bitwise.myte:26:3-8
+ 26 |   (b & 1: int);
+    |    ^^^^^
