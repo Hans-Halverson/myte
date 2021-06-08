@@ -1,0 +1,14 @@
+Error: `_` is the wildcard pattern and cannot be used as an identifier
+test/analyze/name_resolution/invalid_wildcard_identifier_error.myte:6:2
+ 6 |   _;
+   |   ^
+
+Error: `_` is the wildcard pattern and cannot be used as an identifier
+test/analyze/name_resolution/invalid_wildcard_identifier_error.myte:7:3
+ 7 |   (_, _);
+   |    ^
+
+Error: `_` is the wildcard pattern and cannot be used as an identifier
+test/analyze/name_resolution/invalid_wildcard_identifier_error.myte:7:6
+ 7 |   (_, _);
+   |       ^

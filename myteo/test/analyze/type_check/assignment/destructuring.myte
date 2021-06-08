@@ -53,7 +53,6 @@ fun nestedPatterns2(rec2: Rec2) {
   var z: bool = true;
   Rec2 { field1, field2: Tup2 ((x, y), z) } = rec2;
 
-  var _: int = 1;
   var field2: Tup2 = Tup2 ((1, ""), true);
   Rec2 { field1: _, field2 } = rec2;
 }

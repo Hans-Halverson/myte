@@ -1,0 +1,19 @@
+module test
+
+val _: int = 1
+
+// Errors
+val _: bool = 1
+
+fun main() {
+  val _ = 1;
+  val _ = true;
+  val (_, _) = (1, true);
+  val (_, _) = (1, (true, ""));
+
+  // Mixed ids and wildcards
+  val (x, _) = (1, (true, ""));
+  val (_, y) = (1, (true, ""));
+  // Print types
+  ((x, y): unit);
+}

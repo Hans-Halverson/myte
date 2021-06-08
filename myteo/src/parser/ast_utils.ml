@@ -70,7 +70,9 @@ let ids_of_pattern patt =
   let rec helper patt acc =
     let open Pattern in
     match patt with
-    | Literal _ -> acc
+    | Wildcard _
+    | Literal _ ->
+      acc
     | Identifier id -> id :: acc
     | Tuple { Tuple.elements; _ } ->
       List.fold_left (fun acc element -> helper element acc) acc elements

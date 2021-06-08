@@ -220,7 +220,11 @@ class bindings_builder ~module_tree =
             let ids = Ast_utils.ids_of_pattern pattern in
             List.iter (fun id -> ignore (add_value_name (VarDecl kind) id)) ids
           | FunctionDeclaration { Ast.Function.name; _ } -> ignore (add_value_name FunDecl name)
-          | TypeDeclaration { Ast.TypeDeclaration.name; _ } -> add_type_name TypeDecl name)
+          | TypeDeclaration { Ast.TypeDeclaration.name; _ } ->
+            if name.name = "_" then
+              this#add_error name.loc InvalidWildcardIdentifier
+            else
+              add_type_name TypeDecl name)
         toplevels;
       (* Then visit child nodes once toplevel scope is complete *)
       let toplevels' =
@@ -512,6 +516,9 @@ class bindings_builder ~module_tree =
     method! expression expr =
       let open Ast.Expression in
       match expr with
+      | Identifier { loc; name = "_" } ->
+        this#add_error loc InvalidWildcardIdentifier;
+        expr
       | Identifier id ->
         this#resolve_value_id_use id;
         expr
@@ -649,6 +656,7 @@ class bindings_builder ~module_tree =
       (* Resolve all scoped ids in named tuple and record patterns *)
       let rec resolve_scoped_ids patt =
         match patt with
+        | Wildcard _
         | Literal _
         | Identifier _ ->
           ()

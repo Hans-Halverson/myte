@@ -81,6 +81,7 @@ class mapper =
       fun pat ->
         let open Pattern in
         match pat with
+        | Wildcard _ -> pat
         | Identifier p -> id_map this#identifier p pat (fun p' -> Identifier p')
         | Tuple e -> id_map this#tuple_pattern e pat (fun e' -> Tuple e')
         | Record e -> id_map this#record_pattern e pat (fun e' -> Record e')

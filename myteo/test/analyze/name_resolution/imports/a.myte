@@ -7,3 +7,5 @@ fun D() {}
 fun remote() {}
 
 type alias ty = unit
+
+val _: int = 1

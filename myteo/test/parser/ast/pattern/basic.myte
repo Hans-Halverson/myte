@@ -3,6 +3,10 @@ module test
 // Identifier
 val x = 1
 
+// Wildcards
+val _ = 1
+val (_, _) = 1
+
 // Anonymous tuples
 val (x, y) = 1
 val (x, y, z) = 1

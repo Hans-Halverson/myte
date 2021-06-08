@@ -1,0 +1,4 @@
+Error: Unexpected token `_`, expected identifier
+test/parser/ast/wildcard/wildcard_type_decl_error.myte:3:5
+ 3 | type _ (int)
+   |      ^

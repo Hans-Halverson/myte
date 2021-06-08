@@ -222,6 +222,10 @@ and parse_expression_prefix env =
     parse_unary_expression env
   | T_MATCH -> Match (parse_match env)
   | T_IDENTIFIER _ -> Expression.Identifier (parse_identifier env)
+  | T_WILDCARD ->
+    let loc = Env.loc env in
+    Env.advance env;
+    Expression.Identifier { Identifier.loc; name = "_" }
   | T_INT_LITERAL (raw, base) ->
     let loc = Env.loc env in
     Env.advance env;
@@ -587,6 +591,10 @@ and parse_scoped_identifier env =
 and parse_pattern ~is_decl env =
   let open Pattern in
   match Env.token env with
+  | T_WILDCARD ->
+    let loc = Env.loc env in
+    Env.advance env;
+    Wildcard loc
   | T_IDENTIFIER _ -> parse_identifier_pattern ~is_decl env
   | T_LEFT_PAREN -> parse_parenthesized_pattern ~is_decl env
   (* Literals are not allowed in declaration patterns *)
@@ -1258,6 +1266,7 @@ and reparse_expression_as_pattern expr =
     { ScopedIdentifier.loc = name_loc; scopes; name }
   in
   match expr with
+  | Identifier { loc; name = "_" } -> Pattern.Wildcard loc
   | Identifier { loc; name } -> Pattern.Identifier { loc; name }
   | Tuple { loc; elements } ->
     Pattern.Tuple { loc; name = None; elements = List.map reparse_expression_as_pattern elements }

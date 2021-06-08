@@ -53,7 +53,7 @@ let mk_diff_snippet s1 s2 =
             (i + 1, None)
           else
             let extract_snippet lines prefix =
-              let snip_lines = List_utils.drop i lines |> List_utils.take 5 in
+              let snip_lines = List_utils.drop (i - 1) lines |> List_utils.take 5 in
               let snip_lines = List.map (fun line -> prefix ^ line) snip_lines in
               let snip_lines = String.concat "\n" snip_lines in
               snip_lines ^ Pp.reset ()

@@ -324,6 +324,7 @@ and Pattern : sig
 
   type t =
     | Identifier of Identifier.t
+    | Wildcard of Loc.t
     | Tuple of Tuple.t
     | Record of Record.t
     | Literal of Literal.t

@@ -1,0 +1,9 @@
+Error: Expected type `bool` but found `int`
+test/analyze/type_check/variable_declaration/wildcard.myte:6:14
+ 6 | val _: bool = 1
+   |               ^
+
+Error: Expected type `unit` but found `(int, (bool, string))`
+test/analyze/type_check/variable_declaration/wildcard.myte:18:3-9
+ 18 |   ((x, y): unit);
+    |    ^^^^^^

@@ -9,6 +9,7 @@ type t =
   | MissingMainFunction
   | MultipleMainFunctions
   | UnresolvedName of string * bool
+  | InvalidWildcardIdentifier
   | InvalidAssignment of string * invalid_assignment_kind
   | DuplicateToplevelNames of string * bool
   | DuplicateParameterNames of string * string
@@ -101,6 +102,8 @@ let to_string error =
   | MultipleMainFunctions -> "Main function has already been declared"
   | UnresolvedName (name, is_value) ->
     Printf.sprintf "Could not resolve name `%s` to %s" name (value_or_type is_value)
+  | InvalidWildcardIdentifier ->
+    Printf.sprintf "`_` is the wildcard pattern and cannot be used as an identifier"
   | InvalidAssignment (name, kind) ->
     let kind_string =
       match kind with

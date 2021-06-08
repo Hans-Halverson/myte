@@ -190,7 +190,7 @@ and check_variable_declaration ~cx decl =
   | Some annot ->
     let annot_ty = build_type ~cx annot in
     if Type_context.unify ~cx annot_ty (TVar pattern_tvar_id) then
-      Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) (TVar pattern_tvar_id)
+      Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) annot_ty
     else
       Type_context.add_incompatible_types_error ~cx pattern_loc (TVar pattern_tvar_id) annot_ty
 
@@ -718,6 +718,10 @@ and check_pattern ~cx patt =
     let decl_tvar_id = Type_context.get_tvar_id_from_value_use ~cx loc in
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     ignore (Type_context.unify ~cx (TVar decl_tvar_id) (TVar tvar_id));
+    (loc, tvar_id)
+  | Wildcard loc ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    ignore (Type_context.unify ~cx Any (TVar tvar_id));
     (loc, tvar_id)
   | Tuple { loc; name = None; elements } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in

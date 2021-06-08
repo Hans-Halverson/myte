@@ -8,7 +8,10 @@ let hex_digit = [%sedlex.regexp? '0' .. '9' | 'a' .. 'f' | 'A' .. 'F']
 
 let bin_digit = [%sedlex.regexp? '0' .. '1']
 
-let identifier = [%sedlex.regexp? ((letter | '_'), Star (letter | digit | '_'))]
+(* Any sequence of letters, digits, and underscores. Does not include the wildcard pattern "_"
+   or any sequence starting with a digit *)
+let identifier =
+  [%sedlex.regexp? ('_', Plus (letter | digit | '_')) | (letter, Star (letter | digit | '_'))]
 
 let dec_literal = [%sedlex.regexp? Plus digit]
 
@@ -97,6 +100,7 @@ let tokenize lex =
   | ':' -> token_result T_COLON
   | '?' -> token_result T_QUESTION
   | '|' -> token_result T_PIPE
+  | '_' -> token_result T_WILDCARD
   | '.' -> token_result T_PERIOD
   | ',' -> token_result T_COMMA
   | '=' -> token_result T_EQUALS

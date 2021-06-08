@@ -15,4 +15,7 @@ fun main() {
   var y = 1;
   (y, y) = 1;
   (y, (y, y)) = 1;
+
+  // Does not error
+  (_, _) = 1;
 }

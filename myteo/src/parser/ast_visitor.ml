@@ -66,6 +66,7 @@ class ['a] visitor =
       fun acc pat ->
         let open Pattern in
         match pat with
+        | Wildcard _ -> ()
         | Identifier p -> this#identifier acc p
         | Tuple t -> this#tuple_pattern acc t
         | Record r -> this#record_pattern acc r
