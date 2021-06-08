@@ -93,6 +93,61 @@ module InstructionsMapper = struct
             [instruction]
           else
             mk_instr (LogOr (result', left', right'))
+        | BitNot (result, arg) ->
+          let result' = this#map_result_variable ~block result in
+          let arg' = this#map_numeric_value ~block arg in
+          if result == result' && arg == arg' then
+            [instruction]
+          else
+            mk_instr (BitNot (result', arg'))
+        | BitAnd (result, left, right) ->
+          let result' = this#map_result_variable ~block result in
+          let left' = this#map_numeric_value ~block left in
+          let right' = this#map_numeric_value ~block right in
+          if result == result' && left == left' && right == right' then
+            [instruction]
+          else
+            mk_instr (BitAnd (result', left', right'))
+        | BitOr (result, left, right) ->
+          let result' = this#map_result_variable ~block result in
+          let left' = this#map_numeric_value ~block left in
+          let right' = this#map_numeric_value ~block right in
+          if result == result' && left == left' && right == right' then
+            [instruction]
+          else
+            mk_instr (BitOr (result', left', right'))
+        | BitXor (result, left, right) ->
+          let result' = this#map_result_variable ~block result in
+          let left' = this#map_numeric_value ~block left in
+          let right' = this#map_numeric_value ~block right in
+          if result == result' && left == left' && right == right' then
+            [instruction]
+          else
+            mk_instr (BitXor (result', left', right'))
+        | Shl (result, left, right) ->
+          let result' = this#map_result_variable ~block result in
+          let left' = this#map_numeric_value ~block left in
+          let right' = this#map_numeric_value ~block right in
+          if result == result' && left == left' && right == right' then
+            [instruction]
+          else
+            mk_instr (Shl (result', left', right'))
+        | Shr (result, left, right) ->
+          let result' = this#map_result_variable ~block result in
+          let left' = this#map_numeric_value ~block left in
+          let right' = this#map_numeric_value ~block right in
+          if result == result' && left == left' && right == right' then
+            [instruction]
+          else
+            mk_instr (Shr (result', left', right'))
+        | Shrl (result, left, right) ->
+          let result' = this#map_result_variable ~block result in
+          let left' = this#map_numeric_value ~block left in
+          let right' = this#map_numeric_value ~block right in
+          if result == result' && left == left' && right == right' then
+            [instruction]
+          else
+            mk_instr (Shrl (result', left', right'))
         | Neg (result, arg) ->
           let result' = this#map_result_variable ~block result in
           let arg' = this#map_numeric_value ~block arg in
@@ -132,6 +187,14 @@ module InstructionsMapper = struct
             [instruction]
           else
             mk_instr (Div (result', left', right'))
+        | Rem (result, left, right) ->
+          let result' = this#map_result_variable ~block result in
+          let left' = this#map_numeric_value ~block left in
+          let right' = this#map_numeric_value ~block right in
+          if result == result' && left == left' && right == right' then
+            [instruction]
+          else
+            mk_instr (Rem (result', left', right'))
         | Eq (result, left, right) ->
           let result' = this#map_result_variable ~block result in
           let left' = this#map_numeric_value ~block left in

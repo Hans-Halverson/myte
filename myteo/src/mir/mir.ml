@@ -72,6 +72,16 @@ module rec Instruction : sig
     | LogNot of 'var * 'var BoolValue.t
     | LogAnd of 'var * 'var BoolValue.t * 'var BoolValue.t
     | LogOr of 'var * 'var BoolValue.t * 'var BoolValue.t
+    (* Bitwise ops *)
+    | BitNot of 'var * 'var NumericValue.t
+    | BitAnd of 'var * 'var NumericValue.t * 'var NumericValue.t
+    | BitOr of 'var * 'var NumericValue.t * 'var NumericValue.t
+    | BitXor of 'var * 'var NumericValue.t * 'var NumericValue.t
+    | Shl of 'var * 'var NumericValue.t * 'var NumericValue.t
+    (* Arithmetic right shift *)
+    | Shr of 'var * 'var NumericValue.t * 'var NumericValue.t
+    (* Logical right shift *)
+    | Shrl of 'var * 'var NumericValue.t * 'var NumericValue.t
     (* Unary numeric ops *)
     | Neg of 'var * 'var NumericValue.t
     (* Binary numeric ops *)
@@ -79,6 +89,7 @@ module rec Instruction : sig
     | Sub of 'var * 'var NumericValue.t * 'var NumericValue.t
     | Mul of 'var * 'var NumericValue.t * 'var NumericValue.t
     | Div of 'var * 'var NumericValue.t * 'var NumericValue.t
+    | Rem of 'var * 'var NumericValue.t * 'var NumericValue.t
     (* Comparisons *)
     | Eq of 'var * 'var NumericValue.t * 'var NumericValue.t
     | Neq of 'var * 'var NumericValue.t * 'var NumericValue.t

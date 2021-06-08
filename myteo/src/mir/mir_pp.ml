@@ -280,6 +280,58 @@ and pp_instruction ~cx (_, instr) =
       pp_instr
         var_id
         (Printf.sprintf "LogAnd %s, %s" (pp_bool_value ~cx left) (pp_bool_value ~cx right))
+    | BitNot (var_id, arg) ->
+      pp_instr
+        var_id
+        (Printf.sprintf "BitNot %s %s" (pp_type_of_numeric_value arg) (pp_numeric_value ~cx arg))
+    | BitAnd (var_id, left, right) ->
+      pp_instr
+        var_id
+        (Printf.sprintf
+           "BitAnd %s, %s %s"
+           (pp_type_of_numeric_value left)
+           (pp_numeric_value ~cx left)
+           (pp_numeric_value ~cx right))
+    | BitOr (var_id, left, right) ->
+      pp_instr
+        var_id
+        (Printf.sprintf
+           "BitOr %s, %s %s"
+           (pp_type_of_numeric_value left)
+           (pp_numeric_value ~cx left)
+           (pp_numeric_value ~cx right))
+    | BitXor (var_id, left, right) ->
+      pp_instr
+        var_id
+        (Printf.sprintf
+           "BitXor %s, %s %s"
+           (pp_type_of_numeric_value left)
+           (pp_numeric_value ~cx left)
+           (pp_numeric_value ~cx right))
+    | Shl (var_id, left, right) ->
+      pp_instr
+        var_id
+        (Printf.sprintf
+           "Shl %s, %s %s"
+           (pp_type_of_numeric_value left)
+           (pp_numeric_value ~cx left)
+           (pp_numeric_value ~cx right))
+    | Shr (var_id, left, right) ->
+      pp_instr
+        var_id
+        (Printf.sprintf
+           "Shr %s, %s %s"
+           (pp_type_of_numeric_value left)
+           (pp_numeric_value ~cx left)
+           (pp_numeric_value ~cx right))
+    | Shrl (var_id, left, right) ->
+      pp_instr
+        var_id
+        (Printf.sprintf
+           "Shrl %s, %s %s"
+           (pp_type_of_numeric_value left)
+           (pp_numeric_value ~cx left)
+           (pp_numeric_value ~cx right))
     | Neg (var_id, arg) ->
       pp_instr
         var_id
@@ -313,6 +365,14 @@ and pp_instruction ~cx (_, instr) =
         var_id
         (Printf.sprintf
            "Div %s %s, %s"
+           (pp_type_of_numeric_value left)
+           (pp_numeric_value ~cx left)
+           (pp_numeric_value ~cx right))
+    | Rem (var_id, left, right) ->
+      pp_instr
+        var_id
+        (Printf.sprintf
+           "Rem %s %s, %s"
            (pp_type_of_numeric_value left)
            (pp_numeric_value ~cx left)
            (pp_numeric_value ~cx right))

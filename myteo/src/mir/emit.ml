@@ -109,11 +109,21 @@ and emit_expression ~pcx ~ecx expr =
     let ty = value_type_of_loc ~pcx loc in
     Ecx.emit ~ecx (Neg (var_id, operand_val));
     var_value_of_type var_id ty
-  | UnaryOperation { op = Not; loc = _; operand } ->
+  | UnaryOperation { op = Not; loc; operand } ->
     let var_id = mk_cf_var_id () in
-    let operand_val = emit_bool_expression ~pcx ~ecx operand in
-    Ecx.emit ~ecx (LogNot (var_id, operand_val));
-    var_value_of_type var_id Bool
+    let value_ty = value_type_of_loc ~pcx loc in
+    (match value_ty with
+    | ValueType.Bool ->
+      let operand_val = emit_bool_expression ~pcx ~ecx operand in
+      Ecx.emit ~ecx (LogNot (var_id, operand_val));
+      var_value_of_type var_id Bool
+    | Byte
+    | Int
+    | Long ->
+      let operand_val = emit_numeric_expression ~pcx ~ecx operand in
+      Ecx.emit ~ecx (BitNot (var_id, operand_val));
+      var_value_of_type var_id value_ty
+    | _ -> failwith "Not argument must be a bool or int")
   | LogicalAnd { loc = _; left; right } ->
     (* Short circuit when lhs is false by jumping to false case *)
     let rhs_builder = Ecx.mk_block_builder ~ecx in
@@ -182,13 +192,19 @@ and emit_expression ~pcx ~ecx expr =
       | Subtract -> (Sub (var_id, left_val, right_val), ty)
       | Multiply -> (Mul (var_id, left_val, right_val), ty)
       | Divide -> (Div (var_id, left_val, right_val), ty)
+      | Remainder -> (Rem (var_id, left_val, right_val), ty)
+      | BitwiseAnd -> (BitAnd (var_id, left_val, right_val), ty)
+      | BitwiseOr -> (BitOr (var_id, left_val, right_val), ty)
+      | BitwiseXor -> (BitXor (var_id, left_val, right_val), ty)
+      | LeftShift -> (Shl (var_id, left_val, right_val), ty)
+      | ArithmeticRightShift -> (Shr (var_id, left_val, right_val), ty)
+      | LogicalRightShift -> (Shrl (var_id, left_val, right_val), ty)
       | Equal -> (Eq (var_id, left_val, right_val), Bool)
       | NotEqual -> (Neq (var_id, left_val, right_val), Bool)
       | LessThan -> (Lt (var_id, left_val, right_val), Bool)
       | GreaterThan -> (Gt (var_id, left_val, right_val), Bool)
       | LessThanOrEqual -> (LtEq (var_id, left_val, right_val), Bool)
       | GreaterThanOrEqual -> (GtEq (var_id, left_val, right_val), Bool)
-      | _ -> failwith "TODO: Emit MIR for binary operation"
     in
     Ecx.emit ~ecx instr;
     var_value_of_type var_id ty

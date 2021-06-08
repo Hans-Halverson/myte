@@ -3,40 +3,61 @@ func unit @test.ints() {
   %1 := Sub int 1, 2
   %2 := Mul int 1, 2
   %3 := Div int 1, 2
-  %4 := Eq int 1, 2
-  %5 := Neq int 1, 2
-  %6 := Lt int 1, 2
-  %7 := LtEq int 1, 2
-  %8 := Gt int 1, 2
-  %9 := GtEq int 1, 2
+  %4 := Rem int 1, 2
+  %5 := BitAnd int, 1 2
+  %6 := BitOr int, 1 2
+  %7 := BitXor int, 1 2
+  %8 := Shl int, 1 2
+  %9 := Shr int, 1 2
+  %10 := Shrl int, 1 2
+  %11 := Eq int 1, 2
+  %12 := Neq int 1, 2
+  %13 := Lt int 1, 2
+  %14 := LtEq int 1, 2
+  %15 := Gt int 1, 2
+  %16 := GtEq int 1, 2
   Ret
 }
 
-func unit @test.bytes(byte %10, byte %11) {
-  %12 := Add byte %10, %11
-  %13 := Sub byte %10, %11
-  %14 := Mul byte %10, %11
-  %15 := Div byte %10, %11
-  %16 := Eq byte %10, %11
-  %17 := Neq byte %10, %11
-  %18 := Lt byte %10, %11
-  %19 := LtEq byte %10, %11
-  %20 := Gt byte %10, %11
-  %21 := GtEq byte %10, %11
+func unit @test.bytes(byte %17, byte %18) {
+  %19 := Add byte %17, %18
+  %20 := Sub byte %17, %18
+  %21 := Mul byte %17, %18
+  %22 := Div byte %17, %18
+  %23 := Rem byte %17, %18
+  %24 := BitAnd byte, %17 %18
+  %25 := BitOr byte, %17 %18
+  %26 := BitXor byte, %17 %18
+  %27 := Shl byte, %17 %18
+  %28 := Shr byte, %17 %18
+  %29 := Shrl byte, %17 %18
+  %30 := Eq byte %17, %18
+  %31 := Neq byte %17, %18
+  %32 := Lt byte %17, %18
+  %33 := LtEq byte %17, %18
+  %34 := Gt byte %17, %18
+  %35 := GtEq byte %17, %18
   Ret
 }
 
-func unit @test.longs(long %22, long %23) {
-  %24 := Add long %22, %23
-  %25 := Sub long %22, %23
-  %26 := Mul long %22, %23
-  %27 := Div long %22, %23
-  %28 := Eq long %22, %23
-  %29 := Neq long %22, %23
-  %30 := Lt long %22, %23
-  %31 := LtEq long %22, %23
-  %32 := Gt long %22, %23
-  %33 := GtEq long %22, %23
+func unit @test.longs(long %36, long %37) {
+  %38 := Add long %36, %37
+  %39 := Sub long %36, %37
+  %40 := Mul long %36, %37
+  %41 := Div long %36, %37
+  %42 := Rem long %36, %37
+  %43 := BitAnd long, %36 %37
+  %44 := BitOr long, %36 %37
+  %45 := BitXor long, %36 %37
+  %46 := Shl long, %36 %37
+  %47 := Shr long, %36 %37
+  %48 := Shrl long, %36 %37
+  %49 := Eq long %36, %37
+  %50 := Neq long %36, %37
+  %51 := Lt long %36, %37
+  %52 := LtEq long %36, %37
+  %53 := Gt long %36, %37
+  %54 := GtEq long %36, %37
   Ret
 }
 

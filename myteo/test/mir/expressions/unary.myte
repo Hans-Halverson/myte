@@ -6,14 +6,17 @@ fun bools(x: bool) {
 
 fun ints(x: int) {
   -x;
+  !x;
 }
 
 fun bytes(x: byte) {
   -x;
+  !x;
 }
 
 fun longs(x: long) {
   -x;
+  !x;
 }
 
 fun main() {}

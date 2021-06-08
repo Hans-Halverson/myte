@@ -180,6 +180,7 @@ and find_join_points ~pcx ~cx program =
     | Call (result, _, _, _)
     | LoadGlobal (result, _)
     | Neg (result, _)
+    | BitNot (result, _)
     | LogNot (result, _)
     | LogAnd (result, _, _)
     | LogOr (result, _, _)
@@ -187,6 +188,13 @@ and find_join_points ~pcx ~cx program =
     | Sub (result, _, _)
     | Mul (result, _, _)
     | Div (result, _, _)
+    | Rem (result, _, _)
+    | BitAnd (result, _, _)
+    | BitOr (result, _, _)
+    | BitXor (result, _, _)
+    | Shl (result, _, _)
+    | Shr (result, _, _)
+    | Shrl (result, _, _)
     | Eq (result, _, _)
     | Neq (result, _, _)
     | Lt (result, _, _)
@@ -358,7 +366,8 @@ and build_phi_nodes ~pcx ~cx program =
     | Ret arg -> Option.iter visit_value arg
     | LoadGlobal (result, _) -> visit_result result
     | StoreGlobal (_, arg) -> visit_value arg
-    | Neg (result, arg) ->
+    | Neg (result, arg)
+    | BitNot (result, arg) ->
       visit_numeric_value arg;
       visit_result result
     | LogNot (result, arg) ->
@@ -373,6 +382,13 @@ and build_phi_nodes ~pcx ~cx program =
     | Sub (result, left, right)
     | Mul (result, left, right)
     | Div (result, left, right)
+    | Rem (result, left, right)
+    | BitAnd (result, left, right)
+    | BitOr (result, left, right)
+    | BitXor (result, left, right)
+    | Shl (result, left, right)
+    | Shr (result, left, right)
+    | Shrl (result, left, right)
     | Eq (result, left, right)
     | Neq (result, left, right)
     | Lt (result, left, right)
@@ -525,6 +541,7 @@ and map_to_ssa ~pcx ~cx program =
     | LogOr (return, left, right) ->
       LogOr (map_return return, map_bool_value left, map_bool_value right)
     | Neg (return, arg) -> Neg (map_return return, map_numeric_value arg)
+    | BitNot (return, arg) -> BitNot (map_return return, map_numeric_value arg)
     | Add (return, left, right) ->
       Add (map_return return, map_numeric_value left, map_numeric_value right)
     | Sub (return, left, right) ->
@@ -533,6 +550,20 @@ and map_to_ssa ~pcx ~cx program =
       Mul (map_return return, map_numeric_value left, map_numeric_value right)
     | Div (return, left, right) ->
       Div (map_return return, map_numeric_value left, map_numeric_value right)
+    | Rem (return, left, right) ->
+      Rem (map_return return, map_numeric_value left, map_numeric_value right)
+    | BitAnd (return, left, right) ->
+      BitAnd (map_return return, map_numeric_value left, map_numeric_value right)
+    | BitOr (return, left, right) ->
+      BitOr (map_return return, map_numeric_value left, map_numeric_value right)
+    | BitXor (return, left, right) ->
+      BitXor (map_return return, map_numeric_value left, map_numeric_value right)
+    | Shl (return, left, right) ->
+      Shl (map_return return, map_numeric_value left, map_numeric_value right)
+    | Shr (return, left, right) ->
+      Shr (map_return return, map_numeric_value left, map_numeric_value right)
+    | Shrl (return, left, right) ->
+      Shrl (map_return return, map_numeric_value left, map_numeric_value right)
     | Eq (return, left, right) ->
       Eq (map_return return, map_numeric_value left, map_numeric_value right)
     | Neq (return, left, right) ->

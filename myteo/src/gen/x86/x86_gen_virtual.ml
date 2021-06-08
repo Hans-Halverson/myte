@@ -599,6 +599,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   | Mir.Instruction.GtEq (result_var_id, left_val, right_val) :: rest_instructions ->
     gen_set_cc GE result_var_id left_val right_val;
     gen_instructions rest_instructions
+  | _ -> failwith "TODO: Implement generation of virtual assembly from this instruction"
 
 and resolve_ir_value ~func value =
   let open Mir.Instruction.Value in

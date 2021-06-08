@@ -92,13 +92,21 @@ module IRVisitor = struct
           this#visit_result_variable ~block ~instruction result;
           this#visit_bool_value ~block ~instruction left;
           this#visit_bool_value ~block ~instruction right
-        | Neg (result, arg) ->
+        | Neg (result, arg)
+        | BitNot (result, arg) ->
           this#visit_result_variable ~block ~instruction result;
           this#visit_numeric_value ~block ~instruction arg
         | Add (result, left, right)
         | Sub (result, left, right)
         | Mul (result, left, right)
         | Div (result, left, right)
+        | Rem (result, left, right)
+        | BitAnd (result, left, right)
+        | BitOr (result, left, right)
+        | BitXor (result, left, right)
+        | Shl (result, left, right)
+        | Shr (result, left, right)
+        | Shrl (result, left, right)
         | Eq (result, left, right)
         | Neq (result, left, right)
         | Lt (result, left, right)

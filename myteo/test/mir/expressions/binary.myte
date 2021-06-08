@@ -6,6 +6,15 @@ fun ints() {
   1 - 2;
   1 * 2;
   1 / 2;
+  1 % 2;
+
+  // Bitwise operations
+  1 & 2;
+  1 | 2;
+  1 ^ 2;
+  1 << 2;
+  1 >> 2;
+  1 >>> 2;
 
   // Comparisons
   1 == 2;
@@ -21,6 +30,15 @@ fun bytes(x: byte, y: byte) {
   x - y;
   x * y;
   x / y;
+  x % y;
+
+  // Bitwise operations
+  x & y;
+  x | y;
+  x ^ y;
+  x << y;
+  x >> y;
+  x >>> y;
 
   x == y;
   x != y;
@@ -35,6 +53,15 @@ fun longs(x: long, y: long) {
   x - y;
   x * y;
   x / y;
+  x % y;
+
+  // Bitwise operations
+  x & y;
+  x | y;
+  x ^ y;
+  x << y;
+  x >> y;
+  x >>> y;
 
   x == y;
   x != y;
