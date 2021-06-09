@@ -4,103 +4,95 @@ type var_id = int
 
 type instr_id = int
 
-module ValueType = struct
+module rec Type : sig
   type t =
-    | Unit
-    | Byte
-    | Int
-    | Long
-    | String
-    | Bool
-    | Function
-end
+    [ `UnitT
+    | `BoolT
+    | `StringT
+    | `IntT
+    | `ByteT
+    | `LongT
+    | `FunctionT
+    | `PointerT of t
+    ]
+end =
+  Type
 
-module rec Instruction : sig
-  module UnitValue : sig
-    type 'a t =
-      | Lit
-      | Var of 'a
-  end
+and Value : sig
+  type ('a, 'b) value =
+    | Lit of 'a
+    | Var of 'b
 
-  module BoolValue : sig
-    type 'a t =
-      | Lit of bool
-      | Var of 'a
-  end
+  type 'a unit_value = [ `UnitV of (unit, 'a) value ]
 
-  module StringValue : sig
-    type 'a t =
-      | Lit of string
-      | Var of 'a
-  end
+  type 'a bool_value = [ `BoolV of (bool, 'a) value ]
 
-  module NumericValue : sig
-    type 'a t =
-      | ByteLit of int
-      | ByteVar of 'a
-      | IntLit of Int32.t
-      | IntVar of 'a
-      | LongLit of Int64.t
-      | LongVar of 'a
-  end
+  type 'a string_value = [ `StringV of (string, 'a) value ]
 
-  module FunctionValue : sig
-    type 'a t =
-      | Lit of string
-      | Var of 'a
-  end
+  type 'a function_value = [ `FunctionV of (string, 'a) value ]
 
-  module Value : sig
-    type 'a t =
-      | Unit of 'a UnitValue.t
-      | Numeric of 'a NumericValue.t
-      | String of 'a StringValue.t
-      | Bool of 'a BoolValue.t
-      | Function of 'a FunctionValue.t
-  end
+  type 'a pointer_value = [ `PointerV of Type.t * (Int64.t, 'a) value ]
 
+  type 'a numeric_value =
+    [ `IntV of (Int32.t, 'a) value
+    | `ByteV of (int, 'a) value
+    | `LongV of (Int64.t, 'a) value
+    ]
+
+  type 'a t =
+    [ 'a unit_value
+    | 'a bool_value
+    | 'a string_value
+    | 'a numeric_value
+    | 'a function_value
+    | 'a pointer_value
+    ]
+end =
+  Value
+
+and Instruction : sig
   type 'var t = instr_id * 'var t'
 
   and 'var t' =
     | Mov of 'var * 'var Value.t
-    | Call of 'var * (* Return type *) ValueType.t * 'var FunctionValue.t * 'var Value.t list
+    | Call of 'var * (* Return type *) Type.t * 'var Value.function_value * 'var Value.t list
     | Ret of 'var Value.t option
     (* Globals *)
     | LoadGlobal of 'var * string
     | StoreGlobal of string * 'var Value.t
     (* Logical ops *)
-    | LogNot of 'var * 'var BoolValue.t
-    | LogAnd of 'var * 'var BoolValue.t * 'var BoolValue.t
-    | LogOr of 'var * 'var BoolValue.t * 'var BoolValue.t
+    | LogNot of 'var * 'var Value.bool_value
+    | LogAnd of 'var * 'var Value.bool_value * 'var Value.bool_value
+    | LogOr of 'var * 'var Value.bool_value * 'var Value.bool_value
     (* Bitwise ops *)
-    | BitNot of 'var * 'var NumericValue.t
-    | BitAnd of 'var * 'var NumericValue.t * 'var NumericValue.t
-    | BitOr of 'var * 'var NumericValue.t * 'var NumericValue.t
-    | BitXor of 'var * 'var NumericValue.t * 'var NumericValue.t
-    | Shl of 'var * 'var NumericValue.t * 'var NumericValue.t
+    | BitNot of 'var * 'var Value.numeric_value
+    | BitAnd of 'var * 'var Value.numeric_value * 'var Value.numeric_value
+    | BitOr of 'var * 'var Value.numeric_value * 'var Value.numeric_value
+    | BitXor of 'var * 'var Value.numeric_value * 'var Value.numeric_value
+    | Shl of 'var * 'var Value.numeric_value * 'var Value.numeric_value
     (* Arithmetic right shift *)
-    | Shr of 'var * 'var NumericValue.t * 'var NumericValue.t
+    | Shr of 'var * 'var Value.numeric_value * 'var Value.numeric_value
     (* Logical right shift *)
-    | Shrl of 'var * 'var NumericValue.t * 'var NumericValue.t
+    | Shrl of 'var * 'var Value.numeric_value * 'var Value.numeric_value
     (* Unary numeric ops *)
-    | Neg of 'var * 'var NumericValue.t
+    | Neg of 'var * 'var Value.numeric_value
     (* Binary numeric ops *)
-    | Add of 'var * 'var NumericValue.t * 'var NumericValue.t
-    | Sub of 'var * 'var NumericValue.t * 'var NumericValue.t
-    | Mul of 'var * 'var NumericValue.t * 'var NumericValue.t
-    | Div of 'var * 'var NumericValue.t * 'var NumericValue.t
-    | Rem of 'var * 'var NumericValue.t * 'var NumericValue.t
+    | Add of 'var * 'var Value.numeric_value * 'var Value.numeric_value
+    | Sub of 'var * 'var Value.numeric_value * 'var Value.numeric_value
+    | Mul of 'var * 'var Value.numeric_value * 'var Value.numeric_value
+    | Div of 'var * 'var Value.numeric_value * 'var Value.numeric_value
+    | Rem of 'var * 'var Value.numeric_value * 'var Value.numeric_value
     (* Comparisons *)
-    | Eq of 'var * 'var NumericValue.t * 'var NumericValue.t
-    | Neq of 'var * 'var NumericValue.t * 'var NumericValue.t
-    | Lt of 'var * 'var NumericValue.t * 'var NumericValue.t
-    | LtEq of 'var * 'var NumericValue.t * 'var NumericValue.t
-    | Gt of 'var * 'var NumericValue.t * 'var NumericValue.t
-    | GtEq of 'var * 'var NumericValue.t * 'var NumericValue.t
+    | Eq of 'var * 'var Value.numeric_value * 'var Value.numeric_value
+    | Neq of 'var * 'var Value.numeric_value * 'var Value.numeric_value
+    | Lt of 'var * 'var Value.numeric_value * 'var Value.numeric_value
+    | LtEq of 'var * 'var Value.numeric_value * 'var Value.numeric_value
+    | Gt of 'var * 'var Value.numeric_value * 'var Value.numeric_value
+    | GtEq of 'var * 'var Value.numeric_value * 'var Value.numeric_value
 end =
   Instruction
 
-module rec Program : sig
+and Program : sig
   type 'var t = {
     mutable main_id: Block.id;
     mutable blocks: 'var Block.t IMap.t;
@@ -131,13 +123,13 @@ and Block : sig
 
   and id = int
 
-  and 'var phi = ValueType.t * 'var * 'var IMap.t
+  and 'var phi = Type.t * 'var * 'var IMap.t
 
   and 'var next =
     | Halt
     | Continue of id
     | Branch of {
-        test: 'var Instruction.BoolValue.t;
+        test: 'var Value.bool_value;
         continue: id;
         jump: id;
       }
@@ -152,9 +144,9 @@ and Global : sig
   type 'var t = {
     name: string;
     loc: Loc.t;
-    ty: ValueType.t;
+    ty: Type.t;
     mutable init_start_block: Block.id;
-    init_val: 'var Instruction.Value.t;
+    init_val: 'var Value.t;
   }
 end =
   Global
@@ -163,8 +155,8 @@ and Function : sig
   type t = {
     name: string;
     loc: Loc.t;
-    params: (Loc.t * var_id * ValueType.t) list;
-    return_ty: ValueType.t;
+    params: (Loc.t * var_id * Type.t) list;
+    return_ty: Type.t;
     mutable body_start_block: Block.id;
   }
 end =
@@ -207,73 +199,60 @@ let mk_instr_id () =
   max_instr_id := instr_id + 1;
   instr_id
 
-let type_of_value v =
-  let open Instruction in
+let type_of_value (v : 'a Value.t) : Type.t =
   match v with
-  | Value.Unit _ -> ValueType.Unit
-  | Value.Bool _ -> ValueType.Bool
-  | Value.String _ -> ValueType.String
-  | Value.Numeric (ByteLit _ | ByteVar _) -> ValueType.Byte
-  | Value.Numeric (IntLit _ | IntVar _) -> ValueType.Int
-  | Value.Numeric (LongLit _ | LongVar _) -> ValueType.Long
-  | Value.Function _ -> ValueType.Function
+  | `UnitV _ -> `UnitT
+  | `BoolV _ -> `BoolT
+  | `StringV _ -> `StringT
+  | `ByteV _ -> `ByteT
+  | `IntV _ -> `IntT
+  | `LongV _ -> `LongT
+  | `FunctionV _ -> `FunctionT
+  | `PointerV (ty, _) -> `PointerT ty
 
-let var_value_of_type var_id ty =
-  let open Instruction in
+let var_value_of_type var_id ty : 'a Value.t =
+  let open Value in
   match ty with
-  | ValueType.Unit -> Value.Unit (Var var_id)
-  | ValueType.Bool -> Value.Bool (Var var_id)
-  | ValueType.String -> Value.String (Var var_id)
-  | ValueType.Byte -> Value.Numeric (ByteVar var_id)
-  | ValueType.Int -> Value.Numeric (IntVar var_id)
-  | ValueType.Long -> Value.Numeric (LongVar var_id)
-  | ValueType.Function -> Value.Function (Var var_id)
+  | `UnitT -> `UnitV (Var var_id)
+  | `BoolT -> `BoolV (Var var_id)
+  | `StringT -> `StringV (Var var_id)
+  | `ByteT -> `ByteV (Var var_id)
+  | `IntT -> `IntV (Var var_id)
+  | `LongT -> `LongV (Var var_id)
+  | `FunctionT -> `FunctionV (Var var_id)
+  | `PointerT ty -> `PointerV (ty, Var var_id)
 
 let mk_continue continue = Block.Continue continue
 
 let mk_branch test continue jump = Block.Branch { test; continue; jump }
 
-let rec map_value ~f value =
-  let open Instruction.Value in
-  match value with
-  | Unit v -> Unit (map_unit_value ~f v)
-  | String v -> String (map_string_value ~f v)
-  | Bool v -> Bool (map_bool_value ~f v)
-  | Numeric v -> Numeric (map_numeric_value ~f v)
-  | Function v -> Function (map_function_value ~f v)
-
-and map_unit_value ~f value =
-  let open Instruction.UnitValue in
-  match value with
-  | Lit -> Lit
-  | Var var -> Var (f var)
-
-and map_string_value ~f value =
-  let open Instruction.StringValue in
-  match value with
+let map_val ~f v =
+  let open Value in
+  match v with
   | Lit lit -> Lit lit
   | Var var -> Var (f var)
 
-and map_bool_value ~f value =
-  let open Instruction.BoolValue in
+let rec map_value ~(f : 'a -> 'b) (value : 'a Value.t) : 'b Value.t =
   match value with
-  | Lit lit -> Lit lit
-  | Var var -> Var (f var)
+  | `UnitV v -> `UnitV (map_val ~f v)
+  | `StringV v -> `StringV (map_val ~f v)
+  | `BoolV _ as v -> (map_bool_value ~f v :> 'b Value.t)
+  | (`ByteV _ | `IntV _ | `LongV _) as v -> (map_numeric_value ~f v :> 'b Value.t)
+  | `FunctionV _ as v -> (map_function_value ~f v :> 'b Value.t)
+  | `PointerV (ty, v) -> `PointerV (ty, map_val ~f v)
 
-and map_numeric_value ~f value =
-  let open Instruction.NumericValue in
+and map_bool_value ~(f : 'a -> 'b) (value : 'a Value.bool_value) : 'b Value.bool_value =
   match value with
-  | ByteLit lit -> ByteLit lit
-  | ByteVar var -> ByteVar (f var)
-  | IntLit lit -> IntLit lit
-  | IntVar var -> IntVar (f var)
-  | LongLit lit -> LongLit lit
-  | LongVar var -> LongVar (f var)
+  | `BoolV v -> `BoolV (map_val ~f v)
 
-and map_function_value ~f value =
-  let open Instruction.FunctionValue in
+and map_numeric_value ~(f : 'a -> 'b) (value : 'a Value.numeric_value) : 'b Value.numeric_value =
   match value with
-  | Lit lit -> Lit lit
-  | Var var -> Var (f var)
+  | `ByteV v -> `ByteV (map_val ~f v)
+  | `IntV v -> `IntV (map_val ~f v)
+  | `LongV v -> `LongV (map_val ~f v)
+
+and map_function_value ~(f : 'a -> 'b) (value : 'a Value.function_value) : 'b Value.function_value =
+  match value with
+  | `FunctionV v -> `FunctionV (map_val ~f v)
 
 let get_block ~ir block_id = IMap.find block_id ir.Program.blocks

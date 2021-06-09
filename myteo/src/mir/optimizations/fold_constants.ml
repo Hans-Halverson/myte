@@ -1,5 +1,6 @@
 open Basic_collections
 open Mir
+open Mir.Value
 open Mir_visitor
 module Ocx = Mir_optimize_context
 
@@ -70,7 +71,7 @@ let fold_numeric_constants op x y =
   | (ShrOp, ByteConstant x, ByteConstant y) -> ByteConstant (x asr y)
   | (ShrOp, IntConstant x, IntConstant y) -> IntConstant (Int32.shift_right x (Int32.to_int y))
   | (ShrOp, LongConstant x, LongConstant y) -> LongConstant (Int64.shift_right x (Int64.to_int y))
-  | (ShrlOp, ByteConstant x, ByteConstant y) -> ByteConstant ((Int.logand x 0xFF) lsr y)
+  | (ShrlOp, ByteConstant x, ByteConstant y) -> ByteConstant (Int.logand x 0xFF lsr y)
   | (ShrlOp, IntConstant x, IntConstant y) ->
     IntConstant (Int32.shift_right_logical x (Int32.to_int y))
   | (ShrlOp, LongConstant x, LongConstant y) ->
@@ -95,15 +96,14 @@ let folded_constants_equal c1 c2 =
   | _ -> false
 
 let mir_value_of_constant constant =
-  let open Instruction in
   let open Value in
   match constant with
-  | UnitConstant -> Unit UnitValue.Lit
-  | BoolConstant b -> Bool (BoolValue.Lit b)
-  | ByteConstant i -> Numeric (NumericValue.ByteLit i)
-  | IntConstant i -> Numeric (NumericValue.IntLit i)
-  | LongConstant i -> Numeric (NumericValue.LongLit i)
-  | FunctionConstant f -> Function (FunctionValue.Lit f)
+  | UnitConstant -> `UnitV (Lit ())
+  | BoolConstant b -> `BoolV (Lit b)
+  | ByteConstant i -> `ByteV (Lit i)
+  | IntConstant i -> `IntV (Lit i)
+  | LongConstant i -> `LongV (Lit i)
+  | FunctionConstant f -> `FunctionV (Lit f)
 
 (* Perform iterative passes to calculate folded constants for all variables.
    Additionally prune dead branches, some of which may be exposed by constant folding. *)
@@ -172,8 +172,8 @@ class calc_constants_visitor ~ocx =
           (* Determine whether test is a constant value *)
           let test_constant_opt =
             match test with
-            | Lit lit -> Some lit
-            | Var var_id ->
+            | `BoolV (Lit lit) -> Some lit
+            | `BoolV (Var var_id) ->
               (match this#lookup_constant var_id with
               | None -> None
               | Some (BoolConstant test) -> Some test
@@ -231,44 +231,40 @@ class calc_constants_visitor ~ocx =
           if is_single_constant then this#add_constant var_id constant
 
     method! visit_instruction ~block:_ instruction =
-      let open Instruction in
       let get_bool_lit_opt value =
-        let open BoolValue in
         match value with
-        | Lit lit -> Some lit
-        | Var var_id ->
+        | `BoolV (Lit lit) -> Some lit
+        | `BoolV (Var var_id) ->
           (match IMap.find_opt var_id var_id_constants with
           | None -> None
           | Some (BoolConstant i) -> Some i
           | _ -> failwith "Expected bool value")
       in
       let get_numeric_lit_opt value =
-        let open NumericValue in
         match value with
-        | ByteLit lit -> Some (ByteConstant lit)
-        | ByteVar var_id ->
+        | `ByteV (Lit lit) -> Some (ByteConstant lit)
+        | `ByteV (Var var_id) ->
           (match IMap.find_opt var_id var_id_constants with
           | None -> None
           | Some (ByteConstant _ as lit) -> Some lit
           | _ -> failwith "Expected numeric value")
-        | IntLit lit -> Some (IntConstant lit)
-        | IntVar var_id ->
+        | `IntV (Lit lit) -> Some (IntConstant lit)
+        | `IntV (Var var_id) ->
           (match IMap.find_opt var_id var_id_constants with
           | None -> None
           | Some (IntConstant _ as lit) -> Some lit
           | _ -> failwith "Expected numeric value")
-        | LongLit lit -> Some (LongConstant lit)
-        | LongVar var_id ->
+        | `LongV (Lit lit) -> Some (LongConstant lit)
+        | `LongV (Var var_id) ->
           (match IMap.find_opt var_id var_id_constants with
           | None -> None
           | Some (LongConstant _ as lit) -> Some lit
           | _ -> failwith "Expected numeric value")
       in
       let get_function_lit_opt value =
-        let open FunctionValue in
         match value with
-        | Lit lit -> Some lit
-        | Var var_id ->
+        | `FunctionV (Lit lit) -> Some lit
+        | `FunctionV (Var var_id) ->
           (match IMap.find_opt var_id var_id_constants with
           | None -> None
           | Some (FunctionConstant i) -> Some i
@@ -324,14 +320,14 @@ class calc_constants_visitor ~ocx =
       | Gt (var_id, left, right) -> try_fold_comparison var_id left right ( > )
       | GtEq (var_id, left, right) -> try_fold_comparison var_id left right ( >= )
       | Mov (var_id, value) ->
-        let open Instruction.Value in
         let constant =
           match value with
-          | Unit _ -> Some UnitConstant
-          | String _ -> None
-          | Function v -> get_function_lit_opt v |> Option.map (fun x -> FunctionConstant x)
-          | Bool v -> get_bool_lit_opt v |> Option.map (fun x -> BoolConstant x)
-          | Numeric v -> get_numeric_lit_opt v
+          | `UnitV _ -> Some UnitConstant
+          | `StringV _ -> None
+          | `FunctionV _ as v -> get_function_lit_opt v |> Option.map (fun x -> FunctionConstant x)
+          | `BoolV _ as v -> get_bool_lit_opt v |> Option.map (fun x -> BoolConstant x)
+          | (`ByteV _ | `IntV _ | `LongV _) as v -> get_numeric_lit_opt v
+          | `PointerV _ -> None
         in
         (match constant with
         | None -> ()
@@ -360,28 +356,28 @@ class update_constants_mapper ~ocx var_id_constants constants_in_phis =
     (* Convert constant vars to constant values in MIR *)
     method! map_bool_value ~block:_ value =
       match value with
-      | Lit _ -> value
-      | Var var_id ->
+      | `BoolV (Lit _) -> value
+      | `BoolV (Var var_id) ->
         (match IMap.find_opt var_id var_id_constants with
-        | Some (BoolConstant const) -> Lit const
+        | Some (BoolConstant const) -> `BoolV (Lit const)
         | _ -> value)
 
     method! map_numeric_value ~block:_ value =
       match value with
-      | ByteLit _ -> value
-      | ByteVar var_id ->
+      | `ByteV (Lit _) -> value
+      | `ByteV (Var var_id) ->
         (match IMap.find_opt var_id var_id_constants with
-        | Some (ByteConstant const) -> ByteLit const
+        | Some (ByteConstant const) -> `ByteV (Lit const)
         | _ -> value)
-      | IntLit _ -> value
-      | IntVar var_id ->
+      | `IntV (Lit _) -> value
+      | `IntV (Var var_id) ->
         (match IMap.find_opt var_id var_id_constants with
-        | Some (IntConstant const) -> IntLit const
+        | Some (IntConstant const) -> `IntV (Lit const)
         | _ -> value)
-      | LongLit _ -> value
-      | LongVar var_id ->
+      | `LongV (Lit _) -> value
+      | `LongV (Var var_id) ->
         (match IMap.find_opt var_id var_id_constants with
-        | Some (LongConstant const) -> LongLit const
+        | Some (LongConstant const) -> `LongV (Lit const)
         | _ -> value)
   end
 

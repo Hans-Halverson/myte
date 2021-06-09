@@ -175,75 +175,74 @@ and pp_block_id ~cx block_id =
   "@" ^ print_id
 
 and pp_unit_value ~cx v =
-  let open Instruction.UnitValue in
+  let open Value in
   match v with
-  | Lit -> "()"
-  | Var var_id -> pp_var_id ~cx var_id
+  | `UnitV (Lit _) -> "()"
+  | `UnitV (Var var_id) -> pp_var_id ~cx var_id
 
 and pp_bool_value ~cx v =
-  let open Instruction.BoolValue in
+  let open Value in
   match v with
-  | Lit true -> "true"
-  | Lit false -> "false"
-  | Var var_id -> pp_var_id ~cx var_id
+  | `BoolV (Lit true) -> "true"
+  | `BoolV (Lit false) -> "false"
+  | `BoolV (Var var_id) -> pp_var_id ~cx var_id
 
 and pp_string_value ~cx v =
-  let open Instruction.StringValue in
+  let open Value in
   match v with
-  | Lit s -> "\"" ^ s ^ "\""
-  | Var var_id -> pp_var_id ~cx var_id
+  | `StringV (Lit s) -> "\"" ^ s ^ "\""
+  | `StringV (Var var_id) -> pp_var_id ~cx var_id
 
 and pp_numeric_value ~cx v =
-  let open Instruction.NumericValue in
+  let open Value in
   match v with
-  | ByteLit i -> string_of_int i
-  | IntLit i -> Int32.to_string i
-  | LongLit i -> Int64.to_string i
-  | ByteVar var_id
-  | IntVar var_id
-  | LongVar var_id ->
+  | `ByteV (Lit i) -> string_of_int i
+  | `IntV (Lit i) -> Int32.to_string i
+  | `LongV (Lit i) -> Int64.to_string i
+  | `ByteV (Var var_id)
+  | `IntV (Var var_id)
+  | `LongV (Var var_id) ->
     pp_var_id ~cx var_id
 
 and pp_function_value ~cx v =
-  let open Instruction.FunctionValue in
+  let open Value in
   match v with
-  | Lit func_name -> "@" ^ func_name
-  | Var var_id -> pp_var_id ~cx var_id
+  | `FunctionV (Lit func_name) -> "@" ^ func_name
+  | `FunctionV (Var var_id) -> pp_var_id ~cx var_id
+
+and pp_pointer_value ~cx v =
+  let open Value in
+  match v with
+  | `PointerV (_, Lit ptr) -> Int64.to_string ptr
+  | `PointerV (_, Var var_id) -> pp_var_id ~cx var_id
 
 and pp_value ~cx v =
-  let open Instruction.Value in
   match v with
-  | Unit v -> pp_unit_value ~cx v
-  | Bool v -> pp_bool_value ~cx v
-  | String v -> pp_string_value ~cx v
-  | Numeric v -> pp_numeric_value ~cx v
-  | Function v -> pp_function_value ~cx v
+  | `UnitV _ as v -> pp_unit_value ~cx v
+  | `BoolV _ as v -> pp_bool_value ~cx v
+  | `StringV _ as v -> pp_string_value ~cx v
+  | (`ByteV _ | `IntV _ | `LongV _) as v -> pp_numeric_value ~cx v
+  | `FunctionV _ as v -> pp_function_value ~cx v
+  | `PointerV _ as v -> pp_pointer_value ~cx v
 
 and pp_value_type ty =
-  let open ValueType in
   match ty with
-  | Unit -> "unit"
-  | Byte -> "byte"
-  | Int -> "int"
-  | Long -> "long"
-  | Bool -> "bool"
-  | String -> "string"
-  | Function -> "function"
+  | `UnitT -> "unit"
+  | `ByteT -> "byte"
+  | `IntT -> "int"
+  | `LongT -> "long"
+  | `BoolT -> "bool"
+  | `StringT -> "string"
+  | `FunctionT -> "function"
+  | `PointerT ty -> pp_value_type ty ^ "*"
 
 and pp_type_of_value v = pp_value_type (type_of_value v)
 
-and pp_type_of_numeric_value v =
-  let open Instruction.NumericValue in
+and pp_type_of_numeric_value (v : var_id Value.numeric_value) =
   match v with
-  | ByteLit _
-  | ByteVar _ ->
-    "byte"
-  | IntLit _
-  | IntVar _ ->
-    "int"
-  | LongLit _
-  | LongVar _ ->
-    "long"
+  | `ByteV _ -> "byte"
+  | `IntV _ -> "int"
+  | `LongV _ -> "long"
 
 and pp_instruction ~cx (_, instr) =
   let pp_instr var_id instr = Printf.sprintf "%s := %s" (pp_var_id ~cx var_id) instr in

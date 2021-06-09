@@ -6,7 +6,7 @@ module IRVisitor = struct
     object (this)
       val mutable visited_blocks : ISet.t = ISet.empty
 
-      val mutable constant_vars : var_id Instruction.Value.t IMap.t = IMap.empty
+      val mutable constant_vars : var_id Value.t IMap.t = IMap.empty
 
       val get_block = (fun block_id -> IMap.find block_id program.Program.blocks)
 
@@ -58,8 +58,8 @@ module IRVisitor = struct
           this#visit_block continue_block
         | Branch { test; continue; jump } ->
           (match test with
-          | Lit _ -> ()
-          | Var var_id -> this#visit_branch_use_variable ~block var_id);
+          | `BoolV (Lit _) -> ()
+          | `BoolV (Var var_id) -> this#visit_branch_use_variable ~block var_id);
           let continue_block = get_block continue in
           let jump_block = get_block jump in
           this#visit_edge block continue_block;
@@ -128,41 +128,51 @@ module IRVisitor = struct
 
       method visit_value ~block ~instruction value =
         match value with
-        | Unit value -> this#visit_unit_value ~block ~instruction value
-        | Bool value -> this#visit_bool_value ~block ~instruction value
-        | String value -> this#visit_string_value ~block ~instruction value
-        | Numeric value -> this#visit_numeric_value ~block ~instruction value
-        | Function value -> this#visit_function_value ~block ~instruction value
+        | `UnitV _ as value -> this#visit_unit_value ~block ~instruction value
+        | `BoolV _ as value -> this#visit_bool_value ~block ~instruction value
+        | `StringV _ as value -> this#visit_string_value ~block ~instruction value
+        | (`IntV _ as value)
+        | (`ByteV _ as value)
+        | (`LongV _ as value) ->
+          this#visit_numeric_value ~block ~instruction value
+        | `FunctionV _ as value -> this#visit_function_value ~block ~instruction value
+        | `PointerV _ as value -> this#visit_pointer_value ~block ~instruction value
 
       method visit_unit_value ~block ~instruction value =
         match value with
-        | Lit -> ()
-        | Var var_id -> this#visit_instruction_use_variable ~block ~instruction var_id
+        | `UnitV (Lit _) -> ()
+        | `UnitV (Var var_id) -> this#visit_instruction_use_variable ~block ~instruction var_id
 
       method visit_bool_value ~block ~instruction value =
         match value with
-        | Lit _ -> ()
-        | Var var_id -> this#visit_instruction_use_variable ~block ~instruction var_id
+        | `BoolV (Lit _) -> ()
+        | `BoolV (Var var_id) -> this#visit_instruction_use_variable ~block ~instruction var_id
 
       method visit_string_value ~block ~instruction value =
         match value with
-        | Lit _ -> ()
-        | Var var_id -> this#visit_instruction_use_variable ~block ~instruction var_id
+        | `StringV (Lit _) -> ()
+        | `StringV (Var var_id) -> this#visit_instruction_use_variable ~block ~instruction var_id
 
       method visit_numeric_value ~block ~instruction value =
         match value with
-        | ByteLit _
-        | IntLit _
-        | LongLit _ ->
+        | `ByteV (Lit _)
+        | `IntV (Lit _)
+        | `LongV (Lit _) ->
           ()
-        | ByteVar var_id
-        | IntVar var_id
-        | LongVar var_id ->
+        | `ByteV (Var var_id)
+        | `IntV (Var var_id)
+        | `LongV (Var var_id) ->
           this#visit_instruction_use_variable ~block ~instruction var_id
 
       method visit_function_value ~block ~instruction value =
         match value with
-        | Lit _ -> ()
-        | Var var_id -> this#visit_instruction_use_variable ~block ~instruction var_id
+        | `FunctionV (Lit _) -> ()
+        | `FunctionV (Var var_id) -> this#visit_instruction_use_variable ~block ~instruction var_id
+
+      method visit_pointer_value ~block ~instruction value =
+        match value with
+        | `PointerV (_, Lit _) -> ()
+        | `PointerV (_, Var var_id) ->
+          this#visit_instruction_use_variable ~block ~instruction var_id
     end
 end

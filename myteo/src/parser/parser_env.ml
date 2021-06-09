@@ -16,14 +16,7 @@ module Env = struct
     Result.iter_error Parse_error.fatal lex_result;
     let match_stack = Stack.create () in
     Stack.push false match_stack;
-    {
-      lexer;
-      lex_result;
-      next_lex_result;
-      prev_lex_result = None;
-      errors = [];
-      match_stack; 
-    }
+    { lexer; lex_result; next_lex_result; prev_lex_result = None; errors = []; match_stack }
 
   and lex_result env =
     match env.lex_result with

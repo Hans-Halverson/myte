@@ -91,17 +91,17 @@ and emit_expression ~pcx ~ecx expr =
   let open Expression in
   let open Instruction in
   match expr with
-  | Unit _ -> Unit Lit
+  | Unit _ -> `UnitV (Lit ())
   | IntLiteral { loc; raw; base } ->
     let value = Integers.int64_of_string_opt raw base |> Option.get in
     let ty = value_type_of_loc ~pcx loc in
     (match ty with
-    | ValueType.Byte -> Numeric (ByteLit (Int64.to_int value))
-    | ValueType.Int -> Numeric (IntLit (Int64.to_int32 value))
-    | ValueType.Long -> Numeric (LongLit value)
+    | `ByteT -> `ByteV (Lit (Int64.to_int value))
+    | `IntT -> `IntV (Lit (Int64.to_int32 value))
+    | `LongT -> `LongV (Lit value)
     | _ -> failwith "Int literal must have integer type")
-  | StringLiteral { value; _ } -> String (Lit value)
-  | BoolLiteral { value; _ } -> Bool (Lit value)
+  | StringLiteral { value; _ } -> `StringV (Lit value)
+  | BoolLiteral { value; _ } -> `BoolV (Lit value)
   | UnaryOperation { op = Plus; operand; _ } -> emit_expression ~pcx ~ecx operand
   | UnaryOperation { loc; op = Minus; operand } ->
     let var_id = mk_cf_var_id () in
@@ -113,13 +113,13 @@ and emit_expression ~pcx ~ecx expr =
     let var_id = mk_cf_var_id () in
     let value_ty = value_type_of_loc ~pcx loc in
     (match value_ty with
-    | ValueType.Bool ->
+    | `BoolT ->
       let operand_val = emit_bool_expression ~pcx ~ecx operand in
       Ecx.emit ~ecx (LogNot (var_id, operand_val));
-      var_value_of_type var_id Bool
-    | Byte
-    | Int
-    | Long ->
+      var_value_of_type var_id `BoolT
+    | `ByteT
+    | `IntT
+    | `LongT ->
       let operand_val = emit_numeric_expression ~pcx ~ecx operand in
       Ecx.emit ~ecx (BitNot (var_id, operand_val));
       var_value_of_type var_id value_ty
@@ -141,17 +141,17 @@ and emit_expression ~pcx ~ecx expr =
     (* Emit false literal when lhs is false and continue to join block *)
     Ecx.set_block_builder ~ecx false_builder;
     let false_var_id = mk_cf_var_id () in
-    Ecx.emit ~ecx (Mov (false_var_id, Bool (BoolValue.Lit false)));
+    Ecx.emit ~ecx (Mov (false_var_id, `BoolV (Lit false)));
     Ecx.finish_block_continue ~ecx join_builder.id;
     (* Join cases together and emit explicit phi *)
     Ecx.set_block_builder ~ecx join_builder;
     let var_id = mk_cf_var_id () in
     Ecx.emit_phi
       ~ecx
-      ValueType.Bool
+      `BoolT
       var_id
       (IMap.add rhs_end_block_id right_var_id (IMap.singleton false_builder.id false_var_id));
-    var_value_of_type var_id Bool
+    var_value_of_type var_id `BoolT
   | LogicalOr { loc = _; left; right } ->
     (* Short circuit when lhs is true by jumping to true case *)
     let rhs_builder = Ecx.mk_block_builder ~ecx in
@@ -169,17 +169,17 @@ and emit_expression ~pcx ~ecx expr =
     (* Emit true literal when lhs is true and continue to join block *)
     Ecx.set_block_builder ~ecx true_builder;
     let true_var_id = mk_cf_var_id () in
-    Ecx.emit ~ecx (Mov (true_var_id, Bool (BoolValue.Lit true)));
+    Ecx.emit ~ecx (Mov (true_var_id, `BoolV (Lit true)));
     Ecx.finish_block_continue ~ecx join_builder.id;
     (* Join cases together and emit explicit phi *)
     Ecx.set_block_builder ~ecx join_builder;
     let var_id = mk_cf_var_id () in
     Ecx.emit_phi
       ~ecx
-      ValueType.Bool
+      `BoolT
       var_id
       (IMap.add rhs_end_block_id right_var_id (IMap.singleton true_builder.id true_var_id));
-    var_value_of_type var_id Bool
+    var_value_of_type var_id `BoolT
   | BinaryOperation { loc; op; left; right } ->
     let open BinaryOperation in
     let var_id = mk_cf_var_id () in
@@ -199,12 +199,12 @@ and emit_expression ~pcx ~ecx expr =
       | LeftShift -> (Shl (var_id, left_val, right_val), ty)
       | ArithmeticRightShift -> (Shr (var_id, left_val, right_val), ty)
       | LogicalRightShift -> (Shrl (var_id, left_val, right_val), ty)
-      | Equal -> (Eq (var_id, left_val, right_val), Bool)
-      | NotEqual -> (Neq (var_id, left_val, right_val), Bool)
-      | LessThan -> (Lt (var_id, left_val, right_val), Bool)
-      | GreaterThan -> (Gt (var_id, left_val, right_val), Bool)
-      | LessThanOrEqual -> (LtEq (var_id, left_val, right_val), Bool)
-      | GreaterThanOrEqual -> (GtEq (var_id, left_val, right_val), Bool)
+      | Equal -> (Eq (var_id, left_val, right_val), `BoolT)
+      | NotEqual -> (Neq (var_id, left_val, right_val), `BoolT)
+      | LessThan -> (Lt (var_id, left_val, right_val), `BoolT)
+      | GreaterThan -> (Gt (var_id, left_val, right_val), `BoolT)
+      | LessThanOrEqual -> (LtEq (var_id, left_val, right_val), `BoolT)
+      | GreaterThanOrEqual -> (GtEq (var_id, left_val, right_val), `BoolT)
     in
     Ecx.emit ~ecx instr;
     var_value_of_type var_id ty
@@ -220,7 +220,7 @@ and emit_expression ~pcx ~ecx expr =
     (* Create function literal for functions *)
     | FunDecl
     | ImportedFunDecl _ ->
-      Function (Lit (mk_binding_name binding))
+      `FunctionV (Lit (mk_binding_name binding))
     (* Variables may be either globals or locals *)
     | VarDecl _
     | ImportedVarDecl _
@@ -247,21 +247,18 @@ and emit_expression ~pcx ~ecx expr =
     failwith "Expression has not yet been converted to IR"
 
 and emit_bool_expression ~pcx ~ecx expr =
-  let open Instruction in
   match emit_expression ~pcx ~ecx expr with
-  | Value.Bool v -> v
+  | `BoolV _ as v -> v
   | _ -> failwith "Expected bool value"
 
 and emit_numeric_expression ~pcx ~ecx expr =
-  let open Instruction in
   match emit_expression ~pcx ~ecx expr with
-  | Value.Numeric v -> v
+  | (`ByteV _ | `IntV _ | `LongV _) as v -> v
   | _ -> failwith "Expected numeric value"
 
 and emit_function_expression ~pcx ~ecx expr =
-  let open Instruction in
   match emit_expression ~pcx ~ecx expr with
-  | Value.Function v -> v
+  | `FunctionV _ as v -> v
   | _ -> failwith "Expected function value"
 
 and emit_statement ~pcx ~ecx stmt =
@@ -350,15 +347,15 @@ and mk_binding_name binding = String.concat "." (binding.module_ @ [binding.name
 
 and type_to_value_type ty =
   match ty with
-  | Types.Unit -> ValueType.Unit
-  | Types.Bool -> ValueType.Bool
-  | Types.Byte -> ValueType.Byte
-  | Types.Int -> ValueType.Int
-  | Types.Long -> ValueType.Long
+  | Types.Unit -> `UnitT
+  | Types.Bool -> `BoolT
+  | Types.Byte -> `ByteT
+  | Types.Int -> `IntT
+  | Types.Long -> `LongT
   | Types.IntLiteral { resolved; _ } -> type_to_value_type (Option.get resolved)
-  | Types.String -> ValueType.String
+  | Types.String -> `StringT
   | Types.Tuple _ -> failwith "TODO: Implement MIR emission for tuple types"
-  | Types.Function _ -> ValueType.Function
+  | Types.Function _ -> `FunctionT
   | Types.ADT _ -> failwith "TODO: Implement MIR emission for ADTs"
   | Types.TVar _ -> failwith "TVars must be resolved for all values in IR"
   | Types.Any -> failwith "Any not allowed as value in IR"

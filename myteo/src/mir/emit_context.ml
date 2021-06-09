@@ -7,7 +7,7 @@ module BlockBuilder = struct
     source: Block.source;
     (* Instructions in the block currently being built, in reverse *)
     mutable instructions: cf_instruction list;
-    mutable phis: (ValueType.t * cf_var * cf_var IMap.t) list;
+    mutable phis: (Type.t * cf_var * cf_var IMap.t) list;
     mutable next: cf_var Block.next;
   }
 end

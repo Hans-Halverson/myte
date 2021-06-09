@@ -138,10 +138,10 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   let gen_instructions = gen_instructions ~gcx ~ir ~func ~block in
   let vreg_of_var var_id = VReg.of_var_id ~resolution:Unresolved ~func:(Some func) var_id in
   let mk_vreg () = VReg.mk ~resolution:Unresolved ~func:(Some func) in
-  let resolve_ir_value v = resolve_ir_value ~func v in
+  let resolve_ir_value v = resolve_ir_value ~func (v :> var_id Value.t) in
   let is_cond_jump var_id =
     match block.next with
-    | Branch { test = Var test_var_id; _ } when test_var_id = var_id -> true
+    | Branch { test = `BoolV (Var test_var_id); _ } when test_var_id = var_id -> true
     | _ -> false
   in
   let emit_mem mem =
@@ -207,7 +207,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   let gen_set_cc cc result_var_id left_val right_val =
     let result_vreg = vreg_of_var result_var_id in
     Gcx.emit ~gcx (XorMM (Size64, Reg result_vreg, Reg result_vreg));
-    let swapped = gen_cmp (Numeric left_val) (Numeric right_val) in
+    let swapped = gen_cmp left_val right_val in
     let cc =
       if swapped then
         swap_condition_code_order cc
@@ -220,13 +220,14 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   | [] ->
     (* Conditional jump when the condition is in a variable *)
     (match block.next with
-    | Branch { test = Lit _; _ } -> failwith "Dead branch pruning must have already occurred"
+    | Branch { test = `BoolV (Lit _); _ } ->
+      failwith "Dead branch pruning must have already occurred"
     | Continue continue ->
       (* TODO: Create better structure for tracking relative block locations *)
       Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx continue))
-    | Branch { test = Var _ as test; continue; jump } ->
+    | Branch { test = `BoolV (Var _) as test; continue; jump } ->
       let vreg =
-        match resolve_ir_value (Bool test) with
+        match resolve_ir_value test with
         | SVReg (vreg, _) -> vreg
         | SMem (mem, size) ->
           let vreg = mk_vreg () in
@@ -299,9 +300,9 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     (* Emit call instruction *)
     let inst =
       match func_val with
-      | Mir.Instruction.FunctionValue.Lit label -> CallL label
-      | Mir.Instruction.FunctionValue.Var _ ->
-        let func_mem = emit_mem (resolve_ir_value (Function func_val)) in
+      | `FunctionV (Lit label) -> CallL label
+      | `FunctionV (Var _) ->
+        let func_mem = emit_mem (resolve_ir_value func_val) in
         CallM (Size64, func_mem)
     in
     Gcx.emit ~gcx inst;
@@ -372,7 +373,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    *)
   | Mir.Instruction.Add (result_var_id, left_val, right_val) :: rest_instructions ->
     let result_vreg = vreg_of_var result_var_id in
-    (match (resolve_ir_value (Numeric left_val), resolve_ir_value (Numeric right_val)) with
+    (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm imm, other)
     | (other, SImm imm) ->
@@ -395,7 +396,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    *)
   | Mir.Instruction.Sub (result_var_id, left_val, right_val) :: rest_instructions ->
     let result_vreg = vreg_of_var result_var_id in
-    (match (resolve_ir_value (Numeric left_val), resolve_ir_value (Numeric right_val)) with
+    (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm left_imm, right) ->
       let right_mem = emit_mem right in
@@ -420,7 +421,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    *)
   | Mir.Instruction.Mul (result_var_id, left_val, right_val) :: rest_instructions ->
     let result_vreg = vreg_of_var result_var_id in
-    (match (resolve_ir_value (Numeric left_val), resolve_ir_value (Numeric right_val)) with
+    (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm imm, other)
     | (other, SImm imm) ->
@@ -443,7 +444,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     let result_vreg = vreg_of_var result_var_id in
     let precolored_a = Gcx.mk_precolored ~gcx A in
     let size =
-      match (resolve_ir_value (Numeric left_val), resolve_ir_value (Numeric right_val)) with
+      match (resolve_ir_value left_val, resolve_ir_value right_val) with
       | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
       | (SImm dividend_imm, divisor) ->
         let divisor_mem = emit_mem divisor in
@@ -475,7 +476,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.Neg (result_var_id, arg) :: rest_instructions ->
-    let resolved_value = resolve_ir_value (Numeric arg) in
+    let resolved_value = resolve_ir_value arg in
     let size = size_of_svalue resolved_value in
     let arg_mem = emit_mem resolved_value in
     let result_vreg = vreg_of_var result_var_id in
@@ -488,7 +489,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.LogNot (result_var_id, arg) :: rest_instructions ->
-    let resolved_value = resolve_ir_value (Bool arg) in
+    let resolved_value = resolve_ir_value arg in
     let size = size_of_svalue resolved_value in
     let arg_mem = emit_mem resolved_value in
     let result_vreg = vreg_of_var result_var_id in
@@ -502,7 +503,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    *)
   | Mir.Instruction.LogAnd (result_var_id, left_val, right_val) :: rest_instructions ->
     let result_vreg = vreg_of_var result_var_id in
-    (match (resolve_ir_value (Bool left_val), resolve_ir_value (Bool right_val)) with
+    (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm imm, other)
     | (other, SImm imm) ->
@@ -524,7 +525,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    *)
   | Mir.Instruction.LogOr (result_var_id, left_val, right_val) :: rest_instructions ->
     let result_vreg = vreg_of_var result_var_id in
-    (match (resolve_ir_value (Bool left_val), resolve_ir_value (Bool right_val)) with
+    (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm imm, other)
     | (other, SImm imm) ->
@@ -545,7 +546,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | [Mir.Instruction.Eq (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp E (Numeric left_val) (Numeric right_val)
+    gen_cond_jmp E left_val right_val
   | Mir.Instruction.Eq (result_var_id, left_val, right_val) :: rest_instructions ->
     gen_set_cc E result_var_id left_val right_val;
     gen_instructions rest_instructions
@@ -555,7 +556,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | [Mir.Instruction.Neq (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp NE (Numeric left_val) (Numeric right_val)
+    gen_cond_jmp NE left_val right_val
   | Mir.Instruction.Neq (result_var_id, left_val, right_val) :: rest_instructions ->
     gen_set_cc NE result_var_id left_val right_val;
     gen_instructions rest_instructions
@@ -565,7 +566,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | [Mir.Instruction.Lt (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp L (Numeric left_val) (Numeric right_val)
+    gen_cond_jmp L left_val right_val
   | Mir.Instruction.Lt (result_var_id, left_val, right_val) :: rest_instructions ->
     gen_set_cc L result_var_id left_val right_val;
     gen_instructions rest_instructions
@@ -575,7 +576,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | [Mir.Instruction.LtEq (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp LE (Numeric left_val) (Numeric right_val)
+    gen_cond_jmp LE left_val right_val
   | Mir.Instruction.LtEq (result_var_id, left_val, right_val) :: rest_instructions ->
     gen_set_cc LE result_var_id left_val right_val;
     gen_instructions rest_instructions
@@ -585,7 +586,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | [Mir.Instruction.Gt (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp G (Numeric left_val) (Numeric right_val)
+    gen_cond_jmp G left_val right_val
   | Mir.Instruction.Gt (result_var_id, left_val, right_val) :: rest_instructions ->
     gen_set_cc G result_var_id left_val right_val;
     gen_instructions rest_instructions
@@ -595,14 +596,14 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | [Mir.Instruction.GtEq (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp GE (Numeric left_val) (Numeric right_val)
+    gen_cond_jmp GE left_val right_val
   | Mir.Instruction.GtEq (result_var_id, left_val, right_val) :: rest_instructions ->
     gen_set_cc GE result_var_id left_val right_val;
     gen_instructions rest_instructions
   | _ -> failwith "TODO: Implement generation of virtual assembly from this instruction"
 
 and resolve_ir_value ~func value =
-  let open Mir.Instruction.Value in
+  let open Value in
   let vreg_of_var var_id size =
     let vreg = VReg.of_var_id ~resolution:Unresolved ~func:(Some func) var_id in
     match vreg.resolution with
@@ -610,35 +611,38 @@ and resolve_ir_value ~func value =
     | _ -> SVReg (vreg, size)
   in
   match value with
-  | Unit Lit -> SImm (Imm8 0)
-  | Unit (Var var_id) -> vreg_of_var var_id Size8
-  | Bool (Lit b) ->
+  | `UnitV (Lit _) -> SImm (Imm8 0)
+  | `UnitV (Var var_id) -> vreg_of_var var_id Size8
+  | `BoolV (Lit b) ->
     SImm
       (Imm8
          ( if b then
            1
          else
            0 ))
-  | Bool (Var var_id) -> vreg_of_var var_id Size8
-  | Numeric (IntLit i) -> SImm (Imm32 i)
-  | Numeric (IntVar var_id) -> vreg_of_var var_id Size32
-  | Numeric _ -> failwith "TODO: Implement virtual asm gen for non-int integer types"
-  | Function (Lit name) -> SAddr (mk_label_memory_address name)
-  | Function (Var var_id) -> vreg_of_var var_id Size64
-  | String _ -> failwith "TODO: Cannot compile string literals"
+  | `BoolV (Var var_id) -> vreg_of_var var_id Size8
+  | `IntV (Lit i) -> SImm (Imm32 i)
+  | `IntV (Var var_id) -> vreg_of_var var_id Size32
+  | `ByteV _
+  | `LongV _ ->
+    failwith "TODO: Implement virtual asm gen for non-int integer types"
+  | `FunctionV (Lit name) -> SAddr (mk_label_memory_address name)
+  | `FunctionV (Var var_id) -> vreg_of_var var_id Size64
+  | `StringV _ -> failwith "TODO: Cannot compile string literals"
+  | `PointerV _ -> failwith "TODO: Cannot compile pointers yet"
 
 and size_of_mir_value_type value_type =
-  let open ValueType in
   match value_type with
-  | Unit
-  | Bool
-  | Byte ->
+  | `UnitT
+  | `BoolT
+  | `ByteT ->
     Size8
-  | Int -> Size32
-  | Long
-  | Function ->
+  | `IntT -> Size32
+  | `LongT
+  | `FunctionT
+  | `PointerT _ ->
     Size64
-  | String -> failwith "TODO: Cannot compile string literals"
+  | `StringT -> failwith "TODO: Cannot compile string literals"
 
 and size_of_svalue value =
   match value with
