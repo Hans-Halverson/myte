@@ -4,6 +4,7 @@ type t =
       actual: Token.t;
       expected: Token.t option;
     }
+  | UnterminatedStringLiteral
   | MalformedTopLevel of Token.t
   | MalformedPattern of Token.t
   | MalformedFunctionBody of Token.t
@@ -33,6 +34,7 @@ let to_string error =
       "Unexpected token `%s`, expected `%s`"
       (Token.to_string actual)
       (Token.to_string expected)
+  | UnterminatedStringLiteral -> "Unterminated string literal"
   | MalformedTopLevel actual ->
     Printf.sprintf
       "Unexpected token `%s`, expected start of top level statement"

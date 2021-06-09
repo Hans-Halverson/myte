@@ -19,7 +19,7 @@ let hex_literal = [%sedlex.regexp? ("0x", Plus hex_digit)]
 
 let bin_literal = [%sedlex.regexp? ("0b", Plus bin_digit)]
 
-let string_literal = [%sedlex.regexp? ('"', Star (Compl '"'), '"')]
+let string_literal = [%sedlex.regexp? ('"', Star (Compl ('"' | '\n')), '"')]
 
 let lexeme = Sedlexing.Utf8.lexeme
 
@@ -81,7 +81,7 @@ let tokenize lex =
   let open Token in
   let { buf; _ } = lex in
   let token_result token = Token (lex, { loc = current_loc lex; token }) in
-  let lex_error lex = LexError (lex, (current_loc lex, Parse_error.UnknownToken (lexeme buf))) in
+  let lex_error lex err = LexError (lex, (current_loc lex, err)) in
   match%sedlex buf with
   | new_line -> Skip (mark_new_line lex)
   | white_space -> Skip lex
@@ -157,7 +157,8 @@ let tokenize lex =
     let raw = lexeme buf in
     let value = String.sub raw 1 (String.length raw - 2) in
     token_result (T_STRING_LITERAL value)
-  | _ -> lex_error lex
+  | '"' -> lex_error lex Parse_error.UnterminatedStringLiteral
+  | _ -> lex_error lex (Parse_error.UnknownToken (lexeme buf))
 
 let next lexer =
   let rec find_next_token lexer =
