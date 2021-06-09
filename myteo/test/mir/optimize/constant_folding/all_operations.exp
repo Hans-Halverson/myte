@@ -18,8 +18,36 @@ global int %test.i4 {
   StoreGlobal %test.i4, 8
 }
 
-global bool %test.i5 {
-  StoreGlobal %test.i5, false
+global int %test.i5 {
+  StoreGlobal %test.i5, 1
+}
+
+global int %test.i6 {
+  StoreGlobal %test.i6, 8
+}
+
+global int %test.i7 {
+  StoreGlobal %test.i7, 14
+}
+
+global int %test.i8 {
+  StoreGlobal %test.i8, 6
+}
+
+global int %test.i9 {
+  StoreGlobal %test.i9, 16
+}
+
+global int %test.i10 {
+  StoreGlobal %test.i10, -1
+}
+
+global int %test.i11 {
+  StoreGlobal %test.i11, 1073741823
+}
+
+global bool %test.i12 {
+  StoreGlobal %test.i12, false
 }
 
 global byte %test.b0 {
@@ -42,8 +70,36 @@ global byte %test.b4 {
   StoreGlobal %test.b4, 8
 }
 
-global bool %test.b5 {
-  StoreGlobal %test.b5, false
+global byte %test.b5 {
+  StoreGlobal %test.b5, 1
+}
+
+global byte %test.b6 {
+  StoreGlobal %test.b6, 8
+}
+
+global byte %test.b7 {
+  StoreGlobal %test.b7, 14
+}
+
+global byte %test.b8 {
+  StoreGlobal %test.b8, 6
+}
+
+global byte %test.b9 {
+  StoreGlobal %test.b9, 16
+}
+
+global byte %test.b10 {
+  StoreGlobal %test.b10, -1
+}
+
+global byte %test.b11 {
+  StoreGlobal %test.b11, 63
+}
+
+global bool %test.b12 {
+  StoreGlobal %test.b12, false
 }
 
 global long %test.l0 {
@@ -66,8 +122,36 @@ global long %test.l4 {
   StoreGlobal %test.l4, 8
 }
 
-global bool %test.l5 {
-  StoreGlobal %test.l5, false
+global long %test.l5 {
+  StoreGlobal %test.l5, 1
+}
+
+global long %test.l6 {
+  StoreGlobal %test.l6, 8
+}
+
+global long %test.l7 {
+  StoreGlobal %test.l7, 14
+}
+
+global long %test.l8 {
+  StoreGlobal %test.l8, 6
+}
+
+global long %test.l9 {
+  StoreGlobal %test.l9, 16
+}
+
+global long %test.l10 {
+  StoreGlobal %test.l10, -1
+}
+
+global long %test.l11 {
+  StoreGlobal %test.l11, 4611686018427387903
+}
+
+global bool %test.l12 {
+  StoreGlobal %test.l12, false
 }
 
 global bool %test.bool0 {

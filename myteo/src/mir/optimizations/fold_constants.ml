@@ -11,19 +11,31 @@ type folded_constant =
   | BoolConstant of bool
   | FunctionConstant of string
 
-type numeric_constant_op = NegOp
+type numeric_constant_op =
+  | NegOp
+  | NotOp
 
 type numeric_constants_op =
   | AddOp
   | SubOp
   | MulOp
   | DivOp
+  | RemOp
+  | BitAndOp
+  | BitOrOp
+  | BitXorOp
+  | ShlOp
+  | ShrOp
+  | ShrlOp
 
 let fold_numeric_constant op x =
   match (op, x) with
   | (NegOp, ByteConstant x) -> ByteConstant (-x)
   | (NegOp, IntConstant x) -> IntConstant (Int32.neg x)
   | (NegOp, LongConstant x) -> LongConstant (Int64.neg x)
+  | (NotOp, ByteConstant x) -> ByteConstant (lnot x)
+  | (NotOp, IntConstant x) -> IntConstant (Int32.lognot x)
+  | (NotOp, LongConstant x) -> LongConstant (Int64.lognot x)
   | _ -> failwith "Invalid operation"
 
 let fold_numeric_constants op x y =
@@ -40,6 +52,29 @@ let fold_numeric_constants op x y =
   | (DivOp, ByteConstant x, ByteConstant y) -> ByteConstant (x / y)
   | (DivOp, IntConstant x, IntConstant y) -> IntConstant (Int32.div x y)
   | (DivOp, LongConstant x, LongConstant y) -> LongConstant (Int64.div x y)
+  | (RemOp, ByteConstant x, ByteConstant y) -> ByteConstant (x mod y)
+  | (RemOp, IntConstant x, IntConstant y) -> IntConstant (Int32.rem x y)
+  | (RemOp, LongConstant x, LongConstant y) -> LongConstant (Int64.rem x y)
+  | (BitAndOp, ByteConstant x, ByteConstant y) -> ByteConstant (x land y)
+  | (BitAndOp, IntConstant x, IntConstant y) -> IntConstant (Int32.logand x y)
+  | (BitAndOp, LongConstant x, LongConstant y) -> LongConstant (Int64.logand x y)
+  | (BitOrOp, ByteConstant x, ByteConstant y) -> ByteConstant (x lor y)
+  | (BitOrOp, IntConstant x, IntConstant y) -> IntConstant (Int32.logor x y)
+  | (BitOrOp, LongConstant x, LongConstant y) -> LongConstant (Int64.logor x y)
+  | (BitXorOp, ByteConstant x, ByteConstant y) -> ByteConstant (x lxor y)
+  | (BitXorOp, IntConstant x, IntConstant y) -> IntConstant (Int32.logxor x y)
+  | (BitXorOp, LongConstant x, LongConstant y) -> LongConstant (Int64.logxor x y)
+  | (ShlOp, ByteConstant x, ByteConstant y) -> ByteConstant (x lsl y)
+  | (ShlOp, IntConstant x, IntConstant y) -> IntConstant (Int32.shift_left x (Int32.to_int y))
+  | (ShlOp, LongConstant x, LongConstant y) -> LongConstant (Int64.shift_left x (Int64.to_int y))
+  | (ShrOp, ByteConstant x, ByteConstant y) -> ByteConstant (x asr y)
+  | (ShrOp, IntConstant x, IntConstant y) -> IntConstant (Int32.shift_right x (Int32.to_int y))
+  | (ShrOp, LongConstant x, LongConstant y) -> LongConstant (Int64.shift_right x (Int64.to_int y))
+  | (ShrlOp, ByteConstant x, ByteConstant y) -> ByteConstant ((Int.logand x 0xFF) lsr y)
+  | (ShrlOp, IntConstant x, IntConstant y) ->
+    IntConstant (Int32.shift_right_logical x (Int32.to_int y))
+  | (ShrlOp, LongConstant x, LongConstant y) ->
+    LongConstant (Int64.shift_right_logical x (Int64.to_int y))
   | _ -> failwith "Invalid operation"
 
 let fold_constants_compare x y =
@@ -271,9 +306,17 @@ class calc_constants_visitor ~ocx =
       | Sub (var_id, left, right) -> try_fold_numeric_constants SubOp var_id left right
       | Mul (var_id, left, right) -> try_fold_numeric_constants MulOp var_id left right
       | Div (var_id, left, right) -> try_fold_numeric_constants DivOp var_id left right
+      | Rem (var_id, left, right) -> try_fold_numeric_constants RemOp var_id left right
       | LogNot (var_id, arg) -> try_fold_bool_constant var_id arg not
       | LogAnd (var_id, left, right) -> try_fold_bool_constants var_id left right ( && )
       | LogOr (var_id, left, right) -> try_fold_bool_constants var_id left right ( || )
+      | BitNot (var_id, arg) -> try_fold_numeric_constant var_id arg NotOp
+      | BitAnd (var_id, left, right) -> try_fold_numeric_constants BitAndOp var_id left right
+      | BitOr (var_id, left, right) -> try_fold_numeric_constants BitOrOp var_id left right
+      | BitXor (var_id, left, right) -> try_fold_numeric_constants BitXorOp var_id left right
+      | Shl (var_id, left, right) -> try_fold_numeric_constants ShlOp var_id left right
+      | Shr (var_id, left, right) -> try_fold_numeric_constants ShrOp var_id left right
+      | Shrl (var_id, left, right) -> try_fold_numeric_constants ShrlOp var_id left right
       | Eq (var_id, left, right) -> try_fold_comparison var_id left right ( == )
       | Neq (var_id, left, right) -> try_fold_comparison var_id left right ( <> )
       | Lt (var_id, left, right) -> try_fold_comparison var_id left right ( < )
