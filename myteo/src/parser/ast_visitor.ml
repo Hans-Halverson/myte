@@ -271,8 +271,10 @@ class ['a] visitor =
 
     method assignment acc assign =
       let open Statement.Assignment in
-      let { loc = _; pattern; expr } = assign in
-      this#pattern acc pattern;
+      let { loc = _; lvalue; expr } = assign in
+      (match lvalue with
+      | Pattern patt -> this#pattern acc patt
+      | Expression epxr -> this#expression acc epxr);
       this#expression acc expr
 
     method match_ acc match_ =

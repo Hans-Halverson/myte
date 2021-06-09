@@ -1,0 +1,21 @@
+module test
+
+type Rec1 { field1: Int, field2: Rec2 }
+type Rec2 { field3: Bool, field4: Rec3 }
+type Rec3 { field5: Tup1 }
+
+type Tup1 (String)
+
+fun namedAccess(rec1: Rec1) {
+  // Passes
+  rec1.field1 = 1;
+  rec1.field2.field3 = true;
+  rec1.field2.field4 = Rec3 { field5: Tup1 ("test") };
+
+  // Fails - display error
+  rec1.field1 = "string";
+  rec1.field2.field3 = "string";
+  rec1.field2.field4 = "string";
+}
+
+fun main() {}

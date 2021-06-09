@@ -393,8 +393,17 @@ and node_of_continue continue =
   node "Continue" loc []
 
 and node_of_assignment assign =
-  let { Statement.Assignment.loc; pattern; expr } = assign in
-  node "Assignment" loc [("pattern", node_of_pattern pattern); ("expr", node_of_expression expr)]
+  let { Statement.Assignment.loc; lvalue; expr } = assign in
+  node
+    "Assignment"
+    loc
+    [
+      ( "lvalue",
+        match lvalue with
+        | Pattern pattern -> node_of_pattern pattern
+        | Expression expr -> node_of_expression expr );
+      ("expr", node_of_expression expr);
+    ]
 
 and node_of_match match_ =
   let { Match.loc; args; cases } = match_ in

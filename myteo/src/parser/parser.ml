@@ -188,13 +188,15 @@ and parse_assignment_or_expression_statement env =
   let marker = mark_loc env in
   let expr = parse_expression env in
   match Env.token env with
+  (* If followed by an equals, expression is actually the lvalue for an assignment statement *)
   | T_EQUALS ->
-    let pattern = reparse_expression_as_pattern expr in
+    let lvalue = reparse_expression_as_lvalue expr in
     Env.advance env;
     let expr = parse_expression env in
     Env.expect env T_SEMICOLON;
     let loc = marker env in
-    Statement.Assignment { loc; pattern; expr }
+    Statement.Assignment { loc; lvalue; expr }
+  (* If the expression is not followed by an equals then it must be an expression statement *)
   | _ ->
     Env.expect env T_SEMICOLON;
     let loc = marker env in
@@ -1244,7 +1246,25 @@ and parse_type_params env =
     in
     type_params env
 
-and reparse_expression_as_pattern expr =
+and reparse_expression_as_lvalue expr =
+  let open Expression in
+  match expr with
+  | IndexedAccess _
+  | NamedAccess _ ->
+    assert_expression_is_lvalue_expression expr;
+    Statement.Assignment.Expression expr
+  | _ -> Statement.Assignment.Pattern (reparse_expression_as_lvalue_pattern expr)
+
+and assert_expression_is_lvalue_expression expr =
+  let open Expression in
+  match expr with
+  | Identifier _ -> ()
+  | NamedAccess { target; _ }
+  | IndexedAccess { target; _ } ->
+    assert_expression_is_lvalue_expression target
+  | _ -> Parse_error.fatal (Ast_utils.expression_loc expr, Parse_error.InvalidAssignmentPattern)
+
+and reparse_expression_as_lvalue_pattern expr =
   let open Expression in
   let invalid_pattern_error expr =
     Parse_error.fatal (Ast_utils.expression_loc expr, Parse_error.InvalidAssignmentPattern)
@@ -1269,10 +1289,11 @@ and reparse_expression_as_pattern expr =
   | Identifier { loc; name = "_" } -> Pattern.Wildcard loc
   | Identifier { loc; name } -> Pattern.Identifier { loc; name }
   | Tuple { loc; elements } ->
-    Pattern.Tuple { loc; name = None; elements = List.map reparse_expression_as_pattern elements }
+    Pattern.Tuple
+      { loc; name = None; elements = List.map reparse_expression_as_lvalue_pattern elements }
   | Call { loc; func; args } ->
     let name = reparse_name_parts func in
-    let elements = List.map reparse_expression_as_pattern args in
+    let elements = List.map reparse_expression_as_lvalue_pattern args in
     Pattern.Tuple { loc; name = Some name; elements }
   | Record { loc; name; fields } ->
     let name = reparse_name_parts name in
@@ -1282,7 +1303,7 @@ and reparse_expression_as_pattern expr =
           match value with
           | None -> { Pattern.Record.Field.loc; name = None; value = Pattern.Identifier name }
           | Some value ->
-            let value = reparse_expression_as_pattern value in
+            let value = reparse_expression_as_lvalue_pattern value in
             { Pattern.Record.Field.loc; name = Some name; value })
         fields
     in

@@ -1,0 +1,14 @@
+Error: Expected type `Int` but found `String`
+test/analyze/type_check/assignment/lvalue_expression.myte:16:16-24
+ 16 |   rec1.field1 = "string";
+    |                 ^^^^^^^^
+
+Error: Expected type `Bool` but found `String`
+test/analyze/type_check/assignment/lvalue_expression.myte:17:23-31
+ 17 |   rec1.field2.field3 = "string";
+    |                        ^^^^^^^^
+
+Error: Expected type `Rec3` but found `String`
+test/analyze/type_check/assignment/lvalue_expression.myte:18:23-31
+ 18 |   rec1.field2.field4 = "string";
+    |                        ^^^^^^^^

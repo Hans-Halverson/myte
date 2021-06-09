@@ -352,31 +352,35 @@ class bindings_builder ~module_tree =
 
     method! assignment assign =
       let open Statement.Assignment in
-      let ids = Ast_utils.ids_of_pattern assign.pattern in
-      List.iter
-        (fun { Identifier.loc; name } ->
-          match this#lookup_value_in_scope name scopes with
-          | None -> ()
-          | Some decl_loc ->
-            let add_invalid_assign_error kind =
-              this#add_error loc (InvalidAssignment (name, kind))
-            in
-            let (_, declaration) = (LocMap.find decl_loc value_bindings).declaration in
-            (match declaration with
-            | VarDecl kind
-            | ImportedVarDecl (_, kind) ->
-              if kind = Statement.VariableDeclaration.Immutable then
-                add_invalid_assign_error InvalidAssignmentImmutableVariable
-            | FunDecl
-            | ImportedFunDecl _ ->
-              add_invalid_assign_error InvalidAssignmentFunction
-            | FunParam -> add_invalid_assign_error InvalidAssignmentFunctionParam
-            | ImportedCtorDecl _
-            | CtorDecl ->
-              add_invalid_assign_error InvalidAssignmentConstructor
-            | ImportedModule _ -> (* Direct module use will error elsewhere *) ()))
-        ids;
-      super#assignment assign
+      match assign.lvalue with
+      (* LValue expression are resolved like normal expressions *)
+      | Expression _ -> super#assignment assign
+      | Pattern pattern ->
+        let ids = Ast_utils.ids_of_pattern pattern in
+        List.iter
+          (fun { Identifier.loc; name } ->
+            match this#lookup_value_in_scope name scopes with
+            | None -> ()
+            | Some decl_loc ->
+              let add_invalid_assign_error kind =
+                this#add_error loc (InvalidAssignment (name, kind))
+              in
+              let (_, declaration) = (LocMap.find decl_loc value_bindings).declaration in
+              (match declaration with
+              | VarDecl kind
+              | ImportedVarDecl (_, kind) ->
+                if kind = Statement.VariableDeclaration.Immutable then
+                  add_invalid_assign_error InvalidAssignmentImmutableVariable
+              | FunDecl
+              | ImportedFunDecl _ ->
+                add_invalid_assign_error InvalidAssignmentFunction
+              | FunParam -> add_invalid_assign_error InvalidAssignmentFunctionParam
+              | ImportedCtorDecl _
+              | CtorDecl ->
+                add_invalid_assign_error InvalidAssignmentConstructor
+              | ImportedModule _ -> (* Direct module use will error elsewhere *) ()))
+          ids;
+        super#assignment assign
 
     (* Match a sequence of module parts against the module tree, returning the same AST with the
        matched access chain replaced with a scoped id if a match exists. Otherwise error. *)

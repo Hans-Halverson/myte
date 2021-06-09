@@ -24,4 +24,13 @@ fun main() {
   // Scoped ids
   A.B.C.Tup (x) = 1;
   A.B.C.Rec { field } = 1;
+
+  // Accesses
+  A.B = 1;
+  A.B.C.D = 1;
+  A[B] = 1;
+  A[B][C][D] = 1;
+  A.B[C] = 1;
+  A[B].C = 1;
+  A.B[C][D].E.F[G].H = 1;
 }

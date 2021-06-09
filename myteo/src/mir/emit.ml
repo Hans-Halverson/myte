@@ -321,8 +321,12 @@ and emit_statement ~pcx ~ecx stmt =
   | Break _ ->
     let (break_id, _) = Ecx.get_loop_context ~ecx in
     Ecx.finish_block_continue ~ecx break_id
-  | Assignment { loc = _; pattern; expr } ->
-    (* TODO: Emit MIR for arbitrary patterns *)
+  | Assignment { loc = _; lvalue; expr } ->
+    let pattern =
+      match lvalue with
+      | Assignment.Pattern patt -> patt
+      | _ -> failwith "TODO: Emir MIR for lvalue expressions"
+    in
     let { Identifier.loc = use_loc; _ } = List.hd (Ast_utils.ids_of_pattern pattern) in
     let binding = Bindings.get_source_value_binding pcx.bindings use_loc in
     let decl_loc = fst binding.declaration in

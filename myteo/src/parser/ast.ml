@@ -83,9 +83,13 @@ and Statement : sig
   end
 
   module Assignment : sig
+    type lvalue =
+      | Pattern of Pattern.t
+      | Expression of Expression.t
+
     type t = {
       loc: Loc.t;
-      pattern: Pattern.t;
+      lvalue: lvalue;
       expr: Expression.t;
     }
   end

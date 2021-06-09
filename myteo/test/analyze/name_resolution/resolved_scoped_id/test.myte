@@ -33,6 +33,10 @@ fun test() {
   a1.EnumVariant;
   a1.TupleVariant(1);
   a1.RecordVariant { field: 1 };
+  
+  // Valid export in lvalue is correctly converted to scoped id;
+  a1.a2.mutable = 1;
+  a1.a2.export.child1.child2 = 1;
 
   // Accesses on exports are preserved
   a1.export.child;

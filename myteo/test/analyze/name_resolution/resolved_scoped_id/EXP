@@ -286,7 +286,7 @@ test/analyze/name_resolution/resolved_scoped_id/a1.myte
 test/analyze/name_resolution/resolved_scoped_id/a2.myte
 {
   node: Module,
-  loc: 1:0-8:30,
+  loc: 1:0-10:30,
   module: {
     node: Module,
     loc: 1:0-1:12,
@@ -488,34 +488,54 @@ test/analyze/name_resolution/resolved_scoped_id/a2.myte
       },
     },
     {
+      node: VariableDeclaration,
+      loc: 8:0-8:20,
+      kind: Mutable,
+      pattern: {
+        node: Identifier,
+        loc: 8:4-8:11,
+        name: "mutable",
+      },
+      init: {
+        node: IntLiteral,
+        loc: 8:19-8:20,
+        raw: "1",
+      },
+      annot: {
+        node: PrimitiveType,
+        loc: 8:13-8:16,
+        kind: Int,
+      },
+    },
+    {
       node: TypeDeclaration,
-      loc: 8:0-8:30,
+      loc: 10:0-10:30,
       name: {
         node: Identifier,
-        loc: 8:5-8:15,
+        loc: 10:5-10:15,
         name: "ExportType",
       },
       type_params: [],
       record: {
         node: RecordVariant,
-        loc: 8:5-8:30,
+        loc: 10:5-10:30,
         name: {
           node: Identifier,
-          loc: 8:5-8:15,
+          loc: 10:5-10:15,
           name: "ExportType",
         },
         fields: [
           {
             node: RecordVariantField,
-            loc: 8:5-8:28,
+            loc: 10:5-10:28,
             name: {
               node: Identifier,
-              loc: 8:18-8:23,
+              loc: 10:18-10:23,
               name: "field",
             },
             type: {
               node: PrimitiveType,
-              loc: 8:25-8:28,
+              loc: 10:25-10:28,
               kind: Int,
             },
           },
@@ -1022,7 +1042,7 @@ test/analyze/name_resolution/resolved_scoped_id/d.myte
 test/analyze/name_resolution/resolved_scoped_id/test.myte
 {
   node: Module,
-  loc: 1:0-62:13,
+  loc: 1:0-66:13,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -1553,7 +1573,7 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
     },
     {
       node: Function,
-      loc: 27:0-60:1,
+      loc: 27:0-64:1,
       name: {
         node: Identifier,
         loc: 27:4-27:8,
@@ -1562,7 +1582,7 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
       params: [],
       body: {
         node: Block,
-        loc: 27:11-60:1,
+        loc: 27:11-64:1,
         statements: [
           {
             node: VariableDeclaration,
@@ -1721,341 +1741,321 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
             },
           },
           {
-            node: ExpressionStatement,
-            loc: 38:2-38:18,
-            expression: {
-              node: NamedAccess,
-              loc: 38:2-38:17,
-              target: {
-                node: ScopedIdentifier,
-                loc: 38:2-38:11,
-                scopes: [
-                  {
-                    node: Identifier,
-                    loc: 38:2-38:4,
-                    name: "a1",
-                  },
-                ],
-                name: {
+            node: Assignment,
+            loc: 38:2-38:20,
+            lvalue: {
+              node: ScopedIdentifier,
+              loc: 38:2-38:15,
+              scopes: [
+                {
                   node: Identifier,
-                  loc: 38:5-38:11,
-                  name: "export",
+                  loc: 38:2-38:4,
+                  name: "a1",
                 },
-              },
+                {
+                  node: Identifier,
+                  loc: 38:5-38:7,
+                  name: "a2",
+                },
+              ],
               name: {
                 node: Identifier,
-                loc: 38:12-38:17,
-                name: "child",
+                loc: 38:8-38:15,
+                name: "mutable",
               },
+            },
+            expr: {
+              node: IntLiteral,
+              loc: 38:18-38:19,
+              raw: "1",
             },
           },
           {
-            node: ExpressionStatement,
-            loc: 39:2-39:26,
-            expression: {
+            node: Assignment,
+            loc: 39:2-39:33,
+            lvalue: {
               node: NamedAccess,
-              loc: 39:2-39:25,
+              loc: 39:2-39:28,
               target: {
                 node: NamedAccess,
-                loc: 39:2-39:18,
+                loc: 39:2-39:21,
                 target: {
                   node: ScopedIdentifier,
-                  loc: 39:2-39:11,
+                  loc: 39:2-39:14,
                   scopes: [
                     {
                       node: Identifier,
                       loc: 39:2-39:4,
                       name: "a1",
                     },
+                    {
+                      node: Identifier,
+                      loc: 39:5-39:7,
+                      name: "a2",
+                    },
                   ],
                   name: {
                     node: Identifier,
-                    loc: 39:5-39:11,
+                    loc: 39:8-39:14,
                     name: "export",
                   },
                 },
                 name: {
                   node: Identifier,
-                  loc: 39:12-39:18,
+                  loc: 39:15-39:21,
                   name: "child1",
                 },
               },
               name: {
                 node: Identifier,
-                loc: 39:19-39:25,
+                loc: 39:22-39:28,
                 name: "child2",
               },
+            },
+            expr: {
+              node: IntLiteral,
+              loc: 39:31-39:32,
+              raw: "1",
             },
           },
           {
             node: ExpressionStatement,
-            loc: 40:2-40:21,
+            loc: 42:2-42:18,
             expression: {
               node: NamedAccess,
-              loc: 40:2-40:20,
+              loc: 42:2-42:17,
               target: {
                 node: ScopedIdentifier,
-                loc: 40:2-40:14,
+                loc: 42:2-42:11,
                 scopes: [
                   {
                     node: Identifier,
-                    loc: 40:2-40:4,
+                    loc: 42:2-42:4,
                     name: "a1",
-                  },
-                  {
-                    node: Identifier,
-                    loc: 40:5-40:7,
-                    name: "a2",
                   },
                 ],
                 name: {
                   node: Identifier,
-                  loc: 40:8-40:14,
+                  loc: 42:5-42:11,
                   name: "export",
                 },
               },
               name: {
                 node: Identifier,
-                loc: 40:15-40:20,
+                loc: 42:12-42:17,
                 name: "child",
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 41:2-41:29,
+            loc: 43:2-43:26,
             expression: {
               node: NamedAccess,
-              loc: 41:2-41:28,
+              loc: 43:2-43:25,
               target: {
                 node: NamedAccess,
-                loc: 41:2-41:21,
+                loc: 43:2-43:18,
                 target: {
                   node: ScopedIdentifier,
-                  loc: 41:2-41:14,
+                  loc: 43:2-43:11,
                   scopes: [
                     {
                       node: Identifier,
-                      loc: 41:2-41:4,
+                      loc: 43:2-43:4,
                       name: "a1",
-                    },
-                    {
-                      node: Identifier,
-                      loc: 41:5-41:7,
-                      name: "a2",
                     },
                   ],
                   name: {
                     node: Identifier,
-                    loc: 41:8-41:14,
+                    loc: 43:5-43:11,
                     name: "export",
                   },
                 },
                 name: {
                   node: Identifier,
-                  loc: 41:15-41:21,
+                  loc: 43:12-43:18,
                   name: "child1",
                 },
               },
               name: {
                 node: Identifier,
-                loc: 41:22-41:28,
+                loc: 43:19-43:25,
                 name: "child2",
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 44:2-44:18,
+            loc: 44:2-44:21,
+            expression: {
+              node: NamedAccess,
+              loc: 44:2-44:20,
+              target: {
+                node: ScopedIdentifier,
+                loc: 44:2-44:14,
+                scopes: [
+                  {
+                    node: Identifier,
+                    loc: 44:2-44:4,
+                    name: "a1",
+                  },
+                  {
+                    node: Identifier,
+                    loc: 44:5-44:7,
+                    name: "a2",
+                  },
+                ],
+                name: {
+                  node: Identifier,
+                  loc: 44:8-44:14,
+                  name: "export",
+                },
+              },
+              name: {
+                node: Identifier,
+                loc: 44:15-44:20,
+                name: "child",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 45:2-45:29,
+            expression: {
+              node: NamedAccess,
+              loc: 45:2-45:28,
+              target: {
+                node: NamedAccess,
+                loc: 45:2-45:21,
+                target: {
+                  node: ScopedIdentifier,
+                  loc: 45:2-45:14,
+                  scopes: [
+                    {
+                      node: Identifier,
+                      loc: 45:2-45:4,
+                      name: "a1",
+                    },
+                    {
+                      node: Identifier,
+                      loc: 45:5-45:7,
+                      name: "a2",
+                    },
+                  ],
+                  name: {
+                    node: Identifier,
+                    loc: 45:8-45:14,
+                    name: "export",
+                  },
+                },
+                name: {
+                  node: Identifier,
+                  loc: 45:15-45:21,
+                  name: "child1",
+                },
+              },
+              name: {
+                node: Identifier,
+                loc: 45:22-45:28,
+                name: "child2",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 48:2-48:18,
             expression: {
               node: ScopedIdentifier,
-              loc: 44:2-44:17,
+              loc: 48:2-48:17,
               scopes: [
                 {
                   node: Identifier,
-                  loc: 44:2-44:4,
+                  loc: 48:2-48:4,
                   name: "b1",
                 },
                 {
                   node: Identifier,
-                  loc: 44:5-44:7,
+                  loc: 48:5-48:7,
                   name: "b2",
                 },
                 {
                   node: Identifier,
-                  loc: 44:8-44:10,
+                  loc: 48:8-48:10,
                   name: "b3",
                 },
               ],
               name: {
                 node: Identifier,
-                loc: 44:11-44:17,
+                loc: 48:11-48:17,
                 name: "export",
               },
             },
           },
           {
             node: Assignment,
-            loc: 45:2-45:34,
-            pattern: {
+            loc: 49:2-49:34,
+            lvalue: {
               node: TuplePattern,
-              loc: 45:2-45:18,
+              loc: 49:2-49:18,
               name: {
                 node: ScopedIdentifier,
-                loc: 45:2-45:14,
+                loc: 49:2-49:14,
                 scopes: [
                   {
                     node: Identifier,
-                    loc: 45:2-45:4,
+                    loc: 49:2-49:4,
                     name: "b1",
                   },
                   {
                     node: Identifier,
-                    loc: 45:5-45:7,
+                    loc: 49:5-49:7,
                     name: "b2",
                   },
                   {
                     node: Identifier,
-                    loc: 45:8-45:10,
+                    loc: 49:8-49:10,
                     name: "b3",
                   },
                 ],
                 name: {
                   node: Identifier,
-                  loc: 45:11-45:14,
+                  loc: 49:11-49:14,
                   name: "Tup",
                 },
               },
               elements: [
                 {
                   node: Identifier,
-                  loc: 45:16-45:17,
+                  loc: 49:16-49:17,
                   name: "x",
                 },
               ],
             },
             expr: {
               node: ScopedIdentifier,
-              loc: 45:21-45:33,
+              loc: 49:21-49:33,
               scopes: [
                 {
                   node: Identifier,
-                  loc: 45:21-45:23,
+                  loc: 49:21-49:23,
                   name: "b1",
                 },
                 {
                   node: Identifier,
-                  loc: 45:24-45:26,
+                  loc: 49:24-49:26,
                   name: "b2",
                 },
                 {
                   node: Identifier,
-                  loc: 45:27-45:29,
+                  loc: 49:27-49:29,
                   name: "b3",
                 },
               ],
               name: {
                 node: Identifier,
-                loc: 45:30-45:33,
+                loc: 49:30-49:33,
                 name: "tup",
-              },
-            },
-          },
-          {
-            node: ExpressionStatement,
-            loc: 48:2-48:12,
-            expression: {
-              node: ScopedIdentifier,
-              loc: 48:2-48:11,
-              scopes: [
-                {
-                  node: Identifier,
-                  loc: 48:2-48:4,
-                  name: "c1",
-                },
-              ],
-              name: {
-                node: Identifier,
-                loc: 48:5-48:11,
-                name: "export",
-              },
-            },
-          },
-          {
-            node: ExpressionStatement,
-            loc: 49:2-49:18,
-            expression: {
-              node: NamedAccess,
-              loc: 49:2-49:17,
-              target: {
-                node: ScopedIdentifier,
-                loc: 49:2-49:11,
-                scopes: [
-                  {
-                    node: Identifier,
-                    loc: 49:2-49:4,
-                    name: "c1",
-                  },
-                ],
-                name: {
-                  node: Identifier,
-                  loc: 49:5-49:11,
-                  name: "export",
-                },
-              },
-              name: {
-                node: Identifier,
-                loc: 49:12-49:17,
-                name: "child",
-              },
-            },
-          },
-          {
-            node: ExpressionStatement,
-            loc: 50:2-50:17,
-            expression: {
-              node: ScopedIdentifier,
-              loc: 50:2-50:16,
-              scopes: [
-                {
-                  node: Identifier,
-                  loc: 50:2-50:9,
-                  name: "c1Alias",
-                },
-              ],
-              name: {
-                node: Identifier,
-                loc: 50:10-50:16,
-                name: "export",
-              },
-            },
-          },
-          {
-            node: ExpressionStatement,
-            loc: 51:2-51:23,
-            expression: {
-              node: NamedAccess,
-              loc: 51:2-51:22,
-              target: {
-                node: ScopedIdentifier,
-                loc: 51:2-51:16,
-                scopes: [
-                  {
-                    node: Identifier,
-                    loc: 51:2-51:9,
-                    name: "c1Alias",
-                  },
-                ],
-                name: {
-                  node: Identifier,
-                  loc: 51:10-51:16,
-                  name: "export",
-                },
-              },
-              name: {
-                node: Identifier,
-                loc: 51:17-51:22,
-                name: "child",
               },
             },
           },
@@ -2069,7 +2069,7 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
                 {
                   node: Identifier,
                   loc: 52:2-52:4,
-                  name: "d2",
+                  name: "c1",
                 },
               ],
               name: {
@@ -2092,7 +2092,7 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
                   {
                     node: Identifier,
                     loc: 53:2-53:4,
-                    name: "d2",
+                    name: "c1",
                   },
                 ],
                 name: {
@@ -2118,7 +2118,7 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
                 {
                   node: Identifier,
                   loc: 54:2-54:9,
-                  name: "d2Alias",
+                  name: "c1Alias",
                 },
               ],
               name: {
@@ -2141,7 +2141,7 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
                   {
                     node: Identifier,
                     loc: 55:2-55:9,
-                    name: "d2Alias",
+                    name: "c1Alias",
                   },
                 ],
                 name: {
@@ -2158,164 +2158,83 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
             },
           },
           {
-            node: Assignment,
-            loc: 56:2-56:22,
-            pattern: {
-              node: TuplePattern,
-              loc: 56:2-56:12,
-              name: {
-                node: ScopedIdentifier,
-                loc: 56:2-56:8,
-                scopes: [
-                  {
-                    node: Identifier,
-                    loc: 56:2-56:4,
-                    name: "c1",
-                  },
-                ],
-                name: {
-                  node: Identifier,
-                  loc: 56:5-56:8,
-                  name: "Bar",
-                },
-              },
-              elements: [
-                {
-                  node: Identifier,
-                  loc: 56:10-56:11,
-                  name: "x",
-                },
-              ],
-            },
-            expr: {
+            node: ExpressionStatement,
+            loc: 56:2-56:12,
+            expression: {
               node: ScopedIdentifier,
-              loc: 56:15-56:21,
+              loc: 56:2-56:11,
               scopes: [
                 {
                   node: Identifier,
-                  loc: 56:15-56:17,
-                  name: "c1",
-                },
-              ],
-              name: {
-                node: Identifier,
-                loc: 56:18-56:21,
-                name: "bar",
-              },
-            },
-          },
-          {
-            node: Assignment,
-            loc: 57:2-57:27,
-            pattern: {
-              node: TuplePattern,
-              loc: 57:2-57:17,
-              name: {
-                node: ScopedIdentifier,
-                loc: 57:2-57:13,
-                scopes: [
-                  {
-                    node: Identifier,
-                    loc: 57:2-57:9,
-                    name: "c1Alias",
-                  },
-                ],
-                name: {
-                  node: Identifier,
-                  loc: 57:10-57:13,
-                  name: "Bar",
-                },
-              },
-              elements: [
-                {
-                  node: Identifier,
-                  loc: 57:15-57:16,
-                  name: "x",
-                },
-              ],
-            },
-            expr: {
-              node: ScopedIdentifier,
-              loc: 57:20-57:26,
-              scopes: [
-                {
-                  node: Identifier,
-                  loc: 57:20-57:22,
-                  name: "c1",
-                },
-              ],
-              name: {
-                node: Identifier,
-                loc: 57:23-57:26,
-                name: "bar",
-              },
-            },
-          },
-          {
-            node: Assignment,
-            loc: 58:2-58:31,
-            pattern: {
-              node: RecordPattern,
-              loc: 58:2-58:21,
-              name: {
-                node: ScopedIdentifier,
-                loc: 58:2-58:8,
-                scopes: [
-                  {
-                    node: Identifier,
-                    loc: 58:2-58:4,
-                    name: "d2",
-                  },
-                ],
-                name: {
-                  node: Identifier,
-                  loc: 58:5-58:8,
-                  name: "Rec",
-                },
-              },
-              fields: [
-                {
-                  node: RecordPatternField,
-                  loc: 58:11-58:19,
-                  name: {
-                    node: Identifier,
-                    loc: 58:11-58:16,
-                    name: "child",
-                  },
-                  value: {
-                    node: Identifier,
-                    loc: 58:18-58:19,
-                    name: "x",
-                  },
-                },
-              ],
-            },
-            expr: {
-              node: ScopedIdentifier,
-              loc: 58:24-58:30,
-              scopes: [
-                {
-                  node: Identifier,
-                  loc: 58:24-58:26,
+                  loc: 56:2-56:4,
                   name: "d2",
                 },
               ],
               name: {
                 node: Identifier,
-                loc: 58:27-58:30,
-                name: "rec",
+                loc: 56:5-56:11,
+                name: "export",
               },
             },
           },
           {
-            node: Assignment,
-            loc: 59:2-59:36,
-            pattern: {
-              node: RecordPattern,
-              loc: 59:2-59:26,
-              name: {
+            node: ExpressionStatement,
+            loc: 57:2-57:18,
+            expression: {
+              node: NamedAccess,
+              loc: 57:2-57:17,
+              target: {
                 node: ScopedIdentifier,
-                loc: 59:2-59:13,
+                loc: 57:2-57:11,
+                scopes: [
+                  {
+                    node: Identifier,
+                    loc: 57:2-57:4,
+                    name: "d2",
+                  },
+                ],
+                name: {
+                  node: Identifier,
+                  loc: 57:5-57:11,
+                  name: "export",
+                },
+              },
+              name: {
+                node: Identifier,
+                loc: 57:12-57:17,
+                name: "child",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 58:2-58:17,
+            expression: {
+              node: ScopedIdentifier,
+              loc: 58:2-58:16,
+              scopes: [
+                {
+                  node: Identifier,
+                  loc: 58:2-58:9,
+                  name: "d2Alias",
+                },
+              ],
+              name: {
+                node: Identifier,
+                loc: 58:10-58:16,
+                name: "export",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 59:2-59:23,
+            expression: {
+              node: NamedAccess,
+              loc: 59:2-59:22,
+              target: {
+                node: ScopedIdentifier,
+                loc: 59:2-59:16,
                 scopes: [
                   {
                     node: Identifier,
@@ -2325,22 +2244,145 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
                 ],
                 name: {
                   node: Identifier,
-                  loc: 59:10-59:13,
+                  loc: 59:10-59:16,
+                  name: "export",
+                },
+              },
+              name: {
+                node: Identifier,
+                loc: 59:17-59:22,
+                name: "child",
+              },
+            },
+          },
+          {
+            node: Assignment,
+            loc: 60:2-60:22,
+            lvalue: {
+              node: TuplePattern,
+              loc: 60:2-60:12,
+              name: {
+                node: ScopedIdentifier,
+                loc: 60:2-60:8,
+                scopes: [
+                  {
+                    node: Identifier,
+                    loc: 60:2-60:4,
+                    name: "c1",
+                  },
+                ],
+                name: {
+                  node: Identifier,
+                  loc: 60:5-60:8,
+                  name: "Bar",
+                },
+              },
+              elements: [
+                {
+                  node: Identifier,
+                  loc: 60:10-60:11,
+                  name: "x",
+                },
+              ],
+            },
+            expr: {
+              node: ScopedIdentifier,
+              loc: 60:15-60:21,
+              scopes: [
+                {
+                  node: Identifier,
+                  loc: 60:15-60:17,
+                  name: "c1",
+                },
+              ],
+              name: {
+                node: Identifier,
+                loc: 60:18-60:21,
+                name: "bar",
+              },
+            },
+          },
+          {
+            node: Assignment,
+            loc: 61:2-61:27,
+            lvalue: {
+              node: TuplePattern,
+              loc: 61:2-61:17,
+              name: {
+                node: ScopedIdentifier,
+                loc: 61:2-61:13,
+                scopes: [
+                  {
+                    node: Identifier,
+                    loc: 61:2-61:9,
+                    name: "c1Alias",
+                  },
+                ],
+                name: {
+                  node: Identifier,
+                  loc: 61:10-61:13,
+                  name: "Bar",
+                },
+              },
+              elements: [
+                {
+                  node: Identifier,
+                  loc: 61:15-61:16,
+                  name: "x",
+                },
+              ],
+            },
+            expr: {
+              node: ScopedIdentifier,
+              loc: 61:20-61:26,
+              scopes: [
+                {
+                  node: Identifier,
+                  loc: 61:20-61:22,
+                  name: "c1",
+                },
+              ],
+              name: {
+                node: Identifier,
+                loc: 61:23-61:26,
+                name: "bar",
+              },
+            },
+          },
+          {
+            node: Assignment,
+            loc: 62:2-62:31,
+            lvalue: {
+              node: RecordPattern,
+              loc: 62:2-62:21,
+              name: {
+                node: ScopedIdentifier,
+                loc: 62:2-62:8,
+                scopes: [
+                  {
+                    node: Identifier,
+                    loc: 62:2-62:4,
+                    name: "d2",
+                  },
+                ],
+                name: {
+                  node: Identifier,
+                  loc: 62:5-62:8,
                   name: "Rec",
                 },
               },
               fields: [
                 {
                   node: RecordPatternField,
-                  loc: 59:16-59:24,
+                  loc: 62:11-62:19,
                   name: {
                     node: Identifier,
-                    loc: 59:16-59:21,
+                    loc: 62:11-62:16,
                     name: "child",
                   },
                   value: {
                     node: Identifier,
-                    loc: 59:23-59:24,
+                    loc: 62:18-62:19,
                     name: "x",
                   },
                 },
@@ -2348,17 +2390,73 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
             },
             expr: {
               node: ScopedIdentifier,
-              loc: 59:29-59:35,
+              loc: 62:24-62:30,
               scopes: [
                 {
                   node: Identifier,
-                  loc: 59:29-59:31,
+                  loc: 62:24-62:26,
                   name: "d2",
                 },
               ],
               name: {
                 node: Identifier,
-                loc: 59:32-59:35,
+                loc: 62:27-62:30,
+                name: "rec",
+              },
+            },
+          },
+          {
+            node: Assignment,
+            loc: 63:2-63:36,
+            lvalue: {
+              node: RecordPattern,
+              loc: 63:2-63:26,
+              name: {
+                node: ScopedIdentifier,
+                loc: 63:2-63:13,
+                scopes: [
+                  {
+                    node: Identifier,
+                    loc: 63:2-63:9,
+                    name: "d2Alias",
+                  },
+                ],
+                name: {
+                  node: Identifier,
+                  loc: 63:10-63:13,
+                  name: "Rec",
+                },
+              },
+              fields: [
+                {
+                  node: RecordPatternField,
+                  loc: 63:16-63:24,
+                  name: {
+                    node: Identifier,
+                    loc: 63:16-63:21,
+                    name: "child",
+                  },
+                  value: {
+                    node: Identifier,
+                    loc: 63:23-63:24,
+                    name: "x",
+                  },
+                },
+              ],
+            },
+            expr: {
+              node: ScopedIdentifier,
+              loc: 63:29-63:35,
+              scopes: [
+                {
+                  node: Identifier,
+                  loc: 63:29-63:31,
+                  name: "d2",
+                },
+              ],
+              name: {
+                node: Identifier,
+                loc: 63:32-63:35,
                 name: "rec",
               },
             },
@@ -2370,16 +2468,16 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
     },
     {
       node: Function,
-      loc: 62:0-62:13,
+      loc: 66:0-66:13,
       name: {
         node: Identifier,
-        loc: 62:4-62:8,
+        loc: 66:4-66:8,
         name: "main",
       },
       params: [],
       body: {
         node: Block,
-        loc: 62:11-62:13,
+        loc: 66:11-66:13,
         statements: [],
       },
       return: None,

@@ -891,10 +891,14 @@ and check_statement ~cx stmt =
   | Break _
   | Continue _ ->
     ()
-  | Assignment { Assignment.pattern; expr; _ } ->
-    let (_, pattern_tvar_id) = check_pattern ~cx pattern in
+  | Assignment { Assignment.lvalue; expr; _ } ->
+    let (_, lvalue_tvar_id) =
+      match lvalue with
+      | Pattern pattern -> check_pattern ~cx pattern
+      | Expression expr -> check_expression ~cx expr
+    in
     let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
-    Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) (TVar pattern_tvar_id)
+    Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) (TVar lvalue_tvar_id)
   | Match _ -> failwith "TODO: Type check match statements"
 
 let resolve_unresolved_int_literals ~cx =

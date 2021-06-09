@@ -394,13 +394,17 @@ class mapper =
 
     method assignment assign =
       let open Statement.Assignment in
-      let { loc; pattern; expr } = assign in
-      let pattern' = this#pattern pattern in
+      let { loc; lvalue; expr } = assign in
+      let lvalue' =
+        match lvalue with
+        | Pattern pattern -> id_map this#pattern pattern lvalue (fun p' -> Pattern p')
+        | Expression expr -> id_map this#expression expr lvalue (fun e' -> Expression e')
+      in
       let expr' = this#expression expr in
-      if pattern == pattern' && expr == expr' then
+      if lvalue == lvalue' && expr == expr' then
         assign
       else
-        { loc; pattern = pattern'; expr = expr' }
+        { loc; lvalue = lvalue'; expr = expr' }
 
     method match_ match_ =
       let open Match in
