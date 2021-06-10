@@ -84,9 +84,9 @@ and Instruction : sig
     | Mov of 'var * 'var Value.t
     | Call of 'var * (* Return type *) Type.t * 'var Value.function_value * 'var Value.t list
     | Ret of 'var Value.t option
-    (* Globals *)
-    | LoadGlobal of 'var * string
-    | StoreGlobal of string * 'var Value.t
+    (* Memory operations *)
+    | Load of 'var * 'var Value.pointer_value
+    | Store of 'var Value.pointer_value * 'var Value.t
     (* Logical ops *)
     | LogNot of 'var * 'var Value.bool_value
     | LogAnd of 'var * 'var Value.bool_value * 'var Value.bool_value
@@ -174,6 +174,7 @@ and Global : sig
     name: string;
     loc: Loc.t;
     ty: Type.t;
+    var: 'var;
     mutable init_start_block: Block.id;
     init_val: 'var Value.t;
   }
@@ -276,14 +277,14 @@ let mk_branch test continue jump = Block.Branch { test; continue; jump }
 
 let rec map_value ~(f : 'a -> 'b) (value : 'a Value.t) : 'b Value.t =
   match value with
-  | (`UnitL | `StringL _ | `PointerL _) as lit -> lit
+  | (`UnitL | `StringL _) as lit -> lit
   | `UnitV v -> `UnitV (f v)
   | `StringV v -> `StringV (f v)
   | (`BoolL _ | `BoolV _) as v -> (map_bool_value ~f v :> 'b Value.t)
   | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v ->
     (map_numeric_value ~f v :> 'b Value.t)
   | (`FunctionL _ | `FunctionV _) as v -> (map_function_value ~f v :> 'b Value.t)
-  | `PointerV (ty, v) -> `PointerV (ty, f v)
+  | (`PointerL _ | `PointerV _) as v -> (map_pointer_value ~f v :> 'b Value.t)
   | `AggregateV (agg, v) -> `AggregateV (agg, f v)
 
 and map_bool_value ~(f : 'a -> 'b) (value : 'a Value.bool_value) : 'b Value.bool_value =
@@ -302,5 +303,10 @@ and map_function_value ~(f : 'a -> 'b) (value : 'a Value.function_value) : 'b Va
   match value with
   | `FunctionL _ as lit -> lit
   | `FunctionV v -> `FunctionV (f v)
+
+and map_pointer_value ~(f : 'a -> 'b) (value : 'a Value.pointer_value) : 'b Value.pointer_value =
+  match value with
+  | `PointerL _ as lit -> lit
+  | `PointerV (ty, v) -> `PointerV (ty, f v)
 
 let get_block ~ir block_id = IMap.find block_id ir.Program.blocks

@@ -336,23 +336,23 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     gen_instructions rest_instructions
   (*
    * ===========================================
-   *                Load Global
+   *                Load
    * ===========================================
    *)
-  | Mir.Instruction.LoadGlobal (var_id, label) :: rest_instructions ->
-    let global = SMap.find label ir.globals in
+  | Mir.Instruction.Load (_var_id, _label) :: rest_instructions ->
+    (* let global = SMap.find label ir.globals in
     let global_size = size_of_mir_value_type global.ty in
     Gcx.emit
       ~gcx
-      (MovMM (global_size, Mem (mk_label_memory_address label), Reg (vreg_of_var var_id)));
+      (MovMM (global_size, Mem (mk_label_memory_address label), Reg (vreg_of_var var_id))); *)
     gen_instructions rest_instructions
   (*
    * ===========================================
-   *                Store Global
+   *                Store
    * ===========================================
    *)
-  | Mir.Instruction.StoreGlobal (label, value) :: rest_instructions ->
-    let global_address = mk_label_memory_address label in
+  | Mir.Instruction.Store (_label, _value) :: rest_instructions ->
+    (* let global_address = mk_label_memory_address label in
     (match resolve_ir_value value with
     | SImm imm -> Gcx.emit ~gcx (MovIM (imm, Mem global_address))
     | SAddr addr ->
@@ -363,7 +363,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       let vreg = mk_vreg () in
       Gcx.emit ~gcx (MovMM (size, Mem mem, Reg vreg));
       Gcx.emit ~gcx (MovMM (size, Reg vreg, Mem global_address))
-    | SVReg (reg, size) -> Gcx.emit ~gcx (MovMM (size, Reg reg, Mem global_address)));
+    | SVReg (reg, size) -> Gcx.emit ~gcx (MovMM (size, Reg reg, Mem global_address))); *)
     gen_instructions rest_instructions
   (*
    * ===========================================

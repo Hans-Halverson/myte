@@ -4,6 +4,8 @@ open Mir
 module Context = struct
   type t = {
     mutable print_var_id_map: int IMap.t;
+    (* Map from var id to global *)
+    mutable global_var_ids_map: var_id Global.t IMap.t;
     mutable max_print_var_id: int;
     mutable print_block_id_map: string IMap.t;
     mutable max_print_block_id: int;
@@ -11,8 +13,16 @@ module Context = struct
   }
 
   let mk program =
+    (* Add labels for each global *)
+    let global_var_ids_map =
+      SMap.fold
+        (fun _ global map -> IMap.add global.Global.var global map)
+        program.Program.globals
+        IMap.empty
+    in
     {
       print_var_id_map = IMap.empty;
+      global_var_ids_map;
       max_print_var_id = 0;
       print_block_id_map = IMap.empty;
       max_print_block_id = 0;
@@ -49,7 +59,7 @@ let rec pp_program program =
 
 and pp_global ~cx ~program global =
   let open Global in
-  let global_label = Printf.sprintf "global %s %%%s {" (pp_type global.ty) global.name in
+  let global_label = Printf.sprintf "global %s @%s {" (pp_type global.ty) global.name in
   cx.print_block_id_map <- IMap.add global.init_start_block global.name cx.print_block_id_map;
   let init_blocks = Block_ordering.order_blocks ~program global.init_start_block in
   calc_print_block_ids ~cx (List.tl init_blocks);
@@ -147,19 +157,22 @@ and pp_block ~cx ~label block =
 
 and pp_var_id ~cx var_id =
   let open Context in
-  let print_id =
-    if Opts.dump_debug () then
-      var_id
-    else
-      match IMap.find_opt var_id cx.print_var_id_map with
-      | Some print_id -> print_id
-      | None ->
-        let print_id = cx.max_print_var_id in
-        cx.print_var_id_map <- IMap.add var_id print_id cx.print_var_id_map;
-        cx.max_print_var_id <- print_id + 1;
-        print_id
-  in
-  Printf.sprintf "%%%d" print_id
+  match IMap.find_opt var_id cx.global_var_ids_map with
+  | Some { Global.name; _ } -> "@" ^ name
+  | None ->
+    let print_id =
+      if Opts.dump_debug () then
+        var_id
+      else
+        match IMap.find_opt var_id cx.print_var_id_map with
+        | Some print_id -> print_id
+        | None ->
+          let print_id = cx.max_print_var_id in
+          cx.print_var_id_map <- IMap.add var_id print_id cx.print_var_id_map;
+          cx.max_print_var_id <- print_id + 1;
+          print_id
+    in
+    Printf.sprintf "%%%d" print_id
 
 and calc_print_block_ids ~cx block_ids =
   List.iter
@@ -213,6 +226,8 @@ and pp_numeric_value ~cx v = pp_value ~cx (v :> ssa_value)
 
 and pp_function_value ~cx v = pp_value ~cx (v :> ssa_value)
 
+and pp_pointer_value ~cx v = pp_value ~cx (v :> ssa_value)
+
 and pp_type ty =
   match ty with
   | `UnitT -> "unit"
@@ -231,7 +246,6 @@ and pp_type_of_numeric_value v = pp_type_of_value (v :> ssa_value)
 
 and pp_instruction ~cx (_, instr) =
   let pp_instr var_id instr = Printf.sprintf "%s := %s" (pp_var_id ~cx var_id) instr in
-  let pp_global global_name = "%" ^ global_name in
   let instr_string =
     match instr with
     | Mov (var_id, right) ->
@@ -247,10 +261,9 @@ and pp_instruction ~cx (_, instr) =
       (match val_opt with
       | Some v -> " " ^ pp_value ~cx v
       | None -> "")
-    | LoadGlobal (var_id, global_name) ->
-      pp_instr var_id (Printf.sprintf "LoadGlobal %s" (pp_global global_name))
-    | StoreGlobal (global_name, right) ->
-      Printf.sprintf "StoreGlobal %s, %s" (pp_global global_name) (pp_value ~cx right)
+    | Load (var_id, ptr) -> pp_instr var_id (Printf.sprintf "Load %s" (pp_pointer_value ~cx ptr))
+    | Store (ptr, right) ->
+      Printf.sprintf "Store %s, %s" (pp_pointer_value ~cx ptr) (pp_value ~cx right)
     | LogNot (var_id, arg) -> pp_instr var_id (Printf.sprintf "LogNot %s" (pp_bool_value ~cx arg))
     | LogAnd (var_id, left, right) ->
       pp_instr

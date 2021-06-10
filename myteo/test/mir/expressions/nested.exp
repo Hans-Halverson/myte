@@ -1,9 +1,9 @@
-global int %test.x {
+global int @test.x {
   %0 := Mul int 2, 3
   %1 := Div int %0, 4
   %2 := Add int 1, %1
   %3 := Sub int %2, 67
-  StoreGlobal %test.x, %3
+  Store @test.x, %3
 }
 
 func unit @test.main() {

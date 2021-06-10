@@ -1,17 +1,17 @@
-global int %test.x {
-  StoreGlobal %test.x, 1
+global int @test.x {
+  Store @test.x, 1
 }
 
-global int %test.y {
-  %0 := LoadGlobal %test.x
-  StoreGlobal %test.y, %0
+global int @test.y {
+  %0 := Load @test.x
+  Store @test.y, %0
 }
 
 func unit @test.main() {
   %1 := Mov int 1
   %2 := Mov int %1
-  %3 := LoadGlobal %test.x
-  %4 := LoadGlobal %test.y
+  %3 := Load @test.x
+  %4 := Load @test.y
   %5 := Add int %3, %4
   %6 := Add int %1, %2
   Ret

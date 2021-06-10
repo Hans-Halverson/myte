@@ -430,13 +430,14 @@ and map_to_ssa ~pcx ~ecx ~cx program =
     let map_bool_value = map_bool_value ~f:map_read_var in
     let map_numeric_value = map_numeric_value ~f:map_read_var in
     let map_function_value = map_function_value ~f:map_read_var in
+    let map_pointer_value = map_pointer_value ~f:map_read_var in
     match instruction with
     | Mov (return, arg) -> Mov (map_return return, map_value arg)
     | Call (return, ret_ty, func, args) ->
       Call (map_return return, ret_ty, map_function_value func, List.map map_value args)
     | Ret arg -> Ret (Option.map map_value arg)
-    | LoadGlobal (return, global_loc) -> LoadGlobal (map_return return, global_loc)
-    | StoreGlobal (global_loc, arg) -> StoreGlobal (global_loc, map_value arg)
+    | Load (return, ptr) -> Load (map_return return, map_pointer_value ptr)
+    | Store (ptr, arg) -> Store (map_pointer_value ptr, map_value arg)
     | LogNot (return, arg) -> LogNot (map_return return, map_bool_value arg)
     | LogAnd (return, left, right) ->
       LogAnd (map_return return, map_bool_value left, map_bool_value right)
@@ -543,7 +544,7 @@ and map_to_ssa ~pcx ~ecx ~cx program =
     SMap.map
       (fun global ->
         let open Global in
-        { global with init_val = map_value ~f:map_read_var global.init_val })
+        { global with init_val = map_value ~f:map_read_var global.init_val; var = map_read_var global.var })
       program.globals
   in
   { program with blocks = cx.blocks; globals }

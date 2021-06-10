@@ -87,9 +87,10 @@ and emit_toplevel_variable_declaration ~pcx ~ecx decl =
   Ecx.start_block_sequence ~ecx (GlobalInit name);
   let init_start_block = Ecx.start_new_block ~ecx in
   let init_val = emit_expression ~pcx ~ecx init in
-  Ecx.emit ~ecx (StoreGlobal (name, init_val));
+  let var = mk_cf_var_id () in
+  Ecx.emit ~ecx (Store (`PointerV (ty, var), init_val));
   Ecx.finish_block_halt ~ecx;
-  Ecx.add_global ~ecx { Global.loc; name; ty; init_start_block; init_val }
+  Ecx.add_global ~ecx { Global.loc; name; ty; var; init_start_block; init_val }
 
 and emit_toplevel_function_declaration ~pcx ~ecx decl =
   let open Ast.Function in
@@ -267,8 +268,10 @@ and emit_expression ~pcx ~ecx expr =
     | FunParam ->
       let var =
         if Bindings.is_global_decl pcx.bindings decl_loc then (
+          let binding_name = mk_binding_name binding in
+          let global = SMap.find binding_name ecx.globals in
           let var_id = mk_cf_var_id () in
-          Ecx.emit ~ecx (LoadGlobal (var_id, mk_binding_name binding));
+          Ecx.emit ~ecx (Load (var_id, `PointerV (global.ty, global.var)));
           var_id
         ) else
           mk_cf_local loc
@@ -372,7 +375,9 @@ and emit_statement ~pcx ~ecx stmt =
     let decl_loc = fst binding.declaration in
     let expr_val = emit_expression ~pcx ~ecx expr in
     if Bindings.is_global_decl pcx.bindings decl_loc then
-      Ecx.emit ~ecx (StoreGlobal (mk_binding_name binding, expr_val))
+      let binding_name = mk_binding_name binding in
+      let global = SMap.find binding_name ecx.globals in
+      Ecx.emit ~ecx (Store (`PointerV (global.ty, global.var), expr_val))
     else
       Ecx.emit ~ecx (Mov (mk_cf_local use_loc, expr_val))
   | Match _ -> failwith "TODO: Convert match statements to IR"

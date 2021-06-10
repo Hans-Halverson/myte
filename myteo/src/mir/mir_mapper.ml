@@ -58,18 +58,20 @@ module InstructionsMapper = struct
             [instruction]
           else
             mk_instr (Ret arg_opt')
-        | LoadGlobal (result, name) ->
+        | Load (result, ptr) ->
           let result' = this#map_result_variable ~block result in
-          if result == result' then
+          let ptr' = this#map_pointer_value ~block ptr in
+          if result == result' && ptr == ptr' then
             [instruction]
           else
-            mk_instr (LoadGlobal (result', name))
-        | StoreGlobal (name, arg) ->
+            mk_instr (Load (result', ptr'))
+        | Store (ptr, arg) ->
+          let ptr' = this#map_pointer_value ~block ptr in
           let arg' = this#map_value ~block arg in
-          if arg == arg' then
+          if ptr == ptr' && arg == arg' then
             [instruction]
           else
-            mk_instr (StoreGlobal (name, arg'))
+            mk_instr (Store (ptr', arg'))
         | LogNot (result, arg) ->
           let result' = this#map_result_variable ~block result in
           let arg' = this#map_bool_value ~block arg in
@@ -251,12 +253,12 @@ module InstructionsMapper = struct
       method map_value ~block value =
         match value with
         | (`UnitL | `UnitV _) as v -> this#map_unit_value ~block v
-        | (`BoolL _ | `BoolV _) as v -> (this#map_bool_value ~block v :> var_id Value.t)
+        | (`BoolL _ | `BoolV _) as v -> (this#map_bool_value ~block v :> ssa_value)
         | (`StringL _ | `StringV _) as v -> this#map_string_value ~block v
         | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v ->
-          (this#map_numeric_value ~block v :> var_id Value.t)
-        | (`FunctionL _ | `FunctionV _) as v -> (this#map_function_value ~block v :> var_id Value.t)
-        | (`PointerL _ | `PointerV _) as v -> this#map_pointer_value ~block v
+          (this#map_numeric_value ~block v :> ssa_value)
+        | (`FunctionL _ | `FunctionV _) as v -> (this#map_function_value ~block v :> ssa_value)
+        | (`PointerL _ | `PointerV _) as v -> (this#map_pointer_value ~block v :> ssa_value)
         | `AggregateV _ as v -> this#map_aggregate_value ~block v
 
       method map_unit_value ~block value =

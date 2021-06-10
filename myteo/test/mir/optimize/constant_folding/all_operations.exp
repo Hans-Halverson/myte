@@ -1,169 +1,169 @@
-global int %test.i0 {
-  StoreGlobal %test.i0, -56
+global int @test.i0 {
+  Store @test.i0, -56
 }
 
-global int %test.i1 {
-  StoreGlobal %test.i1, 3
+global int @test.i1 {
+  Store @test.i1, 3
 }
 
-global int %test.i2 {
-  StoreGlobal %test.i2, -1
+global int @test.i2 {
+  Store @test.i2, -1
 }
 
-global int %test.i3 {
-  StoreGlobal %test.i3, 14
+global int @test.i3 {
+  Store @test.i3, 14
 }
 
-global int %test.i4 {
-  StoreGlobal %test.i4, 8
+global int @test.i4 {
+  Store @test.i4, 8
 }
 
-global int %test.i5 {
-  StoreGlobal %test.i5, 1
+global int @test.i5 {
+  Store @test.i5, 1
 }
 
-global int %test.i6 {
-  StoreGlobal %test.i6, 8
+global int @test.i6 {
+  Store @test.i6, 8
 }
 
-global int %test.i7 {
-  StoreGlobal %test.i7, 14
+global int @test.i7 {
+  Store @test.i7, 14
 }
 
-global int %test.i8 {
-  StoreGlobal %test.i8, 6
+global int @test.i8 {
+  Store @test.i8, 6
 }
 
-global int %test.i9 {
-  StoreGlobal %test.i9, 16
+global int @test.i9 {
+  Store @test.i9, 16
 }
 
-global int %test.i10 {
-  StoreGlobal %test.i10, -1
+global int @test.i10 {
+  Store @test.i10, -1
 }
 
-global int %test.i11 {
-  StoreGlobal %test.i11, 1073741823
+global int @test.i11 {
+  Store @test.i11, 1073741823
 }
 
-global bool %test.i12 {
-  StoreGlobal %test.i12, false
+global bool @test.i12 {
+  Store @test.i12, false
 }
 
-global byte %test.b0 {
-  StoreGlobal %test.b0, -56
+global byte @test.b0 {
+  Store @test.b0, -56
 }
 
-global byte %test.b1 {
-  StoreGlobal %test.b1, 3
+global byte @test.b1 {
+  Store @test.b1, 3
 }
 
-global byte %test.b2 {
-  StoreGlobal %test.b2, -1
+global byte @test.b2 {
+  Store @test.b2, -1
 }
 
-global byte %test.b3 {
-  StoreGlobal %test.b3, 14
+global byte @test.b3 {
+  Store @test.b3, 14
 }
 
-global byte %test.b4 {
-  StoreGlobal %test.b4, 8
+global byte @test.b4 {
+  Store @test.b4, 8
 }
 
-global byte %test.b5 {
-  StoreGlobal %test.b5, 1
+global byte @test.b5 {
+  Store @test.b5, 1
 }
 
-global byte %test.b6 {
-  StoreGlobal %test.b6, 8
+global byte @test.b6 {
+  Store @test.b6, 8
 }
 
-global byte %test.b7 {
-  StoreGlobal %test.b7, 14
+global byte @test.b7 {
+  Store @test.b7, 14
 }
 
-global byte %test.b8 {
-  StoreGlobal %test.b8, 6
+global byte @test.b8 {
+  Store @test.b8, 6
 }
 
-global byte %test.b9 {
-  StoreGlobal %test.b9, 16
+global byte @test.b9 {
+  Store @test.b9, 16
 }
 
-global byte %test.b10 {
-  StoreGlobal %test.b10, -1
+global byte @test.b10 {
+  Store @test.b10, -1
 }
 
-global byte %test.b11 {
-  StoreGlobal %test.b11, 63
+global byte @test.b11 {
+  Store @test.b11, 63
 }
 
-global bool %test.b12 {
-  StoreGlobal %test.b12, false
+global bool @test.b12 {
+  Store @test.b12, false
 }
 
-global long %test.l0 {
-  StoreGlobal %test.l0, -56
+global long @test.l0 {
+  Store @test.l0, -56
 }
 
-global long %test.l1 {
-  StoreGlobal %test.l1, 3
+global long @test.l1 {
+  Store @test.l1, 3
 }
 
-global long %test.l2 {
-  StoreGlobal %test.l2, -1
+global long @test.l2 {
+  Store @test.l2, -1
 }
 
-global long %test.l3 {
-  StoreGlobal %test.l3, 14
+global long @test.l3 {
+  Store @test.l3, 14
 }
 
-global long %test.l4 {
-  StoreGlobal %test.l4, 8
+global long @test.l4 {
+  Store @test.l4, 8
 }
 
-global long %test.l5 {
-  StoreGlobal %test.l5, 1
+global long @test.l5 {
+  Store @test.l5, 1
 }
 
-global long %test.l6 {
-  StoreGlobal %test.l6, 8
+global long @test.l6 {
+  Store @test.l6, 8
 }
 
-global long %test.l7 {
-  StoreGlobal %test.l7, 14
+global long @test.l7 {
+  Store @test.l7, 14
 }
 
-global long %test.l8 {
-  StoreGlobal %test.l8, 6
+global long @test.l8 {
+  Store @test.l8, 6
 }
 
-global long %test.l9 {
-  StoreGlobal %test.l9, 16
+global long @test.l9 {
+  Store @test.l9, 16
 }
 
-global long %test.l10 {
-  StoreGlobal %test.l10, -1
+global long @test.l10 {
+  Store @test.l10, -1
 }
 
-global long %test.l11 {
-  StoreGlobal %test.l11, 4611686018427387903
+global long @test.l11 {
+  Store @test.l11, 4611686018427387903
 }
 
-global bool %test.l12 {
-  StoreGlobal %test.l12, false
+global bool @test.l12 {
+  Store @test.l12, false
 }
 
-global bool %test.bool0 {
-  StoreGlobal %test.bool0, false
+global bool @test.bool0 {
+  Store @test.bool0, false
 }
 
-global bool %test.bool1 {
-  StoreGlobal %test.bool1, false
+global bool @test.bool1 {
+  Store @test.bool1, false
 }
 
-global bool %test.bool2 {
-  StoreGlobal %test.bool2, true
+global bool @test.bool2 {
+  Store @test.bool2, true
 }
 
 func unit @test.main() {
