@@ -1,0 +1,17 @@
+module test
+
+type Tup1 (Int, String)
+
+fun main() {
+  // Anonymous tuple
+  val x = (1, "");
+
+  x[0] = 2;
+  x[1] = 2;
+
+  // Named tuple
+  val y = Tup1 (1, "");
+
+  y[0] = 2;
+  y[1] = 2;
+}

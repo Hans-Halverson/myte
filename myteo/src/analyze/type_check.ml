@@ -865,14 +865,37 @@ and check_statement ~cx stmt =
   | Break _
   | Continue _ ->
     ()
+  (*
+   * ============================
+   * Assignment
+   * ============================
+   *)
   | Assignment { Assignment.lvalue; expr; _ } ->
-    let (_, lvalue_tvar_id) =
+    let lvalue_loc_and_tvar_opt =
       match lvalue with
-      | Pattern pattern -> check_pattern ~cx pattern
-      | Expression expr -> check_expression ~cx expr
+      | Pattern pattern -> Some (check_pattern ~cx pattern)
+      | Expression (IndexedAccess { Ast.Expression.IndexedAccess.loc; target; _ } as expr) ->
+        (* Check lvalue expression *)
+        let expr_loc_and_tvar_id = check_expression ~cx expr in
+        (* If the lvalue is a tuple then error as tuple cannot have their fields assigned *)
+        let target_tvar_id = Type_context.get_tvar_from_loc ~cx (Ast_utils.expression_loc target) in
+        let target_rep_ty = Type_context.find_rep_type ~cx (TVar target_tvar_id) in
+        (match target_rep_ty with
+        (* Error for both anonymous tuples and named tuples (with no other variants) *)
+        | Tuple _ ->
+          Type_context.add_error ~cx loc (InvalidLValue InvalidLValueTuple);
+          None
+        | ADT { adt_sig = { variant_sigs; _ }; _ } when SMap.cardinal variant_sigs = 1 ->
+          Type_context.add_error ~cx loc (InvalidLValue InvalidLValueTuple);
+          None
+        | _ -> Some expr_loc_and_tvar_id)
+      | Expression expr -> Some (check_expression ~cx expr)
     in
     let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
-    Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) (TVar lvalue_tvar_id)
+    (match lvalue_loc_and_tvar_opt with
+    | Some (_, lvalue_tvar_id) ->
+      Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) (TVar lvalue_tvar_id)
+    | None -> ())
   | Match _ -> failwith "TODO: Type check match statements"
 
 let resolve_unresolved_int_literals ~cx =

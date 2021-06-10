@@ -11,6 +11,7 @@ type t =
   | UnresolvedName of string * bool
   | InvalidWildcardIdentifier
   | InvalidAssignment of string * invalid_assignment_kind
+  | InvalidLValue of invalid_lvalue_kind
   | DuplicateToplevelNames of string * bool
   | DuplicateParameterNames of string * string
   | DuplicatePatternNames of string
@@ -52,6 +53,8 @@ and invalid_assignment_kind =
   | InvalidAssignmentFunction
   | InvalidAssignmentFunctionParam
   | InvalidAssignmentConstructor
+
+and invalid_lvalue_kind = InvalidLValueTuple
 
 and name_source =
   | FunctionName of string
@@ -113,6 +116,12 @@ let to_string error =
       | InvalidAssignmentConstructor -> "constructor"
     in
     Printf.sprintf "Cannot reassign %s `%s`" kind_string name
+  | InvalidLValue kind ->
+    let kind_string =
+      match kind with
+      | InvalidLValueTuple -> "Tuples are immutable and cannot have their elements reassigned."
+    in
+    Printf.sprintf "Invalid left hand side of assignment. %s" kind_string
   | DuplicateToplevelNames (name, is_value) ->
     Printf.sprintf
       "%s with name `%s` already bound in module"
