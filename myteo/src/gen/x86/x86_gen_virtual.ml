@@ -141,7 +141,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   let resolve_ir_value v = resolve_ir_value ~func (v :> var_id Value.t) in
   let is_cond_jump var_id =
     match block.next with
-    | Branch { test = `BoolV (Var test_var_id); _ } when test_var_id = var_id -> true
+    | Branch { test = `BoolV test_var_id; _ } when test_var_id = var_id -> true
     | _ -> false
   in
   let emit_mem mem =
@@ -220,12 +220,11 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   | [] ->
     (* Conditional jump when the condition is in a variable *)
     (match block.next with
-    | Branch { test = `BoolV (Lit _); _ } ->
-      failwith "Dead branch pruning must have already occurred"
+    | Branch { test = `BoolL _; _ } -> failwith "Dead branch pruning must have already occurred"
     | Continue continue ->
       (* TODO: Create better structure for tracking relative block locations *)
       Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx continue))
-    | Branch { test = `BoolV (Var _) as test; continue; jump } ->
+    | Branch { test = `BoolV _ as test; continue; jump } ->
       let vreg =
         match resolve_ir_value test with
         | SVReg (vreg, _) -> vreg
@@ -300,8 +299,8 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     (* Emit call instruction *)
     let inst =
       match func_val with
-      | `FunctionV (Lit label) -> CallL label
-      | `FunctionV (Var _) ->
+      | `FunctionL label -> CallL label
+      | `FunctionV _ ->
         let func_mem = emit_mem (resolve_ir_value func_val) in
         CallM (Size64, func_mem)
     in
@@ -603,7 +602,6 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   | _ -> failwith "TODO: Implement generation of virtual assembly from this instruction"
 
 and resolve_ir_value ~func value =
-  let open Value in
   let vreg_of_var var_id size =
     let vreg = VReg.of_var_id ~resolution:Unresolved ~func:(Some func) var_id in
     match vreg.resolution with
@@ -611,25 +609,31 @@ and resolve_ir_value ~func value =
     | _ -> SVReg (vreg, size)
   in
   match value with
-  | `UnitV (Lit _) -> SImm (Imm8 0)
-  | `UnitV (Var var_id) -> vreg_of_var var_id Size8
-  | `BoolV (Lit b) ->
+  | `UnitL -> SImm (Imm8 0)
+  | `UnitV var_id -> vreg_of_var var_id Size8
+  | `BoolL b ->
     SImm
       (Imm8
          ( if b then
            1
          else
            0 ))
-  | `BoolV (Var var_id) -> vreg_of_var var_id Size8
-  | `IntV (Lit i) -> SImm (Imm32 i)
-  | `IntV (Var var_id) -> vreg_of_var var_id Size32
+  | `BoolV var_id -> vreg_of_var var_id Size8
+  | `IntL i -> SImm (Imm32 i)
+  | `IntV var_id -> vreg_of_var var_id Size32
+  | `ByteL _
   | `ByteV _
+  | `LongL _
   | `LongV _ ->
     failwith "TODO: Implement virtual asm gen for non-int integer types"
-  | `FunctionV (Lit name) -> SAddr (mk_label_memory_address name)
-  | `FunctionV (Var var_id) -> vreg_of_var var_id Size64
-  | `StringV _ -> failwith "TODO: Cannot compile string literals"
-  | `PointerV _ -> failwith "TODO: Cannot compile pointers yet"
+  | `FunctionL name -> SAddr (mk_label_memory_address name)
+  | `FunctionV var_id -> vreg_of_var var_id Size64
+  | `StringL _
+  | `StringV _ ->
+    failwith "TODO: Cannot compile string literals"
+  | `PointerL _
+  | `PointerV _ ->
+    failwith "TODO: Cannot compile pointers yet"
 
 and size_of_mir_value_type value_type =
   match value_type with

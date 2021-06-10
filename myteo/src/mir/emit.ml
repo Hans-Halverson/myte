@@ -91,17 +91,17 @@ and emit_expression ~pcx ~ecx expr =
   let open Expression in
   let open Instruction in
   match expr with
-  | Unit _ -> `UnitV (Lit ())
+  | Unit _ -> `UnitL
   | IntLiteral { loc; raw; base } ->
     let value = Integers.int64_of_string_opt raw base |> Option.get in
     let ty = value_type_of_loc ~pcx loc in
     (match ty with
-    | `ByteT -> `ByteV (Lit (Int64.to_int value))
-    | `IntT -> `IntV (Lit (Int64.to_int32 value))
-    | `LongT -> `LongV (Lit value)
+    | `ByteT -> `ByteL (Int64.to_int value)
+    | `IntT -> `IntL (Int64.to_int32 value)
+    | `LongT -> `LongL value
     | _ -> failwith "Int literal must have integer type")
-  | StringLiteral { value; _ } -> `StringV (Lit value)
-  | BoolLiteral { value; _ } -> `BoolV (Lit value)
+  | StringLiteral { value; _ } -> `StringL value
+  | BoolLiteral { value; _ } -> `BoolL value
   | UnaryOperation { op = Plus; operand; _ } -> emit_expression ~pcx ~ecx operand
   | UnaryOperation { loc; op = Minus; operand } ->
     let var_id = mk_cf_var_id () in
@@ -141,7 +141,7 @@ and emit_expression ~pcx ~ecx expr =
     (* Emit false literal when lhs is false and continue to join block *)
     Ecx.set_block_builder ~ecx false_builder;
     let false_var_id = mk_cf_var_id () in
-    Ecx.emit ~ecx (Mov (false_var_id, `BoolV (Lit false)));
+    Ecx.emit ~ecx (Mov (false_var_id, `BoolL false));
     Ecx.finish_block_continue ~ecx join_builder.id;
     (* Join cases together and emit explicit phi *)
     Ecx.set_block_builder ~ecx join_builder;
@@ -169,7 +169,7 @@ and emit_expression ~pcx ~ecx expr =
     (* Emit true literal when lhs is true and continue to join block *)
     Ecx.set_block_builder ~ecx true_builder;
     let true_var_id = mk_cf_var_id () in
-    Ecx.emit ~ecx (Mov (true_var_id, `BoolV (Lit true)));
+    Ecx.emit ~ecx (Mov (true_var_id, `BoolL true));
     Ecx.finish_block_continue ~ecx join_builder.id;
     (* Join cases together and emit explicit phi *)
     Ecx.set_block_builder ~ecx join_builder;
@@ -220,7 +220,7 @@ and emit_expression ~pcx ~ecx expr =
     (* Create function literal for functions *)
     | FunDecl
     | ImportedFunDecl _ ->
-      `FunctionV (Lit (mk_binding_name binding))
+      `FunctionL (mk_binding_name binding)
     (* Variables may be either globals or locals *)
     | VarDecl _
     | ImportedVarDecl _
@@ -248,17 +248,17 @@ and emit_expression ~pcx ~ecx expr =
 
 and emit_bool_expression ~pcx ~ecx expr =
   match emit_expression ~pcx ~ecx expr with
-  | `BoolV _ as v -> v
+  | (`BoolL _ | `BoolV _) as v -> v
   | _ -> failwith "Expected bool value"
 
 and emit_numeric_expression ~pcx ~ecx expr =
   match emit_expression ~pcx ~ecx expr with
-  | (`ByteV _ | `IntV _ | `LongV _) as v -> v
+  | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v -> v
   | _ -> failwith "Expected numeric value"
 
 and emit_function_expression ~pcx ~ecx expr =
   match emit_expression ~pcx ~ecx expr with
-  | `FunctionV _ as v -> v
+  | (`FunctionL _ | `FunctionV _) as v -> v
   | _ -> failwith "Expected function value"
 
 and emit_statement ~pcx ~ecx stmt =

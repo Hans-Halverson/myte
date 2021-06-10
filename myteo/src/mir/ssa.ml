@@ -316,44 +316,40 @@ and build_phi_nodes ~pcx ~cx program =
     | Id _ -> ()
     | Local loc -> add_read loc sources
   and visit_numeric_value v sources =
-    let open Value in
     match v with
-    | `ByteV (Lit _)
-    | `IntV (Lit _)
-    | `LongV (Lit _) ->
+    | `ByteL _
+    | `IntL _
+    | `LongL _ ->
       ()
-    | `ByteV (Var var)
-    | `IntV (Var var)
-    | `LongV (Var var) ->
+    | `ByteV var
+    | `IntV var
+    | `LongV var ->
       visit_var var sources
   and visit_bool_value v sources =
-    let open Value in
     match v with
-    | `BoolV (Lit _) -> ()
-    | `BoolV (Var var) -> visit_var var sources
+    | `BoolL _ -> ()
+    | `BoolV var -> visit_var var sources
   and visit_function_value v sources =
-    let open Value in
     match v with
-    | `FunctionV (Lit _) -> ()
-    | `FunctionV (Var var) -> visit_var var sources
+    | `FunctionL _ -> ()
+    | `FunctionV var -> visit_var var sources
   and visit_pointer_value v sources =
-    let open Value in
     match v with
-    | `PointerV (_, Lit _) -> ()
-    | `PointerV (_, Var var) -> visit_var var sources
+    | `PointerL _ -> ()
+    | `PointerV (_, var) -> visit_var var sources
   and visit_value v sources =
-    let open Value in
     match v with
-    | `UnitV (Lit _)
-    | `StringV (Lit _) ->
+    | `UnitL
+    | `StringL _ ->
       ()
-    | `UnitV (Var var)
-    | `StringV (Var var) ->
+    | `UnitV var
+    | `StringV var ->
       visit_var var sources
-    | `BoolV _ as bool -> visit_bool_value bool sources
-    | (`ByteV _ | `IntV _ | `LongV _) as numeric -> visit_numeric_value numeric sources
-    | `FunctionV _ as func -> visit_function_value func sources
-    | `PointerV _ as ptr -> visit_pointer_value ptr sources
+    | (`BoolL _ | `BoolV _) as bool -> visit_bool_value bool sources
+    | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as numeric ->
+      visit_numeric_value numeric sources
+    | (`FunctionL _ | `FunctionV _) as func -> visit_function_value func sources
+    | (`PointerL _ | `PointerV _) as ptr -> visit_pointer_value ptr sources
   and visit_instruction ~sources block_id (_, instruction) =
     let open Instruction in
     let visit_result v = visit_result v block_id sources in

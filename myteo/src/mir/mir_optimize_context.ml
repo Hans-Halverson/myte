@@ -172,7 +172,7 @@ let merge_adjacent_blocks ~ocx block_id1 block_id2 =
 
 class init_visitor ~ocx =
   object
-    inherit IRVisitor.t ~program:ocx.program
+    inherit [var_id] IRVisitor.t ~program:ocx.program
 
     method! visit_edge b1 b2 = add_block_link ~ocx b1.id b2.id
 

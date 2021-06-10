@@ -19,24 +19,38 @@ end =
   Type
 
 and Value : sig
-  type ('a, 'b) value =
-    | Lit of 'a
-    | Var of 'b
+  type 'a unit_value =
+    [ `UnitV of 'a
+    | `UnitL
+    ]
 
-  type 'a unit_value = [ `UnitV of (unit, 'a) value ]
+  type 'a bool_value =
+    [ `BoolV of 'a
+    | `BoolL of bool
+    ]
 
-  type 'a bool_value = [ `BoolV of (bool, 'a) value ]
+  type 'a string_value =
+    [ `StringV of 'a
+    | `StringL of string
+    ]
 
-  type 'a string_value = [ `StringV of (string, 'a) value ]
+  type 'a function_value =
+    [ `FunctionV of 'a
+    | `FunctionL of string
+    ]
 
-  type 'a function_value = [ `FunctionV of (string, 'a) value ]
-
-  type 'a pointer_value = [ `PointerV of Type.t * (Int64.t, 'a) value ]
+  type 'a pointer_value =
+    [ `PointerV of Type.t * 'a
+    | `PointerL of Type.t * Int64.t
+    ]
 
   type 'a numeric_value =
-    [ `IntV of (Int32.t, 'a) value
-    | `ByteV of (int, 'a) value
-    | `LongV of (Int64.t, 'a) value
+    [ `IntV of 'a
+    | `IntL of Int32.t
+    | `ByteV of 'a
+    | `ByteL of int
+    | `LongV of 'a
+    | `LongL of Int64.t
     ]
 
   type 'a t =
@@ -166,6 +180,8 @@ type cf_var =
   | Id of var_id
   | Local of Loc.t
 
+type ssa_value = var_id Value.t
+
 type cf_instruction = cf_var Instruction.t
 
 type ssa_instruction = var_id Instruction.t
@@ -201,58 +217,72 @@ let mk_instr_id () =
 
 let type_of_value (v : 'a Value.t) : Type.t =
   match v with
-  | `UnitV _ -> `UnitT
-  | `BoolV _ -> `BoolT
-  | `StringV _ -> `StringT
-  | `ByteV _ -> `ByteT
-  | `IntV _ -> `IntT
-  | `LongV _ -> `LongT
-  | `FunctionV _ -> `FunctionT
-  | `PointerV (ty, _) -> `PointerT ty
+  | `UnitV _
+  | `UnitL ->
+    `UnitT
+  | `BoolV _
+  | `BoolL _ ->
+    `BoolT
+  | `StringV _
+  | `StringL _ ->
+    `StringT
+  | `ByteV _
+  | `ByteL _ ->
+    `ByteT
+  | `IntV _
+  | `IntL _ ->
+    `IntT
+  | `LongV _
+  | `LongL _ ->
+    `LongT
+  | `FunctionV _
+  | `FunctionL _ ->
+    `FunctionT
+  | `PointerV (ty, _)
+  | `PointerL (ty, _) ->
+    `PointerT ty
 
 let var_value_of_type var_id ty : 'a Value.t =
-  let open Value in
   match ty with
-  | `UnitT -> `UnitV (Var var_id)
-  | `BoolT -> `BoolV (Var var_id)
-  | `StringT -> `StringV (Var var_id)
-  | `ByteT -> `ByteV (Var var_id)
-  | `IntT -> `IntV (Var var_id)
-  | `LongT -> `LongV (Var var_id)
-  | `FunctionT -> `FunctionV (Var var_id)
-  | `PointerT ty -> `PointerV (ty, Var var_id)
+  | `UnitT -> `UnitV var_id
+  | `BoolT -> `BoolV var_id
+  | `StringT -> `StringV var_id
+  | `ByteT -> `ByteV var_id
+  | `IntT -> `IntV var_id
+  | `LongT -> `LongV var_id
+  | `FunctionT -> `FunctionV var_id
+  | `PointerT ty -> `PointerV (ty, var_id)
 
 let mk_continue continue = Block.Continue continue
 
 let mk_branch test continue jump = Block.Branch { test; continue; jump }
 
-let map_val ~f v =
-  let open Value in
-  match v with
-  | Lit lit -> Lit lit
-  | Var var -> Var (f var)
-
 let rec map_value ~(f : 'a -> 'b) (value : 'a Value.t) : 'b Value.t =
   match value with
-  | `UnitV v -> `UnitV (map_val ~f v)
-  | `StringV v -> `StringV (map_val ~f v)
-  | `BoolV _ as v -> (map_bool_value ~f v :> 'b Value.t)
-  | (`ByteV _ | `IntV _ | `LongV _) as v -> (map_numeric_value ~f v :> 'b Value.t)
-  | `FunctionV _ as v -> (map_function_value ~f v :> 'b Value.t)
-  | `PointerV (ty, v) -> `PointerV (ty, map_val ~f v)
+  | (`UnitL | `StringL _ | `PointerL _) as lit -> lit
+  | `UnitV v -> `UnitV (f v)
+  | `StringV v -> `StringV (f v)
+  | (`BoolL _ | `BoolV _) as v -> (map_bool_value ~f v :> 'b Value.t)
+  | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v ->
+    (map_numeric_value ~f v :> 'b Value.t)
+  | (`FunctionL _ | `FunctionV _) as v -> (map_function_value ~f v :> 'b Value.t)
+  | `PointerV (ty, v) -> `PointerV (ty, f v)
 
 and map_bool_value ~(f : 'a -> 'b) (value : 'a Value.bool_value) : 'b Value.bool_value =
   match value with
-  | `BoolV v -> `BoolV (map_val ~f v)
+  | `BoolL _ as lit -> lit
+  | `BoolV v -> `BoolV (f v)
 
 and map_numeric_value ~(f : 'a -> 'b) (value : 'a Value.numeric_value) : 'b Value.numeric_value =
   match value with
-  | `ByteV v -> `ByteV (map_val ~f v)
-  | `IntV v -> `IntV (map_val ~f v)
-  | `LongV v -> `LongV (map_val ~f v)
+  | (`ByteL _ | `IntL _ | `LongL _) as lit -> lit
+  | `ByteV v -> `ByteV (f v)
+  | `IntV v -> `IntV (f v)
+  | `LongV v -> `LongV (f v)
 
 and map_function_value ~(f : 'a -> 'b) (value : 'a Value.function_value) : 'b Value.function_value =
   match value with
-  | `FunctionV v -> `FunctionV (map_val ~f v)
+  | `FunctionL _ as lit -> lit
+  | `FunctionV v -> `FunctionV (f v)
 
 let get_block ~ir block_id = IMap.find block_id ir.Program.blocks

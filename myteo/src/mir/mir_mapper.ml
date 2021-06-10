@@ -250,54 +250,54 @@ module InstructionsMapper = struct
 
       method map_value ~block value =
         match value with
-        | `UnitV _ as v -> this#map_unit_value ~block v
-        | `BoolV _ as v -> (this#map_bool_value ~block v :> var_id Value.t)
-        | `StringV _ as v -> this#map_string_value ~block v
-        | (`ByteV _ | `IntV _ | `LongV _) as v -> (this#map_numeric_value ~block v :> var_id Value.t)
-        | `FunctionV _ as v -> (this#map_function_value ~block v :> var_id Value.t)
-        | `PointerV _ as v -> this#map_pointer_value ~block v
+        | (`UnitL | `UnitV _) as v -> this#map_unit_value ~block v
+        | (`BoolL _ | `BoolV _) as v -> (this#map_bool_value ~block v :> var_id Value.t)
+        | (`StringL _ | `StringV _) as v -> this#map_string_value ~block v
+        | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v ->
+          (this#map_numeric_value ~block v :> var_id Value.t)
+        | (`FunctionL _ | `FunctionV _) as v -> (this#map_function_value ~block v :> var_id Value.t)
+        | (`PointerL _ | `PointerV _) as v -> this#map_pointer_value ~block v
 
       method map_unit_value ~block value =
         match value with
-        | `UnitV (Lit _) as value -> value
-        | `UnitV (Var var_id) as value ->
-          id_map (this#map_use_variable ~block) var_id value (fun var_id' -> `UnitV (Var var_id'))
+        | `UnitL as value -> value
+        | `UnitV var_id as value ->
+          id_map (this#map_use_variable ~block) var_id value (fun var_id' -> `UnitV var_id')
 
       method map_bool_value ~block value =
         match value with
-        | `BoolV (Lit _) as value -> value
-        | `BoolV (Var var_id) as value ->
-          id_map (this#map_use_variable ~block) var_id value (fun var_id' -> `BoolV (Var var_id'))
+        | `BoolL _ as value -> value
+        | `BoolV var_id as value ->
+          id_map (this#map_use_variable ~block) var_id value (fun var_id' -> `BoolV var_id')
 
       method map_string_value ~block value =
         match value with
-        | `StringV (Lit _) as value -> value
-        | `StringV (Var var_id) as value ->
-          id_map (this#map_use_variable ~block) var_id value (fun var_id' -> `StringV (Var var_id'))
+        | `StringL _ as value -> value
+        | `StringV var_id as value ->
+          id_map (this#map_use_variable ~block) var_id value (fun var_id' -> `StringV var_id')
 
       method map_numeric_value ~block value =
         match value with
-        | (`ByteV (Lit _) | `IntV (Lit _) | `LongV (Lit _)) as value -> value
-        | `ByteV (Var var_id) as value ->
-          id_map (this#map_use_variable ~block) var_id value (fun var_id' -> `ByteV (Var var_id'))
-        | `IntV (Var var_id) as value ->
-          id_map (this#map_use_variable ~block) var_id value (fun var_id' -> `IntV (Var var_id'))
-        | `LongV (Var var_id) as value ->
-          id_map (this#map_use_variable ~block) var_id value (fun var_id' -> `LongV (Var var_id'))
+        | (`ByteL _ | `IntL _ | `LongL _) as value -> value
+        | `ByteV var_id as value ->
+          id_map (this#map_use_variable ~block) var_id value (fun var_id' -> `ByteV var_id')
+        | `IntV var_id as value ->
+          id_map (this#map_use_variable ~block) var_id value (fun var_id' -> `IntV var_id')
+        | `LongV var_id as value ->
+          id_map (this#map_use_variable ~block) var_id value (fun var_id' -> `LongV var_id')
 
       method map_function_value ~block value =
         match value with
-        | `FunctionV (Lit _) as value -> value
-        | `FunctionV (Var var_id) as value ->
-          id_map (this#map_use_variable ~block) var_id value (fun var_id' ->
-              `FunctionV (Var var_id'))
+        | `FunctionL _ as value -> value
+        | `FunctionV var_id as value ->
+          id_map (this#map_use_variable ~block) var_id value (fun var_id' -> `FunctionV var_id')
 
       method map_pointer_value ~block value =
         match value with
-        | `PointerV (_, Lit _) as value -> value
-        | `PointerV (ty, Var var_id) as value ->
+        | `PointerL _ as value -> value
+        | `PointerV (ty, var_id) as value ->
           id_map (this#map_use_variable ~block) var_id value (fun var_id' ->
-              `PointerV (ty, Var var_id'))
+              `PointerV (ty, var_id'))
 
       method map_phis ~block (phis : var_id Block.phi list) =
         List.map

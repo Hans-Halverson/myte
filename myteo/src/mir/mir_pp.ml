@@ -174,56 +174,32 @@ and pp_block_id ~cx block_id =
   in
   "@" ^ print_id
 
-and pp_unit_value ~cx v =
-  let open Value in
-  match v with
-  | `UnitV (Lit _) -> "()"
-  | `UnitV (Var var_id) -> pp_var_id ~cx var_id
-
-and pp_bool_value ~cx v =
-  let open Value in
-  match v with
-  | `BoolV (Lit true) -> "true"
-  | `BoolV (Lit false) -> "false"
-  | `BoolV (Var var_id) -> pp_var_id ~cx var_id
-
-and pp_string_value ~cx v =
-  let open Value in
-  match v with
-  | `StringV (Lit s) -> "\"" ^ s ^ "\""
-  | `StringV (Var var_id) -> pp_var_id ~cx var_id
-
-and pp_numeric_value ~cx v =
-  let open Value in
-  match v with
-  | `ByteV (Lit i) -> string_of_int i
-  | `IntV (Lit i) -> Int32.to_string i
-  | `LongV (Lit i) -> Int64.to_string i
-  | `ByteV (Var var_id)
-  | `IntV (Var var_id)
-  | `LongV (Var var_id) ->
-    pp_var_id ~cx var_id
-
-and pp_function_value ~cx v =
-  let open Value in
-  match v with
-  | `FunctionV (Lit func_name) -> "@" ^ func_name
-  | `FunctionV (Var var_id) -> pp_var_id ~cx var_id
-
-and pp_pointer_value ~cx v =
-  let open Value in
-  match v with
-  | `PointerV (_, Lit ptr) -> Int64.to_string ptr
-  | `PointerV (_, Var var_id) -> pp_var_id ~cx var_id
-
 and pp_value ~cx v =
   match v with
-  | `UnitV _ as v -> pp_unit_value ~cx v
-  | `BoolV _ as v -> pp_bool_value ~cx v
-  | `StringV _ as v -> pp_string_value ~cx v
-  | (`ByteV _ | `IntV _ | `LongV _) as v -> pp_numeric_value ~cx v
-  | `FunctionV _ as v -> pp_function_value ~cx v
-  | `PointerV _ as v -> pp_pointer_value ~cx v
+  | `UnitL -> "()"
+  | `BoolL true -> "true"
+  | `BoolL false -> "false"
+  | `StringL s -> "\"" ^ s ^ "\""
+  | `ByteL i -> string_of_int i
+  | `IntL i -> Int32.to_string i
+  | `LongL i -> Int64.to_string i
+  | `FunctionL func_name -> "@" ^ func_name
+  | `PointerL (_, ptr) -> Int64.to_string ptr
+  | `UnitV var_id
+  | `BoolV var_id
+  | `StringV var_id
+  | `ByteV var_id
+  | `IntV var_id
+  | `LongV var_id
+  | `FunctionV var_id
+  | `PointerV (_, var_id) ->
+    pp_var_id ~cx var_id
+
+and pp_bool_value ~cx v = pp_value ~cx (v :> var_id Value.t)
+
+and pp_numeric_value ~cx v = pp_value ~cx (v :> var_id Value.t)
+
+and pp_function_value ~cx v = pp_value ~cx (v :> var_id Value.t)
 
 and pp_value_type ty =
   match ty with
@@ -238,11 +214,7 @@ and pp_value_type ty =
 
 and pp_type_of_value v = pp_value_type (type_of_value v)
 
-and pp_type_of_numeric_value (v : var_id Value.numeric_value) =
-  match v with
-  | `ByteV _ -> "byte"
-  | `IntV _ -> "int"
-  | `LongV _ -> "long"
+and pp_type_of_numeric_value v = pp_type_of_value (v :> var_id Value.t)
 
 and pp_instruction ~cx (_, instr) =
   let pp_instr var_id instr = Printf.sprintf "%s := %s" (pp_var_id ~cx var_id) instr in
