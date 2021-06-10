@@ -1,0 +1,11 @@
+type Tup1 {int}
+
+type Tup2 {string, bool, unit}
+
+type Rec1 {int}
+
+type Rec2 {bool, unit, Tup2}
+
+func unit @test.main() {
+  Ret
+}

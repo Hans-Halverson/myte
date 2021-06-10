@@ -62,8 +62,8 @@ let rec compile files =
     end;
     if Opts.check () then exit 0;
     (* Lower to IR *)
-    let program_cf_ir = Emit.emit_control_flow_ir program_cx in
-    let program_ssa_ir = Ssa.control_flow_ir_to_ssa program_cx program_cf_ir in
+    let (ecx, program_cf_ir) = Emit.emit_control_flow_ir program_cx in
+    let program_ssa_ir = Ssa.control_flow_ir_to_ssa program_cx ecx program_cf_ir in
     if Opts.dump_ir () then dump_ir program_ssa_ir;
     let ir =
       if Opts.optimize () then

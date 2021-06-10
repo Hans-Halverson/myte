@@ -21,6 +21,7 @@ type t = {
   mutable blocks: BlockBuilder.t IMap.t;
   mutable globals: cf_var Global.t SMap.t;
   mutable funcs: Function.t SMap.t;
+  mutable types: Aggregate.t SMap.t;
   mutable modules: Module.t SMap.t;
   mutable current_block_builder: BlockBuilder.t option;
   mutable current_module_builder: Module.t option;
@@ -29,6 +30,8 @@ type t = {
   mutable current_block_sequence_ids: Block.id list;
   (* Stack of loop contexts for all loops we are currently inside *)
   mutable current_loop_contexts: loop_context list;
+  (* ADT type to its MIR aggregate type *)
+  mutable adt_to_agg_type: Aggregate.t Types.TypeHashtbl.t;
 }
 
 let mk () =
@@ -37,12 +40,14 @@ let mk () =
     blocks = IMap.empty;
     globals = SMap.empty;
     funcs = SMap.empty;
+    types = SMap.empty;
     modules = SMap.empty;
     current_block_builder = None;
     current_module_builder = None;
     current_block_source = GlobalInit "";
     current_block_sequence_ids = [];
     current_loop_contexts = [];
+    adt_to_agg_type = Types.TypeHashtbl.create 100;
   }
 
 let builders_to_blocks builders =
@@ -68,6 +73,12 @@ let add_function ~ecx func =
   let builder = Option.get ecx.current_module_builder in
   ecx.funcs <- SMap.add name func ecx.funcs;
   builder.funcs <- SSet.add name builder.funcs
+
+let add_type ~ecx type_ =
+  let name = type_.Aggregate.name in
+  let builder = Option.get ecx.current_module_builder in
+  ecx.types <- SMap.add name type_ ecx.types;
+  builder.types <- SSet.add name builder.types
 
 let emit ~ecx inst =
   match ecx.current_block_builder with
@@ -143,7 +154,8 @@ let get_loop_context ~ecx = List.hd ecx.current_loop_contexts
 let get_module_builder ~ecx = Option.get ecx.current_module_builder
 
 let start_module ~ecx name =
-  ecx.current_module_builder <- Some { Module.name; funcs = SSet.empty; globals = SSet.empty }
+  ecx.current_module_builder <-
+    Some { Module.name; funcs = SSet.empty; globals = SSet.empty; types = SSet.empty }
 
 let end_module ~ecx =
   let mod_ = get_module_builder ~ecx in

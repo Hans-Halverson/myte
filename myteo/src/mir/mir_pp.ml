@@ -37,13 +37,19 @@ let rec pp_program program =
       program.funcs
       blocks
   in
+  let blocks =
+    SMap.fold
+      (fun _ type_ blocks -> (type_.Aggregate.loc, (fun _ -> pp_type_decl type_)) :: blocks)
+      program.types
+      blocks
+  in
   (* Sort by block source location *)
   let sorted_blocks = List.sort (fun (l1, _) (l2, _) -> Loc.compare l1 l2) blocks in
   String.concat "\n" (List.map (fun (_, mk_block) -> mk_block ()) sorted_blocks)
 
 and pp_global ~cx ~program global =
   let open Global in
-  let global_label = Printf.sprintf "global %s %%%s {" (pp_value_type global.ty) global.name in
+  let global_label = Printf.sprintf "global %s %%%s {" (pp_type global.ty) global.name in
   cx.print_block_id_map <- IMap.add global.init_start_block global.name cx.print_block_id_map;
   let init_blocks = Block_ordering.order_blocks ~program global.init_start_block in
   calc_print_block_ids ~cx (List.tl init_blocks);
@@ -60,12 +66,11 @@ and pp_func ~cx ~program func =
   let open Function in
   let func_params =
     func.params
-    |> List.map (fun (_, var_id, ty) ->
-           Printf.sprintf "%s %s" (pp_value_type ty) (pp_var_id ~cx var_id))
+    |> List.map (fun (_, var_id, ty) -> Printf.sprintf "%s %s" (pp_type ty) (pp_var_id ~cx var_id))
     |> String.concat ", "
   in
   let func_label =
-    Printf.sprintf "func %s @%s(%s) {" (pp_value_type func.return_ty) func.name func_params
+    Printf.sprintf "func %s @%s(%s) {" (pp_type func.return_ty) func.name func_params
   in
   cx.print_block_id_map <- IMap.add func.body_start_block func.name cx.print_block_id_map;
   let body_blocks = Block_ordering.order_blocks ~program func.body_start_block in
@@ -78,6 +83,12 @@ and pp_func ~cx ~program func =
       body_blocks
   in
   String.concat "\n" ((func_label :: body_strings) @ ["}\n"])
+
+and pp_type_decl type_ =
+  let open Aggregate in
+  let element_strings = List.map pp_type type_.elements in
+  let elements_string = String.concat ", " element_strings in
+  Printf.sprintf "type %s {%s}\n" type_.name elements_string
 
 and pp_block ~cx ~label block =
   let open Block in
@@ -101,7 +112,7 @@ and pp_block ~cx ~label block =
         Printf.sprintf
           "  %s := Phi %s %s"
           (pp_var_id ~cx var_id)
-          (pp_value_type value_type)
+          (pp_type value_type)
           (String.concat
              ", "
              (List.map
@@ -192,16 +203,17 @@ and pp_value ~cx v =
   | `IntV var_id
   | `LongV var_id
   | `FunctionV var_id
-  | `PointerV (_, var_id) ->
+  | `PointerV (_, var_id)
+  | `AggregateV (_, var_id) ->
     pp_var_id ~cx var_id
 
-and pp_bool_value ~cx v = pp_value ~cx (v :> var_id Value.t)
+and pp_bool_value ~cx v = pp_value ~cx (v :> ssa_value)
 
-and pp_numeric_value ~cx v = pp_value ~cx (v :> var_id Value.t)
+and pp_numeric_value ~cx v = pp_value ~cx (v :> ssa_value)
 
-and pp_function_value ~cx v = pp_value ~cx (v :> var_id Value.t)
+and pp_function_value ~cx v = pp_value ~cx (v :> ssa_value)
 
-and pp_value_type ty =
+and pp_type ty =
   match ty with
   | `UnitT -> "unit"
   | `ByteT -> "byte"
@@ -210,11 +222,12 @@ and pp_value_type ty =
   | `BoolT -> "bool"
   | `StringT -> "string"
   | `FunctionT -> "function"
-  | `PointerT ty -> pp_value_type ty ^ "*"
+  | `PointerT ty -> pp_type ty ^ "*"
+  | `AggregateT { Aggregate.name; _ } -> name
 
-and pp_type_of_value v = pp_value_type (type_of_value v)
+and pp_type_of_value v = pp_type (type_of_value v)
 
-and pp_type_of_numeric_value v = pp_type_of_value (v :> var_id Value.t)
+and pp_type_of_numeric_value v = pp_type_of_value (v :> ssa_value)
 
 and pp_instruction ~cx (_, instr) =
   let pp_instr var_id instr = Printf.sprintf "%s := %s" (pp_var_id ~cx var_id) instr in
@@ -227,11 +240,7 @@ and pp_instruction ~cx (_, instr) =
       let args_string = List.map (pp_value ~cx) args |> String.concat ", " in
       pp_instr
         var_id
-        (Printf.sprintf
-           "Call %s %s(%s)"
-           (pp_value_type ret_ty)
-           (pp_function_value ~cx func)
-           args_string)
+        (Printf.sprintf "Call %s %s(%s)" (pp_type ret_ty) (pp_function_value ~cx func) args_string)
     | Ret val_opt ->
       "Ret"
       ^

@@ -332,7 +332,8 @@ class calc_constants_visitor ~ocx =
           | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v ->
             get_numeric_lit_opt v
           | `PointerL _
-          | `PointerV _ ->
+          | `PointerV _
+          | `AggregateV _ ->
             None
         in
         (match constant with

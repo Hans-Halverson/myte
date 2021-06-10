@@ -3,7 +3,7 @@ open Basic_collections
 open Mir
 module Ecx = Emit_context
 
-let rec emit_control_flow_ir (pcx : Lex_analyze.program_context) : cf_program =
+let rec emit_control_flow_ir (pcx : Lex_analyze.program_context) : Ecx.t * cf_program =
   let ecx = Emit_context.mk () in
   List.iter
     (fun mod_ ->
@@ -13,16 +13,24 @@ let rec emit_control_flow_ir (pcx : Lex_analyze.program_context) : cf_program =
       emit_module ~pcx ~ecx mod_;
       Ecx.end_module ~ecx)
     pcx.modules;
-  {
-    Program.main_id = ecx.main_id;
-    blocks = Ecx.builders_to_blocks ecx.blocks;
-    globals = ecx.globals;
-    funcs = ecx.funcs;
-    modules = ecx.modules;
-  }
+  ( ecx,
+    {
+      Program.main_id = ecx.main_id;
+      blocks = Ecx.builders_to_blocks ecx.blocks;
+      globals = ecx.globals;
+      funcs = ecx.funcs;
+      types = ecx.types;
+      modules = ecx.modules;
+    } )
 
 and emit_module ~pcx ~ecx (_, mod_) =
   let open Ast.Module in
+  List.iter
+    (fun toplevel ->
+      match toplevel with
+      | TypeDeclaration decl -> emit_toplevel_type_declaration ~pcx ~ecx decl
+      | _ -> ())
+    mod_.toplevels;
   List.iter
     (fun toplevel ->
       match toplevel with
@@ -36,13 +44,45 @@ and emit_module ~pcx ~ecx (_, mod_) =
       | _ -> ())
     mod_.toplevels
 
+and emit_toplevel_type_declaration ~pcx ~ecx decl =
+  let open TypeDeclaration in
+  let { name = { Identifier.loc; name }; decl; _ } = decl in
+  let tvar_id = Bindings.get_tvar_id_from_type_decl pcx.bindings loc in
+  let ty = Type_context.find_rep_type ~cx:pcx.type_ctx (TVar tvar_id) in
+  let agg_ty_opt =
+    match decl with
+    | Tuple _ ->
+      let adt_sig = Types.get_adt_sig ty in
+      let element_sigs = Types.get_tuple_variant adt_sig name in
+      let element_types = List.map (type_to_mir_type ~pcx ~ecx) element_sigs in
+      Some { Aggregate.name; loc; elements = element_types }
+    | Record _ ->
+      let adt_sig = Types.get_adt_sig ty in
+      let field_sigs = Types.get_record_variant adt_sig name in
+      let element_types =
+        SMap.fold
+          (fun _ sig_ty element_types -> type_to_mir_type ~pcx ~ecx sig_ty :: element_types)
+          field_sigs
+          []
+      in
+      Some { Aggregate.name; loc; elements = List.rev element_types }
+    | Variant _
+    | Alias _ ->
+      None
+  in
+  match agg_ty_opt with
+  | None -> ()
+  | Some agg_ty ->
+    Ecx.add_type ~ecx agg_ty;
+    Types.TypeHashtbl.add ecx.adt_to_agg_type ty agg_ty
+
 and emit_toplevel_variable_declaration ~pcx ~ecx decl =
   let { Statement.VariableDeclaration.pattern; init; _ } = decl in
   (* TODO: Emit MIR for arbitrary patterns *)
   let { Identifier.loc; name } = List.hd (Ast_utils.ids_of_pattern pattern) in
   let name = Printf.sprintf "%s.%s" (Ecx.get_module_builder ~ecx).name name in
   (* Find value type of variable *)
-  let ty = value_type_of_decl_loc ~pcx loc in
+  let ty = mir_type_of_value_decl_loc ~pcx ~ecx loc in
   (* Build IR for variable init *)
   Ecx.start_block_sequence ~ecx (GlobalInit name);
   let init_start_block = Ecx.start_new_block ~ecx in
@@ -81,7 +121,7 @@ and emit_toplevel_function_declaration ~pcx ~ecx decl =
   let (param_tys, return_ty) =
     match Type_context.find_rep_type ~cx:pcx.type_ctx (Types.TVar func_tvar_id) with
     | Types.Function { params; return } ->
-      (List.map type_to_value_type params, type_to_value_type return)
+      (List.map (type_to_mir_type ~pcx ~ecx) params, type_to_mir_type ~pcx ~ecx return)
     | _ -> failwith "Function must resolve to function type"
   in
   let params = List.map2 (fun (loc, var_id) ty -> (loc, var_id, ty)) param_locs_and_ids param_tys in
@@ -94,7 +134,7 @@ and emit_expression ~pcx ~ecx expr =
   | Unit _ -> `UnitL
   | IntLiteral { loc; raw; base } ->
     let value = Integers.int64_of_string_opt raw base |> Option.get in
-    let ty = value_type_of_loc ~pcx loc in
+    let ty = mir_type_of_loc ~pcx ~ecx loc in
     (match ty with
     | `ByteT -> `ByteL (Int64.to_int value)
     | `IntT -> `IntL (Int64.to_int32 value)
@@ -106,17 +146,17 @@ and emit_expression ~pcx ~ecx expr =
   | UnaryOperation { loc; op = Minus; operand } ->
     let var_id = mk_cf_var_id () in
     let operand_val = emit_numeric_expression ~pcx ~ecx operand in
-    let ty = value_type_of_loc ~pcx loc in
+    let ty = mir_type_of_loc ~pcx ~ecx loc in
     Ecx.emit ~ecx (Neg (var_id, operand_val));
     var_value_of_type var_id ty
   | UnaryOperation { op = Not; loc; operand } ->
     let var_id = mk_cf_var_id () in
-    let value_ty = value_type_of_loc ~pcx loc in
+    let value_ty = mir_type_of_loc ~pcx ~ecx loc in
     (match value_ty with
     | `BoolT ->
       let operand_val = emit_bool_expression ~pcx ~ecx operand in
       Ecx.emit ~ecx (LogNot (var_id, operand_val));
-      var_value_of_type var_id `BoolT
+      `BoolV var_id
     | `ByteT
     | `IntT
     | `LongT ->
@@ -151,7 +191,7 @@ and emit_expression ~pcx ~ecx expr =
       `BoolT
       var_id
       (IMap.add rhs_end_block_id right_var_id (IMap.singleton false_builder.id false_var_id));
-    var_value_of_type var_id `BoolT
+    `BoolV var_id
   | LogicalOr { loc = _; left; right } ->
     (* Short circuit when lhs is true by jumping to true case *)
     let rhs_builder = Ecx.mk_block_builder ~ecx in
@@ -179,13 +219,13 @@ and emit_expression ~pcx ~ecx expr =
       `BoolT
       var_id
       (IMap.add rhs_end_block_id right_var_id (IMap.singleton true_builder.id true_var_id));
-    var_value_of_type var_id `BoolT
+    `BoolV var_id
   | BinaryOperation { loc; op; left; right } ->
     let open BinaryOperation in
     let var_id = mk_cf_var_id () in
     let left_val = emit_numeric_expression ~pcx ~ecx left in
     let right_val = emit_numeric_expression ~pcx ~ecx right in
-    let ty = value_type_of_loc ~pcx loc in
+    let ty = mir_type_of_loc ~pcx ~ecx loc in
     let (instr, ty) =
       match op with
       | Add -> (Instruction.Add (var_id, left_val, right_val), ty)
@@ -233,13 +273,13 @@ and emit_expression ~pcx ~ecx expr =
         ) else
           mk_cf_local loc
       in
-      var_value_of_type var (value_type_of_decl_loc ~pcx decl_loc))
+      var_value_of_type var (mir_type_of_value_decl_loc ~pcx ~ecx decl_loc))
   | TypeCast { expr; _ } -> emit_expression ~pcx ~ecx expr
   | Call { loc; func; args } ->
     let var_id = mk_cf_var_id () in
     let func_val = emit_function_expression ~pcx ~ecx func in
     let arg_vals = List.map (emit_expression ~pcx ~ecx) args in
-    let ret_ty = value_type_of_loc ~pcx loc in
+    let ret_ty = mir_type_of_loc ~pcx ~ecx loc in
     Ecx.emit ~ecx (Call (var_id, ret_ty, func_val, arg_vals));
     var_value_of_type var_id ret_ty
   | _ ->
@@ -349,28 +389,30 @@ and mk_cf_local loc = Local loc
 
 and mk_binding_name binding = String.concat "." (binding.module_ @ [binding.name])
 
-and type_to_value_type ty =
+and type_to_mir_type ~pcx ~ecx ty =
+  let ty = Type_context.find_rep_type ~cx:pcx.type_ctx ty in
   match ty with
   | Types.Unit -> `UnitT
   | Types.Bool -> `BoolT
   | Types.Byte -> `ByteT
   | Types.Int -> `IntT
   | Types.Long -> `LongT
-  | Types.IntLiteral { resolved; _ } -> type_to_value_type (Option.get resolved)
+  | Types.IntLiteral { resolved; _ } -> type_to_mir_type ~pcx ~ecx (Option.get resolved)
   | Types.String -> `StringT
   | Types.Tuple _ -> failwith "TODO: Implement MIR emission for tuple types"
   | Types.Function _ -> `FunctionT
-  | Types.ADT _ -> failwith "TODO: Implement MIR emission for ADTs"
   | Types.TVar _ -> failwith "TVars must be resolved for all values in IR"
   | Types.Any -> failwith "Any not allowed as value in IR"
+  | Types.ADT _ ->
+    (match Types.TypeHashtbl.find_opt ecx.adt_to_agg_type ty with
+    | Some mir_type -> `AggregateT mir_type
+    | None -> failwith "TODO: Cannot emit generics")
 
-and value_type_of_loc ~pcx loc =
+and mir_type_of_loc ~pcx ~ecx loc =
   let tvar_id = Type_context.get_tvar_from_loc ~cx:pcx.type_ctx loc in
-  let ty = Type_context.find_rep_type ~cx:pcx.type_ctx (Types.TVar tvar_id) in
-  type_to_value_type ty
+  type_to_mir_type ~pcx ~ecx (Types.TVar tvar_id)
 
-and value_type_of_decl_loc ~pcx loc =
+and mir_type_of_value_decl_loc ~pcx ~ecx loc =
   let open Lex_analyze in
   let tvar_id = Bindings.get_tvar_id_from_value_decl pcx.bindings loc in
-  let ty = Type_context.find_rep_type ~cx:pcx.type_ctx (Types.TVar tvar_id) in
-  type_to_value_type ty
+  type_to_mir_type ~pcx ~ecx (Types.TVar tvar_id)

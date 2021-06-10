@@ -14,9 +14,19 @@ module rec Type : sig
     | `LongT
     | `FunctionT
     | `PointerT of t
+    | `AggregateT of Aggregate.t
     ]
 end =
   Type
+
+and Aggregate : sig
+  type t = {
+    name: string;
+    loc: Loc.t;
+    elements: Type.t list;
+  }
+end =
+  Aggregate
 
 and Value : sig
   type 'a unit_value =
@@ -53,6 +63,8 @@ and Value : sig
     | `LongL of Int64.t
     ]
 
+  type 'a aggregate_value = [ `AggregateV of Aggregate.t * 'a ]
+
   type 'a t =
     [ 'a unit_value
     | 'a bool_value
@@ -60,6 +72,7 @@ and Value : sig
     | 'a numeric_value
     | 'a function_value
     | 'a pointer_value
+    | 'a aggregate_value
     ]
 end =
   Value
@@ -112,6 +125,7 @@ and Program : sig
     mutable blocks: 'var Block.t IMap.t;
     mutable globals: 'var Global.t SMap.t;
     mutable funcs: Function.t SMap.t;
+    mutable types: Aggregate.t SMap.t;
     mutable modules: Module.t SMap.t;
   }
 end =
@@ -122,6 +136,7 @@ and Module : sig
     name: string;
     mutable globals: SSet.t;
     mutable funcs: SSet.t;
+    mutable types: SSet.t;
   }
 end =
   Module
@@ -241,8 +256,9 @@ let type_of_value (v : 'a Value.t) : Type.t =
   | `PointerV (ty, _)
   | `PointerL (ty, _) ->
     `PointerT ty
+  | `AggregateV (agg, _) -> `AggregateT agg
 
-let var_value_of_type var_id ty : 'a Value.t =
+let var_value_of_type var_id (ty : Type.t) : 'a Value.t =
   match ty with
   | `UnitT -> `UnitV var_id
   | `BoolT -> `BoolV var_id
@@ -252,6 +268,7 @@ let var_value_of_type var_id ty : 'a Value.t =
   | `LongT -> `LongV var_id
   | `FunctionT -> `FunctionV var_id
   | `PointerT ty -> `PointerV (ty, var_id)
+  | `AggregateT agg -> `AggregateV (agg, var_id)
 
 let mk_continue continue = Block.Continue continue
 
@@ -267,6 +284,7 @@ let rec map_value ~(f : 'a -> 'b) (value : 'a Value.t) : 'b Value.t =
     (map_numeric_value ~f v :> 'b Value.t)
   | (`FunctionL _ | `FunctionV _) as v -> (map_function_value ~f v :> 'b Value.t)
   | `PointerV (ty, v) -> `PointerV (ty, f v)
+  | `AggregateV (agg, v) -> `AggregateV (agg, f v)
 
 and map_bool_value ~(f : 'a -> 'b) (value : 'a Value.bool_value) : 'b Value.bool_value =
   match value with

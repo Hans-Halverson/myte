@@ -121,11 +121,11 @@ let add_realized_phi ~cx block_id decl_loc node_id =
 
 let add_block_link ~cx prev_id next_id = cx.prev_blocks <- IIMMap.add next_id prev_id cx.prev_blocks
 
-let rec control_flow_ir_to_ssa pcx ir =
+let rec control_flow_ir_to_ssa pcx ecx ir =
   let cx = mk_cx () in
   find_join_points ~pcx ~cx ir;
   build_phi_nodes ~pcx ~cx ir;
-  map_to_ssa ~pcx ~cx ir
+  map_to_ssa ~pcx ~ecx ~cx ir
 
 (* A visitor used in find_join_points, which collects all declaration sources *)
 and mk_add_sources_visitor ~program ~pcx sources =
@@ -325,7 +325,7 @@ and build_phi_nodes ~pcx ~cx program =
   in
   IMap.iter realize_phi_chain_graph !phi_nodes_to_realize
 
-and map_to_ssa ~pcx ~cx program =
+and map_to_ssa ~pcx ~ecx ~cx program =
   cx.visited_blocks <- ISet.empty;
   let rec visit_block block_id =
     cx.visited_blocks <- ISet.add block_id cx.visited_blocks;
@@ -350,7 +350,7 @@ and map_to_ssa ~pcx ~cx program =
           LocMap.fold
             (fun decl_loc node_id phis ->
               let node = get_node ~cx node_id in
-              let value_type = Emit.value_type_of_decl_loc ~pcx decl_loc in
+              let value_type = Emit.mir_type_of_value_decl_loc ~pcx ~ecx decl_loc in
               let var_id = Option.get node.realized in
               let args = gather_phi_var_ids node_id in
               (value_type, var_id, args) :: phis)
@@ -546,10 +546,4 @@ and map_to_ssa ~pcx ~cx program =
         { global with init_val = map_value ~f:map_read_var global.init_val })
       program.globals
   in
-  {
-    Program.main_id = program.main_id;
-    blocks = cx.blocks;
-    globals;
-    funcs = program.funcs;
-    modules = program.modules;
-  }
+  { program with blocks = cx.blocks; globals }

@@ -1,0 +1,11 @@
+module test
+
+type Tup1 (Int)
+
+type Tup2 (String, Bool, Unit)
+
+type Rec1 { field: Int }
+
+type Rec2 { field1: Bool, field2: Unit, field3: Tup2 }
+
+fun main() {}

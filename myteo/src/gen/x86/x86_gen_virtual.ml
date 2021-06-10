@@ -634,6 +634,7 @@ and resolve_ir_value ~func value =
   | `PointerL _
   | `PointerV _ ->
     failwith "TODO: Cannot compile pointers yet"
+  | `AggregateV _ -> failwith "TODO: Cannot compile aggregate structures yet"
 
 and size_of_mir_value_type value_type =
   match value_type with
@@ -647,6 +648,7 @@ and size_of_mir_value_type value_type =
   | `PointerT _ ->
     Size64
   | `StringT -> failwith "TODO: Cannot compile string literals"
+  | `AggregateT _ -> failwith "TODO: Cannot compile aggregate structure literals"
 
 and size_of_svalue value =
   match value with

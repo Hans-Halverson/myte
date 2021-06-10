@@ -33,9 +33,7 @@ and visit_type_declarations_prepass ~cx module_ =
           { name = { Ast.Identifier.loc = id_loc; name }; decl = Tuple _ | Record _ | Variant _; _ }
         ->
         let tvar_id = Type_context.get_tvar_id_from_type_decl ~cx id_loc in
-        let adt =
-          Types.ADT { adt_sig = { name; tvar_sigs = []; variant_sigs = SMap.empty }; tparams = [] }
-        in
+        let adt = Types.ADT { adt_sig = Types.mk_adt_sig name; tparams = [] } in
         ignore (Type_context.unify ~cx adt (Types.TVar tvar_id))
       | _ -> ())
     toplevels
@@ -80,11 +78,7 @@ and visit_type_declarations ~cx module_ =
         (* Get ADT signature from ADT id's tvar *)
         let tvar_id = Type_context.get_tvar_id_from_type_decl ~cx id_loc in
         let adt = Type_context.find_rep_type ~cx (TVar tvar_id) in
-        let adt_sig =
-          match adt with
-          | Types.ADT { adt_sig; _ } -> adt_sig
-          | _ -> failwith "Expected ADT"
-        in
+        let adt_sig = Types.get_adt_sig adt in
         let build_element_tys ~cx elements = List.map (build_type ~cx) elements in
         let build_field_tys ~cx fields =
           List.fold_left
@@ -274,11 +268,7 @@ and check_expression ~cx expr =
          constructors as they are handled elsewhere. *)
       | CtorDecl ->
         let adt = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
-        let adt_sig =
-          match adt with
-          | Types.ADT { adt_sig; _ } -> adt_sig
-          | _ -> failwith "Expected ADT"
-        in
+        let adt_sig = Types.get_adt_sig adt in
         (match SMap.find name adt_sig.variant_sigs with
         | EnumVariantSig -> adt
         | TupleVariantSig elements ->
@@ -462,11 +452,7 @@ and check_expression ~cx expr =
         (match snd binding.declaration with
         | CtorDecl ->
           let adt = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
-          let adt_sig =
-            match adt with
-            | Types.ADT { adt_sig; _ } -> adt_sig
-            | _ -> failwith "Expected ADT"
-          in
+          let adt_sig = Types.get_adt_sig adt in
           (match SMap.find name adt_sig.variant_sigs with
           (* Error on incorrect number of arguments *)
           | TupleVariantSig elements when List.length elements <> List.length args ->
@@ -544,11 +530,7 @@ and check_expression ~cx expr =
         (match snd binding.declaration with
         | CtorDecl ->
           let adt = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
-          let adt_sig =
-            match adt with
-            | Types.ADT { adt_sig; _ } -> adt_sig
-            | _ -> failwith "Expected ADT"
-          in
+          let adt_sig = Types.get_adt_sig adt in
           (match SMap.find name adt_sig.variant_sigs with
           | RecordVariantSig field_sigs ->
             (* Recurse into fields and collect all fields that are not a part of this record *)
@@ -742,11 +724,7 @@ and check_pattern ~cx patt =
       match snd binding.declaration with
       | CtorDecl ->
         let adt = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
-        let adt_sig =
-          match adt with
-          | Types.ADT { adt_sig; _ } -> adt_sig
-          | _ -> failwith "Expected ADT"
-        in
+        let adt_sig = Types.get_adt_sig adt in
         (match SMap.find name adt_sig.variant_sigs with
         | TupleVariantSig element_sigs when List.length element_sigs <> List.length elements ->
           Type_context.add_error
@@ -784,11 +762,7 @@ and check_pattern ~cx patt =
       match snd binding.declaration with
       | CtorDecl ->
         let adt = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
-        let adt_sig =
-          match adt with
-          | Types.ADT { adt_sig; _ } -> adt_sig
-          | _ -> failwith "Expected ADT"
-        in
+        let adt_sig = Types.get_adt_sig adt in
         (match SMap.find name adt_sig.variant_sigs with
         | RecordVariantSig field_sigs ->
           (* Recurse into fields and collect all fields that are not a part of this record *)

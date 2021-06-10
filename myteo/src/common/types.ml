@@ -2,6 +2,8 @@ open Basic_collections
 
 type tvar_id = int
 
+type adt_sig_id = int
+
 type t =
   | TVar of tvar_id
   | Any
@@ -31,6 +33,7 @@ and int_literal = {
 }
 
 and adt_sig = {
+  id: adt_sig_id;
   name: string;
   mutable tvar_sigs: tvar_id list;
   mutable variant_sigs: variant_sig SMap.t;
@@ -48,7 +51,16 @@ let mk_tvar_id () =
   max_tvar_id := tvar_id + 1;
   tvar_id
 
+let max_adt_sig_id = ref 0
+
+let mk_adt_sig_id () =
+  let adt_sig_id = !max_adt_sig_id in
+  max_adt_sig_id := adt_sig_id + 1;
+  adt_sig_id
+
 let mk_tvar () = TVar (mk_tvar_id ())
+
+let mk_adt_sig name = { id = mk_adt_sig_id (); name; tvar_sigs = []; variant_sigs = SMap.empty }
 
 let get_all_tvars_with_duplicates ty =
   let rec inner acc ty =
@@ -133,6 +145,21 @@ let rec get_next_name next_name_id used_names =
   else
     (name, next_name_id + 1)
 
+let get_adt_sig adt =
+  match adt with
+  | ADT { adt_sig; _ } -> adt_sig
+  | _ -> failwith "Expected ADT"
+
+let get_tuple_variant adt_sig name =
+  match SMap.find name adt_sig.variant_sigs with
+  | TupleVariantSig element_sigs -> element_sigs
+  | _ -> failwith "Expected TupleVariantSig"
+
+let get_record_variant adt_sig name =
+  match SMap.find name adt_sig.variant_sigs with
+  | RecordVariantSig field_sigs -> field_sigs
+  | _ -> failwith "Expected RecordVariantSig"
+
 let rec build_tvar_to_name ~use_tvar_ids (tvar_to_name_acc, names_acc) next_name_id tvar_ids =
   match tvar_ids with
   | [] -> (tvar_to_name_acc, names_acc)
@@ -163,3 +190,57 @@ let pps ?(tvar_to_name = IMap.empty) ?(use_tvar_ids = false) tys =
 
 let pp ?(tvar_to_name = IMap.empty) ?(use_tvar_ids = false) ty =
   pps ~tvar_to_name ~use_tvar_ids [ty] |> List.hd
+
+type type_hash_type_t = t
+
+module TypeHash = struct
+  type t = type_hash_type_t
+
+  let rec equal (ty1 : t) (ty2 : t) =
+    match (ty1, ty2) with
+    | (TVar tvar1, TVar tvar2) -> tvar1 = tvar2
+    | (Any, Any)
+    | (Unit, Unit)
+    | (Bool, Bool)
+    | (Byte, Byte)
+    | (Int, Int)
+    | (Long, Long)
+    | (String, String) ->
+      true
+    | (Tuple elements1, Tuple elements2) ->
+      List.length elements1 = List.length elements2 && List.for_all2 equal elements1 elements2
+    | ( Function { params = params1; return = return1 },
+        Function { params = params2; return = return2 } ) ->
+      List.length params1 = List.length params2
+      && List.for_all2 equal params1 params2
+      && equal return1 return2
+    | ( ADT { adt_sig = adt_sig1; tparams = tparams1 },
+        ADT { adt_sig = adt_sig2; tparams = tparams2 } ) ->
+      adt_sig1 == adt_sig2 && List.for_all2 equal tparams1 tparams2
+    | (IntLiteral { resolved = None; _ }, IntLiteral { resolved = None; _ }) -> true
+    | (IntLiteral { resolved = Some ty1; _ }, IntLiteral { resolved = Some ty2; _ }) ->
+      equal ty1 ty2
+    | _ -> false
+
+  let rec hash (ty : t) =
+    (* Boost hash combiner *)
+    let hash_nums (ns : int list) =
+      List.fold_left (fun hash n -> hash lxor (n + 0x9e3779b9 + (hash lsl 6) + (hash asr 2))) 0 ns
+    in
+    match ty with
+    | TVar _ -> failwith "Cannot hash type with any tvars"
+    | Any -> 1
+    | Unit -> 2
+    | Bool -> 3
+    | Byte -> 4
+    | Int -> 5
+    | Long -> 6
+    | String -> 7
+    | IntLiteral { resolved = None; _ } -> 8
+    | IntLiteral { resolved = Some ty; _ } -> hash ty
+    | Tuple elements -> hash_nums (9 :: List.map hash elements)
+    | Function { params; return } -> hash_nums (10 :: hash return :: List.map hash params)
+    | ADT { adt_sig = { id; _ }; tparams } -> hash_nums (11 :: id :: List.map hash tparams)
+end
+
+module TypeHashtbl = Hashtbl.Make (TypeHash)
