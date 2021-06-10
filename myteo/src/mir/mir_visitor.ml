@@ -73,6 +73,7 @@ module IRVisitor = struct
         List.iter (this#visit_instruction ~block) instructions
 
       method visit_instruction ~block (_, instr) =
+        let open Instruction in
         match instr with
         | Mov (result, arg) ->
           this#visit_value ~block arg;
@@ -91,6 +92,16 @@ module IRVisitor = struct
         | Store (ptr, arg) ->
           this#visit_value ~block arg;
           this#visit_pointer_value ~block ptr
+        | GetOffset { GetOffset.var_id; return_ty = _; pointer; pointer_offset; offsets } ->
+          this#visit_pointer_value ~block pointer;
+          this#visit_long_value ~block pointer_offset;
+          List.iter
+            (fun offset ->
+              match offset with
+              | GetOffset.PointerIndex index -> this#visit_long_value ~block index
+              | GetOffset.FieldIndex _ -> ())
+            offsets;
+          this#visit_result_variable ~block var_id
         | LogNot (result, arg) ->
           this#visit_bool_value ~block arg;
           this#visit_result_variable ~block result
@@ -161,6 +172,9 @@ module IRVisitor = struct
         this#visit_value ~block (value :> 'a Value.t)
 
       method visit_string_value ~block (value : 'a Value.string_value) =
+        this#visit_value ~block (value :> 'a Value.t)
+
+      method visit_long_value ~block (value : 'a Value.long_value) =
         this#visit_value ~block (value :> 'a Value.t)
 
       method visit_numeric_value ~block (value : 'a Value.numeric_value) =

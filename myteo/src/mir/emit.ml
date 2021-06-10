@@ -291,13 +291,37 @@ and emit_expression ~pcx ~ecx expr =
           let adt_sig = Types.get_adt_sig adt in
           (match SMap.find name adt_sig.variant_sigs with
           | TupleVariantSig _ ->
-            let var_id = mk_cf_var_id () in
-            let mir_ty = type_to_mir_type ~pcx ~ecx adt in
-            let (result_val, call_builtin_instr) =
-              Mir_builtin.(mk_call_builtin myte_alloc var_id [`LongL Int64.one] mir_ty)
+            (* Find MIR aggregate type for this ADT *)
+            let agg_ptr_var_id = mk_cf_var_id () in
+            let agg = Types.TypeHashtbl.find ecx.adt_to_agg_type adt in
+            (* Call myte_allocate builtin to allocate space for tuple *)
+            let agg_ty = `AggregateT agg in
+            let agg_ptr_var = `PointerV (agg_ty, agg_ptr_var_id) in
+            let (agg_ptr_val, myte_alloc_instr) =
+              Mir_builtin.(mk_call_builtin myte_alloc agg_ptr_var_id [`LongL Int64.one] agg_ty)
             in
-            Ecx.emit ~ecx call_builtin_instr;
-            Some result_val
+            Ecx.emit ~ecx myte_alloc_instr;
+            (* Store each argument to the tuple constructor in space allocated for tuple *)
+            let args_and_element_types = List.combine args agg.Aggregate.elements in
+            List.iteri
+              (fun i (arg, element_ty) ->
+                (* Calculate offset for this element and store *)
+                let arg_var = emit_expression ~pcx ~ecx arg in
+                let element_offset_var_id = mk_cf_var_id () in
+                let element_offset_var = `PointerV (element_ty, element_offset_var_id) in
+                let get_offset_instr =
+                  {
+                    GetOffset.var_id = element_offset_var_id;
+                    return_ty = element_ty;
+                    pointer = agg_ptr_var;
+                    pointer_offset = `LongL Int64.zero;
+                    offsets = [GetOffset.FieldIndex i];
+                  }
+                in
+                Ecx.emit ~ecx (GetOffset get_offset_instr);
+                Ecx.emit ~ecx (Store (element_offset_var, arg_var)))
+              args_and_element_types;
+            Some agg_ptr_val
           | _ -> None)
         | _ -> None)
       | _ -> None

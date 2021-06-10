@@ -54,13 +54,17 @@ and Value : sig
     | `PointerL of Type.t * Int64.t
     ]
 
+  type 'a long_value =
+    [ `LongV of 'a
+    | `LongL of Int64.t
+    ]
+
   type 'a numeric_value =
     [ `IntV of 'a
     | `IntL of Int32.t
     | `ByteV of 'a
     | `ByteL of int
-    | `LongV of 'a
-    | `LongL of Int64.t
+    | 'a long_value
     ]
 
   type 'a aggregate_value = [ `AggregateV of Aggregate.t * 'a ]
@@ -78,6 +82,20 @@ end =
   Value
 
 and Instruction : sig
+  module GetOffset : sig
+    type 'var offset =
+      | PointerIndex of 'var Value.long_value
+      | FieldIndex of int
+
+    type 'var t = {
+      var_id: 'var;
+      return_ty: Type.t;
+      pointer: 'var Value.pointer_value;
+      pointer_offset: 'var Value.long_value;
+      offsets: 'var offset list;
+    }
+  end
+
   type 'var t = instr_id * 'var t'
 
   and ('var, 'a) call =
@@ -92,6 +110,8 @@ and Instruction : sig
     (* Memory operations *)
     | Load of 'var * 'var Value.pointer_value
     | Store of 'var Value.pointer_value * 'var Value.t
+    (* Memory offset operations *)
+    | GetOffset of 'var GetOffset.t
     (* Logical ops *)
     | LogNot of 'var * 'var Value.bool_value
     | LogAnd of 'var * 'var Value.bool_value * 'var Value.bool_value
@@ -294,8 +314,8 @@ let rec map_value ~(f : 'a -> 'b) (value : 'a Value.t) : 'b Value.t =
   | `UnitV v -> `UnitV (f v)
   | `StringV v -> `StringV (f v)
   | (`BoolL _ | `BoolV _) as v -> (map_bool_value ~f v :> 'b Value.t)
-  | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v ->
-    (map_numeric_value ~f v :> 'b Value.t)
+  | (`LongL _ | `LongV _) as v -> (map_long_value ~f v :> 'b Value.t)
+  | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _) as v -> (map_numeric_value ~f v :> 'b Value.t)
   | (`FunctionL _ | `FunctionV _) as v -> (map_function_value ~f v :> 'b Value.t)
   | (`PointerL _ | `PointerV _) as v -> (map_pointer_value ~f v :> 'b Value.t)
   | `AggregateV (agg, v) -> `AggregateV (agg, f v)
@@ -305,12 +325,17 @@ and map_bool_value ~(f : 'a -> 'b) (value : 'a Value.bool_value) : 'b Value.bool
   | `BoolL _ as lit -> lit
   | `BoolV v -> `BoolV (f v)
 
+and map_long_value ~(f : 'a -> 'b) (value : 'a Value.long_value) : 'b Value.long_value =
+  match value with
+  | `LongL _ as lit -> lit
+  | `LongV v -> `LongV (f v)
+
 and map_numeric_value ~(f : 'a -> 'b) (value : 'a Value.numeric_value) : 'b Value.numeric_value =
   match value with
-  | (`ByteL _ | `IntL _ | `LongL _) as lit -> lit
+  | (`ByteL _ | `IntL _) as lit -> lit
   | `ByteV v -> `ByteV (f v)
   | `IntV v -> `IntV (f v)
-  | `LongV v -> `LongV (f v)
+  | (`LongL _ | `LongV _) as v -> (map_long_value ~f v :> 'b Value.numeric_value)
 
 and map_function_value ~(f : 'a -> 'b) (value : 'a Value.function_value) : 'b Value.function_value =
   match value with

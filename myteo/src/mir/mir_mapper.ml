@@ -79,6 +79,37 @@ module InstructionsMapper = struct
             [instruction]
           else
             mk_instr (Store (ptr', arg'))
+        | GetOffset { GetOffset.var_id; return_ty; pointer; pointer_offset; offsets } ->
+          let var_id' = this#map_result_variable ~block var_id in
+          let pointer' = this#map_pointer_value ~block pointer in
+          let pointer_offset' = this#map_long_value ~block pointer_offset in
+          let offsets' =
+            id_map_list
+              (fun offset ->
+                match offset with
+                | GetOffset.PointerIndex index ->
+                  id_map (this#map_long_value ~block) index offset (fun index' ->
+                      GetOffset.PointerIndex index')
+                | GetOffset.FieldIndex _ -> offset)
+              offsets
+          in
+          if
+            var_id == var_id'
+            && pointer == pointer'
+            && pointer_offset == pointer_offset'
+            && offsets == offsets'
+          then
+            [instruction]
+          else
+            mk_instr
+              (GetOffset
+                 {
+                   GetOffset.var_id = var_id';
+                   return_ty;
+                   pointer = pointer';
+                   pointer_offset = pointer_offset';
+                   offsets = offsets';
+                 })
         | LogNot (result, arg) ->
           let result' = this#map_result_variable ~block result in
           let arg' = this#map_bool_value ~block arg in
@@ -285,6 +316,12 @@ module InstructionsMapper = struct
         | `StringL _ as value -> value
         | `StringV var_id as value ->
           id_map (this#map_use_variable ~block) var_id value (fun var_id' -> `StringV var_id')
+
+      method map_long_value ~block value =
+        match value with
+        | `LongL _ as value -> value
+        | `LongV var_id as value ->
+          id_map (this#map_use_variable ~block) var_id value (fun var_id' -> `LongV var_id')
 
       method map_numeric_value ~block value =
         match value with

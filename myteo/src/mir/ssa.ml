@@ -428,6 +428,7 @@ and map_to_ssa ~pcx ~ecx ~cx program =
     let map_return = map_write_var in
     let map_value = map_value ~f:map_read_var in
     let map_bool_value = map_bool_value ~f:map_read_var in
+    let map_long_value = map_long_value ~f:map_read_var in
     let map_numeric_value = map_numeric_value ~f:map_read_var in
     let map_function_value = map_function_value ~f:map_read_var in
     let map_pointer_value = map_pointer_value ~f:map_read_var in
@@ -440,6 +441,23 @@ and map_to_ssa ~pcx ~ecx ~cx program =
     | Ret arg -> Ret (Option.map map_value arg)
     | Load (return, ptr) -> Load (map_return return, map_pointer_value ptr)
     | Store (ptr, arg) -> Store (map_pointer_value ptr, map_value arg)
+    | GetOffset { GetOffset.var_id; return_ty; pointer; pointer_offset; offsets } ->
+      let offsets =
+        List.map
+          (fun offset ->
+            match offset with
+            | GetOffset.PointerIndex index -> GetOffset.PointerIndex (map_long_value index)
+            | GetOffset.FieldIndex _ as index -> index)
+          offsets
+      in
+      GetOffset
+        {
+          GetOffset.var_id = map_return var_id;
+          return_ty;
+          pointer = map_pointer_value pointer;
+          pointer_offset = map_long_value pointer_offset;
+          offsets;
+        }
     | LogNot (return, arg) -> LogNot (map_return return, map_bool_value arg)
     | LogAnd (return, left, right) ->
       LogAnd (map_return return, map_bool_value left, map_bool_value right)

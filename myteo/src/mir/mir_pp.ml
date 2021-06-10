@@ -222,6 +222,8 @@ and pp_value ~cx v =
 
 and pp_bool_value ~cx v = pp_value ~cx (v :> ssa_value)
 
+and pp_long_value ~cx v = pp_value ~cx (v :> ssa_value)
+
 and pp_numeric_value ~cx v = pp_value ~cx (v :> ssa_value)
 
 and pp_function_value ~cx v = pp_value ~cx (v :> ssa_value)
@@ -245,6 +247,7 @@ and pp_type_of_value v = pp_type (type_of_value v)
 and pp_type_of_numeric_value v = pp_type_of_value (v :> ssa_value)
 
 and pp_instruction ~cx (_, instr) =
+  let open Instruction in
   let pp_instr var_id instr = Printf.sprintf "%s := %s" (pp_var_id ~cx var_id) instr in
   let instr_string =
     match instr with
@@ -267,6 +270,23 @@ and pp_instruction ~cx (_, instr) =
     | Load (var_id, ptr) -> pp_instr var_id (Printf.sprintf "Load %s" (pp_pointer_value ~cx ptr))
     | Store (ptr, right) ->
       Printf.sprintf "Store %s, %s" (pp_pointer_value ~cx ptr) (pp_value ~cx right)
+    | GetOffset { GetOffset.var_id; return_ty; pointer; pointer_offset; offsets } ->
+      let offset_strs =
+        List.map
+          (fun offset ->
+            match offset with
+            | GetOffset.PointerIndex value -> "[" ^ pp_long_value ~cx value ^ "]"
+            | GetOffset.FieldIndex field -> "." ^ string_of_int field)
+          offsets
+      in
+      pp_instr
+        var_id
+        (Printf.sprintf
+           "GetOffset %s %s[%s]%s"
+           (pp_type return_ty)
+           (pp_pointer_value ~cx pointer)
+           (pp_long_value ~cx pointer_offset)
+           (String.concat "" offset_strs))
     | LogNot (var_id, arg) -> pp_instr var_id (Printf.sprintf "LogNot %s" (pp_bool_value ~cx arg))
     | LogAnd (var_id, left, right) ->
       pp_instr
