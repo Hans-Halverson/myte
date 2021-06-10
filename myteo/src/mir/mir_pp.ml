@@ -96,7 +96,7 @@ and pp_func ~cx ~program func =
 
 and pp_type_decl type_ =
   let open Aggregate in
-  let element_strings = List.map pp_type type_.elements in
+  let element_strings = List.map (fun (_, element_ty) -> pp_type element_ty) type_.elements in
   let elements_string = String.concat ", " element_strings in
   Printf.sprintf "type %s {%s}\n" type_.name elements_string
 

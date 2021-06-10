@@ -28,7 +28,7 @@ and emit_module ~pcx ~ecx (_, mod_) =
   List.iter
     (fun toplevel ->
       match toplevel with
-      | TypeDeclaration decl -> emit_toplevel_type_declaration ~pcx ~ecx decl
+      | TypeDeclaration decl -> emit_type_declaration ~pcx ~ecx decl
       | _ -> ())
     mod_.toplevels;
   List.iter
@@ -44,7 +44,7 @@ and emit_module ~pcx ~ecx (_, mod_) =
       | _ -> ())
     mod_.toplevels
 
-and emit_toplevel_type_declaration ~pcx ~ecx decl =
+and emit_type_declaration ~pcx ~ecx decl =
   let open TypeDeclaration in
   let { name = { Identifier.loc; name }; decl; _ } = decl in
   let tvar_id = Bindings.get_tvar_id_from_type_decl pcx.bindings loc in
@@ -54,16 +54,26 @@ and emit_toplevel_type_declaration ~pcx ~ecx decl =
     | Tuple _ ->
       let adt_sig = Types.get_adt_sig ty in
       let element_sigs = Types.get_tuple_variant adt_sig name in
-      let element_types = List.map (type_to_mir_type ~pcx ~ecx) element_sigs in
+      let element_types =
+        List.map
+          (fun element_sig ->
+            let element_ty = type_to_mir_type ~pcx ~ecx element_sig in
+            (None, element_ty))
+          element_sigs
+      in
       Some { Aggregate.name; loc; elements = element_types }
-    | Record _ ->
+    | Record { fields; _ } ->
       let adt_sig = Types.get_adt_sig ty in
       let field_sigs = Types.get_record_variant adt_sig name in
+      (* Collect fields for aggregate in order they are declared in *)
       let element_types =
-        SMap.fold
-          (fun _ sig_ty element_types -> type_to_mir_type ~pcx ~ecx sig_ty :: element_types)
-          field_sigs
+        List.fold_left
+          (fun element_types { Record.Field.name = { Identifier.name; _ }; _ } ->
+            let sig_ty = SMap.find name field_sigs in
+            let element_ty = type_to_mir_type ~pcx ~ecx sig_ty in
+            (Some name, element_ty) :: element_types)
           []
+          fields
       in
       Some { Aggregate.name; loc; elements = List.rev element_types }
     | Variant _
@@ -282,47 +292,43 @@ and emit_expression ~pcx ~ecx expr =
     (* Emit tuple constructor *)
     let ctor_result_opt =
       match func with
-      | Identifier { Identifier.loc; name }
-      | ScopedIdentifier { ScopedIdentifier.name = { Identifier.loc; name }; _ } ->
+      | Identifier { Identifier.loc; _ }
+      | ScopedIdentifier { ScopedIdentifier.name = { Identifier.loc; _ }; _ } ->
         let binding = Type_context.get_source_value_binding ~cx:pcx.type_ctx loc in
         (match snd binding.declaration with
         | CtorDecl ->
           let adt = Type_context.find_rep_type ~cx:pcx.type_ctx (TVar binding.tvar_id) in
-          let adt_sig = Types.get_adt_sig adt in
-          (match SMap.find name adt_sig.variant_sigs with
-          | TupleVariantSig _ ->
-            (* Find MIR aggregate type for this ADT *)
-            let agg_ptr_var_id = mk_cf_var_id () in
-            let agg = Types.TypeHashtbl.find ecx.adt_to_agg_type adt in
-            (* Call myte_allocate builtin to allocate space for tuple *)
-            let agg_ty = `AggregateT agg in
-            let agg_ptr_var = `PointerV (agg_ty, agg_ptr_var_id) in
-            let (agg_ptr_val, myte_alloc_instr) =
-              Mir_builtin.(mk_call_builtin myte_alloc agg_ptr_var_id [`LongL Int64.one] agg_ty)
-            in
-            Ecx.emit ~ecx myte_alloc_instr;
-            (* Store each argument to the tuple constructor in space allocated for tuple *)
-            let args_and_element_types = List.combine args agg.Aggregate.elements in
-            List.iteri
-              (fun i (arg, element_ty) ->
-                (* Calculate offset for this element and store *)
-                let arg_var = emit_expression ~pcx ~ecx arg in
-                let element_offset_var_id = mk_cf_var_id () in
-                let element_offset_var = `PointerV (element_ty, element_offset_var_id) in
-                let get_offset_instr =
-                  {
-                    GetOffset.var_id = element_offset_var_id;
-                    return_ty = element_ty;
-                    pointer = agg_ptr_var;
-                    pointer_offset = `LongL Int64.zero;
-                    offsets = [GetOffset.FieldIndex i];
-                  }
-                in
-                Ecx.emit ~ecx (GetOffset get_offset_instr);
-                Ecx.emit ~ecx (Store (element_offset_var, arg_var)))
-              args_and_element_types;
-            Some agg_ptr_val
-          | _ -> None)
+          (* Find MIR aggregate type for this ADT *)
+          let agg = Types.TypeHashtbl.find ecx.adt_to_agg_type adt in
+          let agg_ty = `AggregateT agg in
+          (* Call myte_alloc builtin to allocate space for tuple *)
+          let agg_ptr_var_id = mk_cf_var_id () in
+          let agg_ptr_var = `PointerV (agg_ty, agg_ptr_var_id) in
+          let (agg_ptr_val, myte_alloc_instr) =
+            Mir_builtin.(mk_call_builtin myte_alloc agg_ptr_var_id [`LongL Int64.one] agg_ty)
+          in
+          Ecx.emit ~ecx myte_alloc_instr;
+          (* Store each argument to the tuple constructor in space allocated for tuple *)
+          let args_and_element_types = List.combine args agg.Aggregate.elements in
+          List.iteri
+            (fun i (arg, (_, element_ty)) ->
+              (* Calculate offset for this element and store *)
+              let arg_var = emit_expression ~pcx ~ecx arg in
+              let element_offset_var_id = mk_cf_var_id () in
+              let element_offset_var = `PointerV (element_ty, element_offset_var_id) in
+              let get_offset_instr =
+                {
+                  GetOffset.var_id = element_offset_var_id;
+                  return_ty = element_ty;
+                  pointer = agg_ptr_var;
+                  pointer_offset = `LongL Int64.zero;
+                  offsets = [GetOffset.FieldIndex i];
+                }
+              in
+              Ecx.emit ~ecx (GetOffset get_offset_instr);
+              Ecx.emit ~ecx (Store (element_offset_var, arg_var)))
+            args_and_element_types;
+          Some agg_ptr_val
         | _ -> None)
       | _ -> None
     in
@@ -336,6 +342,43 @@ and emit_expression ~pcx ~ecx expr =
       let ret_ty = mir_type_of_loc ~pcx ~ecx loc in
       Ecx.emit ~ecx (Call (var_id, ret_ty, func_val, arg_vals));
       var_value_of_type var_id ret_ty)
+  | Record { Record.loc; name = _; fields } ->
+    (* Find MIR aggregate type for this ADT *)
+    let adt = type_of_loc ~pcx loc in
+    let agg = Types.TypeHashtbl.find ecx.adt_to_agg_type adt in
+    let agg_ty = `AggregateT agg in
+    (* Call myte_alloc builtin to allocate space for record *)
+    let agg_ptr_var_id = mk_cf_var_id () in
+    let agg_ptr_var = `PointerV (agg_ty, agg_ptr_var_id) in
+    let (agg_ptr_val, myte_alloc_instr) =
+      Mir_builtin.(mk_call_builtin myte_alloc agg_ptr_var_id [`LongL Int64.one] agg_ty)
+    in
+    Ecx.emit ~ecx myte_alloc_instr;
+    (* Store each argument to the record constructor in space allocated for record *)
+    List.iter
+      (fun { Record.Field.name = { name; _ } as name_id; value; _ } ->
+        (* Calculate offset for this element and store *)
+        let arg_var =
+          match value with
+          | Some expr -> emit_expression ~pcx ~ecx expr
+          | None -> emit_expression ~pcx ~ecx (Identifier name_id)
+        in
+        let (element_ty, element_idx) = lookup_element agg name in
+        let element_offset_var_id = mk_cf_var_id () in
+        let element_offset_var = `PointerV (element_ty, element_offset_var_id) in
+        let get_offset_instr =
+          {
+            GetOffset.var_id = element_offset_var_id;
+            return_ty = element_ty;
+            pointer = agg_ptr_var;
+            pointer_offset = `LongL Int64.zero;
+            offsets = [GetOffset.FieldIndex element_idx];
+          }
+        in
+        Ecx.emit ~ecx (GetOffset get_offset_instr);
+        Ecx.emit ~ecx (Store (element_offset_var, arg_var)))
+      fields;
+    agg_ptr_val
   | _ ->
     prerr_endline (Ast_pp.pp (Ast_pp.node_of_expression expr));
     failwith "Expression has not yet been converted to IR"
@@ -461,8 +504,13 @@ and type_to_mir_type ~pcx ~ecx ty =
   | Types.Any -> failwith "Any not allowed as value in IR"
   | Types.ADT _ ->
     (match Types.TypeHashtbl.find_opt ecx.adt_to_agg_type ty with
-    | Some mir_type -> `AggregateT mir_type
+    (* All aggregates are currently allocated behind a pointer *)
+    | Some mir_type -> `PointerT (`AggregateT mir_type)
     | None -> failwith "TODO: Cannot emit generics")
+
+and type_of_loc ~pcx loc =
+  let tvar_id = Type_context.get_tvar_from_loc ~cx:pcx.type_ctx loc in
+  Type_context.find_rep_type ~cx:pcx.type_ctx (TVar tvar_id)
 
 and mir_type_of_loc ~pcx ~ecx loc =
   let tvar_id = Type_context.get_tvar_from_loc ~cx:pcx.type_ctx loc in

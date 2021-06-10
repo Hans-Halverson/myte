@@ -2,9 +2,13 @@ type Tup1 {int}
 
 type Tup2 {string, bool, unit}
 
+type Tup3 {Tup1*, Tup2*, int}
+
 type Rec1 {int}
 
-type Rec2 {bool, unit, Tup2}
+type Rec2 {bool, unit, Tup2*}
+
+type Rec3 {unit, bool, int}
 
 func unit @test.main() {
   Ret

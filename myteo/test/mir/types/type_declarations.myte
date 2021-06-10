@@ -4,8 +4,14 @@ type Tup1 (Int)
 
 type Tup2 (String, Bool, Unit)
 
+// Aggregate fields are pointers
+type Tup3 (Tup1, Tup2, Int)
+
 type Rec1 { field: Int }
 
 type Rec2 { field1: Bool, field2: Unit, field3: Tup2 }
+
+// Order of fields is preserved in aggregate
+type Rec3 { z: Unit, y: Bool, x: Int }
 
 fun main() {}

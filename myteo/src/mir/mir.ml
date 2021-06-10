@@ -23,7 +23,8 @@ and Aggregate : sig
   type t = {
     name: string;
     loc: Loc.t;
-    elements: Type.t list;
+    (* Elements along with their optional name *)
+    elements: (string option * Type.t) list;
   }
 end =
   Aggregate
@@ -348,3 +349,15 @@ and map_pointer_value ~(f : 'a -> 'b) (value : 'a Value.pointer_value) : 'b Valu
   | `PointerV (ty, v) -> `PointerV (ty, f v)
 
 let get_block ~ir block_id = IMap.find block_id ir.Program.blocks
+
+(* Look up an element by name in an aggregate type, throwing if no element with that name is found.
+   Return a tuple of the element's type and its index in the aggregate. *)
+let lookup_element agg name =
+  let open Aggregate in
+  let rec inner elements i =
+    match elements with
+    | [] -> failwith "Field not defined for aggregate"
+    | (Some element_name, element_ty) :: _ when element_name = name -> (element_ty, i)
+    | _ :: tl -> inner tl (i + 1)
+  in
+  inner agg.elements 0
