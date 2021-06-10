@@ -176,7 +176,7 @@ class init_visitor ~ocx =
 
     method! visit_edge b1 b2 = add_block_link ~ocx b1.id b2.id
 
-    method! visit_result_variable ~block ~instruction:_ var_id =
+    method! visit_result_variable ~block var_id =
       ocx.var_def_blocks <- IMap.add var_id block.id ocx.var_def_blocks
 
     method! visit_use_variable ~block var_id =

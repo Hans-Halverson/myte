@@ -11,7 +11,7 @@ class var_gatherer ~program =
 
     method vars = vars
 
-    method! visit_result_variable ~block:_ ~instruction:_ var_id = vars <- ISet.add var_id vars
+    method! visit_result_variable ~block:_ var_id = vars <- ISet.add var_id vars
 
     method! visit_phi_node ~block:_ (_, var_id, _) = vars <- ISet.add var_id vars
   end

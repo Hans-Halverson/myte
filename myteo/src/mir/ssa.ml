@@ -1,5 +1,6 @@
 open Basic_collections
 open Mir
+open Mir_visitor
 
 (* Conversion of Control Flow IR to SSA IR
 
@@ -126,6 +127,21 @@ let rec control_flow_ir_to_ssa pcx ir =
   build_phi_nodes ~pcx ~cx ir;
   map_to_ssa ~pcx ~cx ir
 
+(* A visitor used in find_join_points, which collects all declaration sources *)
+and mk_add_sources_visitor ~program ~pcx sources =
+  object
+    inherit [cf_var] IRVisitor.t ~program
+
+    method! visit_result_variable ~block:_ cf_var =
+      match cf_var with
+      | Id _ -> ()
+      | Local write_loc ->
+        let decl_loc =
+          Bindings.get_source_decl_loc_from_value_use pcx.Lex_analyze.bindings write_loc
+        in
+        sources := LocMap.add decl_loc write_loc !sources
+  end
+
 and find_join_points ~pcx ~cx program =
   let open Program in
   let block_sources = ref IMap.empty in
@@ -158,8 +174,9 @@ and find_join_points ~pcx ~cx program =
     cx.visited_blocks <- ISet.add block_id cx.visited_blocks;
     add_block_sources block_id sources;
     let sources = ref sources in
+    let visitor = mk_add_sources_visitor ~pcx ~program sources in
     let block = IMap.find block_id program.blocks in
-    List.iter (visit_instruction ~sources) block.instructions;
+    List.iter (visitor#visit_instruction ~block) block.instructions;
     match block.next with
     | Halt -> ()
     | Continue continue ->
@@ -170,44 +187,6 @@ and find_join_points ~pcx ~cx program =
       add_block_link ~cx block_id jump;
       maybe_visit_block !sources continue;
       maybe_visit_block !sources jump
-  and visit_instruction ~sources (_, instruction) =
-    let open Instruction in
-    match instruction with
-    | Ret _
-    | StoreGlobal _ ->
-      ()
-    | Mov (result, _)
-    | Call (result, _, _, _)
-    | LoadGlobal (result, _)
-    | Neg (result, _)
-    | BitNot (result, _)
-    | LogNot (result, _)
-    | LogAnd (result, _, _)
-    | LogOr (result, _, _)
-    | Add (result, _, _)
-    | Sub (result, _, _)
-    | Mul (result, _, _)
-    | Div (result, _, _)
-    | Rem (result, _, _)
-    | BitAnd (result, _, _)
-    | BitOr (result, _, _)
-    | BitXor (result, _, _)
-    | Shl (result, _, _)
-    | Shr (result, _, _)
-    | Shrl (result, _, _)
-    | Eq (result, _, _)
-    | Neq (result, _, _)
-    | Lt (result, _, _)
-    | LtEq (result, _, _)
-    | Gt (result, _, _)
-    | GtEq (result, _, _) ->
-      (match result with
-      | Id _ -> ()
-      | Local write_loc ->
-        let decl_loc =
-          Bindings.get_source_decl_loc_from_value_use pcx.Lex_analyze.bindings write_loc
-        in
-        sources := LocMap.add decl_loc write_loc !sources)
   in
   (* Visit all function bodies *)
   SMap.iter
@@ -238,6 +217,34 @@ and find_join_points ~pcx ~cx program =
           IMap.add block_id nodes block_nodes)
       !block_sources
       IMap.empty
+
+and mk_build_phi_nodes_visitor ~pcx ~cx program sources phi_nodes_to_realize =
+  object
+    inherit [cf_var] IRVisitor.t ~program
+
+    method! visit_result_variable ~block cf_var =
+      match cf_var with
+      | Id _ -> ()
+      | Local loc ->
+        (* Source for this variable is now this write location *)
+        let decl_loc = Bindings.get_source_decl_loc_from_value_use pcx.Lex_analyze.bindings loc in
+        sources := LocMap.add decl_loc (WriteLocation (block.id, loc)) !sources;
+        cx.write_var_ids <- LocMap.add loc (mk_var_id ()) cx.write_var_ids
+
+    method! visit_use_variable ~block:_ cf_var =
+      match cf_var with
+      | Id _ -> ()
+      | Local loc ->
+        (* Save source for each use *)
+        let decl_loc = Bindings.get_source_decl_loc_from_value_use pcx.Lex_analyze.bindings loc in
+        let source = LocMap.find decl_loc !sources in
+        cx.use_sources <- LocMap.add loc source cx.use_sources;
+        (* If source is a phi node it should be realized *)
+        (match source with
+        | WriteLocation _ -> ()
+        | PhiChainJoin node_id ->
+          phi_nodes_to_realize := IMap.add node_id decl_loc !phi_nodes_to_realize)
+  end
 
 and build_phi_nodes ~pcx ~cx program =
   let open Program in
@@ -284,122 +291,15 @@ and build_phi_nodes ~pcx ~cx program =
           decl_nodes
     end;
     let block = IMap.find block_id program.blocks in
-    List.iter (visit_instruction ~sources block_id) block.instructions;
+    let visitor = mk_build_phi_nodes_visitor ~pcx ~cx program sources phi_nodes_to_realize in
+    List.iter (visitor#visit_instruction ~block) block.instructions;
     match block.next with
     | Halt -> ()
     | Continue continue -> maybe_visit_block !sources continue
     | Branch { test; continue; jump } ->
-      visit_bool_value test sources;
+      visitor#visit_bool_value ~block test;
       maybe_visit_block !sources continue;
       maybe_visit_block !sources jump
-  and add_read read_loc sources =
-    (* Save source for each use *)
-    let decl_loc = Bindings.get_source_decl_loc_from_value_use pcx.Lex_analyze.bindings read_loc in
-    let source = LocMap.find decl_loc !sources in
-    cx.use_sources <- LocMap.add read_loc source cx.use_sources;
-    (* If source is a phi node it should be realized *)
-    match source with
-    | WriteLocation _ -> ()
-    | PhiChainJoin node_id ->
-      phi_nodes_to_realize := IMap.add node_id decl_loc !phi_nodes_to_realize
-  and add_write write_loc block_id sources =
-    (* Source for this variable is now this write location *)
-    let decl_loc = Bindings.get_source_decl_loc_from_value_use pcx.Lex_analyze.bindings write_loc in
-    sources := LocMap.add decl_loc (WriteLocation (block_id, write_loc)) !sources;
-    cx.write_var_ids <- LocMap.add write_loc (mk_var_id ()) cx.write_var_ids
-  and visit_result v block_id sources =
-    match v with
-    | Id _ -> ()
-    | Local loc -> add_write loc block_id sources
-  and visit_var v sources =
-    match v with
-    | Id _ -> ()
-    | Local loc -> add_read loc sources
-  and visit_numeric_value v sources =
-    match v with
-    | `ByteL _
-    | `IntL _
-    | `LongL _ ->
-      ()
-    | `ByteV var
-    | `IntV var
-    | `LongV var ->
-      visit_var var sources
-  and visit_bool_value v sources =
-    match v with
-    | `BoolL _ -> ()
-    | `BoolV var -> visit_var var sources
-  and visit_function_value v sources =
-    match v with
-    | `FunctionL _ -> ()
-    | `FunctionV var -> visit_var var sources
-  and visit_pointer_value v sources =
-    match v with
-    | `PointerL _ -> ()
-    | `PointerV (_, var) -> visit_var var sources
-  and visit_value v sources =
-    match v with
-    | `UnitL
-    | `StringL _ ->
-      ()
-    | `UnitV var
-    | `StringV var ->
-      visit_var var sources
-    | (`BoolL _ | `BoolV _) as bool -> visit_bool_value bool sources
-    | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as numeric ->
-      visit_numeric_value numeric sources
-    | (`FunctionL _ | `FunctionV _) as func -> visit_function_value func sources
-    | (`PointerL _ | `PointerV _) as ptr -> visit_pointer_value ptr sources
-  and visit_instruction ~sources block_id (_, instruction) =
-    let open Instruction in
-    let visit_result v = visit_result v block_id sources in
-    let visit_numeric_value v = visit_numeric_value v sources in
-    let visit_bool_value v = visit_bool_value v sources in
-    let visit_function_value v = visit_function_value v sources in
-    let visit_value v = visit_value v sources in
-    match instruction with
-    | Mov (result, arg) ->
-      visit_value arg;
-      visit_result result
-    | Call (result, _, func, args) ->
-      visit_function_value func;
-      List.iter visit_value args;
-      visit_result result
-    | Ret arg -> Option.iter visit_value arg
-    | LoadGlobal (result, _) -> visit_result result
-    | StoreGlobal (_, arg) -> visit_value arg
-    | Neg (result, arg)
-    | BitNot (result, arg) ->
-      visit_numeric_value arg;
-      visit_result result
-    | LogNot (result, arg) ->
-      visit_bool_value arg;
-      visit_result result
-    | LogAnd (result, left, right)
-    | LogOr (result, left, right) ->
-      visit_bool_value left;
-      visit_bool_value right;
-      visit_result result
-    | Add (result, left, right)
-    | Sub (result, left, right)
-    | Mul (result, left, right)
-    | Div (result, left, right)
-    | Rem (result, left, right)
-    | BitAnd (result, left, right)
-    | BitOr (result, left, right)
-    | BitXor (result, left, right)
-    | Shl (result, left, right)
-    | Shr (result, left, right)
-    | Shrl (result, left, right)
-    | Eq (result, left, right)
-    | Neq (result, left, right)
-    | Lt (result, left, right)
-    | LtEq (result, left, right)
-    | Gt (result, left, right)
-    | GtEq (result, left, right) ->
-      visit_numeric_value left;
-      visit_numeric_value right;
-      visit_result result
   in
   (* Visit bodies of all functions *)
   cx.visited_blocks <- ISet.empty;

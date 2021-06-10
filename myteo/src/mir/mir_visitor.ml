@@ -72,30 +72,30 @@ module IRVisitor = struct
       method visit_instructions ~block instructions =
         List.iter (this#visit_instruction ~block) instructions
 
-      method visit_instruction ~block ((_, instr) as instruction) =
+      method visit_instruction ~block (_, instr) =
         match instr with
         | Mov (result, arg) ->
-          this#visit_result_variable ~block ~instruction result;
-          this#visit_value ~block ~instruction arg
+          this#visit_value ~block arg;
+          this#visit_result_variable ~block result
         | Call (ret, _ret_ty, func, args) ->
-          this#visit_result_variable ~block ~instruction ret;
-          this#visit_function_value ~block ~instruction func;
-          List.iter (this#visit_value ~block ~instruction) args
-        | Ret arg_opt -> Option.iter (this#visit_value ~block ~instruction) arg_opt
-        | LoadGlobal (result, _name) -> this#visit_result_variable ~block ~instruction result
-        | StoreGlobal (_name, arg) -> this#visit_value ~block ~instruction arg
+          this#visit_function_value ~block func;
+          List.iter (this#visit_value ~block) args;
+          this#visit_result_variable ~block ret
+        | Ret arg_opt -> Option.iter (this#visit_value ~block) arg_opt
+        | LoadGlobal (result, _name) -> this#visit_result_variable ~block result
+        | StoreGlobal (_name, arg) -> this#visit_value ~block arg
         | LogNot (result, arg) ->
-          this#visit_result_variable ~block ~instruction result;
-          this#visit_bool_value ~block ~instruction arg
+          this#visit_bool_value ~block arg;
+          this#visit_result_variable ~block result
         | LogAnd (result, left, right)
         | LogOr (result, left, right) ->
-          this#visit_result_variable ~block ~instruction result;
-          this#visit_bool_value ~block ~instruction left;
-          this#visit_bool_value ~block ~instruction right
+          this#visit_bool_value ~block left;
+          this#visit_bool_value ~block right;
+          this#visit_result_variable ~block result
         | Neg (result, arg)
         | BitNot (result, arg) ->
-          this#visit_result_variable ~block ~instruction result;
-          this#visit_numeric_value ~block ~instruction arg
+          this#visit_numeric_value ~block arg;
+          this#visit_result_variable ~block result
         | Add (result, left, right)
         | Sub (result, left, right)
         | Mul (result, left, right)
@@ -113,20 +113,19 @@ module IRVisitor = struct
         | LtEq (result, left, right)
         | Gt (result, left, right)
         | GtEq (result, left, right) ->
-          this#visit_result_variable ~block ~instruction result;
-          this#visit_numeric_value ~block ~instruction left;
-          this#visit_numeric_value ~block ~instruction right
+          this#visit_numeric_value ~block left;
+          this#visit_numeric_value ~block right;
+          this#visit_result_variable ~block result
 
-      method visit_result_variable ~block:_ ~instruction:_ _var_id = ()
+      method visit_result_variable ~block:_ _var_id = ()
 
-      method visit_instruction_use_variable ~block ~instruction:_ var_id =
-        this#visit_use_variable ~block var_id
+      method visit_instruction_use_variable ~block var_id = this#visit_use_variable ~block var_id
 
       method visit_branch_use_variable = this#visit_use_variable
 
       method visit_use_variable ~block:_ _var_id = ()
 
-      method visit_value ~block ~instruction value =
+      method visit_value ~block value =
         match value with
         | `UnitL
         | `BoolL _
@@ -145,24 +144,24 @@ module IRVisitor = struct
         | `LongV var_id
         | `FunctionV var_id
         | `PointerV (_, var_id) ->
-          this#visit_instruction_use_variable ~block ~instruction var_id
+          this#visit_instruction_use_variable ~block var_id
 
-      method visit_unit_value ~block ~instruction (value : 'a Value.unit_value) =
-        this#visit_value ~block ~instruction (value :> 'a Value.t)
+      method visit_unit_value ~block (value : 'a Value.unit_value) =
+        this#visit_value ~block (value :> 'a Value.t)
 
-      method visit_bool_value ~block ~instruction (value : 'a Value.bool_value) =
-        this#visit_value ~block ~instruction (value :> 'a Value.t)
+      method visit_bool_value ~block (value : 'a Value.bool_value) =
+        this#visit_value ~block (value :> 'a Value.t)
 
-      method visit_string_value ~block ~instruction (value : 'a Value.string_value) =
-        this#visit_value ~block ~instruction (value :> 'a Value.t)
+      method visit_string_value ~block (value : 'a Value.string_value) =
+        this#visit_value ~block (value :> 'a Value.t)
 
-      method visit_numeric_value ~block ~instruction (value : 'a Value.numeric_value) =
-        this#visit_value ~block ~instruction (value :> 'a Value.t)
+      method visit_numeric_value ~block (value : 'a Value.numeric_value) =
+        this#visit_value ~block (value :> 'a Value.t)
 
-      method visit_function_value ~block ~instruction (value : 'a Value.function_value) =
-        this#visit_value ~block ~instruction (value :> 'a Value.t)
+      method visit_function_value ~block (value : 'a Value.function_value) =
+        this#visit_value ~block (value :> 'a Value.t)
 
-      method visit_pointer_value ~block ~instruction (value : 'a Value.pointer_value) =
-        this#visit_value ~block ~instruction (value :> 'a Value.t)
+      method visit_pointer_value ~block (value : 'a Value.pointer_value) =
+        this#visit_value ~block (value :> 'a Value.t)
     end
 end
