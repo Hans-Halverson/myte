@@ -1,0 +1,9 @@
+module test
+
+type Tup1 (Int)
+
+fun tupleConstructor() {
+  Tup1 (3);
+}
+
+fun main() {}

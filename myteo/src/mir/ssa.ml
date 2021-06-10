@@ -435,6 +435,8 @@ and map_to_ssa ~pcx ~ecx ~cx program =
     | Mov (return, arg) -> Mov (map_return return, map_value arg)
     | Call (return, ret_ty, func, args) ->
       Call (map_return return, ret_ty, map_function_value func, List.map map_value args)
+    | CallBuiltin (return, ret_ty, builtin, args) ->
+      CallBuiltin (map_return return, ret_ty, builtin, List.map map_value args)
     | Ret arg -> Ret (Option.map map_value arg)
     | Load (return, ptr) -> Load (map_return return, map_pointer_value ptr)
     | Store (ptr, arg) -> Store (map_pointer_value ptr, map_value arg)
@@ -544,7 +546,11 @@ and map_to_ssa ~pcx ~ecx ~cx program =
     SMap.map
       (fun global ->
         let open Global in
-        { global with init_val = map_value ~f:map_read_var global.init_val; var = map_read_var global.var })
+        {
+          global with
+          init_val = map_value ~f:map_read_var global.init_val;
+          var = map_read_var global.var;
+        })
       program.globals
   in
   { program with blocks = cx.blocks; globals }

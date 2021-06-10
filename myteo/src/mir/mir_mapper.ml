@@ -52,6 +52,13 @@ module InstructionsMapper = struct
             [instruction]
           else
             mk_instr (Call (ret', ret_ty, func', args'))
+        | CallBuiltin (ret, ret_ty, builtin, args) ->
+          let ret' = this#map_result_variable ~block ret in
+          let args' = id_map_list (this#map_value ~block) args in
+          if ret == ret' && args == args' then
+            [instruction]
+          else
+            mk_instr (CallBuiltin (ret', ret_ty, builtin, args'))
         | Ret arg_opt ->
           let arg_opt' = id_map_opt (this#map_value ~block) arg_opt in
           if arg_opt == arg_opt' then

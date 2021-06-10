@@ -279,12 +279,39 @@ and emit_expression ~pcx ~ecx expr =
       var_value_of_type var (mir_type_of_value_decl_loc ~pcx ~ecx decl_loc))
   | TypeCast { expr; _ } -> emit_expression ~pcx ~ecx expr
   | Call { loc; func; args } ->
-    let var_id = mk_cf_var_id () in
-    let func_val = emit_function_expression ~pcx ~ecx func in
-    let arg_vals = List.map (emit_expression ~pcx ~ecx) args in
-    let ret_ty = mir_type_of_loc ~pcx ~ecx loc in
-    Ecx.emit ~ecx (Call (var_id, ret_ty, func_val, arg_vals));
-    var_value_of_type var_id ret_ty
+    (* Emit tuple constructor *)
+    let ctor_result_opt =
+      match func with
+      | Identifier { Identifier.loc; name }
+      | ScopedIdentifier { ScopedIdentifier.name = { Identifier.loc; name }; _ } ->
+        let binding = Type_context.get_source_value_binding ~cx:pcx.type_ctx loc in
+        (match snd binding.declaration with
+        | CtorDecl ->
+          let adt = Type_context.find_rep_type ~cx:pcx.type_ctx (TVar binding.tvar_id) in
+          let adt_sig = Types.get_adt_sig adt in
+          (match SMap.find name adt_sig.variant_sigs with
+          | TupleVariantSig _ ->
+            let var_id = mk_cf_var_id () in
+            let mir_ty = type_to_mir_type ~pcx ~ecx adt in
+            let (result_val, call_builtin_instr) =
+              Mir_builtin.(mk_call_builtin myte_alloc var_id [`LongL Int64.one] mir_ty)
+            in
+            Ecx.emit ~ecx call_builtin_instr;
+            Some result_val
+          | _ -> None)
+        | _ -> None)
+      | _ -> None
+    in
+    (* Emit function call *)
+    (match ctor_result_opt with
+    | Some result -> result
+    | None ->
+      let var_id = mk_cf_var_id () in
+      let func_val = emit_function_expression ~pcx ~ecx func in
+      let arg_vals = List.map (emit_expression ~pcx ~ecx) args in
+      let ret_ty = mir_type_of_loc ~pcx ~ecx loc in
+      Ecx.emit ~ecx (Call (var_id, ret_ty, func_val, arg_vals));
+      var_value_of_type var_id ret_ty)
   | _ ->
     prerr_endline (Ast_pp.pp (Ast_pp.node_of_expression expr));
     failwith "Expression has not yet been converted to IR"

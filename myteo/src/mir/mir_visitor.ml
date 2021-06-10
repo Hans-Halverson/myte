@@ -81,6 +81,9 @@ module IRVisitor = struct
           this#visit_function_value ~block func;
           List.iter (this#visit_value ~block) args;
           this#visit_result_variable ~block ret
+        | CallBuiltin (ret, _ret_ty, _builtin, args) ->
+          List.iter (this#visit_value ~block) args;
+          this#visit_result_variable ~block ret
         | Ret arg_opt -> Option.iter (this#visit_value ~block) arg_opt
         | Load (result, ptr) ->
           this#visit_pointer_value ~block ptr;

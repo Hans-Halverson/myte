@@ -80,9 +80,14 @@ end =
 and Instruction : sig
   type 'var t = instr_id * 'var t'
 
+  and ('var, 'a) call =
+    (* Return var *)
+    'var * (* Return type *) Type.t * (* Function *) 'a * (* Arguments *) 'var Value.t list
+
   and 'var t' =
     | Mov of 'var * 'var Value.t
-    | Call of 'var * (* Return type *) Type.t * 'var Value.function_value * 'var Value.t list
+    | Call of ('var, 'var Value.function_value) call
+    | CallBuiltin of ('var, Builtin.t) call
     | Ret of 'var Value.t option
     (* Memory operations *)
     | Load of 'var * 'var Value.pointer_value
@@ -191,6 +196,14 @@ and Function : sig
   }
 end =
   Function
+
+and Builtin : sig
+  type t = {
+    name: string;
+    mk_return_ty: Type.t -> Type.t;
+  }
+end =
+  Builtin
 
 type cf_var =
   | Id of var_id

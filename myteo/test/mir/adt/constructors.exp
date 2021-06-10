@@ -1,0 +1,10 @@
+type Tup1 {int}
+
+func unit @test.tupleConstructor() {
+  %0 := CallBuiltin Tup1* myte.myte_alloc(1)
+  Ret
+}
+
+func unit @test.main() {
+  Ret
+}

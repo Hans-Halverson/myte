@@ -255,6 +255,9 @@ and pp_instruction ~cx (_, instr) =
       pp_instr
         var_id
         (Printf.sprintf "Call %s %s(%s)" (pp_type ret_ty) (pp_function_value ~cx func) args_string)
+    | CallBuiltin (var_id, ret_ty, { Builtin.name; _ }, args) ->
+      let args_string = List.map (pp_value ~cx) args |> String.concat ", " in
+      pp_instr var_id (Printf.sprintf "CallBuiltin %s %s(%s)" (pp_type ret_ty) name args_string)
     | Ret val_opt ->
       "Ret"
       ^

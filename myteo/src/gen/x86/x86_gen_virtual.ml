@@ -341,10 +341,10 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    *)
   | Mir.Instruction.Load (_var_id, _label) :: rest_instructions ->
     (* let global = SMap.find label ir.globals in
-    let global_size = size_of_mir_value_type global.ty in
-    Gcx.emit
-      ~gcx
-      (MovMM (global_size, Mem (mk_label_memory_address label), Reg (vreg_of_var var_id))); *)
+       let global_size = size_of_mir_value_type global.ty in
+       Gcx.emit
+         ~gcx
+         (MovMM (global_size, Mem (mk_label_memory_address label), Reg (vreg_of_var var_id))); *)
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -353,17 +353,17 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    *)
   | Mir.Instruction.Store (_label, _value) :: rest_instructions ->
     (* let global_address = mk_label_memory_address label in
-    (match resolve_ir_value value with
-    | SImm imm -> Gcx.emit ~gcx (MovIM (imm, Mem global_address))
-    | SAddr addr ->
-      let vreg = mk_vreg () in
-      Gcx.emit ~gcx (Lea (Size64, addr, vreg));
-      Gcx.emit ~gcx (MovMM (Size64, Reg vreg, Mem global_address))
-    | SMem (mem, size) ->
-      let vreg = mk_vreg () in
-      Gcx.emit ~gcx (MovMM (size, Mem mem, Reg vreg));
-      Gcx.emit ~gcx (MovMM (size, Reg vreg, Mem global_address))
-    | SVReg (reg, size) -> Gcx.emit ~gcx (MovMM (size, Reg reg, Mem global_address))); *)
+       (match resolve_ir_value value with
+       | SImm imm -> Gcx.emit ~gcx (MovIM (imm, Mem global_address))
+       | SAddr addr ->
+         let vreg = mk_vreg () in
+         Gcx.emit ~gcx (Lea (Size64, addr, vreg));
+         Gcx.emit ~gcx (MovMM (Size64, Reg vreg, Mem global_address))
+       | SMem (mem, size) ->
+         let vreg = mk_vreg () in
+         Gcx.emit ~gcx (MovMM (size, Mem mem, Reg vreg));
+         Gcx.emit ~gcx (MovMM (size, Reg vreg, Mem global_address))
+       | SVReg (reg, size) -> Gcx.emit ~gcx (MovMM (size, Reg reg, Mem global_address))); *)
     gen_instructions rest_instructions
   (*
    * ===========================================
