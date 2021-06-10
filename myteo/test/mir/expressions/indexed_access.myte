@@ -1,0 +1,35 @@
+module test
+
+type Tup1 (Int)
+
+type Tup2 (String, Bool, Int)
+
+type Tup3 (Byte, Tup2, Long)
+
+type Tup4 (Int, Int, Tup3)
+
+type Rec1 { foo: Tup4 }
+
+fun makeTup(x: Int): Tup1 = Tup1 (x)
+
+fun testIndexing(t1: Tup1, t2: Tup2, t3: Tup3, t4: Tup4, r1: Rec1) {
+  // Simple indexing
+  t1[0];
+
+  t2[0];
+  t2[1];
+
+  // Nested indexing
+  t3[0];
+  t3[1][2];
+
+  t4[2][1][0];
+
+  // Indexing after expression
+  makeTup(2 * 3)[0];
+
+  // Indexed access after named access
+  r1.foo[2][1];
+ }
+
+fun main() {}

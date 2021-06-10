@@ -314,16 +314,8 @@ and emit_expression ~pcx ~ecx expr =
             (fun i (arg, (_, element_ty)) ->
               (* Calculate offset for this element and store *)
               let arg_var = emit_expression ~pcx ~ecx arg in
-              let element_offset_var_id = mk_cf_var_id () in
-              let element_offset_var = `PointerV (element_ty, element_offset_var_id) in
-              let get_offset_instr =
-                {
-                  GetOffset.var_id = element_offset_var_id;
-                  return_ty = element_ty;
-                  pointer = agg_ptr_var;
-                  pointer_offset = `LongL Int64.zero;
-                  offsets = [GetOffset.FieldIndex i];
-                }
+              let (element_offset_var, get_offset_instr) =
+                mk_get_offset_instr element_ty agg_ptr_var [GetOffset.FieldIndex i]
               in
               Ecx.emit ~ecx (GetOffset get_offset_instr);
               Ecx.emit ~ecx (Store (element_offset_var, arg_var)))
@@ -364,24 +356,71 @@ and emit_expression ~pcx ~ecx expr =
           | None -> emit_expression ~pcx ~ecx (Identifier name_id)
         in
         let (element_ty, element_idx) = lookup_element agg name in
-        let element_offset_var_id = mk_cf_var_id () in
-        let element_offset_var = `PointerV (element_ty, element_offset_var_id) in
-        let get_offset_instr =
-          {
-            GetOffset.var_id = element_offset_var_id;
-            return_ty = element_ty;
-            pointer = agg_ptr_var;
-            pointer_offset = `LongL Int64.zero;
-            offsets = [GetOffset.FieldIndex element_idx];
-          }
+        let (element_offset_var, get_offset_instr) =
+          mk_get_offset_instr element_ty agg_ptr_var [GetOffset.FieldIndex element_idx]
         in
         Ecx.emit ~ecx (GetOffset get_offset_instr);
         Ecx.emit ~ecx (Store (element_offset_var, arg_var)))
       fields;
     agg_ptr_val
+  | IndexedAccess _
+  | NamedAccess _ ->
+    emit_expression_access_chain ~pcx ~ecx expr
   | _ ->
     prerr_endline (Ast_pp.pp (Ast_pp.node_of_expression expr));
     failwith "Expression has not yet been converted to IR"
+
+and emit_expression_access_chain ~pcx ~ecx expr =
+  let open Expression in
+  let open Instruction in
+  match expr with
+  | IndexedAccess { IndexedAccess.target; index; _ } ->
+    let target_ty = type_of_loc ~pcx (Ast_utils.expression_loc target) in
+    let emit_tuple_indexed_access () =
+      (* Emit target expression *)
+      let target_var = emit_expression_access_chain ~pcx ~ecx target in
+      let target_ptr_var = cast_to_pointer_value target_var in
+      (* Extract tuple element index from integer literal *)
+      let element_idx =
+        match index with
+        | IntLiteral { IntLiteral.raw; base; _ } ->
+          Integers.int64_of_string_opt raw base |> Option.get |> Int64.to_int
+        | _ -> failwith "Index of a tuple must be an int literal to pass type checking"
+      in
+      (* Find element type in the corresponding aggregate type *)
+      let agg = Types.TypeHashtbl.find ecx.adt_to_agg_type target_ty in
+      let (_, element_ty) = List.nth agg.elements element_idx in
+      (* Calculate element offset and load value *)
+      let (element_offset_var, get_offset_instr) =
+        mk_get_offset_instr element_ty target_ptr_var [GetOffset.FieldIndex element_idx]
+      in
+      Ecx.emit ~ecx (GetOffset get_offset_instr);
+      let var_id = mk_cf_var_id () in
+      Ecx.emit ~ecx (Load (var_id, element_offset_var));
+      var_value_of_type var_id element_ty
+    in
+    (match target_ty with
+    | Tuple _ -> emit_tuple_indexed_access ()
+    | ADT { adt_sig = { variant_sigs; _ }; _ } when SMap.cardinal variant_sigs = 1 ->
+      emit_tuple_indexed_access ()
+    | _ -> failwith "Target must be a tuple to pass type checking")
+  | NamedAccess { NamedAccess.target; name = { name; _ }; _ } ->
+    (* Emit target expression *)
+    let target_var = emit_expression_access_chain ~pcx ~ecx target in
+    let target_ptr_var = cast_to_pointer_value target_var in
+    (* Find element type in the corresponding aggregate type *)
+    let target_ty = type_of_loc ~pcx (Ast_utils.expression_loc target) in
+    let agg = Types.TypeHashtbl.find ecx.adt_to_agg_type target_ty in
+    let (element_ty, element_idx) = lookup_element agg name in
+    (* Calculate element offset and load value *)
+    let (element_offset_var, get_offset_instr) =
+      mk_get_offset_instr element_ty target_ptr_var [GetOffset.FieldIndex element_idx]
+    in
+    Ecx.emit ~ecx (GetOffset get_offset_instr);
+    let var_id = mk_cf_var_id () in
+    Ecx.emit ~ecx (Load (var_id, element_offset_var));
+    var_value_of_type var_id element_ty
+  | _ -> emit_expression ~pcx ~ecx expr
 
 and emit_bool_expression ~pcx ~ecx expr =
   match emit_expression ~pcx ~ecx expr with
@@ -397,6 +436,11 @@ and emit_function_expression ~pcx ~ecx expr =
   match emit_expression ~pcx ~ecx expr with
   | (`FunctionL _ | `FunctionV _) as v -> v
   | _ -> failwith "Expected function value"
+
+and cast_to_pointer_value v =
+  match v with
+  | (`PointerL _ | `PointerV _) as v -> v
+  | _ -> failwith "Expected pointer value"
 
 and emit_statement ~pcx ~ecx stmt =
   let open Statement in
@@ -487,6 +531,18 @@ and mk_cf_var_id () = Id (mk_var_id ())
 and mk_cf_local loc = Local loc
 
 and mk_binding_name binding = String.concat "." (binding.module_ @ [binding.name])
+
+and mk_get_offset_instr element_ty pointer offsets =
+  let var_id = mk_cf_var_id () in
+  let var = `PointerV (element_ty, var_id) in
+  ( var,
+    {
+      Instruction.GetOffset.var_id;
+      return_ty = element_ty;
+      pointer;
+      pointer_offset = `LongL Int64.zero;
+      offsets;
+    } )
 
 and type_to_mir_type ~pcx ~ecx ty =
   let ty = Type_context.find_rep_type ~cx:pcx.type_ctx ty in

@@ -1,0 +1,52 @@
+type Rec1 {int}
+
+type Rec2 {string, bool, int}
+
+type Rec3 {byte, Rec2*, long}
+
+type Rec4 {int, int, Rec3*}
+
+type Tup1 {Rec4*}
+
+func Rec1* @test.makeRec(int %0) {
+  %1 := CallBuiltin Rec1* myte.myte_alloc(1)
+  %2 := GetOffset int %1[0].0
+  Store %2, %0
+  Ret %1
+}
+
+func unit @test.testIndexing(Rec1* %3, Rec2* %4, Rec3* %5, Rec4* %6, Tup1* %7) {
+  %8 := GetOffset int %3[0].0
+  %9 := Load %8
+  %10 := GetOffset string %4[0].0
+  %11 := Load %10
+  %12 := GetOffset bool %4[0].1
+  %13 := Load %12
+  %14 := GetOffset byte %5[0].0
+  %15 := Load %14
+  %16 := GetOffset Rec2* %5[0].1
+  %17 := Load %16
+  %18 := GetOffset int %17[0].2
+  %19 := Load %18
+  %20 := GetOffset Rec3* %6[0].2
+  %21 := Load %20
+  %22 := GetOffset Rec2* %21[0].1
+  %23 := Load %22
+  %24 := GetOffset string %23[0].0
+  %25 := Load %24
+  %26 := Mul int 2, 3
+  %27 := Call Rec1* @test.makeRec(%26)
+  %28 := GetOffset int %27[0].0
+  %29 := Load %28
+  %30 := GetOffset Rec4* %7[0].0
+  %31 := Load %30
+  %32 := GetOffset Rec3* %31[0].2
+  %33 := Load %32
+  %34 := GetOffset Rec2* %33[0].1
+  %35 := Load %34
+  Ret
+}
+
+func unit @test.main() {
+  Ret
+}
