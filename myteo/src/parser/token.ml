@@ -50,12 +50,6 @@ type t =
   | T_AS
   | T_TYPE
   | T_ALIAS
-  | T_UNIT
-  | T_BYTE
-  | T_INT
-  | T_LONG
-  | T_STRING
-  | T_BOOL
   | T_EOF
 
 let to_string token =
@@ -115,10 +109,4 @@ let to_string token =
   | T_AS -> "as"
   | T_TYPE -> "type"
   | T_ALIAS -> "alias"
-  | T_UNIT -> "Unit"
-  | T_BYTE -> "Byte"
-  | T_INT -> "Int"
-  | T_LONG -> "Long"
-  | T_STRING -> "String"
-  | T_BOOL -> "Bool"
   | T_EOF -> "<EOF>"

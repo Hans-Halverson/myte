@@ -1,0 +1,5 @@
+module test
+
+fun Int (Int: Int) {
+  x.Int;
+}

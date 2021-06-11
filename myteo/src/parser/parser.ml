@@ -1101,34 +1101,24 @@ and parse_type env =
 
 and parse_type_prefix env =
   let open Type in
+  let open Type.Primitive in
   match Env.token env with
-  | T_UNIT
-  | T_BYTE
-  | T_INT
-  | T_LONG
-  | T_STRING
-  | T_BOOL ->
-    Primitive (parse_primitive_type env)
+  | T_IDENTIFIER "Unit" -> parse_primitive_type env Unit
+  | T_IDENTIFIER "Byte" -> parse_primitive_type env Byte
+  | T_IDENTIFIER "Int" -> parse_primitive_type env Int
+  | T_IDENTIFIER "Long" -> parse_primitive_type env Long
+  | T_IDENTIFIER "String" -> parse_primitive_type env String
+  | T_IDENTIFIER "Bool" -> parse_primitive_type env Bool
   | T_LEFT_PAREN -> parse_parenthesized_type env
   | T_LESS_THAN -> parse_function_type_with_type_params env
   | T_IDENTIFIER _ -> Identifier (parse_identifier_type env)
   | token -> Parse_error.fatal (Env.loc env, MalformedType token)
 
-and parse_primitive_type env =
+and parse_primitive_type env kind =
   let open Type.Primitive in
-  let kind =
-    match Env.token env with
-    | T_UNIT -> Unit
-    | T_INT -> Int
-    | T_BYTE -> Byte
-    | T_LONG -> Long
-    | T_STRING -> String
-    | T_BOOL -> Bool
-    | _ -> failwith "Must be called on primitive type"
-  in
   let loc = Env.loc env in
   Env.advance env;
-  { loc; kind }
+  Primitive { loc; kind }
 
 and parse_parenthesized_type env =
   let open Type in
