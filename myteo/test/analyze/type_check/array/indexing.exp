@@ -1,0 +1,24 @@
+Error: Expected type `String` but found `Int`
+test/analyze/type_check/array/indexing.myte:8:3-7
+ 8 |   (x[0]: String);
+   |    ^^^^
+
+Error: Expected type `Array<Int>` but found `Int`
+test/analyze/type_check/array/indexing.myte:9:3-7
+ 9 |   (x[0]: Array<Int>);
+   |    ^^^^
+
+Error: Expected type `Array<Array<Int>>` but found `Array<Array<String>>`
+test/analyze/type_check/array/indexing.myte:19:3-7
+ 19 |   (x[0]: Array<Array<Int>>);
+    |    ^^^^
+
+Error: Expected type `Array<Int>` but found `Array<String>`
+test/analyze/type_check/array/indexing.myte:20:3-10
+ 20 |   (x[0][0]: Array<Int>);
+    |    ^^^^^^^
+
+Error: Expected type `Array<Array<String>>` but found `String`
+test/analyze/type_check/array/indexing.myte:21:3-13
+ 21 |   (x[0][0][0]: Array<Array<String>>);
+    |    ^^^^^^^^^^

@@ -1,0 +1,46 @@
+module test
+
+type Rec1 { foo: String, bar: Unit }
+
+fun testMixingAll1(x: Array<(Int, Rec1)>) {
+  // All pass
+  (x[100]: (Int, Rec1));
+  (x[100][0]: Int);
+  (x[100][1]: Rec1);
+  (x[100][1].foo: String);
+  (x[100][1].bar: Unit);
+
+  // All fail
+  (x[100]: (Int, String));
+  (x[100][0]: String);
+  (x[100][1]: Unit);
+  (x[100][1].foo: Unit);
+  (x[100][1].bar: Bool);
+}
+
+type Tup1 (Rec2, Array<Byte>)
+type Rec2 { foo: Long, bar: Array<Unit>, baz: (String, Long) }
+
+fun testMixingAll2(x: Tup1) {
+  // All pass
+  (x[0]: Rec2);
+  (x[0].foo: Long);
+  (x[0].bar: Array<Unit>);
+  (x[0].bar[100]: Unit);
+  (x[0].baz: (String, Long));
+  (x[0].baz[1]: Long);
+  (x[1]: Array<Byte>);
+  (x[1][100]: Byte);
+
+  // All fail
+  (x[0]: Int);
+  (x[0].foo: Int);
+  (x[0].bar: Array<Int>);
+  (x[0].bar[100]: Int);
+  (x[0].baz: (Int, Long));
+  (x[0].baz[1]: Int);
+  (x[1]: Array<Int>);
+  (x[1][100]: Int);
+}
+
+fun main() {}

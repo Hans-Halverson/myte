@@ -1100,7 +1100,6 @@ and parse_type env =
   | _ -> ty
 
 and parse_type_prefix env =
-  let open Type in
   let open Type.Primitive in
   match Env.token env with
   | T_IDENTIFIER "Unit" -> parse_primitive_type env Unit
@@ -1111,7 +1110,7 @@ and parse_type_prefix env =
   | T_IDENTIFIER "Bool" -> parse_primitive_type env Bool
   | T_LEFT_PAREN -> parse_parenthesized_type env
   | T_LESS_THAN -> parse_function_type_with_type_params env
-  | T_IDENTIFIER _ -> Identifier (parse_identifier_type env)
+  | T_IDENTIFIER _ -> parse_identifier_type env
   | token -> Parse_error.fatal (Env.loc env, MalformedType token)
 
 and parse_primitive_type env kind =
@@ -1194,7 +1193,10 @@ and parse_identifier_type env =
     | _ -> []
   in
   let loc = marker env in
-  { loc; name; type_params }
+  match name with
+  | { ScopedIdentifier.scopes = []; name = { Identifier.name; _ }; _ } when name = "Array" ->
+    Builtin { Type.Builtin.loc; kind = Array; type_params }
+  | _ -> Identifier { loc; name; type_params }
 
 and parse_function_type env params type_params marker =
   let open Ast.Type in

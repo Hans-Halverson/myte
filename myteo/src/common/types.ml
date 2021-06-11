@@ -14,6 +14,7 @@ type t =
   | Long
   | IntLiteral of int_literal
   | String
+  | Array of t
   | Tuple of t list
   | Function of {
       params: t list;
@@ -101,6 +102,7 @@ let rec pp_with_names ~tvar_to_name ty =
   | IntLiteral { resolved = None; _ } -> "<Integer>"
   | IntLiteral { resolved = Some resolved; _ } -> pp_with_names ~tvar_to_name resolved
   | String -> "String"
+  | Array element -> "Array<" ^ pp_with_names ~tvar_to_name element ^ ">"
   | Tuple elements ->
     let element_names = List.map (pp_with_names ~tvar_to_name) elements in
     concat_and_wrap ("(", ")") element_names
@@ -207,6 +209,7 @@ module TypeHash = struct
     | (Long, Long)
     | (String, String) ->
       true
+    | (Array element1, Array element2) -> equal element1 element2
     | (Tuple elements1, Tuple elements2) ->
       List.length elements1 = List.length elements2 && List.for_all2 equal elements1 elements2
     | ( Function { params = params1; return = return1 },
@@ -238,9 +241,10 @@ module TypeHash = struct
     | String -> 7
     | IntLiteral { resolved = None; _ } -> 8
     | IntLiteral { resolved = Some ty; _ } -> hash ty
-    | Tuple elements -> hash_nums (9 :: List.map hash elements)
-    | Function { params; return } -> hash_nums (10 :: hash return :: List.map hash params)
-    | ADT { adt_sig = { id; _ }; tparams } -> hash_nums (11 :: id :: List.map hash tparams)
+    | Array element -> hash_nums [9; hash element]
+    | Tuple elements -> hash_nums (10 :: List.map hash elements)
+    | Function { params; return } -> hash_nums (11 :: hash return :: List.map hash params)
+    | ADT { adt_sig = { id; _ }; tparams } -> hash_nums (12 :: id :: List.map hash tparams)
 end
 
 module TypeHashtbl = Hashtbl.Make (TypeHash)

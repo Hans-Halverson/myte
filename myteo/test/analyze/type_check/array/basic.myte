@@ -1,0 +1,21 @@
+module test
+
+fun testUnifying(a1: Array<Int>, a2: Array<Int>, a3: Array<Bool>) {
+  // Same type
+  a1 == a2;
+
+  // Different types
+  a1 == 1;
+  a1 == a3;
+}
+
+fun testSubtyping(a1: Array<Int>) {
+  // Correct
+  (a1: Array<Int>);
+
+  // Incorrect
+  (a1: Int);
+  (a1: Array<Bool>);
+}
+
+fun main() {}

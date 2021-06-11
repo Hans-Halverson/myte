@@ -17,6 +17,9 @@ let rec build_type ~cx ty =
   | Tuple { Tuple.elements; _ } -> Types.Tuple (List.map (build_type ~cx) elements)
   | Function { Function.params; return; _ } ->
     Types.Function { params = List.map (build_type ~cx) params; return = build_type ~cx return }
+  | Builtin { Builtin.kind = Array; type_params; _ } ->
+    (* TODO: Error on incorrect number of type params *)
+    Types.Array (build_type ~cx (List.hd type_params))
   | Identifier { Identifier.name = { Ast.ScopedIdentifier.name = { Ast.Identifier.loc; _ }; _ }; _ }
     ->
     TVar (Type_context.get_tvar_id_from_type_use ~cx loc)
@@ -612,6 +615,7 @@ and check_expression ~cx expr =
     let (target_loc, target_tvar_id) = check_expression ~cx target in
     let (index_loc, index_tvar_id) = check_expression ~cx index in
     let check_tuple_indexed_access elements =
+      (* Verify that index is an int literal *)
       let index_rep_ty = Type_context.find_rep_type ~cx (TVar index_tvar_id) in
       match (index, index_rep_ty) with
       | (IntLiteral _, Types.IntLiteral { values = [(_, value)]; _ }) ->
@@ -628,6 +632,19 @@ and check_expression ~cx expr =
         Type_context.add_error ~cx index_loc TupleIndexIsNotLiteral;
         ignore (Type_context.unify ~cx Any (TVar tvar_id))
     in
+    let check_array_indexed_access element_ty =
+      (* Verify that index is an integer *)
+      let index_rep_ty = Type_context.find_rep_type ~cx (TVar index_tvar_id) in
+      match index_rep_ty with
+      | Byte
+      | Int
+      | Long
+      | IntLiteral _ ->
+        ignore (Type_context.unify ~cx element_ty (TVar tvar_id))
+      | ty ->
+        Type_context.add_error ~cx index_loc (IndexIsNotInteger (Type_context.find_rep_type ~cx ty));
+        ignore (Type_context.unify ~cx Any (TVar tvar_id))
+    in
     let target_rep_ty = Type_context.find_rep_type ~cx (TVar target_tvar_id) in
     let is_indexable_ty =
       match target_rep_ty with
@@ -642,6 +659,9 @@ and check_expression ~cx expr =
           check_tuple_indexed_access element_sigs;
           true
         | _ -> false)
+      | Array element_ty ->
+        check_array_indexed_access element_ty;
+        true
       (* Propagate anys *)
       | Any ->
         ignore (Type_context.unify ~cx Any (TVar tvar_id));

@@ -1,0 +1,9 @@
+module test
+
+fun indexIsNotIntegerError(x: Array<Int>) {
+  x[true];
+  x[()];
+  x[x];
+}
+
+fun main() {}

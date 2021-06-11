@@ -143,6 +143,12 @@ let rec find_rep_type ~cx ty =
   | String ->
     ty
   | IntLiteral { resolved = Some ty; _ } -> find_non_union_rep_type ty
+  | Array element ->
+    let element' = find_rep_type ~cx element in
+    if element == element' then
+      ty
+    else
+      Array element'
   | Tuple elements ->
     let elements' = id_map_list (find_rep_type ~cx) elements in
     if elements == elements' then
@@ -183,6 +189,7 @@ let rec tvar_occurs_in ~cx tvar ty =
   | IntLiteral _
   | String ->
     false
+  | Array element -> tvar_occurs_in ~cx tvar element
   | Tuple elements -> List.exists (tvar_occurs_in ~cx tvar) elements
   | Function { params; return } ->
     List.exists (tvar_occurs_in ~cx tvar) params || tvar_occurs_in ~cx tvar return
@@ -232,6 +239,8 @@ let rec unify ~cx ty1 ty2 =
   | (Long, Long)
   | (String, String) ->
     true
+  (* Arrays unify their element types *)
+  | (Array element1, Array element2) -> unify ~cx element1 element2
   (* Tuples unify all their elements if they have the same arity *)
   | (Tuple elements1, Tuple elements2) ->
     List.length elements1 = List.length elements2
@@ -280,6 +289,9 @@ let rec is_subtype ~cx sub sup =
   | (Long, Long)
   | (String, String) ->
     true
+  (* Array type parameter is invariant *)
+  | (Array element1, Array element2) ->
+    is_subtype ~cx element1 element2 && is_subtype ~cx element2 element1
   (* Tuple element types are covariant *)
   | (Tuple sub_elements, Tuple sup_elements) ->
     List.length sub_elements = List.length sup_elements

@@ -93,6 +93,7 @@ class mapper =
         match ty with
         | Primitive t -> id_map this#primitive_type t ty (fun t' -> Primitive t')
         | Identifier t -> id_map this#identifier_type t ty (fun t' -> Identifier t')
+        | Builtin t -> id_map this#builtin_type t ty (fun t' -> Builtin t')
         | Tuple t -> id_map this#tuple_type t ty (fun t' -> Tuple t')
         | Function t -> id_map this#function_type t ty (fun t' -> Function t')
 
@@ -523,6 +524,15 @@ class mapper =
         id
       else
         { loc; name = name'; type_params = type_params' }
+
+    method builtin_type builtin =
+      let open Type.Builtin in
+      let { loc; kind; type_params } = builtin in
+      let type_params' = id_map_list this#type_ type_params in
+      if type_params == type_params' then
+        builtin
+      else
+        { loc; kind; type_params = type_params' }
 
     method tuple_type tuple =
       let open Type.Tuple in

@@ -1,0 +1,73 @@
+test/parser/ast/type/builtin.myte
+{
+  node: Module,
+  loc: 1:0-5:33,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: TypeDeclaration,
+      loc: 3:0-3:26,
+      name: {
+        node: Identifier,
+        loc: 3:11-3:13,
+        name: "T1",
+      },
+      type_params: [],
+      alias: {
+        node: BuiltinType,
+        loc: 3:16-3:26,
+        kind: Array,
+        type_params: [
+          {
+            node: PrimitiveType,
+            loc: 3:22-3:25,
+            kind: Int,
+          },
+        ],
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 5:0-5:33,
+      name: {
+        node: Identifier,
+        loc: 5:11-5:13,
+        name: "T2",
+      },
+      type_params: [],
+      alias: {
+        node: BuiltinType,
+        loc: 5:16-5:33,
+        kind: Array,
+        type_params: [
+          {
+            node: BuiltinType,
+            loc: 5:22-5:32,
+            kind: Array,
+            type_params: [
+              {
+                node: PrimitiveType,
+                loc: 5:28-5:31,
+                kind: Int,
+              },
+            ],
+          },
+        ],
+      },
+    },
+  ],
+}

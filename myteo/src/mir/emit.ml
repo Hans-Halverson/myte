@@ -571,6 +571,7 @@ and type_to_mir_type ~pcx ~ecx ty =
   | Types.Long -> `LongT
   | Types.IntLiteral { resolved; _ } -> type_to_mir_type ~pcx ~ecx (Option.get resolved)
   | Types.String -> `StringT
+  | Types.Array _ -> failwith "TODO: Implement MIR emission for array types"
   | Types.Tuple _ -> failwith "TODO: Implement MIR emission for tuple types"
   | Types.Function _ -> `FunctionT
   | Types.TVar _ -> failwith "TVars must be resolved for all values in IR"
