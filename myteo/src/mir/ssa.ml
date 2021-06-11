@@ -441,18 +441,18 @@ and map_to_ssa ~pcx ~ecx ~cx program =
     | Ret arg -> Ret (Option.map map_value arg)
     | Load (return, ptr) -> Load (map_return return, map_pointer_value ptr)
     | Store (ptr, arg) -> Store (map_pointer_value ptr, map_value arg)
-    | GetOffset { GetOffset.var_id; return_ty; pointer; pointer_offset; offsets } ->
+    | GetPointer { GetPointer.var_id; return_ty; pointer; pointer_offset; offsets } ->
       let offsets =
         List.map
           (fun offset ->
             match offset with
-            | GetOffset.PointerIndex index -> GetOffset.PointerIndex (map_long_value index)
-            | GetOffset.FieldIndex _ as index -> index)
+            | GetPointer.PointerIndex index -> GetPointer.PointerIndex (map_long_value index)
+            | GetPointer.FieldIndex _ as index -> index)
           offsets
       in
-      GetOffset
+      GetPointer
         {
-          GetOffset.var_id = map_return var_id;
+          GetPointer.var_id = map_return var_id;
           return_ty;
           pointer = map_pointer_value pointer;
           pointer_offset = map_long_value pointer_offset;

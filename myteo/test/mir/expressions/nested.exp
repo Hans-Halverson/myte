@@ -3,7 +3,7 @@ global int @test.x {
   %1 := Div int %0, 4
   %2 := Add int 1, %1
   %3 := Sub int %2, 67
-  Store @test.x, %3
+  Store int @test.x, %3
 }
 
 func unit @test.main() {

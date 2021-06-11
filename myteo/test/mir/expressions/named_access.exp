@@ -10,40 +10,40 @@ type Tup1 {Rec4*}
 
 func Rec1* @test.makeRec(int %0) {
   %1 := CallBuiltin Rec1* myte.myte_alloc(1)
-  %2 := GetOffset int %1[0].0
-  Store %2, %0
+  %2 := GetPointer int %1.0
+  Store int %2, %0
   Ret %1
 }
 
 func unit @test.testIndexing(Rec1* %3, Rec2* %4, Rec3* %5, Rec4* %6, Tup1* %7) {
-  %8 := GetOffset int %3[0].0
-  %9 := Load %8
-  %10 := GetOffset string %4[0].0
-  %11 := Load %10
-  %12 := GetOffset bool %4[0].1
-  %13 := Load %12
-  %14 := GetOffset byte %5[0].0
-  %15 := Load %14
-  %16 := GetOffset Rec2* %5[0].1
-  %17 := Load %16
-  %18 := GetOffset int %17[0].2
-  %19 := Load %18
-  %20 := GetOffset Rec3* %6[0].2
-  %21 := Load %20
-  %22 := GetOffset Rec2* %21[0].1
-  %23 := Load %22
-  %24 := GetOffset string %23[0].0
-  %25 := Load %24
+  %8 := GetPointer int %3.0
+  %9 := Load int %8
+  %10 := GetPointer string %4.0
+  %11 := Load string %10
+  %12 := GetPointer bool %4.1
+  %13 := Load bool %12
+  %14 := GetPointer byte %5.0
+  %15 := Load byte %14
+  %16 := GetPointer Rec2* %5.1
+  %17 := Load Rec2* %16
+  %18 := GetPointer int %17.2
+  %19 := Load int %18
+  %20 := GetPointer Rec3* %6.2
+  %21 := Load Rec3* %20
+  %22 := GetPointer Rec2* %21.1
+  %23 := Load Rec2* %22
+  %24 := GetPointer string %23.0
+  %25 := Load string %24
   %26 := Mul int 2, 3
   %27 := Call Rec1* @test.makeRec(%26)
-  %28 := GetOffset int %27[0].0
-  %29 := Load %28
-  %30 := GetOffset Rec4* %7[0].0
-  %31 := Load %30
-  %32 := GetOffset Rec3* %31[0].2
-  %33 := Load %32
-  %34 := GetOffset Rec2* %33[0].1
-  %35 := Load %34
+  %28 := GetPointer int %27.0
+  %29 := Load int %28
+  %30 := GetPointer Rec4* %7.0
+  %31 := Load Rec4* %30
+  %32 := GetPointer Rec3* %31.2
+  %33 := Load Rec3* %32
+  %34 := GetPointer Rec2* %33.1
+  %35 := Load Rec2* %34
   Ret
 }
 

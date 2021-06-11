@@ -47,16 +47,16 @@ label @7:
 }
 
 global int @test.glob {
-  Store @test.glob, 1
+  Store int @test.glob, 1
 }
 
 func unit @test.testGlobal() {
   branch true, @8, @9
 label @8:
-  Store @test.glob, 2
+  Store int @test.glob, 2
   continue @9
 label @9:
-  %20 := Load @test.glob
+  %20 := Load int @test.glob
   %21 := Neg int %20
   Ret
 }

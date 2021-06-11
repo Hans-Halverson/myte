@@ -1,15 +1,15 @@
 global int @test.x {
-  Store @test.x, 0
+  Store int @test.x, 0
 }
 
 func unit @test.testReassignGlobals() {
-  Store @test.x, 1
+  Store int @test.x, 1
   %0 := Add int 2, 3
-  Store @test.x, %0
-  %1 := Load @test.x
-  %2 := Load @test.x
+  Store int @test.x, %0
+  %1 := Load int @test.x
+  %2 := Load int @test.x
   %3 := Mul int %1, %2
-  Store @test.x, %3
+  Store int @test.x, %3
   Ret
 }
 

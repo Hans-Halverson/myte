@@ -1,21 +1,21 @@
 global int @t.int1 {
-  Store @t.int1, 3
+  Store int @t.int1, 3
 }
 
 global bool @t.bool1 {
-  Store @t.bool1, false
+  Store bool @t.bool1, false
 }
 
 global int @t.int2 {
-  Store @t.int2, -286
+  Store int @t.int2, -286
 }
 
 global bool @t.bool2 {
-  Store @t.bool2, true
+  Store bool @t.bool2, true
 }
 
 global bool @t.mixed {
-  Store @t.mixed, true
+  Store bool @t.mixed, true
 }
 
 func unit @t.useBool(bool %0) {

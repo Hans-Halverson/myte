@@ -83,7 +83,7 @@ end =
   Value
 
 and Instruction : sig
-  module GetOffset : sig
+  module GetPointer : sig
     type 'var offset =
       | PointerIndex of 'var Value.long_value
       | FieldIndex of int
@@ -112,7 +112,7 @@ and Instruction : sig
     | Load of 'var * 'var Value.pointer_value
     | Store of 'var Value.pointer_value * 'var Value.t
     (* Memory offset operations *)
-    | GetOffset of 'var GetOffset.t
+    | GetPointer of 'var GetPointer.t
     (* Logical ops *)
     | LogNot of 'var * 'var Value.bool_value
     | LogAnd of 'var * 'var Value.bool_value * 'var Value.bool_value

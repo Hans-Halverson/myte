@@ -92,14 +92,14 @@ module IRVisitor = struct
         | Store (ptr, arg) ->
           this#visit_value ~block arg;
           this#visit_pointer_value ~block ptr
-        | GetOffset { GetOffset.var_id; return_ty = _; pointer; pointer_offset; offsets } ->
+        | GetPointer { GetPointer.var_id; return_ty = _; pointer; pointer_offset; offsets } ->
           this#visit_pointer_value ~block pointer;
           this#visit_long_value ~block pointer_offset;
           List.iter
             (fun offset ->
               match offset with
-              | GetOffset.PointerIndex index -> this#visit_long_value ~block index
-              | GetOffset.FieldIndex _ -> ())
+              | GetPointer.PointerIndex index -> this#visit_long_value ~block index
+              | GetPointer.FieldIndex _ -> ())
             offsets;
           this#visit_result_variable ~block var_id
         | LogNot (result, arg) ->

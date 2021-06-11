@@ -79,7 +79,7 @@ module InstructionsMapper = struct
             [instruction]
           else
             mk_instr (Store (ptr', arg'))
-        | GetOffset { GetOffset.var_id; return_ty; pointer; pointer_offset; offsets } ->
+        | GetPointer { GetPointer.var_id; return_ty; pointer; pointer_offset; offsets } ->
           let var_id' = this#map_result_variable ~block var_id in
           let pointer' = this#map_pointer_value ~block pointer in
           let pointer_offset' = this#map_long_value ~block pointer_offset in
@@ -87,10 +87,10 @@ module InstructionsMapper = struct
             id_map_list
               (fun offset ->
                 match offset with
-                | GetOffset.PointerIndex index ->
+                | GetPointer.PointerIndex index ->
                   id_map (this#map_long_value ~block) index offset (fun index' ->
-                      GetOffset.PointerIndex index')
-                | GetOffset.FieldIndex _ -> offset)
+                      GetPointer.PointerIndex index')
+                | GetPointer.FieldIndex _ -> offset)
               offsets
           in
           if
@@ -102,9 +102,9 @@ module InstructionsMapper = struct
             [instruction]
           else
             mk_instr
-              (GetOffset
+              (GetPointer
                  {
-                   GetOffset.var_id = var_id';
+                   GetPointer.var_id = var_id';
                    return_ty;
                    pointer = pointer';
                    pointer_offset = pointer_offset';

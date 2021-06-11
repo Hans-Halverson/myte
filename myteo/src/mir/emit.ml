@@ -314,10 +314,10 @@ and emit_expression ~pcx ~ecx expr =
             (fun i (arg, (_, element_ty)) ->
               (* Calculate offset for this element and store *)
               let arg_var = emit_expression ~pcx ~ecx arg in
-              let (element_offset_var, get_offset_instr) =
-                mk_get_offset_instr element_ty agg_ptr_var [GetOffset.FieldIndex i]
+              let (element_offset_var, get_ptr_instr) =
+                mk_get_pointer_instr element_ty agg_ptr_var [GetPointer.FieldIndex i]
               in
-              Ecx.emit ~ecx (GetOffset get_offset_instr);
+              Ecx.emit ~ecx (GetPointer get_ptr_instr);
               Ecx.emit ~ecx (Store (element_offset_var, arg_var)))
             args_and_element_types;
           Some agg_ptr_val
@@ -356,10 +356,10 @@ and emit_expression ~pcx ~ecx expr =
           | None -> emit_expression ~pcx ~ecx (Identifier name_id)
         in
         let (element_ty, element_idx) = lookup_element agg name in
-        let (element_offset_var, get_offset_instr) =
-          mk_get_offset_instr element_ty agg_ptr_var [GetOffset.FieldIndex element_idx]
+        let (element_offset_var, get_ptr_instr) =
+          mk_get_pointer_instr element_ty agg_ptr_var [GetPointer.FieldIndex element_idx]
         in
-        Ecx.emit ~ecx (GetOffset get_offset_instr);
+        Ecx.emit ~ecx (GetPointer get_ptr_instr);
         Ecx.emit ~ecx (Store (element_offset_var, arg_var)))
       fields;
     agg_ptr_val
@@ -391,10 +391,10 @@ and emit_expression_access_chain ~pcx ~ecx expr =
       let agg = Types.TypeHashtbl.find ecx.adt_to_agg_type target_ty in
       let (_, element_ty) = List.nth agg.elements element_idx in
       (* Calculate element offset and load value *)
-      let (element_offset_var, get_offset_instr) =
-        mk_get_offset_instr element_ty target_ptr_var [GetOffset.FieldIndex element_idx]
+      let (element_offset_var, get_ptr_instr) =
+        mk_get_pointer_instr element_ty target_ptr_var [GetPointer.FieldIndex element_idx]
       in
-      Ecx.emit ~ecx (GetOffset get_offset_instr);
+      Ecx.emit ~ecx (GetPointer get_ptr_instr);
       let var_id = mk_cf_var_id () in
       Ecx.emit ~ecx (Load (var_id, element_offset_var));
       var_value_of_type var_id element_ty
@@ -413,10 +413,10 @@ and emit_expression_access_chain ~pcx ~ecx expr =
     let agg = Types.TypeHashtbl.find ecx.adt_to_agg_type target_ty in
     let (element_ty, element_idx) = lookup_element agg name in
     (* Calculate element offset and load value *)
-    let (element_offset_var, get_offset_instr) =
-      mk_get_offset_instr element_ty target_ptr_var [GetOffset.FieldIndex element_idx]
+    let (element_offset_var, get_ptr_instr) =
+      mk_get_pointer_instr element_ty target_ptr_var [GetPointer.FieldIndex element_idx]
     in
-    Ecx.emit ~ecx (GetOffset get_offset_instr);
+    Ecx.emit ~ecx (GetPointer get_ptr_instr);
     let var_id = mk_cf_var_id () in
     Ecx.emit ~ecx (Load (var_id, element_offset_var));
     var_value_of_type var_id element_ty
@@ -532,12 +532,12 @@ and mk_cf_local loc = Local loc
 
 and mk_binding_name binding = String.concat "." (binding.module_ @ [binding.name])
 
-and mk_get_offset_instr element_ty pointer offsets =
+and mk_get_pointer_instr element_ty pointer offsets =
   let var_id = mk_cf_var_id () in
   let var = `PointerV (element_ty, var_id) in
   ( var,
     {
-      Instruction.GetOffset.var_id;
+      Instruction.GetPointer.var_id;
       return_ty = element_ty;
       pointer;
       pointer_offset = `LongL Int64.zero;
