@@ -1,0 +1,75 @@
+func unit @test.indexing(int* %0, bool*** %1) {
+  %2 := GetPointer int %0[int 0]
+  %3 := Load int %2
+  %4 := GetPointer bool** %1[int 0]
+  %5 := Load bool** %4
+  %6 := GetPointer bool** %1[int 1]
+  %7 := Load bool** %6
+  %8 := GetPointer bool* %7[int 2]
+  %9 := Load bool* %8
+  %10 := GetPointer bool %9[int 3]
+  %11 := Load bool %10
+  Ret
+}
+
+func unit @test.indexingAllIntegerTypes(unit* %12, int %13, byte %14, long %15) {
+  %16 := GetPointer unit %12[int %13]
+  %17 := Load unit %16
+  %18 := GetPointer unit %12[byte %14]
+  %19 := Load unit %18
+  %20 := GetPointer unit %12[long %15]
+  %21 := Load unit %20
+  %22 := GetPointer unit %12[int 3]
+  %23 := Load unit %22
+  %24 := GetPointer unit %12[byte 3]
+  %25 := Load unit %24
+  %26 := GetPointer unit %12[long 3]
+  %27 := Load unit %26
+  Ret
+}
+
+type Tup0 {long, byte}
+
+type Tup1 {string, bool*}
+
+func unit @test.indexingWithTuple(Tup0** %28, Tup1* %29) {
+  %30 := GetPointer Tup0* %28[int 77]
+  %31 := Load Tup0* %30
+  %32 := GetPointer byte %31.1
+  %33 := Load byte %32
+  %34 := GetPointer bool* %29.1
+  %35 := Load bool* %34
+  %36 := GetPointer bool %35[int 1]
+  %37 := Load bool %36
+  Ret
+}
+
+type Rec0 {string, bool*}
+
+func unit @test.indexingWithRecord(Rec0** %38, Rec1* %39, int %40) {
+  %41 := GetPointer Rec0* %38[int 77]
+  %42 := Load Rec0* %41
+  %43 := GetPointer bool* %42.1
+  %44 := Load bool* %43
+  %45 := GetPointer bool %44[int %40]
+  %46 := Load bool %45
+  Ret
+}
+
+type Rec1 {string, Tup2**}
+
+type Tup2 {byte, long}
+
+func unit @test.indexingWithRecordAndTuple(Rec1* %47) {
+  %48 := GetPointer Tup2** %47.1
+  %49 := Load Tup2** %48
+  %50 := GetPointer Tup2* %49[int 99]
+  %51 := Load Tup2* %50
+  %52 := GetPointer long %51.1
+  %53 := Load long %52
+  Ret
+}
+
+func unit @test.main() {
+  Ret
+}

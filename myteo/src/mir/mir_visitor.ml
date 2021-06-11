@@ -94,11 +94,11 @@ module IRVisitor = struct
           this#visit_pointer_value ~block ptr
         | GetPointer { GetPointer.var_id; return_ty = _; pointer; pointer_offset; offsets } ->
           this#visit_pointer_value ~block pointer;
-          this#visit_long_value ~block pointer_offset;
+          Option.iter (this#visit_numeric_value ~block) pointer_offset;
           List.iter
             (fun offset ->
               match offset with
-              | GetPointer.PointerIndex index -> this#visit_long_value ~block index
+              | GetPointer.PointerIndex index -> this#visit_numeric_value ~block index
               | GetPointer.FieldIndex _ -> ())
             offsets;
           this#visit_result_variable ~block var_id

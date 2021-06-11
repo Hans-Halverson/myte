@@ -281,16 +281,21 @@ and pp_instruction ~cx (_, instr) =
         (pp_pointer_value ~cx ptr)
         (pp_value ~cx right)
     | GetPointer { GetPointer.var_id; return_ty; pointer; pointer_offset; offsets } ->
+      let pp_pointer_offset pointer_offset =
+        Printf.sprintf
+          "[%s %s]"
+          (pp_type_of_numeric_value pointer_offset)
+          (pp_numeric_value ~cx pointer_offset)
+      in
+
       let pointer_offset_str =
-        match pointer_offset with
-        | `LongL offset when offset <> Int64.zero -> "[" ^ pp_long_value ~cx pointer_offset ^ "]"
-        | _ -> ""
+        Option_utils.value_map pp_pointer_offset ~default:"" pointer_offset
       in
       let offset_strs =
         List.map
           (fun offset ->
             match offset with
-            | GetPointer.PointerIndex value -> "[" ^ pp_long_value ~cx value ^ "]"
+            | GetPointer.PointerIndex value -> pp_pointer_offset value
             | GetPointer.FieldIndex field -> "." ^ string_of_int field)
           offsets
       in

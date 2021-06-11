@@ -28,6 +28,12 @@ and emit_module ~pcx ~ecx (_, mod_) =
   List.iter
     (fun toplevel ->
       match toplevel with
+      | TypeDeclaration decl -> emit_type_declaration_prepass ~pcx ~ecx decl
+      | _ -> ())
+    mod_.toplevels;
+  List.iter
+    (fun toplevel ->
+      match toplevel with
       | TypeDeclaration decl -> emit_type_declaration ~pcx ~ecx decl
       | _ -> ())
     mod_.toplevels;
@@ -44,47 +50,58 @@ and emit_module ~pcx ~ecx (_, mod_) =
       | _ -> ())
     mod_.toplevels
 
+(* Prepass to create and store initial empty aggregate types for every type.
+   This prepass allows for out-of-order type definitions. *)
+and emit_type_declaration_prepass ~pcx ~ecx decl =
+  let open TypeDeclaration in
+  let { name = { Identifier.loc; name }; decl; _ } = decl in
+  match decl with
+  | Tuple _
+  | Record _ ->
+    let tvar_id = Bindings.get_tvar_id_from_type_decl pcx.bindings loc in
+    let ty = Type_context.find_rep_type ~cx:pcx.type_ctx (TVar tvar_id) in
+    let agg = { Aggregate.name; loc; elements = [] } in
+    Ecx.add_type ~ecx agg;
+    Types.TypeHashtbl.add ecx.adt_to_agg_type ty agg
+  | _ -> ()
+
+(* Fill aggregate types with correct element types *)
 and emit_type_declaration ~pcx ~ecx decl =
   let open TypeDeclaration in
   let { name = { Identifier.loc; name }; decl; _ } = decl in
   let tvar_id = Bindings.get_tvar_id_from_type_decl pcx.bindings loc in
   let ty = Type_context.find_rep_type ~cx:pcx.type_ctx (TVar tvar_id) in
-  let agg_ty_opt =
-    match decl with
-    | Tuple _ ->
-      let adt_sig = Types.get_adt_sig ty in
-      let element_sigs = Types.get_tuple_variant adt_sig name in
-      let element_types =
-        List.map
-          (fun element_sig ->
-            let element_ty = type_to_mir_type ~pcx ~ecx element_sig in
-            (None, element_ty))
-          element_sigs
-      in
-      Some { Aggregate.name; loc; elements = element_types }
-    | Record { fields; _ } ->
-      let adt_sig = Types.get_adt_sig ty in
-      let field_sigs = Types.get_record_variant adt_sig name in
-      (* Collect fields for aggregate in order they are declared in *)
-      let element_types =
-        List.fold_left
-          (fun element_types { Record.Field.name = { Identifier.name; _ }; _ } ->
-            let sig_ty = SMap.find name field_sigs in
-            let element_ty = type_to_mir_type ~pcx ~ecx sig_ty in
-            (Some name, element_ty) :: element_types)
-          []
-          fields
-      in
-      Some { Aggregate.name; loc; elements = List.rev element_types }
-    | Variant _
-    | Alias _ ->
-      None
-  in
-  match agg_ty_opt with
-  | None -> ()
-  | Some agg_ty ->
-    Ecx.add_type ~ecx agg_ty;
-    Types.TypeHashtbl.add ecx.adt_to_agg_type ty agg_ty
+  match decl with
+  | Tuple _ ->
+    let adt_sig = Types.get_adt_sig ty in
+    let element_sigs = Types.get_tuple_variant adt_sig name in
+    let element_types =
+      List.map
+        (fun element_sig ->
+          let element_ty = type_to_mir_type ~pcx ~ecx element_sig in
+          (None, element_ty))
+        element_sigs
+    in
+    let agg = Types.TypeHashtbl.find ecx.adt_to_agg_type ty in
+    agg.elements <- element_types
+  | Record { fields; _ } ->
+    let adt_sig = Types.get_adt_sig ty in
+    let field_sigs = Types.get_record_variant adt_sig name in
+    (* Collect fields for aggregate in order they are declared in *)
+    let element_types =
+      List.fold_left
+        (fun element_types { Record.Field.name = { Identifier.name; _ }; _ } ->
+          let sig_ty = SMap.find name field_sigs in
+          let element_ty = type_to_mir_type ~pcx ~ecx sig_ty in
+          (Some name, element_ty) :: element_types)
+        []
+        fields
+    in
+    let agg = Types.TypeHashtbl.find ecx.adt_to_agg_type ty in
+    agg.elements <- List.rev element_types
+  | Variant _
+  | Alias _ ->
+    ()
 
 and emit_toplevel_variable_declaration ~pcx ~ecx decl =
   let { Statement.VariableDeclaration.pattern; init; _ } = decl in
@@ -392,14 +409,28 @@ and emit_expression_access_chain ~pcx ~ecx expr =
       (* Find element type in the corresponding aggregate type *)
       let agg = Types.TypeHashtbl.find ecx.Ecx.adt_to_agg_type target_ty in
       let (_, element_ty) = List.nth agg.elements element_idx in
-      (* Calculate element offset and load value *)
+      (* Calculate element offset *)
       let (element_pointer_var, get_ptr_instr) =
         mk_get_pointer_instr element_ty target_ptr_var [GetPointer.FieldIndex element_idx]
       in
       Ecx.emit ~ecx (GetPointer get_ptr_instr);
       element_pointer_var
     in
+    let emit_array_indexed_access element_ty =
+      (* Emit target and index expressions *)
+      let target_var = emit_expression_access_chain_inner ~pcx ~ecx target in
+      let target_ptr_var = cast_to_pointer_value target_var in
+      let index_var = emit_numeric_expression ~pcx ~ecx index in
+      (* Calculate index offset *)
+      let (element_pointer_var, get_ptr_instr) =
+        let element_mir_ty = type_to_mir_type ~pcx ~ecx element_ty in
+        mk_get_pointer_instr ~pointer_offset:(Some index_var) element_mir_ty target_ptr_var []
+      in
+      Ecx.emit ~ecx (GetPointer get_ptr_instr);
+      element_pointer_var
+    in
     match target_ty with
+    | Array element_ty -> emit_array_indexed_access element_ty
     | Tuple _ -> emit_tuple_indexed_access ()
     | ADT { adt_sig = { variant_sigs; _ }; _ } when SMap.cardinal variant_sigs = 1 ->
       emit_tuple_indexed_access ()
@@ -549,17 +580,10 @@ and mk_cf_local loc = Local loc
 
 and mk_binding_name binding = String.concat "." (binding.module_ @ [binding.name])
 
-and mk_get_pointer_instr element_ty pointer offsets =
+and mk_get_pointer_instr ?(pointer_offset = None) element_ty pointer offsets =
   let var_id = mk_cf_var_id () in
   let var = `PointerV (element_ty, var_id) in
-  ( var,
-    {
-      Instruction.GetPointer.var_id;
-      return_ty = element_ty;
-      pointer;
-      pointer_offset = `LongL Int64.zero;
-      offsets;
-    } )
+  (var, { Instruction.GetPointer.var_id; return_ty = element_ty; pointer; pointer_offset; offsets })
 
 and type_to_mir_type ~pcx ~ecx ty =
   let ty = Type_context.find_rep_type ~cx:pcx.type_ctx ty in
@@ -571,7 +595,7 @@ and type_to_mir_type ~pcx ~ecx ty =
   | Types.Long -> `LongT
   | Types.IntLiteral { resolved; _ } -> type_to_mir_type ~pcx ~ecx (Option.get resolved)
   | Types.String -> `StringT
-  | Types.Array _ -> failwith "TODO: Implement MIR emission for array types"
+  | Types.Array element_ty -> `PointerT (type_to_mir_type ~pcx ~ecx element_ty)
   | Types.Tuple _ -> failwith "TODO: Implement MIR emission for tuple types"
   | Types.Function _ -> `FunctionT
   | Types.TVar _ -> failwith "TVars must be resolved for all values in IR"

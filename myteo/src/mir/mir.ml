@@ -24,7 +24,7 @@ and Aggregate : sig
     name: string;
     loc: Loc.t;
     (* Elements along with their optional name *)
-    elements: (string option * Type.t) list;
+    mutable elements: (string option * Type.t) list;
   }
 end =
   Aggregate
@@ -85,14 +85,14 @@ end =
 and Instruction : sig
   module GetPointer : sig
     type 'var offset =
-      | PointerIndex of 'var Value.long_value
+      | PointerIndex of 'var Value.numeric_value
       | FieldIndex of int
 
     type 'var t = {
       var_id: 'var;
       return_ty: Type.t;
       pointer: 'var Value.pointer_value;
-      pointer_offset: 'var Value.long_value;
+      pointer_offset: 'var Value.numeric_value option;
       offsets: 'var offset list;
     }
   end

@@ -10,6 +10,10 @@ type Rec2 {bool, unit, Tup2*}
 
 type Rec3 {unit, bool, int}
 
+type Tup4 {Tup5*}
+
+type Tup5 {int}
+
 func unit @test.main() {
   Ret
 }

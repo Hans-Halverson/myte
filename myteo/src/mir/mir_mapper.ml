@@ -82,13 +82,13 @@ module InstructionsMapper = struct
         | GetPointer { GetPointer.var_id; return_ty; pointer; pointer_offset; offsets } ->
           let var_id' = this#map_result_variable ~block var_id in
           let pointer' = this#map_pointer_value ~block pointer in
-          let pointer_offset' = this#map_long_value ~block pointer_offset in
+          let pointer_offset' = id_map_opt (this#map_numeric_value ~block) pointer_offset in
           let offsets' =
             id_map_list
               (fun offset ->
                 match offset with
                 | GetPointer.PointerIndex index ->
-                  id_map (this#map_long_value ~block) index offset (fun index' ->
+                  id_map (this#map_numeric_value ~block) index offset (fun index' ->
                       GetPointer.PointerIndex index')
                 | GetPointer.FieldIndex _ -> offset)
               offsets
@@ -316,12 +316,6 @@ module InstructionsMapper = struct
         | `StringL _ as value -> value
         | `StringV var_id as value ->
           id_map (this#map_use_variable ~block) var_id value (fun var_id' -> `StringV var_id')
-
-      method map_long_value ~block value =
-        match value with
-        | `LongL _ as value -> value
-        | `LongV var_id as value ->
-          id_map (this#map_use_variable ~block) var_id value (fun var_id' -> `LongV var_id')
 
       method map_numeric_value ~block value =
         match value with

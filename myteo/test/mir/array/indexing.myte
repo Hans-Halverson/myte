@@ -1,0 +1,39 @@
+module test
+
+fun indexing(x: Array<Int>, y: Array<Array<Array<Bool>>>) {
+  x[0];
+  y[0];
+  y[1][2][3];
+}
+
+fun indexingAllIntegerTypes(arr: Array<Unit>, x: Int, y: Byte, z: Long) {
+  arr[x];
+  arr[y];
+  arr[z];
+  arr[(3: Int)];
+  arr[(3: Byte)];
+  arr[(3: Long)];
+}
+
+type Tup0 (Long, Byte)
+type Tup1 (String, Array<Bool>)
+
+fun indexingWithTuple(x: Array<Tup0>, y: Tup1) {
+  x[77][1];
+  y[1][1];
+}
+
+type Rec0 { foo: String, bar: Array<Bool> }
+
+fun indexingWithRecord(x: Array<Rec0>, y: Rec1, z: Int) {
+  x[77].bar[z];
+}
+
+type Rec1 { foo: String, bar: Array<Tup2> }
+type Tup2 (Byte, Long)
+
+fun indexingWithRecordAndTuple(x: Rec1) {
+  x.bar[99][1];
+}
+
+fun main() {}

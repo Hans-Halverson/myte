@@ -1,0 +1,27 @@
+module test
+
+fun simpleAccesses(x1: Array<Int>) {
+  // Simple accesses
+  x1[90] = 1;
+}
+
+fun nestedAccesses(x1: Array<Array<Array<String>>>, x2: Array<String>) {
+  // Nested accesses
+  x1[5][6][7] = "test";
+  x1[55][66] = x2;
+}
+
+type Tup1 (Byte, Array<Rec1>, Bool)
+type Rec1 { foo: Bool, bar: Byte, baz: String }
+
+type Rec2 { foo: Array<Long>, bar: Byte }
+
+fun indexAndAccesses(t1: Tup1, r2: Array<Rec2>) {
+  // Tuple/Array/Record
+  t1[1][500].baz = "test";
+
+  // Array/Record/Array
+  r2[999].foo[888] = 7;
+}
+
+fun main() {}
