@@ -1,0 +1,49 @@
+type Rec1 {int}
+
+type Rec2 {string, bool, int}
+
+type Rec3 {byte, Rec2*, long}
+
+type Rec4 {int, int, Rec3*}
+
+type Tup1 {Rec3*}
+
+func unit @test.simpleAccesses(Rec1* %0, Rec2* %1) {
+  %2 := GetPointer int %0.0
+  Store int %2, 1
+  %3 := GetPointer string %1.0
+  Store string %3, "string"
+  %4 := GetPointer bool %1.1
+  Store bool %4, true
+  Ret
+}
+
+func unit @test.nestedAccesses(Rec3* %5, Rec4* %6) {
+  %7 := GetPointer byte %5.0
+  Store byte %7, 1
+  %8 := GetPointer Rec2* %5.1
+  %9 := Load Rec2* %8
+  %10 := GetPointer int %9.2
+  Store int %10, 1
+  %11 := GetPointer Rec3* %6.2
+  %12 := Load Rec3* %11
+  %13 := GetPointer Rec2* %12.1
+  %14 := Load Rec2* %13
+  %15 := GetPointer string %14.0
+  Store string %15, "string"
+  Ret
+}
+
+func unit @test.namedAndIndexedAccess(Tup1* %16) {
+  %17 := GetPointer Rec3* %16.0
+  %18 := Load Rec3* %17
+  %19 := GetPointer Rec2* %18.1
+  %20 := Load Rec2* %19
+  %21 := GetPointer string %20.0
+  Store string %21, "string"
+  Ret
+}
+
+func unit @test.main() {
+  Ret
+}

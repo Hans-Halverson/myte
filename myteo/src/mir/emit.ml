@@ -365,20 +365,22 @@ and emit_expression ~pcx ~ecx expr =
     agg_ptr_val
   | IndexedAccess _
   | NamedAccess _ ->
-    emit_expression_access_chain ~pcx ~ecx expr
-  | _ ->
-    prerr_endline (Ast_pp.pp (Ast_pp.node_of_expression expr));
-    failwith "Expression has not yet been converted to IR"
+    let element_pointer_var = emit_expression_access_chain ~pcx ~ecx expr in
+    let var_id = mk_cf_var_id () in
+    Ecx.emit ~ecx (Load (var_id, element_pointer_var));
+    var_value_of_type var_id (pointer_value_element_type element_pointer_var)
+  | Tuple _ -> failwith "TODO: Emit MIR for tuple expressions"
+  | Ternary _ -> failwith "TODO: Emit MIR for ternary expressions"
+  | Match _ -> failwith "TODO: Emir MIR for match expressions"
 
 and emit_expression_access_chain ~pcx ~ecx expr =
   let open Expression in
   let open Instruction in
-  match expr with
-  | IndexedAccess { IndexedAccess.target; index; _ } ->
+  let rec emit_indexed_access_chain ~pcx ~ecx { IndexedAccess.target; index; _ } =
     let target_ty = type_of_loc ~pcx (Ast_utils.expression_loc target) in
     let emit_tuple_indexed_access () =
       (* Emit target expression *)
-      let target_var = emit_expression_access_chain ~pcx ~ecx target in
+      let target_var = emit_expression_access_chain_inner ~pcx ~ecx target in
       let target_ptr_var = cast_to_pointer_value target_var in
       (* Extract tuple element index from integer literal *)
       let element_idx =
@@ -388,39 +390,53 @@ and emit_expression_access_chain ~pcx ~ecx expr =
         | _ -> failwith "Index of a tuple must be an int literal to pass type checking"
       in
       (* Find element type in the corresponding aggregate type *)
-      let agg = Types.TypeHashtbl.find ecx.adt_to_agg_type target_ty in
+      let agg = Types.TypeHashtbl.find ecx.Ecx.adt_to_agg_type target_ty in
       let (_, element_ty) = List.nth agg.elements element_idx in
       (* Calculate element offset and load value *)
-      let (element_offset_var, get_ptr_instr) =
+      let (element_pointer_var, get_ptr_instr) =
         mk_get_pointer_instr element_ty target_ptr_var [GetPointer.FieldIndex element_idx]
       in
       Ecx.emit ~ecx (GetPointer get_ptr_instr);
-      let var_id = mk_cf_var_id () in
-      Ecx.emit ~ecx (Load (var_id, element_offset_var));
-      var_value_of_type var_id element_ty
+      element_pointer_var
     in
-    (match target_ty with
+    match target_ty with
     | Tuple _ -> emit_tuple_indexed_access ()
     | ADT { adt_sig = { variant_sigs; _ }; _ } when SMap.cardinal variant_sigs = 1 ->
       emit_tuple_indexed_access ()
-    | _ -> failwith "Target must be a tuple to pass type checking")
-  | NamedAccess { NamedAccess.target; name = { name; _ }; _ } ->
+    | _ -> failwith "Target must be a tuple to pass type checking"
+  and emit_named_access_chain ~pcx ~ecx { NamedAccess.target; name = { name; _ }; _ } =
     (* Emit target expression *)
-    let target_var = emit_expression_access_chain ~pcx ~ecx target in
+    let target_var = emit_expression_access_chain_inner ~pcx ~ecx target in
     let target_ptr_var = cast_to_pointer_value target_var in
     (* Find element type in the corresponding aggregate type *)
     let target_ty = type_of_loc ~pcx (Ast_utils.expression_loc target) in
-    let agg = Types.TypeHashtbl.find ecx.adt_to_agg_type target_ty in
+    let agg = Types.TypeHashtbl.find ecx.Ecx.adt_to_agg_type target_ty in
     let (element_ty, element_idx) = lookup_element agg name in
-    (* Calculate element offset and load value *)
-    let (element_offset_var, get_ptr_instr) =
+    (* Calculate element offset *)
+    let (element_pointer_var, get_ptr_instr) =
       mk_get_pointer_instr element_ty target_ptr_var [GetPointer.FieldIndex element_idx]
     in
     Ecx.emit ~ecx (GetPointer get_ptr_instr);
-    let var_id = mk_cf_var_id () in
-    Ecx.emit ~ecx (Load (var_id, element_offset_var));
-    var_value_of_type var_id element_ty
-  | _ -> emit_expression ~pcx ~ecx expr
+    element_pointer_var
+  and emit_expression_access_chain_inner ~pcx ~ecx expr =
+    match expr with
+    (* Access expressions calculate element offset and load value *)
+    | IndexedAccess access ->
+      let element_pointer_var = emit_indexed_access_chain ~pcx ~ecx access in
+      let var_id = mk_cf_var_id () in
+      Ecx.emit ~ecx (Load (var_id, element_pointer_var));
+      var_value_of_type var_id (pointer_value_element_type element_pointer_var)
+    | NamedAccess access ->
+      let element_pointer_var = emit_named_access_chain ~pcx ~ecx access in
+      let var_id = mk_cf_var_id () in
+      Ecx.emit ~ecx (Load (var_id, element_pointer_var));
+      var_value_of_type var_id (pointer_value_element_type element_pointer_var)
+    | _ -> emit_expression ~pcx ~ecx expr
+  in
+  match expr with
+  | IndexedAccess access -> emit_indexed_access_chain ~pcx ~ecx access
+  | NamedAccess access -> emit_named_access_chain ~pcx ~ecx access
+  | _ -> failwith "Must be called on access expression"
 
 and emit_bool_expression ~pcx ~ecx expr =
   match emit_expression ~pcx ~ecx expr with
@@ -503,28 +519,29 @@ and emit_statement ~pcx ~ecx stmt =
     let (break_id, _) = Ecx.get_loop_context ~ecx in
     Ecx.finish_block_continue ~ecx break_id
   | Assignment { loc = _; lvalue; expr } ->
-    let pattern =
-      match lvalue with
-      | Assignment.Pattern patt -> patt
-      | _ -> failwith "TODO: Emir MIR for lvalue expressions"
-    in
-    let { Identifier.loc = use_loc; _ } = List.hd (Ast_utils.ids_of_pattern pattern) in
-    let binding = Bindings.get_source_value_binding pcx.bindings use_loc in
-    let decl_loc = fst binding.declaration in
-    let expr_val = emit_expression ~pcx ~ecx expr in
-    if Bindings.is_global_decl pcx.bindings decl_loc then
-      let binding_name = mk_binding_name binding in
-      let global = SMap.find binding_name ecx.globals in
-      Ecx.emit ~ecx (Store (`PointerV (global.ty, global.var), expr_val))
-    else
-      Ecx.emit ~ecx (Mov (mk_cf_local use_loc, expr_val))
-  | Match _ -> failwith "TODO: Convert match statements to IR"
+    (match lvalue with
+    | Assignment.Pattern pattern ->
+      let { Identifier.loc = use_loc; _ } = List.hd (Ast_utils.ids_of_pattern pattern) in
+      let binding = Bindings.get_source_value_binding pcx.bindings use_loc in
+      let decl_loc = fst binding.declaration in
+      let expr_val = emit_expression ~pcx ~ecx expr in
+      if Bindings.is_global_decl pcx.bindings decl_loc then
+        let binding_name = mk_binding_name binding in
+        let global = SMap.find binding_name ecx.globals in
+        Ecx.emit ~ecx (Store (`PointerV (global.ty, global.var), expr_val))
+      else
+        Ecx.emit ~ecx (Mov (mk_cf_local use_loc, expr_val))
+    | Assignment.Expression expr_lvalue ->
+      let element_pointer_var = emit_expression_access_chain ~pcx ~ecx expr_lvalue in
+      let expr_val = emit_expression ~pcx ~ecx expr in
+      Ecx.emit ~ecx (Store (element_pointer_var, expr_val)))
   | VariableDeclaration { pattern; init; _ } ->
     (* TODO: Emit MIR for arbitrary patterns *)
     let { Identifier.loc; _ } = List.hd (Ast_utils.ids_of_pattern pattern) in
     let init_val = emit_expression ~pcx ~ecx init in
     Ecx.emit ~ecx (Mov (mk_cf_local loc, init_val))
-  | FunctionDeclaration _ -> failwith "Function declaration not yet converted to IR"
+  | Match _ -> failwith "TODO: Emit MIR for match statements"
+  | FunctionDeclaration _ -> failwith "TODO: Emit MIR for non-toplevel function declarations"
 
 and mk_cf_var_id () = Id (mk_var_id ())
 

@@ -293,6 +293,12 @@ let type_of_value (v : 'a Value.t) : Type.t =
     `PointerT ty
   | `AggregateV (agg, _) -> `AggregateT agg
 
+let pointer_value_element_type (ptr : 'a Value.pointer_value) : Type.t =
+  match ptr with
+  | `PointerL (ty, _)
+  | `PointerV (ty, _) ->
+    ty
+
 let var_value_of_type var_id (ty : Type.t) : 'a Value.t =
   match ty with
   | `UnitT -> `UnitV var_id

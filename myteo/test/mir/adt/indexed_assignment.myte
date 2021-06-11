@@ -1,0 +1,34 @@
+module test
+
+type Rec1 { foo: Int }
+
+type Rec2 { foo: String, bar: Bool, baz: Int }
+
+type Rec3 { foo: Byte, bar: Rec2, baz: Long }
+
+type Rec4 { foo: Int, bar: Int, baz: Rec3 }
+
+type Tup1 (Rec3)
+
+fun simpleAccesses(r1: Rec1, r2: Rec2) {
+  // Simple accesses
+  r1.foo = 1;
+
+  r2.foo = "string";
+  r2.bar = true;
+}
+
+fun nestedAccesses(r3: Rec3, r4: Rec4) {
+  // Nested accesses
+  r3.foo = (1: Byte);
+  r3.bar.baz = (1: Int);
+
+  r4.baz.bar.foo = "string";
+ }
+
+ fun namedAndIndexedAccess(t1: Tup1) {
+   // Named access after indexed access
+   t1[0].bar.foo = "string";
+ }
+
+fun main() {}

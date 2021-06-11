@@ -246,12 +246,6 @@ and pp_type_of_value v = pp_type (type_of_value v)
 
 and pp_type_of_numeric_value v = pp_type_of_value (v :> ssa_value)
 
-and pp_element_type_of_pointer_value v =
-  match v with
-  | `PointerL (ty, _)
-  | `PointerV (ty, _) ->
-    pp_type ty
-
 and pp_instruction ~cx (_, instr) =
   let open Instruction in
   let pp_instr var_id instr = Printf.sprintf "%s := %s" (pp_var_id ~cx var_id) instr in
@@ -278,12 +272,12 @@ and pp_instruction ~cx (_, instr) =
         var_id
         (Printf.sprintf
            "Load %s %s"
-           (pp_element_type_of_pointer_value ptr)
+           (pp_type (pointer_value_element_type ptr))
            (pp_pointer_value ~cx ptr))
     | Store (ptr, right) ->
       Printf.sprintf
         "Store %s %s, %s"
-        (pp_element_type_of_pointer_value ptr)
+        (pp_type (pointer_value_element_type ptr))
         (pp_pointer_value ~cx ptr)
         (pp_value ~cx right)
     | GetPointer { GetPointer.var_id; return_ty; pointer; pointer_offset; offsets } ->
