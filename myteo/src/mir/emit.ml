@@ -623,13 +623,14 @@ and type_to_mir_type ~pcx ~ecx ty =
   | Types.Array element_ty -> `PointerT (type_to_mir_type ~pcx ~ecx element_ty)
   | Types.Tuple _ -> failwith "TODO: Implement MIR emission for tuple types"
   | Types.Function _ -> `FunctionT
+  | Types.TParam _ -> failwith "TParams must be resolved for all values in IR"
   | Types.TVar _ -> failwith "TVars must be resolved for all values in IR"
   | Types.Any -> failwith "Any not allowed as value in IR"
   | Types.ADT _ ->
     (match Types.TypeHashtbl.find_opt ecx.adt_to_agg_type ty with
     (* All aggregates are currently allocated behind a pointer *)
     | Some mir_type -> `PointerT (`AggregateT mir_type)
-    | None -> failwith "TODO: Cannot emit generics")
+    | None -> failwith "TODO: Generate aggregate types for all ADTs")
 
 and type_of_loc ~pcx loc =
   let tvar_id = Type_context.get_tvar_from_loc ~cx:pcx.type_ctx loc in

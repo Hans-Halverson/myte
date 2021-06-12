@@ -1,0 +1,16 @@
+module test
+
+// Success
+fun t1<T>(x: T): T = x
+fun t2<T>(x: T, y: T): Bool = x == y
+
+// Error - type parameters must be general and cannot unify with a concrete type
+fun t3<T>(x: T): T = 1
+fun t4<T>(x: T) {
+  (x: Int);
+}
+
+// Error - different type parameters cannot be unified
+fun t5<T, U>(x: T, y: U): Bool = x == y
+
+fun main() {}

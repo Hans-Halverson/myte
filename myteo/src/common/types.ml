@@ -1,11 +1,30 @@
 open Basic_collections
 
+module TParam = struct
+  type id = int
+
+  type t = {
+    id: id;
+    name: string;
+  }
+
+  let max_id = ref 0
+
+  let mk_id () =
+    let id = !max_id in
+    max_id := id + 1;
+    id
+
+  let mk name = { id = mk_id (); name }
+end
+
 type tvar_id = int
 
 type adt_sig_id = int
 
 type t =
   | TVar of tvar_id
+  | TParam of TParam.t
   | Any
   | Unit
   | Bool
@@ -36,7 +55,7 @@ and int_literal = {
 and adt_sig = {
   id: adt_sig_id;
   name: string;
-  mutable tvar_sigs: tvar_id list;
+  mutable tparam_sigs: tvar_id list;
   mutable variant_sigs: variant_sig SMap.t;
 }
 
@@ -61,7 +80,7 @@ let mk_adt_sig_id () =
 
 let mk_tvar () = TVar (mk_tvar_id ())
 
-let mk_adt_sig name = { id = mk_adt_sig_id (); name; tvar_sigs = []; variant_sigs = SMap.empty }
+let mk_adt_sig name = { id = mk_adt_sig_id (); name; tparam_sigs = []; variant_sigs = SMap.empty }
 
 let get_all_tvars_with_duplicates ty =
   let rec inner acc ty =
@@ -130,6 +149,7 @@ let rec pp_with_names ~tvar_to_name ty =
   | TVar tvar_id ->
     let x = IMap.find tvar_id tvar_to_name in
     x
+  | TParam { TParam.name; id = _ } -> name
 
 let name_id_to_string name_id =
   let quot = name_id / 26 in
@@ -209,6 +229,7 @@ module TypeHash = struct
     | (Long, Long)
     | (String, String) ->
       true
+    | (TParam { id = id1; name = _ }, TParam { id = id2; name = _ }) -> id1 = id2
     | (Array element1, Array element2) -> equal element1 element2
     | (Tuple elements1, Tuple elements2) ->
       List.length elements1 = List.length elements2 && List.for_all2 equal elements1 elements2
@@ -232,19 +253,20 @@ module TypeHash = struct
     in
     match ty with
     | TVar _ -> failwith "Cannot hash type with any tvars"
-    | Any -> 1
-    | Unit -> 2
-    | Bool -> 3
-    | Byte -> 4
-    | Int -> 5
-    | Long -> 6
-    | String -> 7
-    | IntLiteral { resolved = None; _ } -> 8
+    | TParam { TParam.id; name = _ } -> hash_nums [1; id]
+    | Any -> 2
+    | Unit -> 3
+    | Bool -> 4
+    | Byte -> 5
+    | Int -> 6
+    | Long -> 7
+    | String -> 8
+    | IntLiteral { resolved = None; _ } -> 9
     | IntLiteral { resolved = Some ty; _ } -> hash ty
-    | Array element -> hash_nums [9; hash element]
-    | Tuple elements -> hash_nums (10 :: List.map hash elements)
-    | Function { params; return } -> hash_nums (11 :: hash return :: List.map hash params)
-    | ADT { adt_sig = { id; _ }; tparams } -> hash_nums (12 :: id :: List.map hash tparams)
+    | Array element -> hash_nums [10; hash element]
+    | Tuple elements -> hash_nums (11 :: List.map hash elements)
+    | Function { params; return } -> hash_nums (12 :: hash return :: List.map hash params)
+    | ADT { adt_sig = { id; _ }; tparams } -> hash_nums (13 :: id :: List.map hash tparams)
 end
 
 module TypeHashtbl = Hashtbl.Make (TypeHash)

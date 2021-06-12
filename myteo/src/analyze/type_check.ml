@@ -67,7 +67,7 @@ and visit_type_declarations ~cx module_ =
             decl = Alias alias;
             builtin = _;
           } ->
-        check_type_parameters ~cx type_params;
+        let _ = check_type_parameters ~cx type_params in
         let tvar_id = Type_context.get_tvar_id_from_type_decl ~cx id_loc in
         let ty = build_type ~cx alias in
         (* Check if the right hand side is a tvar that has been already unified with this type.
@@ -90,7 +90,7 @@ and visit_type_declarations ~cx module_ =
       | TypeDeclaration
           { loc = _; name = { Ast.Identifier.loc = id_loc; name }; type_params; decl; builtin = _ }
         ->
-        check_type_parameters ~cx type_params;
+        let _ = check_type_parameters ~cx type_params in
         (* Get ADT signature from ADT id's tvar *)
         let tvar_id = Type_context.get_tvar_id_from_type_decl ~cx id_loc in
         let adt = Type_context.find_rep_type ~cx (TVar tvar_id) in
@@ -150,7 +150,7 @@ and visit_value_declarations ~cx module_ =
     (fun toplevel ->
       match toplevel with
       | VariableDeclaration decl -> check_toplevel_variable_declaration_prepass ~cx decl
-      | FunctionDeclaration decl -> check_function_declaration ~cx ~decl_pass:true decl
+      | FunctionDeclaration decl -> check_toplevel_function_declaration_prepass ~cx decl
       | _ -> ())
     toplevels
 
@@ -161,7 +161,7 @@ and check_module ~cx module_ =
     (fun toplevel ->
       match toplevel with
       | VariableDeclaration decl -> check_variable_declaration ~cx decl
-      | FunctionDeclaration decl -> check_function_declaration ~cx ~decl_pass:false decl
+      | FunctionDeclaration decl -> check_toplevel_function_declaration ~cx decl
       | TypeDeclaration _ -> ())
     toplevels
 
@@ -205,52 +205,71 @@ and check_variable_declaration ~cx decl =
       Type_context.add_incompatible_types_error ~cx pattern_loc (TVar pattern_tvar_id) annot_ty
 
 and check_type_parameters ~cx params =
-  (* TODO: Add type checking for type parameters *)
-  List.iter
-    (fun { Ast.TypeParameter.loc; _ } ->
-      let param_tvar_id = Type_context.get_tvar_id_from_type_decl ~cx loc in
-      ignore (Type_context.unify ~cx Any (TVar param_tvar_id)))
+  List.map
+    (fun { Ast.TypeParameter.name = { Ast.Identifier.loc; name }; _ } ->
+      let tvar_id = Type_context.get_tvar_id_from_type_decl ~cx loc in
+      let tparam = Types.TParam.mk name in
+      ignore (Type_context.unify ~cx (TParam tparam) (TVar tvar_id)))
     params
 
-and check_function_declaration ~cx ~decl_pass decl =
-  let open Ast.Identifier in
+and check_toplevel_function_declaration_prepass ~cx decl = check_function_declaration_type ~cx decl
+
+and check_toplevel_function_declaration ~cx decl =
+  if not decl.builtin then check_function_declaration_body ~cx decl
+
+(* Build the function type for a function declaration and set it as type of function identifier *)
+and check_function_declaration_type ~cx decl =
   let open Ast.Function in
-  let open Ast.Function.Param in
-  let { loc = _; name = { loc = id_loc; _ }; params; return; body; type_params; builtin } = decl in
-  check_type_parameters ~cx type_params;
+  let { name = { loc = id_loc; _ }; params; return; type_params; _ } = decl in
+  let _ = check_type_parameters ~cx type_params in
 
   (* Bind annotated function type to function identifier *)
   let tvar_id = Type_context.get_tvar_id_from_value_decl ~cx id_loc in
-  let param_tys = List.map (fun param -> build_type ~cx param.annot) params in
+  let param_tys = List.map (fun param -> build_type ~cx param.Param.annot) params in
   let return_ty = Option.fold ~none:Types.Unit ~some:(fun return -> build_type ~cx return) return in
   let function_ty = Types.Function { params = param_tys; return = return_ty } in
 
-  ignore (Type_context.unify ~cx function_ty (TVar tvar_id));
-  if (not decl_pass) && not builtin then begin
-    (* Bind param id tvars to their annotated types *)
-    List.combine params param_tys
-    |> List.iter (fun (param, param_ty) ->
-           let param_tvar_id = Type_context.get_tvar_id_from_value_decl ~cx param.name.loc in
-           ignore (Type_context.unify ~cx param_ty (TVar param_tvar_id)));
-    match body with
-    | Expression expr ->
-      (* Expression body must be subtype of return type *)
-      let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
-      Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) return_ty
-    | Block block ->
-      let open Ast.Statement in
-      let block_stmt = Block block in
-      (* Annotate each return statement node with this function's return type *)
-      Ast_utils.statement_visitor
-        ~enter_functions:false
-        ~f:(fun stmt ->
-          match stmt with
-          | Return { Return.loc; _ } ->
-            Type_context.(cx.return_types <- LocMap.add loc return_ty cx.return_types)
-          | _ -> ())
-        block_stmt;
-      check_statement ~cx block_stmt
-  end
+  ignore (Type_context.unify ~cx function_ty (TVar tvar_id))
+
+(* Type check function declaration body, including binding types to function parameters and
+   checking function return type. *)
+and check_function_declaration_body ~cx decl =
+  let open Ast.Function in
+  let { name = { loc = id_loc; _ }; params; body; _ } = decl in
+
+  (* Find param and return types for function *)
+  let tvar_id = Type_context.get_tvar_id_from_value_decl ~cx id_loc in
+  let func_ty = Type_context.find_rep_type ~cx (TVar tvar_id) in
+  let (param_tys, return_ty) = Type_util.cast_to_function_type func_ty in
+
+  (* Bind param id tvars to their annotated types *)
+  List.combine params param_tys
+  |> List.iter (fun (param, param_ty) ->
+         let param_tvar_id = Type_context.get_tvar_id_from_value_decl ~cx param.Param.name.loc in
+         ignore (Type_context.unify ~cx param_ty (TVar param_tvar_id)));
+
+  match body with
+  | Expression expr ->
+    (* Expression body must be subtype of return type *)
+    let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
+    Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) return_ty
+  | Block block ->
+    let open Ast.Statement in
+    let block_stmt = Block block in
+    (* Annotate each return statement node with this function's return type *)
+    Ast_utils.statement_visitor
+      ~enter_functions:false
+      ~f:(fun stmt ->
+        match stmt with
+        | Return { Return.loc; _ } ->
+          Type_context.(cx.return_types <- LocMap.add loc return_ty cx.return_types)
+        | _ -> ())
+      block_stmt;
+    check_statement ~cx block_stmt
+
+and check_function_declaration ~cx decl =
+  check_function_declaration_type ~cx decl;
+  check_function_declaration_body ~cx decl
 
 and check_expression ~cx expr =
   let open Ast.Expression in
@@ -872,7 +891,7 @@ and check_statement ~cx stmt =
   let open Ast.Statement in
   match stmt with
   | VariableDeclaration decl -> check_variable_declaration ~cx decl
-  | FunctionDeclaration decl -> check_function_declaration ~cx ~decl_pass:false decl
+  | FunctionDeclaration decl -> check_function_declaration ~cx decl
   | Expression (_, expr) -> ignore (check_expression ~cx expr)
   | Block { Block.statements; _ } -> List.iter (check_statement ~cx) statements
   | If { If.test; conseq; altern; _ } ->
