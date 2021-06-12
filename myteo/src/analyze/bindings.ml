@@ -8,14 +8,14 @@ type value_declaration =
   | ImportedVarDecl of Identifier.t * Statement.VariableDeclaration.kind
   | ImportedFunDecl of Identifier.t
   | ImportedCtorDecl of Identifier.t
-  | ImportedModule of Module_tree.module_tree
+  | ImportedModule of Module_tree.t
   | FunParam
 
 type type_declaration =
   | TypeDecl
   | TypeParam
   | ImportedType of Identifier.t
-  | ImportedModule of Module_tree.module_tree
+  | ImportedModule of Module_tree.t
 
 module ValueBinding = struct
   type t = {

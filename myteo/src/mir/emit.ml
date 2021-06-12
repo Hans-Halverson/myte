@@ -2,8 +2,9 @@ open Ast
 open Basic_collections
 open Mir
 module Ecx = Emit_context
+module Pcx = Program_context
 
-let rec emit_control_flow_ir (pcx : Lex_analyze.program_context) : Ecx.t * cf_program =
+let rec emit_control_flow_ir (pcx : Pcx.t) : Ecx.t * cf_program =
   let ecx = Emit_context.mk () in
   List.iter
     (fun mod_ ->
@@ -55,6 +56,7 @@ and emit_module ~pcx ~ecx (_, mod_) =
 and emit_type_declaration_prepass ~pcx ~ecx decl =
   let open TypeDeclaration in
   let { name = { Identifier.loc; name }; decl; _ } = decl in
+  let name = Printf.sprintf "%s.%s" (Ecx.get_module_builder ~ecx).name name in
   match decl with
   | Tuple _
   | Record _ ->
@@ -130,7 +132,7 @@ and emit_toplevel_function_declaration ~pcx ~ecx decl =
   let body_start_block =
     Ecx.start_block_sequence ~ecx (FunctionBody name);
     let body_start_block = Ecx.start_new_block ~ecx in
-    if loc = pcx.main_loc then ecx.main_id <- body_start_block;
+    if loc = Option.get pcx.main_loc then ecx.main_id <- body_start_block;
     (match body with
     | Block { Statement.Block.statements; _ } ->
       List.iter (emit_statement ~pcx ~ecx) statements;
@@ -278,7 +280,7 @@ and emit_expression ~pcx ~ecx expr =
     var_value_of_type var_id ty
   | Identifier { loc; _ }
   | ScopedIdentifier { name = { Identifier.loc; _ }; _ } ->
-    let binding = Bindings.get_source_value_binding pcx.Lex_analyze.bindings loc in
+    let binding = Bindings.get_source_value_binding pcx.bindings loc in
     let decl_loc = fst binding.declaration in
     (match snd binding.declaration with
     | ImportedModule _ -> failwith "Modules cannot appear in a value position"
@@ -615,6 +617,5 @@ and mir_type_of_loc ~pcx ~ecx loc =
   type_to_mir_type ~pcx ~ecx (Types.TVar tvar_id)
 
 and mir_type_of_value_decl_loc ~pcx ~ecx loc =
-  let open Lex_analyze in
   let tvar_id = Bindings.get_tvar_id_from_value_decl pcx.bindings loc in
   type_to_mir_type ~pcx ~ecx (Types.TVar tvar_id)

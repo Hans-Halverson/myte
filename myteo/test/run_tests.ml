@@ -51,6 +51,7 @@ let () =
         Analyze_tests.suite ~bin ~record;
         Mir_tests.suite ~bin ~record;
         Codegen_tests.suite ~bin ~record;
+        Cli_tests.suite ~bin ~record;
       ]
   in
   let collated_results = Collate.collate_results suite_results in

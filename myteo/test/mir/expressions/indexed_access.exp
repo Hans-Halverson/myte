@@ -1,21 +1,21 @@
-type Tup1 {int}
+type test.Tup1 {int}
 
-type Tup2 {string, bool, int}
+type test.Tup2 {string, bool, int}
 
-type Tup3 {byte, Tup2*, long}
+type test.Tup3 {byte, test.Tup2*, long}
 
-type Tup4 {int, int, Tup3*}
+type test.Tup4 {int, int, test.Tup3*}
 
-type Rec1 {Tup4*}
+type test.Rec1 {test.Tup4*}
 
-func Tup1* @test.makeTup(int %0) {
-  %1 := CallBuiltin Tup1* myte.myte_alloc(1)
+func test.Tup1* @test.makeTup(int %0) {
+  %1 := CallBuiltin test.Tup1* myte.myte_alloc(1)
   %2 := GetPointer int %1.0
   Store int %2, %0
   Ret %1
 }
 
-func unit @test.testIndexing(Tup1* %3, Tup2* %4, Tup3* %5, Tup4* %6, Rec1* %7) {
+func unit @test.testIndexing(test.Tup1* %3, test.Tup2* %4, test.Tup3* %5, test.Tup4* %6, test.Rec1* %7) {
   %8 := GetPointer int %3.0
   %9 := Load int %8
   %10 := GetPointer string %4.0
@@ -24,26 +24,26 @@ func unit @test.testIndexing(Tup1* %3, Tup2* %4, Tup3* %5, Tup4* %6, Rec1* %7) {
   %13 := Load bool %12
   %14 := GetPointer byte %5.0
   %15 := Load byte %14
-  %16 := GetPointer Tup2* %5.1
-  %17 := Load Tup2* %16
+  %16 := GetPointer test.Tup2* %5.1
+  %17 := Load test.Tup2* %16
   %18 := GetPointer int %17.2
   %19 := Load int %18
-  %20 := GetPointer Tup3* %6.2
-  %21 := Load Tup3* %20
-  %22 := GetPointer Tup2* %21.1
-  %23 := Load Tup2* %22
+  %20 := GetPointer test.Tup3* %6.2
+  %21 := Load test.Tup3* %20
+  %22 := GetPointer test.Tup2* %21.1
+  %23 := Load test.Tup2* %22
   %24 := GetPointer string %23.0
   %25 := Load string %24
   %26 := Mul int 2, 3
-  %27 := Call Tup1* @test.makeTup(%26)
+  %27 := Call test.Tup1* @test.makeTup(%26)
   %28 := GetPointer int %27.0
   %29 := Load int %28
-  %30 := GetPointer Tup4* %7.0
-  %31 := Load Tup4* %30
-  %32 := GetPointer Tup3* %31.2
-  %33 := Load Tup3* %32
-  %34 := GetPointer Tup2* %33.1
-  %35 := Load Tup2* %34
+  %30 := GetPointer test.Tup4* %7.0
+  %31 := Load test.Tup4* %30
+  %32 := GetPointer test.Tup3* %31.2
+  %33 := Load test.Tup3* %32
+  %34 := GetPointer test.Tup2* %33.1
+  %35 := Load test.Tup2* %34
   Ret
 }
 

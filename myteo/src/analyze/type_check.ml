@@ -941,8 +941,7 @@ let resolve_unresolved_int_literals ~cx =
     | _ -> failwith "Unresolved int literal has already been resolved"
   done
 
-let analyze modules bindings =
-  let cx = Type_context.mk ~bindings in
+let analyze ~cx modules =
   (* First visit type declarations, building type aliases *)
   List.iter (fun (_, module_) -> visit_type_declarations_prepass ~cx module_) modules;
   List.iter (fun (_, module_) -> visit_type_declarations ~cx module_) modules;

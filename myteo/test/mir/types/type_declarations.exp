@@ -1,18 +1,18 @@
-type Tup1 {int}
+type test.Tup1 {int}
 
-type Tup2 {string, bool, unit}
+type test.Tup2 {string, bool, unit}
 
-type Tup3 {Tup1*, Tup2*, int}
+type test.Tup3 {test.Tup1*, test.Tup2*, int}
 
-type Rec1 {int}
+type test.Rec1 {int}
 
-type Rec2 {bool, unit, Tup2*}
+type test.Rec2 {bool, unit, test.Tup2*}
 
-type Rec3 {unit, bool, int}
+type test.Rec3 {unit, bool, int}
 
-type Tup4 {Tup5*}
+type test.Tup4 {test.Tup5*}
 
-type Tup5 {int}
+type test.Tup5 {int}
 
 func unit @test.main() {
   Ret

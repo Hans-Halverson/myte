@@ -1,0 +1,3 @@
+(library
+  (name cli_tests)
+  (libraries myte_test))

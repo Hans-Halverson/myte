@@ -3,6 +3,8 @@
 CURRENT_DIR=$0:A:h
 ROOT_DIR=$(dirname $CURRENT_DIR)
 
+source $CURRENT_DIR/setup_myte_env
+
 pushd $ROOT_DIR
 OCAMLRUNPARAM=b ./_build/default/test/run_tests.exe $@
 popd

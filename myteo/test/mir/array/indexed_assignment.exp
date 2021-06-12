@@ -18,21 +18,21 @@ func unit @test.nestedAccesses(string*** %2, string* %3) {
   Ret
 }
 
-type Tup1 {byte, Rec1**, bool}
+type test.Tup1 {byte, test.Rec1**, bool}
 
-type Rec1 {bool, byte, string}
+type test.Rec1 {bool, byte, string}
 
-type Rec2 {long*, byte}
+type test.Rec2 {long*, byte}
 
-func unit @test.indexAndAccesses(Tup1* %12, Rec2** %13) {
-  %14 := GetPointer Rec1** %12.1
-  %15 := Load Rec1** %14
-  %16 := GetPointer Rec1* %15[int 500]
-  %17 := Load Rec1* %16
+func unit @test.indexAndAccesses(test.Tup1* %12, test.Rec2** %13) {
+  %14 := GetPointer test.Rec1** %12.1
+  %15 := Load test.Rec1** %14
+  %16 := GetPointer test.Rec1* %15[int 500]
+  %17 := Load test.Rec1* %16
   %18 := GetPointer string %17.2
   Store string %18, "test"
-  %19 := GetPointer Rec2* %13[int 999]
-  %20 := Load Rec2* %19
+  %19 := GetPointer test.Rec2* %13[int 999]
+  %20 := Load test.Rec2* %19
   %21 := GetPointer long* %20.0
   %22 := Load long* %21
   %23 := GetPointer long %22[int 888]

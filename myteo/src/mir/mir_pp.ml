@@ -36,20 +36,31 @@ let rec pp_program program =
   (* Collect printed blocks along with their source locations *)
   let blocks =
     SMap.fold
-      (fun _ global blocks ->
-        (global.Global.loc, (fun _ -> pp_global ~cx ~program global)) :: blocks)
+      (fun name global blocks ->
+        if Std_lib.has_stdlib_prefix name then
+          blocks
+        else
+          (global.Global.loc, (fun _ -> pp_global ~cx ~program global)) :: blocks)
       program.globals
       []
   in
   let blocks =
     SMap.fold
-      (fun _ func blocks -> (func.Function.loc, (fun _ -> pp_func ~cx ~program func)) :: blocks)
+      (fun name func blocks ->
+        if Std_lib.has_stdlib_prefix name then
+          blocks
+        else
+          (func.Function.loc, (fun _ -> pp_func ~cx ~program func)) :: blocks)
       program.funcs
       blocks
   in
   let blocks =
     SMap.fold
-      (fun _ type_ blocks -> (type_.Aggregate.loc, (fun _ -> pp_type_decl type_)) :: blocks)
+      (fun name type_ blocks ->
+        if Std_lib.has_stdlib_prefix name then
+          blocks
+        else
+          (type_.Aggregate.loc, (fun _ -> pp_type_decl type_)) :: blocks)
       program.types
       blocks
   in

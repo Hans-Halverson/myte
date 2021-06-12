@@ -28,13 +28,13 @@ func unit @test.indexingAllIntegerTypes(unit* %12, int %13, byte %14, long %15) 
   Ret
 }
 
-type Tup0 {long, byte}
+type test.Tup0 {long, byte}
 
-type Tup1 {string, bool*}
+type test.Tup1 {string, bool*}
 
-func unit @test.indexingWithTuple(Tup0** %28, Tup1* %29) {
-  %30 := GetPointer Tup0* %28[int 77]
-  %31 := Load Tup0* %30
+func unit @test.indexingWithTuple(test.Tup0** %28, test.Tup1* %29) {
+  %30 := GetPointer test.Tup0* %28[int 77]
+  %31 := Load test.Tup0* %30
   %32 := GetPointer byte %31.1
   %33 := Load byte %32
   %34 := GetPointer bool* %29.1
@@ -44,11 +44,11 @@ func unit @test.indexingWithTuple(Tup0** %28, Tup1* %29) {
   Ret
 }
 
-type Rec0 {string, bool*}
+type test.Rec0 {string, bool*}
 
-func unit @test.indexingWithRecord(Rec0** %38, Rec1* %39, int %40) {
-  %41 := GetPointer Rec0* %38[int 77]
-  %42 := Load Rec0* %41
+func unit @test.indexingWithRecord(test.Rec0** %38, test.Rec1* %39, int %40) {
+  %41 := GetPointer test.Rec0* %38[int 77]
+  %42 := Load test.Rec0* %41
   %43 := GetPointer bool* %42.1
   %44 := Load bool* %43
   %45 := GetPointer bool %44[int %40]
@@ -56,15 +56,15 @@ func unit @test.indexingWithRecord(Rec0** %38, Rec1* %39, int %40) {
   Ret
 }
 
-type Rec1 {string, Tup2**}
+type test.Rec1 {string, test.Tup2**}
 
-type Tup2 {byte, long}
+type test.Tup2 {byte, long}
 
-func unit @test.indexingWithRecordAndTuple(Rec1* %47) {
-  %48 := GetPointer Tup2** %47.1
-  %49 := Load Tup2** %48
-  %50 := GetPointer Tup2* %49[int 99]
-  %51 := Load Tup2* %50
+func unit @test.indexingWithRecordAndTuple(test.Rec1* %47) {
+  %48 := GetPointer test.Tup2** %47.1
+  %49 := Load test.Tup2** %48
+  %50 := GetPointer test.Tup2* %49[int 99]
+  %51 := Load test.Tup2* %50
   %52 := GetPointer long %51.1
   %53 := Load long %52
   Ret

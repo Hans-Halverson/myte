@@ -4,7 +4,7 @@ open Immutable_utils
 open Types
 
 type t = {
-  bindings: Bindings.t;
+  mutable bindings: Bindings.t;
   mutable errors: (Loc.t * Analyze_error.t) list;
   mutable loc_to_tvar: Types.tvar_id LocMap.t;
   mutable union_forest_nodes: union_forest_node IMap.t;
@@ -21,15 +21,17 @@ and union_forest_node =
     }
   | Link of Types.tvar_id
 
-let mk ~bindings =
+let mk () =
   {
-    bindings;
+    bindings = Bindings.empty;
     errors = [];
     loc_to_tvar = LocMap.empty;
     union_forest_nodes = IMap.empty;
     return_types = LocMap.empty;
     unresolved_int_literals = LocSet.empty;
   }
+
+let set_new_bindings ~cx bindings = cx.bindings <- bindings
 
 let add_error ~cx loc error = cx.errors <- (loc, error) :: cx.errors
 

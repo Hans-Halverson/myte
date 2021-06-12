@@ -39,78 +39,36 @@ let pp_asts asts =
   in
   Printf.printf "%s" (String.concat "\n" ast_strings)
 
-let pp_irs irs =
-  let ir_strings = List.map Mir_pp.pp_program irs in
-  String.concat "\n" ir_strings
+let rec parse_and_check_stdlib () =
+  match Std_lib.get_stdlib_path () with
+  | Error err ->
+    print_error_message (Std_lib.pp_error err);
+    exit 1
+  | Ok stdlib_path ->
+    let pcx = Program_context.mk_pcx () in
+    let stdlib_files = Std_lib.get_stdlib_files stdlib_path in
+    parse_and_check ~pcx ~is_stdlib:true stdlib_files;
+    pcx
 
-let rec compile files =
+and parse_and_check ~pcx ~is_stdlib files =
   (* Parse files *)
   let asts = parse_files files in
-  if Opts.dump_ast () then (
+  if (not is_stdlib) && Opts.dump_ast () then (
     pp_asts asts;
     exit 0
   );
   (* Perform analysis passes *)
-  match Lex_analyze.analyze_modules asts with
+  match Lex_analyze.analyze_modules ~pcx ~is_library:is_stdlib asts with
   | Error errors ->
     print_analyze_errors errors;
     exit 1
-  | Ok program_cx ->
-    if Opts.dump_resolved_ast () then begin
-      Lex_analyze.(pp_asts program_cx.modules);
+  | Ok resolved_modules ->
+    if (not is_stdlib) && Opts.dump_resolved_ast () then (
+      pp_asts resolved_modules;
       exit 0
-    end;
-    if Opts.check () then exit 0;
-    (* Lower to IR *)
-    let (ecx, program_cf_ir) = Emit.emit_control_flow_ir program_cx in
-    let program_ssa_ir = Ssa.control_flow_ir_to_ssa program_cx ecx program_cf_ir in
-    if Opts.dump_ir () then dump_ir program_ssa_ir;
-    let ir =
-      if Opts.optimize () then
-        Mir_optimize.optimize program_ssa_ir
-      else
-        Mir_optimize.transform_for_assembly program_ssa_ir
-    in
-    let destructed_ir = Ssa_destruction.destruct_ssa ir in
-    (* Generate x86 program  *)
-    let gcx = X86_gen.gen_x86_program destructed_ir in
-    let x86_program_file = X86_pp.pp_x86_program ~gcx in
-    if Opts.dump_asm () then begin
-      print_string x86_program_file;
-      exit 0
-    end;
-    let output_file =
-      match Opts.output_file () with
-      | None ->
-        print_error_message "Must specify output file with -o option";
-        exit 1
-      | Some output_file -> output_file
-    in
-    (* Write x86 file *)
-    (try
-       let out_chan = open_out output_file in
-       output_string out_chan x86_program_file;
-       close_out out_chan
-     with Sys_error err ->
-       print_error_message err;
-       exit 1);
-    (* Compile with assembler *)
-    let quoted_output_file = Filename.quote output_file in
-    let ret = Sys.command (Printf.sprintf "as -o %s %s" quoted_output_file quoted_output_file) in
-    if ret <> 0 then (
-      print_error_message (Printf.sprintf "Assembler failed with exit code %d" ret);
-      exit 1
-    );
-    (* Link *)
-    let ret =
-      Sys.command (Printf.sprintf "ld -lSystem -o %s %s" quoted_output_file quoted_output_file)
-    in
-    if ret <> 0 then (
-      print_error_message (Printf.sprintf "Linker failed with exit code %d" ret);
-      exit 1
     )
 
-and dump_ir ir =
+let dump_ir ir =
   let open Mir_optimize in
   let transforms =
     Opts.dump_ir_transforms () |> List.filter_map MirTransform.of_string |> MirTransformSet.of_list
@@ -125,6 +83,62 @@ and dump_ir ir =
   in
   print_string (Mir_pp.pp_program ir);
   exit 0
+
+let lower_to_asm pcx =
+  (* Lower to IR *)
+  let (ecx, program_cf_ir) = Emit.emit_control_flow_ir pcx in
+  let program_ssa_ir = Ssa.control_flow_ir_to_ssa pcx ecx program_cf_ir in
+  if Opts.dump_ir () then dump_ir program_ssa_ir;
+  let ir =
+    if Opts.optimize () then
+      Mir_optimize.optimize program_ssa_ir
+    else
+      Mir_optimize.transform_for_assembly program_ssa_ir
+  in
+  let destructed_ir = Ssa_destruction.destruct_ssa ir in
+  (* Generate x86 program  *)
+  let gcx = X86_gen.gen_x86_program destructed_ir in
+  let x86_program_file = X86_pp.pp_x86_program ~gcx in
+  let output_file =
+    match Opts.output_file () with
+    | None ->
+      print_error_message "Must specify output file with -o option";
+      exit 1
+    | Some output_file -> output_file
+  in
+  (* Write x86 file *)
+  try
+    let out_chan = open_out output_file in
+    output_string out_chan x86_program_file;
+    close_out out_chan;
+    output_file
+  with Sys_error err ->
+    print_error_message err;
+    exit 1
+
+let compile_and_link_asm output_file =
+  (* Compile with assembler *)
+  let quoted_output_file = Filename.quote output_file in
+  let ret = Sys.command (Printf.sprintf "as -o %s %s" quoted_output_file quoted_output_file) in
+  if ret <> 0 then (
+    print_error_message (Printf.sprintf "Assembler failed with exit code %d" ret);
+    exit 1
+  );
+  (* Link *)
+  let ret =
+    Sys.command (Printf.sprintf "ld -lSystem -o %s %s" quoted_output_file quoted_output_file)
+  in
+  if ret <> 0 then (
+    print_error_message (Printf.sprintf "Linker failed with exit code %d" ret);
+    exit 1
+  )
+
+let compile files =
+  let pcx = parse_and_check_stdlib () in
+  parse_and_check ~pcx ~is_stdlib:false files;
+  if Opts.check () then exit 0;
+  let out_file = lower_to_asm pcx in
+  compile_and_link_asm out_file
 
 let () =
   let files = ref SSet.empty in

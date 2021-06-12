@@ -1,0 +1,7 @@
+module std.option
+
+type Option (Int)
+
+fun toInt(x: Option): Int {
+  return 1;
+}

@@ -367,3 +367,15 @@ let lookup_element agg name =
     | _ :: tl -> inner tl (i + 1)
   in
   inner agg.elements 0
+
+let filter_stdlib (program : ssa_program) =
+  let filter_stdlib_names smap =
+    SMap.filter (fun name _ -> not (Std_lib.has_stdlib_prefix name)) smap
+  in
+  {
+    program with
+    Program.globals = filter_stdlib_names program.globals;
+    funcs = filter_stdlib_names program.funcs;
+    types = filter_stdlib_names program.types;
+    modules = filter_stdlib_names program.modules;
+  }

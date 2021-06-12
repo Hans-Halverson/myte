@@ -10,6 +10,7 @@ type t = {
   optimize: bool ref;
   output_file: string option ref;
   print_plain: bool ref;
+  stdlib_path: string option ref;
 }
 
 let opts =
@@ -25,6 +26,7 @@ let opts =
     optimize = ref false;
     output_file = ref None;
     print_plain = ref false;
+    stdlib_path = ref None;
   }
 
 let split_comma_list string_list = String.split_on_char ',' string_list
@@ -44,6 +46,7 @@ let spec =
     ("--no-pretty-print", Arg.Set opts.print_plain, " Do not pretty print output");
     ("-o", Arg.String (fun file -> opts.output_file := Some file), " Write output to file");
     ("-O", Arg.Set opts.optimize, " Compile with optimizations");
+    ("--stdlib", Arg.String (fun path -> opts.stdlib_path := Some path), " Path to standard library");
   ]
   |> Arg.align
 
@@ -74,3 +77,5 @@ let optimize () = !(opts.optimize)
 let output_file () = !(opts.output_file)
 
 let print_plain () = !(opts.print_plain)
+
+let stdlib_path () = !(opts.stdlib_path)

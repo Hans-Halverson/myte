@@ -8,4 +8,6 @@ pushd $ROOT_DIR/src
 dune build myte.bc --no-print-directory
 popd
 
+source $CURRENT_DIR/setup_myte_env
+
 ocamldebug $ROOT_DIR/_build/default/src/myte.bc $@

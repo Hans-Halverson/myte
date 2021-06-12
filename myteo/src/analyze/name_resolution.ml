@@ -674,7 +674,7 @@ class bindings_builder ~module_tree =
       resolve_scoped_ids patt
   end
 
-let analyze modules module_tree =
+let analyze module_tree modules =
   let results =
     List.map
       (fun (file, mod_) ->

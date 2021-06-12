@@ -3,7 +3,7 @@ open Mir
 (* 
    myte.myte_alloc<T>(count: long): *T
 
-   Allocate space for `count` adjacent values of type `T`s
+   Allocate space for `count` adjacent values of type `T`
  *)
 let myte_alloc = { Builtin.name = "myte.myte_alloc"; mk_return_ty = (fun ty -> `PointerT ty) }
 

@@ -1,12 +1,12 @@
-open Analyze_error
 open Ast
+open Analyze_error
 open Basic_collections
 
-type module_tree = module_tree_node SMap.t
+type t = module_tree_node SMap.t
 
 and module_tree_node =
-  | Empty of string * module_tree
-  | Module of string * module_tree
+  | Empty of string * t
+  | Module of string * t
   | Export of export_info
 
 and value_export_kind =
@@ -146,17 +146,9 @@ let add_to_module_tree module_ module_tree =
   in
   add_to_module_tree_inner [] module_name_parts module_tree
 
-let analyze modules =
-  List.fold_left
-    (fun (module_tree, errors) module_ ->
-      match add_to_module_tree module_ module_tree with
-      | (module_tree, new_errors) -> (module_tree, new_errors @ errors))
-    (SMap.empty, [])
-    modules
-
 type lookup_result =
   | LookupResultExport of export_info
-  | LookupResultModule of string option * module_tree
+  | LookupResultModule of string option * t
   | LookupResultError of Loc.t * Analyze_error.t
 
 let lookup name_parts module_tree =
@@ -197,3 +189,11 @@ let get_all_exports module_tree =
       (values @ values_acc, types @ types_acc))
     module_tree
     ([], [])
+
+let analyze existing_module_tree new_modules =
+  List.fold_left
+    (fun (module_tree, errors) module_ ->
+      match add_to_module_tree module_ module_tree with
+      | (module_tree, new_errors) -> (module_tree, new_errors @ errors))
+    (existing_module_tree, [])
+    new_modules

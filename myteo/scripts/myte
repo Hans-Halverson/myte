@@ -3,4 +3,6 @@
 CURRENT_DIR=$0:A:h
 ROOT_DIR=$(dirname $CURRENT_DIR)
 
+source $CURRENT_DIR/setup_myte_env
+
 $ROOT_DIR/_build/default/src/myte.exe $@
