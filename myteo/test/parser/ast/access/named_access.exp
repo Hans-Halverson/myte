@@ -80,6 +80,7 @@ test/parser/ast/access/named_access.myte
       },
       return: None,
       type_params: [],
+      builtin: false,
     },
   ],
 }

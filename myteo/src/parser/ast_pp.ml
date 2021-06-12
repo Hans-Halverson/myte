@@ -450,13 +450,14 @@ and node_of_variable_decl decl =
 
 and node_of_type_decl decl =
   let open TypeDeclaration in
-  let { loc; name; type_params; decl } = decl in
+  let { loc; name; type_params; decl; builtin } = decl in
   node
     "TypeDeclaration"
     loc
     [
       ("name", node_of_identifier name);
       ("type_params", List (List.map node_of_type_parameter type_params));
+      ("builtin", Bool builtin);
       (match decl with
       | Alias alias -> ("alias", node_of_type alias)
       | Record record -> ("record", node_of_record_variant record)
@@ -499,7 +500,7 @@ and node_of_tuple_variant tuple =
 
 and node_of_function func =
   let open Function in
-  let { loc; name; type_params; params; body; return } = func in
+  let { loc; name; type_params; params; body; return; builtin } = func in
   let body =
     match body with
     | Block block -> node_of_block block
@@ -514,6 +515,7 @@ and node_of_function func =
       ("body", body);
       ("return", opt node_of_type return);
       ("type_params", List (List.map node_of_type_parameter type_params));
+      ("builtin", Bool builtin);
     ]
 
 and node_of_function_param param =

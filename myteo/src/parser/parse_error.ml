@@ -4,6 +4,7 @@ type t =
       actual: Token.t;
       expected: Token.t option;
     }
+  | UnexpectedTokens of Token.t * Token.t list
   | UnterminatedStringLiteral
   | MalformedTopLevel of Token.t
   | MalformedPattern of Token.t
@@ -16,6 +17,7 @@ type t =
   | EmptyRecord
   | EmptyTuple
   | SingleVariant
+  | InvalidBuiltin
 
 exception Fatal of (Loc.t * t)
 
@@ -34,6 +36,11 @@ let to_string error =
       "Unexpected token `%s`, expected `%s`"
       (Token.to_string actual)
       (Token.to_string expected)
+  | UnexpectedTokens (actual, expecteds) ->
+    Printf.sprintf
+      "Unexpected token `%s`, expected %s"
+      (Token.to_string actual)
+      (Error_utils.concat_with_or (List.map (fun s -> "`" ^ Token.to_string s ^ "`") expecteds))
   | UnterminatedStringLiteral -> "Unterminated string literal"
   | MalformedTopLevel actual ->
     Printf.sprintf
@@ -58,3 +65,5 @@ let to_string error =
   | EmptyRecord -> "Record must have at least one field"
   | EmptyTuple -> "Tuple must have at least one element"
   | SingleVariant -> "Variant type must have at least two variants"
+  | InvalidBuiltin ->
+    "A type alias cannot be builtin. Only function and type declarations can be builtin."

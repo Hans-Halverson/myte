@@ -27,6 +27,7 @@ test/parser/ast/type/tuple.myte
         name: "t1",
       },
       type_params: [],
+      builtin: false,
       alias: {
         node: TupleType,
         loc: 3:16-3:35,
@@ -58,6 +59,7 @@ test/parser/ast/type/tuple.myte
         name: "t2",
       },
       type_params: [],
+      builtin: false,
       alias: {
         node: TupleType,
         loc: 4:16-4:63,
@@ -122,6 +124,7 @@ test/parser/ast/type/tuple.myte
         name: "t3",
       },
       type_params: [],
+      builtin: false,
       alias: {
         node: TupleType,
         loc: 7:16-7:31,
@@ -148,6 +151,7 @@ test/parser/ast/type/tuple.myte
         name: "t4",
       },
       type_params: [],
+      builtin: false,
       alias: {
         node: FunctionType,
         loc: 10:16-10:39,

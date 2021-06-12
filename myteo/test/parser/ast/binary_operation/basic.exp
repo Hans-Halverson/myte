@@ -851,6 +851,7 @@ test/parser/ast/binary_operation/basic.myte
       },
       return: None,
       type_params: [],
+      builtin: false,
     },
   ],
 }

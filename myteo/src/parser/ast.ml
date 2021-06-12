@@ -422,6 +422,7 @@ and Function : sig
     body: body;
     return: Type.t option;
     type_params: TypeParameter.t list;
+    builtin: bool;
   }
 end =
   Function
@@ -467,6 +468,7 @@ and TypeDeclaration : sig
     name: Identifier.t;
     type_params: TypeParameter.t list;
     decl: decl;
+    builtin: bool;
   }
 end =
   TypeDeclaration

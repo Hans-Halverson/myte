@@ -50,6 +50,7 @@ type t =
   | T_AS
   | T_TYPE
   | T_ALIAS
+  | T_BUILTIN
   | T_EOF
 
 let to_string token =
@@ -109,4 +110,5 @@ let to_string token =
   | T_AS -> "as"
   | T_TYPE -> "type"
   | T_ALIAS -> "alias"
+  | T_BUILTIN -> "builtin"
   | T_EOF -> "<EOF>"

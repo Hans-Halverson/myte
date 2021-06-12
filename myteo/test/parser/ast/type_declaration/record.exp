@@ -27,6 +27,7 @@ test/parser/ast/type_declaration/record.myte
         name: "r1",
       },
       type_params: [],
+      builtin: false,
       record: {
         node: RecordVariant,
         loc: 3:5-3:20,
@@ -62,6 +63,7 @@ test/parser/ast/type_declaration/record.myte
         name: "r2",
       },
       type_params: [],
+      builtin: false,
       record: {
         node: RecordVariant,
         loc: 5:5-5:21,
@@ -97,6 +99,7 @@ test/parser/ast/type_declaration/record.myte
         name: "r3",
       },
       type_params: [],
+      builtin: false,
       record: {
         node: RecordVariant,
         loc: 7:5-7:44,
@@ -160,6 +163,7 @@ test/parser/ast/type_declaration/record.myte
         name: "r4",
       },
       type_params: [],
+      builtin: false,
       record: {
         node: RecordVariant,
         loc: 9:5-9:45,
@@ -223,6 +227,7 @@ test/parser/ast/type_declaration/record.myte
         name: "r5",
       },
       type_params: [],
+      builtin: false,
       record: {
         node: RecordVariant,
         loc: 11:5-11:74,
@@ -324,6 +329,7 @@ test/parser/ast/type_declaration/record.myte
           },
         },
       ],
+      builtin: false,
       record: {
         node: RecordVariant,
         loc: 13:5-13:21,
@@ -397,6 +403,7 @@ test/parser/ast/type_declaration/record.myte
           },
         },
       ],
+      builtin: false,
       record: {
         node: RecordVariant,
         loc: 15:5-15:35,

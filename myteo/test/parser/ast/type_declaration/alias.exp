@@ -27,6 +27,7 @@ test/parser/ast/type_declaration/alias.myte
         name: "t1",
       },
       type_params: [],
+      builtin: false,
       alias: {
         node: PrimitiveType,
         loc: 3:16-3:20,
@@ -42,6 +43,7 @@ test/parser/ast/type_declaration/alias.myte
         name: "t2",
       },
       type_params: [],
+      builtin: false,
       alias: {
         node: PrimitiveType,
         loc: 5:16-5:19,
@@ -57,6 +59,7 @@ test/parser/ast/type_declaration/alias.myte
         name: "t3",
       },
       type_params: [],
+      builtin: false,
       alias: {
         node: FunctionType,
         loc: 7:16-7:38,
@@ -99,6 +102,7 @@ test/parser/ast/type_declaration/alias.myte
           },
         },
       ],
+      builtin: false,
       alias: {
         node: PrimitiveType,
         loc: 9:19-9:23,
@@ -142,6 +146,7 @@ test/parser/ast/type_declaration/alias.myte
           },
         },
       ],
+      builtin: false,
       alias: {
         node: PrimitiveType,
         loc: 11:25-11:28,

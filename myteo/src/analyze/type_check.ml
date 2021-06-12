@@ -49,12 +49,24 @@ and visit_type_declarations ~cx module_ =
       let open Ast.TypeDeclaration in
       match toplevel with
       (*
+       *
+       * Builtin Type
+       *
+       *)
+      | TypeDeclaration { builtin = true; _ } -> ()
+      (*
        * Type Alias
        * 
        * Type aliases have their tvar unified with the aliased type.
        *)
       | TypeDeclaration
-          { loc; name = { Ast.Identifier.loc = id_loc; name }; type_params; decl = Alias alias } ->
+          {
+            loc;
+            name = { Ast.Identifier.loc = id_loc; name };
+            type_params;
+            decl = Alias alias;
+            builtin = _;
+          } ->
         check_type_parameters ~cx type_params;
         let tvar_id = Type_context.get_tvar_id_from_type_decl ~cx id_loc in
         let ty = build_type ~cx alias in
@@ -75,7 +87,8 @@ and visit_type_declarations ~cx module_ =
        * Build variant signatures for each variant in this ADT. Each variant's constructor id is
        * also unified with ADT.
        *)
-      | TypeDeclaration { loc = _; name = { Ast.Identifier.loc = id_loc; name }; type_params; decl }
+      | TypeDeclaration
+          { loc = _; name = { Ast.Identifier.loc = id_loc; name }; type_params; decl; builtin = _ }
         ->
         check_type_parameters ~cx type_params;
         (* Get ADT signature from ADT id's tvar *)
@@ -203,7 +216,7 @@ and check_function_declaration ~cx ~decl_pass decl =
   let open Ast.Identifier in
   let open Ast.Function in
   let open Ast.Function.Param in
-  let { name = { loc = id_loc; _ }; params; return; body; type_params; loc = _ } = decl in
+  let { loc = _; name = { loc = id_loc; _ }; params; return; body; type_params; builtin } = decl in
   check_type_parameters ~cx type_params;
 
   (* Bind annotated function type to function identifier *)
@@ -213,7 +226,7 @@ and check_function_declaration ~cx ~decl_pass decl =
   let function_ty = Types.Function { params = param_tys; return = return_ty } in
 
   ignore (Type_context.unify ~cx function_ty (TVar tvar_id));
-  if not decl_pass then begin
+  if (not decl_pass) && not builtin then begin
     (* Bind param id tvars to their annotated types *)
     List.combine params param_tys
     |> List.iter (fun (param, param_ty) ->

@@ -132,6 +132,7 @@ test/parser/ast/tuple/expression.myte
       },
       return: None,
       type_params: [],
+      builtin: false,
     },
   ],
 }

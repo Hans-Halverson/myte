@@ -148,6 +148,7 @@ test/parser/ast/unary_operation/basic.myte
       },
       return: None,
       type_params: [],
+      builtin: false,
     },
   ],
 }

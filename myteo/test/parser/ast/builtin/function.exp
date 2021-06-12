@@ -1,0 +1,87 @@
+test/parser/ast/builtin/function.myte
+{
+  node: Module,
+  loc: 1:0-5:32,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: Function,
+      loc: 3:8-3:17,
+      name: {
+        node: Identifier,
+        loc: 3:12-3:15,
+        name: "foo",
+      },
+      params: [],
+      body: {
+        node: Identifier,
+        loc: 3:12-3:15,
+        name: "foo",
+      },
+      return: None,
+      type_params: [],
+      builtin: true,
+    },
+    {
+      node: Function,
+      loc: 5:8-5:32,
+      name: {
+        node: Identifier,
+        loc: 5:12-5:15,
+        name: "foo",
+      },
+      params: [
+        {
+          node: Param,
+          loc: 5:19-5:25,
+          name: {
+            node: Identifier,
+            loc: 5:19-5:20,
+            name: "x",
+          },
+          annot: {
+            node: PrimitiveType,
+            loc: 5:22-5:25,
+            kind: Int,
+          },
+        },
+      ],
+      body: {
+        node: Identifier,
+        loc: 5:12-5:15,
+        name: "foo",
+      },
+      return: {
+        node: PrimitiveType,
+        loc: 5:28-5:32,
+        kind: Unit,
+      },
+      type_params: [
+        {
+          node: TypeParameter,
+          loc: 5:16-5:17,
+          name: {
+            node: Identifier,
+            loc: 5:16-5:17,
+            name: "T",
+          },
+        },
+      ],
+      builtin: true,
+    },
+  ],
+}

@@ -113,6 +113,7 @@ test/parser/ast/access/indexed_access.myte
       },
       return: None,
       type_params: [],
+      builtin: false,
     },
   ],
 }

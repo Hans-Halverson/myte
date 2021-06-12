@@ -215,7 +215,7 @@ class ['a] visitor =
 
     method function_ acc func =
       let open Function in
-      let { loc = _; name; params; body; return; type_params } = func in
+      let { loc = _; name; params; body; return; type_params; builtin = _ } = func in
       this#identifier acc name;
       List.iter (this#function_param acc) params;
       this#function_body acc body;
@@ -302,7 +302,7 @@ class ['a] visitor =
 
     method type_declaration acc decl =
       let open TypeDeclaration in
-      let { loc = _; name; type_params; decl } = decl in
+      let { loc = _; name; type_params; decl; builtin = _ } = decl in
       this#identifier acc name;
       List.iter (this#type_parameter acc) type_params;
       this#type_declaration_declaration acc decl

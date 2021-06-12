@@ -27,6 +27,7 @@ test/parser/ast/type_declaration/tuple.myte
         name: "t1",
       },
       type_params: [],
+      builtin: false,
       tuple: {
         node: TupleVariant,
         loc: 3:5-3:12,
@@ -53,6 +54,7 @@ test/parser/ast/type_declaration/tuple.myte
         name: "t2",
       },
       type_params: [],
+      builtin: false,
       tuple: {
         node: TupleVariant,
         loc: 5:5-5:16,
@@ -79,6 +81,7 @@ test/parser/ast/type_declaration/tuple.myte
         name: "t3",
       },
       type_params: [],
+      builtin: false,
       tuple: {
         node: TupleVariant,
         loc: 7:5-7:26,
@@ -115,6 +118,7 @@ test/parser/ast/type_declaration/tuple.myte
         name: "t4",
       },
       type_params: [],
+      builtin: false,
       tuple: {
         node: TupleVariant,
         loc: 9:5-9:27,
@@ -151,6 +155,7 @@ test/parser/ast/type_declaration/tuple.myte
         name: "t5",
       },
       type_params: [],
+      builtin: false,
       tuple: {
         node: TupleVariant,
         loc: 11:5-11:28,
@@ -203,6 +208,7 @@ test/parser/ast/type_declaration/tuple.myte
           },
         },
       ],
+      builtin: false,
       tuple: {
         node: TupleVariant,
         loc: 13:5-13:16,
@@ -257,6 +263,7 @@ test/parser/ast/type_declaration/tuple.myte
           },
         },
       ],
+      builtin: false,
       tuple: {
         node: TupleVariant,
         loc: 15:5-15:21,

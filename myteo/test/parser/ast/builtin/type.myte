@@ -1,0 +1,5 @@
+module test
+
+builtin type Array
+
+builtin type Array<T>

@@ -53,6 +53,7 @@ test/parser/ast/literals/string.myte
       },
       return: None,
       type_params: [],
+      builtin: false,
     },
   ],
 }

@@ -38,6 +38,7 @@ test/parser/ast/function_declaration/basic.myte
         kind: Int,
       },
       type_params: [],
+      builtin: false,
     },
     {
       node: Function,
@@ -59,6 +60,7 @@ test/parser/ast/function_declaration/basic.myte
         kind: Int,
       },
       type_params: [],
+      builtin: false,
     },
     {
       node: Function,
@@ -123,6 +125,7 @@ test/parser/ast/function_declaration/basic.myte
         kind: Int,
       },
       type_params: [],
+      builtin: false,
     },
     {
       node: Function,
@@ -187,6 +190,7 @@ test/parser/ast/function_declaration/basic.myte
         kind: Int,
       },
       type_params: [],
+      builtin: false,
     },
     {
       node: Function,
@@ -214,6 +218,7 @@ test/parser/ast/function_declaration/basic.myte
           },
         },
       ],
+      builtin: false,
     },
     {
       node: Function,
@@ -266,6 +271,7 @@ test/parser/ast/function_declaration/basic.myte
           },
         },
       ],
+      builtin: false,
     },
     {
       node: Function,
@@ -374,6 +380,7 @@ test/parser/ast/function_declaration/basic.myte
           },
         },
       ],
+      builtin: false,
     },
     {
       node: Function,
@@ -482,6 +489,7 @@ test/parser/ast/function_declaration/basic.myte
           },
         },
       ],
+      builtin: false,
     },
   ],
 }

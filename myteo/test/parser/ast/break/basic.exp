@@ -54,6 +54,7 @@ test/parser/ast/break/basic.myte
       },
       return: None,
       type_params: [],
+      builtin: false,
     },
   ],
 }

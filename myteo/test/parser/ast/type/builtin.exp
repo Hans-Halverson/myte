@@ -27,6 +27,7 @@ test/parser/ast/type/builtin.myte
         name: "T1",
       },
       type_params: [],
+      builtin: false,
       alias: {
         node: BuiltinType,
         loc: 3:16-3:26,
@@ -49,6 +50,7 @@ test/parser/ast/type/builtin.myte
         name: "T2",
       },
       type_params: [],
+      builtin: false,
       alias: {
         node: BuiltinType,
         loc: 5:16-5:33,

@@ -164,8 +164,14 @@ and parse_toplevel env =
   | T_VAL
   | T_VAR ->
     VariableDeclaration (parse_variable_declaration ~is_toplevel:true env)
-  | T_FUN -> FunctionDeclaration (parse_function env)
-  | T_TYPE -> TypeDeclaration (parse_type_declaration env)
+  | T_FUN -> FunctionDeclaration (parse_function ~is_builtin:false env)
+  | T_TYPE -> TypeDeclaration (parse_type_declaration ~is_builtin:false env)
+  | T_BUILTIN ->
+    Env.advance env;
+    (match Env.token env with
+    | T_FUN -> FunctionDeclaration (parse_function ~is_builtin:true env)
+    | T_TYPE -> TypeDeclaration (parse_type_declaration ~is_builtin:true env)
+    | token -> Parse_error.fatal (Env.loc env, UnexpectedTokens (token, [T_FUN; T_TYPE])))
   | token -> Parse_error.fatal (Env.loc env, MalformedTopLevel token)
 
 and parse_statement env =
@@ -181,7 +187,7 @@ and parse_statement env =
   | T_VAL
   | T_VAR ->
     VariableDeclaration (parse_variable_declaration ~is_toplevel:false env)
-  | T_FUN -> FunctionDeclaration (parse_function env)
+  | T_FUN -> FunctionDeclaration (parse_function ~is_builtin:false env)
   | _ -> parse_assignment_or_expression_statement env
 
 and parse_assignment_or_expression_statement env =
@@ -906,7 +912,7 @@ and parse_continue ~in_match_case env =
   let loc = marker env in
   Statement.Continue { loc }
 
-and parse_type_declaration env =
+and parse_type_declaration ~is_builtin env =
   let open TypeDeclaration in
   let marker = mark_loc env in
   Env.expect env T_TYPE;
@@ -917,30 +923,37 @@ and parse_type_declaration env =
   in
   match Env.token env with
   | T_ALIAS ->
+    if is_builtin then Env.error env (Env.loc env, InvalidBuiltin);
     Env.advance env;
     let name = parse_identifier env in
     let type_params = parse_type_params_opt () in
     Env.expect env T_EQUALS;
     let alias = parse_type env in
     let loc = marker env in
-    { loc; name; type_params; decl = Alias alias }
+    { loc; name; type_params; decl = Alias alias; builtin = false }
   | _ ->
     let name_marker = mark_loc env in
     let name = parse_identifier env in
     let type_params = parse_type_params_opt () in
-    (match Env.token env with
-    | T_LEFT_PAREN ->
-      let tuple = parse_tuple_variant env name name_marker in
+    (* Builtins can only have a name and type params *)
+    if is_builtin then
       let loc = marker env in
-      { loc; name; type_params; decl = Tuple tuple }
-    | T_LEFT_BRACE ->
-      let record = parse_record_variant env name name_marker in
-      let loc = marker env in
-      { loc; name; type_params; decl = Record record }
-    | T_EQUALS ->
-      Env.advance env;
-      parse_variant env name type_params marker
-    | token -> Parse_error.fatal (Env.loc env, MalformedTypeDeclaration token))
+      { loc; name; type_params; decl = Variant []; builtin = true }
+    else (
+      match Env.token env with
+      | T_LEFT_PAREN ->
+        let tuple = parse_tuple_variant env name name_marker in
+        let loc = marker env in
+        { loc; name; type_params; decl = Tuple tuple; builtin = false }
+      | T_LEFT_BRACE ->
+        let record = parse_record_variant env name name_marker in
+        let loc = marker env in
+        { loc; name; type_params; decl = Record record; builtin = false }
+      | T_EQUALS ->
+        Env.advance env;
+        parse_variant env name type_params marker
+      | token -> Parse_error.fatal (Env.loc env, MalformedTypeDeclaration token)
+    )
 
 and parse_variant env name type_params marker =
   (match Env.token env with
@@ -965,7 +978,7 @@ and parse_variant env name type_params marker =
   let variants = parse_variants () in
   let loc = marker env in
   if List.length variants = 1 then Parse_error.fatal (loc, SingleVariant);
-  { loc; name; type_params; decl = Variant variants }
+  { loc; name; type_params; decl = Variant variants; builtin = false }
 
 and parse_record_variant env name marker =
   let open TypeDeclaration.Record in
@@ -1041,7 +1054,7 @@ and parse_variable_declaration ~is_toplevel env =
   let loc = marker env in
   { VariableDeclaration.loc; kind; pattern; init; annot }
 
-and parse_function env =
+and parse_function ~is_builtin env =
   let open Function in
   let marker = mark_loc env in
   Env.expect env T_FUN;
@@ -1081,16 +1094,29 @@ and parse_function env =
       Some (parse_type env)
     | _ -> None
   in
-  let body =
-    match Env.token env with
-    | T_LEFT_BRACE -> Block (parse_block env)
-    | T_EQUALS ->
-      Env.advance env;
-      Expression (parse_expression env)
-    | token -> Parse_error.fatal (Env.loc env, MalformedFunctionBody token)
-  in
-  let loc = marker env in
-  { loc; name; params; body; return; type_params }
+  (* Builtin functions do not have a body, use function name as expression body *)
+  if is_builtin then
+    let loc = marker env in
+    {
+      loc;
+      name;
+      params;
+      body = Expression (Expression.Identifier name);
+      return;
+      type_params;
+      builtin = true;
+    }
+  else
+    let body =
+      match Env.token env with
+      | T_LEFT_BRACE -> Block (parse_block env)
+      | T_EQUALS ->
+        Env.advance env;
+        Expression (parse_expression env)
+      | token -> Parse_error.fatal (Env.loc env, MalformedFunctionBody token)
+    in
+    let loc = marker env in
+    { loc; name; params; body; return; type_params; builtin = false }
 
 and parse_type env =
   let marker = mark_loc env in

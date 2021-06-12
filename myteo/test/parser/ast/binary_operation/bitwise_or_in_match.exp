@@ -270,6 +270,7 @@ test/parser/ast/binary_operation/bitwise_or_in_match.myte
       },
       return: None,
       type_params: [],
+      builtin: false,
     },
   ],
 }

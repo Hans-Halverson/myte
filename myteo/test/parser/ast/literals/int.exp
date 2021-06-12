@@ -146,6 +146,7 @@ test/parser/ast/literals/int.myte
       },
       return: None,
       type_params: [],
+      builtin: false,
     },
   ],
 }
