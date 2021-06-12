@@ -1,0 +1,5 @@
+module std.array
+
+builtin type Array<T>
+
+builtin fun new(x: Int): Array<Int>

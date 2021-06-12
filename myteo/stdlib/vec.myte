@@ -1,0 +1,18 @@
+module std.vec
+
+import std.array
+import std.array.Array
+
+type Vec {
+  data: Array<Int>,
+  size: Int,
+  capacity: Int,
+}
+
+fun new(capacity: Int): Vec {
+  return Vec {
+    data: array.new(capacity),
+    size: 0,
+    capacity,
+  };
+}

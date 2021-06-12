@@ -70,40 +70,43 @@ and emit_type_declaration_prepass ~pcx ~ecx decl =
 (* Fill aggregate types with correct element types *)
 and emit_type_declaration ~pcx ~ecx decl =
   let open TypeDeclaration in
-  let { name = { Identifier.loc; name }; decl; _ } = decl in
-  let tvar_id = Bindings.get_tvar_id_from_type_decl pcx.bindings loc in
-  let ty = Type_context.find_rep_type ~cx:pcx.type_ctx (TVar tvar_id) in
-  match decl with
-  | Tuple _ ->
-    let adt_sig = Types.get_adt_sig ty in
-    let element_sigs = Types.get_tuple_variant adt_sig name in
-    let element_types =
-      List.map
-        (fun element_sig ->
-          let element_ty = type_to_mir_type ~pcx ~ecx element_sig in
-          (None, element_ty))
-        element_sigs
-    in
-    let agg = Types.TypeHashtbl.find ecx.adt_to_agg_type ty in
-    agg.elements <- element_types
-  | Record { fields; _ } ->
-    let adt_sig = Types.get_adt_sig ty in
-    let field_sigs = Types.get_record_variant adt_sig name in
-    (* Collect fields for aggregate in order they are declared in *)
-    let element_types =
-      List.fold_left
-        (fun element_types { Record.Field.name = { Identifier.name; _ }; _ } ->
-          let sig_ty = SMap.find name field_sigs in
-          let element_ty = type_to_mir_type ~pcx ~ecx sig_ty in
-          (Some name, element_ty) :: element_types)
-        []
-        fields
-    in
-    let agg = Types.TypeHashtbl.find ecx.adt_to_agg_type ty in
-    agg.elements <- List.rev element_types
-  | Variant _
-  | Alias _ ->
+  let { name = { Identifier.loc; name }; decl; builtin; _ } = decl in
+  if builtin then
     ()
+  else
+    let tvar_id = Bindings.get_tvar_id_from_type_decl pcx.bindings loc in
+    let ty = Type_context.find_rep_type ~cx:pcx.type_ctx (TVar tvar_id) in
+    match decl with
+    | Tuple _ ->
+      let adt_sig = Types.get_adt_sig ty in
+      let element_sigs = Types.get_tuple_variant adt_sig name in
+      let element_types =
+        List.map
+          (fun element_sig ->
+            let element_ty = type_to_mir_type ~pcx ~ecx element_sig in
+            (None, element_ty))
+          element_sigs
+      in
+      let agg = Types.TypeHashtbl.find ecx.adt_to_agg_type ty in
+      agg.elements <- element_types
+    | Record { fields; _ } ->
+      let adt_sig = Types.get_adt_sig ty in
+      let field_sigs = Types.get_record_variant adt_sig name in
+      (* Collect fields for aggregate in order they are declared in *)
+      let element_types =
+        List.fold_left
+          (fun element_types { Record.Field.name = { Identifier.name; _ }; _ } ->
+            let sig_ty = SMap.find name field_sigs in
+            let element_ty = type_to_mir_type ~pcx ~ecx sig_ty in
+            (Some name, element_ty) :: element_types)
+          []
+          fields
+      in
+      let agg = Types.TypeHashtbl.find ecx.adt_to_agg_type ty in
+      agg.elements <- List.rev element_types
+    | Variant _
+    | Alias _ ->
+      ()
 
 and emit_toplevel_variable_declaration ~pcx ~ecx decl =
   let { Statement.VariableDeclaration.pattern; init; _ } = decl in
@@ -123,39 +126,44 @@ and emit_toplevel_variable_declaration ~pcx ~ecx decl =
 
 and emit_toplevel_function_declaration ~pcx ~ecx decl =
   let open Ast.Function in
-  let { name = { Identifier.loc; name }; params; body; _ } = decl in
+  let { name = { Identifier.loc; name }; params; body; builtin; _ } = decl in
   let name = Printf.sprintf "%s.%s" (Ecx.get_module_builder ~ecx).name name in
-  (* Build IR for function body *)
-  let param_locs_and_ids =
-    List.map (fun { Param.name = { Identifier.loc; _ }; _ } -> (loc, mk_var_id ())) params
-  in
-  let body_start_block =
-    Ecx.start_block_sequence ~ecx (FunctionBody name);
-    let body_start_block = Ecx.start_new_block ~ecx in
-    if loc = Option.get pcx.main_loc then ecx.main_id <- body_start_block;
-    (match body with
-    | Block { Statement.Block.statements; _ } ->
-      List.iter (emit_statement ~pcx ~ecx) statements;
-      (* Add an implicit return if the last instruction is not a return *)
-      (match ecx.current_block_builder with
-      | Some { Ecx.BlockBuilder.instructions = (_, Ret _) :: _; _ } -> ()
-      | _ -> Ecx.emit ~ecx (Ret None))
-    | Expression expr ->
-      let ret_val = emit_expression ~pcx ~ecx expr in
-      Ecx.emit ~ecx (Ret (Some ret_val)));
-    Ecx.finish_block_halt ~ecx;
-    body_start_block
-  in
-  (* Find value type of function *)
-  let func_tvar_id = Bindings.get_tvar_id_from_value_decl pcx.bindings loc in
-  let (param_tys, return_ty) =
-    match Type_context.find_rep_type ~cx:pcx.type_ctx (Types.TVar func_tvar_id) with
-    | Types.Function { params; return } ->
-      (List.map (type_to_mir_type ~pcx ~ecx) params, type_to_mir_type ~pcx ~ecx return)
-    | _ -> failwith "Function must resolve to function type"
-  in
-  let params = List.map2 (fun (loc, var_id) ty -> (loc, var_id, ty)) param_locs_and_ids param_tys in
-  Ecx.add_function ~ecx { Function.loc; name; params; return_ty; body_start_block }
+  if builtin then
+    ()
+  else
+    (* Build IR for function body *)
+    let param_locs_and_ids =
+      List.map (fun { Param.name = { Identifier.loc; _ }; _ } -> (loc, mk_var_id ())) params
+    in
+    let body_start_block =
+      Ecx.start_block_sequence ~ecx (FunctionBody name);
+      let body_start_block = Ecx.start_new_block ~ecx in
+      if loc = Option.get pcx.main_loc then ecx.main_id <- body_start_block;
+      (match body with
+      | Block { Statement.Block.statements; _ } ->
+        List.iter (emit_statement ~pcx ~ecx) statements;
+        (* Add an implicit return if the last instruction is not a return *)
+        (match ecx.current_block_builder with
+        | Some { Ecx.BlockBuilder.instructions = (_, Ret _) :: _; _ } -> ()
+        | _ -> Ecx.emit ~ecx (Ret None))
+      | Expression expr ->
+        let ret_val = emit_expression ~pcx ~ecx expr in
+        Ecx.emit ~ecx (Ret (Some ret_val)));
+      Ecx.finish_block_halt ~ecx;
+      body_start_block
+    in
+    (* Find value type of function *)
+    let func_tvar_id = Bindings.get_tvar_id_from_value_decl pcx.bindings loc in
+    let (param_tys, return_ty) =
+      match Type_context.find_rep_type ~cx:pcx.type_ctx (Types.TVar func_tvar_id) with
+      | Types.Function { params; return } ->
+        (List.map (type_to_mir_type ~pcx ~ecx) params, type_to_mir_type ~pcx ~ecx return)
+      | _ -> failwith "Function must resolve to function type"
+    in
+    let params =
+      List.map2 (fun (loc, var_id) ty -> (loc, var_id, ty)) param_locs_and_ids param_tys
+    in
+    Ecx.add_function ~ecx { Function.loc; name; params; return_ty; body_start_block }
 
 and emit_expression ~pcx ~ecx expr =
   let open Expression in
@@ -343,7 +351,6 @@ and emit_expression ~pcx ~ecx expr =
         | _ -> None)
       | _ -> None
     in
-    (* Emit function call *)
     (match ctor_result_opt with
     | Some result -> result
     | None ->
@@ -351,8 +358,19 @@ and emit_expression ~pcx ~ecx expr =
       let func_val = emit_function_expression ~pcx ~ecx func in
       let arg_vals = List.map (emit_expression ~pcx ~ecx) args in
       let ret_ty = mir_type_of_loc ~pcx ~ecx loc in
-      Ecx.emit ~ecx (Call (var_id, ret_ty, func_val, arg_vals));
-      var_value_of_type var_id ret_ty)
+      (match func_val with
+      (* Emit inlined builtins *)
+      | `FunctionL name when name = Mir_builtin.std_array_new_builtin.name ->
+        let (`PointerT element_ty) = cast_to_pointer_type ret_ty in
+        let (array_ptr_val, myte_alloc_instr) =
+          Mir_builtin.(mk_call_builtin myte_alloc var_id arg_vals element_ty)
+        in
+        Ecx.emit ~ecx myte_alloc_instr;
+        array_ptr_val
+      | _ ->
+        (* Emit function call *)
+        Ecx.emit ~ecx (Call (var_id, ret_ty, func_val, arg_vals));
+        var_value_of_type var_id ret_ty))
   | Record { Record.loc; name = _; fields } ->
     (* Find MIR aggregate type for this ADT *)
     let adt = type_of_loc ~pcx loc in
@@ -490,6 +508,11 @@ and cast_to_pointer_value v =
   match v with
   | (`PointerL _ | `PointerV _) as v -> v
   | _ -> failwith "Expected pointer value"
+
+and cast_to_pointer_type v =
+  match v with
+  | `PointerT _ as v -> v
+  | _ -> failwith "Expected pointer type"
 
 and emit_statement ~pcx ~ecx stmt =
   let open Statement in

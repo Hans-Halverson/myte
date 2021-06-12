@@ -5,7 +5,8 @@ open X86_register_allocation
 let gen_x86_program ir =
   (* Filter out stdlib for printing *)
   let ir =
-    if Opts.dump_virtual_asm () || Opts.dump_asm () then
+    (* TODO: Only use parts of stdlib that we need to, currently strip it all out *)
+    if true || Opts.dump_virtual_asm () || Opts.dump_asm () then
       Mir.filter_stdlib ir
     else
       ir

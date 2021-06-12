@@ -1,0 +1,7 @@
+module test
+
+import std.array
+
+fun main() {
+  val x: Array<Int> = array.new(99);
+}

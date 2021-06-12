@@ -1,0 +1,5 @@
+func unit @test.main() {
+  %0 := CallBuiltin int* myte.myte_alloc(99)
+  %1 := Mov int* %0
+  Ret
+}

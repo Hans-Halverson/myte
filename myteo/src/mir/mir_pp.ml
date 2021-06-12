@@ -33,11 +33,13 @@ end
 let rec pp_program program =
   let open Program in
   let cx = Context.mk program in
+  let dump_stdlib = Opts.dump_stdlib () in
+  let filter_stdlib name = (not dump_stdlib) && Std_lib.has_stdlib_prefix name in
   (* Collect printed blocks along with their source locations *)
   let blocks =
     SMap.fold
       (fun name global blocks ->
-        if Std_lib.has_stdlib_prefix name then
+        if filter_stdlib name then
           blocks
         else
           (global.Global.loc, (fun _ -> pp_global ~cx ~program global)) :: blocks)
@@ -47,7 +49,7 @@ let rec pp_program program =
   let blocks =
     SMap.fold
       (fun name func blocks ->
-        if Std_lib.has_stdlib_prefix name then
+        if filter_stdlib name then
           blocks
         else
           (func.Function.loc, (fun _ -> pp_func ~cx ~program func)) :: blocks)
@@ -57,7 +59,7 @@ let rec pp_program program =
   let blocks =
     SMap.fold
       (fun name type_ blocks ->
-        if Std_lib.has_stdlib_prefix name then
+        if filter_stdlib name then
           blocks
         else
           (type_.Aggregate.loc, (fun _ -> pp_type_decl type_)) :: blocks)
