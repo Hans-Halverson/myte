@@ -1,5 +1,7 @@
 module test
 
+import std.array.Array
+
 fun indexIsNotIntegerError(x: Array<Int>) {
   x[true];
   x[()];

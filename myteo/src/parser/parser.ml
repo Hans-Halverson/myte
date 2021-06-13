@@ -1218,10 +1218,7 @@ and parse_identifier_type env =
     | _ -> []
   in
   let loc = marker env in
-  match name with
-  | { ScopedIdentifier.scopes = []; name = { Identifier.name; _ }; _ } when name = "Array" ->
-    Builtin { Type.Builtin.loc; kind = Array; type_params }
-  | _ -> Identifier { loc; name; type_params }
+  Identifier { loc; name; type_params }
 
 and parse_function_type env params marker =
   let open Ast.Type in

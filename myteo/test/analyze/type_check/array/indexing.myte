@@ -1,5 +1,7 @@
 module test
 
+import std.array.Array
+
 fun indexing(x: Array<Int>) {
   // Correct element type
   (x[0]: Int);

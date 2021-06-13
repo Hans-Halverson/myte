@@ -171,6 +171,7 @@ class bindings_builder ~module_tree =
       in
       let { module_; toplevels; imports; _ } = mod_ in
       module_name <- Ast_utils.name_parts_of_scoped_ident module_.name;
+      let module_name_prefix = String.concat "." module_name ^ "." in
       this#enter_scope ();
       (* Gather imports and add them to toplevel scope *)
       List.iter
@@ -222,6 +223,8 @@ class bindings_builder ~module_tree =
             List.iter (fun id -> ignore (add_value_name (VarDecl kind) id)) ids
           | FunctionDeclaration { Ast.Function.name; _ } -> ignore (add_value_name FunDecl name)
           | TypeDeclaration { Ast.TypeDeclaration.name; decl; _ } ->
+            let full_name = module_name_prefix ^ name.name in
+            Std_lib.register_stdlib_decl full_name name.loc;
             if name.name = "_" then
               this#add_error name.loc InvalidWildcardIdentifier
             else

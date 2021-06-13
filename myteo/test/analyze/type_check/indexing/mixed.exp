@@ -1,64 +1,64 @@
 Error: Expected type `(Int, String)` but found `(Int, Rec1)`
-test/analyze/type_check/indexing/mixed.myte:14:3-9
- 14 |   (x[100]: (Int, String));
+test/analyze/type_check/indexing/mixed.myte:16:3-9
+ 16 |   (x[100]: (Int, String));
     |    ^^^^^^
 
 Error: Expected type `String` but found `Int`
-test/analyze/type_check/indexing/mixed.myte:15:3-12
- 15 |   (x[100][0]: String);
+test/analyze/type_check/indexing/mixed.myte:17:3-12
+ 17 |   (x[100][0]: String);
     |    ^^^^^^^^^
 
 Error: Expected type `Unit` but found `Rec1`
-test/analyze/type_check/indexing/mixed.myte:16:3-12
- 16 |   (x[100][1]: Unit);
+test/analyze/type_check/indexing/mixed.myte:18:3-12
+ 18 |   (x[100][1]: Unit);
     |    ^^^^^^^^^
 
 Error: Expected type `Unit` but found `String`
-test/analyze/type_check/indexing/mixed.myte:17:3-16
- 17 |   (x[100][1].foo: Unit);
+test/analyze/type_check/indexing/mixed.myte:19:3-16
+ 19 |   (x[100][1].foo: Unit);
     |    ^^^^^^^^^^^^^
 
 Error: Expected type `Bool` but found `Unit`
-test/analyze/type_check/indexing/mixed.myte:18:3-16
- 18 |   (x[100][1].bar: Bool);
+test/analyze/type_check/indexing/mixed.myte:20:3-16
+ 20 |   (x[100][1].bar: Bool);
     |    ^^^^^^^^^^^^^
 
 Error: Expected type `Int` but found `Rec2`
-test/analyze/type_check/indexing/mixed.myte:36:3-7
- 36 |   (x[0]: Int);
+test/analyze/type_check/indexing/mixed.myte:38:3-7
+ 38 |   (x[0]: Int);
     |    ^^^^
 
 Error: Expected type `Int` but found `Long`
-test/analyze/type_check/indexing/mixed.myte:37:3-11
- 37 |   (x[0].foo: Int);
+test/analyze/type_check/indexing/mixed.myte:39:3-11
+ 39 |   (x[0].foo: Int);
     |    ^^^^^^^^
 
 Error: Expected type `Array<Int>` but found `Array<Unit>`
-test/analyze/type_check/indexing/mixed.myte:38:3-11
- 38 |   (x[0].bar: Array<Int>);
+test/analyze/type_check/indexing/mixed.myte:40:3-11
+ 40 |   (x[0].bar: Array<Int>);
     |    ^^^^^^^^
 
 Error: Expected type `Int` but found `Unit`
-test/analyze/type_check/indexing/mixed.myte:39:3-16
- 39 |   (x[0].bar[100]: Int);
+test/analyze/type_check/indexing/mixed.myte:41:3-16
+ 41 |   (x[0].bar[100]: Int);
     |    ^^^^^^^^^^^^^
 
 Error: Expected type `(Int, Long)` but found `(String, Long)`
-test/analyze/type_check/indexing/mixed.myte:40:3-11
- 40 |   (x[0].baz: (Int, Long));
+test/analyze/type_check/indexing/mixed.myte:42:3-11
+ 42 |   (x[0].baz: (Int, Long));
     |    ^^^^^^^^
 
 Error: Expected type `Int` but found `Long`
-test/analyze/type_check/indexing/mixed.myte:41:3-14
- 41 |   (x[0].baz[1]: Int);
+test/analyze/type_check/indexing/mixed.myte:43:3-14
+ 43 |   (x[0].baz[1]: Int);
     |    ^^^^^^^^^^^
 
 Error: Expected type `Array<Int>` but found `Array<Byte>`
-test/analyze/type_check/indexing/mixed.myte:42:3-7
- 42 |   (x[1]: Array<Int>);
+test/analyze/type_check/indexing/mixed.myte:44:3-7
+ 44 |   (x[1]: Array<Int>);
     |    ^^^^
 
 Error: Expected type `Int` but found `Byte`
-test/analyze/type_check/indexing/mixed.myte:43:3-12
- 43 |   (x[1][100]: Int);
+test/analyze/type_check/indexing/mixed.myte:45:3-12
+ 45 |   (x[1][100]: Int);
     |    ^^^^^^^^^

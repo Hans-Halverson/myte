@@ -359,16 +359,6 @@ and Type : sig
     }
   end
 
-  module Builtin : sig
-    type kind = Array
-
-    type t = {
-      loc: Loc.t;
-      kind: kind;
-      type_params: Type.t list;
-    }
-  end
-
   module Tuple : sig
     type t = {
       loc: Loc.t;
@@ -387,7 +377,6 @@ and Type : sig
   type t =
     | Primitive of Primitive.t
     | Identifier of Identifier.t
-    | Builtin of Builtin.t
     | Tuple of Tuple.t
     | Function of Function.t
 end =

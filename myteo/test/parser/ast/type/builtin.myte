@@ -1,5 +1,0 @@
-module test
-
-type alias T1 = Array<Int>
-
-type alias T2 = Array<Array<Int>>

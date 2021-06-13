@@ -360,7 +360,7 @@ and emit_expression ~pcx ~ecx expr =
       let ret_ty = mir_type_of_loc ~pcx ~ecx loc in
       (match func_val with
       (* Emit inlined builtins *)
-      | `FunctionL name when name = Mir_builtin.std_array_new_builtin.name ->
+      | `FunctionL name when name = Std_lib.std_array_new ->
         let (`PointerT element_ty) = cast_to_pointer_type ret_ty in
         let (array_ptr_val, myte_alloc_instr) =
           Mir_builtin.(mk_call_builtin myte_alloc var_id arg_vals element_ty)

@@ -1,0 +1,9 @@
+Error: Incorrect number of type parameters passed to type. Expected 1 type parameter but found 0.
+test/analyze/type_check/array/incorrect_type_arity_error.myte:6:6-11
+ 6 |   (1: Array);
+   |       ^^^^^
+
+Error: Incorrect number of type parameters passed to type. Expected 1 type parameter but found 2.
+test/analyze/type_check/array/incorrect_type_arity_error.myte:7:6-21
+ 7 |   (1: Array<Int, Int>);
+   |       ^^^^^^^^^^^^^^^

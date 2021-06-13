@@ -21,3 +21,5 @@ val x: ID<A, B, C> = 1
 val x: ID<A, B, C,> = 1
 val x: ID<ID<ID<A>>> = 1
 val x: ID<(A, Int)> = 1
+
+val x: Array<A> = 1

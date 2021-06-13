@@ -182,7 +182,6 @@ and node_of_type ty =
   match ty with
   | Primitive prim -> node_of_primitive_type prim
   | Identifier id -> node_of_identifier_type id
-  | Builtin builtin -> node_of_builtin_type builtin
   | Tuple tuple -> node_of_tuple_type tuple
   | Function func -> node_of_function_type func
 
@@ -541,17 +540,6 @@ and node_of_identifier_type id =
       ("name", node_of_scoped_identifier name);
       ("type_params", List (List.map node_of_type type_params));
     ]
-
-and node_of_builtin_type builtin =
-  let { Type.Builtin.loc; kind; type_params } = builtin in
-  let kind =
-    match kind with
-    | Array -> "Array"
-  in
-  node
-    "BuiltinType"
-    loc
-    [("kind", Raw kind); ("type_params", List (List.map node_of_type type_params))]
 
 and node_of_tuple_type tuple =
   let { Type.Tuple.loc; elements } = tuple in

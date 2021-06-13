@@ -78,7 +78,6 @@ class ['a] visitor =
         match ty with
         | Primitive t -> this#primitive_type acc t
         | Identifier t -> this#identifier_type acc t
-        | Builtin t -> this#builtin_type acc t
         | Tuple t -> this#tuple_type acc t
         | Function t -> this#function_type acc t
 
@@ -346,11 +345,6 @@ class ['a] visitor =
       let open Type.Identifier in
       let { loc = _; name; type_params } = id in
       this#scoped_identifier acc name;
-      List.iter (this#type_ acc) type_params
-
-    method builtin_type acc builtin =
-      let open Type.Builtin in
-      let { loc = _; kind = _; type_params } = builtin in
       List.iter (this#type_ acc) type_params
 
     method tuple_type acc tuple =

@@ -1,14 +1,14 @@
 Error: Array index must be an integer but found `Bool`
-test/analyze/type_check/array/array_index_is_not_integer_error.myte:4:4-8
- 4 |   x[true];
+test/analyze/type_check/array/array_index_is_not_integer_error.myte:6:4-8
+ 6 |   x[true];
    |     ^^^^
 
 Error: Array index must be an integer but found `Unit`
-test/analyze/type_check/array/array_index_is_not_integer_error.myte:5:4-6
- 5 |   x[()];
+test/analyze/type_check/array/array_index_is_not_integer_error.myte:7:4-6
+ 7 |   x[()];
    |     ^^
 
 Error: Array index must be an integer but found `Array<Int>`
-test/analyze/type_check/array/array_index_is_not_integer_error.myte:6:4
- 6 |   x[x];
+test/analyze/type_check/array/array_index_is_not_integer_error.myte:8:4
+ 8 |   x[x];
    |     ^

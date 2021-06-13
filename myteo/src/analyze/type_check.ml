@@ -18,9 +18,6 @@ let rec build_type ~cx ty =
   | Function { Function.params; return; _ } ->
     Types.Function
       { tparams = []; params = List.map (build_type ~cx) params; return = build_type ~cx return }
-  | Builtin { Builtin.kind = Array; type_params; _ } ->
-    (* TODO: Error on incorrect number of type params *)
-    Types.Array (build_type ~cx (List.hd type_params))
   | Identifier
       {
         Identifier.loc = full_loc;
@@ -28,6 +25,9 @@ let rec build_type ~cx ty =
         type_params;
         _;
       } ->
+    let tparam_arity_error actual expected =
+      Type_context.add_error ~cx full_loc (IncorrectTypeParametersArity (actual, expected))
+    in
     let tparam_tys = List.map (build_type ~cx) type_params in
     let tvar_id = Type_context.get_tvar_id_from_type_use ~cx loc in
     let rep_ty = Type_context.find_rep_type ~cx (TVar tvar_id) in
@@ -41,10 +41,10 @@ let rec build_type ~cx ty =
     | Types.Alias (tparams, _)
     | Types.ADT { adt_sig = { tparams; _ }; _ }
       when List.length tparams <> List.length tparam_tys ->
-      Type_context.add_error
-        ~cx
-        full_loc
-        (IncorrectTypeParametersArity (List.length tparam_tys, List.length tparams));
+      tparam_arity_error (List.length tparam_tys) (List.length tparams);
+      Types.Any
+    | Types.Array _ when List.length tparam_tys <> 1 ->
+      tparam_arity_error (List.length tparam_tys) 1;
       Types.Any
     (* Substitute concrete parameters for tparams in type aliases *)
     | Types.Alias (tparams, ty) ->
@@ -56,7 +56,8 @@ let rec build_type ~cx ty =
           tparam_and_tys
       in
       Types.substitute_tparams tparams_map ty
-    (* Add correct parameter types to ADT *)
+    (* Add correct parameter types to parameterized type *)
+    | Types.Array _ -> Types.Array (List.hd tparam_tys)
     | Types.ADT { adt_sig; _ } -> Types.ADT { adt_sig; params = tparam_tys }
     | _ -> failwith "Expected ADT or type alias")
 
@@ -75,10 +76,16 @@ and visit_type_declarations_prepass ~cx module_ =
             type_params;
             _;
           } ->
-        let tvar_id = Type_context.get_tvar_id_from_type_decl ~cx id_loc in
+        let binding = Type_context.get_source_type_binding ~cx id_loc in
         let tparams = check_type_parameters ~cx type_params in
-        let adt = Types.ADT { adt_sig = Types.mk_adt_sig name tparams; params = [] } in
-        ignore (Type_context.unify ~cx adt (Types.TVar tvar_id))
+        let ty =
+          (* Check if this is a builtin type *)
+          let open Std_lib in
+          match lookup_stdlib_decl_loc (fst binding.declaration) with
+          | Some name when name = Std_lib.std_array_array -> Types.Array Any
+          | _ -> Types.ADT { adt_sig = Types.mk_adt_sig name tparams; params = [] }
+        in
+        ignore (Type_context.unify ~cx ty (Types.TVar binding.tvar_id))
       | _ -> ())
     toplevels
 

@@ -1,0 +1,8 @@
+module test
+
+import std.array.Array
+
+fun main() {
+  (1: Array);
+  (1: Array<Int, Int>);
+}

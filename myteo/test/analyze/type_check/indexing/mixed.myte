@@ -1,5 +1,7 @@
 module test
 
+import std.array.Array
+
 type Rec1 { foo: String, bar: Unit }
 
 fun testMixingAll1(x: Array<(Int, Rec1)>) {

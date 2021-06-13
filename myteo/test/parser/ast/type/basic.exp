@@ -1,7 +1,7 @@
 test/parser/ast/type/basic.myte
 {
   node: Module,
-  loc: 1:0-23:23,
+  loc: 1:0-25:19,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -753,6 +753,52 @@ test/parser/ast/type/basic.myte
                 kind: Int,
               },
             ],
+          },
+        ],
+      },
+    },
+    {
+      node: VariableDeclaration,
+      loc: 25:0-25:19,
+      kind: Immutable,
+      pattern: {
+        node: Identifier,
+        loc: 25:4-25:5,
+        name: "x",
+      },
+      init: {
+        node: IntLiteral,
+        loc: 25:18-25:19,
+        raw: "1",
+      },
+      annot: {
+        node: IdentifierType,
+        loc: 25:7-25:15,
+        name: {
+          node: ScopedIdentifier,
+          loc: 25:7-25:12,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 25:7-25:12,
+            name: "Array",
+          },
+        },
+        type_params: [
+          {
+            node: IdentifierType,
+            loc: 25:13-25:14,
+            name: {
+              node: ScopedIdentifier,
+              loc: 25:13-25:14,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 25:13-25:14,
+                name: "A",
+              },
+            },
+            type_params: [],
           },
         ],
       },

@@ -1,5 +1,7 @@
 module test
 
+import std.array.Array
+
 fun simpleAccesses(x1: Array<Int>) {
   // Simple accesses
   x1[90] = 1;

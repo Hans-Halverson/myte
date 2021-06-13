@@ -51,3 +51,15 @@ let get_stdlib_files stdlib_path =
   in
   gather_myte_files_in_directory stdlib_path;
   !myte_files
+
+let stdlib_builtin_decl_locs = ref LocMap.empty
+
+let lookup_stdlib_decl_loc decl_loc = LocMap.find_opt decl_loc !stdlib_builtin_decl_locs
+
+let std_array_array = "std.array.Array"
+
+let std_array_new = "std.array.new"
+
+let register_stdlib_decl full_name loc =
+  if full_name = std_array_array || full_name = std_array_new then
+    stdlib_builtin_decl_locs := LocMap.add loc full_name !stdlib_builtin_decl_locs

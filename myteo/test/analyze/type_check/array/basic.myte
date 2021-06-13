@@ -1,5 +1,7 @@
 module test
 
+import std.array.Array
+
 fun testUnifying(a1: Array<Int>, a2: Array<Int>, a3: Array<Bool>) {
   // Same type
   a1 == a2;

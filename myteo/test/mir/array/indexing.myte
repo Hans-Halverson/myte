@@ -1,5 +1,7 @@
 module test
 
+import std.array.Array
+
 fun indexing(x: Array<Int>, y: Array<Array<Array<Bool>>>) {
   x[0];
   y[0];
