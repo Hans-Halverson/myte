@@ -44,6 +44,7 @@ class bindings_builder ~module_tree =
         let kind =
           match kind with
           | Module_tree.TypeDecl -> TypeDecl
+          | Module_tree.TypeAlias -> TypeAlias
         in
         LocMap.add loc (mk_binding_builder ~loc ~name ~kind ~is_global:true ~module_:[]) acc)
       LocMap.empty
@@ -220,11 +221,16 @@ class bindings_builder ~module_tree =
             let ids = Ast_utils.ids_of_pattern pattern in
             List.iter (fun id -> ignore (add_value_name (VarDecl kind) id)) ids
           | FunctionDeclaration { Ast.Function.name; _ } -> ignore (add_value_name FunDecl name)
-          | TypeDeclaration { Ast.TypeDeclaration.name; _ } ->
+          | TypeDeclaration { Ast.TypeDeclaration.name; decl; _ } ->
             if name.name = "_" then
               this#add_error name.loc InvalidWildcardIdentifier
             else
-              add_type_name TypeDecl name)
+              let kind =
+                match decl with
+                | Alias _ -> TypeAlias
+                | _ -> TypeDecl
+              in
+              add_type_name kind name)
         toplevels;
       (* Then visit child nodes once toplevel scope is complete *)
       let toplevels' =
@@ -576,7 +582,7 @@ class bindings_builder ~module_tree =
 
     method! type_ ty =
       let open Ast.Type in
-      match ty with
+      (match ty with
       | Identifier { name = { Ast.ScopedIdentifier.name; scopes = scope_ids; _ }; _ } ->
         let open Ast.Identifier in
         let all_parts = scope_ids @ [name] in
@@ -593,21 +599,18 @@ class bindings_builder ~module_tree =
           (match SMap.find_opt first_part.name module_tree with
           | None ->
             (* Error if first part of scoped id cannot be resolved *)
-            this#add_error first_part.loc (UnresolvedName (first_part.name, false));
-            ty
+            this#add_error first_part.loc (UnresolvedName (first_part.name, false))
           | Some (Export _) -> failwith "Exports cannot appear at top level of module tree"
           | Some (Empty (_, module_tree) | Module (_, module_tree)) ->
-            match_module_parts module_tree;
-            ty)
+            match_module_parts module_tree)
         | Some decl_loc ->
           this#add_type_use decl_loc first_part.loc;
           let (_, declaration) = (LocMap.find decl_loc type_bindings).declaration in
           (match declaration with
-          | ImportedModule module_tree ->
-            match_module_parts module_tree;
-            ty
-          | _ -> ty))
-      | _ -> super#type_ ty
+          | ImportedModule module_tree -> match_module_parts module_tree
+          | _ -> ()))
+      | _ -> ());
+      super#type_ ty
 
     method! pattern patt =
       this#visit_pattern ~decl:false ~toplevel:false patt;

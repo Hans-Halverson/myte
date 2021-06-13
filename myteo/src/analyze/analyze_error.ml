@@ -34,6 +34,7 @@ type t =
   | ExpectedTupleConstructor
   | IncorrectFunctionArity of int * int
   | IncorrectTupleConstructorArity of int * int
+  | IncorrectTypeParametersArity of int * int
   | MissingRecordConstructorFields of string list
   | UnexpectedRecordConstructorField of string * string
   | NonIndexableIndexed of Types.t
@@ -216,6 +217,12 @@ let to_string error =
       "Incorrect number of arguments supplied to tuple constructor. Expected %d %s but found %d."
       expected
       (plural expected "argument")
+      actual
+  | IncorrectTypeParametersArity (actual, expected) ->
+    Printf.sprintf
+      "Incorrect number of type parameters passed to type. Expected %d %s but found %d."
+      expected
+      (plural expected "type parameter")
       actual
   | MissingRecordConstructorFields field_names ->
     let field_names = List.map (fun name -> "`" ^ name ^ "`") field_names in

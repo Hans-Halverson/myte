@@ -1,0 +1,6 @@
+module test
+
+type alias rec_type1 = rec_type2
+type alias rec_type2 = rec_type1
+
+fun main() {}

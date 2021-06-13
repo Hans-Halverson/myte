@@ -1,10 +1,4 @@
-module Test
-
-type alias rec_type1 = rec_type2
-type alias rec_type2 = rec_type1
-
-type alias rec_type3 = rec_type4 -> Unit
-type alias rec_type4 = rec_type3
+module test
 
 type alias rec_type5 = (Unit, rec_type6) -> Unit
 type alias rec_type6 = (Unit, rec_type7) -> Unit

@@ -1,0 +1,29 @@
+Error: Expected type `(Bool, Int)` but found `Int`
+test/analyze/type_check/alias/parameterized_substitution.myte:14:3
+ 14 |   (1: T1<Int>);
+    |    ^
+
+Error: Expected type `(Bool, Int)` but found `Int`
+test/analyze/type_check/alias/parameterized_substitution.myte:15:3
+ 15 |   (1: T2<Int>);
+    |    ^
+
+Error: Expected type `(Bool, Int)` but found `Int`
+test/analyze/type_check/alias/parameterized_substitution.myte:16:3
+ 16 |   (1: T3<Int>);
+    |    ^
+
+Error: Expected type `(Bool, Int)` but found `Int`
+test/analyze/type_check/alias/parameterized_substitution.myte:17:3
+ 17 |   (1: T4<Int>);
+    |    ^
+
+Error: Expected type `(Bool, Int)` but found `Int`
+test/analyze/type_check/alias/parameterized_substitution.myte:18:3
+ 18 |   (1: T5<Int>);
+    |    ^
+
+Error: Expected type `(Int, (Bool, Unit))` but found `Int`
+test/analyze/type_check/alias/parameterized_substitution.myte:26:3
+ 26 |   (1: T6<Unit, Int>);
+    |    ^

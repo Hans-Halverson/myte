@@ -180,6 +180,12 @@ let rec find_rep_type ~cx ty =
       else
         rep_ty
     | _ -> find_rep_type ~cx rep_ty)
+  | Alias (tparams, aliased_ty) ->
+    let aliased_ty' = find_rep_type ~cx aliased_ty in
+    if aliased_ty == aliased_ty' then
+      ty
+    else
+      Alias (tparams, aliased_ty')
 
 let rec tvar_occurs_in ~cx tvar ty =
   match find_union_rep_type ~cx ty with
@@ -199,6 +205,7 @@ let rec tvar_occurs_in ~cx tvar ty =
     List.exists (tvar_occurs_in ~cx tvar) params || tvar_occurs_in ~cx tvar return
   | ADT { adt_sig = _; params } -> List.exists (tvar_occurs_in ~cx tvar) params
   | TVar rep_tvar -> tvar = rep_tvar
+  | Alias (_, ty) -> tvar_occurs_in ~cx tvar ty
 
 let union_tvars ~cx ty1 ty2 =
   match (ty1, ty2) with
@@ -234,6 +241,10 @@ let rec unify ~cx ty1 ty2 =
   | (TVar _, _)
   | (_, TVar _) ->
     union_tvars ~cx rep_ty1 rep_ty2
+  (* Aliases are only unified during initial type alias handling. Strip alias and continue unifying. *)
+  | (Alias (_, alias), ty)
+  | (ty, Alias (_, alias)) ->
+    unify ~cx alias ty
   | (Any, _)
   | (_, Any)
   | (Unit, Unit)

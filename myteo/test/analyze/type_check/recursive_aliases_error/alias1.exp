@@ -1,0 +1,4 @@
+Error: Cycle detected in definition of type `rec_type1`
+test/analyze/type_check/recursive_aliases_error/alias1.myte:3:0-32
+ 3 | type alias rec_type1 = rec_type2
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

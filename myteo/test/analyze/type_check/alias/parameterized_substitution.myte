@@ -1,0 +1,27 @@
+module test
+
+// Out of order parameterized substitution
+type alias T1<T> = T2<T>
+type alias T2<T> = T3<T>
+type alias T3<T> = T4<T>
+type alias T4<T> = T5<T>
+type alias T5<T> = (Bool, T)
+
+type alias T6<U, V> = (V, T5<U>)
+
+fun main() {
+  // Tests for out of order parameterized substitution
+  (1: T1<Int>);
+  (1: T2<Int>);
+  (1: T3<Int>);
+  (1: T4<Int>);
+  (1: T5<Int>);
+  ((true, 1): T1<Int>);
+  ((true, 1): T2<Int>);
+  ((true, 1): T3<Int>);
+  ((true, 1): T4<Int>);
+  ((true, 1): T5<Int>);
+
+  // Intentional failure to force printing of type
+  (1: T6<Unit, Int>);
+}

@@ -44,6 +44,10 @@ type t =
       adt_sig: adt_sig;
       params: t list;
     }
+  (* Alias types result from type alias declarations, containing the type parameters for the
+     alias along with the aliased type. Alias types are eagerly removed when the alias is
+     referenced, and will not appear for unification or subtyping. *)
+  | Alias of TParam.t list * t
 
 and int_literal = {
   (* Locations of int literals (and their tvars) along with the value of the int literal at
@@ -88,10 +92,12 @@ let get_all_tvars_with_duplicates ty =
     match ty with
     | TVar tvar_id -> tvar_id :: acc
     | Tuple elements -> List.fold_left inner acc elements
+    | Array element -> inner acc element
     | Function { tparams = _; params; return } ->
       let acc = List.fold_left inner acc params in
       inner acc return
     | ADT { params; _ } -> List.fold_left inner acc params
+    | Alias (_, ty) -> inner acc ty
     | _ -> acc
   in
   inner [] ty |> List.rev
@@ -109,9 +115,43 @@ let get_all_tvars tys =
   in
   remove_duplicates ISet.empty tvars_with_duplicates
 
+let rec substitute_tparams tparams ty =
+  match ty with
+  | Any
+  | Unit
+  | Bool
+  | Byte
+  | Int
+  | Long
+  | String
+  | TVar _
+  | IntLiteral { resolved = None; _ } ->
+    ty
+  | IntLiteral { resolved = Some resolved; _ } -> substitute_tparams tparams resolved
+  | Array element -> Array (substitute_tparams tparams element)
+  | Tuple elements -> Tuple (List.map (substitute_tparams tparams) elements)
+  | Function { tparams = func_tparams; params; return } ->
+    let params' = List.map (substitute_tparams tparams) params in
+    let return' = substitute_tparams tparams return in
+    Function { tparams = func_tparams; params = params'; return = return' }
+  | ADT { adt_sig; params } ->
+    ADT { adt_sig; params = List.map (substitute_tparams tparams) params }
+  | TParam { TParam.id; name = _ } ->
+    (match IMap.find_opt id tparams with
+    | None -> ty
+    | Some ty -> substitute_tparams tparams ty)
+  | Alias (alias_tparams, ty) -> Alias (alias_tparams, substitute_tparams tparams ty)
+
 let concat_and_wrap (pre, post) elements = pre ^ String.concat ", " elements ^ post
 
 let rec pp_with_names ~tvar_to_name ty =
+  let pp_tparams tparams =
+    if tparams = [] then
+      ""
+    else
+      let pp_tparams = List.map (fun tparam -> tparam.TParam.name) tparams in
+      concat_and_wrap ("<", ">") pp_tparams
+  in
   match ty with
   | Any -> "Any"
   | Unit -> "Unit"
@@ -133,13 +173,7 @@ let rec pp_with_names ~tvar_to_name ty =
       | Function _ -> "(" ^ pp_param ^ ")"
       | _ -> pp_param
     in
-    let pp_tparams =
-      if tparams = [] then
-        ""
-      else
-        let pp_tparams = List.map (fun tparam -> tparam.TParam.name) tparams in
-        concat_and_wrap ("<", ">") pp_tparams
-    in
+    let pp_tparams = pp_tparams tparams in
     let pp_params =
       match params with
       | [param] -> pp_function_part param
@@ -158,6 +192,9 @@ let rec pp_with_names ~tvar_to_name ty =
     let x = IMap.find tvar_id tvar_to_name in
     x
   | TParam { TParam.name; id = _ } -> name
+  | Alias (tparams, ty) ->
+    let pp_tparams = pp_tparams tparams in
+    "Alias" ^ pp_tparams ^ "(" ^ pp_with_names ~tvar_to_name ty ^ ")"
 
 let name_id_to_string name_id =
   let quot = name_id / 26 in
@@ -254,6 +291,10 @@ module TypeHash = struct
     | (IntLiteral { resolved = None; _ }, IntLiteral { resolved = None; _ }) -> true
     | (IntLiteral { resolved = Some ty1; _ }, IntLiteral { resolved = Some ty2; _ }) ->
       equal ty1 ty2
+    | (Alias (tparams1, ty1), Alias (tparams2, ty2)) ->
+      List.length tparams1 = List.length tparams2
+      && List.for_all2 (fun t1 t2 -> t1.TParam.name = t2.TParam.name) tparams1 tparams2
+      && equal ty1 ty2
     | _ -> false
 
   let rec hash (ty : t) =
@@ -279,6 +320,7 @@ module TypeHash = struct
       hash_nums
         ((12 :: hash return :: List.map (fun tp -> tp.TParam.id) tparams) @ List.map hash params)
     | ADT { adt_sig = { id; _ }; params } -> hash_nums (13 :: id :: List.map hash params)
+    | Alias (tparams, ty) -> hash_nums (14 :: hash ty :: List.map (fun tp -> tp.TParam.id) tparams)
 end
 
 module TypeHashtbl = Hashtbl.Make (TypeHash)

@@ -21,9 +21,37 @@ let rec build_type ~cx ty =
   | Builtin { Builtin.kind = Array; type_params; _ } ->
     (* TODO: Error on incorrect number of type params *)
     Types.Array (build_type ~cx (List.hd type_params))
-  | Identifier { Identifier.name = { Ast.ScopedIdentifier.name = { Ast.Identifier.loc; _ }; _ }; _ }
-    ->
-    TVar (Type_context.get_tvar_id_from_type_use ~cx loc)
+  | Identifier
+      {
+        Identifier.loc = full_loc;
+        name = { Ast.ScopedIdentifier.name = { Ast.Identifier.loc; _ }; _ };
+        type_params;
+        _;
+      } ->
+    let tparam_tys = List.map (build_type ~cx) type_params in
+    let tvar_id = Type_context.get_tvar_id_from_type_use ~cx loc in
+    let rep_ty = Type_context.find_rep_type ~cx (TVar tvar_id) in
+    (match rep_ty with
+    (* Unparameterized type aliases defer directly to aliased type *)
+    | Types.Alias ([], ty) -> ty
+    (* Parameterized type aliases must have correct arity *)
+    | Types.Alias (tparams, _) when List.length tparams <> List.length tparam_tys ->
+      Type_context.add_error
+        ~cx
+        full_loc
+        (IncorrectTypeParametersArity (List.length tparam_tys, List.length tparams));
+      Types.Any
+    (* Substitute concrete parameters for tparams in aliased type *)
+    | Types.Alias (tparams, ty) ->
+      let tparam_and_tys = List.combine tparams tparam_tys in
+      let tparams_map =
+        List.fold_left
+          (fun map (tparam, ty) -> IMap.add tparam.Types.TParam.id ty map)
+          IMap.empty
+          tparam_and_tys
+      in
+      Types.substitute_tparams tparams_map ty
+    | _ -> rep_ty)
 
 and visit_type_declarations_prepass ~cx module_ =
   let open Ast.Module in
@@ -47,6 +75,14 @@ and visit_type_declarations_prepass ~cx module_ =
       | _ -> ())
     toplevels
 
+and check_type_aliases_topologically ~cx modules =
+  let modules = List.map snd modules in
+  try
+    let aliases_in_topological_order = Type_alias.order_type_aliases ~cx modules in
+    List.iter (fun alias -> check_type_alias ~cx alias) aliases_in_topological_order
+  with Type_alias.CyclicTypeAliasesException (loc, name) ->
+    Type_context.add_error ~cx loc (CyclicTypeAlias name)
+
 and visit_type_declarations ~cx module_ =
   let open Ast.Module in
   let { toplevels; _ } = module_ in
@@ -60,32 +96,7 @@ and visit_type_declarations ~cx module_ =
        *
        *)
       | TypeDeclaration { builtin = true; _ } -> ()
-      (*
-       * Type Alias
-       * 
-       * Type aliases have their tvar unified with the aliased type.
-       *)
-      | TypeDeclaration
-          {
-            loc;
-            name = { Ast.Identifier.loc = id_loc; name };
-            type_params = _;
-            decl = Alias alias;
-            builtin = _;
-          } ->
-        let tvar_id = Type_context.get_tvar_id_from_type_decl ~cx id_loc in
-        let ty = build_type ~cx alias in
-        (* Check if the right hand side is a tvar that has been already unified with this type.
-           This can only happen for recursive type aliases. *)
-        let rep_ty1 = find_union_rep_type ~cx ty in
-        let rep_ty2 = find_union_rep_type ~cx (TVar tvar_id) in
-        let is_recursive =
-          match (rep_ty1, rep_ty2) with
-          | (TVar rep_tvar1, TVar rep_tvar2) when rep_tvar1 = rep_tvar2 -> true
-          | _ -> false
-        in
-        if is_recursive || not (Type_context.unify ~cx ty (TVar tvar_id)) then
-          Type_context.add_error ~cx loc (CyclicTypeAlias name)
+      | TypeDeclaration { decl = Alias _; _ } -> ()
       (*
        * Algebraic Data Type
        *
@@ -151,6 +162,17 @@ and visit_type_declarations ~cx module_ =
         | Alias _ -> ())
       | _ -> ())
     toplevels
+
+and check_type_alias ~cx decl =
+  let open Ast.TypeDeclaration in
+  match decl with
+  | { loc; name = { Ast.Identifier.loc = id_loc; _ }; type_params; decl = Alias alias; builtin = _ }
+    ->
+    let tvar_id = Type_context.get_tvar_id_from_type_decl ~cx id_loc in
+    let tparams = check_type_parameters ~cx type_params in
+    let ty = Types.Alias (tparams, build_type ~cx alias) in
+    Type_context.assert_unify ~cx loc ty (TVar tvar_id)
+  | _ -> failwith "Expected type alias"
 
 and visit_value_declarations ~cx module_ =
   let open Ast.Module in
@@ -987,6 +1009,7 @@ let resolve_unresolved_int_literals ~cx =
 let analyze ~cx modules =
   (* First visit type declarations, building type aliases *)
   List.iter (fun (_, module_) -> visit_type_declarations_prepass ~cx module_) modules;
+  check_type_aliases_topologically ~cx modules;
   List.iter (fun (_, module_) -> visit_type_declarations ~cx module_) modules;
   List.iter (fun (_, module_) -> visit_value_declarations ~cx module_) modules;
   if cx.errors = [] then List.iter (fun (_, module_) -> check_module ~cx module_) modules;

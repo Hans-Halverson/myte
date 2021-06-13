@@ -14,6 +14,7 @@ type value_declaration =
 type type_declaration =
   | TypeDecl
   | TypeParam
+  | TypeAlias
   | ImportedType of Identifier.t
   | ImportedModule of Module_tree.t
 

@@ -15,7 +15,9 @@ and value_export_kind =
   | FunDecl
   | CtorDecl
 
-and type_export_kind = TypeDecl
+and type_export_kind =
+  | TypeDecl
+  | TypeAlias
 
 type lookup_result =
   | LookupResultExport of export_info

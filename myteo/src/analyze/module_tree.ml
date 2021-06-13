@@ -14,7 +14,9 @@ and value_export_kind =
   | FunDecl
   | CtorDecl
 
-and type_export_kind = TypeDecl
+and type_export_kind =
+  | TypeDecl
+  | TypeAlias
 
 and export_info = {
   value: (value_export_kind * Ast.Identifier.t) option;
@@ -64,9 +66,12 @@ let add_exports module_ submodule_tree =
         [(id, loc, (fun export_info -> { export_info with value = Some (FunDecl, id) }))]
     | TypeDeclaration { Ast.TypeDeclaration.loc; name = id; decl; _ } :: rest ->
       let open Ast.TypeDeclaration in
-      let exports =
-        [(id, loc, (fun export_info -> { export_info with ty = Some (TypeDecl, id) }))]
+      let kind =
+        match decl with
+        | Alias _ -> TypeAlias
+        | _ -> TypeDecl
       in
+      let exports = [(id, loc, (fun export_info -> { export_info with ty = Some (kind, id) }))] in
       (* Export all constructors in this type declaration *)
       let exports =
         match decl with

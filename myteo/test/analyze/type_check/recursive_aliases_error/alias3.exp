@@ -1,0 +1,4 @@
+Error: Cycle detected in definition of type `rec_type5`
+test/analyze/type_check/recursive_aliases_error/alias3.myte:3:0-48
+ 3 | type alias rec_type5 = (Unit, rec_type6) -> Unit
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

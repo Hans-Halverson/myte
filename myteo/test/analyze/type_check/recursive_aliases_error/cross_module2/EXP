@@ -1,0 +1,4 @@
+Error: Cycle detected in definition of type `rec_type3`
+test/analyze/type_check/recursive_aliases_error/cross_module2/a.myte:3:0-45
+ 3 | type alias rec_type3 = test.rec_type4 -> Unit
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

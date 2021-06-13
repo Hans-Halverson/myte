@@ -1,0 +1,11 @@
+module test
+
+type alias T1<U> = U
+
+type alias T2<U, V> = (U, V)
+
+fun main() {
+  (1: T1<Int, Bool>);
+  (1: T2<Int>);
+  (1: T2);
+}

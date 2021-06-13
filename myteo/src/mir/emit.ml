@@ -626,6 +626,7 @@ and type_to_mir_type ~pcx ~ecx ty =
   | Types.TParam _ -> failwith "TParams must be resolved for all values in IR"
   | Types.TVar _ -> failwith "TVars must be resolved for all values in IR"
   | Types.Any -> failwith "Any not allowed as value in IR"
+  | Types.Alias _ -> failwith "Aliase types should be resolved during type checking"
   | Types.ADT _ ->
     (match Types.TypeHashtbl.find_opt ecx.adt_to_agg_type ty with
     (* All aggregates are currently allocated behind a pointer *)

@@ -1,6 +1,5 @@
 module Test
 
 type alias rec_type2 = A.rec_type1
-type alias rec_type4 = A.rec_type3
 
 fun main() {}
