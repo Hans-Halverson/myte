@@ -558,15 +558,11 @@ and node_of_tuple_type tuple =
   node "TupleType" loc [("elements", List (List.map node_of_type elements))]
 
 and node_of_function_type func =
-  let { Type.Function.loc; params; return; type_params } = func in
+  let { Type.Function.loc; params; return } = func in
   node
     "FunctionType"
     loc
-    [
-      ("params", List (List.map node_of_type params));
-      ("return", node_of_type return);
-      ("type_params", List (List.map node_of_type_parameter type_params));
-    ]
+    [("params", List (List.map node_of_type params)); ("return", node_of_type return)]
 
 and pp_module mod_ =
   let node = node_of_module mod_ in

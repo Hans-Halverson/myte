@@ -1,7 +1,7 @@
 test/parser/ast/type/function.myte
 {
   node: Module,
-  loc: 1:0-18:13,
+  loc: 1:0-14:13,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -43,7 +43,6 @@ test/parser/ast/type/function.myte
           loc: 3:23-3:29,
           kind: String,
         },
-        type_params: [],
       },
     },
     {
@@ -65,7 +64,6 @@ test/parser/ast/type/function.myte
           loc: 4:22-4:28,
           kind: String,
         },
-        type_params: [],
       },
     },
     {
@@ -93,7 +91,6 @@ test/parser/ast/type/function.myte
           loc: 5:25-5:31,
           kind: String,
         },
-        type_params: [],
       },
     },
     {
@@ -121,7 +118,6 @@ test/parser/ast/type/function.myte
           loc: 6:29-6:35,
           kind: String,
         },
-        type_params: [],
       },
     },
     {
@@ -154,7 +150,6 @@ test/parser/ast/type/function.myte
           loc: 7:33-7:37,
           kind: Unit,
         },
-        type_params: [],
       },
     },
     {
@@ -192,7 +187,6 @@ test/parser/ast/type/function.myte
           loc: 8:39-8:43,
           kind: Unit,
         },
-        type_params: [],
       },
     },
     {
@@ -240,9 +234,7 @@ test/parser/ast/type/function.myte
             loc: 9:49-9:55,
             kind: String,
           },
-          type_params: [],
         },
-        type_params: [],
       },
     },
     {
@@ -275,7 +267,6 @@ test/parser/ast/type/function.myte
           loc: 10:34-10:38,
           kind: Unit,
         },
-        type_params: [],
       },
     },
     {
@@ -303,7 +294,6 @@ test/parser/ast/type/function.myte
           loc: 11:26-11:30,
           kind: Unit,
         },
-        type_params: [],
       },
     },
     {
@@ -342,259 +332,20 @@ test/parser/ast/type/function.myte
           loc: 12:37-12:41,
           kind: Unit,
         },
-        type_params: [],
-      },
-    },
-    {
-      node: TypeDeclaration,
-      loc: 13:0-13:28,
-      name: {
-        node: Identifier,
-        loc: 13:11-13:14,
-        name: "t11",
-      },
-      type_params: [],
-      builtin: false,
-      alias: {
-        node: FunctionType,
-        loc: 13:17-13:28,
-        params: [
-          {
-            node: IdentifierType,
-            loc: 13:21-13:22,
-            name: {
-              node: ScopedIdentifier,
-              loc: 13:21-13:22,
-              scopes: [],
-              name: {
-                node: Identifier,
-                loc: 13:21-13:22,
-                name: "A",
-              },
-            },
-            type_params: [],
-          },
-        ],
-        return: {
-          node: IdentifierType,
-          loc: 13:27-13:28,
-          name: {
-            node: ScopedIdentifier,
-            loc: 13:27-13:28,
-            scopes: [],
-            name: {
-              node: Identifier,
-              loc: 13:27-13:28,
-              name: "A",
-            },
-          },
-          type_params: [],
-        },
-        type_params: [
-          {
-            node: TypeParameter,
-            loc: 13:18-13:19,
-            name: {
-              node: Identifier,
-              loc: 13:18-13:19,
-              name: "A",
-            },
-          },
-        ],
-      },
-    },
-    {
-      node: TypeDeclaration,
-      loc: 14:0-14:29,
-      name: {
-        node: Identifier,
-        loc: 14:11-14:14,
-        name: "t12",
-      },
-      type_params: [],
-      builtin: false,
-      alias: {
-        node: FunctionType,
-        loc: 14:17-14:29,
-        params: [
-          {
-            node: IdentifierType,
-            loc: 14:22-14:23,
-            name: {
-              node: ScopedIdentifier,
-              loc: 14:22-14:23,
-              scopes: [],
-              name: {
-                node: Identifier,
-                loc: 14:22-14:23,
-                name: "A",
-              },
-            },
-            type_params: [],
-          },
-        ],
-        return: {
-          node: IdentifierType,
-          loc: 14:28-14:29,
-          name: {
-            node: ScopedIdentifier,
-            loc: 14:28-14:29,
-            scopes: [],
-            name: {
-              node: Identifier,
-              loc: 14:28-14:29,
-              name: "A",
-            },
-          },
-          type_params: [],
-        },
-        type_params: [
-          {
-            node: TypeParameter,
-            loc: 14:18-14:19,
-            name: {
-              node: Identifier,
-              loc: 14:18-14:19,
-              name: "A",
-            },
-          },
-        ],
-      },
-    },
-    {
-      node: TypeDeclaration,
-      loc: 15:0-15:47,
-      name: {
-        node: Identifier,
-        loc: 15:11-15:14,
-        name: "t13",
-      },
-      type_params: [],
-      builtin: false,
-      alias: {
-        node: FunctionType,
-        loc: 15:17-15:47,
-        params: [
-          {
-            node: PrimitiveType,
-            loc: 15:27-15:30,
-            kind: Int,
-          },
-          {
-            node: PrimitiveType,
-            loc: 15:32-15:38,
-            kind: String,
-          },
-        ],
-        return: {
-          node: PrimitiveType,
-          loc: 15:43-15:47,
-          kind: Unit,
-        },
-        type_params: [
-          {
-            node: TypeParameter,
-            loc: 15:18-15:19,
-            name: {
-              node: Identifier,
-              loc: 15:18-15:19,
-              name: "A",
-            },
-          },
-          {
-            node: TypeParameter,
-            loc: 15:21-15:22,
-            name: {
-              node: Identifier,
-              loc: 15:21-15:22,
-              name: "B",
-            },
-          },
-          {
-            node: TypeParameter,
-            loc: 15:24-15:25,
-            name: {
-              node: Identifier,
-              loc: 15:24-15:25,
-              name: "C",
-            },
-          },
-        ],
-      },
-    },
-    {
-      node: TypeDeclaration,
-      loc: 16:0-16:48,
-      name: {
-        node: Identifier,
-        loc: 16:11-16:14,
-        name: "t14",
-      },
-      type_params: [],
-      builtin: false,
-      alias: {
-        node: FunctionType,
-        loc: 16:17-16:48,
-        params: [
-          {
-            node: PrimitiveType,
-            loc: 16:28-16:31,
-            kind: Int,
-          },
-          {
-            node: PrimitiveType,
-            loc: 16:33-16:39,
-            kind: String,
-          },
-        ],
-        return: {
-          node: PrimitiveType,
-          loc: 16:44-16:48,
-          kind: Unit,
-        },
-        type_params: [
-          {
-            node: TypeParameter,
-            loc: 16:18-16:19,
-            name: {
-              node: Identifier,
-              loc: 16:18-16:19,
-              name: "A",
-            },
-          },
-          {
-            node: TypeParameter,
-            loc: 16:21-16:22,
-            name: {
-              node: Identifier,
-              loc: 16:21-16:22,
-              name: "B",
-            },
-          },
-          {
-            node: TypeParameter,
-            loc: 16:24-16:25,
-            name: {
-              node: Identifier,
-              loc: 16:24-16:25,
-              name: "C",
-            },
-          },
-        ],
       },
     },
     {
       node: Function,
-      loc: 18:0-18:13,
+      loc: 14:0-14:13,
       name: {
         node: Identifier,
-        loc: 18:4-18:8,
+        loc: 14:4-14:8,
         name: "main",
       },
       params: [],
       body: {
         node: Block,
-        loc: 18:11-18:13,
+        loc: 14:11-14:13,
         statements: [],
       },
       return: None,

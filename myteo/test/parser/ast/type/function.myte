@@ -10,9 +10,5 @@ type alias t7 = (Int, String) -> (Bool, Unit) -> String
 type alias t8 = (Int, String,) -> Unit
 type alias t9 = (Int,) -> Unit
 type alias t10 = ((Int, String),) -> Unit
-type alias t11 = <A>(A) -> A
-type alias t12 = <A,>(A) -> A
-type alias t13 = <A, B, C>(Int, String) -> Unit
-type alias t14 = <A, B, C,>(Int, String) -> Unit
 
 fun main() {}

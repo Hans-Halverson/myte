@@ -178,7 +178,6 @@ test/parser/ast/type/tuple.myte
           loc: 10:35-10:39,
           kind: Unit,
         },
-        type_params: [],
       },
     },
   ],

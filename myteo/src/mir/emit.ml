@@ -156,7 +156,7 @@ and emit_toplevel_function_declaration ~pcx ~ecx decl =
     let func_tvar_id = Bindings.get_tvar_id_from_value_decl pcx.bindings loc in
     let (param_tys, return_ty) =
       match Type_context.find_rep_type ~cx:pcx.type_ctx (Types.TVar func_tvar_id) with
-      | Types.Function { params; return } ->
+      | Types.Function { tparams = _; params; return } ->
         (List.map (type_to_mir_type ~pcx ~ecx) params, type_to_mir_type ~pcx ~ecx return)
       | _ -> failwith "Function must resolve to function type"
     in

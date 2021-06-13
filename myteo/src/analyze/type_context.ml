@@ -158,19 +158,19 @@ let rec find_rep_type ~cx ty =
       ty
     else
       Tuple elements'
-  | Function { params; return } ->
+  | Function { tparams; params; return } ->
     let params' = id_map_list (find_rep_type ~cx) params in
     let return' = find_rep_type ~cx return in
     if params == params' && return == return' then
       ty
     else
-      Function { params = params'; return = return' }
-  | ADT { adt_sig; tparams } ->
-    let tparams' = id_map_list (find_rep_type ~cx) tparams in
-    if tparams == tparams' then
+      Function { tparams; params = params'; return = return' }
+  | ADT { adt_sig; params } ->
+    let params' = id_map_list (find_rep_type ~cx) params in
+    if params == params' then
       ty
     else
-      ADT { adt_sig; tparams = tparams' }
+      ADT { adt_sig; params = params' }
   | TVar tvar_id ->
     let (_, rep_ty, _) = find_union_rep_node ~cx tvar_id in
     (match rep_ty with
@@ -195,9 +195,9 @@ let rec tvar_occurs_in ~cx tvar ty =
     false
   | Array element -> tvar_occurs_in ~cx tvar element
   | Tuple elements -> List.exists (tvar_occurs_in ~cx tvar) elements
-  | Function { params; return } ->
+  | Function { tparams = _; params; return } ->
     List.exists (tvar_occurs_in ~cx tvar) params || tvar_occurs_in ~cx tvar return
-  | ADT { adt_sig = _; tparams } -> List.exists (tvar_occurs_in ~cx tvar) tparams
+  | ADT { adt_sig = _; params } -> List.exists (tvar_occurs_in ~cx tvar) params
   | TVar rep_tvar -> tvar = rep_tvar
 
 let union_tvars ~cx ty1 ty2 =
@@ -250,18 +250,18 @@ let rec unify ~cx ty1 ty2 =
   (* Tuples unify all their elements if they have the same arity *)
   | (Tuple elements1, Tuple elements2) ->
     List.length elements1 = List.length elements2
-    && List.combine elements1 elements2 |> List.for_all (fun (ty1, ty2) -> unify ~cx ty1 ty2)
-  (* Functions unify all their parameter and return types if they have the same arity *)
-  | ( Function { params = params1; return = return1 },
-      Function { params = params2; return = return2 } ) ->
-    List.length params1 = List.length params2
-    && List.combine params1 params2 |> List.for_all (fun (ty1, ty2) -> unify ~cx ty1 ty2)
+    && List.for_all2 (fun ty1 ty2 -> unify ~cx ty1 ty2) elements1 elements2
+  (* Functions unify all their parameter and return types if they have the same arity and tparams *)
+  | ( Function { tparams = tparams1; params = params1; return = return1 },
+      Function { tparams = tparams2; params = params2; return = return2 } ) ->
+    List.length tparams1 = List.length tparams2
+    && List.for_all2 (fun tp1 tp2 -> tp1.TParam.id = tp2.TParam.id) tparams1 tparams2
+    && List.length params1 = List.length params2
+    && List.for_all2 (fun ty1 ty2 -> unify ~cx ty1 ty2) params1 params2
     && unify ~cx return1 return2
   (* Algebraic data types must have same signature and type params *)
-  | (ADT { adt_sig = adt_sig1; tparams = tparams1 }, ADT { adt_sig = adt_sig2; tparams = tparams2 })
-    ->
-    adt_sig1 == adt_sig2
-    && List.combine tparams1 tparams2 |> List.for_all (fun (ty1, ty2) -> unify ~cx ty1 ty2)
+  | (ADT { adt_sig = adt_sig1; params = params1 }, ADT { adt_sig = adt_sig2; params = params2 }) ->
+    adt_sig1 == adt_sig2 && List.for_all2 (fun ty1 ty2 -> unify ~cx ty1 ty2) params1 params2
   (* Unresolved int literals can be unified *)
   | (IntLiteral lit_ty1, (IntLiteral lit_ty2 as ty2)) ->
     union_int_literals lit_ty1 lit_ty2 ty2;
@@ -303,20 +303,21 @@ let rec is_subtype ~cx sub sup =
   (* Tuple element types are covariant *)
   | (Tuple sub_elements, Tuple sup_elements) ->
     List.length sub_elements = List.length sup_elements
-    && List.combine sub_elements sup_elements
-       |> List.for_all (fun (sub, sup) -> is_subtype ~cx sup sub)
-  (* Function parameters are contravariant and return type is covariant *)
-  | ( Function { params = sub_params; return = sub_return },
-      Function { params = sup_params; return = sup_return } ) ->
+    && List.for_all2 (fun sub sup -> is_subtype ~cx sup sub) sub_elements sup_elements
+  (* Function parameters are contravariant and return type is covariant. Type parameters are
+     ignored when checking subtyping, as long as parameters and return types correctly subtype. *)
+  | ( Function { tparams = _; params = sub_params; return = sub_return },
+      Function { tparams = _; params = sup_params; return = sup_return } ) ->
     List.length sub_params = List.length sup_params
-    && List.combine sub_params sup_params |> List.for_all (fun (sub, sup) -> is_subtype ~cx sup sub)
+    && List.for_all2 (fun sub sup -> is_subtype ~cx sup sub) sub_params sup_params
     && is_subtype ~cx sub_return sup_return
   (* Algebraic type parameters are invariant *)
-  | (ADT { adt_sig = adt_sig1; tparams = tparams1 }, ADT { adt_sig = adt_sig2; tparams = tparams2 })
-    ->
+  | (ADT { adt_sig = adt_sig1; params = params1 }, ADT { adt_sig = adt_sig2; params = params2 }) ->
     adt_sig1 == adt_sig2
-    && List.combine tparams1 tparams2
-       |> List.for_all (fun (ty1, ty2) -> is_subtype ~cx ty1 ty2 && is_subtype ~cx ty2 ty1)
+    && List.for_all2
+         (fun ty1 ty2 -> is_subtype ~cx ty1 ty2 && is_subtype ~cx ty2 ty1)
+         params1
+         params2
   (* Int literals are not subtyped so they must be unified *)
   | (IntLiteral lit_ty1, (IntLiteral lit_ty2 as ty2)) ->
     union_int_literals lit_ty1 lit_ty2 ty2;

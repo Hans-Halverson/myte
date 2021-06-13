@@ -381,7 +381,6 @@ and Type : sig
       loc: Loc.t;
       params: Type.t list;
       return: Type.t;
-      type_params: TypeParameter.t list;
     }
   end
 

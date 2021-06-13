@@ -16,7 +16,8 @@ let rec build_type ~cx ty =
     | Bool -> Types.Bool)
   | Tuple { Tuple.elements; _ } -> Types.Tuple (List.map (build_type ~cx) elements)
   | Function { Function.params; return; _ } ->
-    Types.Function { params = List.map (build_type ~cx) params; return = build_type ~cx return }
+    Types.Function
+      { tparams = []; params = List.map (build_type ~cx) params; return = build_type ~cx return }
   | Builtin { Builtin.kind = Array; type_params; _ } ->
     (* TODO: Error on incorrect number of type params *)
     Types.Array (build_type ~cx (List.hd type_params))
@@ -33,10 +34,15 @@ and visit_type_declarations_prepass ~cx module_ =
       let open Ast.TypeDeclaration in
       match toplevel with
       | TypeDeclaration
-          { name = { Ast.Identifier.loc = id_loc; name }; decl = Tuple _ | Record _ | Variant _; _ }
-        ->
+          {
+            name = { Ast.Identifier.loc = id_loc; name };
+            decl = Tuple _ | Record _ | Variant _;
+            type_params;
+            _;
+          } ->
         let tvar_id = Type_context.get_tvar_id_from_type_decl ~cx id_loc in
-        let adt = Types.ADT { adt_sig = Types.mk_adt_sig name; tparams = [] } in
+        let tparams = check_type_parameters ~cx type_params in
+        let adt = Types.ADT { adt_sig = Types.mk_adt_sig name tparams; params = [] } in
         ignore (Type_context.unify ~cx adt (Types.TVar tvar_id))
       | _ -> ())
     toplevels
@@ -63,11 +69,10 @@ and visit_type_declarations ~cx module_ =
           {
             loc;
             name = { Ast.Identifier.loc = id_loc; name };
-            type_params;
+            type_params = _;
             decl = Alias alias;
             builtin = _;
           } ->
-        let _ = check_type_parameters ~cx type_params in
         let tvar_id = Type_context.get_tvar_id_from_type_decl ~cx id_loc in
         let ty = build_type ~cx alias in
         (* Check if the right hand side is a tvar that has been already unified with this type.
@@ -88,9 +93,13 @@ and visit_type_declarations ~cx module_ =
        * also unified with ADT.
        *)
       | TypeDeclaration
-          { loc = _; name = { Ast.Identifier.loc = id_loc; name }; type_params; decl; builtin = _ }
-        ->
-        let _ = check_type_parameters ~cx type_params in
+          {
+            loc = _;
+            name = { Ast.Identifier.loc = id_loc; name };
+            decl;
+            type_params = _;
+            builtin = _;
+          } ->
         (* Get ADT signature from ADT id's tvar *)
         let tvar_id = Type_context.get_tvar_id_from_type_decl ~cx id_loc in
         let adt = Type_context.find_rep_type ~cx (TVar tvar_id) in
@@ -209,7 +218,8 @@ and check_type_parameters ~cx params =
     (fun { Ast.TypeParameter.name = { Ast.Identifier.loc; name }; _ } ->
       let tvar_id = Type_context.get_tvar_id_from_type_decl ~cx loc in
       let tparam = Types.TParam.mk name in
-      ignore (Type_context.unify ~cx (TParam tparam) (TVar tvar_id)))
+      ignore (Type_context.unify ~cx (TParam tparam) (TVar tvar_id));
+      tparam)
     params
 
 and check_toplevel_function_declaration_prepass ~cx decl = check_function_declaration_type ~cx decl
@@ -221,13 +231,13 @@ and check_toplevel_function_declaration ~cx decl =
 and check_function_declaration_type ~cx decl =
   let open Ast.Function in
   let { name = { loc = id_loc; _ }; params; return; type_params; _ } = decl in
-  let _ = check_type_parameters ~cx type_params in
+  let tparams = check_type_parameters ~cx type_params in
 
   (* Bind annotated function type to function identifier *)
   let tvar_id = Type_context.get_tvar_id_from_value_decl ~cx id_loc in
   let param_tys = List.map (fun param -> build_type ~cx param.Param.annot) params in
   let return_ty = Option.fold ~none:Types.Unit ~some:(fun return -> build_type ~cx return) return in
-  let function_ty = Types.Function { params = param_tys; return = return_ty } in
+  let function_ty = Types.Function { tparams; params = param_tys; return = return_ty } in
 
   ignore (Type_context.unify ~cx function_ty (TVar tvar_id))
 
@@ -240,7 +250,7 @@ and check_function_declaration_body ~cx decl =
   (* Find param and return types for function *)
   let tvar_id = Type_context.get_tvar_id_from_value_decl ~cx id_loc in
   let func_ty = Type_context.find_rep_type ~cx (TVar tvar_id) in
-  let (param_tys, return_ty) = Type_util.cast_to_function_type func_ty in
+  let (_, param_tys, return_ty) = Type_util.cast_to_function_type func_ty in
 
   (* Bind param id tvars to their annotated types *)
   List.combine params param_tys
@@ -531,7 +541,8 @@ and check_expression ~cx expr =
           (IncorrectFunctionArity (List.length args, List.length params));
         ignore (Type_context.unify ~cx Any (TVar tvar_id))
         (* Supplied arguments must each be a subtype of the annotated parameter type *)
-      | Function { params; return } ->
+      | Function { tparams = _; params; return } ->
+        (* TODO: Handle parameterized function calls *)
         List.iter2
           (fun (arg_loc, arg_tvar_id) param ->
             Type_context.assert_is_subtype ~cx arg_loc (TVar arg_tvar_id) param)

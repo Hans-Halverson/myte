@@ -87,7 +87,6 @@ test/parser/ast/type/parens.myte
           loc: 5:15-5:21,
           kind: String,
         },
-        type_params: [],
       },
     },
   ],

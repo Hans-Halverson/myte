@@ -377,7 +377,6 @@ test/parser/ast/type_declaration/variant.myte
                 loc: 21:25-21:29,
                 kind: Bool,
               },
-              type_params: [],
             },
           ],
         },

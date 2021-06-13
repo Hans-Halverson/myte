@@ -546,12 +546,11 @@ class mapper =
 
     method function_type func =
       let open Type.Function in
-      let { loc; params; return; type_params } = func in
+      let { loc; params; return } = func in
       let params' = id_map_list this#type_ params in
       let return' = this#type_ return in
-      let type_params' = id_map_list this#type_parameter type_params in
-      if params == params' && return == return' && type_params == type_params' then
+      if params == params' && return == return' then
         func
       else
-        { loc; params = params'; return = return'; type_params = type_params' }
+        { loc; params = params'; return = return' }
   end

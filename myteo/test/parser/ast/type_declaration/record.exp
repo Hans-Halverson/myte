@@ -279,7 +279,6 @@ test/parser/ast/type_declaration/record.myte
                 loc: 11:47-11:51,
                 kind: Unit,
               },
-              type_params: [],
             },
           },
           {

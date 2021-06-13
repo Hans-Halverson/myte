@@ -80,7 +80,6 @@ test/parser/ast/type_declaration/alias.myte
           loc: 7:34-7:38,
           kind: Unit,
         },
-        type_params: [],
       },
     },
     {

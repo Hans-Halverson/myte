@@ -360,8 +360,7 @@ class ['a] visitor =
 
     method function_type acc func =
       let open Type.Function in
-      let { loc = _; params; return; type_params } = func in
+      let { loc = _; params; return } = func in
       List.iter (this#type_ acc) params;
-      this#type_ acc return;
-      List.iter (this#type_parameter acc) type_params
+      this#type_ acc return
   end
