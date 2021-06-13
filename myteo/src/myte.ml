@@ -58,7 +58,7 @@ and parse_and_check ~pcx ~is_stdlib files =
     exit 0
   );
   (* Perform analysis passes *)
-  match Lex_analyze.analyze_modules ~pcx ~is_library:is_stdlib asts with
+  match Lex_analyze.analyze_modules ~pcx ~is_stdlib asts with
   | Error errors ->
     print_analyze_errors errors;
     exit 1

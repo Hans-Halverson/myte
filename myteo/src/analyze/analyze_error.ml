@@ -1,5 +1,4 @@
 open Ast
-open Basic_collections
 
 type t =
   | InexhaustiveReturn of Identifier.t
@@ -27,7 +26,7 @@ type t =
   | CyclicTypeAlias of string
   | ToplevelVarWithoutAnnotation
   | IncompatibleTypes of Types.t * Types.t list
-  | VarDeclNeedsAnnotation of (Types.t * Types.tvar_id) option
+  | CannotInferType of cannot_infer_type_kind * (Types.t * Types.tvar_id list) option
   | NonFunctionCalled of Types.t
   | RecordConstructorCalled of string
   | ExpectedRecordConstructor
@@ -57,6 +56,10 @@ and invalid_assignment_kind =
   | InvalidAssignmentConstructor
 
 and invalid_lvalue_kind = InvalidLValueTuple
+
+and cannot_infer_type_kind =
+  | CannotInferTypeVariableDeclaration
+  | CannotInferTypeExpression
 
 and name_source =
   | FunctionName of string
@@ -191,20 +194,30 @@ let to_string error =
       | _ -> "types " ^ String.concat " or " expected_strings
     in
     Printf.sprintf "Expected %s but found %s" expected_string actual_string
-  | VarDeclNeedsAnnotation partial ->
+  | CannotInferType (kind, partial) ->
+    let kind_string =
+      match kind with
+      | CannotInferTypeVariableDeclaration -> "variable declaration"
+      | CannotInferTypeExpression -> "expression"
+    in
     let partial_string =
       match partial with
       | None -> ""
-      | Some (partial_type, unresolved_tvar_id) ->
-        let (partial_type_string, tvar_to_name) = Types.pps_with_tvar_map [partial_type] in
-        let unresolved_tvar_name = IMap.find unresolved_tvar_id tvar_to_name in
+      | Some (partial_type, unresolved_tvar_ids) ->
+        let type_strings =
+          Types.pps (partial_type :: List.map (fun id -> Types.TVar id) unresolved_tvar_ids)
+        in
+        let partial_type_string = List.hd type_strings in
+        let unresolved_tvar_names = List.tl type_strings |> List.map (fun s -> "`" ^ s ^ "`") in
+        let unresolved_tvars = Error_utils.concat_with_or unresolved_tvar_names in
         Printf.sprintf
-          "Partially inferred `%s` but was unable to resolve `%s`. "
-          (List.hd partial_type_string)
-          unresolved_tvar_name
+          "Partially inferred `%s` but was unable to resolve %s. "
+          partial_type_string
+          unresolved_tvars
     in
     Printf.sprintf
-      "Cannot infer type for variable declaration. %sPlease provide additional type hints such as a type annotation."
+      "Cannot infer type for %s. %sPlease provide additional type annotations."
+      kind_string
       partial_string
   | IncorrectFunctionArity (actual, expected) ->
     Printf.sprintf

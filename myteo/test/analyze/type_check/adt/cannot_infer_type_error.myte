@@ -1,0 +1,9 @@
+module test
+
+type Option<T> =
+  | None
+  | Some (T)
+
+fun main() {
+  None;
+}

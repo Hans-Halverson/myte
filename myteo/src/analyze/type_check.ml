@@ -231,17 +231,16 @@ and check_variable_declaration ~cx decl =
     (* If expression's type is fully resolved then use as type of id, otherwise error
        requesting an annotation. *)
     let rep_ty = Type_context.find_rep_type ~cx (TVar expr_tvar_id) in
-    let unresolved_tvars = Types.get_all_tvars_with_duplicates rep_ty in
+    let unresolved_tvars = Types.get_all_tvars [rep_ty] in
     if unresolved_tvars = [] then
       Type_context.assert_unify ~cx expr_loc (TVar expr_tvar_id) (TVar pattern_tvar_id)
     else
-      (* TODO: Test this error once we support unresolved tvars *)
       let partial =
         match rep_ty with
         | TVar _ -> None
-        | _ -> Some (rep_ty, List.hd unresolved_tvars)
+        | _ -> Some (rep_ty, unresolved_tvars)
       in
-      Type_context.add_error ~cx loc (VarDeclNeedsAnnotation partial)
+      Type_context.add_error ~cx loc (CannotInferType (CannotInferTypeVariableDeclaration, partial))
   | Some annot ->
     let annot_ty = build_type ~cx annot in
     if Type_context.unify ~cx annot_ty (TVar pattern_tvar_id) then
@@ -337,12 +336,13 @@ and check_expression ~cx expr =
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     ignore (Type_context.unify ~cx Types.Bool (TVar tvar_id));
     (loc, tvar_id)
-  | Identifier { Ast.Identifier.loc; name }
-  | ScopedIdentifier { Ast.ScopedIdentifier.name = { Ast.Identifier.loc; name }; _ } ->
+  | Identifier { Ast.Identifier.loc = id_loc as loc; name }
+  | ScopedIdentifier { Ast.ScopedIdentifier.loc; name = { Ast.Identifier.loc = id_loc; name }; _ }
+    ->
     let open Types in
     let open Bindings.ValueBinding in
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    let binding = Type_context.get_source_value_binding ~cx loc in
+    let binding = Type_context.get_source_value_binding ~cx id_loc in
     let decl_ty =
       match snd binding.declaration with
       (* If id is a constructor look up corresponding ADT to use as type. Error on tuple and record
@@ -997,6 +997,8 @@ and check_statement ~cx stmt =
     | None -> ())
   | Match _ -> failwith "TODO: Type check match statements"
 
+(* Resolve all IntLiteral placeholder types to an actual integer type. Infer as Int if all
+   literals are within the Int range, otherwise infer as Long. *)
 let resolve_unresolved_int_literals ~cx =
   while not (LocSet.is_empty cx.unresolved_int_literals) do
     let loc = LocSet.choose cx.unresolved_int_literals in
@@ -1020,6 +1022,42 @@ let resolve_unresolved_int_literals ~cx =
     | _ -> failwith "Unresolved int literal has already been resolved"
   done
 
+(* Visit every expression, making sure that it has been resolved to a non-TVar type. *)
+class ensure_expressions_typed_visitor ~cx =
+  object
+    inherit [unit] Ast_visitor.visitor as super
+
+    method! function_ acc decl =
+      let { Ast.Function.builtin; _ } = decl in
+      if builtin then
+        ()
+      else
+        super#function_ acc decl
+
+    method! expression acc expr =
+      let loc = Ast_utils.expression_loc expr in
+      (match LocMap.find_opt loc cx.loc_to_tvar with
+      (* Some expression nodes not appear in the tvar map, meaning they are never referenced and
+         do not need to be checked. *)
+      | None -> ()
+      | Some tvar_id ->
+        let rep_ty = Type_context.find_rep_type ~cx (TVar tvar_id) in
+        (* Error if expression's type is not fully resolved *)
+        let unresolved_tvars = Types.get_all_tvars [rep_ty] in
+        if unresolved_tvars <> [] then
+          let partial =
+            match rep_ty with
+            | TVar _ -> None
+            | _ -> Some (rep_ty, unresolved_tvars)
+          in
+          Type_context.add_error ~cx loc (CannotInferType (CannotInferTypeExpression, partial)));
+      super#expression acc expr
+  end
+
+let ensure_all_expression_are_typed ~cx modules =
+  let visitor = new ensure_expressions_typed_visitor ~cx in
+  List.iter (fun (_, module_) -> ignore (visitor#module_ () module_)) modules
+
 let analyze ~cx modules =
   (* First visit type declarations, building type aliases *)
   List.iter (fun (_, module_) -> visit_type_declarations_prepass ~cx module_) modules;
@@ -1028,5 +1066,6 @@ let analyze ~cx modules =
   List.iter (fun (_, module_) -> visit_value_declarations ~cx module_) modules;
   if cx.errors = [] then List.iter (fun (_, module_) -> check_module ~cx module_) modules;
   resolve_unresolved_int_literals ~cx;
+  if cx.errors = [] then ensure_all_expression_are_typed ~cx modules;
   cx.errors <- List.rev cx.errors;
   cx

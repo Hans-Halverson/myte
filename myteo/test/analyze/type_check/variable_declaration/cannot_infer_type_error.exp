@@ -1,0 +1,9 @@
+Error: Cannot infer type for variable declaration. Partially inferred `Option<a>` but was unable to resolve `a`. Please provide additional type annotations.
+test/analyze/type_check/variable_declaration/cannot_infer_type_error.myte:12:2-15
+ 12 |   val x = None;
+    |   ^^^^^^^^^^^^^
+
+Error: Cannot infer type for variable declaration. Partially inferred `ManyTParams<a, b, c>` but was unable to resolve `a`, `b`, or `c`. Please provide additional type annotations.
+test/analyze/type_check/variable_declaration/cannot_infer_type_error.myte:13:2-22
+ 13 |   val x = EnumVariant;
+    |   ^^^^^^^^^^^^^^^^^^^^

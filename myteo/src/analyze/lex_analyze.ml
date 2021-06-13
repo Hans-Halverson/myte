@@ -1,11 +1,11 @@
 open Program_context
 
-let analyze_modules ~is_library ~pcx mods_and_files =
+let analyze_modules ~is_stdlib ~pcx mods_and_files =
   let mods = List.map snd mods_and_files in
 
   (* Check for main function for non-library compilation units *)
   let main_errors =
-    if is_library then
+    if is_stdlib then
       []
     else
       let (main_loc, main_errors) = Main_function.analyze mods in
@@ -20,7 +20,7 @@ let analyze_modules ~is_library ~pcx mods_and_files =
   (* Resolve symbols in this compilation unit. Updates the set of all bindings and store
      the newly resolved ASTs *)
   let (new_resolved_mods, new_bindings, resolution_errors) =
-    Name_resolution.analyze pcx.module_tree mods_and_files
+    Name_resolution.analyze ~is_stdlib pcx.module_tree mods_and_files
   in
   Program_context.add_resolved_modules ~pcx new_resolved_mods;
   Program_context.add_bindings ~pcx new_bindings;

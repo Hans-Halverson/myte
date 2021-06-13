@@ -22,7 +22,7 @@ type 'a binding_builder = {
 let mk_binding_builder ~loc ~name ~kind ~is_global ~module_ =
   { name; declaration = (loc, kind); uses = LocSet.empty; is_global; module_ }
 
-class bindings_builder ~module_tree =
+class bindings_builder ~is_stdlib ~module_tree =
   let (exported_value_ids, exported_type_ids) = Module_tree.get_all_exports module_tree in
   let exported_value_bindings =
     List.fold_left
@@ -223,8 +223,9 @@ class bindings_builder ~module_tree =
             List.iter (fun id -> ignore (add_value_name (VarDecl kind) id)) ids
           | FunctionDeclaration { Ast.Function.name; _ } -> ignore (add_value_name FunDecl name)
           | TypeDeclaration { Ast.TypeDeclaration.name; decl; _ } ->
-            let full_name = module_name_prefix ^ name.name in
-            Std_lib.register_stdlib_decl full_name name.loc;
+            ( if is_stdlib then
+              let full_name = module_name_prefix ^ name.name in
+              Std_lib.register_stdlib_decl full_name name.loc );
             if name.name = "_" then
               this#add_error name.loc InvalidWildcardIdentifier
             else
@@ -667,11 +668,11 @@ class bindings_builder ~module_tree =
       resolve_scoped_ids patt
   end
 
-let analyze module_tree modules =
+let analyze ~is_stdlib module_tree modules =
   let results =
     List.map
       (fun (file, mod_) ->
-        let bindings_builder = new bindings_builder ~module_tree in
+        let bindings_builder = new bindings_builder ~module_tree ~is_stdlib in
         let mod' = bindings_builder#module_ mod_ in
         let (bindings, bindings_errors) = bindings_builder#results () in
         ((file, mod'), bindings, bindings_errors))

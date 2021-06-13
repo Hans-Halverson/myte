@@ -1,0 +1,4 @@
+Error: Cannot infer type for expression. Partially inferred `Option<a>` but was unable to resolve `a`. Please provide additional type annotations.
+test/analyze/type_check/adt/cannot_infer_type_error.myte:8:2-6
+ 8 |   None;
+   |   ^^^^

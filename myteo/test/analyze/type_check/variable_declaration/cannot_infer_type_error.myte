@@ -1,0 +1,14 @@
+module test
+
+type Option<T> =
+  | None
+  | Some (T)
+
+type ManyTParams<T, U, V> =
+  | EnumVariant
+  | OtherVariant (T)
+
+fun main() {
+  val x = None;
+  val x = EnumVariant;
+}
