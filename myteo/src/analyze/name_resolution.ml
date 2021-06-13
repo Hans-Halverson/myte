@@ -213,7 +213,7 @@ class bindings_builder ~module_tree =
                   resolve_import name local_name scopes)
               aliases)
         imports;
-      (* Gather toplevel declarations and add them to toplevel scope *)
+      (* Gather toplevel type and variable declarations and add them to toplevel scope *)
       List.iter
         (fun toplevel ->
           match toplevel with
@@ -228,9 +228,29 @@ class bindings_builder ~module_tree =
               let kind =
                 match decl with
                 | Alias _ -> TypeAlias
-                | _ -> TypeDecl
+                | Variant _ -> TypeDecl
+                | Tuple { name; _ }
+                | Record { name; _ } ->
+                  ignore (add_value_name CtorDecl name);
+                  TypeDecl
               in
               add_type_name kind name)
+        toplevels;
+      (* Add variant type declarations to toplevel scope *)
+      List.iter
+        (fun toplevel ->
+          let open Ast.TypeDeclaration in
+          match toplevel with
+          | TypeDeclaration { decl = Variant variants; _ } ->
+            List.iter
+              (fun variant ->
+                match variant with
+                | EnumVariant name
+                | TupleVariant { Tuple.name; _ }
+                | RecordVariant { Record.name; _ } ->
+                  ignore (add_value_name CtorDecl name))
+              variants
+          | _ -> ())
         toplevels;
       (* Then visit child nodes once toplevel scope is complete *)
       let toplevels' =
@@ -244,26 +264,13 @@ class bindings_builder ~module_tree =
               id_map (this#visit_function_declaration ~toplevel:true) decl toplevel (fun decl' ->
                   FunctionDeclaration decl')
             | TypeDeclaration
-                { TypeDeclaration.name = { Ast.Identifier.name; _ }; decl; type_params; _ } ->
+                ({ TypeDeclaration.name = { Ast.Identifier.name; _ }; type_params; _ } as type_decl)
+              ->
               if type_params <> [] then this#enter_scope ();
               this#add_type_parameter_declarations type_params (TypeName name);
-              let type_decl =
-                match decl with
-                | Alias alias ->
-                  ignore (this#type_ alias);
-                  toplevel
-                | Record record ->
-                  ignore (this#record_variant record);
-                  toplevel
-                | Tuple tuple ->
-                  ignore (this#tuple_variant tuple);
-                  toplevel
-                | Variant variants ->
-                  List.iter (fun v -> ignore (this#type_declaration_variant v)) variants;
-                  toplevel
-              in
+              ignore (this#type_declaration type_decl);
               if type_params <> [] then this#exit_scope ();
-              type_decl)
+              toplevel)
           toplevels
       in
       this#exit_scope ();
@@ -271,26 +278,6 @@ class bindings_builder ~module_tree =
         mod_
       else
         { mod_ with toplevels = toplevels' }
-
-    method! tuple_variant tuple =
-      let open Ast.TypeDeclaration.Tuple in
-      let { name; _ } = tuple in
-      let { Ast.Identifier.name; loc } = name in
-      this#add_value_declaration loc CtorDecl name true;
-      super#tuple_variant tuple
-
-    method! record_variant record =
-      let open Ast.TypeDeclaration.Record in
-      let { name; _ } = record in
-      let { Ast.Identifier.name; loc } = name in
-      this#add_value_declaration loc CtorDecl name true;
-      super#record_variant record
-
-    method! enum_variant id =
-      let open Ast.Identifier in
-      let { loc; name } = id in
-      this#add_value_declaration loc CtorDecl name true;
-      super#enum_variant id
 
     method! statement stmt =
       let open Ast.Statement in

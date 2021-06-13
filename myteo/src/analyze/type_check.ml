@@ -32,16 +32,21 @@ let rec build_type ~cx ty =
     let tvar_id = Type_context.get_tvar_id_from_type_use ~cx loc in
     let rep_ty = Type_context.find_rep_type ~cx (TVar tvar_id) in
     (match rep_ty with
-    (* Unparameterized type aliases defer directly to aliased type *)
-    | Types.Alias ([], ty) -> ty
-    (* Parameterized type aliases must have correct arity *)
-    | Types.Alias (tparams, _) when List.length tparams <> List.length tparam_tys ->
+    (* Unparameterized types defer directly to type *)
+    | (Types.TParam _ as ty)
+    | Types.Alias ([], ty)
+    | (Types.ADT { adt_sig = { tparams = []; _ }; _ } as ty) ->
+      ty
+    (* Parameterized types must have correct arity *)
+    | Types.Alias (tparams, _)
+    | Types.ADT { adt_sig = { tparams; _ }; _ }
+      when List.length tparams <> List.length tparam_tys ->
       Type_context.add_error
         ~cx
         full_loc
         (IncorrectTypeParametersArity (List.length tparam_tys, List.length tparams));
       Types.Any
-    (* Substitute concrete parameters for tparams in aliased type *)
+    (* Substitute concrete parameters for tparams in type aliases *)
     | Types.Alias (tparams, ty) ->
       let tparam_and_tys = List.combine tparams tparam_tys in
       let tparams_map =
@@ -51,7 +56,9 @@ let rec build_type ~cx ty =
           tparam_and_tys
       in
       Types.substitute_tparams tparams_map ty
-    | _ -> rep_ty)
+    (* Add correct parameter types to ADT *)
+    | Types.ADT { adt_sig; _ } -> Types.ADT { adt_sig; params = tparam_tys }
+    | _ -> failwith "Expected ADT or type alias")
 
 and visit_type_declarations_prepass ~cx module_ =
   let open Ast.Module in
@@ -337,7 +344,7 @@ and check_expression ~cx expr =
         let adt = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
         let adt_sig = Types.get_adt_sig adt in
         (match SMap.find name adt_sig.variant_sigs with
-        | EnumVariantSig -> adt
+        | EnumVariantSig -> Types.refresh_tparams adt
         | TupleVariantSig elements ->
           Type_context.add_error ~cx loc (IncorrectTupleConstructorArity (0, List.length elements));
           Any

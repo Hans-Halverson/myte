@@ -289,14 +289,11 @@ let rec is_subtype ~cx sub sup =
   let rep_sub = find_union_rep_type ~cx sub in
   let rep_sup = find_union_rep_type ~cx sup in
   match (rep_sub, rep_sup) with
+  (* Type variables greedibly unify with each other when a subtype relation is applied *)
   | (TVar _, _)
   | (_, TVar _) ->
-    (* TODO: Error on unresolved tvars. Should check for nested unresolved tvars to
-             see if type is fully resolved at start of is_subtype. Error if not, pointing
-             to type and displaying as much of type as could be resolved in error, saying to provide
-             annotation for unannotated parts. If entire tvar cannot be resolved and there is
-             no useful structure to show, just say to add annotations)*)
-    failwith "Unimplemented"
+    unify ~cx rep_sub rep_sup
+  (* The Any type allows all subtype relations *)
   | (Any, _)
   | (_, Any)
   | (Unit, Unit)
@@ -325,6 +322,7 @@ let rec is_subtype ~cx sub sup =
   (* Algebraic type parameters are invariant *)
   | (ADT { adt_sig = adt_sig1; params = params1 }, ADT { adt_sig = adt_sig2; params = params2 }) ->
     adt_sig1 == adt_sig2
+    && List.length params1 = List.length params2
     && List.for_all2
          (fun ty1 ty2 -> is_subtype ~cx ty1 ty2 && is_subtype ~cx ty2 ty1)
          params1

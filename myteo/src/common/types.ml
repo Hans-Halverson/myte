@@ -142,6 +142,14 @@ let rec substitute_tparams tparams ty =
     | Some ty -> substitute_tparams tparams ty)
   | Alias (alias_tparams, ty) -> Alias (alias_tparams, substitute_tparams tparams ty)
 
+(* Generate a new set of tparams for this declaration type *)
+let refresh_tparams ty =
+  match ty with
+  | ADT { adt_sig = { tparams; _ } as adt_sig; _ } ->
+    let fresh_tparams = List.map (fun _ -> mk_tvar ()) tparams in
+    ADT { adt_sig; params = fresh_tparams }
+  | _ -> failwith "Expected ADT"
+
 let concat_and_wrap (pre, post) elements = pre ^ String.concat ", " elements ^ post
 
 let rec pp_with_names ~tvar_to_name ty =

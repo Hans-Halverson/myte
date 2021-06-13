@@ -1,0 +1,19 @@
+module test
+
+type Option<T> =
+  | None
+  | Some (T)
+
+fun useInt(x: Option<Int>) {}
+fun useBool(x: Option<Bool>) {}
+
+fun enumVariants() {
+  // Enum constructor can be used locally for different types
+  useInt(None);
+  useBool(None);
+
+  // Errors
+  None == 1;
+}
+
+fun main() {}
