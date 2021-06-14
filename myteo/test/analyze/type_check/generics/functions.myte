@@ -1,0 +1,51 @@
+module test
+
+type Option<T> =
+  | None
+  | Some (T)
+
+fun id<T>(x: T): T = x
+fun useInt(x: Int) {}
+fun useBool(x: Bool) {}
+
+fun testGeneric() {
+  // Function can be used locally for different types
+  (id(1): Unit);
+  (id(true): Unit);
+
+  // Function can be inferred locally for different types
+  useInt(id(1));
+  useBool(id(true));
+}
+
+fun testCannotInferUnannotatedGenericFunction() {
+  val x = id;
+}
+
+fun canInferTypeParameterForVariableWithAnnotation<A>(x: A) {
+  val x1: Int -> Int = id;
+  val x2: A -> A = id;
+
+  // Success
+  x1(1);
+  x2(x);
+
+  // Failure
+  x1(true);
+  x2(true);
+}
+
+fun repeatingParams<T, U>(x: T, y: U, z: T) {}
+
+fun testTypeFailureDueToParams<A, B>(a: A, b: B) {
+  // Success - params can unify
+  repeatingParams(1, 1, 1);
+  repeatingParams(1, true, 2);
+  repeatingParams(Some (a), 1, None);
+
+  // Failure - params cannot unify
+  repeatingParams(1, 1, true);
+  repeatingParams(Some (a), 1, Some (b));
+}
+
+fun main() {}

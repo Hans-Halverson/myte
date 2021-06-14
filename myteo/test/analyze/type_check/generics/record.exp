@@ -1,0 +1,64 @@
+Error: Expected type `Int` but found `Option<Int>`
+test/analyze/type_check/generics/record.myte:19:3-16
+ 19 |   (Some { x: 1 }: Int);
+    |    ^^^^^^^^^^^^^
+
+Error: Expected type `Int` but found `Option<Bool>`
+test/analyze/type_check/generics/record.myte:20:3-19
+ 20 |   (Some { x: true }: Int);
+    |    ^^^^^^^^^^^^^^^^
+
+Error: Expected type `Int` but found `RecForAccess<Int, Unit>`
+test/analyze/type_check/generics/record.myte:28:3-56
+ 28 |   (RecForAccess { foo: Some { x: () }, bar: "", baz: 1 }: Int);
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Expected type `Int` but found `RecForAccess<String, Bool>`
+test/analyze/type_check/generics/record.myte:29:3-59
+ 29 |   (RecForAccess { foo: Some { x: true }, bar: "", baz: "" }: Int);
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Expected type `Unit` but found `Option<Int>`
+test/analyze/type_check/generics/record.myte:34:3-10
+ 34 |   (rec.foo: Unit);
+    |    ^^^^^^^
+
+Error: Expected type `Unit` but found `String`
+test/analyze/type_check/generics/record.myte:35:3-10
+ 35 |   (rec.bar: Unit);
+    |    ^^^^^^^
+
+Error: Expected type `Unit` but found `A`
+test/analyze/type_check/generics/record.myte:36:3-14
+ 36 |   (id(rec.baz): Unit);
+    |    ^^^^^^^^^^^
+
+Error: Expected type `Int` but found `Option<Int>`
+test/analyze/type_check/generics/record.myte:41:3-5
+ 41 |   (x1: Int);
+    |    ^^
+
+Error: Expected type `Int` but found `Option<A>`
+test/analyze/type_check/generics/record.myte:44:3-5
+ 44 |   (x2: Int);
+    |    ^^
+
+Error: Cannot infer type for variable declaration. Partially inferred `Either<Int, a>` but was unable to resolve `a`. Please provide additional type annotations.
+test/analyze/type_check/generics/record.myte:48:2-25
+ 48 |   val x1 = Left { x: 1 };
+    |   ^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Cannot infer type for variable declaration. Partially inferred `Either<a, A>` but was unable to resolve `a`. Please provide additional type annotations.
+test/analyze/type_check/generics/record.myte:49:2-23
+ 49 |   val x2 = Right { x };
+    |   ^^^^^^^^^^^^^^^^^^^^^
+
+Error: Expected type `Bool` but found `Int`
+test/analyze/type_check/generics/record.myte:66:30
+ 66 |   RecWithReatingParams { foo: 1, bar: 1, baz: true };
+    |                               ^
+
+Error: Expected type `Option<B>` but found `Option<A>`
+test/analyze/type_check/generics/record.myte:67:30-43
+ 67 |   RecWithReatingParams { foo: Some { x: a }, bar: 1, baz: Some { x: b } };
+    |                               ^^^^^^^^^^^^^

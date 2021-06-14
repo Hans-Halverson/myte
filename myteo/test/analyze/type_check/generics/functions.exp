@@ -1,0 +1,34 @@
+Error: Expected type `Unit` but found `Int`
+test/analyze/type_check/generics/functions.myte:13:3-8
+ 13 |   (id(1): Unit);
+    |    ^^^^^
+
+Error: Expected type `Unit` but found `Bool`
+test/analyze/type_check/generics/functions.myte:14:3-11
+ 14 |   (id(true): Unit);
+    |    ^^^^^^^^
+
+Error: Cannot infer type for variable declaration. Partially inferred `a -> a` but was unable to resolve `a`. Please provide additional type annotations.
+test/analyze/type_check/generics/functions.myte:22:2-13
+ 22 |   val x = id;
+    |   ^^^^^^^^^^^
+
+Error: Expected type `Int` but found `Bool`
+test/analyze/type_check/generics/functions.myte:34:5-9
+ 34 |   x1(true);
+    |      ^^^^
+
+Error: Expected type `A` but found `Bool`
+test/analyze/type_check/generics/functions.myte:35:5-9
+ 35 |   x2(true);
+    |      ^^^^
+
+Error: Expected type `Int` but found `Bool`
+test/analyze/type_check/generics/functions.myte:47:24-28
+ 47 |   repeatingParams(1, 1, true);
+    |                         ^^^^
+
+Error: Expected type `Option<A>` but found `Option<B>`
+test/analyze/type_check/generics/functions.myte:48:31-39
+ 48 |   repeatingParams(Some (a), 1, Some (b));
+    |                                ^^^^^^^^

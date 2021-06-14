@@ -1,0 +1,64 @@
+Error: Expected type `Int` but found `Option<Int>`
+test/analyze/type_check/generics/tuple.myte:19:3-11
+ 19 |   (Some (1): Int);
+    |    ^^^^^^^^
+
+Error: Expected type `Int` but found `Option<Bool>`
+test/analyze/type_check/generics/tuple.myte:20:3-14
+ 20 |   (Some (true): Int);
+    |    ^^^^^^^^^^^
+
+Error: Expected type `Int` but found `TupForAccess<Int, Unit>`
+test/analyze/type_check/generics/tuple.myte:28:3-34
+ 28 |   (TupForAccess (Some (()), "", 1): Int);
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Expected type `Int` but found `TupForAccess<String, Bool>`
+test/analyze/type_check/generics/tuple.myte:29:3-37
+ 29 |   (TupForAccess (Some (true), "", ""): Int);
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Expected type `Unit` but found `Option<Int>`
+test/analyze/type_check/generics/tuple.myte:34:3-9
+ 34 |   (tup[0]: Unit);
+    |    ^^^^^^
+
+Error: Expected type `Unit` but found `String`
+test/analyze/type_check/generics/tuple.myte:35:3-9
+ 35 |   (tup[1]: Unit);
+    |    ^^^^^^
+
+Error: Expected type `Unit` but found `A`
+test/analyze/type_check/generics/tuple.myte:36:3-13
+ 36 |   (id(tup[2]): Unit);
+    |    ^^^^^^^^^^
+
+Error: Expected type `Int` but found `Option<Int>`
+test/analyze/type_check/generics/tuple.myte:41:3-5
+ 41 |   (x1: Int);
+    |    ^^
+
+Error: Expected type `Int` but found `Option<A>`
+test/analyze/type_check/generics/tuple.myte:44:3-5
+ 44 |   (x2: Int);
+    |    ^^
+
+Error: Cannot infer type for variable declaration. Partially inferred `Either<Int, a>` but was unable to resolve `a`. Please provide additional type annotations.
+test/analyze/type_check/generics/tuple.myte:48:2-20
+ 48 |   val x1 = Left (1);
+    |   ^^^^^^^^^^^^^^^^^^
+
+Error: Cannot infer type for variable declaration. Partially inferred `Either<a, A>` but was unable to resolve `a`. Please provide additional type annotations.
+test/analyze/type_check/generics/tuple.myte:49:2-21
+ 49 |   val x2 = Right (x);
+    |   ^^^^^^^^^^^^^^^^^^^
+
+Error: Expected type `Int` but found `Bool`
+test/analyze/type_check/generics/tuple.myte:66:29-33
+ 66 |   TupWithReatingParams(1, 1, true);
+    |                              ^^^^
+
+Error: Expected type `Option<A>` but found `Option<B>`
+test/analyze/type_check/generics/tuple.myte:67:36-44
+ 67 |   TupWithReatingParams(Some (a), 1, Some (b));
+    |                                     ^^^^^^^^

@@ -1,0 +1,70 @@
+module test
+
+type Option<T> =
+  | None
+  | Some { x: T }
+
+type Either<T, U> =
+  | Left { x: T }
+  | Right { x: U }
+
+type RecForAccess<T, U> { foo: Option<U>, bar: String, baz: T }
+
+fun id<T>(x: T): T = x
+fun useInt(x: Option<Int>) {}
+fun useBool(x: Option<Bool>) {}
+
+fun testGeneric() {
+  // Tuple constructor can be used locally for different types
+  (Some { x: 1 }: Int);
+  (Some { x: true }: Int);
+
+  // Enum constructor can be inferred locally for different types
+  useInt(Some { x: 1 });
+  useBool(Some { x: true });
+}
+
+fun testInferringTypeParams() {
+  (RecForAccess { foo: Some { x: () }, bar: "", baz: 1 }: Int);
+  (RecForAccess { foo: Some { x: true }, bar: "", baz: "" }: Int);
+}
+
+fun testIndexedAccess<A>(rec: RecForAccess<A, Int>) {
+  // Error to print inferred types
+  (rec.foo: Unit);
+  (rec.bar: Unit);
+  (id(rec.baz): Unit);
+}
+
+fun testInferVariable<A>(x: A) {
+  val x1 = Some { x: 1 };
+  (x1: Int);
+
+  val x2 = Some { x };
+  (x2: Int);
+}
+
+fun cannotInferTypeParameterForVariable<A>(x: A) {
+  val x1 = Left { x: 1 };
+  val x2 = Right { x };
+}
+
+fun canInferTypeParameterForVariableWithAnnotation<A>(x: A) {
+  val x1: Either<Int, Bool> = Left { x: 1 };
+  val x2: Either<Int, A> = Right { x };
+}
+
+type RecWithReatingParams<T, U> { foo: T, bar: U, baz: T }
+
+fun testTypeFailureDueToParams<A, B>(a: A, b: B) {
+  // Success - params can unify
+  RecWithReatingParams { foo: 1, bar: 1, baz: 1 };
+  RecWithReatingParams { foo: 1, bar: true, baz: 2 };
+  RecWithReatingParams { foo: Some { x: a }, bar: 1, baz: None };
+
+  // Failure - params cannot unify
+  RecWithReatingParams { foo: 1, bar: 1, baz: true };
+  RecWithReatingParams { foo: Some { x: a }, bar: 1, baz: Some { x: b } };
+}
+
+fun main() {}

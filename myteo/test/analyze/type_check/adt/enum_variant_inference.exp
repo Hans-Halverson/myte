@@ -2,3 +2,13 @@ Error: Expected type `Option<a>` but found `Int`
 test/analyze/type_check/adt/enum_variant_inference.myte:16:10
  16 |   None == 1;
     |           ^
+
+Error: Expected type `Int` but found `Option<Int>`
+test/analyze/type_check/adt/enum_variant_inference.myte:28:3-16
+ 28 |   (makeOption(1): Int);
+    |    ^^^^^^^^^^^^^
+
+Error: Expected type `Int` but found `Option<Bool>`
+test/analyze/type_check/adt/enum_variant_inference.myte:29:3-19
+ 29 |   (makeOption(true): Int);
+    |    ^^^^^^^^^^^^^^^^

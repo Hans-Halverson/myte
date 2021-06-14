@@ -348,10 +348,14 @@ and check_expression ~cx expr =
       (* If id is a constructor look up corresponding ADT to use as type. Error on tuple and record
          constructors as they are handled elsewhere. *)
       | CtorDecl ->
-        let adt = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
-        let adt_sig = Types.get_adt_sig adt in
+        let adt_decl = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
+        let adt_sig = Types.get_adt_sig adt_decl in
         (match SMap.find name adt_sig.variant_sigs with
-        | EnumVariantSig -> Types.refresh_tparams adt
+        | EnumVariantSig ->
+          if adt_sig.tparams = [] then
+            adt_decl
+          else
+            Types.refresh_adt_tparams adt_decl
         | TupleVariantSig elements ->
           Type_context.add_error ~cx loc (IncorrectTupleConstructorArity (0, List.length elements));
           Any
@@ -359,6 +363,19 @@ and check_expression ~cx expr =
           let field_names = SMap.fold (fun name _ names -> name :: names) fields [] |> List.rev in
           Type_context.add_error ~cx loc (MissingRecordConstructorFields field_names);
           Any)
+      (* Id is for a function declaration. If function has type parameters then generate a fresh
+         type variable for each type parameter and substitute into function type. *)
+      | FunDecl ->
+        let func_decl = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
+        let (tparams, params, return) = Type_util.cast_to_function_type func_decl in
+        if tparams = [] then
+          func_decl
+        else
+          let fresh_tys = List.map (fun _ -> mk_tvar ()) tparams in
+          let fresh_ty_bindings = mk_tparam_bindings tparams fresh_tys in
+          let fresh_params = List.map (Types.substitute_tparams fresh_ty_bindings) params in
+          let fresh_return = Types.substitute_tparams fresh_ty_bindings return in
+          Function { tparams = []; params = fresh_params; return = fresh_return }
       (* Otherwise identifier has same type as its declaration *)
       | _ -> TVar binding.tvar_id
     in
@@ -532,7 +549,9 @@ and check_expression ~cx expr =
         let binding = Type_context.get_source_value_binding ~cx loc in
         (match snd binding.declaration with
         | CtorDecl ->
-          let adt = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
+          let adt_decl = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
+          (* This is an identifier reference of a decl type, so create fresh tparams for this instance *)
+          let adt = Types.refresh_adt_tparams adt_decl in
           let adt_sig = Types.get_adt_sig adt in
           (match SMap.find name adt_sig.variant_sigs with
           (* Error on incorrect number of arguments *)
@@ -545,13 +564,21 @@ and check_expression ~cx expr =
             true
           (* Supplied arguments must each be a subtype of the element types. Overall expression
              type is the ADT's type. *)
-          | TupleVariantSig elements ->
+          | TupleVariantSig element_sigs ->
+            let tparam_bindings = Types.get_adt_tparam_bindings adt in
             let args_locs_and_tvar_ids = List.map (check_expression ~cx) args in
             List.iter2
-              (fun (arg_loc, arg_tvar_id) element ->
-                Type_context.assert_is_subtype ~cx arg_loc (TVar arg_tvar_id) element)
+              (fun (arg_loc, arg_tvar_id) element_sig ->
+                (* Substitute fresh tparams for this instance in each element's signature *)
+                let element_ty =
+                  if adt_sig.tparams = [] then
+                    element_sig
+                  else
+                    Types.substitute_tparams tparam_bindings element_sig
+                in
+                Type_context.assert_is_subtype ~cx arg_loc (TVar arg_tvar_id) element_ty)
               args_locs_and_tvar_ids
-              elements;
+              element_sigs;
             ignore (Type_context.unify ~cx adt (TVar tvar_id));
             true
           (* Special error if record constructor is called as a function *)
@@ -578,7 +605,6 @@ and check_expression ~cx expr =
         ignore (Type_context.unify ~cx Any (TVar tvar_id))
         (* Supplied arguments must each be a subtype of the annotated parameter type *)
       | Function { tparams = _; params; return } ->
-        (* TODO: Handle parameterized function calls *)
         List.iter2
           (fun (arg_loc, arg_tvar_id) param ->
             Type_context.assert_is_subtype ~cx arg_loc (TVar arg_tvar_id) param)
@@ -611,7 +637,9 @@ and check_expression ~cx expr =
         let binding = Type_context.get_source_value_binding ~cx name_loc in
         (match snd binding.declaration with
         | CtorDecl ->
-          let adt = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
+          let adt_decl = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
+          (* This is an identifier reference of a decl type, so create fresh tparams for this instance *)
+          let adt = Types.refresh_adt_tparams adt_decl in
           let adt_sig = Types.get_adt_sig adt in
           (match SMap.find name adt_sig.variant_sigs with
           | RecordVariantSig field_sigs ->
@@ -659,10 +687,18 @@ and check_expression ~cx expr =
                 loc
                 (MissingRecordConstructorFields (List.rev missing_fields));
             (* Supplied arguments must each be a subtype of the field types *)
+            let tparam_bindings = Types.get_adt_tparam_bindings adt in
             SMap.iter
               (fun field_name (arg_loc, arg_tvar_id) ->
-                let field_sig_ty = SMap.find field_name field_sigs in
-                Type_context.assert_is_subtype ~cx arg_loc (TVar arg_tvar_id) field_sig_ty)
+                (* Substitute fresh tparams for this instance in each fields's signature *)
+                let field_sig = SMap.find field_name field_sigs in
+                let field_ty =
+                  if adt_sig.tparams = [] then
+                    field_sig
+                  else
+                    Types.substitute_tparams tparam_bindings field_sig
+                in
+                Type_context.assert_is_subtype ~cx arg_loc (TVar arg_tvar_id) field_ty)
               field_args;
             (* Result is algebraic data type unless the fields do not match,
                in which case propagate any *)
@@ -693,7 +729,7 @@ and check_expression ~cx expr =
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let (target_loc, target_tvar_id) = check_expression ~cx target in
     let (index_loc, index_tvar_id) = check_expression ~cx index in
-    let check_tuple_indexed_access elements =
+    let check_tuple_indexed_access tparam_bindings elements =
       (* Verify that index is an int literal *)
       let index_rep_ty = Type_context.find_rep_type ~cx (TVar index_tvar_id) in
       match (index, index_rep_ty) with
@@ -701,7 +737,14 @@ and check_expression ~cx expr =
         let value = Option.map Int64.to_int value in
         let ty =
           match value with
-          | Some index when index >= 0 && index < List.length elements -> List.nth elements index
+          | Some index when index >= 0 && index < List.length elements ->
+            let element_ty = List.nth elements index in
+            (* If there are tparams, calculate tparam to type bindings and subtitute tparams for
+               types in sig element type. *)
+            if IMap.is_empty tparam_bindings then
+              element_ty
+            else
+              Types.substitute_tparams tparam_bindings element_ty
           | _ ->
             Type_context.add_error ~cx index_loc (TupleIndexOutOfBounds (List.length elements));
             Types.Any
@@ -729,13 +772,14 @@ and check_expression ~cx expr =
       match target_rep_ty with
       (* Can index into tuple literal types *)
       | Tuple elements ->
-        check_tuple_indexed_access elements;
+        check_tuple_indexed_access IMap.empty elements;
         true
       (* Can only index into ADTs with a single tuple variant *)
       | ADT { adt_sig = { variant_sigs; _ }; _ } ->
         (match SMap.choose_opt variant_sigs with
         | Some (_, Types.TupleVariantSig element_sigs) when SMap.cardinal variant_sigs = 1 ->
-          check_tuple_indexed_access element_sigs;
+          let tparam_bindings = Types.get_adt_tparam_bindings target_rep_ty in
+          check_tuple_indexed_access tparam_bindings element_sigs;
           true
         | _ -> false)
       | Array element_ty ->
@@ -773,7 +817,14 @@ and check_expression ~cx expr =
             | None ->
               Type_context.add_error ~cx loc (NamedAccessNonexistentField (name, field_name));
               Types.Any
-            | Some field_sig_ty -> field_sig_ty
+            | Some field_sig_ty ->
+              (* If there are tparams, calculate tparam to type bindings and subtitute tparams for
+                 types in sig field type. *)
+              let tparam_bindings = Types.get_adt_tparam_bindings target_rep_ty in
+              if tparam_bindings = IMap.empty then
+                field_sig_ty
+              else
+                Types.substitute_tparams tparam_bindings field_sig_ty
           in
           ignore (Type_context.unify ~cx result_ty (TVar tvar_id));
           true

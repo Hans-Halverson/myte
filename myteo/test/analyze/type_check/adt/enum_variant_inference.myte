@@ -16,4 +16,17 @@ fun enumVariants() {
   None == 1;
 }
 
+fun returnIntOption(): Option<Int> {
+  return None;
+}
+
+fun makeOption<T>(x: T): Option<T> = Some (x)
+
+fun test() {
+  makeOption(true);
+  makeOption(1);
+  (makeOption(1): Int);
+  (makeOption(true): Int);
+}
+
 fun main() {}

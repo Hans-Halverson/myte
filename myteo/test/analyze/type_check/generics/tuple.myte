@@ -1,0 +1,70 @@
+module test
+
+type Option<T> =
+  | None
+  | Some (T)
+
+type Either<T, U> =
+  | Left (T)
+  | Right (U)
+
+type TupForAccess<T, U>(Option<U>, String, T)
+
+fun id<T>(x: T): T = x
+fun useInt(x: Option<Int>) {}
+fun useBool(x: Option<Bool>) {}
+
+fun testGeneric() {
+  // Tuple constructor can be used locally for different types
+  (Some (1): Int);
+  (Some (true): Int);
+
+  // Enum constructor can be inferred locally for different types
+  useInt(Some (1));
+  useBool(Some (true));
+}
+
+fun testInferringTypeParams() {
+  (TupForAccess (Some (()), "", 1): Int);
+  (TupForAccess (Some (true), "", ""): Int);
+}
+
+fun testIndexedAccess<A>(tup: TupForAccess<A, Int>) {
+  // Error to print inferred types
+  (tup[0]: Unit);
+  (tup[1]: Unit);
+  (id(tup[2]): Unit);
+}
+
+fun testInferVariable<A>(x: A) {
+  val x1 = Some (1);
+  (x1: Int);
+
+  val x2 = Some (x);
+  (x2: Int);
+}
+
+fun cannotInferTypeParameterForVariable<A>(x: A) {
+  val x1 = Left (1);
+  val x2 = Right (x);
+}
+
+fun canInferTypeParameterForVariableWithAnnotation<A>(x: A) {
+  val x1: Either<Int, Bool> = Left (1);
+  val x2: Either<Int, A> = Right (x);
+}
+
+type TupWithReatingParams<T, U>(T, U, T)
+
+fun testTypeFailureDueToParams<A, B>(a: A, b: B) {
+  // Success - params can unify
+  TupWithReatingParams(1, 1, 1);
+  TupWithReatingParams(1, true, 2);
+  TupWithReatingParams(Some (a), 1, None);
+
+  // Failure - params cannot unify
+  TupWithReatingParams(1, 1, true);
+  TupWithReatingParams(Some (a), 1, Some (b));
+}
+
+fun main() {}

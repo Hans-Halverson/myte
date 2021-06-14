@@ -142,12 +142,25 @@ let rec substitute_tparams tparams ty =
     | Some ty -> substitute_tparams tparams ty)
   | Alias (alias_tparams, ty) -> Alias (alias_tparams, substitute_tparams tparams ty)
 
-(* Generate a new set of tparams for this declaration type *)
-let refresh_tparams ty =
+(* Generate a new set of tparams for this ADT declaration type *)
+let refresh_adt_tparams ty =
   match ty with
   | ADT { adt_sig = { tparams; _ } as adt_sig; _ } ->
     let fresh_tparams = List.map (fun _ -> mk_tvar ()) tparams in
     ADT { adt_sig; params = fresh_tparams }
+  | _ -> failwith "Expected ADT"
+
+(* Generate map of tparams bound to types to be used for tparam substitution. *)
+let mk_tparam_bindings tparams tys =
+  let tparams_and_tys = List.combine tparams tys in
+  List.fold_left
+    (fun map (tparam, ty) -> IMap.add tparam.TParam.id ty map)
+    IMap.empty
+    tparams_and_tys
+
+let get_adt_tparam_bindings ty =
+  match ty with
+  | ADT { adt_sig = { tparams; _ }; params } -> mk_tparam_bindings tparams params
   | _ -> failwith "Expected ADT"
 
 let concat_and_wrap (pre, post) elements = pre ^ String.concat ", " elements ^ post
