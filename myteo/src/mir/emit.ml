@@ -123,7 +123,9 @@ and emit_toplevel_variable_declaration ~pcx ~ecx decl =
   let { Identifier.loc; name } = List.hd (Ast_utils.ids_of_pattern pattern) in
   let name = Printf.sprintf "%s.%s" (Ecx.get_module_builder ~ecx).name name in
   (* Find value type of variable *)
-  let ty = mir_type_of_value_decl_loc ~pcx ~ecx loc in
+  let binding = Type_context.get_value_binding ~cx:pcx.type_ctx loc in
+  let var_decl = Bindings.get_var_decl binding in
+  let ty = type_to_mir_type ~pcx ~ecx (Types.TVar var_decl.tvar_id) in
   (* Build IR for variable init *)
   Ecx.start_block_sequence ~ecx (GlobalInit name);
   let init_start_block = Ecx.start_new_block ~ecx in
@@ -162,13 +164,11 @@ and emit_toplevel_function_declaration ~pcx ~ecx decl =
       body_start_block
     in
     (* Find value type of function *)
-    let func_tvar_id = Bindings.get_tvar_id_from_value_decl pcx.bindings loc in
-    let (param_tys, return_ty) =
-      match Type_context.find_rep_type ~cx:pcx.type_ctx (Types.TVar func_tvar_id) with
-      | Types.Function { tparams = _; params; return } ->
-        (List.map (type_to_mir_type ~pcx ~ecx) params, type_to_mir_type ~pcx ~ecx return)
-      | _ -> failwith "Function must resolve to function type"
-    in
+    (* TODO: Emit declaration of generic functions *)
+    let binding = Type_context.get_value_binding ~cx:pcx.type_ctx loc in
+    let func_decl = Bindings.get_func_decl binding in
+    let param_tys = List.map (type_to_mir_type ~pcx ~ecx) func_decl.params in
+    let return_ty = type_to_mir_type ~pcx ~ecx func_decl.return in
     let params =
       List.map2 (fun (loc, var_id) ty -> (loc, var_id, ty)) param_locs_and_ids param_tys
     in
@@ -300,12 +300,13 @@ and emit_expression ~pcx ~ecx expr =
     let binding = Bindings.get_value_binding pcx.bindings loc in
     let decl_loc = binding.loc in
     (match binding.declaration with
-    | CtorDecl -> failwith "Constructors cannot appear in a value position"
+    | CtorDecl _ -> failwith "TODO: Emit enum constructors"
     (* Create function literal for functions *)
-    | FunDecl -> `FunctionL (mk_binding_name binding)
+    (* TODO: Handle instantiation of generic function *)
+    | FunDecl _ -> `FunctionL (mk_binding_name binding)
     (* Variables may be either globals or locals *)
-    | VarDecl _
-    | FunParam ->
+    (* TODO: Handle instantiation of generic values (e.g. generic functions, enum constructors) *)
+    | VarDecl { tvar_id; _ } ->
       let var =
         if Bindings.is_global_decl pcx.bindings decl_loc then (
           let binding_name = mk_binding_name binding in
@@ -316,18 +317,24 @@ and emit_expression ~pcx ~ecx expr =
         ) else
           mk_cf_local loc
       in
-      var_value_of_type var (mir_type_of_value_decl_loc ~pcx ~ecx decl_loc))
+      let mir_ty = type_to_mir_type ~pcx ~ecx (Types.TVar tvar_id) in
+      var_value_of_type var mir_ty
+    (* TODO: Handle instantiation of generic values (e.g. generic functions, enum constructors) *)
+    | FunParamDecl { tvar_id } ->
+      let var = mk_cf_local loc in
+      let mir_ty = type_to_mir_type ~pcx ~ecx (Types.TVar tvar_id) in
+      var_value_of_type var mir_ty)
   | TypeCast { expr; _ } -> emit_expression ~pcx ~ecx expr
   | Call { loc; func; args } ->
     (* Emit tuple constructor *)
     let ctor_result_opt =
       match func with
-      | Identifier { Identifier.loc; _ }
-      | ScopedIdentifier { ScopedIdentifier.name = { Identifier.loc; _ }; _ } ->
-        let binding = Type_context.get_value_binding ~cx:pcx.type_ctx loc in
+      | Identifier { Identifier.loc = ctor_id_loc; _ }
+      | ScopedIdentifier { ScopedIdentifier.name = { Identifier.loc = ctor_id_loc; _ }; _ } ->
+        let binding = Type_context.get_value_binding ~cx:pcx.type_ctx ctor_id_loc in
         (match binding.declaration with
-        | CtorDecl ->
-          let adt = Type_context.find_rep_type ~cx:pcx.type_ctx (TVar binding.tvar_id) in
+        | CtorDecl _ ->
+          let adt = type_of_loc ~pcx loc in
           (* Find MIR aggregate type for this ADT *)
           let agg = Types.TypeHashtbl.find ecx.adt_to_agg_type adt in
           let agg_ty = `AggregateT agg in
@@ -625,7 +632,7 @@ and type_to_mir_type ~pcx ~ecx ty =
   | Types.Array element_ty -> `PointerT (type_to_mir_type ~pcx ~ecx element_ty)
   | Types.Tuple _ -> failwith "TODO: Implement MIR emission for tuple types"
   | Types.Function _ -> `FunctionT
-  | Types.TParam _ -> failwith "TParams must be resolved for all values in IR"
+  | Types.TypeParam _ -> failwith "Type params must be resolved for all values in IR"
   | Types.TVar _ -> failwith "TVars must be resolved for all values in IR"
   | Types.Any -> failwith "Any not allowed as value in IR"
   | Types.ADT _ ->
@@ -640,8 +647,4 @@ and type_of_loc ~pcx loc =
 
 and mir_type_of_loc ~pcx ~ecx loc =
   let tvar_id = Type_context.get_tvar_from_loc ~cx:pcx.type_ctx loc in
-  type_to_mir_type ~pcx ~ecx (Types.TVar tvar_id)
-
-and mir_type_of_value_decl_loc ~pcx ~ecx loc =
-  let tvar_id = Bindings.get_tvar_id_from_value_decl pcx.bindings loc in
   type_to_mir_type ~pcx ~ecx (Types.TVar tvar_id)

@@ -1,6 +1,6 @@
 open Basic_collections
 
-module TParam = struct
+module TypeParam = struct
   type id = int
 
   type t = {
@@ -24,7 +24,7 @@ type adt_sig_id = int
 
 type t =
   | TVar of tvar_id
-  | TParam of TParam.t
+  | TypeParam of TypeParam.t
   | Any
   | Unit
   | Bool
@@ -36,7 +36,6 @@ type t =
   | Array of t
   | Tuple of t list
   | Function of {
-      tparams: TParam.t list;
       params: t list;
       return: t;
     }
@@ -56,7 +55,7 @@ and int_literal = {
 and adt_sig = {
   id: adt_sig_id;
   name: string;
-  mutable type_params: TParam.t list;
+  mutable type_params: TypeParam.t list;
   mutable variant_sigs: variant_sig SMap.t;
 }
 
@@ -90,7 +89,7 @@ let get_all_tvars_with_duplicates ty =
     | TVar tvar_id -> tvar_id :: acc
     | Tuple elements -> List.fold_left inner acc elements
     | Array element -> inner acc element
-    | Function { tparams = _; params; return } ->
+    | Function { params; return } ->
       let acc = List.fold_left inner acc params in
       inner acc return
     | ADT { type_args; _ } -> List.fold_left inner acc type_args
@@ -126,34 +125,31 @@ let rec substitute_type_params type_params ty =
   | IntLiteral { resolved = Some resolved; _ } -> substitute_type_params type_params resolved
   | Array element -> Array (substitute_type_params type_params element)
   | Tuple elements -> Tuple (List.map (substitute_type_params type_params) elements)
-  | Function { tparams = func_type_params; params; return } ->
+  | Function { params; return } ->
     let params' = List.map (substitute_type_params type_params) params in
     let return' = substitute_type_params type_params return in
-    Function { tparams = func_type_params; params = params'; return = return' }
+    Function { params = params'; return = return' }
   | ADT { adt_sig; type_args } ->
     ADT { adt_sig; type_args = List.map (substitute_type_params type_params) type_args }
-  | TParam { TParam.id; name = _ } ->
+  | TypeParam { TypeParam.id; name = _ } ->
     (match IMap.find_opt id type_params with
     | None -> ty
     | Some ty -> substitute_type_params type_params ty)
 
-(* Generate a new set of type_params for this ADT declaration type *)
-let refresh_adt_type_params ty =
-  match ty with
-  | ADT { adt_sig = { type_params; _ } as adt_sig; _ } ->
-    let fresh_type_args = List.map (fun _ -> mk_tvar ()) type_params in
-    ADT { adt_sig; type_args = fresh_type_args }
-  | _ -> failwith "Expected ADT"
+(* Generate a new ADT type with fresh type_params for this ADT signature *)
+let refresh_adt_type_params adt_sig =
+  let fresh_type_args = List.map (fun _ -> mk_tvar ()) adt_sig.type_params in
+  ADT { adt_sig; type_args = fresh_type_args }
 
 (* Generate map of type params bound to type args to be used for type param substitution. *)
 let bind_type_params_to_args type_params type_args =
   let type_params_and_args = List.combine type_params type_args in
   List.fold_left
-    (fun map (type_param, ty) -> IMap.add type_param.TParam.id ty map)
+    (fun map (type_param, ty) -> IMap.add type_param.TypeParam.id ty map)
     IMap.empty
     type_params_and_args
 
-let get_adt_tparam_bindings ty =
+let get_adt_type_param_bindings ty =
   match ty with
   | ADT { adt_sig = { type_params; _ }; type_args } ->
     bind_type_params_to_args type_params type_args
@@ -162,13 +158,6 @@ let get_adt_tparam_bindings ty =
 let concat_and_wrap (pre, post) elements = pre ^ String.concat ", " elements ^ post
 
 let rec pp_with_names ~tvar_to_name ty =
-  let pp_tparams tparams =
-    if tparams = [] then
-      ""
-    else
-      let pp_tparams = List.map (fun tparam -> tparam.TParam.name) tparams in
-      concat_and_wrap ("<", ">") pp_tparams
-  in
   match ty with
   | Any -> "Any"
   | Unit -> "Unit"
@@ -183,14 +172,13 @@ let rec pp_with_names ~tvar_to_name ty =
   | Tuple elements ->
     let element_names = List.map (pp_with_names ~tvar_to_name) elements in
     concat_and_wrap ("(", ")") element_names
-  | Function { tparams; params; return } ->
+  | Function { params; return } ->
     let pp_function_part ty =
       let pp_param = pp_with_names ~tvar_to_name ty in
       match ty with
       | Function _ -> "(" ^ pp_param ^ ")"
       | _ -> pp_param
     in
-    let pp_tparams = pp_tparams tparams in
     let pp_params =
       match params with
       | [param] -> pp_function_part param
@@ -198,7 +186,7 @@ let rec pp_with_names ~tvar_to_name ty =
         let pp_params = List.map (fun param -> pp_with_names ~tvar_to_name param) params in
         concat_and_wrap ("(", ")") pp_params
     in
-    pp_tparams ^ pp_params ^ " -> " ^ pp_function_part return
+    pp_params ^ " -> " ^ pp_function_part return
   | ADT { adt_sig = { name; _ }; type_args } ->
     if type_args = [] then
       name
@@ -208,7 +196,7 @@ let rec pp_with_names ~tvar_to_name ty =
   | TVar tvar_id ->
     let x = IMap.find tvar_id tvar_to_name in
     x
-  | TParam { TParam.name; id = _ } -> name
+  | TypeParam { TypeParam.name; id = _ } -> name
 
 let name_id_to_string name_id =
   let quot = name_id / 26 in
@@ -288,15 +276,13 @@ module TypeHash = struct
     | (Long, Long)
     | (String, String) ->
       true
-    | (TParam { id = id1; name = _ }, TParam { id = id2; name = _ }) -> id1 = id2
+    | (TypeParam { id = id1; name = _ }, TypeParam { id = id2; name = _ }) -> id1 = id2
     | (Array element1, Array element2) -> equal element1 element2
     | (Tuple elements1, Tuple elements2) ->
       List.length elements1 = List.length elements2 && List.for_all2 equal elements1 elements2
-    | ( Function { tparams = tparams1; params = params1; return = return1 },
-        Function { tparams = tparams2; params = params2; return = return2 } ) ->
-      List.length tparams1 = List.length tparams2
-      && List.for_all2 (fun t1 t2 -> t1.TParam.name = t2.TParam.name) tparams1 tparams2
-      && List.length params1 = List.length params2
+    | ( Function { params = params1; return = return1 },
+        Function { params = params2; return = return2 } ) ->
+      List.length params1 = List.length params2
       && List.for_all2 equal params1 params2
       && equal return1 return2
     | (ADT { adt_sig = adt_sig1; type_args = args1 }, ADT { adt_sig = adt_sig2; type_args = args2 })
@@ -314,7 +300,7 @@ module TypeHash = struct
     in
     match ty with
     | TVar _ -> failwith "Cannot hash type with any tvars"
-    | TParam { TParam.id; name = _ } -> hash_nums [1; id]
+    | TypeParam { TypeParam.id; name = _ } -> hash_nums [1; id]
     | Any -> 2
     | Unit -> 3
     | Bool -> 4
@@ -326,9 +312,7 @@ module TypeHash = struct
     | IntLiteral { resolved = Some ty; _ } -> hash ty
     | Array element -> hash_nums [10; hash element]
     | Tuple elements -> hash_nums (11 :: List.map hash elements)
-    | Function { tparams; params; return } ->
-      hash_nums
-        ((12 :: hash return :: List.map (fun tp -> tp.TParam.id) tparams) @ List.map hash params)
+    | Function { params; return } -> hash_nums (12 :: hash return :: List.map hash params)
     | ADT { adt_sig = { id; _ }; type_args } -> hash_nums (13 :: id :: List.map hash type_args)
 end
 

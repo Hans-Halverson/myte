@@ -16,8 +16,7 @@ let rec build_type ~cx ty =
     | Bool -> Types.Bool)
   | Tuple { Tuple.elements; _ } -> Types.Tuple (List.map (build_type ~cx) elements)
   | Function { Function.params; return; _ } ->
-    Types.Function
-      { tparams = []; params = List.map (build_type ~cx) params; return = build_type ~cx return }
+    Types.Function { params = List.map (build_type ~cx) params; return = build_type ~cx return }
   | Identifier
       {
         Identifier.loc = full_loc;
@@ -25,10 +24,11 @@ let rec build_type ~cx ty =
         type_params;
         _;
       } ->
-    let tparam_arity_error actual expected =
+    let type_param_arity_error actual expected =
       Type_context.add_error ~cx full_loc (IncorrectTypeParametersArity (actual, expected))
     in
     let type_args = List.map (build_type ~cx) type_params in
+    let num_type_args = List.length type_args in
     let binding = Type_context.get_type_binding ~cx loc in
     (* Check if this is a builtin type *)
     (match Std_lib.lookup_stdlib_decl_loc binding.loc with
@@ -36,25 +36,25 @@ let rec build_type ~cx ty =
       (match type_args with
       | [element_type] -> Types.Array element_type
       | _ ->
-        tparam_arity_error (List.length type_args) 1;
+        type_param_arity_error num_type_args 1;
         Types.Any)
     | _ ->
       (match binding.declaration with
       (* Type parameters can be used directly and do not take type parameters of their own *)
       | TypeParam _ when type_args <> [] ->
-        tparam_arity_error (List.length type_args) 0;
+        type_param_arity_error num_type_args 0;
         Types.Any
-      | TypeParam type_param -> Types.TParam (Bindings.TypeParamDeclaration.get type_param)
+      | TypeParam type_param -> Types.TypeParam (Bindings.TypeParamDeclaration.get type_param)
       (* Parameterized types must have correct arity *)
-      | TypeAlias { type_params; body = _ } when List.length type_params <> List.length type_args ->
-        tparam_arity_error (List.length type_args) (List.length type_params);
+      | TypeAlias { type_params; body = _ } when List.length type_params <> num_type_args ->
+        type_param_arity_error num_type_args (List.length type_params);
         Types.Any
       (* Substitute supplied type arguments for type parameters in body of type alias *)
       | TypeAlias { type_params; body } ->
         let type_param_and_args = List.combine type_params type_args in
         let subst_map =
           List.fold_left
-            (fun map (type_param, type_arg) -> IMap.add type_param.Types.TParam.id type_arg map)
+            (fun map (type_param, type_arg) -> IMap.add type_param.Types.TypeParam.id type_arg map)
             IMap.empty
             type_param_and_args
         in
@@ -62,8 +62,8 @@ let rec build_type ~cx ty =
       (* Pass type args to ADT if they have the correct arity *)
       | TypeDecl type_decl ->
         let adt_sig = Bindings.TypeDeclaration.get type_decl in
-        if List.length adt_sig.type_params <> List.length type_args then (
-          tparam_arity_error (List.length type_args) (List.length adt_sig.type_params);
+        if List.length adt_sig.type_params <> num_type_args then (
+          type_param_arity_error num_type_args (List.length adt_sig.type_params);
           Types.Any
         ) else
           Types.ADT { adt_sig; type_args }))
@@ -151,17 +151,18 @@ and visit_type_declarations ~cx module_ =
             SMap.empty
             fields
         in
-        let unify_constructor_with_adt ctor_decl_loc =
-          let ctor_tvar = Type_context.get_tvar_id_from_value_decl ~cx ctor_decl_loc in
-          ignore (Type_context.unify ~cx (Types.ADT { adt_sig; type_args = [] }) (TVar ctor_tvar))
+        let set_adt_sig ctor_decl_loc =
+          let binding = Type_context.get_value_binding ~cx ctor_decl_loc in
+          let ctor_decl = Bindings.get_ctor_decl binding in
+          Bindings.ConstructorDeclaration.set ctor_decl adt_sig
         in
         (match decl with
         | Tuple { name = { Ast.Identifier.loc; _ }; elements; _ } ->
-          unify_constructor_with_adt loc;
+          set_adt_sig loc;
           let element_tys = build_element_tys ~cx elements in
           adt_sig.variant_sigs <- SMap.singleton name (Types.TupleVariantSig element_tys)
         | Record { name = { Ast.Identifier.loc; _ }; fields; _ } ->
-          unify_constructor_with_adt loc;
+          set_adt_sig loc;
           let field_tys = build_field_tys ~cx fields in
           adt_sig.variant_sigs <- SMap.singleton name (Types.RecordVariantSig field_tys)
         | Variant variants ->
@@ -171,14 +172,14 @@ and visit_type_declarations ~cx module_ =
                 let open Ast.Identifier in
                 match variant with
                 | EnumVariant { loc; name } ->
-                  unify_constructor_with_adt loc;
+                  set_adt_sig loc;
                   SMap.add name Types.EnumVariantSig variant_sigs
                 | TupleVariant { name = { loc; name }; elements; _ } ->
-                  unify_constructor_with_adt loc;
+                  set_adt_sig loc;
                   let element_tys = build_element_tys ~cx elements in
                   SMap.add name (Types.TupleVariantSig element_tys) variant_sigs
                 | RecordVariant { name = { loc; name }; fields; _ } ->
-                  unify_constructor_with_adt loc;
+                  set_adt_sig loc;
                   let field_tys = build_field_tys ~cx fields in
                   SMap.add name (Types.RecordVariantSig field_tys) variant_sigs)
               SMap.empty
@@ -254,7 +255,7 @@ and check_type_parameters ~cx params =
     (fun { Ast.TypeParameter.name = { Ast.Identifier.loc; name }; _ } ->
       let binding = Type_context.get_type_binding ~cx loc in
       let type_param_decl = Bindings.get_type_param_decl binding in
-      let type_param = Types.TParam.mk name in
+      let type_param = Types.TypeParam.mk name in
       Bindings.TypeParamDeclaration.set type_param_decl type_param;
       type_param)
     params
@@ -268,15 +269,16 @@ and check_toplevel_function_declaration ~cx decl =
 and check_function_declaration_type ~cx decl =
   let open Ast.Function in
   let { name = { loc = id_loc; _ }; params; return; type_params; _ } = decl in
-  let tparams = check_type_parameters ~cx type_params in
+  let type_params = check_type_parameters ~cx type_params in
+  let params = List.map (fun param -> build_type ~cx param.Param.annot) params in
+  let return = Option.fold ~none:Types.Unit ~some:(fun return -> build_type ~cx return) return in
 
-  (* Bind annotated function type to function identifier *)
-  let tvar_id = Type_context.get_tvar_id_from_value_decl ~cx id_loc in
-  let param_tys = List.map (fun param -> build_type ~cx param.Param.annot) params in
-  let return_ty = Option.fold ~none:Types.Unit ~some:(fun return -> build_type ~cx return) return in
-  let function_ty = Types.Function { tparams; params = param_tys; return = return_ty } in
-
-  ignore (Type_context.unify ~cx function_ty (TVar tvar_id))
+  (* Bind annotated function type and signature to function declaration *)
+  let binding = Type_context.get_value_binding ~cx id_loc in
+  let func_decl = Bindings.get_func_decl binding in
+  func_decl.type_params <- type_params;
+  func_decl.params <- params;
+  func_decl.return <- return
 
 (* Type check function declaration body, including binding types to function parameters and
    checking function return type. *)
@@ -285,21 +287,21 @@ and check_function_declaration_body ~cx decl =
   let { name = { loc = id_loc; _ }; params; body; _ } = decl in
 
   (* Find param and return types for function *)
-  let tvar_id = Type_context.get_tvar_id_from_value_decl ~cx id_loc in
-  let func_ty = Type_context.find_rep_type ~cx (TVar tvar_id) in
-  let (_, param_tys, return_ty) = Type_util.cast_to_function_type func_ty in
+  let binding = Type_context.get_value_binding ~cx id_loc in
+  let func_decl = Bindings.get_func_decl binding in
 
   (* Bind param id tvars to their annotated types *)
-  List.combine params param_tys
-  |> List.iter (fun (param, param_ty) ->
-         let param_tvar_id = Type_context.get_tvar_id_from_value_decl ~cx param.Param.name.loc in
-         ignore (Type_context.unify ~cx param_ty (TVar param_tvar_id)));
+  List.combine params func_decl.params
+  |> List.iter (fun ({ Param.name = { Ast.Identifier.loc; _ }; _ }, param_ty) ->
+         let binding = Type_context.get_value_binding ~cx loc in
+         let param_decl = Bindings.get_func_param_decl binding in
+         ignore (Type_context.unify ~cx param_ty (TVar param_decl.tvar_id)));
 
   match body with
   | Expression expr ->
     (* Expression body must be subtype of return type *)
     let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
-    Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) return_ty
+    Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) func_decl.return
   | Block block ->
     let open Ast.Statement in
     let block_stmt = Block block in
@@ -309,7 +311,7 @@ and check_function_declaration_body ~cx decl =
       ~f:(fun stmt ->
         match stmt with
         | Return { Return.loc; _ } ->
-          Type_context.(cx.return_types <- LocMap.add loc return_ty cx.return_types)
+          Type_context.(cx.return_types <- LocMap.add loc func_decl.return cx.return_types)
         | _ -> ())
       block_stmt;
     check_statement ~cx block_stmt
@@ -342,22 +344,20 @@ and check_expression ~cx expr =
   | ScopedIdentifier { Ast.ScopedIdentifier.loc; name = { Ast.Identifier.loc = id_loc; name }; _ }
     ->
     let open Types in
-    let open Bindings.ValueBinding in
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let binding = Type_context.get_value_binding ~cx id_loc in
     let decl_ty =
       match binding.declaration with
       (* If id is a constructor look up corresponding ADT to use as type. Error on tuple and record
          constructors as they are handled elsewhere. *)
-      | CtorDecl ->
-        let adt_decl = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
-        let adt_sig = Types.get_adt_sig adt_decl in
+      | CtorDecl ctor_decl ->
+        let adt_sig = Bindings.ConstructorDeclaration.get ctor_decl in
         (match SMap.find name adt_sig.variant_sigs with
         | EnumVariantSig ->
           if adt_sig.type_params = [] then
-            adt_decl
+            Types.ADT { adt_sig; type_args = [] }
           else
-            Types.refresh_adt_type_params adt_decl
+            Types.refresh_adt_type_params adt_sig
         | TupleVariantSig elements ->
           Type_context.add_error ~cx loc (IncorrectTupleConstructorArity (0, List.length elements));
           Any
@@ -367,21 +367,24 @@ and check_expression ~cx expr =
           Any)
       (* Id is for a function declaration. If function has type parameters then generate a fresh
          type variable for each type parameter and substitute into function type. *)
-      | FunDecl ->
-        let func_decl = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
-        let (type_params, params, return) = Type_util.cast_to_function_type func_decl in
-        if type_params = [] then
-          func_decl
+      | FunDecl func_decl ->
+        if func_decl.type_params = [] then
+          Types.Function { params = func_decl.params; return = func_decl.return }
         else
-          let fresh_type_args = List.map (fun _ -> mk_tvar ()) type_params in
-          let fresh_type_arg_bindings = bind_type_params_to_args type_params fresh_type_args in
-          let fresh_params =
-            List.map (Types.substitute_type_params fresh_type_arg_bindings) params
+          let fresh_type_args = List.map (fun _ -> mk_tvar ()) func_decl.type_params in
+          let fresh_type_arg_bindings =
+            bind_type_params_to_args func_decl.type_params fresh_type_args
           in
-          let fresh_return = Types.substitute_type_params fresh_type_arg_bindings return in
-          Function { tparams = []; params = fresh_params; return = fresh_return }
+          let fresh_params =
+            List.map (Types.substitute_type_params fresh_type_arg_bindings) func_decl.params
+          in
+          let fresh_return =
+            Types.substitute_type_params fresh_type_arg_bindings func_decl.return
+          in
+          Function { params = fresh_params; return = fresh_return }
       (* Otherwise identifier has same type as its declaration *)
-      | _ -> TVar binding.tvar_id
+      | FunParamDecl param_decl -> TVar param_decl.tvar_id
+      | VarDecl var_decl -> TVar var_decl.tvar_id
     in
     ignore (Type_context.unify ~cx decl_ty (TVar tvar_id));
     (loc, tvar_id)
@@ -552,11 +555,10 @@ and check_expression ~cx expr =
       | ScopedIdentifier { Ast.ScopedIdentifier.name = { Ast.Identifier.loc; name }; _ } ->
         let binding = Type_context.get_value_binding ~cx loc in
         (match binding.declaration with
-        | CtorDecl ->
-          let adt_decl = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
-          (* This is an identifier reference of a decl type, so create fresh tparams for this instance *)
-          let adt = Types.refresh_adt_type_params adt_decl in
-          let adt_sig = Types.get_adt_sig adt in
+        | CtorDecl ctor_decl ->
+          let adt_sig = Bindings.ConstructorDeclaration.get ctor_decl in
+          (* This is an identifier reference of a decl type, so create fresh type args for this instance *)
+          let adt = Types.refresh_adt_type_params adt_sig in
           (match SMap.find name adt_sig.variant_sigs with
           (* Error on incorrect number of arguments *)
           | TupleVariantSig elements when List.length elements <> List.length args ->
@@ -569,16 +571,16 @@ and check_expression ~cx expr =
           (* Supplied arguments must each be a subtype of the element types. Overall expression
              type is the ADT's type. *)
           | TupleVariantSig element_sigs ->
-            let tparam_bindings = Types.get_adt_tparam_bindings adt in
+            let type_param_bindings = Types.get_adt_type_param_bindings adt in
             let args_locs_and_tvar_ids = List.map (check_expression ~cx) args in
             List.iter2
               (fun (arg_loc, arg_tvar_id) element_sig ->
-                (* Substitute fresh tparams for this instance in each element's signature *)
+                (* Substitute fresh type params for this instance in each element's signature *)
                 let element_ty =
                   if adt_sig.type_params = [] then
                     element_sig
                   else
-                    Types.substitute_type_params tparam_bindings element_sig
+                    Types.substitute_type_params type_param_bindings element_sig
                 in
                 Type_context.assert_is_subtype ~cx arg_loc (TVar arg_tvar_id) element_ty)
               args_locs_and_tvar_ids
@@ -608,7 +610,7 @@ and check_expression ~cx expr =
           (IncorrectFunctionArity (List.length args, List.length params));
         ignore (Type_context.unify ~cx Any (TVar tvar_id))
         (* Supplied arguments must each be a subtype of the annotated parameter type *)
-      | Function { tparams = _; params; return } ->
+      | Function { params; return } ->
         List.iter2
           (fun (arg_loc, arg_tvar_id) param ->
             Type_context.assert_is_subtype ~cx arg_loc (TVar arg_tvar_id) param)
@@ -640,11 +642,10 @@ and check_expression ~cx expr =
         ->
         let binding = Type_context.get_value_binding ~cx name_loc in
         (match binding.declaration with
-        | CtorDecl ->
-          let adt_decl = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
-          (* This is an identifier reference of a decl type, so create fresh tparams for this instance *)
-          let adt = Types.refresh_adt_type_params adt_decl in
-          let adt_sig = Types.get_adt_sig adt in
+        | CtorDecl ctor_decl ->
+          let adt_sig = Bindings.ConstructorDeclaration.get ctor_decl in
+          (* This is an identifier reference of a decl type, so create fresh type args for this instance *)
+          let adt = Types.refresh_adt_type_params adt_sig in
           (match SMap.find name adt_sig.variant_sigs with
           | RecordVariantSig field_sigs ->
             (* Recurse into fields and collect all fields that are not a part of this record *)
@@ -691,16 +692,16 @@ and check_expression ~cx expr =
                 loc
                 (MissingRecordConstructorFields (List.rev missing_fields));
             (* Supplied arguments must each be a subtype of the field types *)
-            let tparam_bindings = Types.get_adt_tparam_bindings adt in
+            let type_param_bindings = Types.get_adt_type_param_bindings adt in
             SMap.iter
               (fun field_name (arg_loc, arg_tvar_id) ->
-                (* Substitute fresh tparams for this instance in each fields's signature *)
+                (* Substitute fresh type args for this instance in each fields's signature *)
                 let field_sig = SMap.find field_name field_sigs in
                 let field_ty =
                   if adt_sig.type_params = [] then
                     field_sig
                   else
-                    Types.substitute_type_params tparam_bindings field_sig
+                    Types.substitute_type_params type_param_bindings field_sig
                 in
                 Type_context.assert_is_subtype ~cx arg_loc (TVar arg_tvar_id) field_ty)
               field_args;
@@ -733,7 +734,7 @@ and check_expression ~cx expr =
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let (target_loc, target_tvar_id) = check_expression ~cx target in
     let (index_loc, index_tvar_id) = check_expression ~cx index in
-    let check_tuple_indexed_access tparam_bindings elements =
+    let check_tuple_indexed_access type_param_bindings elements =
       (* Verify that index is an int literal *)
       let index_rep_ty = Type_context.find_rep_type ~cx (TVar index_tvar_id) in
       match (index, index_rep_ty) with
@@ -743,12 +744,12 @@ and check_expression ~cx expr =
           match value with
           | Some index when index >= 0 && index < List.length elements ->
             let element_ty = List.nth elements index in
-            (* If there are tparams, calculate tparam to type bindings and subtitute tparams for
-               types in sig element type. *)
-            if IMap.is_empty tparam_bindings then
+            (* If there are type params, calculate type param to type arg bindings and subtitute
+               type args for type params in sig element type. *)
+            if IMap.is_empty type_param_bindings then
               element_ty
             else
-              Types.substitute_type_params tparam_bindings element_ty
+              Types.substitute_type_params type_param_bindings element_ty
           | _ ->
             Type_context.add_error ~cx index_loc (TupleIndexOutOfBounds (List.length elements));
             Types.Any
@@ -782,8 +783,8 @@ and check_expression ~cx expr =
       | ADT { adt_sig = { variant_sigs; _ }; _ } ->
         (match SMap.choose_opt variant_sigs with
         | Some (_, Types.TupleVariantSig element_sigs) when SMap.cardinal variant_sigs = 1 ->
-          let tparam_bindings = Types.get_adt_tparam_bindings target_rep_ty in
-          check_tuple_indexed_access tparam_bindings element_sigs;
+          let type_param_bindings = Types.get_adt_type_param_bindings target_rep_ty in
+          check_tuple_indexed_access type_param_bindings element_sigs;
           true
         | _ -> false)
       | Array element_ty ->
@@ -822,13 +823,13 @@ and check_expression ~cx expr =
               Type_context.add_error ~cx loc (NamedAccessNonexistentField (name, field_name));
               Types.Any
             | Some field_sig_ty ->
-              (* If there are tparams, calculate tparam to type bindings and subtitute tparams for
-                 types in sig field type. *)
-              let tparam_bindings = Types.get_adt_tparam_bindings target_rep_ty in
-              if tparam_bindings = IMap.empty then
+              (* If there are type params, calculate type param to type arg bindings and subtitute
+                 type params for type args in sig field type. *)
+              let type_param_bindings = Types.get_adt_type_param_bindings target_rep_ty in
+              if type_param_bindings = IMap.empty then
                 field_sig_ty
               else
-                Types.substitute_type_params tparam_bindings field_sig_ty
+                Types.substitute_type_params type_param_bindings field_sig_ty
           in
           ignore (Type_context.unify ~cx result_ty (TVar tvar_id));
           true
@@ -851,9 +852,25 @@ and check_pattern ~cx patt =
   let open Ast.Pattern in
   match patt with
   | Identifier { Ast.Identifier.loc; _ } ->
-    let decl_tvar_id = Type_context.get_tvar_id_from_value_use ~cx loc in
+    let binding = Type_context.get_value_binding ~cx loc in
+    let decl_tvar_id_opt =
+      match binding.declaration with
+      | VarDecl var_decl ->
+        Some var_decl.tvar_id
+        (* Represents an error, but should error in assignment.
+           Cannot appear in variable declarations or match patterns. *)
+      | CtorDecl _
+      | FunDecl _
+      | FunParamDecl _ ->
+        None
+    in
+    let ty =
+      match decl_tvar_id_opt with
+      | Some tvar_id -> Types.TVar tvar_id
+      | None -> Types.Any
+    in
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    ignore (Type_context.unify ~cx (TVar decl_tvar_id) (TVar tvar_id));
+    ignore (Type_context.unify ~cx ty (TVar tvar_id));
     (loc, tvar_id)
   | Wildcard loc ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
@@ -874,9 +891,9 @@ and check_pattern ~cx patt =
       let { Ast.ScopedIdentifier.name = { Ast.Identifier.loc = name_loc; name }; _ } = scoped_id in
       let binding = Type_context.get_value_binding ~cx name_loc in
       match binding.declaration with
-      | CtorDecl ->
-        let adt = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
-        let adt_sig = Types.get_adt_sig adt in
+      | CtorDecl ctor_decl ->
+        let adt_sig = Bindings.ConstructorDeclaration.get ctor_decl in
+        let adt = Types.refresh_adt_type_params adt_sig in
         (match SMap.find name adt_sig.variant_sigs with
         | TupleVariantSig element_sigs when List.length element_sigs <> List.length elements ->
           Type_context.add_error
@@ -910,9 +927,9 @@ and check_pattern ~cx patt =
       let { Ast.ScopedIdentifier.name = { Ast.Identifier.loc = name_loc; name }; _ } = scoped_id in
       let binding = Type_context.get_value_binding ~cx name_loc in
       match binding.declaration with
-      | CtorDecl ->
-        let adt = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
-        let adt_sig = Types.get_adt_sig adt in
+      | CtorDecl ctor_decl ->
+        let adt_sig = Bindings.ConstructorDeclaration.get ctor_decl in
+        let adt = Types.refresh_adt_type_params adt_sig in
         (match SMap.find name adt_sig.variant_sigs with
         | RecordVariantSig field_sigs ->
           (* Recurse into fields and collect all fields that are not a part of this record *)
@@ -1035,14 +1052,14 @@ and check_statement ~cx stmt =
                 true
               in
               match binding.declaration with
-              | VarDecl kind ->
+              | VarDecl { kind; _ } ->
                 if kind = Ast.Statement.VariableDeclaration.Immutable then
                   add_invalid_assign_error InvalidAssignmentImmutableVariable
                 else
                   has_error
-              | FunDecl -> add_invalid_assign_error InvalidAssignmentFunction
-              | FunParam -> add_invalid_assign_error InvalidAssignmentFunctionParam
-              | CtorDecl -> add_invalid_assign_error InvalidAssignmentConstructor)
+              | FunDecl _ -> add_invalid_assign_error InvalidAssignmentFunction
+              | FunParamDecl _ -> add_invalid_assign_error InvalidAssignmentFunctionParam
+              | CtorDecl _ -> add_invalid_assign_error InvalidAssignmentConstructor)
             false
             ids
         in

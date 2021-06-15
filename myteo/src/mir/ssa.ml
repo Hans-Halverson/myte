@@ -350,10 +350,12 @@ and map_to_ssa ~pcx ~ecx ~cx program =
           LocMap.fold
             (fun decl_loc node_id phis ->
               let node = get_node ~cx node_id in
-              let value_type = Emit.mir_type_of_value_decl_loc ~pcx ~ecx decl_loc in
+              let binding = Type_context.get_value_binding ~cx:pcx.type_ctx decl_loc in
+              let var_decl = Bindings.get_var_decl binding in
+              let mir_type = Emit.type_to_mir_type ~pcx ~ecx (Types.TVar var_decl.tvar_id) in
               let var_id = Option.get node.realized in
               let args = gather_phi_var_ids node_id in
-              (value_type, var_id, args) :: phis)
+              (mir_type, var_id, args) :: phis)
             realized_phis
             []
         in
