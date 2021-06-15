@@ -137,7 +137,7 @@ and mk_add_sources_visitor ~program ~pcx sources =
       | Id _ -> ()
       | Local write_loc ->
         let decl_loc =
-          Bindings.get_source_decl_loc_from_value_use pcx.Program_context.bindings write_loc
+          Bindings.get_decl_loc_from_value_use pcx.Program_context.bindings write_loc
         in
         sources := LocMap.add decl_loc write_loc !sources
   end
@@ -227,9 +227,7 @@ and mk_build_phi_nodes_visitor ~pcx ~cx program sources phi_nodes_to_realize =
       | Id _ -> ()
       | Local loc ->
         (* Source for this variable is now this write location *)
-        let decl_loc =
-          Bindings.get_source_decl_loc_from_value_use pcx.Program_context.bindings loc
-        in
+        let decl_loc = Bindings.get_decl_loc_from_value_use pcx.Program_context.bindings loc in
         sources := LocMap.add decl_loc (WriteLocation (block.id, loc)) !sources;
         cx.write_var_ids <- LocMap.add loc (mk_var_id ()) cx.write_var_ids
 
@@ -238,9 +236,7 @@ and mk_build_phi_nodes_visitor ~pcx ~cx program sources phi_nodes_to_realize =
       | Id _ -> ()
       | Local loc ->
         (* Save source for each use *)
-        let decl_loc =
-          Bindings.get_source_decl_loc_from_value_use pcx.Program_context.bindings loc
-        in
+        let decl_loc = Bindings.get_decl_loc_from_value_use pcx.Program_context.bindings loc in
         let source = LocMap.find decl_loc !sources in
         cx.use_sources <- LocMap.add loc source cx.use_sources;
         (* If source is a phi node it should be realized *)

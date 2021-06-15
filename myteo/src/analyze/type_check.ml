@@ -76,12 +76,12 @@ and visit_type_declarations_prepass ~cx module_ =
             type_params;
             _;
           } ->
-        let binding = Type_context.get_source_type_binding ~cx id_loc in
+        let binding = Type_context.get_type_binding ~cx id_loc in
         let tparams = check_type_parameters ~cx type_params in
         let ty =
           (* Check if this is a builtin type *)
           let open Std_lib in
-          match lookup_stdlib_decl_loc (fst binding.declaration) with
+          match lookup_stdlib_decl_loc binding.loc with
           | Some name when name = Std_lib.std_array_array -> Types.Array Any
           | _ -> Types.ADT { adt_sig = Types.mk_adt_sig name tparams; params = [] }
         in
@@ -342,9 +342,9 @@ and check_expression ~cx expr =
     let open Types in
     let open Bindings.ValueBinding in
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    let binding = Type_context.get_source_value_binding ~cx id_loc in
+    let binding = Type_context.get_value_binding ~cx id_loc in
     let decl_ty =
-      match snd binding.declaration with
+      match binding.declaration with
       (* If id is a constructor look up corresponding ADT to use as type. Error on tuple and record
          constructors as they are handled elsewhere. *)
       | CtorDecl ->
@@ -546,8 +546,8 @@ and check_expression ~cx expr =
       match func with
       | Identifier { Ast.Identifier.loc; name }
       | ScopedIdentifier { Ast.ScopedIdentifier.name = { Ast.Identifier.loc; name }; _ } ->
-        let binding = Type_context.get_source_value_binding ~cx loc in
-        (match snd binding.declaration with
+        let binding = Type_context.get_value_binding ~cx loc in
+        (match binding.declaration with
         | CtorDecl ->
           let adt_decl = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
           (* This is an identifier reference of a decl type, so create fresh tparams for this instance *)
@@ -634,8 +634,8 @@ and check_expression ~cx expr =
       | Identifier { Ast.Identifier.loc = name_loc; name }
       | ScopedIdentifier { Ast.ScopedIdentifier.name = { Ast.Identifier.loc = name_loc; name }; _ }
         ->
-        let binding = Type_context.get_source_value_binding ~cx name_loc in
-        (match snd binding.declaration with
+        let binding = Type_context.get_value_binding ~cx name_loc in
+        (match binding.declaration with
         | CtorDecl ->
           let adt_decl = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
           (* This is an identifier reference of a decl type, so create fresh tparams for this instance *)
@@ -865,13 +865,11 @@ and check_pattern ~cx patt =
     (loc, tvar_id)
   | Tuple { loc; name = Some scoped_id; elements } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    (* TODO: Handle parameterized types by refreshing adt_sig's tvars then unifying actual element
-       types with argument to refreshed variant sig *)
     let element_locs_and_tvar_ids = List.map (fun element -> check_pattern ~cx element) elements in
     let tuple_adt_ty_opt =
       let { Ast.ScopedIdentifier.name = { Ast.Identifier.loc = name_loc; name }; _ } = scoped_id in
-      let binding = Type_context.get_source_value_binding ~cx name_loc in
-      match snd binding.declaration with
+      let binding = Type_context.get_value_binding ~cx name_loc in
+      match binding.declaration with
       | CtorDecl ->
         let adt = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
         let adt_sig = Types.get_adt_sig adt in
@@ -904,12 +902,10 @@ and check_pattern ~cx patt =
     (loc, tvar_id)
   | Record { loc; name = scoped_id; fields; _ } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    (* TODO: Handle parameterized types by refreshing adt_sig's tvars then unifying actual element
-       types with argument to refreshed variant sig *)
     let record_adt_ty_opt =
       let { Ast.ScopedIdentifier.name = { Ast.Identifier.loc = name_loc; name }; _ } = scoped_id in
-      let binding = Type_context.get_source_value_binding ~cx name_loc in
-      match snd binding.declaration with
+      let binding = Type_context.get_value_binding ~cx name_loc in
+      match binding.declaration with
       | CtorDecl ->
         let adt = Type_context.find_rep_type ~cx (TVar binding.tvar_id) in
         let adt_sig = Types.get_adt_sig adt in
@@ -1023,7 +1019,35 @@ and check_statement ~cx stmt =
   | Assignment { Assignment.lvalue; expr; _ } ->
     let lvalue_loc_and_tvar_opt =
       match lvalue with
-      | Pattern pattern -> Some (check_pattern ~cx pattern)
+      | Pattern pattern ->
+        (* Check that every identifier referenced in lvalue can be reassigned *)
+        let ids = Ast_utils.ids_of_pattern pattern in
+        let has_error =
+          List.fold_left
+            (fun has_error { Ast.Identifier.loc; name } ->
+              let binding = Type_context.get_value_binding ~cx loc in
+              let add_invalid_assign_error kind =
+                Type_context.add_error ~cx loc (InvalidAssignment (name, kind));
+                true
+              in
+              match binding.declaration with
+              | VarDecl kind ->
+                if kind = Ast.Statement.VariableDeclaration.Immutable then
+                  add_invalid_assign_error InvalidAssignmentImmutableVariable
+                else
+                  has_error
+              | FunDecl -> add_invalid_assign_error InvalidAssignmentFunction
+              | FunParam -> add_invalid_assign_error InvalidAssignmentFunctionParam
+              | CtorDecl -> add_invalid_assign_error InvalidAssignmentConstructor)
+            false
+            ids
+        in
+        (* Check pattern, only checking against right hand side if no errors have been seen so far *)
+        let loc_and_tvar_id = check_pattern ~cx pattern in
+        if has_error then
+          None
+        else
+          Some loc_and_tvar_id
       | Expression (IndexedAccess { Ast.Expression.IndexedAccess.loc; target; _ } as expr) ->
         (* Check lvalue expression *)
         let expr_loc_and_tvar_id = check_expression ~cx expr in

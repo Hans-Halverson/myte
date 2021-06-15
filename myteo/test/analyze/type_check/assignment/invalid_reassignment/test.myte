@@ -40,9 +40,6 @@ fun func(funcParam: Int) {
 
   // Error when reassigning function params
   funcParam = 1;
-
-  // Error when reassigning module
-  foo = 1;
 }
 
 fun main() {}

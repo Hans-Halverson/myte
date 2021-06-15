@@ -1,0 +1,8 @@
+module test
+
+import foo
+
+fun main() {
+  // Error when reassigning module
+  foo = 1;
+}

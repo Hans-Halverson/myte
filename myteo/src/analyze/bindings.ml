@@ -5,23 +5,18 @@ type value_declaration =
   | VarDecl of Statement.VariableDeclaration.kind
   | FunDecl
   | CtorDecl
-  | ImportedVarDecl of Identifier.t * Statement.VariableDeclaration.kind
-  | ImportedFunDecl of Identifier.t
-  | ImportedCtorDecl of Identifier.t
-  | ImportedModule of Module_tree.t
   | FunParam
 
 type type_declaration =
   | TypeDecl
   | TypeParam
   | TypeAlias
-  | ImportedType of Identifier.t
-  | ImportedModule of Module_tree.t
 
 module ValueBinding = struct
   type t = {
     name: string;
-    declaration: Loc.t * value_declaration;
+    loc: Loc.t;
+    declaration: value_declaration;
     uses: LocSet.t;
     tvar_id: Types.tvar_id;
     is_global: bool;
@@ -32,7 +27,8 @@ end
 module TypeBinding = struct
   type t = {
     name: string;
-    declaration: Loc.t * type_declaration;
+    loc: Loc.t;
+    declaration: type_declaration;
     uses: LocSet.t;
     tvar_id: Types.tvar_id;
     module_: string list;
@@ -65,25 +61,15 @@ module Bindings = struct
     }
 end
 
-let get_source_value_binding bindings use_loc =
+let get_value_binding bindings use_loc =
   let open Bindings in
-  let local_decl_loc = LocMap.find use_loc bindings.value_use_to_decl in
-  let local_binding = LocMap.find local_decl_loc bindings.value_bindings in
-  match local_binding.ValueBinding.declaration with
-  | (_, ImportedVarDecl ({ Ast.Identifier.loc = source_decl_loc; _ }, _))
-  | (_, ImportedFunDecl { Ast.Identifier.loc = source_decl_loc; _ })
-  | (_, ImportedCtorDecl { Ast.Identifier.loc = source_decl_loc; _ }) ->
-    LocMap.find source_decl_loc bindings.value_bindings
-  | _ -> local_binding
+  let decl_loc = LocMap.find use_loc bindings.value_use_to_decl in
+  LocMap.find decl_loc bindings.value_bindings
 
-let get_source_type_binding bindings use_loc =
+let get_type_binding bindings use_loc =
   let open Bindings in
-  let local_decl_loc = LocMap.find use_loc bindings.type_use_to_decl in
-  let local_binding = LocMap.find local_decl_loc bindings.type_bindings in
-  match local_binding.TypeBinding.declaration with
-  | (_, ImportedType { Ast.Identifier.loc = source_decl_loc; _ }) ->
-    LocMap.find source_decl_loc bindings.type_bindings
-  | _ -> local_binding
+  let decl_loc = LocMap.find use_loc bindings.type_use_to_decl in
+  LocMap.find decl_loc bindings.type_bindings
 
 let get_tvar_id_from_value_decl bindings decl_loc =
   let open Bindings in
@@ -96,16 +82,16 @@ let get_tvar_id_from_type_decl bindings decl_loc =
   let binding = LocMap.find decl_loc bindings.type_bindings in
   binding.tvar_id
 
-let get_source_decl_loc_from_value_use bindings use_loc =
-  let binding = get_source_value_binding bindings use_loc in
-  fst binding.declaration
+let get_decl_loc_from_value_use bindings use_loc =
+  let binding = get_value_binding bindings use_loc in
+  binding.loc
 
 let get_tvar_id_from_value_use bindings use_loc =
-  let binding = get_source_value_binding bindings use_loc in
+  let binding = get_value_binding bindings use_loc in
   binding.tvar_id
 
 let get_tvar_id_from_type_use bindings use_loc =
-  let binding = get_source_type_binding bindings use_loc in
+  let binding = get_type_binding bindings use_loc in
   binding.tvar_id
 
 let is_global_decl bindings decl_loc =

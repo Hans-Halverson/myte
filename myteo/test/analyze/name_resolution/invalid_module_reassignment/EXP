@@ -1,0 +1,4 @@
+Error: Module `foo` cannot be used as a value
+test/analyze/name_resolution/invalid_module_reassignment/test.myte:7:2-5
+ 7 |   foo = 1;
+   |   ^^^

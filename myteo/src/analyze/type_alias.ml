@@ -28,9 +28,8 @@ class type_alias_graph_builder ~cx =
     method! identifier_type acc id =
       let open Ast.Type.Identifier in
       let { name = { name = { loc; _ }; _ }; _ } = id in
-      let type_binding = Type_context.get_source_type_binding ~cx loc in
-      let (decl_loc, kind) = type_binding.declaration in
-      if kind = TypeAlias then this#add_outgoing_edge decl_loc;
+      let type_binding = Type_context.get_type_binding ~cx loc in
+      if type_binding.declaration = TypeAlias then this#add_outgoing_edge type_binding.loc;
       super#identifier_type acc id
   end
 

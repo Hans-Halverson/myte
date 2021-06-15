@@ -1,59 +1,54 @@
 Error: Cannot reassign immutable variable `immutableLocal`
-test/analyze/name_resolution/invalid_reassignment/test.myte:26:2-16
+test/analyze/type_check/assignment/invalid_reassignment/test.myte:26:2-16
  26 |   immutableLocal = 1;
     |   ^^^^^^^^^^^^^^
 
 Error: Cannot reassign immutable variable `immutableGlobal`
-test/analyze/name_resolution/invalid_reassignment/test.myte:27:2-17
+test/analyze/type_check/assignment/invalid_reassignment/test.myte:27:2-17
  27 |   immutableGlobal = 1;
     |   ^^^^^^^^^^^^^^^
 
 Error: Cannot reassign immutable variable `importedImmutableVar`
-test/analyze/name_resolution/invalid_reassignment/test.myte:28:2-22
+test/analyze/type_check/assignment/invalid_reassignment/test.myte:28:2-22
  28 |   importedImmutableVar = 1;
     |   ^^^^^^^^^^^^^^^^^^^^
 
 Error: Cannot reassign function `func`
-test/analyze/name_resolution/invalid_reassignment/test.myte:31:2-6
+test/analyze/type_check/assignment/invalid_reassignment/test.myte:31:2-6
  31 |   func = 1;
     |   ^^^^
 
 Error: Cannot reassign function `importedFunc`
-test/analyze/name_resolution/invalid_reassignment/test.myte:32:2-14
+test/analyze/type_check/assignment/invalid_reassignment/test.myte:32:2-14
  32 |   importedFunc = 1;
     |   ^^^^^^^^^^^^
 
 Error: Cannot reassign constructor `TupleCtor`
-test/analyze/name_resolution/invalid_reassignment/test.myte:35:2-11
+test/analyze/type_check/assignment/invalid_reassignment/test.myte:35:2-11
  35 |   TupleCtor = 1;
     |   ^^^^^^^^^
 
 Error: Cannot reassign constructor `RecordCtor`
-test/analyze/name_resolution/invalid_reassignment/test.myte:36:2-12
+test/analyze/type_check/assignment/invalid_reassignment/test.myte:36:2-12
  36 |   RecordCtor = 1;
     |   ^^^^^^^^^^
 
 Error: Cannot reassign constructor `EnumVariantCtor`
-test/analyze/name_resolution/invalid_reassignment/test.myte:37:2-17
+test/analyze/type_check/assignment/invalid_reassignment/test.myte:37:2-17
  37 |   EnumVariantCtor = 1;
     |   ^^^^^^^^^^^^^^^
 
 Error: Cannot reassign constructor `TupleVariantCtor`
-test/analyze/name_resolution/invalid_reassignment/test.myte:38:2-18
+test/analyze/type_check/assignment/invalid_reassignment/test.myte:38:2-18
  38 |   TupleVariantCtor = 1;
     |   ^^^^^^^^^^^^^^^^
 
 Error: Cannot reassign constructor `RecordVariantCtor`
-test/analyze/name_resolution/invalid_reassignment/test.myte:39:2-19
+test/analyze/type_check/assignment/invalid_reassignment/test.myte:39:2-19
  39 |   RecordVariantCtor = 1;
     |   ^^^^^^^^^^^^^^^^^
 
 Error: Cannot reassign function parameter `funcParam`
-test/analyze/name_resolution/invalid_reassignment/test.myte:42:2-11
+test/analyze/type_check/assignment/invalid_reassignment/test.myte:42:2-11
  42 |   funcParam = 1;
     |   ^^^^^^^^^
-
-Error: Module `foo` cannot be used as a value
-test/analyze/name_resolution/invalid_reassignment/test.myte:45:2-5
- 45 |   foo = 1;
-    |   ^^^

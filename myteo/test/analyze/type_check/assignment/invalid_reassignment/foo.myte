@@ -1,0 +1,6 @@
+module foo
+
+val importedImmutableVar: Int = 0
+var importedMutableVar: Int = 0
+
+fun importedFunc() {}

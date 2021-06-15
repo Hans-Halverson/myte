@@ -1,0 +1,15 @@
+module test
+
+fun intToBool(x: Int): Bool = true
+
+fun map<T, U>(x: T, f: T -> U): U = f(x)
+
+fun testMap() {
+  // Success
+  map(1, intToBool);
+
+  // Failure
+  map((), intToBool);
+}
+
+fun main() {}

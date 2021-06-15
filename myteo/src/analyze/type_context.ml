@@ -35,9 +35,9 @@ let set_new_bindings ~cx bindings = cx.bindings <- bindings
 
 let add_error ~cx loc error = cx.errors <- (loc, error) :: cx.errors
 
-let get_source_value_binding ~cx use_loc = get_source_value_binding cx.bindings use_loc
+let get_value_binding ~cx use_loc = get_value_binding cx.bindings use_loc
 
-let get_source_type_binding ~cx use_loc = get_source_type_binding cx.bindings use_loc
+let get_type_binding ~cx use_loc = get_type_binding cx.bindings use_loc
 
 let get_tvar_id_from_value_decl ~cx decl_loc = get_tvar_id_from_value_decl cx.bindings decl_loc
 

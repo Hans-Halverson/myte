@@ -288,20 +288,14 @@ and emit_expression ~pcx ~ecx expr =
     var_value_of_type var_id ty
   | Identifier { loc; _ }
   | ScopedIdentifier { name = { Identifier.loc; _ }; _ } ->
-    let binding = Bindings.get_source_value_binding pcx.bindings loc in
-    let decl_loc = fst binding.declaration in
-    (match snd binding.declaration with
-    | ImportedModule _ -> failwith "Modules cannot appear in a value position"
-    | CtorDecl
-    | ImportedCtorDecl _ ->
-      failwith "Constructors cannot appear in a value position"
+    let binding = Bindings.get_value_binding pcx.bindings loc in
+    let decl_loc = binding.loc in
+    (match binding.declaration with
+    | CtorDecl -> failwith "Constructors cannot appear in a value position"
     (* Create function literal for functions *)
-    | FunDecl
-    | ImportedFunDecl _ ->
-      `FunctionL (mk_binding_name binding)
+    | FunDecl -> `FunctionL (mk_binding_name binding)
     (* Variables may be either globals or locals *)
     | VarDecl _
-    | ImportedVarDecl _
     | FunParam ->
       let var =
         if Bindings.is_global_decl pcx.bindings decl_loc then (
@@ -321,8 +315,8 @@ and emit_expression ~pcx ~ecx expr =
       match func with
       | Identifier { Identifier.loc; _ }
       | ScopedIdentifier { ScopedIdentifier.name = { Identifier.loc; _ }; _ } ->
-        let binding = Type_context.get_source_value_binding ~cx:pcx.type_ctx loc in
-        (match snd binding.declaration with
+        let binding = Type_context.get_value_binding ~cx:pcx.type_ctx loc in
+        (match binding.declaration with
         | CtorDecl ->
           let adt = Type_context.find_rep_type ~cx:pcx.type_ctx (TVar binding.tvar_id) in
           (* Find MIR aggregate type for this ADT *)
@@ -578,10 +572,9 @@ and emit_statement ~pcx ~ecx stmt =
     (match lvalue with
     | Assignment.Pattern pattern ->
       let { Identifier.loc = use_loc; _ } = List.hd (Ast_utils.ids_of_pattern pattern) in
-      let binding = Bindings.get_source_value_binding pcx.bindings use_loc in
-      let decl_loc = fst binding.declaration in
+      let binding = Bindings.get_value_binding pcx.bindings use_loc in
       let expr_val = emit_expression ~pcx ~ecx expr in
-      if Bindings.is_global_decl pcx.bindings decl_loc then
+      if Bindings.is_global_decl pcx.bindings binding.loc then
         let binding_name = mk_binding_name binding in
         let global = SMap.find binding_name ecx.globals in
         Ecx.emit ~ecx (Store (`PointerV (global.ty, global.var), expr_val))
