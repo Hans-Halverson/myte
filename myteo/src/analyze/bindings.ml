@@ -1,11 +1,51 @@
 open Ast
 open Basic_collections
 
+module VariableDeclaration = struct
+  type t = {
+    kind: Statement.VariableDeclaration.kind;
+    tvar_id: Types.tvar_id;
+  }
+
+  let mk kind = { kind; tvar_id = Types.mk_tvar_id () }
+end
+
+module FunctionParamDeclaration = struct
+  type t = { tvar_id: Types.tvar_id }
+
+  let mk () = { tvar_id = Types.mk_tvar_id () }
+end
+
+module ConstructorDeclaration = struct
+  type t = { mutable adt_sig: Types.adt_sig option }
+
+  let mk () = { adt_sig = None }
+
+  let get decl = Option.get decl.adt_sig
+
+  let set decl adt_sig = decl.adt_sig <- Some adt_sig
+end
+
+module FunctionDeclaration = struct
+  type t = {
+    (* Type parameters for this function. During type instantiation for the function (where it is
+       identified - whether at a direct call or another use) type arguments will be bound to these
+       type parameters in the param and return signatures of the type. *)
+    mutable type_params: Types.TypeParam.t list;
+    (* Parameter types for the function. If the function has type params, this is a signature *)
+    mutable params: Types.t list;
+    (* Return types for the function. If the function has type params, this is a signature *)
+    mutable return: Types.t;
+  }
+
+  let mk () = { type_params = []; params = []; return = Types.Any }
+end
+
 module TypeAliasDeclaration = struct
   type t = {
     (* Type parameters for this alias. During type instantiation type arguments will be bound
        to these type parameters in the body of the type. *)
-    mutable type_params: Types.TParam.t list;
+    mutable type_params: Types.TypeParam.t list;
     (* The body signature of the type alias *)
     mutable body: Types.t;
   }
@@ -14,7 +54,7 @@ module TypeAliasDeclaration = struct
 end
 
 module TypeParamDeclaration = struct
-  type t = { mutable type_param: Types.TParam.t option }
+  type t = { mutable type_param: Types.TypeParam.t option }
 
   let mk () = { type_param = None }
 
@@ -34,10 +74,10 @@ module TypeDeclaration = struct
 end
 
 type value_declaration =
-  | VarDecl of Statement.VariableDeclaration.kind
-  | FunDecl
-  | CtorDecl
-  | FunParam
+  | VarDecl of VariableDeclaration.t
+  | FunDecl of FunctionDeclaration.t
+  | CtorDecl of ConstructorDeclaration.t
+  | FunParamDecl of FunctionParamDeclaration.t
 
 type type_declaration =
   | TypeDecl of TypeDeclaration.t
@@ -50,7 +90,6 @@ module ValueBinding = struct
     loc: Loc.t;
     declaration: value_declaration;
     uses: LocSet.t;
-    tvar_id: Types.tvar_id;
     is_global: bool;
     module_: string list;
   }
@@ -102,29 +141,39 @@ let get_type_binding bindings use_loc =
   let decl_loc = LocMap.find use_loc bindings.type_use_to_decl in
   LocMap.find decl_loc bindings.type_bindings
 
-let get_tvar_id_from_value_decl bindings decl_loc =
-  let open Bindings in
-  let open ValueBinding in
-  let binding = LocMap.find decl_loc bindings.value_bindings in
-  binding.tvar_id
-
 let get_decl_loc_from_value_use bindings use_loc =
   let binding = get_value_binding bindings use_loc in
   binding.loc
-
-let get_tvar_id_from_value_use bindings use_loc =
-  let binding = get_value_binding bindings use_loc in
-  binding.tvar_id
 
 let is_global_decl bindings decl_loc =
   let open Bindings in
   let binding = LocMap.find decl_loc bindings.value_bindings in
   binding.is_global
 
+let get_var_decl binding =
+  match binding.ValueBinding.declaration with
+  | VarDecl var_decl -> var_decl
+  | _ -> failwith "Expected variable"
+
+let get_func_decl binding =
+  match binding.ValueBinding.declaration with
+  | FunDecl func_decl -> func_decl
+  | _ -> failwith "Expected function"
+
+let get_ctor_decl binding =
+  match binding.ValueBinding.declaration with
+  | CtorDecl ctor_decl -> ctor_decl
+  | _ -> failwith "Expected constructor"
+
+let get_func_param_decl binding =
+  match binding.ValueBinding.declaration with
+  | FunParamDecl param_decl -> param_decl
+  | _ -> failwith "Expected function parameter"
+
 let get_type_decl binding =
   match binding.TypeBinding.declaration with
   | TypeDecl type_decl -> type_decl
-  | _ -> failwith "Expected type decl"
+  | _ -> failwith "Expected type declaration"
 
 let get_type_alias_decl binding =
   match binding.TypeBinding.declaration with

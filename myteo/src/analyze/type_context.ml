@@ -39,10 +39,6 @@ let get_value_binding ~cx use_loc = get_value_binding cx.bindings use_loc
 
 let get_type_binding ~cx use_loc = get_type_binding cx.bindings use_loc
 
-let get_tvar_id_from_value_decl ~cx decl_loc = get_tvar_id_from_value_decl cx.bindings decl_loc
-
-let get_tvar_id_from_value_use ~cx use_loc = get_tvar_id_from_value_use cx.bindings use_loc
-
 let get_tvar_from_loc ~cx loc = LocMap.find loc cx.loc_to_tvar
 
 let set_tvar_for_loc ~cx tvar loc = cx.loc_to_tvar <- LocMap.add loc tvar cx.loc_to_tvar
@@ -139,7 +135,7 @@ let rec find_rep_type ~cx ty =
   | Long
   | IntLiteral { resolved = None; _ }
   | String
-  | TParam _ ->
+  | TypeParam _ ->
     ty
   | IntLiteral { resolved = Some ty; _ } -> find_non_union_rep_type ty
   | Array element ->
@@ -154,13 +150,13 @@ let rec find_rep_type ~cx ty =
       ty
     else
       Tuple elements'
-  | Function { tparams; params; return } ->
+  | Function { params; return } ->
     let params' = id_map_list (find_rep_type ~cx) params in
     let return' = find_rep_type ~cx return in
     if params == params' && return == return' then
       ty
     else
-      Function { tparams; params = params'; return = return' }
+      Function { params = params'; return = return' }
   | ADT { adt_sig; type_args } ->
     let type_args' = id_map_list (find_rep_type ~cx) type_args in
     if type_args == type_args' then
@@ -187,11 +183,11 @@ let rec tvar_occurs_in ~cx tvar ty =
   | Long
   | IntLiteral _
   | String
-  | TParam _ ->
+  | TypeParam _ ->
     false
   | Array element -> tvar_occurs_in ~cx tvar element
   | Tuple elements -> List.exists (tvar_occurs_in ~cx tvar) elements
-  | Function { tparams = _; params; return } ->
+  | Function { params; return } ->
     List.exists (tvar_occurs_in ~cx tvar) params || tvar_occurs_in ~cx tvar return
   | ADT { adt_sig = _; type_args } -> List.exists (tvar_occurs_in ~cx tvar) type_args
   | TVar rep_tvar -> tvar = rep_tvar
@@ -240,19 +236,17 @@ let rec unify ~cx ty1 ty2 =
   | (String, String) ->
     true
   (* Type parameters check that they are identical *)
-  | (TParam { id = id1; name = _ }, TParam { id = id2; name = _ }) -> id1 = id2
+  | (TypeParam { id = id1; name = _ }, TypeParam { id = id2; name = _ }) -> id1 = id2
   (* Arrays unify their element types *)
   | (Array element1, Array element2) -> unify ~cx element1 element2
   (* Tuples unify all their elements if they have the same arity *)
   | (Tuple elements1, Tuple elements2) ->
     List.length elements1 = List.length elements2
     && List.for_all2 (fun ty1 ty2 -> unify ~cx ty1 ty2) elements1 elements2
-  (* Functions unify all their parameter and return types if they have the same arity and tparams *)
-  | ( Function { tparams = tparams1; params = params1; return = return1 },
-      Function { tparams = tparams2; params = params2; return = return2 } ) ->
-    List.length tparams1 = List.length tparams2
-    && List.for_all2 (fun tp1 tp2 -> tp1.TParam.id = tp2.TParam.id) tparams1 tparams2
-    && List.length params1 = List.length params2
+  (* Functions unify all their parameter and return types if they have the same arity and TypeParams *)
+  | ( Function { params = params1; return = return1 },
+      Function { params = params2; return = return2 } ) ->
+    List.length params1 = List.length params2
     && List.for_all2 (fun ty1 ty2 -> unify ~cx ty1 ty2) params1 params2
     && unify ~cx return1 return2
   (* Algebraic data types must have same signature and type params *)
@@ -292,7 +286,7 @@ let rec is_subtype ~cx sub sup =
   | (String, String) ->
     true
   (* Type parameters are invariant, so check that they are identical *)
-  | (TParam { id = id1; name = _ }, TParam { id = id2; name = _ }) -> id1 = id2
+  | (TypeParam { id = id1; name = _ }, TypeParam { id = id2; name = _ }) -> id1 = id2
   (* Array type parameter is invariant *)
   | (Array element1, Array element2) ->
     is_subtype ~cx element1 element2 && is_subtype ~cx element2 element1
@@ -302,8 +296,8 @@ let rec is_subtype ~cx sub sup =
     && List.for_all2 (fun sub sup -> is_subtype ~cx sup sub) sub_elements sup_elements
   (* Function parameters are contravariant and return type is covariant. Type parameters are
      ignored when checking subtyping, as long as parameters and return types correctly subtype. *)
-  | ( Function { tparams = _; params = sub_params; return = sub_return },
-      Function { tparams = _; params = sup_params; return = sup_return } ) ->
+  | ( Function { params = sub_params; return = sub_return },
+      Function { params = sup_params; return = sup_return } ) ->
     List.length sub_params = List.length sup_params
     && List.for_all2 (fun sub sup -> is_subtype ~cx sup sub) sub_params sup_params
     && is_subtype ~cx sub_return sup_return

@@ -34,9 +34,9 @@ class bindings_builder ~is_stdlib ~module_tree =
       (fun acc (kind, { Ast.Identifier.loc; name }, module_) ->
         let kind =
           match kind with
-          | Module_tree.VarDecl kind -> Decl (VarDecl kind)
-          | Module_tree.FunDecl -> Decl FunDecl
-          | Module_tree.CtorDecl -> Decl CtorDecl
+          | Module_tree.VarDecl kind -> Decl (VarDecl (VariableDeclaration.mk kind))
+          | Module_tree.FunDecl -> Decl (FunDecl (FunctionDeclaration.mk ()))
+          | Module_tree.CtorDecl -> Decl (CtorDecl (ConstructorDeclaration.mk ()))
         in
         LocMap.add loc (mk_binding_builder ~loc ~name ~kind ~is_global:true ~module_) acc)
       LocMap.empty
@@ -144,17 +144,7 @@ class bindings_builder ~is_stdlib ~module_tree =
           (fun key_loc { name; loc; declaration; uses; is_global; module_ } acc ->
             match declaration with
             | Decl declaration ->
-              let binding =
-                {
-                  ValueBinding.name;
-                  loc;
-                  declaration;
-                  uses;
-                  tvar_id = Types.mk_tvar_id ();
-                  is_global;
-                  module_;
-                }
-              in
+              let binding = { ValueBinding.name; loc; declaration; uses; is_global; module_ } in
               LocMap.add key_loc binding acc
             | ModuleDecl _ -> acc)
           value_bindings
@@ -246,9 +236,12 @@ class bindings_builder ~is_stdlib ~module_tree =
           match toplevel with
           | VariableDeclaration { Ast.Statement.VariableDeclaration.kind; pattern; _ } ->
             let ids = Ast_utils.ids_of_pattern pattern in
-            List.iter (fun id -> ignore (add_value_name id (fun _ -> Decl (VarDecl kind)))) ids
+            List.iter
+              (fun id ->
+                ignore (add_value_name id (fun _ -> Decl (VarDecl (VariableDeclaration.mk kind)))))
+              ids
           | FunctionDeclaration { Ast.Function.name; _ } ->
-            ignore (add_value_name name (fun _ -> Decl FunDecl))
+            ignore (add_value_name name (fun _ -> Decl (FunDecl (FunctionDeclaration.mk ()))))
           | TypeDeclaration { Ast.TypeDeclaration.name; decl; _ } ->
             ( if is_stdlib then
               let full_name = module_name_prefix ^ name.name in
@@ -259,7 +252,8 @@ class bindings_builder ~is_stdlib ~module_tree =
               (match decl with
               | Tuple { name; _ }
               | Record { name; _ } ->
-                ignore (add_value_name name (fun _ -> Decl CtorDecl))
+                ignore
+                  (add_value_name name (fun _ -> Decl (CtorDecl (ConstructorDeclaration.mk ()))))
               | _ -> ());
               let mk_decl _ =
                 match decl with
@@ -284,7 +278,8 @@ class bindings_builder ~is_stdlib ~module_tree =
                 | EnumVariant name
                 | TupleVariant { Tuple.name; _ }
                 | RecordVariant { Record.name; _ } ->
-                  ignore (add_value_name name (fun _ -> Decl CtorDecl)))
+                  ignore
+                    (add_value_name name (fun _ -> Decl (CtorDecl (ConstructorDeclaration.mk ())))))
               variants
           | _ -> ())
         toplevels;
@@ -341,7 +336,8 @@ class bindings_builder ~is_stdlib ~module_tree =
       this#visit_pattern ~decl:true ~toplevel pattern;
       List.iter
         (fun { Ast.Identifier.loc; name; _ } ->
-          this#add_value_declaration loc name toplevel (fun _ -> Decl (VarDecl kind)))
+          this#add_value_declaration loc name toplevel (fun _ ->
+              Decl (VarDecl (VariableDeclaration.mk kind))))
         ids;
       if init == init' && annot == annot' then
         decl
@@ -363,7 +359,9 @@ class bindings_builder ~is_stdlib ~module_tree =
     method visit_function_declaration ~toplevel decl =
       let open Ast.Function in
       let { name = { Ast.Identifier.loc; name = func_name; _ }; params; type_params; _ } = decl in
-      if not toplevel then this#add_value_declaration loc func_name false (fun _ -> Decl FunDecl);
+      if not toplevel then
+        this#add_value_declaration loc func_name false (fun _ ->
+            Decl (FunDecl (FunctionDeclaration.mk ())));
       this#enter_scope ();
       this#add_type_parameter_declarations type_params (FunctionName func_name);
       let _ =
@@ -371,7 +369,8 @@ class bindings_builder ~is_stdlib ~module_tree =
           (fun param_names { Param.name = { Ast.Identifier.loc; name; _ }; _ } ->
             if SSet.mem name param_names then
               this#add_error loc (DuplicateParameterNames (name, func_name));
-            this#add_value_declaration loc name false (fun _ -> Decl FunParam);
+            this#add_value_declaration loc name false (fun _ ->
+                Decl (FunParamDecl (FunctionParamDeclaration.mk ())));
             SSet.add name param_names)
           SSet.empty
           params
