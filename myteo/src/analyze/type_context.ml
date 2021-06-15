@@ -41,11 +41,7 @@ let get_type_binding ~cx use_loc = get_type_binding cx.bindings use_loc
 
 let get_tvar_id_from_value_decl ~cx decl_loc = get_tvar_id_from_value_decl cx.bindings decl_loc
 
-let get_tvar_id_from_type_decl ~cx decl_loc = get_tvar_id_from_type_decl cx.bindings decl_loc
-
 let get_tvar_id_from_value_use ~cx use_loc = get_tvar_id_from_value_use cx.bindings use_loc
-
-let get_tvar_id_from_type_use ~cx use_loc = get_tvar_id_from_type_use cx.bindings use_loc
 
 let get_tvar_from_loc ~cx loc = LocMap.find loc cx.loc_to_tvar
 
@@ -165,12 +161,12 @@ let rec find_rep_type ~cx ty =
       ty
     else
       Function { tparams; params = params'; return = return' }
-  | ADT { adt_sig; params } ->
-    let params' = id_map_list (find_rep_type ~cx) params in
-    if params == params' then
+  | ADT { adt_sig; type_args } ->
+    let type_args' = id_map_list (find_rep_type ~cx) type_args in
+    if type_args == type_args' then
       ty
     else
-      ADT { adt_sig; params = params' }
+      ADT { adt_sig; type_args = type_args' }
   | TVar tvar_id ->
     let (_, rep_ty, _) = find_union_rep_node ~cx tvar_id in
     (match rep_ty with
@@ -180,12 +176,6 @@ let rec find_rep_type ~cx ty =
       else
         rep_ty
     | _ -> find_rep_type ~cx rep_ty)
-  | Alias (tparams, aliased_ty) ->
-    let aliased_ty' = find_rep_type ~cx aliased_ty in
-    if aliased_ty == aliased_ty' then
-      ty
-    else
-      Alias (tparams, aliased_ty')
 
 let rec tvar_occurs_in ~cx tvar ty =
   match find_union_rep_type ~cx ty with
@@ -203,9 +193,8 @@ let rec tvar_occurs_in ~cx tvar ty =
   | Tuple elements -> List.exists (tvar_occurs_in ~cx tvar) elements
   | Function { tparams = _; params; return } ->
     List.exists (tvar_occurs_in ~cx tvar) params || tvar_occurs_in ~cx tvar return
-  | ADT { adt_sig = _; params } -> List.exists (tvar_occurs_in ~cx tvar) params
+  | ADT { adt_sig = _; type_args } -> List.exists (tvar_occurs_in ~cx tvar) type_args
   | TVar rep_tvar -> tvar = rep_tvar
-  | Alias (_, ty) -> tvar_occurs_in ~cx tvar ty
 
 let union_tvars ~cx ty1 ty2 =
   match (ty1, ty2) with
@@ -241,10 +230,6 @@ let rec unify ~cx ty1 ty2 =
   | (TVar _, _)
   | (_, TVar _) ->
     union_tvars ~cx rep_ty1 rep_ty2
-  (* Aliases are only unified during initial type alias handling. Strip alias and continue unifying. *)
-  | (Alias (_, alias), ty)
-  | (ty, Alias (_, alias)) ->
-    unify ~cx alias ty
   | (Any, _)
   | (_, Any)
   | (Unit, Unit)
@@ -271,8 +256,11 @@ let rec unify ~cx ty1 ty2 =
     && List.for_all2 (fun ty1 ty2 -> unify ~cx ty1 ty2) params1 params2
     && unify ~cx return1 return2
   (* Algebraic data types must have same signature and type params *)
-  | (ADT { adt_sig = adt_sig1; params = params1 }, ADT { adt_sig = adt_sig2; params = params2 }) ->
-    adt_sig1 == adt_sig2 && List.for_all2 (fun ty1 ty2 -> unify ~cx ty1 ty2) params1 params2
+  | (ADT { adt_sig = adt_sig1; type_args = args1 }, ADT { adt_sig = adt_sig2; type_args = args2 })
+    ->
+    adt_sig1 == adt_sig2
+    && List.length args1 = List.length args2
+    && List.for_all2 (fun ty1 ty2 -> unify ~cx ty1 ty2) args1 args2
   (* Unresolved int literals can be unified *)
   | (IntLiteral lit_ty1, (IntLiteral lit_ty2 as ty2)) ->
     union_int_literals lit_ty1 lit_ty2 ty2;
@@ -320,13 +308,11 @@ let rec is_subtype ~cx sub sup =
     && List.for_all2 (fun sub sup -> is_subtype ~cx sup sub) sub_params sup_params
     && is_subtype ~cx sub_return sup_return
   (* Algebraic type parameters are invariant *)
-  | (ADT { adt_sig = adt_sig1; params = params1 }, ADT { adt_sig = adt_sig2; params = params2 }) ->
+  | (ADT { adt_sig = adt_sig1; type_args = args1 }, ADT { adt_sig = adt_sig2; type_args = args2 })
+    ->
     adt_sig1 == adt_sig2
-    && List.length params1 = List.length params2
-    && List.for_all2
-         (fun ty1 ty2 -> is_subtype ~cx ty1 ty2 && is_subtype ~cx ty2 ty1)
-         params1
-         params2
+    && List.length args1 = List.length args2
+    && List.for_all2 (fun ty1 ty2 -> is_subtype ~cx ty1 ty2 && is_subtype ~cx ty2 ty1) args1 args2
   (* Int literals are not subtyped so they must be unified *)
   | (IntLiteral lit_ty1, (IntLiteral lit_ty2 as ty2)) ->
     union_int_literals lit_ty1 lit_ty2 ty2;

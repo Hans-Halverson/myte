@@ -42,12 +42,8 @@ type t =
     }
   | ADT of {
       adt_sig: adt_sig;
-      params: t list;
+      type_args: t list;
     }
-  (* Alias types result from type alias declarations, containing the type parameters for the
-     alias along with the aliased type. Alias types are eagerly removed when the alias is
-     referenced, and will not appear for unification or subtyping. *)
-  | Alias of TParam.t list * t
 
 and int_literal = {
   (* Locations of int literals (and their tvars) along with the value of the int literal at
@@ -60,7 +56,7 @@ and int_literal = {
 and adt_sig = {
   id: adt_sig_id;
   name: string;
-  mutable tparams: TParam.t list;
+  mutable type_params: TParam.t list;
   mutable variant_sigs: variant_sig SMap.t;
 }
 
@@ -85,7 +81,8 @@ let mk_adt_sig_id () =
 
 let mk_tvar () = TVar (mk_tvar_id ())
 
-let mk_adt_sig name tparams = { id = mk_adt_sig_id (); name; tparams; variant_sigs = SMap.empty }
+let mk_adt_sig name type_params =
+  { id = mk_adt_sig_id (); name; type_params; variant_sigs = SMap.empty }
 
 let get_all_tvars_with_duplicates ty =
   let rec inner acc ty =
@@ -96,8 +93,7 @@ let get_all_tvars_with_duplicates ty =
     | Function { tparams = _; params; return } ->
       let acc = List.fold_left inner acc params in
       inner acc return
-    | ADT { params; _ } -> List.fold_left inner acc params
-    | Alias (_, ty) -> inner acc ty
+    | ADT { type_args; _ } -> List.fold_left inner acc type_args
     | _ -> acc
   in
   inner [] ty |> List.rev
@@ -115,7 +111,7 @@ let get_all_tvars tys =
   in
   remove_duplicates ISet.empty tvars_with_duplicates
 
-let rec substitute_tparams tparams ty =
+let rec substitute_type_params type_params ty =
   match ty with
   | Any
   | Unit
@@ -127,40 +123,40 @@ let rec substitute_tparams tparams ty =
   | TVar _
   | IntLiteral { resolved = None; _ } ->
     ty
-  | IntLiteral { resolved = Some resolved; _ } -> substitute_tparams tparams resolved
-  | Array element -> Array (substitute_tparams tparams element)
-  | Tuple elements -> Tuple (List.map (substitute_tparams tparams) elements)
-  | Function { tparams = func_tparams; params; return } ->
-    let params' = List.map (substitute_tparams tparams) params in
-    let return' = substitute_tparams tparams return in
-    Function { tparams = func_tparams; params = params'; return = return' }
-  | ADT { adt_sig; params } ->
-    ADT { adt_sig; params = List.map (substitute_tparams tparams) params }
+  | IntLiteral { resolved = Some resolved; _ } -> substitute_type_params type_params resolved
+  | Array element -> Array (substitute_type_params type_params element)
+  | Tuple elements -> Tuple (List.map (substitute_type_params type_params) elements)
+  | Function { tparams = func_type_params; params; return } ->
+    let params' = List.map (substitute_type_params type_params) params in
+    let return' = substitute_type_params type_params return in
+    Function { tparams = func_type_params; params = params'; return = return' }
+  | ADT { adt_sig; type_args } ->
+    ADT { adt_sig; type_args = List.map (substitute_type_params type_params) type_args }
   | TParam { TParam.id; name = _ } ->
-    (match IMap.find_opt id tparams with
+    (match IMap.find_opt id type_params with
     | None -> ty
-    | Some ty -> substitute_tparams tparams ty)
-  | Alias (alias_tparams, ty) -> Alias (alias_tparams, substitute_tparams tparams ty)
+    | Some ty -> substitute_type_params type_params ty)
 
-(* Generate a new set of tparams for this ADT declaration type *)
-let refresh_adt_tparams ty =
+(* Generate a new set of type_params for this ADT declaration type *)
+let refresh_adt_type_params ty =
   match ty with
-  | ADT { adt_sig = { tparams; _ } as adt_sig; _ } ->
-    let fresh_tparams = List.map (fun _ -> mk_tvar ()) tparams in
-    ADT { adt_sig; params = fresh_tparams }
+  | ADT { adt_sig = { type_params; _ } as adt_sig; _ } ->
+    let fresh_type_args = List.map (fun _ -> mk_tvar ()) type_params in
+    ADT { adt_sig; type_args = fresh_type_args }
   | _ -> failwith "Expected ADT"
 
-(* Generate map of tparams bound to types to be used for tparam substitution. *)
-let mk_tparam_bindings tparams tys =
-  let tparams_and_tys = List.combine tparams tys in
+(* Generate map of type params bound to type args to be used for type param substitution. *)
+let bind_type_params_to_args type_params type_args =
+  let type_params_and_args = List.combine type_params type_args in
   List.fold_left
-    (fun map (tparam, ty) -> IMap.add tparam.TParam.id ty map)
+    (fun map (type_param, ty) -> IMap.add type_param.TParam.id ty map)
     IMap.empty
-    tparams_and_tys
+    type_params_and_args
 
 let get_adt_tparam_bindings ty =
   match ty with
-  | ADT { adt_sig = { tparams; _ }; params } -> mk_tparam_bindings tparams params
+  | ADT { adt_sig = { type_params; _ }; type_args } ->
+    bind_type_params_to_args type_params type_args
   | _ -> failwith "Expected ADT"
 
 let concat_and_wrap (pre, post) elements = pre ^ String.concat ", " elements ^ post
@@ -203,19 +199,16 @@ let rec pp_with_names ~tvar_to_name ty =
         concat_and_wrap ("(", ")") pp_params
     in
     pp_tparams ^ pp_params ^ " -> " ^ pp_function_part return
-  | ADT { adt_sig = { name; _ }; params } ->
-    if params = [] then
+  | ADT { adt_sig = { name; _ }; type_args } ->
+    if type_args = [] then
       name
     else
-      let pp_params = List.map (pp_with_names ~tvar_to_name) params in
-      concat_and_wrap (name ^ "<", ">") pp_params
+      let pp_args = List.map (pp_with_names ~tvar_to_name) type_args in
+      concat_and_wrap (name ^ "<", ">") pp_args
   | TVar tvar_id ->
     let x = IMap.find tvar_id tvar_to_name in
     x
   | TParam { TParam.name; id = _ } -> name
-  | Alias (tparams, ty) ->
-    let pp_tparams = pp_tparams tparams in
-    "Alias" ^ pp_tparams ^ "(" ^ pp_with_names ~tvar_to_name ty ^ ")"
 
 let name_id_to_string name_id =
   let quot = name_id / 26 in
@@ -232,21 +225,6 @@ let rec get_next_name next_name_id used_names =
     get_next_name (next_name_id + 1) used_names
   else
     (name, next_name_id + 1)
-
-let get_adt_sig adt =
-  match adt with
-  | ADT { adt_sig; _ } -> adt_sig
-  | _ -> failwith "Expected ADT"
-
-let get_tuple_variant adt_sig name =
-  match SMap.find name adt_sig.variant_sigs with
-  | TupleVariantSig element_sigs -> element_sigs
-  | _ -> failwith "Expected TupleVariantSig"
-
-let get_record_variant adt_sig name =
-  match SMap.find name adt_sig.variant_sigs with
-  | RecordVariantSig field_sigs -> field_sigs
-  | _ -> failwith "Expected RecordVariantSig"
 
 let rec build_tvar_to_name ~use_tvar_ids (tvar_to_name_acc, names_acc) next_name_id tvar_ids =
   match tvar_ids with
@@ -279,6 +257,21 @@ let pps ?(tvar_to_name = IMap.empty) ?(use_tvar_ids = false) tys =
 let pp ?(tvar_to_name = IMap.empty) ?(use_tvar_ids = false) ty =
   pps ~tvar_to_name ~use_tvar_ids [ty] |> List.hd
 
+let get_adt_sig adt =
+  match adt with
+  | ADT { adt_sig; _ } -> adt_sig
+  | _ -> failwith (Printf.sprintf "Expected ADT %s\n" (pp adt))
+
+let get_tuple_variant adt_sig name =
+  match SMap.find name adt_sig.variant_sigs with
+  | TupleVariantSig element_sigs -> element_sigs
+  | _ -> failwith "Expected TupleVariantSig"
+
+let get_record_variant adt_sig name =
+  match SMap.find name adt_sig.variant_sigs with
+  | RecordVariantSig field_sigs -> field_sigs
+  | _ -> failwith "Expected RecordVariantSig"
+
 type type_hash_type_t = t
 
 module TypeHash = struct
@@ -306,16 +299,12 @@ module TypeHash = struct
       && List.length params1 = List.length params2
       && List.for_all2 equal params1 params2
       && equal return1 return2
-    | (ADT { adt_sig = adt_sig1; params = params1 }, ADT { adt_sig = adt_sig2; params = params2 })
+    | (ADT { adt_sig = adt_sig1; type_args = args1 }, ADT { adt_sig = adt_sig2; type_args = args2 })
       ->
-      adt_sig1 == adt_sig2 && List.for_all2 equal params1 params2
+      adt_sig1 == adt_sig2 && List.for_all2 equal args1 args2
     | (IntLiteral { resolved = None; _ }, IntLiteral { resolved = None; _ }) -> true
     | (IntLiteral { resolved = Some ty1; _ }, IntLiteral { resolved = Some ty2; _ }) ->
       equal ty1 ty2
-    | (Alias (tparams1, ty1), Alias (tparams2, ty2)) ->
-      List.length tparams1 = List.length tparams2
-      && List.for_all2 (fun t1 t2 -> t1.TParam.name = t2.TParam.name) tparams1 tparams2
-      && equal ty1 ty2
     | _ -> false
 
   let rec hash (ty : t) =
@@ -340,8 +329,7 @@ module TypeHash = struct
     | Function { tparams; params; return } ->
       hash_nums
         ((12 :: hash return :: List.map (fun tp -> tp.TParam.id) tparams) @ List.map hash params)
-    | ADT { adt_sig = { id; _ }; params } -> hash_nums (13 :: id :: List.map hash params)
-    | Alias (tparams, ty) -> hash_nums (14 :: hash ty :: List.map (fun tp -> tp.TParam.id) tparams)
+    | ADT { adt_sig = { id; _ }; type_args } -> hash_nums (13 :: id :: List.map hash type_args)
 end
 
 module TypeHashtbl = Hashtbl.Make (TypeHash)

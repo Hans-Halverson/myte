@@ -60,8 +60,11 @@ and emit_type_declaration_prepass ~pcx ~ecx decl =
   match decl with
   | Tuple _
   | Record _ ->
-    let tvar_id = Bindings.get_tvar_id_from_type_decl pcx.bindings loc in
-    let ty = Type_context.find_rep_type ~cx:pcx.type_ctx (TVar tvar_id) in
+    let binding = Type_context.get_type_binding ~cx:pcx.type_ctx loc in
+    let adt_decl = Bindings.get_type_decl binding in
+    let adt_sig = Bindings.TypeDeclaration.get adt_decl in
+    (* TODO: Handle instantiation of generic types *)
+    let ty = Types.ADT { adt_sig; type_args = [] } in
     let agg = { Aggregate.name; loc; elements = [] } in
     Ecx.add_type ~ecx agg;
     Types.TypeHashtbl.add ecx.adt_to_agg_type ty agg
@@ -74,11 +77,13 @@ and emit_type_declaration ~pcx ~ecx decl =
   if builtin then
     ()
   else
-    let tvar_id = Bindings.get_tvar_id_from_type_decl pcx.bindings loc in
-    let ty = Type_context.find_rep_type ~cx:pcx.type_ctx (TVar tvar_id) in
+    let binding = Type_context.get_type_binding ~cx:pcx.type_ctx loc in
     match decl with
     | Tuple _ ->
-      let adt_sig = Types.get_adt_sig ty in
+      let type_decl = Bindings.get_type_decl binding in
+      let adt_sig = Bindings.TypeDeclaration.get type_decl in
+      (* TODO: Handle instantiation of generic types *)
+      let ty = Types.ADT { adt_sig; type_args = [] } in
       let element_sigs = Types.get_tuple_variant adt_sig name in
       let element_types =
         List.map
@@ -90,7 +95,10 @@ and emit_type_declaration ~pcx ~ecx decl =
       let agg = Types.TypeHashtbl.find ecx.adt_to_agg_type ty in
       agg.elements <- element_types
     | Record { fields; _ } ->
-      let adt_sig = Types.get_adt_sig ty in
+      let type_decl = Bindings.get_type_decl binding in
+      let adt_sig = Bindings.TypeDeclaration.get type_decl in
+      (* TODO: Handle instantiation of generic types *)
+      let ty = Types.ADT { adt_sig; type_args = [] } in
       let field_sigs = Types.get_record_variant adt_sig name in
       (* Collect fields for aggregate in order they are declared in *)
       let element_types =
@@ -106,6 +114,7 @@ and emit_type_declaration ~pcx ~ecx decl =
       agg.elements <- List.rev element_types
     | Variant _
     | Alias _ ->
+      (* Aliases do not need MIR types of their own as they are inlined by type checker *)
       ()
 
 and emit_toplevel_variable_declaration ~pcx ~ecx decl =
@@ -619,7 +628,6 @@ and type_to_mir_type ~pcx ~ecx ty =
   | Types.TParam _ -> failwith "TParams must be resolved for all values in IR"
   | Types.TVar _ -> failwith "TVars must be resolved for all values in IR"
   | Types.Any -> failwith "Any not allowed as value in IR"
-  | Types.Alias _ -> failwith "Aliase types should be resolved during type checking"
   | Types.ADT _ ->
     (match Types.TypeHashtbl.find_opt ecx.adt_to_agg_type ty with
     (* All aggregates are currently allocated behind a pointer *)

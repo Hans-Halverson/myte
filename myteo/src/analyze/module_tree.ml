@@ -1,6 +1,7 @@
 open Ast
 open Analyze_error
 open Basic_collections
+open Bindings
 
 type t = module_tree_node SMap.t
 
@@ -16,7 +17,7 @@ and value_export_kind =
 
 and type_export_kind =
   | TypeDecl
-  | TypeAlias
+  | TypeAlias of TypeAliasDeclaration.t
 
 and export_info = {
   value: (value_export_kind * Ast.Identifier.t) option;
@@ -68,7 +69,7 @@ let add_exports module_ submodule_tree =
       let open Ast.TypeDeclaration in
       let kind =
         match decl with
-        | Alias _ -> TypeAlias
+        | Alias _ -> TypeAlias (TypeAliasDeclaration.mk ())
         | _ -> TypeDecl
       in
       let exports = [(id, loc, (fun export_info -> { export_info with ty = Some (kind, id) }))] in

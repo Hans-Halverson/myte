@@ -1,0 +1,4 @@
+Error: Incorrect number of type parameters passed to type. Expected 0 type parameters but found 1.
+test/analyze/type_check/type_parameters/parameterized_type_params_error.myte:3:15-21
+ 3 | fun test<T>(x: T<Int>) {}
+   |                ^^^^^^

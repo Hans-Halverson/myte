@@ -47,8 +47,8 @@ class bindings_builder ~is_stdlib ~module_tree =
       (fun acc (kind, { Ast.Identifier.loc; name }, module_) ->
         let kind =
           match kind with
-          | Module_tree.TypeDecl -> Decl TypeDecl
-          | Module_tree.TypeAlias -> Decl TypeAlias
+          | Module_tree.TypeDecl -> Decl (TypeDecl (TypeDeclaration.mk ()))
+          | Module_tree.TypeAlias alias_decl -> Decl (TypeAlias alias_decl)
         in
         LocMap.add loc (mk_binding_builder ~loc ~name ~kind ~is_global:true ~module_) acc)
       LocMap.empty
@@ -165,9 +165,7 @@ class bindings_builder ~is_stdlib ~module_tree =
           (fun key_loc { name; loc; declaration; uses; module_; _ } acc ->
             match declaration with
             | Decl declaration ->
-              let binding =
-                { TypeBinding.name; loc; declaration; uses; tvar_id = Types.mk_tvar_id (); module_ }
-              in
+              let binding = { TypeBinding.name; loc; declaration; uses; module_ } in
               LocMap.add key_loc binding acc
             | ModuleDecl _ -> acc)
           type_bindings
@@ -265,11 +263,11 @@ class bindings_builder ~is_stdlib ~module_tree =
               | _ -> ());
               let mk_decl _ =
                 match decl with
-                | Alias _ -> Decl TypeAlias
+                | Alias _ -> Decl (TypeAlias (TypeAliasDeclaration.mk ()))
                 | Tuple _
                 | Record _
                 | Variant _ ->
-                  Decl TypeDecl
+                  Decl (TypeDecl (TypeDeclaration.mk ()))
               in
               add_type_name name mk_decl
             ))
@@ -302,8 +300,8 @@ class bindings_builder ~is_stdlib ~module_tree =
               id_map (this#visit_function_declaration ~toplevel:true) decl toplevel (fun decl' ->
                   FunctionDeclaration decl')
             | TypeDeclaration
-                ({ TypeDeclaration.name = { Ast.Identifier.name; _ }; type_params; _ } as type_decl)
-              ->
+                ( { Ast.TypeDeclaration.name = { Ast.Identifier.name; _ }; type_params; _ } as
+                type_decl ) ->
               if type_params <> [] then this#enter_scope ();
               this#add_type_parameter_declarations type_params (TypeName name);
               ignore (this#type_declaration type_decl);
@@ -356,7 +354,8 @@ class bindings_builder ~is_stdlib ~module_tree =
             (fun param_names { TypeParameter.name = { Ast.Identifier.loc; name }; _ } ->
               if SSet.mem name param_names then
                 this#add_error loc (DuplicateTypeParameterNames (name, source));
-              this#add_type_declaration loc name (fun _ -> Decl TypeParam);
+              this#add_type_declaration loc name (fun _ ->
+                  Decl (TypeParam (TypeParamDeclaration.mk ())));
               SSet.add name param_names)
             SSet.empty)
            params)
