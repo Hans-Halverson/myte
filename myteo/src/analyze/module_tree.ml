@@ -155,7 +155,7 @@ let add_to_module_tree module_ module_tree =
 type lookup_result =
   | LookupResultExport of export_info
   | LookupResultModule of string option * t
-  | LookupResultError of Loc.t * Analyze_error.t
+  | LookupResultError of Analyze_error.error
 
 let lookup name_parts module_tree =
   let rec lookup_inner prev_name_parts name_parts module_tree =

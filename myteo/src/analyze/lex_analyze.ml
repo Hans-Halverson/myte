@@ -42,10 +42,11 @@ let analyze_modules ~is_stdlib ~pcx mods_and_files =
   in
   if List.length pre_typecheck_errors <> 0 then
     Error pre_typecheck_errors
-  else
-    let type_ctx = Type_check.analyze ~cx:pcx.type_ctx new_resolved_mods in
-    let type_check_errors = type_ctx.errors in
+  else (
+    Type_check.analyze ~cx:pcx.type_ctx new_resolved_mods;
+    let type_check_errors = Type_context.get_errors ~cx:pcx.type_ctx in
     if List.length type_check_errors <> 0 then
       Error type_check_errors
     else
       Ok new_resolved_mods
+  )

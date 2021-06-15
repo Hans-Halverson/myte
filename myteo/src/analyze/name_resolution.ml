@@ -681,6 +681,8 @@ class bindings_builder ~is_stdlib ~module_tree =
       resolve_scoped_ids patt
   end
 
+(* Analyze all bindings in modules, building bindings and rewriting scoped identifiers in AST.
+   Return a tuple of the newly resolved ASTs, the complete bindings, and any resolution errors. *)
 let analyze ~is_stdlib module_tree modules =
   let results =
     List.map

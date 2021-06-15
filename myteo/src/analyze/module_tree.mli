@@ -22,7 +22,7 @@ and type_export_kind =
 type lookup_result =
   | LookupResultExport of export_info
   | LookupResultModule of string option * t
-  | LookupResultError of Loc.t * Analyze_error.t
+  | LookupResultError of Analyze_error.error
 
 val lookup : Ast.Identifier.t list -> t -> lookup_result
 
@@ -31,4 +31,4 @@ val get_all_exports :
   (value_export_kind * Ast.Identifier.t * string list) list
   * (type_export_kind * Ast.Identifier.t * string list) list
 
-val analyze : t -> Ast.Module.t list -> t * (Loc.t * Analyze_error.t) list
+val analyze : t -> Ast.Module.t list -> t * Analyze_error.errors

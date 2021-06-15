@@ -310,8 +310,7 @@ and check_function_declaration_body ~cx decl =
       ~enter_functions:false
       ~f:(fun stmt ->
         match stmt with
-        | Return { Return.loc; _ } ->
-          Type_context.(cx.return_types <- LocMap.add loc func_decl.return cx.return_types)
+        | Return { Return.loc; _ } -> Type_context.add_return_type ~cx loc func_decl.return
         | _ -> ())
       block_stmt;
     check_statement ~cx block_stmt
@@ -1027,7 +1026,7 @@ and check_statement ~cx stmt =
         (arg_loc, TVar arg_tvar_id)
     in
     (* Return argument must be subtype of function's return type stored in return type map *)
-    let return_ty = Type_context.(LocMap.find loc cx.return_types) in
+    let return_ty = LocMap.find loc (Type_context.get_return_types ~cx) in
     Type_context.assert_is_subtype ~cx arg_loc arg_ty return_ty
   | Break _
   | Continue _ ->
@@ -1096,9 +1095,9 @@ and check_statement ~cx stmt =
 (* Resolve all IntLiteral placeholder types to an actual integer type. Infer as Int if all
    literals are within the Int range, otherwise infer as Long. *)
 let resolve_unresolved_int_literals ~cx =
-  while not (LocSet.is_empty cx.unresolved_int_literals) do
-    let loc = LocSet.choose cx.unresolved_int_literals in
-    let tvar = LocMap.find loc cx.loc_to_tvar in
+  while not (LocSet.is_empty (Type_context.get_unresolved_int_literals ~cx)) do
+    let loc = LocSet.choose (Type_context.get_unresolved_int_literals ~cx) in
+    let tvar = Type_context.get_tvar_from_loc ~cx loc in
     let ty = Type_context.find_rep_type ~cx (TVar tvar) in
     match ty with
     | IntLiteral ({ resolved = None; values; _ } as lit_ty) ->
@@ -1132,7 +1131,7 @@ class ensure_expressions_typed_visitor ~cx =
 
     method! expression acc expr =
       let loc = Ast_utils.expression_loc expr in
-      (match LocMap.find_opt loc cx.loc_to_tvar with
+      (match Type_context.get_tvar_from_loc_opt ~cx loc with
       (* Some expression nodes not appear in the tvar map, meaning they are never referenced and
          do not need to be checked. *)
       | None -> ()
@@ -1160,8 +1159,8 @@ let analyze ~cx modules =
   check_type_aliases_topologically ~cx modules;
   List.iter (fun (_, module_) -> visit_type_declarations ~cx module_) modules;
   List.iter (fun (_, module_) -> visit_value_declarations ~cx module_) modules;
-  if cx.errors = [] then List.iter (fun (_, module_) -> check_module ~cx module_) modules;
+  if Type_context.get_errors ~cx = [] then
+    List.iter (fun (_, module_) -> check_module ~cx module_) modules;
   resolve_unresolved_int_literals ~cx;
-  if cx.errors = [] then ensure_all_expression_are_typed ~cx modules;
-  cx.errors <- List.rev cx.errors;
-  cx
+  if Type_context.get_errors ~cx = [] then ensure_all_expression_are_typed ~cx modules;
+  Type_context.set_errors ~cx (List.rev (Type_context.get_errors ~cx))

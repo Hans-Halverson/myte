@@ -65,6 +65,10 @@ and name_source =
   | FunctionName of string
   | TypeName of string
 
+type error = Loc.t * t
+
+type errors = error list
+
 let plural n str =
   if n = 1 then
     str

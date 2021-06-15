@@ -35,11 +35,24 @@ let set_new_bindings ~cx bindings = cx.bindings <- bindings
 
 let add_error ~cx loc error = cx.errors <- (loc, error) :: cx.errors
 
+let get_errors ~cx = cx.errors
+
+let set_errors ~cx errors = cx.errors <- errors
+
+let add_return_type ~cx loc return_type =
+  cx.return_types <- LocMap.add loc return_type cx.return_types
+
+let get_return_types ~cx = cx.return_types
+
+let get_unresolved_int_literals ~cx = cx.unresolved_int_literals
+
 let get_value_binding ~cx use_loc = get_value_binding cx.bindings use_loc
 
 let get_type_binding ~cx use_loc = get_type_binding cx.bindings use_loc
 
 let get_tvar_from_loc ~cx loc = LocMap.find loc cx.loc_to_tvar
+
+let get_tvar_from_loc_opt ~cx loc = LocMap.find_opt loc cx.loc_to_tvar
 
 let set_tvar_for_loc ~cx tvar loc = cx.loc_to_tvar <- LocMap.add loc tvar cx.loc_to_tvar
 
@@ -120,10 +133,6 @@ let find_union_rep_type ~cx ty =
     let (_, rep_ty, _) = find_union_rep_node ~cx tvar_id in
     rep_ty
   | _ -> find_non_union_rep_type ty
-
-let find_rep_tvar_id ~cx tvar_id =
-  let (rep_tvar_id, _, _) = find_union_rep_node ~cx tvar_id in
-  rep_tvar_id
 
 let rec find_rep_type ~cx ty =
   match ty with

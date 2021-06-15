@@ -23,7 +23,7 @@ let add_resolved_modules ~pcx modules = pcx.modules <- modules @ pcx.modules
 
 let add_bindings ~pcx bindings =
   pcx.bindings <- Bindings.merge pcx.bindings bindings;
-  pcx.type_ctx.bindings <- pcx.bindings
+  Type_context.set_new_bindings ~cx:pcx.type_ctx pcx.bindings
 
 let set_module_tree ~pcx module_tree = pcx.module_tree <- module_tree
 
