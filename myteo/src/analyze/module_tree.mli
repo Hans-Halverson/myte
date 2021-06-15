@@ -27,6 +27,8 @@ type lookup_result =
 val lookup : Ast.Identifier.t list -> t -> lookup_result
 
 val get_all_exports :
-  t -> (value_export_kind * Ast.Identifier.t) list * (type_export_kind * Ast.Identifier.t) list
+  t ->
+  (value_export_kind * Ast.Identifier.t * string list) list
+  * (type_export_kind * Ast.Identifier.t * string list) list
 
 val analyze : t -> Ast.Module.t list -> t * (Loc.t * Analyze_error.t) list

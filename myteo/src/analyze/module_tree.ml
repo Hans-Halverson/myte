@@ -174,23 +174,26 @@ let lookup name_parts module_tree =
   lookup_inner [] name_parts module_tree
 
 let get_all_exports module_tree =
-  let rec get_all_exports_of_node module_tree_node =
+  let rec get_all_exports_of_node module_tree_node prev_module_parts =
     match module_tree_node with
     | Export { value; ty } ->
-      ( Option.map (fun v -> [v]) value |> Option.value ~default:[],
-        Option.map (fun t -> [t]) ty |> Option.value ~default:[] )
+      let module_parts = List.rev (List.tl prev_module_parts) in
+      ( Option.map (fun (kind, id) -> [(kind, id, module_parts)]) value |> Option.value ~default:[],
+        Option.map (fun (kind, id) -> [(kind, id, module_parts)]) ty |> Option.value ~default:[] )
     | Empty (_, module_tree)
     | Module (_, module_tree) ->
       SMap.fold
-        (fun _ module_tree_node (values_acc, types_acc) ->
-          let (values, types) = get_all_exports_of_node module_tree_node in
+        (fun module_name module_tree_node (values_acc, types_acc) ->
+          let (values, types) =
+            get_all_exports_of_node module_tree_node (module_name :: prev_module_parts)
+          in
           (values @ values_acc, types @ types_acc))
         module_tree
         ([], [])
   in
   SMap.fold
-    (fun _ module_tree_node (values_acc, types_acc) ->
-      let (values, types) = get_all_exports_of_node module_tree_node in
+    (fun module_name module_tree_node (values_acc, types_acc) ->
+      let (values, types) = get_all_exports_of_node module_tree_node [module_name] in
       (values @ values_acc, types @ types_acc))
     module_tree
     ([], [])

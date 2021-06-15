@@ -90,10 +90,26 @@ and visit_type_declarations_prepass ~cx module_ =
     toplevels
 
 and check_type_aliases_topologically ~cx modules =
+  let open Ast.TypeDeclaration in
   let modules = List.map snd modules in
   try
     let aliases_in_topological_order = Type_alias.order_type_aliases ~cx modules in
-    List.iter (fun alias -> check_type_alias ~cx alias) aliases_in_topological_order
+    List.iter
+      (fun alias ->
+        match alias with
+        | {
+         loc;
+         name = { Ast.Identifier.loc = id_loc; _ };
+         type_params;
+         decl = Alias alias;
+         builtin = _;
+        } ->
+          let tvar_id = Type_context.get_tvar_id_from_type_decl ~cx id_loc in
+          let tparams = check_type_parameters ~cx type_params in
+          let ty = Types.Alias (tparams, build_type ~cx alias) in
+          Type_context.assert_unify ~cx loc ty (TVar tvar_id)
+        | _ -> failwith "Expected type alias")
+      aliases_in_topological_order
   with Type_alias.CyclicTypeAliasesException (loc, name) ->
     Type_context.add_error ~cx loc (CyclicTypeAlias name)
 
@@ -176,17 +192,6 @@ and visit_type_declarations ~cx module_ =
         | Alias _ -> ())
       | _ -> ())
     toplevels
-
-and check_type_alias ~cx decl =
-  let open Ast.TypeDeclaration in
-  match decl with
-  | { loc; name = { Ast.Identifier.loc = id_loc; _ }; type_params; decl = Alias alias; builtin = _ }
-    ->
-    let tvar_id = Type_context.get_tvar_id_from_type_decl ~cx id_loc in
-    let tparams = check_type_parameters ~cx type_params in
-    let ty = Types.Alias (tparams, build_type ~cx alias) in
-    Type_context.assert_unify ~cx loc ty (TVar tvar_id)
-  | _ -> failwith "Expected type alias"
 
 and visit_value_declarations ~cx module_ =
   let open Ast.Module in
