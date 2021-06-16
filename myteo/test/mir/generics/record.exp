@@ -1,0 +1,35 @@
+type test.Rec1<Int> {int, int, int}
+
+type test.Rec1<Bool> {int, bool, bool}
+
+func unit @test.testConstructor() {
+  %0 := CallBuiltin test.Rec1<Int>* myte.myte_alloc(1)
+  %1 := GetPointer int %0.0
+  Store int %1, 1
+  %2 := GetPointer int %0.1
+  Store int %2, 2
+  %3 := GetPointer int %0.2
+  Store int %3, 3
+  %4 := Mov test.Rec1<Int>* %0
+  %5 := CallBuiltin test.Rec1<Bool>* myte.myte_alloc(1)
+  %6 := GetPointer int %5.0
+  Store int %6, 1
+  %7 := GetPointer bool %5.1
+  Store bool %7, true
+  %8 := GetPointer bool %5.2
+  Store bool %8, false
+  %9 := Mov test.Rec1<Bool>* %5
+  Ret
+}
+
+func unit @test.testIndexing(test.Rec1<Int>* %10, test.Rec1<Bool>* %11) {
+  %12 := GetPointer int %10.1
+  %13 := Load int %12
+  %14 := GetPointer bool %11.2
+  %15 := Load bool %14
+  Ret
+}
+
+func unit @test.main() {
+  Ret
+}

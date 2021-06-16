@@ -1,0 +1,26 @@
+module test
+
+import std.array.Array
+
+type Tup1<T> (Int, T)
+
+// Create multiple instances of Tup1
+fun useTup1(t1: Tup1<Int>, t2: Tup1<Bool>) {}
+
+// Do not duplicate same instances
+fun duplicateInstances(x1: Tup1<Int>, x2: Tup1<Int>) {}
+
+type Rec1<T, U> { foo: T, bar: Unit, baz: U }
+
+// Create multiple instances of Rec1
+fun useRec1(r1: Rec1<Int, Bool>, r2: Rec1<Long, Long>) {}
+
+// ADTs as type arguments
+fun adtTypeArgs(x1: Tup1<Rec1<Int, Long>>, x2: Rec1<Tup1<Byte>, Long>) {}
+
+// Do not create multiple instances of type, as type argument does not affect size
+type TestVec<T> { buffer: Array<T>, size: Int, capacity: Int }
+
+fun useTestVec(x1: TestVec<Int>, x2: TestVec<Long>) {}
+
+fun main() {}

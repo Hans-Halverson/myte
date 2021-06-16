@@ -1,0 +1,15 @@
+module test
+
+type Tup1<T> (Int, T)
+
+fun testConstructor() {
+  val x = Tup1 (1, 2);
+  val y = Tup1 (1, true);
+}
+
+fun testIndexing(t1: Tup1<Int>, t2: Tup1<Bool>) {
+  t1[1];
+  t2[1];
+}
+
+fun main() {}

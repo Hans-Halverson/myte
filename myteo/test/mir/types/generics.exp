@@ -1,0 +1,41 @@
+type test.Tup1<Rec1<Int, Long>> {int, test.Rec1<Int,Long>*}
+
+type test.Tup1<Int> {int, int}
+
+type test.Tup1<Byte> {int, byte}
+
+type test.Tup1<Bool> {int, bool}
+
+func unit @test.useTup1(test.Tup1<Int>* %0, test.Tup1<Bool>* %1) {
+  Ret
+}
+
+func unit @test.duplicateInstances(test.Tup1<Int>* %2, test.Tup1<Int>* %3) {
+  Ret
+}
+
+type test.Rec1<Tup1<Byte>,Long> {test.Tup1<Byte>*, unit, long}
+
+type test.Rec1<Long,Long> {long, unit, long}
+
+type test.Rec1<Int,Long> {int, unit, long}
+
+type test.Rec1<Int,Bool> {int, unit, bool}
+
+func unit @test.useRec1(test.Rec1<Int,Bool>* %4, test.Rec1<Long,Long>* %5) {
+  Ret
+}
+
+func unit @test.adtTypeArgs(test.Tup1<Rec1<Int, Long>>* %6, test.Rec1<Tup1<Byte>,Long>* %7) {
+  Ret
+}
+
+type test.TestVec {int*, int, int}
+
+func unit @test.useTestVec(test.TestVec* %8, test.TestVec* %9) {
+  Ret
+}
+
+func unit @test.main() {
+  Ret
+}

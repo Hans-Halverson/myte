@@ -1,5 +1,6 @@
 open Basic_collections
 open Mir
+open Mir_adt
 
 module BlockBuilder = struct
   type t = {
@@ -30,8 +31,8 @@ type t = {
   mutable current_block_sequence_ids: Block.id list;
   (* Stack of loop contexts for all loops we are currently inside *)
   mutable current_loop_contexts: loop_context list;
-  (* ADT type to its MIR aggregate type *)
-  mutable adt_to_agg_type: Aggregate.t Types.TypeHashtbl.t;
+  (* ADT signature id to its corresponding MirADT record *)
+  mutable adt_sig_to_mir_adt: MirADT.t IMap.t;
 }
 
 let mk () =
@@ -47,7 +48,7 @@ let mk () =
     current_block_source = GlobalInit "";
     current_block_sequence_ids = [];
     current_loop_contexts = [];
-    adt_to_agg_type = Types.TypeHashtbl.create 100;
+    adt_sig_to_mir_adt = IMap.empty;
   }
 
 let builders_to_blocks builders =
@@ -73,12 +74,6 @@ let add_function ~ecx func =
   let builder = Option.get ecx.current_module_builder in
   ecx.funcs <- SMap.add name func ecx.funcs;
   builder.funcs <- SSet.add name builder.funcs
-
-let add_type ~ecx type_ =
-  let name = type_.Aggregate.name in
-  let builder = Option.get ecx.current_module_builder in
-  ecx.types <- SMap.add name type_ ecx.types;
-  builder.types <- SSet.add name builder.types
 
 let emit ~ecx inst =
   match ecx.current_block_builder with
@@ -161,3 +156,137 @@ let end_module ~ecx =
   let mod_ = get_module_builder ~ecx in
   ecx.modules <- SMap.add mod_.name mod_ ecx.modules;
   ecx.current_module_builder <- None
+
+(*
+ * MIR ADT
+ *)
+
+let get_mir_adt ~ecx (adt_sig : Types.adt_sig) = IMap.find adt_sig.id ecx.adt_sig_to_mir_adt
+
+let add_adt_sig ~ecx (adt_sig : Types.adt_sig) (full_name : string) (name_loc : Loc.t) =
+  let mir_adt = MirADT.mk adt_sig full_name name_loc in
+  ecx.adt_sig_to_mir_adt <- IMap.add adt_sig.id mir_adt ecx.adt_sig_to_mir_adt;
+  mir_adt
+
+let instantiation_key_from_type_args mir_adt type_args =
+  if mir_adt.MirADT.is_parameterized then
+    Types.Tuple type_args
+  else
+    Types.Int
+
+(* Instantiate a generic ADT with a particular set of type arguments. If there is already an
+   instance of the ADT with those type arguments return its aggregate types. Otherwise create new
+   aggregate types for this type instance, then save and return them. *)
+let rec instantiate ~ecx mir_adt type_args =
+  let open MirADT in
+  let adt_sig = mir_adt.adt_sig in
+  let instantiation_key = instantiation_key_from_type_args mir_adt type_args in
+  match Types.TypeHashtbl.find_opt mir_adt.instantiations instantiation_key with
+  | Some ctor_to_agg -> ctor_to_agg
+  | None ->
+    let parameterized_name =
+      if mir_adt.is_parameterized then
+        let type_args_strings = Types.pps type_args in
+        let type_args_string = String.concat "," type_args_strings in
+        Printf.sprintf "%s<%s>" mir_adt.name type_args_string
+      else
+        mir_adt.name
+    in
+    let mk_variant_name variant_name =
+      if has_variants mir_adt then
+        Printf.sprintf "%s::%s" parameterized_name variant_name
+      else
+        parameterized_name
+    in
+    let mk_variant_loc () =
+      if has_variants mir_adt then
+        failwith "TODO: Instantiate variants (and fix loc to come from variant) "
+      else
+        mir_adt.loc
+    in
+    let type_param_bindings = Types.bind_type_params_to_args adt_sig.type_params type_args in
+    let ctor_to_agg =
+      SMap.mapi
+        (fun variant_name variant_sig ->
+          match variant_sig with
+          | Types.EnumVariantSig -> failwith "TODO: Instantiate enum variant sig"
+          | Types.TupleVariantSig element_sigs ->
+            let agg_elements =
+              List.map
+                (fun element_sig ->
+                  let element_ty = Types.substitute_type_params type_param_bindings element_sig in
+                  let mir_ty = to_mir_type ~ecx element_ty in
+                  (None, mir_ty))
+                element_sigs
+            in
+            let agg =
+              {
+                Aggregate.name = mk_variant_name variant_name;
+                loc = mk_variant_loc ();
+                elements = agg_elements;
+              }
+            in
+            add_aggregate ~ecx agg;
+            agg
+          | Types.RecordVariantSig field_sigs ->
+            let agg_elements =
+              SMap.fold
+                (fun field_name field_sig agg_elements ->
+                  let element_ty = Types.substitute_type_params type_param_bindings field_sig in
+                  let mir_ty = to_mir_type ~ecx element_ty in
+                  (Some field_name, mir_ty) :: agg_elements)
+                field_sigs
+                []
+            in
+            (* Preserve order of fields in source code *)
+            let mir_variant = SMap.find variant_name mir_adt.variants in
+            let field_locs = mir_variant.field_locs in
+            let sorted_agg_elements =
+              List.sort
+                (fun (name1, _) (name2, _) ->
+                  Loc.compare
+                    (SMap.find (Option.get name1) field_locs)
+                    (SMap.find (Option.get name2) field_locs))
+                agg_elements
+            in
+            let agg =
+              {
+                Aggregate.name = mk_variant_name variant_name;
+                loc = mk_variant_loc ();
+                elements = sorted_agg_elements;
+              }
+            in
+            add_aggregate ~ecx agg;
+            agg)
+        adt_sig.variant_sigs
+    in
+    Types.TypeHashtbl.add mir_adt.instantiations instantiation_key ctor_to_agg;
+    ctor_to_agg
+
+and to_mir_type ~ecx ty =
+  match ty with
+  | Types.Unit -> `UnitT
+  | Types.Bool -> `BoolT
+  | Types.Byte -> `ByteT
+  | Types.Int -> `IntT
+  | Types.Long -> `LongT
+  | Types.IntLiteral { resolved; _ } -> to_mir_type ~ecx (Option.get resolved)
+  | Types.String -> `StringT
+  | Types.Array element_ty -> `PointerT (to_mir_type ~ecx element_ty)
+  | Types.Tuple _ -> failwith "TODO: Implement MIR emission for tuple types"
+  | Types.Function _ -> `FunctionT
+  | Types.TypeParam _ -> failwith "Type params must be resolved for all values in IR"
+  | Types.TVar _ -> failwith "TVars must be resolved for all values in IR"
+  | Types.Any -> failwith "Any not allowed as value in IR"
+  | Types.ADT { adt_sig; type_args } ->
+    let mir_adt = get_mir_adt ~ecx adt_sig in
+    let variant_aggs = instantiate ~ecx mir_adt type_args in
+    (* TODO: Handle variant types *)
+    let (_, agg) = SMap.choose variant_aggs in
+    `PointerT (`AggregateT agg)
+
+and add_aggregate ~ecx agg =
+  let name = agg.Aggregate.name in
+  let builder = Option.get ecx.current_module_builder in
+  ecx.types <- SMap.add name agg ecx.types;
+  builder.types <- SSet.add name builder.types

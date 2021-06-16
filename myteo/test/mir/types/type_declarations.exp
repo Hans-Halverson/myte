@@ -14,6 +14,10 @@ type test.Tup4 {test.Tup5*}
 
 type test.Tup5 {int}
 
+func unit @test.useAll(test.Tup1* %0, test.Tup2* %1, test.Tup3* %2, test.Rec1* %3, test.Rec2* %4, test.Rec3* %5, test.Tup4* %6, test.Tup5* %7) {
+  Ret
+}
+
 func unit @test.main() {
   Ret
 }

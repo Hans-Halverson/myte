@@ -260,10 +260,10 @@ let get_record_variant adt_sig name =
   | RecordVariantSig field_sigs -> field_sigs
   | _ -> failwith "Expected RecordVariantSig"
 
-type type_hash_type_t = t
+type type_t = t
 
 module TypeHash = struct
-  type t = type_hash_type_t
+  type t = type_t
 
   let rec equal (ty1 : t) (ty2 : t) =
     match (ty1, ty2) with

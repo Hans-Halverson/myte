@@ -1,6 +1,7 @@
 open Ast
 open Basic_collections
 open Mir
+open Mir_adt
 module Ecx = Emit_context
 module Pcx = Program_context
 
@@ -29,13 +30,7 @@ and emit_module ~pcx ~ecx (_, mod_) =
   List.iter
     (fun toplevel ->
       match toplevel with
-      | TypeDeclaration decl -> emit_type_declaration_prepass ~pcx ~ecx decl
-      | _ -> ())
-    mod_.toplevels;
-  List.iter
-    (fun toplevel ->
-      match toplevel with
-      | TypeDeclaration decl -> emit_type_declaration ~pcx ~ecx decl
+      | TypeDeclaration decl -> emit_type_declarations ~pcx ~ecx decl
       | _ -> ())
     mod_.toplevels;
   List.iter
@@ -51,71 +46,31 @@ and emit_module ~pcx ~ecx (_, mod_) =
       | _ -> ())
     mod_.toplevels
 
-(* Prepass to create and store initial empty aggregate types for every type.
-   This prepass allows for out-of-order type definitions. *)
-and emit_type_declaration_prepass ~pcx ~ecx decl =
+(* Create and store MIR ADT and variant objects to be used during MIR emission *)
+and emit_type_declarations ~pcx ~ecx decl =
   let open TypeDeclaration in
   let { name = { Identifier.loc; name }; decl; _ } = decl in
-  let name = Printf.sprintf "%s.%s" (Ecx.get_module_builder ~ecx).name name in
-  match decl with
-  | Tuple _
-  | Record _ ->
+  let full_name = Printf.sprintf "%s.%s" (Ecx.get_module_builder ~ecx).name name in
+  let mk_mir_adt loc =
     let binding = Type_context.get_type_binding ~cx:pcx.type_ctx loc in
     let adt_decl = Bindings.get_type_decl binding in
     let adt_sig = Bindings.TypeDeclaration.get adt_decl in
-    (* TODO: Handle instantiation of generic types *)
-    let ty = Types.ADT { adt_sig; type_args = [] } in
-    let agg = { Aggregate.name; loc; elements = [] } in
-    Ecx.add_type ~ecx agg;
-    Types.TypeHashtbl.add ecx.adt_to_agg_type ty agg
+    Ecx.add_adt_sig ~ecx adt_sig full_name loc
+  in
+  match decl with
+  | Tuple _ ->
+    let mir_adt = mk_mir_adt loc in
+    MirADT.add_adt_variant mir_adt name loc SMap.empty
+  | Record { Record.fields; _ } ->
+    let mir_adt = mk_mir_adt loc in
+    let field_locs =
+      List.fold_left
+        (fun acc { Record.Field.loc; name = { Identifier.name; _ }; _ } -> SMap.add name loc acc)
+        SMap.empty
+        fields
+    in
+    MirADT.add_adt_variant mir_adt name loc field_locs
   | _ -> ()
-
-(* Fill aggregate types with correct element types *)
-and emit_type_declaration ~pcx ~ecx decl =
-  let open TypeDeclaration in
-  let { name = { Identifier.loc; name }; decl; builtin; _ } = decl in
-  if builtin then
-    ()
-  else
-    let binding = Type_context.get_type_binding ~cx:pcx.type_ctx loc in
-    match decl with
-    | Tuple _ ->
-      let type_decl = Bindings.get_type_decl binding in
-      let adt_sig = Bindings.TypeDeclaration.get type_decl in
-      (* TODO: Handle instantiation of generic types *)
-      let ty = Types.ADT { adt_sig; type_args = [] } in
-      let element_sigs = Types.get_tuple_variant adt_sig name in
-      let element_types =
-        List.map
-          (fun element_sig ->
-            let element_ty = type_to_mir_type ~pcx ~ecx element_sig in
-            (None, element_ty))
-          element_sigs
-      in
-      let agg = Types.TypeHashtbl.find ecx.adt_to_agg_type ty in
-      agg.elements <- element_types
-    | Record { fields; _ } ->
-      let type_decl = Bindings.get_type_decl binding in
-      let adt_sig = Bindings.TypeDeclaration.get type_decl in
-      (* TODO: Handle instantiation of generic types *)
-      let ty = Types.ADT { adt_sig; type_args = [] } in
-      let field_sigs = Types.get_record_variant adt_sig name in
-      (* Collect fields for aggregate in order they are declared in *)
-      let element_types =
-        List.fold_left
-          (fun element_types { Record.Field.name = { Identifier.name; _ }; _ } ->
-            let sig_ty = SMap.find name field_sigs in
-            let element_ty = type_to_mir_type ~pcx ~ecx sig_ty in
-            (Some name, element_ty) :: element_types)
-          []
-          fields
-      in
-      let agg = Types.TypeHashtbl.find ecx.adt_to_agg_type ty in
-      agg.elements <- List.rev element_types
-    | Variant _
-    | Alias _ ->
-      (* Aliases do not need MIR types of their own as they are inlined by type checker *)
-      ()
 
 and emit_toplevel_variable_declaration ~pcx ~ecx decl =
   let { Statement.VariableDeclaration.pattern; init; _ } = decl in
@@ -295,9 +250,9 @@ and emit_expression ~pcx ~ecx expr =
     in
     Ecx.emit ~ecx instr;
     var_value_of_type var_id ty
-  | Identifier { loc; _ }
-  | ScopedIdentifier { name = { Identifier.loc; _ }; _ } ->
-    let binding = Bindings.get_value_binding pcx.bindings loc in
+  | Identifier { loc = id_loc; _ }
+  | ScopedIdentifier { loc = _; name = { Identifier.loc = id_loc; _ }; _ } ->
+    let binding = Bindings.get_value_binding pcx.bindings id_loc in
     let decl_loc = binding.loc in
     (match binding.declaration with
     | CtorDecl _ -> failwith "TODO: Emit enum constructors"
@@ -315,13 +270,13 @@ and emit_expression ~pcx ~ecx expr =
           Ecx.emit ~ecx (Load (var_id, `PointerV (global.ty, global.var)));
           var_id
         ) else
-          mk_cf_local loc
+          mk_cf_local id_loc
       in
       let mir_ty = type_to_mir_type ~pcx ~ecx (Types.TVar tvar_id) in
       var_value_of_type var mir_ty
     (* TODO: Handle instantiation of generic values (e.g. generic functions, enum constructors) *)
     | FunParamDecl { tvar_id } ->
-      let var = mk_cf_local loc in
+      let var = mk_cf_local id_loc in
       let mir_ty = type_to_mir_type ~pcx ~ecx (Types.TVar tvar_id) in
       var_value_of_type var mir_ty)
   | TypeCast { expr; _ } -> emit_expression ~pcx ~ecx expr
@@ -329,14 +284,15 @@ and emit_expression ~pcx ~ecx expr =
     (* Emit tuple constructor *)
     let ctor_result_opt =
       match func with
-      | Identifier { Identifier.loc = ctor_id_loc; _ }
-      | ScopedIdentifier { ScopedIdentifier.name = { Identifier.loc = ctor_id_loc; _ }; _ } ->
+      | Identifier { Identifier.loc = ctor_id_loc; name }
+      | ScopedIdentifier { ScopedIdentifier.name = { Identifier.loc = ctor_id_loc; name }; _ } ->
         let binding = Type_context.get_value_binding ~cx:pcx.type_ctx ctor_id_loc in
         (match binding.declaration with
         | CtorDecl _ ->
+          (* Find MIR aggregate type for this constructor *)
           let adt = type_of_loc ~pcx loc in
-          (* Find MIR aggregate type for this ADT *)
-          let agg = Types.TypeHashtbl.find ecx.adt_to_agg_type adt in
+          let variant_aggs = adt_to_variant_aggs ~ecx adt in
+          let agg = SMap.find name variant_aggs in
           let agg_ty = `AggregateT agg in
           (* Call myte_alloc builtin to allocate space for tuple *)
           let agg_ptr_var_id = mk_cf_var_id () in
@@ -381,10 +337,18 @@ and emit_expression ~pcx ~ecx expr =
         (* Emit function call *)
         Ecx.emit ~ecx (Call (var_id, ret_ty, func_val, arg_vals));
         var_value_of_type var_id ret_ty))
-  | Record { Record.loc; name = _; fields } ->
-    (* Find MIR aggregate type for this ADT *)
+  | Record { Record.loc; name; fields } ->
+    let name =
+      match name with
+      | Identifier { Identifier.name; _ }
+      | ScopedIdentifier { ScopedIdentifier.name = { Identifier.name; _ }; _ } ->
+        name
+      | _ -> failwith "Record name must be an identifier"
+    in
+    (* Find MIR aggregate type for this constructor *)
     let adt = type_of_loc ~pcx loc in
-    let agg = Types.TypeHashtbl.find ecx.adt_to_agg_type adt in
+    let variant_aggs = adt_to_variant_aggs ~ecx adt in
+    let agg = SMap.find name variant_aggs in
     let agg_ty = `AggregateT agg in
     (* Call myte_alloc builtin to allocate space for record *)
     let agg_ptr_var_id = mk_cf_var_id () in
@@ -436,8 +400,11 @@ and emit_expression_access_chain ~pcx ~ecx expr =
           Integers.int64_of_string_opt raw base |> Option.get |> Int64.to_int
         | _ -> failwith "Index of a tuple must be an int literal to pass type checking"
       in
+      (* Find MIR aggregate type for this type *)
+      let variant_aggs = adt_to_variant_aggs ~ecx target_ty in
+      (* TODO: Handle variant types *)
+      let (_, agg) = SMap.choose variant_aggs in
       (* Find element type in the corresponding aggregate type *)
-      let agg = Types.TypeHashtbl.find ecx.Ecx.adt_to_agg_type target_ty in
       let (_, element_ty) = List.nth agg.elements element_idx in
       (* Calculate element offset *)
       let (element_pointer_var, get_ptr_instr) =
@@ -460,7 +427,7 @@ and emit_expression_access_chain ~pcx ~ecx expr =
       element_pointer_var
     in
     match target_ty with
-    | Array element_ty -> emit_array_indexed_access element_ty
+    | Types.Array element_ty -> emit_array_indexed_access element_ty
     | Tuple _ -> emit_tuple_indexed_access ()
     | ADT { adt_sig = { variant_sigs; _ }; _ } when SMap.cardinal variant_sigs = 1 ->
       emit_tuple_indexed_access ()
@@ -469,9 +436,12 @@ and emit_expression_access_chain ~pcx ~ecx expr =
     (* Emit target expression *)
     let target_var = emit_expression_access_chain_inner ~pcx ~ecx target in
     let target_ptr_var = cast_to_pointer_value target_var in
-    (* Find element type in the corresponding aggregate type *)
+    (* Find MIR aggregate type for this type *)
     let target_ty = type_of_loc ~pcx (Ast_utils.expression_loc target) in
-    let agg = Types.TypeHashtbl.find ecx.Ecx.adt_to_agg_type target_ty in
+    let variant_aggs = adt_to_variant_aggs ~ecx target_ty in
+    (* TODO: Handle variant types *)
+    let (_, agg) = SMap.choose variant_aggs in
+    (* Find element type in the corresponding aggregate type *)
     let (element_ty, element_idx) = lookup_element agg name in
     (* Calculate element offset *)
     let (element_pointer_var, get_ptr_instr) =
@@ -619,28 +589,6 @@ and mk_get_pointer_instr ?(pointer_offset = None) element_ty pointer offsets =
   let var = `PointerV (element_ty, var_id) in
   (var, { Instruction.GetPointer.var_id; return_ty = element_ty; pointer; pointer_offset; offsets })
 
-and type_to_mir_type ~pcx ~ecx ty =
-  let ty = Type_context.find_rep_type ~cx:pcx.type_ctx ty in
-  match ty with
-  | Types.Unit -> `UnitT
-  | Types.Bool -> `BoolT
-  | Types.Byte -> `ByteT
-  | Types.Int -> `IntT
-  | Types.Long -> `LongT
-  | Types.IntLiteral { resolved; _ } -> type_to_mir_type ~pcx ~ecx (Option.get resolved)
-  | Types.String -> `StringT
-  | Types.Array element_ty -> `PointerT (type_to_mir_type ~pcx ~ecx element_ty)
-  | Types.Tuple _ -> failwith "TODO: Implement MIR emission for tuple types"
-  | Types.Function _ -> `FunctionT
-  | Types.TypeParam _ -> failwith "Type params must be resolved for all values in IR"
-  | Types.TVar _ -> failwith "TVars must be resolved for all values in IR"
-  | Types.Any -> failwith "Any not allowed as value in IR"
-  | Types.ADT _ ->
-    (match Types.TypeHashtbl.find_opt ecx.adt_to_agg_type ty with
-    (* All aggregates are currently allocated behind a pointer *)
-    | Some mir_type -> `PointerT (`AggregateT mir_type)
-    | None -> failwith "TODO: Generate aggregate types for all ADTs")
-
 and type_of_loc ~pcx loc =
   let tvar_id = Type_context.get_tvar_from_loc ~cx:pcx.type_ctx loc in
   Type_context.find_rep_type ~cx:pcx.type_ctx (TVar tvar_id)
@@ -648,3 +596,12 @@ and type_of_loc ~pcx loc =
 and mir_type_of_loc ~pcx ~ecx loc =
   let tvar_id = Type_context.get_tvar_from_loc ~cx:pcx.type_ctx loc in
   type_to_mir_type ~pcx ~ecx (Types.TVar tvar_id)
+
+and type_to_mir_type ~pcx ~ecx ty =
+  let ty = Type_context.find_rep_type ~cx:pcx.Program_context.type_ctx ty in
+  Ecx.to_mir_type ~ecx ty
+
+and adt_to_variant_aggs ~ecx adt =
+  let (type_args, adt_sig) = Type_util.cast_to_adt_type adt in
+  let mir_adt = Ecx.get_mir_adt ~ecx adt_sig in
+  Ecx.instantiate ~ecx mir_adt type_args

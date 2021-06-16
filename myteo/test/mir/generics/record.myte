@@ -1,0 +1,15 @@
+module test
+
+type Rec1<T> { foo: Int, bar: T, baz: T }
+
+fun testConstructor() {
+  val x = Rec1 { foo: 1, bar: 2, baz: 3 };
+  val y = Rec1 { foo: 1, bar: true, baz: false };
+}
+
+fun testIndexing(t1: Rec1<Int>, t2: Rec1<Bool>) {
+  t1.bar;
+  t2.baz;
+}
+
+fun main() {}
