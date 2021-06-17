@@ -45,7 +45,17 @@ and emit_module ~pcx ~ecx (_, mod_) =
       match toplevel with
       | FunctionDeclaration decl -> emit_toplevel_function_declaration ~pcx ~ecx decl
       | _ -> ())
-    mod_.toplevels
+    mod_.toplevels;
+
+  (* Emit all pending instantiations of generic functions *)
+  let rec iter () =
+    match Ecx.pop_pending_func_instantiation ~ecx with
+    | None -> ()
+    | Some func_instantiation ->
+      emit_function_instantiation ~pcx ~ecx func_instantiation;
+      iter ()
+  in
+  iter ()
 
 (* Create and store MIR ADT and variant objects to be used during MIR emission *)
 and emit_type_declarations ~pcx ~ecx decl =
@@ -93,42 +103,52 @@ and emit_toplevel_variable_declaration ~pcx ~ecx decl =
 
 and emit_toplevel_function_declaration ~pcx ~ecx decl =
   let open Ast.Function in
-  let { name = { Identifier.loc; name }; params; body; builtin; _ } = decl in
+  let { name = { Identifier.loc; name }; builtin; _ } = decl in
   let name = Printf.sprintf "%s.%s" (Ecx.get_module_builder ~ecx).name name in
-  if builtin then
-    ()
-  else
-    (* Build IR for function body *)
-    let param_locs_and_ids =
-      List.map (fun { Param.name = { Identifier.loc; _ }; _ } -> (loc, mk_var_id ())) params
-    in
-    let body_start_block =
-      Ecx.start_block_sequence ~ecx (FunctionBody name);
-      let body_start_block = Ecx.start_new_block ~ecx in
-      if loc = Option.get pcx.main_loc then ecx.main_id <- body_start_block;
-      (match body with
-      | Block { Statement.Block.statements; _ } ->
-        List.iter (emit_statement ~pcx ~ecx) statements;
-        (* Add an implicit return if the last instruction is not a return *)
-        (match ecx.current_block_builder with
-        | Some { Ecx.BlockBuilder.instructions = (_, Ret _) :: _; _ } -> ()
-        | _ -> Ecx.emit ~ecx (Ret None))
-      | Expression expr ->
-        let ret_val = emit_expression ~pcx ~ecx expr in
-        Ecx.emit ~ecx (Ret (Some ret_val)));
-      Ecx.finish_block_halt ~ecx;
-      body_start_block
-    in
-    (* Find value type of function *)
-    (* TODO: Emit declaration of generic functions *)
+  Ecx.add_function_declaration_node ~ecx name decl;
+  (* Non-generic functions are emitted now. An instance of generic functions will be emitted when
+     they are instantiated. *)
+  if not builtin then
     let binding = Type_context.get_value_binding ~cx:pcx.type_ctx loc in
     let func_decl = Bindings.get_func_decl binding in
-    let param_tys = List.map (type_to_mir_type ~pcx ~ecx) func_decl.params in
-    let return_ty = type_to_mir_type ~pcx ~ecx func_decl.return in
-    let params =
-      List.map2 (fun (loc, var_id) ty -> (loc, var_id, ty)) param_locs_and_ids param_tys
-    in
-    Ecx.add_function ~ecx { Function.loc; name; params; return_ty; body_start_block }
+    if func_decl.type_params = [] then emit_function ~pcx ~ecx name decl
+
+and emit_function_instantiation ~pcx ~ecx (name, name_with_args, type_param_bindings) =
+  Ecx.in_type_binding_context ~ecx type_param_bindings (fun _ ->
+      let func_decl_node = SMap.find name ecx.func_decl_nodes in
+      emit_function ~pcx ~ecx name_with_args func_decl_node)
+
+and emit_function ~pcx ~ecx name decl =
+  let open Ast.Function in
+  let { name = { Identifier.loc; _ }; params; body; _ } = decl in
+  (* Build IR for function body *)
+  let param_locs_and_ids =
+    List.map (fun { Param.name = { Identifier.loc; _ }; _ } -> (loc, mk_var_id ())) params
+  in
+  let body_start_block =
+    Ecx.start_block_sequence ~ecx (FunctionBody name);
+    let body_start_block = Ecx.start_new_block ~ecx in
+    if loc = Option.get pcx.main_loc then ecx.main_id <- body_start_block;
+    (match body with
+    | Block { Statement.Block.statements; _ } ->
+      List.iter (emit_statement ~pcx ~ecx) statements;
+      (* Add an implicit return if the last instruction is not a return *)
+      (match ecx.current_block_builder with
+      | Some { Ecx.BlockBuilder.instructions = (_, Ret _) :: _; _ } -> ()
+      | _ -> Ecx.emit ~ecx (Ret None))
+    | Expression expr ->
+      let ret_val = emit_expression ~pcx ~ecx expr in
+      Ecx.emit ~ecx (Ret (Some ret_val)));
+    Ecx.finish_block_halt ~ecx;
+    body_start_block
+  in
+  (* Find value type of function *)
+  let binding = Type_context.get_value_binding ~cx:pcx.type_ctx loc in
+  let func_decl = Bindings.get_func_decl binding in
+  let param_tys = List.map (type_to_mir_type ~pcx ~ecx) func_decl.params in
+  let return_ty = type_to_mir_type ~pcx ~ecx func_decl.return in
+  let params = List.map2 (fun (loc, var_id) ty -> (loc, var_id, ty)) param_locs_and_ids param_tys in
+  Ecx.add_function ~ecx { Function.loc; name; params; return_ty; body_start_block }
 
 and emit_expression ~pcx ~ecx expr =
   let open Expression in
@@ -251,17 +271,25 @@ and emit_expression ~pcx ~ecx expr =
     in
     Ecx.emit ~ecx instr;
     var_value_of_type var_id ty
-  | Identifier { loc = id_loc; _ }
-  | ScopedIdentifier { loc = _; name = { Identifier.loc = id_loc; _ }; _ } ->
+  | Identifier { loc = id_loc as loc; _ }
+  | ScopedIdentifier { loc; name = { Identifier.loc = id_loc; _ }; _ } ->
     let binding = Bindings.get_value_binding pcx.bindings id_loc in
     let decl_loc = binding.loc in
     (match binding.declaration with
     | CtorDecl _ -> failwith "TODO: Emit enum constructors"
     (* Create function literal for functions *)
-    (* TODO: Handle instantiation of generic function *)
-    | FunDecl _ -> `FunctionL (mk_binding_name binding)
+    | FunDecl { Bindings.FunctionDeclaration.type_params; _ } ->
+      let func_name = mk_binding_name binding in
+      let ty = type_of_loc ~ecx ~pcx loc in
+      let func_name =
+        if type_params = [] then
+          func_name
+        else
+          let (type_args, _, _) = Type_util.cast_to_function_type ty in
+          Ecx.add_necessary_func_instantiation ~ecx ~pcx func_name type_params type_args
+      in
+      `FunctionL func_name
     (* Variables may be either globals or locals *)
-    (* TODO: Handle instantiation of generic values (e.g. generic functions, enum constructors) *)
     | VarDecl { tvar_id; _ } ->
       let var =
         if Bindings.is_global_decl pcx.bindings decl_loc then (
@@ -275,14 +303,13 @@ and emit_expression ~pcx ~ecx expr =
       in
       let mir_ty = type_to_mir_type ~pcx ~ecx (Types.TVar tvar_id) in
       var_value_of_type var mir_ty
-    (* TODO: Handle instantiation of generic values (e.g. generic functions, enum constructors) *)
     | FunParamDecl { tvar_id } ->
       let var = mk_cf_local id_loc in
       let mir_ty = type_to_mir_type ~pcx ~ecx (Types.TVar tvar_id) in
       var_value_of_type var mir_ty)
   | TypeCast { expr; _ } -> emit_expression ~pcx ~ecx expr
   | Tuple { loc; elements } ->
-    let ty = type_of_loc ~pcx loc in
+    let ty = type_of_loc ~pcx ~ecx loc in
     let element_tys = Type_util.cast_to_tuple_type ty in
     let agg = Ecx.instantiate_tuple ~ecx element_tys in
     emit_construct_tuple ~ecx ~pcx agg elements
@@ -296,7 +323,7 @@ and emit_expression ~pcx ~ecx expr =
         (match binding.declaration with
         | CtorDecl _ ->
           (* Find MIR aggregate type for this constructor *)
-          let adt = type_of_loc ~pcx loc in
+          let adt = type_of_loc ~pcx ~ecx loc in
           let variant_aggs = adt_to_variant_aggs ~ecx adt in
           let agg = SMap.find name variant_aggs in
           let agg_ptr_val = emit_construct_tuple ~ecx ~pcx agg args in
@@ -333,7 +360,7 @@ and emit_expression ~pcx ~ecx expr =
       | _ -> failwith "Record name must be an identifier"
     in
     (* Find MIR aggregate type for this constructor *)
-    let adt = type_of_loc ~pcx loc in
+    let adt = type_of_loc ~pcx ~ecx loc in
     let variant_aggs = adt_to_variant_aggs ~ecx adt in
     let agg = SMap.find name variant_aggs in
     let agg_ty = `AggregateT agg in
@@ -374,7 +401,7 @@ and emit_expression_access_chain ~pcx ~ecx expr =
   let open Expression in
   let open Instruction in
   let rec emit_indexed_access_chain ~pcx ~ecx { IndexedAccess.target; index; _ } =
-    let target_ty = type_of_loc ~pcx (Ast_utils.expression_loc target) in
+    let target_ty = type_of_loc ~pcx ~ecx (Ast_utils.expression_loc target) in
     let emit_tuple_indexed_access () =
       (* Emit target expression *)
       let target_var = emit_expression_access_chain_inner ~pcx ~ecx target in
@@ -430,7 +457,7 @@ and emit_expression_access_chain ~pcx ~ecx expr =
     let target_var = emit_expression_access_chain_inner ~pcx ~ecx target in
     let target_ptr_var = cast_to_pointer_value target_var in
     (* Find MIR aggregate type for this type *)
-    let target_ty = type_of_loc ~pcx (Ast_utils.expression_loc target) in
+    let target_ty = type_of_loc ~pcx ~ecx (Ast_utils.expression_loc target) in
     let variant_aggs = adt_to_variant_aggs ~ecx target_ty in
     (* TODO: Handle variant types *)
     let (_, agg) = SMap.choose variant_aggs in
@@ -605,16 +632,16 @@ and mk_get_pointer_instr ?(pointer_offset = None) element_ty pointer offsets =
   let var = `PointerV (element_ty, var_id) in
   (var, { Instruction.GetPointer.var_id; return_ty = element_ty; pointer; pointer_offset; offsets })
 
-and type_of_loc ~pcx loc =
+and type_of_loc ~pcx ~ecx loc =
   let tvar_id = Type_context.get_tvar_from_loc ~cx:pcx.type_ctx loc in
-  Type_context.find_rep_type ~cx:pcx.type_ctx (TVar tvar_id)
+  Ecx.find_rep_non_generic_type ~ecx ~pcx (TVar tvar_id)
 
 and mir_type_of_loc ~pcx ~ecx loc =
   let tvar_id = Type_context.get_tvar_from_loc ~cx:pcx.type_ctx loc in
   type_to_mir_type ~pcx ~ecx (Types.TVar tvar_id)
 
 and type_to_mir_type ~pcx ~ecx ty =
-  let ty = Type_context.find_rep_type ~cx:pcx.Program_context.type_ctx ty in
+  let ty = Ecx.find_rep_non_generic_type ~ecx ~pcx ty in
   Ecx.to_mir_type ~ecx ty
 
 and adt_to_variant_aggs ~ecx adt =

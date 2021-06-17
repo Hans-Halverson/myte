@@ -36,6 +36,10 @@ type t =
   | Array of t
   | Tuple of t list
   | Function of {
+      (* TVars of type arguments for this function. These type arguments are essentially metadata
+         and should not be used by the type checker. They allow us to extract the type args this
+         function was instantiated with after type checking is complete. *)
+      type_args: tvar_id list;
       params: t list;
       return: t;
     }
@@ -89,7 +93,7 @@ let get_all_tvars_with_duplicates ty =
     | TVar tvar_id -> tvar_id :: acc
     | Tuple elements -> List.fold_left inner acc elements
     | Array element -> inner acc element
-    | Function { params; return } ->
+    | Function { type_args = _; params; return } ->
       let acc = List.fold_left inner acc params in
       inner acc return
     | ADT { type_args; _ } -> List.fold_left inner acc type_args
@@ -125,10 +129,10 @@ let rec substitute_type_params type_params ty =
   | IntLiteral { resolved = Some resolved; _ } -> substitute_type_params type_params resolved
   | Array element -> Array (substitute_type_params type_params element)
   | Tuple elements -> Tuple (List.map (substitute_type_params type_params) elements)
-  | Function { params; return } ->
+  | Function { type_args; params; return } ->
     let params' = List.map (substitute_type_params type_params) params in
     let return' = substitute_type_params type_params return in
-    Function { params = params'; return = return' }
+    Function { type_args; params = params'; return = return' }
   | ADT { adt_sig; type_args } ->
     ADT { adt_sig; type_args = List.map (substitute_type_params type_params) type_args }
   | TypeParam { TypeParam.id; name = _ } ->
@@ -172,7 +176,7 @@ let rec pp_with_names ~tvar_to_name ty =
   | Tuple elements ->
     let element_names = List.map (pp_with_names ~tvar_to_name) elements in
     concat_and_wrap ("(", ")") element_names
-  | Function { params; return } ->
+  | Function { type_args = _; params; return } ->
     let pp_function_part ty =
       let pp_param = pp_with_names ~tvar_to_name ty in
       match ty with

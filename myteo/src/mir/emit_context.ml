@@ -14,6 +14,12 @@ module BlockBuilder = struct
   }
 end
 
+(* module PendingFunctionInstantiation = struct
+  type t = {
+    type_param_bindings: Types.t IMap.t;
+  }
+end *)
+
 (* Break block id and continue block id for a loop *)
 type loop_context = Block.id * Block.id
 
@@ -36,6 +42,18 @@ type t = {
   mutable adt_sig_to_mir_adt: MirADT.t IMap.t;
   (* All tuple types used in this program, keyed by their type arguments *)
   mutable tuple_instantiations: Aggregate.t TypeArgsHashtbl.t;
+  (* All instances of generic functions used in this program that have been generated so far,
+     uniquely identifier by the generic function name and its type arguments. *)
+  mutable func_instantiations: unit TypeArgsHashtbl.t SMap.t;
+  (* All instances of generic functions that must still be generated. This must be empty for the
+     emit pass to be complete. Keys are the generic function name and its type arguments, and
+     value is a map of type parameter bindings to be used when generating the function instance. *)
+  mutable pending_func_instantiations: Types.t IMap.t TypeArgsHashtbl.t SMap.t;
+  (* Concrete types bound to type parameters in the current context. This is used when generating
+     generic functions. *)
+  mutable current_type_param_bindings: Types.t IMap.t;
+  (* All function declaration AST nodes, indexed by their full name *)
+  mutable func_decl_nodes: Ast.Function.t SMap.t;
 }
 
 let mk () =
@@ -53,6 +71,10 @@ let mk () =
     current_loop_contexts = [];
     adt_sig_to_mir_adt = IMap.empty;
     tuple_instantiations = TypeArgsHashtbl.create 10;
+    func_instantiations = SMap.empty;
+    pending_func_instantiations = SMap.empty;
+    current_type_param_bindings = IMap.empty;
+    func_decl_nodes = SMap.empty;
   }
 
 let builders_to_blocks builders =
@@ -162,7 +184,7 @@ let end_module ~ecx =
   ecx.current_module_builder <- None
 
 (*
- * Instantiation of generic types
+ * Generic Types
  *)
 
 let get_mir_adt ~ecx (adt_sig : Types.adt_sig) = IMap.find adt_sig.id ecx.adt_sig_to_mir_adt
@@ -171,12 +193,6 @@ let add_adt_sig ~ecx (adt_sig : Types.adt_sig) (full_name : string) (name_loc : 
   let mir_adt = MirADT.mk adt_sig full_name name_loc in
   ecx.adt_sig_to_mir_adt <- IMap.add adt_sig.id mir_adt ecx.adt_sig_to_mir_adt;
   mir_adt
-
-let instantiation_key_from_type_args mir_adt type_args =
-  if mir_adt.MirADT.is_parameterized then
-    Types.Tuple type_args
-  else
-    Types.Int
 
 (* Instantiate a generic ADT with a particular set of type arguments. If there is already an
    instance of the ADT with those type arguments return its aggregate types. Otherwise create new
@@ -304,3 +320,91 @@ and add_aggregate ~ecx agg =
   let builder = Option.get ecx.current_module_builder in
   ecx.types <- SMap.add name agg ecx.types;
   builder.types <- SSet.add name builder.types
+
+(*
+ * Generic Functions
+ *)
+
+(* Find the representative type for a particular type, which may be a type parameter bound to a
+   concrete type if we are generating an instantiation of a generic function.
+  
+   Every rep type that is a type parameter is guaranteed to have a concrete type substituted for it. *)
+let find_rep_non_generic_type ~ecx ~pcx ty =
+  let ty = Type_context.find_rep_type ~cx:pcx.Program_context.type_ctx ty in
+  if IMap.is_empty ecx.current_type_param_bindings then
+    ty
+  else
+    Types.substitute_type_params ecx.current_type_param_bindings ty
+
+let add_necessary_func_instantiation ~ecx ~pcx name type_params arg_tvar_ids =
+  let arg_rep_tys =
+    List.map
+      (fun arg_tvar_id -> find_rep_non_generic_type ~ecx ~pcx (TVar arg_tvar_id))
+      arg_tvar_ids
+  in
+  let arg_mir_tys = List.map (fun arg_rep_ty -> to_mir_type ~ecx arg_rep_ty) arg_rep_tys in
+  let name_with_args =
+    let type_args_string = TypeArgs.to_string arg_mir_tys in
+    Printf.sprintf "%s<%s>" name type_args_string
+  in
+  let already_instantiated =
+    match SMap.find_opt name ecx.func_instantiations with
+    | None -> false
+    | Some instantiated_type_args ->
+      (match TypeArgsHashtbl.find_opt instantiated_type_args arg_mir_tys with
+      | None -> false
+      | Some _ -> true)
+  in
+  ( if already_instantiated then
+    ()
+  else
+    let pending_type_args =
+      match SMap.find_opt name ecx.pending_func_instantiations with
+      | None -> TypeArgsHashtbl.create 2
+      | Some pending_instantiation_type_args -> pending_instantiation_type_args
+    in
+    match TypeArgsHashtbl.find_opt pending_type_args arg_mir_tys with
+    | Some _ -> ()
+    | None ->
+      let instantiated_type_param_bindings =
+        List.fold_left2
+          (fun type_param_bindings { Types.TypeParam.id; _ } arg_rep_ty ->
+            IMap.add id arg_rep_ty type_param_bindings)
+          ecx.current_type_param_bindings
+          type_params
+          arg_rep_tys
+      in
+      TypeArgsHashtbl.add pending_type_args arg_mir_tys instantiated_type_param_bindings;
+      ecx.pending_func_instantiations <-
+        SMap.add name pending_type_args ecx.pending_func_instantiations );
+  name_with_args
+
+let pop_pending_func_instantiation ~ecx =
+  match SMap.choose_opt ecx.pending_func_instantiations with
+  | None -> None
+  | Some (name, pending_type_args) ->
+    let (type_args, type_param_bindings) =
+      let pending_type_args_iter = TypeArgsHashtbl.to_seq pending_type_args in
+      match pending_type_args_iter () with
+      | Seq.Cons (args_and_bindings, _) -> args_and_bindings
+      | _ -> failwith "Pending type args table must be nonempty"
+    in
+    if TypeArgsHashtbl.length pending_type_args = 1 then
+      ecx.pending_func_instantiations <- SMap.remove name ecx.pending_func_instantiations
+    else
+      TypeArgsHashtbl.remove pending_type_args type_args;
+    let name_with_args =
+      let type_args_string = TypeArgs.to_string type_args in
+      Printf.sprintf "%s<%s>" name type_args_string
+    in
+    Some (name, name_with_args, type_param_bindings)
+
+let in_type_binding_context ~ecx type_param_bindings f =
+  let old_type_param_bindings = ecx.current_type_param_bindings in
+  ecx.current_type_param_bindings <-
+    IMap.union (fun _ p1 _ -> Some p1) type_param_bindings ecx.current_type_param_bindings;
+  f ();
+  ecx.current_type_param_bindings <- old_type_param_bindings
+
+let add_function_declaration_node ~ecx name decl_node =
+  ecx.func_decl_nodes <- SMap.add name decl_node ecx.func_decl_nodes

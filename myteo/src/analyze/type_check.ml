@@ -16,7 +16,8 @@ let rec build_type ~cx ty =
     | Bool -> Types.Bool)
   | Tuple { Tuple.elements; _ } -> Types.Tuple (List.map (build_type ~cx) elements)
   | Function { Function.params; return; _ } ->
-    Types.Function { params = List.map (build_type ~cx) params; return = build_type ~cx return }
+    Types.Function
+      { type_args = []; params = List.map (build_type ~cx) params; return = build_type ~cx return }
   | Identifier
       {
         Identifier.loc = full_loc;
@@ -368,9 +369,10 @@ and check_expression ~cx expr =
          type variable for each type parameter and substitute into function type. *)
       | FunDecl func_decl ->
         if func_decl.type_params = [] then
-          Types.Function { params = func_decl.params; return = func_decl.return }
+          Types.Function { type_args = []; params = func_decl.params; return = func_decl.return }
         else
-          let fresh_type_args = List.map (fun _ -> mk_tvar ()) func_decl.type_params in
+          let fresh_type_arg_ids = List.map (fun _ -> mk_tvar_id ()) func_decl.type_params in
+          let fresh_type_args = List.map (fun tvar_id -> TVar tvar_id) fresh_type_arg_ids in
           let fresh_type_arg_bindings =
             bind_type_params_to_args func_decl.type_params fresh_type_args
           in
@@ -380,7 +382,7 @@ and check_expression ~cx expr =
           let fresh_return =
             Types.substitute_type_params fresh_type_arg_bindings func_decl.return
           in
-          Function { params = fresh_params; return = fresh_return }
+          Function { type_args = fresh_type_arg_ids; params = fresh_params; return = fresh_return }
       (* Otherwise identifier has same type as its declaration *)
       | FunParamDecl param_decl -> TVar param_decl.tvar_id
       | VarDecl var_decl -> TVar var_decl.tvar_id
@@ -609,7 +611,7 @@ and check_expression ~cx expr =
           (IncorrectFunctionArity (List.length args, List.length params));
         ignore (Type_context.unify ~cx Any (TVar tvar_id))
         (* Supplied arguments must each be a subtype of the annotated parameter type *)
-      | Function { params; return } ->
+      | Function { type_args = _; params; return } ->
         List.iter2
           (fun (arg_loc, arg_tvar_id) param ->
             Type_context.assert_is_subtype ~cx arg_loc (TVar arg_tvar_id) param)

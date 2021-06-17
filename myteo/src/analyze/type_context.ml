@@ -159,13 +159,13 @@ let rec find_rep_type ~cx ty =
       ty
     else
       Tuple elements'
-  | Function { params; return } ->
+  | Function { type_args; params; return } ->
     let params' = id_map_list (find_rep_type ~cx) params in
     let return' = find_rep_type ~cx return in
     if params == params' && return == return' then
       ty
     else
-      Function { params = params'; return = return' }
+      Function { type_args; params = params'; return = return' }
   | ADT { adt_sig; type_args } ->
     let type_args' = id_map_list (find_rep_type ~cx) type_args in
     if type_args == type_args' then
@@ -196,7 +196,7 @@ let rec tvar_occurs_in ~cx tvar ty =
     false
   | Array element -> tvar_occurs_in ~cx tvar element
   | Tuple elements -> List.exists (tvar_occurs_in ~cx tvar) elements
-  | Function { params; return } ->
+  | Function { type_args = _; params; return } ->
     List.exists (tvar_occurs_in ~cx tvar) params || tvar_occurs_in ~cx tvar return
   | ADT { adt_sig = _; type_args } -> List.exists (tvar_occurs_in ~cx tvar) type_args
   | TVar rep_tvar -> tvar = rep_tvar
@@ -253,8 +253,8 @@ let rec unify ~cx ty1 ty2 =
     List.length elements1 = List.length elements2
     && List.for_all2 (fun ty1 ty2 -> unify ~cx ty1 ty2) elements1 elements2
   (* Functions unify all their parameter and return types if they have the same arity and TypeParams *)
-  | ( Function { params = params1; return = return1 },
-      Function { params = params2; return = return2 } ) ->
+  | ( Function { type_args = _; params = params1; return = return1 },
+      Function { type_args = _; params = params2; return = return2 } ) ->
     List.length params1 = List.length params2
     && List.for_all2 (fun ty1 ty2 -> unify ~cx ty1 ty2) params1 params2
     && unify ~cx return1 return2
@@ -305,8 +305,8 @@ let rec is_subtype ~cx sub sup =
     && List.for_all2 (fun sub sup -> is_subtype ~cx sup sub) sub_elements sup_elements
   (* Function parameters are contravariant and return type is covariant. Type parameters are
      ignored when checking subtyping, as long as parameters and return types correctly subtype. *)
-  | ( Function { params = sub_params; return = sub_return },
-      Function { params = sup_params; return = sup_return } ) ->
+  | ( Function { type_args = _; params = sub_params; return = sub_return },
+      Function { type_args = _; params = sup_params; return = sup_return } ) ->
     List.length sub_params = List.length sup_params
     && List.for_all2 (fun sub sup -> is_subtype ~cx sup sub) sub_params sup_params
     && is_subtype ~cx sub_return sup_return

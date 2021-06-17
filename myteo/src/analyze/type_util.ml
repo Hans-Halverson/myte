@@ -5,9 +5,9 @@ let cast_to_tuple_type (ty : Types.t) : Types.t list =
   | Tuple elements -> elements
   | _ -> failwith "Expected tuple type"
 
-let cast_to_function_type (ty : Types.t) : Types.t list * Types.t =
+let cast_to_function_type (ty : Types.t) : tvar_id list * Types.t list * Types.t =
   match ty with
-  | Function { params; return } -> (params, return)
+  | Function { type_args; params; return } -> (type_args, params, return)
   | _ -> failwith "Expected function type"
 
 let cast_to_adt_type (ty : Types.t) : Types.t list * Types.adt_sig =

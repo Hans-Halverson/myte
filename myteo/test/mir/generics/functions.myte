@@ -1,0 +1,23 @@
+module test
+
+type Tup1<T> (Int, T)
+
+fun id<T>(x: T): T = x
+
+fun singleParameter<T>(x: T): Tup1<T> {
+  val y = id(x);
+
+  return Tup1 (1, y);
+}
+
+fun testSingleParameter() {
+  singleParameter(1);
+  singleParameter(true);
+  singleParameter(Tup1 (1, (1: Byte)));
+}
+
+fun testInstantiationFromNonCallUse(): Unit -> Unit {
+  return id;
+}
+
+fun main() {}
