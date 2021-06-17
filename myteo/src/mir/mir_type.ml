@@ -51,7 +51,7 @@ module TypeArgs = struct
   type t = Type.t list
 
   let equal (tys1 : t) (tys2 : t) =
-    let types_equal ty1 ty2 =
+    let rec types_equal ty1 ty2 =
       match (ty1, ty2) with
       | (`UnitT, `UnitT)
       | (`BoolT, `BoolT)
@@ -59,15 +59,16 @@ module TypeArgs = struct
       | (`IntT, `IntT)
       | (`ByteT, `ByteT)
       | (`LongT, `LongT)
-      | (`FunctionT, `FunctionT)
-      | (`PointerT _, `PointerT _) ->
+      | (`FunctionT, `FunctionT) ->
         true
+      | (`PointerT ty1, `PointerT ty2) -> types_equal ty1 ty2
       | (`AggregateT agg1, `AggregateT agg2) -> Aggregate.(agg1.id = agg2.id)
       | _ -> false
     in
-    List.for_all2 types_equal tys1 tys2
+    List.length tys1 = List.length tys2 && List.for_all2 types_equal tys1 tys2
 
   let hash (tys : t) =
+    (* Boost hash combiner *)
     let hash_nums (ns : int list) =
       List.fold_left (fun hash n -> hash lxor (n + 0x9e3779b9 + (hash lsl 6) + (hash asr 2))) 0 ns
     in

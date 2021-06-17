@@ -281,6 +281,11 @@ and emit_expression ~pcx ~ecx expr =
       let mir_ty = type_to_mir_type ~pcx ~ecx (Types.TVar tvar_id) in
       var_value_of_type var mir_ty)
   | TypeCast { expr; _ } -> emit_expression ~pcx ~ecx expr
+  | Tuple { loc; elements } ->
+    let ty = type_of_loc ~pcx loc in
+    let element_tys = Type_util.cast_to_tuple_type ty in
+    let agg = Ecx.instantiate_tuple ~ecx element_tys in
+    emit_construct_tuple ~ecx ~pcx agg elements
   | Call { loc; func; args } ->
     (* Emit tuple constructor *)
     let ctor_result_opt =
@@ -294,26 +299,7 @@ and emit_expression ~pcx ~ecx expr =
           let adt = type_of_loc ~pcx loc in
           let variant_aggs = adt_to_variant_aggs ~ecx adt in
           let agg = SMap.find name variant_aggs in
-          let agg_ty = `AggregateT agg in
-          (* Call myte_alloc builtin to allocate space for tuple *)
-          let agg_ptr_var_id = mk_cf_var_id () in
-          let agg_ptr_var = `PointerV (agg_ty, agg_ptr_var_id) in
-          let (agg_ptr_val, myte_alloc_instr) =
-            Mir_builtin.(mk_call_builtin myte_alloc agg_ptr_var_id [`LongL Int64.one] agg_ty)
-          in
-          Ecx.emit ~ecx myte_alloc_instr;
-          (* Store each argument to the tuple constructor in space allocated for tuple *)
-          let args_and_element_types = List.combine args agg.Aggregate.elements in
-          List.iteri
-            (fun i (arg, (_, element_ty)) ->
-              (* Calculate offset for this element and store *)
-              let arg_var = emit_expression ~pcx ~ecx arg in
-              let (element_offset_var, get_ptr_instr) =
-                mk_get_pointer_instr element_ty agg_ptr_var [GetPointer.FieldIndex i]
-              in
-              Ecx.emit ~ecx (GetPointer get_ptr_instr);
-              Ecx.emit ~ecx (Store (element_offset_var, arg_var)))
-            args_and_element_types;
+          let agg_ptr_val = emit_construct_tuple ~ecx ~pcx agg args in
           Some agg_ptr_val
         | _ -> None)
       | _ -> None
@@ -381,7 +367,6 @@ and emit_expression ~pcx ~ecx expr =
     let var_id = mk_cf_var_id () in
     Ecx.emit ~ecx (Load (var_id, element_pointer_var));
     var_value_of_type var_id (pointer_value_element_type element_pointer_var)
-  | Tuple _ -> failwith "TODO: Emit MIR for tuple expressions"
   | Ternary _ -> failwith "TODO: Emit MIR for ternary expressions"
   | Match _ -> failwith "TODO: Emir MIR for match expressions"
 
@@ -401,10 +386,17 @@ and emit_expression_access_chain ~pcx ~ecx expr =
           Integers.int64_of_string_opt raw base |> Option.get |> Int64.to_int
         | _ -> failwith "Index of a tuple must be an int literal to pass type checking"
       in
-      (* Find MIR aggregate type for this type *)
-      let variant_aggs = adt_to_variant_aggs ~ecx target_ty in
-      (* TODO: Handle variant types *)
-      let (_, agg) = SMap.choose variant_aggs in
+      let agg =
+        match target_ty with
+        | Types.Tuple elements -> Ecx.instantiate_tuple ~ecx elements
+        | Types.ADT _ ->
+          (* Find MIR aggregate type for this type *)
+          let variant_aggs = adt_to_variant_aggs ~ecx target_ty in
+          (* TODO: Handle variant types *)
+          let (_, agg) = SMap.choose variant_aggs in
+          agg
+        | _ -> failwith "Must be tuple or ADT"
+      in
       (* Find element type in the corresponding aggregate type *)
       let (_, element_ty) = List.nth agg.elements element_idx in
       (* Calculate element offset *)
@@ -469,6 +461,29 @@ and emit_expression_access_chain ~pcx ~ecx expr =
   | IndexedAccess access -> emit_indexed_access_chain ~pcx ~ecx access
   | NamedAccess access -> emit_named_access_chain ~pcx ~ecx access
   | _ -> failwith "Must be called on access expression"
+
+and emit_construct_tuple ~pcx ~ecx agg elements =
+  let agg_ty = `AggregateT agg in
+  (* Call myte_alloc builtin to allocate space for tuple *)
+  let agg_ptr_var_id = mk_cf_var_id () in
+  let agg_ptr_var = `PointerV (agg_ty, agg_ptr_var_id) in
+  let (agg_ptr_val, myte_alloc_instr) =
+    Mir_builtin.(mk_call_builtin myte_alloc agg_ptr_var_id [`LongL Int64.one] agg_ty)
+  in
+  Ecx.emit ~ecx myte_alloc_instr;
+  (* Store each argument to the tuple constructor in space allocated for tuple *)
+  List_utils.iteri2
+    (fun i arg (_, element_ty) ->
+      (* Calculate offset for this element and store *)
+      let arg_var = emit_expression ~pcx ~ecx arg in
+      let (element_offset_var, get_ptr_instr) =
+        mk_get_pointer_instr element_ty agg_ptr_var [Instruction.GetPointer.FieldIndex i]
+      in
+      Ecx.emit ~ecx (GetPointer get_ptr_instr);
+      Ecx.emit ~ecx (Store (element_offset_var, arg_var)))
+    elements
+    agg.Aggregate.elements;
+  agg_ptr_val
 
 and emit_bool_expression ~pcx ~ecx expr =
   match emit_expression ~pcx ~ecx expr with
@@ -605,4 +620,4 @@ and type_to_mir_type ~pcx ~ecx ty =
 and adt_to_variant_aggs ~ecx adt =
   let (type_args, adt_sig) = Type_util.cast_to_adt_type adt in
   let mir_adt = Ecx.get_mir_adt ~ecx adt_sig in
-  Ecx.instantiate ~ecx mir_adt type_args
+  Ecx.instantiate_adt ~ecx mir_adt type_args

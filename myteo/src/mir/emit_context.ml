@@ -34,6 +34,8 @@ type t = {
   mutable current_loop_contexts: loop_context list;
   (* ADT signature id to its corresponding MirADT record *)
   mutable adt_sig_to_mir_adt: MirADT.t IMap.t;
+  (* All tuple types used in this program, keyed by their type arguments *)
+  mutable tuple_instantiations: Aggregate.t TypeArgsHashtbl.t;
 }
 
 let mk () =
@@ -50,6 +52,7 @@ let mk () =
     current_block_sequence_ids = [];
     current_loop_contexts = [];
     adt_sig_to_mir_adt = IMap.empty;
+    tuple_instantiations = TypeArgsHashtbl.create 10;
   }
 
 let builders_to_blocks builders =
@@ -159,7 +162,7 @@ let end_module ~ecx =
   ecx.current_module_builder <- None
 
 (*
- * MIR ADT
+ * Instantiation of generic types
  *)
 
 let get_mir_adt ~ecx (adt_sig : Types.adt_sig) = IMap.find adt_sig.id ecx.adt_sig_to_mir_adt
@@ -178,7 +181,7 @@ let instantiation_key_from_type_args mir_adt type_args =
 (* Instantiate a generic ADT with a particular set of type arguments. If there is already an
    instance of the ADT with those type arguments return its aggregate types. Otherwise create new
    aggregate types for this type instance, then save and return them. *)
-let rec instantiate ~ecx mir_adt type_args =
+let rec instantiate_adt ~ecx mir_adt type_args =
   let open MirADT in
   let adt_sig = mir_adt.adt_sig in
   let mir_type_args = List.map (to_mir_type ~ecx) type_args in
@@ -255,6 +258,22 @@ let rec instantiate ~ecx mir_adt type_args =
     TypeArgsHashtbl.add mir_adt.instantiations mir_type_args ctor_to_agg;
     ctor_to_agg
 
+(* Instantiate a tuple with a particular set of element types. If a tuple with these element types
+   has already been instantiated, return its aggregate type. Otherwise create new aggregate type for
+   this tuple, save, and return it. *)
+and instantiate_tuple ~ecx element_types =
+  let mir_type_args = List.map (to_mir_type ~ecx) element_types in
+  match TypeArgsHashtbl.find_opt ecx.tuple_instantiations mir_type_args with
+  | Some agg -> agg
+  | None ->
+    let type_args_string = TypeArgs.to_string mir_type_args in
+    let name = "$tuple<" ^ type_args_string ^ ">" in
+    let agg_elements = List.map (fun mir_ty -> (None, mir_ty)) mir_type_args in
+    let agg = mk_aggregate name Loc.none agg_elements in
+    TypeArgsHashtbl.add ecx.tuple_instantiations mir_type_args agg;
+    add_aggregate ~ecx agg;
+    agg
+
 and to_mir_type ~ecx ty =
   match ty with
   | Types.Unit -> `UnitT
@@ -265,17 +284,20 @@ and to_mir_type ~ecx ty =
   | Types.IntLiteral { resolved; _ } -> to_mir_type ~ecx (Option.get resolved)
   | Types.String -> `StringT
   | Types.Array element_ty -> `PointerT (to_mir_type ~ecx element_ty)
-  | Types.Tuple _ -> failwith "TODO: Implement MIR emission for tuple types"
   | Types.Function _ -> `FunctionT
-  | Types.TypeParam _ -> failwith "Type params must be resolved for all values in IR"
-  | Types.TVar _ -> failwith "TVars must be resolved for all values in IR"
-  | Types.Any -> failwith "Any not allowed as value in IR"
+  | Types.Tuple elements ->
+    let tuple_agg = instantiate_tuple ~ecx elements in
+    `PointerT (`AggregateT tuple_agg)
   | Types.ADT { adt_sig; type_args } ->
     let mir_adt = get_mir_adt ~ecx adt_sig in
-    let variant_aggs = instantiate ~ecx mir_adt type_args in
+    let variant_aggs = instantiate_adt ~ecx mir_adt type_args in
     (* TODO: Handle variant types *)
     let (_, agg) = SMap.choose variant_aggs in
     `PointerT (`AggregateT agg)
+  | Types.TVar _
+  | Types.TypeParam _
+  | Types.Any ->
+    failwith "Not allowed as value in IR"
 
 and add_aggregate ~ecx agg =
   let name = agg.Aggregate.name in

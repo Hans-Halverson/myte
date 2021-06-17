@@ -1,3 +1,9 @@
+type $tuple<int,int> {int, int}
+
+type $tuple<int,byte,$tuple<int,bool>*> {int, byte, $tuple<int,bool>*}
+
+type $tuple<int,bool> {int, bool}
+
 type test.Tup1<int> {int, int}
 
 type test.Tup1<bool> {int, bool}
@@ -18,11 +24,48 @@ func unit @test.testConstructor() {
   Ret
 }
 
-func unit @test.testIndexing(test.Tup1<int>* %8, test.Tup1<bool>* %9) {
+func unit @test.testAnonymousConstructor() {
+  %8 := CallBuiltin $tuple<int,int>* myte.myte_alloc(1)
+  %9 := GetPointer int %8.0
+  Store int %9, 1
   %10 := GetPointer int %8.1
-  %11 := Load int %10
-  %12 := GetPointer bool %9.1
-  %13 := Load bool %12
+  Store int %10, 2
+  %11 := Mov $tuple<int,int>* %8
+  %12 := CallBuiltin $tuple<int,bool>* myte.myte_alloc(1)
+  %13 := GetPointer int %12.0
+  Store int %13, 1
+  %14 := GetPointer bool %12.1
+  Store bool %14, true
+  %15 := Mov $tuple<int,bool>* %12
+  %16 := CallBuiltin $tuple<int,byte,$tuple<int,bool>*>* myte.myte_alloc(1)
+  %17 := GetPointer int %16.0
+  Store int %17, 1
+  %18 := GetPointer byte %16.1
+  Store byte %18, 2
+  %19 := CallBuiltin $tuple<int,bool>* myte.myte_alloc(1)
+  %20 := GetPointer int %19.0
+  Store int %20, 3
+  %21 := GetPointer bool %19.1
+  Store bool %21, false
+  %22 := GetPointer $tuple<int,bool>* %16.2
+  Store $tuple<int,bool>* %22, %19
+  %23 := Mov $tuple<int,byte,$tuple<int,bool>*>* %16
+  Ret
+}
+
+func unit @test.testIndexing(test.Tup1<int>* %24, test.Tup1<bool>* %25) {
+  %26 := GetPointer int %24.1
+  %27 := Load int %26
+  %28 := GetPointer bool %25.1
+  %29 := Load bool %28
+  Ret
+}
+
+func unit @test.testAnonymousIndexing($tuple<int,int>* %30, $tuple<int,bool>* %31) {
+  %32 := GetPointer int %30.1
+  %33 := Load int %32
+  %34 := GetPointer bool %31.1
+  %35 := Load bool %34
   Ret
 }
 

@@ -55,3 +55,14 @@ let rec take i lst =
   | (_, []) ->
     []
   | (i, hd :: tl) -> hd :: take (i - 1) tl
+
+let iteri2 f l1 l2 =
+  let rec helper i f l1 l2 =
+    match (l1, l2) with
+    | ([], []) -> ()
+    | (hd1 :: tl1, hd2 :: tl2) ->
+      f i hd1 hd2;
+      helper (i + 1) f tl1 tl2
+    | (_, _) -> failwith "Lists must have same length"
+  in
+  helper 0 f l1 l2
