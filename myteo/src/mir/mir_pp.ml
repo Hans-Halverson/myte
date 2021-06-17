@@ -1,5 +1,6 @@
 open Basic_collections
 open Mir
+open Mir_type
 
 module Context = struct
   type t = {
@@ -243,17 +244,7 @@ and pp_function_value ~cx v = pp_value ~cx (v :> ssa_value)
 
 and pp_pointer_value ~cx v = pp_value ~cx (v :> ssa_value)
 
-and pp_type ty =
-  match ty with
-  | `UnitT -> "unit"
-  | `ByteT -> "byte"
-  | `IntT -> "int"
-  | `LongT -> "long"
-  | `BoolT -> "bool"
-  | `StringT -> "string"
-  | `FunctionT -> "function"
-  | `PointerT ty -> pp_type ty ^ "*"
-  | `AggregateT { Aggregate.name; _ } -> name
+and pp_type ty = type_to_string ty
 
 and pp_type_of_value v = pp_type (type_of_value v)
 

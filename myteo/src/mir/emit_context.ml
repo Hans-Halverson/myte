@@ -1,6 +1,7 @@
 open Basic_collections
 open Mir
 open Mir_adt
+open Mir_type
 
 module BlockBuilder = struct
   type t = {
@@ -180,14 +181,13 @@ let instantiation_key_from_type_args mir_adt type_args =
 let rec instantiate ~ecx mir_adt type_args =
   let open MirADT in
   let adt_sig = mir_adt.adt_sig in
-  let instantiation_key = instantiation_key_from_type_args mir_adt type_args in
-  match Types.TypeHashtbl.find_opt mir_adt.instantiations instantiation_key with
+  let mir_type_args = List.map (to_mir_type ~ecx) type_args in
+  match TypeArgsHashtbl.find_opt mir_adt.instantiations mir_type_args with
   | Some ctor_to_agg -> ctor_to_agg
   | None ->
     let parameterized_name =
       if mir_adt.is_parameterized then
-        let type_args_strings = Types.pps type_args in
-        let type_args_string = String.concat "," type_args_strings in
+        let type_args_string = TypeArgs.to_string mir_type_args in
         Printf.sprintf "%s<%s>" mir_adt.name type_args_string
       else
         mir_adt.name
@@ -220,11 +220,7 @@ let rec instantiate ~ecx mir_adt type_args =
                 element_sigs
             in
             let agg =
-              {
-                Aggregate.name = mk_variant_name variant_name;
-                loc = mk_variant_loc ();
-                elements = agg_elements;
-              }
+              mk_aggregate (mk_variant_name variant_name) (mk_variant_loc ()) agg_elements
             in
             add_aggregate ~ecx agg;
             agg
@@ -250,17 +246,13 @@ let rec instantiate ~ecx mir_adt type_args =
                 agg_elements
             in
             let agg =
-              {
-                Aggregate.name = mk_variant_name variant_name;
-                loc = mk_variant_loc ();
-                elements = sorted_agg_elements;
-              }
+              mk_aggregate (mk_variant_name variant_name) (mk_variant_loc ()) sorted_agg_elements
             in
             add_aggregate ~ecx agg;
             agg)
         adt_sig.variant_sigs
     in
-    Types.TypeHashtbl.add mir_adt.instantiations instantiation_key ctor_to_agg;
+    TypeArgsHashtbl.add mir_adt.instantiations mir_type_args ctor_to_agg;
     ctor_to_agg
 
 and to_mir_type ~ecx ty =

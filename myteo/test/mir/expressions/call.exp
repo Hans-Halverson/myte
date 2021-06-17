@@ -35,13 +35,13 @@ func unit @test.directCalls() {
 }
 
 func unit @test.indirectCalls() {
-  %21 := Mov function @test.singleArgFunc
+  %21 := Mov fn @test.singleArgFunc
   branch true, @0, @1
 label @0:
-  %22 := Mov function @test.singleArgFunc2
+  %22 := Mov fn @test.singleArgFunc2
   continue @1
 label @1:
-  %23 := Phi function @test.indirectCalls:%21, @0:%22
+  %23 := Phi fn @test.indirectCalls:%21, @0:%22
   %24 := Call int %23(10)
   %25 := Mov int %24
   %26 := Add int 1, 2

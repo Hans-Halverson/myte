@@ -1,35 +1,11 @@
 open Basic_collections
+open Mir_type
 
 type var_id = int
 
 type instr_id = int
 
-module rec Type : sig
-  type t =
-    [ `UnitT
-    | `BoolT
-    | `StringT
-    | `IntT
-    | `ByteT
-    | `LongT
-    | `FunctionT
-    | `PointerT of t
-    | `AggregateT of Aggregate.t
-    ]
-end =
-  Type
-
-and Aggregate : sig
-  type t = {
-    name: string;
-    loc: Loc.t;
-    (* Elements along with their optional name *)
-    mutable elements: (string option * Type.t) list;
-  }
-end =
-  Aggregate
-
-and Value : sig
+module rec Value : sig
   type 'a unit_value =
     [ `UnitV of 'a
     | `UnitL

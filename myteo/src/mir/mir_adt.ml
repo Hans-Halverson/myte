@@ -1,5 +1,5 @@
 open Basic_collections
-open Mir
+open Mir_type
 
 module MirVariant = struct
   type t = {
@@ -22,7 +22,7 @@ module MirADT = struct
     (* All instantations of this ADT that have created (aka configurations of type arguments that
        have been used). For each, store a map from each constructor name to the aggregate type
        corresponding to the constructor instantiated with those type arguments. *)
-    mutable instantiations: Aggregate.t SMap.t Types.TypeHashtbl.t;
+    mutable instantiations: Aggregate.t SMap.t TypeArgsHashtbl.t;
     (* Whether this type is parameterized in MIR (meaning it contains type parameters that affect
        the aggregate type). *)
     is_parameterized: bool;
@@ -40,7 +40,7 @@ module MirADT = struct
       name;
       loc;
       variants = SMap.empty;
-      instantiations = Types.TypeHashtbl.create estimated_size;
+      instantiations = TypeArgsHashtbl.create estimated_size;
       is_parameterized = is_mir_parameterized adt_sig;
     }
 

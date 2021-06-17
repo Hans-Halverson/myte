@@ -2,6 +2,7 @@ open Ast
 open Basic_collections
 open Mir
 open Mir_adt
+open Mir_type
 module Ecx = Emit_context
 module Pcx = Program_context
 
