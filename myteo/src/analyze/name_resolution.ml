@@ -35,7 +35,7 @@ class bindings_builder ~is_stdlib ~module_tree =
         let kind =
           match kind with
           | Module_tree.VarDecl kind -> Decl (VarDecl (VariableDeclaration.mk kind))
-          | Module_tree.FunDecl -> Decl (FunDecl (FunctionDeclaration.mk ()))
+          | Module_tree.FunDecl is_builtin -> Decl (FunDecl (FunctionDeclaration.mk is_builtin))
           | Module_tree.CtorDecl -> Decl (CtorDecl (ConstructorDeclaration.mk ()))
         in
         LocMap.add loc (mk_binding_builder ~loc ~name ~kind ~is_global:true ~module_) acc)
@@ -240,8 +240,8 @@ class bindings_builder ~is_stdlib ~module_tree =
               (fun id ->
                 ignore (add_value_name id (fun _ -> Decl (VarDecl (VariableDeclaration.mk kind)))))
               ids
-          | FunctionDeclaration { Ast.Function.name; _ } ->
-            ignore (add_value_name name (fun _ -> Decl (FunDecl (FunctionDeclaration.mk ()))))
+          | FunctionDeclaration { Ast.Function.name; builtin; _ } ->
+            ignore (add_value_name name (fun _ -> Decl (FunDecl (FunctionDeclaration.mk builtin))))
           | TypeDeclaration { Ast.TypeDeclaration.name; decl; _ } ->
             ( if is_stdlib then
               let full_name = module_name_prefix ^ name.name in
@@ -358,10 +358,12 @@ class bindings_builder ~is_stdlib ~module_tree =
 
     method visit_function_declaration ~toplevel decl =
       let open Ast.Function in
-      let { name = { Ast.Identifier.loc; name = func_name; _ }; params; type_params; _ } = decl in
+      let { name = { Ast.Identifier.loc; name = func_name }; params; type_params; builtin; _ } =
+        decl
+      in
       if not toplevel then
         this#add_value_declaration loc func_name false (fun _ ->
-            Decl (FunDecl (FunctionDeclaration.mk ())));
+            Decl (FunDecl (FunctionDeclaration.mk builtin)));
       this#enter_scope ();
       this#add_type_parameter_declarations type_params (FunctionName func_name);
       let _ =

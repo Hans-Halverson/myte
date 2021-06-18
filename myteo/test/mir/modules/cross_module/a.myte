@@ -1,0 +1,16 @@
+module a
+
+import b
+
+type TupA<T> (T)
+
+val varA: Int = 1
+
+fun funcA() {}
+
+fun useFromB(x: b.RecB<Byte>) {
+  b.varB;
+  b.funcB();
+}
+
+fun main() {}

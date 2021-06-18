@@ -36,9 +36,11 @@ module FunctionDeclaration = struct
     mutable params: Types.t list;
     (* Return types for the function. If the function has type params, this is a signature *)
     mutable return: Types.t;
+    (* Whether this function is a builtin *)
+    is_builtin: bool;
   }
 
-  let mk () = { type_params = []; params = []; return = Types.Any }
+  let mk is_builtin = { type_params = []; params = []; return = Types.Any; is_builtin }
 end
 
 module TypeAliasDeclaration = struct

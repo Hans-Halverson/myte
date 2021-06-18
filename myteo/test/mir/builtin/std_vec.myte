@@ -1,0 +1,11 @@
+module test
+
+import std.vec
+import std.vec.Vec
+
+fun test() {
+  val x: Vec<Int> = vec.new(10);
+  val y: Vec<Bool> = vec.new(100);
+}
+
+fun main() {}

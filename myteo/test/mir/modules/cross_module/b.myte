@@ -1,0 +1,14 @@
+module b
+
+import a
+
+type RecB<T> { foo: T }
+
+val varB: Bool = true
+
+fun funcB() {}
+
+fun useFromA(x: a.TupA<Long>) {
+  a.varA;
+  a.funcA();
+}

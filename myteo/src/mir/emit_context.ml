@@ -32,7 +32,6 @@ type t = {
   mutable types: Aggregate.t SMap.t;
   mutable modules: Module.t SMap.t;
   mutable current_block_builder: BlockBuilder.t option;
-  mutable current_module_builder: Module.t option;
   mutable current_block_source: Block.source;
   (* Block ids in the current sequence, in reverse *)
   mutable current_block_sequence_ids: Block.id list;
@@ -65,7 +64,6 @@ let mk () =
     types = SMap.empty;
     modules = SMap.empty;
     current_block_builder = None;
-    current_module_builder = None;
     current_block_source = GlobalInit "";
     current_block_sequence_ids = [];
     current_loop_contexts = [];
@@ -91,15 +89,11 @@ let builders_to_blocks builders =
 
 let add_global ~ecx global =
   let name = global.Global.name in
-  let builder = Option.get ecx.current_module_builder in
-  ecx.globals <- SMap.add name global ecx.globals;
-  builder.globals <- SSet.add name builder.globals
+  ecx.globals <- SMap.add name global ecx.globals
 
 let add_function ~ecx func =
   let name = func.Function.name in
-  let builder = Option.get ecx.current_module_builder in
-  ecx.funcs <- SMap.add name func ecx.funcs;
-  builder.funcs <- SSet.add name builder.funcs
+  ecx.funcs <- SMap.add name func ecx.funcs
 
 let emit ~ecx inst =
   match ecx.current_block_builder with
@@ -171,17 +165,6 @@ let push_loop_context ~ecx break_id continue_id =
 let pop_loop_context ~ecx = ecx.current_loop_contexts <- List.tl ecx.current_loop_contexts
 
 let get_loop_context ~ecx = List.hd ecx.current_loop_contexts
-
-let get_module_builder ~ecx = Option.get ecx.current_module_builder
-
-let start_module ~ecx name =
-  ecx.current_module_builder <-
-    Some { Module.name; funcs = SSet.empty; globals = SSet.empty; types = SSet.empty }
-
-let end_module ~ecx =
-  let mod_ = get_module_builder ~ecx in
-  ecx.modules <- SMap.add mod_.name mod_ ecx.modules;
-  ecx.current_module_builder <- None
 
 (*
  * Generic Types
@@ -317,9 +300,7 @@ and to_mir_type ~ecx ty =
 
 and add_aggregate ~ecx agg =
   let name = agg.Aggregate.name in
-  let builder = Option.get ecx.current_module_builder in
-  ecx.types <- SMap.add name agg ecx.types;
-  builder.types <- SSet.add name builder.types
+  ecx.types <- SMap.add name agg ecx.types
 
 (*
  * Generic Functions

@@ -12,7 +12,7 @@ and module_tree_node =
 
 and value_export_kind =
   | VarDecl of Statement.VariableDeclaration.kind
-  | FunDecl
+  | FunDecl of bool
   | CtorDecl
 
 and type_export_kind =
@@ -61,10 +61,10 @@ let add_exports module_ submodule_tree =
       let mut_export_info id export_info = { export_info with value = Some (VarDecl kind, id) } in
       let exports = List.map (fun id -> (id, loc, mut_export_info id)) ids in
       add_exports_to_tree rest exports
-    | FunctionDeclaration { Ast.Function.loc; name = id; _ } :: rest ->
+    | FunctionDeclaration { Ast.Function.loc; name = id; builtin; _ } :: rest ->
       add_exports_to_tree
         rest
-        [(id, loc, (fun export_info -> { export_info with value = Some (FunDecl, id) }))]
+        [(id, loc, (fun export_info -> { export_info with value = Some (FunDecl builtin, id) }))]
     | TypeDeclaration { Ast.TypeDeclaration.loc; name = id; decl; _ } :: rest ->
       let open Ast.TypeDeclaration in
       let kind =

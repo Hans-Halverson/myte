@@ -3,13 +3,13 @@ module std.vec
 import std.array
 import std.array.Array
 
-type Vec {
-  data: Array<Int>,
+type Vec<T> {
+  data: Array<T>,
   size: Int,
   capacity: Int,
 }
 
-fun new(capacity: Int): Vec {
+fun new<T>(capacity: Int): Vec<T> {
   return Vec {
     data: array.new(capacity),
     size: 0,

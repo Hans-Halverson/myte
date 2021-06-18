@@ -128,7 +128,6 @@ and Program : sig
     mutable globals: 'var Global.t SMap.t;
     mutable funcs: Function.t SMap.t;
     mutable types: Aggregate.t SMap.t;
-    mutable modules: Module.t SMap.t;
   }
 end =
   Program
@@ -353,5 +352,4 @@ let filter_stdlib (program : ssa_program) =
     Program.globals = filter_stdlib_names program.globals;
     funcs = filter_stdlib_names program.funcs;
     types = filter_stdlib_names program.types;
-    modules = filter_stdlib_names program.modules;
   }

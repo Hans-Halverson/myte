@@ -12,7 +12,7 @@ and export_info = {
 
 and value_export_kind =
   | VarDecl of Ast.Statement.VariableDeclaration.kind
-  | FunDecl
+  | FunDecl of bool
   | CtorDecl
 
 and type_export_kind =

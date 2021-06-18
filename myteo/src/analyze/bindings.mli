@@ -30,9 +30,10 @@ module FunctionDeclaration : sig
     mutable type_params: Types.TypeParam.t list;
     mutable params: Types.t list;
     mutable return: Types.t;
+    is_builtin: bool;
   }
 
-  val mk : unit -> t
+  val mk : bool -> t
 end
 
 module TypeAliasDeclaration : sig

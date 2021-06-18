@@ -1,0 +1,35 @@
+type a.TupA<long> {long}
+
+global int @a.varA {
+  Store int @a.varA, 1
+}
+
+func unit @a.funcA() {
+  Ret
+}
+
+func unit @a.useFromB(b.RecB<byte>* %0) {
+  %1 := Load bool @b.varB
+  %2 := Call unit @b.funcB()
+  Ret
+}
+
+func unit @a.main() {
+  Ret
+}
+
+type b.RecB<byte> {byte}
+
+global bool @b.varB {
+  Store bool @b.varB, true
+}
+
+func unit @b.funcB() {
+  Ret
+}
+
+func unit @b.useFromA(a.TupA<long>* %3) {
+  %4 := Load int @a.varA
+  %5 := Call unit @a.funcA()
+  Ret
+}
