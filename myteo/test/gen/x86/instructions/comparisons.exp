@@ -3,45 +3,60 @@
   .text
 _main:
   ret
+test.testCompareByteImmReg:
+  xorl %eax, %eax
+  cmpb $63, %dil
+  setge %al
+  ret
+test.testCompareByteRegImm:
+  xorl %eax, %eax
+  cmpb $63, %dil
+  setl %al
+  ret
+test.testCompareByteRegs:
+  xorl %eax, %eax
+  cmpb %sil, %dil
+  setl %al
+  ret
 test.testCompareImmediateMemory:
   cmpl $3, 8(%rsp)
   jne .L0
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, 8(%rsp)
   sete %al
   ret
 .L0:
   cmpl $3, 8(%rsp)
   je .L1
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, 8(%rsp)
   setne %al
   ret
 .L1:
   cmpl $3, 8(%rsp)
   jl .L2
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, 8(%rsp)
   setge %al
   ret
 .L2:
   cmpl $3, 8(%rsp)
   jle .L3
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, 8(%rsp)
   setg %al
   ret
 .L3:
   cmpl $3, 8(%rsp)
   jg .L4
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, 8(%rsp)
   setle %al
   ret
 .L4:
   cmpl $3, 8(%rsp)
   jge .L5
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, 8(%rsp)
   setl %al
   ret
@@ -51,87 +66,104 @@ test.testCompareImmediateMemory:
 test.testCompareImmediateRegister:
   cmpl $3, %edi
   jne .L6
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, %edi
   sete %al
   ret
 .L6:
   cmpl $3, %edi
   je .L7
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, %edi
   setne %al
   ret
 .L7:
   cmpl $3, %edi
   jl .L8
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, %edi
   setge %al
   ret
 .L8:
   cmpl $3, %edi
   jle .L9
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, %edi
   setg %al
   ret
 .L9:
   cmpl $3, %edi
   jg .L10
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, %edi
   setle %al
   ret
 .L10:
   cmpl $3, %edi
   jge .L11
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, %edi
   setl %al
   ret
 .L11:
   movb $1, %al
   ret
+test.testCompareLongImmReg:
+  xorl %eax, %eax
+  movq $2147483648, %rax
+  cmpq %rdi, %rax
+  setl %al
+  ret
+test.testCompareLongRegImm:
+  xorl %eax, %eax
+  movq $2147483648, %rax
+  cmpq %rax, %rdi
+  setl %al
+  ret
+test.testCompareLongRegs:
+  xorl %eax, %eax
+  cmpq %rsi, %rdi
+  setl %al
+  ret
 test.testCompareMemoryImmediate:
   cmpl $3, 8(%rsp)
   jne .L12
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, 8(%rsp)
   sete %al
   ret
 .L12:
   cmpl $3, 8(%rsp)
   je .L13
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, 8(%rsp)
   setne %al
   ret
 .L13:
   cmpl $3, 8(%rsp)
   jge .L14
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, 8(%rsp)
   setl %al
   ret
 .L14:
   cmpl $3, 8(%rsp)
   jg .L15
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, 8(%rsp)
   setle %al
   ret
 .L15:
   cmpl $3, 8(%rsp)
   jle .L16
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, 8(%rsp)
   setg %al
   ret
 .L16:
   cmpl $3, 8(%rsp)
   jl .L17
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, 8(%rsp)
   setge %al
   ret
@@ -142,7 +174,7 @@ test.testCompareMemoryMemory:
   movl 8(%rsp), %ecx
   cmpl 16(%rsp), %ecx
   jne .L18
-  xorq %rax, %rax
+  xorl %eax, %eax
   movl 8(%rsp), %eax
   cmpl 16(%rsp), %eax
   sete %al
@@ -151,7 +183,7 @@ test.testCompareMemoryMemory:
   movl 8(%rsp), %ecx
   cmpl 16(%rsp), %ecx
   je .L19
-  xorq %rax, %rax
+  xorl %eax, %eax
   movl 8(%rsp), %eax
   cmpl 16(%rsp), %eax
   setne %al
@@ -160,7 +192,7 @@ test.testCompareMemoryMemory:
   movl 8(%rsp), %ecx
   cmpl 16(%rsp), %ecx
   jge .L20
-  xorq %rax, %rax
+  xorl %eax, %eax
   movl 8(%rsp), %eax
   cmpl 16(%rsp), %eax
   setl %al
@@ -169,7 +201,7 @@ test.testCompareMemoryMemory:
   movl 8(%rsp), %ecx
   cmpl 16(%rsp), %ecx
   jg .L21
-  xorq %rax, %rax
+  xorl %eax, %eax
   movl 8(%rsp), %eax
   cmpl 16(%rsp), %eax
   setle %al
@@ -178,7 +210,7 @@ test.testCompareMemoryMemory:
   movl 8(%rsp), %ecx
   cmpl 16(%rsp), %ecx
   jle .L22
-  xorq %rax, %rax
+  xorl %eax, %eax
   movl 8(%rsp), %eax
   cmpl 16(%rsp), %eax
   setg %al
@@ -187,7 +219,7 @@ test.testCompareMemoryMemory:
   movl 8(%rsp), %ecx
   cmpl 16(%rsp), %ecx
   jl .L23
-  xorq %rax, %rax
+  xorl %eax, %eax
   movl 8(%rsp), %eax
   cmpl 16(%rsp), %eax
   setge %al
@@ -198,42 +230,42 @@ test.testCompareMemoryMemory:
 test.testCompareMemoryRegister:
   cmpl %edi, 8(%rsp)
   jne .L24
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl %edi, 8(%rsp)
   sete %al
   ret
 .L24:
   cmpl %edi, 8(%rsp)
   je .L25
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl %edi, 8(%rsp)
   setne %al
   ret
 .L25:
   cmpl %edi, 8(%rsp)
   jge .L26
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl %edi, 8(%rsp)
   setl %al
   ret
 .L26:
   cmpl %edi, 8(%rsp)
   jg .L27
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl %edi, 8(%rsp)
   setle %al
   ret
 .L27:
   cmpl %edi, 8(%rsp)
   jle .L28
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl %edi, 8(%rsp)
   setg %al
   ret
 .L28:
   cmpl %edi, 8(%rsp)
   jl .L29
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl %edi, 8(%rsp)
   setge %al
   ret
@@ -243,42 +275,42 @@ test.testCompareMemoryRegister:
 test.testCompareRegisterImmediate:
   cmpl $3, %edi
   jne .L30
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, %edi
   sete %al
   ret
 .L30:
   cmpl $3, %edi
   je .L31
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, %edi
   setne %al
   ret
 .L31:
   cmpl $3, %edi
   jge .L32
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, %edi
   setl %al
   ret
 .L32:
   cmpl $3, %edi
   jg .L33
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, %edi
   setle %al
   ret
 .L33:
   cmpl $3, %edi
   jle .L34
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, %edi
   setg %al
   ret
 .L34:
   cmpl $3, %edi
   jl .L35
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl $3, %edi
   setge %al
   ret
@@ -288,42 +320,42 @@ test.testCompareRegisterImmediate:
 test.testCompareRegisterMemory:
   cmpl 8(%rsp), %edi
   jne .L36
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl 8(%rsp), %edi
   sete %al
   ret
 .L36:
   cmpl 8(%rsp), %edi
   je .L37
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl 8(%rsp), %edi
   setne %al
   ret
 .L37:
   cmpl 8(%rsp), %edi
   jge .L38
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl 8(%rsp), %edi
   setl %al
   ret
 .L38:
   cmpl 8(%rsp), %edi
   jg .L39
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl 8(%rsp), %edi
   setle %al
   ret
 .L39:
   cmpl 8(%rsp), %edi
   jle .L40
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl 8(%rsp), %edi
   setg %al
   ret
 .L40:
   cmpl 8(%rsp), %edi
   jl .L41
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl 8(%rsp), %edi
   setge %al
   ret
@@ -333,42 +365,42 @@ test.testCompareRegisterMemory:
 test.testCompareRegisterRegister:
   cmpl %esi, %edi
   jne .L42
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl %esi, %edi
   sete %al
   ret
 .L42:
   cmpl %esi, %edi
   je .L43
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl %esi, %edi
   setne %al
   ret
 .L43:
   cmpl %esi, %edi
   jge .L44
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl %esi, %edi
   setl %al
   ret
 .L44:
   cmpl %esi, %edi
   jg .L45
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl %esi, %edi
   setle %al
   ret
 .L45:
   cmpl %esi, %edi
   jle .L46
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl %esi, %edi
   setg %al
   ret
 .L46:
   cmpl %esi, %edi
   jl .L47
-  xorq %rax, %rax
+  xorl %eax, %eax
   cmpl %esi, %edi
   setge %al
   ret

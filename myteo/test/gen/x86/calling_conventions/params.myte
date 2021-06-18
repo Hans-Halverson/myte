@@ -28,4 +28,13 @@ fun testFunctionStackParamsOffsetByStackFrameAndPushedCalleeSavedRegisters(p1: I
   return p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8;
 }
 
+fun longArgs(p1: Long, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Long): Long = p1 + p7
+fun testLongArgs() {
+  // Fits in int, so can pass directly in mov or push instruction
+  longArgs(1, 2, 3, 4, 5, 6, 7);
+  // Does not fit in int. First param is passed directly, but last param is first moved to register
+  // then pushed on stack, as push does not take 64 byte imms.
+  longArgs(2147483648, 2, 3, 4, 5, 6, 2147483648);
+}
+
 fun main() {}

@@ -208,7 +208,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   in
   let gen_set_cc cc result_var_id left_val right_val =
     let result_vreg = vreg_of_var result_var_id in
-    Gcx.emit ~gcx (XorMM (Size64, Reg result_vreg, Reg result_vreg));
+    Gcx.emit ~gcx (XorMM (Size32, Reg result_vreg, Reg result_vreg));
     let swapped = gen_cmp left_val right_val in
     let cc =
       if swapped then
@@ -287,7 +287,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
           | None -> ()
           | Some color ->
             let vreg = Gcx.mk_precolored ~gcx color in
-            (match resolve_ir_value arg_val with
+            (match resolve_ir_value ~allowImm64:true arg_val with
             | SImm imm -> Gcx.emit ~gcx (MovIM (imm, Reg vreg))
             | SAddr addr -> Gcx.emit ~gcx (Lea (Size64, addr, vreg))
             | SMem (mem, size) -> Gcx.emit ~gcx (MovMM (size, Mem mem, Reg vreg))

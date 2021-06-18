@@ -1,6 +1,10 @@
   .global _main
 
   .text
+test.longArgs:
+  addq 8(%rsp), %rdi
+  movq %rdi, %rax
+  ret
 _main:
   ret
 test.passedInRegistersAndStack:
@@ -77,6 +81,27 @@ test.testFunctionStackParamsOffsetByStackFrameAndPushedCalleeSavedRegisters:
   pop %r13
   pop %r12
   pop %rbx
+  ret
+test.testLongArgs:
+  push $7
+  movb $1, %dil
+  movl $2, %esi
+  movl $3, %edx
+  movl $4, %ecx
+  movl $5, %r8d
+  movl $6, %r9d
+  call test.longArgs
+  addq $8, %rsp
+  movq $2147483648, %rax
+  push %rax
+  movq $2147483648, %rdi
+  movl $2, %esi
+  movl $3, %edx
+  movl $4, %ecx
+  movl $5, %r8d
+  movl $6, %r9d
+  call test.longArgs
+  addq $8, %rsp
   ret
 test.testNineArgFunction:
   addl %edi, %esi

@@ -144,4 +144,13 @@ fun testCompareRegisterRegister(p1: Int, p2: Int): Bool {
   }
 }
 
+fun testCompareByteRegs(x: Byte, y: Byte): Bool = x < y
+fun testCompareByteRegImm(x: Byte): Bool = x < 63
+fun testCompareByteImmReg(x: Byte): Bool = 63 < x
+
+fun testCompareLongRegs(x: Long, y: Long): Bool = x < y
+// First have to load long to register
+fun testCompareLongRegImm(x: Long): Bool = x < 2147483648
+fun testCompareLongImmReg(x: Long): Bool = 2147483648 < x
+
 fun main() {}
