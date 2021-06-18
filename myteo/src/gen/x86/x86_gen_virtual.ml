@@ -164,18 +164,67 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     | (_, SMem _) -> (v2, v1)
     | _ -> (v1, v2)
   in
+  (* Generate a not instruction applied to a partiuclar argument *)
+  let gen_not result_var_id arg =
+    let resolved_value = resolve_ir_value arg in
+    let size = size_of_svalue resolved_value in
+    let arg_mem = emit_mem resolved_value in
+    let result_vreg = vreg_of_var result_var_id in
+    Gcx.emit ~gcx (MovMM (size, arg_mem, Reg result_vreg));
+    Gcx.emit ~gcx (NotM (size, Reg result_vreg))
+  in
+  (* Generate an and instruction between two arguments *)
+  let gen_and result_var_id left_val right_val =
+    let result_vreg = vreg_of_var result_var_id in
+    match (resolve_ir_value left_val, resolve_ir_value right_val) with
+    | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
+    | (SImm imm, other)
+    | (other, SImm imm) ->
+      let size = size_of_svalue other in
+      let other_mem = emit_mem other in
+      Gcx.emit ~gcx (MovMM (size, other_mem, Reg result_vreg));
+      Gcx.emit ~gcx (AndIM (size, imm, Reg result_vreg))
+    | (v1, v2) ->
+      let size = size_of_svalue v1 in
+      let (v1, v2) = choose_commutative_source_dest_arg_order v1 v2 in
+      let mem1 = emit_mem v1 in
+      let mem2 = emit_mem v2 in
+      Gcx.emit ~gcx (MovMM (size, mem2, Reg result_vreg));
+      Gcx.emit ~gcx (AndMM (size, mem1, Reg result_vreg))
+  in
+  (* Generate an or instruction between two arguments *)
+  let gen_or result_var_id left_val right_val =
+    let result_vreg = vreg_of_var result_var_id in
+    match (resolve_ir_value left_val, resolve_ir_value right_val) with
+    | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
+    | (SImm imm, other)
+    | (other, SImm imm) ->
+      let size = size_of_svalue other in
+      let other_mem = emit_mem other in
+      Gcx.emit ~gcx (MovMM (size, other_mem, Reg result_vreg));
+      Gcx.emit ~gcx (OrIM (size, imm, Reg result_vreg))
+    | (v1, v2) ->
+      let size = size_of_svalue v1 in
+      let (v1, v2) = choose_commutative_source_dest_arg_order v1 v2 in
+      let mem1 = emit_mem v1 in
+      let mem2 = emit_mem v2 in
+      Gcx.emit ~gcx (MovMM (size, mem2, Reg result_vreg));
+      Gcx.emit ~gcx (OrMM (size, mem1, Reg result_vreg))
+  in
   (* Generate a cmp instruction between two arguments. Return whether order was swapped. *)
   let gen_cmp left_val right_val =
     match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     (* Comparison to immediate - swap arguments if necessary *)
     | (SImm imm, other) ->
+      let size = size_of_svalue other in
       let other_mem = emit_mem other in
-      Gcx.emit ~gcx (CmpMI (other_mem, imm));
+      Gcx.emit ~gcx (CmpMI (size, other_mem, imm));
       true
     | (other, SImm imm) ->
+      let size = size_of_svalue other in
       let other_mem = emit_mem other in
-      Gcx.emit ~gcx (CmpMI (other_mem, imm));
+      Gcx.emit ~gcx (CmpMI (size, other_mem, imm));
       false
     (* Cannot compare two memory locations at the same time *)
     | (SMem (mem1, size), SMem (mem2, _)) ->
@@ -486,12 +535,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.LogNot (result_var_id, arg) :: rest_instructions ->
-    let resolved_value = resolve_ir_value arg in
-    let size = size_of_svalue resolved_value in
-    let arg_mem = emit_mem resolved_value in
-    let result_vreg = vreg_of_var result_var_id in
-    Gcx.emit ~gcx (MovMM (size, arg_mem, Reg result_vreg));
-    Gcx.emit ~gcx (NotM (size, Reg result_vreg));
+    gen_not result_var_id arg;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -499,21 +543,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.LogAnd (result_var_id, left_val, right_val) :: rest_instructions ->
-    let result_vreg = vreg_of_var result_var_id in
-    (match (resolve_ir_value left_val, resolve_ir_value right_val) with
-    | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
-    | (SImm imm, other)
-    | (other, SImm imm) ->
-      let other_mem = emit_mem other in
-      Gcx.emit ~gcx (MovMM (size_of_immediate imm, other_mem, Reg result_vreg));
-      Gcx.emit ~gcx (AndIM (imm, Reg result_vreg))
-    | (v1, v2) ->
-      let size = size_of_svalue v1 in
-      let (v1, v2) = choose_commutative_source_dest_arg_order v1 v2 in
-      let mem1 = emit_mem v1 in
-      let mem2 = emit_mem v2 in
-      Gcx.emit ~gcx (MovMM (size, mem2, Reg result_vreg));
-      Gcx.emit ~gcx (AndMM (size, mem1, Reg result_vreg)));
+    gen_and result_var_id left_val right_val;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -521,21 +551,54 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.LogOr (result_var_id, left_val, right_val) :: rest_instructions ->
+    gen_or result_var_id left_val right_val;
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                  BitNot
+   * ===========================================
+   *)
+  | Mir.Instruction.BitNot (result_var_id, arg) :: rest_instructions ->
+    gen_not result_var_id arg;
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                  BitAnd
+   * ===========================================
+   *)
+  | Mir.Instruction.BitAnd (result_var_id, left_val, right_val) :: rest_instructions ->
+    gen_and result_var_id left_val right_val;
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                  BitOr
+   * ===========================================
+   *)
+  | Mir.Instruction.BitOr (result_var_id, left_val, right_val) :: rest_instructions ->
+    gen_or result_var_id left_val right_val;
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                  BitXor
+   * ===========================================
+   *)
+  | Mir.Instruction.BitXor (result_var_id, left_val, right_val) :: rest_instructions ->
     let result_vreg = vreg_of_var result_var_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm imm, other)
     | (other, SImm imm) ->
+      let size = size_of_svalue other in
       let other_mem = emit_mem other in
-      Gcx.emit ~gcx (MovMM (size_of_immediate imm, other_mem, Reg result_vreg));
-      Gcx.emit ~gcx (OrIM (imm, Reg result_vreg))
+      Gcx.emit ~gcx (MovMM (size, other_mem, Reg result_vreg));
+      Gcx.emit ~gcx (XorIM (size, imm, Reg result_vreg))
     | (v1, v2) ->
       let size = size_of_svalue v1 in
       let (v1, v2) = choose_commutative_source_dest_arg_order v1 v2 in
       let mem1 = emit_mem v1 in
       let mem2 = emit_mem v2 in
       Gcx.emit ~gcx (MovMM (size, mem2, Reg result_vreg));
-      Gcx.emit ~gcx (OrMM (size, mem1, Reg result_vreg)));
+      Gcx.emit ~gcx (XorMM (size, mem1, Reg result_vreg)));
     gen_instructions rest_instructions
   (*
    * ===========================================

@@ -161,38 +161,35 @@ module Instruction = struct
         When multiple suffixes are used, first is source and second is dest when applicable.
         All MM instructions must contain at least one register as an argument.
 
-        If instruction has an immediate, that immediate encodes size for the instruction. *)
+        Unless otherwise noted, immediates can only be 8, 16, or 32 bits. *)
     (* Stack instructions *)
-    | PushI of immediate (* Only supports 8, 16, and 32-bit immediates - sign extended to 64 bits *)
+    | PushI of immediate
     | PushM of 'reg memory
     | PopM of 'reg memory
     (* Data instructions *)
-    | MovIM of immediate * 'reg memory (* TODO: Cannot mov 64-bit immediate to memory *)
+    | MovIM of immediate * 'reg memory (* Allows 64-bit immediate. Size of immediate is size of instruction *)
     | MovMM of size * 'reg memory * 'reg memory
     | Lea of size * 'reg memory_address * 'reg (* Only supports 32 or 64 bit register argument *)
     (* Numeric operations *)
     | NegM of size * 'reg memory
-    (* Only supports 8, 16, and 32-bit immediates. Instruction size matches immediate size
-       except for 64-bit mems which can use 8 or 32-bit immediates. *)
     | AddIM of size * immediate * 'reg memory
     | AddMM of size * 'reg memory * 'reg memory
     (* For sub instructions, right/dest := right/dest - left/src *)
-    (* Only supports 8, 16, and 32-bit immediates. Instruction size matches immediate size
-       except for 64-bit mems which can use 8 or 32-bit immediates. *)
-    | SubIM of size * immediate * 'reg memory (* Only supports 8, 16, and 32-bit immediates *)
+    | SubIM of size * immediate * 'reg memory
     | SubMM of size * 'reg memory * 'reg memory
     | IMulMR of size * 'reg memory * 'reg (* Only supports 16, 32, and 64-bit arguments *)
     | IMulMIR of size * 'reg memory * immediate * 'reg (* Only supports 16 and 32-bit immediates *)
     | IDiv of size * 'reg memory
     (* Bitwise operations *)
     | NotM of size * 'reg memory
-    | AndIM of immediate * 'reg memory (* Only supports 8, 16, and 32-bit immediates *)
+    | AndIM of size * immediate * 'reg memory
     | AndMM of size * 'reg memory * 'reg memory
-    | OrIM of immediate * 'reg memory (* Only supports 8, 16, and 32-bit immediates *)
+    | OrIM of size * immediate * 'reg memory
     | OrMM of size * 'reg memory * 'reg memory
+    | XorIM of size * immediate * 'reg memory
     | XorMM of size * 'reg memory * 'reg memory
     (* Comparisons *)
-    | CmpMI of 'reg memory * immediate (* Only supports 8, 16, and 32-bit immediates *)
+    | CmpMI of size * 'reg memory * immediate
     | CmpMM of size * 'reg memory * 'reg memory
     | TestMR of size * 'reg memory * 'reg
     | SetCC of condition_code * 'reg memory (* Only supports 8-bit destination *)

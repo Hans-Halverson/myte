@@ -11,7 +11,7 @@ class instruction_visitor =
       let (_, instr) = instr in
       match instr with
       | PushM read_mem
-      | CmpMI (read_mem, _)
+      | CmpMI (_, read_mem, _)
       | CallM (_, read_mem)
       | IDiv (_, read_mem) ->
         visit_read_mem read_mem
@@ -23,8 +23,9 @@ class instruction_visitor =
       | NotM (_, read_write_mem)
       | AddIM (_, _, read_write_mem)
       | SubIM (_, _, read_write_mem)
-      | AndIM (_, read_write_mem)
-      | OrIM (_, read_write_mem) ->
+      | AndIM (_, _, read_write_mem)
+      | OrIM (_, _, read_write_mem)
+      | XorIM (_, _, read_write_mem) ->
         visit_read_mem read_write_mem;
         visit_write_mem read_write_mem
       | CmpMM (_, read_mem1, read_mem2) ->

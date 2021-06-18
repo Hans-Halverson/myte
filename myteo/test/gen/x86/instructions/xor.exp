@@ -1,0 +1,42 @@
+  .global _main
+
+  .text
+_main:
+  ret
+test.xorByteImmReg:
+  xorb $60, %dil
+  movb %dil, %al
+  ret
+test.xorByteRegImm:
+  xorb $60, %dil
+  movb %dil, %al
+  ret
+test.xorByteRegs:
+  xorb %dil, %sil
+  movb %sil, %al
+  ret
+test.xorIntImmReg:
+  xorl $257, %edi
+  movl %edi, %eax
+  ret
+test.xorIntRegImm:
+  xorl $257, %edi
+  movl %edi, %eax
+  ret
+test.xorIntRegs:
+  xorl %edi, %esi
+  movl %esi, %eax
+  ret
+test.xorLongImmReg:
+  movq $2147483648, %rax
+  xorq %rax, %rdi
+  movq %rdi, %rax
+  ret
+test.xorLongRegImm:
+  movq $2147483648, %rax
+  xorq %rdi, %rax
+  ret
+test.xorLongRegs:
+  xorq %rdi, %rsi
+  movq %rsi, %rax
+  ret

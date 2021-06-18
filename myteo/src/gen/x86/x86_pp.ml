@@ -296,8 +296,7 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_mem ~size src_mem;
         pp_args_separator ();
         pp_mem ~size dest_mem
-      | AndIM (imm, dest_mem) ->
-        let size = size_of_immediate imm in
+      | AndIM (size, imm, dest_mem) ->
         pp_sized_op "and" size;
         pp_immediate imm;
         pp_args_separator ();
@@ -307,8 +306,7 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_mem ~size src_mem;
         pp_args_separator ();
         pp_mem ~size dest_mem
-      | OrIM (imm, dest_mem) ->
-        let size = size_of_immediate imm in
+      | OrIM (size, imm, dest_mem) ->
         pp_sized_op "or" size;
         pp_immediate imm;
         pp_args_separator ();
@@ -318,14 +316,18 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_mem ~size src_mem;
         pp_args_separator ();
         pp_mem ~size dest_mem
+      | XorIM (size, imm, dest_mem) ->
+        pp_sized_op "xor" size;
+        pp_immediate imm;
+        pp_args_separator ();
+        pp_mem ~size dest_mem
       (* Comparisons - arguments intentionally flipped *)
       | CmpMM (size, mem1, mem2) ->
         pp_sized_op "cmp" size;
         pp_mem ~size mem2;
         pp_args_separator ();
         pp_mem ~size mem1
-      | CmpMI (mem, imm) ->
-        let size = size_of_immediate imm in
+      | CmpMI (size, mem, imm) ->
         pp_sized_op "cmp" size;
         pp_immediate imm;
         pp_args_separator ();

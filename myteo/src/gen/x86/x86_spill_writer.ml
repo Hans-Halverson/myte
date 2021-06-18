@@ -72,15 +72,19 @@ class spill_writer ~gcx =
             IMulMIR (size, this#resolve_mem src_mem, src_imm, dest_reg'))
       | IDiv (size, mem) -> mk_single (IDiv (size, this#resolve_mem mem))
       | NotM (size, mem) -> mk_single (NotM (size, this#resolve_mem mem))
-      | AndIM (src_imm, dest_mem) -> mk_single (AndIM (src_imm, this#resolve_mem dest_mem))
+      | AndIM (size, src_imm, dest_mem) ->
+        mk_single (AndIM (size, src_imm, this#resolve_mem dest_mem))
       | AndMM (size, src_mem, dest_mem) ->
         resolve_binop_single_mem size src_mem dest_mem (fun s d -> AndMM (size, s, d))
-      | OrIM (src_imm, dest_mem) -> mk_single (OrIM (src_imm, this#resolve_mem dest_mem))
+      | OrIM (size, src_imm, dest_mem) ->
+        mk_single (OrIM (size, src_imm, this#resolve_mem dest_mem))
       | OrMM (size, src_mem, dest_mem) ->
         resolve_binop_single_mem size src_mem dest_mem (fun s d -> OrMM (size, s, d))
+      | XorIM (size, src_imm, dest_mem) ->
+        mk_single (XorIM (size, src_imm, this#resolve_mem dest_mem))
       | XorMM (size, src_mem, dest_mem) ->
         resolve_binop_single_mem size src_mem dest_mem (fun s d -> XorMM (size, s, d))
-      | CmpMI (mem, imm) -> mk_single (CmpMI (this#resolve_mem mem, imm))
+      | CmpMI (size, mem, imm) -> mk_single (CmpMI (size, this#resolve_mem mem, imm))
       | CmpMM (size, src_mem, dest_mem) ->
         resolve_binop_single_mem size src_mem dest_mem (fun s d -> CmpMM (size, s, d))
       | TestMR (size, mem, reg) ->

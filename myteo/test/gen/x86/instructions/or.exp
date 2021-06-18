@@ -1,0 +1,42 @@
+  .global _main
+
+  .text
+_main:
+  ret
+test.orByteImmReg:
+  orb $60, %dil
+  movb %dil, %al
+  ret
+test.orByteRegImm:
+  orb $60, %dil
+  movb %dil, %al
+  ret
+test.orByteRegs:
+  orb %dil, %sil
+  movb %sil, %al
+  ret
+test.orIntImmReg:
+  orl $257, %edi
+  movl %edi, %eax
+  ret
+test.orIntRegImm:
+  orl $257, %edi
+  movl %edi, %eax
+  ret
+test.orIntRegs:
+  orl %edi, %esi
+  movl %esi, %eax
+  ret
+test.orLongImmReg:
+  movq $2147483648, %rax
+  orq %rax, %rdi
+  movq %rdi, %rax
+  ret
+test.orLongRegImm:
+  movq $2147483648, %rax
+  orq %rdi, %rax
+  ret
+test.orLongRegs:
+  orq %rdi, %rsi
+  movq %rsi, %rax
+  ret

@@ -1,0 +1,17 @@
+  .global _main
+
+  .text
+_main:
+  ret
+test.notByteReg:
+  notb %dil
+  movb %dil, %al
+  ret
+test.notIntReg:
+  notl %edi
+  movl %edi, %eax
+  ret
+test.notLongReg:
+  notq %rdi
+  movq %rdi, %rax
+  ret

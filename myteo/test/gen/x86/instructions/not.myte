@@ -1,0 +1,7 @@
+module test
+
+fun notByteReg(x: Byte): Byte = !x
+fun notIntReg(x: Int): Int = !x
+fun notLongReg(x: Long): Long = !x
+
+fun main() {}

@@ -1,0 +1,42 @@
+  .global _main
+
+  .text
+test.andByteImmReg:
+  andb $60, %dil
+  movb %dil, %al
+  ret
+test.andByteRegImm:
+  andb $60, %dil
+  movb %dil, %al
+  ret
+test.andByteRegs:
+  andb %dil, %sil
+  movb %sil, %al
+  ret
+test.andIntImmReg:
+  andl $257, %edi
+  movl %edi, %eax
+  ret
+test.andIntRegImm:
+  andl $257, %edi
+  movl %edi, %eax
+  ret
+test.andIntRegs:
+  andl %edi, %esi
+  movl %esi, %eax
+  ret
+test.andLongImmReg:
+  movq $2147483648, %rax
+  andq %rax, %rdi
+  movq %rdi, %rax
+  ret
+test.andLongRegImm:
+  movq $2147483648, %rax
+  andq %rdi, %rax
+  ret
+test.andLongRegs:
+  andq %rdi, %rsi
+  movq %rsi, %rax
+  ret
+_main:
+  ret
