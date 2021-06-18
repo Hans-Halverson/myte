@@ -14,16 +14,11 @@ module BlockBuilder = struct
   }
 end
 
-(* module PendingFunctionInstantiation = struct
-  type t = {
-    type_param_bindings: Types.t IMap.t;
-  }
-end *)
-
 (* Break block id and continue block id for a loop *)
 type loop_context = Block.id * Block.id
 
 type t = {
+  pcx: Program_context.t;
   (* Data structures for MIR *)
   mutable main_id: Block.id;
   mutable blocks: BlockBuilder.t IMap.t;
@@ -55,8 +50,9 @@ type t = {
   mutable func_decl_nodes: Ast.Function.t SMap.t;
 }
 
-let mk () =
+let mk ~pcx =
   {
+    pcx;
     main_id = 0;
     blocks = IMap.empty;
     globals = SMap.empty;
@@ -310,18 +306,16 @@ and add_aggregate ~ecx agg =
    concrete type if we are generating an instantiation of a generic function.
   
    Every rep type that is a type parameter is guaranteed to have a concrete type substituted for it. *)
-let find_rep_non_generic_type ~ecx ~pcx ty =
-  let ty = Type_context.find_rep_type ~cx:pcx.Program_context.type_ctx ty in
+let find_rep_non_generic_type ~ecx ty =
+  let ty = Type_context.find_rep_type ~cx:ecx.pcx.Program_context.type_ctx ty in
   if IMap.is_empty ecx.current_type_param_bindings then
     ty
   else
     Types.substitute_type_params ecx.current_type_param_bindings ty
 
-let add_necessary_func_instantiation ~ecx ~pcx name type_params arg_tvar_ids =
+let add_necessary_func_instantiation ~ecx name type_params arg_tvar_ids =
   let arg_rep_tys =
-    List.map
-      (fun arg_tvar_id -> find_rep_non_generic_type ~ecx ~pcx (TVar arg_tvar_id))
-      arg_tvar_ids
+    List.map (fun arg_tvar_id -> find_rep_non_generic_type ~ecx (TVar arg_tvar_id)) arg_tvar_ids
   in
   let arg_mir_tys = List.map (fun arg_rep_ty -> to_mir_type ~ecx arg_rep_ty) arg_rep_tys in
   let name_with_args =

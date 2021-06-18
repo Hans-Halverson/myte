@@ -352,7 +352,7 @@ and map_to_ssa ~pcx ~ecx ~cx program =
               let node = get_node ~cx node_id in
               let binding = Type_context.get_value_binding ~cx:pcx.type_ctx decl_loc in
               let var_decl = Bindings.get_var_decl binding in
-              let mir_type = Emit.type_to_mir_type ~pcx ~ecx (Types.TVar var_decl.tvar_id) in
+              let mir_type = Emit.type_to_mir_type ~ecx (Types.TVar var_decl.tvar_id) in
               let var_id = Option.get node.realized in
               let args = gather_phi_var_ids node_id in
               (mir_type, var_id, args) :: phis)
