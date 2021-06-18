@@ -21,8 +21,8 @@ class instruction_visitor =
         visit_write_mem write_mem
       | NegM (_, read_write_mem)
       | NotM (_, read_write_mem)
-      | AddIM (_, read_write_mem, _)
-      | SubIM (_, read_write_mem, _)
+      | AddIM (_, _, read_write_mem)
+      | SubIM (_, _, read_write_mem)
       | AndIM (_, read_write_mem)
       | OrIM (_, read_write_mem) ->
         visit_read_mem read_write_mem;
@@ -33,7 +33,7 @@ class instruction_visitor =
       | MovMM (_, read_mem, write_mem) ->
         visit_read_mem read_mem;
         visit_write_mem write_mem
-      | IMulMIR (read_mem, _, write_vreg) ->
+      | IMulMIR (_, read_mem, _, write_vreg) ->
         visit_read_mem read_mem;
         visit_write_vreg write_vreg
       | AddMM (_, read_mem, read_write_mem)

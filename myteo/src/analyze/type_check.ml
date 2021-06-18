@@ -1108,7 +1108,7 @@ let resolve_unresolved_int_literals ~cx =
         List.fold_left
           (fun resolved_ty (_, value) ->
             match value with
-            | Some value when Integers.is_out_of_int_range value -> Types.Long
+            | Some value when Integers.is_out_of_signed_int_range value -> Types.Long
             | Some _
             | None ->
               resolved_ty)

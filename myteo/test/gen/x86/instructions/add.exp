@@ -1,0 +1,50 @@
+  .global _main
+
+  .text
+test.addByteImm:
+  addb $60, %dil
+  movb %dil, %al
+  ret
+test.addByteImm2:
+  addb $60, %dil
+  movb %dil, %al
+  ret
+test.addByteRegs:
+  addb %dil, %sil
+  movb %sil, %al
+  ret
+test.addIntByteImm:
+  addl $60, %edi
+  movl %edi, %eax
+  ret
+test.addIntIntImm:
+  addl $257, %edi
+  movl %edi, %eax
+  ret
+test.addIntRegs:
+  addl %edi, %esi
+  movl %esi, %eax
+  ret
+test.addLongByteImm:
+  addq $60, %rdi
+  movq %rdi, %rax
+  ret
+test.addLongIntImm:
+  addq $257, %rdi
+  movq %rdi, %rax
+  ret
+test.addLongLongImm:
+  movq $2147483648, %rax
+  addq %rdi, %rax
+  ret
+test.addLongLongImm2:
+  movq $2147483648, %rax
+  addq %rax, %rdi
+  movq %rdi, %rax
+  ret
+test.addLongRegs:
+  addq %rdi, %rsi
+  movq %rsi, %rax
+  ret
+_main:
+  ret

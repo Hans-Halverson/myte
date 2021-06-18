@@ -257,7 +257,7 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_mem ~size src_mem;
         pp_args_separator ();
         pp_mem ~size dest_mem
-      | AddIM (imm, dest_mem, size) ->
+      | AddIM (size, imm, dest_mem) ->
         pp_sized_op "add" size;
         pp_immediate imm;
         pp_args_separator ();
@@ -267,7 +267,7 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_mem ~size src_mem;
         pp_args_separator ();
         pp_mem ~size dest_mem
-      | SubIM (imm, dest_mem, size) ->
+      | SubIM (size, imm, dest_mem) ->
         pp_sized_op "sub" size;
         pp_immediate imm;
         pp_args_separator ();
@@ -277,12 +277,11 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_mem ~size src_mem;
         pp_args_separator ();
         pp_register ~size dest_reg
-      | IMulMIR (src_mem, imm, dest_reg) ->
-        let size = size_of_immediate imm in
+      | IMulMIR (size, src_mem, imm, dest_reg) ->
         pp_sized_op "imul" size;
-        pp_mem ~size src_mem;
-        pp_args_separator ();
         pp_immediate imm;
+        pp_args_separator ();
+        pp_mem ~size src_mem;
         pp_args_separator ();
         pp_register ~size dest_reg
       | IDiv (size, mem) ->

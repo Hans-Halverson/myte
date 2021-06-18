@@ -32,7 +32,7 @@ let rec gen ~gcx (ir : ssa_program) =
 
 and gen_global_instruction_builder ~gcx ~ir global init_func =
   let open Instruction in
-  let init_val_info = resolve_ir_value ~func:init_func.id global.init_val in
+  let init_val_info = resolve_ir_value ~gcx ~func:init_func.id global.init_val in
   match init_val_info with
   | SImm imm ->
     (* Global is initialized to immediate, so insert into initialized data section *)
@@ -138,7 +138,9 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   let gen_instructions = gen_instructions ~gcx ~ir ~func ~block in
   let vreg_of_var var_id = VReg.of_var_id ~resolution:Unresolved ~func:(Some func) var_id in
   let mk_vreg () = VReg.mk ~resolution:Unresolved ~func:(Some func) in
-  let resolve_ir_value v = resolve_ir_value ~func (v :> var_id Value.t) in
+  let resolve_ir_value ?(allowImm64 = false) v =
+    resolve_ir_value ~gcx ~func ~allowImm64 (v :> var_id Value.t)
+  in
   let is_cond_jump var_id =
     match block.next with
     | Branch { test = `BoolV test_var_id; _ } when test_var_id = var_id -> true
@@ -246,7 +248,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   | Mir.Instruction.Mov (dest_var_id, value) :: rest_instructions ->
     let dest_vreg = vreg_of_var dest_var_id in
     let instr =
-      match resolve_ir_value value with
+      match resolve_ir_value ~allowImm64:true value with
       | SImm imm -> MovIM (imm, Reg dest_vreg)
       | SAddr addr -> Lea (Size64, addr, dest_vreg)
       | SMem (mem, size) -> MovMM (size, Mem mem, Reg dest_vreg)
@@ -266,11 +268,6 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     List.iter
       (fun arg_val ->
         match resolve_ir_value arg_val with
-        (* Push does not support 64-bit immediates. Must instead load in register first. *)
-        | SImm (Imm64 _ as imm) ->
-          let vreg = mk_vreg () in
-          Gcx.emit ~gcx (MovIM (imm, Reg vreg));
-          Gcx.emit ~gcx (PushM (Reg vreg))
         | SImm imm -> Gcx.emit ~gcx (PushI imm)
         (* Address must be calculated in a register and then pushed onto stack *)
         | SAddr addr ->
@@ -310,7 +307,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       Gcx.emit
         ~gcx
         (AddIM
-           (Imm32 (Int32.of_int (num_stack_arg_vals * 8)), Reg (Gcx.mk_precolored ~gcx SP), Size64));
+           (Size64, Imm32 (Int32.of_int (num_stack_arg_vals * 8)), Reg (Gcx.mk_precolored ~gcx SP)));
     (* Move result from register A to return vreg *)
     let return_size = size_of_mir_value_type ret_ty in
     Gcx.emit
@@ -376,10 +373,10 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm imm, other)
     | (other, SImm imm) ->
+      let size = size_of_svalue other in
       let other_mem = emit_mem other in
-      let size = size_of_immediate imm in
       Gcx.emit ~gcx (MovMM (size, other_mem, Reg result_vreg));
-      Gcx.emit ~gcx (AddIM (imm, Reg result_vreg, size))
+      Gcx.emit ~gcx (AddIM (size, imm, Reg result_vreg))
     | (v1, v2) ->
       let size = size_of_svalue v1 in
       let (v1, v2) = choose_commutative_source_dest_arg_order v1 v2 in
@@ -400,12 +397,12 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     | (SImm left_imm, right) ->
       let right_mem = emit_mem right in
       Gcx.emit ~gcx (MovIM (left_imm, Reg result_vreg));
-      Gcx.emit ~gcx (SubMM (size_of_immediate left_imm, right_mem, Reg result_vreg))
+      Gcx.emit ~gcx (SubMM (size_of_svalue right, right_mem, Reg result_vreg))
     | (left, SImm right_imm) ->
       let left_mem = emit_mem left in
-      let size = size_of_immediate right_imm in
+      let size = size_of_svalue left in
       Gcx.emit ~gcx (MovMM (size, left_mem, Reg result_vreg));
-      Gcx.emit ~gcx (SubIM (right_imm, Reg result_vreg, size))
+      Gcx.emit ~gcx (SubIM (size, right_imm, Reg result_vreg))
     | (left, right) ->
       let left_mem = emit_mem left in
       let right_mem = emit_mem right in
@@ -424,10 +421,11 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm imm, other)
     | (other, SImm imm) ->
+      let size = min_size16 (size_of_svalue other) in
       let other_mem = emit_mem other in
-      Gcx.emit ~gcx (IMulMIR (other_mem, imm, result_vreg))
+      Gcx.emit ~gcx (IMulMIR (size, other_mem, imm, result_vreg))
     | (v1, v2) ->
-      let size = size_of_svalue v1 in
+      let size = min_size16 (size_of_svalue v1) in
       let (v1, v2) = choose_commutative_source_dest_arg_order v1 v2 in
       let mem1 = emit_mem v1 in
       let mem2 = emit_mem v2 in
@@ -446,23 +444,23 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       match (resolve_ir_value left_val, resolve_ir_value right_val) with
       | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
       | (SImm dividend_imm, divisor) ->
+        let size = size_of_svalue divisor in
         let divisor_mem = emit_mem divisor in
-        let size = size_of_immediate dividend_imm in
         Gcx.emit ~gcx (MovIM (dividend_imm, Reg precolored_a));
         Gcx.emit ~gcx (IDiv (size, divisor_mem));
         size
       | (dividend, SImm divisor_imm) ->
+        let size = size_of_svalue dividend in
         let dividend_mem = emit_mem dividend in
         let divisor_vreg = mk_vreg () in
-        let size = size_of_immediate divisor_imm in
         Gcx.emit ~gcx (MovMM (size, dividend_mem, Reg precolored_a));
         Gcx.emit ~gcx (MovIM (divisor_imm, Reg divisor_vreg));
         Gcx.emit ~gcx (IDiv (size, Reg divisor_vreg));
         size
       | (dividend, divisor) ->
+        let size = size_of_svalue dividend in
         let dividend_mem = emit_mem dividend in
         let divisor_mem = emit_mem divisor in
-        let size = size_of_svalue dividend in
         Gcx.emit ~gcx (MovMM (size, dividend_mem, Reg precolored_a));
         Gcx.emit ~gcx (IDiv (size, divisor_mem));
         size
@@ -601,7 +599,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     gen_instructions rest_instructions
   | _ -> failwith "TODO: Implement generation of virtual assembly from this instruction"
 
-and resolve_ir_value ~func value =
+and resolve_ir_value ~gcx ~func ?(allowImm64 = false) value =
   let vreg_of_var var_id size =
     let vreg = VReg.of_var_id ~resolution:Unresolved ~func:(Some func) var_id in
     match vreg.resolution with
@@ -619,13 +617,29 @@ and resolve_ir_value ~func value =
          else
            0 ))
   | `BoolV var_id -> vreg_of_var var_id Size8
-  | `IntL i -> SImm (Imm32 i)
+  | `ByteL b -> SImm (Imm8 b)
+  | `ByteV var_id -> vreg_of_var var_id Size8
+  (* Int literals can be downgraded to an 8 byte literal if they fit *)
+  | `IntL i ->
+    if Int32.compare i (Int32.of_int 128) = -1 && Int32.compare (Int32.of_int (-129)) i = 1 then
+      SImm (Imm8 (Int32.to_int i))
+    else
+      SImm (Imm32 i)
   | `IntV var_id -> vreg_of_var var_id Size32
-  | `ByteL _
-  | `ByteV _
-  | `LongL _
-  | `LongV _ ->
-    failwith "TODO: Implement virtual asm gen for non-int integer types"
+  (* Long literals can be downgraded to an 8 or byte int literal if they fit. Otherwise 64 bit
+     literal must first be loaded to a register with a mov instruction. *)
+  | `LongL l ->
+    if not (Integers.is_out_of_signed_byte_range l) then
+      SImm (Imm8 (Int64.to_int l))
+    else if not (Integers.is_out_of_signed_int_range l) then
+      SImm (Imm32 (Int64.to_int32 l))
+    else if allowImm64 then
+      SImm (Imm64 l)
+    else
+      let vreg = VReg.mk ~resolution:Unresolved ~func:(Some func) in
+      Gcx.emit ~gcx Instruction.(MovIM (Imm64 l, Reg vreg));
+      SVReg (vreg, Size64)
+  | `LongV var_id -> vreg_of_var var_id Size64
   | `FunctionL name -> SAddr (mk_label_memory_address name)
   | `FunctionV var_id -> vreg_of_var var_id Size64
   | `StringL _
@@ -656,6 +670,11 @@ and size_of_svalue value =
   | SVReg (_, size) -> size
   | SMem (_, size) -> size
   | SAddr _ -> Size64
+
+and min_size16 size =
+  match size with
+  | Size8 -> Size16
+  | _ -> size
 
 and mk_label_memory_address label =
   PhysicalAddress { offset = Some (LabelOffset label); base = None; index_and_scale = None }

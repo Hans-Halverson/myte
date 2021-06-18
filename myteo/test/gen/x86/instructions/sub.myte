@@ -1,0 +1,16 @@
+module test
+
+fun subByteRegs(x: Byte, y: Byte): Byte = x - y
+fun subByteRegImm(x: Byte): Byte = x - 63
+fun subByteImmReg(x: Byte): Byte = 63 - x
+
+fun subIntRegs(x: Int, y: Int): Int = x - y
+fun subIntRegImm(x: Int): Int = x - 257
+fun subIntImmReg(x: Int): Int = 257 - x
+
+fun subLongRegs(x: Long, y: Long): Long = x - y
+// First have to load long to register
+fun subLongRegImm(x: Long): Long = x - 2147483648
+fun subLongImmReg(x: Long): Long = 2147483648 - x
+
+fun main() {}

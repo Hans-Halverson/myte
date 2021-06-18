@@ -1,0 +1,38 @@
+  .global _main
+
+  .text
+_main:
+  ret
+test.mulByteImmReg:
+  imulw $60, %di, %ax
+  ret
+test.mulByteRegImm:
+  imulw $60, %di, %ax
+  ret
+test.mulByteRegs:
+  imulw %di, %si
+  movb %sil, %al
+  ret
+test.mulIntImmReg:
+  imull $257, %edi, %eax
+  ret
+test.mulIntRegImm:
+  imull $257, %edi, %eax
+  ret
+test.mulIntRegs:
+  imull %edi, %esi
+  movl %esi, %eax
+  ret
+test.mulLongImmReg:
+  movq $2147483648, %rax
+  imulq %rax, %rdi
+  movq %rdi, %rax
+  ret
+test.mulLongRegImm:
+  movq $2147483648, %rax
+  imulq %rdi, %rax
+  ret
+test.mulLongRegs:
+  imulq %rdi, %rsi
+  movq %rsi, %rax
+  ret

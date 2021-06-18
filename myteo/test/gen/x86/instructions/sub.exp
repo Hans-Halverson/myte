@@ -1,0 +1,42 @@
+  .global _main
+
+  .text
+_main:
+  ret
+test.subByteImmReg:
+  movb $63, %al
+  subb %dil, %al
+  ret
+test.subByteRegImm:
+  subb $63, %dil
+  movb %dil, %al
+  ret
+test.subByteRegs:
+  subb %sil, %dil
+  movb %dil, %al
+  ret
+test.subIntImmReg:
+  movl $257, %eax
+  subl %edi, %eax
+  ret
+test.subIntRegImm:
+  subl $257, %edi
+  movl %edi, %eax
+  ret
+test.subIntRegs:
+  subl %esi, %edi
+  movl %edi, %eax
+  ret
+test.subLongImmReg:
+  movq $2147483648, %rax
+  subq %rdi, %rax
+  ret
+test.subLongRegImm:
+  movq $2147483648, %rax
+  subq %rax, %rdi
+  movq %rdi, %rax
+  ret
+test.subLongRegs:
+  subq %rsi, %rdi
+  movq %rdi, %rax
+  ret

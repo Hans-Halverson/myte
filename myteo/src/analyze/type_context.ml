@@ -100,8 +100,8 @@ let resolve_int_literal ~cx lit_ty ty =
         | None -> true
         | Some value ->
           (match ty with
-          | Byte -> Integers.is_out_of_byte_range value
-          | Int -> Integers.is_out_of_int_range value
+          | Byte -> Integers.is_out_of_signed_byte_range value
+          | Int -> Integers.is_out_of_signed_int_range value
           | Long -> false
           | _ -> failwith "Int literal must be resolved to an int")
       in

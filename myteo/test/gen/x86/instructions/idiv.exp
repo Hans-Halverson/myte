@@ -1,0 +1,44 @@
+  .global _main
+
+  .text
+test.divByteImmReg:
+  movb $60, %al
+  idivb %dil
+  ret
+test.divByteRegImm:
+  movb %dil, %al
+  movb $60, %cl
+  idivb %cl
+  ret
+test.divByteRegs:
+  movb %dil, %al
+  idivb %sil
+  ret
+test.divIntImmReg:
+  movl $257, %eax
+  idivl %edi
+  ret
+test.divIntRegImm:
+  movl %edi, %eax
+  movl $257, %ecx
+  idivl %ecx
+  ret
+test.divIntRegs:
+  movl %edi, %eax
+  idivl %esi
+  ret
+test.divLongImmReg:
+  movq $2147483648, %rax
+  idivq %rdi
+  ret
+test.divLongRegImm:
+  movq $2147483648, %rcx
+  movq %rdi, %rax
+  idivq %rcx
+  ret
+test.divLongRegs:
+  movq %rdi, %rax
+  idivq %rsi
+  ret
+_main:
+  ret
