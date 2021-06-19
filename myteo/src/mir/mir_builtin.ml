@@ -5,7 +5,7 @@ open Mir
 
    Allocate space for `count` adjacent values of type `T`
  *)
-let myte_alloc = { Builtin.name = "myte.myte_alloc"; mk_return_ty = (fun ty -> `PointerT ty) }
+let myte_alloc = { Builtin.name = "myte_alloc"; mk_return_ty = (fun ty -> `PointerT ty) }
 
 let mk_call_builtin builtin var_id args mk_return_ty_args =
   let open Builtin in

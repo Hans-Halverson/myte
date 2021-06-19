@@ -2,8 +2,6 @@
 - Strings added to stdlib with struct type, and special literal asm representation
 - Optimize single element tuples or records to unwrapped values
 - Ternary operator type checking
-- Generate asm for bitwise ops
-- Generate asm for bytes and longs
 - Generate asm for structs and tuples
 - Correct array GetElement accesses - allow for value types (agg literals)
 - Create reference vs value types (potentially <2 words is a value type, anything mutable is ref)

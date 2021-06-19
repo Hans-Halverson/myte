@@ -11,17 +11,17 @@ type test.Rec2 {bool, long, int}
 type test.Rec3 {byte, test.Tup2*, byte}
 
 func unit @test.arguments(int %0) {
-  %1 := CallBuiltin test.Tup2* myte.myte_alloc(1)
+  %1 := CallBuiltin test.Tup2* myte_alloc(1)
   %2 := GetPointer bool %1.0
   Store bool %2, true
   %3 := GetPointer long %1.1
   Store long %3, 3
   %4 := GetPointer int %1.2
   Store int %4, %0
-  %5 := CallBuiltin test.Tup3* myte.myte_alloc(1)
+  %5 := CallBuiltin test.Tup3* myte_alloc(1)
   %6 := GetPointer byte %5.0
   Store byte %6, 6
-  %7 := CallBuiltin test.Tup2* myte.myte_alloc(1)
+  %7 := CallBuiltin test.Tup2* myte_alloc(1)
   %8 := GetPointer bool %7.0
   Store bool %8, false
   %9 := GetPointer long %7.1
@@ -32,10 +32,10 @@ func unit @test.arguments(int %0) {
   Store test.Tup2* %11, %7
   %12 := GetPointer byte %5.2
   Store byte %12, 9
-  %13 := CallBuiltin test.Rec3* myte.myte_alloc(1)
+  %13 := CallBuiltin test.Rec3* myte_alloc(1)
   %14 := GetPointer byte %13.0
   Store byte %14, 6
-  %15 := CallBuiltin test.Tup2* myte.myte_alloc(1)
+  %15 := CallBuiltin test.Tup2* myte_alloc(1)
   %16 := GetPointer bool %15.0
   Store bool %16, false
   %17 := GetPointer long %15.1
@@ -50,10 +50,10 @@ func unit @test.arguments(int %0) {
 }
 
 func unit @test.tupleConstructor() {
-  %21 := CallBuiltin test.Tup1* myte.myte_alloc(1)
+  %21 := CallBuiltin test.Tup1* myte_alloc(1)
   %22 := GetPointer int %21.0
   Store int %22, 3
-  %23 := CallBuiltin test.Tup2* myte.myte_alloc(1)
+  %23 := CallBuiltin test.Tup2* myte_alloc(1)
   %24 := GetPointer bool %23.0
   Store bool %24, true
   %25 := GetPointer long %23.1
@@ -64,17 +64,17 @@ func unit @test.tupleConstructor() {
 }
 
 func unit @test.recordConstructor() {
-  %27 := CallBuiltin test.Rec1* myte.myte_alloc(1)
+  %27 := CallBuiltin test.Rec1* myte_alloc(1)
   %28 := GetPointer int %27.0
   Store int %28, 3
-  %29 := CallBuiltin test.Rec2* myte.myte_alloc(1)
+  %29 := CallBuiltin test.Rec2* myte_alloc(1)
   %30 := GetPointer bool %29.0
   Store bool %30, true
   %31 := GetPointer long %29.1
   Store long %31, 4
   %32 := GetPointer int %29.2
   Store int %32, 5
-  %33 := CallBuiltin test.Rec2* myte.myte_alloc(1)
+  %33 := CallBuiltin test.Rec2* myte_alloc(1)
   %34 := GetPointer int %33.2
   Store int %34, 6
   %35 := GetPointer bool %33.0
