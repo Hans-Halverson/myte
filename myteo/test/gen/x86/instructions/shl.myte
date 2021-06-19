@@ -1,0 +1,26 @@
+module test
+
+fun shlByteRegs(x: Byte, y: Byte): Byte = x << y
+fun shlByteImmReg(x: Byte): Byte = 6 << x
+fun shlByteRegImm(x: Byte): Byte = x << 6
+
+fun shlIntRegs(x: Int, y: Int): Int = x << y
+fun shlIntRegImm(x: Int): Int = x << 257
+fun shlIntImmReg(x: Int): Int = 257 << x
+
+// Testing reduction of immediate to byte
+fun shlIntRegByteImm(x: Int): Int = x << 6
+fun shlIntByteImmReg(x: Int): Int = 6 << x
+
+fun shlLongRegs(x: Long, y: Long): Long = x << y
+/// First have to load long to register
+fun shlLongRegImm(x: Long): Long = x << 2147483648
+fun shlLongImmReg(x: Long): Long = 2147483648 << x
+
+// Testing reduction of immediate to byte or int
+fun shlLongRegByteImm(x: Long): Long = x << 6
+fun shlLongByteImmReg(x: Long): Long = 6 << x
+fun shlLongRegIntImm(x: Long): Long = x << 257
+fun shlLongIntImmReg(x: Long): Long = 257 << x
+
+fun main() {}

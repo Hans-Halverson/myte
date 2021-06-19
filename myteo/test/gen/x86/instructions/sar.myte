@@ -1,0 +1,16 @@
+module test
+
+fun sarByteRegs(x: Byte, y: Byte): Byte = x >> y
+fun sarByteImmReg(x: Byte): Byte = 6 >> x
+fun sarByteRegImm(x: Byte): Byte = x >> 6
+
+fun sarIntRegs(x: Int, y: Int): Int = x >> y
+fun sarIntRegImm(x: Int): Int = x >> 257
+fun sarIntImmReg(x: Int): Int = 257 >> x
+
+fun sarLongRegs(x: Long, y: Long): Long = x >> y
+/// First have to load long to register
+fun sarLongRegImm(x: Long): Long = x >> 2147483648
+fun sarLongImmReg(x: Long): Long = 2147483648 >> x
+
+fun main() {}

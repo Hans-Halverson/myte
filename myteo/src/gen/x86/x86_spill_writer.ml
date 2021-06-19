@@ -84,6 +84,15 @@ class spill_writer ~gcx =
         mk_single (XorIM (size, src_imm, this#resolve_mem dest_mem))
       | XorMM (size, src_mem, dest_mem) ->
         resolve_binop_single_mem size src_mem dest_mem (fun s d -> XorMM (size, s, d))
+      | ShlI (size, src_imm, dest_mem) ->
+        mk_single (ShlI (size, src_imm, this#resolve_mem dest_mem))
+      | ShlR (size, dest_mem) -> mk_single (ShlR (size, this#resolve_mem dest_mem))
+      | ShrI (size, src_imm, dest_mem) ->
+        mk_single (ShrI (size, src_imm, this#resolve_mem dest_mem))
+      | ShrR (size, dest_mem) -> mk_single (ShrR (size, this#resolve_mem dest_mem))
+      | SarI (size, src_imm, dest_mem) ->
+        mk_single (SarI (size, src_imm, this#resolve_mem dest_mem))
+      | SarR (size, dest_mem) -> mk_single (SarR (size, this#resolve_mem dest_mem))
       | CmpMI (size, mem, imm) -> mk_single (CmpMI (size, this#resolve_mem mem, imm))
       | CmpMM (size, src_mem, dest_mem) ->
         resolve_binop_single_mem size src_mem dest_mem (fun s d -> CmpMM (size, s, d))

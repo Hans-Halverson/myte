@@ -321,6 +321,36 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_immediate imm;
         pp_args_separator ();
         pp_mem ~size dest_mem
+      | ShlR (size, dest_mem) ->
+        pp_sized_op "shl" size;
+        pp_register ~size:Size8 (Gcx.mk_precolored ~gcx C);
+        pp_args_separator ();
+        pp_mem ~size dest_mem
+      | ShlI (size, imm, dest_mem) ->
+        pp_sized_op "shl" size;
+        pp_immediate imm;
+        pp_args_separator ();
+        pp_mem ~size dest_mem
+      | ShrR (size, dest_mem) ->
+        pp_sized_op "shr" size;
+        pp_register ~size:Size8 (Gcx.mk_precolored ~gcx C);
+        pp_args_separator ();
+        pp_mem ~size dest_mem
+      | ShrI (size, imm, dest_mem) ->
+        pp_sized_op "shr" size;
+        pp_immediate imm;
+        pp_args_separator ();
+        pp_mem ~size dest_mem
+      | SarR (size, dest_mem) ->
+        pp_sized_op "sar" size;
+        pp_register ~size:Size8 (Gcx.mk_precolored ~gcx C);
+        pp_args_separator ();
+        pp_mem ~size dest_mem
+      | SarI (size, imm, dest_mem) ->
+        pp_sized_op "sar" size;
+        pp_immediate imm;
+        pp_args_separator ();
+        pp_mem ~size dest_mem
       (* Comparisons - arguments intentionally flipped *)
       | CmpMM (size, mem1, mem2) ->
         pp_sized_op "cmp" size;

@@ -25,7 +25,13 @@ class instruction_visitor =
       | SubIM (_, _, read_write_mem)
       | AndIM (_, _, read_write_mem)
       | OrIM (_, _, read_write_mem)
-      | XorIM (_, _, read_write_mem) ->
+      | XorIM (_, _, read_write_mem)
+      | ShlI (_, _, read_write_mem)
+      | ShrI (_, _, read_write_mem)
+      | SarI (_, _, read_write_mem)
+      | ShlR (_, read_write_mem)
+      | ShrR (_, read_write_mem)
+      | SarR (_, read_write_mem) ->
         visit_read_mem read_write_mem;
         visit_write_mem read_write_mem
       | CmpMM (_, read_mem1, read_mem2) ->

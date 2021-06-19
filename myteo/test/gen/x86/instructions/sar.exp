@@ -1,0 +1,49 @@
+  .global _main
+
+  .text
+_main:
+  ret
+test.sarByteImmReg:
+  movb %dil, %cl
+  movb $6, %al
+  sarb %cl, %al
+  ret
+test.sarByteRegImm:
+  sarb $6, %dil
+  movb %dil, %al
+  ret
+test.sarByteRegs:
+  movb %sil, %cl
+  sarb %cl, %dil
+  movb %dil, %al
+  ret
+test.sarIntImmReg:
+  movl %edi, %ecx
+  movl $257, %eax
+  sarl %cl, %eax
+  ret
+test.sarIntRegImm:
+  movl $257, %ecx
+  sarl %cl, %edi
+  movl %edi, %eax
+  ret
+test.sarIntRegs:
+  movl %esi, %ecx
+  sarl %cl, %edi
+  movl %edi, %eax
+  ret
+test.sarLongImmReg:
+  movq $2147483648, %rax
+  movq %rdi, %rcx
+  sarq %cl, %rax
+  ret
+test.sarLongRegImm:
+  movq $2147483648, %rcx
+  sarq %cl, %rdi
+  movq %rdi, %rax
+  ret
+test.sarLongRegs:
+  movq %rsi, %rcx
+  sarq %cl, %rdi
+  movq %rdi, %rax
+  ret

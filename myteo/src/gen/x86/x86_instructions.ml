@@ -188,6 +188,13 @@ module Instruction = struct
     | OrMM of size * 'reg memory * 'reg memory
     | XorIM of size * immediate * 'reg memory
     | XorMM of size * 'reg memory * 'reg memory
+    (* Bit shifts *)
+    | ShlI of size * immediate * 'reg memory (* Requires 8-bit immediate *)
+    | ShlR of size * 'reg memory
+    | ShrI of size * immediate * 'reg memory (* Requires 8-bit immediate *)
+    | ShrR of size * 'reg memory
+    | SarI of size * immediate * 'reg memory (* Requires 8-bit immediate *)
+    | SarR of size * 'reg memory
     (* Comparisons *)
     | CmpMI of size * 'reg memory * immediate
     | CmpMM of size * 'reg memory * 'reg memory

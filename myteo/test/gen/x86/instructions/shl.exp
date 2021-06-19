@@ -1,0 +1,78 @@
+  .global _main
+
+  .text
+_main:
+  ret
+test.shlByteImmReg:
+  movb %dil, %cl
+  movb $6, %al
+  shlb %cl, %al
+  ret
+test.shlByteRegImm:
+  shlb $6, %dil
+  movb %dil, %al
+  ret
+test.shlByteRegs:
+  movb %sil, %cl
+  shlb %cl, %dil
+  movb %dil, %al
+  ret
+test.shlIntByteImmReg:
+  movl %edi, %ecx
+  movl $6, %eax
+  shll %cl, %eax
+  ret
+test.shlIntImmReg:
+  movl %edi, %ecx
+  movl $257, %eax
+  shll %cl, %eax
+  ret
+test.shlIntRegByteImm:
+  movl $6, %ecx
+  shll %cl, %edi
+  movl %edi, %eax
+  ret
+test.shlIntRegImm:
+  movl $257, %ecx
+  shll %cl, %edi
+  movl %edi, %eax
+  ret
+test.shlIntRegs:
+  movl %esi, %ecx
+  shll %cl, %edi
+  movl %edi, %eax
+  ret
+test.shlLongByteImmReg:
+  movq $6, %rax
+  movq %rdi, %rcx
+  shlq %cl, %rax
+  ret
+test.shlLongImmReg:
+  movq $2147483648, %rax
+  movq %rdi, %rcx
+  shlq %cl, %rax
+  ret
+test.shlLongIntImmReg:
+  movq $257, %rax
+  movq %rdi, %rcx
+  shlq %cl, %rax
+  ret
+test.shlLongRegByteImm:
+  shlq $6, %rdi
+  movq %rdi, %rax
+  ret
+test.shlLongRegImm:
+  movq $2147483648, %rcx
+  shlq %cl, %rdi
+  movq %rdi, %rax
+  ret
+test.shlLongRegIntImm:
+  movl $257, %ecx
+  shlq %cl, %rdi
+  movq %rdi, %rax
+  ret
+test.shlLongRegs:
+  movq %rsi, %rcx
+  shlq %cl, %rdi
+  movq %rdi, %rax
+  ret
