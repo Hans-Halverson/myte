@@ -164,6 +164,32 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     | (_, SMem _) -> (v2, v1)
     | _ -> (v1, v2)
   in
+  let gen_idiv left_val right_val =
+    let precolored_a = Gcx.mk_precolored ~gcx A in
+    match (resolve_ir_value left_val, resolve_ir_value right_val) with
+    | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
+    | (SImm dividend_imm, divisor) ->
+      let size = size_of_svalue divisor in
+      let divisor_mem = emit_mem divisor in
+      Gcx.emit ~gcx (MovIM (dividend_imm, Reg precolored_a));
+      Gcx.emit ~gcx (IDiv (size, divisor_mem));
+      size
+    | (dividend, SImm divisor_imm) ->
+      let size = size_of_svalue dividend in
+      let dividend_mem = emit_mem dividend in
+      let divisor_vreg = mk_vreg () in
+      Gcx.emit ~gcx (MovMM (size, dividend_mem, Reg precolored_a));
+      Gcx.emit ~gcx (MovIM (divisor_imm, Reg divisor_vreg));
+      Gcx.emit ~gcx (IDiv (size, Reg divisor_vreg));
+      size
+    | (dividend, divisor) ->
+      let size = size_of_svalue dividend in
+      let dividend_mem = emit_mem dividend in
+      let divisor_mem = emit_mem divisor in
+      Gcx.emit ~gcx (MovMM (size, dividend_mem, Reg precolored_a));
+      Gcx.emit ~gcx (IDiv (size, divisor_mem));
+      size
+  in
   (* Generate a not instruction applied to a partiuclar argument *)
   let gen_not result_var_id arg =
     let resolved_value = resolve_ir_value arg in
@@ -528,32 +554,19 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   | Mir.Instruction.Div (result_var_id, left_val, right_val) :: rest_instructions ->
     let result_vreg = vreg_of_var result_var_id in
     let precolored_a = Gcx.mk_precolored ~gcx A in
-    let size =
-      match (resolve_ir_value left_val, resolve_ir_value right_val) with
-      | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
-      | (SImm dividend_imm, divisor) ->
-        let size = size_of_svalue divisor in
-        let divisor_mem = emit_mem divisor in
-        Gcx.emit ~gcx (MovIM (dividend_imm, Reg precolored_a));
-        Gcx.emit ~gcx (IDiv (size, divisor_mem));
-        size
-      | (dividend, SImm divisor_imm) ->
-        let size = size_of_svalue dividend in
-        let dividend_mem = emit_mem dividend in
-        let divisor_vreg = mk_vreg () in
-        Gcx.emit ~gcx (MovMM (size, dividend_mem, Reg precolored_a));
-        Gcx.emit ~gcx (MovIM (divisor_imm, Reg divisor_vreg));
-        Gcx.emit ~gcx (IDiv (size, Reg divisor_vreg));
-        size
-      | (dividend, divisor) ->
-        let size = size_of_svalue dividend in
-        let dividend_mem = emit_mem dividend in
-        let divisor_mem = emit_mem divisor in
-        Gcx.emit ~gcx (MovMM (size, dividend_mem, Reg precolored_a));
-        Gcx.emit ~gcx (IDiv (size, divisor_mem));
-        size
-    in
+    let size = gen_idiv left_val right_val in
     Gcx.emit ~gcx (MovMM (size, Reg precolored_a, Reg result_vreg));
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                   Rem
+   * ===========================================
+   *)
+  | Mir.Instruction.Rem (result_var_id, left_val, right_val) :: rest_instructions ->
+    let result_vreg = vreg_of_var result_var_id in
+    let precolored_d = Gcx.mk_precolored ~gcx D in
+    let size = gen_idiv left_val right_val in
+    Gcx.emit ~gcx (MovMM (size, Reg precolored_d, Reg result_vreg));
     gen_instructions rest_instructions
   (*
    * ===========================================

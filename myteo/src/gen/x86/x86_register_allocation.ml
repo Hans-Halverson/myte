@@ -94,7 +94,7 @@ module RegisterAllocator = struct
 
   class use_def_finder color_to_vreg =
     object
-      inherit X86_visitor.instruction_visitor as super
+      inherit X86_liveness_analysis.use_def_finder color_to_vreg
 
       val mutable vreg_uses = VRegSet.empty
 
@@ -108,24 +108,9 @@ module RegisterAllocator = struct
         vreg_uses <- VRegSet.empty;
         vreg_defs <- VRegSet.empty
 
-      method! visit_instruction ~block instr_with_id =
-        let open Instruction in
-        let (_, instr) = instr_with_id in
-        match instr with
-        | CallM _
-        | CallL _ ->
-          (* Calls define all caller save registers *)
-          RegSet.iter
-            (fun reg ->
-              let color_vreg = RegMap.find reg color_to_vreg in
-              vreg_defs <- VRegSet.add color_vreg vreg_defs)
-            caller_saved_registers;
-          super#visit_instruction ~block instr_with_id
-        | _ -> super#visit_instruction ~block instr_with_id
+      method! add_vreg_use ~block:_ vreg = vreg_uses <- VRegSet.add vreg vreg_uses
 
-      method! visit_read_vreg ~block:_ vreg = vreg_uses <- VRegSet.add vreg vreg_uses
-
-      method! visit_write_vreg ~block:_ vreg = vreg_defs <- VRegSet.add vreg vreg_defs
+      method! add_vreg_def ~block:_ vreg = vreg_defs <- VRegSet.add vreg vreg_defs
     end
 
   (* Add an interference edge between two virtual registers, also updating degree *)

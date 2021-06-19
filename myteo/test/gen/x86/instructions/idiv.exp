@@ -42,3 +42,51 @@ test.divLongRegs:
   ret
 _main:
   ret
+test.remByteImmReg:
+  movb $60, %al
+  idivb %dil
+  movb %dl, %al
+  ret
+test.remByteRegImm:
+  movb %dil, %al
+  movb $60, %cl
+  idivb %cl
+  movb %dl, %al
+  ret
+test.remByteRegs:
+  movb %dil, %al
+  idivb %sil
+  movb %dl, %al
+  ret
+test.remIntImmReg:
+  movl $257, %eax
+  idivl %edi
+  movl %edx, %eax
+  ret
+test.remIntRegImm:
+  movl %edi, %eax
+  movl $257, %ecx
+  idivl %ecx
+  movl %edx, %eax
+  ret
+test.remIntRegs:
+  movl %edi, %eax
+  idivl %esi
+  movl %edx, %eax
+  ret
+test.remLongImmReg:
+  movq $2147483648, %rax
+  idivq %rdi
+  movq %rdx, %rax
+  ret
+test.remLongRegImm:
+  movq $2147483648, %rcx
+  movq %rdi, %rax
+  idivq %rcx
+  movq %rdx, %rax
+  ret
+test.remLongRegs:
+  movq %rdi, %rax
+  idivq %rsi
+  movq %rdx, %rax
+  ret

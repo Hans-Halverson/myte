@@ -2,9 +2,47 @@ open Basic_collections
 open X86_gen_context
 open X86_instructions
 
-class analyze_vregs_init_visitor (blocks : virtual_block List.t) color_to_vreg =
+class use_def_finder color_to_vreg =
   object (this)
     inherit X86_visitor.instruction_visitor as super
+
+    method add_vreg_use ~block:_ _vreg = ()
+
+    method add_vreg_def ~block:_ _vreg = ()
+
+    method get_precolored_vreg reg = RegMap.find reg color_to_vreg
+
+    method! visit_instruction ~block instr_with_id =
+      let open Instruction in
+      let (_, instr) = instr_with_id in
+      match instr with
+      (* Calls define all caller save registers *)
+      | CallM _
+      | CallL _ ->
+        RegSet.iter
+          (fun reg ->
+            let color_vreg = RegMap.find reg color_to_vreg in
+            this#add_vreg_def ~block color_vreg)
+          caller_saved_registers;
+        super#visit_instruction ~block instr_with_id
+      (* IDiv uses the value in register A and writes to registers A and D *)
+      | IDiv _ ->
+        let reg_a = this#get_precolored_vreg A in
+        let reg_d = this#get_precolored_vreg D in
+        this#add_vreg_use ~block reg_a;
+        this#add_vreg_def ~block reg_a;
+        this#add_vreg_def ~block reg_d;
+        super#visit_instruction ~block instr_with_id
+      | _ -> super#visit_instruction ~block instr_with_id
+
+    method! visit_read_vreg ~block vreg = this#add_vreg_use ~block vreg
+
+    method! visit_write_vreg ~block vreg = this#add_vreg_def ~block vreg
+  end
+
+class analyze_vregs_init_visitor (blocks : virtual_block List.t) color_to_vreg =
+  object (this)
+    inherit use_def_finder color_to_vreg
 
     val mutable prev_blocks =
       List.fold_left (fun acc block -> IMap.add block.Block.id ISet.empty acc) IMap.empty blocks
@@ -31,33 +69,16 @@ class analyze_vregs_init_visitor (blocks : virtual_block List.t) color_to_vreg =
       prev_blocks <-
         IMap.add next_block_id (ISet.add block.id (IMap.find next_block_id prev_blocks)) prev_blocks
 
-    method add_vreg_def ~(block : virtual_block) vreg =
+    method! add_vreg_use ~(block : virtual_block) vreg =
+      vreg_use_blocks <- VIMMap.add vreg block.id vreg_use_blocks
+
+    method! add_vreg_def ~(block : virtual_block) vreg =
       if
         VIMMap.contains vreg block.id vreg_use_blocks
         && not (VIMMap.contains vreg block.id vreg_def_blocks)
       then
         vreg_use_before_def_blocks <- VIMMap.add vreg block.id vreg_use_before_def_blocks;
       vreg_def_blocks <- VIMMap.add vreg block.id vreg_def_blocks
-
-    method! visit_instruction ~block instr_with_id =
-      let open Instruction in
-      let (_, instr) = instr_with_id in
-      match instr with
-      | CallM _
-      | CallL _ ->
-        (* Calls define all caller save registers *)
-        RegSet.iter
-          (fun reg ->
-            let color_vreg = RegMap.find reg color_to_vreg in
-            this#add_vreg_def ~block color_vreg)
-          caller_saved_registers;
-        super#visit_instruction ~block instr_with_id
-      | _ -> super#visit_instruction ~block instr_with_id
-
-    method! visit_read_vreg ~block vreg_id =
-      vreg_use_blocks <- VIMMap.add vreg_id block.id vreg_use_blocks
-
-    method! visit_write_vreg ~block vreg = this#add_vreg_def ~block vreg
   end
 
 let analyze_vregs blocks color_to_vreg =

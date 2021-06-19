@@ -13,4 +13,17 @@ fun divLongRegs(x: Long, y: Long): Long = x / y
 fun divLongRegImm(x: Long): Long = x / 2147483648
 fun divLongImmReg(x: Long): Long = 2147483648 / x
 
+fun remByteRegs(x: Byte, y: Byte): Byte = x % y
+fun remByteImmReg(x: Byte): Byte = 60 % x
+fun remByteRegImm(x: Byte): Byte = x % 60
+
+fun remIntRegs(x: Int, y: Int): Int = x % y
+fun remIntRegImm(x: Int): Int = x % 257
+fun remIntImmReg(x: Int): Int = 257 % x
+
+fun remLongRegs(x: Long, y: Long): Long = x % y
+// First have to load long to register
+fun remLongRegImm(x: Long): Long = x % 2147483648
+fun remLongImmReg(x: Long): Long = 2147483648 % x
+
 fun main() {}
