@@ -6,6 +6,10 @@ open Mir_type
 module Ecx = Emit_context
 module Pcx = Program_context
 
+type 'a access_chain_part =
+  | AccessChainOffset of 'a Instruction.GetPointer.offset * Type.t
+  | AccessChainDereference
+
 let rec emit_control_flow_ir (pcx : Pcx.t) : Ecx.t * cf_program =
   let ecx = Emit_context.mk ~pcx in
   emit_type_declarations ~ecx;
@@ -414,94 +418,94 @@ and emit_expression ~ecx expr =
 and emit_expression_access_chain ~ecx expr =
   let open Expression in
   let open Instruction in
-  let rec emit_indexed_access_chain ~ecx { IndexedAccess.target; index; _ } =
-    let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
-    let emit_tuple_indexed_access () =
-      (* Emit target expression *)
-      let target_var = emit_expression_access_chain_inner ~ecx target in
-      let target_ptr_var = cast_to_pointer_value target_var in
-      (* Extract tuple element index from integer literal *)
-      let element_idx =
-        match index with
-        | IntLiteral { IntLiteral.raw; base; _ } ->
-          Integers.int64_of_string_opt raw base |> Option.get |> Int64.to_int
-        | _ -> failwith "Index of a tuple must be an int literal to pass type checking"
-      in
-      let agg =
-        match target_ty with
-        | Types.Tuple elements -> Ecx.instantiate_tuple ~ecx elements
-        | Types.ADT _ ->
-          (* Find MIR aggregate type for this type *)
-          let variant_aggs = adt_to_variant_aggs ~ecx target_ty in
-          (* TODO: Handle variant types *)
-          let (_, agg) = SMap.choose variant_aggs in
-          agg
-        | _ -> failwith "Must be tuple or ADT"
-      in
-      (* Find element type in the corresponding aggregate type *)
-      let (_, element_ty) = List.nth agg.elements element_idx in
-      (* Calculate element offset *)
-      let (element_pointer_var, get_ptr_instr) =
-        mk_get_pointer_instr element_ty target_ptr_var [GetPointer.FieldIndex element_idx]
-      in
-      Ecx.emit ~ecx (GetPointer get_ptr_instr);
-      element_pointer_var
+  let emit_get_pointer_instr target_var element_mir_ty offsets =
+    let (pointer_offset, offsets) =
+      match List.rev offsets with
+      | GetPointer.PointerIndex pointer_idx :: rest_offsets -> (Some pointer_idx, rest_offsets)
+      | offsets -> (None, offsets)
     in
-    let emit_array_indexed_access element_ty =
-      (* Emit target and index expressions *)
-      let target_var = emit_expression_access_chain_inner ~ecx target in
-      let target_ptr_var = cast_to_pointer_value target_var in
-      let index_var = emit_numeric_expression ~ecx index in
-      (* Calculate index offset *)
-      let (element_pointer_var, get_ptr_instr) =
-        let element_mir_ty = type_to_mir_type ~ecx element_ty in
-        mk_get_pointer_instr ~pointer_offset:(Some index_var) element_mir_ty target_ptr_var []
-      in
-      Ecx.emit ~ecx (GetPointer get_ptr_instr);
-      element_pointer_var
-    in
-    match target_ty with
-    | Types.Array element_ty -> emit_array_indexed_access element_ty
-    | Tuple _ -> emit_tuple_indexed_access ()
-    | ADT { adt_sig = { variant_sigs; _ }; _ } when SMap.cardinal variant_sigs = 1 ->
-      emit_tuple_indexed_access ()
-    | _ -> failwith "Target must be a tuple to pass type checking"
-  and emit_named_access_chain ~ecx { NamedAccess.target; name = { name; _ }; _ } =
-    (* Emit target expression *)
-    let target_var = emit_expression_access_chain_inner ~ecx target in
     let target_ptr_var = cast_to_pointer_value target_var in
-    (* Find MIR aggregate type for this type *)
-    let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
-    let variant_aggs = adt_to_variant_aggs ~ecx target_ty in
-    (* TODO: Handle variant types *)
-    let (_, agg) = SMap.choose variant_aggs in
-    (* Find element type in the corresponding aggregate type *)
-    let (element_ty, element_idx) = lookup_element agg name in
-    (* Calculate element offset *)
     let (element_pointer_var, get_ptr_instr) =
-      mk_get_pointer_instr element_ty target_ptr_var [GetPointer.FieldIndex element_idx]
+      mk_get_pointer_instr ~pointer_offset element_mir_ty target_ptr_var offsets
     in
     Ecx.emit ~ecx (GetPointer get_ptr_instr);
     element_pointer_var
-  and emit_expression_access_chain_inner ~ecx expr =
-    match expr with
-    (* Access expressions calculate element offset and load value *)
-    | IndexedAccess access ->
-      let element_pointer_var = emit_indexed_access_chain ~ecx access in
-      let var_id = mk_cf_var_id () in
-      Ecx.emit ~ecx (Load (var_id, element_pointer_var));
-      var_value_of_type var_id (pointer_value_element_type element_pointer_var)
-    | NamedAccess access ->
-      let element_pointer_var = emit_named_access_chain ~ecx access in
-      let var_id = mk_cf_var_id () in
-      Ecx.emit ~ecx (Load (var_id, element_pointer_var));
-      var_value_of_type var_id (pointer_value_element_type element_pointer_var)
-    | _ -> emit_expression ~ecx expr
   in
-  match expr with
-  | IndexedAccess access -> emit_indexed_access_chain ~ecx access
-  | NamedAccess access -> emit_named_access_chain ~ecx access
-  | _ -> failwith "Must be called on access expression"
+  let emit_load_instr element_pointer_var =
+    let var_id = mk_cf_var_id () in
+    Ecx.emit ~ecx (Load (var_id, element_pointer_var));
+    var_value_of_type var_id (pointer_value_element_type element_pointer_var)
+  in
+  let maybe_emit_get_pointer_and_load_instrs root_var ty offsets =
+    if offsets = [] then
+      root_var
+    else
+      let element_pointer_var = emit_get_pointer_instr root_var (Ecx.to_mir_type ~ecx ty) offsets in
+      emit_load_instr element_pointer_var
+  in
+  let rec emit_access_expression expr =
+    match expr with
+    | IndexedAccess ({ target; _ } as access) ->
+      let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
+      (match target_ty with
+      | Types.Array _ -> emit_array_indexed_access access
+      | Tuple _ -> emit_tuple_indexed_access access
+      | ADT { adt_sig = { variant_sigs; _ }; _ } when SMap.cardinal variant_sigs = 1 ->
+        emit_tuple_indexed_access access
+      | _ -> failwith "Target must be a tuple to pass type checking")
+    | NamedAccess ({ target; _ } as access) ->
+      let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
+      (match target_ty with
+      | Types.ADT { adt_sig = { variant_sigs; _ }; _ } when SMap.cardinal variant_sigs = 1 ->
+        emit_record_named_access access
+      | _ -> failwith "Target must be a record to pass type checking")
+    | _ -> (emit_expression ~ecx expr, [])
+  and emit_tuple_indexed_access { IndexedAccess.target; index; _ } =
+    let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
+    let (target_root_var, target_offsets) = emit_access_expression target in
+    let root_var =
+      maybe_emit_get_pointer_and_load_instrs target_root_var target_ty target_offsets
+    in
+    (* Extract tuple element index from integer literal *)
+    (* TODO: Handle variant types - may change true element index due to tag field *)
+    let element_idx =
+      match index with
+      | IntLiteral { IntLiteral.raw; base; _ } ->
+        Integers.int64_of_string_opt raw base |> Option.get |> Int64.to_int
+      | _ -> failwith "Index of a tuple must be an int literal to pass type checking"
+    in
+    (root_var, [GetPointer.FieldIndex element_idx])
+  and emit_array_indexed_access { IndexedAccess.target; index; _ } =
+    let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
+    let (target_root_var, target_offsets) = emit_access_expression target in
+    let root_var =
+      maybe_emit_get_pointer_and_load_instrs target_root_var target_ty target_offsets
+    in
+    let index_var = emit_numeric_expression ~ecx index in
+    (root_var, [GetPointer.PointerIndex index_var])
+  and emit_record_named_access { NamedAccess.target; name = { name; _ }; _ } =
+    let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
+    let (target_root_var, target_offsets) = emit_access_expression target in
+    let root_var =
+      maybe_emit_get_pointer_and_load_instrs target_root_var target_ty target_offsets
+    in
+    (* Find MIR aggregate type for this type *)
+    let variant_aggs = adt_to_variant_aggs ~ecx target_ty in
+    (* TODO: Handle variant types *)
+    let (_, agg) = SMap.choose variant_aggs in
+    (* Find element index in the corresponding aggregate type *)
+    let (_, element_idx) = lookup_element agg name in
+    (root_var, [GetPointer.FieldIndex element_idx])
+  in
+  let (target_var, offsets) =
+    match expr with
+    | IndexedAccess _
+    | NamedAccess _ ->
+      emit_access_expression expr
+    | _ -> failwith "Must be called on access expression"
+  in
+  let element_mir_ty = mir_type_of_loc ~ecx (Ast_utils.expression_loc expr) in
+  emit_get_pointer_instr target_var element_mir_ty offsets
 
 and emit_construct_tuple ~ecx agg elements =
   let agg_ty = `AggregateT agg in
