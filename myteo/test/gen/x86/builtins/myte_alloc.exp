@@ -1,0 +1,22 @@
+  .global _main
+
+  .text
+_main:
+  ret
+test.testMyteAllocLiteralCount:
+  movb $128, %dil
+  call __myte_alloc
+  movl $6400, %edi
+  call __myte_alloc
+  ret
+test.testMyteAllocVariableCount:
+  push %rbx
+  movl %edi, %ebx
+  imulq $8, %rbx, %rdi
+  call __myte_alloc
+  imulq $32, %rbx, %rdi
+  call __myte_alloc
+  imulq $32, %rbx, %rdi
+  call __myte_alloc
+  pop %rbx
+  ret

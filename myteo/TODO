@@ -8,6 +8,7 @@
 - Parse and type check anonymous functions
 - Implement signed and unsigned integers
 - Implement conversion functions between built in types (like integer types)
+- Guarantee 16-byte stack alignment for x64 at calls
 
 ## Old List
 

@@ -1,4 +1,6 @@
   .global _start
+  .global __myte_alloc
+  .global __myte_init
 
   .data
 

@@ -47,6 +47,11 @@ let rec type_to_string ty =
   | `PointerT ty -> type_to_string ty ^ "*"
   | `AggregateT { Aggregate.name; _ } -> name
 
+let cast_to_pointer_type v =
+  match v with
+  | `PointerT _ as v -> v
+  | _ -> failwith "Expected pointer type"
+
 module TypeArgs = struct
   type t = Type.t list
 

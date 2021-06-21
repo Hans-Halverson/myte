@@ -1,5 +1,7 @@
 open Basic_collections
+open Mir_type
 open X86_instructions
+open X86_layout
 
 module Gcx = struct
   type t = {
@@ -20,6 +22,7 @@ module Gcx = struct
     mutable max_string_literal_id: int;
     (* Map from physical register to a precolored virtual register *)
     mutable color_to_vreg: VReg.t RegMap.t;
+    mutable agg_to_layout: AggregateLayout.t IMap.t;
   }
 
   let mk () =
@@ -47,6 +50,7 @@ module Gcx = struct
       funcs_by_id = IMap.empty;
       max_string_literal_id = 0;
       color_to_vreg;
+      agg_to_layout = IMap.empty;
     }
 
   let finish_builders ~gcx =
@@ -140,6 +144,66 @@ module Gcx = struct
     let block = IMap.find block_id gcx.blocks_by_id in
     let (_, instr) = List.find (fun (id, _) -> id = instr_id) block.instructions in
     instr
+
+  let get_agg_layout ~gcx agg = IMap.find agg.Aggregate.id gcx.agg_to_layout
+
+  let size_of_mir_type ~gcx mir_type =
+    match mir_type with
+    | `UnitT
+    | `BoolT
+    | `ByteT ->
+      8
+    | `IntT -> 32
+    | `LongT
+    | `FunctionT
+    | `PointerT _ ->
+      64
+    | `StringT -> failwith "TODO: Cannot compile string literals"
+    | `AggregateT agg ->
+      let agg_layout = get_agg_layout ~gcx agg in
+      agg_layout.size
+
+  let alignment_of_mir_type ~gcx mir_type =
+    match mir_type with
+    | `AggregateT agg ->
+      let agg_layout = get_agg_layout ~gcx agg in
+      agg_layout.alignment
+    | `StringT -> failwith "TODO: Cannot compile string literals"
+    | _ -> size_of_mir_type ~gcx mir_type
+
+  let build_agg_layout ~gcx agg =
+    let open Aggregate in
+    let current_offset = ref 0 in
+    let largest_alignment = ref 0 in
+
+    (* Calculate offsets for each aggregate element *)
+    let elements =
+      List.map
+        (fun (_, ty) ->
+          let size = size_of_mir_type ~gcx ty in
+          let alignment = alignment_of_mir_type ~gcx ty in
+          largest_alignment := max alignment !largest_alignment;
+
+          (* Add padding to align element *)
+          let align_overflow = !current_offset mod alignment in
+          if align_overflow <> 0 then current_offset := !current_offset + (size - align_overflow);
+
+          let offset = !current_offset in
+          current_offset := offset + size;
+          { AggregateElement.offset; size })
+        agg.elements
+    in
+
+    (* Aggregate has alignment of its largest element. Aggregate size must be multiple of alignment,
+       so insert padding to end of aggregate if necessary. *)
+    let alignment = !largest_alignment in
+    let align_overlow = !current_offset mod alignment in
+    if align_overlow <> 0 then current_offset := !current_offset + (alignment - align_overlow);
+
+    let agg_layout =
+      { AggregateLayout.agg; size = !current_offset; alignment; elements = Array.of_list elements }
+    in
+    gcx.agg_to_layout <- IMap.add agg.id agg_layout gcx.agg_to_layout
 
   let remove_redundant_instructions ~gcx =
     let open Block in

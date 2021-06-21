@@ -550,11 +550,6 @@ and cast_to_pointer_value v =
   | (`PointerL _ | `PointerV _) as v -> v
   | _ -> failwith "Expected pointer value"
 
-and cast_to_pointer_type v =
-  match v with
-  | `PointerT _ as v -> v
-  | _ -> failwith "Expected pointer type"
-
 and emit_statement ~ecx stmt =
   let open Statement in
   match stmt with

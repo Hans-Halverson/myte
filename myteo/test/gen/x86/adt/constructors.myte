@@ -1,0 +1,15 @@
+module test
+
+type Tup1 (Int, Int, Int)
+
+type Tup2 (Int, Byte)
+
+type Tup3 (Byte, Int)
+
+fun test() {
+  Tup1 (1, 2, 3);
+  Tup2 (1, 2);
+  Tup3 (1, 2);
+}
+
+fun main() {}

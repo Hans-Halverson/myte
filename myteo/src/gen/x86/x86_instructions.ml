@@ -2,14 +2,10 @@ open Basic_collections
 
 type label = string
 
-type size =
-  (* 8 bit *)
+type register_size =
   | Size8
-  (* 16 bit *)
   | Size16
-  (* 32 bit *)
   | Size32
-  (* 64 bit *)
   | Size64
 
 type register_slot =
@@ -46,7 +42,7 @@ let callee_saved_registers = RegSet.of_list [B; SP; BP; R12; R13; R14; R15]
 
 let caller_saved_registers = RegSet.of_list [A; C; D; SI; DI; R8; R9; R10; R11]
 
-type register = register_slot * size
+type register = register_slot * register_size
 
 type immediate =
   | Imm8 of int
@@ -168,43 +164,43 @@ module Instruction = struct
     | PopM of 'reg memory
     (* Data instructions *)
     | MovIM of immediate * 'reg memory (* Allows 64-bit immediate. Size of immediate is size of instruction *)
-    | MovMM of size * 'reg memory * 'reg memory
-    | Lea of size * 'reg memory_address * 'reg (* Only supports 32 or 64 bit register argument *)
+    | MovMM of register_size * 'reg memory * 'reg memory
+    | Lea of register_size * 'reg memory_address * 'reg (* Only supports 32 or 64 bit register argument *)
     (* Numeric operations *)
-    | NegM of size * 'reg memory
-    | AddIM of size * immediate * 'reg memory
-    | AddMM of size * 'reg memory * 'reg memory
+    | NegM of register_size * 'reg memory
+    | AddIM of register_size * immediate * 'reg memory
+    | AddMM of register_size * 'reg memory * 'reg memory
     (* For sub instructions, right/dest := right/dest - left/src *)
-    | SubIM of size * immediate * 'reg memory
-    | SubMM of size * 'reg memory * 'reg memory
-    | IMulMR of size * 'reg memory * 'reg (* Only supports 16, 32, and 64-bit arguments *)
-    | IMulMIR of size * 'reg memory * immediate * 'reg (* Only supports 16 and 32-bit immediates *)
-    | IDiv of size * 'reg memory
+    | SubIM of register_size * immediate * 'reg memory
+    | SubMM of register_size * 'reg memory * 'reg memory
+    | IMulMR of register_size * 'reg memory * 'reg (* Only supports 16, 32, and 64-bit arguments *)
+    | IMulMIR of register_size * 'reg memory * immediate * 'reg (* Only supports 16 and 32-bit immediates *)
+    | IDiv of register_size * 'reg memory
     (* Bitwise operations *)
-    | NotM of size * 'reg memory
-    | AndIM of size * immediate * 'reg memory
-    | AndMM of size * 'reg memory * 'reg memory
-    | OrIM of size * immediate * 'reg memory
-    | OrMM of size * 'reg memory * 'reg memory
-    | XorIM of size * immediate * 'reg memory
-    | XorMM of size * 'reg memory * 'reg memory
+    | NotM of register_size * 'reg memory
+    | AndIM of register_size * immediate * 'reg memory
+    | AndMM of register_size * 'reg memory * 'reg memory
+    | OrIM of register_size * immediate * 'reg memory
+    | OrMM of register_size * 'reg memory * 'reg memory
+    | XorIM of register_size * immediate * 'reg memory
+    | XorMM of register_size * 'reg memory * 'reg memory
     (* Bit shifts *)
-    | ShlI of size * immediate * 'reg memory (* Requires 8-bit immediate *)
-    | ShlR of size * 'reg memory
-    | ShrI of size * immediate * 'reg memory (* Requires 8-bit immediate *)
-    | ShrR of size * 'reg memory
-    | SarI of size * immediate * 'reg memory (* Requires 8-bit immediate *)
-    | SarR of size * 'reg memory
+    | ShlI of register_size * immediate * 'reg memory (* Requires 8-bit immediate *)
+    | ShlR of register_size * 'reg memory
+    | ShrI of register_size * immediate * 'reg memory (* Requires 8-bit immediate *)
+    | ShrR of register_size * 'reg memory
+    | SarI of register_size * immediate * 'reg memory (* Requires 8-bit immediate *)
+    | SarR of register_size * 'reg memory
     (* Comparisons *)
-    | CmpMI of size * 'reg memory * immediate
-    | CmpMM of size * 'reg memory * 'reg memory
-    | TestMR of size * 'reg memory * 'reg
+    | CmpMI of register_size * 'reg memory * immediate
+    | CmpMM of register_size * 'reg memory * 'reg memory
+    | TestMR of register_size * 'reg memory * 'reg
     | SetCC of condition_code * 'reg memory (* Only supports 8-bit destination *)
     (* Control flow *)
     | Jmp of block_id
     | JmpCC of condition_code * block_id
     | CallL of label
-    | CallM of size * 'reg memory
+    | CallM of register_size * 'reg memory
     | Leave
     | Ret
     | Syscall
@@ -300,6 +296,14 @@ let size_of_immediate imm =
   | Imm16 _ -> Size16
   | Imm32 _ -> Size32
   | Imm64 _ -> Size64
+
+let smallest_unsigned_immediate lit =
+  if not (Integers.is_out_of_unsigned_byte_range lit) then
+    Imm8 (Int64.to_int lit)
+  else if not (Integers.is_out_of_unsigned_int_range lit) then
+    Imm32 (Int64.to_int32 lit)
+  else
+    Imm64 lit
 
 (* Return the opposite of a condition code (NOT CC) *)
 let invert_condition_code cc =

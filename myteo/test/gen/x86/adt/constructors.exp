@@ -1,0 +1,13 @@
+  .global _main
+
+  .text
+_main:
+  ret
+test.test:
+  movb $96, %dil
+  call __myte_alloc
+  movb $64, %dil
+  call __myte_alloc
+  movb $64, %dil
+  call __myte_alloc
+  ret

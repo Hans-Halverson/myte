@@ -25,6 +25,12 @@ let is_out_of_signed_byte_range x =
 let is_out_of_signed_int_range x =
   Int64.compare min_signed_int x = 1 || Int64.compare max_signed_int x = -1
 
+let is_out_of_unsigned_byte_range x =
+  Int64.compare min_unsigned_byte x = 1 || Int64.compare max_unsigned_byte x = -1
+
+let is_out_of_unsigned_int_range x =
+  Int64.compare min_unsigned_int x = 1 || Int64.compare max_unsigned_int x = -1
+
 let int64_of_string_opt raw base =
   match Int64.of_string_opt raw with
   | None -> None

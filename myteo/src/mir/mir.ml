@@ -331,6 +331,12 @@ and map_pointer_value ~(f : 'a -> 'b) (value : 'a Value.pointer_value) : 'b Valu
 
 let get_block ~ir block_id = IMap.find block_id ir.Program.blocks
 
+let int64_of_literal lit =
+  match lit with
+  | `ByteL lit -> Int64.of_int lit
+  | `IntL lit -> Int64.of_int32 lit
+  | `LongL lit -> lit
+
 (* Look up an element by name in an aggregate type, throwing if no element with that name is found.
    Return a tuple of the element's type and its index in the aggregate. *)
 let lookup_element agg name =
