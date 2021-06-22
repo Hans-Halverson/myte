@@ -139,7 +139,9 @@ and gen_blocks ~gcx ~ir start_block_id label func =
 and gen_instructions ~gcx ~ir ~func ~block instructions =
   let open Instruction in
   let gen_instructions = gen_instructions ~gcx ~ir ~func ~block in
-  let vreg_of_var var_id = VReg.of_var_id ~resolution:Unresolved ~func:(Some func) var_id in
+  let vreg_of_result_var_id var_id =
+    VReg.of_var_id ~resolution:Unresolved ~func:(Some func) var_id
+  in
   let mk_vreg () = VReg.mk ~resolution:Unresolved ~func:(Some func) in
   let resolve_ir_value ?(allow_imm64 = false) ?(reduce_imm = true) v =
     resolve_ir_value ~gcx ~func ~allow_imm64 ~reduce_imm (v :> var_id Value.t)
@@ -198,13 +200,13 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     let resolved_value = resolve_ir_value arg in
     let size = register_size_of_svalue resolved_value in
     let arg_mem = emit_mem resolved_value in
-    let result_vreg = vreg_of_var result_var_id in
+    let result_vreg = vreg_of_result_var_id result_var_id in
     Gcx.emit ~gcx (MovMM (size, arg_mem, Reg result_vreg));
     Gcx.emit ~gcx (NotM (size, Reg result_vreg))
   in
   (* Generate an and instruction between two arguments *)
   let gen_and result_var_id left_val right_val =
-    let result_vreg = vreg_of_var result_var_id in
+    let result_vreg = vreg_of_result_var_id result_var_id in
     match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm imm, other)
@@ -223,7 +225,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   in
   (* Generate an or instruction between two arguments *)
   let gen_or result_var_id left_val right_val =
-    let result_vreg = vreg_of_var result_var_id in
+    let result_vreg = vreg_of_result_var_id result_var_id in
     match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm imm, other)
@@ -269,7 +271,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   in
   (* Generate a bit shift instruction from the target and shift arguments *)
   let gen_shift ~mk_reg_instr ~mk_imm_instr result_var_id target_val shift_val =
-    let result_vreg = vreg_of_var result_var_id in
+    let result_vreg = vreg_of_result_var_id result_var_id in
     (* Do not reduce size of target immediate, as we must know its original size to know what
        size to make the shift operation. *)
     match (resolve_ir_value ~reduce_imm:false target_val, resolve_ir_value shift_val) with
@@ -324,7 +326,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx continue))
   in
   let gen_set_cc cc result_var_id left_val right_val =
-    let result_vreg = vreg_of_var result_var_id in
+    let result_vreg = vreg_of_result_var_id result_var_id in
     Gcx.emit ~gcx (XorMM (Size32, Reg result_vreg, Reg result_vreg));
     let swapped = gen_cmp left_val right_val in
     let cc =
@@ -363,7 +365,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.Mov (dest_var_id, value) :: rest_instructions ->
-    let dest_vreg = vreg_of_var dest_var_id in
+    let dest_vreg = vreg_of_result_var_id dest_var_id in
     let instr =
       match resolve_ir_value ~allow_imm64:true value with
       | SImm imm -> MovIM (imm, Reg dest_vreg)
@@ -429,7 +431,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     let return_size = register_size_of_mir_value_type ret_ty in
     Gcx.emit
       ~gcx
-      (MovMM (return_size, Reg (Gcx.mk_precolored ~gcx A), Reg (vreg_of_var return_var_id)));
+      (MovMM (return_size, Reg (Gcx.mk_precolored ~gcx A), Reg (vreg_of_result_var_id return_var_id)));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -458,7 +460,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
        let global_size = register_size_of_mir_value_type global.ty in
        Gcx.emit
          ~gcx
-         (MovMM (global_size, Mem (mk_label_memory_address label), Reg (vreg_of_var var_id))); *)
+         (MovMM (global_size, Mem (mk_label_memory_address label), Reg (vreg_of_result_var_id var_id))); *)
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -485,7 +487,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.Add (result_var_id, left_val, right_val) :: rest_instructions ->
-    let result_vreg = vreg_of_var result_var_id in
+    let result_vreg = vreg_of_result_var_id result_var_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm imm, other)
@@ -508,7 +510,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.Sub (result_var_id, left_val, right_val) :: rest_instructions ->
-    let result_vreg = vreg_of_var result_var_id in
+    let result_vreg = vreg_of_result_var_id result_var_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm left_imm, right) ->
@@ -533,7 +535,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.Mul (result_var_id, left_val, right_val) :: rest_instructions ->
-    let result_vreg = vreg_of_var result_var_id in
+    let result_vreg = vreg_of_result_var_id result_var_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm imm, other)
@@ -555,7 +557,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.Div (result_var_id, left_val, right_val) :: rest_instructions ->
-    let result_vreg = vreg_of_var result_var_id in
+    let result_vreg = vreg_of_result_var_id result_var_id in
     let precolored_a = Gcx.mk_precolored ~gcx A in
     let size = gen_idiv left_val right_val in
     Gcx.emit ~gcx (MovMM (size, Reg precolored_a, Reg result_vreg));
@@ -566,7 +568,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.Rem (result_var_id, left_val, right_val) :: rest_instructions ->
-    let result_vreg = vreg_of_var result_var_id in
+    let result_vreg = vreg_of_result_var_id result_var_id in
     let precolored_d = Gcx.mk_precolored ~gcx D in
     let size = gen_idiv left_val right_val in
     Gcx.emit ~gcx (MovMM (size, Reg precolored_d, Reg result_vreg));
@@ -580,7 +582,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     let resolved_value = resolve_ir_value arg in
     let size = register_size_of_svalue resolved_value in
     let arg_mem = emit_mem resolved_value in
-    let result_vreg = vreg_of_var result_var_id in
+    let result_vreg = vreg_of_result_var_id result_var_id in
     Gcx.emit ~gcx (MovMM (size, arg_mem, Reg result_vreg));
     Gcx.emit ~gcx (NegM (size, Reg result_vreg));
     gen_instructions rest_instructions
@@ -638,7 +640,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.BitXor (result_var_id, left_val, right_val) :: rest_instructions ->
-    let result_vreg = vreg_of_var result_var_id in
+    let result_vreg = vreg_of_result_var_id result_var_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm imm, other)
@@ -762,14 +764,14 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   | Mir.Instruction.CallBuiltin (ret_var, ret_mir_ty, { Builtin.name; _ }, args)
     :: rest_instructions ->
     let open Mir_builtin in
-    let ret_vreg = vreg_of_var ret_var in
+    let ret_vreg = vreg_of_result_var_id ret_var in
     (*
      * ===========================================
      *                myte_alloc
      * ===========================================
      *)
     if name = myte_alloc.name then (
-      let `PointerT element_mir_ty = cast_to_pointer_type ret_mir_ty in
+      let (`PointerT element_mir_ty) = cast_to_pointer_type ret_mir_ty in
       let element_size = Gcx.size_of_mir_type ~gcx element_mir_ty in
       let precolored_a = Gcx.mk_precolored ~gcx A in
       let precolored_di = Gcx.mk_precolored ~gcx DI in
@@ -781,11 +783,19 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
         let total_size_imm = smallest_unsigned_immediate total_size in
         Gcx.emit ~gcx (MovIM (total_size_imm, Reg precolored_di))
       (* If count is a variable multiply by size before putting in argument register *)
-      | [(`ByteV var_id | `IntV var_id | `LongV var_id)] ->
-        let count_vreg = vreg_of_var var_id in
-        Gcx.emit
-          ~gcx
-          (IMulMIR (Size64, Reg count_vreg, Imm32 (Int32.of_int element_size), precolored_di))
+      | [((`ByteV _ | `IntV _ | `LongV _) as count_var)] ->
+        let count_vreg =
+          match resolve_ir_value count_var with
+          | SVReg (count_vreg, _) -> count_vreg
+          | _ -> failwith "Must be virtual register"
+        in
+        (* Check for special case where element size is a single byte - no multiplication required *)
+        if element_size = 1 then
+          Gcx.emit ~gcx (MovMM (Size64, Reg count_vreg, Reg precolored_di))
+        else
+          Gcx.emit
+            ~gcx
+            (IMulMIR (Size64, Reg count_vreg, Imm32 (Int32.of_int element_size), precolored_di))
       | _ -> failwith "Incorrect arguments");
       Gcx.emit ~gcx (CallL X86_runtime.myte_alloc_label);
       Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg ret_vreg))

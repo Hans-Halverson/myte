@@ -4,10 +4,10 @@
 _main:
   ret
 test.test:
-  movb $96, %dil
+  movb $12, %dil
   call __myte_alloc
-  movb $64, %dil
+  movb $8, %dil
   call __myte_alloc
-  movb $64, %dil
+  movb $8, %dil
   call __myte_alloc
   ret

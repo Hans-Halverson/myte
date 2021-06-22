@@ -4,19 +4,19 @@
 _main:
   ret
 test.testMyteAllocLiteralCount:
-  movb $128, %dil
+  movb $16, %dil
   call __myte_alloc
-  movl $6400, %edi
+  movl $800, %edi
   call __myte_alloc
   ret
 test.testMyteAllocVariableCount:
   push %rbx
   movl %edi, %ebx
+  movq %rbx, %rdi
+  call __myte_alloc
+  imulq $4, %rbx, %rdi
+  call __myte_alloc
   imulq $8, %rbx, %rdi
-  call __myte_alloc
-  imulq $32, %rbx, %rdi
-  call __myte_alloc
-  imulq $32, %rbx, %rdi
   call __myte_alloc
   pop %rbx
   ret

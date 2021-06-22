@@ -152,12 +152,12 @@ module Gcx = struct
     | `UnitT
     | `BoolT
     | `ByteT ->
-      8
-    | `IntT -> 32
+      1
+    | `IntT -> 4
     | `LongT
     | `FunctionT
     | `PointerT _ ->
-      64
+      8
     | `StringT -> failwith "TODO: Cannot compile string literals"
     | `AggregateT agg ->
       let agg_layout = get_agg_layout ~gcx agg in
