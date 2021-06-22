@@ -117,8 +117,8 @@ let allocate_stack_slots ~(gcx : Gcx.t) =
                 StackSlot
                   (PhysicalAddress
                      {
-                       base = Some (Gcx.mk_precolored ~gcx SP);
-                       offset = Some (ImmediateOffset (Int64.of_int offset));
+                       base = RegBase (Gcx.mk_precolored ~gcx SP);
+                       offset = Some (ImmediateOffset (Int32.of_int offset));
                        index_and_scale = None;
                      }))
             vslots)
@@ -138,8 +138,8 @@ let allocate_stack_slots ~(gcx : Gcx.t) =
             StackSlot
               (PhysicalAddress
                  {
-                   base = Some (Gcx.mk_precolored ~gcx SP);
-                   offset = Some (ImmediateOffset (Int64.of_int offset));
+                   base = RegBase (Gcx.mk_precolored ~gcx SP);
+                   offset = Some (ImmediateOffset (Int32.of_int offset));
                    index_and_scale = None;
                  }))
         args_on_stack)

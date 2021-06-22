@@ -4,12 +4,21 @@
 _main:
   ret
 test.test:
+  push %rbx
   movb $12, %dil
   call __myte_alloc
+  movl $1, (%rbx)
+  movl $2, (%rbx)
+  movl $3, (%rbx)
   movb $8, %dil
   call __myte_alloc
+  movl $1, (%rbx)
+  movb $2, (%rbx)
   movb $8, %dil
   call __myte_alloc
+  movb $1, (%rbx)
+  movl $2, (%rbx)
+  pop %rbx
   ret
 _start:
   call __myte_init

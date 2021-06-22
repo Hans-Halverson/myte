@@ -54,6 +54,11 @@ type memory_address_offset =
   | ImmediateOffset of Int32.t
   | LabelOffset of label
 
+type 'a memory_address_base =
+  | NoBase
+  | RegBase of 'a
+  | IPBase
+
 type memory_address_scale =
   | Scale1
   | Scale2
@@ -65,11 +70,11 @@ type 'reg memory_address =
   | FunctionStackArgument of 'reg
   | PhysicalAddress of {
       offset: memory_address_offset option;
-      base: 'reg option;
+      base: 'reg memory_address_base;
       index_and_scale: ('reg * memory_address_scale) option;
     }
 
-let empty_memory_address = PhysicalAddress { offset = None; base = None; index_and_scale = None }
+let empty_memory_address = PhysicalAddress { offset = None; base = NoBase; index_and_scale = None }
 
 type condition_code =
   | E

@@ -1,0 +1,13 @@
+module test
+
+var b: Byte = 0
+var i: Int = 0
+var l: Long = 0
+
+fun testReassignGlobals(x: Int, y: Long) {
+  b = 4;
+  i = x;
+  l = y * 13;
+}
+
+fun main() {}

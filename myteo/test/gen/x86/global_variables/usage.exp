@@ -1,0 +1,39 @@
+  .global _start
+  .lcomm test.f, 8
+
+  .data
+test.b:
+  .byte 0
+test.i:
+  .long 0
+test.l:
+  .quad 0
+
+  .text
+_init:
+_init_test.f:
+  leaq test.getByte(%rip), %rax
+  movq %rax, test.f(%rip)
+test.getByte:
+  movb $1, %al
+  ret
+_main:
+  ret
+test.testReferencing:
+  movb test.b(%rip), %al
+  movl test.i(%rip), %eax
+  movq test.l(%rip), %rax
+  movq test.f(%rip), %rax
+  movl test.i(%rip), %eax
+  addl %eax, %edi
+  movl test.i(%rip), %ecx
+  movl test.i(%rip), %eax
+  addl %ecx, %eax
+  movq test.f(%rip), %rax
+  callq *%rax
+  ret
+_start:
+  call __myte_init
+  call _init
+  call _main
+  ret

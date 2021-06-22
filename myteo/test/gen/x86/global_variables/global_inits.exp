@@ -1,5 +1,7 @@
   .global _start
   .lcomm test.b, 1
+  .lcomm test.constantF, 8
+  .lcomm test.f, 8
   .lcomm test.i, 4
   .lcomm test.l, 8
 
@@ -15,12 +17,24 @@ test.constantL:
 _init:
 _init_test.b:
   call test.getByte
+  movb %al, test.b(%rip)
+_init_test.constantF:
+  leaq test.getByte(%rip), %rax
+  movq %rax, test.constantF(%rip)
+_init_test.f:
+  call test.getFunction
+  movq %rax, test.f(%rip)
 _init_test.i:
   call test.getInt
+  movl %eax, test.i(%rip)
 _init_test.l:
   call test.getLong
+  movq %rax, test.l(%rip)
 test.getByte:
   movb $22, %al
+  ret
+test.getFunction:
+  leaq test.getByte(%rip), %rax
   ret
 test.getInt:
   movl $23, %eax

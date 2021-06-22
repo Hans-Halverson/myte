@@ -4,14 +4,17 @@ module test
 val constantB: Byte = 123
 val constantI: Int = 123
 val constantL: Long = 123
+val constantF: () -> Byte = getByte
 
 // Non-constants are put in bss section and have init blocks
 val b: Byte = getByte()
 val i: Int = getInt()
 val l: Long = getLong()
+val f: () -> Byte = getFunction()
 
 fun getByte(): Byte = 22
 fun getInt(): Int = 23
 fun getLong(): Long = 24
+fun getFunction(): () -> Byte = getByte
 
 fun main() {}

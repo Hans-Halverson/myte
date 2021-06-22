@@ -468,31 +468,83 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    *                Load
    * ===========================================
    *)
-  | Mir.Instruction.Load (_var_id, _label) :: rest_instructions ->
-    (* let global = SMap.find label ir.globals in
-       let global_size = register_size_of_mir_value_type global.ty in
-       Gcx.emit
-         ~gcx
-         (MovMM (global_size, Mem (mk_label_memory_address label), Reg (vreg_of_result_var_id var_id))); *)
+  | Mir.Instruction.Load (result_var_id, pointer) :: rest_instructions ->
+    let result_vreg = vreg_of_result_var_id result_var_id in
+    let pointer_element_type = pointer_value_element_type pointer in
+    let size =
+      match pointer_element_type with
+      | `UnitT
+      | `BoolT
+      | `ByteT
+      | `IntT
+      | `LongT
+      | `FunctionT
+      | `PointerT _ ->
+        register_size_of_mir_value_type pointer_element_type
+      | `StringT
+      | `AggregateT _ ->
+        failwith "TODO: Cannot compile aggregate literals"
+    in
+    let src =
+      match pointer with
+      | `PointerL (_, label) -> mk_label_memory_address label
+      | `PointerV _ ->
+        (match resolve_ir_value pointer with
+        | SVReg (vreg, _) ->
+          PhysicalAddress { offset = None; base = RegBase vreg; index_and_scale = None }
+        | SMem (mem, _) -> mem
+        | SImm _
+        | SAddr _ ->
+          failwith "Expected memory or address")
+    in
+    Gcx.emit ~gcx (MovMM (size, Mem src, Reg result_vreg));
     gen_instructions rest_instructions
   (*
    * ===========================================
    *                Store
    * ===========================================
    *)
-  | Mir.Instruction.Store (_pointer, _value) :: rest_instructions ->
-    (* let global_address = mk_label_memory_address label in
-       (match resolve_ir_value value with
-       | SImm imm -> Gcx.emit ~gcx (MovIM (imm, Mem global_address))
-       | SAddr addr ->
-         let vreg = mk_vreg () in
-         Gcx.emit ~gcx (Lea (Size64, addr, vreg));
-         Gcx.emit ~gcx (MovMM (Size64, Reg vreg, Mem global_address))
-       | SMem (mem, size) ->
-         let vreg = mk_vreg () in
-         Gcx.emit ~gcx (MovMM (size, Mem mem, Reg vreg));
-         Gcx.emit ~gcx (MovMM (size, Reg vreg, Mem global_address))
-       | SVReg (reg, size) -> Gcx.emit ~gcx (MovMM (size, Reg reg, Mem global_address))); *)
+  | Mir.Instruction.Store (pointer, value) :: rest_instructions ->
+    let pointer_element_type = pointer_value_element_type pointer in
+    let size =
+      match pointer_element_type with
+      | `UnitT
+      | `BoolT
+      | `ByteT
+      | `IntT
+      | `LongT
+      | `FunctionT
+      | `PointerT _ ->
+        register_size_of_mir_value_type pointer_element_type
+      | `StringT
+      | `AggregateT _ ->
+        failwith "TODO: Cannot compile aggregate literals"
+    in
+    let value = resolve_ir_value ~allow_imm64:true ~reduce_imm:false value in
+    let dest =
+      match pointer with
+      | `PointerL (_, label) -> mk_label_memory_address label
+      | `PointerV _ ->
+        (match resolve_ir_value pointer with
+        | SVReg (vreg, _) ->
+          PhysicalAddress { offset = None; base = RegBase vreg; index_and_scale = None }
+        | SMem (mem, _) -> mem
+        | SImm _
+        | SAddr _ ->
+          failwith "Expected memory or address")
+    in
+
+    (match value with
+    | SImm imm -> Gcx.emit ~gcx (MovIM (imm, Mem dest))
+    | SAddr addr ->
+      let vreg = mk_vreg () in
+      Gcx.emit ~gcx (Lea (Size64, addr, vreg));
+      Gcx.emit ~gcx (MovMM (Size64, Reg vreg, Mem dest))
+    | SMem (mem, _) ->
+      let vreg = mk_vreg () in
+      Gcx.emit ~gcx (MovMM (size, Mem mem, Reg vreg));
+      Gcx.emit ~gcx (MovMM (size, Reg vreg, Mem dest))
+    | SVReg (reg, _) -> Gcx.emit ~gcx (MovMM (size, Reg reg, Mem dest)));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -898,4 +950,4 @@ and min_size16 size =
   | _ -> size
 
 and mk_label_memory_address label =
-  PhysicalAddress { offset = Some (LabelOffset label); base = None; index_and_scale = None }
+  PhysicalAddress { offset = Some (LabelOffset label); base = IPBase; index_and_scale = None }

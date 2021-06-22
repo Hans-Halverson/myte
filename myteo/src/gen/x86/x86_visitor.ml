@@ -78,7 +78,10 @@ class instruction_visitor =
       | VirtualStackSlot _ -> ()
       | FunctionStackArgument _ -> ()
       | PhysicalAddress mem ->
-        Option.iter (this#visit_read_vreg ~block) mem.base;
+        (match mem.base with
+        | NoBase -> ()
+        | RegBase reg -> this#visit_read_vreg ~block reg
+        | IPBase -> ());
         (match mem.index_and_scale with
         | None -> ()
         | Some (index_vreg, _) -> this#visit_read_vreg ~block index_vreg)

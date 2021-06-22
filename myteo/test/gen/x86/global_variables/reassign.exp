@@ -1,0 +1,23 @@
+  .global _start
+
+  .data
+test.b:
+  .byte 0
+test.i:
+  .long 0
+test.l:
+  .quad 0
+
+  .text
+_main:
+  ret
+test.testReassignGlobals:
+  movb $4, test.b(%rip)
+  movl %edi, test.i(%rip)
+  imulq $13, %rsi, %rax
+  movq %rax, test.l(%rip)
+  ret
+_start:
+  call __myte_init
+  call _main
+  ret

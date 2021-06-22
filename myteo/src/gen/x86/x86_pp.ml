@@ -172,8 +172,9 @@ and pp_memory_address ~gcx ~buf mem =
     add_char ~buf '(';
     begin
       match mem.base with
-      | None -> ()
-      | Some reg -> pp_register ~gcx ~buf ~size:Size64 reg
+      | NoBase -> ()
+      | IPBase -> add_string ~buf "%rip"
+      | RegBase reg -> pp_register ~gcx ~buf ~size:Size64 reg
     end;
     begin
       match mem.index_and_scale with
@@ -383,6 +384,7 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         add_string (Option.get (pp_label ~pcx block))
       | CallM (size, mem) ->
         pp_sized_op "call" size;
+        add_char ~buf '*';
         pp_mem ~size mem
       | CallL label ->
         pp_op "call";
