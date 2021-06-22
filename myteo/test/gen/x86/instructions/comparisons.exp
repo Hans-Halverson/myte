@@ -1,4 +1,4 @@
-  .global _main
+  .global _start
 
   .text
 _main:
@@ -406,4 +406,8 @@ test.testCompareRegisterRegister:
   ret
 .L47:
   movb $1, %al
+  ret
+_start:
+  call __myte_init
+  call _main
   ret

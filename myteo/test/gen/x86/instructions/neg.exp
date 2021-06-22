@@ -1,4 +1,4 @@
-  .global _main
+  .global _start
 
   .text
 _main:
@@ -14,4 +14,8 @@ test.negIntReg:
 test.negLongReg:
   negq %rdi
   movq %rdi, %rax
+  ret
+_start:
+  call __myte_init
+  call _main
   ret

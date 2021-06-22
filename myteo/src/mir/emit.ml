@@ -113,10 +113,9 @@ and emit_toplevel_variable_declaration ~ecx decl =
   Ecx.start_block_sequence ~ecx (GlobalInit name);
   let init_start_block = Ecx.start_new_block ~ecx in
   let init_val = emit_expression ~ecx init in
-  let var = mk_cf_var_id () in
-  Ecx.emit ~ecx (Store (`PointerV (ty, var), init_val));
+  Ecx.emit ~ecx (Store (`PointerL (ty, name), init_val));
   Ecx.finish_block_halt ~ecx;
-  Ecx.add_global ~ecx { Global.loc; name; ty; var; init_start_block; init_val }
+  Ecx.add_global ~ecx { Global.loc; name; ty; init_start_block; init_val }
 
 and emit_toplevel_function_declaration ~ecx decl =
   let open Ast.Function in
@@ -314,7 +313,7 @@ and emit_expression ~ecx expr =
           let binding_name = mk_value_binding_name binding in
           let global = SMap.find binding_name ecx.globals in
           let var_id = mk_cf_var_id () in
-          Ecx.emit ~ecx (Load (var_id, `PointerV (global.ty, global.var)));
+          Ecx.emit ~ecx (Load (var_id, `PointerL (global.ty, global.name)));
           var_id
         ) else
           mk_cf_local id_loc
@@ -619,7 +618,7 @@ and emit_statement ~ecx stmt =
       if Bindings.is_global_decl ecx.pcx.bindings binding.loc then
         let binding_name = mk_value_binding_name binding in
         let global = SMap.find binding_name ecx.globals in
-        Ecx.emit ~ecx (Store (`PointerV (global.ty, global.var), expr_val))
+        Ecx.emit ~ecx (Store (`PointerL (global.ty, global.name), expr_val))
       else
         Ecx.emit ~ecx (Mov (mk_cf_local use_loc, expr_val))
     | Assignment.Expression expr_lvalue ->

@@ -1,0 +1,17 @@
+module test
+
+// Constants are put in data section and do not have init blocks
+val constantB: Byte = 123
+val constantI: Int = 123
+val constantL: Long = 123
+
+// Non-constants are put in bss section and have init blocks
+val b: Byte = getByte()
+val i: Int = getInt()
+val l: Long = getLong()
+
+fun getByte(): Byte = 22
+fun getInt(): Int = 23
+fun getLong(): Long = 24
+
+fun main() {}

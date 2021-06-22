@@ -1,4 +1,4 @@
-  .global _main
+  .global _start
 
   .text
 _main:
@@ -35,4 +35,8 @@ test.mulLongRegImm:
 test.mulLongRegs:
   imulq %rdi, %rsi
   movq %rsi, %rax
+  ret
+_start:
+  call __myte_init
+  call _main
   ret

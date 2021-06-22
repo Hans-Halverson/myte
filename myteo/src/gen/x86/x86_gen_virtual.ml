@@ -19,23 +19,44 @@ let rec gen ~gcx (ir : ssa_program) =
   SMap.iter (fun _ agg -> Gcx.build_agg_layout ~gcx agg) ir.types;
   (* Add init block with initialization of globals *)
   let func = Gcx.start_function ~gcx [] 0 in
-  Gcx.start_block ~gcx ~label:(Some "_init") ~func:func.id ~mir_block_id:None;
+  Gcx.start_block ~gcx ~label:(Some init_label) ~func:func.id ~mir_block_id:None;
   let prologue_block_id = (Option.get gcx.current_block_builder).id in
   func.prologue <- prologue_block_id;
   Gcx.finish_block ~gcx;
   SMap.iter (fun _ global -> gen_global_instruction_builder ~gcx ~ir global func) ir.globals;
   Gcx.finish_function ~gcx;
   (* Remove init block if there are no init sections *)
-  if List.length func.blocks = 1 then begin
+  let has_init_function = List.length func.blocks <> 1 in
+  if not has_init_function then begin
     gcx.blocks_by_id <- IMap.empty;
     gcx.funcs_by_id <- IMap.remove func.id gcx.funcs_by_id
   end;
   SMap.iter (fun _ func -> gen_function_instruction_builder ~gcx ~ir func) ir.funcs;
+  (* Generate entrypoint *)
+  gen_entrypoint ~gcx has_init_function;
   Gcx.finish_builders ~gcx
+
+(* Generate the _start entrypoint function for the executable. The entrypoint function initializes
+   the myte runtime, initializes all global variables if necessary, and finally calls the main
+   function. *)
+and gen_entrypoint ~gcx has_init_function =
+  let func = Gcx.start_function ~gcx [] 0 in
+  Gcx.start_block ~gcx ~label:(Some start_label) ~func:func.id ~mir_block_id:None;
+  let prologue_block_id = (Option.get gcx.current_block_builder).id in
+  func.prologue <- prologue_block_id;
+  Gcx.emit ~gcx (CallL X86_runtime.myte_init_label);
+  if has_init_function then Gcx.emit ~gcx (CallL init_label);
+  Gcx.emit ~gcx (CallL main_label);
+  Gcx.emit ~gcx Ret;
+  Gcx.finish_block ~gcx;
+  Gcx.finish_function ~gcx
 
 and gen_global_instruction_builder ~gcx ~ir global init_func =
   let open Instruction in
-  let init_val_info = resolve_ir_value ~gcx ~func:init_func.id global.init_val in
+  let global_init_label = Printf.sprintf "%s_%s" init_label global.name in
+  let init_val_info =
+    resolve_ir_value ~gcx ~func:init_func.id ~allow_imm64:true ~reduce_imm:false global.init_val
+  in
   match init_val_info with
   | SImm imm ->
     (* Global is initialized to immediate, so insert into initialized data section *)
@@ -48,11 +69,7 @@ and gen_global_instruction_builder ~gcx ~ir global init_func =
     let bss_data = { label = global.name; size = bytes_of_size Size64 } in
     Gcx.add_bss ~gcx bss_data;
     (* Emit init block to move address to global *)
-    Gcx.start_block
-      ~gcx
-      ~label:(Some ("_init_" ^ global.name))
-      ~func:init_func.id
-      ~mir_block_id:None;
+    Gcx.start_block ~gcx ~label:(Some global_init_label) ~func:init_func.id ~mir_block_id:None;
     let reg = VReg.mk ~resolution:Unresolved ~func:(Some init_func.id) in
     Gcx.emit ~gcx (Lea (Size64, addr, reg));
     Gcx.emit ~gcx (MovMM (Size64, Reg reg, Mem (mk_label_memory_address global.name)));
@@ -63,11 +80,7 @@ and gen_global_instruction_builder ~gcx ~ir global init_func =
     let bss_data = { label = global.name; size = bytes_of_size size } in
     Gcx.add_bss ~gcx bss_data;
     (* Emit init block to move initial value to global *)
-    Gcx.start_block
-      ~gcx
-      ~label:(Some ("_init_" ^ global.name))
-      ~func:init_func.id
-      ~mir_block_id:None;
+    Gcx.start_block ~gcx ~label:(Some global_init_label) ~func:init_func.id ~mir_block_id:None;
     let reg = VReg.mk ~resolution:Unresolved ~func:(Some init_func.id) in
     Gcx.emit ~gcx (MovMM (size, Mem mem, Reg reg));
     Gcx.emit ~gcx (MovMM (size, Reg reg, Mem (mk_label_memory_address global.name)));
@@ -77,13 +90,13 @@ and gen_global_instruction_builder ~gcx ~ir global init_func =
        Place global in uninitialized (bss) section. *)
     let bss_data = { label = global.name; size = bytes_of_size size } in
     Gcx.add_bss ~gcx bss_data;
-    gen_blocks ~gcx ~ir global.init_start_block (Some ("_init_" ^ global.name)) init_func.id
+    gen_blocks ~gcx ~ir global.init_start_block (Some global_init_label) init_func.id
 
 and gen_function_instruction_builder ~gcx ~ir func =
   let func_ = Gcx.start_function ~gcx [] 0 in
   let label =
     if func.body_start_block = ir.main_id then
-      "_main"
+      main_label
     else
       func.name
   in
@@ -467,7 +480,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    *                Store
    * ===========================================
    *)
-  | Mir.Instruction.Store (_label, _value) :: rest_instructions ->
+  | Mir.Instruction.Store (_pointer, _value) :: rest_instructions ->
     (* let global_address = mk_label_memory_address label in
        (match resolve_ir_value value with
        | SImm imm -> Gcx.emit ~gcx (MovIM (imm, Mem global_address))
@@ -854,7 +867,7 @@ and resolve_ir_value ~gcx ~func ?(allow_imm64 = false) ?(reduce_imm = true) valu
   | `StringL _
   | `StringV _ ->
     failwith "TODO: Cannot compile string literals"
-  | `PointerL _ -> failwith "TODO: Cannot compile pointer literals yet"
+  | `PointerL (_, label) -> SAddr (mk_label_memory_address label)
   | `PointerV (_, var_id) -> vreg_of_var var_id Size64
   | `AggregateV _ -> failwith "TODO: Cannot compile aggregate structures yet"
 

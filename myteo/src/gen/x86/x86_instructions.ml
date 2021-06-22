@@ -51,7 +51,7 @@ type immediate =
   | Imm64 of Int64.t
 
 type memory_address_offset =
-  | ImmediateOffset of Int64.t
+  | ImmediateOffset of Int32.t
   | LabelOffset of label
 
 type memory_address_scale =
@@ -425,3 +425,9 @@ let string_of_sized_reg reg size =
   | (R13, Size8) -> "r13b"
   | (R14, Size8) -> "r14b"
   | (R15, Size8) -> "r15b"
+
+let main_label = "_main"
+
+let start_label = "_start"
+
+let init_label = "_init"

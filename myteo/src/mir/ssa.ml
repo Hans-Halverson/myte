@@ -565,11 +565,7 @@ and map_to_ssa ~pcx ~ecx ~cx program =
     SMap.map
       (fun global ->
         let open Global in
-        {
-          global with
-          init_val = map_value ~f:map_read_var global.init_val;
-          var = map_read_var global.var;
-        })
+        { global with init_val = map_value ~f:map_read_var global.init_val })
       program.globals
   in
   { program with blocks = cx.blocks; globals }

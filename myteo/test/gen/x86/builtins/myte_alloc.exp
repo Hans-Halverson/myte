@@ -1,4 +1,4 @@
-  .global _main
+  .global _start
 
   .text
 _main:
@@ -19,4 +19,8 @@ test.testMyteAllocVariableCount:
   imulq $8, %rbx, %rdi
   call __myte_alloc
   pop %rbx
+  ret
+_start:
+  call __myte_init
+  call _main
   ret

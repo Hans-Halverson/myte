@@ -1,4 +1,4 @@
-  .global _main
+  .global _start
 
   .text
 fib.fibIterative:
@@ -46,4 +46,8 @@ _main:
   call fib.fibIterative
   movl $8, %edi
   call fib.fibIterative
+  ret
+_start:
+  call __myte_init
+  call _main
   ret

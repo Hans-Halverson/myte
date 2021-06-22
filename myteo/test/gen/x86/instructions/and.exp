@@ -1,4 +1,4 @@
-  .global _main
+  .global _start
 
   .text
 test.andByteImmReg:
@@ -39,4 +39,8 @@ test.andLongRegs:
   movq %rsi, %rax
   ret
 _main:
+  ret
+_start:
+  call __myte_init
+  call _main
   ret

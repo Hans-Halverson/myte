@@ -166,7 +166,7 @@ and pp_memory_address ~gcx ~buf mem =
     begin
       match mem.offset with
       | None -> ()
-      | Some (ImmediateOffset imm) -> add_string ~buf (Int64.to_string imm)
+      | Some (ImmediateOffset imm) -> add_string ~buf (Int32.to_string imm)
       | Some (LabelOffset label) -> add_string ~buf label
     end;
     add_char ~buf '(';
@@ -423,7 +423,7 @@ let pp_x86_program ~gcx =
   let pcx = mk_pcx ~gcx in
   let buf = mk_buf () in
   (* Add global directive *)
-  add_line ~buf (fun buf -> add_string ~buf ".global _main");
+  add_line ~buf (fun buf -> add_string ~buf (".global " ^ start_label));
   if gcx.bss <> [] then
     List.iter
       (fun { label; size } ->

@@ -1,0 +1,37 @@
+  .global _start
+  .lcomm test.b, 1
+  .lcomm test.i, 4
+  .lcomm test.l, 8
+
+  .data
+test.constantB:
+  .byte 123
+test.constantI:
+  .long 123
+test.constantL:
+  .quad 123
+
+  .text
+_init:
+_init_test.b:
+  call test.getByte
+_init_test.i:
+  call test.getInt
+_init_test.l:
+  call test.getLong
+test.getByte:
+  movb $22, %al
+  ret
+test.getInt:
+  movl $23, %eax
+  ret
+test.getLong:
+  movb $24, %al
+  ret
+_main:
+  ret
+_start:
+  call __myte_init
+  call _init
+  call _main
+  ret

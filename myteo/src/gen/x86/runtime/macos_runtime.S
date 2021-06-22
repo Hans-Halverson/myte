@@ -1,4 +1,3 @@
-  .global _start
   .global __myte_alloc
   .global __myte_init
 
@@ -8,11 +7,6 @@ __myte_heap_start:
   .quad 0
 
   .text
-
-_start:
-  call __myte_init
-  call _main
-  ret
 
 __myte_init:
   # Allocate memory region for heap

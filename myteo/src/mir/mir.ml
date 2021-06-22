@@ -5,6 +5,8 @@ type var_id = int
 
 type instr_id = int
 
+type label = string
+
 module rec Value : sig
   type 'a unit_value =
     [ `UnitV of 'a
@@ -23,12 +25,12 @@ module rec Value : sig
 
   type 'a function_value =
     [ `FunctionV of 'a
-    | `FunctionL of string
+    | `FunctionL of label
     ]
 
   type 'a pointer_value =
     [ `PointerV of Type.t * 'a
-    | `PointerL of Type.t * Int64.t
+    | `PointerL of Type.t * label
     ]
 
   type 'a long_value =
@@ -172,10 +174,9 @@ end =
 
 and Global : sig
   type 'var t = {
-    name: string;
+    name: label;
     loc: Loc.t;
     ty: Type.t;
-    var: 'var;
     mutable init_start_block: Block.id;
     init_val: 'var Value.t;
   }
@@ -184,7 +185,7 @@ end =
 
 and Function : sig
   type t = {
-    name: string;
+    name: label;
     loc: Loc.t;
     params: (Loc.t * var_id * Type.t) list;
     return_ty: Type.t;

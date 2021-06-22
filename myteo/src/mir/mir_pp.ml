@@ -5,8 +5,6 @@ open Mir_type
 module Context = struct
   type t = {
     mutable print_var_id_map: int IMap.t;
-    (* Map from var id to global *)
-    mutable global_var_ids_map: var_id Global.t IMap.t;
     mutable max_print_var_id: int;
     mutable print_block_id_map: string IMap.t;
     mutable max_print_block_id: int;
@@ -14,16 +12,8 @@ module Context = struct
   }
 
   let mk program =
-    (* Add labels for each global *)
-    let global_var_ids_map =
-      SMap.fold
-        (fun _ global map -> IMap.add global.Global.var global map)
-        program.Program.globals
-        IMap.empty
-    in
     {
       print_var_id_map = IMap.empty;
-      global_var_ids_map;
       max_print_var_id = 0;
       print_block_id_map = IMap.empty;
       max_print_block_id = 0;
@@ -171,22 +161,19 @@ and pp_block ~cx ~label block =
 
 and pp_var_id ~cx var_id =
   let open Context in
-  match IMap.find_opt var_id cx.global_var_ids_map with
-  | Some { Global.name; _ } -> "@" ^ name
-  | None ->
-    let print_id =
-      if Opts.dump_debug () then
-        var_id
-      else
-        match IMap.find_opt var_id cx.print_var_id_map with
-        | Some print_id -> print_id
-        | None ->
-          let print_id = cx.max_print_var_id in
-          cx.print_var_id_map <- IMap.add var_id print_id cx.print_var_id_map;
-          cx.max_print_var_id <- print_id + 1;
-          print_id
-    in
-    Printf.sprintf "%%%d" print_id
+  let print_id =
+    if Opts.dump_debug () then
+      var_id
+    else
+      match IMap.find_opt var_id cx.print_var_id_map with
+      | Some print_id -> print_id
+      | None ->
+        let print_id = cx.max_print_var_id in
+        cx.print_var_id_map <- IMap.add var_id print_id cx.print_var_id_map;
+        cx.max_print_var_id <- print_id + 1;
+        print_id
+  in
+  Printf.sprintf "%%%d" print_id
 
 and calc_print_block_ids ~cx block_ids =
   List.iter
@@ -221,8 +208,9 @@ and pp_value ~cx v =
   | `ByteL i -> string_of_int i
   | `IntL i -> Int32.to_string i
   | `LongL i -> Int64.to_string i
-  | `FunctionL func_name -> "@" ^ func_name
-  | `PointerL (_, ptr) -> Int64.to_string ptr
+  | `FunctionL label
+  | `PointerL (_, label) ->
+    "@" ^ label
   | `UnitV var_id
   | `BoolV var_id
   | `StringV var_id

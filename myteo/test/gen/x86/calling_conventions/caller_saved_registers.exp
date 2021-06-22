@@ -1,4 +1,4 @@
-  .global _main
+  .global _start
 
   .text
 test.callerSavedRegistersSavedAcrossFunctionCalls:
@@ -126,4 +126,8 @@ test.testDefaultToCallerSaveRegisters:
   ret
 test.use:
   movl %edi, %eax
+  ret
+_start:
+  call __myte_init
+  call _main
   ret

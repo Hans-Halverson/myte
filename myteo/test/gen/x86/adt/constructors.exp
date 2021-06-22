@@ -1,4 +1,4 @@
-  .global _main
+  .global _start
 
   .text
 _main:
@@ -10,4 +10,8 @@ test.test:
   call __myte_alloc
   movb $8, %dil
   call __myte_alloc
+  ret
+_start:
+  call __myte_init
+  call _main
   ret

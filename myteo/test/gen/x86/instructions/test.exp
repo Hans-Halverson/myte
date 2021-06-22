@@ -1,4 +1,4 @@
-  .global _main
+  .global _start
 
   .text
 _main:
@@ -19,4 +19,8 @@ test.testRegister:
   ret
 .L1:
   movl $2, %eax
+  ret
+_start:
+  call __myte_init
+  call _main
   ret

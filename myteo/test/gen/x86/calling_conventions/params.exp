@@ -1,4 +1,4 @@
-  .global _main
+  .global _start
 
   .text
 test.longArgs:
@@ -148,4 +148,8 @@ test.use:
   ret
 test.zeroArgFunction:
   movl $1, %eax
+  ret
+_start:
+  call __myte_init
+  call _main
   ret
