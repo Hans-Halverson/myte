@@ -1,0 +1,14 @@
+module test
+
+fun f() {}
+
+fun higherOrder(f: () -> Unit) {}
+
+fun test() {
+  val x = f;
+
+  // Function constant is inlined
+  higherOrder(x);
+}
+
+fun main() {}

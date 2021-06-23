@@ -387,6 +387,14 @@ class update_constants_mapper ~ocx var_id_constants constants_in_phis =
         (match IMap.find_opt var_id var_id_constants with
         | Some (LongConstant const) -> `LongL const
         | _ -> value)
+
+    method! map_function_value ~block:_ value =
+      match value with
+      | `FunctionL _ -> value
+      | `FunctionV var_id ->
+        (match IMap.find_opt var_id var_id_constants with
+        | Some (FunctionConstant const) -> `FunctionL const
+        | _ -> value)
   end
 
 (* Find constant variables that appear in non-constant phis, as these variables will need to keep
