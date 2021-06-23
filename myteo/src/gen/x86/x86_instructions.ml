@@ -129,6 +129,11 @@ module VirtualRegister = struct
     | _ -> vreg
 
   let get_vreg_resolution vreg = (get_vreg_alias vreg).resolution
+
+  let get_physical_resolution vreg =
+    match get_vreg_resolution vreg with
+    | Physical reg -> reg
+    | _ -> failwith "Expected virtual register to be resolved to physical register"
 end
 
 module VReg = VirtualRegister

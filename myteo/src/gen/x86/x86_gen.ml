@@ -38,6 +38,9 @@ let gen_x86_program ir =
   X86_calling_conventions.write_function_prologues ~gcx;
   X86_calling_conventions.write_function_epilogues ~gcx;
 
+  (* Apply optimizations *)
+  X86_peephole.run_peephole_optimizations ~gcx;
+
   (* Optionally dump assembly to stdout *)
   if Opts.dump_asm () then begin
     print_string (X86_pp.pp_x86_program ~gcx);

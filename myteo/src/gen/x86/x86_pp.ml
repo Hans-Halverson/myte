@@ -142,6 +142,8 @@ let rec pp_register ~gcx ~buf ~size reg =
       add_char ~buf ':';
       add_string ~buf (string_of_int reg_alias.id)
     )
+  (* Only used when printing virtual asm, as all vregs are resolved to physical register in
+     asm after register allocation. *)
   | StackSlot (PhysicalAddress _ as addr) -> pp_memory_address ~gcx ~buf addr
   | StackSlot (VirtualStackSlot vreg) -> pp_virtual_stack_slot ~buf vreg
   | StackSlot (FunctionStackArgument vreg) -> pp_function_stack_argument ~buf vreg

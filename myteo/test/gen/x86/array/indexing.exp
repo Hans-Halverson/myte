@@ -10,78 +10,51 @@ _init_test.intArray:
   ret
 test.constantIndexing:
   movb (%rdi), %al
-  leaq 1(%rdi), %rax
-  movb (%rax), %al
-  leaq 2(%rdi), %rax
-  movb (%rax), %al
+  movb 1(%rdi), %al
+  movb 2(%rdi), %al
   movl (%rsi), %eax
-  leaq 4(%rsi), %rax
-  movl (%rax), %eax
-  leaq 8(%rsi), %rax
-  movl (%rax), %eax
+  movl 4(%rsi), %eax
+  movl 8(%rsi), %eax
   movq (%rdx), %rax
-  leaq 8(%rdx), %rax
-  movq (%rax), %rax
-  leaq 16(%rdx), %rax
-  movq (%rax), %rax
+  movq 8(%rdx), %rax
+  movq 16(%rdx), %rax
   movq (%rcx), %rax
-  leaq 8(%rcx), %rax
-  movq (%rax), %rax
-  leaq 16(%rcx), %rax
-  movq (%rax), %rax
-  leaq 3(%rdi), %rax
-  movb $4, (%rax)
-  leaq 40(%rdx), %rax
-  movq $6, (%rax)
+  movq 8(%rcx), %rax
+  movq 16(%rcx), %rax
+  movb $4, 3(%rdi)
+  movq $6, 40(%rdx)
   ret
 test.indexIntoGlobal:
   movq test.intArray(%rip), %rax
-  leaq 20(%rax), %rax
-  movl (%rax), %eax
+  movl 20(%rax), %eax
   movq test.intArray(%rip), %rax
-  leaq (%rax, %rdi, 4), %rax
-  movl (%rax), %eax
+  movl (%rax, %rdi, 4), %eax
   movq test.intArray(%rip), %rax
-  leaq 20(%rax), %rax
-  movl $6, (%rax)
+  movl $6, 20(%rax)
   movq test.intArray(%rip), %rax
-  leaq (%rax, %rdi, 4), %rax
-  movl $7, (%rax)
+  movl $7, (%rax, %rdi, 4)
   ret
 test.longConstantIndexing:
   movq $17179869184, %rax
-  leaq (%rdi, %rax), %rax
-  movl (%rax), %eax
+  movl (%rdi, %rax), %eax
   ret
 _main:
   ret
 test.nestedIndexing:
-  leaq 40(%rdi), %rax
-  movq (%rax), %rax
-  leaq 4(%rax), %rax
-  movb (%rax), %al
-  leaq 8(%rsi), %rax
-  movq (%rax), %rax
-  leaq 20(%rax), %rax
-  movl (%rax), %eax
-  leaq (%rdi, %rdx, 8), %rax
-  movq (%rax), %rax
-  leaq 4(%rax), %rax
-  movb (%rax), %al
-  leaq 8(%rsi), %rax
-  movq (%rax), %rax
-  leaq (%rax, %rdx, 4), %rax
-  movl (%rax), %eax
+  movq 40(%rdi), %rax
+  movb 4(%rax), %al
+  movq 8(%rsi), %rax
+  movl 20(%rax), %eax
+  movq (%rdi, %rdx, 8), %rax
+  movb 4(%rax), %al
+  movq 8(%rsi), %rax
+  movl (%rax, %rdx, 4), %eax
   ret
 test.variableIndexing:
-  leaq (%rdi, %r8), %rax
-  movb (%rax), %al
-  leaq (%rsi, %r8, 4), %rax
-  movl (%rax), %eax
-  leaq (%rdx, %r8, 8), %rax
-  movq (%rax), %rax
-  leaq (%rcx, %r8, 8), %rax
-  movq (%rax), %rax
+  movb (%rdi, %r8), %al
+  movl (%rsi, %r8, 4), %eax
+  movq (%rdx, %r8, 8), %rax
+  movq (%rcx, %r8, 8), %rax
   ret
 _start:
   call __myte_init

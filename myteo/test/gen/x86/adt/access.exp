@@ -4,35 +4,23 @@
 _main:
   ret
 test.nestedAccess:
-  leaq 8(%rdi), %rax
-  movq (%rax), %rax
-  leaq 8(%rdi), %rax
-  movq (%rax), %rax
-  leaq 8(%rax), %rax
-  movq (%rax), %rax
-  leaq 8(%rdi), %rax
-  movq (%rax), %rax
-  leaq 8(%rax), %rax
-  movq (%rax), %rax
-  leaq 1(%rax), %rax
-  movb (%rax), %al
+  movq 8(%rdi), %rax
+  movq 8(%rdi), %rax
+  movq 8(%rax), %rax
+  movq 8(%rdi), %rax
+  movq 8(%rax), %rax
+  movb 1(%rax), %al
   ret
 test.simpleAccess:
   movl (%rdi), %eax
-  leaq 8(%rdi), %rax
-  movq (%rax), %rax
-  leaq 16(%rdi), %rax
-  movb (%rax), %al
+  movq 8(%rdi), %rax
+  movb 16(%rdi), %al
   movl (%rsi), %eax
-  leaq 8(%rsi), %rax
-  movq (%rax), %rax
-  leaq 16(%rsi), %rax
-  movb (%rax), %al
+  movq 8(%rsi), %rax
+  movb 16(%rsi), %al
   movb (%rdx), %al
-  leaq 1(%rdx), %rax
-  movb (%rax), %al
-  leaq 2(%rdx), %rax
-  movb (%rax), %al
+  movb 1(%rdx), %al
+  movb 2(%rdx), %al
   ret
 _start:
   call __myte_init
