@@ -1,0 +1,21 @@
+module test
+
+type Rec1 { foo: Int, bar: Long, baz: Byte }
+
+fun simpleReassign(r: Rec1) {
+  r.foo = 1;
+  r.bar = 2;
+  r.baz = 3;
+}
+
+type Rec2 { foo: Long, bar: Rec3 }
+type Rec3 { baz: Int, baz2: Rec4 }
+type Rec4 { baz3: Byte, baz4: Byte }
+
+fun nestedReassign(r2: Rec2, r4: Rec4) {
+  r2.bar.baz2.baz4 = 7;
+
+  r2.bar.baz2 = r4;
+}
+
+fun main() {}

@@ -6,10 +6,26 @@ type Tup2 (Int, Byte)
 
 type Tup3 (Byte, Int)
 
-fun test() {
+fun testTuple() {
   Tup1 (1, 2, 3);
   Tup2 (1, 2);
   Tup3 (1, 2);
+}
+
+type Rec1 { foo: Int, bar: Byte, baz: Long }
+
+fun testRecord() {
+  Rec1 { foo: 1, bar: 2, baz: 3 };  
+}
+
+type Tup4 (Tup5, Tup6)
+type Tup5 (Int, Byte)
+type Tup6 (Long, Byte)
+
+fun testNested() {
+  val x = Tup5 (1, 2);
+  val y = Tup6 (3, 4);
+  Tup4 (x, y);
 }
 
 fun main() {}

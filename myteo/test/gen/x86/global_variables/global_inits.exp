@@ -30,6 +30,7 @@ _init_test.i:
 _init_test.l:
   call test.getLong
   movq %rax, test.l(%rip)
+  ret
 test.getByte:
   movb $22, %al
   ret

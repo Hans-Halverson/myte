@@ -3,22 +3,56 @@
   .text
 _main:
   ret
-test.test:
+test.testNested:
   push %rbx
+  push %r12
+  movb $8, %dil
+  call __myte_alloc
+  movl $1, (%rax)
+  leaq 4(%rax), %rbx
+  movb $2, (%rbx)
+  movq %rax, %r12
+  movb $16, %dil
+  call __myte_alloc
+  movq $3, (%rax)
+  leaq 8(%rax), %rbx
+  movb $4, (%rbx)
+  movq %rax, %rbx
+  movb $16, %dil
+  call __myte_alloc
+  movq %r12, (%rax)
+  leaq 8(%rax), %rax
+  movq %rbx, (%rax)
+  pop %r12
+  pop %rbx
+  ret
+test.testRecord:
+  movb $16, %dil
+  call __myte_alloc
+  movl $1, (%rax)
+  leaq 4(%rax), %rcx
+  movb $2, (%rcx)
+  leaq 8(%rax), %rax
+  movq $3, (%rax)
+  ret
+test.testTuple:
   movb $12, %dil
   call __myte_alloc
-  movl $1, (%rbx)
-  movl $2, (%rbx)
-  movl $3, (%rbx)
+  movl $1, (%rax)
+  leaq 4(%rax), %rcx
+  movl $2, (%rcx)
+  leaq 8(%rax), %rax
+  movl $3, (%rax)
   movb $8, %dil
   call __myte_alloc
-  movl $1, (%rbx)
-  movb $2, (%rbx)
+  movl $1, (%rax)
+  leaq 4(%rax), %rax
+  movb $2, (%rax)
   movb $8, %dil
   call __myte_alloc
-  movb $1, (%rbx)
-  movl $2, (%rbx)
-  pop %rbx
+  movb $1, (%rax)
+  leaq 4(%rax), %rax
+  movl $2, (%rax)
   ret
 _start:
   call __myte_init

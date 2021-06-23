@@ -302,6 +302,13 @@ let size_of_immediate imm =
   | Imm32 _ -> Size32
   | Imm64 _ -> Size64
 
+let int64_of_immediate imm =
+  match imm with
+  | Imm8 i -> Int64.of_int i
+  | Imm16 i -> Int64.of_int i
+  | Imm32 i -> Int64.of_int32 i
+  | Imm64 i -> i
+
 let smallest_unsigned_immediate lit =
   if not (Integers.is_out_of_unsigned_byte_range lit) then
     Imm8 (Int64.to_int lit)

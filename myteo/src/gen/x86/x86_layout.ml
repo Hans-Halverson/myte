@@ -16,4 +16,6 @@ module AggregateLayout = struct
     alignment: int;
     elements: AggregateElement.t array;
   }
+
+  let get_element agg_layout i = agg_layout.elements.(i)
 end

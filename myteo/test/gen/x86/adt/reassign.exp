@@ -1,0 +1,28 @@
+  .global _start
+
+  .text
+_main:
+  ret
+test.nestedReassign:
+  leaq 8(%rdi), %rax
+  movq (%rax), %rax
+  leaq 8(%rax), %rax
+  movq (%rax), %rax
+  leaq 1(%rax), %rax
+  movb $7, (%rax)
+  leaq 8(%rdi), %rax
+  movq (%rax), %rax
+  leaq 8(%rax), %rax
+  movq %rsi, (%rax)
+  ret
+test.simpleReassign:
+  movl $1, (%rdi)
+  leaq 8(%rdi), %rax
+  movq $2, (%rax)
+  leaq 16(%rdi), %rax
+  movb $3, (%rax)
+  ret
+_start:
+  call __myte_init
+  call _main
+  ret

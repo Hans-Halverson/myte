@@ -3,6 +3,7 @@ open Mir
 open Mir_type
 open X86_gen_context
 open X86_instructions
+open X86_layout
 
 type resolved_source_value =
   (* An immediate value *)
@@ -17,21 +18,33 @@ type resolved_source_value =
 let rec gen ~gcx (ir : ssa_program) =
   (* Calculate layout of all aggregate types *)
   SMap.iter (fun _ agg -> Gcx.build_agg_layout ~gcx agg) ir.types;
-  (* Add init block with initialization of globals *)
-  let func = Gcx.start_function ~gcx [] 0 in
-  Gcx.start_block ~gcx ~label:(Some init_label) ~func:func.id ~mir_block_id:None;
+
+  (* Add init function with initialization of globals *)
+  let init_func = Gcx.start_function ~gcx [] 0 in
+  Gcx.start_block ~gcx ~label:(Some init_label) ~func:init_func.id ~mir_block_id:None;
   let prologue_block_id = (Option.get gcx.current_block_builder).id in
-  func.prologue <- prologue_block_id;
+  init_func.prologue <- prologue_block_id;
   Gcx.finish_block ~gcx;
-  SMap.iter (fun _ global -> gen_global_instruction_builder ~gcx ~ir global func) ir.globals;
-  Gcx.finish_function ~gcx;
-  (* Remove init block if there are no init sections *)
-  let has_init_function = List.length func.blocks <> 1 in
-  if not has_init_function then begin
+
+  (* Add all globals to init function *)
+  SMap.iter (fun _ global -> gen_global_instruction_builder ~gcx ~ir global init_func) ir.globals;
+  let has_init_function = List.length init_func.blocks <> 1 in
+  if has_init_function then (
+    (* Add init function epilogue (with return) *)
+    Gcx.start_block ~gcx ~label:None ~func:init_func.id ~mir_block_id:None;
+    Gcx.emit ~gcx Ret;
+    Gcx.finish_block ~gcx;
+    Gcx.finish_function ~gcx
+  ) else (
+    (* Remove init block if there are no init sections *)
+    Gcx.finish_function ~gcx;
     gcx.blocks_by_id <- IMap.empty;
-    gcx.funcs_by_id <- IMap.remove func.id gcx.funcs_by_id
-  end;
+    gcx.funcs_by_id <- IMap.remove init_func.id gcx.funcs_by_id
+  );
+
+  (* Generate all functions in program *)
   SMap.iter (fun _ func -> gen_function_instruction_builder ~gcx ~ir func) ir.funcs;
+
   (* Generate entrypoint *)
   gen_entrypoint ~gcx has_init_function;
   Gcx.finish_builders ~gcx
@@ -867,7 +880,174 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     ) else
       failwith (Printf.sprintf "Cannot compile unknown builtin %s to assembly" name);
     gen_instructions rest_instructions
-  | Mir.Instruction.GetPointer _ :: rest_instructions -> gen_instructions rest_instructions
+  | Mir.Instruction.GetPointer get_pointer_instr :: rest_instructions ->
+    gen_get_pointer ~gcx ~func get_pointer_instr;
+    gen_instructions rest_instructions
+
+and gen_get_pointer ~gcx ~func (get_pointer_instr : var_id Mir.Instruction.GetPointer.t) =
+  let open Mir.Instruction.GetPointer in
+  let { var_id; return_ty = _; pointer; pointer_offset; offsets } = get_pointer_instr in
+  let element_ty = pointer_value_element_type pointer in
+
+  (* Current address calculation - updated as offsets are visited *)
+  let offset = ref None in
+  let base = ref NoBase in
+  let index_and_scale = ref None in
+
+  (* Utilities for creating vregs *)
+  let vreg_of_result_var_id var_id =
+    VReg.of_var_id ~resolution:Unresolved ~func:(Some func) var_id
+  in
+  let mk_vreg () = VReg.mk ~resolution:Unresolved ~func:(Some func) in
+
+  (* Emit the current address calculation as a Lea instruction, returning the resulting var and
+     storing it as the base of the next instruction. If only a register base is present, do not emit
+     an instruction and simply return that register. *)
+  let emit_current_address_calculation () =
+    (* TODO: All registers must have same size - must sign extend those that do not match *)
+    let result_vreg =
+      match (!offset, !base, !index_and_scale) with
+      | (None, RegBase reg, None) -> reg
+      | (offset, base, index_and_scale) ->
+        let result_vreg = mk_vreg () in
+        Gcx.emit ~gcx (Lea (Size64, PhysicalAddress { offset; base; index_and_scale }, result_vreg));
+        result_vreg
+    in
+
+    (* Set up next address calculation *)
+    base := RegBase result_vreg;
+    offset := None;
+    index_and_scale := None;
+    result_vreg
+  in
+
+  (* Add a 32-bit constant to the current address calculation *)
+  let add_fixed_offset new_offset =
+    match !offset with
+    (* If there is not already an offset, add one *)
+    | None -> offset := Some (ImmediateOffset new_offset)
+    (* Cannot combine label offset with immediate offset, so emit current address calculation
+       instruction and start new address calculation with immediate offset. *)
+    | Some (LabelOffset _) ->
+      ignore (emit_current_address_calculation ());
+      offset := Some (ImmediateOffset new_offset)
+      (* Combine immediate offsets if they fit in 32-bit immediate *)
+    | Some (ImmediateOffset current_offset) ->
+      let full_offset = Int64.add (Int64.of_int32 current_offset) (Int64.of_int32 new_offset) in
+      if not (Integers.is_out_of_unsigned_int_range full_offset) then
+        offset := Some (ImmediateOffset (Int64.to_int32 full_offset))
+      else (
+        (* Otherwise emit current address calculation instruction for old offset and start new
+           address calculation with new offset. *)
+        ignore (emit_current_address_calculation ());
+        offset := Some (ImmediateOffset new_offset)
+      )
+  in
+
+  (* Add a register with a known scale to the current address calculation *)
+  let add_scaled_register (vreg, size) scale =
+    (* Add an unscaled register to current address calculation. First try to add it to base if there
+       is no base yet, then try adding to index with scale = 1 if there is no index, otherwise
+       emit current address calculation and try again. *)
+    let rec add_unscaled_register vreg =
+      if !base = NoBase then
+        base := RegBase vreg
+      else if !index_and_scale = None then
+        index_and_scale := Some (vreg, Scale1)
+      else (
+        ignore (emit_current_address_calculation ());
+        add_unscaled_register vreg
+      )
+    in
+    (* Add a scaled register to current address calculation. If there is already a scaled register
+       then emit the current address calculation and try again. *)
+    let rec add_scaled_register vreg scale =
+      if !index_and_scale = None then
+        index_and_scale := Some (vreg, scale)
+      else (
+        ignore (emit_current_address_calculation ());
+        add_scaled_register vreg scale
+      )
+    in
+    match scale with
+    | 1 -> add_unscaled_register vreg
+    | 2 -> add_scaled_register vreg Scale2
+    | 4 -> add_scaled_register vreg Scale4
+    | 8 -> add_scaled_register vreg Scale8
+    (* Otherwise emit multiply to calculate index *)
+    | scale ->
+      ignore (emit_current_address_calculation ());
+      let scaled_vreg = mk_vreg () in
+      let scale_imm = Imm32 (Int32.of_int scale) in
+      (* TODO: Handle sign extending byte arguments to 32/64 bits (movzbl/q) *)
+      Gcx.emit ~gcx (IMulMIR (size, Reg vreg, scale_imm, scaled_vreg));
+      add_unscaled_register scaled_vreg
+  in
+
+  (* Add address of root pointer *)
+  (match pointer with
+  | `PointerL (_, label) ->
+    offset := Some (LabelOffset label);
+    base := IPBase
+  | `PointerV _ ->
+    (match resolve_ir_value ~gcx ~func (pointer :> ssa_value) with
+    | SVReg (vreg, _) -> base := RegBase vreg
+    | SMem (mem, _) ->
+      let vreg = mk_vreg () in
+      Gcx.emit ~gcx (MovMM (Size64, Mem mem, Reg vreg));
+      base := RegBase vreg
+    | _ -> failwith "PointerV must resolve to VReg or Mem"));
+
+  (* The type that is currently being indexed into *)
+  let current_ty = ref element_ty in
+
+  let gen_offset offset ty =
+    match offset with
+    | PointerIndex pointer_offset ->
+      (* TODO: Handle sign extending byte arguments to 32/64 bits (movzbl/q) *)
+      let element_size = Gcx.size_of_mir_type ~gcx ty in
+      (match resolve_ir_value ~gcx ~func ~allow_imm64:true (pointer_offset :> ssa_value) with
+      | SImm imm ->
+        let num_elements = int64_of_immediate imm in
+        if num_elements <> Int64.zero then (
+          (* Check if calculated offset fits in 64-bit immediate *)
+          let offset = Int64.mul num_elements (Int64.of_int element_size) in
+          if not (Integers.is_out_of_unsigned_int_range offset) then
+            add_fixed_offset (Int64.to_int32 offset)
+          else
+            (* If not, 64-bit immediate offset must first be loaded into register  *)
+            let vreg = mk_vreg () in
+            Gcx.emit ~gcx Instruction.(MovIM (Imm64 offset, Reg vreg));
+            add_scaled_register (vreg, Size64) 1
+        )
+      | SVReg (vreg, size) -> add_scaled_register (vreg, size) element_size
+      | SMem (mem, size) ->
+        let vreg = mk_vreg () in
+        Gcx.emit ~gcx (MovMM (size, Mem mem, Reg vreg));
+        add_scaled_register (vreg, size) element_size
+      | SAddr _ -> failwith "PointerIndex cannot be resolved to SAddr")
+    | FieldIndex element_index ->
+      (match ty with
+      | `AggregateT ({ Aggregate.elements; _ } as agg) ->
+        (* Find offset of aggregate element in aggregate's layout, add add it to address *)
+        let agg_layout = Gcx.get_agg_layout ~gcx agg in
+        let { AggregateElement.offset; _ } = AggregateLayout.get_element agg_layout element_index in
+        if offset <> 0 then add_fixed_offset (Int32.of_int offset);
+        (* Update current type to element type *)
+        let (_, element_ty) = List.nth elements element_index in
+        current_ty := element_ty
+      | _ -> failwith "FieldIndex must index into aggregate type")
+  in
+
+  (* Visit all offsets *)
+  (match pointer_offset with
+  | Some pointer_offset -> gen_offset (PointerIndex pointer_offset) element_ty
+  | None -> ());
+  List.iter (fun offset -> gen_offset offset !current_ty) offsets;
+
+  let address_vreg = emit_current_address_calculation () in
+  let result_vreg = vreg_of_result_var_id var_id in
+  Gcx.emit ~gcx (MovMM (Size64, Reg address_vreg, Reg result_vreg))
 
 and resolve_ir_value ~gcx ~func ?(allow_imm64 = false) ?(reduce_imm = true) value =
   let vreg_of_var var_id size =

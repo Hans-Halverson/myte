@@ -1,4 +1,5 @@
   .global _start
+  .lcomm test.t, 8
 
   .data
 test.b:
@@ -9,6 +10,13 @@ test.l:
   .quad 0
 
   .text
+_init:
+_init_test.t:
+  movb $4, %dil
+  call __myte_alloc
+  movl $1, (%rax)
+  movq %rax, test.t(%rip)
+  ret
 _main:
   ret
 test.testReassignGlobals:
@@ -16,8 +24,14 @@ test.testReassignGlobals:
   movl %edi, test.i(%rip)
   imulq $13, %rsi, %rax
   movq %rax, test.l(%rip)
+  movq %rdx, test.t(%rip)
+  movb $4, %dil
+  call __myte_alloc
+  movl $2, (%rax)
+  movq %rax, test.t(%rip)
   ret
 _start:
   call __myte_init
+  call _init
   call _main
   ret

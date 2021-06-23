@@ -1,0 +1,90 @@
+  .global _start
+  .lcomm test.intArray, 8
+
+  .text
+_init:
+_init_test.intArray:
+  movb $40, %dil
+  call __myte_alloc
+  movq %rax, test.intArray(%rip)
+  ret
+test.constantIndexing:
+  movb (%rdi), %al
+  leaq 1(%rdi), %rax
+  movb (%rax), %al
+  leaq 2(%rdi), %rax
+  movb (%rax), %al
+  movl (%rsi), %eax
+  leaq 4(%rsi), %rax
+  movl (%rax), %eax
+  leaq 8(%rsi), %rax
+  movl (%rax), %eax
+  movq (%rdx), %rax
+  leaq 8(%rdx), %rax
+  movq (%rax), %rax
+  leaq 16(%rdx), %rax
+  movq (%rax), %rax
+  movq (%rcx), %rax
+  leaq 8(%rcx), %rax
+  movq (%rax), %rax
+  leaq 16(%rcx), %rax
+  movq (%rax), %rax
+  leaq 3(%rdi), %rax
+  movb $4, (%rax)
+  leaq 40(%rdx), %rax
+  movq $6, (%rax)
+  ret
+test.indexIntoGlobal:
+  movq test.intArray(%rip), %rax
+  leaq 20(%rax), %rax
+  movl (%rax), %eax
+  movq test.intArray(%rip), %rax
+  leaq (%rax, %rdi, 4), %rax
+  movl (%rax), %eax
+  movq test.intArray(%rip), %rax
+  leaq 20(%rax), %rax
+  movl $6, (%rax)
+  movq test.intArray(%rip), %rax
+  leaq (%rax, %rdi, 4), %rax
+  movl $7, (%rax)
+  ret
+test.longConstantIndexing:
+  movq $17179869184, %rax
+  leaq (%rdi, %rax), %rax
+  movl (%rax), %eax
+  ret
+_main:
+  ret
+test.nestedIndexing:
+  leaq 40(%rdi), %rax
+  movq (%rax), %rax
+  leaq 4(%rax), %rax
+  movb (%rax), %al
+  leaq 8(%rsi), %rax
+  movq (%rax), %rax
+  leaq 20(%rax), %rax
+  movl (%rax), %eax
+  leaq (%rdi, %rdx, 8), %rax
+  movq (%rax), %rax
+  leaq 4(%rax), %rax
+  movb (%rax), %al
+  leaq 8(%rsi), %rax
+  movq (%rax), %rax
+  leaq (%rax, %rdx, 4), %rax
+  movl (%rax), %eax
+  ret
+test.variableIndexing:
+  leaq (%rdi, %r8), %rax
+  movb (%rax), %al
+  leaq (%rsi, %r8, 4), %rax
+  movl (%rax), %eax
+  leaq (%rdx, %r8, 8), %rax
+  movq (%rax), %rax
+  leaq (%rcx, %r8, 8), %rax
+  movq (%rax), %rax
+  ret
+_start:
+  call __myte_init
+  call _init
+  call _main
+  ret
