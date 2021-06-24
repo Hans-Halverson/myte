@@ -1,0 +1,63 @@
+  .global _start
+
+  .text
+_main:
+  ret
+test.testBool:
+  push %rbx
+  movl $8, %edi
+  call __myte_alloc
+  movl $1, (%rax)
+  movb $1, 4(%rax)
+  movb $0, 5(%rax)
+  movq %rax, %rbx
+  movl (%rbx), %edi
+  call test.useInt
+  movb 4(%rbx), %dil
+  call test.useBool
+  movb 5(%rbx), %dil
+  call test.useBool
+  pop %rbx
+  ret
+test.testInt:
+  push %rbx
+  movl $12, %edi
+  call __myte_alloc
+  movl $1, (%rax)
+  movl $2, 4(%rax)
+  movl $3, 8(%rax)
+  movq %rax, %rbx
+  movl (%rbx), %edi
+  call test.useInt
+  movl 4(%rbx), %edi
+  call test.useInt
+  movl 8(%rbx), %edi
+  call test.useInt
+  pop %rbx
+  ret
+test.testLong:
+  push %rbx
+  movl $24, %edi
+  call __myte_alloc
+  movl $1, (%rax)
+  movq $5, 8(%rax)
+  movq $6, 16(%rax)
+  movq %rax, %rbx
+  movl (%rbx), %edi
+  call test.useInt
+  movq 8(%rbx), %rdi
+  call test.useLong
+  movq 16(%rbx), %rdi
+  call test.useLong
+  pop %rbx
+  ret
+test.useBool:
+  ret
+test.useInt:
+  ret
+test.useLong:
+  ret
+_start:
+  call __myte_init
+  call _main
+  ret

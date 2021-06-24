@@ -1,0 +1,13 @@
+module test
+
+type Tup<T> (T)
+
+fun buildOption<T>(x: T): Tup<T> = Tup (x)
+
+fun test() {
+  buildOption(true);
+  buildOption(5);
+  buildOption((6: Long));
+}
+
+fun main() {}

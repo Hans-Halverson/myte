@@ -1,0 +1,42 @@
+  .global _start
+
+  .text
+test.buildOption<bool>:
+  push %rbx
+  movb %dil, %bl
+  movl $1, %edi
+  call __myte_alloc
+  movb %bl, (%rax)
+  pop %rbx
+  ret
+test.buildOption<int>:
+  push %rbx
+  movl %edi, %ebx
+  movl $4, %edi
+  call __myte_alloc
+  movl %ebx, (%rax)
+  pop %rbx
+  ret
+test.buildOption<long>:
+  push %rbx
+  movq %rdi, %rbx
+  movl $8, %edi
+  call __myte_alloc
+  movq %rbx, (%rax)
+  pop %rbx
+  ret
+_main:
+  ret
+test.test:
+  movb $1, %dil
+  call test.buildOption<bool>
+  movl $5, %edi
+  call test.buildOption<int>
+  movq $6, %rdi
+  call test.buildOption<long>
+  ret
+_start:
+  call __myte_init
+  call _main
+  ret
+[31m[49m[1mError:[0m Assembler failed with exit code 1
