@@ -1,0 +1,9 @@
+module string
+
+import std.array.Array
+
+type String {
+  data: Array<Byte>,
+  size: Int,
+  capacity: Int,
+}

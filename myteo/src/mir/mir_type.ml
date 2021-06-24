@@ -11,6 +11,7 @@ module rec Type : sig
     | `FunctionT
     | `PointerT of t
     | `AggregateT of Aggregate.t
+    | `ArrayT of t * int
     ]
 end =
   Type
@@ -46,6 +47,7 @@ let rec type_to_string ty =
   | `FunctionT -> "fn"
   | `PointerT ty -> type_to_string ty ^ "*"
   | `AggregateT { Aggregate.name; _ } -> name
+  | `ArrayT (ty, size) -> Printf.sprintf "%s[%d]" (type_to_string ty) size
 
 let cast_to_pointer_type v =
   match v with
@@ -68,6 +70,7 @@ module TypeArgs = struct
         true
       | (`PointerT ty1, `PointerT ty2) -> types_equal ty1 ty2
       | (`AggregateT agg1, `AggregateT agg2) -> Aggregate.(agg1.id = agg2.id)
+      | (`ArrayT (ty1, size1), `ArrayT (ty2, size2)) -> size1 = size2 && types_equal ty1 ty2
       | _ -> false
     in
     List.length tys1 = List.length tys2 && List.for_all2 types_equal tys1 tys2
@@ -88,6 +91,7 @@ module TypeArgs = struct
       | `FunctionT -> 6
       | `PointerT ty -> hash_nums [7; hash ty]
       | `AggregateT { Aggregate.id; _ } -> hash_nums [8; id]
+      | `ArrayT (ty, size) -> hash_nums [9; hash ty; size]
     in
     hash_nums (List.map hash tys)
 

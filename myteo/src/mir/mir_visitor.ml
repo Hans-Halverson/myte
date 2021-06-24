@@ -152,7 +152,8 @@ module IRVisitor = struct
         | `IntL _
         | `LongL _
         | `FunctionL _
-        | `PointerL _ ->
+        | `PointerL _
+        | `ArrayL _ ->
           ()
         | `UnitV var_id
         | `BoolV var_id
@@ -162,7 +163,8 @@ module IRVisitor = struct
         | `LongV var_id
         | `FunctionV var_id
         | `PointerV (_, var_id)
-        | `AggregateV (_, var_id) ->
+        | `AggregateV (_, var_id)
+        | `ArrayV (_, _, var_id) ->
           this#visit_instruction_use_variable ~block var_id
 
       method visit_unit_value ~block (value : 'a Value.unit_value) =

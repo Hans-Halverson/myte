@@ -211,6 +211,7 @@ and pp_value ~cx v =
   | `FunctionL label
   | `PointerL (_, label) ->
     "@" ^ label
+  | `ArrayL (_, _, str) -> Printf.sprintf "\"%s\"" str
   | `UnitV var_id
   | `BoolV var_id
   | `StringV var_id
@@ -219,7 +220,8 @@ and pp_value ~cx v =
   | `LongV var_id
   | `FunctionV var_id
   | `PointerV (_, var_id)
-  | `AggregateV (_, var_id) ->
+  | `AggregateV (_, var_id)
+  | `ArrayV (_, _, var_id) ->
     pp_var_id ~cx var_id
 
 and pp_bool_value ~cx v = pp_value ~cx (v :> ssa_value)

@@ -48,6 +48,11 @@ module rec Value : sig
 
   type 'a aggregate_value = [ `AggregateV of Aggregate.t * 'a ]
 
+  type 'a array_value =
+    [ `ArrayV of Type.t * int * 'a
+    | `ArrayL of Type.t * int * string
+    ]
+
   type 'a t =
     [ 'a unit_value
     | 'a bool_value
@@ -56,6 +61,7 @@ module rec Value : sig
     | 'a function_value
     | 'a pointer_value
     | 'a aggregate_value
+    | 'a array_value
     ]
 end =
   Value
@@ -268,6 +274,9 @@ let type_of_value (v : 'a Value.t) : Type.t =
   | `PointerL (ty, _) ->
     `PointerT ty
   | `AggregateV (agg, _) -> `AggregateT agg
+  | `ArrayV (ty, size, _)
+  | `ArrayL (ty, size, _) ->
+    `ArrayT (ty, size)
 
 let pointer_value_element_type (ptr : 'a Value.pointer_value) : Type.t =
   match ptr with
@@ -286,6 +295,7 @@ let var_value_of_type var_id (ty : Type.t) : 'a Value.t =
   | `FunctionT -> `FunctionV var_id
   | `PointerT ty -> `PointerV (ty, var_id)
   | `AggregateT agg -> `AggregateV (agg, var_id)
+  | `ArrayT (ty, size) -> `ArrayV (ty, size, var_id)
 
 let mk_continue continue = Block.Continue continue
 
@@ -302,6 +312,7 @@ let rec map_value ~(f : 'a -> 'b) (value : 'a Value.t) : 'b Value.t =
   | (`FunctionL _ | `FunctionV _) as v -> (map_function_value ~f v :> 'b Value.t)
   | (`PointerL _ | `PointerV _) as v -> (map_pointer_value ~f v :> 'b Value.t)
   | `AggregateV (agg, v) -> `AggregateV (agg, f v)
+  | (`ArrayL _ | `ArrayV _) as v -> (map_array_value ~f v :> 'b Value.t)
 
 and map_bool_value ~(f : 'a -> 'b) (value : 'a Value.bool_value) : 'b Value.bool_value =
   match value with
@@ -329,6 +340,11 @@ and map_pointer_value ~(f : 'a -> 'b) (value : 'a Value.pointer_value) : 'b Valu
   match value with
   | `PointerL _ as lit -> lit
   | `PointerV (ty, v) -> `PointerV (ty, f v)
+
+and map_array_value ~(f : 'a -> 'b) (value : 'a Value.array_value) : 'b Value.array_value =
+  match value with
+  | `ArrayL _ as lit -> lit
+  | `ArrayV (ty, size, v) -> `ArrayV (ty, size, f v)
 
 let get_block ~ir block_id = IMap.find block_id ir.Program.blocks
 

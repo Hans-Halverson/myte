@@ -497,6 +497,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       | `StringT
       | `AggregateT _ ->
         failwith "TODO: Cannot compile aggregate literals"
+      | `ArrayT _ -> failwith "TODO: Cannot compile array literals"
     in
     let src =
       match pointer with
@@ -532,6 +533,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       | `StringT
       | `AggregateT _ ->
         failwith "TODO: Cannot compile aggregate literals"
+      | `ArrayT _ -> failwith "TODO: Cannot compile array literals"
     in
     let value = resolve_ir_value ~allow_imm64:true value in
     let dest =
@@ -1098,6 +1100,8 @@ and resolve_ir_value ~gcx ~func ?(allow_imm64 = false) value =
   | `PointerL (_, label) -> SAddr (mk_label_memory_address label)
   | `PointerV (_, var_id) -> vreg_of_var var_id Size64
   | `AggregateV _ -> failwith "TODO: Cannot compile aggregate structures yet"
+  | `ArrayL _ -> failwith "TODO: Cannot compile array literals yet"
+  | `ArrayV _ -> failwith "TODO: Cannot compile array variables yet"
 
 and register_size_of_mir_value_type value_type =
   match value_type with
@@ -1112,6 +1116,7 @@ and register_size_of_mir_value_type value_type =
     Size64
   | `StringT -> failwith "TODO: Cannot compile string literals"
   | `AggregateT _ -> failwith "TODO: Cannot compile aggregate structure literals"
+  | `ArrayT _ -> failwith "TODO: Cannot compile array literals"
 
 and register_size_of_svalue value =
   match value with

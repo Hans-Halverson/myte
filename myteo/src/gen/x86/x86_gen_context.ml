@@ -147,7 +147,7 @@ module Gcx = struct
 
   let get_agg_layout ~gcx agg = IMap.find agg.Aggregate.id gcx.agg_to_layout
 
-  let size_of_mir_type ~gcx mir_type =
+  let rec size_of_mir_type ~gcx mir_type =
     match mir_type with
     | `UnitT
     | `BoolT
@@ -162,12 +162,14 @@ module Gcx = struct
     | `AggregateT agg ->
       let agg_layout = get_agg_layout ~gcx agg in
       agg_layout.size
+    | `ArrayT (ty, size) -> size_of_mir_type ~gcx ty * size
 
-  let alignment_of_mir_type ~gcx mir_type =
+  let rec alignment_of_mir_type ~gcx mir_type =
     match mir_type with
     | `AggregateT agg ->
       let agg_layout = get_agg_layout ~gcx agg in
       agg_layout.alignment
+    | `ArrayT (ty, _) -> alignment_of_mir_type ~gcx ty
     | `StringT -> failwith "TODO: Cannot compile string literals"
     | _ -> size_of_mir_type ~gcx mir_type
 
