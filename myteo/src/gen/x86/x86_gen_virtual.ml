@@ -15,6 +15,8 @@ type resolved_source_value =
   (* Value is a memory address *)
   | SAddr of VReg.t memory_address
 
+let invalid_label_chars = Str.regexp "[<>,]"
+
 let rec gen ~gcx (ir : ssa_program) =
   (* Calculate layout of all aggregate types *)
   SMap.iter (fun _ agg -> Gcx.build_agg_layout ~gcx agg) ir.types;
@@ -66,18 +68,19 @@ and gen_entrypoint ~gcx has_init_function =
 
 and gen_global_instruction_builder ~gcx ~ir global init_func =
   let open Instruction in
-  let global_init_label = Printf.sprintf "%s_%s" init_label global.name in
+  let label = label_of_mir_label global.name in
+  let global_init_label = label_of_mir_label (Printf.sprintf "%s_%s" init_label global.name) in
   let init_val_info = resolve_ir_value ~gcx ~func:init_func.id ~allow_imm64:true global.init_val in
   match init_val_info with
   | SImm imm ->
     (* Global is initialized to immediate, so insert into initialized data section *)
-    let data = { label = global.name; value = ImmediateData imm } in
+    let data = { label; value = ImmediateData imm } in
     Gcx.add_data ~gcx data
   | SAddr addr ->
     (* Global is initialized to address. Since this is position independent code we must calculate
        the address at runtime as it cannot be known statically, so place in uninitialized
        (bss) section. *)
-    let bss_data = { label = global.name; size = bytes_of_size Size64 } in
+    let bss_data = { label; size = bytes_of_size Size64 } in
     Gcx.add_bss ~gcx bss_data;
     (* Emit init block to move address to global *)
     Gcx.start_block ~gcx ~label:(Some global_init_label) ~func:init_func.id ~mir_block_id:None;
@@ -88,7 +91,7 @@ and gen_global_instruction_builder ~gcx ~ir global init_func =
   | SMem (mem, size) ->
     (* Global is initialized to value at a memory location. This must be read at runtime so place in
        uninitialized (bss) section. *)
-    let bss_data = { label = global.name; size = bytes_of_size size } in
+    let bss_data = { label; size = bytes_of_size size } in
     Gcx.add_bss ~gcx bss_data;
     (* Emit init block to move initial value to global *)
     Gcx.start_block ~gcx ~label:(Some global_init_label) ~func:init_func.id ~mir_block_id:None;
@@ -99,7 +102,7 @@ and gen_global_instruction_builder ~gcx ~ir global init_func =
   | SVReg (_, size) ->
     (* Global is not initialized to a constant, so it must have its own initialization block.
        Place global in uninitialized (bss) section. *)
-    let bss_data = { label = global.name; size = bytes_of_size size } in
+    let bss_data = { label; size = bytes_of_size size } in
     Gcx.add_bss ~gcx bss_data;
     gen_blocks ~gcx ~ir global.init_start_block (Some global_init_label) init_func.id
 
@@ -109,7 +112,7 @@ and gen_function_instruction_builder ~gcx ~ir func =
     if func.body_start_block = ir.main_id then
       main_label
     else
-      func.name
+      label_of_mir_label func.name
   in
   (* Create function prologue which copies all params from physical registers to temporaries *)
   Gcx.start_block ~gcx ~label:(Some label) ~func:func_.id ~mir_block_id:None;
@@ -438,7 +441,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     (* Emit call instruction *)
     let inst =
       match func_val with
-      | `FunctionL label -> CallL label
+      | `FunctionL label -> CallL (label_of_mir_label label)
       | `FunctionV _ ->
         let func_mem = emit_mem (resolve_ir_value func_val) in
         CallM (Size64, func_mem)
@@ -990,7 +993,7 @@ and gen_get_pointer ~gcx ~func (get_pointer_instr : var_id Mir.Instruction.GetPo
   (* Add address of root pointer *)
   (match pointer with
   | `PointerL (_, label) ->
-    offset := Some (LabelOffset label);
+    offset := Some (LabelOffset (label_of_mir_label label));
     base := IPBase
   | `PointerV _ ->
     (match resolve_ir_value ~gcx ~func (pointer :> ssa_value) with
@@ -1123,4 +1126,11 @@ and min_size16 size =
   | _ -> size
 
 and mk_label_memory_address label =
-  PhysicalAddress { offset = Some (LabelOffset label); base = IPBase; index_and_scale = None }
+  PhysicalAddress
+    {
+      offset = Some (LabelOffset (label_of_mir_label label));
+      base = IPBase;
+      index_and_scale = None;
+    }
+
+and label_of_mir_label label = Str.global_replace invalid_label_chars "$" label

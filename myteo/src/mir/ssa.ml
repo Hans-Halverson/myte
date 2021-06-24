@@ -516,8 +516,12 @@ and map_to_ssa ~pcx ~ecx ~cx program =
       GtEq (map_return return, map_numeric_value left, map_numeric_value right)
   in
   cx.visited_blocks <- ISet.empty;
-  SMap.iter (fun _ { Global.name; init_start_block; _ } -> visit_block ~name init_start_block) program.globals;
-  SMap.iter (fun _ { Function.name; body_start_block; _ } -> visit_block ~name body_start_block) program.funcs;
+  SMap.iter
+    (fun _ { Global.name; init_start_block; _ } -> visit_block ~name init_start_block)
+    program.globals;
+  SMap.iter
+    (fun _ { Function.name; body_start_block; _ } -> visit_block ~name body_start_block)
+    program.funcs;
   (* Strip empty blocks *)
   IMap.iter
     (fun block_id { Block.phis; instructions; next; _ } ->
