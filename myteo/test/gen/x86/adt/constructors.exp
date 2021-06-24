@@ -6,17 +6,17 @@ _main:
 test.testNested:
   push %rbx
   push %r12
-  movb $8, %dil
+  movl $8, %edi
   call __myte_alloc
   movl $1, (%rax)
   movb $2, 4(%rax)
   movq %rax, %r12
-  movb $16, %dil
+  movl $16, %edi
   call __myte_alloc
   movq $3, (%rax)
   movb $4, 8(%rax)
   movq %rax, %rbx
-  movb $16, %dil
+  movl $16, %edi
   call __myte_alloc
   movq %r12, (%rax)
   movq %rbx, 8(%rax)
@@ -24,23 +24,23 @@ test.testNested:
   pop %rbx
   ret
 test.testRecord:
-  movb $16, %dil
+  movl $16, %edi
   call __myte_alloc
   movl $1, (%rax)
   movb $2, 4(%rax)
   movq $3, 8(%rax)
   ret
 test.testTuple:
-  movb $12, %dil
+  movl $12, %edi
   call __myte_alloc
   movl $1, (%rax)
   movl $2, 4(%rax)
   movl $3, 8(%rax)
-  movb $8, %dil
+  movl $8, %edi
   call __myte_alloc
   movl $1, (%rax)
   movb $2, 4(%rax)
-  movb $8, %dil
+  movl $8, %edi
   call __myte_alloc
   movb $1, (%rax)
   movl $2, 4(%rax)

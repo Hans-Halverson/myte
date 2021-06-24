@@ -25,13 +25,13 @@ class instruction_mapper =
             instr
           else
             PopM mem'
-        | MovIM (imm, mem) ->
+        | MovIM (size, imm, mem) ->
           let imm' = this#map_imm imm in
           let mem' = this#map_mem mem in
           if imm == imm' && mem == mem' then
             instr
           else
-            MovIM (imm', mem')
+            MovIM (size, imm', mem')
         | MovMM (size, src_mem, dest_mem) ->
           let src_mem' = this#map_mem src_mem in
           let dest_mem' = this#map_mem dest_mem in

@@ -173,7 +173,7 @@ module Instruction = struct
     | PushM of 'reg memory
     | PopM of 'reg memory
     (* Data instructions *)
-    | MovIM of immediate * 'reg memory (* Allows 64-bit immediate. Size of immediate is size of instruction *)
+    | MovIM of register_size * immediate * 'reg memory (* Allows 64-bit immediate *)
     | MovMM of register_size * 'reg memory * 'reg memory
     | Lea of register_size * 'reg memory_address * 'reg (* Only supports 32 or 64 bit register argument *)
     (* Numeric operations *)
@@ -313,14 +313,6 @@ let int64_of_immediate imm =
   | Imm16 i -> Int64.of_int i
   | Imm32 i -> Int64.of_int32 i
   | Imm64 i -> i
-
-let smallest_unsigned_immediate lit =
-  if not (Integers.is_out_of_unsigned_byte_range lit) then
-    Imm8 (Int64.to_int lit)
-  else if not (Integers.is_out_of_unsigned_int_range lit) then
-    Imm32 (Int64.to_int32 lit)
-  else
-    Imm64 lit
 
 (* Return the opposite of a condition code (NOT CC) *)
 let invert_condition_code cc =

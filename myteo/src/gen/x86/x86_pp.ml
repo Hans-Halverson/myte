@@ -240,8 +240,7 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_mem ~size src_mem;
         pp_args_separator ();
         pp_mem ~size dest_mem
-      | MovIM (src_imm, dest_mem) ->
-        let size = size_of_immediate src_imm in
+      | MovIM (size, src_imm, dest_mem) ->
         pp_sized_op "mov" size;
         pp_immediate src_imm;
         pp_args_separator ();

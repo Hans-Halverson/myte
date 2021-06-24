@@ -16,7 +16,7 @@ class instruction_visitor =
       | IDiv (_, read_mem) ->
         visit_read_mem read_mem
       | PopM write_mem
-      | MovIM (_, write_mem)
+      | MovIM (_, _, write_mem)
       | SetCC (_, write_mem) ->
         visit_write_mem write_mem
       | NegM (_, read_write_mem)

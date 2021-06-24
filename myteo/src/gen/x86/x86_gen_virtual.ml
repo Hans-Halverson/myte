@@ -67,9 +67,7 @@ and gen_entrypoint ~gcx has_init_function =
 and gen_global_instruction_builder ~gcx ~ir global init_func =
   let open Instruction in
   let global_init_label = Printf.sprintf "%s_%s" init_label global.name in
-  let init_val_info =
-    resolve_ir_value ~gcx ~func:init_func.id ~allow_imm64:true ~reduce_imm:false global.init_val
-  in
+  let init_val_info = resolve_ir_value ~gcx ~func:init_func.id ~allow_imm64:true global.init_val in
   match init_val_info with
   | SImm imm ->
     (* Global is initialized to immediate, so insert into initialized data section *)
@@ -169,8 +167,8 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     VReg.of_var_id ~resolution:Unresolved ~func:(Some func) var_id
   in
   let mk_vreg () = VReg.mk ~resolution:Unresolved ~func:(Some func) in
-  let resolve_ir_value ?(allow_imm64 = false) ?(reduce_imm = true) v =
-    resolve_ir_value ~gcx ~func ~allow_imm64 ~reduce_imm (v :> var_id Value.t)
+  let resolve_ir_value ?(allow_imm64 = false) v =
+    resolve_ir_value ~gcx ~func ~allow_imm64 (v :> var_id Value.t)
   in
   let is_cond_jump var_id =
     match block.next with
@@ -202,7 +200,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     | (SImm dividend_imm, divisor) ->
       let size = register_size_of_svalue divisor in
       let divisor_mem = emit_mem divisor in
-      Gcx.emit ~gcx (MovIM (dividend_imm, Reg precolored_a));
+      Gcx.emit ~gcx (MovIM (size, dividend_imm, Reg precolored_a));
       Gcx.emit ~gcx (IDiv (size, divisor_mem));
       size
     | (dividend, SImm divisor_imm) ->
@@ -210,7 +208,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       let dividend_mem = emit_mem dividend in
       let divisor_vreg = mk_vreg () in
       Gcx.emit ~gcx (MovMM (size, dividend_mem, Reg precolored_a));
-      Gcx.emit ~gcx (MovIM (divisor_imm, Reg divisor_vreg));
+      Gcx.emit ~gcx (MovIM (size, divisor_imm, Reg divisor_vreg));
       Gcx.emit ~gcx (IDiv (size, Reg divisor_vreg));
       size
     | (dividend, divisor) ->
@@ -300,30 +298,29 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     let result_vreg = vreg_of_result_var_id result_var_id in
     (* Do not reduce size of target immediate, as we must know its original size to know what
        size to make the shift operation. *)
-    match (resolve_ir_value ~reduce_imm:false target_val, resolve_ir_value shift_val) with
+    match (resolve_ir_value target_val, resolve_ir_value ~allow_imm64:true shift_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm target_imm, shift) ->
-      let target_size = size_of_immediate target_imm in
       let shift_size = register_size_of_svalue shift in
       let precolored_c = Gcx.mk_precolored ~gcx C in
       let shift_mem = emit_mem shift in
       Gcx.emit ~gcx (MovMM (shift_size, shift_mem, Reg precolored_c));
-      Gcx.emit ~gcx (MovIM (target_imm, Reg result_vreg));
-      Gcx.emit ~gcx (mk_reg_instr target_size (Reg result_vreg))
-    (* 8-byte shift immediate is used directly in operation *)
-    | (target, SImm (Imm8 _ as shift_imm)) ->
-      let size = register_size_of_svalue target in
-      let target_mem = emit_mem target in
-      Gcx.emit ~gcx (MovMM (size, target_mem, Reg result_vreg));
-      Gcx.emit ~gcx (mk_imm_instr size shift_imm (Reg result_vreg))
-    (* Other shift immediates must first be moved to register *)
+      Gcx.emit ~gcx (MovIM (shift_size, target_imm, Reg result_vreg));
+      Gcx.emit ~gcx (mk_reg_instr shift_size (Reg result_vreg))
     | (target, SImm shift_imm) ->
       let size = register_size_of_svalue target in
       let target_mem = emit_mem target in
-      let precolored_c = Gcx.mk_precolored ~gcx C in
-      Gcx.emit ~gcx (MovIM (shift_imm, Reg precolored_c));
-      Gcx.emit ~gcx (MovMM (size, target_mem, Reg result_vreg));
-      Gcx.emit ~gcx (mk_reg_instr size (Reg result_vreg))
+      let shift_value = int64_of_immediate shift_imm in
+      if not (Integers.is_out_of_unsigned_byte_range shift_value) then (
+        (* 8-byte shift immediate is used directly in operation *)
+        Gcx.emit ~gcx (MovMM (size, target_mem, Reg result_vreg));
+        Gcx.emit ~gcx (mk_imm_instr size shift_imm (Reg result_vreg))
+      ) else
+        (* Other shift immediates must first be moved to register *)
+        let precolored_c = Gcx.mk_precolored ~gcx C in
+        Gcx.emit ~gcx (MovIM (size, shift_imm, Reg precolored_c));
+        Gcx.emit ~gcx (MovMM (size, target_mem, Reg result_vreg));
+        Gcx.emit ~gcx (mk_reg_instr size (Reg result_vreg))
     | (target, shift) ->
       let target_size = register_size_of_svalue target in
       let shift_size = register_size_of_svalue shift in
@@ -394,7 +391,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     let dest_vreg = vreg_of_result_var_id dest_var_id in
     let instr =
       match resolve_ir_value ~allow_imm64:true value with
-      | SImm imm -> MovIM (imm, Reg dest_vreg)
+      | SImm imm -> MovIM (size_of_immediate imm, imm, Reg dest_vreg)
       | SAddr addr -> Lea (Size64, addr, dest_vreg)
       | SMem (mem, size) -> MovMM (size, Mem mem, Reg dest_vreg)
       | SVReg (src_var_id, size) -> MovMM (size, Reg src_var_id, Reg dest_vreg)
@@ -433,7 +430,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
           | Some color ->
             let vreg = Gcx.mk_precolored ~gcx color in
             (match resolve_ir_value ~allow_imm64:true arg_val with
-            | SImm imm -> Gcx.emit ~gcx (MovIM (imm, Reg vreg))
+            | SImm imm -> Gcx.emit ~gcx (MovIM (size_of_immediate imm, imm, Reg vreg))
             | SAddr addr -> Gcx.emit ~gcx (Lea (Size64, addr, vreg))
             | SMem (mem, size) -> Gcx.emit ~gcx (MovMM (size, Mem mem, Reg vreg))
             | SVReg (source_vreg, size) -> Gcx.emit ~gcx (MovMM (size, Reg source_vreg, Reg vreg))))
@@ -469,8 +466,8 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     | None -> ()
     | Some value ->
       let precolored_vreg = Gcx.mk_precolored ~gcx A in
-      (match resolve_ir_value value with
-      | SImm imm -> Gcx.emit ~gcx (MovIM (imm, Reg precolored_vreg))
+      (match resolve_ir_value ~allow_imm64:true value with
+      | SImm imm -> Gcx.emit ~gcx (MovIM (size_of_immediate imm, imm, Reg precolored_vreg))
       | SAddr addr -> Gcx.emit ~gcx (Lea (Size64, addr, precolored_vreg))
       | SMem (mem, size) -> Gcx.emit ~gcx (MovMM (size, Mem mem, Reg precolored_vreg))
       | SVReg (vreg, size) -> Gcx.emit ~gcx (MovMM (size, Reg vreg, Reg precolored_vreg))));
@@ -533,7 +530,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       | `AggregateT _ ->
         failwith "TODO: Cannot compile aggregate literals"
     in
-    let value = resolve_ir_value ~allow_imm64:true ~reduce_imm:false value in
+    let value = resolve_ir_value ~allow_imm64:true value in
     let dest =
       match pointer with
       | `PointerL (_, label) -> mk_label_memory_address label
@@ -548,7 +545,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     in
 
     (match value with
-    | SImm imm -> Gcx.emit ~gcx (MovIM (imm, Mem dest))
+    | SImm imm -> Gcx.emit ~gcx (MovIM (size, imm, Mem dest))
     | SAddr addr ->
       let vreg = mk_vreg () in
       Gcx.emit ~gcx (Lea (Size64, addr, vreg));
@@ -593,8 +590,9 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm left_imm, right) ->
       let right_mem = emit_mem right in
-      Gcx.emit ~gcx (MovIM (left_imm, Reg result_vreg));
-      Gcx.emit ~gcx (SubMM (register_size_of_svalue right, right_mem, Reg result_vreg))
+      let size = register_size_of_svalue right in
+      Gcx.emit ~gcx (MovIM (size, left_imm, Reg result_vreg));
+      Gcx.emit ~gcx (SubMM (size, right_mem, Reg result_vreg))
     | (left, SImm right_imm) ->
       let left_mem = emit_mem left in
       let size = register_size_of_svalue left in
@@ -858,8 +856,13 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       | [((`ByteL _ | `IntL _ | `LongL _) as count_lit)] ->
         let count = int64_of_literal count_lit in
         let total_size = Int64.mul count (Int64.of_int element_size) in
-        let total_size_imm = smallest_unsigned_immediate total_size in
-        Gcx.emit ~gcx (MovIM (total_size_imm, Reg precolored_di))
+        let (size, total_size_imm) =
+          if Integers.is_out_of_unsigned_int_range total_size then
+            (Size64, Imm64 total_size)
+          else
+            (Size32, Imm32 (Int64.to_int32 total_size))
+        in
+        Gcx.emit ~gcx (MovIM (size, total_size_imm, Reg precolored_di))
       (* If count is a variable multiply by size before putting in argument register *)
       | [((`ByteV _ | `IntV _ | `LongV _) as count_var)] ->
         let count_vreg =
@@ -1017,7 +1020,7 @@ and gen_get_pointer ~gcx ~func (get_pointer_instr : var_id Mir.Instruction.GetPo
           else
             (* If not, 64-bit immediate offset must first be loaded into register  *)
             let vreg = mk_vreg () in
-            Gcx.emit ~gcx Instruction.(MovIM (Imm64 offset, Reg vreg));
+            Gcx.emit ~gcx Instruction.(MovIM (Size64, Imm64 offset, Reg vreg));
             add_scaled_register (vreg, Size64) 1
         )
       | SVReg (vreg, size) -> add_scaled_register (vreg, size) element_size
@@ -1049,7 +1052,7 @@ and gen_get_pointer ~gcx ~func (get_pointer_instr : var_id Mir.Instruction.GetPo
   let result_vreg = vreg_of_result_var_id var_id in
   Gcx.emit ~gcx (MovMM (Size64, Reg address_vreg, Reg result_vreg))
 
-and resolve_ir_value ~gcx ~func ?(allow_imm64 = false) ?(reduce_imm = true) value =
+and resolve_ir_value ~gcx ~func ?(allow_imm64 = false) value =
   let vreg_of_var var_id size =
     let vreg = VReg.of_var_id ~resolution:Unresolved ~func:(Some func) var_id in
     match vreg.resolution with
@@ -1070,28 +1073,18 @@ and resolve_ir_value ~gcx ~func ?(allow_imm64 = false) ?(reduce_imm = true) valu
   | `ByteL b -> SImm (Imm8 b)
   | `ByteV var_id -> vreg_of_var var_id Size8
   (* Int literals can be downgraded to an 8 byte literal if they fit *)
-  | `IntL i ->
-    if
-      reduce_imm
-      && Int32.compare i (Int32.of_int 128) = -1
-      && Int32.compare (Int32.of_int (-129)) i = 1
-    then
-      SImm (Imm8 (Int32.to_int i))
-    else
-      SImm (Imm32 i)
+  | `IntL i -> SImm (Imm32 i)
   | `IntV var_id -> vreg_of_var var_id Size32
-  (* Long literals can be downgraded to an 8 or byte int literal if they fit. Otherwise 64 bit
-     literal must first be loaded to a register with a mov instruction. *)
+  (* Long literals can be downgraded to a 32 byte int literal if it fits. Otherwise 64 bit literal
+     must first be loaded to a register with a mov instruction. *)
   | `LongL l ->
-    if reduce_imm && not (Integers.is_out_of_signed_byte_range l) then
-      SImm (Imm8 (Int64.to_int l))
-    else if reduce_imm && not (Integers.is_out_of_signed_int_range l) then
-      SImm (Imm32 (Int64.to_int32 l))
-    else if allow_imm64 then
+    if allow_imm64 then
       SImm (Imm64 l)
+    else if not (Integers.is_out_of_signed_int_range l) then
+      SImm (Imm32 (Int64.to_int32 l))
     else
       let vreg = VReg.mk ~resolution:Unresolved ~func:(Some func) in
-      Gcx.emit ~gcx Instruction.(MovIM (Imm64 l, Reg vreg));
+      Gcx.emit ~gcx Instruction.(MovIM (Size64, Imm64 l, Reg vreg));
       SVReg (vreg, Size64)
   | `LongV var_id -> vreg_of_var var_id Size64
   | `FunctionL name -> SAddr (mk_label_memory_address name)

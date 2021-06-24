@@ -4,7 +4,7 @@
 _main:
   ret
 test.testMyteAllocLiteralCount:
-  movb $16, %dil
+  movl $16, %edi
   call __myte_alloc
   movl $800, %edi
   call __myte_alloc

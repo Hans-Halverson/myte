@@ -41,7 +41,7 @@ test.getInt:
   movl $23, %eax
   ret
 test.getLong:
-  movb $24, %al
+  movq $24, %rax
   ret
 _main:
   ret

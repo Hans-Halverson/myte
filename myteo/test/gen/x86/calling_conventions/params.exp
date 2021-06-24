@@ -84,7 +84,7 @@ test.testFunctionStackParamsOffsetByStackFrameAndPushedCalleeSavedRegisters:
   ret
 test.testLongArgs:
   push $7
-  movb $1, %dil
+  movq $1, %rdi
   movl $2, %esi
   movl $3, %edx
   movl $4, %ecx

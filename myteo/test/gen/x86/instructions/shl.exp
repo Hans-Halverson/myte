@@ -28,8 +28,7 @@ test.shlIntImmReg:
   shll %cl, %eax
   ret
 test.shlIntRegByteImm:
-  movl $6, %ecx
-  shll %cl, %edi
+  shll $6, %edi
   movl %edi, %eax
   ret
 test.shlIntRegImm:
@@ -43,8 +42,8 @@ test.shlIntRegs:
   movl %edi, %eax
   ret
 test.shlLongByteImmReg:
-  movq $6, %rax
   movq %rdi, %rcx
+  movq $6, %rax
   shlq %cl, %rax
   ret
 test.shlLongImmReg:
@@ -53,8 +52,8 @@ test.shlLongImmReg:
   shlq %cl, %rax
   ret
 test.shlLongIntImmReg:
-  movq $257, %rax
   movq %rdi, %rcx
+  movq $257, %rax
   shlq %cl, %rax
   ret
 test.shlLongRegByteImm:
@@ -67,7 +66,7 @@ test.shlLongRegImm:
   movq %rdi, %rax
   ret
 test.shlLongRegIntImm:
-  movl $257, %ecx
+  movq $257, %rcx
   shlq %cl, %rdi
   movq %rdi, %rax
   ret

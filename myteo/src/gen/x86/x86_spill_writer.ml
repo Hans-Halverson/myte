@@ -61,7 +61,7 @@ class spill_writer ~gcx =
       match instr with
       | PushM mem -> mk_single (PushM (resolve_mem mem))
       | PopM mem -> mk_single (PopM (resolve_mem mem))
-      | MovIM (src_imm, dest_mem) -> mk_single (MovIM (src_imm, resolve_mem dest_mem))
+      | MovIM (size, src_imm, dest_mem) -> mk_single (MovIM (size, src_imm, resolve_mem dest_mem))
       | MovMM (size, src_mem, dest_mem) ->
         resolve_binop_single_mem size src_mem dest_mem (fun s d -> MovMM (size, s, d))
       | Lea (size, addr, reg) -> force_register_write size reg (fun reg' -> Lea (size, addr, reg'))

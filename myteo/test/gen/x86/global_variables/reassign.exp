@@ -12,7 +12,7 @@ test.l:
   .text
 _init:
 _init_test.t:
-  movb $4, %dil
+  movl $4, %edi
   call __myte_alloc
   movl $1, (%rax)
   movq %rax, test.t(%rip)
@@ -25,7 +25,7 @@ test.testReassignGlobals:
   imulq $13, %rsi, %rax
   movq %rax, test.l(%rip)
   movq %rdx, test.t(%rip)
-  movb $4, %dil
+  movl $4, %edi
   call __myte_alloc
   movl $2, (%rax)
   movq %rax, test.t(%rip)
