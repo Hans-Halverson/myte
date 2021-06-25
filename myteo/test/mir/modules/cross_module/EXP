@@ -1,8 +1,6 @@
 type a.TupA<long> {long}
 
-global int @a.varA {
-  Store int @a.varA, 1
-}
+global int @a.varA = 1
 
 func unit @a.funcA() {
   Ret
@@ -20,9 +18,7 @@ func unit @a.main() {
 
 type b.RecB<byte> {byte}
 
-global bool @b.varB {
-  Store bool @b.varB, true
-}
+global bool @b.varB = true
 
 func unit @b.funcB() {
   Ret

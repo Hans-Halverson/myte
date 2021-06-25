@@ -11,7 +11,6 @@ test.l:
 
   .text
 _init:
-_init_test.f:
   leaq test.getByte(%rip), %rax
   movq %rax, test.f(%rip)
   ret

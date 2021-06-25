@@ -1,11 +1,12 @@
-global int @test.x {
-  Store int @test.x, 1
-}
-
-global int @test.y {
+func unit @_init() {
   %0 := Load int @test.x
   Store int @test.y, %0
+  Ret
 }
+
+global int @test.x = 1
+
+global int @test.y = uninitialized
 
 func unit @test.main() {
   %1 := Mov int 1

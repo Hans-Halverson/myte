@@ -397,7 +397,7 @@ and map_to_ssa ~pcx ~ecx ~cx program =
         phis = explicit_phis @ realized_phis;
         instructions;
         next;
-        source = block.source;
+        func = block.func;
       }
     in
     cx.blocks <- IMap.add block.id block cx.blocks
@@ -517,73 +517,79 @@ and map_to_ssa ~pcx ~ecx ~cx program =
   in
   cx.visited_blocks <- ISet.empty;
   SMap.iter
-    (fun _ { Global.name; init_start_block; _ } -> visit_block ~name init_start_block)
-    program.globals;
-  SMap.iter
     (fun _ { Function.name; body_start_block; _ } -> visit_block ~name body_start_block)
     program.funcs;
   (* Strip empty blocks *)
   IMap.iter
-    (fun block_id { Block.phis; instructions; next; _ } ->
+    (fun block_id { Block.phis; instructions; next; func; _ } ->
       match next with
       | Continue continue_id when instructions = [] && phis = [] ->
-        (match IMap.find_opt block_id cx.prev_blocks with
-        | None -> ()
-        | Some prev_blocks when ISet.is_empty prev_blocks -> ()
-        | Some prev_blocks ->
-          (* Previous nodes point to next node *)
-          ISet.iter
-            (fun prev_block_id ->
-              let map_next_id id =
-                if id = block_id then
-                  continue_id
-                else
-                  id
+        let prev_blocks =
+          match IMap.find_opt block_id cx.prev_blocks with
+          | None -> ISet.empty
+          | Some prev_blocks -> prev_blocks
+        in
+        (* Block may be first block of function, reset body start block if so *)
+        let func = SMap.find func program.funcs in
+        if func.body_start_block = block_id then func.body_start_block <- continue_id;
+        (* Previous nodes point to next node *)
+        ISet.iter
+          (fun prev_block_id ->
+            let map_next_id id =
+              if id = block_id then
+                continue_id
+              else
+                id
+            in
+            let block = IMap.find prev_block_id cx.blocks in
+            let next' =
+              match block.next with
+              | Halt -> Block.Halt
+              | Continue continue -> Continue (map_next_id continue)
+              | Branch { test; continue; jump } ->
+                Branch { test; continue = map_next_id continue; jump = map_next_id jump }
+            in
+            block.next <- next')
+          prev_blocks;
+        (* Next node may have phis that point the removed block. Rewrite them to instead point to
+           previous blocks. *)
+        let next_node = IMap.find continue_id cx.blocks in
+        next_node.phis <-
+          List.map
+            (fun (value_type, var_id, args) ->
+              let args' =
+                match IMap.find_opt block_id args with
+                | None -> args
+                | Some arg_var_id ->
+                  let args' = IMap.remove block_id args in
+                  ISet.fold
+                    (fun prev_block_id -> IMap.add prev_block_id arg_var_id)
+                    prev_blocks
+                    args'
               in
-              let block = IMap.find prev_block_id cx.blocks in
-              let next' =
-                match block.next with
-                | Halt -> Block.Halt
-                | Continue continue -> Continue (map_next_id continue)
-                | Branch { test; continue; jump } ->
-                  Branch { test; continue = map_next_id continue; jump = map_next_id jump }
-              in
-              block.next <- next')
-            prev_blocks;
-          (* Next node may have phis that point the removed block. Rewrite them to instead point to
-             previous blocks. *)
-          let next_node = IMap.find continue_id cx.blocks in
-          next_node.phis <-
-            List.map
-              (fun (value_type, var_id, args) ->
-                let args' =
-                  match IMap.find_opt block_id args with
-                  | None -> args
-                  | Some arg_var_id ->
-                    let args' = IMap.remove block_id args in
-                    ISet.fold
-                      (fun prev_block_id -> IMap.add prev_block_id arg_var_id)
-                      prev_blocks
-                      args'
-                in
-                (value_type, var_id, args'))
-              next_node.phis;
-          (* Remove this empty node *)
-          cx.blocks <- IMap.remove block_id cx.blocks;
-          cx.prev_blocks <- IMap.remove block_id cx.prev_blocks;
-          cx.prev_blocks <-
-            IMap.add
-              continue_id
-              (ISet.union prev_blocks (IMap.find continue_id cx.prev_blocks))
-              cx.prev_blocks)
+              (value_type, var_id, args'))
+            next_node.phis;
+        (* Remove this empty node *)
+        cx.blocks <- IMap.remove block_id cx.blocks;
+        cx.prev_blocks <- IMap.remove block_id cx.prev_blocks;
+        (* Remove the empty node from continue block's prev blocks *)
+        let continue_prev_blocks = IMap.find continue_id cx.prev_blocks in
+        let new_continue_prev_blocks =
+          ISet.union prev_blocks (ISet.remove block_id continue_prev_blocks)
+        in
+        cx.prev_blocks <- IMap.add continue_id new_continue_prev_blocks cx.prev_blocks
       | _ -> ())
     cx.blocks;
+
+  (* Strip init function if it is now empty *)
+  remove_empty_init_func program;
+
   let globals =
     SMap.map
       (fun global ->
         let open Global in
         let name = global.name in
-        { global with init_val = map_value ~f:(map_read_var ~name) global.init_val })
+        { global with init_val = Option.map (map_value ~f:(map_read_var ~name)) global.init_val })
       program.globals
   in
   { program with blocks = cx.blocks; globals }

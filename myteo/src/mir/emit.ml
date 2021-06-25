@@ -12,10 +12,12 @@ type 'a access_chain_part =
 
 let rec emit_control_flow_ir (pcx : Pcx.t) : Ecx.t * cf_program =
   let ecx = Emit_context.mk ~pcx in
+  start_init_function ~ecx;
   emit_type_declarations ~ecx;
   emit_toplevel_variable_declarations ~ecx;
   emit_toplevel_function_declarations ~ecx;
   emit_pending_instantiations ~ecx;
+  finish_init_function ~ecx;
   ( ecx,
     {
       Program.main_id = ecx.main_id;
@@ -110,12 +112,19 @@ and emit_toplevel_variable_declaration ~ecx decl =
   let var_decl = Bindings.get_var_decl binding in
   let ty = type_to_mir_type ~ecx (Types.TVar var_decl.tvar_id) in
   (* Build IR for variable init *)
-  Ecx.start_block_sequence ~ecx (GlobalInit name);
-  let init_start_block = Ecx.start_new_block ~ecx in
-  let init_val = emit_expression ~ecx init in
-  Ecx.emit ~ecx (Store (`PointerL (ty, name), init_val));
-  Ecx.finish_block_halt ~ecx;
-  Ecx.add_global ~ecx { Global.loc; name; ty; init_start_block; init_val }
+  let init_val =
+    Ecx.emit_init_section ~ecx (fun _ ->
+        (* If initial value is statically known at compile time, add it as constant initialization *)
+        let init_val = emit_expression ~ecx init in
+        if is_static_constant init_val then
+          Some init_val
+        else (
+          (* Otherwise value must be calculated and stored at runtime *)
+          Ecx.emit ~ecx (Store (`PointerL (ty, name), init_val));
+          None
+        ))
+  in
+  Ecx.add_global ~ecx { Global.loc; name; ty; init_val }
 
 and emit_toplevel_function_declaration ~ecx decl =
   let open Ast.Function in
@@ -143,7 +152,7 @@ and emit_function ~ecx name decl =
     List.map (fun { Param.name = { Identifier.loc; _ }; _ } -> (loc, mk_var_id ())) params
   in
   let body_start_block =
-    Ecx.start_block_sequence ~ecx (FunctionBody name);
+    Ecx.set_current_func ~ecx name;
     let body_start_block = Ecx.start_new_block ~ecx in
     if loc = Option.get ecx.pcx.main_loc then ecx.main_id <- body_start_block;
     (match body with
@@ -166,6 +175,24 @@ and emit_function ~ecx name decl =
   let return_ty = type_to_mir_type ~ecx func_decl.return in
   let params = List.map2 (fun (loc, var_id) ty -> (loc, var_id, ty)) param_locs_and_ids param_tys in
   Ecx.add_function ~ecx { Function.loc; name; params; return_ty; body_start_block }
+
+and start_init_function ~ecx =
+  Ecx.emit_init_section ~ecx (fun _ -> ());
+  let body_start_block = (Option.get ecx.Ecx.last_init_block_builder).id in
+  Ecx.add_function
+    ~ecx
+    {
+      Function.loc = Loc.none;
+      name = init_func_name;
+      params = [];
+      return_ty = `UnitT;
+      body_start_block;
+    }
+
+and finish_init_function ~ecx =
+  let last_init_block = Option.get ecx.Ecx.last_init_block_builder in
+  last_init_block.instructions <-
+    (mk_instr_id (), Instruction.Ret None) :: last_init_block.instructions
 
 and emit_expression ~ecx expr =
   let open Expression in

@@ -1,30 +1,28 @@
 func unit @test.main() {
-  continue @0
+  branch true, @test.main, @0
 label @0:
-  branch true, @0, @1
-label @1:
   %0 := Mov bool true
-  continue @2
+  continue @1
+label @1:
+  branch %0, @2, @3
 label @2:
-  branch %0, @3, @4
-label @3:
   %1 := Add int 1, 1
-  continue @2
-label @4:
+  continue @1
+label @3:
   %2 := LogNot false
-  branch %2, @5, @9
-label @5:
+  branch %2, @4, @8
+label @4:
   %3 := Add int 2, 2
-  continue @6
-label @6:
+  continue @5
+label @5:
   %4 := LogNot true
-  branch %4, @7, @8
-label @7:
+  branch %4, @6, @7
+label @6:
   %5 := Add int 3, 3
-  continue @6
-label @8:
+  continue @5
+label @7:
   %6 := Add int 4, 4
-  continue @4
-label @9:
+  continue @3
+label @8:
   Ret
 }

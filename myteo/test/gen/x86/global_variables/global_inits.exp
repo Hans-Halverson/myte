@@ -15,21 +15,16 @@ test.constantL:
 
   .text
 _init:
-_init_test.b:
-  call test.getByte
-  movb %al, test.b(%rip)
-_init_test.constantF:
   leaq test.getByte(%rip), %rax
   movq %rax, test.constantF(%rip)
-_init_test.f:
-  call test.getFunction
-  movq %rax, test.f(%rip)
-_init_test.i:
+  call test.getByte
+  movb %al, test.b(%rip)
   call test.getInt
   movl %eax, test.i(%rip)
-_init_test.l:
   call test.getLong
   movq %rax, test.l(%rip)
+  call test.getFunction
+  movq %rax, test.f(%rip)
   ret
 test.getByte:
   movb $22, %al

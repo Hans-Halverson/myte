@@ -6,7 +6,7 @@ open Mir_type
 module BlockBuilder = struct
   type t = {
     id: Block.id;
-    source: Block.source;
+    func: label;
     (* Instructions in the block currently being built, in reverse *)
     mutable instructions: cf_instruction list;
     mutable phis: (Type.t * cf_var * cf_var IMap.t) list;
@@ -27,9 +27,7 @@ type t = {
   mutable types: Aggregate.t SMap.t;
   mutable modules: Module.t SMap.t;
   mutable current_block_builder: BlockBuilder.t option;
-  mutable current_block_source: Block.source;
-  (* Block ids in the current sequence, in reverse *)
-  mutable current_block_sequence_ids: Block.id list;
+  mutable current_func: label;
   (* Stack of loop contexts for all loops we are currently inside *)
   mutable current_loop_contexts: loop_context list;
   (* ADT signature id to its corresponding MirADT record *)
@@ -48,6 +46,10 @@ type t = {
   mutable current_type_param_bindings: Types.t IMap.t;
   (* All function declaration AST nodes, indexed by their full name *)
   mutable func_decl_nodes: Ast.Function.t SMap.t;
+  (* Whether we are currently emitting blocks for the init function *)
+  mutable in_init: bool;
+  (* The last init block builder that was completed *)
+  mutable last_init_block_builder: BlockBuilder.t option;
 }
 
 let mk ~pcx =
@@ -60,8 +62,7 @@ let mk ~pcx =
     types = SMap.empty;
     modules = SMap.empty;
     current_block_builder = None;
-    current_block_source = GlobalInit "";
-    current_block_sequence_ids = [];
+    current_func = "";
     current_loop_contexts = [];
     adt_sig_to_mir_adt = IMap.empty;
     tuple_instantiations = TypeArgsHashtbl.create 10;
@@ -69,6 +70,8 @@ let mk ~pcx =
     pending_func_instantiations = SMap.empty;
     current_type_param_bindings = IMap.empty;
     func_decl_nodes = SMap.empty;
+    in_init = false;
+    last_init_block_builder = None;
   }
 
 let builders_to_blocks builders =
@@ -79,7 +82,7 @@ let builders_to_blocks builders =
         instructions = List.rev builder.instructions;
         phis = builder.phis;
         next = builder.next;
-        source = builder.source;
+        func = builder.func;
       })
     builders
 
@@ -106,7 +109,7 @@ let mk_block_builder ~ecx =
   let builder =
     {
       BlockBuilder.id = block_id;
-      source = ecx.current_block_source;
+      func = ecx.current_func;
       instructions = [];
       phis = [];
       next = Halt;
@@ -137,8 +140,8 @@ let finish_block ~ecx next =
   | None -> ()
   | Some builder ->
     builder.next <- next;
-    ecx.current_block_sequence_ids <- builder.id :: ecx.current_block_sequence_ids;
-    ecx.current_block_builder <- None
+    ecx.current_block_builder <- None;
+    if ecx.in_init then ecx.last_init_block_builder <- Some builder
 
 let finish_block_branch ~ecx test continue jump =
   finish_block ~ecx (Branch { test; continue; jump })
@@ -147,13 +150,7 @@ let finish_block_continue ~ecx continue = finish_block ~ecx (Continue continue)
 
 let finish_block_halt ~ecx = finish_block ~ecx Halt
 
-let start_block_sequence ~ecx source =
-  ecx.current_block_sequence_ids <- [];
-  ecx.current_block_source <- source
-
-let get_block_sequence ~ecx =
-  let block_ids = List.rev ecx.current_block_sequence_ids in
-  block_ids
+let set_current_func ~ecx func = ecx.current_func <- func
 
 let push_loop_context ~ecx break_id continue_id =
   ecx.current_loop_contexts <- (break_id, continue_id) :: ecx.current_loop_contexts
@@ -161,6 +158,27 @@ let push_loop_context ~ecx break_id continue_id =
 let pop_loop_context ~ecx = ecx.current_loop_contexts <- List.tl ecx.current_loop_contexts
 
 let get_loop_context ~ecx = List.hd ecx.current_loop_contexts
+
+let emit_init_section ~ecx f =
+  let old_in_init = ecx.in_init in
+  let old_func = ecx.current_func in
+  ecx.in_init <- true;
+  ecx.current_func <- init_func_name;
+
+  let init_block_id = start_new_block ~ecx in
+
+  (* If an init section has already been created, link its last block to the new init section *)
+  (match ecx.last_init_block_builder with
+  | Some last_init_block_builder -> last_init_block_builder.next <- Continue init_block_id
+  | None -> ());
+
+  (* Run callback to generate init instructions and finish block *)
+  let result = f () in
+  finish_block_halt ~ecx;
+
+  ecx.in_init <- old_in_init;
+  ecx.current_func <- old_func;
+  result
 
 (*
  * Generic Types

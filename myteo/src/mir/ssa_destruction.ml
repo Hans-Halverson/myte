@@ -49,7 +49,7 @@ let destruct_ssa (ir : ssa_program) : ssa_program =
               let new_block =
                 {
                   Block.id = new_block_id;
-                  source = block.source;
+                  func = block.func;
                   instructions = [];
                   phis = [];
                   next = Continue block.id;

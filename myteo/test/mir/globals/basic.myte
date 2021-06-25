@@ -1,0 +1,10 @@
+module test
+
+val i: Int = 1
+
+// Addresses of labels are not compile time constants
+val f: () -> Unit = test
+
+fun test() {}
+
+fun main() {}

@@ -55,13 +55,8 @@ let map_phi_backreferences_for_block ~ocx old_block_id new_block_id block_to_edi
 
 let can_remove_block ~ocx (block : var_id Block.t) =
   let is_start_block () =
-    match block.source with
-    | GlobalInit name ->
-      let global = SMap.find name ocx.program.globals in
-      global.init_start_block = block.id
-    | FunctionBody name ->
-      let func = SMap.find name ocx.program.funcs in
-      func.body_start_block = block.id
+    let func = SMap.find block.func ocx.program.funcs in
+    func.body_start_block = block.id
   in
   block.instructions = []
   && block.phis = []
@@ -73,14 +68,11 @@ let can_remove_block ~ocx (block : var_id Block.t) =
 
 let remove_block ~ocx block_id =
   let block = get_block ~ocx block_id in
-  (* This may be the first block in a global or function. If so, update the global or function to
-     point to the next block as the start. *)
-  (match (block.source, block.next) with
-  | (GlobalInit name, Continue continue_block) ->
-    let global = SMap.find name ocx.program.globals in
-    if global.init_start_block = block_id then global.init_start_block <- continue_block
-  | (FunctionBody name, Continue continue_block) ->
-    let func = SMap.find name ocx.program.funcs in
+  (* This may be the first block in a function. If so, update the function to point to the
+     next block as the start. *)
+  (match block.next with
+  | Continue continue_block ->
+    let func = SMap.find block.func ocx.program.funcs in
     if func.body_start_block = block_id then func.body_start_block <- continue_block
   | _ -> ());
   let prev_blocks = IMap.find block_id ocx.prev_blocks in

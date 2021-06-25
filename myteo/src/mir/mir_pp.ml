@@ -33,7 +33,7 @@ let rec pp_program program =
         if filter_stdlib name then
           blocks
         else
-          (global.Global.loc, (fun _ -> pp_global ~cx ~program global)) :: blocks)
+          (global.Global.loc, (fun _ -> pp_global ~cx global)) :: blocks)
       program.globals
       []
   in
@@ -61,20 +61,15 @@ let rec pp_program program =
   let sorted_blocks = List.sort (fun (l1, _) (l2, _) -> Loc.compare l1 l2) blocks in
   String.concat "\n" (List.map (fun (_, mk_block) -> mk_block ()) sorted_blocks)
 
-and pp_global ~cx ~program global =
-  let open Global in
-  let global_label = Printf.sprintf "global %s @%s {" (pp_type global.ty) global.name in
-  cx.print_block_id_map <- IMap.add global.init_start_block global.name cx.print_block_id_map;
-  let init_blocks = Block_ordering.order_blocks ~program global.init_start_block in
-  calc_print_block_ids ~cx (List.tl init_blocks);
-  let init_strings =
-    List.mapi
-      (fun i block_id ->
-        let block = IMap.find block_id program.Program.blocks in
-        pp_block ~cx ~label:(i <> 0) block)
-      init_blocks
+and pp_global ~cx global =
+  let init =
+    match global.init_val with
+    | None -> "uninitialized"
+    | Some init_val -> pp_value ~cx init_val
   in
-  String.concat "\n" ((global_label :: init_strings) @ ["}\n"])
+  let open Global in
+  let global_label = Printf.sprintf "global %s @%s = %s\n" (pp_type global.ty) global.name init in
+  global_label
 
 and pp_func ~cx ~program func =
   let open Function in

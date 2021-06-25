@@ -26,13 +26,7 @@ module IRVisitor = struct
 
       method on_complete () = ()
 
-      method visit_program () =
-        SMap.iter (fun _ global -> this#visit_global global) program.globals;
-        SMap.iter (fun _ func -> this#visit_function func) program.funcs
-
-      method visit_global global =
-        let block = get_block global.init_start_block in
-        this#visit_block block
+      method visit_program () = SMap.iter (fun _ func -> this#visit_function func) program.funcs
 
       method visit_function func =
         let block = get_block func.body_start_block in

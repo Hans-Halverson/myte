@@ -19,6 +19,31 @@ module InstructionsMapper = struct
 
       method replace_instruction instrs = current_instruction_edit <- Replace instrs
 
+      method map_function (func : Function.t) =
+        let visited_blocks = ref ISet.empty in
+        let rec get_block block_id = IMap.find block_id ocx.program.blocks
+        and check_visited_block block_id =
+          if ISet.mem block_id !visited_blocks then
+            true
+          else (
+            visited_blocks := ISet.add block_id !visited_blocks;
+            false
+          )
+        and visit_block (block : ssa_block) =
+          if check_visited_block block.id then
+            ()
+          else (
+            block.instructions <- this#map_instructions ~block block.instructions;
+            match block.next with
+            | Halt -> ()
+            | Continue id -> visit_block (get_block id)
+            | Branch { test = _; continue; jump } ->
+              visit_block (get_block continue);
+              visit_block (get_block jump)
+          )
+        in
+        visit_block (get_block func.body_start_block)
+
       method map_instructions ~(block : var_id Block.t) (instructions : var_id Instruction.t list) =
         let instructions' =
           List.filter_map

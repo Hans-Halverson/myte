@@ -77,9 +77,7 @@ label @14:
   Ret
 }
 
-global int @test.glob {
-  Store int @test.glob, 1
-}
+global int @test.glob = 1
 
 func unit @test.testGlobal() {
   branch true, @15, @16

@@ -1,26 +1,14 @@
-global unit @test.x {
-  Store unit @test.x, ()
-}
+global unit @test.x = ()
 
-global int @test.y1 {
-  Store int @test.y1, 500
-}
+global int @test.y1 = 500
 
-global byte @test.y2 {
-  Store byte @test.y2, 1
-}
+global byte @test.y2 = 1
 
-global long @test.y3 {
-  Store long @test.y3, 2147483648
-}
+global long @test.y3 = 2147483648
 
-global string @test.z {
-  Store string @test.z, "test"
-}
+global string @test.z = "test"
 
-global bool @test.a1 {
-  Store bool @test.a1, true
-}
+global bool @test.a1 = true
 
 func unit @test.main() {
   %0 := Mov int 0

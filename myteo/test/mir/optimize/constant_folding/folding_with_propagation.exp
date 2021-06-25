@@ -1,22 +1,12 @@
-global int @t.int1 {
-  Store int @t.int1, 3
-}
+global int @t.int1 = 3
 
-global bool @t.bool1 {
-  Store bool @t.bool1, false
-}
+global bool @t.bool1 = false
 
-global int @t.int2 {
-  Store int @t.int2, -286
-}
+global int @t.int2 = -286
 
-global bool @t.bool2 {
-  Store bool @t.bool2, true
-}
+global bool @t.bool2 = true
 
-global bool @t.mixed {
-  Store bool @t.mixed, true
-}
+global bool @t.mixed = true
 
 func unit @t.useBool(bool %0) {
   Ret

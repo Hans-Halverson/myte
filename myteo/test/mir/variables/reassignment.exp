@@ -1,6 +1,4 @@
-global int @test.x {
-  Store int @test.x, 0
-}
+global int @test.x = 0
 
 func unit @test.testReassignGlobals() {
   Store int @test.x, 1

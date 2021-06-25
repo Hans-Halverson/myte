@@ -1,170 +1,86 @@
-global int @test.i0 {
-  Store int @test.i0, -56
-}
+global int @test.i0 = -56
 
-global int @test.i1 {
-  Store int @test.i1, 3
-}
+global int @test.i1 = 3
 
-global int @test.i2 {
-  Store int @test.i2, -1
-}
+global int @test.i2 = -1
 
-global int @test.i3 {
-  Store int @test.i3, 14
-}
+global int @test.i3 = 14
 
-global int @test.i4 {
-  Store int @test.i4, 8
-}
+global int @test.i4 = 8
 
-global int @test.i5 {
-  Store int @test.i5, 1
-}
+global int @test.i5 = 1
 
-global int @test.i6 {
-  Store int @test.i6, 8
-}
+global int @test.i6 = 8
 
-global int @test.i7 {
-  Store int @test.i7, 14
-}
+global int @test.i7 = 14
 
-global int @test.i8 {
-  Store int @test.i8, 6
-}
+global int @test.i8 = 6
 
-global int @test.i9 {
-  Store int @test.i9, 16
-}
+global int @test.i9 = 16
 
-global int @test.i10 {
-  Store int @test.i10, -1
-}
+global int @test.i10 = -1
 
-global int @test.i11 {
-  Store int @test.i11, 1073741823
-}
+global int @test.i11 = 1073741823
 
-global bool @test.i12 {
-  Store bool @test.i12, false
-}
+global bool @test.i12 = false
 
-global byte @test.b0 {
-  Store byte @test.b0, -56
-}
+global byte @test.b0 = -56
 
-global byte @test.b1 {
-  Store byte @test.b1, 3
-}
+global byte @test.b1 = 3
 
-global byte @test.b2 {
-  Store byte @test.b2, -1
-}
+global byte @test.b2 = -1
 
-global byte @test.b3 {
-  Store byte @test.b3, 14
-}
+global byte @test.b3 = 14
 
-global byte @test.b4 {
-  Store byte @test.b4, 8
-}
+global byte @test.b4 = 8
 
-global byte @test.b5 {
-  Store byte @test.b5, 1
-}
+global byte @test.b5 = 1
 
-global byte @test.b6 {
-  Store byte @test.b6, 8
-}
+global byte @test.b6 = 8
 
-global byte @test.b7 {
-  Store byte @test.b7, 14
-}
+global byte @test.b7 = 14
 
-global byte @test.b8 {
-  Store byte @test.b8, 6
-}
+global byte @test.b8 = 6
 
-global byte @test.b9 {
-  Store byte @test.b9, 16
-}
+global byte @test.b9 = 16
 
-global byte @test.b10 {
-  Store byte @test.b10, -1
-}
+global byte @test.b10 = -1
 
-global byte @test.b11 {
-  Store byte @test.b11, 63
-}
+global byte @test.b11 = 63
 
-global bool @test.b12 {
-  Store bool @test.b12, false
-}
+global bool @test.b12 = false
 
-global long @test.l0 {
-  Store long @test.l0, -56
-}
+global long @test.l0 = -56
 
-global long @test.l1 {
-  Store long @test.l1, 3
-}
+global long @test.l1 = 3
 
-global long @test.l2 {
-  Store long @test.l2, -1
-}
+global long @test.l2 = -1
 
-global long @test.l3 {
-  Store long @test.l3, 14
-}
+global long @test.l3 = 14
 
-global long @test.l4 {
-  Store long @test.l4, 8
-}
+global long @test.l4 = 8
 
-global long @test.l5 {
-  Store long @test.l5, 1
-}
+global long @test.l5 = 1
 
-global long @test.l6 {
-  Store long @test.l6, 8
-}
+global long @test.l6 = 8
 
-global long @test.l7 {
-  Store long @test.l7, 14
-}
+global long @test.l7 = 14
 
-global long @test.l8 {
-  Store long @test.l8, 6
-}
+global long @test.l8 = 6
 
-global long @test.l9 {
-  Store long @test.l9, 16
-}
+global long @test.l9 = 16
 
-global long @test.l10 {
-  Store long @test.l10, -1
-}
+global long @test.l10 = -1
 
-global long @test.l11 {
-  Store long @test.l11, 4611686018427387903
-}
+global long @test.l11 = 4611686018427387903
 
-global bool @test.l12 {
-  Store bool @test.l12, false
-}
+global bool @test.l12 = false
 
-global bool @test.bool0 {
-  Store bool @test.bool0, false
-}
+global bool @test.bool0 = false
 
-global bool @test.bool1 {
-  Store bool @test.bool1, false
-}
+global bool @test.bool1 = false
 
-global bool @test.bool2 {
-  Store bool @test.bool2, true
-}
+global bool @test.bool2 = true
 
 func unit @test.main() {
   Ret

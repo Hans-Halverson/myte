@@ -1,0 +1,16 @@
+func unit @_init() {
+  Store fn @test.f, @test.test
+  Ret
+}
+
+global int @test.i = 1
+
+global fn @test.f = uninitialized
+
+func unit @test.test() {
+  Ret
+}
+
+func unit @test.main() {
+  Ret
+}

@@ -90,13 +90,8 @@ let normalize ~ocx =
           (* The next block could be the start block for the global or function, in which case it cannot
              be merged with the previous block. *)
           let next_block_is_start =
-            match next_block.source with
-            | GlobalInit name ->
-              let global = SMap.find name ocx.program.globals in
-              global.init_start_block = next_block_id
-            | FunctionBody name ->
-              let func = SMap.find name ocx.program.funcs in
-              func.body_start_block = next_block_id
+            let func = SMap.find next_block.func ocx.program.funcs in
+            func.body_start_block = next_block_id
           in
           let prev_blocks = IMap.find next_block_id ocx.prev_blocks in
           if ISet.cardinal prev_blocks = 1 && next_block.phis = [] && not next_block_is_start then (
@@ -112,4 +107,7 @@ let normalize ~ocx =
       iter ()
     )
   in
-  iter ()
+  iter ();
+
+  (* Strip init function if it is now empty *)
+  remove_empty_init_func ocx.program

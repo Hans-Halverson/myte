@@ -153,7 +153,7 @@ end =
 and Block : sig
   type 'var t = {
     id: id;
-    source: source;
+    func: label;
     mutable phis: 'var phi list;
     mutable instructions: 'var Instruction.t list;
     mutable next: 'var next;
@@ -171,10 +171,6 @@ and Block : sig
         continue: id;
         jump: id;
       }
-
-  and source =
-    | FunctionBody of string
-    | GlobalInit of string
 end =
   Block
 
@@ -183,8 +179,7 @@ and Global : sig
     name: label;
     loc: Loc.t;
     ty: Type.t;
-    mutable init_start_block: Block.id;
-    init_val: 'var Value.t;
+    mutable init_val: 'var Value.t option;
   }
 end =
   Global
@@ -225,6 +220,8 @@ type ssa_block = var_id Block.t
 type cf_program = cf_var Program.t
 
 type ssa_program = var_id Program.t
+
+let init_func_name = "_init"
 
 let max_block_id = ref 0
 
@@ -296,6 +293,34 @@ let var_value_of_type var_id (ty : Type.t) : 'a Value.t =
   | `PointerT ty -> `PointerV (ty, var_id)
   | `AggregateT agg -> `AggregateV (agg, var_id)
   | `ArrayT (ty, size) -> `ArrayV (ty, size, var_id)
+
+(* Whether this value is a statically known constant *)
+let is_static_constant (v : 'a Value.t) : bool =
+  match v with
+  (* All variables are not statically known *)
+  | `UnitV _
+  | `BoolV _
+  | `StringV _
+  | `ByteV _
+  | `IntV _
+  | `LongV _
+  | `FunctionV _
+  | `PointerV _
+  | `AggregateV _
+  | `ArrayV _
+  (* Function and pointer literals refer to labels. However for position independent code, the
+     address of labels cannot be known at compile time, all we know is an offset. *)
+  | `FunctionL _
+  | `PointerL _ ->
+    false
+  | `UnitL
+  | `BoolL _
+  | `StringL _
+  | `ByteL _
+  | `IntL _
+  | `LongL _
+  | `ArrayL _ ->
+    true
 
 let mk_continue continue = Block.Continue continue
 
@@ -376,3 +401,12 @@ let filter_stdlib (program : ssa_program) =
     funcs = filter_stdlib_names program.funcs;
     types = filter_stdlib_names program.types;
   }
+
+let remove_empty_init_func (program : 'a Program.t) =
+  match SMap.find_opt init_func_name program.funcs with
+  | None -> ()
+  | Some init_func ->
+    (* Init function is empty if it consists of a single block with a single instruction (Ret) *)
+    let init_start_block = IMap.find init_func.body_start_block program.blocks in
+    if List.length init_start_block.instructions = 1 && init_start_block.next = Halt then
+      program.funcs <- SMap.remove init_func_name program.funcs

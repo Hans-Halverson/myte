@@ -1,10 +1,13 @@
-global int @test.x {
+func unit @_init() {
   %0 := Mul int 2, 3
   %1 := Div int %0, 4
   %2 := Add int 1, %1
   %3 := Sub int %2, 67
   Store int @test.x, %3
+  Ret
 }
+
+global int @test.x = uninitialized
 
 func unit @test.main() {
   Ret

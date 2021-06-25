@@ -438,5 +438,3 @@ let string_of_sized_reg reg size =
 let main_label = "_main"
 
 let start_label = "_start"
-
-let init_label = "_init"

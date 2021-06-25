@@ -3,7 +3,6 @@
 
   .text
 _init:
-_init_test.intArray:
   movl $40, %edi
   call __myte_alloc
   movq %rax, test.intArray(%rip)

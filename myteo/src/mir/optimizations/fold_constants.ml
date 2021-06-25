@@ -418,6 +418,32 @@ let find_constants_in_phis ~ocx var_id_constants removed_vars =
     ocx.Ocx.program.blocks;
   !constants_in_phis
 
+(* Constant folding may determine that globals are initialized to a constant. These take the form of
+  stores to globals in the init function, which should be removed and replaced with a constant
+  initialization of the global variable. *)
+let fold_global_inits ~ocx =
+  match SMap.find_opt init_func_name ocx.Ocx.program.funcs with
+  | None -> ()
+  | Some init_func ->
+    let mapper =
+      object (this)
+        inherit Mir_mapper.InstructionsMapper.t ~ocx
+
+        method! map_instruction ~block:_ ((_, instr) as instruction) =
+          let open Instruction in
+          (match instr with
+          | Store (`PointerL (_, name), value) when is_static_constant value ->
+            (match SMap.find_opt name ocx.Ocx.program.globals with
+            | None -> ()
+            | Some global ->
+              global.init_val <- Some value;
+              this#mark_instruction_removed ())
+          | _ -> ());
+          [instruction]
+      end
+    in
+    mapper#map_function init_func
+
 let fold_constants_and_prune ~ocx =
   let calc_visitor = new calc_constants_visitor ~ocx in
   ignore (calc_visitor#run ());
@@ -445,4 +471,5 @@ let fold_constants_and_prune ~ocx =
               false)
           block.phis;
       block.instructions <- update_constants_mapper#map_instructions ~block block.instructions)
-    ocx.Ocx.program.blocks
+    ocx.Ocx.program.blocks;
+  fold_global_inits ~ocx
