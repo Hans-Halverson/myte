@@ -4,7 +4,6 @@ module rec Type : sig
   type t =
     [ `UnitT
     | `BoolT
-    | `StringT
     | `IntT
     | `ByteT
     | `LongT
@@ -43,16 +42,20 @@ let rec type_to_string ty =
   | `IntT -> "int"
   | `LongT -> "long"
   | `BoolT -> "bool"
-  | `StringT -> "string"
   | `FunctionT -> "fn"
   | `PointerT ty -> type_to_string ty ^ "*"
   | `AggregateT { Aggregate.name; _ } -> name
   | `ArrayT (ty, size) -> Printf.sprintf "%s[%d]" (type_to_string ty) size
 
-let cast_to_pointer_type v =
-  match v with
-  | `PointerT _ as v -> v
+let cast_to_pointer_type ty =
+  match ty with
+  | `PointerT _ as ty -> ty
   | _ -> failwith "Expected pointer type"
+
+let cast_to_aggregate_type ty =
+  match ty with
+  | `AggregateT _ as ty -> ty
+  | _ -> failwith "Expected aggregate type"
 
 module TypeArgs = struct
   type t = Type.t list
@@ -62,7 +65,6 @@ module TypeArgs = struct
       match (ty1, ty2) with
       | (`UnitT, `UnitT)
       | (`BoolT, `BoolT)
-      | (`StringT, `StringT)
       | (`IntT, `IntT)
       | (`ByteT, `ByteT)
       | (`LongT, `LongT)
@@ -84,14 +86,13 @@ module TypeArgs = struct
       match ty with
       | `UnitT -> 0
       | `BoolT -> 1
-      | `StringT -> 2
-      | `IntT -> 3
-      | `ByteT -> 4
-      | `LongT -> 5
-      | `FunctionT -> 6
-      | `PointerT ty -> hash_nums [7; hash ty]
-      | `AggregateT { Aggregate.id; _ } -> hash_nums [8; id]
-      | `ArrayT (ty, size) -> hash_nums [9; hash ty; size]
+      | `IntT -> 2
+      | `ByteT -> 3
+      | `LongT -> 4
+      | `FunctionT -> 5
+      | `PointerT ty -> hash_nums [6; hash ty]
+      | `AggregateT { Aggregate.id; _ } -> hash_nums [7; id]
+      | `ArrayT (ty, size) -> hash_nums [8; hash ty; size]
     in
     hash_nums (List.map hash tys)
 

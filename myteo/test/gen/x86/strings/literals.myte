@@ -1,0 +1,9 @@
+module test
+
+val s: String = "foo"
+
+fun test() {
+  "foobar";
+}
+
+fun main() {}

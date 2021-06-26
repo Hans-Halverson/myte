@@ -342,7 +342,6 @@ and Type : sig
       | Byte
       | Int
       | Long
-      | String
       | Bool
 
     type t = {

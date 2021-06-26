@@ -43,9 +43,19 @@ test/parser/ast/type/precedence.myte
               },
             ],
             return: {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 4:24-4:30,
-              kind: String,
+              name: {
+                node: ScopedIdentifier,
+                loc: 4:24-4:30,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 4:24-4:30,
+                  name: "String",
+                },
+              },
+              type_params: [],
             },
           },
         ],
@@ -81,9 +91,19 @@ test/parser/ast/type/precedence.myte
           loc: 5:24-5:38,
           params: [
             {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 5:24-5:30,
-              kind: String,
+              name: {
+                node: ScopedIdentifier,
+                loc: 5:24-5:30,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 5:24-5:30,
+                  name: "String",
+                },
+              },
+              type_params: [],
             },
           ],
           return: {
@@ -119,9 +139,19 @@ test/parser/ast/type/precedence.myte
           loc: 6:23-6:37,
           params: [
             {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 6:23-6:29,
-              kind: String,
+              name: {
+                node: ScopedIdentifier,
+                loc: 6:23-6:29,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 6:23-6:29,
+                  name: "String",
+                },
+              },
+              type_params: [],
             },
           ],
           return: {

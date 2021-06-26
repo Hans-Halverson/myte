@@ -12,7 +12,6 @@ let rec build_type ~cx ty =
     | Byte -> Types.Byte
     | Int -> Types.Int
     | Long -> Types.Long
-    | String -> Types.String
     | Bool -> Types.Bool)
   | Tuple { Tuple.elements; _ } -> Types.Tuple (List.map (build_type ~cx) elements)
   | Function { Function.params; return; _ } ->
@@ -32,7 +31,14 @@ let rec build_type ~cx ty =
     let num_type_args = List.length type_args in
     let binding = Type_context.get_type_binding ~cx loc in
     (* Check if this is a builtin type *)
-    (match Std_lib.lookup_stdlib_decl_loc binding.loc with
+    (match Std_lib.lookup_stdlib_name binding.loc with
+    | Some name when name = Std_lib.std_string_string ->
+      if type_args = [] then
+        Std_lib.mk_string_type ()
+      else (
+        type_param_arity_error num_type_args 0;
+        Types.Any
+      )
     | Some name when name = Std_lib.std_array_array ->
       (match type_args with
       | [element_type] -> Types.Array element_type
@@ -88,7 +94,8 @@ and visit_type_declarations_prepass ~cx module_ =
         let adt_decl = Bindings.get_type_decl binding in
         let type_params = check_type_parameters ~cx type_params in
         let adt_sig = Types.mk_adt_sig name type_params in
-        Bindings.TypeDeclaration.set adt_decl adt_sig
+        Bindings.TypeDeclaration.set adt_decl adt_sig;
+        Std_lib.register_stdlib_type id_loc adt_sig
       | _ -> ())
     toplevels
 
@@ -334,7 +341,7 @@ and check_expression ~cx expr =
     (loc, tvar_id)
   | StringLiteral { StringLiteral.loc; _ } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    ignore (Type_context.unify ~cx Types.String (TVar tvar_id));
+    ignore (Type_context.unify ~cx (Std_lib.mk_string_type ()) (TVar tvar_id));
     (loc, tvar_id)
   | BoolLiteral { BoolLiteral.loc; _ } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
@@ -458,9 +465,9 @@ and check_expression ~cx expr =
       | Byte
       | Int
       | Long
-      | IntLiteral _
-      | String ->
+      | IntLiteral _ ->
         true
+      | ADT { adt_sig; _ } when adt_sig = !Std_lib.string_adt_sig -> true
       | _ -> false
     in
     let error_int loc tvar_id =
@@ -473,7 +480,8 @@ and check_expression ~cx expr =
       Type_context.add_error
         ~cx
         loc
-        (IncompatibleTypes (Type_context.find_rep_type ~cx (TVar tvar_id), [Types.Int; Types.String]))
+        (IncompatibleTypes
+           (Type_context.find_rep_type ~cx (TVar tvar_id), [Types.Int; Std_lib.mk_string_type ()]))
     in
     (match op with
     | Add ->

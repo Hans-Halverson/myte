@@ -54,6 +54,9 @@ and gen_global_instruction_builder ~gcx ~ir:_ global =
     (* If uninitialized, place global variable in bss section *)
     let size = Gcx.size_of_mir_type ~gcx global.ty in
     Gcx.add_bss ~gcx { label; size }
+  | Some (`ArrayL (_, _, data)) ->
+    (* Array literal is known at compile time, so insert into initialized data section *)
+    Gcx.add_data ~gcx { label; value = AsciiData data }
   | Some init_val ->
     (match resolve_ir_value ~gcx ~func:0 ~allow_imm64:true init_val with
     | SImm imm ->
@@ -453,9 +456,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       | `FunctionT
       | `PointerT _ ->
         register_size_of_mir_value_type pointer_element_type
-      | `StringT
-      | `AggregateT _ ->
-        failwith "TODO: Cannot compile aggregate literals"
+      | `AggregateT _ -> failwith "TODO: Cannot compile aggregate literals"
       | `ArrayT _ -> failwith "TODO: Cannot compile array literals"
     in
     let src =
@@ -489,9 +490,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       | `FunctionT
       | `PointerT _ ->
         register_size_of_mir_value_type pointer_element_type
-      | `StringT
-      | `AggregateT _ ->
-        failwith "TODO: Cannot compile aggregate literals"
+      | `AggregateT _ -> failwith "TODO: Cannot compile aggregate literals"
       | `ArrayT _ -> failwith "TODO: Cannot compile array literals"
     in
     let value = resolve_ir_value ~allow_imm64:true value in
@@ -1053,9 +1052,6 @@ and resolve_ir_value ~gcx ~func ?(allow_imm64 = false) value =
   | `LongV var_id -> vreg_of_var var_id Size64
   | `FunctionL name -> SAddr (mk_label_memory_address name)
   | `FunctionV var_id -> vreg_of_var var_id Size64
-  | `StringL _
-  | `StringV _ ->
-    failwith "TODO: Cannot compile string literals"
   | `PointerL (_, label) -> SAddr (mk_label_memory_address label)
   | `PointerV (_, var_id) -> vreg_of_var var_id Size64
   | `AggregateV _ -> failwith "TODO: Cannot compile aggregate structures yet"
@@ -1073,7 +1069,6 @@ and register_size_of_mir_value_type value_type =
   | `FunctionT
   | `PointerT _ ->
     Size64
-  | `StringT -> failwith "TODO: Cannot compile string literals"
   | `AggregateT _ -> failwith "TODO: Cannot compile aggregate structure literals"
   | `ArrayT _ -> failwith "TODO: Cannot compile array literals"
 

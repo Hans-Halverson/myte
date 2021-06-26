@@ -323,9 +323,6 @@ class calc_constants_visitor ~ocx =
           | `UnitL
           | `UnitV _ ->
             Some UnitConstant
-          | `StringL _
-          | `StringV _ ->
-            None
           | (`FunctionL _ | `FunctionV _) as v ->
             get_function_lit_opt v |> Option.map (fun x -> FunctionConstant x)
           | (`BoolL _ | `BoolV _) as v -> get_bool_lit_opt v |> Option.map (fun x -> BoolConstant x)

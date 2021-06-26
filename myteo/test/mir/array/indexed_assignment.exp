@@ -4,41 +4,59 @@ func unit @test.simpleAccesses(int* %0) {
   Ret
 }
 
-func unit @test.nestedAccesses(string*** %2, string* %3) {
-  %4 := GetPointer string** %2[int 5]
-  %5 := Load string** %4
-  %6 := GetPointer string* %5[int 6]
-  %7 := Load string* %6
-  %8 := GetPointer string %7[int 7]
-  Store string %8, "test"
-  %9 := GetPointer string** %2[int 55]
-  %10 := Load string** %9
-  %11 := GetPointer string* %10[int 66]
-  Store string* %11, %3
+func unit @test.nestedAccesses(std.string.String**** %2, std.string.String** %3) {
+  %4 := GetPointer std.string.String*** %2[int 5]
+  %5 := Load std.string.String*** %4
+  %6 := GetPointer std.string.String** %5[int 6]
+  %7 := Load std.string.String** %6
+  %8 := GetPointer std.string.String* %7[int 7]
+  %9 := CallBuiltin std.string.String* myte_alloc(1)
+  %10 := GetPointer byte* %9.0
+  Store byte* %10, @.S0
+  %11 := GetPointer int %9.1
+  Store int %11, 4
+  %12 := GetPointer int %9.2
+  Store int %12, 4
+  Store std.string.String* %8, %9
+  %13 := GetPointer std.string.String*** %2[int 55]
+  %14 := Load std.string.String*** %13
+  %15 := GetPointer std.string.String** %14[int 66]
+  Store std.string.String** %15, %3
   Ret
 }
+
+global byte[4] @.S0 = "test"
 
 type test.Tup1 {byte, test.Rec1**, bool}
 
-type test.Rec1 {bool, byte, string}
+type test.Rec1 {bool, byte, std.string.String*}
 
 type test.Rec2 {long*, byte}
 
-func unit @test.indexAndAccesses(test.Tup1* %12, test.Rec2** %13) {
-  %14 := GetPointer test.Rec1** %12.1
-  %15 := Load test.Rec1** %14
-  %16 := GetPointer test.Rec1* %15[int 500]
-  %17 := Load test.Rec1* %16
-  %18 := GetPointer string %17.2
-  Store string %18, "test"
-  %19 := GetPointer test.Rec2* %13[int 999]
-  %20 := Load test.Rec2* %19
-  %21 := GetPointer long* %20.0
-  %22 := Load long* %21
-  %23 := GetPointer long %22[int 888]
-  Store long %23, 7
+func unit @test.indexAndAccesses(test.Tup1* %16, test.Rec2** %17) {
+  %18 := GetPointer test.Rec1** %16.1
+  %19 := Load test.Rec1** %18
+  %20 := GetPointer test.Rec1* %19[int 500]
+  %21 := Load test.Rec1* %20
+  %22 := GetPointer std.string.String* %21.2
+  %23 := CallBuiltin std.string.String* myte_alloc(1)
+  %24 := GetPointer byte* %23.0
+  Store byte* %24, @.S1
+  %25 := GetPointer int %23.1
+  Store int %25, 4
+  %26 := GetPointer int %23.2
+  Store int %26, 4
+  Store std.string.String* %22, %23
+  %27 := GetPointer test.Rec2* %17[int 999]
+  %28 := Load test.Rec2* %27
+  %29 := GetPointer long* %28.0
+  %30 := Load long* %29
+  %31 := GetPointer long %30[int 888]
+  Store long %31, 7
   Ret
 }
+
+global byte[4] @.S1 = "test"
 
 func unit @test.main() {
   Ret

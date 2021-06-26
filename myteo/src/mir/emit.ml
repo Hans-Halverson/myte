@@ -207,7 +207,32 @@ and emit_expression ~ecx expr =
     | `IntT -> `IntL (Int64.to_int32 value)
     | `LongT -> `LongL value
     | _ -> failwith "Int literal must have integer type")
-  | StringLiteral { value; _ } -> `StringL value
+  | StringLiteral { loc; value; _ } ->
+    let string_global_ptr = Ecx.add_string_literal ~ecx loc value in
+    let string_pointer_type = mir_type_of_loc ~ecx loc in
+    let (`PointerT string_type) = cast_to_pointer_type string_pointer_type in
+    let (`AggregateT string_agg) = cast_to_aggregate_type string_type in
+    (* Call myte_alloc builtin to allocate space for string *)
+    let agg_ptr_var_id = mk_cf_var_id () in
+    let agg_ptr_var = `PointerV (string_type, agg_ptr_var_id) in
+    let (agg_ptr_val, myte_alloc_instr) =
+      Mir_builtin.(mk_call_builtin myte_alloc agg_ptr_var_id [`LongL Int64.one] string_type)
+    in
+    Ecx.emit ~ecx myte_alloc_instr;
+    (* Write all string literal fields *)
+    let emit_field_store name value =
+      let (element_ty, element_idx) = lookup_element string_agg name in
+      let (element_offset_var, get_ptr_instr) =
+        mk_get_pointer_instr element_ty agg_ptr_var [GetPointer.FieldIndex element_idx]
+      in
+      Ecx.emit ~ecx (GetPointer get_ptr_instr);
+      Ecx.emit ~ecx (Store (element_offset_var, value))
+    in
+    let length = `IntL (Int32.of_int (String.length value)) in
+    emit_field_store "data" string_global_ptr;
+    emit_field_store "size" length;
+    emit_field_store "capacity" length;
+    agg_ptr_val
   | BoolLiteral { value; _ } -> `BoolL value
   | UnaryOperation { op = Plus; operand; _ } -> emit_expression ~ecx operand
   | UnaryOperation { loc; op = Minus; operand } ->

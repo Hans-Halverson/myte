@@ -88,7 +88,6 @@ let string_of_primitive_type kind =
   | Byte -> "Byte"
   | Int -> "Int"
   | Long -> "Long"
-  | String -> "String"
   | Bool -> "Bool"
   | Unit -> "Unit"
 

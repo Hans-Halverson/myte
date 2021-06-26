@@ -32,7 +32,6 @@ type t =
   | Int
   | Long
   | IntLiteral of int_literal
-  | String
   | Array of t
   | Tuple of t list
   | Function of {
@@ -87,6 +86,8 @@ let mk_tvar () = TVar (mk_tvar_id ())
 let mk_adt_sig name type_params =
   { id = mk_adt_sig_id (); name; type_params; variant_sigs = SMap.empty }
 
+let empty_adt_sig = { id = 0; name = ""; type_params = []; variant_sigs = SMap.empty }
+
 let get_all_tvars_with_duplicates ty =
   let rec inner acc ty =
     match ty with
@@ -122,7 +123,6 @@ let rec substitute_type_params type_params ty =
   | Byte
   | Int
   | Long
-  | String
   | TVar _
   | IntLiteral { resolved = None; _ } ->
     ty
@@ -171,7 +171,6 @@ let rec pp_with_names ~tvar_to_name ty =
   | Long -> "Long"
   | IntLiteral { resolved = None; _ } -> "<Integer>"
   | IntLiteral { resolved = Some resolved; _ } -> pp_with_names ~tvar_to_name resolved
-  | String -> "String"
   | Array element -> "Array<" ^ pp_with_names ~tvar_to_name element ^ ">"
   | Tuple elements ->
     let element_names = List.map (pp_with_names ~tvar_to_name) elements in

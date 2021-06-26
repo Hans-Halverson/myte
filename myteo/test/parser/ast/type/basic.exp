@@ -112,9 +112,19 @@ test/parser/ast/type/basic.myte
         value: "test",
       },
       annot: {
-        node: PrimitiveType,
+        node: IdentifierType,
         loc: 7:7-7:13,
-        kind: String,
+        name: {
+          node: ScopedIdentifier,
+          loc: 7:7-7:13,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 7:7-7:13,
+            name: "String",
+          },
+        },
+        type_params: [],
       },
     },
     {
@@ -162,9 +172,19 @@ test/parser/ast/type/basic.myte
           },
         ],
         return: {
-          node: PrimitiveType,
+          node: IdentifierType,
           loc: 10:14-10:20,
-          kind: String,
+          name: {
+            node: ScopedIdentifier,
+            loc: 10:14-10:20,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 10:14-10:20,
+              name: "String",
+            },
+          },
+          type_params: [],
         },
       },
     },
@@ -197,9 +217,19 @@ test/parser/ast/type/basic.myte
           loc: 11:14-11:28,
           params: [
             {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 11:14-11:20,
-              kind: String,
+              name: {
+                node: ScopedIdentifier,
+                loc: 11:14-11:20,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 11:14-11:20,
+                  name: "String",
+                },
+              },
+              type_params: [],
             },
           ],
           return: {
@@ -239,9 +269,19 @@ test/parser/ast/type/basic.myte
           loc: 12:14-12:38,
           params: [
             {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 12:14-12:20,
-              kind: String,
+              name: {
+                node: ScopedIdentifier,
+                loc: 12:14-12:20,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 12:14-12:20,
+                  name: "String",
+                },
+              },
+              type_params: [],
             },
           ],
           return: {
@@ -255,9 +295,19 @@ test/parser/ast/type/basic.myte
               },
             ],
             return: {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 12:32-12:38,
-              kind: String,
+              name: {
+                node: ScopedIdentifier,
+                loc: 12:32-12:38,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 12:32-12:38,
+                  name: "String",
+                },
+              },
+              type_params: [],
             },
           },
         },

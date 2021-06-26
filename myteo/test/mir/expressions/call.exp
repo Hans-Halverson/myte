@@ -11,43 +11,61 @@ func int @test.singleArgFunc2(int %1) {
   Ret %2
 }
 
-func unit @test.multiArgsFunc(int %3, int %4, string %5) {
+func unit @test.multiArgsFunc(int %3, int %4, std.string.String* %5) {
   Ret
 }
 
 func unit @test.directCalls() {
   %6 := Mov bool true
-  %7 := Mov string "str"
-  %8 := Call unit @test.noArgsFunc()
-  %9 := Mov unit %8
-  %10 := Call int @test.singleArgFunc(33)
-  %11 := Mov int %10
-  %12 := Call unit @test.multiArgsFunc(29, 98, "test")
+  %7 := CallBuiltin std.string.String* myte_alloc(1)
+  %8 := GetPointer byte* %7.0
+  Store byte* %8, @.S0
+  %9 := GetPointer int %7.1
+  Store int %9, 3
+  %10 := GetPointer int %7.2
+  Store int %10, 3
+  %11 := Mov std.string.String* %7
+  %12 := Call unit @test.noArgsFunc()
   %13 := Mov unit %12
-  %14 := Call int @test.singleArgFunc(%11)
+  %14 := Call int @test.singleArgFunc(33)
   %15 := Mov int %14
-  %16 := Call int @test.singleArgFunc(45)
-  %17 := Mul int 5, 6
-  %18 := Add int 2, %17
-  %19 := Call unit @test.multiArgsFunc(%16, %18, %7)
-  %20 := Mov unit %19
+  %16 := CallBuiltin std.string.String* myte_alloc(1)
+  %17 := GetPointer byte* %16.0
+  Store byte* %17, @.S1
+  %18 := GetPointer int %16.1
+  Store int %18, 4
+  %19 := GetPointer int %16.2
+  Store int %19, 4
+  %20 := Call unit @test.multiArgsFunc(29, 98, %16)
+  %21 := Mov unit %20
+  %22 := Call int @test.singleArgFunc(%15)
+  %23 := Mov int %22
+  %24 := Call int @test.singleArgFunc(45)
+  %25 := Mul int 5, 6
+  %26 := Add int 2, %25
+  %27 := Call unit @test.multiArgsFunc(%24, %26, %11)
+  %28 := Mov unit %27
   Ret
 }
 
+global byte[3] @.S0 = "str"
+
+global byte[4] @.S1 = "test"
+
 func unit @test.indirectCalls() {
-  %21 := Mov fn @test.singleArgFunc
+  %29 := Mov fn @test.singleArgFunc
   branch true, @0, @1
 label @0:
-  %22 := Mov fn @test.singleArgFunc2
+  %30 := Mov fn @test.singleArgFunc2
   continue @1
 label @1:
-  %23 := Phi fn @test.indirectCalls:%21, @0:%22
-  %24 := Call int %23(10)
-  %25 := Mov int %24
-  %26 := Add int 1, 2
-  %27 := Call int %23(%26)
-  %28 := Add int 3, %27
-  %29 := Mov int %28
+  %31 := Phi fn @test.indirectCalls:%29, @0:%30
+  %32 := Call int %31(10)
+  %33 := Mov int %32
+  %34 := Add int 1, 2
+  %35 := Call int %31(%34)
+  %36 := Add int 3, %35
+  %37 := Mov int %36
   Ret
 }
 

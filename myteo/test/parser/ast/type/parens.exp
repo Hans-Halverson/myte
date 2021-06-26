@@ -83,9 +83,19 @@ test/parser/ast/type/parens.myte
           },
         ],
         return: {
-          node: PrimitiveType,
+          node: IdentifierType,
           loc: 5:15-5:21,
-          kind: String,
+          name: {
+            node: ScopedIdentifier,
+            loc: 5:15-5:21,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 5:15-5:21,
+              name: "String",
+            },
+          },
+          type_params: [],
         },
       },
     },

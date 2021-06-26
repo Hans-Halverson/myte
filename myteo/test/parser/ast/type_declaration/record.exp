@@ -146,9 +146,19 @@ test/parser/ast/type_declaration/record.myte
               name: "baz",
             },
             type: {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 7:36-7:42,
-              kind: String,
+              name: {
+                node: ScopedIdentifier,
+                loc: 7:36-7:42,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 7:36-7:42,
+                  name: "String",
+                },
+              },
+              type_params: [],
             },
           },
         ],
@@ -210,9 +220,19 @@ test/parser/ast/type_declaration/record.myte
               name: "baz",
             },
             type: {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 9:36-9:42,
-              kind: String,
+              name: {
+                node: ScopedIdentifier,
+                loc: 9:36-9:42,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 9:36-9:42,
+                  name: "String",
+                },
+              },
+              type_params: [],
             },
           },
         ],
@@ -269,9 +289,19 @@ test/parser/ast/type_declaration/record.myte
                   kind: Bool,
                 },
                 {
-                  node: PrimitiveType,
+                  node: IdentifierType,
                   loc: 11:36-11:42,
-                  kind: String,
+                  name: {
+                    node: ScopedIdentifier,
+                    loc: 11:36-11:42,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 11:36-11:42,
+                      name: "String",
+                    },
+                  },
+                  type_params: [],
                 },
               ],
               return: {
@@ -294,9 +324,19 @@ test/parser/ast/type_declaration/record.myte
               loc: 11:58-11:72,
               elements: [
                 {
-                  node: PrimitiveType,
+                  node: IdentifierType,
                   loc: 11:59-11:65,
-                  kind: String,
+                  name: {
+                    node: ScopedIdentifier,
+                    loc: 11:59-11:65,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 11:59-11:65,
+                      name: "String",
+                    },
+                  },
+                  type_params: [],
                 },
                 {
                   node: PrimitiveType,

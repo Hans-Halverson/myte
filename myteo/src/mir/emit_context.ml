@@ -50,6 +50,7 @@ type t = {
   mutable in_init: bool;
   (* The last init block builder that was completed *)
   mutable last_init_block_builder: BlockBuilder.t option;
+  mutable max_string_literal_id: int;
 }
 
 let mk ~pcx =
@@ -72,6 +73,7 @@ let mk ~pcx =
     func_decl_nodes = SMap.empty;
     in_init = false;
     last_init_block_builder = None;
+    max_string_literal_id = 0;
   }
 
 let builders_to_blocks builders =
@@ -179,6 +181,18 @@ let emit_init_section ~ecx f =
   ecx.in_init <- old_in_init;
   ecx.current_func <- old_func;
   result
+
+let add_string_literal ~ecx loc string =
+  let name =
+    let id = ecx.max_string_literal_id in
+    ecx.max_string_literal_id <- id + 1;
+    ".S" ^ string_of_int id
+  in
+  let length = String.length string in
+  let ty = `ArrayT (`ByteT, length) in
+  let global = { Global.loc; name; ty; init_val = Some (`ArrayL (`ByteT, length, string)) } in
+  add_global ~ecx global;
+  `PointerL (ty, name)
 
 (*
  * Generic Types
@@ -295,7 +309,6 @@ and to_mir_type ~ecx ty =
   | Types.Int -> `IntT
   | Types.Long -> `LongT
   | Types.IntLiteral { resolved; _ } -> to_mir_type ~ecx (Option.get resolved)
-  | Types.String -> `StringT
   | Types.Array element_ty -> `PointerT (to_mir_type ~ecx element_ty)
   | Types.Function _ -> `FunctionT
   | Types.Tuple elements ->

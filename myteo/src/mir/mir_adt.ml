@@ -58,7 +58,6 @@ module MirADT = struct
       | Byte
       | Int
       | Long
-      | String
       | TVar _
       | IntLiteral _
       (* Stored as pointers, so size does not vary *)

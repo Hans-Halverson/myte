@@ -18,11 +18,6 @@ module rec Value : sig
     | `BoolL of bool
     ]
 
-  type 'a string_value =
-    [ `StringV of 'a
-    | `StringL of string
-    ]
-
   type 'a function_value =
     [ `FunctionV of 'a
     | `FunctionL of label
@@ -56,7 +51,6 @@ module rec Value : sig
   type 'a t =
     [ 'a unit_value
     | 'a bool_value
-    | 'a string_value
     | 'a numeric_value
     | 'a function_value
     | 'a pointer_value
@@ -252,9 +246,6 @@ let type_of_value (v : 'a Value.t) : Type.t =
   | `BoolV _
   | `BoolL _ ->
     `BoolT
-  | `StringV _
-  | `StringL _ ->
-    `StringT
   | `ByteV _
   | `ByteL _ ->
     `ByteT
@@ -285,7 +276,6 @@ let var_value_of_type var_id (ty : Type.t) : 'a Value.t =
   match ty with
   | `UnitT -> `UnitV var_id
   | `BoolT -> `BoolV var_id
-  | `StringT -> `StringV var_id
   | `ByteT -> `ByteV var_id
   | `IntT -> `IntV var_id
   | `LongT -> `LongV var_id
@@ -300,7 +290,6 @@ let is_static_constant (v : 'a Value.t) : bool =
   (* All variables are not statically known *)
   | `UnitV _
   | `BoolV _
-  | `StringV _
   | `ByteV _
   | `IntV _
   | `LongV _
@@ -315,7 +304,6 @@ let is_static_constant (v : 'a Value.t) : bool =
     false
   | `UnitL
   | `BoolL _
-  | `StringL _
   | `ByteL _
   | `IntL _
   | `LongL _
@@ -328,9 +316,8 @@ let mk_branch test continue jump = Block.Branch { test; continue; jump }
 
 let rec map_value ~(f : 'a -> 'b) (value : 'a Value.t) : 'b Value.t =
   match value with
-  | (`UnitL | `StringL _) as lit -> lit
+  | `UnitL as lit -> lit
   | `UnitV v -> `UnitV (f v)
-  | `StringV v -> `StringV (f v)
   | (`BoolL _ | `BoolV _) as v -> (map_bool_value ~f v :> 'b Value.t)
   | (`LongL _ | `LongV _) as v -> (map_long_value ~f v :> 'b Value.t)
   | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _) as v -> (map_numeric_value ~f v :> 'b Value.t)
@@ -399,7 +386,6 @@ let filter_stdlib (program : ssa_program) =
     program with
     Program.globals = filter_stdlib_names program.globals;
     funcs = filter_stdlib_names program.funcs;
-    types = filter_stdlib_names program.types;
   }
 
 let remove_empty_init_func (program : 'a Program.t) =

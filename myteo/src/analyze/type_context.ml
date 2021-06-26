@@ -143,7 +143,6 @@ let rec find_rep_type ~cx ty =
   | Int
   | Long
   | IntLiteral { resolved = None; _ }
-  | String
   | TypeParam _ ->
     ty
   | IntLiteral { resolved = Some ty; _ } -> find_non_union_rep_type ty
@@ -191,7 +190,6 @@ let rec tvar_occurs_in ~cx tvar ty =
   | Int
   | Long
   | IntLiteral _
-  | String
   | TypeParam _ ->
     false
   | Array element -> tvar_occurs_in ~cx tvar element
@@ -241,8 +239,7 @@ let rec unify ~cx ty1 ty2 =
   | (Bool, Bool)
   | (Byte, Byte)
   | (Int, Int)
-  | (Long, Long)
-  | (String, String) ->
+  | (Long, Long) ->
     true
   (* Type parameters check that they are identical *)
   | (TypeParam { id = id1; name = _ }, TypeParam { id = id2; name = _ }) -> id1 = id2
@@ -291,8 +288,7 @@ let rec is_subtype ~cx sub sup =
   | (Bool, Bool)
   | (Byte, Byte)
   | (Int, Int)
-  | (Long, Long)
-  | (String, String) ->
+  | (Long, Long) ->
     true
   (* Type parameters are invariant, so check that they are identical *)
   | (TypeParam { id = id1; name = _ }, TypeParam { id = id2; name = _ }) -> id1 = id2

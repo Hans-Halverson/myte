@@ -199,7 +199,6 @@ and pp_value ~cx v =
   | `UnitL -> "()"
   | `BoolL true -> "true"
   | `BoolL false -> "false"
-  | `StringL s -> "\"" ^ s ^ "\""
   | `ByteL i -> string_of_int i
   | `IntL i -> Int32.to_string i
   | `LongL i -> Int64.to_string i
@@ -209,7 +208,6 @@ and pp_value ~cx v =
   | `ArrayL (_, _, str) -> Printf.sprintf "\"%s\"" str
   | `UnitV var_id
   | `BoolV var_id
-  | `StringV var_id
   | `ByteV var_id
   | `IntV var_id
   | `LongV var_id

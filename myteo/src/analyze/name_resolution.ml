@@ -190,6 +190,10 @@ class bindings_builder ~is_stdlib ~module_tree =
       module_name <- Ast_utils.name_parts_of_scoped_ident module_.name;
       let module_name_prefix = String.concat "." module_name ^ "." in
       this#enter_scope ();
+      (* Add all implicit imports to toplevel scope *)
+      ( if not is_stdlib then
+        let open Std_lib in
+        this#add_type_to_scope "String" (lookup_stdlib_decl_loc std_string_string) );
       (* Gather imports and add them to toplevel scope *)
       List.iter
         (fun import ->

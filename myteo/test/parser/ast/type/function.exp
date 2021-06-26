@@ -39,9 +39,19 @@ test/parser/ast/type/function.myte
           },
         ],
         return: {
-          node: PrimitiveType,
+          node: IdentifierType,
           loc: 3:23-3:29,
-          kind: String,
+          name: {
+            node: ScopedIdentifier,
+            loc: 3:23-3:29,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 3:23-3:29,
+              name: "String",
+            },
+          },
+          type_params: [],
         },
       },
     },
@@ -60,9 +70,19 @@ test/parser/ast/type/function.myte
         loc: 4:16-4:28,
         params: [],
         return: {
-          node: PrimitiveType,
+          node: IdentifierType,
           loc: 4:22-4:28,
-          kind: String,
+          name: {
+            node: ScopedIdentifier,
+            loc: 4:22-4:28,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 4:22-4:28,
+              name: "String",
+            },
+          },
+          type_params: [],
         },
       },
     },
@@ -87,9 +107,19 @@ test/parser/ast/type/function.myte
           },
         ],
         return: {
-          node: PrimitiveType,
+          node: IdentifierType,
           loc: 5:25-5:31,
-          kind: String,
+          name: {
+            node: ScopedIdentifier,
+            loc: 5:25-5:31,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 5:25-5:31,
+              name: "String",
+            },
+          },
+          type_params: [],
         },
       },
     },
@@ -114,9 +144,19 @@ test/parser/ast/type/function.myte
           },
         ],
         return: {
-          node: PrimitiveType,
+          node: IdentifierType,
           loc: 6:29-6:35,
-          kind: String,
+          name: {
+            node: ScopedIdentifier,
+            loc: 6:29-6:35,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 6:29-6:35,
+              name: "String",
+            },
+          },
+          type_params: [],
         },
       },
     },
@@ -140,9 +180,19 @@ test/parser/ast/type/function.myte
             kind: Int,
           },
           {
-            node: PrimitiveType,
+            node: IdentifierType,
             loc: 7:22-7:28,
-            kind: String,
+            name: {
+              node: ScopedIdentifier,
+              loc: 7:22-7:28,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 7:22-7:28,
+                name: "String",
+              },
+            },
+            type_params: [],
           },
         ],
         return: {
@@ -172,9 +222,19 @@ test/parser/ast/type/function.myte
             kind: Int,
           },
           {
-            node: PrimitiveType,
+            node: IdentifierType,
             loc: 8:22-8:28,
-            kind: String,
+            name: {
+              node: ScopedIdentifier,
+              loc: 8:22-8:28,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 8:22-8:28,
+                name: "String",
+              },
+            },
+            type_params: [],
           },
           {
             node: PrimitiveType,
@@ -209,9 +269,19 @@ test/parser/ast/type/function.myte
             kind: Int,
           },
           {
-            node: PrimitiveType,
+            node: IdentifierType,
             loc: 9:22-9:28,
-            kind: String,
+            name: {
+              node: ScopedIdentifier,
+              loc: 9:22-9:28,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 9:22-9:28,
+                name: "String",
+              },
+            },
+            type_params: [],
           },
         ],
         return: {
@@ -230,9 +300,19 @@ test/parser/ast/type/function.myte
             },
           ],
           return: {
-            node: PrimitiveType,
+            node: IdentifierType,
             loc: 9:49-9:55,
-            kind: String,
+            name: {
+              node: ScopedIdentifier,
+              loc: 9:49-9:55,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 9:49-9:55,
+                name: "String",
+              },
+            },
+            type_params: [],
           },
         },
       },
@@ -257,9 +337,19 @@ test/parser/ast/type/function.myte
             kind: Int,
           },
           {
-            node: PrimitiveType,
+            node: IdentifierType,
             loc: 10:22-10:28,
-            kind: String,
+            name: {
+              node: ScopedIdentifier,
+              loc: 10:22-10:28,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 10:22-10:28,
+                name: "String",
+              },
+            },
+            type_params: [],
           },
         ],
         return: {
@@ -320,9 +410,19 @@ test/parser/ast/type/function.myte
                 kind: Int,
               },
               {
-                node: PrimitiveType,
+                node: IdentifierType,
                 loc: 12:24-12:30,
-                kind: String,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 12:24-12:30,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 12:24-12:30,
+                    name: "String",
+                  },
+                },
+                type_params: [],
               },
             ],
           },

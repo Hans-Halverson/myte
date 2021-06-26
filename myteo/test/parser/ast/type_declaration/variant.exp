@@ -117,9 +117,19 @@ test/parser/ast/type_declaration/variant.myte
           },
           elements: [
             {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 10:9-10:15,
-              kind: String,
+              name: {
+                node: ScopedIdentifier,
+                loc: 10:9-10:15,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 10:9-10:15,
+                  name: "String",
+                },
+              },
+              type_params: [],
             },
             {
               node: PrimitiveType,
@@ -214,9 +224,19 @@ test/parser/ast/type_declaration/variant.myte
                 name: "k3",
               },
               type: {
-                node: PrimitiveType,
+                node: IdentifierType,
                 loc: 15:14-15:20,
-                kind: String,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 15:14-15:20,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 15:14-15:20,
+                    name: "String",
+                  },
+                },
+                type_params: [],
               },
             },
             {
@@ -340,9 +360,19 @@ test/parser/ast/type_declaration/variant.myte
                   kind: Int,
                 },
                 {
-                  node: PrimitiveType,
+                  node: IdentifierType,
                   loc: 20:14-20:20,
-                  kind: String,
+                  name: {
+                    node: ScopedIdentifier,
+                    loc: 20:14-20:20,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 20:14-20:20,
+                      name: "String",
+                    },
+                  },
+                  type_params: [],
                 },
               ],
             },
@@ -367,9 +397,19 @@ test/parser/ast/type_declaration/variant.myte
                   kind: Int,
                 },
                 {
-                  node: PrimitiveType,
+                  node: IdentifierType,
                   loc: 21:14-21:20,
-                  kind: String,
+                  name: {
+                    node: ScopedIdentifier,
+                    loc: 21:14-21:20,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 21:14-21:20,
+                      name: "String",
+                    },
+                  },
+                  type_params: [],
                 },
               ],
               return: {

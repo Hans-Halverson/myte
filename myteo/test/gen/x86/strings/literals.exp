@@ -1,0 +1,34 @@
+  .global _start
+  .lcomm test.s, 8
+
+  .data
+.S0:
+  .ascii "foo"
+.S1:
+  .ascii "foobar"
+
+  .text
+_init:
+  movl $16, %edi
+  call __myte_alloc
+  leaq .S0(%rip), %rcx
+  movq %rcx, (%rax)
+  movl $3, 8(%rax)
+  movl $3, 12(%rax)
+  movq %rax, test.s(%rip)
+  ret
+_main:
+  ret
+test.test:
+  movl $16, %edi
+  call __myte_alloc
+  leaq .S1(%rip), %rcx
+  movq %rcx, (%rax)
+  movl $6, 8(%rax)
+  movl $6, 12(%rax)
+  ret
+_start:
+  call __myte_init
+  call _init
+  call _main
+  ret

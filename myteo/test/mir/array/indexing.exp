@@ -30,7 +30,7 @@ func unit @test.indexingAllIntegerTypes(unit* %12, int %13, byte %14, long %15) 
 
 type test.Tup0 {long, byte}
 
-type test.Tup1 {string, bool*}
+type test.Tup1 {std.string.String*, bool*}
 
 func unit @test.indexingWithTuple(test.Tup0** %28, test.Tup1* %29) {
   %30 := GetPointer test.Tup0* %28[int 77]
@@ -44,7 +44,7 @@ func unit @test.indexingWithTuple(test.Tup0** %28, test.Tup1* %29) {
   Ret
 }
 
-type test.Rec0 {string, bool*}
+type test.Rec0 {std.string.String*, bool*}
 
 func unit @test.indexingWithRecord(test.Rec0** %38, test.Rec1* %39, int %40) {
   %41 := GetPointer test.Rec0* %38[int 77]
@@ -56,7 +56,7 @@ func unit @test.indexingWithRecord(test.Rec0** %38, test.Rec1* %39, int %40) {
   Ret
 }
 
-type test.Rec1 {string, test.Tup2**}
+type test.Rec1 {std.string.String*, test.Tup2**}
 
 type test.Tup2 {byte, long}
 

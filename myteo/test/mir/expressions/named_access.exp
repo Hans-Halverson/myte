@@ -1,6 +1,6 @@
 type test.Rec1 {int}
 
-type test.Rec2 {string, bool, int}
+type test.Rec2 {std.string.String*, bool, int}
 
 type test.Rec3 {byte, test.Rec2*, long}
 
@@ -18,8 +18,8 @@ func test.Rec1* @test.makeRec(int %0) {
 func unit @test.testIndexing(test.Rec1* %3, test.Rec2* %4, test.Rec3* %5, test.Rec4* %6, test.Tup1* %7) {
   %8 := GetPointer int %3.0
   %9 := Load int %8
-  %10 := GetPointer string %4.0
-  %11 := Load string %10
+  %10 := GetPointer std.string.String* %4.0
+  %11 := Load std.string.String* %10
   %12 := GetPointer bool %4.1
   %13 := Load bool %12
   %14 := GetPointer byte %5.0
@@ -32,8 +32,8 @@ func unit @test.testIndexing(test.Rec1* %3, test.Rec2* %4, test.Rec3* %5, test.R
   %21 := Load test.Rec3* %20
   %22 := GetPointer test.Rec2* %21.1
   %23 := Load test.Rec2* %22
-  %24 := GetPointer string %23.0
-  %25 := Load string %24
+  %24 := GetPointer std.string.String* %23.0
+  %25 := Load std.string.String* %24
   %26 := Mul int 2, 3
   %27 := Call test.Rec1* @test.makeRec(%26)
   %28 := GetPointer int %27.0

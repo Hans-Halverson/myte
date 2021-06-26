@@ -94,9 +94,19 @@ test/parser/ast/function_declaration/basic.myte
             name: "b",
           },
           annot: {
-            node: PrimitiveType,
+            node: IdentifierType,
             loc: 7:19-7:25,
-            kind: String,
+            name: {
+              node: ScopedIdentifier,
+              loc: 7:19-7:25,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 7:19-7:25,
+                name: "String",
+              },
+            },
+            type_params: [],
           },
         },
         {
@@ -159,9 +169,19 @@ test/parser/ast/function_declaration/basic.myte
             name: "b",
           },
           annot: {
-            node: PrimitiveType,
+            node: IdentifierType,
             loc: 9:19-9:25,
-            kind: String,
+            name: {
+              node: ScopedIdentifier,
+              loc: 9:19-9:25,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 9:19-9:25,
+                name: "String",
+              },
+            },
+            type_params: [],
           },
         },
         {

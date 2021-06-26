@@ -141,7 +141,6 @@ module IRVisitor = struct
         match value with
         | `UnitL
         | `BoolL _
-        | `StringL _
         | `ByteL _
         | `IntL _
         | `LongL _
@@ -151,7 +150,6 @@ module IRVisitor = struct
           ()
         | `UnitV var_id
         | `BoolV var_id
-        | `StringV var_id
         | `IntV var_id
         | `ByteV var_id
         | `LongV var_id
@@ -165,9 +163,6 @@ module IRVisitor = struct
         this#visit_value ~block (value :> 'a Value.t)
 
       method visit_bool_value ~block (value : 'a Value.bool_value) =
-        this#visit_value ~block (value :> 'a Value.t)
-
-      method visit_string_value ~block (value : 'a Value.string_value) =
         this#visit_value ~block (value :> 'a Value.t)
 
       method visit_long_value ~block (value : 'a Value.long_value) =

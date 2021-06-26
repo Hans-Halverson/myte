@@ -1132,7 +1132,6 @@ and parse_type_prefix env =
   | T_IDENTIFIER "Byte" -> parse_primitive_type env Byte
   | T_IDENTIFIER "Int" -> parse_primitive_type env Int
   | T_IDENTIFIER "Long" -> parse_primitive_type env Long
-  | T_IDENTIFIER "String" -> parse_primitive_type env String
   | T_IDENTIFIER "Bool" -> parse_primitive_type env Bool
   | T_LEFT_PAREN -> parse_parenthesized_type env
   | T_IDENTIFIER _ -> parse_identifier_type env

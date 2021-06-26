@@ -317,7 +317,6 @@ module InstructionsMapper = struct
         match value with
         | (`UnitL | `UnitV _) as v -> this#map_unit_value ~block v
         | (`BoolL _ | `BoolV _) as v -> (this#map_bool_value ~block v :> ssa_value)
-        | (`StringL _ | `StringV _) as v -> this#map_string_value ~block v
         | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v ->
           (this#map_numeric_value ~block v :> ssa_value)
         | (`FunctionL _ | `FunctionV _) as v -> (this#map_function_value ~block v :> ssa_value)
@@ -336,12 +335,6 @@ module InstructionsMapper = struct
         | `BoolL _ as value -> value
         | `BoolV var_id as value ->
           id_map (this#map_use_variable ~block) var_id value (fun var_id' -> `BoolV var_id')
-
-      method map_string_value ~block value =
-        match value with
-        | `StringL _ as value -> value
-        | `StringV var_id as value ->
-          id_map (this#map_use_variable ~block) var_id value (fun var_id' -> `StringV var_id')
 
       method map_numeric_value ~block value =
         match value with

@@ -65,9 +65,19 @@ test/parser/ast/type_declaration/alias.myte
         loc: 7:16-7:38,
         params: [
           {
-            node: PrimitiveType,
+            node: IdentifierType,
             loc: 7:17-7:23,
-            kind: String,
+            name: {
+              node: ScopedIdentifier,
+              loc: 7:17-7:23,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 7:17-7:23,
+                name: "String",
+              },
+            },
+            type_params: [],
           },
           {
             node: PrimitiveType,

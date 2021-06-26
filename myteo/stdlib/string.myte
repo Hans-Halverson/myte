@@ -1,4 +1,4 @@
-module string
+module std.string
 
 import std.array.Array
 

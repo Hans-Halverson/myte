@@ -19,7 +19,6 @@ module Gcx = struct
     (* Map from instruction id to the block that contains it *)
     mutable instruction_to_block: Block.id IMap.t;
     mutable funcs_by_id: VReg.t Function.t IMap.t;
-    mutable max_string_literal_id: int;
     (* Map from physical register to a precolored virtual register *)
     mutable color_to_vreg: VReg.t RegMap.t;
     mutable agg_to_layout: AggregateLayout.t IMap.t;
@@ -48,7 +47,6 @@ module Gcx = struct
       mir_block_id_to_block_id = IMap.empty;
       instruction_to_block = IMap.empty;
       funcs_by_id = IMap.empty;
-      max_string_literal_id = 0;
       color_to_vreg;
       agg_to_layout = IMap.empty;
     }
@@ -59,19 +57,6 @@ module Gcx = struct
     gcx.rodata <- List.rev gcx.rodata
 
   let add_data ~gcx d = gcx.data <- d :: gcx.data
-
-  let add_string_literal ~gcx ?label str =
-    let label =
-      match label with
-      | None ->
-        let id = gcx.max_string_literal_id in
-        gcx.max_string_literal_id <- id + 1;
-        ".S" ^ string_of_int id
-      | Some label -> label
-    in
-    let data = { label; value = AsciiData str } in
-    gcx.rodata <- data :: gcx.rodata;
-    label
 
   let add_bss ~gcx bd = gcx.bss <- bd :: gcx.bss
 
@@ -158,7 +143,6 @@ module Gcx = struct
     | `FunctionT
     | `PointerT _ ->
       8
-    | `StringT -> failwith "TODO: Cannot compile string literals"
     | `AggregateT agg ->
       let agg_layout = get_agg_layout ~gcx agg in
       agg_layout.size
@@ -170,7 +154,6 @@ module Gcx = struct
       let agg_layout = get_agg_layout ~gcx agg in
       agg_layout.alignment
     | `ArrayT (ty, _) -> alignment_of_mir_type ~gcx ty
-    | `StringT -> failwith "TODO: Cannot compile string literals"
     | _ -> size_of_mir_type ~gcx mir_type
 
   let build_agg_layout ~gcx agg =

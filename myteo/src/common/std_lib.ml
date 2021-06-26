@@ -52,14 +52,39 @@ let get_stdlib_files stdlib_path =
   gather_myte_files_in_directory stdlib_path;
   !myte_files
 
-let stdlib_builtin_decl_locs = ref LocMap.empty
-
-let lookup_stdlib_decl_loc decl_loc = LocMap.find_opt decl_loc !stdlib_builtin_decl_locs
+(* Stdlib names *)
 
 let std_array_array = "std.array.Array"
 
 let std_array_new = "std.array.new"
 
+let std_string_string = "std.string.String"
+
+let all_stdlib_names = SSet.of_list [std_array_array; std_array_new; std_string_string]
+
+(* Stdlib types *)
+
+let string_adt_sig = ref Types.empty_adt_sig
+
+let mk_string_type () = Types.ADT { adt_sig = !string_adt_sig; type_args = [] }
+
+(* Stdlib registration *)
+
+let stdlib_builtin_decl_locs = ref LocMap.empty
+
+let stdlib_builtin_name_to_decl_loc = ref SMap.empty
+
+let lookup_stdlib_name decl_loc = LocMap.find_opt decl_loc !stdlib_builtin_decl_locs
+
+let lookup_stdlib_decl_loc name = SMap.find name !stdlib_builtin_name_to_decl_loc
+
 let register_stdlib_decl full_name loc =
-  if full_name = std_array_array || full_name = std_array_new then
-    stdlib_builtin_decl_locs := LocMap.add loc full_name !stdlib_builtin_decl_locs
+  if SSet.mem full_name all_stdlib_names then (
+    stdlib_builtin_decl_locs := LocMap.add loc full_name !stdlib_builtin_decl_locs;
+    stdlib_builtin_name_to_decl_loc := SMap.add full_name loc !stdlib_builtin_name_to_decl_loc
+  )
+
+let register_stdlib_type loc adt_sig =
+  match lookup_stdlib_name loc with
+  | Some name when name = std_string_string -> string_adt_sig := adt_sig
+  | _ -> ()

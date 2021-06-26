@@ -1,3 +1,17 @@
+func unit @_init() {
+  %0 := CallBuiltin std.string.String* myte_alloc(1)
+  %1 := GetPointer byte* %0.0
+  Store byte* %1, @.S0
+  %2 := GetPointer int %0.1
+  Store int %2, 4
+  %3 := GetPointer int %0.2
+  Store int %3, 4
+  Store std.string.String* @test.z, %0
+  continue @0
+label @0:
+  Ret
+}
+
 global unit @test.x = ()
 
 global int @test.y1 = 500
@@ -6,19 +20,21 @@ global byte @test.y2 = 1
 
 global long @test.y3 = 2147483648
 
-global string @test.z = "test"
+global std.string.String* @test.z = uninitialized
+
+global byte[4] @.S0 = "test"
 
 global bool @test.a1 = true
 
 func unit @test.main() {
-  %0 := Mov int 0
-  %1 := Mov int 2147483647
-  %2 := Mov long 2147483648
-  %3 := Add int 2, 4
-  %4 := Add int %3, 6
-  %5 := Mov int %4
-  %6 := Add long 2, 2147483648
-  %7 := Add long %6, 6
-  %8 := Mov long %7
+  %4 := Mov int 0
+  %5 := Mov int 2147483647
+  %6 := Mov long 2147483648
+  %7 := Add int 2, 4
+  %8 := Add int %7, 6
+  %9 := Mov int %8
+  %10 := Add long 2, 2147483648
+  %11 := Add long %10, 6
+  %12 := Mov long %11
   Ret
 }
