@@ -2,7 +2,7 @@
 
   .data
 .S0:
-  .ascii "Hello world!"
+  .ascii "Hello world!\n"
 
   .text
 _main:
@@ -10,8 +10,8 @@ _main:
   call __myte_alloc
   leaq .S0(%rip), %rcx
   movq %rcx, (%rax)
-  movl $12, 8(%rax)
-  movl $12, 12(%rax)
+  movl $13, 8(%rax)
+  movl $13, 12(%rax)
   movq %rax, %rdi
   call std.io.print
   ret

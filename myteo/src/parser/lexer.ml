@@ -19,8 +19,6 @@ let hex_literal = [%sedlex.regexp? ("0x", Plus hex_digit)]
 
 let bin_literal = [%sedlex.regexp? ("0b", Plus bin_digit)]
 
-let string_literal = [%sedlex.regexp? ('"', Star (Compl ('"' | '\n')), '"')]
-
 let lexeme = Sedlexing.Utf8.lexeme
 
 type t = {
@@ -77,11 +75,77 @@ let rec skip_block_comment lex =
   | any -> skip_block_comment lex
   | _ -> failwith "Unreachable"
 
+let sedlex_catch_all_case () = failwith "Needed for sedlex, but any case catches all patterns"
+
+let parse_string_literal lex =
+  let start_loc = current_loc lex in
+  let builder = Buffer.create 10 in
+
+  let rec iter lex =
+    let { buf; _ } = lex in
+    match%sedlex buf with
+    | '"' ->
+      let loc = Loc.between start_loc (current_loc lex) in
+      let token = Token.T_STRING_LITERAL (Buffer.contents builder) in
+      Token (lex, { loc; token })
+    | '\\' -> parse_escape_sequence lex
+    | '\n'
+    | eof ->
+      LexError (lex, (start_loc, Parse_error.UnterminatedStringLiteral))
+    | any ->
+      Buffer.add_string builder (lexeme buf);
+      iter lex
+    | _ -> sedlex_catch_all_case ()
+  and parse_escape_sequence lex =
+    let { buf; _ } = lex in
+    let start_loc = current_loc lex in
+    match%sedlex buf with
+    | 'n' ->
+      Buffer.add_char builder '\n';
+      iter lex
+    | 'r' ->
+      Buffer.add_char builder '\r';
+      iter lex
+    | 't' ->
+      Buffer.add_char builder '\t';
+      iter lex
+    | '\\' ->
+      Buffer.add_char builder '\\';
+      iter lex
+    | '"' ->
+      Buffer.add_char builder '"';
+      iter lex
+    | 'x' -> parse_hex_escape_sequence lex start_loc
+    | _ -> LexError (lex, (current_loc lex, Parse_error.InvalidEscape))
+  and parse_hex_escape_sequence lex start_loc =
+    let { buf; _ } = lex in
+    let int_of_hex_digit digit =
+      if digit >= 'a' && digit <= 'f' then
+        Char.code digit - Char.code 'a' + 10
+      else if digit >= 'A' && digit <= 'F' then
+        Char.code digit - Char.code 'A' + 10
+      else
+        Char.code digit - Char.code '0'
+    in
+    let err () =
+      LexError (lex, (Loc.between start_loc (current_loc lex), Parse_error.InvalidHexEscape))
+    in
+    match%sedlex buf with
+    | (hex_digit, hex_digit) ->
+      let hex_digits = lexeme buf in
+      let char_code = (int_of_hex_digit hex_digits.[0] * 16) + int_of_hex_digit hex_digits.[1] in
+      Buffer.add_char builder (Char.chr char_code);
+      iter lex
+    | hex_digit -> err ()
+    | _ -> err ()
+  in
+  iter lex
+
 let tokenize lex =
   let open Token in
   let { buf; _ } = lex in
   let token_result token = Token (lex, { loc = current_loc lex; token }) in
-  let lex_error lex err = LexError (lex, (current_loc lex, err)) in
+  let lex_error err = LexError (lex, (current_loc lex, err)) in
   match%sedlex buf with
   | new_line -> Skip (mark_new_line lex)
   | white_space -> Skip lex
@@ -148,12 +212,9 @@ let tokenize lex =
   | hex_literal ->
     let raw = lexeme buf in
     token_result (T_INT_LITERAL (raw, Integers.Hex))
-  | string_literal ->
-    let raw = lexeme buf in
-    let value = String.sub raw 1 (String.length raw - 2) in
-    token_result (T_STRING_LITERAL value)
-  | '"' -> lex_error lex Parse_error.UnterminatedStringLiteral
-  | _ -> lex_error lex (Parse_error.UnknownToken (lexeme buf))
+  | '"' -> parse_string_literal lex
+  | any -> lex_error (Parse_error.UnknownToken (lexeme buf))
+  | _ -> sedlex_catch_all_case ()
 
 let next lexer =
   let rec find_next_token lexer =

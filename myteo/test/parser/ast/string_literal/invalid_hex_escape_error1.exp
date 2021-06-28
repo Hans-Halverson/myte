@@ -1,0 +1,4 @@
+Error: Invalid hex escape sequence, expected exactly two hex digits following `\x`
+test/parser/ast/string_literal/invalid_hex_escape_error1.myte:4:3-5
+ 4 |   "\x";
+   |    ^^

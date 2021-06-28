@@ -1,0 +1,4 @@
+Error: Invalid escape sequence. Expected `"`, `\`, `n`, `t`, `r`, or `x`.
+test/parser/ast/string_literal/invalid_escape_error.myte:4:8-8
+ 4 |   "asdf\a";
+   |         ^
