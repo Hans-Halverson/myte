@@ -69,6 +69,7 @@ test/parser/ast/type/type_names_used_as_identifier.myte
       return: None,
       type_params: [],
       builtin: false,
+      static: false,
     },
   ],
 }

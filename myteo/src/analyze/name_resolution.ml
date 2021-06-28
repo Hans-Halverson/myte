@@ -268,7 +268,8 @@ class bindings_builder ~is_stdlib ~module_tree =
                   Decl (TypeDecl (TypeDeclaration.mk ()))
               in
               add_type_name name mk_decl
-            ))
+            )
+          | MethodsDeclaration _ -> ())
         toplevels;
       (* Add variant type declarations to toplevel scope *)
       List.iter
@@ -305,7 +306,10 @@ class bindings_builder ~is_stdlib ~module_tree =
               this#add_type_parameter_declarations type_params (TypeName name);
               ignore (this#type_declaration type_decl);
               if type_params <> [] then this#exit_scope ();
-              toplevel)
+              toplevel
+            | MethodsDeclaration decl ->
+              id_map this#visit_methods_declaration decl toplevel (fun decl' ->
+                  MethodsDeclaration decl'))
           toplevels
       in
       this#exit_scope ();
@@ -384,6 +388,10 @@ class bindings_builder ~is_stdlib ~module_tree =
       let function_ = super#function_ decl in
       this#exit_scope ();
       function_
+
+    method visit_methods_declaration decl =
+      (* TODO: Name resolution for method declaration blocks *)
+      super#methods_declaration decl
 
     method! assignment assign =
       let open Statement.Assignment in

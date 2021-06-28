@@ -208,6 +208,7 @@ test/parser/ast/match/basic.myte
       return: None,
       type_params: [],
       builtin: false,
+      static: false,
     },
     {
       node: Function,
@@ -266,6 +267,7 @@ test/parser/ast/match/basic.myte
       return: None,
       type_params: [],
       builtin: false,
+      static: false,
     },
     {
       node: Function,
@@ -338,6 +340,7 @@ test/parser/ast/match/basic.myte
       return: None,
       type_params: [],
       builtin: false,
+      static: false,
     },
     {
       node: Function,
@@ -423,6 +426,7 @@ test/parser/ast/match/basic.myte
       return: None,
       type_params: [],
       builtin: false,
+      static: false,
     },
     {
       node: Function,
@@ -528,6 +532,7 @@ test/parser/ast/match/basic.myte
       return: None,
       type_params: [],
       builtin: false,
+      static: false,
     },
     {
       node: Function,
@@ -664,6 +669,7 @@ test/parser/ast/match/basic.myte
       return: None,
       type_params: [],
       builtin: false,
+      static: false,
     },
     {
       node: Function,
@@ -755,6 +761,7 @@ test/parser/ast/match/basic.myte
       return: None,
       type_params: [],
       builtin: false,
+      static: false,
     },
     {
       node: Function,
@@ -822,6 +829,7 @@ test/parser/ast/match/basic.myte
       return: None,
       type_params: [],
       builtin: false,
+      static: false,
     },
     {
       node: Function,
@@ -1052,6 +1060,7 @@ test/parser/ast/match/basic.myte
       return: None,
       type_params: [],
       builtin: false,
+      static: false,
     },
   ],
 }

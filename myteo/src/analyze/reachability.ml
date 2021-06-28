@@ -116,6 +116,7 @@ let analyze mod_ =
     (fun toplevel ->
       match toplevel with
       | FunctionDeclaration func -> visit_function ~cx func
+      | MethodsDeclaration { methods; _ } -> List.iter (visit_function ~cx) methods
       | VariableDeclaration _
       | TypeDeclaration _ ->
         ())

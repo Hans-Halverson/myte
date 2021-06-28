@@ -9,6 +9,7 @@ type t =
   | InvalidEscape
   | InvalidHexEscape
   | MalformedTopLevel of Token.t
+  | MalformedMethodsItem of Token.t
   | MalformedPattern of Token.t
   | MalformedFunctionBody of Token.t
   | MalformedTypeDeclaration of Token.t
@@ -52,6 +53,8 @@ let to_string error =
     Printf.sprintf
       "Unexpected token `%s`, expected start of top level statement"
       (Token.to_string actual)
+  | MalformedMethodsItem actual ->
+    Printf.sprintf "Unexpected token `%s`, expected start of method" (Token.to_string actual)
   | MalformedPattern actual ->
     Printf.sprintf "Unexpected token `%s`, expected start of pattern" (Token.to_string actual)
   | MalformedFunctionBody actual ->

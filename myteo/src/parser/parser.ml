@@ -164,14 +164,18 @@ and parse_toplevel env =
   | T_VAL
   | T_VAR ->
     VariableDeclaration (parse_variable_declaration ~is_toplevel:true env)
-  | T_FUN -> FunctionDeclaration (parse_function ~is_builtin:false env)
+  | T_FUN ->
+    let marker = mark_loc env in
+    FunctionDeclaration (parse_function ~is_builtin:false ~is_static:false marker env)
   | T_TYPE -> TypeDeclaration (parse_type_declaration ~is_builtin:false env)
   | T_BUILTIN ->
+    let marker = mark_loc env in
     Env.advance env;
     (match Env.token env with
-    | T_FUN -> FunctionDeclaration (parse_function ~is_builtin:true env)
+    | T_FUN -> FunctionDeclaration (parse_function ~is_builtin:true ~is_static:false marker env)
     | T_TYPE -> TypeDeclaration (parse_type_declaration ~is_builtin:true env)
     | token -> Parse_error.fatal (Env.loc env, UnexpectedTokens (token, [T_FUN; T_TYPE])))
+  | T_METHODS -> MethodsDeclaration (parse_methods_declaration env)
   | token -> Parse_error.fatal (Env.loc env, MalformedTopLevel token)
 
 and parse_statement env =
@@ -187,7 +191,9 @@ and parse_statement env =
   | T_VAL
   | T_VAR ->
     VariableDeclaration (parse_variable_declaration ~is_toplevel:false env)
-  | T_FUN -> FunctionDeclaration (parse_function ~is_builtin:false env)
+  | T_FUN ->
+    let marker = mark_loc env in
+    FunctionDeclaration (parse_function ~is_builtin:false ~is_static:false marker env)
   | _ -> parse_assignment_or_expression_statement env
 
 and parse_assignment_or_expression_statement env =
@@ -1054,9 +1060,8 @@ and parse_variable_declaration ~is_toplevel env =
   let loc = marker env in
   { VariableDeclaration.loc; kind; pattern; init; annot }
 
-and parse_function ~is_builtin env =
+and parse_function ~is_builtin ~is_static marker env =
   let open Function in
-  let marker = mark_loc env in
   Env.expect env T_FUN;
   let name = parse_identifier env in
   let type_params =
@@ -1105,6 +1110,7 @@ and parse_function ~is_builtin env =
       return;
       type_params;
       builtin = true;
+      static = is_static;
     }
   else
     let body =
@@ -1116,7 +1122,37 @@ and parse_function ~is_builtin env =
       | token -> Parse_error.fatal (Env.loc env, MalformedFunctionBody token)
     in
     let loc = marker env in
-    { loc; name; params; body; return; type_params; builtin = false }
+    { loc; name; params; body; return; type_params; builtin = false; static = is_static }
+
+and parse_methods_declaration env =
+  let marker = mark_loc env in
+  Env.expect env T_METHODS;
+  let name = parse_identifier env in
+  let type_params =
+    if Env.token env = T_LESS_THAN then
+      parse_type_params env
+    else
+      []
+  in
+  Env.expect env T_LEFT_BRACE;
+  let rec parse_methods acc =
+    match Env.token env with
+    | T_STATIC ->
+      let marker = mark_loc env in
+      Env.advance env;
+      let func = parse_function ~is_builtin:false ~is_static:true marker env in
+      parse_methods (func :: acc)
+    | T_FUN ->
+      let marker = mark_loc env in
+      let func = parse_function ~is_builtin:false ~is_static:false marker env in
+      parse_methods (func :: acc)
+    | T_RIGHT_BRACE -> acc
+    | token -> Parse_error.fatal (Env.loc env, MalformedMethodsItem token)
+  in
+  let methods = parse_methods [] |> List.rev in
+  Env.expect env T_RIGHT_BRACE;
+  let loc = marker env in
+  { loc; name; type_params; methods }
 
 and parse_type env =
   let marker = mark_loc env in

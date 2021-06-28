@@ -207,6 +207,7 @@ test/parser/ast/ternary/basic.myte
       return: None,
       type_params: [],
       builtin: false,
+      static: false,
     },
   ],
 }

@@ -201,6 +201,8 @@ let tokenize lex =
   | "type" -> token_result T_TYPE
   | "alias" -> token_result T_ALIAS
   | "builtin" -> token_result T_BUILTIN
+  | "methods" -> token_result T_METHODS
+  | "static" -> token_result T_STATIC
   | eof -> token_result T_EOF
   | identifier -> token_result (T_IDENTIFIER (lexeme buf))
   | dec_literal ->

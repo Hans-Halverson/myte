@@ -816,6 +816,7 @@ test/parser/ast/assignment/basic.myte
       return: None,
       type_params: [],
       builtin: false,
+      static: false,
     },
   ],
 }

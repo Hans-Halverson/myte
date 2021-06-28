@@ -81,17 +81,6 @@ let ids_of_pattern patt =
   in
   List.rev (helper patt [])
 
-let split_toplevels toplevels =
-  let open Module in
-  let rec helper (vars, funcs) toplevels =
-    match toplevels with
-    | [] -> (List.rev vars, List.rev funcs)
-    | VariableDeclaration decl :: toplevels -> helper (decl :: vars, funcs) toplevels
-    | FunctionDeclaration decl :: toplevels -> helper (vars, decl :: funcs) toplevels
-    | TypeDeclaration _ :: toplevels -> helper (vars, funcs) toplevels
-  in
-  helper ([], []) toplevels
-
 let modules_end_loc mods =
   match List.rev mods with
   | [] -> failwith "There is always at least one module"

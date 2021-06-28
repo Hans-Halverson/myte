@@ -36,6 +36,8 @@ class mapper =
           id_map this#function_ t toplevel (fun t' -> FunctionDeclaration t')
         | TypeDeclaration t ->
           id_map this#type_declaration t toplevel (fun t' -> TypeDeclaration t')
+        | MethodsDeclaration t ->
+          id_map this#methods_declaration t toplevel (fun t' -> MethodsDeclaration t')
 
     method statement : Statement.t -> Statement.t =
       fun stmt ->
@@ -301,7 +303,7 @@ class mapper =
 
     method function_ func =
       let open Function in
-      let { loc; name; params; body; return; type_params; builtin } = func in
+      let { loc; name; params; body; return; type_params; builtin; static } = func in
       let name' = this#identifier name in
       let params' = id_map_list this#function_param params in
       let body' = this#function_body body in
@@ -324,6 +326,7 @@ class mapper =
           return = return';
           type_params = type_params';
           builtin;
+          static;
         }
 
     method function_param param =
@@ -442,6 +445,17 @@ class mapper =
         decl
       else
         { loc; kind; pattern = pattern'; init = init'; annot = annot' }
+
+    method methods_declaration decl =
+      let open MethodsDeclaration in
+      let { loc; name; type_params; methods } = decl in
+      let name' = this#identifier name in
+      let type_params' = id_map_list this#type_parameter type_params in
+      let methods' = id_map_list this#function_ methods in
+      if name == name' && type_params == type_params' && methods == methods' then
+        decl
+      else
+        { loc; name = name'; type_params = type_params'; methods = methods' }
 
     method type_parameter param =
       let open TypeParameter in

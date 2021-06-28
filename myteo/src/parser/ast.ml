@@ -3,6 +3,7 @@ module rec Module : sig
     | VariableDeclaration of Statement.VariableDeclaration.t
     | FunctionDeclaration of Function.t
     | TypeDeclaration of TypeDeclaration.t
+    | MethodsDeclaration of MethodsDeclaration.t
 
   module Module : sig
     type t = {
@@ -410,6 +411,7 @@ and Function : sig
     return: Type.t option;
     type_params: TypeParameter.t list;
     builtin: bool;
+    static: bool;
   }
 end =
   Function
@@ -459,6 +461,16 @@ and TypeDeclaration : sig
   }
 end =
   TypeDeclaration
+
+and MethodsDeclaration : sig
+  type t = {
+    loc: Loc.t;
+    name: Identifier.t;
+    type_params: TypeParameter.t list;
+    methods: Function.t list;
+  }
+end =
+  MethodsDeclaration
 
 and Identifier : sig
   type t = {

@@ -136,6 +136,7 @@ test/parser/ast/pattern/literals.myte
       return: None,
       type_params: [],
       builtin: false,
+      static: false,
     },
   ],
 }

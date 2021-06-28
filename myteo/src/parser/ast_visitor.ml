@@ -22,6 +22,7 @@ class ['a] visitor =
         | VariableDeclaration t -> this#variable_declaration acc t
         | FunctionDeclaration t -> this#function_ acc t
         | TypeDeclaration t -> this#type_declaration acc t
+        | MethodsDeclaration t -> this#methods_declaration acc t
 
     method statement : 'a -> Statement.t -> unit =
       fun acc stmt ->
@@ -214,7 +215,7 @@ class ['a] visitor =
 
     method function_ acc func =
       let open Function in
-      let { loc = _; name; params; body; return; type_params; builtin = _ } = func in
+      let { loc = _; name; params; body; return; type_params; builtin = _; static = _ } = func in
       this#identifier acc name;
       List.iter (this#function_param acc) params;
       this#function_body acc body;
@@ -298,6 +299,13 @@ class ['a] visitor =
       this#pattern acc pattern;
       this#expression acc init;
       Option.iter (this#type_ acc) annot
+
+    method methods_declaration acc decl =
+      let open MethodsDeclaration in
+      let { loc = _; name; type_params; methods } = decl in
+      this#identifier acc name;
+      List.iter (this#type_parameter acc) type_params;
+      List.iter (this#function_ acc) methods
 
     method type_declaration acc decl =
       let open TypeDeclaration in

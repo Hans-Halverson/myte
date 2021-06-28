@@ -129,6 +129,7 @@ and node_of_toplevel toplevel =
   | VariableDeclaration decl -> node_of_variable_decl decl
   | FunctionDeclaration decl -> node_of_function decl
   | TypeDeclaration decl -> node_of_type_decl decl
+  | MethodsDeclaration decl -> node_of_methods_decl decl
 
 and node_of_statement stmt =
   let open Statement in
@@ -446,6 +447,18 @@ and node_of_variable_decl decl =
       ("annot", opt node_of_type annot);
     ]
 
+and node_of_methods_decl decl =
+  let open MethodsDeclaration in
+  let { loc; name; type_params; methods } = decl in
+  node
+    "TypeDeclaration"
+    loc
+    [
+      ("name", node_of_identifier name);
+      ("type_params", List (List.map node_of_type_parameter type_params));
+      ("methods", List (List.map node_of_function methods));
+    ]
+
 and node_of_type_decl decl =
   let open TypeDeclaration in
   let { loc; name; type_params; decl; builtin } = decl in
@@ -498,7 +511,7 @@ and node_of_tuple_variant tuple =
 
 and node_of_function func =
   let open Function in
-  let { loc; name; type_params; params; body; return; builtin } = func in
+  let { loc; name; type_params; params; body; return; builtin; static } = func in
   let body =
     match body with
     | Block block -> node_of_block block
@@ -514,6 +527,7 @@ and node_of_function func =
       ("return", opt node_of_type return);
       ("type_params", List (List.map node_of_type_parameter type_params));
       ("builtin", Bool builtin);
+      ("static", Bool static);
     ]
 
 and node_of_function_param param =

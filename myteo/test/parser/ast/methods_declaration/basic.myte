@@ -1,0 +1,23 @@
+module test
+
+methods Foo {}
+
+methods Foo<T, U> {}
+
+methods Foo<T, U,> {}
+
+methods Foo {
+  fun test1() {}
+
+  fun test2() = 1
+
+  fun test3() {}
+}
+
+methods Foo<T> {
+  static fun staticTest1() {}
+  
+  fun nonStaticTest2() {}
+
+  static fun staticTest3<U>() {}
+}

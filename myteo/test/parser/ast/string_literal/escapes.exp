@@ -100,6 +100,7 @@ bar",
       return: None,
       type_params: [],
       builtin: false,
+      static: false,
     },
   ],
 }

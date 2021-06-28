@@ -451,6 +451,7 @@ test/parser/ast/type/function.myte
       return: None,
       type_params: [],
       builtin: false,
+      static: false,
     },
   ],
 }

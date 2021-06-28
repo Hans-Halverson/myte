@@ -1,0 +1,5 @@
+module test
+
+methods Foo {
+  val x: Int = 1
+}

@@ -1,0 +1,251 @@
+test/parser/ast/methods_declaration/basic.myte
+{
+  node: Module,
+  loc: 1:0-23:1,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: TypeDeclaration,
+      loc: 3:0-3:14,
+      name: {
+        node: Identifier,
+        loc: 3:8-3:11,
+        name: "Foo",
+      },
+      type_params: [],
+      methods: [],
+    },
+    {
+      node: TypeDeclaration,
+      loc: 5:0-5:20,
+      name: {
+        node: Identifier,
+        loc: 5:8-5:11,
+        name: "Foo",
+      },
+      type_params: [
+        {
+          node: TypeParameter,
+          loc: 5:12-5:13,
+          name: {
+            node: Identifier,
+            loc: 5:12-5:13,
+            name: "T",
+          },
+        },
+        {
+          node: TypeParameter,
+          loc: 5:15-5:16,
+          name: {
+            node: Identifier,
+            loc: 5:15-5:16,
+            name: "U",
+          },
+        },
+      ],
+      methods: [],
+    },
+    {
+      node: TypeDeclaration,
+      loc: 7:0-7:21,
+      name: {
+        node: Identifier,
+        loc: 7:8-7:11,
+        name: "Foo",
+      },
+      type_params: [
+        {
+          node: TypeParameter,
+          loc: 7:12-7:13,
+          name: {
+            node: Identifier,
+            loc: 7:12-7:13,
+            name: "T",
+          },
+        },
+        {
+          node: TypeParameter,
+          loc: 7:15-7:16,
+          name: {
+            node: Identifier,
+            loc: 7:15-7:16,
+            name: "U",
+          },
+        },
+      ],
+      methods: [],
+    },
+    {
+      node: TypeDeclaration,
+      loc: 9:0-15:1,
+      name: {
+        node: Identifier,
+        loc: 9:8-9:11,
+        name: "Foo",
+      },
+      type_params: [],
+      methods: [
+        {
+          node: Function,
+          loc: 10:2-10:16,
+          name: {
+            node: Identifier,
+            loc: 10:6-10:11,
+            name: "test1",
+          },
+          params: [],
+          body: {
+            node: Block,
+            loc: 10:14-10:16,
+            statements: [],
+          },
+          return: None,
+          type_params: [],
+          builtin: false,
+          static: false,
+        },
+        {
+          node: Function,
+          loc: 12:2-12:17,
+          name: {
+            node: Identifier,
+            loc: 12:6-12:11,
+            name: "test2",
+          },
+          params: [],
+          body: {
+            node: IntLiteral,
+            loc: 12:16-12:17,
+            raw: "1",
+          },
+          return: None,
+          type_params: [],
+          builtin: false,
+          static: false,
+        },
+        {
+          node: Function,
+          loc: 14:2-14:16,
+          name: {
+            node: Identifier,
+            loc: 14:6-14:11,
+            name: "test3",
+          },
+          params: [],
+          body: {
+            node: Block,
+            loc: 14:14-14:16,
+            statements: [],
+          },
+          return: None,
+          type_params: [],
+          builtin: false,
+          static: false,
+        },
+      ],
+    },
+    {
+      node: TypeDeclaration,
+      loc: 17:0-23:1,
+      name: {
+        node: Identifier,
+        loc: 17:8-17:11,
+        name: "Foo",
+      },
+      type_params: [
+        {
+          node: TypeParameter,
+          loc: 17:12-17:13,
+          name: {
+            node: Identifier,
+            loc: 17:12-17:13,
+            name: "T",
+          },
+        },
+      ],
+      methods: [
+        {
+          node: Function,
+          loc: 18:2-18:29,
+          name: {
+            node: Identifier,
+            loc: 18:13-18:24,
+            name: "staticTest1",
+          },
+          params: [],
+          body: {
+            node: Block,
+            loc: 18:27-18:29,
+            statements: [],
+          },
+          return: None,
+          type_params: [],
+          builtin: false,
+          static: true,
+        },
+        {
+          node: Function,
+          loc: 20:2-20:25,
+          name: {
+            node: Identifier,
+            loc: 20:6-20:20,
+            name: "nonStaticTest2",
+          },
+          params: [],
+          body: {
+            node: Block,
+            loc: 20:23-20:25,
+            statements: [],
+          },
+          return: None,
+          type_params: [],
+          builtin: false,
+          static: false,
+        },
+        {
+          node: Function,
+          loc: 22:2-22:32,
+          name: {
+            node: Identifier,
+            loc: 22:13-22:24,
+            name: "staticTest3",
+          },
+          params: [],
+          body: {
+            node: Block,
+            loc: 22:30-22:32,
+            statements: [],
+          },
+          return: None,
+          type_params: [
+            {
+              node: TypeParameter,
+              loc: 22:25-22:26,
+              name: {
+                node: Identifier,
+                loc: 22:25-22:26,
+                name: "U",
+              },
+            },
+          ],
+          builtin: false,
+          static: true,
+        },
+      ],
+    },
+  ],
+}

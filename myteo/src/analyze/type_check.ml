@@ -217,6 +217,7 @@ and check_module ~cx module_ =
       match toplevel with
       | VariableDeclaration decl -> check_variable_declaration ~cx decl
       | FunctionDeclaration decl -> check_toplevel_function_declaration ~cx decl
+      | MethodsDeclaration _ -> (* TODO: Type check method declaration blocks *) ()
       | TypeDeclaration _ -> ())
     toplevels
 
