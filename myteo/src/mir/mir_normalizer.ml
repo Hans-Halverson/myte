@@ -16,7 +16,7 @@ class var_gatherer ~program =
     method! visit_phi_node ~block:_ (_, var_id, _) = vars <- ISet.add var_id vars
   end
 
-let normalize ~ocx =
+let rec normalize ~ocx =
   let open Block in
   (* Gather all vars defined in program *)
   let gatherer = new var_gatherer ~program:ocx.Ocx.program in
@@ -76,11 +76,17 @@ let normalize ~ocx =
   in
   iter ();
 
-  (* Consolidate blocks into a single large block when possible, requires iteration to a fixpoint *)
+  consolidate_adjacent_blocks ~ocx;
+  remove_empty_init_func ~ocx
+
+(* Consolidate adjacent blocks into a single large block when possible *)
+and consolidate_adjacent_blocks ~ocx =
   let removed_blocks = ref ISet.empty in
+  (* Iterate to fixpoint *)
   let rec iter () =
     IMap.iter
       (fun block_id block ->
+        let open Block in
         (* Can only consolidate this block if it continues to a block with no other previous blocks,
            and the next block has no phis (as phi arg vars may have been defined in this block). *)
         match block.next with
@@ -107,7 +113,14 @@ let normalize ~ocx =
       iter ()
     )
   in
-  iter ();
+  iter ()
 
-  (* Strip init function if it is now empty *)
-  remove_empty_init_func ocx.program
+(* Strip init function if it is empty *)
+and remove_empty_init_func ~ocx =
+  match SMap.find_opt init_func_name ocx.program.funcs with
+  | None -> ()
+  | Some init_func ->
+    (* Init function is empty if it consists of a single block with a single instruction (Ret) *)
+    let init_start_block = IMap.find init_func.body_start_block ocx.program.blocks in
+    if List.length init_start_block.instructions = 1 && init_start_block.next = Halt then
+      ocx.program.funcs <- SMap.remove init_func_name ocx.program.funcs

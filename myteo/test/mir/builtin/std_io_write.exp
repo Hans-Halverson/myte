@@ -1,0 +1,8 @@
+func int @test.wrapper(int %0, byte* %1, int %2) {
+  %3 := CallBuiltin int myte_write(%0, %1, %2)
+  Ret %3
+}
+
+func unit @test.main() {
+  Ret
+}

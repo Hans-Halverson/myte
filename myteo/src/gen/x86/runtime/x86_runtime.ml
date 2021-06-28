@@ -9,3 +9,5 @@ let macos_runtime_file_path =
 let myte_init_label = "__myte_init"
 
 let myte_alloc_label = "__myte_alloc"
+
+let myte_write_label = "__myte_write"

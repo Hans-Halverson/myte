@@ -1,5 +1,6 @@
   .global __myte_alloc
   .global __myte_init
+  .global __myte_write
 
   .data
 
@@ -27,4 +28,9 @@ __myte_alloc:
   # Bump heap start pointer
   mov __myte_heap_start(%rip), %rax
   add %rdi, __myte_heap_start(%rip)
+  ret
+
+__myte_write:
+  mov $0x2000004, %rax   # write
+  syscall
   ret

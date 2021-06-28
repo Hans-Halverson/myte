@@ -58,9 +58,12 @@ let std_array_array = "std.array.Array"
 
 let std_array_new = "std.array.new"
 
+let std_io_write = "std.io.write"
+
 let std_string_string = "std.string.String"
 
-let all_stdlib_names = SSet.of_list [std_array_array; std_array_new; std_string_string]
+let all_stdlib_names =
+  SSet.of_list [std_array_array; std_array_new; std_io_write; std_string_string]
 
 (* Stdlib types *)
 

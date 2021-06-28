@@ -158,6 +158,38 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     | (_, SMem _) -> (v2, v1)
     | _ -> (v1, v2)
   in
+  let gen_call_arguments arg_vals =
+    (* Arguments 7+ are pushed on stack in reverse order *)
+    let stack_arg_vals = List.rev (List_utils.drop 6 arg_vals) in
+    List.iter
+      (fun arg_val ->
+        match resolve_ir_value arg_val with
+        | SImm imm -> Gcx.emit ~gcx (PushI imm)
+        (* Address must be calculated in a register and then pushed onto stack *)
+        | SAddr addr ->
+          let vreg = mk_vreg () in
+          Gcx.emit ~gcx (Lea (Size64, addr, vreg));
+          Gcx.emit ~gcx (PushM (Reg vreg))
+        | SMem (mem, _) -> Gcx.emit ~gcx (PushM (Mem mem))
+        | SVReg (var_id, _) -> Gcx.emit ~gcx (PushM (Reg var_id)))
+      stack_arg_vals;
+    (* First six arguments are placed in registers %rdi​, ​%rsi​, ​%rdx​, ​%rcx​, ​%r8​, and ​%r9​ *)
+    List.iteri
+      (fun i arg_val ->
+        if i >= 6 then
+          ()
+        else
+          match register_of_param i with
+          | None -> ()
+          | Some color ->
+            let vreg = Gcx.mk_precolored ~gcx color in
+            (match resolve_ir_value ~allow_imm64:true arg_val with
+            | SImm imm -> Gcx.emit ~gcx (MovIM (size_of_immediate imm, imm, Reg vreg))
+            | SAddr addr -> Gcx.emit ~gcx (Lea (Size64, addr, vreg))
+            | SMem (mem, size) -> Gcx.emit ~gcx (MovMM (size, Mem mem, Reg vreg))
+            | SVReg (source_vreg, size) -> Gcx.emit ~gcx (MovMM (size, Reg source_vreg, Reg vreg))))
+      arg_vals
+  in
   let gen_idiv left_val right_val =
     let precolored_a = Gcx.mk_precolored ~gcx A in
     match (resolve_ir_value left_val, resolve_ir_value right_val) with
@@ -369,37 +401,8 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.Call (return_var_id, ret_ty, func_val, arg_vals) :: rest_instructions ->
-    (* Arguments 7+ are pushed on stack in reverse order *)
-    let stack_arg_vals = List.rev (List_utils.drop 6 arg_vals) in
-    let num_stack_arg_vals = List.length stack_arg_vals in
-    List.iter
-      (fun arg_val ->
-        match resolve_ir_value arg_val with
-        | SImm imm -> Gcx.emit ~gcx (PushI imm)
-        (* Address must be calculated in a register and then pushed onto stack *)
-        | SAddr addr ->
-          let vreg = mk_vreg () in
-          Gcx.emit ~gcx (Lea (Size64, addr, vreg));
-          Gcx.emit ~gcx (PushM (Reg vreg))
-        | SMem (mem, _) -> Gcx.emit ~gcx (PushM (Mem mem))
-        | SVReg (var_id, _) -> Gcx.emit ~gcx (PushM (Reg var_id)))
-      stack_arg_vals;
-    (* First six arguments are placed in registers %rdi​, ​%rsi​, ​%rdx​, ​%rcx​, ​%r8​, and ​%r9​ *)
-    List.iteri
-      (fun i arg_val ->
-        if i >= 6 then
-          ()
-        else
-          match register_of_param i with
-          | None -> ()
-          | Some color ->
-            let vreg = Gcx.mk_precolored ~gcx color in
-            (match resolve_ir_value ~allow_imm64:true arg_val with
-            | SImm imm -> Gcx.emit ~gcx (MovIM (size_of_immediate imm, imm, Reg vreg))
-            | SAddr addr -> Gcx.emit ~gcx (Lea (Size64, addr, vreg))
-            | SMem (mem, size) -> Gcx.emit ~gcx (MovMM (size, Mem mem, Reg vreg))
-            | SVReg (source_vreg, size) -> Gcx.emit ~gcx (MovMM (size, Reg source_vreg, Reg vreg))))
-      arg_vals;
+    (* Emit arguments for call *)
+    gen_call_arguments arg_vals;
     (* Emit call instruction *)
     let inst =
       match func_val with
@@ -410,6 +413,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     in
     Gcx.emit ~gcx inst;
     (* Return stack pointer to address before arguments were pushed onto stack *)
+    let num_stack_arg_vals = max 0 (List.length arg_vals - 6) in
     if num_stack_arg_vals <> 0 then
       Gcx.emit
         ~gcx
@@ -842,6 +846,16 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
             (IMulMIR (Size64, Reg count_vreg, Imm32 (Int32.of_int element_size), precolored_di))
       | _ -> failwith "Incorrect arguments");
       Gcx.emit ~gcx (CallL X86_runtime.myte_alloc_label);
+      Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg ret_vreg))
+      (*
+       * ===========================================
+       *                myte_write
+       * ===========================================
+       *)
+    ) else if name = myte_write.name then (
+      gen_call_arguments args;
+      let precolored_a = Gcx.mk_precolored ~gcx A in
+      Gcx.emit ~gcx (CallL X86_runtime.myte_write_label);
       Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg ret_vreg))
     ) else
       failwith (Printf.sprintf "Cannot compile unknown builtin %s to assembly" name);

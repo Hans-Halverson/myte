@@ -1,0 +1,7 @@
+module test
+
+import std.io.print
+
+fun main() {
+  print("Hello world!");
+}

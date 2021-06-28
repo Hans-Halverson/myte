@@ -79,7 +79,7 @@ let dump_ir ir =
     else if Opts.optimize () then
       Mir_optimize.optimize ir
     else
-      ir
+      Mir_optimize.transform_for_dump_ir ir
   in
   print_string (Mir_pp.pp_program ir);
   exit 0

@@ -12,6 +12,12 @@ let transform_for_assembly ir =
   Mir_normalizer.normalize ~ocx;
   ocx.program
 
+let transform_for_dump_ir ir =
+  let ocx = Ocx.mk ir in
+  Mir_normalizer.consolidate_adjacent_blocks ~ocx;
+  Mir_normalizer.remove_empty_init_func ~ocx;
+  ocx.program
+
 module MirTransform = struct
   type t =
     | ConstantFolding

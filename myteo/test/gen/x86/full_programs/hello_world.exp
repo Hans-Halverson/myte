@@ -1,0 +1,22 @@
+  .global _start
+
+  .data
+.S0:
+  .ascii "Hello world!"
+
+  .text
+_main:
+  movl $16, %edi
+  call __myte_alloc
+  leaq .S0(%rip), %rcx
+  movq %rcx, (%rax)
+  movl $12, 8(%rax)
+  movl $12, 12(%rax)
+  movq %rax, %rdi
+  call std.io.print
+  ret
+_start:
+  call __myte_init
+  call _main
+  ret
+Hello world!

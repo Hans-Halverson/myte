@@ -7,8 +7,6 @@ func unit @_init() {
   %3 := GetPointer int %0.2
   Store int %3, 4
   Store std.string.String* @test.z, %0
-  continue @0
-label @0:
   Ret
 }
 

@@ -5,7 +5,15 @@ open Mir
 
    Allocate space for `count` adjacent values of type `T`
  *)
-let myte_alloc = { Builtin.name = "myte_alloc"; mk_return_ty = (fun ty -> `PointerT ty) }
+let myte_alloc =
+  { Builtin.name = "myte_alloc"; mk_return_ty = (fun tys -> `PointerT (List.hd tys)) }
+
+(* 
+   myte.myte_alloc<T>(file: int, buffer: byte*, size: int): int
+
+   Write `size` bytes of `buffer` to file with descriptor `file`.
+ *)
+let myte_write = { Builtin.name = "myte_write"; mk_return_ty = (fun _ -> `IntT) }
 
 let mk_call_builtin builtin var_id args mk_return_ty_args =
   let open Builtin in

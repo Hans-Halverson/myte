@@ -216,7 +216,7 @@ and emit_expression ~ecx expr =
     let agg_ptr_var_id = mk_cf_var_id () in
     let agg_ptr_var = `PointerV (string_type, agg_ptr_var_id) in
     let (agg_ptr_val, myte_alloc_instr) =
-      Mir_builtin.(mk_call_builtin myte_alloc agg_ptr_var_id [`LongL Int64.one] string_type)
+      Mir_builtin.(mk_call_builtin myte_alloc agg_ptr_var_id [`LongL Int64.one] [string_type])
     in
     Ecx.emit ~ecx myte_alloc_instr;
     (* Write all string literal fields *)
@@ -412,10 +412,14 @@ and emit_expression ~ecx expr =
       | `FunctionL name when name = Std_lib.std_array_new ->
         let (`PointerT element_ty) = cast_to_pointer_type ret_ty in
         let (array_ptr_val, myte_alloc_instr) =
-          Mir_builtin.(mk_call_builtin myte_alloc var_id arg_vals element_ty)
+          Mir_builtin.(mk_call_builtin myte_alloc var_id arg_vals [element_ty])
         in
         Ecx.emit ~ecx myte_alloc_instr;
         array_ptr_val
+      | `FunctionL name when name = Std_lib.std_io_write ->
+        let (return_val, instr) = Mir_builtin.(mk_call_builtin myte_write var_id arg_vals []) in
+        Ecx.emit ~ecx instr;
+        return_val
       | _ ->
         (* Emit function call *)
         Ecx.emit ~ecx (Call (var_id, ret_ty, func_val, arg_vals));
@@ -437,7 +441,7 @@ and emit_expression ~ecx expr =
     let agg_ptr_var_id = mk_cf_var_id () in
     let agg_ptr_var = `PointerV (agg_ty, agg_ptr_var_id) in
     let (agg_ptr_val, myte_alloc_instr) =
-      Mir_builtin.(mk_call_builtin myte_alloc agg_ptr_var_id [`LongL Int64.one] agg_ty)
+      Mir_builtin.(mk_call_builtin myte_alloc agg_ptr_var_id [`LongL Int64.one] [agg_ty])
     in
     Ecx.emit ~ecx myte_alloc_instr;
     (* Store each argument to the record constructor in space allocated for record *)
@@ -564,7 +568,7 @@ and emit_construct_tuple ~ecx agg elements =
   let agg_ptr_var_id = mk_cf_var_id () in
   let agg_ptr_var = `PointerV (agg_ty, agg_ptr_var_id) in
   let (agg_ptr_val, myte_alloc_instr) =
-    Mir_builtin.(mk_call_builtin myte_alloc agg_ptr_var_id [`LongL Int64.one] agg_ty)
+    Mir_builtin.(mk_call_builtin myte_alloc agg_ptr_var_id [`LongL Int64.one] [agg_ty])
   in
   Ecx.emit ~ecx myte_alloc_instr;
   (* Store each argument to the tuple constructor in space allocated for tuple *)

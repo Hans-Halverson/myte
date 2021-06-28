@@ -1,0 +1,18 @@
+module std.io
+
+import std.array.Array
+import std.string.String
+
+val STDIN: Int = 0
+val STDOUT: Int = 1
+val STDERR: Int = 2
+
+builtin fun write(file: Int, buffer: Array<Byte>, size: Int): Int
+
+fun print(string: String) {
+  write(STDOUT, string.data, string.size);
+}
+
+fun eprint(string: String) {
+  write(STDERR, string.data, string.size);
+}

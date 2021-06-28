@@ -192,7 +192,7 @@ end =
 and Builtin : sig
   type t = {
     name: string;
-    mk_return_ty: Type.t -> Type.t;
+    mk_return_ty: Type.t list -> Type.t;
   }
 end =
   Builtin
@@ -387,12 +387,3 @@ let filter_stdlib (program : ssa_program) =
     Program.globals = filter_stdlib_names program.globals;
     funcs = filter_stdlib_names program.funcs;
   }
-
-let remove_empty_init_func (program : 'a Program.t) =
-  match SMap.find_opt init_func_name program.funcs with
-  | None -> ()
-  | Some init_func ->
-    (* Init function is empty if it consists of a single block with a single instruction (Ret) *)
-    let init_start_block = IMap.find init_func.body_start_block program.blocks in
-    if List.length init_start_block.instructions = 1 && init_start_block.next = Halt then
-      program.funcs <- SMap.remove init_func_name program.funcs

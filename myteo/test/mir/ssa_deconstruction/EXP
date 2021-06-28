@@ -1,3 +1,7 @@
+func unit @_init() {
+  Ret
+}
+
 func unit @move_in_previous_block.main() {
   %0 := Mov int 1
   branch true, @0, @1

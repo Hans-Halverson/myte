@@ -1,6 +1,7 @@
 open Basic_collections
 open Mir
 open Mir_visitor
+module Ocx = Mir_optimize_context
 
 (* Conversion of Control Flow IR to SSA IR
 
@@ -580,9 +581,6 @@ and map_to_ssa ~pcx ~ecx ~cx program =
         cx.prev_blocks <- IMap.add continue_id new_continue_prev_blocks cx.prev_blocks
       | _ -> ())
     cx.blocks;
-
-  (* Strip init function if it is now empty *)
-  remove_empty_init_func program;
 
   let globals =
     SMap.map
