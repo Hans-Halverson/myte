@@ -58,12 +58,36 @@ let std_array_array = "std.array.Array"
 
 let std_array_new = "std.array.new"
 
+let std_bool_bool = "std.bool.Bool"
+
+let std_byte_byte = "std.byte.Byte"
+
+let std_int_int = "std.int.Int"
+
 let std_io_write = "std.io.write"
+
+let std_long_long = "std.long.Long"
 
 let std_string_string = "std.string.String"
 
+let std_unit_unit = "std.unit.Unit"
+
+let std_vec_vec = "std.vec.Vec"
+
 let all_stdlib_names =
-  SSet.of_list [std_array_array; std_array_new; std_io_write; std_string_string]
+  SSet.of_list
+    [
+      std_array_array;
+      std_array_new;
+      std_bool_bool;
+      std_byte_byte;
+      std_io_write;
+      std_int_int;
+      std_long_long;
+      std_string_string;
+      std_unit_unit;
+      std_vec_vec;
+    ]
 
 (* Stdlib types *)
 

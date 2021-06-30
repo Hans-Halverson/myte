@@ -1,0 +1,3 @@
+module std.byte
+
+builtin type Byte

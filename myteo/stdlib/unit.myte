@@ -1,0 +1,9 @@
+module std.unit
+
+import std.string.String
+
+builtin type Unit
+
+methods Unit {
+  fun toString(): String = "unit"
+}

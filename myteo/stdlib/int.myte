@@ -1,0 +1,3 @@
+module std.int
+
+builtin type Int

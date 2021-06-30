@@ -32,9 +32,19 @@ test/parser/ast/type/basic.myte
         loc: 3:14-3:16,
       },
       annot: {
-        node: PrimitiveType,
+        node: IdentifierType,
         loc: 3:7-3:11,
-        kind: Unit,
+        name: {
+          node: ScopedIdentifier,
+          loc: 3:7-3:11,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 3:7-3:11,
+            name: "Unit",
+          },
+        },
+        type_params: [],
       },
     },
     {
@@ -52,9 +62,19 @@ test/parser/ast/type/basic.myte
         raw: "1",
       },
       annot: {
-        node: PrimitiveType,
+        node: IdentifierType,
         loc: 4:7-4:10,
-        kind: Int,
+        name: {
+          node: ScopedIdentifier,
+          loc: 4:7-4:10,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 4:7-4:10,
+            name: "Int",
+          },
+        },
+        type_params: [],
       },
     },
     {
@@ -72,9 +92,19 @@ test/parser/ast/type/basic.myte
         raw: "1",
       },
       annot: {
-        node: PrimitiveType,
+        node: IdentifierType,
         loc: 5:7-5:11,
-        kind: Byte,
+        name: {
+          node: ScopedIdentifier,
+          loc: 5:7-5:11,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 5:7-5:11,
+            name: "Byte",
+          },
+        },
+        type_params: [],
       },
     },
     {
@@ -92,9 +122,19 @@ test/parser/ast/type/basic.myte
         raw: "1",
       },
       annot: {
-        node: PrimitiveType,
+        node: IdentifierType,
         loc: 6:7-6:11,
-        kind: Long,
+        name: {
+          node: ScopedIdentifier,
+          loc: 6:7-6:11,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 6:7-6:11,
+            name: "Long",
+          },
+        },
+        type_params: [],
       },
     },
     {
@@ -142,9 +182,19 @@ test/parser/ast/type/basic.myte
         value: true,
       },
       annot: {
-        node: PrimitiveType,
+        node: IdentifierType,
         loc: 8:7-8:11,
-        kind: Bool,
+        name: {
+          node: ScopedIdentifier,
+          loc: 8:7-8:11,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 8:7-8:11,
+            name: "Bool",
+          },
+        },
+        type_params: [],
       },
     },
     {
@@ -166,9 +216,19 @@ test/parser/ast/type/basic.myte
         loc: 10:7-10:20,
         params: [
           {
-            node: PrimitiveType,
+            node: IdentifierType,
             loc: 10:7-10:10,
-            kind: Int,
+            name: {
+              node: ScopedIdentifier,
+              loc: 10:7-10:10,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 10:7-10:10,
+                name: "Int",
+              },
+            },
+            type_params: [],
           },
         ],
         return: {
@@ -207,9 +267,19 @@ test/parser/ast/type/basic.myte
         loc: 11:7-11:28,
         params: [
           {
-            node: PrimitiveType,
+            node: IdentifierType,
             loc: 11:7-11:10,
-            kind: Int,
+            name: {
+              node: ScopedIdentifier,
+              loc: 11:7-11:10,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 11:7-11:10,
+                name: "Int",
+              },
+            },
+            type_params: [],
           },
         ],
         return: {
@@ -233,9 +303,19 @@ test/parser/ast/type/basic.myte
             },
           ],
           return: {
-            node: PrimitiveType,
+            node: IdentifierType,
             loc: 11:24-11:28,
-            kind: Bool,
+            name: {
+              node: ScopedIdentifier,
+              loc: 11:24-11:28,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 11:24-11:28,
+                name: "Bool",
+              },
+            },
+            type_params: [],
           },
         },
       },
@@ -259,9 +339,19 @@ test/parser/ast/type/basic.myte
         loc: 12:7-12:38,
         params: [
           {
-            node: PrimitiveType,
+            node: IdentifierType,
             loc: 12:7-12:10,
-            kind: Int,
+            name: {
+              node: ScopedIdentifier,
+              loc: 12:7-12:10,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 12:7-12:10,
+                name: "Int",
+              },
+            },
+            type_params: [],
           },
         ],
         return: {
@@ -289,9 +379,19 @@ test/parser/ast/type/basic.myte
             loc: 12:24-12:38,
             params: [
               {
-                node: PrimitiveType,
+                node: IdentifierType,
                 loc: 12:24-12:28,
-                kind: Bool,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 12:24-12:28,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 12:24-12:28,
+                    name: "Bool",
+                  },
+                },
+                type_params: [],
               },
             ],
             return: {
@@ -798,9 +898,19 @@ test/parser/ast/type/basic.myte
                 type_params: [],
               },
               {
-                node: PrimitiveType,
+                node: IdentifierType,
                 loc: 23:14-23:17,
-                kind: Int,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 23:14-23:17,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 23:14-23:17,
+                    name: "Int",
+                  },
+                },
+                type_params: [],
               },
             ],
           },

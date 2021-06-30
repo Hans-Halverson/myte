@@ -46,9 +46,19 @@ test/analyze/name_resolution/resolved_scoped_id/a1.myte
               name: "child",
             },
             type: {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 3:18-3:21,
-              kind: Int,
+              name: {
+                node: ScopedIdentifier,
+                loc: 3:18-3:21,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 3:18-3:21,
+                  name: "Int",
+                },
+              },
+              type_params: [],
             },
           },
           {
@@ -106,9 +116,19 @@ test/analyze/name_resolution/resolved_scoped_id/a1.myte
               name: "child2",
             },
             type: {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 4:20-4:23,
-              kind: Int,
+              name: {
+                node: ScopedIdentifier,
+                loc: 4:20-4:23,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 4:20-4:23,
+                  name: "Int",
+                },
+              },
+              type_params: [],
             },
           },
         ],
@@ -218,9 +238,19 @@ test/analyze/name_resolution/resolved_scoped_id/a1.myte
         },
         elements: [
           {
-            node: PrimitiveType,
+            node: IdentifierType,
             loc: 8:17-8:20,
-            kind: Int,
+            name: {
+              node: ScopedIdentifier,
+              loc: 8:17-8:20,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 8:17-8:20,
+                name: "Int",
+              },
+            },
+            type_params: [],
           },
         ],
       },
@@ -251,9 +281,19 @@ test/analyze/name_resolution/resolved_scoped_id/a1.myte
           },
           elements: [
             {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 12:18-12:21,
-              kind: Int,
+              name: {
+                node: ScopedIdentifier,
+                loc: 12:18-12:21,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 12:18-12:21,
+                  name: "Int",
+                },
+              },
+              type_params: [],
             },
           ],
         },
@@ -275,9 +315,19 @@ test/analyze/name_resolution/resolved_scoped_id/a1.myte
                 name: "field",
               },
               type: {
-                node: PrimitiveType,
+                node: IdentifierType,
                 loc: 13:27-13:30,
-                kind: Int,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 13:27-13:30,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 13:27-13:30,
+                    name: "Int",
+                  },
+                },
+                type_params: [],
               },
             },
           ],
@@ -341,9 +391,19 @@ test/analyze/name_resolution/resolved_scoped_id/a2.myte
               name: "child",
             },
             type: {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 3:18-3:21,
-              kind: Int,
+              name: {
+                node: ScopedIdentifier,
+                loc: 3:18-3:21,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 3:18-3:21,
+                  name: "Int",
+                },
+              },
+              type_params: [],
             },
           },
           {
@@ -401,9 +461,19 @@ test/analyze/name_resolution/resolved_scoped_id/a2.myte
               name: "child2",
             },
             type: {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 4:20-4:23,
-              kind: Int,
+              name: {
+                node: ScopedIdentifier,
+                loc: 4:20-4:23,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 4:20-4:23,
+                  name: "Int",
+                },
+              },
+              type_params: [],
             },
           },
         ],
@@ -508,9 +578,19 @@ test/analyze/name_resolution/resolved_scoped_id/a2.myte
         raw: "1",
       },
       annot: {
-        node: PrimitiveType,
+        node: IdentifierType,
         loc: 8:13-8:16,
-        kind: Int,
+        name: {
+          node: ScopedIdentifier,
+          loc: 8:13-8:16,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 8:13-8:16,
+            name: "Int",
+          },
+        },
+        type_params: [],
       },
     },
     {
@@ -541,9 +621,19 @@ test/analyze/name_resolution/resolved_scoped_id/a2.myte
               name: "field",
             },
             type: {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 10:25-10:28,
-              kind: Int,
+              name: {
+                node: ScopedIdentifier,
+                loc: 10:25-10:28,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 10:25-10:28,
+                  name: "Int",
+                },
+              },
+              type_params: [],
             },
           },
         ],
@@ -613,9 +703,19 @@ test/analyze/name_resolution/resolved_scoped_id/b.myte
       type_params: [],
       builtin: false,
       alias: {
-        node: PrimitiveType,
+        node: IdentifierType,
         loc: 5:24-5:27,
-        kind: Int,
+        name: {
+          node: ScopedIdentifier,
+          loc: 5:24-5:27,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 5:24-5:27,
+            name: "Int",
+          },
+        },
+        type_params: [],
       },
     },
     {
@@ -638,9 +738,19 @@ test/analyze/name_resolution/resolved_scoped_id/b.myte
         },
         elements: [
           {
-            node: PrimitiveType,
+            node: IdentifierType,
             loc: 7:10-7:13,
-            kind: Int,
+            name: {
+              node: ScopedIdentifier,
+              loc: 7:10-7:13,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 7:10-7:13,
+                name: "Int",
+              },
+            },
+            type_params: [],
           },
         ],
       },
@@ -737,9 +847,19 @@ test/analyze/name_resolution/resolved_scoped_id/c.myte
               name: "child",
             },
             type: {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 3:18-3:21,
-              kind: Int,
+              name: {
+                node: ScopedIdentifier,
+                loc: 3:18-3:21,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 3:18-3:21,
+                  name: "Int",
+                },
+              },
+              type_params: [],
             },
           },
         ],
@@ -821,9 +941,19 @@ test/analyze/name_resolution/resolved_scoped_id/c.myte
           },
           elements: [
             {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 7:29-7:32,
-              kind: Int,
+              name: {
+                node: ScopedIdentifier,
+                loc: 7:29-7:32,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 7:29-7:32,
+                  name: "Int",
+                },
+              },
+              type_params: [],
             },
           ],
         },
@@ -927,9 +1057,19 @@ test/analyze/name_resolution/resolved_scoped_id/d.myte
               name: "child",
             },
             type: {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 3:18-3:21,
-              kind: Int,
+              name: {
+                node: ScopedIdentifier,
+                loc: 3:18-3:21,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 3:18-3:21,
+                  name: "Int",
+                },
+              },
+              type_params: [],
             },
           },
         ],
@@ -996,9 +1136,19 @@ test/analyze/name_resolution/resolved_scoped_id/d.myte
       type_params: [],
       builtin: false,
       alias: {
-        node: PrimitiveType,
+        node: IdentifierType,
         loc: 7:24-7:27,
-        kind: Int,
+        name: {
+          node: ScopedIdentifier,
+          loc: 7:24-7:27,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 7:24-7:27,
+            name: "Int",
+          },
+        },
+        type_params: [],
       },
     },
     {
@@ -1624,9 +1774,19 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
               raw: "1",
             },
             annot: {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 28:9-28:12,
-              kind: Int,
+              name: {
+                node: ScopedIdentifier,
+                loc: 28:9-28:12,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 28:9-28:12,
+                  name: "Int",
+                },
+              },
+              type_params: [],
             },
           },
           {

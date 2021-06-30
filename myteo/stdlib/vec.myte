@@ -2,6 +2,7 @@ module std.vec
 
 import std.array
 import std.array.Array
+import std.int.Int
 
 type Vec<T> {
   data: Array<T>,

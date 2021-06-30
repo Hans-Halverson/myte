@@ -85,9 +85,19 @@ test/parser/ast/type_declaration/variant.myte
           },
           elements: [
             {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 8:9-8:12,
-              kind: Int,
+              name: {
+                node: ScopedIdentifier,
+                loc: 8:9-8:12,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 8:9-8:12,
+                  name: "Int",
+                },
+              },
+              type_params: [],
             },
           ],
         },
@@ -101,9 +111,19 @@ test/parser/ast/type_declaration/variant.myte
           },
           elements: [
             {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 9:9-9:12,
-              kind: Int,
+              name: {
+                node: ScopedIdentifier,
+                loc: 9:9-9:12,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 9:9-9:12,
+                  name: "Int",
+                },
+              },
+              type_params: [],
             },
           ],
         },
@@ -132,14 +152,34 @@ test/parser/ast/type_declaration/variant.myte
               type_params: [],
             },
             {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 10:17-10:21,
-              kind: Bool,
+              name: {
+                node: ScopedIdentifier,
+                loc: 10:17-10:21,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 10:17-10:21,
+                  name: "Bool",
+                },
+              },
+              type_params: [],
             },
             {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 10:23-10:27,
-              kind: Unit,
+              name: {
+                node: ScopedIdentifier,
+                loc: 10:23-10:27,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 10:23-10:27,
+                  name: "Unit",
+                },
+              },
+              type_params: [],
             },
           ],
         },
@@ -174,9 +214,19 @@ test/parser/ast/type_declaration/variant.myte
                 name: "k1",
               },
               type: {
-                node: PrimitiveType,
+                node: IdentifierType,
                 loc: 13:14-13:17,
-                kind: Int,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 13:14-13:17,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 13:14-13:17,
+                    name: "Int",
+                  },
+                },
+                type_params: [],
               },
             },
           ],
@@ -199,9 +249,19 @@ test/parser/ast/type_declaration/variant.myte
                 name: "k2",
               },
               type: {
-                node: PrimitiveType,
+                node: IdentifierType,
                 loc: 14:14-14:17,
-                kind: Int,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 14:14-14:17,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 14:14-14:17,
+                    name: "Int",
+                  },
+                },
+                type_params: [],
               },
             },
           ],
@@ -248,9 +308,19 @@ test/parser/ast/type_declaration/variant.myte
                 name: "k4",
               },
               type: {
-                node: PrimitiveType,
+                node: IdentifierType,
                 loc: 15:26-15:30,
-                kind: Bool,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 15:26-15:30,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 15:26-15:30,
+                    name: "Bool",
+                  },
+                },
+                type_params: [],
               },
             },
             {
@@ -262,9 +332,19 @@ test/parser/ast/type_declaration/variant.myte
                 name: "k5",
               },
               type: {
-                node: PrimitiveType,
+                node: IdentifierType,
                 loc: 15:36-15:40,
-                kind: Unit,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 15:36-15:40,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 15:36-15:40,
+                    name: "Unit",
+                  },
+                },
+                type_params: [],
               },
             },
           ],
@@ -297,9 +377,19 @@ test/parser/ast/type_declaration/variant.myte
           },
           elements: [
             {
-              node: PrimitiveType,
+              node: IdentifierType,
               loc: 17:21-17:24,
-              kind: Int,
+              name: {
+                node: ScopedIdentifier,
+                loc: 17:21-17:24,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 17:21-17:24,
+                  name: "Int",
+                },
+              },
+              type_params: [],
             },
           ],
         },
@@ -321,9 +411,19 @@ test/parser/ast/type_declaration/variant.myte
                 name: "k",
               },
               type: {
-                node: PrimitiveType,
+                node: IdentifierType,
                 loc: 17:37-17:41,
-                kind: Bool,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 17:37-17:41,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 17:37-17:41,
+                    name: "Bool",
+                  },
+                },
+                type_params: [],
               },
             },
           ],
@@ -355,9 +455,19 @@ test/parser/ast/type_declaration/variant.myte
               loc: 20:8-20:21,
               elements: [
                 {
-                  node: PrimitiveType,
+                  node: IdentifierType,
                   loc: 20:9-20:12,
-                  kind: Int,
+                  name: {
+                    node: ScopedIdentifier,
+                    loc: 20:9-20:12,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 20:9-20:12,
+                      name: "Int",
+                    },
+                  },
+                  type_params: [],
                 },
                 {
                   node: IdentifierType,
@@ -392,9 +502,19 @@ test/parser/ast/type_declaration/variant.myte
               loc: 21:8-21:29,
               params: [
                 {
-                  node: PrimitiveType,
+                  node: IdentifierType,
                   loc: 21:9-21:12,
-                  kind: Int,
+                  name: {
+                    node: ScopedIdentifier,
+                    loc: 21:9-21:12,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 21:9-21:12,
+                      name: "Int",
+                    },
+                  },
+                  type_params: [],
                 },
                 {
                   node: IdentifierType,
@@ -413,9 +533,19 @@ test/parser/ast/type_declaration/variant.myte
                 },
               ],
               return: {
-                node: PrimitiveType,
+                node: IdentifierType,
                 loc: 21:25-21:29,
-                kind: Bool,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 21:25-21:29,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 21:25-21:29,
+                    name: "Bool",
+                  },
+                },
+                type_params: [],
               },
             },
           ],

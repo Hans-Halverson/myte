@@ -1,0 +1,3 @@
+module std.bool
+
+builtin type Bool

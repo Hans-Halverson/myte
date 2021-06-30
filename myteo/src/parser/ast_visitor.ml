@@ -77,7 +77,6 @@ class ['a] visitor =
       fun acc ty ->
         let open Type in
         match ty with
-        | Primitive t -> this#primitive_type acc t
         | Identifier t -> this#identifier_type acc t
         | Tuple t -> this#tuple_type acc t
         | Function t -> this#function_type acc t
@@ -346,8 +345,6 @@ class ['a] visitor =
       let { loc = _; name; elements } = tuple in
       this#identifier acc name;
       List.iter (this#type_ acc) elements
-
-    method primitive_type _acc _prim = ()
 
     method identifier_type acc id =
       let open Type.Identifier in

@@ -84,7 +84,17 @@ class analyzer =
             let open Type in
             match return with
             | None
-            | Some (Primitive { Primitive.kind = Primitive.Unit; _ }) ->
+            | Some
+                (Identifier
+                  {
+                    name =
+                      {
+                        ScopedIdentifier.name = { Ast.Identifier.name = "Unit"; _ };
+                        scopes = [];
+                        _;
+                      };
+                    _;
+                  }) ->
               false
             | Some _ -> true
           in

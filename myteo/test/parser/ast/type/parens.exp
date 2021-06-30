@@ -33,9 +33,19 @@ test/parser/ast/type/parens.myte
         raw: "1",
       },
       annot: {
-        node: PrimitiveType,
+        node: IdentifierType,
         loc: 3:8-3:11,
-        kind: Int,
+        name: {
+          node: ScopedIdentifier,
+          loc: 3:8-3:11,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 3:8-3:11,
+            name: "Int",
+          },
+        },
+        type_params: [],
       },
     },
     {
@@ -53,9 +63,19 @@ test/parser/ast/type/parens.myte
         raw: "1",
       },
       annot: {
-        node: PrimitiveType,
+        node: IdentifierType,
         loc: 4:10-4:13,
-        kind: Int,
+        name: {
+          node: ScopedIdentifier,
+          loc: 4:10-4:13,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 4:10-4:13,
+            name: "Int",
+          },
+        },
+        type_params: [],
       },
     },
     {
@@ -77,9 +97,19 @@ test/parser/ast/type/parens.myte
         loc: 5:8-5:21,
         params: [
           {
-            node: PrimitiveType,
+            node: IdentifierType,
             loc: 5:8-5:11,
-            kind: Int,
+            name: {
+              node: ScopedIdentifier,
+              loc: 5:8-5:11,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 5:8-5:11,
+                name: "Int",
+              },
+            },
+            type_params: [],
           },
         ],
         return: {

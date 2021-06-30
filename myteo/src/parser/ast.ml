@@ -337,20 +337,6 @@ end =
   Pattern
 
 and Type : sig
-  module Primitive : sig
-    type kind =
-      | Unit
-      | Byte
-      | Int
-      | Long
-      | Bool
-
-    type t = {
-      loc: Loc.t;
-      kind: kind;
-    }
-  end
-
   module Identifier : sig
     type t = {
       loc: Loc.t;
@@ -375,7 +361,6 @@ and Type : sig
   end
 
   type t =
-    | Primitive of Primitive.t
     | Identifier of Identifier.t
     | Tuple of Tuple.t
     | Function of Function.t

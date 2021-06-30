@@ -65,9 +65,19 @@ test/parser/ast/variable_declaration/basic.myte
         raw: "1",
       },
       annot: {
-        node: PrimitiveType,
+        node: IdentifierType,
         loc: 6:7-6:10,
-        kind: Int,
+        name: {
+          node: ScopedIdentifier,
+          loc: 6:7-6:10,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 6:7-6:10,
+            name: "Int",
+          },
+        },
+        type_params: [],
       },
     },
   ],

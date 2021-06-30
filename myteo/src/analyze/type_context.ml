@@ -90,7 +90,7 @@ let union_int_literals (ty1 : Types.int_literal) (ty2 : Types.int_literal) ty2_f
     ty1.resolved <- Some ty2_full
   )
 
-(* Resolve an int literal with an integer type, which will set the reperesentative type for the
+(* Resolve an int literal with an integer type, which will set the representative type for the
    int literal type and error for each referenced int literal that is out of range. *)
 let resolve_int_literal ~cx lit_ty ty =
   List.iter

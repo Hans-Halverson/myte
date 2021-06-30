@@ -33,9 +33,19 @@ test/parser/ast/type/tuple.myte
         loc: 3:16-3:35,
         elements: [
           {
-            node: PrimitiveType,
+            node: IdentifierType,
             loc: 3:17-3:20,
-            kind: Int,
+            name: {
+              node: ScopedIdentifier,
+              loc: 3:17-3:20,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 3:17-3:20,
+                name: "Int",
+              },
+            },
+            type_params: [],
           },
           {
             node: IdentifierType,
@@ -53,9 +63,19 @@ test/parser/ast/type/tuple.myte
             type_params: [],
           },
           {
-            node: PrimitiveType,
+            node: IdentifierType,
             loc: 3:30-3:34,
-            kind: Bool,
+            name: {
+              node: ScopedIdentifier,
+              loc: 3:30-3:34,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 3:30-3:34,
+                name: "Bool",
+              },
+            },
+            type_params: [],
           },
         ],
       },
@@ -79,9 +99,19 @@ test/parser/ast/type/tuple.myte
             loc: 4:17-4:30,
             elements: [
               {
-                node: PrimitiveType,
+                node: IdentifierType,
                 loc: 4:18-4:21,
-                kind: Int,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 4:18-4:21,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 4:18-4:21,
+                    name: "Int",
+                  },
+                },
+                type_params: [],
               },
               {
                 node: IdentifierType,
@@ -105,9 +135,19 @@ test/parser/ast/type/tuple.myte
             loc: 4:32-4:62,
             elements: [
               {
-                node: PrimitiveType,
+                node: IdentifierType,
                 loc: 4:33-4:37,
-                kind: Bool,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 4:33-4:37,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 4:33-4:37,
+                    name: "Bool",
+                  },
+                },
+                type_params: [],
               },
               {
                 node: TupleType,
@@ -144,9 +184,19 @@ test/parser/ast/type/tuple.myte
                     type_params: [],
                   },
                   {
-                    node: PrimitiveType,
+                    node: IdentifierType,
                     loc: 4:56-4:60,
-                    kind: Unit,
+                    name: {
+                      node: ScopedIdentifier,
+                      loc: 4:56-4:60,
+                      scopes: [],
+                      name: {
+                        node: Identifier,
+                        loc: 4:56-4:60,
+                        name: "Unit",
+                      },
+                    },
+                    type_params: [],
                   },
                 ],
               },
@@ -170,9 +220,19 @@ test/parser/ast/type/tuple.myte
         loc: 7:16-7:31,
         elements: [
           {
-            node: PrimitiveType,
+            node: IdentifierType,
             loc: 7:17-7:20,
-            kind: Int,
+            name: {
+              node: ScopedIdentifier,
+              loc: 7:17-7:20,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 7:17-7:20,
+                name: "Int",
+              },
+            },
+            type_params: [],
           },
           {
             node: IdentifierType,
@@ -211,9 +271,19 @@ test/parser/ast/type/tuple.myte
             loc: 10:17-10:30,
             elements: [
               {
-                node: PrimitiveType,
+                node: IdentifierType,
                 loc: 10:18-10:21,
-                kind: Int,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 10:18-10:21,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 10:18-10:21,
+                    name: "Int",
+                  },
+                },
+                type_params: [],
               },
               {
                 node: IdentifierType,
@@ -234,9 +304,19 @@ test/parser/ast/type/tuple.myte
           },
         ],
         return: {
-          node: PrimitiveType,
+          node: IdentifierType,
           loc: 10:35-10:39,
-          kind: Unit,
+          name: {
+            node: ScopedIdentifier,
+            loc: 10:35-10:39,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 10:35-10:39,
+              name: "Unit",
+            },
+          },
+          type_params: [],
         },
       },
     },

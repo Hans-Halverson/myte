@@ -93,7 +93,6 @@ class mapper =
       fun ty ->
         let open Type in
         match ty with
-        | Primitive t -> id_map this#primitive_type t ty (fun t' -> Primitive t')
         | Identifier t -> id_map this#identifier_type t ty (fun t' -> Identifier t')
         | Tuple t -> id_map this#tuple_type t ty (fun t' -> Tuple t')
         | Function t -> id_map this#function_type t ty (fun t' -> Function t')
@@ -526,8 +525,6 @@ class mapper =
         tuple
       else
         { loc; name = name'; elements = elements' }
-
-    method primitive_type prim = prim
 
     method identifier_type id =
       let open Type.Identifier in

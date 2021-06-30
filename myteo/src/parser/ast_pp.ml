@@ -82,15 +82,6 @@ let string_of_binary_op op =
   | ArithmeticRightShift -> "ArithmeticRightShift"
   | LogicalRightShift -> "LogicalRightShift"
 
-let string_of_primitive_type kind =
-  let open Type.Primitive in
-  match kind with
-  | Byte -> "Byte"
-  | Int -> "Int"
-  | Long -> "Long"
-  | Bool -> "Bool"
-  | Unit -> "Unit"
-
 let rec node_of_loc loc =
   let pp_pos pos =
     let { Loc.line; col } = pos in
@@ -180,7 +171,6 @@ and node_of_pattern pat =
 and node_of_type ty =
   let open Type in
   match ty with
-  | Primitive prim -> node_of_primitive_type prim
   | Identifier id -> node_of_identifier_type id
   | Tuple tuple -> node_of_tuple_type tuple
   | Function func -> node_of_function_type func
@@ -539,10 +529,6 @@ and node_of_type_parameter param =
   let open TypeParameter in
   let { loc; name } = param in
   node "TypeParameter" loc [("name", node_of_identifier name)]
-
-and node_of_primitive_type p =
-  let { Type.Primitive.loc; kind } = p in
-  node "PrimitiveType" loc [("kind", Raw (string_of_primitive_type kind))]
 
 and node_of_identifier_type id =
   let { Type.Identifier.loc; name; type_params } = id in

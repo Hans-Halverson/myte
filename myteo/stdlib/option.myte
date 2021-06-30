@@ -1,5 +1,7 @@
 module std.option
 
+import std.int.Int
+
 type Option (Int)
 
 fun toInt(x: Option): Int {

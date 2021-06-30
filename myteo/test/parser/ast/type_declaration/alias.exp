@@ -29,9 +29,19 @@ test/parser/ast/type_declaration/alias.myte
       type_params: [],
       builtin: false,
       alias: {
-        node: PrimitiveType,
+        node: IdentifierType,
         loc: 3:16-3:20,
-        kind: Unit,
+        name: {
+          node: ScopedIdentifier,
+          loc: 3:16-3:20,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 3:16-3:20,
+            name: "Unit",
+          },
+        },
+        type_params: [],
       },
     },
     {
@@ -45,9 +55,19 @@ test/parser/ast/type_declaration/alias.myte
       type_params: [],
       builtin: false,
       alias: {
-        node: PrimitiveType,
+        node: IdentifierType,
         loc: 5:16-5:19,
-        kind: Int,
+        name: {
+          node: ScopedIdentifier,
+          loc: 5:16-5:19,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 5:16-5:19,
+            name: "Int",
+          },
+        },
+        type_params: [],
       },
     },
     {
@@ -80,15 +100,35 @@ test/parser/ast/type_declaration/alias.myte
             type_params: [],
           },
           {
-            node: PrimitiveType,
+            node: IdentifierType,
             loc: 7:25-7:29,
-            kind: Bool,
+            name: {
+              node: ScopedIdentifier,
+              loc: 7:25-7:29,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 7:25-7:29,
+                name: "Bool",
+              },
+            },
+            type_params: [],
           },
         ],
         return: {
-          node: PrimitiveType,
+          node: IdentifierType,
           loc: 7:34-7:38,
-          kind: Unit,
+          name: {
+            node: ScopedIdentifier,
+            loc: 7:34-7:38,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 7:34-7:38,
+              name: "Unit",
+            },
+          },
+          type_params: [],
         },
       },
     },
@@ -113,9 +153,19 @@ test/parser/ast/type_declaration/alias.myte
       ],
       builtin: false,
       alias: {
-        node: PrimitiveType,
+        node: IdentifierType,
         loc: 9:19-9:23,
-        kind: Unit,
+        name: {
+          node: ScopedIdentifier,
+          loc: 9:19-9:23,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 9:19-9:23,
+            name: "Unit",
+          },
+        },
+        type_params: [],
       },
     },
     {
@@ -157,9 +207,19 @@ test/parser/ast/type_declaration/alias.myte
       ],
       builtin: false,
       alias: {
-        node: PrimitiveType,
+        node: IdentifierType,
         loc: 11:25-11:28,
-        kind: Int,
+        name: {
+          node: ScopedIdentifier,
+          loc: 11:25-11:28,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 11:25-11:28,
+            name: "Int",
+          },
+        },
+        type_params: [],
       },
     },
   ],

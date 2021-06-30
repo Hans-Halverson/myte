@@ -43,9 +43,19 @@ test/parser/ast/type_cast/basic.myte
                 raw: "1",
               },
               type: {
-                node: PrimitiveType,
+                node: IdentifierType,
                 loc: 4:6-4:10,
-                kind: Unit,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 4:6-4:10,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 4:6-4:10,
+                    name: "Unit",
+                  },
+                },
+                type_params: [],
               },
             },
           },
@@ -61,9 +71,19 @@ test/parser/ast/type_cast/basic.myte
                 raw: "1",
               },
               type: {
-                node: PrimitiveType,
+                node: IdentifierType,
                 loc: 5:7-5:11,
-                kind: Unit,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 5:7-5:11,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 5:7-5:11,
+                    name: "Unit",
+                  },
+                },
+                type_params: [],
               },
             },
           },

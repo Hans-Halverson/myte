@@ -1162,22 +1162,10 @@ and parse_type env =
   | _ -> ty
 
 and parse_type_prefix env =
-  let open Type.Primitive in
   match Env.token env with
-  | T_IDENTIFIER "Unit" -> parse_primitive_type env Unit
-  | T_IDENTIFIER "Byte" -> parse_primitive_type env Byte
-  | T_IDENTIFIER "Int" -> parse_primitive_type env Int
-  | T_IDENTIFIER "Long" -> parse_primitive_type env Long
-  | T_IDENTIFIER "Bool" -> parse_primitive_type env Bool
   | T_LEFT_PAREN -> parse_parenthesized_type env
   | T_IDENTIFIER _ -> parse_identifier_type env
   | token -> Parse_error.fatal (Env.loc env, MalformedType token)
-
-and parse_primitive_type env kind =
-  let open Type.Primitive in
-  let loc = Env.loc env in
-  Env.advance env;
-  Primitive { loc; kind }
 
 and parse_parenthesized_type env =
   let open Type in

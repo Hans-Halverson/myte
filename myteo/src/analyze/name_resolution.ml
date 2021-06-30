@@ -193,9 +193,15 @@ class bindings_builder ~is_stdlib ~module_tree =
       let module_name_prefix = String.concat "." module_name ^ "." in
       this#enter_scope ();
       (* Add all implicit imports to toplevel scope *)
-      ( if not is_stdlib then
+      if not is_stdlib then (
         let open Std_lib in
-        this#add_type_to_scope "String" (lookup_stdlib_decl_loc std_string_string) );
+        this#add_type_to_scope "Bool" (lookup_stdlib_decl_loc std_bool_bool);
+        this#add_type_to_scope "Byte" (lookup_stdlib_decl_loc std_byte_byte);
+        this#add_type_to_scope "Int" (lookup_stdlib_decl_loc std_int_int);
+        this#add_type_to_scope "Long" (lookup_stdlib_decl_loc std_long_long);
+        this#add_type_to_scope "Unit" (lookup_stdlib_decl_loc std_unit_unit);
+        this#add_type_to_scope "String" (lookup_stdlib_decl_loc std_string_string)
+      );
       (* Gather imports and add them to toplevel scope *)
       List.iter
         (fun import ->

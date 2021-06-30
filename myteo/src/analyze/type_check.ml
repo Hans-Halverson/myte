@@ -5,14 +5,6 @@ open Type_context
 let rec build_type ~cx ty =
   let open Ast.Type in
   match ty with
-  | Primitive { Primitive.kind; _ } ->
-    let open Primitive in
-    (match kind with
-    | Unit -> Types.Unit
-    | Byte -> Types.Byte
-    | Int -> Types.Int
-    | Long -> Types.Long
-    | Bool -> Types.Bool)
   | Tuple { Tuple.elements; _ } -> Types.Tuple (List.map (build_type ~cx) elements)
   | Function { Function.params; return; _ } ->
     Types.Function
@@ -30,50 +22,48 @@ let rec build_type ~cx ty =
     let type_args = List.map (build_type ~cx) type_params in
     let num_type_args = List.length type_args in
     let binding = Type_context.get_type_binding ~cx loc in
-    (* Check if this is a builtin type *)
-    (match Std_lib.lookup_stdlib_name binding.loc with
-    | Some name when name = Std_lib.std_string_string ->
-      if type_args = [] then
-        Std_lib.mk_string_type ()
+    let mk_if_correct_arity arity mk_ty =
+      if num_type_args = arity then
+        mk_ty ()
       else (
-        type_param_arity_error num_type_args 0;
+        type_param_arity_error num_type_args arity;
         Types.Any
       )
+    in
+    (* Check if this is a builtin type *)
+    (match Std_lib.lookup_stdlib_name binding.loc with
+    | Some name when name = Std_lib.std_bool_bool -> mk_if_correct_arity 0 (fun _ -> Types.Bool)
+    | Some name when name = Std_lib.std_byte_byte -> mk_if_correct_arity 0 (fun _ -> Types.Byte)
+    | Some name when name = Std_lib.std_int_int -> mk_if_correct_arity 0 (fun _ -> Types.Int)
+    | Some name when name = Std_lib.std_long_long -> mk_if_correct_arity 0 (fun _ -> Types.Long)
+    | Some name when name = Std_lib.std_unit_unit -> mk_if_correct_arity 0 (fun _ -> Types.Unit)
+    | Some name when name = Std_lib.std_string_string ->
+      mk_if_correct_arity 0 Std_lib.mk_string_type
     | Some name when name = Std_lib.std_array_array ->
-      (match type_args with
-      | [element_type] -> Types.Array element_type
-      | _ ->
-        type_param_arity_error num_type_args 1;
-        Types.Any)
+      mk_if_correct_arity 1 (fun _ -> Types.Array (List.hd type_args))
     | _ ->
       (match binding.declaration with
       (* Type parameters can be used directly and do not take type parameters of their own *)
-      | TypeParam _ when type_args <> [] ->
-        type_param_arity_error num_type_args 0;
-        Types.Any
-      | TypeParam type_param -> Types.TypeParam (Bindings.TypeParamDeclaration.get type_param)
-      (* Parameterized types must have correct arity *)
-      | TypeAlias { type_params; body = _ } when List.length type_params <> num_type_args ->
-        type_param_arity_error num_type_args (List.length type_params);
-        Types.Any
+      | TypeParam type_param ->
+        mk_if_correct_arity 0 (fun _ ->
+            Types.TypeParam (Bindings.TypeParamDeclaration.get type_param))
       (* Substitute supplied type arguments for type parameters in body of type alias *)
       | TypeAlias { type_params; body } ->
-        let type_param_and_args = List.combine type_params type_args in
-        let subst_map =
-          List.fold_left
-            (fun map (type_param, type_arg) -> IMap.add type_param.Types.TypeParam.id type_arg map)
-            IMap.empty
-            type_param_and_args
-        in
-        Types.substitute_type_params subst_map body
+        mk_if_correct_arity (List.length type_params) (fun _ ->
+            let type_param_and_args = List.combine type_params type_args in
+            let subst_map =
+              List.fold_left
+                (fun map (type_param, type_arg) ->
+                  IMap.add type_param.Types.TypeParam.id type_arg map)
+                IMap.empty
+                type_param_and_args
+            in
+            Types.substitute_type_params subst_map body)
       (* Pass type args to ADT if they have the correct arity *)
       | TypeDecl type_decl ->
         let adt_sig = Bindings.TypeDeclaration.get type_decl in
-        if List.length adt_sig.type_params <> num_type_args then (
-          type_param_arity_error num_type_args (List.length adt_sig.type_params);
-          Types.Any
-        ) else
-          Types.ADT { adt_sig; type_args }))
+        mk_if_correct_arity (List.length adt_sig.type_params) (fun _ ->
+            Types.ADT { adt_sig; type_args })))
 
 and visit_type_declarations_prepass ~cx module_ =
   let open Ast.Module in

@@ -55,9 +55,19 @@ test/parser/ast/builtin/function.myte
             name: "x",
           },
           annot: {
-            node: PrimitiveType,
+            node: IdentifierType,
             loc: 5:22-5:25,
-            kind: Int,
+            name: {
+              node: ScopedIdentifier,
+              loc: 5:22-5:25,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 5:22-5:25,
+                name: "Int",
+              },
+            },
+            type_params: [],
           },
         },
       ],
@@ -67,9 +77,19 @@ test/parser/ast/builtin/function.myte
         name: "foo",
       },
       return: {
-        node: PrimitiveType,
+        node: IdentifierType,
         loc: 5:28-5:32,
-        kind: Unit,
+        name: {
+          node: ScopedIdentifier,
+          loc: 5:28-5:32,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 5:28-5:32,
+            name: "Unit",
+          },
+        },
+        type_params: [],
       },
       type_params: [
         {

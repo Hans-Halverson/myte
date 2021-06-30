@@ -36,9 +36,19 @@ test/parser/ast/type/type_names_used_as_identifier.myte
             name: "Int",
           },
           annot: {
-            node: PrimitiveType,
+            node: IdentifierType,
             loc: 3:14-3:17,
-            kind: Int,
+            name: {
+              node: ScopedIdentifier,
+              loc: 3:14-3:17,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 3:14-3:17,
+                name: "Int",
+              },
+            },
+            type_params: [],
           },
         },
       ],
