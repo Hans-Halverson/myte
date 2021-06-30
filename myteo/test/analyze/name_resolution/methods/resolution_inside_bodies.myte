@@ -1,0 +1,17 @@
+module test
+
+type Foo (Int)
+
+type Bar (Int)
+
+methods Foo {
+  fun existent(x: Int) {
+    val y: Bar = x + 1;
+  }
+
+  fun nonexistent() {
+    val z: Baz = y + 1;
+  }
+}
+
+fun main() {}

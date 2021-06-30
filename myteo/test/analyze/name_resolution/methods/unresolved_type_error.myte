@@ -1,0 +1,11 @@
+module test
+
+type Foo (Int)
+
+// Successfully resolved
+methods Foo {}
+
+// Does not exist
+methods Bar {}
+
+fun main() {}

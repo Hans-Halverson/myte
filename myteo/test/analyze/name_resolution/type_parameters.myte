@@ -14,4 +14,8 @@ type t1<T>(T)
 
 type r1<T> { field: T }
 
+methods r1<T> {
+  fun foo(x: T): T = x
+}
+
 fun main() {}

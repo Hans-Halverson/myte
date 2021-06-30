@@ -1,0 +1,9 @@
+Error: Could not resolve name `Baz` to type
+test/analyze/name_resolution/methods/resolution_inside_bodies.myte:13:11-14
+ 13 |     val z: Baz = y + 1;
+    |            ^^^
+
+Error: Could not resolve name `y` to value
+test/analyze/name_resolution/methods/resolution_inside_bodies.myte:13:17
+ 13 |     val z: Baz = y + 1;
+    |                  ^

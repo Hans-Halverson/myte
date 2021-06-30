@@ -8,6 +8,7 @@ type t =
   | MissingMainFunction
   | MultipleMainFunctions
   | UnresolvedName of string * bool
+  | MethodDeclarationsInSameModule of string * string list
   | InvalidWildcardIdentifier
   | InvalidAssignment of string * invalid_assignment_kind
   | InvalidLValue of invalid_lvalue_kind
@@ -114,6 +115,11 @@ let to_string error =
   | MultipleMainFunctions -> "Main function has already been declared"
   | UnresolvedName (name, is_value) ->
     Printf.sprintf "Could not resolve name `%s` to %s" name (value_or_type is_value)
+  | MethodDeclarationsInSameModule (type_name, module_parts) ->
+    Printf.sprintf
+      "Method declarations must appear in same module as type declaration. Type `%s` is declared in module `%s`."
+      type_name
+      (String.concat "." module_parts)
   | InvalidWildcardIdentifier ->
     Printf.sprintf "`_` is the wildcard pattern and cannot be used as an identifier"
   | InvalidAssignment (name, kind) ->

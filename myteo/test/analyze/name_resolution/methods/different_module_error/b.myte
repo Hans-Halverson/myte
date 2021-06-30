@@ -1,0 +1,7 @@
+module b
+
+import a.Foo
+
+methods Foo {}
+
+fun main() {}

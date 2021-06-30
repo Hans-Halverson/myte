@@ -117,6 +117,8 @@ class bindings_builder ~is_stdlib ~module_tree =
       binding.uses <- LocSet.add use binding.uses;
       type_use_to_decl <- LocMap.add use declaration type_use_to_decl
 
+    method is_current_module name_parts = List.for_all2 ( = ) name_parts module_name
+
     method enter_scope () =
       scopes <- { local_values = SMap.empty; local_types = SMap.empty } :: scopes
 
@@ -390,8 +392,24 @@ class bindings_builder ~is_stdlib ~module_tree =
       function_
 
     method visit_methods_declaration decl =
-      (* TODO: Name resolution for method declaration blocks *)
-      super#methods_declaration decl
+      let open Ast.MethodsDeclaration in
+      let { name = { Ast.Identifier.loc; name }; type_params; methods; _ } = decl in
+      (match this#lookup_type_in_scope name scopes with
+      | None -> this#add_error loc (UnresolvedName (name, false))
+      | Some decl_loc ->
+        let binding = LocMap.find decl_loc type_bindings in
+        if not (this#is_current_module binding.module_) then
+          this#add_error loc (MethodDeclarationsInSameModule (name, module_name))
+        else
+          this#add_type_use decl_loc loc);
+      this#enter_scope ();
+      this#add_type_parameter_declarations type_params (FunctionName name);
+      let methods' = id_map_list (this#visit_function_declaration ~toplevel:false) methods in
+      this#exit_scope ();
+      if methods == methods' then
+        decl
+      else
+        { decl with methods = methods' }
 
     method! assignment assign =
       let open Statement.Assignment in
