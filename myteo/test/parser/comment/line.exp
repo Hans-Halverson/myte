@@ -64,6 +64,7 @@ test/parser/comment/line.myte
       type_params: [],
       builtin: false,
       static: false,
+      override: false,
     },
   ],
 }

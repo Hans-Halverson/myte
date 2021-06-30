@@ -101,6 +101,7 @@ bar",
       type_params: [],
       builtin: false,
       static: false,
+      override: false,
     },
   ],
 }

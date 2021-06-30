@@ -57,7 +57,7 @@ let rec statement_visitor ~f ?(enter_functions = true) stmt =
         | Match.Case.Statement stmt -> statement_visitor ~f stmt
         | _ -> ())
       cases
-  | FunctionDeclaration { Function.body = Function.Expression _; _ }
+  | FunctionDeclaration { Function.body = Function.Expression _ | Function.Signature; _ }
   | VariableDeclaration _
   | Expression _
   | Return _

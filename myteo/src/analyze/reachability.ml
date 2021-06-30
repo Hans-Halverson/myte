@@ -106,7 +106,9 @@ and visit_statements ~cx ~reachability stmts =
 and visit_function ~cx func =
   let open Function in
   match func.body with
-  | Expression _ -> ()
+  | Signature
+  | Expression _ ->
+    ()
   | Block { statements; _ } -> ignore (visit_statements ~cx ~reachability:Reachable statements)
 
 let analyze mod_ =
@@ -116,7 +118,7 @@ let analyze mod_ =
     (fun toplevel ->
       match toplevel with
       | FunctionDeclaration func -> visit_function ~cx func
-      | MethodsDeclaration { methods; _ } -> List.iter (visit_function ~cx) methods
+      | TraitDeclaration { methods; _ } -> List.iter (visit_function ~cx) methods
       | VariableDeclaration _
       | TypeDeclaration _ ->
         ())

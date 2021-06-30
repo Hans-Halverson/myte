@@ -22,7 +22,7 @@ class ['a] visitor =
         | VariableDeclaration t -> this#variable_declaration acc t
         | FunctionDeclaration t -> this#function_ acc t
         | TypeDeclaration t -> this#type_declaration acc t
-        | MethodsDeclaration t -> this#methods_declaration acc t
+        | TraitDeclaration t -> this#trait_declaration acc t
 
     method statement : 'a -> Statement.t -> unit =
       fun acc stmt ->
@@ -214,7 +214,19 @@ class ['a] visitor =
 
     method function_ acc func =
       let open Function in
-      let { loc = _; name; params; body; return; type_params; builtin = _; static = _ } = func in
+      let {
+        loc = _;
+        name;
+        params;
+        body;
+        return;
+        type_params;
+        builtin = _;
+        static = _;
+        override = _;
+      } =
+        func
+      in
       this#identifier acc name;
       List.iter (this#function_param acc) params;
       this#function_body acc body;
@@ -237,6 +249,7 @@ class ['a] visitor =
       match body with
       | Block block -> this#block acc block
       | Expression expr -> this#expression acc expr
+      | Signature -> ()
 
     method expression_statement acc stmt =
       let (_, expr) = stmt in
@@ -299,12 +312,19 @@ class ['a] visitor =
       this#expression acc init;
       Option.iter (this#type_ acc) annot
 
-    method methods_declaration acc decl =
-      let open MethodsDeclaration in
-      let { loc = _; name; type_params; methods } = decl in
+    method trait_declaration acc decl =
+      let open TraitDeclaration in
+      let { loc = _; kind = _; name; type_params; implemented; methods } = decl in
       this#identifier acc name;
       List.iter (this#type_parameter acc) type_params;
+      List.iter (this#trait_declaration_implemented acc) implemented;
       List.iter (this#function_ acc) methods
+
+    method trait_declaration_implemented acc trait =
+      let open TraitDeclaration.ImplementedTrait in
+      let { loc = _; name; type_args } = trait in
+      this#scoped_identifier acc name;
+      List.iter (this#type_ acc) type_args
 
     method type_declaration acc decl =
       let open TypeDeclaration in

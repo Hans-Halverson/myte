@@ -128,13 +128,13 @@ and emit_toplevel_variable_declaration ~ecx decl =
 
 and emit_toplevel_function_declaration ~ecx decl =
   let open Ast.Function in
-  let { name = { Identifier.loc; _ }; builtin; _ } = decl in
+  let { name = { Identifier.loc; _ }; body; _ } = decl in
   let binding = Bindings.get_value_binding ecx.pcx.bindings loc in
   let name = mk_value_binding_name binding in
   Ecx.add_function_declaration_node ~ecx name decl;
   (* Non-generic functions are emitted now. An instance of generic functions will be emitted when
      they are instantiated. *)
-  if not builtin then
+  if body <> Signature then
     let binding = Type_context.get_value_binding ~cx:ecx.pcx.type_ctx loc in
     let func_decl = Bindings.get_func_decl binding in
     if func_decl.type_params = [] then emit_function ~ecx name decl
@@ -164,7 +164,8 @@ and emit_function ~ecx name decl =
       | _ -> Ecx.emit ~ecx (Ret None))
     | Expression expr ->
       let ret_val = emit_expression ~ecx expr in
-      Ecx.emit ~ecx (Ret (Some ret_val)));
+      Ecx.emit ~ecx (Ret (Some ret_val))
+    | Signature -> ());
     Ecx.finish_block_halt ~ecx;
     body_start_block
   in

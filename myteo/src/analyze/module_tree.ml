@@ -56,7 +56,7 @@ let add_exports module_ submodule_tree =
     in
     match toplevels with
     | [] -> (submodule_tree, [])
-    | MethodsDeclaration _ :: rest -> add_exports_to_tree rest []
+    | TraitDeclaration _ :: rest -> add_exports_to_tree rest []
     | VariableDeclaration { Ast.Statement.VariableDeclaration.loc; kind; pattern; _ } :: rest ->
       let ids = Ast_utils.ids_of_pattern pattern in
       let mut_export_info id export_info = { export_info with value = Some (VarDecl kind, id) } in

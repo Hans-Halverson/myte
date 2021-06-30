@@ -93,6 +93,7 @@ test/parser/ast/type_cast/basic.myte
       type_params: [],
       builtin: false,
       static: false,
+      override: false,
     },
     {
       node: Function,
@@ -112,6 +113,7 @@ test/parser/ast/type_cast/basic.myte
       type_params: [],
       builtin: false,
       static: false,
+      override: false,
     },
   ],
 }

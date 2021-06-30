@@ -691,6 +691,7 @@ test/analyze/name_resolution/resolved_scoped_id/b.myte
       type_params: [],
       builtin: false,
       static: false,
+      override: false,
     },
     {
       node: TypeDeclaration,
@@ -2652,6 +2653,7 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
       type_params: [],
       builtin: false,
       static: false,
+      override: false,
     },
     {
       node: Function,
@@ -2671,6 +2673,7 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
       type_params: [],
       builtin: false,
       static: false,
+      override: false,
     },
   ],
 }

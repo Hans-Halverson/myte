@@ -853,6 +853,7 @@ test/parser/ast/binary_operation/basic.myte
       type_params: [],
       builtin: false,
       static: false,
+      override: false,
     },
   ],
 }

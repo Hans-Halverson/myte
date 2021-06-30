@@ -6153,6 +6153,7 @@ test/parser/ast/expression/precedence.myte
       type_params: [],
       builtin: false,
       static: false,
+      override: false,
     },
   ],
 }

@@ -3,7 +3,7 @@ module rec Module : sig
     | VariableDeclaration of Statement.VariableDeclaration.t
     | FunctionDeclaration of Function.t
     | TypeDeclaration of TypeDeclaration.t
-    | MethodsDeclaration of MethodsDeclaration.t
+    | TraitDeclaration of TraitDeclaration.t
 
   module Module : sig
     type t = {
@@ -387,6 +387,7 @@ and Function : sig
   type body =
     | Block of Statement.Block.t
     | Expression of Expression.t
+    | Signature
 
   and t = {
     loc: Loc.t;
@@ -397,6 +398,7 @@ and Function : sig
     type_params: TypeParameter.t list;
     builtin: bool;
     static: bool;
+    override: bool;
   }
 end =
   Function
@@ -447,15 +449,29 @@ and TypeDeclaration : sig
 end =
   TypeDeclaration
 
-and MethodsDeclaration : sig
+and TraitDeclaration : sig
+  module ImplementedTrait : sig
+    type t = {
+      loc: Loc.t;
+      name: ScopedIdentifier.t;
+      type_args: Type.t list;
+    }
+  end
+
+  type kind =
+    | Methods
+    | Trait
+
   type t = {
     loc: Loc.t;
+    kind: kind;
     name: Identifier.t;
     type_params: TypeParameter.t list;
+    implemented: ImplementedTrait.t list;
     methods: Function.t list;
   }
 end =
-  MethodsDeclaration
+  TraitDeclaration
 
 and Identifier : sig
   type t = {

@@ -207,7 +207,7 @@ and check_module ~cx module_ =
       match toplevel with
       | VariableDeclaration decl -> check_variable_declaration ~cx decl
       | FunctionDeclaration decl -> check_toplevel_function_declaration ~cx decl
-      | MethodsDeclaration _ -> (* TODO: Type check method declaration blocks *) ()
+      | TraitDeclaration _ -> (* TODO: Type check method declaration blocks *) ()
       | TypeDeclaration _ -> ())
     toplevels
 
@@ -297,6 +297,7 @@ and check_function_declaration_body ~cx decl =
          ignore (Type_context.unify ~cx param_ty (TVar param_decl.tvar_id)));
 
   match body with
+  | Signature -> ()
   | Expression expr ->
     (* Expression body must be subtype of return type *)
     let (expr_loc, expr_tvar_id) = check_expression ~cx expr in

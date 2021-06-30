@@ -1,0 +1,5 @@
+module test
+
+methods Foo {
+  extends Bar
+}

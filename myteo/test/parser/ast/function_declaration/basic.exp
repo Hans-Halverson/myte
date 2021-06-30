@@ -50,6 +50,7 @@ test/parser/ast/function_declaration/basic.myte
       type_params: [],
       builtin: false,
       static: false,
+      override: false,
     },
     {
       node: Function,
@@ -83,6 +84,7 @@ test/parser/ast/function_declaration/basic.myte
       type_params: [],
       builtin: false,
       static: false,
+      override: false,
     },
     {
       node: Function,
@@ -189,6 +191,7 @@ test/parser/ast/function_declaration/basic.myte
       type_params: [],
       builtin: false,
       static: false,
+      override: false,
     },
     {
       node: Function,
@@ -295,6 +298,7 @@ test/parser/ast/function_declaration/basic.myte
       type_params: [],
       builtin: false,
       static: false,
+      override: false,
     },
     {
       node: Function,
@@ -324,6 +328,7 @@ test/parser/ast/function_declaration/basic.myte
       ],
       builtin: false,
       static: false,
+      override: false,
     },
     {
       node: Function,
@@ -378,6 +383,7 @@ test/parser/ast/function_declaration/basic.myte
       ],
       builtin: false,
       static: false,
+      override: false,
     },
     {
       node: Function,
@@ -488,6 +494,7 @@ test/parser/ast/function_declaration/basic.myte
       ],
       builtin: false,
       static: false,
+      override: false,
     },
     {
       node: Function,
@@ -598,6 +605,7 @@ test/parser/ast/function_declaration/basic.myte
       ],
       builtin: false,
       static: false,
+      override: false,
     },
   ],
 }

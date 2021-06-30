@@ -82,6 +82,7 @@ test/parser/ast/access/named_access.myte
       type_params: [],
       builtin: false,
       static: false,
+      override: false,
     },
   ],
 }

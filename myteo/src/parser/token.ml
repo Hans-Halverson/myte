@@ -51,8 +51,12 @@ type t =
   | T_TYPE
   | T_ALIAS
   | T_BUILTIN
+  | T_TRAIT
   | T_METHODS
+  | T_EXTENDS
+  | T_IMPLEMENTS
   | T_STATIC
+  | T_OVERRIDE
   | T_EOF
 
 let to_string token =
@@ -113,6 +117,10 @@ let to_string token =
   | T_TYPE -> "type"
   | T_ALIAS -> "alias"
   | T_BUILTIN -> "builtin"
+  | T_TRAIT -> "trait"
   | T_METHODS -> "methods"
+  | T_EXTENDS -> "extends"
+  | T_IMPLEMENTS -> "implements"
   | T_STATIC -> "static"
+  | T_OVERRIDE -> "override"
   | T_EOF -> "<EOF>"

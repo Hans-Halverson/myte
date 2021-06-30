@@ -1,0 +1,50 @@
+module test
+
+methods Foo {}
+
+methods Foo<T, U> {}
+
+methods Foo<T, U,> {}
+
+methods Foo {
+  fun test1() {}
+
+  fun test2() = 1
+
+  fun test3() {}
+}
+
+methods Foo<T> {
+  static fun staticTest1() {}
+  
+  fun nonStaticTest2() {}
+
+  static fun staticTest3<U>() {}
+}
+
+methods Foo {
+  builtin fun builtinFun()
+
+  override fun overrideFun() {}
+
+  static fun staticFun() {}
+
+  builtin static fun builtinStaticFun()
+
+  builtin override fun builtinOverrideFun()
+
+  builtin override static fun builtinOverrideStaticFun()
+
+  override static fun staticOverrideFun() {}
+}
+
+methods Foo {
+  implements ToString
+  implements a.b.Trait<T, (V, X),>
+}
+
+methods Foo {
+  implements ToString
+
+  fun foo() {}
+}

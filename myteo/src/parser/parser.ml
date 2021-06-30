@@ -166,16 +166,32 @@ and parse_toplevel env =
     VariableDeclaration (parse_variable_declaration ~is_toplevel:true env)
   | T_FUN ->
     let marker = mark_loc env in
-    FunctionDeclaration (parse_function ~is_builtin:false ~is_static:false marker env)
+    FunctionDeclaration
+      (parse_function
+         ~is_builtin:false
+         ~is_static:false
+         ~is_override:false
+         ~in_trait:false
+         marker
+         env)
   | T_TYPE -> TypeDeclaration (parse_type_declaration ~is_builtin:false env)
   | T_BUILTIN ->
     let marker = mark_loc env in
     Env.advance env;
     (match Env.token env with
-    | T_FUN -> FunctionDeclaration (parse_function ~is_builtin:true ~is_static:false marker env)
+    | T_FUN ->
+      FunctionDeclaration
+        (parse_function
+           ~is_builtin:true
+           ~is_static:false
+           ~is_override:false
+           ~in_trait:false
+           marker
+           env)
     | T_TYPE -> TypeDeclaration (parse_type_declaration ~is_builtin:true env)
     | token -> Parse_error.fatal (Env.loc env, UnexpectedTokens (token, [T_FUN; T_TYPE])))
-  | T_METHODS -> MethodsDeclaration (parse_methods_declaration env)
+  | T_METHODS -> TraitDeclaration (parse_trait_declaration ~kind:TraitDeclaration.Methods env)
+  | T_TRAIT -> TraitDeclaration (parse_trait_declaration ~kind:TraitDeclaration.Trait env)
   | token -> Parse_error.fatal (Env.loc env, MalformedTopLevel token)
 
 and parse_statement env =
@@ -193,7 +209,14 @@ and parse_statement env =
     VariableDeclaration (parse_variable_declaration ~is_toplevel:false env)
   | T_FUN ->
     let marker = mark_loc env in
-    FunctionDeclaration (parse_function ~is_builtin:false ~is_static:false marker env)
+    FunctionDeclaration
+      (parse_function
+         ~is_builtin:false
+         ~is_static:false
+         ~is_override:false
+         ~in_trait:false
+         marker
+         env)
   | _ -> parse_assignment_or_expression_statement env
 
 and parse_assignment_or_expression_statement env =
@@ -1060,7 +1083,7 @@ and parse_variable_declaration ~is_toplevel env =
   let loc = marker env in
   { VariableDeclaration.loc; kind; pattern; init; annot }
 
-and parse_function ~is_builtin ~is_static marker env =
+and parse_function ~is_builtin ~is_static ~is_override ~in_trait marker env =
   let open Function in
   Env.expect env T_FUN;
   let name = parse_identifier env in
@@ -1099,34 +1122,36 @@ and parse_function ~is_builtin ~is_static marker env =
       Some (parse_type env)
     | _ -> None
   in
-  (* Builtin functions do not have a body, use function name as expression body *)
-  if is_builtin then
-    let loc = marker env in
-    {
-      loc;
-      name;
-      params;
-      body = Expression (Expression.Identifier name);
-      return;
-      type_params;
-      builtin = true;
-      static = is_static;
-    }
-  else
-    let body =
-      match Env.token env with
-      | T_LEFT_BRACE -> Block (parse_block env)
-      | T_EQUALS ->
-        Env.advance env;
-        Expression (parse_expression env)
-      | token -> Parse_error.fatal (Env.loc env, MalformedFunctionBody token)
-    in
-    let loc = marker env in
-    { loc; name; params; body; return; type_params; builtin = false; static = is_static }
+  let body =
+    match Env.token env with
+    (* Builtin functions never have a body, so mark body as function signature *)
+    | _ when is_builtin -> Signature
+    | T_LEFT_BRACE -> Block (parse_block env)
+    | T_EQUALS ->
+      Env.advance env;
+      Expression (parse_expression env)
+    (* Methods in trait may have a body, otherwise they are method signatures *)
+    | _ when in_trait -> Signature
+    | token -> Parse_error.fatal (Env.loc env, MalformedFunctionBody token)
+  in
+  let loc = marker env in
+  {
+    loc;
+    name;
+    params;
+    body;
+    return;
+    type_params;
+    builtin = is_builtin;
+    static = is_static;
+    override = is_override;
+  }
 
-and parse_methods_declaration env =
+and parse_trait_declaration ~kind env =
   let marker = mark_loc env in
-  Env.expect env T_METHODS;
+  (match kind with
+  | Methods -> Env.expect env T_METHODS
+  | Trait -> Env.expect env T_TRAIT);
   let name = parse_identifier env in
   let type_params =
     if Env.token env = T_LESS_THAN then
@@ -1135,16 +1160,48 @@ and parse_methods_declaration env =
       []
   in
   Env.expect env T_LEFT_BRACE;
-  let rec parse_methods acc =
-    match Env.token env with
-    | T_STATIC ->
+  let rec parse_implemented acc =
+    match (Env.token env, kind) with
+    | (T_EXTENDS, Trait)
+    | (T_IMPLEMENTS, Methods) ->
       let marker = mark_loc env in
       Env.advance env;
-      let func = parse_function ~is_builtin:false ~is_static:true marker env in
-      parse_methods (func :: acc)
+      let name = parse_scoped_identifier env in
+      let type_args = parse_type_args env in
+      let loc = marker env in
+      let trait = { TraitDeclaration.ImplementedTrait.loc; name; type_args } in
+      parse_implemented (trait :: acc)
+    | _ -> acc
+  in
+  let implemented = parse_implemented [] |> List.rev in
+  let rec parse_methods acc =
+    let marker = mark_loc env in
+    let is_builtin =
+      match Env.token env with
+      | T_BUILTIN ->
+        Env.advance env;
+        true
+      | _ -> false
+    in
+    let is_override =
+      match Env.token env with
+      | T_OVERRIDE ->
+        Env.advance env;
+        true
+      | _ -> false
+    in
+    let is_static =
+      match Env.token env with
+      | T_STATIC ->
+        Env.advance env;
+        true
+      | _ -> false
+    in
+    match Env.token env with
     | T_FUN ->
-      let marker = mark_loc env in
-      let func = parse_function ~is_builtin:false ~is_static:false marker env in
+      let func =
+        parse_function ~is_builtin ~is_static ~is_override ~in_trait:(kind = Trait) marker env
+      in
       parse_methods (func :: acc)
     | T_RIGHT_BRACE -> acc
     | token -> Parse_error.fatal (Env.loc env, MalformedMethodsItem token)
@@ -1152,7 +1209,7 @@ and parse_methods_declaration env =
   let methods = parse_methods [] |> List.rev in
   Env.expect env T_RIGHT_BRACE;
   let loc = marker env in
-  { loc; name; type_params; methods }
+  { loc; kind; name; type_params; implemented; methods }
 
 and parse_type env =
   let marker = mark_loc env in
@@ -1209,37 +1266,38 @@ and parse_parenthesized_type_or_params ?(trailing_comma_loc = None) env =
     let (tys, trailing_comma_loc) = parse_parenthesized_type_or_params ~trailing_comma_loc env in
     (ty :: tys, trailing_comma_loc)
 
+and parse_type_args env =
+  match Env.token env with
+  | T_LESS_THAN ->
+    Env.advance env;
+    (* List of type params must be nonempty *)
+    if Env.token env = T_GREATER_THAN then (
+      Env.expect env (T_IDENTIFIER "");
+      []
+    ) else
+      let rec type_params env =
+        match Env.token env with
+        | T_GREATER_THAN ->
+          Env.advance env;
+          []
+        | _ ->
+          let ty = parse_type env in
+          begin
+            match Env.token env with
+            | T_GREATER_THAN -> ()
+            | T_COMMA -> Env.advance env
+            | _ -> Env.expect env T_GREATER_THAN
+          end;
+          ty :: type_params env
+      in
+      type_params env
+  | _ -> []
+
 and parse_identifier_type env =
   let open Type.Identifier in
   let marker = mark_loc env in
   let name = parse_scoped_identifier env in
-  let type_params =
-    match Env.token env with
-    | T_LESS_THAN ->
-      Env.advance env;
-      (* List of type params must be nonempty *)
-      if Env.token env = T_GREATER_THAN then (
-        Env.expect env (T_IDENTIFIER "");
-        []
-      ) else
-        let rec type_params env =
-          match Env.token env with
-          | T_GREATER_THAN ->
-            Env.advance env;
-            []
-          | _ ->
-            let ty = parse_type env in
-            begin
-              match Env.token env with
-              | T_GREATER_THAN -> ()
-              | T_COMMA -> Env.advance env
-              | _ -> Env.expect env T_GREATER_THAN
-            end;
-            ty :: type_params env
-        in
-        type_params env
-    | _ -> []
-  in
+  let type_params = parse_type_args env in
   let loc = marker env in
   Identifier { loc; name; type_params }
 

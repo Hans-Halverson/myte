@@ -134,6 +134,7 @@ test/parser/ast/tuple/expression.myte
       type_params: [],
       builtin: false,
       static: false,
+      override: false,
     },
   ],
 }

@@ -277,7 +277,7 @@ class bindings_builder ~is_stdlib ~module_tree =
               in
               add_type_name name mk_decl
             )
-          | MethodsDeclaration _ -> ())
+          | TraitDeclaration _ -> ())
         toplevels;
       (* Add variant type declarations to toplevel scope *)
       List.iter
@@ -315,9 +315,9 @@ class bindings_builder ~is_stdlib ~module_tree =
               ignore (this#type_declaration type_decl);
               if type_params <> [] then this#exit_scope ();
               toplevel
-            | MethodsDeclaration decl ->
-              id_map this#visit_methods_declaration decl toplevel (fun decl' ->
-                  MethodsDeclaration decl'))
+            | TraitDeclaration decl ->
+              id_map this#visit_trait_declaration decl toplevel (fun decl' ->
+                  TraitDeclaration decl'))
           toplevels
       in
       this#exit_scope ();
@@ -397,9 +397,9 @@ class bindings_builder ~is_stdlib ~module_tree =
       this#exit_scope ();
       function_
 
-    method visit_methods_declaration decl =
-      let open Ast.MethodsDeclaration in
-      let { name = { Ast.Identifier.loc; name }; type_params; methods; _ } = decl in
+    method visit_trait_declaration decl =
+      let open Ast.TraitDeclaration in
+      let { name = { Ast.Identifier.loc; name }; kind = _; type_params; methods; _ } = decl in
       (match this#lookup_type_in_scope name scopes with
       | None -> this#add_error loc (UnresolvedName (name, false))
       | Some decl_loc ->

@@ -36,8 +36,8 @@ class mapper =
           id_map this#function_ t toplevel (fun t' -> FunctionDeclaration t')
         | TypeDeclaration t ->
           id_map this#type_declaration t toplevel (fun t' -> TypeDeclaration t')
-        | MethodsDeclaration t ->
-          id_map this#methods_declaration t toplevel (fun t' -> MethodsDeclaration t')
+        | TraitDeclaration t ->
+          id_map this#trait_declaration t toplevel (fun t' -> TraitDeclaration t')
 
     method statement : Statement.t -> Statement.t =
       fun stmt ->
@@ -302,7 +302,7 @@ class mapper =
 
     method function_ func =
       let open Function in
-      let { loc; name; params; body; return; type_params; builtin; static } = func in
+      let { loc; name; params; body; return; type_params; builtin; static; override } = func in
       let name' = this#identifier name in
       let params' = id_map_list this#function_param params in
       let body' = this#function_body body in
@@ -326,6 +326,7 @@ class mapper =
           type_params = type_params';
           builtin;
           static;
+          override;
         }
 
     method function_param param =
@@ -343,6 +344,7 @@ class mapper =
       match body with
       | Block block -> id_map this#block block body (fun block' -> Block block')
       | Expression expr -> id_map this#expression expr body (fun expr' -> Expression expr')
+      | Signature -> body
 
     method expression_statement stmt =
       let (loc, expr) = stmt in
@@ -445,16 +447,34 @@ class mapper =
       else
         { loc; kind; pattern = pattern'; init = init'; annot = annot' }
 
-    method methods_declaration decl =
-      let open MethodsDeclaration in
-      let { loc; name; type_params; methods } = decl in
+    method trait_declaration decl =
+      let open TraitDeclaration in
+      let { loc; kind; name; type_params; implemented; methods } = decl in
       let name' = this#identifier name in
       let type_params' = id_map_list this#type_parameter type_params in
+      let implemented' = id_map_list this#trait_declaration_implemented implemented in
       let methods' = id_map_list this#function_ methods in
       if name == name' && type_params == type_params' && methods == methods' then
         decl
       else
-        { loc; name = name'; type_params = type_params'; methods = methods' }
+        {
+          loc;
+          kind;
+          name = name';
+          type_params = type_params';
+          implemented = implemented';
+          methods = methods';
+        }
+
+    method trait_declaration_implemented trait =
+      let open TraitDeclaration.ImplementedTrait in
+      let { loc; name; type_args } = trait in
+      let name' = this#scoped_identifier name in
+      let type_args' = id_map_list this#type_ type_args in
+      if name == name' && type_args == type_args' then
+        trait
+      else
+        { loc; name = name'; type_args = type_args' }
 
     method type_parameter param =
       let open TypeParameter in

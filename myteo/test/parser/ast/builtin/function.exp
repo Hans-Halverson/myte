@@ -27,15 +27,12 @@ test/parser/ast/builtin/function.myte
         name: "foo",
       },
       params: [],
-      body: {
-        node: Identifier,
-        loc: 3:12-3:15,
-        name: "foo",
-      },
+      body: None,
       return: None,
       type_params: [],
       builtin: true,
       static: false,
+      override: false,
     },
     {
       node: Function,
@@ -71,11 +68,7 @@ test/parser/ast/builtin/function.myte
           },
         },
       ],
-      body: {
-        node: Identifier,
-        loc: 5:12-5:15,
-        name: "foo",
-      },
+      body: None,
       return: {
         node: IdentifierType,
         loc: 5:28-5:32,
@@ -104,6 +97,7 @@ test/parser/ast/builtin/function.myte
       ],
       builtin: true,
       static: false,
+      override: false,
     },
   ],
 }

@@ -1,0 +1,4 @@
+Error: Unexpected token `extends`, expected start of method
+test/parser/ast/trait_declaration/extends_in_methods_error.myte:4:2-9
+ 4 |   extends Bar
+   |   ^^^^^^^

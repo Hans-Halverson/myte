@@ -1,0 +1,24 @@
+module test
+
+trait Foo {}
+
+trait Foo {
+  extends Bar<T>
+  extends Baz<T, (U, V)>
+}
+
+trait Foo {
+  fun bar(x: Int)
+  fun foo(x: Int): String
+  fun baz(x: Int)
+}
+
+trait Foo<T> {
+  fun foo<U>(x: T): U {
+    return 1;
+  }
+
+  builtin fun builtinFun()
+  override fun overrideFun()
+  static fun staticFun()
+}

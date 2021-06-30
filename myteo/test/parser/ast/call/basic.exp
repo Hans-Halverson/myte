@@ -192,6 +192,7 @@ test/parser/ast/call/basic.myte
       type_params: [],
       builtin: false,
       static: false,
+      override: false,
     },
   ],
 }

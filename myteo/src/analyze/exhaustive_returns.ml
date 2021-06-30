@@ -76,7 +76,9 @@ class analyzer =
       let { Function.name; body; return; _ } = func in
       begin
         match body with
-        | Expression _ -> ()
+        | Signature
+        | Expression _ ->
+          ()
         | Block ({ Statement.Block.loc; _ } as block) ->
           let exhaustive = this#exhaustive (Statement.Block block) in
           (* Functions that return unit do not need exhaustive returns *)
