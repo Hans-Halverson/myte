@@ -1,4 +1,4 @@
 Error: Method declarations must appear in same module as type declaration. Type `Foo` is declared in module `b`.
-test/analyze/name_resolution/methods/different_module_error/b.myte:5:8-11
+test/analyze/name_resolution/traits/different_module_error/b.myte:5:8-11
  5 | methods Foo {}
    |         ^^^

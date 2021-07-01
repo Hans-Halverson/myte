@@ -1,0 +1,47 @@
+module test
+
+import a
+
+type FooType (Int)
+
+trait Local {}
+trait ParameterizedLocal<T, U> {}
+
+trait TestTrait {
+  // Success
+  extends Local
+  extends ParameterizedLocal<Int, String>
+  extends a.b.Export
+
+  // Failure
+  extends NonexistLocal
+}
+
+methods FooType {
+  // Success
+  implements Local
+  implements ParameterizedLocal<Int, String>
+  implements a.b.Export
+
+  // Failure
+  implements NonexistLocal
+}
+
+// Resolving type names in implemented
+trait TestTrait2<T, U> {
+  extends ParameterizedLocal<FooType, FooType>
+  extends ParameterizedLocal<T, U>
+
+  // Failure
+  extends ParameterizedLocal<Nonexist, Int>
+}
+
+methods FooType<T, U> {
+  implements ParameterizedLocal<FooType, FooType>
+  implements ParameterizedLocal<T, U>
+
+  // Failure
+  implements ParameterizedLocal<Nonexist, Int>
+}
+
+fun main() {}

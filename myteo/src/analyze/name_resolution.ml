@@ -49,6 +49,7 @@ class bindings_builder ~is_stdlib ~module_tree =
           match kind with
           | Module_tree.TypeDecl -> Decl (TypeDecl (TypeDeclaration.mk ()))
           | Module_tree.TypeAlias alias_decl -> Decl (TypeAlias alias_decl)
+          | Module_tree.TraitDecl -> Decl (TraitDecl (TraitDeclaration.mk ()))
         in
         LocMap.add loc (mk_binding_builder ~loc ~name ~kind ~is_global:true ~module_) acc)
       LocMap.empty
@@ -277,7 +278,12 @@ class bindings_builder ~is_stdlib ~module_tree =
               in
               add_type_name name mk_decl
             )
-          | TraitDeclaration _ -> ())
+          | TraitDeclaration { kind = Methods; _ } -> ()
+          | TraitDeclaration { kind = Trait; name; _ } ->
+            if name.name = "_" then
+              this#add_error name.loc InvalidWildcardIdentifier
+            else
+              add_type_name name (fun _ -> Decl (TraitDecl (TraitDeclaration.mk ()))))
         toplevels;
       (* Add variant type declarations to toplevel scope *)
       List.iter
@@ -399,17 +405,29 @@ class bindings_builder ~is_stdlib ~module_tree =
 
     method visit_trait_declaration decl =
       let open Ast.TraitDeclaration in
-      let { name = { Ast.Identifier.loc; name }; kind = _; type_params; methods; _ } = decl in
-      (match this#lookup_type_in_scope name scopes with
-      | None -> this#add_error loc (UnresolvedName (name, false))
-      | Some decl_loc ->
-        let binding = LocMap.find decl_loc type_bindings in
-        if not (this#is_current_module binding.module_) then
-          this#add_error loc (MethodDeclarationsInSameModule (name, module_name))
-        else
-          this#add_type_use decl_loc loc);
+      let { name = { Ast.Identifier.loc; name }; kind; type_params; implemented; methods; _ } =
+        decl
+      in
+      (* Check that method declarations appear in same module as type declaration *)
+      (match kind with
+      | Methods ->
+        (match this#lookup_type_in_scope name scopes with
+        | None -> this#add_error loc (UnresolvedName (name, false))
+        | Some decl_loc ->
+          let binding = LocMap.find decl_loc type_bindings in
+          if not (this#is_current_module binding.module_) then
+            this#add_error loc (MethodDeclarationsInSameModule (name, module_name))
+          else
+            this#add_type_use decl_loc loc)
+      | Trait -> ());
+      (* Resolve names of methods and implemented traits in new scope containing type params *)
       this#enter_scope ();
       this#add_type_parameter_declarations type_params (FunctionName name);
+      List.iter
+        (fun { ImplementedTrait.name; type_args; _ } ->
+          this#resolve_type_scoped_id name;
+          List.iter (fun ty -> ignore (this#type_ ty)) type_args)
+        implemented;
       let methods' = id_map_list (this#visit_function_declaration ~toplevel:false) methods in
       this#exit_scope ();
       if methods == methods' then
@@ -622,35 +640,36 @@ class bindings_builder ~is_stdlib ~module_tree =
       | Some _ -> ());
       super#record_expression_field field
 
+    method resolve_type_scoped_id id =
+      let { Ast.ScopedIdentifier.name; scopes = scope_ids; _ } = id in
+      let all_parts = scope_ids @ [name] in
+      let (first_part, rest_parts) = List_utils.split_first all_parts in
+      let match_module_parts module_tree =
+        match rest_parts with
+        | [] ->
+          let { Ast.Identifier.loc; name } = first_part in
+          this#add_error loc (ModuleInvalidPosition ([name], false))
+        | _ :: _ -> this#match_module_parts_type module_tree first_part rest_parts
+      in
+      match this#lookup_type_in_scope first_part.name scopes with
+      | None ->
+        (match SMap.find_opt first_part.name module_tree with
+        | None ->
+          (* Error if first part of scoped id cannot be resolved *)
+          this#add_error first_part.loc (UnresolvedName (first_part.name, false))
+        | Some (Export _) -> failwith "Exports cannot appear at top level of module tree"
+        | Some (Empty (_, module_tree) | Module (_, module_tree)) -> match_module_parts module_tree)
+      | Some decl_loc ->
+        this#add_type_use decl_loc first_part.loc;
+        let declaration = (LocMap.find decl_loc type_bindings).declaration in
+        (match declaration with
+        | ModuleDecl module_tree -> match_module_parts module_tree
+        | Decl _ -> ())
+
     method! type_ ty =
       let open Ast.Type in
       (match ty with
-      | Identifier { name = { Ast.ScopedIdentifier.name; scopes = scope_ids; _ }; _ } ->
-        let open Ast.Identifier in
-        let all_parts = scope_ids @ [name] in
-        let (first_part, rest_parts) = List_utils.split_first all_parts in
-        let match_module_parts module_tree =
-          match rest_parts with
-          | [] ->
-            let { Ast.Identifier.loc; name } = first_part in
-            this#add_error loc (ModuleInvalidPosition ([name], false))
-          | _ :: _ -> this#match_module_parts_type module_tree first_part rest_parts
-        in
-        (match this#lookup_type_in_scope first_part.name scopes with
-        | None ->
-          (match SMap.find_opt first_part.name module_tree with
-          | None ->
-            (* Error if first part of scoped id cannot be resolved *)
-            this#add_error first_part.loc (UnresolvedName (first_part.name, false))
-          | Some (Export _) -> failwith "Exports cannot appear at top level of module tree"
-          | Some (Empty (_, module_tree) | Module (_, module_tree)) ->
-            match_module_parts module_tree)
-        | Some decl_loc ->
-          this#add_type_use decl_loc first_part.loc;
-          let declaration = (LocMap.find decl_loc type_bindings).declaration in
-          (match declaration with
-          | ModuleDecl module_tree -> match_module_parts module_tree
-          | Decl _ -> ()))
+      | Identifier { name; _ } -> this#resolve_type_scoped_id name
       | _ -> ());
       super#type_ ty
 

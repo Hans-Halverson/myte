@@ -18,6 +18,7 @@ and value_export_kind =
 and type_export_kind =
   | TypeDecl
   | TypeAlias of TypeAliasDeclaration.t
+  | TraitDecl
 
 and export_info = {
   value: (value_export_kind * Ast.Identifier.t) option;
@@ -56,7 +57,8 @@ let add_exports module_ submodule_tree =
     in
     match toplevels with
     | [] -> (submodule_tree, [])
-    | TraitDeclaration _ :: rest -> add_exports_to_tree rest []
+    (* Methods declarations do not define any exports *)
+    | TraitDeclaration { kind = Methods; _ } :: rest -> add_exports_to_tree rest []
     | VariableDeclaration { Ast.Statement.VariableDeclaration.loc; kind; pattern; _ } :: rest ->
       let ids = Ast_utils.ids_of_pattern pattern in
       let mut_export_info id export_info = { export_info with value = Some (VarDecl kind, id) } in
@@ -95,6 +97,10 @@ let add_exports module_ submodule_tree =
             variants
       in
       add_exports_to_tree rest (List.rev exports)
+    | TraitDeclaration { loc; name; kind = Trait; _ } :: rest ->
+      add_exports_to_tree
+        rest
+        [(name, loc, (fun export_info -> { export_info with ty = Some (TraitDecl, name) }))]
   in
   add_exports_inner module_.toplevels
 

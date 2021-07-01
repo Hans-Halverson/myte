@@ -63,7 +63,8 @@ let rec build_type ~cx ty =
       | TypeDecl type_decl ->
         let adt_sig = Bindings.TypeDeclaration.get type_decl in
         mk_if_correct_arity (List.length adt_sig.type_params) (fun _ ->
-            Types.ADT { adt_sig; type_args })))
+            Types.ADT { adt_sig; type_args })
+      | TraitDecl _ -> failwith "TODO: Type check traits"))
 
 and visit_type_declarations_prepass ~cx module_ =
   let open Ast.Module in

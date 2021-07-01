@@ -75,6 +75,12 @@ module TypeDeclaration = struct
   let set decl adt_sig = decl.adt_sig <- Some adt_sig
 end
 
+module TraitDeclaration = struct
+  type t = unit
+
+  let mk () = ()
+end
+
 type value_declaration =
   | VarDecl of VariableDeclaration.t
   | FunDecl of FunctionDeclaration.t
@@ -85,6 +91,7 @@ type type_declaration =
   | TypeDecl of TypeDeclaration.t
   | TypeParam of TypeParamDeclaration.t
   | TypeAlias of TypeAliasDeclaration.t
+  | TraitDecl of TraitDeclaration.t
 
 module ValueBinding = struct
   type t = {

@@ -65,6 +65,12 @@ module TypeDeclaration : sig
   val set : t -> Types.adt_sig -> unit
 end
 
+module TraitDeclaration : sig
+  type t
+
+  val mk : unit -> t
+end
+
 type value_declaration =
   | VarDecl of VariableDeclaration.t
   | FunDecl of FunctionDeclaration.t
@@ -75,6 +81,7 @@ type type_declaration =
   | TypeDecl of TypeDeclaration.t
   | TypeParam of TypeParamDeclaration.t
   | TypeAlias of TypeAliasDeclaration.t
+  | TraitDecl of TraitDeclaration.t
 
 module ValueBinding : sig
   type t = {

@@ -18,6 +18,7 @@ and value_export_kind =
 and type_export_kind =
   | TypeDecl
   | TypeAlias of Bindings.TypeAliasDeclaration.t
+  | TraitDecl
 
 type lookup_result =
   | LookupResultExport of export_info

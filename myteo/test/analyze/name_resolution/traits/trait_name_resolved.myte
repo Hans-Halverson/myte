@@ -1,0 +1,9 @@
+module test
+
+trait Trait {
+  fun foo(x: Trait): OtherTrait
+}
+
+trait OtherTrait {}
+
+fun main() {}

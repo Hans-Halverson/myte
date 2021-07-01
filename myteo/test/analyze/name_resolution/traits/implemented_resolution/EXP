@@ -1,0 +1,19 @@
+Error: Could not resolve name `NonexistLocal` to type
+test/analyze/name_resolution/traits/implemented_resolution/test.myte:17:10-23
+ 17 |   extends NonexistLocal
+    |           ^^^^^^^^^^^^^
+
+Error: Could not resolve name `NonexistLocal` to type
+test/analyze/name_resolution/traits/implemented_resolution/test.myte:27:13-26
+ 27 |   implements NonexistLocal
+    |              ^^^^^^^^^^^^^
+
+Error: Could not resolve name `Nonexist` to type
+test/analyze/name_resolution/traits/implemented_resolution/test.myte:36:29-37
+ 36 |   extends ParameterizedLocal<Nonexist, Int>
+    |                              ^^^^^^^^
+
+Error: Could not resolve name `Nonexist` to type
+test/analyze/name_resolution/traits/implemented_resolution/test.myte:44:32-40
+ 44 |   implements ParameterizedLocal<Nonexist, Int>
+    |                                 ^^^^^^^^

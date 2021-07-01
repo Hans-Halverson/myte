@@ -1,0 +1,14 @@
+module test
+
+type Foo (Int)
+
+// Multiple methods blocks for same type are allowed
+methods Foo {}
+methods Foo {}
+methods Foo {}
+
+// Multiple traits with same name is name conflict
+trait Trait {}
+trait Trait {}
+
+fun main() {}

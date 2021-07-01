@@ -1,0 +1,4 @@
+Error: Type with name `Trait` already bound in module
+test/analyze/name_resolution/traits/multiple_methods_blocks.myte:12:6-11
+ 12 | trait Trait {}
+    |       ^^^^^

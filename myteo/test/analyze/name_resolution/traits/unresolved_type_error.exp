@@ -1,4 +1,4 @@
 Error: Could not resolve name `Bar` to type
-test/analyze/name_resolution/methods/unresolved_type_error.myte:9:8-11
+test/analyze/name_resolution/traits/unresolved_type_error.myte:9:8-11
  9 | methods Bar {}
    |         ^^^
