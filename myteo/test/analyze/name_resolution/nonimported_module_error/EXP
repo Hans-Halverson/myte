@@ -1,0 +1,4 @@
+Error: Could not resolve name `a` to value
+test/analyze/name_resolution/nonimported_module_error/test.myte:5:2
+ 5 |   a.b.c.x;
+   |   ^

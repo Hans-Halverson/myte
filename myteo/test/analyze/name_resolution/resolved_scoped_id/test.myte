@@ -1,5 +1,8 @@
 module test
 
+import a1
+import b1
+
 import c1
 import {c1 as c1Alias}
 

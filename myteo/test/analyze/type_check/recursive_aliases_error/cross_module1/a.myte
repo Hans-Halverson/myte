@@ -1,3 +1,5 @@
 module A
 
+import Test
+
 type alias rec_type1 = Test.rec_type2

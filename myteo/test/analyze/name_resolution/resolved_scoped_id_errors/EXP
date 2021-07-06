@@ -1,214 +1,214 @@
 Error: Module `a1.a2.a3` cannot be used as a value
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:13:2-10
- 13 |   a1.a2.a3;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:16:2-10
+ 16 |   a1.a2.a3;
     |   ^^^^^^^^
 
 Error: Module `a1.a2.a3` cannot be used as a type
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:14:6-14
- 14 |   (1: a1.a2.a3);
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:17:6-14
+ 17 |   (1: a1.a2.a3);
     |       ^^^^^^^^
 
 Error: Module `a1.a2.a3` cannot be used as a value
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:15:2-10
- 15 |   a1.a2.a3 { field } = 1;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:18:2-10
+ 18 |   a1.a2.a3 { field } = 1;
     |   ^^^^^^^^
 
 Error: Could not resolve `a1.a2.a3.a4`. Module `a1.a2.a3` does not have exported value with name `a4`.
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:18:2-13
- 18 |   a1.a2.a3.a4;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:21:2-13
+ 21 |   a1.a2.a3.a4;
     |   ^^^^^^^^^^^
 
 Error: Could not resolve `a1.a2.a3.a4`. Module `a1.a2.a3` does not have exported type with name `a4`.
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:19:6-17
- 19 |   (1: a1.a2.a3.a4);
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:22:6-17
+ 22 |   (1: a1.a2.a3.a4);
     |       ^^^^^^^^^^^
-
-Error: Could not resolve `a1.a2.a3.a4`. Module `a1.a2.a3` does not have exported value with name `a4`.
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:20:2-13
- 20 |   a1.a2.a3.a4 { field } = 1;
-    |   ^^^^^^^^^^^
 
 Error: Could not resolve `a1.a2.a3.a4`. Module `a1.a2.a3` does not have exported value with name `a4`.
 test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:23:2-13
- 23 |   a1.a2.a3.a4.a5;
+ 23 |   a1.a2.a3.a4 { field } = 1;
+    |   ^^^^^^^^^^^
+
+Error: Could not resolve `a1.a2.a3.a4`. Module `a1.a2.a3` does not have exported value with name `a4`.
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:26:2-13
+ 26 |   a1.a2.a3.a4.a5;
     |   ^^^^^^^^^^^
 
 Error: Could not resolve `a1.a2.a3.a4`. Module `a1.a2.a3` does not have exported type with name `a4`.
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:24:6-17
- 24 |   (1: a1.a2.a3.a4.a5);
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:27:6-17
+ 27 |   (1: a1.a2.a3.a4.a5);
     |       ^^^^^^^^^^^
 
 Error: Could not resolve `a1.a2.a3.a4`. Module `a1.a2.a3` does not have exported value with name `a4`.
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:25:2-13
- 25 |   a1.a2.a3.a4.a5 { field } = 1;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:28:2-13
+ 28 |   a1.a2.a3.a4.a5 { field } = 1;
     |   ^^^^^^^^^^^
 
 Error: No module or exported value with name `b1.b2.b3` found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:28:2-10
- 28 |   b1.b2.b3;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:31:2-10
+ 31 |   b1.b2.b3;
     |   ^^^^^^^^
 
 Error: No module or exported type with name `b1.b2.b3` found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:29:6-14
- 29 |   (1: b1.b2.b3);
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:32:6-14
+ 32 |   (1: b1.b2.b3);
     |       ^^^^^^^^
 
 Error: No module or exported value with name `b1.b2.b3` found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:30:2-10
- 30 |   b1.b2.b3 { field } = 1;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:33:2-10
+ 33 |   b1.b2.b3 { field } = 1;
     |   ^^^^^^^^
 
 Error: Could not resolve name `nonexist1` to value
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:33:2-11
- 33 |   nonexist1;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:36:2-11
+ 36 |   nonexist1;
     |   ^^^^^^^^^
 
 Error: Could not resolve name `nonexist1` to value
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:34:2-11
- 34 |   nonexist1.nonexist2;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:37:2-11
+ 37 |   nonexist1.nonexist2;
     |   ^^^^^^^^^
 
 Error: Could not resolve name `nonexist1` to value
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:35:2-11
- 35 |   nonexist1.nonexist2.nonexist3;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:38:2-11
+ 38 |   nonexist1.nonexist2.nonexist3;
     |   ^^^^^^^^^
 
 Error: Could not resolve name `nonexist1` to type
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:36:6-15
- 36 |   (1: nonexist1);
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:39:6-15
+ 39 |   (1: nonexist1);
     |       ^^^^^^^^^
 
 Error: Could not resolve name `nonexist1` to type
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:37:6-15
- 37 |   (1: nonexist1.nonexist2);
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:40:6-15
+ 40 |   (1: nonexist1.nonexist2);
     |       ^^^^^^^^^
 
 Error: Could not resolve name `nonexist1` to type
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:38:6-15
- 38 |   (1: nonexist1.nonexist2.nonexist3);
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:41:6-15
+ 41 |   (1: nonexist1.nonexist2.nonexist3);
     |       ^^^^^^^^^
 
 Error: Could not resolve name `nonexist1` to value
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:39:2-11
- 39 |   nonexist1 { field } = 1;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:42:2-11
+ 42 |   nonexist1 { field } = 1;
     |   ^^^^^^^^^
 
 Error: Could not resolve name `nonexist1` to value
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:40:2-11
- 40 |   nonexist1.nonexist2 { field } = 1;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:43:2-11
+ 43 |   nonexist1.nonexist2 { field } = 1;
     |   ^^^^^^^^^
 
 Error: Could not resolve name `nonexist1` to value
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:41:2-11
- 41 |   nonexist1.nonexist2.nonexist3 { field } = 1;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:44:2-11
+ 44 |   nonexist1.nonexist2.nonexist3 { field } = 1;
     |   ^^^^^^^^^
 
 Error: No module or exported value with name `c1.c2` found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:44:2-7
- 44 |   c1.c2;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:47:2-7
+ 47 |   c1.c2;
     |   ^^^^^
 
 Error: No module or exported value with name `c1Alias.c2` found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:45:2-12
- 45 |   c1Alias.c2;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:48:2-12
+ 48 |   c1Alias.c2;
     |   ^^^^^^^^^^
 
 Error: No module or exported type with name `c1.c2` found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:46:6-11
- 46 |   (1: c1.c2);
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:49:6-11
+ 49 |   (1: c1.c2);
     |       ^^^^^
 
 Error: No module or exported type with name `c1Alias.c2` found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:47:6-16
- 47 |   (1: c1Alias.c2);
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:50:6-16
+ 50 |   (1: c1Alias.c2);
     |       ^^^^^^^^^^
 
 Error: No module or exported value with name `c1.c2` found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:48:2-7
- 48 |   c1.c2 { field } = 1;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:51:2-7
+ 51 |   c1.c2 { field } = 1;
     |   ^^^^^
 
 Error: No module or exported value with name `c1Alias.c2` found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:49:2-12
- 49 |   c1Alias.c2 { field } = 1;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:52:2-12
+ 52 |   c1Alias.c2 { field } = 1;
     |   ^^^^^^^^^^
 
 Error: Module `d2` cannot be used as a value
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:52:2-4
- 52 |   d2;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:55:2-4
+ 55 |   d2;
     |   ^^
 
 Error: Module `d2Alias` cannot be used as a value
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:53:2-9
- 53 |   d2Alias;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:56:2-9
+ 56 |   d2Alias;
     |   ^^^^^^^
 
 Error: Module `d2` cannot be used as a type
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:54:6-8
- 54 |   (1: d2);
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:57:6-8
+ 57 |   (1: d2);
     |       ^^
 
 Error: Module `d2Alias` cannot be used as a type
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:55:6-13
- 55 |   (1: d2Alias);
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:58:6-13
+ 58 |   (1: d2Alias);
     |       ^^^^^^^
 
 Error: Module `d2` cannot be used as a type
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:56:2-4
- 56 |   d2 { field } = 1;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:59:2-4
+ 59 |   d2 { field } = 1;
     |   ^^
 
 Error: Module `d2Alias` cannot be used as a type
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:57:2-9
- 57 |   d2Alias { field} = 1;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:60:2-9
+ 60 |   d2Alias { field} = 1;
     |   ^^^^^^^
 
 Error: No module or exported value with name `d2.d3` found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:60:2-7
- 60 |   d2.d3;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:63:2-7
+ 63 |   d2.d3;
     |   ^^^^^
 
 Error: No module or exported value with name `d2Alias.d3` found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:61:2-12
- 61 |   d2Alias.d3;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:64:2-12
+ 64 |   d2Alias.d3;
     |   ^^^^^^^^^^
 
 Error: No module or exported type with name `d2.d3` found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:62:6-11
- 62 |   (1: d2.d3);
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:65:6-11
+ 65 |   (1: d2.d3);
     |       ^^^^^
 
 Error: No module or exported type with name `d2Alias.d3` found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:63:6-16
- 63 |   (1: d2Alias.d3);
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:66:6-16
+ 66 |   (1: d2Alias.d3);
     |       ^^^^^^^^^^
 
 Error: No module or exported value with name `d2.d3` found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:64:2-7
- 64 |   d2.d3 { field } = 1;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:67:2-7
+ 67 |   d2.d3 { field } = 1;
     |   ^^^^^
 
 Error: No module or exported value with name `d2Alias.d3` found
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:65:2-12
- 65 |   d2Alias.d3 { field } = 1;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:68:2-12
+ 68 |   d2Alias.d3 { field } = 1;
     |   ^^^^^^^^^^
 
 Error: Could not resolve `a1.a2.a3.exportedValue`. Module `a1.a2.a3` does not have exported type with name `exportedValue`.
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:68:6-28
- 68 |   (1: a1.a2.a3.exportedValue);
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:71:6-28
+ 71 |   (1: a1.a2.a3.exportedValue);
     |       ^^^^^^^^^^^^^^^^^^^^^^
 
 Error: Could not resolve `a1.a2.a3.exportedType`. Module `a1.a2.a3` does not have exported value with name `exportedType`.
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:69:3-24
- 69 |   (a1.a2.a3.exportedType: Int);
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:72:3-24
+ 72 |   (a1.a2.a3.exportedType: Int);
     |    ^^^^^^^^^^^^^^^^^^^^^
 
 Error: `exportedFun` is an export of module `a1.a2.a3`, there are no items beneath `a1.a2.a3.exportedFun`
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:72:11-22
- 72 |   a1.a2.a3.exportedFun.field (field) = 1;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:75:11-22
+ 75 |   a1.a2.a3.exportedFun.field (field) = 1;
     |            ^^^^^^^^^^^
 
 Error: `Tup` is an export of module `a1.a2.a3`, there are no items beneath `a1.a2.a3.Tup`
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:73:11-14
- 73 |   a1.a2.a3.Tup.field (field) = 1;
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:76:11-14
+ 76 |   a1.a2.a3.Tup.field (field) = 1;
     |            ^^^

@@ -614,17 +614,8 @@ class bindings_builder ~is_stdlib ~module_tree =
           let (first_part, rest_parts) = List_utils.split_first parts in
           (match this#lookup_value_in_scope first_part.name scopes with
           | None ->
-            (match SMap.find_opt first_part.name module_tree with
-            | None ->
-              (* Error if first part of access chain cannot be resolved *)
-              this#add_error first_part.loc (UnresolvedName (first_part.name, true));
-              expr
-            | Some (Export _) -> failwith "Exports cannot appear at top level of module tree"
-            | Some (Empty (_, module_tree) | Module (_, module_tree)) ->
-              (* If some portion of the access chain resolves to an export, replace with scoped id *)
-              (match this#match_module_parts_value module_tree [first_part] rest_parts expr with
-              | None -> expr
-              | Some resolved_ast -> resolved_ast))
+            this#add_error first_part.loc (UnresolvedName (first_part.name, true));
+            expr
           | Some decl_loc ->
             this#add_value_use decl_loc first_part.loc;
             let declaration = (LocMap.find decl_loc value_bindings).declaration in
@@ -649,27 +640,19 @@ class bindings_builder ~is_stdlib ~module_tree =
       let { Ast.ScopedIdentifier.name; scopes = scope_ids; _ } = id in
       let all_parts = scope_ids @ [name] in
       let (first_part, rest_parts) = List_utils.split_first all_parts in
-      let match_module_parts module_tree =
-        match rest_parts with
-        | [] ->
-          let { Ast.Identifier.loc; name } = first_part in
-          this#add_error loc (ModuleInvalidPosition ([name], false))
-        | _ :: _ -> this#match_module_parts_type module_tree first_part rest_parts
-      in
       match this#lookup_type_in_scope first_part.name scopes with
-      | None ->
-        (match SMap.find_opt first_part.name module_tree with
-        | None ->
-          (* Error if first part of scoped id cannot be resolved *)
-          this#add_error first_part.loc (UnresolvedName (first_part.name, false))
-        | Some (Export _) -> failwith "Exports cannot appear at top level of module tree"
-        | Some (Empty (_, module_tree) | Module (_, module_tree)) -> match_module_parts module_tree)
+      | None -> this#add_error first_part.loc (UnresolvedName (first_part.name, false))
       | Some decl_loc ->
         this#add_type_use decl_loc first_part.loc;
         let declaration = (LocMap.find decl_loc type_bindings).declaration in
         (match declaration with
-        | ModuleDecl module_tree -> match_module_parts module_tree
-        | Decl _ -> ())
+        | Decl _ -> ()
+        | ModuleDecl module_tree ->
+          (match rest_parts with
+          | [] ->
+            let { Ast.Identifier.loc; name } = first_part in
+            this#add_error loc (ModuleInvalidPosition ([name], false))
+          | _ :: _ -> this#match_module_parts_type module_tree first_part rest_parts))
 
     method! type_ ty =
       let open Ast.Type in
@@ -687,27 +670,19 @@ class bindings_builder ~is_stdlib ~module_tree =
       let { scopes = scope_ids; name; _ } = id in
       let all_parts = scope_ids @ [name] in
       let (first_part, rest_parts) = List_utils.split_first all_parts in
-      let match_module_parts module_tree =
-        match rest_parts with
-        | [] ->
-          let { Ast.Identifier.loc; name } = first_part in
-          this#add_error loc (ModuleInvalidPosition ([name], false))
-        | _ :: _ -> this#match_module_parts_pattern module_tree first_part rest_parts
-      in
       match this#lookup_value_in_scope first_part.name scopes with
-      | None ->
-        (match SMap.find_opt first_part.name module_tree with
-        | None ->
-          (* Error if first part of scoped id cannot be resolved *)
-          this#add_error first_part.loc (UnresolvedName (first_part.name, true))
-        | Some (Export _) -> failwith "Exports cannot appear at top level of module tree"
-        | Some (Empty (_, module_tree) | Module (_, module_tree)) -> match_module_parts module_tree)
+      | None -> this#add_error first_part.loc (UnresolvedName (first_part.name, true))
       | Some decl_loc ->
         this#add_value_use decl_loc first_part.loc;
         let declaration = (LocMap.find decl_loc value_bindings).declaration in
         (match declaration with
-        | ModuleDecl module_tree -> match_module_parts module_tree
-        | Decl _ -> ())
+        | Decl _ -> ()
+        | ModuleDecl module_tree ->
+          (match rest_parts with
+          | [] ->
+            let { Ast.Identifier.loc; name } = first_part in
+            this#add_error loc (ModuleInvalidPosition ([name], false))
+          | _ :: _ -> this#match_module_parts_pattern module_tree first_part rest_parts))
 
     method visit_pattern ~decl ~toplevel patt =
       let open Ast.Pattern in

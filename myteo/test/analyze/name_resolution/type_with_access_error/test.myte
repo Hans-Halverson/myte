@@ -1,5 +1,7 @@
 module test
 
+import a1
+
 type alias t = a1.a2.a3.ExportedType.foo
 
 fun main() {}

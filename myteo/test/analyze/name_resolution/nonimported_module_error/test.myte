@@ -1,0 +1,6 @@
+module test
+
+fun main() {
+  // Error since module is not imported, even though a module + value with name exists
+  a.b.c.x;
+}

@@ -1,3 +1,5 @@
 module a
 
+import test
+
 type alias rec_type3 = test.rec_type4 -> Unit

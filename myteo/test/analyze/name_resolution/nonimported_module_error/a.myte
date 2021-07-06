@@ -1,0 +1,3 @@
+module a.b.c
+
+val x: Int = 1
