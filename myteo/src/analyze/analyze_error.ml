@@ -10,6 +10,7 @@ type t =
   | UnresolvedName of string * bool
   | MethodDeclarationsInSameModule of string * string list
   | InvalidWildcardIdentifier
+  | BuiltinNotFound of string
   | InvalidAssignment of string * invalid_assignment_kind
   | InvalidLValue of invalid_lvalue_kind
   | DuplicateToplevelNames of string * bool
@@ -122,6 +123,7 @@ let to_string error =
       (String.concat "." module_parts)
   | InvalidWildcardIdentifier ->
     Printf.sprintf "`_` is the wildcard pattern and cannot be used as an identifier"
+  | BuiltinNotFound name -> Printf.sprintf "No declaration found for builtin `%s`" name
   | InvalidAssignment (name, kind) ->
     let kind_string =
       match kind with

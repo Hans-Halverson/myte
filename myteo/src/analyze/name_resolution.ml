@@ -244,6 +244,11 @@ class bindings_builder ~is_stdlib ~module_tree =
               aliases)
         imports;
       (* Gather toplevel type and variable declarations and add them to toplevel scope *)
+      let register_stdlib_decl name =
+        if is_stdlib then
+          let full_name = module_name_prefix ^ name.Identifier.name in
+          Std_lib.register_stdlib_decl full_name name.loc
+      in
       List.iter
         (fun toplevel ->
           match toplevel with
@@ -254,11 +259,10 @@ class bindings_builder ~is_stdlib ~module_tree =
                 ignore (add_value_name id (fun _ -> Decl (VarDecl (VariableDeclaration.mk kind)))))
               ids
           | FunctionDeclaration { Ast.Function.name; builtin; _ } ->
+            register_stdlib_decl name;
             ignore (add_value_name name (fun _ -> Decl (FunDecl (FunctionDeclaration.mk builtin))))
           | TypeDeclaration { Ast.TypeDeclaration.name; decl; _ } ->
-            ( if is_stdlib then
-              let full_name = module_name_prefix ^ name.name in
-              Std_lib.register_stdlib_decl full_name name.loc );
+            register_stdlib_decl name;
             if name.name = "_" then
               this#add_error name.loc InvalidWildcardIdentifier
             else (
@@ -280,6 +284,7 @@ class bindings_builder ~is_stdlib ~module_tree =
             )
           | TraitDeclaration { kind = Methods; _ } -> ()
           | TraitDeclaration { kind = Trait; name; _ } ->
+            register_stdlib_decl name;
             if name.name = "_" then
               this#add_error name.loc InvalidWildcardIdentifier
             else
@@ -311,7 +316,7 @@ class bindings_builder ~is_stdlib ~module_tree =
               id_map (this#visit_variable_declaration ~toplevel:true) decl toplevel (fun decl' ->
                   VariableDeclaration decl')
             | FunctionDeclaration decl ->
-              id_map (this#visit_function_declaration ~toplevel:true) decl toplevel (fun decl' ->
+              id_map (this#visit_function_declaration ~add_decl:false) decl toplevel (fun decl' ->
                   FunctionDeclaration decl')
             | TypeDeclaration
                 ( { Ast.TypeDeclaration.name = { Ast.Identifier.name; _ }; type_params; _ } as
@@ -339,7 +344,7 @@ class bindings_builder ~is_stdlib ~module_tree =
         id_map (this#visit_variable_declaration ~toplevel:false) decl stmt (fun decl' ->
             VariableDeclaration decl')
       | FunctionDeclaration decl ->
-        id_map (this#visit_function_declaration ~toplevel:false) decl stmt (fun decl' ->
+        id_map (this#visit_function_declaration ~add_decl:true) decl stmt (fun decl' ->
             FunctionDeclaration decl')
       | Block block -> id_map this#block block stmt (fun block' -> Block block')
       | _ -> super#statement stmt
@@ -378,12 +383,12 @@ class bindings_builder ~is_stdlib ~module_tree =
             SSet.empty)
            params)
 
-    method visit_function_declaration ~toplevel decl =
+    method visit_function_declaration ~add_decl decl =
       let open Ast.Function in
       let { name = { Ast.Identifier.loc; name = func_name }; params; type_params; builtin; _ } =
         decl
       in
-      if not toplevel then
+      if add_decl then
         this#add_value_declaration loc func_name false (fun _ ->
             Decl (FunDecl (FunctionDeclaration.mk builtin)));
       this#enter_scope ();
@@ -428,7 +433,7 @@ class bindings_builder ~is_stdlib ~module_tree =
           this#resolve_type_scoped_id name;
           List.iter (fun ty -> ignore (this#type_ ty)) type_args)
         implemented;
-      let methods' = id_map_list (this#visit_function_declaration ~toplevel:false) methods in
+      let methods' = id_map_list (this#visit_function_declaration ~add_decl:false) methods in
       this#exit_scope ();
       if methods == methods' then
         decl
@@ -738,6 +743,19 @@ class bindings_builder ~is_stdlib ~module_tree =
       resolve_scoped_ids patt
   end
 
+let assert_stdlib_builtins_found mods =
+  let open Std_lib in
+  SSet.fold
+    (fun builtin_name errors ->
+      if SMap.mem builtin_name !stdlib_builtin_name_to_decl_loc then
+        errors
+      else
+        let mods = List.map snd mods in
+        let loc = Ast_utils.modules_end_loc mods in
+        [(loc, BuiltinNotFound builtin_name)])
+    all_stdlib_names
+    []
+
 (* Analyze all bindings in modules, building bindings and rewriting scoped identifiers in AST.
    Return a tuple of the newly resolved ASTs, the complete bindings, and any resolution errors. *)
 let analyze ~is_stdlib module_tree modules =
@@ -753,4 +771,10 @@ let analyze ~is_stdlib module_tree modules =
   let (modules', bindings, bindings_errors) = List_utils.split3 results in
   let bindings = List.fold_left Bindings.merge Bindings.empty bindings in
   let errors = List.flatten bindings_errors in
-  (modules', bindings, errors)
+  let builtin_errors =
+    if is_stdlib then
+      assert_stdlib_builtins_found modules
+    else
+      []
+  in
+  (modules', bindings, builtin_errors @ errors)
