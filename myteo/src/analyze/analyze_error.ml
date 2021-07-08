@@ -7,7 +7,7 @@ type t =
   | ContinueOutsideLoop
   | MissingMainFunction
   | MultipleMainFunctions
-  | UnresolvedName of string * bool
+  | UnresolvedName of string * name_position_type
   | MethodDeclarationsInSameModule of string * string list
   | InvalidWildcardIdentifier
   | BuiltinNotFound of string
@@ -21,7 +21,7 @@ type t =
   | ModuleAndExportDuplicateNames of string * string
   | ImportNonexist of string * string list
   | ReferenceChildOfExport of string * string list
-  | ModuleInvalidPosition of string list * bool
+  | ModuleInvalidPosition of string list * name_position_type
   | NoExportInModule of string * string list * bool
   | NoModuleWithName of string list * bool
   | TypeWithAccess of string list
@@ -50,6 +50,11 @@ and unreachable_statement_reason =
   | AfterReturn
   | AfterBreak
   | AfterContinue
+
+and name_position_type =
+  | NamePositionValue
+  | NamePositionType
+  | NamePositionCtor
 
 and invalid_assignment_kind =
   | InvalidAssignmentImmutableVariable
@@ -82,6 +87,18 @@ let string_of_name_source source =
   | FunctionName name -> Printf.sprintf "function `%s`" name
   | TypeName name -> Printf.sprintf "type `%s`" name
 
+let value_or_type is_value =
+  if is_value then
+    "value"
+  else
+    "type"
+
+let string_of_name_position position =
+  match position with
+  | NamePositionValue -> "value"
+  | NamePositionType -> "type"
+  | NamePositionCtor -> "constructor"
+
 let concat_with_and strs =
   match strs with
   | [] -> ""
@@ -92,12 +109,6 @@ let concat_with_and strs =
     String.concat ", " strs ^ ", and " ^ last_str
 
 let to_string error =
-  let value_or_type is_value =
-    if is_value then
-      "value"
-    else
-      "type"
-  in
   match error with
   | InexhaustiveReturn { Identifier.name; _ } ->
     Printf.sprintf "All branches of function `%s` must end in a return statement" name
@@ -114,8 +125,8 @@ let to_string error =
   | ContinueOutsideLoop -> "Continue cannot appear outside a loop"
   | MissingMainFunction -> "No main function found in modules"
   | MultipleMainFunctions -> "Main function has already been declared"
-  | UnresolvedName (name, is_value) ->
-    Printf.sprintf "Could not resolve name `%s` to %s" name (value_or_type is_value)
+  | UnresolvedName (name, position) ->
+    Printf.sprintf "Could not resolve name `%s` to %s" name (string_of_name_position position)
   | MethodDeclarationsInSameModule (type_name, module_parts) ->
     Printf.sprintf
       "Method declarations must appear in same module as type declaration. Type `%s` is declared in module `%s`."
@@ -164,11 +175,11 @@ let to_string error =
       name
       module_parts_string
       (module_parts_string ^ "." ^ name)
-  | ModuleInvalidPosition (module_parts, is_value) ->
+  | ModuleInvalidPosition (module_parts, position) ->
     Printf.sprintf
       "Module `%s` cannot be used as a %s"
       (String.concat "." module_parts)
-      (value_or_type is_value)
+      (string_of_name_position position)
   | NoExportInModule (export, module_parts, is_value) ->
     let module_parts_string = String.concat "." module_parts in
     Printf.sprintf

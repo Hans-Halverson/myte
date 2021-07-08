@@ -88,17 +88,17 @@ test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:41:6-15
  41 |   (1: nonexist1.nonexist2.nonexist3);
     |       ^^^^^^^^^
 
-Error: Could not resolve name `nonexist1` to value
+Error: Could not resolve name `nonexist1` to constructor
 test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:42:2-11
  42 |   nonexist1 { field } = 1;
     |   ^^^^^^^^^
 
-Error: Could not resolve name `nonexist1` to value
+Error: Could not resolve name `nonexist1` to constructor
 test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:43:2-11
  43 |   nonexist1.nonexist2 { field } = 1;
     |   ^^^^^^^^^
 
-Error: Could not resolve name `nonexist1` to value
+Error: Could not resolve name `nonexist1` to constructor
 test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:44:2-11
  44 |   nonexist1.nonexist2.nonexist3 { field } = 1;
     |   ^^^^^^^^^
@@ -153,12 +153,12 @@ test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:58:6-13
  58 |   (1: d2Alias);
     |       ^^^^^^^
 
-Error: Module `d2` cannot be used as a type
+Error: Module `d2` cannot be used as a constructor
 test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:59:2-4
  59 |   d2 { field } = 1;
     |   ^^
 
-Error: Module `d2Alias` cannot be used as a type
+Error: Module `d2Alias` cannot be used as a constructor
 test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:60:2-9
  60 |   d2Alias { field} = 1;
     |   ^^^^^^^

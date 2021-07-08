@@ -3,11 +3,9 @@ open Bindings
 
 type t
 
-val mk : unit -> t
+val mk : bindings:Bindings.t -> t
 
 (* Getters and Setters *)
-
-val set_new_bindings : cx:t -> Bindings.t -> unit
 
 val add_error : cx:t -> Loc.t -> Analyze_error.t -> unit
 

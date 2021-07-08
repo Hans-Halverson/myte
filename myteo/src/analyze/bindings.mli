@@ -88,10 +88,18 @@ module ValueBinding : sig
     name: string;
     loc: Loc.t;
     declaration: value_declaration;
-    uses: LocSet.t;
+    mutable uses: LocSet.t;
     is_global: bool;
     module_: string list;
   }
+
+  val mk :
+    name:string ->
+    loc:Loc.t ->
+    declaration:value_declaration ->
+    is_global:bool ->
+    module_:string list ->
+    t
 end
 
 module TypeBinding : sig
@@ -99,22 +107,30 @@ module TypeBinding : sig
     name: string;
     loc: Loc.t;
     declaration: type_declaration;
-    uses: LocSet.t;
+    mutable uses: LocSet.t;
     module_: string list;
   }
+
+  val mk : name:string -> loc:Loc.t -> declaration:type_declaration -> module_:string list -> t
 end
 
 module Bindings : sig
   type t = {
-    value_bindings: ValueBinding.t LocMap.t;
-    type_bindings: TypeBinding.t LocMap.t;
-    value_use_to_decl: Loc.t LocMap.t;
-    type_use_to_decl: Loc.t LocMap.t;
+    mutable value_bindings: ValueBinding.t LocMap.t;
+    mutable type_bindings: TypeBinding.t LocMap.t;
+    mutable value_use_to_decl: Loc.t LocMap.t;
+    mutable type_use_to_decl: Loc.t LocMap.t;
   }
 
-  val empty : t
+  val mk : unit -> t
 
-  val merge : t -> t -> t
+  val add_value_binding : t -> ValueBinding.t -> unit
+
+  val add_type_binding : t -> TypeBinding.t -> unit
+
+  val add_value_use : t -> Loc.t -> Loc.t -> unit
+
+  val add_type_use : t -> Loc.t -> Loc.t -> unit
 end
 
 val get_value_binding : Bindings.t -> Loc.t -> ValueBinding.t

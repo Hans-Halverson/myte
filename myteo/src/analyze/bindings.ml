@@ -98,10 +98,13 @@ module ValueBinding = struct
     name: string;
     loc: Loc.t;
     declaration: value_declaration;
-    uses: LocSet.t;
+    mutable uses: LocSet.t;
     is_global: bool;
     module_: string list;
   }
+
+  let mk ~name ~loc ~declaration ~is_global ~module_ =
+    { name; loc; declaration; uses = LocSet.singleton loc; is_global; module_ }
 end
 
 module TypeBinding = struct
@@ -109,20 +112,23 @@ module TypeBinding = struct
     name: string;
     loc: Loc.t;
     declaration: type_declaration;
-    uses: LocSet.t;
+    mutable uses: LocSet.t;
     module_: string list;
   }
+
+  let mk ~name ~loc ~declaration ~module_ =
+    { name; loc; declaration; uses = LocSet.singleton loc; module_ }
 end
 
 module Bindings = struct
   type t = {
-    value_bindings: ValueBinding.t LocMap.t;
-    type_bindings: TypeBinding.t LocMap.t;
-    value_use_to_decl: Loc.t LocMap.t;
-    type_use_to_decl: Loc.t LocMap.t;
+    mutable value_bindings: ValueBinding.t LocMap.t;
+    mutable type_bindings: TypeBinding.t LocMap.t;
+    mutable value_use_to_decl: Loc.t LocMap.t;
+    mutable type_use_to_decl: Loc.t LocMap.t;
   }
 
-  let empty =
+  let mk () =
     {
       value_bindings = LocMap.empty;
       type_bindings = LocMap.empty;
@@ -130,14 +136,21 @@ module Bindings = struct
       type_use_to_decl = LocMap.empty;
     }
 
-  let merge b1 b2 =
-    let union a b = LocMap.union (fun _ v1 _ -> Some v1) a b in
-    {
-      value_bindings = union b1.value_bindings b2.value_bindings;
-      type_bindings = union b1.type_bindings b2.type_bindings;
-      value_use_to_decl = union b1.value_use_to_decl b2.value_use_to_decl;
-      type_use_to_decl = union b1.type_use_to_decl b2.type_use_to_decl;
-    }
+  let add_value_binding bindings binding =
+    let open ValueBinding in
+    bindings.value_bindings <- LocMap.add binding.loc binding bindings.value_bindings;
+    bindings.value_use_to_decl <- LocMap.add binding.loc binding.loc bindings.value_use_to_decl
+
+  let add_type_binding bindings binding =
+    let open TypeBinding in
+    bindings.type_bindings <- LocMap.add binding.loc binding bindings.type_bindings;
+    bindings.type_use_to_decl <- LocMap.add binding.loc binding.loc bindings.type_use_to_decl
+
+  let add_value_use bindings use_loc decl_loc =
+    bindings.value_use_to_decl <- LocMap.add use_loc decl_loc bindings.value_use_to_decl
+
+  let add_type_use bindings use_loc decl_loc =
+    bindings.type_use_to_decl <- LocMap.add use_loc decl_loc bindings.type_use_to_decl
 end
 
 let get_value_binding bindings use_loc =

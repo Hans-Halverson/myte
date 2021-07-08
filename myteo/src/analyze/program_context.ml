@@ -11,19 +11,16 @@ type t = {
 }
 
 let mk_pcx () =
+  let bindings = Bindings.mk () in
   {
     modules = [];
-    bindings = Bindings.empty;
+    bindings;
     module_tree = SMap.empty;
     main_loc = None;
-    type_ctx = Type_context.mk ();
+    type_ctx = Type_context.mk ~bindings;
   }
 
 let add_resolved_modules ~pcx modules = pcx.modules <- modules @ pcx.modules
-
-let add_bindings ~pcx bindings =
-  pcx.bindings <- Bindings.merge pcx.bindings bindings;
-  Type_context.set_new_bindings ~cx:pcx.type_ctx pcx.bindings
 
 let set_module_tree ~pcx module_tree = pcx.module_tree <- module_tree
 

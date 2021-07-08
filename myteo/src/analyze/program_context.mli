@@ -10,8 +10,6 @@ val mk_pcx : unit -> t
 
 val add_resolved_modules : pcx:t -> (string * Ast.Module.t) list -> unit
 
-val add_bindings : pcx:t -> Bindings.Bindings.t -> unit
-
 val set_module_tree : pcx:t -> Module_tree.t -> unit
 
 val set_main_loc : pcx:t -> Loc.t option -> unit

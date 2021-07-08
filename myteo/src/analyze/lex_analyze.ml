@@ -19,11 +19,10 @@ let analyze_modules ~is_stdlib ~pcx mods_and_files =
 
   (* Resolve symbols in this compilation unit. Updates the set of all bindings and store
      the newly resolved ASTs *)
-  let (new_resolved_mods, new_bindings, resolution_errors) =
-    Name_resolution.analyze ~is_stdlib pcx.module_tree mods_and_files
+  let (new_resolved_mods, resolution_errors) =
+    Name_resolution.analyze ~is_stdlib pcx.bindings pcx.module_tree mods_and_files
   in
   Program_context.add_resolved_modules ~pcx new_resolved_mods;
-  Program_context.add_bindings ~pcx new_bindings;
 
   (* Perform other single-module structural analyses, collecting errors *)
   let single_module_errors =

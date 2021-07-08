@@ -21,17 +21,15 @@ and union_forest_node =
     }
   | Link of Types.tvar_id
 
-let mk () =
+let mk ~bindings =
   {
-    bindings = Bindings.empty;
+    bindings;
     errors = [];
     loc_to_tvar = LocMap.empty;
     union_forest_nodes = IMap.empty;
     return_types = LocMap.empty;
     unresolved_int_literals = LocSet.empty;
   }
-
-let set_new_bindings ~cx bindings = cx.bindings <- bindings
 
 let add_error ~cx loc error = cx.errors <- (loc, error) :: cx.errors
 
