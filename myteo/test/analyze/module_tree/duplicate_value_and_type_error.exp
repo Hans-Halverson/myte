@@ -1,0 +1,4 @@
+Error: Name `A` already bound in module
+test/analyze/module_tree/duplicate_value_and_type_error.myte:5:4
+ 5 | fun A() {}
+   |     ^

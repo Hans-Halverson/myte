@@ -1,6 +1,4 @@
-module a.b
-
-fun c() {}
+module a2.b
 
 type alias c = Unit
 

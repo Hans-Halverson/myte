@@ -3,10 +3,10 @@ module Test
 import A
 import A.B
 import E.C
-import A.{D, remote as local}
+import A.{D, remote as localV}
 import {E, F as G}
 import A.ty
-import A.{ty as local}
+import A.{ty as localT}
 
 fun main() {
   A;
@@ -15,11 +15,11 @@ fun main() {
   D;
   E;
   G;
-  local;
+  localV;
   remote;
   F;
   nonexistent;
   (1: ty);
-  (1: local);
+  (1: localT);
   (1: nonexistent);
 }

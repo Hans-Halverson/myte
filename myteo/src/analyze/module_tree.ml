@@ -10,20 +10,15 @@ and module_tree_node =
   | Module of string * t
   | Export of export_info
 
-and value_export_kind =
+and export_kind =
   | VarDecl of Statement.VariableDeclaration.kind
   | FunDecl of bool
   | CtorDecl
-
-and type_export_kind =
-  | TypeDecl
+  | TypeDecl of (* Is ctor decl *) bool
   | TypeAlias of TypeAliasDeclaration.t
   | TraitDecl
 
-and export_info = {
-  value: (value_export_kind * Ast.Identifier.t) option;
-  ty: (type_export_kind * Ast.Identifier.t) option;
-}
+and export_info = export_kind * Ast.Identifier.t
 
 let add_exports module_ submodule_tree =
   let open Ast.Module in
@@ -33,14 +28,12 @@ let add_exports module_ submodule_tree =
     let add_exports_to_tree rest exports =
       let (submodule_tree, errors) = add_exports_inner rest in
       List.fold_left
-        (fun (submodule_tree, errors) (id, loc, mut_export_info) ->
+        (fun (submodule_tree, errors) (id, loc, export_info) ->
           let { Ast.Identifier.name; _ } = id in
           match SMap.find_opt name submodule_tree with
-          | None ->
-            let export_info = mut_export_info { value = None; ty = None } in
-            (SMap.add name (Export export_info) submodule_tree, errors)
-          | Some (Export export_info) ->
-            let export_info = mut_export_info export_info in
+          | None
+          | Some (Export _) ->
+            (* May overwrite export with same name, but error will be detected during name resolution *)
             (SMap.add name (Export export_info) submodule_tree, errors)
           | Some (Module _ | Empty _) ->
             (* Error for export with same name as module *)
@@ -61,29 +54,28 @@ let add_exports module_ submodule_tree =
     | TraitDeclaration { kind = Methods; _ } :: rest -> add_exports_to_tree rest []
     | VariableDeclaration { Ast.Statement.VariableDeclaration.loc; kind; pattern; _ } :: rest ->
       let ids = Ast_utils.ids_of_pattern pattern in
-      let mut_export_info id export_info = { export_info with value = Some (VarDecl kind, id) } in
-      let exports = List.map (fun id -> (id, loc, mut_export_info id)) ids in
+      let exports = List.map (fun id -> (id, loc, (VarDecl kind, id))) ids in
       add_exports_to_tree rest exports
     | FunctionDeclaration { Ast.Function.loc; name = id; builtin; _ } :: rest ->
-      add_exports_to_tree
-        rest
-        [(id, loc, (fun export_info -> { export_info with value = Some (FunDecl builtin, id) }))]
+      add_exports_to_tree rest [(id, loc, (FunDecl builtin, id))]
     | TypeDeclaration { Ast.TypeDeclaration.loc; name = id; decl; _ } :: rest ->
       let open Ast.TypeDeclaration in
       let kind =
         match decl with
         | Alias _ -> TypeAlias (TypeAliasDeclaration.mk ())
-        | _ -> TypeDecl
+        | Tuple _
+        | Record _ ->
+          TypeDecl true
+        | Variant _ -> TypeDecl false
       in
-      let exports = [(id, loc, (fun export_info -> { export_info with ty = Some (kind, id) }))] in
+      let exports = [(id, loc, (kind, id))] in
       (* Export all constructors in this type declaration *)
       let exports =
         match decl with
-        | Alias _ -> exports
-        | Tuple { Tuple.loc; name; _ }
-        | Record { Record.loc; name; _ } ->
-          (name, loc, (fun export_info -> { export_info with value = Some (CtorDecl, name) }))
-          :: exports
+        | Alias _
+        | Tuple _
+        | Record _ ->
+          exports
         | Variant variants ->
           List.fold_left
             (fun exports variant ->
@@ -91,16 +83,13 @@ let add_exports module_ submodule_tree =
               | EnumVariant ({ loc; _ } as name)
               | TupleVariant { loc; name; _ }
               | RecordVariant { loc; name; _ } ->
-                (name, loc, (fun export_info -> { export_info with value = Some (CtorDecl, name) }))
-                :: exports)
+                (name, loc, (CtorDecl, name)) :: exports)
             exports
             variants
       in
       add_exports_to_tree rest (List.rev exports)
     | TraitDeclaration { loc; name; kind = Trait; _ } :: rest ->
-      add_exports_to_tree
-        rest
-        [(name, loc, (fun export_info -> { export_info with ty = Some (TraitDecl, name) }))]
+      add_exports_to_tree rest [(name, loc, (TraitDecl, name))]
   in
   add_exports_inner module_.toplevels
 
@@ -184,27 +173,26 @@ let lookup name_parts module_tree =
 let get_all_exports module_tree =
   let rec get_all_exports_of_node module_tree_node prev_module_parts =
     match module_tree_node with
-    | Export { value; ty } ->
+    | Export (kind, id) ->
       let module_parts = List.rev (List.tl prev_module_parts) in
-      ( Option.map (fun (kind, id) -> [(kind, id, module_parts)]) value |> Option.value ~default:[],
-        Option.map (fun (kind, id) -> [(kind, id, module_parts)]) ty |> Option.value ~default:[] )
+      [(kind, id, module_parts)]
     | Empty (_, module_tree)
     | Module (_, module_tree) ->
       SMap.fold
-        (fun module_name module_tree_node (values_acc, types_acc) ->
-          let (values, types) =
+        (fun module_name module_tree_node exports_acc ->
+          let exports =
             get_all_exports_of_node module_tree_node (module_name :: prev_module_parts)
           in
-          (values @ values_acc, types @ types_acc))
+          exports @ exports_acc)
         module_tree
-        ([], [])
+        []
   in
   SMap.fold
-    (fun module_name module_tree_node (values_acc, types_acc) ->
-      let (values, types) = get_all_exports_of_node module_tree_node [module_name] in
-      (values @ values_acc, types @ types_acc))
+    (fun module_name module_tree_node exports_acc ->
+      let exports = get_all_exports_of_node module_tree_node [module_name] in
+      exports @ exports_acc)
     module_tree
-    ([], [])
+    []
 
 let analyze existing_module_tree new_modules =
   List.fold_left

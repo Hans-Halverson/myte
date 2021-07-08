@@ -27,33 +27,68 @@ type 'a binding_builder = {
 let mk_binding_builder ~loc ~name ~kind ~is_global ~module_ =
   { name; loc; declaration = kind; uses = LocSet.empty; is_global; module_ }
 
+let in_value_namespace export_kind =
+  let open Module_tree in
+  match export_kind with
+  | VarDecl _
+  | FunDecl _
+  | CtorDecl ->
+    true
+  | TypeAlias _
+  | TraitDecl ->
+    false
+  | TypeDecl is_ctor -> is_ctor
+
+let in_type_namespace export_kind =
+  let open Module_tree in
+  match export_kind with
+  | VarDecl _
+  | FunDecl _
+  | CtorDecl ->
+    false
+  | TypeAlias _
+  | TraitDecl
+  | TypeDecl _ ->
+    true
+
 class bindings_builder ~is_stdlib ~module_tree =
-  let (exported_value_ids, exported_type_ids) = Module_tree.get_all_exports module_tree in
-  let exported_value_bindings =
+  let exports = Module_tree.get_all_exports module_tree in
+  let (exported_value_bindings, exported_type_bindings) =
     List.fold_left
-      (fun acc (kind, { Ast.Identifier.loc; name }, module_) ->
-        let kind =
+      (fun (value_acc, type_acc) (kind, { Ast.Identifier.loc; name }, module_) ->
+        let (value_decl, type_decl) =
           match kind with
-          | Module_tree.VarDecl kind -> Decl (VarDecl (VariableDeclaration.mk kind))
-          | Module_tree.FunDecl is_builtin -> Decl (FunDecl (FunctionDeclaration.mk is_builtin))
-          | Module_tree.CtorDecl -> Decl (CtorDecl (ConstructorDeclaration.mk ()))
+          | Module_tree.VarDecl kind -> (Some (Decl (VarDecl (VariableDeclaration.mk kind))), None)
+          | FunDecl is_builtin -> (Some (Decl (FunDecl (FunctionDeclaration.mk is_builtin))), None)
+          | CtorDecl -> (Some (Decl (CtorDecl (ConstructorDeclaration.mk ()))), None)
+          | TypeDecl is_ctor ->
+            let value_decl =
+              if is_ctor then
+                Some (Decl (CtorDecl (ConstructorDeclaration.mk ())))
+              else
+                None
+            in
+            (value_decl, Some (Decl (TypeDecl (TypeDeclaration.mk ()))))
+          | TypeAlias alias_decl -> (None, Some (Decl (TypeAlias alias_decl)))
+          | TraitDecl -> (None, Some (Decl (TraitDecl (TraitDeclaration.mk ()))))
         in
-        LocMap.add loc (mk_binding_builder ~loc ~name ~kind ~is_global:true ~module_) acc)
-      LocMap.empty
-      exported_value_ids
-  in
-  let exported_type_bindings =
-    List.fold_left
-      (fun acc (kind, { Ast.Identifier.loc; name }, module_) ->
-        let kind =
-          match kind with
-          | Module_tree.TypeDecl -> Decl (TypeDecl (TypeDeclaration.mk ()))
-          | Module_tree.TypeAlias alias_decl -> Decl (TypeAlias alias_decl)
-          | Module_tree.TraitDecl -> Decl (TraitDecl (TraitDeclaration.mk ()))
+        let value_acc =
+          match value_decl with
+          | None -> value_acc
+          | Some kind ->
+            let binding = mk_binding_builder ~loc ~name ~kind ~is_global:true ~module_ in
+            LocMap.add loc binding value_acc
         in
-        LocMap.add loc (mk_binding_builder ~loc ~name ~kind ~is_global:true ~module_) acc)
-      LocMap.empty
-      exported_type_ids
+        let type_acc =
+          match type_decl with
+          | None -> type_acc
+          | Some kind ->
+            let binding = mk_binding_builder ~loc ~name ~kind ~is_global:true ~module_ in
+            LocMap.add loc binding type_acc
+        in
+        (value_acc, type_acc))
+      (LocMap.empty, LocMap.empty)
+      exports
   in
   object (this)
     inherit Ast_mapper.mapper as super
@@ -103,7 +138,6 @@ class bindings_builder ~is_stdlib ~module_tree =
         let binding =
           { name; loc; declaration; uses = LocSet.empty; is_global = true; module_ = module_name }
         in
-
         type_bindings <- LocMap.add loc binding type_bindings );
       this#add_type_to_scope name loc;
       this#add_type_use loc loc
@@ -169,24 +203,18 @@ class bindings_builder ~is_stdlib ~module_tree =
 
     method! module_ mod_ =
       let open Ast.Module in
-      let check_duplicate_value_name name =
+      let check_duplicate_toplevel_name name =
         let { Ast.Identifier.loc; name } = name in
-        let is_duplicate = SMap.mem name (List.hd scopes).local_values in
-        if is_duplicate then this#add_error loc (DuplicateToplevelNames (name, true));
-        is_duplicate
-      in
-      let check_duplicate_type_name name =
-        let { Ast.Identifier.loc; name } = name in
-        if SMap.mem name (List.hd scopes).local_types then
-          this#add_error loc (DuplicateToplevelNames (name, false))
+        if SMap.mem name (List.hd scopes).local_values || SMap.mem name (List.hd scopes).local_types
+        then
+          this#add_error loc (DuplicateToplevelNames name)
       in
       let add_value_name name mk_decl =
-        let is_duplicate = check_duplicate_value_name name in
-        this#add_value_declaration name.loc name.name true mk_decl;
-        is_duplicate
+        check_duplicate_toplevel_name name;
+        this#add_value_declaration name.loc name.name true mk_decl
       in
       let add_type_name name mk_decl =
-        check_duplicate_type_name name;
+        check_duplicate_toplevel_name name;
         this#add_type_declaration name.loc name.name mk_decl
       in
       let { module_; toplevels; imports; _ } = mod_ in
@@ -211,22 +239,28 @@ class bindings_builder ~is_stdlib ~module_tree =
             let open Module_tree in
             let name_parts = scopes @ [name] in
             match lookup name_parts module_tree with
-            | LookupResultExport export_info ->
-              ignore
-                (Option.map
-                   (fun (_, { Ast.Identifier.loc = decl_loc; _ }) ->
-                     ignore (check_duplicate_value_name local_name);
-                     this#add_value_to_scope local_name.name decl_loc)
-                   export_info.value);
-              Option.iter
-                (fun (_, { Ast.Identifier.loc = decl_loc; _ }) ->
-                  check_duplicate_type_name local_name;
-                  this#add_type_to_scope local_name.name decl_loc)
-                export_info.ty
+            | LookupResultExport (kind, { loc = decl_loc; _ }) ->
+              check_duplicate_toplevel_name local_name;
+              let (is_value, is_type) =
+                match kind with
+                | VarDecl _
+                | FunDecl _
+                | CtorDecl ->
+                  (true, false)
+                | TypeDecl is_ctor -> (is_ctor, true)
+                | TypeAlias _
+                | TraitDecl ->
+                  (false, true)
+              in
+              if is_value then this#add_value_to_scope local_name.name decl_loc;
+              if is_type then this#add_type_to_scope local_name.name decl_loc
             | LookupResultModule (_, module_tree) ->
-              (* Do not report a duplicate error for both value and type conflicting with a module *)
-              if not (add_value_name local_name (fun _ -> ModuleDecl module_tree)) then
-                add_type_name local_name (fun _ -> ModuleDecl module_tree)
+              (* Modules appear in both value and type namespaces *)
+              check_duplicate_toplevel_name local_name;
+              this#add_value_declaration local_name.loc local_name.name true (fun _ ->
+                  ModuleDecl module_tree);
+              this#add_type_declaration local_name.loc local_name.name (fun _ ->
+                  ModuleDecl module_tree)
             | LookupResultError (loc, error) -> this#add_error loc error
           in
           match import with
@@ -255,32 +289,25 @@ class bindings_builder ~is_stdlib ~module_tree =
           | VariableDeclaration { Ast.Statement.VariableDeclaration.kind; pattern; _ } ->
             let ids = Ast_utils.ids_of_pattern pattern in
             List.iter
-              (fun id ->
-                ignore (add_value_name id (fun _ -> Decl (VarDecl (VariableDeclaration.mk kind)))))
+              (fun id -> add_value_name id (fun _ -> Decl (VarDecl (VariableDeclaration.mk kind))))
               ids
           | FunctionDeclaration { Ast.Function.name; builtin; _ } ->
             register_stdlib_decl name;
-            ignore (add_value_name name (fun _ -> Decl (FunDecl (FunctionDeclaration.mk builtin))))
+            add_value_name name (fun _ -> Decl (FunDecl (FunctionDeclaration.mk builtin)))
           | TypeDeclaration { Ast.TypeDeclaration.name; decl; _ } ->
             register_stdlib_decl name;
             if name.name = "_" then
               this#add_error name.loc InvalidWildcardIdentifier
             else (
-              (match decl with
+              match decl with
+              | Alias _ ->
+                add_type_name name (fun _ -> Decl (TypeAlias (TypeAliasDeclaration.mk ())))
               | Tuple { name; _ }
               | Record { name; _ } ->
-                ignore
-                  (add_value_name name (fun _ -> Decl (CtorDecl (ConstructorDeclaration.mk ()))))
-              | _ -> ());
-              let mk_decl _ =
-                match decl with
-                | Alias _ -> Decl (TypeAlias (TypeAliasDeclaration.mk ()))
-                | Tuple _
-                | Record _
-                | Variant _ ->
-                  Decl (TypeDecl (TypeDeclaration.mk ()))
-              in
-              add_type_name name mk_decl
+                add_value_name name (fun _ -> Decl (CtorDecl (ConstructorDeclaration.mk ())));
+                this#add_type_declaration name.loc name.name (fun _ ->
+                    Decl (TypeDecl (TypeDeclaration.mk ())))
+              | Variant _ -> add_type_name name (fun _ -> Decl (TypeDecl (TypeDeclaration.mk ())))
             )
           | TraitDeclaration { kind = Methods; _ } -> ()
           | TraitDeclaration { kind = Trait; name; _ } ->
@@ -465,8 +492,10 @@ class bindings_builder ~is_stdlib ~module_tree =
         (* Only return an export node if there actually is a value/type exported *)
         let find_name ~is_value name module_tree =
           match SMap.find_opt name module_tree with
-          | Some (Export { value = None; _ }) when is_value -> None
-          | Some (Export { ty = None; _ }) when not is_value -> None
+          | Some (Export (kind, _))
+            when (is_value && not (in_value_namespace kind))
+                 || ((not is_value) && not (in_type_namespace kind)) ->
+            None
           | result -> result
         in
         (match (find_name ~is_value name module_tree, rest_parts) with
@@ -486,26 +515,23 @@ class bindings_builder ~is_stdlib ~module_tree =
           let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
           this#add_error full_loc (ModuleInvalidPosition (prev_parts_names @ [name], is_value));
           None
-        | (Some (Export { value; ty = _ }), rest_parts)
-          when is_value && ((not resolve_full) || rest_parts = []) ->
+        | (Some (Export (kind, { Ast.Identifier.loc = decl_loc; _ })), rest_parts)
+          when is_value && in_value_namespace kind && ((not resolve_full) || rest_parts = []) ->
           (* Values may have additional name parts, as these will be field accesses *)
-          let (_, { Ast.Identifier.loc = decl_loc; _ }) = Option.get value in
           this#add_value_use decl_loc loc;
           on_export prev_parts part rest_parts
         | (Some (Export _), _) when is_value ->
           let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
           this#add_error loc (ReferenceChildOfExport (name, prev_parts_names));
           None
-        | (Some (Export { value = _; ty }), []) ->
+        | (Some (Export (_, { Ast.Identifier.loc = decl_loc; _ })), []) ->
           (* Types are only fully resolved if all name parts have been matched *)
-          let (_, { Ast.Identifier.loc = decl_loc; _ }) = Option.get ty in
           this#add_type_use decl_loc loc;
           on_export prev_parts part rest_parts
-        | (Some (Export { value = _; ty }), next_part :: _) ->
+        | (Some (Export (_, ty_name)), next_part :: _) ->
           (* Type was fully resolved, but there are still name parts to resolve *)
           let full_loc = Loc.between (List.hd prev_parts).loc next_part.loc in
           let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
-          let (_, ty_name) = Option.get ty in
           this#add_error full_loc (TypeWithAccess (prev_parts_names @ [ty_name.name]));
           None
         | (Some (Empty (_, module_tree)), rest_parts) ->

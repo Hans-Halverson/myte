@@ -3,7 +3,7 @@ test/analyze/main_function/multiple_mains_same_file.myte:5:4-8
  5 | fun main() {}
    |     ^^^^
 
-Error: Value with name `main` already bound in module
+Error: Name `main` already bound in module
 test/analyze/main_function/multiple_mains_same_file.myte:5:4-8
  5 | fun main() {}
    |     ^^^^

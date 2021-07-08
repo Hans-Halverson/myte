@@ -1,7 +1,6 @@
 module a
 
-type alias typeAndValue = Unit
-fun typeAndValue() {}
+type typeAndValue (Unit)
 
 type alias ty = Unit
 

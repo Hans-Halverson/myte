@@ -5,18 +5,13 @@ and module_tree_node =
   | Module of string * t
   | Export of export_info
 
-and export_info = {
-  value: (value_export_kind * Ast.Identifier.t) option;
-  ty: (type_export_kind * Ast.Identifier.t) option;
-}
+and export_info = export_kind * Ast.Identifier.t
 
-and value_export_kind =
+and export_kind =
   | VarDecl of Ast.Statement.VariableDeclaration.kind
   | FunDecl of bool
   | CtorDecl
-
-and type_export_kind =
-  | TypeDecl
+  | TypeDecl of (* Is ctor decl *) bool
   | TypeAlias of Bindings.TypeAliasDeclaration.t
   | TraitDecl
 
@@ -27,9 +22,6 @@ type lookup_result =
 
 val lookup : Ast.Identifier.t list -> t -> lookup_result
 
-val get_all_exports :
-  t ->
-  (value_export_kind * Ast.Identifier.t * string list) list
-  * (type_export_kind * Ast.Identifier.t * string list) list
+val get_all_exports : t -> (export_kind * Ast.Identifier.t * string list) list
 
 val analyze : t -> Ast.Module.t list -> t * Analyze_error.errors

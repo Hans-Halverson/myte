@@ -1,4 +1,4 @@
-Error: Value with name `x` already bound in module
+Error: Name `x` already bound in module
 test/analyze/name_resolution/duplicate_pattern_names_error.myte:6:8
  6 | val (x, x): Int = 1
    |         ^

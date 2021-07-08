@@ -1,11 +1,11 @@
-Error: Module and export with same name `c` in module `a.b`
-test/analyze/module_tree/module_export_overlap/a.b.myte:3:0-10
+Error: Module and export with same name `c` in module `a1.b`
+test/analyze/module_tree/module_export_overlap/a1.b.myte:3:0-10
  3 | fun c() {}
    | ^^^^^^^^^^
 
-Error: Module and export with same name `c` in module `a.b`
-test/analyze/module_tree/module_export_overlap/a.b.myte:5:0-19
- 5 | type alias c = Unit
+Error: Module and export with same name `c` in module `a2.b`
+test/analyze/module_tree/module_export_overlap/a2.b.myte:3:0-19
+ 3 | type alias c = Unit
    | ^^^^^^^^^^^^^^^^^^^
 
 Error: Module and export with same name `e` in module `c.d`

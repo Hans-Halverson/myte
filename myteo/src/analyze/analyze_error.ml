@@ -13,7 +13,7 @@ type t =
   | BuiltinNotFound of string
   | InvalidAssignment of string * invalid_assignment_kind
   | InvalidLValue of invalid_lvalue_kind
-  | DuplicateToplevelNames of string * bool
+  | DuplicateToplevelNames of string
   | DuplicateParameterNames of string * string
   | DuplicatePatternNames of string
   | DuplicateTypeParameterNames of string * name_source
@@ -139,14 +139,7 @@ let to_string error =
       | InvalidLValueTuple -> "Tuples are immutable and cannot have their elements reassigned."
     in
     Printf.sprintf "Invalid left hand side of assignment. %s" kind_string
-  | DuplicateToplevelNames (name, is_value) ->
-    Printf.sprintf
-      "%s with name `%s` already bound in module"
-      ( if is_value then
-        "Value"
-      else
-        "Type" )
-      name
+  | DuplicateToplevelNames name -> Printf.sprintf "Name `%s` already bound in module" name
   | DuplicateParameterNames (param, func) ->
     Printf.sprintf "Name `%s` already bound in parameters of function `%s`" param func
   | DuplicatePatternNames name -> Printf.sprintf "Name `%s` already bound in pattern" name
