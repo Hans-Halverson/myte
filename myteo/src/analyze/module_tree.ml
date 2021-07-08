@@ -1,24 +1,13 @@
 open Ast
 open Analyze_error
 open Basic_collections
-open Bindings
 
 type t = module_tree_node SMap.t
 
 and module_tree_node =
   | Empty of string * t
   | Module of string * t
-  | Export of export_info
-
-and export_kind =
-  | VarDecl of Statement.VariableDeclaration.kind
-  | FunDecl of bool
-  | CtorDecl
-  | TypeDecl of (* Is ctor decl *) bool
-  | TypeAlias of TypeAliasDeclaration.t
-  | TraitDecl
-
-and export_info = export_kind * Ast.Identifier.t
+  | Export of Identifier.t
 
 let add_exports module_ submodule_tree =
   let open Ast.Module in
@@ -28,13 +17,13 @@ let add_exports module_ submodule_tree =
     let add_exports_to_tree rest exports =
       let (submodule_tree, errors) = add_exports_inner rest in
       List.fold_left
-        (fun (submodule_tree, errors) (id, loc, export_info) ->
+        (fun (submodule_tree, errors) (id, loc) ->
           let { Ast.Identifier.name; _ } = id in
           match SMap.find_opt name submodule_tree with
           | None
           | Some (Export _) ->
             (* May overwrite export with same name, but error will be detected during name resolution *)
-            (SMap.add name (Export export_info) submodule_tree, errors)
+            (SMap.add name (Export id) submodule_tree, errors)
           | Some (Module _ | Empty _) ->
             (* Error for export with same name as module *)
             let {
@@ -52,23 +41,15 @@ let add_exports module_ submodule_tree =
     | [] -> (submodule_tree, [])
     (* Methods declarations do not define any exports *)
     | TraitDeclaration { kind = Methods; _ } :: rest -> add_exports_to_tree rest []
-    | VariableDeclaration { Ast.Statement.VariableDeclaration.loc; kind; pattern; _ } :: rest ->
+    | VariableDeclaration { Ast.Statement.VariableDeclaration.loc; pattern; _ } :: rest ->
       let ids = Ast_utils.ids_of_pattern pattern in
-      let exports = List.map (fun id -> (id, loc, (VarDecl kind, id))) ids in
+      let exports = List.map (fun id -> (id, loc)) ids in
       add_exports_to_tree rest exports
-    | FunctionDeclaration { Ast.Function.loc; name = id; builtin; _ } :: rest ->
-      add_exports_to_tree rest [(id, loc, (FunDecl builtin, id))]
+    | FunctionDeclaration { Ast.Function.loc; name = id; _ } :: rest ->
+      add_exports_to_tree rest [(id, loc)]
     | TypeDeclaration { Ast.TypeDeclaration.loc; name = id; decl; _ } :: rest ->
       let open Ast.TypeDeclaration in
-      let kind =
-        match decl with
-        | Alias _ -> TypeAlias (TypeAliasDeclaration.mk ())
-        | Tuple _
-        | Record _ ->
-          TypeDecl true
-        | Variant _ -> TypeDecl false
-      in
-      let exports = [(id, loc, (kind, id))] in
+      let exports = [(id, loc)] in
       (* Export all constructors in this type declaration *)
       let exports =
         match decl with
@@ -83,13 +64,13 @@ let add_exports module_ submodule_tree =
               | EnumVariant ({ loc; _ } as name)
               | TupleVariant { loc; name; _ }
               | RecordVariant { loc; name; _ } ->
-                (name, loc, (CtorDecl, name)) :: exports)
+                (name, loc) :: exports)
             exports
             variants
       in
       add_exports_to_tree rest (List.rev exports)
     | TraitDeclaration { loc; name; kind = Trait; _ } :: rest ->
-      add_exports_to_tree rest [(name, loc, (TraitDecl, name))]
+      add_exports_to_tree rest [(name, loc)]
   in
   add_exports_inner module_.toplevels
 
@@ -149,7 +130,7 @@ let add_to_module_tree module_ module_tree =
   add_to_module_tree_inner [] module_name_parts module_tree
 
 type lookup_result =
-  | LookupResultExport of export_info
+  | LookupResultExport of Identifier.t
   | LookupResultModule of string option * t
   | LookupResultError of Analyze_error.error
 
@@ -173,9 +154,9 @@ let lookup name_parts module_tree =
 let get_all_exports module_tree =
   let rec get_all_exports_of_node module_tree_node prev_module_parts =
     match module_tree_node with
-    | Export (kind, id) ->
+    | Export id ->
       let module_parts = List.rev (List.tl prev_module_parts) in
-      [(kind, id, module_parts)]
+      [(id, module_parts)]
     | Empty (_, module_tree)
     | Module (_, module_tree) ->
       SMap.fold

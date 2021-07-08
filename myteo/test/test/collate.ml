@@ -209,9 +209,13 @@ let pp ~tree ~tree_full results =
       add_string "\n"
     );
     pp_failure_summary ()
-  ) else if has_passed results then
+  ) else if has_passed results then (
+    if tree_full then (
+      List.iter (fun result -> pp_failure_tree result 1) results;
+      add_string "\n"
+    );
     add_strings [style ~decorations:[Bold] (); "All tests passed!\n"; reset ()]
-  else
+  ) else
     add_string "No tests ran.\n";
   pp_suite_summary ();
   Buffer.contents buf
