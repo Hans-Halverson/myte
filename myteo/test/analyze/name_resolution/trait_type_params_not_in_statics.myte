@@ -1,0 +1,12 @@
+module test
+
+trait Foo<T> {
+  // Trait type parameters can appear in non-static methods
+  fun foo(x: T) {}
+
+  // Trait type parameters cannot appear in static methods
+  static fun bar(x: T)
+  static fun baz(x: T) {}
+}
+
+fun main() {}

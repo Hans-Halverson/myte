@@ -1,0 +1,9 @@
+Error: Could not resolve name `T` to type
+test/analyze/name_resolution/trait_type_params_not_in_statics.myte:8:20
+ 8 |   static fun bar(x: T)
+   |                     ^
+
+Error: Could not resolve name `T` to type
+test/analyze/name_resolution/trait_type_params_not_in_statics.myte:9:20
+ 9 |   static fun baz(x: T) {}
+   |                     ^

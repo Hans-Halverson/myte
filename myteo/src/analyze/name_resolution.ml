@@ -79,6 +79,14 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
 
     method restore_toplevel_scope loc = scopes <- LocMap.find loc toplevel_scopes
 
+    (* Run a callback in the parent scope, restoring current scope and returning value when complete *)
+    method in_parent_scope f =
+      let saved_scope = scopes in
+      this#exit_scope ();
+      let result = f () in
+      scopes <- saved_scope;
+      result
+
     method set_record_fields loc names = record_fields <- LocMap.add loc names record_fields
 
     method add_value_to_scope name local_decl =
@@ -568,14 +576,23 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
     method visit_trait_declaration decl =
       let open Ast.TraitDeclaration in
       let { name = { name; _ }; type_params; implemented; methods; _ } = decl in
-      (* Resolve names of methods and implemented traits in new scope containing type params *)
       this#enter_scope ();
       this#add_type_parameter_declarations type_params (FunctionName name);
       List.iter
         (fun { ImplementedTrait.type_args; _ } ->
           List.iter (fun ty -> ignore (this#type_ ty)) type_args)
         implemented;
-      let methods' = id_map_list (this#visit_function_declaration ~add_decl:false) methods in
+      let methods' =
+        id_map_list
+          (fun ({ Function.static; _ } as method_) ->
+            (* Static methods cannot reference trait's type parameters, so resolve in parent scope *)
+            if static then
+              this#in_parent_scope (fun _ ->
+                  this#visit_function_declaration ~add_decl:false method_)
+            else
+              this#visit_function_declaration ~add_decl:false method_)
+          methods
+      in
       this#exit_scope ();
       if methods == methods' then
         decl
