@@ -19,6 +19,8 @@ type t =
   | DuplicateTypeParameterNames of string * name_source
   | DuplicateModuleNames of string
   | DuplicateMethodNames of string * string * string list
+  | DuplicateRecordFieldNames of string
+  | DuplicateRecordFieldAndMethodNames of string * string * string option
   | ModuleAndExportDuplicateNames of string * string
   | ImportNonexist of string * string list
   | ReferenceChildOfExport of string * string list
@@ -27,6 +29,7 @@ type t =
   | NoModuleWithName of string list * bool
   | ExpectedTrait of string
   | OverrideNonexistentMethod of string
+  | OverrideMultipleMethods of string * string * string
   | TypeWithAccess of string list
   | CyclicTypeAlias of string
   | ToplevelVarWithoutAnnotation
@@ -183,6 +186,17 @@ let to_string error =
         super1
         super2
     | _ -> failwith "At most two supertraits")
+  | DuplicateRecordFieldNames name ->
+    Printf.sprintf "Field with name `%s` already declared in record" name
+  | DuplicateRecordFieldAndMethodNames (method_name, trait_name, super_trait_opt) ->
+    (match super_trait_opt with
+    | None -> Printf.sprintf "Field with name `%s` already declared for `%s`" method_name trait_name
+    | Some super_trait ->
+      Printf.sprintf
+        "Method with name `%s` from super trait `%s` conflicts with field of the same name for `%s`"
+        method_name
+        super_trait
+        trait_name)
   | ModuleAndExportDuplicateNames (name, module_) ->
     Printf.sprintf "Module and export with same name `%s` in module `%s`" name module_
   | ImportNonexist (name, []) -> Printf.sprintf "No toplevel module with name `%s` found" name
@@ -220,6 +234,13 @@ let to_string error =
   | ExpectedTrait name -> Printf.sprintf "Expected `%s` to be a trait" name
   | OverrideNonexistentMethod name ->
     Printf.sprintf "No parent method with name `%s` to override" name
+  | OverrideMultipleMethods (method_name, super1, super2) ->
+    Printf.sprintf
+      "Overriding multiple methods with name `%s`, but only a single method can be overridden. Method `%s` is declared in super traits `%s` and `%s`."
+      method_name
+      method_name
+      super1
+      super2
   | TypeWithAccess type_name_parts ->
     Printf.sprintf
       "Could not resolve access on type `%s`. Types do not have members that can be accessed."

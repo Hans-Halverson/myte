@@ -1,0 +1,33 @@
+module test
+
+// Error on method in methods body
+type Rec1 { foo: Int }
+
+methods Rec1 {
+  fun foo() {}
+}
+
+// Error on method from super trait
+type Rec2 { foo: Int }
+
+trait T1 {
+  fun foo() {}
+}
+
+methods Rec2 {
+  implements T1
+}
+
+// Do not error on method signature from super trait - error will come from type checking when
+// type does not implement method with name from trait.
+type Rec3 { foo: Int }
+
+trait T2 {
+  fun foo()
+}
+
+methods Rec3 {
+  implements T2
+}
+
+fun main() {}

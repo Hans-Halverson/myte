@@ -5,6 +5,7 @@ open Bindings
 open Immutable_utils
 open Traits
 
+(* Data structures for names resolution *)
 type 'a local_decl =
   | Decl of 'a
   | ModuleDecl of Module_tree.t
@@ -15,6 +16,23 @@ type scope = {
 }
 
 type scopes = scope list
+
+(* Data structures for method name checking *)
+module MethodLocation = struct
+  type t =
+    | SuperTrait of (* Trait name *) string * (* Is signature *) bool
+    | BaseTrait of (* Method location on base trait *) Loc.t * (* Is override *) bool
+
+  let compare l1 l2 =
+    match (l1, l2) with
+    | (BaseTrait (loc1, _), BaseTrait (loc2, _)) -> Loc.compare loc1 loc2
+    | (BaseTrait _, SuperTrait _) -> -1
+    | (SuperTrait _, BaseTrait _) -> 1
+    | (SuperTrait (t1, _), SuperTrait (t2, _)) -> String.compare t1 t2
+end
+
+module MethodSet = Set.Make (MethodLocation)
+module MethodMMap = MultiMap.Make (String) (MethodLocation)
 
 class bindings_builder ~is_stdlib ~bindings ~module_tree =
   object (this)
@@ -29,6 +47,9 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
 
     val mutable module_name : string list = []
 
+    (* Set of field names for each record type *)
+    val mutable record_fields : SSet.t LocMap.t = LocMap.empty
+
     method add_error loc err = errors <- (loc, err) :: errors
 
     method errors () = List.rev errors
@@ -40,6 +61,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
     method save_toplevel_scope loc = toplevel_scopes <- LocMap.add loc scopes toplevel_scopes
 
     method restore_toplevel_scope loc = scopes <- LocMap.find loc toplevel_scopes
+
+    method set_record_fields loc names = record_fields <- LocMap.add loc names record_fields
 
     method add_value_to_scope name local_decl =
       match scopes with
@@ -133,9 +156,9 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             add_value_binding name (fun _ -> FunDecl (FunctionDeclaration.mk builtin))
           | TypeDeclaration { Ast.TypeDeclaration.name; decl; _ } ->
             register_stdlib_decl name;
-            if name.name = "_" then
+            ( if name.name = "_" then
               this#add_error name.loc InvalidWildcardIdentifier
-            else (
+            else
               match decl with
               | Alias _ -> add_type_binding name (fun _ -> TypeAlias (TypeAliasDeclaration.mk ()))
               | Tuple { name; _ }
@@ -152,8 +175,23 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                     | TupleVariant { Tuple.name; _ }
                     | RecordVariant { Record.name; _ } ->
                       add_value_binding name (fun _ -> CtorDecl (ConstructorDeclaration.mk ())))
-                  variants
-            )
+                  variants );
+            (* Check record fields for duplicates and save to compare against methods *)
+            (match decl with
+            | Record { name = { loc; _ }; fields; _ } ->
+              let names =
+                List.fold_left
+                  (fun names { Ast.TypeDeclaration.Record.Field.name = { loc; name }; _ } ->
+                    if SSet.mem name names then (
+                      this#add_error loc (DuplicateRecordFieldNames name);
+                      names
+                    ) else
+                      SSet.add name names)
+                  SSet.empty
+                  fields
+              in
+              this#set_record_fields loc names
+            | _ -> ())
           | TraitDeclaration { kind = Methods; _ } -> ()
           | TraitDeclaration { kind = Trait; name; _ } ->
             register_stdlib_decl name;
@@ -770,165 +808,180 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           List.iter (fun { Record.Field.value; _ } -> resolve_scoped_ids value) fields
       in
       resolve_scoped_ids patt
-  end
 
-(* Data structures for method name checking *)
-module MethodLocation = struct
-  type t =
-    | SuperTrait of (* Trait name *) string * (* Is signature *) bool
-    | BaseTrait of (* Method location on base trait *) Loc.t * (* Is override *) bool
+    method check_method_names () =
+      let errors = ref [] in
+      let add_error loc err = errors := (loc, err) :: !errors in
 
-  let compare l1 l2 =
-    match (l1, l2) with
-    | (BaseTrait (loc1, _), BaseTrait (loc2, _)) -> Loc.compare loc1 loc2
-    | (BaseTrait _, SuperTrait _) -> -1
-    | (SuperTrait _, BaseTrait _) -> 1
-    | (SuperTrait (t1, _), SuperTrait (t2, _)) -> String.compare t1 t2
-end
-
-module MethodSet = Set.Make (MethodLocation)
-module MethodMMap = MultiMap.Make (String) (MethodLocation)
-
-let check_method_names bindings =
-  let errors = ref [] in
-  let add_error loc err = errors := (loc, err) :: !errors in
-
-  (* Collect all method names and *)
-  let gather_methods_and_super_traits (methods_acc, super_traits_acc) ({ Trait.methods; _ } as trait)
-      =
-    (* Recursively gather all super trait definitions, deduplicating super traits *)
-    let rec gather_super_traits
-        super_traits_acc ({ Trait.loc; implemented; _ } as super_trait) is_base =
-      let super_traits_acc =
-        if is_base then
-          super_traits_acc
-        else
-          LocMap.add loc super_trait super_traits_acc
-      in
-      LocMap.fold
-        (fun _ { Trait.implemented_trait; _ } super_traits_acc ->
-          gather_super_traits super_traits_acc implemented_trait false)
-        implemented
-        super_traits_acc
-    in
-    let methods_acc =
-      SMap.fold
-        (fun _ ({ Method.loc; _ } as method_) methods_acc -> LocMap.add loc method_ methods_acc)
-        methods
-        methods_acc
-    in
-    let super_traits_acc = gather_super_traits super_traits_acc trait true in
-    (methods_acc, super_traits_acc)
-  in
-
-  (* Combine all methods names in base trait and its super traits into single data structure *)
-  let collect_method_names methods super_traits =
-    let names =
-      LocMap.fold
-        (fun loc { Method.name; is_override; _ } names ->
-          MethodMMap.add name (MethodLocation.BaseTrait (loc, is_override)) names)
-        methods
-        MethodMMap.empty
-    in
-    let names =
-      LocMap.fold
-        (fun _ { Trait.name = trait_name; methods; _ } names ->
+      (* Collect all method names and *)
+      let gather_methods_and_super_traits
+          (methods_acc, super_traits_acc) ({ Trait.methods; _ } as trait) =
+        (* Recursively gather all super trait definitions, deduplicating super traits *)
+        let rec gather_super_traits
+            super_traits_acc ({ Trait.loc; implemented; _ } as super_trait) is_base =
+          let super_traits_acc =
+            if is_base then
+              super_traits_acc
+            else
+              LocMap.add loc super_trait super_traits_acc
+          in
+          LocMap.fold
+            (fun _ { Trait.implemented_trait; _ } super_traits_acc ->
+              gather_super_traits super_traits_acc implemented_trait false)
+            implemented
+            super_traits_acc
+        in
+        let methods_acc =
           SMap.fold
-            (fun name { Method.is_signature; _ } names ->
-              MethodMMap.add name (MethodLocation.SuperTrait (trait_name, is_signature)) names)
+            (fun _ ({ Method.loc; _ } as method_) methods_acc -> LocMap.add loc method_ methods_acc)
             methods
-            names)
-        super_traits
-        names
-    in
-    names
-  in
+            methods_acc
+        in
+        let super_traits_acc = gather_super_traits super_traits_acc trait true in
+        (methods_acc, super_traits_acc)
+      in
 
-  (* Find errors for methods. Error on duplicate method names, and override methods that do not
-     have a corresponding super trait method. *)
-  let check_errors trait_name trait_name_loc names =
-    SMap.iter
-      (fun method_name method_locations ->
-        (* Collect all method declarations for base trait, non-signature method declarations in
-           super traits, whether the method is override in this trait, and whether the method has
-           any super trait decls. *)
-        let (base_trait_decls, non_sig_super_trait_decls, override_decl_opt, has_super_trait_decl) =
-          MethodSet.fold
-            (fun method_location
-                 ( base_trait_decls,
-                   non_sig_super_trait_decls,
-                   override_decl_opt,
-                   has_super_trait_decl ) ->
-              match method_location with
-              | MethodLocation.BaseTrait (base_trait_decl, is_override) ->
-                let override_decl_opt =
-                  if is_override then
-                    Some base_trait_decl
-                  else
-                    override_decl_opt
-                in
-                ( base_trait_decl :: base_trait_decls,
+      (* Combine all methods names in base trait and its super traits into single data structure *)
+      let collect_method_names methods super_traits =
+        let names =
+          LocMap.fold
+            (fun loc { Method.name; is_override; _ } names ->
+              MethodMMap.add name (MethodLocation.BaseTrait (loc, is_override)) names)
+            methods
+            MethodMMap.empty
+        in
+        let names =
+          LocMap.fold
+            (fun _ { Trait.name = trait_name; methods; _ } names ->
+              SMap.fold
+                (fun name { Method.is_signature; _ } names ->
+                  MethodMMap.add name (MethodLocation.SuperTrait (trait_name, is_signature)) names)
+                methods
+                names)
+            super_traits
+            names
+        in
+        names
+      in
+
+      (* Find errors for methods. Error on duplicate method names, and override methods that do not
+         have a corresponding super trait method. *)
+      let check_errors trait_name trait_name_loc names =
+        let field_names = LocMap.find_opt trait_name_loc record_fields in
+        SMap.iter
+          (fun method_name method_locations ->
+            (* Collect all method declarations for base trait, non-signature method declarations in
+               super traits, whether the method is override in this trait, and whether the method has
+               any super trait decls. *)
+            let ( base_trait_decls,
                   non_sig_super_trait_decls,
                   override_decl_opt,
-                  has_super_trait_decl )
-              | MethodLocation.SuperTrait (super_trait_decl, is_signature) ->
-                let non_sig_super_trait_decls =
-                  if is_signature then
-                    non_sig_super_trait_decls
-                  else
-                    super_trait_decl :: non_sig_super_trait_decls
-                in
-                (base_trait_decls, non_sig_super_trait_decls, override_decl_opt, true))
-            method_locations
-            ([], [], None, false)
-        in
+                  has_super_trait_decl ) =
+              MethodSet.fold
+                (fun method_location
+                     ( base_trait_decls,
+                       non_sig_super_trait_decls,
+                       override_decl_opt,
+                       has_super_trait_decl ) ->
+                  match method_location with
+                  | MethodLocation.BaseTrait (base_trait_decl, is_override) ->
+                    let override_decl_opt =
+                      if is_override then
+                        Some base_trait_decl
+                      else
+                        override_decl_opt
+                    in
+                    ( base_trait_decl :: base_trait_decls,
+                      non_sig_super_trait_decls,
+                      override_decl_opt,
+                      has_super_trait_decl )
+                  | MethodLocation.SuperTrait (super_trait_decl, is_signature) ->
+                    let non_sig_super_trait_decls =
+                      if is_signature then
+                        non_sig_super_trait_decls
+                      else
+                        super_trait_decl :: non_sig_super_trait_decls
+                    in
+                    (base_trait_decls, non_sig_super_trait_decls, override_decl_opt, true))
+                method_locations
+                ([], [], None, false)
+            in
+            let base_trait_decls = List.rev base_trait_decls in
+            let non_sig_super_trait_decls = List.rev non_sig_super_trait_decls in
 
-        (* Error if trying to override a nonexistent method *)
-        (match override_decl_opt with
-        | Some override_decl when not has_super_trait_decl ->
-          add_error override_decl (OverrideNonexistentMethod method_name)
-        | _ -> ());
+            (* Error if trying to override a nonexistent method *)
+            (match override_decl_opt with
+            | Some override_decl when not has_super_trait_decl ->
+              add_error override_decl (OverrideNonexistentMethod method_name)
+            | _ -> ());
 
-        (* Filter out remaining super trait decls is method is overridden by this trait *)
-        let non_sig_super_trait_decls =
-          match override_decl_opt with
-          | Some _ -> []
-          | None -> non_sig_super_trait_decls
-        in
+            (* Filter out remaining super trait decls if method is overridden by this trait *)
+            let non_sig_super_trait_decls =
+              match override_decl_opt with
+              | Some override_decl_loc ->
+                (* Error if multiple super methods are overridden *)
+                (match non_sig_super_trait_decls with
+                | super1 :: super2 :: _ ->
+                  add_error
+                    override_decl_loc
+                    (OverrideMultipleMethods (method_name, super1, super2))
+                | _ -> ());
+                []
+              | None -> non_sig_super_trait_decls
+            in
 
-        (* Error on duplicate method names, ignoring all signatures in super traits *)
-        match (List.rev base_trait_decls, List.rev non_sig_super_trait_decls) with
-        | (_ :: base_trait_loc :: _, _) ->
-          add_error base_trait_loc (DuplicateMethodNames (method_name, trait_name, []))
-        | ([base_trait_loc], super :: _) ->
-          add_error base_trait_loc (DuplicateMethodNames (method_name, trait_name, [super]))
-        | ([], super1 :: super2 :: _) ->
-          add_error
-            trait_name_loc
-            (DuplicateMethodNames (method_name, trait_name, [super1; super2]))
-        | _ -> ())
-      names
-  in
+            (* Error on duplicate method names, ignoring all signatures in super traits *)
+            match (base_trait_decls, non_sig_super_trait_decls) with
+            | (_ :: base_trait_loc :: _, _) ->
+              add_error base_trait_loc (DuplicateMethodNames (method_name, trait_name, []))
+            | ([base_trait_loc], super :: _) ->
+              add_error base_trait_loc (DuplicateMethodNames (method_name, trait_name, [super]))
+            | ([], super1 :: super2 :: _) ->
+              add_error
+                trait_name_loc
+                (DuplicateMethodNames (method_name, trait_name, [super1; super2]))
+            | _ ->
+              ();
 
-  LocMap.iter
-    (fun _ { TypeBinding.name; loc; declaration; _ } ->
-      match declaration with
-      | TypeDecl type_decl ->
-        let traits = TypeDeclaration.get_traits type_decl in
-        let (methods, super_traits) =
-          List.fold_left gather_methods_and_super_traits (LocMap.empty, LocMap.empty) traits
-        in
-        let names = collect_method_names methods super_traits in
-        check_errors name loc names
-      | TraitDecl trait ->
-        let (methods, super_traits) =
-          gather_methods_and_super_traits (LocMap.empty, LocMap.empty) trait
-        in
-        let names = collect_method_names methods super_traits in
-        check_errors name loc names
-      | _ -> ())
-    bindings.Bindings.type_bindings;
-  List.rev !errors
+              (* Error if method has same as record field *)
+              (match field_names with
+              | None -> ()
+              | Some field_names ->
+                if SSet.mem method_name field_names then (
+                  match (base_trait_decls, non_sig_super_trait_decls) with
+                  | (base_trait_loc :: _, _) ->
+                    this#add_error
+                      base_trait_loc
+                      (DuplicateRecordFieldAndMethodNames (method_name, trait_name, None))
+                  | (_, super_trait :: _) ->
+                    this#add_error
+                      trait_name_loc
+                      (DuplicateRecordFieldAndMethodNames (method_name, trait_name, Some super_trait))
+                  | _ -> ()
+                )))
+          names
+      in
+
+      LocMap.iter
+        (fun _ { TypeBinding.name; loc; declaration; _ } ->
+          match declaration with
+          | TypeDecl type_decl ->
+            let traits = TypeDeclaration.get_traits type_decl in
+            let (methods, super_traits) =
+              List.fold_left gather_methods_and_super_traits (LocMap.empty, LocMap.empty) traits
+            in
+            let names = collect_method_names methods super_traits in
+            check_errors name loc names
+          | TraitDecl trait ->
+            let (methods, super_traits) =
+              gather_methods_and_super_traits (LocMap.empty, LocMap.empty) trait
+            in
+            let names = collect_method_names methods super_traits in
+            check_errors name loc names
+          | _ -> ())
+        bindings.Bindings.type_bindings;
+      List.rev !errors
+  end
 
 let assert_stdlib_builtins_found mods =
   let open Std_lib in
@@ -954,7 +1007,7 @@ let analyze ~is_stdlib bindings module_tree modules =
   (* Then add methods to all traits and types *)
   List.iter (fun (_, mod_) -> bindings_builder#add_methods mod_) modules;
   (* Then get errors for method declarations in traits and types *)
-  let method_field_errors = check_method_names bindings in
+  let method_field_errors = bindings_builder#check_method_names () in
   (* Then resolve names in each module *)
   let resolved_modules =
     List.map

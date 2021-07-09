@@ -1,0 +1,9 @@
+Error: Field with name `foo` already declared in record
+test/analyze/name_resolution/duplicate_record_field_error.myte:3:21-24
+ 3 | type Rec { foo: Int, foo: Bool, foo: Unit }
+   |                      ^^^
+
+Error: Field with name `foo` already declared in record
+test/analyze/name_resolution/duplicate_record_field_error.myte:3:32-35
+ 3 | type Rec { foo: Int, foo: Bool, foo: Unit }
+   |                                 ^^^

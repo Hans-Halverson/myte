@@ -1,0 +1,4 @@
+Error: Overriding multiple methods with name `a`, but only a single method can be overridden. Method `a` is declared in super traits `T1` and `T2`.
+test/analyze/name_resolution/traits/override_multiple_methods_error.myte:15:15
+ 15 |   override fun a() {}
+    |                ^

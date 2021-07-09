@@ -1,0 +1,18 @@
+module test
+
+trait T1 {
+  fun a() {}
+}
+
+trait T2 {
+  fun a() {}
+}
+
+trait T3 {
+  extends T1
+  extends T2
+
+  override fun a() {}
+}
+
+fun main() {}

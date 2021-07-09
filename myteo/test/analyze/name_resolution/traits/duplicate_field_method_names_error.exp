@@ -1,0 +1,9 @@
+Error: Field with name `foo` already declared for `Rec1`
+test/analyze/name_resolution/traits/duplicate_field_method_names_error.myte:7:6-9
+ 7 |   fun foo() {}
+   |       ^^^
+
+Error: Method with name `foo` from super trait `T1` conflicts with field of the same name for `Rec2`
+test/analyze/name_resolution/traits/duplicate_field_method_names_error.myte:11:5-9
+ 11 | type Rec2 { foo: Int }
+    |      ^^^^

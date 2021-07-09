@@ -1,0 +1,5 @@
+module test
+
+type Rec { foo: Int, foo: Bool, foo: Unit }
+
+fun main() {}
