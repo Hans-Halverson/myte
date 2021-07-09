@@ -1,0 +1,13 @@
+module test
+
+type Foo (Int)
+
+trait Bar {
+  extends Foo
+}
+
+methods Foo {
+  implements Foo
+}
+
+fun main() {}

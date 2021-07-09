@@ -1,0 +1,13 @@
+module test
+
+// Error since there is no super trait with method `a`
+trait T1 {
+  override fun a() {}
+}
+
+// Error is contained above, does not propagate to sub trait
+trait T2 {
+  extends T1
+}
+
+fun main() {}

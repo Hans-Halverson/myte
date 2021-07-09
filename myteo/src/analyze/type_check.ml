@@ -61,7 +61,7 @@ let rec build_type ~cx ty =
             Types.substitute_type_params subst_map body)
       (* Pass type args to ADT if they have the correct arity *)
       | TypeDecl type_decl ->
-        let adt_sig = Bindings.TypeDeclaration.get type_decl in
+        let adt_sig = Bindings.TypeDeclaration.get_adt_sig type_decl in
         mk_if_correct_arity (List.length adt_sig.type_params) (fun _ ->
             Types.ADT { adt_sig; type_args })
       | TraitDecl _ -> failwith "TODO: Type check traits"))
@@ -85,7 +85,7 @@ and visit_type_declarations_prepass ~cx module_ =
         let adt_decl = Bindings.get_type_decl binding in
         let type_params = check_type_parameters ~cx type_params in
         let adt_sig = Types.mk_adt_sig name type_params in
-        Bindings.TypeDeclaration.set adt_decl adt_sig;
+        Bindings.TypeDeclaration.set_adt_sig adt_decl adt_sig;
         Std_lib.register_stdlib_type id_loc adt_sig
       | _ -> ())
     toplevels
@@ -139,7 +139,7 @@ and visit_type_declarations ~cx module_ =
           } ->
         let binding = Type_context.get_type_binding ~cx id_loc in
         let adt_decl = Bindings.get_type_decl binding in
-        let adt_sig = Bindings.TypeDeclaration.get adt_decl in
+        let adt_sig = Bindings.TypeDeclaration.get_adt_sig adt_decl in
         let build_element_tys ~cx elements = List.map (build_type ~cx) elements in
         let build_field_tys ~cx fields =
           List.fold_left

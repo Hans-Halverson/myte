@@ -1,0 +1,9 @@
+Error: Expected `Foo` to be a trait
+test/analyze/name_resolution/traits/implemented_not_trait.myte:6:10-13
+ 6 |   extends Foo
+   |           ^^^
+
+Error: Expected `Foo` to be a trait
+test/analyze/name_resolution/traits/implemented_not_trait.myte:10:13-16
+ 10 |   implements Foo
+    |              ^^^

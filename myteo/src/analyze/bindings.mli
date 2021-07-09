@@ -60,15 +60,19 @@ module TypeDeclaration : sig
 
   val mk : unit -> t
 
-  val get : t -> Types.adt_sig
+  val get_adt_sig : t -> Types.adt_sig
 
-  val set : t -> Types.adt_sig -> unit
+  val set_adt_sig : t -> Types.adt_sig -> unit
+
+  val add_trait : t -> Traits.Trait.t -> unit
+
+  val get_traits : t -> Traits.Trait.t list
 end
 
 module TraitDeclaration : sig
-  type t
+  type t = Traits.Trait.t
 
-  val mk : unit -> t
+  val mk : name:string -> loc:Loc.t -> t
 end
 
 type value_declaration =

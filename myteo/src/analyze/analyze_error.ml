@@ -18,12 +18,15 @@ type t =
   | DuplicatePatternNames of string
   | DuplicateTypeParameterNames of string * name_source
   | DuplicateModuleNames of string
+  | DuplicateMethodNames of string * string * string list
   | ModuleAndExportDuplicateNames of string * string
   | ImportNonexist of string * string list
   | ReferenceChildOfExport of string * string list
   | ModuleInvalidPosition of string list * name_position_type
   | NoExportInModule of string * string list * bool
   | NoModuleWithName of string list * bool
+  | ExpectedTrait of string
+  | OverrideNonexistentMethod of string
   | TypeWithAccess of string list
   | CyclicTypeAlias of string
   | ToplevelVarWithoutAnnotation
@@ -160,6 +163,26 @@ let to_string error =
       param
       (string_of_name_source source)
   | DuplicateModuleNames name -> Printf.sprintf "Module already declared with name `%s`" name
+  | DuplicateMethodNames (method_name, trait_name, super_traits) ->
+    (match super_traits with
+    | [] ->
+      Printf.sprintf "Multiple methods with name `%s` declared for `%s`" method_name trait_name
+    | [super] ->
+      Printf.sprintf
+        "Multiple methods with name `%s` declared for `%s`. Method `%s` is already declared in super trait `%s`."
+        method_name
+        trait_name
+        method_name
+        super
+    | [super1; super2] ->
+      Printf.sprintf
+        "Multiple methods with name `%s` declared for `%s`. Method `%s` is declared in super traits `%s` and `%s`."
+        method_name
+        trait_name
+        method_name
+        super1
+        super2
+    | _ -> failwith "At most two supertraits")
   | ModuleAndExportDuplicateNames (name, module_) ->
     Printf.sprintf "Module and export with same name `%s` in module `%s`" name module_
   | ImportNonexist (name, []) -> Printf.sprintf "No toplevel module with name `%s` found" name
@@ -194,6 +217,9 @@ let to_string error =
       "No module or exported %s with name `%s` found"
       (value_or_type is_value)
       (String.concat "." module_parts)
+  | ExpectedTrait name -> Printf.sprintf "Expected `%s` to be a trait" name
+  | OverrideNonexistentMethod name ->
+    Printf.sprintf "No parent method with name `%s` to override" name
   | TypeWithAccess type_name_parts ->
     Printf.sprintf
       "Could not resolve access on type `%s`. Types do not have members that can be accessed."

@@ -1,5 +1,6 @@
 open Ast
 open Basic_collections
+open Traits
 
 module VariableDeclaration = struct
   type t = {
@@ -66,19 +67,26 @@ module TypeParamDeclaration = struct
 end
 
 module TypeDeclaration = struct
-  type t = { mutable adt_sig: Types.adt_sig option }
+  type t = {
+    mutable adt_sig: Types.adt_sig option;
+    mutable traits: Trait.t list;
+  }
 
-  let mk () = { adt_sig = None }
+  let mk () = { adt_sig = None; traits = [] }
 
-  let get decl = Option.get decl.adt_sig
+  let get_adt_sig decl = Option.get decl.adt_sig
 
-  let set decl adt_sig = decl.adt_sig <- Some adt_sig
+  let set_adt_sig decl adt_sig = decl.adt_sig <- Some adt_sig
+
+  let add_trait decl trait = decl.traits <- trait :: decl.traits
+
+  let get_traits decl = decl.traits
 end
 
 module TraitDeclaration = struct
-  type t = unit
+  type t = Trait.t
 
-  let mk () = ()
+  let mk = Trait.mk
 end
 
 type value_declaration =

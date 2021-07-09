@@ -1,0 +1,130 @@
+module test
+
+// Duplicate methods defined within same trait
+trait Test1 {
+  fun a() {}
+  fun a() {}
+}
+
+// Duplicate methods defined in trait and extended trait
+trait T1 {
+  fun a() {}
+}
+
+trait Test2 {
+  extends T1
+
+  fun a() {}
+}
+
+// Conflicting methods defined in extended traits
+trait T2 {
+  fun a() {}
+}
+
+trait Test3 {
+  extends T1
+  extends T2
+}
+
+// Conflicting methods defined in ancestor traits
+trait T3 {
+  extends T2
+}
+
+trait T4 {
+  extends T3
+}
+
+trait Test4 {
+  extends T1
+  extends T4
+}
+
+// Conflicting methods defined in separate method blocks
+type Tup1 (Unit)
+
+methods Tup1 {
+  fun a() {}
+}
+
+methods Tup1 {
+  fun a() {}
+}
+
+// Conflicting methods in trait and extended trait in separate method blocks
+type Tup2 (Unit)
+
+methods Tup2 {
+  fun a() {}
+}
+
+methods Tup2 {
+  implements T1
+}
+
+// Conflicting methods from extended traits in separate method blocks
+type Tup3 (Unit)
+
+methods Tup3 {
+  implements T1
+}
+
+methods Tup3 {
+  implements T2
+}
+
+// Override and signature methods in same trait error
+trait Test5 {
+  fun a()
+  fun a() {}
+}
+
+trait Test6 {
+  override fun a() {}
+  fun a() {}
+}
+
+trait Test7 {
+  fun a()
+  override fun a() {}
+}
+
+// Overriding method is ignored - no error
+trait Test8 {
+  extends T1
+  override fun a() {}
+}
+
+// Overriding signature is ignored - no error
+trait T5 {
+  fun a()
+}
+
+trait Test9 {
+  extends T5
+  override fun a() {}
+}
+
+// Including multiple signatures succeeds - no error
+trait T6 { fun a() }
+trait T7 { fun a() }
+
+trait Test10 {
+  extends T6
+  extends T7
+}
+
+// Signatures can appear under subtrait with same signature - no error
+trait Test11 {
+  extends T6
+  fun a()
+}
+
+// Signatures cannot appear under subtrait with non-signature
+trait Test12 {
+  extends T1
+  fun a()
+}
+
+fun main() {}
