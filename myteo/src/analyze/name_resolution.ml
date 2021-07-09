@@ -67,6 +67,9 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
     (* Set of field names for each record type *)
     val mutable record_fields : SSet.t LocMap.t = LocMap.empty
 
+    (* Set of all traits in program *)
+    val mutable trait_locs : LocSet.t = LocSet.empty
+
     method add_error loc err = errors <- (loc, err) :: errors
 
     method errors () = List.rev errors
@@ -225,6 +228,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           | TraitDeclaration { kind = Methods; _ } -> ()
           | TraitDeclaration { kind = Trait; name; _ } ->
             register_stdlib_decl name;
+            trait_locs <- LocSet.add name.loc trait_locs;
             if name.name = "_" then
               this#add_error name.loc InvalidWildcardIdentifier
             else
@@ -341,7 +345,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       this#exit_scope ()
 
     (* Visit all trait and method blocks, filling in methods and implemented traits *)
-    method add_methods mod_ =
+    method add_methods_and_implemented mod_ =
       let fill_trait_from_decl trait decl =
         let open Ast.TraitDeclaration in
         let { methods; implemented; _ } = decl in
@@ -967,6 +971,53 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       in
       resolve_scoped_ids patt
 
+    (* Check for trait cycles in the program, returning whether there are no trait cycles in the
+       program. If a trait cycle is found, an error is generated. *)
+    method check_trait_cycles () =
+      (* Run a depth first search while keeping track of traits that are visited and in progress *)
+      let completed = 0 in
+      let in_progress = 1 in
+
+      let unvisited_traits = ref trait_locs in
+      let trait_status = ref LocMap.empty in
+      let cyclic_trait = ref None in
+      let finished () = !cyclic_trait <> None in
+
+      let rec visit trait =
+        let open TraitDeclaration in
+        if not (finished ()) then
+          match LocMap.find_opt trait.loc !trait_status with
+          | Some 0 -> ()
+          | Some 1 -> cyclic_trait := Some (trait.loc, trait.name)
+          | _ ->
+            trait_status := LocMap.add trait.loc in_progress !trait_status;
+            LocMap.iter
+              (fun _ { TraitDeclaration.implemented_trait; _ } -> visit implemented_trait)
+              trait.implemented;
+            trait_status := LocMap.add trait.loc completed !trait_status
+      in
+
+      let iter () =
+        if not (finished ()) then
+          match LocSet.choose_opt !unvisited_traits with
+          | None -> ()
+          | Some trait_loc ->
+            let trait =
+              match this#get_type_binding trait_loc with
+              | { TypeBinding.declaration = TraitDecl trait; _ } -> trait
+              | _ -> failwith "Expected trait"
+            in
+            visit trait
+      in
+
+      iter ();
+
+      match !cyclic_trait with
+      | None -> true
+      | Some (loc, name) ->
+        this#add_error loc (CyclicTrait name);
+        false
+
     method check_method_names () =
       let errors = ref [] in
       let add_error loc err = errors := (loc, err) :: !errors in
@@ -1164,22 +1215,29 @@ let analyze ~is_stdlib bindings module_tree modules =
   (* Then fill in toplevel scopes for all modules *)
   List.iter (fun (_, mod_) -> bindings_builder#setup_toplevel_scope mod_) modules;
   (* Then add methods to all traits and types *)
-  List.iter (fun (_, mod_) -> bindings_builder#add_methods mod_) modules;
-  (* Then get errors for method declarations in traits and types *)
-  let method_field_errors = bindings_builder#check_method_names () in
-  (* Then resolve names in each module *)
-  let resolved_modules =
-    List.map
-      (fun (file, mod_) ->
-        let resolved_module = bindings_builder#resolve mod_ in
-        (file, resolved_module))
-      modules
+  List.iter (fun (_, mod_) -> bindings_builder#add_methods_and_implemented mod_) modules;
+  (* Then check for trait cycles, only proceeding if there are no trait cycles *)
+  let (resolved_modules, errors) =
+    if bindings_builder#check_trait_cycles () then
+      (* Then get errors for method declarations in traits and types *)
+      let method_field_errors = bindings_builder#check_method_names () in
+      (* Then resolve names in each module *)
+      let resolved_modules =
+        List.map
+          (fun (file, mod_) ->
+            let resolved_module = bindings_builder#resolve mod_ in
+            (file, resolved_module))
+          modules
+      in
+      (resolved_modules, method_field_errors)
+    else
+      (modules, [])
   in
-  let errors = bindings_builder#errors () in
+  let errors = errors @ bindings_builder#errors () in
   let builtin_errors =
     if is_stdlib then
       assert_stdlib_builtins_found modules
     else
       []
   in
-  (resolved_modules, builtin_errors @ method_field_errors @ errors)
+  (resolved_modules, builtin_errors @ errors)

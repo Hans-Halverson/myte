@@ -32,6 +32,7 @@ type t =
   | ExpectedTrait of string
   | OverrideNonexistentMethod of string
   | OverrideMultipleMethods of string * string * string
+  | CyclicTrait of string
   | TypeWithAccess of string list
   | CyclicTypeAlias of string
   | ToplevelVarWithoutAnnotation
@@ -264,6 +265,7 @@ let to_string error =
       method_name
       super1
       super2
+  | CyclicTrait name -> Printf.sprintf "Cycle detected in super traits of `%s`" name
   | TypeWithAccess type_name_parts ->
     Printf.sprintf
       "Could not resolve access on type `%s`. Types do not have members that can be accessed."

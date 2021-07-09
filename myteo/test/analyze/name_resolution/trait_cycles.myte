@@ -1,0 +1,8 @@
+module test
+
+trait Trait1 { extends Trait4 }
+trait Trait2 { extends Trait1 }
+trait Trait3 { extends Trait2 }
+trait Trait4 { extends Trait3 }
+
+fun main() {}
