@@ -47,6 +47,7 @@ test/parser/ast/builtin/type.myte
             loc: 5:19-5:20,
             name: "T",
           },
+          bounds: [],
         },
       ],
       builtin: true,

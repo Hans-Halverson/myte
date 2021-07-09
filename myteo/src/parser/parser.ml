@@ -1221,7 +1221,7 @@ and parse_type env =
 and parse_type_prefix env =
   match Env.token env with
   | T_LEFT_PAREN -> parse_parenthesized_type env
-  | T_IDENTIFIER _ -> parse_identifier_type env
+  | T_IDENTIFIER _ -> Identifier (parse_identifier_type env)
   | token -> Parse_error.fatal (Env.loc env, MalformedType token)
 
 and parse_parenthesized_type env =
@@ -1299,7 +1299,7 @@ and parse_identifier_type env =
   let name = parse_scoped_identifier env in
   let type_params = parse_type_args env in
   let loc = marker env in
-  Identifier { loc; name; type_params }
+  { loc; name; type_params }
 
 and parse_function_type env params marker =
   let open Ast.Type in
@@ -1307,6 +1307,24 @@ and parse_function_type env params marker =
   let return = parse_type env in
   let loc = marker env in
   Function { Function.loc; params; return }
+
+and parse_type_param_bounds env =
+  let bound = parse_identifier_type env in
+  let rec parse_bounds env acc =
+    match Env.token env with
+    | T_AMPERSAND ->
+      Env.advance env;
+      (match Env.token env with
+      | T_COMMA
+      | T_GREATER_THAN ->
+        acc
+      | _ ->
+        let bound = parse_identifier_type env in
+        parse_bounds env (bound :: acc))
+    | _ -> acc
+  in
+  let bounds = parse_bounds env [bound] in
+  List.rev bounds
 
 and parse_type_params env =
   Env.expect env T_LESS_THAN;
@@ -1323,6 +1341,13 @@ and parse_type_params env =
       | _ ->
         let marker = mark_loc env in
         let name = parse_identifier env in
+        let bounds =
+          match Env.token env with
+          | T_COLON ->
+            Env.advance env;
+            parse_type_param_bounds env
+          | _ -> []
+        in
         let loc = marker env in
         begin
           match Env.token env with
@@ -1330,7 +1355,7 @@ and parse_type_params env =
           | T_COMMA -> Env.advance env
           | _ -> Env.expect env T_GREATER_THAN
         end;
-        { TypeParameter.loc; name } :: type_params env
+        { TypeParameter.loc; name; bounds } :: type_params env
     in
     type_params env
 

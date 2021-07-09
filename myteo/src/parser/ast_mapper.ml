@@ -478,12 +478,13 @@ class mapper =
 
     method type_parameter param =
       let open TypeParameter in
-      let { loc; name } = param in
+      let { loc; name; bounds } = param in
       let name' = this#identifier name in
-      if name == name' then
+      let bounds' = id_map_list this#identifier_type bounds in
+      if name == name' && bounds == bounds' then
         param
       else
-        { loc; name = name' }
+        { loc; name = name'; bounds = bounds' }
 
     method type_declaration declaration =
       let open TypeDeclaration in

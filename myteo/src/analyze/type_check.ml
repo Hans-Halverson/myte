@@ -103,7 +103,14 @@ and check_type_aliases_topologically ~cx modules =
           let binding = Type_context.get_type_binding ~cx name.loc in
           let alias_decl = Bindings.get_type_alias_decl binding in
           alias_decl.type_params <- check_type_parameters ~cx type_params;
-          alias_decl.body <- build_type ~cx alias
+          alias_decl.body <- build_type ~cx alias;
+          (* Type alias parameters cannot have bounds *)
+          List.iter
+            (fun { Ast.TypeParameter.bounds; _ } ->
+              if bounds <> [] then
+                let full_loc = Loc.between (List.hd bounds).loc (List_utils.last bounds).loc in
+                Type_context.add_error ~cx full_loc TypeAliasWithBounds)
+            type_params
         | _ -> failwith "Expected type alias")
       aliases_in_topological_order
   with Type_alias.CyclicTypeAliasesException (loc, name) ->

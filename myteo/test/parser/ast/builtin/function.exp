@@ -93,6 +93,7 @@ test/parser/ast/builtin/function.myte
             loc: 5:16-5:17,
             name: "T",
           },
+          bounds: [],
         },
       ],
       builtin: true,

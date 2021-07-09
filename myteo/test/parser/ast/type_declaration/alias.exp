@@ -149,6 +149,7 @@ test/parser/ast/type_declaration/alias.myte
             loc: 9:14-9:15,
             name: "T",
           },
+          bounds: [],
         },
       ],
       builtin: false,
@@ -185,6 +186,7 @@ test/parser/ast/type_declaration/alias.myte
             loc: 11:14-11:15,
             name: "T",
           },
+          bounds: [],
         },
         {
           node: TypeParameter,
@@ -194,6 +196,7 @@ test/parser/ast/type_declaration/alias.myte
             loc: 11:17-11:18,
             name: "U",
           },
+          bounds: [],
         },
         {
           node: TypeParameter,
@@ -203,6 +206,7 @@ test/parser/ast/type_declaration/alias.myte
             loc: 11:20-11:21,
             name: "V",
           },
+          bounds: [],
         },
       ],
       builtin: false,

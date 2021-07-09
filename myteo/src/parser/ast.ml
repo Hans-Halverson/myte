@@ -371,6 +371,7 @@ and TypeParameter : sig
   type t = {
     loc: Loc.t;
     name: Identifier.t;
+    bounds: Type.Identifier.t list;
   }
 end =
   TypeParameter

@@ -546,8 +546,11 @@ and node_of_function_param param =
 
 and node_of_type_parameter param =
   let open TypeParameter in
-  let { loc; name } = param in
-  node "TypeParameter" loc [("name", node_of_identifier name)]
+  let { loc; name; bounds } = param in
+  node
+    "TypeParameter"
+    loc
+    [("name", node_of_identifier name); ("bounds", List (List.map node_of_identifier_type bounds))]
 
 and node_of_identifier_type id =
   let { Type.Identifier.loc; name; type_params } = id in

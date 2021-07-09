@@ -1,0 +1,4 @@
+Error: Type parameters cannot have bounds in type aliases
+test/analyze/type_check/type_parameters/type_alias_with_bounds_error.myte:6:18-27
+ 6 | type alias Baz<T: Foo & Bar> = T
+   |                   ^^^^^^^^^

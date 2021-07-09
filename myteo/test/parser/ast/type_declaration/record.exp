@@ -466,6 +466,7 @@ test/parser/ast/type_declaration/record.myte
             loc: 13:8-13:9,
             name: "T",
           },
+          bounds: [],
         },
       ],
       builtin: false,
@@ -522,6 +523,7 @@ test/parser/ast/type_declaration/record.myte
             loc: 15:8-15:9,
             name: "T",
           },
+          bounds: [],
         },
         {
           node: TypeParameter,
@@ -531,6 +533,7 @@ test/parser/ast/type_declaration/record.myte
             loc: 15:11-15:12,
             name: "U",
           },
+          bounds: [],
         },
         {
           node: TypeParameter,
@@ -540,6 +543,7 @@ test/parser/ast/type_declaration/record.myte
             loc: 15:14-15:15,
             name: "V",
           },
+          bounds: [],
         },
       ],
       builtin: false,

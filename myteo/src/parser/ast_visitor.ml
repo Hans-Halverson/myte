@@ -241,8 +241,9 @@ class ['a] visitor =
 
     method type_parameter acc param =
       let open TypeParameter in
-      let { loc = _; name } = param in
-      this#identifier acc name
+      let { loc = _; name; bounds } = param in
+      this#identifier acc name;
+      List.iter (this#identifier_type acc) bounds
 
     method function_body acc body =
       let open Function in

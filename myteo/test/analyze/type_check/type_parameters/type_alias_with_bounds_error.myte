@@ -1,0 +1,8 @@
+module test
+
+trait Foo {}
+trait Bar {}
+
+type alias Baz<T: Foo & Bar> = T
+
+fun main() {}

@@ -1,0 +1,11 @@
+module test
+
+type Test<T: Foo> (Unit)
+
+type Test<T: Foo &> (Unit)
+
+type Test<T: Foo & Bar & Baz> (Unit)
+
+type Test<T: Foo & Bar & Baz &,> (Unit)
+
+type Test<T: Foo<T>, U: Bar & Baz, V> (Unit)

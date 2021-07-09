@@ -604,6 +604,7 @@ test/parser/ast/type_declaration/variant.myte
             loc: 24:8-24:9,
             name: "T",
           },
+          bounds: [],
         },
       ],
       builtin: false,
@@ -658,6 +659,7 @@ test/parser/ast/type_declaration/variant.myte
             loc: 26:8-26:9,
             name: "T",
           },
+          bounds: [],
         },
         {
           node: TypeParameter,
@@ -667,6 +669,7 @@ test/parser/ast/type_declaration/variant.myte
             loc: 26:11-26:12,
             name: "U",
           },
+          bounds: [],
         },
         {
           node: TypeParameter,
@@ -676,6 +679,7 @@ test/parser/ast/type_declaration/variant.myte
             loc: 26:14-26:15,
             name: "V",
           },
+          bounds: [],
         },
       ],
       builtin: false,
