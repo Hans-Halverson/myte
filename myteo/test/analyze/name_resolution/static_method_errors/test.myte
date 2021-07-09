@@ -1,0 +1,41 @@
+module test
+
+import a
+
+// No static method - method signatures and non-static methods cannot be resolved
+trait Trait1 {
+  static fun foo()
+  fun bar() {}
+}
+
+type Type1 (Unit)
+type Type2 = Type2A | Type2B
+
+fun test1() {
+  Trait1.foo;
+  Trait1.bar;
+  Trait1.baz;
+  Type1.foo;
+  Type2.foo;
+}
+
+// Cannot reference child of static method
+trait Trait2 {
+  static fun foo() {}
+}
+
+type Type3 (Unit)
+
+fun test2() {
+  Trait2.foo.bar;
+  Type3.foo.bar;
+}
+
+// Errors in methods qualified by module
+fun test3() {
+  a.b.c.Trait.foo;
+  a.b.c.Type1.foo.bar;
+  a.b.c.Type2.foo.bar;
+}
+
+fun main() {}

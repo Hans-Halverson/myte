@@ -1,0 +1,49 @@
+Error: No static method with name `foo` for trait `Trait1`
+test/analyze/name_resolution/static_method_errors/test.myte:15:9-12
+ 15 |   Trait1.foo;
+    |          ^^^
+
+Error: No static method with name `bar` for trait `Trait1`
+test/analyze/name_resolution/static_method_errors/test.myte:16:9-12
+ 16 |   Trait1.bar;
+    |          ^^^
+
+Error: No static method with name `baz` for trait `Trait1`
+test/analyze/name_resolution/static_method_errors/test.myte:17:9-12
+ 17 |   Trait1.baz;
+    |          ^^^
+
+Error: No static method with name `foo` for type `Type1`
+test/analyze/name_resolution/static_method_errors/test.myte:18:8-11
+ 18 |   Type1.foo;
+    |         ^^^
+
+Error: No static method with name `foo` for type `Type2`
+test/analyze/name_resolution/static_method_errors/test.myte:19:8-11
+ 19 |   Type2.foo;
+    |         ^^^
+
+Error: `foo` is a static method for trait `Trait2`, there are no items beneath it
+test/analyze/name_resolution/static_method_errors/test.myte:30:9-12
+ 30 |   Trait2.foo.bar;
+    |          ^^^
+
+Error: No static method with name `foo` for type `Type3`
+test/analyze/name_resolution/static_method_errors/test.myte:31:8-11
+ 31 |   Type3.foo.bar;
+    |         ^^^
+
+Error: No static method with name `foo` for trait `Trait`
+test/analyze/name_resolution/static_method_errors/test.myte:36:14-17
+ 36 |   a.b.c.Trait.foo;
+    |               ^^^
+
+Error: `foo` is a static method for type `Type1`, there are no items beneath it
+test/analyze/name_resolution/static_method_errors/test.myte:37:14-17
+ 37 |   a.b.c.Type1.foo.bar;
+    |               ^^^
+
+Error: `foo` is a static method for type `Type2`, there are no items beneath it
+test/analyze/name_resolution/static_method_errors/test.myte:38:14-17
+ 38 |   a.b.c.Type2.foo.bar;
+    |               ^^^

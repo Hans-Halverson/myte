@@ -3,7 +3,24 @@ open Ast
 open Basic_collections
 open Bindings
 open Immutable_utils
-open Traits
+
+(* 
+ * Name Resolution
+ *
+ * Resolve all names to their declarations in the program. By the end of name resolution, either
+ * the following is true or errors have been generated:
+ *
+ * - All identifiers (and the final name of scoped identifiers) are resolved to a value, and will
+ *   be marked as a value or type use of a declaration.
+ * - Named access chains will be converted to scoped identifiers if they are a qualified module
+ *   or static method. All remaining named accesses are for field or method accesses which must be
+ *   resolved during type checking.
+ * - There is at most one non-signature method with any given name in a trait/type and all its
+ *   super traits. Additionally, a signature method cannot appear below a concrete method higher
+ *   in a trait heirarchy.
+ * - If the override keyword is used on a method, there exists exactly one super method to override.
+ *   The override keyword can be ignored after name resolution.
+ *)
 
 (* Data structures for names resolution *)
 type 'a local_decl =
@@ -76,14 +93,12 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       | { local_values; local_types } :: rest ->
         scopes <- { local_types = SMap.add name local_decl local_types; local_values } :: rest
 
-    method add_value_declaration loc name is_global mk_decl =
-      let declaration = mk_decl () in
+    method add_value_declaration loc name is_global declaration =
       let binding = ValueBinding.mk ~name ~loc ~declaration ~is_global ~module_:module_name in
       Bindings.add_value_binding bindings binding;
       binding
 
-    method add_type_declaration loc name mk_decl =
-      let declaration = mk_decl () in
+    method add_type_declaration loc name declaration =
       let binding = TypeBinding.mk ~name ~loc ~declaration ~module_:module_name in
       Bindings.add_type_binding bindings binding;
       binding
@@ -137,36 +152,43 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           let full_name = module_name_prefix ^ name.Identifier.name in
           Std_lib.register_stdlib_decl full_name name.loc
       in
-      let add_value_binding name mk_decl =
-        ignore (this#add_value_declaration name.Identifier.loc name.name true mk_decl)
+      let add_value_binding name declaration =
+        ignore (this#add_value_declaration name.Identifier.loc name.name true declaration)
       in
-      let add_type_binding name mk_decl =
-        ignore (this#add_type_declaration name.Identifier.loc name.name mk_decl)
+      let add_type_binding name declaration =
+        ignore (this#add_type_declaration name.Identifier.loc name.name declaration)
       in
       List.iter
         (fun toplevel ->
           match toplevel with
           | VariableDeclaration { Ast.Statement.VariableDeclaration.kind; pattern; _ } ->
             let ids = Ast_utils.ids_of_pattern pattern in
-            List.iter
-              (fun id -> add_value_binding id (fun _ -> VarDecl (VariableDeclaration.mk kind)))
-              ids
-          | FunctionDeclaration { Ast.Function.name; builtin; _ } ->
+            List.iter (fun id -> add_value_binding id (VarDecl (VariableDeclaration.mk kind))) ids
+          | FunctionDeclaration { Ast.Function.name; builtin; static; override; body; _ } ->
             register_stdlib_decl name;
-            add_value_binding name (fun _ -> FunDecl (FunctionDeclaration.mk builtin))
+            add_value_binding
+              name
+              (FunDecl
+                 (FunctionDeclaration.mk
+                    ~name:name.name
+                    ~loc:name.loc
+                    ~is_builtin:builtin
+                    ~is_static:static
+                    ~is_override:override
+                    ~is_signature:(body = Signature)))
           | TypeDeclaration { Ast.TypeDeclaration.name; decl; _ } ->
             register_stdlib_decl name;
             ( if name.name = "_" then
               this#add_error name.loc InvalidWildcardIdentifier
             else
               match decl with
-              | Alias _ -> add_type_binding name (fun _ -> TypeAlias (TypeAliasDeclaration.mk ()))
+              | Alias _ -> add_type_binding name (TypeAlias (TypeAliasDeclaration.mk ()))
               | Tuple { name; _ }
               | Record { name; _ } ->
-                add_value_binding name (fun _ -> CtorDecl (ConstructorDeclaration.mk ()));
-                add_type_binding name (fun _ -> TypeDecl (TypeDeclaration.mk ()))
+                add_value_binding name (CtorDecl (ConstructorDeclaration.mk ()));
+                add_type_binding name (TypeDecl (TypeDeclaration.mk ()))
               | Variant variants ->
-                add_type_binding name (fun _ -> TypeDecl (TypeDeclaration.mk ()));
+                add_type_binding name (TypeDecl (TypeDeclaration.mk ()));
                 List.iter
                   (fun variant ->
                     let open Ast.TypeDeclaration in
@@ -174,7 +196,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                     | EnumVariant name
                     | TupleVariant { Tuple.name; _ }
                     | RecordVariant { Record.name; _ } ->
-                      add_value_binding name (fun _ -> CtorDecl (ConstructorDeclaration.mk ())))
+                      add_value_binding name (CtorDecl (ConstructorDeclaration.mk ())))
                   variants );
             (* Check record fields for duplicates and save to compare against methods *)
             (match decl with
@@ -198,8 +220,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             if name.name = "_" then
               this#add_error name.loc InvalidWildcardIdentifier
             else
-              add_type_binding name (fun _ ->
-                  TraitDecl (TraitDeclaration.mk ~name:name.name ~loc:name.loc)))
+              add_type_binding name (TraitDecl (TraitDeclaration.mk ~name:name.name ~loc:name.loc)))
         toplevels
 
     (* Setup and save the toplevel scope for this module, consisting of all imports and declarations *)
@@ -322,7 +343,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           List.fold_left
             (fun methods { Function.name = { name; loc }; builtin; static; override; body; _ } ->
               let method_ =
-                Method.mk
+                FunctionDeclaration.mk
                   ~name
                   ~loc
                   ~is_builtin:builtin
@@ -330,13 +351,14 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                   ~is_override:override
                   ~is_signature:(body = Function.Signature)
               in
+              ignore (this#add_value_declaration loc name false (FunDecl method_));
               if SMap.mem name methods then
-                this#add_error loc (DuplicateMethodNames (name, trait.Trait.name, []));
+                this#add_error loc (DuplicateMethodNames (name, trait.TraitDeclaration.name, []));
               SMap.add name method_ methods)
             SMap.empty
             methods
         in
-        trait.Trait.methods <- methods;
+        trait.TraitDeclaration.methods <- methods;
 
         (* Fill in implemented traits *)
         let implemented =
@@ -356,7 +378,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                 | TraitDecl trait ->
                   let implemented_trait =
                     {
-                      Trait.implemented_trait = trait;
+                      TraitDeclaration.implemented_trait = trait;
                       implemented_loc = loc;
                       implemented_type_params = [];
                     }
@@ -368,7 +390,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             LocMap.empty
             implemented
         in
-        trait.Trait.implemented <- implemented
+        trait.TraitDeclaration.implemented <- implemented
       in
 
       let { Module.loc; module_; toplevels; _ } = mod_ in
@@ -396,7 +418,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               (* Fill in trait for this method block *)
               (match binding.declaration with
               | TypeDecl type_decl ->
-                let trait = Trait.mk ~name ~loc in
+                let trait = TraitDeclaration.mk ~name ~loc in
                 fill_trait_from_decl trait decl;
                 TypeDeclaration.add_trait type_decl trait
               | _ -> failwith "Expected type"))
@@ -467,8 +489,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       List.iter
         (fun { Ast.Identifier.loc; name; _ } ->
           let binding =
-            this#add_value_declaration loc name toplevel (fun _ ->
-                VarDecl (VariableDeclaration.mk kind))
+            this#add_value_declaration loc name toplevel (VarDecl (VariableDeclaration.mk kind))
           in
           this#add_value_to_scope name (Decl binding))
         ids;
@@ -484,7 +505,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               if SSet.mem name param_names then
                 this#add_error loc (DuplicateTypeParameterNames (name, source));
               let binding =
-                this#add_type_declaration loc name (fun _ -> TypeParam (TypeParamDeclaration.mk ()))
+                this#add_type_declaration loc name (TypeParam (TypeParamDeclaration.mk ()))
               in
               this#add_type_to_scope name (Decl binding);
               SSet.add name param_names)
@@ -493,13 +514,32 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
 
     method visit_function_declaration ~add_decl decl =
       let open Ast.Function in
-      let { name = { Ast.Identifier.loc; name = func_name }; params; type_params; builtin; _ } =
+      let {
+        name = { Ast.Identifier.loc; name = func_name };
+        params;
+        type_params;
+        builtin;
+        static;
+        override;
+        body;
+        _;
+      } =
         decl
       in
       ( if add_decl then
         let binding =
-          this#add_value_declaration loc func_name false (fun _ ->
-              FunDecl (FunctionDeclaration.mk builtin))
+          this#add_value_declaration
+            loc
+            func_name
+            false
+            (FunDecl
+               (FunctionDeclaration.mk
+                  ~name:func_name
+                  ~loc
+                  ~is_builtin:builtin
+                  ~is_static:static
+                  ~is_override:override
+                  ~is_signature:(body = Signature)))
         in
         this#add_value_to_scope func_name (Decl binding) );
       this#enter_scope ();
@@ -510,8 +550,11 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             if SSet.mem name param_names then
               this#add_error loc (DuplicateParameterNames (name, func_name));
             let binding =
-              this#add_value_declaration loc name false (fun _ ->
-                  FunParamDecl (FunctionParamDeclaration.mk ()))
+              this#add_value_declaration
+                loc
+                name
+                false
+                (FunParamDecl (FunctionParamDeclaration.mk ()))
             in
             this#add_value_to_scope name (Decl binding);
             SSet.add name param_names)
@@ -570,66 +613,92 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             None
           | result -> result
         in
-        (match (find_name ~is_value name module_tree, rest_parts) with
-        | (None, _)
-        | (Some (Empty _), []) ->
-          (* Error on no match - but check if parent module exists for better error message *)
-          let full_loc = Loc.between (List.hd prev_parts).loc loc in
-          let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
-          if prev_is_module then
-            this#add_error full_loc (NoExportInModule (name, prev_parts_names, is_value))
+        (* If resolving a value we must check for static methods, which are under a type namespace *)
+        let resolved_static_method_opt =
+          if is_value then
+            match (find_name ~is_value:false name module_tree, rest_parts) with
+            | (Some (Export { loc = decl_loc; _ }), meth :: rest) ->
+              (match this#get_type_binding decl_loc with
+              | { TypeBinding.declaration = TraitDecl trait; _ } ->
+                if this#maybe_resolve_static_method part meth rest [trait] TraitTrait then
+                  Some (on_export (prev_parts @ [part]) meth rest)
+                else
+                  Some None
+              | { TypeBinding.declaration = TypeDecl type_decl; _ } ->
+                let traits = TypeDeclaration.get_traits type_decl in
+                if this#maybe_resolve_static_method part meth rest traits TraitType then
+                  Some (on_export (prev_parts @ [part]) meth rest)
+                else
+                  Some None
+              | _ -> None)
+            | _ -> None
           else
-            this#add_error full_loc (NoModuleWithName (prev_parts_names @ [name], is_value));
-          None
-        | (Some (Module _), []) ->
-          (* Error if resolved to module as modules are not types or values *)
-          let full_loc = Loc.between (List.hd prev_parts).loc loc in
-          let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
-          let position =
-            if is_value then
-              NamePositionValue
+            None
+        in
+        (match resolved_static_method_opt with
+        | Some resolved_static_method -> resolved_static_method
+        | None ->
+          (match (find_name ~is_value name module_tree, rest_parts) with
+          | (None, _)
+          | (Some (Empty _), []) ->
+            (* Error on no match - but check if parent module exists for better error message *)
+            let full_loc = Loc.between (List.hd prev_parts).loc loc in
+            let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
+            if prev_is_module then
+              this#add_error full_loc (NoExportInModule (name, prev_parts_names, is_value))
             else
-              NamePositionType
-          in
-          this#add_error full_loc (ModuleInvalidPosition (prev_parts_names @ [name], position));
-          None
-        | (Some (Export { loc = decl_loc; _ }), rest_parts)
-          when is_value && this#is_value_decl decl_loc && ((not resolve_full) || rest_parts = []) ->
-          (* Values may have additional name parts, as these will be field accesses *)
-          this#add_value_use decl_loc loc;
-          on_export prev_parts part rest_parts
-        | (Some (Export _), _) when is_value ->
-          let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
-          this#add_error loc (ReferenceChildOfExport (name, prev_parts_names));
-          None
-        | (Some (Export { loc = decl_loc; _ }), []) ->
-          (* Types are only fully resolved if all name parts have been matched *)
-          this#add_type_use decl_loc loc;
-          on_export prev_parts part rest_parts
-        | (Some (Export ty_name), next_part :: _) ->
-          (* Type was fully resolved, but there are still name parts to resolve *)
-          let full_loc = Loc.between (List.hd prev_parts).loc next_part.loc in
-          let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
-          this#add_error full_loc (TypeWithAccess (prev_parts_names @ [ty_name.name]));
-          None
-        | (Some (Empty (_, module_tree)), rest_parts) ->
-          this#match_module_parts
-            ~is_value
-            ~resolve_full
-            module_tree
-            (prev_parts @ [part])
-            rest_parts
-            false
-            on_export
-        | (Some (Module (_, module_tree)), rest_parts) ->
-          this#match_module_parts
-            ~is_value
-            ~resolve_full
-            module_tree
-            (prev_parts @ [part])
-            rest_parts
-            true
-            on_export)
+              this#add_error full_loc (NoModuleWithName (prev_parts_names @ [name], is_value));
+            None
+          | (Some (Module _), []) ->
+            (* Error if resolved to module as modules are not types or values *)
+            let full_loc = Loc.between (List.hd prev_parts).loc loc in
+            let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
+            let position =
+              if is_value then
+                NamePositionValue
+              else
+                NamePositionType
+            in
+            this#add_error full_loc (ModuleInvalidPosition (prev_parts_names @ [name], position));
+            None
+          | (Some (Export { loc = decl_loc; _ }), rest_parts)
+            when is_value && this#is_value_decl decl_loc && ((not resolve_full) || rest_parts = [])
+            ->
+            (* Values may have additional name parts, as these will be field accesses *)
+            this#add_value_use decl_loc loc;
+            on_export prev_parts part rest_parts
+          | (Some (Export _), _) when is_value ->
+            let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
+            this#add_error loc (ReferenceChildOfExport (name, prev_parts_names));
+            None
+          | (Some (Export { loc = decl_loc; _ }), []) ->
+            (* Types are only fully resolved if all name parts have been matched *)
+            this#add_type_use decl_loc loc;
+            on_export prev_parts part rest_parts
+          | (Some (Export ty_name), next_part :: _) ->
+            (* Type was fully resolved, but there are still name parts to resolve *)
+            let full_loc = Loc.between (List.hd prev_parts).loc next_part.loc in
+            let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
+            this#add_error full_loc (TypeWithAccess (prev_parts_names @ [ty_name.name]));
+            None
+          | (Some (Empty (_, module_tree)), rest_parts) ->
+            this#match_module_parts
+              ~is_value
+              ~resolve_full
+              module_tree
+              (prev_parts @ [part])
+              rest_parts
+              false
+              on_export
+          | (Some (Module (_, module_tree)), rest_parts) ->
+            this#match_module_parts
+              ~is_value
+              ~resolve_full
+              module_tree
+              (prev_parts @ [part])
+              rest_parts
+              true
+              on_export))
 
     method match_module_parts_value module_tree prev_parts rest_parts expr =
       this#match_module_parts
@@ -714,18 +783,90 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         | Some parts ->
           let open Ast.Identifier in
           let (first_part, rest_parts) = List_utils.split_first parts in
-          (match this#lookup_value_in_scope first_part.name scopes with
-          | None ->
-            this#add_error first_part.loc (UnresolvedName (first_part.name, NamePositionValue));
-            expr
-          | Some (ModuleDecl module_tree) ->
-            (match this#match_module_parts_value module_tree [first_part] rest_parts expr with
-            | None -> expr
-            | Some resolved_ast -> resolved_ast)
-          | Some (Decl binding) ->
-            this#add_value_use binding.loc first_part.loc;
-            expr))
+          (* Name may be a static method on a type or trait as long as it has additional parts *)
+          (match (this#lookup_type_in_scope first_part.name scopes, rest_parts) with
+          | (Some (Decl { TypeBinding.declaration = TraitDecl trait; _ }), meth :: rest) ->
+            if this#maybe_resolve_static_method first_part meth rest [trait] TraitTrait then
+              ScopedIdentifier
+                { loc = Loc.between first_part.loc meth.loc; name = meth; scopes = [first_part] }
+            else
+              expr
+          | (Some (Decl { TypeBinding.declaration = TypeDecl type_decl; _ }), meth :: rest) ->
+            let traits = TypeDeclaration.get_traits type_decl in
+            if this#maybe_resolve_static_method first_part meth rest traits TraitType then
+              ScopedIdentifier
+                { loc = Loc.between first_part.loc meth.loc; name = meth; scopes = [first_part] }
+            else
+              expr
+          | _ ->
+            (match this#lookup_value_in_scope first_part.name scopes with
+            (* Name may be a direct declaration *)
+            | Some (Decl binding) ->
+              this#add_value_use binding.loc first_part.loc;
+              expr
+            (* Name may be a value qualified by a module *)
+            | Some (ModuleDecl module_tree) ->
+              (match this#match_module_parts_value module_tree [first_part] rest_parts expr with
+              | None -> expr
+              | Some resolved_ast -> resolved_ast)
+            (* Otherwise name is unresolved *)
+            | None ->
+              this#add_error first_part.loc (UnresolvedName (first_part.name, NamePositionValue));
+              expr)))
       | _ -> super#expression expr
+
+    (* Try to resolve the current `type_part.method_part.rest_parts` chain to a static method given
+       a collection of traits. Return whether the chain can be resolved to a static method, and on
+       success mark a use. *)
+    method maybe_resolve_static_method type_part method_part rest_parts traits trait_or_type =
+      (* Recursively check traits to determine if a static method with the given name is present,
+         mark a use if one is found. *)
+      let { Identifier.loc = name_loc; name } = method_part in
+      let rec check_trait trait =
+        let { TraitDeclaration.methods; implemented; _ } = trait in
+        let is_resolved =
+          match SMap.find_opt name methods with
+          | Some { FunctionDeclaration.loc; is_static; is_signature; _ }
+            when is_static && not is_signature ->
+            this#add_value_use loc name_loc;
+            true
+          | _ -> false
+        in
+        LocMap.fold
+          (fun _ { TraitDeclaration.implemented_trait; _ } is_resolved ->
+            if is_resolved then
+              true
+            else
+              check_trait implemented_trait)
+          implemented
+          is_resolved
+      in
+      let has_method =
+        List.fold_left
+          (fun is_resolved trait ->
+            if is_resolved then
+              true
+            else
+              check_trait trait)
+          false
+          traits
+      in
+      if has_method then
+        (* Static method cannot have any remaining parts to resolve *)
+        if rest_parts = [] then
+          true
+        else (
+          this#add_error
+            method_part.loc
+            (ReferenceChildOfStaticMethod (method_part.name, type_part.name, trait_or_type));
+          false
+        )
+      else (
+        this#add_error
+          method_part.loc
+          (NoStaticMethod (method_part.name, type_part.name, trait_or_type));
+        false
+      )
 
     (* If field shorthand is used, field name is also a variable that must be resolved *)
     method! record_expression_field field =
@@ -815,10 +956,10 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
 
       (* Collect all method names and *)
       let gather_methods_and_super_traits
-          (methods_acc, super_traits_acc) ({ Trait.methods; _ } as trait) =
+          (methods_acc, super_traits_acc) ({ TraitDeclaration.methods; _ } as trait) =
         (* Recursively gather all super trait definitions, deduplicating super traits *)
         let rec gather_super_traits
-            super_traits_acc ({ Trait.loc; implemented; _ } as super_trait) is_base =
+            super_traits_acc ({ TraitDeclaration.loc; implemented; _ } as super_trait) is_base =
           let super_traits_acc =
             if is_base then
               super_traits_acc
@@ -826,14 +967,15 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               LocMap.add loc super_trait super_traits_acc
           in
           LocMap.fold
-            (fun _ { Trait.implemented_trait; _ } super_traits_acc ->
+            (fun _ { TraitDeclaration.implemented_trait; _ } super_traits_acc ->
               gather_super_traits super_traits_acc implemented_trait false)
             implemented
             super_traits_acc
         in
         let methods_acc =
           SMap.fold
-            (fun _ ({ Method.loc; _ } as method_) methods_acc -> LocMap.add loc method_ methods_acc)
+            (fun _ ({ FunctionDeclaration.loc; _ } as method_) methods_acc ->
+              LocMap.add loc method_ methods_acc)
             methods
             methods_acc
         in
@@ -845,16 +987,16 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       let collect_method_names methods super_traits =
         let names =
           LocMap.fold
-            (fun loc { Method.name; is_override; _ } names ->
+            (fun loc { FunctionDeclaration.name; is_override; _ } names ->
               MethodMMap.add name (MethodLocation.BaseTrait (loc, is_override)) names)
             methods
             MethodMMap.empty
         in
         let names =
           LocMap.fold
-            (fun _ { Trait.name = trait_name; methods; _ } names ->
+            (fun _ { TraitDeclaration.name = trait_name; methods; _ } names ->
               SMap.fold
-                (fun name { Method.is_signature; _ } names ->
+                (fun name { FunctionDeclaration.is_signature; _ } names ->
                   MethodMMap.add name (MethodLocation.SuperTrait (trait_name, is_signature)) names)
                 methods
                 names)

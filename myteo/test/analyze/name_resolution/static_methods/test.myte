@@ -1,0 +1,44 @@
+module test
+
+import a
+
+// Static methods can be resolved successfully
+trait Trait1 {
+  static fun foo() {}
+}
+
+type Type1 { x: Int }
+methods Type1 {
+  static fun foo() {}
+}
+
+type Type2 = Type2A | Type2B
+methods Type2 {
+  static fun foo() {}
+}
+
+fun test1() {
+  Trait1.foo;
+  Type1.foo;
+  Type2.foo;
+}
+
+// Static methods can be resolved from super traits
+trait Trait2 {
+  static fun foo() {}
+}
+trait Trait3 { extends Trait2 }
+trait Trait4 { extends Trait3 }
+
+fun test2() {
+  Trait4.foo;
+}
+
+// Static methods can be resolved when qualified by modules
+fun test3() {
+  a.b.c.Trait.foo;
+  a.b.c.Type1.foo;
+  a.b.c.Type2.foo;
+}
+
+fun main() {}

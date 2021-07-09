@@ -27,6 +27,8 @@ type t =
   | ModuleInvalidPosition of string list * name_position_type
   | NoExportInModule of string * string list * bool
   | NoModuleWithName of string list * bool
+  | NoStaticMethod of string * string * trait_type
+  | ReferenceChildOfStaticMethod of string * string * trait_type
   | ExpectedTrait of string
   | OverrideNonexistentMethod of string
   | OverrideMultipleMethods of string * string * string
@@ -61,6 +63,10 @@ and name_position_type =
   | NamePositionValue
   | NamePositionType
   | NamePositionCtor
+
+and trait_type =
+  | TraitTrait
+  | TraitType
 
 and invalid_assignment_kind =
   | InvalidAssignmentImmutableVariable
@@ -104,6 +110,11 @@ let string_of_name_position position =
   | NamePositionValue -> "value"
   | NamePositionType -> "type"
   | NamePositionCtor -> "constructor"
+
+let string_of_trait_type trait_or_type =
+  match trait_or_type with
+  | TraitTrait -> "trait"
+  | TraitType -> "type"
 
 let concat_with_and strs =
   match strs with
@@ -231,6 +242,18 @@ let to_string error =
       "No module or exported %s with name `%s` found"
       (value_or_type is_value)
       (String.concat "." module_parts)
+  | NoStaticMethod (method_name, trait_name, trait_type) ->
+    Printf.sprintf
+      "No static method with name `%s` for %s `%s`"
+      method_name
+      (string_of_trait_type trait_type)
+      trait_name
+  | ReferenceChildOfStaticMethod (method_name, trait_name, trait_type) ->
+    Printf.sprintf
+      "`%s` is a static method for %s `%s`, there are no items beneath it"
+      method_name
+      (string_of_trait_type trait_type)
+      trait_name
   | ExpectedTrait name -> Printf.sprintf "Expected `%s` to be a trait" name
   | OverrideNonexistentMethod name ->
     Printf.sprintf "No parent method with name `%s` to override" name

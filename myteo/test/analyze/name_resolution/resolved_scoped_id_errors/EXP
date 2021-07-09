@@ -208,7 +208,7 @@ test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:75:11-22
  75 |   a1.a2.a3.exportedFun.field (field) = 1;
     |            ^^^^^^^^^^^
 
-Error: `Tup` is an export of module `a1.a2.a3`, there are no items beneath `a1.a2.a3.Tup`
-test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:76:11-14
+Error: No static method with name `field` for type `Tup`
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:76:15-20
  76 |   a1.a2.a3.Tup.field (field) = 1;
-    |            ^^^
+    |                ^^^^^

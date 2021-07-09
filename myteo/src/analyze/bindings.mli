@@ -27,13 +27,25 @@ end
 
 module FunctionDeclaration : sig
   type t = {
+    name: string;
+    loc: Loc.t;
+    is_builtin: bool;
+    is_static: bool;
+    is_override: bool;
+    is_signature: bool;
     mutable type_params: Types.TypeParam.t list;
     mutable params: Types.t list;
     mutable return: Types.t;
-    is_builtin: bool;
   }
 
-  val mk : bool -> t
+  val mk :
+    name:string ->
+    loc:Loc.t ->
+    is_builtin:bool ->
+    is_static:bool ->
+    is_override:bool ->
+    is_signature:bool ->
+    t
 end
 
 module TypeAliasDeclaration : sig
@@ -55,6 +67,27 @@ module TypeParamDeclaration : sig
   val set : t -> Types.TypeParam.t -> unit
 end
 
+module TraitDeclaration : sig
+  type id = int
+
+  type t = {
+    id: id;
+    name: string;
+    loc: Loc.t;
+    mutable type_params: Types.TypeParam.t list;
+    mutable methods: FunctionDeclaration.t SMap.t;
+    mutable implemented: implemented_trait LocMap.t;
+  }
+
+  and implemented_trait = {
+    mutable implemented_trait: t;
+    mutable implemented_loc: Loc.t;
+    mutable implemented_type_params: Types.TypeParam.t list;
+  }
+
+  val mk : name:string -> loc:Loc.t -> t
+end
+
 module TypeDeclaration : sig
   type t
 
@@ -64,15 +97,9 @@ module TypeDeclaration : sig
 
   val set_adt_sig : t -> Types.adt_sig -> unit
 
-  val add_trait : t -> Traits.Trait.t -> unit
+  val add_trait : t -> TraitDeclaration.t -> unit
 
-  val get_traits : t -> Traits.Trait.t list
-end
-
-module TraitDeclaration : sig
-  type t = Traits.Trait.t
-
-  val mk : name:string -> loc:Loc.t -> t
+  val get_traits : t -> TraitDeclaration.t list
 end
 
 type value_declaration =
