@@ -32,6 +32,7 @@ type t =
   | ExpectedTrait of string
   | OverrideNonexistentMethod of string
   | OverrideMultipleMethods of string * string * string
+  | MissingOverrideKeyword of string * string
   | CyclicTrait of string
   | TypeWithAccess of string list
   | CyclicTypeAlias of string
@@ -56,7 +57,7 @@ type t =
   | IntLiteralOutOfRange of Types.t
   | IndexIsNotInteger of Types.t
   | UnimplementedMethodSignature of string * string
-  | IncomatibleOverridenMethodType of string * string * Types.t * Types.t
+  | IncompatibleOverridenMethodType of string * string * Types.t * Types.t
   | IncorrectOverridenMethodTypeParametersArity of string * string * int * int
 
 and unreachable_statement_reason =
@@ -269,6 +270,11 @@ let to_string error =
       method_name
       super1
       super2
+  | MissingOverrideKeyword (method_name, trait_name) ->
+    Printf.sprintf
+      "Method `%s` overrides method in trait `%s`, but method is not marked as `override`"
+      method_name
+      trait_name
   | CyclicTrait name -> Printf.sprintf "Cycle detected in super traits of `%s`" name
   | TypeWithAccess type_name_parts ->
     Printf.sprintf
@@ -363,7 +369,7 @@ let to_string error =
     Printf.sprintf "Array index must be an integer but found `%s`" (Types.pp ty)
   | UnimplementedMethodSignature (method_name, trait_name) ->
     Printf.sprintf "Method `%s` from trait `%s` not implemented" method_name trait_name
-  | IncomatibleOverridenMethodType (method_name, trait_name, actual_ty, expected_ty) ->
+  | IncompatibleOverridenMethodType (method_name, trait_name, actual_ty, expected_ty) ->
     let type_strings = Types.pps [actual_ty; expected_ty] in
     let actual_ty_string = List.hd type_strings in
     let expected_ty_string = List_utils.last type_strings in

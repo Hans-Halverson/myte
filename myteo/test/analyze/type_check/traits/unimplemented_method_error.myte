@@ -15,7 +15,7 @@ trait Trait3 { extends Trait2 }
 // Error if implemented method is in different methods block
 type Type2 (Unit)
 methods Type2 {
-  fun foo(x: Bool) {}
+  override fun foo(x: Bool) {}
 }
 methods Type2 { implements Trait1 }
 
@@ -26,7 +26,7 @@ methods Type3 { implements Trait3 }
 // Ancestor method is implemented by super trait
 trait Trait4 {
   extends Trait1
-  fun foo(x: Bool) {}
+  override fun foo(x: Bool) {}
 }
 type Type4 (Unit)
 methods Type4 { implements Trait4 }

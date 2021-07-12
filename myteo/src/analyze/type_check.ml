@@ -380,13 +380,14 @@ and check_super_trait_implementation
                 Type_context.add_error
                   ~cx
                   sub_method.loc
-                  (IncomatibleOverridenMethodType
+                  (IncompatibleOverridenMethodType
                      (super_method_name, implemented_trait.name, sub_rep_ty, sup_rep_ty)))
       implemented_trait.methods;
 
     (* Recursively check super traits of implemented trait *)
     LocMap.iter
-      (fun _ super_trait -> check_super_trait_implementation ~cx base super_trait type_param_bindings)
+      (fun _ super_trait ->
+        check_super_trait_implementation ~cx base super_trait type_param_bindings)
       implemented_trait.implemented
 
 and check_module ~cx module_ =

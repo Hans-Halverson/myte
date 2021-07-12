@@ -1083,15 +1083,15 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                super traits, whether the method is override in this trait, and whether the method has
                any super trait decls. *)
             let ( base_trait_decls,
+                  sig_super_trait_decls,
                   non_sig_super_trait_decls,
-                  override_decl_opt,
-                  has_super_trait_decl ) =
+                  override_decl_opt ) =
               MethodSet.fold
                 (fun method_location
                      ( base_trait_decls,
+                       sig_super_trait_decls,
                        non_sig_super_trait_decls,
-                       override_decl_opt,
-                       has_super_trait_decl ) ->
+                       override_decl_opt ) ->
                   match method_location with
                   | MethodLocation.BaseTrait (base_trait_decl, is_override) ->
                     let override_decl_opt =
@@ -1101,32 +1101,34 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                         override_decl_opt
                     in
                     ( base_trait_decl :: base_trait_decls,
+                      sig_super_trait_decls,
                       non_sig_super_trait_decls,
-                      override_decl_opt,
-                      has_super_trait_decl )
+                      override_decl_opt )
                   | MethodLocation.SuperTrait (super_trait_decl, is_signature) ->
-                    let non_sig_super_trait_decls =
-                      if is_signature then
-                        non_sig_super_trait_decls
-                      else
-                        super_trait_decl :: non_sig_super_trait_decls
-                    in
-                    (base_trait_decls, non_sig_super_trait_decls, override_decl_opt, true))
+                    if is_signature then
+                      ( base_trait_decls,
+                        super_trait_decl :: sig_super_trait_decls,
+                        non_sig_super_trait_decls,
+                        override_decl_opt )
+                    else
+                      ( base_trait_decls,
+                        sig_super_trait_decls,
+                        super_trait_decl :: non_sig_super_trait_decls,
+                        override_decl_opt ))
                 method_locations
-                ([], [], None, false)
+                ([], [], [], None)
             in
             let base_trait_decls = List.rev base_trait_decls in
+            let sig_super_trait_decls = List.rev sig_super_trait_decls in
             let non_sig_super_trait_decls = List.rev non_sig_super_trait_decls in
 
-            (* Error if trying to override a nonexistent method *)
-            (match override_decl_opt with
-            | Some override_decl when not has_super_trait_decl ->
-              add_error override_decl (OverrideNonexistentMethod method_name)
-            | _ -> ());
-
-            (* Filter out remaining super trait decls if method is overridden by this trait *)
-            let non_sig_super_trait_decls =
+            let potentially_conflicting_super_trait_decls =
               match override_decl_opt with
+              | Some override_decl_loc
+                when sig_super_trait_decls = [] && non_sig_super_trait_decls = [] ->
+                (* Error if trying to override a nonexistent method *)
+                add_error override_decl_loc (OverrideNonexistentMethod method_name);
+                []
               | Some override_decl_loc ->
                 (* Error if multiple super methods are overridden *)
                 (match non_sig_super_trait_decls with
@@ -1135,12 +1137,13 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                     override_decl_loc
                     (OverrideMultipleMethods (method_name, super1, super2))
                 | _ -> ());
+                (* If overridden there are no potential conflicts with super traits *)
                 []
               | None -> non_sig_super_trait_decls
             in
 
             (* Error on duplicate method names, ignoring all signatures in super traits *)
-            match (base_trait_decls, non_sig_super_trait_decls) with
+            match (base_trait_decls, potentially_conflicting_super_trait_decls) with
             | (_ :: base_trait_loc :: _, _) ->
               add_error base_trait_loc (DuplicateMethodNames (method_name, trait_name, []))
             | ([base_trait_loc], super :: _) ->
@@ -1150,7 +1153,11 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                 trait_name_loc
                 (DuplicateMethodNames (method_name, trait_name, [super1; super2]))
             | _ ->
-              ();
+              (* Error if there is a signature for this method but no override keyword *)
+              (match (override_decl_opt, base_trait_decls, sig_super_trait_decls) with
+              | (None, base_trait_decl :: _, super_trait_name :: _) ->
+                add_error base_trait_decl (MissingOverrideKeyword (method_name, super_trait_name))
+              | _ -> ());
 
               (* Error if method has same as record field *)
               (match field_names with
@@ -1181,7 +1188,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             in
             let names = collect_method_names methods super_traits in
             check_errors name loc names
-          | TraitDecl trait ->
+          | TraitDecl trait when LocSet.mem loc trait_locs ->
             let (methods, super_traits) =
               gather_methods_and_super_traits (LocMap.empty, LocMap.empty) trait
             in

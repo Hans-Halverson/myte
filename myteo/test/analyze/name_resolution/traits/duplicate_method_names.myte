@@ -115,14 +115,20 @@ trait Test10 {
   extends T7
 }
 
-// Signatures can appear under subtrait with same signature - no error
+// Signatures can appear under subtrait with same signature if override keyword present - no error
 trait Test11 {
+  extends T6
+  override fun a()
+}
+
+// Signatures cannot appear under subtrait with same signature without override keyword
+trait Test12 {
   extends T6
   fun a()
 }
 
 // Signatures cannot appear under subtrait with non-signature
-trait Test12 {
+trait Test13 {
   extends T1
   fun a()
 }

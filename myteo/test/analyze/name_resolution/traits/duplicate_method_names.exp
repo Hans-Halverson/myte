@@ -53,7 +53,12 @@ test/analyze/name_resolution/traits/duplicate_method_names.myte:90:15
  90 |   override fun a() {}
     |                ^
 
-Error: Multiple methods with name `a` declared for `Test12`. Method `a` is already declared in super trait `T1`.
+Error: Method `a` overrides method in trait `T6`, but method is not marked as `override`
 test/analyze/name_resolution/traits/duplicate_method_names.myte:127:6
  127 |   fun a()
+     |       ^
+
+Error: Multiple methods with name `a` declared for `Test13`. Method `a` is already declared in super trait `T1`.
+test/analyze/name_resolution/traits/duplicate_method_names.myte:133:6
+ 133 |   fun a()
      |       ^

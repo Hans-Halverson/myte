@@ -1,0 +1,4 @@
+Error: Method `foo` overrides method in trait `Trait1`, but method is not marked as `override`
+test/analyze/name_resolution/traits/missing_override_error.myte:13:6-9
+ 13 |   fun foo() {}
+    |       ^^^
