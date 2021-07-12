@@ -10,4 +10,13 @@ trait T2 {
   extends T1
 }
 
+// Cannot override a static function
+trait T3 {
+  static fun foo() {}
+}
+trait T4 {
+  extends T3
+  override fun foo() {}
+}
+
 fun main() {}

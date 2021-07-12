@@ -1,0 +1,14 @@
+module test
+
+trait Trait1 {
+  static fun foo(x: Int): Int = x
+}
+
+trait Trait2 {
+  extends Trait1
+
+  // No type error, as static functions are not inherited
+  static fun foo(x: Bool): Bool = x
+}
+
+fun main() {}

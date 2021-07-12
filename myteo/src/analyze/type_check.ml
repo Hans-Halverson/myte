@@ -326,8 +326,9 @@ and check_super_trait_implementation
     (* TODO: Check that type args satisfy super trait param bounds *)
     SMap.iter
       (fun super_method_name super_method ->
+        let open Bindings.FunctionDeclaration in
         let is_already_implemented = SSet.mem super_method_name already_implemented_methods in
-        if not is_already_implemented then
+        if (not is_already_implemented) && not super_method.is_static then
           match SMap.find_opt super_method_name base_trait.methods with
           | None ->
             if base_kind = Methods then
@@ -338,9 +339,7 @@ and check_super_trait_implementation
           | Some sub_method ->
             (* Overridden methods must have same type parameter arity *)
             let num_sub_type_params = List.length sub_method.type_params in
-            let num_super_type_params =
-              List.length super_method.Bindings.FunctionDeclaration.type_params
-            in
+            let num_super_type_params = List.length super_method.type_params in
             if num_sub_type_params <> num_super_type_params then
               Type_context.add_error
                 ~cx

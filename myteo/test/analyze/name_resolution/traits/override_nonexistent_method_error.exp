@@ -2,3 +2,8 @@ Error: No parent method with name `a` to override
 test/analyze/name_resolution/traits/override_nonexistent_method_error.myte:5:15
  5 |   override fun a() {}
    |                ^
+
+Error: No parent method with name `foo` to override
+test/analyze/name_resolution/traits/override_nonexistent_method_error.myte:19:15-18
+ 19 |   override fun foo() {}
+    |                ^^^

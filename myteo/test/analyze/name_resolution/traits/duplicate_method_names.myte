@@ -46,10 +46,12 @@ type Tup1 (Unit)
 
 methods Tup1 {
   fun a() {}
+  static fun b() {}
 }
 
 methods Tup1 {
   fun a() {}
+  static fun b() {}
 }
 
 // Conflicting methods in trait and extended trait in separate method blocks
@@ -131,6 +133,33 @@ trait Test12 {
 trait Test13 {
   extends T1
   fun a()
+}
+
+// Static methods cannot have same name as non-static method
+trait T8 { fun foo() }
+trait Test14 {
+  extends T8
+  static fun foo() {}
+}
+
+trait T9 { fun foo() {} }
+trait Test15 {
+  extends T9
+  static fun foo() {}
+}
+
+trait T10 {
+  extends T8
+  override fun foo() {}
+}
+trait Test16 {
+  extends T10
+  static fun foo() {}
+}
+
+trait Test17 {
+  fun foo()
+  static fun foo() {}
 }
 
 fun main() {}

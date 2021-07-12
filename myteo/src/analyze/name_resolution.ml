@@ -37,15 +37,16 @@ type scopes = scope list
 (* Data structures for method name checking *)
 module MethodLocation = struct
   type t =
-    | SuperTrait of (* Trait name *) string * (* Is signature *) bool
-    | BaseTrait of (* Method location on base trait *) Loc.t * (* Is override *) bool
+    | SuperTrait of (* Trait name *) string * (* Is signature *) bool (* Is static *) * bool
+    | BaseTrait of
+        (* Method location on base trait *) Loc.t * (* Is override *) bool (* Is static *) * bool
 
   let compare l1 l2 =
     match (l1, l2) with
-    | (BaseTrait (loc1, _), BaseTrait (loc2, _)) -> Loc.compare loc1 loc2
+    | (BaseTrait (loc1, _, _), BaseTrait (loc2, _, _)) -> Loc.compare loc1 loc2
     | (BaseTrait _, SuperTrait _) -> -1
     | (SuperTrait _, BaseTrait _) -> 1
-    | (SuperTrait (t1, _), SuperTrait (t2, _)) -> String.compare t1 t2
+    | (SuperTrait (t1, _, _), SuperTrait (t2, _, _)) -> String.compare t1 t2
 end
 
 module MethodSet = Set.Make (MethodLocation)
@@ -1029,12 +1030,17 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             (fun _
                  ({ FunctionDeclaration.loc; is_static; is_override; is_signature; _ } as method_)
                  methods_acc ->
-              if is_static then (
+              if is_static then
                 (* Static methods cannot be overridden and must have an implementation *)
-                if is_override then this#add_error loc StaticMethodOverride;
-                if is_signature then this#add_error loc StaticMethodSignature;
-                methods_acc
-              ) else
+                if is_override then (
+                  this#add_error loc StaticMethodOverride;
+                  methods_acc
+                ) else if is_signature then (
+                  this#add_error loc StaticMethodSignature;
+                  methods_acc
+                ) else
+                  LocMap.add loc method_ methods_acc
+              else
                 LocMap.add loc method_ methods_acc)
             methods
             methods_acc
@@ -1047,8 +1053,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       let collect_method_names methods super_traits =
         let names =
           LocMap.fold
-            (fun loc { FunctionDeclaration.name; is_override; _ } names ->
-              MethodMMap.add name (MethodLocation.BaseTrait (loc, is_override)) names)
+            (fun loc { FunctionDeclaration.name; is_override; is_static; _ } names ->
+              MethodMMap.add name (MethodLocation.BaseTrait (loc, is_override, is_static)) names)
             methods
             MethodMMap.empty
         in
@@ -1056,8 +1062,11 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           LocMap.fold
             (fun _ { TraitDeclaration.name = trait_name; methods; _ } names ->
               SMap.fold
-                (fun name { FunctionDeclaration.is_signature; _ } names ->
-                  MethodMMap.add name (MethodLocation.SuperTrait (trait_name, is_signature)) names)
+                (fun name { FunctionDeclaration.is_signature; is_static; _ } names ->
+                  MethodMMap.add
+                    name
+                    (MethodLocation.SuperTrait (trait_name, is_signature, is_static))
+                    names)
                 methods
                 names)
             super_traits
@@ -1078,42 +1087,54 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             let ( base_trait_decls,
                   sig_super_trait_decls,
                   non_sig_super_trait_decls,
+                  static_super_trait_decls,
                   override_decl_opt ) =
               MethodSet.fold
                 (fun method_location
                      ( base_trait_decls,
                        sig_super_trait_decls,
                        non_sig_super_trait_decls,
+                       static_super_trait_decls,
                        override_decl_opt ) ->
                   match method_location with
-                  | MethodLocation.BaseTrait (base_trait_decl, is_override) ->
+                  | MethodLocation.BaseTrait (base_trait_decl, is_override, is_static) ->
                     let override_decl_opt =
                       if is_override then
                         Some base_trait_decl
                       else
                         override_decl_opt
                     in
-                    ( base_trait_decl :: base_trait_decls,
+                    ( (base_trait_decl, is_static) :: base_trait_decls,
                       sig_super_trait_decls,
                       non_sig_super_trait_decls,
+                      static_super_trait_decls,
                       override_decl_opt )
-                  | MethodLocation.SuperTrait (super_trait_decl, is_signature) ->
-                    if is_signature then
+                  | MethodLocation.SuperTrait (super_trait_decl, is_signature, is_static) ->
+                    if is_static then
+                      ( base_trait_decls,
+                        sig_super_trait_decls,
+                        non_sig_super_trait_decls,
+                        super_trait_decl :: static_super_trait_decls,
+                        override_decl_opt )
+                    else if is_signature then
                       ( base_trait_decls,
                         super_trait_decl :: sig_super_trait_decls,
                         non_sig_super_trait_decls,
+                        static_super_trait_decls,
                         override_decl_opt )
                     else
                       ( base_trait_decls,
                         sig_super_trait_decls,
                         super_trait_decl :: non_sig_super_trait_decls,
+                        static_super_trait_decls,
                         override_decl_opt ))
                 method_locations
-                ([], [], [], None)
+                ([], [], [], [], None)
             in
             let base_trait_decls = List.rev base_trait_decls in
             let sig_super_trait_decls = List.rev sig_super_trait_decls in
             let non_sig_super_trait_decls = List.rev non_sig_super_trait_decls in
+            let _static_super_trait_decls = List.rev static_super_trait_decls in
 
             let potentially_conflicting_super_trait_decls =
               match override_decl_opt with
@@ -1137,19 +1158,29 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
 
             (* Error on duplicate method names, ignoring all signatures in super traits *)
             match (base_trait_decls, potentially_conflicting_super_trait_decls) with
-            | (_ :: base_trait_loc :: _, _) ->
+            | (_ :: (base_trait_loc, _) :: _, _) ->
               add_error base_trait_loc (DuplicateMethodNames (method_name, trait_name, []))
-            | ([base_trait_loc], super :: _) ->
+            | ([(base_trait_loc, _)], super :: _) ->
               add_error base_trait_loc (DuplicateMethodNames (method_name, trait_name, [super]))
             | ([], super1 :: super2 :: _) ->
               add_error
                 trait_name_loc
                 (DuplicateMethodNames (method_name, trait_name, [super1; super2]))
             | _ ->
+              let (static_base_trait_decls, non_static_base_trait_decls) =
+                List.partition (fun (_, is_static) -> is_static) base_trait_decls
+              in
+
               (* Error if there is a signature for this method but no override keyword *)
-              (match (override_decl_opt, base_trait_decls, sig_super_trait_decls) with
-              | (None, base_trait_decl :: _, super_trait_name :: _) ->
-                add_error base_trait_decl (MissingOverrideKeyword (method_name, super_trait_name))
+              (match (override_decl_opt, non_static_base_trait_decls, sig_super_trait_decls) with
+              | (None, (base_trait_loc, _) :: _, super_trait_name :: _) ->
+                add_error base_trait_loc (MissingOverrideKeyword (method_name, super_trait_name))
+              | _ -> ());
+
+              (* Error if there is a static method in base and signature in super trait *)
+              (match (static_base_trait_decls, sig_super_trait_decls) with
+              | ((base_trait_loc, _) :: _, super :: _) ->
+                add_error base_trait_loc (DuplicateMethodNames (method_name, trait_name, [super]))
               | _ -> ());
 
               (* Error if method has same as record field *)
@@ -1157,8 +1188,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               | None -> ()
               | Some field_names ->
                 if SSet.mem method_name field_names then (
-                  match (base_trait_decls, non_sig_super_trait_decls) with
-                  | (base_trait_loc :: _, _) ->
+                  match (base_trait_decls, potentially_conflicting_super_trait_decls) with
+                  | ((base_trait_loc, _) :: _, _) ->
                     this#add_error
                       base_trait_loc
                       (DuplicateRecordFieldAndMethodNames (method_name, trait_name, None))
