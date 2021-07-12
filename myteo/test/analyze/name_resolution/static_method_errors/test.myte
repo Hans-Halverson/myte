@@ -2,9 +2,8 @@ module test
 
 import a
 
-// No static method - method signatures and non-static methods cannot be resolved
+// No static method - non-static methods cannot be resolved
 trait Trait1 {
-  static fun foo()
   fun bar() {}
 }
 
@@ -12,11 +11,10 @@ type Type1 (Unit)
 type Type2 = Type2A | Type2B
 
 fun test1() {
-  Trait1.foo;
   Trait1.bar;
   Trait1.baz;
-  Type1.foo;
-  Type2.foo;
+  Type1.baz;
+  Type2.baz;
 }
 
 // Cannot reference child of static method
@@ -31,11 +29,31 @@ fun test2() {
   Type3.foo.bar;
 }
 
+// Static methods cannot be overriden
+trait Trait3 {
+  override static fun bar() {}
+}
+
+// Static methods cannot be signatures
+trait Trait4 {
+  static fun foo()
+}
+
 // Errors in methods qualified by module
 fun test3() {
   a.b.c.Trait.foo;
   a.b.c.Type1.foo.bar;
   a.b.c.Type2.foo.bar;
+}
+
+// Static methods are not inherited by subtraits
+trait Trait5 {
+  static fun foo() {}
+}
+trait Trait6 { extends Trait5 }
+
+fun test4() {
+  Trait6.foo;
 }
 
 fun main() {}

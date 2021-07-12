@@ -5,8 +5,7 @@ trait Foo<T> {
   fun foo(x: T) {}
 
   // Trait type parameters cannot appear in static methods
-  static fun bar(x: T)
-  static fun baz(x: T) {}
+  static fun bar(x: T) {}
 }
 
 fun main() {}

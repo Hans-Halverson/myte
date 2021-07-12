@@ -841,35 +841,20 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
        a collection of traits. Return whether the chain can be resolved to a static method, and on
        success mark a use. *)
     method maybe_resolve_static_method type_part method_part rest_parts traits trait_or_type =
-      (* Recursively check traits to determine if a static method with the given name is present,
-         mark a use if one is found. *)
+      (* Check traits to determine if a static method with the given name is present for this trait
+         or type, and mark a use if one is found. *)
       let { Identifier.loc = name_loc; name } = method_part in
-      let rec check_trait trait =
-        let { TraitDeclaration.methods; implemented; _ } = trait in
-        let is_resolved =
-          match SMap.find_opt name methods with
-          | Some { FunctionDeclaration.loc; is_static; is_signature; _ }
-            when is_static && not is_signature ->
-            this#add_value_use loc name_loc;
-            true
-          | _ -> false
-        in
-        LocMap.fold
-          (fun _ { TraitDeclaration.implemented_trait; _ } is_resolved ->
-            if is_resolved then
-              true
-            else
-              check_trait implemented_trait)
-          implemented
-          is_resolved
-      in
       let has_method =
         List.fold_left
           (fun is_resolved trait ->
             if is_resolved then
               true
             else
-              check_trait trait)
+              match SMap.find_opt name trait.TraitDeclaration.methods with
+              | Some { FunctionDeclaration.loc; is_static; _ } when is_static ->
+                this#add_value_use loc name_loc;
+                true
+              | _ -> false)
           false
           traits
       in
@@ -1041,8 +1026,16 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         in
         let methods_acc =
           SMap.fold
-            (fun _ ({ FunctionDeclaration.loc; _ } as method_) methods_acc ->
-              LocMap.add loc method_ methods_acc)
+            (fun _
+                 ({ FunctionDeclaration.loc; is_static; is_override; is_signature; _ } as method_)
+                 methods_acc ->
+              if is_static then (
+                (* Static methods cannot be overridden and must have an implementation *)
+                if is_override then this#add_error loc StaticMethodOverride;
+                if is_signature then this#add_error loc StaticMethodSignature;
+                methods_acc
+              ) else
+                LocMap.add loc method_ methods_acc)
             methods
             methods_acc
         in

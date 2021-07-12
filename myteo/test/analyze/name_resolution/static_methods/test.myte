@@ -23,22 +23,26 @@ fun test1() {
   Type2.foo;
 }
 
-// Static methods can be resolved from super traits
-trait Trait2 {
-  static fun foo() {}
-}
-trait Trait3 { extends Trait2 }
-trait Trait4 { extends Trait3 }
-
-fun test2() {
-  Trait4.foo;
-}
-
 // Static methods can be resolved when qualified by modules
-fun test3() {
+fun test2() {
   a.b.c.Trait.foo;
   a.b.c.Type1.foo;
   a.b.c.Type2.foo;
+}
+
+// Static methods can have same name as in super trait
+trait Trait2 {
+  static fun foo() {}
+}
+
+trait Trait3 {
+  extends Trait2
+  static fun foo() {}
+}
+
+fun test3() {
+  Trait2.foo;
+  Trait3.foo;
 }
 
 fun main() {}

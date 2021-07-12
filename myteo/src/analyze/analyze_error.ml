@@ -30,6 +30,8 @@ type t =
   | NoStaticMethod of string * string * trait_type
   | ReferenceChildOfStaticMethod of string * string * trait_type
   | ExpectedTrait of string
+  | StaticMethodOverride
+  | StaticMethodSignature
   | OverrideNonexistentMethod of string
   | OverrideMultipleMethods of string * string * string
   | MissingOverrideKeyword of string * string
@@ -261,6 +263,8 @@ let to_string error =
       (string_of_trait_type trait_type)
       trait_name
   | ExpectedTrait name -> Printf.sprintf "Expected `%s` to be a trait" name
+  | StaticMethodOverride -> Printf.sprintf "Static methods cannot be overridden"
+  | StaticMethodSignature -> Printf.sprintf "Static methods must have an implementation"
   | OverrideNonexistentMethod name ->
     Printf.sprintf "No parent method with name `%s` to override" name
   | OverrideMultipleMethods (method_name, super1, super2) ->
