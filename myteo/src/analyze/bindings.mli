@@ -82,7 +82,7 @@ module TraitDeclaration : sig
   and implemented_trait = {
     mutable implemented_trait: t;
     mutable implemented_loc: Loc.t;
-    mutable implemented_type_params: Types.TypeParam.t list;
+    mutable implemented_type_args: Types.t list;
   }
 
   val mk : name:string -> loc:Loc.t -> t
@@ -168,6 +168,8 @@ val get_value_binding : Bindings.t -> Loc.t -> ValueBinding.t
 
 val get_type_binding : Bindings.t -> Loc.t -> TypeBinding.t
 
+val get_type_binding_from_decl : Bindings.t -> Loc.t -> TypeBinding.t
+
 val get_decl_loc_from_value_use : Bindings.t -> Loc.t -> Loc.t
 
 val is_global_decl : Bindings.t -> Loc.t -> bool
@@ -181,6 +183,8 @@ val get_ctor_decl : ValueBinding.t -> ConstructorDeclaration.t
 val get_func_param_decl : ValueBinding.t -> FunctionParamDeclaration.t
 
 val get_type_decl : TypeBinding.t -> TypeDeclaration.t
+
+val get_trait_decl : TypeBinding.t -> TraitDeclaration.t
 
 val get_type_alias_decl : TypeBinding.t -> TypeAliasDeclaration.t
 

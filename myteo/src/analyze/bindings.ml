@@ -95,7 +95,7 @@ module TraitDeclaration = struct
   and implemented_trait = {
     mutable implemented_trait: t;
     mutable implemented_loc: Loc.t;
-    mutable implemented_type_params: Types.TypeParam.t list;
+    mutable implemented_type_args: Types.t list;
   }
 
   let max_id = ref 0
@@ -208,6 +208,10 @@ let get_type_binding bindings use_loc =
   let decl_loc = LocMap.find use_loc bindings.type_use_to_decl in
   LocMap.find decl_loc bindings.type_bindings
 
+let get_type_binding_from_decl bindings decl_loc =
+  let open Bindings in
+  LocMap.find decl_loc bindings.type_bindings
+
 let get_decl_loc_from_value_use bindings use_loc =
   let binding = get_value_binding bindings use_loc in
   binding.loc
@@ -241,6 +245,11 @@ let get_type_decl binding =
   match binding.TypeBinding.declaration with
   | TypeDecl type_decl -> type_decl
   | _ -> failwith "Expected type declaration"
+
+let get_trait_decl binding =
+  match binding.TypeBinding.declaration with
+  | TraitDecl trait_decl -> trait_decl
+  | _ -> failwith "Expected trait declaration"
 
 let get_type_alias_decl binding =
   match binding.TypeBinding.declaration with

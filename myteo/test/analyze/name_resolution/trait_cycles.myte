@@ -1,5 +1,9 @@
 module test
 
+// Non cyclic trait
+trait Foo {}
+
+// Cyclic traits
 trait Trait1 { extends Trait4 }
 trait Trait2 { extends Trait1 }
 trait Trait3 { extends Trait2 }

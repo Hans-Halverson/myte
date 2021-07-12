@@ -1,0 +1,76 @@
+module test
+
+trait Trait1<T> {
+  fun foo(x: T)
+  fun bar<U>(x: T, y: U)
+}
+
+
+// Success
+type Type1 (Unit)
+methods Type1 {
+  implements Trait1<Int>
+
+  override fun foo(x: Int) {}
+  override fun bar<U>(x: Int, y: U) {}
+}
+
+// Failure
+type Type2 (Unit)
+methods Type2 {
+  implements Trait1<Int>
+
+  override fun foo(x: Bool) {}
+  override fun bar<U>(x: Bool, y: Int) {}
+}
+
+// Can substitute through multiple parameterized super traits
+trait Trait2<T, U> {
+  fun foo(x: T): U
+}
+trait Trait3<T> {
+  extends Trait2<(T, T), T>
+}
+trait Trait4<T> {
+  extends Trait3<T -> T>
+}
+
+type Type3 (Unit)
+methods Type3 {
+  implements Trait4<Int>
+
+  // Error to print out substituted true type
+  override fun foo(x: Int): Int = x
+}
+
+// Preserve type parameters through super trait substitution
+trait Trait5<T> {
+  fun foo(x: T)
+}
+trait Trait6<U> {
+  extends Trait5<U -> Bool>
+}
+
+type Type4<V> (V)
+methods Type4<V> {
+  implements Trait6<V>
+
+  // Error to print out substituted true type
+  override fun foo(x: Int) {}
+}
+
+type Type5<V> (V)
+methods Type5<V> {
+  implements Trait6<V>
+
+  // Successful override
+  override fun foo(x: V -> Bool) {}
+}
+
+fun test1() {
+  val x = Type5 ("asdf");
+  // Error to print type
+  x.foo(1);
+}
+
+fun main() {}

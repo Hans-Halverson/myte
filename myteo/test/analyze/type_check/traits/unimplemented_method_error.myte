@@ -1,0 +1,34 @@
+module test
+
+trait Trait1 {
+  fun foo(x: Bool)
+}
+
+// Error if type does not contain method implementation
+type Type1 (Unit)
+methods Type1 { implements Trait1 }
+
+// Do not error if trait does not contain method implementation
+trait Trait2 { extends Trait1 }
+trait Trait3 { extends Trait2 }
+
+// Error if implemented method is in different methods block
+type Type2 (Unit)
+methods Type2 {
+  fun foo(x: Bool) {}
+}
+methods Type2 { implements Trait1 }
+
+// Error on ancestor method not implemented
+type Type3 (Unit)
+methods Type3 { implements Trait3 }
+
+// Ancestor method is implemented by super trait
+trait Trait4 {
+  extends Trait1
+  fun foo(x: Bool) {}
+}
+type Type4 (Unit)
+methods Type4 { implements Trait4 }
+
+fun main() {}

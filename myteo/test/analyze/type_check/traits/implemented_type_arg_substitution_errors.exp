@@ -1,0 +1,19 @@
+Error: Method `foo` has incompatible type from declaration in trait `Trait1`. Declared as type `Int -> Unit` but found `Bool -> Unit`.
+test/analyze/type_check/traits/implemented_type_arg_substitution_errors.myte:23:15-18
+ 23 |   override fun foo(x: Bool) {}
+    |                ^^^
+
+Error: Method `bar` has incompatible type from declaration in trait `Trait1`. Declared as type `(Int, U) -> Unit` but found `(Bool, Int) -> Unit`.
+test/analyze/type_check/traits/implemented_type_arg_substitution_errors.myte:24:15-18
+ 24 |   override fun bar<U>(x: Bool, y: Int) {}
+    |                ^^^
+
+Error: Method `foo` has incompatible type from declaration in trait `Trait2`. Declared as type `(Int -> Int, Int -> Int) -> (Int -> Int)` but found `Int -> Int`.
+test/analyze/type_check/traits/implemented_type_arg_substitution_errors.myte:43:15-18
+ 43 |   override fun foo(x: Int): Int = x
+    |                ^^^
+
+Error: Method `foo` has incompatible type from declaration in trait `Trait5`. Declared as type `(V -> Bool) -> Unit` but found `Int -> Unit`.
+test/analyze/type_check/traits/implemented_type_arg_substitution_errors.myte:59:15-18
+ 59 |   override fun foo(x: Int) {}
+    |                ^^^

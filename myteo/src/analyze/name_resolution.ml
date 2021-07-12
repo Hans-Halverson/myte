@@ -225,7 +225,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               in
               this#set_record_fields loc names
             | _ -> ())
-          | TraitDeclaration { kind = Methods; _ } -> ()
+          | TraitDeclaration { kind = Methods; name; _ } ->
+            add_type_binding name (TraitDecl (TraitDeclaration.mk ~name:name.name ~loc:name.loc))
           | TraitDeclaration { kind = Trait; name; _ } ->
             register_stdlib_decl name;
             trait_locs <- LocSet.add name.loc trait_locs;
@@ -392,7 +393,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                     {
                       TraitDeclaration.implemented_trait = trait;
                       implemented_loc = loc;
-                      implemented_type_params = [];
+                      implemented_type_args = [];
                     }
                   in
                   LocMap.add name.name.loc implemented_trait implemented
@@ -413,9 +414,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           match toplevel with
           | Module.TraitDeclaration ({ kind = Trait; name; _ } as decl) ->
             let binding = this#get_type_binding name.loc in
-            (match binding.declaration with
-            | TraitDecl trait -> fill_trait_from_decl trait decl
-            | _ -> failwith "Expected trait")
+            let trait = get_trait_decl binding in
+            fill_trait_from_decl trait decl
           | TraitDeclaration ({ kind = Methods; name = { name; loc }; _ } as decl) ->
             (* Check that method declarations appear in same module as type declaration *)
             (match this#lookup_type_in_scope name scopes with
@@ -430,7 +430,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               (* Fill in trait for this method block *)
               (match binding.declaration with
               | TypeDecl type_decl ->
-                let trait = TraitDeclaration.mk ~name ~loc in
+                let binding = this#get_type_binding loc in
+                let trait = get_trait_decl binding in
                 fill_trait_from_decl trait decl;
                 TypeDeclaration.add_trait type_decl trait
               | _ -> failwith "Expected type"))
@@ -990,6 +991,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           | Some 0 -> ()
           | Some 1 -> cyclic_trait := Some (trait.loc, trait.name)
           | _ ->
+            unvisited_traits := LocSet.remove trait.loc !unvisited_traits;
             trait_status := LocMap.add trait.loc in_progress !trait_status;
             LocMap.iter
               (fun _ { TraitDeclaration.implemented_trait; _ } -> visit implemented_trait)
@@ -997,17 +999,14 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             trait_status := LocMap.add trait.loc completed !trait_status
       in
 
-      let iter () =
+      let rec iter () =
         if not (finished ()) then
           match LocSet.choose_opt !unvisited_traits with
           | None -> ()
           | Some trait_loc ->
-            let trait =
-              match this#get_type_binding trait_loc with
-              | { TypeBinding.declaration = TraitDecl trait; _ } -> trait
-              | _ -> failwith "Expected trait"
-            in
-            visit trait
+            let trait = this#get_type_binding trait_loc |> get_trait_decl in
+            visit trait;
+            iter ()
       in
 
       iter ();

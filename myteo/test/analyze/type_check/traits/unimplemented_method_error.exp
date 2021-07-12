@@ -1,0 +1,14 @@
+Error: Method `foo` from trait `Trait1` not implemented
+test/analyze/type_check/traits/unimplemented_method_error.myte:9:16-33
+ 9 | methods Type1 { implements Trait1 }
+   |                 ^^^^^^^^^^^^^^^^^
+
+Error: Method `foo` from trait `Trait1` not implemented
+test/analyze/type_check/traits/unimplemented_method_error.myte:20:16-33
+ 20 | methods Type2 { implements Trait1 }
+    |                 ^^^^^^^^^^^^^^^^^
+
+Error: Method `foo` from trait `Trait1` not implemented
+test/analyze/type_check/traits/unimplemented_method_error.myte:24:16-33
+ 24 | methods Type3 { implements Trait3 }
+    |                 ^^^^^^^^^^^^^^^^^

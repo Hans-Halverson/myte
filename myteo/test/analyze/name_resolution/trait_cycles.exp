@@ -1,4 +1,4 @@
 Error: Cycle detected in super traits of `Trait1`
-test/analyze/name_resolution/trait_cycles.myte:3:6-12
- 3 | trait Trait1 { extends Trait4 }
+test/analyze/name_resolution/trait_cycles.myte:7:6-12
+ 7 | trait Trait1 { extends Trait4 }
    |       ^^^^^^

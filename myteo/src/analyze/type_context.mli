@@ -25,6 +25,8 @@ val get_value_binding : cx:t -> Loc.t -> ValueBinding.t
 
 val get_type_binding : cx:t -> Loc.t -> TypeBinding.t
 
+val get_type_binding_from_decl : cx:t -> Loc.t -> TypeBinding.t
+
 (* Type constraints *)
 
 val unify : cx:t -> Types.t -> Types.t -> bool

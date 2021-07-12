@@ -55,6 +55,9 @@ type t =
   | NamedAccessNonexistentField of string * string
   | IntLiteralOutOfRange of Types.t
   | IndexIsNotInteger of Types.t
+  | UnimplementedMethodSignature of string * string
+  | IncomatibleOverridenMethodType of string * string * Types.t * Types.t
+  | IncorrectOverridenMethodTypeParametersArity of string * string * int * int
 
 and unreachable_statement_reason =
   | AfterReturn
@@ -358,3 +361,23 @@ let to_string error =
     Printf.sprintf "Integer literal out of range for type `%s`" (Types.pp ty)
   | IndexIsNotInteger ty ->
     Printf.sprintf "Array index must be an integer but found `%s`" (Types.pp ty)
+  | UnimplementedMethodSignature (method_name, trait_name) ->
+    Printf.sprintf "Method `%s` from trait `%s` not implemented" method_name trait_name
+  | IncomatibleOverridenMethodType (method_name, trait_name, actual_ty, expected_ty) ->
+    let type_strings = Types.pps [actual_ty; expected_ty] in
+    let actual_ty_string = List.hd type_strings in
+    let expected_ty_string = List_utils.last type_strings in
+    Printf.sprintf
+      "Method `%s` has incompatible type from declaration in trait `%s`. Declared as type `%s` but found `%s`."
+      method_name
+      trait_name
+      expected_ty_string
+      actual_ty_string
+  | IncorrectOverridenMethodTypeParametersArity (method_name, trait_name, actual, expected) ->
+    Printf.sprintf
+      "Method `%s` has incorrect number of type parameters from declaration in trait `%s`. Expected %d %s but found %d."
+      method_name
+      trait_name
+      expected
+      (plural expected "type parameter")
+      actual
