@@ -1024,6 +1024,8 @@ and check_expression ~cx expr =
     (loc, tvar_id)
   | Ternary _ -> failwith "TODO: Type checking for ternary expression"
   | Match _ -> failwith "TODO: Type check match expressions"
+  | This _ -> failwith "TODO: Type check this expressions"
+  | Super _ -> failwith "TODO: Type check super expressions"
 
 and check_pattern ~cx patt =
   let open Ast.Pattern in

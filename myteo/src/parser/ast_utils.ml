@@ -36,7 +36,9 @@ let expression_loc expr =
   | Call { loc; _ }
   | IndexedAccess { loc; _ }
   | NamedAccess { loc; _ }
-  | Match { loc; _ } ->
+  | Match { loc; _ }
+  | This loc
+  | Super loc ->
     loc
 
 let rec statement_visitor ~f ?(enter_functions = true) stmt =

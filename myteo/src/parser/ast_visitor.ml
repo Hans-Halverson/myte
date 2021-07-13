@@ -62,6 +62,8 @@ class ['a] visitor =
         | IndexedAccess e -> this#indexed_access acc e
         | NamedAccess e -> this#named_access acc e
         | Match e -> this#match_ acc e
+        | This e -> this#this_ acc e
+        | Super e -> this#super acc e
 
     method pattern : 'a -> Pattern.t -> unit =
       fun acc pat ->
@@ -296,6 +298,10 @@ class ['a] visitor =
       let { loc = _; args; cases } = match_ in
       List.iter (this#expression acc) args;
       List.iter (this#match_case acc) cases
+
+    method this_ _acc _loc = ()
+
+    method super _acc _loc = ()
 
     method match_case acc case =
       let open Match.Case in

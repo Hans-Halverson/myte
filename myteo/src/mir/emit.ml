@@ -475,6 +475,8 @@ and emit_expression ~ecx expr =
     var_value_of_type var_id (pointer_value_element_type element_pointer_var)
   | Ternary _ -> failwith "TODO: Emit MIR for ternary expressions"
   | Match _ -> failwith "TODO: Emir MIR for match expressions"
+  | This _ -> failwith "TODO: Emit MIR for this expressions"
+  | Super _ -> failwith "TODO: Emit MIR for super expressions"
 
 and emit_expression_access_chain ~ecx expr =
   let open Expression in

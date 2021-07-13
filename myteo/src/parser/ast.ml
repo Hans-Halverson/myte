@@ -291,6 +291,8 @@ and Expression : sig
     | IndexedAccess of IndexedAccess.t
     | NamedAccess of NamedAccess.t
     | Match of Match.t
+    | This of Loc.t
+    | Super of Loc.t
 end =
   Expression
 

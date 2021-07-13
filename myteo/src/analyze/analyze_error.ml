@@ -36,6 +36,8 @@ type t =
   | OverrideMultipleMethods of string * string * string
   | MissingOverrideKeyword of string * string
   | CyclicTrait of string
+  | ThisOutsideMethod
+  | SuperOutsideMethod
   | TypeWithAccess of string list
   | CyclicTypeAlias of string
   | TypeAliasWithBounds
@@ -280,6 +282,8 @@ let to_string error =
       method_name
       trait_name
   | CyclicTrait name -> Printf.sprintf "Cycle detected in super traits of `%s`" name
+  | ThisOutsideMethod -> "The `this` keyword cannot be used outside a method"
+  | SuperOutsideMethod -> "The `super` keyword cannot be used outside a method"
   | TypeWithAccess type_name_parts ->
     Printf.sprintf
       "Could not resolve access on type `%s`. Types do not have members that can be accessed."

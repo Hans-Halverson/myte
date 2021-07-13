@@ -1,0 +1,29 @@
+Error: The `this` keyword cannot be used outside a method
+test/analyze/name_resolution/traits/this_super_outside_method_error.myte:4:14-18
+ 4 | val x1: Int = this
+   |               ^^^^
+
+Error: The `super` keyword cannot be used outside a method
+test/analyze/name_resolution/traits/this_super_outside_method_error.myte:5:14-19
+ 5 | val x2: Int = super
+   |               ^^^^^
+
+Error: The `this` keyword cannot be used outside a method
+test/analyze/name_resolution/traits/this_super_outside_method_error.myte:8:2-6
+ 8 |   this;
+   |   ^^^^
+
+Error: The `super` keyword cannot be used outside a method
+test/analyze/name_resolution/traits/this_super_outside_method_error.myte:9:2-7
+ 9 |   super;
+   |   ^^^^^
+
+Error: The `this` keyword cannot be used outside a method
+test/analyze/name_resolution/traits/this_super_outside_method_error.myte:14:4-8
+ 14 |     this;
+    |     ^^^^
+
+Error: The `super` keyword cannot be used outside a method
+test/analyze/name_resolution/traits/this_super_outside_method_error.myte:15:4-9
+ 15 |     super;
+    |     ^^^^^

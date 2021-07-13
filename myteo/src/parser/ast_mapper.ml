@@ -78,6 +78,8 @@ class mapper =
         | IndexedAccess e -> id_map this#indexed_access e expr (fun e' -> IndexedAccess e')
         | NamedAccess e -> id_map this#named_access e expr (fun e' -> NamedAccess e')
         | Match e -> id_map this#match_ e expr (fun e' -> Match e')
+        | This _ -> expr
+        | Super _ -> expr
 
     method pattern : Pattern.t -> Pattern.t =
       fun pat ->

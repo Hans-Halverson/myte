@@ -65,6 +65,9 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
 
     val mutable module_name : string list = []
 
+    (* Whether the resolver is currently in a method *)
+    val mutable in_method : bool = false
+
     (* Set of field names for each record type *)
     val mutable record_fields : SSet.t LocMap.t = LocMap.empty
 
@@ -623,8 +626,12 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             if static then
               this#in_parent_scope (fun _ ->
                   this#visit_function_declaration ~is_nested:false method_)
-            else
-              this#visit_function_declaration ~is_nested:false method_)
+            else (
+              in_method <- true;
+              let func = this#visit_function_declaration ~is_nested:false method_ in
+              in_method <- false;
+              func
+            ))
           methods
       in
       this#exit_scope ();
@@ -818,6 +825,12 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         expr
       | Identifier id ->
         this#resolve_value_id_use id;
+        expr
+      | This loc ->
+        if not in_method then this#add_error loc ThisOutsideMethod;
+        expr
+      | Super loc ->
+        if not in_method then this#add_error loc SuperOutsideMethod;
         expr
       | NamedAccess { target; name; _ } ->
         (* Gather all potential module parts in order if there is an unbroken chain of accesses
