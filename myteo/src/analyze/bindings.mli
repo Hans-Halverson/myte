@@ -3,14 +3,14 @@ open Basic_collections
 module VariableDeclaration : sig
   type t = {
     kind: Ast.Statement.VariableDeclaration.kind;
-    tvar_id: Types.tvar_id;
+    tvar: Types.TVar.t;
   }
 
   val mk : Ast.Statement.VariableDeclaration.kind -> t
 end
 
 module FunctionParamDeclaration : sig
-  type t = { tvar_id: Types.tvar_id }
+  type t = { tvar: Types.TVar.t }
 
   val mk : unit -> t
 end
@@ -20,9 +20,9 @@ module ConstructorDeclaration : sig
 
   val mk : unit -> t
 
-  val get : t -> Types.adt_sig
+  val get : t -> Types.AdtSig.t
 
-  val set : t -> Types.adt_sig -> unit
+  val set : t -> Types.AdtSig.t -> unit
 end
 
 module FunctionDeclaration : sig
@@ -34,8 +34,8 @@ module FunctionDeclaration : sig
     is_override: bool;
     is_signature: bool;
     mutable type_params: Types.TypeParam.t list;
-    mutable params: Types.t list;
-    mutable return: Types.t;
+    mutable params: Types.Type.t list;
+    mutable return: Types.Type.t;
   }
 
   val mk :
@@ -51,7 +51,7 @@ end
 module TypeAliasDeclaration : sig
   type t = {
     mutable type_params: Types.TypeParam.t list;
-    mutable body: Types.t;
+    mutable body: Types.Type.t;
   }
 
   val mk : unit -> t
@@ -82,7 +82,7 @@ module TraitDeclaration : sig
   and implemented_trait = {
     mutable implemented_trait: t;
     mutable implemented_loc: Loc.t;
-    mutable implemented_type_args: Types.t list;
+    mutable implemented_type_args: Types.Type.t list;
   }
 
   val mk : name:string -> loc:Loc.t -> t
@@ -93,9 +93,9 @@ module TypeDeclaration : sig
 
   val mk : unit -> t
 
-  val get_adt_sig : t -> Types.adt_sig
+  val get_adt_sig : t -> Types.AdtSig.t
 
-  val set_adt_sig : t -> Types.adt_sig -> unit
+  val set_adt_sig : t -> Types.AdtSig.t -> unit
 
   val add_trait : t -> TraitDeclaration.t -> unit
 

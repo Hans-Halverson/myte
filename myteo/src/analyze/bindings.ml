@@ -1,23 +1,24 @@
 open Ast
 open Basic_collections
+open Types
 
 module VariableDeclaration = struct
   type t = {
     kind: Statement.VariableDeclaration.kind;
-    tvar_id: Types.tvar_id;
+    tvar: TVar.t;
   }
 
-  let mk kind = { kind; tvar_id = Types.mk_tvar_id () }
+  let mk kind = { kind; tvar = TVar.mk () }
 end
 
 module FunctionParamDeclaration = struct
-  type t = { tvar_id: Types.tvar_id }
+  type t = { tvar: TVar.t }
 
-  let mk () = { tvar_id = Types.mk_tvar_id () }
+  let mk () = { tvar = TVar.mk () }
 end
 
 module ConstructorDeclaration = struct
-  type t = { mutable adt_sig: Types.adt_sig option }
+  type t = { mutable adt_sig: AdtSig.t option }
 
   let mk () = { adt_sig = None }
 
@@ -39,9 +40,9 @@ module FunctionDeclaration = struct
        type parameters in the param and return signatures of the type. *)
     mutable type_params: Types.TypeParam.t list;
     (* Parameter types for the function. If the function has type params, this is a signature *)
-    mutable params: Types.t list;
+    mutable params: Type.t list;
     (* Return types for the function. If the function has type params, this is a signature *)
-    mutable return: Types.t; (* Whether this function is a builtin *)
+    mutable return: Type.t; (* Whether this function is a builtin *)
   }
 
   let mk ~name ~loc ~is_builtin ~is_static ~is_override ~is_signature =
@@ -64,14 +65,14 @@ module TypeAliasDeclaration = struct
        to these type parameters in the body of the type. *)
     mutable type_params: Types.TypeParam.t list;
     (* The body signature of the type alias *)
-    mutable body: Types.t;
+    mutable body: Type.t;
   }
 
   let mk () = { type_params = []; body = Any }
 end
 
 module TypeParamDeclaration = struct
-  type t = { mutable type_param: Types.TypeParam.t option }
+  type t = { mutable type_param: TypeParam.t option }
 
   let mk () = { type_param = None }
 
@@ -87,7 +88,7 @@ module TraitDeclaration = struct
     id: id;
     name: string;
     loc: Loc.t;
-    mutable type_params: Types.TypeParam.t list;
+    mutable type_params: TypeParam.t list;
     mutable methods: FunctionDeclaration.t SMap.t;
     mutable implemented: implemented_trait LocMap.t;
   }
@@ -95,7 +96,7 @@ module TraitDeclaration = struct
   and implemented_trait = {
     mutable implemented_trait: t;
     mutable implemented_loc: Loc.t;
-    mutable implemented_type_args: Types.t list;
+    mutable implemented_type_args: Type.t list;
   }
 
   let max_id = ref 0
@@ -111,7 +112,7 @@ end
 
 module TypeDeclaration = struct
   type t = {
-    mutable adt_sig: Types.adt_sig option;
+    mutable adt_sig: AdtSig.t option;
     mutable traits: TraitDeclaration.t list;
   }
 

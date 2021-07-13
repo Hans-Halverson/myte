@@ -1,4 +1,5 @@
 open Ast
+open Types
 
 type t =
   | InexhaustiveReturn of Identifier.t
@@ -42,9 +43,9 @@ type t =
   | CyclicTypeAlias of string
   | TypeAliasWithBounds
   | ToplevelVarWithoutAnnotation
-  | IncompatibleTypes of Types.t * Types.t list
-  | CannotInferType of cannot_infer_type_kind * (Types.t * Types.tvar_id list) option
-  | NonFunctionCalled of Types.t
+  | IncompatibleTypes of Type.t * Type.t list
+  | CannotInferType of cannot_infer_type_kind * (Type.t * TVar.t list) option
+  | NonFunctionCalled of Type.t
   | RecordConstructorCalled of string
   | ExpectedRecordConstructor
   | ExpectedTupleConstructor
@@ -53,15 +54,15 @@ type t =
   | IncorrectTypeParametersArity of int * int
   | MissingRecordConstructorFields of string list
   | UnexpectedRecordConstructorField of string * string
-  | NonIndexableIndexed of Types.t
-  | NonAccessibleAccessed of string * Types.t
+  | NonIndexableIndexed of Type.t
+  | NonAccessibleAccessed of string * Type.t
   | TupleIndexIsNotLiteral
   | TupleIndexOutOfBounds of int
   | NamedAccessNonexistentField of string * string
-  | IntLiteralOutOfRange of Types.t
-  | IndexIsNotInteger of Types.t
+  | IntLiteralOutOfRange of Type.t
+  | IndexIsNotInteger of Type.t
   | UnimplementedMethodSignature of string * string
-  | IncompatibleOverridenMethodType of string * string * Types.t * Types.t
+  | IncompatibleOverridenMethodType of string * string * Type.t * Type.t
   | IncorrectOverridenMethodTypeParametersArity of string * string * int * int
 
 and unreachable_statement_reason =
@@ -312,7 +313,7 @@ let to_string error =
       | None -> ""
       | Some (partial_type, unresolved_tvar_ids) ->
         let type_strings =
-          Types.pps (partial_type :: List.map (fun id -> Types.TVar id) unresolved_tvar_ids)
+          Types.pps (partial_type :: List.map (fun id -> Type.TVar id) unresolved_tvar_ids)
         in
         let partial_type_string = List.hd type_strings in
         let unresolved_tvar_names = List.tl type_strings |> List.map (fun s -> "`" ^ s ^ "`") in

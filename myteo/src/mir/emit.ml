@@ -115,7 +115,7 @@ and emit_toplevel_variable_declaration ~ecx decl =
   (* Find value type of variable *)
   let binding = Type_context.get_value_binding ~cx:ecx.pcx.type_ctx loc in
   let var_decl = Bindings.get_var_decl binding in
-  let ty = type_to_mir_type ~ecx (Types.TVar var_decl.tvar_id) in
+  let ty = type_to_mir_type ~ecx (Types.Type.TVar var_decl.tvar) in
   (* Build IR for variable init *)
   let init_val =
     Ecx.emit_init_section ~ecx (fun _ ->
@@ -365,7 +365,7 @@ and emit_expression ~ecx expr =
       in
       `FunctionL func_name
     (* Variables may be either globals or locals *)
-    | VarDecl { tvar_id; _ } ->
+    | VarDecl { tvar; _ } ->
       let var =
         if Bindings.is_module_decl ecx.pcx.bindings decl_loc then (
           let binding_name = mk_value_binding_name binding in
@@ -376,11 +376,11 @@ and emit_expression ~ecx expr =
         ) else
           mk_cf_local id_loc
       in
-      let mir_ty = type_to_mir_type ~ecx (Types.TVar tvar_id) in
+      let mir_ty = type_to_mir_type ~ecx (Types.Type.TVar tvar) in
       var_value_of_type var mir_ty
-    | FunParamDecl { tvar_id } ->
+    | FunParamDecl { tvar } ->
       let var = mk_cf_local id_loc in
-      let mir_ty = type_to_mir_type ~ecx (Types.TVar tvar_id) in
+      let mir_ty = type_to_mir_type ~ecx (Types.Type.TVar tvar) in
       var_value_of_type var mir_ty)
   | TypeCast { expr; _ } -> emit_expression ~ecx expr
   | Tuple { loc; elements } ->
@@ -511,15 +511,15 @@ and emit_expression_access_chain ~ecx expr =
     | IndexedAccess ({ target; _ } as access) ->
       let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
       (match target_ty with
-      | Types.Array _ -> emit_array_indexed_access access
+      | Types.Type.Array _ -> emit_array_indexed_access access
       | Tuple _ -> emit_tuple_indexed_access access
-      | ADT { adt_sig = { variant_sigs; _ }; _ } when SMap.cardinal variant_sigs = 1 ->
+      | ADT { adt_sig = { variants; _ }; _ } when SMap.cardinal variants = 1 ->
         emit_tuple_indexed_access access
       | _ -> failwith "Target must be a tuple to pass type checking")
     | NamedAccess ({ target; _ } as access) ->
       let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
       (match target_ty with
-      | Types.ADT { adt_sig = { variant_sigs; _ }; _ } when SMap.cardinal variant_sigs = 1 ->
+      | Types.Type.ADT { adt_sig = { variants; _ }; _ } when SMap.cardinal variants = 1 ->
         emit_record_named_access access
       | _ -> failwith "Target must be a record to pass type checking")
     | _ -> (emit_expression ~ecx expr, [])
@@ -721,7 +721,7 @@ and type_of_loc ~ecx loc =
 
 and mir_type_of_loc ~ecx loc =
   let tvar_id = Type_context.get_tvar_from_loc ~cx:ecx.pcx.type_ctx loc in
-  type_to_mir_type ~ecx (Types.TVar tvar_id)
+  type_to_mir_type ~ecx (Types.Type.TVar tvar_id)
 
 and type_to_mir_type ~ecx ty =
   let ty = Ecx.find_rep_non_generic_type ~ecx ty in

@@ -1,6 +1,30 @@
 open Basic_collections
 
-module TypeParam = struct
+module rec TVar : sig
+  type t = int
+
+  val mk : unit -> t
+end = struct
+  type t = TVar.t
+
+  let max_id = ref 0
+
+  let mk () =
+    let id = !max_id in
+    max_id := id + 1;
+    id
+end
+
+and TypeParam : sig
+  type id = int
+
+  type t = {
+    id: id;
+    name: string;
+  }
+
+  val mk : string -> t
+end = struct
   type id = int
 
   type t = {
@@ -18,78 +42,107 @@ module TypeParam = struct
   let mk name = { id = mk_id (); name }
 end
 
-type tvar_id = int
+and Function : sig
+  type t = {
+    (* TVars of type arguments for this function. These type arguments are essentially metadata
+       and should not be used by the type checker. They allow us to extract the type args this
+       function was instantiated with after type checking is complete. *)
+    type_args: TVar.t list;
+    params: Type.t list;
+    return: Type.t;
+  }
+end =
+  Function
 
-type adt_sig_id = int
+and IntLiteral : sig
+  type t = {
+    (* Locations of int literals (and their tvars) along with the value of the int literal at
+       that location (or None if it is out of range for 64 bit ints) *)
+    mutable values: (Loc.t * Int64.t option) list;
+    (* Integer type this int literal is resolved to, if it has been resolved *)
+    mutable resolved: Type.t option;
+  }
+end =
+  IntLiteral
 
-type t =
-  | TVar of tvar_id
-  | TypeParam of TypeParam.t
-  | Any
-  | Unit
-  | Bool
-  | Byte
-  | Int
-  | Long
-  | IntLiteral of int_literal
-  | Array of t
-  | Tuple of t list
-  | Function of {
-      (* TVars of type arguments for this function. These type arguments are essentially metadata
-         and should not be used by the type checker. They allow us to extract the type args this
-         function was instantiated with after type checking is complete. *)
-      type_args: tvar_id list;
-      params: t list;
-      return: t;
-    }
-  | ADT of {
-      adt_sig: adt_sig;
-      type_args: t list;
-    }
+and AdtSig : sig
+  type id = int
 
-and int_literal = {
-  (* Locations of int literals (and their tvars) along with the value of the int literal at
-         that location (or None if it is out of range for 64 bit ints) *)
-  mutable values: (Loc.t * Int64.t option) list;
-  (* Integer type this int literal is resolved to, if it has been resolved *)
-  mutable resolved: t option;
-}
+  type t = {
+    id: id;
+    name: string;
+    mutable type_params: TypeParam.t list;
+    mutable variants: variant SMap.t;
+  }
 
-and adt_sig = {
-  id: adt_sig_id;
-  name: string;
-  mutable type_params: TypeParam.t list;
-  mutable variant_sigs: variant_sig SMap.t;
-}
+  and variant =
+    | Enum
+    | Tuple of Type.t list
+    | Record of Type.t SMap.t
 
-and variant_sig =
-  | EnumVariantSig
-  | TupleVariantSig of t list
-  | RecordVariantSig of t SMap.t
+  and instance = {
+    adt_sig: t;
+    type_args: Type.t list;
+  }
 
-let max_tvar_id = ref 0
+  val mk : string -> TypeParam.t list -> t
 
-let mk_tvar_id () =
-  let tvar_id = !max_tvar_id in
-  max_tvar_id := tvar_id + 1;
-  tvar_id
+  val empty : t
+end = struct
+  type id = int
 
-let max_adt_sig_id = ref 0
+  type t = {
+    id: id;
+    name: string;
+    mutable type_params: TypeParam.t list;
+    mutable variants: variant SMap.t;
+  }
 
-let mk_adt_sig_id () =
-  let adt_sig_id = !max_adt_sig_id in
-  max_adt_sig_id := adt_sig_id + 1;
-  adt_sig_id
+  and variant =
+    | Enum
+    | Tuple of Type.t list
+    | Record of Type.t SMap.t
 
-let mk_tvar () = TVar (mk_tvar_id ())
+  and instance = {
+    adt_sig: t;
+    type_args: Type.t list;
+  }
 
-let mk_adt_sig name type_params =
-  { id = mk_adt_sig_id (); name; type_params; variant_sigs = SMap.empty }
+  let max_id = ref 0
 
-let empty_adt_sig = { id = 0; name = ""; type_params = []; variant_sigs = SMap.empty }
+  let mk_id () =
+    let id = !max_id in
+    max_id := id + 1;
+    id
+
+  let mk name type_params = { id = mk_id (); name; type_params; variants = SMap.empty }
+
+  let empty = { id = 0; name = ""; type_params = []; variants = SMap.empty }
+end
+
+and Type : sig
+  type t =
+    | TVar of TVar.t
+    | TypeParam of TypeParam.t
+    | Any
+    | Unit
+    | Bool
+    | Byte
+    | Int
+    | Long
+    | IntLiteral of IntLiteral.t
+    | Array of t
+    | Tuple of t list
+    | Function of Function.t
+    | ADT of AdtSig.instance
+end =
+  Type
+
+let mk_tvar () = Type.TVar (TVar.mk ())
 
 let get_all_tvars_with_duplicates ty =
   let rec inner acc ty =
+    let open Type in
     match ty with
     | TVar tvar_id -> tvar_id :: acc
     | Tuple elements -> List.fold_left inner acc elements
@@ -116,6 +169,7 @@ let get_all_tvars tys =
   remove_duplicates ISet.empty tvars_with_duplicates
 
 let rec substitute_type_params type_params ty =
+  let open Type in
   match ty with
   | Any
   | Unit
@@ -141,9 +195,9 @@ let rec substitute_type_params type_params ty =
     | Some ty -> substitute_type_params type_params ty)
 
 (* Generate a new ADT type with fresh type_params for this ADT signature *)
-let refresh_adt_type_params adt_sig =
+let refresh_adt_type_params (adt_sig : AdtSig.t) =
   let fresh_type_args = List.map (fun _ -> mk_tvar ()) adt_sig.type_params in
-  ADT { adt_sig; type_args = fresh_type_args }
+  Type.ADT { adt_sig; type_args = fresh_type_args }
 
 (* Generate map of type params bound to type args to be used for type param substitution. *)
 let bind_type_params_to_args type_params type_args =
@@ -155,13 +209,14 @@ let bind_type_params_to_args type_params type_args =
 
 let get_adt_type_param_bindings ty =
   match ty with
-  | ADT { adt_sig = { type_params; _ }; type_args } ->
+  | Type.ADT { adt_sig = { type_params; _ }; type_args } ->
     bind_type_params_to_args type_params type_args
   | _ -> failwith "Expected ADT"
 
 let concat_and_wrap (pre, post) elements = pre ^ String.concat ", " elements ^ post
 
 let rec pp_with_names ~tvar_to_name ty =
+  let open Type in
   match ty with
   | Any -> "Any"
   | Unit -> "Unit"
@@ -250,15 +305,17 @@ let pp ?(tvar_to_name = IMap.empty) ?(use_tvar_ids = false) ty =
 
 let get_adt_sig adt =
   match adt with
-  | ADT { adt_sig; _ } -> adt_sig
-  | _ -> failwith (Printf.sprintf "Expected ADT %s\n" (pp adt))
+  | Type.ADT { adt_sig; _ } -> adt_sig
+  | _ -> failwith "Expected ADT"
 
 let get_tuple_variant adt_sig name =
-  match SMap.find name adt_sig.variant_sigs with
-  | TupleVariantSig element_sigs -> element_sigs
-  | _ -> failwith "Expected TupleVariantSig"
+  let open AdtSig in
+  match SMap.find name adt_sig.variants with
+  | Tuple element_sigs -> element_sigs
+  | _ -> failwith "Expected Tuple"
 
 let get_record_variant adt_sig name =
-  match SMap.find name adt_sig.variant_sigs with
-  | RecordVariantSig field_sigs -> field_sigs
-  | _ -> failwith "Expected RecordVariantSig"
+  let open AdtSig in
+  match SMap.find name adt_sig.variants with
+  | Record field_sigs -> field_sigs
+  | _ -> failwith "Expected Record"

@@ -40,10 +40,10 @@ type t = {
   (* All instances of generic functions that must still be generated. This must be empty for the
      emit pass to be complete. Keys are the generic function name and its type arguments, and
      value is a map of type parameter bindings to be used when generating the function instance. *)
-  mutable pending_func_instantiations: Types.t IMap.t TypeArgsHashtbl.t SMap.t;
+  mutable pending_func_instantiations: Types.Type.t IMap.t TypeArgsHashtbl.t SMap.t;
   (* Concrete types bound to type parameters in the current context. This is used when generating
      generic functions. *)
-  mutable current_type_param_bindings: Types.t IMap.t;
+  mutable current_type_param_bindings: Types.Type.t IMap.t;
   (* All function declaration AST nodes, indexed by their full name *)
   mutable func_decl_nodes: Ast.Function.t SMap.t;
   (* Whether we are currently emitting blocks for the init function *)
@@ -198,9 +198,9 @@ let add_string_literal ~ecx loc string =
  * Generic Types
  *)
 
-let get_mir_adt ~ecx (adt_sig : Types.adt_sig) = IMap.find adt_sig.id ecx.adt_sig_to_mir_adt
+let get_mir_adt ~ecx (adt_sig : Types.AdtSig.t) = IMap.find adt_sig.id ecx.adt_sig_to_mir_adt
 
-let add_adt_sig ~ecx (adt_sig : Types.adt_sig) (full_name : string) (name_loc : Loc.t) =
+let add_adt_sig ~ecx (adt_sig : Types.AdtSig.t) (full_name : string) (name_loc : Loc.t) =
   let mir_adt = MirADT.mk adt_sig full_name name_loc in
   ecx.adt_sig_to_mir_adt <- IMap.add adt_sig.id mir_adt ecx.adt_sig_to_mir_adt;
   mir_adt
@@ -239,8 +239,8 @@ let rec instantiate_adt ~ecx mir_adt type_args =
       SMap.mapi
         (fun variant_name variant_sig ->
           match variant_sig with
-          | Types.EnumVariantSig -> failwith "TODO: Instantiate enum variant sig"
-          | Types.TupleVariantSig element_sigs ->
+          | Types.AdtSig.Enum -> failwith "TODO: Instantiate enum variant sig"
+          | Tuple element_sigs ->
             let agg_elements =
               List.map
                 (fun element_sig ->
@@ -254,7 +254,7 @@ let rec instantiate_adt ~ecx mir_adt type_args =
             in
             add_aggregate ~ecx agg;
             agg
-          | Types.RecordVariantSig field_sigs ->
+          | Record field_sigs ->
             let agg_elements =
               SMap.fold
                 (fun field_name field_sig agg_elements ->
@@ -280,7 +280,7 @@ let rec instantiate_adt ~ecx mir_adt type_args =
             in
             add_aggregate ~ecx agg;
             agg)
-        adt_sig.variant_sigs
+        adt_sig.variants
     in
     TypeArgsHashtbl.add mir_adt.instantiations mir_type_args ctor_to_agg;
     ctor_to_agg
@@ -303,26 +303,26 @@ and instantiate_tuple ~ecx element_types =
 
 and to_mir_type ~ecx ty =
   match ty with
-  | Types.Unit -> `UnitT
-  | Types.Bool -> `BoolT
-  | Types.Byte -> `ByteT
-  | Types.Int -> `IntT
-  | Types.Long -> `LongT
-  | Types.IntLiteral { resolved; _ } -> to_mir_type ~ecx (Option.get resolved)
-  | Types.Array element_ty -> `PointerT (to_mir_type ~ecx element_ty)
-  | Types.Function _ -> `FunctionT
-  | Types.Tuple elements ->
+  | Types.Type.Unit -> `UnitT
+  | Bool -> `BoolT
+  | Byte -> `ByteT
+  | Int -> `IntT
+  | Long -> `LongT
+  | IntLiteral { resolved; _ } -> to_mir_type ~ecx (Option.get resolved)
+  | Array element_ty -> `PointerT (to_mir_type ~ecx element_ty)
+  | Function _ -> `FunctionT
+  | Tuple elements ->
     let tuple_agg = instantiate_tuple ~ecx elements in
     `PointerT (`AggregateT tuple_agg)
-  | Types.ADT { adt_sig; type_args } ->
+  | ADT { adt_sig; type_args } ->
     let mir_adt = get_mir_adt ~ecx adt_sig in
     let variant_aggs = instantiate_adt ~ecx mir_adt type_args in
     (* TODO: Handle variant types *)
     let (_, agg) = SMap.choose variant_aggs in
     `PointerT (`AggregateT agg)
-  | Types.TVar _
-  | Types.TypeParam _
-  | Types.Any ->
+  | TVar _
+  | TypeParam _
+  | Any ->
     failwith "Not allowed as value in IR"
 
 and add_aggregate ~ecx agg =

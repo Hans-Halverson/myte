@@ -1,5 +1,6 @@
 open Basic_collections
 open Mir_type
+open Types
 
 module MirVariant = struct
   type t = {
@@ -14,7 +15,7 @@ end
 
 module MirADT = struct
   type t = {
-    adt_sig: Types.adt_sig;
+    adt_sig: AdtSig.t;
     name: string;
     loc: Loc.t;
     (* All variants for this ADT *)
@@ -28,9 +29,9 @@ module MirADT = struct
     is_parameterized: bool;
   }
 
-  let rec mk adt_sig name loc =
+  let rec mk (adt_sig : AdtSig.t) (name : string) (loc : Loc.t) =
     let estimated_size =
-      if adt_sig.Types.type_params = [] then
+      if adt_sig.type_params = [] then
         1
       else
         4
@@ -51,7 +52,7 @@ module MirADT = struct
     let open Types in
     let has_variable_size ty =
       match ty with
-      | TypeParam _ -> true
+      | Type.TypeParam _ -> true
       | Any
       | Unit
       | Bool
@@ -71,13 +72,13 @@ module MirADT = struct
     SMap.exists
       (fun _ variant_sig ->
         match variant_sig with
-        | EnumVariantSig -> false
-        | TupleVariantSig element_sigs -> List.exists has_variable_size element_sigs
-        | RecordVariantSig field_sigs ->
+        | AdtSig.Enum -> false
+        | Tuple element_sigs -> List.exists has_variable_size element_sigs
+        | Record field_sigs ->
           SMap.exists (fun _ field_sig -> has_variable_size field_sig) field_sigs)
-      adt_sig.variant_sigs
+      adt_sig.variants
 
-  let has_variants mir_adt = SMap.cardinal mir_adt.adt_sig.variant_sigs > 1
+  let has_variants mir_adt = SMap.cardinal mir_adt.adt_sig.variants > 1
 
   let add_adt_variant mir_adt name loc field_locs =
     let mir_variant = MirVariant.mk name loc field_locs in

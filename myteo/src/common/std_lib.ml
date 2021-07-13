@@ -91,9 +91,9 @@ let all_stdlib_names =
 
 (* Stdlib types *)
 
-let string_adt_sig = ref Types.empty_adt_sig
+let string_adt_sig = ref Types.AdtSig.empty
 
-let mk_string_type () = Types.ADT { adt_sig = !string_adt_sig; type_args = [] }
+let mk_string_type () = Types.Type.ADT { adt_sig = !string_adt_sig; type_args = [] }
 
 (* Stdlib registration *)
 
