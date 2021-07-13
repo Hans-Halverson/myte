@@ -85,9 +85,11 @@ and AdtSig : sig
     type_args: Type.t list;
   }
 
-  val mk : string -> TypeParam.t list -> t
+  val mk : name:string -> t
 
   val empty : t
+
+  val fresh_instance : t -> Type.t
 end = struct
   type id = int
 
@@ -115,9 +117,77 @@ end = struct
     max_id := id + 1;
     id
 
-  let mk name type_params = { id = mk_id (); name; type_params; variants = SMap.empty }
+  let mk ~name = { id = mk_id (); name; type_params = []; variants = SMap.empty }
 
   let empty = { id = 0; name = ""; type_params = []; variants = SMap.empty }
+
+  (* Generate a new ADT type with fresh type_params for this ADT signature *)
+  let fresh_instance adt_sig =
+    let fresh_type_args = List.map (fun _ -> Type.TVar (TVar.mk ())) adt_sig.type_params in
+    Type.ADT { adt_sig; type_args = fresh_type_args }
+end
+
+and FunctionSig : sig
+  type t = {
+    name: string;
+    type_params: TypeParam.t list;
+    params: Type.t list;
+    return: Type.t;
+  }
+end =
+  FunctionSig
+
+and TraitSig : sig
+  type id = int
+
+  type t = {
+    id: id;
+    name: string;
+    mutable type_params: TypeParam.t list;
+    mutable methods: FunctionSig.t SMap.t;
+    mutable implemented: instance list;
+  }
+
+  and instance = {
+    trait_sig: t;
+    type_args: Type.t list;
+  }
+
+  val mk : name:string -> t
+
+  val add_method : t -> FunctionSig.t -> unit
+
+  val add_implemented : t -> instance -> unit
+end = struct
+  type id = int
+
+  type t = {
+    id: id;
+    name: string;
+    mutable type_params: TypeParam.t list;
+    mutable methods: FunctionSig.t SMap.t;
+    mutable implemented: instance list;
+  }
+
+  and instance = {
+    trait_sig: t;
+    type_args: Type.t list;
+  }
+
+  let max_id = ref 0
+
+  let mk_id () =
+    let id = !max_id in
+    max_id := id + 1;
+    id
+
+  let mk ~name = { id = mk_id (); name; type_params = []; methods = SMap.empty; implemented = [] }
+
+  let add_method trait_sig func_sig =
+    trait_sig.methods <- SMap.add func_sig.FunctionSig.name func_sig trait_sig.methods
+
+  let add_implemented trait_sig implemented =
+    trait_sig.implemented <- implemented :: trait_sig.implemented
 end
 
 and Type : sig
@@ -137,8 +207,6 @@ and Type : sig
     | ADT of AdtSig.instance
 end =
   Type
-
-let mk_tvar () = Type.TVar (TVar.mk ())
 
 let get_all_tvars_with_duplicates ty =
   let rec inner acc ty =
@@ -193,11 +261,6 @@ let rec substitute_type_params type_params ty =
     (match IMap.find_opt id type_params with
     | None -> ty
     | Some ty -> substitute_type_params type_params ty)
-
-(* Generate a new ADT type with fresh type_params for this ADT signature *)
-let refresh_adt_type_params (adt_sig : AdtSig.t) =
-  let fresh_type_args = List.map (fun _ -> mk_tvar ()) adt_sig.type_params in
-  Type.ADT { adt_sig; type_args = fresh_type_args }
 
 (* Generate map of type params bound to type args to be used for type param substitution. *)
 let bind_type_params_to_args type_params type_args =

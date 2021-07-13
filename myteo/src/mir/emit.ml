@@ -87,9 +87,8 @@ and emit_type_declaration ~ecx decl =
   let full_name = mk_type_binding_name binding in
   let mk_mir_adt loc =
     let binding = Type_context.get_type_binding ~cx:ecx.pcx.type_ctx loc in
-    let adt_decl = Bindings.get_type_decl binding in
-    let adt_sig = Bindings.TypeDeclaration.get_adt_sig adt_decl in
-    Ecx.add_adt_sig ~ecx adt_sig full_name loc
+    let type_decl = Bindings.get_type_decl binding in
+    Ecx.add_adt_sig ~ecx type_decl.adt_sig full_name loc
   in
   match decl with
   | Tuple _ ->

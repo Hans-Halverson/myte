@@ -17,16 +17,6 @@ module FunctionParamDeclaration = struct
   let mk () = { tvar = TVar.mk () }
 end
 
-module ConstructorDeclaration = struct
-  type t = { mutable adt_sig: AdtSig.t option }
-
-  let mk () = { adt_sig = None }
-
-  let get decl = Option.get decl.adt_sig
-
-  let set decl adt_sig = decl.adt_sig <- Some adt_sig
-end
-
 module FunctionDeclaration = struct
   type t = {
     name: string;
@@ -42,7 +32,7 @@ module FunctionDeclaration = struct
     (* Parameter types for the function. If the function has type params, this is a signature *)
     mutable params: Type.t list;
     (* Return types for the function. If the function has type params, this is a signature *)
-    mutable return: Type.t; (* Whether this function is a builtin *)
+    mutable return: Type.t;
   }
 
   let mk ~name ~loc ~is_builtin ~is_static ~is_override ~is_signature =
@@ -82,55 +72,38 @@ module TypeParamDeclaration = struct
 end
 
 module TraitDeclaration = struct
-  type id = int
-
   type t = {
-    id: id;
+    trait_sig: TraitSig.t;
     name: string;
     loc: Loc.t;
-    mutable type_params: TypeParam.t list;
     mutable methods: FunctionDeclaration.t SMap.t;
     mutable implemented: implemented_trait LocMap.t;
   }
 
   and implemented_trait = {
     mutable implemented_trait: t;
-    mutable implemented_loc: Loc.t;
     mutable implemented_type_args: Type.t list;
   }
 
-  let max_id = ref 0
-
-  let mk_id () =
-    let id = !max_id in
-    max_id := !max_id + 1;
-    id
-
   let mk ~name ~loc =
-    { id = mk_id (); name; loc; type_params = []; methods = SMap.empty; implemented = LocMap.empty }
+    { trait_sig = TraitSig.mk ~name; name; loc; methods = SMap.empty; implemented = LocMap.empty }
 end
 
 module TypeDeclaration = struct
   type t = {
-    mutable adt_sig: AdtSig.t option;
+    adt_sig: AdtSig.t;
     mutable traits: TraitDeclaration.t list;
   }
 
-  let mk () = { adt_sig = None; traits = [] }
-
-  let get_adt_sig decl = Option.get decl.adt_sig
-
-  let set_adt_sig decl adt_sig = decl.adt_sig <- Some adt_sig
+  let mk ~name = { adt_sig = AdtSig.mk ~name; traits = [] }
 
   let add_trait decl trait = decl.traits <- trait :: decl.traits
-
-  let get_traits decl = decl.traits
 end
 
 type value_declaration =
   | VarDecl of VariableDeclaration.t
   | FunDecl of FunctionDeclaration.t
-  | CtorDecl of ConstructorDeclaration.t
+  | CtorDecl of TypeDeclaration.t
   | FunParamDecl of FunctionParamDeclaration.t
 
 type type_declaration =

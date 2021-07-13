@@ -214,10 +214,14 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               | Alias _ -> add_type_binding name (TypeAlias (TypeAliasDeclaration.mk ()))
               | Tuple { name; _ }
               | Record { name; _ } ->
-                add_value_binding name (CtorDecl (ConstructorDeclaration.mk ()));
-                add_type_binding name (TypeDecl (TypeDeclaration.mk ()))
+                let type_decl = TypeDeclaration.mk ~name:name.name in
+                add_value_binding name (CtorDecl type_decl);
+                add_type_binding name (TypeDecl type_decl);
+                Std_lib.register_stdlib_type name.loc type_decl.adt_sig
               | Variant variants ->
-                add_type_binding name (TypeDecl (TypeDeclaration.mk ()));
+                let type_decl = TypeDeclaration.mk ~name:name.name in
+                add_type_binding name (TypeDecl type_decl);
+                Std_lib.register_stdlib_type name.loc type_decl.adt_sig;
                 List.iter
                   (fun variant ->
                     let open Ast.TypeDeclaration in
@@ -225,7 +229,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                     | EnumVariant name
                     | TupleVariant { Tuple.name; _ }
                     | RecordVariant { Record.name; _ } ->
-                      add_value_binding name (CtorDecl (ConstructorDeclaration.mk ())))
+                      add_value_binding name (CtorDecl type_decl))
                   variants );
             (* Check record fields for duplicates and save to compare against methods *)
             (match decl with
@@ -402,7 +406,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         (* Fill in implemented traits *)
         let implemented =
           List.fold_left
-            (fun implemented { ImplementedTrait.loc; name; _ } ->
+            (fun implemented { ImplementedTrait.name; _ } ->
               (* Resolve implemented trait name *)
               this#resolve_type_scoped_id name;
               match LocMap.find_opt name.name.loc bindings.type_use_to_decl with
@@ -416,11 +420,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                 (match binding.declaration with
                 | TraitDecl trait ->
                   let implemented_trait =
-                    {
-                      TraitDeclaration.implemented_trait = trait;
-                      implemented_loc = loc;
-                      implemented_type_args = [];
-                    }
+                    { TraitDeclaration.implemented_trait = trait; implemented_type_args = [] }
                   in
                   LocMap.add name.name.loc implemented_trait implemented
                 | _ ->
@@ -683,8 +683,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                 else
                   Some None
               | { TypeBinding.declaration = TypeDecl type_decl; _ } ->
-                let traits = TypeDeclaration.get_traits type_decl in
-                if this#maybe_resolve_static_method part meth rest traits TraitType then
+                if this#maybe_resolve_static_method part meth rest type_decl.traits TraitType then
                   Some (on_export (prev_parts @ [part]) meth rest)
                 else
                   Some None
@@ -856,8 +855,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             else
               expr
           | (Some (Decl { TypeBinding.declaration = TypeDecl type_decl; _ }), meth :: rest) ->
-            let traits = TypeDeclaration.get_traits type_decl in
-            if this#maybe_resolve_static_method first_part meth rest traits TraitType then
+            if this#maybe_resolve_static_method first_part meth rest type_decl.traits TraitType then
               ScopedIdentifier
                 { loc = Loc.between first_part.loc meth.loc; name = meth; scopes = [first_part] }
             else
@@ -1248,9 +1246,11 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         (fun _ { TypeBinding.name; loc; declaration; _ } ->
           match declaration with
           | TypeDecl type_decl ->
-            let traits = TypeDeclaration.get_traits type_decl in
             let (methods, super_traits) =
-              List.fold_left gather_methods_and_super_traits (LocMap.empty, LocMap.empty) traits
+              List.fold_left
+                gather_methods_and_super_traits
+                (LocMap.empty, LocMap.empty)
+                type_decl.traits
             in
             let names = collect_method_names methods super_traits in
             check_errors name loc names

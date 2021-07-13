@@ -15,16 +15,6 @@ module FunctionParamDeclaration : sig
   val mk : unit -> t
 end
 
-module ConstructorDeclaration : sig
-  type t
-
-  val mk : unit -> t
-
-  val get : t -> Types.AdtSig.t
-
-  val set : t -> Types.AdtSig.t -> unit
-end
-
 module FunctionDeclaration : sig
   type t = {
     name: string;
@@ -68,20 +58,16 @@ module TypeParamDeclaration : sig
 end
 
 module TraitDeclaration : sig
-  type id = int
-
   type t = {
-    id: id;
+    trait_sig: Types.TraitSig.t;
     name: string;
     loc: Loc.t;
-    mutable type_params: Types.TypeParam.t list;
     mutable methods: FunctionDeclaration.t SMap.t;
     mutable implemented: implemented_trait LocMap.t;
   }
 
   and implemented_trait = {
     mutable implemented_trait: t;
-    mutable implemented_loc: Loc.t;
     mutable implemented_type_args: Types.Type.t list;
   }
 
@@ -89,23 +75,20 @@ module TraitDeclaration : sig
 end
 
 module TypeDeclaration : sig
-  type t
+  type t = {
+    adt_sig: Types.AdtSig.t;
+    mutable traits: TraitDeclaration.t list;
+  }
 
-  val mk : unit -> t
-
-  val get_adt_sig : t -> Types.AdtSig.t
-
-  val set_adt_sig : t -> Types.AdtSig.t -> unit
+  val mk : name:string -> t
 
   val add_trait : t -> TraitDeclaration.t -> unit
-
-  val get_traits : t -> TraitDeclaration.t list
 end
 
 type value_declaration =
   | VarDecl of VariableDeclaration.t
   | FunDecl of FunctionDeclaration.t
-  | CtorDecl of ConstructorDeclaration.t
+  | CtorDecl of TypeDeclaration.t
   | FunParamDecl of FunctionParamDeclaration.t
 
 type type_declaration =
@@ -183,7 +166,7 @@ val get_var_decl : ValueBinding.t -> VariableDeclaration.t
 
 val get_func_decl : ValueBinding.t -> FunctionDeclaration.t
 
-val get_ctor_decl : ValueBinding.t -> ConstructorDeclaration.t
+val get_ctor_decl : ValueBinding.t -> TypeDeclaration.t
 
 val get_func_param_decl : ValueBinding.t -> FunctionParamDeclaration.t
 

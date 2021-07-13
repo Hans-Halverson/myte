@@ -61,7 +61,7 @@ let rec build_type ~cx ty =
             Types.substitute_type_params subst_map body)
       (* Pass type args to ADT if they have the correct arity *)
       | TypeDecl type_decl ->
-        let adt_sig = Bindings.TypeDeclaration.get_adt_sig type_decl in
+        let adt_sig = type_decl.adt_sig in
         mk_if_correct_arity (List.length adt_sig.type_params) (fun _ ->
             Type.ADT { adt_sig; type_args })
       | TraitDecl _ -> (* TODO: Type check traits *) Type.Any))
@@ -74,29 +74,21 @@ and build_types_and_traits_prepass ~cx module_ =
       let open Ast.TypeDeclaration in
       match toplevel with
       (* Create empty ADT sig for each algebraic data type definition *)
-      | TypeDeclaration
-          {
-            name = { Ast.Identifier.loc = id_loc; name };
-            decl = Tuple _ | Record _ | Variant _;
-            type_params;
-            _;
-          } ->
-        let binding = Type_context.get_type_binding ~cx id_loc in
-        let adt_decl = Bindings.get_type_decl binding in
-        let type_params = check_type_parameters ~cx type_params in
-        let adt_sig = AdtSig.mk name type_params in
-        Bindings.TypeDeclaration.set_adt_sig adt_decl adt_sig;
-        Std_lib.register_stdlib_type id_loc adt_sig
+      | TypeDeclaration { name; decl = Tuple _ | Record _ | Variant _; type_params; _ } ->
+        let binding = Type_context.get_type_binding ~cx name.loc in
+        let type_decl = Bindings.get_type_decl binding in
+        let type_params = build_type_parameters ~cx type_params in
+        type_decl.adt_sig.type_params <- type_params
       (* Build type parameters for each trait *)
       | TraitDeclaration { name; type_params; _ } ->
         let binding = Type_context.get_type_binding_from_decl ~cx name.loc in
         let trait_decl = Bindings.get_trait_decl binding in
-        let type_params = check_type_parameters ~cx type_params in
-        trait_decl.type_params <- type_params
+        let type_params = build_type_parameters ~cx type_params in
+        trait_decl.trait_sig.type_params <- type_params
       | _ -> ())
     toplevels
 
-and check_type_aliases_topologically ~cx modules =
+and build_type_aliases ~cx modules =
   let open Ast.TypeDeclaration in
   let modules = List.map snd modules in
   try
@@ -105,10 +97,10 @@ and check_type_aliases_topologically ~cx modules =
       (fun alias ->
         match alias with
         | { loc = _; name; type_params; decl = Alias alias; builtin = _ } ->
-          (* Save type paramters and type to alias declaration *)
+          (* Save type parameters and type to alias declaration *)
           let binding = Type_context.get_type_binding ~cx name.loc in
           let alias_decl = Bindings.get_type_alias_decl binding in
-          alias_decl.type_params <- check_type_parameters ~cx type_params;
+          alias_decl.type_params <- build_type_parameters ~cx type_params;
           alias_decl.body <- build_type ~cx alias;
           (* Type alias parameters cannot have bounds *)
           List.iter
@@ -151,8 +143,8 @@ and build_type_declarations ~cx module_ =
             builtin = _;
           } ->
         let binding = Type_context.get_type_binding ~cx id_loc in
-        let adt_decl = Bindings.get_type_decl binding in
-        let adt_sig = Bindings.TypeDeclaration.get_adt_sig adt_decl in
+        let type_decl = Bindings.get_type_decl binding in
+        let adt_sig = type_decl.adt_sig in
         let build_element_tys ~cx elements = List.map (build_type ~cx) elements in
         let build_field_tys ~cx fields =
           List.fold_left
@@ -163,18 +155,11 @@ and build_type_declarations ~cx module_ =
             SMap.empty
             fields
         in
-        let set_adt_sig ctor_decl_loc =
-          let binding = Type_context.get_value_binding ~cx ctor_decl_loc in
-          let ctor_decl = Bindings.get_ctor_decl binding in
-          Bindings.ConstructorDeclaration.set ctor_decl adt_sig
-        in
         (match decl with
-        | Tuple { name = { Ast.Identifier.loc; _ }; elements; _ } ->
-          set_adt_sig loc;
+        | Tuple { elements; _ } ->
           let element_tys = build_element_tys ~cx elements in
           adt_sig.variants <- SMap.singleton name (AdtSig.Tuple element_tys)
-        | Record { name = { Ast.Identifier.loc; _ }; fields; _ } ->
-          set_adt_sig loc;
+        | Record { fields; _ } ->
           let field_tys = build_field_tys ~cx fields in
           adt_sig.variants <- SMap.singleton name (AdtSig.Record field_tys)
         | Variant variants ->
@@ -183,17 +168,13 @@ and build_type_declarations ~cx module_ =
               (fun variant_sigs variant ->
                 let open Ast.Identifier in
                 match variant with
-                | EnumVariant { loc; name } ->
-                  set_adt_sig loc;
-                  SMap.add name AdtSig.Enum variant_sigs
-                | TupleVariant { name = { loc; name }; elements; _ } ->
-                  set_adt_sig loc;
+                | EnumVariant name -> SMap.add name.name AdtSig.Enum variant_sigs
+                | TupleVariant { name; elements; _ } ->
                   let element_tys = build_element_tys ~cx elements in
-                  SMap.add name (AdtSig.Tuple element_tys) variant_sigs
-                | RecordVariant { name = { loc; name }; fields; _ } ->
-                  set_adt_sig loc;
+                  SMap.add name.name (AdtSig.Tuple element_tys) variant_sigs
+                | RecordVariant { name; fields; _ } ->
                   let field_tys = build_field_tys ~cx fields in
-                  SMap.add name (AdtSig.Record field_tys) variant_sigs)
+                  SMap.add name.name (AdtSig.Record field_tys) variant_sigs)
               SMap.empty
               variants
           in
@@ -201,28 +182,6 @@ and build_type_declarations ~cx module_ =
         | Alias _ -> ())
       | _ -> ())
     toplevels
-
-and build_value_declarations ~cx module_ =
-  let open Ast.Module in
-  let { toplevels; _ } = module_ in
-  List.iter
-    (fun toplevel ->
-      match toplevel with
-      | VariableDeclaration decl -> build_toplevel_variable_declaration ~cx decl
-      | FunctionDeclaration decl -> build_function_declaration ~cx decl
-      | _ -> ())
-    toplevels
-
-(* Prepass to fill types of all global variables (and error if they are unannotated) *)
-and build_toplevel_variable_declaration ~cx decl =
-  let open Ast.Statement.VariableDeclaration in
-  let { loc; pattern; annot; _ } = decl in
-  let (pattern_loc, pattern_tvar_id) = check_pattern ~cx pattern in
-  match annot with
-  | None -> Type_context.add_error ~cx loc ToplevelVarWithoutAnnotation
-  | Some annot ->
-    let annot_ty = build_type ~cx annot in
-    Type_context.assert_unify ~cx pattern_loc annot_ty (Type.TVar pattern_tvar_id)
 
 and build_trait_declarations ~cx module_ =
   let open Ast.Module in
@@ -249,24 +208,34 @@ and build_trait_declarations ~cx module_ =
 (* Check that each trait correctly implements all super traits. For a trait to implement a super
    trait, every method signature (and overridden method) of the super trait must have a
    corresponding method in the sub trait which is a subtype of the super method. *)
-and check_trait_implementations ~cx module_ =
+and build_trait_implementations ~cx module_ =
   let open Ast.Module in
   let { toplevels; _ } = module_ in
   List.iter
     (fun toplevel ->
       match toplevel with
-      | TraitDeclaration { kind; name = sub_name; _ } ->
+      | TraitDeclaration { kind; name; implemented; _ } ->
         let open Bindings.TraitDeclaration in
-        let binding = Type_context.get_type_binding_from_decl ~cx sub_name.loc in
-        let sub_trait = Bindings.get_trait_decl binding in
+        let binding = Type_context.get_type_binding_from_decl ~cx name.loc in
+        let trait_decl = Bindings.get_trait_decl binding in
+        let trait_sig = trait_decl.trait_sig in
+
+        (* Fill trait sig with base methods *)
+        SMap.iter
+          (fun name { Bindings.FunctionDeclaration.type_params; params; return; is_static; _ } ->
+            if not is_static then
+              let func_sig = { FunctionSig.name; type_params; params; return } in
+              TraitSig.add_method trait_sig func_sig)
+          trait_decl.methods;
+
         (* Recursively traverse super traits, finding names of all non-overridden concrete methods.
            These methods can be ignored when checking for implemented methods, as they are already
            implemented in super traits (and will error in a super trait if incorrect). *)
         let rec gather_super_implemented_methods trait base_methods acc =
           let acc =
             SMap.fold
-              (fun name { Bindings.FunctionDeclaration.is_signature; _ } acc ->
-                if is_signature || SMap.mem name base_methods then
+              (fun name { Bindings.FunctionDeclaration.is_signature; is_static; _ } acc ->
+                if is_signature || is_static || SMap.mem name base_methods then
                   acc
                 else
                   SSet.add name acc)
@@ -282,32 +251,35 @@ and check_trait_implementations ~cx module_ =
         let already_implemented_methods =
           LocMap.fold
             (fun _ { implemented_trait; _ } acc ->
-              gather_super_implemented_methods implemented_trait sub_trait.methods acc)
-            sub_trait.implemented
+              gather_super_implemented_methods implemented_trait trait_decl.methods acc)
+            trait_decl.implemented
             SSet.empty
         in
+
         (* Check implementations of all super traits *)
-        LocMap.iter
-          (fun _ super_trait ->
-            check_super_trait_implementation
+        List.iter
+          (fun { Ast.TraitDeclaration.ImplementedTrait.loc; name; _ } ->
+            let implemented_trait = LocMap.find name.loc trait_decl.implemented in
+            build_trait_implementation
               ~cx
-              (sub_trait, kind, super_trait.implemented_loc, already_implemented_methods)
-              super_trait
+              (trait_decl, kind, loc, already_implemented_methods)
+              implemented_trait
               IMap.empty)
-          sub_trait.implemented
+          implemented
       | _ -> ())
     toplevels
 
 (* Check whether the given base trait correctly implements all methods of a super trait
-   (and transitively its super traits). *)
-and check_super_trait_implementation
+   (and transitively its super traits). Build up the methods and implemented traits for the given
+   trait signature as we go. *)
+and build_trait_implementation
     ~cx
-    ((base_trait, base_kind, base_implemented_loc, already_implemented_methods) as base)
+    ((trait_decl, trait_decl_kind, base_implemented_loc, already_implemented_methods) as base)
     { implemented_trait; implemented_type_args; _ }
     prev_type_param_bindings =
   (* Check that type param arity matches *)
   let num_type_args = List.length implemented_type_args in
-  let num_type_params = List.length implemented_trait.type_params in
+  let num_type_params = List.length implemented_trait.trait_sig.type_params in
   if num_type_args <> num_type_params then
     Type_context.add_error
       ~cx
@@ -320,18 +292,48 @@ and check_super_trait_implementation
       List.map (Types.substitute_type_params prev_type_param_bindings) implemented_type_args
     in
     let type_param_bindings =
-      Types.bind_type_params_to_args implemented_trait.type_params implemented_type_args
+      Types.bind_type_params_to_args implemented_trait.trait_sig.type_params implemented_type_args
     in
 
-    (* TODO: Check that type args satisfy super trait param bounds *)
+    (* Add implemented trait to trait sig *)
+    let implemented =
+      { TraitSig.trait_sig = implemented_trait.trait_sig; type_args = implemented_type_args }
+    in
+    TraitSig.add_implemented trait_decl.trait_sig implemented;
+
     SMap.iter
       (fun super_method_name super_method ->
         let open Bindings.FunctionDeclaration in
+        (* Add concrete method to trait sig *)
+        ( if (not super_method.is_static) && not super_method.is_signature then
+          match SMap.find_opt super_method_name trait_decl.methods with
+          (* If base method is defined this method has already been added to trait sig *)
+          | Some _ -> ()
+          (* Otherwise substitute propagated type params so that method is in terms of base trait *)
+          | None ->
+            let super_method_ty =
+              Type.Function
+                { type_args = []; params = super_method.params; return = super_method.return }
+            in
+            let super_method_ty =
+              Types.substitute_type_params type_param_bindings super_method_ty
+            in
+            let (_, params, return) = Type_util.cast_to_function_type super_method_ty in
+            let func_sig =
+              {
+                FunctionSig.name = super_method_name;
+                type_params = super_method.type_params;
+                params;
+                return;
+              }
+            in
+            TraitSig.add_method trait_decl.trait_sig func_sig );
+
         let is_already_implemented = SSet.mem super_method_name already_implemented_methods in
         if (not is_already_implemented) && not super_method.is_static then
-          match SMap.find_opt super_method_name base_trait.methods with
+          match SMap.find_opt super_method_name trait_decl.methods with
           | None ->
-            if base_kind = Methods then
+            if trait_decl_kind = Methods then
               Type_context.add_error
                 ~cx
                 base_implemented_loc
@@ -385,9 +387,30 @@ and check_super_trait_implementation
 
     (* Recursively check super traits of implemented trait *)
     LocMap.iter
-      (fun _ super_trait ->
-        check_super_trait_implementation ~cx base super_trait type_param_bindings)
+      (fun _ super_trait -> build_trait_implementation ~cx base super_trait type_param_bindings)
       implemented_trait.implemented
+
+and build_value_declarations ~cx module_ =
+  let open Ast.Module in
+  let { toplevels; _ } = module_ in
+  List.iter
+    (fun toplevel ->
+      match toplevel with
+      | VariableDeclaration decl -> build_toplevel_variable_declaration ~cx decl
+      | FunctionDeclaration decl -> build_function_declaration ~cx decl
+      | _ -> ())
+    toplevels
+
+(* Prepass to fill types of all global variables (and error if they are unannotated) *)
+and build_toplevel_variable_declaration ~cx decl =
+  let open Ast.Statement.VariableDeclaration in
+  let { loc; pattern; annot; _ } = decl in
+  let (pattern_loc, pattern_tvar_id) = check_pattern ~cx pattern in
+  match annot with
+  | None -> Type_context.add_error ~cx loc ToplevelVarWithoutAnnotation
+  | Some annot ->
+    let annot_ty = build_type ~cx annot in
+    Type_context.assert_unify ~cx pattern_loc annot_ty (Type.TVar pattern_tvar_id)
 
 and check_module ~cx module_ =
   let open Ast.Module in
@@ -434,7 +457,7 @@ and check_variable_declaration ~cx decl =
     else
       Type_context.add_incompatible_types_error ~cx pattern_loc (TVar pattern_tvar_id) annot_ty
 
-and check_type_parameters ~cx params =
+and build_type_parameters ~cx params =
   List.map
     (fun { Ast.TypeParameter.name = { Ast.Identifier.loc; name }; _ } ->
       let binding = Type_context.get_type_binding ~cx loc in
@@ -448,7 +471,7 @@ and check_type_parameters ~cx params =
 and build_function_declaration ~cx decl =
   let open Ast.Function in
   let { name = { loc = id_loc; _ }; params; return; type_params; _ } = decl in
-  let type_params = check_type_parameters ~cx type_params in
+  let type_params = build_type_parameters ~cx type_params in
   let params = List.map (fun param -> build_type ~cx param.Param.annot) params in
   let return = Option.fold ~none:Type.Unit ~some:(fun return -> build_type ~cx return) return in
 
@@ -526,13 +549,13 @@ and check_expression ~cx expr =
       (* If id is a constructor look up corresponding ADT to use as type. Error on tuple and record
          constructors as they are handled elsewhere. *)
       | CtorDecl ctor_decl ->
-        let adt_sig = Bindings.ConstructorDeclaration.get ctor_decl in
+        let adt_sig = ctor_decl.adt_sig in
         (match SMap.find name adt_sig.variants with
         | Enum ->
           if adt_sig.type_params = [] then
             Type.ADT { adt_sig; type_args = [] }
           else
-            Types.refresh_adt_type_params adt_sig
+            AdtSig.fresh_instance adt_sig
         | Tuple elements ->
           Type_context.add_error ~cx loc (IncorrectTupleConstructorArity (0, List.length elements));
           Any
@@ -733,9 +756,9 @@ and check_expression ~cx expr =
         let binding = Type_context.get_value_binding ~cx loc in
         (match binding.declaration with
         | CtorDecl ctor_decl ->
-          let adt_sig = Bindings.ConstructorDeclaration.get ctor_decl in
+          let adt_sig = ctor_decl.adt_sig in
           (* This is an identifier reference of a decl type, so create fresh type args for this instance *)
-          let adt = Types.refresh_adt_type_params adt_sig in
+          let adt = AdtSig.fresh_instance adt_sig in
           (match SMap.find name adt_sig.variants with
           (* Error on incorrect number of arguments *)
           | Tuple elements when List.length elements <> List.length args ->
@@ -820,9 +843,9 @@ and check_expression ~cx expr =
         let binding = Type_context.get_value_binding ~cx name_loc in
         (match binding.declaration with
         | CtorDecl ctor_decl ->
-          let adt_sig = Bindings.ConstructorDeclaration.get ctor_decl in
+          let adt_sig = ctor_decl.adt_sig in
           (* This is an identifier reference of a decl type, so create fresh type args for this instance *)
-          let adt = Types.refresh_adt_type_params adt_sig in
+          let adt = AdtSig.fresh_instance adt_sig in
           (match SMap.find name adt_sig.variants with
           | Record field_sigs ->
             (* Recurse into fields and collect all fields that are not a part of this record *)
@@ -1071,8 +1094,8 @@ and check_pattern ~cx patt =
       let binding = Type_context.get_value_binding ~cx name_loc in
       match binding.declaration with
       | CtorDecl ctor_decl ->
-        let adt_sig = Bindings.ConstructorDeclaration.get ctor_decl in
-        let adt = Types.refresh_adt_type_params adt_sig in
+        let adt_sig = ctor_decl.adt_sig in
+        let adt = AdtSig.fresh_instance adt_sig in
         (match SMap.find name adt_sig.variants with
         | Tuple element_sigs when List.length element_sigs <> List.length elements ->
           Type_context.add_error
@@ -1107,8 +1130,8 @@ and check_pattern ~cx patt =
       let binding = Type_context.get_value_binding ~cx name_loc in
       match binding.declaration with
       | CtorDecl ctor_decl ->
-        let adt_sig = Bindings.ConstructorDeclaration.get ctor_decl in
-        let adt = Types.refresh_adt_type_params adt_sig in
+        let adt_sig = ctor_decl.adt_sig in
+        let adt = AdtSig.fresh_instance adt_sig in
         (match SMap.find name adt_sig.variants with
         | Record field_sigs ->
           (* Recurse into fields and collect all fields that are not a part of this record *)
@@ -1338,12 +1361,16 @@ let ensure_all_expression_are_typed ~cx modules =
 let analyze ~cx modules =
   (* First visit type declarations, building type aliases *)
   List.iter (fun (_, module_) -> build_types_and_traits_prepass ~cx module_) modules;
-  check_type_aliases_topologically ~cx modules;
+  build_type_aliases ~cx modules;
   List.iter (fun (_, module_) -> build_type_declarations ~cx module_) modules;
-  List.iter (fun (_, module_) -> build_value_declarations ~cx module_) modules;
   List.iter (fun (_, module_) -> build_trait_declarations ~cx module_) modules;
   if Type_context.get_errors ~cx = [] then
-    List.iter (fun (_, module_) -> check_trait_implementations ~cx module_) modules;
+    List.iter (fun (_, module_) -> build_trait_implementations ~cx module_) modules;
+  (* TODO: Check that type args satisfy super trait param bounds once trait implementations
+     have been built. This needs to be done for all types created so far (ADTs, aliases, traits,
+     trait implementations, and trait methods). *)
+  if Type_context.get_errors ~cx = [] then
+    List.iter (fun (_, module_) -> build_value_declarations ~cx module_) modules;
   if Type_context.get_errors ~cx = [] then
     List.iter (fun (_, module_) -> check_module ~cx module_) modules;
   resolve_unresolved_int_literals ~cx;
