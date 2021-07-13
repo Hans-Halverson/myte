@@ -1,6 +1,5 @@
 open Analyze_error
 open Basic_collections
-open Type_context
 open Types
 
 let rec build_type ~cx ty =
@@ -10,19 +9,13 @@ let rec build_type ~cx ty =
   | Function { Function.params; return; _ } ->
     Type.Function
       { type_args = []; params = List.map (build_type ~cx) params; return = build_type ~cx return }
-  | Identifier
-      {
-        Identifier.loc = full_loc;
-        name = { Ast.ScopedIdentifier.name = { Ast.Identifier.loc; _ }; _ };
-        type_params;
-        _;
-      } ->
+  | Identifier { Identifier.loc; name; type_params; _ } ->
     let type_param_arity_error actual expected =
-      Type_context.add_error ~cx full_loc (IncorrectTypeParametersArity (actual, expected))
+      Type_context.add_error ~cx loc (IncorrectTypeParametersArity (actual, expected))
     in
     let type_args = List.map (build_type ~cx) type_params in
     let num_type_args = List.length type_args in
-    let binding = Type_context.get_type_binding ~cx loc in
+    let binding = Type_context.get_type_binding ~cx name.name.loc in
     let mk_if_correct_arity arity mk_ty =
       if num_type_args = arity then
         mk_ty ()
@@ -224,8 +217,8 @@ and build_trait_implementations ~cx module_ =
         SMap.iter
           (fun name { Bindings.FunctionDeclaration.type_params; params; return; is_static; _ } ->
             if not is_static then
-              let func_sig = { FunctionSig.name; type_params; params; return } in
-              TraitSig.add_method trait_sig func_sig)
+              let func_sig = { FunctionSig.type_params; params; return } in
+              TraitSig.add_method trait_sig name func_sig)
           trait_decl.methods;
 
         (* Recursively traverse super traits, finding names of all non-overridden concrete methods.
@@ -302,11 +295,11 @@ and build_trait_implementation
     TraitSig.add_implemented trait_decl.trait_sig implemented;
 
     SMap.iter
-      (fun super_method_name super_method ->
+      (fun method_name super_method ->
         let open Bindings.FunctionDeclaration in
         (* Add concrete method to trait sig *)
         ( if (not super_method.is_static) && not super_method.is_signature then
-          match SMap.find_opt super_method_name trait_decl.methods with
+          match SMap.find_opt method_name trait_decl.methods with
           (* If base method is defined this method has already been added to trait sig *)
           | Some _ -> ()
           (* Otherwise substitute propagated type params so that method is in terms of base trait *)
@@ -319,25 +312,18 @@ and build_trait_implementation
               Types.substitute_type_params type_param_bindings super_method_ty
             in
             let (_, params, return) = Type_util.cast_to_function_type super_method_ty in
-            let func_sig =
-              {
-                FunctionSig.name = super_method_name;
-                type_params = super_method.type_params;
-                params;
-                return;
-              }
-            in
-            TraitSig.add_method trait_decl.trait_sig func_sig );
+            let func_sig = { FunctionSig.type_params = super_method.type_params; params; return } in
+            TraitSig.add_method trait_decl.trait_sig method_name func_sig );
 
-        let is_already_implemented = SSet.mem super_method_name already_implemented_methods in
+        let is_already_implemented = SSet.mem method_name already_implemented_methods in
         if (not is_already_implemented) && not super_method.is_static then
-          match SMap.find_opt super_method_name trait_decl.methods with
+          match SMap.find_opt method_name trait_decl.methods with
           | None ->
             if trait_decl_kind = Methods then
               Type_context.add_error
                 ~cx
                 base_implemented_loc
-                (UnimplementedMethodSignature (super_method_name, implemented_trait.name))
+                (UnimplementedMethodSignature (method_name, implemented_trait.name))
           | Some sub_method ->
             (* Overridden methods must have same type parameter arity *)
             let num_sub_type_params = List.length sub_method.type_params in
@@ -347,10 +333,7 @@ and build_trait_implementation
                 ~cx
                 sub_method.loc
                 (IncorrectOverridenMethodTypeParametersArity
-                   ( super_method_name,
-                     implemented_trait.name,
-                     num_sub_type_params,
-                     num_super_type_params ))
+                   (method_name, implemented_trait.name, num_sub_type_params, num_super_type_params))
             else
               (* Add type param bindings from method's type parameters to bindings from trait *)
               let type_params = List.combine super_method.type_params sub_method.type_params in
@@ -382,7 +365,7 @@ and build_trait_implementation
                   ~cx
                   sub_method.loc
                   (IncompatibleOverridenMethodType
-                     (super_method_name, implemented_trait.name, sub_rep_ty, sup_rep_ty)))
+                     (method_name, implemented_trait.name, sub_rep_ty, sup_rep_ty)))
       implemented_trait.methods;
 
     (* Recursively check super traits of implemented trait *)
@@ -459,10 +442,43 @@ and check_variable_declaration ~cx decl =
 
 and build_type_parameters ~cx params =
   List.map
-    (fun { Ast.TypeParameter.name = { Ast.Identifier.loc; name }; _ } ->
+    (fun { Ast.TypeParameter.name = { Ast.Identifier.loc; name }; bounds; _ } ->
       let binding = Type_context.get_type_binding ~cx loc in
       let type_param_decl = Bindings.get_type_param_decl binding in
-      let type_param = Types.TypeParam.mk name in
+
+      (* Build type parameter bounds, returning no bounds if error is encountered *)
+      let (bounds, has_error) =
+        List.fold_left
+          (fun (bounds, has_error) { Ast.Type.Identifier.loc; name; type_params; _ } ->
+            let binding = Type_context.get_type_binding ~cx name.name.loc in
+            match binding.declaration with
+            | TraitDecl trait_decl ->
+              let trait_sig = trait_decl.trait_sig in
+              let type_args = List.map (build_type ~cx) type_params in
+              let num_type_args = List.length type_args in
+              let num_type_params = List.length trait_sig.type_params in
+              if num_type_args <> num_type_params then (
+                Type_context.add_error
+                  ~cx
+                  loc
+                  (IncorrectTypeParametersArity (num_type_args, num_type_params));
+                ([], true)
+              ) else
+                let bound = { TraitSig.trait_sig; type_args } in
+                (bound :: bounds, has_error)
+            | _ ->
+              Type_context.add_error ~cx loc NonTraitAsBound;
+              ([], true))
+          ([], false)
+          bounds
+      in
+      let bounds =
+        if has_error then
+          []
+        else
+          List.rev bounds
+      in
+      let type_param = Types.TypeParam.mk ~name ~bounds in
       Bindings.TypeParamDeclaration.set type_param_decl type_param;
       type_param)
     params
@@ -555,7 +571,7 @@ and check_expression ~cx expr =
           if adt_sig.type_params = [] then
             Type.ADT { adt_sig; type_args = [] }
           else
-            AdtSig.fresh_instance adt_sig
+            Types.fresh_adt_instance adt_sig
         | Tuple elements ->
           Type_context.add_error ~cx loc (IncorrectTupleConstructorArity (0, List.length elements));
           Any
@@ -569,18 +585,7 @@ and check_expression ~cx expr =
         if func_decl.type_params = [] then
           Type.Function { type_args = []; params = func_decl.params; return = func_decl.return }
         else
-          let fresh_type_arg_ids = List.map (fun _ -> TVar.mk ()) func_decl.type_params in
-          let fresh_type_args = List.map (fun tvar_id -> Type.TVar tvar_id) fresh_type_arg_ids in
-          let fresh_type_arg_bindings =
-            bind_type_params_to_args func_decl.type_params fresh_type_args
-          in
-          let fresh_params =
-            List.map (Types.substitute_type_params fresh_type_arg_bindings) func_decl.params
-          in
-          let fresh_return =
-            Types.substitute_type_params fresh_type_arg_bindings func_decl.return
-          in
-          Function { type_args = fresh_type_arg_ids; params = fresh_params; return = fresh_return }
+          Types.fresh_function_instance func_decl.type_params func_decl.params func_decl.return
       (* Otherwise identifier has same type as its declaration *)
       | FunParamDecl param_decl -> TVar param_decl.tvar
       | VarDecl var_decl -> TVar var_decl.tvar
@@ -758,7 +763,7 @@ and check_expression ~cx expr =
         | CtorDecl ctor_decl ->
           let adt_sig = ctor_decl.adt_sig in
           (* This is an identifier reference of a decl type, so create fresh type args for this instance *)
-          let adt = AdtSig.fresh_instance adt_sig in
+          let adt = Types.fresh_adt_instance adt_sig in
           (match SMap.find name adt_sig.variants with
           (* Error on incorrect number of arguments *)
           | Tuple elements when List.length elements <> List.length args ->
@@ -809,7 +814,7 @@ and check_expression ~cx expr =
           loc
           (IncorrectFunctionArity (List.length args, List.length params));
         ignore (Type_context.unify ~cx Any (TVar tvar_id))
-        (* Supplied arguments must each be a subtype of the annotated parameter type *)
+      (* Supplied arguments must each be a subtype of the annotated parameter type *)
       | Function { type_args = _; params; return } ->
         List.iter2
           (fun (arg_loc, arg_tvar_id) param ->
@@ -845,7 +850,7 @@ and check_expression ~cx expr =
         | CtorDecl ctor_decl ->
           let adt_sig = ctor_decl.adt_sig in
           (* This is an identifier reference of a decl type, so create fresh type args for this instance *)
-          let adt = AdtSig.fresh_instance adt_sig in
+          let adt = Types.fresh_adt_instance adt_sig in
           (match SMap.find name adt_sig.variants with
           | Record field_sigs ->
             (* Recurse into fields and collect all fields that are not a part of this record *)
@@ -1095,7 +1100,7 @@ and check_pattern ~cx patt =
       match binding.declaration with
       | CtorDecl ctor_decl ->
         let adt_sig = ctor_decl.adt_sig in
-        let adt = AdtSig.fresh_instance adt_sig in
+        let adt = Types.fresh_adt_instance adt_sig in
         (match SMap.find name adt_sig.variants with
         | Tuple element_sigs when List.length element_sigs <> List.length elements ->
           Type_context.add_error
@@ -1131,7 +1136,7 @@ and check_pattern ~cx patt =
       match binding.declaration with
       | CtorDecl ctor_decl ->
         let adt_sig = ctor_decl.adt_sig in
-        let adt = AdtSig.fresh_instance adt_sig in
+        let adt = Types.fresh_adt_instance adt_sig in
         (match SMap.find name adt_sig.variants with
         | Record field_sigs ->
           (* Recurse into fields and collect all fields that are not a part of this record *)
@@ -1305,20 +1310,7 @@ let resolve_unresolved_int_literals ~cx =
     let tvar = Type_context.get_tvar_from_loc ~cx loc in
     let ty = Type_context.find_rep_type ~cx (TVar tvar) in
     match ty with
-    | IntLiteral ({ resolved = None; values; _ } as lit_ty) ->
-      (* Default to int if all literals are within int range, otherwise use long *)
-      let resolved_ty =
-        List.fold_left
-          (fun resolved_ty (_, value) ->
-            match value with
-            | Some value when Integers.is_out_of_signed_int_range value -> Type.Long
-            | Some _
-            | None ->
-              resolved_ty)
-          Type.Int
-          values
-      in
-      resolve_int_literal ~cx lit_ty resolved_ty
+    | IntLiteral lit_ty -> ignore (Type_context.resolve_int_literal_from_values ~cx lit_ty)
     | _ -> failwith "Unresolved int literal has already been resolved"
   done
 

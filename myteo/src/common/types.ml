@@ -21,15 +21,17 @@ and TypeParam : sig
   type t = {
     id: id;
     name: string;
+    bounds: TraitSig.instance list;
   }
 
-  val mk : string -> t
+  val mk : name:string -> bounds:TraitSig.instance list -> t
 end = struct
   type id = int
 
   type t = {
     id: id;
     name: string;
+    bounds: TraitSig.instance list;
   }
 
   let max_id = ref 0
@@ -39,15 +41,15 @@ end = struct
     max_id := id + 1;
     id
 
-  let mk name = { id = mk_id (); name }
+  let mk ~name ~bounds = { id = mk_id (); name; bounds }
 end
 
 and Function : sig
   type t = {
-    (* TVars of type arguments for this function. These type arguments are essentially metadata
-       and should not be used by the type checker. They allow us to extract the type args this
-       function was instantiated with after type checking is complete. *)
-    type_args: TVar.t list;
+    (* Type arguments for this function. These type arguments are essentially metadata and should
+       not be used by the type checker. They allow us to extract the type args this function was
+       instantiated with after type checking is complete. *)
+    type_args: Type.t list;
     params: Type.t list;
     return: Type.t;
   }
@@ -65,6 +67,14 @@ and IntLiteral : sig
 end =
   IntLiteral
 
+and TraitBound : sig
+  type t = {
+    mutable bounds: TraitSig.instance list;
+    mutable resolved: Type.t option;
+  }
+end =
+  TraitBound
+
 and AdtSig : sig
   type id = int
 
@@ -73,6 +83,7 @@ and AdtSig : sig
     name: string;
     mutable type_params: TypeParam.t list;
     mutable variants: variant SMap.t;
+    mutable traits: TraitSig.t list;
   }
 
   and variant =
@@ -88,8 +99,6 @@ and AdtSig : sig
   val mk : name:string -> t
 
   val empty : t
-
-  val fresh_instance : t -> Type.t
 end = struct
   type id = int
 
@@ -98,6 +107,7 @@ end = struct
     name: string;
     mutable type_params: TypeParam.t list;
     mutable variants: variant SMap.t;
+    mutable traits: TraitSig.t list;
   }
 
   and variant =
@@ -117,19 +127,13 @@ end = struct
     max_id := id + 1;
     id
 
-  let mk ~name = { id = mk_id (); name; type_params = []; variants = SMap.empty }
+  let mk ~name = { id = mk_id (); name; type_params = []; variants = SMap.empty; traits = [] }
 
-  let empty = { id = 0; name = ""; type_params = []; variants = SMap.empty }
-
-  (* Generate a new ADT type with fresh type_params for this ADT signature *)
-  let fresh_instance adt_sig =
-    let fresh_type_args = List.map (fun _ -> Type.TVar (TVar.mk ())) adt_sig.type_params in
-    Type.ADT { adt_sig; type_args = fresh_type_args }
+  let empty = { id = 0; name = ""; type_params = []; variants = SMap.empty; traits = [] }
 end
 
 and FunctionSig : sig
   type t = {
-    name: string;
     type_params: TypeParam.t list;
     params: Type.t list;
     return: Type.t;
@@ -155,7 +159,7 @@ and TraitSig : sig
 
   val mk : name:string -> t
 
-  val add_method : t -> FunctionSig.t -> unit
+  val add_method : t -> string -> FunctionSig.t -> unit
 
   val add_implemented : t -> instance -> unit
 end = struct
@@ -183,8 +187,8 @@ end = struct
 
   let mk ~name = { id = mk_id (); name; type_params = []; methods = SMap.empty; implemented = [] }
 
-  let add_method trait_sig func_sig =
-    trait_sig.methods <- SMap.add func_sig.FunctionSig.name func_sig trait_sig.methods
+  let add_method trait_sig name func_sig =
+    trait_sig.methods <- SMap.add name func_sig trait_sig.methods
 
   let add_implemented trait_sig implemented =
     trait_sig.implemented <- implemented :: trait_sig.implemented
@@ -200,11 +204,12 @@ and Type : sig
     | Byte
     | Int
     | Long
-    | IntLiteral of IntLiteral.t
     | Array of t
     | Tuple of t list
     | Function of Function.t
     | ADT of AdtSig.instance
+    | IntLiteral of IntLiteral.t
+    | TraitBound of TraitBound.t
 end =
   Type
 
@@ -238,6 +243,12 @@ let get_all_tvars tys =
 
 let rec substitute_type_params type_params ty =
   let open Type in
+  let substitute_trait_bounds bounds =
+    List.map
+      (fun { TraitSig.trait_sig; type_args } ->
+        { TraitSig.trait_sig; type_args = List.map (substitute_type_params type_params) type_args })
+      bounds
+  in
   match ty with
   | Any
   | Unit
@@ -248,7 +259,12 @@ let rec substitute_type_params type_params ty =
   | TVar _
   | IntLiteral { resolved = None; _ } ->
     ty
-  | IntLiteral { resolved = Some resolved; _ } -> substitute_type_params type_params resolved
+  | IntLiteral { resolved = Some resolved; _ }
+  | TraitBound { resolved = Some resolved; _ } ->
+    substitute_type_params type_params resolved
+  | TraitBound { resolved = None; bounds } ->
+    let bounds' = substitute_trait_bounds bounds in
+    TraitBound { resolved = None; bounds = bounds' }
   | Array element -> Array (substitute_type_params type_params element)
   | Tuple elements -> Tuple (List.map (substitute_type_params type_params) elements)
   | Function { type_args; params; return } ->
@@ -257,9 +273,11 @@ let rec substitute_type_params type_params ty =
     Function { type_args; params = params'; return = return' }
   | ADT { adt_sig; type_args } ->
     ADT { adt_sig; type_args = List.map (substitute_type_params type_params) type_args }
-  | TypeParam { TypeParam.id; name = _ } ->
+  | TypeParam { TypeParam.id; name; bounds } ->
     (match IMap.find_opt id type_params with
-    | None -> ty
+    | None ->
+      let bounds' = substitute_trait_bounds bounds in
+      TypeParam { TypeParam.id; name; bounds = bounds' }
     | Some ty -> substitute_type_params type_params ty)
 
 (* Generate map of type params bound to type args to be used for type param substitution. *)
@@ -276,10 +294,48 @@ let get_adt_type_param_bindings ty =
     bind_type_params_to_args type_params type_args
   | _ -> failwith "Expected ADT"
 
+(* Generate fresh type arguments for a set of type params *)
+let refresh_type_params type_params =
+  (* TODO: Handle substituting params in bounds (e.g. <T: TraitBound<T>>) *)
+  List.map
+    (fun { TypeParam.bounds; _ } ->
+      if bounds = [] then
+        Type.TVar (TVar.mk ())
+      else
+        Type.TraitBound { resolved = None; bounds })
+    type_params
+
+(* Generate a new ADT type with fresh type args for this ADT signature *)
+let fresh_adt_instance (adt_sig : AdtSig.t) =
+  Type.ADT { adt_sig; type_args = refresh_type_params adt_sig.type_params }
+
+(* Generate a new function type with fresh type args for this function signature *)
+let fresh_function_instance type_params params return =
+  let type_args = refresh_type_params type_params in
+  let type_arg_bindings = bind_type_params_to_args type_params type_args in
+  let params = List.map (substitute_type_params type_arg_bindings) params in
+  let return = substitute_type_params type_arg_bindings return in
+  Type.Function { type_args; params; return }
+
 let concat_and_wrap (pre, post) elements = pre ^ String.concat ", " elements ^ post
 
 let rec pp_with_names ~tvar_to_name ty =
   let open Type in
+  let pp_name_with_args name args =
+    if args = [] then
+      name
+    else
+      let pp_args = List.map (pp_with_names ~tvar_to_name) args in
+      concat_and_wrap (name ^ "<", ">") pp_args
+  in
+  let pp_trait_bounds bounds =
+    let pp_bounds =
+      List.map
+        (fun { TraitSig.trait_sig = { name; _ }; type_args } -> pp_name_with_args name type_args)
+        bounds
+    in
+    String.concat " & " pp_bounds
+  in
   match ty with
   | Any -> "Any"
   | Unit -> "Unit"
@@ -287,8 +343,6 @@ let rec pp_with_names ~tvar_to_name ty =
   | Byte -> "Byte"
   | Int -> "Int"
   | Long -> "Long"
-  | IntLiteral { resolved = None; _ } -> "<Integer>"
-  | IntLiteral { resolved = Some resolved; _ } -> pp_with_names ~tvar_to_name resolved
   | Array element -> "Array<" ^ pp_with_names ~tvar_to_name element ^ ">"
   | Tuple elements ->
     let element_names = List.map (pp_with_names ~tvar_to_name) elements in
@@ -308,16 +362,20 @@ let rec pp_with_names ~tvar_to_name ty =
         concat_and_wrap ("(", ")") pp_params
     in
     pp_params ^ " -> " ^ pp_function_part return
-  | ADT { adt_sig = { name; _ }; type_args } ->
-    if type_args = [] then
-      name
-    else
-      let pp_args = List.map (pp_with_names ~tvar_to_name) type_args in
-      concat_and_wrap (name ^ "<", ">") pp_args
+  | ADT { adt_sig = { name; _ }; type_args } -> pp_name_with_args name type_args
   | TVar tvar_id ->
     let x = IMap.find tvar_id tvar_to_name in
     x
-  | TypeParam { TypeParam.name; id = _ } -> name
+  | TypeParam { TypeParam.name; id = _; bounds } ->
+    if bounds = [] then
+      name
+    else
+      name ^ ": " ^ pp_trait_bounds bounds
+  | IntLiteral { resolved = Some resolved; _ }
+  | TraitBound { resolved = Some resolved; _ } ->
+    pp_with_names ~tvar_to_name resolved
+  | IntLiteral { resolved = None; _ } -> "<Integer>"
+  | TraitBound { resolved = None; bounds } -> pp_trait_bounds bounds
 
 let name_id_to_string name_id =
   let quot = name_id / 26 in

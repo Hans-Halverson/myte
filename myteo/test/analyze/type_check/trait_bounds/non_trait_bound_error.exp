@@ -1,0 +1,9 @@
+Error: Type parameter bound is not a trait
+test/analyze/type_check/trait_bounds/non_trait_bound_error.myte:10:12-17
+ 10 | fun foo1<T: Alias>(x: T) {}
+    |             ^^^^^
+
+Error: Type parameter bound is not a trait
+test/analyze/type_check/trait_bounds/non_trait_bound_error.myte:11:12-15
+ 11 | fun foo2<T: ADT>(x: T) {}
+    |             ^^^

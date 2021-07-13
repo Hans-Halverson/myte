@@ -1,0 +1,35 @@
+module test
+
+trait Foo {}
+
+trait FooChild {
+  extends Foo
+}
+
+trait NonFoo {}
+
+fun useFoo<T: Foo>(x: T) {}
+
+// Successes
+fun test1<T: Foo>(x: T) {
+  useFoo(x);
+}
+
+fun test2<T: FooChild>(x: T) {
+  useFoo(x);
+}
+
+fun test3<T: Foo & NonFoo>(x: T) {
+  useFoo(x);
+}
+
+// Failures
+fun test4<T>(x: T) {
+  useFoo(x);
+}
+
+fun test5<T: NonFoo>(x: T) {
+  useFoo(x);
+}
+
+fun main() {}

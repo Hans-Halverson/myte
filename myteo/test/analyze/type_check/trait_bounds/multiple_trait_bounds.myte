@@ -1,0 +1,44 @@
+module test
+
+trait Foo {}
+trait Bar {}
+trait Baz {}
+
+type FooType (Unit)
+methods FooType {
+  implements Foo
+}
+
+type BarType (Unit)
+methods BarType {
+  implements Bar
+}
+
+type FooBarType (Unit)
+methods FooBarType {
+  implements Foo
+  implements Bar
+}
+
+type FooBarBazType (Unit)
+methods FooBarBazType {
+  implements Foo
+  implements Bar
+  implements Baz
+}
+
+fun useFooBar<T: Foo & Bar>(x: T) {}
+
+// Failure when only implementing part of trait bound
+fun failure(foo: FooType, bar: BarType) {
+  useFooBar(foo);
+  useFooBar(bar);
+}
+
+// Success when implementing all parts of trait bound
+fun success(fooBar: FooBarType, fooBarBaz: FooBarBazType) {
+  useFooBar(fooBar);
+  useFooBar(fooBarBaz);
+}
+
+fun main() {}

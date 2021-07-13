@@ -1,0 +1,16 @@
+module test
+
+type alias Alias = Int
+
+type ADT (Unit)
+
+trait Trait {}
+
+// Error
+fun foo1<T: Alias>(x: T) {}
+fun foo2<T: ADT>(x: T) {}
+
+// Success
+fun foo3<T: Trait>(x: T) {}
+
+fun main() {}

@@ -61,6 +61,7 @@ module MirADT = struct
       | Long
       | TVar _
       | IntLiteral _
+      | TraitBound _
       (* Stored as pointers, so size does not vary *)
       | Array _
       | Function _

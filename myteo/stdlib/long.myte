@@ -1,3 +1,5 @@
 module std.long
 
 builtin type Long
+
+methods Long {}

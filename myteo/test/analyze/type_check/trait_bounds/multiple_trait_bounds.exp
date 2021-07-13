@@ -1,0 +1,9 @@
+Error: Expected type `Foo & Bar` but found `FooType`
+test/analyze/type_check/trait_bounds/multiple_trait_bounds.myte:34:12-15
+ 34 |   useFooBar(foo);
+    |             ^^^
+
+Error: Expected type `Foo & Bar` but found `BarType`
+test/analyze/type_check/trait_bounds/multiple_trait_bounds.myte:35:12-15
+ 35 |   useFooBar(bar);
+    |             ^^^

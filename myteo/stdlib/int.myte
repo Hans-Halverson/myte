@@ -1,3 +1,5 @@
 module std.int
 
 builtin type Int
+
+methods Int {}

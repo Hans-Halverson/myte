@@ -91,7 +91,17 @@ let all_stdlib_names =
 
 (* Stdlib types *)
 
+let bool_adt_sig = ref Types.AdtSig.empty
+
+let byte_adt_sig = ref Types.AdtSig.empty
+
+let int_adt_sig = ref Types.AdtSig.empty
+
+let long_adt_sig = ref Types.AdtSig.empty
+
 let string_adt_sig = ref Types.AdtSig.empty
+
+let unit_adt_sig = ref Types.AdtSig.empty
 
 let mk_string_type () = Types.Type.ADT { adt_sig = !string_adt_sig; type_args = [] }
 
@@ -113,5 +123,10 @@ let register_stdlib_decl full_name loc =
 
 let register_stdlib_type loc adt_sig =
   match lookup_stdlib_name loc with
+  | Some name when name = std_bool_bool -> bool_adt_sig := adt_sig
+  | Some name when name = std_byte_byte -> byte_adt_sig := adt_sig
+  | Some name when name = std_int_int -> int_adt_sig := adt_sig
+  | Some name when name = std_long_long -> long_adt_sig := adt_sig
   | Some name when name = std_string_string -> string_adt_sig := adt_sig
+  | Some name when name = std_unit_unit -> unit_adt_sig := adt_sig
   | _ -> ()

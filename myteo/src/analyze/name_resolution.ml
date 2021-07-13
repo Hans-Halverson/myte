@@ -459,7 +459,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                 let binding = this#get_type_binding loc in
                 let trait = get_trait_decl binding in
                 fill_trait_from_decl trait decl;
-                TypeDeclaration.add_trait type_decl trait
+                TypeDeclaration.add_trait type_decl trait;
+                type_decl.adt_sig.traits <- trait.trait_sig :: type_decl.adt_sig.traits
               | _ -> failwith "Expected type"))
           | _ -> ())
         toplevels;
@@ -486,7 +487,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                 ( { Ast.TypeDeclaration.name = { Ast.Identifier.name; _ }; type_params; _ } as
                 type_decl ) ->
               if type_params <> [] then this#enter_scope ();
-              this#add_type_parameter_declarations type_params (TypeName name);
+              this#visit_type_parameters type_params (TypeName name);
               ignore (this#type_declaration type_decl);
               if type_params <> [] then this#exit_scope ();
               toplevel
@@ -543,16 +544,17 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       else
         { decl with annot = annot'; init = init' }
 
-    method add_type_parameter_declarations params source =
+    method visit_type_parameters params source =
       ignore
         ((List.fold_left
-            (fun param_names { TypeParameter.name = { Ast.Identifier.loc; name }; _ } ->
+            (fun param_names { TypeParameter.name = { Ast.Identifier.loc; name }; bounds; _ } ->
               if SSet.mem name param_names then
                 this#add_error loc (DuplicateTypeParameterNames (name, source));
               let binding =
                 this#add_type_declaration loc name (TypeParam (TypeParamDeclaration.mk ()))
               in
               this#add_type_to_scope name (Decl binding);
+              List.iter (fun bound -> ignore (this#type_ (Identifier bound))) bounds;
               SSet.add name param_names)
             SSet.empty)
            params)
@@ -588,7 +590,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         in
         this#add_value_to_scope func_name (Decl binding) );
       this#enter_scope ();
-      this#add_type_parameter_declarations type_params (FunctionName func_name);
+      this#visit_type_parameters type_params (FunctionName func_name);
       let _ =
         List.fold_left
           (fun param_names { Param.name = { Ast.Identifier.loc; name; _ }; _ } ->
@@ -614,7 +616,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       let open Ast.TraitDeclaration in
       let { name = { name; _ }; type_params; implemented; methods; _ } = decl in
       this#enter_scope ();
-      this#add_type_parameter_declarations type_params (FunctionName name);
+      this#visit_type_parameters type_params (FunctionName name);
       List.iter
         (fun { ImplementedTrait.type_args; _ } ->
           List.iter (fun ty -> ignore (this#type_ ty)) type_args)

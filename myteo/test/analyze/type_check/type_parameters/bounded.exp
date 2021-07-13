@@ -1,0 +1,9 @@
+Error: Expected type `Foo` but found `T`
+test/analyze/type_check/type_parameters/bounded.myte:28:9
+ 28 |   useFoo(x);
+    |          ^
+
+Error: Expected type `Foo` but found `T: NonFoo`
+test/analyze/type_check/type_parameters/bounded.myte:32:9
+ 32 |   useFoo(x);
+    |          ^

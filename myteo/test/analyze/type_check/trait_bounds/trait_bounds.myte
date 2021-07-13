@@ -1,0 +1,24 @@
+module test
+
+trait Trait1 {}
+
+fun foo<T: Trait1>(x: T) {}
+
+type Type1 (Unit)
+
+type Type2 (Unit)
+methods Type2 {
+  implements Trait1
+}
+
+fun test1<U: Trait1>(x: U, y: Type1, z: Type2) {
+  // Error
+  foo(1);
+  foo(x);
+
+  // Succeed
+  foo(y);
+  foo(z);
+}
+
+fun main() {}

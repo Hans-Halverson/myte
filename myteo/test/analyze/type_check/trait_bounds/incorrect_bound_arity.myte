@@ -1,0 +1,7 @@
+module test
+
+trait Trait<T> {}
+
+fun foo<T: Trait<Int, Bool>>(x: T) {}
+
+fun main() {}

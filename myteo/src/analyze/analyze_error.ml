@@ -41,6 +41,7 @@ type t =
   | SuperOutsideMethod
   | TypeWithAccess of string list
   | CyclicTypeAlias of string
+  | NonTraitAsBound
   | TypeAliasWithBounds
   | ToplevelVarWithoutAnnotation
   | IncompatibleTypes of Type.t * Type.t list
@@ -290,6 +291,7 @@ let to_string error =
       "Could not resolve access on type `%s`. Types do not have members that can be accessed."
       (String.concat "." type_name_parts)
   | CyclicTypeAlias name -> Printf.sprintf "Cycle detected in definition of type `%s`" name
+  | NonTraitAsBound -> "Type parameter bound is not a trait"
   | TypeAliasWithBounds -> "Type parameters cannot have bounds in type aliases"
   | ToplevelVarWithoutAnnotation -> Printf.sprintf "Toplevel variables must have type annotations"
   | IncompatibleTypes (actual, expecteds) ->

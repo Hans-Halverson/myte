@@ -70,16 +70,6 @@ let mk_tvar_id ~cx ~loc =
   set_tvar_for_loc ~cx tvar_id loc;
   tvar_id
 
-(* Find representative type for a given type following rep chains within type instead of
-   union forest. At the moment this only resolves int literal types to their representative type. *)
-let rec find_non_union_rep_type ty =
-  match ty with
-  | Type.IntLiteral ({ resolved = Some ty; _ } as lit_ty) ->
-    let ty = find_non_union_rep_type ty in
-    lit_ty.resolved <- Some ty;
-    ty
-  | _ -> ty
-
 (* Combine two int literal types ty1 and ty2, which makes ty2 the representative of ty1 and moves
    all referenced int literals from ty1 to ty2. *)
 let union_int_literals (ty1 : IntLiteral.t) (ty2 : IntLiteral.t) ty2_full =
@@ -87,6 +77,16 @@ let union_int_literals (ty1 : IntLiteral.t) (ty2 : IntLiteral.t) ty2_full =
   if ty1 != ty2 then (
     ty2.values <- ty1.values @ ty2.values;
     ty1.values <- [];
+    ty1.resolved <- Some ty2_full
+  )
+
+(* Combine two int literal types ty1 and ty2, which makes ty2 the representative of ty1 and moves
+   all referenced int literals from ty1 to ty2. *)
+let union_trait_bounds (ty1 : TraitBound.t) (ty2 : TraitBound.t) ty2_full =
+  (* Already unioned if same type variables *)
+  if ty1 != ty2 then (
+    ty2.bounds <- ty1.bounds @ ty2.bounds;
+    ty1.bounds <- [];
     ty1.resolved <- Some ty2_full
   )
 
@@ -110,12 +110,36 @@ let resolve_int_literal ~cx (lit_ty : IntLiteral.t) (ty : Type.t) =
     lit_ty.values;
   lit_ty.resolved <- Some ty
 
+(* Resolve an int literal type to an integer type. Default to Int if all literal values are within
+   the Int range, otherwise use Long. *)
+let resolve_int_literal_from_values ~cx (lit_ty : IntLiteral.t) =
+  let resolved_ty =
+    List.fold_left
+      (fun resolved_ty (_, value) ->
+        match value with
+        | Some value when Integers.is_out_of_signed_int_range value -> Type.Long
+        | Some _
+        | None ->
+          resolved_ty)
+      Type.Int
+      lit_ty.values
+  in
+  resolve_int_literal ~cx lit_ty resolved_ty;
+  resolved_ty
+
 let lookup_union_find_node ~cx tvar_id =
   match IMap.find_opt tvar_id cx.union_forest_nodes with
   | Some node -> node
   | None -> add_tvar ~cx tvar_id
 
-let find_union_rep_node ~cx tvar_id =
+let rec find_union_rep_type ~cx (ty : Type.t) =
+  match ty with
+  | TVar tvar_id ->
+    let (_, rep_ty, _) = find_union_rep_node ~cx tvar_id in
+    rep_ty
+  | _ -> find_non_union_rep_type ~cx ty
+
+and find_union_rep_node ~cx tvar_id =
   let rec helper ~cx tvar_id =
     match lookup_union_find_node ~cx tvar_id with
     | Rep { ty; rank } -> (tvar_id, ty, rank)
@@ -125,16 +149,30 @@ let find_union_rep_node ~cx tvar_id =
       result
   in
   let (rep_id, ty, rank) = helper ~cx tvar_id in
-  (rep_id, find_non_union_rep_type ty, rank)
+  (rep_id, find_non_union_rep_type ~cx ty, rank)
 
-let find_union_rep_type ~cx (ty : Type.t) =
+(* Find representative type for a given type following rep chains within type instead of
+   union forest. This resolves int literal and trait bound types to their representative type. *)
+and find_non_union_rep_type ~cx ty =
   match ty with
-  | TVar tvar_id ->
-    let (_, rep_ty, _) = find_union_rep_node ~cx tvar_id in
-    rep_ty
-  | _ -> find_non_union_rep_type ty
+  | Type.IntLiteral ({ resolved = Some ty; _ } as lit_ty) ->
+    let ty = find_union_rep_type ~cx ty in
+    lit_ty.resolved <- Some ty;
+    ty
+  | TraitBound ({ resolved = Some ty; _ } as trait_bound_ty) ->
+    let ty = find_union_rep_type ~cx ty in
+    trait_bound_ty.resolved <- Some ty;
+    ty
+  | _ -> ty
 
 let rec find_rep_type ~cx (ty : Type.t) =
+  let find_trait_instance_rep_type ~cx ({ TraitSig.trait_sig; type_args } as instance) =
+    let type_args' = id_map_list (find_rep_type ~cx) type_args in
+    if type_args == type_args' then
+      instance
+    else
+      { TraitSig.trait_sig; type_args = type_args' }
+  in
   match ty with
   | Any
   | Unit
@@ -145,7 +183,9 @@ let rec find_rep_type ~cx (ty : Type.t) =
   | IntLiteral { resolved = None; _ }
   | TypeParam _ ->
     ty
-  | IntLiteral { resolved = Some ty; _ } -> find_non_union_rep_type ty
+  | IntLiteral { resolved = Some ty; _ }
+  | TraitBound { resolved = Some ty; _ } ->
+    find_non_union_rep_type ~cx ty
   | Array element ->
     let element' = find_rep_type ~cx element in
     if element == element' then
@@ -171,6 +211,12 @@ let rec find_rep_type ~cx (ty : Type.t) =
       ty
     else
       ADT { adt_sig; type_args = type_args' }
+  | TraitBound { resolved = None; bounds } ->
+    let bounds' = id_map_list (find_trait_instance_rep_type ~cx) bounds in
+    if bounds == bounds' then
+      ty
+    else
+      TraitBound { resolved = None; bounds = bounds' }
   | TVar tvar_id ->
     let (_, rep_ty, _) = find_union_rep_node ~cx tvar_id in
     (match rep_ty with
@@ -198,6 +244,10 @@ let rec tvar_occurs_in ~cx tvar ty =
     List.exists (tvar_occurs_in ~cx tvar) params || tvar_occurs_in ~cx tvar return
   | ADT { adt_sig = _; type_args } -> List.exists (tvar_occurs_in ~cx tvar) type_args
   | TVar rep_tvar -> tvar = rep_tvar
+  | TraitBound { bounds; resolved = _ } ->
+    List.exists
+      (fun { TraitSig.type_args; _ } -> List.exists (tvar_occurs_in ~cx tvar) type_args)
+      bounds
 
 let union_tvars ~cx (ty1 : Type.t) (ty2 : Type.t) =
   match (ty1, ty2) with
@@ -226,7 +276,59 @@ let union_tvars ~cx (ty1 : Type.t) (ty2 : Type.t) =
       true
   | _ -> failwith "At least one argument to union must be a tvar"
 
-let rec unify ~cx ty1 ty2 =
+let rec type_satisfies_trait_bounds ~cx ty trait_bounds =
+  let open TraitSig in
+  let trait_satisfies_bound trait bound =
+    bound.trait_sig.id = trait.trait_sig.id
+    && List.for_all2
+         (fun bound_arg implemented_arg -> unify ~cx bound_arg implemented_arg)
+         bound.type_args
+         trait.type_args
+  in
+  let trait_or_implemented_satisfies_bound trait bound =
+    trait_satisfies_bound trait bound
+    || List.exists
+         (fun implemented_trait -> trait_satisfies_bound implemented_trait bound)
+         trait.trait_sig.implemented
+  in
+  let traits_satisfy_bounds traits bounds =
+    List.for_all
+      (fun bound ->
+        List.exists (fun trait -> trait_or_implemented_satisfies_bound trait bound) traits)
+      bounds
+  in
+  (* Check all implemented traits for ADT (across all trait/method blocks) *)
+  let adt_satisfies_bounds adt trait_bounds =
+    let all_implemented =
+      List.map (fun { TraitSig.implemented; _ } -> implemented) adt.AdtSig.traits |> List.flatten
+    in
+    traits_satisfy_bounds all_implemented trait_bounds
+  in
+  match ty with
+  | Type.Any -> true
+  | Unit -> adt_satisfies_bounds !Std_lib.unit_adt_sig trait_bounds
+  | Bool -> adt_satisfies_bounds !Std_lib.bool_adt_sig trait_bounds
+  | Byte -> adt_satisfies_bounds !Std_lib.byte_adt_sig trait_bounds
+  | Int -> adt_satisfies_bounds !Std_lib.int_adt_sig trait_bounds
+  | Long -> adt_satisfies_bounds !Std_lib.long_adt_sig trait_bounds
+  (* TODO: Handle parameterized traits by substituting type args *)
+  | TypeParam { bounds; _ } -> traits_satisfy_bounds bounds trait_bounds
+  (* TODO: Handle parameterized ADTs by substituting type args *)
+  | ADT { adt_sig; _ } -> adt_satisfies_bounds adt_sig trait_bounds
+  (* Unresolved int literal types are first resolved to the best choice based on their values *)
+  | IntLiteral lit_ty ->
+    let resolved_ty = resolve_int_literal_from_values ~cx lit_ty in
+    type_satisfies_trait_bounds ~cx resolved_ty trait_bounds
+  (* Types that do not implement any traits themselves *)
+  | Array _
+  | Tuple _
+  | Function _ ->
+    false
+  | TVar _
+  | TraitBound _ ->
+    failwith "Already handled by unify or is_subtype"
+
+and unify ~cx ty1 ty2 =
   let rep_ty1 = find_union_rep_type ~cx ty1 in
   let rep_ty2 = find_union_rep_type ~cx ty2 in
   match (rep_ty1, rep_ty2) with
@@ -242,7 +344,8 @@ let rec unify ~cx ty1 ty2 =
   | (Long, Long) ->
     true
   (* Type parameters check that they are identical *)
-  | (TypeParam { id = id1; name = _ }, TypeParam { id = id2; name = _ }) -> id1 = id2
+  | (TypeParam { id = id1; name = _; bounds = _ }, TypeParam { id = id2; name = _; bounds = _ }) ->
+    id1 = id2
   (* Arrays unify their element types *)
   | (Array element1, Array element2) -> unify ~cx element1 element2
   (* Tuples unify all their elements if they have the same arity *)
@@ -270,10 +373,20 @@ let rec unify ~cx ty1 ty2 =
   | (IntLiteral lit_ty, ((Byte | Int | Long) as ty)) ->
     resolve_int_literal ~cx lit_ty ty;
     true
+  (* Unresolved trait bounds can be unified *)
+  | (TraitBound bound_ty1, (TraitBound bound_ty2 as ty2)) ->
+    union_trait_bounds bound_ty1 bound_ty2 ty2;
+    true
+  (* Unresolved trait bounds can be unified with a concrete type if the type satisfies the bound *)
+  | (ty, TraitBound trait_bound)
+  | (TraitBound trait_bound, ty) ->
+    let satisfies_trait_bound = type_satisfies_trait_bounds ~cx ty trait_bound.bounds in
+    if satisfies_trait_bound then trait_bound.resolved <- Some ty;
+    satisfies_trait_bound
   (* All other combinations of types cannot be unified *)
   | _ -> false
 
-let rec is_subtype ~cx sub sup =
+and is_subtype ~cx sub sup =
   let rep_sub = find_union_rep_type ~cx sub in
   let rep_sup = find_union_rep_type ~cx sup in
   match (rep_sub, rep_sup) with
@@ -291,7 +404,8 @@ let rec is_subtype ~cx sub sup =
   | (Long, Long) ->
     true
   (* Type parameters are invariant, so check that they are identical *)
-  | (TypeParam { id = id1; name = _ }, TypeParam { id = id2; name = _ }) -> id1 = id2
+  | (TypeParam { id = id1; name = _; bounds = _ }, TypeParam { id = id2; name = _; bounds = _ }) ->
+    id1 = id2
   (* Array type parameter is invariant *)
   | (Array element1, Array element2) ->
     is_subtype ~cx element1 element2 && is_subtype ~cx element2 element1
@@ -321,6 +435,15 @@ let rec is_subtype ~cx sub sup =
   | (IntLiteral lit_ty, ((Byte | Int | Long) as ty)) ->
     resolve_int_literal ~cx lit_ty ty;
     true
+  (* Unresolved trait bounds are not subtyped so they must be unified *)
+  | (TraitBound bound_ty1, (TraitBound bound_ty2 as ty2)) ->
+    union_trait_bounds bound_ty1 bound_ty2 ty2;
+    true
+  (* Unresolved trait bounds can be unified with a concrete type if the type satisfies the bound *)
+  | (ty, TraitBound trait_bound) ->
+    let satisfies_trait_bound = type_satisfies_trait_bounds ~cx ty trait_bound.bounds in
+    if satisfies_trait_bound then trait_bound.resolved <- Some ty;
+    satisfies_trait_bound
   | _ -> false
 
 let add_incompatible_types_error ~cx loc ty1 ty2 =

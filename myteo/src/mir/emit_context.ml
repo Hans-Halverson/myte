@@ -308,7 +308,9 @@ and to_mir_type ~ecx ty =
   | Byte -> `ByteT
   | Int -> `IntT
   | Long -> `LongT
-  | IntLiteral { resolved; _ } -> to_mir_type ~ecx (Option.get resolved)
+  | IntLiteral { resolved; _ }
+  | TraitBound { resolved; _ } ->
+    to_mir_type ~ecx (Option.get resolved)
   | Array element_ty -> `PointerT (to_mir_type ~ecx element_ty)
   | Function _ -> `FunctionT
   | Tuple elements ->
@@ -344,10 +346,8 @@ let find_rep_non_generic_type ~ecx ty =
   else
     Types.substitute_type_params ecx.current_type_param_bindings ty
 
-let add_necessary_func_instantiation ~ecx name type_params arg_tvar_ids =
-  let arg_rep_tys =
-    List.map (fun arg_tvar_id -> find_rep_non_generic_type ~ecx (TVar arg_tvar_id)) arg_tvar_ids
-  in
+let add_necessary_func_instantiation ~ecx name type_params arg_tys =
+  let arg_rep_tys = List.map (fun arg_ty -> find_rep_non_generic_type ~ecx arg_ty) arg_tys in
   let arg_mir_tys = List.map (fun arg_rep_ty -> to_mir_type ~ecx arg_rep_ty) arg_rep_tys in
   let name_with_args =
     let type_args_string = TypeArgs.to_string arg_mir_tys in
