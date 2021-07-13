@@ -1,0 +1,72 @@
+  .global _start
+
+  .data
+.S0:
+  .ascii "Failed 1\n"
+.S1:
+  .ascii "Passed 1\n"
+.S2:
+  .ascii "Passed 2\n"
+.S3:
+  .ascii "Failed 2\n"
+
+  .text
+test.Trait1.foo:
+  xorl %eax, %eax
+  cmpl $7, %edi
+  sete %al
+  ret
+_main:
+  movl $5, %edi
+  call test.Trait1.foo
+  testb %al, %al
+  je .L0
+  movl $16, %edi
+  call __myte_alloc
+  leaq .S0(%rip), %rcx
+  movq %rcx, (%rax)
+  movl $9, 8(%rax)
+  movl $9, 12(%rax)
+  movq %rax, %rdi
+  call std.io.print
+  jmp .L1
+.L0:
+  movl $16, %edi
+  call __myte_alloc
+  leaq .S1(%rip), %rcx
+  movq %rcx, (%rax)
+  movl $9, 8(%rax)
+  movl $9, 12(%rax)
+  movq %rax, %rdi
+  call std.io.print
+.L1:
+  movl $7, %edi
+  call test.Trait1.foo
+  testb %al, %al
+  je .L2
+  movl $16, %edi
+  call __myte_alloc
+  leaq .S2(%rip), %rcx
+  movq %rcx, (%rax)
+  movl $9, 8(%rax)
+  movl $9, 12(%rax)
+  movq %rax, %rdi
+  call std.io.print
+  jmp .L3
+.L2:
+  movl $16, %edi
+  call __myte_alloc
+  leaq .S3(%rip), %rcx
+  movq %rcx, (%rax)
+  movl $9, 8(%rax)
+  movl $9, 12(%rax)
+  movq %rax, %rdi
+  call std.io.print
+.L3:
+  ret
+_start:
+  call __myte_init
+  call _main
+  ret
+Passed 1
+Passed 2

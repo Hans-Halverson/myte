@@ -120,15 +120,20 @@ module ValueBinding : sig
     loc: Loc.t;
     declaration: value_declaration;
     mutable uses: LocSet.t;
-    is_global: bool;
+    context: context;
     module_: string list;
   }
+
+  and context =
+    | Module
+    | Trait of string
+    | Function
 
   val mk :
     name:string ->
     loc:Loc.t ->
     declaration:value_declaration ->
-    is_global:bool ->
+    context:context ->
     module_:string list ->
     t
 end
@@ -172,7 +177,7 @@ val get_type_binding_from_decl : Bindings.t -> Loc.t -> TypeBinding.t
 
 val get_decl_loc_from_value_use : Bindings.t -> Loc.t -> Loc.t
 
-val is_global_decl : Bindings.t -> Loc.t -> bool
+val is_module_decl : Bindings.t -> Loc.t -> bool
 
 val get_var_decl : ValueBinding.t -> VariableDeclaration.t
 

@@ -1,0 +1,21 @@
+module test
+
+import std.io.print
+
+trait Trait1 {
+  static fun foo(x: Int): Bool = x == 7
+}
+
+fun main() {
+  if (Trait1.foo(5)) {
+    print("Failed 1\n");
+  } else {
+    print("Passed 1\n");
+  }
+
+  if (Trait1.foo(7)) {
+    print("Passed 2\n");
+  } else {
+    print("Failed 2\n");
+  }
+}

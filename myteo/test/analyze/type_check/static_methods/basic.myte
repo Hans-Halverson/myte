@@ -1,0 +1,29 @@
+module test
+
+trait Trait1 {
+  static fun foo(x: Int): Int = x
+}
+
+trait Trait2 {
+  extends Trait1
+
+  static fun foo(x: Bool): Bool = x
+}
+
+type Type1 (Unit)
+methods Type1 {
+  static fun foo(x: Byte): Byte = x
+}
+
+fun test1() {
+  Trait1.foo(1);
+  Trait2.foo(true);
+  Type1.foo(1);
+
+  // Error to print types of methods
+  (Trait1.foo: Unit);
+  (Trait2.foo: Unit);
+  (Type1.foo: Unit);
+}
+
+fun main() {}

@@ -1,6 +1,5 @@
 module test
 
-import std.array
 import std.array.Array
 
 type Tup1 (Int, Byte, Long)
@@ -58,7 +57,7 @@ fun nestedIndexing(tup1Array: Array<Tup1>, t2: Tup2, x: Int) {
   t2[1][x];
 }
 
-val intArray: Array<Int> = array.new(10)
+val intArray: Array<Int> = Array.new(10)
 
 fun indexIntoGlobal(x: Int) {
   intArray[5];

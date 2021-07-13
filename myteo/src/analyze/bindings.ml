@@ -144,12 +144,17 @@ module ValueBinding = struct
     loc: Loc.t;
     declaration: value_declaration;
     mutable uses: LocSet.t;
-    is_global: bool;
+    context: context;
     module_: string list;
   }
 
-  let mk ~name ~loc ~declaration ~is_global ~module_ =
-    { name; loc; declaration; uses = LocSet.singleton loc; is_global; module_ }
+  and context =
+    | Module
+    | Trait of string
+    | Function
+
+  let mk ~name ~loc ~declaration ~context ~module_ =
+    { name; loc; declaration; uses = LocSet.singleton loc; context; module_ }
 end
 
 module TypeBinding = struct
@@ -216,10 +221,10 @@ let get_decl_loc_from_value_use bindings use_loc =
   let binding = get_value_binding bindings use_loc in
   binding.loc
 
-let is_global_decl bindings decl_loc =
+let is_module_decl bindings decl_loc =
   let open Bindings in
   let binding = LocMap.find decl_loc bindings.value_bindings in
-  binding.is_global
+  binding.context = ValueBinding.Module
 
 let get_var_decl binding =
   match binding.ValueBinding.declaration with

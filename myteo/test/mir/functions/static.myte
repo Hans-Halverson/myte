@@ -1,0 +1,22 @@
+module test
+
+trait Trait1 {
+  static fun foo(x: Int): Int = x + 10
+}
+
+trait Trait2 {
+  static fun foo(x: Long): Long = x + 10
+}
+
+type Type1 (Int)
+methods Type1 {
+  static fun foo(x: Bool): Bool = !x
+}
+
+fun test() {
+  Trait1.foo(1);
+  Trait2.foo(1);
+  Type1.foo(true);
+}
+
+fun main() {}

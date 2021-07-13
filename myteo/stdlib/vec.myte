@@ -1,6 +1,5 @@
 module std.vec
 
-import std.array
 import std.array.Array
 import std.int.Int
 
@@ -10,10 +9,12 @@ type Vec<T> {
   capacity: Int,
 }
 
-fun new<T>(capacity: Int): Vec<T> {
-  return Vec {
-    data: array.new(capacity),
-    size: 0,
-    capacity,
-  };
+methods Vec<T> {
+  static fun new<T>(): Vec<T> {
+    return Vec {
+      data: Array.new(0),
+      size: 0,
+      capacity: 0,
+    };
+  }
 }

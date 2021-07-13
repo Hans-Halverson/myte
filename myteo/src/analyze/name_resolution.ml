@@ -105,8 +105,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       | { local_values; local_types } :: rest ->
         scopes <- { local_types = SMap.add name local_decl local_types; local_values } :: rest
 
-    method add_value_declaration loc name is_global declaration =
-      let binding = ValueBinding.mk ~name ~loc ~declaration ~is_global ~module_:module_name in
+    method add_value_declaration loc name context declaration =
+      let binding = ValueBinding.mk ~name ~loc ~declaration ~context ~module_:module_name in
       Bindings.add_value_binding bindings binding;
       binding
 
@@ -164,8 +164,22 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           let full_name = module_name_prefix ^ name.Identifier.name in
           Std_lib.register_stdlib_decl full_name name.loc
       in
+      let register_stdlib_method_decls trait_decl =
+        (* Register builtin methods *)
+        if is_stdlib then
+          let trait_name = trait_decl.Ast.TraitDeclaration.name in
+          List.iter
+            (fun { Function.name = method_name; _ } ->
+              let open Identifier in
+              let full_name =
+                Printf.sprintf "%s%s.%s" module_name_prefix trait_name.name method_name.name
+              in
+              Std_lib.register_stdlib_decl full_name method_name.loc)
+            trait_decl.methods
+      in
       let add_value_binding name declaration =
-        ignore (this#add_value_declaration name.Identifier.loc name.name true declaration)
+        ignore
+          (this#add_value_declaration name.Identifier.loc name.name ValueBinding.Module declaration)
       in
       let add_type_binding name declaration =
         ignore (this#add_type_declaration name.Identifier.loc name.name declaration)
@@ -226,10 +240,13 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               in
               this#set_record_fields loc names
             | _ -> ())
-          | TraitDeclaration { kind = Methods; name; _ } ->
-            add_type_binding name (TraitDecl (TraitDeclaration.mk ~name:name.name ~loc:name.loc))
-          | TraitDeclaration { kind = Trait; name; _ } ->
+          | TraitDeclaration ({ kind = Methods; name; _ } as trait_decl) ->
             register_stdlib_decl name;
+            register_stdlib_method_decls trait_decl;
+            add_type_binding name (TraitDecl (TraitDeclaration.mk ~name:name.name ~loc:name.loc))
+          | TraitDeclaration ({ kind = Trait; name; _ } as trait_decl) ->
+            register_stdlib_decl name;
+            register_stdlib_method_decls trait_decl;
             trait_locs <- LocSet.add name.loc trait_locs;
             if name.name = "_" then
               this#add_error name.loc InvalidWildcardIdentifier
@@ -365,7 +382,12 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                   ~is_override:override
                   ~is_signature:(body = Function.Signature)
               in
-              ignore (this#add_value_declaration loc name false (FunDecl method_));
+              ignore
+                (this#add_value_declaration
+                   loc
+                   name
+                   (ValueBinding.Trait decl.name.name)
+                   (FunDecl method_));
               if SMap.mem name methods then
                 this#add_error loc (DuplicateMethodNames (name, trait.TraitDeclaration.name, []));
               SMap.add name method_ methods)
@@ -455,7 +477,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               id_map (this#visit_variable_declaration ~toplevel:true) decl toplevel (fun decl' ->
                   VariableDeclaration decl')
             | FunctionDeclaration decl ->
-              id_map (this#visit_function_declaration ~add_decl:false) decl toplevel (fun decl' ->
+              id_map (this#visit_function_declaration ~is_nested:false) decl toplevel (fun decl' ->
                   FunctionDeclaration decl')
             | TypeDeclaration
                 ( { Ast.TypeDeclaration.name = { Ast.Identifier.name; _ }; type_params; _ } as
@@ -483,7 +505,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         id_map (this#visit_variable_declaration ~toplevel:false) decl stmt (fun decl' ->
             VariableDeclaration decl')
       | FunctionDeclaration decl ->
-        id_map (this#visit_function_declaration ~add_decl:true) decl stmt (fun decl' ->
+        id_map (this#visit_function_declaration ~is_nested:true) decl stmt (fun decl' ->
             FunctionDeclaration decl')
       | Block block -> id_map this#block block stmt (fun block' -> Block block')
       | _ -> super#statement stmt
@@ -502,8 +524,14 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       this#visit_pattern ~decl:true ~toplevel pattern;
       List.iter
         (fun { Ast.Identifier.loc; name; _ } ->
+          let context =
+            if toplevel then
+              ValueBinding.Module
+            else
+              ValueBinding.Function
+          in
           let binding =
-            this#add_value_declaration loc name toplevel (VarDecl (VariableDeclaration.mk kind))
+            this#add_value_declaration loc name context (VarDecl (VariableDeclaration.mk kind))
           in
           this#add_value_to_scope name (Decl binding))
         ids;
@@ -526,7 +554,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             SSet.empty)
            params)
 
-    method visit_function_declaration ~add_decl decl =
+    method visit_function_declaration ~is_nested decl =
       let open Ast.Function in
       let {
         name = { Ast.Identifier.loc; name = func_name };
@@ -540,12 +568,12 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       } =
         decl
       in
-      ( if add_decl then
+      ( if is_nested then
         let binding =
           this#add_value_declaration
             loc
             func_name
-            false
+            ValueBinding.Function
             (FunDecl
                (FunctionDeclaration.mk
                   ~name:func_name
@@ -567,7 +595,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               this#add_value_declaration
                 loc
                 name
-                false
+                ValueBinding.Function
                 (FunParamDecl (FunctionParamDeclaration.mk ()))
             in
             this#add_value_to_scope name (Decl binding);
@@ -594,9 +622,9 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             (* Static methods cannot reference trait's type parameters, so resolve in parent scope *)
             if static then
               this#in_parent_scope (fun _ ->
-                  this#visit_function_declaration ~add_decl:false method_)
+                  this#visit_function_declaration ~is_nested:false method_)
             else
-              this#visit_function_declaration ~add_decl:false method_)
+              this#visit_function_declaration ~is_nested:false method_)
           methods
       in
       this#exit_scope ();
@@ -1028,14 +1056,15 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         let methods_acc =
           SMap.fold
             (fun _
-                 ({ FunctionDeclaration.loc; is_static; is_override; is_signature; _ } as method_)
+                 ( { FunctionDeclaration.loc; is_static; is_override; is_signature; is_builtin; _ }
+                 as method_ )
                  methods_acc ->
               if is_static then
                 (* Static methods cannot be overridden and must have an implementation *)
                 if is_override then (
                   this#add_error loc StaticMethodOverride;
                   methods_acc
-                ) else if is_signature then (
+                ) else if is_signature && not is_builtin then (
                   this#add_error loc StaticMethodSignature;
                   methods_acc
                 ) else

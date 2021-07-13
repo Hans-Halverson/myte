@@ -25,9 +25,14 @@ __myte_init:
   ret
 
 __myte_alloc:
+  mov __myte_heap_start(%rip), %rdx
+  # Align to 16-byte boundary
+  add $15, %rdx
+  and $-16, %rdx
+  mov %rdx, %rax
   # Bump heap start pointer
-  mov __myte_heap_start(%rip), %rax
-  add %rdi, __myte_heap_start(%rip)
+  add %rdi, %rdx
+  mov %rdx, __myte_heap_start(%rip)
   ret
 
 __myte_write:

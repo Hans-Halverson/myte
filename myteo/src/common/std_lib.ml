@@ -56,7 +56,7 @@ let get_stdlib_files stdlib_path =
 
 let std_array_array = "std.array.Array"
 
-let std_array_new = "std.array.new"
+let std_array_array_new = "std.array.Array.new"
 
 let std_bool_bool = "std.bool.Bool"
 
@@ -78,7 +78,7 @@ let all_stdlib_names =
   SSet.of_list
     [
       std_array_array;
-      std_array_new;
+      std_array_array_new;
       std_bool_bool;
       std_byte_byte;
       std_io_write;

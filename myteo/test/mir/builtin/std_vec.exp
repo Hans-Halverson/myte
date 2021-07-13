@@ -1,7 +1,7 @@
 func unit @test.test() {
-  %0 := Call std.vec.Vec* @std.vec.new<int>(10)
+  %0 := Call std.vec.Vec* @std.vec.Vec.new<int>()
   %1 := Mov std.vec.Vec* %0
-  %2 := Call std.vec.Vec* @std.vec.new<bool>(100)
+  %2 := Call std.vec.Vec* @std.vec.Vec.new<bool>()
   %3 := Mov std.vec.Vec* %2
   Ret
 }

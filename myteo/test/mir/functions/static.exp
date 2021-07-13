@@ -1,0 +1,25 @@
+func int @test.Trait1.foo(int %0) {
+  %1 := Add int %0, 10
+  Ret %1
+}
+
+func long @test.Trait2.foo(long %2) {
+  %3 := Add long %2, 10
+  Ret %3
+}
+
+func bool @test.Type1.foo(bool %4) {
+  %5 := LogNot %4
+  Ret %5
+}
+
+func unit @test.test() {
+  %6 := Call int @test.Trait1.foo(1)
+  %7 := Call long @test.Trait2.foo(1)
+  %8 := Call bool @test.Type1.foo(true)
+  Ret
+}
+
+func unit @test.main() {
+  Ret
+}
