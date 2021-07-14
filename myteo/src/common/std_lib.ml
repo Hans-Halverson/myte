@@ -105,6 +105,15 @@ let unit_adt_sig = ref Types.AdtSig.empty
 
 let mk_string_type () = Types.Type.ADT { adt_sig = !string_adt_sig; type_args = [] }
 
+let get_primitive_adt_sig (ty : Types.Type.t) =
+  match ty with
+  | Unit -> !unit_adt_sig
+  | Bool -> !bool_adt_sig
+  | Byte -> !byte_adt_sig
+  | Int -> !int_adt_sig
+  | Long -> !long_adt_sig
+  | _ -> failwith "Can only be called on primitive type"
+
 (* Stdlib registration *)
 
 let stdlib_builtin_decl_locs = ref LocMap.empty

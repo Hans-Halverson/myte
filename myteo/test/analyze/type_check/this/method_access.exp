@@ -1,0 +1,39 @@
+Error: Expected type `Unit` but found `Int`
+test/analyze/type_check/this/method_access.myte:12:5-15
+ 12 |     (this.foo(): Unit);
+    |      ^^^^^^^^^^
+
+Error: Expected type `Unit` but found `Bool`
+test/analyze/type_check/this/method_access.myte:13:5-15
+ 13 |     (this.bar(): Unit);
+    |      ^^^^^^^^^^
+
+Error: Expected type `Unit` but found `T`
+test/analyze/type_check/this/method_access.myte:14:5-15
+ 14 |     (this.baz(): Unit);
+    |      ^^^^^^^^^^
+
+Error: Cannot resolve field or method with name `nonexist` on type `This: Trait1<T>`
+test/analyze/type_check/this/method_access.myte:22:4-8
+ 22 |     this.nonexist();
+    |     ^^^^
+
+Error: Expected type `Unit` but found `Int`
+test/analyze/type_check/this/method_access.myte:51:5-15
+ 51 |     (this.foo(): Unit);
+    |      ^^^^^^^^^^
+
+Error: Expected type `Unit` but found `Bool`
+test/analyze/type_check/this/method_access.myte:52:5-15
+ 52 |     (this.bar(): Unit);
+    |      ^^^^^^^^^^
+
+Error: Expected type `Unit` but found `T`
+test/analyze/type_check/this/method_access.myte:53:5-15
+ 53 |     (this.baz(): Unit);
+    |      ^^^^^^^^^^
+
+Error: Cannot resolve field or method with name `nonexist` on type `Type1<T>`
+test/analyze/type_check/this/method_access.myte:61:4-8
+ 61 |     this.nonexist();
+    |     ^^^^

@@ -1,0 +1,29 @@
+module test
+
+type Rec1 { foo: Int, bar: String }
+
+methods Rec1 {
+  fun getFoo(): Int = this.foo
+  fun getBar(): String = this.bar
+
+  fun test() {
+    // Intentional failures - print types
+    (this.foo: Unit);
+    (this.bar: Unit);
+  }
+}
+
+type Rec2<T> { foo: T, bar: (T, Int) }
+
+methods Rec2<T> {
+  fun test() {
+    // Intentional failures - print types
+    (this.foo: Unit);
+    (this.bar: Unit);
+  }
+
+  // Should succeed
+  fun testFoo(x: T): Bool = x == this.foo
+}
+
+fun main() {}

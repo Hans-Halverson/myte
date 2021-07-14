@@ -1,0 +1,9 @@
+Error: Expected type `Unit` but found `This: Trait`
+test/analyze/type_check/this/this_type.myte:6:5-9
+ 6 |     (this: Unit);
+   |      ^^^^
+
+Error: Expected type `Unit` but found `Type`
+test/analyze/type_check/this/this_type.myte:14:5-9
+ 14 |     (this: Unit);
+    |      ^^^^

@@ -1,14 +1,14 @@
-Error: Cannot access field `field` on non-record type `Int`
+Error: Cannot resolve field or method with name `field` on type `Int`
 test/analyze/type_check/non_accessable_accessed_error.myte:10:2
  10 |   1.field;
     |   ^
 
-Error: Cannot access field `field` on non-record type `Tup`
+Error: Cannot resolve field or method with name `field` on type `Tup`
 test/analyze/type_check/non_accessable_accessed_error.myte:11:3-9
  11 |   (Tup(1)).field;
     |    ^^^^^^
 
-Error: Cannot access field `field` on non-record type `RecordVariants`
+Error: Cannot resolve field or method with name `field` on type `RecordVariants`
 test/analyze/type_check/non_accessable_accessed_error.myte:12:3-23
  12 |   (Record1 { field: 1 }).field;
     |    ^^^^^^^^^^^^^^^^^^^^

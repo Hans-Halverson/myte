@@ -12,6 +12,7 @@ type t = {
   mutable return_types: Type.t LocMap.t;
   (* Set of all int literal locs that have not been resolved *)
   mutable unresolved_int_literals: LocSet.t;
+  mutable current_this_type: Type.t;
 }
 
 and union_forest_node =
@@ -29,6 +30,7 @@ let mk ~bindings =
     union_forest_nodes = IMap.empty;
     return_types = LocMap.empty;
     unresolved_int_literals = LocSet.empty;
+    current_this_type = Type.Any;
   }
 
 let add_error ~cx loc error = cx.errors <- (loc, error) :: cx.errors
@@ -43,6 +45,10 @@ let add_return_type ~cx loc return_type =
 let get_return_types ~cx = cx.return_types
 
 let get_unresolved_int_literals ~cx = cx.unresolved_int_literals
+
+let get_this_type ~cx = cx.current_this_type
+
+let set_this_type ~cx ty = cx.current_this_type <- ty
 
 let get_value_binding ~cx use_loc = get_value_binding cx.bindings use_loc
 
@@ -306,11 +312,12 @@ let rec type_satisfies_trait_bounds ~cx ty trait_bounds =
   in
   match ty with
   | Type.Any -> true
-  | Unit -> adt_satisfies_bounds !Std_lib.unit_adt_sig trait_bounds
-  | Bool -> adt_satisfies_bounds !Std_lib.bool_adt_sig trait_bounds
-  | Byte -> adt_satisfies_bounds !Std_lib.byte_adt_sig trait_bounds
-  | Int -> adt_satisfies_bounds !Std_lib.int_adt_sig trait_bounds
-  | Long -> adt_satisfies_bounds !Std_lib.long_adt_sig trait_bounds
+  | Unit
+  | Bool
+  | Byte
+  | Int
+  | Long ->
+    adt_satisfies_bounds (Std_lib.get_primitive_adt_sig ty) trait_bounds
   (* TODO: Handle parameterized traits by substituting type args *)
   | TypeParam { bounds; _ } -> traits_satisfy_bounds bounds trait_bounds
   (* TODO: Handle parameterized ADTs by substituting type args *)

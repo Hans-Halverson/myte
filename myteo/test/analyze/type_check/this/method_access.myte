@@ -1,0 +1,85 @@
+module test
+
+// Method accesses in traits
+
+trait Trait1<T> {
+  fun foo(): Int
+  fun bar(): Bool
+  fun baz(): T
+
+  fun test1() {
+    // Intentional failure - display type in error
+    (this.foo(): Unit);
+    (this.bar(): Unit);
+    (this.baz(): Unit);
+
+    // Success
+    (this.foo(): Int);
+    (this.bar(): Bool);
+    (this.baz(): T);
+
+    // Unresolved method access
+    this.nonexist();
+  }
+}
+
+trait Trait2<T> {
+  extends Trait1<T>
+
+  fun anotherT(): T
+
+  fun test2() {
+    // Can use methods inherited from super trait
+    (this.foo(): Int);
+    (this.bar(): Bool);
+
+    // Type parameter is substituted for super trait
+    this.baz() == this.anotherT();
+  }
+}
+
+// Method accesses in types
+
+type Type1<T> (T)
+methods Type1<T> {
+  fun foo(): Int = 1
+  fun bar(): Bool = true
+  fun baz(): T = this[0]
+
+  fun test() {
+    // Intentional failure - display type in error
+    (this.foo(): Unit);
+    (this.bar(): Unit);
+    (this.baz(): Unit);
+
+    // Success
+    (this.foo(): Int);
+    (this.bar(): Bool);
+    (this.baz(): T);
+
+    // Unresolved method access
+    this.nonexist();
+  }
+}
+
+trait Trait3<T> {
+  fun foo(): Int = 1
+  fun bar(x: T): T = x
+}
+
+type Type2<T> (T)
+methods Type2<T> {
+  implements Trait3<T>
+
+  fun anotherT(): T = this[0]
+
+  fun test() {
+    // Can use methods inherited from super trait
+    (this.foo(): Int);
+
+    // Type parameter is substituted for super trait
+    this.bar(this[0]) == this.anotherT();
+  }
+}
+
+fun main() {}

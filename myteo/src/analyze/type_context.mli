@@ -20,6 +20,10 @@ val get_return_types : cx:t -> Type.t LocMap.t
 
 val get_unresolved_int_literals : cx:t -> LocSet.t
 
+val get_this_type : cx:t -> Type.t
+
+val set_this_type : cx:t -> Type.t -> unit
+
 (* Binding getters *)
 
 val get_value_binding : cx:t -> Loc.t -> ValueBinding.t

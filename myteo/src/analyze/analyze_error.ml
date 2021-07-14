@@ -57,10 +57,9 @@ type t =
   | MissingRecordConstructorFields of string list
   | UnexpectedRecordConstructorField of string * string
   | NonIndexableIndexed of Type.t
-  | NonAccessibleAccessed of string * Type.t
+  | UnresolvedNamedAccess of string * Type.t
   | TupleIndexIsNotLiteral
   | TupleIndexOutOfBounds of int
-  | NamedAccessNonexistentField of string * string
   | IntLiteralOutOfRange of Type.t
   | IndexIsNotInteger of Type.t
   | UnimplementedMethodSignature of string * string
@@ -367,16 +366,17 @@ let to_string error =
   | ExpectedRecordConstructor -> Printf.sprintf "Expected a record constructor"
   | ExpectedTupleConstructor -> Printf.sprintf "Expected a tuple constructor"
   | NonIndexableIndexed ty -> Printf.sprintf "Cannot index into value of type `%s`" (Types.pp ty)
-  | NonAccessibleAccessed (field_name, ty) ->
-    Printf.sprintf "Cannot access field `%s` on non-record type `%s`" field_name (Types.pp ty)
+  | UnresolvedNamedAccess (field_name, ty) ->
+    Printf.sprintf
+      "Cannot resolve field or method with name `%s` on type `%s`"
+      field_name
+      (Types.pp ty)
   | TupleIndexIsNotLiteral -> Printf.sprintf "Tuple indices must be int literals"
   | TupleIndexOutOfBounds actual_size ->
     Printf.sprintf
       "Tuple index out of range. Tuple has %d elements so only indices 0 through %d are allowed."
       actual_size
       (actual_size - 1)
-  | NamedAccessNonexistentField (record_name, field_name) ->
-    Printf.sprintf "Record `%s` does not have a field named `%s`" record_name field_name
   | IntLiteralOutOfRange ty ->
     Printf.sprintf "Integer literal out of range for type `%s`" (Types.pp ty)
   | IndexIsNotInteger ty ->

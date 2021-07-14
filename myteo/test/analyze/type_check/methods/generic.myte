@@ -1,0 +1,20 @@
+module test
+
+type Type<T> (T)
+
+methods Type<T> {
+  fun generic<U>(x: U): (T, U) = (this[0], x)
+}
+
+fun test() {
+  val t1 = Type (1);
+  val t2 = Type (true);
+
+  // Intentional failure to print inferred type
+  (t1.generic(1): Unit);
+  (t1.generic(true): Unit);
+  (t2.generic(1): Unit);
+  (t2.generic(true): Unit);
+}
+
+fun main() {}

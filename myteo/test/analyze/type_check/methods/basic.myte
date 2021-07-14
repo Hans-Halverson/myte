@@ -1,0 +1,47 @@
+module test
+
+trait FooTrait {
+  fun foo(): Int
+}
+
+// Can call methods on types
+type Type1 (Unit)
+methods Type1 {
+  fun method(): Int = 1
+}
+
+fun testTypes(x: Type1) {
+  // Success
+  (x.method(): Int);
+  // Nonexist
+  x.nonexist();
+}
+
+// Can call methods on trait bounded type params (both implicit and explicit)
+fun testTypeParams<T: FooTrait>(x: T, y: FooTrait) {
+  // Success
+  (x.foo(): Int);
+  (y.foo(): Int);
+
+  // Nonexistent
+  x.bar();
+  y.bar();
+}
+
+// Can call methods on primitive types
+fun testPrimitives(x: Unit) {
+  (x.toString(): String);
+  (().toString(): String);
+
+  x.nonexist();
+  ().nonexist();
+}
+
+// Calling a method on int literals resolves them to type
+fun testIntLiterals() {
+  // Intentional failure to see inferred types
+  1.nonexist();
+  2147483648.nonexist();
+}
+
+fun main() {}

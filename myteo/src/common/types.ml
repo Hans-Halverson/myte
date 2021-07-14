@@ -286,6 +286,8 @@ let rec substitute_type_params type_params ty =
     | None ->
       let bounds' = substitute_trait_bounds bounds in
       TypeParam { TypeParam.id; name; bounds = bounds' }
+    (* Avoid infinite loop when substituting type parameter for itself *)
+    | Some (TypeParam { id = new_id; _ } as ty) when new_id = id -> ty
     | Some ty -> substitute_type_params type_params ty)
 
 (* Generate map of type params bound to type args to be used for type param substitution. *)

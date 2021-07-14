@@ -107,6 +107,49 @@ and build_types_and_traits_prepass ~cx module_ =
       | _ -> ())
     toplevels
 
+and build_type_parameters ~cx params =
+  List.map
+    (fun { Ast.TypeParameter.name = { Ast.Identifier.loc; name }; bounds; _ } ->
+      let binding = Type_context.get_type_binding ~cx loc in
+      let type_param_decl = Bindings.get_type_param_decl binding in
+
+      (* Build type parameter bounds, returning no bounds if error is encountered *)
+      let (bounds, has_error) =
+        List.fold_left
+          (fun (bounds, has_error) { Ast.Type.Identifier.loc; name; type_params; _ } ->
+            let binding = Type_context.get_type_binding ~cx name.name.loc in
+            match binding.declaration with
+            | TraitDecl trait_decl ->
+              let trait_sig = trait_decl.trait_sig in
+              let type_args = List.map (build_type ~cx) type_params in
+              let num_type_args = List.length type_args in
+              let num_type_params = List.length trait_sig.type_params in
+              if num_type_args <> num_type_params then (
+                Type_context.add_error
+                  ~cx
+                  loc
+                  (IncorrectTypeParametersArity (num_type_args, num_type_params));
+                ([], true)
+              ) else
+                let bound = { TraitSig.trait_sig; type_args } in
+                (bound :: bounds, has_error)
+            | _ ->
+              Type_context.add_error ~cx loc NonTraitAsBound;
+              ([], true))
+          ([], false)
+          bounds
+      in
+      let bounds =
+        if has_error then
+          []
+        else
+          List.rev bounds
+      in
+      let type_param = Types.TypeParam.mk ~name:(Explicit name) ~bounds in
+      Bindings.TypeParamDeclaration.set type_param_decl type_param;
+      type_param)
+    params
+
 and build_type_aliases ~cx modules =
   let open Ast.TypeDeclaration in
   let modules = List.map snd modules in
@@ -324,7 +367,10 @@ and build_trait_implementation
       (fun method_name super_method ->
         let open Bindings.FunctionDeclaration in
         (* Add concrete method to trait sig *)
-        ( if (not super_method.is_static) && not super_method.is_signature then
+        ( if
+          (not super_method.is_static)
+          && ((not super_method.is_signature) || trait_decl_kind = Trait)
+        then
           match SMap.find_opt method_name trait_decl.methods with
           (* If base method is defined this method has already been added to trait sig *)
           | Some _ -> ()
@@ -428,86 +474,35 @@ and check_module ~cx module_ =
     (fun toplevel ->
       match toplevel with
       | VariableDeclaration decl -> check_variable_declaration ~cx decl
-      | FunctionDeclaration decl ->
-        if not decl.builtin then check_function_declaration_body ~cx decl
-      | TraitDeclaration { methods; _ } ->
+      | FunctionDeclaration decl -> if not decl.builtin then check_function_body ~cx decl
+      | TraitDeclaration { name; kind; methods; _ } ->
+        (* Set up `This` type for checking trait body *)
+        let binding = Type_context.get_type_binding_from_decl ~cx name.loc in
+        let trait_decl = Bindings.get_trait_decl binding in
+        let trait_sig = trait_decl.trait_sig in
+        let type_args =
+          List.map (fun type_param -> Type.TypeParam type_param) trait_sig.type_params
+        in
+        let this_type =
+          match kind with
+          (* ADT's `This` type is the ADT type *)
+          | Methods ->
+            let binding = Type_context.get_type_binding ~cx name.loc in
+            let type_decl = Bindings.get_type_decl binding in
+            Type.ADT { adt_sig = type_decl.adt_sig; type_args }
+          (* Trait's `This` type is a type parameter bounded by the trait *)
+          | Trait ->
+            let trait_bound = { TraitSig.trait_sig; type_args } in
+            let type_param = TypeParam.mk ~name:(Explicit "This") ~bounds:[trait_bound] in
+            Type.TypeParam type_param
+        in
+        Type_context.set_this_type ~cx this_type;
         List.iter
           (fun method_ ->
-            if method_.Ast.Function.body <> Signature then
-              check_function_declaration_body ~cx method_)
+            if method_.Ast.Function.body <> Signature then check_function_body ~cx method_)
           methods
       | TypeDeclaration _ -> ())
     toplevels
-
-and check_variable_declaration ~cx decl =
-  let open Ast.Statement.VariableDeclaration in
-  let { loc; pattern; init; annot; _ } = decl in
-  let (pattern_loc, pattern_tvar_id) = check_pattern ~cx pattern in
-  let (expr_loc, expr_tvar_id) = check_expression ~cx init in
-  match annot with
-  | None ->
-    (* If expression's type is fully resolved then use as type of id, otherwise error
-       requesting an annotation. *)
-    let rep_ty = Type_context.find_rep_type ~cx (TVar expr_tvar_id) in
-    let unresolved_tvars = Types.get_all_tvars [rep_ty] in
-    if unresolved_tvars = [] then
-      Type_context.assert_unify ~cx expr_loc (TVar expr_tvar_id) (TVar pattern_tvar_id)
-    else
-      let partial =
-        match rep_ty with
-        | TVar _ -> None
-        | _ -> Some (rep_ty, unresolved_tvars)
-      in
-      Type_context.add_error ~cx loc (CannotInferType (CannotInferTypeVariableDeclaration, partial))
-  | Some annot ->
-    let annot_ty = build_type ~cx annot in
-    if Type_context.unify ~cx annot_ty (TVar pattern_tvar_id) then
-      Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) annot_ty
-    else
-      Type_context.add_incompatible_types_error ~cx pattern_loc (TVar pattern_tvar_id) annot_ty
-
-and build_type_parameters ~cx params =
-  List.map
-    (fun { Ast.TypeParameter.name = { Ast.Identifier.loc; name }; bounds; _ } ->
-      let binding = Type_context.get_type_binding ~cx loc in
-      let type_param_decl = Bindings.get_type_param_decl binding in
-
-      (* Build type parameter bounds, returning no bounds if error is encountered *)
-      let (bounds, has_error) =
-        List.fold_left
-          (fun (bounds, has_error) { Ast.Type.Identifier.loc; name; type_params; _ } ->
-            let binding = Type_context.get_type_binding ~cx name.name.loc in
-            match binding.declaration with
-            | TraitDecl trait_decl ->
-              let trait_sig = trait_decl.trait_sig in
-              let type_args = List.map (build_type ~cx) type_params in
-              let num_type_args = List.length type_args in
-              let num_type_params = List.length trait_sig.type_params in
-              if num_type_args <> num_type_params then (
-                Type_context.add_error
-                  ~cx
-                  loc
-                  (IncorrectTypeParametersArity (num_type_args, num_type_params));
-                ([], true)
-              ) else
-                let bound = { TraitSig.trait_sig; type_args } in
-                (bound :: bounds, has_error)
-            | _ ->
-              Type_context.add_error ~cx loc NonTraitAsBound;
-              ([], true))
-          ([], false)
-          bounds
-      in
-      let bounds =
-        if has_error then
-          []
-        else
-          List.rev bounds
-      in
-      let type_param = Types.TypeParam.mk ~name:(Explicit name) ~bounds in
-      Bindings.TypeParamDeclaration.set type_param_decl type_param;
-      type_param)
-    params
 
 (* Build the function type for a function declaration and set it as type of function identifier *)
 and build_function_declaration ~cx decl =
@@ -536,9 +531,36 @@ and build_function_declaration ~cx decl =
   func_decl.params <- params;
   func_decl.return <- return
 
-(* Type check function declaration body, including binding types to function parameters and
+and check_variable_declaration ~cx decl =
+  let open Ast.Statement.VariableDeclaration in
+  let { loc; pattern; init; annot; _ } = decl in
+  let (pattern_loc, pattern_tvar_id) = check_pattern ~cx pattern in
+  let (expr_loc, expr_tvar_id) = check_expression ~cx init in
+  match annot with
+  | None ->
+    (* If expression's type is fully resolved then use as type of id, otherwise error
+       requesting an annotation. *)
+    let rep_ty = Type_context.find_rep_type ~cx (TVar expr_tvar_id) in
+    let unresolved_tvars = Types.get_all_tvars [rep_ty] in
+    if unresolved_tvars = [] then
+      Type_context.assert_unify ~cx expr_loc (TVar expr_tvar_id) (TVar pattern_tvar_id)
+    else
+      let partial =
+        match rep_ty with
+        | TVar _ -> None
+        | _ -> Some (rep_ty, unresolved_tvars)
+      in
+      Type_context.add_error ~cx loc (CannotInferType (CannotInferTypeVariableDeclaration, partial))
+  | Some annot ->
+    let annot_ty = build_type ~cx annot in
+    if Type_context.unify ~cx annot_ty (TVar pattern_tvar_id) then
+      Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) annot_ty
+    else
+      Type_context.add_incompatible_types_error ~cx pattern_loc (TVar pattern_tvar_id) annot_ty
+
+(* Type check function body, including binding types to function parameters and
    checking function return type. *)
-and check_function_declaration_body ~cx decl =
+and check_function_body ~cx decl =
   let open Ast.Function in
   let { name = { loc = id_loc; _ }; params; body; _ } = decl in
 
@@ -1049,48 +1071,97 @@ and check_expression ~cx expr =
    * Named Access
    * ============================
    *)
-  | NamedAccess { NamedAccess.loc; target; name = { Ast.Identifier.name = field_name; _ } } ->
+  | NamedAccess { NamedAccess.loc; target; name = { Ast.Identifier.name = access_name; _ } } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let (target_loc, target_tvar_id) = check_expression ~cx target in
     let target_rep_ty = Type_context.find_rep_type ~cx (TVar target_tvar_id) in
-    let is_record_ty =
+
+    (* Try to find a method with the given name in a set of trait sigs *)
+    let try_resolve_method trait_sigs type_args =
+      List.exists
+        (fun { TraitSig.type_params = trait_type_params; methods; _ } ->
+          match SMap.find_opt access_name methods with
+          | None -> false
+          | Some { FunctionSig.type_params; params; return } ->
+            (* Create fresh function type (refreshing only type params bound to the method itself).
+               Also must substitute trait's type params with true type args for ADT, since method will
+               be using trait's type args. *)
+            let method_type = Types.fresh_function_instance type_params params return in
+            let trait_type_param_bindings =
+              Types.bind_type_params_to_args trait_type_params type_args
+            in
+            let method_type = Types.substitute_type_params trait_type_param_bindings method_type in
+            ignore (Type_context.unify ~cx method_type (TVar tvar_id));
+            true)
+        trait_sigs
+    in
+    let try_resolve_adt_method { AdtSig.traits; _ } type_args =
+      try_resolve_method traits type_args
+    in
+    let try_resolve_trait_bounds_method bounds =
+      List.exists
+        (fun { TraitSig.trait_sig; type_args } -> try_resolve_method [trait_sig] type_args)
+        bounds
+    in
+
+    (* Try to resolve named access to a method access *)
+    let is_resolved =
       match target_rep_ty with
-      (* Can only index into ADTs with a single record variant *)
-      | ADT { adt_sig = { name; variants; _ }; _ } ->
-        (match SMap.choose_opt variants with
-        | Some (_, Record field_sigs) when SMap.cardinal variants = 1 ->
-          (* Look up field in field signatures, erroring if field does not exist *)
-          let result_ty =
-            match SMap.find_opt field_name field_sigs with
-            | None ->
-              Type_context.add_error ~cx loc (NamedAccessNonexistentField (name, field_name));
-              Type.Any
-            | Some field_sig_ty ->
-              (* If there are type params, calculate type param to type arg bindings and subtitute
-                 type params for type args in sig field type. *)
-              let type_param_bindings = Types.get_adt_type_param_bindings target_rep_ty in
-              if type_param_bindings = IMap.empty then
-                field_sig_ty
-              else
-                Types.substitute_type_params type_param_bindings field_sig_ty
-          in
-          ignore (Type_context.unify ~cx result_ty (TVar tvar_id));
-          true
-        | _ -> false)
       (* Propagate anys *)
-      | Any ->
+      | Type.Any ->
         ignore (Type_context.unify ~cx Any (TVar tvar_id));
         true
+      | Unit
+      | Bool
+      | Byte
+      | Int
+      | Long ->
+        let adt_sig = Std_lib.get_primitive_adt_sig target_rep_ty in
+        try_resolve_adt_method adt_sig []
+      | IntLiteral lit_ty ->
+        let resolved_ty = Type_context.resolve_int_literal_from_values ~cx lit_ty in
+        let adt_sig = Std_lib.get_primitive_adt_sig resolved_ty in
+        try_resolve_adt_method adt_sig []
+      | ADT { adt_sig; type_args } -> try_resolve_adt_method adt_sig type_args
+      | TypeParam { bounds; _ } -> try_resolve_trait_bounds_method bounds
+      | TraitBound { bounds; _ } -> try_resolve_trait_bounds_method bounds
       | _ -> false
     in
-    if not is_record_ty then (
-      Type_context.add_error ~cx target_loc (NonAccessibleAccessed (field_name, target_rep_ty));
+
+    (* If named access does not resolve to a method, try to resolve to a field access *)
+    let is_resolved =
+      is_resolved
+      ||
+      match target_rep_ty with
+      (* Can only index into ADTs with a single record variant *)
+      | ADT { adt_sig = { variants; _ }; _ } ->
+        (match SMap.choose_opt variants with
+        | Some (_, Record field_sigs) when SMap.cardinal variants = 1 ->
+          (match SMap.find_opt access_name field_sigs with
+          | None -> false
+          | Some field_sig_ty ->
+            (* If there are type params, calculate type param to type arg bindings and substitute
+               type params for type args in sig field type. *)
+            let type_param_bindings = Types.get_adt_type_param_bindings target_rep_ty in
+            let field_type = Types.substitute_type_params type_param_bindings field_sig_ty in
+            ignore (Type_context.unify ~cx field_type (TVar tvar_id));
+            true)
+        | _ -> false)
+      | _ -> false
+    in
+
+    if not is_resolved then (
+      Type_context.add_error ~cx target_loc (UnresolvedNamedAccess (access_name, target_rep_ty));
       ignore (Type_context.unify ~cx Type.Any (TVar tvar_id))
     );
     (loc, tvar_id)
+  | This loc ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    let this_type = Type_context.get_this_type ~cx in
+    ignore (Type_context.unify ~cx this_type (TVar tvar_id));
+    (loc, tvar_id)
   | Ternary _ -> failwith "TODO: Type checking for ternary expression"
   | Match _ -> failwith "TODO: Type check match expressions"
-  | This _ -> failwith "TODO: Type check this expressions"
   | Super _ -> failwith "TODO: Type check super expressions"
 
 and check_pattern ~cx patt =
@@ -1253,7 +1324,7 @@ and check_statement ~cx stmt =
   | VariableDeclaration decl -> check_variable_declaration ~cx decl
   | FunctionDeclaration decl ->
     build_function_declaration ~cx decl;
-    check_function_declaration_body ~cx decl
+    check_function_body ~cx decl
   | Expression (_, expr) -> ignore (check_expression ~cx expr)
   | Block { Block.statements; _ } -> List.iter (check_statement ~cx) statements
   | If { If.test; conseq; altern; _ } ->

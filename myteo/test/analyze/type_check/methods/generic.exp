@@ -1,0 +1,19 @@
+Error: Expected type `Unit` but found `(Int, Int)`
+test/analyze/type_check/methods/generic.myte:14:3-16
+ 14 |   (t1.generic(1): Unit);
+    |    ^^^^^^^^^^^^^
+
+Error: Expected type `Unit` but found `(Int, Bool)`
+test/analyze/type_check/methods/generic.myte:15:3-19
+ 15 |   (t1.generic(true): Unit);
+    |    ^^^^^^^^^^^^^^^^
+
+Error: Expected type `Unit` but found `(Bool, Int)`
+test/analyze/type_check/methods/generic.myte:16:3-16
+ 16 |   (t2.generic(1): Unit);
+    |    ^^^^^^^^^^^^^
+
+Error: Expected type `Unit` but found `(Bool, Bool)`
+test/analyze/type_check/methods/generic.myte:17:3-19
+ 17 |   (t2.generic(true): Unit);
+    |    ^^^^^^^^^^^^^^^^
