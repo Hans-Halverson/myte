@@ -1,0 +1,52 @@
+module test
+
+trait Container<T> {
+  fun getItem(): T
+}
+
+trait ContainerSubTrait<T> {
+  extends Container<T>
+}
+
+type Boxed<T> (T)
+
+methods Boxed<T> {
+  implements Container<T>
+
+  override fun getItem(): T = this[0]
+}
+
+fun useContainerInt(x: Container<Int>) {}
+fun useContainerT<T>(x: Container<T>): T = x.getItem()
+
+fun testADT<T>(x: Boxed<Int>, y: Boxed<T>) {
+  // Should all succeed
+  useContainerInt(x);
+  useContainerT(x) == x.getItem();
+  useContainerT(y) == y.getItem();
+
+  // Intentional failure
+  useContainerInt(y);
+}
+
+fun testTraitBoundType<T>(x: Container<Int>, y: Container<T>) {
+  // Should all succeed
+  useContainerInt(x);
+  useContainerT(x) == x.getItem();
+  useContainerT(y) == y.getItem();
+
+  // Intentional failure
+ useContainerInt(y);
+}
+
+fun testTraitBoundSubtype<T>(x: ContainerSubTrait<Int>, y: ContainerSubTrait<T>) {
+  // Should all succeed
+  useContainerInt(x);
+  useContainerT(x) == x.getItem();
+  useContainerT(y) == y.getItem();
+
+  // Intentional failure
+  useContainerInt(y);
+}
+
+fun main() {}

@@ -186,8 +186,7 @@ let rec find_rep_type ~cx (ty : Type.t) =
   | Byte
   | Int
   | Long
-  | IntLiteral { resolved = None; _ }
-  | TypeParam _ ->
+  | IntLiteral { resolved = None; _ } ->
     ty
   | IntLiteral { resolved = Some ty; _ }
   | TraitBound { resolved = Some ty; _ } ->
@@ -223,6 +222,12 @@ let rec find_rep_type ~cx (ty : Type.t) =
       ty
     else
       TraitBound { resolved = None; bounds = bounds' }
+  | TypeParam { id; name; bounds } ->
+    let bounds' = id_map_list (find_trait_instance_rep_type ~cx) bounds in
+    if bounds == bounds' then
+      ty
+    else
+      TypeParam { id; name; bounds = bounds' }
   | TVar tvar_id ->
     let (_, rep_ty, _) = find_union_rep_node ~cx tvar_id in
     (match rep_ty with
@@ -284,44 +289,72 @@ let union_tvars ~cx (ty1 : Type.t) (ty2 : Type.t) =
 
 let rec type_satisfies_trait_bounds ~cx ty trait_bounds =
   let open TraitSig in
-  let trait_satisfies_bound trait bound =
-    bound.trait_sig.id = trait.trait_sig.id
-    && List.for_all2
-         (fun bound_arg implemented_arg -> unify ~cx bound_arg implemented_arg)
-         bound.type_args
-         trait.type_args
+  let trait_satisfies_bound trait bound type_param_bindings =
+    let trait_match = bound.trait_sig.id = trait.trait_sig.id in
+    if trait_match then
+      List.for_all2
+        (fun implemented_arg bound_arg ->
+          let implemented_arg = Types.substitute_type_params type_param_bindings implemented_arg in
+          unify ~cx implemented_arg bound_arg)
+        trait.type_args
+        bound.type_args
+    else
+      false
   in
-  let trait_or_implemented_satisfies_bound trait bound =
-    trait_satisfies_bound trait bound
-    || List.exists
-         (fun implemented_trait -> trait_satisfies_bound implemented_trait bound)
-         trait.trait_sig.implemented
-  in
+
+  (* Traits can implement bounds directly if the trait matches the bound, otherwise check the
+     implemented traits for each trait against the bound. *)
   let traits_satisfy_bounds traits bounds =
     List.for_all
       (fun bound ->
-        List.exists (fun trait -> trait_or_implemented_satisfies_bound trait bound) traits)
+        List.exists
+          (fun trait ->
+            let is_satisfied = trait_satisfies_bound trait bound IMap.empty in
+            if is_satisfied then
+              true
+            else
+              (* Must substitute type args of trait within implemented traits *)
+              let type_param_bindings =
+                Types.bind_type_params_to_args trait.trait_sig.type_params trait.type_args
+              in
+              List.exists
+                (fun implemented_trait ->
+                  trait_satisfies_bound implemented_trait bound type_param_bindings)
+                trait.trait_sig.implemented)
+          traits)
       bounds
   in
-  (* Check all implemented traits for ADT (across all trait/method blocks) *)
-  let adt_satisfies_bounds adt trait_bounds =
-    let all_implemented =
-      List.map (fun { TraitSig.implemented; _ } -> implemented) adt.AdtSig.traits |> List.flatten
-    in
-    traits_satisfy_bounds all_implemented trait_bounds
+
+  (* Check all implemented traits for ADT (across all type trait blocks) *)
+  let adt_satisfies_bounds adt_sig type_args bounds =
+    List.for_all
+      (fun bound ->
+        List.exists
+          (fun type_trait ->
+            (* Must substitute type args of ADT within type traits *)
+            let type_param_bindings =
+              Types.bind_type_params_to_args type_trait.type_params type_args
+            in
+            List.exists
+              (fun implemented_trait ->
+                trait_satisfies_bound implemented_trait bound type_param_bindings)
+              type_trait.implemented)
+          adt_sig.AdtSig.traits)
+      bounds
   in
+
   match ty with
+  (* The any type implements all traits *)
   | Type.Any -> true
+  (* Look up known ADT sig in stdlib for each primitive type *)
   | Unit
   | Bool
   | Byte
   | Int
   | Long ->
-    adt_satisfies_bounds (Std_lib.get_primitive_adt_sig ty) trait_bounds
-  (* TODO: Handle parameterized traits by substituting type args *)
+    adt_satisfies_bounds (Std_lib.get_primitive_adt_sig ty) [] trait_bounds
   | TypeParam { bounds; _ } -> traits_satisfy_bounds bounds trait_bounds
-  (* TODO: Handle parameterized ADTs by substituting type args *)
-  | ADT { adt_sig; _ } -> adt_satisfies_bounds adt_sig trait_bounds
+  | ADT { adt_sig; type_args } -> adt_satisfies_bounds adt_sig type_args trait_bounds
   (* Unresolved int literal types are first resolved to the best choice based on their values *)
   | IntLiteral lit_ty ->
     let resolved_ty = resolve_int_literal_from_values ~cx lit_ty in
@@ -387,8 +420,14 @@ and unify ~cx ty1 ty2 =
   (* Unresolved trait bounds can be unified with a concrete type if the type satisfies the bound *)
   | (ty, TraitBound trait_bound)
   | (TraitBound trait_bound, ty) ->
-    let satisfies_trait_bound = type_satisfies_trait_bounds ~cx ty trait_bound.bounds in
-    if satisfies_trait_bound then trait_bound.resolved <- Some ty;
+    let rep_ty = find_rep_type ~cx ty in
+    let rep_trait_bound =
+      match find_rep_type ~cx (TraitBound trait_bound) with
+      | TraitBound trait_bound -> trait_bound
+      | _ -> failwith "Expected trait_bound"
+    in
+    let satisfies_trait_bound = type_satisfies_trait_bounds ~cx rep_ty rep_trait_bound.bounds in
+    if satisfies_trait_bound then rep_trait_bound.resolved <- Some rep_ty;
     satisfies_trait_bound
   (* All other combinations of types cannot be unified *)
   | _ -> false
@@ -448,8 +487,14 @@ and is_subtype ~cx sub sup =
     true
   (* Unresolved trait bounds can be unified with a concrete type if the type satisfies the bound *)
   | (ty, TraitBound trait_bound) ->
-    let satisfies_trait_bound = type_satisfies_trait_bounds ~cx ty trait_bound.bounds in
-    if satisfies_trait_bound then trait_bound.resolved <- Some ty;
+    let rep_ty = find_rep_type ~cx ty in
+    let rep_trait_bound =
+      match find_rep_type ~cx (TraitBound trait_bound) with
+      | TraitBound trait_bound -> trait_bound
+      | _ -> failwith "Expected trait_bound"
+    in
+    let satisfies_trait_bound = type_satisfies_trait_bounds ~cx rep_ty rep_trait_bound.bounds in
+    if satisfies_trait_bound then rep_trait_bound.resolved <- Some rep_ty;
     satisfies_trait_bound
   | _ -> false
 

@@ -1,0 +1,14 @@
+Error: Expected type `Container<Int>` but found `Boxed<T>`
+test/analyze/type_check/traits/generic_traits.myte:29:18
+ 29 |   useContainerInt(y);
+    |                   ^
+
+Error: Expected type `Container<Int>` but found `implicit Container<T>`
+test/analyze/type_check/traits/generic_traits.myte:39:17
+ 39 |  useContainerInt(y);
+    |                  ^
+
+Error: Expected type `Container<Int>` but found `implicit ContainerSubTrait<T>`
+test/analyze/type_check/traits/generic_traits.myte:49:18
+ 49 |   useContainerInt(y);
+    |                   ^
