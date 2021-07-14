@@ -1382,7 +1382,9 @@ and assert_expression_is_lvalue_expression expr =
   | Identifier _ -> ()
   | NamedAccess { target; _ }
   | IndexedAccess { target; _ } ->
-    assert_expression_is_lvalue_expression target
+    (match target with
+    | This _ -> ()
+    | _ -> assert_expression_is_lvalue_expression target)
   | _ -> Parse_error.fatal (Ast_utils.expression_loc expr, Parse_error.InvalidAssignmentPattern)
 
 and reparse_expression_as_lvalue_pattern expr =

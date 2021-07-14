@@ -1,7 +1,7 @@
 test/parser/ast/assignment/basic.myte
 {
   node: Module,
-  loc: 1:0-36:1,
+  loc: 1:0-40:1,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -20,7 +20,7 @@ test/parser/ast/assignment/basic.myte
   toplevels: [
     {
       node: Function,
-      loc: 3:0-36:1,
+      loc: 3:0-40:1,
       name: {
         node: Identifier,
         loc: 3:4-3:8,
@@ -29,7 +29,7 @@ test/parser/ast/assignment/basic.myte
       params: [],
       body: {
         node: Block,
-        loc: 3:11-36:1,
+        loc: 3:11-40:1,
         statements: [
           {
             node: Assignment,
@@ -808,6 +808,50 @@ test/parser/ast/assignment/basic.myte
             expr: {
               node: IntLiteral,
               loc: 35:23-35:24,
+              raw: "1",
+            },
+          },
+          {
+            node: Assignment,
+            loc: 38:2-38:13,
+            lvalue: {
+              node: NamedAccess,
+              loc: 38:2-38:8,
+              target: {
+                node: This,
+                loc: 38:2-38:6,
+              },
+              name: {
+                node: Identifier,
+                loc: 38:7-38:8,
+                name: "A",
+              },
+            },
+            expr: {
+              node: IntLiteral,
+              loc: 38:11-38:12,
+              raw: "1",
+            },
+          },
+          {
+            node: Assignment,
+            loc: 39:2-39:14,
+            lvalue: {
+              node: IndexedAccess,
+              loc: 39:2-39:9,
+              target: {
+                node: This,
+                loc: 39:2-39:6,
+              },
+              index: {
+                node: Identifier,
+                loc: 39:7-39:8,
+                name: "A",
+              },
+            },
+            expr: {
+              node: IntLiteral,
+              loc: 39:12-39:13,
               raw: "1",
             },
           },

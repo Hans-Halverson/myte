@@ -1,0 +1,31 @@
+module test
+
+type Rec1<T> { foo: Int, bar: T }
+
+methods Rec1<T> {
+  fun test(x: T) {
+    // Intentional failures - print types
+    this.foo = true;
+    this.bar = true;
+
+    // Success
+    this.foo = 1;
+    this.bar = x;
+  }
+}
+
+type Rec2<T> (Int, Rec1<T>)
+
+methods Rec2<T> {
+  fun test(x: T) {
+    // Intentional failures - print types
+    this[1].foo = true;
+    this[1].bar = true;
+
+    // Success
+    this[1].foo = 1;
+    this[1].bar = x;
+  }
+}
+
+fun main() {}

@@ -1,0 +1,19 @@
+Error: Expected type `Int` but found `Bool`
+test/analyze/type_check/this/field_assign.myte:8:15-19
+ 8 |     this.foo = true;
+   |                ^^^^
+
+Error: Expected type `T` but found `Bool`
+test/analyze/type_check/this/field_assign.myte:9:15-19
+ 9 |     this.bar = true;
+   |                ^^^^
+
+Error: Expected type `Int` but found `Bool`
+test/analyze/type_check/this/field_assign.myte:22:18-22
+ 22 |     this[1].foo = true;
+    |                   ^^^^
+
+Error: Expected type `T` but found `Bool`
+test/analyze/type_check/this/field_assign.myte:23:18-22
+ 23 |     this[1].bar = true;
+    |                   ^^^^
