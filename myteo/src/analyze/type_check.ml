@@ -253,10 +253,25 @@ and build_trait_declarations ~cx module_ =
     (fun toplevel ->
       match toplevel with
       | TraitDeclaration { loc; kind; name; methods; implemented; _ } ->
-        (* Create `This` type alias for trait body *)
         let binding = Type_context.get_type_binding_from_decl ~cx name.loc in
         let trait_decl = Bindings.get_trait_decl binding in
         let trait_sig = trait_decl.trait_sig in
+
+        (* Check arity of type params for type traits *)
+        (match kind with
+        | Trait -> ()
+        | Methods ->
+          let binding = Type_context.get_type_binding ~cx name.loc in
+          let type_decl = Bindings.get_type_decl binding in
+          let num_type_params = List.length type_decl.adt_sig.type_params in
+          let num_trait_params = List.length trait_sig.type_params in
+          if num_type_params <> num_trait_params then
+            Type_context.add_error
+              ~cx
+              name.loc
+              (IncorrectTypeParametersArity (num_trait_params, num_type_params)));
+
+        (* Create `This` type alias for trait body *)
         let type_args =
           List.map (fun type_param -> Type.TypeParam type_param) trait_sig.type_params
         in

@@ -1,0 +1,12 @@
+module test
+
+type Type1<T> (T)
+
+// Failure
+methods Type1 {}
+methods Type1<T, U> {}
+
+// Success
+methods Type1<T> {}
+
+fun main() {}

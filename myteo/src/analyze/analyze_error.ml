@@ -345,7 +345,7 @@ let to_string error =
       actual
   | IncorrectTypeParametersArity (actual, expected) ->
     Printf.sprintf
-      "Incorrect number of type parameters passed to type. Expected %d %s but found %d."
+      "Incorrect number of type parameters. Expected %d %s but found %d."
       expected
       (plural expected "type parameter")
       actual
