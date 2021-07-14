@@ -1,0 +1,9 @@
+Error: Expected type `Foo` but found `implicit NonFoo`
+test/analyze/type_check/type_parameters/implicit.myte:25:9
+ 25 |   useFoo(x);
+    |          ^
+
+Error: Expected type `implicit Foo` but found `implicit Foo`
+test/analyze/type_check/type_parameters/implicit.myte:29:14
+ 29 |   sameType(x, y);
+    |               ^

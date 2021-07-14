@@ -1,0 +1,9 @@
+Error: Implicit trait type parameters can only appear in function parameter types
+test/analyze/type_check/type_parameters/implicit_outside_function_error1.myte:5:19-22
+ 5 | type alias Alias = Foo
+   |                    ^^^
+
+Error: Implicit trait type parameters can only appear in function parameter types
+test/analyze/type_check/type_parameters/implicit_outside_function_error1.myte:6:11-14
+ 6 | type Type (Foo)
+   |            ^^^

@@ -1,0 +1,10 @@
+module test
+
+trait Foo {}
+
+// Allowed in parameters but not return type
+fun foo(x: Foo): Foo = x
+
+val variable: Foo = 1
+
+fun main() {}

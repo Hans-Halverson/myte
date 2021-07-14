@@ -1,0 +1,8 @@
+module test
+
+trait Foo {}
+
+type alias Alias = Foo
+type Type (Foo)
+
+fun main() {}

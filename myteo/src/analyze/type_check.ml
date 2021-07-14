@@ -2,18 +2,23 @@ open Analyze_error
 open Basic_collections
 open Types
 
-let rec build_type ~cx ty =
+let rec build_type ~cx ?(implicit_type_params = None) ty =
   let open Ast.Type in
   match ty with
-  | Tuple { Tuple.elements; _ } -> Type.Tuple (List.map (build_type ~cx) elements)
+  | Tuple { Tuple.elements; _ } ->
+    Type.Tuple (List.map (build_type ~cx ~implicit_type_params) elements)
   | Function { Function.params; return; _ } ->
     Type.Function
-      { type_args = []; params = List.map (build_type ~cx) params; return = build_type ~cx return }
+      {
+        type_args = [];
+        params = List.map (build_type ~cx ~implicit_type_params) params;
+        return = build_type ~cx ~implicit_type_params return;
+      }
   | Identifier { Identifier.loc; name; type_params; _ } ->
     let type_param_arity_error actual expected =
       Type_context.add_error ~cx loc (IncorrectTypeParametersArity (actual, expected))
     in
-    let type_args = List.map (build_type ~cx) type_params in
+    let type_args = List.map (build_type ~cx ~implicit_type_params) type_params in
     let num_type_args = List.length type_args in
     let binding = Type_context.get_type_binding ~cx name.name.loc in
     let mk_if_correct_arity arity mk_ty =
@@ -57,7 +62,28 @@ let rec build_type ~cx ty =
         let adt_sig = type_decl.adt_sig in
         mk_if_correct_arity (List.length adt_sig.type_params) (fun _ ->
             Type.ADT { adt_sig; type_args })
-      | TraitDecl _ -> (* TODO: Type check traits *) Type.Any))
+      (* A trait as a raw identifier is an implicit type parameter *)
+      | TraitDecl trait_decl ->
+        (match implicit_type_params with
+        (* Implicit type parameters are only allowed in the types of function parameters *)
+        | None ->
+          Type_context.add_error ~cx loc ImplicitTypeParamOutsideFunction;
+          Type.Any
+        | Some implicit_type_params ->
+          let trait_sig = trait_decl.trait_sig in
+          let num_type_params = List.length trait_sig.type_params in
+          if num_type_params <> num_type_args then (
+            Type_context.add_error
+              ~cx
+              loc
+              (IncorrectTypeParametersArity (num_type_args, num_type_params));
+            Type.Any
+          ) else
+            (* Create implicit type parameter and save in list of implicits *)
+            let bound = { TraitSig.trait_sig; type_args } in
+            let type_param = TypeParam.mk ~name:Implicit ~bounds:[bound] in
+            implicit_type_params := (type_param, loc) :: !implicit_type_params;
+            Type.TypeParam type_param)))
 
 and build_types_and_traits_prepass ~cx module_ =
   let open Ast.Module in
@@ -478,7 +504,7 @@ and build_type_parameters ~cx params =
         else
           List.rev bounds
       in
-      let type_param = Types.TypeParam.mk ~name ~bounds in
+      let type_param = Types.TypeParam.mk ~name:(Explicit name) ~bounds in
       Bindings.TypeParamDeclaration.set type_param_decl type_param;
       type_param)
     params
@@ -487,9 +513,21 @@ and build_type_parameters ~cx params =
 and build_function_declaration ~cx decl =
   let open Ast.Function in
   let { name = { loc = id_loc; _ }; params; return; type_params; _ } = decl in
-  let type_params = build_type_parameters ~cx type_params in
-  let params = List.map (fun param -> build_type ~cx param.Param.annot) params in
+  let explicit_type_params = build_type_parameters ~cx type_params in
+  let implicit_type_params = ref [] in
+  let params =
+    List.map
+      (fun param ->
+        build_type ~cx ~implicit_type_params:(Some implicit_type_params) param.Param.annot)
+      params
+  in
   let return = Option.fold ~none:Type.Unit ~some:(fun return -> build_type ~cx return) return in
+
+  (* Combine implicit type params with explicit type params in order they are declared *)
+  let implicit_type_params =
+    List.sort (fun (_, loc1) (_, loc2) -> Loc.compare loc1 loc2) !implicit_type_params
+  in
+  let type_params = explicit_type_params @ List.map fst implicit_type_params in
 
   (* Bind annotated function type and signature to function declaration *)
   let binding = Type_context.get_value_binding ~cx id_loc in

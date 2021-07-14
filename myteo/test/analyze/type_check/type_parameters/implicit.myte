@@ -1,0 +1,32 @@
+module test
+
+trait Foo {}
+
+trait FooChild {
+  extends Foo
+}
+
+trait NonFoo {}
+
+fun useFoo(x: Foo) {}
+fun sameType<T>(x: T, y: T) {}
+
+// Successes
+fun test1(x: Foo) {
+  useFoo(x);
+}
+
+fun test2(x: FooChild) {
+  useFoo(x);
+}
+
+// Failures
+fun test3(x: NonFoo) {
+  useFoo(x);
+}
+
+fun test4(x: Foo, y: Foo) {
+  sameType(x, y);
+}
+
+fun main() {}

@@ -43,6 +43,7 @@ type t =
   | CyclicTypeAlias of string
   | NonTraitAsBound
   | TypeAliasWithBounds
+  | ImplicitTypeParamOutsideFunction
   | ToplevelVarWithoutAnnotation
   | IncompatibleTypes of Type.t * Type.t list
   | CannotInferType of cannot_infer_type_kind * (Type.t * TVar.t list) option
@@ -293,6 +294,8 @@ let to_string error =
   | CyclicTypeAlias name -> Printf.sprintf "Cycle detected in definition of type `%s`" name
   | NonTraitAsBound -> "Type parameter bound is not a trait"
   | TypeAliasWithBounds -> "Type parameters cannot have bounds in type aliases"
+  | ImplicitTypeParamOutsideFunction ->
+    "Implicit trait type parameters can only appear in function parameter types"
   | ToplevelVarWithoutAnnotation -> Printf.sprintf "Toplevel variables must have type annotations"
   | IncompatibleTypes (actual, expecteds) ->
     let type_strings = Types.pps (expecteds @ [actual]) |> List.map (fun str -> "`" ^ str ^ "`") in

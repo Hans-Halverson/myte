@@ -20,19 +20,27 @@ and TypeParam : sig
 
   type t = {
     id: id;
-    name: string;
+    name: name;
     bounds: TraitSig.instance list;
   }
 
-  val mk : name:string -> bounds:TraitSig.instance list -> t
+  and name =
+    | Implicit
+    | Explicit of string
+
+  val mk : name:name -> bounds:TraitSig.instance list -> t
 end = struct
   type id = int
 
   type t = {
     id: id;
-    name: string;
+    name: name;
     bounds: TraitSig.instance list;
   }
+
+  and name =
+    | Implicit
+    | Explicit of string
 
   let max_id = ref 0
 
@@ -367,10 +375,13 @@ let rec pp_with_names ~tvar_to_name ty =
     let x = IMap.find tvar_id tvar_to_name in
     x
   | TypeParam { TypeParam.name; id = _; bounds } ->
-    if bounds = [] then
-      name
-    else
-      name ^ ": " ^ pp_trait_bounds bounds
+    (match name with
+    | Implicit -> "implicit " ^ pp_trait_bounds bounds
+    | Explicit name ->
+      if bounds = [] then
+        name
+      else
+        name ^ ": " ^ pp_trait_bounds bounds)
   | IntLiteral { resolved = Some resolved; _ }
   | TraitBound { resolved = Some resolved; _ } ->
     pp_with_names ~tvar_to_name resolved
