@@ -1,0 +1,38 @@
+module test
+
+trait Container<T> {}
+
+type Boxed1<T> (T)
+methods Boxed1<T> {
+  implements Container<T>
+}
+
+type Boxed2<T> (T)
+methods Boxed2<T> {
+  implements Container<T>
+}
+
+fun useContainersSame<T, U: Container<T>>(x: U, y: U) {}
+fun useContainersDifferent<T>(x: Container<T>, y: Container<T>) {}
+
+fun testUseContainersSame() {
+  // Success
+  useContainersSame(Boxed1(0), Boxed1(0));
+
+  // Failure
+  useContainersSame(Boxed1(0), Boxed1(true));
+  useContainersSame(Boxed1(0), Boxed2(0));
+  useContainersSame(Boxed1(0), Boxed2(true));
+}
+
+fun testUseContainersDifferent() {
+  // Success
+  useContainersDifferent(Boxed1(0), Boxed1(0));
+  useContainersDifferent(Boxed1(0), Boxed2(0));
+
+  // Failure
+  useContainersDifferent(Boxed1(0), Boxed1(true));
+  useContainersDifferent(Boxed1(0), Boxed2(true));
+}
+
+fun main() {}

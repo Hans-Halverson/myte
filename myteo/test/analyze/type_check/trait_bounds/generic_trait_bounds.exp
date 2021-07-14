@@ -1,0 +1,24 @@
+Error: Expected type `Boxed1<Int>` but found `Boxed1<Bool>`
+test/analyze/type_check/trait_bounds/generic_trait_bounds.myte:23:31-43
+ 23 |   useContainersSame(Boxed1(0), Boxed1(true));
+    |                                ^^^^^^^^^^^^
+
+Error: Expected type `Boxed1<Int>` but found `Boxed2<Int>`
+test/analyze/type_check/trait_bounds/generic_trait_bounds.myte:24:31-40
+ 24 |   useContainersSame(Boxed1(0), Boxed2(0));
+    |                                ^^^^^^^^^
+
+Error: Expected type `Boxed1<Int>` but found `Boxed2<Bool>`
+test/analyze/type_check/trait_bounds/generic_trait_bounds.myte:25:31-43
+ 25 |   useContainersSame(Boxed1(0), Boxed2(true));
+    |                                ^^^^^^^^^^^^
+
+Error: Expected type `Container<Int>` but found `Boxed1<Bool>`
+test/analyze/type_check/trait_bounds/generic_trait_bounds.myte:34:36-48
+ 34 |   useContainersDifferent(Boxed1(0), Boxed1(true));
+    |                                     ^^^^^^^^^^^^
+
+Error: Expected type `Container<Int>` but found `Boxed2<Bool>`
+test/analyze/type_check/trait_bounds/generic_trait_bounds.myte:35:36-48
+ 35 |   useContainersDifferent(Boxed1(0), Boxed2(true));
+    |                                     ^^^^^^^^^^^^

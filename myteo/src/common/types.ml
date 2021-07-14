@@ -277,12 +277,15 @@ let rec substitute_type_params type_params ty =
   | TVar _
   | IntLiteral { resolved = None; _ } ->
     ty
+  | TraitBound ({ resolved = None; bounds } as trait_bound) ->
+    (* Unresolved trait bound types must be preserved, and will only have substitutable type
+       parameters when initially created, so mutate bounds in place. *)
+    let bounds' = substitute_trait_bounds bounds in
+    trait_bound.bounds <- bounds';
+    ty
   | IntLiteral { resolved = Some resolved; _ }
   | TraitBound { resolved = Some resolved; _ } ->
     substitute_type_params type_params resolved
-  | TraitBound { resolved = None; bounds } ->
-    let bounds' = substitute_trait_bounds bounds in
-    TraitBound { resolved = None; bounds = bounds' }
   | Array element -> Array (substitute_type_params type_params element)
   | Tuple elements -> Tuple (List.map (substitute_type_params type_params) elements)
   | Function { type_args; params; return } ->

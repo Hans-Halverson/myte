@@ -216,12 +216,11 @@ let rec find_rep_type ~cx (ty : Type.t) =
       ty
     else
       ADT { adt_sig; type_args = type_args' }
-  | TraitBound { resolved = None; bounds } ->
+  | TraitBound ({ resolved = None; bounds } as trait_bound) ->
+    (* Unresolved trait bound types must be preserved, so keep type and update bounds with rep types *)
     let bounds' = id_map_list (find_trait_instance_rep_type ~cx) bounds in
-    if bounds == bounds' then
-      ty
-    else
-      TraitBound { resolved = None; bounds = bounds' }
+    trait_bound.bounds <- bounds';
+    ty
   | TypeParam { id; name; bounds } ->
     let bounds' = id_map_list (find_trait_instance_rep_type ~cx) bounds in
     if bounds == bounds' then
@@ -493,8 +492,12 @@ and is_subtype ~cx sub sup =
       | TraitBound trait_bound -> trait_bound
       | _ -> failwith "Expected trait_bound"
     in
+    (* Printf.eprintf "is_subtype: %s\n" (String.concat " <: " (Types.pps [ty; TraitBound trait_bound]));
+       Printf.eprintf "is unresolved %B %B %B\n" (trait_bound.resolved = None) (rep_trait_bound.resolved = None) (trait_bound == rep_trait_bound); *)
     let satisfies_trait_bound = type_satisfies_trait_bounds ~cx rep_ty rep_trait_bound.bounds in
     if satisfies_trait_bound then rep_trait_bound.resolved <- Some rep_ty;
+    (* Printf.eprintf "Satisfies trait bound %B\n" satisfies_trait_bound;
+       Printf.eprintf "is unresolved %B\n" (rep_trait_bound.resolved = None); *)
     satisfies_trait_bound
   | _ -> false
 
