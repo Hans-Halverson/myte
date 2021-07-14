@@ -1,0 +1,9 @@
+Error: Could not resolve name `This` to type
+test/analyze/name_resolution/traits/implicit_this_type.myte:16:12-16
+ 16 | fun test(x: This) {
+    |             ^^^^
+
+Error: Could not resolve name `This` to type
+test/analyze/name_resolution/traits/implicit_this_type.myte:17:9-13
+ 17 |   val y: This = x;
+    |          ^^^^

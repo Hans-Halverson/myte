@@ -158,6 +158,7 @@ and TraitSig : sig
     mutable type_params: TypeParam.t list;
     mutable methods: FunctionSig.t SMap.t;
     mutable implemented: instance list;
+    mutable this_type_param_id: TypeParam.id;
   }
 
   and instance = {
@@ -179,6 +180,7 @@ end = struct
     mutable type_params: TypeParam.t list;
     mutable methods: FunctionSig.t SMap.t;
     mutable implemented: instance list;
+    mutable this_type_param_id: TypeParam.id;
   }
 
   and instance = {
@@ -193,7 +195,15 @@ end = struct
     max_id := id + 1;
     id
 
-  let mk ~name = { id = mk_id (); name; type_params = []; methods = SMap.empty; implemented = [] }
+  let mk ~name =
+    {
+      id = mk_id ();
+      name;
+      type_params = [];
+      methods = SMap.empty;
+      implemented = [];
+      this_type_param_id = 0;
+    }
 
   let add_method trait_sig name func_sig =
     trait_sig.methods <- SMap.add name func_sig trait_sig.methods

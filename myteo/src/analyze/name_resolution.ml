@@ -614,9 +614,17 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
 
     method visit_trait_declaration decl =
       let open Ast.TraitDeclaration in
-      let { name = { name; _ }; type_params; implemented; methods; _ } = decl in
+      let { loc; name = { name; _ }; type_params; implemented; methods; _ } = decl in
       this#enter_scope ();
+
+      (* Add implicit `This` type to scope within trait *)
+      let binding = this#add_type_declaration loc "This" (TypeAlias (TypeAliasDeclaration.mk ())) in
+      this#add_type_to_scope "This" (Decl binding);
+
+      (* Then add type parameters for trait to scope *)
       this#visit_type_parameters type_params (FunctionName name);
+
+      (* Resolve implemented traits and methods *)
       List.iter
         (fun { ImplementedTrait.type_args; _ } ->
           List.iter (fun ty -> ignore (this#type_ ty)) type_args)
@@ -636,6 +644,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             ))
           methods
       in
+
       this#exit_scope ();
       if methods == methods' then
         decl

@@ -1,0 +1,29 @@
+module test
+
+trait Trait1 {
+  fun foo(): This
+  fun bar(): This
+}
+
+trait Trait2 {
+  extends Trait1
+
+  override fun foo(): This = this
+}
+
+type Type1 (Unit)
+methods Type1 {
+  implements Trait1
+
+  override fun foo(): Type1 = this
+  override fun bar(): This = this
+}
+
+// Intentional failure to print This type
+trait Trait3 {
+  extends Trait1
+  
+  override fun foo(): Int = 1
+}
+
+fun main() {}

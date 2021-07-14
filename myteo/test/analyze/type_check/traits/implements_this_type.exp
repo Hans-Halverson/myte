@@ -1,0 +1,4 @@
+Error: Method `foo` has incompatible type from declaration in trait `Trait1`. Declared as type `() -> This: Trait3` but found `() -> Int`.
+test/analyze/type_check/traits/implements_this_type.myte:26:15-18
+ 26 |   override fun foo(): Int = 1
+    |                ^^^

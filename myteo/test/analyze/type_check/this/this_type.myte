@@ -4,7 +4,10 @@ trait Trait {
   fun test() {
     // Intentional failure - print type
     (this: Unit);
+    ((): This);
   }
+
+  fun id(): This = this
 }
 
 type Type (Unit)
@@ -12,10 +15,13 @@ methods Type {
   fun test() {
     // Intentional failure - print type
     (this: Unit);
+    ((): This);
 
     // Success
     this == (Type (()));
   }
+
+  fun id(): This = this
 }
 
 fun main() {}

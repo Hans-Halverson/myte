@@ -252,9 +252,32 @@ and build_trait_declarations ~cx module_ =
   List.iter
     (fun toplevel ->
       match toplevel with
-      | TraitDeclaration { name; methods; implemented; _ } ->
+      | TraitDeclaration { loc; kind; name; methods; implemented; _ } ->
+        (* Create `This` type alias for trait body *)
         let binding = Type_context.get_type_binding_from_decl ~cx name.loc in
         let trait_decl = Bindings.get_trait_decl binding in
+        let trait_sig = trait_decl.trait_sig in
+        let type_args =
+          List.map (fun type_param -> Type.TypeParam type_param) trait_sig.type_params
+        in
+        let this_type =
+          match kind with
+          (* ADT's `This` type is the ADT type *)
+          | Methods ->
+            let binding = Type_context.get_type_binding ~cx name.loc in
+            let type_decl = Bindings.get_type_decl binding in
+            Type.ADT { adt_sig = type_decl.adt_sig; type_args }
+          (* Trait's `This` type is a type parameter bounded by the trait *)
+          | Trait ->
+            let trait_bound = { TraitSig.trait_sig; type_args } in
+            let type_param = TypeParam.mk ~name:(Explicit "This") ~bounds:[trait_bound] in
+            trait_sig.this_type_param_id <- type_param.id;
+            Type.TypeParam type_param
+        in
+        let this_type_binding = Type_context.get_type_binding ~cx loc in
+        let this_type_alias = Bindings.get_type_alias_decl this_type_binding in
+        this_type_alias.body <- this_type;
+
         (* Build types for all implemented traits *)
         List.iter
           (fun { Ast.TraitDeclaration.ImplementedTrait.name; type_args; _ } ->
@@ -276,7 +299,7 @@ and build_trait_implementations ~cx module_ =
   List.iter
     (fun toplevel ->
       match toplevel with
-      | TraitDeclaration { kind; name; implemented; _ } ->
+      | TraitDeclaration { loc; kind; name; implemented; _ } ->
         let open Bindings.TraitDeclaration in
         let binding = Type_context.get_type_binding_from_decl ~cx name.loc in
         let trait_decl = Bindings.get_trait_decl binding in
@@ -318,13 +341,17 @@ and build_trait_implementations ~cx module_ =
             SSet.empty
         in
 
+        (* Fetch `This` type for trait body *)
+        let this_type_binding = Type_context.get_type_binding ~cx loc in
+        let this_type_alias = Bindings.get_type_alias_decl this_type_binding in
+
         (* Check implementations of all super traits *)
         List.iter
           (fun { Ast.TraitDeclaration.ImplementedTrait.loc; name; _ } ->
             let implemented_trait = LocMap.find name.loc trait_decl.implemented in
             build_trait_implementation
               ~cx
-              (trait_decl, kind, loc, already_implemented_methods)
+              (trait_decl, kind, this_type_alias.body, loc, already_implemented_methods)
               implemented_trait
               IMap.empty)
           implemented
@@ -336,7 +363,8 @@ and build_trait_implementations ~cx module_ =
    trait signature as we go. *)
 and build_trait_implementation
     ~cx
-    ((trait_decl, trait_decl_kind, base_implemented_loc, already_implemented_methods) as base)
+    ( (trait_decl, trait_decl_kind, this_type, base_implemented_loc, already_implemented_methods) as
+    base )
     { implemented_trait; implemented_type_args; _ }
     prev_type_param_bindings =
   (* Check that type param arity matches *)
@@ -355,6 +383,10 @@ and build_trait_implementation
     in
     let type_param_bindings =
       Types.bind_type_params_to_args implemented_trait.trait_sig.type_params implemented_type_args
+    in
+    (* Substitute `This` type for base trait for `This` type of implemented trait *)
+    let type_param_bindings =
+      IMap.add implemented_trait.trait_sig.this_type_param_id this_type type_param_bindings
     in
 
     (* Add implemented trait to trait sig *)
@@ -475,28 +507,11 @@ and check_module ~cx module_ =
       match toplevel with
       | VariableDeclaration decl -> check_variable_declaration ~cx decl
       | FunctionDeclaration decl -> if not decl.builtin then check_function_body ~cx decl
-      | TraitDeclaration { name; kind; methods; _ } ->
+      | TraitDeclaration { loc; methods; _ } ->
         (* Set up `This` type for checking trait body *)
-        let binding = Type_context.get_type_binding_from_decl ~cx name.loc in
-        let trait_decl = Bindings.get_trait_decl binding in
-        let trait_sig = trait_decl.trait_sig in
-        let type_args =
-          List.map (fun type_param -> Type.TypeParam type_param) trait_sig.type_params
-        in
-        let this_type =
-          match kind with
-          (* ADT's `This` type is the ADT type *)
-          | Methods ->
-            let binding = Type_context.get_type_binding ~cx name.loc in
-            let type_decl = Bindings.get_type_decl binding in
-            Type.ADT { adt_sig = type_decl.adt_sig; type_args }
-          (* Trait's `This` type is a type parameter bounded by the trait *)
-          | Trait ->
-            let trait_bound = { TraitSig.trait_sig; type_args } in
-            let type_param = TypeParam.mk ~name:(Explicit "This") ~bounds:[trait_bound] in
-            Type.TypeParam type_param
-        in
-        Type_context.set_this_type ~cx this_type;
+        let this_type_binding = Type_context.get_type_binding ~cx loc in
+        let this_type_alias = Bindings.get_type_alias_decl this_type_binding in
+        Type_context.set_this_type ~cx this_type_alias.body;
         List.iter
           (fun method_ ->
             if method_.Ast.Function.body <> Signature then check_function_body ~cx method_)

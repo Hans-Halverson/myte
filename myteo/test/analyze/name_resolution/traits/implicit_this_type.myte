@@ -1,0 +1,20 @@
+module test
+
+trait Trait {
+  fun test(x: This): This = x
+}
+
+type Type1 (Unit)
+methods Type1 {
+  fun test(x: This): This {
+    val y: This = x;
+    return x;
+  }
+}
+
+// This type is unresolved outside traits
+fun test(x: This) {
+  val y: This = x;
+}
+
+fun main() {}

@@ -3,7 +3,17 @@ test/analyze/type_check/this/this_type.myte:6:5-9
  6 |     (this: Unit);
    |      ^^^^
 
+Error: Expected type `This: Trait` but found `Unit`
+test/analyze/type_check/this/this_type.myte:7:5-7
+ 7 |     ((): This);
+   |      ^^
+
 Error: Expected type `Unit` but found `Type`
-test/analyze/type_check/this/this_type.myte:14:5-9
- 14 |     (this: Unit);
+test/analyze/type_check/this/this_type.myte:17:5-9
+ 17 |     (this: Unit);
     |      ^^^^
+
+Error: Expected type `Type` but found `Unit`
+test/analyze/type_check/this/this_type.myte:18:5-7
+ 18 |     ((): This);
+    |      ^^
