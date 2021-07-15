@@ -571,6 +571,10 @@
 				{
 					"name": "constant.character.escape.myte",
 					"match": "\\\\(n|r|t|\\\\|\")"
+				},
+				{
+					"name": "constant.character.escape.hex.myte",
+					"match": "\\\\x[0-9a-fA-F]{2}"
 				}
 			]
 		},
@@ -666,7 +670,7 @@
 				{
 					"match": "\\b(\\w+)\\s*(\\.)",
 					"captures": {
-						"1": { "name": "entity.name.type-qualifier.myte" },
+						"1": { "name": "entity.name.type.myte" },
 						"2": { "name": "keyword.operator.accessor.myte" }
 					}
 				},
