@@ -1,0 +1,25 @@
+{
+    "name": "myte",
+    "displayName": "Myte",
+    "description": "Myte language support",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.58.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "myte",
+            "aliases": ["Myte", "myte"],
+            "extensions": [".myte"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "myte",
+            "scopeName": "source.myte",
+            "path": "./syntaxes/myte.tmLanguage.json"
+        }]
+    }
+}
