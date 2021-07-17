@@ -436,7 +436,7 @@ and is_subtype ~cx sub sup =
   let rep_sub = find_union_rep_type ~cx sub in
   let rep_sup = find_union_rep_type ~cx sup in
   match (rep_sub, rep_sup) with
-  (* Type variables greedibly unify with each other when a subtype relation is applied *)
+  (* Type variables greedily unify with each other when a subtype relation is applied *)
   | (TVar _, _)
   | (_, TVar _) ->
     unify ~cx rep_sub rep_sup

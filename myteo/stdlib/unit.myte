@@ -1,9 +1,11 @@
 module std.unit
 
-import std.string.String
+import std.string.{String, ToString}
 
 builtin type Unit
 
 methods Unit {
-  fun toString(): String = "unit"
+  implements ToString
+
+  override fun toString(): String = "()"
 }

@@ -271,7 +271,10 @@ and build_trait_declarations ~cx module_ =
         let this_type =
           match trait_sig.adt_sig with
           (* ADT's `This` type is the ADT type *)
-          | Some adt_sig -> Type.ADT { adt_sig; type_args }
+          | Some adt_sig ->
+            (match Std_lib.get_primitive_type_for_adt_sig adt_sig with
+            | Some primitive -> primitive
+            | None -> Type.ADT { adt_sig; type_args })
           (* Trait's `This` type is a type parameter bounded by the trait *)
           | None ->
             let trait_bound = { TraitSig.trait_sig; type_args } in
@@ -319,7 +322,7 @@ and build_trait_implementations ~cx module_ =
           match this_type_alias.body with
           | Type.ADT { type_args; _ } -> { TraitSig.trait_sig; type_args }
           | TypeParam { bounds = [trait_instance]; _ } -> trait_instance
-          | _ -> failwith "This type must be ADT or trait bounded TypeParam"
+          | _ -> (* Primitive types in stdlib *) { TraitSig.trait_sig; type_args = [] }
         in
         SMap.iter
           (fun name { Bindings.FunctionDeclaration.loc; type_params; params; return; is_static; _ } ->
@@ -772,7 +775,7 @@ and check_expression ~cx expr =
       | Long
       | IntLiteral _ ->
         true
-      | ADT { adt_sig; _ } when adt_sig = !Std_lib.string_adt_sig -> true
+      | ADT { adt_sig; _ } when adt_sig == !Std_lib.string_adt_sig -> true
       | _ -> false
     in
     let error_int loc tvar_id =

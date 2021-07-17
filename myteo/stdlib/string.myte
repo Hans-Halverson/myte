@@ -9,3 +9,13 @@ type String {
   size: Int,
   capacity: Int,
 }
+
+trait ToString {
+  fun toString(): String
+}
+
+methods String {
+  implements ToString
+
+  override fun toString(): String = this
+}

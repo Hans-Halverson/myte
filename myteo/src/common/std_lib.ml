@@ -114,6 +114,20 @@ let get_primitive_adt_sig (ty : Types.Type.t) =
   | Long -> !long_adt_sig
   | _ -> failwith "Can only be called on primitive type"
 
+let get_primitive_type_for_adt_sig adt_sig =
+  if adt_sig == !unit_adt_sig then
+    Some Types.Type.Unit
+  else if adt_sig == !bool_adt_sig then
+    Some Bool
+  else if adt_sig == !byte_adt_sig then
+    Some Byte
+  else if adt_sig == !int_adt_sig then
+    Some Int
+  else if adt_sig == !long_adt_sig then
+    Some Long
+  else
+    None
+
 (* Stdlib registration *)
 
 let stdlib_builtin_decl_locs = ref LocMap.empty

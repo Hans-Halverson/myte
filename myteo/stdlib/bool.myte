@@ -1,5 +1,17 @@
 module std.bool
 
+import std.string.{String, ToString}
+
 builtin type Bool
 
-methods Bool {}
+methods Bool {
+  implements ToString
+
+  override fun toString(): String {
+    if (this) {
+      return "true";
+    } else {
+      return "false";
+    }
+  }
+}
