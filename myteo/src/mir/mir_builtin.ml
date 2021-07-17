@@ -1,7 +1,7 @@
 open Mir
 
 (* 
-   myte.myte_alloc<T>(count: long): *T
+   myte.myte_alloc<T>(count: int): *T
 
    Allocate space for `count` adjacent values of type `T`
  *)
@@ -9,7 +9,14 @@ let myte_alloc =
   { Builtin.name = "myte_alloc"; mk_return_ty = (fun tys -> `PointerT (List.hd tys)) }
 
 (* 
-   myte.myte_alloc<T>(file: int, buffer: byte*, size: int): int
+   myte.myte_copy<T>(dest: *T, src: *T, count: int)
+
+   Copy `count` adjacent values of type `T` from `dest` to `src.
+ *)
+let myte_copy = { Builtin.name = "myte_copy"; mk_return_ty = (fun _ -> `UnitT) }
+
+(* 
+   myte.myte_write<T>(file: int, buffer: byte*, size: int): int
 
    Write `size` bytes of `buffer` to file with descriptor `file`.
  *)

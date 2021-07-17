@@ -8,6 +8,7 @@ type t = {
   dump_asm: bool ref;
   dump_debug: bool ref;
   dump_stdlib: bool ref;
+  dump_stdlib_prefix: string option ref;
   optimize: bool ref;
   output_file: string option ref;
   print_plain: bool ref;
@@ -25,6 +26,7 @@ let opts =
     dump_asm = ref false;
     dump_debug = ref false;
     dump_stdlib = ref false;
+    dump_stdlib_prefix = ref None;
     optimize = ref false;
     output_file = ref None;
     print_plain = ref false;
@@ -48,6 +50,12 @@ let spec =
     ( "--dump-stdlib",
       Arg.Set opts.dump_stdlib,
       " Include the standard library when printing other commands" );
+    ( "--dump-stdlib-prefix",
+      Arg.String
+        (fun prefix ->
+          opts.dump_stdlib_prefix := Some prefix;
+          opts.dump_stdlib := true),
+      " Include the standard library under the given prefix when printing other commands" );
     ("--no-pretty-print", Arg.Set opts.print_plain, " Do not pretty print output");
     ("-o", Arg.String (fun file -> opts.output_file := Some file), " Write output to file");
     ("-O", Arg.Set opts.optimize, " Compile with optimizations");
@@ -78,6 +86,8 @@ let dump_asm () = !(opts.dump_asm)
 let dump_debug () = !(opts.dump_debug)
 
 let dump_stdlib () = !(opts.dump_stdlib)
+
+let dump_stdlib_prefix () = !(opts.dump_stdlib_prefix)
 
 let optimize () = !(opts.optimize)
 

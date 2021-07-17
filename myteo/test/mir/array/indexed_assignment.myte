@@ -1,6 +1,6 @@
 module test
 
-import std.array.Array
+import std.memory.Array
 
 fun simpleAccesses(x1: Array<Int>) {
   // Simple accesses

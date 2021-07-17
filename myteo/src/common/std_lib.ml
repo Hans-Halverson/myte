@@ -54,10 +54,6 @@ let get_stdlib_files stdlib_path =
 
 (* Stdlib names *)
 
-let std_array_array = "std.array.Array"
-
-let std_array_array_new = "std.array.Array.new"
-
 let std_bool_bool = "std.bool.Bool"
 
 let std_byte_byte = "std.byte.Byte"
@@ -68,6 +64,12 @@ let std_io_write = "std.io.write"
 
 let std_long_long = "std.long.Long"
 
+let std_memory_array = "std.memory.Array"
+
+let std_memory_array_copy = "std.memory.Array.copy"
+
+let std_memory_array_new = "std.memory.Array.new"
+
 let std_string_string = "std.string.String"
 
 let std_unit_unit = "std.unit.Unit"
@@ -77,13 +79,14 @@ let std_vec_vec = "std.vec.Vec"
 let all_stdlib_names =
   SSet.of_list
     [
-      std_array_array;
-      std_array_array_new;
       std_bool_bool;
       std_byte_byte;
       std_io_write;
       std_int_int;
       std_long_long;
+      std_memory_array;
+      std_memory_array_copy;
+      std_memory_array_new;
       std_string_string;
       std_unit_unit;
       std_vec_vec;
@@ -100,6 +103,8 @@ let int_adt_sig = ref Types.AdtSig.empty
 let long_adt_sig = ref Types.AdtSig.empty
 
 let string_adt_sig = ref Types.AdtSig.empty
+
+let vec_adt_sig = ref Types.AdtSig.empty
 
 let unit_adt_sig = ref Types.AdtSig.empty
 
@@ -151,5 +156,6 @@ let register_stdlib_type loc adt_sig =
   | Some name when name = std_int_int -> int_adt_sig := adt_sig
   | Some name when name = std_long_long -> long_adt_sig := adt_sig
   | Some name when name = std_string_string -> string_adt_sig := adt_sig
+  | Some name when name = std_vec_vec -> vec_adt_sig := adt_sig
   | Some name when name = std_unit_unit -> unit_adt_sig := adt_sig
   | _ -> ()

@@ -1,8 +1,10 @@
 module test
 
+import std.vec.Vec
+
 type Tup1 (Int, String)
 
-fun main() {
+fun testTuples() {
   // Anonymous tuple
   val x = (1, "");
 
@@ -15,3 +17,11 @@ fun main() {
   y[0] = 2;
   y[1] = 2;
 }
+
+fun testVecs(x: Vec<Bool>) {
+  // Vecs allow indexed assignment
+  x[0] = true;
+  x[0] = 1;
+}
+
+fun main() {}

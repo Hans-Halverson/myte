@@ -1,0 +1,33 @@
+module test
+
+import std.vec.Vec
+
+fun indexing(x: Vec<Int>) {
+  // Correct element type
+  (x[0]: Int);
+  
+  // Incorrect element types
+  (x[0]: String);
+  (x[0]: Vec<Int>);
+}
+
+fun nestedIndexing(x: Vec<Vec<Vec<String>>>) {
+  // Correct element types
+  (x[0]: Vec<Vec<String>>);
+  (x[0][0]: Vec<String>);
+  (x[0][0][0]: String);
+
+  // Incorrect element types
+  (x[0]: Vec<Vec<Int>>);
+  (x[0][0]: Vec<Int>);
+  (x[0][0][0]: Vec<Vec<String>>);
+}
+
+fun elementTypes(x: Vec<String>) {
+  // All integer types work as index
+  x[(0: Int)];
+  x[(1: Byte)];
+  x[(2: Long)];
+}
+
+fun main() {}

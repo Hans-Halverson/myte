@@ -1,8 +1,3 @@
-let config_equals config str =
-  match config with
-  | Some config when config = str -> true
-  | _ -> false
-
 let command ~config bin files =
   let config =
     match config with

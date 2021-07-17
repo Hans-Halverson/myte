@@ -1,9 +1,0 @@
-module std.array
-
-import std.int.Int
-
-builtin type Array<T>
-
-methods Array<T> {
-  builtin static fun new<T>(x: Int): Array<T>
-}

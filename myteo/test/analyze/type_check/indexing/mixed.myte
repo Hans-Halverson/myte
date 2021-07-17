@@ -1,6 +1,6 @@
 module test
 
-import std.array.Array
+import std.memory.Array
 
 type Rec1 { foo: String, bar: Unit }
 

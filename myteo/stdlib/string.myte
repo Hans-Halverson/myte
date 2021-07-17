@@ -1,8 +1,8 @@
 module std.string
 
-import std.array.Array
 import std.byte.Byte
 import std.int.Int
+import std.memory.Array
 
 type String {
   data: Array<Byte>,

@@ -1,7 +1,7 @@
 module std.vec
 
-import std.array.Array
 import std.int.Int
+import std.memory.Array
 
 type Vec<T> {
   data: Array<T>,
@@ -16,5 +16,40 @@ methods Vec<T> {
       size: 0,
       capacity: 0,
     };
+  }
+
+  fun get(index: Int): T {
+    if (index >= this.size) {
+      // TODO: Out of bounds error
+    }
+
+    return this.data[index];
+  }
+
+  fun set(index: Int, item: T) {
+    if (index >= this.size) {
+      // TODO: Out of bounds error
+    }
+
+    this.data[index] = item;
+  }
+
+  fun push(x: T) {
+    if (this.size == this.capacity) {
+      this.resize();
+    }
+
+    this.data[this.size] = x;
+    this.size = this.size + 1;
+  }
+
+  fun resize() {
+    val oldCapacity = this.capacity;
+    val newCapacity = oldCapacity * 2;
+    this.capacity = newCapacity;
+
+    val newData: Array<T> = Array.new(newCapacity);
+    Array.copy(newData, this.data, oldCapacity);
+    this.data = newData;
   }
 }

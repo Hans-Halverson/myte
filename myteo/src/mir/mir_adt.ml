@@ -53,6 +53,8 @@ module MirADT = struct
     let has_variable_size ty =
       match ty with
       | Type.TypeParam _ -> true
+      (* Mir type changes depending on element type *)
+      | Array (TypeParam _) -> true
       | Any
       | Unit
       | Bool

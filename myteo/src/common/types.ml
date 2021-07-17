@@ -111,6 +111,8 @@ and AdtSig : sig
   val mk : name:string -> t
 
   val empty : t
+
+  val lookup_method : t -> string -> MethodSig.t option
 end = struct
   type id = int
 
@@ -142,6 +144,15 @@ end = struct
   let mk ~name = { id = mk_id (); name; type_params = []; variants = SMap.empty; traits = [] }
 
   let empty = { id = 0; name = ""; type_params = []; variants = SMap.empty; traits = [] }
+
+  let lookup_method adt_sig method_name =
+    List.fold_left
+      (fun acc { TraitSig.methods; _ } ->
+        match SMap.find_opt method_name methods with
+        | None -> acc
+        | Some method_sig -> Some method_sig)
+      None
+      adt_sig.traits
 end
 
 (* A method on a trait. This method may be declared directly on the trait, or it may be inherited

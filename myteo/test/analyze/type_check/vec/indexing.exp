@@ -1,0 +1,24 @@
+Error: Expected type `String` but found `Int`
+test/analyze/type_check/vec/indexing.myte:10:3-7
+ 10 |   (x[0]: String);
+    |    ^^^^
+
+Error: Expected type `Vec<Int>` but found `Int`
+test/analyze/type_check/vec/indexing.myte:11:3-7
+ 11 |   (x[0]: Vec<Int>);
+    |    ^^^^
+
+Error: Expected type `Vec<Vec<Int>>` but found `Vec<Vec<String>>`
+test/analyze/type_check/vec/indexing.myte:21:3-7
+ 21 |   (x[0]: Vec<Vec<Int>>);
+    |    ^^^^
+
+Error: Expected type `Vec<Int>` but found `Vec<String>`
+test/analyze/type_check/vec/indexing.myte:22:3-10
+ 22 |   (x[0][0]: Vec<Int>);
+    |    ^^^^^^^
+
+Error: Expected type `Vec<Vec<String>>` but found `String`
+test/analyze/type_check/vec/indexing.myte:23:3-13
+ 23 |   (x[0][0][0]: Vec<Vec<String>>);
+    |    ^^^^^^^^^^

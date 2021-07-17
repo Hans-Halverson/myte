@@ -1,0 +1,25 @@
+module test
+
+import std.vec.Vec
+
+type Rec1 { foo: Int, bar: Vec<Int> }
+
+fun testIndexRec1(x: Rec1) {
+  x.bar[7];
+  x.bar[7] = 1;
+}
+
+type Rec2 { a: Long, b: Bool }
+fun testIndexVecRec2(x: Vec<Rec2>) {
+  x[7].b;
+  x[7].b = true;
+}
+
+type Rec3 { foo: Int, bar: Vec<Rec2> }
+
+fun testIndexRec3(x: Rec3) {
+  x.bar[7].b;
+  x.bar[7].b = true;
+}
+
+fun main() {}

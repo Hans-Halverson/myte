@@ -1,5 +1,7 @@
 type $tuple<unit,byte> {unit, byte}
 
+type $tuple<long,long> {long, long}
+
 type $tuple<int,int> {int, int}
 
 type $tuple<int,byte,$tuple<bool,unit>*> {int, byte, $tuple<bool,unit>*}
@@ -50,7 +52,7 @@ func unit @test.useAnonTup($tuple<int,int>* %9, $tuple<byte,long>* %10, $tuple<i
   Ret
 }
 
-type test.TestVec {long*, int, int}
+type test.TestVec {$tuple<long,long>*, int, int}
 
 func unit @test.useTestVec(test.TestVec* %12, test.TestVec* %13) {
   Ret

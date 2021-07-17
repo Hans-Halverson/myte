@@ -233,7 +233,7 @@ and emit_expression ~ecx expr =
     let agg_ptr_var_id = mk_cf_var_id () in
     let agg_ptr_var = `PointerV (string_type, agg_ptr_var_id) in
     let (agg_ptr_val, myte_alloc_instr) =
-      Mir_builtin.(mk_call_builtin myte_alloc agg_ptr_var_id [`LongL Int64.one] [string_type])
+      Mir_builtin.(mk_call_builtin myte_alloc agg_ptr_var_id [`IntL Int32.one] [string_type])
     in
     Ecx.emit ~ecx myte_alloc_instr;
     (* Write all string literal fields *)
@@ -416,15 +416,7 @@ and emit_expression ~ecx expr =
     in
 
     (* Find method, along with the trait it was defined in *)
-    let method_sig =
-      List.fold_left
-        (fun acc { Types.TraitSig.methods; _ } ->
-          match SMap.find_opt method_name.name methods with
-          | None -> acc
-          | Some method_sig -> Some method_sig)
-        None
-        adt_sig.traits
-    in
+    let method_sig = Types.AdtSig.lookup_method adt_sig method_name.name in
     let method_sig = Option.get method_sig in
     let source_trait_instance = method_sig.source_trait_instance in
     let source_trait_sig = source_trait_instance.trait_sig in
@@ -524,7 +516,7 @@ and emit_expression ~ecx expr =
     let agg_ptr_var_id = mk_cf_var_id () in
     let agg_ptr_var = `PointerV (agg_ty, agg_ptr_var_id) in
     let (agg_ptr_val, myte_alloc_instr) =
-      Mir_builtin.(mk_call_builtin myte_alloc agg_ptr_var_id [`LongL Int64.one] [agg_ty])
+      Mir_builtin.(mk_call_builtin myte_alloc agg_ptr_var_id [`IntL Int32.one] [agg_ty])
     in
     Ecx.emit ~ecx myte_alloc_instr;
     (* Store each argument to the record constructor in space allocated for record *)
@@ -549,15 +541,30 @@ and emit_expression ~ecx expr =
    *        Access Chains
    * ============================
    *)
-  | IndexedAccess _
-  | NamedAccess _ ->
-    let element_pointer_var = emit_expression_access_chain ~ecx expr in
-    let var_id = mk_cf_var_id () in
-    Ecx.emit ~ecx (Load (var_id, element_pointer_var));
-    var_value_of_type var_id (pointer_value_element_type element_pointer_var)
+  | IndexedAccess { loc; target; index; _ } ->
+    let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
+    (match target_ty with
+    (* If indexing a vector, call Vec's `get` method instead of emitting access chain *)
+    | ADT { adt_sig; _ } when adt_sig == !Std_lib.vec_adt_sig ->
+      let target_var = emit_expression ~ecx target in
+      let index_var = emit_expression ~ecx index in
+      emit_call_vec_get ~ecx loc target_var index_var
+    | _ -> emit_expression_access_chain_load ~ecx expr)
+  | NamedAccess _ -> emit_expression_access_chain_load ~ecx expr
   | Ternary _ -> failwith "TODO: Emit MIR for ternary expressions"
   | Match _ -> failwith "TODO: Emir MIR for match expressions"
   | Super _ -> failwith "TODO: Emit MIR for super expressions"
+
+and emit_expression_access_chain_load ~ecx expr =
+  let element_pointer_var = emit_expression_access_chain ~ecx expr in
+  let var_id = mk_cf_var_id () in
+  Ecx.emit ~ecx (Load (var_id, element_pointer_var));
+  var_value_of_type var_id (pointer_value_element_type element_pointer_var)
+
+and emit_expression_access_chain_store ~ecx expr_lvalue expr =
+  let element_pointer_var = emit_expression_access_chain ~ecx expr_lvalue in
+  let expr_val = emit_expression ~ecx expr in
+  Ecx.emit ~ecx (Store (element_pointer_var, expr_val))
 
 and emit_expression_access_chain ~ecx expr =
   let open Expression in
@@ -594,6 +601,7 @@ and emit_expression_access_chain ~ecx expr =
       (match target_ty with
       | Types.Type.Array _ -> emit_array_indexed_access access
       | Tuple _ -> emit_tuple_indexed_access access
+      | ADT { adt_sig; _ } when adt_sig == !Std_lib.vec_adt_sig -> emit_vec_indexed_access access
       | ADT { adt_sig = { variants; _ }; _ } when SMap.cardinal variants = 1 ->
         emit_tuple_indexed_access access
       | _ -> failwith "Target must be a tuple to pass type checking")
@@ -627,6 +635,16 @@ and emit_expression_access_chain ~ecx expr =
     in
     let index_var = emit_numeric_expression ~ecx index in
     (root_var, [GetPointer.PointerIndex index_var])
+  (* An indexed access on a Vec calls the Vec's `get` method *)
+  and emit_vec_indexed_access { IndexedAccess.loc; target; index; _ } =
+    let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
+    let (target_root_var, target_offsets) = emit_access_expression target in
+    let target_var =
+      maybe_emit_get_pointer_and_load_instrs target_root_var target_ty target_offsets
+    in
+    let index_var = emit_expression ~ecx index in
+    let vec_get_result = emit_call_vec_get ~ecx loc target_var index_var in
+    (vec_get_result, [])
   and emit_record_named_access { NamedAccess.target; name = { name; _ }; _ } =
     let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
     let (target_root_var, target_offsets) = emit_access_expression target in
@@ -663,13 +681,19 @@ and emit_call ~ecx { Expression.Call.loc; args; _ } func_val receiver_val_opt =
   let ret_ty = mir_type_of_loc ~ecx loc in
   match func_val with
   (* Emit inlined builtins *)
-  | `FunctionL name when name = Std_lib.std_array_array_new ->
+  | `FunctionL name when name = Std_lib.std_memory_array_new ->
     let (`PointerT element_ty) = cast_to_pointer_type ret_ty in
     let (array_ptr_val, myte_alloc_instr) =
       Mir_builtin.(mk_call_builtin myte_alloc var_id arg_vals [element_ty])
     in
     Ecx.emit ~ecx myte_alloc_instr;
     array_ptr_val
+  | `FunctionL name when name = Std_lib.std_memory_array_copy ->
+    let (return_val, myte_copy_instr) =
+      Mir_builtin.(mk_call_builtin myte_copy var_id arg_vals [])
+    in
+    Ecx.emit ~ecx myte_copy_instr;
+    return_val
   | `FunctionL name when name = Std_lib.std_io_write ->
     let (return_val, instr) = Mir_builtin.(mk_call_builtin myte_write var_id arg_vals []) in
     Ecx.emit ~ecx instr;
@@ -679,13 +703,51 @@ and emit_call ~ecx { Expression.Call.loc; args; _ } func_val receiver_val_opt =
     Ecx.emit ~ecx (Call (var_id, ret_ty, func_val, arg_vals));
     var_value_of_type var_id ret_ty
 
+and emit_call_vec_get ~ecx return_loc vec_var index_var =
+  (* Get full name for Vec's `get` method *)
+  let vec_get_method_sig = Types.AdtSig.lookup_method !Std_lib.vec_adt_sig "get" |> Option.get in
+  let vec_get_binding = Bindings.get_value_binding ecx.pcx.bindings vec_get_method_sig.loc in
+  let vec_get_name = mk_value_binding_name vec_get_binding in
+  (* Find element type and instantiate Vec's `get` method *)
+  let element_ty = type_of_loc ~ecx return_loc in
+  let func_name =
+    Ecx.add_necessary_func_instantiation
+      ~ecx
+      vec_get_name
+      vec_get_method_sig.trait_sig.type_params
+      [element_ty]
+  in
+  (* Emit call to Vec's `get` method *)
+  let var_id = mk_cf_var_id () in
+  let ret_ty = Ecx.to_mir_type ~ecx element_ty in
+  Ecx.emit ~ecx (Call (var_id, ret_ty, `FunctionL func_name, [vec_var; index_var]));
+  var_value_of_type var_id ret_ty
+
+and emit_call_vec_set ~ecx element_ty_loc vec_var index_var expr_var =
+  (* Get full name for Vec's `set` method *)
+  let vec_get_method_sig = Types.AdtSig.lookup_method !Std_lib.vec_adt_sig "set" |> Option.get in
+  let vec_get_binding = Bindings.get_value_binding ecx.Ecx.pcx.bindings vec_get_method_sig.loc in
+  let vec_get_name = mk_value_binding_name vec_get_binding in
+  (* Find element type and instantiate Vec's `get` method *)
+  let element_ty = type_of_loc ~ecx element_ty_loc in
+  let func_name =
+    Ecx.add_necessary_func_instantiation
+      ~ecx
+      vec_get_name
+      vec_get_method_sig.trait_sig.type_params
+      [element_ty]
+  in
+  (* Emit call of Vec's `set` method *)
+  let var_id = mk_cf_var_id () in
+  Ecx.emit ~ecx (Call (var_id, `UnitT, `FunctionL func_name, [vec_var; index_var; expr_var]))
+
 and emit_construct_tuple ~ecx agg elements =
   let agg_ty = `AggregateT agg in
   (* Call myte_alloc builtin to allocate space for tuple *)
   let agg_ptr_var_id = mk_cf_var_id () in
   let agg_ptr_var = `PointerV (agg_ty, agg_ptr_var_id) in
   let (agg_ptr_val, myte_alloc_instr) =
-    Mir_builtin.(mk_call_builtin myte_alloc agg_ptr_var_id [`LongL Int64.one] [agg_ty])
+    Mir_builtin.(mk_call_builtin myte_alloc agg_ptr_var_id [`IntL Int32.one] [agg_ty])
   in
   Ecx.emit ~ecx myte_alloc_instr;
   (* Store each argument to the tuple constructor in space allocated for tuple *)
@@ -794,10 +856,19 @@ and emit_statement ~ecx stmt =
         Ecx.emit ~ecx (Store (`PointerL (global.ty, global.name), expr_val))
       else
         Ecx.emit ~ecx (Mov (mk_cf_local use_loc, expr_val))
-    | Assignment.Expression expr_lvalue ->
-      let element_pointer_var = emit_expression_access_chain ~ecx expr_lvalue in
-      let expr_val = emit_expression ~ecx expr in
-      Ecx.emit ~ecx (Store (element_pointer_var, expr_val)))
+    | Assignment.Expression (IndexedAccess { loc; target; index; _ } as expr_lvalue) ->
+      let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
+      (match target_ty with
+      (* If indexing a vector, call Vec's `set` method instead of emitting access chain *)
+      | ADT { adt_sig; _ } when adt_sig == !Std_lib.vec_adt_sig ->
+        let target_var = emit_expression ~ecx target in
+        let index_var = emit_expression ~ecx index in
+        let expr_var = emit_expression ~ecx expr in
+        emit_call_vec_set ~ecx loc target_var index_var expr_var
+      | _ -> emit_expression_access_chain_store ~ecx expr_lvalue expr)
+    | Assignment.Expression (NamedAccess _ as expr_lvalue) ->
+      emit_expression_access_chain_store ~ecx expr_lvalue expr
+    | _ -> failwith "Lvalue expression must be an access")
   | VariableDeclaration { pattern; init; _ } ->
     (* TODO: Emit MIR for arbitrary patterns *)
     let { Identifier.loc; _ } = List.hd (Ast_utils.ids_of_pattern pattern) in

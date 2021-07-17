@@ -38,7 +38,7 @@ let rec build_type ~cx ?(implicit_type_params = None) ty =
     | Some name when name = Std_lib.std_unit_unit -> mk_if_correct_arity 0 (fun _ -> Type.Unit)
     | Some name when name = Std_lib.std_string_string ->
       mk_if_correct_arity 0 Std_lib.mk_string_type
-    | Some name when name = Std_lib.std_array_array ->
+    | Some name when name = Std_lib.std_memory_array ->
       mk_if_correct_arity 1 (fun _ -> Type.Array (List.hd type_args))
     | _ ->
       (match binding.declaration with
@@ -1076,7 +1076,7 @@ and check_expression ~cx expr =
         Type_context.add_error ~cx index_loc TupleIndexIsNotLiteral;
         ignore (Type_context.unify ~cx Any (TVar tvar_id))
     in
-    let check_array_indexed_access element_ty =
+    let check_arrayish_indexed_access element_ty =
       (* Verify that index is an integer *)
       let index_rep_ty = Type_context.find_rep_type ~cx (TVar index_tvar_id) in
       match index_rep_ty with
@@ -1096,6 +1096,10 @@ and check_expression ~cx expr =
       | Tuple elements ->
         check_tuple_indexed_access IMap.empty elements;
         true
+      (* Can index into Vec *)
+      | ADT { adt_sig; type_args = [element_ty] } when adt_sig == !Std_lib.vec_adt_sig ->
+        check_arrayish_indexed_access element_ty;
+        true
       (* Can only index into ADTs with a single tuple variant *)
       | ADT { adt_sig = { variants; _ }; _ } ->
         (match SMap.choose_opt variants with
@@ -1105,7 +1109,7 @@ and check_expression ~cx expr =
           true
         | _ -> false)
       | Array element_ty ->
-        check_array_indexed_access element_ty;
+        check_arrayish_indexed_access element_ty;
         true
       (* Propagate anys *)
       | Any ->
@@ -1446,7 +1450,8 @@ and check_statement ~cx stmt =
         | Tuple _ ->
           Type_context.add_error ~cx loc (InvalidLValue InvalidLValueTuple);
           None
-        | ADT { adt_sig = { variants; _ }; _ } when SMap.cardinal variants = 1 ->
+        | ADT { adt_sig = { variants; _ } as adt_sig; _ }
+          when SMap.cardinal variants = 1 && adt_sig != !Std_lib.vec_adt_sig ->
           Type_context.add_error ~cx loc (InvalidLValue InvalidLValueTuple);
           None
         | _ -> Some expr_loc_and_tvar_id)

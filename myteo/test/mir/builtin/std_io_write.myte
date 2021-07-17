@@ -1,7 +1,7 @@
 module test
 
-import std.array.Array
 import std.io
+import std.memory.Array
 
 fun wrapper(file: Int, buffer: Array<Byte>, size: Int): Int {
   return io.write(file, buffer, size);
