@@ -207,7 +207,6 @@ let tokenize lex =
   | "implements" -> token_result T_IMPLEMENTS
   | "static" -> token_result T_STATIC
   | "override" -> token_result T_OVERRIDE
-  | "this" -> token_result T_THIS
   | "super" -> token_result T_SUPER
   | eof -> token_result T_EOF
   | identifier -> token_result (T_IDENTIFIER (lexeme buf))

@@ -57,7 +57,6 @@ type t =
   | T_IMPLEMENTS
   | T_STATIC
   | T_OVERRIDE
-  | T_THIS
   | T_SUPER
   | T_EOF
 
@@ -125,6 +124,5 @@ let to_string token =
   | T_IMPLEMENTS -> "implements"
   | T_STATIC -> "static"
   | T_OVERRIDE -> "override"
-  | T_THIS -> "this"
   | T_SUPER -> "super"
   | T_EOF -> "<EOF>"

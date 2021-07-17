@@ -482,8 +482,11 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               id_map (this#visit_variable_declaration ~toplevel:true) decl toplevel (fun decl' ->
                   VariableDeclaration decl')
             | FunctionDeclaration decl ->
-              id_map (this#visit_function_declaration ~is_nested:false) decl toplevel (fun decl' ->
-                  FunctionDeclaration decl')
+              id_map
+                (this#visit_function_declaration ~is_method:false ~is_nested:false)
+                decl
+                toplevel
+                (fun decl' -> FunctionDeclaration decl')
             | TypeDeclaration
                 ( { Ast.TypeDeclaration.name = { Ast.Identifier.name; _ }; type_params; _ } as
                 type_decl ) ->
@@ -510,8 +513,11 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         id_map (this#visit_variable_declaration ~toplevel:false) decl stmt (fun decl' ->
             VariableDeclaration decl')
       | FunctionDeclaration decl ->
-        id_map (this#visit_function_declaration ~is_nested:true) decl stmt (fun decl' ->
-            FunctionDeclaration decl')
+        id_map
+          (this#visit_function_declaration ~is_method:false ~is_nested:true)
+          decl
+          stmt
+          (fun decl' -> FunctionDeclaration decl')
       | Block block -> id_map this#block block stmt (fun block' -> Block block')
       | _ -> super#statement stmt
 
@@ -560,9 +566,10 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             SSet.empty)
            params)
 
-    method visit_function_declaration ~is_nested decl =
+    method visit_function_declaration ~is_nested ~is_method decl =
       let open Ast.Function in
       let {
+        loc = full_loc;
         name = { Ast.Identifier.loc; name = func_name };
         params;
         type_params;
@@ -592,6 +599,16 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         this#add_value_to_scope func_name (Decl binding) );
       this#enter_scope ();
       this#visit_type_parameters type_params (FunctionName func_name);
+      (* Add implicit `this` type to scope within method *)
+      ( if is_method && not static then
+        let binding =
+          this#add_value_declaration
+            full_loc
+            "this"
+            ValueBinding.Function
+            (FunParamDecl (FunctionParamDeclaration.mk ()))
+        in
+        this#add_value_to_scope "this" (Decl binding) );
       let _ =
         List.fold_left
           (fun param_names { Param.name = { Ast.Identifier.loc; name; _ }; _ } ->
@@ -636,10 +653,10 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             (* Static methods cannot reference trait's type parameters, so resolve in parent scope *)
             if static then
               this#in_parent_scope (fun _ ->
-                  this#visit_function_declaration ~is_nested:false method_)
+                  this#visit_function_declaration ~is_nested:false ~is_method:false method_)
             else (
               in_method <- true;
-              let func = this#visit_function_declaration ~is_nested:false method_ in
+              let func = this#visit_function_declaration ~is_nested:false ~is_method:true method_ in
               in_method <- false;
               func
             ))
@@ -836,9 +853,6 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         expr
       | Identifier id ->
         this#resolve_value_id_use id;
-        expr
-      | This loc ->
-        if not in_method then this#add_error loc ThisOutsideMethod;
         expr
       | Super loc ->
         if not in_method then this#add_error loc SuperOutsideMethod;

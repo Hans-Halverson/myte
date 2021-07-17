@@ -263,10 +263,6 @@ and parse_expression_prefix env =
     let loc = Env.loc env in
     Env.advance env;
     Expression.Identifier { Identifier.loc; name = "_" }
-  | T_THIS ->
-    let loc = Env.loc env in
-    Env.advance env;
-    Expression.This loc
   | T_SUPER ->
     let loc = Env.loc env in
     Env.advance env;
@@ -1382,9 +1378,7 @@ and assert_expression_is_lvalue_expression expr =
   | Identifier _ -> ()
   | NamedAccess { target; _ }
   | IndexedAccess { target; _ } ->
-    (match target with
-    | This _ -> ()
-    | _ -> assert_expression_is_lvalue_expression target)
+    assert_expression_is_lvalue_expression target
   | _ -> Parse_error.fatal (Ast_utils.expression_loc expr, Parse_error.InvalidAssignmentPattern)
 
 and reparse_expression_as_lvalue_pattern expr =

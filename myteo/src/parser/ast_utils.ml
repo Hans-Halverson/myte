@@ -37,7 +37,6 @@ let expression_loc expr =
   | IndexedAccess { loc; _ }
   | NamedAccess { loc; _ }
   | Match { loc; _ }
-  | This loc
   | Super loc ->
     loc
 

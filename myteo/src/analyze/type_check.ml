@@ -537,13 +537,18 @@ and check_module ~cx module_ =
       | VariableDeclaration decl -> check_variable_declaration ~cx decl
       | FunctionDeclaration decl -> if not decl.builtin then check_function_body ~cx decl
       | TraitDeclaration { loc; methods; _ } ->
-        (* Set up `This` type for checking trait body *)
         let this_type_binding = Type_context.get_type_binding ~cx loc in
         let this_type_alias = Bindings.get_type_alias_decl this_type_binding in
-        Type_context.set_this_type ~cx this_type_alias.body;
         List.iter
-          (fun method_ ->
-            if method_.Ast.Function.body <> Signature then check_function_body ~cx method_)
+          (fun ({ Ast.Function.loc; body; static; _ } as method_) ->
+            if body <> Signature then (
+              (* Set up type of implicit `this` parameter for non-static methods  *)
+              ( if not static then
+                let this_param_binding = Type_context.get_value_binding ~cx loc in
+                let this_param_decl = Bindings.get_func_param_decl this_param_binding in
+                ignore (Type_context.unify ~cx this_type_alias.body (TVar this_param_decl.tvar)) );
+              check_function_body ~cx method_
+            ))
           methods
       | TypeDeclaration _ -> ())
     toplevels
@@ -1199,11 +1204,6 @@ and check_expression ~cx expr =
       Type_context.add_error ~cx target_loc (UnresolvedNamedAccess (name.name, target_rep_ty));
       ignore (Type_context.unify ~cx Type.Any (TVar tvar_id))
     );
-    (loc, tvar_id)
-  | This loc ->
-    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    let this_type = Type_context.get_this_type ~cx in
-    ignore (Type_context.unify ~cx this_type (TVar tvar_id));
     (loc, tvar_id)
   | Ternary _ -> failwith "TODO: Type checking for ternary expression"
   | Match _ -> failwith "TODO: Type check match expressions"

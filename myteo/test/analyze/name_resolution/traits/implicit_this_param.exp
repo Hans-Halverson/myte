@@ -1,0 +1,14 @@
+Error: Could not resolve name `this` to value
+test/analyze/name_resolution/traits/implicit_this_param.myte:5:2-6
+ 5 |   this;
+   |   ^^^^
+
+Error: Could not resolve name `this` to value
+test/analyze/name_resolution/traits/implicit_this_param.myte:17:4-8
+ 17 |     this;
+    |     ^^^^
+
+Error: Could not resolve name `this` to value
+test/analyze/name_resolution/traits/implicit_this_param.myte:29:4-8
+ 29 |     this;
+    |     ^^^^

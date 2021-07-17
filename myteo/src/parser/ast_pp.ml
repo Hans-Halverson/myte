@@ -158,7 +158,6 @@ and node_of_expression expr =
   | IndexedAccess access -> node_of_indexed_access access
   | NamedAccess access -> node_of_named_access access
   | Match match_ -> node_of_match match_
-  | This loc -> node_of_this loc
   | Super loc -> node_of_super loc
 
 and node_of_pattern pat =

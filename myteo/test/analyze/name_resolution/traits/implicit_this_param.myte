@@ -1,0 +1,33 @@
+module test
+
+fun test() {
+  // Error, this not defined in non-method functions
+  this;
+}
+
+type Type (Int)
+methods Type {
+  fun method() {
+    // Successfully resolved
+    this;
+  }
+
+  static fun staticMethod() {
+    // Not defined in static method
+    this;
+  }
+}
+
+trait Trait {
+  fun method() {
+    // Successfully resolved
+    this;
+  }
+
+  static fun staticMethod() {
+    // Not defined in static method
+    this;
+  }
+}
+
+fun main() {}

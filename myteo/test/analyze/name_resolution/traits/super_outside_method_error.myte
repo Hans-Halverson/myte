@@ -1,25 +1,21 @@
 module test
 
-// This cannot appear outside member functions
-val x1: Int = this
-val x2: Int = super
+// Super cannot appear outside member functions
+val x1: Int = super
 
 fun toplevelFunction() {
-  this;
   super;
 }
 
 trait Trait1 {
   static fun foo() {
-    this;
     super;
   }
 }
 
-// This can appear inside member functions for traits and types
+// Super can appear inside member functions for traits and types
 trait Trait2 {
   fun foo() {
-    this;
     super;
   }
 }
@@ -27,7 +23,6 @@ trait Trait2 {
 type Type1 (Unit)
 methods Type1 {
   fun foo() {
-    this;
     super;
   }
 }
