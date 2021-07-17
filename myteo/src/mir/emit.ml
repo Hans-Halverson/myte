@@ -58,11 +58,11 @@ and emit_function_declarations ~ecx =
       List.iter
         (fun toplevel ->
           match toplevel with
-          | FunctionDeclaration decl -> emit_function_declaration ~ecx decl
+          | FunctionDeclaration decl -> emit_function_declaration ~ecx decl false
           | TraitDeclaration { methods; _ } ->
             List.iter
               (fun ({ Ast.Function.static; _ } as func_decl) ->
-                if static then emit_function_declaration ~ecx func_decl)
+                emit_function_declaration ~ecx func_decl (not static))
               methods
           | _ -> ())
         module_.toplevels)
@@ -118,6 +118,7 @@ and emit_toplevel_variable_declaration ~ecx decl =
   (* Build IR for variable init *)
   let init_val =
     Ecx.emit_init_section ~ecx (fun _ ->
+        ecx.current_in_std_lib <- Bindings.is_std_lib_value binding;
         (* If initial value is statically known at compile time, add it as constant initialization *)
         let init_val = emit_expression ~ecx init in
         if is_static_constant init_val then
@@ -130,7 +131,7 @@ and emit_toplevel_variable_declaration ~ecx decl =
   in
   Ecx.add_global ~ecx { Global.loc; name; ty; init_val }
 
-and emit_function_declaration ~ecx decl =
+and emit_function_declaration ~ecx decl is_method =
   let open Ast.Function in
   let { name = { Identifier.loc; _ }; body; _ } = decl in
   let binding = Bindings.get_value_binding ecx.pcx.bindings loc in
@@ -138,19 +139,21 @@ and emit_function_declaration ~ecx decl =
   Ecx.add_function_declaration_node ~ecx name decl;
   (* Non-generic functions are emitted now. An instance of generic functions will be emitted when
      they are instantiated. *)
-  if body <> Signature then
+  if body <> Signature && not is_method then
     let binding = Type_context.get_value_binding ~cx:ecx.pcx.type_ctx loc in
     let func_decl = Bindings.get_func_decl binding in
-    if func_decl.type_params = [] then emit_function ~ecx name decl
+    if func_decl.type_params = [] then emit_function_body ~ecx name decl
 
 and emit_function_instantiation ~ecx (name, name_with_args, type_param_bindings) =
   Ecx.in_type_binding_context ~ecx type_param_bindings (fun _ ->
       let func_decl_node = SMap.find name ecx.func_decl_nodes in
-      emit_function ~ecx name_with_args func_decl_node)
+      emit_function_body ~ecx name_with_args func_decl_node)
 
-and emit_function ~ecx name decl =
+and emit_function_body ~ecx name decl =
   let open Ast.Function in
   let { name = { Identifier.loc; _ }; params; body; _ } = decl in
+  let binding = Type_context.get_value_binding ~cx:ecx.pcx.type_ctx loc in
+  ecx.current_in_std_lib <- Bindings.is_std_lib_value binding;
   (* Build IR for function body *)
   let param_locs_and_ids =
     List.map (fun { Param.name = { Identifier.loc; _ }; _ } -> (loc, mk_var_id ())) params
@@ -174,7 +177,6 @@ and emit_function ~ecx name decl =
     body_start_block
   in
   (* Find value type of function *)
-  let binding = Type_context.get_value_binding ~cx:ecx.pcx.type_ctx loc in
   let func_decl = Bindings.get_func_decl binding in
   let param_tys = List.map (type_to_mir_type ~ecx) func_decl.params in
   let return_ty = type_to_mir_type ~ecx func_decl.return in
@@ -387,7 +389,86 @@ and emit_expression ~ecx expr =
     let element_tys = Type_util.cast_to_tuple_type ty in
     let agg = Ecx.instantiate_tuple ~ecx element_tys in
     emit_construct_tuple ~ecx agg elements
-  | Call { loc; func; args } ->
+  (*
+   * ============================
+   *        Method Calls
+   * ============================
+   *)
+  | Call ({ func = NamedAccess { loc = access_loc; name = method_name; target }; _ } as call)
+    when Type_context.is_method_use ~cx:ecx.pcx.type_ctx method_name.loc ->
+    (* Emit receiver and gather its ADT signature and type args *)
+    let receiver_val = emit_expression ~ecx target in
+    let receiver_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
+    let (adt_sig, receiver_type_args) =
+      match receiver_ty with
+      | ADT { adt_sig; type_args; _ } -> (adt_sig, type_args)
+      | _ -> (Std_lib.get_primitive_adt_sig receiver_ty, [])
+    in
+
+    (* Find method, along with the trait it was defined in *)
+    let method_sig =
+      List.fold_left
+        (fun acc { Types.TraitSig.methods; _ } ->
+          match SMap.find_opt method_name.name methods with
+          | None -> acc
+          | Some method_sig -> Some method_sig)
+        None
+        adt_sig.traits
+    in
+    let method_sig = Option.get method_sig in
+    let source_trait_instance = method_sig.source_trait_instance in
+    let source_trait_sig = source_trait_instance.trait_sig in
+
+    (* Calculate generic keys from trait/type *)
+    let (extra_key_type_params, extra_key_type_args) =
+      if method_sig.trait_sig == source_trait_sig then
+        (* Method was directly declared on the ADT's trait. Substitute type args for trait's type args *)
+        (source_trait_sig.type_params, receiver_type_args)
+      else
+        (* Method was declared on a trait that the ADT implements. The source trait instance's type
+           args are in terms of the ADT trait's type params, so first map from the ADT trait's type
+           params to the actual ADT instance's type args in the source trait instance's type args.
+           The key args are these mapped source trait instance's type args along with the a `this`
+           type of the ADT instance. *)
+        let bindings =
+          Types.bind_type_params_to_args method_sig.trait_sig.type_params receiver_type_args
+        in
+        let type_args =
+          List.map (Types.substitute_type_params bindings) source_trait_instance.type_args
+        in
+        let all_key_type_params =
+          source_trait_sig.this_type_param :: source_trait_sig.type_params
+        in
+        let all_key_type_args = receiver_ty :: type_args in
+        (all_key_type_params, all_key_type_args)
+    in
+
+    let func_ty = type_of_loc ~ecx access_loc in
+    let (func_type_args, _, _) = Type_util.cast_to_function_type func_ty in
+
+    (* Full keys are trait/type args plus method's own generic args *)
+    let key_type_params = extra_key_type_params @ method_sig.type_params in
+    let key_type_args = extra_key_type_args @ func_type_args in
+
+    (* Find name of method fully qualified by module and trait *)
+    let method_binding = Bindings.get_value_binding ecx.pcx.bindings method_sig.loc in
+    let fully_qualified_method_name = mk_value_binding_name method_binding in
+
+    let full_method_name_with_type_args =
+      Ecx.add_necessary_func_instantiation
+        ~ecx
+        fully_qualified_method_name
+        key_type_params
+        key_type_args
+    in
+    let func_val = `FunctionL full_method_name_with_type_args in
+    emit_call ~ecx call func_val (Some receiver_val)
+  (*
+   * =======================================
+   *  Function Calls and Tuple Constructors
+   * =======================================
+   *)
+  | Call ({ loc; func; args } as call) ->
     (* Emit tuple constructor *)
     let ctor_result_opt =
       match func with
@@ -405,30 +486,17 @@ and emit_expression ~ecx expr =
         | _ -> None)
       | _ -> None
     in
+    (* If not a tuple constructor, must be a call *)
     (match ctor_result_opt with
     | Some result -> result
     | None ->
-      let var_id = mk_cf_var_id () in
       let func_val = emit_function_expression ~ecx func in
-      let arg_vals = List.map (emit_expression ~ecx) args in
-      let ret_ty = mir_type_of_loc ~ecx loc in
-      (match func_val with
-      (* Emit inlined builtins *)
-      | `FunctionL name when name = Std_lib.std_array_array_new ->
-        let (`PointerT element_ty) = cast_to_pointer_type ret_ty in
-        let (array_ptr_val, myte_alloc_instr) =
-          Mir_builtin.(mk_call_builtin myte_alloc var_id arg_vals [element_ty])
-        in
-        Ecx.emit ~ecx myte_alloc_instr;
-        array_ptr_val
-      | `FunctionL name when name = Std_lib.std_io_write ->
-        let (return_val, instr) = Mir_builtin.(mk_call_builtin myte_write var_id arg_vals []) in
-        Ecx.emit ~ecx instr;
-        return_val
-      | _ ->
-        (* Emit function call *)
-        Ecx.emit ~ecx (Call (var_id, ret_ty, func_val, arg_vals));
-        var_value_of_type var_id ret_ty))
+      emit_call ~ecx call func_val None)
+  (*
+   * ============================
+   *     Record Constructors
+   * ============================
+   *)
   | Record { Record.loc; name; fields } ->
     let name =
       match name with
@@ -466,6 +534,11 @@ and emit_expression ~ecx expr =
         Ecx.emit ~ecx (Store (element_offset_var, arg_var)))
       fields;
     agg_ptr_val
+  (*
+   * ============================
+   *        Access Chains
+   * ============================
+   *)
   | IndexedAccess _
   | NamedAccess _ ->
     let element_pointer_var = emit_expression_access_chain ~ecx expr in
@@ -568,6 +641,34 @@ and emit_expression_access_chain ~ecx expr =
   in
   let element_mir_ty = mir_type_of_loc ~ecx (Ast_utils.expression_loc expr) in
   emit_get_pointer_instr target_var element_mir_ty offsets
+
+and emit_call ~ecx { Expression.Call.loc; args; _ } func_val receiver_val_opt =
+  let var_id = mk_cf_var_id () in
+  let arg_vals = List.map (emit_expression ~ecx) args in
+  (* Pass `this` value as first argument if this is a method call *)
+  let arg_vals =
+    match receiver_val_opt with
+    | None -> arg_vals
+    | Some receiver_val -> receiver_val :: arg_vals
+  in
+  let ret_ty = mir_type_of_loc ~ecx loc in
+  match func_val with
+  (* Emit inlined builtins *)
+  | `FunctionL name when name = Std_lib.std_array_array_new ->
+    let (`PointerT element_ty) = cast_to_pointer_type ret_ty in
+    let (array_ptr_val, myte_alloc_instr) =
+      Mir_builtin.(mk_call_builtin myte_alloc var_id arg_vals [element_ty])
+    in
+    Ecx.emit ~ecx myte_alloc_instr;
+    array_ptr_val
+  | `FunctionL name when name = Std_lib.std_io_write ->
+    let (return_val, instr) = Mir_builtin.(mk_call_builtin myte_write var_id arg_vals []) in
+    Ecx.emit ~ecx instr;
+    return_val
+  | _ ->
+    (* Emit function call *)
+    Ecx.emit ~ecx (Call (var_id, ret_ty, func_val, arg_vals));
+    var_value_of_type var_id ret_ty
 
 and emit_construct_tuple ~ecx agg elements =
   let agg_ty = `AggregateT agg in

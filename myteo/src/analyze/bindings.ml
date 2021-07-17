@@ -200,6 +200,8 @@ let is_module_decl bindings decl_loc =
   let binding = LocMap.find decl_loc bindings.value_bindings in
   binding.context = ValueBinding.Module
 
+let is_std_lib_value binding = List.hd binding.ValueBinding.module_ = "std"
+
 let get_var_decl binding =
   match binding.ValueBinding.declaration with
   | VarDecl var_decl -> var_decl

@@ -25,7 +25,9 @@ let rec pp_program program =
   let open Program in
   let cx = Context.mk program in
   let dump_stdlib = Opts.dump_stdlib () in
-  let filter_stdlib name = (not dump_stdlib) && Std_lib.has_stdlib_prefix name in
+  let filter_stdlib name =
+    (not dump_stdlib) && (Std_lib.has_std_lib_prefix name || Mir.has_std_lib_string_prefix name)
+  in
   (* Collect printed blocks along with their source locations *)
   let blocks =
     SMap.fold

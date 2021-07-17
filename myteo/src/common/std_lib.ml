@@ -20,7 +20,7 @@ let pp_error err =
       path
       stdlib_error_help_msg
 
-let has_stdlib_prefix name = String.length name >= 4 && String.sub name 0 4 = "std."
+let has_std_lib_prefix name = String.length name >= 4 && String.sub name 0 4 = "std."
 
 let get_stdlib_path () =
   let check_is_directory path =

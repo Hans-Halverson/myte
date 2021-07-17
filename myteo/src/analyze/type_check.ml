@@ -183,11 +183,6 @@ and build_type_declarations ~cx module_ =
     (fun toplevel ->
       let open Ast.TypeDeclaration in
       match toplevel with
-      (*
-       *
-       * Builtin Type
-       *
-       *)
       | TypeDeclaration { builtin = true; _ } -> ()
       | TypeDeclaration { decl = Alias _; _ } -> ()
       (*
@@ -252,18 +247,16 @@ and build_trait_declarations ~cx module_ =
   List.iter
     (fun toplevel ->
       match toplevel with
-      | TraitDeclaration { loc; kind; name; methods; implemented; _ } ->
+      | TraitDeclaration { loc; name; methods; implemented; _ } ->
         let binding = Type_context.get_type_binding_from_decl ~cx name.loc in
         let trait_decl = Bindings.get_trait_decl binding in
         let trait_sig = trait_decl.trait_sig in
 
         (* Check arity of type params for type traits *)
-        (match kind with
-        | Trait -> ()
-        | Methods ->
-          let binding = Type_context.get_type_binding ~cx name.loc in
-          let type_decl = Bindings.get_type_decl binding in
-          let num_type_params = List.length type_decl.adt_sig.type_params in
+        (match trait_sig.adt_sig with
+        | None -> ()
+        | Some adt_sig ->
+          let num_type_params = List.length adt_sig.type_params in
           let num_trait_params = List.length trait_sig.type_params in
           if num_type_params <> num_trait_params then
             Type_context.add_error
@@ -276,17 +269,14 @@ and build_trait_declarations ~cx module_ =
           List.map (fun type_param -> Type.TypeParam type_param) trait_sig.type_params
         in
         let this_type =
-          match kind with
+          match trait_sig.adt_sig with
           (* ADT's `This` type is the ADT type *)
-          | Methods ->
-            let binding = Type_context.get_type_binding ~cx name.loc in
-            let type_decl = Bindings.get_type_decl binding in
-            Type.ADT { adt_sig = type_decl.adt_sig; type_args }
+          | Some adt_sig -> Type.ADT { adt_sig; type_args }
           (* Trait's `This` type is a type parameter bounded by the trait *)
-          | Trait ->
+          | None ->
             let trait_bound = { TraitSig.trait_sig; type_args } in
             let type_param = TypeParam.mk ~name:(Explicit "This") ~bounds:[trait_bound] in
-            trait_sig.this_type_param_id <- type_param.id;
+            trait_sig.this_type_param <- type_param;
             Type.TypeParam type_param
         in
         let this_type_binding = Type_context.get_type_binding ~cx loc in
@@ -320,12 +310,31 @@ and build_trait_implementations ~cx module_ =
         let trait_decl = Bindings.get_trait_decl binding in
         let trait_sig = trait_decl.trait_sig in
 
+        (* Fetch `This` type for trait body *)
+        let this_type_binding = Type_context.get_type_binding ~cx loc in
+        let this_type_alias = Bindings.get_type_alias_decl this_type_binding in
+
         (* Fill trait sig with base methods *)
+        let this_instance =
+          match this_type_alias.body with
+          | Type.ADT { type_args; _ } -> { TraitSig.trait_sig; type_args }
+          | TypeParam { bounds = [trait_instance]; _ } -> trait_instance
+          | _ -> failwith "This type must be ADT or trait bounded TypeParam"
+        in
         SMap.iter
-          (fun name { Bindings.FunctionDeclaration.type_params; params; return; is_static; _ } ->
+          (fun name { Bindings.FunctionDeclaration.loc; type_params; params; return; is_static; _ } ->
             if not is_static then
-              let func_sig = { FunctionSig.type_params; params; return } in
-              TraitSig.add_method trait_sig name func_sig)
+              let method_sig =
+                {
+                  MethodSig.loc;
+                  trait_sig;
+                  source_trait_instance = this_instance;
+                  type_params;
+                  params;
+                  return;
+                }
+              in
+              TraitSig.add_method trait_sig name method_sig)
           trait_decl.methods;
 
         (* Recursively traverse super traits, finding names of all non-overridden concrete methods.
@@ -355,10 +364,6 @@ and build_trait_implementations ~cx module_ =
             trait_decl.implemented
             SSet.empty
         in
-
-        (* Fetch `This` type for trait body *)
-        let this_type_binding = Type_context.get_type_binding ~cx loc in
-        let this_type_alias = Bindings.get_type_alias_decl this_type_binding in
 
         (* Check implementations of all super traits *)
         List.iter
@@ -401,7 +406,7 @@ and build_trait_implementation
     in
     (* Substitute `This` type for base trait for `This` type of implemented trait *)
     let type_param_bindings =
-      IMap.add implemented_trait.trait_sig.this_type_param_id this_type type_param_bindings
+      IMap.add implemented_trait.trait_sig.this_type_param.id this_type type_param_bindings
     in
 
     (* Add implemented trait to trait sig *)
@@ -431,8 +436,17 @@ and build_trait_implementation
               Types.substitute_type_params type_param_bindings super_method_ty
             in
             let (_, params, return) = Type_util.cast_to_function_type super_method_ty in
-            let func_sig = { FunctionSig.type_params = super_method.type_params; params; return } in
-            TraitSig.add_method trait_decl.trait_sig method_name func_sig );
+            let method_sig =
+              {
+                MethodSig.loc = super_method.loc;
+                trait_sig = trait_decl.trait_sig;
+                source_trait_instance = implemented;
+                type_params = super_method.type_params;
+                params;
+                return;
+              }
+            in
+            TraitSig.add_method trait_decl.trait_sig method_name method_sig );
 
         let is_already_implemented = SSet.mem method_name already_implemented_methods in
         if (not is_already_implemented) && not super_method.is_static then
@@ -1101,7 +1115,7 @@ and check_expression ~cx expr =
    * Named Access
    * ============================
    *)
-  | NamedAccess { NamedAccess.loc; target; name = { Ast.Identifier.name = access_name; _ } } ->
+  | NamedAccess { NamedAccess.loc; target; name } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let (target_loc, target_tvar_id) = check_expression ~cx target in
     let target_rep_ty = Type_context.find_rep_type ~cx (TVar target_tvar_id) in
@@ -1110,9 +1124,10 @@ and check_expression ~cx expr =
     let try_resolve_method trait_sigs type_args =
       List.exists
         (fun { TraitSig.type_params = trait_type_params; methods; _ } ->
-          match SMap.find_opt access_name methods with
+          match SMap.find_opt name.name methods with
           | None -> false
-          | Some { FunctionSig.type_params; params; return } ->
+          | Some { MethodSig.type_params; params; return; _ } ->
+            Type_context.add_method_use ~cx name.loc;
             (* Create fresh function type (refreshing only type params bound to the method itself).
                Also must substitute trait's type params with true type args for ADT, since method will
                be using trait's type args. *)
@@ -1167,7 +1182,7 @@ and check_expression ~cx expr =
       | ADT { adt_sig = { variants; _ }; _ } ->
         (match SMap.choose_opt variants with
         | Some (_, Record field_sigs) when SMap.cardinal variants = 1 ->
-          (match SMap.find_opt access_name field_sigs with
+          (match SMap.find_opt name.name field_sigs with
           | None -> false
           | Some field_sig_ty ->
             (* If there are type params, calculate type param to type arg bindings and substitute
@@ -1181,7 +1196,7 @@ and check_expression ~cx expr =
     in
 
     if not is_resolved then (
-      Type_context.add_error ~cx target_loc (UnresolvedNamedAccess (access_name, target_rep_ty));
+      Type_context.add_error ~cx target_loc (UnresolvedNamedAccess (name.name, target_rep_ty));
       ignore (Type_context.unify ~cx Type.Any (TVar tvar_id))
     );
     (loc, tvar_id)

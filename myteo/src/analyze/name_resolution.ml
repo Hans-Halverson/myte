@@ -460,7 +460,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                 let trait = get_trait_decl binding in
                 fill_trait_from_decl trait decl;
                 TypeDeclaration.add_trait type_decl trait;
-                type_decl.adt_sig.traits <- trait.trait_sig :: type_decl.adt_sig.traits
+                type_decl.adt_sig.traits <- trait.trait_sig :: type_decl.adt_sig.traits;
+                trait.trait_sig.adt_sig <- Some type_decl.adt_sig
               | _ -> failwith "Expected type"))
           | _ -> ())
         toplevels;

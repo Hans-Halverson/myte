@@ -25,9 +25,9 @@ type t = {
   mutable globals: cf_var Global.t SMap.t;
   mutable funcs: Function.t SMap.t;
   mutable types: Aggregate.t SMap.t;
-  mutable modules: Module.t SMap.t;
   mutable current_block_builder: BlockBuilder.t option;
   mutable current_func: label;
+  mutable current_in_std_lib: bool;
   (* Stack of loop contexts for all loops we are currently inside *)
   mutable current_loop_contexts: loop_context list;
   (* ADT signature id to its corresponding MirADT record *)
@@ -61,9 +61,9 @@ let mk ~pcx =
     globals = SMap.empty;
     funcs = SMap.empty;
     types = SMap.empty;
-    modules = SMap.empty;
     current_block_builder = None;
     current_func = "";
+    current_in_std_lib = false;
     current_loop_contexts = [];
     adt_sig_to_mir_adt = IMap.empty;
     tuple_instantiations = TypeArgsHashtbl.create 10;
@@ -186,7 +186,13 @@ let add_string_literal ~ecx loc string =
   let name =
     let id = ecx.max_string_literal_id in
     ecx.max_string_literal_id <- id + 1;
-    ".S" ^ string_of_int id
+    let prefix =
+      if ecx.current_in_std_lib then
+        Mir.std_lib_string_prefix
+      else
+        ".S"
+    in
+    prefix ^ string_of_int id
   in
   let length = String.length string in
   let ty = `ArrayT (`ByteT, length) in
@@ -218,7 +224,7 @@ let rec instantiate_adt ~ecx mir_adt type_args =
     let parameterized_name =
       if mir_adt.is_parameterized then
         let type_args_string = TypeArgs.to_string mir_type_args in
-        Printf.sprintf "%s<%s>" mir_adt.name type_args_string
+        Printf.sprintf "%s%s" mir_adt.name type_args_string
       else
         mir_adt.name
     in
@@ -294,7 +300,7 @@ and instantiate_tuple ~ecx element_types =
   | Some agg -> agg
   | None ->
     let type_args_string = TypeArgs.to_string mir_type_args in
-    let name = "$tuple<" ^ type_args_string ^ ">" in
+    let name = "$tuple" ^ type_args_string in
     let agg_elements = List.map (fun mir_ty -> (None, mir_ty)) mir_type_args in
     let agg = mk_aggregate name Loc.none agg_elements in
     TypeArgsHashtbl.add ecx.tuple_instantiations mir_type_args agg;
@@ -322,8 +328,9 @@ and to_mir_type ~ecx ty =
     (* TODO: Handle variant types *)
     let (_, agg) = SMap.choose variant_aggs in
     `PointerT (`AggregateT agg)
-  | TVar _
+  | TypeParam { name = Explicit name; _ } -> failwith ("Not allowed as value in IR " ^ name)
   | TypeParam _
+  | TVar _
   | Any ->
     failwith "Not allowed as value in IR"
 
@@ -346,12 +353,12 @@ let find_rep_non_generic_type ~ecx ty =
   else
     Types.substitute_type_params ecx.current_type_param_bindings ty
 
-let add_necessary_func_instantiation ~ecx name type_params arg_tys =
-  let arg_rep_tys = List.map (fun arg_ty -> find_rep_non_generic_type ~ecx arg_ty) arg_tys in
-  let arg_mir_tys = List.map (fun arg_rep_ty -> to_mir_type ~ecx arg_rep_ty) arg_rep_tys in
+let add_necessary_func_instantiation ~ecx name key_type_params key_type_args =
+  let key_type_args = List.map (find_rep_non_generic_type ~ecx) key_type_args in
+  let arg_mir_tys = List.map (fun key_arg_ty -> to_mir_type ~ecx key_arg_ty) key_type_args in
   let name_with_args =
     let type_args_string = TypeArgs.to_string arg_mir_tys in
-    Printf.sprintf "%s<%s>" name type_args_string
+    Printf.sprintf "%s%s" name type_args_string
   in
   let already_instantiated =
     match SMap.find_opt name ecx.func_instantiations with
@@ -377,8 +384,8 @@ let add_necessary_func_instantiation ~ecx name type_params arg_tys =
           (fun type_param_bindings { Types.TypeParam.id; _ } arg_rep_ty ->
             IMap.add id arg_rep_ty type_param_bindings)
           ecx.current_type_param_bindings
-          type_params
-          arg_rep_tys
+          key_type_params
+          key_type_args
       in
       TypeArgsHashtbl.add pending_type_args arg_mir_tys instantiated_type_param_bindings;
       ecx.pending_func_instantiations <-
@@ -401,7 +408,7 @@ let pop_pending_func_instantiation ~ecx =
       TypeArgsHashtbl.remove pending_type_args type_args;
     let name_with_args =
       let type_args_string = TypeArgs.to_string type_args in
-      Printf.sprintf "%s<%s>" name type_args_string
+      Printf.sprintf "%s%s" name type_args_string
     in
     Some (name, name_with_args, type_param_bindings)
 

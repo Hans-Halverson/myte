@@ -29,6 +29,8 @@ and TypeParam : sig
     | Explicit of string
 
   val mk : name:name -> bounds:TraitSig.instance list -> t
+
+  val empty : t
 end = struct
   type id = int
 
@@ -50,6 +52,8 @@ end = struct
     id
 
   let mk ~name ~bounds = { id = mk_id (); name; bounds }
+
+  let empty = { id = 0; name = Implicit; bounds = [] }
 end
 
 and Function : sig
@@ -140,14 +144,27 @@ end = struct
   let empty = { id = 0; name = ""; type_params = []; variants = SMap.empty; traits = [] }
 end
 
-and FunctionSig : sig
+(* A method on a trait. This method may be declared directly on the trait, or it may be inherited
+   from a super trait. Every method on a trait, whether inherited or directly declared, will have
+   a MethodSig. *)
+and MethodSig : sig
   type t = {
+    (* Location of the function's id (which maps to the FunctionDeclaration binding) *)
+    loc: Loc.t;
+    (* Trait this method is for (though method may be declared on a different trait) *)
+    trait_sig: TraitSig.t;
+    (* Instance of the trait where this method is declared, in terms of the trait this MethodSig is
+       for. For the trait where this method is declared, the instance is the trait sig with its own
+       type params as type args. For traits where this method is inherited, the instance is the
+       super trait sig on which the method is declared with type args matching how the sub trait
+       implements the super trait. *)
+    source_trait_instance: TraitSig.instance;
     type_params: TypeParam.t list;
     params: Type.t list;
     return: Type.t;
   }
 end =
-  FunctionSig
+  MethodSig
 
 and TraitSig : sig
   type id = int
@@ -156,9 +173,11 @@ and TraitSig : sig
     id: id;
     name: string;
     mutable type_params: TypeParam.t list;
-    mutable methods: FunctionSig.t SMap.t;
+    mutable methods: MethodSig.t SMap.t;
     mutable implemented: instance list;
-    mutable this_type_param_id: TypeParam.id;
+    mutable this_type_param: TypeParam.t;
+    (* The ADT sig if this is a type trait. None if this is not a type trait *)
+    mutable adt_sig: AdtSig.t option;
   }
 
   and instance = {
@@ -168,7 +187,7 @@ and TraitSig : sig
 
   val mk : name:string -> t
 
-  val add_method : t -> string -> FunctionSig.t -> unit
+  val add_method : t -> string -> MethodSig.t -> unit
 
   val add_implemented : t -> instance -> unit
 end = struct
@@ -178,9 +197,10 @@ end = struct
     id: id;
     name: string;
     mutable type_params: TypeParam.t list;
-    mutable methods: FunctionSig.t SMap.t;
+    mutable methods: MethodSig.t SMap.t;
     mutable implemented: instance list;
-    mutable this_type_param_id: TypeParam.id;
+    mutable this_type_param: TypeParam.t;
+    mutable adt_sig: AdtSig.t option;
   }
 
   and instance = {
@@ -202,7 +222,8 @@ end = struct
       type_params = [];
       methods = SMap.empty;
       implemented = [];
-      this_type_param_id = 0;
+      this_type_param = TypeParam.empty;
+      adt_sig = None;
     }
 
   let add_method trait_sig name func_sig =

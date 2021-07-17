@@ -13,6 +13,8 @@ type t = {
   (* Set of all int literal locs that have not been resolved *)
   mutable unresolved_int_literals: LocSet.t;
   mutable current_this_type: Type.t;
+  (* Set of all method uses locs *)
+  mutable method_uses: LocSet.t;
 }
 
 and union_forest_node =
@@ -31,6 +33,7 @@ let mk ~bindings =
     return_types = LocMap.empty;
     unresolved_int_literals = LocSet.empty;
     current_this_type = Type.Any;
+    method_uses = LocSet.empty;
   }
 
 let add_error ~cx loc error = cx.errors <- (loc, error) :: cx.errors
@@ -49,6 +52,10 @@ let get_unresolved_int_literals ~cx = cx.unresolved_int_literals
 let get_this_type ~cx = cx.current_this_type
 
 let set_this_type ~cx ty = cx.current_this_type <- ty
+
+let add_method_use ~cx use_loc = cx.method_uses <- LocSet.add use_loc cx.method_uses
+
+let is_method_use ~cx use_loc = LocSet.mem use_loc cx.method_uses
 
 let get_value_binding ~cx use_loc = get_value_binding cx.bindings use_loc
 
@@ -492,12 +499,8 @@ and is_subtype ~cx sub sup =
       | TraitBound trait_bound -> trait_bound
       | _ -> failwith "Expected trait_bound"
     in
-    (* Printf.eprintf "is_subtype: %s\n" (String.concat " <: " (Types.pps [ty; TraitBound trait_bound]));
-       Printf.eprintf "is unresolved %B %B %B\n" (trait_bound.resolved = None) (rep_trait_bound.resolved = None) (trait_bound == rep_trait_bound); *)
     let satisfies_trait_bound = type_satisfies_trait_bounds ~cx rep_ty rep_trait_bound.bounds in
     if satisfies_trait_bound then rep_trait_bound.resolved <- Some rep_ty;
-    (* Printf.eprintf "Satisfies trait bound %B\n" satisfies_trait_bound;
-       Printf.eprintf "is unresolved %B\n" (rep_trait_bound.resolved = None); *)
     satisfies_trait_bound
   | _ -> false
 

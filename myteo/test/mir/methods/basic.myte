@@ -1,0 +1,69 @@
+module test
+
+// Test direct methods on non-generic types
+type NonGenericType1 (Int)
+methods NonGenericType1 {
+  fun nongeneric(x: Int): Int = x
+  fun generic<T>(x: T): T = x
+}
+
+fun testDirectNonGenericType(x: NonGenericType1) {
+  x.nongeneric(2);
+  x.generic(1);
+  x.generic(false);
+}
+
+// Test direct methods on generic type
+type GenericType1<T> (T)
+methods GenericType1<T> {
+  fun nongeneric(x: T): T = x
+  fun generic<U>(x: T, y: U): (T, U) = (x, y)
+}
+
+fun testDirectGenericType(x: GenericType1<Int>, y: GenericType1<Bool>) {
+  x.nongeneric(1);
+  y.nongeneric(true);
+  x.generic(1, 1);
+  x.generic(1, true);
+  y.generic(true, 1);
+  y.generic(true, true);
+}
+
+// Test inherited methods on non-generic trait
+trait NonGenericTrait {
+  fun nongeneric(x: Int): Int = x
+  fun generic<T>(x: T): T = x
+}
+
+type NonGenericType2 (Int)
+methods NonGenericType2 {
+  implements NonGenericTrait
+}
+
+fun testInheritedNonGenericTrait(x: NonGenericType2) {
+  x.nongeneric(1);
+  x.generic(1);
+  x.generic(2);
+}
+
+// Test inherited methods on generic trait
+trait GenericTrait<T> {
+  fun nongeneric(x: T): T = x
+  fun generic<U>(x: T, y: U): (T, U) = (x, y)
+}
+
+type GenericType2<T> (T)
+methods GenericType2<T> {
+  implements GenericTrait<T>
+}
+
+fun testInheritedGenericTrait(x: GenericType2<Int>, y: GenericType2<Bool>) {
+  x.nongeneric(1);
+  y.nongeneric(true);
+  x.generic(1, 1);
+  x.generic(1, true);
+  y.generic(true, 1);
+  y.generic(true, true);
+}
+
+fun main() {}

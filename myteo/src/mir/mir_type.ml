@@ -97,8 +97,11 @@ module TypeArgs = struct
     hash_nums (List.map hash tys)
 
   let to_string (tys : t) =
-    let ty_strings = List.map type_to_string tys in
-    String.concat "," ty_strings
+    if tys = [] then
+      ""
+    else
+      let ty_strings = List.map type_to_string tys in
+      "<" ^ String.concat "," ty_strings ^ ">"
 end
 
 module TypeArgsHashtbl = Hashtbl.Make (TypeArgs)

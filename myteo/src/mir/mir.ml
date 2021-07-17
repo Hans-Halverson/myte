@@ -134,16 +134,6 @@ and Program : sig
 end =
   Program
 
-and Module : sig
-  type t = {
-    name: string;
-    mutable globals: SSet.t;
-    mutable funcs: SSet.t;
-    mutable types: SSet.t;
-  }
-end =
-  Module
-
 and Block : sig
   type 'var t = {
     id: id;
@@ -378,9 +368,17 @@ let lookup_element agg name =
   in
   inner agg.elements 0
 
+let std_lib_string_prefix = ".stdS"
+
+let has_std_lib_string_prefix name =
+  String.length name >= 5 && String.sub name 0 5 = std_lib_string_prefix
+
 let filter_stdlib (program : ssa_program) =
   let filter_stdlib_names smap =
-    SMap.filter (fun name _ -> not (Std_lib.has_stdlib_prefix name)) smap
+    SMap.filter
+      (fun name _ ->
+        (not (Std_lib.has_std_lib_prefix name)) && not (has_std_lib_string_prefix name))
+      smap
   in
   {
     program with

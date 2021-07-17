@@ -1,0 +1,165 @@
+type $tuple<int,int> {int, int}
+
+type $tuple<int,bool> {int, bool}
+
+type $tuple<bool,int> {bool, int}
+
+type $tuple<bool,bool> {bool, bool}
+
+type test.NonGenericType1 {int}
+
+func int @test.NonGenericType1.nongeneric(int %0) {
+  Ret %0
+}
+
+func int @test.NonGenericType1.generic<int>(int %1) {
+  Ret %1
+}
+
+func bool @test.NonGenericType1.generic<bool>(bool %2) {
+  Ret %2
+}
+
+func unit @test.testDirectNonGenericType(test.NonGenericType1* %3) {
+  %4 := Call int @test.NonGenericType1.nongeneric(%3, 2)
+  %5 := Call int @test.NonGenericType1.generic<int>(%3, 1)
+  %6 := Call bool @test.NonGenericType1.generic<bool>(%3, false)
+  Ret
+}
+
+type test.GenericType1<int> {int}
+
+type test.GenericType1<bool> {bool}
+
+func int @test.GenericType1.nongeneric<int>(int %7) {
+  Ret %7
+}
+
+func bool @test.GenericType1.nongeneric<bool>(bool %8) {
+  Ret %8
+}
+
+func $tuple<int,int>* @test.GenericType1.generic<int,int>(int %9, int %10) {
+  %11 := CallBuiltin $tuple<int,int>* myte_alloc(1)
+  %12 := GetPointer int %11.0
+  Store int %12, %9
+  %13 := GetPointer int %11.1
+  Store int %13, %10
+  Ret %11
+}
+
+func $tuple<int,bool>* @test.GenericType1.generic<int,bool>(int %14, bool %15) {
+  %16 := CallBuiltin $tuple<int,bool>* myte_alloc(1)
+  %17 := GetPointer int %16.0
+  Store int %17, %14
+  %18 := GetPointer bool %16.1
+  Store bool %18, %15
+  Ret %16
+}
+
+func $tuple<bool,int>* @test.GenericType1.generic<bool,int>(bool %19, int %20) {
+  %21 := CallBuiltin $tuple<bool,int>* myte_alloc(1)
+  %22 := GetPointer bool %21.0
+  Store bool %22, %19
+  %23 := GetPointer int %21.1
+  Store int %23, %20
+  Ret %21
+}
+
+func $tuple<bool,bool>* @test.GenericType1.generic<bool,bool>(bool %24, bool %25) {
+  %26 := CallBuiltin $tuple<bool,bool>* myte_alloc(1)
+  %27 := GetPointer bool %26.0
+  Store bool %27, %24
+  %28 := GetPointer bool %26.1
+  Store bool %28, %25
+  Ret %26
+}
+
+func unit @test.testDirectGenericType(test.GenericType1<int>* %29, test.GenericType1<bool>* %30) {
+  %31 := Call int @test.GenericType1.nongeneric<int>(%29, 1)
+  %32 := Call bool @test.GenericType1.nongeneric<bool>(%30, true)
+  %33 := Call $tuple<int,int>* @test.GenericType1.generic<int,int>(%29, 1, 1)
+  %34 := Call $tuple<int,bool>* @test.GenericType1.generic<int,bool>(%29, 1, true)
+  %35 := Call $tuple<bool,int>* @test.GenericType1.generic<bool,int>(%30, true, 1)
+  %36 := Call $tuple<bool,bool>* @test.GenericType1.generic<bool,bool>(%30, true, true)
+  Ret
+}
+
+func int @test.NonGenericTrait.nongeneric<test.NonGenericType2*>(int %37) {
+  Ret %37
+}
+
+func int @test.NonGenericTrait.generic<test.NonGenericType2*,int>(int %38) {
+  Ret %38
+}
+
+type test.NonGenericType2 {int}
+
+func unit @test.testInheritedNonGenericTrait(test.NonGenericType2* %39) {
+  %40 := Call int @test.NonGenericTrait.nongeneric<test.NonGenericType2*>(%39, 1)
+  %41 := Call int @test.NonGenericTrait.generic<test.NonGenericType2*,int>(%39, 1)
+  %42 := Call int @test.NonGenericTrait.generic<test.NonGenericType2*,int>(%39, 2)
+  Ret
+}
+
+func int @test.GenericTrait.nongeneric<test.GenericType2<int>*,int>(int %43) {
+  Ret %43
+}
+
+func bool @test.GenericTrait.nongeneric<test.GenericType2<bool>*,bool>(bool %44) {
+  Ret %44
+}
+
+func $tuple<int,int>* @test.GenericTrait.generic<test.GenericType2<int>*,int,int>(int %45, int %46) {
+  %47 := CallBuiltin $tuple<int,int>* myte_alloc(1)
+  %48 := GetPointer int %47.0
+  Store int %48, %45
+  %49 := GetPointer int %47.1
+  Store int %49, %46
+  Ret %47
+}
+
+func $tuple<int,bool>* @test.GenericTrait.generic<test.GenericType2<int>*,int,bool>(int %50, bool %51) {
+  %52 := CallBuiltin $tuple<int,bool>* myte_alloc(1)
+  %53 := GetPointer int %52.0
+  Store int %53, %50
+  %54 := GetPointer bool %52.1
+  Store bool %54, %51
+  Ret %52
+}
+
+func $tuple<bool,int>* @test.GenericTrait.generic<test.GenericType2<bool>*,bool,int>(bool %55, int %56) {
+  %57 := CallBuiltin $tuple<bool,int>* myte_alloc(1)
+  %58 := GetPointer bool %57.0
+  Store bool %58, %55
+  %59 := GetPointer int %57.1
+  Store int %59, %56
+  Ret %57
+}
+
+func $tuple<bool,bool>* @test.GenericTrait.generic<test.GenericType2<bool>*,bool,bool>(bool %60, bool %61) {
+  %62 := CallBuiltin $tuple<bool,bool>* myte_alloc(1)
+  %63 := GetPointer bool %62.0
+  Store bool %63, %60
+  %64 := GetPointer bool %62.1
+  Store bool %64, %61
+  Ret %62
+}
+
+type test.GenericType2<int> {int}
+
+type test.GenericType2<bool> {bool}
+
+func unit @test.testInheritedGenericTrait(test.GenericType2<int>* %65, test.GenericType2<bool>* %66) {
+  %67 := Call int @test.GenericTrait.nongeneric<test.GenericType2<int>*,int>(%65, 1)
+  %68 := Call bool @test.GenericTrait.nongeneric<test.GenericType2<bool>*,bool>(%66, true)
+  %69 := Call $tuple<int,int>* @test.GenericTrait.generic<test.GenericType2<int>*,int,int>(%65, 1, 1)
+  %70 := Call $tuple<int,bool>* @test.GenericTrait.generic<test.GenericType2<int>*,int,bool>(%65, 1, true)
+  %71 := Call $tuple<bool,int>* @test.GenericTrait.generic<test.GenericType2<bool>*,bool,int>(%66, true, 1)
+  %72 := Call $tuple<bool,bool>* @test.GenericTrait.generic<test.GenericType2<bool>*,bool,bool>(%66, true, true)
+  Ret
+}
+
+func unit @test.main() {
+  Ret
+}

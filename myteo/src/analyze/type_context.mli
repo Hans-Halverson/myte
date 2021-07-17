@@ -24,6 +24,10 @@ val get_this_type : cx:t -> Type.t
 
 val set_this_type : cx:t -> Type.t -> unit
 
+val add_method_use : cx:t -> Loc.t -> unit
+
+val is_method_use : cx:t -> Loc.t -> bool
+
 (* Binding getters *)
 
 val get_value_binding : cx:t -> Loc.t -> ValueBinding.t

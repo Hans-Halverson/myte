@@ -162,6 +162,8 @@ val get_decl_loc_from_value_use : Bindings.t -> Loc.t -> Loc.t
 
 val is_module_decl : Bindings.t -> Loc.t -> bool
 
+val is_std_lib_value : ValueBinding.t -> bool
+
 val get_var_decl : ValueBinding.t -> VariableDeclaration.t
 
 val get_func_decl : ValueBinding.t -> FunctionDeclaration.t
