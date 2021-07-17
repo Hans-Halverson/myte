@@ -151,13 +151,10 @@ and emit_function_instantiation ~ecx (name, name_with_args, type_param_bindings)
 
 and emit_function_body ~ecx name decl =
   let open Ast.Function in
-  let { name = { Identifier.loc; _ }; params; body; _ } = decl in
+  let { loc = full_loc; name = { Identifier.loc; _ }; params; body; _ } = decl in
   let binding = Type_context.get_value_binding ~cx:ecx.pcx.type_ctx loc in
   ecx.current_in_std_lib <- Bindings.is_std_lib_value binding;
   (* Build IR for function body *)
-  let param_locs_and_ids =
-    List.map (fun { Param.name = { Identifier.loc; _ }; _ } -> (loc, mk_var_id ())) params
-  in
   let body_start_block =
     Ecx.set_current_func ~ecx name;
     let body_start_block = Ecx.start_new_block ~ecx in
@@ -178,9 +175,22 @@ and emit_function_body ~ecx name decl =
   in
   (* Find value type of function *)
   let func_decl = Bindings.get_func_decl binding in
-  let param_tys = List.map (type_to_mir_type ~ecx) func_decl.params in
+  let params =
+    List.map2
+      (fun { Param.name = { Identifier.loc; _ }; _ } ty ->
+        (loc, mk_var_id (), type_to_mir_type ~ecx ty))
+      params
+      func_decl.params
+  in
+  (* Add implicit this param *)
+  let params =
+    match LocMap.find_opt full_loc ecx.pcx.bindings.value_bindings with
+    | Some { declaration = FunParamDecl { tvar }; _ } ->
+      let this_type = type_to_mir_type ~ecx (Types.Type.TVar tvar) in
+      (full_loc, mk_var_id (), this_type) :: params
+    | _ -> params
+  in
   let return_ty = type_to_mir_type ~ecx func_decl.return in
-  let params = List.map2 (fun (loc, var_id) ty -> (loc, var_id, ty)) param_locs_and_ids param_tys in
   Ecx.add_function ~ecx { Function.loc; name; params; return_ty; body_start_block }
 
 and start_init_function ~ecx =

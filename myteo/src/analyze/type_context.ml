@@ -12,7 +12,6 @@ type t = {
   mutable return_types: Type.t LocMap.t;
   (* Set of all int literal locs that have not been resolved *)
   mutable unresolved_int_literals: LocSet.t;
-  mutable current_this_type: Type.t;
   (* Set of all method uses locs *)
   mutable method_uses: LocSet.t;
 }
@@ -32,7 +31,6 @@ let mk ~bindings =
     union_forest_nodes = IMap.empty;
     return_types = LocMap.empty;
     unresolved_int_literals = LocSet.empty;
-    current_this_type = Type.Any;
     method_uses = LocSet.empty;
   }
 
@@ -48,10 +46,6 @@ let add_return_type ~cx loc return_type =
 let get_return_types ~cx = cx.return_types
 
 let get_unresolved_int_literals ~cx = cx.unresolved_int_literals
-
-let get_this_type ~cx = cx.current_this_type
-
-let set_this_type ~cx ty = cx.current_this_type <- ty
 
 let add_method_use ~cx use_loc = cx.method_uses <- LocSet.add use_loc cx.method_uses
 

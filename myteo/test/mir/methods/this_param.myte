@@ -1,0 +1,44 @@
+module test
+
+// Test uses of this directly in type trait
+type RecordType { foo: Int, bar: Bool }
+methods RecordType {
+  fun getBar(): Bool = this.bar
+
+  fun setBar(x: Bool): RecordType {
+    this.bar = x;
+    return this;
+  }
+
+  fun setThenGet(x: Bool): Bool {
+    this.setBar(x);
+    return this.getBar();
+  }
+}
+
+fun testRecordType(x: RecordType) {
+  x.setThenGet(true);
+}
+
+// Test uses of this inherited from trait
+trait Trait {
+  fun getBar(): Bool = true
+
+  fun setBar(x: Bool): This = this
+
+  fun setThenGet(x: Bool): Bool {
+    this.setBar(x);
+    return this.getBar();
+  }
+}
+
+type InheritsType (Int)
+methods InheritsType {
+  implements Trait
+}
+
+fun testInheritsType(x: InheritsType) {
+  x.setThenGet(true);
+}
+
+fun main() {}

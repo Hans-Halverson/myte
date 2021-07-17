@@ -1,0 +1,49 @@
+type test.RecordType {int, bool}
+
+func bool @test.RecordType.getBar(test.RecordType* %0) {
+  %1 := GetPointer bool %0.1
+  %2 := Load bool %1
+  Ret %2
+}
+
+func test.RecordType* @test.RecordType.setBar(test.RecordType* %3, bool %4) {
+  %5 := GetPointer bool %3.1
+  Store bool %5, %4
+  Ret %3
+}
+
+func bool @test.RecordType.setThenGet(test.RecordType* %6, bool %7) {
+  %8 := Call test.RecordType* @test.RecordType.setBar(%6, %7)
+  %9 := Call bool @test.RecordType.getBar(%6)
+  Ret %9
+}
+
+func unit @test.testRecordType(test.RecordType* %10) {
+  %11 := Call bool @test.RecordType.setThenGet(%10, true)
+  Ret
+}
+
+func bool @test.Trait.getBar<test.InheritsType*>(test.InheritsType* %12) {
+  Ret true
+}
+
+func test.InheritsType* @test.Trait.setBar<test.InheritsType*>(test.InheritsType* %13, bool %14) {
+  Ret %13
+}
+
+func bool @test.Trait.setThenGet<test.InheritsType*>(test.InheritsType* %15, bool %16) {
+  %17 := Call test.InheritsType* @test.Trait.setBar<test.InheritsType*>(%15, %16)
+  %18 := Call bool @test.Trait.getBar<test.InheritsType*>(%15)
+  Ret %18
+}
+
+type test.InheritsType {int}
+
+func unit @test.testInheritsType(test.InheritsType* %19) {
+  %20 := Call bool @test.Trait.setThenGet<test.InheritsType*>(%19, true)
+  Ret
+}
+
+func unit @test.main() {
+  Ret
+}

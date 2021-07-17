@@ -20,10 +20,6 @@ val get_return_types : cx:t -> Type.t LocMap.t
 
 val get_unresolved_int_literals : cx:t -> LocSet.t
 
-val get_this_type : cx:t -> Type.t
-
-val set_this_type : cx:t -> Type.t -> unit
-
 val add_method_use : cx:t -> Loc.t -> unit
 
 val is_method_use : cx:t -> Loc.t -> bool
