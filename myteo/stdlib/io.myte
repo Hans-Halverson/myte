@@ -15,6 +15,16 @@ fun print(string: String) {
   write(STDOUT, string.data, string.size);
 }
 
+fun println(string: String) {
+  print(string);
+  print("\n");
+}
+
 fun eprint(string: String) {
   write(STDERR, string.data, string.size);
+}
+
+fun eprintln(string: String) {
+  eprint(string);
+  eprint("\n");
 }

@@ -37,7 +37,7 @@ let rec pp_program program =
       | Some prefix ->
         let prefix_length = String.length prefix in
         fun name ->
-          Std_lib.has_std_lib_prefix name
+          (Std_lib.has_std_lib_prefix name || Mir.has_std_lib_string_prefix name)
           && not (String.length name >= prefix_length && String.sub name 0 prefix_length = prefix)
   in
   (* Collect printed blocks along with their source locations *)

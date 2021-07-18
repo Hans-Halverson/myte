@@ -1,0 +1,3 @@
+(library
+  (name program_tests)
+  (libraries myte_test))

@@ -815,38 +815,23 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
      *)
     if name = myte_alloc.name then (
       let (`PointerT element_mir_ty) = cast_to_pointer_type ret_mir_ty in
-      let element_size = Gcx.size_of_mir_type ~gcx element_mir_ty in
       let precolored_a = Gcx.mk_precolored ~gcx A in
       let precolored_di = Gcx.mk_precolored ~gcx DI in
-      (match args with
-      (* If count is a literal precalculate total requested size and fit into smallest immediate *)
-      | [((`ByteL _ | `IntL _ | `LongL _) as count_lit)] ->
-        let count = int64_of_literal count_lit in
-        let total_size = Int64.mul count (Int64.of_int element_size) in
-        let (size, total_size_imm) =
-          if Integers.is_out_of_unsigned_int_range total_size then
-            (Size64, Imm64 total_size)
-          else
-            (Size32, Imm32 (Int64.to_int32 total_size))
-        in
-        Gcx.emit ~gcx (MovIM (size, total_size_imm, Reg precolored_di))
-      (* If count is a variable multiply by size before putting in argument register *)
-      | [((`ByteV _ | `IntV _ | `LongV _) as count_var)] ->
-        let count_vreg =
-          match resolve_ir_value count_var with
-          | SVReg (count_vreg, _) -> count_vreg
-          | _ -> failwith "Must be virtual register"
-        in
-        (* Check for special case where element size is a single byte - no multiplication required *)
-        if element_size = 1 then
-          Gcx.emit ~gcx (MovMM (Size64, Reg count_vreg, Reg precolored_di))
-        else
-          Gcx.emit
-            ~gcx
-            (IMulMIR (Size64, Reg count_vreg, Imm32 (Int32.of_int element_size), precolored_di))
-      | _ -> failwith "Incorrect arguments");
+      gen_size_from_count_and_type ~gcx ~func (List.hd args) element_mir_ty precolored_di;
       Gcx.emit ~gcx (CallL X86_runtime.myte_alloc_label);
       Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg ret_vreg))
+      (*
+       * ===========================================
+       *                myte_copy
+       * ===========================================
+       *)
+    ) else if name = myte_copy.name then (
+      let (`PointerT element_mir_ty) = cast_to_pointer_type (type_of_value (List.hd args)) in
+      let (pointer_args, count_arg) = List_utils.split_last args in
+      let precolored_d = Gcx.mk_precolored ~gcx D in
+      gen_call_arguments pointer_args;
+      gen_size_from_count_and_type ~gcx ~func count_arg element_mir_ty precolored_d;
+      Gcx.emit ~gcx (CallL X86_runtime.myte_copy_label)
       (*
        * ===========================================
        *                myte_write
@@ -1028,6 +1013,36 @@ and gen_get_pointer ~gcx ~func (get_pointer_instr : var_id Mir.Instruction.GetPo
   let address_vreg = emit_current_address_calculation () in
   let result_vreg = vreg_of_result_var_id var_id in
   Gcx.emit ~gcx (MovMM (Size64, Reg address_vreg, Reg result_vreg))
+
+and gen_size_from_count_and_type ~gcx ~func count_val mir_ty result_vreg =
+  let element_size = Gcx.size_of_mir_type ~gcx mir_ty in
+  match count_val with
+  (* If count is a literal precalculate total requested size and fit into smallest immediate *)
+  | (`ByteL _ | `IntL _ | `LongL _) as count_lit ->
+    let count = int64_of_literal count_lit in
+    let total_size = Int64.mul count (Int64.of_int element_size) in
+    let (size, total_size_imm) =
+      if Integers.is_out_of_unsigned_int_range total_size then
+        (Size64, Imm64 total_size)
+      else
+        (Size32, Imm32 (Int64.to_int32 total_size))
+    in
+    Gcx.emit ~gcx (MovIM (size, total_size_imm, Reg result_vreg))
+  (* If count is a variable multiply by size before putting in argument register *)
+  | (`ByteV _ | `IntV _ | `LongV _) as count_var ->
+    let count_vreg =
+      match resolve_ir_value ~gcx ~func count_var with
+      | SVReg (count_vreg, _) -> count_vreg
+      | _ -> failwith "Must be virtual register"
+    in
+    (* Check for special case where element size is a single byte - no multiplication required *)
+    if element_size = 1 then
+      Gcx.emit ~gcx (MovMM (Size64, Reg count_vreg, Reg result_vreg))
+    else
+      Gcx.emit
+        ~gcx
+        (IMulMIR (Size64, Reg count_vreg, Imm32 (Int32.of_int element_size), result_vreg))
+  | _ -> failwith "Expected numeric count"
 
 and resolve_ir_value ~gcx ~func ?(allow_imm64 = false) value =
   let vreg_of_var var_id size =

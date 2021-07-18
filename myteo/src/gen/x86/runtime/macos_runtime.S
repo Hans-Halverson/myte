@@ -1,4 +1,5 @@
   .global __myte_alloc
+  .global __myte_copy
   .global __myte_init
   .global __myte_write
 
@@ -33,6 +34,11 @@ __myte_alloc:
   # Bump heap start pointer
   add %rdi, %rdx
   mov %rdx, __myte_heap_start(%rip)
+  ret
+
+__myte_copy:
+  mov %rdx, %rcx
+  rep movsb
   ret
 
 __myte_write:
