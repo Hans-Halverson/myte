@@ -245,6 +245,11 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_immediate src_imm;
         pp_args_separator ();
         pp_mem ~size dest_mem
+      | MovSX (src_size, dest_size, src_mem, dest_reg) ->
+        pp_op "movsx";
+        pp_mem ~size:src_size src_mem;
+        pp_args_separator ();
+        pp_register ~size:dest_size dest_reg
       | Lea (size, mem, reg) ->
         pp_sized_op "lea" size;
         pp_memory_address mem;
@@ -372,6 +377,15 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
       | SetCC (cc, mem) ->
         pp_op ("set" ^ pp_condition_code cc);
         pp_mem ~size:Size8 mem
+      | ConvertDouble size ->
+        let op =
+          match size with
+          | Size8 -> failwith "ConvertDouble cannot have 8-byte size"
+          | Size16 -> "cwd"
+          | Size32 -> "cdq"
+          | Size64 -> "cqo"
+        in
+        pp_op op
       (* Control flow *)
       | Jmp block_id ->
         let block = IMap.find block_id gcx.Gcx.blocks_by_id in

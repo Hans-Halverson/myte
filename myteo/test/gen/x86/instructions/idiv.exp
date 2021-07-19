@@ -2,92 +2,114 @@
 
   .text
 test.divByteImmReg:
-  movb $60, %al
-  idivb %dil
+  movw $60, %ax
+  movsx %dil, %cx
+  cwd 
+  idivw %cx
   ret
 test.divByteRegImm:
-  movb %dil, %al
-  movb $60, %cl
-  idivb %cl
+  movsx %dil, %ax
+  movw $60, %cx
+  cwd 
+  idivw %cx
   ret
 test.divByteRegs:
-  movb %dil, %al
-  idivb %sil
+  movsx %dil, %ax
+  movsx %sil, %cx
+  cwd 
+  idivw %cx
   ret
 test.divIntImmReg:
   movl $257, %eax
+  cdq 
   idivl %edi
   ret
 test.divIntRegImm:
   movl %edi, %eax
   movl $257, %ecx
+  cdq 
   idivl %ecx
   ret
 test.divIntRegs:
   movl %edi, %eax
+  cdq 
   idivl %esi
   ret
 test.divLongImmReg:
   movq $2147483648, %rax
+  cqo 
   idivq %rdi
   ret
 test.divLongRegImm:
   movq $2147483648, %rcx
   movq %rdi, %rax
+  cqo 
   idivq %rcx
   ret
 test.divLongRegs:
   movq %rdi, %rax
+  cqo 
   idivq %rsi
   ret
 _main:
   movl $0, %eax
   ret
 test.remByteImmReg:
-  movb $60, %al
-  idivb %dil
+  movw $60, %ax
+  movsx %dil, %cx
+  cwd 
+  idivw %cx
   movb %dl, %al
   ret
 test.remByteRegImm:
-  movb %dil, %al
-  movb $60, %cl
-  idivb %cl
+  movsx %dil, %ax
+  movw $60, %cx
+  cwd 
+  idivw %cx
   movb %dl, %al
   ret
 test.remByteRegs:
-  movb %dil, %al
-  idivb %sil
+  movsx %dil, %ax
+  movsx %sil, %cx
+  cwd 
+  idivw %cx
   movb %dl, %al
   ret
 test.remIntImmReg:
   movl $257, %eax
+  cdq 
   idivl %edi
   movl %edx, %eax
   ret
 test.remIntRegImm:
   movl %edi, %eax
   movl $257, %ecx
+  cdq 
   idivl %ecx
   movl %edx, %eax
   ret
 test.remIntRegs:
   movl %edi, %eax
+  cdq 
   idivl %esi
   movl %edx, %eax
   ret
 test.remLongImmReg:
   movq $2147483648, %rax
+  cqo 
   idivq %rdi
   movq %rdx, %rax
   ret
 test.remLongRegImm:
   movq $2147483648, %rcx
   movq %rdi, %rax
+  cqo 
   idivq %rcx
   movq %rdx, %rax
   ret
 test.remLongRegs:
   movq %rdi, %rax
+  cqo 
   idivq %rsi
   movq %rdx, %rax
   ret

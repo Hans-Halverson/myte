@@ -4,10 +4,74 @@ import std.byte.Byte
 import std.int.Int
 import std.memory.Array
 
+type alias Char = Byte
+
 type String {
-  data: Array<Byte>,
+  data: Array<Char>,
   size: Int,
   capacity: Int,
+}
+
+methods String {
+  static fun new(): String {
+    return String {
+      data: Array.new(0),
+      size: 0,
+      capacity: 0,
+    };
+  }
+
+  fun get(index: Int): Char {
+    if (index >= this.size) {
+      // TODO: Out of bounds error
+    }
+
+    return this.data[index];
+  }
+
+  fun set(index: Int, item: Char) {
+    if (index >= this.size) {
+      // TODO: Out of bounds error
+    }
+
+    this.data[index] = item;
+  }
+
+  fun push(x: Char) {
+    if (this.size == this.capacity) {
+      this.resize();
+    }
+
+    this.data[this.size] = x;
+    this.size = this.size + 1;
+  }
+
+  fun resize() {
+    val oldCapacity = this.capacity;
+    var newCapacity = oldCapacity * 2;
+    if (newCapacity == 0) {
+      newCapacity = 1;
+    }
+    this.capacity = newCapacity;
+
+    val newData: Array<Char> = Array.new(newCapacity);
+    Array.copy(newData, this.data, oldCapacity);
+    this.data = newData;
+  }
+
+  fun reverse() {
+    val size = this.size;
+    val oldData = this.data;
+    val newData: Array<Char> = Array.new(size);
+    this.data = newData;
+    this.capacity = size;
+
+    var i = 0;
+    while (i < size) {
+      newData[size - (i + 1)] = oldData[i];
+      i = i + 1;
+    }
+  }
 }
 
 trait ToString {

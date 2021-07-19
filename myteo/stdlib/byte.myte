@@ -1,5 +1,36 @@
 module std.byte
 
+import std.string.{String, ToString}
+
 builtin type Byte
 
-methods Byte {}
+methods Byte {
+  implements ToString
+
+  override fun toString(): String {
+    val str = String.new();
+    var n = this;
+    val isNegative = n < 0;
+    if (isNegative) {
+      n = -n;
+    }
+
+    // Add digits one at a time to string
+    while (n > 9) {
+      str.push((n % 10) + 48);
+      n = n / 10;
+    }
+
+    // Add last digit to string
+    str.push(n + 48);
+    
+    // Add negative sign
+    if (isNegative) {
+      str.push(45);
+    }
+
+    str.reverse();
+
+    return str;
+  }
+}

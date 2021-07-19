@@ -40,6 +40,7 @@ class instruction_visitor =
       | MovMM (_, read_mem, write_mem) ->
         visit_read_mem read_mem;
         visit_write_mem write_mem
+      | MovSX (_, _, read_mem, write_vreg)
       | IMulMIR (_, read_mem, _, write_vreg) ->
         visit_read_mem read_mem;
         visit_write_vreg write_vreg
@@ -66,6 +67,7 @@ class instruction_visitor =
         this#visit_block_edge ~block next_block_id
       | PushI _
       | CallL _
+      | ConvertDouble _
       | Leave
       | Ret
       | Syscall ->

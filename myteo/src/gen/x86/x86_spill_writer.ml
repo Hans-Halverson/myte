@@ -64,6 +64,9 @@ class spill_writer ~gcx =
       | MovIM (size, src_imm, dest_mem) -> mk_single (MovIM (size, src_imm, resolve_mem dest_mem))
       | MovMM (size, src_mem, dest_mem) ->
         resolve_binop_single_mem size src_mem dest_mem (fun s d -> MovMM (size, s, d))
+      | MovSX (src_size, dest_size, src_mem, dest_reg) ->
+        force_register_write dest_size dest_reg (fun reg' ->
+            MovSX (src_size, dest_size, src_mem, reg'))
       | Lea (size, addr, reg) -> force_register_write size reg (fun reg' -> Lea (size, addr, reg'))
       | NegM (size, mem) -> mk_single (NegM (size, resolve_mem mem))
       | AddIM (size, src_imm, dest_mem) -> mk_single (AddIM (size, src_imm, resolve_mem dest_mem))
@@ -112,6 +115,7 @@ class spill_writer ~gcx =
       | SetCC (cc, mem) -> mk_single (SetCC (cc, resolve_mem mem))
       | CallM (size, mem) -> mk_single (CallM (size, resolve_mem mem))
       | PushI _
+      | ConvertDouble _
       | Jmp _
       | JmpCC _
       | CallL _

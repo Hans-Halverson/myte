@@ -33,6 +33,11 @@ class use_def_finder color_to_vreg =
         this#add_vreg_def ~block reg_a;
         this#add_vreg_def ~block reg_d;
         super#visit_instruction ~block instr_with_id
+      (* ConvertDouble (e.g. cdq) uses the value in register A and writes to register D *)
+      | ConvertDouble _ ->
+        this#add_vreg_use ~block (this#get_precolored_vreg A);
+        this#add_vreg_def ~block (this#get_precolored_vreg D);
+        super#visit_instruction ~block instr_with_id
       | _ -> super#visit_instruction ~block instr_with_id
 
     method! visit_read_vreg ~block vreg = this#add_vreg_use ~block vreg

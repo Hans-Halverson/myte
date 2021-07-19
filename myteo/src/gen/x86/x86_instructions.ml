@@ -175,6 +175,7 @@ module Instruction = struct
     (* Data instructions *)
     | MovIM of register_size * immediate * 'reg memory (* Allows 64-bit immediate *)
     | MovMM of register_size * 'reg memory * 'reg memory
+    | MovSX of register_size * register_size * 'reg memory * 'reg (* Src size then dest size where src size < dest size *)
     | Lea of register_size * 'reg memory_address * 'reg (* Only supports 32 or 64 bit register argument *)
     (* Numeric operations *)
     | NegM of register_size * 'reg memory
@@ -206,6 +207,8 @@ module Instruction = struct
     | CmpMM of register_size * 'reg memory * 'reg memory
     | TestMR of register_size * 'reg memory * 'reg
     | SetCC of condition_code * 'reg memory (* Only supports 8-bit destination *)
+    (* Conversions *)
+    | ConvertDouble of register_size (* Only supports 16, 32, and 64 byte sizes (cwd/cdq/cqo) *)
     (* Control flow *)
     | Jmp of block_id
     | JmpCC of condition_code * block_id

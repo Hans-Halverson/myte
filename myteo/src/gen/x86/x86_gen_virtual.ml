@@ -194,27 +194,59 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     let precolored_a = Gcx.mk_precolored ~gcx A in
     match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
+    (* Convert 8-byte divides to 16-byte divides *)
+    | (SImm (Imm8 dividend_imm), divisor) ->
+      let divisor_mem = emit_mem divisor in
+      let divisor_vreg = mk_vreg () in
+      Gcx.emit ~gcx (MovIM (Size16, Imm16 dividend_imm, Reg precolored_a));
+      Gcx.emit ~gcx (MovSX (Size8, Size16, divisor_mem, divisor_vreg));
+      Gcx.emit ~gcx (ConvertDouble Size16);
+      Gcx.emit ~gcx (IDiv (Size16, Reg divisor_vreg));
+      Size32
     | (SImm dividend_imm, divisor) ->
       let size = register_size_of_svalue divisor in
       let divisor_mem = emit_mem divisor in
       Gcx.emit ~gcx (MovIM (size, dividend_imm, Reg precolored_a));
+      Gcx.emit ~gcx (ConvertDouble size);
       Gcx.emit ~gcx (IDiv (size, divisor_mem));
       size
+    (* Convert 8-byte divides to 16-byte divides *)
+    | (dividend, SImm (Imm8 divisor_imm)) ->
+      let dividend_mem = emit_mem dividend in
+      let divisor_vreg = mk_vreg () in
+      Gcx.emit ~gcx (MovSX (Size8, Size16, dividend_mem, precolored_a));
+      Gcx.emit ~gcx (MovIM (Size16, Imm16 divisor_imm, Reg divisor_vreg));
+      Gcx.emit ~gcx (ConvertDouble Size16);
+      Gcx.emit ~gcx (IDiv (Size16, Reg divisor_vreg));
+      Size32
     | (dividend, SImm divisor_imm) ->
       let size = register_size_of_svalue dividend in
       let dividend_mem = emit_mem dividend in
       let divisor_vreg = mk_vreg () in
       Gcx.emit ~gcx (MovMM (size, dividend_mem, Reg precolored_a));
       Gcx.emit ~gcx (MovIM (size, divisor_imm, Reg divisor_vreg));
+      Gcx.emit ~gcx (ConvertDouble size);
       Gcx.emit ~gcx (IDiv (size, Reg divisor_vreg));
       size
     | (dividend, divisor) ->
       let size = register_size_of_svalue dividend in
-      let dividend_mem = emit_mem dividend in
-      let divisor_mem = emit_mem divisor in
-      Gcx.emit ~gcx (MovMM (size, dividend_mem, Reg precolored_a));
-      Gcx.emit ~gcx (IDiv (size, divisor_mem));
-      size
+      (* Convert 8-byte divides to 16-byte divides *)
+      if size = Size8 then (
+        let dividend_mem = emit_mem dividend in
+        let divisor_mem = emit_mem divisor in
+        let divisor_vreg = mk_vreg () in
+        Gcx.emit ~gcx (MovSX (Size8, Size16, dividend_mem, precolored_a));
+        Gcx.emit ~gcx (MovSX (Size8, Size16, divisor_mem, divisor_vreg));
+        Gcx.emit ~gcx (ConvertDouble Size16);
+        Gcx.emit ~gcx (IDiv (Size16, Reg divisor_vreg));
+        Size32
+      ) else
+        let dividend_mem = emit_mem dividend in
+        let divisor_mem = emit_mem divisor in
+        Gcx.emit ~gcx (MovMM (size, dividend_mem, Reg precolored_a));
+        Gcx.emit ~gcx (ConvertDouble size);
+        Gcx.emit ~gcx (IDiv (size, divisor_mem));
+        size
   in
   (* Generate a not instruction applied to a partiuclar argument *)
   let gen_not result_var_id arg =
