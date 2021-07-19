@@ -1,0 +1,22 @@
+module test
+
+import std.io.{print, println}
+import std.vec.Vec
+
+fun main() {
+  val v: Vec<Bool> = Vec.new();
+  v.push(true);
+  v.push(false);
+  v.push(true);
+
+  print("First: ");
+  println(v[0].toString());
+  print("Second: ");
+  println(v[1].toString());
+  print("Third: ");
+  println(v[2].toString());
+
+  v[1] = true;
+  print("Second is now: ");
+  println(v[1].toString());
+}

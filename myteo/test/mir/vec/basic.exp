@@ -110,51 +110,65 @@ func unit @std.vec.Vec.resize<int>(std.vec.Vec<int>* %70) {
   %73 := Mov int %72
   %74 := Mul int %73, 2
   %75 := Mov int %74
-  %76 := GetPointer int %70.2
-  Store int %76, %75
-  %77 := CallBuiltin int* myte_alloc(%75)
-  %78 := Mov int* %77
-  %79 := GetPointer int* %70.0
-  %80 := Load int* %79
-  %81 := CallBuiltin unit myte_copy(%78, %80, %73)
+  %76 := Eq int %75, 0
+  branch %76, @8, @9
+label @8:
+  %77 := Mov int 1
+  continue @9
+label @9:
+  %78 := Phi int @std.vec.Vec.resize<int>:%75, @8:%77
+  %79 := GetPointer int %70.2
+  Store int %79, %78
+  %80 := CallBuiltin int* myte_alloc(%78)
+  %81 := Mov int* %80
   %82 := GetPointer int* %70.0
-  Store int* %82, %78
+  %83 := Load int* %82
+  %84 := CallBuiltin unit myte_copy(%81, %83, %73)
+  %85 := GetPointer int* %70.0
+  Store int* %85, %81
   Ret
 }
 
-func unit @std.vec.Vec.resize<bool>(std.vec.Vec<bool>* %83) {
-  %84 := GetPointer int %83.2
-  %85 := Load int %84
-  %86 := Mov int %85
-  %87 := Mul int %86, 2
-  %88 := Mov int %87
-  %89 := GetPointer int %83.2
-  Store int %89, %88
-  %90 := CallBuiltin bool* myte_alloc(%88)
-  %91 := Mov bool* %90
-  %92 := GetPointer bool* %83.0
-  %93 := Load bool* %92
-  %94 := CallBuiltin unit myte_copy(%91, %93, %86)
-  %95 := GetPointer bool* %83.0
-  Store bool* %95, %91
+func unit @std.vec.Vec.resize<bool>(std.vec.Vec<bool>* %86) {
+  %87 := GetPointer int %86.2
+  %88 := Load int %87
+  %89 := Mov int %88
+  %90 := Mul int %89, 2
+  %91 := Mov int %90
+  %92 := Eq int %91, 0
+  branch %92, @10, @11
+label @10:
+  %93 := Mov int 1
+  continue @11
+label @11:
+  %94 := Phi int @std.vec.Vec.resize<bool>:%91, @10:%93
+  %95 := GetPointer int %86.2
+  Store int %95, %94
+  %96 := CallBuiltin bool* myte_alloc(%94)
+  %97 := Mov bool* %96
+  %98 := GetPointer bool* %86.0
+  %99 := Load bool* %98
+  %100 := CallBuiltin unit myte_copy(%97, %99, %89)
+  %101 := GetPointer bool* %86.0
+  Store bool* %101, %97
   Ret
 }
 
-func unit @test.testVecGet(std.vec.Vec<int>* %96, std.vec.Vec<bool>* %97) {
-  %98 := Call int @std.vec.Vec.get<int>(%96, 7)
-  %99 := Call bool @std.vec.Vec.get<bool>(%97, 7)
+func unit @test.testVecGet(std.vec.Vec<int>* %102, std.vec.Vec<bool>* %103) {
+  %104 := Call int @std.vec.Vec.get<int>(%102, 7)
+  %105 := Call bool @std.vec.Vec.get<bool>(%103, 7)
   Ret
 }
 
-func unit @test.testVecSet(std.vec.Vec<int>* %100, std.vec.Vec<bool>* %101) {
-  %102 := Call unit @std.vec.Vec.set<int>(%100, 7, 8)
-  %103 := Call unit @std.vec.Vec.set<bool>(%101, 7, true)
+func unit @test.testVecSet(std.vec.Vec<int>* %106, std.vec.Vec<bool>* %107) {
+  %108 := Call unit @std.vec.Vec.set<int>(%106, 7, 8)
+  %109 := Call unit @std.vec.Vec.set<bool>(%107, 7, true)
   Ret
 }
 
-func unit @test.testVecPush(std.vec.Vec<int>* %104, std.vec.Vec<bool>* %105) {
-  %106 := Call unit @std.vec.Vec.push<int>(%104, 1)
-  %107 := Call unit @std.vec.Vec.push<bool>(%105, true)
+func unit @test.testVecPush(std.vec.Vec<int>* %110, std.vec.Vec<bool>* %111) {
+  %112 := Call unit @std.vec.Vec.push<int>(%110, 1)
+  %113 := Call unit @std.vec.Vec.push<bool>(%111, true)
   Ret
 }
 

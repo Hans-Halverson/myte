@@ -10,7 +10,7 @@ let snapshots_command ~config:_ bin files =
       rm t.out 2> /dev/null
     |}
     bin
-    files  
+    files
 
 let suite ~bin ~record =
   let root = Sys.getcwd () in
