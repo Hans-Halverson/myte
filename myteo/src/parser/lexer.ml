@@ -198,6 +198,7 @@ let tokenize lex =
   | "module" -> token_result T_MODULE
   | "import" -> token_result T_IMPORT
   | "as" -> token_result T_AS
+  | "is" -> token_result T_IS
   | "type" -> token_result T_TYPE
   | "alias" -> token_result T_ALIAS
   | "builtin" -> token_result T_BUILTIN

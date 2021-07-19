@@ -9,8 +9,10 @@ fun main() {
   (() == (): Bool);
   (true == false: Bool);
   (1 != 2: Bool);
+  (1 is 2: Bool);
 
   (1 == true: Bool);
   (true == 1: Bool);
   (intToInt == intToString: Bool);
+  (1 is true: Bool);
 }

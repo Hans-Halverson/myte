@@ -846,6 +846,7 @@ and check_expression ~cx expr =
         error_int right_loc right_tvar_id;
         ignore (Type_context.unify ~cx Any (TVar tvar_id))
       )
+    | Is
     | Equal
     | NotEqual ->
       Type_context.assert_unify ~cx right_loc (TVar left_tvar_id) (TVar right_tvar_id);

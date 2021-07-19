@@ -48,6 +48,7 @@ type t =
   | T_MODULE
   | T_IMPORT
   | T_AS
+  | T_IS
   | T_TYPE
   | T_ALIAS
   | T_BUILTIN
@@ -115,6 +116,7 @@ let to_string token =
   | T_MODULE -> "module"
   | T_IMPORT -> "import"
   | T_AS -> "as"
+  | T_IS -> "is"
   | T_TYPE -> "type"
   | T_ALIAS -> "alias"
   | T_BUILTIN -> "builtin"

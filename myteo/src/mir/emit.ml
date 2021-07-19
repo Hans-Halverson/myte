@@ -372,6 +372,7 @@ and emit_expression ~ecx expr =
       | GreaterThan -> (Gt (var_id, left_val, right_val), `BoolT)
       | LessThanOrEqual -> (LtEq (var_id, left_val, right_val), `BoolT)
       | GreaterThanOrEqual -> (GtEq (var_id, left_val, right_val), `BoolT)
+      | Is -> failwith "TODO: Emit Is expression"
     in
     Ecx.emit ~ecx instr;
     var_value_of_type var_id ty

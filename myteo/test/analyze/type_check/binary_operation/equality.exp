@@ -1,14 +1,19 @@
 Error: Expected type `Int` but found `Bool`
-test/analyze/type_check/binary_operation/equality.myte:13:8-12
- 13 |   (1 == true: Bool);
+test/analyze/type_check/binary_operation/equality.myte:14:8-12
+ 14 |   (1 == true: Bool);
     |         ^^^^
 
 Error: Expected type `Bool` but found `Int`
-test/analyze/type_check/binary_operation/equality.myte:14:11
- 14 |   (true == 1: Bool);
+test/analyze/type_check/binary_operation/equality.myte:15:11
+ 15 |   (true == 1: Bool);
     |            ^
 
 Error: Expected type `Int -> Int` but found `Int -> String`
-test/analyze/type_check/binary_operation/equality.myte:15:15-26
- 15 |   (intToInt == intToString: Bool);
+test/analyze/type_check/binary_operation/equality.myte:16:15-26
+ 16 |   (intToInt == intToString: Bool);
     |                ^^^^^^^^^^^
+
+Error: Expected type `Int` but found `Bool`
+test/analyze/type_check/binary_operation/equality.myte:17:8-12
+ 17 |   (1 is true: Bool);
+    |         ^^^^

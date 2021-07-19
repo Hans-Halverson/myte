@@ -138,6 +138,10 @@
 				{
 					"name": "keyword.operator.assignment.myte",
 					"match": "="
+				},
+				{
+					"name": "keyword.operator.is.myte",
+					"match": "\\bis\\b"
 				}
 			]
 		},
