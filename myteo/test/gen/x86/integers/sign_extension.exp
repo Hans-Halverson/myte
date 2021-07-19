@@ -1,0 +1,19 @@
+  .global _start
+
+  .text
+_main:
+  movl $0, %eax
+  ret
+test.sextByteToInt:
+  movsx %dil, %eax
+  ret
+test.sextByteToLong:
+  movsx %dil, %rax
+  ret
+test.sextIntToLong:
+  movsx %edi, %rax
+  ret
+_start:
+  call __myte_init
+  call _main
+  ret

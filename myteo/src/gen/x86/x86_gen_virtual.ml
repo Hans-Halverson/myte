@@ -877,11 +877,46 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     ) else
       failwith (Printf.sprintf "Cannot compile unknown builtin %s to assembly" name);
     gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                 GetPointer
+   * ===========================================
+   *)
   | Mir.Instruction.GetPointer get_pointer_instr :: rest_instructions ->
     gen_get_pointer ~gcx ~func get_pointer_instr;
     gen_instructions rest_instructions
-  | Mir.Instruction.Trunc _ :: _ -> failwith "TODO: Implement Trunc"
-  | Mir.Instruction.SExt _ :: _ -> failwith "TODO: Implement SExt"
+  (*
+   * ===========================================
+   *                  Trunc
+   * ===========================================
+   *)
+  | Mir.Instruction.Trunc (result_var_id, arg_val, ty) :: rest_instructions ->
+    (* Truncation occurs when later accessing only a portion of the arg. Emit mov to link arg and
+       result, which will likely be optimized away (but may not be optimized away if we end up
+       moving the truncated portion to memory). *)
+    let result_vreg = vreg_of_result_var_id result_var_id in
+    (match resolve_ir_value arg_val with
+    | SImm _ -> failwith "Constants must be folded before gen"
+    | arg ->
+      let size = register_size_of_mir_value_type (ty :> Type.t) in
+      let arg_mem = emit_mem arg in
+      Gcx.emit ~gcx (MovMM (size, arg_mem, Reg result_vreg)));
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                  SExt
+   * ===========================================
+   *)
+  | Mir.Instruction.SExt (result_var_id, arg_val, ty) :: rest_instructions ->
+    let result_vreg = vreg_of_result_var_id result_var_id in
+    (match resolve_ir_value arg_val with
+    | SImm _ -> failwith "Constants must be folded before gen"
+    | arg ->
+      let arg_size = register_size_of_svalue arg in
+      let result_size = register_size_of_mir_value_type (ty :> Type.t) in
+      let arg_mem = emit_mem arg in
+      Gcx.emit ~gcx (MovSX (arg_size, result_size, arg_mem, result_vreg)));
+    gen_instructions rest_instructions
 
 and gen_get_pointer ~gcx ~func (get_pointer_instr : var_id Mir.Instruction.GetPointer.t) =
   let open Mir.Instruction.GetPointer in

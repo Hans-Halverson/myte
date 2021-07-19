@@ -12,7 +12,7 @@ test.mulByteRegImm:
   ret
 test.mulByteRegs:
   imulw %di, %si
-  movb %sil, %al
+  movl %esi, %eax
   ret
 test.mulIntImmReg:
   imull $257, %edi, %eax

@@ -1,0 +1,21 @@
+module test
+
+// Include struct to force register to memory mov
+type Numbers { byte: Byte, int: Int }
+
+fun truncIntToByte(n: Numbers, x: Int): Byte {
+  n.byte = x.toByte();
+  return x.toByte();
+}
+
+fun truncLongToByte(n: Numbers, x: Long): Byte {
+  n.byte = x.toByte();
+  return x.toByte();
+}
+
+fun truncLongToInt(n: Numbers, x: Long): Int {
+  n.int = x.toInt();
+  return x.toInt();
+}
+
+fun main() {}

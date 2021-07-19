@@ -59,21 +59,21 @@ test.remByteImmReg:
   movsx %dil, %cx
   cwd 
   idivw %cx
-  movb %dl, %al
+  movl %edx, %eax
   ret
 test.remByteRegImm:
   movsx %dil, %ax
   movw $60, %cx
   cwd 
   idivw %cx
-  movb %dl, %al
+  movl %edx, %eax
   ret
 test.remByteRegs:
   movsx %dil, %ax
   movsx %sil, %cx
   cwd 
   idivw %cx
-  movb %dl, %al
+  movl %edx, %eax
   ret
 test.remIntImmReg:
   movl $257, %eax

@@ -3,15 +3,15 @@
   .text
 test.andByteImmReg:
   andb $60, %dil
-  movb %dil, %al
+  movl %edi, %eax
   ret
 test.andByteRegImm:
   andb $60, %dil
-  movb %dil, %al
+  movl %edi, %eax
   ret
 test.andByteRegs:
   andb %dil, %sil
-  movb %sil, %al
+  movl %esi, %eax
   ret
 test.andIntImmReg:
   andl $257, %edi

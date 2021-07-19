@@ -116,7 +116,17 @@ let coalesce_lea_optimization ~gcx:_ instr next_instrs =
         None)
   | _ -> None
 
-let all_peephole_optimizations = [coalesce_lea_optimization]
+(* Avoid partial register stalls/dependencies by rewriting byte to byte register moves to instead
+   write full register (note: writing 32 bits does not cause partial stall, so has same effect as
+   writing full 64-bits with smaller code size by avoiding REX prefix). *)
+let remove_byte_reg_reg_moves_optimization ~gcx:_ instr _ =
+  let open Instruction in
+  match instr with
+  | (instr_id, MovMM (Size8, Reg src_reg, Reg dest_reg)) ->
+    Some (1, [(instr_id, MovMM (Size32, Reg src_reg, Reg dest_reg))])
+  | _ -> None
+
+let all_peephole_optimizations = [coalesce_lea_optimization; remove_byte_reg_reg_moves_optimization]
 
 let run_peephole_optimizations ~gcx =
   let runner = new peephole_optimization_runner ~gcx all_peephole_optimizations in

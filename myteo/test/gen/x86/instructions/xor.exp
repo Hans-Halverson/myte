@@ -6,15 +6,15 @@ _main:
   ret
 test.xorByteImmReg:
   xorb $60, %dil
-  movb %dil, %al
+  movl %edi, %eax
   ret
 test.xorByteRegImm:
   xorb $60, %dil
-  movb %dil, %al
+  movl %edi, %eax
   ret
 test.xorByteRegs:
   xorb %dil, %sil
-  movb %sil, %al
+  movl %esi, %eax
   ret
 test.xorIntImmReg:
   xorl $257, %edi

@@ -220,7 +220,7 @@ test.testPartialReuseStackSlots:
   push %r15
   subq $24, %rsp
   call test.cond
-  movb %al, %bl
+  movl %eax, %ebx
   movl $1, %r15d
   movl $2, %r14d
   movl $3, %r13d
@@ -325,7 +325,7 @@ test.testPartialReuseStackSlots:
   addl %ecx, %ebx
   addl %ebx, %eax
   call test.cond
-  movb %al, %bl
+  movl %eax, %ebx
   movl $1, %r15d
   movl $2, %r14d
   movl $3, %r13d

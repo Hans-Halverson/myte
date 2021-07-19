@@ -5,18 +5,18 @@ _main:
   movl $0, %eax
   ret
 test.shlByteImmReg:
-  movb %dil, %cl
+  movl %edi, %ecx
   movb $6, %al
   shlb %cl, %al
   ret
 test.shlByteRegImm:
   shlb $6, %dil
-  movb %dil, %al
+  movl %edi, %eax
   ret
 test.shlByteRegs:
-  movb %sil, %cl
+  movl %esi, %ecx
   shlb %cl, %dil
-  movb %dil, %al
+  movl %edi, %eax
   ret
 test.shlIntByteImmReg:
   movl %edi, %ecx

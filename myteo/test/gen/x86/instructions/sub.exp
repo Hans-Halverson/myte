@@ -10,11 +10,11 @@ test.subByteImmReg:
   ret
 test.subByteRegImm:
   subb $63, %dil
-  movb %dil, %al
+  movl %edi, %eax
   ret
 test.subByteRegs:
   subb %sil, %dil
-  movb %dil, %al
+  movl %edi, %eax
   ret
 test.subIntImmReg:
   movl $257, %eax

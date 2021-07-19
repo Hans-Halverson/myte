@@ -6,7 +6,7 @@ _main:
   ret
 test.notByteReg:
   notb %dil
-  movb %dil, %al
+  movl %edi, %eax
   ret
 test.notIntReg:
   notl %edi

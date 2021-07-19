@@ -3,15 +3,15 @@
   .text
 test.addByteImm:
   addb $60, %dil
-  movb %dil, %al
+  movl %edi, %eax
   ret
 test.addByteImm2:
   addb $60, %dil
-  movb %dil, %al
+  movl %edi, %eax
   ret
 test.addByteRegs:
   addb %dil, %sil
-  movb %sil, %al
+  movl %esi, %eax
   ret
 test.addIntByteImm:
   addl $60, %edi

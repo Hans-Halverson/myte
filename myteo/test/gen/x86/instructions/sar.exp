@@ -5,18 +5,18 @@ _main:
   movl $0, %eax
   ret
 test.sarByteImmReg:
-  movb %dil, %cl
+  movl %edi, %ecx
   movb $6, %al
   sarb %cl, %al
   ret
 test.sarByteRegImm:
   sarb $6, %dil
-  movb %dil, %al
+  movl %edi, %eax
   ret
 test.sarByteRegs:
-  movb %sil, %cl
+  movl %esi, %ecx
   sarb %cl, %dil
-  movb %dil, %al
+  movl %edi, %eax
   ret
 test.sarIntImmReg:
   movl %edi, %ecx

@@ -1,0 +1,9 @@
+module test
+
+fun sextByteToInt(x: Byte): Int = x.toInt()
+
+fun sextByteToLong(x: Byte): Long = x.toLong()
+
+fun sextIntToLong(x: Int): Long = x.toLong()
+
+fun main() {}

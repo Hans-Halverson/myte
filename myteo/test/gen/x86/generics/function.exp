@@ -3,7 +3,7 @@
   .text
 test.buildOption$bool$:
   push %rbx
-  movb %dil, %bl
+  movl %edi, %ebx
   movl $1, %edi
   call __myte_alloc
   movb %bl, (%rax)
@@ -28,8 +28,8 @@ test.buildOption$long$:
 test.buildPair$bool$bool$:
   push %rbx
   push %r12
-  movb %dil, %r12b
-  movb %sil, %bl
+  movl %edi, %r12d
+  movl %esi, %ebx
   movl $2, %edi
   call __myte_alloc
   movb %r12b, (%rax)
@@ -40,7 +40,7 @@ test.buildPair$bool$bool$:
 test.buildPair$bool$int$:
   push %rbx
   push %r12
-  movb %dil, %r12b
+  movl %edi, %r12d
   movl %esi, %ebx
   movl $8, %edi
   call __myte_alloc
