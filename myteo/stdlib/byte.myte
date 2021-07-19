@@ -6,6 +6,10 @@ import std.string.{String, ToString}
 
 builtin type Byte
 
+val BYTE_MIN: Byte = -128
+
+val BYTE_MAX: Byte = 127
+
 methods Byte {
   implements ToString
 
@@ -14,8 +18,13 @@ methods Byte {
   builtin fun toLong(): Long
 
   override fun toString(): String {
-    val str = String.new();
     var n = this;
+    // Special case min byte, as it cannot be negated
+    if (n == BYTE_MIN) {
+      return "-128";
+    }
+
+    val str = String.new();
     val isNegative = n < 0;
     if (isNegative) {
       n = -n;

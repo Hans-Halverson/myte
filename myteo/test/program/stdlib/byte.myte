@@ -5,12 +5,11 @@ import std.io.println
 fun testToString() {
   println((0: Byte).toString());
   println((1: Byte).toString());
-  println((9: Byte).toString());
-  println((10: Byte).toString());
   println((12: Byte).toString());
-  println((99: Byte).toString());
-  println((100: Byte).toString());
-  println((103: Byte).toString());
+  println((127: Byte).toString());
+  println((-1: Byte).toString());
+  println((-127: Byte).toString());
+  println((-128: Byte).toString());
 }
 
 fun main() {

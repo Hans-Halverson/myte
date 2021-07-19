@@ -2,11 +2,50 @@ module std.long
 
 import std.byte.Byte
 import std.int.Int
+import std.string.{String, ToString}
 
 builtin type Long
 
+val LONG_MIN: Long = -9223372036854775808
+
+val LONG_MAX: Long = 9223372036854775807
+
 methods Long {
+  implements ToString
+
   builtin fun toByte(): Byte
 
   builtin fun toInt(): Int
+
+  override fun toString(): String {
+    var n = this;
+    // Special case max long, as it cannot be negated
+    if (n == LONG_MIN) {
+      return "-9223372036854775808";
+    }
+
+    val str = String.new();
+    val isNegative = n < 0;
+    if (isNegative) {
+      n = -n;
+    }
+
+    // Add digits one at a time to string
+    while (n > 9) {
+      str.push((n % 10).toByte() + 48);
+      n = n / 10;
+    }
+
+    // Add last digit to string
+    str.push(n.toByte() + 48);
+    
+    // Add negative sign
+    if (isNegative) {
+      str.push(45);
+    }
+
+    str.reverse();
+
+    return str;
+  }
 }

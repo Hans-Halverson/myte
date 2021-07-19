@@ -1,0 +1,17 @@
+module test
+
+import std.io.println
+
+fun testToString() {
+  println((0: Int).toString());
+  println((1: Int).toString());
+  println((103: Int).toString());
+  println((2147483647: Int).toString());
+  println((-1: Int).toString());
+  println((-2147483647: Int).toString());
+  println((-2147483648: Int).toString());
+}
+
+fun main() {
+  testToString();
+}
