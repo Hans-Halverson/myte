@@ -82,6 +82,6 @@ global bool @test.bool1 = false
 
 global bool @test.bool2 = true
 
-func unit @test.main() {
-  Ret
+func int @test.main() {
+  Ret 0
 }

@@ -84,6 +84,6 @@ func unit @test.recordConstructor() {
   Ret
 }
 
-func unit @test.main() {
-  Ret
+func int @test.main() {
+  Ret 0
 }

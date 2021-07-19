@@ -69,6 +69,6 @@ func unit @test.testAnonymousIndexing($tuple<int,int>* %30, $tuple<int,bool>* %3
   Ret
 }
 
-func unit @test.main() {
-  Ret
+func int @test.main() {
+  Ret 0
 }

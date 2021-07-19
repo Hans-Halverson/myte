@@ -20,6 +20,6 @@ global byte[3] @.S0 = "foo"
 
 global byte[6] @.S1 = "barbaz"
 
-func unit @test.main() {
-  Ret
+func int @test.main() {
+  Ret 0
 }

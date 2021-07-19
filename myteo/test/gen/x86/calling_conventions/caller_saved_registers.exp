@@ -72,6 +72,7 @@ test.callerSavedRegistersSavedAcrossFunctionCallsWithSpills:
   pop %rbx
   ret
 _main:
+  movl $0, %eax
   ret
 test.testDefaultToCalleeSaveRegistersIfAcrossFunctionCall:
   push %rbx

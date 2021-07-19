@@ -9,6 +9,6 @@ func unit @_init() {
 
 global int @test.x = uninitialized
 
-func unit @test.main() {
-  Ret
+func int @test.main() {
+  Ret 0
 }

@@ -43,6 +43,6 @@ func unit @t.whileTrueWithContinue() {
   continue @t.whileTrueWithContinue
 }
 
-func unit @t.main() {
-  Ret
+func int @t.main() {
+  Ret 0
 }

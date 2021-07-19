@@ -63,6 +63,7 @@ _main:
   movq %rax, %rdi
   call std.io.print
 .L3:
+  movl $0, %eax
   ret
 _start:
   call __myte_init

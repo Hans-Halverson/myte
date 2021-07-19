@@ -25,7 +25,7 @@ label @2:
   Ret
 }
 
-func unit @test.main() {
+func int @test.main() {
   %10 := Mov bool true
-  Ret
+  Ret 0
 }

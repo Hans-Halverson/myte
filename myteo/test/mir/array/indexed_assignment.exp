@@ -58,6 +58,6 @@ func unit @test.indexAndAccesses(test.Tup1* %16, test.Rec2** %17) {
 
 global byte[4] @.S1 = "test"
 
-func unit @test.main() {
-  Ret
+func int @test.main() {
+  Ret 0
 }

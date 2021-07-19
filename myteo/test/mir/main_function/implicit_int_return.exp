@@ -1,0 +1,7 @@
+func int @test.main() {
+  branch true, @0, @1
+label @0:
+  Ret 0
+label @1:
+  Ret 0
+}

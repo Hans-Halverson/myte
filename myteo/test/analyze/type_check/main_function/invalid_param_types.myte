@@ -1,0 +1,5 @@
+module test
+
+import std.vec.Vec
+
+fun main(args: Vec<Bool>) {}

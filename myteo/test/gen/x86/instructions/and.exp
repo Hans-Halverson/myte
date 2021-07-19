@@ -39,6 +39,7 @@ test.andLongRegs:
   movq %rsi, %rax
   ret
 _main:
+  movl $0, %eax
   ret
 _start:
   call __myte_init

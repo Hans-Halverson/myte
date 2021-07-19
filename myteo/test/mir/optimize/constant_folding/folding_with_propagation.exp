@@ -20,10 +20,10 @@ func bool @t.rand() {
   Ret true
 }
 
-func unit @t.main() {
+func int @t.main() {
   %2 := Call unit @t.useInt(6)
   %3 := Call unit @t.useBool(false)
   %4 := Call bool @t.rand()
   %5 := Call unit @t.useBool(true)
-  Ret
+  Ret 0
 }

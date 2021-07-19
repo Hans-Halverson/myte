@@ -172,6 +172,6 @@ func unit @test.testVecPush(std.vec.Vec<int>* %110, std.vec.Vec<bool>* %111) {
   Ret
 }
 
-func unit @test.main() {
-  Ret
+func int @test.main() {
+  Ret 0
 }

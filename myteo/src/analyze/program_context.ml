@@ -27,4 +27,6 @@ let set_module_tree ~pcx module_tree = pcx.module_tree <- module_tree
 let set_main_loc ~pcx main_loc =
   match main_loc with
   | None -> ()
-  | Some _ -> pcx.main_loc <- main_loc
+  | Some main_loc ->
+    pcx.main_loc <- Some main_loc;
+    Type_context.(set_main_loc ~cx:pcx.type_ctx main_loc)

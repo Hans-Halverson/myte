@@ -58,6 +58,6 @@ func unit @test.useTestVec(test.TestVec* %12, test.TestVec* %13) {
   Ret
 }
 
-func unit @test.main() {
-  Ret
+func int @test.main() {
+  Ret 0
 }

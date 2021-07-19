@@ -14,6 +14,7 @@ type t = {
   mutable unresolved_int_literals: LocSet.t;
   (* Set of all method uses locs *)
   mutable method_uses: LocSet.t;
+  mutable main_loc: Loc.t;
 }
 
 and union_forest_node =
@@ -32,6 +33,7 @@ let mk ~bindings =
     return_types = LocMap.empty;
     unresolved_int_literals = LocSet.empty;
     method_uses = LocSet.empty;
+    main_loc = Loc.none;
   }
 
 let add_error ~cx loc error = cx.errors <- (loc, error) :: cx.errors
@@ -50,6 +52,10 @@ let get_unresolved_int_literals ~cx = cx.unresolved_int_literals
 let add_method_use ~cx use_loc = cx.method_uses <- LocSet.add use_loc cx.method_uses
 
 let is_method_use ~cx use_loc = LocSet.mem use_loc cx.method_uses
+
+let set_main_loc ~cx main_loc = cx.main_loc <- main_loc
+
+let is_main_loc ~cx loc = cx.main_loc == loc
 
 let get_value_binding ~cx use_loc = get_value_binding cx.bindings use_loc
 

@@ -28,6 +28,7 @@ type t = {
   mutable current_block_builder: BlockBuilder.t option;
   mutable current_func: label;
   mutable current_in_std_lib: bool;
+  mutable current_is_main: bool;
   (* Stack of loop contexts for all loops we are currently inside *)
   mutable current_loop_contexts: loop_context list;
   (* ADT signature id to its corresponding MirADT record *)
@@ -64,6 +65,7 @@ let mk ~pcx =
     current_block_builder = None;
     current_func = "";
     current_in_std_lib = false;
+    current_is_main = false;
     current_loop_contexts = [];
     adt_sig_to_mir_adt = IMap.empty;
     tuple_instantiations = TypeArgsHashtbl.create 10;

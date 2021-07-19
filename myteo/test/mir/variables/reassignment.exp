@@ -24,6 +24,6 @@ func unit @test.testReassignLocals() {
   Ret
 }
 
-func unit @test.main() {
-  Ret
+func int @test.main() {
+  Ret 0
 }

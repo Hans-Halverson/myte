@@ -38,6 +38,7 @@ test.longConstantIndexing:
   movl (%rdi, %rax), %eax
   ret
 _main:
+  movl $0, %eax
   ret
 test.nestedIndexing:
   movq 40(%rdi), %rax

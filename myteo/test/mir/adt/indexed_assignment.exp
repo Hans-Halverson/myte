@@ -71,6 +71,6 @@ func unit @test.namedAndIndexedAccess(test.Tup1* %24) {
 
 global byte[6] @.S2 = "string"
 
-func unit @test.main() {
-  Ret
+func int @test.main() {
+  Ret 0
 }

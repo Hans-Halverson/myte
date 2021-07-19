@@ -570,6 +570,8 @@ and build_function_declaration ~cx decl =
   in
   let return = Option.fold ~none:Type.Unit ~some:(fun return -> build_type ~cx return) return in
 
+  if Type_context.is_main_loc ~cx id_loc then check_main_declaration ~cx decl params return;
+
   (* Combine implicit type params with explicit type params in order they are declared *)
   let implicit_type_params =
     List.sort (fun (_, loc1) (_, loc2) -> Loc.compare loc1 loc2) !implicit_type_params
@@ -582,6 +584,21 @@ and build_function_declaration ~cx decl =
   func_decl.type_params <- type_params;
   func_decl.params <- params;
   func_decl.return <- return
+
+(* Check whether the main function has the correct parameter and return types *)
+and check_main_declaration ~cx decl params return =
+  let has_valid_type_params = decl.type_params = [] in
+  let has_valid_params =
+    match params with
+    | [] -> true
+    | [Type.ADT { adt_sig = vec_adt_sig; type_args = [Type.ADT { adt_sig = string_adt_sig; _ }] }]
+      when vec_adt_sig == !Std_lib.vec_adt_sig && string_adt_sig == !Std_lib.string_adt_sig ->
+      true
+    | _ -> false
+  in
+  let has_valid_return = return = Unit || return = Int in
+  if (not has_valid_type_params) || (not has_valid_params) || not has_valid_return then
+    Type_context.add_error ~cx decl.name.loc InvalidMainFunctionType
 
 and check_variable_declaration ~cx decl =
   let open Ast.Statement.VariableDeclaration in

@@ -62,6 +62,7 @@ test.buildPair$int$int$:
   pop %rbx
   ret
 _main:
+  movl $0, %eax
   ret
 test.testSingleTypeArg:
   movb $1, %dil

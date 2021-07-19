@@ -1,0 +1,10 @@
+module test
+
+fun main() {
+  if (true) {
+    // Converted to ret 0
+    return;
+  }
+
+  // Implicit ret 0 added
+}

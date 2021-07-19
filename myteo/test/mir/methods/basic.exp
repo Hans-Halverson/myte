@@ -160,6 +160,6 @@ func unit @test.testInheritedGenericTrait(test.GenericType2<int>* %82, test.Gene
   Ret
 }
 
-func unit @test.main() {
-  Ret
+func int @test.main() {
+  Ret 0
 }

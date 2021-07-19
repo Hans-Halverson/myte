@@ -1,0 +1,9 @@
+module test
+
+fun main(): Int {
+  if (true) {
+    return 3;
+  }
+
+  return 5;
+}

@@ -24,6 +24,10 @@ val add_method_use : cx:t -> Loc.t -> unit
 
 val is_method_use : cx:t -> Loc.t -> bool
 
+val set_main_loc : cx:t -> Loc.t -> unit
+
+val is_main_loc : cx:t -> Loc.t -> bool
+
 (* Binding getters *)
 
 val get_value_binding : cx:t -> Loc.t -> ValueBinding.t

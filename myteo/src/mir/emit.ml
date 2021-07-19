@@ -154,25 +154,33 @@ and emit_function_body ~ecx name decl =
   let { loc = full_loc; name = { Identifier.loc; _ }; params; body; _ } = decl in
   let binding = Type_context.get_value_binding ~cx:ecx.pcx.type_ctx loc in
   ecx.current_in_std_lib <- Bindings.is_std_lib_value binding;
+  ecx.current_is_main <- loc = Option.get ecx.pcx.main_loc;
+
   (* Build IR for function body *)
-  let body_start_block =
-    Ecx.set_current_func ~ecx name;
-    let body_start_block = Ecx.start_new_block ~ecx in
-    if loc = Option.get ecx.pcx.main_loc then ecx.main_id <- body_start_block;
-    (match body with
-    | Block { Statement.Block.statements; _ } ->
-      List.iter (emit_statement ~ecx) statements;
-      (* Add an implicit return if the last instruction is not a return *)
-      (match ecx.current_block_builder with
-      | Some { Ecx.BlockBuilder.instructions = (_, Ret _) :: _; _ } -> ()
-      | _ -> Ecx.emit ~ecx (Ret None))
-    | Expression expr ->
-      let ret_val = emit_expression ~ecx expr in
-      Ecx.emit ~ecx (Ret (Some ret_val))
-    | Signature -> ());
-    Ecx.finish_block_halt ~ecx;
-    body_start_block
-  in
+  Ecx.set_current_func ~ecx name;
+  let body_start_block = Ecx.start_new_block ~ecx in
+  if ecx.current_is_main then ecx.main_id <- body_start_block;
+  (match body with
+  | Block { Statement.Block.statements; _ } ->
+    List.iter (emit_statement ~ecx) statements;
+    (* Add an implicit return if the last instruction is not a return *)
+    (match ecx.current_block_builder with
+    | Some { Ecx.BlockBuilder.instructions = (_, Ret _) :: _; _ } -> ()
+    | _ ->
+      (* Handle implicit return from main *)
+      let return_val =
+        if ecx.current_is_main then
+          Some (`IntL Int32.zero)
+        else
+          None
+      in
+      Ecx.emit ~ecx (Ret return_val))
+  | Expression expr ->
+    let ret_val = emit_expression ~ecx expr in
+    Ecx.emit ~ecx (Ret (Some ret_val))
+  | Signature -> ());
+  Ecx.finish_block_halt ~ecx;
+
   (* Find value type of function *)
   let func_decl = Bindings.get_func_decl binding in
   let params =
@@ -182,6 +190,7 @@ and emit_function_body ~ecx name decl =
       params
       func_decl.params
   in
+
   (* Add implicit this param *)
   let params =
     match LocMap.find_opt full_loc ecx.pcx.bindings.value_bindings with
@@ -190,7 +199,16 @@ and emit_function_body ~ecx name decl =
       (full_loc, mk_var_id (), this_type) :: params
     | _ -> params
   in
+
+  (* The main function must always return an Int *)
   let return_ty = type_to_mir_type ~ecx func_decl.return in
+  let return_ty =
+    if ecx.current_is_main && return_ty = `UnitT then
+      `IntT
+    else
+      return_ty
+  in
+
   Ecx.add_function ~ecx { Function.loc; name; params; return_ty; body_start_block }
 
 and start_init_function ~ecx =
@@ -837,6 +855,15 @@ and emit_statement ~ecx stmt =
     Ecx.set_block_builder ~ecx finish_builder
   | Return { loc = _; arg } ->
     let arg_val = Option.map (emit_expression ~ecx) arg in
+    (* Handle implicit return from main function *)
+    let arg_val =
+      match arg_val with
+      | None
+      | Some (`UnitL | `UnitV _)
+        when ecx.current_is_main ->
+        Some (`IntL Int32.zero)
+      | _ -> arg_val
+    in
     Ecx.emit ~ecx (Ret arg_val)
   | Continue _ ->
     let (_, continue_id) = Ecx.get_loop_context ~ecx in

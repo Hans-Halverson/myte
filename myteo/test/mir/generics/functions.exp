@@ -71,6 +71,6 @@ func fn @test.testInstantiationFromNonCallUse() {
   Ret @test.id<unit>
 }
 
-func unit @test.main() {
-  Ret
+func int @test.main() {
+  Ret 0
 }

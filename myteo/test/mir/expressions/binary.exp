@@ -61,6 +61,6 @@ func unit @test.longs(long %36, long %37) {
   Ret
 }
 
-func unit @test.main() {
-  Ret
+func int @test.main() {
+  Ret 0
 }

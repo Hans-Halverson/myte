@@ -24,6 +24,6 @@ label @5:
   Ret
 }
 
-func unit @test.main() {
-  Ret
+func int @test.main() {
+  Ret 0
 }

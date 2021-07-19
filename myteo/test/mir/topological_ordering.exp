@@ -1,4 +1,4 @@
-func unit @test.main() {
+func int @test.main() {
   %0 := Mov int 1
   continue @0
 label @0:
@@ -68,5 +68,5 @@ label @22:
   continue @0
 label @23:
   %20 := Mov int 21
-  Ret
+  Ret 0
 }

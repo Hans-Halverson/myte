@@ -30,6 +30,6 @@ func unit @test.testIndexing(test.Rec1<int>* %10, test.Rec1<bool>* %11) {
   Ret
 }
 
-func unit @test.main() {
-  Ret
+func int @test.main() {
+  Ret 0
 }

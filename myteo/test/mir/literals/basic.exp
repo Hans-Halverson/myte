@@ -24,7 +24,7 @@ global byte[4] @.S0 = "test"
 
 global bool @test.a1 = true
 
-func unit @test.main() {
+func int @test.main() {
   %4 := Mov int 0
   %5 := Mov int 2147483647
   %6 := Mov long 2147483648
@@ -34,5 +34,5 @@ func unit @test.main() {
   %10 := Add long 2, 2147483648
   %11 := Add long %10, 6
   %12 := Mov long %11
-  Ret
+  Ret 0
 }

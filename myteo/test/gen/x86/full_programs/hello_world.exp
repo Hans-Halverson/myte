@@ -14,6 +14,7 @@ _main:
   movl $13, 12(%rax)
   movq %rax, %rdi
   call std.io.print
+  movl $0, %eax
   ret
 _start:
   call __myte_init

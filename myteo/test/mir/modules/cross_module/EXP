@@ -12,8 +12,8 @@ func unit @a.useFromB(b.RecB<byte>* %0) {
   Ret
 }
 
-func unit @a.main() {
-  Ret
+func int @a.main() {
+  Ret 0
 }
 
 type b.RecB<byte> {byte}

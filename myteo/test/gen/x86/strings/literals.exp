@@ -18,6 +18,7 @@ _init:
   movq %rax, test.s(%rip)
   ret
 _main:
+  movl $0, %eax
   ret
 test.test:
   movl $16, %edi

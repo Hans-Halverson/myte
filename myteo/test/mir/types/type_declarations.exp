@@ -18,6 +18,6 @@ func unit @test.useAll(test.Tup1* %0, test.Tup2* %1, test.Tup3* %2, test.Rec1* %
   Ret
 }
 
-func unit @test.main() {
-  Ret
+func int @test.main() {
+  Ret 0
 }

@@ -47,6 +47,6 @@ func unit @test.testIndexing(test.Rec1* %3, test.Rec2* %4, test.Rec3* %5, test.R
   Ret
 }
 
-func unit @test.main() {
-  Ret
+func int @test.main() {
+  Ret 0
 }

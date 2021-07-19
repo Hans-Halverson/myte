@@ -18,6 +18,7 @@ test.getByte:
   movb $1, %al
   ret
 _main:
+  movl $0, %eax
   ret
 test.testReferencing:
   movb test.b(%rip), %al

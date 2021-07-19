@@ -1,6 +1,6 @@
-func unit @test.main() {
+func int @test.main() {
   %0 := Mov int 8
   %1 := Mov int 77
   %2 := Mul int 77, 34
-  Ret
+  Ret 0
 }

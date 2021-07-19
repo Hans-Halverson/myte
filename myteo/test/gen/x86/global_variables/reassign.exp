@@ -17,6 +17,7 @@ _init:
   movq %rax, test.t(%rip)
   ret
 _main:
+  movl $0, %eax
   ret
 test.testReassignGlobals:
   movb $4, test.b(%rip)

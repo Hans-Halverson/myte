@@ -1,0 +1,7 @@
+module test
+
+import std.vec.Vec
+
+fun main<T>(x: Vec<String>): Int {
+  return 0;
+}

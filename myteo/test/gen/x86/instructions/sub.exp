@@ -2,6 +2,7 @@
 
   .text
 _main:
+  movl $0, %eax
   ret
 test.subByteImmReg:
   movb $63, %al

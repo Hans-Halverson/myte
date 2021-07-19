@@ -70,6 +70,6 @@ func unit @test.indexingWithRecordAndTuple(test.Rec1* %47) {
   Ret
 }
 
-func unit @test.main() {
-  Ret
+func int @test.main() {
+  Ret 0
 }
