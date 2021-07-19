@@ -1,5 +1,12 @@
 module std.int
 
+import std.byte.Byte
+import std.long.Long
+
 builtin type Int
 
-methods Int {}
+methods Int {
+  builtin fun toByte(): Byte
+
+  builtin fun toLong(): Long
+}

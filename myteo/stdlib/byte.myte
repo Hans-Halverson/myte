@@ -1,11 +1,17 @@
 module std.byte
 
+import std.int.Int
+import std.long.Long
 import std.string.{String, ToString}
 
 builtin type Byte
 
 methods Byte {
   implements ToString
+
+  builtin fun toInt(): Int
+
+  builtin fun toLong(): Long
 
   override fun toString(): String {
     val str = String.new();

@@ -880,6 +880,8 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   | Mir.Instruction.GetPointer get_pointer_instr :: rest_instructions ->
     gen_get_pointer ~gcx ~func get_pointer_instr;
     gen_instructions rest_instructions
+  | Mir.Instruction.Trunc _ :: _ -> failwith "TODO: Implement Trunc"
+  | Mir.Instruction.SExt _ :: _ -> failwith "TODO: Implement SExt"
 
 and gen_get_pointer ~gcx ~func (get_pointer_instr : var_id Mir.Instruction.GetPointer.t) =
   let open Mir.Instruction.GetPointer in

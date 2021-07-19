@@ -515,6 +515,8 @@ and map_to_ssa ~pcx ~ecx ~cx program =
       Gt (map_return return, map_numeric_value left, map_numeric_value right)
     | GtEq (return, left, right) ->
       GtEq (map_return return, map_numeric_value left, map_numeric_value right)
+    | Trunc (return, arg, ty) -> Trunc (map_return return, map_numeric_value arg, ty)
+    | SExt (return, arg, ty) -> SExt (map_return return, map_numeric_value arg, ty)
   in
   cx.visited_blocks <- ISet.empty;
   SMap.iter

@@ -58,11 +58,23 @@ let std_bool_bool = "std.bool.Bool"
 
 let std_byte_byte = "std.byte.Byte"
 
+let std_byte_byte_toInt = "std.byte.Byte.toInt"
+
+let std_byte_byte_toLong = "std.byte.Byte.toLong"
+
 let std_int_int = "std.int.Int"
+
+let std_int_int_toByte = "std.int.Int.toByte"
+
+let std_int_int_toLong = "std.int.Int.toLong"
 
 let std_io_write = "std.io.write"
 
 let std_long_long = "std.long.Long"
+
+let std_long_long_toByte = "std.long.Long.toByte"
+
+let std_long_long_toInt = "std.long.Long.toInt"
 
 let std_memory_array = "std.memory.Array"
 
@@ -81,9 +93,15 @@ let all_stdlib_names =
     [
       std_bool_bool;
       std_byte_byte;
+      std_byte_byte_toInt;
+      std_byte_byte_toLong;
       std_io_write;
       std_int_int;
+      std_int_int_toByte;
+      std_int_int_toLong;
       std_long_long;
+      std_long_long_toByte;
+      std_long_long_toInt;
       std_memory_array;
       std_memory_array_copy;
       std_memory_array_new;

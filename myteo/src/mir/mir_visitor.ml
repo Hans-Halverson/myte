@@ -105,7 +105,9 @@ module IRVisitor = struct
           this#visit_bool_value ~block right;
           this#visit_result_variable ~block result
         | Neg (result, arg)
-        | BitNot (result, arg) ->
+        | BitNot (result, arg)
+        | Trunc (result, arg, _)
+        | SExt (result, arg, _) ->
           this#visit_numeric_value ~block arg;
           this#visit_result_variable ~block result
         | Add (result, left, right)

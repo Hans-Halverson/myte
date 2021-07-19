@@ -1,0 +1,18 @@
+module test
+
+fun testConvertByte(x: Byte) {
+  x.toInt();
+  x.toLong();
+}
+
+fun testConvertInt(x: Int) {
+  x.toByte();
+  x.toLong();
+}
+
+fun testConvertLong(x: Long) {
+  x.toByte();
+  x.toInt();
+}
+
+fun main() {}

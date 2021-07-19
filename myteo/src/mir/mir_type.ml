@@ -12,6 +12,12 @@ module rec Type : sig
     | `AggregateT of Aggregate.t
     | `ArrayT of t * int
     ]
+
+  and numeric_type =
+    [ `ByteT
+    | `IntT
+    | `LongT
+    ]
 end =
   Type
 

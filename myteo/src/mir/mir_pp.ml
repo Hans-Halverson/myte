@@ -243,6 +243,8 @@ and pp_pointer_value ~cx v = pp_value ~cx (v :> ssa_value)
 
 and pp_type ty = type_to_string ty
 
+and pp_numeric_type ty = type_to_string (ty :> Type.t)
+
 and pp_type_of_value v = pp_type (type_of_value v)
 
 and pp_type_of_numeric_value v = pp_type_of_value (v :> ssa_value)
@@ -461,5 +463,21 @@ and pp_instruction ~cx (_, instr) =
            (pp_type_of_numeric_value left)
            (pp_numeric_value ~cx left)
            (pp_numeric_value ~cx right))
+    | Trunc (var_id, arg, ty) ->
+      pp_instr
+        var_id
+        (Printf.sprintf
+           "Trunc %s %s to %s"
+           (pp_type_of_numeric_value arg)
+           (pp_numeric_value ~cx arg)
+           (pp_numeric_type ty))
+    | SExt (var_id, arg, ty) ->
+      pp_instr
+        var_id
+        (Printf.sprintf
+           "SExt %s %s to %s"
+           (pp_type_of_numeric_value arg)
+           (pp_numeric_value ~cx arg)
+           (pp_numeric_type ty))
   in
   "  " ^ instr_string

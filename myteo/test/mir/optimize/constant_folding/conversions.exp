@@ -1,0 +1,51 @@
+global int @test.bExt1 = 1
+
+global int @test.bExt2 = -1
+
+global long @test.bExt3 = 1
+
+global long @test.bExt4 = -1
+
+global long @test.iExt1 = 1
+
+global long @test.iExt2 = -1
+
+global byte @test.iTrunc1 = 1
+
+global byte @test.iTrunc2 = 127
+
+global byte @test.iTrunc3 = -128
+
+global byte @test.iTrunc4 = -1
+
+global byte @test.iTrunc5 = -128
+
+global byte @test.iTrunc6 = 127
+
+global byte @test.lTrunc1 = 1
+
+global byte @test.lTrunc2 = 127
+
+global byte @test.lTrunc3 = -128
+
+global byte @test.lTrunc4 = -1
+
+global byte @test.lTrunc5 = -128
+
+global byte @test.lTrunc6 = 127
+
+global int @test.lTrunc7 = 1
+
+global int @test.lTrunc8 = 2147483647
+
+global int @test.lTrunc9 = -2147483648
+
+global int @test.lTrunc10 = -1
+
+global int @test.lTrunc11 = -2147483648
+
+global int @test.lTrunc12 = 2147483647
+
+func int @test.main() {
+  Ret 0
+}

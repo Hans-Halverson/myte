@@ -147,7 +147,7 @@ and emit_function_declaration ~ecx decl is_method =
 and emit_function_instantiation ~ecx (name, name_with_args, type_param_bindings) =
   Ecx.in_type_binding_context ~ecx type_param_bindings (fun _ ->
       let func_decl_node = SMap.find name ecx.func_decl_nodes in
-      emit_function_body ~ecx name_with_args func_decl_node)
+      if not func_decl_node.builtin then emit_function_body ~ecx name_with_args func_decl_node)
 
 and emit_function_body ~ecx name decl =
   let open Ast.Function in
@@ -687,7 +687,7 @@ and emit_expression_access_chain ~ecx expr =
   let element_mir_ty = mir_type_of_loc ~ecx (Ast_utils.expression_loc expr) in
   emit_get_pointer_instr target_var element_mir_ty offsets
 
-and emit_call ~ecx { Expression.Call.loc; args; _ } func_val receiver_val_opt =
+and emit_call ~ecx ({ Expression.Call.loc; args; _ } as call_expr) func_val receiver_val_opt =
   let var_id = mk_cf_var_id () in
   let arg_vals = List.map (emit_expression ~ecx) args in
   (* Pass `this` value as first argument if this is a method call *)
@@ -696,30 +696,89 @@ and emit_call ~ecx { Expression.Call.loc; args; _ } func_val receiver_val_opt =
     | None -> arg_vals
     | Some receiver_val -> receiver_val :: arg_vals
   in
-  let ret_ty = mir_type_of_loc ~ecx loc in
-  match func_val with
-  (* Emit inlined builtins *)
-  | `FunctionL name when name = Std_lib.std_memory_array_new ->
-    let (`PointerT element_ty) = cast_to_pointer_type ret_ty in
-    let (array_ptr_val, myte_alloc_instr) =
-      Mir_builtin.(mk_call_builtin myte_alloc var_id arg_vals [element_ty])
-    in
-    Ecx.emit ~ecx myte_alloc_instr;
-    array_ptr_val
-  | `FunctionL name when name = Std_lib.std_memory_array_copy ->
-    let (return_val, myte_copy_instr) =
-      Mir_builtin.(mk_call_builtin myte_copy var_id arg_vals [])
-    in
-    Ecx.emit ~ecx myte_copy_instr;
-    return_val
-  | `FunctionL name when name = Std_lib.std_io_write ->
-    let (return_val, instr) = Mir_builtin.(mk_call_builtin myte_write var_id arg_vals []) in
-    Ecx.emit ~ecx instr;
-    return_val
-  | _ ->
-    (* Emit function call *)
+  (* Generate builtin function *)
+  let builtin_functions = Lazy.force_val builtin_functions in
+  let builtin_ret_opt =
+    match func_val with
+    | `FunctionL name ->
+      (match SMap.find_opt name builtin_functions with
+      | None -> None
+      | Some mk_func -> Some (mk_func ~ecx call_expr arg_vals))
+    | _ -> None
+  in
+  match builtin_ret_opt with
+  | Some ret_val -> ret_val
+  | None ->
+    let ret_ty = mir_type_of_loc ~ecx loc in
     Ecx.emit ~ecx (Call (var_id, ret_ty, func_val, arg_vals));
     var_value_of_type var_id ret_ty
+
+and builtin_functions =
+  lazy
+    ( [
+        (Std_lib.std_byte_byte_toInt, emit_std_byte_byte_toInt);
+        (Std_lib.std_byte_byte_toLong, emit_std_byte_byte_toLong);
+        (Std_lib.std_int_int_toByte, emit_std_int_int_toByte);
+        (Std_lib.std_int_int_toLong, emit_std_int_int_toLong);
+        (Std_lib.std_long_long_toByte, emit_std_long_long_toByte);
+        (Std_lib.std_long_long_toInt, emit_std_long_long_toInt);
+        (Std_lib.std_memory_array_copy, emit_std_memory_array_copy);
+        (Std_lib.std_memory_array_new, emit_std_memory_array_new);
+        (Std_lib.std_io_write, emit_std_io_write);
+      ]
+    |> List.to_seq
+    |> SMap.of_seq )
+
+and emit_std_byte_byte_toInt ~ecx _ arg_vals =
+  let var_id = mk_cf_var_id () in
+  Ecx.emit ~ecx (SExt (var_id, cast_to_numeric_value (List.hd arg_vals), `IntT));
+  var_value_of_type var_id `IntT
+
+and emit_std_byte_byte_toLong ~ecx _ arg_vals =
+  let var_id = mk_cf_var_id () in
+  Ecx.emit ~ecx (SExt (var_id, cast_to_numeric_value (List.hd arg_vals), `LongT));
+  var_value_of_type var_id `LongT
+
+and emit_std_int_int_toByte ~ecx _ arg_vals =
+  let var_id = mk_cf_var_id () in
+  Ecx.emit ~ecx (Trunc (var_id, cast_to_numeric_value (List.hd arg_vals), `ByteT));
+  var_value_of_type var_id `ByteT
+
+and emit_std_int_int_toLong ~ecx _ arg_vals =
+  let var_id = mk_cf_var_id () in
+  Ecx.emit ~ecx (SExt (var_id, cast_to_numeric_value (List.hd arg_vals), `LongT));
+  var_value_of_type var_id `LongT
+
+and emit_std_long_long_toByte ~ecx _ arg_vals =
+  let var_id = mk_cf_var_id () in
+  Ecx.emit ~ecx (Trunc (var_id, cast_to_numeric_value (List.hd arg_vals), `ByteT));
+  var_value_of_type var_id `ByteT
+
+and emit_std_long_long_toInt ~ecx _ arg_vals =
+  let var_id = mk_cf_var_id () in
+  Ecx.emit ~ecx (Trunc (var_id, cast_to_numeric_value (List.hd arg_vals), `IntT));
+  var_value_of_type var_id `IntT
+
+and emit_std_memory_array_copy ~ecx _ arg_vals =
+  let var_id = mk_cf_var_id () in
+  let (return_val, myte_copy_instr) = Mir_builtin.(mk_call_builtin myte_copy var_id arg_vals []) in
+  Ecx.emit ~ecx myte_copy_instr;
+  return_val
+
+and emit_std_memory_array_new ~ecx { Expression.Call.loc; _ } arg_vals =
+  let var_id = mk_cf_var_id () in
+  let (`PointerT element_ty) = cast_to_pointer_type (mir_type_of_loc ~ecx loc) in
+  let (array_ptr_val, myte_alloc_instr) =
+    Mir_builtin.(mk_call_builtin myte_alloc var_id arg_vals [element_ty])
+  in
+  Ecx.emit ~ecx myte_alloc_instr;
+  array_ptr_val
+
+and emit_std_io_write ~ecx _ arg_vals =
+  let var_id = mk_cf_var_id () in
+  let (return_val, instr) = Mir_builtin.(mk_call_builtin myte_write var_id arg_vals []) in
+  Ecx.emit ~ecx instr;
+  return_val
 
 and emit_call_vec_get ~ecx return_loc vec_var index_var =
   (* Get full name for Vec's `get` method *)

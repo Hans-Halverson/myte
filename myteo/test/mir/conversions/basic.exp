@@ -1,0 +1,21 @@
+func unit @test.testConvertByte(byte %0) {
+  %1 := SExt byte %0 to int
+  %2 := SExt byte %0 to long
+  Ret
+}
+
+func unit @test.testConvertInt(int %3) {
+  %4 := Trunc int %3 to byte
+  %5 := SExt int %3 to long
+  Ret
+}
+
+func unit @test.testConvertLong(long %6) {
+  %7 := Trunc long %6 to byte
+  %8 := Trunc long %6 to int
+  Ret
+}
+
+func int @test.main() {
+  Ret 0
+}

@@ -308,6 +308,20 @@ module InstructionsMapper = struct
             [instruction]
           else
             mk_instr (GtEq (result', left', right'))
+        | Trunc (result, arg, ty) ->
+          let result' = this#map_result_variable ~block result in
+          let arg' = this#map_numeric_value ~block arg in
+          if result == result' && arg == arg' then
+            [instruction]
+          else
+            mk_instr (Trunc (result', arg', ty))
+        | SExt (result, arg, ty) ->
+          let result' = this#map_result_variable ~block result in
+          let arg' = this#map_numeric_value ~block arg in
+          if result == result' && arg == arg' then
+            [instruction]
+          else
+            mk_instr (SExt (result', arg', ty))
 
       method map_result_variable ~block:_ var_id = var_id
 

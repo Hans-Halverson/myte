@@ -120,6 +120,9 @@ and Instruction : sig
     | LtEq of 'var * 'var Value.numeric_value * 'var Value.numeric_value
     | Gt of 'var * 'var Value.numeric_value * 'var Value.numeric_value
     | GtEq of 'var * 'var Value.numeric_value * 'var Value.numeric_value
+    (* Conversions *)
+    | Trunc of 'var * 'var Value.numeric_value * Type.numeric_type
+    | SExt of 'var * 'var Value.numeric_value * Type.numeric_type
 end =
   Instruction
 
@@ -273,6 +276,11 @@ let var_value_of_type var_id (ty : Type.t) : 'a Value.t =
   | `PointerT ty -> `PointerV (ty, var_id)
   | `AggregateT agg -> `AggregateV (agg, var_id)
   | `ArrayT (ty, size) -> `ArrayV (ty, size, var_id)
+
+let cast_to_numeric_value (v : 'a Value.t) : 'a Value.numeric_value =
+  match v with
+  | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v -> v
+  | _ -> failwith "Expected numeric value"
 
 (* Whether this value is a statically known constant *)
 let is_static_constant (v : 'a Value.t) : bool =

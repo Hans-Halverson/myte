@@ -1,5 +1,6 @@
 open Basic_collections
 open Mir
+open Mir_type
 open Mir_visitor
 module Ocx = Mir_optimize_context
 
@@ -14,6 +15,8 @@ type folded_constant =
 type numeric_constant_op =
   | NegOp
   | NotOp
+  | TruncOp of Type.numeric_type
+  | SExtOp of Type.numeric_type
 
 type numeric_constants_op =
   | AddOp
@@ -36,6 +39,21 @@ let fold_numeric_constant op x =
   | (NotOp, ByteConstant x) -> ByteConstant (lnot x)
   | (NotOp, IntConstant x) -> IntConstant (Int32.lognot x)
   | (NotOp, LongConstant x) -> LongConstant (Int64.lognot x)
+  | (TruncOp `ByteT, IntConstant x) ->
+    let bytes = Bytes.create 4 in
+    Bytes.set_int32_le bytes 0 x;
+    ByteConstant (Bytes.get_int8 bytes 0)
+  | (TruncOp `ByteT, LongConstant x) ->
+    let bytes = Bytes.create 8 in
+    Bytes.set_int64_le bytes 0 x;
+    ByteConstant (Bytes.get_int8 bytes 0)
+  | (TruncOp `IntT, LongConstant x) ->
+    let bytes = Bytes.create 8 in
+    Bytes.set_int64_le bytes 0 x;
+    IntConstant (Bytes.get_int32_le bytes 0)
+  | (SExtOp `IntT, ByteConstant x) -> IntConstant (Int32.of_int x)
+  | (SExtOp `LongT, ByteConstant x) -> LongConstant (Int64.of_int x)
+  | (SExtOp `LongT, IntConstant x) -> LongConstant (Int64.of_int32 x)
   | _ -> failwith "Invalid operation"
 
 let fold_numeric_constants op x y =
@@ -317,6 +335,8 @@ class calc_constants_visitor ~ocx =
       | LtEq (var_id, left, right) -> try_fold_comparison var_id left right ( <= )
       | Gt (var_id, left, right) -> try_fold_comparison var_id left right ( > )
       | GtEq (var_id, left, right) -> try_fold_comparison var_id left right ( >= )
+      | Trunc (var_id, arg, ty) -> try_fold_numeric_constant var_id arg (TruncOp ty)
+      | SExt (var_id, arg, ty) -> try_fold_numeric_constant var_id arg (SExtOp ty)
       | Mov (var_id, value) ->
         let constant =
           match value with
