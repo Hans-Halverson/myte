@@ -84,6 +84,8 @@ let std_memory_array_new = "std.memory.Array.new"
 
 let std_string_string = "std.string.String"
 
+let std_sys_exit = "std.sys.exit"
+
 let std_unit_unit = "std.unit.Unit"
 
 let std_vec_vec = "std.vec.Vec"
@@ -106,6 +108,7 @@ let all_stdlib_names =
       std_memory_array_copy;
       std_memory_array_new;
       std_string_string;
+      std_sys_exit;
       std_unit_unit;
       std_vec_vec;
     ]

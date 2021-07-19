@@ -1,0 +1,13 @@
+  .global _start
+
+  .text
+_main:
+  movl $1, %edi
+  call __myte_exit
+  movl $0, %eax
+  ret
+_start:
+  call __myte_init
+  call _main
+  ret
+NOTE: Exited with code 1

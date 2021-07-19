@@ -16,6 +16,13 @@ let myte_alloc =
 let myte_copy = { Builtin.name = "myte_copy"; mk_return_ty = (fun _ -> `UnitT) }
 
 (* 
+   myte.myte_exit(exitCode: int)
+
+   Exit with return code `exitCode`.
+ *)
+let myte_exit = { Builtin.name = "myte_exit"; mk_return_ty = (fun _ -> `UnitT) }
+
+(* 
    myte.myte_write<T>(file: int, buffer: byte*, size: int): int
 
    Write `size` bytes of `buffer` to file with descriptor `file`.

@@ -1,5 +1,6 @@
   .global __myte_alloc
   .global __myte_copy
+  .global __myte_exit
   .global __myte_init
   .global __myte_write
 
@@ -39,6 +40,11 @@ __myte_alloc:
 __myte_copy:
   mov %rdx, %rcx
   rep movsb
+  ret
+
+__myte_exit:
+  mov $0x2000001, %rax   # exit
+  syscall
   ret
 
 __myte_write:

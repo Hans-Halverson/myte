@@ -725,6 +725,7 @@ and builtin_functions =
         (Std_lib.std_memory_array_copy, emit_std_memory_array_copy);
         (Std_lib.std_memory_array_new, emit_std_memory_array_new);
         (Std_lib.std_io_write, emit_std_io_write);
+        (Std_lib.std_sys_exit, emit_std_sys_exit);
       ]
     |> List.to_seq
     |> SMap.of_seq )
@@ -777,6 +778,12 @@ and emit_std_memory_array_new ~ecx { Expression.Call.loc; _ } arg_vals =
 and emit_std_io_write ~ecx _ arg_vals =
   let var_id = mk_cf_var_id () in
   let (return_val, instr) = Mir_builtin.(mk_call_builtin myte_write var_id arg_vals []) in
+  Ecx.emit ~ecx instr;
+  return_val
+
+and emit_std_sys_exit ~ecx _ arg_vals =
+  let var_id = mk_cf_var_id () in
+  let (return_val, instr) = Mir_builtin.(mk_call_builtin myte_exit var_id arg_vals []) in
   Ecx.emit ~ecx instr;
   return_val
 

@@ -22,10 +22,9 @@ fun fibIterative(x: Int): Int {
   return current;
 }
 
-fun main(): Int {
+fun main() {
   fibIterative(1);
   fibIterative(2);
   fibIterative(3);
-
-  return fibIterative(8);
+  fibIterative(8);
 }

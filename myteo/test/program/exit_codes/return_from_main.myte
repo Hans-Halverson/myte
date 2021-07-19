@@ -1,0 +1,5 @@
+module test
+
+fun main(): Int {
+  return 9;
+}

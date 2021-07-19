@@ -1,0 +1,5 @@
+module std.sys
+
+import std.int.Int
+
+builtin fun exit(code: Int)

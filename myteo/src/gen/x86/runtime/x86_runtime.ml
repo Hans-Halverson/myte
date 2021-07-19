@@ -12,4 +12,6 @@ let myte_alloc_label = "__myte_alloc"
 
 let myte_copy_label = "__myte_copy"
 
+let myte_exit_label = "__myte_exit"
+
 let myte_write_label = "__myte_write"

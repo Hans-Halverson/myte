@@ -1,0 +1,11 @@
+module test
+
+import std.sys.exit
+
+fun test() {
+  exit(7);
+}
+
+fun main() {
+  test();
+}

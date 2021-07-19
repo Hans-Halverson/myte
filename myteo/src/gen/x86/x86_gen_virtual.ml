@@ -866,6 +866,14 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       Gcx.emit ~gcx (CallL X86_runtime.myte_copy_label)
       (*
        * ===========================================
+       *                myte_exit
+       * ===========================================
+       *)
+    ) else if name = myte_exit.name then (
+      gen_call_arguments args;
+      Gcx.emit ~gcx (CallL X86_runtime.myte_exit_label)
+      (*
+       * ===========================================
        *                myte_write
        * ===========================================
        *)

@@ -14,6 +14,11 @@ _main:
   movl $6, %r9d
   call test.testSingleSpillUsingAllRegisters
   addq $8, %rsp
+  movl %eax, %edi
+  call std.int.Int.toString
+  movq %rax, %rdi
+  call std.io.println
+  movl $0, %eax
   ret
 test.testCallerSavedRegistersSpilledAcrossFunctionCalls:
   push %rbx
@@ -161,3 +166,4 @@ _start:
   call __myte_init
   call _main
   ret
+88
