@@ -147,6 +147,7 @@ and node_of_expression expr =
   | IntLiteral lit -> node_of_int_literal lit
   | StringLiteral lit -> node_of_string_literal lit
   | BoolLiteral lit -> node_of_bool_literal lit
+  | InterpolatedString str -> node_of_interpolated_string str
   | Record record -> node_of_record_expression record
   | Tuple tuple -> node_of_tuple_expression tuple
   | TypeCast cast -> node_of_type_cast cast
@@ -235,6 +236,19 @@ and node_of_string_literal lit =
 and node_of_bool_literal lit =
   let { Expression.BoolLiteral.loc; value } = lit in
   node "BoolLiteral" loc [("value", Bool value)]
+
+and node_of_interpolated_string str =
+  let open Expression.InterpolatedString in
+  let { loc; parts } = str in
+  let parts =
+    List.map
+      (fun part ->
+        match part with
+        | String lit -> node_of_string_literal lit
+        | Expression expr -> node_of_expression expr)
+      parts
+  in
+  node "InterpolatedString" loc [("parts", List parts)]
 
 and node_of_record_expression record =
   let { Expression.Record.loc; name; fields } = record in

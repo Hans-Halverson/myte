@@ -11,4 +11,7 @@ fun main() {
   // Hex escapes
   "foo\x68\x65\x78bar";
   "\x6A\x6a";
+
+  // Can contain backtick without escape
+  "foo`bar";
 }

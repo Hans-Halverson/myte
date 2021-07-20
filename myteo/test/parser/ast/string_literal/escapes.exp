@@ -1,7 +1,7 @@
 test/parser/ast/string_literal/escapes.myte
 {
   node: Module,
-  loc: 1:0-14:1,
+  loc: 1:0-17:1,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -20,7 +20,7 @@ test/parser/ast/string_literal/escapes.myte
   toplevels: [
     {
       node: Function,
-      loc: 3:0-14:1,
+      loc: 3:0-17:1,
       name: {
         node: Identifier,
         loc: 3:4-3:8,
@@ -29,7 +29,7 @@ test/parser/ast/string_literal/escapes.myte
       params: [],
       body: {
         node: Block,
-        loc: 3:11-14:1,
+        loc: 3:11-17:1,
         statements: [
           {
             node: ExpressionStatement,
@@ -93,6 +93,15 @@ bar",
               node: StringLiteral,
               loc: 13:2-13:12,
               value: "jj",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 16:2-16:12,
+            expression: {
+              node: StringLiteral,
+              loc: 16:2-16:11,
+              value: "foo`bar",
             },
           },
         ],

@@ -553,6 +553,7 @@ and emit_expression ~ecx expr =
   | Ternary _ -> failwith "TODO: Emit MIR for ternary expressions"
   | Match _ -> failwith "TODO: Emir MIR for match expressions"
   | Super _ -> failwith "TODO: Emit MIR for super expressions"
+  | InterpolatedString _ -> failwith "TODO: Type check interpolated strings"
 
 and emit_expression_access_chain_load ~ecx expr =
   let element_pointer_var = emit_expression_access_chain ~ecx expr in

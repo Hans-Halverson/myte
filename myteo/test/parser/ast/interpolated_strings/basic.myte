@@ -1,0 +1,25 @@
+module test
+
+fun main() {
+  // Single string part
+  `foo`;
+
+  // All beginning/end part combinations
+  `${1}`;
+  `foo${1}`;
+  `${1}bar`;
+  `foo${1}bar`;
+
+  // Empty string parts in middle
+  `foo${1}${2}${3}bar`;
+
+  // Multiline strings
+  `foo
+   bar`;
+
+   // Complicated expressions
+   `foo${1 + 2 * call(x + 1)}bar`;
+
+   // Nested interpolated strings
+   `foo1${`foo2${`foo3${1}bar3`}bar2`}bar1${`foo4${1}bar4`}baz1`;
+}

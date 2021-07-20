@@ -40,6 +40,10 @@ type tokenize_result =
 
 let mk source buf = { buf; source; current_line = 1; current_line_offset = 0 }
 
+(* Sedlexing has mutable state but does not expose its internals, so use force a sketchy deep copy
+   with Obj so we can save and restore the exact state of a Sedlexing buffer. *)
+let deep_copy lex = { lex with buf = Obj.repr lex.buf |> Obj.dup |> Obj.obj }
+
 let pos_of_offset lex offset =
   { Loc.line = lex.current_line; col = offset - lex.current_line_offset }
 
@@ -77,29 +81,59 @@ let rec skip_block_comment lex =
 
 let sedlex_catch_all_case () = failwith "Needed for sedlex, but any case catches all patterns"
 
-let parse_string_literal lex =
+let parse_string_literal lex ~is_interpolated =
   let start_loc = current_loc lex in
   let builder = Buffer.create 10 in
 
   let rec iter lex =
     let { buf; _ } = lex in
     match%sedlex buf with
+    (* Double quotes are end for string literal *)
     | '"' ->
-      let loc = Loc.between start_loc (current_loc lex) in
-      let token = Token.T_STRING_LITERAL (Buffer.contents builder) in
-      Token (lex, { loc; token })
+      if is_interpolated then (
+        Buffer.add_string builder (lexeme buf);
+        iter lex
+      ) else
+        let loc = Loc.between start_loc (current_loc lex) in
+        let token = Token.T_STRING_LITERAL (Buffer.contents builder) in
+        Token (lex, { loc; token })
+    (* Backtick is end for interpolated string literal *)
+    | '`' ->
+      if not is_interpolated then (
+        Buffer.add_string builder (lexeme buf);
+        iter lex
+      ) else
+        let loc = Loc.between start_loc (current_loc lex) in
+        let token = Token.T_INTERPOLATED_STRING (Buffer.contents builder, true) in
+        Token (lex, { loc; token })
+    (* `${` marks the beginning of an expression in an interpolated string *)
+    | "${" ->
+      if not is_interpolated then (
+        Buffer.add_string builder (lexeme buf);
+        iter lex
+      ) else
+        let loc = Loc.between start_loc (current_loc lex) in
+        let token = Token.T_INTERPOLATED_STRING (Buffer.contents builder, false) in
+        Token (lex, { loc; token })
+    (* Newlines are allowed in interpolated strings, but not normal string literals *)
+    | '\n' ->
+      if is_interpolated then (
+        Buffer.add_string builder (lexeme buf);
+        iter lex
+      ) else
+        LexError (lex, (start_loc, Parse_error.UnterminatedStringLiteral))
+    | eof -> LexError (lex, (start_loc, Parse_error.UnterminatedStringLiteral))
     | '\\' -> parse_escape_sequence lex
-    | '\n'
-    | eof ->
-      LexError (lex, (start_loc, Parse_error.UnterminatedStringLiteral))
     | any ->
       Buffer.add_string builder (lexeme buf);
       iter lex
     | _ -> sedlex_catch_all_case ()
   and parse_escape_sequence lex =
     let { buf; _ } = lex in
+    let invalid_escape_error lex = LexError (lex, (current_loc lex, Parse_error.InvalidEscape)) in
     let start_loc = current_loc lex in
     match%sedlex buf with
+    (* Escape sequences for both string literals and interpolated strings *)
     | 'n' ->
       Buffer.add_char builder '\n';
       iter lex
@@ -112,11 +146,32 @@ let parse_string_literal lex =
     | '\\' ->
       Buffer.add_char builder '\\';
       iter lex
-    | '"' ->
-      Buffer.add_char builder '"';
-      iter lex
     | 'x' -> parse_hex_escape_sequence lex start_loc
-    | _ -> LexError (lex, (current_loc lex, Parse_error.InvalidEscape))
+    (* Double quotes are only an escape sequence in string literals *)
+    | '"' ->
+      if is_interpolated then
+        invalid_escape_error lex
+      else (
+        Buffer.add_char builder '"';
+        iter lex
+      )
+    (* Backtick is only an escape sequence in interpolated strings *)
+    | '`' ->
+      if not is_interpolated then
+        invalid_escape_error lex
+      else (
+        Buffer.add_char builder '`';
+        iter lex
+      )
+    (* Dollar sign is only an escape sequence in interpolated strings *)
+    | '$' ->
+      if not is_interpolated then
+        invalid_escape_error lex
+      else (
+        Buffer.add_char builder '$';
+        iter lex
+      )
+    | _ -> invalid_escape_error lex
   and parse_hex_escape_sequence lex start_loc =
     let { buf; _ } = lex in
     let int_of_hex_digit digit =
@@ -220,7 +275,8 @@ let tokenize lex =
   | hex_literal ->
     let raw = lexeme buf in
     token_result (T_INT_LITERAL (raw, Integers.Hex))
-  | '"' -> parse_string_literal lex
+  | '"' -> parse_string_literal lex ~is_interpolated:false
+  | '`' -> parse_string_literal lex ~is_interpolated:true
   | any -> lex_error (Parse_error.UnknownToken (lexeme buf))
   | _ -> sedlex_catch_all_case ()
 
@@ -232,3 +288,9 @@ let next lexer =
     | LexError (lexer, result) -> (lexer, Error result)
   in
   find_next_token lexer
+
+let next_in_interpolated_string lexer =
+  match parse_string_literal ~is_interpolated:true lexer with
+  | Token (lexer, result) -> (lexer, Ok result)
+  | LexError (lexer, result) -> (lexer, Error result)
+  | Skip _ -> failwith "Skip cannot appear in interpolated string"

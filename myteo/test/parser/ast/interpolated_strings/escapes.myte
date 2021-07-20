@@ -1,0 +1,19 @@
+module test
+
+fun main() {
+  // Simple escapes
+  `foo\`bar`;
+  `foo\\bar`;
+  `foo\nbar`;
+  `foo\tbar`;
+  `foo\rbar`;
+  `foo\$bar`;
+  `foo\${1}bar`;
+
+  // Hex escapes
+  `foo\x68\x65\x78bar`;
+  `\x6A\x6a`;
+
+  // Can contain quotes without escape
+  `foo"bar`;
+}

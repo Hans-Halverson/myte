@@ -50,6 +50,7 @@ class ['a] visitor =
         | BoolLiteral e -> this#bool_literal acc e
         | Identifier e -> this#identifier acc e
         | ScopedIdentifier e -> this#scoped_identifier acc e
+        | InterpolatedString e -> this#interpolated_string acc e
         | Record e -> this#record_expression acc e
         | Tuple e -> this#tuple_expression acc e
         | TypeCast e -> this#type_cast acc e
@@ -115,6 +116,16 @@ class ['a] visitor =
     method string_literal _acc _lit = ()
 
     method bool_literal _acc _lit = ()
+
+    method interpolated_string acc str =
+      let open Expression.InterpolatedString in
+      let { loc = _; parts } = str in
+      List.iter
+        (fun part ->
+          match part with
+          | String lit -> this#string_literal acc lit
+          | Expression expr -> this#expression acc expr)
+        parts
 
     method record_expression acc record =
       let open Expression.Record in

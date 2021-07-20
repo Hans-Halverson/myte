@@ -735,6 +735,7 @@ and check_expression ~cx expr =
     (* Expr must be a subtype of annotated type *)
     Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) ty;
     (loc, tvar_id)
+  | InterpolatedString _ -> failwith "TODO: Type check interpolated strings"
   (* 
    * ============================
    * Unary Operation

@@ -3,6 +3,7 @@ type t =
   | T_INT_LITERAL of string * Integers.base
   | T_STRING_LITERAL of string
   | T_BOOL_LITERAL of bool
+  | T_INTERPOLATED_STRING of string * (* Is end *) bool
   | T_SEMICOLON
   | T_COLON
   | T_QUESTION
@@ -71,6 +72,7 @@ let to_string token =
       "true"
     else
       "false"
+  | T_INTERPOLATED_STRING _ -> "<interpolated string>"
   | T_SEMICOLON -> ";"
   | T_COLON -> ":"
   | T_QUESTION -> "?"

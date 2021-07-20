@@ -1,0 +1,5 @@
+module test
+
+val x: string = `Hello world
+
+fun main() {}

@@ -60,12 +60,13 @@ and parse env =
       let toplevel = parse_toplevel env in
       helper (toplevel :: toplevels)
   in
-  let (module_, imports, toplevels, errors) =
+  let (loc, module_, imports, toplevels, errors) =
     try
       let module_ = parse_module env in
       let imports = parse_imports env in
       let toplevels = helper [] in
-      (module_, imports, toplevels, Env.errors env)
+      let loc = { (Env.loc env) with Loc.start = Loc.first_pos } in
+      (loc, module_, imports, toplevels, Env.errors env)
     with Parse_error.Fatal (loc, err) ->
       let dummy_module =
         {
@@ -73,9 +74,8 @@ and parse env =
           name = { ScopedIdentifier.loc; name = { Identifier.loc; name = "module" }; scopes = [] };
         }
       in
-      (dummy_module, [], [], [(loc, err)])
+      (Loc.none, dummy_module, [], [], [(loc, err)])
   in
-  let loc = { (Env.loc env) with Loc.start = Loc.first_pos } in
   ({ Module.loc; module_; imports; toplevels }, errors)
 
 and parse_module env =
@@ -279,6 +279,8 @@ and parse_expression_prefix env =
     let loc = Env.loc env in
     Env.advance env;
     BoolLiteral { BoolLiteral.loc; value }
+  | T_INTERPOLATED_STRING (first_string, is_end) ->
+    parse_interpolated_string env first_string is_end
   | token -> Parse_error.fatal (Env.loc env, UnexpectedToken { actual = token; expected = None })
 
 and parse_expression_infix ~precedence env left marker =
@@ -503,6 +505,49 @@ and parse_ternary env test marker =
   let altern = parse_expression ~precedence:TernaryRightAssociative env in
   let loc = marker env in
   Expression.Ternary { loc; test; conseq; altern }
+
+and parse_interpolated_string env first_string is_single_string =
+  let open Expression.InterpolatedString in
+  let marker = mark_loc env in
+  let loc = Env.loc env in
+  Env.advance env;
+  if is_single_string then
+    InterpolatedString { loc; parts = [String { loc; value = first_string }] }
+  else
+    (* String parts are only included if they are nonempty, e.g. `${expr1}${expr2}` has two
+       expression parts and no string parts. *)
+    let rec parse_parts env acc =
+      let expr = parse_expression env in
+      let acc = Expression expr :: acc in
+      (* Enter interpolated string mode before call to Env.advance within Env.expect. This ensures
+         the token after the right brace is lexed as an interpolated string token. *)
+      Env.enter_interpolated_string env;
+      Env.expect env T_RIGHT_BRACE;
+      match Env.token env with
+      | T_INTERPOLATED_STRING (value, is_end) ->
+        Env.exit_interpolated_string env;
+        Env.advance env;
+        let acc =
+          if value = "" then
+            acc
+          else
+            String { loc = Env.loc env; value } :: acc
+        in
+        if is_end then
+          List.rev acc
+        else
+          parse_parts env acc
+      | _ -> failwith "Interpolated string is always returned when parsing interpolated strings"
+    in
+    let maybe_first_part =
+      if first_string = "" then
+        []
+      else
+        [String { loc; value = first_string }]
+    in
+    let parts = parse_parts env maybe_first_part in
+    let loc = marker env in
+    InterpolatedString { loc; parts }
 
 and parse_anonymous_tuple_expression env first_element marker =
   let open Expression in

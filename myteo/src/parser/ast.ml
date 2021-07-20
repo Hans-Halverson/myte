@@ -151,6 +151,17 @@ and Expression : sig
     }
   end
 
+  module InterpolatedString : sig
+    type part =
+      | String of StringLiteral.t
+      | Expression of Expression.t
+
+    type t = {
+      loc: Loc.t;
+      parts: part list;
+    }
+  end
+
   module Record : sig
     module Field : sig
       type t = {
@@ -280,6 +291,7 @@ and Expression : sig
     | BoolLiteral of BoolLiteral.t
     | Identifier of Identifier.t
     | ScopedIdentifier of ScopedIdentifier.t
+    | InterpolatedString of InterpolatedString.t
     | Tuple of Tuple.t
     | Record of Record.t
     | TypeCast of TypeCast.t

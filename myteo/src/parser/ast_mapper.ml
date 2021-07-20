@@ -66,6 +66,8 @@ class mapper =
         | BoolLiteral e -> id_map this#bool_literal e expr (fun e' -> BoolLiteral e')
         | Identifier e -> id_map this#identifier e expr (fun e' -> Identifier e')
         | ScopedIdentifier e -> id_map this#scoped_identifier e expr (fun e' -> ScopedIdentifier e')
+        | InterpolatedString e ->
+          id_map this#interpolated_string e expr (fun e' -> InterpolatedString e')
         | Record e -> id_map this#record_expression e expr (fun e' -> Record e')
         | Tuple e -> id_map this#tuple_expression e expr (fun e' -> Tuple e')
         | TypeCast e -> id_map this#type_cast e expr (fun e' -> TypeCast e')
@@ -143,6 +145,21 @@ class mapper =
     method string_literal lit = lit
 
     method bool_literal lit = lit
+
+    method interpolated_string str =
+      let open Expression.InterpolatedString in
+      let { loc; parts } = str in
+      let parts' = id_map_list this#interpolated_string_part parts in
+      if parts == parts' then
+        str
+      else
+        { loc; parts = parts' }
+
+    method interpolated_string_part part =
+      let open Expression.InterpolatedString in
+      match part with
+      | String p -> id_map this#string_literal p part (fun p' -> String p')
+      | Expression p -> id_map this#expression p part (fun p' -> Expression p')
 
     method record_expression record =
       let open Expression.Record in
