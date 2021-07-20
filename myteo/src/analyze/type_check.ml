@@ -666,6 +666,11 @@ and check_function_body ~cx decl =
 and check_expression ~cx expr =
   let open Ast.Expression in
   match expr with
+  (* 
+   * ============================
+   *         Literals
+   * ============================
+   *)
   | Unit { Unit.loc } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     ignore (Type_context.unify ~cx Type.Unit (TVar tvar_id));
@@ -683,6 +688,11 @@ and check_expression ~cx expr =
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     ignore (Type_context.unify ~cx Type.Bool (TVar tvar_id));
     (loc, tvar_id)
+  (* 
+   * ============================
+   *         Identifiers
+   * ============================
+   *)
   | Identifier { Ast.Identifier.loc = id_loc as loc; name }
   | ScopedIdentifier { Ast.ScopedIdentifier.loc; name = { Ast.Identifier.loc = id_loc; name }; _ }
     ->
@@ -721,12 +731,22 @@ and check_expression ~cx expr =
     in
     ignore (Type_context.unify ~cx decl_ty (TVar tvar_id));
     (loc, tvar_id)
+  (* 
+   * ============================
+   *       Tuple Literal
+   * ============================
+   *)
   | Tuple { Tuple.loc; elements } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let element_locs_and_tvar_ids = List.map (check_expression ~cx) elements in
     let element_tys = List.map (fun (_, tvar_id) -> Type.TVar tvar_id) element_locs_and_tvar_ids in
     ignore (Type_context.unify ~cx (Type.Tuple element_tys) (TVar tvar_id));
     (loc, tvar_id)
+  (* 
+   * ============================
+   *         Type Cast
+   * ============================
+   *)
   | TypeCast { TypeCast.loc; expr; ty } ->
     let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
@@ -735,10 +755,33 @@ and check_expression ~cx expr =
     (* Expr must be a subtype of annotated type *)
     Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) ty;
     (loc, tvar_id)
-  | InterpolatedString _ -> failwith "TODO: Type check interpolated strings"
   (* 
    * ============================
-   * Unary Operation
+   *     Interpolated String
+   * ============================
+   *)
+  | InterpolatedString { loc; parts; _ } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    List.iter
+      (fun part ->
+        match part with
+        | InterpolatedString.String lit -> ignore (check_expression ~cx (StringLiteral lit))
+        (* All interpolated expressions must implement ToString *)
+        | Expression expr ->
+          let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
+          let rep_ty = Type_context.find_rep_type ~cx (TVar expr_tvar_id) in
+          (match rep_ty with
+          (* We know that an IntLiteral will implement ToString *)
+          | IntLiteral _ -> ()
+          | _ ->
+            if not (Type_context.implements_trait rep_ty !Std_lib.to_string_trait_sig) then
+              Type_context.add_error ~cx expr_loc (InterpolatedExpressionRequiresToString rep_ty)))
+      parts;
+    ignore (Type_context.unify ~cx (Std_lib.mk_string_type ()) (TVar tvar_id));
+    (loc, tvar_id)
+  (* 
+   * ============================
+   *      Unary Operations
    * ============================
    *)
   | UnaryOperation { UnaryOperation.loc; op; operand } ->
@@ -767,7 +810,7 @@ and check_expression ~cx expr =
     (loc, tvar_id)
   (* 
    * ============================
-   * Binary Operation
+   *      Binary Operations
    * ============================
    *)
   | BinaryOperation { BinaryOperation.loc; op; left; right } ->
@@ -909,7 +952,7 @@ and check_expression ~cx expr =
     (loc, tvar_id)
   (* 
    * ============================
-   * Call or Tuple Constructor
+   *  Call or Tuple Constructor
    * ============================
    *)
   | Call { Call.loc; func; args } ->
@@ -996,7 +1039,7 @@ and check_expression ~cx expr =
     (loc, tvar_id)
   (*
    * ============================
-   * Record Constructor
+   *      Record Constructor
    * ============================
    *)
   | Record { Record.loc; name; fields } ->
@@ -1094,7 +1137,7 @@ and check_expression ~cx expr =
     (loc, tvar_id)
   (*
    * ============================
-   * Indexed Access
+   *        Indexed Access
    * ============================
    *)
   | IndexedAccess { IndexedAccess.loc; target; index } ->
@@ -1174,7 +1217,7 @@ and check_expression ~cx expr =
     (loc, tvar_id)
   (*
    * ============================
-   * Named Access
+   *        Named Access
    * ============================
    *)
   | NamedAccess { NamedAccess.loc; target; name } ->

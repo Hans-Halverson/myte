@@ -94,6 +94,8 @@ let std_ops_equatable = "std.ops.Equatable"
 
 let std_string_string = "std.string.String"
 
+let std_string_tostring = "std.string.ToString"
+
 let std_sys_exit = "std.sys.exit"
 
 let std_unit_unit = "std.unit.Unit"
@@ -125,6 +127,7 @@ let all_stdlib_names =
       std_memory_array_new;
       std_ops_equatable;
       std_string_string;
+      std_string_tostring;
       std_sys_exit;
       std_unit_unit;
       std_unit_unit_equals;
@@ -150,6 +153,8 @@ let unit_adt_sig = ref Types.AdtSig.empty
 let mk_string_type () = Types.Type.ADT { adt_sig = !string_adt_sig; type_args = [] }
 
 let equatable_trait_sig = ref Types.TraitSig.empty
+
+let to_string_trait_sig = ref Types.TraitSig.empty
 
 let get_primitive_adt_sig (ty : Types.Type.t) =
   match ty with
@@ -204,4 +209,5 @@ let register_stdlib_type loc adt_sig =
 let register_stdlib_trait loc trait_sig =
   match lookup_stdlib_name loc with
   | Some name when name = std_ops_equatable -> equatable_trait_sig := trait_sig
+  | Some name when name = std_string_tostring -> to_string_trait_sig := trait_sig
   | _ -> ()

@@ -1,0 +1,14 @@
+Error: Type `T` cannot be used in string interpolation since it does not implement trait `ToString`
+test/analyze/type_check/interpolated_strings/basic.myte:30:5
+ 30 |   `${x} ${y} ${testPrimitives}`;
+    |      ^
+
+Error: Type `NonToStringType` cannot be used in string interpolation since it does not implement trait `ToString`
+test/analyze/type_check/interpolated_strings/basic.myte:30:10
+ 30 |   `${x} ${y} ${testPrimitives}`;
+    |           ^
+
+Error: Type `() -> Unit` cannot be used in string interpolation since it does not implement trait `ToString`
+test/analyze/type_check/interpolated_strings/basic.myte:30:15-29
+ 30 |   `${x} ${y} ${testPrimitives}`;
+    |                ^^^^^^^^^^^^^^

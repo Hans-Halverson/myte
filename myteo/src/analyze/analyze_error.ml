@@ -48,6 +48,7 @@ type t =
   | IncompatibleTypes of Type.t * Type.t list
   | CannotInferType of cannot_infer_type_kind * (Type.t * TVar.t list) option
   | OperatorRequiresTrait of operator_requires_trait_kind * Type.t
+  | InterpolatedExpressionRequiresToString of Type.t
   | NonFunctionCalled of Type.t
   | RecordConstructorCalled of string
   | ExpectedRecordConstructor
@@ -349,6 +350,10 @@ let to_string error =
       operator
       (Types.pp ty)
       trait
+  | InterpolatedExpressionRequiresToString ty ->
+    Printf.sprintf
+      "Type `%s` cannot be used in string interpolation since it does not implement trait `ToString`"
+      (Types.pp ty)
   | IncorrectFunctionArity (actual, expected) ->
     Printf.sprintf
       "Incorrect number of arguments supplied to function. Expected %d %s but found %d."

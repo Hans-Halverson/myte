@@ -1,0 +1,33 @@
+module test
+
+import std.string.ToString
+
+// Primitives can be used in string interpolation
+fun testPrimitives() {
+  `${()} ${true} ${(1: Byte)} ${(2: Int)} ${(3: Long)}`;
+}
+
+// Trait bounds may be used in string interpolation
+fun testTraitBounds<T: ToString>(x: T) {
+  `${x}`;
+}
+
+type ToStringType (Unit)
+methods ToStringType {
+  implements ToString
+  override fun toString(): String = "string"
+}
+
+// Types may implement ToString
+fun testToStringType(x: String, y: ToStringType) {
+  `${x} ${y}`;
+}
+
+// Test type errors
+type NonToStringType (Unit)
+
+fun testNotToString<T>(x: T, y: NonToStringType) {
+  `${x} ${y} ${testPrimitives}`;
+}
+
+fun main() {}
