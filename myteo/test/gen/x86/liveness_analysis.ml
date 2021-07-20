@@ -137,6 +137,27 @@ let tests =
         assert_liveness_sets sets 2 ~live_in:[0] ~live_out:[0];
         assert_liveness_sets sets 3 ~live_in:[0] ~live_out:[0; 1];
         assert_liveness_sets sets 4 ~live_in:[1] ~live_out:[] );
+    ( "self_xor_is_not_use",
+      fun _ ->
+        let sets =
+          find_liveness_sets
+            [
+              ( 0,
+                "start",
+                [PopM (Reg (mk_vreg 0)); PopM (Reg (mk_vreg 1)); PopM (Reg (mk_vreg 2)); Jmp 1] );
+              ( 1,
+                "L1",
+                [
+                  XorMM (Size64, Reg (mk_vreg 1), Reg (mk_vreg 1));
+                  XorMM (Size64, Reg (mk_vreg 0), Reg (mk_vreg 2));
+                  Jmp 2;
+                ] );
+              (2, "L2", [PushM (Reg (mk_vreg 1)); PushM (Reg (mk_vreg 2)); Ret]);
+            ]
+        in
+        assert_liveness_sets sets 0 ~live_in:[] ~live_out:[0; 2];
+        assert_liveness_sets sets 1 ~live_in:[0; 2] ~live_out:[1; 2];
+        assert_liveness_sets sets 2 ~live_in:[1; 2] ~live_out:[] );
   ]
 
 let suite =

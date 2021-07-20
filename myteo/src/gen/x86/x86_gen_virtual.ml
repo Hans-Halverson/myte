@@ -150,6 +150,15 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       Reg vreg
     | _ -> failwith "Only called on address, memory location, or vreg"
   in
+  let emit_bool_as_reg value =
+    match resolve_ir_value value with
+    | SVReg (vreg, _) -> vreg
+    | SMem (mem, size) ->
+      let vreg = mk_vreg () in
+      Gcx.emit ~gcx (MovMM (size, Mem mem, Reg vreg));
+      vreg
+    | _ -> failwith "Boolean variable must be vreg or memory location"
+  in
   (* Return preferred (source, dest) args for a commutative binary operation. We try to avoid having
      the destination be a memory location, so source always contains memory location if one exists. *)
   let choose_commutative_source_dest_arg_order v1 v2 =
@@ -377,7 +386,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     Gcx.emit ~gcx (JmpCC (cc, Gcx.get_block_id_from_mir_block_id ~gcx jump));
     Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx continue))
   in
-  let gen_set_cc cc result_var_id left_val right_val =
+  let gen_cmp_set_cc cc result_var_id left_val right_val =
     let result_vreg = vreg_of_result_var_id result_var_id in
     Gcx.emit ~gcx (XorMM (Size32, Reg result_vreg, Reg result_vreg));
     let swapped = gen_cmp left_val right_val in
@@ -398,15 +407,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       (* TODO: Create better structure for tracking relative block locations *)
       Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx continue))
     | Branch { test = `BoolV _ as test; continue; jump } ->
-      let vreg =
-        match resolve_ir_value test with
-        | SVReg (vreg, _) -> vreg
-        | SMem (mem, size) ->
-          let vreg = mk_vreg () in
-          Gcx.emit ~gcx (MovMM (size, Mem mem, Reg vreg));
-          vreg
-        | _ -> failwith "Boolean variable must be vreg or memory location"
-      in
+      let vreg = emit_bool_as_reg test in
       Gcx.emit ~gcx (TestMR (Size8, Reg vreg, vreg));
       Gcx.emit ~gcx (JmpCC (E, Gcx.get_block_id_from_mir_block_id ~gcx jump));
       Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx continue))
@@ -667,7 +668,11 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.LogNot (result_var_id, arg) :: rest_instructions ->
-    gen_not result_var_id arg;
+    let arg_vreg = emit_bool_as_reg arg in
+    let result_vreg = vreg_of_result_var_id result_var_id in
+    Gcx.emit ~gcx (XorMM (Size32, Reg result_vreg, Reg result_vreg));
+    Gcx.emit ~gcx (TestMR (Size8, Reg arg_vreg, arg_vreg));
+    Gcx.emit ~gcx (SetCC (E, Reg result_vreg));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -779,7 +784,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   | [Mir.Instruction.Eq (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
     gen_cond_jmp E left_val right_val
   | Mir.Instruction.Eq (result_var_id, left_val, right_val) :: rest_instructions ->
-    gen_set_cc E result_var_id left_val right_val;
+    gen_cmp_set_cc E result_var_id left_val right_val;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -789,7 +794,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   | [Mir.Instruction.Neq (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
     gen_cond_jmp NE left_val right_val
   | Mir.Instruction.Neq (result_var_id, left_val, right_val) :: rest_instructions ->
-    gen_set_cc NE result_var_id left_val right_val;
+    gen_cmp_set_cc NE result_var_id left_val right_val;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -799,7 +804,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   | [Mir.Instruction.Lt (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
     gen_cond_jmp L left_val right_val
   | Mir.Instruction.Lt (result_var_id, left_val, right_val) :: rest_instructions ->
-    gen_set_cc L result_var_id left_val right_val;
+    gen_cmp_set_cc L result_var_id left_val right_val;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -809,7 +814,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   | [Mir.Instruction.LtEq (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
     gen_cond_jmp LE left_val right_val
   | Mir.Instruction.LtEq (result_var_id, left_val, right_val) :: rest_instructions ->
-    gen_set_cc LE result_var_id left_val right_val;
+    gen_cmp_set_cc LE result_var_id left_val right_val;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -819,7 +824,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   | [Mir.Instruction.Gt (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
     gen_cond_jmp G left_val right_val
   | Mir.Instruction.Gt (result_var_id, left_val, right_val) :: rest_instructions ->
-    gen_set_cc G result_var_id left_val right_val;
+    gen_cmp_set_cc G result_var_id left_val right_val;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -829,7 +834,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   | [Mir.Instruction.GtEq (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
     gen_cond_jmp GE left_val right_val
   | Mir.Instruction.GtEq (result_var_id, left_val, right_val) :: rest_instructions ->
-    gen_set_cc GE result_var_id left_val right_val;
+    gen_cmp_set_cc GE result_var_id left_val right_val;
     gen_instructions rest_instructions
   (*
    * ===========================================

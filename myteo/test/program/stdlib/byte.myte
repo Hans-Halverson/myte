@@ -1,15 +1,15 @@
 module test
 
-import std.io.println
+import std.test.assertEqual
 
 fun testToString() {
-  println((0: Byte).toString());
-  println((1: Byte).toString());
-  println((12: Byte).toString());
-  println((127: Byte).toString());
-  println((-1: Byte).toString());
-  println((-127: Byte).toString());
-  println((-128: Byte).toString());
+  assertEqual((0: Byte).toString(), "0");
+  assertEqual((1: Byte).toString(), "1");
+  assertEqual((12: Byte).toString(), "12");
+  assertEqual((127: Byte).toString(), "127");
+  assertEqual((-1: Byte).toString(), "-1");
+  assertEqual((-127: Byte).toString(), "-127");
+  assertEqual((-128: Byte).toString(), "-128");
 }
 
 fun main() {

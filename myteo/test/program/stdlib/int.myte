@@ -1,15 +1,15 @@
 module test
 
-import std.io.println
+import std.test.assertEqual
 
 fun testToString() {
-  println((0: Int).toString());
-  println((1: Int).toString());
-  println((103: Int).toString());
-  println((2147483647: Int).toString());
-  println((-1: Int).toString());
-  println((-2147483647: Int).toString());
-  println((-2147483648: Int).toString());
+  assertEqual((0: Int).toString(), "0");
+  assertEqual((1: Int).toString(), "1");
+  assertEqual((103: Int).toString(), "103");
+  assertEqual((2147483647: Int).toString(), "2147483647");
+  assertEqual((-1: Int).toString(), "-1");
+  assertEqual((-2147483647: Int).toString(), "-2147483647");
+  assertEqual((-2147483648: Int).toString(), "-2147483648");
 }
 
 fun main() {
