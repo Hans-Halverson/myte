@@ -12,6 +12,12 @@ type folded_constant =
   | BoolConstant of bool
   | FunctionConstant of string
 
+type bool_constant_op = LogNotOp
+
+type bool_constants_op =
+  | LogAndOp
+  | LogOrOp
+
 type numeric_constant_op =
   | NegOp
   | NotOp
@@ -30,6 +36,17 @@ type numeric_constants_op =
   | ShlOp
   | ShrOp
   | ShrlOp
+
+let fold_bool_constant op x =
+  match (op, x) with
+  | (LogNotOp, BoolConstant x) -> BoolConstant (not x)
+  | _ -> failwith "Invalid operation"
+
+let fold_bool_constants op x y =
+  match (op, x, y) with
+  | (LogAndOp, BoolConstant x, BoolConstant y) -> BoolConstant (x && y)
+  | (LogOrOp, BoolConstant x, BoolConstant y) -> BoolConstant (x || y)
+  | _ -> failwith "Invalid operation"
 
 let fold_numeric_constant op x =
   match (op, x) with
@@ -249,11 +266,11 @@ class calc_constants_visitor ~ocx =
     method! visit_instruction ~block:_ instruction =
       let get_bool_lit_opt value =
         match value with
-        | `BoolL lit -> Some lit
+        | `BoolL lit -> Some (BoolConstant lit)
         | `BoolV var_id ->
           (match IMap.find_opt var_id var_id_constants with
           | None -> None
-          | Some (BoolConstant i) -> Some i
+          | Some (BoolConstant _ as lit) -> Some lit
           | _ -> failwith "Expected bool value")
       in
       let get_numeric_lit_opt value =
@@ -286,24 +303,41 @@ class calc_constants_visitor ~ocx =
           | Some (FunctionConstant i) -> Some i
           | _ -> failwith "Expected function value")
       in
-      let try_fold_bool_constant var_id arg f =
+      let get_comparable_lit_opt value =
+        match value with
+        | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as value ->
+          get_numeric_lit_opt value
+        | (`BoolL _ | `BoolV _) as value -> get_bool_lit_opt value
+        | `UnitL
+        | `UnitV _
+        | `PointerL _
+        | `PointerV _ ->
+          None
+      in
+      let try_fold_bool_constant var_id arg op =
         match get_bool_lit_opt arg with
         | None -> ()
-        | Some arg -> this#add_constant var_id (BoolConstant (f arg))
+        | Some arg -> this#add_constant var_id (fold_bool_constant op arg)
       in
       let try_fold_numeric_constant var_id arg op =
         match get_numeric_lit_opt arg with
         | None -> ()
         | Some arg -> this#add_constant var_id (fold_numeric_constant op arg)
       in
-      let try_fold_bool_constants var_id left right f =
+      let try_fold_bool_constants op var_id left right =
         match (get_bool_lit_opt left, get_bool_lit_opt right) with
-        | (Some left, Some right) -> this#add_constant var_id (BoolConstant (f left right))
+        | (Some left, Some right) -> this#add_constant var_id (fold_bool_constants op left right)
         | _ -> ()
       in
       let try_fold_numeric_constants op var_id left right =
         match (get_numeric_lit_opt left, get_numeric_lit_opt right) with
         | (Some left, Some right) -> this#add_constant var_id (fold_numeric_constants op left right)
+        | _ -> ()
+      in
+      let try_fold_equatable var_id left right f =
+        match (get_comparable_lit_opt left, get_comparable_lit_opt right) with
+        | (Some left, Some right) ->
+          this#add_constant var_id (BoolConstant (f (fold_constants_compare left right) 0))
         | _ -> ()
       in
       let try_fold_comparison var_id left right f =
@@ -319,9 +353,9 @@ class calc_constants_visitor ~ocx =
       | Mul (var_id, left, right) -> try_fold_numeric_constants MulOp var_id left right
       | Div (var_id, left, right) -> try_fold_numeric_constants DivOp var_id left right
       | Rem (var_id, left, right) -> try_fold_numeric_constants RemOp var_id left right
-      | LogNot (var_id, arg) -> try_fold_bool_constant var_id arg not
-      | LogAnd (var_id, left, right) -> try_fold_bool_constants var_id left right ( && )
-      | LogOr (var_id, left, right) -> try_fold_bool_constants var_id left right ( || )
+      | LogNot (var_id, arg) -> try_fold_bool_constant var_id arg LogNotOp
+      | LogAnd (var_id, left, right) -> try_fold_bool_constants LogAndOp var_id left right
+      | LogOr (var_id, left, right) -> try_fold_bool_constants LogOrOp var_id left right
       | BitNot (var_id, arg) -> try_fold_numeric_constant var_id arg NotOp
       | BitAnd (var_id, left, right) -> try_fold_numeric_constants BitAndOp var_id left right
       | BitOr (var_id, left, right) -> try_fold_numeric_constants BitOrOp var_id left right
@@ -329,8 +363,8 @@ class calc_constants_visitor ~ocx =
       | Shl (var_id, left, right) -> try_fold_numeric_constants ShlOp var_id left right
       | Shr (var_id, left, right) -> try_fold_numeric_constants ShrOp var_id left right
       | Shrl (var_id, left, right) -> try_fold_numeric_constants ShrlOp var_id left right
-      | Eq (var_id, left, right) -> try_fold_comparison var_id left right ( == )
-      | Neq (var_id, left, right) -> try_fold_comparison var_id left right ( <> )
+      | Eq (var_id, left, right) -> try_fold_equatable var_id left right ( == )
+      | Neq (var_id, left, right) -> try_fold_equatable var_id left right ( <> )
       | Lt (var_id, left, right) -> try_fold_comparison var_id left right ( < )
       | LtEq (var_id, left, right) -> try_fold_comparison var_id left right ( <= )
       | Gt (var_id, left, right) -> try_fold_comparison var_id left right ( > )
@@ -345,7 +379,7 @@ class calc_constants_visitor ~ocx =
             Some UnitConstant
           | (`FunctionL _ | `FunctionV _) as v ->
             get_function_lit_opt v |> Option.map (fun x -> FunctionConstant x)
-          | (`BoolL _ | `BoolV _) as v -> get_bool_lit_opt v |> Option.map (fun x -> BoolConstant x)
+          | (`BoolL _ | `BoolV _) as v -> get_bool_lit_opt v
           | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v ->
             get_numeric_lit_opt v
           | `PointerL _

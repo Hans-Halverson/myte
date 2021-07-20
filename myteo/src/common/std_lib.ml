@@ -60,7 +60,7 @@ let std_bool_bool_equals = "std.bool.Bool.equals"
 
 let std_byte_byte = "std.byte.Byte"
 
-let std_byte_byte_equals = "std.int.Int.equals"
+let std_byte_byte_equals = "std.byte.Byte.equals"
 
 let std_byte_byte_toInt = "std.byte.Byte.toInt"
 

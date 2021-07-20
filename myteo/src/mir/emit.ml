@@ -347,6 +347,32 @@ and emit_expression ~ecx expr =
       var_id
       (IMap.add rhs_end_block_id right_var_id (IMap.singleton true_builder.id true_var_id));
     `BoolV var_id
+  (*
+   * ============================
+   *          Equality
+   * ============================
+   *)
+  | BinaryOperation { op = (Equal | NotEqual) as op; left; right; _ } ->
+    let equals_result_val =
+      emit_method_call
+        ~ecx
+        ~method_name:"equals"
+        ~receiver:left
+        ~args:[right]
+        ~method_instance_type_args:[]
+        ~ret_type:`BoolT
+    in
+    if op = Equal then
+      equals_result_val
+    else
+      let var_id = mk_cf_var_id () in
+      Ecx.emit ~ecx (LogNot (var_id, cast_to_bool_value equals_result_val));
+      var_value_of_type var_id `BoolT
+  (*
+   * ============================
+   *       Binary Operations
+   * ============================
+   *)
   | BinaryOperation { loc; op; left; right } ->
     let open BinaryOperation in
     let var_id = mk_cf_var_id () in
@@ -366,12 +392,13 @@ and emit_expression ~ecx expr =
       | LeftShift -> (Shl (var_id, left_val, right_val), ty)
       | ArithmeticRightShift -> (Shr (var_id, left_val, right_val), ty)
       | LogicalRightShift -> (Shrl (var_id, left_val, right_val), ty)
-      | Equal -> (Eq (var_id, left_val, right_val), `BoolT)
-      | NotEqual -> (Neq (var_id, left_val, right_val), `BoolT)
       | LessThan -> (Lt (var_id, left_val, right_val), `BoolT)
       | GreaterThan -> (Gt (var_id, left_val, right_val), `BoolT)
       | LessThanOrEqual -> (LtEq (var_id, left_val, right_val), `BoolT)
       | GreaterThanOrEqual -> (GtEq (var_id, left_val, right_val), `BoolT)
+      | Equal
+      | NotEqual ->
+        failwith "Handled separately"
       | Is -> failwith "TODO: Emit Is expression"
     in
     Ecx.emit ~ecx instr;
@@ -423,67 +450,19 @@ and emit_expression ~ecx expr =
    *        Method Calls
    * ============================
    *)
-  | Call ({ func = NamedAccess { loc = access_loc; name = method_name; target }; _ } as call)
+  | Call
+      { loc; func = NamedAccess { loc = method_loc; name = method_name; target = receiver }; args }
     when Type_context.is_method_use ~cx:ecx.pcx.type_ctx method_name.loc ->
-    (* Emit receiver and gather its ADT signature and type args *)
-    let receiver_val = emit_expression ~ecx target in
-    let receiver_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
-    let (adt_sig, receiver_type_args) =
-      match receiver_ty with
-      | ADT { adt_sig; type_args; _ } -> (adt_sig, type_args)
-      | _ -> (Std_lib.get_primitive_adt_sig receiver_ty, [])
-    in
-
-    (* Find method, along with the trait it was defined in *)
-    let method_sig = Types.AdtSig.lookup_method adt_sig method_name.name in
-    let method_sig = Option.get method_sig in
-    let source_trait_instance = method_sig.source_trait_instance in
-    let source_trait_sig = source_trait_instance.trait_sig in
-
-    (* Calculate generic keys from trait/type *)
-    let (extra_key_type_params, extra_key_type_args) =
-      if method_sig.trait_sig == source_trait_sig then
-        (* Method was directly declared on the ADT's trait. Substitute type args for trait's type args *)
-        (source_trait_sig.type_params, receiver_type_args)
-      else
-        (* Method was declared on a trait that the ADT implements. The source trait instance's type
-           args are in terms of the ADT trait's type params, so first map from the ADT trait's type
-           params to the actual ADT instance's type args in the source trait instance's type args.
-           The key args are these mapped source trait instance's type args along with the a `this`
-           type of the ADT instance. *)
-        let bindings =
-          Types.bind_type_params_to_args method_sig.trait_sig.type_params receiver_type_args
-        in
-        let type_args =
-          List.map (Types.substitute_type_params bindings) source_trait_instance.type_args
-        in
-        let all_key_type_params =
-          source_trait_sig.this_type_param :: source_trait_sig.type_params
-        in
-        let all_key_type_args = receiver_ty :: type_args in
-        (all_key_type_params, all_key_type_args)
-    in
-
-    let func_ty = type_of_loc ~ecx access_loc in
-    let (func_type_args, _, _) = Type_util.cast_to_function_type func_ty in
-
-    (* Full keys are trait/type args plus method's own generic args *)
-    let key_type_params = extra_key_type_params @ method_sig.type_params in
-    let key_type_args = extra_key_type_args @ func_type_args in
-
-    (* Find name of method fully qualified by module and trait *)
-    let method_binding = Bindings.get_value_binding ecx.pcx.bindings method_sig.loc in
-    let fully_qualified_method_name = mk_value_binding_name method_binding in
-
-    let full_method_name_with_type_args =
-      Ecx.add_necessary_func_instantiation
-        ~ecx
-        fully_qualified_method_name
-        key_type_params
-        key_type_args
-    in
-    let func_val = `FunctionL full_method_name_with_type_args in
-    emit_call ~ecx call func_val (Some receiver_val)
+    let method_ty = type_of_loc ~ecx method_loc in
+    let (method_instance_type_args, _, _) = Type_util.cast_to_function_type method_ty in
+    let ret_type = mir_type_of_loc ~ecx loc in
+    emit_method_call
+      ~ecx
+      ~method_name:method_name.name
+      ~receiver
+      ~args
+      ~method_instance_type_args
+      ~ret_type
   (*
    * =======================================
    *  Function Calls and Tuple Constructors
@@ -512,7 +491,8 @@ and emit_expression ~ecx expr =
     | Some result -> result
     | None ->
       let func_val = emit_function_expression ~ecx func in
-      emit_call ~ecx call func_val None)
+      let ret_type = mir_type_of_loc ~ecx call.loc in
+      emit_call ~ecx ~func_val ~args:call.args ~receiver_val:None ~ret_type)
   (*
    * ============================
    *     Record Constructors
@@ -688,12 +668,79 @@ and emit_expression_access_chain ~ecx expr =
   let element_mir_ty = mir_type_of_loc ~ecx (Ast_utils.expression_loc expr) in
   emit_get_pointer_instr target_var element_mir_ty offsets
 
-and emit_call ~ecx ({ Expression.Call.loc; args; _ } as call_expr) func_val receiver_val_opt =
+and emit_method_call
+    ~ecx
+    ~(method_name : string)
+    ~(receiver : Expression.t)
+    ~(args : Expression.t list)
+    ~(method_instance_type_args : Types.Type.t list)
+    ~(ret_type : Type.t) =
+  (* Emit receiver and gather its ADT signature and type args *)
+  let receiver_val = emit_expression ~ecx receiver in
+  let receiver_ty = type_of_loc ~ecx (Ast_utils.expression_loc receiver) in
+  let (adt_sig, receiver_type_args) =
+    match receiver_ty with
+    | ADT { adt_sig; type_args; _ } -> (adt_sig, type_args)
+    | _ -> (Std_lib.get_primitive_adt_sig receiver_ty, [])
+  in
+
+  (* Find method, along with the trait it was defined in *)
+  let method_sig = Types.AdtSig.lookup_method adt_sig method_name in
+  let method_sig = Option.get method_sig in
+  let source_trait_instance = method_sig.source_trait_instance in
+  let source_trait_sig = source_trait_instance.trait_sig in
+
+  (* Calculate generic keys from trait/type *)
+  let (extra_key_type_params, extra_key_type_args) =
+    if method_sig.trait_sig == source_trait_sig then
+      (* Method was directly declared on the ADT's trait. Substitute type args for trait's type args *)
+      (source_trait_sig.type_params, receiver_type_args)
+    else
+      (* Method was declared on a trait that the ADT implements. The source trait instance's type
+         args are in terms of the ADT trait's type params, so first map from the ADT trait's type
+         params to the actual ADT instance's type args in the source trait instance's type args.
+         The key args are these mapped source trait instance's type args along with the a `this`
+         type of the ADT instance. *)
+      let bindings =
+        Types.bind_type_params_to_args method_sig.trait_sig.type_params receiver_type_args
+      in
+      let type_args =
+        List.map (Types.substitute_type_params bindings) source_trait_instance.type_args
+      in
+      let all_key_type_params = source_trait_sig.this_type_param :: source_trait_sig.type_params in
+      let all_key_type_args = receiver_ty :: type_args in
+      (all_key_type_params, all_key_type_args)
+  in
+
+  (* Full keys are trait/type args plus method's own generic args *)
+  let key_type_params = extra_key_type_params @ method_sig.type_params in
+  let key_type_args = extra_key_type_args @ method_instance_type_args in
+
+  (* Find name of method fully qualified by module and trait *)
+  let method_binding = Bindings.get_value_binding ecx.pcx.bindings method_sig.loc in
+  let fully_qualified_method_name = mk_value_binding_name method_binding in
+
+  let full_method_name_with_type_args =
+    Ecx.add_necessary_func_instantiation
+      ~ecx
+      fully_qualified_method_name
+      key_type_params
+      key_type_args
+  in
+  let func_val = `FunctionL full_method_name_with_type_args in
+  emit_call ~ecx ~func_val ~args ~receiver_val:(Some receiver_val) ~ret_type
+
+and emit_call
+    ~ecx
+    ~(func_val : cf_var Value.function_value)
+    ~(args : Expression.t list)
+    ~(receiver_val : cf_var Value.t option)
+    ~(ret_type : Type.t) =
   let var_id = mk_cf_var_id () in
   let arg_vals = List.map (emit_expression ~ecx) args in
   (* Pass `this` value as first argument if this is a method call *)
   let arg_vals =
-    match receiver_val_opt with
+    match receiver_val with
     | None -> arg_vals
     | Some receiver_val -> receiver_val :: arg_vals
   in
@@ -704,85 +751,99 @@ and emit_call ~ecx ({ Expression.Call.loc; args; _ } as call_expr) func_val rece
     | `FunctionL name ->
       (match SMap.find_opt name builtin_functions with
       | None -> None
-      | Some mk_func -> Some (mk_func ~ecx call_expr arg_vals))
+      | Some mk_func -> Some (mk_func ~ecx arg_vals ret_type))
     | _ -> None
   in
   match builtin_ret_opt with
   | Some ret_val -> ret_val
   | None ->
-    let ret_ty = mir_type_of_loc ~ecx loc in
-    Ecx.emit ~ecx (Call (var_id, ret_ty, func_val, arg_vals));
-    var_value_of_type var_id ret_ty
+    Ecx.emit ~ecx (Call (var_id, ret_type, func_val, arg_vals));
+    var_value_of_type var_id ret_type
 
 and builtin_functions =
   lazy
     ( [
+        (Std_lib.std_bool_bool_equals, emit_eq);
+        (Std_lib.std_byte_byte_equals, emit_eq);
         (Std_lib.std_byte_byte_toInt, emit_std_byte_byte_toInt);
         (Std_lib.std_byte_byte_toLong, emit_std_byte_byte_toLong);
+        (Std_lib.std_int_int_equals, emit_eq);
         (Std_lib.std_int_int_toByte, emit_std_int_int_toByte);
         (Std_lib.std_int_int_toLong, emit_std_int_int_toLong);
+        (Std_lib.std_long_long_equals, emit_eq);
         (Std_lib.std_long_long_toByte, emit_std_long_long_toByte);
         (Std_lib.std_long_long_toInt, emit_std_long_long_toInt);
         (Std_lib.std_memory_array_copy, emit_std_memory_array_copy);
         (Std_lib.std_memory_array_new, emit_std_memory_array_new);
         (Std_lib.std_io_write, emit_std_io_write);
         (Std_lib.std_sys_exit, emit_std_sys_exit);
+        (Std_lib.std_unit_unit_equals, emit_eq);
       ]
     |> List.to_seq
     |> SMap.of_seq )
 
-and emit_std_byte_byte_toInt ~ecx _ arg_vals =
+and emit_eq ~ecx arg_vals _ =
+  match arg_vals with
+  | [left_arg; right_arg] ->
+    let var_id = mk_cf_var_id () in
+    Ecx.emit
+      ~ecx
+      (Eq (var_id, cast_to_comparable_value left_arg, cast_to_comparable_value right_arg));
+    var_value_of_type var_id `BoolT
+  | _ -> failwith "Expected two arguments"
+
+and emit_std_byte_byte_toInt ~ecx arg_vals _ =
   let var_id = mk_cf_var_id () in
   Ecx.emit ~ecx (SExt (var_id, cast_to_numeric_value (List.hd arg_vals), `IntT));
   var_value_of_type var_id `IntT
 
-and emit_std_byte_byte_toLong ~ecx _ arg_vals =
+and emit_std_byte_byte_toLong ~ecx arg_vals _ =
   let var_id = mk_cf_var_id () in
   Ecx.emit ~ecx (SExt (var_id, cast_to_numeric_value (List.hd arg_vals), `LongT));
   var_value_of_type var_id `LongT
 
-and emit_std_int_int_toByte ~ecx _ arg_vals =
+and emit_std_int_int_toByte ~ecx arg_vals _ =
   let var_id = mk_cf_var_id () in
   Ecx.emit ~ecx (Trunc (var_id, cast_to_numeric_value (List.hd arg_vals), `ByteT));
   var_value_of_type var_id `ByteT
 
-and emit_std_int_int_toLong ~ecx _ arg_vals =
+and emit_std_int_int_toLong ~ecx arg_vals _ =
   let var_id = mk_cf_var_id () in
   Ecx.emit ~ecx (SExt (var_id, cast_to_numeric_value (List.hd arg_vals), `LongT));
   var_value_of_type var_id `LongT
 
-and emit_std_long_long_toByte ~ecx _ arg_vals =
+and emit_std_long_long_toByte ~ecx arg_vals _ =
   let var_id = mk_cf_var_id () in
   Ecx.emit ~ecx (Trunc (var_id, cast_to_numeric_value (List.hd arg_vals), `ByteT));
   var_value_of_type var_id `ByteT
 
-and emit_std_long_long_toInt ~ecx _ arg_vals =
+and emit_std_long_long_toInt ~ecx arg_vals _ =
   let var_id = mk_cf_var_id () in
   Ecx.emit ~ecx (Trunc (var_id, cast_to_numeric_value (List.hd arg_vals), `IntT));
   var_value_of_type var_id `IntT
 
-and emit_std_memory_array_copy ~ecx _ arg_vals =
+and emit_std_memory_array_copy ~ecx arg_vals _ =
   let var_id = mk_cf_var_id () in
   let (return_val, myte_copy_instr) = Mir_builtin.(mk_call_builtin myte_copy var_id arg_vals []) in
   Ecx.emit ~ecx myte_copy_instr;
   return_val
 
-and emit_std_memory_array_new ~ecx { Expression.Call.loc; _ } arg_vals =
+and emit_std_memory_array_new ~ecx arg_vals ret_type =
   let var_id = mk_cf_var_id () in
-  let (`PointerT element_ty) = cast_to_pointer_type (mir_type_of_loc ~ecx loc) in
+  let (`PointerT element_ty) = cast_to_pointer_type ret_type in
   let (array_ptr_val, myte_alloc_instr) =
     Mir_builtin.(mk_call_builtin myte_alloc var_id arg_vals [element_ty])
   in
   Ecx.emit ~ecx myte_alloc_instr;
   array_ptr_val
 
-and emit_std_io_write ~ecx _ arg_vals =
+and emit_std_io_write ~ecx arg_vals _ =
   let var_id = mk_cf_var_id () in
   let (return_val, instr) = Mir_builtin.(mk_call_builtin myte_write var_id arg_vals []) in
   Ecx.emit ~ecx instr;
   return_val
 
-and emit_std_sys_exit ~ecx _ arg_vals =
+and emit_std_sys_exit ~ecx arg_vals _ =
   let var_id = mk_cf_var_id () in
   let (return_val, instr) = Mir_builtin.(mk_call_builtin myte_exit var_id arg_vals []) in
   Ecx.emit ~ecx instr;

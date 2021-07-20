@@ -262,16 +262,16 @@ module InstructionsMapper = struct
             mk_instr (Rem (result', left', right'))
         | Eq (result, left, right) ->
           let result' = this#map_result_variable ~block result in
-          let left' = this#map_numeric_value ~block left in
-          let right' = this#map_numeric_value ~block right in
+          let left' = this#map_comparable_value ~block left in
+          let right' = this#map_comparable_value ~block right in
           if result == result' && left == left' && right == right' then
             [instruction]
           else
             mk_instr (Eq (result', left', right'))
         | Neq (result, left, right) ->
           let result' = this#map_result_variable ~block result in
-          let left' = this#map_numeric_value ~block left in
-          let right' = this#map_numeric_value ~block right in
+          let left' = this#map_comparable_value ~block left in
+          let right' = this#map_comparable_value ~block right in
           if result == result' && left == left' && right == right' then
             [instruction]
           else
@@ -329,7 +329,7 @@ module InstructionsMapper = struct
 
       method map_value ~block value =
         match value with
-        | (`UnitL | `UnitV _) as v -> this#map_unit_value ~block v
+        | (`UnitL | `UnitV _) as v -> (this#map_unit_value ~block v :> ssa_value)
         | (`BoolL _ | `BoolV _) as v -> (this#map_bool_value ~block v :> ssa_value)
         | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v ->
           (this#map_numeric_value ~block v :> ssa_value)
@@ -338,7 +338,7 @@ module InstructionsMapper = struct
         | `AggregateV _ as v -> this#map_aggregate_value ~block v
         | (`ArrayL _ | `ArrayV _) as v -> this#map_array_value ~block v
 
-      method map_unit_value ~block value =
+      method map_unit_value ~block value : var_id Value.unit_value =
         match value with
         | `UnitL as value -> value
         | `UnitV var_id as value ->
@@ -385,6 +385,16 @@ module InstructionsMapper = struct
         | `ArrayV (ty, size, var_id) as value ->
           id_map (this#map_use_variable ~block) var_id value (fun var_id' ->
               `ArrayV (ty, size, var_id'))
+
+      method map_comparable_value ~block value =
+        match value with
+        | (`UnitL | `UnitV _) as v -> (this#map_unit_value ~block v :> var_id Value.comparable_value)
+        | (`BoolL _ | `BoolV _) as v ->
+          (this#map_bool_value ~block v :> var_id Value.comparable_value)
+        | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v ->
+          (this#map_numeric_value ~block v :> var_id Value.comparable_value)
+        | (`PointerL _ | `PointerV _) as v ->
+          (this#map_pointer_value ~block v :> var_id Value.comparable_value)
 
       method map_phis ~block (phis : var_id Block.phi list) =
         List.map

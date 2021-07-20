@@ -153,4 +153,12 @@ fun testCompareLongRegs(x: Long, y: Long): Bool = x < y
 fun testCompareLongRegImm(x: Long): Bool = x < 2147483648
 fun testCompareLongImmReg(x: Long): Bool = 2147483648 < x
 
+fun testCompareBoolRegs(x: Bool, y: Bool): Bool = x == y
+fun testCompareBoolRegImm(x: Bool): Bool = x == true
+fun testCompareBoolImmReg(x: Bool): Bool = true == x
+
+fun testCompareUnitRegs(x: Unit, y: Unit): Bool = x == y
+fun testCompareUnitRegImm(x: Unit): Bool = x == ()
+fun testCompareUnitImmReg(x: Unit): Bool = () == x
+
 fun main() {}

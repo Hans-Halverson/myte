@@ -17,8 +17,6 @@ fun ints() {
   1 >>> 2;
 
   // Comparisons
-  1 == 2;
-  1 != 2;
   1 < 2;
   1 <= 2;
   1 > 2;
@@ -40,8 +38,6 @@ fun bytes(x: Byte, y: Byte) {
   x >> y;
   x >>> y;
 
-  x == y;
-  x != y;
   x < y;
   x <= y;
   x > y;
@@ -63,8 +59,6 @@ fun longs(x: Long, y: Long) {
   x >> y;
   x >>> y;
 
-  x == y;
-  x != y;
   x < y;
   x <= y;
   x > y;

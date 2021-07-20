@@ -241,6 +241,8 @@ and pp_function_value ~cx v = pp_value ~cx (v :> ssa_value)
 
 and pp_pointer_value ~cx v = pp_value ~cx (v :> ssa_value)
 
+and pp_comparable_value ~cx v = pp_value ~cx (v :> ssa_value)
+
 and pp_type ty = type_to_string ty
 
 and pp_numeric_type ty = type_to_string (ty :> Type.t)
@@ -248,6 +250,8 @@ and pp_numeric_type ty = type_to_string (ty :> Type.t)
 and pp_type_of_value v = pp_type (type_of_value v)
 
 and pp_type_of_numeric_value v = pp_type_of_value (v :> ssa_value)
+
+and pp_type_of_comparable_value v = pp_type_of_value (v :> ssa_value)
 
 and pp_instruction ~cx (_, instr) =
   let open Instruction in
@@ -420,17 +424,17 @@ and pp_instruction ~cx (_, instr) =
         var_id
         (Printf.sprintf
            "Eq %s %s, %s"
-           (pp_type_of_numeric_value left)
-           (pp_numeric_value ~cx left)
-           (pp_numeric_value ~cx right))
+           (pp_type_of_comparable_value left)
+           (pp_comparable_value ~cx left)
+           (pp_comparable_value ~cx right))
     | Neq (var_id, left, right) ->
       pp_instr
         var_id
         (Printf.sprintf
            "Neq %s %s, %s"
-           (pp_type_of_numeric_value left)
-           (pp_numeric_value ~cx left)
-           (pp_numeric_value ~cx right))
+           (pp_type_of_comparable_value left)
+           (pp_comparable_value ~cx left)
+           (pp_comparable_value ~cx right))
     | Lt (var_id, left, right) ->
       pp_instr
         var_id

@@ -57,6 +57,14 @@ module rec Value : sig
     | 'a aggregate_value
     | 'a array_value
     ]
+
+  (* Value subsets for instructions *)
+  and 'var comparable_value =
+    [ 'var unit_value
+    | 'var bool_value
+    | 'var numeric_value
+    | 'var pointer_value
+    ]
 end =
   Value
 
@@ -76,10 +84,6 @@ and Instruction : sig
   end
 
   type 'var t = instr_id * 'var t'
-
-  and ('var, 'a) call =
-    (* Return var *)
-    'var * (* Return type *) Type.t * (* Function *) 'a * (* Arguments *) 'var Value.t list
 
   and 'var t' =
     | Mov of 'var * 'var Value.t
@@ -114,8 +118,8 @@ and Instruction : sig
     | Div of 'var * 'var Value.numeric_value * 'var Value.numeric_value
     | Rem of 'var * 'var Value.numeric_value * 'var Value.numeric_value
     (* Comparisons *)
-    | Eq of 'var * 'var Value.numeric_value * 'var Value.numeric_value
-    | Neq of 'var * 'var Value.numeric_value * 'var Value.numeric_value
+    | Eq of 'var * 'var Value.comparable_value * 'var Value.comparable_value
+    | Neq of 'var * 'var Value.comparable_value * 'var Value.comparable_value
     | Lt of 'var * 'var Value.numeric_value * 'var Value.numeric_value
     | LtEq of 'var * 'var Value.numeric_value * 'var Value.numeric_value
     | Gt of 'var * 'var Value.numeric_value * 'var Value.numeric_value
@@ -123,6 +127,10 @@ and Instruction : sig
     (* Conversions *)
     | Trunc of 'var * 'var Value.numeric_value * Type.numeric_type
     | SExt of 'var * 'var Value.numeric_value * Type.numeric_type
+
+  and ('var, 'a) call =
+    (* Return var *)
+    'var * (* Return type *) Type.t * (* Function *) 'a * (* Arguments *) 'var Value.t list
 end =
   Instruction
 
@@ -277,10 +285,22 @@ let var_value_of_type var_id (ty : Type.t) : 'a Value.t =
   | `AggregateT agg -> `AggregateV (agg, var_id)
   | `ArrayT (ty, size) -> `ArrayV (ty, size, var_id)
 
+let cast_to_bool_value (v : 'a Value.t) : 'a Value.bool_value =
+  match v with
+  | (`BoolL _ | `BoolV _) as v -> v
+  | _ -> failwith "Expected bool value"
+
 let cast_to_numeric_value (v : 'a Value.t) : 'a Value.numeric_value =
   match v with
   | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v -> v
   | _ -> failwith "Expected numeric value"
+
+let cast_to_comparable_value (v : 'a Value.t) : 'a Value.comparable_value =
+  match v with
+  | ( `UnitL | `UnitV _ | `BoolL _ | `BoolV _ | `ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _
+    | `LongV _ | `PointerL _ | `PointerV _ ) as v ->
+    v
+  | _ -> failwith "Expected comprable value"
 
 (* Whether this value is a statically known constant *)
 let is_static_constant (v : 'a Value.t) : bool =
@@ -314,8 +334,7 @@ let mk_branch test continue jump = Block.Branch { test; continue; jump }
 
 let rec map_value ~(f : 'a -> 'b) (value : 'a Value.t) : 'b Value.t =
   match value with
-  | `UnitL as lit -> lit
-  | `UnitV v -> `UnitV (f v)
+  | (`UnitL | `UnitV _) as v -> (map_unit_value ~f v :> 'b Value.t)
   | (`BoolL _ | `BoolV _) as v -> (map_bool_value ~f v :> 'b Value.t)
   | (`LongL _ | `LongV _) as v -> (map_long_value ~f v :> 'b Value.t)
   | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _) as v -> (map_numeric_value ~f v :> 'b Value.t)
@@ -323,6 +342,11 @@ let rec map_value ~(f : 'a -> 'b) (value : 'a Value.t) : 'b Value.t =
   | (`PointerL _ | `PointerV _) as v -> (map_pointer_value ~f v :> 'b Value.t)
   | `AggregateV (agg, v) -> `AggregateV (agg, f v)
   | (`ArrayL _ | `ArrayV _) as v -> (map_array_value ~f v :> 'b Value.t)
+
+and map_unit_value ~(f : 'a -> 'b) (value : 'a Value.unit_value) : 'b Value.unit_value =
+  match value with
+  | `UnitL as lit -> lit
+  | `UnitV v -> `UnitV (f v)
 
 and map_bool_value ~(f : 'a -> 'b) (value : 'a Value.bool_value) : 'b Value.bool_value =
   match value with
@@ -355,6 +379,16 @@ and map_array_value ~(f : 'a -> 'b) (value : 'a Value.array_value) : 'b Value.ar
   match value with
   | `ArrayL _ as lit -> lit
   | `ArrayV (ty, size, v) -> `ArrayV (ty, size, f v)
+
+and map_comparable_value ~(f : 'a -> 'b) (value : 'a Value.comparable_value) :
+    'b Value.comparable_value =
+  match value with
+  | (`UnitL | `UnitV _) as v -> (map_unit_value ~f v :> 'b Value.comparable_value)
+  | (`BoolL _ | `BoolV _) as v -> (map_bool_value ~f v :> 'b Value.comparable_value)
+  | (`LongL _ | `LongV _) as v -> (map_long_value ~f v :> 'b Value.comparable_value)
+  | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _) as v ->
+    (map_numeric_value ~f v :> 'b Value.comparable_value)
+  | (`PointerL _ | `PointerV _) as v -> (map_pointer_value ~f v :> 'b Value.comparable_value)
 
 let get_block ~ir block_id = IMap.find block_id ir.Program.blocks
 

@@ -10,54 +10,48 @@ func unit @test.ints() {
   %8 := Shl int, 1 2
   %9 := Shr int, 1 2
   %10 := Shrl int, 1 2
-  %11 := Eq int 1, 2
-  %12 := Neq int 1, 2
-  %13 := Lt int 1, 2
-  %14 := LtEq int 1, 2
-  %15 := Gt int 1, 2
-  %16 := GtEq int 1, 2
+  %11 := Lt int 1, 2
+  %12 := LtEq int 1, 2
+  %13 := Gt int 1, 2
+  %14 := GtEq int 1, 2
   Ret
 }
 
-func unit @test.bytes(byte %17, byte %18) {
-  %19 := Add byte %17, %18
-  %20 := Sub byte %17, %18
-  %21 := Mul byte %17, %18
-  %22 := Div byte %17, %18
-  %23 := Rem byte %17, %18
-  %24 := BitAnd byte, %17 %18
-  %25 := BitOr byte, %17 %18
-  %26 := BitXor byte, %17 %18
-  %27 := Shl byte, %17 %18
-  %28 := Shr byte, %17 %18
-  %29 := Shrl byte, %17 %18
-  %30 := Eq byte %17, %18
-  %31 := Neq byte %17, %18
-  %32 := Lt byte %17, %18
-  %33 := LtEq byte %17, %18
-  %34 := Gt byte %17, %18
-  %35 := GtEq byte %17, %18
+func unit @test.bytes(byte %15, byte %16) {
+  %17 := Add byte %15, %16
+  %18 := Sub byte %15, %16
+  %19 := Mul byte %15, %16
+  %20 := Div byte %15, %16
+  %21 := Rem byte %15, %16
+  %22 := BitAnd byte, %15 %16
+  %23 := BitOr byte, %15 %16
+  %24 := BitXor byte, %15 %16
+  %25 := Shl byte, %15 %16
+  %26 := Shr byte, %15 %16
+  %27 := Shrl byte, %15 %16
+  %28 := Lt byte %15, %16
+  %29 := LtEq byte %15, %16
+  %30 := Gt byte %15, %16
+  %31 := GtEq byte %15, %16
   Ret
 }
 
-func unit @test.longs(long %36, long %37) {
-  %38 := Add long %36, %37
-  %39 := Sub long %36, %37
-  %40 := Mul long %36, %37
-  %41 := Div long %36, %37
-  %42 := Rem long %36, %37
-  %43 := BitAnd long, %36 %37
-  %44 := BitOr long, %36 %37
-  %45 := BitXor long, %36 %37
-  %46 := Shl long, %36 %37
-  %47 := Shr long, %36 %37
-  %48 := Shrl long, %36 %37
-  %49 := Eq long %36, %37
-  %50 := Neq long %36, %37
-  %51 := Lt long %36, %37
-  %52 := LtEq long %36, %37
-  %53 := Gt long %36, %37
-  %54 := GtEq long %36, %37
+func unit @test.longs(long %32, long %33) {
+  %34 := Add long %32, %33
+  %35 := Sub long %32, %33
+  %36 := Mul long %32, %33
+  %37 := Div long %32, %33
+  %38 := Rem long %32, %33
+  %39 := BitAnd long, %32 %33
+  %40 := BitOr long, %32 %33
+  %41 := BitXor long, %32 %33
+  %42 := Shl long, %32 %33
+  %43 := Shr long, %32 %33
+  %44 := Shrl long, %32 %33
+  %45 := Lt long %32, %33
+  %46 := LtEq long %32, %33
+  %47 := Gt long %32, %33
+  %48 := GtEq long %32, %33
   Ret
 }
 

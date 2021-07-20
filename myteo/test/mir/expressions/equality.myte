@@ -1,0 +1,39 @@
+module test
+
+fun ints() {
+  1.equals(2);
+  1 == 2;
+  1 != 2;
+}
+
+fun bytes(x: Byte, y: Byte) {
+  x.equals(y);
+  x == y;
+  x != y;
+}
+
+fun longs(x: Long, y: Long) {
+  x.equals(y);
+  x == y;
+  x != y;
+}
+
+fun units(x: Unit, y: Unit) {
+  x.equals(y);
+  x == y;
+  x != y;
+}
+
+fun bools(x: Bool, y: Bool) {
+  x.equals(y);
+  x == y;
+  x != y;
+}
+
+// Type that implements Equatable
+fun equatableType(x: String, y: String) {
+  x == y;
+  x != y;
+}
+
+fun main() {}

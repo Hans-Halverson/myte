@@ -5,8 +5,9 @@
 - Create reference vs value types (potentially <2 words is a value type, anything mutable is ref)
 - Parse and type check anonymous functions
 - Implement signed and unsigned integers
-- Implement conversion functions between built in types (like integer types)
 - Guarantee 16-byte stack alignment for x64 at calls
+- Optimize `!=` in MIR/assembly to consolidate `LogNot` after call `Eq` instruction or call to `equals` method
+- Implement maps and sets
 
 ## Old List
 
@@ -25,21 +26,14 @@
 - For loops (traditional, for-each)
 - Do while loops
 - Labels for break and continue
-- Vecs, maps, and sets
 - Anonymous Functions (fn x -> x)
 - Floating point numbers
 - unicode encodings
 - Algebraic data types
-  - Tuples
-  - Named tuples
-  - Named records
   - Tagged unions
-  - ADT methods
 - Match statements/expressions
   - Exhaustiveness checking
   - Counterexample shown in error
-- Classes (with this = type in block syntax, restricted to simple records)
-- Traits (with extends keyword, multiple inheritance, sigs, interface keyword)
 - Destructuring
 - Optional/None type
 - Indexing into collections
@@ -53,8 +47,6 @@
 - MACROS (e.g. defined as functions that operate on the source ast and output another ast)
 
 # Full Pipeline
-- Parsing (In Progress)
-- Structural Analysis (In Progress)
 - Type Checking (In Progress)
 - IR Generation (In Progress)
 - Compile IR (TODO)

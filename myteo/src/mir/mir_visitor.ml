@@ -121,14 +121,17 @@ module IRVisitor = struct
         | Shl (result, left, right)
         | Shr (result, left, right)
         | Shrl (result, left, right)
-        | Eq (result, left, right)
-        | Neq (result, left, right)
         | Lt (result, left, right)
         | LtEq (result, left, right)
         | Gt (result, left, right)
         | GtEq (result, left, right) ->
           this#visit_numeric_value ~block left;
           this#visit_numeric_value ~block right;
+          this#visit_result_variable ~block result
+        | Eq (result, left, right)
+        | Neq (result, left, right) ->
+          this#visit_comparable_value ~block left;
+          this#visit_comparable_value ~block right;
           this#visit_result_variable ~block result
 
       method visit_result_variable ~block:_ _var_id = ()
@@ -177,6 +180,9 @@ module IRVisitor = struct
         this#visit_value ~block (value :> 'a Value.t)
 
       method visit_pointer_value ~block (value : 'a Value.pointer_value) =
+        this#visit_value ~block (value :> 'a Value.t)
+
+      method visit_comparable_value ~block (value : 'a Value.comparable_value) =
         this#visit_value ~block (value :> 'a Value.t)
     end
 end

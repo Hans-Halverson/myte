@@ -448,6 +448,7 @@ and map_to_ssa ~pcx ~ecx ~cx program =
     let map_numeric_value = map_numeric_value ~f:(map_read_var ~name) in
     let map_function_value = map_function_value ~f:(map_read_var ~name) in
     let map_pointer_value = map_pointer_value ~f:(map_read_var ~name) in
+    let map_comparable_value = map_comparable_value ~f:(map_read_var ~name) in
     match instruction with
     | Mov (return, arg) -> Mov (map_return return, map_value arg)
     | Call (return, ret_ty, func, args) ->
@@ -504,9 +505,9 @@ and map_to_ssa ~pcx ~ecx ~cx program =
     | Shrl (return, left, right) ->
       Shrl (map_return return, map_numeric_value left, map_numeric_value right)
     | Eq (return, left, right) ->
-      Eq (map_return return, map_numeric_value left, map_numeric_value right)
+      Eq (map_return return, map_comparable_value left, map_comparable_value right)
     | Neq (return, left, right) ->
-      Neq (map_return return, map_numeric_value left, map_numeric_value right)
+      Neq (map_return return, map_comparable_value left, map_comparable_value right)
     | Lt (return, left, right) ->
       Lt (map_return return, map_numeric_value left, map_numeric_value right)
     | LtEq (return, left, right) ->

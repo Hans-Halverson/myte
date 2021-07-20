@@ -4,6 +4,21 @@
 _main:
   movl $0, %eax
   ret
+test.testCompareBoolImmReg:
+  xorl %eax, %eax
+  cmpb $1, %dil
+  sete %al
+  ret
+test.testCompareBoolRegImm:
+  xorl %eax, %eax
+  cmpb $1, %dil
+  sete %al
+  ret
+test.testCompareBoolRegs:
+  xorl %eax, %eax
+  cmpb %sil, %dil
+  sete %al
+  ret
 test.testCompareByteImmReg:
   xorl %eax, %eax
   cmpb $63, %dil
@@ -27,11 +42,16 @@ test.testCompareImmediateMemory:
   sete %al
   ret
 .L0:
+  xorl %r10d, %r10d
   cmpl $3, 8(%rsp)
+  sete %r10b
+  notb %r10b
+  testb %r10b, %r10b
   je .L1
   xorl %eax, %eax
   cmpl $3, 8(%rsp)
-  setne %al
+  sete %al
+  notb %al
   ret
 .L1:
   cmpl $3, 8(%rsp)
@@ -72,11 +92,16 @@ test.testCompareImmediateRegister:
   sete %al
   ret
 .L6:
+  xorl %ecx, %ecx
   cmpl $3, %edi
+  sete %cl
+  notb %cl
+  testb %cl, %cl
   je .L7
   xorl %eax, %eax
   cmpl $3, %edi
-  setne %al
+  sete %al
+  notb %al
   ret
 .L7:
   cmpl $3, %edi
@@ -134,11 +159,16 @@ test.testCompareMemoryImmediate:
   sete %al
   ret
 .L12:
+  xorl %r10d, %r10d
   cmpl $3, 8(%rsp)
+  sete %r10b
+  notb %r10b
+  testb %r10b, %r10b
   je .L13
   xorl %eax, %eax
   cmpl $3, 8(%rsp)
-  setne %al
+  sete %al
+  notb %al
   ret
 .L13:
   cmpl $3, 8(%rsp)
@@ -181,13 +211,18 @@ test.testCompareMemoryMemory:
   sete %al
   ret
 .L18:
+  xorl %r10d, %r10d
   movl 8(%rsp), %ecx
   cmpl 16(%rsp), %ecx
+  sete %r10b
+  notb %r10b
+  testb %r10b, %r10b
   je .L19
   xorl %eax, %eax
   movl 8(%rsp), %eax
   cmpl 16(%rsp), %eax
-  setne %al
+  sete %al
+  notb %al
   ret
 .L19:
   movl 8(%rsp), %ecx
@@ -236,11 +271,16 @@ test.testCompareMemoryRegister:
   sete %al
   ret
 .L24:
+  xorl %r10d, %r10d
   cmpl %edi, 8(%rsp)
+  sete %r10b
+  notb %r10b
+  testb %r10b, %r10b
   je .L25
   xorl %eax, %eax
   cmpl %edi, 8(%rsp)
-  setne %al
+  sete %al
+  notb %al
   ret
 .L25:
   cmpl %edi, 8(%rsp)
@@ -281,11 +321,16 @@ test.testCompareRegisterImmediate:
   sete %al
   ret
 .L30:
+  xorl %ecx, %ecx
   cmpl $3, %edi
+  sete %cl
+  notb %cl
+  testb %cl, %cl
   je .L31
   xorl %eax, %eax
   cmpl $3, %edi
-  setne %al
+  sete %al
+  notb %al
   ret
 .L31:
   cmpl $3, %edi
@@ -326,11 +371,16 @@ test.testCompareRegisterMemory:
   sete %al
   ret
 .L36:
+  xorl %r10d, %r10d
   cmpl 8(%rsp), %edi
+  sete %r10b
+  notb %r10b
+  testb %r10b, %r10b
   je .L37
   xorl %eax, %eax
   cmpl 8(%rsp), %edi
-  setne %al
+  sete %al
+  notb %al
   ret
 .L37:
   cmpl 8(%rsp), %edi
@@ -371,11 +421,16 @@ test.testCompareRegisterRegister:
   sete %al
   ret
 .L42:
+  xorl %ecx, %ecx
   cmpl %esi, %edi
+  sete %cl
+  notb %cl
+  testb %cl, %cl
   je .L43
   xorl %eax, %eax
   cmpl %esi, %edi
-  setne %al
+  sete %al
+  notb %al
   ret
 .L43:
   cmpl %esi, %edi
@@ -407,6 +462,21 @@ test.testCompareRegisterRegister:
   ret
 .L47:
   movb $1, %al
+  ret
+test.testCompareUnitImmReg:
+  xorl %eax, %eax
+  cmpb $0, %dil
+  sete %al
+  ret
+test.testCompareUnitRegImm:
+  xorl %eax, %eax
+  cmpb $0, %dil
+  sete %al
+  ret
+test.testCompareUnitRegs:
+  xorl %eax, %eax
+  cmpb %sil, %dil
+  sete %al
   ret
 _start:
   call __myte_init

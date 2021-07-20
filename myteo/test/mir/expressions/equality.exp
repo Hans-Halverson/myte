@@ -1,0 +1,50 @@
+func unit @test.ints() {
+  %0 := Eq int 1, 2
+  %1 := Eq int 1, 2
+  %2 := Eq int 1, 2
+  %3 := LogNot %2
+  Ret
+}
+
+func unit @test.bytes(byte %4, byte %5) {
+  %6 := Eq byte %4, %5
+  %7 := Eq byte %4, %5
+  %8 := Eq byte %4, %5
+  %9 := LogNot %8
+  Ret
+}
+
+func unit @test.longs(long %10, long %11) {
+  %12 := Eq long %10, %11
+  %13 := Eq long %10, %11
+  %14 := Eq long %10, %11
+  %15 := LogNot %14
+  Ret
+}
+
+func unit @test.units(unit %16, unit %17) {
+  %18 := Eq unit %16, %17
+  %19 := Eq unit %16, %17
+  %20 := Eq unit %16, %17
+  %21 := LogNot %20
+  Ret
+}
+
+func unit @test.bools(bool %22, bool %23) {
+  %24 := Eq bool %22, %23
+  %25 := Eq bool %22, %23
+  %26 := Eq bool %22, %23
+  %27 := LogNot %26
+  Ret
+}
+
+func unit @test.equatableType(std.string.String* %28, std.string.String* %29) {
+  %30 := Call bool @std.string.String.equals(%28, %29)
+  %31 := Call bool @std.string.String.equals(%28, %29)
+  %32 := LogNot %31
+  Ret
+}
+
+func int @test.main() {
+  Ret 0
+}
