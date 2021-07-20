@@ -202,6 +202,8 @@ type cf_var =
   | Id of var_id
   | Local of Loc.t
 
+type cf_value = cf_var Value.t
+
 type ssa_value = var_id Value.t
 
 type cf_instruction = cf_var Instruction.t
@@ -294,6 +296,11 @@ let cast_to_numeric_value (v : 'a Value.t) : 'a Value.numeric_value =
   match v with
   | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v -> v
   | _ -> failwith "Expected numeric value"
+
+and cast_to_pointer_value (v : 'a Value.t) : 'a Value.pointer_value =
+  match v with
+  | (`PointerL _ | `PointerV _) as v -> v
+  | _ -> failwith "Expected pointer value"
 
 let cast_to_comparable_value (v : 'a Value.t) : 'a Value.comparable_value =
   match v with

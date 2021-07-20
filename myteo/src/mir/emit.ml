@@ -550,10 +550,15 @@ and emit_expression ~ecx expr =
       emit_call_vec_get ~ecx loc target_var index_var
     | _ -> emit_expression_access_chain_load ~ecx expr)
   | NamedAccess _ -> emit_expression_access_chain_load ~ecx expr
+  (*
+   * ============================
+   *     String Interpolation
+   * ============================
+   *)
+  | InterpolatedString _ -> failwith "TODO: Type check interpolated strings"
   | Ternary _ -> failwith "TODO: Emit MIR for ternary expressions"
   | Match _ -> failwith "TODO: Emir MIR for match expressions"
   | Super _ -> failwith "TODO: Emit MIR for super expressions"
-  | InterpolatedString _ -> failwith "TODO: Type check interpolated strings"
 
 and emit_expression_access_chain_load ~ecx expr =
   let element_pointer_var = emit_expression_access_chain ~ecx expr in
@@ -824,11 +829,34 @@ and emit_std_long_long_toInt ~ecx arg_vals _ =
   var_value_of_type var_id `IntT
 
 and emit_std_memory_array_copy ~ecx arg_vals _ =
-  let var_id = mk_cf_var_id () in
-  let (return_val, myte_copy_instr) = Mir_builtin.(mk_call_builtin myte_copy var_id arg_vals []) in
-  Ecx.emit ~ecx myte_copy_instr;
-  return_val
+  (* If the index is nonzero, emit a GetPointer instruction to calculate the pointer's start *)
+  let maybe_emit_index_past_ptr ptr_val index_val =
+    match cast_to_numeric_value index_val with
+    | `IntL lit when lit = Int32.zero -> ptr_val
+    | index_val ->
+      let ptr_val = cast_to_pointer_value ptr_val in
+      let ptr_ty = pointer_value_element_type ptr_val in
+      let (get_ptr_val, get_ptr_instr) =
+        mk_get_pointer_instr ~pointer_offset:(Some index_val) ptr_ty ptr_val []
+      in
+      Ecx.emit ~ecx (GetPointer get_ptr_instr);
+      (get_ptr_val :> cf_value)
+  in
+  match arg_vals with
+  | [dest_array; dest_index; src_array; src_index; count] ->
+    let dest_ptr = maybe_emit_index_past_ptr dest_array dest_index in
+    let src_ptr = maybe_emit_index_past_ptr src_array src_index in
+    let var_id = mk_cf_var_id () in
+    let (return_val, myte_copy_instr) =
+      Mir_builtin.(mk_call_builtin myte_copy var_id [dest_ptr; src_ptr; count] [])
+    in
+    Ecx.emit ~ecx myte_copy_instr;
+    return_val
+  | _ -> failwith "Array.copy expects five arguments"
 
+(* let (return_val, myte_copy_instr) = Mir_builtin.(mk_call_builtin myte_copy var_id arg_vals []) in
+   Ecx.emit ~ecx myte_copy_instr;
+   return_val *)
 and emit_std_memory_array_new ~ecx arg_vals ret_type =
   let var_id = mk_cf_var_id () in
   let (`PointerT element_ty) = cast_to_pointer_type ret_type in
@@ -925,11 +953,6 @@ and emit_function_expression ~ecx expr =
   match emit_expression ~ecx expr with
   | (`FunctionL _ | `FunctionV _) as v -> v
   | _ -> failwith "Expected function value"
-
-and cast_to_pointer_value v =
-  match v with
-  | (`PointerL _ | `PointerV _) as v -> v
-  | _ -> failwith "Expected pointer value"
 
 and emit_statement ~ecx stmt =
   let open Statement in
@@ -1046,10 +1069,10 @@ and mk_value_binding_name binding =
 
 and mk_type_binding_name binding = String.concat "." (binding.module_ @ [binding.name])
 
-and mk_get_pointer_instr ?(pointer_offset = None) element_ty pointer offsets =
+and mk_get_pointer_instr ?(pointer_offset = None) return_ty pointer offsets =
   let var_id = mk_cf_var_id () in
-  let var = `PointerV (element_ty, var_id) in
-  (var, { Instruction.GetPointer.var_id; return_ty = element_ty; pointer; pointer_offset; offsets })
+  let var = `PointerV (return_ty, var_id) in
+  (var, { Instruction.GetPointer.var_id; return_ty; pointer; pointer_offset; offsets })
 
 and type_of_loc ~ecx loc =
   let tvar_id = Type_context.get_tvar_from_loc ~cx:ecx.pcx.type_ctx loc in

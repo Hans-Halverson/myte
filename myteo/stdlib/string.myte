@@ -57,7 +57,7 @@ methods String {
     this.capacity = newCapacity;
 
     val newData: Array<Char> = Array.new(newCapacity);
-    Array.copy(newData, this.data, oldCapacity);
+    Array.copy(newData, 0, this.data, 0, oldCapacity);
     this.data = newData;
   }
 

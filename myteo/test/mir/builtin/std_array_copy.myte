@@ -1,0 +1,21 @@
+module test
+
+import std.memory.Array
+
+fun testCopy1(x: Array<Int>, y: Array<Int>) {
+  Array.copy(x, 0, y, 0, 7);
+}
+
+fun testCopy2(x: Array<Int>, y: Array<Int>, z: Int) {
+  Array.copy(x, z, y, 0, 7);
+}
+
+fun testCopy3(x: Array<Int>, y: Array<Int>, z: Int) {
+  Array.copy(x, 0, y, z, 7);
+}
+
+fun testCopy(x: Array<Int>, y: Array<Int>, z: Int) {
+  Array.copy(x, z, y, z, 7);
+}
+
+fun main() {}

@@ -7,5 +7,11 @@ builtin type Array<T>
 methods Array<T> {
   builtin static fun new<T>(count: Int): Array<T>
 
-  builtin static fun copy<T>(dest: Array<T>, src: Array<T>, count: Int)
+  builtin static fun copy<T>(
+    dest: Array<T>,
+    destIndex: Int,
+    src: Array<T>,
+    srcIndex: Int,
+    count: Int,
+  )
 }
