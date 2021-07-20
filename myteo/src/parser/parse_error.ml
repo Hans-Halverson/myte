@@ -6,7 +6,7 @@ type t =
     }
   | UnexpectedTokens of Token.t * Token.t list
   | UnterminatedStringLiteral
-  | InvalidEscape
+  | InvalidEscape of bool
   | InvalidHexEscape
   | MalformedTopLevel of Token.t
   | MalformedMethodsItem of Token.t
@@ -45,8 +45,14 @@ let to_string error =
       (Token.to_string actual)
       (Error_utils.concat_with_or (List.map (fun s -> "`" ^ Token.to_string s ^ "`") expecteds))
   | UnterminatedStringLiteral -> "Unterminated string literal"
-  | InvalidEscape ->
-    Printf.sprintf "Invalid escape sequence. Expected `\"`, `\\`, `n`, `t`, `r`, or `x`."
+  | InvalidEscape is_interpolated ->
+    let escapes =
+      if is_interpolated then
+        "```, `$`, `\\`, `n`, `t`, `r`, or `x`"
+      else
+        "`\"`, `\\`, `n`, `t`, `r`, or `x`"
+    in
+    Printf.sprintf "Invalid escape sequence. Expected %s." escapes
   | InvalidHexEscape ->
     Printf.sprintf "Invalid hex escape sequence, expected exactly two hex digits following `\\x`"
   | MalformedTopLevel actual ->

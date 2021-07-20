@@ -130,7 +130,9 @@ let parse_string_literal lex ~is_interpolated =
     | _ -> sedlex_catch_all_case ()
   and parse_escape_sequence lex =
     let { buf; _ } = lex in
-    let invalid_escape_error lex = LexError (lex, (current_loc lex, Parse_error.InvalidEscape)) in
+    let invalid_escape_error lex is_interpolated =
+      LexError (lex, (current_loc lex, Parse_error.InvalidEscape is_interpolated))
+    in
     let start_loc = current_loc lex in
     match%sedlex buf with
     (* Escape sequences for both string literals and interpolated strings *)
@@ -150,7 +152,7 @@ let parse_string_literal lex ~is_interpolated =
     (* Double quotes are only an escape sequence in string literals *)
     | '"' ->
       if is_interpolated then
-        invalid_escape_error lex
+        invalid_escape_error lex is_interpolated
       else (
         Buffer.add_char builder '"';
         iter lex
@@ -158,7 +160,7 @@ let parse_string_literal lex ~is_interpolated =
     (* Backtick is only an escape sequence in interpolated strings *)
     | '`' ->
       if not is_interpolated then
-        invalid_escape_error lex
+        invalid_escape_error lex is_interpolated
       else (
         Buffer.add_char builder '`';
         iter lex
@@ -166,12 +168,12 @@ let parse_string_literal lex ~is_interpolated =
     (* Dollar sign is only an escape sequence in interpolated strings *)
     | '$' ->
       if not is_interpolated then
-        invalid_escape_error lex
+        invalid_escape_error lex is_interpolated
       else (
         Buffer.add_char builder '$';
         iter lex
       )
-    | _ -> invalid_escape_error lex
+    | _ -> invalid_escape_error lex is_interpolated
   and parse_hex_escape_sequence lex start_loc =
     let { buf; _ } = lex in
     let int_of_hex_digit digit =

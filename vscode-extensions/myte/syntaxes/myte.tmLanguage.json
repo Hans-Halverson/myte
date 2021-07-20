@@ -83,6 +83,7 @@
 			"patterns": [
 				{ "include": "#comments" },
 				{ "include": "#string" },
+				{ "include": "#string-interpolation" },
 				{ "include": "#literals" },
 				{ "include": "#expression-operators" },
 				{ "include": "#parenthesized-expression" },
@@ -579,6 +580,34 @@
 				{
 					"name": "constant.character.escape.hex.myte",
 					"match": "\\\\x[0-9a-fA-F]{2}"
+				}
+			]
+		},
+		"string-interpolation": {
+			"name": "string.interpolated.myte",
+			"begin": "`",
+			"end": "`",
+			"patterns": [
+				{
+					"name": "constant.character.escape.myte",
+					"match": "\\\\(n|r|t|\\\\|`|\\$)"
+				},
+				{
+					"name": "constant.character.escape.hex.myte",
+					"match": "\\\\x[0-9a-fA-F]{2}"
+				},
+				{
+					"begin": "\\${",
+					"beginCaptures": {
+						"0": { "name": "punctuation.definition.template-expression.begin.myte" }
+					},
+					"end": "}",
+					"endCaptures": {
+						"0": { "name": "punctuation.definition.template-expression.begin.myte" }
+					},
+					"patterns": [
+						{ "include": "#expressions" }
+					]
 				}
 			]
 		},
