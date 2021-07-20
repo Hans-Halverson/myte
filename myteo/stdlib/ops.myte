@@ -1,0 +1,7 @@
+module std.ops
+
+import std.bool.Bool
+
+trait Equatable {
+  fun equals(other: This): Bool
+}

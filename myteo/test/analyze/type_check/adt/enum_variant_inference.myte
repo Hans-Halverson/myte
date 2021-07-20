@@ -13,7 +13,7 @@ fun enumVariants() {
   useBool(None);
 
   // Errors
-  None == 1;
+  None is 1;
 }
 
 fun returnIntOption(): Option<Int> {

@@ -1,7 +1,9 @@
 module std.long
 
+import std.bool.Bool
 import std.byte.Byte
 import std.int.Int
+import std.ops.Equatable
 import std.string.{String, ToString}
 
 builtin type Long
@@ -9,6 +11,12 @@ builtin type Long
 val LONG_MIN: Long = -9223372036854775808
 
 val LONG_MAX: Long = 9223372036854775807
+
+methods Long {
+  implements Equatable
+
+  builtin override fun equals(other: Long): Bool
+}
 
 methods Long {
   implements ToString

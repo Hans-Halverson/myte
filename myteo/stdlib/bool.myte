@@ -1,8 +1,15 @@
 module std.bool
 
+import std.ops.Equatable
 import std.string.{String, ToString}
 
 builtin type Bool
+
+methods Bool {
+  implements Equatable
+
+  builtin override fun equals(other: Bool): Bool
+}
 
 methods Bool {
   implements ToString

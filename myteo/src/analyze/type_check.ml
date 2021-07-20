@@ -777,6 +777,7 @@ and check_expression ~cx expr =
     let is_int tvar_id =
       let rep_ty = Type_context.find_rep_type ~cx (TVar tvar_id) in
       match rep_ty with
+      | Any
       | Byte
       | Int
       | Long
@@ -787,6 +788,7 @@ and check_expression ~cx expr =
     let is_int_or_string tvar_id =
       let rep_ty = Type_context.find_rep_type ~cx (TVar tvar_id) in
       match rep_ty with
+      | Any
       | Byte
       | Int
       | Long
@@ -794,6 +796,14 @@ and check_expression ~cx expr =
         true
       | ADT { adt_sig; _ } when adt_sig == !Std_lib.string_adt_sig -> true
       | _ -> false
+    in
+    let is_equatable tvar_id =
+      let rep_ty = Type_context.find_rep_type ~cx (TVar tvar_id) in
+      match rep_ty with
+      (* We know that an IntLiteral will implement Equatable, but do not want to resolve it yet
+         as it may be an expression such as `(x: Byte) == 1` where we can still infer its type. *)
+      | IntLiteral _ -> true
+      | _ -> Type_context.implements_trait rep_ty !Std_lib.equatable_trait_sig
     in
     let error_int loc tvar_id =
       Type_context.add_error
@@ -846,11 +856,32 @@ and check_expression ~cx expr =
         error_int right_loc right_tvar_id;
         ignore (Type_context.unify ~cx Any (TVar tvar_id))
       )
-    | Is
-    | Equal
-    | NotEqual ->
+    (* All types can be compare with `is`, but types must be equal *)
+    | Is ->
       Type_context.assert_unify ~cx right_loc (TVar left_tvar_id) (TVar right_tvar_id);
       ignore (Type_context.unify ~cx Type.Bool (TVar tvar_id))
+    (* Types must be equal and implement the Equatable trait *)
+    | Equal
+    | NotEqual ->
+      if is_equatable left_tvar_id then (
+        Type_context.assert_unify ~cx right_loc (TVar left_tvar_id) (TVar right_tvar_id);
+        ignore (Type_context.unify ~cx Type.Bool (TVar tvar_id))
+      ) else if is_equatable right_tvar_id then (
+        Type_context.assert_unify ~cx left_loc (TVar right_tvar_id) (TVar left_tvar_id);
+        ignore (Type_context.unify ~cx Type.Bool (TVar tvar_id))
+      ) else
+        (* Otherwise force expression's type to be any to avoid erroring at uses *)
+        let err_kind =
+          if op = Equal then
+            OperatorRequiresTraitEquals
+          else
+            OperatorRequirestRaitNotEquals
+        in
+        Type_context.add_error
+          ~cx
+          left_loc
+          (OperatorRequiresTrait (err_kind, Type_context.find_rep_type ~cx (TVar left_tvar_id)));
+        ignore (Type_context.unify ~cx Any (TVar tvar_id))
     | LessThan
     | GreaterThan
     | LessThanOrEqual

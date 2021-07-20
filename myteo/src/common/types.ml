@@ -198,6 +198,8 @@ and TraitSig : sig
 
   val mk : name:string -> t
 
+  val empty : t
+
   val add_method : t -> string -> MethodSig.t -> unit
 
   val add_implemented : t -> instance -> unit
@@ -230,6 +232,17 @@ end = struct
     {
       id = mk_id ();
       name;
+      type_params = [];
+      methods = SMap.empty;
+      implemented = [];
+      this_type_param = TypeParam.empty;
+      adt_sig = None;
+    }
+
+  let empty =
+    {
+      id = 0;
+      name = "";
       type_params = [];
       methods = SMap.empty;
       implemented = [];

@@ -22,8 +22,8 @@ fun useContainerT<T>(x: Container<T>): T = x.getItem()
 fun testADT<T>(x: Boxed<Int>, y: Boxed<T>) {
   // Should all succeed
   useContainerInt(x);
-  useContainerT(x) == x.getItem();
-  useContainerT(y) == y.getItem();
+  useContainerT(x) is x.getItem();
+  useContainerT(y) is y.getItem();
 
   // Intentional failure
   useContainerInt(y);
@@ -32,8 +32,8 @@ fun testADT<T>(x: Boxed<Int>, y: Boxed<T>) {
 fun testTraitBoundType<T>(x: Container<Int>, y: Container<T>) {
   // Should all succeed
   useContainerInt(x);
-  useContainerT(x) == x.getItem();
-  useContainerT(y) == y.getItem();
+  useContainerT(x) is x.getItem();
+  useContainerT(y) is y.getItem();
 
   // Intentional failure
  useContainerInt(y);
@@ -42,8 +42,8 @@ fun testTraitBoundType<T>(x: Container<Int>, y: Container<T>) {
 fun testTraitBoundSubtype<T>(x: ContainerSubTrait<Int>, y: ContainerSubTrait<T>) {
   // Should all succeed
   useContainerInt(x);
-  useContainerT(x) == x.getItem();
-  useContainerT(y) == y.getItem();
+  useContainerT(x) is x.getItem();
+  useContainerT(y) is y.getItem();
 
   // Intentional failure
   useContainerInt(y);

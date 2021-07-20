@@ -23,7 +23,7 @@ methods Rec2<T> {
   }
 
   // Should succeed
-  fun testFoo(x: T): Bool = x == this.foo
+  fun testFoo(x: T): Bool = x is this.foo
 }
 
 fun main() {}

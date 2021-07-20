@@ -1,7 +1,9 @@
 module std.int
 
+import std.bool.Bool
 import std.byte.Byte
 import std.long.Long
+import std.ops.Equatable
 import std.string.{String, ToString}
 
 builtin type Int
@@ -9,6 +11,12 @@ builtin type Int
 val INT_MIN: Int = -2147483648
 
 val INT_MAX: Int = 2147483647
+
+methods Int {
+  implements Equatable
+
+  builtin override fun equals(other: Int): Bool
+}
 
 methods Int {
   implements ToString

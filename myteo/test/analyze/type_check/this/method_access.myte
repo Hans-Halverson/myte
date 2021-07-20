@@ -34,7 +34,7 @@ trait Trait2<T> {
     (this.bar(): Bool);
 
     // Type parameter is substituted for super trait
-    this.baz() == this.anotherT();
+    this.baz() is this.anotherT();
   }
 }
 
@@ -78,7 +78,7 @@ methods Type2<T> {
     (this.foo(): Int);
 
     // Type parameter is substituted for super trait
-    this.bar(this[0]) == this.anotherT();
+    this.bar(this[0]) is this.anotherT();
   }
 }
 

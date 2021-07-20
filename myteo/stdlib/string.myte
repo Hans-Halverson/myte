@@ -1,7 +1,9 @@
 module std.string
 
+import std.bool.Bool
 import std.byte.Byte
 import std.int.Int
+import std.ops.Equatable
 import std.memory.Array
 
 type alias Char = Byte
@@ -71,6 +73,31 @@ methods String {
       newData[size - (i + 1)] = oldData[i];
       i = i + 1;
     }
+  }
+}
+
+methods String {
+  implements Equatable
+
+  override fun equals(other: String): Bool {
+    val size = this.size;
+    if (size != other.size) {
+      return false;
+    }
+
+    val thisData = this.data;
+    val otherData = other.data;
+
+    var i = 0;
+    while (i < size) {
+      if (thisData[i] != otherData[i]) {
+        return false;
+      }
+
+      i = i + 1;
+    }
+
+    return true;
   }
 }
 

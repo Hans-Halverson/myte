@@ -1,8 +1,16 @@
 module std.unit
 
+import std.bool.Bool
+import std.ops.Equatable
 import std.string.{String, ToString}
 
 builtin type Unit
+
+methods Unit {
+  implements Equatable
+
+  builtin override fun equals(other: Unit): Bool
+}
 
 methods Unit {
   implements ToString

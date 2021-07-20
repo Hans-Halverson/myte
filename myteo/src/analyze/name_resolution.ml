@@ -252,13 +252,15 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             register_stdlib_method_decls trait_decl;
             add_type_binding name (TraitDecl (TraitDeclaration.mk ~name:name.name ~loc:name.loc))
           | TraitDeclaration ({ kind = Trait; name; _ } as trait_decl) ->
-            register_stdlib_decl name;
-            register_stdlib_method_decls trait_decl;
-            trait_locs <- LocSet.add name.loc trait_locs;
             if name.name = "_" then
               this#add_error name.loc InvalidWildcardIdentifier
             else
-              add_type_binding name (TraitDecl (TraitDeclaration.mk ~name:name.name ~loc:name.loc)))
+              let decl = TraitDeclaration.mk ~name:name.name ~loc:name.loc in
+              register_stdlib_decl name;
+              Std_lib.register_stdlib_trait name.loc decl.trait_sig;
+              register_stdlib_method_decls trait_decl;
+              trait_locs <- LocSet.add name.loc trait_locs;
+              add_type_binding name (TraitDecl decl))
         toplevels
 
     (* Setup and save the toplevel scope for this module, consisting of all imports and declarations *)

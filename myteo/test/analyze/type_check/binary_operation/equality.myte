@@ -1,18 +1,54 @@
-module Test
+module test
 
-fun intToInt(x: Int): Int = x
-fun intToString(x: Int): String = "test"
+import std.ops.Equatable
 
-fun main() {
+// Primitives implement equatable
+fun testPrimitives() {
+  // Equality
+  () == ();
+  true == false;
+  (1: Byte) == 2;
+  (1: Int) == 2;
+  (1: Long) == 2;
+
+  // IntLiteral on left, does not greedily resolve to Int
+  1 == (1: Byte);
+
+  // Inequality
+  1 != 2;
+
+  // Result is Bool
   (1 == 1: Bool);
-  ("a" == "b": Bool);
-  (() == (): Bool);
-  (true == false: Bool);
-  (1 != 2: Bool);
-  (1 is 2: Bool);
+  (1 != 1: Bool);
 
-  (1 == true: Bool);
-  (true == 1: Bool);
-  (intToInt == intToString: Bool);
-  (1 is true: Bool);
+  // Intentional errors
+  true == 1;
+  () != 1;
 }
+
+// Trait bounds may implement equatable
+fun testTraitBounds<T: Equatable>(x: T, y: T) {
+  x == y;
+  x != y;
+
+  // Intentional error
+  x == 1;
+}
+
+// Types may implement equatable
+fun testEquatableType(x: String, y: String) {
+  x == y;
+}
+
+
+// Test non-equatable type errors
+type NonEquatableType (Unit)
+
+fun testNonEquatable<T>(x: T, y: NonEquatableType) {
+  x == x;
+  y == y;
+  testPrimitives != testPrimitives;
+  (1, true) != (1, true);
+}
+
+fun main() {}

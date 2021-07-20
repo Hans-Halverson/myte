@@ -517,3 +517,35 @@ let mk_int_literal_ty ~cx loc raw base =
   cx.unresolved_int_literals <- LocSet.add loc cx.unresolved_int_literals;
   let value = Integers.int64_of_string_opt raw base in
   Type.IntLiteral { values = [(loc, value)]; resolved = None }
+
+let implements_trait ty trait_sig =
+  let open TraitSig in
+  let adt_sig_implements_trait adt_sig trait_sig =
+    List.exists
+      (fun { implemented; _ } ->
+        List.exists (fun implemented -> implemented.trait_sig.id = trait_sig.id) implemented)
+      adt_sig.AdtSig.traits
+  in
+  (* Bounds may implement the trait directly, or the trait may be in the bound's super traits *)
+  let bounds_implements_trait bounds trait_sig =
+    List.exists
+      (fun { trait_sig = bound_trait_sig; _ } ->
+        bound_trait_sig.id = trait_sig.id
+        || List.exists
+             (fun implemented -> implemented.trait_sig.id = trait_sig.id)
+             bound_trait_sig.implemented)
+      bounds
+  in
+  match ty with
+  | Type.Any -> true
+  | Unit
+  | Bool
+  | Byte
+  | Int
+  | Long ->
+    let adt_sig = Std_lib.get_primitive_adt_sig ty in
+    adt_sig_implements_trait adt_sig trait_sig
+  | ADT { adt_sig; _ } -> adt_sig_implements_trait adt_sig trait_sig
+  | TypeParam { bounds; _ } -> bounds_implements_trait bounds trait_sig
+  | TraitBound { bounds; _ } -> bounds_implements_trait bounds trait_sig
+  | _ -> false

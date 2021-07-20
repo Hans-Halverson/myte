@@ -56,13 +56,19 @@ let get_stdlib_files stdlib_path =
 
 let std_bool_bool = "std.bool.Bool"
 
+let std_bool_bool_equals = "std.bool.Bool.equals"
+
 let std_byte_byte = "std.byte.Byte"
+
+let std_byte_byte_equals = "std.int.Int.equals"
 
 let std_byte_byte_toInt = "std.byte.Byte.toInt"
 
 let std_byte_byte_toLong = "std.byte.Byte.toLong"
 
 let std_int_int = "std.int.Int"
+
+let std_int_int_equals = "std.int.Int.equals"
 
 let std_int_int_toByte = "std.int.Int.toByte"
 
@@ -71,6 +77,8 @@ let std_int_int_toLong = "std.int.Int.toLong"
 let std_io_write = "std.io.write"
 
 let std_long_long = "std.long.Long"
+
+let std_long_long_equals = "std.long.Long.equals"
 
 let std_long_long_toByte = "std.long.Long.toByte"
 
@@ -82,11 +90,15 @@ let std_memory_array_copy = "std.memory.Array.copy"
 
 let std_memory_array_new = "std.memory.Array.new"
 
+let std_ops_equatable = "std.ops.Equatable"
+
 let std_string_string = "std.string.String"
 
 let std_sys_exit = "std.sys.exit"
 
 let std_unit_unit = "std.unit.Unit"
+
+let std_unit_unit_equals = "std.unit.Unit.equals"
 
 let std_vec_vec = "std.vec.Vec"
 
@@ -94,26 +106,32 @@ let all_stdlib_names =
   SSet.of_list
     [
       std_bool_bool;
+      std_bool_bool_equals;
       std_byte_byte;
+      std_byte_byte_equals;
       std_byte_byte_toInt;
       std_byte_byte_toLong;
       std_io_write;
       std_int_int;
+      std_int_int_equals;
       std_int_int_toByte;
       std_int_int_toLong;
       std_long_long;
+      std_long_long_equals;
       std_long_long_toByte;
       std_long_long_toInt;
       std_memory_array;
       std_memory_array_copy;
       std_memory_array_new;
+      std_ops_equatable;
       std_string_string;
       std_sys_exit;
       std_unit_unit;
+      std_unit_unit_equals;
       std_vec_vec;
     ]
 
-(* Stdlib types *)
+(* Stdlib types and traits *)
 
 let bool_adt_sig = ref Types.AdtSig.empty
 
@@ -130,6 +148,8 @@ let vec_adt_sig = ref Types.AdtSig.empty
 let unit_adt_sig = ref Types.AdtSig.empty
 
 let mk_string_type () = Types.Type.ADT { adt_sig = !string_adt_sig; type_args = [] }
+
+let equatable_trait_sig = ref Types.TraitSig.empty
 
 let get_primitive_adt_sig (ty : Types.Type.t) =
   match ty with
@@ -179,4 +199,9 @@ let register_stdlib_type loc adt_sig =
   | Some name when name = std_string_string -> string_adt_sig := adt_sig
   | Some name when name = std_vec_vec -> vec_adt_sig := adt_sig
   | Some name when name = std_unit_unit -> unit_adt_sig := adt_sig
+  | _ -> ()
+
+let register_stdlib_trait loc trait_sig =
+  match lookup_stdlib_name loc with
+  | Some name when name = std_ops_equatable -> equatable_trait_sig := trait_sig
   | _ -> ()

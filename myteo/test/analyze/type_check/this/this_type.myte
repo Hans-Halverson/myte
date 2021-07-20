@@ -18,7 +18,7 @@ methods Type {
     ((): This);
 
     // Success
-    this == (Type (()));
+    this is (Type (()));
   }
 
   fun id(): This = this

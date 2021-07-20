@@ -47,6 +47,7 @@ type t =
   | ToplevelVarWithoutAnnotation
   | IncompatibleTypes of Type.t * Type.t list
   | CannotInferType of cannot_infer_type_kind * (Type.t * TVar.t list) option
+  | OperatorRequiresTrait of operator_requires_trait_kind * Type.t
   | NonFunctionCalled of Type.t
   | RecordConstructorCalled of string
   | ExpectedRecordConstructor
@@ -92,6 +93,10 @@ and cannot_infer_type_kind =
   | CannotInferTypeVariableDeclaration
   | CannotInferTypeExpression
 
+and operator_requires_trait_kind =
+  | OperatorRequiresTraitEquals
+  | OperatorRequirestRaitNotEquals
+
 and name_source =
   | FunctionName of string
   | TypeName of string
@@ -127,6 +132,11 @@ let string_of_trait_type trait_or_type =
   match trait_or_type with
   | TraitTrait -> "trait"
   | TraitType -> "type"
+
+let operator_requires_trait_info kind =
+  match kind with
+  | OperatorRequiresTraitEquals -> ("==", "Equatable")
+  | OperatorRequirestRaitNotEquals -> ("!=", "Equatable")
 
 let concat_with_and strs =
   match strs with
@@ -332,6 +342,13 @@ let to_string error =
       "Cannot infer type for %s. %sPlease provide additional type annotations."
       kind_string
       partial_string
+  | OperatorRequiresTrait (kind, ty) ->
+    let (operator, trait) = operator_requires_trait_info kind in
+    Printf.sprintf
+      "Operator `%s` requires type `%s` to implement trait `%s`"
+      operator
+      (Types.pp ty)
+      trait
   | IncorrectFunctionArity (actual, expected) ->
     Printf.sprintf
       "Incorrect number of arguments supplied to function. Expected %d %s but found %d."
