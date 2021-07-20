@@ -2,6 +2,7 @@ module std.vec
 
 import std.int.Int
 import std.memory.Array
+import std.sys.abort
 
 type Vec<T> {
   data: Array<T>,
@@ -19,16 +20,16 @@ methods Vec<T> {
   }
 
   fun get(index: Int): T {
-    if (index >= this.size) {
-      // TODO: Out of bounds error
+    if (index < 0 || index >= this.size) {
+      abort();
     }
 
     return this.data[index];
   }
 
   fun set(index: Int, item: T) {
-    if (index >= this.size) {
-      // TODO: Out of bounds error
+    if (index < 0 || index >= this.size) {
+      abort();
     }
 
     this.data[index] = item;

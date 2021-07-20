@@ -1,0 +1,70 @@
+module fibonacci
+
+import std.io.{print, println}
+import std.vec.Vec
+
+fun fibRecursive(x: Int): Int {
+  if (x <= 1) {
+    return 1;
+  } else {
+    return fibRecursive(x - 1) + fibRecursive(x - 2);
+  }
+}
+
+fun fibIterative(x: Int): Int {
+  var current = 1;
+  var prev = 1;
+  var i = x;
+  while (i >= 2) {
+    val oldCurrent = current;
+    current = prev + current;
+    prev = oldCurrent;
+    i = i - 1;
+  }
+
+  return current;
+}
+
+fun fibDynamic(x: Int): Int {
+  val table: Vec<Int> = Vec.new();
+  table.push(1);
+  table.push(1);
+
+  var i = 2;
+  while (i <= x) {  
+    table.push(table[i - 1] + table[i - 2]);
+    i = i + 1;
+  }
+
+  return table[x];
+}
+
+fun printTestCase(func: Int -> Int, x: Int) {
+  val result = func(x);
+
+  print("F(");
+  print(x.toString());
+  print(") = ");
+  println(result.toString());
+}
+
+fun printAlgorithmTests(func: Int -> Int) {
+  var i = 0;
+  while (i <= 10) {
+    printTestCase(func, i);
+    i = i + 1;
+  }
+}
+
+fun main() {
+  println("Iterative Algorithm:");
+  printAlgorithmTests(fibIterative);
+  println("");
+
+  println("Recursive Algorithm:");
+  printAlgorithmTests(fibRecursive);
+  println("");
+
+  println("Dynamic Programming Algorithm:");
+  printAlgorithmTests(fibDynamic);
+}

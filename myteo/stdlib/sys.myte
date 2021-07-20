@@ -1,5 +1,10 @@
 module std.sys
 
 import std.int.Int
+import std.unit.Unit
 
 builtin fun exit(code: Int)
+
+fun abort(): Unit {
+  exit(1);
+}
