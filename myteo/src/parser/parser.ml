@@ -526,12 +526,13 @@ and parse_interpolated_string env first_string is_single_string =
       match Env.token env with
       | T_INTERPOLATED_STRING (value, is_end) ->
         Env.exit_interpolated_string env;
+        let loc = Env.loc env in
         Env.advance env;
         let acc =
           if value = "" then
             acc
           else
-            String { loc = Env.loc env; value } :: acc
+            String { loc; value } :: acc
         in
         if is_end then
           List.rev acc

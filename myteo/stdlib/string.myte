@@ -5,6 +5,7 @@ import std.byte.Byte
 import std.int.Int
 import std.ops.Equatable
 import std.memory.Array
+import std.sys.abort
 
 type alias Char = Byte
 
@@ -25,7 +26,7 @@ methods String {
 
   fun get(index: Int): Char {
     if (index >= this.size) {
-      // TODO: Out of bounds error
+      abort();
     }
 
     return this.data[index];
@@ -33,19 +34,29 @@ methods String {
 
   fun set(index: Int, item: Char) {
     if (index >= this.size) {
-      // TODO: Out of bounds error
+      abort();
     }
 
     this.data[index] = item;
   }
 
-  fun push(x: Char) {
+  fun push(char: Char) {
     if (this.size == this.capacity) {
       this.resize();
     }
 
-    this.data[this.size] = x;
+    this.data[this.size] = char;
     this.size = this.size + 1;
+  }
+
+  fun append(str: String) {
+    val newSize = this.size + str.size;
+    if (newSize > this.capacity) {
+      this.resizeWithMinCapacity(newSize);
+    }
+
+    Array.copy(this.data, this.size, str.data, 0, str.size);
+    this.size = newSize;
   }
 
   fun resize() {
@@ -53,6 +64,21 @@ methods String {
     var newCapacity = oldCapacity * 2;
     if (newCapacity == 0) {
       newCapacity = 1;
+    }
+    this.capacity = newCapacity;
+
+    val newData: Array<Char> = Array.new(newCapacity);
+    Array.copy(newData, 0, this.data, 0, oldCapacity);
+    this.data = newData;
+  }
+
+  fun resizeWithMinCapacity(minCapacity: Int) {
+    val oldCapacity = this.capacity;
+    var newCapacity = oldCapacity * 2;
+    if (newCapacity == 0) {
+      newCapacity = 1;
+    } else if (newCapacity < minCapacity) {
+      newCapacity = minCapacity;
     }
     this.capacity = newCapacity;
 

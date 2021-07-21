@@ -233,7 +233,13 @@ and emit_expression ~ecx expr =
   let open Expression in
   let open Instruction in
   match expr with
+  (*
+   * ============================
+   *         Literals
+   * ============================
+   *)
   | Unit _ -> `UnitL
+  | BoolLiteral { value; _ } -> `BoolL value
   | IntLiteral { loc; raw; base } ->
     let value = Integers.int64_of_string_opt raw base |> Option.get in
     let ty = mir_type_of_loc ~ecx loc in
@@ -268,7 +274,11 @@ and emit_expression ~ecx expr =
     emit_field_store "size" length;
     emit_field_store "capacity" length;
     agg_ptr_val
-  | BoolLiteral { value; _ } -> `BoolL value
+  (*
+   * ============================
+   *       Unary Operations
+   * ============================
+   *)
   | UnaryOperation { op = Plus; operand; _ } -> emit_expression ~ecx operand
   | UnaryOperation { loc; op = Minus; operand } ->
     let var_id = mk_cf_var_id () in
@@ -291,6 +301,11 @@ and emit_expression ~ecx expr =
       Ecx.emit ~ecx (BitNot (var_id, operand_val));
       var_value_of_type var_id value_ty
     | _ -> failwith "Not argument must be a bool or int")
+  (*
+   * ============================
+   *        Logical And
+   * ============================
+   *)
   | LogicalAnd { loc = _; left; right } ->
     (* Short circuit when lhs is false by jumping to false case *)
     let rhs_builder = Ecx.mk_block_builder ~ecx in
@@ -319,6 +334,11 @@ and emit_expression ~ecx expr =
       var_id
       (IMap.add rhs_end_block_id right_var_id (IMap.singleton false_builder.id false_var_id));
     `BoolV var_id
+  (*
+   * ============================
+   *         Logical Or
+   * ============================
+   *)
   | LogicalOr { loc = _; left; right } ->
     (* Short circuit when lhs is true by jumping to true case *)
     let rhs_builder = Ecx.mk_block_builder ~ecx in
@@ -353,12 +373,16 @@ and emit_expression ~ecx expr =
    * ============================
    *)
   | BinaryOperation { op = (Equal | NotEqual) as op; left; right; _ } ->
+    let left_ty = type_of_loc ~ecx (Ast_utils.expression_loc left) in
+    let receiver_val = emit_expression ~ecx left in
+    let arg_vals = [emit_expression ~ecx right] in
     let equals_result_val =
       emit_method_call
         ~ecx
         ~method_name:"equals"
-        ~receiver:left
-        ~args:[right]
+        ~receiver_val
+        ~receiver_ty:left_ty
+        ~arg_vals
         ~method_instance_type_args:[]
         ~ret_type:`BoolT
     in
@@ -403,6 +427,11 @@ and emit_expression ~ecx expr =
     in
     Ecx.emit ~ecx instr;
     var_value_of_type var_id ty
+  (*
+   * ============================
+   *         Identifiers
+   * ============================
+   *)
   | Identifier { loc = id_loc as loc; _ }
   | ScopedIdentifier { loc; name = { Identifier.loc = id_loc; _ }; _ } ->
     let binding = Bindings.get_value_binding ecx.pcx.bindings id_loc in
@@ -439,7 +468,17 @@ and emit_expression ~ecx expr =
       let var = mk_cf_local id_loc in
       let mir_ty = type_to_mir_type ~ecx (Types.Type.TVar tvar) in
       var_value_of_type var mir_ty)
+  (*
+   * ============================
+   *     Type Casts (ignored)
+   * ============================
+   *)
   | TypeCast { expr; _ } -> emit_expression ~ecx expr
+  (*
+   * ============================
+   *        Tuple Literals
+   * ============================
+   *)
   | Tuple { loc; elements } ->
     let ty = type_of_loc ~ecx loc in
     let element_tys = Type_util.cast_to_tuple_type ty in
@@ -453,14 +492,18 @@ and emit_expression ~ecx expr =
   | Call
       { loc; func = NamedAccess { loc = method_loc; name = method_name; target = receiver }; args }
     when Type_context.is_method_use ~cx:ecx.pcx.type_ctx method_name.loc ->
+    let receiver_ty = type_of_loc ~ecx (Ast_utils.expression_loc receiver) in
+    let receiver_val = emit_expression ~ecx receiver in
+    let arg_vals = List.map (emit_expression ~ecx) args in
     let method_ty = type_of_loc ~ecx method_loc in
     let (method_instance_type_args, _, _) = Type_util.cast_to_function_type method_ty in
     let ret_type = mir_type_of_loc ~ecx loc in
     emit_method_call
       ~ecx
       ~method_name:method_name.name
-      ~receiver
-      ~args
+      ~receiver_val
+      ~receiver_ty
+      ~arg_vals
       ~method_instance_type_args
       ~ret_type
   (*
@@ -468,7 +511,7 @@ and emit_expression ~ecx expr =
    *  Function Calls and Tuple Constructors
    * =======================================
    *)
-  | Call ({ loc; func; args } as call) ->
+  | Call { loc; func; args } ->
     (* Emit tuple constructor *)
     let ctor_result_opt =
       match func with
@@ -491,8 +534,9 @@ and emit_expression ~ecx expr =
     | Some result -> result
     | None ->
       let func_val = emit_function_expression ~ecx func in
-      let ret_type = mir_type_of_loc ~ecx call.loc in
-      emit_call ~ecx ~func_val ~args:call.args ~receiver_val:None ~ret_type)
+      let arg_vals = List.map (emit_expression ~ecx) args in
+      let ret_type = mir_type_of_loc ~ecx loc in
+      emit_call ~ecx ~func_val ~arg_vals ~receiver_val:None ~ret_type)
   (*
    * ============================
    *     Record Constructors
@@ -555,7 +599,44 @@ and emit_expression ~ecx expr =
    *     String Interpolation
    * ============================
    *)
-  | InterpolatedString _ -> failwith "TODO: Type check interpolated strings"
+  | InterpolatedString { loc; parts } ->
+    let (first_part, rest_parts) = List_utils.split_first parts in
+    let string_ty = type_of_loc ~ecx loc in
+    let string_type = type_to_mir_type ~ecx string_ty in
+    (* String parts are emitted directly, expression parts have their `toString` method called *)
+    let emit_part part =
+      match part with
+      | InterpolatedString.String string_literal ->
+        emit_expression ~ecx (StringLiteral string_literal)
+      | Expression expr ->
+        let receiver_val = emit_expression ~ecx expr in
+        let receiver_ty = type_of_loc ~ecx (Ast_utils.expression_loc expr) in
+        emit_method_call
+          ~ecx
+          ~method_name:"toString"
+          ~receiver_val
+          ~receiver_ty
+          ~arg_vals:[]
+          ~method_instance_type_args:[]
+          ~ret_type:string_type
+    in
+    (* Emit first part string, then if there are other parts emit each and call `append` on the
+       first string part. *)
+    let first_part_val = emit_part first_part in
+    List.iter
+      (fun part ->
+        let part_val = emit_part part in
+        ignore
+          (emit_method_call
+             ~ecx
+             ~method_name:"append"
+             ~receiver_val:first_part_val
+             ~receiver_ty:string_ty
+             ~arg_vals:[part_val]
+             ~method_instance_type_args:[]
+             ~ret_type:`UnitT))
+      rest_parts;
+    first_part_val
   | Ternary _ -> failwith "TODO: Emit MIR for ternary expressions"
   | Match _ -> failwith "TODO: Emir MIR for match expressions"
   | Super _ -> failwith "TODO: Emit MIR for super expressions"
@@ -677,13 +758,12 @@ and emit_expression_access_chain ~ecx expr =
 and emit_method_call
     ~ecx
     ~(method_name : string)
-    ~(receiver : Expression.t)
-    ~(args : Expression.t list)
+    ~(receiver_val : cf_value)
+    ~(receiver_ty : Types.Type.t)
+    ~(arg_vals : cf_value list)
     ~(method_instance_type_args : Types.Type.t list)
     ~(ret_type : Type.t) =
   (* Emit receiver and gather its ADT signature and type args *)
-  let receiver_val = emit_expression ~ecx receiver in
-  let receiver_ty = type_of_loc ~ecx (Ast_utils.expression_loc receiver) in
   let (adt_sig, receiver_type_args) =
     match receiver_ty with
     | ADT { adt_sig; type_args; _ } -> (adt_sig, type_args)
@@ -734,16 +814,15 @@ and emit_method_call
       key_type_args
   in
   let func_val = `FunctionL full_method_name_with_type_args in
-  emit_call ~ecx ~func_val ~args ~receiver_val:(Some receiver_val) ~ret_type
+  emit_call ~ecx ~func_val ~arg_vals ~receiver_val:(Some receiver_val) ~ret_type
 
 and emit_call
     ~ecx
     ~(func_val : cf_var Value.function_value)
-    ~(args : Expression.t list)
-    ~(receiver_val : cf_var Value.t option)
+    ~(arg_vals : cf_value list)
+    ~(receiver_val : cf_value option)
     ~(ret_type : Type.t) =
   let var_id = mk_cf_var_id () in
-  let arg_vals = List.map (emit_expression ~ecx) args in
   (* Pass `this` value as first argument if this is a method call *)
   let arg_vals =
     match receiver_val with

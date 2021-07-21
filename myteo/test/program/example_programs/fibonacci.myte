@@ -42,10 +42,7 @@ fun fibDynamic(x: Int): Int {
 fun printTestCase(func: Int -> Int, x: Int) {
   val result = func(x);
 
-  print("F(");
-  print(x.toString());
-  print(") = ");
-  println(result.toString());
+  println(`F(${x}) = ${result}`);
 }
 
 fun printAlgorithmTests(func: Int -> Int) {

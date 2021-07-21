@@ -1,0 +1,19 @@
+module test
+
+fun testSingleStringPart(): String {
+  return `foo`;
+}
+
+fun testSingleExpressionPart(): String {
+  return `${1}`;
+}
+
+fun testMultipleParts1(): String {
+  return `${1}foo${2}`;
+}
+
+fun testMultipleParts2(): String {
+  return `foo${1}${2}bar`;
+}
+
+fun main() {}

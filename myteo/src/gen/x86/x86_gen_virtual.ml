@@ -304,33 +304,6 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       Gcx.emit ~gcx (MovMM (size, mem2, Reg result_vreg));
       Gcx.emit ~gcx (OrMM (size, mem1, Reg result_vreg))
   in
-  (* Generate a cmp instruction between two arguments. Return whether order was swapped. *)
-  let gen_cmp left_val right_val =
-    match (resolve_ir_value left_val, resolve_ir_value right_val) with
-    | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
-    (* Comparison to immediate - swap arguments if necessary *)
-    | (SImm imm, other) ->
-      let size = register_size_of_svalue other in
-      let other_mem = emit_mem other in
-      Gcx.emit ~gcx (CmpMI (size, other_mem, imm));
-      true
-    | (other, SImm imm) ->
-      let size = register_size_of_svalue other in
-      let other_mem = emit_mem other in
-      Gcx.emit ~gcx (CmpMI (size, other_mem, imm));
-      false
-    (* Cannot compare two memory locations at the same time *)
-    | (SMem (mem1, size), SMem (mem2, _)) ->
-      let vreg = mk_vreg () in
-      Gcx.emit ~gcx (MovMM (size, Mem mem1, Reg vreg));
-      Gcx.emit ~gcx (CmpMM (size, Reg vreg, Mem mem2));
-      false
-    | (v1, v2) ->
-      let mem1 = emit_mem v1 in
-      let mem2 = emit_mem v2 in
-      Gcx.emit ~gcx (CmpMM (register_size_of_svalue v1, mem1, mem2));
-      false
-  in
   (* Generate a bit shift instruction from the target and shift arguments *)
   let gen_shift ~mk_reg_instr ~mk_imm_instr result_var_id target_val shift_val =
     let result_vreg = vreg_of_result_var_id result_var_id in
@@ -368,6 +341,33 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       let target_mem = emit_mem target in
       Gcx.emit ~gcx (MovMM (target_size, target_mem, Reg result_vreg));
       Gcx.emit ~gcx (mk_reg_instr target_size (Reg result_vreg))
+  in
+  (* Generate a cmp instruction between two arguments. Return whether order was swapped. *)
+  let gen_cmp left_val right_val =
+    match (resolve_ir_value left_val, resolve_ir_value right_val) with
+    | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
+    (* Comparison to immediate - swap arguments if necessary *)
+    | (SImm imm, other) ->
+      let size = register_size_of_svalue other in
+      let other_mem = emit_mem other in
+      Gcx.emit ~gcx (CmpMI (size, other_mem, imm));
+      true
+    | (other, SImm imm) ->
+      let size = register_size_of_svalue other in
+      let other_mem = emit_mem other in
+      Gcx.emit ~gcx (CmpMI (size, other_mem, imm));
+      false
+    (* Cannot compare two memory locations at the same time *)
+    | (SMem (mem1, size), SMem (mem2, _)) ->
+      let vreg = mk_vreg () in
+      Gcx.emit ~gcx (MovMM (size, Mem mem1, Reg vreg));
+      Gcx.emit ~gcx (CmpMM (size, Reg vreg, Mem mem2));
+      false
+    | (v1, v2) ->
+      let mem1 = emit_mem v1 in
+      let mem2 = emit_mem v2 in
+      Gcx.emit ~gcx (CmpMM (register_size_of_svalue v1, mem1, mem2));
+      false
   in
   let gen_cond_jmp cc left_val right_val =
     let swapped = gen_cmp left_val right_val in

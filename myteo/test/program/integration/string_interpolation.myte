@@ -1,0 +1,32 @@
+module test
+
+import std.string.ToString
+import std.test.assertEqual
+
+fun testSimpleInterpolations() {
+  assertEqual(`foo`, "foo");
+  assertEqual(`foo${1}bar`, "foo1bar");
+  assertEqual(`${true} foo ${1 + 2}`, "true foo 3");
+  assertEqual(`${1}${2}${3}`, "123");
+}
+
+type IntPair (Int, Int)
+methods IntPair {
+  implements ToString
+  override fun toString(): String = `(${this[0]}, ${this[1]})`
+}
+
+fun testToStringTypeInterpolations() {
+  assertEqual(`foo ${IntPair (6, 7)} bar}`, "foo (6, 7) bar");
+  assertEqual(`${"IntPair"} = ${IntPair (1, 2)}`, "IntPair = (1, 2)");
+}
+
+fun testNestedInterpolations() {
+  assertEqual(`a${`b${`c${1}d${2}`}e`}f${`g${3}${4}`}`, "abc1d2efg34");
+}
+
+fun main() {
+  testSimpleInterpolations();
+  testToStringTypeInterpolations();
+  testNestedInterpolations();
+}
