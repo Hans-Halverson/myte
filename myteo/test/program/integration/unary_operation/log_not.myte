@@ -1,0 +1,22 @@
+module test
+
+import std.test.assertEqual
+
+fun not(x: Bool): Bool = !x
+
+fun main() {
+  // Test single not
+  assertEqual(!true, false);
+  assertEqual(!false, true);
+  assertEqual(not(true), false);
+  assertEqual(not(false), true);
+
+  // Test multiple nots
+  assertEqual(!!true, true);
+  assertEqual(!!!true, false);
+  assertEqual(!!!!true, true);
+  assertEqual(!not(false), false);
+  assertEqual(!!not(false), true);
+  assertEqual(not(not(false)), false);
+  assertEqual(not(not(not(false))), true);
+}

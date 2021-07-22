@@ -1,0 +1,45 @@
+module test
+
+import std.test.assertEqual
+
+fun negByte(x: Byte): Byte = -x
+fun negInt(x: Int): Int = -x
+fun negLong(x: Long): Long = -x
+
+fun testNegPositives() {
+  assertEqual(-0, 0);
+  assertEqual(negByte(0), 0);
+  assertEqual(negByte(1), -1);
+  assertEqual(negByte(7), -7);
+  assertEqual(negInt(7), -7);
+  assertEqual(negLong(7), -7);
+}
+
+fun testNegNegatives() {
+  assertEqual(negByte(-3), 3);
+  assertEqual(negInt(-3), 3);
+  assertEqual(negLong(-3), 3);
+}
+
+fun testMultipleNegs() {
+  assertEqual(--5, 5);
+  assertEqual(--negByte(5), -5);
+  assertEqual(---5, -5);
+  assertEqual(---negByte(5), 5);
+  assertEqual(----5, 5);
+  assertEqual(----negByte(5), -5);
+}
+
+fun testNegsAndPluses() {
+  assertEqual(++-++5, -5);
+  assertEqual(++-++-++5, 5);
+  assertEqual(++-++negInt(5), 5);
+  assertEqual(++-++-++negInt(5), -5);
+}
+
+fun main() {
+  testNegPositives();
+  testNegNegatives();
+  testMultipleNegs();
+  testNegsAndPluses();
+}

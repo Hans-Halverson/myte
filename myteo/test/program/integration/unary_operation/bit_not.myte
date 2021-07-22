@@ -1,0 +1,40 @@
+module test
+
+import std.test.assertEqual
+
+fun notByte(x: Byte): Byte = !x
+fun notInt(x: Int): Int = !x
+fun notLong(x: Long): Long = !x
+
+fun testNotBytes() {
+  assertEqual(notByte(0), -1);
+  assertEqual(notByte(-1), 0);
+  assertEqual(notByte(0b01010101), -86);
+}
+
+fun testNotInts() {
+  assertEqual(notInt(0), -1);
+  assertEqual(notInt(-1), 0);
+  assertEqual(notInt(0x0F0F0F0F), -252645136);
+}
+
+fun testNotLongs() {
+  assertEqual(notLong(0), -1);
+  assertEqual(notLong(-1), 0);
+  assertEqual(notLong(0x0F0F0F0F0F0F0F0F), -1085102592571150096);
+}
+
+fun testNotConstants() {
+  assertEqual(!0, -1);
+  assertEqual(!-1, 0);
+  assertEqual(!0b01010101, -86);
+  assertEqual(!0x0F0F0F0F, -252645136);
+  assertEqual(!0x0F0F0F0F0F0F0F0F, -1085102592571150096);
+}
+
+fun main() {
+  testNotBytes();
+  testNotInts();
+  testNotLongs();
+  testNotConstants();
+}

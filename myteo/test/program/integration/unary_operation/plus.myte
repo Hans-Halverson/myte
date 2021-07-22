@@ -1,0 +1,35 @@
+module test
+
+import std.test.assertEqual
+
+fun plusByte(x: Byte): Byte = +x
+fun plusInt(x: Int): Int = +x
+fun plusLong(x: Long): Long = +x
+
+fun testPlusPositives() {
+  assertEqual(+0, 0);
+  assertEqual(+3, 3);
+  assertEqual(plusByte(0), 0);
+  assertEqual(plusByte(1), 1);
+  assertEqual(plusByte(7), 7);
+  assertEqual(plusInt(7), 7);
+  assertEqual(plusLong(7), 7);
+}
+
+fun testPlusNegatives() {
+  assertEqual(+-3, -3);
+  assertEqual(plusByte(-3), -3);
+  assertEqual(plusInt(-3), -3);
+  assertEqual(plusLong(-3), -3);
+}
+
+fun testMultiplePluses() {
+  assertEqual(++++5, 5);
+  assertEqual(++++plusByte(5), 5);
+}
+
+fun main() {
+  testPlusPositives();
+  testPlusNegatives();
+  testMultiplePluses();
+}
