@@ -1,0 +1,90 @@
+module test
+
+import std.test.assertEqual
+
+fun subBytes(x: Byte, y: Byte): Byte = x - y
+fun subInts(x: Int, y: Int): Int = x - y
+fun subLongs(x: Long, y: Long): Long = x - y
+
+fun testSubBytes() {
+  // Simple subtractions
+  assertEqual(subBytes(0, 0), 0);
+  assertEqual(subBytes(0, 1), -1);
+  assertEqual(subBytes(5, 0), 5);
+  assertEqual(subBytes(17, 28), -11);
+
+  // Negative numbers
+  assertEqual(subBytes(-1, 0), -1);
+  assertEqual(subBytes(-7, -8), 1);
+  assertEqual(subBytes(-6, 10), -16);
+  assertEqual(subBytes(3, -99), 102);
+  assertEqual(subBytes(100, -27), 127);
+  assertEqual(subBytes(-100, 28), -128);
+
+  // Overflow
+  assertEqual(subBytes(100, -28), -128);
+  assertEqual(subBytes(-125, 125), 6);
+  assertEqual(subBytes(-100, 29), 127);
+}
+
+fun testSubInts() {
+  // Simple subtractions
+  assertEqual(subInts(0, 0), 0);
+  assertEqual(subInts(0, 1), -1);
+  assertEqual(subInts(5, 0), 5);
+  assertEqual(subInts(17, 28), -11);
+
+  // Negative numbers
+  assertEqual(subInts(-1, 0), -1);
+  assertEqual(subInts(-7, -8), 1);
+  assertEqual(subInts(-6, 10), -16);
+  assertEqual(subInts(3, -99), 102);
+  assertEqual(subInts(2147483600, -47), 2147483647);
+  assertEqual(subInts(-2147483600, 48), -2147483648);
+
+  // Overflow
+  assertEqual(subInts(2147483600, -48), -2147483648);
+  assertEqual(subInts(-2147483645, 2147483645), 6);
+  assertEqual(subInts(-2147483600, 49), 2147483647);
+}
+
+fun testSubLongs() {
+  // Simple subtractions
+  assertEqual(subLongs(0, 0), 0);
+  assertEqual(subLongs(0, 1), -1);
+  assertEqual(subLongs(5, 0), 5);
+  assertEqual(subLongs(17, 28), -11);
+
+  // Negative numbers
+  assertEqual(subLongs(-1, 0), -1);
+  assertEqual(subLongs(-7, -8), 1);
+  assertEqual(subLongs(-6, 10), -16);
+  assertEqual(subLongs(3, -99), 102);
+  assertEqual(subLongs(9223372036854775800, -7), 9223372036854775807);
+  assertEqual(subLongs(-9223372036854775800, 8), -9223372036854775808);
+
+  // Overflow
+  assertEqual(subLongs(9223372036854775800, -8), -9223372036854775808);
+  assertEqual(subLongs(-9223372036854775805, 9223372036854775805), 6);
+  assertEqual(subLongs(-9223372036854775800, 9), 9223372036854775807);
+}
+
+fun ten(): Int = 10
+fun tenLong(): Long = 10
+
+fun testSubConstant() {
+  // Constant ints
+  assertEqual(1 - ten(), -9);
+  assertEqual(ten() - 1, 9);
+
+  // Constant longs
+  assertEqual(1 - tenLong(), -9);
+  assertEqual(tenLong() - 1, 9);
+}
+
+fun main() {
+  testSubBytes();
+  testSubInts();
+  testSubLongs();
+  testSubConstant();
+}

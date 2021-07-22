@@ -1,0 +1,104 @@
+module test
+
+import std.test.assertEqual
+
+fun divBytes(x: Byte, y: Byte): Byte = x / y
+fun divInts(x: Int, y: Int): Int = x / y
+fun divLongs(x: Long, y: Long): Long = x / y
+
+fun testDivBytes() {
+  // Simple exact divisions
+  assertEqual(divBytes(0, 1), 0);
+  assertEqual(divBytes(0, 123), 0);
+  assertEqual(divBytes(1, 1), 1);
+  assertEqual(divBytes(123, 1), 123);
+  assertEqual(divBytes(78, 3), 26);
+  assertEqual(divBytes(126, 14), 9);
+
+  // Negative exact divisions
+  assertEqual(divBytes(1, -1), -1);
+  assertEqual(divBytes(123, -1), -123);
+  assertEqual(divBytes(-123, 1), -123);
+  assertEqual(divBytes(126, -14), -9);
+  assertEqual(divBytes(-78, 3), -26);
+  assertEqual(divBytes(-128, -32), 4);
+
+  // Inexact divisions truncates
+  assertEqual(divBytes(10, 3), 3);
+  assertEqual(divBytes(127, 16), 7);
+  assertEqual(divBytes(-10, 3), -3);
+  assertEqual(divBytes(127, -16), -7);
+  assertEqual(divBytes(-101, -7), 14);
+}
+
+fun testDivInts() {
+  // Simple exact divisions
+  assertEqual(divInts(0, 1), 0);
+  assertEqual(divInts(0, 123), 0);
+  assertEqual(divInts(1, 1), 1);
+  assertEqual(divInts(123, 1), 123);
+  assertEqual(divInts(78, 3), 26);
+  assertEqual(divInts(2147483646, 21), 102261126);
+
+  // Negative exact divisions
+  assertEqual(divInts(1, -1), -1);
+  assertEqual(divInts(123, -1), -123);
+  assertEqual(divInts(-123, 1), -123);
+  assertEqual(divInts(126, -14), -9);
+  assertEqual(divInts(-78, 3), -26);
+  assertEqual(divInts(-2147483648, -67108864), 32);
+
+  // Inexact divisions truncates
+  assertEqual(divInts(10, 3), 3);
+  assertEqual(divInts(127, 16), 7);
+  assertEqual(divInts(-10, 3), -3);
+  assertEqual(divInts(127, -16), -7);
+  assertEqual(divInts(-101, -7), 14);
+}
+
+fun testDivLongs() {
+  // Simple exact divisions
+  assertEqual(divLongs(0, 1), 0);
+  assertEqual(divLongs(0, 123), 0);
+  assertEqual(divLongs(1, 1), 1);
+  assertEqual(divLongs(123, 1), 123);
+  assertEqual(divLongs(78, 3), 26);
+  assertEqual(divLongs(9223372036854775806, 715827883), 12884901882);
+
+  // Negative exact divisions
+  assertEqual(divLongs(1, -1), -1);
+  assertEqual(divLongs(123, -1), -123);
+  assertEqual(divLongs(-123, 1), -123);
+  assertEqual(divLongs(126, -14), -9);
+  assertEqual(divLongs(-78, 3), -26);
+  assertEqual(divLongs(-9223372036854775808, -2048), 4503599627370496);
+
+  // Inexact divisions truncates
+  assertEqual(divLongs(10, 3), 3);
+  assertEqual(divLongs(127, 16), 7);
+  assertEqual(divLongs(-10, 3), -3);
+  assertEqual(divLongs(127, -16), -7);
+  assertEqual(divLongs(-101, -7), 14);
+}
+
+fun ten(): Int = 10
+fun sevenHundredEighty(): Int = 780
+fun tenLong(): Long = 10
+fun sevenHundredEightyLong(): Long = 780
+
+fun testDivConstant() {
+  // Constant ints
+  assertEqual(780 / ten(), 78);
+  assertEqual(sevenHundredEighty() / 78, 10);
+
+  // Constant longs
+  assertEqual(780 / tenLong(), 78);
+  assertEqual(sevenHundredEightyLong() / 78, 10);
+}
+
+fun main() {
+  testDivBytes();
+  testDivInts();
+  testDivLongs();
+  testDivConstant();
+}

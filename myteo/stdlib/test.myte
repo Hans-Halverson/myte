@@ -3,8 +3,8 @@ module std.test
 import std.ops.Equatable
 import std.sys.exit
 
-fun assertEqual<T: Equatable>(x: T, y: T) {
-  if (x != y) {
+fun assertEqual<T: Equatable>(actual: T, expected: T) {
+  if (actual != expected) {
     exit(1);
   }
 }

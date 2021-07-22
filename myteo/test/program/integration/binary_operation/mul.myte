@@ -1,0 +1,99 @@
+module test
+
+import std.test.assertEqual
+
+fun mulBytes(x: Byte, y: Byte): Byte = x * y
+fun mulInts(x: Int, y: Int): Int = x * y
+fun mulLongs(x: Long, y: Long): Long = x * y
+
+fun testMulBytes() {
+  // Simple multiplications
+  assertEqual(mulBytes(0, 0), 0);
+  assertEqual(mulBytes(0, 1), 0);
+  assertEqual(mulBytes(5, 0), 0);
+  assertEqual(mulBytes(1, 1), 1);
+  assertEqual(mulBytes(1, 5), 5);
+  assertEqual(mulBytes(5, 1), 5);
+  assertEqual(mulBytes(3, 28), 84);
+  assertEqual(mulBytes(63, 2), 126);
+
+  // Negative numbers
+  assertEqual(mulBytes(-1, 88), -88);
+  assertEqual(mulBytes(-7, -8), 56);
+  assertEqual(mulBytes(-6, 10), -60);
+  assertEqual(mulBytes(3, -41), -123);
+  assertEqual(mulBytes(-8, 16), -128);
+
+  // Overflow
+  assertEqual(mulBytes(64, 2), -128);
+  assertEqual(mulBytes(125, 125), 9);
+  assertEqual(mulBytes(-3, 43), 127);
+}
+
+fun testMulInts() {
+  // Simple multiplications
+  assertEqual(mulInts(0, 0), 0);
+  assertEqual(mulInts(0, 1), 0);
+  assertEqual(mulInts(5, 0), 0);
+  assertEqual(mulInts(1, 1), 1);
+  assertEqual(mulInts(1, 5), 5);
+  assertEqual(mulInts(5, 1), 5);
+  assertEqual(mulInts(3, 28), 84);
+  assertEqual(mulInts(1073741823, 2), 2147483646);
+
+  // Negative numbers
+  assertEqual(mulInts(-1, 88), -88);
+  assertEqual(mulInts(-7, -8), 56);
+  assertEqual(mulInts(-6, 10), -60);
+  assertEqual(mulInts(3, -41), -123);
+  assertEqual(mulInts(-67108864, 32), -2147483648);
+
+  // Overflow
+  assertEqual(mulInts(1073741824, 2), -2147483648);
+  assertEqual(mulInts(2147483645, 2147483645), 9);
+  assertEqual(mulInts(715827883, -3), 2147483647);
+}
+
+fun testMulLongs() {
+  // Simple multiplications
+  assertEqual(mulLongs(0, 0), 0);
+  assertEqual(mulLongs(0, 1), 0);
+  assertEqual(mulLongs(5, 0), 0);
+  assertEqual(mulLongs(1, 1), 1);
+  assertEqual(mulLongs(1, 5), 5);
+  assertEqual(mulLongs(5, 1), 5);
+  assertEqual(mulLongs(3, 28), 84);
+  assertEqual(mulLongs(4611686018427387903, 2), 9223372036854775806);
+
+  // Negative numbers
+  assertEqual(mulLongs(-1, 88), -88);
+  assertEqual(mulLongs(-7, -8), 56);
+  assertEqual(mulLongs(-6, 10), -60);
+  assertEqual(mulLongs(3, -41), -123);
+  assertEqual(mulLongs(-4503599627370496, 2048), -9223372036854775808);
+
+  // Overflow
+  assertEqual(mulLongs(4611686018427387904, 2), -9223372036854775808);
+  assertEqual(mulLongs(9223372036854775805, 9223372036854775805), 9);
+  assertEqual(mulLongs(-1702043188199811, 5419), 9223372036854775807);
+}
+
+fun ten(): Int = 10
+fun tenLong(): Long = 10
+
+fun testMulConstant() {
+  // Constant ints
+  assertEqual(3 * ten(), 30);
+  assertEqual(ten() * 3, 30);
+
+  // Constant longs
+  assertEqual(3 * tenLong(), 30);
+  assertEqual(tenLong() * 3, 30);
+}
+
+fun main() {
+  testMulBytes();
+  testMulInts();
+  testMulLongs();
+  testMulConstant();
+}

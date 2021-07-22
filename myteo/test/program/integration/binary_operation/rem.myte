@@ -1,0 +1,83 @@
+module test
+
+import std.test.assertEqual
+
+fun remBytes(x: Byte, y: Byte): Byte = x % y
+fun remInts(x: Int, y: Int): Int = x % y
+fun remLongs(x: Long, y: Long): Long = x % y
+
+fun testRemBytes() {
+  // Simple remainders
+  assertEqual(remBytes(0, 1), 0);
+  assertEqual(remBytes(0, 123), 0);
+  assertEqual(remBytes(1, 1), 0);
+  assertEqual(remBytes(123, 1), 0);
+  assertEqual(remBytes(78, 5), 3);
+  assertEqual(remBytes(126, 11), 5);
+
+  // Negative remainders
+  assertEqual(remBytes(1, -1), 0);
+  assertEqual(remBytes(123, -1), 0);
+  assertEqual(remBytes(-123, 1), 0);
+  assertEqual(remBytes(126, -5), 1);
+  assertEqual(remBytes(-78, 79), -78);
+  assertEqual(remBytes(-128, -11), -7);
+}
+
+fun testRemInts() {
+  // Simple remainders
+  assertEqual(remInts(0, 1), 0);
+  assertEqual(remInts(0, 123), 0);
+  assertEqual(remInts(1, 1), 0);
+  assertEqual(remInts(123, 1), 0);
+  assertEqual(remInts(78, 5), 3);
+  assertEqual(remInts(2147483647, 27), 10);
+
+  // Negative remainders
+  assertEqual(remInts(1, -1), 0);
+  assertEqual(remInts(123, -1), 0);
+  assertEqual(remInts(-123, 1), 0);
+  assertEqual(remInts(126, -5), 1);
+  assertEqual(remInts(-78, 79), -78);
+  assertEqual(remInts(-2147483648, -824), -392);
+}
+
+fun testRemLongs() {
+  // Simple remainders
+  assertEqual(remLongs(0, 1), 0);
+  assertEqual(remLongs(0, 123), 0);
+  assertEqual(remLongs(1, 1), 0);
+  assertEqual(remLongs(123, 1), 0);
+  assertEqual(remLongs(78, 5), 3);
+  assertEqual(remLongs(9223372036854775807, 261923829), 111126187);
+
+  // Negative remainders
+  assertEqual(remLongs(1, -1), 0);
+  assertEqual(remLongs(123, -1), 0);
+  assertEqual(remLongs(-123, 1), 0);
+  assertEqual(remLongs(126, -5), 1);
+  assertEqual(remLongs(-78, 79), -78);
+  assertEqual(remLongs(-9223372036854775808, -193723923), -130663949);
+}
+
+fun ten(): Int = 10
+fun sevenHundredEighty(): Int = 780
+fun tenLong(): Long = 10
+fun sevenHundredEightyLong(): Long = 780
+
+fun testRemConstant() {
+  // Constant ints
+  assertEqual(787 % ten(), 7);
+  assertEqual(sevenHundredEighty() % 760, 20);
+
+  // // Constant longs
+  assertEqual(787 % tenLong(), 7);
+  assertEqual(sevenHundredEightyLong() % 760, 20);
+}
+
+fun main() {
+  testRemBytes();
+  testRemInts();
+  testRemLongs();
+  testRemConstant();
+}

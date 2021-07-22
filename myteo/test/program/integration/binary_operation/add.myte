@@ -1,0 +1,90 @@
+module test
+
+import std.test.assertEqual
+
+fun addBytes(x: Byte, y: Byte): Byte = x + y
+fun addInts(x: Int, y: Int): Int = x + y
+fun addLongs(x: Long, y: Long): Long = x + y
+
+fun testAddBytes() {
+  // Simple additions
+  assertEqual(addBytes(0, 0), 0);
+  assertEqual(addBytes(0, 1), 1);
+  assertEqual(addBytes(5, 0), 5);
+  assertEqual(addBytes(17, 28), 45);
+  assertEqual(addBytes(125, 2), 127);
+
+  // Negative numbers
+  assertEqual(addBytes(-1, 0), -1);
+  assertEqual(addBytes(-7, -8), -15);
+  assertEqual(addBytes(-6, 10), 4);
+  assertEqual(addBytes(3, -99), -96);
+  assertEqual(addBytes(-100, -28), -128);
+
+  // Overflow
+  assertEqual(addBytes(125, 3), -128);
+  assertEqual(addBytes(125, 125), -6);
+  assertEqual(addBytes(-100, -29), 127);
+}
+
+fun testAddInts() {
+  // Simple additions
+  assertEqual(addInts(0, 0), 0);
+  assertEqual(addInts(0, 1), 1);
+  assertEqual(addInts(5, 0), 5);
+  assertEqual(addInts(17, 28), 45);
+  assertEqual(addInts(2147483645, 2), 2147483647);
+
+  // Negative numbers
+  assertEqual(addInts(-1, 0), -1);
+  assertEqual(addInts(-7, -8), -15);
+  assertEqual(addInts(-6, 10), 4);
+  assertEqual(addInts(3, -99), -96);
+  assertEqual(addInts(-2147483600, -48), -2147483648);
+
+  // Overflow
+  assertEqual(addInts(2147483645, 3), -2147483648);
+  assertEqual(addInts(2147483645, 2147483645), -6);
+  assertEqual(addInts(-2147483600, -49), 2147483647);
+}
+
+fun testAddLongs() {
+  // Simple additions
+  assertEqual(addLongs(0, 0), 0);
+  assertEqual(addLongs(0, 1), 1);
+  assertEqual(addLongs(5, 0), 5);
+  assertEqual(addLongs(17, 28), 45);
+  assertEqual(addLongs(9223372036854775805, 2), 9223372036854775807);
+
+  // Negative numbers
+  assertEqual(addLongs(-1, 0), -1);
+  assertEqual(addLongs(-7, -8), -15);
+  assertEqual(addLongs(-6, 10), 4);
+  assertEqual(addLongs(3, -99), -96);
+  assertEqual(addLongs(-9223372036854775800, -8), -9223372036854775808);
+
+  // Overflow
+  assertEqual(addLongs(9223372036854775805, 3), -9223372036854775808);
+  assertEqual(addLongs(9223372036854775805, 9223372036854775805), -6);
+  assertEqual(addLongs(-9223372036854775800, -9), 9223372036854775807);
+}
+
+fun ten(): Int = 10
+fun tenLong(): Long = 10
+
+fun testAddConstant() {
+  // Constant ints
+  assertEqual(1 + ten(), 11);
+  assertEqual(ten() + 1, 11);
+
+  // Constant longs
+  assertEqual(1 + tenLong(), 11);
+  assertEqual(tenLong() + 1, 11);
+}
+
+fun main() {
+  testAddBytes();
+  testAddInts();
+  testAddLongs();
+  testAddConstant();
+}
