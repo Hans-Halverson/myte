@@ -1,0 +1,30 @@
+module test
+
+fun testAllShifts() {
+  // Success
+  (1 << 2: Int);
+  (1 >> 2: Int);
+  (1 >>> 2: Int);
+
+  // Left and right side do not have to have same type
+  ((1: Int) << (2: Byte));
+  ((1: Byte) << (2: Long));
+
+  // Expression has same type as left
+  ((1: Int) << (2: Byte): Int);
+  ((1: Long) << (2: Int): Long);
+  // Intentional error
+  ((1: Long) << (2: Int): Int);
+
+  // Left side must be int error
+  true << 2;
+  true >> 2;
+  true >>> 2;
+
+  // Right side must be int error
+  3 << true;
+  3 >> true;
+  3 >>> true;
+}
+
+fun main() {}

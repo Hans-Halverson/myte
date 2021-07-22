@@ -1,34 +1,34 @@
 Error: Expected type `Int` but found `Bool`
-test/analyze/type_check/binary_operation/bitwise.myte:14:7-11
- 14 |   (1 & true: Int);
+test/analyze/type_check/binary_operation/bitwise.myte:11:7-11
+ 11 |   (1 & true: Int);
     |        ^^^^
 
 Error: Expected type `Int` but found `Bool`
-test/analyze/type_check/binary_operation/bitwise.myte:15:3-7
- 15 |   (true & "a": String);
+test/analyze/type_check/binary_operation/bitwise.myte:12:3-7
+ 12 |   (true & "a": String);
     |    ^^^^
 
 Error: Expected type `Int` but found `String`
-test/analyze/type_check/binary_operation/bitwise.myte:15:10-13
- 15 |   (true & "a": String);
+test/analyze/type_check/binary_operation/bitwise.myte:12:10-13
+ 12 |   (true & "a": String);
     |           ^^^
 
 Error: Expected type `Int` but found `Byte`
-test/analyze/type_check/binary_operation/bitwise.myte:21:7
- 21 |   (i & b: Int);
+test/analyze/type_check/binary_operation/bitwise.myte:18:7
+ 18 |   (i & b: Int);
     |        ^
 
 Error: Expected type `Byte` but found `Int`
-test/analyze/type_check/binary_operation/bitwise.myte:22:7
- 22 |   (b & i: Byte);
+test/analyze/type_check/binary_operation/bitwise.myte:19:7
+ 19 |   (b & i: Byte);
     |        ^
 
 Error: Expected type `Int` but found `Byte`
-test/analyze/type_check/binary_operation/bitwise.myte:25:3-8
- 25 |   (1 & b: Int);
+test/analyze/type_check/binary_operation/bitwise.myte:22:3-8
+ 22 |   (1 & b: Int);
     |    ^^^^^
 
 Error: Expected type `Int` but found `Byte`
-test/analyze/type_check/binary_operation/bitwise.myte:26:3-8
- 26 |   (b & 1: Int);
+test/analyze/type_check/binary_operation/bitwise.myte:23:3-8
+ 23 |   (b & 1: Int);
     |    ^^^^^

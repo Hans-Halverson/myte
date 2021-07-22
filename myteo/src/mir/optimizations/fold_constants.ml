@@ -56,24 +56,22 @@ let fold_numeric_constant op x =
   | (NotOp, ByteConstant x) -> ByteConstant (lnot x)
   | (NotOp, IntConstant x) -> IntConstant (Int32.lognot x)
   | (NotOp, LongConstant x) -> LongConstant (Int64.lognot x)
-  | (TruncOp `ByteT, IntConstant x) ->
-    let bytes = Bytes.create 4 in
-    Bytes.set_int32_le bytes 0 x;
-    ByteConstant (Bytes.get_int8 bytes 0)
-  | (TruncOp `ByteT, LongConstant x) ->
-    let bytes = Bytes.create 8 in
-    Bytes.set_int64_le bytes 0 x;
-    ByteConstant (Bytes.get_int8 bytes 0)
-  | (TruncOp `IntT, LongConstant x) ->
-    let bytes = Bytes.create 8 in
-    Bytes.set_int64_le bytes 0 x;
-    IntConstant (Bytes.get_int32_le bytes 0)
+  | (TruncOp `ByteT, IntConstant x) -> ByteConstant (Integers.trunc_int_to_byte x)
+  | (TruncOp `ByteT, LongConstant x) -> ByteConstant (Integers.trunc_long_to_byte x)
+  | (TruncOp `IntT, LongConstant x) -> IntConstant (Integers.trunc_long_to_int x)
   | (SExtOp `IntT, ByteConstant x) -> IntConstant (Int32.of_int x)
   | (SExtOp `LongT, ByteConstant x) -> LongConstant (Int64.of_int x)
   | (SExtOp `LongT, IntConstant x) -> LongConstant (Int64.of_int32 x)
   | _ -> failwith "Invalid operation"
 
 let fold_numeric_constants op x y =
+  let trunc_integer_to_byte x =
+    match x with
+    | ByteConstant x -> x
+    | IntConstant x -> Integers.trunc_int_to_byte x
+    | LongConstant x -> Integers.trunc_long_to_byte x
+    | _ -> failwith "Invalid operation"
+  in
   match (op, x, y) with
   | (AddOp, ByteConstant x, ByteConstant y) -> ByteConstant (x + y)
   | (AddOp, IntConstant x, IntConstant y) -> IntConstant (Int32.add x y)
@@ -99,17 +97,17 @@ let fold_numeric_constants op x y =
   | (BitXorOp, ByteConstant x, ByteConstant y) -> ByteConstant (x lxor y)
   | (BitXorOp, IntConstant x, IntConstant y) -> IntConstant (Int32.logxor x y)
   | (BitXorOp, LongConstant x, LongConstant y) -> LongConstant (Int64.logxor x y)
-  | (ShlOp, ByteConstant x, ByteConstant y) -> ByteConstant (x lsl y)
-  | (ShlOp, IntConstant x, IntConstant y) -> IntConstant (Int32.shift_left x (Int32.to_int y))
-  | (ShlOp, LongConstant x, LongConstant y) -> LongConstant (Int64.shift_left x (Int64.to_int y))
-  | (ShrOp, ByteConstant x, ByteConstant y) -> ByteConstant (x asr y)
-  | (ShrOp, IntConstant x, IntConstant y) -> IntConstant (Int32.shift_right x (Int32.to_int y))
-  | (ShrOp, LongConstant x, LongConstant y) -> LongConstant (Int64.shift_right x (Int64.to_int y))
-  | (ShrlOp, ByteConstant x, ByteConstant y) -> ByteConstant (Int.logand x 0xFF lsr y)
-  | (ShrlOp, IntConstant x, IntConstant y) ->
-    IntConstant (Int32.shift_right_logical x (Int32.to_int y))
-  | (ShrlOp, LongConstant x, LongConstant y) ->
-    LongConstant (Int64.shift_right_logical x (Int64.to_int y))
+  | (ShlOp, ByteConstant x, y) -> ByteConstant (x lsl trunc_integer_to_byte y)
+  | (ShlOp, IntConstant x, y) -> IntConstant (Int32.shift_left x (trunc_integer_to_byte y))
+  | (ShlOp, LongConstant x, y) -> LongConstant (Int64.shift_left x (trunc_integer_to_byte y))
+  | (ShrOp, ByteConstant x, y) -> ByteConstant (x asr trunc_integer_to_byte y)
+  | (ShrOp, IntConstant x, y) -> IntConstant (Int32.shift_right x (trunc_integer_to_byte y))
+  | (ShrOp, LongConstant x, y) -> LongConstant (Int64.shift_right x (trunc_integer_to_byte y))
+  | (ShrlOp, ByteConstant x, y) -> ByteConstant (Int.logand x 0xFF lsr trunc_integer_to_byte y)
+  | (ShrlOp, IntConstant x, y) ->
+    IntConstant (Int32.shift_right_logical x (trunc_integer_to_byte y))
+  | (ShrlOp, LongConstant x, y) ->
+    LongConstant (Int64.shift_right_logical x (trunc_integer_to_byte y))
   | _ -> failwith "Invalid operation"
 
 let fold_constants_compare x y =

@@ -1,29 +1,14 @@
 Error: Expected type `Int` but found `Bool`
-test/analyze/type_check/binary_operation/add.myte:11:7-11
- 11 |   (1 + true: Int);
-    |        ^^^^
+test/analyze/type_check/binary_operation/add.myte:9:7-11
+ 9 |   (1 + true: Int);
+   |        ^^^^
 
-Error: Expected type `String` but found `Bool`
+Error: Expected type `Int` but found `Bool`
 test/analyze/type_check/binary_operation/add.myte:12:3-7
- 12 |   (true + "a": String);
+ 12 |   (true + (): Int -> Int);
     |    ^^^^
 
-Error: Expected type `Int` but found `String`
-test/analyze/type_check/binary_operation/add.myte:16:7-10
- 16 |   (1 + "a": Int);
-    |        ^^^
-
-Error: Expected type `String` but found `Int`
-test/analyze/type_check/binary_operation/add.myte:17:9
- 17 |   ("a" + 1: String);
-    |          ^
-
-Error: Expected types `Int` or `String` but found `Bool`
-test/analyze/type_check/binary_operation/add.myte:20:3-7
- 20 |   (true + (): Int -> Int);
-    |    ^^^^
-
-Error: Expected types `Int` or `String` but found `Unit`
-test/analyze/type_check/binary_operation/add.myte:20:10-12
- 20 |   (true + (): Int -> Int);
+Error: Expected type `Int` but found `Unit`
+test/analyze/type_check/binary_operation/add.myte:12:10-12
+ 12 |   (true + (): Int -> Int);
     |           ^^

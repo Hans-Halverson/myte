@@ -5,12 +5,12 @@ fun shrByteImmReg(x: Byte): Byte = 6 >>> x
 fun shrByteRegImm(x: Byte): Byte = x >>> 6
 
 fun shrIntRegs(x: Int, y: Int): Int = x >>> y
-fun shrIntRegImm(x: Int): Int = x >>> 257
+fun shrIntRegImm(x: Int): Int = x >>> 6
 fun shrIntImmReg(x: Int): Int = 257 >>> x
 
 fun shrLongRegs(x: Long, y: Long): Long = x >>> y
+fun shrLongRegImm(x: Long): Long = x >>> 6
 /// First have to load long to register
-fun shrLongRegImm(x: Long): Long = x >>> 2147483648
 fun shrLongImmReg(x: Long): Long = 2147483648 >>> x
 
 fun main() {}

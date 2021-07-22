@@ -312,35 +312,43 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     match (resolve_ir_value target_val, resolve_ir_value ~allow_imm64:true shift_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm target_imm, shift) ->
-      let shift_size = register_size_of_svalue shift in
+      let size = register_size_of_svalue shift in
       let precolored_c = Gcx.mk_precolored ~gcx C in
       let shift_mem = emit_mem shift in
+      (* Only low byte is used for shift, so avoid REX prefix for small code size optimization *)
+      let shift_size =
+        if size = Size64 then
+          Size32
+        else
+          size
+      in
       Gcx.emit ~gcx (MovMM (shift_size, shift_mem, Reg precolored_c));
-      Gcx.emit ~gcx (MovIM (shift_size, target_imm, Reg result_vreg));
-      Gcx.emit ~gcx (mk_reg_instr shift_size (Reg result_vreg))
+      Gcx.emit ~gcx (MovIM (size, target_imm, Reg result_vreg));
+      Gcx.emit ~gcx (mk_reg_instr size (Reg result_vreg))
     | (target, SImm shift_imm) ->
       let size = register_size_of_svalue target in
       let target_mem = emit_mem target in
       let shift_value = int64_of_immediate shift_imm in
-      if not (Integers.is_out_of_unsigned_byte_range shift_value) then (
-        (* 8-byte shift immediate is used directly in operation *)
-        Gcx.emit ~gcx (MovMM (size, target_mem, Reg result_vreg));
-        Gcx.emit ~gcx (mk_imm_instr size shift_imm (Reg result_vreg))
-      ) else
-        (* Other shift immediates must first be moved to register *)
-        let precolored_c = Gcx.mk_precolored ~gcx C in
-        Gcx.emit ~gcx (MovIM (size, shift_imm, Reg precolored_c));
-        Gcx.emit ~gcx (MovMM (size, target_mem, Reg result_vreg));
-        Gcx.emit ~gcx (mk_reg_instr size (Reg result_vreg))
+      (* Only low byte of immediate is used for shift, so truncate immediate to low byte *)
+      let shift_low_byte = Integers.trunc_long_to_byte shift_value in
+      Gcx.emit ~gcx (MovMM (size, target_mem, Reg result_vreg));
+      Gcx.emit ~gcx (mk_imm_instr size (Imm8 shift_low_byte) (Reg result_vreg))
     | (target, shift) ->
-      let target_size = register_size_of_svalue target in
+      let size = register_size_of_svalue target in
+      (* Only low byte is used for shift, so avoid REX prefix for small code size optimization *)
       let shift_size = register_size_of_svalue shift in
+      let shift_size =
+        if shift_size = Size64 then
+          Size32
+        else
+          shift_size
+      in
       let precolored_c = Gcx.mk_precolored ~gcx C in
       let shift_mem = emit_mem shift in
       Gcx.emit ~gcx (MovMM (shift_size, shift_mem, Reg precolored_c));
       let target_mem = emit_mem target in
-      Gcx.emit ~gcx (MovMM (target_size, target_mem, Reg result_vreg));
-      Gcx.emit ~gcx (mk_reg_instr target_size (Reg result_vreg))
+      Gcx.emit ~gcx (MovMM (size, target_mem, Reg result_vreg));
+      Gcx.emit ~gcx (mk_reg_instr size (Reg result_vreg))
   in
   (* Generate a cmp instruction between two arguments. Return whether order was swapped. *)
   let gen_cmp left_val right_val =

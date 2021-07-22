@@ -863,30 +863,14 @@ and check_expression ~cx expr =
            (Type_context.find_rep_type ~cx (TVar tvar_id), [Type.Int; Std_lib.mk_string_type ()]))
     in
     (match op with
-    | Add ->
-      (* If a child expression is an int or string propagate type to other child and expression *)
-      if is_int_or_string left_tvar_id then (
-        Type_context.assert_unify ~cx right_loc (TVar left_tvar_id) (TVar right_tvar_id);
-        ignore (Type_context.unify ~cx (TVar left_tvar_id) (TVar tvar_id))
-      ) else if is_int_or_string right_tvar_id then (
-        Type_context.assert_unify ~cx left_loc (TVar right_tvar_id) (TVar left_tvar_id);
-        ignore (Type_context.unify ~cx (TVar right_tvar_id) (TVar tvar_id))
-      ) else (
-        (* Otherwise force expression's type to be any to avoid erroring at uses *)
-        error_int_or_string left_loc left_tvar_id;
-        error_int_or_string right_loc right_tvar_id;
-        ignore (Type_context.unify ~cx Any (TVar tvar_id))
-      )
+    | Add
     | Subtract
     | Multiply
     | Divide
     | Remainder
     | BitwiseAnd
     | BitwiseOr
-    | BitwiseXor
-    | LeftShift
-    | ArithmeticRightShift
-    | LogicalRightShift ->
+    | BitwiseXor ->
       (* If a child expression is an int propagate type to other child and expression *)
       if is_int left_tvar_id then (
         Type_context.assert_unify ~cx right_loc (TVar left_tvar_id) (TVar right_tvar_id);
@@ -900,6 +884,18 @@ and check_expression ~cx expr =
         error_int right_loc right_tvar_id;
         ignore (Type_context.unify ~cx Any (TVar tvar_id))
       )
+    | LeftShift
+    | ArithmeticRightShift
+    | LogicalRightShift ->
+      (* If a left expression is an int propagate type to shift expression *)
+      if is_int left_tvar_id then
+        ignore (Type_context.unify ~cx (TVar left_tvar_id) (TVar tvar_id))
+      else (
+        error_int left_loc left_tvar_id;
+        ignore (Type_context.unify ~cx Any (TVar tvar_id))
+      );
+      (* Right expression must also be an int, but does not need to be same type as left *)
+      if not (is_int right_tvar_id) then error_int right_loc right_tvar_id
     (* All types can be compare with `is`, but types must be equal *)
     | Is ->
       Type_context.assert_unify ~cx right_loc (TVar left_tvar_id) (TVar right_tvar_id);

@@ -48,3 +48,18 @@ let int64_of_string_opt raw base =
         None
       else
         Some value)
+
+let trunc_int_to_byte x =
+  let bytes = Bytes.create 4 in
+  Bytes.set_int32_le bytes 0 x;
+  Bytes.get_int8 bytes 0
+
+let trunc_long_to_byte x =
+  let bytes = Bytes.create 8 in
+  Bytes.set_int64_le bytes 0 x;
+  Bytes.get_int8 bytes 0
+
+let trunc_long_to_int x =
+  let bytes = Bytes.create 8 in
+  Bytes.set_int64_le bytes 0 x;
+  Bytes.get_int32_le bytes 0

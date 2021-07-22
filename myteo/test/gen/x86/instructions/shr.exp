@@ -24,8 +24,7 @@ test.shrIntImmReg:
   shrl %cl, %eax
   ret
 test.shrIntRegImm:
-  movl $257, %ecx
-  shrl %cl, %edi
+  shrl $6, %edi
   movl %edi, %eax
   ret
 test.shrIntRegs:
@@ -35,16 +34,15 @@ test.shrIntRegs:
   ret
 test.shrLongImmReg:
   movq $2147483648, %rax
-  movq %rdi, %rcx
+  movl %edi, %ecx
   shrq %cl, %rax
   ret
 test.shrLongRegImm:
-  movq $2147483648, %rcx
-  shrq %cl, %rdi
+  shrq $6, %rdi
   movq %rdi, %rax
   ret
 test.shrLongRegs:
-  movq %rsi, %rcx
+  movl %esi, %ecx
   shrq %cl, %rdi
   movq %rdi, %rax
   ret

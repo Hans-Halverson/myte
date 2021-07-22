@@ -1,0 +1,9 @@
+module test
+
+fun shiftByte(x: Byte, y: Byte): Byte = x << y
+
+fun testShiftBytes() {
+
+}
+
+fun main() {}

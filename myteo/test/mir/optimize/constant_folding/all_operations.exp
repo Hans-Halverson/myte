@@ -82,6 +82,10 @@ global bool @test.bool1 = false
 
 global bool @test.bool2 = true
 
+global int @test.shift1 = 4
+
+global long @test.shift2 = 4
+
 func int @test.main() {
   Ret 0
 }

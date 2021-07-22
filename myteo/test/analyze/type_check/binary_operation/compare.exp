@@ -20,10 +20,10 @@ test/analyze/type_check/binary_operation/compare.myte:17:3-7
 
 Error: Expected types `Int` or `String` but found `Bool`
 test/analyze/type_check/binary_operation/compare.myte:18:3-7
- 18 |   (true + (): Bool);
+ 18 |   (true < (): Bool);
     |    ^^^^
 
 Error: Expected types `Int` or `String` but found `Unit`
 test/analyze/type_check/binary_operation/compare.myte:18:10-12
- 18 |   (true + (): Bool);
+ 18 |   (true < (): Bool);
     |           ^^

@@ -60,4 +60,8 @@ val bool0: Bool = !true
 val bool1: Bool = true && false
 val bool2: Bool = true || false
 
+// Shifts only use lowest byte of right hand side
+val shift1: Int = 1 << 258
+val shift2: Long = 1 << 258
+
 fun main() {}

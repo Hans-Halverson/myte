@@ -33,8 +33,7 @@ test.shlIntRegByteImm:
   movl %edi, %eax
   ret
 test.shlIntRegImm:
-  movl $257, %ecx
-  shll %cl, %edi
+  shll $6, %edi
   movl %edi, %eax
   ret
 test.shlIntRegs:
@@ -42,39 +41,27 @@ test.shlIntRegs:
   shll %cl, %edi
   movl %edi, %eax
   ret
-test.shlLongByteImmReg:
-  movq %rdi, %rcx
-  movq $6, %rax
-  shlq %cl, %rax
-  ret
 test.shlLongImmReg:
   movq $2147483648, %rax
-  movq %rdi, %rcx
+  movl %edi, %ecx
   shlq %cl, %rax
   ret
-test.shlLongIntImmReg:
-  movq %rdi, %rcx
-  movq $257, %rax
-  shlq %cl, %rax
-  ret
-test.shlLongRegByteImm:
+test.shlLongRegImm:
   shlq $6, %rdi
   movq %rdi, %rax
   ret
-test.shlLongRegImm:
-  movq $2147483648, %rcx
-  shlq %cl, %rdi
-  movq %rdi, %rax
-  ret
-test.shlLongRegIntImm:
-  movq $257, %rcx
-  shlq %cl, %rdi
-  movq %rdi, %rax
-  ret
 test.shlLongRegs:
-  movq %rsi, %rcx
+  movl %esi, %ecx
   shlq %cl, %rdi
   movq %rdi, %rax
+  ret
+test.shlTruncIntImm:
+  shll $1, %edi
+  movl %edi, %eax
+  ret
+test.shlTruncLongImm:
+  shll $2, %edi
+  movl %edi, %eax
   ret
 _start:
   call __myte_init

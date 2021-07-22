@@ -15,5 +15,5 @@ fun main() {
   // Error on non-comparable arguments
   (1 < true: Bool);
   (true < "a": Bool);
-  (true + (): Bool);
+  (true < (): Bool);
 }

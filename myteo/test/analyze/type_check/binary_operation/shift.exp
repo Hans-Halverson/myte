@@ -1,0 +1,34 @@
+Error: Expected type `Int` but found `Long`
+test/analyze/type_check/binary_operation/shift.myte:17:3-24
+ 17 |   ((1: Long) << (2: Int): Int);
+    |    ^^^^^^^^^^^^^^^^^^^^^
+
+Error: Expected type `Int` but found `Bool`
+test/analyze/type_check/binary_operation/shift.myte:20:2-6
+ 20 |   true << 2;
+    |   ^^^^
+
+Error: Expected type `Int` but found `Bool`
+test/analyze/type_check/binary_operation/shift.myte:21:2-6
+ 21 |   true >> 2;
+    |   ^^^^
+
+Error: Expected type `Int` but found `Bool`
+test/analyze/type_check/binary_operation/shift.myte:22:2-6
+ 22 |   true >>> 2;
+    |   ^^^^
+
+Error: Expected type `Int` but found `Bool`
+test/analyze/type_check/binary_operation/shift.myte:25:7-11
+ 25 |   3 << true;
+    |        ^^^^
+
+Error: Expected type `Int` but found `Bool`
+test/analyze/type_check/binary_operation/shift.myte:26:7-11
+ 26 |   3 >> true;
+    |        ^^^^
+
+Error: Expected type `Int` but found `Bool`
+test/analyze/type_check/binary_operation/shift.myte:27:8-12
+ 27 |   3 >>> true;
+    |         ^^^^

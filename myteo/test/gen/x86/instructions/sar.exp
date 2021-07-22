@@ -24,8 +24,7 @@ test.sarIntImmReg:
   sarl %cl, %eax
   ret
 test.sarIntRegImm:
-  movl $257, %ecx
-  sarl %cl, %edi
+  sarl $6, %edi
   movl %edi, %eax
   ret
 test.sarIntRegs:
@@ -35,16 +34,15 @@ test.sarIntRegs:
   ret
 test.sarLongImmReg:
   movq $2147483648, %rax
-  movq %rdi, %rcx
+  movl %edi, %ecx
   sarq %cl, %rax
   ret
 test.sarLongRegImm:
-  movq $2147483648, %rcx
-  sarq %cl, %rdi
+  sarq $6, %rdi
   movq %rdi, %rax
   ret
 test.sarLongRegs:
-  movq %rsi, %rcx
+  movl %esi, %ecx
   sarq %cl, %rdi
   movq %rdi, %rax
   ret

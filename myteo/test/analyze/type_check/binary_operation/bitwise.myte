@@ -6,15 +6,12 @@ fun bitwise() {
   (1 & 2 & 3 & 4: Int);
   (1 | 2: Int);
   (1 ^ 2: Int);
-  (1 << 2: Int);
-  (1 >> 2: Int);
-  (1 >>> 2: Int);
 
-  // If only one type is addable error and type expression with that type
+  // If only one type is int error and type expression with that type
   (1 & true: Int);
   (true & "a": String);
 
-  // If both types are addable but incompatible error and type expression with
+  // If both types are ints but incompatible error and type expression with
   // left hand type.
   val i: Int = 1;
   val b: Byte = 2;
