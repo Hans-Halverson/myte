@@ -1,0 +1,60 @@
+module test
+
+import std.test.assertEqual
+
+fun xorBytes(x: Byte, y: Byte): Byte = x ^ y
+fun xorInts(x: Int, y: Int): Int = x ^ y
+fun xorLongs(x: Long, y: Long): Long = x ^ y
+
+fun testXorBytes() {
+  assertEqual(xorBytes(0b00000000, 0b00000000), 0b00000000);
+  assertEqual(xorBytes(0b01010101, 0b00000000), 0b01010101);
+  assertEqual(xorBytes(0b00000000, 0b01010101), 0b01010101);
+  assertEqual(xorBytes(-1, 0b01010101), -86);
+  assertEqual(xorBytes(0b01010101, -1), -86);
+  assertEqual(xorBytes(-1, -1), 0b00000000);
+  assertEqual(xorBytes(0b01010101, 0b01010101), 0b00000000);
+  assertEqual(xorBytes(0b01010101, 0b00110011), 0b01100110);
+}
+
+fun testXorInts() {
+  assertEqual(xorInts(0x00000000, 0x00000000), 0x00000000);
+  assertEqual(xorInts(0x0F0F0F0F, 0x00000000), 0x0F0F0F0F);
+  assertEqual(xorInts(0x00000000, 0x0F0F0F0F), 0x0F0F0F0F);
+  assertEqual(xorInts(-1, 0x0F0F0F0F), -252645136);
+  assertEqual(xorInts(0x0F0F0F0F, -1), -252645136);
+  assertEqual(xorInts(-1, -1), 0x00000000);
+  assertEqual(xorInts(0x0F0F0F0F, 0x0F0F0F0F), 0x00000000);
+  assertEqual(xorInts(0x0F0F0F0F, 0x00FF00FF), 0x0FF00FF0);
+}
+
+fun testXorLongs() {
+  assertEqual(xorLongs(0x0000000000000000, 0x0000000000000000), 0x0000000000000000);
+  assertEqual(xorLongs(0x0F0F0F0F0F0F0F0F, 0x0000000000000000), 0x0F0F0F0F0F0F0F0F);
+  assertEqual(xorLongs(0x0000000000000000, 0x0F0F0F0F0F0F0F0F), 0x0F0F0F0F0F0F0F0F);
+  assertEqual(xorLongs(-1, 0x0F0F0F0F0F0F0F0F), -1085102592571150096);
+  assertEqual(xorLongs(0x0F0F0F0F0F0F0F0F, -1), -1085102592571150096);
+  assertEqual(xorLongs(-1, -1), 0x0000000000000000);
+  assertEqual(xorLongs(0x0F0F0F0F0F0F0F0F, 0x0F0F0F0F0F0F0F0F), 0x0000000000000000);
+  assertEqual(xorLongs(0x0F0F0F0F0F0F0F0F, 0x00FF00FF00FF00FF), 0x0FF00FF00FF00FF0);
+}
+
+fun intBitPattern(): Int = 0x0F0F0F0F
+fun longBitPattern(): Long = 0x0F0F0F0F0F0F0F0F
+
+fun testXorConstant() {
+  // Constant ints
+  assertEqual(0x00FF00FF ^ intBitPattern(), 0x0FF00FF0);
+  assertEqual(intBitPattern() ^ 0x00FF00FF, 0x0FF00FF0);
+
+  // Constant longs
+  assertEqual(0x00FF00FF00FF00FF ^ longBitPattern(), 0x0FF00FF00FF00FF0);
+  assertEqual(longBitPattern() ^ 0x00FF00FF00FF00FF, 0x0FF00FF00FF00FF0);
+}
+
+fun main() {
+  testXorBytes();
+  testXorInts();
+  testXorLongs();
+  testXorConstant();
+}

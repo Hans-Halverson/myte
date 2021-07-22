@@ -1,0 +1,60 @@
+module test
+
+import std.test.assertEqual
+
+fun orBytes(x: Byte, y: Byte): Byte = x | y
+fun orInts(x: Int, y: Int): Int = x | y
+fun orLongs(x: Long, y: Long): Long = x | y
+
+fun testOrBytes() {
+  assertEqual(orBytes(0b00000000, 0b00000000), 0b00000000);
+  assertEqual(orBytes(0b01010101, 0b00000000), 0b01010101);
+  assertEqual(orBytes(0b00000000, 0b01010101), 0b01010101);
+  assertEqual(orBytes(-1, 0b01010101), -1);
+  assertEqual(orBytes(0b01010101, -1), -1);
+  assertEqual(orBytes(-1, -1), -1);
+  assertEqual(orBytes(0b01010101, 0b01010101), 0b01010101);
+  assertEqual(orBytes(0b01010101, 0b00110011), 0b01110111);
+}
+
+fun testOrInts() {
+  assertEqual(orInts(0x00000000, 0x00000000), 0x00000000);
+  assertEqual(orInts(0x0F0F0F0F, 0x00000000), 0x0F0F0F0F);
+  assertEqual(orInts(0x00000000, 0x0F0F0F0F), 0x0F0F0F0F);
+  assertEqual(orInts(-1, 0x0F0F0F0F), -1);
+  assertEqual(orInts(0x0F0F0F0F, -1), -1);
+  assertEqual(orInts(-1, -1), -1);
+  assertEqual(orInts(0x0F0F0F0F, 0x0F0F0F0F), 0x0F0F0F0F);
+  assertEqual(orInts(0x0F0F0F0F, 0x00FF00FF), 0x0FFF0FFF);
+}
+
+fun testOrLongs() {
+  assertEqual(orLongs(0x0000000000000000, 0x0000000000000000), 0x0000000000000000);
+  assertEqual(orLongs(0x0F0F0F0F0F0F0F0F, 0x0000000000000000), 0x0F0F0F0F0F0F0F0F);
+  assertEqual(orLongs(0x0000000000000000, 0x0F0F0F0F0F0F0F0F), 0x0F0F0F0F0F0F0F0F);
+  assertEqual(orLongs(-1, 0x0F0F0F0F0F0F0F0F), -1);
+  assertEqual(orLongs(0x0F0F0F0F0F0F0F0F, -1), -1);
+  assertEqual(orLongs(-1, -1), -1);
+  assertEqual(orLongs(0x0F0F0F0F0F0F0F0F, 0x0F0F0F0F0F0F0F0F), 0x0F0F0F0F0F0F0F0F);
+  assertEqual(orLongs(0x0F0F0F0F0F0F0F0F, 0x00FF00FF00FF00FF), 0x0FFF0FFF0FFF0FFF);
+}
+
+fun intBitPattern(): Int = 0x0F0F0F0F
+fun longBitPattern(): Long = 0x0F0F0F0F0F0F0F0F
+
+fun testOrConstant() {
+  // Constant ints
+  assertEqual(0x00FF00FF | intBitPattern(), 0x0FFF0FFF);
+  assertEqual(intBitPattern() | 0x00FF00FF, 0x0FFF0FFF);
+
+  // Constant longs
+  assertEqual(0x00FF00FF00FF00FF | longBitPattern(), 0x0FFF0FFF0FFF0FFF);
+  assertEqual(longBitPattern() | 0x00FF00FF00FF00FF, 0x0FFF0FFF0FFF0FFF);
+}
+
+fun main() {
+  testOrBytes();
+  testOrInts();
+  testOrLongs();
+  testOrConstant();
+}

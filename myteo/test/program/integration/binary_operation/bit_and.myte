@@ -1,0 +1,60 @@
+module test
+
+import std.test.assertEqual
+
+fun andBytes(x: Byte, y: Byte): Byte = x & y
+fun andInts(x: Int, y: Int): Int = x & y
+fun andLongs(x: Long, y: Long): Long = x & y
+
+fun testAndBytes() {
+  assertEqual(andBytes(0b00000000, 0b00000000), 0b00000000);
+  assertEqual(andBytes(0b01010101, 0b00000000), 0b00000000);
+  assertEqual(andBytes(0b00000000, 0b01010101), 0b00000000);
+  assertEqual(andBytes(-1, 0b01010101), 0b01010101);
+  assertEqual(andBytes(0b01010101, -1), 0b01010101);
+  assertEqual(andBytes(-1, -1), -1);
+  assertEqual(andBytes(0b01010101, 0b01010101), 0b01010101);
+  assertEqual(andBytes(0b01010101, 0b00110011), 0b00010001);
+}
+
+fun testAndInts() {
+  assertEqual(andInts(0x00000000, 0x00000000), 0x00000000);
+  assertEqual(andInts(0x0F0F0F0F, 0x00000000), 0x00000000);
+  assertEqual(andInts(0x00000000, 0x0F0F0F0F), 0x00000000);
+  assertEqual(andInts(-1, 0x0F0F0F0F), 0x0F0F0F0F);
+  assertEqual(andInts(0x0F0F0F0F, -1), 0x0F0F0F0F);
+  assertEqual(andInts(-1, -1), -1);
+  assertEqual(andInts(0x0F0F0F0F, 0x0F0F0F0F), 0x0F0F0F0F);
+  assertEqual(andInts(0x0F0F0F0F, 0x00FF00FF), 0x000F000F);
+}
+
+fun testAndLongs() {
+  assertEqual(andLongs(0x0000000000000000, 0x0000000000000000), 0x0000000000000000);
+  assertEqual(andLongs(0x0F0F0F0F0F0F0F0F, 0x0000000000000000), 0x0000000000000000);
+  assertEqual(andLongs(0x0000000000000000, 0x0F0F0F0F0F0F0F0F), 0x0000000000000000);
+  assertEqual(andLongs(-1, 0x0F0F0F0F0F0F0F0F), 0x0F0F0F0F0F0F0F0F);
+  assertEqual(andLongs(0x0F0F0F0F0F0F0F0F, -1), 0x0F0F0F0F0F0F0F0F);
+  assertEqual(andLongs(-1, -1), -1);
+  assertEqual(andLongs(0x0F0F0F0F0F0F0F0F, 0x0F0F0F0F0F0F0F0F), 0x0F0F0F0F0F0F0F0F);
+  assertEqual(andLongs(0x0F0F0F0F0F0F0F0F, 0x00FF00FF00FF00FF), 0x000F000F000F000F);
+}
+
+fun intBitPattern(): Int = 0x0F0F0F0F
+fun longBitPattern(): Long = 0x0F0F0F0F0F0F0F0F
+
+fun testAndConstant() {
+  // Constant ints
+  assertEqual(0x00FF00FF & intBitPattern(), 0x000F000F);
+  assertEqual(intBitPattern() & 0x00FF00FF, 0x000F000F);
+
+  // Constant longs
+  assertEqual(0x00FF00FF00FF00FF & longBitPattern(), 0x000F000F000F000F);
+  assertEqual(longBitPattern() & 0x00FF00FF00FF00FF, 0x000F000F000F000F);
+}
+
+fun main() {
+  testAndBytes();
+  testAndInts();
+  testAndLongs();
+  testAndConstant();
+}
