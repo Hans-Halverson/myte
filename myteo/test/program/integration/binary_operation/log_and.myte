@@ -1,0 +1,50 @@
+module test
+
+import std.io.println
+import std.test.assertEqual
+
+fun and(x: Bool, y: Bool): Bool = x && y
+
+fun testAnd() {
+  assertEqual(and(true, true), true);
+  assertEqual(and(true, false), false);
+  assertEqual(and(false, true), false);
+  assertEqual(and(false, false), false);
+}
+
+fun getTrue(): Bool = true
+fun getFalse(): Bool = false
+
+fun testAndConstant() {
+  assertEqual(getTrue() && true, true);
+  assertEqual(getFalse() && true, false);
+  assertEqual(getTrue() && false, false);
+  assertEqual(getFalse() && false, false);
+
+  assertEqual(true && getTrue(), true);
+  assertEqual(true && getFalse(), false);
+  assertEqual(false && getTrue(), false);
+  assertEqual(false && getFalse(), false);
+}
+
+fun shouldBeCalled(): Bool {
+  println("SUCCESS: Has been called");
+  return true;
+}
+
+fun shouldNotBeCalled(): Bool {
+  println("ERROR: Should not be called");
+  return true;
+}
+
+fun testShortCircuit() {
+  println("Should be called exactly once:");
+  true && shouldBeCalled();
+  false && shouldNotBeCalled();
+}
+
+fun main() {
+  testAnd();
+  testAndConstant();
+  testShortCircuit();
+}

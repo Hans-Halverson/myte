@@ -1,0 +1,50 @@
+module test
+
+import std.io.println
+import std.test.assertEqual
+
+fun or(x: Bool, y: Bool): Bool = x || y
+
+fun testOr() {
+  assertEqual(or(true, true), true);
+  assertEqual(or(true, false), true);
+  assertEqual(or(false, true), true);
+  assertEqual(or(false, false), false);
+}
+
+fun getTrue(): Bool = true
+fun getFalse(): Bool = false
+
+fun testOrConstant() {
+  assertEqual(getTrue() || true, true);
+  assertEqual(getFalse() || true, true);
+  assertEqual(getTrue() || false, true);
+  assertEqual(getFalse() || false, false);
+
+  assertEqual(true || getTrue(), true);
+  assertEqual(true || getFalse(), true);
+  assertEqual(false || getTrue(), true);
+  assertEqual(false || getFalse(), false);
+}
+
+fun shouldBeCalled(): Bool {
+  println("SUCCESS: Has been called");
+  return true;
+}
+
+fun shouldNotBeCalled(): Bool {
+  println("ERROR: Should not be called");
+  return true;
+}
+
+fun testShortCircuit() {
+  println("Should be called exactly once:");
+  true || shouldNotBeCalled();
+  false || shouldBeCalled();
+}
+
+fun main() {
+  testOr();
+  testOrConstant();
+  testShortCircuit();
+}
