@@ -1,0 +1,125 @@
+module test
+
+import std.ops.Equatable
+import std.test.{assertFalse, assertTrue}
+
+fun notEqual<T: Equatable>(x: T, y: T): Bool = x != y
+fun notEqualBytes(x: Byte, y: Byte): Bool = x != y
+fun notEqualInts(x: Int, y: Int): Bool = x != y
+fun notEqualLongs(x: Long, y: Long): Bool = x != y
+
+fun getUnit(): Unit = ()
+fun getTrue(): Bool = true
+fun getFalse(): Bool = false
+fun getByte(): Byte = 1
+fun getInt(): Int = 1
+fun getLong(): Long = 1
+
+fun testNotEqualUnits() {
+  // Not equal
+  assertFalse(notEqual((), ()));
+
+  // Constants
+  assertFalse(() != getUnit());
+  assertFalse(getUnit() != ());
+  assertFalse(() != ());
+}
+
+fun testNotEqualBools() {
+  // Not equal
+  assertFalse(notEqual(true, true));
+  assertFalse(notEqual(false, false));
+
+  // Equal
+  assertTrue(notEqual(true, false));
+  assertTrue(notEqual(false, true));
+
+  // Constants
+  assertFalse(true != getTrue());
+  assertFalse(getFalse() != false);
+  assertFalse(true != true);
+}
+
+fun testNotEqualBytes() {
+  // Not equal
+  assertFalse(notEqualBytes(0, 0));
+  assertFalse(notEqualBytes(99, 99));
+
+  // Equal
+  assertTrue(notEqualBytes(0, 1));
+  assertTrue(notEqualBytes(1, -1));
+
+  // Constants
+  assertFalse(1 != getByte());
+  assertFalse(getByte() != 1);
+  assertFalse(1 != 1);
+}
+
+fun testNotEqualInts() {
+  // Not equal
+  assertFalse(notEqualInts(0, 0));
+  assertFalse(notEqualInts(99, 99));
+
+  // Equal
+  assertTrue(notEqualInts(0, 1));
+  assertTrue(notEqualInts(1, -1));
+
+  // Constants
+  assertFalse(1 != getInt());
+  assertFalse(getInt() != 1);
+  assertFalse(1 != 1);
+}
+
+fun testNotEqualLongs() {
+  // Not equal
+  assertFalse(notEqualLongs(0, 0));
+  assertFalse(notEqualLongs(99, 99));
+
+  // Equal
+  assertTrue(notEqualLongs(0, 1));
+  assertTrue(notEqualLongs(1, -1));
+
+  // Constants
+  assertFalse(1 != getLong());
+  assertFalse(getLong() != 1);
+  assertFalse(1 != 1);
+}
+
+fun testNotEqualStrings() {
+  // Not equal
+  assertFalse("" != "");
+  assertFalse("foo" != "foo");
+  
+  // Equal
+  assertTrue("" != "foo");
+  assertTrue("foo" != "foobar");
+  assertTrue("foobar" != "foo");
+}
+
+type CustomType (Int, Bool)
+methods CustomType {
+  implements Equatable
+
+  override fun equals(other: CustomType): Bool = this[0] == other[0] && this[1] == other[1]
+}
+
+fun testNotEqualCustomType() {
+  // Not equal
+  assertFalse(CustomType (1, true) != CustomType (1, true));
+  assertFalse(CustomType (2, false) != CustomType (2, false));
+
+  // Equal
+  assertTrue(CustomType (1, true) != CustomType (1, false));
+  assertTrue(CustomType (1, true) != CustomType (2, true));
+  assertTrue(CustomType (1, true) != CustomType (2, false));
+}
+
+fun main() {
+  testNotEqualUnits();
+  testNotEqualBools();
+  testNotEqualBytes();
+  testNotEqualInts();
+  testNotEqualLongs();
+  testNotEqualStrings();
+  testNotEqualCustomType();
+}

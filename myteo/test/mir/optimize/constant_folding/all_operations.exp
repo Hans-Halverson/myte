@@ -1,3 +1,15 @@
+func unit @_init() {
+  %0 := Call unit @test.unit()
+  %1 := Call unit @test.unit()
+  %2 := Call unit @test.unit()
+  %3 := Call unit @test.unit()
+  Ret
+}
+
+func unit @test.unit() {
+  Ret ()
+}
+
 global int @test.i0 = -56
 
 global int @test.i1 = 3
@@ -81,6 +93,18 @@ global bool @test.bool0 = false
 global bool @test.bool1 = false
 
 global bool @test.bool2 = true
+
+global bool @test.bool3 = false
+
+global bool @test.bool4 = true
+
+global bool @test.unit1 = true
+
+global bool @test.unit2 = false
+
+global bool @test.unit3 = true
+
+global bool @test.unit4 = false
 
 global int @test.shift1 = 4
 

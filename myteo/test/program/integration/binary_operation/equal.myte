@@ -1,0 +1,137 @@
+module test
+
+import std.byte.{BYTE_MAX, BYTE_MIN}
+import std.int.{INT_MAX, INT_MIN}
+import std.long.{LONG_MAX, LONG_MIN}
+import std.ops.Equatable
+import std.test.{assertFalse, assertTrue}
+
+fun equal<T: Equatable>(x: T, y: T): Bool = x == y
+fun equalBytes(x: Byte, y: Byte): Bool = x == y
+fun equalInts(x: Int, y: Int): Bool = x == y
+fun equalLongs(x: Long, y: Long): Bool = x == y
+
+fun getUnit(): Unit = ()
+fun getTrue(): Bool = true
+fun getFalse(): Bool = false
+fun getByte(): Byte = 1
+fun getInt(): Int = 1
+fun getLong(): Long = 1
+
+fun testEqualUnits() {
+  // Equal
+  assertTrue(equal((), ()));
+
+  // Constants
+  assertTrue(() == getUnit());
+  assertTrue(getUnit() == ());
+  assertTrue(() == ());
+}
+
+fun testEqualBools() {
+  // Equal
+  assertTrue(equal(true, true));
+  assertTrue(equal(false, false));
+
+  // Not equal
+  assertFalse(equal(true, false));
+  assertFalse(equal(false, true));
+
+  // Constants
+  assertTrue(true == getTrue());
+  assertTrue(getFalse() == false);
+  assertTrue(true == true);
+}
+
+fun testEqualBytes() {
+  // Equal
+  assertTrue(equalBytes(0, 0));
+  assertTrue(equalBytes(99, 99));
+  assertTrue(equalBytes(-99, -99));
+  assertTrue(equalBytes(BYTE_MAX, 127));
+  assertTrue(equalBytes(BYTE_MIN, -128));
+
+  // Not equal
+  assertFalse(equalBytes(0, 1));
+  assertFalse(equalBytes(1, -1));
+
+  // Constants
+  assertTrue(1 == getByte());
+  assertTrue(getByte() == 1);
+  assertTrue(1 == 1);
+}
+
+fun testEqualInts() {
+  // Equal
+  assertTrue(equalInts(0, 0));
+  assertTrue(equalInts(99, 99));
+  assertTrue(equalInts(-99, -99));
+  assertTrue(equalInts(INT_MAX, 2147483647));
+  assertTrue(equalInts(INT_MIN, -2147483648));
+
+  // Not equal
+  assertFalse(equalInts(0, 1));
+  assertFalse(equalInts(1, -1));
+
+  // Constants
+  assertTrue(1 == getInt());
+  assertTrue(getInt() == 1);
+  assertTrue(1 == 1);
+}
+
+fun testEqualLongs() {
+  // Equal
+  assertTrue(equalLongs(0, 0));
+  assertTrue(equalLongs(99, 99));
+  assertTrue(equalLongs(-99, -99));
+  assertTrue(equalLongs(LONG_MAX, 9223372036854775807));
+  assertTrue(equalLongs(LONG_MIN, -9223372036854775808));
+
+  // Not equal
+  assertFalse(equalLongs(0, 1));
+  assertFalse(equalLongs(1, -1));
+
+  // Constants
+  assertTrue(1 == getLong());
+  assertTrue(getLong() == 1);
+  assertTrue(1 == 1);
+}
+
+fun testEqualStrings() {
+  // Equal
+  assertTrue("" == "");
+  assertTrue("foo" == "foo");
+  
+  // Not equal
+  assertFalse("" == "foo");
+  assertFalse("foo" == "foobar");
+  assertFalse("foobar" == "foo");
+}
+
+type CustomType (Int, Bool)
+methods CustomType {
+  implements Equatable
+
+  override fun equals(other: CustomType): Bool = this[0] == other[0] && this[1] == other[1]
+}
+
+fun testEqualCustomType() {
+  // Equal
+  assertTrue(CustomType (1, true) == CustomType (1, true));
+  assertTrue(CustomType (2, false) == CustomType (2, false));
+
+  // Not equal
+  assertFalse(CustomType (1, true) == CustomType (1, false));
+  assertFalse(CustomType (1, true) == CustomType (2, true));
+  assertFalse(CustomType (1, true) == CustomType (2, false));
+}
+
+fun main() {
+  testEqualUnits();
+  testEqualBools();
+  testEqualBytes();
+  testEqualInts();
+  testEqualLongs();
+  testEqualStrings();
+  testEqualCustomType();
+}

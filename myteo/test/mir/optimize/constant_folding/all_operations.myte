@@ -1,5 +1,7 @@
 module test
 
+fun unit(): Unit = ()
+
 // Int
 
 val i0: Int = -(56)
@@ -59,6 +61,14 @@ val bool0: Bool = !true
 
 val bool1: Bool = true && false
 val bool2: Bool = true || false
+val bool3: Bool = true == false
+val bool4: Bool = true != false
+
+// Units
+val unit1: Bool = () == ()
+val unit2: Bool = () != ()
+val unit3: Bool = unit() == unit()
+val unit4: Bool = unit() != unit()
 
 // Shifts only use lowest byte of right hand side
 val shift1: Int = 1 << 258

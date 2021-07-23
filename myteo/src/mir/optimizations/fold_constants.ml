@@ -112,6 +112,8 @@ let fold_numeric_constants op x y =
 
 let fold_constants_compare x y =
   match (x, y) with
+  | (UnitConstant, UnitConstant) -> 0
+  | (BoolConstant x, BoolConstant y) -> Bool.compare x y
   | (ByteConstant x, ByteConstant y) -> Int.compare x y
   | (IntConstant x, IntConstant y) -> Int32.compare x y
   | (LongConstant x, LongConstant y) -> Int64.compare x y
@@ -307,7 +309,7 @@ class calc_constants_visitor ~ocx =
           get_numeric_lit_opt value
         | (`BoolL _ | `BoolV _) as value -> get_bool_lit_opt value
         | `UnitL
-        | `UnitV _
+        | `UnitV _ -> Some UnitConstant
         | `PointerL _
         | `PointerV _ ->
           None

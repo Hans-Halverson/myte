@@ -1,10 +1,29 @@
 module std.test
 
+import std.bool.Bool
 import std.ops.Equatable
 import std.sys.exit
 
 fun assertEqual<T: Equatable>(actual: T, expected: T) {
   if (actual != expected) {
+    exit(1);
+  }
+}
+
+fun assertNotEqual<T: Equatable>(actual: T, expected: T) {
+  if (actual == expected) {
+    exit(1);
+  }
+}
+
+fun assertTrue(expr: Bool) {
+  if (!expr) {
+    exit(1);
+  }
+}
+
+fun assertFalse(expr: Bool) {
+  if (expr) {
     exit(1);
   }
 }

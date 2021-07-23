@@ -496,19 +496,13 @@ test.testCompareRegisterRegister:
   movb $1, %al
   ret
 test.testCompareUnitImmReg:
-  xorl %eax, %eax
-  cmpb $0, %dil
-  sete %al
+  movb $1, %al
   ret
 test.testCompareUnitRegImm:
-  xorl %eax, %eax
-  cmpb $0, %dil
-  sete %al
+  movb $1, %al
   ret
 test.testCompareUnitRegs:
-  xorl %eax, %eax
-  cmpb %sil, %dil
-  sete %al
+  movb $1, %al
   ret
 _start:
   call __myte_init
