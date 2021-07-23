@@ -316,8 +316,7 @@ and emit_expression ~ecx expr =
     (* Emit right hand side when lhs is true and continue to join block *)
     Ecx.set_block_builder ~ecx rhs_builder;
     let right_val = emit_expression ~ecx right in
-    let right_var_id = mk_cf_var_id () in
-    Ecx.emit ~ecx (Mov (right_var_id, right_val));
+    let right_var_id = emit_var_of_value ~ecx right_val in
     let rhs_end_block_id = Ecx.get_block_builder_id_throws ~ecx in
     Ecx.finish_block_continue ~ecx join_builder.id;
     (* Emit false literal when lhs is false and continue to join block *)
@@ -349,8 +348,7 @@ and emit_expression ~ecx expr =
     (* Emit right hand side when lhs is false and continue to join block *)
     Ecx.set_block_builder ~ecx rhs_builder;
     let right_val = emit_expression ~ecx right in
-    let right_var_id = mk_cf_var_id () in
-    Ecx.emit ~ecx (Mov (right_var_id, right_val));
+    let right_var_id = emit_var_of_value ~ecx right_val in
     let rhs_end_block_id = Ecx.get_block_builder_id_throws ~ecx in
     Ecx.finish_block_continue ~ecx join_builder.id;
     (* Emit true literal when lhs is true and continue to join block *)
@@ -637,7 +635,43 @@ and emit_expression ~ecx expr =
              ~ret_type:`UnitT))
       rest_parts;
     first_part_val
-  | Ternary _ -> failwith "TODO: Emit MIR for ternary expressions"
+  (*
+   * ============================
+   *     Ternary Expression
+   * ============================
+   *)
+  | Ternary { loc; test; conseq; altern } ->
+    let var_id = mk_cf_var_id () in
+    let mir_type = mir_type_of_loc ~ecx loc in
+    (* Branch to conseq or altern blocks *)
+    let test_val = emit_bool_expression ~ecx test in
+    let conseq_builder = Ecx.mk_block_builder ~ecx in
+    let altern_builder = Ecx.mk_block_builder ~ecx in
+    let join_builder = Ecx.mk_block_builder ~ecx in
+    Ecx.finish_block_branch ~ecx test_val conseq_builder.id altern_builder.id;
+    (* Emit conseq and continue to join block *)
+    Ecx.set_block_builder ~ecx conseq_builder;
+    let conseq_val = emit_expression ~ecx conseq in
+    let conseq_var_id = emit_var_of_value ~ecx conseq_val in
+    let conseq_end_block_id = Ecx.get_block_builder_id_throws ~ecx in
+    Ecx.finish_block_continue ~ecx join_builder.id;
+    (* Emit altern and continue to join block *)
+    Ecx.set_block_builder ~ecx altern_builder;
+    let altern_val = emit_expression ~ecx altern in
+    let altern_var_id = emit_var_of_value ~ecx altern_val in
+    let altern_end_block_id = Ecx.get_block_builder_id_throws ~ecx in
+    Ecx.finish_block_continue ~ecx join_builder.id;
+    (* Join branches together and emit explicit phi *)
+    Ecx.set_block_builder ~ecx join_builder;
+    Ecx.emit_phi
+      ~ecx
+      mir_type
+      var_id
+      (IMap.add
+         conseq_end_block_id
+         conseq_var_id
+         (IMap.singleton altern_end_block_id altern_var_id));
+    var_value_of_type var_id mir_type
   | Match _ -> failwith "TODO: Emir MIR for match expressions"
   | Super _ -> failwith "TODO: Emit MIR for super expressions"
 
@@ -1134,6 +1168,32 @@ and emit_statement ~ecx stmt =
     Ecx.emit ~ecx (Mov (mk_cf_local loc, init_val))
   | Match _ -> failwith "TODO: Emit MIR for match statements"
   | FunctionDeclaration _ -> failwith "TODO: Emit MIR for non-toplevel function declarations"
+
+(* Return a variable id for the given value. Variables return their id directly, while literal
+   values must first emit a Mov to a variablem then return the new variable id. *)
+and emit_var_of_value ~ecx (value : cf_value) : cf_var =
+  match value with
+  | `UnitV var_id
+  | `BoolV var_id
+  | `ByteV var_id
+  | `IntV var_id
+  | `LongV var_id
+  | `FunctionV var_id
+  | `PointerV (_, var_id)
+  | `AggregateV (_, var_id)
+  | `ArrayV (_, _, var_id) ->
+    var_id
+  | `UnitL
+  | `BoolL _
+  | `ByteL _
+  | `IntL _
+  | `LongL _
+  | `FunctionL _
+  | `PointerL _
+  | `ArrayL _ ->
+    let var_id = mk_cf_var_id () in
+    Ecx.emit ~ecx (Mov (var_id, value));
+    var_id
 
 and mk_cf_var_id () = Id (mk_var_id ())
 

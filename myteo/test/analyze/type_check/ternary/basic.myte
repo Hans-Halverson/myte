@@ -1,0 +1,27 @@
+module test
+
+fun testIsBool<T>(x: T) {
+  true ? 1 : 2;
+  
+  // Intentional failure
+  x ? 1 : 2;
+}
+
+fun testSameBranchType<T>(x: T, y: T) {
+  true ? 1 : 2;
+  true ? "foo": "bar";
+  true ? (1, 2) : (3, 4);
+  true ? x : y;
+}
+
+fun testDifferentBranchTypes<T, U>(x: T, y: U) {
+  true ? 1 : "string";
+  true ? x : y;
+  true ? (1, 2) : (1, 2, 3);
+
+  // Expression takes type of consequent in case of conflict
+  (true ? 1 : "string": Int);
+  (true ? 1 : "string": String);
+}
+
+fun main() {}

@@ -1,0 +1,66 @@
+  .global _start
+
+  .text
+test.bool:
+  movb $1, %al
+  ret
+_main:
+  movl $0, %eax
+  ret
+test.testNestedTernary:
+  call test.bool
+  testb %al, %al
+  je .L2
+  call test.bool
+  testb %al, %al
+  je .L0
+  movl $1, %eax
+  jmp .L1
+.L0:
+  movl $2, %eax
+.L1:
+  jmp .L5
+.L2:
+  call test.bool
+  testb %al, %al
+  je .L3
+  movl $3, %eax
+  jmp .L4
+.L3:
+  movl $4, %eax
+.L4:
+.L5:
+  ret
+test.testSimpleTernary:
+  call test.bool
+  testb %al, %al
+  je .L6
+  movl $1, %eax
+  jmp .L7
+.L6:
+  movl $2, %eax
+.L7:
+  ret
+test.testTernaryWithExpressions:
+  push %rbx
+  push %r12
+  movl %edi, %r12d
+  movl %esi, %ebx
+  call test.bool
+  testb %al, %al
+  je .L8
+  addl %r12d, %ebx
+  jmp .L9
+.L8:
+  imull %r12d, %ebx
+  addl %ebx, %r12d
+  movl %r12d, %ebx
+.L9:
+  movl %ebx, %eax
+  pop %r12
+  pop %rbx
+  ret
+_start:
+  call __myte_init
+  call _main
+  ret

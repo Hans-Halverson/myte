@@ -1,0 +1,13 @@
+module test
+
+fun bool(): Bool = true
+
+fun testSimpleTernary(): Int = bool() ? 1 : 2
+
+fun testTernaryWithExpressions(x: Int, y: Int): Int = bool() ? x + y : x * y + x
+
+fun testNestedTernary(): Int {
+  return bool() ? (bool() ? 1 : 2) : (bool() ? 3 : 4);
+}
+
+fun main() {}

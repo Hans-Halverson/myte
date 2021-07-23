@@ -1,0 +1,68 @@
+func bool @test.bool() {
+  Ret true
+}
+
+func int @test.testSimpleTernary() {
+  %0 := Call bool @test.bool()
+  branch %0, @0, @1
+label @0:
+  %1 := Mov int 1
+  continue @2
+label @1:
+  %2 := Mov int 2
+  continue @2
+label @2:
+  %3 := Phi int @0:%1, @1:%2
+  Ret %3
+}
+
+func int @test.testTernaryWithExpressions(int %4, int %5) {
+  %6 := Call bool @test.bool()
+  branch %6, @3, @4
+label @3:
+  %7 := Add int %4, %5
+  continue @5
+label @4:
+  %8 := Mul int %4, %5
+  %9 := Add int %8, %4
+  continue @5
+label @5:
+  %10 := Phi int @3:%7, @4:%9
+  Ret %10
+}
+
+func int @test.testNestedTernary() {
+  %11 := Call bool @test.bool()
+  branch %11, @6, @10
+label @6:
+  %12 := Call bool @test.bool()
+  branch %12, @7, @8
+label @7:
+  %13 := Mov int 1
+  continue @9
+label @8:
+  %14 := Mov int 2
+  continue @9
+label @9:
+  %15 := Phi int @7:%13, @8:%14
+  continue @14
+label @10:
+  %16 := Call bool @test.bool()
+  branch %16, @11, @12
+label @11:
+  %17 := Mov int 3
+  continue @13
+label @12:
+  %18 := Mov int 4
+  continue @13
+label @13:
+  %19 := Phi int @11:%17, @12:%18
+  continue @14
+label @14:
+  %20 := Phi int @9:%15, @13:%19
+  Ret %20
+}
+
+func int @test.main() {
+  Ret 0
+}

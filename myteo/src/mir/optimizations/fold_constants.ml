@@ -309,7 +309,8 @@ class calc_constants_visitor ~ocx =
           get_numeric_lit_opt value
         | (`BoolL _ | `BoolV _) as value -> get_bool_lit_opt value
         | `UnitL
-        | `UnitV _ -> Some UnitConstant
+        | `UnitV _ ->
+          Some UnitConstant
         | `PointerL _
         | `PointerV _ ->
           None

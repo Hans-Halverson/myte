@@ -1,0 +1,31 @@
+module test
+
+import std.test.assertEqual
+
+fun getTrue(): Bool = true
+fun getFalse(): Bool = false
+
+fun testSimpleTernary() {
+  assertEqual(getTrue() ? 1 : 2, 1);
+  assertEqual(getFalse() ? 1 : 2, 2);
+}
+
+fun ternaryWithExpressions(test: Bool, x: Int, y: Int): Int = test ? x + y : x * y + x
+fun testTernaryWithExpressions() {
+  assertEqual(ternaryWithExpressions(true, 2, 3), 5);
+  assertEqual(ternaryWithExpressions(false, 2, 3), 8);
+}
+
+fun nestedTernary(t1: Bool, t2: Bool): Int = t1 ? (t2 ? 1 : 2) : (t2 ? 3 : 4)
+fun testNestedTernary() {
+  assertEqual(nestedTernary(true, true), 1);
+  assertEqual(nestedTernary(true, false), 2);
+  assertEqual(nestedTernary(false, true), 3);
+  assertEqual(nestedTernary(false, false), 4);
+}
+
+fun main() {
+  testSimpleTernary();
+  testTernaryWithExpressions();
+  testNestedTernary();
+}

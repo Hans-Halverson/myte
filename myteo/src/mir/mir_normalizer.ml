@@ -5,15 +5,17 @@ module Ocx = Mir_optimize_context
 
 class var_gatherer ~program =
   object
-    inherit [var_id] IRVisitor.t ~program
+    inherit [var_id] IRVisitor.t ~program as super
 
     val mutable vars : ISet.t = ISet.empty
 
     method vars = vars
 
-    method! visit_result_variable ~block:_ var_id = vars <- ISet.add var_id vars
+    method! visit_function func =
+      List.iter (fun (_, param_var_id, _) -> vars <- ISet.add param_var_id vars) func.params;
+      super#visit_function func
 
-    method! visit_phi_node ~block:_ (_, var_id, _) = vars <- ISet.add var_id vars
+    method! visit_result_variable ~block:_ var_id = vars <- ISet.add var_id vars
   end
 
 let rec normalize ~ocx =
