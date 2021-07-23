@@ -1,0 +1,111 @@
+module test
+
+import std.test.assertEqual
+
+fun shiftByte(x: Byte, y: Byte): Byte = x >>> y
+fun shiftInt(x: Int, y: Int): Int = x >>> y
+fun shiftLong(x: Long, y: Long): Long = x >>> y
+
+fun shiftByteInt(x: Byte, y: Int): Byte = x >>> y
+fun shiftByteLong(x: Byte, y: Long): Byte = x >>> y
+fun shiftIntByte(x: Int, y: Byte): Int = x >>> y
+fun shiftIntLong(x: Int, y: Long): Int = x >>> y
+fun shiftLongByte(x: Long, y: Byte): Long = x >>> y
+fun shiftLongInt(x: Long, y: Int): Long = x >>> y
+
+fun testShiftBytes() {
+  assertEqual(shiftByte(0, 0), 0);
+  assertEqual(shiftByte(34, 0), 34);
+  assertEqual(shiftByte(-34, 0), -34);
+
+  // Shift positive numbers
+  assertEqual(shiftByte(0b00101111, 1), 0b10111);
+  assertEqual(shiftByte(0b00101111, 4), 0b10);
+  assertEqual(shiftByte(0b00101111, 5), 0b1);
+  assertEqual(shiftByte(0b00101111, 6), 0);
+
+  // Shift negative numbers
+  assertEqual(shiftByte(-81 /* 0b10101111 */, 1), 0b01010111);
+  assertEqual(shiftByte(-81 /* 0b10101111 */, 4), 0b00001010);
+  assertEqual(shiftByte(-81 /* 0b10101111 */, 5), 0b00000101);
+  assertEqual(shiftByte(-81 /* 0b10101111 */, 6), 0b00000010);
+
+  // Overflow of shift
+  assertEqual(shiftByte(0b111, 32), 0b111);
+  assertEqual(shiftByte(0b111, 33), 0b11);
+}
+
+fun testShiftInts() {
+  assertEqual(shiftInt(0, 0), 0);
+  assertEqual(shiftInt(34, 0), 34);
+  assertEqual(shiftInt(-34, 0), -34);
+
+  // Shift positive numbers
+  assertEqual(shiftInt(0b00101111, 1), 0b10111);
+  assertEqual(shiftInt(0b00101111, 4), 0b10);
+  assertEqual(shiftInt(0b00101111, 5), 0b1);
+  assertEqual(shiftInt(0b00101111, 6), 0);
+
+  // Shift negative numbers
+  assertEqual(shiftInt(-81 /* 0b[1x24]10101111 */, 1), 0b01111111111111111111111111010111);
+  assertEqual(shiftInt(-81 /* 0b[1x24]10101111 */, 4), 0b00001111111111111111111111111010);
+  assertEqual(shiftInt(-81 /* 0b[1x24]10101111 */, 5), 0b00000111111111111111111111111101);
+  assertEqual(shiftInt(-81 /* 0b[1x24]10101111 */, 6), 0b00000011111111111111111111111110);
+
+  // Overflow of shift
+  assertEqual(shiftInt(0b111, 32), 0b111);
+  assertEqual(shiftInt(0b111, 33), 0b11);
+}
+
+fun testShiftLongs() {
+  assertEqual(shiftLong(0, 0), 0);
+  assertEqual(shiftLong(34, 0), 34);
+  assertEqual(shiftLong(-34, 0), -34);
+
+  // Shift positive numbers
+  assertEqual(shiftLong(0b00101111, 1), 0b10111);
+  assertEqual(shiftLong(0b00101111, 4), 0b10);
+  assertEqual(shiftLong(0b00101111, 5), 0b1);
+  assertEqual(shiftLong(0b00101111, 6), 0);
+
+  // Shift negative numbers
+  assertEqual(shiftLong(-81 /* 0b[1x24]10101111 */, 1), 0x7FFFFFFFFFFFFFD7);
+  assertEqual(shiftLong(-81 /* 0b[1x24]10101111 */, 4), 0x0FFFFFFFFFFFFFFA);
+  assertEqual(shiftLong(-81 /* 0b[1x24]10101111 */, 5), 0x07FFFFFFFFFFFFFD);
+  assertEqual(shiftLong(-81 /* 0b[1x24]10101111 */, 6), 0x03FFFFFFFFFFFFFE);
+
+  // Overflow of shift
+  assertEqual(shiftLong(0b111, 64), 0b111);
+  assertEqual(shiftLong(0b111, 65), 0b11);
+}
+
+fun testShiftMixedTypes() {
+  assertEqual(shiftByteInt(0b101101, 3), 0b101);
+  assertEqual(shiftByteLong(0b101101, 3), 0b101);
+  assertEqual(shiftIntByte(0b101101, 3), 0b101);
+  assertEqual(shiftIntLong(0b101101, 3), 0b101);
+  assertEqual(shiftLongByte(0b101101, 3), 0b101);
+  assertEqual(shiftLongInt(0b101101, 3), 0b101);
+}
+
+fun int(): Int = 0b111
+
+fun long(): Long = 0b111
+
+fun testShiftConstant() {
+  // Test int constants
+  assertEqual(int() >>> 2, 1);
+  assertEqual(0b1100110011 >>> int(), 0b110);
+
+  // Test long constants
+  assertEqual(long() >>> 2, 1);
+  assertEqual(0b1100110011 >>> long(), 0b110);
+}
+
+fun main() {
+  testShiftBytes();
+  testShiftInts();
+  testShiftLongs();
+  testShiftMixedTypes();
+  testShiftConstant();
+}

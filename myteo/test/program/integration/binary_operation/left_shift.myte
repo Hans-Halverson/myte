@@ -1,9 +1,89 @@
 module test
 
+import std.test.assertEqual
+
 fun shiftByte(x: Byte, y: Byte): Byte = x << y
+fun shiftInt(x: Int, y: Int): Int = x << y
+fun shiftLong(x: Long, y: Long): Long = x << y
+
+fun shiftByteInt(x: Byte, y: Int): Byte = x << y
+fun shiftByteLong(x: Byte, y: Long): Byte = x << y
+fun shiftIntByte(x: Int, y: Byte): Int = x << y
+fun shiftIntLong(x: Int, y: Long): Int = x << y
+fun shiftLongByte(x: Long, y: Byte): Long = x << y
+fun shiftLongInt(x: Long, y: Int): Long = x << y
 
 fun testShiftBytes() {
+  assertEqual(shiftByte(0, 0), 0);
+  assertEqual(shiftByte(34, 0), 34);
+  assertEqual(shiftByte(0b101, 5), -96); // 0b10100000
 
+  // Overflow
+  assertEqual(shiftByte(0b111, 6), -64); // 0b11000000
+  assertEqual(shiftByte(0b111, 7), -128); // 0b10000000
+  assertEqual(shiftByte(0b111, 8), 0);
+  assertEqual(shiftByte(0b111, 31), 0);
+
+  // Overflow of shift
+  assertEqual(shiftByte(0b111, 32), 0b111);
+  assertEqual(shiftByte(0b111, 33), 0b1110);
 }
 
-fun main() {}
+fun testShiftInts() {
+  assertEqual(shiftInt(0, 0), 0);
+  assertEqual(shiftInt(34, 0), 34);
+  assertEqual(shiftInt(0b101, 7), 0b1010000000);
+
+  // Overflow
+  assertEqual(shiftInt(0b111, 30), -1073741824); // 0b1100...
+  assertEqual(shiftInt(0b111, 31), -2147483648); // 0b1000...
+
+  // Overflow of shift
+  assertEqual(shiftInt(0b111, 32), 0b111);
+  assertEqual(shiftInt(0b111, 33), 0b1110);
+}
+
+fun testShiftLongs() {
+  assertEqual(shiftLong(0, 0), 0);
+  assertEqual(shiftLong(34, 0), 34);
+  assertEqual(shiftLong(0b101, 7), 0b1010000000);
+
+  // Overflow
+  assertEqual(shiftLong(0b111, 62), -4611686018427387904); // 0b1100...
+  assertEqual(shiftLong(0b111, 63), -9223372036854775808); // 0b1000...
+
+  // Overflow of shift
+  assertEqual(shiftLong(0b111, 64), 0b111);
+  assertEqual(shiftLong(0b111, 65), 0b1110);
+}
+
+fun testShiftMixedTypes() {
+  assertEqual(shiftByteInt(0b101, 3), 0b101000);
+  assertEqual(shiftByteLong(0b101, 3), 0b101000);
+  assertEqual(shiftIntByte(0b101, 3), 0b101000);
+  assertEqual(shiftIntLong(0b101, 3), 0b101000);
+  assertEqual(shiftLongByte(0b101, 3), 0b101000);
+  assertEqual(shiftLongInt(0b101, 3), 0b101000);
+}
+
+fun int(): Int = 0b111
+
+fun long(): Long = 0b111
+
+fun testShiftConstant() {
+  // Test int constants
+  assertEqual(int() << 2, 0b11100);
+  assertEqual(0b101 << int(), 0b1010000000);
+
+  // Test long constants
+  assertEqual(long() << 2, 0b11100);
+  assertEqual(0b101 << long(), 0b1010000000);
+}
+
+fun main() {
+  testShiftBytes();
+  testShiftInts();
+  testShiftLongs();
+  testShiftMixedTypes();
+  testShiftConstant();
+}
