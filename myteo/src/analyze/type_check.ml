@@ -85,6 +85,8 @@ let rec build_type ~cx ?(implicit_type_params = None) ty =
             implicit_type_params := (type_param, loc) :: !implicit_type_params;
             Type.TypeParam type_param)))
 
+(* Build type parameters for all types, alias, and traits. Type parameter bounds are built, but
+   are not yet checked for correctness. *)
 and build_type_and_trait_parameters ~cx module_ =
   let open Ast.Module in
   let { toplevels; _ } = module_ in
@@ -92,13 +94,22 @@ and build_type_and_trait_parameters ~cx module_ =
     (fun toplevel ->
       let open Ast.TypeDeclaration in
       match toplevel with
-      (* Create empty ADT sig for each algebraic data type definition *)
+      | TypeDeclaration { name; decl = Alias _; type_params; _ } ->
+        let binding = Type_context.get_type_binding ~cx name.loc in
+        let alias_decl = Bindings.get_type_alias_decl binding in
+        alias_decl.type_params <- build_type_parameters ~cx type_params;
+        (* Type alias parameters cannot have bounds *)
+        List.iter
+          (fun { Ast.TypeParameter.bounds; _ } ->
+            if bounds <> [] then
+              let full_loc = Loc.between (List.hd bounds).loc (List_utils.last bounds).loc in
+              Type_context.add_error ~cx full_loc TypeAliasWithBounds)
+          type_params
       | TypeDeclaration { name; decl = Builtin | Tuple _ | Record _ | Variant _; type_params; _ } ->
         let binding = Type_context.get_type_binding ~cx name.loc in
         let type_decl = Bindings.get_type_decl binding in
         let type_params = build_type_parameters ~cx type_params in
         type_decl.adt_sig.type_params <- type_params
-      (* Build type parameters for each trait *)
       | TraitDeclaration { name; type_params; _ } ->
         let binding = Type_context.get_type_binding_from_decl ~cx name.loc in
         let trait_decl = Bindings.get_trait_decl binding in
@@ -158,74 +169,14 @@ and build_type_aliases ~cx modules =
     List.iter
       (fun alias ->
         match alias with
-        | { loc = _; name; type_params; decl = Alias alias } ->
-          (* Save type parameters and type to alias declaration *)
+        | { name; decl = Alias alias; _ } ->
           let binding = Type_context.get_type_binding ~cx name.loc in
           let alias_decl = Bindings.get_type_alias_decl binding in
-          alias_decl.type_params <- build_type_parameters ~cx type_params;
-          alias_decl.body <- build_type ~cx alias;
-          (* Type alias parameters cannot have bounds *)
-          List.iter
-            (fun { Ast.TypeParameter.bounds; _ } ->
-              if bounds <> [] then
-                let full_loc = Loc.between (List.hd bounds).loc (List_utils.last bounds).loc in
-                Type_context.add_error ~cx full_loc TypeAliasWithBounds)
-            type_params
-        | _ -> failwith "Expected type alias")
+          alias_decl.body <- build_type ~cx alias
+        | _ -> ())
       aliases_in_topological_order
   with Type_alias.CyclicTypeAliasesException (loc, name) ->
     Type_context.add_error ~cx loc (CyclicTypeAlias name)
-
-(* Build signatures for algebraic data types. A signature for the entire type will be built
-   for tuples and records, and a signature for each variant will be built for variant types. *)
-and build_type_signatures ~cx module_ =
-  let open Ast.TypeDeclaration in
-  let get_adt_sig loc =
-    let binding = Type_context.get_type_binding ~cx loc in
-    let type_decl = Bindings.get_type_decl binding in
-    type_decl.adt_sig
-  in
-  let build_element_tys ~cx elements = List.map (build_type ~cx) elements in
-  let build_field_tys ~cx fields =
-    List.fold_left
-      (fun field_tys field ->
-        let { Record.Field.name = { Ast.Identifier.name; _ }; ty; _ } = field in
-        let field_ty = build_type ~cx ty in
-        SMap.add name field_ty field_tys)
-      SMap.empty
-      fields
-  in
-  List.iter
-    (fun toplevel ->
-      match toplevel with
-      | Ast.Module.TypeDeclaration { name; decl = Tuple { elements; _ }; _ } ->
-        let adt_sig = get_adt_sig name.loc in
-        let element_tys = build_element_tys ~cx elements in
-        adt_sig.variants <- SMap.singleton name.name (AdtSig.Tuple element_tys)
-      | TypeDeclaration { name; decl = Record { fields; _ }; _ } ->
-        let adt_sig = get_adt_sig name.loc in
-        let field_tys = build_field_tys ~cx fields in
-        adt_sig.variants <- SMap.singleton name.name (AdtSig.Record field_tys)
-      | TypeDeclaration { name; decl = Variant variants; _ } ->
-        let adt_sig = get_adt_sig name.loc in
-        let variant_sigs =
-          List.fold_left
-            (fun variant_sigs variant ->
-              let open Ast.Identifier in
-              match variant with
-              | EnumVariant name -> SMap.add name.name AdtSig.Enum variant_sigs
-              | TupleVariant { name; elements; _ } ->
-                let element_tys = build_element_tys ~cx elements in
-                SMap.add name.name (AdtSig.Tuple element_tys) variant_sigs
-              | RecordVariant { name; fields; _ } ->
-                let field_tys = build_field_tys ~cx fields in
-                SMap.add name.name (AdtSig.Record field_tys) variant_sigs)
-            SMap.empty
-            variants
-        in
-        adt_sig.variants <- variant_sigs
-      | _ -> ())
-    module_.Ast.Module.toplevels
 
 and build_trait_declarations ~cx module_ =
   let open Ast.Module in
@@ -280,6 +231,7 @@ and build_trait_declarations ~cx module_ =
             let implemented = LocMap.find name.loc trait_decl.implemented in
             implemented.implemented_type_args <- type_args)
           implemented;
+
         (* Build types for all methods in trait *)
         List.iter (build_function_declaration ~cx) methods
       | _ -> ())
@@ -496,16 +448,65 @@ and build_trait_implementation
       (fun _ super_trait -> build_trait_implementation ~cx base super_trait type_param_bindings)
       implemented_trait.implemented
 
-and build_value_declarations ~cx module_ =
+and build_toplevel_declarations ~cx module_ =
   let open Ast.Module in
   let { toplevels; _ } = module_ in
   List.iter
     (fun toplevel ->
       match toplevel with
+      | TypeDeclaration decl -> build_type_declaration ~cx decl
       | VariableDeclaration decl -> build_toplevel_variable_declaration ~cx decl
       | FunctionDeclaration decl -> build_function_declaration ~cx decl
       | _ -> ())
     toplevels
+
+(* Build signatures for algebraic data types. A signature for the entire type will be built
+   for tuples and records, and a signature for each variant will be built for variant types. *)
+and build_type_declaration ~cx decl =
+  let open Ast.TypeDeclaration in
+  let get_adt_sig loc =
+    let binding = Type_context.get_type_binding ~cx loc in
+    let type_decl = Bindings.get_type_decl binding in
+    type_decl.adt_sig
+  in
+  let build_element_tys ~cx elements = List.map (build_type ~cx) elements in
+  let build_field_tys ~cx fields =
+    List.fold_left
+      (fun field_tys field ->
+        let { Record.Field.name = { Ast.Identifier.name; _ }; ty; _ } = field in
+        let field_ty = build_type ~cx ty in
+        SMap.add name field_ty field_tys)
+      SMap.empty
+      fields
+  in
+  match decl with
+  | { name; decl = Tuple { elements; _ }; _ } ->
+    let adt_sig = get_adt_sig name.loc in
+    let element_tys = build_element_tys ~cx elements in
+    adt_sig.variants <- SMap.singleton name.name (AdtSig.Tuple element_tys)
+  | { name; decl = Record { fields; _ }; _ } ->
+    let adt_sig = get_adt_sig name.loc in
+    let field_tys = build_field_tys ~cx fields in
+    adt_sig.variants <- SMap.singleton name.name (AdtSig.Record field_tys)
+  | { name; decl = Variant variants; _ } ->
+    let adt_sig = get_adt_sig name.loc in
+    let variant_sigs =
+      List.fold_left
+        (fun variant_sigs variant ->
+          let open Ast.Identifier in
+          match variant with
+          | EnumVariant name -> SMap.add name.name AdtSig.Enum variant_sigs
+          | TupleVariant { name; elements; _ } ->
+            let element_tys = build_element_tys ~cx elements in
+            SMap.add name.name (AdtSig.Tuple element_tys) variant_sigs
+          | RecordVariant { name; fields; _ } ->
+            let field_tys = build_field_tys ~cx fields in
+            SMap.add name.name (AdtSig.Record field_tys) variant_sigs)
+        SMap.empty
+        variants
+    in
+    adt_sig.variants <- variant_sigs
+  | _ -> ()
 
 (* Prepass to fill types of all global variables (and error if they are unannotated) *)
 and build_toplevel_variable_declaration ~cx decl =
@@ -1602,10 +1603,10 @@ let ensure_all_expression_are_typed ~cx modules =
   List.iter (fun (_, module_) -> ignore (visitor#module_ () module_)) modules
 
 let analyze ~cx modules =
-  (* First visit type declarations, building type aliases *)
+  (* First build parameters for all types and traits *)
   List.iter (fun (_, module_) -> build_type_and_trait_parameters ~cx module_) modules;
+  (* Then build all type aliases (in topological order) *)
   build_type_aliases ~cx modules;
-  List.iter (fun (_, module_) -> build_type_signatures ~cx module_) modules;
   List.iter (fun (_, module_) -> build_trait_declarations ~cx module_) modules;
   if Type_context.get_errors ~cx = [] then
     List.iter (fun (_, module_) -> build_trait_implementations ~cx module_) modules;
@@ -1613,7 +1614,7 @@ let analyze ~cx modules =
      have been built. This needs to be done for all types created so far (ADTs, aliases, traits,
      trait implementations, and trait methods). *)
   if Type_context.get_errors ~cx = [] then
-    List.iter (fun (_, module_) -> build_value_declarations ~cx module_) modules;
+    List.iter (fun (_, module_) -> build_toplevel_declarations ~cx module_) modules;
   if Type_context.get_errors ~cx = [] then
     List.iter (fun (_, module_) -> check_module ~cx module_) modules;
   resolve_unresolved_int_literals ~cx;

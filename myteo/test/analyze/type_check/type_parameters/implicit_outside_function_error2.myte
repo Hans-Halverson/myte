@@ -2,6 +2,8 @@ module test
 
 trait Foo {}
 
+type Type (Foo)
+
 // Allowed in parameters but not return type
 fun foo(x: Foo): Foo = x
 

@@ -1,9 +1,14 @@
 Error: Implicit trait type parameters can only appear in function parameter types
-test/analyze/type_check/type_parameters/implicit_outside_function_error2.myte:6:17-20
- 6 | fun foo(x: Foo): Foo = x
+test/analyze/type_check/type_parameters/implicit_outside_function_error2.myte:5:11-14
+ 5 | type Type (Foo)
+   |            ^^^
+
+Error: Implicit trait type parameters can only appear in function parameter types
+test/analyze/type_check/type_parameters/implicit_outside_function_error2.myte:8:17-20
+ 8 | fun foo(x: Foo): Foo = x
    |                  ^^^
 
 Error: Implicit trait type parameters can only appear in function parameter types
-test/analyze/type_check/type_parameters/implicit_outside_function_error2.myte:8:14-17
- 8 | val variable: Foo = 1
-   |               ^^^
+test/analyze/type_check/type_parameters/implicit_outside_function_error2.myte:10:14-17
+ 10 | val variable: Foo = 1
+    |               ^^^
