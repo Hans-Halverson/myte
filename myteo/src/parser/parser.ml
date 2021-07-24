@@ -1011,7 +1011,7 @@ and parse_type_declaration ~is_builtin env =
     Env.expect env T_EQUALS;
     let alias = parse_type env in
     let loc = marker env in
-    { loc; name; type_params; decl = Alias alias; builtin = false }
+    { loc; name; type_params; decl = Alias alias }
   | _ ->
     let name_marker = mark_loc env in
     let name = parse_identifier env in
@@ -1019,17 +1019,17 @@ and parse_type_declaration ~is_builtin env =
     (* Builtins can only have a name and type params *)
     if is_builtin then
       let loc = marker env in
-      { loc; name; type_params; decl = Variant []; builtin = true }
+      { loc; name; type_params; decl = Builtin }
     else (
       match Env.token env with
       | T_LEFT_PAREN ->
         let tuple = parse_tuple_variant env name name_marker in
         let loc = marker env in
-        { loc; name; type_params; decl = Tuple tuple; builtin = false }
+        { loc; name; type_params; decl = Tuple tuple }
       | T_LEFT_BRACE ->
         let record = parse_record_variant env name name_marker in
         let loc = marker env in
-        { loc; name; type_params; decl = Record record; builtin = false }
+        { loc; name; type_params; decl = Record record }
       | T_EQUALS ->
         Env.advance env;
         parse_variant env name type_params marker
@@ -1059,7 +1059,7 @@ and parse_variant env name type_params marker =
   let variants = parse_variants () in
   let loc = marker env in
   if List.length variants = 1 then Parse_error.fatal (loc, SingleVariant);
-  { loc; name; type_params; decl = Variant variants; builtin = false }
+  { loc; name; type_params; decl = Variant variants }
 
 and parse_record_variant env name marker =
   let open TypeDeclaration.Record in

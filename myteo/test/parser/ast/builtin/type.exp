@@ -28,7 +28,6 @@ test/parser/ast/builtin/type.myte
       },
       type_params: [],
       builtin: true,
-      variants: [],
     },
     {
       node: TypeDeclaration,
@@ -51,7 +50,6 @@ test/parser/ast/builtin/type.myte
         },
       ],
       builtin: true,
-      variants: [],
     },
   ],
 }

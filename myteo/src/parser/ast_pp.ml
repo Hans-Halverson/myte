@@ -488,15 +488,15 @@ and node_of_trait_decl_implemented trait =
 
 and node_of_type_decl decl =
   let open TypeDeclaration in
-  let { loc; name; type_params; decl; builtin } = decl in
+  let { loc; name; type_params; decl } = decl in
   node
     "TypeDeclaration"
     loc
     [
       ("name", node_of_identifier name);
       ("type_params", List (List.map node_of_type_parameter type_params));
-      ("builtin", Bool builtin);
       (match decl with
+      | Builtin -> ("builtin", Bool true)
       | Alias alias -> ("alias", node_of_type alias)
       | Record record -> ("record", node_of_record_variant record)
       | Tuple tuple -> ("tuple", node_of_tuple_variant tuple)

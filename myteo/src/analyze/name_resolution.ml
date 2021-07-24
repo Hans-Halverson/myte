@@ -230,7 +230,11 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                     | TupleVariant { Tuple.name; _ }
                     | RecordVariant { Record.name; _ } ->
                       add_value_binding name (CtorDecl type_decl))
-                  variants );
+                  variants
+              | Builtin ->
+                let type_decl = TypeDeclaration.mk ~name:name.name in
+                add_type_binding name (TypeDecl type_decl);
+                Std_lib.register_stdlib_type name.loc type_decl.adt_sig );
             (* Check record fields for duplicates and save to compare against methods *)
             (match decl with
             | Record { name = { loc; _ }; fields; _ } ->
@@ -351,7 +355,9 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           | FunctionDeclaration { Ast.Function.name; _ } -> add_value_decl_to_scope name
           | TypeDeclaration { Ast.TypeDeclaration.name; decl; _ } ->
             (match decl with
-            | Alias _ -> add_type_decl_to_scope name
+            | Builtin
+            | Alias _ ->
+              add_type_decl_to_scope name
             | Tuple { name; _ }
             | Record { name; _ } ->
               add_value_and_type_decl_to_scope name

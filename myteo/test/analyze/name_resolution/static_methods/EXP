@@ -72,7 +72,6 @@ test/analyze/name_resolution/static_methods/a.myte
         name: "Type1",
       },
       type_params: [],
-      builtin: false,
       tuple: {
         node: TupleVariant,
         loc: 7:5-7:17,
@@ -143,7 +142,6 @@ test/analyze/name_resolution/static_methods/a.myte
         name: "Type2",
       },
       type_params: [],
-      builtin: false,
       variants: [
         {
           node: Identifier,
@@ -268,7 +266,6 @@ test/analyze/name_resolution/static_methods/test.myte
         name: "Type1",
       },
       type_params: [],
-      builtin: false,
       record: {
         node: RecordVariant,
         loc: 10:5-10:21,
@@ -348,7 +345,6 @@ test/analyze/name_resolution/static_methods/test.myte
         name: "Type2",
       },
       type_params: [],
-      builtin: false,
       variants: [
         {
           node: Identifier,

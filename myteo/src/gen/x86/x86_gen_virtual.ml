@@ -55,8 +55,7 @@ and gen_global_instruction_builder ~gcx ~ir:_ global =
     let size = Gcx.size_of_mir_type ~gcx global.ty in
     Gcx.add_bss ~gcx { label; size }
   (* Array literal is known at compile time, so insert into initialized data section *)
-  | Some (`ArrayL (_, _, data)) ->
-    Gcx.add_data ~gcx { label; value = AsciiData data }
+  | Some (`ArrayL (_, _, data)) -> Gcx.add_data ~gcx { label; value = AsciiData data }
   (* Pointer and function literals are labels, so insert into initialized data section *)
   | Some (`PointerL (_, init_label))
   | Some (`FunctionL init_label) ->

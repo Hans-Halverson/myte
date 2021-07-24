@@ -27,7 +27,6 @@ test/analyze/name_resolution/resolved_scoped_id/a1.myte
         name: "Rec",
       },
       type_params: [],
-      builtin: false,
       record: {
         node: RecordVariant,
         loc: 3:5-3:37,
@@ -97,7 +96,6 @@ test/analyze/name_resolution/resolved_scoped_id/a1.myte
         name: "Rec2",
       },
       type_params: [],
-      builtin: false,
       record: {
         node: RecordVariant,
         loc: 4:5-4:25,
@@ -227,7 +225,6 @@ test/analyze/name_resolution/resolved_scoped_id/a1.myte
         name: "ExportType",
       },
       type_params: [],
-      builtin: false,
       tuple: {
         node: TupleVariant,
         loc: 8:5-8:21,
@@ -264,7 +261,6 @@ test/analyze/name_resolution/resolved_scoped_id/a1.myte
         name: "ExportVariant",
       },
       type_params: [],
-      builtin: false,
       variants: [
         {
           node: Identifier,
@@ -372,7 +368,6 @@ test/analyze/name_resolution/resolved_scoped_id/a2.myte
         name: "Rec",
       },
       type_params: [],
-      builtin: false,
       record: {
         node: RecordVariant,
         loc: 3:5-3:37,
@@ -442,7 +437,6 @@ test/analyze/name_resolution/resolved_scoped_id/a2.myte
         name: "Rec2",
       },
       type_params: [],
-      builtin: false,
       record: {
         node: RecordVariant,
         loc: 4:5-4:25,
@@ -602,7 +596,6 @@ test/analyze/name_resolution/resolved_scoped_id/a2.myte
         name: "ExportType",
       },
       type_params: [],
-      builtin: false,
       record: {
         node: RecordVariant,
         loc: 10:5-10:30,
@@ -702,7 +695,6 @@ test/analyze/name_resolution/resolved_scoped_id/b.myte
         name: "ExportType",
       },
       type_params: [],
-      builtin: false,
       alias: {
         node: IdentifierType,
         loc: 5:24-5:27,
@@ -728,7 +720,6 @@ test/analyze/name_resolution/resolved_scoped_id/b.myte
         name: "Tup",
       },
       type_params: [],
-      builtin: false,
       tuple: {
         node: TupleVariant,
         loc: 7:5-7:14,
@@ -829,7 +820,6 @@ test/analyze/name_resolution/resolved_scoped_id/c.myte
         name: "Rec",
       },
       type_params: [],
-      builtin: false,
       record: {
         node: RecordVariant,
         loc: 3:5-3:23,
@@ -925,7 +915,6 @@ test/analyze/name_resolution/resolved_scoped_id/c.myte
         name: "ExportType",
       },
       type_params: [],
-      builtin: false,
       variants: [
         {
           node: Identifier,
@@ -1039,7 +1028,6 @@ test/analyze/name_resolution/resolved_scoped_id/d.myte
         name: "Rec",
       },
       type_params: [],
-      builtin: false,
       record: {
         node: RecordVariant,
         loc: 3:5-3:23,
@@ -1135,7 +1123,6 @@ test/analyze/name_resolution/resolved_scoped_id/d.myte
         name: "ExportType",
       },
       type_params: [],
-      builtin: false,
       alias: {
         node: IdentifierType,
         loc: 7:24-7:27,
@@ -1329,7 +1316,6 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
         name: "t1",
       },
       type_params: [],
-      builtin: false,
       alias: {
         node: TupleType,
         loc: 13:16-13:49,
@@ -1388,7 +1374,6 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
         name: "t2",
       },
       type_params: [],
-      builtin: false,
       alias: {
         node: IdentifierType,
         loc: 14:16-14:32,
@@ -1425,7 +1410,6 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
         name: "t3",
       },
       type_params: [],
-      builtin: false,
       alias: {
         node: IdentifierType,
         loc: 17:16-17:35,
@@ -1467,7 +1451,6 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
         name: "t4",
       },
       type_params: [],
-      builtin: false,
       alias: {
         node: IdentifierType,
         loc: 20:16-20:29,
@@ -1499,7 +1482,6 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
         name: "t5",
       },
       type_params: [],
-      builtin: false,
       alias: {
         node: IdentifierType,
         loc: 21:16-21:34,
@@ -1531,7 +1513,6 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
         name: "t6",
       },
       type_params: [],
-      builtin: false,
       alias: {
         node: IdentifierType,
         loc: 22:16-22:29,
@@ -1563,7 +1544,6 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
         name: "t7",
       },
       type_params: [],
-      builtin: false,
       alias: {
         node: IdentifierType,
         loc: 23:16-23:34,
@@ -1595,7 +1575,6 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
         name: "t8",
       },
       type_params: [],
-      builtin: false,
       tuple: {
         node: TupleVariant,
         loc: 26:5-26:23,
@@ -1638,7 +1617,6 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
         name: "t9",
       },
       type_params: [],
-      builtin: false,
       record: {
         node: RecordVariant,
         loc: 27:5-27:28,
@@ -1690,7 +1668,6 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
         name: "t10",
       },
       type_params: [],
-      builtin: false,
       variants: [
         {
           node: TupleVariant,

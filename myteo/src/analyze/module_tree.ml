@@ -53,6 +53,7 @@ let add_exports module_ submodule_tree =
       (* Export all constructors in this type declaration *)
       let exports =
         match decl with
+        | Builtin
         | Alias _
         | Tuple _
         | Record _ ->

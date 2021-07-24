@@ -453,13 +453,13 @@ and TypeDeclaration : sig
     | Record of Record.t
     | Tuple of Tuple.t
     | Variant of variant list
+    | Builtin
 
   type t = {
     loc: Loc.t;
     name: Identifier.t;
     type_params: TypeParameter.t list;
     decl: decl;
-    builtin: bool;
   }
 end =
   TypeDeclaration

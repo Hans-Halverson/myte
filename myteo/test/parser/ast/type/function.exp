@@ -27,7 +27,6 @@ test/parser/ast/type/function.myte
         name: "t1",
       },
       type_params: [],
-      builtin: false,
       alias: {
         node: FunctionType,
         loc: 3:16-3:29,
@@ -74,7 +73,6 @@ test/parser/ast/type/function.myte
         name: "t2",
       },
       type_params: [],
-      builtin: false,
       alias: {
         node: FunctionType,
         loc: 4:16-4:28,
@@ -105,7 +103,6 @@ test/parser/ast/type/function.myte
         name: "t3",
       },
       type_params: [],
-      builtin: false,
       alias: {
         node: FunctionType,
         loc: 5:16-5:31,
@@ -152,7 +149,6 @@ test/parser/ast/type/function.myte
         name: "t4",
       },
       type_params: [],
-      builtin: false,
       alias: {
         node: FunctionType,
         loc: 6:16-6:35,
@@ -199,7 +195,6 @@ test/parser/ast/type/function.myte
         name: "t5",
       },
       type_params: [],
-      builtin: false,
       alias: {
         node: FunctionType,
         loc: 7:16-7:37,
@@ -261,7 +256,6 @@ test/parser/ast/type/function.myte
         name: "t6",
       },
       type_params: [],
-      builtin: false,
       alias: {
         node: FunctionType,
         loc: 8:16-8:43,
@@ -338,7 +332,6 @@ test/parser/ast/type/function.myte
         name: "t7",
       },
       type_params: [],
-      builtin: false,
       alias: {
         node: FunctionType,
         loc: 9:16-9:55,
@@ -436,7 +429,6 @@ test/parser/ast/type/function.myte
         name: "t8",
       },
       type_params: [],
-      builtin: false,
       alias: {
         node: FunctionType,
         loc: 10:16-10:38,
@@ -498,7 +490,6 @@ test/parser/ast/type/function.myte
         name: "t9",
       },
       type_params: [],
-      builtin: false,
       alias: {
         node: FunctionType,
         loc: 11:16-11:30,
@@ -545,7 +536,6 @@ test/parser/ast/type/function.myte
         name: "t10",
       },
       type_params: [],
-      builtin: false,
       alias: {
         node: FunctionType,
         loc: 12:17-12:41,

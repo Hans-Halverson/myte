@@ -27,7 +27,6 @@ test/parser/ast/type_declaration/variant.myte
         name: "t1",
       },
       type_params: [],
-      builtin: false,
       variants: [
         {
           node: Identifier,
@@ -50,7 +49,6 @@ test/parser/ast/type_declaration/variant.myte
         name: "t2",
       },
       type_params: [],
-      builtin: false,
       variants: [
         {
           node: Identifier,
@@ -73,7 +71,6 @@ test/parser/ast/type_declaration/variant.myte
         name: "t3",
       },
       type_params: [],
-      builtin: false,
       variants: [
         {
           node: TupleVariant,
@@ -194,7 +191,6 @@ test/parser/ast/type_declaration/variant.myte
         name: "t4",
       },
       type_params: [],
-      builtin: false,
       variants: [
         {
           node: RecordVariant,
@@ -360,7 +356,6 @@ test/parser/ast/type_declaration/variant.myte
         name: "t5",
       },
       type_params: [],
-      builtin: false,
       variants: [
         {
           node: Identifier,
@@ -439,7 +434,6 @@ test/parser/ast/type_declaration/variant.myte
         name: "t6",
       },
       type_params: [],
-      builtin: false,
       variants: [
         {
           node: TupleVariant,
@@ -607,7 +601,6 @@ test/parser/ast/type_declaration/variant.myte
           bounds: [],
         },
       ],
-      builtin: false,
       variants: [
         {
           node: Identifier,
@@ -682,7 +675,6 @@ test/parser/ast/type_declaration/variant.myte
           bounds: [],
         },
       ],
-      builtin: false,
       variants: [
         {
           node: TupleVariant,

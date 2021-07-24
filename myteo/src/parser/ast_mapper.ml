@@ -506,11 +506,12 @@ class mapper =
 
     method type_declaration declaration =
       let open TypeDeclaration in
-      let { loc; name; type_params; decl; builtin } = declaration in
+      let { loc; name; type_params; decl } = declaration in
       let name' = this#identifier name in
       let type_params' = id_map_list this#type_parameter type_params in
       let decl' =
         match decl with
+        | Builtin -> decl
         | Alias a -> id_map this#type_ a decl (fun a' -> Alias a')
         | Record r -> id_map this#record_variant r decl (fun r' -> Record r')
         | Tuple t -> id_map this#tuple_variant t decl (fun t' -> Tuple t')
@@ -524,7 +525,7 @@ class mapper =
       if name == name' && type_params == type_params' && decl == decl' then
         declaration
       else
-        { loc; name = name'; decl = decl'; type_params = type_params'; builtin }
+        { loc; name = name'; decl = decl'; type_params = type_params' }
 
     method type_declaration_variant variant =
       let open TypeDeclaration in
