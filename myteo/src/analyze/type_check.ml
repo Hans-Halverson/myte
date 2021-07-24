@@ -164,8 +164,8 @@ and build_type_parameters ~cx params =
 and build_type_aliases ~cx modules =
   let open Ast.TypeDeclaration in
   let modules = List.map snd modules in
-  try
-    let aliases_in_topological_order = Type_alias.order_type_aliases ~cx modules in
+  match Type_alias.order_type_aliases ~cx modules with
+  | Ok aliases_in_topological_order ->
     List.iter
       (fun alias ->
         match alias with
@@ -175,8 +175,7 @@ and build_type_aliases ~cx modules =
           alias_decl.body <- build_type ~cx alias
         | _ -> ())
       aliases_in_topological_order
-  with Type_alias.CyclicTypeAliasesException (loc, name) ->
-    Type_context.add_error ~cx loc (CyclicTypeAlias name)
+  | Error { loc; name; _ } -> Type_context.add_error ~cx loc (CyclicTypeAlias name.name)
 
 and build_trait_declarations ~cx module_ =
   let open Ast.Module in
