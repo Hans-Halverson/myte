@@ -2,6 +2,7 @@ module test
 
 import std.string.ToString
 import std.test.assertEqual
+import std.io.println
 
 fun testSimpleInterpolations() {
   assertEqual(`foo`, "foo");
@@ -17,7 +18,7 @@ methods IntPair {
 }
 
 fun testToStringTypeInterpolations() {
-  assertEqual(`foo ${IntPair (6, 7)} bar}`, "foo (6, 7) bar");
+  assertEqual(`foo ${IntPair (6, 7)} bar`, "foo (6, 7) bar");
   assertEqual(`${"IntPair"} = ${IntPair (1, 2)}`, "IntPair = (1, 2)");
 }
 

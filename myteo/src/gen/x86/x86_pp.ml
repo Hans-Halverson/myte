@@ -421,6 +421,7 @@ let pp_data ~buf (data : data) =
         | ImmediateData (Imm32 imm) -> ("long", Int32.to_string imm)
         | ImmediateData (Imm64 imm) -> ("quad", Int64.to_string imm)
         | AsciiData str -> ("ascii", quote_string str)
+        | LabelData label -> ("quad", label)
       in
       add_char ~buf '.';
       add_string ~buf directive_string;

@@ -225,7 +225,6 @@ and add_write_var_id ~cx name loc var_id =
   cx.write_var_ids <- SMap.add name new_write_var_ids cx.write_var_ids
 
 and add_use_source ~cx func_name loc source =
-  (* Printf.eprintf "add_use_source(%s, %s)\n" func_name (Loc.to_string ~source:true loc); *)
   let use_sources = SMap.find func_name cx.use_sources in
   let new_use_sources = LocMap.add loc source use_sources in
   cx.use_sources <- SMap.add func_name new_use_sources cx.use_sources
@@ -434,8 +433,6 @@ and map_to_ssa ~pcx ~ecx ~cx program =
     match cf_var with
     | Id var_id -> var_id
     | Local loc ->
-      (* Printf.eprintf "%s\n" (Loc.to_string ~source:true loc);
-         Printf.eprintf "%d\n" (LocMap.cardinal (SMap.find name cx.use_sources)); *)
       (match LocMap.find loc (SMap.find name cx.use_sources) with
       | WriteLocation (_, write_loc) -> write_var_id ~name write_loc
       | PhiChainJoin node_id ->

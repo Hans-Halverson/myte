@@ -307,12 +307,19 @@ let cast_to_comparable_value (v : 'a Value.t) : 'a Value.comparable_value =
   | ( `UnitL | `UnitV _ | `BoolL _ | `BoolV _ | `ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _
     | `LongV _ | `PointerL _ | `PointerV _ ) as v ->
     v
-  | _ -> failwith "Expected comprable value"
+  | _ -> failwith "Expected comparable value"
 
-(* Whether this value is a statically known constant *)
-let is_static_constant (v : 'a Value.t) : bool =
+let is_literal (v : 'a Value.t) : bool =
   match v with
-  (* All variables are not statically known *)
+  | `FunctionL _
+  | `PointerL _
+  | `UnitL
+  | `BoolL _
+  | `ByteL _
+  | `IntL _
+  | `LongL _
+  | `ArrayL _ ->
+    true
   | `UnitV _
   | `BoolV _
   | `ByteV _
@@ -321,19 +328,8 @@ let is_static_constant (v : 'a Value.t) : bool =
   | `FunctionV _
   | `PointerV _
   | `AggregateV _
-  | `ArrayV _
-  (* Function and pointer literals refer to labels. However for position independent code, the
-     address of labels cannot be known at compile time, all we know is an offset. *)
-  | `FunctionL _
-  | `PointerL _ ->
+  | `ArrayV _ ->
     false
-  | `UnitL
-  | `BoolL _
-  | `ByteL _
-  | `IntL _
-  | `LongL _
-  | `ArrayL _ ->
-    true
 
 let mk_continue continue = Block.Continue continue
 

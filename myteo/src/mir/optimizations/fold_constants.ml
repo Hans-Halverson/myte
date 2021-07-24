@@ -484,7 +484,7 @@ let fold_global_inits ~ocx =
         method! map_instruction ~block:_ ((_, instr) as instruction) =
           let open Instruction in
           (match instr with
-          | Store (`PointerL (_, name), value) when is_static_constant value ->
+          | Store (`PointerL (_, name), value) when is_literal value ->
             (match SMap.find_opt name ocx.Ocx.program.globals with
             | None -> ()
             | Some global ->

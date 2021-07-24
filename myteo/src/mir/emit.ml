@@ -121,7 +121,7 @@ and emit_toplevel_variable_declaration ~ecx decl =
         ecx.current_in_std_lib <- Bindings.is_std_lib_value binding;
         (* If initial value is statically known at compile time, add it as constant initialization *)
         let init_val = emit_expression ~ecx init in
-        if is_static_constant init_val then
+        if is_literal init_val then
           Some init_val
         else (
           (* Otherwise value must be calculated and stored at runtime *)

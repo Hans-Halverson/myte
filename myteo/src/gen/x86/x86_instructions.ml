@@ -270,6 +270,7 @@ end
 type data_value =
   | ImmediateData of immediate
   | AsciiData of string
+  | LabelData of string
 
 type data = {
   label: label;

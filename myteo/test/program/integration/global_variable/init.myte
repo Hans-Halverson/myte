@@ -1,0 +1,43 @@
+module test
+
+import std.test.assertEqual
+
+// Initialization of static constants (written in data section)
+val x1: Unit = ()
+val x2: Bool = true
+val x3: Byte = 127
+val x4: Int = 1234321
+val x5: Long = 123456789876
+
+fun testStaticInitialization() {
+  assertEqual(x1, ());
+  assertEqual(x2, true);
+  assertEqual(x3, 127);
+  assertEqual(x4, 1234321);
+  assertEqual(x5, 123456789876);
+}
+
+// Initialization of global variable to function
+val x6: () -> Int = getInt
+fun getInt(): Int = 987
+
+fun testFunctionInitialization() {
+  assertEqual(x6(), 987);
+}
+
+// Running initialization code
+val x7: String = "foo"
+val x8: Int = getInt()
+val x9: Int = 123 + getInt() * 100
+
+fun testRuntimeInitialization() {
+  assertEqual(x7, "foo");
+  assertEqual(x8, 987);
+  assertEqual(x9, 98823);
+}
+
+fun main() {
+  testStaticInitialization();
+  testFunctionInitialization();
+  testRuntimeInitialization();
+}

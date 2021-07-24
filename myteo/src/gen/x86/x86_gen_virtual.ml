@@ -50,17 +50,22 @@ and gen_entrypoint ~gcx ir =
 and gen_global_instruction_builder ~gcx ~ir:_ global =
   let label = label_of_mir_label global.name in
   match global.init_val with
+  (* If uninitialized, place global variable in bss section *)
   | None ->
-    (* If uninitialized, place global variable in bss section *)
     let size = Gcx.size_of_mir_type ~gcx global.ty in
     Gcx.add_bss ~gcx { label; size }
+  (* Array literal is known at compile time, so insert into initialized data section *)
   | Some (`ArrayL (_, _, data)) ->
-    (* Array literal is known at compile time, so insert into initialized data section *)
     Gcx.add_data ~gcx { label; value = AsciiData data }
+  (* Pointer and function literals are labels, so insert into initialized data section *)
+  | Some (`PointerL (_, init_label))
+  | Some (`FunctionL init_label) ->
+    let data = { label; value = LabelData init_label } in
+    Gcx.add_data ~gcx data
+  (* Global is initialized to immediate, so insert into initialized data section *)
   | Some init_val ->
     (match resolve_ir_value ~gcx ~func:0 ~allow_imm64:true init_val with
     | SImm imm ->
-      (* Global is initialized to immediate, so insert into initialized data section *)
       let data = { label; value = ImmediateData imm } in
       Gcx.add_data ~gcx data
     | SAddr _
