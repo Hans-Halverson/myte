@@ -63,12 +63,7 @@ module TraitDeclaration : sig
     name: string;
     loc: Loc.t;
     mutable methods: FunctionDeclaration.t SMap.t;
-    mutable implemented: implemented_trait LocMap.t;
-  }
-
-  and implemented_trait = {
-    mutable implemented_trait: t;
-    mutable implemented_type_args: Types.Type.t list;
+    mutable implemented: t LocMap.t;
   }
 
   val mk : name:string -> loc:Loc.t -> t

@@ -1,0 +1,9 @@
+module test
+
+// Error on incorrect trait parameter arity
+trait Trait1<T> {
+  fun foo(x: T)
+}
+trait Trait2 { extends Trait1<Int, Int> }
+
+fun main() {}

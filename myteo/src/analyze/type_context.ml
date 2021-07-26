@@ -60,6 +60,8 @@ let set_main_loc ~cx main_loc = cx.main_loc <- main_loc
 
 let is_main_loc ~cx loc = cx.main_loc == loc
 
+let get_ordered_traits ~cx = cx.ordered_traits
+
 let set_ordered_traits ~cx ordered_traits = cx.ordered_traits <- ordered_traits
 
 let get_value_binding ~cx use_loc = get_value_binding cx.bindings use_loc
@@ -329,7 +331,7 @@ let rec type_satisfies_trait_bounds ~cx ty trait_bounds =
                 Types.bind_type_params_to_args trait.trait_sig.type_params trait.type_args
               in
               List.exists
-                (fun implemented_trait ->
+                (fun (_, implemented_trait) ->
                   trait_satisfies_bound implemented_trait bound type_param_bindings)
                 trait.trait_sig.implemented)
           traits)
@@ -347,7 +349,7 @@ let rec type_satisfies_trait_bounds ~cx ty trait_bounds =
               Types.bind_type_params_to_args type_trait.type_params type_args
             in
             List.exists
-              (fun implemented_trait ->
+              (fun (_, implemented_trait) ->
                 trait_satisfies_bound implemented_trait bound type_param_bindings)
               type_trait.implemented)
           adt_sig.AdtSig.traits)
@@ -528,7 +530,7 @@ let implements_trait ty trait_sig =
   let adt_sig_implements_trait adt_sig trait_sig =
     List.exists
       (fun { implemented; _ } ->
-        List.exists (fun implemented -> implemented.trait_sig.id = trait_sig.id) implemented)
+        List.exists (fun (_, implemented) -> implemented.trait_sig.id = trait_sig.id) implemented)
       adt_sig.AdtSig.traits
   in
   (* Bounds may implement the trait directly, or the trait may be in the bound's super traits *)
@@ -537,7 +539,7 @@ let implements_trait ty trait_sig =
       (fun { trait_sig = bound_trait_sig; _ } ->
         bound_trait_sig.id = trait_sig.id
         || List.exists
-             (fun implemented -> implemented.trait_sig.id = trait_sig.id)
+             (fun (_, implemented) -> implemented.trait_sig.id = trait_sig.id)
              bound_trait_sig.implemented)
       bounds
   in

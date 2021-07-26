@@ -1,0 +1,12 @@
+module test
+
+// Error on incorrect function parameter arity
+trait Trait1 {
+  fun foo<T>(x: T)
+}
+trait Trait2 {
+  extends Trait1
+  override fun foo<T, U>(x: T) {}
+}
+
+fun main() {}

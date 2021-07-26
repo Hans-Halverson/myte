@@ -1,0 +1,4 @@
+Error: Method `foo` has incorrect number of type parameters from declaration in trait `Trait1`. Expected 1 type parameter but found 2.
+test/analyze/type_check/traits/incorrect_overridden_function_type_param_arity_errors.myte:9:15-18
+ 9 |   override fun foo<T, U>(x: T) {}
+   |                ^^^

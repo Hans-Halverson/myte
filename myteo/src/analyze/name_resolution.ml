@@ -432,12 +432,9 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                 (match binding.declaration with
                 | TraitDecl implemented_trait ->
                   let loc = implemented_trait.loc in
-                  let implemented_trait =
-                    { TraitDeclaration.implemented_trait; implemented_type_args = [] }
-                  in
                   (* Add edge in trait graph if trait extends a trait in this compilation unit *)
                   if decl.kind = Trait && LocMap.mem loc traits then
-                    LocGraph.add_edge ~graph:trait_graph trait.loc loc;
+                    LocGraph.add_edge ~graph:trait_graph loc trait.loc;
                   LocMap.add name.name.loc implemented_trait implemented
                 | _ ->
                   this#add_error name.loc (ExpectedTrait (Ast_utils.string_of_scoped_ident name));
@@ -1069,7 +1066,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               LocMap.add loc super_trait super_traits_acc
           in
           LocMap.fold
-            (fun _ { TraitDeclaration.implemented_trait; _ } super_traits_acc ->
+            (fun _ implemented_trait super_traits_acc ->
               gather_super_traits super_traits_acc implemented_trait false)
             implemented
             super_traits_acc

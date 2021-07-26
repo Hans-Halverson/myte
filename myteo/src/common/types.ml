@@ -170,12 +170,26 @@ and MethodSig : sig
        super trait sig on which the method is declared with type args matching how the sub trait
        implements the super trait. *)
     source_trait_instance: TraitSig.instance;
+    is_signature: bool;
     type_params: TypeParam.t list;
     params: Type.t list;
     return: Type.t;
   }
-end =
-  MethodSig
+
+  val is_inherited : t -> bool
+end = struct
+  type t = {
+    loc: Loc.t;
+    trait_sig: TraitSig.t;
+    source_trait_instance: TraitSig.instance;
+    is_signature: bool;
+    type_params: TypeParam.t list;
+    params: Type.t list;
+    return: Type.t;
+  }
+
+  let is_inherited method_sig = method_sig.source_trait_instance.trait_sig != method_sig.trait_sig
+end
 
 and TraitSig : sig
   type id = int
@@ -185,7 +199,10 @@ and TraitSig : sig
     name: string;
     mutable type_params: TypeParam.t list;
     mutable methods: MethodSig.t SMap.t;
-    mutable implemented: instance list;
+    (* Implemented traits, along with the loc of the TraitDeclaration.ImplementedTrait node that
+       implements it for this trait. For inherited ancestor traits, the loc is the loc of the
+       direct super trait that inherits from the ancestor. *)
+    mutable implemented: (Loc.t * instance) list;
     mutable this_type_param: TypeParam.t;
     (* The ADT sig if this is a type trait. None if this is not a type trait *)
     mutable adt_sig: AdtSig.t option;
@@ -202,7 +219,7 @@ and TraitSig : sig
 
   val add_method : t -> string -> MethodSig.t -> unit
 
-  val add_implemented : t -> instance -> unit
+  val add_implemented : t -> Loc.t -> instance -> unit
 end = struct
   type id = int
 
@@ -211,7 +228,7 @@ end = struct
     name: string;
     mutable type_params: TypeParam.t list;
     mutable methods: MethodSig.t SMap.t;
-    mutable implemented: instance list;
+    mutable implemented: (Loc.t * instance) list;
     mutable this_type_param: TypeParam.t;
     mutable adt_sig: AdtSig.t option;
   }
@@ -253,8 +270,8 @@ end = struct
   let add_method trait_sig name func_sig =
     trait_sig.methods <- SMap.add name func_sig trait_sig.methods
 
-  let add_implemented trait_sig implemented =
-    trait_sig.implemented <- implemented :: trait_sig.implemented
+  let add_implemented trait_sig loc implemented =
+    trait_sig.implemented <- (loc, implemented) :: trait_sig.implemented
 end
 
 and Type : sig
