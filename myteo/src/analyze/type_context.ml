@@ -15,6 +15,8 @@ type t = {
   (* Set of all method uses locs *)
   mutable method_uses: LocSet.t;
   mutable main_loc: Loc.t;
+  (* Order of (non-type) trait declarations in current compilation unit *)
+  mutable ordered_traits: Ast.TraitDeclaration.t list;
 }
 
 and union_forest_node =
@@ -34,6 +36,7 @@ let mk ~bindings =
     unresolved_int_literals = LocSet.empty;
     method_uses = LocSet.empty;
     main_loc = Loc.none;
+    ordered_traits = [];
   }
 
 let add_error ~cx loc error = cx.errors <- (loc, error) :: cx.errors
@@ -56,6 +59,8 @@ let is_method_use ~cx use_loc = LocSet.mem use_loc cx.method_uses
 let set_main_loc ~cx main_loc = cx.main_loc <- main_loc
 
 let is_main_loc ~cx loc = cx.main_loc == loc
+
+let set_ordered_traits ~cx ordered_traits = cx.ordered_traits <- ordered_traits
 
 let get_value_binding ~cx use_loc = get_value_binding cx.bindings use_loc
 

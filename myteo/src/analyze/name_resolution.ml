@@ -2,6 +2,7 @@ open Analyze_error
 open Ast
 open Basic_collections
 open Bindings
+open Graph
 open Immutable_utils
 
 (* 
@@ -71,8 +72,11 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
     (* Set of field names for each record type *)
     val mutable record_fields : SSet.t LocMap.t = LocMap.empty
 
-    (* Set of all traits in program *)
-    val mutable trait_locs : LocSet.t = LocSet.empty
+    (* Set of all trait declaration nodes in program *)
+    val mutable traits : Ast.TraitDeclaration.t LocMap.t = LocMap.empty
+
+    (* Graph of dependencies between traits, indexed by trait name loc *)
+    val mutable trait_graph : LocGraph.t = LocGraph.mk ()
 
     method add_error loc err = errors <- (loc, err) :: errors
 
@@ -263,7 +267,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               register_stdlib_decl name;
               Std_lib.register_stdlib_trait name.loc decl.trait_sig;
               register_stdlib_method_decls trait_decl;
-              trait_locs <- LocSet.add name.loc trait_locs;
+              traits <- LocMap.add name.loc trait_decl traits;
               add_type_binding name (TraitDecl decl))
         toplevels
 
@@ -426,10 +430,14 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               | Some decl_loc ->
                 let binding = this#get_type_binding decl_loc in
                 (match binding.declaration with
-                | TraitDecl trait ->
+                | TraitDecl implemented_trait ->
+                  let loc = implemented_trait.loc in
                   let implemented_trait =
-                    { TraitDeclaration.implemented_trait = trait; implemented_type_args = [] }
+                    { TraitDeclaration.implemented_trait; implemented_type_args = [] }
                   in
+                  (* Add edge in trait graph if trait extends a trait in this compilation unit *)
+                  if decl.kind = Trait && LocMap.mem loc traits then
+                    LocGraph.add_edge ~graph:trait_graph trait.loc loc;
                   LocMap.add name.name.loc implemented_trait implemented
                 | _ ->
                   this#add_error name.loc (ExpectedTrait (Ast_utils.string_of_scoped_ident name));
@@ -449,6 +457,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           | Module.TraitDeclaration ({ kind = Trait; name; _ } as decl) ->
             let binding = this#get_type_binding name.loc in
             let trait = get_trait_decl binding in
+            LocGraph.add_node ~graph:trait_graph name.loc;
             fill_trait_from_decl trait decl
           | TraitDeclaration ({ kind = Methods; name = { name; loc }; _ } as decl) ->
             (* Check that method declarations appear in same module as type declaration *)
@@ -1033,48 +1042,15 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
 
     (* Check for trait cycles in the program, returning whether there are no trait cycles in the
        program. If a trait cycle is found, an error is generated. *)
-    method check_trait_cycles () =
-      (* Run a depth first search while keeping track of traits that are visited and in progress *)
-      let completed = 0 in
-      let in_progress = 1 in
-
-      let unvisited_traits = ref trait_locs in
-      let trait_status = ref LocMap.empty in
-      let cyclic_trait = ref None in
-      let finished () = !cyclic_trait <> None in
-
-      let rec visit trait =
-        let open TraitDeclaration in
-        if not (finished ()) then
-          match LocMap.find_opt trait.loc !trait_status with
-          | Some 0 -> ()
-          | Some 1 -> cyclic_trait := Some (trait.loc, trait.name)
-          | _ ->
-            unvisited_traits := LocSet.remove trait.loc !unvisited_traits;
-            trait_status := LocMap.add trait.loc in_progress !trait_status;
-            LocMap.iter
-              (fun _ { TraitDeclaration.implemented_trait; _ } -> visit implemented_trait)
-              trait.implemented;
-            trait_status := LocMap.add trait.loc completed !trait_status
-      in
-
-      let rec iter () =
-        if not (finished ()) then
-          match LocSet.choose_opt !unvisited_traits with
-          | None -> ()
-          | Some trait_loc ->
-            let trait = this#get_type_binding trait_loc |> get_trait_decl in
-            visit trait;
-            iter ()
-      in
-
-      iter ();
-
-      match !cyclic_trait with
-      | None -> true
-      | Some (loc, name) ->
-        this#add_error loc (CyclicTrait name);
-        false
+    method order_traits () =
+      try
+        let ordered_locs = LocGraph.topological_sort ~graph:trait_graph in
+        let ordered_traits = List.map (fun loc -> LocMap.find loc traits) ordered_locs in
+        Some ordered_traits
+      with LocGraph.CycleException loc ->
+        let trait = LocMap.find loc traits in
+        this#add_error loc (CyclicTrait trait.name.name);
+        None
 
     method check_method_names () =
       let errors = ref [] in
@@ -1288,7 +1264,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             in
             let names = collect_method_names methods super_traits in
             check_errors name loc names
-          | TraitDecl trait when LocSet.mem loc trait_locs ->
+          | TraitDecl trait when LocMap.mem loc traits ->
             let (methods, super_traits) =
               gather_methods_and_super_traits (LocMap.empty, LocMap.empty) trait
             in
@@ -1323,8 +1299,9 @@ let analyze ~is_stdlib bindings module_tree modules =
   (* Then add methods to all traits and types *)
   List.iter (fun (_, mod_) -> bindings_builder#add_methods_and_implemented mod_) modules;
   (* Then check for trait cycles, only proceeding if there are no trait cycles *)
-  let (resolved_modules, errors) =
-    if bindings_builder#check_trait_cycles () then
+  let (resolved_modules, ordered_traits, errors) =
+    match bindings_builder#order_traits () with
+    | Some ordered_traits ->
       (* Then get errors for method declarations in traits and types *)
       let method_field_errors = bindings_builder#check_method_names () in
       (* Then resolve names in each module *)
@@ -1335,9 +1312,8 @@ let analyze ~is_stdlib bindings module_tree modules =
             (file, resolved_module))
           modules
       in
-      (resolved_modules, method_field_errors)
-    else
-      (modules, [])
+      (resolved_modules, ordered_traits, method_field_errors)
+    | None -> (modules, [], [])
   in
   let errors = errors @ bindings_builder#errors () in
   let builtin_errors =
@@ -1346,4 +1322,4 @@ let analyze ~is_stdlib bindings module_tree modules =
     else
       []
   in
-  (resolved_modules, builtin_errors @ errors)
+  (resolved_modules, ordered_traits, builtin_errors @ errors)
