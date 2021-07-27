@@ -87,6 +87,7 @@ and invalid_assignment_kind =
   | InvalidAssignmentFunction
   | InvalidAssignmentFunctionParam
   | InvalidAssignmentConstructor
+  | InvalidAssignmentMatchCaseVariable
 
 and invalid_lvalue_kind = InvalidLValueTuple
 
@@ -184,6 +185,7 @@ let to_string error =
       | InvalidAssignmentFunction -> "function"
       | InvalidAssignmentFunctionParam -> "function parameter"
       | InvalidAssignmentConstructor -> "constructor"
+      | InvalidAssignmentMatchCaseVariable -> "match case variable"
     in
     Printf.sprintf "Cannot reassign %s `%s`" kind_string name
   | InvalidLValue kind ->

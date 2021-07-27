@@ -1,0 +1,20 @@
+module test
+
+trait Into<T> {
+  fun into(x: This): T
+}
+
+type Foo (Int)
+methods Foo {
+  implements Into<Foo>
+
+  override fun into(x: Foo): Foo = x
+}
+
+fun useInto<T: Into<T>>(x: T) {}
+
+fun test() {
+  useInto(Foo (1));
+}
+
+fun main() {}

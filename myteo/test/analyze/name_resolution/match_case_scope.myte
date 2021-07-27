@@ -1,0 +1,12 @@
+module test
+
+fun test() {
+  match (1, 1, 1) {
+    // Success - match introduces variables to body
+    | (x, y, _) -> x + y
+    // Failure - variables from previous case not in scope for next case
+    | _ -> x + y
+  }
+}
+
+fun main() {}

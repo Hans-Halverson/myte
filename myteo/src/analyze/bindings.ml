@@ -17,6 +17,12 @@ module FunctionParamDeclaration = struct
   let mk () = { tvar = TVar.mk () }
 end
 
+module MatchCaseVariableDeclaration = struct
+  type t = { tvar: TVar.t }
+
+  let mk () = { tvar = TVar.mk () }
+end
+
 module FunctionDeclaration = struct
   type t = {
     name: string;
@@ -100,6 +106,7 @@ type value_declaration =
   | FunDecl of FunctionDeclaration.t
   | CtorDecl of TypeDeclaration.t
   | FunParamDecl of FunctionParamDeclaration.t
+  | MatchCaseVarDecl of MatchCaseVariableDeclaration.t
 
 type type_declaration =
   | TypeDecl of TypeDeclaration.t

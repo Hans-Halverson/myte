@@ -803,6 +803,7 @@ and check_expression ~cx expr =
           Types.fresh_function_instance func_decl.type_params func_decl.params func_decl.return
       (* Otherwise identifier has same type as its declaration *)
       | FunParamDecl param_decl -> TVar param_decl.tvar
+      | MatchCaseVarDecl var_decl -> TVar var_decl.tvar
       | VarDecl var_decl -> TVar var_decl.tvar
     in
     ignore (Type_context.unify ~cx decl_ty (TVar tvar_id));
@@ -1401,7 +1402,8 @@ and check_pattern ~cx patt =
     let binding = Type_context.get_value_binding ~cx loc in
     let decl_tvar_id_opt =
       match binding.declaration with
-      | VarDecl var_decl ->
+      | VarDecl var_decl -> Some var_decl.tvar
+      | MatchCaseVarDecl var_decl ->
         Some var_decl.tvar
         (* Represents an error, but should error in assignment.
            Cannot appear in variable declarations or match patterns. *)
@@ -1607,6 +1609,7 @@ and check_statement ~cx stmt =
                   has_error
               | FunDecl _ -> add_invalid_assign_error InvalidAssignmentFunction
               | FunParamDecl _ -> add_invalid_assign_error InvalidAssignmentFunctionParam
+              | MatchCaseVarDecl _ -> add_invalid_assign_error InvalidAssignmentMatchCaseVariable
               | CtorDecl _ -> add_invalid_assign_error InvalidAssignmentConstructor)
             false
             ids

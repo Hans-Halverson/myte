@@ -462,7 +462,8 @@ and emit_expression ~ecx expr =
       in
       let mir_ty = type_to_mir_type ~ecx (Types.Type.TVar tvar) in
       var_value_of_type var mir_ty
-    | FunParamDecl { tvar } ->
+    | FunParamDecl { tvar }
+    | MatchCaseVarDecl { tvar } ->
       let var = mk_cf_local id_loc in
       let mir_ty = type_to_mir_type ~ecx (Types.Type.TVar tvar) in
       var_value_of_type var mir_ty)

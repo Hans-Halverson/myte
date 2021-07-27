@@ -1,0 +1,9 @@
+Error: Could not resolve name `x` to value
+test/analyze/name_resolution/match_case_scope.myte:8:11
+ 8 |     | _ -> x + y
+   |            ^
+
+Error: Could not resolve name `y` to value
+test/analyze/name_resolution/match_case_scope.myte:8:15
+ 8 |     | _ -> x + y
+   |                ^

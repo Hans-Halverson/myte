@@ -694,7 +694,29 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         List.iter
           (fun { Identifier.name; _ } -> ignore (this#lookup_value_in_scope name scopes))
           ids;
-        super#assignment assign
+       this#visit_pattern ~decl:false ~toplevel:false pattern;
+       super#assignment assign
+
+    method! match_case case =
+      let { Match.Case.pattern; _ } = case in
+      this#enter_scope ();
+      (* Resolve ids in pattern, and add all variable introduced in pattern to scope for this case *)
+      let ids = Ast_utils.ids_of_pattern pattern in
+      this#visit_pattern ~decl:true ~toplevel:false pattern;
+      List.iter
+        (fun { Ast.Identifier.loc; name; _ } ->
+          let binding =
+            this#add_value_declaration
+              loc
+              name
+              Function
+              (MatchCaseVarDecl (MatchCaseVariableDeclaration.mk ()))
+          in
+          this#add_value_to_scope name (Decl binding))
+        ids;
+      let result = super#match_case case in
+      this#exit_scope ();
+      result
 
     (* Match a sequence of module parts against the module tree, returning the same AST with the
        matched access chain replaced with a scoped id if a match exists. Otherwise error. *)
@@ -984,10 +1006,6 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       | Identifier { name; _ } -> this#resolve_type_scoped_id name
       | _ -> ());
       super#type_ ty
-
-    method! pattern patt =
-      this#visit_pattern ~decl:false ~toplevel:false patt;
-      patt
 
     method resolve_scoped_constructor_id id =
       let open Ast.ScopedIdentifier in

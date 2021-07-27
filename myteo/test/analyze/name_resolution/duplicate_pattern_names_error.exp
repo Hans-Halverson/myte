@@ -52,3 +52,13 @@ Error: Name `y` already bound in pattern
 test/analyze/name_resolution/duplicate_pattern_names_error.myte:17:10
  17 |   (y, (y, y)) = 1;
     |           ^
+
+Error: Name `x` already bound in pattern
+test/analyze/name_resolution/duplicate_pattern_names_error.myte:26:10
+ 26 |     | (x, x) -> ()
+    |           ^
+
+Error: Name `x` already bound in pattern
+test/analyze/name_resolution/duplicate_pattern_names_error.myte:30:18
+ 30 |     | (1, (x, (1, x))) -> ()
+    |                   ^
