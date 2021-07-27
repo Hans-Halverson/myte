@@ -418,7 +418,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         (* Fill in implemented traits *)
         let implemented =
           List.fold_left
-            (fun implemented { ImplementedTrait.name; _ } ->
+            (fun implemented { Type.Identifier.name; _ } ->
               (* Resolve implemented trait name *)
               this#resolve_type_scoped_id name;
               match LocMap.find_opt name.name.loc bindings.type_use_to_decl with
@@ -658,7 +658,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
 
       (* Resolve implemented traits and methods *)
       List.iter
-        (fun { ImplementedTrait.type_args; _ } ->
+        (fun { Type.Identifier.type_args; _ } ->
           List.iter (fun ty -> ignore (this#type_ ty)) type_args)
         implemented;
       let methods' =

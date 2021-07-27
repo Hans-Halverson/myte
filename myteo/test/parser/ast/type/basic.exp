@@ -44,7 +44,7 @@ test/parser/ast/type/basic.myte
             name: "Unit",
           },
         },
-        type_params: [],
+        type_args: [],
       },
     },
     {
@@ -74,7 +74,7 @@ test/parser/ast/type/basic.myte
             name: "Int",
           },
         },
-        type_params: [],
+        type_args: [],
       },
     },
     {
@@ -104,7 +104,7 @@ test/parser/ast/type/basic.myte
             name: "Byte",
           },
         },
-        type_params: [],
+        type_args: [],
       },
     },
     {
@@ -134,7 +134,7 @@ test/parser/ast/type/basic.myte
             name: "Long",
           },
         },
-        type_params: [],
+        type_args: [],
       },
     },
     {
@@ -164,7 +164,7 @@ test/parser/ast/type/basic.myte
             name: "String",
           },
         },
-        type_params: [],
+        type_args: [],
       },
     },
     {
@@ -194,7 +194,7 @@ test/parser/ast/type/basic.myte
             name: "Bool",
           },
         },
-        type_params: [],
+        type_args: [],
       },
     },
     {
@@ -228,7 +228,7 @@ test/parser/ast/type/basic.myte
                 name: "Int",
               },
             },
-            type_params: [],
+            type_args: [],
           },
         ],
         return: {
@@ -244,7 +244,7 @@ test/parser/ast/type/basic.myte
               name: "String",
             },
           },
-          type_params: [],
+          type_args: [],
         },
       },
     },
@@ -279,7 +279,7 @@ test/parser/ast/type/basic.myte
                 name: "Int",
               },
             },
-            type_params: [],
+            type_args: [],
           },
         ],
         return: {
@@ -299,7 +299,7 @@ test/parser/ast/type/basic.myte
                   name: "String",
                 },
               },
-              type_params: [],
+              type_args: [],
             },
           ],
           return: {
@@ -315,7 +315,7 @@ test/parser/ast/type/basic.myte
                 name: "Bool",
               },
             },
-            type_params: [],
+            type_args: [],
           },
         },
       },
@@ -351,7 +351,7 @@ test/parser/ast/type/basic.myte
                 name: "Int",
               },
             },
-            type_params: [],
+            type_args: [],
           },
         ],
         return: {
@@ -371,7 +371,7 @@ test/parser/ast/type/basic.myte
                   name: "String",
                 },
               },
-              type_params: [],
+              type_args: [],
             },
           ],
           return: {
@@ -391,7 +391,7 @@ test/parser/ast/type/basic.myte
                     name: "Bool",
                   },
                 },
-                type_params: [],
+                type_args: [],
               },
             ],
             return: {
@@ -407,7 +407,7 @@ test/parser/ast/type/basic.myte
                   name: "String",
                 },
               },
-              type_params: [],
+              type_args: [],
             },
           },
         },
@@ -440,7 +440,7 @@ test/parser/ast/type/basic.myte
             name: "Custom1",
           },
         },
-        type_params: [],
+        type_args: [],
       },
     },
     {
@@ -481,7 +481,7 @@ test/parser/ast/type/basic.myte
             name: "Custom3",
           },
         },
-        type_params: [],
+        type_args: [],
       },
     },
     {
@@ -521,7 +521,7 @@ test/parser/ast/type/basic.myte
                 name: "Custom2",
               },
             },
-            type_params: [],
+            type_args: [],
           },
         ],
         return: {
@@ -547,7 +547,7 @@ test/parser/ast/type/basic.myte
                   name: "Custom4",
                 },
               },
-              type_params: [],
+              type_args: [],
             },
           ],
           return: {
@@ -569,7 +569,7 @@ test/parser/ast/type/basic.myte
                 name: "Custom6",
               },
             },
-            type_params: [],
+            type_args: [],
           },
         },
       },
@@ -601,7 +601,7 @@ test/parser/ast/type/basic.myte
             name: "Id",
           },
         },
-        type_params: [
+        type_args: [
           {
             node: IdentifierType,
             loc: 19:10-19:11,
@@ -615,7 +615,7 @@ test/parser/ast/type/basic.myte
                 name: "A",
               },
             },
-            type_params: [],
+            type_args: [],
           },
         ],
       },
@@ -647,7 +647,7 @@ test/parser/ast/type/basic.myte
             name: "ID",
           },
         },
-        type_params: [
+        type_args: [
           {
             node: IdentifierType,
             loc: 20:10-20:11,
@@ -661,7 +661,7 @@ test/parser/ast/type/basic.myte
                 name: "A",
               },
             },
-            type_params: [],
+            type_args: [],
           },
           {
             node: IdentifierType,
@@ -676,7 +676,7 @@ test/parser/ast/type/basic.myte
                 name: "B",
               },
             },
-            type_params: [],
+            type_args: [],
           },
           {
             node: IdentifierType,
@@ -691,7 +691,7 @@ test/parser/ast/type/basic.myte
                 name: "C",
               },
             },
-            type_params: [],
+            type_args: [],
           },
         ],
       },
@@ -723,7 +723,7 @@ test/parser/ast/type/basic.myte
             name: "ID",
           },
         },
-        type_params: [
+        type_args: [
           {
             node: IdentifierType,
             loc: 21:10-21:11,
@@ -737,7 +737,7 @@ test/parser/ast/type/basic.myte
                 name: "A",
               },
             },
-            type_params: [],
+            type_args: [],
           },
           {
             node: IdentifierType,
@@ -752,7 +752,7 @@ test/parser/ast/type/basic.myte
                 name: "B",
               },
             },
-            type_params: [],
+            type_args: [],
           },
           {
             node: IdentifierType,
@@ -767,7 +767,7 @@ test/parser/ast/type/basic.myte
                 name: "C",
               },
             },
-            type_params: [],
+            type_args: [],
           },
         ],
       },
@@ -799,7 +799,7 @@ test/parser/ast/type/basic.myte
             name: "ID",
           },
         },
-        type_params: [
+        type_args: [
           {
             node: IdentifierType,
             loc: 22:10-22:19,
@@ -813,7 +813,7 @@ test/parser/ast/type/basic.myte
                 name: "ID",
               },
             },
-            type_params: [
+            type_args: [
               {
                 node: IdentifierType,
                 loc: 22:13-22:18,
@@ -827,7 +827,7 @@ test/parser/ast/type/basic.myte
                     name: "ID",
                   },
                 },
-                type_params: [
+                type_args: [
                   {
                     node: IdentifierType,
                     loc: 22:16-22:17,
@@ -841,7 +841,7 @@ test/parser/ast/type/basic.myte
                         name: "A",
                       },
                     },
-                    type_params: [],
+                    type_args: [],
                   },
                 ],
               },
@@ -877,7 +877,7 @@ test/parser/ast/type/basic.myte
             name: "ID",
           },
         },
-        type_params: [
+        type_args: [
           {
             node: TupleType,
             loc: 23:10-23:18,
@@ -895,7 +895,7 @@ test/parser/ast/type/basic.myte
                     name: "A",
                   },
                 },
-                type_params: [],
+                type_args: [],
               },
               {
                 node: IdentifierType,
@@ -910,7 +910,7 @@ test/parser/ast/type/basic.myte
                     name: "Int",
                   },
                 },
-                type_params: [],
+                type_args: [],
               },
             ],
           },
@@ -944,7 +944,7 @@ test/parser/ast/type/basic.myte
             name: "Array",
           },
         },
-        type_params: [
+        type_args: [
           {
             node: IdentifierType,
             loc: 25:13-25:14,
@@ -958,7 +958,7 @@ test/parser/ast/type/basic.myte
                 name: "A",
               },
             },
-            type_params: [],
+            type_args: [],
           },
         ],
       },

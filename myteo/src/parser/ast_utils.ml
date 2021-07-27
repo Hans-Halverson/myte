@@ -41,6 +41,14 @@ let expression_loc expr =
   | Super loc ->
     loc
 
+let type_loc ty =
+  let open Type in
+  match ty with
+  | Identifier { loc; _ }
+  | Tuple { loc; _ }
+  | Function { loc; _ } ->
+    loc
+
 let rec statement_visitor ~f ?(enter_functions = true) stmt =
   let open Statement in
   f stmt;

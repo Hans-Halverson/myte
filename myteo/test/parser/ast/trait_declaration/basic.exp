@@ -419,7 +419,7 @@ test/parser/ast/trait_declaration/basic.myte
       type_params: [],
       implemented: [
         {
-          node: ImplementedTrait,
+          node: IdentifierType,
           loc: 42:2-42:21,
           name: {
             node: ScopedIdentifier,
@@ -434,7 +434,7 @@ test/parser/ast/trait_declaration/basic.myte
           type_args: [],
         },
         {
-          node: ImplementedTrait,
+          node: IdentifierType,
           loc: 43:2-43:34,
           name: {
             node: ScopedIdentifier,
@@ -471,7 +471,7 @@ test/parser/ast/trait_declaration/basic.myte
                   name: "T",
                 },
               },
-              type_params: [],
+              type_args: [],
             },
             {
               node: TupleType,
@@ -490,7 +490,7 @@ test/parser/ast/trait_declaration/basic.myte
                       name: "V",
                     },
                   },
-                  type_params: [],
+                  type_args: [],
                 },
                 {
                   node: IdentifierType,
@@ -505,7 +505,7 @@ test/parser/ast/trait_declaration/basic.myte
                       name: "X",
                     },
                   },
-                  type_params: [],
+                  type_args: [],
                 },
               ],
             },
@@ -526,7 +526,7 @@ test/parser/ast/trait_declaration/basic.myte
       type_params: [],
       implemented: [
         {
-          node: ImplementedTrait,
+          node: IdentifierType,
           loc: 47:2-47:21,
           name: {
             node: ScopedIdentifier,

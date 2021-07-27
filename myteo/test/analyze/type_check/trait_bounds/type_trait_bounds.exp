@@ -1,0 +1,29 @@
+Error: Expected type `T: Foo` but found `Int`
+test/analyze/type_check/trait_bounds/type_trait_bounds.myte:15:29-32
+ 15 | val test1: ParameterizedType<Int> = 1
+    |                              ^^^
+
+Error: Expected type `T: Foo` but found `Int`
+test/analyze/type_check/trait_bounds/type_trait_bounds.myte:17:31-34
+ 17 | fun test2(x: ParameterizedType<Int>, y: ParameterizedTrait<Int>) {}
+    |                                ^^^
+
+Error: Expected type `T: Foo` but found `Int`
+test/analyze/type_check/trait_bounds/type_trait_bounds.myte:17:59-62
+ 17 | fun test2(x: ParameterizedType<Int>, y: ParameterizedTrait<Int>) {}
+    |                                                            ^^^
+
+Error: Expected type `T: Foo` but found `Int`
+test/analyze/type_check/trait_bounds/type_trait_bounds.myte:20:28-31
+ 20 |   | Tup1 (ParameterizedType<Int>)
+    |                             ^^^
+
+Error: Expected type `T: Foo` but found `Int`
+test/analyze/type_check/trait_bounds/type_trait_bounds.myte:21:34-37
+ 21 |   | Rec1 { foo: ParameterizedType<Int> }
+    |                                   ^^^
+
+Error: Expected type `T: Foo` but found `Int`
+test/analyze/type_check/trait_bounds/type_trait_bounds.myte:24:33-36
+ 24 |   fun test1(x: ParameterizedType<Int>) {}
+    |                                  ^^^

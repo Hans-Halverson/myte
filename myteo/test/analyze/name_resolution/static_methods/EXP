@@ -94,7 +94,7 @@ test/analyze/name_resolution/static_methods/a.myte
                 name: "Unit",
               },
             },
-            type_params: [],
+            type_args: [],
           },
         ],
       },
@@ -296,7 +296,7 @@ test/analyze/name_resolution/static_methods/test.myte
                   name: "Int",
                 },
               },
-              type_params: [],
+              type_args: [],
             },
           },
         ],
@@ -645,7 +645,7 @@ test/analyze/name_resolution/static_methods/test.myte
       type_params: [],
       implemented: [
         {
-          node: ImplementedTrait,
+          node: IdentifierType,
           loc: 39:2-39:16,
           name: {
             node: ScopedIdentifier,

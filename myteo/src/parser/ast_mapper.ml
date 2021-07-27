@@ -470,7 +470,7 @@ class mapper =
       let { loc; kind; name; type_params; implemented; methods } = decl in
       let name' = this#identifier name in
       let type_params' = id_map_list this#type_parameter type_params in
-      let implemented' = id_map_list this#trait_declaration_implemented implemented in
+      let implemented' = id_map_list this#identifier_type implemented in
       let methods' = id_map_list this#function_ methods in
       if name == name' && type_params == type_params' && methods == methods' then
         decl
@@ -483,16 +483,6 @@ class mapper =
           implemented = implemented';
           methods = methods';
         }
-
-    method trait_declaration_implemented trait =
-      let open TraitDeclaration.ImplementedTrait in
-      let { loc; name; type_args } = trait in
-      let name' = this#scoped_identifier name in
-      let type_args' = id_map_list this#type_ type_args in
-      if name == name' && type_args == type_args' then
-        trait
-      else
-        { loc; name = name'; type_args = type_args' }
 
     method type_parameter param =
       let open TypeParameter in
@@ -568,13 +558,13 @@ class mapper =
 
     method identifier_type id =
       let open Type.Identifier in
-      let { loc; name; type_params } = id in
+      let { loc; name; type_args } = id in
       let name' = this#scoped_identifier name in
-      let type_params' = id_map_list this#type_ type_params in
-      if name == name' && type_params == type_params' then
+      let type_args' = id_map_list this#type_ type_args in
+      if name == name' && type_args == type_args' then
         id
       else
-        { loc; name = name'; type_params = type_params' }
+        { loc; name = name'; type_args = type_args' }
 
     method tuple_type tuple =
       let open Type.Tuple in

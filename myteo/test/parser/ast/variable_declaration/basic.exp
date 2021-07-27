@@ -77,7 +77,7 @@ test/parser/ast/variable_declaration/basic.myte
             name: "Int",
           },
         },
-        type_params: [],
+        type_args: [],
       },
     },
   ],

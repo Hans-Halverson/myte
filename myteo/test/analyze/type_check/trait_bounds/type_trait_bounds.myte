@@ -1,0 +1,40 @@
+module test
+
+trait Foo {}
+
+type ImplementsFoo (Int)
+methods ImplementsFoo {
+  implements Foo
+}
+
+type ParameterizedType<T: Foo> (T)
+
+trait ParameterizedTrait<T: Foo> {}
+
+// Errors
+val test1: ParameterizedType<Int> = 1
+
+fun test2(x: ParameterizedType<Int>, y: ParameterizedTrait<Int>) {}
+
+type TestType1 =
+  | Tup1 (ParameterizedType<Int>)
+  | Rec1 { foo: ParameterizedType<Int> }
+
+methods TestType1 {
+  fun test1(x: ParameterizedType<Int>) {}
+}
+
+// Successes
+val test3: ParameterizedType<ImplementsFoo> = 1
+
+fun test4(x: ParameterizedType<ImplementsFoo>, y: ParameterizedTrait<ImplementsFoo>) {}
+
+type TestType2 =
+  | Tup2 (ParameterizedType<ImplementsFoo>)
+  | Rec2 { foo: ParameterizedType<ImplementsFoo> }
+
+methods TestType2 {
+  fun test2(x: ParameterizedType<ImplementsFoo>) {}
+}
+
+fun main() {}

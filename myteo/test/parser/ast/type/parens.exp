@@ -45,7 +45,7 @@ test/parser/ast/type/parens.myte
             name: "Int",
           },
         },
-        type_params: [],
+        type_args: [],
       },
     },
     {
@@ -75,7 +75,7 @@ test/parser/ast/type/parens.myte
             name: "Int",
           },
         },
-        type_params: [],
+        type_args: [],
       },
     },
     {
@@ -109,7 +109,7 @@ test/parser/ast/type/parens.myte
                 name: "Int",
               },
             },
-            type_params: [],
+            type_args: [],
           },
         ],
         return: {
@@ -125,7 +125,7 @@ test/parser/ast/type/parens.myte
               name: "String",
             },
           },
-          type_params: [],
+          type_args: [],
         },
       },
     },

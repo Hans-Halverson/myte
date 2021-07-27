@@ -64,7 +64,7 @@ test/parser/ast/builtin/function.myte
                 name: "Int",
               },
             },
-            type_params: [],
+            type_args: [],
           },
         },
       ],
@@ -82,7 +82,7 @@ test/parser/ast/builtin/function.myte
             name: "Unit",
           },
         },
-        type_params: [],
+        type_args: [],
       },
       type_params: [
         {

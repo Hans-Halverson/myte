@@ -50,6 +50,8 @@ val assert_unify : cx:t -> Loc.t -> Type.t -> Type.t -> unit
 
 val assert_is_subtype : cx:t -> Loc.t -> Type.t -> Type.t -> unit
 
+val type_satisfies_trait_bounds : cx:t -> Type.t -> Types.TraitSig.instance list -> bool
+
 (* Type utilities *)
 
 val find_rep_type : cx:t -> Type.t -> Type.t

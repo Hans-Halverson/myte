@@ -1221,7 +1221,7 @@ and parse_trait_declaration ~kind env =
       let name = parse_scoped_identifier env in
       let type_args = parse_type_args env in
       let loc = marker env in
-      let trait = { TraitDeclaration.ImplementedTrait.loc; name; type_args } in
+      let trait = { Type.Identifier.loc; name; type_args } in
       parse_implemented (trait :: acc)
     | _ -> acc
   in
@@ -1349,9 +1349,9 @@ and parse_identifier_type env =
   let open Type.Identifier in
   let marker = mark_loc env in
   let name = parse_scoped_identifier env in
-  let type_params = parse_type_args env in
+  let type_args = parse_type_args env in
   let loc = marker env in
-  { loc; name; type_params }
+  { loc; name; type_args }
 
 and parse_function_type env params marker =
   let open Ast.Type in

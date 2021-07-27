@@ -1,0 +1,28 @@
+module test
+
+trait Foo {}
+
+type ImplementsFoo (Int)
+methods ImplementsFoo {
+  implements Foo
+}
+
+type ParameterizedType<T: Foo> (T)
+
+trait ParameterizedTrait<T: Foo> {}
+
+// Rechecked errors
+type alias Test1 = ParameterizedType<Int>
+type Test2<T: ParameterizedTrait<Int>> (T)
+trait Test3<T: ParameterizedTrait<Int>> {
+  extends ParameterizedTrait<Int>
+}
+
+// Rechecked successes
+type alias Test4 = ParameterizedType<ImplementsFoo>
+type Test5<T: ParameterizedTrait<ImplementsFoo>> (T)
+trait Test6<T: ParameterizedTrait<ImplementsFoo>> {
+  extends ParameterizedTrait<ImplementsFoo>
+}
+
+fun main() {}

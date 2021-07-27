@@ -332,14 +332,8 @@ class ['a] visitor =
       let { loc = _; kind = _; name; type_params; implemented; methods } = decl in
       this#identifier acc name;
       List.iter (this#type_parameter acc) type_params;
-      List.iter (this#trait_declaration_implemented acc) implemented;
+      List.iter (this#identifier_type acc) implemented;
       List.iter (this#function_ acc) methods
-
-    method trait_declaration_implemented acc trait =
-      let open TraitDeclaration.ImplementedTrait in
-      let { loc = _; name; type_args } = trait in
-      this#scoped_identifier acc name;
-      List.iter (this#type_ acc) type_args
 
     method type_declaration acc decl =
       let open TypeDeclaration in
@@ -384,9 +378,9 @@ class ['a] visitor =
 
     method identifier_type acc id =
       let open Type.Identifier in
-      let { loc = _; name; type_params } = id in
+      let { loc = _; name; type_args } = id in
       this#scoped_identifier acc name;
-      List.iter (this#type_ acc) type_params
+      List.iter (this#type_ acc) type_args
 
     method tuple_type acc tuple =
       let open Type.Tuple in

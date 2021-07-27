@@ -472,18 +472,8 @@ and node_of_trait_decl decl =
       ("kind", Raw kind);
       ("name", node_of_identifier name);
       ("type_params", List (List.map node_of_type_parameter type_params));
-      ("implemented", List (List.map node_of_trait_decl_implemented implemented));
+      ("implemented", List (List.map node_of_identifier_type implemented));
       ("methods", List (List.map node_of_function methods));
-    ]
-
-and node_of_trait_decl_implemented trait =
-  let open TraitDeclaration.ImplementedTrait in
-  let { loc; name; type_args } = trait in
-  node
-    "ImplementedTrait"
-    loc
-    [
-      ("name", node_of_scoped_identifier name); ("type_args", List (List.map node_of_type type_args));
     ]
 
 and node_of_type_decl decl =
@@ -573,13 +563,12 @@ and node_of_type_parameter param =
     [("name", node_of_identifier name); ("bounds", List (List.map node_of_identifier_type bounds))]
 
 and node_of_identifier_type id =
-  let { Type.Identifier.loc; name; type_params } = id in
+  let { Type.Identifier.loc; name; type_args } = id in
   node
     "IdentifierType"
     loc
     [
-      ("name", node_of_scoped_identifier name);
-      ("type_params", List (List.map node_of_type type_params));
+      ("name", node_of_scoped_identifier name); ("type_args", List (List.map node_of_type type_args));
     ]
 
 and node_of_tuple_type tuple =

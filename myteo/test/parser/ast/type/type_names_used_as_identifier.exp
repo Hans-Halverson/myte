@@ -48,7 +48,7 @@ test/parser/ast/type/type_names_used_as_identifier.myte
                 name: "Int",
               },
             },
-            type_params: [],
+            type_args: [],
           },
         },
       ],

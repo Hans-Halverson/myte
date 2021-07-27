@@ -1,9 +1,9 @@
 Error: Expected type `Trait1` but found `Int`
-test/analyze/type_check/trait_bounds/trait_bounds.myte:16:6
+test/analyze/type_check/trait_bounds/function_trait_bounds.myte:16:6
  16 |   foo(1);
     |       ^
 
 Error: Expected type `Trait1` but found `Type1`
-test/analyze/type_check/trait_bounds/trait_bounds.myte:20:6
+test/analyze/type_check/trait_bounds/function_trait_bounds.myte:20:6
  20 |   foo(y);
     |       ^

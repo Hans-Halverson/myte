@@ -1,0 +1,19 @@
+Error: Expected type `T: Foo` but found `Int`
+test/analyze/type_check/trait_bounds/type_trait_bound_rechecks.myte:15:37-40
+ 15 | type alias Test1 = ParameterizedType<Int>
+    |                                      ^^^
+
+Error: Expected type `T: Foo` but found `Int`
+test/analyze/type_check/trait_bounds/type_trait_bound_rechecks.myte:16:33-36
+ 16 | type Test2<T: ParameterizedTrait<Int>> (T)
+    |                                  ^^^
+
+Error: Expected type `T: Foo` but found `Int`
+test/analyze/type_check/trait_bounds/type_trait_bound_rechecks.myte:17:34-37
+ 17 | trait Test3<T: ParameterizedTrait<Int>> {
+    |                                   ^^^
+
+Error: Expected type `T: Foo` but found `Int`
+test/analyze/type_check/trait_bounds/type_trait_bound_rechecks.myte:18:29-32
+ 18 |   extends ParameterizedTrait<Int>
+    |                              ^^^

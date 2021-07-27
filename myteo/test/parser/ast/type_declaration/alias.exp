@@ -40,7 +40,7 @@ test/parser/ast/type_declaration/alias.myte
             name: "Unit",
           },
         },
-        type_params: [],
+        type_args: [],
       },
     },
     {
@@ -65,7 +65,7 @@ test/parser/ast/type_declaration/alias.myte
             name: "Int",
           },
         },
-        type_params: [],
+        type_args: [],
       },
     },
     {
@@ -94,7 +94,7 @@ test/parser/ast/type_declaration/alias.myte
                 name: "String",
               },
             },
-            type_params: [],
+            type_args: [],
           },
           {
             node: IdentifierType,
@@ -109,7 +109,7 @@ test/parser/ast/type_declaration/alias.myte
                 name: "Bool",
               },
             },
-            type_params: [],
+            type_args: [],
           },
         ],
         return: {
@@ -125,7 +125,7 @@ test/parser/ast/type_declaration/alias.myte
               name: "Unit",
             },
           },
-          type_params: [],
+          type_args: [],
         },
       },
     },
@@ -162,7 +162,7 @@ test/parser/ast/type_declaration/alias.myte
             name: "Unit",
           },
         },
-        type_params: [],
+        type_args: [],
       },
     },
     {
@@ -218,7 +218,7 @@ test/parser/ast/type_declaration/alias.myte
             name: "Int",
           },
         },
-        type_params: [],
+        type_args: [],
       },
     },
   ],

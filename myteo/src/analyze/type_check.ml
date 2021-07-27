@@ -2,23 +2,19 @@ open Analyze_error
 open Basic_collections
 open Types
 
-let rec build_type ~cx ?(implicit_type_params = None) ty =
+let rec build_type ~cx ?(check_type_param_bounds = true) ?(implicit_type_params = None) ty =
   let open Ast.Type in
+  let build_type ty = build_type ~cx ~check_type_param_bounds ~implicit_type_params ty in
   match ty with
-  | Tuple { Tuple.elements; _ } ->
-    Type.Tuple (List.map (build_type ~cx ~implicit_type_params) elements)
+  | Tuple { Tuple.elements; _ } -> Type.Tuple (List.map build_type elements)
   | Function { Function.params; return; _ } ->
     Type.Function
-      {
-        type_args = [];
-        params = List.map (build_type ~cx ~implicit_type_params) params;
-        return = build_type ~cx ~implicit_type_params return;
-      }
-  | Identifier { Identifier.loc; name; type_params; _ } ->
+      { type_args = []; params = List.map build_type params; return = build_type return }
+  | Identifier { Identifier.loc; name; type_args = type_arg_nodes; _ } ->
     let type_param_arity_error actual expected =
       Type_context.add_error ~cx loc (IncorrectTypeParametersArity (actual, expected))
     in
-    let type_args = List.map (build_type ~cx ~implicit_type_params) type_params in
+    let type_args = List.map build_type type_arg_nodes in
     let num_type_args = List.length type_args in
     let binding = Type_context.get_type_binding ~cx name.name.loc in
     let mk_if_correct_arity arity mk_ty =
@@ -28,6 +24,30 @@ let rec build_type ~cx ?(implicit_type_params = None) ty =
         type_param_arity_error num_type_args arity;
         Type.Any
       )
+    in
+    (* Check that bounds on type parameters are satisfied by type args, erroring if not *)
+    let check_type_param_bounds_satisfied type_params type_args =
+      if check_type_param_bounds then
+        List_utils.iteri2
+          (fun i type_param type_arg ->
+            let rep_type_param =
+              match Type_context.find_rep_type ~cx (TypeParam type_param) with
+              | TypeParam rep_type_param -> rep_type_param
+              | _ -> failwith "Rep type must be type param"
+            in
+            if rep_type_param.bounds <> [] then
+              let rep_type_arg = Type_context.find_rep_type ~cx type_arg in
+              if
+                not
+                  (Type_context.type_satisfies_trait_bounds ~cx rep_type_arg rep_type_param.bounds)
+              then
+                let loc = Ast_utils.type_loc (List.nth type_arg_nodes i) in
+                Type_context.add_error
+                  ~cx
+                  loc
+                  (IncompatibleTypes (rep_type_arg, [TypeParam rep_type_param])))
+          type_params
+          type_args
     in
     (* Check if this is a builtin type *)
     (match Std_lib.lookup_stdlib_name binding.loc with
@@ -60,8 +80,14 @@ let rec build_type ~cx ?(implicit_type_params = None) ty =
       (* Pass type args to ADT if they have the correct arity *)
       | TypeDecl type_decl ->
         let adt_sig = type_decl.adt_sig in
-        mk_if_correct_arity (List.length adt_sig.type_params) (fun _ ->
-            Type.ADT { adt_sig; type_args })
+        let num_type_params = List.length adt_sig.type_params in
+        if num_type_args <> num_type_params then (
+          type_param_arity_error num_type_args num_type_params;
+          Type.Any
+        ) else (
+          check_type_param_bounds_satisfied adt_sig.type_params type_args;
+          Type.ADT { adt_sig; type_args }
+        )
       (* A trait as a raw identifier is an implicit type parameter *)
       | TraitDecl trait_decl ->
         (match implicit_type_params with
@@ -73,17 +99,16 @@ let rec build_type ~cx ?(implicit_type_params = None) ty =
           let trait_sig = trait_decl.trait_sig in
           let num_type_params = List.length trait_sig.type_params in
           if num_type_params <> num_type_args then (
-            Type_context.add_error
-              ~cx
-              loc
-              (IncorrectTypeParametersArity (num_type_args, num_type_params));
+            type_param_arity_error num_type_args num_type_params;
             Type.Any
-          ) else
+          ) else (
+            check_type_param_bounds_satisfied trait_sig.type_params type_args;
             (* Create implicit type parameter and save in list of implicits *)
             let bound = { TraitSig.trait_sig; type_args } in
             let type_param = TypeParam.mk ~name:Implicit ~bounds:[bound] in
             implicit_type_params := (type_param, loc) :: !implicit_type_params;
-            Type.TypeParam type_param)))
+            Type.TypeParam type_param
+          ))))
 
 (* Build type parameters for all types, alias, and traits. Type parameter bounds are built, but
    are not yet checked for correctness. *)
@@ -97,7 +122,8 @@ and build_type_and_trait_parameters ~cx module_ =
       | TypeDeclaration { name; decl = Alias _; type_params; _ } ->
         let binding = Type_context.get_type_binding ~cx name.loc in
         let alias_decl = Bindings.get_type_alias_decl binding in
-        alias_decl.type_params <- build_type_parameters ~cx type_params;
+        alias_decl.type_params <-
+          build_type_parameters ~cx ~check_type_param_bounds:false type_params;
         (* Type alias parameters cannot have bounds *)
         List.iter
           (fun { Ast.TypeParameter.bounds; _ } ->
@@ -108,17 +134,17 @@ and build_type_and_trait_parameters ~cx module_ =
       | TypeDeclaration { name; decl = Builtin | Tuple _ | Record _ | Variant _; type_params; _ } ->
         let binding = Type_context.get_type_binding ~cx name.loc in
         let type_decl = Bindings.get_type_decl binding in
-        let type_params = build_type_parameters ~cx type_params in
+        let type_params = build_type_parameters ~cx ~check_type_param_bounds:false type_params in
         type_decl.adt_sig.type_params <- type_params
       | TraitDeclaration { name; type_params; _ } ->
         let binding = Type_context.get_type_binding_from_decl ~cx name.loc in
         let trait_decl = Bindings.get_trait_decl binding in
-        let type_params = build_type_parameters ~cx type_params in
+        let type_params = build_type_parameters ~cx ~check_type_param_bounds:false type_params in
         trait_decl.trait_sig.type_params <- type_params
       | _ -> ())
     toplevels
 
-and build_type_parameters ~cx params =
+and build_type_parameters ~cx ?(check_type_param_bounds = true) params =
   List.map
     (fun { Ast.TypeParameter.name = { Ast.Identifier.loc; name }; bounds; _ } ->
       let binding = Type_context.get_type_binding ~cx loc in
@@ -127,12 +153,12 @@ and build_type_parameters ~cx params =
       (* Build type parameter bounds, returning no bounds if error is encountered *)
       let (bounds, has_error) =
         List.fold_left
-          (fun (bounds, has_error) { Ast.Type.Identifier.loc; name; type_params; _ } ->
+          (fun (bounds, has_error) { Ast.Type.Identifier.loc; name; type_args; _ } ->
             let binding = Type_context.get_type_binding ~cx name.name.loc in
             match binding.declaration with
             | TraitDecl trait_decl ->
               let trait_sig = trait_decl.trait_sig in
-              let type_args = List.map (build_type ~cx) type_params in
+              let type_args = List.map (build_type ~cx ~check_type_param_bounds) type_args in
               let num_type_args = List.length type_args in
               let num_type_params = List.length trait_sig.type_params in
               if num_type_args <> num_type_params then (
@@ -172,7 +198,7 @@ and build_type_aliases ~cx modules =
         | { name; decl = Alias alias; _ } ->
           let binding = Type_context.get_type_binding ~cx name.loc in
           let alias_decl = Bindings.get_type_alias_decl binding in
-          alias_decl.body <- build_type ~cx alias
+          alias_decl.body <- build_type ~cx ~check_type_param_bounds:false alias
         | _ -> ())
       aliases_in_topological_order
   | Error { loc; name; _ } -> Type_context.add_error ~cx loc (CyclicTypeAlias name.name)
@@ -260,10 +286,10 @@ and build_trait_hierarchy ~cx modules =
 (* Add all implemented traits to a given trait decl's trait sig. This includes all super implemented
    traits, whose type args will be calculated in terms of the trait decl's params. *)
 and build_implemented_traits ~cx trait_decl implemented_trait this_type =
-  let { Ast.TraitDeclaration.ImplementedTrait.loc; name; type_args; _ } = implemented_trait in
+  let { Ast.Type.Identifier.loc; name; type_args; _ } = implemented_trait in
 
   (* Build type args for implemented trait, and check arity of type args *)
-  let type_args = List.map (build_type ~cx) type_args in
+  let type_args = List.map (build_type ~cx ~check_type_param_bounds:false) type_args in
   let trait_sig = (LocMap.find name.loc trait_decl.implemented).trait_sig in
   let num_type_args = List.length type_args in
   let num_type_params = List.length trait_sig.type_params in
@@ -285,6 +311,30 @@ and build_implemented_traits ~cx trait_decl implemented_trait this_type =
         TraitSig.add_implemented trait_decl.trait_sig loc { trait_sig; type_args })
       trait_sig.implemented
   )
+
+(* Re-build all types built so far, this type checking that trait bounds are satisfied for any
+   instantiated type parameters. Needs to recheck type and trait type parameters (as bounds may
+   themselves contain parameterized types), type alias bodies, and traits' implemented types. *)
+and recheck_type_parameters ~cx module_ =
+  let recheck_type ~cx ty = ignore (build_type ~cx ~implicit_type_params:(Some (ref [])) ty) in
+  let recheck_type_param ~cx { Ast.TypeParameter.bounds; _ } =
+    List.iter (fun bound -> recheck_type ~cx (Ast.Type.Identifier bound)) bounds
+  in
+  List.iter
+    (fun toplevel ->
+      match toplevel with
+      | Ast.Module.TypeDeclaration { type_params; decl; _ } ->
+        List.iter (recheck_type_param ~cx) type_params;
+        (match decl with
+        | Alias body -> recheck_type ~cx body
+        | _ -> ())
+      | TraitDeclaration { type_params; implemented; _ } ->
+        List.iter (recheck_type_param ~cx) type_params;
+        List.iter
+          (fun implemented -> recheck_type ~cx (Ast.Type.Identifier implemented))
+          implemented
+      | _ -> ())
+    module_.Ast.Module.toplevels
 
 and build_declarations ~cx module_ =
   let open Ast.Module in
@@ -1643,16 +1693,15 @@ let ensure_all_expression_are_typed ~cx modules =
 let analyze ~cx modules =
   (* First build parameters for all types and traits *)
   List.iter (fun (_, module_) -> build_type_and_trait_parameters ~cx module_) modules;
-  (* Then build all type aliases in program (in topological order) *)
+  (* Build all type aliases in program (in topological order). This must be done before any other
+     types are built, so that type aliases can be substituted when building types. *)
   build_type_aliases ~cx modules;
-  (* Then build trait hierarchy for program *)
+  (* Build trait hierarchy for program *)
   build_trait_hierarchy ~cx modules;
-  (* List.iter (fun (_, module_) -> build_trait_declarations ~cx module_) modules;
-     if Type_context.get_errors ~cx = [] then
-       List.iter (fun (_, module_) -> build_trait_implementations ~cx module_) modules; *)
-  (* TODO: Check that type args satisfy super trait param bounds once trait implementations
-     have been built. This needs to be done for all types created so far (ADTs, aliases, traits,
-     trait implementations, and trait methods). *)
+  (* With trait hierarchy built, recheck types already built to verify that trait bounds are
+     satisfied for all type instantiations. *)
+  if Type_context.get_errors ~cx = [] then
+    List.iter (fun (_, module_) -> recheck_type_parameters ~cx module_) modules;
   if Type_context.get_errors ~cx = [] then
     List.iter (fun (_, module_) -> build_declarations ~cx module_) modules;
   if Type_context.get_errors ~cx = [] then check_trait_implementations ~cx modules;

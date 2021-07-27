@@ -355,7 +355,7 @@ and Type : sig
     type t = {
       loc: Loc.t;
       name: ScopedIdentifier.t;
-      type_params: Type.t list;
+      type_args: Type.t list;
     }
   end
 
@@ -482,7 +482,7 @@ and TraitDeclaration : sig
     kind: kind;
     name: Identifier.t;
     type_params: TypeParameter.t list;
-    implemented: ImplementedTrait.t list;
+    implemented: Type.Identifier.t list;
     methods: Function.t list;
   }
 end =
