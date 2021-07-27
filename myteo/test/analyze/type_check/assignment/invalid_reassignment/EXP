@@ -52,3 +52,8 @@ Error: Cannot reassign function parameter `funcParam`
 test/analyze/type_check/assignment/invalid_reassignment/test.myte:42:2-11
  42 |   funcParam = 1;
     |   ^^^^^^^^^
+
+Error: Cannot reassign match case variable `x`
+test/analyze/type_check/assignment/invalid_reassignment/test.myte:47:6
+ 47 |       x = 1;
+    |       ^

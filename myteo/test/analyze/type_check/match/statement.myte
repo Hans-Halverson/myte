@@ -1,0 +1,29 @@
+module test
+
+// Right hand side must have unit type - successes, as statements have unit type
+fun testSuccess() {
+  match (true, "a") {
+    | (true, x) -> return
+    | (x, "a") -> if (x) { return; } else { return; }
+    | (x, y) -> match (1) {
+      | 1 -> return
+      | z -> while (true) { return; }
+    }
+  }
+}
+
+// Right hand side must have unit type - failure, with non-unit type expressions
+fun testFailure() {
+  match (true) {
+    | true -> 1
+    | false -> ()
+  }
+
+  match (true) {
+    | x -> match (true) {
+      | y -> 1
+    }
+  }
+}
+
+fun main() {}

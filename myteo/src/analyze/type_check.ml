@@ -720,6 +720,18 @@ and check_function_body ~cx decl =
          let param_decl = Bindings.get_func_param_decl binding in
          ignore (Type_context.unify ~cx param_ty (TVar param_decl.tvar)));
 
+  (* Annotate each return statement node with this function's return type *)
+  let return_visitor =
+    object
+      inherit [unit] Ast_visitor.visitor
+
+      method! function_ _ _ = ()
+
+      method! return _ { loc; _ } = Type_context.add_return_type ~cx loc func_decl.return
+    end
+  in
+  return_visitor#function_body () body;
+
   match body with
   | Signature -> ()
   | Expression expr ->
@@ -729,14 +741,6 @@ and check_function_body ~cx decl =
   | Block block ->
     let open Ast.Statement in
     let block_stmt = Block block in
-    (* Annotate each return statement node with this function's return type *)
-    Ast_utils.statement_visitor
-      ~enter_functions:false
-      ~f:(fun stmt ->
-        match stmt with
-        | Return { Return.loc; _ } -> Type_context.add_return_type ~cx loc func_decl.return
-        | _ -> ())
-      block_stmt;
     check_statement ~cx block_stmt
 
 and check_expression ~cx expr =
@@ -1392,12 +1396,61 @@ and check_expression ~cx expr =
     Type_context.assert_unify ~cx altern_loc (TVar conseq_tvar_id) (TVar altern_tvar_id);
     ignore (Type_context.unify ~cx (TVar conseq_tvar_id) (TVar tvar_id));
     (loc, tvar_id)
-  | Match _ -> failwith "TODO: Type check match expressions"
+  (*
+   * ============================
+   *       Match Expression
+   * ============================
+   *)
+  | Match ({ loc; _ } as match_) ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    check_match ~cx match_ (Type.TVar tvar_id);
+    (loc, tvar_id)
   | Super _ -> failwith "TODO: Type check super expressions"
+
+and check_match ~cx match_ right_ty =
+  let open Ast.Match in
+  let { args; cases; _ } = match_ in
+
+  (* Find arg types - if multiple args are present, wrap in tuple *)
+  let arg_tys = List.map (fun arg -> Type.TVar (snd (check_expression ~cx arg))) args in
+  let arg_ty =
+    match arg_tys with
+    | [arg_ty] -> arg_ty
+    | _ -> Tuple arg_tys
+  in
+
+  List.iter
+    (fun { Case.pattern; guard; right; _ } ->
+      (* Pattern must have same type as arg *)
+      let (pattern_loc, pattern_tvar_id) = check_pattern ~cx pattern in
+      Type_context.assert_unify ~cx pattern_loc arg_ty (TVar pattern_tvar_id);
+
+      (* Guard must evaluate to a boolean *)
+      (match guard with
+      | None -> ()
+      | Some guard ->
+        let (guard_loc, guard_tvar_id) = check_expression ~cx guard in
+        Type_context.assert_unify ~cx guard_loc Bool (TVar guard_tvar_id));
+
+      (* All cases must evaluate to same result value *)
+      match right with
+      | Expression expr ->
+        let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
+        Type_context.assert_unify ~cx expr_loc right_ty (TVar expr_tvar_id)
+      | Statement stmt ->
+        check_statement ~cx stmt;
+        let loc = Ast_utils.statement_loc stmt in
+        Type_context.assert_unify ~cx loc right_ty Unit)
+    cases
 
 and check_pattern ~cx patt =
   let open Ast.Pattern in
   match patt with
+  (*
+   * ============================
+   *     Variables Pattern
+   * ============================
+   *)
   | Identifier { Ast.Identifier.loc; _ } ->
     let binding = Type_context.get_value_binding ~cx loc in
     let decl_tvar_id_opt =
@@ -1420,10 +1473,41 @@ and check_pattern ~cx patt =
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     ignore (Type_context.unify ~cx ty (TVar tvar_id));
     (loc, tvar_id)
+  (*
+   * ============================
+   *      Wildcard Pattern
+   * ============================
+   *)
   | Wildcard loc ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    ignore (Type_context.unify ~cx Any (TVar tvar_id));
     (loc, tvar_id)
+  (*
+   * ============================
+   *      Literal Patterns
+   * ============================
+   *)
+  | Literal (Unit { loc }) ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    ignore (Type_context.unify ~cx Unit (TVar tvar_id));
+    (loc, tvar_id)
+  | Literal (Bool { loc; _ }) ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    ignore (Type_context.unify ~cx Bool (TVar tvar_id));
+    (loc, tvar_id)
+  | Literal (String { loc; _ }) ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    ignore (Type_context.unify ~cx (Std_lib.mk_string_type ()) (TVar tvar_id));
+    (loc, tvar_id)
+  | Literal (Int { loc; raw; base }) ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    let int_literal_ty = Type_context.mk_int_literal_ty ~cx loc raw base in
+    ignore (Type_context.unify ~cx int_literal_ty (TVar tvar_id));
+    (loc, tvar_id)
+  (*
+   * ============================
+   *    Tuple Literal Pattern
+   * ============================
+   *)
   | Tuple { loc; name = None; elements } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let element_tys =
@@ -1432,6 +1516,11 @@ and check_pattern ~cx patt =
     let tuple_ty = Type.Tuple element_tys in
     ignore (Type_context.unify ~cx tuple_ty (Type.TVar tvar_id));
     (loc, tvar_id)
+  (*
+   * ============================
+   *  Tuple Constructor Pattern
+   * ============================
+   *)
   | Tuple { loc; name = Some scoped_id; elements } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let element_locs_and_tvar_ids = List.map (fun element -> check_pattern ~cx element) elements in
@@ -1469,6 +1558,11 @@ and check_pattern ~cx patt =
     in
     ignore (Type_context.unify ~cx ty (TVar tvar_id));
     (loc, tvar_id)
+  (*
+   * ==============================
+   *   Record Constructor Pattern
+   * ==============================
+   *)
   | Record { loc; name = scoped_id; fields; _ } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let record_adt_ty_opt =
@@ -1548,7 +1642,6 @@ and check_pattern ~cx patt =
     in
     ignore (Type_context.unify ~cx ty (TVar tvar_id));
     (loc, tvar_id)
-  | Literal _ -> failwith "TODO: Type check pattern literals"
 
 and check_statement ~cx stmt =
   let open Ast.Statement in
@@ -1584,7 +1677,7 @@ and check_statement ~cx stmt =
     ()
   (*
    * ============================
-   * Assignment
+   *         Assignment
    * ============================
    *)
   | Assignment { Assignment.lvalue; expr; _ } ->
@@ -1643,7 +1736,12 @@ and check_statement ~cx stmt =
     | Some (_, lvalue_tvar_id) ->
       Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) (TVar lvalue_tvar_id)
     | None -> ())
-  | Match _ -> failwith "TODO: Type check match statements"
+  (*
+   * ============================
+   *       Match Statement
+   * ============================
+   *)
+  | Match match_ -> check_match ~cx match_ Unit
 
 (* Resolve all IntLiteral placeholder types to an actual integer type. Infer as Int if all
    literals are within the Int range, otherwise infer as Long. *)

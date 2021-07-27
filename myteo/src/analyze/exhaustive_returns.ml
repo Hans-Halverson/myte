@@ -52,25 +52,32 @@ class analyzer =
           | None -> IfMissingAltern loc
           | Some altern -> this#exhaustive altern)
         | inexhaustive -> inexhaustive)
-      | Match { Match.cases; _ } ->
-        let inhexaustive_opt =
-          List.fold_left
-            (fun acc { Match.Case.loc; right; _ } ->
-              match acc with
-              | Some _ -> acc
-              | None ->
-                (match right with
-                | Match.Case.Statement stmt ->
-                  (match this#exhaustive stmt with
-                  | Exhaustive -> acc
-                  | inexhaustive -> Some inexhaustive)
-                | _ -> Some (MatchInexhaustiveCase loc)))
-            None
-            cases
-        in
-        (match inhexaustive_opt with
-        | None -> Exhaustive
-        | Some inexhaustive -> inexhaustive)
+      | Match match_ -> this#exhaustive_match match_
+
+    method exhaustive_match match_ =
+      let { Match.cases; _ } = match_ in
+      let inhexaustive_opt =
+        List.fold_left
+          (fun acc { Match.Case.loc; right; _ } ->
+            match acc with
+            | Some _ -> acc
+            | None ->
+              (match right with
+              | Match.Case.Statement stmt ->
+                (match this#exhaustive stmt with
+                | Exhaustive -> acc
+                | inexhaustive -> Some inexhaustive)
+              | Expression (Match match_) ->
+                (match this#exhaustive_match match_ with
+                | Exhaustive -> acc
+                | inexhaustive -> Some inexhaustive)
+              | _ -> Some (MatchInexhaustiveCase loc)))
+          None
+          cases
+      in
+      match inhexaustive_opt with
+      | None -> Exhaustive
+      | Some inexhaustive -> inexhaustive
 
     method! function_ acc func =
       let { Function.name; body; return; _ } = func in

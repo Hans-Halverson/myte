@@ -884,7 +884,6 @@ and parse_match env =
       (* Only certain statements are allowed as right hand side *)
       | T_LEFT_BRACE -> Case.Statement (Statement.Block (parse_block env))
       | T_IF -> Case.Statement (parse_if env)
-      | T_MATCH -> Case.Statement (Statement.Match (parse_match env))
       | T_WHILE -> Case.Statement (parse_while env)
       | T_RETURN -> Case.Statement (parse_return ~in_match_case:true env)
       | T_BREAK -> Case.Statement (parse_break ~in_match_case:true env)

@@ -70,6 +70,7 @@ let rec visit_statement ~cx stmt =
         (fun { Match.Case.right; _ } ->
           match right with
           | Match.Case.Statement stmt -> visit_statement ~cx stmt
+          | Expression (Match match_) -> visit_statement ~cx (Match match_)
           | _ -> Reachable)
         cases
     in

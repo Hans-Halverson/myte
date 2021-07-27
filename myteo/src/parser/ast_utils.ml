@@ -49,33 +49,6 @@ let type_loc ty =
   | Function { loc; _ } ->
     loc
 
-let rec statement_visitor ~f ?(enter_functions = true) stmt =
-  let open Statement in
-  f stmt;
-  match stmt with
-  | Block { Block.statements; _ } -> List.iter (statement_visitor ~f) statements
-  | If { If.conseq; altern; _ } ->
-    statement_visitor ~f conseq;
-    Option.iter (statement_visitor ~f) altern
-  | While { While.body; _ } -> statement_visitor ~f body
-  | FunctionDeclaration { Function.body = Function.Block block; _ } ->
-    if enter_functions then statement_visitor ~f (Block block)
-  | Match { Match.cases; _ } ->
-    List.iter
-      (fun { Match.Case.right; _ } ->
-        match right with
-        | Match.Case.Statement stmt -> statement_visitor ~f stmt
-        | _ -> ())
-      cases
-  | FunctionDeclaration { Function.body = Function.Expression _ | Function.Signature; _ }
-  | VariableDeclaration _
-  | Expression _
-  | Return _
-  | Break _
-  | Continue _
-  | Assignment _ ->
-    ()
-
 let ids_of_pattern patt =
   let rec helper patt acc =
     let open Pattern in

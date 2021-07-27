@@ -1,0 +1,49 @@
+Error: Expected type `Bool` but found `String`
+test/analyze/type_check/match/pattern.myte:7:13-16
+ 7 |     | 2 when "a" -> 2
+   |              ^^^
+
+Error: Expected type `Unit` but found `Int`
+test/analyze/type_check/match/pattern.myte:13:6
+ 13 |     | 1 -> 1
+    |       ^
+
+Error: Expected type `Bool` but found `Unit`
+test/analyze/type_check/match/pattern.myte:18:6-8
+ 18 |     | () -> 1
+    |       ^^
+
+Error: Expected type `Int` but found `Unit`
+test/analyze/type_check/match/pattern.myte:23:6-8
+ 23 |     | () -> 1
+    |       ^^
+
+Error: Expected type `String` but found `Unit`
+test/analyze/type_check/match/pattern.myte:28:6-8
+ 28 |     | () -> 1
+    |       ^^
+
+Error: Expected type `(Int, Int, Int)` but found `(Any, Any)`
+test/analyze/type_check/match/pattern.myte:38:6-12
+ 38 |     | (_, _) -> ()
+    |       ^^^^^^
+
+Error: Expected type `Unit` but found `Int`
+test/analyze/type_check/match/pattern.myte:56:7
+ 56 |       (x: Unit);
+    |        ^
+
+Error: Expected type `Unit` but found `Bool`
+test/analyze/type_check/match/pattern.myte:57:7
+ 57 |       (y: Unit);
+    |        ^
+
+Error: Expected type `Variant1` but found `Variant2`
+test/analyze/type_check/match/pattern.myte:69:6-17
+ 69 |     | Tup2 (x, y) -> ()
+    |       ^^^^^^^^^^^
+
+Error: Expected type `Variant1` but found `(a, b)`
+test/analyze/type_check/match/pattern.myte:70:6-12
+ 70 |     | (x, y) -> ()
+    |       ^^^^^^

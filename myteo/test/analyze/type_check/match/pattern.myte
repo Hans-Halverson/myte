@@ -1,0 +1,74 @@
+module test
+
+fun testGuards() {
+  // Intentional success and failure in guard expression types
+  val x = match (1) {
+    | 1 when 1 == 1 -> 1
+    | 2 when "a" -> 2
+  };
+}
+
+fun testLiterals() {
+  val x = match (()) {
+    | 1 -> 1
+    | () -> 2
+  };
+
+  val x = match (true) {
+    | () -> 1
+    | false -> 2
+  };
+
+  val x = match (1) {
+    | () -> 1
+    | 1 -> 2
+  };
+
+  val x = match ("test") {
+    | () -> 1
+    | "foo" -> 2
+  };
+}
+
+fun testMultipleArgs() {
+  match (1, 2, 3) {
+    // Success
+    | (_, _, _) -> ()
+    // Error
+    | (_, _) -> ()
+    // Success
+    | _ -> ()
+  }
+}
+
+type Variant1 =
+  | Tup1 (Int, Bool)
+  | Rec1 { foo: Byte, bar: String }
+
+type Variant2 =
+  | Tup2 (Int, Bool)
+  | Rec2 { foo: Byte, bar: String }
+
+fun testMatchCaseVariableTypes(x: Variant1) {
+  match (x) {
+    | Tup1 (x, y) -> {
+      // Intentional errors to print inferred types
+      (x: Unit);
+      (y: Unit);
+    }
+    | Rec1 { foo, bar } -> {
+      // Success
+      (foo: Byte);
+      (bar: String);
+    }
+  }
+}
+
+fun testVariants(x: Variant1) {
+  match (x) {
+    | Tup2 (x, y) -> ()
+    | (x, y) -> ()
+  }
+}
+
+fun main() {}

@@ -694,8 +694,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         List.iter
           (fun { Identifier.name; _ } -> ignore (this#lookup_value_in_scope name scopes))
           ids;
-       this#visit_pattern ~decl:false ~toplevel:false pattern;
-       super#assignment assign
+        this#visit_pattern ~decl:false ~toplevel:false pattern;
+        super#assignment assign
 
     method! match_case case =
       let { Match.Case.pattern; _ } = case in

@@ -1,0 +1,24 @@
+module test
+
+// Success - all cases have same type
+fun testSuccess(): Int = match (1) {
+  | 1 -> 1
+  | 2 -> 2
+  | _ -> 3
+}
+
+// Match expression inferred to have type of first case
+fun testMismatchedExpressions() {
+  val x = match (1) {
+    | 1 -> "a"
+    | 2 -> 2
+    | _ -> ()
+  };
+
+  val x = match (1) {
+    | 1 -> return
+    | 2 -> "a"
+  };
+}
+
+fun main() {}
