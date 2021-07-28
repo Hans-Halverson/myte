@@ -783,21 +783,7 @@ and check_expression ~cx expr =
       match binding.declaration with
       (* If id is a constructor look up corresponding ADT to use as type. Error on tuple and record
          constructors as they are handled elsewhere. *)
-      | CtorDecl ctor_decl ->
-        let adt_sig = ctor_decl.adt_sig in
-        (match SMap.find name adt_sig.variants with
-        | Enum ->
-          if adt_sig.type_params = [] then
-            Type.ADT { adt_sig; type_args = [] }
-          else
-            Types.fresh_adt_instance adt_sig
-        | Tuple elements ->
-          Type_context.add_error ~cx loc (IncorrectTupleConstructorArity (0, List.length elements));
-          Any
-        | Record fields ->
-          let field_names = SMap.fold (fun name _ names -> name :: names) fields [] |> List.rev in
-          Type_context.add_error ~cx loc (MissingRecordConstructorFields field_names);
-          Any)
+      | CtorDecl ctor_decl -> check_enum_variant ~cx name loc ctor_decl
       (* Id is for a function declaration. If function has type parameters then generate a fresh
          type variable for each type parameter and substitute into function type. *)
       | FunDecl func_decl ->
@@ -1451,23 +1437,23 @@ and check_pattern ~cx patt =
    *     Variables Pattern
    * ============================
    *)
-  | Identifier { Ast.Identifier.loc; _ } ->
+  | Identifier { Ast.ScopedIdentifier.name = { loc; name }; _ } ->
     let binding = Type_context.get_value_binding ~cx loc in
-    let decl_tvar_id_opt =
+    let decl_ty_opt =
       match binding.declaration with
-      | VarDecl var_decl -> Some var_decl.tvar
-      | MatchCaseVarDecl var_decl ->
-        Some var_decl.tvar
+      | VarDecl var_decl -> Some (Type.TVar var_decl.tvar)
+      | MatchCaseVarDecl var_decl -> Some (Type.TVar var_decl.tvar)
+      | CtorDecl ctor_decl ->
+        Some (check_enum_variant ~cx name loc ctor_decl)
         (* Represents an error, but should error in assignment.
            Cannot appear in variable declarations or match patterns. *)
-      | CtorDecl _
       | FunDecl _
       | FunParamDecl _ ->
         None
     in
     let ty =
-      match decl_tvar_id_opt with
-      | Some tvar_id -> Type.TVar tvar_id
+      match decl_ty_opt with
+      | Some ty -> ty
       | None -> Type.Any
     in
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
@@ -1582,7 +1568,7 @@ and check_pattern ~cx patt =
                   match name with
                   | None ->
                     (match value with
-                    | Identifier id -> id
+                    | Identifier { scopes = []; name; _ } -> name
                     | _ -> failwith "Record shorthand field value must be an identifier")
                   | Some name -> name
                 in
@@ -1642,6 +1628,22 @@ and check_pattern ~cx patt =
     in
     ignore (Type_context.unify ~cx ty (TVar tvar_id));
     (loc, tvar_id)
+
+and check_enum_variant ~cx name loc ctor_decl =
+  let adt_sig = ctor_decl.Bindings.TypeDeclaration.adt_sig in
+  match SMap.find name adt_sig.variants with
+  | Enum ->
+    if adt_sig.type_params = [] then
+      Type.ADT { adt_sig; type_args = [] }
+    else
+      Types.fresh_adt_instance adt_sig
+  | Tuple elements ->
+    Type_context.add_error ~cx loc (IncorrectTupleConstructorArity (0, List.length elements));
+    Any
+  | Record fields ->
+    let field_names = SMap.fold (fun name _ names -> name :: names) fields [] |> List.rev in
+    Type_context.add_error ~cx loc (MissingRecordConstructorFields field_names);
+    Any
 
 and check_statement ~cx stmt =
   let open Ast.Statement in
@@ -1703,7 +1705,14 @@ and check_statement ~cx stmt =
               | FunDecl _ -> add_invalid_assign_error InvalidAssignmentFunction
               | FunParamDecl _ -> add_invalid_assign_error InvalidAssignmentFunctionParam
               | MatchCaseVarDecl _ -> add_invalid_assign_error InvalidAssignmentMatchCaseVariable
-              | CtorDecl _ -> add_invalid_assign_error InvalidAssignmentConstructor)
+              | CtorDecl ctor_decl ->
+                (* Only add error on Enum variant, Tuple and Record variants will error due to
+                   lack of arguments in check_pattern. *)
+                (match SMap.find name ctor_decl.Bindings.TypeDeclaration.adt_sig.variants with
+                | Enum -> add_invalid_assign_error InvalidAssignmentConstructor
+                | Tuple _
+                | Record _ ->
+                  true))
             false
             ids
         in

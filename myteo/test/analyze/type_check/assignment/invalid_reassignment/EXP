@@ -23,12 +23,12 @@ test/analyze/type_check/assignment/invalid_reassignment/test.myte:32:2-14
  32 |   importedFunc = 1;
     |   ^^^^^^^^^^^^
 
-Error: Cannot reassign constructor `TupleCtor`
+Error: Incorrect number of arguments supplied to tuple constructor. Expected 1 argument but found 0.
 test/analyze/type_check/assignment/invalid_reassignment/test.myte:35:2-11
  35 |   TupleCtor = 1;
     |   ^^^^^^^^^
 
-Error: Cannot reassign constructor `RecordCtor`
+Error: Record is missing field `field`
 test/analyze/type_check/assignment/invalid_reassignment/test.myte:36:2-12
  36 |   RecordCtor = 1;
     |   ^^^^^^^^^^
@@ -38,12 +38,12 @@ test/analyze/type_check/assignment/invalid_reassignment/test.myte:37:2-17
  37 |   EnumVariantCtor = 1;
     |   ^^^^^^^^^^^^^^^
 
-Error: Cannot reassign constructor `TupleVariantCtor`
+Error: Incorrect number of arguments supplied to tuple constructor. Expected 1 argument but found 0.
 test/analyze/type_check/assignment/invalid_reassignment/test.myte:38:2-18
  38 |   TupleVariantCtor = 1;
     |   ^^^^^^^^^^^^^^^^
 
-Error: Cannot reassign constructor `RecordVariantCtor`
+Error: Record is missing field `field`
 test/analyze/type_check/assignment/invalid_reassignment/test.myte:39:2-19
  39 |   RecordVariantCtor = 1;
     |   ^^^^^^^^^^^^^^^^^

@@ -1,9 +1,9 @@
-Error: Expected type `(Unit, Any)` but found `(Int, (Bool, String))`
+Error: Expected type `(Unit, a)` but found `(Int, (Bool, String))`
 test/analyze/type_check/assignment/wildcard.myte:12:11-26
  12 |   (x, _) = (1, (true, ""));
     |            ^^^^^^^^^^^^^^^
 
-Error: Expected type `(Any, Unit)` but found `(Int, (Bool, String))`
+Error: Expected type `(Int, Unit)` but found `(Int, (Bool, String))`
 test/analyze/type_check/assignment/wildcard.myte:13:11-26
  13 |   (_, y) = (1, (true, ""));
     |            ^^^^^^^^^^^^^^^

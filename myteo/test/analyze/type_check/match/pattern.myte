@@ -1,5 +1,7 @@
 module test
 
+import std.vec.Vec
+
 fun testGuards() {
   // Intentional success and failure in guard expression types
   val x = match (1) {
@@ -44,10 +46,12 @@ fun testMultipleArgs() {
 type Variant1 =
   | Tup1 (Int, Bool)
   | Rec1 { foo: Byte, bar: String }
+  | Enum1
 
 type Variant2 =
   | Tup2 (Int, Bool)
   | Rec2 { foo: Byte, bar: String }
+  | Enum2
 
 fun testMatchCaseVariableTypes(x: Variant1) {
   match (x) {
@@ -64,9 +68,14 @@ fun testMatchCaseVariableTypes(x: Variant1) {
   }
 }
 
+type CustomOption<T> =
+  | CustomSome (T)
+  | CustomNone
+
 fun testVariants(x: Variant1) {
   match (x) {
     | Tup2 (x, y) -> ()
+    | Enum1 -> ()
     | (x, y) -> ()
   }
 }

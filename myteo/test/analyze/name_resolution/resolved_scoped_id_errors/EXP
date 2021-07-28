@@ -212,3 +212,8 @@ Error: No static method with name `field` for type `Tup`
 test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:76:15-20
  76 |   a1.a2.a3.Tup.field (field) = 1;
     |                ^^^^^
+
+Error: No module or exported value with name `a1.NonexistEnumVariant` found
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:80:6-28
+ 80 |     | a1.NonexistEnumVariant -> ()
+    |       ^^^^^^^^^^^^^^^^^^^^^^

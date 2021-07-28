@@ -74,6 +74,12 @@ fun test() {
   // Named accesses on functions or constructors fail
   a1.a2.a3.exportedFun.field (field) = 1;
   a1.a2.a3.Tup.field (field) = 1;
+
+  // Nonexistent enum variant
+  match (1) {
+    | a1.NonexistEnumVariant -> ()
+    | _ -> ()
+  }
 }
 
 fun main () {}

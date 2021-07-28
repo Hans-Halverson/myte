@@ -35,9 +35,14 @@ test/parser/ast/assignment/basic.myte
             node: Assignment,
             loc: 5:2-5:8,
             lvalue: {
-              node: Identifier,
+              node: ScopedIdentifier,
               loc: 5:2-5:3,
-              name: "x",
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 5:2-5:3,
+                name: "x",
+              },
             },
             expr: {
               node: IntLiteral,
@@ -54,14 +59,24 @@ test/parser/ast/assignment/basic.myte
               name: None,
               elements: [
                 {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 8:3-8:4,
-                  name: "x",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 8:3-8:4,
+                    name: "x",
+                  },
                 },
                 {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 8:6-8:7,
-                  name: "y",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 8:6-8:7,
+                    name: "y",
+                  },
                 },
               ],
             },
@@ -80,19 +95,34 @@ test/parser/ast/assignment/basic.myte
               name: None,
               elements: [
                 {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 9:3-9:4,
-                  name: "x",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 9:3-9:4,
+                    name: "x",
+                  },
                 },
                 {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 9:6-9:7,
-                  name: "y",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 9:6-9:7,
+                    name: "y",
+                  },
                 },
                 {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 9:9-9:10,
-                  name: "z",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 9:9-9:10,
+                    name: "z",
+                  },
                 },
               ],
             },
@@ -120,9 +150,14 @@ test/parser/ast/assignment/basic.myte
               },
               elements: [
                 {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 12:7-12:8,
-                  name: "x",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 12:7-12:8,
+                    name: "x",
+                  },
                 },
               ],
             },
@@ -150,19 +185,34 @@ test/parser/ast/assignment/basic.myte
               },
               elements: [
                 {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 13:7-13:8,
-                  name: "x",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 13:7-13:8,
+                    name: "x",
+                  },
                 },
                 {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 13:10-13:11,
-                  name: "y",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 13:10-13:11,
+                    name: "y",
+                  },
                 },
                 {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 13:13-13:14,
-                  name: "z",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 13:13-13:14,
+                    name: "z",
+                  },
                 },
               ],
             },
@@ -190,19 +240,34 @@ test/parser/ast/assignment/basic.myte
               },
               elements: [
                 {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 14:7-14:8,
-                  name: "x",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 14:7-14:8,
+                    name: "x",
+                  },
                 },
                 {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 14:10-14:11,
-                  name: "y",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 14:10-14:11,
+                    name: "y",
+                  },
                 },
                 {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 14:13-14:14,
-                  name: "z",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 14:13-14:14,
+                    name: "z",
+                  },
                 },
               ],
             },
@@ -238,9 +303,14 @@ test/parser/ast/assignment/basic.myte
                     name: "field1",
                   },
                   value: {
-                    node: Identifier,
+                    node: ScopedIdentifier,
                     loc: 17:16-17:17,
-                    name: "x",
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 17:16-17:17,
+                      name: "x",
+                    },
                   },
                 },
                 {
@@ -248,9 +318,14 @@ test/parser/ast/assignment/basic.myte
                   loc: 17:19-17:25,
                   name: None,
                   value: {
-                    node: Identifier,
+                    node: ScopedIdentifier,
                     loc: 17:19-17:25,
-                    name: "field2",
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 17:19-17:25,
+                      name: "field2",
+                    },
                   },
                 },
               ],
@@ -283,9 +358,14 @@ test/parser/ast/assignment/basic.myte
                   loc: 18:8-18:14,
                   name: None,
                   value: {
-                    node: Identifier,
+                    node: ScopedIdentifier,
                     loc: 18:8-18:14,
-                    name: "field1",
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 18:8-18:14,
+                      name: "field1",
+                    },
                   },
                 },
                 {
@@ -297,9 +377,14 @@ test/parser/ast/assignment/basic.myte
                     name: "field2",
                   },
                   value: {
-                    node: Identifier,
+                    node: ScopedIdentifier,
                     loc: 18:24-18:25,
-                    name: "x",
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 18:24-18:25,
+                      name: "x",
+                    },
                   },
                 },
               ],
@@ -333,9 +418,14 @@ test/parser/ast/assignment/basic.myte
                   },
                   elements: [
                     {
-                      node: Identifier,
+                      node: ScopedIdentifier,
                       loc: 21:7-21:8,
-                      name: "x",
+                      scopes: [],
+                      name: {
+                        node: Identifier,
+                        loc: 21:7-21:8,
+                        name: "x",
+                      },
                     },
                   ],
                 },
@@ -358,9 +448,14 @@ test/parser/ast/assignment/basic.myte
                       loc: 21:16-21:21,
                       name: None,
                       value: {
-                        node: Identifier,
+                        node: ScopedIdentifier,
                         loc: 21:16-21:21,
-                        name: "field",
+                        scopes: [],
+                        name: {
+                          node: Identifier,
+                          loc: 21:16-21:21,
+                          name: "field",
+                        },
                       },
                     },
                   ],
@@ -418,21 +513,36 @@ test/parser/ast/assignment/basic.myte
                         name: None,
                         elements: [
                           {
-                            node: Identifier,
+                            node: ScopedIdentifier,
                             loc: 22:20-22:21,
-                            name: "x",
+                            scopes: [],
+                            name: {
+                              node: Identifier,
+                              loc: 22:20-22:21,
+                              name: "x",
+                            },
                           },
                           {
-                            node: Identifier,
+                            node: ScopedIdentifier,
                             loc: 22:23-22:24,
-                            name: "y",
+                            scopes: [],
+                            name: {
+                              node: Identifier,
+                              loc: 22:23-22:24,
+                              name: "y",
+                            },
                           },
                         ],
                       },
                       {
-                        node: Identifier,
+                        node: ScopedIdentifier,
                         loc: 22:27-22:28,
-                        name: "z",
+                        scopes: [],
+                        name: {
+                          node: Identifier,
+                          loc: 22:27-22:28,
+                          name: "z",
+                        },
                       },
                     ],
                   },
@@ -479,9 +589,14 @@ test/parser/ast/assignment/basic.myte
               },
               elements: [
                 {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 25:13-25:14,
-                  name: "x",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 25:13-25:14,
+                    name: "x",
+                  },
                 },
               ],
             },
@@ -529,9 +644,14 @@ test/parser/ast/assignment/basic.myte
                   loc: 26:14-26:19,
                   name: None,
                   value: {
-                    node: Identifier,
+                    node: ScopedIdentifier,
                     loc: 26:14-26:19,
-                    name: "field",
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 26:14-26:19,
+                      name: "field",
+                    },
                   },
                 },
               ],

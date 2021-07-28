@@ -493,7 +493,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           (fun toplevel ->
             match toplevel with
             | VariableDeclaration decl ->
-              id_map (this#visit_variable_declaration ~toplevel:true) decl toplevel (fun decl' ->
+              id_map (this#visit_variable_declaration ~is_toplevel:true) decl toplevel (fun decl' ->
                   VariableDeclaration decl')
             | FunctionDeclaration decl ->
               id_map
@@ -524,7 +524,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       let open Ast.Statement in
       match stmt with
       | VariableDeclaration decl ->
-        id_map (this#visit_variable_declaration ~toplevel:false) decl stmt (fun decl' ->
+        id_map (this#visit_variable_declaration ~is_toplevel:false) decl stmt (fun decl' ->
             VariableDeclaration decl')
       | FunctionDeclaration decl ->
         id_map
@@ -541,16 +541,16 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       this#exit_scope ();
       block'
 
-    method visit_variable_declaration ~toplevel decl =
+    method visit_variable_declaration ~is_toplevel decl =
       let { Ast.Statement.VariableDeclaration.kind; pattern; init; annot; loc = _ } = decl in
       let annot' = id_map_opt this#type_ annot in
       let init' = this#expression init in
       let ids = Ast_utils.ids_of_pattern pattern in
-      this#visit_pattern ~decl:true ~toplevel pattern;
+      this#visit_pattern ~is_toplevel ~is_match:false pattern;
       List.iter
         (fun { Ast.Identifier.loc; name; _ } ->
           let context =
-            if toplevel then
+            if is_toplevel then
               ValueBinding.Module
             else
               ValueBinding.Function
@@ -691,29 +691,14 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       (* Resolve every identifier in an LValue pattern to a declaration *)
       | Pattern pattern ->
         let ids = Ast_utils.ids_of_pattern pattern in
-        List.iter
-          (fun { Identifier.name; _ } -> ignore (this#lookup_value_in_scope name scopes))
-          ids;
-        this#visit_pattern ~decl:false ~toplevel:false pattern;
+        List.iter this#resolve_value_id_use ids;
+        this#visit_pattern ~is_toplevel:false ~is_match:false pattern;
         super#assignment assign
 
     method! match_case case =
       let { Match.Case.pattern; _ } = case in
       this#enter_scope ();
-      (* Resolve ids in pattern, and add all variable introduced in pattern to scope for this case *)
-      let ids = Ast_utils.ids_of_pattern pattern in
-      this#visit_pattern ~decl:true ~toplevel:false pattern;
-      List.iter
-        (fun { Ast.Identifier.loc; name; _ } ->
-          let binding =
-            this#add_value_declaration
-              loc
-              name
-              Function
-              (MatchCaseVarDecl (MatchCaseVariableDeclaration.mk ()))
-          in
-          this#add_value_to_scope name (Decl binding))
-        ids;
+      this#visit_pattern ~is_toplevel:false ~is_match:true pattern;
       let result = super#match_case case in
       this#exit_scope ();
       result
@@ -1022,38 +1007,56 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         | _ :: _ -> this#match_module_parts_pattern module_tree first_part rest_parts)
       | Some (Decl binding) -> this#add_value_use binding.loc first_part.loc
 
-    method visit_pattern ~decl ~toplevel patt =
+    method visit_pattern ~is_toplevel ~is_match patt =
       let open Ast.Pattern in
-      (* Check for the same name appearing twice in a pattern *)
-      let ids = Ast_utils.ids_of_pattern patt in
-      if not toplevel then
-        ignore
-          (List.fold_left
-             (fun names { Identifier.loc; name } ->
-               if SSet.mem name names then (
-                 this#add_error loc (DuplicatePatternNames name);
-                 names
-               ) else
-                 SSet.add name names)
-             SSet.empty
-             ids);
-      (* If this is a use then resolve all ids *)
-      if not decl then List.iter this#resolve_value_id_use ids;
-      (* Resolve all scoped ids in named tuple and record patterns *)
-      let rec resolve_scoped_ids patt =
+      let rec visit patt names =
         match patt with
         | Wildcard _
-        | Literal _
-        | Identifier _ ->
-          ()
+        | Literal _ ->
+          names
+        | Identifier { scopes = []; name = { loc; name }; _ } ->
+          (* If in a match, unscoped identifiers may refer to constructors *)
+          let is_ctor_in_match =
+            if not is_match then
+              false
+            else
+              match this#lookup_value_in_scope name scopes with
+              | Some (Decl ({ declaration = CtorDecl _; _ } as binding)) ->
+                this#add_value_use binding.loc loc;
+                true
+              (* If not a constructor this is a match case variable, so add binding *)
+              | _ ->
+                let binding =
+                  this#add_value_declaration
+                    loc
+                    name
+                    Function
+                    (MatchCaseVarDecl (MatchCaseVariableDeclaration.mk ()))
+                in
+                this#add_value_to_scope name (Decl binding);
+                false
+          in
+          (* Check for the same name appearing twice in a pattern *)
+          if (not is_toplevel) && not is_ctor_in_match then
+            if SSet.mem name names then (
+              this#add_error loc (DuplicatePatternNames name);
+              names
+            ) else
+              SSet.add name names
+          else
+            names
+        (* Resolve scoped ids in enum, tuple, and record constructor patterns *)
+        | Identifier ({ scopes = _ :: _; _ } as name) ->
+          this#resolve_scoped_constructor_id name;
+          names
         | Tuple { Tuple.name; elements; _ } ->
           Option.iter this#resolve_scoped_constructor_id name;
-          List.iter (fun element -> resolve_scoped_ids element) elements
+          List.fold_left (fun acc element -> visit element acc) names elements
         | Record { Record.name; fields; _ } ->
           this#resolve_scoped_constructor_id name;
-          List.iter (fun { Record.Field.value; _ } -> resolve_scoped_ids value) fields
+          List.fold_left (fun acc { Record.Field.value; _ } -> visit value acc) names fields
       in
-      resolve_scoped_ids patt
+      ignore (visit patt SSet.empty)
 
     (* Check for trait cycles in the program, returning whether there are no trait cycles in the
        program. If a trait cycle is found, an error is generated. *)

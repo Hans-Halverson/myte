@@ -1,11 +1,22 @@
 module test
 
-fun test() {
+fun test1() {
   match (1, 1, 1) {
     // Success - match introduces variables to body
     | (x, y, _) -> x + y
     // Failure - variables from previous case not in scope for next case
     | _ -> x + y
+  }
+}
+
+type Variant =
+  | Enum
+  | Tuple (Int)
+
+fun test2(x: Variant) {
+  // Enum variants can be used and do not count as new binding
+  match (x) {
+    | Enum -> Enum
   }
 }
 

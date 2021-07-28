@@ -23,9 +23,14 @@ test/parser/ast/type/parens.myte
       loc: 3:0-3:16,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 3:4-3:5,
-        name: "x",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 3:4-3:5,
+          name: "x",
+        },
       },
       init: {
         node: IntLiteral,
@@ -53,9 +58,14 @@ test/parser/ast/type/parens.myte
       loc: 4:0-4:20,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 4:4-4:5,
-        name: "x",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 4:4-4:5,
+          name: "x",
+        },
       },
       init: {
         node: IntLiteral,
@@ -83,9 +93,14 @@ test/parser/ast/type/parens.myte
       loc: 5:0-5:26,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 5:4-5:5,
-        name: "x",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 5:4-5:5,
+          name: "x",
+        },
       },
       init: {
         node: IntLiteral,

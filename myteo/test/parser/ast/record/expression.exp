@@ -23,9 +23,14 @@ test/parser/ast/record/expression.myte
       loc: 3:0-3:23,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 3:4-3:6,
-        name: "x1",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 3:4-3:6,
+          name: "x1",
+        },
       },
       init: {
         node: RecordExpression,
@@ -59,9 +64,14 @@ test/parser/ast/record/expression.myte
       loc: 4:0-4:39,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 4:4-4:6,
-        name: "x2",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 4:4-4:6,
+          name: "x2",
+        },
       },
       init: {
         node: RecordExpression,
@@ -119,9 +129,14 @@ test/parser/ast/record/expression.myte
       loc: 5:0-5:20,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 5:4-5:6,
-        name: "x3",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 5:4-5:6,
+          name: "x3",
+        },
       },
       init: {
         node: RecordExpression,
@@ -151,9 +166,14 @@ test/parser/ast/record/expression.myte
       loc: 6:0-6:25,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 6:4-6:6,
-        name: "x4",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 6:4-6:6,
+          name: "x4",
+        },
       },
       init: {
         node: RecordExpression,
@@ -193,9 +213,14 @@ test/parser/ast/record/expression.myte
       loc: 7:0-7:43,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 7:4-7:6,
-        name: "x5",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 7:4-7:6,
+          name: "x5",
+        },
       },
       init: {
         node: RecordExpression,
@@ -262,9 +287,14 @@ test/parser/ast/record/expression.myte
       loc: 10:0-10:40,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 10:4-10:6,
-        name: "x6",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 10:4-10:6,
+          name: "x6",
+        },
       },
       init: {
         node: RecordExpression,
@@ -324,9 +354,14 @@ test/parser/ast/record/expression.myte
       loc: 13:0-13:43,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 13:4-13:17,
-        name: "trailingValue",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 13:4-13:17,
+          name: "trailingValue",
+        },
       },
       init: {
         node: RecordExpression,
@@ -374,9 +409,14 @@ test/parser/ast/record/expression.myte
       loc: 14:0-14:36,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 14:4-14:16,
-        name: "trailingName",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 14:4-14:16,
+          name: "trailingName",
+        },
       },
       init: {
         node: RecordExpression,
@@ -416,9 +456,14 @@ test/parser/ast/record/expression.myte
       loc: 17:0-17:36,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 17:4-17:15,
-        name: "scopedName1",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 17:4-17:15,
+          name: "scopedName1",
+        },
       },
       init: {
         node: RecordExpression,
@@ -461,9 +506,14 @@ test/parser/ast/record/expression.myte
       loc: 18:0-18:45,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 18:4-18:15,
-        name: "scopedName2",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 18:4-18:15,
+          name: "scopedName2",
+        },
       },
       init: {
         node: RecordExpression,
@@ -524,9 +574,14 @@ test/parser/ast/record/expression.myte
       loc: 21:0-21:35,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 21:4-21:18,
-        name: "invalidRecord1",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 21:4-21:18,
+          name: "invalidRecord1",
+        },
       },
       init: {
         node: RecordExpression,

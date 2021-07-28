@@ -46,9 +46,14 @@ test/parser/ast/match/basic.myte
                 node: MatchCase,
                 loc: 6:6-6:12,
                 pattern: {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 6:6-6:7,
-                  name: "a",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 6:6-6:7,
+                    name: "a",
+                  },
                 },
                 guard: None,
                 right: {
@@ -74,9 +79,14 @@ test/parser/ast/match/basic.myte
                 node: MatchCase,
                 loc: 10:6-10:12,
                 pattern: {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 10:6-10:7,
-                  name: "a",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 10:6-10:7,
+                    name: "a",
+                  },
                 },
                 guard: None,
                 right: {
@@ -89,9 +99,14 @@ test/parser/ast/match/basic.myte
                 node: MatchCase,
                 loc: 11:6-11:12,
                 pattern: {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 11:6-11:7,
-                  name: "b",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 11:6-11:7,
+                    name: "b",
+                  },
                 },
                 guard: None,
                 right: {
@@ -104,9 +119,14 @@ test/parser/ast/match/basic.myte
                 node: MatchCase,
                 loc: 12:6-12:12,
                 pattern: {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 12:6-12:7,
-                  name: "c",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 12:6-12:7,
+                    name: "c",
+                  },
                 },
                 guard: None,
                 right: {
@@ -132,9 +152,14 @@ test/parser/ast/match/basic.myte
                 node: MatchCase,
                 loc: 17:6-17:12,
                 pattern: {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 17:6-17:7,
-                  name: "a",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 17:6-17:7,
+                    name: "a",
+                  },
                 },
                 guard: None,
                 right: {
@@ -160,9 +185,14 @@ test/parser/ast/match/basic.myte
                 node: MatchCase,
                 loc: 21:6-21:12,
                 pattern: {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 21:6-21:7,
-                  name: "a",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 21:6-21:7,
+                    name: "a",
+                  },
                 },
                 guard: None,
                 right: {
@@ -175,9 +205,14 @@ test/parser/ast/match/basic.myte
                 node: MatchCase,
                 loc: 22:6-22:12,
                 pattern: {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 22:6-22:7,
-                  name: "b",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 22:6-22:7,
+                    name: "b",
+                  },
                 },
                 guard: None,
                 right: {
@@ -190,9 +225,14 @@ test/parser/ast/match/basic.myte
                 node: MatchCase,
                 loc: 23:6-23:12,
                 pattern: {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 23:6-23:7,
-                  name: "c",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 23:6-23:7,
+                    name: "c",
+                  },
                 },
                 guard: None,
                 right: {
@@ -229,9 +269,14 @@ test/parser/ast/match/basic.myte
             loc: 28:2-30:4,
             kind: Immutable,
             pattern: {
-              node: Identifier,
+              node: ScopedIdentifier,
               loc: 28:6-28:7,
-              name: "x",
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 28:6-28:7,
+                name: "x",
+              },
             },
             init: {
               node: Match,
@@ -248,9 +293,14 @@ test/parser/ast/match/basic.myte
                   node: MatchCase,
                   loc: 29:6-29:12,
                   pattern: {
-                    node: Identifier,
+                    node: ScopedIdentifier,
                     loc: 29:6-29:7,
-                    name: "a",
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 29:6-29:7,
+                      name: "a",
+                    },
                   },
                   guard: None,
                   right: {
@@ -324,9 +374,14 @@ test/parser/ast/match/basic.myte
                 node: MatchCase,
                 loc: 35:6-35:12,
                 pattern: {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 35:6-35:7,
-                  name: "a",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 35:6-35:7,
+                    name: "a",
+                  },
                 },
                 guard: None,
                 right: {
@@ -373,9 +428,14 @@ test/parser/ast/match/basic.myte
                 node: MatchCase,
                 loc: 41:6-41:12,
                 pattern: {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 41:6-41:7,
-                  name: "a",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 41:6-41:7,
+                    name: "a",
+                  },
                 },
                 guard: None,
                 right: {
@@ -411,9 +471,14 @@ test/parser/ast/match/basic.myte
                 node: MatchCase,
                 loc: 45:6-45:12,
                 pattern: {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 45:6-45:7,
-                  name: "a",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 45:6-45:7,
+                    name: "a",
+                  },
                 },
                 guard: None,
                 right: {
@@ -460,9 +525,14 @@ test/parser/ast/match/basic.myte
                 node: MatchCase,
                 loc: 51:6-51:23,
                 pattern: {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 51:6-51:7,
-                  name: "a",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 51:6-51:7,
+                    name: "a",
+                  },
                 },
                 guard: {
                   node: BinaryOperation,
@@ -489,9 +559,14 @@ test/parser/ast/match/basic.myte
                 node: MatchCase,
                 loc: 52:6-52:12,
                 pattern: {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 52:6-52:7,
-                  name: "b",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 52:6-52:7,
+                    name: "b",
+                  },
                 },
                 guard: None,
                 right: {
@@ -504,9 +579,14 @@ test/parser/ast/match/basic.myte
                 node: MatchCase,
                 loc: 53:6-53:23,
                 pattern: {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 53:6-53:7,
-                  name: "c",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 53:6-53:7,
+                    name: "c",
+                  },
                 },
                 guard: {
                   node: BinaryOperation,
@@ -572,19 +652,34 @@ test/parser/ast/match/basic.myte
                   name: None,
                   elements: [
                     {
-                      node: Identifier,
+                      node: ScopedIdentifier,
                       loc: 59:7-59:8,
-                      name: "a",
+                      scopes: [],
+                      name: {
+                        node: Identifier,
+                        loc: 59:7-59:8,
+                        name: "a",
+                      },
                     },
                     {
-                      node: Identifier,
+                      node: ScopedIdentifier,
                       loc: 59:10-59:11,
-                      name: "b",
+                      scopes: [],
+                      name: {
+                        node: Identifier,
+                        loc: 59:10-59:11,
+                        name: "b",
+                      },
                     },
                     {
-                      node: Identifier,
+                      node: ScopedIdentifier,
                       loc: 59:13-59:14,
-                      name: "c",
+                      scopes: [],
+                      name: {
+                        node: Identifier,
+                        loc: 59:13-59:14,
+                        name: "c",
+                      },
                     },
                   ],
                 },
@@ -613,14 +708,24 @@ test/parser/ast/match/basic.myte
                   },
                   elements: [
                     {
-                      node: Identifier,
+                      node: ScopedIdentifier,
                       loc: 60:11-60:12,
-                      name: "d",
+                      scopes: [],
+                      name: {
+                        node: Identifier,
+                        loc: 60:11-60:12,
+                        name: "d",
+                      },
                     },
                     {
-                      node: Identifier,
+                      node: ScopedIdentifier,
                       loc: 60:14-60:15,
-                      name: "e",
+                      scopes: [],
+                      name: {
+                        node: Identifier,
+                        loc: 60:14-60:15,
+                        name: "e",
+                      },
                     },
                   ],
                 },
@@ -653,9 +758,14 @@ test/parser/ast/match/basic.myte
                       loc: 61:12-61:17,
                       name: None,
                       value: {
-                        node: Identifier,
+                        node: ScopedIdentifier,
                         loc: 61:12-61:17,
-                        name: "field",
+                        scopes: [],
+                        name: {
+                          node: Identifier,
+                          loc: 61:12-61:17,
+                          name: "field",
+                        },
                       },
                     },
                   ],
@@ -798,9 +908,14 @@ test/parser/ast/match/basic.myte
                 node: MatchCase,
                 loc: 76:6-76:20,
                 pattern: {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 76:6-76:7,
-                  name: "a",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 76:6-76:7,
+                    name: "a",
+                  },
                 },
                 guard: None,
                 right: {
@@ -867,9 +982,14 @@ test/parser/ast/match/basic.myte
                 node: MatchCase,
                 loc: 83:6-83:17,
                 pattern: {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 83:6-83:7,
-                  name: "a",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 83:6-83:7,
+                    name: "a",
+                  },
                 },
                 guard: None,
                 right: {
@@ -892,9 +1012,14 @@ test/parser/ast/match/basic.myte
                 node: MatchCase,
                 loc: 84:6-84:39,
                 pattern: {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 84:6-84:7,
-                  name: "b",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 84:6-84:7,
+                    name: "b",
+                  },
                 },
                 guard: None,
                 right: {
@@ -941,9 +1066,14 @@ test/parser/ast/match/basic.myte
                 node: MatchCase,
                 loc: 85:6-85:30,
                 pattern: {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 85:6-85:7,
-                  name: "c",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 85:6-85:7,
+                    name: "c",
+                  },
                 },
                 guard: None,
                 right: {
@@ -975,9 +1105,14 @@ test/parser/ast/match/basic.myte
                 node: MatchCase,
                 loc: 86:6-86:17,
                 pattern: {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 86:6-86:7,
-                  name: "d",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 86:6-86:7,
+                    name: "d",
+                  },
                 },
                 guard: None,
                 right: {
@@ -990,9 +1125,14 @@ test/parser/ast/match/basic.myte
                 node: MatchCase,
                 loc: 87:6-87:19,
                 pattern: {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 87:6-87:7,
-                  name: "e",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 87:6-87:7,
+                    name: "e",
+                  },
                 },
                 guard: None,
                 right: {
@@ -1009,9 +1149,14 @@ test/parser/ast/match/basic.myte
                 node: MatchCase,
                 loc: 88:6-88:16,
                 pattern: {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 88:6-88:7,
-                  name: "f",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 88:6-88:7,
+                    name: "f",
+                  },
                 },
                 guard: None,
                 right: {
@@ -1023,9 +1168,14 @@ test/parser/ast/match/basic.myte
                 node: MatchCase,
                 loc: 89:6-89:19,
                 pattern: {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 89:6-89:7,
-                  name: "g",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 89:6-89:7,
+                    name: "g",
+                  },
                 },
                 guard: None,
                 right: {
@@ -1050,9 +1200,14 @@ test/parser/ast/match/basic.myte
                 node: MatchCase,
                 loc: 94:6-94:17,
                 pattern: {
-                  node: Identifier,
+                  node: ScopedIdentifier,
                   loc: 94:6-94:7,
-                  name: "a",
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 94:6-94:7,
+                    name: "a",
+                  },
                 },
                 guard: None,
                 right: {

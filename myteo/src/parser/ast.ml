@@ -342,7 +342,7 @@ and Pattern : sig
   end
 
   type t =
-    | Identifier of Identifier.t
+    | Identifier of ScopedIdentifier.t
     | Wildcard of Loc.t
     | Tuple of Tuple.t
     | Record of Record.t

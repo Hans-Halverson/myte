@@ -23,27 +23,27 @@ test/analyze/type_check/match/pattern.myte:28:6-8
  28 |     | () -> 1
     |       ^^
 
-Error: Expected type `(Int, Int, Int)` but found `(Any, Any)`
+Error: Expected type `(Int, Int, Int)` but found `(a, b)`
 test/analyze/type_check/match/pattern.myte:38:6-12
  38 |     | (_, _) -> ()
     |       ^^^^^^
 
 Error: Expected type `Unit` but found `Int`
-test/analyze/type_check/match/pattern.myte:56:7
- 56 |       (x: Unit);
+test/analyze/type_check/match/pattern.myte:58:7
+ 58 |       (x: Unit);
     |        ^
 
 Error: Expected type `Unit` but found `Bool`
-test/analyze/type_check/match/pattern.myte:57:7
- 57 |       (y: Unit);
+test/analyze/type_check/match/pattern.myte:59:7
+ 59 |       (y: Unit);
     |        ^
 
 Error: Expected type `Variant1` but found `Variant2`
-test/analyze/type_check/match/pattern.myte:69:6-17
- 69 |     | Tup2 (x, y) -> ()
+test/analyze/type_check/match/pattern.myte:75:6-17
+ 75 |     | Tup2 (x, y) -> ()
     |       ^^^^^^^^^^^
 
 Error: Expected type `Variant1` but found `(a, b)`
-test/analyze/type_check/match/pattern.myte:70:6-12
- 70 |     | (x, y) -> ()
+test/analyze/type_check/match/pattern.myte:77:6-12
+ 77 |     | (x, y) -> ()
     |       ^^^^^^

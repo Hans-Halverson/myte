@@ -36,9 +36,14 @@ test/parser/ast/literals/unit.myte
             loc: 4:2-4:13,
             kind: Immutable,
             pattern: {
-              node: Identifier,
+              node: ScopedIdentifier,
               loc: 4:6-4:7,
-              name: "u",
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 4:6-4:7,
+                name: "u",
+              },
             },
             init: {
               node: Unit,

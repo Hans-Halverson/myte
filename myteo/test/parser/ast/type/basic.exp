@@ -23,9 +23,14 @@ test/parser/ast/type/basic.myte
       loc: 3:0-3:16,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 3:4-3:5,
-        name: "x",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 3:4-3:5,
+          name: "x",
+        },
       },
       init: {
         node: Unit,
@@ -52,9 +57,14 @@ test/parser/ast/type/basic.myte
       loc: 4:0-4:14,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 4:4-4:5,
-        name: "x",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 4:4-4:5,
+          name: "x",
+        },
       },
       init: {
         node: IntLiteral,
@@ -82,9 +92,14 @@ test/parser/ast/type/basic.myte
       loc: 5:0-5:15,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 5:4-5:5,
-        name: "x",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 5:4-5:5,
+          name: "x",
+        },
       },
       init: {
         node: IntLiteral,
@@ -112,9 +127,14 @@ test/parser/ast/type/basic.myte
       loc: 6:0-6:15,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 6:4-6:5,
-        name: "x",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 6:4-6:5,
+          name: "x",
+        },
       },
       init: {
         node: IntLiteral,
@@ -142,9 +162,14 @@ test/parser/ast/type/basic.myte
       loc: 7:0-7:22,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 7:4-7:5,
-        name: "x",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 7:4-7:5,
+          name: "x",
+        },
       },
       init: {
         node: StringLiteral,
@@ -172,9 +197,14 @@ test/parser/ast/type/basic.myte
       loc: 8:0-8:18,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 8:4-8:5,
-        name: "x",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 8:4-8:5,
+          name: "x",
+        },
       },
       init: {
         node: BoolLiteral,
@@ -202,9 +232,14 @@ test/parser/ast/type/basic.myte
       loc: 10:0-10:24,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 10:4-10:5,
-        name: "x",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 10:4-10:5,
+          name: "x",
+        },
       },
       init: {
         node: IntLiteral,
@@ -253,9 +288,14 @@ test/parser/ast/type/basic.myte
       loc: 11:0-11:32,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 11:4-11:5,
-        name: "x",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 11:4-11:5,
+          name: "x",
+        },
       },
       init: {
         node: IntLiteral,
@@ -325,9 +365,14 @@ test/parser/ast/type/basic.myte
       loc: 12:0-12:42,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 12:4-12:5,
-        name: "x",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 12:4-12:5,
+          name: "x",
+        },
       },
       init: {
         node: IntLiteral,
@@ -418,9 +463,14 @@ test/parser/ast/type/basic.myte
       loc: 14:0-14:18,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 14:4-14:5,
-        name: "x",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 14:4-14:5,
+          name: "x",
+        },
       },
       init: {
         node: IntLiteral,
@@ -448,9 +498,14 @@ test/parser/ast/type/basic.myte
       loc: 15:0-15:34,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 15:4-15:5,
-        name: "x",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 15:4-15:5,
+          name: "x",
+        },
       },
       init: {
         node: IntLiteral,
@@ -489,9 +544,14 @@ test/parser/ast/type/basic.myte
       loc: 16:0-16:64,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 16:4-16:5,
-        name: "x",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 16:4-16:5,
+          name: "x",
+        },
       },
       init: {
         node: IntLiteral,
@@ -579,9 +639,14 @@ test/parser/ast/type/basic.myte
       loc: 19:0-19:16,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 19:4-19:5,
-        name: "x",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 19:4-19:5,
+          name: "x",
+        },
       },
       init: {
         node: IntLiteral,
@@ -625,9 +690,14 @@ test/parser/ast/type/basic.myte
       loc: 20:0-20:22,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 20:4-20:5,
-        name: "x",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 20:4-20:5,
+          name: "x",
+        },
       },
       init: {
         node: IntLiteral,
@@ -701,9 +771,14 @@ test/parser/ast/type/basic.myte
       loc: 21:0-21:23,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 21:4-21:5,
-        name: "x",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 21:4-21:5,
+          name: "x",
+        },
       },
       init: {
         node: IntLiteral,
@@ -777,9 +852,14 @@ test/parser/ast/type/basic.myte
       loc: 22:0-22:24,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 22:4-22:5,
-        name: "x",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 22:4-22:5,
+          name: "x",
+        },
       },
       init: {
         node: IntLiteral,
@@ -855,9 +935,14 @@ test/parser/ast/type/basic.myte
       loc: 23:0-23:23,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 23:4-23:5,
-        name: "x",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 23:4-23:5,
+          name: "x",
+        },
       },
       init: {
         node: IntLiteral,
@@ -922,9 +1007,14 @@ test/parser/ast/type/basic.myte
       loc: 25:0-25:19,
       kind: Immutable,
       pattern: {
-        node: Identifier,
+        node: ScopedIdentifier,
         loc: 25:4-25:5,
-        name: "x",
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 25:4-25:5,
+          name: "x",
+        },
       },
       init: {
         node: IntLiteral,

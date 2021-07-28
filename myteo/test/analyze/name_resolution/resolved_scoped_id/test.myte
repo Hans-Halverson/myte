@@ -33,9 +33,12 @@ fun test() {
   // Valid export is correctly converted to scoped id
   a1.export;
   a1.a2.export;
-  a1.EnumVariant;
   a1.TupleVariant(1);
   a1.RecordVariant { field: 1 };
+  match (a1.EnumVariant) {
+    | a1.EnumVariant -> ()
+    | _ -> ()
+  }
   
   // Valid export in lvalue is correctly converted to scoped id;
   a1.a2.mutable = 1;

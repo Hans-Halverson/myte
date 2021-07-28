@@ -36,9 +36,14 @@ test/parser/ast/access/indexed_access.myte
             loc: 4:2-4:15,
             kind: Mutable,
             pattern: {
-              node: Identifier,
+              node: ScopedIdentifier,
               loc: 4:6-4:7,
-              name: "a",
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 4:6-4:7,
+                name: "a",
+              },
             },
             init: {
               node: IndexedAccess,
@@ -61,9 +66,14 @@ test/parser/ast/access/indexed_access.myte
             loc: 5:2-5:25,
             kind: Mutable,
             pattern: {
-              node: Identifier,
+              node: ScopedIdentifier,
               loc: 5:6-5:7,
-              name: "b",
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 5:6-5:7,
+                name: "b",
+              },
             },
             init: {
               node: IndexedAccess,

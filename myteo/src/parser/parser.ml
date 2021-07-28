@@ -736,8 +736,8 @@ and parse_identifier_pattern ~is_decl env =
     (match Env.token env with
     | T_LEFT_PAREN -> parse_tuple_pattern ~is_decl env scoped_id marker
     | T_LEFT_BRACE -> parse_record_pattern ~is_decl env scoped_id marker
-    | token -> Parse_error.fatal (Env.loc env, MalformedPattern token))
-  | _ -> Identifier id
+    | _ -> Identifier scoped_id)
+  | _ -> Identifier (id_to_scoped_id id)
 
 and parse_parenthesized_pattern ~is_decl env =
   let open Pattern in
@@ -814,11 +814,11 @@ and parse_record_pattern ~is_decl env name marker =
         match Env.token env with
         | T_RIGHT_BRACE ->
           let loc = marker env in
-          { Field.loc; name = None; value = Identifier name }
+          { Field.loc; name = None; value = Identifier (id_to_scoped_id name) }
         | T_COMMA ->
           let loc = marker env in
           Env.advance env;
-          { Field.loc; name = None; value = Identifier name }
+          { Field.loc; name = None; value = Identifier (id_to_scoped_id name) }
         | _ ->
           Env.expect env T_COLON;
           let value = parse_pattern ~is_decl env in
@@ -1451,7 +1451,8 @@ and reparse_expression_as_lvalue_pattern expr =
   in
   match expr with
   | Identifier { loc; name = "_" } -> Pattern.Wildcard loc
-  | Identifier { loc; name } -> Pattern.Identifier { loc; name }
+  | Identifier { loc; name } -> Pattern.Identifier { loc; name = { loc; name }; scopes = [] }
+  | ScopedIdentifier { loc; name; scopes } -> Pattern.Identifier { loc; name; scopes }
   | Tuple { loc; elements } ->
     Pattern.Tuple
       { loc; name = None; elements = List.map reparse_expression_as_lvalue_pattern elements }
@@ -1465,7 +1466,12 @@ and reparse_expression_as_lvalue_pattern expr =
       List.map
         (fun { Record.Field.loc; name; value } ->
           match value with
-          | None -> { Pattern.Record.Field.loc; name = None; value = Pattern.Identifier name }
+          | None ->
+            {
+              Pattern.Record.Field.loc;
+              name = None;
+              value = Pattern.Identifier (id_to_scoped_id name);
+            }
           | Some value ->
             let value = reparse_expression_as_lvalue_pattern value in
             { Pattern.Record.Field.loc; name = Some name; value })
@@ -1473,3 +1479,6 @@ and reparse_expression_as_lvalue_pattern expr =
     in
     Pattern.Record { loc; name; fields }
   | _ -> invalid_pattern_error expr
+
+and id_to_scoped_id id =
+  { Ast.ScopedIdentifier.loc = id.Ast.Identifier.loc; name = id; scopes = [] }

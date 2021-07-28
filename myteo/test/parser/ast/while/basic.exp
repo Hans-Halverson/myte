@@ -61,9 +61,14 @@ test/parser/ast/while/basic.myte
                   node: Assignment,
                   loc: 7:4-7:14,
                   lvalue: {
-                    node: Identifier,
+                    node: ScopedIdentifier,
                     loc: 7:4-7:5,
-                    name: "x",
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 7:4-7:5,
+                      name: "x",
+                    },
                   },
                   expr: {
                     node: BinaryOperation,

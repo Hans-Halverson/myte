@@ -54,9 +54,10 @@ let ids_of_pattern patt =
     let open Pattern in
     match patt with
     | Wildcard _
-    | Literal _ ->
+    | Literal _
+    | Identifier { scopes = _ :: _; _ } ->
       acc
-    | Identifier id -> id :: acc
+    | Identifier { scopes = []; name; _ } -> name :: acc
     | Tuple { Tuple.elements; _ } ->
       List.fold_left (fun acc element -> helper element acc) acc elements
     | Record { Record.fields; _ } ->
