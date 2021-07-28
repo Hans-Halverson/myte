@@ -23,6 +23,8 @@ val Rec { field: x } = 1
 val Rec { field } = 1
 val Rec { field1: x, field2 } = 1
 val Rec { field1, field2: x, field3: y, } = 1
+val Rec { field1, ... } = 1
+val Rec { field1, ..., } = 1
 
 // Scoped ids
 val A.B.C = 1

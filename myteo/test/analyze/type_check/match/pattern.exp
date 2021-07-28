@@ -1,49 +1,49 @@
 Error: Expected type `Bool` but found `String`
-test/analyze/type_check/match/pattern.myte:7:13-16
- 7 |     | 2 when "a" -> 2
+test/analyze/type_check/match/pattern.myte:9:13-16
+ 9 |     | 2 when "a" -> 2
    |              ^^^
 
 Error: Expected type `Unit` but found `Int`
-test/analyze/type_check/match/pattern.myte:13:6
- 13 |     | 1 -> 1
+test/analyze/type_check/match/pattern.myte:15:6
+ 15 |     | 1 -> 1
     |       ^
 
 Error: Expected type `Bool` but found `Unit`
-test/analyze/type_check/match/pattern.myte:18:6-8
- 18 |     | () -> 1
+test/analyze/type_check/match/pattern.myte:20:6-8
+ 20 |     | () -> 1
     |       ^^
 
 Error: Expected type `Int` but found `Unit`
-test/analyze/type_check/match/pattern.myte:23:6-8
- 23 |     | () -> 1
+test/analyze/type_check/match/pattern.myte:25:6-8
+ 25 |     | () -> 1
     |       ^^
 
 Error: Expected type `String` but found `Unit`
-test/analyze/type_check/match/pattern.myte:28:6-8
- 28 |     | () -> 1
+test/analyze/type_check/match/pattern.myte:30:6-8
+ 30 |     | () -> 1
     |       ^^
 
 Error: Expected type `(Int, Int, Int)` but found `(a, b)`
-test/analyze/type_check/match/pattern.myte:38:6-12
- 38 |     | (_, _) -> ()
+test/analyze/type_check/match/pattern.myte:40:6-12
+ 40 |     | (_, _) -> ()
     |       ^^^^^^
 
 Error: Expected type `Unit` but found `Int`
-test/analyze/type_check/match/pattern.myte:58:7
- 58 |       (x: Unit);
+test/analyze/type_check/match/pattern.myte:60:7
+ 60 |       (x: Unit);
     |        ^
 
 Error: Expected type `Unit` but found `Bool`
-test/analyze/type_check/match/pattern.myte:59:7
- 59 |       (y: Unit);
+test/analyze/type_check/match/pattern.myte:61:7
+ 61 |       (y: Unit);
     |        ^
 
 Error: Expected type `Variant1` but found `Variant2`
-test/analyze/type_check/match/pattern.myte:75:6-17
- 75 |     | Tup2 (x, y) -> ()
+test/analyze/type_check/match/pattern.myte:77:6-17
+ 77 |     | Tup2 (x, y) -> ()
     |       ^^^^^^^^^^^
 
 Error: Expected type `Variant1` but found `(a, b)`
-test/analyze/type_check/match/pattern.myte:77:6-12
- 77 |     | (x, y) -> ()
+test/analyze/type_check/match/pattern.myte:79:6-12
+ 79 |     | (x, y) -> ()
     |       ^^^^^^

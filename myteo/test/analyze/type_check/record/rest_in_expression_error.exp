@@ -1,0 +1,4 @@
+Error: `...` can only be present in record patterns
+test/analyze/type_check/record/rest_in_expression_error.myte:6:29-32
+ 6 |   Rec { foo: 1, bar: "asdf", ... };
+   |                              ^^^

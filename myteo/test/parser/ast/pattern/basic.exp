@@ -1,7 +1,7 @@
 test/parser/ast/pattern/basic.myte
 {
   node: Module,
-  loc: 1:0-36:0,
+  loc: 1:0-38:0,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -450,6 +450,7 @@ test/parser/ast/pattern/basic.myte
             },
           },
         ],
+        rest: false,
       },
       init: {
         node: IntLiteral,
@@ -492,6 +493,7 @@ test/parser/ast/pattern/basic.myte
             },
           },
         ],
+        rest: false,
       },
       init: {
         node: IntLiteral,
@@ -553,6 +555,7 @@ test/parser/ast/pattern/basic.myte
             },
           },
         ],
+        rest: false,
       },
       init: {
         node: IntLiteral,
@@ -633,6 +636,7 @@ test/parser/ast/pattern/basic.myte
             },
           },
         ],
+        rest: false,
       },
       init: {
         node: IntLiteral,
@@ -643,77 +647,163 @@ test/parser/ast/pattern/basic.myte
     },
     {
       node: VariableDeclaration,
-      loc: 28:0-28:13,
+      loc: 26:0-26:27,
       kind: Immutable,
       pattern: {
-        node: ScopedIdentifier,
-        loc: 28:4-28:9,
-        scopes: [
-          {
+        node: RecordPattern,
+        loc: 26:4-26:23,
+        name: {
+          node: ScopedIdentifier,
+          loc: 26:4-26:7,
+          scopes: [],
+          name: {
             node: Identifier,
-            loc: 28:4-28:5,
-            name: "A",
+            loc: 26:4-26:7,
+            name: "Rec",
           },
+        },
+        fields: [
           {
-            node: Identifier,
-            loc: 28:6-28:7,
-            name: "B",
+            node: RecordPatternField,
+            loc: 26:10-26:16,
+            name: None,
+            value: {
+              node: ScopedIdentifier,
+              loc: 26:10-26:16,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 26:10-26:16,
+                name: "field1",
+              },
+            },
           },
         ],
-        name: {
-          node: Identifier,
-          loc: 28:8-28:9,
-          name: "C",
-        },
+        rest: true,
       },
       init: {
         node: IntLiteral,
-        loc: 28:12-28:13,
+        loc: 26:26-26:27,
         raw: "1",
       },
       annot: None,
     },
     {
       node: VariableDeclaration,
-      loc: 29:0-29:21,
+      loc: 27:0-27:28,
+      kind: Immutable,
+      pattern: {
+        node: RecordPattern,
+        loc: 27:4-27:24,
+        name: {
+          node: ScopedIdentifier,
+          loc: 27:4-27:7,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 27:4-27:7,
+            name: "Rec",
+          },
+        },
+        fields: [
+          {
+            node: RecordPatternField,
+            loc: 27:10-27:16,
+            name: None,
+            value: {
+              node: ScopedIdentifier,
+              loc: 27:10-27:16,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 27:10-27:16,
+                name: "field1",
+              },
+            },
+          },
+        ],
+        rest: true,
+      },
+      init: {
+        node: IntLiteral,
+        loc: 27:27-27:28,
+        raw: "1",
+      },
+      annot: None,
+    },
+    {
+      node: VariableDeclaration,
+      loc: 30:0-30:13,
+      kind: Immutable,
+      pattern: {
+        node: ScopedIdentifier,
+        loc: 30:4-30:9,
+        scopes: [
+          {
+            node: Identifier,
+            loc: 30:4-30:5,
+            name: "A",
+          },
+          {
+            node: Identifier,
+            loc: 30:6-30:7,
+            name: "B",
+          },
+        ],
+        name: {
+          node: Identifier,
+          loc: 30:8-30:9,
+          name: "C",
+        },
+      },
+      init: {
+        node: IntLiteral,
+        loc: 30:12-30:13,
+        raw: "1",
+      },
+      annot: None,
+    },
+    {
+      node: VariableDeclaration,
+      loc: 31:0-31:21,
       kind: Immutable,
       pattern: {
         node: TuplePattern,
-        loc: 29:4-29:17,
+        loc: 31:4-31:17,
         name: {
           node: ScopedIdentifier,
-          loc: 29:4-29:13,
+          loc: 31:4-31:13,
           scopes: [
             {
               node: Identifier,
-              loc: 29:4-29:5,
+              loc: 31:4-31:5,
               name: "A",
             },
             {
               node: Identifier,
-              loc: 29:6-29:7,
+              loc: 31:6-31:7,
               name: "B",
             },
             {
               node: Identifier,
-              loc: 29:8-29:9,
+              loc: 31:8-31:9,
               name: "C",
             },
           ],
           name: {
             node: Identifier,
-            loc: 29:10-29:13,
+            loc: 31:10-31:13,
             name: "Tup",
           },
         },
         elements: [
           {
             node: ScopedIdentifier,
-            loc: 29:15-29:16,
+            loc: 31:15-31:16,
             scopes: [],
             name: {
               node: Identifier,
-              loc: 29:15-29:16,
+              loc: 31:15-31:16,
               name: "x",
             },
           },
@@ -721,100 +811,101 @@ test/parser/ast/pattern/basic.myte
       },
       init: {
         node: IntLiteral,
-        loc: 29:20-29:21,
+        loc: 31:20-31:21,
         raw: "1",
       },
       annot: None,
     },
     {
       node: VariableDeclaration,
-      loc: 30:0-30:27,
+      loc: 32:0-32:27,
       kind: Immutable,
       pattern: {
         node: RecordPattern,
-        loc: 30:4-30:23,
+        loc: 32:4-32:23,
         name: {
           node: ScopedIdentifier,
-          loc: 30:4-30:13,
+          loc: 32:4-32:13,
           scopes: [
             {
               node: Identifier,
-              loc: 30:4-30:5,
+              loc: 32:4-32:5,
               name: "A",
             },
             {
               node: Identifier,
-              loc: 30:6-30:7,
+              loc: 32:6-32:7,
               name: "B",
             },
             {
               node: Identifier,
-              loc: 30:8-30:9,
+              loc: 32:8-32:9,
               name: "C",
             },
           ],
           name: {
             node: Identifier,
-            loc: 30:10-30:13,
+            loc: 32:10-32:13,
             name: "Rec",
           },
         },
         fields: [
           {
             node: RecordPatternField,
-            loc: 30:16-30:21,
+            loc: 32:16-32:21,
             name: None,
             value: {
               node: ScopedIdentifier,
-              loc: 30:16-30:21,
+              loc: 32:16-32:21,
               scopes: [],
               name: {
                 node: Identifier,
-                loc: 30:16-30:21,
+                loc: 32:16-32:21,
                 name: "field",
               },
             },
           },
         ],
+        rest: false,
       },
       init: {
         node: IntLiteral,
-        loc: 30:26-30:27,
+        loc: 32:26-32:27,
         raw: "1",
       },
       annot: None,
     },
     {
       node: VariableDeclaration,
-      loc: 33:0-33:19,
+      loc: 35:0-35:19,
       kind: Immutable,
       pattern: {
         node: TuplePattern,
-        loc: 33:4-33:15,
+        loc: 35:4-35:15,
         name: None,
         elements: [
           {
             node: TuplePattern,
-            loc: 33:5-33:11,
+            loc: 35:5-35:11,
             name: None,
             elements: [
               {
                 node: ScopedIdentifier,
-                loc: 33:6-33:7,
+                loc: 35:6-35:7,
                 scopes: [],
                 name: {
                   node: Identifier,
-                  loc: 33:6-33:7,
+                  loc: 35:6-35:7,
                   name: "x",
                 },
               },
               {
                 node: ScopedIdentifier,
-                loc: 33:9-33:10,
+                loc: 35:9-35:10,
                 scopes: [],
                 name: {
                   node: Identifier,
-                  loc: 33:9-33:10,
+                  loc: 35:9-35:10,
                   name: "y",
                 },
               },
@@ -822,11 +913,11 @@ test/parser/ast/pattern/basic.myte
           },
           {
             node: ScopedIdentifier,
-            loc: 33:13-33:14,
+            loc: 35:13-35:14,
             scopes: [],
             name: {
               node: Identifier,
-              loc: 33:13-33:14,
+              loc: 35:13-35:14,
               name: "z",
             },
           },
@@ -834,51 +925,51 @@ test/parser/ast/pattern/basic.myte
       },
       init: {
         node: IntLiteral,
-        loc: 33:18-33:19,
+        loc: 35:18-35:19,
         raw: "1",
       },
       annot: None,
     },
     {
       node: VariableDeclaration,
-      loc: 34:0-34:34,
+      loc: 36:0-36:34,
       kind: Immutable,
       pattern: {
         node: TuplePattern,
-        loc: 34:4-34:30,
+        loc: 36:4-36:30,
         name: None,
         elements: [
           {
             node: TuplePattern,
-            loc: 34:5-34:14,
+            loc: 36:5-36:14,
             name: {
               node: ScopedIdentifier,
-              loc: 34:5-34:8,
+              loc: 36:5-36:8,
               scopes: [],
               name: {
                 node: Identifier,
-                loc: 34:5-34:8,
+                loc: 36:5-36:8,
                 name: "Tup",
               },
             },
             elements: [
               {
                 node: ScopedIdentifier,
-                loc: 34:9-34:10,
+                loc: 36:9-36:10,
                 scopes: [],
                 name: {
                   node: Identifier,
-                  loc: 34:9-34:10,
+                  loc: 36:9-36:10,
                   name: "x",
                 },
               },
               {
                 node: ScopedIdentifier,
-                loc: 34:12-34:13,
+                loc: 36:12-36:13,
                 scopes: [],
                 name: {
                   node: Identifier,
-                  loc: 34:12-34:13,
+                  loc: 36:12-36:13,
                   name: "y",
                 },
               },
@@ -886,101 +977,102 @@ test/parser/ast/pattern/basic.myte
           },
           {
             node: RecordPattern,
-            loc: 34:16-34:29,
+            loc: 36:16-36:29,
             name: {
               node: ScopedIdentifier,
-              loc: 34:16-34:19,
+              loc: 36:16-36:19,
               scopes: [],
               name: {
                 node: Identifier,
-                loc: 34:16-34:19,
+                loc: 36:16-36:19,
                 name: "Rec",
               },
             },
             fields: [
               {
                 node: RecordPatternField,
-                loc: 34:22-34:27,
+                loc: 36:22-36:27,
                 name: None,
                 value: {
                   node: ScopedIdentifier,
-                  loc: 34:22-34:27,
+                  loc: 36:22-36:27,
                   scopes: [],
                   name: {
                     node: Identifier,
-                    loc: 34:22-34:27,
+                    loc: 36:22-36:27,
                     name: "field",
                   },
                 },
               },
             ],
+            rest: false,
           },
         ],
       },
       init: {
         node: IntLiteral,
-        loc: 34:33-34:34,
+        loc: 36:33-36:34,
         raw: "1",
       },
       annot: None,
     },
     {
       node: VariableDeclaration,
-      loc: 35:0-35:33,
+      loc: 37:0-37:33,
       kind: Immutable,
       pattern: {
         node: RecordPattern,
-        loc: 35:4-35:29,
+        loc: 37:4-37:29,
         name: {
           node: ScopedIdentifier,
-          loc: 35:4-35:7,
+          loc: 37:4-37:7,
           scopes: [],
           name: {
             node: Identifier,
-            loc: 35:4-35:7,
+            loc: 37:4-37:7,
             name: "Rec",
           },
         },
         fields: [
           {
             node: RecordPatternField,
-            loc: 35:10-35:27,
+            loc: 37:10-37:27,
             name: {
               node: Identifier,
-              loc: 35:10-35:15,
+              loc: 37:10-37:15,
               name: "field",
             },
             value: {
               node: TuplePattern,
-              loc: 35:17-35:27,
+              loc: 37:17-37:27,
               name: {
                 node: ScopedIdentifier,
-                loc: 35:17-35:20,
+                loc: 37:17-37:20,
                 scopes: [],
                 name: {
                   node: Identifier,
-                  loc: 35:17-35:20,
+                  loc: 37:17-37:20,
                   name: "Tup",
                 },
               },
               elements: [
                 {
                   node: ScopedIdentifier,
-                  loc: 35:22-35:23,
+                  loc: 37:22-37:23,
                   scopes: [],
                   name: {
                     node: Identifier,
-                    loc: 35:22-35:23,
+                    loc: 37:22-37:23,
                     name: "x",
                   },
                 },
                 {
                   node: ScopedIdentifier,
-                  loc: 35:25-35:26,
+                  loc: 37:25-37:26,
                   scopes: [],
                   name: {
                     node: Identifier,
-                    loc: 35:25-35:26,
+                    loc: 37:25-37:26,
                     name: "y",
                   },
                 },
@@ -988,10 +1080,11 @@ test/parser/ast/pattern/basic.myte
             },
           },
         ],
+        rest: false,
       },
       init: {
         node: IntLiteral,
-        loc: 35:32-35:33,
+        loc: 37:32-37:33,
         raw: "1",
       },
       annot: None,

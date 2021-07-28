@@ -1,7 +1,7 @@
 test/parser/ast/assignment/basic.myte
 {
   node: Module,
-  loc: 1:0-36:1,
+  loc: 1:0-38:1,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -20,7 +20,7 @@ test/parser/ast/assignment/basic.myte
   toplevels: [
     {
       node: Function,
-      loc: 3:0-36:1,
+      loc: 3:0-38:1,
       name: {
         node: Identifier,
         loc: 3:4-3:8,
@@ -29,7 +29,7 @@ test/parser/ast/assignment/basic.myte
       params: [],
       body: {
         node: Block,
-        loc: 3:11-36:1,
+        loc: 3:11-38:1,
         statements: [
           {
             node: Assignment,
@@ -329,6 +329,7 @@ test/parser/ast/assignment/basic.myte
                   },
                 },
               ],
+              rest: false,
             },
             expr: {
               node: IntLiteral,
@@ -388,6 +389,7 @@ test/parser/ast/assignment/basic.myte
                   },
                 },
               ],
+              rest: false,
             },
             expr: {
               node: IntLiteral,
@@ -397,33 +399,115 @@ test/parser/ast/assignment/basic.myte
           },
           {
             node: Assignment,
-            loc: 21:2-21:28,
+            loc: 19:2-19:26,
+            lvalue: {
+              node: RecordPattern,
+              loc: 19:2-19:21,
+              name: {
+                node: ScopedIdentifier,
+                loc: 19:2-19:5,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 19:2-19:5,
+                  name: "Rec",
+                },
+              },
+              fields: [
+                {
+                  node: RecordPatternField,
+                  loc: 19:8-19:14,
+                  name: None,
+                  value: {
+                    node: ScopedIdentifier,
+                    loc: 19:8-19:14,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 19:8-19:14,
+                      name: "field1",
+                    },
+                  },
+                },
+              ],
+              rest: true,
+            },
+            expr: {
+              node: IntLiteral,
+              loc: 19:24-19:25,
+              raw: "1",
+            },
+          },
+          {
+            node: Assignment,
+            loc: 20:2-20:27,
+            lvalue: {
+              node: RecordPattern,
+              loc: 20:2-20:22,
+              name: {
+                node: ScopedIdentifier,
+                loc: 20:2-20:5,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 20:2-20:5,
+                  name: "Rec",
+                },
+              },
+              fields: [
+                {
+                  node: RecordPatternField,
+                  loc: 20:8-20:14,
+                  name: None,
+                  value: {
+                    node: ScopedIdentifier,
+                    loc: 20:8-20:14,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 20:8-20:14,
+                      name: "field1",
+                    },
+                  },
+                },
+              ],
+              rest: true,
+            },
+            expr: {
+              node: IntLiteral,
+              loc: 20:25-20:26,
+              raw: "1",
+            },
+          },
+          {
+            node: Assignment,
+            loc: 23:2-23:28,
             lvalue: {
               node: TuplePattern,
-              loc: 21:2-21:23,
+              loc: 23:2-23:23,
               name: None,
               elements: [
                 {
                   node: TuplePattern,
-                  loc: 21:3-21:9,
+                  loc: 23:3-23:9,
                   name: {
                     node: ScopedIdentifier,
-                    loc: 21:3-21:6,
+                    loc: 23:3-23:6,
                     scopes: [],
                     name: {
                       node: Identifier,
-                      loc: 21:3-21:6,
+                      loc: 23:3-23:6,
                       name: "Tup",
                     },
                   },
                   elements: [
                     {
                       node: ScopedIdentifier,
-                      loc: 21:7-21:8,
+                      loc: 23:7-23:8,
                       scopes: [],
                       name: {
                         node: Identifier,
-                        loc: 21:7-21:8,
+                        loc: 23:7-23:8,
                         name: "x",
                       },
                     },
@@ -431,104 +515,105 @@ test/parser/ast/assignment/basic.myte
                 },
                 {
                   node: RecordPattern,
-                  loc: 21:11-21:22,
+                  loc: 23:11-23:22,
                   name: {
                     node: ScopedIdentifier,
-                    loc: 21:11-21:14,
+                    loc: 23:11-23:14,
                     scopes: [],
                     name: {
                       node: Identifier,
-                      loc: 21:11-21:14,
+                      loc: 23:11-23:14,
                       name: "Rec",
                     },
                   },
                   fields: [
                     {
                       node: RecordPatternField,
-                      loc: 21:16-21:21,
+                      loc: 23:16-23:21,
                       name: None,
                       value: {
                         node: ScopedIdentifier,
-                        loc: 21:16-21:21,
+                        loc: 23:16-23:21,
                         scopes: [],
                         name: {
                           node: Identifier,
-                          loc: 21:16-21:21,
+                          loc: 23:16-23:21,
                           name: "field",
                         },
                       },
                     },
                   ],
+                  rest: false,
                 },
               ],
             },
             expr: {
               node: IntLiteral,
-              loc: 21:26-21:27,
+              loc: 23:26-23:27,
               raw: "1",
             },
           },
           {
             node: Assignment,
-            loc: 22:2-22:36,
+            loc: 24:2-24:36,
             lvalue: {
               node: RecordPattern,
-              loc: 22:2-22:31,
+              loc: 24:2-24:31,
               name: {
                 node: ScopedIdentifier,
-                loc: 22:2-22:5,
+                loc: 24:2-24:5,
                 scopes: [],
                 name: {
                   node: Identifier,
-                  loc: 22:2-22:5,
+                  loc: 24:2-24:5,
                   name: "Rec",
                 },
               },
               fields: [
                 {
                   node: RecordPatternField,
-                  loc: 22:8-22:29,
+                  loc: 24:8-24:29,
                   name: {
                     node: Identifier,
-                    loc: 22:8-22:13,
+                    loc: 24:8-24:13,
                     name: "field",
                   },
                   value: {
                     node: TuplePattern,
-                    loc: 22:15-22:29,
+                    loc: 24:15-24:29,
                     name: {
                       node: ScopedIdentifier,
-                      loc: 22:15-22:18,
+                      loc: 24:15-24:18,
                       scopes: [],
                       name: {
                         node: Identifier,
-                        loc: 22:15-22:18,
+                        loc: 24:15-24:18,
                         name: "Tup",
                       },
                     },
                     elements: [
                       {
                         node: TuplePattern,
-                        loc: 22:19-22:25,
+                        loc: 24:19-24:25,
                         name: None,
                         elements: [
                           {
                             node: ScopedIdentifier,
-                            loc: 22:20-22:21,
+                            loc: 24:20-24:21,
                             scopes: [],
                             name: {
                               node: Identifier,
-                              loc: 22:20-22:21,
+                              loc: 24:20-24:21,
                               name: "x",
                             },
                           },
                           {
                             node: ScopedIdentifier,
-                            loc: 22:23-22:24,
+                            loc: 24:23-24:24,
                             scopes: [],
                             name: {
                               node: Identifier,
-                              loc: 22:23-22:24,
+                              loc: 24:23-24:24,
                               name: "y",
                             },
                           },
@@ -536,11 +621,11 @@ test/parser/ast/assignment/basic.myte
                       },
                       {
                         node: ScopedIdentifier,
-                        loc: 22:27-22:28,
+                        loc: 24:27-24:28,
                         scopes: [],
                         name: {
                           node: Identifier,
-                          loc: 22:27-22:28,
+                          loc: 24:27-24:28,
                           name: "z",
                         },
                       },
@@ -548,53 +633,54 @@ test/parser/ast/assignment/basic.myte
                   },
                 },
               ],
+              rest: false,
             },
             expr: {
               node: IntLiteral,
-              loc: 22:34-22:35,
+              loc: 24:34-24:35,
               raw: "1",
             },
           },
           {
             node: Assignment,
-            loc: 25:2-25:20,
+            loc: 27:2-27:20,
             lvalue: {
               node: TuplePattern,
-              loc: 25:2-25:15,
+              loc: 27:2-27:15,
               name: {
                 node: ScopedIdentifier,
-                loc: 25:2-25:11,
+                loc: 27:2-27:11,
                 scopes: [
                   {
                     node: Identifier,
-                    loc: 25:2-25:3,
+                    loc: 27:2-27:3,
                     name: "A",
                   },
                   {
                     node: Identifier,
-                    loc: 25:4-25:5,
+                    loc: 27:4-27:5,
                     name: "B",
                   },
                   {
                     node: Identifier,
-                    loc: 25:6-25:7,
+                    loc: 27:6-27:7,
                     name: "C",
                   },
                 ],
                 name: {
                   node: Identifier,
-                  loc: 25:8-25:11,
+                  loc: 27:8-27:11,
                   name: "Tup",
                 },
               },
               elements: [
                 {
                   node: ScopedIdentifier,
-                  loc: 25:13-25:14,
+                  loc: 27:13-27:14,
                   scopes: [],
                   name: {
                     node: Identifier,
-                    loc: 25:13-25:14,
+                    loc: 27:13-27:14,
                     name: "x",
                   },
                 },
@@ -602,142 +688,79 @@ test/parser/ast/assignment/basic.myte
             },
             expr: {
               node: IntLiteral,
-              loc: 25:18-25:19,
+              loc: 27:18-27:19,
               raw: "1",
             },
           },
           {
             node: Assignment,
-            loc: 26:2-26:26,
+            loc: 28:2-28:26,
             lvalue: {
               node: RecordPattern,
-              loc: 26:2-26:21,
+              loc: 28:2-28:21,
               name: {
                 node: ScopedIdentifier,
-                loc: 26:2-26:11,
+                loc: 28:2-28:11,
                 scopes: [
                   {
                     node: Identifier,
-                    loc: 26:2-26:3,
+                    loc: 28:2-28:3,
                     name: "A",
                   },
                   {
                     node: Identifier,
-                    loc: 26:4-26:5,
+                    loc: 28:4-28:5,
                     name: "B",
                   },
                   {
                     node: Identifier,
-                    loc: 26:6-26:7,
+                    loc: 28:6-28:7,
                     name: "C",
                   },
                 ],
                 name: {
                   node: Identifier,
-                  loc: 26:8-26:11,
+                  loc: 28:8-28:11,
                   name: "Rec",
                 },
               },
               fields: [
                 {
                   node: RecordPatternField,
-                  loc: 26:14-26:19,
+                  loc: 28:14-28:19,
                   name: None,
                   value: {
                     node: ScopedIdentifier,
-                    loc: 26:14-26:19,
+                    loc: 28:14-28:19,
                     scopes: [],
                     name: {
                       node: Identifier,
-                      loc: 26:14-26:19,
+                      loc: 28:14-28:19,
                       name: "field",
                     },
                   },
                 },
               ],
+              rest: false,
             },
             expr: {
               node: IntLiteral,
-              loc: 26:24-26:25,
+              loc: 28:24-28:25,
               raw: "1",
             },
           },
           {
             node: Assignment,
-            loc: 29:2-29:10,
+            loc: 31:2-31:10,
             lvalue: {
               node: NamedAccess,
-              loc: 29:2-29:5,
-              target: {
-                node: Identifier,
-                loc: 29:2-29:3,
-                name: "A",
-              },
-              name: {
-                node: Identifier,
-                loc: 29:4-29:5,
-                name: "B",
-              },
-            },
-            expr: {
-              node: IntLiteral,
-              loc: 29:8-29:9,
-              raw: "1",
-            },
-          },
-          {
-            node: Assignment,
-            loc: 30:2-30:14,
-            lvalue: {
-              node: NamedAccess,
-              loc: 30:2-30:9,
-              target: {
-                node: NamedAccess,
-                loc: 30:2-30:7,
-                target: {
-                  node: NamedAccess,
-                  loc: 30:2-30:5,
-                  target: {
-                    node: Identifier,
-                    loc: 30:2-30:3,
-                    name: "A",
-                  },
-                  name: {
-                    node: Identifier,
-                    loc: 30:4-30:5,
-                    name: "B",
-                  },
-                },
-                name: {
-                  node: Identifier,
-                  loc: 30:6-30:7,
-                  name: "C",
-                },
-              },
-              name: {
-                node: Identifier,
-                loc: 30:8-30:9,
-                name: "D",
-              },
-            },
-            expr: {
-              node: IntLiteral,
-              loc: 30:12-30:13,
-              raw: "1",
-            },
-          },
-          {
-            node: Assignment,
-            loc: 31:2-31:11,
-            lvalue: {
-              node: IndexedAccess,
-              loc: 31:2-31:6,
+              loc: 31:2-31:5,
               target: {
                 node: Identifier,
                 loc: 31:2-31:3,
                 name: "A",
               },
-              index: {
+              name: {
                 node: Identifier,
                 loc: 31:4-31:5,
                 name: "B",
@@ -745,189 +768,253 @@ test/parser/ast/assignment/basic.myte
             },
             expr: {
               node: IntLiteral,
-              loc: 31:9-31:10,
+              loc: 31:8-31:9,
               raw: "1",
             },
           },
           {
             node: Assignment,
-            loc: 32:2-32:17,
+            loc: 32:2-32:14,
             lvalue: {
-              node: IndexedAccess,
-              loc: 32:2-32:12,
+              node: NamedAccess,
+              loc: 32:2-32:9,
               target: {
-                node: IndexedAccess,
-                loc: 32:2-32:9,
+                node: NamedAccess,
+                loc: 32:2-32:7,
                 target: {
-                  node: IndexedAccess,
-                  loc: 32:2-32:6,
+                  node: NamedAccess,
+                  loc: 32:2-32:5,
                   target: {
                     node: Identifier,
                     loc: 32:2-32:3,
                     name: "A",
                   },
-                  index: {
+                  name: {
                     node: Identifier,
                     loc: 32:4-32:5,
                     name: "B",
                   },
                 },
-                index: {
+                name: {
                   node: Identifier,
-                  loc: 32:7-32:8,
+                  loc: 32:6-32:7,
                   name: "C",
                 },
               },
-              index: {
+              name: {
                 node: Identifier,
-                loc: 32:10-32:11,
+                loc: 32:8-32:9,
                 name: "D",
               },
             },
             expr: {
               node: IntLiteral,
-              loc: 32:15-32:16,
+              loc: 32:12-32:13,
               raw: "1",
             },
           },
           {
             node: Assignment,
-            loc: 33:2-33:13,
+            loc: 33:2-33:11,
             lvalue: {
               node: IndexedAccess,
-              loc: 33:2-33:8,
+              loc: 33:2-33:6,
+              target: {
+                node: Identifier,
+                loc: 33:2-33:3,
+                name: "A",
+              },
+              index: {
+                node: Identifier,
+                loc: 33:4-33:5,
+                name: "B",
+              },
+            },
+            expr: {
+              node: IntLiteral,
+              loc: 33:9-33:10,
+              raw: "1",
+            },
+          },
+          {
+            node: Assignment,
+            loc: 34:2-34:17,
+            lvalue: {
+              node: IndexedAccess,
+              loc: 34:2-34:12,
+              target: {
+                node: IndexedAccess,
+                loc: 34:2-34:9,
+                target: {
+                  node: IndexedAccess,
+                  loc: 34:2-34:6,
+                  target: {
+                    node: Identifier,
+                    loc: 34:2-34:3,
+                    name: "A",
+                  },
+                  index: {
+                    node: Identifier,
+                    loc: 34:4-34:5,
+                    name: "B",
+                  },
+                },
+                index: {
+                  node: Identifier,
+                  loc: 34:7-34:8,
+                  name: "C",
+                },
+              },
+              index: {
+                node: Identifier,
+                loc: 34:10-34:11,
+                name: "D",
+              },
+            },
+            expr: {
+              node: IntLiteral,
+              loc: 34:15-34:16,
+              raw: "1",
+            },
+          },
+          {
+            node: Assignment,
+            loc: 35:2-35:13,
+            lvalue: {
+              node: IndexedAccess,
+              loc: 35:2-35:8,
               target: {
                 node: NamedAccess,
-                loc: 33:2-33:5,
+                loc: 35:2-35:5,
                 target: {
                   node: Identifier,
-                  loc: 33:2-33:3,
+                  loc: 35:2-35:3,
                   name: "A",
                 },
                 name: {
                   node: Identifier,
-                  loc: 33:4-33:5,
+                  loc: 35:4-35:5,
                   name: "B",
                 },
               },
               index: {
                 node: Identifier,
-                loc: 33:6-33:7,
+                loc: 35:6-35:7,
                 name: "C",
               },
             },
             expr: {
               node: IntLiteral,
-              loc: 33:11-33:12,
+              loc: 35:11-35:12,
               raw: "1",
             },
           },
           {
             node: Assignment,
-            loc: 34:2-34:13,
+            loc: 36:2-36:13,
             lvalue: {
               node: NamedAccess,
-              loc: 34:2-34:8,
+              loc: 36:2-36:8,
               target: {
                 node: IndexedAccess,
-                loc: 34:2-34:6,
+                loc: 36:2-36:6,
                 target: {
                   node: Identifier,
-                  loc: 34:2-34:3,
+                  loc: 36:2-36:3,
                   name: "A",
                 },
                 index: {
                   node: Identifier,
-                  loc: 34:4-34:5,
+                  loc: 36:4-36:5,
                   name: "B",
                 },
               },
               name: {
                 node: Identifier,
-                loc: 34:7-34:8,
+                loc: 36:7-36:8,
                 name: "C",
               },
             },
             expr: {
               node: IntLiteral,
-              loc: 34:11-34:12,
+              loc: 36:11-36:12,
               raw: "1",
             },
           },
           {
             node: Assignment,
-            loc: 35:2-35:25,
+            loc: 37:2-37:25,
             lvalue: {
               node: NamedAccess,
-              loc: 35:2-35:20,
+              loc: 37:2-37:20,
               target: {
                 node: IndexedAccess,
-                loc: 35:2-35:18,
+                loc: 37:2-37:18,
                 target: {
                   node: NamedAccess,
-                  loc: 35:2-35:15,
+                  loc: 37:2-37:15,
                   target: {
                     node: NamedAccess,
-                    loc: 35:2-35:13,
+                    loc: 37:2-37:13,
                     target: {
                       node: IndexedAccess,
-                      loc: 35:2-35:11,
+                      loc: 37:2-37:11,
                       target: {
                         node: IndexedAccess,
-                        loc: 35:2-35:8,
+                        loc: 37:2-37:8,
                         target: {
                           node: NamedAccess,
-                          loc: 35:2-35:5,
+                          loc: 37:2-37:5,
                           target: {
                             node: Identifier,
-                            loc: 35:2-35:3,
+                            loc: 37:2-37:3,
                             name: "A",
                           },
                           name: {
                             node: Identifier,
-                            loc: 35:4-35:5,
+                            loc: 37:4-37:5,
                             name: "B",
                           },
                         },
                         index: {
                           node: Identifier,
-                          loc: 35:6-35:7,
+                          loc: 37:6-37:7,
                           name: "C",
                         },
                       },
                       index: {
                         node: Identifier,
-                        loc: 35:9-35:10,
+                        loc: 37:9-37:10,
                         name: "D",
                       },
                     },
                     name: {
                       node: Identifier,
-                      loc: 35:12-35:13,
+                      loc: 37:12-37:13,
                       name: "E",
                     },
                   },
                   name: {
                     node: Identifier,
-                    loc: 35:14-35:15,
+                    loc: 37:14-37:15,
                     name: "F",
                   },
                 },
                 index: {
                   node: Identifier,
-                  loc: 35:16-35:17,
+                  loc: 37:16-37:17,
                   name: "G",
                 },
               },
               name: {
                 node: Identifier,
-                loc: 35:19-35:20,
+                loc: 37:19-37:20,
                 name: "H",
               },
             },
             expr: {
               node: IntLiteral,
-              loc: 35:23-35:24,
+              loc: 37:23-37:24,
               raw: "1",
             },
           },

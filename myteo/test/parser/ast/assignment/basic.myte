@@ -16,6 +16,8 @@ fun main() {
   // Record patterns
   Rec { field1: x, field2 } = 1;
   Rec { field1, field2: x, } = 1;
+  Rec { field1, ... } = 1;
+  Rec { field1, ..., } = 1;
 
   // Nested patterns
   (Tup(x), Rec {field}) = 1;

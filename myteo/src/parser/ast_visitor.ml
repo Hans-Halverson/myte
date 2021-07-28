@@ -129,7 +129,7 @@ class ['a] visitor =
 
     method record_expression acc record =
       let open Expression.Record in
-      let { loc = _; name; fields } = record in
+      let { loc = _; name; fields; rest = _ } = record in
       this#expression acc name;
       List.iter (this#record_expression_field acc) fields
 
@@ -200,7 +200,7 @@ class ['a] visitor =
 
     method record_pattern acc record =
       let open Pattern.Record in
-      let { loc = _; name; fields } = record in
+      let { loc = _; name; fields; rest = _ } = record in
       this#scoped_identifier acc name;
       List.iter (this#record_pattern_field acc) fields
 

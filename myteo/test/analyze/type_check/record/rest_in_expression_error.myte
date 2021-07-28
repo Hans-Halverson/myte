@@ -1,0 +1,7 @@
+module test
+
+type Rec { foo: Int, bar: String }
+
+fun main() {
+  Rec { foo: 1, bar: "asdf", ... };
+}

@@ -2677,6 +2677,7 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
                   },
                 },
               ],
+              rest: false,
             },
             expr: {
               node: ScopedIdentifier,
@@ -2738,6 +2739,7 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
                   },
                 },
               ],
+              rest: false,
             },
             expr: {
               node: ScopedIdentifier,

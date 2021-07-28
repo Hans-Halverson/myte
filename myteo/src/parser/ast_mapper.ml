@@ -163,13 +163,13 @@ class mapper =
 
     method record_expression record =
       let open Expression.Record in
-      let { loc; name; fields } = record in
+      let { loc; name; fields; rest } = record in
       let name' = this#expression name in
       let fields' = id_map_list this#record_expression_field fields in
       if name == name' && fields == fields' then
         record
       else
-        { loc; name = name'; fields = fields' }
+        { loc; name = name'; fields = fields'; rest }
 
     method record_expression_field field =
       let open Expression.Record.Field in
@@ -282,13 +282,13 @@ class mapper =
 
     method record_pattern record =
       let open Pattern.Record in
-      let { loc; name; fields } = record in
+      let { loc; name; fields; rest } = record in
       let name' = this#scoped_identifier name in
       let fields' = id_map_list this#record_pattern_field fields in
       if name == name' && fields == fields' then
         record
       else
-        { loc; name = name'; fields = fields' }
+        { loc; name = name'; fields = fields'; rest }
 
     method record_pattern_field field =
       let open Pattern.Record.Field in

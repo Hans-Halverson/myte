@@ -251,7 +251,7 @@ and node_of_interpolated_string str =
   node "InterpolatedString" loc [("parts", List parts)]
 
 and node_of_record_expression record =
-  let { Expression.Record.loc; name; fields } = record in
+  let { Expression.Record.loc; name; fields; rest = _ } = record in
   node
     "RecordExpression"
     loc
@@ -343,13 +343,14 @@ and node_of_tuple_pattern tuple =
     ]
 
 and node_of_record_pattern record =
-  let { Pattern.Record.loc; name; fields } = record in
+  let { Pattern.Record.loc; name; fields; rest } = record in
   node
     "RecordPattern"
     loc
     [
       ("name", node_of_scoped_identifier name);
       ("fields", List (List.map node_of_record_pattern_field fields));
+      ("rest", Bool rest);
     ]
 
 and node_of_record_pattern_field field =

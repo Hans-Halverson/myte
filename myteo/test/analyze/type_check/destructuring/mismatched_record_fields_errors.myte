@@ -27,4 +27,11 @@ fun missingAndUnexpectedFields(rec2: Rec2) {
   Rec2 { field1, nonexist } = rec2;
 }
 
+fun restFields(rec2: Rec2) {
+  // No error reported for missing fields if `...` is present
+  val Rec2 { field1, ... } = rec2;
+  val Rec2 { field1: x1, field2: x2, ... } = rec2;
+  val Rec2 { field1: x3, field2: x4, field3: x5, ... } = rec2;
+}
+
 fun main() {}

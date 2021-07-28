@@ -175,6 +175,8 @@ and Expression : sig
       loc: Loc.t;
       name: Expression.t;
       fields: Field.t list;
+      (* Needed for reparsing expressions as patterns. Record expressions cannot have a `...`. *)
+      rest: Loc.t option;
     }
   end
 
@@ -330,6 +332,7 @@ and Pattern : sig
       loc: Loc.t;
       name: ScopedIdentifier.t;
       fields: Field.t list;
+      rest: bool;
     }
   end
 

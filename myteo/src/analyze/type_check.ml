@@ -1105,7 +1105,7 @@ and check_expression ~cx expr =
    *      Record Constructor
    * ============================
    *)
-  | Record { Record.loc; name; fields } ->
+  | Record { Record.loc; name; fields; rest } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     (* Determine whether scoped id is a record constructor *)
     let is_record_ty =
@@ -1121,6 +1121,10 @@ and check_expression ~cx expr =
           let adt = Types.fresh_adt_instance adt_sig in
           (match SMap.find name adt_sig.variants with
           | Record field_sigs ->
+            (* Error if `...` is found - this can only be present on patterns *)
+            (match rest with
+            | None -> ()
+            | Some rest_loc -> Type_context.add_error ~cx rest_loc RecordExpressionWithRest);
             (* Recurse into fields and collect all fields that are not a part of this record *)
             let (field_args, unexpected_fields) =
               List.fold_left
@@ -1549,7 +1553,7 @@ and check_pattern ~cx patt =
    *   Record Constructor Pattern
    * ==============================
    *)
-  | Record { loc; name = scoped_id; fields; _ } ->
+  | Record { loc; name = scoped_id; fields; rest } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let record_adt_ty_opt =
       let { Ast.ScopedIdentifier.name = { Ast.Identifier.loc = name_loc; name }; _ } = scoped_id in
@@ -1598,7 +1602,7 @@ and check_pattern ~cx patt =
               (fun (loc, field_name) ->
                 Type_context.add_error ~cx loc (UnexpectedRecordConstructorField (name, field_name)))
               (List.rev unexpected_fields)
-          else if missing_fields <> [] then
+          else if missing_fields <> [] && not rest then
             Type_context.add_error
               ~cx
               loc

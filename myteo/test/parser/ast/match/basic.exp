@@ -769,6 +769,7 @@ test/parser/ast/match/basic.myte
                       },
                     },
                   ],
+                  rest: false,
                 },
                 guard: None,
                 right: {

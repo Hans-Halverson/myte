@@ -541,7 +541,7 @@ and emit_expression ~ecx expr =
    *     Record Constructors
    * ============================
    *)
-  | Record { Record.loc; name; fields } ->
+  | Record { Record.loc; name; fields; _ } ->
     let name =
       match name with
       | Identifier { Identifier.name; _ }

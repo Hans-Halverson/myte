@@ -58,6 +58,7 @@ type t =
   | IncorrectTypeParametersArity of int * int
   | MissingRecordConstructorFields of string list
   | UnexpectedRecordConstructorField of string * string
+  | RecordExpressionWithRest
   | NonIndexableIndexed of Type.t
   | UnresolvedNamedAccess of string * Type.t
   | TupleIndexIsNotLiteral
@@ -382,6 +383,7 @@ let to_string error =
       (concat_with_and field_names)
   | UnexpectedRecordConstructorField (record_name, field_name) ->
     Printf.sprintf "Record `%s` does not have a field named `%s`" record_name field_name
+  | RecordExpressionWithRest -> "`...` can only be present in record patterns"
   | NonFunctionCalled ty ->
     Printf.sprintf
       "Only functions can be called, but this expression is inferred to have type `%s`"

@@ -1,0 +1,3 @@
+module test
+
+val Rec { ... }: Int = 1

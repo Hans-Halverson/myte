@@ -595,12 +595,26 @@ and parse_call env left marker =
 
 and parse_record env name marker =
   let open Expression in
+  let rest = ref None in
   Env.expect env T_LEFT_BRACE;
   let rec parse_fields () =
     let open Record in
     match Env.token env with
     | T_RIGHT_BRACE ->
       Env.advance env;
+      []
+    | T_PERIOD ->
+      (* `...`, followed by an optional trailing comma, followed by right brace *)
+      let marker = mark_loc env in
+      Env.expect env T_PERIOD;
+      Env.expect env T_PERIOD;
+      Env.expect env T_PERIOD;
+      let loc = marker env in
+      (match Env.token env with
+      | T_COMMA -> Env.advance env
+      | _ -> ());
+      Env.expect env T_RIGHT_BRACE;
+      rest := Some loc;
       []
     | T_IDENTIFIER _ ->
       let marker = mark_loc env in
@@ -632,7 +646,7 @@ and parse_record env name marker =
   let fields = parse_fields () in
   let loc = marker env in
   if fields = [] then Parse_error.fatal (loc, EmptyRecord);
-  Record { loc; name; fields }
+  Record { loc; name; fields; rest = !rest }
 
 and parse_named_access env left marker =
   let open Expression.NamedAccess in
@@ -801,11 +815,23 @@ and parse_tuple_pattern ~is_decl env name marker =
 and parse_record_pattern ~is_decl env name marker =
   let open Pattern in
   Env.expect env T_LEFT_BRACE;
+  let rest = ref false in
   let rec parse_fields () =
     let open Record in
     match Env.token env with
     | T_RIGHT_BRACE ->
       Env.advance env;
+      []
+    | T_PERIOD ->
+      (* `...`, followed by an optional trailing comma, followed by right brace *)
+      Env.expect env T_PERIOD;
+      Env.expect env T_PERIOD;
+      Env.expect env T_PERIOD;
+      (match Env.token env with
+      | T_COMMA -> Env.advance env
+      | _ -> ());
+      Env.expect env T_RIGHT_BRACE;
+      rest := true;
       []
     | T_IDENTIFIER _ ->
       let marker = mark_loc env in
@@ -837,7 +863,7 @@ and parse_record_pattern ~is_decl env name marker =
   let fields = parse_fields () in
   let loc = marker env in
   if fields = [] then Parse_error.fatal (loc, EmptyRecord);
-  Record { loc; name; fields }
+  Record { loc; name; fields; rest = !rest }
 
 and parse_match env =
   let open Match in
@@ -1460,7 +1486,7 @@ and reparse_expression_as_lvalue_pattern expr =
     let name = reparse_name_parts func in
     let elements = List.map reparse_expression_as_lvalue_pattern args in
     Pattern.Tuple { loc; name = Some name; elements }
-  | Record { loc; name; fields } ->
+  | Record { loc; name; fields; rest } ->
     let name = reparse_name_parts name in
     let fields =
       List.map
@@ -1477,7 +1503,7 @@ and reparse_expression_as_lvalue_pattern expr =
             { Pattern.Record.Field.loc; name = Some name; value })
         fields
     in
-    Pattern.Record { loc; name; fields }
+    Pattern.Record { loc; name; fields; rest = rest <> None }
   | _ -> invalid_pattern_error expr
 
 and id_to_scoped_id id =
