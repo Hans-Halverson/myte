@@ -1,0 +1,37 @@
+module test
+
+type Variant1 =
+  | Enum1
+  | Tup1 (Int)
+  | Rec1 { foo: Int, bar: String }
+
+type Variant2 =
+  | Enum2
+  | Tup2 (Int)
+  | Rec2 { foo: Int, bar: String }
+
+fun testWildcards(x: Variant1) {
+  // Valid wildcards
+  match (x) {
+    | _ -> ()
+  }
+
+  // Valid wildcards and named wildcards
+  match (x) {
+    | Tup1 _ -> ()
+    | Tup1 (_) -> ()
+    | Rec1 _ -> ()
+    | Rec1 { foo: _, bar: _ } -> ()
+    | Enum1 -> ()
+  }
+}
+
+fun testInvalidNamedWildcards(x: Variant1) {
+  match (x) {
+    | Tup2 _ -> ()
+    | Rec2 _ -> ()
+    | _ -> ()
+  }
+}
+
+fun main() {}

@@ -167,6 +167,7 @@ and node_of_pattern pat =
   match pat with
   | Wildcard loc -> node_of_wildcard_pattern loc
   | Identifier id -> node_of_scoped_identifier id
+  | NamedWildcard named -> node_of_named_wildcard_pattern named
   | Tuple t -> node_of_tuple_pattern t
   | Record r -> node_of_record_pattern r
   | Literal l -> node_of_literal_pattern l
@@ -331,6 +332,10 @@ and node_of_named_access access =
   node "NamedAccess" loc [("target", node_of_expression target); ("name", node_of_identifier name)]
 
 and node_of_wildcard_pattern loc = node "Wildcard" loc []
+
+and node_of_named_wildcard_pattern named =
+  let { Pattern.NamedWildcard.loc; name } = named in
+  node "NamedWildcard" loc [("name", node_of_scoped_identifier name)]
 
 and node_of_tuple_pattern tuple =
   let { Pattern.Tuple.loc; name; elements } = tuple in

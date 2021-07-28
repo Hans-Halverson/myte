@@ -35,3 +35,8 @@ val A.B.C.Rec { field } = 1
 val ((x, y), z) = 1
 val (Tup(x, y), Rec { field }) = 1
 val Rec { field: Tup (x, y) } = 1
+
+// Named wildcards
+val Tup _ = 1
+val A.B.C _ = 1
+val (Rec _, A.B.C _) = 1

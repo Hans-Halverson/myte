@@ -78,6 +78,7 @@ fun test() {
   // Nonexistent enum variant
   match (1) {
     | a1.NonexistEnumVariant -> ()
+    | a1.NonexistTupleVariant _ -> ()
     | _ -> ()
   }
 }

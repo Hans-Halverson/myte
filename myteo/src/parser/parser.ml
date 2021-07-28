@@ -733,6 +733,7 @@ and parse_identifier_pattern ~is_decl env =
   let id = parse_identifier env in
   match Env.token env with
   | T_PERIOD
+  | T_WILDCARD
   | T_LEFT_PAREN
   | T_LEFT_BRACE ->
     let rec parse_parts () =
@@ -750,6 +751,10 @@ and parse_identifier_pattern ~is_decl env =
     (match Env.token env with
     | T_LEFT_PAREN -> parse_tuple_pattern ~is_decl env scoped_id marker
     | T_LEFT_BRACE -> parse_record_pattern ~is_decl env scoped_id marker
+    | T_WILDCARD ->
+      Env.advance env;
+      let loc = marker env in
+      NamedWildcard { loc; name = scoped_id }
     | _ -> Identifier scoped_id)
   | _ -> Identifier (id_to_scoped_id id)
 

@@ -37,6 +37,7 @@ fun test() {
   a1.RecordVariant { field: 1 };
   match (a1.EnumVariant) {
     | a1.EnumVariant -> ()
+    | a1.TupleVariant _ -> ()
     | _ -> ()
   }
   

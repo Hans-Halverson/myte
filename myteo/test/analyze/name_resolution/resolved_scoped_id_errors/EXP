@@ -217,3 +217,8 @@ Error: No module or exported value with name `a1.NonexistEnumVariant` found
 test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:80:6-28
  80 |     | a1.NonexistEnumVariant -> ()
     |       ^^^^^^^^^^^^^^^^^^^^^^
+
+Error: No module or exported value with name `a1.NonexistTupleVariant` found
+test/analyze/name_resolution/resolved_scoped_id_errors/test.myte:81:6-29
+ 81 |     | a1.NonexistTupleVariant _ -> ()
+    |       ^^^^^^^^^^^^^^^^^^^^^^^

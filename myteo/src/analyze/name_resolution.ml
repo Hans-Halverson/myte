@@ -1046,13 +1046,16 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           else
             names
         (* Resolve scoped ids in enum, tuple, and record constructor patterns *)
+        | NamedWildcard { name; _ } ->
+          this#resolve_scoped_constructor_id name;
+          names
         | Identifier ({ scopes = _ :: _; _ } as name) ->
           this#resolve_scoped_constructor_id name;
           names
-        | Tuple { Tuple.name; elements; _ } ->
+        | Tuple { name; elements; _ } ->
           Option.iter this#resolve_scoped_constructor_id name;
           List.fold_left (fun acc element -> visit element acc) names elements
-        | Record { Record.name; fields; _ } ->
+        | Record { name; fields; _ } ->
           this#resolve_scoped_constructor_id name;
           List.fold_left (fun acc { Record.Field.value; _ } -> visit value acc) names fields
       in

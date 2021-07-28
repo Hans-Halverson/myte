@@ -54,6 +54,7 @@ let ids_of_pattern patt =
     let open Pattern in
     match patt with
     | Wildcard _
+    | NamedWildcard _
     | Literal _
     | Identifier { scopes = _ :: _; _ } ->
       acc

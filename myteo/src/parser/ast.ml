@@ -311,6 +311,13 @@ end =
   Expression
 
 and Pattern : sig
+  module NamedWildcard : sig
+    type t = {
+      loc: Loc.t;
+      name: ScopedIdentifier.t;
+    }
+  end
+
   module Tuple : sig
     type t = {
       loc: Loc.t;
@@ -347,6 +354,7 @@ and Pattern : sig
   type t =
     | Identifier of ScopedIdentifier.t
     | Wildcard of Loc.t
+    | NamedWildcard of NamedWildcard.t
     | Tuple of Tuple.t
     | Record of Record.t
     | Literal of Literal.t

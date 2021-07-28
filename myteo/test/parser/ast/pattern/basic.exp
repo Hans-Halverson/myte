@@ -1,7 +1,7 @@
 test/parser/ast/pattern/basic.myte
 {
   node: Module,
-  loc: 1:0-38:0,
+  loc: 1:0-43:0,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -1085,6 +1085,124 @@ test/parser/ast/pattern/basic.myte
       init: {
         node: IntLiteral,
         loc: 37:32-37:33,
+        raw: "1",
+      },
+      annot: None,
+    },
+    {
+      node: VariableDeclaration,
+      loc: 40:0-40:13,
+      kind: Immutable,
+      pattern: {
+        node: NamedWildcard,
+        loc: 40:4-40:9,
+        name: {
+          node: ScopedIdentifier,
+          loc: 40:4-40:7,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 40:4-40:7,
+            name: "Tup",
+          },
+        },
+      },
+      init: {
+        node: IntLiteral,
+        loc: 40:12-40:13,
+        raw: "1",
+      },
+      annot: None,
+    },
+    {
+      node: VariableDeclaration,
+      loc: 41:0-41:15,
+      kind: Immutable,
+      pattern: {
+        node: NamedWildcard,
+        loc: 41:4-41:11,
+        name: {
+          node: ScopedIdentifier,
+          loc: 41:4-41:9,
+          scopes: [
+            {
+              node: Identifier,
+              loc: 41:4-41:5,
+              name: "A",
+            },
+            {
+              node: Identifier,
+              loc: 41:6-41:7,
+              name: "B",
+            },
+          ],
+          name: {
+            node: Identifier,
+            loc: 41:8-41:9,
+            name: "C",
+          },
+        },
+      },
+      init: {
+        node: IntLiteral,
+        loc: 41:14-41:15,
+        raw: "1",
+      },
+      annot: None,
+    },
+    {
+      node: VariableDeclaration,
+      loc: 42:0-42:24,
+      kind: Immutable,
+      pattern: {
+        node: TuplePattern,
+        loc: 42:4-42:20,
+        name: None,
+        elements: [
+          {
+            node: NamedWildcard,
+            loc: 42:5-42:10,
+            name: {
+              node: ScopedIdentifier,
+              loc: 42:5-42:8,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 42:5-42:8,
+                name: "Rec",
+              },
+            },
+          },
+          {
+            node: NamedWildcard,
+            loc: 42:12-42:19,
+            name: {
+              node: ScopedIdentifier,
+              loc: 42:12-42:17,
+              scopes: [
+                {
+                  node: Identifier,
+                  loc: 42:12-42:13,
+                  name: "A",
+                },
+                {
+                  node: Identifier,
+                  loc: 42:14-42:15,
+                  name: "B",
+                },
+              ],
+              name: {
+                node: Identifier,
+                loc: 42:16-42:17,
+                name: "C",
+              },
+            },
+          },
+        ],
+      },
+      init: {
+        node: IntLiteral,
+        loc: 42:23-42:24,
         raw: "1",
       },
       annot: None,

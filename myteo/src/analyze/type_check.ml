@@ -1473,6 +1473,19 @@ and check_pattern ~cx patt =
     (loc, tvar_id)
   (*
    * ============================
+   *    Named Wildcard Pattern
+   * ============================
+   *)
+  | NamedWildcard { loc; name } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    let binding = Type_context.get_value_binding ~cx name.name.loc in
+    let ctor_decl = Bindings.get_ctor_decl binding in
+    let adt_sig = ctor_decl.adt_sig in
+    let ty = Types.fresh_adt_instance adt_sig in
+    ignore (Type_context.unify ~cx ty (TVar tvar_id));
+    (loc, tvar_id)
+  (*
+   * ============================
    *      Literal Patterns
    * ============================
    *)

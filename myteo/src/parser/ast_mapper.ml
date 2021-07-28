@@ -88,6 +88,7 @@ class mapper =
         match pat with
         | Wildcard _ -> pat
         | Identifier p -> id_map this#scoped_identifier p pat (fun p' -> Identifier p')
+        | NamedWildcard p -> id_map this#named_wildcard_pattern p pat (fun p' -> NamedWildcard p')
         | Tuple e -> id_map this#tuple_pattern e pat (fun e' -> Tuple e')
         | Record e -> id_map this#record_pattern e pat (fun e' -> Record e')
         | Literal e -> id_map this#literal_pattern e pat (fun e' -> Literal e')
@@ -307,6 +308,15 @@ class mapper =
       | Bool l -> id_map this#bool_literal l lit (fun l' -> Bool l')
       | Int l -> id_map this#int_literal l lit (fun l' -> Int l')
       | String l -> id_map this#string_literal l lit (fun l' -> String l')
+
+    method named_wildcard_pattern named =
+      let open Pattern.NamedWildcard in
+      let { loc; name } = named in
+      let name' = this#scoped_identifier name in
+      if name == name' then
+        named
+      else
+        { loc; name = name' }
 
     method tuple_pattern tuple =
       let open Pattern.Tuple in

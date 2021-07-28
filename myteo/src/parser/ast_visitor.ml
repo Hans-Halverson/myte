@@ -71,6 +71,7 @@ class ['a] visitor =
         match pat with
         | Wildcard _ -> ()
         | Identifier p -> this#scoped_identifier acc p
+        | NamedWildcard n -> this#named_wildcard_pattern acc n
         | Tuple t -> this#tuple_pattern acc t
         | Record r -> this#record_pattern acc r
         | Literal l -> this#literal_pattern acc l
@@ -217,6 +218,11 @@ class ['a] visitor =
       | Bool lit -> this#bool_literal acc lit
       | Int lit -> this#int_literal acc lit
       | String lit -> this#string_literal acc lit
+
+    method named_wildcard_pattern acc named =
+      let open Pattern.NamedWildcard in
+      let { loc = _; name } = named in
+      this#scoped_identifier acc name
 
     method tuple_pattern acc tuple =
       let open Pattern.Tuple in
