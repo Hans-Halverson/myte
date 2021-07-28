@@ -7,3 +7,8 @@ Error: Expected type `Variant1` but found `Variant2`
 test/analyze/type_check/patterns/wildcards.myte:32:6-12
  32 |     | Rec2 _ -> ()
     |       ^^^^^^
+
+Error: Expected a tuple or record constructor
+test/analyze/type_check/patterns/wildcards.myte:38:6-11
+ 38 |     | Enum1 _ -> ()
+    |       ^^^^^

@@ -51,8 +51,7 @@ type t =
   | InterpolatedExpressionRequiresToString of Type.t
   | NonFunctionCalled of Type.t
   | RecordConstructorCalled of string
-  | ExpectedRecordConstructor
-  | ExpectedTupleConstructor
+  | ExpectedConstructorKind of (* Tuple *) bool * (* Record *) bool
   | IncorrectFunctionArity of int * int
   | IncorrectTupleConstructorArity of int * int
   | IncorrectTypeParametersArity of int * int
@@ -390,8 +389,16 @@ let to_string error =
       (Types.pp ty)
   | RecordConstructorCalled name ->
     Printf.sprintf "`%s` is a record constructor and cannot be called as a function" name
-  | ExpectedRecordConstructor -> Printf.sprintf "Expected a record constructor"
-  | ExpectedTupleConstructor -> Printf.sprintf "Expected a tuple constructor"
+  | ExpectedConstructorKind (expected_tuple, expected_record) ->
+    let kind =
+      if expected_tuple && expected_record then
+        "tuple or record"
+      else if expected_tuple then
+        "tuple"
+      else
+        "record"
+    in
+    Printf.sprintf "Expected a %s constructor" kind
   | NonIndexableIndexed ty -> Printf.sprintf "Cannot index into value of type `%s`" (Types.pp ty)
   | UnresolvedNamedAccess (field_name, ty) ->
     Printf.sprintf

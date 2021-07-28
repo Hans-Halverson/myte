@@ -32,6 +32,12 @@ fun testInvalidNamedWildcards(x: Variant1) {
     | Rec2 _ -> ()
     | _ -> ()
   }
+
+  // Cannot have named wildcard for enum variant
+  match (x) {
+    | Enum1 _ -> ()
+    | _ -> ()
+  }
 }
 
 fun main() {}

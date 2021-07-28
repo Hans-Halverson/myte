@@ -1198,7 +1198,10 @@ and check_expression ~cx expr =
     in
     (* Error if scoped id is not a record constructor *)
     if not is_record_ty then (
-      Type_context.add_error ~cx (Ast_utils.expression_loc name) ExpectedRecordConstructor;
+      Type_context.add_error
+        ~cx
+        (Ast_utils.expression_loc name)
+        (ExpectedConstructorKind (false, true));
       ignore (Type_context.unify ~cx Any (TVar tvar_id))
     );
     (loc, tvar_id)
@@ -1481,6 +1484,12 @@ and check_pattern ~cx patt =
     let binding = Type_context.get_value_binding ~cx name.name.loc in
     let ctor_decl = Bindings.get_ctor_decl binding in
     let adt_sig = ctor_decl.adt_sig in
+    (* Check that constructor is for a tuple or record variant *)
+    (match SMap.find name.name.name adt_sig.variants with
+    | Tuple _
+    | Record _ ->
+      ()
+    | Enum -> Type_context.add_error ~cx name.loc (ExpectedConstructorKind (true, true)));
     let ty = Types.fresh_adt_instance adt_sig in
     ignore (Type_context.unify ~cx ty (TVar tvar_id));
     (loc, tvar_id)
@@ -1555,7 +1564,7 @@ and check_pattern ~cx patt =
     let ty =
       match tuple_adt_ty_opt with
       | None ->
-        Type_context.add_error ~cx scoped_id.loc ExpectedTupleConstructor;
+        Type_context.add_error ~cx scoped_id.loc (ExpectedConstructorKind (true, false));
         Type.Any
       | Some ty -> ty
     in
@@ -1639,7 +1648,7 @@ and check_pattern ~cx patt =
     let ty =
       match record_adt_ty_opt with
       | None ->
-        Type_context.add_error ~cx scoped_id.loc ExpectedRecordConstructor;
+        Type_context.add_error ~cx scoped_id.loc (ExpectedConstructorKind (false, true));
         Type.Any
       | Some ty -> ty
     in
