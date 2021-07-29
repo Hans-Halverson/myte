@@ -1,0 +1,23 @@
+module test
+
+fun testGuardedCasesExcluded(b: Bool) {
+  // Exhaustive
+  match (true) {
+    | _ when b -> ()
+    | _ -> ()
+  }
+
+  match (true) {
+    | true when b -> ()
+    | true -> ()
+    | false -> ()
+  }
+
+  // Inexhaustive
+  match (true) {
+    | true when b -> ()
+    | false -> ()
+  }
+}
+
+fun main() {}

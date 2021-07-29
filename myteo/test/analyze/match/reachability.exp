@@ -62,3 +62,8 @@ Error: Unreachable match case
 test/analyze/match/reachability.myte:82:6-18
  82 |     | (true, true) -> ()
     |       ^^^^^^^^^^^^
+
+Error: Unreachable match case
+test/analyze/match/reachability.myte:99:6-11
+ 99 |     | false when b -> ()
+    |       ^^^^^

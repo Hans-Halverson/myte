@@ -84,4 +84,20 @@ fun testComplicatedUnreachable() {
   }
 }
 
+fun testGuards(b: Bool) {
+  // No error - guard excludes case from pattern matrix
+  match (true) {
+    | true -> ()
+    | false when b -> ()
+    | false -> ()
+  }
+
+  // Error - guarded case is still checked for reachability
+  match (true) {
+    | true -> ()
+    | false -> ()
+    | false when b -> ()
+  }
+}
+
 fun main() {}

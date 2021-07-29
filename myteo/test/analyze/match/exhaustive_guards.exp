@@ -1,0 +1,10 @@
+Error: Inexhaustive match statement. For example the pattern `true` is not matched.
+test/analyze/match/exhaustive_guards.myte:17:2-20:3
+ 17 | /   match (true) {
+    | |   ^^^^^^^^^^^^^^
+ 18 | |     | true when b -> ()
+    | | ^^^^^^^^^^^^^^^^^^^^^^^
+ 19 | |     | false -> ()
+    | | ^^^^^^^^^^^^^^^^^
+ 20 | |   }
+    | \ ^^^^

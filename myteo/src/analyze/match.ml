@@ -4,7 +4,7 @@ open Types
 (*
  * Pattern matching exhaustiveness and case reachability analysis
  *
- * Algorithms are based on the paper "Warnings for pattern matching" by Loc Maranget found at:
+ * Algorithms are based on the paper "Warnings for pattern matching" by Luc Maranget found at:
  * http://moscova.inria.fr/~maranget/papers/warn/index.html
  *)
 
@@ -236,9 +236,8 @@ let rec useful matrix vector =
             Witness (Constructor (missing_ctor, wildcard_subpatterns) :: pattern))
         useful_result)
 
-(* Convert a match statement into a pattern matrix for use in exhaustiveness/reachability checking *)
-let pattern_matrix_of_match ~cx match_ =
-  let open Ast.Match in
+(* Convert a match case node into a pattern vector for use in exhaustiveness/reachability checking *)
+let pattern_vector_of_case_node ~cx case_node =
   let type_of_loc loc =
     let tvar_id = Type_context.get_tvar_from_loc ~cx loc in
     Type_context.find_rep_type ~cx (TVar tvar_id)
@@ -326,7 +325,7 @@ let pattern_matrix_of_match ~cx match_ =
       in
       Constructor ({ Ctor.ctor = Variant name; ty }, List.rev fields)
   in
-  List.map (fun { Case.pattern; _ } -> [pattern_of_pattern_node pattern]) match_.cases
+  [pattern_of_pattern_node case_node.Ast.Match.Case.pattern]
 
 (* Whether a vector of patterns can be compressed to a single wildcard pattern for display *)
 let rec can_compress_to_wildcard vector =
@@ -426,34 +425,36 @@ class match_analyzer ~cx =
     method add_error loc error = errors <- (loc, error) :: errors
 
     method! match_ _ match_ =
-      let matrix = pattern_matrix_of_match ~cx match_ in
+      (* Build pattern matrix and check for reachability of each case *)
+      let matrix =
+        List.fold_left
+          (fun prev_rows case ->
+            let row = pattern_vector_of_case_node ~cx case in
+
+            (* Check for reachability of case. A match case is unreachable if it is not useful with
+               respect to the matrix of all cases that appear above it in the match statement. *)
+            let useful_result = useful prev_rows row in
+            ( if useful_result = [] then
+              let loc = Ast_utils.pattern_loc case.pattern in
+              this#add_error loc UnreachableMatchCase );
+
+            (* Do not include case in pattern matrix if it has a guard, as the guard could fail *)
+            if case.guard = None then
+              prev_rows @ [row]
+            else
+              prev_rows)
+          []
+          match_.cases
+      in
 
       (* Check exhaustiveness. A match statement is exhaustive if a wildcard vector is useful
          after the entire matrix of match cases. *)
       let wildcard_vector = args_wildcard_vector ~cx match_ in
       let useful_result = useful matrix wildcard_vector in
-      ( if useful_result <> [] then
+      if useful_result <> [] then
         let (Witness vector) = List.hd useful_result in
         let witness_string = string_of_pattern_vector vector in
-        this#add_error match_.loc (InexhaustiveMatch witness_string) );
-
-      (* Check for reachability of each match case. A match case is unreachable if it is not useful
-         with respect to the matrix of all match cases that appear above it in the match statement. *)
-      ignore
-        (List.fold_left2
-           (fun prev_rows row case_node ->
-             if prev_rows = [] then
-               [row]
-             else
-               let useful_result = useful prev_rows row in
-               ( if useful_result = [] then
-                 let loc = Ast_utils.pattern_loc case_node.Ast.Match.Case.pattern in
-                 this#add_error loc UnreachableMatchCase );
-
-               prev_rows @ [row])
-           []
-           matrix
-           match_.cases)
+        this#add_error match_.loc (InexhaustiveMatch witness_string)
   end
 
 let analyze ~cx modules =
