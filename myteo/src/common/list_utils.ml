@@ -24,6 +24,16 @@ let split_last lst =
   in
   helper [] lst
 
+let split_at i lst =
+  let rec helper i acc lst =
+    match (i, lst) with
+    | (0, _)
+    | (_, []) ->
+      (List.rev acc, lst)
+    | (i, hd :: tl) -> helper (i - 1) (hd :: acc) tl
+  in
+  helper i [] lst
+
 let rec drop_last lst =
   match lst with
   | []

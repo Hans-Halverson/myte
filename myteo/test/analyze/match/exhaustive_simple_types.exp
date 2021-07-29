@@ -1,0 +1,35 @@
+Error: Inexhaustive match statement. For example the pattern `false` is not matched.
+test/analyze/match/exhaustive_simple_types.myte:36:2-38:3
+ 36 | /   match (true) {
+    | |   ^^^^^^^^^^^^^^
+ 37 | |     | true -> ()
+    | | ^^^^^^^^^^^^^^^^
+ 38 | |   }
+    | \ ^^^^
+
+Error: Inexhaustive match statement. For example the pattern `true` is not matched.
+test/analyze/match/exhaustive_simple_types.myte:40:2-42:3
+ 40 | /   match (false) {
+    | |   ^^^^^^^^^^^^^^^
+ 41 | |     | false -> ()
+    | | ^^^^^^^^^^^^^^^^^
+ 42 | |   }
+    | \ ^^^^
+
+Error: Inexhaustive match statement. For example the pattern `_` is not matched.
+test/analyze/match/exhaustive_simple_types.myte:57:2-59:3
+ 57 | /   match ("") {
+    | |   ^^^^^^^^^^^^
+ 58 | |     | "a" -> ()
+    | | ^^^^^^^^^^^^^^^
+ 59 | |   }
+    | \ ^^^^
+
+Error: Inexhaustive match statement. For example the pattern `_` is not matched.
+test/analyze/match/exhaustive_simple_types.myte:74:2-76:3
+ 74 | /   match (1) {
+    | |   ^^^^^^^^^^^
+ 75 | |     | 1 -> ()
+    | | ^^^^^^^^^^^^^
+ 76 | |   }
+    | \ ^^^^

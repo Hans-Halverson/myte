@@ -1,0 +1,158 @@
+module test
+
+fun testTuples() {
+  // Exhaustive
+  match (true, true) {
+    | (true, true) -> ()
+    | (true, false) -> ()
+    | (false, true) -> ()
+    | (false, false) -> ()
+  }
+
+  match (true, true) {
+    | (true, _) -> ()
+    | (_, true) -> ()
+    | (false, false) -> ()
+  }
+
+  match (true, true) {
+    | (_, _) -> ()
+  }
+
+  // Inexhaustive
+  match (true, true) {
+    | (true, true) -> ()
+    | (false, true) -> ()
+    | (false, false) -> ()
+  }
+
+  match (true, true) {
+    | (_, true) -> ()
+  }
+}
+
+fun testNestedCombinations() {
+  // Exhaustive
+  match (1, true) {
+    | (_, true) -> ()
+    | (_, false) -> ()
+  }
+
+  match (1, true) {
+    | (_, true) -> ()
+    | (1, _) -> ()
+    | (_, false) -> ()
+  }
+
+  // Inexhaustive
+  match (1, true) {
+    | (_, true) -> ()
+    | (1, _) -> ()
+  }
+}
+
+fun testMultipleNested() {
+  // Exhaustive
+  match (1, (true, 1), true) {
+    | (_, _, _) -> ()
+  }
+
+  match (1, (true, 1), true) {
+    | (_, _, true) -> ()
+    | (_, _, false) -> ()
+  }
+
+  match (1, (true, 1), true) {
+    | (_, (true, _), _) -> ()
+    | (_, (false, _), _) -> ()
+  }
+
+  match (1, (true, 1), true) {
+    | (_, (true, _), true) -> ()
+    | (_, (true, _), false) -> ()
+    | (_, (false, _), true) -> ()
+    | (_, (false, _), false) -> ()
+  }
+
+  // Inexhaustive
+  match (1, (true, 1), true) {
+    | (_, (_, 1), _) -> ()
+  }
+
+  match (1, (true, 1), true) {
+    | (_, (true, _), _) -> ()
+  }
+
+  match (1, (true, 1), true) {
+    | (_, (true, _), _) -> ()
+    | (_, (false, _), true) -> ()
+  }
+
+  match (1, (true, 1), true) {
+    | (_, (true, _), true) -> ()
+    | (_, (true, _), false) -> ()
+    | (_, (false, _), false) -> ()
+  }
+}
+
+type Variant =
+  | Enum
+  | Tup (Bool, Variant)
+  | Rec { foo: Bool, bar: Variant }
+
+fun testNestedVariant(x: Variant) {
+  // Exhaustive
+  match (x) {
+    | Tup (true, _) -> ()
+    | Tup (false, _) -> ()
+    | Enum -> ()
+    | Rec _ -> ()
+  }
+
+  match (x) {
+    | Tup (_, Enum) -> ()
+    | Tup (_, Tup _) -> ()
+    | Tup (_, Rec _) -> ()
+    | Enum -> ()
+    | Rec _ -> ()
+  }
+
+  match (x) {
+    | Tup (true, Enum) -> ()
+    | Tup (false, Enum) -> ()
+    | Tup (true, Tup _) -> ()
+    | Tup (false, Tup _) -> ()
+    | Tup (true, Rec _) -> ()
+    | Tup (false, Rec _) -> ()
+    | Enum -> ()
+    | Rec _ -> ()
+  }
+
+  // Inexhaustive
+  match (x) {
+    | Tup (_, Enum) -> ()
+    | Tup (_, Tup _) -> ()
+    | Enum -> ()
+    | Rec _ -> ()
+  }
+
+  match (x) {
+    | Tup (true, Enum) -> ()
+    | Tup (true, Tup _) -> ()
+    | Tup (false, Tup _) -> ()
+    | Tup (true, Rec _) -> ()
+    | Tup (false, Rec _) -> ()
+    | Enum -> ()
+    | Rec _ -> ()
+  }
+
+  match (x) {
+    | Tup (_, Enum) -> ()
+    | Tup (_, Tup _) -> ()
+    | Tup (_, Rec { foo: true, ... }) -> ()
+    | Enum -> ()
+    | Rec _ -> ()
+  }
+}
+
+fun main() {}

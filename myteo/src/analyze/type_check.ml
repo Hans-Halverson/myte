@@ -1619,12 +1619,14 @@ and check_pattern ~cx patt =
           in
           (* Error on unexpected or missing fields, only displaying missing fields if there are no
              unexpected fields. *)
-          if unexpected_fields <> [] then
+          let has_unexpected_fields = unexpected_fields <> [] in
+          let has_missing_fields = missing_fields <> [] && not rest in
+          if has_unexpected_fields then
             List.iter
               (fun (loc, field_name) ->
                 Type_context.add_error ~cx loc (UnexpectedRecordConstructorField (name, field_name)))
               (List.rev unexpected_fields)
-          else if missing_fields <> [] && not rest then
+          else if has_missing_fields then
             Type_context.add_error
               ~cx
               loc
@@ -1637,7 +1639,7 @@ and check_pattern ~cx patt =
             field_params;
           (* Result is algebraic data type unless the fields do not match,
              in which case propagate any *)
-          if missing_fields = [] && unexpected_fields = [] then
+          if (not has_unexpected_fields) && not has_missing_fields then
             Some adt
           else
             Some Any

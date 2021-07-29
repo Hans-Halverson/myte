@@ -1,0 +1,79 @@
+module test
+
+fun testUnit() {
+  // Exhaustive
+  match (()) {
+    | () -> ()
+  }
+
+  match (()) {
+    | _ -> ()
+  }
+}
+
+fun testBools() {
+  // Exhaustive
+  match (true) {
+    | true -> ()
+    | false -> ()
+  }
+
+  match (true) {
+    | true -> ()
+    | _ -> ()
+  }
+
+  match (true) {
+    | false -> ()
+    | _ -> ()
+  }
+
+  match (true) {
+    | _ -> ()
+  }
+
+  // Inexhaustive
+  match (true) {
+    | true -> ()
+  }
+
+  match (false) {
+    | false -> ()
+  }
+}
+
+fun testStrings() {
+  // Exhaustive
+  match ("") {
+    | _ -> ()
+  }
+
+  match ("") {
+    | "a" -> ()
+    | _ -> ()
+  }
+
+  // Inexhaustive
+  match ("") {
+    | "a" -> ()
+  }
+}
+
+fun testIntegers() {
+  // Exhaustive
+  match (1) {
+    | _ -> ()
+  }
+
+  match (1) {
+    | 1 -> ()
+    | _ -> ()
+  }
+
+  // Inexhaustive
+  match (1) {
+    | 1 -> ()
+  }
+}
+
+fun main() {}

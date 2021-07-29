@@ -41,6 +41,17 @@ let expression_loc expr =
   | Super loc ->
     loc
 
+let pattern_loc patt =
+  let open Pattern in
+  match patt with
+  | Wildcard loc
+  | Identifier { loc; _ }
+  | NamedWildcard { loc; _ }
+  | Tuple { loc; _ }
+  | Record { loc; _ }
+  | Literal (Unit { loc; _ } | Bool { loc; _ } | Int { loc; _ } | String { loc; _ }) ->
+    loc
+
 let type_loc ty =
   let open Type in
   match ty with

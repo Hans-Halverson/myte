@@ -3,6 +3,7 @@ module IMap = Map.Make (Int)
 module IIMMap = MultiMap.Make (Int) (Int)
 module SSet = Set.Make (String)
 module SMap = Map.Make (String)
+module BSet = Set.Make (Bool)
 module LocSet = Set.Make (Loc)
 module LocMap = Map.Make (Loc)
 

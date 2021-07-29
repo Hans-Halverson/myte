@@ -1,0 +1,87 @@
+module test
+
+type Variant =
+  | Enum 
+  | Tup (Int, Bool)
+  | Rec { foo: Int, bar: Bool }
+
+fun testUnreachableAfterWildcard() {
+  match (1) {
+    | _ -> ()
+    | _ -> ()
+  }
+
+  match (1, 1, 1) {
+    | (_, _, _) -> ()
+    | (1, _, _) -> ()
+  }
+
+  match (true) {
+    | x -> ()
+    | true -> ()
+  }
+}
+
+fun testMultipleUnreachable() {
+  match (1) {
+    | _ -> ()
+    | 1 -> ()
+    | 2 -> ()
+  }
+}
+
+fun testUnreachableAfterExhaustive(x: Variant) {
+  match (()) {
+    | () -> ()
+    | _ -> ()
+  }
+
+  match (true) {
+    | true -> ()
+    | false -> ()
+    | _ -> ()
+  }
+
+  match (x) {
+    | Enum -> ()
+    | Tup _ -> ()
+    | Rec _ -> ()
+    | _ -> ()
+  }
+}
+
+fun testUnreachableIdentical(x: Variant) {
+  match (()) {
+    | () -> ()
+    | () -> ()
+  }
+
+  match (true) {
+    | true -> ()
+    | true -> ()
+    | _ -> ()
+  }
+
+  match (1) {
+    | 1 -> ()
+    | 1 -> ()
+    | _ -> ()
+  }
+
+  match ("a") {
+    | "a" -> ()
+    | "a" -> ()
+    | _ -> ()
+  }
+}
+
+fun testComplicatedUnreachable() {
+  match (true, true) {
+    | (true, _) -> ()
+    | (_, true) -> ()
+    | (true, true) -> ()
+    | _ -> ()
+  }
+}
+
+fun main() {}

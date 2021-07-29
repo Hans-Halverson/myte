@@ -1,0 +1,29 @@
+module test
+
+fun testWildcards() {
+  // Exhaustive
+  match (true, 1, (), "a", (true, true)) {
+    | (_, _, _, _, _) -> ()
+  }
+
+  match (true, true, true) {
+    | _ -> ()
+  }
+}
+
+fun testVariables() {
+  // Exhaustive - variables treated as wildcards
+  match (1, 1) {
+    | (x, y) -> {
+      x + y;
+    }
+  }
+
+  match (true, true, true) {
+    | x -> {
+      x;
+    }
+  }
+}
+
+fun main() {}

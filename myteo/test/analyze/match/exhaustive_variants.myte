@@ -1,0 +1,77 @@
+module test
+
+type Variants1 =
+  | Enum1
+  | Tuple1 (Bool, String)
+  | Record1 { foo: Bool, bar: String }
+
+fun testExhaustiveVariants(x: Variants1) {
+  // Exhaustive
+  match (x) {
+    | Enum1 -> ()
+    | Tuple1 _ -> ()
+    | Record1 _ -> ()
+  }
+
+  match (x) {
+    | Enum1 -> ()
+    | Tuple1 (_, _) -> ()
+    | Record1 { foo: _, bar: _ } -> ()
+  }
+
+  // Inexhaustive
+  match (x) {
+    | Tuple1 _ -> ()
+    | Record1 _ -> ()
+    // Missing enum case
+  }
+
+  match (x) {
+    | Enum1 -> ()
+    | Record1 _ -> ()
+    // Missing tuple case
+  }
+
+  match (x) {
+    | Enum1 -> ()
+    | Tuple1 _ -> ()
+    // Missing record case
+  }
+
+  match (x) {
+    | Enum1 -> ()
+    // Missing multiple cases - one pattern is chosen as witness
+  }
+}
+
+fun testExhaustiveVariantsNested(x: Variants1) {
+  // Exhaustive
+  match (x) {
+    | Tuple1 (true, _) -> ()
+    | Tuple1 (false, _) -> ()
+    | Enum1 -> ()
+    | Record1 _ -> ()
+  }
+
+  match (x) {
+    | Record1 { foo: true, ... } -> ()
+    | Record1 { foo: false, ... } -> ()
+    | Enum1 -> ()
+    | Tuple1 _ -> ()
+  }
+
+  // Inexhaustive
+  match (x) {
+    | Tuple1 (true, _) -> ()
+    | Enum1 -> ()
+    | Record1 _ -> ()
+  }
+
+  match (x) {
+    | Record1 { foo: true, ... } -> ()
+    | Enum1 -> ()
+    | Tuple1 _ -> ()
+  }
+}
+
+fun main() {}
