@@ -318,6 +318,14 @@ and Pattern : sig
     }
   end
 
+  module Or : sig
+    type t = {
+      loc: Loc.t;
+      left: Pattern.t;
+      right: Pattern.t;
+    }
+  end
+
   module Tuple : sig
     type t = {
       loc: Loc.t;
@@ -355,6 +363,7 @@ and Pattern : sig
     | Identifier of ScopedIdentifier.t
     | Wildcard of Loc.t
     | NamedWildcard of NamedWildcard.t
+    | Or of Or.t
     | Tuple of Tuple.t
     | Record of Record.t
     | Literal of Literal.t

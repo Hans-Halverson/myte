@@ -35,4 +35,9 @@ fun main() {
   A.B[C] = 1;
   A[B].C = 1;
   A.B[C][D].E.F[G].H = 1;
+
+  // Or patterns
+  (A | B | C) = 1;
+  ((A | B) | C) = 1;
+  (A | (B | C)) = 1;
 }

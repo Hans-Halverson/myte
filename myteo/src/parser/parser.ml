@@ -691,7 +691,19 @@ and parse_scoped_identifier env =
   let loc = marker env in
   { ScopedIdentifier.loc; name; scopes }
 
-and parse_pattern ~is_decl env =
+and parse_pattern ?(precedence = ExpressionPrecedence.None) ~is_decl env =
+  let marker = mark_loc env in
+  let patt = parse_pattern_prefix ~is_decl env in
+  let rec infix patt =
+    let patt' = parse_pattern_infix ~precedence ~is_decl env patt marker in
+    if patt == patt' then
+      patt
+    else
+      infix patt'
+  in
+  infix patt
+
+and parse_pattern_prefix ~is_decl env =
   let open Pattern in
   match Env.token env with
   | T_WILDCARD ->
@@ -726,6 +738,15 @@ and parse_pattern ~is_decl env =
     | Some lit -> Literal (Literal.Int lit)
     | None -> Parse_error.fatal (minus_loc, MalformedPattern T_MINUS))
   | token -> Parse_error.fatal (Env.loc env, MalformedPattern token)
+
+and parse_pattern_infix ~precedence ~is_decl env left marker =
+  match Env.token env with
+  | T_PIPE when ExpressionPrecedence.(is_tighter BitwiseOr precedence) ->
+    Env.advance env;
+    let right = parse_pattern ~precedence:ExpressionPrecedence.BitwiseOr ~is_decl env in
+    let loc = marker env in
+    Or { loc; left; right }
+  | _ -> left
 
 and parse_identifier_pattern ~is_decl env =
   let open Pattern in
@@ -771,10 +792,8 @@ and parse_parenthesized_pattern ~is_decl env =
       Parse_error.fatal (loc, LiteralInPattern)
     else
       Literal (Literal.Unit { Expression.Unit.loc })
-  (* Otherwise this is an anonymous tuple pattern *)
+  (* Otherwise this is a parenthesized or anonymous tuple pattern *)
   | _ ->
-    let first_element = parse_pattern ~is_decl env in
-    Env.expect env T_COMMA;
     let rec parse_elements () =
       match Env.token env with
       | T_RIGHT_PAREN ->
@@ -790,9 +809,12 @@ and parse_parenthesized_pattern ~is_decl env =
         end;
         element :: parse_elements ()
     in
-    let elements = first_element :: parse_elements () in
-    let loc = marker env in
-    Tuple { loc; name = None; elements }
+    let elements = parse_elements () in
+    (match elements with
+    | [element] -> element
+    | elements ->
+      let loc = marker env in
+      Tuple { loc; name = None; elements })
 
 and parse_tuple_pattern ~is_decl env name marker =
   let open Pattern in
@@ -1484,6 +1506,10 @@ and reparse_expression_as_lvalue_pattern expr =
   | Identifier { loc; name = "_" } -> Pattern.Wildcard loc
   | Identifier { loc; name } -> Pattern.Identifier { loc; name = { loc; name }; scopes = [] }
   | ScopedIdentifier { loc; name; scopes } -> Pattern.Identifier { loc; name; scopes }
+  | BinaryOperation { loc; op = BitwiseOr; left; right } ->
+    let left = reparse_expression_as_lvalue_pattern left in
+    let right = reparse_expression_as_lvalue_pattern right in
+    Pattern.Or { loc; left; right }
   | Tuple { loc; elements } ->
     Pattern.Tuple
       { loc; name = None; elements = List.map reparse_expression_as_lvalue_pattern elements }

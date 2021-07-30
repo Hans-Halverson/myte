@@ -40,3 +40,7 @@ val Rec { field: Tup (x, y) } = 1
 val Tup _ = 1
 val A.B.C _ = 1
 val (Rec _, A.B.C _) = 1
+
+// Parenthesized
+val (Tup _) = 1
+val (((x))) = 1

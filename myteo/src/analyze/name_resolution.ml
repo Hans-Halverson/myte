@@ -1052,6 +1052,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         | Identifier ({ scopes = _ :: _; _ } as name) ->
           this#resolve_scoped_constructor_id name;
           names
+        | Or { left; right; _ } -> visit right (visit left names)
         | Tuple { name; elements; _ } ->
           Option.iter this#resolve_scoped_constructor_id name;
           List.fold_left (fun acc element -> visit element acc) names elements

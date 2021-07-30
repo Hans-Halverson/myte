@@ -1,7 +1,7 @@
 test/parser/ast/assignment/basic.myte
 {
   node: Module,
-  loc: 1:0-38:1,
+  loc: 1:0-43:1,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -20,7 +20,7 @@ test/parser/ast/assignment/basic.myte
   toplevels: [
     {
       node: Function,
-      loc: 3:0-38:1,
+      loc: 3:0-43:1,
       name: {
         node: Identifier,
         loc: 3:4-3:8,
@@ -29,7 +29,7 @@ test/parser/ast/assignment/basic.myte
       params: [],
       body: {
         node: Block,
-        loc: 3:11-38:1,
+        loc: 3:11-43:1,
         statements: [
           {
             node: Assignment,
@@ -1015,6 +1015,147 @@ test/parser/ast/assignment/basic.myte
             expr: {
               node: IntLiteral,
               loc: 37:23-37:24,
+              raw: "1",
+            },
+          },
+          {
+            node: Assignment,
+            loc: 40:2-40:18,
+            lvalue: {
+              node: Or,
+              loc: 40:3-40:12,
+              left: {
+                node: Or,
+                loc: 40:3-40:8,
+                left: {
+                  node: ScopedIdentifier,
+                  loc: 40:3-40:4,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 40:3-40:4,
+                    name: "A",
+                  },
+                },
+                right: {
+                  node: ScopedIdentifier,
+                  loc: 40:7-40:8,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 40:7-40:8,
+                    name: "B",
+                  },
+                },
+              },
+              right: {
+                node: ScopedIdentifier,
+                loc: 40:11-40:12,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 40:11-40:12,
+                  name: "C",
+                },
+              },
+            },
+            expr: {
+              node: IntLiteral,
+              loc: 40:16-40:17,
+              raw: "1",
+            },
+          },
+          {
+            node: Assignment,
+            loc: 41:2-41:20,
+            lvalue: {
+              node: Or,
+              loc: 41:3-41:14,
+              left: {
+                node: Or,
+                loc: 41:4-41:9,
+                left: {
+                  node: ScopedIdentifier,
+                  loc: 41:4-41:5,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 41:4-41:5,
+                    name: "A",
+                  },
+                },
+                right: {
+                  node: ScopedIdentifier,
+                  loc: 41:8-41:9,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 41:8-41:9,
+                    name: "B",
+                  },
+                },
+              },
+              right: {
+                node: ScopedIdentifier,
+                loc: 41:13-41:14,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 41:13-41:14,
+                  name: "C",
+                },
+              },
+            },
+            expr: {
+              node: IntLiteral,
+              loc: 41:18-41:19,
+              raw: "1",
+            },
+          },
+          {
+            node: Assignment,
+            loc: 42:2-42:20,
+            lvalue: {
+              node: Or,
+              loc: 42:3-42:14,
+              left: {
+                node: ScopedIdentifier,
+                loc: 42:3-42:4,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 42:3-42:4,
+                  name: "A",
+                },
+              },
+              right: {
+                node: Or,
+                loc: 42:8-42:13,
+                left: {
+                  node: ScopedIdentifier,
+                  loc: 42:8-42:9,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 42:8-42:9,
+                    name: "B",
+                  },
+                },
+                right: {
+                  node: ScopedIdentifier,
+                  loc: 42:12-42:13,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 42:12-42:13,
+                    name: "C",
+                  },
+                },
+              },
+            },
+            expr: {
+              node: IntLiteral,
+              loc: 42:18-42:19,
               raw: "1",
             },
           },

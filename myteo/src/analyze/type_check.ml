@@ -1517,6 +1517,18 @@ and check_pattern ~cx patt =
     (loc, tvar_id)
   (*
    * ============================
+   *         Or Pattern
+   * ============================
+   *)
+  | Or { loc; left; right } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    let (_, left_tvar_id) = check_pattern ~cx left in
+    let (right_loc, right_tvar_id) = check_pattern ~cx right in
+    ignore (Type_context.unify ~cx (TVar left_tvar_id) (TVar tvar_id));
+    Type_context.assert_unify ~cx right_loc (TVar right_tvar_id) (TVar tvar_id);
+    (loc, tvar_id)
+  (*
+   * ============================
    *    Tuple Literal Pattern
    * ============================
    *)

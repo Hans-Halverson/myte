@@ -45,6 +45,7 @@ let pattern_loc patt =
   let open Pattern in
   match patt with
   | Wildcard loc
+  | Or { loc; _ }
   | Identifier { loc; _ }
   | NamedWildcard { loc; _ }
   | Tuple { loc; _ }
@@ -70,6 +71,7 @@ let ids_of_pattern patt =
     | Identifier { scopes = _ :: _; _ } ->
       acc
     | Identifier { scopes = []; name; _ } -> name :: acc
+    | Or { left; right; _ } -> helper right (helper left acc)
     | Tuple { Tuple.elements; _ } ->
       List.fold_left (fun acc element -> helper element acc) acc elements
     | Record { Record.fields; _ } ->

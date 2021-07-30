@@ -409,6 +409,7 @@ let pattern_vector_of_case_node ~cx case_node =
           []
       in
       Constructor ({ Ctor.ctor = Variant name; ty }, List.rev fields)
+    | Or _ -> failwith "TODO: Usefulness analysis for or patterns"
   in
   [pattern_of_pattern_node case_node.Ast.Match.Case.pattern]
 

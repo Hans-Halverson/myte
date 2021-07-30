@@ -72,6 +72,7 @@ class ['a] visitor =
         | Wildcard _ -> ()
         | Identifier p -> this#scoped_identifier acc p
         | NamedWildcard n -> this#named_wildcard_pattern acc n
+        | Or o -> this#or_pattern acc o
         | Tuple t -> this#tuple_pattern acc t
         | Record r -> this#record_pattern acc r
         | Literal l -> this#literal_pattern acc l
@@ -223,6 +224,12 @@ class ['a] visitor =
       let open Pattern.NamedWildcard in
       let { loc = _; name } = named in
       this#scoped_identifier acc name
+
+    method or_pattern acc or_ =
+      let open Pattern.Or in
+      let { loc = _; left; right } = or_ in
+      this#pattern acc left;
+      this#pattern acc right
 
     method tuple_pattern acc tuple =
       let open Pattern.Tuple in

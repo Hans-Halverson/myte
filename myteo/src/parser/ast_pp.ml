@@ -168,6 +168,7 @@ and node_of_pattern pat =
   | Wildcard loc -> node_of_wildcard_pattern loc
   | Identifier id -> node_of_scoped_identifier id
   | NamedWildcard named -> node_of_named_wildcard_pattern named
+  | Or o -> node_of_or_pattern o
   | Tuple t -> node_of_tuple_pattern t
   | Record r -> node_of_record_pattern r
   | Literal l -> node_of_literal_pattern l
@@ -336,6 +337,10 @@ and node_of_wildcard_pattern loc = node "Wildcard" loc []
 and node_of_named_wildcard_pattern named =
   let { Pattern.NamedWildcard.loc; name } = named in
   node "NamedWildcard" loc [("name", node_of_scoped_identifier name)]
+
+and node_of_or_pattern or_ =
+  let { Pattern.Or.loc; left; right } = or_ in
+  node "Or" loc [("left", node_of_pattern left); ("right", node_of_pattern right)]
 
 and node_of_tuple_pattern tuple =
   let { Pattern.Tuple.loc; name; elements } = tuple in
