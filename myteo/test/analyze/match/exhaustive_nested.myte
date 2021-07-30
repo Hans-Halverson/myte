@@ -155,4 +155,39 @@ fun testNestedVariant(x: Variant) {
   }
 }
 
+type RecType { foo: Int, bar: Bool }
+
+fun testNestedSingleVariantType(x: RecType) {
+  // Exhaustive
+  match (x) {
+    | RecType _ -> ()
+  }
+
+  match (x) {
+    | RecType { foo: _, bar: _ } -> ()
+  }
+
+  match (x) {
+    | RecType { foo: _, bar: true } -> ()
+    | RecType { foo: _, bar: false } -> ()
+  }
+
+  // Inexhaustive
+  match (x) {
+    | RecType { foo: 1, bar: _ } -> ()
+  }
+
+  match (x) {
+    | RecType { foo: _, bar: true } -> ()
+  }
+
+  match ((x, x)) {
+    | (_, RecType { foo: _, bar: true }) -> ()
+  }
+
+  match ((x, x)) {
+    | (RecType _, RecType { foo: _, bar: true }) -> ()
+  }
+}
+
 fun main() {}

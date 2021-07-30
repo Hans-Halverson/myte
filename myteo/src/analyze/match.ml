@@ -334,6 +334,10 @@ let rec can_compress_to_wildcard vector =
       match pattern with
       | Wildcard -> true
       | Constructor ({ ctor = Tuple; _ }, sub_patterns) -> can_compress_to_wildcard sub_patterns
+      (* Single variant ADTs may be compressed *)
+      | Constructor ({ ctor = Variant _; ty }, sub_patterns) ->
+        let (_, adt_sig) = Type_util.cast_to_adt_type ty in
+        SMap.cardinal adt_sig.variants = 1 && can_compress_to_wildcard sub_patterns
       | Constructor _ -> false)
     vector
 
@@ -356,6 +360,7 @@ let string_of_pattern_vector vector =
     )
   and add_pattern pattern =
     match pattern with
+    | _ when can_compress_to_wildcard [pattern] -> add_char '_'
     | Wildcard -> add_char '_'
     | Constructor ({ ctor = Unit; _ }, _) -> add_string "()"
     | Constructor ({ ctor = Bool b; _ }, _) -> add_string (Bool.to_string b)
