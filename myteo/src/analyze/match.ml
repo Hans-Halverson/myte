@@ -87,8 +87,10 @@ type witness = Witness of pattern list
 type useful_result = witness list
 
 (* Determine whether the head constructors of a matrix form a complete signature. If so, return
-   a list of all signatures. Otherwise return the missing signatures, if they can be enumerated. *)
-let signature_completeness matrix =
+   a list of all signatures. Otherwise return the missing signatures, if they can be enumerated.
+   
+   Only return enumerated missing signature if the `create_witnesses` flag is present. *)
+let signature_completeness ~create_witness matrix =
   let head_ctors =
     List.filter_map
       (fun row ->
@@ -106,14 +108,83 @@ let signature_completeness matrix =
        signature is necessarily complete. *)
     | Unit -> Complete [Ctor.unit_ctor]
     | Tuple _ -> Complete [{ Ctor.ctor = Tuple; ty }]
-    (* Integer types cannot realistically be enumerated, so assume incompleteness *)
-    (* TODO: Check Byte constructor completeness as it could be fully enumerated in practice *)
-    | Byte
+    (* Bytes can realistically be enumerated, so check for completeness *)
+    | Byte ->
+      let used_ints =
+        List.fold_left
+          (fun acc { Ctor.ctor; _ } ->
+            match ctor with
+            | Int value -> I64Set.add value acc
+            | _ -> acc)
+          I64Set.empty
+          head_ctors
+      in
+      if I64Set.cardinal used_ints = 256 then
+        Complete []
+      else if create_witness then
+        (* Find first unused byte, starting at zero and wrapping around *)
+        let rec find_unused_byte candidate =
+          if I64Set.mem candidate used_ints then
+            if Int64.equal candidate Integers.max_signed_byte then
+              find_unused_byte Integers.min_signed_byte
+            else
+              find_unused_byte (Int64.succ candidate)
+          else
+            candidate
+        in
+        let unused_byte = find_unused_byte 0L in
+        Incomplete (Enumerable [{ Ctor.ctor = Int unused_byte; ty }])
+      else
+        Incomplete Unenumerable
+    (* Integer types larger than a byte cannot realistically be enumerated, so assume incompleteness *)
     | Int
     | Long ->
-      Incomplete Unenumerable
+      if create_witness then
+        let used_ints =
+          List.fold_left
+            (fun acc { Ctor.ctor; _ } ->
+              match ctor with
+              | Int value -> I64Set.add value acc
+              | _ -> acc)
+            I64Set.empty
+            head_ctors
+        in
+        (* Find lowest positive unused int - technically this could exceed the maximum Int size,
+           but that would require an inconceivably large match statement. *)
+        let rec find_unused_int candidate =
+          if I64Set.mem candidate used_ints then
+            find_unused_int (Int64.succ candidate)
+          else
+            candidate
+        in
+        let unused_int = find_unused_int 0L in
+        Incomplete (Enumerable [{ Ctor.ctor = Int unused_int; ty }])
+      else
+        Incomplete Unenumerable
     (* The set of strings is infinite, so necessarily incomplete *)
-    | ADT { adt_sig; _ } when adt_sig == !Std_lib.string_adt_sig -> Incomplete Unenumerable
+    | ADT { adt_sig; _ } when adt_sig == !Std_lib.string_adt_sig ->
+      if create_witness then
+        (* If creating a witness, search for first string of "*"s that is not present in head ctors *)
+        let used_strings =
+          List.fold_left
+            (fun acc { Ctor.ctor; _ } ->
+              match ctor with
+              | String value -> SSet.add value acc
+              | _ -> acc)
+            SSet.empty
+            head_ctors
+        in
+        let rec find_unused_string candidate =
+          if SSet.mem candidate used_strings then
+            find_unused_string (candidate ^ "*")
+          else
+            candidate
+        in
+        let string_witness = find_unused_string "" in
+        Incomplete
+          (Enumerable [{ Ctor.ctor = String string_witness; ty = Std_lib.mk_string_type () }])
+      else
+        Incomplete Unenumerable
     (* At least one bool constructor is present, so check for all bool values and report the
        missing one if incomplete. *)
     | Bool ->
@@ -127,9 +198,12 @@ let signature_completeness matrix =
           all_values
           head_ctors
       in
-      (match BSet.choose_opt missing_values with
-      | None -> Complete [Ctor.true_ctor; Ctor.false_ctor]
-      | Some missing -> Incomplete (Enumerable [Ctor.mk_bool_ctor missing]))
+      if BSet.is_empty missing_values then
+        Complete [Ctor.true_ctor; Ctor.false_ctor]
+      else if create_witness then
+        Incomplete (Enumerable [Ctor.mk_bool_ctor (BSet.choose missing_values)])
+      else
+        Incomplete Unenumerable
     (* Check for all variants and report the missing ones if incomplete *)
     | ADT { adt_sig; _ } ->
       let missing_variants =
@@ -146,11 +220,13 @@ let signature_completeness matrix =
           SMap.fold (fun name _ acc -> { Ctor.ctor = Variant name; ty } :: acc) adt_sig.variants []
         in
         Complete all_variant_ctors
-      else
+      else if create_witness then
         let missing_variant_ctors =
           SMap.fold (fun name _ acc -> { Ctor.ctor = Variant name; ty } :: acc) missing_variants []
         in
         Incomplete (Enumerable missing_variant_ctors)
+      else
+        Incomplete Unenumerable
     | _ -> failwith "Invalid head constructor type")
 
 (* Specialized matrix from paper *)
@@ -180,8 +256,11 @@ let default_matrix matrix =
 (* Implementation of `useful` function from paper. Takes a pattern matrix and a pattern vector,
    and returns a witness of a value that matches the pattern vector but does not match any pattern
    in the pattern matrix, if such a value exists. If such a witness exists, the pattern vector is
-   deemed "useful" with respect to the pattern matrix. *)
-let rec useful matrix vector =
+   deemed "useful" with respect to the pattern matrix.
+   
+   Only create a full witness if the `create_witness` flag is set, otherwise return a sigil witness
+   whose presence indicates a useful result. *)
+let rec useful ~create_witness (matrix : pattern_matrix) (vector : pattern_vector) : useful_result =
   match vector with
   (* Base case - is useful if there are no rows in matrix *)
   | [] ->
@@ -193,9 +272,9 @@ let rec useful matrix vector =
   | Constructor (ctor, sub_patterns) :: rest_patterns ->
     let specialized_matrix = specialize_matrix ctor matrix in
     let patterns = sub_patterns @ rest_patterns in
-    useful specialized_matrix patterns
+    useful ~create_witness specialized_matrix patterns
   | Wildcard :: rest_vector ->
-    (match signature_completeness matrix with
+    (match signature_completeness ~create_witness matrix with
     (* Inductive case 2a - head is wildcard and matrix's head constructors form a complete
        signature. Create a specialized matrix and recurse for every constructor in signature. *)
     | Complete all_ctors ->
@@ -205,15 +284,18 @@ let rec useful matrix vector =
             let ctor_sub_patterns_length = Ctor.sub_patterns_length ctor in
             let specialized_matrix = specialize_matrix ctor matrix in
             let specialized_vector = wildcards_vector ctor_sub_patterns_length @ rest_vector in
-            let useful_result = useful specialized_matrix specialized_vector in
+            let useful_result = useful ~create_witness specialized_matrix specialized_vector in
             (* If there are witnesses of usefulness recreate constructor at head of witness, where
                witness contains subpatterns for this constructor at its head. *)
-            List.map
-              (fun (Witness patterns) ->
-                let (ctor_sub_patterns, rest) =
-                  List_utils.split_at ctor_sub_patterns_length patterns
-                in
-                Witness (Constructor (ctor, ctor_sub_patterns) :: rest))
+            if create_witness then
+              List.map
+                (fun (Witness patterns) ->
+                  let (ctor_sub_patterns, rest) =
+                    List_utils.split_at ctor_sub_patterns_length patterns
+                  in
+                  Witness (Constructor (ctor, ctor_sub_patterns) :: rest))
+                useful_result
+            else
               useful_result)
           all_ctors
       in
@@ -222,18 +304,21 @@ let rec useful matrix vector =
        signature. Create the default matrix and recurse. *)
     | Incomplete missing ->
       let default_matrix = default_matrix matrix in
-      let useful_result = useful default_matrix rest_vector in
+      let useful_result = useful ~create_witness default_matrix rest_vector in
       (* If there are witnesses of usefulness add prefix for missing constructors. Unenumerable
          missing constructors can add the generic wildcard pattern, while if there are known missing
          constructors add a chosen missing constructor with wildcard subpatterns. *)
-      List.map
-        (fun (Witness pattern) ->
-          match missing with
-          | Unenumerable -> Witness (Wildcard :: pattern)
-          | Enumerable missing_ctors ->
-            let missing_ctor = List.hd missing_ctors in
-            let wildcard_subpatterns = wildcards_vector (Ctor.sub_patterns_length missing_ctor) in
-            Witness (Constructor (missing_ctor, wildcard_subpatterns) :: pattern))
+      if create_witness then
+        List.map
+          (fun (Witness pattern) ->
+            match missing with
+            | Unenumerable -> Witness (Wildcard :: pattern)
+            | Enumerable missing_ctors ->
+              let missing_ctor = List.hd missing_ctors in
+              let wildcard_subpatterns = wildcards_vector (Ctor.sub_patterns_length missing_ctor) in
+              Witness (Constructor (missing_ctor, wildcard_subpatterns) :: pattern))
+          useful_result
+      else
         useful_result)
 
 (* Convert a match case node into a pattern vector for use in exhaustiveness/reachability checking *)
@@ -438,7 +523,7 @@ class match_analyzer ~cx =
 
             (* Check for reachability of case. A match case is unreachable if it is not useful with
                respect to the matrix of all cases that appear above it in the match statement. *)
-            let useful_result = useful prev_rows row in
+            let useful_result = useful ~create_witness:false prev_rows row in
             ( if useful_result = [] then
               let loc = Ast_utils.pattern_loc case.pattern in
               this#add_error loc UnreachableMatchCase );
@@ -455,7 +540,7 @@ class match_analyzer ~cx =
       (* Check exhaustiveness. A match statement is exhaustive if a wildcard vector is useful
          after the entire matrix of match cases. *)
       let wildcard_vector = args_wildcard_vector ~cx match_ in
-      let useful_result = useful matrix wildcard_vector in
+      let useful_result = useful ~create_witness:true matrix wildcard_vector in
       if useful_result <> [] then
         let (Witness vector) = List.hd useful_result in
         let witness_string = string_of_pattern_vector vector in

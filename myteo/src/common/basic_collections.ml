@@ -1,6 +1,7 @@
 module ISet = Set.Make (Int)
 module IMap = Map.Make (Int)
 module IIMMap = MultiMap.Make (Int) (Int)
+module I64Set = Set.Make (Int64)
 module SSet = Set.Make (String)
 module SMap = Map.Make (String)
 module BSet = Set.Make (Bool)

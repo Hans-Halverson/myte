@@ -57,6 +57,21 @@ fun testStrings() {
   match ("") {
     | "a" -> ()
   }
+
+  match ("") {
+    | "" -> ()
+  }
+
+  match ("") {
+    | "" -> ()
+    | "*" -> ()
+  }
+
+  match ("") {
+    | "" -> ()
+    | "*" -> ()
+    | "**" -> ()
+  }
 }
 
 fun testIntegers() {
@@ -73,6 +88,16 @@ fun testIntegers() {
   // Inexhaustive
   match (1) {
     | 1 -> ()
+  }
+
+  match (1) {
+    | 0 -> ()
+  }
+
+  match (1) {
+    | 0 -> ()
+    | 1 -> ()
+    | 2 -> ()
   }
 }
 
