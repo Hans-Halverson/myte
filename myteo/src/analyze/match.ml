@@ -430,6 +430,7 @@ let string_of_pattern_vector vector =
   let buf = Buffer.create 16 in
   let add_char c = Buffer.add_char buf c in
   let add_string str = Buffer.add_string buf str in
+  (* Tuple may be compressed to wildcard if all fields can be compressed to wildcards *)
   let rec add_tuple_pattern elements =
     if can_compress_to_wildcard elements then
       add_char '_'
@@ -464,22 +465,43 @@ let string_of_pattern_vector vector =
         add_char ' ';
         add_tuple_pattern sub_patterns
       | Record fields ->
+        (* Only print fields that cannot be compressed to wildcards, then print `...` if any fields
+           were compressed to wildcards. If all fields can be compressed to wildcards print wildcard
+           instead of record pattern. *)
         let fields = SMap.bindings fields in
+        let num_fields = List.length fields in
         add_string name;
         add_char ' ';
-        if can_compress_to_wildcard sub_patterns then
+        let non_wildcard_fields =
+          List.fold_left2
+            (fun acc (name, _) sub_pattern ->
+              if not (can_compress_to_wildcard [sub_pattern]) then
+                SMap.add name sub_pattern acc
+              else
+                acc)
+            SMap.empty
+            fields
+            sub_patterns
+        in
+        let num_non_wildcard_fields = SMap.cardinal non_wildcard_fields in
+        if num_non_wildcard_fields = 0 then
           add_char '_'
         else (
           add_string "{ ";
-          let num_fields = List.length sub_patterns in
-          List_utils.iteri2
-            (fun i (name, _) pattern ->
-              add_string name;
-              add_string ": ";
-              add_pattern pattern;
-              if i <> num_fields - 1 then add_string ", ")
-            fields
-            sub_patterns;
+          ignore
+            (SMap.fold
+               (fun name _ i ->
+                 (match SMap.find_opt name non_wildcard_fields with
+                 | None -> ()
+                 | Some pattern ->
+                   add_string name;
+                   add_string ": ";
+                   add_pattern pattern;
+                   if i <> num_fields - 1 then add_string ", ");
+                 i + 1)
+               non_wildcard_fields
+               0);
+          if num_non_wildcard_fields <> num_fields then add_string "...";
           add_string " }"
         ))
   in

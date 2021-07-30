@@ -61,7 +61,7 @@ test/analyze/match/exhaustive_variants.myte:64:2-68:3
  68 | |   }
     | \ ^^^^
 
-Error: Inexhaustive match statement. For example the pattern `Record1 { bar: _, foo: false }` is not matched.
+Error: Inexhaustive match statement. For example the pattern `Record1 { foo: false, ... }` is not matched.
 test/analyze/match/exhaustive_variants.myte:70:2-74:3
  70 | /   match (x) {
     | |   ^^^^^^^^^^^
@@ -72,4 +72,18 @@ test/analyze/match/exhaustive_variants.myte:70:2-74:3
  73 | |     | Tuple1 _ -> ()
     | | ^^^^^^^^^^^^^^^^^^^^
  74 | |   }
+    | \ ^^^^
+
+Error: Inexhaustive match statement. For example the pattern `Record1 { bar: "*", foo: false }` is not matched.
+test/analyze/match/exhaustive_variants.myte:79:2-84:3
+ 79 | /   match (x) {
+    | |   ^^^^^^^^^^^
+ 80 | |     | Record1 { foo: true, ... } -> ()
+    | | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 81 | |     | Record1 { foo: false, bar: "" } -> ()
+    | | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ ...  |
+ 83 | |     | Enum1 -> ()
+    | | ^^^^^^^^^^^^^^^^^
+ 84 | |   }
     | \ ^^^^

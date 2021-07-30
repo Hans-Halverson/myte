@@ -101,7 +101,7 @@ test/analyze/match/exhaustive_nested.myte:139:2-147:3
  147 | |   }
      | \ ^^^^
 
-Error: Inexhaustive match statement. For example the pattern `Tup (_, Rec { bar: _, foo: false })` is not matched.
+Error: Inexhaustive match statement. For example the pattern `Tup (_, Rec { foo: false, ... })` is not matched.
 test/analyze/match/exhaustive_nested.myte:149:2-155:3
  149 | /   match (x) {
      | |   ^^^^^^^^^^^
@@ -115,7 +115,7 @@ test/analyze/match/exhaustive_nested.myte:149:2-155:3
  155 | |   }
      | \ ^^^^
 
-Error: Inexhaustive match statement. For example the pattern `RecType { bar: _, foo: 0 }` is not matched.
+Error: Inexhaustive match statement. For example the pattern `RecType { foo: 0, ... }` is not matched.
 test/analyze/match/exhaustive_nested.myte:176:2-178:3
  176 | /   match (x) {
      | |   ^^^^^^^^^^^
@@ -124,7 +124,7 @@ test/analyze/match/exhaustive_nested.myte:176:2-178:3
  178 | |   }
      | \ ^^^^
 
-Error: Inexhaustive match statement. For example the pattern `RecType { bar: false, foo: _ }` is not matched.
+Error: Inexhaustive match statement. For example the pattern `RecType { bar: false, ... }` is not matched.
 test/analyze/match/exhaustive_nested.myte:180:2-182:3
  180 | /   match (x) {
      | |   ^^^^^^^^^^^
@@ -133,7 +133,7 @@ test/analyze/match/exhaustive_nested.myte:180:2-182:3
  182 | |   }
      | \ ^^^^
 
-Error: Inexhaustive match statement. For example the pattern `(_, RecType { bar: false, foo: _ })` is not matched.
+Error: Inexhaustive match statement. For example the pattern `(_, RecType { bar: false, ... })` is not matched.
 test/analyze/match/exhaustive_nested.myte:184:2-186:3
  184 | /   match ((x, x)) {
      | |   ^^^^^^^^^^^^^^^^
@@ -142,7 +142,7 @@ test/analyze/match/exhaustive_nested.myte:184:2-186:3
  186 | |   }
      | \ ^^^^
 
-Error: Inexhaustive match statement. For example the pattern `(_, RecType { bar: false, foo: _ })` is not matched.
+Error: Inexhaustive match statement. For example the pattern `(_, RecType { bar: false, ... })` is not matched.
 test/analyze/match/exhaustive_nested.myte:188:2-190:3
  188 | /   match ((x, x)) {
      | |   ^^^^^^^^^^^^^^^^

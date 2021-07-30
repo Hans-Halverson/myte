@@ -74,4 +74,14 @@ fun testExhaustiveVariantsNested(x: Variants1) {
   }
 }
 
+fun testExhaustiveAllRecordVariantFieldsPrinted(x: Variants1) {
+  // Inexhaustive
+  match (x) {
+    | Record1 { foo: true, ... } -> ()
+    | Record1 { foo: false, bar: "" } -> ()
+    | Tuple1 _ -> ()
+    | Enum1 -> ()
+  }
+}
+
 fun main() {}
