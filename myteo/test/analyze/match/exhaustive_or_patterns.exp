@@ -1,0 +1,54 @@
+Error: Inexhaustive match statement. For example the pattern `(true, false)` is not matched.
+test/analyze/match/exhaustive_or_patterns.myte:66:2-69:3
+ 66 | /   match (true, true) {
+    | |   ^^^^^^^^^^^^^^^^^^^^
+ 67 | |     | (true, true) -> ()
+    | | ^^^^^^^^^^^^^^^^^^^^^^^^
+ 68 | |     | (false, true | false) -> ()
+    | | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 69 | |   }
+    | \ ^^^^
+
+Error: Inexhaustive match statement. For example the pattern `(Enum3, Enum1 | Enum2)` is not matched.
+test/analyze/match/exhaustive_or_patterns.myte:71:2-74:3
+ 71 | /   match (x, x) {
+    | |   ^^^^^^^^^^^^^^
+ 72 | |     | (Enum1 | Enum2, _) -> ()
+    | | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 73 | |     | (_, Enum3) -> ()
+    | | ^^^^^^^^^^^^^^^^^^^^^^
+ 74 | |   }
+    | \ ^^^^
+
+Error: Inexhaustive match statement. For example the pattern `"****"` is not matched.
+test/analyze/match/exhaustive_or_patterns.myte:79:2-82:3
+ 79 | /   match ("") {
+    | |   ^^^^^^^^^^^^
+ 80 | |     | "" | "*" -> ()
+    | | ^^^^^^^^^^^^^^^^^^^^
+ 81 | |     | "**" | "***" -> ()
+    | | ^^^^^^^^^^^^^^^^^^^^^^^^
+ 82 | |   }
+    | \ ^^^^
+
+Error: Inexhaustive match statement. For example the pattern `4` is not matched.
+test/analyze/match/exhaustive_or_patterns.myte:84:2-87:3
+ 84 | /   match (0) {
+    | |   ^^^^^^^^^^^
+ 85 | |     | 0 | 2 -> ()
+    | | ^^^^^^^^^^^^^^^^^
+ 86 | |     | 3 | 1 -> ()
+    | | ^^^^^^^^^^^^^^^^^
+ 87 | |   }
+    | \ ^^^^
+
+Error: Inexhaustive match statement. For example the pattern `(true, 4) | (false, 4)` is not matched.
+test/analyze/match/exhaustive_or_patterns.myte:89:2-92:3
+ 89 | /   match (true, 0) {
+    | |   ^^^^^^^^^^^^^^^^^
+ 90 | |     | (true | false, 0 | 3) -> ()
+    | | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 91 | |     | (_, 2 | 1) -> ()
+    | | ^^^^^^^^^^^^^^^^^^^^^^
+ 92 | |   }
+    | \ ^^^^

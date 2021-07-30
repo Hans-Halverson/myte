@@ -155,6 +155,21 @@ fun testNestedVariant(x: Variant) {
   }
 }
 
+fun testNestedMissingMultipleInnerVariants(x: Variant) {
+  // Inexhaustive
+  match (x) {
+    | Tup (true, Enum) -> ()
+    | Rec _ -> ()
+    | Enum -> ()
+  }
+
+  match (x) {
+    | Tup (_, Enum) -> ()
+    | Rec _ -> ()
+    | Enum -> ()
+  }
+}
+
 type RecType { foo: Int, bar: Bool }
 
 fun testNestedSingleVariantType(x: RecType) {

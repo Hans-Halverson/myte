@@ -1,0 +1,95 @@
+module test
+
+type Enums =
+  | Enum1
+  | Enum2
+  | Enum3
+
+fun testFullOrPatterns(x: Enums) {
+  // Exhaustive
+  match (true) {
+    | true | false -> ()
+  }
+
+  match (true, false) {
+    | (true, true)
+    | (true, false)
+    | (false, true)
+    | (false, false) -> ()
+  }
+
+  match (true, false) {
+    | (true, true)
+    | (true, false) -> ()
+    | (false, true)
+    | (false, false) -> ()
+  }
+
+  match (true, false) {
+    | (true, true)
+    | (false, false) -> ()
+    | (false, true)
+    | (true, false) -> ()
+  }
+
+  match (x) {
+    | Enum1 | Enum2 | Enum3 -> ()
+  }
+
+  match (x) {
+    | Enum1 | Enum2 -> ()
+    | Enum3 -> ()
+  }
+}
+
+fun testNestedOrPatterns(x: Enums) {
+  // Exhaustive
+  match (true) {
+    | (true | false) -> ()
+  }
+
+  match (true, true) {
+    | (true, true | false) -> ()
+    | (false, true | false) -> ()
+  }
+
+  match (true, true) {
+    | (true | false, true | false) -> ()
+  }
+
+  match (x, x) {
+    | (Enum1 | Enum2, _) -> ()
+    | (Enum3, _) -> ()
+  }
+
+  // Inexhaustive
+  match (true, true) {
+    | (true, true) -> ()
+    | (false, true | false) -> ()
+  }
+
+  match (x, x) {
+    | (Enum1 | Enum2, _) -> ()
+    | (_, Enum3) -> ()
+  }
+}
+
+fun testOrStringAndInts() {
+  // Inexhaustive
+  match ("") {
+    | "" | "*" -> ()
+    | "**" | "***" -> ()
+  }
+
+  match (0) {
+    | 0 | 2 -> ()
+    | 3 | 1 -> ()
+  }
+
+  match (true, 0) {
+    | (true | false, 0 | 3) -> ()
+    | (_, 2 | 1) -> ()
+  }
+}
+
+fun main() {}

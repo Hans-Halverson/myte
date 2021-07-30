@@ -37,7 +37,7 @@ test/analyze/match/exhaustive_variants.myte:35:2-39:3
  39 | |   }
     | \ ^^^^
 
-Error: Inexhaustive match statement. For example the pattern `Tuple1 _` is not matched.
+Error: Inexhaustive match statement. For example the pattern `Record1 _ | Tuple1 _` is not matched.
 test/analyze/match/exhaustive_variants.myte:41:2-44:3
  41 | /   match (x) {
     | |   ^^^^^^^^^^^

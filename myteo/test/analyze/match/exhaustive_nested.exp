@@ -115,38 +115,64 @@ test/analyze/match/exhaustive_nested.myte:149:2-155:3
  155 | |   }
      | \ ^^^^
 
-Error: Inexhaustive match statement. For example the pattern `RecType { foo: 0, ... }` is not matched.
-test/analyze/match/exhaustive_nested.myte:176:2-178:3
- 176 | /   match (x) {
+Error: Inexhaustive match statement. For example the pattern `Tup (false, _)` is not matched.
+test/analyze/match/exhaustive_nested.myte:160:2-164:3
+ 160 | /   match (x) {
      | |   ^^^^^^^^^^^
- 177 | |     | RecType { foo: 1, bar: _ } -> ()
+ 161 | |     | Tup (true, Enum) -> ()
+     | | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 162 | |     | Rec _ -> ()
+     | | ^^^^^^^^^^^^^^^^^
+ 163 | |     | Enum -> ()
+     | | ^^^^^^^^^^^^^^^^
+ 164 | |   }
+     | \ ^^^^
+
+Error: Inexhaustive match statement. For example the pattern `Tup (_, Rec _ | Tup _)` is not matched.
+test/analyze/match/exhaustive_nested.myte:166:2-170:3
+ 166 | /   match (x) {
+     | |   ^^^^^^^^^^^
+ 167 | |     | Tup (_, Enum) -> ()
+     | | ^^^^^^^^^^^^^^^^^^^^^^^^^
+ 168 | |     | Rec _ -> ()
+     | | ^^^^^^^^^^^^^^^^^
+ 169 | |     | Enum -> ()
+     | | ^^^^^^^^^^^^^^^^
+ 170 | |   }
+     | \ ^^^^
+
+Error: Inexhaustive match statement. For example the pattern `RecType { foo: 0, ... }` is not matched.
+test/analyze/match/exhaustive_nested.myte:191:2-193:3
+ 191 | /   match (x) {
+     | |   ^^^^^^^^^^^
+ 192 | |     | RecType { foo: 1, bar: _ } -> ()
      | | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 178 | |   }
+ 193 | |   }
      | \ ^^^^
 
 Error: Inexhaustive match statement. For example the pattern `RecType { bar: false, ... }` is not matched.
-test/analyze/match/exhaustive_nested.myte:180:2-182:3
- 180 | /   match (x) {
+test/analyze/match/exhaustive_nested.myte:195:2-197:3
+ 195 | /   match (x) {
      | |   ^^^^^^^^^^^
- 181 | |     | RecType { foo: _, bar: true } -> ()
+ 196 | |     | RecType { foo: _, bar: true } -> ()
      | | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 182 | |   }
+ 197 | |   }
      | \ ^^^^
 
 Error: Inexhaustive match statement. For example the pattern `(_, RecType { bar: false, ... })` is not matched.
-test/analyze/match/exhaustive_nested.myte:184:2-186:3
- 184 | /   match ((x, x)) {
+test/analyze/match/exhaustive_nested.myte:199:2-201:3
+ 199 | /   match ((x, x)) {
      | |   ^^^^^^^^^^^^^^^^
- 185 | |     | (_, RecType { foo: _, bar: true }) -> ()
+ 200 | |     | (_, RecType { foo: _, bar: true }) -> ()
      | | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 186 | |   }
+ 201 | |   }
      | \ ^^^^
 
 Error: Inexhaustive match statement. For example the pattern `(_, RecType { bar: false, ... })` is not matched.
-test/analyze/match/exhaustive_nested.myte:188:2-190:3
- 188 | /   match ((x, x)) {
+test/analyze/match/exhaustive_nested.myte:203:2-205:3
+ 203 | /   match ((x, x)) {
      | |   ^^^^^^^^^^^^^^^^
- 189 | |     | (RecType _, RecType { foo: _, bar: true }) -> ()
+ 204 | |     | (RecType _, RecType { foo: _, bar: true }) -> ()
      | | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 190 | |   }
+ 205 | |   }
      | \ ^^^^

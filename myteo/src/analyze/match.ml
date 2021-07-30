@@ -10,8 +10,9 @@ open Types
 
 module Ctor = struct
   type t = {
-    ty: Type.t;
     ctor: ctor;
+    ty: Type.t;
+    loc: Loc.t;
   }
 
   and ctor =
@@ -22,19 +23,7 @@ module Ctor = struct
     | Tuple
     | Variant of string
 
-  let unit_ctor = { ctor = Unit; ty = Unit }
-
-  let true_ctor = { ctor = Bool true; ty = Bool }
-
-  let false_ctor = { ctor = Bool false; ty = Bool }
-
-  let mk_bool_ctor value =
-    if value then
-      true_ctor
-    else
-      false_ctor
-
-  let sub_patterns_length { ctor; ty } =
+  let sub_patterns_length { ctor; ty; _ } =
     match ctor with
     | Unit
     | Bool _
@@ -61,6 +50,17 @@ module Ctor = struct
     | _ -> false
 end
 
+type pattern =
+  | Wildcard
+  | Constructor of Ctor.t * pattern list
+  | Or of pattern list
+
+type pattern_vector = pattern list
+
+type pattern_matrix = pattern_vector list
+
+let wildcards_vector n = List_utils.make n Wildcard
+
 module Completeness = struct
   type t =
     | Complete of Ctor.t list
@@ -71,43 +71,97 @@ module Completeness = struct
     | Unenumerable
 end
 
-type pattern =
-  | Wildcard
-  | Constructor of Ctor.t * pattern list
+type add_head_op =
+  | AddWildcard
+  | AddCtors of Ctor.t list
+  | ReconstructCtor of Ctor.t
 
-let wildcards_vector n = List_utils.make n Wildcard
+(* module type UsefulResultType = sig
+  type t
 
-type pattern_vector = pattern list
+  val useful : t
 
-type pattern_matrix = pattern_vector list
+  val useless : t
 
-type witness = Witness of pattern list
+  val combine : t list -> t
 
-(* A list of witnesses of non-exhaustiveness, if empty then check was exhaustive *)
-type useful_result = witness list
+  val add_head : t -> add_head_op -> t
+end *)
+
+module ExhaustiveResult = struct
+  type witness = Witness of pattern list
+
+  type t = witness list
+
+  let useful = [Witness []]
+
+  let useless = []
+
+  let combine results = List.concat results
+
+  let add_head result op =
+    match op with
+    | AddWildcard -> List.map (fun (Witness patterns) -> Witness (Wildcard :: patterns)) result
+    | AddCtors ctors ->
+      let patterns =
+        List.map
+          (fun ctor ->
+            let wildcard_subpatterns = wildcards_vector (Ctor.sub_patterns_length ctor) in
+            Constructor (ctor, wildcard_subpatterns))
+          ctors
+      in
+      let witness_head =
+        match patterns with
+        | [pattern] -> pattern
+        | _ -> Or patterns
+      in
+      List.map (fun (Witness pattern) -> Witness (witness_head :: pattern)) result
+    | ReconstructCtor ctor ->
+      let ctor_sub_patterns_length = Ctor.sub_patterns_length ctor in
+      List.map
+        (fun (Witness patterns) ->
+          let (ctor_sub_patterns, rest) = List_utils.split_at ctor_sub_patterns_length patterns in
+          Witness (Constructor (ctor, ctor_sub_patterns) :: rest))
+        result
+
+  let is_useful result = result <> []
+
+  let witness result =
+    let pattern_of_patterns patterns =
+      match patterns with
+      | [pattern] -> pattern
+      | _ -> Constructor ({ Ctor.ctor = Tuple; ty = Tuple []; loc = Loc.none }, patterns)
+    in
+    match result with
+    | [] -> None
+    | [Witness patterns] -> Some (pattern_of_patterns patterns)
+    | witnesses ->
+      let patterns = List.map (fun (Witness patterns) -> pattern_of_patterns patterns) witnesses in
+      Some (Or patterns)
+end
 
 (* Determine whether the head constructors of a matrix form a complete signature. If so, return
    a list of all signatures. Otherwise return the missing signatures, if they can be enumerated.
    
    Only return enumerated missing signature if the `create_witnesses` flag is present. *)
 let signature_completeness ~create_witness matrix =
-  let head_ctors =
-    List.filter_map
-      (fun row ->
-        match List.hd row with
-        | Wildcard -> None
-        | Constructor (ctor, _) -> Some ctor)
-      matrix
+  let rec gather_ctors acc pattern =
+    match pattern with
+    | Wildcard -> acc
+    | Constructor (ctor, _) -> ctor :: acc
+    | Or patterns -> List.fold_left gather_ctors acc patterns
   in
+  let head_ctors = List.fold_left (fun acc row -> gather_ctors acc (List.hd row)) [] matrix in
   match head_ctors with
   (* If there are no head constructors, signature is incomplete *)
   | [] -> Completeness.Incomplete Unenumerable
   | { ty; _ } :: _ ->
+    let mk_ctor ctor = { Ctor.ctor; ty; loc = Loc.none } in
     (match ty with
     (* Unit and Tuple types have a single constructor, so when a head constructor is present the
        signature is necessarily complete. *)
-    | Unit -> Complete [Ctor.unit_ctor]
-    | Tuple _ -> Complete [{ Ctor.ctor = Tuple; ty }]
+    | Unit -> Complete [mk_ctor Unit]
+    | Tuple _ -> Complete [mk_ctor Tuple]
     (* Bytes can realistically be enumerated, so check for completeness *)
     | Byte ->
       let used_ints =
@@ -133,7 +187,7 @@ let signature_completeness ~create_witness matrix =
             candidate
         in
         let unused_byte = find_unused_byte 0L in
-        Incomplete (Enumerable [{ Ctor.ctor = Int unused_byte; ty }])
+        Incomplete (Enumerable [mk_ctor (Int unused_byte)])
       else
         Incomplete Unenumerable
     (* Integer types larger than a byte cannot realistically be enumerated, so assume incompleteness *)
@@ -158,7 +212,7 @@ let signature_completeness ~create_witness matrix =
             candidate
         in
         let unused_int = find_unused_int 0L in
-        Incomplete (Enumerable [{ Ctor.ctor = Int unused_int; ty }])
+        Incomplete (Enumerable [mk_ctor (Int unused_int)])
       else
         Incomplete Unenumerable
     (* The set of strings is infinite, so necessarily incomplete *)
@@ -181,8 +235,7 @@ let signature_completeness ~create_witness matrix =
             candidate
         in
         let string_witness = find_unused_string "" in
-        Incomplete
-          (Enumerable [{ Ctor.ctor = String string_witness; ty = Std_lib.mk_string_type () }])
+        Incomplete (Enumerable [mk_ctor (String string_witness)])
       else
         Incomplete Unenumerable
     (* At least one bool constructor is present, so check for all bool values and report the
@@ -199,9 +252,9 @@ let signature_completeness ~create_witness matrix =
           head_ctors
       in
       if BSet.is_empty missing_values then
-        Complete [Ctor.true_ctor; Ctor.false_ctor]
+        Complete [mk_ctor (Bool true); mk_ctor (Bool false)]
       else if create_witness then
-        Incomplete (Enumerable [Ctor.mk_bool_ctor (BSet.choose missing_values)])
+        Incomplete (Enumerable [mk_ctor (Bool (BSet.choose missing_values))])
       else
         Incomplete Unenumerable
     (* Check for all variants and report the missing ones if incomplete *)
@@ -217,41 +270,49 @@ let signature_completeness ~create_witness matrix =
       in
       if SMap.is_empty missing_variants then
         let all_variant_ctors =
-          SMap.fold (fun name _ acc -> { Ctor.ctor = Variant name; ty } :: acc) adt_sig.variants []
+          SMap.fold (fun name _ acc -> mk_ctor (Variant name) :: acc) adt_sig.variants []
         in
-        Complete all_variant_ctors
+        Complete (List.rev all_variant_ctors)
       else if create_witness then
         let missing_variant_ctors =
-          SMap.fold (fun name _ acc -> { Ctor.ctor = Variant name; ty } :: acc) missing_variants []
+          SMap.fold (fun name _ acc -> mk_ctor (Variant name) :: acc) missing_variants []
         in
-        Incomplete (Enumerable missing_variant_ctors)
+        Incomplete (Enumerable (List.rev missing_variant_ctors))
       else
         Incomplete Unenumerable
     | _ -> failwith "Invalid head constructor type")
 
 (* Specialized matrix from paper *)
-let specialize_matrix ctor matrix =
+let rec specialize_matrix ctor matrix =
   List.filter_map
     (fun row ->
       let (row_head, row_rest) = List_utils.split_first row in
       match row_head with
       | Constructor (row_head_ctor, sub_patterns) when Ctor.equal ctor row_head_ctor ->
-        Some (sub_patterns @ row_rest)
+        Some [sub_patterns @ row_rest]
       | Constructor _ -> None
       | Wildcard ->
         let wildcard_sub_patternss = wildcards_vector (Ctor.sub_patterns_length ctor) in
-        Some (wildcard_sub_patternss @ row_rest))
+        Some [wildcard_sub_patternss @ row_rest]
+      | Or row_heads ->
+        let expanded_matrix = List.map (fun row_head -> row_head :: row_rest) row_heads in
+        Some (specialize_matrix ctor expanded_matrix))
     matrix
+  |> List.flatten
 
 (* Default matrix from paper *)
-let default_matrix matrix =
+let rec default_matrix matrix =
   List.filter_map
     (fun row ->
       let (row_head, row_rest) = List_utils.split_first row in
       match row_head with
       | Constructor _ -> None
-      | Wildcard -> Some row_rest)
+      | Wildcard -> Some [row_rest]
+      | Or row_heads ->
+        let expanded_matrix = List.map (fun row_head -> row_head :: row_rest) row_heads in
+        Some (default_matrix expanded_matrix))
     matrix
+  |> List.flatten
 
 (* Implementation of `useful` function from paper. Takes a pattern matrix and a pattern vector,
    and returns a witness of a value that matches the pattern vector but does not match any pattern
@@ -260,14 +321,15 @@ let default_matrix matrix =
    
    Only create a full witness if the `create_witness` flag is set, otherwise return a sigil witness
    whose presence indicates a useful result. *)
-let rec useful ~create_witness (matrix : pattern_matrix) (vector : pattern_vector) : useful_result =
+let rec useful ~create_witness (matrix : pattern_matrix) (vector : pattern_vector) :
+    ExhaustiveResult.t =
   match vector with
   (* Base case - is useful if there are no rows in matrix *)
   | [] ->
     if matrix = [] then
-      [Witness []]
+      ExhaustiveResult.useful
     else
-      []
+      ExhaustiveResult.useless
   (* Inductive case 1 - head is a constructor, so specialize matrix and recurse *)
   | Constructor (ctor, sub_patterns) :: rest_patterns ->
     let specialized_matrix = specialize_matrix ctor matrix in
@@ -281,25 +343,20 @@ let rec useful ~create_witness (matrix : pattern_matrix) (vector : pattern_vecto
       let useful_results =
         List.map
           (fun ctor ->
-            let ctor_sub_patterns_length = Ctor.sub_patterns_length ctor in
             let specialized_matrix = specialize_matrix ctor matrix in
-            let specialized_vector = wildcards_vector ctor_sub_patterns_length @ rest_vector in
+            let specialized_vector =
+              wildcards_vector (Ctor.sub_patterns_length ctor) @ rest_vector
+            in
             let useful_result = useful ~create_witness specialized_matrix specialized_vector in
             (* If there are witnesses of usefulness recreate constructor at head of witness, where
                witness contains subpatterns for this constructor at its head. *)
             if create_witness then
-              List.map
-                (fun (Witness patterns) ->
-                  let (ctor_sub_patterns, rest) =
-                    List_utils.split_at ctor_sub_patterns_length patterns
-                  in
-                  Witness (Constructor (ctor, ctor_sub_patterns) :: rest))
-                useful_result
+              ExhaustiveResult.add_head useful_result (ReconstructCtor ctor)
             else
               useful_result)
           all_ctors
       in
-      List.flatten useful_results
+      ExhaustiveResult.combine useful_results
     (* Inductive case 2b - head is wildcard and matrix's head constructors do not form a complete
        signature. Create the default matrix and recurse. *)
     | Incomplete missing ->
@@ -309,17 +366,28 @@ let rec useful ~create_witness (matrix : pattern_matrix) (vector : pattern_vecto
          missing constructors can add the generic wildcard pattern, while if there are known missing
          constructors add a chosen missing constructor with wildcard subpatterns. *)
       if create_witness then
-        List.map
-          (fun (Witness pattern) ->
-            match missing with
-            | Unenumerable -> Witness (Wildcard :: pattern)
-            | Enumerable missing_ctors ->
-              let missing_ctor = List.hd missing_ctors in
-              let wildcard_subpatterns = wildcards_vector (Ctor.sub_patterns_length missing_ctor) in
-              Witness (Constructor (missing_ctor, wildcard_subpatterns) :: pattern))
-          useful_result
+        let add_head_op =
+          match missing with
+          | Unenumerable -> AddWildcard
+          | Enumerable missing_ctors -> AddCtors missing_ctors
+        in
+        ExhaustiveResult.add_head useful_result add_head_op
       else
         useful_result)
+  | Or or_sub_patterns :: rest_vector ->
+    let (_, useful_result) =
+      List.fold_left
+        (fun (matrix, prev_useful_result) or_sub_pattern ->
+          let vector = or_sub_pattern :: rest_vector in
+          let useful_result = useful ~create_witness matrix vector in
+          (* Add vector pattern to matrix to detect unreachable branches in same or pattern *)
+          let matrix = matrix @ [vector] in
+          let useful_result = ExhaustiveResult.combine [prev_useful_result; useful_result] in
+          (matrix, useful_result))
+        (matrix, ExhaustiveResult.useless)
+        or_sub_patterns
+    in
+    useful_result
 
 (* Convert a match case node into a pattern vector for use in exhaustiveness/reachability checking *)
 let pattern_vector_of_case_node ~cx case_node =
@@ -331,22 +399,22 @@ let pattern_vector_of_case_node ~cx case_node =
     match pattern with
     (* Wildcards and literals are emitted directly *)
     | Ast.Pattern.Wildcard _ -> Wildcard
-    | Literal (Unit _) -> Constructor (Ctor.unit_ctor, [])
-    | Literal (Bool { value; _ }) -> Constructor (Ctor.mk_bool_ctor value, [])
-    | Literal (String { value; _ }) ->
-      Constructor ({ Ctor.ctor = String value; ty = Std_lib.mk_string_type () }, [])
+    | Literal (Unit { loc }) -> Constructor ({ Ctor.ctor = Unit; ty = Unit; loc }, [])
+    | Literal (Bool { loc; value }) -> Constructor ({ Ctor.ctor = Bool value; ty = Bool; loc }, [])
+    | Literal (String { loc; value }) ->
+      Constructor ({ Ctor.ctor = String value; ty = Std_lib.mk_string_type (); loc }, [])
     | Literal (Int { loc; raw; base; _ }) ->
       let ty = type_of_loc loc in
       let value = Integers.int64_of_string_opt raw base |> Option.get in
-      Constructor ({ Ctor.ctor = Int value; ty }, [])
+      Constructor ({ Ctor.ctor = Int value; ty; loc }, [])
     (* Identifier pattern may be for an enum variant, otherwise it is a variable and can be
        treated as a wildcard for exhaustiveness/usefulness checking. *)
-    | Identifier { name; _ } ->
+    | Identifier { loc; name; _ } ->
       let binding = Type_context.get_value_binding ~cx name.loc in
       (match binding.declaration with
       | CtorDecl _ ->
         let ty = type_of_loc name.loc in
-        Constructor ({ Ctor.ctor = Variant name.name; ty }, [])
+        Constructor ({ Ctor.ctor = Variant name.name; ty; loc }, [])
       | _ -> Wildcard)
     (* Named wildcard patterns create sub patterns of same length as tuple elements/record fields
        which consist of all wildcards. *)
@@ -357,19 +425,19 @@ let pattern_vector_of_case_node ~cx case_node =
       (match SMap.find name adt_sig.variants with
       | Tuple elements ->
         let elements = wildcards_vector (List.length elements) in
-        Constructor ({ Ctor.ctor = Variant name; ty }, elements)
+        Constructor ({ Ctor.ctor = Variant name; ty; loc }, elements)
       | Record fields ->
         let fields = wildcards_vector (SMap.cardinal fields) in
-        Constructor ({ Ctor.ctor = Variant name; ty }, fields)
+        Constructor ({ Ctor.ctor = Variant name; ty; loc }, fields)
       | Enum -> failwith "Expected tuple or record variant")
     | Tuple { loc; name = None; elements } ->
       let ty = type_of_loc loc in
       let elements = List.map pattern_of_pattern_node elements in
-      Constructor ({ Ctor.ctor = Tuple; ty }, elements)
+      Constructor ({ Ctor.ctor = Tuple; ty; loc }, elements)
     | Tuple { loc; name = Some name; elements } ->
       let ty = type_of_loc loc in
       let elements = List.map pattern_of_pattern_node elements in
-      Constructor ({ Ctor.ctor = Variant name.name.name; ty }, elements)
+      Constructor ({ Ctor.ctor = Variant name.name.name; ty; loc }, elements)
     | Record { loc; name; fields; _ } ->
       (* Fetch field sigs from ADT sig *)
       let name = name.name.name in
@@ -408,8 +476,23 @@ let pattern_vector_of_case_node ~cx case_node =
           field_sigs
           []
       in
-      Constructor ({ Ctor.ctor = Variant name; ty }, List.rev fields)
-    | Or _ -> failwith "TODO: Usefulness analysis for or patterns"
+      Constructor ({ Ctor.ctor = Variant name; ty; loc }, List.rev fields)
+    | Or or_ ->
+      (* Or patterns are associative so flatten all or patterns recursively gathered from either side *)
+      let rec gather_or_branches acc or_ =
+        let open Ast.Pattern in
+        let { Or.left; right; _ } = or_ in
+        let acc =
+          match left with
+          | Or or_ -> gather_or_branches acc or_
+          | _ -> pattern_of_pattern_node left :: acc
+        in
+        match right with
+        | Or or_ -> gather_or_branches acc or_
+        | _ -> pattern_of_pattern_node right :: acc
+      in
+      let or_branches = gather_or_branches [] or_ in
+      Or (List.rev or_branches)
   in
   [pattern_of_pattern_node case_node.Ast.Match.Case.pattern]
 
@@ -421,13 +504,14 @@ let rec can_compress_to_wildcard vector =
       | Wildcard -> true
       | Constructor ({ ctor = Tuple; _ }, sub_patterns) -> can_compress_to_wildcard sub_patterns
       (* Single variant ADTs may be compressed *)
-      | Constructor ({ ctor = Variant _; ty }, sub_patterns) ->
+      | Constructor ({ ctor = Variant _; ty; _ }, sub_patterns) ->
         let (_, adt_sig) = Type_util.cast_to_adt_type ty in
         SMap.cardinal adt_sig.variants = 1 && can_compress_to_wildcard sub_patterns
-      | Constructor _ -> false)
+      | Constructor _ -> false
+      | Or patterns -> can_compress_to_wildcard patterns)
     vector
 
-let string_of_pattern_vector vector =
+let string_of_pattern pattern =
   let buf = Buffer.create 16 in
   let add_char c = Buffer.add_char buf c in
   let add_string str = Buffer.add_string buf str in
@@ -449,6 +533,13 @@ let string_of_pattern_vector vector =
     match pattern with
     | _ when can_compress_to_wildcard [pattern] -> add_char '_'
     | Wildcard -> add_char '_'
+    | Or patterns ->
+      let num_patterns = List.length patterns in
+      List.iteri
+        (fun i pattern ->
+          add_pattern pattern;
+          if i <> num_patterns - 1 then add_string " | ")
+        patterns
     | Constructor ({ ctor = Unit; _ }, _) -> add_string "()"
     | Constructor ({ ctor = Bool b; _ }, _) -> add_string (Bool.to_string b)
     | Constructor ({ ctor = Int i; _ }, _) -> add_string (Int64.to_string i)
@@ -457,7 +548,7 @@ let string_of_pattern_vector vector =
       add_string s;
       add_char '"'
     | Constructor ({ ctor = Tuple; _ }, sub_patterns) -> add_tuple_pattern sub_patterns
-    | Constructor ({ ctor = Variant name; ty }, sub_patterns) ->
+    | Constructor ({ ctor = Variant name; ty; _ }, sub_patterns) ->
       let (_, adt_sig) = Type_util.cast_to_adt_type ty in
       (match SMap.find name adt_sig.variants with
       | Enum -> add_string name
@@ -506,9 +597,7 @@ let string_of_pattern_vector vector =
           add_string " }"
         ))
   in
-  (match vector with
-  | [pattern] -> add_pattern pattern
-  | patterns -> add_tuple_pattern patterns);
+  add_pattern pattern;
   Buffer.contents buf
 
 (* If there is only one argument to match, exhaustiveness check vector is a single wildcard.
@@ -525,7 +614,7 @@ let args_wildcard_vector ~cx (match_ : Ast.Match.t) =
         match_.args
     in
     let arg_wildcards = wildcards_vector (List.length match_.args) in
-    [Constructor ({ Ctor.ctor = Tuple; ty = Tuple arg_tys }, arg_wildcards)]
+    [Constructor ({ Ctor.ctor = Tuple; ty = Tuple arg_tys; loc = Loc.none }, arg_wildcards)]
 
 class match_analyzer ~cx =
   object (this)
@@ -547,7 +636,7 @@ class match_analyzer ~cx =
             (* Check for reachability of case. A match case is unreachable if it is not useful with
                respect to the matrix of all cases that appear above it in the match statement. *)
             let useful_result = useful ~create_witness:false prev_rows row in
-            ( if useful_result = [] then
+            ( if not (ExhaustiveResult.is_useful useful_result) then
               let loc = Ast_utils.pattern_loc case.pattern in
               this#add_error loc UnreachableMatchCase );
 
@@ -564,9 +653,10 @@ class match_analyzer ~cx =
          after the entire matrix of match cases. *)
       let wildcard_vector = args_wildcard_vector ~cx match_ in
       let useful_result = useful ~create_witness:true matrix wildcard_vector in
-      if useful_result <> [] then
-        let (Witness vector) = List.hd useful_result in
-        let witness_string = string_of_pattern_vector vector in
+      match ExhaustiveResult.witness useful_result with
+      | None -> ()
+      | Some witness_pattern ->
+        let witness_string = string_of_pattern witness_pattern in
         this#add_error match_.loc (InexhaustiveMatch witness_string)
   end
 
