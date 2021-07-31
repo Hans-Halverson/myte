@@ -68,7 +68,7 @@ type t =
   | IncompatibleOverridenMethodType of string * string * Type.t * Type.t
   | IncorrectOverridenMethodTypeParametersArity of string * string * int * int
   | InexhaustiveMatch of string
-  | UnreachableMatchCase
+  | UnreachablePattern
 
 and unreachable_statement_reason =
   | AfterReturn
@@ -441,4 +441,4 @@ let to_string error =
     Printf.sprintf
       "Inexhaustive match statement. For example the pattern `%s` is not matched."
       witness
-  | UnreachableMatchCase -> "Unreachable match case"
+  | UnreachablePattern -> "Unreachable pattern"

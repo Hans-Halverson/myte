@@ -51,7 +51,7 @@ module Ctor = struct
 end
 
 type pattern =
-  | Wildcard
+  | Wildcard of Loc.t
   | Constructor of Ctor.t * pattern list
   | Or of pattern list
 
@@ -59,7 +59,11 @@ type pattern_vector = pattern list
 
 type pattern_matrix = pattern_vector list
 
-let wildcards_vector n = List_utils.make n Wildcard
+(* A wildcard without a location. Can be used for all wildcards except those constructed directly
+   from pattern AST nodes. *)
+let wildcard = Wildcard Loc.none
+
+let wildcards_vector n = List_utils.make n wildcard
 
 module Completeness = struct
   type t =
@@ -71,22 +75,26 @@ module Completeness = struct
     | Unenumerable
 end
 
-type add_head_op =
+type reconstruct_op =
   | AddWildcard
   | AddCtors of Ctor.t list
   | ReconstructCtor of Ctor.t
 
-(* module type UsefulResultType = sig
+module type UsefulResultType = sig
   type t
 
   val useful : t
 
   val useless : t
 
+  val create_witness : bool
+
   val combine : t list -> t
 
-  val add_head : t -> add_head_op -> t
-end *)
+  val combine_or : (t * pattern) list -> t
+
+  val reconstruct_head : t -> reconstruct_op -> t
+end
 
 module ExhaustiveResult = struct
   type witness = Witness of pattern list
@@ -97,11 +105,15 @@ module ExhaustiveResult = struct
 
   let useless = []
 
+  let create_witness = true
+
   let combine results = List.concat results
 
-  let add_head result op =
+  let combine_or results_and_patterns = List.concat (List.map fst results_and_patterns)
+
+  let reconstruct_head result op =
     match op with
-    | AddWildcard -> List.map (fun (Witness patterns) -> Witness (Wildcard :: patterns)) result
+    | AddWildcard -> List.map (fun (Witness patterns) -> Witness (wildcard :: patterns)) result
     | AddCtors ctors ->
       let patterns =
         List.map
@@ -124,8 +136,6 @@ module ExhaustiveResult = struct
           Witness (Constructor (ctor, ctor_sub_patterns) :: rest))
         result
 
-  let is_useful result = result <> []
-
   let witness result =
     let pattern_of_patterns patterns =
       match patterns with
@@ -140,6 +150,65 @@ module ExhaustiveResult = struct
       Some (Or patterns)
 end
 
+module ReachableResult = struct
+  (* Set of useless patterns *)
+  type t =
+    (* No useless patterns *)
+    | Empty
+    (* All branches of or pattern are useless *)
+    | Full
+    (* Some patterns are useless *)
+    | Set of pattern list
+
+  let useful = Empty
+
+  let useless = Full
+
+  let create_witness = false
+
+  (* Combination of useless results of or patterns from paper *)
+  let combine_or results_and_patterns =
+    let ((first_result, first_pattern), rest) = List_utils.split_first results_and_patterns in
+    (* Keep track of all Full patterns seen previously, so that they can all be added to set if
+       a non-Full result is encountered. *)
+    let (result, _) =
+      List.fold_left
+        (fun results result ->
+          match (results, result) with
+          | ((Empty, _), (Empty, _)) -> (Empty, [])
+          | ((Full, patterns), (Full, pattern)) -> (Full, pattern :: patterns)
+          | ((Empty, _), (Full, pattern)) -> (Set [pattern], [])
+          | ((Full, patterns), (Empty, _)) -> (Set patterns, [])
+          | ((Empty, _), (Set patterns, _))
+          | ((Set patterns, _), (Empty, _)) ->
+            (Set patterns, [])
+          | ((Full, patterns1), (Set patterns2, _)) -> (Set (patterns1 @ patterns2), [])
+          | ((Set patterns, _), (Full, pattern)) -> (Set (pattern :: patterns), [])
+          | ((Set patterns1, _), (Set patterns2, _)) -> (Set (patterns1 @ patterns2), []))
+        (first_result, [first_pattern])
+        rest
+    in
+    result
+
+  (* Combination is set union *)
+  let combine results =
+    let (first, rest) = List_utils.split_first results in
+    List.fold_left
+      (fun r1 r2 ->
+        match (r1, r2) with
+        | (Empty, other)
+        | (other, Empty) ->
+          other
+        | (Full, _)
+        | (_, Full) ->
+          Full
+        | (Set s1, Set s2) -> Set (s1 @ s2))
+      first
+      rest
+
+  let reconstruct_head result _ = result
+end
+
 (* Determine whether the head constructors of a matrix form a complete signature. If so, return
    a list of all signatures. Otherwise return the missing signatures, if they can be enumerated.
    
@@ -147,7 +216,7 @@ end
 let signature_completeness ~create_witness matrix =
   let rec gather_ctors acc pattern =
     match pattern with
-    | Wildcard -> acc
+    | Wildcard _ -> acc
     | Constructor (ctor, _) -> ctor :: acc
     | Or patterns -> List.fold_left gather_ctors acc patterns
   in
@@ -291,7 +360,7 @@ let rec specialize_matrix ctor matrix =
       | Constructor (row_head_ctor, sub_patterns) when Ctor.equal ctor row_head_ctor ->
         Some [sub_patterns @ row_rest]
       | Constructor _ -> None
-      | Wildcard ->
+      | Wildcard _ ->
         let wildcard_sub_patternss = wildcards_vector (Ctor.sub_patterns_length ctor) in
         Some [wildcard_sub_patternss @ row_rest]
       | Or row_heads ->
@@ -307,87 +376,95 @@ let rec default_matrix matrix =
       let (row_head, row_rest) = List_utils.split_first row in
       match row_head with
       | Constructor _ -> None
-      | Wildcard -> Some [row_rest]
+      | Wildcard _ -> Some [row_rest]
       | Or row_heads ->
         let expanded_matrix = List.map (fun row_head -> row_head :: row_rest) row_heads in
         Some (default_matrix expanded_matrix))
     matrix
   |> List.flatten
 
-(* Implementation of `useful` function from paper. Takes a pattern matrix and a pattern vector,
-   and returns a witness of a value that matches the pattern vector but does not match any pattern
-   in the pattern matrix, if such a value exists. If such a witness exists, the pattern vector is
-   deemed "useful" with respect to the pattern matrix.
-   
-   Only create a full witness if the `create_witness` flag is set, otherwise return a sigil witness
-   whose presence indicates a useful result. *)
-let rec useful ~create_witness (matrix : pattern_matrix) (vector : pattern_vector) :
-    ExhaustiveResult.t =
-  match vector with
-  (* Base case - is useful if there are no rows in matrix *)
-  | [] ->
-    if matrix = [] then
-      ExhaustiveResult.useful
-    else
-      ExhaustiveResult.useless
-  (* Inductive case 1 - head is a constructor, so specialize matrix and recurse *)
-  | Constructor (ctor, sub_patterns) :: rest_patterns ->
-    let specialized_matrix = specialize_matrix ctor matrix in
-    let patterns = sub_patterns @ rest_patterns in
-    useful ~create_witness specialized_matrix patterns
-  | Wildcard :: rest_vector ->
-    (match signature_completeness ~create_witness matrix with
-    (* Inductive case 2a - head is wildcard and matrix's head constructors form a complete
-       signature. Create a specialized matrix and recurse for every constructor in signature. *)
-    | Complete all_ctors ->
-      let useful_results =
-        List.map
-          (fun ctor ->
-            let specialized_matrix = specialize_matrix ctor matrix in
-            let specialized_vector =
-              wildcards_vector (Ctor.sub_patterns_length ctor) @ rest_vector
-            in
-            let useful_result = useful ~create_witness specialized_matrix specialized_vector in
-            (* If there are witnesses of usefulness recreate constructor at head of witness, where
-               witness contains subpatterns for this constructor at its head. *)
-            if create_witness then
-              ExhaustiveResult.add_head useful_result (ReconstructCtor ctor)
-            else
-              useful_result)
-          all_ctors
-      in
-      ExhaustiveResult.combine useful_results
-    (* Inductive case 2b - head is wildcard and matrix's head constructors do not form a complete
-       signature. Create the default matrix and recurse. *)
-    | Incomplete missing ->
-      let default_matrix = default_matrix matrix in
-      let useful_result = useful ~create_witness default_matrix rest_vector in
-      (* If there are witnesses of usefulness add prefix for missing constructors. Unenumerable
-         missing constructors can add the generic wildcard pattern, while if there are known missing
-         constructors add a chosen missing constructor with wildcard subpatterns. *)
-      if create_witness then
-        let add_head_op =
+module UsefulAnalyzer (UsefulResult : UsefulResultType) = struct
+  (* Implementation of `useful` function from paper. Takes a pattern matrix and a pattern vector,
+     and returns a witness of a value that matches the pattern vector but does not match any pattern
+     in the pattern matrix, if such a value exists. If such a witness exists, the pattern vector is
+     deemed "useful" with respect to the pattern matrix.
+
+     Only create a full witness if the `create_witness` flag is set, otherwise return a sigil witness
+     whose presence indicates a useful result.
+
+     `is_guarded` flag specifies whether the checked vector is under a match guard, in which case
+     subpatterns should not be added to matrix in useless *)
+  let rec useful (matrix : pattern_matrix) (vector : pattern_vector) ~(is_guarded : bool) :
+      UsefulResult.t =
+    match vector with
+    (* Base case - is useful if there are no rows in matrix *)
+    | [] ->
+      if matrix = [] then
+        UsefulResult.useful
+      else
+        UsefulResult.useless
+    (* Inductive case 1 - head is a constructor, so specialize matrix and recurse *)
+    | Constructor (ctor, sub_patterns) :: rest_patterns ->
+      let specialized_matrix = specialize_matrix ctor matrix in
+      let patterns = sub_patterns @ rest_patterns in
+      let useful_result = useful ~is_guarded specialized_matrix patterns in
+      UsefulResult.reconstruct_head useful_result (ReconstructCtor ctor)
+    | Wildcard _ :: rest_vector ->
+      (match signature_completeness ~create_witness:UsefulResult.create_witness matrix with
+      (* Inductive case 2a - head is wildcard and matrix's head constructors form a complete
+         signature. Create a specialized matrix and recurse for every constructor in signature. *)
+      | Complete all_ctors ->
+        let useful_results =
+          List.map
+            (fun ctor ->
+              let specialized_matrix = specialize_matrix ctor matrix in
+              let specialized_vector =
+                wildcards_vector (Ctor.sub_patterns_length ctor) @ rest_vector
+              in
+              let useful_result = useful ~is_guarded specialized_matrix specialized_vector in
+              (* If there are witnesses of usefulness recreate constructor at head of witness, where
+                 witness contains subpatterns for this constructor at its head. *)
+              UsefulResult.reconstruct_head useful_result (ReconstructCtor ctor))
+            all_ctors
+        in
+        UsefulResult.combine useful_results
+      (* Inductive case 2b - head is wildcard and matrix's head constructors do not form a complete
+         signature. Create the default matrix and recurse. *)
+      | Incomplete missing ->
+        let default_matrix = default_matrix matrix in
+        let useful_result = useful ~is_guarded default_matrix rest_vector in
+        (* If there are witnesses of usefulness add prefix for missing constructors. Unenumerable
+           missing constructors can add the generic wildcard pattern, while if there are known missing
+           constructors add a union of them with wildcard subpatterns. *)
+        let reconstruct_op =
           match missing with
           | Unenumerable -> AddWildcard
           | Enumerable missing_ctors -> AddCtors missing_ctors
         in
-        ExhaustiveResult.add_head useful_result add_head_op
-      else
-        useful_result)
-  | Or or_sub_patterns :: rest_vector ->
-    let (_, useful_result) =
-      List.fold_left
-        (fun (matrix, prev_useful_result) or_sub_pattern ->
-          let vector = or_sub_pattern :: rest_vector in
-          let useful_result = useful ~create_witness matrix vector in
-          (* Add vector pattern to matrix to detect unreachable branches in same or pattern *)
-          let matrix = matrix @ [vector] in
-          let useful_result = ExhaustiveResult.combine [prev_useful_result; useful_result] in
-          (matrix, useful_result))
-        (matrix, ExhaustiveResult.useless)
-        or_sub_patterns
-    in
-    useful_result
+        UsefulResult.reconstruct_head useful_result reconstruct_op)
+    | Or or_sub_patterns :: rest_vector ->
+      let (_, useful_results_and_patterns) =
+        List.fold_left
+          (fun (matrix, useful_results_and_patterns) or_sub_pattern ->
+            let vector = or_sub_pattern :: rest_vector in
+            let useful_result = useful ~is_guarded matrix vector in
+            (* Add vector pattern to matrix to detect unreachable branches in same or pattern,
+               but do not add if entire pattern is guarded. *)
+            let matrix =
+              if is_guarded then
+                matrix
+              else
+                matrix @ [vector]
+            in
+            (matrix, (useful_result, or_sub_pattern) :: useful_results_and_patterns))
+          (matrix, [])
+          or_sub_patterns
+      in
+      UsefulResult.combine_or useful_results_and_patterns
+end
+
+module ExhaustiveAnalyzer = UsefulAnalyzer (ExhaustiveResult)
+module ReachableAnalyer = UsefulAnalyzer (ReachableResult)
 
 (* Convert a match case node into a pattern vector for use in exhaustiveness/reachability checking *)
 let pattern_vector_of_case_node ~cx case_node =
@@ -398,7 +475,7 @@ let pattern_vector_of_case_node ~cx case_node =
   let rec pattern_of_pattern_node pattern =
     match pattern with
     (* Wildcards and literals are emitted directly *)
-    | Ast.Pattern.Wildcard _ -> Wildcard
+    | Ast.Pattern.Wildcard loc -> Wildcard loc
     | Literal (Unit { loc }) -> Constructor ({ Ctor.ctor = Unit; ty = Unit; loc }, [])
     | Literal (Bool { loc; value }) -> Constructor ({ Ctor.ctor = Bool value; ty = Bool; loc }, [])
     | Literal (String { loc; value }) ->
@@ -415,7 +492,7 @@ let pattern_vector_of_case_node ~cx case_node =
       | CtorDecl _ ->
         let ty = type_of_loc name.loc in
         Constructor ({ Ctor.ctor = Variant name.name; ty; loc }, [])
-      | _ -> Wildcard)
+      | _ -> Wildcard loc)
     (* Named wildcard patterns create sub patterns of same length as tuple elements/record fields
        which consist of all wildcards. *)
     | NamedWildcard { loc; name } ->
@@ -471,7 +548,7 @@ let pattern_vector_of_case_node ~cx case_node =
         SMap.fold
           (fun field_name _ acc ->
             match SMap.find_opt field_name fields with
-            | None -> Wildcard :: acc
+            | None -> wildcard :: acc
             | Some pattern -> pattern :: acc)
           field_sigs
           []
@@ -501,7 +578,7 @@ let rec can_compress_to_wildcard vector =
   List.for_all
     (fun pattern ->
       match pattern with
-      | Wildcard -> true
+      | Wildcard _ -> true
       | Constructor ({ ctor = Tuple; _ }, sub_patterns) -> can_compress_to_wildcard sub_patterns
       (* Single variant ADTs may be compressed *)
       | Constructor ({ ctor = Variant _; ty; _ }, sub_patterns) ->
@@ -532,7 +609,7 @@ let string_of_pattern pattern =
   and add_pattern pattern =
     match pattern with
     | _ when can_compress_to_wildcard [pattern] -> add_char '_'
-    | Wildcard -> add_char '_'
+    | Wildcard _ -> add_char '_'
     | Or patterns ->
       let num_patterns = List.length patterns in
       List.iteri
@@ -604,7 +681,7 @@ let string_of_pattern pattern =
    Otherwise exhaustiveness check vector is a tuple containing as many wildcards as args. *)
 let args_wildcard_vector ~cx (match_ : Ast.Match.t) =
   if List.length match_.args = 1 then
-    [Wildcard]
+    [wildcard]
   else
     let arg_tys =
       List.map
@@ -632,13 +709,24 @@ class match_analyzer ~cx =
         List.fold_left
           (fun prev_rows case ->
             let row = pattern_vector_of_case_node ~cx case in
+            let is_guarded = case.guard <> None in
 
             (* Check for reachability of case. A match case is unreachable if it is not useful with
                respect to the matrix of all cases that appear above it in the match statement. *)
-            let useful_result = useful ~create_witness:false prev_rows row in
-            ( if not (ExhaustiveResult.is_useful useful_result) then
+            let reachable_result = ReachableAnalyer.useful ~is_guarded prev_rows row in
+            (match reachable_result with
+            | Empty -> ()
+            | Full ->
               let loc = Ast_utils.pattern_loc case.pattern in
-              this#add_error loc UnreachableMatchCase );
+              this#add_error loc UnreachablePattern
+            | Set patterns ->
+              List.iter
+                (fun pattern ->
+                  match pattern with
+                  | Wildcard loc -> this#add_error loc UnreachablePattern
+                  | Constructor ({ loc; _ }, _) -> this#add_error loc UnreachablePattern
+                  | _ -> ())
+                patterns);
 
             (* Do not include case in pattern matrix if it has a guard, as the guard could fail *)
             if case.guard = None then
@@ -652,8 +740,8 @@ class match_analyzer ~cx =
       (* Check exhaustiveness. A match statement is exhaustive if a wildcard vector is useful
          after the entire matrix of match cases. *)
       let wildcard_vector = args_wildcard_vector ~cx match_ in
-      let useful_result = useful ~create_witness:true matrix wildcard_vector in
-      match ExhaustiveResult.witness useful_result with
+      let exhaustive_result = ExhaustiveAnalyzer.useful ~is_guarded:false matrix wildcard_vector in
+      match ExhaustiveResult.witness exhaustive_result with
       | None -> ()
       | Some witness_pattern ->
         let witness_string = string_of_pattern witness_pattern in

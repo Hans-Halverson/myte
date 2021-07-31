@@ -1,0 +1,60 @@
+module test
+
+type Enum =
+  | Enum1
+  | Enum2
+  | Enum3
+  | Enum4
+
+fun unreachableTopLevelOrPattern(x: Enum) {
+  match (true) {
+    | true | true -> ()
+    | _ -> ()
+  }
+
+  match (true) {
+    | true | false | _ -> ()
+  }
+
+  // Unreachable inner pattern causes entire or branch to be unreachable
+  match ((1, 1)) {
+    | (_, 1) | (2, 1) -> ()
+    | _ -> ()
+  }
+
+  // If entire top level or is unreachable, highlight entire case in error
+  match (true) {
+    | true | false -> ()
+    | false | true -> ()
+  }
+
+  // Multiple unreachables
+  match (x) {
+    | Enum1 | Enum2 -> ()
+    | Enum3 | Enum1 | Enum1 -> ()
+    | Enum1 | Enum4 | Enum1 -> () 
+  }
+}
+
+fun unreachableInnerPatterns(x: Enum) {
+  match (true, 0) {
+    | (true, 1) -> ()
+    | (false, _) | (true | false, _) -> ()
+  }
+
+  // Multiple unreachable inners
+  match (x, 0) {
+    | (Enum1, 1) -> ()
+    | (Enum2 | Enum3, _) | (Enum1 | Enum2 | Enum3 | Enum4, _) -> ()
+  }
+}
+
+fun testGuardedSubpatterns() {
+  // Do not error on unreachable subpatterns in guarded cases
+  match (true) {
+    | true | true when true -> ()
+    | _ -> ()
+  }
+}
+
+fun main() {}

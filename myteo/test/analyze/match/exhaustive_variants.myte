@@ -40,7 +40,7 @@ fun testExhaustiveVariants(x: Variants1) {
 
   match (x) {
     | Enum1 -> ()
-    // Missing multiple cases - one pattern is chosen as witness
+    // Missing multiple cases
   }
 }
 

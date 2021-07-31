@@ -1,0 +1,54 @@
+Error: Unreachable pattern
+test/analyze/match/reachability_subpatterns.myte:11:13-17
+ 11 |     | true | true -> ()
+    |              ^^^^
+
+Error: Unreachable pattern
+test/analyze/match/reachability_subpatterns.myte:16:21
+ 16 |     | true | false | _ -> ()
+    |                      ^
+
+Error: Unreachable pattern
+test/analyze/match/reachability_subpatterns.myte:21:15-21
+ 21 |     | (_, 1) | (2, 1) -> ()
+    |                ^^^^^^
+
+Error: Unreachable pattern
+test/analyze/match/reachability_subpatterns.myte:28:6-18
+ 28 |     | false | true -> ()
+    |       ^^^^^^^^^^^^
+
+Error: Unreachable pattern
+test/analyze/match/reachability_subpatterns.myte:34:14-19
+ 34 |     | Enum3 | Enum1 | Enum1 -> ()
+    |               ^^^^^
+
+Error: Unreachable pattern
+test/analyze/match/reachability_subpatterns.myte:34:22-27
+ 34 |     | Enum3 | Enum1 | Enum1 -> ()
+    |                       ^^^^^
+
+Error: Unreachable pattern
+test/analyze/match/reachability_subpatterns.myte:35:6-11
+ 35 |     | Enum1 | Enum4 | Enum1 -> () 
+    |       ^^^^^
+
+Error: Unreachable pattern
+test/analyze/match/reachability_subpatterns.myte:35:22-27
+ 35 |     | Enum1 | Enum4 | Enum1 -> () 
+    |                       ^^^^^
+
+Error: Unreachable pattern
+test/analyze/match/reachability_subpatterns.myte:42:27-32
+ 42 |     | (false, _) | (true | false, _) -> ()
+    |                            ^^^^^
+
+Error: Unreachable pattern
+test/analyze/match/reachability_subpatterns.myte:48:36-41
+ 48 |     | (Enum2 | Enum3, _) | (Enum1 | Enum2 | Enum3 | Enum4, _) -> ()
+    |                                     ^^^^^
+
+Error: Unreachable pattern
+test/analyze/match/reachability_subpatterns.myte:48:44-49
+ 48 |     | (Enum2 | Enum3, _) | (Enum1 | Enum2 | Enum3 | Enum4, _) -> ()
+    |                                             ^^^^^

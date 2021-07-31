@@ -43,8 +43,8 @@ test/analyze/match/exhaustive_variants.myte:41:2-44:3
     | |   ^^^^^^^^^^^
  42 | |     | Enum1 -> ()
     | | ^^^^^^^^^^^^^^^^^
- 43 | |     // Missing multiple cases - one pattern is chosen as witness
-    | | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 43 | |     // Missing multiple cases
+    | | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  44 | |   }
     | \ ^^^^
 

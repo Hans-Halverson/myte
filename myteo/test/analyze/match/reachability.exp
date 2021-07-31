@@ -1,69 +1,69 @@
-Error: Unreachable match case
+Error: Unreachable pattern
 test/analyze/match/reachability.myte:11:6
  11 |     | _ -> ()
     |       ^
 
-Error: Unreachable match case
+Error: Unreachable pattern
 test/analyze/match/reachability.myte:16:6-15
  16 |     | (1, _, _) -> ()
     |       ^^^^^^^^^
 
-Error: Unreachable match case
+Error: Unreachable pattern
 test/analyze/match/reachability.myte:21:6-10
  21 |     | true -> ()
     |       ^^^^
 
-Error: Unreachable match case
+Error: Unreachable pattern
 test/analyze/match/reachability.myte:28:6
  28 |     | 1 -> ()
     |       ^
 
-Error: Unreachable match case
+Error: Unreachable pattern
 test/analyze/match/reachability.myte:29:6
  29 |     | 2 -> ()
     |       ^
 
-Error: Unreachable match case
+Error: Unreachable pattern
 test/analyze/match/reachability.myte:36:6
  36 |     | _ -> ()
     |       ^
 
-Error: Unreachable match case
+Error: Unreachable pattern
 test/analyze/match/reachability.myte:42:6
  42 |     | _ -> ()
     |       ^
 
-Error: Unreachable match case
+Error: Unreachable pattern
 test/analyze/match/reachability.myte:49:6
  49 |     | _ -> ()
     |       ^
 
-Error: Unreachable match case
+Error: Unreachable pattern
 test/analyze/match/reachability.myte:56:6-8
  56 |     | () -> ()
     |       ^^
 
-Error: Unreachable match case
+Error: Unreachable pattern
 test/analyze/match/reachability.myte:61:6-10
  61 |     | true -> ()
     |       ^^^^
 
-Error: Unreachable match case
+Error: Unreachable pattern
 test/analyze/match/reachability.myte:67:6
  67 |     | 1 -> ()
     |       ^
 
-Error: Unreachable match case
+Error: Unreachable pattern
 test/analyze/match/reachability.myte:73:6-9
  73 |     | "a" -> ()
     |       ^^^
 
-Error: Unreachable match case
+Error: Unreachable pattern
 test/analyze/match/reachability.myte:82:6-18
  82 |     | (true, true) -> ()
     |       ^^^^^^^^^^^^
 
-Error: Unreachable match case
+Error: Unreachable pattern
 test/analyze/match/reachability.myte:99:6-11
  99 |     | false when b -> ()
     |       ^^^^^
