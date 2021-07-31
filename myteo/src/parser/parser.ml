@@ -746,6 +746,11 @@ and parse_pattern_infix ~precedence ~is_decl env left marker =
     let right = parse_pattern ~precedence:ExpressionPrecedence.BitwiseOr ~is_decl env in
     let loc = marker env in
     Or { loc; left; right }
+  | T_AS ->
+    Env.advance env;
+    let name = parse_identifier env in
+    let loc = marker env in
+    Binding { loc; pattern = left; name }
   | _ -> left
 
 and parse_identifier_pattern ~is_decl env =

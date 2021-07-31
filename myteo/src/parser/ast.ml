@@ -351,6 +351,14 @@ and Pattern : sig
     }
   end
 
+  module Binding : sig
+    type t = {
+      loc: Loc.t;
+      pattern: Pattern.t;
+      name: Identifier.t;
+    }
+  end
+
   module Literal : sig
     type t =
       | Unit of Expression.Unit.t
@@ -363,6 +371,7 @@ and Pattern : sig
     | Identifier of ScopedIdentifier.t
     | Wildcard of Loc.t
     | NamedWildcard of NamedWildcard.t
+    | Binding of Binding.t
     | Or of Or.t
     | Tuple of Tuple.t
     | Record of Record.t

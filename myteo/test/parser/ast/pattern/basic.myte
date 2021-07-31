@@ -44,3 +44,7 @@ val (Rec _, A.B.C _) = 1
 // Parenthesized
 val (Tup _) = 1
 val (((x))) = 1
+
+// Binding
+val x as y = 1
+val (_, _ as x) as y = 1

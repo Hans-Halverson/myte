@@ -48,6 +48,7 @@ let pattern_loc patt =
   | Or { loc; _ }
   | Identifier { loc; _ }
   | NamedWildcard { loc; _ }
+  | Binding { loc; _ }
   | Tuple { loc; _ }
   | Record { loc; _ }
   | Literal (Unit { loc; _ } | Bool { loc; _ } | Int { loc; _ } | String { loc; _ }) ->
@@ -71,6 +72,7 @@ let ids_of_pattern patt =
     | Identifier { scopes = _ :: _; _ } ->
       acc
     | Identifier { scopes = []; name; _ } -> name :: acc
+    | Binding { pattern; name; _ } -> helper pattern (name :: acc)
     | Or { left; right; _ } -> helper right (helper left acc)
     | Tuple { Tuple.elements; _ } ->
       List.fold_left (fun acc element -> helper element acc) acc elements

@@ -1468,6 +1468,38 @@ and check_pattern ~cx patt =
     (loc, tvar_id)
   (*
    * ============================
+   *       Binding Pattern
+   * ============================
+   *)
+  | Binding { loc; pattern; name } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    let (_, pattern_tvar_id) = check_pattern ~cx pattern in
+    (* Find type of variable declaration *)
+    let binding = Type_context.get_value_binding ~cx name.loc in
+    let decl_ty_opt =
+      match binding.declaration with
+      | VarDecl var_decl -> Some (Type.TVar var_decl.tvar)
+      | MatchCaseVarDecl var_decl ->
+        Some (Type.TVar var_decl.tvar)
+        (* Represents an error, but should error in assignment.
+           Cannot appear in variable declarations or match patterns. *)
+      | CtorDecl _
+      | FunDecl _
+      | FunParamDecl _ ->
+        None
+    in
+    let decl_ty =
+      match decl_ty_opt with
+      | Some ty -> ty
+      | None -> Type.Any
+    in
+    (* Variable must have same type as pattern - note that variable could be declared in multiple or
+       patterns so declaration may already have been unified with a type, so assert_unify is needed. *)
+    Type_context.assert_unify ~cx name.loc decl_ty (TVar pattern_tvar_id);
+    ignore (Type_context.unify ~cx (TVar pattern_tvar_id) (TVar tvar_id));
+    (loc, tvar_id)
+  (*
+   * ============================
    *      Wildcard Pattern
    * ============================
    *)

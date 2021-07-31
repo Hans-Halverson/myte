@@ -7,3 +7,13 @@ Error: Could not resolve name `y` to value
 test/analyze/name_resolution/match_case_scope.myte:8:15
  8 |     | _ -> x + y
    |                ^
+
+Error: Name `x` already bound in pattern
+test/analyze/name_resolution/match_case_scope.myte:29:16
+ 29 |     | (_, x) as x -> x
+    |                 ^
+
+Error: Name `x` already bound in pattern
+test/analyze/name_resolution/match_case_scope.myte:30:20
+ 30 |     | (_, _ as x as x) -> x
+    |                     ^

@@ -1,7 +1,7 @@
 test/parser/ast/pattern/basic.myte
 {
   node: Module,
-  loc: 1:0-47:0,
+  loc: 1:0-51:0,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -1249,6 +1249,80 @@ test/parser/ast/pattern/basic.myte
       init: {
         node: IntLiteral,
         loc: 46:14-46:15,
+        raw: "1",
+      },
+      annot: None,
+    },
+    {
+      node: VariableDeclaration,
+      loc: 49:0-49:14,
+      kind: Immutable,
+      pattern: {
+        node: Binding,
+        loc: 49:4-49:10,
+        pattern: {
+          node: ScopedIdentifier,
+          loc: 49:4-49:5,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 49:4-49:5,
+            name: "x",
+          },
+        },
+        name: {
+          node: Identifier,
+          loc: 49:9-49:10,
+          name: "y",
+        },
+      },
+      init: {
+        node: IntLiteral,
+        loc: 49:13-49:14,
+        raw: "1",
+      },
+      annot: None,
+    },
+    {
+      node: VariableDeclaration,
+      loc: 50:0-50:24,
+      kind: Immutable,
+      pattern: {
+        node: Binding,
+        loc: 50:4-50:20,
+        pattern: {
+          node: TuplePattern,
+          loc: 50:4-50:15,
+          name: None,
+          elements: [
+            {
+              node: Wildcard,
+              loc: 50:5-50:6,
+            },
+            {
+              node: Binding,
+              loc: 50:8-50:14,
+              pattern: {
+                node: Wildcard,
+                loc: 50:8-50:9,
+              },
+              name: {
+                node: Identifier,
+                loc: 50:13-50:14,
+                name: "x",
+              },
+            },
+          ],
+        },
+        name: {
+          node: Identifier,
+          loc: 50:19-50:20,
+          name: "y",
+        },
+      },
+      init: {
+        node: IntLiteral,
+        loc: 50:23-50:24,
         raw: "1",
       },
       annot: None,

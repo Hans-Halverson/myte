@@ -89,6 +89,7 @@ class mapper =
         | Wildcard _ -> pat
         | Identifier p -> id_map this#scoped_identifier p pat (fun p' -> Identifier p')
         | NamedWildcard p -> id_map this#named_wildcard_pattern p pat (fun p' -> NamedWildcard p')
+        | Binding b -> id_map this#binding_pattern b pat (fun b' -> Binding b')
         | Or o -> id_map this#or_pattern o pat (fun o' -> Or o')
         | Tuple e -> id_map this#tuple_pattern e pat (fun e' -> Tuple e')
         | Record e -> id_map this#record_pattern e pat (fun e' -> Record e')
@@ -318,6 +319,16 @@ class mapper =
         named
       else
         { loc; name = name' }
+
+    method binding_pattern binding =
+      let open Pattern.Binding in
+      let { loc; pattern; name } = binding in
+      let pattern' = this#pattern pattern in
+      let name' = this#identifier name in
+      if pattern == pattern' && name == name' then
+        binding
+      else
+        { loc; pattern = pattern'; name = name' }
 
     method or_pattern or_ =
       let open Pattern.Or in

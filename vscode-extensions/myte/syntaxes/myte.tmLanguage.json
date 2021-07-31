@@ -501,6 +501,14 @@
 				{ "include": "#named-record-pattern" },
 				{ "include": "#parenthesized-pattern" },
 				{
+					"name": "keyword.operator.or.myte",
+					"match": "\\|"
+				},
+				{
+					"name": "keyword.other.as.myte",
+					"match": "\\bas\\b"
+				},
+				{
 					"name": "variable.other.constant.myte",
 					"match": "\\b[A-Z0-9_]+\\b"
 				},

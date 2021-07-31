@@ -66,6 +66,20 @@ fun testMatchCaseVariableTypes(x: Variant1) {
       (bar: String);
     }
   }
+
+  // Binding variables
+  match (x) {
+    | Tup1 (1, _ as x) as y -> {
+      // Intentional errors to print inferred types
+      (x: Unit);
+      (y: Unit);
+    }
+    | Tup1 (2, _ as x) as y -> {
+      // Success
+      (x: Bool);
+      (y: Variant1);
+    }
+  }
 }
 
 type CustomOption<T> =

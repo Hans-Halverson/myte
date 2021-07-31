@@ -20,4 +20,15 @@ fun test2(x: Variant) {
   }
 }
 
+fun test3() {
+  match (1, 1) {
+    // Success - binding introduces variables to body
+    | (_, _) as x -> x
+    | (_, _ as x) -> (x, x)
+    // Failure - duplicate names
+    | (_, x) as x -> x
+    | (_, _ as x as x) -> x
+  }
+}
+
 fun main() {}

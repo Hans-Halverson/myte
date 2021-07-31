@@ -1045,6 +1045,23 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               SSet.add name names
           else
             names
+        | Binding { pattern; name = { loc; name }; _ } ->
+          let names = visit pattern names in
+          (* If in match, add declaration *)
+          let binding =
+            this#add_value_declaration
+              loc
+              name
+              Function
+              (MatchCaseVarDecl (MatchCaseVariableDeclaration.mk ()))
+          in
+          this#add_value_to_scope name (Decl binding);
+          (* Check for the same name appearing twice in a pattern *)
+          if SSet.mem name names then (
+            this#add_error loc (DuplicatePatternNames name);
+            names
+          ) else
+            SSet.add name names
         (* Resolve scoped ids in enum, tuple, and record constructor patterns *)
         | NamedWildcard { name; _ } ->
           this#resolve_scoped_constructor_id name;

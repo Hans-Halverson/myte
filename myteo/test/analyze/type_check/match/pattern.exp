@@ -38,12 +38,22 @@ test/analyze/type_check/match/pattern.myte:61:7
  61 |       (y: Unit);
     |        ^
 
+Error: Expected type `Unit` but found `Bool`
+test/analyze/type_check/match/pattern.myte:74:7
+ 74 |       (x: Unit);
+    |        ^
+
+Error: Expected type `Unit` but found `Variant1`
+test/analyze/type_check/match/pattern.myte:75:7
+ 75 |       (y: Unit);
+    |        ^
+
 Error: Expected type `Variant1` but found `Variant2`
-test/analyze/type_check/match/pattern.myte:77:6-17
- 77 |     | Tup2 (x, y) -> ()
+test/analyze/type_check/match/pattern.myte:91:6-17
+ 91 |     | Tup2 (x, y) -> ()
     |       ^^^^^^^^^^^
 
 Error: Expected type `Variant1` but found `(a, b)`
-test/analyze/type_check/match/pattern.myte:79:6-12
- 79 |     | (x, y) -> ()
+test/analyze/type_check/match/pattern.myte:93:6-12
+ 93 |     | (x, y) -> ()
     |       ^^^^^^

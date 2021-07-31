@@ -476,6 +476,7 @@ let pattern_vector_of_case_node ~cx case_node =
     match pattern with
     (* Wildcards and literals are emitted directly *)
     | Ast.Pattern.Wildcard loc -> Wildcard loc
+    | Binding { pattern; _ } -> pattern_of_pattern_node pattern
     | Literal (Unit { loc }) -> Constructor ({ Ctor.ctor = Unit; ty = Unit; loc }, [])
     | Literal (Bool { loc; value }) -> Constructor ({ Ctor.ctor = Bool value; ty = Bool; loc }, [])
     | Literal (String { loc; value }) ->
