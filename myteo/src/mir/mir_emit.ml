@@ -9,6 +9,10 @@ type 'a access_chain_part =
   | AccessChainOffset of 'a Instruction.GetPointer.offset * Type.t
   | AccessChainDereference
 
+type 'a access_chain_result =
+  | GetPointerEmittedResult of 'a Value.pointer_value
+  | InlinedValueResult of 'a Value.t
+
 let rec emit_control_flow_ir (pcx : Pcx.t) : Ecx.t * cf_program =
   let ecx = Ecx.mk ~pcx in
   start_init_function ~ecx;
@@ -504,15 +508,19 @@ and emit_expression ~ecx expr =
         let binding = Type_context.get_value_binding ~cx:ecx.pcx.type_ctx ctor_id_loc in
         (match binding.declaration with
         | CtorDecl _ ->
+          (* Find MIR ADT layout this constructor *)
           let adt = type_of_loc ~ecx loc in
           let (type_args, adt_sig) = Type_util.cast_to_adt_type adt in
           let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
           (match mir_adt_layout.layout with
-          (* Find MIR aggregate type for this constructor *)
+          (* If layout is an aggregate, construct tuple *)
           | Aggregate _ ->
             let agg = Ecx.instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args in
             let agg_ptr_val = emit_construct_tuple ~ecx agg args in
-            Some agg_ptr_val)
+            Some agg_ptr_val
+          (* If layout is an inlined value there must have been a single arg, which we use directly
+             without actually constructing a tuple. *)
+          | InlineValue _ -> Some (emit_expression ~ecx (List.hd args)))
         | _ -> None)
       | _ -> None
     in
@@ -530,11 +538,17 @@ and emit_expression ~ecx expr =
    * ============================
    *)
   | Record { Record.loc; fields; _ } ->
+    let emit_field_value_expression { Record.Field.name; value; _ } =
+      match value with
+      | Some expr -> emit_expression ~ecx expr
+      | None -> emit_expression ~ecx (Identifier name)
+    in
+    (* Find MIR ADT layout for this constructor *)
     let adt = type_of_loc ~ecx loc in
     let (type_args, adt_sig) = Type_util.cast_to_adt_type adt in
     let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
     (match mir_adt_layout.layout with
-    (* Find MIR aggregate type for this constructor *)
+    (* If layout is an aggregate, construct record *)
     | Aggregate _ ->
       let agg = Ecx.instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args in
       let agg_ty = `AggregateT agg in
@@ -547,13 +561,9 @@ and emit_expression ~ecx expr =
       Ecx.emit ~ecx myte_alloc_instr;
       (* Store each argument to the record constructor in space allocated for record *)
       List.iter
-        (fun { Record.Field.name = { name; _ } as name_id; value; _ } ->
+        (fun ({ Record.Field.name = { name; _ }; _ } as field) ->
           (* Calculate offset for this element and store *)
-          let arg_var =
-            match value with
-            | Some expr -> emit_expression ~ecx expr
-            | None -> emit_expression ~ecx (Identifier name_id)
-          in
+          let arg_var = emit_field_value_expression field in
           let (element_ty, element_idx) = lookup_element agg name in
           let (element_offset_var, get_ptr_instr) =
             mk_get_pointer_instr element_ty agg_ptr_var [GetPointer.FieldIndex element_idx]
@@ -561,7 +571,8 @@ and emit_expression ~ecx expr =
           Ecx.emit ~ecx (GetPointer get_ptr_instr);
           Ecx.emit ~ecx (Store (element_offset_var, arg_var)))
         fields;
-      agg_ptr_val)
+      agg_ptr_val
+    | InlineValue _ -> failwith "Record cannot have inlined value layout")
   (*
    * ============================
    *        Access Chains
@@ -661,15 +672,19 @@ and emit_expression ~ecx expr =
   | Super _ -> failwith "TODO: Emit MIR for super expressions"
 
 and emit_expression_access_chain_load ~ecx expr =
-  let element_pointer_var = emit_expression_access_chain ~ecx expr in
-  let var_id = mk_cf_var_id () in
-  Ecx.emit ~ecx (Load (var_id, element_pointer_var));
-  var_value_of_type var_id (pointer_value_element_type element_pointer_var)
+  match emit_expression_access_chain ~ecx expr with
+  | GetPointerEmittedResult element_pointer_val ->
+    let var_id = mk_cf_var_id () in
+    Ecx.emit ~ecx (Load (var_id, element_pointer_val));
+    var_value_of_type var_id (pointer_value_element_type element_pointer_val)
+  | InlinedValueResult value -> value
 
 and emit_expression_access_chain_store ~ecx expr_lvalue expr =
-  let element_pointer_var = emit_expression_access_chain ~ecx expr_lvalue in
-  let expr_val = emit_expression ~ecx expr in
-  Ecx.emit ~ecx (Store (element_pointer_var, expr_val))
+  match emit_expression_access_chain ~ecx expr_lvalue with
+  | GetPointerEmittedResult element_pointer_val ->
+    let expr_val = emit_expression ~ecx expr in
+    Ecx.emit ~ecx (Store (element_pointer_val, expr_val))
+  | InlinedValueResult _ -> failwith "Cannot store to inlined value"
 
 and emit_expression_access_chain ~ecx expr =
   let open Expression in
@@ -723,15 +738,26 @@ and emit_expression_access_chain ~ecx expr =
     let root_var =
       maybe_emit_get_pointer_and_load_instrs target_root_var target_ty target_offsets
     in
-    (* Extract tuple element index from integer literal *)
-    (* TODO: Handle variant types - may change true element index due to tag field *)
-    let element_idx =
-      match index with
-      | IntLiteral { IntLiteral.raw; base; _ } ->
-        Integers.int64_of_string_opt raw base |> Option.get |> Int64.to_int
-      | _ -> failwith "Index of a tuple must be an int literal to pass type checking"
+    (* Extract tuple element index from integer literal and add to GetPointer offsets *)
+    let emit_get_pointer_index () =
+      let element_idx =
+        match index with
+        | IntLiteral { IntLiteral.raw; base; _ } ->
+          Integers.int64_of_string_opt raw base |> Option.get |> Int64.to_int
+        | _ -> failwith "Index of a tuple must be an int literal to pass type checking"
+      in
+      (root_var, [GetPointer.FieldIndex element_idx])
     in
-    (root_var, [GetPointer.FieldIndex element_idx])
+    match target_ty with
+    | Tuple _ -> emit_get_pointer_index ()
+    (* If layout is aggregate, index like normal tuple, otherwise is single element tuple so do
+       not need to index at all. *)
+    | ADT { adt_sig; _ } ->
+      let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
+      (match mir_adt_layout.layout with
+      | Aggregate _ -> emit_get_pointer_index ()
+      | InlineValue _ -> (root_var, []))
+    | _ -> failwith "Indexed access must be on tuple or ADT type"
   and emit_array_indexed_access { IndexedAccess.target; index; _ } =
     let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
     let (target_root_var, target_offsets) = emit_access_expression target in
@@ -756,16 +782,17 @@ and emit_expression_access_chain ~ecx expr =
     let root_var =
       maybe_emit_get_pointer_and_load_instrs target_root_var target_ty target_offsets
     in
-    (* Find layout for this record *)
+    (* Find MIR ADT layout for this record *)
     let (type_args, adt_sig) = Type_util.cast_to_adt_type target_ty in
     let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
     match mir_adt_layout.layout with
-    (* Find MIR aggregate type for this type *)
+    (* If layout is aggregate, index its field with a GetPointer offset *)
     | Aggregate _ ->
       let agg = Ecx.instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args in
       (* Find element index in the corresponding aggregate type *)
       let (_, element_idx) = lookup_element agg name in
       (root_var, [GetPointer.FieldIndex element_idx])
+    | InlineValue _ -> failwith "Record cannot have inline value layout"
   in
   let (target_var, offsets) =
     match expr with
@@ -774,8 +801,11 @@ and emit_expression_access_chain ~ecx expr =
       emit_access_expression expr
     | _ -> failwith "Must be called on access expression"
   in
-  let element_mir_ty = mir_type_of_loc ~ecx (Ast_utils.expression_loc expr) in
-  emit_get_pointer_instr target_var element_mir_ty offsets
+  if offsets = [] then
+    InlinedValueResult target_var
+  else
+    let element_mir_ty = mir_type_of_loc ~ecx (Ast_utils.expression_loc expr) in
+    GetPointerEmittedResult (emit_get_pointer_instr target_var element_mir_ty offsets)
 
 and emit_method_call
     ~ecx

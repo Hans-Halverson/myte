@@ -2,7 +2,6 @@ open Basic_collections
 open Mir_type
 open Types
 
-(* TODO: Add LayoutInlineValue *)
 (* TODO: Add LayoutPureEnum *)
 (* TODO: Add LayoutVariantUnion *)
 
@@ -33,5 +32,7 @@ module MirAdtLayout = struct
     layout: layout;
   }
 
-  and layout = Aggregate of MirAdtAggregateLayout.t
+  and layout =
+    | Aggregate of MirAdtAggregateLayout.t
+    | InlineValue of Type.t
 end

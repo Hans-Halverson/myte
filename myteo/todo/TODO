@@ -1,6 +1,4 @@
 ## Current List
-- Optimize single element tuples or records to unwrapped values
-- Ternary operator type checking
 - Correct array GetElement accesses - allow for value types (agg literals)
 - Create reference vs value types (potentially <2 words is a value type, anything mutable is ref)
 - Parse and type check anonymous functions
@@ -30,16 +28,9 @@
 - Anonymous Functions (fn x -> x)
 - Floating point numbers
 - unicode encodings
-- Algebraic data types
-  - Tagged unions
-- Match statements/expressions
-  - Exhaustiveness checking
-  - Counterexample shown in error
-- Destructuring
 - Optional/None type
 - Indexing into collections
 - Pattern matching (syntax with optional: "| ?a -> 1" or "| ?(a, b) -> 1")
-- Pattern matching exhaustiveness checking
 - Unused variable errors/warnings
 - Errors vs warnings
 - Allow mutually recursive adjacent functions in a block

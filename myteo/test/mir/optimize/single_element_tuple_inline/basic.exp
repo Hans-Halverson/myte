@@ -1,0 +1,35 @@
+type $tuple<int,byte> {int, byte}
+
+func int @test.testConstructor1(int %0) {
+  Ret %0
+}
+
+func bool @test.testConstructor2() {
+  Ret false
+}
+
+func int @test.testIndexing(int %1, int %2) {
+  %3 := Add int %1, %2
+  Ret %3
+}
+
+type test.Record {byte, $tuple<int,byte>*}
+
+func int @test.testNestedIndexing(test.Record* %4) {
+  %5 := GetPointer $tuple<int,byte>* %4.1
+  %6 := Load $tuple<int,byte>* %5
+  %7 := GetPointer int %6.0
+  %8 := Load int %7
+  %9 := Add int %8, 4
+  Ret %9
+}
+
+func int @test.testGenerics(int %10, byte %11) {
+  %12 := SExt byte %11 to int
+  %13 := Add int %10, %12
+  Ret %13
+}
+
+func int @test.main() {
+  Ret 0
+}

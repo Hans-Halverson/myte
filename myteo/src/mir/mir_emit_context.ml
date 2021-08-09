@@ -222,6 +222,7 @@ let rec instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args =
   let { MirAdtAggregateLayout.template; instantiations } =
     match mir_adt_layout.layout with
     | Aggregate aggregate_layout -> aggregate_layout
+    | _ -> failwith "Expected aggregate layout"
   in
   let instantiate_aggregate_elements type_param_bindings =
     match template with
@@ -268,6 +269,16 @@ let rec instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args =
       TypeArgsHashtbl.add instantiations mir_type_args aggregate;
       aggregate)
 
+and instantiate_mir_adt_inline_value_layout ~ecx mir_adt_layout type_args =
+  let open MirAdtLayout in
+  let adt_sig = mir_adt_layout.adt_sig in
+  match mir_adt_layout.layout with
+  | InlineValue inline_ty ->
+    let type_param_bindings = Types.bind_type_params_to_args adt_sig.type_params type_args in
+    let ty = Types.substitute_type_params type_param_bindings inline_ty in
+    to_mir_type ~ecx ty
+  | _ -> failwith "Expected aggregate layout"
+
 (* Instantiate a tuple with a particular set of element types. If a tuple with these element types
    has already been instantiated, return its aggregate type. Otherwise create new aggregate type for
    this tuple, save, and return it. *)
@@ -303,7 +314,8 @@ and to_mir_type ~ecx ty =
     (match mir_adt_layout.layout with
     | MirAdtLayout.Aggregate _ ->
       let aggregate = instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args in
-      `PointerT (`AggregateT aggregate))
+      `PointerT (`AggregateT aggregate)
+    | InlineValue _ -> instantiate_mir_adt_inline_value_layout ~ecx mir_adt_layout type_args)
   | TypeParam { name = Explicit name; _ } -> failwith ("Not allowed as value in IR " ^ name)
   | TypeParam _
   | TVar _

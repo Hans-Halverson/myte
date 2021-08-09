@@ -1,0 +1,27 @@
+module test
+
+// Testing concrete tuples
+type Tuple1 (Int)
+type Tuple2 (Bool)
+
+fun testConstructor1(x: Int): Tuple1 = Tuple1 (x)
+
+fun testConstructor2(): Tuple2 = Tuple2 (false)
+
+fun testIndexing(x: Tuple1, y: Tuple1): Int {
+  return x[0] + y[0];
+}
+
+type Record { foo: Byte, bar: (Tuple1, Byte) }
+fun testNestedIndexing(x: Record): Int {
+  return x.bar[0][0] + 4;
+}
+
+// Testing generic tuples
+type Tuple3<T> (T)
+
+fun testGenerics(x: Tuple3<Int>, y: Tuple3<Byte>): Int {
+  return x[0] + y[0].toInt();
+}
+
+fun main() {}

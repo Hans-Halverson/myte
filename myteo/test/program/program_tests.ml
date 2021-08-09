@@ -11,7 +11,7 @@ let snapshots_command ~config:_ bin files =
         fi
         echo "NOTE: Exited with code $EXIT_CODE$EXTRA_INFO"
       fi
-      rm t.out 2> /dev/null
+      rm t.out 2> /dev/null;
     |}
     bin
     files
