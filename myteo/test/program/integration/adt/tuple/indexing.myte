@@ -1,0 +1,74 @@
+module test
+
+import std.test.assertEqual
+
+type Tup1 (Int, Int, Int)
+type Tup2 (Int, Bool, String)
+type Tup3 (Int)
+type Tup4 (Bool)
+
+type GenericTup1<T> (T)
+type GenericTup2<T, U> (T, U)
+type GenericTup3<T, U, V> (T, U, V)
+
+fun makeTuple2<T, U>(x: T, y: U): GenericTup2<T, U> = GenericTup2 (x, y)
+fun makeTuple3<T, U, V>(x: T, y: U, z: V): GenericTup3<T, U, V> = GenericTup3 (x, y, z)
+
+fun testSimpleIndexing() {
+  // Homogenous
+  val x1 = Tup1 (1, 2, 3);
+  assertEqual(x1[0], 1);
+  assertEqual(x1[1], 2);
+  assertEqual(x1[2], 3);
+
+  val x2 = GenericTup3 (1, 2, 3);
+  assertEqual(x2[0], 1);
+  assertEqual(x2[1], 2);
+  assertEqual(x2[2], 3);
+
+  // Heterogeneous
+  val y1 = Tup2 (1, false, "foo");
+  assertEqual(y1[0], 1);
+  assertEqual(y1[1], false);
+  assertEqual(y1[2], "foo");
+
+  val y2 = GenericTup3 (1, false, "foo");
+  assertEqual(y2[0], 1);
+  assertEqual(y2[1], false);
+  assertEqual(y2[2], "foo");
+}
+
+fun testNestedIndexing() {
+  val x = makeTuple2(makeTuple3(1, true, 2), makeTuple3(false, 3, makeTuple2("foo", "bar")));
+
+  assertEqual(x[0][0], 1);
+  assertEqual(x[0][1], true);
+  assertEqual(x[0][2], 2);
+  assertEqual(x[1][0], false);
+  assertEqual(x[1][1], 3);
+  assertEqual(x[1][2][0], "foo");
+  assertEqual(x[1][2][1], "bar");
+}
+
+fun testSingleElementTuple() {
+  // Test simple unwrapping
+  assertEqual((Tup3 (5))[0], 5);
+  assertEqual((Tup4 (false))[0], false);
+  assertEqual((GenericTup1 (6))[0], 6);
+  assertEqual((GenericTup1 ("baz"))[0], "baz");
+
+  // Test operations on unwrapped value
+  val x1 = Tup3 (8);
+  val x2 = GenericTup1 (9);
+  assertEqual(x1[0] + x2[0], 17);
+
+  val y1 = Tup4 (true);
+  val y2 = GenericTup1 (false);
+  assertEqual(y1[0] && y2[0], false);
+}
+
+fun main() {
+  testSimpleIndexing();
+  testNestedIndexing();
+  testSingleElementTuple();
+}

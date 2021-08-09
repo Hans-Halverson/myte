@@ -18,12 +18,13 @@ let mk_aggregate_layout_instantiations (adt_sig : Types.AdtSig.t) =
 
 (* A single element tuple can be inlined as long as it does not contain its own ADT type as the
    single element. Must recurse through other inlined single element tuples as it may be cyclic. *)
-let rec can_inline_single_element_tuple (root_adt_sig : Types.AdtSig.t) (element_ty : Types.Type.t) =
+let rec can_inline_single_element_tuple (root_adt_sig : Types.AdtSig.t) (element_ty : Types.Type.t)
+    =
   match element_ty with
   | Types.Type.ADT { adt_sig; _ } when adt_sig.id = root_adt_sig.id -> false
   | ADT { adt_sig; _ } ->
     (* Recurse into other inlined non-variant single element tuples *)
-     if SMap.cardinal adt_sig.variants = 1 then
+    if SMap.cardinal adt_sig.variants = 1 then
       match SMap.choose adt_sig.variants with
       | (_, Tuple [single_element]) -> can_inline_single_element_tuple root_adt_sig single_element
       | _ -> true

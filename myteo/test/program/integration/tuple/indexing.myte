@@ -1,0 +1,38 @@
+module test
+
+import std.test.assertEqual
+
+fun testSimpleIndexing() {
+  // Homogenous
+  val x = (1, 2, 3);
+  assertEqual(x[0], 1);
+  assertEqual(x[1], 2);
+  assertEqual(x[2], 3);
+
+  // Heterogeneous
+  val y = (1, false, "foo");
+  assertEqual(y[0], 1);
+  assertEqual(y[1], false);
+  assertEqual(y[2], "foo");
+}
+
+fun makeTuple2<T, U>(x: T, y: U): (T, U) = (x, y)
+
+fun makeTuple3<T, U, V>(x: T, y: U, z: V): (T, U, V) = (x, y, z)
+
+fun testNestedIndexing() {
+  val x = makeTuple2(makeTuple3(1, true, 2), makeTuple3(false, 3, makeTuple2("foo", "bar")));
+
+  assertEqual(x[0][0], 1);
+  assertEqual(x[0][1], true);
+  assertEqual(x[0][2], 2);
+  assertEqual(x[1][0], false);
+  assertEqual(x[1][1], 3);
+  assertEqual(x[1][2][0], "foo");
+  assertEqual(x[1][2][1], "bar");
+}
+
+fun main() {
+  testSimpleIndexing();
+  testNestedIndexing();
+}

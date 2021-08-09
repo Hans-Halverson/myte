@@ -6,6 +6,9 @@ type node =
 
 type config = string option
 
+(* List of commands - first part is title, second is command itself *)
+type commands = (string * string) list
+
 let exp_file_name = "EXP"
 
 let config_file_name = "CONFIG"
@@ -69,46 +72,81 @@ let mk_diff_snippet s1 s2 =
   in
   (line_num, Option.value ~default:"" snippet)
 
-let run_snapshot_test ~command ~config ~record ~myte_files ~exp_file =
-  (* Run command in separate process and read its stdout *)
-  let formatted_command = command ~config myte_files in
-  let process_stdout = Unix.open_process_in formatted_command in
-  let act_contents = Io.chan_read_contents process_stdout in
-  begin
-    match Unix.close_process_in process_stdout with
-    | Unix.WEXITED _ -> ()
-    | _ -> failwith (Printf.sprintf "Command: %s failed to complete" formatted_command)
-  end;
-  (* Optionally re-record snapshot *)
-  let record_snapshot () = if record then write_file exp_file act_contents in
-  (* Read contents of exp file *)
-  let exp_contents_result =
-    try
-      let exp_in = open_in exp_file in
-      let exp_contents = Io.chan_read_contents exp_in in
-      close_in exp_in;
-      Ok exp_contents
-    with Sys_error err -> Error (Printf.sprintf "Reading %s failed with error: %s" exp_file err)
+let run_snapshot_test ~commands ~config ~record ~myte_files ~exp_file =
+  let formatted_commands = commands ~config myte_files in
+  let use_error_title_prefix = List.length formatted_commands <> 1 in
+  let title_prefix command_title =
+    if use_error_title_prefix then
+      command_title ^ ": "
+    else
+      ""
   in
-  let exp_contents = Result.value exp_contents_result ~default:"" in
-  if Result.is_error exp_contents_result then (
-    record_snapshot ();
-    Test.Failed (Result.get_error exp_contents_result)
-  ) else if String.equal act_contents exp_contents then
+  let commands_results =
+    List.map
+      (fun (command_title, formatted_command) ->
+        (* Run command in separate process and read its stdout *)
+        let process_stdout = Unix.open_process_in formatted_command in
+        let act_contents = Io.chan_read_contents process_stdout in
+        begin
+          match Unix.close_process_in process_stdout with
+          | Unix.WEXITED _ -> ()
+          | _ -> failwith (Printf.sprintf "Command: %s failed to complete" formatted_command)
+        end;
+        (* Optionally re-record snapshot *)
+        let record_snapshot () = if record then write_file exp_file act_contents in
+        (* Read contents of exp file *)
+        let exp_contents_result =
+          try
+            let exp_in = open_in exp_file in
+            let exp_contents = Io.chan_read_contents exp_in in
+            close_in exp_in;
+            Ok exp_contents
+          with Sys_error err ->
+            Error
+              (Printf.sprintf
+                 "%sReading %s failed with error: %s"
+                 (title_prefix command_title)
+                 exp_file
+                 err)
+        in
+        let exp_contents = Result.value exp_contents_result ~default:"" in
+        if Result.is_error exp_contents_result then (
+          record_snapshot ();
+          Test.Failed (Result.get_error exp_contents_result)
+        ) else if String.equal act_contents exp_contents then
+          Test.Passed
+        else (
+          record_snapshot ();
+          (* Extract diff to display *)
+          match mk_diff_snippet exp_contents act_contents with
+          | (line_num, diff_snippet) ->
+            (* Format error message *)
+            Test.Failed
+              (Printf.sprintf
+                 "%sActual and expected differ on line %d:\n%s"
+                 (title_prefix command_title)
+                 line_num
+                 diff_snippet)
+        ))
+      formatted_commands
+  in
+  let failed_messages =
+    List.fold_left
+      (fun acc result ->
+        match result with
+        | Test.Passed -> acc
+        | Test.Failed message -> message :: acc)
+      []
+      commands_results
+  in
+  if failed_messages = [] then
     Test.Passed
-  else (
-    record_snapshot ();
-    (* Extract diff to display *)
-    match mk_diff_snippet exp_contents act_contents with
-    | (line_num, diff_snippet) ->
-      (* Format error message *)
-      Test.Failed
-        (Printf.sprintf "Actual and expected differ on line %d:\n%s" line_num diff_snippet)
-  )
+  else
+    Test.Failed (String.concat "\n" (List.rev failed_messages))
 
 let rec node_of_file
-    ~(record : bool) (absolute_file : string) (command : config:config -> string list -> string) :
-    node option =
+    ~(record : bool) (absolute_file : string) (commands : config:config -> string list -> commands)
+    : node option =
   if Sys.is_directory absolute_file then
     let files = Array.to_list (Sys.readdir absolute_file) in
     let files = List.sort String.compare files in
@@ -121,7 +159,7 @@ let rec node_of_file
       in
       let exp_file = Filename.concat absolute_file exp_file_name in
       let config = parse_config_file (Filename.concat absolute_file config_file_name) in
-      let run () = run_snapshot_test ~command ~config ~record ~myte_files ~exp_file in
+      let run () = run_snapshot_test ~commands ~config ~record ~myte_files ~exp_file in
       Some (Test { Test.name = Filename.basename absolute_file; run })
     else
       (* If there is no EXP file this is a regular directory *)
@@ -129,7 +167,7 @@ let rec node_of_file
         List.filter_map
           (fun file ->
             let absolute_file = Filename.concat absolute_file file in
-            node_of_file ~record absolute_file command)
+            node_of_file ~record absolute_file commands)
           files
       in
       Some (Dir (Filename.basename absolute_file, nodes))
@@ -139,7 +177,7 @@ let rec node_of_file
     let myte_files = [absolute_file] in
     let exp_file = name ^ exp_file_suffix in
     let config = parse_config_file (name ^ config_file_suffix) in
-    let run () = run_snapshot_test ~command ~config ~record ~exp_file ~myte_files in
+    let run () = run_snapshot_test ~commands ~config ~record ~exp_file ~myte_files in
     Some (Test { Test.name = Filename.basename name; run })
   else
     None
@@ -162,12 +200,12 @@ let rec suite_of_nodes (dir : string) (nodes : node list) : Suite.t option =
   | _ -> Some { Suite.name = dir; tests; suites }
 
 let suite
-    ~(record : bool) (absolute_dir : string) (command : config:config -> string list -> string) :
+    ~(record : bool) (absolute_dir : string) (commands : config:config -> string list -> commands) :
     Suite.t =
   let fail_no_tests () =
     failwith (Printf.sprintf "Expected %s to recursively contain tests" absolute_dir)
   in
-  match node_of_file ~record absolute_dir command with
+  match node_of_file ~record absolute_dir commands with
   | None -> fail_no_tests ()
   | Some (Test _) -> failwith (Printf.sprintf "Expected %s to not contain tests" absolute_dir)
   | Some (Dir (dir, nodes)) ->
