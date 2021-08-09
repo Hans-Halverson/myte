@@ -1009,59 +1009,75 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
 
     method visit_pattern ~is_toplevel ~is_match patt =
       let open Ast.Pattern in
-      let rec visit patt names =
+      let add_name loc name names = SMap.add name loc names in
+      let add_name_error_on_duplicate loc name names =
+        (* Check for the same name appearing twice in a pattern *)
+        if (not is_toplevel) && SMap.mem name names then (
+          this#add_error loc (DuplicatePatternNames name);
+          names
+        ) else
+          add_name loc name names
+      in
+
+      (* If in right hand side of an or pattern, def should have already been created in left
+         hand side so add a use if def exists. *)
+      let add_name_in_or_rhs loc name names =
+        (match this#lookup_value_in_scope name scopes with
+        | Some (Decl { loc = binding_loc; _ }) -> this#add_value_use binding_loc loc
+        | _ -> ());
+        add_name loc name names
+      in
+
+      let visit_identifier ~may_be_ctor ~in_or_rhs { Identifier.loc; name } names =
+        if not is_match then
+          if in_or_rhs then
+            add_name_in_or_rhs loc name names
+          else
+            add_name_error_on_duplicate loc name names
+        else
+          (* If in a match, unscoped identifiers may refer to constructors *)
+          match this#lookup_value_in_scope name scopes with
+          | Some (Decl { loc = binding_loc; declaration = CtorDecl _; _ }) when may_be_ctor ->
+            this#add_value_use binding_loc loc;
+            names
+          (* If not a constructor this is a match case variable, so add binding *)
+          | _ ->
+            if in_or_rhs then
+              add_name_in_or_rhs loc name names
+            else
+              let binding =
+                this#add_value_declaration
+                  loc
+                  name
+                  Function
+                  (MatchCaseVarDecl (MatchCaseVariableDeclaration.mk ()))
+              in
+              this#add_value_to_scope name (Decl binding);
+              add_name_error_on_duplicate loc name names
+      in
+
+      (* Error on any variables that are not defined on both sides of or pattern. Save error locs
+         and add errors at end, to avoid duplicate errors for same variable. *)
+      let mismatched_or_errors = ref LocMap.empty in
+      let add_mismatched_or_errors names1 names2 =
+        SMap.iter
+          (fun name loc ->
+            if not (SMap.mem name names1) then
+              mismatched_or_errors := LocMap.add loc name !mismatched_or_errors)
+          names2
+      in
+
+      let rec visit ~in_or_rhs patt names =
         match patt with
         | Wildcard _
         | Literal _ ->
           names
-        | Identifier { scopes = []; name = { loc; name }; _ } ->
-          (* If in a match, unscoped identifiers may refer to constructors *)
-          let is_ctor_in_match =
-            if not is_match then
-              false
-            else
-              match this#lookup_value_in_scope name scopes with
-              | Some (Decl ({ declaration = CtorDecl _; _ } as binding)) ->
-                this#add_value_use binding.loc loc;
-                true
-              (* If not a constructor this is a match case variable, so add binding *)
-              | _ ->
-                let binding =
-                  this#add_value_declaration
-                    loc
-                    name
-                    Function
-                    (MatchCaseVarDecl (MatchCaseVariableDeclaration.mk ()))
-                in
-                this#add_value_to_scope name (Decl binding);
-                false
-          in
-          (* Check for the same name appearing twice in a pattern *)
-          if (not is_toplevel) && not is_ctor_in_match then
-            if SSet.mem name names then (
-              this#add_error loc (DuplicatePatternNames name);
-              names
-            ) else
-              SSet.add name names
-          else
-            names
-        | Binding { pattern; name = { loc; name }; _ } ->
-          let names = visit pattern names in
-          (* If in match, add declaration *)
-          let binding =
-            this#add_value_declaration
-              loc
-              name
-              Function
-              (MatchCaseVarDecl (MatchCaseVariableDeclaration.mk ()))
-          in
-          this#add_value_to_scope name (Decl binding);
-          (* Check for the same name appearing twice in a pattern *)
-          if SSet.mem name names then (
-            this#add_error loc (DuplicatePatternNames name);
-            names
-          ) else
-            SSet.add name names
+        (* Identifiers or binding patterns declare variables *)
+        | Identifier { scopes = []; name; _ } ->
+          visit_identifier ~may_be_ctor:true ~in_or_rhs name names
+        | Binding { pattern; name; _ } ->
+          let names = visit ~in_or_rhs pattern names in
+          visit_identifier ~may_be_ctor:false ~in_or_rhs name names
         (* Resolve scoped ids in enum, tuple, and record constructor patterns *)
         | NamedWildcard { name; _ } ->
           this#resolve_scoped_constructor_id name;
@@ -1069,15 +1085,28 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         | Identifier ({ scopes = _ :: _; _ } as name) ->
           this#resolve_scoped_constructor_id name;
           names
-        | Or { left; right; _ } -> visit right (visit left names)
+        (* Both sides of or patterns must define the same variables. Declarations are created for
+           variables on leftmost side, variables on right sides are uses. *)
+        | Or { left; right; _ } ->
+          let left_names = visit ~in_or_rhs left names in
+          let right_names = visit ~in_or_rhs:true right names in
+          add_mismatched_or_errors left_names right_names;
+          add_mismatched_or_errors right_names left_names;
+          left_names
         | Tuple { name; elements; _ } ->
           Option.iter this#resolve_scoped_constructor_id name;
-          List.fold_left (fun acc element -> visit element acc) names elements
+          List.fold_left (fun acc element -> visit ~in_or_rhs element acc) names elements
         | Record { name; fields; _ } ->
           this#resolve_scoped_constructor_id name;
-          List.fold_left (fun acc { Record.Field.value; _ } -> visit value acc) names fields
+          List.fold_left
+            (fun acc { Record.Field.value; _ } -> visit ~in_or_rhs value acc)
+            names
+            fields
       in
-      ignore (visit patt SSet.empty)
+      ignore (visit ~in_or_rhs:false patt SMap.empty);
+      LocMap.iter
+        (fun loc name -> this#add_error loc (MismatchedOrPatternName name))
+        !mismatched_or_errors
 
     (* Check for trait cycles in the program, returning whether there are no trait cycles in the
        program. If a trait cycle is found, an error is generated. *)

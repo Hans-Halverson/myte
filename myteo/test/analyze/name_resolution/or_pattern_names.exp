@@ -1,0 +1,89 @@
+Error: `y` must appear in all branches of or pattern
+test/analyze/name_resolution/or_pattern_names.myte:8:7
+ 8 |   val (y, _) | (_, z) = (1, 2);
+   |        ^
+
+Error: `z` must appear in all branches of or pattern
+test/analyze/name_resolution/or_pattern_names.myte:8:19
+ 8 |   val (y, _) | (_, z) = (1, 2);
+   |                    ^
+
+Error: `x` must appear in all branches of or pattern
+test/analyze/name_resolution/or_pattern_names.myte:17:6
+ 17 |     | x | (_, _) -> ()
+    |       ^
+
+Error: `x` must appear in all branches of or pattern
+test/analyze/name_resolution/or_pattern_names.myte:18:6
+ 18 |     | x | y -> ()
+    |       ^
+
+Error: `y` must appear in all branches of or pattern
+test/analyze/name_resolution/or_pattern_names.myte:18:10
+ 18 |     | x | y -> ()
+    |           ^
+
+Error: `y` must appear in all branches of or pattern
+test/analyze/name_resolution/or_pattern_names.myte:19:11
+ 19 |     | 2 | (y, z) -> ()
+    |            ^
+
+Error: `z` must appear in all branches of or pattern
+test/analyze/name_resolution/or_pattern_names.myte:19:14
+ 19 |     | 2 | (y, z) -> ()
+    |               ^
+
+Error: `x` must appear in all branches of or pattern
+test/analyze/name_resolution/or_pattern_names.myte:20:6
+ 20 |     | x | 2 | 3 | 4 -> ()
+    |       ^
+
+Error: `x` must appear in all branches of or pattern
+test/analyze/name_resolution/or_pattern_names.myte:21:10
+ 21 |     | 1 | x | 3 | 4 -> ()
+    |           ^
+
+Error: `x` must appear in all branches of or pattern
+test/analyze/name_resolution/or_pattern_names.myte:22:14
+ 22 |     | 1 | 2 | x | 4 -> ()
+    |               ^
+
+Error: `x` must appear in all branches of or pattern
+test/analyze/name_resolution/or_pattern_names.myte:23:18
+ 23 |     | 1 | 2 | 3 | x -> ()
+    |                   ^
+
+Error: `x` must appear in all branches of or pattern
+test/analyze/name_resolution/or_pattern_names.myte:32:7
+ 32 |     | (x | (1, y)) | (x | (2, x)) -> ()
+    |        ^
+
+Error: `y` must appear in all branches of or pattern
+test/analyze/name_resolution/or_pattern_names.myte:32:15
+ 32 |     | (x | (1, y)) | (x | (2, x)) -> ()
+    |                ^
+
+Error: `x` must appear in all branches of or pattern
+test/analyze/name_resolution/or_pattern_names.myte:33:7
+ 33 |     | (x | (1, x)) | (y | (2, x)) -> () // Do not report duplicate error on `y`
+    |        ^
+
+Error: `y` must appear in all branches of or pattern
+test/analyze/name_resolution/or_pattern_names.myte:33:22
+ 33 |     | (x | (1, x)) | (y | (2, x)) -> () // Do not report duplicate error on `y`
+    |                       ^
+
+Error: `x` must appear in all branches of or pattern
+test/analyze/name_resolution/or_pattern_names.myte:33:30
+ 33 |     | (x | (1, x)) | (y | (2, x)) -> () // Do not report duplicate error on `y`
+    |                               ^
+
+Error: `x` must appear in all branches of or pattern
+test/analyze/name_resolution/or_pattern_names.myte:34:22
+ 34 |     | (x | (1, x)) | (x | (2, y)) -> ()
+    |                       ^
+
+Error: `y` must appear in all branches of or pattern
+test/analyze/name_resolution/or_pattern_names.myte:34:30
+ 34 |     | (x | (1, x)) | (x | (2, y)) -> ()
+    |                               ^

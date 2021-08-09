@@ -31,6 +31,7 @@ type t =
   | NoModuleWithName of string list * bool
   | NoStaticMethod of string * string * trait_type
   | ReferenceChildOfStaticMethod of string * string * trait_type
+  | MismatchedOrPatternName of string
   | ExpectedTrait of string
   | StaticMethodOverride
   | StaticMethodSignature
@@ -283,6 +284,8 @@ let to_string error =
       method_name
       (string_of_trait_type trait_type)
       trait_name
+  | MismatchedOrPatternName name ->
+    Printf.sprintf "`%s` must appear in all branches of or pattern" name
   | ExpectedTrait name -> Printf.sprintf "Expected `%s` to be a trait" name
   | StaticMethodOverride -> Printf.sprintf "Static methods cannot be overridden"
   | StaticMethodSignature -> Printf.sprintf "Static methods must have an implementation"

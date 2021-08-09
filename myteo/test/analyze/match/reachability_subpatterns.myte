@@ -49,6 +49,18 @@ fun unreachableInnerPatterns(x: Enum) {
   }
 }
 
+fun unreachableInnerPatternPropagation() {
+  match (1, (1, (1, 1))) {
+    // Or branch in top level pattern is unreachable
+    | (_, (_, (1, _))) | (1, (1, (1, 1))) | (_, (_, (2, _))) -> ()
+    // Only inner pattern is unreachable
+    | (_, (1, (1, 1)) | (_, (3, _))) -> ()
+    // Full top level pattern is unreachable as both inner patterns are unreachable
+    | (_, (1, (1, 1)) | (_, (2, _))) -> ()
+    | _ -> ()
+  }
+}
+
 fun testGuardedSubpatterns() {
   // Do not error on unreachable subpatterns in guarded cases
   match (true) {

@@ -52,3 +52,18 @@ Error: Unreachable pattern
 test/analyze/match/reachability_subpatterns.myte:48:44-49
  48 |     | (Enum2 | Enum3, _) | (Enum1 | Enum2 | Enum3 | Enum4, _) -> ()
     |                                             ^^^^^
+
+Error: Unreachable pattern
+test/analyze/match/reachability_subpatterns.myte:55:25-41
+ 55 |     | (_, (_, (1, _))) | (1, (1, (1, 1))) | (_, (_, (2, _))) -> ()
+    |                          ^^^^^^^^^^^^^^^^
+
+Error: Unreachable pattern
+test/analyze/match/reachability_subpatterns.myte:57:10-21
+ 57 |     | (_, (1, (1, 1)) | (_, (3, _))) -> ()
+    |           ^^^^^^^^^^^
+
+Error: Unreachable pattern
+test/analyze/match/reachability_subpatterns.myte:59:6-36
+ 59 |     | (_, (1, (1, 1)) | (_, (2, _))) -> ()
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

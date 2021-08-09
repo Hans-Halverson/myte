@@ -1,0 +1,22 @@
+module test
+
+fun test() {
+  match (1, 2) {
+    // Intentional error to print type, but variable has same type in all branches
+    | (x, _) | (_, x) -> {
+      (x: Unit);
+    }
+    // Success
+    | (y, _) | (_, y) -> {
+      (y: Int);
+    }
+    | (y, _) | (_, y) | (_ as y, _) | (_, _ as y) -> ()
+  }
+
+  match (1, true) {
+    // Error - mismatched types for variable
+    | (x, _) | (_, x) -> ()
+  }
+}
+
+fun main() {}

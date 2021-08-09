@@ -1,0 +1,38 @@
+module test
+
+fun testVariableDeclarations() {
+  // Valid
+  val (x, _) | (_, x) = (1, 2);
+
+  // Invalid
+  val (y, _) | (_, z) = (1, 2);
+}
+
+fun testMatchCases() {
+  match (1, 2) {
+    // Valid
+    | x | (x, _) -> ()
+    | (x, y) | (y, x) -> ()
+    // Invalid
+    | x | (_, _) -> ()
+    | x | y -> ()
+    | 2 | (y, z) -> ()
+    | x | 2 | 3 | 4 -> ()
+    | 1 | x | 3 | 4 -> ()
+    | 1 | 2 | x | 4 -> ()
+    | 1 | 2 | 3 | x -> ()
+  }
+}
+
+fun testNested() {
+  match (1, 2) {
+    // Valid
+    | (x | (1, x)) | (x | (2, x)) -> ()
+    // Invalid
+    | (x | (1, y)) | (x | (2, x)) -> ()
+    | (x | (1, x)) | (y | (2, x)) -> () // Do not report duplicate error on `y`
+    | (x | (1, x)) | (x | (2, y)) -> ()
+  }
+}
+
+fun main() {}
