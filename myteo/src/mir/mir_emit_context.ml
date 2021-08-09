@@ -1,6 +1,6 @@
 open Basic_collections
 open Mir
-open Mir_adt
+open Mir_adt_layout
 open Mir_type
 
 module BlockBuilder = struct
@@ -31,8 +31,8 @@ type t = {
   mutable current_is_main: bool;
   (* Stack of loop contexts for all loops we are currently inside *)
   mutable current_loop_contexts: loop_context list;
-  (* ADT signature id to its corresponding MirADT record *)
-  mutable adt_sig_to_mir_adt: MirADT.t IMap.t;
+  (* ADT signature id to its corresponding MIR layout *)
+  mutable adt_sig_to_mir_layout: MirAdtLayout.t IMap.t;
   (* All tuple types used in this program, keyed by their type arguments *)
   mutable tuple_instantiations: Aggregate.t TypeArgsHashtbl.t;
   (* All instances of generic functions used in this program that have been generated so far,
@@ -67,7 +67,7 @@ let mk ~pcx =
     current_in_std_lib = false;
     current_is_main = false;
     current_loop_contexts = [];
-    adt_sig_to_mir_adt = IMap.empty;
+    adt_sig_to_mir_layout = IMap.empty;
     tuple_instantiations = TypeArgsHashtbl.create 10;
     func_instantiations = SMap.empty;
     pending_func_instantiations = SMap.empty;
@@ -206,92 +206,67 @@ let add_string_literal ~ecx loc string =
  * Generic Types
  *)
 
-let get_mir_adt ~ecx (adt_sig : Types.AdtSig.t) = IMap.find adt_sig.id ecx.adt_sig_to_mir_adt
+let get_mir_adt_layout ~ecx (adt_sig : Types.AdtSig.t) =
+  IMap.find adt_sig.id ecx.adt_sig_to_mir_layout
 
-let add_adt_sig ~ecx (adt_sig : Types.AdtSig.t) (full_name : string) (name_loc : Loc.t) =
-  let mir_adt = MirADT.mk adt_sig full_name name_loc in
-  ecx.adt_sig_to_mir_adt <- IMap.add adt_sig.id mir_adt ecx.adt_sig_to_mir_adt;
-  mir_adt
+let add_mir_adt_layout ~ecx (mir_adt_layout : MirAdtLayout.t) =
+  ecx.adt_sig_to_mir_layout <-
+    IMap.add mir_adt_layout.adt_sig.id mir_adt_layout ecx.adt_sig_to_mir_layout
 
-(* Instantiate a generic ADT with a particular set of type arguments. If there is already an
-   instance of the ADT with those type arguments return its aggregate types. Otherwise create new
-   aggregate types for this type instance, then save and return them. *)
-let rec instantiate_adt ~ecx mir_adt type_args =
-  let open MirADT in
-  let adt_sig = mir_adt.adt_sig in
-  let mir_type_args = List.map (to_mir_type ~ecx) type_args in
-  match TypeArgsHashtbl.find_opt mir_adt.instantiations mir_type_args with
-  | Some ctor_to_agg -> ctor_to_agg
-  | None ->
-    let parameterized_name =
-      if mir_adt.is_parameterized then
-        let type_args_string = TypeArgs.to_string mir_type_args in
-        Printf.sprintf "%s%s" mir_adt.name type_args_string
-      else
-        mir_adt.name
-    in
-    let mk_variant_name variant_name =
-      if has_variants mir_adt then
-        Printf.sprintf "%s::%s" parameterized_name variant_name
-      else
-        parameterized_name
-    in
-    let mk_variant_loc () =
-      if has_variants mir_adt then
-        failwith "TODO: Instantiate variants (and fix loc to come from variant) "
-      else
-        mir_adt.loc
-    in
-    let type_param_bindings = Types.bind_type_params_to_args adt_sig.type_params type_args in
-    let ctor_to_agg =
-      SMap.mapi
-        (fun variant_name variant_sig ->
-          match variant_sig with
-          | Types.AdtSig.Enum -> failwith "TODO: Instantiate enum variant sig"
-          | Tuple element_sigs ->
-            let agg_elements =
-              List.map
-                (fun element_sig ->
-                  let element_ty = Types.substitute_type_params type_param_bindings element_sig in
-                  let mir_ty = to_mir_type ~ecx element_ty in
-                  (None, mir_ty))
-                element_sigs
-            in
-            let agg =
-              mk_aggregate (mk_variant_name variant_name) (mk_variant_loc ()) agg_elements
-            in
-            add_aggregate ~ecx agg;
-            agg
-          | Record field_sigs ->
-            let agg_elements =
-              SMap.fold
-                (fun field_name field_sig agg_elements ->
-                  let element_ty = Types.substitute_type_params type_param_bindings field_sig in
-                  let mir_ty = to_mir_type ~ecx element_ty in
-                  (Some field_name, mir_ty) :: agg_elements)
-                field_sigs
-                []
-            in
-            (* Preserve order of fields in source code *)
-            let mir_variant = SMap.find variant_name mir_adt.variants in
-            let field_locs = mir_variant.field_locs in
-            let sorted_agg_elements =
-              List.sort
-                (fun (name1, _) (name2, _) ->
-                  Loc.compare
-                    (SMap.find (Option.get name1) field_locs)
-                    (SMap.find (Option.get name2) field_locs))
-                agg_elements
-            in
-            let agg =
-              mk_aggregate (mk_variant_name variant_name) (mk_variant_loc ()) sorted_agg_elements
-            in
-            add_aggregate ~ecx agg;
-            agg)
-        adt_sig.variants
-    in
-    TypeArgsHashtbl.add mir_adt.instantiations mir_type_args ctor_to_agg;
-    ctor_to_agg
+(* Instantiate a MIR aggregate layout with a particular set of type arguments. If there is already
+   an instance of the ADT with those type arguments return its aggregate type. Otherwise create new
+   aggregate type for this type instance, then save and return it. *)
+let rec instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args =
+  let open MirAdtLayout in
+  let adt_sig = mir_adt_layout.adt_sig in
+  let { MirAdtAggregateLayout.template; instantiations } =
+    match mir_adt_layout.layout with
+    | Aggregate aggregate_layout -> aggregate_layout
+  in
+  let instantiate_aggregate_elements type_param_bindings =
+    match template with
+    | MirAdtAggregateLayout.TupleTemplate element_sigs ->
+      List.map
+        (fun element_sig ->
+          let element_ty = Types.substitute_type_params type_param_bindings element_sig in
+          let mir_ty = to_mir_type ~ecx element_ty in
+          (None, mir_ty))
+        element_sigs
+    | RecordTemplate field_sigs_and_locs ->
+      let aggregate_elements_and_locs =
+        SMap.fold
+          (fun field_name (field_sig, loc) agg_elements ->
+            let element_ty = Types.substitute_type_params type_param_bindings field_sig in
+            let mir_ty = to_mir_type ~ecx element_ty in
+            ((Some field_name, mir_ty), loc) :: agg_elements)
+          field_sigs_and_locs
+          []
+      in
+      (* Preserve order of fields in source code *)
+      List.sort (fun (_, loc1) (_, loc2) -> Loc.compare loc1 loc2) aggregate_elements_and_locs
+      |> List.map fst
+  in
+  match instantiations with
+  (* Concrete layout has already been instantiated - return already created aggregate *)
+  | Concrete { contents = Some aggregate } -> aggregate
+  (* Concrete layout has not yet been instantiated - create and return aggregate *)
+  | Concrete instantiated_ref ->
+    let aggregate_elements = instantiate_aggregate_elements IMap.empty in
+    let aggregate = mk_aggregate ~ecx mir_adt_layout.name mir_adt_layout.loc aggregate_elements in
+    instantiated_ref := Some aggregate;
+    aggregate
+  (* Check if generic layout has already been instantiated with these type args, create if not *)
+  | Generic instantiations ->
+    let mir_type_args = List.map (to_mir_type ~ecx) type_args in
+    (match TypeArgsHashtbl.find_opt instantiations mir_type_args with
+    | Some aggregate -> aggregate
+    | None ->
+      let parameterized_name = mir_adt_layout.name ^ TypeArgs.to_string mir_type_args in
+      let type_param_bindings = Types.bind_type_params_to_args adt_sig.type_params type_args in
+      let aggregate_elements = instantiate_aggregate_elements type_param_bindings in
+      let aggregate = mk_aggregate ~ecx parameterized_name mir_adt_layout.loc aggregate_elements in
+      TypeArgsHashtbl.add instantiations mir_type_args aggregate;
+      aggregate)
 
 (* Instantiate a tuple with a particular set of element types. If a tuple with these element types
    has already been instantiated, return its aggregate type. Otherwise create new aggregate type for
@@ -304,9 +279,8 @@ and instantiate_tuple ~ecx element_types =
     let type_args_string = TypeArgs.to_string mir_type_args in
     let name = "$tuple" ^ type_args_string in
     let agg_elements = List.map (fun mir_ty -> (None, mir_ty)) mir_type_args in
-    let agg = mk_aggregate name Loc.none agg_elements in
+    let agg = mk_aggregate ~ecx name Loc.none agg_elements in
     TypeArgsHashtbl.add ecx.tuple_instantiations mir_type_args agg;
-    add_aggregate ~ecx agg;
     agg
 
 and to_mir_type ~ecx ty =
@@ -325,20 +299,21 @@ and to_mir_type ~ecx ty =
     let tuple_agg = instantiate_tuple ~ecx elements in
     `PointerT (`AggregateT tuple_agg)
   | ADT { adt_sig; type_args } ->
-    let mir_adt = get_mir_adt ~ecx adt_sig in
-    let variant_aggs = instantiate_adt ~ecx mir_adt type_args in
-    (* TODO: Handle variant types *)
-    let (_, agg) = SMap.choose variant_aggs in
-    `PointerT (`AggregateT agg)
+    let mir_adt_layout = get_mir_adt_layout ~ecx adt_sig in
+    (match mir_adt_layout.layout with
+    | MirAdtLayout.Aggregate _ ->
+      let aggregate = instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args in
+      `PointerT (`AggregateT aggregate))
   | TypeParam { name = Explicit name; _ } -> failwith ("Not allowed as value in IR " ^ name)
   | TypeParam _
   | TVar _
   | Any ->
     failwith "Not allowed as value in IR"
 
-and add_aggregate ~ecx agg =
-  let name = agg.Aggregate.name in
-  ecx.types <- SMap.add name agg ecx.types
+and mk_aggregate ~ecx name loc elements =
+  let aggregate = { Aggregate.id = mk_aggregate_id (); name; loc; elements } in
+  ecx.types <- SMap.add name aggregate ecx.types;
+  aggregate
 
 (*
  * Generic Functions

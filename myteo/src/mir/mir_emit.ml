@@ -1,7 +1,6 @@
 open Ast
 open Basic_collections
 open Mir
-open Mir_adt
 open Mir_type
 module Ecx = Mir_emit_context
 module Pcx = Program_context
@@ -82,27 +81,13 @@ and emit_pending_instantiations ~ecx =
 (* Create and store MIR ADT and variant objects to be used during MIR emission *)
 and emit_type_declaration ~ecx decl =
   let open TypeDeclaration in
-  let { name = { Identifier.loc; name }; decl; _ } = decl in
-  let binding = Bindings.get_type_binding ecx.pcx.bindings loc in
-  let full_name = mk_type_binding_name binding in
-  let mk_mir_adt loc =
-    let binding = Type_context.get_type_binding ~cx:ecx.pcx.type_ctx loc in
-    let type_decl = Bindings.get_type_decl binding in
-    Ecx.add_adt_sig ~ecx type_decl.adt_sig full_name loc
-  in
-  match decl with
+  match decl.decl with
   | Tuple _ ->
-    let mir_adt = mk_mir_adt loc in
-    MirADT.add_adt_variant mir_adt name loc SMap.empty
-  | Record { Record.fields; _ } ->
-    let mir_adt = mk_mir_adt loc in
-    let field_locs =
-      List.fold_left
-        (fun acc { Record.Field.loc; name = { Identifier.name; _ }; _ } -> SMap.add name loc acc)
-        SMap.empty
-        fields
-    in
-    MirADT.add_adt_variant mir_adt name loc field_locs
+    let mir_adt_layout = Mir_adt_layout_builder.mk_mir_tuple_layout ~ecx decl in
+    Ecx.add_mir_adt_layout ~ecx mir_adt_layout
+  | Record record_decl ->
+    let mir_adt_layout = Mir_adt_layout_builder.mk_mir_record_layout ~ecx decl record_decl in
+    Ecx.add_mir_adt_layout ~ecx mir_adt_layout
   | _ -> ()
 
 and emit_toplevel_variable_declaration ~ecx decl =
@@ -514,17 +499,20 @@ and emit_expression ~ecx expr =
     (* Emit tuple constructor *)
     let ctor_result_opt =
       match func with
-      | Identifier { Identifier.loc = ctor_id_loc; name }
-      | ScopedIdentifier { ScopedIdentifier.name = { Identifier.loc = ctor_id_loc; name }; _ } ->
+      | Identifier { Identifier.loc = ctor_id_loc; _ }
+      | ScopedIdentifier { ScopedIdentifier.name = { Identifier.loc = ctor_id_loc; _ }; _ } ->
         let binding = Type_context.get_value_binding ~cx:ecx.pcx.type_ctx ctor_id_loc in
         (match binding.declaration with
         | CtorDecl _ ->
-          (* Find MIR aggregate type for this constructor *)
           let adt = type_of_loc ~ecx loc in
-          let variant_aggs = adt_to_variant_aggs ~ecx adt in
-          let agg = SMap.find name variant_aggs in
-          let agg_ptr_val = emit_construct_tuple ~ecx agg args in
-          Some agg_ptr_val
+          let (type_args, adt_sig) = Type_util.cast_to_adt_type adt in
+          let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
+          (match mir_adt_layout.layout with
+          (* Find MIR aggregate type for this constructor *)
+          | Aggregate _ ->
+            let agg = Ecx.instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args in
+            let agg_ptr_val = emit_construct_tuple ~ecx agg args in
+            Some agg_ptr_val)
         | _ -> None)
       | _ -> None
     in
@@ -541,43 +529,39 @@ and emit_expression ~ecx expr =
    *     Record Constructors
    * ============================
    *)
-  | Record { Record.loc; name; fields; _ } ->
-    let name =
-      match name with
-      | Identifier { Identifier.name; _ }
-      | ScopedIdentifier { ScopedIdentifier.name = { Identifier.name; _ }; _ } ->
-        name
-      | _ -> failwith "Record name must be an identifier"
-    in
-    (* Find MIR aggregate type for this constructor *)
+  | Record { Record.loc; fields; _ } ->
     let adt = type_of_loc ~ecx loc in
-    let variant_aggs = adt_to_variant_aggs ~ecx adt in
-    let agg = SMap.find name variant_aggs in
-    let agg_ty = `AggregateT agg in
-    (* Call myte_alloc builtin to allocate space for record *)
-    let agg_ptr_var_id = mk_cf_var_id () in
-    let agg_ptr_var = `PointerV (agg_ty, agg_ptr_var_id) in
-    let (agg_ptr_val, myte_alloc_instr) =
-      Mir_builtin.(mk_call_builtin myte_alloc agg_ptr_var_id [`IntL Int32.one] [agg_ty])
-    in
-    Ecx.emit ~ecx myte_alloc_instr;
-    (* Store each argument to the record constructor in space allocated for record *)
-    List.iter
-      (fun { Record.Field.name = { name; _ } as name_id; value; _ } ->
-        (* Calculate offset for this element and store *)
-        let arg_var =
-          match value with
-          | Some expr -> emit_expression ~ecx expr
-          | None -> emit_expression ~ecx (Identifier name_id)
-        in
-        let (element_ty, element_idx) = lookup_element agg name in
-        let (element_offset_var, get_ptr_instr) =
-          mk_get_pointer_instr element_ty agg_ptr_var [GetPointer.FieldIndex element_idx]
-        in
-        Ecx.emit ~ecx (GetPointer get_ptr_instr);
-        Ecx.emit ~ecx (Store (element_offset_var, arg_var)))
-      fields;
-    agg_ptr_val
+    let (type_args, adt_sig) = Type_util.cast_to_adt_type adt in
+    let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
+    (match mir_adt_layout.layout with
+    (* Find MIR aggregate type for this constructor *)
+    | Aggregate _ ->
+      let agg = Ecx.instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args in
+      let agg_ty = `AggregateT agg in
+      (* Call myte_alloc builtin to allocate space for record *)
+      let agg_ptr_var_id = mk_cf_var_id () in
+      let agg_ptr_var = `PointerV (agg_ty, agg_ptr_var_id) in
+      let (agg_ptr_val, myte_alloc_instr) =
+        Mir_builtin.(mk_call_builtin myte_alloc agg_ptr_var_id [`IntL Int32.one] [agg_ty])
+      in
+      Ecx.emit ~ecx myte_alloc_instr;
+      (* Store each argument to the record constructor in space allocated for record *)
+      List.iter
+        (fun { Record.Field.name = { name; _ } as name_id; value; _ } ->
+          (* Calculate offset for this element and store *)
+          let arg_var =
+            match value with
+            | Some expr -> emit_expression ~ecx expr
+            | None -> emit_expression ~ecx (Identifier name_id)
+          in
+          let (element_ty, element_idx) = lookup_element agg name in
+          let (element_offset_var, get_ptr_instr) =
+            mk_get_pointer_instr element_ty agg_ptr_var [GetPointer.FieldIndex element_idx]
+          in
+          Ecx.emit ~ecx (GetPointer get_ptr_instr);
+          Ecx.emit ~ecx (Store (element_offset_var, arg_var)))
+        fields;
+      agg_ptr_val)
   (*
    * ============================
    *        Access Chains
@@ -772,13 +756,16 @@ and emit_expression_access_chain ~ecx expr =
     let root_var =
       maybe_emit_get_pointer_and_load_instrs target_root_var target_ty target_offsets
     in
+    (* Find layout for this record *)
+    let (type_args, adt_sig) = Type_util.cast_to_adt_type target_ty in
+    let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
+    match mir_adt_layout.layout with
     (* Find MIR aggregate type for this type *)
-    let variant_aggs = adt_to_variant_aggs ~ecx target_ty in
-    (* TODO: Handle variant types *)
-    let (_, agg) = SMap.choose variant_aggs in
-    (* Find element index in the corresponding aggregate type *)
-    let (_, element_idx) = lookup_element agg name in
-    (root_var, [GetPointer.FieldIndex element_idx])
+    | Aggregate _ ->
+      let agg = Ecx.instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args in
+      (* Find element index in the corresponding aggregate type *)
+      let (_, element_idx) = lookup_element agg name in
+      (root_var, [GetPointer.FieldIndex element_idx])
   in
   let (target_var, offsets) =
     match expr with
@@ -968,9 +955,6 @@ and emit_std_memory_array_copy ~ecx arg_vals _ =
     return_val
   | _ -> failwith "Array.copy expects five arguments"
 
-(* let (return_val, myte_copy_instr) = Mir_builtin.(mk_call_builtin myte_copy var_id arg_vals []) in
-   Ecx.emit ~ecx myte_copy_instr;
-   return_val *)
 and emit_std_memory_array_new ~ecx arg_vals ret_type =
   let var_id = mk_cf_var_id () in
   let (`PointerT element_ty) = cast_to_pointer_type ret_type in
@@ -1207,8 +1191,6 @@ and mk_value_binding_name binding =
     String.concat "." (binding.module_ @ [binding.name])
   | Trait trait_name -> String.concat "." (binding.module_ @ [trait_name; binding.name])
 
-and mk_type_binding_name binding = String.concat "." (binding.module_ @ [binding.name])
-
 and mk_get_pointer_instr ?(pointer_offset = None) return_ty pointer offsets =
   let var_id = mk_cf_var_id () in
   let var = `PointerV (return_ty, var_id) in
@@ -1225,8 +1207,3 @@ and mir_type_of_loc ~ecx loc =
 and type_to_mir_type ~ecx ty =
   let ty = Ecx.find_rep_non_generic_type ~ecx ty in
   Ecx.to_mir_type ~ecx ty
-
-and adt_to_variant_aggs ~ecx adt =
-  let (type_args, adt_sig) = Type_util.cast_to_adt_type adt in
-  let mir_adt = Ecx.get_mir_adt ~ecx adt_sig in
-  Ecx.instantiate_adt ~ecx mir_adt type_args

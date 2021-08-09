@@ -22,7 +22,7 @@ fun tupleTypeArgs(x: Tup1<(Unit, Byte)>) {}
 // Anonymous tuple types
 fun useAnonTup(t1: (Int, Int), t2: (Byte, Long), t3: (Int, Byte, (Bool, Unit))) {}
 
-// Do not create multiple instances of type, as type argument does not affect size
+// Nested complex types
 type TestVec<T> { buffer: (T, T), size: Int, capacity: Int }
 
 fun useTestVec(x1: TestVec<Int>, x2: TestVec<Long>) {}

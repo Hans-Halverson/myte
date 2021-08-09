@@ -52,9 +52,11 @@ func unit @test.useAnonTup($tuple<int,int>* %9, $tuple<byte,long>* %10, $tuple<i
   Ret
 }
 
-type test.TestVec {$tuple<long,long>*, int, int}
+type test.TestVec<long> {$tuple<long,long>*, int, int}
 
-func unit @test.useTestVec(test.TestVec* %12, test.TestVec* %13) {
+type test.TestVec<int> {$tuple<int,int>*, int, int}
+
+func unit @test.useTestVec(test.TestVec<int>* %12, test.TestVec<long>* %13) {
   Ret
 }
 

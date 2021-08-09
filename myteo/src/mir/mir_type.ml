@@ -39,8 +39,6 @@ let mk_aggregate_id () =
   max_aggregate_id := agg_id + 1;
   agg_id
 
-let mk_aggregate name loc elements = { Aggregate.id = mk_aggregate_id (); name; loc; elements }
-
 let rec type_to_string ty =
   match ty with
   | `UnitT -> "unit"
