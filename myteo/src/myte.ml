@@ -86,8 +86,8 @@ let dump_ir ir =
 
 let lower_to_asm pcx =
   (* Lower to IR *)
-  let (ecx, program_cf_ir) = Emit.emit_control_flow_ir pcx in
-  let program_ssa_ir = Ssa.control_flow_ir_to_ssa pcx ecx program_cf_ir in
+  let (ecx, program_cf_ir) = Mir_emit.emit_control_flow_ir pcx in
+  let program_ssa_ir = Mir_ssa.control_flow_ir_to_ssa pcx ecx program_cf_ir in
   if Opts.dump_ir () then dump_ir program_ssa_ir;
   let ir =
     if Opts.optimize () then
@@ -95,7 +95,7 @@ let lower_to_asm pcx =
     else
       Mir_optimize.transform_for_assembly program_ssa_ir
   in
-  let destructed_ir = Ssa_destruction.destruct_ssa ir in
+  let destructed_ir = Mir_ssa_destruction.destruct_ssa ir in
   (* Generate x86 program  *)
   let gcx = X86_gen.gen_x86_program destructed_ir in
   let x86_program_file = X86_pp.pp_x86_program ~gcx in

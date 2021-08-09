@@ -3,7 +3,7 @@ open Basic_collections
 open Mir
 open Mir_adt
 open Mir_type
-module Ecx = Emit_context
+module Ecx = Mir_emit_context
 module Pcx = Program_context
 
 type 'a access_chain_part =
@@ -11,7 +11,7 @@ type 'a access_chain_part =
   | AccessChainDereference
 
 let rec emit_control_flow_ir (pcx : Pcx.t) : Ecx.t * cf_program =
-  let ecx = Emit_context.mk ~pcx in
+  let ecx = Ecx.mk ~pcx in
   start_init_function ~ecx;
   emit_type_declarations ~ecx;
   emit_toplevel_variable_declarations ~ecx;

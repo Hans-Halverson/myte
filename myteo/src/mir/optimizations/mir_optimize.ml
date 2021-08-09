@@ -43,5 +43,5 @@ let apply_transforms ir transforms =
       Mir_normalizer.normalize ~ocx);
 
   let program = ocx.program in
-  apply_if_enabled SSADestruction (fun () -> ignore (Ssa_destruction.destruct_ssa program));
+  apply_if_enabled SSADestruction (fun () -> ignore (Mir_ssa_destruction.destruct_ssa program));
   ocx.program

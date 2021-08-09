@@ -114,7 +114,7 @@ and gen_function_instruction_builder ~gcx ~ir func =
   Gcx.finish_function ~gcx
 
 and gen_blocks ~gcx ~ir start_block_id label func =
-  let ordered_blocks = Block_ordering.order_blocks ~program:ir start_block_id in
+  let ordered_blocks = Mir_block_ordering.order_blocks ~program:ir start_block_id in
   List.iteri
     (fun i mir_block_id ->
       let mir_block = IMap.find mir_block_id ir.blocks in
