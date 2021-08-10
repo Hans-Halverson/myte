@@ -1,14 +1,14 @@
-#!/bin/zsh
+#!/bin/sh
 
-CURRENT_DIR=$0:A:h
-ROOT_DIR=$(dirname $CURRENT_DIR)
+set -e
+
+CURRENT_DIR=$(cd "$(dirname "$0")" && pwd)
+ROOT_DIR=$(dirname "$CURRENT_DIR")
 
 # Build myte executable
-pushd $ROOT_DIR/src
+cd "$ROOT_DIR/src"
 dune build myte.exe --no-print-directory
-popd
 
 # Build test suite
-pushd $ROOT_DIR/test
+cd "$ROOT_DIR/test"
 dune build run_tests.exe --no-print-directory
-popd

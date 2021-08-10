@@ -1,8 +1,10 @@
-#!/bin/zsh
+#!/bin/sh
 
-CURRENT_DIR=$0:A:h
-ROOT_DIR=$(dirname $CURRENT_DIR)
+set -e
 
-source $CURRENT_DIR/setup_myte_env
+CURRENT_DIR=$(cd "$(dirname "$0")" && pwd)
+ROOT_DIR=$(dirname "$CURRENT_DIR")
 
-$ROOT_DIR/_build/default/src/myte.exe $@
+. "$CURRENT_DIR/setup_myte_env"
+
+"$ROOT_DIR/_build/default/src/myte.exe" "$@"

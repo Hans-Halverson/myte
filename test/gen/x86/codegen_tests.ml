@@ -4,17 +4,17 @@ let commands ~config:_ bin files =
     ( "test",
       Printf.sprintf
         {|
-      %s --dump-asm --no-pretty-print %s && %s %s -o t.out;
-      ./t.out;
-      EXIT_CODE="$?";
-      if [[ "$EXIT_CODE" -ne 0 ]]; then
-        if [[ "$EXIT_CODE" -eq 139 ]]; then
-          EXTRA_INFO=" (Segfault)"
-        fi
-        echo "NOTE: Exited with code $EXIT_CODE$EXTRA_INFO"
-      fi
-      rm t.out 2> /dev/null
-    |}
+          %s --dump-asm --no-pretty-print %s && %s %s -o t.out;
+          ./t.out;
+          EXIT_CODE="$?";
+          if [[ "$EXIT_CODE" -ne 0 ]]; then
+            if [[ "$EXIT_CODE" -eq 139 ]]; then
+              EXTRA_INFO=" (Segfault)"
+            fi
+            echo "NOTE: Exited with code $EXIT_CODE$EXTRA_INFO"
+          fi
+          rm t.out 2> /dev/null
+        |}
         bin
         files
         bin

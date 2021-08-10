@@ -1,7 +1,7 @@
-#!/bin/zsh
+#!/bin/sh
 
-CURRENT_DIR=$0:A:h
-ROOT_DIR=$(dirname $CURRENT_DIR)
+# Only included in other scripts where ROOT_DIR has already been defined
+
 STDLIB_DIR="$ROOT_DIR/stdlib"
 
 export MYTEPATH="$STDLIB_DIR"
