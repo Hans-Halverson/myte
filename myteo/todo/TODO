@@ -39,7 +39,6 @@
 - MACROS (e.g. defined as functions that operate on the source ast and output another ast)
 
 # Full Pipeline
-- Type Checking (In Progress)
 - IR Generation (In Progress)
 - Compile IR (TODO)
   - LLVM IR backend

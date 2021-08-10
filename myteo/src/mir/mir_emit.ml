@@ -92,8 +92,8 @@ and emit_type_declaration ~ecx decl =
   | Record record_decl ->
     let mir_adt_layout = Mir_adt_layout_builder.mk_mir_record_layout ~ecx decl record_decl in
     Ecx.add_mir_adt_layout ~ecx mir_adt_layout
-  | Variant _ ->
-    let mir_adt_layout = Mir_adt_layout_builder.mk_mir_variants_layout ~ecx decl in
+  | Variant variants ->
+    let mir_adt_layout = Mir_adt_layout_builder.mk_mir_variants_layout ~ecx decl variants in
     Ecx.add_mir_adt_layout ~ecx mir_adt_layout
   | Alias _
   | Builtin ->
@@ -435,6 +435,7 @@ and emit_expression ~ecx expr =
       let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
       (match mir_adt_layout.layout with
       | PureEnum { tags; _ } -> SMap.find name tags
+      | Variants _ -> failwith "TODO: Emit enum variants"
       | Aggregate _
       | InlineValue _ ->
         failwith "Invalid layout for enum")
@@ -534,6 +535,7 @@ and emit_expression ~ecx expr =
           (* If layout is an inlined value there must have been a single arg, which we use directly
              without actually constructing a tuple. *)
           | InlineValue _ -> Some (emit_expression ~ecx (List.hd args))
+          | Variants _ -> failwith "TODO: Emit tuple variants"
           | PureEnum _ -> failwith "Invalid layout for tuple")
         | _ -> None)
       | _ -> None
@@ -586,6 +588,7 @@ and emit_expression ~ecx expr =
           Ecx.emit ~ecx (Store (element_offset_var, arg_var)))
         fields;
       agg_ptr_val
+    | Variants _ -> failwith "TODO: Emit record variants"
     | InlineValue _
     | PureEnum _ ->
       failwith "Invalid layout for record")
@@ -773,7 +776,9 @@ and emit_expression_access_chain ~ecx expr =
       (match mir_adt_layout.layout with
       | Aggregate _ -> emit_get_pointer_index ()
       | InlineValue _ -> (root_var, [])
-      | PureEnum _ -> failwith "Invalid layout for indexed access")
+      | Variants _
+      | PureEnum _ ->
+        failwith "Invalid layout for indexed access")
     | _ -> failwith "Indexed access must be on tuple or ADT type"
   and emit_array_indexed_access { IndexedAccess.target; index; _ } =
     let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
@@ -809,6 +814,7 @@ and emit_expression_access_chain ~ecx expr =
       (* Find element index in the corresponding aggregate type *)
       let (_, element_idx) = lookup_element agg name in
       (root_var, [GetPointer.FieldIndex element_idx])
+    | Variants _
     | PureEnum _
     | InlineValue _ ->
       failwith "Invalid layout for record"

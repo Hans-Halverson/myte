@@ -10,11 +10,11 @@ let get_type_node_properties ~(ecx : Ecx.t) decl_node =
   let type_decl = Bindings.get_type_decl binding in
   (id, full_name, type_decl.adt_sig)
 
-let mk_aggregate_layout_instantiations (adt_sig : Types.AdtSig.t) =
+let mk_layout_instantiations (adt_sig : Types.AdtSig.t) =
   if adt_sig.type_params <> [] then
-    MirAdtAggregateLayout.Generic (TypeArgsHashtbl.create 4)
+    Generic (TypeArgsHashtbl.create 4)
   else
-    MirAdtAggregateLayout.Concrete (ref None)
+    Concrete (ref None)
 
 (* A single element tuple can be inlined as long as it does not contain its own ADT type as the
    single element. Must recurse through other inlined single element tuples as it may be cyclic. *)
@@ -33,6 +33,13 @@ let rec can_inline_single_element_tuple (root_adt_sig : Types.AdtSig.t) (element
       true
   | _ -> true
 
+let get_record_field_locs record_node =
+  let open Ast.TypeDeclaration.Record in
+  List.fold_left
+    (fun field_locs { Field.loc; name = { name; _ }; _ } -> SMap.add name loc field_locs)
+    SMap.empty
+    record_node.fields
+
 let mk_mir_tuple_layout ~(ecx : Ecx.t) decl_node =
   let (id, full_name, adt_sig) = get_type_node_properties ~ecx decl_node in
   let element_sigs = Types.get_tuple_variant adt_sig id.name in
@@ -42,23 +49,14 @@ let mk_mir_tuple_layout ~(ecx : Ecx.t) decl_node =
       MirAdtLayout.InlineValue single_sig
     | _ ->
       Aggregate
-        {
-          template = TupleTemplate element_sigs;
-          instantiations = mk_aggregate_layout_instantiations adt_sig;
-        }
+        { template = TupleTemplate element_sigs; instantiations = mk_layout_instantiations adt_sig }
   in
   { MirAdtLayout.name = full_name; loc = id.loc; adt_sig; layout }
 
 let mk_mir_record_layout ~(ecx : Ecx.t) decl_node record_decl_node =
-  let open Ast.TypeDeclaration.Record in
   let (id, full_name, adt_sig) = get_type_node_properties ~ecx decl_node in
   let field_sigs = Types.get_record_variant adt_sig id.name in
-  let field_locs =
-    List.fold_left
-      (fun field_locs { Field.loc; name = { name; _ }; _ } -> SMap.add name loc field_locs)
-      SMap.empty
-      record_decl_node.fields
-  in
+  let field_locs = get_record_field_locs record_decl_node in
   let field_sigs_and_locs =
     SMap.mapi (fun name sig_ty -> (sig_ty, SMap.find name field_locs)) field_sigs
   in
@@ -66,56 +64,86 @@ let mk_mir_record_layout ~(ecx : Ecx.t) decl_node record_decl_node =
     MirAdtLayout.Aggregate
       {
         template = RecordTemplate field_sigs_and_locs;
-        instantiations = mk_aggregate_layout_instantiations adt_sig;
+        instantiations = mk_layout_instantiations adt_sig;
       }
   in
   { MirAdtLayout.name = full_name; loc = id.loc; adt_sig; layout }
 
-let mk_mir_variants_layout ~(ecx : Ecx.t) decl_node =
+let mk_mir_variants_layout ~(ecx : Ecx.t) decl_node variant_nodes =
   let (id, full_name, adt_sig) = get_type_node_properties ~ecx decl_node in
-  (* Split enum and data variants, sorting by order they are defined in source *)
-  let (enum_variants, data_variants) =
+  (* Collect variants and sort by order they are defined in source *)
+  let (variants, has_data_variant) =
     SMap.fold
-      (fun _ { Types.AdtSig.Variant.name; loc; kind } (enum_variants, data_variants) ->
+      (fun _ { Types.AdtSig.Variant.name; loc; kind } (variants, has_data_variant) ->
         match kind with
-        | Enum -> ((name, loc) :: enum_variants, data_variants)
+        | Enum -> ((name, loc) :: variants, has_data_variant)
         | Tuple _
         | Record _ ->
-          (enum_variants, (name, loc) :: data_variants))
+          ((name, loc) :: variants, true))
       adt_sig.variants
-      ([], [])
+      ([], false)
   in
-  let sort_variants = List.sort (fun (_, loc1) (_, loc2) -> Loc.compare loc1 loc2) in
-  let enum_variants = sort_variants enum_variants in
-  let data_variants = sort_variants data_variants in
-  (* If there are only enum variants a pure enum layout is possible, where each variant is
-     represented by a single integer of the smallest possible type. *)
-  if data_variants = [] then
-    let num_variants = List.length enum_variants in
-    let mir_type =
-      if Integers.is_out_of_unsigned_byte_range (Int64.of_int num_variants) then
-        `IntT
-      else
-        `ByteT
-    in
-    let (_, tags) =
-      List.fold_left
-        (fun (i, tags) (name, _) ->
-          let tag =
-            match mir_type with
-            | `ByteT ->
-              (* Convert signed byte to equivalent unsigned byte *)
-              if i >= 128 then
-                `ByteL (127 - i)
-              else
-                `ByteL i
-            | `IntT -> `IntL (Int32.of_int i)
-          in
-          (i + 1, SMap.add name tag tags))
-        (0, SMap.empty)
-        enum_variants
-    in
-    let layout = MirAdtLayout.PureEnum { mir_type; tags } in
+  let variants = List.sort (fun (_, loc1) (_, loc2) -> Loc.compare loc1 loc2) variants in
+  (* Assign integer tags to each variant, of the smallest possible integer type *)
+  let num_variants = List.length variants in
+  let tag_mir_type =
+    if Integers.is_out_of_unsigned_byte_range (Int64.of_int num_variants) then
+      `IntT
+    else
+      `ByteT
+  in
+  let (_, tags) =
+    List.fold_left
+      (fun (i, tags) (name, _) ->
+        let tag =
+          match tag_mir_type with
+          | `ByteT ->
+            (* Convert signed byte to equivalent unsigned byte *)
+            if i >= 128 then
+              `ByteL (127 - i)
+            else
+              `ByteL i
+          | `IntT -> `IntL (Int32.of_int i)
+        in
+        (i + 1, SMap.add name tag tags))
+      (0, SMap.empty)
+      variants
+  in
+  (* If there were no data variants, this is a pure enum variant represented as a single integer *)
+  if not has_data_variant then
+    let layout = MirAdtLayout.PureEnum { tag_mir_type; tags } in
     { MirAdtLayout.name = full_name; loc = id.loc; adt_sig; layout }
   else
-    failwith "TODO: Emit MIR layout for variants with data"
+    (* Find field locs for all record variants *)
+    let field_locs =
+      List.fold_left
+        (fun acc variant_node ->
+          match variant_node with
+          | Ast.TypeDeclaration.RecordVariant record_node ->
+            let field_locs = get_record_field_locs record_node in
+            SMap.add record_node.name.name field_locs acc
+          | _ -> acc)
+        SMap.empty
+        variant_nodes
+    in
+    (* Build templates for all data variants *)
+    let templates =
+      SMap.fold
+        (fun name variant_sig acc ->
+          match variant_sig.Types.AdtSig.Variant.kind with
+          | Enum -> acc
+          | Tuple element_sigs -> SMap.add name (TupleTemplate element_sigs) acc
+          | Record field_sigs ->
+            let field_locs = SMap.find name field_locs in
+            let field_sigs_and_locs =
+              SMap.mapi (fun name sig_ty -> (sig_ty, SMap.find name field_locs)) field_sigs
+            in
+            SMap.add name (RecordTemplate field_sigs_and_locs) acc)
+        adt_sig.variants
+        SMap.empty
+    in
+    let layout =
+      MirAdtLayout.Variants
+        { tag_mir_type; tags; templates; instantiations = mk_layout_instantiations adt_sig }
+    in
+    { MirAdtLayout.name = full_name; loc = id.loc; adt_sig; layout }

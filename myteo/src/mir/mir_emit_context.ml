@@ -226,7 +226,7 @@ let rec instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args =
   in
   let instantiate_aggregate_elements type_param_bindings =
     match template with
-    | MirAdtAggregateLayout.TupleTemplate element_sigs ->
+    | TupleTemplate element_sigs ->
       List.map
         (fun element_sig ->
           let element_ty = Types.substitute_type_params type_param_bindings element_sig in
@@ -315,7 +315,8 @@ and to_mir_type ~ecx ty =
     | MirAdtLayout.Aggregate _ ->
       let aggregate = instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args in
       `PointerT (`AggregateT aggregate)
-    | PureEnum { mir_type; _ } -> (mir_type :> Type.t)
+    | Variants _ -> failwith "TODO: Instantiate variants"
+    | PureEnum { tag_mir_type; _ } -> (tag_mir_type :> Type.t)
     | InlineValue _ -> instantiate_mir_adt_inline_value_layout ~ecx mir_adt_layout type_args)
   | TypeParam { name = Explicit name; _ } -> failwith ("Not allowed as value in IR " ^ name)
   | TypeParam _
