@@ -1,4 +1,4 @@
-name: Build and run tests
+name: Build and test
 on: [push]
 jobs:
   build:
@@ -9,7 +9,7 @@ jobs:
       - name: Set up OCaml
         uses: ocaml/setup-ocaml@v2
         with:
-          ocaml-compiler: 4.12.x
+          ocaml-compiler: 4.09.x
       - name: Install Myte dependencies
         run: opam install . --deps-only
       - name: Build Myte
