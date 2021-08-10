@@ -1,4 +1,5 @@
 (executable
   (name myte)
+  (public_name myte)
   (libraries myte_common parser analyze mir mir_optimizations codegen_x86 codegen_x86_runtime)
   (modes byte exe))
