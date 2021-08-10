@@ -368,14 +368,16 @@ and build_type_declaration ~cx decl =
       fields
   in
   match decl with
-  | { name; decl = Tuple { elements; _ }; _ } ->
+  | { name; decl = Tuple { loc; elements; _ }; _ } ->
     let adt_sig = get_adt_sig name.loc in
     let element_tys = build_element_tys ~cx elements in
-    adt_sig.variants <- SMap.singleton name.name (AdtSig.Tuple element_tys)
-  | { name; decl = Record { fields; _ }; _ } ->
+    let variant = { AdtSig.Variant.name = name.name; loc; kind = Tuple element_tys } in
+    adt_sig.variants <- SMap.singleton name.name variant
+  | { name; decl = Record { loc; fields; _ }; _ } ->
     let adt_sig = get_adt_sig name.loc in
     let field_tys = build_field_tys ~cx fields in
-    adt_sig.variants <- SMap.singleton name.name (AdtSig.Record field_tys)
+    let variant = { AdtSig.Variant.name = name.name; loc; kind = Record field_tys } in
+    adt_sig.variants <- SMap.singleton name.name variant
   | { name; decl = Variant variants; _ } ->
     let adt_sig = get_adt_sig name.loc in
     let variant_sigs =
@@ -383,13 +385,17 @@ and build_type_declaration ~cx decl =
         (fun variant_sigs variant ->
           let open Ast.Identifier in
           match variant with
-          | EnumVariant name -> SMap.add name.name AdtSig.Enum variant_sigs
-          | TupleVariant { name; elements; _ } ->
+          | EnumVariant name ->
+            let variant_sig = { AdtSig.Variant.name = name.name; loc = name.loc; kind = Enum } in
+            SMap.add name.name variant_sig variant_sigs
+          | TupleVariant { loc; name; elements; _ } ->
             let element_tys = build_element_tys ~cx elements in
-            SMap.add name.name (AdtSig.Tuple element_tys) variant_sigs
-          | RecordVariant { name; fields; _ } ->
+            let variant_sig = { AdtSig.Variant.name = name.name; loc; kind = Tuple element_tys } in
+            SMap.add name.name variant_sig variant_sigs
+          | RecordVariant { loc; name; fields; _ } ->
             let field_tys = build_field_tys ~cx fields in
-            SMap.add name.name (AdtSig.Record field_tys) variant_sigs)
+            let variant_sig = { AdtSig.Variant.name = name.name; loc; kind = Record field_tys } in
+            SMap.add name.name variant_sig variant_sigs)
         SMap.empty
         variants
     in
@@ -1032,7 +1038,7 @@ and check_expression ~cx expr =
           let adt_sig = ctor_decl.adt_sig in
           (* This is an identifier reference of a decl type, so create fresh type args for this instance *)
           let adt = Types.fresh_adt_instance adt_sig in
-          (match SMap.find name adt_sig.variants with
+          (match (SMap.find name adt_sig.variants).kind with
           (* Error on incorrect number of arguments *)
           | Tuple elements when List.length elements <> List.length args ->
             Type_context.add_error
@@ -1119,7 +1125,7 @@ and check_expression ~cx expr =
           let adt_sig = ctor_decl.adt_sig in
           (* This is an identifier reference of a decl type, so create fresh type args for this instance *)
           let adt = Types.fresh_adt_instance adt_sig in
-          (match SMap.find name adt_sig.variants with
+          (match (SMap.find name adt_sig.variants).kind with
           | Record field_sigs ->
             (* Error if `...` is found - this can only be present on patterns *)
             (match rest with
@@ -1266,7 +1272,7 @@ and check_expression ~cx expr =
       (* Can only index into ADTs with a single tuple variant *)
       | ADT { adt_sig = { variants; _ }; _ } ->
         (match SMap.choose_opt variants with
-        | Some (_, Tuple element_sigs) when SMap.cardinal variants = 1 ->
+        | Some (_, { kind = Tuple element_sigs; _ }) when SMap.cardinal variants = 1 ->
           let type_param_bindings = Types.get_adt_type_param_bindings target_rep_ty in
           check_tuple_indexed_access type_param_bindings element_sigs;
           true
@@ -1356,7 +1362,7 @@ and check_expression ~cx expr =
       (* Can only index into ADTs with a single record variant *)
       | ADT { adt_sig = { variants; _ }; _ } ->
         (match SMap.choose_opt variants with
-        | Some (_, Record field_sigs) when SMap.cardinal variants = 1 ->
+        | Some (_, { kind = Record field_sigs; _ }) when SMap.cardinal variants = 1 ->
           (match SMap.find_opt name.name field_sigs with
           | None -> false
           | Some field_sig_ty ->
@@ -1517,7 +1523,7 @@ and check_pattern ~cx patt =
     let ctor_decl = Bindings.get_ctor_decl binding in
     let adt_sig = ctor_decl.adt_sig in
     (* Check that constructor is for a tuple or record variant *)
-    (match SMap.find name.name.name adt_sig.variants with
+    (match (SMap.find name.name.name adt_sig.variants).kind with
     | Tuple _
     | Record _ ->
       ()
@@ -1587,7 +1593,7 @@ and check_pattern ~cx patt =
       | CtorDecl ctor_decl ->
         let adt_sig = ctor_decl.adt_sig in
         let adt = Types.fresh_adt_instance adt_sig in
-        (match SMap.find name adt_sig.variants with
+        (match (SMap.find name adt_sig.variants).kind with
         | Tuple element_sigs when List.length element_sigs <> List.length elements ->
           Type_context.add_error
             ~cx
@@ -1628,7 +1634,7 @@ and check_pattern ~cx patt =
       | CtorDecl ctor_decl ->
         let adt_sig = ctor_decl.adt_sig in
         let adt = Types.fresh_adt_instance adt_sig in
-        (match SMap.find name adt_sig.variants with
+        (match (SMap.find name adt_sig.variants).kind with
         | Record field_sigs ->
           (* Recurse into fields and collect all fields that are not a part of this record *)
           let (field_params, unexpected_fields) =
@@ -1703,7 +1709,7 @@ and check_pattern ~cx patt =
 
 and check_enum_variant ~cx name loc ctor_decl =
   let adt_sig = ctor_decl.Bindings.TypeDeclaration.adt_sig in
-  match SMap.find name adt_sig.variants with
+  match (SMap.find name adt_sig.variants).kind with
   | Enum ->
     if adt_sig.type_params = [] then
       Type.ADT { adt_sig; type_args = [] }
@@ -1780,7 +1786,9 @@ and check_statement ~cx stmt =
               | CtorDecl ctor_decl ->
                 (* Only add error on Enum variant, Tuple and Record variants will error due to
                    lack of arguments in check_pattern. *)
-                (match SMap.find name ctor_decl.Bindings.TypeDeclaration.adt_sig.variants with
+                (match
+                   (SMap.find name ctor_decl.Bindings.TypeDeclaration.adt_sig.variants).kind
+                 with
                 | Enum -> add_invalid_assign_error InvalidAssignmentConstructor
                 | Tuple _
                 | Record _ ->

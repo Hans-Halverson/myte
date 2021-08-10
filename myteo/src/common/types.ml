@@ -88,20 +88,28 @@ end =
   TraitBound
 
 and AdtSig : sig
+  module Variant : sig
+    type t = {
+      name: string;
+      loc: Loc.t;
+      kind: kind;
+    }
+
+    and kind =
+      | Enum
+      | Tuple of Type.t list
+      | Record of Type.t SMap.t
+  end
+
   type id = int
 
   type t = {
     id: id;
     name: string;
     mutable type_params: TypeParam.t list;
-    mutable variants: variant SMap.t;
+    mutable variants: Variant.t SMap.t;
     mutable traits: TraitSig.t list;
   }
-
-  and variant =
-    | Enum
-    | Tuple of Type.t list
-    | Record of Type.t SMap.t
 
   and instance = {
     adt_sig: t;
@@ -114,20 +122,28 @@ and AdtSig : sig
 
   val lookup_method : t -> string -> MethodSig.t option
 end = struct
+  module Variant = struct
+    type t = {
+      name: string;
+      loc: Loc.t;
+      kind: kind;
+    }
+
+    and kind =
+      | Enum
+      | Tuple of Type.t list
+      | Record of Type.t SMap.t
+  end
+
   type id = int
 
   type t = {
     id: id;
     name: string;
     mutable type_params: TypeParam.t list;
-    mutable variants: variant SMap.t;
+    mutable variants: Variant.t SMap.t;
     mutable traits: TraitSig.t list;
   }
-
-  and variant =
-    | Enum
-    | Tuple of Type.t list
-    | Record of Type.t SMap.t
 
   and instance = {
     adt_sig: t;
@@ -520,11 +536,11 @@ let get_adt_sig adt =
 let get_tuple_variant adt_sig name =
   let open AdtSig in
   match SMap.find name adt_sig.variants with
-  | Tuple element_sigs -> element_sigs
+  | { kind = Tuple element_sigs; _ } -> element_sigs
   | _ -> failwith "Expected Tuple"
 
 let get_record_variant adt_sig name =
   let open AdtSig in
   match SMap.find name adt_sig.variants with
-  | Record field_sigs -> field_sigs
+  | { kind = Record field_sigs; _ } -> field_sigs
   | _ -> failwith "Expected Record"

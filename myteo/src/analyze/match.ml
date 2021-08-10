@@ -33,7 +33,7 @@ module Ctor = struct
     | Tuple -> List.length (Type_util.cast_to_tuple_type ty)
     | Variant name ->
       let (_, adt_sig) = Type_util.cast_to_adt_type ty in
-      (match SMap.find name adt_sig.variants with
+      (match (SMap.find name adt_sig.variants).kind with
       | Enum -> 0
       | Tuple elements -> List.length elements
       | Record fields -> SMap.cardinal fields)
@@ -500,7 +500,7 @@ let pattern_vector_of_case_node ~cx case_node =
       let name = name.name.name in
       let ty = type_of_loc loc in
       let (_, adt_sig) = Type_util.cast_to_adt_type ty in
-      (match SMap.find name adt_sig.variants with
+      (match (SMap.find name adt_sig.variants).kind with
       | Tuple elements ->
         let elements = wildcards_vector (List.length elements) in
         Constructor ({ Ctor.ctor = Variant name; ty; loc }, elements)
@@ -522,7 +522,7 @@ let pattern_vector_of_case_node ~cx case_node =
       let ty = type_of_loc loc in
       let (_, adt_sig) = Type_util.cast_to_adt_type ty in
       let field_sigs =
-        match SMap.find name adt_sig.variants with
+        match (SMap.find name adt_sig.variants).kind with
         | Record field_sigs -> field_sigs
         | _ -> failwith "Expected record variant"
       in
@@ -628,7 +628,7 @@ let string_of_pattern pattern =
     | Constructor ({ ctor = Tuple; _ }, sub_patterns) -> add_tuple_pattern sub_patterns
     | Constructor ({ ctor = Variant name; ty; _ }, sub_patterns) ->
       let (_, adt_sig) = Type_util.cast_to_adt_type ty in
-      (match SMap.find name adt_sig.variants with
+      (match (SMap.find name adt_sig.variants).kind with
       | Enum -> add_string name
       | Tuple _ ->
         add_string name;

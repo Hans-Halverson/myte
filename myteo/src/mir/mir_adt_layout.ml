@@ -2,7 +2,6 @@ open Basic_collections
 open Mir_type
 open Types
 
-(* TODO: Add LayoutPureEnum *)
 (* TODO: Add LayoutVariantUnion *)
 
 module MirAdtAggregateLayout = struct
@@ -24,6 +23,13 @@ module MirAdtAggregateLayout = struct
     | Generic of Aggregate.t TypeArgsHashtbl.t
 end
 
+module MirAdtPureEnumLayout = struct
+  type t = {
+    mir_type: [ `ByteT | `IntT ];
+    tags: Mir.cf_value SMap.t;
+  }
+end
+
 module MirAdtLayout = struct
   type t = {
     adt_sig: AdtSig.t;
@@ -34,5 +40,6 @@ module MirAdtLayout = struct
 
   and layout =
     | Aggregate of MirAdtAggregateLayout.t
+    | PureEnum of MirAdtPureEnumLayout.t
     | InlineValue of Type.t
 end

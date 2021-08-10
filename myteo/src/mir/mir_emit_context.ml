@@ -315,6 +315,7 @@ and to_mir_type ~ecx ty =
     | MirAdtLayout.Aggregate _ ->
       let aggregate = instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args in
       `PointerT (`AggregateT aggregate)
+    | PureEnum { mir_type; _ } -> (mir_type :> Type.t)
     | InlineValue _ -> instantiate_mir_adt_inline_value_layout ~ecx mir_adt_layout type_args)
   | TypeParam { name = Explicit name; _ } -> failwith ("Not allowed as value in IR " ^ name)
   | TypeParam _

@@ -26,7 +26,8 @@ let rec can_inline_single_element_tuple (root_adt_sig : Types.AdtSig.t) (element
     (* Recurse into other inlined non-variant single element tuples *)
     if SMap.cardinal adt_sig.variants = 1 then
       match SMap.choose adt_sig.variants with
-      | (_, Tuple [single_element]) -> can_inline_single_element_tuple root_adt_sig single_element
+      | (_, { kind = Tuple [single_element]; _ }) ->
+        can_inline_single_element_tuple root_adt_sig single_element
       | _ -> true
     else
       true
@@ -42,7 +43,7 @@ let mk_mir_tuple_layout ~(ecx : Ecx.t) decl_node =
     | _ ->
       Aggregate
         {
-          MirAdtAggregateLayout.template = TupleTemplate element_sigs;
+          template = TupleTemplate element_sigs;
           instantiations = mk_aggregate_layout_instantiations adt_sig;
         }
   in
@@ -64,8 +65,57 @@ let mk_mir_record_layout ~(ecx : Ecx.t) decl_node record_decl_node =
   let layout =
     MirAdtLayout.Aggregate
       {
-        MirAdtAggregateLayout.template = RecordTemplate field_sigs_and_locs;
+        template = RecordTemplate field_sigs_and_locs;
         instantiations = mk_aggregate_layout_instantiations adt_sig;
       }
   in
   { MirAdtLayout.name = full_name; loc = id.loc; adt_sig; layout }
+
+let mk_mir_variants_layout ~(ecx : Ecx.t) decl_node =
+  let (id, full_name, adt_sig) = get_type_node_properties ~ecx decl_node in
+  (* Split enum and data variants, sorting by order they are defined in source *)
+  let (enum_variants, data_variants) =
+    SMap.fold
+      (fun _ { Types.AdtSig.Variant.name; loc; kind } (enum_variants, data_variants) ->
+        match kind with
+        | Enum -> ((name, loc) :: enum_variants, data_variants)
+        | Tuple _
+        | Record _ ->
+          (enum_variants, (name, loc) :: data_variants))
+      adt_sig.variants
+      ([], [])
+  in
+  let sort_variants = List.sort (fun (_, loc1) (_, loc2) -> Loc.compare loc1 loc2) in
+  let enum_variants = sort_variants enum_variants in
+  let data_variants = sort_variants data_variants in
+  (* If there are only enum variants a pure enum layout is possible, where each variant is
+     represented by a single integer of the smallest possible type. *)
+  if data_variants = [] then
+    let num_variants = List.length enum_variants in
+    let mir_type =
+      if Integers.is_out_of_unsigned_byte_range (Int64.of_int num_variants) then
+        `IntT
+      else
+        `ByteT
+    in
+    let (_, tags) =
+      List.fold_left
+        (fun (i, tags) (name, _) ->
+          let tag =
+            match mir_type with
+            | `ByteT ->
+              (* Convert signed byte to equivalent unsigned byte *)
+              if i >= 128 then
+                `ByteL (127 - i)
+              else
+                `ByteL i
+            | `IntT -> `IntL (Int32.of_int i)
+          in
+          (i + 1, SMap.add name tag tags))
+        (0, SMap.empty)
+        enum_variants
+    in
+    let layout = MirAdtLayout.PureEnum { mir_type; tags } in
+    { MirAdtLayout.name = full_name; loc = id.loc; adt_sig; layout }
+  else
+    failwith "TODO: Emit MIR layout for variants with data"
