@@ -10,4 +10,5 @@ jobs:
         uses: ocaml/setup-ocaml@v2
         with:
           ocaml-compiler: 4.12.x
+      - run: opam install . --deps-only
       - run: ./scripts/build
