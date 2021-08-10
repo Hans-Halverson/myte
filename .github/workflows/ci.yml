@@ -31,10 +31,9 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: myte-build-macos
-          path: build.tgz
       - name: Unzip file
         run: |
-         tar -xzf build.tgz
-         rm build.tgz
+         tar -xzf myte-build-macos
+         rm myte-build-macos
       - name: Run Myte tests
         run: ./scripts/run_tests
