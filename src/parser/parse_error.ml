@@ -21,6 +21,9 @@ type t =
   | EmptyTuple
   | SingleVariant
   | InvalidBuiltin
+  | FileDoesNotExist of string
+  | FileIsDirectory of string
+  | CannotOpenFile of string
 
 exception Fatal of (Loc.t * t)
 
@@ -82,3 +85,6 @@ let to_string error =
   | SingleVariant -> "Variant type must have at least two variants"
   | InvalidBuiltin ->
     "A type alias cannot be builtin. Only function and type declarations can be builtin."
+  | FileDoesNotExist file -> Printf.sprintf "Cannot find file %s" file
+  | FileIsDirectory file -> Printf.sprintf "File %s is a directory" file
+  | CannotOpenFile file -> Printf.sprintf "Cannot open file %s" file

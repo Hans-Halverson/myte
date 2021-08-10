@@ -48,7 +48,17 @@ let mark_loc env =
   let start_loc = Env.loc env in
   (fun env -> Loc.between start_loc (Env.prev_loc env))
 
-let rec parse_file file = parse (Parser_env.from_file file)
+let rec parse_file file =
+  let open Parse_error in
+  if not (Sys.file_exists file) then
+    Error [(Loc.none, FileDoesNotExist file)]
+  else if Sys.is_directory file then
+    Error [(Loc.none, FileIsDirectory file)]
+  else
+    try
+      let env = Parser_env.from_file file in
+      parse env
+    with Sys_error _ -> Error [(Loc.none, CannotOpenFile file)]
 
 and parse_string str = parse (Parser_env.from_string str)
 
@@ -60,23 +70,17 @@ and parse env =
       let toplevel = parse_toplevel env in
       helper (toplevel :: toplevels)
   in
-  let (loc, module_, imports, toplevels, errors) =
-    try
-      let module_ = parse_module env in
-      let imports = parse_imports env in
-      let toplevels = helper [] in
-      let loc = { (Env.loc env) with Loc.start = Loc.first_pos } in
-      (loc, module_, imports, toplevels, Env.errors env)
-    with Parse_error.Fatal (loc, err) ->
-      let dummy_module =
-        {
-          Module.Module.loc;
-          name = { ScopedIdentifier.loc; name = { Identifier.loc; name = "module" }; scopes = [] };
-        }
-      in
-      (Loc.none, dummy_module, [], [], [(loc, err)])
-  in
-  ({ Module.loc; module_; imports; toplevels }, errors)
+  try
+    let module_ = parse_module env in
+    let imports = parse_imports env in
+    let toplevels = helper [] in
+    let loc = { (Env.loc env) with Loc.start = Loc.first_pos } in
+    let errors = Env.errors env in
+    if errors = [] then
+      Ok { Module.loc; module_; imports; toplevels }
+    else
+      Error errors
+  with Parse_error.Fatal (loc, err) -> Error [(loc, err)]
 
 and parse_module env =
   let open Module in

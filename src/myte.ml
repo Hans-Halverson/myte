@@ -2,7 +2,17 @@ open Basic_collections
 
 let print_errors errors =
   let errors = List.sort (fun (loc1, _) (loc2, _) -> Loc.compare loc1 loc2) errors in
-  Printf.printf "%s" (String.concat "\n" (List.map (fun (loc, err) -> Error_pp.pp loc err) errors))
+  Printf.printf
+    "%s"
+    (String.concat
+       "\n"
+       (List.map
+          (fun (loc, err) ->
+            if loc <> Loc.none then
+              Error_pp.pp loc err
+            else
+              Error_pp.print_message_line err)
+          errors))
 
 let print_error_message msg = print_string (Error_pp.print_message_line msg)
 
@@ -16,8 +26,9 @@ let parse_files files =
   let (asts, errors) =
     SSet.fold
       (fun file (asts, errors) ->
-        let (ast, parse_errors) = Parser.parse_file file in
-        ((file, ast) :: asts, parse_errors :: errors))
+        match Parser.parse_file file with
+        | Ok ast -> ((file, ast) :: asts, errors)
+        | Error parse_errors -> (asts, parse_errors :: errors))
       files
       ([], [])
   in
