@@ -14,11 +14,13 @@ jobs:
         run: opam install . --deps-only
       - name: Build Myte
         run: opam exec -- ./scripts/build
+      - name: Bundle files
+        with: tar -czf build.tgz _build/**/*.exe
       - name: Upload build artifact
         uses: actions/upload-artifact@v2
         with:
           name: myte-build-macos
-          path: '_build/**/*.exe'
+          path: build.tgz
   test:
     needs: build
     runs-on: macos-10.15
@@ -29,6 +31,10 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: myte-build-macos
-          path: _build
+          path: build.tgz
+      - name: Unzip file
+        run: |
+         tar -xzf build.tgz
+         rm build.tgz
       - name: Run Myte tests
         run: ./scripts/run_tests
