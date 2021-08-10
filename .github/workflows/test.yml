@@ -1,0 +1,13 @@
+name: Build and run tests
+on: [push]
+jobs:
+  build:
+    runs-on: macos-10.15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name Set up OCaml
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: 4.12.x
+      - run: ./scripts/build
