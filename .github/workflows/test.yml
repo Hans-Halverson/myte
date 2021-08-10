@@ -10,6 +10,7 @@ jobs:
         uses: ocaml/setup-ocaml@v2
         with:
           ocaml-compiler: 4.12.x
+          dune-cache: true
       - name: Install Myte dependencies
         run: opam install . --deps-only
       - name: Build Myte
