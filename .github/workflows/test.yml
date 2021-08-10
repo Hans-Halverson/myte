@@ -10,5 +10,9 @@ jobs:
         uses: ocaml/setup-ocaml@v2
         with:
           ocaml-compiler: 4.12.x
-      - run: opam install . --deps-only
-      - run: ./scripts/build
+      - name: Install Myte dependencies
+        run: opam install . --deps-only
+      - name: Build Myte
+        run: opam exec -- ./scripts/build
+      - name: Run Myte tests
+        run: ./scripts/run_tests
