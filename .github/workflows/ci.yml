@@ -33,7 +33,7 @@ jobs:
           name: myte-build-macos
       - name: Unzip files
         run: |
-         ls -R
-         tar -xzf myte-build-macos/build.tgz
+         tar -xzf build.tgz
+         rm build.tgz
       - name: Run Myte tests
         run: ./scripts/run_tests
