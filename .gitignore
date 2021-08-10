@@ -1,4 +1,2 @@
-builds
-types.md
-myter/target
-.vscode
+_build
+.merlin
