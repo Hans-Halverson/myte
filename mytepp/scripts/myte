@@ -1,6 +1,0 @@
-#!/bin/zsh
-
-CURRENT_DIR=$0:A:h
-ROOT_DIR=$(dirname $CURRENT_DIR)
-
-$ROOT_DIR/builds/mytepp $@
