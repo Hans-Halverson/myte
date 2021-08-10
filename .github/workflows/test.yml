@@ -14,5 +14,20 @@ jobs:
         run: opam install . --deps-only
       - name: Build Myte
         run: opam exec -- ./scripts/build
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v2
+          with:
+            name: myte-build-macos
+            path: _build
+  test:
+    needs: build
+    runs-on: macos-10.15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Download build artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: myte-build-macos
       - name: Run Myte tests
         run: ./scripts/run_tests
