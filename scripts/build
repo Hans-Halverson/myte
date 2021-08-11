@@ -7,8 +7,8 @@ ROOT_DIR=$(dirname "$CURRENT_DIR")
 
 # Build myte executable
 cd "$ROOT_DIR/src"
-dune build myte.exe --no-print-directory
+opam exec -- dune build myte.exe --no-print-directory
 
 # Build test suite
 cd "$ROOT_DIR/test"
-dune build run_tests.exe --no-print-directory
+opam exec -- dune build run_tests.exe --no-print-directory

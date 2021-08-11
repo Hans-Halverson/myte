@@ -7,7 +7,7 @@ ROOT_DIR=$(dirname "$CURRENT_DIR")
 
 # Build myte bytecode
 cd "$ROOT_DIR/src"
-dune build myte.bc --no-print-directory
+opam exec -- dune build myte.bc --no-print-directory
 
 . "$CURRENT_DIR/setup_myte_env"
 
