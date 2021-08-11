@@ -116,10 +116,14 @@ let lower_to_asm ir =
     print_error_message err;
     exit 1
 
+let gen_executable asm_file =
+  match Target.system () with
+  | Target.Darwin -> Driver_mac.gen_executable asm_file
+
 let compile files =
   let pcx = parse_and_check_stdlib () in
   parse_and_check ~pcx ~is_stdlib:false files;
   if Opts.check () then exit 0;
   let ir = lower_to_ir pcx in
   let asm_file = lower_to_asm ir in
-  Driver_mac.gen_executable asm_file
+  gen_executable asm_file

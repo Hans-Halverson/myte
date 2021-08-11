@@ -7,4 +7,5 @@ let () =
     Arg.usage Opts.spec Opts.usage_message;
     exit 1
   );
+  Target.detect ();
   Driver_myte.compile !files
