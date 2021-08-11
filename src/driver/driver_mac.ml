@@ -1,31 +1,37 @@
 open Driver_utils
 
-let gen_executable output_file =
+let mk_assembler_command asm_file obj_file =
+  Printf.sprintf "as -o %s %s" (Filename.quote asm_file) (Filename.quote obj_file)
+
+let mk_linker_command output_file program_obj_file runtime_obj_file =
+  Printf.sprintf
+    "ld -lSystem -e _start -o %s %s %s"
+    (Filename.quote output_file)
+    (Filename.quote program_obj_file)
+    (Filename.quote runtime_obj_file)
+
+let gen_executable program_asm_file =
+  let output_file = Option.get (Opts.output_file ()) in
+  let program_obj_file = output_file ^ ".program" in
+
   (* Compile program and runtime with system assembler *)
-  let assemble_file input_file output_file =
-    let ret = Sys.command (Printf.sprintf "as -o %s %s" output_file input_file) in
+  let assemble_file input_asm_file output_obj_file =
+    let ret = Sys.command (mk_assembler_command output_obj_file input_asm_file) in
     if ret <> 0 then (
       print_error_message (Printf.sprintf "Assembler failed with exit code %d" ret);
       exit 1
     )
   in
-  let program_output_file = Filename.quote output_file in
-  assemble_file program_output_file program_output_file;
-  Sys.remove program_output_file;
+  assemble_file program_asm_file program_obj_file;
+  Sys.remove program_asm_file;
 
-  let runtime_output_file = Filename.quote (output_file ^ ".runtime") in
-  assemble_file (Filename.quote X86_runtime.macos_runtime_file_path) runtime_output_file;
+  let runtime_obj_file = output_file ^ ".runtime" in
+  assemble_file X86_runtime.macos_runtime_file runtime_obj_file;
 
   (* Link using system linker *)
-  let ret =
-    Sys.command
-      (Printf.sprintf
-         "ld -lSystem -e _start -o %s %s %s"
-         program_output_file
-         program_output_file
-         runtime_output_file)
-  in
-  ignore (Sys.command (Printf.sprintf "rm -f %s" runtime_output_file));
+  let ret = Sys.command (mk_linker_command output_file program_obj_file runtime_obj_file) in
+  Sys.remove program_obj_file;
+  Sys.remove runtime_obj_file;
   if ret <> 0 then (
     print_error_message (Printf.sprintf "Linker failed with exit code %d" ret);
     exit 1

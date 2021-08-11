@@ -26,7 +26,7 @@ let gen_executable program_asm_file =
   Sys.remove program_asm_file;
 
   let runtime_obj_file = output_file ^ ".runtime" in
-  assemble_file X86_runtime.linux_runtime_file_path runtime_obj_file;
+  assemble_file X86_runtime.linux_runtime_file runtime_obj_file;
 
   (* Link using system linker *)
   let ret = Sys.command (mk_linker_command output_file program_obj_file runtime_obj_file) in
