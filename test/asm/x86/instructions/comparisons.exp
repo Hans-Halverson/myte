@@ -504,7 +504,3 @@ test.testCompareUnitRegImm:
 test.testCompareUnitRegs:
   movb $1, %al
   ret
-_start:
-  call __myte_init
-  call _main
-  ret

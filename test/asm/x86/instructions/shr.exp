@@ -46,7 +46,3 @@ test.shrLongRegs:
   shrq %cl, %rdi
   movq %rdi, %rax
   ret
-_start:
-  call __myte_init
-  call _main
-  ret

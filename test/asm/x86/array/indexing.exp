@@ -56,8 +56,3 @@ test.variableIndexing:
   movq (%rdx, %r8, 8), %rax
   movq (%rcx, %r8, 8), %rax
   ret
-_start:
-  call __myte_init
-  call _init
-  call _main
-  ret

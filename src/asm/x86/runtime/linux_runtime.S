@@ -1,7 +1,7 @@
   .global __myte_alloc
   .global __myte_copy
   .global __myte_exit
-  .global __myte_init
+  .global __myte_runtime_init
   .global __myte_write
 
   .data
@@ -11,7 +11,7 @@ __myte_heap_start:
 
   .text
 
-__myte_init:
+__myte_runtime_init:
   # Allocate memory region for heap
   mov $9, %rax          # mmap
   xor %edi, %edi        # addr = 0 for new memory region

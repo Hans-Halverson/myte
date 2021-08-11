@@ -8,7 +8,7 @@ let macos_runtime_file = find_runtime_file "macos_runtime.S"
 
 let linux_runtime_file = find_runtime_file "linux_runtime.S"
 
-let myte_init_label = "__myte_init"
+let myte_runtime_init_label = "__myte_runtime_init"
 
 let myte_alloc_label = "__myte_alloc"
 

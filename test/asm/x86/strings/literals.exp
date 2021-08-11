@@ -28,8 +28,3 @@ test.test:
   movl $6, 8(%rax)
   movl $6, 12(%rax)
   ret
-_start:
-  call __myte_init
-  call _init
-  call _main
-  ret

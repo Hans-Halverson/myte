@@ -16,7 +16,3 @@ test.notLongReg:
   notq %rdi
   movq %rdi, %rax
   ret
-_start:
-  call __myte_init
-  call _main
-  ret

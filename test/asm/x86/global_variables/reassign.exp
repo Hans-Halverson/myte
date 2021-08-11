@@ -30,8 +30,3 @@ test.testReassignGlobals:
   movl $2, (%rax)
   movq %rax, test.t(%rip)
   ret
-_start:
-  call __myte_init
-  call _init
-  call _main
-  ret

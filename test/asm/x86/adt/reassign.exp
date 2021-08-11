@@ -16,7 +16,3 @@ test.simpleReassign:
   movq $2, 8(%rdi)
   movb $3, 16(%rdi)
   ret
-_start:
-  call __myte_init
-  call _main
-  ret

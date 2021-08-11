@@ -48,7 +48,3 @@ _main:
   call fib.fibIterative
   movl $0, %eax
   ret
-_start:
-  call __myte_init
-  call _main
-  ret

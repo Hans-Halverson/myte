@@ -83,7 +83,3 @@ test.testTwoTypeArgs:
   movb $1, %sil
   call test.buildPair$bool$bool$
   ret
-_start:
-  call __myte_init
-  call _main
-  ret

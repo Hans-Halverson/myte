@@ -46,7 +46,3 @@ test.testTuple:
   movb $1, (%rax)
   movl $2, 4(%rax)
   ret
-_start:
-  call __myte_init
-  call _main
-  ret

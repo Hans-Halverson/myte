@@ -37,7 +37,3 @@ test.mulLongRegs:
   imulq %rdi, %rsi
   movq %rsi, %rax
   ret
-_start:
-  call __myte_init
-  call _main
-  ret

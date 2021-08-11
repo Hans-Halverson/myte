@@ -9,7 +9,7 @@ jobs:
       - name: Set up OCaml
         uses: ocaml/setup-ocaml@v2
         with:
-          ocaml-compiler: 4.09.x
+          ocaml-compiler: 4.09.0
       - name: Install Myte dependencies
         run: opam install . --deps-only
       - name: Build Myte

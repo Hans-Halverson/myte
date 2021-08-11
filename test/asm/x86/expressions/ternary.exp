@@ -60,7 +60,3 @@ test.testTernaryWithExpressions:
   pop %r12
   pop %rbx
   ret
-_start:
-  call __myte_init
-  call _main
-  ret

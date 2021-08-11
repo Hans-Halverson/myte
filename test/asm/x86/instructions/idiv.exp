@@ -113,7 +113,3 @@ test.remLongRegs:
   idivq %rsi
   movq %rdx, %rax
   ret
-_start:
-  call __myte_init
-  call _main
-  ret

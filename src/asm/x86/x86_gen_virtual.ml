@@ -27,8 +27,8 @@ let rec gen ~gcx (ir : ssa_program) =
   (* Generate all functions in program *)
   SMap.iter (fun _ func -> gen_function_instruction_builder ~gcx ~ir func) ir.funcs;
 
-  (* Generate entrypoint *)
-  gen_entrypoint ~gcx ir;
+  (* Generate entrypoint (but not if dumping asm, to keep dump platform agnostic for testing) *)
+  if (not (Opts.dump_asm ())) && not (Opts.dump_virtual_asm ()) then gen_entrypoint ~gcx ir;
   Gcx.finish_builders ~gcx
 
 (* Generate the _start entrypoint function for the executable. The entrypoint function initializes
@@ -40,7 +40,7 @@ and gen_entrypoint ~gcx ir =
   Gcx.start_block ~gcx ~label:(Some start_label) ~func:func.id ~mir_block_id:None;
   let prologue_block_id = (Option.get gcx.current_block_builder).id in
   func.prologue <- prologue_block_id;
-  Gcx.emit ~gcx (CallL X86_runtime.myte_init_label);
+  Gcx.emit ~gcx (CallL X86_runtime.myte_runtime_init_label);
 
   (* Call the init function if it exists *)
   if SMap.mem init_func_name ir.funcs then Gcx.emit ~gcx (CallL init_func_name);

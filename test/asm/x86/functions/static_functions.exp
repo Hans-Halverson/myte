@@ -65,9 +65,5 @@ _main:
 .L3:
   movl $0, %eax
   ret
-_start:
-  call __myte_init
-  call _main
-  ret
 Passed 1
 Passed 2

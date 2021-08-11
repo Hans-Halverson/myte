@@ -30,7 +30,3 @@ test.testReferencing:
   movq test.f(%rip), %rax
   callq *%rax
   ret
-_start:
-  call __myte_init
-  call _main
-  ret

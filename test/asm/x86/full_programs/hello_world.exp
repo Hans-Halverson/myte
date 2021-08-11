@@ -16,8 +16,4 @@ _main:
   call std.io.print
   movl $0, %eax
   ret
-_start:
-  call __myte_init
-  call _main
-  ret
 Hello world!

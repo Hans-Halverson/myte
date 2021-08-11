@@ -23,7 +23,3 @@ test.simpleAccess:
   movb 1(%rdx), %al
   movb 2(%rdx), %al
   ret
-_start:
-  call __myte_init
-  call _main
-  ret

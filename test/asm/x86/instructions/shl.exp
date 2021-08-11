@@ -63,7 +63,3 @@ test.shlTruncLongImm:
   shll $2, %edi
   movl %edi, %eax
   ret
-_start:
-  call __myte_init
-  call _main
-  ret
