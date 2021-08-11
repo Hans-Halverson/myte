@@ -50,7 +50,7 @@ let () =
         Parser_tests.suite ~bin ~record;
         Analyze_tests.suite ~bin ~record;
         Mir_tests.suite ~bin ~record;
-        Codegen_tests.suite ~bin ~record;
+        Asm_tests.suite ~bin ~record;
         Cli_tests.suite ~bin ~record;
         Program_tests.suite ~bin ~record;
       ]

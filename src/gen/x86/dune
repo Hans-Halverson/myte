@@ -1,4 +1,0 @@
-(library
-  (name codegen_x86)
-  (wrapped false)
-  (libraries str myte_common mir codegen_x86_runtime))

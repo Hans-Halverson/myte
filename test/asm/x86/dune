@@ -1,0 +1,3 @@
+(library
+  (name asm_tests)
+  (libraries myte_test asm_x86))
