@@ -10,4 +10,4 @@ ML_FILES=$(find src test -type f -name "*.ml")
 MLI_FILES=$(find src test -type f -name "*.mli")
 
 # Intentional word splitting
-ocamlformat -i $ML_FILES $MLI_FILES
+opam exec -- ocamlformat -i $ML_FILES $MLI_FILES

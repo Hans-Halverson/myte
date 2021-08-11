@@ -1,10 +1,12 @@
-let macos_runtime_basename = "macos_runtime.S"
-
-let macos_runtime_file_path =
+let find_runtime_file_path runtime_basename =
   let root = Sys.getcwd () in
   let relative_dir = Filename.dirname __FILE__ in
   let absolute_dir = Filename.concat root relative_dir in
-  Filename.concat absolute_dir macos_runtime_basename
+  Filename.concat absolute_dir runtime_basename
+
+let macos_runtime_file_path = find_runtime_file_path "macos_runtime.S"
+
+let linux_runtime_file_path = find_runtime_file_path "linux_runtime.S"
 
 let myte_init_label = "__myte_init"
 

@@ -1,6 +1,7 @@
-type system = Darwin
-
-(* MacOS *)
+type system =
+  | Darwin
+  (* MacOS *)
+  | Linux
 
 type architecture = X86_64
 
@@ -33,6 +34,7 @@ let detect_system () =
   let () = close_in uname_output in
   match system with
   | "Darwin" -> Darwin
+  | "Linux" -> Linux
   | _ -> error (Printf.sprintf "Unsupported system %s" system)
 
 let detect () =

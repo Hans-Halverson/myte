@@ -11,6 +11,8 @@ let gen_executable output_file =
   in
   let program_output_file = Filename.quote output_file in
   assemble_file program_output_file program_output_file;
+  Sys.remove program_output_file;
+
   let runtime_output_file = Filename.quote (output_file ^ ".runtime") in
   assemble_file (Filename.quote X86_runtime.macos_runtime_file_path) runtime_output_file;
 

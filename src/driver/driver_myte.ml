@@ -105,6 +105,7 @@ let lower_to_asm ir =
       exit 1
     | Some output_file -> output_file
   in
+  let output_file = output_file ^ ".S" in
 
   (* Write textual x86 assembly to output file *)
   try
@@ -119,6 +120,7 @@ let lower_to_asm ir =
 let gen_executable asm_file =
   match Target.system () with
   | Target.Darwin -> Driver_mac.gen_executable asm_file
+  | Linux -> Driver_linux.gen_executable asm_file
 
 let compile files =
   let pcx = parse_and_check_stdlib () in

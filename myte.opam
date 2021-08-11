@@ -8,8 +8,9 @@ license: "MIT"
 homepage: "https://github.com/Hans-Halverson/myte"
 bug-reports: "https://github.com/Hans-Halverson/myte/issues"
 depends: [
-  "ocaml" {>= "4.09.0"}
-  "sedlex" {>= "2.1"}
+  "ocaml" {= "4.09.0"}
+  "ocamlformat" {= "0.14.0"}
+  "sedlex" {= "2.1"}
   "dune"
 ]
 build: [

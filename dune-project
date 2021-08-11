@@ -19,7 +19,7 @@
  (synopsis "Compiler for the Myte language")
  (description "Compiler for the Myte language")
  (depends
-  (ocaml
-   (>= 4.09.0))
-  (sedlex (>= 2.1))
+  (ocaml (= 4.09.0))
+  (ocamlformat (= 0.14.0))
+  (sedlex (= 2.1))
   dune))

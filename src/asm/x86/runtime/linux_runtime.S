@@ -13,11 +13,11 @@ __myte_heap_start:
 
 __myte_init:
   # Allocate memory region for heap
-  mov $0x20000C5, %rax  # mmap
+  mov $9, %rax          # mmap
   xor %edi, %edi        # addr = 0 for new memory region
   mov $0x20000000, %rsi # len = 512M
   mov $3, %rdx          # prot = PROT_READ | PROT_WRITE
-  mov $0x1002, %r10     # flags = MAP_PRIVATE | MAP_ANONYMOUS
+  mov $0x22, %r10       # flags = MAP_PRIVATE | MAP_ANONYMOUS
   mov $-1, %r8          # fd
   xor %r9, %r9          # offset = 0
   syscall
@@ -43,11 +43,11 @@ __myte_copy:
   ret
 
 __myte_exit:
-  mov $0x2000001, %rax   # exit
+  mov $60, %rax  # exit
   syscall
   ret
 
 __myte_write:
-  mov $0x2000004, %rax   # write
+  mov $1, %rax  # write
   syscall
   ret

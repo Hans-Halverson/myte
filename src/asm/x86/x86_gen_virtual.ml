@@ -35,15 +35,27 @@ let rec gen ~gcx (ir : ssa_program) =
    the myte runtime, initializes all global variables if necessary, and finally calls the main
    function. *)
 and gen_entrypoint ~gcx ir =
+  (* Create function and call myte runtime's init *)
   let func = Gcx.start_function ~gcx [] 0 in
   Gcx.start_block ~gcx ~label:(Some start_label) ~func:func.id ~mir_block_id:None;
   let prologue_block_id = (Option.get gcx.current_block_builder).id in
   func.prologue <- prologue_block_id;
   Gcx.emit ~gcx (CallL X86_runtime.myte_init_label);
+
   (* Call the init function if it exists *)
   if SMap.mem init_func_name ir.funcs then Gcx.emit ~gcx (CallL init_func_name);
   Gcx.emit ~gcx (CallL main_label);
-  Gcx.emit ~gcx Ret;
+
+  (match Target.system () with
+  (* On Mac can directly return from entry point *)
+  | Target.Darwin -> Gcx.emit ~gcx Ret
+  (* On Linux must call exit at end of entry point with the return value from main *)
+  | Linux ->
+    let precolored_a = Gcx.mk_precolored ~gcx A in
+    let exit_arg_reg = Gcx.mk_precolored ~gcx (Option.get (register_of_param 0)) in
+    Gcx.emit ~gcx (MovMM (Size32, Reg precolored_a, Reg exit_arg_reg));
+    Gcx.emit ~gcx (CallL X86_runtime.myte_exit_label));
+
   Gcx.finish_block ~gcx;
   Gcx.finish_function ~gcx
 

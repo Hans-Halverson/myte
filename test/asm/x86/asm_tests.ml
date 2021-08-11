@@ -7,8 +7,8 @@ let commands ~config:_ bin files =
           %s --dump-asm --no-pretty-print %s && %s %s -o t.out;
           ./t.out;
           EXIT_CODE="$?";
-          if [[ "$EXIT_CODE" -ne 0 ]]; then
-            if [[ "$EXIT_CODE" -eq 139 ]]; then
+          if [ "$EXIT_CODE" -ne 0 ]; then
+            if [ "$EXIT_CODE" -eq 139 ]; then
               EXTRA_INFO=" (Segfault)"
             fi
             echo "NOTE: Exited with code $EXIT_CODE$EXTRA_INFO"
