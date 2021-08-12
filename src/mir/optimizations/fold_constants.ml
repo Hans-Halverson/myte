@@ -385,7 +385,6 @@ class calc_constants_visitor ~ocx =
             get_numeric_lit_opt v
           | `PointerL _
           | `PointerV _
-          | `AggregateV _
           | `ArrayL _
           | `ArrayV _ ->
             None

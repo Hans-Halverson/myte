@@ -227,7 +227,6 @@ and pp_value ~cx v =
   | `LongV var_id
   | `FunctionV var_id
   | `PointerV (_, var_id)
-  | `AggregateV (_, var_id)
   | `ArrayV (_, _, var_id) ->
     pp_var_id ~cx var_id
 

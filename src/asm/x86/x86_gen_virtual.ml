@@ -1189,7 +1189,6 @@ and resolve_ir_value ~gcx ~func ?(allow_imm64 = false) value =
   | `FunctionV var_id -> vreg_of_var var_id Size64
   | `PointerL (_, label) -> SAddr (mk_label_memory_address label)
   | `PointerV (_, var_id) -> vreg_of_var var_id Size64
-  | `AggregateV _ -> failwith "TODO: Cannot compile aggregate structures yet"
   | `ArrayL _ -> failwith "TODO: Cannot compile array literals yet"
   | `ArrayV _ -> failwith "TODO: Cannot compile array variables yet"
 

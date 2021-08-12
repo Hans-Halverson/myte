@@ -1220,7 +1220,6 @@ and emit_var_of_value ~ecx (value : cf_value) : cf_var =
   | `LongV var_id
   | `FunctionV var_id
   | `PointerV (_, var_id)
-  | `AggregateV (_, var_id)
   | `ArrayV (_, _, var_id) ->
     var_id
   | `UnitL

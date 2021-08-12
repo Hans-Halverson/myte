@@ -335,7 +335,6 @@ module InstructionsMapper = struct
           (this#map_numeric_value ~block v :> ssa_value)
         | (`FunctionL _ | `FunctionV _) as v -> (this#map_function_value ~block v :> ssa_value)
         | (`PointerL _ | `PointerV _) as v -> (this#map_pointer_value ~block v :> ssa_value)
-        | `AggregateV _ as v -> this#map_aggregate_value ~block v
         | (`ArrayL _ | `ArrayV _) as v -> this#map_array_value ~block v
 
       method map_unit_value ~block value : var_id Value.unit_value =
@@ -372,12 +371,6 @@ module InstructionsMapper = struct
         | `PointerV (ty, var_id) as value ->
           id_map (this#map_use_variable ~block) var_id value (fun var_id' ->
               `PointerV (ty, var_id'))
-
-      method map_aggregate_value ~block value =
-        match value with
-        | `AggregateV (agg, var_id) as value ->
-          id_map (this#map_use_variable ~block) var_id value (fun var_id' ->
-              `AggregateV (agg, var_id'))
 
       method map_array_value ~block value =
         match value with

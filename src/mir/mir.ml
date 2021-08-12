@@ -41,8 +41,6 @@ module rec Value : sig
     | 'a long_value
     ]
 
-  type 'a aggregate_value = [ `AggregateV of Aggregate.t * 'a ]
-
   type 'a array_value =
     [ `ArrayV of Type.t * int * 'a
     | `ArrayL of Type.t * int * string
@@ -54,7 +52,6 @@ module rec Value : sig
     | 'a numeric_value
     | 'a function_value
     | 'a pointer_value
-    | 'a aggregate_value
     | 'a array_value
     ]
 
@@ -264,7 +261,6 @@ let type_of_value (v : 'a Value.t) : Type.t =
   | `PointerV (ty, _)
   | `PointerL (ty, _) ->
     `PointerT ty
-  | `AggregateV (agg, _) -> `AggregateT agg
   | `ArrayV (ty, size, _)
   | `ArrayL (ty, size, _) ->
     `ArrayT (ty, size)
@@ -284,8 +280,8 @@ let var_value_of_type var_id (ty : Type.t) : 'a Value.t =
   | `LongT -> `LongV var_id
   | `FunctionT -> `FunctionV var_id
   | `PointerT ty -> `PointerV (ty, var_id)
-  | `AggregateT agg -> `AggregateV (agg, var_id)
   | `ArrayT (ty, size) -> `ArrayV (ty, size, var_id)
+  | `AggregateT _ -> failwith "Cannot create variable for Aggregate, must be behind pointer"
 
 let cast_to_bool_value (v : 'a Value.t) : 'a Value.bool_value =
   match v with
@@ -327,7 +323,6 @@ let is_literal (v : 'a Value.t) : bool =
   | `LongV _
   | `FunctionV _
   | `PointerV _
-  | `AggregateV _
   | `ArrayV _ ->
     false
 
@@ -343,7 +338,6 @@ let rec map_value ~(f : 'a -> 'b) (value : 'a Value.t) : 'b Value.t =
   | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _) as v -> (map_numeric_value ~f v :> 'b Value.t)
   | (`FunctionL _ | `FunctionV _) as v -> (map_function_value ~f v :> 'b Value.t)
   | (`PointerL _ | `PointerV _) as v -> (map_pointer_value ~f v :> 'b Value.t)
-  | `AggregateV (agg, v) -> `AggregateV (agg, f v)
   | (`ArrayL _ | `ArrayV _) as v -> (map_array_value ~f v :> 'b Value.t)
 
 and map_unit_value ~(f : 'a -> 'b) (value : 'a Value.unit_value) : 'b Value.unit_value =
