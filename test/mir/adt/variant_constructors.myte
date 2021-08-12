@@ -1,0 +1,38 @@
+module test
+
+type V1<T> =
+  | Enum1
+  | Enum2
+  | Tuple1 (T)
+  | Record1 (T)
+
+fun useV1Bool(v: V1<Bool>) {}
+fun useV1Int(v: V1<Int>) {}
+
+fun testEnumConstructors() {
+  useV1Bool(Enum1);
+  useV1Bool(Enum2);
+  useV1Int(Enum1);
+  useV1Int(Enum2);
+}
+
+// Complex variant aggregates - padding is properly skipped
+type V2 =
+  | Tuple2 (Int, Bool, V1<Int>)
+  | Record2 { foo: Int, bar: Bool, baz: V1<Int> }
+  | Record3 { foo: Byte, bar: Int }
+
+fun testTupleConstructors() {
+  useV1Bool(Tuple1 (true));
+  val x: V1<Int> = Tuple1 (7);
+  Tuple2 (3, false, x);
+}
+
+fun testRecordConstructors() {
+  useV1Bool(Record1 (true));
+  val x: V1<Int> = Record1 (7);
+  Record2 { foo: 3, bar: false, baz: x };
+  Record3 { foo: 4, bar: 5 };
+}
+
+fun main() {}

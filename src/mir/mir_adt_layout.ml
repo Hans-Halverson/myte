@@ -93,11 +93,11 @@ let tag_key = "$tag"
 
 let padding_key = "$padding"
 
-let mk_tag_element (tag_type : tag_type) : string option * Mir_type.Type.t =
-  (Some tag_key, (tag_type :> Mir_type.Type.t))
+let mk_tag_element (tag_type : tag_type) : string * Mir_type.Type.t =
+  (tag_key, (tag_type :> Mir_type.Type.t))
 
-let mk_padding_element (size : int) : string option * Mir_type.Type.t =
-  (Some padding_key, `ArrayT (`ByteT, size))
+let mk_padding_element (size : int) : string * Mir_type.Type.t =
+  (padding_key, `ArrayT (`ByteT, size))
 
 (* Utilities for aligning and padding variant aggregates *)
 
@@ -173,11 +173,11 @@ let add_end_padding elements current_size target_size =
     elements
   else
     let size_to_add = target_size - current_size in
-    let rec add_to_end (elements : (string option * Mir_type.Type.t) list) =
+    let rec add_to_end (elements : (string * Mir_type.Type.t) list) =
       match elements with
       | [] -> failwith "Expected nonempty list"
       (* If last element is already padding, extend existing padding *)
-      | [(Some key, `ArrayT (`ByteT, size))] when key = padding_key ->
+      | [(key, `ArrayT (`ByteT, size))] when key = padding_key ->
         [mk_padding_element (size + size_to_add)]
       (* Otherwise add new padding element after last element *)
       | [last] -> [last; mk_padding_element size_to_add]

@@ -402,7 +402,7 @@ let lookup_element agg name =
   let rec inner elements i =
     match elements with
     | [] -> failwith "Field not defined for aggregate"
-    | (Some element_name, element_ty) :: _ when element_name = name -> (element_ty, i)
+    | (element_name, element_ty) :: _ when element_name = name -> (element_ty, i)
     | _ :: tl -> inner tl (i + 1)
   in
   inner agg.elements 0

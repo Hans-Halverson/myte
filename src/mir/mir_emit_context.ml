@@ -216,11 +216,11 @@ let add_mir_adt_layout ~ecx (mir_adt_layout : MirAdtLayout.t) =
 let rec instantiate_mir_adt_template_elements ~ecx template type_param_bindings =
   match template with
   | TupleTemplate element_sigs ->
-    List.map
-      (fun element_sig ->
+    List.mapi
+      (fun i element_sig ->
         let element_ty = Types.substitute_type_params type_param_bindings element_sig in
         let mir_ty = to_mir_type ~ecx element_ty in
-        (None, mir_ty))
+        (TupleKeyCache.get_key i, mir_ty))
       element_sigs
   | RecordTemplate field_sigs_and_locs ->
     let aggregate_elements_and_locs =
@@ -228,7 +228,7 @@ let rec instantiate_mir_adt_template_elements ~ecx template type_param_bindings 
         (fun field_name (field_sig, loc) agg_elements ->
           let element_ty = Types.substitute_type_params type_param_bindings field_sig in
           let mir_ty = to_mir_type ~ecx element_ty in
-          ((Some field_name, mir_ty), loc) :: agg_elements)
+          ((field_name, mir_ty), loc) :: agg_elements)
         field_sigs_and_locs
         []
     in
@@ -363,7 +363,9 @@ and instantiate_tuple ~ecx element_types =
   | None ->
     let type_args_string = TypeArgs.to_string mir_type_args in
     let name = "$tuple" ^ type_args_string in
-    let agg_elements = List.map (fun mir_ty -> (None, mir_ty)) mir_type_args in
+    let agg_elements =
+      List.mapi (fun i mir_ty -> (TupleKeyCache.get_key i, mir_ty)) mir_type_args
+    in
     let agg = mk_aggregate ~ecx name Loc.none agg_elements in
     TypeArgsHashtbl.add ecx.tuple_instantiations mir_type_args agg;
     agg
