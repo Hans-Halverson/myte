@@ -53,18 +53,15 @@ let map_phi_backreferences_for_block ~ocx old_block_id new_block_id block_to_edi
           | Some var_id -> IMap.add new_block_id var_id args |> IMap.remove old_block_id ))
       block.phis
 
-let can_remove_block ~ocx (block : var_id Block.t) =
-  let is_start_block () =
-    let func = SMap.find block.func ocx.program.funcs in
-    func.body_start_block = block.id
-  in
+let can_remove_block (block : var_id Block.t) =
   block.instructions = []
   && block.phis = []
   &&
   match block.next with
-  | Halt -> not (is_start_block ())
   | Continue _ -> true
-  | Branch _ -> false
+  | Halt
+  | Branch _ ->
+    false
 
 let remove_block ~ocx block_id =
   let block = get_block ~ocx block_id in
@@ -80,7 +77,6 @@ let remove_block ~ocx block_id =
     (fun prev_block_id ->
       let prev_block = get_block ~ocx prev_block_id in
       match block.next with
-      | Halt -> failwith "TODO: Handle this case"
       | Continue next_id ->
         let map_id id =
           if id = block_id then (
@@ -103,7 +99,10 @@ let remove_block ~ocx block_id =
             else
               (* Otherwise create branch to new block *)
               Branch { test; continue = new_continue; jump = new_jump })
-      | Branch _ -> ())
+      (* Halting or branching block cannot be removed *)
+      | Halt
+      | Branch _ ->
+        failwith "Block cannot be removed")
     prev_blocks;
   (* Remove references to this removed block from phi nodes of next blocks *)
   let next_blocks = IMap.find block_id ocx.next_blocks in

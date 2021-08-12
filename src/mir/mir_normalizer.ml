@@ -41,7 +41,7 @@ let rec normalize ~ocx =
 
   (* Find and remove empty blocks *)
   IMap.iter
-    (fun block_id block -> if Ocx.can_remove_block ~ocx block then Ocx.remove_block ~ocx block_id)
+    (fun block_id block -> if Ocx.can_remove_block block then Ocx.remove_block ~ocx block_id)
     ocx.program.blocks;
 
   (* Remove trivial phis and rewrite references to these phi vars in program, requires iteration
