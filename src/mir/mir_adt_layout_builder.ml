@@ -16,13 +16,16 @@ let mk_layout_instantiations (adt_sig : Types.AdtSig.t) =
   else
     Concrete (ref None)
 
-(* A single element tuple can be inlined as long as it does not contain its own ADT type as the
-   single element. Must recurse through other inlined single element tuples as it may be cyclic. *)
+(* A single element tuple can be inlined as long as it does not contain itself anywhere in the type
+   of its single element. Must recurse through other inlined single element tuples as it may be cyclic. *)
 let rec can_inline_single_element_tuple (root_adt_sig : Types.AdtSig.t) (element_ty : Types.Type.t)
     =
+  let check_types = List.for_all (can_inline_single_element_tuple root_adt_sig) in
   match element_ty with
   | Types.Type.ADT { adt_sig; _ } when adt_sig.id = root_adt_sig.id -> false
-  | ADT { adt_sig; _ } ->
+  | ADT { type_args; adt_sig } ->
+    check_types type_args
+    &&
     (* Recurse into other inlined non-variant single element tuples *)
     if SMap.cardinal adt_sig.variants = 1 then
       match SMap.choose adt_sig.variants with
@@ -31,6 +34,7 @@ let rec can_inline_single_element_tuple (root_adt_sig : Types.AdtSig.t) (element
       | _ -> true
     else
       true
+  | Tuple elements -> check_types elements
   | _ -> true
 
 let get_record_field_locs record_node =

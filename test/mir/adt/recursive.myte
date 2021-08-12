@@ -1,0 +1,17 @@
+module test
+
+// Self recursive types
+type Rec1 (Int, Rec1)
+
+type Rec2<T> (Int, Rec2<T>)
+
+fun useSelfRecursive(r1: Rec1, r2: Rec2<Int>) {}
+
+// Mutually recursive types
+type Rec3 (Int, Rec4)
+type Rec4 (String, Rec5)
+type Rec5 (Bool, Rec3)
+
+fun useMutuallyRecursive(r: Rec4) {}
+
+fun main() {}

@@ -215,7 +215,11 @@ let add_mir_adt_layout ~ecx (mir_adt_layout : MirAdtLayout.t) =
 
 (* Instantiate a MIR aggregate layout with a particular set of type arguments. If there is already
    an instance of the ADT with those type arguments return its aggregate type. Otherwise create new
-   aggregate type for this type instance, then save and return it. *)
+   aggregate type for this type instance, then save and return it.
+   
+   In cases where we need to instantiate the type with a new set of type arguments, create the
+   resulting aggregate type as a placholder and insert it into tables before checking element types,
+   as type may be recursive. *)
 let rec instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args =
   let open MirAdtLayout in
   let adt_sig = mir_adt_layout.adt_sig in
@@ -252,9 +256,9 @@ let rec instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args =
   | Concrete { contents = Some aggregate } -> aggregate
   (* Concrete layout has not yet been instantiated - create and return aggregate *)
   | Concrete instantiated_ref ->
-    let aggregate_elements = instantiate_aggregate_elements IMap.empty in
-    let aggregate = mk_aggregate ~ecx mir_adt_layout.name mir_adt_layout.loc aggregate_elements in
+    let aggregate = mk_placeholder_aggregate ~ecx mir_adt_layout.name mir_adt_layout.loc in
     instantiated_ref := Some aggregate;
+    aggregate.elements <- instantiate_aggregate_elements IMap.empty;
     aggregate
   (* Check if generic layout has already been instantiated with these type args, create if not *)
   | Generic instantiations ->
@@ -263,10 +267,10 @@ let rec instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args =
     | Some aggregate -> aggregate
     | None ->
       let parameterized_name = mir_adt_layout.name ^ TypeArgs.to_string mir_type_args in
-      let type_param_bindings = Types.bind_type_params_to_args adt_sig.type_params type_args in
-      let aggregate_elements = instantiate_aggregate_elements type_param_bindings in
-      let aggregate = mk_aggregate ~ecx parameterized_name mir_adt_layout.loc aggregate_elements in
+      let aggregate = mk_placeholder_aggregate ~ecx parameterized_name mir_adt_layout.loc in
       TypeArgsHashtbl.add instantiations mir_type_args aggregate;
+      let type_param_bindings = Types.bind_type_params_to_args adt_sig.type_params type_args in
+      aggregate.elements <- instantiate_aggregate_elements type_param_bindings;
       aggregate)
 
 and instantiate_mir_adt_inline_value_layout ~ecx mir_adt_layout type_args =
@@ -328,6 +332,9 @@ and mk_aggregate ~ecx name loc elements =
   let aggregate = { Aggregate.id = mk_aggregate_id (); name; loc; elements } in
   ecx.types <- SMap.add name aggregate ecx.types;
   aggregate
+
+(* Create a placeholder aggregate (during type instantiation) that will be filled in later *)
+and mk_placeholder_aggregate ~ecx name loc = mk_aggregate ~ecx name loc []
 
 (*
  * Generic Functions

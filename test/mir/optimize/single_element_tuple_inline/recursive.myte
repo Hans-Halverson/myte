@@ -1,0 +1,26 @@
+module test
+
+// Self recursive, cannot be inlined. Compiles but cannot actually be created.
+type Rec1 (Rec1)
+
+fun useSelfRecursive(r: Rec1) {}
+
+// Mutually recursive, cannot be inlined. Compiles but cannot actually be created.
+type Rec2 (Rec3)
+type Rec3 (Rec4)
+type Rec4 (Rec2)
+
+fun useMutuallyRecursive(r: Rec3) {}
+
+// Recursive through nested type, cannot be inlined. Compiles but cannot actually be created.
+type Rec5 ((Int, Rec5))
+
+type Rec6 (Generic<Rec6>)
+type Generic<T> {
+  foo: Int,
+  bar: T,
+}
+
+fun useNested(r1: Rec5, r2: Rec6) {}
+
+fun main() {}
