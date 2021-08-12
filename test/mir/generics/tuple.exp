@@ -1,12 +1,12 @@
-type $tuple<int,int> {int, int}
+type $tuple<int,bool> {int, bool}
 
 type $tuple<int,byte,$tuple<int,bool>*> {int, byte, $tuple<int,bool>*}
 
-type $tuple<int,bool> {int, bool}
-
-type test.Tup1<int> {int, int}
+type $tuple<int,int> {int, int}
 
 type test.Tup1<bool> {int, bool}
+
+type test.Tup1<int> {int, int}
 
 func unit @test.testConstructor() {
   %0 := CallBuiltin test.Tup1<int>* myte_alloc(1)

@@ -1,24 +1,24 @@
-type $tuple<unit,byte> {unit, byte}
-
-type $tuple<long,long> {long, long}
-
-type $tuple<int,int> {int, int}
-
-type $tuple<int,byte,$tuple<bool,unit>*> {int, byte, $tuple<bool,unit>*}
+type $tuple<bool,unit> {bool, unit}
 
 type $tuple<byte,long> {byte, long}
 
-type $tuple<bool,unit> {bool, unit}
+type $tuple<int,byte,$tuple<bool,unit>*> {int, byte, $tuple<bool,unit>*}
 
-type test.Tup1<test.Rec1<int,long>*> {int, test.Rec1<int,long>*}
+type $tuple<int,int> {int, int}
 
-type test.Tup1<int> {int, int}
+type $tuple<long,long> {long, long}
 
-type test.Tup1<byte> {int, byte}
+type $tuple<unit,byte> {unit, byte}
+
+type test.Tup1<$tuple<unit,byte>*> {int, $tuple<unit,byte>*}
 
 type test.Tup1<bool> {int, bool}
 
-type test.Tup1<$tuple<unit,byte>*> {int, $tuple<unit,byte>*}
+type test.Tup1<byte> {int, byte}
+
+type test.Tup1<int> {int, int}
+
+type test.Tup1<test.Rec1<int,long>*> {int, test.Rec1<int,long>*}
 
 func unit @test.useTup1(test.Tup1<int>* %0, test.Tup1<bool>* %1) {
   Ret
@@ -28,13 +28,13 @@ func unit @test.duplicateInstances(test.Tup1<int>* %2, test.Tup1<int>* %3) {
   Ret
 }
 
-type test.Rec1<test.Tup1<byte>*,long> {test.Tup1<byte>*, unit, long}
-
-type test.Rec1<long,long> {long, unit, long}
+type test.Rec1<int,bool> {int, unit, bool}
 
 type test.Rec1<int,long> {int, unit, long}
 
-type test.Rec1<int,bool> {int, unit, bool}
+type test.Rec1<long,long> {long, unit, long}
+
+type test.Rec1<test.Tup1<byte>*,long> {test.Tup1<byte>*, unit, long}
 
 func unit @test.useRec1(test.Rec1<int,bool>* %4, test.Rec1<long,long>* %5) {
   Ret
@@ -52,9 +52,9 @@ func unit @test.useAnonTup($tuple<int,int>* %9, $tuple<byte,long>* %10, $tuple<i
   Ret
 }
 
-type test.TestVec<long> {$tuple<long,long>*, int, int}
-
 type test.TestVec<int> {$tuple<int,int>*, int, int}
+
+type test.TestVec<long> {$tuple<long,long>*, int, int}
 
 func unit @test.useTestVec(test.TestVec<int>* %12, test.TestVec<long>* %13) {
   Ret

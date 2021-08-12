@@ -16,6 +16,30 @@ func unit @test.useMutuallyRecursive(test.Rec4* %2) {
   Ret
 }
 
+type test.VRec1<bool> {byte, byte[23]}
+
+type test.VRec1<int> {byte, byte[23]}
+
+type test.VRec1<bool>::Tree {byte, bool, byte[6], test.VRec1<bool>*, test.VRec1<bool>*}
+
+type test.VRec1<int>::Tree {byte, byte[3], int, test.VRec1<int>*, test.VRec1<int>*}
+
+func unit @test.useSelfRecursiveVariant(test.VRec1<bool>* %3, test.VRec1<int>* %4) {
+  Ret
+}
+
+type test.VRec2 {byte, byte[15]}
+
+type test.VRec2::T1 {byte, byte[3], int, test.VRec3*}
+
+type test.VRec3 {byte, byte[15]}
+
+type test.VRec3::T2 {byte, byte, byte[6], test.VRec2*}
+
+func unit @test.useMutuallyRecursiveVariants(test.VRec2* %5) {
+  Ret
+}
+
 func int @test.main() {
   Ret 0
 }

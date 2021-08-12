@@ -213,43 +213,47 @@ let add_mir_adt_layout ~ecx (mir_adt_layout : MirAdtLayout.t) =
   ecx.adt_sig_to_mir_layout <-
     IMap.add mir_adt_layout.adt_sig.id mir_adt_layout ecx.adt_sig_to_mir_layout
 
-(* Instantiate a MIR aggregate layout with a particular set of type arguments. If there is already
-   an instance of the ADT with those type arguments return its aggregate type. Otherwise create new
-   aggregate type for this type instance, then save and return it.
+let rec instantiate_mir_adt_template_elements ~ecx template type_param_bindings =
+  match template with
+  | TupleTemplate element_sigs ->
+    List.map
+      (fun element_sig ->
+        let element_ty = Types.substitute_type_params type_param_bindings element_sig in
+        let mir_ty = to_mir_type ~ecx element_ty in
+        (None, mir_ty))
+      element_sigs
+  | RecordTemplate field_sigs_and_locs ->
+    let aggregate_elements_and_locs =
+      SMap.fold
+        (fun field_name (field_sig, loc) agg_elements ->
+          let element_ty = Types.substitute_type_params type_param_bindings field_sig in
+          let mir_ty = to_mir_type ~ecx element_ty in
+          ((Some field_name, mir_ty), loc) :: agg_elements)
+        field_sigs_and_locs
+        []
+    in
+    (* Preserve order of fields in source code *)
+    List.sort (fun (_, loc1) (_, loc2) -> Loc.compare loc1 loc2) aggregate_elements_and_locs
+    |> List.map fst
+
+(* Instantiate a MIR layout with a particular set of type arguments. If there is already an instance
+   of the ADT with those type arguments return its instance type. Otherwise create new instance type
+   type for this type instance, then save and return it.
    
    In cases where we need to instantiate the type with a new set of type arguments, create the
-   resulting aggregate type as a placholder and insert it into tables before checking element types,
-   as type may be recursive. *)
-let rec instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args =
+   resulting instance type as a placholder and insert it into tables before checking element types,
+   as type may be recursive.
+   
+   The same general logic for instantiation applies to aggregate layouts (where the instance is
+   a single aggregate), and variants layouts (where the instance is an aggregate for the overall
+   enum, and variants for all data variants).*)
+and instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args =
   let open MirAdtLayout in
   let adt_sig = mir_adt_layout.adt_sig in
   let { MirAdtAggregateLayout.template; instantiations } =
     match mir_adt_layout.layout with
     | Aggregate aggregate_layout -> aggregate_layout
     | _ -> failwith "Expected aggregate layout"
-  in
-  let instantiate_aggregate_elements type_param_bindings =
-    match template with
-    | TupleTemplate element_sigs ->
-      List.map
-        (fun element_sig ->
-          let element_ty = Types.substitute_type_params type_param_bindings element_sig in
-          let mir_ty = to_mir_type ~ecx element_ty in
-          (None, mir_ty))
-        element_sigs
-    | RecordTemplate field_sigs_and_locs ->
-      let aggregate_elements_and_locs =
-        SMap.fold
-          (fun field_name (field_sig, loc) agg_elements ->
-            let element_ty = Types.substitute_type_params type_param_bindings field_sig in
-            let mir_ty = to_mir_type ~ecx element_ty in
-            ((Some field_name, mir_ty), loc) :: agg_elements)
-          field_sigs_and_locs
-          []
-      in
-      (* Preserve order of fields in source code *)
-      List.sort (fun (_, loc1) (_, loc2) -> Loc.compare loc1 loc2) aggregate_elements_and_locs
-      |> List.map fst
   in
   match instantiations with
   (* Concrete layout has already been instantiated - return already created aggregate *)
@@ -258,7 +262,7 @@ let rec instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args =
   | Concrete instantiated_ref ->
     let aggregate = mk_placeholder_aggregate ~ecx mir_adt_layout.name mir_adt_layout.loc in
     instantiated_ref := Some aggregate;
-    aggregate.elements <- instantiate_aggregate_elements IMap.empty;
+    aggregate.elements <- instantiate_mir_adt_template_elements ~ecx template IMap.empty;
     aggregate
   (* Check if generic layout has already been instantiated with these type args, create if not *)
   | Generic instantiations ->
@@ -270,8 +274,74 @@ let rec instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args =
       let aggregate = mk_placeholder_aggregate ~ecx parameterized_name mir_adt_layout.loc in
       TypeArgsHashtbl.add instantiations mir_type_args aggregate;
       let type_param_bindings = Types.bind_type_params_to_args adt_sig.type_params type_args in
-      aggregate.elements <- instantiate_aggregate_elements type_param_bindings;
+      aggregate.elements <- instantiate_mir_adt_template_elements ~ecx template type_param_bindings;
       aggregate)
+
+and instantiate_mir_adt_variants_layout ~ecx mir_adt_layout type_args =
+  let open MirAdtLayout in
+  let open MirAdtVariantsLayout in
+  let adt_sig = mir_adt_layout.adt_sig in
+  let { tag_mir_type; templates; instantiations; variant_locs; _ } =
+    match mir_adt_layout.layout with
+    | Variants variants_layout -> variants_layout
+    | _ -> failwith "Expected variants layout"
+  in
+
+  let instantiate_union_and_variants instance adt_name type_param_bindings =
+    let mk_variant_aggregate_name variant_name = adt_name ^ "::" ^ variant_name in
+    let tag_element = mk_tag_element tag_mir_type in
+
+    (* Find aligned layout and size of each data variant *)
+    let (aligned_variant_elements, max_size) =
+      SMap.fold
+        (fun variant_name template (aligned_variant_elements, max_size) ->
+          let elements = instantiate_mir_adt_template_elements ~ecx template type_param_bindings in
+          (* Add tag element to start of aggregate, then align and insert padding *)
+          let elements = tag_element :: elements in
+          let ((_, size) as aligned_elements) = align_and_pad_aggregate_elements elements in
+          (SMap.add variant_name aligned_elements aligned_variant_elements, max size max_size))
+        templates
+        (SMap.empty, 0)
+    in
+    instance.size <- max_size;
+
+    (* Create aggregates for each data variant, inserting padding at end to max size *)
+    instance.variants <-
+      SMap.mapi
+        (fun variant_name (elements, size) ->
+          let aggregate_name = mk_variant_aggregate_name variant_name in
+          let loc = SMap.find variant_name variant_locs in
+          let elements = add_end_padding elements size max_size in
+          mk_aggregate ~ecx aggregate_name loc elements)
+        aligned_variant_elements;
+
+    (* Create aggregates for union (and enum variants *)
+    let tag_size = size_of_type tag_mir_type in
+    instance.union.elements <- add_end_padding [tag_element] tag_size max_size;
+    instance
+  in
+
+  match instantiations with
+  (* Concrete layout has already been instantiated - return already created instance *)
+  | Concrete { contents = Some instance } -> instance
+  (* Concrete layout has not yet been instantiated - create and return instance *)
+  | Concrete instantiated_ref ->
+    let union_aggregate = mk_placeholder_aggregate ~ecx mir_adt_layout.name mir_adt_layout.loc in
+    let instance = { union = union_aggregate; size = 0; variants = SMap.empty } in
+    instantiated_ref := Some instance;
+    instantiate_union_and_variants instance mir_adt_layout.name IMap.empty
+  (* Check if generic layout has already been instantiated with these type args, create if not *)
+  | Generic instantiations ->
+    let mir_type_args = List.map (to_mir_type ~ecx) type_args in
+    (match TypeArgsHashtbl.find_opt instantiations mir_type_args with
+    | Some instance -> instance
+    | None ->
+      let parameterized_name = mir_adt_layout.name ^ TypeArgs.to_string mir_type_args in
+      let union_aggregate = mk_placeholder_aggregate ~ecx parameterized_name mir_adt_layout.loc in
+      let instance = { union = union_aggregate; size = 0; variants = SMap.empty } in
+      TypeArgsHashtbl.add instantiations mir_type_args instance;
+      let type_param_bindings = Types.bind_type_params_to_args adt_sig.type_params type_args in
+      instantiate_union_and_variants instance parameterized_name type_param_bindings)
 
 and instantiate_mir_adt_inline_value_layout ~ecx mir_adt_layout type_args =
   let open MirAdtLayout in
@@ -319,7 +389,9 @@ and to_mir_type ~ecx ty =
     | MirAdtLayout.Aggregate _ ->
       let aggregate = instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args in
       `PointerT (`AggregateT aggregate)
-    | Variants _ -> failwith "TODO: Instantiate variants"
+    | Variants _ ->
+      let instance = instantiate_mir_adt_variants_layout ~ecx mir_adt_layout type_args in
+      `PointerT (`AggregateT instance.union)
     | PureEnum { tag_mir_type; _ } -> (tag_mir_type :> Type.t)
     | InlineValue _ -> instantiate_mir_adt_inline_value_layout ~ecx mir_adt_layout type_args)
   | TypeParam { name = Explicit name; _ } -> failwith ("Not allowed as value in IR " ^ name)

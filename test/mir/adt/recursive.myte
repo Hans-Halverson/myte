@@ -14,4 +14,22 @@ type Rec5 (Bool, Rec3)
 
 fun useMutuallyRecursive(r: Rec4) {}
 
+// Self recursive variants
+type VRec1<T> =
+  | Node
+  | Tree { node: T, left: VRec1<T>, right: VRec1<T> }
+
+fun useSelfRecursiveVariant(v1: VRec1<Bool>, v2: VRec1<Int>) {}
+
+// Mutually recursive variants
+type VRec2 =
+  | E1
+  | T1 (Int, VRec3)
+
+type VRec3 =
+  | E2
+  | T2 (Byte, VRec2)
+
+fun useMutuallyRecursiveVariants(v: VRec2) {}
+
 fun main() {}

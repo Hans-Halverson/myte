@@ -96,9 +96,9 @@ let mk_mir_variants_layout ~(ecx : Ecx.t) decl_node variant_nodes =
     else
       `ByteT
   in
-  let (_, tags) =
+  let (_, tags, variant_locs) =
     List.fold_left
-      (fun (i, tags) (name, _) ->
+      (fun (i, tags, variant_locs) (name, loc) ->
         let tag =
           match tag_mir_type with
           | `ByteT ->
@@ -109,8 +109,8 @@ let mk_mir_variants_layout ~(ecx : Ecx.t) decl_node variant_nodes =
               `ByteL i
           | `IntT -> `IntL (Int32.of_int i)
         in
-        (i + 1, SMap.add name tag tags))
-      (0, SMap.empty)
+        (i + 1, SMap.add name tag tags, SMap.add name loc variant_locs))
+      (0, SMap.empty, SMap.empty)
       variants
   in
   (* If there were no data variants, this is a pure enum variant represented as a single integer *)
@@ -148,6 +148,12 @@ let mk_mir_variants_layout ~(ecx : Ecx.t) decl_node variant_nodes =
     in
     let layout =
       MirAdtLayout.Variants
-        { tag_mir_type; tags; templates; instantiations = mk_layout_instantiations adt_sig }
+        {
+          tag_mir_type;
+          tags;
+          templates;
+          instantiations = mk_layout_instantiations adt_sig;
+          variant_locs;
+        }
     in
     { MirAdtLayout.name = full_name; loc = id.loc; adt_sig; layout }

@@ -1,6 +1,6 @@
-type test.Rec1<int> {int, int, int}
-
 type test.Rec1<bool> {int, bool, bool}
+
+type test.Rec1<int> {int, int, int}
 
 func unit @test.testConstructor() {
   %0 := CallBuiltin test.Rec1<int>* myte_alloc(1)

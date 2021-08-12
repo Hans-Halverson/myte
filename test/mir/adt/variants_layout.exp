@@ -1,0 +1,45 @@
+type test.Opt1 {byte, byte[7]}
+
+type test.Opt1::Some1 {byte, byte[3], int}
+
+func unit @test.useOpt1(test.Opt1* %0) {
+  Ret
+}
+
+type test.Opt2<bool> {byte, byte[1]}
+
+type test.Opt2<int> {byte, byte[7]}
+
+type test.Opt2<std.string.String*> {byte, byte[15]}
+
+type test.Opt2<test.Opt2<std.string.String*>*> {byte, byte[15]}
+
+type test.Opt2<bool>::Some2 {byte, bool}
+
+type test.Opt2<int>::Some2 {byte, byte[3], int}
+
+type test.Opt2<std.string.String*>::Some2 {byte, byte[7], std.string.String*}
+
+type test.Opt2<test.Opt2<std.string.String*>*>::Some2 {byte, byte[7], test.Opt2<std.string.String*>*}
+
+func unit @test.useOpt2(test.Opt2<int>* %1, test.Opt2<bool>* %2, test.Opt2<test.Opt2<std.string.String*>*>* %3) {
+  Ret
+}
+
+type test.V1 {byte, byte[23]}
+
+type test.V1::V1Tup1 {byte, byte, byte[2], int, test.Opt1*, byte[8]}
+
+type test.V1::V1Tup2 {byte, byte, byte, byte, int, test.Opt1*, byte[8]}
+
+type test.V1::V2Rec1 {byte, byte[7], test.Opt1*, int, byte, byte[3]}
+
+type test.V1::V2Rec2 {byte, byte, byte[2], int, byte, byte[15]}
+
+func unit @test.useV1(test.V1* %4) {
+  Ret
+}
+
+func int @test.main() {
+  Ret 0
+}

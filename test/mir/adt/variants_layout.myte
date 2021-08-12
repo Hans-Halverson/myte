@@ -1,0 +1,27 @@
+module test
+
+// Instantiation and layout of non-generic variants
+type Opt1 =
+  | None1
+  | Some1 (Int)
+
+fun useOpt1(o: Opt1) {}
+
+// Instantiation and layout of generic variants
+type Opt2<T> =
+  | None2
+  | Some2 (T)
+
+fun useOpt2(o1: Opt2<Int>, o2: Opt2<Bool>, o3: Opt2<Opt2<String>>) {}
+
+// Padding inserted between elements and at end
+type V1 =
+  | V1Tup1 (Byte, Int, Opt1)
+  | V1Tup2 (Byte, Byte, Byte, Int, Opt1)
+  | V2Rec1 { foo: Opt1, bar: Int, baz: Byte }
+  // Padding consolidated at end
+  | V2Rec2 { foo: Byte, bar: Int, baz: Byte }
+
+fun useV1(v: V1) {}
+
+fun main() {}

@@ -47,7 +47,7 @@ let rec pp_program program =
         if filter_stdlib name then
           blocks
         else
-          (global.Global.loc, (fun _ -> pp_global ~cx global)) :: blocks)
+          (Global.(global.loc, global.name), (fun _ -> pp_global ~cx global)) :: blocks)
       program.globals
       []
   in
@@ -57,7 +57,7 @@ let rec pp_program program =
         if filter_stdlib name then
           blocks
         else
-          (func.Function.loc, (fun _ -> pp_func ~cx ~program func)) :: blocks)
+          (Function.(func.loc, func.name), (fun _ -> pp_func ~cx ~program func)) :: blocks)
       program.funcs
       blocks
   in
@@ -67,12 +67,19 @@ let rec pp_program program =
         if filter_stdlib name then
           blocks
         else
-          (type_.Aggregate.loc, (fun _ -> pp_type_decl type_)) :: blocks)
+          (Aggregate.(type_.loc, type_.name), (fun _ -> pp_type_decl type_)) :: blocks)
       program.types
       blocks
   in
-  (* Sort by block source location *)
-  let sorted_blocks = List.sort (fun (l1, _) (l2, _) -> Loc.compare l1 l2) blocks in
+  (* Sort by block source location, break ties by name *)
+  let sorted_blocks =
+    List.sort
+      (fun ((loc1, name1), _) ((loc2, name2), _) ->
+        match Loc.compare loc1 loc2 with
+        | 0 -> String.compare name1 name2
+        | other -> other)
+      blocks
+  in
   String.concat "\n" (List.map (fun (_, mk_block) -> mk_block ()) sorted_blocks)
 
 and pp_global ~cx global =
