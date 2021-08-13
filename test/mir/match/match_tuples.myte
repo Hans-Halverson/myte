@@ -1,0 +1,30 @@
+module test
+
+// No tests generated
+fun test1(x: (Int, Bool, String)): Int =
+  match (x) {
+    | (_, _, _) -> 1
+  }
+
+// Test multiple columns
+fun test2(x: (Int, Bool, String)): Int =
+  match (x) {
+    | (1, true, _) -> 1
+    | (2, _, _) -> 2
+    | (_, true, _) -> 3
+    | (3, false, _) -> 4
+    | (4, _, _) -> 5
+    | (_, false, _) -> 6
+  }
+
+// Destructure inner values
+fun test3(x: (Int, Bool, (Int, Bool))): Int =
+  match (x) {
+    | (1, _, _) -> 1
+    | (_, true, _) -> 2
+    | (_, _, (2, _)) -> 3
+    | (_, _, (_, false)) -> 4
+    | _ -> 5
+  }
+
+fun main() {}

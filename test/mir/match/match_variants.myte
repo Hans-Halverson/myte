@@ -1,0 +1,15 @@
+module test
+
+type V1 =
+  | Enum1
+  | Tuple1 (Int)
+  | Record1 { foo: Int, bar: Byte }
+
+fun test1(x: V1): Int =
+  match (x) {
+    | Tuple1 _ -> 1
+    | Enum1 -> 2
+    | Record1 _ -> 3
+  }
+
+fun main() {}

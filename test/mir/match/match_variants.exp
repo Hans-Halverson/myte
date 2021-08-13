@@ -1,0 +1,30 @@
+type test.V1 {byte, byte[11]}
+
+type test.V1::Tuple1 {byte, byte[3], int, byte[4]}
+
+type test.V1::Record1 {byte, byte[3], int, byte, byte[3]}
+
+func int @test.test1(test.V1* %0) {
+  %1 := Load byte %0
+  %2 := Eq byte %1, 0
+  branch %2, @0, @1
+label @0:
+  %3 := Mov int 2
+  continue @4
+label @1:
+  %4 := Eq byte %1, 2
+  branch %4, @2, @3
+label @2:
+  %5 := Mov int 3
+  continue @4
+label @3:
+  %6 := Mov int 1
+  continue @4
+label @4:
+  %7 := Phi int @0:%3, @2:%5, @3:%6
+  Ret %7
+}
+
+func int @test.main() {
+  Ret 0
+}

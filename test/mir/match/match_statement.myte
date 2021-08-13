@@ -1,0 +1,43 @@
+module test
+
+fun marker(x: Int) {}
+
+fun test1(x: Bool, y: Int) {
+  match (x, y) {
+    | (_, 1) -> {
+      marker(1);
+    }
+    | (true, 2) -> {
+      marker(2);
+    }
+    | (false, 2) -> {
+      marker(3);
+    }
+    | _ -> {
+      marker(4);
+    }
+  }
+}
+
+// Statements with guards
+fun test2(x: Bool, y: Int) {
+  match (x, y) {
+    | (_, 1) when y == 2 -> {
+      marker(1);
+    }
+    | (_, 1) -> {
+      marker(2);
+    }
+    | (true, 2) when x -> {
+      marker(3);
+    }
+    | (true, 2) when !x -> {
+      marker(4);
+    }
+    | _ -> {
+      marker(5);
+    }
+  }
+}
+
+fun main() {}

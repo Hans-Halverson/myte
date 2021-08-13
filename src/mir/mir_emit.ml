@@ -242,32 +242,7 @@ and emit_expression ~ecx expr =
     | `IntT -> `IntL (Int64.to_int32 value)
     | `LongT -> `LongL value
     | _ -> failwith "Int literal must have integer type")
-  | StringLiteral { loc; value; _ } ->
-    let string_global_ptr = Ecx.add_string_literal ~ecx loc value in
-    let string_pointer_type = mir_type_of_loc ~ecx loc in
-    let (`PointerT string_type) = cast_to_pointer_type string_pointer_type in
-    let (`AggregateT string_agg) = cast_to_aggregate_type string_type in
-    (* Call myte_alloc builtin to allocate space for string *)
-    let agg_ptr_var_id = mk_cf_var_id () in
-    let agg_ptr_var = `PointerV (string_type, agg_ptr_var_id) in
-    let (agg_ptr_val, myte_alloc_instr) =
-      Mir_builtin.(mk_call_builtin myte_alloc agg_ptr_var_id [`IntL Int32.one] [string_type])
-    in
-    Ecx.emit ~ecx myte_alloc_instr;
-    (* Write all string literal fields *)
-    let emit_field_store name value =
-      let (element_ty, element_idx) = lookup_element string_agg name in
-      let (element_offset_var, get_ptr_instr) =
-        mk_get_pointer_instr element_ty agg_ptr_var [GetPointer.FieldIndex element_idx]
-      in
-      Ecx.emit ~ecx (GetPointer get_ptr_instr);
-      Ecx.emit ~ecx (Store (element_offset_var, value))
-    in
-    let length = `IntL (Int32.of_int (String.length value)) in
-    emit_field_store "data" string_global_ptr;
-    emit_field_store "size" length;
-    emit_field_store "capacity" length;
-    agg_ptr_val
+  | StringLiteral { loc; value; _ } -> emit_string_literal ~ecx loc value
   (*
    * ============================
    *       Unary Operations
@@ -697,8 +672,63 @@ and emit_expression ~ecx expr =
          conseq_var_id
          (IMap.singleton altern_end_block_id altern_var_id));
     var_value_of_type var_id mir_type
-  | Match _ -> failwith "TODO: Emir MIR for match expressions"
+  (*
+   * ============================
+   *       Match Expression
+   * ============================
+   *)
+  | Match { loc; args; cases } ->
+    (* Emit args and decision tree *)
+    let var_id = mk_cf_var_id () in
+    let mir_type = mir_type_of_loc ~ecx loc in
+    let args = List.map (emit_expression ~ecx) args in
+    let decision_tree = Mir_match_decision_tree.build ~ecx args cases in
+    let case_results = ref [] in
+    emit_match_decision_tree ~ecx ~case_results decision_tree;
+    (* Join all branches to single block, merging results via phi node *)
+    let join_block = Ecx.mk_block_builder ~ecx in
+    let phi_args =
+      List.fold_left
+        (fun phi_args (block_builder, result_val) ->
+          Ecx.set_block_builder ~ecx block_builder;
+          let result_val = Option.get result_val in
+          let result_var_id = emit_var_of_value ~ecx result_val in
+          Ecx.finish_block_continue ~ecx join_block.id;
+          IMap.add block_builder.id result_var_id phi_args)
+        IMap.empty
+        !case_results
+    in
+    Ecx.set_block_builder ~ecx join_block;
+    Ecx.emit_phi ~ecx mir_type var_id phi_args;
+    var_value_of_type var_id mir_type
   | Super _ -> failwith "TODO: Emit MIR for super expressions"
+
+and emit_string_literal ~ecx loc value =
+  let string_global_ptr = Ecx.add_string_literal ~ecx loc value in
+  let string_pointer_type = mir_type_of_loc ~ecx loc in
+  let (`PointerT string_type) = cast_to_pointer_type string_pointer_type in
+  let (`AggregateT string_agg) = cast_to_aggregate_type string_type in
+  (* Call myte_alloc builtin to allocate space for string *)
+  let agg_ptr_var_id = mk_cf_var_id () in
+  let agg_ptr_var = `PointerV (string_type, agg_ptr_var_id) in
+  let (agg_ptr_val, myte_alloc_instr) =
+    Mir_builtin.(mk_call_builtin myte_alloc agg_ptr_var_id [`IntL Int32.one] [string_type])
+  in
+  Ecx.emit ~ecx myte_alloc_instr;
+  (* Write all string literal fields *)
+  let emit_field_store name value =
+    let (element_ty, element_idx) = lookup_element string_agg name in
+    let (element_offset_var, get_ptr_instr) =
+      mk_get_pointer_instr element_ty agg_ptr_var [Instruction.GetPointer.FieldIndex element_idx]
+    in
+    Ecx.emit ~ecx (GetPointer get_ptr_instr);
+    Ecx.emit ~ecx (Store (element_offset_var, value))
+  in
+  let length = `IntL (Int32.of_int (String.length value)) in
+  emit_field_store "data" string_global_ptr;
+  emit_field_store "size" length;
+  emit_field_store "capacity" length;
+  agg_ptr_val
 
 and emit_expression_access_chain_load ~ecx expr =
   match emit_expression_access_chain ~ecx expr with
@@ -1080,6 +1110,7 @@ and emit_call_vec_set ~ecx element_ty_loc vec_var index_var expr_var =
   Ecx.emit ~ecx (Call (var_id, `UnitT, `FunctionL func_name, [vec_var; index_var; expr_var]))
 
 and emit_store_tag ~ecx tag ptr_var_id =
+  let tag = (tag :> cf_value) in
   let tag_ptr_val = `PointerV (type_of_value tag, ptr_var_id) in
   Ecx.emit ~ecx (Store (tag_ptr_val, tag))
 
@@ -1268,8 +1299,227 @@ and emit_statement ~ecx stmt =
     let { Identifier.loc; _ } = List.hd (Ast_utils.ids_of_pattern pattern) in
     let init_val = emit_expression ~ecx init in
     Ecx.emit ~ecx (Mov (mk_cf_local loc, init_val))
-  | Match _ -> failwith "TODO: Emit MIR for match statements"
+  (*
+   * ============================
+   *       Match Statement
+   * ============================
+   *)
+  | Match { args; cases; _ } ->
+    (* Emit args and decision tree *)
+    let args = List.map (emit_expression ~ecx) args in
+    let decision_tree = Mir_match_decision_tree.build ~ecx args cases in
+    let case_results = ref [] in
+    emit_match_decision_tree ~ecx ~case_results decision_tree;
+    (* Join final blocks of all cases to a single continuing block *)
+    let join_block = Ecx.mk_block_builder ~ecx in
+    List.iter
+      (fun (block_builder, _) ->
+        Ecx.set_block_builder ~ecx block_builder;
+        Ecx.finish_block_continue ~ecx join_block.id)
+      !case_results;
+    Ecx.set_block_builder ~ecx join_block
   | FunctionDeclaration _ -> failwith "TODO: Emit MIR for non-toplevel function declarations"
+
+(* Emit the MIR for a match decision tree. Add the ending blocks of each case to the `case_results`
+   parameter, along with the resulting value if the case is an expression. *)
+and emit_match_decision_tree ~ecx ~case_results decision_tree =
+  let open Mir_match_decision_tree in
+  (* Emit a single decision tree node and its child nodes *)
+  let rec emit_tree_node tree_node =
+    match tree_node with
+    (* When a leaf tree node is encountered, the pattern has been matched and we can proceed to
+       emit the body of the case. *)
+    | DecisionTree.Leaf { case_node; guard_fail_case } ->
+      (* If case is guarded, emit guard expression and only proceed to right hand side of case if
+         guard succeeds. Otherwise branch to guard fail block. *)
+      let guard_fail_builder_opt =
+        match case_node.guard with
+        | None -> None
+        | Some guard_expr ->
+          let guard_test_val = emit_bool_expression ~ecx guard_expr in
+          let guard_pass_builder = Ecx.mk_block_builder ~ecx in
+          let guard_fail_builder = Ecx.mk_block_builder ~ecx in
+          Ecx.finish_block_branch ~ecx guard_test_val guard_pass_builder.id guard_fail_builder.id;
+          Ecx.set_block_builder ~ecx guard_pass_builder;
+          Some guard_fail_builder
+      in
+
+      (* Emit the right hand side of case, saving ending block id (and value if expression) so they
+         can eventually be linked to join block after match. *)
+      (match case_node.right with
+      | Expression expr ->
+        let body_val = emit_expression ~ecx expr in
+        let body_end_block = Ecx.get_block_builder_throws ~ecx in
+        case_results := (body_end_block, Some body_val) :: !case_results
+      | Statement stmt ->
+        emit_statement ~ecx stmt;
+        let body_end_block = Ecx.get_block_builder_throws ~ecx in
+        case_results := (body_end_block, None) :: !case_results);
+
+      (* Emit guard fail block, which is another decision tree *)
+      (match guard_fail_builder_opt with
+      | None -> ()
+      | Some guard_fail_builder ->
+        let guard_fail_tree_node = Option.get guard_fail_case in
+        Ecx.set_block_builder ~ecx guard_fail_builder;
+        emit_tree_node guard_fail_tree_node)
+    (* Otherwise we need to test a scrutinee and potentially branch to new decision tree nodes to emit *)
+    | Test { scrutinee; cases; default_case } ->
+      (match List.hd cases with
+      (* Tuple and units ctors are unique and do not need to be tested, continue to inner decision tree *)
+      | (Ctor.Unit, tree_node)
+      | (Tuple _, tree_node) ->
+        emit_tree_node tree_node
+      (* Bool tests have exactly two cases, so emit single eq test (a length one if-else chain) *)
+      | (Bool _, _) as first_case ->
+        let second_case =
+          match default_case with
+          | Some tree_node -> tree_node
+          | None -> snd (List_utils.last cases)
+        in
+        let scrutinee_val = cast_to_comparable_value (emit_load_scrutinee ~ecx scrutinee) in
+        emit_decision_tree_if_else_chain [first_case] second_case (fun ctor ->
+            let test_var_id = mk_cf_var_id () in
+            Ecx.emit ~ecx (Eq (test_var_id, scrutinee_val, `BoolL (Ctor.cast_to_bool ctor)));
+            `BoolV test_var_id)
+      (* Strings are tested for equality in if-else-chain, following source code order *)
+      | (String _, _) ->
+        (* String matches cannot be fully enumerated, so must have a default case *)
+        let default_tree_node = Option.get default_case in
+        let scrutinee_val = emit_load_scrutinee ~ecx scrutinee in
+        (* Order string tests in order cases are written in source *)
+        let cases =
+          List.sort
+            (fun (ctor1, _) (ctor2, _) ->
+              let (_, loc1) = Ctor.cast_to_string ctor1 in
+              let (_, loc2) = Ctor.cast_to_string ctor2 in
+              Loc.compare loc1 loc2)
+            cases
+        in
+        emit_decision_tree_if_else_chain cases default_tree_node (fun ctor ->
+            let (value, loc) = Ctor.cast_to_string ctor in
+            (* TODO: Check raw bytes directly instead of allocating new string and calling equals *)
+            let string_val = emit_string_literal ~ecx loc value in
+            let test_val =
+              emit_method_call
+                ~ecx
+                ~method_name:"equals"
+                ~receiver_val:scrutinee_val
+                ~receiver_ty:(Std_lib.mk_string_type ())
+                ~arg_vals:[string_val]
+                ~method_instance_type_args:[]
+                ~ret_type:`BoolT
+            in
+            cast_to_bool_value test_val)
+      (* Ints are tested for equality in if-else chain *)
+      | (Int _, _) ->
+        (* Split out last case if there is no default, as it does not have to be explicitly tested *)
+        let (test_cases, default_case) =
+          match default_case with
+          | None ->
+            let (cases, (_, last_tree_node)) = List_utils.split_last cases in
+            (cases, last_tree_node)
+          | Some default_tree_node -> (cases, default_tree_node)
+        in
+        let scrutinee_val = cast_to_comparable_value (emit_load_scrutinee ~ecx scrutinee) in
+        let scrutinee_type = type_of_value (scrutinee_val :> cf_value) in
+        (* TODO: Emit better checks than linear if else chain - e.g. binary search, jump table *)
+        emit_decision_tree_if_else_chain test_cases default_case (fun ctor ->
+            let (value, _) = Ctor.cast_to_int ctor in
+            let case_val =
+              match scrutinee_type with
+              | `ByteT -> `ByteL (Int64.to_int value)
+              | `IntT -> `IntL (Int64.to_int32 value)
+              | `LongT -> `LongL value
+              | _ -> failwith "Expected numeric value"
+            in
+            let test_var_id = mk_cf_var_id () in
+            Ecx.emit ~ecx (Eq (test_var_id, scrutinee_val, case_val));
+            `BoolV test_var_id)
+      (* Variants are tested by loading their tag and checking against scrutinee in if-else chain *)
+      | (Variant (_, adt_sig), _) ->
+        let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
+        let variants_layout =
+          match mir_adt_layout.layout with
+          | Variants layout -> layout
+          | _ -> failwith "Expected variants layout"
+        in
+        let tag_type = (variants_layout.tag_mir_type :> Type.t) in
+        (* Split out last case if there is no default, as it does not have to be explicitly tested *)
+        let (test_cases, default_case) =
+          match default_case with
+          | None ->
+            let (cases, (_, last_tree_node)) = List_utils.split_last cases in
+            (cases, last_tree_node)
+          | Some default_tree_node -> (cases, default_tree_node)
+        in
+        (* Load tag value so it can be tested *)
+        let scrutinee_val = cast_to_pointer_value (emit_load_scrutinee ~ecx scrutinee) in
+        let scrutinee_tag_ptr_val = cast_pointer_value scrutinee_val tag_type in
+        let scrutinee_tag_var_id = mk_cf_var_id () in
+        Ecx.emit ~ecx (Load (scrutinee_tag_var_id, scrutinee_tag_ptr_val));
+        let scrutinee_tag_val =
+          cast_to_comparable_value (var_value_of_type scrutinee_tag_var_id tag_type)
+        in
+        (* TODO: Emit better checks than linear if else chain - e.g. binary search, jump table *)
+        emit_decision_tree_if_else_chain test_cases default_case (fun ctor ->
+            let (name, _) = Ctor.cast_to_variant ctor in
+            let tag_val =
+              (SMap.find name variants_layout.tags :> cf_var Mir.Value.comparable_value)
+            in
+            let test_var_id = mk_cf_var_id () in
+            Ecx.emit ~ecx (Eq (test_var_id, scrutinee_tag_val, tag_val));
+            `BoolV test_var_id))
+  (* Return the scrutinee value. May emit load instructions if scrutinee is an element of an aggregate. *)
+  and emit_load_scrutinee ~ecx scrutinee =
+    let open Mir_match_decision_tree in
+    let rec gather_field_keys scrutinee field_keys =
+      match scrutinee with
+      | Scrutinee.Value value -> (value, field_keys)
+      | TupleField (scrutinee, index) ->
+        let key = TupleKeyCache.get_key index in
+        gather_field_keys scrutinee (key :: field_keys)
+      | RecordField (scrutinee, name) -> gather_field_keys scrutinee (name :: field_keys)
+    in
+    let (value, field_keys) = gather_field_keys scrutinee [] in
+    if field_keys = [] then
+      value
+    else
+      List.fold_left
+        (fun value field_key ->
+          let value_type = type_of_value value in
+          let (`PointerT ptr_type) = cast_to_pointer_type value_type in
+          let (`AggregateT aggregate) = cast_to_aggregate_type ptr_type in
+          let (element_type, element_index) = lookup_element aggregate field_key in
+          let (element_ptr_val, get_ptr_instr) =
+            mk_get_pointer_instr
+              element_type
+              (cast_to_pointer_value value)
+              [Instruction.GetPointer.FieldIndex element_index]
+          in
+          Ecx.emit ~ecx (GetPointer get_ptr_instr);
+          let var_id = mk_cf_var_id () in
+          Ecx.emit ~ecx (Load (var_id, element_ptr_val));
+          var_value_of_type var_id element_type)
+        value
+        field_keys
+  (* Emit a sequence of tests and resulting blocks given a list of tests cases with ctors, the default
+     case if all test ctors fail, and a function to generate a boolean test value from a ctor. *)
+  and emit_decision_tree_if_else_chain test_cases default_case gen_test_val =
+    List.iter
+      (fun (ctor, tree_node) ->
+        let test_val = gen_test_val ctor in
+        let matches_case_builder = Ecx.mk_block_builder ~ecx in
+        let fails_case_builder = Ecx.mk_block_builder ~ecx in
+        Ecx.finish_block_branch ~ecx test_val matches_case_builder.id fails_case_builder.id;
+        Ecx.set_block_builder ~ecx matches_case_builder;
+        emit_tree_node tree_node;
+        Ecx.set_block_builder ~ecx fails_case_builder)
+      test_cases;
+    emit_tree_node default_case
+  in
+
+  emit_tree_node decision_tree
 
 (* Return a variable id for the given value. Variables return their id directly, while literal
    values must first emit a Mov to a variablem then return the new variable id. *)

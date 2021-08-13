@@ -1,0 +1,56 @@
+func int @test.test1(std.string.String* %0) {
+  %1 := CallBuiltin std.string.String* myte_alloc(1)
+  %2 := GetPointer byte* %1.0
+  Store byte* %2, @.S0
+  %3 := GetPointer int %1.1
+  Store int %3, 3
+  %4 := GetPointer int %1.2
+  Store int %4, 3
+  %5 := Call bool @std.string.String.equals(%0, %1)
+  branch %5, @0, @1
+label @0:
+  %6 := Mov int 1
+  continue @6
+label @1:
+  %7 := CallBuiltin std.string.String* myte_alloc(1)
+  %8 := GetPointer byte* %7.0
+  Store byte* %8, @.S1
+  %9 := GetPointer int %7.1
+  Store int %9, 3
+  %10 := GetPointer int %7.2
+  Store int %10, 3
+  %11 := Call bool @std.string.String.equals(%0, %7)
+  branch %11, @2, @3
+label @2:
+  %12 := Mov int 2
+  continue @6
+label @3:
+  %13 := CallBuiltin std.string.String* myte_alloc(1)
+  %14 := GetPointer byte* %13.0
+  Store byte* %14, @.S2
+  %15 := GetPointer int %13.1
+  Store int %15, 3
+  %16 := GetPointer int %13.2
+  Store int %16, 3
+  %17 := Call bool @std.string.String.equals(%0, %13)
+  branch %17, @4, @5
+label @4:
+  %18 := Mov int 3
+  continue @6
+label @5:
+  %19 := Mov int 4
+  continue @6
+label @6:
+  %20 := Phi int @0:%6, @2:%12, @4:%18, @5:%19
+  Ret %20
+}
+
+global byte[3] @.S0 = "foo"
+
+global byte[3] @.S1 = "bar"
+
+global byte[3] @.S2 = "baz"
+
+func int @test.main() {
+  Ret 0
+}

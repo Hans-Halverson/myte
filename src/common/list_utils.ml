@@ -24,12 +24,26 @@ let split_last lst =
   in
   helper [] lst
 
+(* Split a list at a given index, return the list up to (but not including) that index, and the
+   list starting at that index. *)
 let split_at i lst =
   let rec helper i acc lst =
     match (i, lst) with
     | (0, _)
     | (_, []) ->
       (List.rev acc, lst)
+    | (i, hd :: tl) -> helper (i - 1) (hd :: acc) tl
+  in
+  helper i [] lst
+
+(* Split a list around a given index, which must be in the range [0, length - 1] inclusive. 
+   Return the list up to (but not including) that index, the item at that index, and the list
+   starting after that index. *)
+let split_around i lst =
+  let rec helper i acc lst =
+    match (i, lst) with
+    | (_, []) -> failwith "Index must be less than length of list"
+    | (0, hd :: tl) -> (List.rev acc, hd, tl)
     | (i, hd :: tl) -> helper (i - 1) (hd :: acc) tl
   in
   helper i [] lst
@@ -76,3 +90,11 @@ let iteri2 f l1 l2 =
     | (_, _) -> failwith "Lists must have same length"
   in
   helper 0 f l1 l2
+
+(* Transpose a matrix represented as a list of lists *)
+let rec transpose matrix =
+  match matrix with
+  | []
+  | [] :: _ ->
+    []
+  | matrix -> List.map List.hd matrix :: transpose (List.map List.tl matrix)

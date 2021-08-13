@@ -42,6 +42,18 @@ let mk_aggregate_id () =
   max_aggregate_id := agg_id + 1;
   agg_id
 
+(* Look up an element by name in an aggregate type, throwing if no element with that name is found.
+   Return a tuple of the element's type and its index in the aggregate. *)
+let lookup_element agg name =
+  let open Aggregate in
+  let rec inner elements i =
+    match elements with
+    | [] -> failwith "Field not defined for aggregate"
+    | (element_name, element_ty) :: _ when element_name = name -> (element_ty, i)
+    | _ :: tl -> inner tl (i + 1)
+  in
+  inner agg.elements 0
+
 (* Tuple indices are converted to strings in aggregate element list. Keep cache of indices converted
    to keys to avoid a large number of calls to `string_of_int`. *)
 module TupleKeyCache = struct

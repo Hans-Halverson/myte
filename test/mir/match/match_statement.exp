@@ -1,0 +1,74 @@
+func unit @test.marker(int %0) {
+  Ret
+}
+
+func unit @test.test1(bool %1, int %2) {
+  %3 := Eq int %2, 1
+  branch %3, @0, @1
+label @0:
+  %4 := Call unit @test.marker(1)
+  continue @6
+label @1:
+  %5 := Eq int %2, 2
+  branch %5, @2, @5
+label @2:
+  %6 := Eq bool %1, false
+  branch %6, @3, @4
+label @3:
+  %7 := Call unit @test.marker(3)
+  continue @6
+label @4:
+  %8 := Call unit @test.marker(2)
+  continue @6
+label @5:
+  %9 := Call unit @test.marker(4)
+  continue @6
+label @6:
+  Ret
+}
+
+func unit @test.test2(bool %10, int %11) {
+  %12 := Eq int %11, 1
+  branch %12, @7, @10
+label @7:
+  %13 := Eq int %11, 2
+  branch %13, @8, @9
+label @8:
+  %14 := Call unit @test.marker(1)
+  continue @19
+label @9:
+  %15 := Call unit @test.marker(2)
+  continue @19
+label @10:
+  %16 := Eq int %11, 2
+  branch %16, @11, @18
+label @11:
+  %17 := Eq bool %10, true
+  branch %17, @12, @17
+label @12:
+  branch %10, @13, @14
+label @13:
+  %18 := Call unit @test.marker(3)
+  continue @19
+label @14:
+  %19 := LogNot %10
+  branch %19, @15, @16
+label @15:
+  %20 := Call unit @test.marker(4)
+  continue @19
+label @16:
+  %21 := Call unit @test.marker(5)
+  continue @19
+label @17:
+  %22 := Call unit @test.marker(5)
+  continue @19
+label @18:
+  %23 := Call unit @test.marker(5)
+  continue @19
+label @19:
+  Ret
+}
+
+func int @test.main() {
+  Ret 0
+}

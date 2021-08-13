@@ -1,0 +1,81 @@
+func int @test.testBytes(byte %0) {
+  %1 := Eq byte %0, -1
+  branch %1, @0, @1
+label @0:
+  %2 := Mov int 2
+  continue @6
+label @1:
+  %3 := Eq byte %0, 0
+  branch %3, @2, @3
+label @2:
+  %4 := Mov int 1
+  continue @6
+label @3:
+  %5 := Eq byte %0, 5
+  branch %5, @4, @5
+label @4:
+  %6 := Mov int 3
+  continue @6
+label @5:
+  %7 := Mov int 4
+  continue @6
+label @6:
+  %8 := Phi int @0:%2, @2:%4, @4:%6, @5:%7
+  Ret %8
+}
+
+func int @test.testInts(int %9) {
+  %10 := Eq int %9, -1
+  branch %10, @7, @8
+label @7:
+  %11 := Mov int 2
+  continue @13
+label @8:
+  %12 := Eq int %9, 0
+  branch %12, @9, @10
+label @9:
+  %13 := Mov int 1
+  continue @13
+label @10:
+  %14 := Eq int %9, 5
+  branch %14, @11, @12
+label @11:
+  %15 := Mov int 3
+  continue @13
+label @12:
+  %16 := Mov int 4
+  continue @13
+label @13:
+  %17 := Phi int @7:%11, @9:%13, @11:%15, @12:%16
+  Ret %17
+}
+
+func int @test.testLongs(long %18) {
+  %19 := Eq long %18, -1
+  branch %19, @14, @15
+label @14:
+  %20 := Mov int 2
+  continue @20
+label @15:
+  %21 := Eq long %18, 0
+  branch %21, @16, @17
+label @16:
+  %22 := Mov int 1
+  continue @20
+label @17:
+  %23 := Eq long %18, 5
+  branch %23, @18, @19
+label @18:
+  %24 := Mov int 3
+  continue @20
+label @19:
+  %25 := Mov int 4
+  continue @20
+label @20:
+  %26 := Phi int @14:%20, @16:%22, @18:%24, @19:%25
+  Ret %26
+}
+
+func int @test.main() {
+  Ret 0
+}

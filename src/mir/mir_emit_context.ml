@@ -124,10 +124,12 @@ let mk_block_builder ~ecx =
 
 let set_block_builder ~ecx builder = ecx.current_block_builder <- Some builder
 
-let get_block_builder_id_throws ~ecx =
+let get_block_builder_throws ~ecx =
   match ecx.current_block_builder with
-  | Some { id; _ } -> id
+  | Some builder -> builder
   | None -> failwith "No current block builder"
+
+let get_block_builder_id_throws ~ecx = (get_block_builder_throws ~ecx).id
 
 let start_new_block ~ecx =
   let builder = mk_block_builder ~ecx in

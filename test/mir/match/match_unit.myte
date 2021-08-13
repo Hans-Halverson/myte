@@ -1,0 +1,8 @@
+module test
+
+fun test(): Int =
+  match (()) {
+    | () -> 1
+  }
+
+fun main() {}

@@ -1,0 +1,27 @@
+module test
+
+fun testBytes(x: Byte): Int =
+  match (x) {
+    | 0 -> 1
+    | -1 -> 2
+    | 5 -> 3
+    | _ -> 4
+  }
+
+fun testInts(x: Int): Int =
+  match (x) {
+    | 0 -> 1
+    | -1 -> 2
+    | 5 -> 3
+    | _ -> 4
+  }
+
+fun testLongs(x: Long): Int =
+  match (x) {
+    | 0 -> 1
+    | -1 -> 2
+    | 5 -> 3
+    | _ -> 4
+  }
+
+fun main() {}

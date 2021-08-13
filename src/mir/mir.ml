@@ -293,7 +293,7 @@ let cast_to_numeric_value (v : 'a Value.t) : 'a Value.numeric_value =
   | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v -> v
   | _ -> failwith "Expected numeric value"
 
-and cast_to_pointer_value (v : 'a Value.t) : 'a Value.pointer_value =
+let cast_to_pointer_value (v : 'a Value.t) : 'a Value.pointer_value =
   match v with
   | (`PointerL _ | `PointerV _) as v -> v
   | _ -> failwith "Expected pointer value"
@@ -304,6 +304,11 @@ let cast_to_comparable_value (v : 'a Value.t) : 'a Value.comparable_value =
     | `LongV _ | `PointerL _ | `PointerV _ ) as v ->
     v
   | _ -> failwith "Expected comparable value"
+
+let cast_pointer_value (v : 'a Value.pointer_value) (mir_type : Type.t) : 'a Value.pointer_value =
+  match v with
+  | `PointerL (_, label) -> `PointerL (mir_type, label)
+  | `PointerV (_, var_id) -> `PointerV (mir_type, var_id)
 
 let is_literal (v : 'a Value.t) : bool =
   match v with
@@ -394,18 +399,6 @@ let int64_of_literal lit =
   | `ByteL lit -> Int64.of_int lit
   | `IntL lit -> Int64.of_int32 lit
   | `LongL lit -> lit
-
-(* Look up an element by name in an aggregate type, throwing if no element with that name is found.
-   Return a tuple of the element's type and its index in the aggregate. *)
-let lookup_element agg name =
-  let open Aggregate in
-  let rec inner elements i =
-    match elements with
-    | [] -> failwith "Field not defined for aggregate"
-    | (element_name, element_ty) :: _ when element_name = name -> (element_ty, i)
-    | _ :: tl -> inner tl (i + 1)
-  in
-  inner agg.elements 0
 
 let std_lib_string_prefix = ".stdS"
 

@@ -1,0 +1,11 @@
+module test
+
+fun test1(x: String): Int =
+  match (x) {
+    | "foo" -> 1
+    | "bar" -> 2
+    | "baz" -> 3
+    | _ -> 4
+  }
+
+fun main() {}

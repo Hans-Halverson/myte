@@ -1,0 +1,17 @@
+module test
+
+fun test1(x: Bool): Int =
+  match (x) {
+    | true -> 1
+    | false -> 2
+  }
+
+fun test2(x: Bool, y: Bool): Int =
+  match (x, y) {
+    | (true, false) -> 1
+    | (false, true) -> 2
+    | (true, true) -> 3
+    | (false, false) -> 4
+  }
+
+fun main() {}

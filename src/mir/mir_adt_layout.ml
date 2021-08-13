@@ -55,7 +55,7 @@ end
 module MirAdtVariantsLayout = struct
   type t = {
     (* Tags for all variants, indexed by variant name *)
-    tags: Mir.cf_value SMap.t;
+    tags: Mir.cf_var Mir.Value.numeric_value SMap.t;
     tag_mir_type: tag_type;
     (* Templates for all data variants, indexed by variant name. Templates do not contain any
        padding - padding is calculated during instantiation. *)

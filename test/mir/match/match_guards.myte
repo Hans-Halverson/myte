@@ -1,0 +1,25 @@
+module test
+
+fun test1(x: Bool, y: Int): Int =
+  match (y) {
+    | 0 -> 0
+    | 1 when x -> 1
+    | 1 -> 2
+    | 2 when x -> 3
+    | 2 when !x -> 4
+    | 2 when !!x -> 5
+    | 2 -> 6
+    | _ -> 7
+  }
+
+// Body of each case is only emitted once
+fun test2(x: Bool, y: Int): Int =
+  match (y, y) {
+    | (_, 1) when x -> 1
+    | (_, 1) -> 2
+    | (2, 3) when x -> 3
+    | (2, 3) when !x -> 4
+    | _ -> 5
+  }
+
+fun main() {}
