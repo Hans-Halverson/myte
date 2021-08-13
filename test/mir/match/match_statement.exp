@@ -35,37 +35,31 @@ label @7:
   branch %13, @8, @9
 label @8:
   %14 := Call unit @test.marker(1)
-  continue @19
+  continue @17
 label @9:
   %15 := Call unit @test.marker(2)
-  continue @19
+  continue @17
 label @10:
   %16 := Eq int %11, 2
-  branch %16, @11, @18
+  branch %16, @11, @16
 label @11:
   %17 := Eq bool %10, true
-  branch %17, @12, @17
+  branch %17, @12, @16
 label @12:
   branch %10, @13, @14
 label @13:
   %18 := Call unit @test.marker(3)
-  continue @19
+  continue @17
 label @14:
   %19 := LogNot %10
   branch %19, @15, @16
 label @15:
   %20 := Call unit @test.marker(4)
-  continue @19
+  continue @17
 label @16:
   %21 := Call unit @test.marker(5)
-  continue @19
+  continue @17
 label @17:
-  %22 := Call unit @test.marker(5)
-  continue @19
-label @18:
-  %23 := Call unit @test.marker(5)
-  continue @19
-label @19:
   Ret
 }
 

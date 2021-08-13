@@ -1324,12 +1324,19 @@ and emit_statement ~ecx stmt =
    parameter, along with the resulting value if the case is an expression. *)
 and emit_match_decision_tree ~ecx ~case_results decision_tree =
   let open Mir_match_decision_tree in
+  (* Maintain cache of block builder at beginning of each case body (including guard) *)
+  let case_body_builder_cache = ref LocMap.empty in
+  let constructed_cases = ref LocSet.empty in
+
   (* Emit a single decision tree node and its child nodes *)
   let rec emit_tree_node tree_node =
     match tree_node with
     (* When a leaf tree node is encountered, the pattern has been matched and we can proceed to
        emit the body of the case. *)
+    | DecisionTree.Leaf { case_node; _ } when LocSet.mem case_node.loc !constructed_cases -> ()
     | DecisionTree.Leaf { case_node; guard_fail_case } ->
+      constructed_cases := LocSet.add case_node.loc !constructed_cases;
+
       (* If case is guarded, emit guard expression and only proceed to right hand side of case if
          guard succeeds. Otherwise branch to guard fail block. *)
       let guard_fail_builder_opt =
@@ -1338,7 +1345,7 @@ and emit_match_decision_tree ~ecx ~case_results decision_tree =
         | Some guard_expr ->
           let guard_test_val = emit_bool_expression ~ecx guard_expr in
           let guard_pass_builder = Ecx.mk_block_builder ~ecx in
-          let guard_fail_builder = Ecx.mk_block_builder ~ecx in
+          let guard_fail_builder = get_block_builder_for_node (Option.get guard_fail_case) in
           Ecx.finish_block_branch ~ecx guard_test_val guard_pass_builder.id guard_fail_builder.id;
           Ecx.set_block_builder ~ecx guard_pass_builder;
           Some guard_fail_builder
@@ -1470,6 +1477,20 @@ and emit_match_decision_tree ~ecx ~case_results decision_tree =
             let test_var_id = mk_cf_var_id () in
             Ecx.emit ~ecx (Eq (test_var_id, scrutinee_tag_val, tag_val));
             `BoolV test_var_id))
+  (* Get the block builder to use for the start of a given decision tree node. Test nodes have
+     unique parents so a new block builder should be created, but leaf nodes may be pointed to by
+     multiple test nodes so check case body cache. *)
+  and get_block_builder_for_node tree_node : Ecx.BlockBuilder.t =
+    match tree_node with
+    | DecisionTree.Test _ -> Ecx.mk_block_builder ~ecx
+    | Leaf { case_node; _ } ->
+      (match LocMap.find_opt case_node.loc !case_body_builder_cache with
+      | Some block_builder ->
+        block_builder
+      | None ->
+        let block_builder = Ecx.mk_block_builder ~ecx in
+        case_body_builder_cache := LocMap.add case_node.loc block_builder !case_body_builder_cache;
+        block_builder)
   (* Return the scrutinee value. May emit load instructions if scrutinee is an element of an aggregate. *)
   and emit_load_scrutinee ~ecx scrutinee =
     let open Mir_match_decision_tree in
@@ -1506,16 +1527,29 @@ and emit_match_decision_tree ~ecx ~case_results decision_tree =
   (* Emit a sequence of tests and resulting blocks given a list of tests cases with ctors, the default
      case if all test ctors fail, and a function to generate a boolean test value from a ctor. *)
   and emit_decision_tree_if_else_chain test_cases default_case gen_test_val =
-    List.iter
-      (fun (ctor, tree_node) ->
-        let test_val = gen_test_val ctor in
-        let matches_case_builder = Ecx.mk_block_builder ~ecx in
-        let fails_case_builder = Ecx.mk_block_builder ~ecx in
-        Ecx.finish_block_branch ~ecx test_val matches_case_builder.id fails_case_builder.id;
-        Ecx.set_block_builder ~ecx matches_case_builder;
-        emit_tree_node tree_node;
-        Ecx.set_block_builder ~ecx fails_case_builder)
-      test_cases;
+    let emit_test (ctor, tree_node) is_last_test =
+      let test_val = gen_test_val ctor in
+      let pass_case_builder = get_block_builder_for_node tree_node in
+      (* The last test links directly to the default case, otherwise create a new block for the next test *)
+      let fail_case_builder =
+        if is_last_test then
+          get_block_builder_for_node default_case
+        else
+          Ecx.mk_block_builder ~ecx
+      in
+      Ecx.finish_block_branch ~ecx test_val pass_case_builder.id fail_case_builder.id;
+      Ecx.set_block_builder ~ecx pass_case_builder;
+      emit_tree_node tree_node;
+      Ecx.set_block_builder ~ecx fail_case_builder
+    in
+    let rec iter test_cases =
+      match test_cases with
+      | [] -> ()
+      | case :: rest ->
+        emit_test case (rest = []);
+        iter rest
+    in
+    iter test_cases;
     emit_tree_node default_case
   in
 

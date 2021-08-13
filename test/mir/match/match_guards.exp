@@ -54,39 +54,33 @@ label @15:
   branch %17, @16, @17
 label @16:
   %20 := Mov int 1
-  continue @27
+  continue @25
 label @17:
   %21 := Mov int 2
-  continue @27
+  continue @25
 label @18:
   %22 := Eq int %18, 3
-  branch %22, @19, @26
+  branch %22, @19, @24
 label @19:
   %23 := Eq int %18, 2
-  branch %23, @20, @25
+  branch %23, @20, @24
 label @20:
   branch %17, @21, @22
 label @21:
   %24 := Mov int 3
-  continue @27
+  continue @25
 label @22:
   %25 := LogNot %17
   branch %25, @23, @24
 label @23:
   %26 := Mov int 4
-  continue @27
+  continue @25
 label @24:
   %27 := Mov int 5
-  continue @27
+  continue @25
 label @25:
-  %28 := Mov int 5
-  continue @27
-label @26:
-  %29 := Mov int 5
-  continue @27
-label @27:
-  %30 := Phi int @16:%20, @17:%21, @26:%29, @25:%28, @21:%24, @23:%26, @24:%27
-  Ret %30
+  %28 := Phi int @16:%20, @17:%21, @24:%27, @21:%24, @23:%26
+  Ret %28
 }
 
 func int @test.main() {
