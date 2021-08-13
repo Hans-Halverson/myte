@@ -10,39 +10,39 @@ type test.Rec1 {test.Tup4*}
 
 func test.Tup1* @test.makeTup(int %0) {
   %1 := CallBuiltin test.Tup1* myte_alloc(1)
-  %2 := GetPointer int %1.0
+  %2 := GetPointer int, test.Tup1* %1.0
   Store int %2, %0
   Ret %1
 }
 
 func unit @test.testIndexing(test.Tup1* %3, test.Tup2* %4, test.Tup3* %5, test.Tup4* %6, test.Rec1* %7) {
-  %8 := GetPointer int %3.0
+  %8 := GetPointer int, test.Tup1* %3.0
   %9 := Load int %8
-  %10 := GetPointer std.string.String* %4.0
+  %10 := GetPointer std.string.String*, test.Tup2* %4.0
   %11 := Load std.string.String* %10
-  %12 := GetPointer bool %4.1
+  %12 := GetPointer bool, test.Tup2* %4.1
   %13 := Load bool %12
-  %14 := GetPointer byte %5.0
+  %14 := GetPointer byte, test.Tup3* %5.0
   %15 := Load byte %14
-  %16 := GetPointer test.Tup2* %5.1
+  %16 := GetPointer test.Tup2*, test.Tup3* %5.1
   %17 := Load test.Tup2* %16
-  %18 := GetPointer int %17.2
+  %18 := GetPointer int, test.Tup2* %17.2
   %19 := Load int %18
-  %20 := GetPointer test.Tup3* %6.2
+  %20 := GetPointer test.Tup3*, test.Tup4* %6.2
   %21 := Load test.Tup3* %20
-  %22 := GetPointer test.Tup2* %21.1
+  %22 := GetPointer test.Tup2*, test.Tup3* %21.1
   %23 := Load test.Tup2* %22
-  %24 := GetPointer std.string.String* %23.0
+  %24 := GetPointer std.string.String*, test.Tup2* %23.0
   %25 := Load std.string.String* %24
   %26 := Mul int 2, 3
   %27 := Call test.Tup1* @test.makeTup(%26)
-  %28 := GetPointer int %27.0
+  %28 := GetPointer int, test.Tup1* %27.0
   %29 := Load int %28
-  %30 := GetPointer test.Tup4* %7.0
+  %30 := GetPointer test.Tup4*, test.Rec1* %7.0
   %31 := Load test.Tup4* %30
-  %32 := GetPointer test.Tup3* %31.2
+  %32 := GetPointer test.Tup3*, test.Tup4* %31.2
   %33 := Load test.Tup3* %32
-  %34 := GetPointer test.Tup2* %33.1
+  %34 := GetPointer test.Tup2*, test.Tup3* %33.1
   %35 := Load test.Tup2* %34
   Ret
 }

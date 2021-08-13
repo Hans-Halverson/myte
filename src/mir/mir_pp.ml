@@ -294,13 +294,13 @@ and pp_instruction ~cx (_, instr) =
         (pp_pointer_value ~cx ptr)
         (pp_value ~cx right)
     | GetPointer { GetPointer.var_id; return_ty; pointer; pointer_offset; offsets } ->
+      let pointer_ty = type_of_value (pointer :> ssa_value) in
       let pp_pointer_offset pointer_offset =
         Printf.sprintf
           "[%s %s]"
           (pp_type_of_numeric_value pointer_offset)
           (pp_numeric_value ~cx pointer_offset)
       in
-
       let pointer_offset_str =
         Option_utils.value_map pp_pointer_offset ~default:"" pointer_offset
       in
@@ -315,8 +315,9 @@ and pp_instruction ~cx (_, instr) =
       pp_instr
         var_id
         (Printf.sprintf
-           "GetPointer %s %s%s%s"
+           "GetPointer %s, %s %s%s%s"
            (pp_type return_ty)
+           (pp_type pointer_ty)
            (pp_pointer_value ~cx pointer)
            pointer_offset_str
            (String.concat "" offset_strs))

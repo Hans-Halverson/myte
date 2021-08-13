@@ -9,18 +9,18 @@ type test.Rec4 {int, int, test.Rec3*}
 type test.Tup1 {test.Rec3*}
 
 func unit @test.simpleAccesses(test.Rec1* %0, test.Rec2* %1) {
-  %2 := GetPointer int %0.0
+  %2 := GetPointer int, test.Rec1* %0.0
   Store int %2, 1
-  %3 := GetPointer std.string.String* %1.0
+  %3 := GetPointer std.string.String*, test.Rec2* %1.0
   %4 := CallBuiltin std.string.String* myte_alloc(1)
-  %5 := GetPointer byte* %4.0
+  %5 := GetPointer byte*, std.string.String* %4.0
   Store byte* %5, @.S0
-  %6 := GetPointer int %4.1
+  %6 := GetPointer int, std.string.String* %4.1
   Store int %6, 6
-  %7 := GetPointer int %4.2
+  %7 := GetPointer int, std.string.String* %4.2
   Store int %7, 6
   Store std.string.String* %3, %4
-  %8 := GetPointer bool %1.1
+  %8 := GetPointer bool, test.Rec2* %1.1
   Store bool %8, true
   Ret
 }
@@ -28,23 +28,23 @@ func unit @test.simpleAccesses(test.Rec1* %0, test.Rec2* %1) {
 global byte[6] @.S0 = "string"
 
 func unit @test.nestedAccesses(test.Rec3* %9, test.Rec4* %10) {
-  %11 := GetPointer byte %9.0
+  %11 := GetPointer byte, test.Rec3* %9.0
   Store byte %11, 1
-  %12 := GetPointer test.Rec2* %9.1
+  %12 := GetPointer test.Rec2*, test.Rec3* %9.1
   %13 := Load test.Rec2* %12
-  %14 := GetPointer int %13.2
+  %14 := GetPointer int, test.Rec2* %13.2
   Store int %14, 1
-  %15 := GetPointer test.Rec3* %10.2
+  %15 := GetPointer test.Rec3*, test.Rec4* %10.2
   %16 := Load test.Rec3* %15
-  %17 := GetPointer test.Rec2* %16.1
+  %17 := GetPointer test.Rec2*, test.Rec3* %16.1
   %18 := Load test.Rec2* %17
-  %19 := GetPointer std.string.String* %18.0
+  %19 := GetPointer std.string.String*, test.Rec2* %18.0
   %20 := CallBuiltin std.string.String* myte_alloc(1)
-  %21 := GetPointer byte* %20.0
+  %21 := GetPointer byte*, std.string.String* %20.0
   Store byte* %21, @.S1
-  %22 := GetPointer int %20.1
+  %22 := GetPointer int, std.string.String* %20.1
   Store int %22, 6
-  %23 := GetPointer int %20.2
+  %23 := GetPointer int, std.string.String* %20.2
   Store int %23, 6
   Store std.string.String* %19, %20
   Ret
@@ -53,17 +53,17 @@ func unit @test.nestedAccesses(test.Rec3* %9, test.Rec4* %10) {
 global byte[6] @.S1 = "string"
 
 func unit @test.namedAndIndexedAccess(test.Tup1* %24) {
-  %25 := GetPointer test.Rec3* %24.0
+  %25 := GetPointer test.Rec3*, test.Tup1* %24.0
   %26 := Load test.Rec3* %25
-  %27 := GetPointer test.Rec2* %26.1
+  %27 := GetPointer test.Rec2*, test.Rec3* %26.1
   %28 := Load test.Rec2* %27
-  %29 := GetPointer std.string.String* %28.0
+  %29 := GetPointer std.string.String*, test.Rec2* %28.0
   %30 := CallBuiltin std.string.String* myte_alloc(1)
-  %31 := GetPointer byte* %30.0
+  %31 := GetPointer byte*, std.string.String* %30.0
   Store byte* %31, @.S2
-  %32 := GetPointer int %30.1
+  %32 := GetPointer int, std.string.String* %30.1
   Store int %32, 6
-  %33 := GetPointer int %30.2
+  %33 := GetPointer int, std.string.String* %30.2
   Store int %33, 6
   Store std.string.String* %29, %30
   Ret

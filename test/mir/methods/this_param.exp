@@ -1,13 +1,13 @@
 type test.RecordType {int, bool}
 
 func bool @test.RecordType.getBar(test.RecordType* %0) {
-  %1 := GetPointer bool %0.1
+  %1 := GetPointer bool, test.RecordType* %0.1
   %2 := Load bool %1
   Ret %2
 }
 
 func test.RecordType* @test.RecordType.setBar(test.RecordType* %3, bool %4) {
-  %5 := GetPointer bool %3.1
+  %5 := GetPointer bool, test.RecordType* %3.1
   Store bool %5, %4
   Ret %3
 }

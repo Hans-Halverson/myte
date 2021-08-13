@@ -18,11 +18,11 @@ func unit @test.multiArgsFunc(int %3, int %4, std.string.String* %5) {
 func unit @test.directCalls() {
   %6 := Mov bool true
   %7 := CallBuiltin std.string.String* myte_alloc(1)
-  %8 := GetPointer byte* %7.0
+  %8 := GetPointer byte*, std.string.String* %7.0
   Store byte* %8, @.S0
-  %9 := GetPointer int %7.1
+  %9 := GetPointer int, std.string.String* %7.1
   Store int %9, 3
-  %10 := GetPointer int %7.2
+  %10 := GetPointer int, std.string.String* %7.2
   Store int %10, 3
   %11 := Mov std.string.String* %7
   %12 := Call unit @test.noArgsFunc()
@@ -30,11 +30,11 @@ func unit @test.directCalls() {
   %14 := Call int @test.singleArgFunc(33)
   %15 := Mov int %14
   %16 := CallBuiltin std.string.String* myte_alloc(1)
-  %17 := GetPointer byte* %16.0
+  %17 := GetPointer byte*, std.string.String* %16.0
   Store byte* %17, @.S1
-  %18 := GetPointer int %16.1
+  %18 := GetPointer int, std.string.String* %16.1
   Store int %18, 4
-  %19 := GetPointer int %16.2
+  %19 := GetPointer int, std.string.String* %16.2
   Store int %19, 4
   %20 := Call unit @test.multiArgsFunc(29, 98, %16)
   %21 := Mov unit %20

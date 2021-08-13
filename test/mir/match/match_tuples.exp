@@ -13,12 +13,12 @@ label @0:
 }
 
 func int @test.test2($tuple<int,bool,std.string.String*>* %3) {
-  %4 := GetPointer int %3.0
+  %4 := GetPointer int, $tuple<int,bool,std.string.String*>* %3.0
   %5 := Load int %4
   %6 := Eq int %5, 1
   branch %6, @1, @3
 label @1:
-  %7 := GetPointer bool %3.1
+  %7 := GetPointer bool, $tuple<int,bool,std.string.String*>* %3.1
   %8 := Load bool %7
   %9 := Eq bool %8, false
   branch %9, @12, @2
@@ -35,7 +35,7 @@ label @5:
   %13 := Eq int %5, 3
   branch %13, @6, @8
 label @6:
-  %14 := GetPointer bool %3.1
+  %14 := GetPointer bool, $tuple<int,bool,std.string.String*>* %3.1
   %15 := Load bool %14
   %16 := Eq bool %15, false
   branch %16, @7, @13
@@ -46,7 +46,7 @@ label @8:
   %18 := Eq int %5, 4
   branch %18, @9, @11
 label @9:
-  %19 := GetPointer bool %3.1
+  %19 := GetPointer bool, $tuple<int,bool,std.string.String*>* %3.1
   %20 := Load bool %19
   %21 := Eq bool %20, false
   branch %21, @10, @13
@@ -54,7 +54,7 @@ label @10:
   %22 := Mov int 5
   continue @14
 label @11:
-  %23 := GetPointer bool %3.1
+  %23 := GetPointer bool, $tuple<int,bool,std.string.String*>* %3.1
   %24 := Load bool %23
   %25 := Eq bool %24, false
   branch %25, @12, @13
@@ -70,7 +70,7 @@ label @14:
 }
 
 func int @test.test3($tuple<int,bool,$tuple<int,bool>*>* %29) {
-  %30 := GetPointer int %29.0
+  %30 := GetPointer int, $tuple<int,bool,$tuple<int,bool>*>* %29.0
   %31 := Load int %30
   %32 := Eq int %31, 1
   branch %32, @15, @16
@@ -78,7 +78,7 @@ label @15:
   %33 := Mov int 1
   continue @23
 label @16:
-  %34 := GetPointer bool %29.1
+  %34 := GetPointer bool, $tuple<int,bool,$tuple<int,bool>*>* %29.1
   %35 := Load bool %34
   %36 := Eq bool %35, true
   branch %36, @17, @18
@@ -86,9 +86,9 @@ label @17:
   %37 := Mov int 2
   continue @23
 label @18:
-  %38 := GetPointer $tuple<int,bool>* %29.2
+  %38 := GetPointer $tuple<int,bool>*, $tuple<int,bool,$tuple<int,bool>*>* %29.2
   %39 := Load $tuple<int,bool>* %38
-  %40 := GetPointer int %39.0
+  %40 := GetPointer int, $tuple<int,bool>* %39.0
   %41 := Load int %40
   %42 := Eq int %41, 2
   branch %42, @19, @20
@@ -96,9 +96,9 @@ label @19:
   %43 := Mov int 3
   continue @23
 label @20:
-  %44 := GetPointer $tuple<int,bool>* %29.2
+  %44 := GetPointer $tuple<int,bool>*, $tuple<int,bool,$tuple<int,bool>*>* %29.2
   %45 := Load $tuple<int,bool>* %44
-  %46 := GetPointer bool %45.1
+  %46 := GetPointer bool, $tuple<int,bool>* %45.1
   %47 := Load bool %46
   %48 := Eq bool %47, false
   branch %48, @21, @22

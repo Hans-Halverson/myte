@@ -1485,8 +1485,7 @@ and emit_match_decision_tree ~ecx ~case_results decision_tree =
     | DecisionTree.Test _ -> Ecx.mk_block_builder ~ecx
     | Leaf { case_node; _ } ->
       (match LocMap.find_opt case_node.loc !case_body_builder_cache with
-      | Some block_builder ->
-        block_builder
+      | Some block_builder -> block_builder
       | None ->
         let block_builder = Ecx.mk_block_builder ~ecx in
         case_body_builder_cache := LocMap.add case_node.loc block_builder !case_body_builder_cache;

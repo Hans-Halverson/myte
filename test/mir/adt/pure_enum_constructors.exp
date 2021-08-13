@@ -8,9 +8,9 @@ func $tuple<byte,byte>* @test.testPureEnum1Values() {
   %1 := Call unit @test.useByteEnum(0)
   %2 := Call unit @test.useByteEnum(1)
   %3 := CallBuiltin $tuple<byte,byte>* myte_alloc(1)
-  %4 := GetPointer byte %3.0
+  %4 := GetPointer byte, $tuple<byte,byte>* %3.0
   Store byte %4, 3
-  %5 := GetPointer byte %3.1
+  %5 := GetPointer byte, $tuple<byte,byte>* %3.1
   Store byte %5, 2
   %6 := Mov $tuple<byte,byte>* %3
   Ret %6
