@@ -61,7 +61,7 @@ type source =
   | PhiChainJoin of PhiChainNode.id
 
 type cx = {
-  mutable blocks: ssa_block IMap.t;
+  mutable blocks: Block.t IMap.t;
   mutable visited_blocks: ISet.t;
   mutable stack_alloc_ids: Mir_type.Type.t IMap.t;
   mutable phi_chain_nodes: PhiChainNode.t IMap.t;
@@ -133,12 +133,12 @@ let rec control_flow_ir_to_ssa ir =
 (* A visitor used in find_join_points, which collects all declaration sources *)
 and mk_add_sources_visitor ~cx ~program sources =
   object
-    inherit [cf_var] IRVisitor.t ~program
+    inherit IRVisitor.t ~program
 
     method! visit_instruction ~block:_ (instr_id, instr) =
       match instr with
-      | StackAlloc (Id var_id, ty) -> cx.stack_alloc_ids <- IMap.add var_id ty cx.stack_alloc_ids
-      | Store (`PointerV (_, Id var_id), _) when IMap.mem var_id cx.stack_alloc_ids ->
+      | StackAlloc (var_id, ty) -> cx.stack_alloc_ids <- IMap.add var_id ty cx.stack_alloc_ids
+      | Store (`PointerV (_, var_id), _) when IMap.mem var_id cx.stack_alloc_ids ->
         sources := IMap.add var_id instr_id !sources
       | _ -> ()
   end
@@ -228,15 +228,15 @@ and add_use_source ~cx func_name load_var_id source =
 
 and mk_build_phi_nodes_visitor ~cx program func_name sources phi_nodes_to_realize =
   object
-    inherit [cf_var] IRVisitor.t ~program
+    inherit IRVisitor.t ~program
 
     method! visit_instruction ~block (instr_id, instr) =
       match instr with
-      | Store (`PointerV (_, Id var_id), _) when IMap.mem var_id cx.stack_alloc_ids ->
+      | Store (`PointerV (_, var_id), _) when IMap.mem var_id cx.stack_alloc_ids ->
         (* Source for this variable is now this write location *)
         sources := IMap.add var_id (WriteLocation (block.id, instr_id)) !sources;
         add_write_var_id ~cx func_name instr_id (mk_var_id ())
-      | Load (Id load_var_id, `PointerV (_, Id var_id)) when IMap.mem var_id cx.stack_alloc_ids ->
+      | Load (load_var_id, `PointerV (_, var_id)) when IMap.mem var_id cx.stack_alloc_ids ->
         (* Save source for each use *)
         let source = IMap.find var_id !sources in
         add_use_source ~cx func_name load_var_id source;
@@ -353,8 +353,8 @@ and map_to_ssa ~cx program =
       List.filter_map
         (fun (instr_id, instruction) ->
           match instruction with
-          | Instruction.StackAlloc (Id var_id, _)
-          | Load (_, `PointerV (_, Id var_id))
+          | Instruction.StackAlloc (var_id, _)
+          | Load (_, `PointerV (_, var_id))
             when IMap.mem var_id cx.stack_alloc_ids ->
             None
           | _ -> Some (instr_id, map_instruction ~name instr_id instruction))
@@ -400,21 +400,15 @@ and map_to_ssa ~cx program =
     IMap.iter visit_phi_node node.prev_nodes;
     !var_ids
   and write_var_id ~name store_instr_id = IMap.find store_instr_id (SMap.find name cx.write_var_ids)
-  and map_read_var ~name (cf_var : cf_var) : var_id =
-    match cf_var with
-    | Id var_id ->
-      (match IMap.find_opt var_id (SMap.find name cx.use_sources) with
-      | None -> var_id
-      | Some (WriteLocation (_, store_instr_id)) -> write_var_id ~name store_instr_id
-      | Some (PhiChainJoin node_id) ->
-        (* Phi chains which are sources must have been realized *)
-        let node = get_node ~cx node_id in
-        Option.get node.realized)
-    | Local _ -> failwith "Locals are no longer being generated"
-  and map_write_var ~name:_ cf_var =
-    match cf_var with
-    | Id var_id -> var_id
-    | Local _ -> failwith "Locals are no longer being created"
+  and map_read_var ~name var_id =
+    match IMap.find_opt var_id (SMap.find name cx.use_sources) with
+    | None -> var_id
+    | Some (WriteLocation (_, store_instr_id)) -> write_var_id ~name store_instr_id
+    | Some (PhiChainJoin node_id) ->
+      (* Phi chains which are sources must have been realized *)
+      let node = get_node ~cx node_id in
+      Option.get node.realized
+  and map_write_var ~name:_ var_id = var_id
   and map_instruction ~name instr_id instruction =
     let open Instruction in
     let map_return = map_write_var ~name in

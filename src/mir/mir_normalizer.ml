@@ -5,7 +5,7 @@ module Ocx = Mir_optimize_context
 
 class var_gatherer ~program =
   object
-    inherit [var_id] IRVisitor.t ~program as super
+    inherit IRVisitor.t ~program as super
 
     val mutable vars : ISet.t = ISet.empty
 

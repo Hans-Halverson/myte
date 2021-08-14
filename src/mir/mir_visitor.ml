@@ -2,11 +2,11 @@ open Basic_collections
 open Mir
 
 module IRVisitor = struct
-  class ['a] t ~program =
+  class t ~program =
     object (this)
       val mutable visited_blocks : ISet.t = ISet.empty
 
-      val mutable constant_vars : 'a Value.t IMap.t = IMap.empty
+      val mutable constant_vars : Value.t IMap.t = IMap.empty
 
       val get_block = (fun block_id -> IMap.find block_id program.Program.blocks)
 
@@ -32,7 +32,7 @@ module IRVisitor = struct
         let block = get_block func.body_start_block in
         this#visit_block block
 
-      method visit_block (block : 'a Block.t) =
+      method visit_block (block : Block.t) =
         if this#check_visited_block block.id then
           ()
         else (
@@ -166,25 +166,25 @@ module IRVisitor = struct
         | `ArrayV (_, _, var_id) ->
           this#visit_instruction_use_variable ~block var_id
 
-      method visit_unit_value ~block (value : 'a Value.unit_value) =
-        this#visit_value ~block (value :> 'a Value.t)
+      method visit_unit_value ~block (value : Value.unit_value) =
+        this#visit_value ~block (value :> Value.t)
 
-      method visit_bool_value ~block (value : 'a Value.bool_value) =
-        this#visit_value ~block (value :> 'a Value.t)
+      method visit_bool_value ~block (value : Value.bool_value) =
+        this#visit_value ~block (value :> Value.t)
 
-      method visit_long_value ~block (value : 'a Value.long_value) =
-        this#visit_value ~block (value :> 'a Value.t)
+      method visit_long_value ~block (value : Value.long_value) =
+        this#visit_value ~block (value :> Value.t)
 
-      method visit_numeric_value ~block (value : 'a Value.numeric_value) =
-        this#visit_value ~block (value :> 'a Value.t)
+      method visit_numeric_value ~block (value : Value.numeric_value) =
+        this#visit_value ~block (value :> Value.t)
 
-      method visit_function_value ~block (value : 'a Value.function_value) =
-        this#visit_value ~block (value :> 'a Value.t)
+      method visit_function_value ~block (value : Value.function_value) =
+        this#visit_value ~block (value :> Value.t)
 
-      method visit_pointer_value ~block (value : 'a Value.pointer_value) =
-        this#visit_value ~block (value :> 'a Value.t)
+      method visit_pointer_value ~block (value : Value.pointer_value) =
+        this#visit_value ~block (value :> Value.t)
 
-      method visit_comparable_value ~block (value : 'a Value.comparable_value) =
-        this#visit_value ~block (value :> 'a Value.t)
+      method visit_comparable_value ~block (value : Value.comparable_value) =
+        this#visit_value ~block (value :> Value.t)
     end
 end

@@ -142,7 +142,7 @@ let mir_value_of_constant constant =
    Additionally prune dead branches, some of which may be exposed by constant folding. *)
 class calc_constants_visitor ~ocx =
   object (this)
-    inherit [var_id] IRVisitor.t ~program:ocx.Ocx.program
+    inherit IRVisitor.t ~program:ocx.Ocx.program
 
     val mutable var_id_constants : folded_constant IMap.t = IMap.empty
 

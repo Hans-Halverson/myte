@@ -4,7 +4,7 @@ open Mir_visitor
 
 type t = {
   (* The program we are optimizing, is internally mutable *)
-  program: ssa_program;
+  program: Program.t;
   (* Block id to the blocks it jumps to *)
   mutable next_blocks: IIMMap.t;
   (* Block id to the previous blocks that jump to it *)
@@ -53,7 +53,7 @@ let map_phi_backreferences_for_block ~ocx old_block_id new_block_id block_to_edi
           | Some var_id -> IMap.add new_block_id var_id args |> IMap.remove old_block_id ))
       block.phis
 
-let can_remove_block (block : var_id Block.t) =
+let can_remove_block (block : Block.t) =
   block.instructions = []
   && block.phis = []
   &&
@@ -163,7 +163,7 @@ let merge_adjacent_blocks ~ocx block_id1 block_id2 =
 
 class init_visitor ~ocx =
   object
-    inherit [var_id] IRVisitor.t ~program:ocx.program
+    inherit IRVisitor.t ~program:ocx.program
 
     method! visit_edge b1 b2 = add_block_link ~ocx b1.id b2.id
 

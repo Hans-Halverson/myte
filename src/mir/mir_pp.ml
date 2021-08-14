@@ -8,7 +8,7 @@ module Context = struct
     mutable max_print_var_id: int;
     mutable print_block_id_map: string IMap.t;
     mutable max_print_block_id: int;
-    program: ssa_program;
+    program: Program.t;
   }
 
   let mk program =
@@ -237,17 +237,17 @@ and pp_value ~cx v =
   | `ArrayV (_, _, var_id) ->
     pp_var_id ~cx var_id
 
-and pp_bool_value ~cx v = pp_value ~cx (v :> ssa_value)
+and pp_bool_value ~cx v = pp_value ~cx (v :> Value.t)
 
-and pp_long_value ~cx v = pp_value ~cx (v :> ssa_value)
+and pp_long_value ~cx v = pp_value ~cx (v :> Value.t)
 
-and pp_numeric_value ~cx v = pp_value ~cx (v :> ssa_value)
+and pp_numeric_value ~cx v = pp_value ~cx (v :> Value.t)
 
-and pp_function_value ~cx v = pp_value ~cx (v :> ssa_value)
+and pp_function_value ~cx v = pp_value ~cx (v :> Value.t)
 
-and pp_pointer_value ~cx v = pp_value ~cx (v :> ssa_value)
+and pp_pointer_value ~cx v = pp_value ~cx (v :> Value.t)
 
-and pp_comparable_value ~cx v = pp_value ~cx (v :> ssa_value)
+and pp_comparable_value ~cx v = pp_value ~cx (v :> Value.t)
 
 and pp_type ty = type_to_string ty
 
@@ -255,9 +255,9 @@ and pp_numeric_type ty = type_to_string (ty :> Type.t)
 
 and pp_type_of_value v = pp_type (type_of_value v)
 
-and pp_type_of_numeric_value v = pp_type_of_value (v :> ssa_value)
+and pp_type_of_numeric_value v = pp_type_of_value (v :> Value.t)
 
-and pp_type_of_comparable_value v = pp_type_of_value (v :> ssa_value)
+and pp_type_of_comparable_value v = pp_type_of_value (v :> Value.t)
 
 and pp_instruction ~cx (_, instr) =
   let open Instruction in
@@ -295,7 +295,7 @@ and pp_instruction ~cx (_, instr) =
         (pp_pointer_value ~cx ptr)
         (pp_value ~cx right)
     | GetPointer { GetPointer.var_id; return_ty; pointer; pointer_offset; offsets } ->
-      let pointer_ty = type_of_value (pointer :> ssa_value) in
+      let pointer_ty = type_of_value (pointer :> Value.t) in
       let pp_pointer_offset pointer_offset =
         Printf.sprintf
           "[%s %s]"

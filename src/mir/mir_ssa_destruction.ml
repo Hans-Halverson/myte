@@ -5,7 +5,7 @@ open Mir
    Moves are inserted in the previous block, unless the previous block branches, in which case the
    edge is split and moves are inserted in a new block between the previous and current blocks.
  *)
-let destruct_ssa (ir : ssa_program) : ssa_program =
+let destruct_ssa (ir : Program.t) : Program.t =
   let open Block in
   let edges_to_split = ref IMap.empty in
   let mark_edge_to_split prev_block block_id =

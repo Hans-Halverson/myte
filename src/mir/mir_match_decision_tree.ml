@@ -66,7 +66,7 @@ end
 
 module PatternPath = struct
   type t =
-    | Root of Mir.cf_value
+    | Root of Mir.Value.t
     | TupleField of {
         id: int;
         parent: t;

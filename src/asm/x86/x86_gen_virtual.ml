@@ -17,7 +17,7 @@ type resolved_source_value =
 
 let invalid_label_chars = Str.regexp "[<>,*]"
 
-let rec gen ~gcx (ir : ssa_program) =
+let rec gen ~gcx (ir : Program.t) =
   (* Calculate layout of all aggregate types *)
   SMap.iter (fun _ agg -> Gcx.build_agg_layout ~gcx agg) ir.types;
 
@@ -149,7 +149,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   in
   let mk_vreg () = VReg.mk ~resolution:Unresolved ~func:(Some func) in
   let resolve_ir_value ?(allow_imm64 = false) v =
-    resolve_ir_value ~gcx ~func ~allow_imm64 (v :> var_id Value.t)
+    resolve_ir_value ~gcx ~func ~allow_imm64 (v :> Value.t)
   in
   let is_cond_jump var_id =
     match block.next with
@@ -1062,7 +1062,7 @@ and gen_get_pointer ~gcx ~func (get_pointer_instr : var_id Mir.Instruction.GetPo
     offset := Some (LabelOffset (label_of_mir_label label));
     base := IPBase
   | `PointerV _ ->
-    (match resolve_ir_value ~gcx ~func (pointer :> ssa_value) with
+    (match resolve_ir_value ~gcx ~func (pointer :> Value.t) with
     | SVReg (vreg, _) -> base := RegBase vreg
     | SMem (mem, _) ->
       let vreg = mk_vreg () in
@@ -1078,7 +1078,7 @@ and gen_get_pointer ~gcx ~func (get_pointer_instr : var_id Mir.Instruction.GetPo
     | PointerIndex pointer_offset ->
       (* TODO: Handle sign extending byte arguments to 32/64 bits (movzbl/q) *)
       let element_size = Gcx.size_of_mir_type ~gcx ty in
-      (match resolve_ir_value ~gcx ~func ~allow_imm64:true (pointer_offset :> ssa_value) with
+      (match resolve_ir_value ~gcx ~func ~allow_imm64:true (pointer_offset :> Value.t) with
       | SImm imm ->
         let num_elements = int64_of_immediate imm in
         if num_elements <> Int64.zero then (

@@ -8,8 +8,8 @@ module BlockBuilder = struct
     id: Block.id;
     func: label;
     (* Instructions in the block currently being built, in reverse *)
-    mutable instructions: cf_instruction list;
-    mutable next: cf_var Block.next;
+    mutable instructions: Instruction.t list;
+    mutable next: Block.next;
   }
 end
 
@@ -21,7 +21,7 @@ type t = {
   (* Data structures for MIR *)
   mutable main_id: Block.id;
   mutable blocks: BlockBuilder.t IMap.t;
-  mutable globals: cf_var Global.t SMap.t;
+  mutable globals: Global.t SMap.t;
   mutable funcs: Function.t SMap.t;
   mutable types: Aggregate.t SMap.t;
   mutable current_block_builder: BlockBuilder.t option;

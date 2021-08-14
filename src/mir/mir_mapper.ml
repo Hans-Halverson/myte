@@ -6,12 +6,12 @@ module Ocx = Mir_optimize_context
 type current_instruction_edit =
   | Keep
   | Remove
-  | Replace of var_id Instruction.t list
+  | Replace of Instruction.t list
 
 module InstructionsMapper = struct
   class t ~(ocx : Ocx.t) =
     object (this)
-      val program : ssa_program = ocx.program
+      val program : Program.t = ocx.program
 
       val mutable current_instruction_edit = Keep
 
@@ -29,7 +29,7 @@ module InstructionsMapper = struct
             visited_blocks := ISet.add block_id !visited_blocks;
             false
           )
-        and visit_block (block : ssa_block) =
+        and visit_block (block : Block.t) =
           if check_visited_block block.id then
             ()
           else (
@@ -44,7 +44,7 @@ module InstructionsMapper = struct
         in
         visit_block (get_block func.body_start_block)
 
-      method map_instructions ~(block : var_id Block.t) (instructions : var_id Instruction.t list) =
+      method map_instructions ~(block : Block.t) (instructions : Instruction.t list) =
         let instructions' =
           List.filter_map
             (fun instruction ->
@@ -335,15 +335,15 @@ module InstructionsMapper = struct
 
       method map_value ~block value =
         match value with
-        | (`UnitL | `UnitV _) as v -> (this#map_unit_value ~block v :> ssa_value)
-        | (`BoolL _ | `BoolV _) as v -> (this#map_bool_value ~block v :> ssa_value)
+        | (`UnitL | `UnitV _) as v -> (this#map_unit_value ~block v :> Value.t)
+        | (`BoolL _ | `BoolV _) as v -> (this#map_bool_value ~block v :> Value.t)
         | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v ->
-          (this#map_numeric_value ~block v :> ssa_value)
-        | (`FunctionL _ | `FunctionV _) as v -> (this#map_function_value ~block v :> ssa_value)
-        | (`PointerL _ | `PointerV _) as v -> (this#map_pointer_value ~block v :> ssa_value)
+          (this#map_numeric_value ~block v :> Value.t)
+        | (`FunctionL _ | `FunctionV _) as v -> (this#map_function_value ~block v :> Value.t)
+        | (`PointerL _ | `PointerV _) as v -> (this#map_pointer_value ~block v :> Value.t)
         | (`ArrayL _ | `ArrayV _) as v -> this#map_array_value ~block v
 
-      method map_unit_value ~block value : var_id Value.unit_value =
+      method map_unit_value ~block value : Value.unit_value =
         match value with
         | `UnitL as value -> value
         | `UnitV var_id as value ->
@@ -387,15 +387,14 @@ module InstructionsMapper = struct
 
       method map_comparable_value ~block value =
         match value with
-        | (`UnitL | `UnitV _) as v -> (this#map_unit_value ~block v :> var_id Value.comparable_value)
-        | (`BoolL _ | `BoolV _) as v ->
-          (this#map_bool_value ~block v :> var_id Value.comparable_value)
+        | (`UnitL | `UnitV _) as v -> (this#map_unit_value ~block v :> Value.comparable_value)
+        | (`BoolL _ | `BoolV _) as v -> (this#map_bool_value ~block v :> Value.comparable_value)
         | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v ->
-          (this#map_numeric_value ~block v :> var_id Value.comparable_value)
+          (this#map_numeric_value ~block v :> Value.comparable_value)
         | (`PointerL _ | `PointerV _) as v ->
-          (this#map_pointer_value ~block v :> var_id Value.comparable_value)
+          (this#map_pointer_value ~block v :> Value.comparable_value)
 
-      method map_phis ~block (phis : var_id Block.phi list) =
+      method map_phis ~block (phis : Block.phi list) =
         List.map
           (fun (value_type, var_id, args) ->
             let var_id' = this#map_result_variable ~block var_id in
