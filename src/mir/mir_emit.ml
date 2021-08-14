@@ -1332,7 +1332,7 @@ and emit_match_decision_tree ~ecx ~case_results decision_tree =
   let rec emit_tree_node tree_node =
     match tree_node with
     (* When a leaf tree node is encountered, the pattern has been matched and we can proceed to
-       emit the body of the case. *)
+       emit the body of the case. However first check if body has already been constructed. *)
     | DecisionTree.Leaf { case_node; _ } when LocSet.mem case_node.loc !constructed_cases -> ()
     | DecisionTree.Leaf { case_node; guard_fail_case } ->
       constructed_cases := LocSet.add case_node.loc !constructed_cases;
@@ -1384,7 +1384,7 @@ and emit_match_decision_tree ~ecx ~case_results decision_tree =
           | Some tree_node -> tree_node
           | None -> snd (List_utils.last cases)
         in
-        let scrutinee_val = cast_to_comparable_value (emit_load_scrutinee ~ecx scrutinee) in
+        let scrutinee_val = cast_to_comparable_value (emit_load_pattern_path ~ecx scrutinee) in
         emit_decision_tree_if_else_chain [first_case] second_case (fun ctor ->
             let test_var_id = mk_cf_var_id () in
             Ecx.emit ~ecx (Eq (test_var_id, scrutinee_val, `BoolL (Ctor.cast_to_bool ctor)));
@@ -1393,7 +1393,7 @@ and emit_match_decision_tree ~ecx ~case_results decision_tree =
       | (String _, _) ->
         (* String matches cannot be fully enumerated, so must have a default case *)
         let default_tree_node = Option.get default_case in
-        let scrutinee_val = emit_load_scrutinee ~ecx scrutinee in
+        let scrutinee_val = emit_load_pattern_path ~ecx scrutinee in
         (* Order string tests in order cases are written in source *)
         let cases =
           List.sort
@@ -1428,7 +1428,7 @@ and emit_match_decision_tree ~ecx ~case_results decision_tree =
             (cases, last_tree_node)
           | Some default_tree_node -> (cases, default_tree_node)
         in
-        let scrutinee_val = cast_to_comparable_value (emit_load_scrutinee ~ecx scrutinee) in
+        let scrutinee_val = cast_to_comparable_value (emit_load_pattern_path ~ecx scrutinee) in
         let scrutinee_type = type_of_value (scrutinee_val :> cf_value) in
         (* TODO: Emit better checks than linear if else chain - e.g. binary search, jump table *)
         emit_decision_tree_if_else_chain test_cases default_case (fun ctor ->
@@ -1444,7 +1444,7 @@ and emit_match_decision_tree ~ecx ~case_results decision_tree =
             Ecx.emit ~ecx (Eq (test_var_id, scrutinee_val, case_val));
             `BoolV test_var_id)
       (* Variants are tested by loading their tag and checking against scrutinee in if-else chain *)
-      | (Variant (_, adt_sig), _) ->
+      | (Variant (_, adt_sig, _), _) ->
         let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
         let variants_layout =
           match mir_adt_layout.layout with
@@ -1461,7 +1461,7 @@ and emit_match_decision_tree ~ecx ~case_results decision_tree =
           | Some default_tree_node -> (cases, default_tree_node)
         in
         (* Load tag value so it can be tested *)
-        let scrutinee_val = cast_to_pointer_value (emit_load_scrutinee ~ecx scrutinee) in
+        let scrutinee_val = cast_to_pointer_value (emit_load_pattern_path ~ecx scrutinee) in
         let scrutinee_tag_ptr_val = cast_pointer_value scrutinee_val tag_type in
         let scrutinee_tag_var_id = mk_cf_var_id () in
         Ecx.emit ~ecx (Load (scrutinee_tag_var_id, scrutinee_tag_ptr_val));
@@ -1470,7 +1470,7 @@ and emit_match_decision_tree ~ecx ~case_results decision_tree =
         in
         (* TODO: Emit better checks than linear if else chain - e.g. binary search, jump table *)
         emit_decision_tree_if_else_chain test_cases default_case (fun ctor ->
-            let (name, _) = Ctor.cast_to_variant ctor in
+            let (name, _, _) = Ctor.cast_to_variant ctor in
             let tag_val =
               (SMap.find name variants_layout.tags :> cf_var Mir.Value.comparable_value)
             in
@@ -1490,39 +1490,64 @@ and emit_match_decision_tree ~ecx ~case_results decision_tree =
         let block_builder = Ecx.mk_block_builder ~ecx in
         case_body_builder_cache := LocMap.add case_node.loc block_builder !case_body_builder_cache;
         block_builder)
-  (* Return the scrutinee value. May emit load instructions if scrutinee is an element of an aggregate. *)
-  and emit_load_scrutinee ~ecx scrutinee =
+  (* Return the value indexed by a pattern path. Will emit load instructions if the pattern path
+     points into an aggregate. *)
+  and emit_load_pattern_path ~ecx pattern_path =
     let open Mir_match_decision_tree in
-    let rec gather_field_keys scrutinee field_keys =
-      match scrutinee with
-      | Scrutinee.Value value -> (value, field_keys)
-      | TupleField (scrutinee, index) ->
-        let key = TupleKeyCache.get_key index in
-        gather_field_keys scrutinee (key :: field_keys)
-      | RecordField (scrutinee, name) -> gather_field_keys scrutinee (name :: field_keys)
+    (* Find the root value, and all field accesses after it in order *)
+    let rec gather_path_fields path field_chain =
+      match path with
+      | PatternPath.Root value -> (value, field_chain)
+      | (TupleField { parent; _ } | VariantField { parent; _ }) as field ->
+        gather_path_fields parent (field :: field_chain)
     in
-    let (value, field_keys) = gather_field_keys scrutinee [] in
-    if field_keys = [] then
-      value
+    let (root_value, fields) = gather_path_fields pattern_path [] in
+    if fields = [] then
+      root_value
     else
+      (* If there are field accesses, load the inner field values one at a time *)
       List.fold_left
-        (fun value field_key ->
-          let value_type = type_of_value value in
-          let (`PointerT ptr_type) = cast_to_pointer_type value_type in
-          let (`AggregateT aggregate) = cast_to_aggregate_type ptr_type in
+        (fun value field ->
+          let pointer_val = cast_to_pointer_value value in
+          let (aggregate, field_key, pointer_val) =
+            match field with
+            | PatternPath.Root _ -> failwith "Expected field"
+            (* Tuple fields are simply looked up in the tuple type *)
+            | TupleField { index; _ } ->
+              let value_type = type_of_value value in
+              let (`PointerT ptr_type) = cast_to_pointer_type value_type in
+              let (`AggregateT aggregate) = cast_to_aggregate_type ptr_type in
+              let field_key = TupleKeyCache.get_key index in
+              (aggregate, field_key, pointer_val)
+            (* For variant fields we must find the correct variant aggregate, fetch its field key,
+               and cast the pointer to the variant aggregate type. *)
+            | VariantField { field; variant_name; adt_sig; type_args; _ } ->
+              let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
+              let instance =
+                Ecx.instantiate_mir_adt_variants_layout ~ecx mir_adt_layout type_args
+              in
+              let variant_aggregate = SMap.find variant_name instance.variants in
+              let field_key =
+                match field with
+                | TupleIndex index -> TupleKeyCache.get_key index
+                | RecordField name -> name
+              in
+              let variant_agg_type = `AggregateT variant_aggregate in
+              (variant_aggregate, field_key, cast_pointer_value pointer_val variant_agg_type)
+          in
           let (element_type, element_index) = lookup_element aggregate field_key in
           let (element_ptr_val, get_ptr_instr) =
             mk_get_pointer_instr
               element_type
-              (cast_to_pointer_value value)
+              pointer_val
               [Instruction.GetPointer.FieldIndex element_index]
           in
           Ecx.emit ~ecx (GetPointer get_ptr_instr);
           let var_id = mk_cf_var_id () in
           Ecx.emit ~ecx (Load (var_id, element_ptr_val));
           var_value_of_type var_id element_type)
-        value
-        field_keys
+        root_value
+        fields
   (* Emit a sequence of tests and resulting blocks given a list of tests cases with ctors, the default
      case if all test ctors fail, and a function to generate a boolean test value from a ctor. *)
   and emit_decision_tree_if_else_chain test_cases default_case gen_test_val =

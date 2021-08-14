@@ -2,14 +2,38 @@ module test
 
 type V1 =
   | Enum1
-  | Tuple1 (Int)
+  | Tuple1 (Bool, Int)
   | Record1 { foo: Int, bar: Byte }
 
+type V2 =
+  | Tuple2 (Bool, V1)
+  | Enum2
+  | Record2 { foo: V2, bar: Bool }
+
+// Exhaustive, only check tags
 fun test1(x: V1): Int =
   match (x) {
     | Tuple1 _ -> 1
     | Enum1 -> 2
     | Record1 _ -> 3
+  }
+
+// Check inner elements
+fun test2(x: V1): Int =
+  match (x) {
+    | Record1 { foo: 2, ... } -> 1
+    | Tuple1 (_, 4) -> 2
+    | Record1 { bar: 2, foo: _ } -> 3
+    | Tuple1 (true, _) -> 4
+    | _ -> 5
+  }
+
+// Nested variants
+fun test3(x: V2): Int =
+  match (x) {
+    | Tuple2 (_, Tuple1 (true, _)) -> 1
+    | Record2 { foo: Record2 { foo: Enum2, ... }, ... } -> 2
+    | _ -> 3
   }
 
 fun main() {}

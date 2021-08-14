@@ -15,7 +15,7 @@ module Ctor = struct
     | Int of Int64.t * (* Is byte *) bool
     | String of string * Loc.t
     | Tuple of (* Arity *) int
-    | Variant of string * Types.AdtSig.t
+    | Variant of string * Types.AdtSig.t * (* Type args *) Types.Type.t list
 
   let arity ctor =
     match ctor with
@@ -25,7 +25,7 @@ module Ctor = struct
     | String _ ->
       0
     | Tuple arity -> arity
-    | Variant (name, adt_sig) ->
+    | Variant (name, adt_sig, _) ->
       (match (SMap.find name adt_sig.variants).kind with
       | Enum -> 0
       | Tuple elements -> List.length elements
@@ -40,7 +40,7 @@ module Ctor = struct
     | (Bool b1, Bool b2) -> b1 = b2
     | (Int (i1, _), Int (i2, _)) -> Int64.equal i1 i2
     | (String (s1, _), String (s2, _)) -> s1 = s2
-    | (Variant (n1, _), Variant (n2, _)) -> n1 = n2
+    | (Variant (n1, _, _), Variant (n2, _, _)) -> n1 = n2
     | _ -> false
 
   let cast_to_bool ctor =
@@ -60,15 +60,28 @@ module Ctor = struct
 
   let cast_to_variant ctor =
     match ctor with
-    | Variant (name, adt_sig) -> (name, adt_sig)
+    | Variant (name, adt_sig, type_args) -> (name, adt_sig, type_args)
     | _ -> failwith "Expected variant constructor"
 end
 
-module Scrutinee = struct
+module PatternPath = struct
   type t =
-    | Value of Mir.cf_value
-    | TupleField of t * int
-    | RecordField of t * string
+    | Root of Mir.cf_value
+    | TupleField of {
+        parent: t;
+        index: int;
+      }
+    | VariantField of {
+        parent: t;
+        field: variant_field;
+        variant_name: string;
+        adt_sig: Types.AdtSig.t;
+        type_args: Types.Type.t list;
+      }
+
+  and variant_field =
+    | TupleIndex of int
+    | RecordField of string
 
   let mk kind = kind
 end
@@ -81,7 +94,7 @@ module DecisionTree = struct
         mutable guard_fail_case: t option;
       }
     | Test of {
-        scrutinee: Scrutinee.t;
+        scrutinee: PatternPath.t;
         cases: (Ctor.t * t) list;
         default_case: t option;
       }
@@ -117,9 +130,8 @@ let find_signature column =
     let ctors =
       List.fold_left
         (fun acc ctor ->
-          match ctor with
-          | Ctor.Int (value, _) -> I64Map.add value ctor acc
-          | _ -> acc)
+          let (value, _) = Ctor.cast_to_int ctor in
+          I64Map.add value ctor acc)
         I64Map.empty
         head_ctors
     in
@@ -137,9 +149,8 @@ let find_signature column =
     let ctors =
       List.fold_left
         (fun acc ctor ->
-          match ctor with
-          | Ctor.String (value, _) -> SMap.add value ctor acc
-          | _ -> acc)
+          let (value, _) = Ctor.cast_to_string ctor in
+          SMap.add value ctor acc)
         SMap.empty
         head_ctors
     in
@@ -150,22 +161,20 @@ let find_signature column =
     let ctors =
       List.fold_left
         (fun acc ctor ->
-          match ctor with
-          | Ctor.Bool value -> BMap.add value ctor acc
-          | _ -> acc)
+          let value = Ctor.cast_to_bool ctor in
+          BMap.add value ctor acc)
         BMap.empty
         head_ctors
     in
     let ctors = BMap.fold (fun _ ctor ctors -> ctor :: ctors) ctors [] in
     (ctors, List.length ctors = 2)
   (* Gather all variant constructors *)
-  | Variant (_, adt_sig) :: _ ->
+  | Variant (_, adt_sig, _) :: _ ->
     let ctors =
       List.fold_left
         (fun acc ctor ->
-          match ctor with
-          | Ctor.Variant (name, _) -> SMap.add name ctor acc
-          | _ -> acc)
+          let (name, _, _) = Ctor.cast_to_variant ctor in
+          SMap.add name ctor acc)
         SMap.empty
         head_ctors
     in
@@ -215,25 +224,46 @@ let rec default_matrix i matrix =
 (* Specialize a single column in the scrutinee vector given a target constructor, removing the item
    at that column and expanding its subfields in place if it has any. *)
 let specialize_scrutinee_vector column_index ctor scrutinee_vector =
-  let (pre_scrutinees, scrutinee, post_scrutinees) =
+  let (pre_scrutinees, parent, post_scrutinees) =
     List_utils.split_around column_index scrutinee_vector
   in
-  let rec expand_tuple i acc =
+  let rec mk_tuple_scrutinees i acc =
     match i with
     | 0 -> acc
-    | _ -> expand_tuple (i - 1) (Scrutinee.(mk (TupleField (scrutinee, i - 1))) :: acc)
+    | _ ->
+      mk_tuple_scrutinees (i - 1) (PatternPath.(mk (TupleField { parent; index = i - 1 })) :: acc)
+  in
+  let rec mk_tuple_variant_scrutinees variant_name adt_sig type_args i acc =
+    match i with
+    | 0 -> acc
+    | _ ->
+      mk_tuple_variant_scrutinees
+        variant_name
+        adt_sig
+        type_args
+        (i - 1)
+        ( PatternPath.(
+            mk
+              (VariantField { parent; field = TupleIndex (i - 1); variant_name; adt_sig; type_args }))
+        :: acc )
   in
   let expanded_scrutinee =
     match ctor with
-    | Ctor.Tuple arity -> expand_tuple arity []
-    | Variant (name, adt_sig) ->
-      (match (SMap.find name adt_sig.variants).kind with
+    | Ctor.Tuple arity -> mk_tuple_scrutinees arity []
+    | Variant (variant_name, adt_sig, type_args) ->
+      (match (SMap.find variant_name adt_sig.variants).kind with
       | Enum -> []
-      | Tuple elements -> expand_tuple (List.length elements) []
+      | Tuple elements ->
+        mk_tuple_variant_scrutinees variant_name adt_sig type_args (List.length elements) []
       | Record fields ->
         let fields =
           SMap.fold
-            (fun name _ acc -> Scrutinee.(mk (RecordField (scrutinee, name))) :: acc)
+            (fun name _ acc ->
+              PatternPath.(
+                mk
+                  (VariantField
+                     { parent; field = RecordField name; variant_name; adt_sig; type_args }))
+              :: acc)
             fields
             []
         in
@@ -258,7 +288,7 @@ let rec build ~(ecx : Ecx.t) scrutinee_vals case_nodes =
       case_nodes
   in
   let scrutinee_vector =
-    List.map (fun scrutinee_val -> Scrutinee.(mk (Value scrutinee_val))) scrutinee_vals
+    List.map (fun scrutinee_val -> PatternPath.(mk (Root scrutinee_val))) scrutinee_vals
   in
   build_decision_tree ~prev_guard:None scrutinee_vector pattern_matrix
 
@@ -430,36 +460,36 @@ and pattern_vector_of_case_node ~cx ~num_scrutinees case_node =
       (match binding.declaration with
       | CtorDecl _ ->
         let ty = type_of_loc name.loc in
-        let (_, adt_sig) = Type_util.cast_to_adt_type ty in
-        Constructor (Variant (name.name, adt_sig), [])
+        let (type_args, adt_sig) = Type_util.cast_to_adt_type ty in
+        Constructor (Variant (name.name, adt_sig, type_args), [])
       | _ -> Wildcard)
     (* Named wildcard patterns create sub patterns of same length as tuple elements/record fields
        which consist of all wildcards. *)
     | NamedWildcard { loc; name } ->
       let name = name.name.name in
       let ty = type_of_loc loc in
-      let (_, adt_sig) = Type_util.cast_to_adt_type ty in
+      let (type_args, adt_sig) = Type_util.cast_to_adt_type ty in
       (match (SMap.find name adt_sig.variants).kind with
       | Tuple elements ->
         let elements = wildcards_vector (List.length elements) in
-        Constructor (Variant (name, adt_sig), elements)
+        Constructor (Variant (name, adt_sig, type_args), elements)
       | Record fields ->
         let fields = wildcards_vector (SMap.cardinal fields) in
-        Constructor (Variant (name, adt_sig), fields)
+        Constructor (Variant (name, adt_sig, type_args), fields)
       | Enum -> failwith "Expected tuple or record variant")
     | Tuple { name = None; elements; _ } ->
       let elements = List.map pattern_of_pattern_node elements in
       Constructor (Tuple (List.length elements), elements)
     | Tuple { loc; name = Some name; elements } ->
       let ty = type_of_loc loc in
-      let (_, adt_sig) = Type_util.cast_to_adt_type ty in
+      let (type_args, adt_sig) = Type_util.cast_to_adt_type ty in
       let elements = List.map pattern_of_pattern_node elements in
-      Constructor (Variant (name.name.name, adt_sig), elements)
+      Constructor (Variant (name.name.name, adt_sig, type_args), elements)
     | Record { loc; name; fields; _ } ->
       (* Fetch field sigs from ADT sig *)
       let name = name.name.name in
       let ty = type_of_loc loc in
-      let (_, adt_sig) = Type_util.cast_to_adt_type ty in
+      let (type_args, adt_sig) = Type_util.cast_to_adt_type ty in
       let field_sigs =
         match (SMap.find name adt_sig.variants).kind with
         | Record field_sigs -> field_sigs
@@ -493,7 +523,7 @@ and pattern_vector_of_case_node ~cx ~num_scrutinees case_node =
           field_sigs
           []
       in
-      Constructor (Variant (name, adt_sig), List.rev fields)
+      Constructor (Variant (name, adt_sig, type_args), List.rev fields)
     | Or or_ ->
       (* Or patterns are associative so flatten all or patterns recursively gathered from either side *)
       let rec gather_or_branches acc or_ =
