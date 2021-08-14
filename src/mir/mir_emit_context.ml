@@ -31,6 +31,13 @@ type t = {
   mutable current_is_main: bool;
   (* Stack of loop contexts for all loops we are currently inside *)
   mutable current_loop_contexts: loop_context list;
+  (* Variable decl loc to the var id of the pointer for the memory location it resides in during
+     initial creation. These memory locations will be promoted to registers with phi nodes for joins. *)
+  mutable variable_to_ptr_var_id: var_id LocMap.t;
+  (* Function parameter decl loc to the var id for that parameter *)
+  mutable param_to_var_id: var_id LocMap.t;
+  (* Pointer var ids that shuld be promoted to registers during SSA pass *)
+  mutable ptr_var_ids_to_ssaify: ISet.t;
   (* ADT signature id to its corresponding MIR layout *)
   mutable adt_sig_to_mir_layout: MirAdtLayout.t IMap.t;
   (* All tuple types used in this program, keyed by their type arguments *)
@@ -67,6 +74,9 @@ let mk ~pcx =
     current_in_std_lib = false;
     current_is_main = false;
     current_loop_contexts = [];
+    variable_to_ptr_var_id = LocMap.empty;
+    param_to_var_id = LocMap.empty;
+    ptr_var_ids_to_ssaify = ISet.empty;
     adt_sig_to_mir_layout = IMap.empty;
     tuple_instantiations = TypeArgsHashtbl.create 10;
     func_instantiations = SMap.empty;
@@ -164,6 +174,24 @@ let push_loop_context ~ecx break_id continue_id =
 let pop_loop_context ~ecx = ecx.current_loop_contexts <- List.tl ecx.current_loop_contexts
 
 let get_loop_context ~ecx = List.hd ecx.current_loop_contexts
+
+let get_ptr_var_id ~ecx use_loc =
+  let decl_loc = Bindings.get_decl_loc_from_value_use ecx.pcx.bindings use_loc in
+  match LocMap.find_opt decl_loc ecx.variable_to_ptr_var_id with
+  | Some var_id -> var_id
+  | None ->
+    let var_id = mk_var_id () in
+    ecx.variable_to_ptr_var_id <- LocMap.add decl_loc var_id ecx.variable_to_ptr_var_id;
+    var_id
+
+let add_function_param ~ecx decl_loc =
+  let var_id = mk_var_id () in
+  ecx.param_to_var_id <- LocMap.add decl_loc var_id ecx.param_to_var_id;
+  var_id
+
+let get_function_param_var_id ~ecx use_loc =
+  let decl_loc = Bindings.get_decl_loc_from_value_use ecx.pcx.bindings use_loc in
+  LocMap.find decl_loc ecx.param_to_var_id
 
 let emit_init_section ~ecx f =
   let old_in_init = ecx.in_init in

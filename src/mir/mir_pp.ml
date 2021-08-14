@@ -280,6 +280,7 @@ and pp_instruction ~cx (_, instr) =
       (match val_opt with
       | Some v -> " " ^ pp_value ~cx v
       | None -> "")
+    | StackAlloc (var_id, ty) -> pp_instr var_id (Printf.sprintf "StackAlloc %s" (pp_type ty))
     | Load (var_id, ptr) ->
       pp_instr
         var_id

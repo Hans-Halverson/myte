@@ -88,6 +88,7 @@ and Instruction : sig
     | CallBuiltin of ('var, Builtin.t) call
     | Ret of 'var Value.t option
     (* Memory operations *)
+    | StackAlloc of 'var * Type.t
     | Load of 'var * 'var Value.pointer_value
     | Store of 'var Value.pointer_value * 'var Value.t
     (* Memory offset operations *)

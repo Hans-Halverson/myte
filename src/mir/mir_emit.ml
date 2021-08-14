@@ -150,6 +150,25 @@ and emit_function_body ~ecx name decl =
   ecx.current_in_std_lib <- Bindings.is_std_lib_value binding;
   ecx.current_is_main <- loc = Option.get ecx.pcx.main_loc;
 
+  (* Create MIR vars for function params *)
+  let func_decl = Bindings.get_func_decl binding in
+  let params =
+    List.map2
+      (fun { Param.name = { Identifier.loc; _ }; _ } ty ->
+        (loc, Ecx.add_function_param ~ecx loc, type_to_mir_type ~ecx ty))
+      params
+      func_decl.params
+  in
+
+  (* Add implicit this param *)
+  let params =
+    match LocMap.find_opt full_loc ecx.pcx.bindings.value_bindings with
+    | Some { declaration = FunParamDecl { tvar }; _ } ->
+      let this_type = type_to_mir_type ~ecx (Types.Type.TVar tvar) in
+      (full_loc, Ecx.add_function_param ~ecx full_loc, this_type) :: params
+    | _ -> params
+  in
+
   (* Build IR for function body *)
   Ecx.set_current_func ~ecx name;
   let body_start_block = Ecx.start_new_block ~ecx in
@@ -174,25 +193,6 @@ and emit_function_body ~ecx name decl =
     Ecx.emit ~ecx (Ret (Some ret_val))
   | Signature -> ());
   Ecx.finish_block_halt ~ecx;
-
-  (* Find value type of function *)
-  let func_decl = Bindings.get_func_decl binding in
-  let params =
-    List.map2
-      (fun { Param.name = { Identifier.loc; _ }; _ } ty ->
-        (loc, mk_var_id (), type_to_mir_type ~ecx ty))
-      params
-      func_decl.params
-  in
-
-  (* Add implicit this param *)
-  let params =
-    match LocMap.find_opt full_loc ecx.pcx.bindings.value_bindings with
-    | Some { declaration = FunParamDecl { tvar }; _ } ->
-      let this_type = type_to_mir_type ~ecx (Types.Type.TVar tvar) in
-      (full_loc, mk_var_id (), this_type) :: params
-    | _ -> params
-  in
 
   (* The main function must always return an Int *)
   let return_ty = type_to_mir_type ~ecx func_decl.return in
@@ -444,24 +444,28 @@ and emit_expression ~ecx expr =
       `FunctionL func_name
     (* Variables may be either globals or locals *)
     | VarDecl { tvar; _ } ->
-      let var =
-        if Bindings.is_module_decl ecx.pcx.bindings decl_loc then (
-          let binding_name = mk_value_binding_name binding in
-          let global = SMap.find binding_name ecx.globals in
-          let var_id = mk_cf_var_id () in
-          Ecx.emit ~ecx (Load (var_id, `PointerL (global.ty, global.name)));
-          var_id
-        ) else
-          mk_cf_local id_loc
-      in
       let mir_ty = type_to_mir_type ~ecx (Types.Type.TVar tvar) in
-      var_value_of_type var mir_ty
-    (* Parameters and match case variables must be locals *)
-    | FunParamDecl { tvar }
+      let var_id = mk_cf_var_id () in
+      ( if Bindings.is_module_decl ecx.pcx.bindings decl_loc then
+        let binding_name = mk_value_binding_name binding in
+        let global = SMap.find binding_name ecx.globals in
+        Ecx.emit ~ecx (Load (var_id, `PointerL (global.ty, global.name)))
+      else
+        let ptr_var_id = Ecx.get_ptr_var_id ~ecx id_loc in
+        Ecx.emit ~ecx (Load (var_id, `PointerV (mir_ty, Id ptr_var_id))) );
+      var_value_of_type var_id mir_ty
+    (* Function parameters can have their corresponding MIR var referenced directly *)
+    | FunParamDecl { tvar } ->
+      let var_id = Ecx.get_function_param_var_id ~ecx decl_loc in
+      let mir_ty = type_to_mir_type ~ecx (Types.Type.TVar tvar) in
+      var_value_of_type (Id var_id) mir_ty
+    (* Match cases variables are locals, and must be loaded from their var ptr *)
     | MatchCaseVarDecl { tvar } ->
-      let var = mk_cf_local id_loc in
       let mir_ty = type_to_mir_type ~ecx (Types.Type.TVar tvar) in
-      var_value_of_type var mir_ty)
+      let var_id = mk_cf_var_id () in
+      let ptr_var_id = Ecx.get_ptr_var_id ~ecx id_loc in
+      Ecx.emit ~ecx (Load (var_id, `PointerV (mir_ty, Id ptr_var_id)));
+      var_value_of_type var_id mir_ty)
   (*
    * ============================
    *     Type Casts (ignored)
@@ -1275,12 +1279,14 @@ and emit_statement ~ecx stmt =
       let { Identifier.loc = use_loc; _ } = List.hd (Ast_utils.ids_of_pattern pattern) in
       let binding = Bindings.get_value_binding ecx.pcx.bindings use_loc in
       let expr_val = emit_expression ~ecx expr in
+      let mir_type = type_of_value expr_val in
       if Bindings.is_module_decl ecx.pcx.bindings binding.loc then
         let binding_name = mk_value_binding_name binding in
         let global = SMap.find binding_name ecx.globals in
         Ecx.emit ~ecx (Store (`PointerL (global.ty, global.name), expr_val))
       else
-        Ecx.emit ~ecx (Mov (mk_cf_local use_loc, expr_val))
+        let var_id = Ecx.get_ptr_var_id ~ecx use_loc in
+        Ecx.emit ~ecx (Store (`PointerV (mir_type, Id var_id), expr_val))
     | Assignment.Expression (IndexedAccess { loc; target; index; _ } as expr_lvalue) ->
       let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
       (match target_ty with
@@ -1298,7 +1304,10 @@ and emit_statement ~ecx stmt =
     (* TODO: Emit MIR for arbitrary patterns *)
     let { Identifier.loc; _ } = List.hd (Ast_utils.ids_of_pattern pattern) in
     let init_val = emit_expression ~ecx init in
-    Ecx.emit ~ecx (Mov (mk_cf_local loc, init_val))
+    let mir_type = type_of_value init_val in
+    let var_id = Ecx.get_ptr_var_id ~ecx loc in
+    Ecx.emit ~ecx (StackAlloc (Id var_id, mir_type));
+    Ecx.emit ~ecx (Store (`PointerV (mir_type, Id var_id), init_val))
   (*
    * ============================
    *       Match Statement
@@ -1611,8 +1620,6 @@ and emit_var_of_value ~ecx (value : cf_value) : cf_var =
     var_id
 
 and mk_cf_var_id () = Id (mk_var_id ())
-
-and mk_cf_local loc = Local loc
 
 and mk_value_binding_name binding =
   match binding.context with

@@ -90,6 +90,12 @@ module InstructionsMapper = struct
             [instruction]
           else
             mk_instr (Ret arg_opt')
+        | StackAlloc (result, ty) ->
+          let result' = this#map_result_variable ~block result in
+          if result == result' then
+            [instruction]
+          else
+            mk_instr (StackAlloc (result', ty))
         | Load (result, ptr) ->
           let result' = this#map_result_variable ~block result in
           let ptr' = this#map_pointer_value ~block ptr in

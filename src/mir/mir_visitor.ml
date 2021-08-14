@@ -82,6 +82,7 @@ module IRVisitor = struct
           List.iter (this#visit_value ~block) args;
           this#visit_result_variable ~block ret
         | Ret arg_opt -> Option.iter (this#visit_value ~block) arg_opt
+        | StackAlloc (result, _ty) -> this#visit_result_variable ~block result
         | Load (result, ptr) ->
           this#visit_pointer_value ~block ptr;
           this#visit_result_variable ~block result

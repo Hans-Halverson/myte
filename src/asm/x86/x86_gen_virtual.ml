@@ -954,6 +954,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       let arg_mem = emit_mem arg in
       Gcx.emit ~gcx (MovSX (arg_size, result_size, arg_mem, result_vreg)));
     gen_instructions rest_instructions
+  | Mir.Instruction.StackAlloc _ :: _ -> failwith "StackAlloc instructions removed before asm gen"
 
 and gen_get_pointer ~gcx ~func (get_pointer_instr : var_id Mir.Instruction.GetPointer.t) =
   let open Mir.Instruction.GetPointer in
