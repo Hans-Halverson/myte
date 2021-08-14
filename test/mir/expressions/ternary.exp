@@ -21,46 +21,50 @@ func int @test.testTernaryWithExpressions(int %4, int %5) {
   branch %6, @3, @4
 label @3:
   %7 := Add int %4, %5
+  %8 := Mov int %7
   continue @5
 label @4:
-  %8 := Mul int %4, %5
-  %9 := Add int %8, %4
+  %9 := Mul int %4, %5
+  %10 := Add int %9, %4
+  %11 := Mov int %10
   continue @5
 label @5:
-  %10 := Phi int @3:%7, @4:%9
-  Ret %10
+  %12 := Phi int @3:%8, @4:%11
+  Ret %12
 }
 
 func int @test.testNestedTernary() {
-  %11 := Call bool @test.bool()
-  branch %11, @6, @10
+  %13 := Call bool @test.bool()
+  branch %13, @6, @10
 label @6:
-  %12 := Call bool @test.bool()
-  branch %12, @7, @8
+  %14 := Call bool @test.bool()
+  branch %14, @7, @8
 label @7:
-  %13 := Mov int 1
+  %15 := Mov int 1
   continue @9
 label @8:
-  %14 := Mov int 2
+  %16 := Mov int 2
   continue @9
 label @9:
-  %15 := Phi int @7:%13, @8:%14
+  %17 := Phi int @7:%15, @8:%16
+  %18 := Mov int %17
   continue @14
 label @10:
-  %16 := Call bool @test.bool()
-  branch %16, @11, @12
+  %19 := Call bool @test.bool()
+  branch %19, @11, @12
 label @11:
-  %17 := Mov int 3
+  %20 := Mov int 3
   continue @13
 label @12:
-  %18 := Mov int 4
+  %21 := Mov int 4
   continue @13
 label @13:
-  %19 := Phi int @11:%17, @12:%18
+  %22 := Phi int @11:%20, @12:%21
+  %23 := Mov int %22
   continue @14
 label @14:
-  %20 := Phi int @9:%15, @13:%19
-  Ret %20
+  %24 := Phi int @9:%18, @13:%23
+  Ret %24
 }
 
 func int @test.main() {

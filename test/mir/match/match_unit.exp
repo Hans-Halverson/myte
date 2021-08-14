@@ -1,9 +1,6 @@
 func int @test.test() {
   %0 := Mov int 1
-  continue @0
-label @0:
-  %1 := Phi int @test.test:%0
-  Ret %1
+  Ret %0
 }
 
 func int @test.main() {
