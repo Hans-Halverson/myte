@@ -36,4 +36,12 @@ fun test3(x: V2): Int =
     | _ -> 3
   }
 
+// Deeply nested variant only loads each check once
+fun test4(x: V2): Int =
+  match (x) {
+    | Record2 { foo: Record2 { foo: Record2 { foo: Tuple2 (_, Tuple1 (true, 1 | 2 | 3)), ... }, ... }, ... } -> 1
+    | Record2 { foo: Record2 { foo: Record2 _, ... }, ... } -> 2
+    | _ -> 3
+  }
+
 fun main() {}

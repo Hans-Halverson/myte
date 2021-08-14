@@ -68,10 +68,12 @@ module PatternPath = struct
   type t =
     | Root of Mir.cf_value
     | TupleField of {
+        id: int;
         parent: t;
         index: int;
       }
     | VariantField of {
+        id: int;
         parent: t;
         field: variant_field;
         variant_name: string;
@@ -83,7 +85,19 @@ module PatternPath = struct
     | TupleIndex of int
     | RecordField of string
 
-  let mk kind = kind
+  let max_id = ref 0
+
+  let mk_new_id () =
+    let id = !max_id in
+    max_id := id + 1;
+    id
+
+  let get_field_id path =
+    match path with
+    | Root _ -> failwith "Expected field"
+    | TupleField { id; _ }
+    | VariantField { id; _ } ->
+      id
 end
 
 module DecisionTree = struct
@@ -227,47 +241,61 @@ let specialize_scrutinee_vector column_index ctor scrutinee_vector =
   let (pre_scrutinees, parent, post_scrutinees) =
     List_utils.split_around column_index scrutinee_vector
   in
-  let rec mk_tuple_scrutinees i acc =
+  let rec mk_tuple_paths i acc =
     match i with
     | 0 -> acc
     | _ ->
-      mk_tuple_scrutinees (i - 1) (PatternPath.(mk (TupleField { parent; index = i - 1 })) :: acc)
-  in
-  let rec mk_tuple_variant_scrutinees variant_name adt_sig type_args i acc =
-    match i with
-    | 0 -> acc
-    | _ ->
-      mk_tuple_variant_scrutinees
-        variant_name
-        adt_sig
-        type_args
+      mk_tuple_paths
         (i - 1)
-        ( PatternPath.(
-            mk
-              (VariantField { parent; field = TupleIndex (i - 1); variant_name; adt_sig; type_args }))
-        :: acc )
+        (PatternPath.(TupleField { id = mk_new_id (); parent; index = i - 1 }) :: acc)
+  in
+  let rec mk_tuple_variant_paths variant_name adt_sig type_args i acc =
+    match i with
+    | 0 -> acc
+    | _ ->
+      let path_field =
+        PatternPath.(
+          VariantField
+            {
+              id = mk_new_id ();
+              parent;
+              field = TupleIndex (i - 1);
+              variant_name;
+              adt_sig;
+              type_args;
+            })
+      in
+      mk_tuple_variant_paths variant_name adt_sig type_args (i - 1) (path_field :: acc)
+  in
+  let mk_record_variant_paths variant_name adt_sig type_args fields =
+    let fields =
+      SMap.fold
+        (fun name _ acc ->
+          PatternPath.(
+            VariantField
+              {
+                id = mk_new_id ();
+                parent;
+                field = RecordField name;
+                variant_name;
+                adt_sig;
+                type_args;
+              })
+          :: acc)
+        fields
+        []
+    in
+    List.rev fields
   in
   let expanded_scrutinee =
     match ctor with
-    | Ctor.Tuple arity -> mk_tuple_scrutinees arity []
+    | Ctor.Tuple arity -> mk_tuple_paths arity []
     | Variant (variant_name, adt_sig, type_args) ->
       (match (SMap.find variant_name adt_sig.variants).kind with
       | Enum -> []
       | Tuple elements ->
-        mk_tuple_variant_scrutinees variant_name adt_sig type_args (List.length elements) []
-      | Record fields ->
-        let fields =
-          SMap.fold
-            (fun name _ acc ->
-              PatternPath.(
-                mk
-                  (VariantField
-                     { parent; field = RecordField name; variant_name; adt_sig; type_args }))
-              :: acc)
-            fields
-            []
-        in
-        List.rev fields)
+        mk_tuple_variant_paths variant_name adt_sig type_args (List.length elements) []
+      | Record fields -> mk_record_variant_paths variant_name adt_sig type_args fields)
     | _ -> []
   in
   pre_scrutinees @ expanded_scrutinee @ post_scrutinees
@@ -288,7 +316,7 @@ let rec build ~(ecx : Ecx.t) scrutinee_vals case_nodes =
       case_nodes
   in
   let scrutinee_vector =
-    List.map (fun scrutinee_val -> PatternPath.(mk (Root scrutinee_val))) scrutinee_vals
+    List.map (fun scrutinee_val -> PatternPath.Root scrutinee_val) scrutinee_vals
   in
   build_decision_tree ~prev_guard:None scrutinee_vector pattern_matrix
 
