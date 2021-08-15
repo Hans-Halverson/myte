@@ -9,9 +9,9 @@ type current_instruction_edit =
   | Replace of Instruction.t list
 
 module InstructionsMapper = struct
-  class t ~(ocx : Ocx.t) =
+  class t ~(program : Program.t) =
     object (this)
-      val program : Program.t = ocx.program
+      val program : Program.t = program
 
       val mutable current_instruction_edit = Keep
 
@@ -21,7 +21,7 @@ module InstructionsMapper = struct
 
       method map_function (func : Function.t) =
         let visited_blocks = ref ISet.empty in
-        let rec get_block block_id = IMap.find block_id ocx.program.blocks
+        let rec get_block block_id = IMap.find block_id program.blocks
         and check_visited_block block_id =
           if ISet.mem block_id !visited_blocks then
             true
@@ -305,7 +305,7 @@ module InstructionsMapper = struct
           if result == result' && left == left' && right == right' then
             [instruction]
           else
-            mk_instr (GtEq (result', left', right'))
+            mk_instr (Gt (result', left', right'))
         | GtEq (result, left, right) ->
           let result' = this#map_result_variable ~block result in
           let left' = this#map_numeric_value ~block left in
@@ -415,7 +415,7 @@ end
 
 class rewrite_vars_mapper ~ocx var_map =
   object (this)
-    inherit InstructionsMapper.t ~ocx
+    inherit InstructionsMapper.t ~program:ocx.Ocx.program
 
     method resolve_var var_id =
       let rec rec_resolve var_id =

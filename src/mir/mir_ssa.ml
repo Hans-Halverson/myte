@@ -1,21 +1,26 @@
 open Basic_collections
 open Mir
+open Mir_mapper
 open Mir_visitor
-module Ocx = Mir_optimize_context
 
-(* Conversion of Control Flow IR to SSA IR
+(* Promotion of variables on stack into registers joined with Phi nodes
+
+  During initial MIR emission variables are stored on the stack, where a Store to that stack
+  location is considered a "write" and a Load from that stack location is considered a "use".
+  For the purpose of this pass, variables are uniquely identified by the pointer of their location
+  on the stack.
 
   Pass 1 (Identify join points):
-    Propagate the last write locs for each variable through the program. Identify the set of join
-    points, where a join point is a (block, variable) pair meaning that there are multiple sources
-    for the last write to the given variable which are joined at this block. This means the block
-    is the earliest point where the variable was last written to in multiple control flow paths.
-    Construct an empty phi chain node at each join point.
+    Propagate the last write instruction ids for each variable through the program. Identify the set
+    of join points, where a join point is a (block, variable) pair meaning that there are multiple
+    sources for the last write to the given variable which are joined at this block. This means the
+    block is the earliest point where the variable was last written to in multiple control flow
+    paths. Construct an empty phi chain node at each join point.
  
   Pass 2 (Build phi chain graph):
-    Propagate the last write locs for each variable through the program like before, but also count
-    each saved variable join from the first pass as a "write". Use this to build a graph of phi
-    chain nodes, with one phi chain node for each join point/(block, variable) pair from the
+    Propagate the last write instruction ids for each variable through the program like before, but
+    also count each saved variable join from the first pass as a "write". Use this to build a graph
+    of phi chain nodes, with one phi chain node for each join point/(block, variable) pair from the
     previous pass. Phi chain nodes contain the set of last write sources as well as previous phi
     chain nodes. Phi chain nodes are initially "unrealized", meaning they may not be converted to
     a concrete phi node in the SSA IR.
@@ -35,10 +40,10 @@ module Ocx = Mir_optimize_context
     reachable, where realized phi chain nodes cannot be traversed through.
 
   Map to SSA IR:
-    Map across control flow IR, filling in control flow variables with concrete variable ids.
-    Writes are uniquely numbered. For reads from a write within the same block simply refer to
-    that write. For reads from a previous block look up the source in the saved map, which may
-    be either a concrete write location or a realized phi node. *)
+    Map across IR, removing StackAlloc, Load, and Store instructions for variables that have been
+    promoted to registers. Store instructions are converted to Movs of the stored value to the new
+    SSA variable. Also must rewrite all use variables that were the result of removed Load
+    instructions to now directly reference the new SSA variable. *)
 
 module PhiChainNode = struct
   type id = int
@@ -321,6 +326,36 @@ and build_phi_nodes ~cx program =
   in
   IMap.iter realize_phi_chain_graph !phi_nodes_to_realize
 
+and mk_ssa_mapper ~cx ~name program =
+  object (this)
+    inherit InstructionsMapper.t ~program as super
+
+    method! map_instruction ~block ((instr_id, instr) as instruction) =
+      match instr with
+      (* Marked StackAlloc and Load instructions are removed *)
+      | Instruction.StackAlloc (var_id, _)
+      | Load (_, `PointerV (_, var_id))
+        when IMap.mem var_id cx.stack_alloc_ids ->
+        this#mark_instruction_removed ();
+        []
+      (* Marked Store instructions are converted to a Mov to fill the new SSA var *)
+      | Store (`PointerV (_, var_id), arg) when IMap.mem var_id cx.stack_alloc_ids ->
+        let write_var_id = IMap.find instr_id (SMap.find name cx.write_var_ids) in
+        let arg' = this#map_value ~block arg in
+        [(instr_id, Mov (write_var_id, arg'))]
+      | _ -> super#map_instruction ~block instruction
+
+    method! map_use_variable ~block:_ var_id =
+      match IMap.find_opt var_id (SMap.find name cx.use_sources) with
+      | None -> var_id
+      | Some (WriteLocation (_, store_instr_id)) ->
+        IMap.find store_instr_id (SMap.find name cx.write_var_ids)
+      | Some (PhiChainJoin node_id) ->
+        (* Phi chains which are sources must have been realized *)
+        let node = get_node ~cx node_id in
+        Option.get node.realized
+  end
+
 and map_to_ssa ~cx program =
   cx.visited_blocks <- ISet.empty;
   let rec visit_block ~name block_id =
@@ -349,17 +384,8 @@ and map_to_ssa ~cx program =
         in
         List.rev phis
     in
-    let instructions =
-      List.filter_map
-        (fun (instr_id, instruction) ->
-          match instruction with
-          | Instruction.StackAlloc (var_id, _)
-          | Load (_, `PointerV (_, var_id))
-            when IMap.mem var_id cx.stack_alloc_ids ->
-            None
-          | _ -> Some (instr_id, map_instruction ~name instr_id instruction))
-        block.instructions
-    in
+    let mapper = mk_ssa_mapper ~cx ~name program in
+    let instructions = mapper#map_instructions ~block block.instructions in
     let next =
       let open Block in
       match block.next with
@@ -368,7 +394,7 @@ and map_to_ssa ~cx program =
         maybe_visit_block continue;
         Continue continue
       | Branch { test; continue; jump } ->
-        let test = map_bool_value ~f:(map_read_var ~name) test in
+        let test = mapper#map_bool_value ~block test in
         maybe_visit_block continue;
         maybe_visit_block jump;
         Branch { test; continue; jump }
@@ -399,98 +425,8 @@ and map_to_ssa ~cx program =
       node.write_locs;
     IMap.iter visit_phi_node node.prev_nodes;
     !var_ids
-  and write_var_id ~name store_instr_id = IMap.find store_instr_id (SMap.find name cx.write_var_ids)
-  and map_read_var ~name var_id =
-    match IMap.find_opt var_id (SMap.find name cx.use_sources) with
-    | None -> var_id
-    | Some (WriteLocation (_, store_instr_id)) -> write_var_id ~name store_instr_id
-    | Some (PhiChainJoin node_id) ->
-      (* Phi chains which are sources must have been realized *)
-      let node = get_node ~cx node_id in
-      Option.get node.realized
-  and map_write_var ~name:_ var_id = var_id
-  and map_instruction ~name instr_id instruction =
-    let open Instruction in
-    let map_return = map_write_var ~name in
-    let map_value = map_value ~f:(map_read_var ~name) in
-    let map_bool_value = map_bool_value ~f:(map_read_var ~name) in
-    let map_numeric_value = map_numeric_value ~f:(map_read_var ~name) in
-    let map_function_value = map_function_value ~f:(map_read_var ~name) in
-    let map_pointer_value = map_pointer_value ~f:(map_read_var ~name) in
-    let map_comparable_value = map_comparable_value ~f:(map_read_var ~name) in
-    match instruction with
-    | Mov (return, arg) -> Mov (map_return return, map_value arg)
-    | Call (return, ret_ty, func, args) ->
-      Call (map_return return, ret_ty, map_function_value func, List.map map_value args)
-    | CallBuiltin (return, ret_ty, builtin, args) ->
-      CallBuiltin (map_return return, ret_ty, builtin, List.map map_value args)
-    | Ret arg -> Ret (Option.map map_value arg)
-    | StackAlloc (return, ty) -> StackAlloc (map_return return, ty)
-    | Load (return, ptr) -> Load (map_return return, map_pointer_value ptr)
-    | Store (ptr, arg) ->
-      (match IMap.find_opt instr_id (SMap.find name cx.write_var_ids) with
-      | None -> Store (map_pointer_value ptr, map_value arg)
-      | Some write_var_id -> Mov (write_var_id, map_value arg))
-    | GetPointer { GetPointer.var_id; return_ty; pointer; pointer_offset; offsets } ->
-      let offsets =
-        List.map
-          (fun offset ->
-            match offset with
-            | GetPointer.PointerIndex index -> GetPointer.PointerIndex (map_numeric_value index)
-            | GetPointer.FieldIndex _ as index -> index)
-          offsets
-      in
-      GetPointer
-        {
-          GetPointer.var_id = map_return var_id;
-          return_ty;
-          pointer = map_pointer_value pointer;
-          pointer_offset = Option.map map_numeric_value pointer_offset;
-          offsets;
-        }
-    | LogNot (return, arg) -> LogNot (map_return return, map_bool_value arg)
-    | LogAnd (return, left, right) ->
-      LogAnd (map_return return, map_bool_value left, map_bool_value right)
-    | LogOr (return, left, right) ->
-      LogOr (map_return return, map_bool_value left, map_bool_value right)
-    | Neg (return, arg) -> Neg (map_return return, map_numeric_value arg)
-    | BitNot (return, arg) -> BitNot (map_return return, map_numeric_value arg)
-    | Add (return, left, right) ->
-      Add (map_return return, map_numeric_value left, map_numeric_value right)
-    | Sub (return, left, right) ->
-      Sub (map_return return, map_numeric_value left, map_numeric_value right)
-    | Mul (return, left, right) ->
-      Mul (map_return return, map_numeric_value left, map_numeric_value right)
-    | Div (return, left, right) ->
-      Div (map_return return, map_numeric_value left, map_numeric_value right)
-    | Rem (return, left, right) ->
-      Rem (map_return return, map_numeric_value left, map_numeric_value right)
-    | BitAnd (return, left, right) ->
-      BitAnd (map_return return, map_numeric_value left, map_numeric_value right)
-    | BitOr (return, left, right) ->
-      BitOr (map_return return, map_numeric_value left, map_numeric_value right)
-    | BitXor (return, left, right) ->
-      BitXor (map_return return, map_numeric_value left, map_numeric_value right)
-    | Shl (return, left, right) ->
-      Shl (map_return return, map_numeric_value left, map_numeric_value right)
-    | Shr (return, left, right) ->
-      Shr (map_return return, map_numeric_value left, map_numeric_value right)
-    | Shrl (return, left, right) ->
-      Shrl (map_return return, map_numeric_value left, map_numeric_value right)
-    | Eq (return, left, right) ->
-      Eq (map_return return, map_comparable_value left, map_comparable_value right)
-    | Neq (return, left, right) ->
-      Neq (map_return return, map_comparable_value left, map_comparable_value right)
-    | Lt (return, left, right) ->
-      Lt (map_return return, map_numeric_value left, map_numeric_value right)
-    | LtEq (return, left, right) ->
-      LtEq (map_return return, map_numeric_value left, map_numeric_value right)
-    | Gt (return, left, right) ->
-      Gt (map_return return, map_numeric_value left, map_numeric_value right)
-    | GtEq (return, left, right) ->
-      GtEq (map_return return, map_numeric_value left, map_numeric_value right)
-    | Trunc (return, arg, ty) -> Trunc (map_return return, map_numeric_value arg, ty)
-    | SExt (return, arg, ty) -> SExt (map_return return, map_numeric_value arg, ty)
+  and write_var_id ~name store_instr_id =
+    IMap.find store_instr_id (SMap.find name cx.write_var_ids)
   in
   cx.visited_blocks <- ISet.empty;
   SMap.iter
@@ -558,12 +494,4 @@ and map_to_ssa ~cx program =
       | _ -> ())
     cx.blocks;
 
-  let globals =
-    SMap.map
-      (fun global ->
-        let open Global in
-        let name = global.name in
-        { global with init_val = Option.map (map_value ~f:(map_read_var ~name)) global.init_val })
-      program.globals
-  in
-  { program with blocks = cx.blocks; globals }
+  { program with blocks = cx.blocks }

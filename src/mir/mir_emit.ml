@@ -13,7 +13,7 @@ type access_chain_result =
   | GetPointerEmittedResult of Value.pointer_value
   | InlinedValueResult of Value.t
 
-let rec emit_control_flow_ir (pcx : Pcx.t) : Ecx.t * Program.t =
+let rec emit (pcx : Pcx.t) : Ecx.t * Program.t =
   let ecx = Ecx.mk ~pcx in
   start_init_function ~ecx;
   emit_type_declarations ~ecx;

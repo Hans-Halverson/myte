@@ -397,7 +397,7 @@ class calc_constants_visitor ~ocx =
 
 class update_constants_mapper ~ocx var_id_constants constants_in_phis =
   object (this)
-    inherit Mir_mapper.InstructionsMapper.t ~ocx
+    inherit Mir_mapper.InstructionsMapper.t ~program:ocx.Ocx.program
 
     (* If the result is a constant the entire instruction should be removed unless the result
        appears in non-constant phis. If the result appears in non-constant phis then the
@@ -478,7 +478,7 @@ let fold_global_inits ~ocx =
   | Some init_func ->
     let mapper =
       object (this)
-        inherit Mir_mapper.InstructionsMapper.t ~ocx
+        inherit Mir_mapper.InstructionsMapper.t ~program:ocx.Ocx.program
 
         method! map_instruction ~block:_ ((_, instr) as instruction) =
           let open Instruction in
