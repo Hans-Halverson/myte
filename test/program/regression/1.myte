@@ -1,0 +1,19 @@
+module test
+
+import std.test.{assertEqual, fail}
+
+fun getInt(): Int = 1
+
+fun other() {}
+
+fun main() {
+  val x = getInt();
+  val test = x > -23;
+  if (test) {
+    other();
+  } else {
+    fail();
+  }
+
+  assertEqual(test, true);
+}

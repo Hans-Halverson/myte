@@ -17,7 +17,26 @@ type resolved_source_value =
 
 let invalid_label_chars = Str.regexp "[<>,*]"
 
+class preprocessor ~ir =
+  object
+    inherit Mir_visitor.IRVisitor.t ~program:ir
+
+    val mutable var_num_uses = IMap.empty
+
+    method get_var_num_uses = var_num_uses
+
+    method! visit_use_variable ~block:_ var_id =
+      let num_uses =
+        match IMap.find_opt var_id var_num_uses with
+        | None -> 1
+        | Some num_uses -> num_uses + 1
+      in
+      var_num_uses <- IMap.add var_id num_uses var_num_uses
+  end
+
 let rec gen ~gcx (ir : Program.t) =
+  preprocess_ir ~gcx ir;
+
   (* Calculate layout of all aggregate types *)
   SMap.iter (fun _ agg -> Gcx.build_agg_layout ~gcx agg) ir.types;
 
@@ -30,6 +49,11 @@ let rec gen ~gcx (ir : Program.t) =
   (* Generate entrypoint (but not if dumping asm, to keep dump platform agnostic for testing) *)
   if (not (Opts.dump_asm ())) && not (Opts.dump_virtual_asm ()) then gen_entrypoint ~gcx ir;
   Gcx.finish_builders ~gcx
+
+and preprocess_ir ~gcx ir =
+  let preprocessor = new preprocessor ~ir in
+  preprocessor#run ();
+  gcx.var_num_uses <- preprocessor#get_var_num_uses
 
 (* Generate the _start entrypoint function for the executable. The entrypoint function initializes
    the myte runtime, initializes all global variables if necessary, and finally calls the main
@@ -150,11 +174,6 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
   let mk_vreg () = VReg.mk ~resolution:Unresolved ~func:(Some func) in
   let resolve_ir_value ?(allow_imm64 = false) v =
     resolve_ir_value ~gcx ~func ~allow_imm64 (v :> Value.t)
-  in
-  let is_cond_jump var_id =
-    match block.next with
-    | Branch { test = `BoolV test_var_id; _ } when test_var_id = var_id -> true
-    | _ -> false
   in
   let emit_mem mem =
     match mem with
@@ -393,23 +412,9 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       Gcx.emit ~gcx (CmpMM (register_size_of_svalue v1, mem1, mem2));
       false
   in
-  let gen_cond_jmp cc left_val right_val =
-    let swapped = gen_cmp left_val right_val in
-    let cc =
-      invert_condition_code
-        ( if swapped then
-          swap_condition_code_order cc
-        else
-          cc )
-    in
-    let (continue, jump) =
-      match block.next with
-      | Branch { continue; jump; _ } -> (continue, jump)
-      | _ -> failwith "Only called on blocks with conditional branches"
-    in
-    Gcx.emit ~gcx (JmpCC (cc, Gcx.get_block_id_from_mir_block_id ~gcx jump));
-    Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx continue))
-  in
+  (* Generate a comparison and SetCC instruction to load the result of the comparison to a register.
+     Return the condition code that was used (may be different than the input condition code, as
+     order of arguments may have been swapped). *)
   let gen_cmp_set_cc cc result_var_id left_val right_val =
     let result_vreg = vreg_of_result_var_id result_var_id in
     Gcx.emit ~gcx (XorMM (Size32, Reg result_vreg, Reg result_vreg));
@@ -420,7 +425,38 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       else
         cc
     in
-    Gcx.emit ~gcx (SetCC (cc, Reg result_vreg))
+    Gcx.emit ~gcx (SetCC (cc, Reg result_vreg));
+    cc
+  in
+  let is_cond_jump var_id =
+    match block.next with
+    | Branch { test = `BoolV test_var_id; _ } when test_var_id = var_id -> true
+    | _ -> false
+  in
+  let gen_cond_jmp cc test_var_id left_val right_val =
+    let cc =
+      (* If the only use of the comparison is in this branch instruction, only need to generate
+         a comparison instruction and use the current flags. *)
+      if IMap.find test_var_id gcx.var_num_uses = 1 then
+        let swapped = gen_cmp left_val right_val in
+        if swapped then
+          swap_condition_code_order cc
+        else
+          cc
+      (* Otherwise the result of the comparison is used elsewhere, so we must load to a register
+         with a SetCC instruction. We can still emit a JmpCC directly off the current flags though. *)
+      else
+        gen_cmp_set_cc cc test_var_id left_val right_val
+    in
+    let (continue, jump) =
+      match block.next with
+      | Branch { continue; jump; _ } -> (continue, jump)
+      | _ -> failwith "Only called on blocks with conditional branches"
+    in
+    (* Note that the condition code is inverted as we emit a JmpCC to the false branch *)
+    let cc = invert_condition_code cc in
+    Gcx.emit ~gcx (JmpCC (cc, Gcx.get_block_id_from_mir_block_id ~gcx jump));
+    Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx continue))
   in
   match instructions with
   | [] ->
@@ -806,9 +842,9 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | [Mir.Instruction.Eq (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp E left_val right_val
+    gen_cond_jmp E result_var_id left_val right_val
   | Mir.Instruction.Eq (result_var_id, left_val, right_val) :: rest_instructions ->
-    gen_cmp_set_cc E result_var_id left_val right_val;
+    ignore (gen_cmp_set_cc E result_var_id left_val right_val);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -816,9 +852,9 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | [Mir.Instruction.Neq (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp NE left_val right_val
+    gen_cond_jmp NE result_var_id left_val right_val
   | Mir.Instruction.Neq (result_var_id, left_val, right_val) :: rest_instructions ->
-    gen_cmp_set_cc NE result_var_id left_val right_val;
+    ignore (gen_cmp_set_cc NE result_var_id left_val right_val);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -826,9 +862,9 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | [Mir.Instruction.Lt (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp L left_val right_val
+    gen_cond_jmp L result_var_id left_val right_val
   | Mir.Instruction.Lt (result_var_id, left_val, right_val) :: rest_instructions ->
-    gen_cmp_set_cc L result_var_id left_val right_val;
+    ignore (gen_cmp_set_cc L result_var_id left_val right_val);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -836,9 +872,9 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | [Mir.Instruction.LtEq (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp LE left_val right_val
+    gen_cond_jmp LE result_var_id left_val right_val
   | Mir.Instruction.LtEq (result_var_id, left_val, right_val) :: rest_instructions ->
-    gen_cmp_set_cc LE result_var_id left_val right_val;
+    ignore (gen_cmp_set_cc LE result_var_id left_val right_val);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -846,9 +882,9 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | [Mir.Instruction.Gt (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp G left_val right_val
+    gen_cond_jmp G result_var_id left_val right_val
   | Mir.Instruction.Gt (result_var_id, left_val, right_val) :: rest_instructions ->
-    gen_cmp_set_cc G result_var_id left_val right_val;
+    ignore (gen_cmp_set_cc G result_var_id left_val right_val);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -856,9 +892,9 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | [Mir.Instruction.GtEq (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp GE left_val right_val
+    gen_cond_jmp GE result_var_id left_val right_val
   | Mir.Instruction.GtEq (result_var_id, left_val, right_val) :: rest_instructions ->
-    gen_cmp_set_cc GE result_var_id left_val right_val;
+    ignore (gen_cmp_set_cc GE result_var_id left_val right_val);
     gen_instructions rest_instructions
   (*
    * ===========================================

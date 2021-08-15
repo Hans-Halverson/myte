@@ -27,3 +27,7 @@ fun assertFalse(expr: Bool) {
     exit(1);
   }
 }
+
+fun fail() {
+  exit(1);
+}
