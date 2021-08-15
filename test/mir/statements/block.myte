@@ -1,13 +1,15 @@
 module test
 
+fun use<T>(x: T) {}
+
 fun main() {
-  val x = 8;
+  use(8);
   {
-    val x = 77;
-    77 * 34;
+    use(77);
+    use(77 * 34);
 
     {
-      true;
+      use(true);
 
       {}
     }

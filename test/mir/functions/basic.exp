@@ -1,31 +1,36 @@
+func unit @test.use<bool>(bool %0) {
+  Ret
+}
+
+func unit @test.use<int>(int %1) {
+  Ret
+}
+
 func unit @test.empty() {
   Ret
 }
 
-func unit @test.emptyParams(int %0, bool %1) {
+func unit @test.emptyParams(int %2, bool %3) {
   Ret
 }
 
-func int @test.shorthand(int %2) {
+func int @test.shorthand(int %4) {
   Ret 1
 }
 
-func unit @test.withBody(int %3, bool %4) {
-  %5 := Mov int 10
+func unit @test.withBody(int %5, bool %6) {
+  %7 := Call unit @test.use<int>(10)
   branch true, @0, @1
 label @0:
-  %6 := Mov bool false
   continue @2
 label @1:
-  %7 := Mov bool false
   continue @2
 label @2:
-  %8 := Phi bool @0:%6, @1:%7
-  %9 := Mov bool %8
+  %8 := Phi bool @0:false, @1:false
   Ret
 }
 
 func int @test.main() {
-  %10 := Mov bool true
+  %9 := Call unit @test.use<bool>(true)
   Ret 0
 }

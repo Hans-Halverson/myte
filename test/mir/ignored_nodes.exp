@@ -1,5 +1,9 @@
+func unit @test.use(int %0) {
+  Ret
+}
+
 func int @test.main() {
-  %0 := Mov int 1
-  %1 := Mov int 1
+  %1 := Call unit @test.use(1)
+  %2 := Call unit @test.use(1)
   Ret 0
 }

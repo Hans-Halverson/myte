@@ -12,15 +12,11 @@ func unit @test.testReassignGlobals() {
 }
 
 func unit @test.testReassignLocals() {
-  %4 := Mov int 0
-  %5 := Neg int %4
-  %6 := Mov int 1
+  %4 := Neg int 0
+  %5 := Neg int 1
+  %6 := Add int 2, 3
   %7 := Neg int %6
-  %8 := Add int 2, 3
-  %9 := Mov int %8
-  %10 := Neg int %9
-  %11 := Mul int %9, %9
-  %12 := Mov int %11
+  %8 := Mul int %6, %6
   Ret
 }
 

@@ -53,15 +53,41 @@ let map_phi_backreferences_for_block ~ocx old_block_id new_block_id block_to_edi
           | Some var_id -> IMap.add new_block_id var_id args |> IMap.remove old_block_id ))
       block.phis
 
-let can_remove_block (block : Block.t) =
+(* An empty block can be removed only if it continues to a single block, and is not needed by any
+   phi nodes in its succeeding block. *)
+let can_remove_block ~ocx (block : Block.t) =
   block.instructions = []
   && block.phis = []
   &&
   match block.next with
-  | Continue _ -> true
   | Halt
   | Branch _ ->
     false
+  | Continue continue_id ->
+    (* A block is needed if any of its previous blocks appear in a phi node of the next block, with
+       a different value than the value from this block. A block is also needed if it is the start
+       block and the next block has any phi nodes. If we were to remove this block, the value from
+       its branch would be lost in the phi node. *)
+    let continue_block = get_block ~ocx continue_id in
+    let prev_nodes = IIMMap.find_all block.id ocx.prev_blocks in
+
+    let func = SMap.find block.func ocx.program.funcs in
+    let is_start_block = func.body_start_block = block.id in
+
+    let block_needed_for_phi =
+      (continue_block.phis <> [] && is_start_block)
+      || List.exists
+           (fun (_, _, args) ->
+             IMap.exists
+               (fun prev_block_id prev_block_arg ->
+                 if ISet.mem prev_block_id prev_nodes then
+                   not (values_equal prev_block_arg (IMap.find block.id args))
+                 else
+                   false)
+               args)
+           continue_block.phis
+    in
+    not block_needed_for_phi
 
 let remove_block ~ocx block_id =
   let block = get_block ~ocx block_id in

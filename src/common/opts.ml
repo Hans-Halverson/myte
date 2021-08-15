@@ -3,6 +3,7 @@ type t = {
   dump_ast: bool ref;
   dump_resolved_ast: bool ref;
   dump_ir: bool ref;
+  dump_pre_ssa_ir: bool ref;
   dump_ir_transforms: string list ref;
   dump_virtual_asm: bool ref;
   dump_asm: bool ref;
@@ -21,6 +22,7 @@ let opts =
     dump_ast = ref false;
     dump_resolved_ast = ref false;
     dump_ir = ref false;
+    dump_pre_ssa_ir = ref false;
     dump_ir_transforms = ref [];
     dump_virtual_asm = ref false;
     dump_asm = ref false;
@@ -41,6 +43,9 @@ let spec =
     ("--dump-ast", Arg.Set opts.dump_ast, " Print the AST to stdout");
     ("--dump-resolved-ast", Arg.Set opts.dump_resolved_ast, " Print the resolved AST to stdout");
     ("--dump-ir", Arg.Set opts.dump_ir, " Print the IR to stdout");
+    ( "--dump-pre-ssa-ir",
+      Arg.Set opts.dump_pre_ssa_ir,
+      " Print the IR before SSA construction to stdout" );
     ( "--dump-ir-transforms",
       Arg.String (fun transforms -> opts.dump_ir_transforms := split_comma_list transforms),
       " Transforms to apply to IR before printing to stdout" );
@@ -76,6 +81,8 @@ let dump_ast () = !(opts.dump_ast)
 let dump_resolved_ast () = !(opts.dump_resolved_ast)
 
 let dump_ir () = !(opts.dump_ir)
+
+let dump_pre_ssa_ir () = !(opts.dump_pre_ssa_ir)
 
 let dump_ir_transforms () = !(opts.dump_ir_transforms)
 

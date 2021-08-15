@@ -1,79 +1,70 @@
+func unit @test.use(int %0) {
+  Ret
+}
+
 func unit @test.testNeitherUpdated() {
-  %0 := Mov int 1
   branch true, @0, @1
 label @0:
-  %1 := Mov int 0
+  %1 := Call unit @test.use(0)
   continue @2
 label @1:
-  %2 := Mov int 1
+  %2 := Call unit @test.use(1)
   continue @2
 label @2:
-  %3 := Neg int %0
+  %3 := Neg int 1
   Ret
 }
 
 func unit @test.testOnlyFirstUpdated() {
-  %4 := Mov int 1
   branch true, @3, @4
 label @3:
-  %5 := Mov int 2
   continue @5
 label @4:
-  %6 := Mov int 0
+  %4 := Call unit @test.use(0)
   continue @5
 label @5:
-  %7 := Phi int @3:%5, @4:%4
-  %8 := Neg int %7
+  %5 := Phi int @3:2, @4:1
+  %6 := Neg int %5
   Ret
 }
 
 func unit @test.testOnlySecondUpdated() {
-  %9 := Mov int 1
   branch true, @6, @7
 label @6:
-  %10 := Mov int 0
+  %7 := Call unit @test.use(0)
   continue @8
 label @7:
-  %11 := Mov int 2
   continue @8
 label @8:
-  %12 := Phi int @6:%9, @7:%11
-  %13 := Neg int %12
+  %8 := Phi int @6:1, @7:2
+  %9 := Neg int %8
   Ret
 }
 
 func unit @test.testBothUpdated() {
-  %14 := Mov int 1
   branch true, @9, @10
 label @9:
-  %15 := Mov int 2
   continue @11
 label @10:
-  %16 := Mov int 3
   continue @11
 label @11:
-  %17 := Phi int @9:%15, @10:%16
-  %18 := Neg int %17
+  %10 := Phi int @9:2, @10:3
+  %11 := Neg int %10
   Ret
 }
 
-func unit @test.testMultiple() {
-  %19 := Mov int 0
-  %20 := Mov int 1
-  %21 := Mov int 2
+func unit @test.testMultiple(int %12) {
   branch true, @12, @13
 label @12:
-  %22 := Mov int 3
   continue @14
 label @13:
-  %23 := Mov int 4
   continue @14
 label @14:
-  %24 := Phi int @12:%22, @13:%19
-  %25 := Phi int @12:%20, @13:%23
-  %26 := Neg int %24
-  %27 := Neg int %25
-  %28 := Neg int %21
+  %13 := Phi int @12:3, @13:0
+  %14 := Phi int @12:1, @13:4
+  %15 := Neg int %13
+  %16 := Neg int %14
+  %17 := Neg int %12
   Ret
 }
 
@@ -85,21 +76,21 @@ label @15:
   Store int @test.glob, 2
   continue @17
 label @16:
-  %29 := Mov int 0
+  %18 := Call unit @test.use(0)
   continue @17
 label @17:
-  %30 := Load int @test.glob
-  %31 := Neg int %30
+  %19 := Load int @test.glob
+  %20 := Neg int %19
   branch true, @18, @19
 label @18:
-  %32 := Mov int 0
+  %21 := Call unit @test.use(0)
   continue @20
 label @19:
   Store int @test.glob, 3
   continue @20
 label @20:
-  %33 := Load int @test.glob
-  %34 := Neg int %33
+  %22 := Load int @test.glob
+  %23 := Neg int %22
   branch true, @21, @22
 label @21:
   Store int @test.glob, 4
@@ -108,8 +99,8 @@ label @22:
   Store int @test.glob, 5
   continue @23
 label @23:
-  %35 := Load int @test.glob
-  %36 := Neg int %35
+  %24 := Load int @test.glob
+  %25 := Neg int %24
   Ret
 }
 

@@ -10,23 +10,21 @@ func unit @test.testConstructor() {
   Store int %2, 2
   %3 := GetPointer int, test.Rec1<int>* %0.2
   Store int %3, 3
-  %4 := Mov test.Rec1<int>* %0
-  %5 := CallBuiltin test.Rec1<bool>* myte_alloc(1)
-  %6 := GetPointer int, test.Rec1<bool>* %5.0
-  Store int %6, 1
-  %7 := GetPointer bool, test.Rec1<bool>* %5.1
-  Store bool %7, true
-  %8 := GetPointer bool, test.Rec1<bool>* %5.2
-  Store bool %8, false
-  %9 := Mov test.Rec1<bool>* %5
+  %4 := CallBuiltin test.Rec1<bool>* myte_alloc(1)
+  %5 := GetPointer int, test.Rec1<bool>* %4.0
+  Store int %5, 1
+  %6 := GetPointer bool, test.Rec1<bool>* %4.1
+  Store bool %6, true
+  %7 := GetPointer bool, test.Rec1<bool>* %4.2
+  Store bool %7, false
   Ret
 }
 
-func unit @test.testIndexing(test.Rec1<int>* %10, test.Rec1<bool>* %11) {
-  %12 := GetPointer int, test.Rec1<int>* %10.1
-  %13 := Load int %12
-  %14 := GetPointer bool, test.Rec1<bool>* %11.2
-  %15 := Load bool %14
+func unit @test.testIndexing(test.Rec1<int>* %8, test.Rec1<bool>* %9) {
+  %10 := GetPointer int, test.Rec1<int>* %8.1
+  %11 := Load int %10
+  %12 := GetPointer bool, test.Rec1<bool>* %9.2
+  %13 := Load bool %12
   Ret
 }
 

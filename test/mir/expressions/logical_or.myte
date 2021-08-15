@@ -1,8 +1,14 @@
 module test
 
-fun main() {
+fun testConstants() {
   val x = true;
   val y = false;
 
   x || y;
 }
+
+fun testVariables(x: Bool, y: Bool) {
+  x || y;
+}
+
+fun main() {}

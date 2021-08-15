@@ -1,5 +1,7 @@
 module test
 
+fun use<T>(x: T) {}
+
 fun empty() {}
 
 fun emptyParams(x: Int, y: Bool) {}
@@ -7,10 +9,10 @@ fun emptyParams(x: Int, y: Bool) {}
 fun shorthand(x: Int): Int = 1
 
 fun withBody(x: Int, y: Bool) {
-  val z: Int = 10;
+  use(10);
   val zz: Bool = true && false;
 }
 
 fun main() {
-  val a = true;
+  use(true);
 }

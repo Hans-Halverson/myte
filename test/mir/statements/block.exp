@@ -1,6 +1,16 @@
+func unit @test.use<bool>(bool %0) {
+  Ret
+}
+
+func unit @test.use<int>(int %1) {
+  Ret
+}
+
 func int @test.main() {
-  %0 := Mov int 8
-  %1 := Mov int 77
-  %2 := Mul int 77, 34
+  %2 := Call unit @test.use<int>(8)
+  %3 := Call unit @test.use<int>(77)
+  %4 := Mul int 77, 34
+  %5 := Call unit @test.use<int>(%4)
+  %6 := Call unit @test.use<bool>(true)
   Ret 0
 }

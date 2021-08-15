@@ -1,7 +1,9 @@
 module test
 
+fun use(x: Int) {}
+
 fun test1(): Unit {
-  val x: Int = 1;
+  use(1);
   return;
 }
 

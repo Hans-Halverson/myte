@@ -146,8 +146,7 @@ and pp_block ~cx ~label block =
           (String.concat
              ", "
              (List.map
-                (fun (prev_block_id, arg_var_id) ->
-                  pp_block_id ~cx prev_block_id ^ ":" ^ pp_var_id ~cx arg_var_id)
+                (fun (prev_block_id, arg) -> pp_block_id ~cx prev_block_id ^ ":" ^ pp_value ~cx arg)
                 (IMap.bindings args))))
       block.phis
   in

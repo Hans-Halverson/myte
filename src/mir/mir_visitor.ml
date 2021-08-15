@@ -43,7 +43,7 @@ module IRVisitor = struct
 
       method visit_phi_node ~block (_type, result_var_id, args) =
         this#visit_result_variable ~block result_var_id;
-        IMap.iter (fun _block_id arg_var_id -> this#visit_use_variable ~block arg_var_id) args
+        IMap.iter (fun _block_id arg_val -> this#visit_value ~block arg_val) args
 
       method visit_next ~block next =
         match next with

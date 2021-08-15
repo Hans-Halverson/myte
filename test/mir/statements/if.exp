@@ -1,54 +1,58 @@
+func unit @test.use(int %0) {
+  Ret
+}
+
 func unit @test.testWithoutAltern() {
-  %0 := Mov int 1
+  %1 := Call unit @test.use(1)
   branch true, @0, @1
 label @0:
-  %1 := Mov int 2
+  %2 := Call unit @test.use(2)
   continue @1
 label @1:
-  %2 := Mov int 3
+  %3 := Call unit @test.use(3)
   Ret
 }
 
 func unit @test.testWithAltern() {
-  %3 := Mov int 1
+  %4 := Call unit @test.use(1)
   branch true, @2, @3
 label @2:
-  %4 := Mov int 2
+  %5 := Call unit @test.use(2)
   continue @4
 label @3:
-  %5 := Mov int 3
+  %6 := Call unit @test.use(3)
   continue @4
 label @4:
-  %6 := Mov int 4
+  %7 := Call unit @test.use(4)
   Ret
 }
 
 func unit @test.nested() {
-  %7 := Mov int 1
+  %8 := Call unit @test.use(1)
   branch true, @5, @9
 label @5:
-  %8 := Mov int 2
+  %9 := Call unit @test.use(2)
   branch false, @6, @7
 label @6:
-  %9 := Mov int 3
+  %10 := Call unit @test.use(3)
   continue @8
 label @7:
-  %10 := Mov int 4
+  %11 := Call unit @test.use(4)
   continue @8
 label @8:
-  %11 := Mov int 5
+  %12 := Call unit @test.use(5)
   continue @13
 label @9:
-  %12 := Mov int 6
+  %13 := Call unit @test.use(6)
   branch false, @10, @11
 label @10:
-  %13 := Mov int 7
+  %14 := Call unit @test.use(7)
   continue @12
 label @11:
-  %14 := Mov int 8
+  %15 := Call unit @test.use(8)
   continue @12
 label @12:
-  %15 := Mov int 9
+  %16 := Call unit @test.use(9)
   continue @13
 label @13:
   Ret

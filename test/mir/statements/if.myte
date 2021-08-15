@@ -1,47 +1,49 @@
 module test
 
+fun use(x: Int) {}
+
 fun testWithoutAltern() {
-  val x = 1;
+  use(1);
   if (true) {
-    val y = 2;
+    use(2);
   }
 
-  val z = 3;
+  use(3);
 }
 
 fun testWithAltern() {
-  val x = 1;
+  use(1);
   if (true) {
-    val y = 2;
+    use(2);
   } else {
-    val y = 3;
+    use(3);
   }
 
-  val z = 4;
+  use(4);
 }
 
 fun nested() {
-  val x = 1;
+  use(1);
   if (true) {
-    val x = 2;
+    use(2);
 
     if (false) {
-      val x = 3;
+      use(3);
     } else {
-      val x = 4;
+      use(4);
     }
 
-    val x = 5;
+    use(5);
   } else {
-    val x = 6;
+    use(6);
 
     if (false) {
-      val x = 7;
+      use(7);
     } else {
-      val x = 8;
+      use(8);
     }
 
-    val x = 9;
+    use(9);
   }
 }
 

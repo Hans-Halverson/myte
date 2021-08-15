@@ -9,40 +9,36 @@ func int @test.test1(std.string.String* %0) {
   %5 := Call bool @std.string.String.equals(%0, %1)
   branch %5, @0, @1
 label @0:
-  %6 := Mov int 1
   continue @6
 label @1:
-  %7 := CallBuiltin std.string.String* myte_alloc(1)
-  %8 := GetPointer byte*, std.string.String* %7.0
-  Store byte* %8, @.S1
-  %9 := GetPointer int, std.string.String* %7.1
+  %6 := CallBuiltin std.string.String* myte_alloc(1)
+  %7 := GetPointer byte*, std.string.String* %6.0
+  Store byte* %7, @.S1
+  %8 := GetPointer int, std.string.String* %6.1
+  Store int %8, 3
+  %9 := GetPointer int, std.string.String* %6.2
   Store int %9, 3
-  %10 := GetPointer int, std.string.String* %7.2
-  Store int %10, 3
-  %11 := Call bool @std.string.String.equals(%0, %7)
-  branch %11, @2, @3
+  %10 := Call bool @std.string.String.equals(%0, %6)
+  branch %10, @2, @3
 label @2:
-  %12 := Mov int 2
   continue @6
 label @3:
-  %13 := CallBuiltin std.string.String* myte_alloc(1)
-  %14 := GetPointer byte*, std.string.String* %13.0
-  Store byte* %14, @.S2
-  %15 := GetPointer int, std.string.String* %13.1
-  Store int %15, 3
-  %16 := GetPointer int, std.string.String* %13.2
-  Store int %16, 3
-  %17 := Call bool @std.string.String.equals(%0, %13)
-  branch %17, @4, @5
+  %11 := CallBuiltin std.string.String* myte_alloc(1)
+  %12 := GetPointer byte*, std.string.String* %11.0
+  Store byte* %12, @.S2
+  %13 := GetPointer int, std.string.String* %11.1
+  Store int %13, 3
+  %14 := GetPointer int, std.string.String* %11.2
+  Store int %14, 3
+  %15 := Call bool @std.string.String.equals(%0, %11)
+  branch %15, @4, @5
 label @4:
-  %18 := Mov int 3
   continue @6
 label @5:
-  %19 := Mov int 4
   continue @6
 label @6:
-  %20 := Phi int @0:%6, @2:%12, @4:%18, @5:%19
-  Ret %20
+  %16 := Phi int @0:1, @2:2, @4:3, @5:4
+  Ret %16
 }
 
 global byte[3] @.S0 = "foo"

@@ -85,6 +85,7 @@ and parse_and_check ~pcx ~is_stdlib files =
 
 let lower_to_ir pcx =
   let (_, program_cf_ir) = Mir_emit.emit pcx in
+  if Opts.dump_pre_ssa_ir () then dump_ir program_cf_ir;
   let program_ssa_ir = Mir_ssa.control_flow_ir_to_ssa program_cf_ir in
   if Opts.dump_ir () then dump_ir program_ssa_ir;
   if Opts.optimize () then

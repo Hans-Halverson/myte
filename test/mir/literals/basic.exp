@@ -10,6 +10,14 @@ func unit @_init() {
   Ret
 }
 
+func unit @test.use<int>(int %4) {
+  Ret
+}
+
+func unit @test.use<long>(long %5) {
+  Ret
+}
+
 global unit @test.x = ()
 
 global int @test.y1 = 500
@@ -25,14 +33,14 @@ global byte[4] @.S0 = "test"
 global bool @test.a1 = true
 
 func int @test.main() {
-  %4 := Mov int 0
-  %5 := Mov int 2147483647
-  %6 := Mov long 2147483648
-  %7 := Add int 2, 4
-  %8 := Add int %7, 6
-  %9 := Mov int %8
-  %10 := Add long 2, 2147483648
-  %11 := Add long %10, 6
-  %12 := Mov long %11
+  %6 := Call unit @test.use<int>(0)
+  %7 := Call unit @test.use<int>(2147483647)
+  %8 := Call unit @test.use<long>(2147483648)
+  %9 := Add int 2, 4
+  %10 := Add int %9, 6
+  %11 := Call unit @test.use<int>(%10)
+  %12 := Add long 2, 2147483648
+  %13 := Add long %12, 6
+  %14 := Call unit @test.use<long>(%13)
   Ret 0
 }

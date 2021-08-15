@@ -1587,31 +1587,6 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr decision_tree =
 
   emit_tree_node ~path_cache:IMap.empty decision_tree
 
-(* Return a variable id for the given value. Variables return their id directly, while literal
-   values must first emit a Mov to a variablem then return the new variable id. *)
-and emit_var_of_value ~ecx (value : Value.t) : var_id =
-  match value with
-  | `UnitV var_id
-  | `BoolV var_id
-  | `ByteV var_id
-  | `IntV var_id
-  | `LongV var_id
-  | `FunctionV var_id
-  | `PointerV (_, var_id)
-  | `ArrayV (_, _, var_id) ->
-    var_id
-  | `UnitL
-  | `BoolL _
-  | `ByteL _
-  | `IntL _
-  | `LongL _
-  | `FunctionL _
-  | `PointerL _
-  | `ArrayL _ ->
-    let var_id = mk_var_id () in
-    Ecx.emit ~ecx (Mov (var_id, value));
-    var_id
-
 and mk_value_binding_name binding =
   match binding.context with
   | Module

@@ -16,35 +16,28 @@ func unit @test.multiArgsFunc(int %3, int %4, std.string.String* %5) {
 }
 
 func unit @test.directCalls() {
-  %6 := Mov bool true
-  %7 := CallBuiltin std.string.String* myte_alloc(1)
-  %8 := GetPointer byte*, std.string.String* %7.0
-  Store byte* %8, @.S0
-  %9 := GetPointer int, std.string.String* %7.1
+  %6 := CallBuiltin std.string.String* myte_alloc(1)
+  %7 := GetPointer byte*, std.string.String* %6.0
+  Store byte* %7, @.S0
+  %8 := GetPointer int, std.string.String* %6.1
+  Store int %8, 3
+  %9 := GetPointer int, std.string.String* %6.2
   Store int %9, 3
-  %10 := GetPointer int, std.string.String* %7.2
-  Store int %10, 3
-  %11 := Mov std.string.String* %7
-  %12 := Call unit @test.noArgsFunc()
-  %13 := Mov unit %12
-  %14 := Call int @test.singleArgFunc(33)
-  %15 := Mov int %14
-  %16 := CallBuiltin std.string.String* myte_alloc(1)
-  %17 := GetPointer byte*, std.string.String* %16.0
-  Store byte* %17, @.S1
-  %18 := GetPointer int, std.string.String* %16.1
-  Store int %18, 4
-  %19 := GetPointer int, std.string.String* %16.2
-  Store int %19, 4
-  %20 := Call unit @test.multiArgsFunc(29, 98, %16)
-  %21 := Mov unit %20
-  %22 := Call int @test.singleArgFunc(%15)
-  %23 := Mov int %22
-  %24 := Call int @test.singleArgFunc(45)
-  %25 := Mul int 5, 6
-  %26 := Add int 2, %25
-  %27 := Call unit @test.multiArgsFunc(%24, %26, %11)
-  %28 := Mov unit %27
+  %10 := Call unit @test.noArgsFunc()
+  %11 := Call int @test.singleArgFunc(33)
+  %12 := CallBuiltin std.string.String* myte_alloc(1)
+  %13 := GetPointer byte*, std.string.String* %12.0
+  Store byte* %13, @.S1
+  %14 := GetPointer int, std.string.String* %12.1
+  Store int %14, 4
+  %15 := GetPointer int, std.string.String* %12.2
+  Store int %15, 4
+  %16 := Call unit @test.multiArgsFunc(29, 98, %12)
+  %17 := Call int @test.singleArgFunc(%11)
+  %18 := Call int @test.singleArgFunc(45)
+  %19 := Mul int 5, 6
+  %20 := Add int 2, %19
+  %21 := Call unit @test.multiArgsFunc(%18, %20, %6)
   Ret
 }
 
@@ -53,19 +46,15 @@ global byte[3] @.S0 = "str"
 global byte[4] @.S1 = "test"
 
 func unit @test.indirectCalls() {
-  %29 := Mov fn @test.singleArgFunc
   branch true, @0, @1
 label @0:
-  %30 := Mov fn @test.singleArgFunc2
   continue @1
 label @1:
-  %31 := Phi fn @test.indirectCalls:%29, @0:%30
-  %32 := Call int %31(10)
-  %33 := Mov int %32
-  %34 := Add int 1, 2
-  %35 := Call int %31(%34)
-  %36 := Add int 3, %35
-  %37 := Mov int %36
+  %22 := Phi fn @test.indirectCalls:@test.singleArgFunc, @0:@test.singleArgFunc2
+  %23 := Call int %22(10)
+  %24 := Add int 1, 2
+  %25 := Call int %22(%24)
+  %26 := Add int 3, %25
   Ret
 }
 

@@ -1,6 +1,5 @@
 func int @test.test() {
-  %0 := Mov int 1
-  Ret %0
+  Ret 1
 }
 
 func int @test.main() {

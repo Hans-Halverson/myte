@@ -12,6 +12,7 @@ fun testDefaultToCallerSaveRegisters(p: Int, cond: Bool): Int {
   var c = 6; 
   var d = 7;
   var e = 8;
+  var f = 9;
 
   if (cond)  {
     x = 101;
@@ -22,9 +23,10 @@ fun testDefaultToCallerSaveRegisters(p: Int, cond: Bool): Int {
     c = 106;
     d = 107;
     e = 108;
+    f = 109;
   }
 
-  return x + y + z + a + b + c + d + e;
+  return x + y + z + a + b + c + d + e + f;
 }
 
 fun testDefaultToCalleeSaveRegistersIfAcrossFunctionCall(cond: Bool) {

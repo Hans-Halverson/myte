@@ -40,6 +40,7 @@ fun testNonInterferingSpillsReuseStackSlots(): Int {
   var x12 = 12;
   var x13 = 13;
   var x14 = 14;
+  var x15 = 15;
  
   if (cond1) {
     x1 = 101;
@@ -56,9 +57,10 @@ fun testNonInterferingSpillsReuseStackSlots(): Int {
     x12 = 112;
     x13 = 113;
     x14 = 114;
+    x15 = 115;
   }
 
-  val z1 = x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14;
+  val z1 = x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14 + x15;
 
   val cond2 = cond();
   var x1 = 1;
@@ -75,6 +77,7 @@ fun testNonInterferingSpillsReuseStackSlots(): Int {
   var x12 = 12;
   var x13 = 13;
   var x14 = 14;
+  var x15 = 15;
  
   if (cond2) {
     x1 = 101;
@@ -91,9 +94,10 @@ fun testNonInterferingSpillsReuseStackSlots(): Int {
     x12 = 112;
     x13 = 113;
     x14 = 114;
+    x15 = 115;
   }
 
-  val z2 = x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14;
+  val z2 = x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14 + x15;
 
   val cond3 = cond();
   var x1 = 1;
@@ -110,6 +114,7 @@ fun testNonInterferingSpillsReuseStackSlots(): Int {
   var x12 = 12;
   var x13 = 13;
   var x14 = 14;
+  var x15 = 15;
  
   if (cond3) {
     x1 = 101;
@@ -126,9 +131,10 @@ fun testNonInterferingSpillsReuseStackSlots(): Int {
     x12 = 112;
     x13 = 113;
     x14 = 114;
+    x15 = 115;
   }
 
-  val z3 = x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14;
+  val z3 = x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14 + x15;
 
   return 77;
 }
@@ -151,6 +157,7 @@ fun testPartialReuseStackSlots(): Int {
   var x13 = 13;
   var x14 = 14;
   var x15 = 15;
+  var x16 = 16;
  
   if (cond1) {
     x1 = 101;
@@ -168,10 +175,10 @@ fun testPartialReuseStackSlots(): Int {
     x13 = 113;
     x14 = 114;
     x15 = 115;
+    x16 = 116;
   }
 
-  // TODO: Investigate why more stack slots are created than necessary as we add more vars
-  val z1 = x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14 + x15;
+  val z1 = x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14 + x15 + x16;
 
   val cond2 = cond();
   var x1 = 1;
@@ -188,45 +195,9 @@ fun testPartialReuseStackSlots(): Int {
   var x12 = 12;
   var x13 = 13;
   var x14 = 14;
- 
-  if (cond2) {
-    x1 = 101;
-    x2 = 102;
-    x3 = 103;
-    x4 = 104;
-    x5 = 105;
-    x6 = 106;
-    x7 = 107;
-    x8 = 108;
-    x9 = 109;
-    x10 = 110;
-    x11 = 111;
-    x12 = 112;
-    x13 = 113;
-    x14 = 114;
-  }
-
-  // TODO: Investigate why more stack slots are created than necessary as we add more vars
-  val z1 = x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14;
-
-  val cond3 = cond();
-  var x1 = 1;
-  var x2 = 2;
-  var x3 = 3;
-  var x4 = 4;
-  var x5 = 5;
-  var x6 = 6;
-  var x7 = 7;
-  var x8 = 8;
-  var x9 = 9;
-  var x10 = 10;
-  var x11 = 11;
-  var x12 = 12;
-  var x13 = 13;
-  var x14 = 14;
   var x15 = 15;
  
-  if (cond3) {
+  if (cond2) {
     x1 = 101;
     x2 = 102;
     x3 = 103;
@@ -244,8 +215,46 @@ fun testPartialReuseStackSlots(): Int {
     x15 = 115;
   }
 
-  // TODO: Investigate why more stack slots are created than necessary as we add more vars
   val z1 = x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14 + x15;
+
+  val cond3 = cond();
+  var x1 = 1;
+  var x2 = 2;
+  var x3 = 3;
+  var x4 = 4;
+  var x5 = 5;
+  var x6 = 6;
+  var x7 = 7;
+  var x8 = 8;
+  var x9 = 9;
+  var x10 = 10;
+  var x11 = 11;
+  var x12 = 12;
+  var x13 = 13;
+  var x14 = 14;
+  var x15 = 15;
+  var x16 = 16;
+ 
+  if (cond3) {
+    x1 = 101;
+    x2 = 102;
+    x3 = 103;
+    x4 = 104;
+    x5 = 105;
+    x6 = 106;
+    x7 = 107;
+    x8 = 108;
+    x9 = 109;
+    x10 = 110;
+    x11 = 111;
+    x12 = 112;
+    x13 = 113;
+    x14 = 114;
+    x15 = 115;
+    x16 = 116;
+  }
+
+  val z1 = x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14 + x15 + x16;
 
   return 77;
 }

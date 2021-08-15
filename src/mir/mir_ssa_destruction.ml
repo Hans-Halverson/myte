@@ -75,10 +75,10 @@ let destruct_ssa (ir : Program.t) : Program.t =
           (fun (value_type, var_id, args) ->
             let args' =
               IMap.fold
-                (fun prev_block_id var_id args' ->
+                (fun prev_block_id arg args' ->
                   match IMap.find_opt prev_block_id prev_to_new_block with
-                  | None -> IMap.add prev_block_id var_id args'
-                  | Some new_block_id -> IMap.add new_block_id var_id args')
+                  | None -> IMap.add prev_block_id arg args'
+                  | Some new_block_id -> IMap.add new_block_id arg args')
                 args
                 IMap.empty
             in
@@ -90,12 +90,10 @@ let destruct_ssa (ir : Program.t) : Program.t =
   IMap.iter
     (fun _ block ->
       List.iter
-        (fun (value_type, var_id, args) ->
+        (fun (_, var_id, args) ->
           IMap.iter
-            (fun prev_block_id arg_var_id ->
-              let mov_instruction =
-                (mk_instr_id (), Instruction.Mov (var_id, var_value_of_type arg_var_id value_type))
-              in
+            (fun prev_block_id arg_val ->
+              let mov_instruction = (mk_instr_id (), Instruction.Mov (var_id, arg_val)) in
               let prev_block = IMap.find prev_block_id ir.blocks in
               match prev_block.next with
               | Continue _ -> prev_block.instructions <- prev_block.instructions @ [mov_instruction]

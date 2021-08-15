@@ -12,34 +12,33 @@ func $tuple<byte,byte>* @test.testPureEnum1Values() {
   Store byte %4, 3
   %5 := GetPointer byte, $tuple<byte,byte>* %3.1
   Store byte %5, 2
-  %6 := Mov $tuple<byte,byte>* %3
-  Ret %6
+  Ret %3
 }
 
-func unit @test.useFullByteEnum(byte %7) {
+func unit @test.useFullByteEnum(byte %6) {
   Ret
 }
 
 func unit @test.testFullByteEnum() {
-  %8 := Call unit @test.useFullByteEnum(0)
-  %9 := Call unit @test.useFullByteEnum(1)
-  %10 := Call unit @test.useFullByteEnum(127)
-  %11 := Call unit @test.useFullByteEnum(-1)
-  %12 := Call unit @test.useFullByteEnum(-127)
-  %13 := Call unit @test.useFullByteEnum(-128)
+  %7 := Call unit @test.useFullByteEnum(0)
+  %8 := Call unit @test.useFullByteEnum(1)
+  %9 := Call unit @test.useFullByteEnum(127)
+  %10 := Call unit @test.useFullByteEnum(-1)
+  %11 := Call unit @test.useFullByteEnum(-127)
+  %12 := Call unit @test.useFullByteEnum(-128)
   Ret
 }
 
-func unit @test.useIntEnum(int %14) {
+func unit @test.useIntEnum(int %13) {
   Ret
 }
 
 func unit @test.testIntEnum() {
-  %15 := Call unit @test.useIntEnum(0)
-  %16 := Call unit @test.useIntEnum(1)
-  %17 := Call unit @test.useIntEnum(254)
-  %18 := Call unit @test.useIntEnum(255)
-  %19 := Call unit @test.useIntEnum(256)
+  %14 := Call unit @test.useIntEnum(0)
+  %15 := Call unit @test.useIntEnum(1)
+  %16 := Call unit @test.useIntEnum(254)
+  %17 := Call unit @test.useIntEnum(255)
+  %18 := Call unit @test.useIntEnum(256)
   Ret
 }
 

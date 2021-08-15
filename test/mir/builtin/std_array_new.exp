@@ -1,5 +1,4 @@
 func int @test.main() {
   %0 := CallBuiltin int* myte_alloc(99)
-  %1 := Mov int* %0
   Ret 0
 }

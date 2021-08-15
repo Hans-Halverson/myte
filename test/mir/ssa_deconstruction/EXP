@@ -3,97 +3,79 @@ func unit @_init() {
 }
 
 func int @move_in_previous_block.main() {
-  %0 := Mov int 1
   branch true, @0, @1
 label @0:
-  %1 := Mov int 2
-  %2 := Mov int %1
+  %0 := Mov int 2
   continue @2
 label @1:
-  %3 := Mov int 3
-  %2 := Mov int %3
+  %0 := Mov int 3
   continue @2
 label @2:
-  %4 := Neg int %2
+  %1 := Neg int %0
   Ret 0
 }
 
 func unit @move_in_previous_block.multiple() {
-  %5 := Mov int 1
-  %6 := Mov int 2
   branch true, @3, @4
 label @3:
-  %7 := Mov int 3
-  %8 := Mov int 4
-  %9 := Mov int %7
-  %10 := Mov int %8
+  %2 := Mov int 3
+  %3 := Mov int 4
   continue @5
 label @4:
-  %11 := Mov int 5
-  %12 := Mov int 6
-  %9 := Mov int %11
-  %10 := Mov int %12
+  %2 := Mov int 5
+  %3 := Mov int 6
   continue @5
 label @5:
-  %13 := Add int %9, %10
+  %4 := Add int %2, %3
   Ret
 }
 
 func unit @split_incoming_edge.inexhaustiveIf() {
-  %14 := Mov int 1
   branch true, @6, @7
 label @6:
-  %15 := Mov int 2
-  %16 := Mov int %15
+  %5 := Mov int 2
   continue @8
 label @7:
-  %16 := Mov int %14
+  %5 := Mov int 1
   continue @8
 label @8:
-  %17 := Neg int %16
+  %6 := Neg int %5
   Ret
 }
 
 func unit @split_incoming_edge.loop() {
-  %18 := Mov int 1
-  %19 := Mov int %18
+  %7 := Mov int 1
   continue @9
 label @9:
   branch true, @10, @13
 label @10:
-  %20 := Neg int %19
+  %8 := Neg int %7
   branch false, @11, @12
 label @11:
-  %21 := Mov int 2
-  %19 := Mov int %21
+  %7 := Mov int 2
   continue @9
 label @12:
-  %22 := Mov int 3
-  %23 := Mov int %22
+  %9 := Mov int 3
   continue @14
 label @13:
-  %23 := Mov int %19
+  %9 := Mov int %7
   continue @14
 label @14:
-  %24 := Neg int %23
+  %10 := Neg int %9
   Ret
 }
 
 func unit @split_incoming_edge.multiple() {
-  %25 := Mov int 1
-  %26 := Mov int 2
   branch true, @15, @16
 label @15:
-  %27 := Mov int 3
-  %28 := Mov int 4
-  %29 := Mov int %27
-  %30 := Mov int %28
+  %11 := Mov int 3
+  %12 := Mov int 4
   continue @17
 label @16:
-  %29 := Mov int %25
-  %30 := Mov int %26
+  %11 := Mov int 1
+  %12 := Mov int 2
   continue @17
 label @17:
-  %31 := Add int %29, %30
+  %13 := Add int %11, %12
   Ret
 }

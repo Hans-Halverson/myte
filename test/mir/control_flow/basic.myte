@@ -1,20 +1,26 @@
 module test
 
+fun use(x: Int) {}
+
 fun testLatest() {
   var x = 1;
   var y = 2;
   if (true) {
+    use(x);
     x = 3;
   }
   // <-- Phi for x inserted here
 
   if (true) {
+    use(y);
     y = 4;
   }
 
   if (false) {
+    use(y);
     y = 5;
   } else {
+    use(y);
     y = 6;
     if (false) {
       // Phi is inserted at earliest point above

@@ -43,6 +43,7 @@ fun testSingleSpillUsingAllRegistersFromLocals(): Int {
   var x12 = 12;
   var x13 = 13;
   var x14 = 14;
+  var x15 = 15;
 
   if (cond) {
     x1 = 101;
@@ -59,9 +60,10 @@ fun testSingleSpillUsingAllRegistersFromLocals(): Int {
     x12 = 112;
     x13 = 113;
     x14 = 114;
+    x15 = 115;
   }
 
-  return x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14;
+  return x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14 + x15;
 }
 
 fun main() {

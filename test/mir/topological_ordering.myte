@@ -1,65 +1,67 @@
 module test
 
+fun use(x: Int) {}
+
 // While loops form a strongly connected component, verify that inner statements are still visited
 // in approximate topological order.
 fun main() {
-  var x = 1;
+  use(1);
 
   while (false) {
     // Nested ifs visited in topological order
     if (true) {
-      x = 2;
+      use(2);
 
       if (false) {
-        x = 3;
+        use(3);
       } else {
-        x = 4;
+        use(4);
       }
 
-      x = 5;
+      use(5);
     } else {
-      x = 6;
+      use(6);
 
       if (false) {
-        x = 7;
+        use(7);
       } else {
-        x = 8;
+        use(8);
       }
 
-      x = 9;
+      use(9);
     }
 
-    x = 10;
+    use(10);
 
     // Nested ifs within nested while are visited in topological order
     while (false) {
       if (true) {
-        x = 11;
+        use(11);
 
         if (false) {
-          x = 12;
+          use(12);
         } else {
-          x = 13;
+          use(13);
         }
 
-        x = 14;
+        use(14);
       } else {
-        x = 15;
+        use(15);
 
         if (false) {
-          x = 16;
+          use(16);
         } else {
-          x = 17;
+          use(17);
         }
 
-        x = 18;
+        use(18);
       }
 
-      x = 19;
+      use(19);
     }
 
-    x = 20;
+    use(20);
   }
 
-  x = 21;
+  use(21);
 }

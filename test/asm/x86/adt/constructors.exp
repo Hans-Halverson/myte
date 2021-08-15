@@ -9,14 +9,14 @@ test.testNested:
   push %r12
   movl $8, %edi
   call __myte_alloc
-  movl $1, (%rax)
-  movb $2, 4(%rax)
   movq %rax, %r12
+  movl $1, (%r12)
+  movb $2, 4(%r12)
   movl $16, %edi
   call __myte_alloc
-  movq $3, (%rax)
-  movb $4, 8(%rax)
   movq %rax, %rbx
+  movq $3, (%rbx)
+  movb $4, 8(%rbx)
   movl $16, %edi
   call __myte_alloc
   movq %r12, (%rax)

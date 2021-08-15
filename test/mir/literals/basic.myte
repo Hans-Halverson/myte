@@ -1,5 +1,7 @@
 module test
 
+fun use<T>(x: T) {}
+
 val x: Unit = ()
 
 val y1: Int = 500
@@ -14,13 +16,13 @@ val a1: Bool = true
 
 fun main() {
   // Within Int range, inferred as ints
-  val x1 = 0;
-  val x2 = 2147483647;
+  use(0);
+  use(2147483647);
 
   // Outside Int range, inferred as Long
-  val x3 = 2147483648;
+  use(2147483648);
 
   // Multiple Int literals
-  val x4 = 2 + 4 + 6;
-  val x5 = 2 + 2147483648 + 6;
+  use(2 + 4 + 6);
+  use(2 + 2147483648 + 6);
 }

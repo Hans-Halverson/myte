@@ -164,8 +164,6 @@ class calc_constants_visitor ~ocx =
 
     method get_var_id_constants () = var_id_constants
 
-    method get_removed_vars () = removed_vars
-
     method! run () =
       (* Fold constants until fixed point is found *)
       let rec iter () =
@@ -241,13 +239,32 @@ class calc_constants_visitor ~ocx =
         (* Gather all constant args in phi node *)
         let (constants, is_constant) =
           IMap.fold
-            (fun _ arg_var_id (constants, is_constant) ->
-              if ISet.mem arg_var_id removed_vars then
-                (constants, is_constant)
-              else
-                match this#lookup_constant arg_var_id with
-                | None -> (constants, false)
-                | Some constant -> (constant :: constants, is_constant))
+            (fun _ arg_val (constants, is_constant) ->
+              match arg_val with
+              | `UnitV var_id
+              | `ByteV var_id
+              | `IntV var_id
+              | `LongV var_id
+              | `BoolV var_id
+              | `FunctionV var_id ->
+                if ISet.mem var_id removed_vars then
+                  (constants, is_constant)
+                else (
+                  match this#lookup_constant var_id with
+                  | None -> (constants, false)
+                  | Some constant -> (constant :: constants, is_constant)
+                )
+              | `UnitL -> (UnitConstant :: constants, is_constant)
+              | `BoolL b -> (BoolConstant b :: constants, is_constant)
+              | `ByteL b -> (ByteConstant b :: constants, is_constant)
+              | `IntL i -> (IntConstant i :: constants, is_constant)
+              | `LongL l -> (LongConstant l :: constants, is_constant)
+              | `FunctionL label -> (FunctionConstant label :: constants, is_constant)
+              | `PointerL _
+              | `PointerV _
+              | `ArrayL _
+              | `ArrayV _ ->
+                (constants, false))
             args
             ([], true)
         in
@@ -293,15 +310,6 @@ class calc_constants_visitor ~ocx =
           | None -> None
           | Some (LongConstant _ as lit) -> Some lit
           | _ -> failwith "Expected numeric value")
-      in
-      let get_function_lit_opt value =
-        match value with
-        | `FunctionL lit -> Some lit
-        | `FunctionV var_id ->
-          (match IMap.find_opt var_id var_id_constants with
-          | None -> None
-          | Some (FunctionConstant i) -> Some i
-          | _ -> failwith "Expected function value")
       in
       let get_comparable_lit_opt value =
         match value with
@@ -372,102 +380,32 @@ class calc_constants_visitor ~ocx =
       | GtEq (var_id, left, right) -> try_fold_comparison var_id left right ( >= )
       | Trunc (var_id, arg, ty) -> try_fold_numeric_constant var_id arg (TruncOp ty)
       | SExt (var_id, arg, ty) -> try_fold_numeric_constant var_id arg (SExtOp ty)
-      | Mov (var_id, value) ->
-        let constant =
-          match value with
-          | `UnitL
-          | `UnitV _ ->
-            Some UnitConstant
-          | (`FunctionL _ | `FunctionV _) as v ->
-            get_function_lit_opt v |> Option.map (fun x -> FunctionConstant x)
-          | (`BoolL _ | `BoolV _) as v -> get_bool_lit_opt v
-          | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v ->
-            get_numeric_lit_opt v
-          | `PointerL _
-          | `PointerV _
-          | `ArrayL _
-          | `ArrayV _ ->
-            None
-        in
-        (match constant with
-        | None -> ()
-        | Some constant -> this#add_constant var_id constant)
       | _ -> ()
   end
 
-class update_constants_mapper ~ocx var_id_constants constants_in_phis =
+class update_constants_mapper ~ocx var_id_constants =
+  let var_map =
+    IMap.map
+      (fun constant ->
+        match constant with
+        | UnitConstant -> `UnitL
+        | BoolConstant b -> `BoolL b
+        | ByteConstant b -> `ByteL b
+        | IntConstant i -> `IntL i
+        | LongConstant l -> `LongL l
+        | FunctionConstant label -> `FunctionL label)
+      var_id_constants
+  in
   object (this)
-    inherit Mir_mapper.InstructionsMapper.t ~program:ocx.Ocx.program
+    inherit Mir_mapper.rewrite_vars_mapper ~program:ocx.Ocx.program var_map
 
     (* If the result is a constant the entire instruction should be removed unless the result
        appears in non-constant phis. If the result appears in non-constant phis then the
        instruction should be replaced with a move of the constant to the result variable. *)
     method! map_result_variable ~block:_ var_id =
-      (match IMap.find_opt var_id var_id_constants with
-      | None -> ()
-      | Some constant ->
-        if ISet.mem var_id constants_in_phis then
-          this#replace_instruction
-            [(mk_instr_id (), Instruction.Mov (var_id, mir_value_of_constant constant))]
-        else
-          this#mark_instruction_removed ());
+      if IMap.mem var_id var_id_constants then this#mark_instruction_removed ();
       var_id
-
-    (* Convert constant vars to constant values in MIR *)
-    method! map_bool_value ~block:_ value =
-      match value with
-      | `BoolL _ -> value
-      | `BoolV var_id ->
-        (match IMap.find_opt var_id var_id_constants with
-        | Some (BoolConstant const) -> `BoolL const
-        | _ -> value)
-
-    method! map_numeric_value ~block:_ value =
-      match value with
-      | `ByteL _
-      | `IntL _
-      | `LongL _ ->
-        value
-      | `ByteV var_id ->
-        (match IMap.find_opt var_id var_id_constants with
-        | Some (ByteConstant const) -> `ByteL const
-        | _ -> value)
-      | `IntV var_id ->
-        (match IMap.find_opt var_id var_id_constants with
-        | Some (IntConstant const) -> `IntL const
-        | _ -> value)
-      | `LongV var_id ->
-        (match IMap.find_opt var_id var_id_constants with
-        | Some (LongConstant const) -> `LongL const
-        | _ -> value)
-
-    method! map_function_value ~block:_ value =
-      match value with
-      | `FunctionL _ -> value
-      | `FunctionV var_id ->
-        (match IMap.find_opt var_id var_id_constants with
-        | Some (FunctionConstant const) -> `FunctionL const
-        | _ -> value)
   end
-
-(* Find constant variables that appear in non-constant phis, as these variables will need to keep
-   a definition as constants cannot be inlined into phis. *)
-let find_constants_in_phis ~ocx var_id_constants removed_vars =
-  let constants_in_phis = ref ISet.empty in
-  IMap.iter
-    (fun _ block ->
-      List.iter
-        (fun (_, var_id, args) ->
-          if (not (IMap.mem var_id var_id_constants)) && not (ISet.mem var_id removed_vars) then
-            IMap.iter
-              (fun _ arg_var_id ->
-                if IMap.mem arg_var_id var_id_constants && not (ISet.mem arg_var_id removed_vars)
-                then
-                  constants_in_phis := ISet.add arg_var_id !constants_in_phis)
-              args)
-        block.Block.phis)
-    ocx.Ocx.program.blocks;
-  !constants_in_phis
 
 (* Constant folding may determine that globals are initialized to a constant. These take the form of
   stores to globals in the init function, which should be removed and replaced with a constant
@@ -499,28 +437,13 @@ let fold_constants_and_prune ~ocx =
   let calc_visitor = new calc_constants_visitor ~ocx in
   ignore (calc_visitor#run ());
   let var_id_constants = calc_visitor#get_var_id_constants () in
-  let removed_vars = calc_visitor#get_removed_vars () in
-  let constants_in_phis = find_constants_in_phis ~ocx var_id_constants removed_vars in
-  let update_constants_mapper =
-    new update_constants_mapper ~ocx var_id_constants constants_in_phis
-  in
+  let update_constants_mapper = new update_constants_mapper ~ocx var_id_constants in
   IMap.iter
     (fun _ block ->
       let open Block in
-      (* Remove constant phis, however if the phi result variable appears in some non-constant
-         phi then an instruction should inserted moving the constant to the phi result variable. *)
+      (* Remove constant phis *)
       block.phis <-
-        List.filter
-          (fun (_, var_id, _) ->
-            match IMap.find_opt var_id var_id_constants with
-            | None -> true
-            | Some constant ->
-              if ISet.mem var_id constants_in_phis then
-                block.instructions <-
-                  (mk_instr_id (), Mov (var_id, mir_value_of_constant constant))
-                  :: block.instructions;
-              false)
-          block.phis;
-      block.instructions <- update_constants_mapper#map_instructions ~block block.instructions)
+        List.filter (fun (_, var_id, _) -> not (IMap.mem var_id var_id_constants)) block.phis;
+      update_constants_mapper#map_block block)
     ocx.Ocx.program.blocks;
   fold_global_inits ~ocx

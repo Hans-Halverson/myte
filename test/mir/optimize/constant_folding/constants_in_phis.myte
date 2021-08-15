@@ -12,7 +12,7 @@ fun test1(cond: Bool): Int {
   return x;
 }
 
-// Constant appears in phi but phi is not constant overall, so a move for the constant is inserted.
+// Constant appears in phi but phi is not constant overall
 fun test2(cond: Bool, i: Int): Int {
   var x = 1;
   var y = 2;

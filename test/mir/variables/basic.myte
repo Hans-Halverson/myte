@@ -1,5 +1,7 @@
 module test
 
+fun use<T>(x: T) {}
+
 val x: Int = 1
 
 fun test1(y: Int, z: Unit) {
@@ -10,6 +12,9 @@ fun test1(y: Int, z: Unit) {
 fun test2() {
   val x: Int = x;
   val y: Int = 4 * 34;
+
+  use(x);
+  use(y);
 }
 
 fun main() {}

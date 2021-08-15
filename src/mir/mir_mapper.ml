@@ -33,7 +33,7 @@ module InstructionsMapper = struct
           if check_visited_block block.id then
             ()
           else (
-            block.instructions <- this#map_instructions ~block block.instructions;
+            this#map_block block;
             match block.next with
             | Halt -> ()
             | Continue id -> visit_block (get_block id)
@@ -43,6 +43,11 @@ module InstructionsMapper = struct
           )
         in
         visit_block (get_block func.body_start_block)
+
+      method map_block (block : Block.t) =
+        block.phis <- this#map_phis ~block block.phis;
+        block.instructions <- this#map_instructions ~block block.instructions;
+        block.next <- this#map_block_next ~block block.next
 
       method map_instructions ~(block : Block.t) (instructions : Instruction.t list) =
         let instructions' =
@@ -398,7 +403,7 @@ module InstructionsMapper = struct
         List.map
           (fun (value_type, var_id, args) ->
             let var_id' = this#map_result_variable ~block var_id in
-            let args' = IMap.map (this#map_use_variable ~block) args in
+            let args' = IMap.map (this#map_value ~block) args in
             (value_type, var_id', args'))
           phis
 
@@ -413,27 +418,57 @@ module InstructionsMapper = struct
     end
 end
 
-class rewrite_vars_mapper ~ocx var_map =
+class rewrite_vars_mapper ~(program : Program.t) (var_map : Value.t IMap.t) =
   object (this)
-    inherit InstructionsMapper.t ~program:ocx.Ocx.program
+    inherit InstructionsMapper.t ~program
 
-    method resolve_var var_id =
-      let rec rec_resolve var_id =
-        match IMap.find_opt var_id var_map with
-        | None -> var_id
-        | Some new_var_id -> rec_resolve new_var_id
-      in
-      match IMap.find_opt var_id var_map with
-      | None -> None
-      | Some new_var_id -> Some (rec_resolve new_var_id)
+    method! map_unit_value ~block value =
+      match value with
+      | `UnitL -> value
+      | `UnitV var_id as value ->
+        (match IMap.find_opt var_id var_map with
+        | None -> value
+        | Some mapped_value -> this#map_unit_value ~block (cast_to_unit_value mapped_value))
 
-    method! map_result_variable ~block:_ var_id =
-      match this#resolve_var var_id with
-      | None -> var_id
-      | Some new_var_id -> new_var_id
+    method! map_bool_value ~block value =
+      match value with
+      | `BoolL _ -> value
+      | `BoolV var_id as value ->
+        (match IMap.find_opt var_id var_map with
+        | None -> value
+        | Some mapped_value -> this#map_bool_value ~block (cast_to_bool_value mapped_value))
 
-    method! map_use_variable ~block:_ var_id =
-      match this#resolve_var var_id with
-      | None -> var_id
-      | Some new_var_id -> new_var_id
+    method! map_numeric_value ~block value =
+      match value with
+      | (`ByteL _ | `IntL _ | `LongL _) as value -> value
+      | (`ByteV var_id as value)
+      | (`IntV var_id as value)
+      | (`LongV var_id as value) ->
+        (match IMap.find_opt var_id var_map with
+        | None -> value
+        | Some mapped_value -> this#map_numeric_value ~block (cast_to_numeric_value mapped_value))
+
+    method! map_function_value ~block value =
+      match value with
+      | `FunctionL _ as value -> value
+      | `FunctionV var_id as value ->
+        (match IMap.find_opt var_id var_map with
+        | None -> value
+        | Some mapped_value -> this#map_function_value ~block (cast_to_function_value mapped_value))
+
+    method! map_pointer_value ~block value =
+      match value with
+      | `PointerL _ as value -> value
+      | `PointerV (_, var_id) as value ->
+        (match IMap.find_opt var_id var_map with
+        | None -> value
+        | Some mapped_value -> this#map_pointer_value ~block (cast_to_pointer_value mapped_value))
+
+    method! map_array_value ~block value =
+      match value with
+      | `ArrayL _ as value -> value
+      | `ArrayV (_, _, var_id) as value ->
+        (match IMap.find_opt var_id var_map with
+        | None -> value
+        | Some mapped_value -> this#map_array_value ~block (cast_to_array_value mapped_value))
   end

@@ -5,107 +5,95 @@ type $tuple<int,bool,std.string.String*> {int, bool, std.string.String*}
 type $tuple<int,bool> {int, bool}
 
 func int @test.test1($tuple<int,bool,std.string.String*>* %0) {
-  %1 := Mov int 1
-  Ret %1
+  Ret 1
 }
 
-func int @test.test2($tuple<int,bool,std.string.String*>* %2) {
-  %3 := GetPointer int, $tuple<int,bool,std.string.String*>* %2.0
-  %4 := Load int %3
-  %5 := Eq int %4, 1
-  branch %5, @0, @2
+func int @test.test2($tuple<int,bool,std.string.String*>* %1) {
+  %2 := GetPointer int, $tuple<int,bool,std.string.String*>* %1.0
+  %3 := Load int %2
+  %4 := Eq int %3, 1
+  branch %4, @0, @2
 label @0:
-  %6 := GetPointer bool, $tuple<int,bool,std.string.String*>* %2.1
-  %7 := Load bool %6
-  %8 := Eq bool %7, false
-  branch %8, @11, @1
+  %5 := GetPointer bool, $tuple<int,bool,std.string.String*>* %1.1
+  %6 := Load bool %5
+  %7 := Eq bool %6, false
+  branch %7, @11, @1
 label @1:
-  %9 := Mov int 1
   continue @13
 label @2:
-  %10 := Eq int %4, 2
-  branch %10, @3, @4
+  %8 := Eq int %3, 2
+  branch %8, @3, @4
 label @3:
-  %11 := Mov int 2
   continue @13
 label @4:
-  %12 := Eq int %4, 3
-  branch %12, @5, @7
+  %9 := Eq int %3, 3
+  branch %9, @5, @7
 label @5:
-  %13 := GetPointer bool, $tuple<int,bool,std.string.String*>* %2.1
-  %14 := Load bool %13
-  %15 := Eq bool %14, false
-  branch %15, @6, @12
+  %10 := GetPointer bool, $tuple<int,bool,std.string.String*>* %1.1
+  %11 := Load bool %10
+  %12 := Eq bool %11, false
+  branch %12, @6, @12
 label @6:
-  %16 := Mov int 4
   continue @13
 label @7:
-  %17 := Eq int %4, 4
-  branch %17, @8, @10
+  %13 := Eq int %3, 4
+  branch %13, @8, @10
 label @8:
-  %18 := GetPointer bool, $tuple<int,bool,std.string.String*>* %2.1
-  %19 := Load bool %18
-  %20 := Eq bool %19, false
-  branch %20, @9, @12
+  %14 := GetPointer bool, $tuple<int,bool,std.string.String*>* %1.1
+  %15 := Load bool %14
+  %16 := Eq bool %15, false
+  branch %16, @9, @12
 label @9:
-  %21 := Mov int 5
   continue @13
 label @10:
-  %22 := GetPointer bool, $tuple<int,bool,std.string.String*>* %2.1
-  %23 := Load bool %22
-  %24 := Eq bool %23, false
-  branch %24, @11, @12
+  %17 := GetPointer bool, $tuple<int,bool,std.string.String*>* %1.1
+  %18 := Load bool %17
+  %19 := Eq bool %18, false
+  branch %19, @11, @12
 label @11:
-  %25 := Mov int 6
   continue @13
 label @12:
-  %26 := Mov int 3
   continue @13
 label @13:
-  %27 := Phi int @11:%25, @1:%9, @3:%11, @6:%16, @12:%26, @9:%21
-  Ret %27
+  %20 := Phi int @11:6, @1:1, @3:2, @6:4, @12:3, @9:5
+  Ret %20
 }
 
-func int @test.test3($tuple<int,bool,$tuple<int,bool>*>* %28) {
-  %29 := GetPointer int, $tuple<int,bool,$tuple<int,bool>*>* %28.0
-  %30 := Load int %29
-  %31 := Eq int %30, 1
-  branch %31, @14, @15
+func int @test.test3($tuple<int,bool,$tuple<int,bool>*>* %21) {
+  %22 := GetPointer int, $tuple<int,bool,$tuple<int,bool>*>* %21.0
+  %23 := Load int %22
+  %24 := Eq int %23, 1
+  branch %24, @14, @15
 label @14:
-  %32 := Mov int 1
   continue @22
 label @15:
-  %33 := GetPointer bool, $tuple<int,bool,$tuple<int,bool>*>* %28.1
-  %34 := Load bool %33
-  %35 := Eq bool %34, true
-  branch %35, @16, @17
+  %25 := GetPointer bool, $tuple<int,bool,$tuple<int,bool>*>* %21.1
+  %26 := Load bool %25
+  %27 := Eq bool %26, true
+  branch %27, @16, @17
 label @16:
-  %36 := Mov int 2
   continue @22
 label @17:
-  %37 := GetPointer $tuple<int,bool>*, $tuple<int,bool,$tuple<int,bool>*>* %28.2
-  %38 := Load $tuple<int,bool>* %37
-  %39 := GetPointer int, $tuple<int,bool>* %38.0
-  %40 := Load int %39
-  %41 := Eq int %40, 2
-  branch %41, @18, @19
+  %28 := GetPointer $tuple<int,bool>*, $tuple<int,bool,$tuple<int,bool>*>* %21.2
+  %29 := Load $tuple<int,bool>* %28
+  %30 := GetPointer int, $tuple<int,bool>* %29.0
+  %31 := Load int %30
+  %32 := Eq int %31, 2
+  branch %32, @18, @19
 label @18:
-  %42 := Mov int 3
   continue @22
 label @19:
-  %43 := GetPointer bool, $tuple<int,bool>* %38.1
-  %44 := Load bool %43
-  %45 := Eq bool %44, false
-  branch %45, @20, @21
+  %33 := GetPointer bool, $tuple<int,bool>* %29.1
+  %34 := Load bool %33
+  %35 := Eq bool %34, false
+  branch %35, @20, @21
 label @20:
-  %46 := Mov int 4
   continue @22
 label @21:
-  %47 := Mov int 5
   continue @22
 label @22:
-  %48 := Phi int @14:%32, @16:%36, @18:%42, @20:%46, @21:%47
-  Ret %48
+  %36 := Phi int @14:1, @16:2, @18:3, @20:4, @21:5
+  Ret %36
 }
 
 func int @test.main() {

@@ -31,7 +31,14 @@ let rec normalize ~ocx =
       block.phis <-
         List.filter_map
           (fun (value_type, var_id, args) ->
-            let args' = IMap.filter (fun _ arg_var_id -> ISet.mem arg_var_id vars) args in
+            let args' =
+              IMap.filter
+                (fun _ arg_val ->
+                  match var_id_of_value_opt arg_val with
+                  | None -> true
+                  | Some var_id -> ISet.mem var_id vars)
+                args
+            in
             if IMap.is_empty args' then
               None
             else
@@ -41,7 +48,7 @@ let rec normalize ~ocx =
 
   (* Find and remove empty blocks *)
   IMap.iter
-    (fun block_id block -> if Ocx.can_remove_block block then Ocx.remove_block ~ocx block_id)
+    (fun block_id block -> if Ocx.can_remove_block ~ocx block then Ocx.remove_block ~ocx block_id)
     ocx.program.blocks;
 
   (* Remove trivial phis and rewrite references to these phi vars in program, requires iteration
@@ -53,9 +60,9 @@ let rec normalize ~ocx =
         block.phis <-
           List.filter
             (fun (_, var_id, args) ->
-              let (_, arg_var_id) = IMap.choose args in
-              if IMap.for_all (fun _ arg -> arg = arg_var_id) args then (
-                rewrite_map := IMap.add var_id arg_var_id !rewrite_map;
+              let (_, arg_val) = IMap.choose args in
+              if IMap.for_all (fun _ arg -> values_equal arg arg_val) args then (
+                rewrite_map := IMap.add var_id arg_val !rewrite_map;
                 false
               ) else
                 true)
@@ -64,15 +71,9 @@ let rec normalize ~ocx =
     if IMap.is_empty !rewrite_map then
       ()
     else
-      let rewrite_mapper = new Mir_mapper.rewrite_vars_mapper ~ocx !rewrite_map in
+      let rewrite_mapper = new Mir_mapper.rewrite_vars_mapper ~program:ocx.program !rewrite_map in
       let all_blocks = ocx.Ocx.program.blocks in
-      IMap.iter
-        (fun _ block ->
-          let open Block in
-          block.phis <- rewrite_mapper#map_phis ~block block.phis;
-          block.instructions <- rewrite_mapper#map_instructions ~block block.instructions;
-          block.next <- rewrite_mapper#map_block_next ~block block.next)
-        all_blocks;
+      IMap.iter (fun _ block -> rewrite_mapper#map_block block) all_blocks;
       rewrite_map := IMap.empty;
       iter ()
   in

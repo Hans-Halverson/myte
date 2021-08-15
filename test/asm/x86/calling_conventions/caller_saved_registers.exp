@@ -38,9 +38,6 @@ test.callerSavedRegistersSavedAcrossFunctionCallsWithSpills:
   movl %ecx, 16(%rsp)
   movl %r8d, 8(%rsp)
   movl %r9d, %r15d
-  movl $1, %r13d
-  movl $2, %r12d
-  movl $3, %ebx
   cmpl $1, %r14d
   jne .L0
   movl $101, %r13d
@@ -48,6 +45,9 @@ test.callerSavedRegistersSavedAcrossFunctionCallsWithSpills:
   movl $103, %ebx
   jmp .L1
 .L0:
+  movl $1, %r13d
+  movl $2, %r12d
+  movl $3, %ebx
 .L1:
   movl $3, %edi
   call test.use
@@ -77,14 +77,14 @@ _main:
 test.testDefaultToCalleeSaveRegistersIfAcrossFunctionCall:
   push %rbx
   push %r12
-  movl $1, %r12d
-  movl $2, %ebx
   testb %dil, %dil
   je .L2
   movl $101, %r12d
   movl $102, %ebx
   jmp .L3
 .L2:
+  movl $1, %r12d
+  movl $2, %ebx
 .L3:
   movl $3, %edi
   call test.use
@@ -96,14 +96,6 @@ test.testDefaultToCalleeSaveRegistersIfAcrossFunctionCall:
   pop %rbx
   ret
 test.testDefaultToCallerSaveRegisters:
-  movl $1, %r11d
-  movl $2, %r10d
-  movl $3, %r9d
-  movl $4, %r8d
-  movl $5, %edi
-  movl $6, %edx
-  movl $7, %ecx
-  movl $8, %eax
   testb %sil, %sil
   je .L4
   movl $101, %r11d
@@ -111,17 +103,28 @@ test.testDefaultToCallerSaveRegisters:
   movl $103, %r9d
   movl $104, %r8d
   movl $105, %edi
-  movl $106, %edx
-  movl $107, %ecx
-  movl $108, %eax
+  movl $106, %esi
+  movl $107, %edx
+  movl $108, %ecx
+  movl $109, %eax
   jmp .L5
 .L4:
+  movl $1, %r11d
+  movl $2, %r10d
+  movl $3, %r9d
+  movl $4, %r8d
+  movl $5, %edi
+  movl $6, %esi
+  movl $7, %edx
+  movl $8, %ecx
+  movl $9, %eax
 .L5:
   addl %r11d, %r10d
   addl %r10d, %r9d
   addl %r9d, %r8d
   addl %r8d, %edi
-  addl %edi, %edx
+  addl %edi, %esi
+  addl %esi, %edx
   addl %edx, %ecx
   addl %ecx, %eax
   ret

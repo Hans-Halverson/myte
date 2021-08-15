@@ -83,7 +83,6 @@ and Instruction : sig
   type t = instr_id * t'
 
   and t' =
-    | Mov of var_id * Value.t
     | Call of Value.function_value call
     | CallBuiltin of Builtin.t call
     | Ret of Value.t option
@@ -125,6 +124,8 @@ and Instruction : sig
     (* Conversions *)
     | Trunc of var_id * Value.numeric_value * Type.numeric_type
     | SExt of var_id * Value.numeric_value * Type.numeric_type
+    (* Only generated during MIR destruction *)
+    | Mov of var_id * Value.t
 
   and 'a call =
     (* Return var *)
@@ -154,7 +155,7 @@ and Block : sig
 
   and id = int
 
-  and phi = Type.t * var_id * var_id IMap.t
+  and phi = Type.t * var_id * Value.t IMap.t
 
   and next =
     | Halt
@@ -264,6 +265,11 @@ let var_value_of_type var_id (ty : Type.t) : Value.t =
   | `ArrayT (ty, size) -> `ArrayV (ty, size, var_id)
   | `AggregateT _ -> failwith "Cannot create variable for Aggregate, must be behind pointer"
 
+let cast_to_unit_value (v : Value.t) : Value.unit_value =
+  match v with
+  | (`UnitL | `UnitV _) as v -> v
+  | _ -> failwith "Expected unit value"
+
 let cast_to_bool_value (v : Value.t) : Value.bool_value =
   match v with
   | (`BoolL _ | `BoolV _) as v -> v
@@ -274,10 +280,20 @@ let cast_to_numeric_value (v : Value.t) : Value.numeric_value =
   | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v -> v
   | _ -> failwith "Expected numeric value"
 
+let cast_to_function_value (v : Value.t) : Value.function_value =
+  match v with
+  | (`FunctionL _ | `FunctionV _) as v -> v
+  | _ -> failwith "Expected function value"
+
 let cast_to_pointer_value (v : Value.t) : Value.pointer_value =
   match v with
   | (`PointerL _ | `PointerV _) as v -> v
   | _ -> failwith "Expected pointer value"
+
+let cast_to_array_value (v : Value.t) : Value.array_value =
+  match v with
+  | (`ArrayL _ | `ArrayV _) as v -> v
+  | _ -> failwith "Expected array value"
 
 let cast_to_comparable_value (v : Value.t) : Value.comparable_value =
   match v with
@@ -311,6 +327,48 @@ let is_literal (v : Value.t) : bool =
   | `PointerV _
   | `ArrayV _ ->
     false
+
+let var_id_of_value_opt (v : Value.t) : var_id option =
+  match v with
+  | `FunctionL _
+  | `PointerL _
+  | `UnitL
+  | `BoolL _
+  | `ByteL _
+  | `IntL _
+  | `LongL _
+  | `ArrayL _ ->
+    None
+  | `UnitV var_id
+  | `BoolV var_id
+  | `ByteV var_id
+  | `IntV var_id
+  | `LongV var_id
+  | `FunctionV var_id
+  | `PointerV (_, var_id)
+  | `ArrayV (_, _, var_id) ->
+    Some var_id
+
+let values_equal (v1 : Value.t) (v2 : Value.t) : bool =
+  match (v1, v2) with
+  | (`UnitL, `UnitL) -> true
+  | (`BoolL b1, `BoolL b2) -> b1 = b2
+  | (`ByteL b1, `ByteL b2) -> b1 = b2
+  | (`IntL i1, `IntL i2) -> Int32.equal i1 i2
+  | (`LongL l1, `LongL l2) -> Int64.equal l1 l2
+  | (`FunctionL label1, `FunctionL label2) -> label1 = label2
+  | (`PointerL (_, label1), `PointerL (_, label2)) -> label1 = label2
+  | (`ArrayL (_, size1, label1), `ArrayL (_, size2, label2)) -> size1 = size2 && label1 = label2
+  | (`UnitV var_id1, `UnitV var_id2)
+  | (`BoolV var_id1, `BoolV var_id2)
+  | (`ByteV var_id1, `ByteV var_id2)
+  | (`IntV var_id1, `IntV var_id2)
+  | (`LongV var_id1, `LongV var_id2)
+  | (`FunctionV var_id1, `FunctionV var_id2)
+  | (`PointerV (_, var_id1), `PointerV (_, var_id2))
+  | (`ArrayV (_, _, var_id1), `ArrayV (_, _, var_id2)) ->
+    var_id1 = var_id2
+  | _ -> false
 
 let mk_continue continue = Block.Continue continue
 

@@ -1,28 +1,25 @@
 func int @test.main() {
   branch true, @test.main, @0
 label @0:
-  %0 := Mov bool true
-  continue @1
+  branch true, @1, @2
 label @1:
-  branch %0, @2, @3
+  %0 := Add int 1, 1
+  continue @0
 label @2:
-  %1 := Add int 1, 1
-  continue @1
+  %1 := LogNot false
+  branch %1, @3, @7
 label @3:
-  %2 := LogNot false
-  branch %2, @4, @8
+  %2 := Add int 2, 2
+  continue @4
 label @4:
-  %3 := Add int 2, 2
-  continue @5
+  %3 := LogNot true
+  branch %3, @5, @6
 label @5:
-  %4 := LogNot true
-  branch %4, @6, @7
+  %4 := Add int 3, 3
+  continue @4
 label @6:
-  %5 := Add int 3, 3
-  continue @5
+  %5 := Add int 4, 4
+  continue @2
 label @7:
-  %6 := Add int 4, 4
-  continue @3
-label @8:
   Ret 0
 }

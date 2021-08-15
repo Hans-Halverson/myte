@@ -1,12 +1,16 @@
 module test
 
+fun use(x: Int) {}
+
 fun testNeitherUpdated() {
   var x = 1;
 
   if (true) {
     var y = 0;
+    use(y);
   } else {
     var y = 1;
+    use(y);
   }
 
   -x;
@@ -19,6 +23,7 @@ fun testOnlyFirstUpdated() {
     x = 2;
   } else {
     var y = 0;
+    use(y);
   }
 
   -x;
@@ -29,6 +34,7 @@ fun testOnlySecondUpdated() {
 
   if (true) {
     var y = 0;
+    use(y);
   } else {
     x = 2;
   }
@@ -48,10 +54,9 @@ fun testBothUpdated() {
    -x;
 }
 
-fun testMultiple() {
+fun testMultiple(z: Int) {
   var x = 0;
   var y = 1;
-  var z = 2;
 
   if (true) {
     x = 3;
@@ -70,12 +75,14 @@ fun testGlobal() {
     glob = 2;
   } else {
     var y = 0;
+    use(y);
   }
 
   -glob;
 
   if (true) {
     var y = 0;
+    use(y);
   } else {
     glob = 3;
   }
