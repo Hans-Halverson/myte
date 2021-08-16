@@ -100,8 +100,11 @@ and emit_type_declaration ~ecx decl =
 
 and emit_toplevel_variable_declaration ~ecx decl =
   let { Statement.VariableDeclaration.pattern; init; _ } = decl in
-  (* TODO: Emit MIR for arbitrary patterns *)
-  let { Identifier.loc; _ } = List.hd (Ast_utils.ids_of_pattern pattern) in
+  let loc =
+    match pattern with
+    | Identifier { loc; _ } -> loc
+    | _ -> failwith "Toplevel variable must be identifier"
+  in
   let binding = Bindings.get_value_binding ecx.pcx.bindings loc in
   let name = mk_value_binding_name binding in
   (* Find value type of variable *)
@@ -694,9 +697,14 @@ and emit_expression ~ecx expr =
 
     (* Emit args and decision tree *)
     let args = List.map (emit_expression ~ecx) args in
-    let decision_tree = Mir_match_decision_tree.build ~ecx args cases in
+    let decision_tree = Mir_match_decision_tree.build_match_decision_tree ~ecx args cases in
     let join_block = Ecx.mk_block_builder ~ecx in
-    emit_match_decision_tree ~ecx ~join_block ~result_ptr:(Some result_ptr_val) decision_tree;
+    emit_match_decision_tree
+      ~ecx
+      ~join_block
+      ~result_ptr:(Some result_ptr_val)
+      ~alloc:true
+      decision_tree;
 
     (* Join branches together and load result from stack location *)
     Ecx.set_block_builder ~ecx join_block;
@@ -1274,17 +1282,8 @@ and emit_statement ~ecx stmt =
   | Assignment { loc = _; lvalue; expr } ->
     (match lvalue with
     | Assignment.Pattern pattern ->
-      let { Identifier.loc = use_loc; _ } = List.hd (Ast_utils.ids_of_pattern pattern) in
-      let binding = Bindings.get_value_binding ecx.pcx.bindings use_loc in
       let expr_val = emit_expression ~ecx expr in
-      let mir_type = type_of_value expr_val in
-      if Bindings.is_module_decl ecx.pcx.bindings binding.loc then
-        let binding_name = mk_value_binding_name binding in
-        let global = SMap.find binding_name ecx.globals in
-        Ecx.emit ~ecx (Store (`PointerL (global.ty, global.name), expr_val))
-      else
-        let var_id = Ecx.get_ptr_var_id ~ecx use_loc in
-        Ecx.emit ~ecx (Store (`PointerV (mir_type, var_id), expr_val))
+      emit_destructuring ~ecx ~alloc:false pattern expr_val
     | Assignment.Expression (IndexedAccess { loc; target; index; _ } as expr_lvalue) ->
       let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
       (match target_ty with
@@ -1299,13 +1298,8 @@ and emit_statement ~ecx stmt =
       emit_expression_access_chain_store ~ecx expr_lvalue expr
     | _ -> failwith "Lvalue expression must be an access")
   | VariableDeclaration { pattern; init; _ } ->
-    (* TODO: Emit MIR for arbitrary patterns *)
-    let { Identifier.loc; _ } = List.hd (Ast_utils.ids_of_pattern pattern) in
     let init_val = emit_expression ~ecx init in
-    let mir_type = type_of_value init_val in
-    let var_id = Ecx.get_ptr_var_id ~ecx loc in
-    Ecx.emit ~ecx (StackAlloc (var_id, mir_type));
-    Ecx.emit ~ecx (Store (`PointerV (mir_type, var_id), init_val))
+    emit_destructuring ~ecx ~alloc:true pattern init_val
   (*
    * ============================
    *       Match Statement
@@ -1314,11 +1308,32 @@ and emit_statement ~ecx stmt =
   | Match { args; cases; _ } ->
     (* Emit args and decision tree *)
     let args = List.map (emit_expression ~ecx) args in
-    let decision_tree = Mir_match_decision_tree.build ~ecx args cases in
+    let decision_tree = Mir_match_decision_tree.build_match_decision_tree ~ecx args cases in
     let join_block = Ecx.mk_block_builder ~ecx in
-    emit_match_decision_tree ~ecx ~join_block ~result_ptr:None decision_tree;
+    emit_match_decision_tree ~ecx ~join_block ~result_ptr:None ~alloc:true decision_tree;
     Ecx.set_block_builder ~ecx join_block
   | FunctionDeclaration _ -> failwith "TODO: Emit MIR for non-toplevel function declarations"
+
+and emit_destructuring ~(ecx : Ecx.t) ~alloc pattern value =
+  match pattern with
+  | Pattern.Identifier { loc; _ } ->
+    let mir_type = type_of_value value in
+    let binding = Bindings.get_value_binding ecx.pcx.bindings loc in
+    if Bindings.is_module_decl ecx.pcx.bindings binding.loc then
+      let binding_name = mk_value_binding_name binding in
+      let global = SMap.find binding_name ecx.globals in
+      Ecx.emit ~ecx (Store (`PointerL (global.ty, global.name), value))
+    else
+      let var_id = Ecx.get_ptr_var_id ~ecx loc in
+      if alloc then Ecx.emit ~ecx (StackAlloc (var_id, mir_type));
+      Ecx.emit ~ecx (Store (`PointerV (mir_type, var_id), value))
+  | _ ->
+    let decision_tree =
+      Mir_match_decision_tree.build_destructure_decision_tree ~ecx value pattern
+    in
+    let join_block = Ecx.mk_block_builder ~ecx in
+    emit_match_decision_tree ~ecx ~join_block ~result_ptr:None ~alloc decision_tree;
+    Ecx.set_block_builder ~ecx join_block
 
 (* Structure of leaf and case body blocks:
 
@@ -1336,8 +1351,13 @@ and emit_statement ~ecx stmt =
    To avoid duplication, we generate each leaf and each case body only once. This means that a leaf
    block creates the bindings for that leaf and then executes its guard, before jumping to either
    the shared case body block or the guard fail block. *)
-(* Emit the MIR for a match decision tree. Store the resulting value at `result_ptr` if it exists. *)
-and emit_match_decision_tree ~ecx ~join_block ~result_ptr decision_tree =
+
+(* Emit the MIR for a match decision tree.
+
+   [join_block] the block after the decision tree, which all branches should connect to at their end
+   [result_ptr] if not None, store the resulting value here
+   [alloc] fs true, generate StackAlloc instructions for all bindings *)
+and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
   let open Mir_match_decision_tree in
   (* Maintain cache of block builder at beginning of each case body (including guard) *)
   let constructed_case_bodies = ref LocSet.empty in
@@ -1383,7 +1403,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr decision_tree =
       | None -> acc
       | Some default_case -> emit_binding_allocations default_case acc)
   in
-  ignore (emit_binding_allocations decision_tree LocSet.empty);
+  if alloc then ignore (emit_binding_allocations decision_tree LocSet.empty);
 
   (* Then recursively emit the decision tree and its child nodes *)
   let rec emit_tree_node ~path_cache tree_node =
@@ -1397,47 +1417,61 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr decision_tree =
         (List.fold_left
            (fun path_cache (path, binding_loc) ->
              let (binding_val, path_cache) = emit_load_pattern_path ~path_cache path in
-             let decl_loc = Bindings.get_decl_loc_from_value_use ecx.pcx.bindings binding_loc in
-             let ptr_var_id = Ecx.get_ptr_var_id ~ecx decl_loc in
-             let mir_type = type_of_value binding_val in
-             Ecx.emit ~ecx (Store (`PointerV (mir_type, ptr_var_id), binding_val));
+             let binding = Bindings.get_value_binding ecx.pcx.bindings binding_loc in
+             let decl_loc = binding.loc in
+             (* Determine pointer value - may be a global if this is a destructuring assignment *)
+             let ptr_val =
+               if Bindings.is_module_decl ecx.pcx.bindings binding.loc then
+                 let binding_name = mk_value_binding_name binding in
+                 let global = SMap.find binding_name ecx.globals in
+                 `PointerL (global.ty, global.name)
+               else
+                 let mir_type = type_of_value binding_val in
+                 let ptr_var_id = Ecx.get_ptr_var_id ~ecx decl_loc in
+                 `PointerV (mir_type, ptr_var_id)
+             in
+             Ecx.emit ~ecx (Store (ptr_val, binding_val));
              path_cache)
            path_cache
            bindings);
 
       (* Then if case is guarded, emit guard expression and only proceed to case body if guard
          succeeds, otherwise jump to and emit guard fail case, which is itself a decision tree. *)
-      let case_body_builder = get_case_body_builder case_node.loc in
-      (match case_node.guard with
-      | None -> Ecx.finish_block_continue ~ecx case_body_builder.id
-      | Some guard_expr ->
-        let guard_test_val = emit_bool_expression ~ecx guard_expr in
-        let guard_fail_builder = Ecx.mk_block_builder ~ecx in
-        Ecx.finish_block_branch ~ecx guard_test_val case_body_builder.id guard_fail_builder.id;
-        Ecx.set_block_builder ~ecx guard_fail_builder;
-        emit_tree_node ~path_cache (Option.get guard_fail_case));
+      (match case_node with
+      (* Destructurings do not have a case body, so simply continue to join block *)
+      | None -> Ecx.finish_block_continue ~ecx join_block.id
+      | Some case_node ->
+        let case_body_builder = get_case_body_builder case_node.loc in
+        (match case_node.guard with
+        | None -> Ecx.finish_block_continue ~ecx case_body_builder.id
+        | Some guard_expr ->
+          let guard_test_val = emit_bool_expression ~ecx guard_expr in
+          let guard_fail_builder = Ecx.mk_block_builder ~ecx in
+          Ecx.finish_block_branch ~ecx guard_test_val case_body_builder.id guard_fail_builder.id;
+          Ecx.set_block_builder ~ecx guard_fail_builder;
+          emit_tree_node ~path_cache (Option.get guard_fail_case));
 
-      (* Ensure that case body is only emitted once, and shared between leaves *)
-      if not (LocSet.mem case_node.loc !constructed_case_bodies) then (
-        constructed_case_bodies := LocSet.add case_node.loc !constructed_case_bodies;
-        Ecx.set_block_builder ~ecx case_body_builder;
+        (* Ensure that case body is only emitted once, and shared between leaves *)
+        if not (LocSet.mem case_node.loc !constructed_case_bodies) then (
+          constructed_case_bodies := LocSet.add case_node.loc !constructed_case_bodies;
+          Ecx.set_block_builder ~ecx case_body_builder;
 
-        (* Emit the right hand side of case, store result at result ptr if one is supplied. *)
-        (match case_node.right with
-        | Expression expr ->
-          let body_val = emit_expression ~ecx expr in
-          (match result_ptr with
-          | None -> ()
-          | Some result_ptr -> Ecx.emit ~ecx (Store (result_ptr, body_val)))
-        | Statement stmt ->
-          emit_statement ~ecx stmt;
-          (match result_ptr with
-          | None -> ()
-          | Some result_ptr -> Ecx.emit ~ecx (Store (result_ptr, `UnitL))));
+          (* Emit the right hand side of case, store result at result ptr if one is supplied. *)
+          match case_node.right with
+          | Expression expr ->
+            let body_val = emit_expression ~ecx expr in
+            (match result_ptr with
+            | None -> ()
+            | Some result_ptr -> Ecx.emit ~ecx (Store (result_ptr, body_val)))
+          | Statement stmt ->
+            emit_statement ~ecx stmt;
+            (match result_ptr with
+            | None -> ()
+            | Some result_ptr -> Ecx.emit ~ecx (Store (result_ptr, `UnitL)))
+        );
 
         (* Continue to match's overall join block at end of case body *)
-        Ecx.finish_block_continue ~ecx join_block.id
-      )
+        Ecx.finish_block_continue ~ecx join_block.id)
     (* Otherwise we need to test a scrutinee and potentially branch to new decision tree nodes to emit *)
     | Test { scrutinee; cases; default_case } ->
       (match List.hd cases with

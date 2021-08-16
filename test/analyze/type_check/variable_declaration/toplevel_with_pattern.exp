@@ -5,5 +5,10 @@ test/analyze/type_check/variable_declaration/toplevel_with_pattern.myte:4:4-10
 
 Error: Toplevel variable declarations cannot contain patterns
 test/analyze/type_check/variable_declaration/toplevel_with_pattern.myte:6:4-10
- 6 | val _ as c: Int = 1
+ 6 | val c as d: Int = 1
    |     ^^^^^^
+
+Error: Toplevel variable declarations cannot contain patterns
+test/analyze/type_check/variable_declaration/toplevel_with_pattern.myte:8:4
+ 8 | val _: Int = 1
+   |     ^

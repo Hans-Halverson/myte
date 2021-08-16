@@ -1,0 +1,74 @@
+type $tuple<int,bool,$tuple<int,bool>*> {int, bool, $tuple<int,bool>*}
+
+type $tuple<int,bool> {int, bool}
+
+func unit @test.use<$tuple<int,bool>*>($tuple<int,bool>* %0) {
+  Ret
+}
+
+func unit @test.use<bool>(bool %1) {
+  Ret
+}
+
+func unit @test.use<int>(int %2) {
+  Ret
+}
+
+func unit @test.use<std.string.String*>(std.string.String* %3) {
+  Ret
+}
+
+func unit @test.destructureTuple($tuple<int,bool,$tuple<int,bool>*>* %4) {
+  %5 := GetPointer int, $tuple<int,bool,$tuple<int,bool>*>* %4.0
+  %6 := Load int %5
+  %7 := GetPointer bool, $tuple<int,bool,$tuple<int,bool>*>* %4.1
+  %8 := Load bool %7
+  %9 := GetPointer $tuple<int,bool>*, $tuple<int,bool,$tuple<int,bool>*>* %4.2
+  %10 := Load $tuple<int,bool>* %9
+  %11 := Call unit @test.use<int>(%6)
+  %12 := Call unit @test.use<bool>(%8)
+  %13 := Call unit @test.use<$tuple<int,bool>*>(%10)
+  %14 := GetPointer $tuple<int,bool>*, $tuple<int,bool,$tuple<int,bool>*>* %4.2
+  %15 := Load $tuple<int,bool>* %14
+  %16 := GetPointer int, $tuple<int,bool>* %15.0
+  %17 := Load int %16
+  %18 := GetPointer bool, $tuple<int,bool>* %15.1
+  %19 := Load bool %18
+  %20 := Call unit @test.use<int>(%17)
+  %21 := Call unit @test.use<bool>(%19)
+  Ret
+}
+
+type test.Variant {byte, byte[23]}
+
+type test.Variant::Tup1 {byte, byte[3], int, std.string.String*, byte[8]}
+
+type test.Variant::Tup2 {byte, byte[7], std.string.String*, int, byte[4]}
+
+func unit @test.destructureVariants(test.Variant* %22) {
+  %23 := Load byte %22
+  %24 := Eq byte %23, 0
+  branch %24, @0, @1
+label @0:
+  %25 := GetPointer int, test.Variant::Tup1* %22.2
+  %26 := Load int %25
+  %27 := GetPointer std.string.String*, test.Variant::Tup1* %22.3
+  %28 := Load std.string.String* %27
+  continue @2
+label @1:
+  %29 := GetPointer std.string.String*, test.Variant::Tup2* %22.2
+  %30 := Load std.string.String* %29
+  %31 := GetPointer int, test.Variant::Tup2* %22.3
+  %32 := Load int %31
+  continue @2
+label @2:
+  %33 := Phi std.string.String* @0:%28, @1:%30
+  %34 := Phi int @0:%26, @1:%32
+  %35 := Call unit @test.use<int>(%34)
+  %36 := Call unit @test.use<std.string.String*>(%33)
+  Ret
+}
+
+func int @test.main() {
+  Ret 0
+}

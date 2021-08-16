@@ -1,11 +1,10 @@
 module test
 
-val _: Int = 1
-
-// Errors
-val _: Bool = 1
-
 fun main() {
+  val _: Int = 1;
+  // Errors
+  val _: Bool = 1;
+
   val _ = 1;
   val _ = true;
   val (_, _) = (1, true);

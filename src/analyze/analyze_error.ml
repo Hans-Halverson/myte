@@ -317,7 +317,8 @@ let to_string error =
   | ImplicitTypeParamOutsideFunction ->
     "Implicit trait type parameters can only appear in function parameter types"
   | ToplevelVarWithoutAnnotation -> Printf.sprintf "Toplevel variables must have type annotations"
-  | ToplevelVarWithPattern -> Printf.sprintf "Toplevel variable declarations cannot contain patterns"
+  | ToplevelVarWithPattern ->
+    Printf.sprintf "Toplevel variable declarations cannot contain patterns"
   | IncompatibleTypes (actual, expecteds) ->
     let type_strings = Types.pps (expecteds @ [actual]) |> List.map (fun str -> "`" ^ str ^ "`") in
     let expected_strings = List_utils.drop_last type_strings in

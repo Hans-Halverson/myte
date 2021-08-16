@@ -754,7 +754,7 @@ class match_analyzer ~cx =
 
     (* Analyze exhaustiveness and reachability for a single pattern, e.g. in a variable declaration
        or assignment. *)
-    method analyze_single_pattern pattern =
+    method analyze_destructure pattern =
       let loc = Ast_utils.pattern_loc pattern in
       let row = pattern_vector_of_pattern_node ~cx pattern in
 
@@ -767,11 +767,11 @@ class match_analyzer ~cx =
       let exhaustive_result = ExhaustiveAnalyzer.useful ~is_guarded:false [row] [wildcard] in
       this#check_exhaustive_result loc exhaustive_result
 
-    method! variable_declaration decl = this#analyze_single_pattern decl.pattern
+    method! variable_declaration decl = this#analyze_destructure decl.pattern
 
     method! assignment assign =
       match assign.lvalue with
-      | Pattern pattern -> this#analyze_single_pattern pattern
+      | Pattern pattern -> this#analyze_destructure pattern
       | Expression _ -> ()
   end
 

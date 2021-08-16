@@ -408,12 +408,6 @@ and build_toplevel_variable_declaration ~cx decl =
   let { loc; pattern; annot; _ } = decl in
   let (pattern_loc, pattern_tvar_id) = check_pattern ~cx pattern in
 
-  (* Toplevel variable declarations cannot contain patterns *)
-  (match pattern with
-  | Identifier _ 
-  | Wildcard _ -> ()
-  | _ -> Type_context.add_error ~cx (Ast_utils.pattern_loc pattern) ToplevelVarWithPattern);
-
   match annot with
   | None -> Type_context.add_error ~cx loc ToplevelVarWithoutAnnotation
   | Some annot ->

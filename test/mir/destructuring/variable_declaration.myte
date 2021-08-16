@@ -1,0 +1,28 @@
+module test
+
+fun use<T>(x: T) {}
+
+fun destructureTuple(t: (Int, Bool, (Int, Bool))) {
+  // Destructuring
+  val (x, y, z) = t;
+  use(x);
+  use(y);
+  use(z);
+
+  // Nested destructuring
+  val (_, _, (x, y)) = t;
+  use(x);
+  use(y);
+}
+
+type Variant =
+  | Tup1 (Int, String)
+  | Tup2 (String, Int)
+
+fun destructureVariants(v: Variant) {
+  val Tup1 (x, y) | Tup2 (y, x) = v;
+  use(x);
+  use(y);
+}
+
+fun main() {}

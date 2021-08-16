@@ -22,8 +22,4 @@ type alias imported = Unit
 type alias foo = Unit
 type alias foo = Int
 
-// Does not error
-val _: Int = 1
-var _: Int = 2
-
 fun main() {}

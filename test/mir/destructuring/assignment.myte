@@ -1,0 +1,45 @@
+module test
+
+fun use<T>(x: T) {}
+
+fun destructureTuple(t: (Int, Bool, (Int, Bool))) {
+  var x = 0;
+  var y = true;
+  var z = (1, true);
+
+  // Destructuring
+  (x, y, z) = t;
+  use(x);
+  use(y);
+  use(z);
+
+  // Nested destructuring
+  (_, _, (x, y)) = t;
+  use(x);
+  use(y);
+}
+
+type Variant =
+  | Tup1 (Int, String)
+  | Tup2 (String, Int)
+
+fun destructureVariants(v: Variant) {
+  var x = 1;
+  var y = "";
+
+  Tup1 (x, y) | Tup2 (y, x) = v;
+  use(x);
+  use(y);
+}
+
+var globalInt: Int = 1
+var globalBool: Bool = true
+
+fun destructureAssignGlobals(t: (Int, Bool)) {
+  (globalInt, globalBool) = t;
+
+  var y = false;
+  (globalInt, y) = t;
+}
+
+fun main() {}

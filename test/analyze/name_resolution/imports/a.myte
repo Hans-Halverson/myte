@@ -7,5 +7,3 @@ fun D() {}
 fun remote() {}
 
 type alias ty = Unit
-
-val _: Int = 1

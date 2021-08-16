@@ -545,21 +545,21 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       let { Ast.Statement.VariableDeclaration.kind; pattern; init; annot; loc = _ } = decl in
       let annot' = id_map_opt this#type_ annot in
       let init' = this#expression init in
-      let ids = Ast_utils.ids_of_pattern pattern in
-      this#visit_pattern ~is_toplevel ~is_match:false pattern;
-      List.iter
-        (fun { Ast.Identifier.loc; name; _ } ->
-          let context =
-            if is_toplevel then
-              ValueBinding.Module
-            else
-              ValueBinding.Function
-          in
-          let binding =
-            this#add_value_declaration loc name context (VarDecl (VariableDeclaration.mk kind))
-          in
-          this#add_value_to_scope name (Decl binding))
-        ids;
+
+      (* Toplevel variable declarations cannot contain patterns, and are added to module scope *)
+      if is_toplevel then
+        match pattern with
+        | Identifier { name = { loc; name }; _ } ->
+          let var_decl = VarDecl (VariableDeclaration.mk kind) in
+          let binding = this#add_value_declaration loc name Module var_decl in
+          this#add_value_to_scope name (Decl binding)
+        | _ -> this#add_error (Ast_utils.pattern_loc pattern) ToplevelVarWithPattern
+      else
+        this#visit_pattern
+          ~is_match:false
+          ~mk_decl:(Some (fun _ -> VarDecl (VariableDeclaration.mk kind)))
+          pattern;
+
       if init == init' && annot == annot' then
         decl
       else
@@ -692,13 +692,16 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       | Pattern pattern ->
         let ids = Ast_utils.ids_of_pattern pattern in
         List.iter this#resolve_value_id_use ids;
-        this#visit_pattern ~is_toplevel:false ~is_match:false pattern;
+        this#visit_pattern ~is_match:false ~mk_decl:None pattern;
         super#assignment assign
 
     method! match_case case =
       let { Match.Case.pattern; _ } = case in
       this#enter_scope ();
-      this#visit_pattern ~is_toplevel:false ~is_match:true pattern;
+      this#visit_pattern
+        ~is_match:true
+        ~mk_decl:(Some (fun _ -> MatchCaseVarDecl (MatchCaseVariableDeclaration.mk ())))
+        pattern;
       let result = super#match_case case in
       this#exit_scope ();
       result
@@ -1007,12 +1010,12 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         | _ :: _ -> this#match_module_parts_pattern module_tree first_part rest_parts)
       | Some (Decl binding) -> this#add_value_use binding.loc first_part.loc
 
-    method visit_pattern ~is_toplevel ~is_match patt =
+    method visit_pattern ~is_match ~mk_decl patt =
       let open Ast.Pattern in
       let add_name loc name names = SMap.add name loc names in
       let add_name_error_on_duplicate loc name names =
         (* Check for the same name appearing twice in a pattern *)
-        if (not is_toplevel) && SMap.mem name names then (
+        if SMap.mem name names then (
           this#add_error loc (DuplicatePatternNames name);
           names
         ) else
@@ -1029,31 +1032,28 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       in
 
       let visit_identifier ~may_be_ctor ~in_or_rhs { Identifier.loc; name } names =
-        if not is_match then
-          if in_or_rhs then
-            add_name_in_or_rhs loc name names
+        let is_match_ctor =
+          if is_match then
+            match this#lookup_value_in_scope name scopes with
+            | Some (Decl { loc = binding_loc; declaration = CtorDecl _; _ }) when may_be_ctor ->
+              this#add_value_use binding_loc loc;
+              true
+            | _ -> false
           else
-            add_name_error_on_duplicate loc name names
-        else
-          (* If in a match, unscoped identifiers may refer to constructors *)
-          match this#lookup_value_in_scope name scopes with
-          | Some (Decl { loc = binding_loc; declaration = CtorDecl _; _ }) when may_be_ctor ->
-            this#add_value_use binding_loc loc;
-            names
-          (* If not a constructor this is a match case variable, so add binding *)
-          | _ ->
-            if in_or_rhs then
-              add_name_in_or_rhs loc name names
-            else
-              let binding =
-                this#add_value_declaration
-                  loc
-                  name
-                  Function
-                  (MatchCaseVarDecl (MatchCaseVariableDeclaration.mk ()))
-              in
-              this#add_value_to_scope name (Decl binding);
-              add_name_error_on_duplicate loc name names
+            false
+        in
+        if is_match_ctor then
+          names
+        else if in_or_rhs then
+          add_name_in_or_rhs loc name names
+        else (
+          (match mk_decl with
+          | None -> ()
+          | Some mk_decl ->
+            let binding = this#add_value_declaration loc name Function (mk_decl ()) in
+            this#add_value_to_scope name (Decl binding));
+          add_name_error_on_duplicate loc name names
+        )
       in
 
       (* Error on any variables that are not defined on both sides of or pattern. Save error locs
