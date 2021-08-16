@@ -1,0 +1,9 @@
+Error: Toplevel variable declarations cannot contain patterns
+test/analyze/type_check/variable_declaration/toplevel_with_pattern.myte:4:4-10
+ 4 | val (a, b): (Int, Bool) = (1, true)
+   |     ^^^^^^
+
+Error: Toplevel variable declarations cannot contain patterns
+test/analyze/type_check/variable_declaration/toplevel_with_pattern.myte:6:4-10
+ 6 | val _ as c: Int = 1
+   |     ^^^^^^

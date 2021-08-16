@@ -1,0 +1,13 @@
+module test
+
+// Error
+val (a, b): (Int, Bool) = (1, true)
+
+val _ as c: Int = 1
+
+// Succeed
+val d: Int = 1
+
+val _: Int = 1
+
+fun main() {}

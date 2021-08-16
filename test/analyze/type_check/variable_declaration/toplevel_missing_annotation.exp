@@ -9,6 +9,6 @@ test/analyze/type_check/variable_declaration/toplevel_missing_annotation.myte:5:
    | ^^^^^^^^^^
 
 Error: Toplevel variables must have type annotations
-test/analyze/type_check/variable_declaration/toplevel_missing_annotation.myte:7:0-22
- 7 | val (a, b) = (1, true)
-   | ^^^^^^^^^^^^^^^^^^^^^^
+test/analyze/type_check/variable_declaration/toplevel_missing_annotation.myte:7:0-17
+ 7 | val a = (1, true)
+   | ^^^^^^^^^^^^^^^^^
