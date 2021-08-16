@@ -190,7 +190,10 @@ let lookup_stdlib_name decl_loc = LocMap.find_opt decl_loc !stdlib_builtin_decl_
 let lookup_stdlib_decl_loc name = SMap.find name !stdlib_builtin_name_to_decl_loc
 
 let register_stdlib_decl full_name loc =
-  if SSet.mem full_name all_stdlib_names then (
+  (* Only register the first name encountered, in the case of multiple names (namely type traits) *)
+  if
+    SSet.mem full_name all_stdlib_names && not (SMap.mem full_name !stdlib_builtin_name_to_decl_loc)
+  then (
     stdlib_builtin_decl_locs := LocMap.add loc full_name !stdlib_builtin_decl_locs;
     stdlib_builtin_name_to_decl_loc := SMap.add full_name loc !stdlib_builtin_name_to_decl_loc
   )

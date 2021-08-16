@@ -45,4 +45,9 @@ fun test3() {
   Trait3.foo;
 }
 
+// Static methods from stdlib type traits
+fun test4() {
+  String.new();
+}
+
 fun main() {}

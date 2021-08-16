@@ -195,7 +195,7 @@ test/analyze/name_resolution/static_methods/a.myte
 test/analyze/name_resolution/static_methods/test.myte
 {
   node: Module,
-  loc: 1:0-48:13,
+  loc: 1:0-53:13,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -746,16 +746,62 @@ test/analyze/name_resolution/static_methods/test.myte
     },
     {
       node: Function,
-      loc: 48:0-48:13,
+      loc: 49:0-51:1,
       name: {
         node: Identifier,
-        loc: 48:4-48:8,
+        loc: 49:4-49:9,
+        name: "test4",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 49:12-51:1,
+        statements: [
+          {
+            node: ExpressionStatement,
+            loc: 50:2-50:15,
+            expression: {
+              node: Call,
+              loc: 50:2-50:14,
+              func: {
+                node: ScopedIdentifier,
+                loc: 50:2-50:12,
+                scopes: [
+                  {
+                    node: Identifier,
+                    loc: 50:2-50:8,
+                    name: "String",
+                  },
+                ],
+                name: {
+                  node: Identifier,
+                  loc: 50:9-50:12,
+                  name: "new",
+                },
+              },
+              args: [],
+            },
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+      builtin: false,
+      static: false,
+      override: false,
+    },
+    {
+      node: Function,
+      loc: 53:0-53:13,
+      name: {
+        node: Identifier,
+        loc: 53:4-53:8,
         name: "main",
       },
       params: [],
       body: {
         node: Block,
-        loc: 48:11-48:13,
+        loc: 53:11-53:13,
         statements: [],
       },
       return: None,
