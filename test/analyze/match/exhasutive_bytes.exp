@@ -1,4 +1,4 @@
-Error: Inexhaustive match statement. For example the pattern `2` is not matched.
+Error: Inexhaustive pattern matching. For example the pattern `2` is not matched.
 test/analyze/match/exhasutive_bytes.myte:4:2-7:3
  4 | /   match (x) {
    | |   ^^^^^^^^^^^
@@ -9,7 +9,7 @@ test/analyze/match/exhasutive_bytes.myte:4:2-7:3
  7 | |   }
    | \ ^^^^
 
-Error: Inexhaustive match statement. For example the pattern `-19` is not matched.
+Error: Inexhaustive pattern matching. For example the pattern `-19` is not matched.
 test/analyze/match/exhasutive_bytes.myte:272:2-510:3
  272 | /   match (x) {
      | |   ^^^^^^^^^^^

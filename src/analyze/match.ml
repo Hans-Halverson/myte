@@ -464,10 +464,10 @@ module UsefulAnalyzer (UsefulResult : UsefulResultType) = struct
 end
 
 module ExhaustiveAnalyzer = UsefulAnalyzer (ExhaustiveResult)
-module ReachableAnalyer = UsefulAnalyzer (ReachableResult)
+module ReachableAnalyzer = UsefulAnalyzer (ReachableResult)
 
 (* Convert a match case node into a pattern vector for use in exhaustiveness/reachability checking *)
-let pattern_vector_of_case_node ~cx case_node =
+let pattern_vector_of_pattern_node ~cx pattern_node =
   let type_of_loc loc =
     let tvar_id = Type_context.get_tvar_from_loc ~cx loc in
     Type_context.find_rep_type ~cx (TVar tvar_id)
@@ -572,7 +572,7 @@ let pattern_vector_of_case_node ~cx case_node =
       let or_branches = gather_or_branches [] or_ in
       Or (List.rev or_branches)
   in
-  [pattern_of_pattern_node case_node.Ast.Match.Case.pattern]
+  [pattern_of_pattern_node pattern_node]
 
 (* Whether a vector of patterns can be compressed to a single wildcard pattern for display *)
 let rec can_compress_to_wildcard vector =
@@ -704,30 +704,38 @@ class match_analyzer ~cx =
 
     method add_error loc error = errors <- (loc, error) :: errors
 
+    method check_reachable_result full_loc result =
+      match result with
+      | ReachableResult.Empty -> ()
+      | Full -> this#add_error full_loc UnreachablePattern
+      | Set patterns ->
+        List.iter
+          (fun pattern ->
+            match pattern with
+            | Wildcard loc -> this#add_error loc UnreachablePattern
+            | Constructor ({ loc; _ }, _) -> this#add_error loc UnreachablePattern
+            | _ -> ())
+          patterns
+
+    method check_exhaustive_result full_loc result =
+      match ExhaustiveResult.witness result with
+      | None -> ()
+      | Some witness_pattern ->
+        let witness_string = string_of_pattern witness_pattern in
+        this#add_error full_loc (InexhaustiveMatch witness_string)
+
     method! match_ match_ =
       (* Build pattern matrix and check for reachability of each case *)
       let matrix =
         List.fold_left
           (fun prev_rows case ->
-            let row = pattern_vector_of_case_node ~cx case in
+            let row = pattern_vector_of_pattern_node ~cx case.Ast.Match.Case.pattern in
             let is_guarded = case.guard <> None in
 
             (* Check for reachability of case. A match case is unreachable if it is not useful with
                respect to the matrix of all cases that appear above it in the match statement. *)
-            let reachable_result = ReachableAnalyer.useful ~is_guarded prev_rows row in
-            (match reachable_result with
-            | Empty -> ()
-            | Full ->
-              let loc = Ast_utils.pattern_loc case.pattern in
-              this#add_error loc UnreachablePattern
-            | Set patterns ->
-              List.iter
-                (fun pattern ->
-                  match pattern with
-                  | Wildcard loc -> this#add_error loc UnreachablePattern
-                  | Constructor ({ loc; _ }, _) -> this#add_error loc UnreachablePattern
-                  | _ -> ())
-                patterns);
+            let reachable_result = ReachableAnalyzer.useful ~is_guarded prev_rows row in
+            this#check_reachable_result (Ast_utils.pattern_loc case.pattern) reachable_result;
 
             (* Do not include case in pattern matrix if it has a guard, as the guard could fail *)
             if case.guard = None then
@@ -742,11 +750,29 @@ class match_analyzer ~cx =
          after the entire matrix of match cases. *)
       let wildcard_vector = args_wildcard_vector ~cx match_ in
       let exhaustive_result = ExhaustiveAnalyzer.useful ~is_guarded:false matrix wildcard_vector in
-      match ExhaustiveResult.witness exhaustive_result with
-      | None -> ()
-      | Some witness_pattern ->
-        let witness_string = string_of_pattern witness_pattern in
-        this#add_error match_.loc (InexhaustiveMatch witness_string)
+      this#check_exhaustive_result match_.loc exhaustive_result
+
+    (* Analyze exhaustiveness and reachability for a single pattern, e.g. in a variable declaration
+       or assignment. *)
+    method analyze_single_pattern pattern =
+      let loc = Ast_utils.pattern_loc pattern in
+      let row = pattern_vector_of_pattern_node ~cx pattern in
+
+      (* Check for reachability of subpatterns *)
+      let reachable_result = ReachableAnalyzer.useful ~is_guarded:false [] row in
+      this#check_reachable_result loc reachable_result;
+
+      (* Check exhaustiveness of single row matrix against the wildcard pattern, as the single row
+         must match all possible inputs. *)
+      let exhaustive_result = ExhaustiveAnalyzer.useful ~is_guarded:false [row] [wildcard] in
+      this#check_exhaustive_result loc exhaustive_result
+
+    method! variable_declaration decl = this#analyze_single_pattern decl.pattern
+
+    method! assignment assign =
+      match assign.lvalue with
+      | Pattern pattern -> this#analyze_single_pattern pattern
+      | Expression _ -> ()
   end
 
 let analyze ~cx modules =

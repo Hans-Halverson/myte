@@ -64,8 +64,8 @@ fun test() {
   d2.export.child;
   d2Alias.export;
   d2Alias.export.child;
-  c1.Bar (x) = c1.bar;
-  c1Alias.Bar (x) = c1.bar;
+  (c1.Foo (x) | c1.Bar (x)) = c1.bar;
+  (c1Alias.Foo (x) | c1Alias.Bar (x)) = c1.bar;
   d2.Rec { child: x } = d2.rec;
   d2Alias.Rec { child: x } = d2.rec;
 }

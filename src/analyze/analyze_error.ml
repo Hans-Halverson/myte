@@ -445,6 +445,6 @@ let to_string error =
     "Invalid pattern for match with multiple arguments. The only allowed patterns are the wildcard `_` or a tuple with the same arity as the number of arguments."
   | InexhaustiveMatch witness ->
     Printf.sprintf
-      "Inexhaustive match statement. For example the pattern `%s` is not matched."
+      "Inexhaustive pattern matching. For example the pattern `%s` is not matched."
       witness
   | UnreachablePattern -> "Unreachable pattern"

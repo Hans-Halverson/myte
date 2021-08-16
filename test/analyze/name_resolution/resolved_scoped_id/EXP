@@ -933,7 +933,7 @@ test/analyze/name_resolution/resolved_scoped_id/c.myte
     },
     {
       node: TypeDeclaration,
-      loc: 7:0-7:33,
+      loc: 7:0-7:39,
       name: {
         node: Identifier,
         loc: 7:5-7:15,
@@ -942,29 +942,50 @@ test/analyze/name_resolution/resolved_scoped_id/c.myte
       type_params: [],
       variants: [
         {
-          node: Identifier,
-          loc: 7:18-7:21,
-          name: "Foo",
+          node: TupleVariant,
+          loc: 7:18-7:27,
+          name: {
+            node: Identifier,
+            loc: 7:18-7:21,
+            name: "Foo",
+          },
+          elements: [
+            {
+              node: IdentifierType,
+              loc: 7:23-7:26,
+              name: {
+                node: ScopedIdentifier,
+                loc: 7:23-7:26,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 7:23-7:26,
+                  name: "Int",
+                },
+              },
+              type_args: [],
+            },
+          ],
         },
         {
           node: TupleVariant,
-          loc: 7:24-7:33,
+          loc: 7:30-7:39,
           name: {
             node: Identifier,
-            loc: 7:24-7:27,
+            loc: 7:30-7:33,
             name: "Bar",
           },
           elements: [
             {
               node: IdentifierType,
-              loc: 7:29-7:32,
+              loc: 7:35-7:38,
               name: {
                 node: ScopedIdentifier,
-                loc: 7:29-7:32,
+                loc: 7:35-7:38,
                 scopes: [],
                 name: {
                   node: Identifier,
-                  loc: 7:29-7:32,
+                  loc: 7:35-7:38,
                   name: "Int",
                 },
               },
@@ -2561,104 +2582,176 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
           },
           {
             node: Assignment,
-            loc: 67:2-67:22,
+            loc: 67:2-67:37,
             lvalue: {
-              node: TuplePattern,
-              loc: 67:2-67:12,
-              name: {
-                node: ScopedIdentifier,
-                loc: 67:2-67:8,
-                scopes: [
-                  {
-                    node: Identifier,
-                    loc: 67:2-67:4,
-                    name: "c1",
-                  },
-                ],
+              node: Or,
+              loc: 67:3-67:26,
+              left: {
+                node: TuplePattern,
+                loc: 67:3-67:13,
                 name: {
-                  node: Identifier,
-                  loc: 67:5-67:8,
-                  name: "Bar",
-                },
-              },
-              elements: [
-                {
                   node: ScopedIdentifier,
-                  loc: 67:10-67:11,
-                  scopes: [],
+                  loc: 67:3-67:9,
+                  scopes: [
+                    {
+                      node: Identifier,
+                      loc: 67:3-67:5,
+                      name: "c1",
+                    },
+                  ],
                   name: {
                     node: Identifier,
-                    loc: 67:10-67:11,
-                    name: "x",
+                    loc: 67:6-67:9,
+                    name: "Foo",
                   },
                 },
-              ],
+                elements: [
+                  {
+                    node: ScopedIdentifier,
+                    loc: 67:11-67:12,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 67:11-67:12,
+                      name: "x",
+                    },
+                  },
+                ],
+              },
+              right: {
+                node: TuplePattern,
+                loc: 67:16-67:26,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 67:16-67:22,
+                  scopes: [
+                    {
+                      node: Identifier,
+                      loc: 67:16-67:18,
+                      name: "c1",
+                    },
+                  ],
+                  name: {
+                    node: Identifier,
+                    loc: 67:19-67:22,
+                    name: "Bar",
+                  },
+                },
+                elements: [
+                  {
+                    node: ScopedIdentifier,
+                    loc: 67:24-67:25,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 67:24-67:25,
+                      name: "x",
+                    },
+                  },
+                ],
+              },
             },
             expr: {
               node: ScopedIdentifier,
-              loc: 67:15-67:21,
+              loc: 67:30-67:36,
               scopes: [
                 {
                   node: Identifier,
-                  loc: 67:15-67:17,
+                  loc: 67:30-67:32,
                   name: "c1",
                 },
               ],
               name: {
                 node: Identifier,
-                loc: 67:18-67:21,
+                loc: 67:33-67:36,
                 name: "bar",
               },
             },
           },
           {
             node: Assignment,
-            loc: 68:2-68:27,
+            loc: 68:2-68:47,
             lvalue: {
-              node: TuplePattern,
-              loc: 68:2-68:17,
-              name: {
-                node: ScopedIdentifier,
-                loc: 68:2-68:13,
-                scopes: [
-                  {
-                    node: Identifier,
-                    loc: 68:2-68:9,
-                    name: "c1Alias",
-                  },
-                ],
+              node: Or,
+              loc: 68:3-68:36,
+              left: {
+                node: TuplePattern,
+                loc: 68:3-68:18,
                 name: {
-                  node: Identifier,
-                  loc: 68:10-68:13,
-                  name: "Bar",
-                },
-              },
-              elements: [
-                {
                   node: ScopedIdentifier,
-                  loc: 68:15-68:16,
-                  scopes: [],
+                  loc: 68:3-68:14,
+                  scopes: [
+                    {
+                      node: Identifier,
+                      loc: 68:3-68:10,
+                      name: "c1Alias",
+                    },
+                  ],
                   name: {
                     node: Identifier,
-                    loc: 68:15-68:16,
-                    name: "x",
+                    loc: 68:11-68:14,
+                    name: "Foo",
                   },
                 },
-              ],
+                elements: [
+                  {
+                    node: ScopedIdentifier,
+                    loc: 68:16-68:17,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 68:16-68:17,
+                      name: "x",
+                    },
+                  },
+                ],
+              },
+              right: {
+                node: TuplePattern,
+                loc: 68:21-68:36,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 68:21-68:32,
+                  scopes: [
+                    {
+                      node: Identifier,
+                      loc: 68:21-68:28,
+                      name: "c1Alias",
+                    },
+                  ],
+                  name: {
+                    node: Identifier,
+                    loc: 68:29-68:32,
+                    name: "Bar",
+                  },
+                },
+                elements: [
+                  {
+                    node: ScopedIdentifier,
+                    loc: 68:34-68:35,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 68:34-68:35,
+                      name: "x",
+                    },
+                  },
+                ],
+              },
             },
             expr: {
               node: ScopedIdentifier,
-              loc: 68:20-68:26,
+              loc: 68:40-68:46,
               scopes: [
                 {
                   node: Identifier,
-                  loc: 68:20-68:22,
+                  loc: 68:40-68:42,
                   name: "c1",
                 },
               ],
               name: {
                 node: Identifier,
-                loc: 68:23-68:26,
+                loc: 68:43-68:46,
                 name: "bar",
               },
             },

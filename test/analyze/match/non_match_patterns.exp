@@ -1,0 +1,19 @@
+Error: Inexhaustive pattern matching. For example the pattern `Tup2 _` is not matched.
+test/analyze/match/non_match_patterns.myte:9:6-18
+ 9 |   val Tup1 (x | x) = Tup1 (1);
+   |       ^^^^^^^^^^^^
+
+Error: Unreachable pattern
+test/analyze/match/non_match_patterns.myte:9:16
+ 9 |   val Tup1 (x | x) = Tup1 (1);
+   |                 ^
+
+Error: Inexhaustive pattern matching. For example the pattern `Tup2 _` is not matched.
+test/analyze/match/non_match_patterns.myte:15:2-14
+ 15 |   Tup1 (x | x) = Tup1 (y);
+    |   ^^^^^^^^^^^^
+
+Error: Unreachable pattern
+test/analyze/match/non_match_patterns.myte:15:12
+ 15 |   Tup1 (x | x) = Tup1 (y);
+    |             ^

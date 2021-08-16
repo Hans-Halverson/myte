@@ -1,0 +1,18 @@
+module test
+
+type Variant =
+  | Tup1 (Int)
+  | Tup2 (Int)
+
+fun testVariableDeclarationPatterns() {
+  // Exhaustiveness and reachability errors
+  val Tup1 (x | x) = Tup1 (1);
+}
+
+fun testAssignmentPatterns() {
+  var (x, y) = (1, 2);
+  // Exhaustiveness and reachability errors
+  Tup1 (x | x) = Tup1 (y);
+}
+
+fun main() {}
