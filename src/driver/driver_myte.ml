@@ -84,14 +84,14 @@ and parse_and_check ~pcx ~is_stdlib files =
     )
 
 let lower_to_ir pcx =
-  let (_, program_cf_ir) = Mir_emit.emit pcx in
-  if Opts.dump_pre_ssa_ir () then dump_ir program_cf_ir;
-  let program_ssa_ir = Mir_ssa.control_flow_ir_to_ssa program_cf_ir in
-  if Opts.dump_ir () then dump_ir program_ssa_ir;
+  let ir = Mir_emit.emit pcx in
+  if Opts.dump_pre_ssa_ir () then dump_ir ir;
+  let ir = Mir_ssa.promote_variables_to_registers ir in
+  if Opts.dump_ir () then dump_ir ir;
   if Opts.optimize () then
-    Mir_optimize.optimize program_ssa_ir
+    Mir_optimize.optimize ir
   else
-    Mir_optimize.transform_for_assembly program_ssa_ir
+    Mir_optimize.transform_for_assembly ir
 
 let lower_to_asm ir =
   let destructed_ir = Mir_ssa_destruction.destruct_ssa ir in

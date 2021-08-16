@@ -131,7 +131,7 @@ let add_realized_phi ~cx block_id var_id node_id =
 
 let add_block_link ~cx prev_id next_id = cx.prev_blocks <- IIMMap.add next_id prev_id cx.prev_blocks
 
-let rec control_flow_ir_to_ssa ir =
+let rec promote_variables_to_registers ir =
   let cx = mk_cx () in
   find_join_points ~cx ir;
   build_phi_nodes ~cx ir;

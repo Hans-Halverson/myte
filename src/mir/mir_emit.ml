@@ -13,7 +13,7 @@ type access_chain_result =
   | GetPointerEmittedResult of Value.pointer_value
   | InlinedValueResult of Value.t
 
-let rec emit (pcx : Pcx.t) : Ecx.t * Program.t =
+let rec emit (pcx : Pcx.t) : Program.t =
   let ecx = Ecx.mk ~pcx in
   start_init_function ~ecx;
   emit_type_declarations ~ecx;
@@ -21,14 +21,13 @@ let rec emit (pcx : Pcx.t) : Ecx.t * Program.t =
   emit_function_declarations ~ecx;
   emit_pending_instantiations ~ecx;
   finish_init_function ~ecx;
-  ( ecx,
-    {
-      Program.main_id = ecx.main_id;
-      blocks = Ecx.builders_to_blocks ecx.blocks;
-      globals = ecx.globals;
-      funcs = ecx.funcs;
-      types = ecx.types;
-    } )
+  {
+    Program.main_id = ecx.main_id;
+    blocks = Ecx.builders_to_blocks ecx.blocks;
+    globals = ecx.globals;
+    funcs = ecx.funcs;
+    types = ecx.types;
+  }
 
 and emit_type_declarations ~ecx =
   let open Ast.Module in
@@ -1321,59 +1320,124 @@ and emit_statement ~ecx stmt =
     Ecx.set_block_builder ~ecx join_block
   | FunctionDeclaration _ -> failwith "TODO: Emit MIR for non-toplevel function declarations"
 
+(* Structure of leaf and case body blocks:
+
+   Leaves of a decision tree are unique and are guaranteed to have a single incoming edge. However
+   the leaves of a decision tree do not have a one to one correspondence with match cases. In the
+   presence of or patterns, e.g. `Foo(a) | Bar(a) -> case_body`, the same case body will be shared
+   between multiple leaf nodes, which may contain different bindings. Note that each leaf node
+   contains its own set of bindings, which correspond to the bindings introduced by matching a
+   unique configuration of patterns (and importantly or-pattern branches).
+
+   Additionally, case bodies may have a guard, which may be shared between multiple leaf nodes.
+   Since leaf nodes may branch to different cases (e.g. in `(x, _) | (_, x) when x = 1 -> body`),
+   the guard is duplicated across all leaf nodes and is considered a part of the leaf block.
+
+   To avoid duplication, we generate each leaf and each case body only once. This means that a leaf
+   block creates the bindings for that leaf and then executes its guard, before jumping to either
+   the shared case body block or the guard fail block. *)
 (* Emit the MIR for a match decision tree. Store the resulting value at `result_ptr` if it exists. *)
 and emit_match_decision_tree ~ecx ~join_block ~result_ptr decision_tree =
   let open Mir_match_decision_tree in
   (* Maintain cache of block builder at beginning of each case body (including guard) *)
+  let constructed_case_bodies = ref LocSet.empty in
   let case_body_builder_cache = ref LocMap.empty in
-  let constructed_cases = ref LocSet.empty in
+  let get_case_body_builder case_body_loc =
+    match LocMap.find_opt case_body_loc !case_body_builder_cache with
+    | Some block_builder -> block_builder
+    | None ->
+      let block_builder = Ecx.mk_block_builder ~ecx in
+      case_body_builder_cache := LocMap.add case_body_loc block_builder !case_body_builder_cache;
+      block_builder
+  in
 
-  (* Emit a single decision tree node and its child nodes *)
+  (* First emit stack allocations for every binding in decision tree. For each binding, save the
+     pointer to its stack allocation. *)
+  let rec emit_binding_allocations tree_node acc =
+    match tree_node with
+    | DecisionTree.Leaf { bindings; guard_fail_case; _ } ->
+      let acc =
+        List.fold_left
+          (fun acc (_, binding_loc) ->
+            let decl_loc = Bindings.get_decl_loc_from_value_use ecx.pcx.bindings binding_loc in
+            (* The same binding may be defined in multiple places due to or patterns. Make sure to
+               only emit a single stack slot. *)
+            if LocSet.mem decl_loc acc then
+              acc
+            else
+              let mir_type = mir_type_of_loc ~ecx binding_loc in
+              let var_id = Ecx.get_ptr_var_id ~ecx decl_loc in
+              Ecx.emit ~ecx (StackAlloc (var_id, mir_type));
+              LocSet.add decl_loc acc)
+          acc
+          bindings
+      in
+      (match guard_fail_case with
+      | None -> acc
+      | Some guard_fail_case -> emit_binding_allocations guard_fail_case acc)
+    | Test { cases; default_case; _ } ->
+      let acc =
+        List.fold_left (fun acc (_, tree_node) -> emit_binding_allocations tree_node acc) acc cases
+      in
+      (match default_case with
+      | None -> acc
+      | Some default_case -> emit_binding_allocations default_case acc)
+  in
+  ignore (emit_binding_allocations decision_tree LocSet.empty);
+
+  (* Then recursively emit the decision tree and its child nodes *)
   let rec emit_tree_node ~path_cache tree_node =
     match tree_node with
     (* When a leaf tree node is encountered, the pattern has been matched and we can proceed to
-       emit the body of the case. However first check if body has already been constructed. *)
-    | DecisionTree.Leaf { case_node; _ } when LocSet.mem case_node.loc !constructed_cases -> ()
-    | DecisionTree.Leaf { case_node; guard_fail_case } ->
-      constructed_cases := LocSet.add case_node.loc !constructed_cases;
+       emit the body of the case. *)
+    | DecisionTree.Leaf { case_node; guard_fail_case; bindings } ->
+      (* First emit bindings for this leaf node, in the order they are defined *)
+      let bindings = List.sort (fun (_, loc1) (_, loc2) -> Loc.compare loc1 loc2) bindings in
+      ignore
+        (List.fold_left
+           (fun path_cache (path, binding_loc) ->
+             let (binding_val, path_cache) = emit_load_pattern_path ~path_cache path in
+             let decl_loc = Bindings.get_decl_loc_from_value_use ecx.pcx.bindings binding_loc in
+             let ptr_var_id = Ecx.get_ptr_var_id ~ecx decl_loc in
+             let mir_type = type_of_value binding_val in
+             Ecx.emit ~ecx (Store (`PointerV (mir_type, ptr_var_id), binding_val));
+             path_cache)
+           path_cache
+           bindings);
 
-      (* If case is guarded, emit guard expression and only proceed to right hand side of case if
-         guard succeeds. Otherwise branch to guard fail block. *)
-      let guard_fail_builder_opt =
-        match case_node.guard with
-        | None -> None
-        | Some guard_expr ->
-          let guard_test_val = emit_bool_expression ~ecx guard_expr in
-          let guard_pass_builder = Ecx.mk_block_builder ~ecx in
-          let guard_fail_builder = get_block_builder_for_node (Option.get guard_fail_case) in
-          Ecx.finish_block_branch ~ecx guard_test_val guard_pass_builder.id guard_fail_builder.id;
-          Ecx.set_block_builder ~ecx guard_pass_builder;
-          Some guard_fail_builder
-      in
-
-      (* Emit the right hand side of case, store result at result ptr if one is supplied. *)
-      (match case_node.right with
-      | Expression expr ->
-        let body_val = emit_expression ~ecx expr in
-        (match result_ptr with
-        | None -> ()
-        | Some result_ptr -> Ecx.emit ~ecx (Store (result_ptr, body_val)))
-      | Statement stmt ->
-        emit_statement ~ecx stmt;
-        (match result_ptr with
-        | None -> ()
-        | Some result_ptr -> Ecx.emit ~ecx (Store (result_ptr, `UnitL))));
-
-      (* Continue to match's overall join block at end of case body *)
-      Ecx.finish_block_continue ~ecx join_block.id;
-
-      (* Emit guard fail block, which is another decision tree *)
-      (match guard_fail_builder_opt with
-      | None -> ()
-      | Some guard_fail_builder ->
-        let guard_fail_tree_node = Option.get guard_fail_case in
+      (* Then if case is guarded, emit guard expression and only proceed to case body if guard
+         succeeds, otherwise jump to and emit guard fail case, which is itself a decision tree. *)
+      let case_body_builder = get_case_body_builder case_node.loc in
+      (match case_node.guard with
+      | None -> Ecx.finish_block_continue ~ecx case_body_builder.id
+      | Some guard_expr ->
+        let guard_test_val = emit_bool_expression ~ecx guard_expr in
+        let guard_fail_builder = Ecx.mk_block_builder ~ecx in
+        Ecx.finish_block_branch ~ecx guard_test_val case_body_builder.id guard_fail_builder.id;
         Ecx.set_block_builder ~ecx guard_fail_builder;
-        emit_tree_node ~path_cache guard_fail_tree_node)
+        emit_tree_node ~path_cache (Option.get guard_fail_case));
+
+      (* Ensure that case body is only emitted once, and shared between leaves *)
+      if not (LocSet.mem case_node.loc !constructed_case_bodies) then (
+        constructed_case_bodies := LocSet.add case_node.loc !constructed_case_bodies;
+        Ecx.set_block_builder ~ecx case_body_builder;
+
+        (* Emit the right hand side of case, store result at result ptr if one is supplied. *)
+        (match case_node.right with
+        | Expression expr ->
+          let body_val = emit_expression ~ecx expr in
+          (match result_ptr with
+          | None -> ()
+          | Some result_ptr -> Ecx.emit ~ecx (Store (result_ptr, body_val)))
+        | Statement stmt ->
+          emit_statement ~ecx stmt;
+          (match result_ptr with
+          | None -> ()
+          | Some result_ptr -> Ecx.emit ~ecx (Store (result_ptr, `UnitL))));
+
+        (* Continue to match's overall join block at end of case body *)
+        Ecx.finish_block_continue ~ecx join_block.id
+      )
     (* Otherwise we need to test a scrutinee and potentially branch to new decision tree nodes to emit *)
     | Test { scrutinee; cases; default_case } ->
       (match List.hd cases with
@@ -1388,7 +1452,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr decision_tree =
           | Some tree_node -> tree_node
           | None -> snd (List_utils.last cases)
         in
-        let (scrutinee_val, path_cache) = emit_load_pattern_path ~ecx ~path_cache scrutinee in
+        let (scrutinee_val, path_cache) = emit_load_pattern_path ~path_cache scrutinee in
         let scrutinee_val = cast_to_comparable_value scrutinee_val in
         emit_decision_tree_if_else_chain ~path_cache [first_case] second_case (fun ctor ->
             let test_var_id = mk_var_id () in
@@ -1398,7 +1462,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr decision_tree =
       | (String _, _) ->
         (* String matches cannot be fully enumerated, so must have a default case *)
         let default_tree_node = Option.get default_case in
-        let (scrutinee_val, path_cache) = emit_load_pattern_path ~ecx ~path_cache scrutinee in
+        let (scrutinee_val, path_cache) = emit_load_pattern_path ~path_cache scrutinee in
         (* Order string tests in order cases are written in source *)
         let cases =
           List.sort
@@ -1433,7 +1497,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr decision_tree =
             (cases, last_tree_node)
           | Some default_tree_node -> (cases, default_tree_node)
         in
-        let (scrutinee_val, path_cache) = emit_load_pattern_path ~ecx ~path_cache scrutinee in
+        let (scrutinee_val, path_cache) = emit_load_pattern_path ~path_cache scrutinee in
         let scrutinee_val = cast_to_comparable_value scrutinee_val in
         let scrutinee_type = type_of_value (scrutinee_val :> Value.t) in
         (* TODO: Emit better checks than linear if else chain - e.g. binary search, jump table *)
@@ -1467,7 +1531,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr decision_tree =
           | Some default_tree_node -> (cases, default_tree_node)
         in
         (* Load tag value so it can be tested *)
-        let (scrutinee_val, path_cache) = emit_load_pattern_path ~ecx ~path_cache scrutinee in
+        let (scrutinee_val, path_cache) = emit_load_pattern_path ~path_cache scrutinee in
         let scrutinee_val = cast_to_pointer_value scrutinee_val in
         let scrutinee_tag_ptr_val = cast_pointer_value scrutinee_val tag_type in
         let scrutinee_tag_var_id = mk_var_id () in
@@ -1482,22 +1546,9 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr decision_tree =
             let test_var_id = mk_var_id () in
             Ecx.emit ~ecx (Eq (test_var_id, scrutinee_tag_val, tag_val));
             `BoolV test_var_id))
-  (* Get the block builder to use for the start of a given decision tree node. Test nodes have
-     unique parents so a new block builder should be created, but leaf nodes may be pointed to by
-     multiple test nodes so check case body cache. *)
-  and get_block_builder_for_node tree_node : Ecx.BlockBuilder.t =
-    match tree_node with
-    | DecisionTree.Test _ -> Ecx.mk_block_builder ~ecx
-    | Leaf { case_node; _ } ->
-      (match LocMap.find_opt case_node.loc !case_body_builder_cache with
-      | Some block_builder -> block_builder
-      | None ->
-        let block_builder = Ecx.mk_block_builder ~ecx in
-        case_body_builder_cache := LocMap.add case_node.loc block_builder !case_body_builder_cache;
-        block_builder)
   (* Return the value indexed by a pattern path. Will emit load instructions if the pattern path
      points into an aggregate. Return the path cache with all new calculated paths added. *)
-  and emit_load_pattern_path ~ecx ~path_cache pattern_path =
+  and emit_load_pattern_path ~path_cache pattern_path =
     let open Mir_match_decision_tree in
     (* Find the root value, and all field accesses after it in order *)
     let rec gather_path_fields path field_chain =
@@ -1561,11 +1612,11 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr decision_tree =
   and emit_decision_tree_if_else_chain ~path_cache test_cases default_case gen_test_val =
     let emit_test (ctor, tree_node) is_last_test =
       let test_val = gen_test_val ctor in
-      let pass_case_builder = get_block_builder_for_node tree_node in
+      let pass_case_builder = Ecx.mk_block_builder ~ecx in
       (* The last test links directly to the default case, otherwise create a new block for the next test *)
       let fail_case_builder =
         if is_last_test then
-          get_block_builder_for_node default_case
+          Ecx.mk_block_builder ~ecx
         else
           Ecx.mk_block_builder ~ecx
       in

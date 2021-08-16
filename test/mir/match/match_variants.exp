@@ -107,7 +107,7 @@ label @22:
 label @23:
   continue @24
 label @24:
-  %41 := Phi int @23:3, @18:2, @22:1
+  %41 := Phi int @18:2, @23:3, @22:1
   Ret %41
 }
 
@@ -162,8 +162,104 @@ label @34:
 label @35:
   continue @36
 label @36:
-  %69 := Phi int @35:3, @34:2, @33:1
+  %69 := Phi int @33:1, @34:2, @35:3
   Ret %69
+}
+
+func int @test.test5(test.V1* %70) {
+  %71 := Load byte %70
+  %72 := Eq byte %71, 0
+  branch %72, @37, @38
+label @37:
+  continue @47
+label @38:
+  %73 := Eq byte %71, 2
+  branch %73, @39, @43
+label @39:
+  %74 := GetPointer int, test.V1::Record1* %70.2
+  %75 := Load int %74
+  %76 := GetPointer byte, test.V1::Record1* %70.3
+  %77 := Load byte %76
+  %78 := Eq byte %77, 1
+  branch %78, @40, @41
+label @40:
+  continue @42
+label @41:
+  %79 := SExt byte %77 to int
+  continue @42
+label @42:
+  %80 := Phi int @40:%75, @41:%79
+  continue @47
+label @43:
+  %81 := GetPointer bool, test.V1::Tuple1* %70.1
+  %82 := Load bool %81
+  %83 := GetPointer int, test.V1::Tuple1* %70.3
+  %84 := Load int %83
+  branch %82, @44, @45
+label @44:
+  continue @46
+label @45:
+  continue @46
+label @46:
+  %85 := Phi int @44:%84, @45:2
+  continue @47
+label @47:
+  %86 := Phi int @37:3, @42:%80, @46:%85
+  Ret %86
+}
+
+func test.V2* @test.test6(test.V2* %87) {
+  %88 := Load byte %87
+  %89 := Eq byte %88, 2
+  branch %89, @48, @59
+label @48:
+  %90 := GetPointer test.V2*, test.V2::Record2* %87.2
+  %91 := Load test.V2* %90
+  %92 := Load byte %91
+  %93 := Eq byte %92, 2
+  branch %93, @49, @58
+label @49:
+  %94 := GetPointer test.V2*, test.V2::Record2* %91.2
+  %95 := Load test.V2* %94
+  %96 := Load byte %95
+  %97 := Eq byte %96, 1
+  branch %97, @50, @51
+label @50:
+  continue @61
+label @51:
+  %98 := Eq byte %96, 2
+  branch %98, @52, @57
+label @52:
+  %99 := GetPointer test.V2*, test.V2::Record2* %95.2
+  %100 := Load test.V2* %99
+  %101 := Load byte %100
+  %102 := Eq byte %101, 2
+  branch %102, @53, @56
+label @53:
+  %103 := GetPointer bool, test.V2::Record2* %100.3
+  %104 := Load bool %103
+  %105 := Eq bool %104, false
+  branch %105, @54, @55
+label @54:
+  continue @61
+label @55:
+  %106 := GetPointer test.V2*, test.V2::Record2* %100.2
+  %107 := Load test.V2* %106
+  continue @61
+label @56:
+  continue @60
+label @57:
+  continue @60
+label @58:
+  continue @60
+label @59:
+  continue @60
+label @60:
+  %108 := Phi test.V2* @59:%87, @58:%87, @57:%87, @56:%87
+  continue @61
+label @61:
+  %109 := Phi test.V2* @50:%95, @55:%107, @54:%91, @60:%108
+  Ret %109
 }
 
 func int @test.main() {

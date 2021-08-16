@@ -1,0 +1,83 @@
+module test
+
+// Test simple match case variables
+fun test1(x: Int): Int =
+  match (x) {
+    | y -> y
+  }
+
+fun test2(x: Int, y: Bool): Int =
+  match (x, y) {
+    | (x, true) -> x
+    | (_, y) -> y ? 1 : 2
+  }
+
+// Test binding patterns
+fun test3(x: Int): Int =
+  match (x) {
+    | 1 -> 1
+    | 2 as x -> x
+    | (x as y as z) -> x + y + z
+  }
+
+// Test bindings with guard
+fun test4(x: Int, y: Int, z: Int): Int =
+  match (x, y, z) {
+    | (1, a, _) when a < 4 -> 1
+    | (a, 1, b) when a + b < 5 -> 2
+    | _ -> 3
+  }
+
+// Test bindings in or pattern
+fun test5(x: Int, y: Int): Int =
+  match (x, y) {
+    | (x, 1) | (1, x) -> x + 2
+    | _ -> 3
+  }
+
+// Test bindings in or patterns with a guard
+fun test6(x: Int, y: Int): Int =
+  match (x, y) {
+    | (x, _) | (_, x) when x == 1 -> 1
+    | _ -> 2
+  }
+
+// Test destructuring bindings
+fun test7(x: (Int, Bool, (Int, (Int, Bool)))): Int =
+  match (x) {
+    | (1, _, (_ as x, _)) -> x
+    | (2, _, (_ as x as y as z, _)) -> x + y + z
+    | (_, _, (x, _ as y)) -> x + y[0]
+  }
+
+// Test top level bindings on or patterns
+fun test8(x: Int): Int =
+  match (x) {
+    | (1 | 2) as x -> x
+    | (4 | (5 | 6)) as a as b -> a + b
+    | _ -> 3
+  }
+
+// Test nested bindings on or patterns
+fun test9(x: (Int, (Int, Bool))): Int =
+  match (x) {
+    | (_, (((1 | 2) as a), _)) -> a
+    | (_, (((3 | 4) as a as b), _)) -> a + b
+    | _ -> 7
+  }
+
+// Test bindings within nested or patterns
+fun test10 (x: (Int, (Int, Bool))): Int =
+  match (x) {
+    | (_, ((1 as a | 2 as a), _)) -> a
+    | _ -> 7
+  }
+
+// Test bindings within top level or patterns
+fun test11 (x: Int): Int =
+  match (x) {
+    | (1 as a | 2 as a) -> a
+    | _ -> 7
+  }
+
+fun main() {}

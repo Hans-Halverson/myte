@@ -44,4 +44,23 @@ fun test4(x: V2): Int =
     | _ -> 3
   }
 
+// Binds inner values
+fun test5(x: V1): Int =
+  match (x) {
+    | Record1 { foo: x, bar } -> bar == 1 ? x : bar.toInt()
+    | Tuple1 (foo, bar) -> foo ? bar : 2
+    | Enum1 -> 3
+  }
+
+// Binding nested inner values
+fun test6(x: V2): V2 =
+  match (x) {
+    // Extract inner value
+    | Record2 { foo: Record2 { foo: Record2 { foo: Record2 { foo: x, bar: true }, ...}, ... }, ... } -> x
+    // Bind pattern, use already loaded value
+    | Record2 { foo: Record2 { foo: (Enum2 as x), ... }, ... } -> x
+    | Record2 { foo: (Record2 { foo: Record2 { foo: Record2 { bar: false, ... }, ... }, ... } as x), ... } -> x
+    | other -> other
+  }
+
 fun main() {}

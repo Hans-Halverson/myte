@@ -64,6 +64,18 @@ module Ctor = struct
     | _ -> failwith "Expected variant constructor"
 end
 
+module Pattern = struct
+  type t = {
+    pattern: pattern;
+    bindings: Loc.t list;
+  }
+
+  and pattern =
+    | Wildcard
+    | Constructor of Ctor.t * t list
+    | Or of t list
+end
+
 module PatternPath = struct
   type t =
     | Root of Mir.Value.t
@@ -98,12 +110,20 @@ module PatternPath = struct
     | TupleField { id; _ }
     | VariantField { id; _ } ->
       id
+
+  let get_field_parent path =
+    match path with
+    | Root _ -> failwith "Expected field"
+    | TupleField { parent; _ }
+    | VariantField { parent; _ } ->
+      parent
 end
 
 module DecisionTree = struct
   type t =
     | Leaf of {
         case_node: Ast.Match.Case.t;
+        mutable bindings: (PatternPath.t * Loc.t) list;
         (* If this case is guarded, tree for when the guard fails. Filled after creation. *)
         mutable guard_fail_case: t option;
       }
@@ -114,22 +134,30 @@ module DecisionTree = struct
       }
 end
 
-type pattern =
-  | Wildcard
-  | Constructor of Ctor.t * pattern list
-  | Or of pattern list
+module CaseRow = struct
+  type t = {
+    (* The match case AST node this row corresponds to *)
+    node: Ast.Match.Case.t;
+    (* The pattern vector corresponding to this case *)
+    row: Pattern.t list;
+    (* All binding collected for this case so far. Invariant: all wildcards with bindings at the top
+       level of row must exist in this list. Since row will be all wildcards when leaf node is
+       generated, we are guaranteed that all bindings will be added to thist list. *)
+    bindings: (PatternPath.t * Loc.t) list;
+  }
+end
 
-type pattern_vector = pattern list
+type pattern_matrix = CaseRow.t list
 
-type pattern_matrix = (pattern_vector * Ast.Match.Case.t) list
+let wildcard = { Pattern.pattern = Wildcard; bindings = [] }
 
-let wildcards_vector n = List_utils.make n Wildcard
+let wildcards_vector n = List_utils.make n wildcard
 
 (* Find the signature for a column, returning a tuple containing a list of all unique head
    constructors in that column, as well as whether the signature is complete. *)
 let find_signature column =
   let rec gather_ctors acc pattern =
-    match pattern with
+    match pattern.Pattern.pattern with
     | Wildcard -> acc
     | Constructor (ctor, _) -> ctor :: acc
     | Or patterns -> List.fold_left gather_ctors acc patterns
@@ -195,40 +223,67 @@ let find_signature column =
     let ctors = SMap.fold (fun _ ctor ctors -> ctor :: ctors) ctors [] in
     (ctors, List.length ctors = SMap.cardinal adt_sig.variants)
 
-(* Specialized matrix from paper. Specialize along column i using the given constructor. *)
-let rec specialize_matrix i ctor matrix =
+(* Specialized matrix from paper. Specialize along column i using the given constructor.
+
+   Also take a list of the paths for each constructor field after is expanded. If there are are any
+   bindings in the expanded sub patterns, add them to the row along with their path. *)
+let rec specialize_matrix i ctor ctor_path ctor_field_paths matrix =
   List.filter_map
-    (fun (row, case_node) ->
+    (fun ({ CaseRow.row; bindings; _ } as case_row) ->
       let (row_pre, target_pattern, row_post) = List_utils.split_around i row in
-      match target_pattern with
+      match target_pattern.pattern with
       | Constructor (target_head_ctor, sub_patterns) when Ctor.equal ctor target_head_ctor ->
-        Some [(row_pre @ sub_patterns @ row_post, case_node)]
+        (* Preserve case row bindings invariant. Collect newly discovered bindings along with their path. *)
+        let bindings =
+          List.fold_left2
+            (fun acc sub_pattern sub_pattern_path ->
+              match sub_pattern with
+              | { Pattern.bindings; _ } when bindings <> [] ->
+                List.fold_left
+                  (fun acc binding_loc -> (sub_pattern_path, binding_loc) :: acc)
+                  acc
+                  bindings
+              | _ -> acc)
+            bindings
+            sub_patterns
+            ctor_field_paths
+        in
+        Some [{ case_row with row = row_pre @ sub_patterns @ row_post; bindings }]
       | Constructor _ -> None
       | Wildcard ->
         let wildcard_sub_patterns = wildcards_vector (Ctor.arity ctor) in
-        Some [(row_pre @ wildcard_sub_patterns @ row_post, case_node)]
+        Some [{ case_row with row = row_pre @ wildcard_sub_patterns @ row_post }]
       | Or target_heads ->
         let expanded_matrix =
           List.map
-            (fun target_head -> (row_pre @ (target_head :: row_post), case_node))
+            (fun target_head ->
+              (* Preserve case row bindings invariant. Collect newly discovered bindings inside the
+                 or pattern, along with their path. *)
+              let bindings =
+                List.fold_left
+                  (fun acc binding_loc -> (ctor_path, binding_loc) :: acc)
+                  case_row.bindings
+                  target_head.Pattern.bindings
+              in
+              { case_row with row = row_pre @ (target_head :: row_post); bindings })
             target_heads
         in
-        Some (specialize_matrix i ctor expanded_matrix))
+        Some (specialize_matrix i ctor ctor_path ctor_field_paths expanded_matrix))
     matrix
   |> List.flatten
 
 (* Default matrix from paper. Create default matrix along column i. *)
 let rec default_matrix i matrix =
   List.filter_map
-    (fun (row, case_node) ->
+    (fun ({ CaseRow.row; _ } as case_row) ->
       let (row_pre, target_pattern, row_rest) = List_utils.split_around i row in
-      match target_pattern with
+      match target_pattern.pattern with
       | Constructor _ -> None
-      | Wildcard -> Some [(row_pre @ row_rest, case_node)]
+      | Wildcard -> Some [{ case_row with row = row_pre @ row_rest }]
       | Or target_heads ->
         let expanded_matrix =
           List.map
-            (fun target_head -> (row_pre @ (target_head :: row_rest), case_node))
+            (fun target_head -> { case_row with row = row_pre @ (target_head :: row_rest) })
             target_heads
         in
         Some (default_matrix i expanded_matrix))
@@ -236,7 +291,8 @@ let rec default_matrix i matrix =
   |> List.flatten
 
 (* Specialize a single column in the scrutinee vector given a target constructor, removing the item
-   at that column and expanding its subfields in place if it has any. *)
+   at that column and expanding its subfields in place if it has any. Returns both the specialized
+   scrutinee, and its expanded section. *)
 let specialize_scrutinee_vector column_index ctor scrutinee_vector =
   let (pre_scrutinees, parent, post_scrutinees) =
     List_utils.split_around column_index scrutinee_vector
@@ -298,7 +354,7 @@ let specialize_scrutinee_vector column_index ctor scrutinee_vector =
       | Record fields -> mk_record_variant_paths variant_name adt_sig type_args fields)
     | _ -> []
   in
-  pre_scrutinees @ expanded_scrutinee @ post_scrutinees
+  (pre_scrutinees @ expanded_scrutinee @ post_scrutinees, expanded_scrutinee)
 
 (* Analogue to default matrix for scrutinee vector, removing column at index from scrutinee vector *)
 let default_scrutinee_vector column_index scrutinee_vector =
@@ -308,12 +364,11 @@ let default_scrutinee_vector column_index scrutinee_vector =
   pre_scrutinees @ post_scrutinees
 
 let rec build ~(ecx : Ecx.t) scrutinee_vals case_nodes =
-  let num_scrutinees = List.length scrutinee_vals in
   let pattern_matrix =
     List.map
-      (fun case_node ->
-        (pattern_vector_of_case_node ~cx:ecx.pcx.type_ctx ~num_scrutinees case_node, case_node))
+      (fun case_node -> rows_of_case_node ~cx:ecx.pcx.type_ctx ~scrutinee_vals case_node)
       case_nodes
+    |> List.flatten
   in
   let scrutinee_vector =
     List.map (fun scrutinee_val -> PatternPath.Root scrutinee_val) scrutinee_vals
@@ -331,21 +386,24 @@ and build_decision_tree ~prev_guard scrutinee_vector matrix =
 
   (* If the first row is all patterns (or equivalently - empty), we have hit a leaf node where the
      right hand of a case (or guard) can be executed. *)
-  let (first_row, first_case_node) = List.hd matrix in
+  let ({ CaseRow.row = first_row; _ } as first_case) = List.hd matrix in
   let first_row_all_patterns =
     List.for_all
       (fun pattern ->
-        match pattern with
+        match pattern.Pattern.pattern with
         | Wildcard -> true
         | _ -> false)
       first_row
   in
   if first_row_all_patterns then (
-    let leaf_node = DecisionTree.Leaf { case_node = first_case_node; guard_fail_case = None } in
+    let case_node = first_case.node in
+    let leaf_node =
+      DecisionTree.Leaf { case_node; bindings = first_case.bindings; guard_fail_case = None }
+    in
     connect_prev_guard leaf_node;
 
     (* If this case is guarded we must connect its fail case to the tree created for its unguarded matrix *)
-    ( if first_case_node.guard <> None then
+    ( if case_node.guard <> None then
       let unguarded_matrix = List.tl matrix in
       ignore (build_decision_tree ~prev_guard:(Some leaf_node) scrutinee_vector unguarded_matrix) );
     leaf_node
@@ -358,8 +416,12 @@ and build_decision_tree ~prev_guard scrutinee_vector matrix =
     let cases =
       List.fold_left
         (fun cases ctor ->
-          let scrutinee_vector = specialize_scrutinee_vector column_index ctor scrutinee_vector in
-          let specialized_matrix = specialize_matrix column_index ctor matrix in
+          let (scrutinee_vector, ctor_field_paths) =
+            specialize_scrutinee_vector column_index ctor scrutinee_vector
+          in
+          let specialized_matrix =
+            specialize_matrix column_index ctor scrutinee ctor_field_paths matrix
+          in
           let tree = build_decision_tree ~prev_guard:None scrutinee_vector specialized_matrix in
           (ctor, tree) :: cases)
         []
@@ -383,7 +445,7 @@ and build_decision_tree ~prev_guard scrutinee_vector matrix =
    the column's signature, and whether the signature is complete. *)
 and choose_column matrix =
   (* Initially all columns are candidates *)
-  let ((first_row, _), _) = List_utils.split_first matrix in
+  let ({ CaseRow.row = first_row; _ }, _) = List_utils.split_first matrix in
   let (_, all_columns) =
     List.fold_left
       (fun (i, all_columns) _ -> (i + 1, ISet.add i all_columns))
@@ -392,7 +454,7 @@ and choose_column matrix =
   in
 
   (* Transpose matrix to list of columns, and set up column signatures to be lazily generated *)
-  let transposed_matrix = List_utils.transpose (List.map fst matrix) in
+  let transposed_matrix = List_utils.transpose (List.map (fun { CaseRow.row; _ } -> row) matrix) in
   let column_signatures = List.map (fun column -> lazy (find_signature column)) transposed_matrix in
 
   (* Use cascade of heuristics, moving to next heuristic in case of ties *)
@@ -442,9 +504,9 @@ and run_heuristic heuristic candidate_columns transposed_matrix signatures =
 and column_prefix_heuristic column signature =
   match column with
   | []
-  | Wildcard :: _ ->
+  | { Pattern.pattern = Wildcard; _ } :: _ ->
     0
-  | (Constructor _ | Or _) :: rest -> 1 + column_prefix_heuristic rest signature
+  | { pattern = Constructor _ | Or _; _ } :: rest -> 1 + column_prefix_heuristic rest signature
 
 (* Score for a column is -(# of all unique constructors in its signature), with an additional -1
    added if the signature is incomplete. *)
@@ -464,33 +526,46 @@ and arity_heuristic _ signature =
 
 and all_heuristics = [column_prefix_heuristic; small_branching_factor_heuristic; arity_heuristic]
 
-and pattern_vector_of_case_node ~cx ~num_scrutinees case_node =
+and rows_of_case_node ~cx ~scrutinee_vals case_node =
+  let bindings = ref [] in
+  let collect_root_binding root_val_opt loc =
+    match root_val_opt with
+    | None -> ()
+    | Some root_val -> bindings := (PatternPath.Root root_val, loc) :: !bindings
+  in
   let type_of_loc loc =
     let tvar_id = Type_context.get_tvar_from_loc ~cx loc in
     Type_context.find_rep_type ~cx (TVar tvar_id)
   in
-  let rec pattern_of_pattern_node pattern =
+  let mk_pattern pattern = { Pattern.pattern; bindings = [] } in
+  let rec pattern_of_pattern_node ~root_val_opt pattern =
     match pattern with
     (* Wildcards and literals are emitted directly *)
-    | Ast.Pattern.Wildcard _ -> Wildcard
-    | Binding { pattern; _ } -> pattern_of_pattern_node pattern
-    | Literal (Unit _) -> Constructor (Unit, [])
-    | Literal (Bool { value; _ }) -> Constructor (Bool value, [])
-    | Literal (String { loc; value }) -> Constructor (String (value, loc), [])
+    | Ast.Pattern.Wildcard _ -> wildcard
+    (* Attach binding to inner pattern. Collect binding if at root level. *)
+    | Binding { pattern; name; _ } ->
+      collect_root_binding root_val_opt name.loc;
+      let pattern = pattern_of_pattern_node ~root_val_opt pattern in
+      { pattern with bindings = name.loc :: pattern.bindings }
+    | Literal (Unit _) -> mk_pattern (Constructor (Unit, []))
+    | Literal (Bool { value; _ }) -> mk_pattern (Constructor (Bool value, []))
+    | Literal (String { loc; value }) -> mk_pattern (Constructor (String (value, loc), []))
     | Literal (Int { loc; raw; base; _ }) ->
       let ty = type_of_loc loc in
       let value = Integers.int64_of_string_opt raw base |> Option.get in
-      Constructor (Int (value, ty = Bool), [])
-    (* Identifier pattern may be for an enum variant, otherwise it is a variable and can be
-       treated as a wildcard for exhaustiveness/usefulness checking. *)
+      mk_pattern (Constructor (Int (value, ty = Bool), []))
+    (* Identifier pattern may be for an enum variant, otherwise it is a variable and can be treated
+       as a wildcard. Collect binding if at root level. *)
     | Identifier { name; _ } ->
       let binding = Type_context.get_value_binding ~cx name.loc in
       (match binding.declaration with
       | CtorDecl _ ->
         let ty = type_of_loc name.loc in
         let (type_args, adt_sig) = Type_util.cast_to_adt_type ty in
-        Constructor (Variant (name.name, adt_sig, type_args), [])
-      | _ -> Wildcard)
+        mk_pattern (Constructor (Variant (name.name, adt_sig, type_args), []))
+      | _ ->
+        collect_root_binding root_val_opt name.loc;
+        { pattern = Wildcard; bindings = [name.loc] })
     (* Named wildcard patterns create sub patterns of same length as tuple elements/record fields
        which consist of all wildcards. *)
     | NamedWildcard { loc; name } ->
@@ -500,19 +575,19 @@ and pattern_vector_of_case_node ~cx ~num_scrutinees case_node =
       (match (SMap.find name adt_sig.variants).kind with
       | Tuple elements ->
         let elements = wildcards_vector (List.length elements) in
-        Constructor (Variant (name, adt_sig, type_args), elements)
+        mk_pattern (Constructor (Variant (name, adt_sig, type_args), elements))
       | Record fields ->
         let fields = wildcards_vector (SMap.cardinal fields) in
-        Constructor (Variant (name, adt_sig, type_args), fields)
+        mk_pattern (Constructor (Variant (name, adt_sig, type_args), fields))
       | Enum -> failwith "Expected tuple or record variant")
     | Tuple { name = None; elements; _ } ->
-      let elements = List.map pattern_of_pattern_node elements in
-      Constructor (Tuple (List.length elements), elements)
+      let elements = List.map (pattern_of_pattern_node ~root_val_opt:None) elements in
+      mk_pattern (Constructor (Tuple (List.length elements), elements))
     | Tuple { loc; name = Some name; elements } ->
       let ty = type_of_loc loc in
       let (type_args, adt_sig) = Type_util.cast_to_adt_type ty in
-      let elements = List.map pattern_of_pattern_node elements in
-      Constructor (Variant (name.name.name, adt_sig, type_args), elements)
+      let elements = List.map (pattern_of_pattern_node ~root_val_opt:None) elements in
+      mk_pattern (Constructor (Variant (name.name.name, adt_sig, type_args), elements))
     | Record { loc; name; fields; _ } ->
       (* Fetch field sigs from ADT sig *)
       let name = name.name.name in
@@ -536,7 +611,7 @@ and pattern_vector_of_case_node ~cx ~num_scrutinees case_node =
                 | Identifier { name = { name; _ }; _ } -> name
                 | _ -> failwith "Value shorthand must be an identifier")
             in
-            SMap.add name (pattern_of_pattern_node value) acc)
+            SMap.add name (pattern_of_pattern_node ~root_val_opt:None value) acc)
           SMap.empty
           fields
       in
@@ -546,12 +621,12 @@ and pattern_vector_of_case_node ~cx ~num_scrutinees case_node =
         SMap.fold
           (fun field_name _ acc ->
             match SMap.find_opt field_name fields with
-            | None -> Wildcard :: acc
+            | None -> wildcard :: acc
             | Some pattern -> pattern :: acc)
           field_sigs
           []
       in
-      Constructor (Variant (name, adt_sig, type_args), List.rev fields)
+      mk_pattern (Constructor (Variant (name, adt_sig, type_args), List.rev fields))
     | Or or_ ->
       (* Or patterns are associative so flatten all or patterns recursively gathered from either side *)
       let rec gather_or_branches acc or_ =
@@ -560,22 +635,49 @@ and pattern_vector_of_case_node ~cx ~num_scrutinees case_node =
         let acc =
           match left with
           | Or or_ -> gather_or_branches acc or_
-          | _ -> pattern_of_pattern_node left :: acc
+          | _ -> pattern_of_pattern_node ~root_val_opt left :: acc
         in
         match right with
         | Or or_ -> gather_or_branches acc or_
-        | _ -> pattern_of_pattern_node right :: acc
+        | _ -> pattern_of_pattern_node ~root_val_opt right :: acc
       in
       let or_branches = gather_or_branches [] or_ in
-      Or (List.rev or_branches)
+      mk_pattern (Or (List.rev or_branches))
   in
-  let pattern = pattern_of_pattern_node case_node.Ast.Match.Case.pattern in
-  if num_scrutinees = 1 then
-    [pattern]
-  else
-    (* If there are multiple scrutinees, the top level pattern is either a tuple that is fake and
-       should be unwrapped into its constituent patterns, or a wildcard that should be expanded. *)
-    match pattern with
-    | Wildcard -> wildcards_vector num_scrutinees
-    | Constructor (Tuple _, sub_patterns) -> sub_patterns
-    | _ -> failwith "Unexpected pattern"
+  let pattern_node = case_node.Ast.Match.Case.pattern in
+  match scrutinee_vals with
+  | [scrutinee] ->
+    let row = [pattern_of_pattern_node ~root_val_opt:(Some scrutinee) pattern_node] in
+    [{ CaseRow.node = case_node; row; bindings = !bindings }]
+  | scrutinees ->
+    (* Recursively expand or patterns at top level *)
+    let rec rows_of_top_level pattern_node scrutinees =
+      match pattern_node with
+      | Ast.Pattern.Wildcard _ ->
+        [
+          {
+            CaseRow.node = case_node;
+            row = wildcards_vector (List.length scrutinees);
+            bindings = [];
+          };
+        ]
+      (* Top level tuple patterns are unwrapped, and have bindings collected *)
+      | Tuple { elements; _ } ->
+        bindings := [];
+        let row =
+          List.fold_left2
+            (fun acc pattern_node scrutinee ->
+              let pattern = pattern_of_pattern_node ~root_val_opt:(Some scrutinee) pattern_node in
+              pattern :: acc)
+            []
+            elements
+            scrutinee_vals
+        in
+        [{ CaseRow.node = case_node; row = List.rev row; bindings = !bindings }]
+      | Or { left; right; _ } ->
+        rows_of_top_level left scrutinees @ rows_of_top_level right scrutinees
+      | _ ->
+        (* TODO: Error on invalid patterns for match with multiple arguments*)
+        failwith "Invalid pattern for multiple match arguments"
+    in
+    rows_of_top_level pattern_node scrutinees

@@ -109,7 +109,7 @@ let add_function ~ecx func =
 
 let emit ~ecx inst =
   match ecx.current_block_builder with
-  | None -> ()
+  | None -> failwith "No current block builder"
   | Some builder -> builder.instructions <- (mk_instr_id (), inst) :: builder.instructions
 
 let mk_block_builder ~ecx =

@@ -96,6 +96,109 @@ label @22:
   Ret %36
 }
 
+func int @test.test4($tuple<int,bool,$tuple<int,bool>*>* %37) {
+  %38 := GetPointer int, $tuple<int,bool,$tuple<int,bool>*>* %37.0
+  %39 := Load int %38
+  %40 := Eq int %39, 1
+  branch %40, @23, @27
+label @23:
+  %41 := GetPointer bool, $tuple<int,bool,$tuple<int,bool>*>* %37.1
+  %42 := Load bool %41
+  branch %42, @24, @25
+label @24:
+  continue @26
+label @25:
+  continue @26
+label @26:
+  %43 := Phi int @24:1, @25:2
+  continue @35
+label @27:
+  %44 := GetPointer bool, $tuple<int,bool,$tuple<int,bool>*>* %37.1
+  %45 := Load bool %44
+  %46 := Eq bool %45, true
+  branch %46, @28, @31
+label @28:
+  %47 := GetPointer $tuple<int,bool>*, $tuple<int,bool,$tuple<int,bool>*>* %37.2
+  %48 := Load $tuple<int,bool>* %47
+  %49 := GetPointer bool, $tuple<int,bool>* %48.1
+  %50 := Load bool %49
+  %51 := Eq bool %50, false
+  branch %51, @29, @30
+label @29:
+  %52 := GetPointer int, $tuple<int,bool>* %48.0
+  %53 := Load int %52
+  %54 := Add int %53, 3
+  continue @35
+label @30:
+  %55 := GetPointer int, $tuple<int,bool>* %48.0
+  %56 := Load int %55
+  %57 := Add int %39, %56
+  %58 := Add int %57, 4
+  continue @35
+label @31:
+  %59 := GetPointer $tuple<int,bool>*, $tuple<int,bool,$tuple<int,bool>*>* %37.2
+  %60 := Load $tuple<int,bool>* %59
+  %61 := GetPointer int, $tuple<int,bool>* %60.0
+  %62 := Load int %61
+  %63 := GetPointer bool, $tuple<int,bool>* %60.1
+  %64 := Load bool %63
+  branch %64, @32, @33
+label @32:
+  continue @34
+label @33:
+  %65 := Add int %62, 5
+  continue @34
+label @34:
+  %66 := Phi int @32:%62, @33:%65
+  continue @35
+label @35:
+  %67 := Phi int @26:%43, @29:%54, @30:%58, @34:%66
+  Ret %67
+}
+
+func $tuple<int,bool>* @test.test5($tuple<int,bool,$tuple<int,bool>*>* %68) {
+  %69 := GetPointer bool, $tuple<int,bool,$tuple<int,bool>*>* %68.1
+  %70 := Load bool %69
+  %71 := Eq bool %70, false
+  branch %71, @36, @39
+label @36:
+  %72 := GetPointer $tuple<int,bool>*, $tuple<int,bool,$tuple<int,bool>*>* %68.2
+  %73 := Load $tuple<int,bool>* %72
+  %74 := GetPointer int, $tuple<int,bool>* %73.0
+  %75 := Load int %74
+  %76 := Eq int %75, 1
+  branch %76, @37, @38
+label @37:
+  continue @42
+label @38:
+  %77 := CallBuiltin $tuple<int,bool>* myte_alloc(1)
+  %78 := GetPointer int, $tuple<int,bool>* %73.0
+  %79 := Load int %78
+  %80 := GetPointer int, $tuple<int,bool>* %77.0
+  Store int %80, %79
+  %81 := GetPointer bool, $tuple<int,bool>* %73.1
+  %82 := Load bool %81
+  %83 := GetPointer bool, $tuple<int,bool>* %77.1
+  Store bool %83, %82
+  continue @42
+label @39:
+  %84 := GetPointer int, $tuple<int,bool,$tuple<int,bool>*>* %68.0
+  %85 := Load int %84
+  %86 := Eq int %85, 1
+  branch %86, @40, @41
+label @40:
+  %87 := GetPointer $tuple<int,bool>*, $tuple<int,bool,$tuple<int,bool>*>* %68.2
+  %88 := Load $tuple<int,bool>* %87
+  continue @42
+label @41:
+  %89 := GetPointer $tuple<int,bool>*, $tuple<int,bool,$tuple<int,bool>*>* %68.2
+  %90 := Load $tuple<int,bool>* %89
+  continue @42
+label @42:
+  %91 := Phi $tuple<int,bool>* @37:%73, @38:%77, @40:%88, @41:%90
+  Ret %91
+}
+
 func int @test.main() {
   Ret 0
 }
