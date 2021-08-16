@@ -1,0 +1,50 @@
+module test
+
+// Single copy cycle, needs to be broken with a register
+fun swap() {
+  var x = 1;
+  var y = 2;
+
+  while (true) {
+    var tmp = x;
+    x = y;
+    y = tmp;
+  }
+}
+
+// Two copy cycles, both need to be broken with a new register
+fun doubleSwap() {
+  var x1 = 1;
+  var y1 = 2;
+
+  var x2 = 3;
+  var y2 = 4;
+
+  while (true) {
+    var tmp = x1;
+    x1 = y1;
+    y1 = tmp;
+
+    tmp = x2;
+    x2 = y2;
+    y2 = tmp;
+  } 
+}
+
+// Long copy cycle, only needs a single register to break
+fun longSwap() {
+  var x = 1;
+  var y = 2;
+  var z = 3;
+  var a = 4;
+
+  while (true) {
+    var tmp = x;
+    x = y;
+    y = z;
+    z = a;
+    a = tmp;
+  }
+}
+
+fun main() {}

@@ -98,7 +98,7 @@ let remove_block ~ocx block_id =
     let func = SMap.find block.func ocx.program.funcs in
     if func.body_start_block = block_id then func.body_start_block <- continue_block
   | _ -> ());
-  let prev_blocks = IMap.find block_id ocx.prev_blocks in
+  let prev_blocks = IIMMap.find_all block_id ocx.prev_blocks in
   ISet.iter
     (fun prev_block_id ->
       let prev_block = get_block ~ocx prev_block_id in
@@ -171,7 +171,7 @@ let merge_adjacent_blocks ~ocx block_id1 block_id2 =
       Branch { branch with continue = map_id continue; jump = map_id jump });
   (* References to the b2 block in phi nodes of blocks that succeed b2 should be rewritten
      to now reference b1 instead. *)
-  let next_blocks = IMap.find b2.id ocx.next_blocks in
+  let next_blocks = IIMMap.find_all b2.id ocx.next_blocks in
   ISet.iter
     (fun next_block_id -> map_phi_backreferences_for_block ~ocx b2.id b1.id next_block_id)
     next_blocks;

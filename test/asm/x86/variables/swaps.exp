@@ -1,0 +1,39 @@
+  .global _start
+
+  .text
+test.doubleSwap:
+  movl $1, %esi
+  movl $2, %edi
+  movl $3, %ecx
+  movl $4, %edx
+.L0:
+  movl %edi, %eax
+  movl %esi, %edi
+  movl %eax, %esi
+  movl %edx, %eax
+  movl %ecx, %edx
+  movl %eax, %ecx
+  jmp .L0
+test.longSwap:
+  movl $1, %ecx
+  movl $2, %edi
+  movl $3, %esi
+  movl $4, %edx
+.L1:
+  movl %edi, %eax
+  movl %esi, %edi
+  movl %edx, %esi
+  movl %ecx, %edx
+  movl %eax, %ecx
+  jmp .L1
+_main:
+  movl $0, %eax
+  ret
+test.swap:
+  movl $1, %ecx
+  movl $2, %edx
+.L2:
+  movl %edx, %eax
+  movl %ecx, %edx
+  movl %eax, %ecx
+  jmp .L2

@@ -3,15 +3,15 @@
   .text
 fib.fibIterative:
   movl $1, %eax
-  movl $1, %ecx
+  movl $1, %edx
 .L0:
   cmpl $2, %edi
   jl .L1
-  movl %eax, %edx
-  addl %ecx, %edx
   movl %eax, %ecx
+  addl %edx, %ecx
   subl $1, %edi
-  movl %edx, %eax
+  movl %eax, %edx
+  movl %ecx, %eax
   jmp .L0
 .L1:
   ret

@@ -38,3 +38,5 @@ fun multiple() {
 
   (x + y);
 }
+
+fun main() {}
