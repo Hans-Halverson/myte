@@ -1,0 +1,33 @@
+module test
+
+fun testValid() {
+  match (1, 1) {
+    | (1, 1) -> ()
+    | ((2, 2) | (3, 3)) -> ()
+    | _ -> ()
+  }
+}
+
+fun testInvalid() {
+  match (1, 1) {
+    | a -> ()
+    | _ as a -> ()
+    | (1, 1) as a -> ()
+    | (a | (_ as a)) -> ()
+  }
+}
+
+type Variant =
+  | Enum1
+  | Enum2
+
+// Regular type checking errors
+fun testNoRedundantErrors() {
+  match (1, 1) {
+    | 1 -> ()
+    // Enum constructor, not a variable
+    | Enum1 -> ()
+  }
+}
+
+fun main() {}

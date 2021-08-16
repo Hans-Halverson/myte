@@ -1,0 +1,34 @@
+Error: Invalid pattern for match with multiple arguments. The only allowed patterns are the wildcard `_` or a tuple with the same arity as the number of arguments.
+test/analyze/match/invalid_multiple_arguments_pattern.myte:13:6
+ 13 |     | a -> ()
+    |       ^
+
+Error: Invalid pattern for match with multiple arguments. The only allowed patterns are the wildcard `_` or a tuple with the same arity as the number of arguments.
+test/analyze/match/invalid_multiple_arguments_pattern.myte:14:6-12
+ 14 |     | _ as a -> ()
+    |       ^^^^^^
+
+Error: Invalid pattern for match with multiple arguments. The only allowed patterns are the wildcard `_` or a tuple with the same arity as the number of arguments.
+test/analyze/match/invalid_multiple_arguments_pattern.myte:15:6-17
+ 15 |     | (1, 1) as a -> ()
+    |       ^^^^^^^^^^^
+
+Error: Invalid pattern for match with multiple arguments. The only allowed patterns are the wildcard `_` or a tuple with the same arity as the number of arguments.
+test/analyze/match/invalid_multiple_arguments_pattern.myte:16:7
+ 16 |     | (a | (_ as a)) -> ()
+    |        ^
+
+Error: Invalid pattern for match with multiple arguments. The only allowed patterns are the wildcard `_` or a tuple with the same arity as the number of arguments.
+test/analyze/match/invalid_multiple_arguments_pattern.myte:16:12-18
+ 16 |     | (a | (_ as a)) -> ()
+    |             ^^^^^^
+
+Error: Expected type `(Int, Int)` but found `Int`
+test/analyze/match/invalid_multiple_arguments_pattern.myte:27:6
+ 27 |     | 1 -> ()
+    |       ^
+
+Error: Expected type `(Int, Int)` but found `Variant`
+test/analyze/match/invalid_multiple_arguments_pattern.myte:29:6-11
+ 29 |     | Enum1 -> ()
+    |       ^^^^^

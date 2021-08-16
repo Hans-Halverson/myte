@@ -1409,6 +1409,7 @@ and check_expression ~cx expr =
 and check_match ~cx match_ right_ty =
   let open Ast.Match in
   let { args; cases; _ } = match_ in
+  let num_args = List.length args in
 
   (* Find arg types - if multiple args are present, wrap in tuple *)
   let arg_tys = List.map (fun arg -> Type.TVar (snd (check_expression ~cx arg))) args in
@@ -1423,6 +1424,7 @@ and check_match ~cx match_ right_ty =
       (* Pattern must have same type as arg *)
       let (pattern_loc, pattern_tvar_id) = check_pattern ~cx pattern in
       Type_context.assert_unify ~cx pattern_loc arg_ty (TVar pattern_tvar_id);
+      if num_args <> 1 then check_multiple_args_pattern ~cx pattern;
 
       (* Guard must evaluate to a boolean *)
       (match guard with
@@ -1441,6 +1443,27 @@ and check_match ~cx match_ right_ty =
         let loc = Ast_utils.statement_loc stmt in
         Type_context.assert_unify ~cx loc right_ty Unit)
     cases
+
+(* Verify that a pattern for a match with multiple args has the correct structure. Bindings and
+   variables cannot appear at the top level. Do not error on other patterns, as type checking will
+   fail for those instead. *)
+and check_multiple_args_pattern ~cx patt =
+  let open Ast.Pattern in
+  let error () =
+    Type_context.add_error ~cx (Ast_utils.pattern_loc patt) InvalidMultipleArgumentsPattern
+  in
+  match patt with
+  | Binding _ -> error ()
+  (* Error on only variable bindings, not enum constructors *)
+  | Identifier { name = { loc; _ }; _ } ->
+    let binding = Type_context.get_value_binding ~cx loc in
+    (match binding.declaration with
+    | MatchCaseVarDecl _ -> error ()
+    | _ -> ())
+  | Or { left; right; _ } ->
+    check_multiple_args_pattern ~cx left;
+    check_multiple_args_pattern ~cx right
+  | _ -> ()
 
 and check_pattern ~cx patt =
   let open Ast.Pattern in

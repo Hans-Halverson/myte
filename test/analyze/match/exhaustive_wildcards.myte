@@ -19,7 +19,7 @@ fun testVariables() {
     }
   }
 
-  match (true, true, true) {
+  match (true) {
     | x -> {
       x;
     }

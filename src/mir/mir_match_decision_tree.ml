@@ -676,8 +676,6 @@ and rows_of_case_node ~cx ~scrutinee_vals case_node =
         [{ CaseRow.node = case_node; row = List.rev row; bindings = !bindings }]
       | Or { left; right; _ } ->
         rows_of_top_level left scrutinees @ rows_of_top_level right scrutinees
-      | _ ->
-        (* TODO: Error on invalid patterns for match with multiple arguments*)
-        failwith "Invalid pattern for multiple match arguments"
+      | _ -> failwith "Invalid pattern for multiple match arguments"
     in
     rows_of_top_level pattern_node scrutinees

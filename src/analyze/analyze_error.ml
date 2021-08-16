@@ -68,6 +68,7 @@ type t =
   | UnimplementedMethodSignature of string * string
   | IncompatibleOverridenMethodType of string * string * Type.t * Type.t
   | IncorrectOverridenMethodTypeParametersArity of string * string * int * int
+  | InvalidMultipleArgumentsPattern
   | InexhaustiveMatch of string
   | UnreachablePattern
 
@@ -440,6 +441,8 @@ let to_string error =
       expected
       (plural expected "type parameter")
       actual
+  | InvalidMultipleArgumentsPattern ->
+    "Invalid pattern for match with multiple arguments. The only allowed patterns are the wildcard `_` or a tuple with the same arity as the number of arguments."
   | InexhaustiveMatch witness ->
     Printf.sprintf
       "Inexhaustive match statement. For example the pattern `%s` is not matched."
