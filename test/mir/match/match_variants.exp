@@ -13,253 +13,212 @@ type test.V2::Record2 {byte, byte[7], test.V2*, bool, byte[7]}
 func int @test.test1(test.V1* %0) {
   %1 := Load byte %0
   %2 := Eq byte %1, 0
-  branch %2, @0, @1
+  branch %2, @2, @0
 label @0:
-  continue @4
-label @1:
   %3 := Eq byte %1, 2
-  branch %3, @2, @3
+  branch %3, @2, @1
+label @1:
+  continue @2
 label @2:
-  continue @4
-label @3:
-  continue @4
-label @4:
-  %4 := Phi int @0:2, @2:3, @3:1
+  %4 := Phi int @test.test1:2, @0:3, @1:1
   Ret %4
 }
 
 func int @test.test2(test.V1* %5) {
   %6 := Load byte %5
   %7 := Eq byte %6, 2
-  branch %7, @5, @9
-label @5:
+  branch %7, @3, @5
+label @3:
   %8 := GetPointer int, test.V1::Record1* %5.2
   %9 := Load int %8
   %10 := Eq int %9, 2
-  branch %10, @6, @7
-label @6:
-  continue @15
-label @7:
+  branch %10, @9, @4
+label @4:
   %11 := GetPointer byte, test.V1::Record1* %5.3
   %12 := Load byte %11
   %13 := Eq byte %12, 2
-  branch %13, @8, @14
-label @8:
-  continue @15
-label @9:
+  branch %13, @9, @8
+label @5:
   %14 := Eq byte %6, 1
-  branch %14, @10, @14
-label @10:
+  branch %14, @6, @8
+label @6:
   %15 := GetPointer int, test.V1::Tuple1* %5.3
   %16 := Load int %15
   %17 := Eq int %16, 4
-  branch %17, @11, @12
-label @11:
-  continue @15
-label @12:
+  branch %17, @9, @7
+label @7:
   %18 := GetPointer bool, test.V1::Tuple1* %5.1
   %19 := Load bool %18
   %20 := Eq bool %19, true
-  branch %20, @13, @14
-label @13:
-  continue @15
-label @14:
-  continue @15
-label @15:
-  %21 := Phi int @6:1, @8:3, @14:5, @11:2, @13:4
+  branch %20, @9, @8
+label @8:
+  continue @9
+label @9:
+  %21 := Phi int @3:1, @4:3, @8:5, @6:2, @7:4
   Ret %21
 }
 
 func int @test.test3(test.V2* %22) {
   %23 := Load byte %22
   %24 := Eq byte %23, 2
-  branch %24, @16, @19
-label @16:
+  branch %24, @10, @12
+label @10:
   %25 := GetPointer test.V2*, test.V2::Record2* %22.2
   %26 := Load test.V2* %25
   %27 := Load byte %26
   %28 := Eq byte %27, 2
-  branch %28, @17, @23
-label @17:
+  branch %28, @11, @15
+label @11:
   %29 := GetPointer test.V2*, test.V2::Record2* %26.2
   %30 := Load test.V2* %29
   %31 := Load byte %30
   %32 := Eq byte %31, 1
-  branch %32, @18, @23
-label @18:
-  continue @24
-label @19:
+  branch %32, @16, @15
+label @12:
   %33 := Eq byte %23, 0
-  branch %33, @20, @23
-label @20:
+  branch %33, @13, @15
+label @13:
   %34 := GetPointer test.V1*, test.V2::Tuple2* %22.3
   %35 := Load test.V1* %34
   %36 := Load byte %35
   %37 := Eq byte %36, 1
-  branch %37, @21, @23
-label @21:
+  branch %37, @14, @15
+label @14:
   %38 := GetPointer bool, test.V1::Tuple1* %35.1
   %39 := Load bool %38
   %40 := Eq bool %39, true
-  branch %40, @22, @23
-label @22:
-  continue @24
-label @23:
-  continue @24
-label @24:
-  %41 := Phi int @18:2, @23:3, @22:1
+  branch %40, @16, @15
+label @15:
+  continue @16
+label @16:
+  %41 := Phi int @11:2, @15:3, @14:1
   Ret %41
 }
 
 func int @test.test4(test.V2* %42) {
   %43 := Load byte %42
   %44 := Eq byte %43, 2
-  branch %44, @25, @35
-label @25:
+  branch %44, @17, @25
+label @17:
   %45 := GetPointer test.V2*, test.V2::Record2* %42.2
   %46 := Load test.V2* %45
   %47 := Load byte %46
   %48 := Eq byte %47, 2
-  branch %48, @26, @35
-label @26:
+  branch %48, @18, @25
+label @18:
   %49 := GetPointer test.V2*, test.V2::Record2* %46.2
   %50 := Load test.V2* %49
   %51 := Load byte %50
   %52 := Eq byte %51, 2
-  branch %52, @27, @35
-label @27:
+  branch %52, @19, @25
+label @19:
   %53 := GetPointer test.V2*, test.V2::Record2* %50.2
   %54 := Load test.V2* %53
   %55 := Load byte %54
   %56 := Eq byte %55, 0
-  branch %56, @28, @34
-label @28:
+  branch %56, @20, @25
+label @20:
   %57 := GetPointer test.V1*, test.V2::Tuple2* %54.3
   %58 := Load test.V1* %57
   %59 := Load byte %58
   %60 := Eq byte %59, 1
-  branch %60, @29, @34
-label @29:
+  branch %60, @21, @25
+label @21:
   %61 := GetPointer bool, test.V1::Tuple1* %58.1
   %62 := Load bool %61
   %63 := Eq bool %62, true
-  branch %63, @30, @34
-label @30:
+  branch %63, @22, @25
+label @22:
   %64 := GetPointer int, test.V1::Tuple1* %58.3
   %65 := Load int %64
   %66 := Eq int %65, 1
-  branch %66, @33, @31
-label @31:
+  branch %66, @25, @23
+label @23:
   %67 := Eq int %65, 2
-  branch %67, @33, @32
-label @32:
+  branch %67, @25, @24
+label @24:
   %68 := Eq int %65, 3
-  branch %68, @33, @34
-label @33:
-  continue @36
-label @34:
-  continue @36
-label @35:
-  continue @36
-label @36:
-  %69 := Phi int @33:1, @34:2, @35:3
+  continue @25
+label @25:
+  %69 := Phi int @test.test4:3, @19:2, @22:1
   Ret %69
 }
 
 func int @test.test5(test.V1* %70) {
   %71 := Load byte %70
   %72 := Eq byte %71, 0
-  branch %72, @37, @38
-label @37:
-  continue @47
-label @38:
+  branch %72, @33, @26
+label @26:
   %73 := Eq byte %71, 2
-  branch %73, @39, @43
-label @39:
+  branch %73, @27, @30
+label @27:
   %74 := GetPointer int, test.V1::Record1* %70.2
   %75 := Load int %74
   %76 := GetPointer byte, test.V1::Record1* %70.3
   %77 := Load byte %76
   %78 := Eq byte %77, 1
-  branch %78, @40, @41
-label @40:
-  continue @42
-label @41:
+  branch %78, @29, @28
+label @28:
   %79 := SExt byte %77 to int
-  continue @42
-label @42:
-  %80 := Phi int @40:%75, @41:%79
-  continue @47
-label @43:
+  continue @29
+label @29:
+  %80 := Phi int @27:%75, @28:%79
+  continue @33
+label @30:
   %81 := GetPointer bool, test.V1::Tuple1* %70.1
   %82 := Load bool %81
   %83 := GetPointer int, test.V1::Tuple1* %70.3
   %84 := Load int %83
-  branch %82, @44, @45
-label @44:
-  continue @46
-label @45:
-  continue @46
-label @46:
-  %85 := Phi int @44:%84, @45:2
-  continue @47
-label @47:
-  %86 := Phi int @37:3, @42:%80, @46:%85
+  branch %82, @32, @31
+label @31:
+  continue @32
+label @32:
+  %85 := Phi int @30:%84, @31:2
+  continue @33
+label @33:
+  %86 := Phi int @test.test5:3, @29:%80, @32:%85
   Ret %86
 }
 
 func test.V2* @test.test6(test.V2* %87) {
   %88 := Load byte %87
   %89 := Eq byte %88, 2
-  branch %89, @48, @59
-label @48:
+  branch %89, @34, @40
+label @34:
   %90 := GetPointer test.V2*, test.V2::Record2* %87.2
   %91 := Load test.V2* %90
   %92 := Load byte %91
   %93 := Eq byte %92, 2
-  branch %93, @49, @58
-label @49:
+  branch %93, @35, @40
+label @35:
   %94 := GetPointer test.V2*, test.V2::Record2* %91.2
   %95 := Load test.V2* %94
   %96 := Load byte %95
   %97 := Eq byte %96, 1
-  branch %97, @50, @51
-label @50:
-  continue @61
-label @51:
+  branch %97, @41, @36
+label @36:
   %98 := Eq byte %96, 2
-  branch %98, @52, @57
-label @52:
+  branch %98, @37, @40
+label @37:
   %99 := GetPointer test.V2*, test.V2::Record2* %95.2
   %100 := Load test.V2* %99
   %101 := Load byte %100
   %102 := Eq byte %101, 2
-  branch %102, @53, @56
-label @53:
+  branch %102, @38, @40
+label @38:
   %103 := GetPointer bool, test.V2::Record2* %100.3
   %104 := Load bool %103
   %105 := Eq bool %104, false
-  branch %105, @54, @55
-label @54:
-  continue @61
-label @55:
+  branch %105, @41, @39
+label @39:
   %106 := GetPointer test.V2*, test.V2::Record2* %100.2
   %107 := Load test.V2* %106
-  continue @61
-label @56:
-  continue @60
-label @57:
-  continue @60
-label @58:
-  continue @60
-label @59:
-  continue @60
-label @60:
-  %108 := Phi test.V2* @59:%87, @58:%87, @57:%87, @56:%87
-  continue @61
-label @61:
-  %109 := Phi test.V2* @50:%95, @55:%107, @54:%91, @60:%108
-  Ret %109
+  continue @41
+label @40:
+  continue @41
+label @41:
+  %108 := Phi test.V2* @35:%95, @38:%91, @39:%107, @40:%87
+  Ret %108
 }
 
 func int @test.main() {

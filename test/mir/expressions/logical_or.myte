@@ -1,14 +1,21 @@
 module test
 
-fun testConstants() {
-  val x = true;
-  val y = false;
+fun testConstants1(): Bool = true || true
 
-  x || y;
-}
+fun testConstants2(): Bool = true || false
 
-fun testVariables(x: Bool, y: Bool) {
-  x || y;
-}
+fun testConstants3(): Bool = false || true
+
+fun testConstants4(): Bool = false || false
+
+fun testConstant1(x: Bool): Bool = x || true
+
+fun testConstant2(x: Bool): Bool = x || false
+
+fun testConstant3(x: Bool): Bool = true || x
+
+fun testConstant4(x: Bool): Bool = false || x
+
+fun testVariables(x: Bool, y: Bool): Bool = x || y
 
 fun main() {}

@@ -18,7 +18,7 @@ label @3:
   branch false, @4, @5
 label @4:
   %5 := Call unit @test.use(%4)
-  continue @8
+  continue @7
 label @5:
   %6 := Call unit @test.use(%4)
   branch false, @6, @7
@@ -26,9 +26,7 @@ label @6:
   %7 := Neg int %2
   continue @7
 label @7:
-  continue @8
-label @8:
-  %8 := Phi int @4:5, @7:6
+  %8 := Phi int @4:5, @5:6
   %9 := Neg int %8
   Ret
 }

@@ -1,72 +1,54 @@
 func int @test.test1(bool %0, int %1) {
   %2 := Eq int %1, 0
-  branch %2, @0, @1
+  branch %2, @8, @0
 label @0:
-  continue @14
-label @1:
   %3 := Eq int %1, 1
-  branch %3, @2, @5
+  branch %3, @1, @3
+label @1:
+  branch %0, @8, @2
 label @2:
-  branch %0, @3, @4
+  continue @8
 label @3:
-  continue @14
-label @4:
-  continue @14
-label @5:
   %4 := Eq int %1, 2
-  branch %4, @6, @13
-label @6:
-  branch %0, @7, @8
-label @7:
-  continue @14
-label @8:
+  branch %4, @4, @8
+label @4:
+  branch %0, @8, @5
+label @5:
   %5 := LogNot %0
-  branch %5, @9, @10
-label @9:
-  continue @14
-label @10:
+  branch %5, @8, @6
+label @6:
   %6 := LogNot %0
   %7 := LogNot %6
-  branch %7, @11, @12
-label @11:
-  continue @14
-label @12:
-  continue @14
-label @13:
-  continue @14
-label @14:
-  %8 := Phi int @0:0, @3:1, @4:2, @7:3, @9:4, @11:5, @12:6, @13:7
+  branch %7, @8, @7
+label @7:
+  continue @8
+label @8:
+  %8 := Phi int @test.test1:0, @1:1, @3:7, @2:2, @4:3, @5:4, @6:5, @7:6
   Ret %8
 }
 
 func int @test.test2(bool %9, int %10) {
   %11 := Eq int %10, 1
-  branch %11, @15, @18
-label @15:
-  branch %9, @16, @17
-label @16:
-  continue @25
-label @17:
-  continue @25
-label @18:
+  branch %11, @9, @11
+label @9:
+  branch %9, @16, @10
+label @10:
+  continue @16
+label @11:
   %12 := Eq int %10, 3
-  branch %12, @19, @24
-label @19:
+  branch %12, @12, @15
+label @12:
   %13 := Eq int %10, 2
-  branch %13, @20, @24
-label @20:
-  branch %9, @21, @22
-label @21:
-  continue @25
-label @22:
+  branch %13, @13, @15
+label @13:
+  branch %9, @16, @14
+label @14:
   %14 := LogNot %9
-  branch %14, @23, @24
-label @23:
-  continue @25
-label @24:
-  continue @25
-label @25:
-  %15 := Phi int @16:1, @17:2, @21:3, @23:4, @24:5
+  branch %14, @16, @15
+label @15:
+  continue @16
+label @16:
+  %15 := Phi int @9:1, @10:2, @13:3, @14:4, @15:5
   Ret %15
 }
 

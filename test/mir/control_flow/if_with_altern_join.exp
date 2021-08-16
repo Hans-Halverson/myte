@@ -16,52 +16,44 @@ label @2:
 }
 
 func unit @test.testOnlyFirstUpdated() {
-  branch true, @3, @4
+  branch true, @4, @3
 label @3:
-  continue @5
-label @4:
   %4 := Call unit @test.use(0)
-  continue @5
-label @5:
-  %5 := Phi int @3:2, @4:1
+  continue @4
+label @4:
+  %5 := Phi int @test.testOnlyFirstUpdated:2, @3:1
   %6 := Neg int %5
   Ret
 }
 
 func unit @test.testOnlySecondUpdated() {
-  branch true, @6, @7
-label @6:
+  branch true, @5, @6
+label @5:
   %7 := Call unit @test.use(0)
-  continue @8
-label @7:
-  continue @8
-label @8:
-  %8 := Phi int @6:1, @7:2
+  continue @6
+label @6:
+  %8 := Phi int @test.testOnlySecondUpdated:2, @5:1
   %9 := Neg int %8
   Ret
 }
 
 func unit @test.testBothUpdated() {
-  branch true, @9, @10
-label @9:
-  continue @11
-label @10:
-  continue @11
-label @11:
-  %10 := Phi int @9:2, @10:3
+  branch true, @8, @7
+label @7:
+  continue @8
+label @8:
+  %10 := Phi int @test.testBothUpdated:2, @7:3
   %11 := Neg int %10
   Ret
 }
 
 func unit @test.testMultiple(int %12) {
-  branch true, @12, @13
-label @12:
-  continue @14
-label @13:
-  continue @14
-label @14:
-  %13 := Phi int @12:3, @13:0
-  %14 := Phi int @12:1, @13:4
+  branch true, @10, @9
+label @9:
+  continue @10
+label @10:
+  %13 := Phi int @test.testMultiple:3, @9:0
+  %14 := Phi int @test.testMultiple:1, @9:4
   %15 := Neg int %13
   %16 := Neg int %14
   %17 := Neg int %12
@@ -71,34 +63,34 @@ label @14:
 global int @test.glob = 1
 
 func unit @test.testGlobal() {
-  branch true, @15, @16
-label @15:
+  branch true, @11, @12
+label @11:
   Store int @test.glob, 2
-  continue @17
-label @16:
+  continue @13
+label @12:
   %18 := Call unit @test.use(0)
-  continue @17
-label @17:
+  continue @13
+label @13:
   %19 := Load int @test.glob
   %20 := Neg int %19
-  branch true, @18, @19
-label @18:
+  branch true, @14, @15
+label @14:
   %21 := Call unit @test.use(0)
-  continue @20
-label @19:
+  continue @16
+label @15:
   Store int @test.glob, 3
-  continue @20
-label @20:
+  continue @16
+label @16:
   %22 := Load int @test.glob
   %23 := Neg int %22
-  branch true, @21, @22
-label @21:
+  branch true, @17, @18
+label @17:
   Store int @test.glob, 4
-  continue @23
-label @22:
+  continue @19
+label @18:
   Store int @test.glob, 5
-  continue @23
-label @23:
+  continue @19
+label @19:
   %24 := Load int @test.glob
   %25 := Neg int %24
   Ret

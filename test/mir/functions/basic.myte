@@ -8,9 +8,9 @@ fun emptyParams(x: Int, y: Bool) {}
 
 fun shorthand(x: Int): Int = 1
 
-fun withBody(x: Int, y: Bool) {
+fun withBody(x: Int, y: Bool, z: Bool) {
   use(10);
-  val zz: Bool = true && false;
+  val zz: Bool = y && z;
 }
 
 fun main() {

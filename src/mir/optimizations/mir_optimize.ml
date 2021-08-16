@@ -14,8 +14,7 @@ let transform_for_assembly ir =
 
 let transform_for_dump_ir ir =
   let ocx = Ocx.mk ir in
-  Mir_normalizer.consolidate_adjacent_blocks ~ocx;
-  Mir_normalizer.remove_empty_init_func ~ocx;
+  Mir_normalizer.normalize ~ocx;
   ocx.program
 
 module MirTransform = struct

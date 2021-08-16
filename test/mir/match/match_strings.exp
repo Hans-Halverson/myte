@@ -7,10 +7,8 @@ func int @test.test1(std.string.String* %0) {
   %4 := GetPointer int, std.string.String* %1.2
   Store int %4, 3
   %5 := Call bool @std.string.String.equals(%0, %1)
-  branch %5, @0, @1
+  branch %5, @3, @0
 label @0:
-  continue @6
-label @1:
   %6 := CallBuiltin std.string.String* myte_alloc(1)
   %7 := GetPointer byte*, std.string.String* %6.0
   Store byte* %7, @.S1
@@ -19,10 +17,8 @@ label @1:
   %9 := GetPointer int, std.string.String* %6.2
   Store int %9, 3
   %10 := Call bool @std.string.String.equals(%0, %6)
-  branch %10, @2, @3
-label @2:
-  continue @6
-label @3:
+  branch %10, @3, @1
+label @1:
   %11 := CallBuiltin std.string.String* myte_alloc(1)
   %12 := GetPointer byte*, std.string.String* %11.0
   Store byte* %12, @.S2
@@ -31,13 +27,11 @@ label @3:
   %14 := GetPointer int, std.string.String* %11.2
   Store int %14, 3
   %15 := Call bool @std.string.String.equals(%0, %11)
-  branch %15, @4, @5
-label @4:
-  continue @6
-label @5:
-  continue @6
-label @6:
-  %16 := Phi int @0:1, @2:2, @4:3, @5:4
+  branch %15, @3, @2
+label @2:
+  continue @3
+label @3:
+  %16 := Phi int @test.test1:1, @0:2, @1:3, @2:4
   Ret %16
 }
 
