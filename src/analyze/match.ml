@@ -696,7 +696,7 @@ let args_wildcard_vector ~cx (match_ : Ast.Match.t) =
 
 class match_analyzer ~cx =
   object (this)
-    inherit [unit] Ast_visitor.visitor
+    inherit Ast_visitor.visitor
 
     val mutable errors : (Loc.t * Analyze_error.t) list = []
 
@@ -704,7 +704,7 @@ class match_analyzer ~cx =
 
     method add_error loc error = errors <- (loc, error) :: errors
 
-    method! match_ _ match_ =
+    method! match_ match_ =
       (* Build pattern matrix and check for reachability of each case *)
       let matrix =
         List.fold_left
@@ -751,5 +751,5 @@ class match_analyzer ~cx =
 
 let analyze ~cx modules =
   let analyzer = new match_analyzer ~cx in
-  List.iter (fun (_, module_) -> analyzer#module_ () module_) modules;
+  List.iter (fun (_, module_) -> analyzer#module_ module_) modules;
   analyzer#errors

@@ -10,7 +10,7 @@ type exhaustive =
 
 class analyzer =
   object (this)
-    inherit [unit] Ast_visitor.visitor as super
+    inherit Ast_visitor.visitor as super
 
     val mutable errors = []
 
@@ -79,7 +79,7 @@ class analyzer =
       | None -> Exhaustive
       | Some inexhaustive -> inexhaustive
 
-    method! function_ acc func =
+    method! function_ func =
       let { Function.name; body; return; _ } = func in
       begin
         match body with
@@ -117,10 +117,10 @@ class analyzer =
             this#add_error (Loc.point_end loc) (InexhaustiveReturn name)
           | _ -> ())
       end;
-      super#function_ acc func
+      super#function_ func
   end
 
 let analyze mod_ =
   let analyzer = new analyzer in
-  analyzer#module_ () mod_;
+  analyzer#module_ mod_;
   analyzer#errors ()

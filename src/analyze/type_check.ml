@@ -729,14 +729,14 @@ and check_function_body ~cx decl =
   (* Annotate each return statement node with this function's return type *)
   let return_visitor =
     object
-      inherit [unit] Ast_visitor.visitor
+      inherit Ast_visitor.visitor
 
-      method! function_ _ _ = ()
+      method! function_ _ = ()
 
-      method! return _ { loc; _ } = Type_context.add_return_type ~cx loc func_decl.return
+      method! return { loc; _ } = Type_context.add_return_type ~cx loc func_decl.return
     end
   in
-  return_visitor#function_body () body;
+  return_visitor#function_body body;
 
   match body with
   | Signature -> ()
@@ -1872,16 +1872,16 @@ let resolve_unresolved_int_literals ~cx =
 (* Visit every expression, making sure that it has been resolved to a non-TVar type. *)
 class ensure_expressions_typed_visitor ~cx =
   object
-    inherit [unit] Ast_visitor.visitor as super
+    inherit Ast_visitor.visitor as super
 
-    method! function_ acc decl =
+    method! function_ decl =
       let { Ast.Function.builtin; _ } = decl in
       if builtin then
         ()
       else
-        super#function_ acc decl
+        super#function_ decl
 
-    method! expression acc expr =
+    method! expression expr =
       let loc = Ast_utils.expression_loc expr in
       (match Type_context.get_tvar_from_loc_opt ~cx loc with
       (* Some expression nodes not appear in the tvar map, meaning they are never referenced and
@@ -1898,12 +1898,12 @@ class ensure_expressions_typed_visitor ~cx =
             | _ -> Some (rep_ty, unresolved_tvars)
           in
           Type_context.add_error ~cx loc (CannotInferType (CannotInferTypeExpression, partial)));
-      super#expression acc expr
+      super#expression expr
   end
 
 let ensure_all_expression_are_typed ~cx modules =
   let visitor = new ensure_expressions_typed_visitor ~cx in
-  List.iter (fun (_, module_) -> ignore (visitor#module_ () module_)) modules
+  List.iter (fun (_, module_) -> ignore (visitor#module_ module_)) modules
 
 let analyze ~cx modules =
   (* First build parameters for all types and traits *)

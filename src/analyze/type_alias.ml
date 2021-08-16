@@ -5,7 +5,7 @@ open Graph
    from all other type aliases that appear in its body. *)
 class type_alias_graph_builder ~cx ~graph =
   object (this)
-    inherit [unit] Ast_visitor.visitor as super
+    inherit Ast_visitor.visitor as super
 
     val mutable current_node = Loc.none
 
@@ -18,21 +18,21 @@ class type_alias_graph_builder ~cx ~graph =
       node_to_alias <- LocMap.add loc alias node_to_alias;
       LocGraph.add_node ~graph loc
 
-    method! type_declaration acc decl =
+    method! type_declaration decl =
       match decl with
       | { name; decl = Alias ty; _ } as alias ->
         this#add_node name.loc alias;
-        this#type_ acc ty
+        this#type_ ty
       | _ -> ()
 
-    method! identifier_type acc id =
+    method! identifier_type id =
       let open Ast.Type.Identifier in
       let { name = { name = { loc; _ }; _ }; _ } = id in
       let type_binding = Type_context.get_type_binding ~cx loc in
       (match type_binding.declaration with
       | TypeAlias _ -> LocGraph.add_edge ~graph type_binding.loc current_node
       | _ -> ());
-      super#identifier_type acc id
+      super#identifier_type id
   end
 
 let order_type_aliases ~cx modules =
@@ -44,7 +44,7 @@ let order_type_aliases ~cx modules =
       List.iter
         (fun toplevel ->
           match toplevel with
-          | Ast.Module.TypeDeclaration decl -> alias_graph_builder#type_declaration () decl
+          | Ast.Module.TypeDeclaration decl -> alias_graph_builder#type_declaration decl
           | _ -> ())
         toplevels)
     modules;
