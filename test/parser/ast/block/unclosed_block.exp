@@ -1,4 +1,0 @@
-Error: Unexpected <EOF>
-test/parser/ast/block/unclosed_block.myte:3:12-12
- 3 | fun main() {
-   |             ^

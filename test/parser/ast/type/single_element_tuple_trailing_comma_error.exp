@@ -1,4 +1,0 @@
-Error: Unexpected token `,`, expected `)`
-test/parser/ast/type/single_element_tuple_trailing_comma_error.myte:3:19
- 3 | type alias t = (Int,)
-   |                    ^

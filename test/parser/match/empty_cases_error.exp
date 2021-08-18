@@ -1,0 +1,4 @@
+Error: Unexpected token `}`, expected start of pattern
+test/parser/match/empty_cases_error.myte:4:13
+ 4 |   match (x) {}
+   |              ^

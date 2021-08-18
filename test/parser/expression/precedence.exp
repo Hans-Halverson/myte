@@ -1,0 +1,6159 @@
+test/parser/expression/precedence.myte
+{
+  node: Module,
+  loc: 1:0-243:0,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "Test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: Function,
+      loc: 3:0-242:1,
+      name: {
+        node: Identifier,
+        loc: 3:4-3:8,
+        name: "main",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 3:11-242:1,
+        statements: [
+          {
+            node: ExpressionStatement,
+            loc: 5:2-5:59,
+            expression: {
+              node: Ternary,
+              loc: 5:2-5:58,
+              test: {
+                node: LogicalOr,
+                loc: 5:2-5:50,
+                left: {
+                  node: LogicalAnd,
+                  loc: 5:2-5:45,
+                  left: {
+                    node: BinaryOperation,
+                    loc: 5:2-5:40,
+                    op: Equal,
+                    left: {
+                      node: BinaryOperation,
+                      loc: 5:2-5:35,
+                      op: LessThan,
+                      left: {
+                        node: BinaryOperation,
+                        loc: 5:2-5:31,
+                        op: BitwiseOr,
+                        left: {
+                          node: BinaryOperation,
+                          loc: 5:2-5:27,
+                          op: BitwiseXor,
+                          left: {
+                            node: BinaryOperation,
+                            loc: 5:2-5:23,
+                            op: BitwiseAnd,
+                            left: {
+                              node: BinaryOperation,
+                              loc: 5:2-5:19,
+                              op: LeftShift,
+                              left: {
+                                node: BinaryOperation,
+                                loc: 5:2-5:14,
+                                op: Add,
+                                left: {
+                                  node: BinaryOperation,
+                                  loc: 5:2-5:10,
+                                  op: Multiply,
+                                  left: {
+                                    node: UnaryOperation,
+                                    loc: 5:2-5:6,
+                                    op: Plus,
+                                    operand: {
+                                      node: Call,
+                                      loc: 5:3-5:6,
+                                      func: {
+                                        node: Identifier,
+                                        loc: 5:3-5:4,
+                                        name: "a",
+                                      },
+                                      args: [],
+                                    },
+                                  },
+                                  right: {
+                                    node: Identifier,
+                                    loc: 5:9-5:10,
+                                    name: "b",
+                                  },
+                                },
+                                right: {
+                                  node: Identifier,
+                                  loc: 5:13-5:14,
+                                  name: "c",
+                                },
+                              },
+                              right: {
+                                node: Identifier,
+                                loc: 5:18-5:19,
+                                name: "d",
+                              },
+                            },
+                            right: {
+                              node: Identifier,
+                              loc: 5:22-5:23,
+                              name: "e",
+                            },
+                          },
+                          right: {
+                            node: Identifier,
+                            loc: 5:26-5:27,
+                            name: "f",
+                          },
+                        },
+                        right: {
+                          node: Identifier,
+                          loc: 5:30-5:31,
+                          name: "g",
+                        },
+                      },
+                      right: {
+                        node: Identifier,
+                        loc: 5:34-5:35,
+                        name: "h",
+                      },
+                    },
+                    right: {
+                      node: Identifier,
+                      loc: 5:39-5:40,
+                      name: "i",
+                    },
+                  },
+                  right: {
+                    node: Identifier,
+                    loc: 5:44-5:45,
+                    name: "j",
+                  },
+                },
+                right: {
+                  node: Identifier,
+                  loc: 5:49-5:50,
+                  name: "k",
+                },
+              },
+              conseq: {
+                node: Identifier,
+                loc: 5:53-5:54,
+                name: "l",
+              },
+              altern: {
+                node: Identifier,
+                loc: 5:57-5:58,
+                name: "m",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 6:2-6:56,
+            expression: {
+              node: Ternary,
+              loc: 6:2-6:55,
+              test: {
+                node: Identifier,
+                loc: 6:2-6:3,
+                name: "a",
+              },
+              conseq: {
+                node: Identifier,
+                loc: 6:6-6:7,
+                name: "b",
+              },
+              altern: {
+                node: LogicalOr,
+                loc: 6:10-6:55,
+                left: {
+                  node: Identifier,
+                  loc: 6:10-6:11,
+                  name: "c",
+                },
+                right: {
+                  node: LogicalAnd,
+                  loc: 6:15-6:55,
+                  left: {
+                    node: Identifier,
+                    loc: 6:15-6:16,
+                    name: "d",
+                  },
+                  right: {
+                    node: BinaryOperation,
+                    loc: 6:20-6:55,
+                    op: Equal,
+                    left: {
+                      node: Identifier,
+                      loc: 6:20-6:21,
+                      name: "e",
+                    },
+                    right: {
+                      node: BinaryOperation,
+                      loc: 6:25-6:55,
+                      op: LessThan,
+                      left: {
+                        node: Identifier,
+                        loc: 6:25-6:26,
+                        name: "f",
+                      },
+                      right: {
+                        node: BinaryOperation,
+                        loc: 6:29-6:55,
+                        op: BitwiseOr,
+                        left: {
+                          node: Identifier,
+                          loc: 6:29-6:30,
+                          name: "g",
+                        },
+                        right: {
+                          node: BinaryOperation,
+                          loc: 6:33-6:55,
+                          op: BitwiseXor,
+                          left: {
+                            node: Identifier,
+                            loc: 6:33-6:34,
+                            name: "h",
+                          },
+                          right: {
+                            node: BinaryOperation,
+                            loc: 6:37-6:55,
+                            op: BitwiseAnd,
+                            left: {
+                              node: Identifier,
+                              loc: 6:37-6:38,
+                              name: "i",
+                            },
+                            right: {
+                              node: BinaryOperation,
+                              loc: 6:41-6:55,
+                              op: LeftShift,
+                              left: {
+                                node: Identifier,
+                                loc: 6:41-6:42,
+                                name: "j",
+                              },
+                              right: {
+                                node: BinaryOperation,
+                                loc: 6:46-6:55,
+                                op: Add,
+                                left: {
+                                  node: Identifier,
+                                  loc: 6:46-6:47,
+                                  name: "k",
+                                },
+                                right: {
+                                  node: BinaryOperation,
+                                  loc: 6:50-6:55,
+                                  op: Multiply,
+                                  left: {
+                                    node: Identifier,
+                                    loc: 6:50-6:51,
+                                    name: "l",
+                                  },
+                                  right: {
+                                    node: Identifier,
+                                    loc: 6:54-6:55,
+                                    name: "m",
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 9:2-9:12,
+            expression: {
+              node: Call,
+              loc: 9:2-9:11,
+              func: {
+                node: Identifier,
+                loc: 9:2-9:3,
+                name: "a",
+              },
+              args: [
+                {
+                  node: Call,
+                  loc: 9:4-9:10,
+                  func: {
+                    node: Identifier,
+                    loc: 9:5-9:6,
+                    name: "b",
+                  },
+                  args: [
+                    {
+                      node: Identifier,
+                      loc: 9:8-9:9,
+                      name: "c",
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 10:2-10:12,
+            expression: {
+              node: Call,
+              loc: 10:2-10:11,
+              func: {
+                node: Call,
+                loc: 10:3-10:7,
+                func: {
+                  node: Identifier,
+                  loc: 10:3-10:4,
+                  name: "a",
+                },
+                args: [
+                  {
+                    node: Identifier,
+                    loc: 10:5-10:6,
+                    name: "b",
+                  },
+                ],
+              },
+              args: [
+                {
+                  node: Identifier,
+                  loc: 10:9-10:10,
+                  name: "c",
+                },
+              ],
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 11:2-11:10,
+            expression: {
+              node: NamedAccess,
+              loc: 11:2-11:9,
+              target: {
+                node: NamedAccess,
+                loc: 11:3-11:6,
+                target: {
+                  node: Identifier,
+                  loc: 11:3-11:4,
+                  name: "a",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 11:5-11:6,
+                  name: "b",
+                },
+              },
+              name: {
+                node: Identifier,
+                loc: 11:8-11:9,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 12:2-12:14,
+            expression: {
+              node: BinaryOperation,
+              loc: 12:2-12:13,
+              op: Multiply,
+              left: {
+                node: Identifier,
+                loc: 12:2-12:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 12:7-12:12,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 12:7-12:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 12:11-12:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 13:2-13:14,
+            expression: {
+              node: BinaryOperation,
+              loc: 13:2-13:13,
+              op: Multiply,
+              left: {
+                node: BinaryOperation,
+                loc: 13:3-13:8,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 13:3-13:4,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 13:7-13:8,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 13:12-13:13,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 14:2-14:14,
+            expression: {
+              node: BinaryOperation,
+              loc: 14:2-14:13,
+              op: Add,
+              left: {
+                node: Identifier,
+                loc: 14:2-14:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 14:7-14:12,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 14:7-14:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 14:11-14:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 15:2-15:14,
+            expression: {
+              node: BinaryOperation,
+              loc: 15:2-15:13,
+              op: Add,
+              left: {
+                node: BinaryOperation,
+                loc: 15:3-15:8,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 15:3-15:4,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 15:7-15:8,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 15:12-15:13,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 16:2-16:16,
+            expression: {
+              node: BinaryOperation,
+              loc: 16:2-16:15,
+              op: LeftShift,
+              left: {
+                node: Identifier,
+                loc: 16:2-16:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 16:8-16:14,
+                op: LeftShift,
+                left: {
+                  node: Identifier,
+                  loc: 16:8-16:9,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 16:13-16:14,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 17:2-17:16,
+            expression: {
+              node: BinaryOperation,
+              loc: 17:2-17:15,
+              op: LeftShift,
+              left: {
+                node: BinaryOperation,
+                loc: 17:3-17:9,
+                op: LeftShift,
+                left: {
+                  node: Identifier,
+                  loc: 17:3-17:4,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 17:8-17:9,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 17:14-17:15,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 18:2-18:14,
+            expression: {
+              node: BinaryOperation,
+              loc: 18:2-18:13,
+              op: BitwiseAnd,
+              left: {
+                node: Identifier,
+                loc: 18:2-18:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 18:7-18:12,
+                op: BitwiseAnd,
+                left: {
+                  node: Identifier,
+                  loc: 18:7-18:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 18:11-18:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 19:2-19:14,
+            expression: {
+              node: BinaryOperation,
+              loc: 19:2-19:13,
+              op: BitwiseAnd,
+              left: {
+                node: BinaryOperation,
+                loc: 19:3-19:8,
+                op: BitwiseAnd,
+                left: {
+                  node: Identifier,
+                  loc: 19:3-19:4,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 19:7-19:8,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 19:12-19:13,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 20:2-20:14,
+            expression: {
+              node: BinaryOperation,
+              loc: 20:2-20:13,
+              op: BitwiseXor,
+              left: {
+                node: Identifier,
+                loc: 20:2-20:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 20:7-20:12,
+                op: BitwiseXor,
+                left: {
+                  node: Identifier,
+                  loc: 20:7-20:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 20:11-20:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 21:2-21:14,
+            expression: {
+              node: BinaryOperation,
+              loc: 21:2-21:13,
+              op: BitwiseXor,
+              left: {
+                node: BinaryOperation,
+                loc: 21:3-21:8,
+                op: BitwiseXor,
+                left: {
+                  node: Identifier,
+                  loc: 21:3-21:4,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 21:7-21:8,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 21:12-21:13,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 22:2-22:14,
+            expression: {
+              node: BinaryOperation,
+              loc: 22:2-22:13,
+              op: BitwiseOr,
+              left: {
+                node: Identifier,
+                loc: 22:2-22:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 22:7-22:12,
+                op: BitwiseOr,
+                left: {
+                  node: Identifier,
+                  loc: 22:7-22:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 22:11-22:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 23:2-23:14,
+            expression: {
+              node: BinaryOperation,
+              loc: 23:2-23:13,
+              op: BitwiseOr,
+              left: {
+                node: BinaryOperation,
+                loc: 23:3-23:8,
+                op: BitwiseOr,
+                left: {
+                  node: Identifier,
+                  loc: 23:3-23:4,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 23:7-23:8,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 23:12-23:13,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 24:2-24:14,
+            expression: {
+              node: BinaryOperation,
+              loc: 24:2-24:13,
+              op: LessThan,
+              left: {
+                node: Identifier,
+                loc: 24:2-24:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 24:7-24:12,
+                op: LessThan,
+                left: {
+                  node: Identifier,
+                  loc: 24:7-24:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 24:11-24:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 25:2-25:14,
+            expression: {
+              node: BinaryOperation,
+              loc: 25:2-25:13,
+              op: LessThan,
+              left: {
+                node: BinaryOperation,
+                loc: 25:3-25:8,
+                op: LessThan,
+                left: {
+                  node: Identifier,
+                  loc: 25:3-25:4,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 25:7-25:8,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 25:12-25:13,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 26:2-26:16,
+            expression: {
+              node: BinaryOperation,
+              loc: 26:2-26:15,
+              op: Equal,
+              left: {
+                node: Identifier,
+                loc: 26:2-26:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 26:8-26:14,
+                op: Equal,
+                left: {
+                  node: Identifier,
+                  loc: 26:8-26:9,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 26:13-26:14,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 27:2-27:16,
+            expression: {
+              node: BinaryOperation,
+              loc: 27:2-27:15,
+              op: Equal,
+              left: {
+                node: BinaryOperation,
+                loc: 27:3-27:9,
+                op: Equal,
+                left: {
+                  node: Identifier,
+                  loc: 27:3-27:4,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 27:8-27:9,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 27:14-27:15,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 28:2-28:16,
+            expression: {
+              node: LogicalAnd,
+              loc: 28:2-28:15,
+              left: {
+                node: Identifier,
+                loc: 28:2-28:3,
+                name: "a",
+              },
+              right: {
+                node: LogicalAnd,
+                loc: 28:8-28:14,
+                left: {
+                  node: Identifier,
+                  loc: 28:8-28:9,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 28:13-28:14,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 29:2-29:16,
+            expression: {
+              node: LogicalAnd,
+              loc: 29:2-29:15,
+              left: {
+                node: LogicalAnd,
+                loc: 29:3-29:9,
+                left: {
+                  node: Identifier,
+                  loc: 29:3-29:4,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 29:8-29:9,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 29:14-29:15,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 30:2-30:16,
+            expression: {
+              node: LogicalOr,
+              loc: 30:2-30:15,
+              left: {
+                node: Identifier,
+                loc: 30:2-30:3,
+                name: "a",
+              },
+              right: {
+                node: LogicalOr,
+                loc: 30:8-30:14,
+                left: {
+                  node: Identifier,
+                  loc: 30:8-30:9,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 30:13-30:14,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 31:2-31:16,
+            expression: {
+              node: LogicalOr,
+              loc: 31:2-31:15,
+              left: {
+                node: LogicalOr,
+                loc: 31:3-31:9,
+                left: {
+                  node: Identifier,
+                  loc: 31:3-31:4,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 31:8-31:9,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 31:14-31:15,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 34:2-34:7,
+            expression: {
+              node: UnaryOperation,
+              loc: 34:2-34:6,
+              op: Plus,
+              operand: {
+                node: Call,
+                loc: 34:3-34:6,
+                func: {
+                  node: Identifier,
+                  loc: 34:3-34:4,
+                  name: "a",
+                },
+                args: [],
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 35:2-35:10,
+            expression: {
+              node: Call,
+              loc: 35:2-35:9,
+              func: {
+                node: NamedAccess,
+                loc: 35:2-35:7,
+                target: {
+                  node: Call,
+                  loc: 35:2-35:5,
+                  func: {
+                    node: Identifier,
+                    loc: 35:2-35:3,
+                    name: "a",
+                  },
+                  args: [],
+                },
+                name: {
+                  node: Identifier,
+                  loc: 35:6-35:7,
+                  name: "b",
+                },
+              },
+              args: [],
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 36:2-36:10,
+            expression: {
+              node: BinaryOperation,
+              loc: 36:2-36:9,
+              op: Multiply,
+              left: {
+                node: Identifier,
+                loc: 36:2-36:3,
+                name: "a",
+              },
+              right: {
+                node: Call,
+                loc: 36:6-36:9,
+                func: {
+                  node: Identifier,
+                  loc: 36:6-36:7,
+                  name: "b",
+                },
+                args: [],
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 37:2-37:10,
+            expression: {
+              node: BinaryOperation,
+              loc: 37:2-37:9,
+              op: Add,
+              left: {
+                node: Identifier,
+                loc: 37:2-37:3,
+                name: "a",
+              },
+              right: {
+                node: Call,
+                loc: 37:6-37:9,
+                func: {
+                  node: Identifier,
+                  loc: 37:6-37:7,
+                  name: "b",
+                },
+                args: [],
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 38:2-38:11,
+            expression: {
+              node: BinaryOperation,
+              loc: 38:2-38:10,
+              op: LeftShift,
+              left: {
+                node: Identifier,
+                loc: 38:2-38:3,
+                name: "a",
+              },
+              right: {
+                node: Call,
+                loc: 38:7-38:10,
+                func: {
+                  node: Identifier,
+                  loc: 38:7-38:8,
+                  name: "b",
+                },
+                args: [],
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 39:2-39:10,
+            expression: {
+              node: BinaryOperation,
+              loc: 39:2-39:9,
+              op: BitwiseAnd,
+              left: {
+                node: Identifier,
+                loc: 39:2-39:3,
+                name: "a",
+              },
+              right: {
+                node: Call,
+                loc: 39:6-39:9,
+                func: {
+                  node: Identifier,
+                  loc: 39:6-39:7,
+                  name: "b",
+                },
+                args: [],
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 40:2-40:10,
+            expression: {
+              node: BinaryOperation,
+              loc: 40:2-40:9,
+              op: BitwiseXor,
+              left: {
+                node: Identifier,
+                loc: 40:2-40:3,
+                name: "a",
+              },
+              right: {
+                node: Call,
+                loc: 40:6-40:9,
+                func: {
+                  node: Identifier,
+                  loc: 40:6-40:7,
+                  name: "b",
+                },
+                args: [],
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 41:2-41:10,
+            expression: {
+              node: BinaryOperation,
+              loc: 41:2-41:9,
+              op: BitwiseOr,
+              left: {
+                node: Identifier,
+                loc: 41:2-41:3,
+                name: "a",
+              },
+              right: {
+                node: Call,
+                loc: 41:6-41:9,
+                func: {
+                  node: Identifier,
+                  loc: 41:6-41:7,
+                  name: "b",
+                },
+                args: [],
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 42:2-42:10,
+            expression: {
+              node: BinaryOperation,
+              loc: 42:2-42:9,
+              op: LessThan,
+              left: {
+                node: Identifier,
+                loc: 42:2-42:3,
+                name: "a",
+              },
+              right: {
+                node: Call,
+                loc: 42:6-42:9,
+                func: {
+                  node: Identifier,
+                  loc: 42:6-42:7,
+                  name: "b",
+                },
+                args: [],
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 43:2-43:11,
+            expression: {
+              node: BinaryOperation,
+              loc: 43:2-43:10,
+              op: Equal,
+              left: {
+                node: Identifier,
+                loc: 43:2-43:3,
+                name: "a",
+              },
+              right: {
+                node: Call,
+                loc: 43:7-43:10,
+                func: {
+                  node: Identifier,
+                  loc: 43:7-43:8,
+                  name: "b",
+                },
+                args: [],
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 44:2-44:11,
+            expression: {
+              node: LogicalAnd,
+              loc: 44:2-44:10,
+              left: {
+                node: Identifier,
+                loc: 44:2-44:3,
+                name: "a",
+              },
+              right: {
+                node: Call,
+                loc: 44:7-44:10,
+                func: {
+                  node: Identifier,
+                  loc: 44:7-44:8,
+                  name: "b",
+                },
+                args: [],
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 45:2-45:11,
+            expression: {
+              node: LogicalOr,
+              loc: 45:2-45:10,
+              left: {
+                node: Identifier,
+                loc: 45:2-45:3,
+                name: "a",
+              },
+              right: {
+                node: Call,
+                loc: 45:7-45:10,
+                func: {
+                  node: Identifier,
+                  loc: 45:7-45:8,
+                  name: "b",
+                },
+                args: [],
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 46:2-46:14,
+            expression: {
+              node: Ternary,
+              loc: 46:2-46:13,
+              test: {
+                node: Identifier,
+                loc: 46:2-46:3,
+                name: "a",
+              },
+              conseq: {
+                node: Identifier,
+                loc: 46:6-46:7,
+                name: "b",
+              },
+              altern: {
+                node: Call,
+                loc: 46:10-46:13,
+                func: {
+                  node: Identifier,
+                  loc: 46:10-46:11,
+                  name: "c",
+                },
+                args: [],
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 49:2-49:7,
+            expression: {
+              node: UnaryOperation,
+              loc: 49:2-49:6,
+              op: Plus,
+              operand: {
+                node: NamedAccess,
+                loc: 49:3-49:6,
+                target: {
+                  node: Identifier,
+                  loc: 49:3-49:4,
+                  name: "a",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 49:5-49:6,
+                  name: "b",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 50:2-50:10,
+            expression: {
+              node: BinaryOperation,
+              loc: 50:2-50:9,
+              op: Multiply,
+              left: {
+                node: NamedAccess,
+                loc: 50:2-50:5,
+                target: {
+                  node: Identifier,
+                  loc: 50:2-50:3,
+                  name: "a",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 50:4-50:5,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 50:8-50:9,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 51:2-51:10,
+            expression: {
+              node: BinaryOperation,
+              loc: 51:2-51:9,
+              op: Multiply,
+              left: {
+                node: Identifier,
+                loc: 51:2-51:3,
+                name: "a",
+              },
+              right: {
+                node: NamedAccess,
+                loc: 51:6-51:9,
+                target: {
+                  node: Identifier,
+                  loc: 51:6-51:7,
+                  name: "b",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 51:8-51:9,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 52:2-52:10,
+            expression: {
+              node: BinaryOperation,
+              loc: 52:2-52:9,
+              op: Add,
+              left: {
+                node: NamedAccess,
+                loc: 52:2-52:5,
+                target: {
+                  node: Identifier,
+                  loc: 52:2-52:3,
+                  name: "a",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 52:4-52:5,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 52:8-52:9,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 53:2-53:10,
+            expression: {
+              node: BinaryOperation,
+              loc: 53:2-53:9,
+              op: Add,
+              left: {
+                node: Identifier,
+                loc: 53:2-53:3,
+                name: "a",
+              },
+              right: {
+                node: NamedAccess,
+                loc: 53:6-53:9,
+                target: {
+                  node: Identifier,
+                  loc: 53:6-53:7,
+                  name: "b",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 53:8-53:9,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 54:2-54:11,
+            expression: {
+              node: BinaryOperation,
+              loc: 54:2-54:10,
+              op: LeftShift,
+              left: {
+                node: NamedAccess,
+                loc: 54:2-54:5,
+                target: {
+                  node: Identifier,
+                  loc: 54:2-54:3,
+                  name: "a",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 54:4-54:5,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 54:9-54:10,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 55:2-55:11,
+            expression: {
+              node: BinaryOperation,
+              loc: 55:2-55:10,
+              op: LeftShift,
+              left: {
+                node: Identifier,
+                loc: 55:2-55:3,
+                name: "a",
+              },
+              right: {
+                node: NamedAccess,
+                loc: 55:7-55:10,
+                target: {
+                  node: Identifier,
+                  loc: 55:7-55:8,
+                  name: "b",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 55:9-55:10,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 56:2-56:10,
+            expression: {
+              node: BinaryOperation,
+              loc: 56:2-56:9,
+              op: BitwiseAnd,
+              left: {
+                node: NamedAccess,
+                loc: 56:2-56:5,
+                target: {
+                  node: Identifier,
+                  loc: 56:2-56:3,
+                  name: "a",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 56:4-56:5,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 56:8-56:9,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 57:2-57:10,
+            expression: {
+              node: BinaryOperation,
+              loc: 57:2-57:9,
+              op: BitwiseAnd,
+              left: {
+                node: Identifier,
+                loc: 57:2-57:3,
+                name: "a",
+              },
+              right: {
+                node: NamedAccess,
+                loc: 57:6-57:9,
+                target: {
+                  node: Identifier,
+                  loc: 57:6-57:7,
+                  name: "b",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 57:8-57:9,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 58:2-58:10,
+            expression: {
+              node: BinaryOperation,
+              loc: 58:2-58:9,
+              op: BitwiseXor,
+              left: {
+                node: NamedAccess,
+                loc: 58:2-58:5,
+                target: {
+                  node: Identifier,
+                  loc: 58:2-58:3,
+                  name: "a",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 58:4-58:5,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 58:8-58:9,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 59:2-59:10,
+            expression: {
+              node: BinaryOperation,
+              loc: 59:2-59:9,
+              op: BitwiseXor,
+              left: {
+                node: Identifier,
+                loc: 59:2-59:3,
+                name: "a",
+              },
+              right: {
+                node: NamedAccess,
+                loc: 59:6-59:9,
+                target: {
+                  node: Identifier,
+                  loc: 59:6-59:7,
+                  name: "b",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 59:8-59:9,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 60:2-60:10,
+            expression: {
+              node: BinaryOperation,
+              loc: 60:2-60:9,
+              op: BitwiseOr,
+              left: {
+                node: NamedAccess,
+                loc: 60:2-60:5,
+                target: {
+                  node: Identifier,
+                  loc: 60:2-60:3,
+                  name: "a",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 60:4-60:5,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 60:8-60:9,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 61:2-61:10,
+            expression: {
+              node: BinaryOperation,
+              loc: 61:2-61:9,
+              op: BitwiseOr,
+              left: {
+                node: Identifier,
+                loc: 61:2-61:3,
+                name: "a",
+              },
+              right: {
+                node: NamedAccess,
+                loc: 61:6-61:9,
+                target: {
+                  node: Identifier,
+                  loc: 61:6-61:7,
+                  name: "b",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 61:8-61:9,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 62:2-62:10,
+            expression: {
+              node: BinaryOperation,
+              loc: 62:2-62:9,
+              op: LessThan,
+              left: {
+                node: NamedAccess,
+                loc: 62:2-62:5,
+                target: {
+                  node: Identifier,
+                  loc: 62:2-62:3,
+                  name: "a",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 62:4-62:5,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 62:8-62:9,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 63:2-63:10,
+            expression: {
+              node: BinaryOperation,
+              loc: 63:2-63:9,
+              op: LessThan,
+              left: {
+                node: Identifier,
+                loc: 63:2-63:3,
+                name: "a",
+              },
+              right: {
+                node: NamedAccess,
+                loc: 63:6-63:9,
+                target: {
+                  node: Identifier,
+                  loc: 63:6-63:7,
+                  name: "b",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 63:8-63:9,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 64:2-64:11,
+            expression: {
+              node: BinaryOperation,
+              loc: 64:2-64:10,
+              op: Equal,
+              left: {
+                node: NamedAccess,
+                loc: 64:2-64:5,
+                target: {
+                  node: Identifier,
+                  loc: 64:2-64:3,
+                  name: "a",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 64:4-64:5,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 64:9-64:10,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 65:2-65:11,
+            expression: {
+              node: BinaryOperation,
+              loc: 65:2-65:10,
+              op: Equal,
+              left: {
+                node: Identifier,
+                loc: 65:2-65:3,
+                name: "a",
+              },
+              right: {
+                node: NamedAccess,
+                loc: 65:7-65:10,
+                target: {
+                  node: Identifier,
+                  loc: 65:7-65:8,
+                  name: "b",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 65:9-65:10,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 66:2-66:11,
+            expression: {
+              node: LogicalAnd,
+              loc: 66:2-66:10,
+              left: {
+                node: NamedAccess,
+                loc: 66:2-66:5,
+                target: {
+                  node: Identifier,
+                  loc: 66:2-66:3,
+                  name: "a",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 66:4-66:5,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 66:9-66:10,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 67:2-67:11,
+            expression: {
+              node: LogicalAnd,
+              loc: 67:2-67:10,
+              left: {
+                node: Identifier,
+                loc: 67:2-67:3,
+                name: "a",
+              },
+              right: {
+                node: NamedAccess,
+                loc: 67:7-67:10,
+                target: {
+                  node: Identifier,
+                  loc: 67:7-67:8,
+                  name: "b",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 67:9-67:10,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 68:2-68:11,
+            expression: {
+              node: LogicalOr,
+              loc: 68:2-68:10,
+              left: {
+                node: NamedAccess,
+                loc: 68:2-68:5,
+                target: {
+                  node: Identifier,
+                  loc: 68:2-68:3,
+                  name: "a",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 68:4-68:5,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 68:9-68:10,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 69:2-69:11,
+            expression: {
+              node: LogicalOr,
+              loc: 69:2-69:10,
+              left: {
+                node: Identifier,
+                loc: 69:2-69:3,
+                name: "a",
+              },
+              right: {
+                node: NamedAccess,
+                loc: 69:7-69:10,
+                target: {
+                  node: Identifier,
+                  loc: 69:7-69:8,
+                  name: "b",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 69:9-69:10,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 70:2-70:14,
+            expression: {
+              node: Ternary,
+              loc: 70:2-70:13,
+              test: {
+                node: NamedAccess,
+                loc: 70:2-70:5,
+                target: {
+                  node: Identifier,
+                  loc: 70:2-70:3,
+                  name: "a",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 70:4-70:5,
+                  name: "b",
+                },
+              },
+              conseq: {
+                node: Identifier,
+                loc: 70:8-70:9,
+                name: "c",
+              },
+              altern: {
+                node: Identifier,
+                loc: 70:12-70:13,
+                name: "d",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 71:2-71:14,
+            expression: {
+              node: Ternary,
+              loc: 71:2-71:13,
+              test: {
+                node: Identifier,
+                loc: 71:2-71:3,
+                name: "a",
+              },
+              conseq: {
+                node: NamedAccess,
+                loc: 71:6-71:9,
+                target: {
+                  node: Identifier,
+                  loc: 71:6-71:7,
+                  name: "b",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 71:8-71:9,
+                  name: "c",
+                },
+              },
+              altern: {
+                node: Identifier,
+                loc: 71:12-71:13,
+                name: "d",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 72:2-72:14,
+            expression: {
+              node: Ternary,
+              loc: 72:2-72:13,
+              test: {
+                node: Identifier,
+                loc: 72:2-72:3,
+                name: "a",
+              },
+              conseq: {
+                node: Identifier,
+                loc: 72:6-72:7,
+                name: "b",
+              },
+              altern: {
+                node: NamedAccess,
+                loc: 72:10-72:13,
+                target: {
+                  node: Identifier,
+                  loc: 72:10-72:11,
+                  name: "c",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 72:12-72:13,
+                  name: "d",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 74:2-74:8,
+            expression: {
+              node: UnaryOperation,
+              loc: 74:2-74:7,
+              op: Plus,
+              operand: {
+                node: IndexedAccess,
+                loc: 74:3-74:7,
+                target: {
+                  node: Identifier,
+                  loc: 74:3-74:4,
+                  name: "a",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 74:5-74:6,
+                  name: "b",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 75:2-75:11,
+            expression: {
+              node: BinaryOperation,
+              loc: 75:2-75:10,
+              op: Multiply,
+              left: {
+                node: IndexedAccess,
+                loc: 75:2-75:6,
+                target: {
+                  node: Identifier,
+                  loc: 75:2-75:3,
+                  name: "a",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 75:4-75:5,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 75:9-75:10,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 76:2-76:11,
+            expression: {
+              node: BinaryOperation,
+              loc: 76:2-76:10,
+              op: Multiply,
+              left: {
+                node: Identifier,
+                loc: 76:2-76:3,
+                name: "a",
+              },
+              right: {
+                node: IndexedAccess,
+                loc: 76:6-76:10,
+                target: {
+                  node: Identifier,
+                  loc: 76:6-76:7,
+                  name: "b",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 76:8-76:9,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 77:2-77:11,
+            expression: {
+              node: BinaryOperation,
+              loc: 77:2-77:10,
+              op: Add,
+              left: {
+                node: IndexedAccess,
+                loc: 77:2-77:6,
+                target: {
+                  node: Identifier,
+                  loc: 77:2-77:3,
+                  name: "a",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 77:4-77:5,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 77:9-77:10,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 78:2-78:11,
+            expression: {
+              node: BinaryOperation,
+              loc: 78:2-78:10,
+              op: Add,
+              left: {
+                node: Identifier,
+                loc: 78:2-78:3,
+                name: "a",
+              },
+              right: {
+                node: IndexedAccess,
+                loc: 78:6-78:10,
+                target: {
+                  node: Identifier,
+                  loc: 78:6-78:7,
+                  name: "b",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 78:8-78:9,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 79:2-79:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 79:2-79:11,
+              op: LeftShift,
+              left: {
+                node: IndexedAccess,
+                loc: 79:2-79:6,
+                target: {
+                  node: Identifier,
+                  loc: 79:2-79:3,
+                  name: "a",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 79:4-79:5,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 79:10-79:11,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 80:2-80:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 80:2-80:11,
+              op: LeftShift,
+              left: {
+                node: Identifier,
+                loc: 80:2-80:3,
+                name: "a",
+              },
+              right: {
+                node: IndexedAccess,
+                loc: 80:7-80:11,
+                target: {
+                  node: Identifier,
+                  loc: 80:7-80:8,
+                  name: "b",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 80:9-80:10,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 81:2-81:11,
+            expression: {
+              node: BinaryOperation,
+              loc: 81:2-81:10,
+              op: BitwiseAnd,
+              left: {
+                node: IndexedAccess,
+                loc: 81:2-81:6,
+                target: {
+                  node: Identifier,
+                  loc: 81:2-81:3,
+                  name: "a",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 81:4-81:5,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 81:9-81:10,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 82:2-82:11,
+            expression: {
+              node: BinaryOperation,
+              loc: 82:2-82:10,
+              op: BitwiseAnd,
+              left: {
+                node: Identifier,
+                loc: 82:2-82:3,
+                name: "a",
+              },
+              right: {
+                node: IndexedAccess,
+                loc: 82:6-82:10,
+                target: {
+                  node: Identifier,
+                  loc: 82:6-82:7,
+                  name: "b",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 82:8-82:9,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 83:2-83:11,
+            expression: {
+              node: BinaryOperation,
+              loc: 83:2-83:10,
+              op: BitwiseXor,
+              left: {
+                node: IndexedAccess,
+                loc: 83:2-83:6,
+                target: {
+                  node: Identifier,
+                  loc: 83:2-83:3,
+                  name: "a",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 83:4-83:5,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 83:9-83:10,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 84:2-84:11,
+            expression: {
+              node: BinaryOperation,
+              loc: 84:2-84:10,
+              op: BitwiseXor,
+              left: {
+                node: Identifier,
+                loc: 84:2-84:3,
+                name: "a",
+              },
+              right: {
+                node: IndexedAccess,
+                loc: 84:6-84:10,
+                target: {
+                  node: Identifier,
+                  loc: 84:6-84:7,
+                  name: "b",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 84:8-84:9,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 85:2-85:11,
+            expression: {
+              node: BinaryOperation,
+              loc: 85:2-85:10,
+              op: BitwiseOr,
+              left: {
+                node: IndexedAccess,
+                loc: 85:2-85:6,
+                target: {
+                  node: Identifier,
+                  loc: 85:2-85:3,
+                  name: "a",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 85:4-85:5,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 85:9-85:10,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 86:2-86:11,
+            expression: {
+              node: BinaryOperation,
+              loc: 86:2-86:10,
+              op: BitwiseOr,
+              left: {
+                node: Identifier,
+                loc: 86:2-86:3,
+                name: "a",
+              },
+              right: {
+                node: IndexedAccess,
+                loc: 86:6-86:10,
+                target: {
+                  node: Identifier,
+                  loc: 86:6-86:7,
+                  name: "b",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 86:8-86:9,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 87:2-87:11,
+            expression: {
+              node: BinaryOperation,
+              loc: 87:2-87:10,
+              op: LessThan,
+              left: {
+                node: IndexedAccess,
+                loc: 87:2-87:6,
+                target: {
+                  node: Identifier,
+                  loc: 87:2-87:3,
+                  name: "a",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 87:4-87:5,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 87:9-87:10,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 88:2-88:11,
+            expression: {
+              node: BinaryOperation,
+              loc: 88:2-88:10,
+              op: LessThan,
+              left: {
+                node: Identifier,
+                loc: 88:2-88:3,
+                name: "a",
+              },
+              right: {
+                node: IndexedAccess,
+                loc: 88:6-88:10,
+                target: {
+                  node: Identifier,
+                  loc: 88:6-88:7,
+                  name: "b",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 88:8-88:9,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 89:2-89:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 89:2-89:11,
+              op: Equal,
+              left: {
+                node: IndexedAccess,
+                loc: 89:2-89:6,
+                target: {
+                  node: Identifier,
+                  loc: 89:2-89:3,
+                  name: "a",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 89:4-89:5,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 89:10-89:11,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 90:2-90:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 90:2-90:11,
+              op: Equal,
+              left: {
+                node: Identifier,
+                loc: 90:2-90:3,
+                name: "a",
+              },
+              right: {
+                node: IndexedAccess,
+                loc: 90:7-90:11,
+                target: {
+                  node: Identifier,
+                  loc: 90:7-90:8,
+                  name: "b",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 90:9-90:10,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 91:2-91:12,
+            expression: {
+              node: LogicalAnd,
+              loc: 91:2-91:11,
+              left: {
+                node: IndexedAccess,
+                loc: 91:2-91:6,
+                target: {
+                  node: Identifier,
+                  loc: 91:2-91:3,
+                  name: "a",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 91:4-91:5,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 91:10-91:11,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 92:2-92:12,
+            expression: {
+              node: LogicalAnd,
+              loc: 92:2-92:11,
+              left: {
+                node: Identifier,
+                loc: 92:2-92:3,
+                name: "a",
+              },
+              right: {
+                node: IndexedAccess,
+                loc: 92:7-92:11,
+                target: {
+                  node: Identifier,
+                  loc: 92:7-92:8,
+                  name: "b",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 92:9-92:10,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 93:2-93:12,
+            expression: {
+              node: LogicalOr,
+              loc: 93:2-93:11,
+              left: {
+                node: IndexedAccess,
+                loc: 93:2-93:6,
+                target: {
+                  node: Identifier,
+                  loc: 93:2-93:3,
+                  name: "a",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 93:4-93:5,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 93:10-93:11,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 94:2-94:12,
+            expression: {
+              node: LogicalOr,
+              loc: 94:2-94:11,
+              left: {
+                node: Identifier,
+                loc: 94:2-94:3,
+                name: "a",
+              },
+              right: {
+                node: IndexedAccess,
+                loc: 94:7-94:11,
+                target: {
+                  node: Identifier,
+                  loc: 94:7-94:8,
+                  name: "b",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 94:9-94:10,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 95:2-95:15,
+            expression: {
+              node: Ternary,
+              loc: 95:2-95:14,
+              test: {
+                node: IndexedAccess,
+                loc: 95:2-95:6,
+                target: {
+                  node: Identifier,
+                  loc: 95:2-95:3,
+                  name: "a",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 95:4-95:5,
+                  name: "b",
+                },
+              },
+              conseq: {
+                node: Identifier,
+                loc: 95:9-95:10,
+                name: "c",
+              },
+              altern: {
+                node: Identifier,
+                loc: 95:13-95:14,
+                name: "d",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 96:2-96:15,
+            expression: {
+              node: Ternary,
+              loc: 96:2-96:14,
+              test: {
+                node: Identifier,
+                loc: 96:2-96:3,
+                name: "a",
+              },
+              conseq: {
+                node: IndexedAccess,
+                loc: 96:6-96:10,
+                target: {
+                  node: Identifier,
+                  loc: 96:6-96:7,
+                  name: "b",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 96:8-96:9,
+                  name: "c",
+                },
+              },
+              altern: {
+                node: Identifier,
+                loc: 96:13-96:14,
+                name: "d",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 97:2-97:15,
+            expression: {
+              node: Ternary,
+              loc: 97:2-97:14,
+              test: {
+                node: Identifier,
+                loc: 97:2-97:3,
+                name: "a",
+              },
+              conseq: {
+                node: Identifier,
+                loc: 97:6-97:7,
+                name: "b",
+              },
+              altern: {
+                node: IndexedAccess,
+                loc: 97:10-97:14,
+                target: {
+                  node: Identifier,
+                  loc: 97:10-97:11,
+                  name: "c",
+                },
+                index: {
+                  node: Identifier,
+                  loc: 97:12-97:13,
+                  name: "d",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 100:2-100:11,
+            expression: {
+              node: UnaryOperation,
+              loc: 100:2-100:10,
+              op: Plus,
+              operand: {
+                node: BinaryOperation,
+                loc: 100:4-100:9,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 100:4-100:5,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 100:8-100:9,
+                  name: "b",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 101:2-101:9,
+            expression: {
+              node: BinaryOperation,
+              loc: 101:2-101:8,
+              op: Multiply,
+              left: {
+                node: UnaryOperation,
+                loc: 101:2-101:4,
+                op: Plus,
+                operand: {
+                  node: Identifier,
+                  loc: 101:3-101:4,
+                  name: "a",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 101:7-101:8,
+                name: "b",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 102:2-102:9,
+            expression: {
+              node: BinaryOperation,
+              loc: 102:2-102:8,
+              op: Add,
+              left: {
+                node: UnaryOperation,
+                loc: 102:2-102:4,
+                op: Plus,
+                operand: {
+                  node: Identifier,
+                  loc: 102:3-102:4,
+                  name: "a",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 102:7-102:8,
+                name: "b",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 103:2-103:11,
+            expression: {
+              node: BinaryOperation,
+              loc: 103:2-103:10,
+              op: LeftShift,
+              left: {
+                node: UnaryOperation,
+                loc: 103:2-103:4,
+                op: Plus,
+                operand: {
+                  node: Identifier,
+                  loc: 103:3-103:4,
+                  name: "a",
+                },
+              },
+              right: {
+                node: UnaryOperation,
+                loc: 103:8-103:10,
+                op: Plus,
+                operand: {
+                  node: Identifier,
+                  loc: 103:9-103:10,
+                  name: "b",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 104:2-104:10,
+            expression: {
+              node: BinaryOperation,
+              loc: 104:2-104:9,
+              op: BitwiseAnd,
+              left: {
+                node: UnaryOperation,
+                loc: 104:2-104:4,
+                op: Plus,
+                operand: {
+                  node: Identifier,
+                  loc: 104:3-104:4,
+                  name: "a",
+                },
+              },
+              right: {
+                node: UnaryOperation,
+                loc: 104:7-104:9,
+                op: Plus,
+                operand: {
+                  node: Identifier,
+                  loc: 104:8-104:9,
+                  name: "b",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 105:2-105:10,
+            expression: {
+              node: BinaryOperation,
+              loc: 105:2-105:9,
+              op: BitwiseXor,
+              left: {
+                node: UnaryOperation,
+                loc: 105:2-105:4,
+                op: Plus,
+                operand: {
+                  node: Identifier,
+                  loc: 105:3-105:4,
+                  name: "a",
+                },
+              },
+              right: {
+                node: UnaryOperation,
+                loc: 105:7-105:9,
+                op: Plus,
+                operand: {
+                  node: Identifier,
+                  loc: 105:8-105:9,
+                  name: "b",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 106:2-106:10,
+            expression: {
+              node: BinaryOperation,
+              loc: 106:2-106:9,
+              op: BitwiseOr,
+              left: {
+                node: UnaryOperation,
+                loc: 106:2-106:4,
+                op: Plus,
+                operand: {
+                  node: Identifier,
+                  loc: 106:3-106:4,
+                  name: "a",
+                },
+              },
+              right: {
+                node: UnaryOperation,
+                loc: 106:7-106:9,
+                op: Plus,
+                operand: {
+                  node: Identifier,
+                  loc: 106:8-106:9,
+                  name: "b",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 107:2-107:9,
+            expression: {
+              node: BinaryOperation,
+              loc: 107:2-107:8,
+              op: LessThan,
+              left: {
+                node: UnaryOperation,
+                loc: 107:2-107:4,
+                op: Plus,
+                operand: {
+                  node: Identifier,
+                  loc: 107:3-107:4,
+                  name: "a",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 107:7-107:8,
+                name: "b",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 108:2-108:10,
+            expression: {
+              node: BinaryOperation,
+              loc: 108:2-108:9,
+              op: Equal,
+              left: {
+                node: UnaryOperation,
+                loc: 108:2-108:4,
+                op: Plus,
+                operand: {
+                  node: Identifier,
+                  loc: 108:3-108:4,
+                  name: "a",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 108:8-108:9,
+                name: "b",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 109:2-109:10,
+            expression: {
+              node: LogicalAnd,
+              loc: 109:2-109:9,
+              left: {
+                node: UnaryOperation,
+                loc: 109:2-109:4,
+                op: Plus,
+                operand: {
+                  node: Identifier,
+                  loc: 109:3-109:4,
+                  name: "a",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 109:8-109:9,
+                name: "b",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 110:2-110:10,
+            expression: {
+              node: LogicalOr,
+              loc: 110:2-110:9,
+              left: {
+                node: UnaryOperation,
+                loc: 110:2-110:4,
+                op: Plus,
+                operand: {
+                  node: Identifier,
+                  loc: 110:3-110:4,
+                  name: "a",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 110:8-110:9,
+                name: "b",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 111:2-111:13,
+            expression: {
+              node: Ternary,
+              loc: 111:2-111:12,
+              test: {
+                node: UnaryOperation,
+                loc: 111:2-111:4,
+                op: Plus,
+                operand: {
+                  node: Identifier,
+                  loc: 111:3-111:4,
+                  name: "a",
+                },
+              },
+              conseq: {
+                node: Identifier,
+                loc: 111:7-111:8,
+                name: "b",
+              },
+              altern: {
+                node: Identifier,
+                loc: 111:11-111:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 114:2-114:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 114:2-114:11,
+              op: Add,
+              left: {
+                node: BinaryOperation,
+                loc: 114:2-114:7,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 114:2-114:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 114:6-114:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 114:10-114:11,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 115:2-115:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 115:2-115:11,
+              op: Add,
+              left: {
+                node: Identifier,
+                loc: 115:2-115:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 115:6-115:11,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 115:6-115:7,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 115:10-115:11,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 116:2-116:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 116:2-116:12,
+              op: LeftShift,
+              left: {
+                node: BinaryOperation,
+                loc: 116:2-116:7,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 116:2-116:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 116:6-116:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 116:11-116:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 117:2-117:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 117:2-117:12,
+              op: LeftShift,
+              left: {
+                node: Identifier,
+                loc: 117:2-117:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 117:7-117:12,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 117:7-117:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 117:11-117:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 118:2-118:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 118:2-118:11,
+              op: BitwiseAnd,
+              left: {
+                node: BinaryOperation,
+                loc: 118:2-118:7,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 118:2-118:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 118:6-118:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 118:10-118:11,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 119:2-119:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 119:2-119:11,
+              op: BitwiseAnd,
+              left: {
+                node: Identifier,
+                loc: 119:2-119:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 119:6-119:11,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 119:6-119:7,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 119:10-119:11,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 120:2-120:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 120:2-120:11,
+              op: BitwiseXor,
+              left: {
+                node: BinaryOperation,
+                loc: 120:2-120:7,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 120:2-120:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 120:6-120:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 120:10-120:11,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 121:2-121:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 121:2-121:11,
+              op: BitwiseXor,
+              left: {
+                node: Identifier,
+                loc: 121:2-121:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 121:6-121:11,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 121:6-121:7,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 121:10-121:11,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 122:2-122:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 122:2-122:11,
+              op: BitwiseOr,
+              left: {
+                node: BinaryOperation,
+                loc: 122:2-122:7,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 122:2-122:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 122:6-122:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 122:10-122:11,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 123:2-123:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 123:2-123:11,
+              op: BitwiseOr,
+              left: {
+                node: Identifier,
+                loc: 123:2-123:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 123:6-123:11,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 123:6-123:7,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 123:10-123:11,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 124:2-124:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 124:2-124:11,
+              op: LessThan,
+              left: {
+                node: BinaryOperation,
+                loc: 124:2-124:7,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 124:2-124:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 124:6-124:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 124:10-124:11,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 125:2-125:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 125:2-125:11,
+              op: LessThan,
+              left: {
+                node: Identifier,
+                loc: 125:2-125:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 125:6-125:11,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 125:6-125:7,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 125:10-125:11,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 126:2-126:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 126:2-126:12,
+              op: Equal,
+              left: {
+                node: BinaryOperation,
+                loc: 126:2-126:7,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 126:2-126:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 126:6-126:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 126:11-126:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 127:2-127:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 127:2-127:12,
+              op: Equal,
+              left: {
+                node: Identifier,
+                loc: 127:2-127:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 127:7-127:12,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 127:7-127:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 127:11-127:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 128:2-128:13,
+            expression: {
+              node: LogicalAnd,
+              loc: 128:2-128:12,
+              left: {
+                node: BinaryOperation,
+                loc: 128:2-128:7,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 128:2-128:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 128:6-128:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 128:11-128:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 129:2-129:13,
+            expression: {
+              node: LogicalAnd,
+              loc: 129:2-129:12,
+              left: {
+                node: Identifier,
+                loc: 129:2-129:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 129:7-129:12,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 129:7-129:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 129:11-129:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 130:2-130:13,
+            expression: {
+              node: LogicalOr,
+              loc: 130:2-130:12,
+              left: {
+                node: BinaryOperation,
+                loc: 130:2-130:7,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 130:2-130:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 130:6-130:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 130:11-130:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 131:2-131:13,
+            expression: {
+              node: LogicalOr,
+              loc: 131:2-131:12,
+              left: {
+                node: Identifier,
+                loc: 131:2-131:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 131:7-131:12,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 131:7-131:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 131:11-131:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 132:2-132:16,
+            expression: {
+              node: Ternary,
+              loc: 132:2-132:15,
+              test: {
+                node: BinaryOperation,
+                loc: 132:2-132:7,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 132:2-132:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 132:6-132:7,
+                  name: "b",
+                },
+              },
+              conseq: {
+                node: Identifier,
+                loc: 132:10-132:11,
+                name: "c",
+              },
+              altern: {
+                node: Identifier,
+                loc: 132:14-132:15,
+                name: "d",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 133:2-133:16,
+            expression: {
+              node: Ternary,
+              loc: 133:2-133:15,
+              test: {
+                node: Identifier,
+                loc: 133:2-133:3,
+                name: "a",
+              },
+              conseq: {
+                node: Identifier,
+                loc: 133:6-133:7,
+                name: "b",
+              },
+              altern: {
+                node: BinaryOperation,
+                loc: 133:10-133:15,
+                op: Multiply,
+                left: {
+                  node: Identifier,
+                  loc: 133:10-133:11,
+                  name: "c",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 133:14-133:15,
+                  name: "d",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 136:2-136:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 136:2-136:12,
+              op: LeftShift,
+              left: {
+                node: BinaryOperation,
+                loc: 136:2-136:7,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 136:2-136:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 136:6-136:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 136:11-136:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 137:2-137:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 137:2-137:12,
+              op: LeftShift,
+              left: {
+                node: Identifier,
+                loc: 137:2-137:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 137:7-137:12,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 137:7-137:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 137:11-137:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 138:2-138:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 138:2-138:11,
+              op: BitwiseAnd,
+              left: {
+                node: BinaryOperation,
+                loc: 138:2-138:7,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 138:2-138:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 138:6-138:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 138:10-138:11,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 139:2-139:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 139:2-139:11,
+              op: BitwiseAnd,
+              left: {
+                node: Identifier,
+                loc: 139:2-139:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 139:6-139:11,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 139:6-139:7,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 139:10-139:11,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 140:2-140:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 140:2-140:11,
+              op: BitwiseXor,
+              left: {
+                node: BinaryOperation,
+                loc: 140:2-140:7,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 140:2-140:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 140:6-140:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 140:10-140:11,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 141:2-141:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 141:2-141:11,
+              op: BitwiseXor,
+              left: {
+                node: Identifier,
+                loc: 141:2-141:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 141:6-141:11,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 141:6-141:7,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 141:10-141:11,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 142:2-142:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 142:2-142:11,
+              op: BitwiseOr,
+              left: {
+                node: BinaryOperation,
+                loc: 142:2-142:7,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 142:2-142:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 142:6-142:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 142:10-142:11,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 143:2-143:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 143:2-143:11,
+              op: BitwiseOr,
+              left: {
+                node: Identifier,
+                loc: 143:2-143:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 143:6-143:11,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 143:6-143:7,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 143:10-143:11,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 144:2-144:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 144:2-144:11,
+              op: LessThan,
+              left: {
+                node: BinaryOperation,
+                loc: 144:2-144:7,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 144:2-144:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 144:6-144:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 144:10-144:11,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 145:2-145:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 145:2-145:11,
+              op: LessThan,
+              left: {
+                node: Identifier,
+                loc: 145:2-145:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 145:6-145:11,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 145:6-145:7,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 145:10-145:11,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 146:2-146:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 146:2-146:12,
+              op: Equal,
+              left: {
+                node: BinaryOperation,
+                loc: 146:2-146:7,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 146:2-146:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 146:6-146:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 146:11-146:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 147:2-147:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 147:2-147:12,
+              op: Equal,
+              left: {
+                node: Identifier,
+                loc: 147:2-147:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 147:7-147:12,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 147:7-147:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 147:11-147:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 148:2-148:13,
+            expression: {
+              node: LogicalAnd,
+              loc: 148:2-148:12,
+              left: {
+                node: BinaryOperation,
+                loc: 148:2-148:7,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 148:2-148:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 148:6-148:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 148:11-148:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 149:2-149:13,
+            expression: {
+              node: LogicalAnd,
+              loc: 149:2-149:12,
+              left: {
+                node: Identifier,
+                loc: 149:2-149:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 149:7-149:12,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 149:7-149:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 149:11-149:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 150:2-150:13,
+            expression: {
+              node: LogicalOr,
+              loc: 150:2-150:12,
+              left: {
+                node: BinaryOperation,
+                loc: 150:2-150:7,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 150:2-150:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 150:6-150:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 150:11-150:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 151:2-151:13,
+            expression: {
+              node: LogicalOr,
+              loc: 151:2-151:12,
+              left: {
+                node: Identifier,
+                loc: 151:2-151:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 151:7-151:12,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 151:7-151:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 151:11-151:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 152:2-152:16,
+            expression: {
+              node: Ternary,
+              loc: 152:2-152:15,
+              test: {
+                node: BinaryOperation,
+                loc: 152:2-152:7,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 152:2-152:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 152:6-152:7,
+                  name: "b",
+                },
+              },
+              conseq: {
+                node: Identifier,
+                loc: 152:10-152:11,
+                name: "c",
+              },
+              altern: {
+                node: Identifier,
+                loc: 152:14-152:15,
+                name: "d",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 153:2-153:16,
+            expression: {
+              node: Ternary,
+              loc: 153:2-153:15,
+              test: {
+                node: Identifier,
+                loc: 153:2-153:3,
+                name: "a",
+              },
+              conseq: {
+                node: Identifier,
+                loc: 153:6-153:7,
+                name: "b",
+              },
+              altern: {
+                node: BinaryOperation,
+                loc: 153:10-153:15,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 153:10-153:11,
+                  name: "c",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 153:14-153:15,
+                  name: "d",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 156:2-156:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 156:2-156:12,
+              op: BitwiseAnd,
+              left: {
+                node: BinaryOperation,
+                loc: 156:2-156:8,
+                op: LeftShift,
+                left: {
+                  node: Identifier,
+                  loc: 156:2-156:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 156:7-156:8,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 156:11-156:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 157:2-157:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 157:2-157:12,
+              op: BitwiseAnd,
+              left: {
+                node: Identifier,
+                loc: 157:2-157:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 157:6-157:12,
+                op: LeftShift,
+                left: {
+                  node: Identifier,
+                  loc: 157:6-157:7,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 157:11-157:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 158:2-158:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 158:2-158:12,
+              op: BitwiseXor,
+              left: {
+                node: BinaryOperation,
+                loc: 158:2-158:8,
+                op: LeftShift,
+                left: {
+                  node: Identifier,
+                  loc: 158:2-158:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 158:7-158:8,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 158:11-158:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 159:2-159:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 159:2-159:12,
+              op: BitwiseXor,
+              left: {
+                node: Identifier,
+                loc: 159:2-159:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 159:6-159:12,
+                op: LeftShift,
+                left: {
+                  node: Identifier,
+                  loc: 159:6-159:7,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 159:11-159:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 160:2-160:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 160:2-160:12,
+              op: BitwiseOr,
+              left: {
+                node: BinaryOperation,
+                loc: 160:2-160:8,
+                op: LeftShift,
+                left: {
+                  node: Identifier,
+                  loc: 160:2-160:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 160:7-160:8,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 160:11-160:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 161:2-161:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 161:2-161:12,
+              op: BitwiseOr,
+              left: {
+                node: Identifier,
+                loc: 161:2-161:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 161:6-161:12,
+                op: LeftShift,
+                left: {
+                  node: Identifier,
+                  loc: 161:6-161:7,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 161:11-161:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 162:2-162:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 162:2-162:12,
+              op: LessThan,
+              left: {
+                node: BinaryOperation,
+                loc: 162:2-162:8,
+                op: LeftShift,
+                left: {
+                  node: Identifier,
+                  loc: 162:2-162:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 162:7-162:8,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 162:11-162:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 163:2-163:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 163:2-163:12,
+              op: LessThan,
+              left: {
+                node: Identifier,
+                loc: 163:2-163:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 163:6-163:12,
+                op: LeftShift,
+                left: {
+                  node: Identifier,
+                  loc: 163:6-163:7,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 163:11-163:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 164:2-164:14,
+            expression: {
+              node: BinaryOperation,
+              loc: 164:2-164:13,
+              op: Equal,
+              left: {
+                node: BinaryOperation,
+                loc: 164:2-164:8,
+                op: LeftShift,
+                left: {
+                  node: Identifier,
+                  loc: 164:2-164:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 164:7-164:8,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 164:12-164:13,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 165:2-165:14,
+            expression: {
+              node: BinaryOperation,
+              loc: 165:2-165:13,
+              op: Equal,
+              left: {
+                node: Identifier,
+                loc: 165:2-165:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 165:7-165:13,
+                op: LeftShift,
+                left: {
+                  node: Identifier,
+                  loc: 165:7-165:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 165:12-165:13,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 166:2-166:14,
+            expression: {
+              node: LogicalAnd,
+              loc: 166:2-166:13,
+              left: {
+                node: BinaryOperation,
+                loc: 166:2-166:8,
+                op: LeftShift,
+                left: {
+                  node: Identifier,
+                  loc: 166:2-166:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 166:7-166:8,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 166:12-166:13,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 167:2-167:14,
+            expression: {
+              node: LogicalAnd,
+              loc: 167:2-167:13,
+              left: {
+                node: Identifier,
+                loc: 167:2-167:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 167:7-167:13,
+                op: LeftShift,
+                left: {
+                  node: Identifier,
+                  loc: 167:7-167:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 167:12-167:13,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 168:2-168:14,
+            expression: {
+              node: LogicalOr,
+              loc: 168:2-168:13,
+              left: {
+                node: BinaryOperation,
+                loc: 168:2-168:8,
+                op: LeftShift,
+                left: {
+                  node: Identifier,
+                  loc: 168:2-168:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 168:7-168:8,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 168:12-168:13,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 169:2-169:14,
+            expression: {
+              node: LogicalOr,
+              loc: 169:2-169:13,
+              left: {
+                node: Identifier,
+                loc: 169:2-169:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 169:7-169:13,
+                op: LeftShift,
+                left: {
+                  node: Identifier,
+                  loc: 169:7-169:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 169:12-169:13,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 170:2-170:17,
+            expression: {
+              node: Ternary,
+              loc: 170:2-170:16,
+              test: {
+                node: BinaryOperation,
+                loc: 170:2-170:8,
+                op: LeftShift,
+                left: {
+                  node: Identifier,
+                  loc: 170:2-170:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 170:7-170:8,
+                  name: "b",
+                },
+              },
+              conseq: {
+                node: Identifier,
+                loc: 170:11-170:12,
+                name: "c",
+              },
+              altern: {
+                node: Identifier,
+                loc: 170:15-170:16,
+                name: "d",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 171:2-171:17,
+            expression: {
+              node: Ternary,
+              loc: 171:2-171:16,
+              test: {
+                node: Identifier,
+                loc: 171:2-171:3,
+                name: "a",
+              },
+              conseq: {
+                node: Identifier,
+                loc: 171:6-171:7,
+                name: "b",
+              },
+              altern: {
+                node: BinaryOperation,
+                loc: 171:10-171:16,
+                op: LeftShift,
+                left: {
+                  node: Identifier,
+                  loc: 171:10-171:11,
+                  name: "c",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 171:15-171:16,
+                  name: "d",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 174:2-174:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 174:2-174:11,
+              op: BitwiseXor,
+              left: {
+                node: BinaryOperation,
+                loc: 174:2-174:7,
+                op: BitwiseAnd,
+                left: {
+                  node: Identifier,
+                  loc: 174:2-174:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 174:6-174:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 174:10-174:11,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 175:2-175:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 175:2-175:11,
+              op: BitwiseXor,
+              left: {
+                node: Identifier,
+                loc: 175:2-175:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 175:6-175:11,
+                op: BitwiseAnd,
+                left: {
+                  node: Identifier,
+                  loc: 175:6-175:7,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 175:10-175:11,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 176:2-176:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 176:2-176:11,
+              op: BitwiseOr,
+              left: {
+                node: BinaryOperation,
+                loc: 176:2-176:7,
+                op: BitwiseAnd,
+                left: {
+                  node: Identifier,
+                  loc: 176:2-176:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 176:6-176:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 176:10-176:11,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 177:2-177:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 177:2-177:11,
+              op: BitwiseOr,
+              left: {
+                node: Identifier,
+                loc: 177:2-177:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 177:6-177:11,
+                op: BitwiseAnd,
+                left: {
+                  node: Identifier,
+                  loc: 177:6-177:7,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 177:10-177:11,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 178:2-178:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 178:2-178:11,
+              op: LessThan,
+              left: {
+                node: BinaryOperation,
+                loc: 178:2-178:7,
+                op: BitwiseAnd,
+                left: {
+                  node: Identifier,
+                  loc: 178:2-178:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 178:6-178:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 178:10-178:11,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 179:2-179:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 179:2-179:11,
+              op: LessThan,
+              left: {
+                node: Identifier,
+                loc: 179:2-179:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 179:6-179:11,
+                op: BitwiseAnd,
+                left: {
+                  node: Identifier,
+                  loc: 179:6-179:7,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 179:10-179:11,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 180:2-180:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 180:2-180:12,
+              op: Equal,
+              left: {
+                node: BinaryOperation,
+                loc: 180:2-180:7,
+                op: BitwiseAnd,
+                left: {
+                  node: Identifier,
+                  loc: 180:2-180:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 180:6-180:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 180:11-180:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 181:2-181:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 181:2-181:12,
+              op: Equal,
+              left: {
+                node: Identifier,
+                loc: 181:2-181:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 181:7-181:12,
+                op: BitwiseAnd,
+                left: {
+                  node: Identifier,
+                  loc: 181:7-181:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 181:11-181:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 182:2-182:13,
+            expression: {
+              node: LogicalAnd,
+              loc: 182:2-182:12,
+              left: {
+                node: BinaryOperation,
+                loc: 182:2-182:7,
+                op: BitwiseAnd,
+                left: {
+                  node: Identifier,
+                  loc: 182:2-182:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 182:6-182:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 182:11-182:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 183:2-183:13,
+            expression: {
+              node: LogicalAnd,
+              loc: 183:2-183:12,
+              left: {
+                node: Identifier,
+                loc: 183:2-183:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 183:7-183:12,
+                op: BitwiseAnd,
+                left: {
+                  node: Identifier,
+                  loc: 183:7-183:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 183:11-183:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 184:2-184:13,
+            expression: {
+              node: LogicalOr,
+              loc: 184:2-184:12,
+              left: {
+                node: BinaryOperation,
+                loc: 184:2-184:7,
+                op: BitwiseAnd,
+                left: {
+                  node: Identifier,
+                  loc: 184:2-184:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 184:6-184:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 184:11-184:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 185:2-185:13,
+            expression: {
+              node: LogicalOr,
+              loc: 185:2-185:12,
+              left: {
+                node: Identifier,
+                loc: 185:2-185:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 185:7-185:12,
+                op: BitwiseAnd,
+                left: {
+                  node: Identifier,
+                  loc: 185:7-185:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 185:11-185:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 186:2-186:16,
+            expression: {
+              node: Ternary,
+              loc: 186:2-186:15,
+              test: {
+                node: BinaryOperation,
+                loc: 186:2-186:7,
+                op: BitwiseAnd,
+                left: {
+                  node: Identifier,
+                  loc: 186:2-186:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 186:6-186:7,
+                  name: "b",
+                },
+              },
+              conseq: {
+                node: Identifier,
+                loc: 186:10-186:11,
+                name: "c",
+              },
+              altern: {
+                node: Identifier,
+                loc: 186:14-186:15,
+                name: "d",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 187:2-187:16,
+            expression: {
+              node: Ternary,
+              loc: 187:2-187:15,
+              test: {
+                node: Identifier,
+                loc: 187:2-187:3,
+                name: "a",
+              },
+              conseq: {
+                node: Identifier,
+                loc: 187:6-187:7,
+                name: "b",
+              },
+              altern: {
+                node: BinaryOperation,
+                loc: 187:10-187:15,
+                op: BitwiseAnd,
+                left: {
+                  node: Identifier,
+                  loc: 187:10-187:11,
+                  name: "c",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 187:14-187:15,
+                  name: "d",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 190:2-190:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 190:2-190:11,
+              op: BitwiseOr,
+              left: {
+                node: BinaryOperation,
+                loc: 190:2-190:7,
+                op: BitwiseXor,
+                left: {
+                  node: Identifier,
+                  loc: 190:2-190:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 190:6-190:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 190:10-190:11,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 191:2-191:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 191:2-191:11,
+              op: BitwiseOr,
+              left: {
+                node: Identifier,
+                loc: 191:2-191:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 191:6-191:11,
+                op: BitwiseXor,
+                left: {
+                  node: Identifier,
+                  loc: 191:6-191:7,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 191:10-191:11,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 192:2-192:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 192:2-192:11,
+              op: LessThan,
+              left: {
+                node: BinaryOperation,
+                loc: 192:2-192:7,
+                op: BitwiseXor,
+                left: {
+                  node: Identifier,
+                  loc: 192:2-192:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 192:6-192:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 192:10-192:11,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 193:2-193:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 193:2-193:11,
+              op: LessThan,
+              left: {
+                node: Identifier,
+                loc: 193:2-193:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 193:6-193:11,
+                op: BitwiseXor,
+                left: {
+                  node: Identifier,
+                  loc: 193:6-193:7,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 193:10-193:11,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 194:2-194:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 194:2-194:12,
+              op: Equal,
+              left: {
+                node: BinaryOperation,
+                loc: 194:2-194:7,
+                op: BitwiseXor,
+                left: {
+                  node: Identifier,
+                  loc: 194:2-194:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 194:6-194:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 194:11-194:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 195:2-195:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 195:2-195:12,
+              op: Equal,
+              left: {
+                node: Identifier,
+                loc: 195:2-195:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 195:7-195:12,
+                op: BitwiseXor,
+                left: {
+                  node: Identifier,
+                  loc: 195:7-195:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 195:11-195:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 196:2-196:13,
+            expression: {
+              node: LogicalAnd,
+              loc: 196:2-196:12,
+              left: {
+                node: BinaryOperation,
+                loc: 196:2-196:7,
+                op: BitwiseXor,
+                left: {
+                  node: Identifier,
+                  loc: 196:2-196:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 196:6-196:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 196:11-196:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 197:2-197:13,
+            expression: {
+              node: LogicalAnd,
+              loc: 197:2-197:12,
+              left: {
+                node: Identifier,
+                loc: 197:2-197:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 197:7-197:12,
+                op: BitwiseAnd,
+                left: {
+                  node: Identifier,
+                  loc: 197:7-197:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 197:11-197:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 198:2-198:13,
+            expression: {
+              node: LogicalOr,
+              loc: 198:2-198:12,
+              left: {
+                node: BinaryOperation,
+                loc: 198:2-198:7,
+                op: BitwiseXor,
+                left: {
+                  node: Identifier,
+                  loc: 198:2-198:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 198:6-198:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 198:11-198:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 199:2-199:13,
+            expression: {
+              node: LogicalOr,
+              loc: 199:2-199:12,
+              left: {
+                node: Identifier,
+                loc: 199:2-199:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 199:7-199:12,
+                op: BitwiseXor,
+                left: {
+                  node: Identifier,
+                  loc: 199:7-199:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 199:11-199:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 200:2-200:16,
+            expression: {
+              node: Ternary,
+              loc: 200:2-200:15,
+              test: {
+                node: BinaryOperation,
+                loc: 200:2-200:7,
+                op: BitwiseXor,
+                left: {
+                  node: Identifier,
+                  loc: 200:2-200:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 200:6-200:7,
+                  name: "b",
+                },
+              },
+              conseq: {
+                node: Identifier,
+                loc: 200:10-200:11,
+                name: "c",
+              },
+              altern: {
+                node: Identifier,
+                loc: 200:14-200:15,
+                name: "d",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 201:2-201:16,
+            expression: {
+              node: Ternary,
+              loc: 201:2-201:15,
+              test: {
+                node: Identifier,
+                loc: 201:2-201:3,
+                name: "a",
+              },
+              conseq: {
+                node: Identifier,
+                loc: 201:6-201:7,
+                name: "b",
+              },
+              altern: {
+                node: BinaryOperation,
+                loc: 201:10-201:15,
+                op: BitwiseXor,
+                left: {
+                  node: Identifier,
+                  loc: 201:10-201:11,
+                  name: "c",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 201:14-201:15,
+                  name: "d",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 204:2-204:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 204:2-204:11,
+              op: LessThan,
+              left: {
+                node: BinaryOperation,
+                loc: 204:2-204:7,
+                op: BitwiseOr,
+                left: {
+                  node: Identifier,
+                  loc: 204:2-204:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 204:6-204:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 204:10-204:11,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 205:2-205:12,
+            expression: {
+              node: BinaryOperation,
+              loc: 205:2-205:11,
+              op: LessThan,
+              left: {
+                node: Identifier,
+                loc: 205:2-205:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 205:6-205:11,
+                op: BitwiseOr,
+                left: {
+                  node: Identifier,
+                  loc: 205:6-205:7,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 205:10-205:11,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 206:2-206:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 206:2-206:12,
+              op: Equal,
+              left: {
+                node: BinaryOperation,
+                loc: 206:2-206:7,
+                op: BitwiseOr,
+                left: {
+                  node: Identifier,
+                  loc: 206:2-206:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 206:6-206:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 206:11-206:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 207:2-207:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 207:2-207:12,
+              op: Equal,
+              left: {
+                node: Identifier,
+                loc: 207:2-207:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 207:7-207:12,
+                op: BitwiseOr,
+                left: {
+                  node: Identifier,
+                  loc: 207:7-207:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 207:11-207:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 208:2-208:13,
+            expression: {
+              node: LogicalAnd,
+              loc: 208:2-208:12,
+              left: {
+                node: BinaryOperation,
+                loc: 208:2-208:7,
+                op: BitwiseOr,
+                left: {
+                  node: Identifier,
+                  loc: 208:2-208:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 208:6-208:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 208:11-208:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 209:2-209:13,
+            expression: {
+              node: LogicalAnd,
+              loc: 209:2-209:12,
+              left: {
+                node: Identifier,
+                loc: 209:2-209:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 209:7-209:12,
+                op: BitwiseAnd,
+                left: {
+                  node: Identifier,
+                  loc: 209:7-209:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 209:11-209:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 210:2-210:13,
+            expression: {
+              node: LogicalOr,
+              loc: 210:2-210:12,
+              left: {
+                node: BinaryOperation,
+                loc: 210:2-210:7,
+                op: BitwiseOr,
+                left: {
+                  node: Identifier,
+                  loc: 210:2-210:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 210:6-210:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 210:11-210:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 211:2-211:13,
+            expression: {
+              node: LogicalOr,
+              loc: 211:2-211:12,
+              left: {
+                node: Identifier,
+                loc: 211:2-211:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 211:7-211:12,
+                op: BitwiseOr,
+                left: {
+                  node: Identifier,
+                  loc: 211:7-211:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 211:11-211:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 212:2-212:16,
+            expression: {
+              node: Ternary,
+              loc: 212:2-212:15,
+              test: {
+                node: BinaryOperation,
+                loc: 212:2-212:7,
+                op: BitwiseOr,
+                left: {
+                  node: Identifier,
+                  loc: 212:2-212:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 212:6-212:7,
+                  name: "b",
+                },
+              },
+              conseq: {
+                node: Identifier,
+                loc: 212:10-212:11,
+                name: "c",
+              },
+              altern: {
+                node: Identifier,
+                loc: 212:14-212:15,
+                name: "d",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 213:2-213:16,
+            expression: {
+              node: Ternary,
+              loc: 213:2-213:15,
+              test: {
+                node: Identifier,
+                loc: 213:2-213:3,
+                name: "a",
+              },
+              conseq: {
+                node: Identifier,
+                loc: 213:6-213:7,
+                name: "b",
+              },
+              altern: {
+                node: BinaryOperation,
+                loc: 213:10-213:15,
+                op: BitwiseOr,
+                left: {
+                  node: Identifier,
+                  loc: 213:10-213:11,
+                  name: "c",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 213:14-213:15,
+                  name: "d",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 216:2-216:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 216:2-216:12,
+              op: Equal,
+              left: {
+                node: BinaryOperation,
+                loc: 216:2-216:7,
+                op: LessThan,
+                left: {
+                  node: Identifier,
+                  loc: 216:2-216:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 216:6-216:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 216:11-216:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 217:2-217:13,
+            expression: {
+              node: BinaryOperation,
+              loc: 217:2-217:12,
+              op: Equal,
+              left: {
+                node: Identifier,
+                loc: 217:2-217:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 217:7-217:12,
+                op: LessThan,
+                left: {
+                  node: Identifier,
+                  loc: 217:7-217:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 217:11-217:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 218:2-218:13,
+            expression: {
+              node: LogicalAnd,
+              loc: 218:2-218:12,
+              left: {
+                node: BinaryOperation,
+                loc: 218:2-218:7,
+                op: LessThan,
+                left: {
+                  node: Identifier,
+                  loc: 218:2-218:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 218:6-218:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 218:11-218:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 219:2-219:13,
+            expression: {
+              node: LogicalAnd,
+              loc: 219:2-219:12,
+              left: {
+                node: Identifier,
+                loc: 219:2-219:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 219:7-219:12,
+                op: LessThan,
+                left: {
+                  node: Identifier,
+                  loc: 219:7-219:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 219:11-219:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 220:2-220:13,
+            expression: {
+              node: LogicalOr,
+              loc: 220:2-220:12,
+              left: {
+                node: BinaryOperation,
+                loc: 220:2-220:7,
+                op: LessThan,
+                left: {
+                  node: Identifier,
+                  loc: 220:2-220:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 220:6-220:7,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 220:11-220:12,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 221:2-221:13,
+            expression: {
+              node: LogicalOr,
+              loc: 221:2-221:12,
+              left: {
+                node: Identifier,
+                loc: 221:2-221:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 221:7-221:12,
+                op: LessThan,
+                left: {
+                  node: Identifier,
+                  loc: 221:7-221:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 221:11-221:12,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 222:2-222:16,
+            expression: {
+              node: Ternary,
+              loc: 222:2-222:15,
+              test: {
+                node: BinaryOperation,
+                loc: 222:2-222:7,
+                op: LessThan,
+                left: {
+                  node: Identifier,
+                  loc: 222:2-222:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 222:6-222:7,
+                  name: "b",
+                },
+              },
+              conseq: {
+                node: Identifier,
+                loc: 222:10-222:11,
+                name: "c",
+              },
+              altern: {
+                node: Identifier,
+                loc: 222:14-222:15,
+                name: "d",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 223:2-223:16,
+            expression: {
+              node: Ternary,
+              loc: 223:2-223:15,
+              test: {
+                node: Identifier,
+                loc: 223:2-223:3,
+                name: "a",
+              },
+              conseq: {
+                node: Identifier,
+                loc: 223:6-223:7,
+                name: "b",
+              },
+              altern: {
+                node: BinaryOperation,
+                loc: 223:10-223:15,
+                op: LessThan,
+                left: {
+                  node: Identifier,
+                  loc: 223:10-223:11,
+                  name: "c",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 223:14-223:15,
+                  name: "d",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 226:2-226:14,
+            expression: {
+              node: LogicalAnd,
+              loc: 226:2-226:13,
+              left: {
+                node: BinaryOperation,
+                loc: 226:2-226:8,
+                op: Equal,
+                left: {
+                  node: Identifier,
+                  loc: 226:2-226:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 226:7-226:8,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 226:12-226:13,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 227:2-227:14,
+            expression: {
+              node: LogicalAnd,
+              loc: 227:2-227:13,
+              left: {
+                node: Identifier,
+                loc: 227:2-227:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 227:7-227:13,
+                op: Equal,
+                left: {
+                  node: Identifier,
+                  loc: 227:7-227:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 227:12-227:13,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 228:2-228:14,
+            expression: {
+              node: LogicalOr,
+              loc: 228:2-228:13,
+              left: {
+                node: BinaryOperation,
+                loc: 228:2-228:8,
+                op: Equal,
+                left: {
+                  node: Identifier,
+                  loc: 228:2-228:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 228:7-228:8,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 228:12-228:13,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 229:2-229:14,
+            expression: {
+              node: LogicalOr,
+              loc: 229:2-229:13,
+              left: {
+                node: Identifier,
+                loc: 229:2-229:3,
+                name: "a",
+              },
+              right: {
+                node: BinaryOperation,
+                loc: 229:7-229:13,
+                op: Equal,
+                left: {
+                  node: Identifier,
+                  loc: 229:7-229:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 229:12-229:13,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 230:2-230:17,
+            expression: {
+              node: Ternary,
+              loc: 230:2-230:16,
+              test: {
+                node: BinaryOperation,
+                loc: 230:2-230:8,
+                op: Equal,
+                left: {
+                  node: Identifier,
+                  loc: 230:2-230:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 230:7-230:8,
+                  name: "b",
+                },
+              },
+              conseq: {
+                node: Identifier,
+                loc: 230:11-230:12,
+                name: "c",
+              },
+              altern: {
+                node: Identifier,
+                loc: 230:15-230:16,
+                name: "d",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 231:2-231:17,
+            expression: {
+              node: Ternary,
+              loc: 231:2-231:16,
+              test: {
+                node: Identifier,
+                loc: 231:2-231:3,
+                name: "a",
+              },
+              conseq: {
+                node: Identifier,
+                loc: 231:6-231:7,
+                name: "b",
+              },
+              altern: {
+                node: BinaryOperation,
+                loc: 231:10-231:16,
+                op: Equal,
+                left: {
+                  node: Identifier,
+                  loc: 231:10-231:11,
+                  name: "c",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 231:15-231:16,
+                  name: "d",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 234:2-234:14,
+            expression: {
+              node: LogicalOr,
+              loc: 234:2-234:13,
+              left: {
+                node: LogicalAnd,
+                loc: 234:2-234:8,
+                left: {
+                  node: Identifier,
+                  loc: 234:2-234:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 234:7-234:8,
+                  name: "b",
+                },
+              },
+              right: {
+                node: Identifier,
+                loc: 234:12-234:13,
+                name: "c",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 235:2-235:14,
+            expression: {
+              node: LogicalOr,
+              loc: 235:2-235:13,
+              left: {
+                node: Identifier,
+                loc: 235:2-235:3,
+                name: "a",
+              },
+              right: {
+                node: LogicalAnd,
+                loc: 235:7-235:13,
+                left: {
+                  node: Identifier,
+                  loc: 235:7-235:8,
+                  name: "b",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 235:12-235:13,
+                  name: "c",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 236:2-236:17,
+            expression: {
+              node: Ternary,
+              loc: 236:2-236:16,
+              test: {
+                node: LogicalAnd,
+                loc: 236:2-236:8,
+                left: {
+                  node: Identifier,
+                  loc: 236:2-236:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 236:7-236:8,
+                  name: "b",
+                },
+              },
+              conseq: {
+                node: Identifier,
+                loc: 236:11-236:12,
+                name: "c",
+              },
+              altern: {
+                node: Identifier,
+                loc: 236:15-236:16,
+                name: "d",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 237:2-237:17,
+            expression: {
+              node: Ternary,
+              loc: 237:2-237:16,
+              test: {
+                node: Identifier,
+                loc: 237:2-237:3,
+                name: "a",
+              },
+              conseq: {
+                node: Identifier,
+                loc: 237:6-237:7,
+                name: "b",
+              },
+              altern: {
+                node: LogicalAnd,
+                loc: 237:10-237:16,
+                left: {
+                  node: Identifier,
+                  loc: 237:10-237:11,
+                  name: "c",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 237:15-237:16,
+                  name: "d",
+                },
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 240:2-240:17,
+            expression: {
+              node: Ternary,
+              loc: 240:2-240:16,
+              test: {
+                node: LogicalOr,
+                loc: 240:2-240:8,
+                left: {
+                  node: Identifier,
+                  loc: 240:2-240:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 240:7-240:8,
+                  name: "b",
+                },
+              },
+              conseq: {
+                node: Identifier,
+                loc: 240:11-240:12,
+                name: "c",
+              },
+              altern: {
+                node: Identifier,
+                loc: 240:15-240:16,
+                name: "d",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 241:2-241:17,
+            expression: {
+              node: Ternary,
+              loc: 241:2-241:16,
+              test: {
+                node: Identifier,
+                loc: 241:2-241:3,
+                name: "a",
+              },
+              conseq: {
+                node: Identifier,
+                loc: 241:6-241:7,
+                name: "b",
+              },
+              altern: {
+                node: LogicalOr,
+                loc: 241:10-241:16,
+                left: {
+                  node: Identifier,
+                  loc: 241:10-241:11,
+                  name: "c",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 241:15-241:16,
+                  name: "d",
+                },
+              },
+            },
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+      builtin: false,
+      static: false,
+      override: false,
+    },
+  ],
+}

@@ -1,0 +1,618 @@
+test/parser/type/function.myte
+{
+  node: Module,
+  loc: 1:0-14:13,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "Test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: TypeDeclaration,
+      loc: 3:0-3:29,
+      name: {
+        node: Identifier,
+        loc: 3:11-3:13,
+        name: "t1",
+      },
+      type_params: [],
+      alias: {
+        node: FunctionType,
+        loc: 3:16-3:29,
+        params: [
+          {
+            node: IdentifierType,
+            loc: 3:16-3:19,
+            name: {
+              node: ScopedIdentifier,
+              loc: 3:16-3:19,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 3:16-3:19,
+                name: "Int",
+              },
+            },
+            type_args: [],
+          },
+        ],
+        return: {
+          node: IdentifierType,
+          loc: 3:23-3:29,
+          name: {
+            node: ScopedIdentifier,
+            loc: 3:23-3:29,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 3:23-3:29,
+              name: "String",
+            },
+          },
+          type_args: [],
+        },
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 4:0-4:28,
+      name: {
+        node: Identifier,
+        loc: 4:11-4:13,
+        name: "t2",
+      },
+      type_params: [],
+      alias: {
+        node: FunctionType,
+        loc: 4:16-4:28,
+        params: [],
+        return: {
+          node: IdentifierType,
+          loc: 4:22-4:28,
+          name: {
+            node: ScopedIdentifier,
+            loc: 4:22-4:28,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 4:22-4:28,
+              name: "String",
+            },
+          },
+          type_args: [],
+        },
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 5:0-5:31,
+      name: {
+        node: Identifier,
+        loc: 5:11-5:13,
+        name: "t3",
+      },
+      type_params: [],
+      alias: {
+        node: FunctionType,
+        loc: 5:16-5:31,
+        params: [
+          {
+            node: IdentifierType,
+            loc: 5:17-5:20,
+            name: {
+              node: ScopedIdentifier,
+              loc: 5:17-5:20,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 5:17-5:20,
+                name: "Int",
+              },
+            },
+            type_args: [],
+          },
+        ],
+        return: {
+          node: IdentifierType,
+          loc: 5:25-5:31,
+          name: {
+            node: ScopedIdentifier,
+            loc: 5:25-5:31,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 5:25-5:31,
+              name: "String",
+            },
+          },
+          type_args: [],
+        },
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 6:0-6:35,
+      name: {
+        node: Identifier,
+        loc: 6:11-6:13,
+        name: "t4",
+      },
+      type_params: [],
+      alias: {
+        node: FunctionType,
+        loc: 6:16-6:35,
+        params: [
+          {
+            node: IdentifierType,
+            loc: 6:19-6:22,
+            name: {
+              node: ScopedIdentifier,
+              loc: 6:19-6:22,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 6:19-6:22,
+                name: "Int",
+              },
+            },
+            type_args: [],
+          },
+        ],
+        return: {
+          node: IdentifierType,
+          loc: 6:29-6:35,
+          name: {
+            node: ScopedIdentifier,
+            loc: 6:29-6:35,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 6:29-6:35,
+              name: "String",
+            },
+          },
+          type_args: [],
+        },
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 7:0-7:37,
+      name: {
+        node: Identifier,
+        loc: 7:11-7:13,
+        name: "t5",
+      },
+      type_params: [],
+      alias: {
+        node: FunctionType,
+        loc: 7:16-7:37,
+        params: [
+          {
+            node: IdentifierType,
+            loc: 7:17-7:20,
+            name: {
+              node: ScopedIdentifier,
+              loc: 7:17-7:20,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 7:17-7:20,
+                name: "Int",
+              },
+            },
+            type_args: [],
+          },
+          {
+            node: IdentifierType,
+            loc: 7:22-7:28,
+            name: {
+              node: ScopedIdentifier,
+              loc: 7:22-7:28,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 7:22-7:28,
+                name: "String",
+              },
+            },
+            type_args: [],
+          },
+        ],
+        return: {
+          node: IdentifierType,
+          loc: 7:33-7:37,
+          name: {
+            node: ScopedIdentifier,
+            loc: 7:33-7:37,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 7:33-7:37,
+              name: "Unit",
+            },
+          },
+          type_args: [],
+        },
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 8:0-8:43,
+      name: {
+        node: Identifier,
+        loc: 8:11-8:13,
+        name: "t6",
+      },
+      type_params: [],
+      alias: {
+        node: FunctionType,
+        loc: 8:16-8:43,
+        params: [
+          {
+            node: IdentifierType,
+            loc: 8:17-8:20,
+            name: {
+              node: ScopedIdentifier,
+              loc: 8:17-8:20,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 8:17-8:20,
+                name: "Int",
+              },
+            },
+            type_args: [],
+          },
+          {
+            node: IdentifierType,
+            loc: 8:22-8:28,
+            name: {
+              node: ScopedIdentifier,
+              loc: 8:22-8:28,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 8:22-8:28,
+                name: "String",
+              },
+            },
+            type_args: [],
+          },
+          {
+            node: IdentifierType,
+            loc: 8:30-8:34,
+            name: {
+              node: ScopedIdentifier,
+              loc: 8:30-8:34,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 8:30-8:34,
+                name: "Bool",
+              },
+            },
+            type_args: [],
+          },
+        ],
+        return: {
+          node: IdentifierType,
+          loc: 8:39-8:43,
+          name: {
+            node: ScopedIdentifier,
+            loc: 8:39-8:43,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 8:39-8:43,
+              name: "Unit",
+            },
+          },
+          type_args: [],
+        },
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 9:0-9:55,
+      name: {
+        node: Identifier,
+        loc: 9:11-9:13,
+        name: "t7",
+      },
+      type_params: [],
+      alias: {
+        node: FunctionType,
+        loc: 9:16-9:55,
+        params: [
+          {
+            node: IdentifierType,
+            loc: 9:17-9:20,
+            name: {
+              node: ScopedIdentifier,
+              loc: 9:17-9:20,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 9:17-9:20,
+                name: "Int",
+              },
+            },
+            type_args: [],
+          },
+          {
+            node: IdentifierType,
+            loc: 9:22-9:28,
+            name: {
+              node: ScopedIdentifier,
+              loc: 9:22-9:28,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 9:22-9:28,
+                name: "String",
+              },
+            },
+            type_args: [],
+          },
+        ],
+        return: {
+          node: FunctionType,
+          loc: 9:33-9:55,
+          params: [
+            {
+              node: IdentifierType,
+              loc: 9:34-9:38,
+              name: {
+                node: ScopedIdentifier,
+                loc: 9:34-9:38,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 9:34-9:38,
+                  name: "Bool",
+                },
+              },
+              type_args: [],
+            },
+            {
+              node: IdentifierType,
+              loc: 9:40-9:44,
+              name: {
+                node: ScopedIdentifier,
+                loc: 9:40-9:44,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 9:40-9:44,
+                  name: "Unit",
+                },
+              },
+              type_args: [],
+            },
+          ],
+          return: {
+            node: IdentifierType,
+            loc: 9:49-9:55,
+            name: {
+              node: ScopedIdentifier,
+              loc: 9:49-9:55,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 9:49-9:55,
+                name: "String",
+              },
+            },
+            type_args: [],
+          },
+        },
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 10:0-10:38,
+      name: {
+        node: Identifier,
+        loc: 10:11-10:13,
+        name: "t8",
+      },
+      type_params: [],
+      alias: {
+        node: FunctionType,
+        loc: 10:16-10:38,
+        params: [
+          {
+            node: IdentifierType,
+            loc: 10:17-10:20,
+            name: {
+              node: ScopedIdentifier,
+              loc: 10:17-10:20,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 10:17-10:20,
+                name: "Int",
+              },
+            },
+            type_args: [],
+          },
+          {
+            node: IdentifierType,
+            loc: 10:22-10:28,
+            name: {
+              node: ScopedIdentifier,
+              loc: 10:22-10:28,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 10:22-10:28,
+                name: "String",
+              },
+            },
+            type_args: [],
+          },
+        ],
+        return: {
+          node: IdentifierType,
+          loc: 10:34-10:38,
+          name: {
+            node: ScopedIdentifier,
+            loc: 10:34-10:38,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 10:34-10:38,
+              name: "Unit",
+            },
+          },
+          type_args: [],
+        },
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 11:0-11:30,
+      name: {
+        node: Identifier,
+        loc: 11:11-11:13,
+        name: "t9",
+      },
+      type_params: [],
+      alias: {
+        node: FunctionType,
+        loc: 11:16-11:30,
+        params: [
+          {
+            node: IdentifierType,
+            loc: 11:17-11:20,
+            name: {
+              node: ScopedIdentifier,
+              loc: 11:17-11:20,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 11:17-11:20,
+                name: "Int",
+              },
+            },
+            type_args: [],
+          },
+        ],
+        return: {
+          node: IdentifierType,
+          loc: 11:26-11:30,
+          name: {
+            node: ScopedIdentifier,
+            loc: 11:26-11:30,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 11:26-11:30,
+              name: "Unit",
+            },
+          },
+          type_args: [],
+        },
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 12:0-12:41,
+      name: {
+        node: Identifier,
+        loc: 12:11-12:14,
+        name: "t10",
+      },
+      type_params: [],
+      alias: {
+        node: FunctionType,
+        loc: 12:17-12:41,
+        params: [
+          {
+            node: TupleType,
+            loc: 12:18-12:31,
+            elements: [
+              {
+                node: IdentifierType,
+                loc: 12:19-12:22,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 12:19-12:22,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 12:19-12:22,
+                    name: "Int",
+                  },
+                },
+                type_args: [],
+              },
+              {
+                node: IdentifierType,
+                loc: 12:24-12:30,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 12:24-12:30,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 12:24-12:30,
+                    name: "String",
+                  },
+                },
+                type_args: [],
+              },
+            ],
+          },
+        ],
+        return: {
+          node: IdentifierType,
+          loc: 12:37-12:41,
+          name: {
+            node: ScopedIdentifier,
+            loc: 12:37-12:41,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 12:37-12:41,
+              name: "Unit",
+            },
+          },
+          type_args: [],
+        },
+      },
+    },
+    {
+      node: Function,
+      loc: 14:0-14:13,
+      name: {
+        node: Identifier,
+        loc: 14:4-14:8,
+        name: "main",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 14:11-14:13,
+        statements: [],
+      },
+      return: None,
+      type_params: [],
+      builtin: false,
+      static: false,
+      override: false,
+    },
+  ],
+}

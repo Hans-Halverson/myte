@@ -1,0 +1,65 @@
+test/parser/return/basic.myte
+{
+  node: Module,
+  loc: 1:0-7:1,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "Test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: Function,
+      loc: 3:0-7:1,
+      name: {
+        node: Identifier,
+        loc: 3:4-3:8,
+        name: "main",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 3:11-7:1,
+        statements: [
+          {
+            node: Return,
+            loc: 4:2-4:12,
+            arg: {
+              node: Unit,
+              loc: 4:9-4:11,
+            },
+          },
+          {
+            node: Return,
+            loc: 5:2-5:11,
+            arg: {
+              node: IntLiteral,
+              loc: 5:9-5:10,
+              raw: "1",
+            },
+          },
+          {
+            node: Return,
+            loc: 6:2-6:9,
+            arg: None,
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+      builtin: false,
+      static: false,
+      override: false,
+    },
+  ],
+}

@@ -1,0 +1,104 @@
+test/parser/builtin/function.myte
+{
+  node: Module,
+  loc: 1:0-5:32,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: Function,
+      loc: 3:0-3:17,
+      name: {
+        node: Identifier,
+        loc: 3:12-3:15,
+        name: "foo",
+      },
+      params: [],
+      body: None,
+      return: None,
+      type_params: [],
+      builtin: true,
+      static: false,
+      override: false,
+    },
+    {
+      node: Function,
+      loc: 5:0-5:32,
+      name: {
+        node: Identifier,
+        loc: 5:12-5:15,
+        name: "foo",
+      },
+      params: [
+        {
+          node: Param,
+          loc: 5:19-5:25,
+          name: {
+            node: Identifier,
+            loc: 5:19-5:20,
+            name: "x",
+          },
+          annot: {
+            node: IdentifierType,
+            loc: 5:22-5:25,
+            name: {
+              node: ScopedIdentifier,
+              loc: 5:22-5:25,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 5:22-5:25,
+                name: "Int",
+              },
+            },
+            type_args: [],
+          },
+        },
+      ],
+      body: None,
+      return: {
+        node: IdentifierType,
+        loc: 5:28-5:32,
+        name: {
+          node: ScopedIdentifier,
+          loc: 5:28-5:32,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 5:28-5:32,
+            name: "Unit",
+          },
+        },
+        type_args: [],
+      },
+      type_params: [
+        {
+          node: TypeParameter,
+          loc: 5:16-5:17,
+          name: {
+            node: Identifier,
+            loc: 5:16-5:17,
+            name: "T",
+          },
+          bounds: [],
+        },
+      ],
+      builtin: true,
+      static: false,
+      override: false,
+    },
+  ],
+}

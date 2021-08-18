@@ -1,4 +1,0 @@
-Error: Invalid escape sequence. Expected ```, `$`, `\`, `n`, `t`, `r`, or `x`.
-test/parser/ast/interpolated_strings/invalid_quotes_escape_error.myte:4:7
- 4 |   `foo\"bar`;
-   |        ^

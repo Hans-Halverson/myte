@@ -1,4 +1,0 @@
-Error: Unexpected token `}`
-test/parser/ast/interpolated_strings/empty_expression_error.myte:4:8
- 4 |   `foo${}bar`;
-   |         ^

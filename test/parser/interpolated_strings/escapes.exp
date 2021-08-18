@@ -1,0 +1,194 @@
+test/parser/interpolated_strings/escapes.myte
+{
+  node: Module,
+  loc: 1:0-19:1,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: Function,
+      loc: 3:0-19:1,
+      name: {
+        node: Identifier,
+        loc: 3:4-3:8,
+        name: "main",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 3:11-19:1,
+        statements: [
+          {
+            node: ExpressionStatement,
+            loc: 5:2-5:13,
+            expression: {
+              node: InterpolatedString,
+              loc: 5:2-5:12,
+              parts: [
+                {
+                  node: StringLiteral,
+                  loc: 5:2-5:12,
+                  value: "foo`bar",
+                },
+              ],
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 6:2-6:13,
+            expression: {
+              node: InterpolatedString,
+              loc: 6:2-6:12,
+              parts: [
+                {
+                  node: StringLiteral,
+                  loc: 6:2-6:12,
+                  value: "foo\bar",
+                },
+              ],
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 7:2-7:13,
+            expression: {
+              node: InterpolatedString,
+              loc: 7:2-7:12,
+              parts: [
+                {
+                  node: StringLiteral,
+                  loc: 7:2-7:12,
+                  value: "foo
+bar",
+                },
+              ],
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 8:2-8:13,
+            expression: {
+              node: InterpolatedString,
+              loc: 8:2-8:12,
+              parts: [
+                {
+                  node: StringLiteral,
+                  loc: 8:2-8:12,
+                  value: "foo	bar",
+                },
+              ],
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 9:2-9:13,
+            expression: {
+              node: InterpolatedString,
+              loc: 9:2-9:12,
+              parts: [
+                {
+                  node: StringLiteral,
+                  loc: 9:2-9:12,
+                  value: "foobar",
+                },
+              ],
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 10:2-10:13,
+            expression: {
+              node: InterpolatedString,
+              loc: 10:2-10:12,
+              parts: [
+                {
+                  node: StringLiteral,
+                  loc: 10:2-10:12,
+                  value: "foo$bar",
+                },
+              ],
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 11:2-11:16,
+            expression: {
+              node: InterpolatedString,
+              loc: 11:2-11:15,
+              parts: [
+                {
+                  node: StringLiteral,
+                  loc: 11:2-11:15,
+                  value: "foo${1}bar",
+                },
+              ],
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 14:2-14:23,
+            expression: {
+              node: InterpolatedString,
+              loc: 14:2-14:22,
+              parts: [
+                {
+                  node: StringLiteral,
+                  loc: 14:2-14:22,
+                  value: "foohexbar",
+                },
+              ],
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 15:2-15:13,
+            expression: {
+              node: InterpolatedString,
+              loc: 15:2-15:12,
+              parts: [
+                {
+                  node: StringLiteral,
+                  loc: 15:2-15:12,
+                  value: "jj",
+                },
+              ],
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 18:2-18:12,
+            expression: {
+              node: InterpolatedString,
+              loc: 18:2-18:11,
+              parts: [
+                {
+                  node: StringLiteral,
+                  loc: 18:2-18:11,
+                  value: "foo"bar",
+                },
+              ],
+            },
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+      builtin: false,
+      static: false,
+      override: false,
+    },
+  ],
+}

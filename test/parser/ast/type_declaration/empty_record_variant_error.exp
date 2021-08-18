@@ -1,4 +1,0 @@
-Error: Record must have at least one field
-test/parser/ast/type_declaration/empty_record_variant_error.myte:4:4-10
- 4 |   | Bar {}
-   |     ^^^^^^

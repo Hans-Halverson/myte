@@ -1,0 +1,347 @@
+test/parser/pattern/or.myte
+{
+  node: Module,
+  loc: 1:0-14:13,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: Function,
+      loc: 3:0-12:1,
+      name: {
+        node: Identifier,
+        loc: 3:4-3:8,
+        name: "test",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 3:11-12:1,
+        statements: [
+          {
+            node: Match,
+            loc: 4:2-11:3,
+            args: [
+              {
+                node: IntLiteral,
+                loc: 4:9-4:10,
+                raw: "0",
+              },
+            ],
+            cases: [
+              {
+                node: MatchCase,
+                loc: 5:6-5:17,
+                pattern: {
+                  node: Or,
+                  loc: 5:6-5:11,
+                  left: {
+                    node: ScopedIdentifier,
+                    loc: 5:6-5:7,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 5:6-5:7,
+                      name: "A",
+                    },
+                  },
+                  right: {
+                    node: ScopedIdentifier,
+                    loc: 5:10-5:11,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 5:10-5:11,
+                      name: "B",
+                    },
+                  },
+                },
+                guard: None,
+                right: {
+                  node: Unit,
+                  loc: 5:15-5:17,
+                },
+              },
+              {
+                node: MatchCase,
+                loc: 6:6-6:19,
+                pattern: {
+                  node: Or,
+                  loc: 6:7-6:12,
+                  left: {
+                    node: ScopedIdentifier,
+                    loc: 6:7-6:8,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 6:7-6:8,
+                      name: "A",
+                    },
+                  },
+                  right: {
+                    node: ScopedIdentifier,
+                    loc: 6:11-6:12,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 6:11-6:12,
+                      name: "B",
+                    },
+                  },
+                },
+                guard: None,
+                right: {
+                  node: Unit,
+                  loc: 6:17-6:19,
+                },
+              },
+              {
+                node: MatchCase,
+                loc: 7:6-7:21,
+                pattern: {
+                  node: Or,
+                  loc: 7:6-7:15,
+                  left: {
+                    node: Or,
+                    loc: 7:6-7:11,
+                    left: {
+                      node: ScopedIdentifier,
+                      loc: 7:6-7:7,
+                      scopes: [],
+                      name: {
+                        node: Identifier,
+                        loc: 7:6-7:7,
+                        name: "A",
+                      },
+                    },
+                    right: {
+                      node: ScopedIdentifier,
+                      loc: 7:10-7:11,
+                      scopes: [],
+                      name: {
+                        node: Identifier,
+                        loc: 7:10-7:11,
+                        name: "B",
+                      },
+                    },
+                  },
+                  right: {
+                    node: ScopedIdentifier,
+                    loc: 7:14-7:15,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 7:14-7:15,
+                      name: "C",
+                    },
+                  },
+                },
+                guard: None,
+                right: {
+                  node: Unit,
+                  loc: 7:19-7:21,
+                },
+              },
+              {
+                node: MatchCase,
+                loc: 8:6-8:23,
+                pattern: {
+                  node: Or,
+                  loc: 8:6-8:17,
+                  left: {
+                    node: Or,
+                    loc: 8:7-8:12,
+                    left: {
+                      node: ScopedIdentifier,
+                      loc: 8:7-8:8,
+                      scopes: [],
+                      name: {
+                        node: Identifier,
+                        loc: 8:7-8:8,
+                        name: "A",
+                      },
+                    },
+                    right: {
+                      node: ScopedIdentifier,
+                      loc: 8:11-8:12,
+                      scopes: [],
+                      name: {
+                        node: Identifier,
+                        loc: 8:11-8:12,
+                        name: "B",
+                      },
+                    },
+                  },
+                  right: {
+                    node: ScopedIdentifier,
+                    loc: 8:16-8:17,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 8:16-8:17,
+                      name: "C",
+                    },
+                  },
+                },
+                guard: None,
+                right: {
+                  node: Unit,
+                  loc: 8:21-8:23,
+                },
+              },
+              {
+                node: MatchCase,
+                loc: 9:6-9:23,
+                pattern: {
+                  node: Or,
+                  loc: 9:6-9:17,
+                  left: {
+                    node: ScopedIdentifier,
+                    loc: 9:6-9:7,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 9:6-9:7,
+                      name: "A",
+                    },
+                  },
+                  right: {
+                    node: Or,
+                    loc: 9:11-9:16,
+                    left: {
+                      node: ScopedIdentifier,
+                      loc: 9:11-9:12,
+                      scopes: [],
+                      name: {
+                        node: Identifier,
+                        loc: 9:11-9:12,
+                        name: "B",
+                      },
+                    },
+                    right: {
+                      node: ScopedIdentifier,
+                      loc: 9:15-9:16,
+                      scopes: [],
+                      name: {
+                        node: Identifier,
+                        loc: 9:15-9:16,
+                        name: "C",
+                      },
+                    },
+                  },
+                },
+                guard: None,
+                right: {
+                  node: Unit,
+                  loc: 9:21-9:23,
+                },
+              },
+              {
+                node: MatchCase,
+                loc: 10:6-10:26,
+                pattern: {
+                  node: TuplePattern,
+                  loc: 10:6-10:20,
+                  name: None,
+                  elements: [
+                    {
+                      node: Or,
+                      loc: 10:7-10:12,
+                      left: {
+                        node: ScopedIdentifier,
+                        loc: 10:7-10:8,
+                        scopes: [],
+                        name: {
+                          node: Identifier,
+                          loc: 10:7-10:8,
+                          name: "A",
+                        },
+                      },
+                      right: {
+                        node: ScopedIdentifier,
+                        loc: 10:11-10:12,
+                        scopes: [],
+                        name: {
+                          node: Identifier,
+                          loc: 10:11-10:12,
+                          name: "B",
+                        },
+                      },
+                    },
+                    {
+                      node: Or,
+                      loc: 10:14-10:19,
+                      left: {
+                        node: ScopedIdentifier,
+                        loc: 10:14-10:15,
+                        scopes: [],
+                        name: {
+                          node: Identifier,
+                          loc: 10:14-10:15,
+                          name: "C",
+                        },
+                      },
+                      right: {
+                        node: ScopedIdentifier,
+                        loc: 10:18-10:19,
+                        scopes: [],
+                        name: {
+                          node: Identifier,
+                          loc: 10:18-10:19,
+                          name: "D",
+                        },
+                      },
+                    },
+                  ],
+                },
+                guard: None,
+                right: {
+                  node: Unit,
+                  loc: 10:24-10:26,
+                },
+              },
+            ],
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+      builtin: false,
+      static: false,
+      override: false,
+    },
+    {
+      node: Function,
+      loc: 14:0-14:13,
+      name: {
+        node: Identifier,
+        loc: 14:4-14:8,
+        name: "main",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 14:11-14:13,
+        statements: [],
+      },
+      return: None,
+      type_params: [],
+      builtin: false,
+      static: false,
+      override: false,
+    },
+  ],
+}

@@ -1,4 +1,0 @@
-Error: Unexpected token `_`, expected identifier
-test/parser/ast/wildcard/wildcard_variant_name_error.myte:3:9
- 3 | type T = _
-   |          ^

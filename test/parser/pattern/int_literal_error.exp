@@ -1,0 +1,4 @@
+Error: Literals cannot appear in variable declaration patterns
+test/parser/pattern/int_literal_error.myte:3:8
+ 3 | val (x, 1, y): Int = 1
+   |         ^

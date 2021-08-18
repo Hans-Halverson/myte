@@ -1,0 +1,154 @@
+test/parser/literals/int.myte
+{
+  node: Module,
+  loc: 1:0-19:1,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "Test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: Function,
+      loc: 3:0-19:1,
+      name: {
+        node: Identifier,
+        loc: 3:4-3:8,
+        name: "main",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 3:11-19:1,
+        statements: [
+          {
+            node: ExpressionStatement,
+            loc: 4:2-4:4,
+            expression: {
+              node: IntLiteral,
+              loc: 4:2-4:3,
+              raw: "0",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 5:2-5:4,
+            expression: {
+              node: IntLiteral,
+              loc: 5:2-5:3,
+              raw: "1",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 6:2-6:5,
+            expression: {
+              node: IntLiteral,
+              loc: 6:2-6:4,
+              raw: "-1",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 8:2-8:6,
+            expression: {
+              node: IntLiteral,
+              loc: 8:2-8:5,
+              raw: "0x0",
+              base: "Hex",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 9:2-9:21,
+            expression: {
+              node: IntLiteral,
+              loc: 9:2-9:20,
+              raw: "0x1234567890abcdef",
+              base: "Hex",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 10:2-10:21,
+            expression: {
+              node: IntLiteral,
+              loc: 10:2-10:20,
+              raw: "0x1234567890ABCDEF",
+              base: "Hex",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 11:2-11:8,
+            expression: {
+              node: IntLiteral,
+              loc: 11:2-11:7,
+              raw: "-0xFF",
+              base: "Hex",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 13:2-13:6,
+            expression: {
+              node: IntLiteral,
+              loc: 13:2-13:5,
+              raw: "0b0",
+              base: "Bin",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 14:2-14:12,
+            expression: {
+              node: IntLiteral,
+              loc: 14:2-14:11,
+              raw: "0b1010111",
+              base: "Bin",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 15:2-15:8,
+            expression: {
+              node: IntLiteral,
+              loc: 15:2-15:7,
+              raw: "-0b10",
+              base: "Bin",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 18:2-18:6,
+            expression: {
+              node: UnaryOperation,
+              loc: 18:2-18:5,
+              op: Minus,
+              operand: {
+                node: IntLiteral,
+                loc: 18:4-18:5,
+                raw: "1",
+              },
+            },
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+      builtin: false,
+      static: false,
+      override: false,
+    },
+  ],
+}

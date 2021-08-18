@@ -1,0 +1,4 @@
+Error: Unexpected token `_`, expected identifier
+test/parser/wildcard/wildcard_function_error.myte:3:4
+ 3 | fun _ () {}
+   |     ^

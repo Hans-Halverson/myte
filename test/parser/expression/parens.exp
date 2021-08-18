@@ -1,0 +1,61 @@
+test/parser/expression/parens.myte
+{
+  node: Module,
+  loc: 1:0-6:1,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "Test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: Function,
+      loc: 3:0-6:1,
+      name: {
+        node: Identifier,
+        loc: 3:4-3:8,
+        name: "main",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 3:11-6:1,
+        statements: [
+          {
+            node: ExpressionStatement,
+            loc: 4:2-4:6,
+            expression: {
+              node: IntLiteral,
+              loc: 4:3-4:4,
+              raw: "1",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 5:2-5:10,
+            expression: {
+              node: IntLiteral,
+              loc: 5:5-5:6,
+              raw: "1",
+            },
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+      builtin: false,
+      static: false,
+      override: false,
+    },
+  ],
+}

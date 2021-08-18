@@ -1,4 +1,0 @@
-Error: Record must have at least one field
-test/parser/ast/type_declaration/empty_record_error.myte:3:5-10
- 3 | type t { }
-   |      ^^^^^

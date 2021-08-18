@@ -1,0 +1,4 @@
+Error: Unexpected token `/`, expected start of pattern
+test/parser/pattern/malformed_error1.myte:4:6
+ 4 |   val / = 1;
+   |       ^

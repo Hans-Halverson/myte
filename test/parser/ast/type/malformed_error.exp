@@ -1,4 +1,0 @@
-Error: Unexpected token `1`, expected start of type
-test/parser/ast/type/malformed_error.myte:3:7
- 3 | val x: 1 = 1;
-   |        ^

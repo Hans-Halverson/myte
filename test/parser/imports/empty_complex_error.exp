@@ -1,0 +1,4 @@
+Error: Unexpected token `}`, expected identifier
+test/parser/imports/empty_complex_error.myte:3:10
+ 3 | import A.{}
+   |           ^

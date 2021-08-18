@@ -1,0 +1,4 @@
+Error: Unterminated string literal
+test/parser/interpolated_strings/unterminated_interpolated_string.myte:3:16
+ 3 | val x: string = `Hello world
+   |                 ^

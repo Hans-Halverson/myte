@@ -1,4 +1,0 @@
-Error: Unexpected token `val`, expected start of method
-test/parser/ast/trait_declaration/malformed_error.myte:4:2-5
- 4 |   val x: Int = 1
-   |   ^^^

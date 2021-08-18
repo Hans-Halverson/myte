@@ -1,0 +1,4 @@
+Error: Variant type must have at least two variants
+test/parser/type_declaration/single_variant_error.myte:3:0-20
+ 3 | type Foo = Bar (Int)
+   | ^^^^^^^^^^^^^^^^^^^^

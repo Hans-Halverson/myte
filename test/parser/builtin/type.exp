@@ -1,0 +1,55 @@
+test/parser/builtin/type.myte
+{
+  node: Module,
+  loc: 1:0-5:21,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: TypeDeclaration,
+      loc: 3:8-3:18,
+      name: {
+        node: Identifier,
+        loc: 3:13-3:18,
+        name: "Array",
+      },
+      type_params: [],
+      builtin: true,
+    },
+    {
+      node: TypeDeclaration,
+      loc: 5:8-5:21,
+      name: {
+        node: Identifier,
+        loc: 5:13-5:18,
+        name: "Array",
+      },
+      type_params: [
+        {
+          node: TypeParameter,
+          loc: 5:19-5:20,
+          name: {
+            node: Identifier,
+            loc: 5:19-5:20,
+            name: "T",
+          },
+          bounds: [],
+        },
+      ],
+      builtin: true,
+    },
+  ],
+}

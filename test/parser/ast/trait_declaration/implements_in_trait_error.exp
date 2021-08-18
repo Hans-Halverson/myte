@@ -1,4 +1,0 @@
-Error: Unexpected token `implements`, expected start of method
-test/parser/ast/trait_declaration/implements_in_trait_error.myte:4:2-12
- 4 |   implements Bar
-   |   ^^^^^^^^^^

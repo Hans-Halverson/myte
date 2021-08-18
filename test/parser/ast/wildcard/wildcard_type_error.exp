@@ -1,4 +1,0 @@
-Error: Unexpected token `_`, expected start of type
-test/parser/ast/wildcard/wildcard_type_error.myte:3:7
- 3 | var x: _ = 1
-   |        ^

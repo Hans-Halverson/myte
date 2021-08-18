@@ -1,0 +1,129 @@
+test/parser/if/basic.myte
+{
+  node: Module,
+  loc: 1:0-16:1,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "Test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: Function,
+      loc: 3:0-16:1,
+      name: {
+        node: Identifier,
+        loc: 3:4-3:8,
+        name: "main",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 3:11-16:1,
+        statements: [
+          {
+            node: If,
+            loc: 4:2-4:14,
+            test: {
+              node: Identifier,
+              loc: 4:6-4:10,
+              name: "test",
+            },
+            conseq: {
+              node: ExpressionStatement,
+              loc: 4:12-4:14,
+              expression: {
+                node: IntLiteral,
+                loc: 4:12-4:13,
+                raw: "1",
+              },
+            },
+            altern: None,
+          },
+          {
+            node: If,
+            loc: 6:2-6:14,
+            test: {
+              node: Identifier,
+              loc: 6:6-6:10,
+              name: "test",
+            },
+            conseq: {
+              node: Block,
+              loc: 6:12-6:14,
+              statements: [],
+            },
+            altern: None,
+          },
+          {
+            node: If,
+            loc: 8:2-10:3,
+            test: {
+              node: Identifier,
+              loc: 8:6-8:10,
+              name: "test",
+            },
+            conseq: {
+              node: Block,
+              loc: 8:12-9:3,
+              statements: [],
+            },
+            altern: {
+              node: Block,
+              loc: 9:9-10:3,
+              statements: [],
+            },
+          },
+          {
+            node: If,
+            loc: 12:2-15:3,
+            test: {
+              node: Identifier,
+              loc: 12:6-12:10,
+              name: "test",
+            },
+            conseq: {
+              node: Block,
+              loc: 12:12-13:3,
+              statements: [],
+            },
+            altern: {
+              node: If,
+              loc: 13:9-15:3,
+              test: {
+                node: Identifier,
+                loc: 13:13-13:18,
+                name: "test2",
+              },
+              conseq: {
+                node: Block,
+                loc: 13:20-14:3,
+                statements: [],
+              },
+              altern: {
+                node: Block,
+                loc: 14:9-15:3,
+                statements: [],
+              },
+            },
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+      builtin: false,
+      static: false,
+      override: false,
+    },
+  ],
+}

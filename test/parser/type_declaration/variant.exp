@@ -1,0 +1,760 @@
+test/parser/type_declaration/variant.myte
+{
+  node: Module,
+  loc: 1:0-26:61,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: TypeDeclaration,
+      loc: 3:0-3:19,
+      name: {
+        node: Identifier,
+        loc: 3:5-3:7,
+        name: "t1",
+      },
+      type_params: [],
+      variants: [
+        {
+          node: Identifier,
+          loc: 3:10-3:13,
+          name: "Foo",
+        },
+        {
+          node: Identifier,
+          loc: 3:16-3:19,
+          name: "Bar",
+        },
+      ],
+    },
+    {
+      node: TypeDeclaration,
+      loc: 5:0-5:21,
+      name: {
+        node: Identifier,
+        loc: 5:5-5:7,
+        name: "t2",
+      },
+      type_params: [],
+      variants: [
+        {
+          node: Identifier,
+          loc: 5:12-5:15,
+          name: "Foo",
+        },
+        {
+          node: Identifier,
+          loc: 5:18-5:21,
+          name: "Bar",
+        },
+      ],
+    },
+    {
+      node: TypeDeclaration,
+      loc: 7:0-10:28,
+      name: {
+        node: Identifier,
+        loc: 7:5-7:7,
+        name: "t3",
+      },
+      type_params: [],
+      variants: [
+        {
+          node: TupleVariant,
+          loc: 8:4-8:13,
+          name: {
+            node: Identifier,
+            loc: 8:4-8:7,
+            name: "Foo",
+          },
+          elements: [
+            {
+              node: IdentifierType,
+              loc: 8:9-8:12,
+              name: {
+                node: ScopedIdentifier,
+                loc: 8:9-8:12,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 8:9-8:12,
+                  name: "Int",
+                },
+              },
+              type_args: [],
+            },
+          ],
+        },
+        {
+          node: TupleVariant,
+          loc: 9:4-9:14,
+          name: {
+            node: Identifier,
+            loc: 9:4-9:7,
+            name: "Bar",
+          },
+          elements: [
+            {
+              node: IdentifierType,
+              loc: 9:9-9:12,
+              name: {
+                node: ScopedIdentifier,
+                loc: 9:9-9:12,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 9:9-9:12,
+                  name: "Int",
+                },
+              },
+              type_args: [],
+            },
+          ],
+        },
+        {
+          node: TupleVariant,
+          loc: 10:4-10:28,
+          name: {
+            node: Identifier,
+            loc: 10:4-10:7,
+            name: "Baz",
+          },
+          elements: [
+            {
+              node: IdentifierType,
+              loc: 10:9-10:15,
+              name: {
+                node: ScopedIdentifier,
+                loc: 10:9-10:15,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 10:9-10:15,
+                  name: "String",
+                },
+              },
+              type_args: [],
+            },
+            {
+              node: IdentifierType,
+              loc: 10:17-10:21,
+              name: {
+                node: ScopedIdentifier,
+                loc: 10:17-10:21,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 10:17-10:21,
+                  name: "Bool",
+                },
+              },
+              type_args: [],
+            },
+            {
+              node: IdentifierType,
+              loc: 10:23-10:27,
+              name: {
+                node: ScopedIdentifier,
+                loc: 10:23-10:27,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 10:23-10:27,
+                  name: "Unit",
+                },
+              },
+              type_args: [],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      node: TypeDeclaration,
+      loc: 12:0-15:42,
+      name: {
+        node: Identifier,
+        loc: 12:5-12:7,
+        name: "t4",
+      },
+      type_params: [],
+      variants: [
+        {
+          node: RecordVariant,
+          loc: 13:4-13:19,
+          name: {
+            node: Identifier,
+            loc: 13:4-13:7,
+            name: "Foo",
+          },
+          fields: [
+            {
+              node: RecordVariantField,
+              loc: 13:4-13:17,
+              name: {
+                node: Identifier,
+                loc: 13:10-13:12,
+                name: "k1",
+              },
+              type: {
+                node: IdentifierType,
+                loc: 13:14-13:17,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 13:14-13:17,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 13:14-13:17,
+                    name: "Int",
+                  },
+                },
+                type_args: [],
+              },
+            },
+          ],
+        },
+        {
+          node: RecordVariant,
+          loc: 14:4-14:20,
+          name: {
+            node: Identifier,
+            loc: 14:4-14:7,
+            name: "Bar",
+          },
+          fields: [
+            {
+              node: RecordVariantField,
+              loc: 14:4-14:17,
+              name: {
+                node: Identifier,
+                loc: 14:10-14:12,
+                name: "k2",
+              },
+              type: {
+                node: IdentifierType,
+                loc: 14:14-14:17,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 14:14-14:17,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 14:14-14:17,
+                    name: "Int",
+                  },
+                },
+                type_args: [],
+              },
+            },
+          ],
+        },
+        {
+          node: RecordVariant,
+          loc: 15:4-15:42,
+          name: {
+            node: Identifier,
+            loc: 15:4-15:7,
+            name: "Baz",
+          },
+          fields: [
+            {
+              node: RecordVariantField,
+              loc: 15:4-15:20,
+              name: {
+                node: Identifier,
+                loc: 15:10-15:12,
+                name: "k3",
+              },
+              type: {
+                node: IdentifierType,
+                loc: 15:14-15:20,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 15:14-15:20,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 15:14-15:20,
+                    name: "String",
+                  },
+                },
+                type_args: [],
+              },
+            },
+            {
+              node: RecordVariantField,
+              loc: 15:4-15:30,
+              name: {
+                node: Identifier,
+                loc: 15:22-15:24,
+                name: "k4",
+              },
+              type: {
+                node: IdentifierType,
+                loc: 15:26-15:30,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 15:26-15:30,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 15:26-15:30,
+                    name: "Bool",
+                  },
+                },
+                type_args: [],
+              },
+            },
+            {
+              node: RecordVariantField,
+              loc: 15:4-15:40,
+              name: {
+                node: Identifier,
+                loc: 15:32-15:34,
+                name: "k5",
+              },
+              type: {
+                node: IdentifierType,
+                loc: 15:36-15:40,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 15:36-15:40,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 15:36-15:40,
+                    name: "Unit",
+                  },
+                },
+                type_args: [],
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      node: TypeDeclaration,
+      loc: 17:0-17:43,
+      name: {
+        node: Identifier,
+        loc: 17:5-17:7,
+        name: "t5",
+      },
+      type_params: [],
+      variants: [
+        {
+          node: Identifier,
+          loc: 17:10-17:13,
+          name: "Foo",
+        },
+        {
+          node: TupleVariant,
+          loc: 17:16-17:25,
+          name: {
+            node: Identifier,
+            loc: 17:16-17:19,
+            name: "Bar",
+          },
+          elements: [
+            {
+              node: IdentifierType,
+              loc: 17:21-17:24,
+              name: {
+                node: ScopedIdentifier,
+                loc: 17:21-17:24,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 17:21-17:24,
+                  name: "Int",
+                },
+              },
+              type_args: [],
+            },
+          ],
+        },
+        {
+          node: RecordVariant,
+          loc: 17:28-17:43,
+          name: {
+            node: Identifier,
+            loc: 17:28-17:31,
+            name: "Baz",
+          },
+          fields: [
+            {
+              node: RecordVariantField,
+              loc: 17:28-17:41,
+              name: {
+                node: Identifier,
+                loc: 17:34-17:35,
+                name: "k",
+              },
+              type: {
+                node: IdentifierType,
+                loc: 17:37-17:41,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 17:37-17:41,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 17:37-17:41,
+                    name: "Bool",
+                  },
+                },
+                type_args: [],
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      node: TypeDeclaration,
+      loc: 19:0-22:23,
+      name: {
+        node: Identifier,
+        loc: 19:5-19:7,
+        name: "t6",
+      },
+      type_params: [],
+      variants: [
+        {
+          node: TupleVariant,
+          loc: 20:3-20:22,
+          name: {
+            node: Identifier,
+            loc: 20:3-20:6,
+            name: "Foo",
+          },
+          elements: [
+            {
+              node: TupleType,
+              loc: 20:8-20:21,
+              elements: [
+                {
+                  node: IdentifierType,
+                  loc: 20:9-20:12,
+                  name: {
+                    node: ScopedIdentifier,
+                    loc: 20:9-20:12,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 20:9-20:12,
+                      name: "Int",
+                    },
+                  },
+                  type_args: [],
+                },
+                {
+                  node: IdentifierType,
+                  loc: 20:14-20:20,
+                  name: {
+                    node: ScopedIdentifier,
+                    loc: 20:14-20:20,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 20:14-20:20,
+                      name: "String",
+                    },
+                  },
+                  type_args: [],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          node: TupleVariant,
+          loc: 21:3-21:30,
+          name: {
+            node: Identifier,
+            loc: 21:3-21:6,
+            name: "Bar",
+          },
+          elements: [
+            {
+              node: FunctionType,
+              loc: 21:8-21:29,
+              params: [
+                {
+                  node: IdentifierType,
+                  loc: 21:9-21:12,
+                  name: {
+                    node: ScopedIdentifier,
+                    loc: 21:9-21:12,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 21:9-21:12,
+                      name: "Int",
+                    },
+                  },
+                  type_args: [],
+                },
+                {
+                  node: IdentifierType,
+                  loc: 21:14-21:20,
+                  name: {
+                    node: ScopedIdentifier,
+                    loc: 21:14-21:20,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 21:14-21:20,
+                      name: "String",
+                    },
+                  },
+                  type_args: [],
+                },
+              ],
+              return: {
+                node: IdentifierType,
+                loc: 21:25-21:29,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 21:25-21:29,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 21:25-21:29,
+                    name: "Bool",
+                  },
+                },
+                type_args: [],
+              },
+            },
+          ],
+        },
+        {
+          node: RecordVariant,
+          loc: 22:3-22:23,
+          name: {
+            node: Identifier,
+            loc: 22:3-22:6,
+            name: "Baz",
+          },
+          fields: [
+            {
+              node: RecordVariantField,
+              loc: 22:3-22:21,
+              name: {
+                node: Identifier,
+                loc: 22:9-22:10,
+                name: "k",
+              },
+              type: {
+                node: IdentifierType,
+                loc: 22:12-22:21,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 22:12-22:21,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 22:12-22:21,
+                    name: "OtherType",
+                  },
+                },
+                type_args: [],
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      node: TypeDeclaration,
+      loc: 24:0-24:28,
+      name: {
+        node: Identifier,
+        loc: 24:5-24:7,
+        name: "t7",
+      },
+      type_params: [
+        {
+          node: TypeParameter,
+          loc: 24:8-24:9,
+          name: {
+            node: Identifier,
+            loc: 24:8-24:9,
+            name: "T",
+          },
+          bounds: [],
+        },
+      ],
+      variants: [
+        {
+          node: Identifier,
+          loc: 24:13-24:17,
+          name: "None",
+        },
+        {
+          node: TupleVariant,
+          loc: 24:20-24:28,
+          name: {
+            node: Identifier,
+            loc: 24:20-24:24,
+            name: "Some",
+          },
+          elements: [
+            {
+              node: IdentifierType,
+              loc: 24:26-24:27,
+              name: {
+                node: ScopedIdentifier,
+                loc: 24:26-24:27,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 24:26-24:27,
+                  name: "T",
+                },
+              },
+              type_args: [],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      node: TypeDeclaration,
+      loc: 26:0-26:61,
+      name: {
+        node: Identifier,
+        loc: 26:5-26:7,
+        name: "t8",
+      },
+      type_params: [
+        {
+          node: TypeParameter,
+          loc: 26:8-26:9,
+          name: {
+            node: Identifier,
+            loc: 26:8-26:9,
+            name: "T",
+          },
+          bounds: [],
+        },
+        {
+          node: TypeParameter,
+          loc: 26:11-26:12,
+          name: {
+            node: Identifier,
+            loc: 26:11-26:12,
+            name: "U",
+          },
+          bounds: [],
+        },
+        {
+          node: TypeParameter,
+          loc: 26:14-26:15,
+          name: {
+            node: Identifier,
+            loc: 26:14-26:15,
+            name: "V",
+          },
+          bounds: [],
+        },
+      ],
+      variants: [
+        {
+          node: TupleVariant,
+          loc: 26:19-26:31,
+          name: {
+            node: Identifier,
+            loc: 26:19-26:27,
+            name: "TVariant",
+          },
+          elements: [
+            {
+              node: IdentifierType,
+              loc: 26:29-26:30,
+              name: {
+                node: ScopedIdentifier,
+                loc: 26:29-26:30,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 26:29-26:30,
+                  name: "T",
+                },
+              },
+              type_args: [],
+            },
+          ],
+        },
+        {
+          node: TupleVariant,
+          loc: 26:34-26:46,
+          name: {
+            node: Identifier,
+            loc: 26:34-26:42,
+            name: "UVariant",
+          },
+          elements: [
+            {
+              node: IdentifierType,
+              loc: 26:44-26:45,
+              name: {
+                node: ScopedIdentifier,
+                loc: 26:44-26:45,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 26:44-26:45,
+                  name: "U",
+                },
+              },
+              type_args: [],
+            },
+          ],
+        },
+        {
+          node: TupleVariant,
+          loc: 26:49-26:61,
+          name: {
+            node: Identifier,
+            loc: 26:49-26:57,
+            name: "VVariant",
+          },
+          elements: [
+            {
+              node: IdentifierType,
+              loc: 26:59-26:60,
+              name: {
+                node: ScopedIdentifier,
+                loc: 26:59-26:60,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 26:59-26:60,
+                  name: "V",
+                },
+              },
+              type_args: [],
+            },
+          ],
+        },
+      ],
+    },
+  ],
+}

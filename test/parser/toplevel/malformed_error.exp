@@ -1,0 +1,4 @@
+Error: Unexpected token `if`, expected start of top level statement
+test/parser/toplevel/malformed_error.myte:3:0-2
+ 3 | if (true) {}
+   | ^^

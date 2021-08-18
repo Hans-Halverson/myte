@@ -1,0 +1,4 @@
+Error: Record must have at least one field
+test/parser/pattern/empty_record_error.myte:3:4-10
+ 3 | val Rec {}: Int = 1
+   |     ^^^^^^

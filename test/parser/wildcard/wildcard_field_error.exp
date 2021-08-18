@@ -1,0 +1,4 @@
+Error: Unexpected token `_`, expected identifier
+test/parser/wildcard/wildcard_field_error.myte:4:6
+ 4 |   A.B._;
+   |       ^

@@ -1,0 +1,448 @@
+test/parser/imports/basic.myte
+{
+  node: Module,
+  loc: 1:0-16:22,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "Test",
+      },
+    },
+  },
+  imports: [
+    {
+      node: ScopedIdentifier,
+      loc: 3:0-3:8,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 3:7-3:8,
+        name: "A",
+      },
+    },
+    {
+      node: ScopedIdentifier,
+      loc: 4:0-4:10,
+      scopes: [
+        {
+          node: Identifier,
+          loc: 4:7-4:8,
+          name: "A",
+        },
+      ],
+      name: {
+        node: Identifier,
+        loc: 4:9-4:10,
+        name: "B",
+      },
+    },
+    {
+      node: ScopedIdentifier,
+      loc: 5:0-5:12,
+      scopes: [
+        {
+          node: Identifier,
+          loc: 5:7-5:8,
+          name: "A",
+        },
+        {
+          node: Identifier,
+          loc: 5:9-5:10,
+          name: "B",
+        },
+      ],
+      name: {
+        node: Identifier,
+        loc: 5:11-5:12,
+        name: "C",
+      },
+    },
+    {
+      node: ScopedIdentifier,
+      loc: 6:0-6:14,
+      scopes: [
+        {
+          node: Identifier,
+          loc: 6:7-6:8,
+          name: "A",
+        },
+        {
+          node: Identifier,
+          loc: 6:9-6:10,
+          name: "B",
+        },
+        {
+          node: Identifier,
+          loc: 6:11-6:12,
+          name: "C",
+        },
+      ],
+      name: {
+        node: Identifier,
+        loc: 6:13-6:14,
+        name: "D",
+      },
+    },
+    {
+      node: ComplexImport,
+      loc: 8:0-8:12,
+      scopes: [
+        {
+          node: Identifier,
+          loc: 8:7-8:8,
+          name: "A",
+        },
+      ],
+      aliases: [
+        {
+          node: ImportAlias,
+          loc: 8:10-8:11,
+          name: {
+            node: Identifier,
+            loc: 8:10-8:11,
+            name: "B",
+          },
+          alias: None,
+        },
+      ],
+    },
+    {
+      node: ComplexImport,
+      loc: 9:0-9:16,
+      scopes: [
+        {
+          node: Identifier,
+          loc: 9:7-9:8,
+          name: "A",
+        },
+        {
+          node: Identifier,
+          loc: 9:9-9:10,
+          name: "B",
+        },
+        {
+          node: Identifier,
+          loc: 9:11-9:12,
+          name: "C",
+        },
+      ],
+      aliases: [
+        {
+          node: ImportAlias,
+          loc: 9:14-9:15,
+          name: {
+            node: Identifier,
+            loc: 9:14-9:15,
+            name: "D",
+          },
+          alias: None,
+        },
+      ],
+    },
+    {
+      node: ComplexImport,
+      loc: 10:0-10:18,
+      scopes: [
+        {
+          node: Identifier,
+          loc: 10:7-10:8,
+          name: "A",
+        },
+      ],
+      aliases: [
+        {
+          node: ImportAlias,
+          loc: 10:10-10:11,
+          name: {
+            node: Identifier,
+            loc: 10:10-10:11,
+            name: "B",
+          },
+          alias: None,
+        },
+        {
+          node: ImportAlias,
+          loc: 10:13-10:14,
+          name: {
+            node: Identifier,
+            loc: 10:13-10:14,
+            name: "C",
+          },
+          alias: None,
+        },
+        {
+          node: ImportAlias,
+          loc: 10:16-10:17,
+          name: {
+            node: Identifier,
+            loc: 10:16-10:17,
+            name: "D",
+          },
+          alias: None,
+        },
+      ],
+    },
+    {
+      node: ComplexImport,
+      loc: 11:0-11:19,
+      scopes: [
+        {
+          node: Identifier,
+          loc: 11:7-11:8,
+          name: "A",
+        },
+      ],
+      aliases: [
+        {
+          node: ImportAlias,
+          loc: 11:10-11:11,
+          name: {
+            node: Identifier,
+            loc: 11:10-11:11,
+            name: "B",
+          },
+          alias: None,
+        },
+        {
+          node: ImportAlias,
+          loc: 11:13-11:14,
+          name: {
+            node: Identifier,
+            loc: 11:13-11:14,
+            name: "C",
+          },
+          alias: None,
+        },
+        {
+          node: ImportAlias,
+          loc: 11:16-11:17,
+          name: {
+            node: Identifier,
+            loc: 11:16-11:17,
+            name: "D",
+          },
+          alias: None,
+        },
+      ],
+    },
+    {
+      node: ComplexImport,
+      loc: 12:0-12:19,
+      scopes: [
+        {
+          node: Identifier,
+          loc: 12:7-12:8,
+          name: "A",
+        },
+      ],
+      aliases: [
+        {
+          node: ImportAlias,
+          loc: 12:10-12:18,
+          name: {
+            node: Identifier,
+            loc: 12:10-12:12,
+            name: "B1",
+          },
+          alias: {
+            node: Identifier,
+            loc: 12:16-12:18,
+            name: "B2",
+          },
+        },
+      ],
+    },
+    {
+      node: ComplexImport,
+      loc: 13:0-13:39,
+      scopes: [
+        {
+          node: Identifier,
+          loc: 13:7-13:8,
+          name: "A",
+        },
+      ],
+      aliases: [
+        {
+          node: ImportAlias,
+          loc: 13:10-13:18,
+          name: {
+            node: Identifier,
+            loc: 13:10-13:12,
+            name: "B1",
+          },
+          alias: {
+            node: Identifier,
+            loc: 13:16-13:18,
+            name: "B2",
+          },
+        },
+        {
+          node: ImportAlias,
+          loc: 13:20-13:28,
+          name: {
+            node: Identifier,
+            loc: 13:20-13:22,
+            name: "C1",
+          },
+          alias: {
+            node: Identifier,
+            loc: 13:26-13:28,
+            name: "C2",
+          },
+        },
+        {
+          node: ImportAlias,
+          loc: 13:30-13:38,
+          name: {
+            node: Identifier,
+            loc: 13:30-13:32,
+            name: "D1",
+          },
+          alias: {
+            node: Identifier,
+            loc: 13:36-13:38,
+            name: "D3",
+          },
+        },
+      ],
+    },
+    {
+      node: ComplexImport,
+      loc: 14:0-14:40,
+      scopes: [
+        {
+          node: Identifier,
+          loc: 14:7-14:8,
+          name: "A",
+        },
+      ],
+      aliases: [
+        {
+          node: ImportAlias,
+          loc: 14:10-14:18,
+          name: {
+            node: Identifier,
+            loc: 14:10-14:12,
+            name: "B1",
+          },
+          alias: {
+            node: Identifier,
+            loc: 14:16-14:18,
+            name: "B2",
+          },
+        },
+        {
+          node: ImportAlias,
+          loc: 14:20-14:28,
+          name: {
+            node: Identifier,
+            loc: 14:20-14:22,
+            name: "C1",
+          },
+          alias: {
+            node: Identifier,
+            loc: 14:26-14:28,
+            name: "C2",
+          },
+        },
+        {
+          node: ImportAlias,
+          loc: 14:30-14:38,
+          name: {
+            node: Identifier,
+            loc: 14:30-14:32,
+            name: "D1",
+          },
+          alias: {
+            node: Identifier,
+            loc: 14:36-14:38,
+            name: "D3",
+          },
+        },
+      ],
+    },
+    {
+      node: ComplexImport,
+      loc: 15:0-15:22,
+      scopes: [
+        {
+          node: Identifier,
+          loc: 15:7-15:8,
+          name: "A",
+        },
+      ],
+      aliases: [
+        {
+          node: ImportAlias,
+          loc: 15:10-15:18,
+          name: {
+            node: Identifier,
+            loc: 15:10-15:12,
+            name: "B1",
+          },
+          alias: {
+            node: Identifier,
+            loc: 15:16-15:18,
+            name: "B2",
+          },
+        },
+        {
+          node: ImportAlias,
+          loc: 15:20-15:21,
+          name: {
+            node: Identifier,
+            loc: 15:20-15:21,
+            name: "C",
+          },
+          alias: None,
+        },
+      ],
+    },
+    {
+      node: ComplexImport,
+      loc: 16:0-16:22,
+      scopes: [
+        {
+          node: Identifier,
+          loc: 16:7-16:8,
+          name: "A",
+        },
+      ],
+      aliases: [
+        {
+          node: ImportAlias,
+          loc: 16:10-16:11,
+          name: {
+            node: Identifier,
+            loc: 16:10-16:11,
+            name: "B",
+          },
+          alias: None,
+        },
+        {
+          node: ImportAlias,
+          loc: 16:13-16:21,
+          name: {
+            node: Identifier,
+            loc: 16:13-16:15,
+            name: "C1",
+          },
+          alias: {
+            node: Identifier,
+            loc: 16:19-16:21,
+            name: "C2",
+          },
+        },
+      ],
+    },
+  ],
+  toplevels: [],
+}

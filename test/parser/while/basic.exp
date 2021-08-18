@@ -1,0 +1,101 @@
+test/parser/while/basic.myte
+{
+  node: Module,
+  loc: 1:0-9:1,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: Function,
+      loc: 3:0-9:1,
+      name: {
+        node: Identifier,
+        loc: 3:4-3:8,
+        name: "test",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 3:11-9:1,
+        statements: [
+          {
+            node: While,
+            loc: 4:2-4:17,
+            test: {
+              node: BoolLiteral,
+              loc: 4:9-4:13,
+              value: true,
+            },
+            body: {
+              node: Block,
+              loc: 4:15-4:17,
+              statements: [],
+            },
+          },
+          {
+            node: While,
+            loc: 6:2-8:3,
+            test: {
+              node: Identifier,
+              loc: 6:9-6:10,
+              name: "x",
+            },
+            body: {
+              node: Block,
+              loc: 6:12-8:3,
+              statements: [
+                {
+                  node: Assignment,
+                  loc: 7:4-7:14,
+                  lvalue: {
+                    node: ScopedIdentifier,
+                    loc: 7:4-7:5,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 7:4-7:5,
+                      name: "x",
+                    },
+                  },
+                  expr: {
+                    node: BinaryOperation,
+                    loc: 7:8-7:13,
+                    op: Add,
+                    left: {
+                      node: Identifier,
+                      loc: 7:8-7:9,
+                      name: "x",
+                    },
+                    right: {
+                      node: IntLiteral,
+                      loc: 7:12-7:13,
+                      raw: "1",
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+      builtin: false,
+      static: false,
+      override: false,
+    },
+  ],
+}

@@ -1,0 +1,4 @@
+Error: Unexpected token `foo`, expected `fun` or `type`
+test/parser/builtin/invalid_builtin_error.myte:3:8-11
+ 3 | builtin foo
+   |         ^^^

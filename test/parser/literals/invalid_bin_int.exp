@@ -1,0 +1,4 @@
+Error: Unexpected token `2`, expected `;`
+test/parser/literals/invalid_bin_int.myte:4:5
+ 4 |   0b12;
+   |      ^

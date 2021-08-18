@@ -1,4 +1,0 @@
-Error: Tuple must have at least one element
-test/parser/ast/type_declaration/empty_tuple_variant.myte:4:4-10
- 4 |   | Bar ()
-   |     ^^^^^^

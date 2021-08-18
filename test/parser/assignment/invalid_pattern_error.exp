@@ -1,0 +1,4 @@
+Error: Left side of assignment must be a pattern
+test/parser/assignment/invalid_pattern_error.myte:4:2
+ 4 |   1 = 2;
+   |   ^

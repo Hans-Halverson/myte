@@ -1,0 +1,4 @@
+Error: Unexpected token `)`
+test/parser/match/empty_args_error.myte:4:9
+ 4 |   match () {
+   |          ^

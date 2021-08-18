@@ -1,4 +1,0 @@
-Error: Unexpected token `G`, expected `;`
-test/parser/ast/literals/invalid_hex_int.myte:4:6
- 4 |   0xFFG;
-   |       ^

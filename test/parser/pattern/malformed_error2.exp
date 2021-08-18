@@ -1,0 +1,4 @@
+Error: Unexpected token `-`, expected start of pattern
+test/parser/pattern/malformed_error2.myte:5:6
+ 5 |   val - = 1;
+   |       ^

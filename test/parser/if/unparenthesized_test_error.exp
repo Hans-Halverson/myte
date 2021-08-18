@@ -1,0 +1,4 @@
+Error: Unexpected token `test`, expected `(`
+test/parser/if/unparenthesized_test_error.myte:4:5-9
+ 4 |   if test {}
+   |      ^^^^

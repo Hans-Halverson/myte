@@ -1,0 +1,4 @@
+Error: Tuple must have at least one element
+test/parser/type_declaration/empty_tuple_error.myte:3:5-8
+ 3 | type t()
+   |      ^^^

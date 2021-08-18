@@ -1,0 +1,4 @@
+Error: Unterminated string literal
+test/parser/literals/unterminated_string_literal_error.myte:3:16
+ 3 | val x: string = "Hello world
+   |                 ^

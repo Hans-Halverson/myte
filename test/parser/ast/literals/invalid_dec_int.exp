@@ -1,4 +1,0 @@
-Error: Unexpected token `A`, expected `;`
-test/parser/ast/literals/invalid_dec_int.myte:4:4
- 4 |   12A;
-   |     ^

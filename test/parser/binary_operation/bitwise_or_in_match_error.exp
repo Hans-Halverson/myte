@@ -1,0 +1,4 @@
+Error: Unexpected token `}`, expected `->`
+test/parser/binary_operation/bitwise_or_in_match_error.myte:6:2
+ 6 |   }
+   |   ^
