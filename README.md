@@ -67,11 +67,11 @@ The first phase is lowering the Myte AST to MIR. This is mostly a straightforwar
 
 To lower pattern matching, a decision tree is first built using heuristics to minimize the number of tests and resulting tree size. This decision tree is then visited with MIR generated for each test and branch.
 
-Myte supports generics in the form of parametric polymorphism with trait bounds. When lowering to MIR generic types and methods are monomorphized, meaning separate copies are created for each instantiation of the generic type or method with a different set of type arguments.
+Myte supports generics in the form of parametric polymorphism with trait bounds. Generic types and methods are monomorphized when lowering to MIR, meaning separate copies are created for each instantiation of the generic type or method with a different set of type arguments.
 
 The initial MIR that is emitted allocates space on the stack for each local variable. Immediately after creation this version of MIR is "SSA-ified", where these stack slots are promoted to SSA variables within MIR that are joined using phi nodes (corresponding to LLVM's `mem2reg` pass). MIR will remain in SSA form until right before assembly generation, at which point the SSA is "destructed", where phi nodes are replaced with copies to a shared variable in previous blocks. SSA destruction makes sure to insert blocks on critical edges if necessary, and to correctly sequence copies (possibly with the addition of temporary variables) to avoid clobbering the result of other phi nodes as all phi nodes execute in parallel.
 
-Optimiziations on MIR can be run once the SSA pass has been completed. At the moment the only notable optimization is constant folding and propagation with branch pruning. The MIR is also simplified whenever possible to consolidate blocks and eliminate unnecessary variables. Once all optimizations and simplification have completed, the MIR is ready to be lowered to assembly.
+Optimizations on MIR can be run once the SSA pass has been completed. At the moment the only notable optimization is constant folding and propagation with branch pruning. The MIR is also simplified whenever possible to consolidate blocks and eliminate unnecessary variables. Once all optimizations and simplification have completed, the MIR is ready to be lowered to assembly.
 
 ### Assembly Generation
 
