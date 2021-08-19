@@ -100,3 +100,7 @@ The following is an overview of the tests contained within the `test` directory:
 - [`test/program`](test/program) Tests for full, end to end compilation and running of Myte programs to verify run time functionality.
 - [`test/cli`](test/cli) Miscellaneous tests for CLI usage of the `myte` binary.
 - [`test/test`](test/test) Contains the implementation of Myte's custom test harness.
+
+## Tools
+
+Myte has a VSCode plugin contained within the [`tools/vscode-extensions`](tools/vscode-extensions) directory that adds support for the Myte language to VSCode. This plugin includes a basic language configuation along with a TextMate grammar that adds syntax highlighting for the Myte language to VSCode. This plugin has not yet been published, so to use it locally copy the `tools/vscode-extensions/myte` directory to your VSCode extensions directory.
