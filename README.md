@@ -61,11 +61,29 @@ Other analysis passes include control flow analysis to verify that all statement
 
 ### Intermediate Representation and Optimization
 
-[`src/mir`](src/mir)
+The first phase of the compiler back end is to lower the program into Myte Intermediate Representation (MIR), contained in the[`src/mir`](src/mir) directory. MIR is in single static assignment (SSA) form and is very similar to LLVM IR, essentially being a simplified subset of LLVM IR needed for the Myte compiler.
+
+The first phase is lowering the Myte AST to MIR. This is mostly a straightforward translation, with the main sources of complexity occurring in the handling of layouts for algebraic data types (in particular variant types), the compilation of pattern matching, and monomorphization of generics.
+
+To lower pattern matching, a decision tree is first built using heuristics to minimize the number of tests and resulting tree size. This decision tree is then visited with MIR generated for each test and branch.
+
+Myte supports generics in the form of parametric polymorphism with trait bounds. When lowering to MIR generic types and methods are monomorphized, meaning separate copies are created for each instantiation of the generic type or method with a different set of type arguments.
+
+The initial MIR that is emitted allocates space on the stack for each local variable. Immediately after creation this version of MIR is "SSA-ified", where these stack slots are promoted to SSA variables within MIR that are joined using phi nodes (corresponding to LLVM's `mem2reg` pass). MIR will remain in SSA form until right before assembly generation, at which point the SSA is "destructed", where phi nodes are replaced with copies to a shared variable in previous blocks. SSA destruction makes sure to insert blocks on critical edges if necessary, and to correctly sequence copies (possibly with the addition of temporary variables) to avoid clobbering the result of other phi nodes as all phi nodes execute in parallel.
+
+Optimiziations on MIR can be run once the SSA pass has been completed. At the moment the only notable optimization is constant folding and propagation with branch pruning. The MIR is also simplified whenever possible to consolidate blocks and eliminate unnecessary variables. Once all optimizations and simplification have completed, the MIR is ready to be lowered to assembly.
 
 ### Assembly Generation
 
-[`src/asm/x86`](src/asm/x86)
+The final phase of the compiler is lowering destructed MIR to assembly. Myte currently supports generating `x86_64` assembly for both MacOS and Linux, contained in the [`src/asm/x86`](src/asm/x86) directory.
+
+Assembly generation begins with a pass to generate "virtual assembly" from MIR, which is identical to the target assembly language but with unlimited virtual registers, only some of which are mapped directly to physical registers. Once virtual assembly has been generated, liveness information for each virtual register is determined and an interference graph between virtual registers is built. The register allocator then assigns physical registers to each virtual register using the strategy of iterated register coalescing, which attempts to eliminate as many copy instructions as possible from the program. When spills are determined, virtual registers are mapped to virtual stack slots and the program is rewritten to read/write from memory on uses of that virtual register.
+
+Once all registers have been either assigned a physical register or mapped to a virtual stack slot, we then perform stack slot coloring to minimize the stack space used for spilled register in each function. This pass first calculates liveness information and interferences for all virtual stack slots, then greedily maps non-interfering virtual stack slots to the same phyiscal stack slot. At this point every variable from MIR has been assigned a physical location, whether it be in a register or in memory.
+
+The resulting assembly is then simplified, peephole optimizations are run, and unnecessary instructions are removed. This leaves the assembly in its final form.
+
+Finally, the generated assembly is written to a file then assembled and linked to the minimal Myte runtime with the system's assembler and linker, generating an executable.
 
 ## Tests
 
