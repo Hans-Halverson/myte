@@ -100,9 +100,9 @@ let union_int_literals (ty1 : IntLiteral.t) (ty2 : IntLiteral.t) ty2_full =
     ty1.resolved <- Some ty2_full
   )
 
-(* Combine two int literal types ty1 and ty2, which makes ty2 the representative of ty1 and moves
-   all referenced int literals from ty1 to ty2. *)
-let union_trait_bounds (ty1 : TraitBound.t) (ty2 : TraitBound.t) ty2_full =
+(* Combine bounded exestential types ty1 and ty2, which makes ty2 the representative of ty1 and
+   moves all trait bounds from ty1 to ty2. *)
+let union_bounded_existentials (ty1 : BoundedExistential.t) (ty2 : BoundedExistential.t) ty2_full =
   (* Already unioned if same type variables *)
   if ty1 != ty2 then (
     ty2.bounds <- ty1.bounds @ ty2.bounds;
@@ -171,15 +171,15 @@ and find_union_rep_node ~cx tvar_id =
   let (rep_id, ty, rank) = helper ~cx tvar_id in
   (rep_id, find_non_union_rep_type ~cx ty, rank)
 
-(* Find representative type for a given type following rep chains within type instead of
-   union forest. This resolves int literal and trait bound types to their representative type. *)
+(* Find representative type for a given type following rep chains within type instead of union
+   forest. This resolves int literal and bounded existential types to their representative type. *)
 and find_non_union_rep_type ~cx ty =
   match ty with
   | Type.IntLiteral ({ resolved = Some ty; _ } as lit_ty) ->
     let ty = find_union_rep_type ~cx ty in
     lit_ty.resolved <- Some ty;
     ty
-  | TraitBound ({ resolved = Some ty; _ } as trait_bound_ty) ->
+  | BoundedExistential ({ resolved = Some ty; _ } as trait_bound_ty) ->
     let ty = find_union_rep_type ~cx ty in
     trait_bound_ty.resolved <- Some ty;
     ty
@@ -203,7 +203,7 @@ let rec find_rep_type ~cx (ty : Type.t) =
   | IntLiteral { resolved = None; _ } ->
     ty
   | IntLiteral { resolved = Some ty; _ }
-  | TraitBound { resolved = Some ty; _ } ->
+  | BoundedExistential { resolved = Some ty; _ } ->
     find_non_union_rep_type ~cx ty
   | Array element ->
     let element' = find_rep_type ~cx element in
@@ -230,7 +230,13 @@ let rec find_rep_type ~cx (ty : Type.t) =
       ty
     else
       ADT { adt_sig; type_args = type_args' }
-  | TraitBound ({ resolved = None; bounds } as trait_bound) ->
+  | TraitBound { trait_sig; type_args } ->
+    let type_args' = id_map_list (find_rep_type ~cx) type_args in
+    if type_args == type_args' then
+      ty
+    else
+      TraitBound { trait_sig; type_args = type_args' }
+  | BoundedExistential ({ resolved = None; bounds } as trait_bound) ->
     (* Unresolved trait bound types must be preserved, so keep type and update bounds with rep types *)
     let bounds' = id_map_list (find_trait_instance_rep_type ~cx) bounds in
     trait_bound.bounds <- bounds';
@@ -266,9 +272,11 @@ let rec tvar_occurs_in ~cx tvar ty =
   | Tuple elements -> List.exists (tvar_occurs_in ~cx tvar) elements
   | Function { type_args = _; params; return } ->
     List.exists (tvar_occurs_in ~cx tvar) params || tvar_occurs_in ~cx tvar return
-  | ADT { adt_sig = _; type_args } -> List.exists (tvar_occurs_in ~cx tvar) type_args
+  | ADT { adt_sig = _; type_args }
+  | TraitBound { trait_sig = _; type_args } ->
+    List.exists (tvar_occurs_in ~cx tvar) type_args
   | TVar rep_tvar -> tvar = rep_tvar
-  | TraitBound { bounds; resolved = _ } ->
+  | BoundedExistential { bounds; resolved = _ } ->
     List.exists
       (fun { TraitSig.type_args; _ } -> List.exists (tvar_occurs_in ~cx tvar) type_args)
       bounds
@@ -366,8 +374,11 @@ let rec type_satisfies_trait_bounds ~cx ty trait_bounds =
   | Int
   | Long ->
     adt_satisfies_bounds (Std_lib.get_primitive_adt_sig ty) [] trait_bounds
-  | TypeParam { bounds; _ } -> traits_satisfy_bounds bounds trait_bounds
   | ADT { adt_sig; type_args } -> adt_satisfies_bounds adt_sig type_args trait_bounds
+  (* Bounded type params and trait bounds have an upper trait bound which may satisfy the target
+     trait bounds. *)
+  | TypeParam { bounds; _ } -> traits_satisfy_bounds bounds trait_bounds
+  | TraitBound bound -> traits_satisfy_bounds [bound] trait_bounds
   (* Unresolved int literal types are first resolved to the best choice based on their values *)
   | IntLiteral lit_ty ->
     let resolved_ty = resolve_int_literal_from_values ~cx lit_ty in
@@ -378,7 +389,7 @@ let rec type_satisfies_trait_bounds ~cx ty trait_bounds =
   | Function _ ->
     false
   | TVar _
-  | TraitBound _ ->
+  | BoundedExistential _ ->
     failwith "Already handled by unify or is_subtype"
 
 and unify ~cx ty1 ty2 =
@@ -426,17 +437,17 @@ and unify ~cx ty1 ty2 =
   | (IntLiteral lit_ty, ((Byte | Int | Long) as ty)) ->
     resolve_int_literal ~cx lit_ty ty;
     true
-  (* Unresolved trait bounds can be unified *)
-  | (TraitBound bound_ty1, (TraitBound bound_ty2 as ty2)) ->
-    union_trait_bounds bound_ty1 bound_ty2 ty2;
+  (* Unresolved bounded existential types can be unified *)
+  | (BoundedExistential bound_ty1, (BoundedExistential bound_ty2 as ty2)) ->
+    union_bounded_existentials bound_ty1 bound_ty2 ty2;
     true
-  (* Unresolved trait bounds can be unified with a concrete type if the type satisfies the bound *)
-  | (ty, TraitBound trait_bound)
-  | (TraitBound trait_bound, ty) ->
+  (* Unresolved bounded existential can be unified with a concrete type if the type satisfies the bound *)
+  | (ty, BoundedExistential trait_bound)
+  | (BoundedExistential trait_bound, ty) ->
     let rep_ty = find_rep_type ~cx ty in
     let rep_trait_bound =
-      match find_rep_type ~cx (TraitBound trait_bound) with
-      | TraitBound trait_bound -> trait_bound
+      match find_rep_type ~cx (BoundedExistential trait_bound) with
+      | BoundedExistential trait_bound -> trait_bound
       | _ -> failwith "Expected trait_bound"
     in
     let satisfies_trait_bound = type_satisfies_trait_bounds ~cx rep_ty rep_trait_bound.bounds in
@@ -494,16 +505,25 @@ and is_subtype ~cx sub sup =
   | (IntLiteral lit_ty, ((Byte | Int | Long) as ty)) ->
     resolve_int_literal ~cx lit_ty ty;
     true
-  (* Unresolved trait bounds are not subtyped so they must be unified *)
-  | (TraitBound bound_ty1, (TraitBound bound_ty2 as ty2)) ->
-    union_trait_bounds bound_ty1 bound_ty2 ty2;
-    true
-  (* Unresolved trait bounds can be unified with a concrete type if the type satisfies the bound *)
-  | (ty, TraitBound trait_bound) ->
+  (* Any type may be a subtype of a trait bound if that type satisifies the bound *)
+  | (ty, TraitBound bound) ->
     let rep_ty = find_rep_type ~cx ty in
     let rep_trait_bound =
-      match find_rep_type ~cx (TraitBound trait_bound) with
+      match find_rep_type ~cx (TraitBound bound) with
       | TraitBound trait_bound -> trait_bound
+      | _ -> failwith "Expected trait_bound"
+    in
+    type_satisfies_trait_bounds ~cx rep_ty [rep_trait_bound]
+  (* Unresolved trait bounds are not subtyped so they must be unified *)
+  | (BoundedExistential bound_ty1, (BoundedExistential bound_ty2 as ty2)) ->
+    union_bounded_existentials bound_ty1 bound_ty2 ty2;
+    true
+  (* Unresolved bounded existentials can be unified with a concrete type if the type satisfies the bound *)
+  | (ty, BoundedExistential trait_bound) ->
+    let rep_ty = find_rep_type ~cx ty in
+    let rep_trait_bound =
+      match find_rep_type ~cx (BoundedExistential trait_bound) with
+      | BoundedExistential trait_bound -> trait_bound
       | _ -> failwith "Expected trait_bound"
     in
     let satisfies_trait_bound = type_satisfies_trait_bounds ~cx rep_ty rep_trait_bound.bounds in
@@ -554,5 +574,5 @@ let implements_trait ty trait_sig =
     adt_sig_implements_trait adt_sig trait_sig
   | ADT { adt_sig; _ } -> adt_sig_implements_trait adt_sig trait_sig
   | TypeParam { bounds; _ } -> bounds_implements_trait bounds trait_sig
-  | TraitBound { bounds; _ } -> bounds_implements_trait bounds trait_sig
+  | BoundedExistential { bounds; _ } -> bounds_implements_trait bounds trait_sig
   | _ -> false

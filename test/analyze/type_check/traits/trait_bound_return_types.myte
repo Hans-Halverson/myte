@@ -1,0 +1,44 @@
+module test
+
+trait Foo {}
+
+trait FooSubtype {
+  extends Foo
+}
+
+trait ReturnsFoo {
+  fun returnFoo(): Foo
+}
+
+type ConcreteFoo (Int)
+methods ConcreteFoo {
+  implements Foo
+}
+
+// Can successfully override method with concrete subtype of trait
+type Type1 (Int)
+methods Type1 {
+  implements ReturnsFoo
+  override fun returnFoo(): ConcreteFoo = ConcreteFoo (1)
+}
+
+// Error
+type Type2 (Int)
+methods Type2 {
+  implements ReturnsFoo
+  override fun returnFoo(): Int = 1
+}
+
+// Can successfully override method with another signature with trait subtype
+trait Trait1 {
+  extends ReturnsFoo
+  override fun returnFoo(): FooSubtype
+}
+
+// Error
+trait Trait2 {
+  extends ReturnsFoo
+  override fun returnFoo(): Int
+}
+
+fun main() {}

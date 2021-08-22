@@ -1,0 +1,14 @@
+module test
+
+trait Foo {}
+
+// Implicit allowed in return type of method signatures
+trait Trait1 {
+  // Success
+  fun signatureMethod(): Foo
+
+  // Failure
+  fun concreteMethod(): Foo = ()
+}
+
+fun main() {}

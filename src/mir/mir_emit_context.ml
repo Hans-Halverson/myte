@@ -396,7 +396,7 @@ and to_mir_type ~ecx ty =
   | Int -> `IntT
   | Long -> `LongT
   | IntLiteral { resolved; _ }
-  | TraitBound { resolved; _ } ->
+  | BoundedExistential { resolved; _ } ->
     to_mir_type ~ecx (Option.get resolved)
   | Array element_ty -> `PointerT (to_mir_type ~ecx element_ty)
   | Function _ -> `FunctionT
@@ -414,7 +414,7 @@ and to_mir_type ~ecx ty =
       `PointerT (`AggregateT instance.union)
     | PureEnum { tag_mir_type; _ } -> (tag_mir_type :> Type.t)
     | InlineValue _ -> instantiate_mir_adt_inline_value_layout ~ecx mir_adt_layout type_args)
-  | TypeParam { name = Explicit name; _ } -> failwith ("Not allowed as value in IR " ^ name)
+  | TraitBound _
   | TypeParam _
   | TVar _
   | Any ->

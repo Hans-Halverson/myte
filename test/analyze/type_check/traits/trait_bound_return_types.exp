@@ -1,0 +1,9 @@
+Error: Method `returnFoo` has incompatible type from declaration in trait `ReturnsFoo`. Declared as type `() -> Foo` but found `() -> Int`.
+test/analyze/type_check/traits/trait_bound_return_types.myte:29:15-24
+ 29 |   override fun returnFoo(): Int = 1
+    |                ^^^^^^^^^
+
+Error: Method `returnFoo` has incompatible type from declaration in trait `ReturnsFoo`. Declared as type `() -> Foo` but found `() -> Int`.
+test/analyze/type_check/traits/trait_bound_return_types.myte:41:15-24
+ 41 |   override fun returnFoo(): Int
+    |                ^^^^^^^^^

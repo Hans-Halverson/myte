@@ -79,13 +79,14 @@ and IntLiteral : sig
 end =
   IntLiteral
 
-and TraitBound : sig
+(* A type that has not yet been resolved, but must be a subtype of a collection of traits. *)
+and BoundedExistential : sig
   type t = {
     mutable bounds: TraitSig.instance list;
     mutable resolved: Type.t option;
   }
 end =
-  TraitBound
+  BoundedExistential
 
 and AdtSig : sig
   module Variant : sig
@@ -305,7 +306,8 @@ and Type : sig
     | Function of Function.t
     | ADT of AdtSig.instance
     | IntLiteral of IntLiteral.t
-    | TraitBound of TraitBound.t
+    | BoundedExistential of BoundedExistential.t
+    | TraitBound of TraitSig.instance
 end =
   Type
 
@@ -355,14 +357,14 @@ let rec substitute_type_params type_params ty =
   | TVar _
   | IntLiteral { resolved = None; _ } ->
     ty
-  | TraitBound ({ resolved = None; bounds } as trait_bound) ->
-    (* Unresolved trait bound types must be preserved, and will only have substitutable type
+  | BoundedExistential ({ resolved = None; bounds } as trait_bound) ->
+    (* Unresolved bounded existentials must be preserved, and will only have substitutable type
        parameters when initially created, so mutate bounds in place. *)
     let bounds' = substitute_trait_bounds bounds in
     trait_bound.bounds <- bounds';
     ty
   | IntLiteral { resolved = Some resolved; _ }
-  | TraitBound { resolved = Some resolved; _ } ->
+  | BoundedExistential { resolved = Some resolved; _ } ->
     substitute_type_params type_params resolved
   | Array element -> Array (substitute_type_params type_params element)
   | Tuple elements -> Tuple (List.map (substitute_type_params type_params) elements)
@@ -372,6 +374,8 @@ let rec substitute_type_params type_params ty =
     Function { type_args; params = params'; return = return' }
   | ADT { adt_sig; type_args } ->
     ADT { adt_sig; type_args = List.map (substitute_type_params type_params) type_args }
+  | TraitBound { trait_sig; type_args } ->
+    TraitBound { trait_sig; type_args = List.map (substitute_type_params type_params) type_args }
   | TypeParam { TypeParam.id; name; bounds } ->
     (match IMap.find_opt id type_params with
     | None ->
@@ -403,7 +407,7 @@ let refresh_type_params type_params =
       if bounds = [] then
         Type.TVar (TVar.mk ())
       else
-        Type.TraitBound { resolved = None; bounds })
+        Type.BoundedExistential { resolved = None; bounds })
     type_params
 
 (* Generate a new ADT type with fresh type args for this ADT signature *)
@@ -463,7 +467,9 @@ let rec pp_with_names ~tvar_to_name ty =
         concat_and_wrap ("(", ")") pp_params
     in
     pp_params ^ " -> " ^ pp_function_part return
-  | ADT { adt_sig = { name; _ }; type_args } -> pp_name_with_args name type_args
+  | ADT { adt_sig = { name; _ }; type_args }
+  | TraitBound { trait_sig = { name; _ }; type_args } ->
+    pp_name_with_args name type_args
   | TVar tvar_id ->
     let x = IMap.find tvar_id tvar_to_name in
     x
@@ -476,10 +482,10 @@ let rec pp_with_names ~tvar_to_name ty =
       else
         name ^ ": " ^ pp_trait_bounds bounds)
   | IntLiteral { resolved = Some resolved; _ }
-  | TraitBound { resolved = Some resolved; _ } ->
+  | BoundedExistential { resolved = Some resolved; _ } ->
     pp_with_names ~tvar_to_name resolved
   | IntLiteral { resolved = None; _ } -> "<Integer>"
-  | TraitBound { resolved = None; bounds } -> pp_trait_bounds bounds
+  | BoundedExistential { resolved = None; bounds } -> pp_trait_bounds bounds
 
 let name_id_to_string name_id =
   let quot = name_id / 26 in

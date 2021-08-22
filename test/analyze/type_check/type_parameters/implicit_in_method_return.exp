@@ -1,0 +1,4 @@
+Error: Implicit trait type parameters can only appear in function parameter types
+test/analyze/type_check/type_parameters/implicit_in_method_return.myte:11:24-27
+ 11 |   fun concreteMethod(): Foo = ()
+    |                         ^^^

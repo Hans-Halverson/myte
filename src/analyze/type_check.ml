@@ -2,9 +2,14 @@ open Analyze_error
 open Basic_collections
 open Types
 
-let rec build_type ~cx ?(check_type_param_bounds = true) ?(implicit_type_params = None) ty =
+type trait_ctx =
+  | TraitDisallowed
+  | TraitImplicitParam of (TypeParam.t * Loc.t) list ref
+  | TraitToBound
+
+let rec build_type ~cx ?(check_type_param_bounds = true) ?(trait_ctx = TraitDisallowed) ty =
   let open Ast.Type in
-  let build_type ty = build_type ~cx ~check_type_param_bounds ~implicit_type_params ty in
+  let build_type ty = build_type ~cx ~check_type_param_bounds ~trait_ctx ty in
   match ty with
   | Tuple { Tuple.elements; _ } -> Type.Tuple (List.map build_type elements)
   | Function { Function.params; return; _ } ->
@@ -90,12 +95,13 @@ let rec build_type ~cx ?(check_type_param_bounds = true) ?(implicit_type_params 
         )
       (* A trait as a raw identifier is an implicit type parameter *)
       | TraitDecl trait_decl ->
-        (match implicit_type_params with
+        (match trait_ctx with
         (* Implicit type parameters are only allowed in the types of function parameters *)
-        | None ->
+        | TraitDisallowed ->
           Type_context.add_error ~cx loc ImplicitTypeParamOutsideFunction;
           Type.Any
-        | Some implicit_type_params ->
+        | TraitImplicitParam _
+        | TraitToBound ->
           let trait_sig = trait_decl.trait_sig in
           let num_type_params = List.length trait_sig.type_params in
           if num_type_params <> num_type_args then (
@@ -105,9 +111,12 @@ let rec build_type ~cx ?(check_type_param_bounds = true) ?(implicit_type_params 
             check_type_param_bounds_satisfied trait_sig.type_params type_args;
             (* Create implicit type parameter and save in list of implicits *)
             let bound = { TraitSig.trait_sig; type_args } in
-            let type_param = TypeParam.mk ~name:Implicit ~bounds:[bound] in
-            implicit_type_params := (type_param, loc) :: !implicit_type_params;
-            Type.TypeParam type_param
+            match trait_ctx with
+            | TraitImplicitParam implicit_type_params ->
+              let type_param = TypeParam.mk ~name:Implicit ~bounds:[bound] in
+              implicit_type_params := (type_param, loc) :: !implicit_type_params;
+              Type.TypeParam type_param
+            | _ -> Type.TraitBound bound
           ))))
 
 (* Build type parameters for all types, alias, and traits. Type parameter bounds are built, but
@@ -316,7 +325,7 @@ and build_implemented_traits ~cx trait_decl implemented_trait this_type =
    instantiated type parameters. Needs to recheck type and trait type parameters (as bounds may
    themselves contain parameterized types), type alias bodies, and traits' implemented types. *)
 and recheck_type_parameters ~cx module_ =
-  let recheck_type ~cx ty = ignore (build_type ~cx ~implicit_type_params:(Some (ref [])) ty) in
+  let recheck_type ~cx ty = ignore (build_type ~cx ~trait_ctx:(TraitImplicitParam (ref [])) ty) in
   let recheck_type_param ~cx { Ast.TypeParameter.bounds; _ } =
     List.iter (fun bound -> recheck_type ~cx (Ast.Type.Identifier bound)) bounds
   in
@@ -417,16 +426,30 @@ and build_toplevel_variable_declaration ~cx decl =
 (* Build the function type for a function declaration and set it as type of function identifier *)
 and build_function_declaration ~cx decl =
   let open Ast.Function in
-  let { name = { loc = id_loc; _ }; params; return; type_params; _ } = decl in
+  let { name = { loc = id_loc; _ }; params; return; type_params; body; _ } = decl in
   let explicit_type_params = build_type_parameters ~cx type_params in
+
+  (* Traits in function parameters are concverted to bounded implicit type params *)
   let implicit_type_params = ref [] in
   let params =
     List.map
       (fun param ->
-        build_type ~cx ~implicit_type_params:(Some implicit_type_params) param.Param.annot)
+        build_type ~cx ~trait_ctx:(TraitImplicitParam implicit_type_params) param.Param.annot)
       params
   in
-  let return = Option.fold ~none:Type.Unit ~some:(fun return -> build_type ~cx return) return in
+
+  (* Traits are only allowed in return type if function declaration is a method signature, where
+     they are considered upper bounds, as a concrete type must be used in any implementation. *)
+  let return =
+    Option.fold
+      ~none:Type.Unit
+      ~some:(fun return ->
+        if body = Signature then
+          build_type ~cx ~trait_ctx:TraitToBound return
+        else
+          build_type ~cx return)
+      return
+  in
 
   if Type_context.is_main_loc ~cx id_loc then check_main_declaration ~cx decl params return;
 
@@ -1351,7 +1374,7 @@ and check_expression ~cx expr =
         try_resolve_adt_method adt_sig []
       | ADT { adt_sig; type_args } -> try_resolve_adt_method adt_sig type_args
       | TypeParam { bounds; _ } -> try_resolve_trait_bounds_method bounds
-      | TraitBound { bounds; _ } -> try_resolve_trait_bounds_method bounds
+      | BoundedExistential { bounds; _ } -> try_resolve_trait_bounds_method bounds
       | _ -> false
     in
 
