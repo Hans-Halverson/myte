@@ -92,6 +92,12 @@ let std_memory_array_new = "std.memory.Array.new"
 
 let std_ops_equatable = "std.ops.Equatable"
 
+let std_option_none = "std.option.None"
+
+let std_option_option = "std.option.Option"
+
+let std_option_some = "std.option.Some"
+
 let std_string_string = "std.string.String"
 
 let std_string_tostring = "std.string.ToString"
@@ -126,6 +132,9 @@ let all_stdlib_names =
       std_memory_array_copy;
       std_memory_array_new;
       std_ops_equatable;
+      std_option_none;
+      std_option_option;
+      std_option_some;
       std_string_string;
       std_string_tostring;
       std_sys_exit;

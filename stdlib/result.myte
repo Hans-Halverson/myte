@@ -1,0 +1,21 @@
+module std.result
+
+import std.bool.Bool
+
+type Result<T, U> =
+  | Ok (T)
+  | Error (U)
+
+methods Result<T, U> {
+  fun isOk(): Bool =
+    match (this) {
+      | Ok _ -> true
+      | Error _ -> false
+    }
+  
+  fun isError(): Bool =
+    match (this) {
+      | Ok _ -> false
+      | Error _ -> true
+    }
+}

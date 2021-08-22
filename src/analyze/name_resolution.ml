@@ -53,7 +53,51 @@ end
 module MethodSet = Set.Make (MethodLocation)
 module MethodMMap = MultiMap.Make (String) (MethodLocation)
 
+let implicit_value_imports =
+  let open Std_lib in
+  [("None", std_option_none); ("Some", std_option_some)]
+
+let implicit_type_imports =
+  let open Std_lib in
+  [
+    ("Bool", std_bool_bool);
+    ("Byte", std_byte_byte);
+    ("Int", std_int_int);
+    ("Long", std_long_long);
+    ("Unit", std_unit_unit);
+    ("String", std_string_string);
+    ("Option", std_option_option);
+  ]
+
+let build_implicit_imports ~is_stdlib ~bindings =
+  let open Std_lib in
+  let open Bindings in
+  (* There are no implicit imports in stdlib since implicit imports have not yet been declared *)
+  if is_stdlib then
+    (SMap.empty, SMap.empty)
+  else
+    let implicit_value_imports =
+      List.fold_left
+        (fun acc (name, full_name) ->
+          let decl_loc = lookup_stdlib_decl_loc full_name in
+          SMap.add name (Decl (LocMap.find decl_loc bindings.value_bindings)) acc)
+        SMap.empty
+        implicit_value_imports
+    in
+    let implicit_type_imports =
+      List.fold_left
+        (fun acc (name, full_name) ->
+          let decl_loc = lookup_stdlib_decl_loc full_name in
+          SMap.add name (Decl (LocMap.find decl_loc bindings.type_bindings)) acc)
+        SMap.empty
+        implicit_type_imports
+    in
+    (implicit_value_imports, implicit_type_imports)
+
 class bindings_builder ~is_stdlib ~bindings ~module_tree =
+  let (implicit_value_imports, implicit_type_imports) =
+    build_implicit_imports ~is_stdlib ~bindings
+  in
   object (this)
     inherit Ast_mapper.mapper as super
 
@@ -143,7 +187,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
 
     method lookup_value_in_scope name scopes =
       match scopes with
-      | [] -> None
+      | [] -> SMap.find_opt name implicit_value_imports
       | { local_values; _ } :: rest ->
         (match SMap.find_opt name local_values with
         | None -> this#lookup_value_in_scope name rest
@@ -151,7 +195,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
 
     method lookup_type_in_scope name scopes =
       match scopes with
-      | [] -> None
+      | [] -> SMap.find_opt name implicit_type_imports
       | { local_types; _ } :: rest ->
         (match SMap.find_opt name local_types with
         | None -> this#lookup_type_in_scope name rest
@@ -233,6 +277,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                     | EnumVariant name
                     | TupleVariant { Tuple.name; _ }
                     | RecordVariant { Record.name; _ } ->
+                      register_stdlib_decl name;
                       add_value_binding name (CtorDecl type_decl))
                   variants
               | Builtin ->
@@ -302,17 +347,6 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         this#add_type_to_scope decl_id.name (Decl (this#get_type_binding decl_id.loc))
       in
       this#enter_scope ();
-
-      (* Add all implicit imports to toplevel scope *)
-      if not is_stdlib then (
-        let open Std_lib in
-        add_imported_type_to_scope "Bool" (lookup_stdlib_decl_loc std_bool_bool);
-        add_imported_type_to_scope "Byte" (lookup_stdlib_decl_loc std_byte_byte);
-        add_imported_type_to_scope "Int" (lookup_stdlib_decl_loc std_int_int);
-        add_imported_type_to_scope "Long" (lookup_stdlib_decl_loc std_long_long);
-        add_imported_type_to_scope "Unit" (lookup_stdlib_decl_loc std_unit_unit);
-        add_imported_type_to_scope "String" (lookup_stdlib_decl_loc std_string_string)
-      );
 
       (* Gather imports and add them to toplevel scope *)
       List.iter

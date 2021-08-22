@@ -1,0 +1,19 @@
+module test
+
+fun implicitTypeImports(
+  x1: Unit,
+  x2: Bool,
+  x3: Byte,
+  x4: Int,
+  x5: Long,
+  x6: String,
+  x7: Option<Int>,
+) {}
+
+fun implicitValueImports() {
+  // Options
+  val x: Option<Int> = None;
+  Some (1);
+}
+
+fun main() {}
