@@ -83,22 +83,46 @@ label @2:
 
 global byte[0] @.S0 = ""
 
+type test.Tup {int, bool}
+
+func unit @test.destructureNamedTuple(test.Tup* %44) {
+  %45 := GetPointer int, test.Tup* %44.0
+  %46 := Load int %45
+  %47 := GetPointer bool, test.Tup* %44.1
+  %48 := Load bool %47
+  %49 := Call unit @test.use<int>(%46)
+  %50 := Call unit @test.use<bool>(%48)
+  Ret
+}
+
+type test.Rec {int, bool}
+
+func unit @test.destructureNamedRecord(test.Rec* %51) {
+  %52 := GetPointer int, test.Rec* %51.0
+  %53 := Load int %52
+  %54 := GetPointer bool, test.Rec* %51.1
+  %55 := Load bool %54
+  %56 := Call unit @test.use<int>(%53)
+  %57 := Call unit @test.use<bool>(%55)
+  Ret
+}
+
 global int @test.globalInt = 1
 
 global bool @test.globalBool = true
 
-func unit @test.destructureAssignGlobals($tuple<int,bool>* %44) {
-  %45 := GetPointer int, $tuple<int,bool>* %44.0
-  %46 := Load int %45
-  Store int @test.globalInt, %46
-  %47 := GetPointer bool, $tuple<int,bool>* %44.1
-  %48 := Load bool %47
-  Store bool @test.globalBool, %48
-  %49 := GetPointer int, $tuple<int,bool>* %44.0
-  %50 := Load int %49
-  Store int @test.globalInt, %50
-  %51 := GetPointer bool, $tuple<int,bool>* %44.1
-  %52 := Load bool %51
+func unit @test.destructureAssignGlobals($tuple<int,bool>* %58) {
+  %59 := GetPointer int, $tuple<int,bool>* %58.0
+  %60 := Load int %59
+  Store int @test.globalInt, %60
+  %61 := GetPointer bool, $tuple<int,bool>* %58.1
+  %62 := Load bool %61
+  Store bool @test.globalBool, %62
+  %63 := GetPointer int, $tuple<int,bool>* %58.0
+  %64 := Load int %63
+  Store int @test.globalInt, %64
+  %65 := GetPointer bool, $tuple<int,bool>* %58.1
+  %66 := Load bool %65
   Ret
 }
 

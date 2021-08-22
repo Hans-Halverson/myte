@@ -1479,6 +1479,9 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
       | (Ctor.Unit, tree_node)
       | (Tuple _, tree_node) ->
         emit_tree_node ~path_cache tree_node
+      (* A single variant (aka a named tuple or record) is unique and does not need to be tested *)
+      | (Variant (_, adt_sig, _), tree_node) when SMap.cardinal adt_sig.variants = 1 ->
+        emit_tree_node ~path_cache tree_node
       (* Bool tests have exactly two cases, so emit single eq test (a length one if-else chain) *)
       | (Bool _, _) as first_case ->
         let second_case =
@@ -1591,6 +1594,11 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
       | (TupleField { parent; _ } | VariantField { parent; _ }) as field ->
         gather_path_fields parent (field :: field_chain)
     in
+    let get_field_key field =
+      match field with
+      | PatternPath.TupleIndex index -> TupleKeyCache.get_key index
+      | RecordField name -> name
+    in
     let (root_value, fields) = gather_path_fields pattern_path [] in
     (* If there are field accesses, load the inner field values one at a time *)
     List.fold_left
@@ -1611,6 +1619,13 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
               let (`AggregateT aggregate) = cast_to_aggregate_type ptr_type in
               let field_key = TupleKeyCache.get_key index in
               (aggregate, field_key, pointer_val)
+            (* Look up field in single variant (aggregate) types *)
+            | VariantField { field; adt_sig; type_args; _ } when SMap.cardinal adt_sig.variants = 1
+              ->
+              let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
+              let agg = Ecx.instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args in
+              let field_key = get_field_key field in
+              (agg, field_key, pointer_val)
             (* For variant fields we must find the correct variant aggregate, fetch its field key,
                and cast the pointer to the variant aggregate type. *)
             | VariantField { field; variant_name; adt_sig; type_args; _ } ->
@@ -1619,11 +1634,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
                 Ecx.instantiate_mir_adt_variants_layout ~ecx mir_adt_layout type_args
               in
               let variant_aggregate = SMap.find variant_name instance.variants in
-              let field_key =
-                match field with
-                | TupleIndex index -> TupleKeyCache.get_key index
-                | RecordField name -> name
-              in
+              let field_key = get_field_key field in
               let variant_agg_type = `AggregateT variant_aggregate in
               (variant_aggregate, field_key, cast_pointer_value pointer_val variant_agg_type)
           in

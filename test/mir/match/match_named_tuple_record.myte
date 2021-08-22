@@ -1,0 +1,22 @@
+module test
+
+type Tup (Int, Bool)
+
+type Rec { bar: Int, baz: Bool }
+
+fun testNamedTuple(x: Tup): Int =
+  match (x) {
+    | Tup (1, true) -> 1
+    | Tup (1, _) -> 2
+    | Tup (x, _) -> x
+  }
+
+fun testNamedRecord(x: Rec): Int =
+  match (x) {
+    | Rec { bar: 1, baz: true } -> 1
+    | Rec { bar: 1, ... } -> 2
+    | Rec { bar: x, baz: false } -> x + 3
+    | Rec { bar, baz: _ } -> bar
+  }
+
+fun main() {}

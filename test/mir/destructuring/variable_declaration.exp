@@ -69,6 +69,30 @@ label @2:
   Ret
 }
 
+type test.Tup {int, bool}
+
+func unit @test.destructureNamedTuple(test.Tup* %37) {
+  %38 := GetPointer int, test.Tup* %37.0
+  %39 := Load int %38
+  %40 := GetPointer bool, test.Tup* %37.1
+  %41 := Load bool %40
+  %42 := Call unit @test.use<int>(%39)
+  %43 := Call unit @test.use<bool>(%41)
+  Ret
+}
+
+type test.Rec {int, bool}
+
+func unit @test.destructureNamedRecord(test.Rec* %44) {
+  %45 := GetPointer int, test.Rec* %44.0
+  %46 := Load int %45
+  %47 := GetPointer bool, test.Rec* %44.1
+  %48 := Load bool %47
+  %49 := Call unit @test.use<int>(%46)
+  %50 := Call unit @test.use<bool>(%48)
+  Ret
+}
+
 func int @test.main() {
   Ret 0
 }

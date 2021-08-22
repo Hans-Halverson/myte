@@ -25,4 +25,20 @@ fun destructureVariants(v: Variant) {
   use(y);
 }
 
+type Tup (Int, Bool)
+
+fun destructureNamedTuple(t: Tup) {
+  val Tup (x, y) = t;
+  use(x);
+  use(y);
+}
+
+type Rec { foo: Int, bar: Bool }
+
+fun destructureNamedRecord(r: Rec) {
+  val Rec { foo, bar: y } = r;
+  use(foo);
+  use(y);
+}
+
 fun main() {}

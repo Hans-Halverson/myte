@@ -32,6 +32,28 @@ fun destructureVariants(v: Variant) {
   use(y);
 }
 
+type Tup (Int, Bool)
+
+fun destructureNamedTuple(t: Tup) {
+  var x = 1;
+  var y = true;
+
+  Tup (x, y) = t;
+  use(x);
+  use(y);
+}
+
+type Rec { foo: Int, bar: Bool }
+
+fun destructureNamedRecord(r: Rec) {
+  var foo = 1;
+  var y = true;
+
+  Rec { foo, bar: y } = r;
+  use(foo);
+  use(y);
+}
+
 var globalInt: Int = 1
 var globalBool: Bool = true
 
