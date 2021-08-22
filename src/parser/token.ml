@@ -41,6 +41,8 @@ type t =
   | T_IF
   | T_ELSE
   | T_WHILE
+  | T_FOR
+  | T_IN
   | T_RETURN
   | T_BREAK
   | T_CONTINUE
@@ -110,6 +112,8 @@ let to_string token =
   | T_IF -> "if"
   | T_ELSE -> "else"
   | T_WHILE -> "while"
+  | T_FOR -> "for"
+  | T_IN -> "in"
   | T_RETURN -> "return"
   | T_BREAK -> "break"
   | T_CONTINUE -> "continue"

@@ -87,6 +87,7 @@ fun rightHandStatements() {
     | e -> return 1
     | f -> break
     | g -> continue
+    | h -> for (x in y) { 1; }
   }
 
   // Handle return without argument at end

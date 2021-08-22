@@ -1,0 +1,13 @@
+module test
+
+fun main() {
+  for (x in y) {}
+
+  for (x: Int in y) {}
+
+  for ((x, y) in y) {}
+
+  for (Tup (x): Tup in y + z) {
+    true;
+  }
+}

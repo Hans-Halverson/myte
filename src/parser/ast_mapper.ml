@@ -50,6 +50,7 @@ class mapper =
         | Block s -> id_map this#block s stmt (fun s' -> Block s')
         | If s -> id_map this#if_ s stmt (fun s' -> If s')
         | While s -> id_map this#while_ s stmt (fun s' -> While s')
+        | For s -> id_map this#for_ s stmt (fun s' -> For s')
         | Return s -> id_map this#return s stmt (fun s' -> Return s')
         | Break s -> id_map this#break s stmt (fun s' -> Break s')
         | Continue s -> id_map this#continue s stmt (fun s' -> Continue s')
@@ -433,6 +434,18 @@ class mapper =
         while_
       else
         { loc; test = test'; body = body' }
+
+    method for_ for_ =
+      let open Statement.For in
+      let { loc; pattern; annot; iterator; body } = for_ in
+      let pattern' = this#pattern pattern in
+      let annot' = id_map_opt this#type_ annot in
+      let iterator' = this#expression iterator in
+      let body' = this#statement body in
+      if pattern == pattern' && annot == annot' && iterator == iterator' && body == body' then
+        for_
+      else
+        { loc; pattern = pattern'; annot = annot'; iterator = iterator'; body = body' }
 
     method return return =
       let open Statement.Return in

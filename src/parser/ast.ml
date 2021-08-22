@@ -68,6 +68,16 @@ and Statement : sig
     }
   end
 
+  module For : sig
+    type t = {
+      loc: Loc.t;
+      pattern: Pattern.t;
+      annot: Type.t option;
+      iterator: Expression.t;
+      body: Statement.t;
+    }
+  end
+
   module Return : sig
     type t = {
       loc: Loc.t;
@@ -116,6 +126,7 @@ and Statement : sig
     | Block of Block.t
     | If of If.t
     | While of While.t
+    | For of For.t
     | Return of Return.t
     | Break of Break.t
     | Continue of Continue.t

@@ -1884,6 +1884,7 @@ and check_statement ~cx stmt =
    * ============================
    *)
   | Match match_ -> check_match ~cx match_ Unit
+  | For _ -> failwith "TODO: Type check for loops"
 
 (* Resolve all IntLiteral placeholder types to an actual integer type. Infer as Int if all
    literals are within the Int range, otherwise infer as Long. *)

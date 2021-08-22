@@ -1,0 +1,224 @@
+test/parser/for/basic.myte
+{
+  node: Module,
+  loc: 1:0-13:1,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: Function,
+      loc: 3:0-13:1,
+      name: {
+        node: Identifier,
+        loc: 3:4-3:8,
+        name: "main",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 3:11-13:1,
+        statements: [
+          {
+            node: For,
+            loc: 4:2-4:17,
+            pattern: {
+              node: ScopedIdentifier,
+              loc: 4:7-4:8,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 4:7-4:8,
+                name: "x",
+              },
+            },
+            annot: None,
+            iterator: {
+              node: Identifier,
+              loc: 4:12-4:13,
+              name: "y",
+            },
+            body: {
+              node: Block,
+              loc: 4:15-4:17,
+              statements: [],
+            },
+          },
+          {
+            node: For,
+            loc: 6:2-6:22,
+            pattern: {
+              node: ScopedIdentifier,
+              loc: 6:7-6:8,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 6:7-6:8,
+                name: "x",
+              },
+            },
+            annot: {
+              node: IdentifierType,
+              loc: 6:10-6:13,
+              name: {
+                node: ScopedIdentifier,
+                loc: 6:10-6:13,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 6:10-6:13,
+                  name: "Int",
+                },
+              },
+              type_args: [],
+            },
+            iterator: {
+              node: Identifier,
+              loc: 6:17-6:18,
+              name: "y",
+            },
+            body: {
+              node: Block,
+              loc: 6:20-6:22,
+              statements: [],
+            },
+          },
+          {
+            node: For,
+            loc: 8:2-8:22,
+            pattern: {
+              node: TuplePattern,
+              loc: 8:7-8:13,
+              name: None,
+              elements: [
+                {
+                  node: ScopedIdentifier,
+                  loc: 8:8-8:9,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 8:8-8:9,
+                    name: "x",
+                  },
+                },
+                {
+                  node: ScopedIdentifier,
+                  loc: 8:11-8:12,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 8:11-8:12,
+                    name: "y",
+                  },
+                },
+              ],
+            },
+            annot: None,
+            iterator: {
+              node: Identifier,
+              loc: 8:17-8:18,
+              name: "y",
+            },
+            body: {
+              node: Block,
+              loc: 8:20-8:22,
+              statements: [],
+            },
+          },
+          {
+            node: For,
+            loc: 10:2-12:3,
+            pattern: {
+              node: TuplePattern,
+              loc: 10:7-10:14,
+              name: {
+                node: ScopedIdentifier,
+                loc: 10:7-10:10,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 10:7-10:10,
+                  name: "Tup",
+                },
+              },
+              elements: [
+                {
+                  node: ScopedIdentifier,
+                  loc: 10:12-10:13,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 10:12-10:13,
+                    name: "x",
+                  },
+                },
+              ],
+            },
+            annot: {
+              node: IdentifierType,
+              loc: 10:16-10:19,
+              name: {
+                node: ScopedIdentifier,
+                loc: 10:16-10:19,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 10:16-10:19,
+                  name: "Tup",
+                },
+              },
+              type_args: [],
+            },
+            iterator: {
+              node: BinaryOperation,
+              loc: 10:23-10:28,
+              op: Add,
+              left: {
+                node: Identifier,
+                loc: 10:23-10:24,
+                name: "y",
+              },
+              right: {
+                node: Identifier,
+                loc: 10:27-10:28,
+                name: "z",
+              },
+            },
+            body: {
+              node: Block,
+              loc: 10:30-12:3,
+              statements: [
+                {
+                  node: ExpressionStatement,
+                  loc: 11:4-11:9,
+                  expression: {
+                    node: BoolLiteral,
+                    loc: 11:4-11:8,
+                    value: true,
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+      builtin: false,
+      static: false,
+      override: false,
+    },
+  ],
+}

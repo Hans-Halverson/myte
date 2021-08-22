@@ -9,6 +9,7 @@ let statement_loc stmt =
   | Block { Block.loc; _ }
   | If { If.loc; _ }
   | While { While.loc; _ }
+  | For { For.loc; _ }
   | Return { Return.loc; _ }
   | Break { Break.loc; _ }
   | Continue { Continue.loc }

@@ -52,3 +52,8 @@ Error: Unreachable statement
 test/analyze/reachability/reachability.myte:83:4-13
  83 |     return 1;
     |     ^^^^^^^^^
+
+Error: Unreachable statement after continue
+test/analyze/reachability/reachability.myte:92:4-13
+ 92 |     return 1;
+    |     ^^^^^^^^^

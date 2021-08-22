@@ -247,6 +247,8 @@ let tokenize lex =
   | "if" -> token_result T_IF
   | "else" -> token_result T_ELSE
   | "while" -> token_result T_WHILE
+  | "for" -> token_result T_FOR
+  | "in" -> token_result T_IN
   | "return" -> token_result T_RETURN
   | "break" -> token_result T_BREAK
   | "continue" -> token_result T_CONTINUE

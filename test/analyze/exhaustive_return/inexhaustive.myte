@@ -65,6 +65,16 @@ fun testWhile2(): Int {
   }
 }
 
+fun testFor1(): Int {
+  for (x in true) {}
+}
+
+fun testFor2(): Int {
+  for (x in true) {
+    return 1;
+  }
+}
+
 fun testMatchSingleCase(): Int {
   val _ = 1;
   match (1) {

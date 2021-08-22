@@ -132,6 +132,7 @@ and node_of_statement stmt =
   | Block block -> node_of_block block
   | If if_ -> node_of_if if_
   | While while_ -> node_of_while while_
+  | For for_ -> node_of_for for_
   | Return ret -> node_of_return ret
   | Break break -> node_of_break break
   | Continue continue -> node_of_continue continue
@@ -401,6 +402,18 @@ and node_of_if if_ =
 and node_of_while while_ =
   let { Statement.While.loc; test; body } = while_ in
   node "While" loc [("test", node_of_expression test); ("body", node_of_statement body)]
+
+and node_of_for for_ =
+  let { Statement.For.loc; pattern; annot; iterator; body } = for_ in
+  node
+    "For"
+    loc
+    [
+      ("pattern", node_of_pattern pattern);
+      ("annot", opt node_of_type annot);
+      ("iterator", node_of_expression iterator);
+      ("body", node_of_statement body);
+    ]
 
 and node_of_return ret =
   let { Statement.Return.loc; arg } = ret in

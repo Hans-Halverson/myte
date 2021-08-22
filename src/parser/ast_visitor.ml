@@ -34,6 +34,7 @@ class visitor =
         | Block s -> this#block s
         | If s -> this#if_ s
         | While s -> this#while_ s
+        | For s -> this#for_ s
         | Return s -> this#return s
         | Break s -> this#break s
         | Continue s -> this#continue s
@@ -304,6 +305,14 @@ class visitor =
       let open Statement.While in
       let { loc = _; test; body } = while_ in
       this#expression test;
+      this#statement body
+
+    method for_ for_ =
+      let open Statement.For in
+      let { loc = _; pattern; annot; iterator; body } = for_ in
+      this#pattern pattern;
+      Option.iter this#type_ annot;
+      this#expression iterator;
       this#statement body
 
     method return return =

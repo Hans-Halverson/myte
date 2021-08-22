@@ -205,6 +205,7 @@ and parse_statement env =
   | T_IF -> parse_if env
   | T_MATCH -> Match (parse_match env)
   | T_WHILE -> parse_while env
+  | T_FOR -> parse_for env
   | T_RETURN -> parse_return ~in_match_case:false env
   | T_BREAK -> parse_break ~in_match_case:false env
   | T_CONTINUE -> parse_continue ~in_match_case:false env
@@ -947,6 +948,7 @@ and parse_match env =
       | T_LEFT_BRACE -> Case.Statement (Statement.Block (parse_block env))
       | T_IF -> Case.Statement (parse_if env)
       | T_WHILE -> Case.Statement (parse_while env)
+      | T_FOR -> Case.Statement (parse_for env)
       | T_RETURN -> Case.Statement (parse_return ~in_match_case:true env)
       | T_BREAK -> Case.Statement (parse_break ~in_match_case:true env)
       | T_CONTINUE -> Case.Statement (parse_continue ~in_match_case:true env)
@@ -1013,6 +1015,25 @@ and parse_while env =
   let body = parse_statement env in
   let loc = marker env in
   Statement.While { loc; test; body }
+
+and parse_for env =
+  let marker = mark_loc env in
+  Env.expect env T_FOR;
+  Env.expect env T_LEFT_PAREN;
+  let pattern = parse_pattern ~is_decl:true env in
+  let annot =
+    match Env.token env with
+    | T_COLON ->
+      Env.advance env;
+      Some (parse_type env)
+    | _ -> None
+  in
+  Env.expect env T_IN;
+  let iterator = parse_expression env in
+  Env.expect env T_RIGHT_PAREN;
+  let body = parse_statement env in
+  let loc = marker env in
+  Statement.For { loc; pattern; annot; iterator; body }
 
 and parse_return ~in_match_case env =
   let open Statement.Return in

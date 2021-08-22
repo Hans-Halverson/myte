@@ -1313,6 +1313,7 @@ and emit_statement ~ecx stmt =
     emit_match_decision_tree ~ecx ~join_block ~result_ptr:None ~alloc:true decision_tree;
     Ecx.set_block_builder ~ecx join_block
   | FunctionDeclaration _ -> failwith "TODO: Emit MIR for non-toplevel function declarations"
+  | For _ -> failwith "TODO: Emit MIR for for loops"
 
 and emit_destructuring ~(ecx : Ecx.t) ~alloc pattern value =
   match pattern with

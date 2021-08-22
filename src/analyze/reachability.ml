@@ -75,7 +75,8 @@ let rec visit_statement ~cx stmt =
         cases
     in
     join_reachabilities case_reachabilities
-  | While { While.body; _ } ->
+  | While { While.body; _ }
+  | For { For.body; _ } ->
     enter_loop ~cx;
     ignore (visit_statement ~cx body);
     exit_loop ~cx;

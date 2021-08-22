@@ -58,17 +58,27 @@ test/analyze/exhaustive_return/inexhaustive.myte:66:0
  66 | }
     | ^
 
+Error: All branches of function `testFor1` must end in a return statement
+test/analyze/exhaustive_return/inexhaustive.myte:70:0
+ 70 | }
+    | ^
+
+Error: All branches of function `testFor2` must end in a return statement
+test/analyze/exhaustive_return/inexhaustive.myte:76:0
+ 76 | }
+    | ^
+
 Error: All branches of function `testMatchSingleCase` must end in a return statement
-test/analyze/exhaustive_return/inexhaustive.myte:71:11
- 71 |     | _ -> 1
+test/analyze/exhaustive_return/inexhaustive.myte:81:11
+ 81 |     | _ -> 1
     |            ^
 
 Error: All branches of function `testMatchMultipleCases` must end in a return statement
-test/analyze/exhaustive_return/inexhaustive.myte:79:11
- 79 |     | _ -> 2
+test/analyze/exhaustive_return/inexhaustive.myte:89:11
+ 89 |     | _ -> 2
     |            ^
 
 Error: All branches of function `testMatchNested` must end in a return statement
-test/analyze/exhaustive_return/inexhaustive.myte:90:13
- 90 |       | _ -> 3
-    |              ^
+test/analyze/exhaustive_return/inexhaustive.myte:100:13
+ 100 |       | _ -> 3
+     |              ^

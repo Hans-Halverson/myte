@@ -25,6 +25,7 @@ class analyzer =
       | Expression _
       | Assignment _
       | While _
+      | For _
       | Break _
       | Continue _
       | VariableDeclaration _
