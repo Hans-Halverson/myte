@@ -1627,9 +1627,11 @@ and check_pattern ~cx patt =
             (IncorrectTupleConstructorArity (List.length elements, List.length element_sigs));
           Some Type.Any
         | Tuple element_sigs ->
+          let type_param_bindings = Types.get_adt_type_param_bindings adt in
           List.iter2
             (fun (element_loc, element_tvar_id) element_sig_ty ->
-              Type_context.assert_unify ~cx element_loc element_sig_ty (TVar element_tvar_id))
+              let element_ty = Types.substitute_type_params type_param_bindings element_sig_ty in
+              Type_context.assert_unify ~cx element_loc element_ty (TVar element_tvar_id))
             element_locs_and_tvar_ids
             element_sigs;
           Some adt
@@ -1708,10 +1710,12 @@ and check_pattern ~cx patt =
               loc
               (MissingRecordConstructorFields (List.rev missing_fields));
           (* Supplied fields must each be a subtype of the field types *)
+          let type_param_bindings = Types.get_adt_type_param_bindings adt in
           SMap.iter
             (fun field_name (param_loc, param_tvar_id) ->
               let field_sig_ty = SMap.find field_name field_sigs in
-              Type_context.assert_unify ~cx param_loc field_sig_ty (TVar param_tvar_id))
+              let field_ty = Types.substitute_type_params type_param_bindings field_sig_ty in
+              Type_context.assert_unify ~cx param_loc field_ty (TVar param_tvar_id))
             field_params;
           (* Result is algebraic data type unless the fields do not match,
              in which case propagate any *)

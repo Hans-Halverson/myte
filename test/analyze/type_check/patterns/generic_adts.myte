@@ -1,0 +1,17 @@
+module test
+
+type Tup<T> (T)
+
+fun tuplePatternTest(x: Tup<Bool>) {
+  val Tup (y) = x;
+  (y: Bool);
+}
+
+type Rec<T> { foo: T }
+
+fun recordPatternTest(x: Rec<Bool>) {
+  val Rec { foo } = x;
+  (foo: Bool);
+}
+
+fun main() {}
