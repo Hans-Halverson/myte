@@ -154,6 +154,41 @@
 				}
 			]
 		},
+		"for": {
+			"name": "meta.for.myte",
+			"begin": "\\b(for)\\b\\s*(\\()",
+			"beginCaptures": {
+				"1": { "name": "keyword.control.myte" },
+				"2": { "name": "punctuation.brackets.round.myte" }
+			},
+			"end": "\\)",
+			"endCaptures": {
+				"0": { "name": "punctuation.brackets.round.myte" }
+			},
+			"patterns": [
+				{
+					"begin": ":",
+					"beginCaptures": {
+						"0": { "name": "punctuation.colon.myte" }
+					},
+					"end": "(?=\\bin\\b)",
+					"patterns": [
+						{ "include": "#types" }
+					]
+				},
+				{
+					"begin": "\\bin\\b",
+					"beginCaptures": {
+						"0": { "name": "keyword.control.myte" }
+					},
+					"end": "(?=\\))",
+					"patterns": [
+						{ "include": "#expressions" }
+					]
+				},
+				{ "include": "#pattern" }
+			]
+		},
 		"function-bodies": {
 			"patterns": [
 				{ "include": "#block" },
@@ -600,12 +635,12 @@
 					"match": ";"
 				},
 				{ "include": "#function-declarations" },
-				{ "include": "#function-bodies" },
 				{ "include": "#variable-declarations" },
 				{
 					"name": "keyword.control.myte",
 					"match": "\\b(if|else|while|break|continue|return)\\b"
 				},
+				{ "include": "#for" },
 				{ "include": "#match" },
 				{ "include": "#expressions" },
 				{ "include": "#block" }
