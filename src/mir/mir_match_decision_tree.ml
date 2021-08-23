@@ -367,7 +367,7 @@ let default_scrutinee_vector column_index scrutinee_vector =
 let rec build_match_decision_tree ~(ecx : Ecx.t) scrutinee_vals case_nodes =
   let pattern_matrix =
     List.map
-      (fun case_node -> rows_of_case_node ~cx:ecx.pcx.type_ctx ~scrutinee_vals case_node)
+      (fun case_node -> rows_of_case_node ~ecx ~scrutinee_vals case_node)
       case_nodes
     |> List.flatten
   in
@@ -377,7 +377,7 @@ let rec build_match_decision_tree ~(ecx : Ecx.t) scrutinee_vals case_nodes =
   build_decision_tree ~prev_guard:None scrutinee_vector pattern_matrix
 
 and build_destructure_decision_tree ~(ecx : Ecx.t) value pattern_node =
-  let pattern_matrix = rows_of_destructuring_node ~cx:ecx.pcx.type_ctx value pattern_node in
+  let pattern_matrix = rows_of_destructuring_node ~ecx value pattern_node in
   let scrutinee_vector = [PatternPath.Root value] in
   build_decision_tree ~prev_guard:None scrutinee_vector pattern_matrix
 
@@ -534,15 +534,15 @@ and arity_heuristic _ signature =
 
 and all_heuristics = [column_prefix_heuristic; small_branching_factor_heuristic; arity_heuristic]
 
-and pattern_of_pattern_node ~cx ~bindings ~scrutinee pattern =
+and pattern_of_pattern_node ~(ecx: Ecx.t) ~bindings ~scrutinee pattern =
   let collect_root_binding root_val_opt loc =
     match root_val_opt with
     | None -> ()
     | Some root_val -> bindings := (PatternPath.Root root_val, loc) :: !bindings
   in
   let type_of_loc loc =
-    let tvar_id = Type_context.get_tvar_from_loc ~cx loc in
-    Type_context.find_rep_type ~cx (TVar tvar_id)
+    let tvar_id = Type_context.get_tvar_from_loc ~cx:ecx.pcx.type_ctx loc in
+    Ecx.find_rep_non_generic_type ~ecx (TVar tvar_id)
   in
   let mk_pattern pattern = { Pattern.pattern; bindings = [] } in
   let rec pattern_of_pattern_node ~root_val_opt pattern =
@@ -564,7 +564,7 @@ and pattern_of_pattern_node ~cx ~bindings ~scrutinee pattern =
     (* Identifier pattern may be for an enum variant, otherwise it is a variable and can be treated
        as a wildcard. Collect binding if at root level. *)
     | Identifier { name; _ } ->
-      let binding = Type_context.get_value_binding ~cx name.loc in
+      let binding = Type_context.get_value_binding ~cx:ecx.pcx.type_ctx name.loc in
       (match binding.declaration with
       | CtorDecl _ ->
         let ty = type_of_loc name.loc in
@@ -653,12 +653,12 @@ and pattern_of_pattern_node ~cx ~bindings ~scrutinee pattern =
   in
   pattern_of_pattern_node ~root_val_opt:(Some scrutinee) pattern
 
-and rows_of_case_node ~cx ~scrutinee_vals case_node =
+and rows_of_case_node ~ecx ~scrutinee_vals case_node =
   let pattern_node = case_node.Ast.Match.Case.pattern in
   match scrutinee_vals with
   | [scrutinee] ->
     let bindings = ref [] in
-    let row = [pattern_of_pattern_node ~cx ~bindings ~scrutinee pattern_node] in
+    let row = [pattern_of_pattern_node ~ecx ~bindings ~scrutinee pattern_node] in
     [{ CaseRow.node = Some case_node; row; bindings = !bindings }]
   | scrutinees ->
     (* Recursively expand or patterns at top level *)
@@ -678,7 +678,7 @@ and rows_of_case_node ~cx ~scrutinee_vals case_node =
         let row =
           List.fold_left2
             (fun acc pattern_node scrutinee ->
-              let pattern = pattern_of_pattern_node ~cx ~bindings ~scrutinee pattern_node in
+              let pattern = pattern_of_pattern_node ~ecx ~bindings ~scrutinee pattern_node in
               pattern :: acc)
             []
             elements
@@ -691,7 +691,7 @@ and rows_of_case_node ~cx ~scrutinee_vals case_node =
     in
     rows_of_top_level pattern_node scrutinees
 
-and rows_of_destructuring_node ~cx value pattern_node =
+and rows_of_destructuring_node ~ecx value pattern_node =
   let bindings = ref [] in
-  let row = [pattern_of_pattern_node ~cx ~bindings ~scrutinee:value pattern_node] in
+  let row = [pattern_of_pattern_node ~ecx ~bindings ~scrutinee:value pattern_node] in
   [{ CaseRow.node = None; row; bindings = !bindings }]

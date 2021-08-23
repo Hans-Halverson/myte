@@ -93,6 +93,19 @@ func unit @test.destructureNamedRecord(test.Rec* %44) {
   Ret
 }
 
+type test.Rec2<int> {int, bool}
+
+func int @test.Rec2.methodDestructuring<int>(test.Rec2<int>* %51) {
+  %52 := GetPointer int, test.Rec2<int>* %51.0
+  %53 := Load int %52
+  Ret %53
+}
+
+func unit @test.testUseRec2(test.Rec2<int>* %54) {
+  %55 := Call int @test.Rec2.methodDestructuring<int>(%54)
+  Ret
+}
+
 func int @test.main() {
   Ret 0
 }

@@ -41,4 +41,18 @@ fun destructureNamedRecord(r: Rec) {
   use(y);
 }
 
+// Destructuring generic in methods
+type Rec2<T> { foo: T, bar: Bool }
+
+methods Rec2<T> {
+  fun methodDestructuring(): T {
+    val Rec2 { foo, ... } = this;
+    return foo;
+  }
+}
+
+fun testUseRec2(x: Rec2<Int>) {
+  x.methodDestructuring();
+}
+
 fun main() {}
