@@ -1,0 +1,55 @@
+module test
+
+import std.vec.Vec
+
+fun use<T>(x: T) {}
+
+fun testIterators(v1: Vec<Int>, v2: Vec<Bool>) {
+  for (x in v1) {
+    use(x);
+  }
+
+  var y = false;
+  for (x in v2) {
+    use(x);
+    y = x;
+  }
+
+  use(y);
+}
+
+fun testBreak(v1: Vec<Bool>) {
+  var y = 0;
+
+  for (x in v1) {
+    if (!x) {
+      use(1);
+      y = 1;
+      break;
+    }
+
+    y = 2;
+    use(2);
+  }
+
+  use(y);
+}
+
+fun testContinue(v1: Vec<Bool>) {
+  var y = 0;
+
+  for (x in v1) {
+    if (!x) {
+      use(1);
+      y = 1;
+      continue;
+    }
+
+    y = 2;
+    use(2);
+  }
+
+  use(y);
+}
+
+fun main() {}

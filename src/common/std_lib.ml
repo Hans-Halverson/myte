@@ -156,11 +156,15 @@ let int_adt_sig = ref Types.AdtSig.empty
 
 let long_adt_sig = ref Types.AdtSig.empty
 
+let option_adt_sig = ref Types.AdtSig.empty
+
 let string_adt_sig = ref Types.AdtSig.empty
 
 let vec_adt_sig = ref Types.AdtSig.empty
 
 let unit_adt_sig = ref Types.AdtSig.empty
+
+let mk_option_type type_arg = Types.Type.ADT { adt_sig = !option_adt_sig; type_args = [type_arg] }
 
 let mk_string_type () = Types.Type.ADT { adt_sig = !string_adt_sig; type_args = [] }
 
@@ -218,6 +222,7 @@ let register_stdlib_type loc adt_sig =
   | Some name when name = std_byte_byte -> byte_adt_sig := adt_sig
   | Some name when name = std_int_int -> int_adt_sig := adt_sig
   | Some name when name = std_long_long -> long_adt_sig := adt_sig
+  | Some name when name = std_option_option -> option_adt_sig := adt_sig
   | Some name when name = std_string_string -> string_adt_sig := adt_sig
   | Some name when name = std_vec_vec -> vec_adt_sig := adt_sig
   | Some name when name = std_unit_unit -> unit_adt_sig := adt_sig

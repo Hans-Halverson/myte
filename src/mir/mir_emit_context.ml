@@ -414,8 +414,8 @@ and to_mir_type ~ecx ty =
       `PointerT (`AggregateT instance.union)
     | PureEnum { tag_mir_type; _ } -> (tag_mir_type :> Type.t)
     | InlineValue _ -> instantiate_mir_adt_inline_value_layout ~ecx mir_adt_layout type_args)
-  | TraitBound _
   | TypeParam _
+  | TraitBound _
   | TVar _
   | Any ->
     failwith "Not allowed as value in IR"

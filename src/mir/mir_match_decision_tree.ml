@@ -366,9 +366,7 @@ let default_scrutinee_vector column_index scrutinee_vector =
 
 let rec build_match_decision_tree ~(ecx : Ecx.t) scrutinee_vals case_nodes =
   let pattern_matrix =
-    List.map
-      (fun case_node -> rows_of_case_node ~ecx ~scrutinee_vals case_node)
-      case_nodes
+    List.map (fun case_node -> rows_of_case_node ~ecx ~scrutinee_vals case_node) case_nodes
     |> List.flatten
   in
   let scrutinee_vector =
@@ -534,7 +532,7 @@ and arity_heuristic _ signature =
 
 and all_heuristics = [column_prefix_heuristic; small_branching_factor_heuristic; arity_heuristic]
 
-and pattern_of_pattern_node ~(ecx: Ecx.t) ~bindings ~scrutinee pattern =
+and pattern_of_pattern_node ~(ecx : Ecx.t) ~bindings ~scrutinee pattern =
   let collect_root_binding root_val_opt loc =
     match root_val_opt with
     | None -> ()

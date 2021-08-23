@@ -1215,16 +1215,23 @@ and emit_statement ~ecx stmt =
   match stmt with
   | Expression (_, expr) -> ignore (emit_expression ~ecx expr)
   | Block { statements; _ } -> List.iter (emit_statement ~ecx) statements
+  (*
+   * ============================
+   *        If Statement
+   * ============================
+   *)
   | If { loc = _; test; conseq; altern = None } ->
     (* Branch to conseq or join blocks *)
     let test_val = emit_bool_expression ~ecx test in
     let conseq_builder = Ecx.mk_block_builder ~ecx in
     let join_builder = Ecx.mk_block_builder ~ecx in
     Ecx.finish_block_branch ~ecx test_val conseq_builder.id join_builder.id;
+
     (* Emit conseq and continue to join block *)
     Ecx.set_block_builder ~ecx conseq_builder;
     emit_statement ~ecx conseq;
     Ecx.finish_block_continue ~ecx join_builder.id;
+
     (* Start join block *)
     Ecx.set_block_builder ~ecx join_builder
   | If { loc = _; test; conseq; altern = Some altern } ->
@@ -1234,33 +1241,172 @@ and emit_statement ~ecx stmt =
     let altern_builder = Ecx.mk_block_builder ~ecx in
     let join_builder = Ecx.mk_block_builder ~ecx in
     Ecx.finish_block_branch ~ecx test_val conseq_builder.id altern_builder.id;
+
     (* Emit conseq and continue to join block *)
     Ecx.set_block_builder ~ecx conseq_builder;
     emit_statement ~ecx conseq;
     Ecx.finish_block_continue ~ecx join_builder.id;
+
     (* Emit altern and continue to join block *)
     Ecx.set_block_builder ~ecx altern_builder;
     emit_statement ~ecx altern;
     Ecx.finish_block_continue ~ecx join_builder.id;
+
     (* Start join block *)
     Ecx.set_block_builder ~ecx join_builder
+  (*
+   * ============================
+   *         While Loop
+   * ============================
+   *)
   | While { loc = _; test; body } ->
+    (* Set up blocks for loop *)
     let test_builder = Ecx.mk_block_builder ~ecx in
     let body_builder = Ecx.mk_block_builder ~ecx in
     let finish_builder = Ecx.mk_block_builder ~ecx in
     Ecx.finish_block_continue ~ecx test_builder.id;
+
     (* Emit test block which branches to finish or body blocks *)
     Ecx.set_block_builder ~ecx test_builder;
     let test_val = emit_bool_expression ~ecx test in
     Ecx.finish_block_branch ~ecx test_val body_builder.id finish_builder.id;
+
     (* Emit body block which continues to test block *)
     Ecx.push_loop_context ~ecx finish_builder.id test_builder.id;
     Ecx.set_block_builder ~ecx body_builder;
     emit_statement ~ecx body;
     Ecx.finish_block_continue ~ecx test_builder.id;
     Ecx.pop_loop_context ~ecx;
+
     (* Start join block *)
     Ecx.set_block_builder ~ecx finish_builder
+  (*
+   * ============================
+   *         For Loop
+   * ============================
+   *)
+  | For { pattern; iterator; body; _ } ->
+    (* Set up blocks for loop *)
+    let test_builder = Ecx.mk_block_builder ~ecx in
+    let body_builder = Ecx.mk_block_builder ~ecx in
+    let finish_builder = Ecx.mk_block_builder ~ecx in
+
+    (* Find type of iterable *)
+    let iterable_ty = type_of_loc ~ecx (Ast_utils.expression_loc iterator) in
+    let (iterable_type_args, iterable_adt_sig) = Type_util.cast_to_adt_type iterable_ty in
+
+    (* Find type of iterator *)
+    let to_iterator_sig = Types.AdtSig.lookup_method iterable_adt_sig "toIterator" |> Option.get in
+    let (iterator_type_args, iterator_adt_sig) =
+      Type_util.cast_to_adt_type to_iterator_sig.return
+    in
+    let type_param_bindings =
+      Types.bind_type_params_to_args
+        to_iterator_sig.source_trait_instance.trait_sig.type_params
+        iterable_type_args
+    in
+    let iterator_type_args =
+      List.map (Types.substitute_type_params type_param_bindings) iterator_type_args
+    in
+    let iterator_ty =
+      Types.Type.ADT { adt_sig = iterator_adt_sig; type_args = iterator_type_args }
+    in
+    let iterator_mir_type = Ecx.to_mir_type ~ecx iterator_ty in
+    let item_ty = List.hd iterable_type_args in
+
+    (* Find aggregate data for option of iterator item *)
+    let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx !Std_lib.option_adt_sig in
+    let variants_layout =
+      match mir_adt_layout.layout with
+      | Variants variants_layout -> variants_layout
+      | _ -> failwith "Expected variants layout"
+    in
+    let instance = Ecx.instantiate_mir_adt_variants_layout ~ecx mir_adt_layout [item_ty] in
+    let some_aggregate = SMap.find "Some" instance.variants in
+    let some_tag = SMap.find "Some" variants_layout.tags in
+    let tag_type = type_of_value (some_tag :> Value.t) in
+
+    (* Before loop starts, emit iterable value and call `toIterator` to create iterator *)
+    let iterable_val = emit_expression ~ecx iterator in
+    let iterator_val =
+      emit_method_call
+        ~ecx
+        ~method_name:"toIterator"
+        ~receiver_val:iterable_val
+        ~receiver_ty:iterable_ty
+        ~arg_vals:[]
+        ~method_instance_type_args:[]
+        ~ret_type:iterator_mir_type
+    in
+    Ecx.finish_block_continue ~ecx test_builder.id;
+
+    (* Test block starts by calling iterator's `next` method, returning item option *)
+    Ecx.set_block_builder ~ecx test_builder;
+    let item_opt_ptr_val =
+      emit_method_call
+        ~ecx
+        ~method_name:"next"
+        ~receiver_val:iterator_val
+        ~receiver_ty:iterator_ty
+        ~arg_vals:[]
+        ~method_instance_type_args:[]
+        ~ret_type:(Ecx.to_mir_type ~ecx (Std_lib.mk_option_type item_ty))
+    in
+    let item_opt_ptr_val = cast_to_pointer_value item_opt_ptr_val in
+
+    (* Test block proceeds to load tag of item option *)
+    let tag_ptr_val = cast_pointer_value item_opt_ptr_val tag_type in
+    let tag_var_id = mk_var_id () in
+    Ecx.emit ~ecx (Load (tag_var_id, tag_ptr_val));
+
+    (* Test block finishes by jumping to body if item is a `Some` variant, otherwise test block
+       finishes by jumping to loop end if item is a `None` variant. *)
+    let tag_val = cast_to_comparable_value (var_value_of_type tag_var_id tag_type) in
+    let test_var_id = mk_var_id () in
+    Ecx.emit ~ecx (Eq (test_var_id, tag_val, (some_tag :> Value.comparable_value)));
+    Ecx.finish_block_branch ~ecx (`BoolV test_var_id) body_builder.id finish_builder.id;
+
+    (* Body block starts by loading payload from `Some` variant *)
+    Ecx.set_block_builder ~ecx body_builder;
+    let (item_mir_type, item_index) = lookup_element some_aggregate (TupleKeyCache.get_key 0) in
+    let (item_ptr_val, get_ptr_instr) =
+      mk_get_pointer_instr
+        item_mir_type
+        item_opt_ptr_val
+        [Instruction.GetPointer.FieldIndex item_index]
+    in
+    Ecx.emit ~ecx (GetPointer get_ptr_instr);
+    let item_var_id = mk_var_id () in
+    Ecx.emit ~ecx (Load (item_var_id, item_ptr_val));
+
+    (* Body block then destructures payload to for loop bindings *)
+    let item_val = var_value_of_type item_var_id (Ecx.to_mir_type ~ecx item_ty) in
+    emit_destructuring ~ecx ~alloc:true pattern item_val;
+
+    (* Body block contains body of for loop and continues to test block *)
+    Ecx.push_loop_context ~ecx finish_builder.id test_builder.id;
+    emit_statement ~ecx body;
+    Ecx.pop_loop_context ~ecx;
+    Ecx.finish_block_continue ~ecx test_builder.id;
+
+    (* Start join block *)
+    Ecx.set_block_builder ~ecx finish_builder
+  (*
+   * ============================
+   *      Loop Control Flow
+   * ============================
+   *)
+  | Continue _ ->
+    let (_, continue_id) = Ecx.get_loop_context ~ecx in
+    Ecx.finish_block_continue ~ecx continue_id
+  | Break _ ->
+    let (break_id, _) = Ecx.get_loop_context ~ecx in
+    Ecx.finish_block_continue ~ecx break_id
+  (*
+   * ============================
+   *           Return
+   * ============================
+   *)
   | Return { loc = _; arg } ->
     let arg_val = Option.map (emit_expression ~ecx) arg in
     (* Handle implicit return from main function *)
@@ -1273,12 +1419,11 @@ and emit_statement ~ecx stmt =
       | _ -> arg_val
     in
     Ecx.emit ~ecx (Ret arg_val)
-  | Continue _ ->
-    let (_, continue_id) = Ecx.get_loop_context ~ecx in
-    Ecx.finish_block_continue ~ecx continue_id
-  | Break _ ->
-    let (break_id, _) = Ecx.get_loop_context ~ecx in
-    Ecx.finish_block_continue ~ecx break_id
+  (*
+   * ============================
+   *         Assignment
+   * ============================
+   *)
   | Assignment { loc = _; lvalue; expr } ->
     (match lvalue with
     | Assignment.Pattern pattern ->
@@ -1297,6 +1442,11 @@ and emit_statement ~ecx stmt =
     | Assignment.Expression (NamedAccess _ as expr_lvalue) ->
       emit_expression_access_chain_store ~ecx expr_lvalue expr
     | _ -> failwith "Lvalue expression must be an access")
+  (*
+   * ============================
+   *     Variable Declaration
+   * ============================
+   *)
   | VariableDeclaration { pattern; init; _ } ->
     let init_val = emit_expression ~ecx init in
     emit_destructuring ~ecx ~alloc:true pattern init_val
@@ -1313,7 +1463,6 @@ and emit_statement ~ecx stmt =
     emit_match_decision_tree ~ecx ~join_block ~result_ptr:None ~alloc:true decision_tree;
     Ecx.set_block_builder ~ecx join_block
   | FunctionDeclaration _ -> failwith "TODO: Emit MIR for non-toplevel function declarations"
-  | For _ -> failwith "TODO: Emit MIR for for loops"
 
 and emit_destructuring ~(ecx : Ecx.t) ~alloc pattern value =
   match pattern with
