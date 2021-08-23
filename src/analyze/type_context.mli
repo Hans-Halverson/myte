@@ -70,4 +70,4 @@ val add_incompatible_types_error : cx:t -> Loc.t -> Type.t -> Type.t -> unit
 
 val mk_int_literal_ty : cx:t -> Loc.t -> string -> Integers.base -> Type.t
 
-val implements_trait : Type.t -> TraitSig.t -> bool
+val get_implemented_trait : Type.t -> TraitSig.t -> TraitSig.instance option

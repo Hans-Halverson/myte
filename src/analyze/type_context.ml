@@ -545,34 +545,54 @@ let mk_int_literal_ty ~cx loc raw base =
   let value = Integers.int64_of_string_opt raw base in
   Type.IntLiteral { values = [(loc, value)]; resolved = None }
 
-let implements_trait ty trait_sig =
+let get_implemented_trait ty trait_sig =
   let open TraitSig in
-  let adt_sig_implements_trait adt_sig trait_sig =
-    List.exists
-      (fun { implemented; _ } ->
-        List.exists (fun (_, implemented) -> implemented.trait_sig.id = trait_sig.id) implemented)
+  let get_implemented_opt implemented trait_sig type_param_bindings =
+    if implemented.trait_sig.id = trait_sig.id then
+      let type_args =
+        List.map (Types.substitute_type_params type_param_bindings) implemented.type_args
+      in
+      Some { trait_sig = implemented.trait_sig; type_args }
+    else
+      None
+  in
+  let adt_sig_implements_trait adt_sig type_args trait_sig =
+    List_utils.find_map_opt
+      (fun type_trait ->
+        (* Must substitute type args of ADT within type traits *)
+        let type_param_bindings = Types.bind_type_params_to_args type_trait.type_params type_args in
+        List_utils.find_map_opt
+          (fun (_, implemented) -> get_implemented_opt implemented trait_sig type_param_bindings)
+          type_trait.implemented)
       adt_sig.AdtSig.traits
   in
   (* Bounds may implement the trait directly, or the trait may be in the bound's super traits *)
   let bounds_implements_trait bounds trait_sig =
-    List.exists
-      (fun { trait_sig = bound_trait_sig; _ } ->
-        bound_trait_sig.id = trait_sig.id
-        || List.exists
-             (fun (_, implemented) -> implemented.trait_sig.id = trait_sig.id)
-             bound_trait_sig.implemented)
+    List_utils.find_map_opt
+      (fun ({ trait_sig = bound_trait_sig; type_args = bound_type_args } as bound_trait) ->
+        if bound_trait_sig.id = trait_sig.id then
+          Some bound_trait
+        else
+          (* Must substitute type args of trait within implemented traits *)
+          let type_param_bindings =
+            Types.bind_type_params_to_args bound_trait_sig.type_params bound_type_args
+          in
+          List_utils.find_map_opt
+            (fun (_, implemented) -> get_implemented_opt implemented trait_sig type_param_bindings)
+            bound_trait_sig.implemented)
       bounds
   in
   match ty with
-  | Type.Any -> true
+  | Type.Any -> Some { trait_sig; type_args = List.map (fun _ -> Type.Any) trait_sig.type_params }
   | Unit
   | Bool
   | Byte
   | Int
   | Long ->
     let adt_sig = Std_lib.get_primitive_adt_sig ty in
-    adt_sig_implements_trait adt_sig trait_sig
-  | ADT { adt_sig; _ } -> adt_sig_implements_trait adt_sig trait_sig
+    adt_sig_implements_trait adt_sig [] trait_sig
+  | ADT { adt_sig; type_args } -> adt_sig_implements_trait adt_sig type_args trait_sig
+  | TraitBound bound -> bounds_implements_trait [bound] trait_sig
   | TypeParam { bounds; _ } -> bounds_implements_trait bounds trait_sig
   | BoundedExistential { bounds; _ } -> bounds_implements_trait bounds trait_sig
-  | _ -> false
+  | _ -> None

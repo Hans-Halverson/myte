@@ -1,0 +1,103 @@
+module test
+
+import std.iterator.{Iterable, Iterator}
+
+type BoolIterator (Bool)
+methods BoolIterator {
+  implements Iterator<Bool>
+  override fun next(): Option<Bool> = Some (this[0])
+}
+
+type ToBoolIterator (Bool)
+methods ToBoolIterator {
+  implements Iterable<Bool>
+  override fun toIterator(): BoolIterator = BoolIterator (true)
+}
+
+type TupleIterator (Int)
+methods TupleIterator {
+  implements Iterator<(Int, String)>
+  override fun next(): Option<(Int, String)> = Some ((1, ""))
+}
+
+type OptionIterator<T> (Option<T>)
+methods OptionIterator<T> {
+  implements Iterator<Option<T>>
+  override fun next(): Option<Option<T>> = Some (None)
+}
+
+fun testIterator(b1: BoolIterator, b2: ToBoolIterator, i1: Iterable<String>, i2: Iterator<String>) {
+  // Error since not iterable
+  for (x in true) {
+    // Success since any
+    (x: Int);
+  }
+
+  // Success
+  for (x in b1) {
+    // Intentional error to print type
+    (x: Unit);
+    (x: Bool);
+  }
+
+  // Success
+  for (x in b2) {
+    // Intentional error to print type
+    (x: Unit);
+    (x: Bool);
+  }
+
+  // Success
+  for (x in i1) {
+    // Intentional error to print type
+    (x: Unit);
+    (x: String);
+  }
+
+  // Success
+  for (x in i2) {
+    // Intentional error to print type
+    (x: Unit);
+    (x: String);
+  }
+}
+
+fun testDestructuring(it: TupleIterator) {
+  for ((x, y) in it) {
+    // Intentional error to print type
+    ((x, y): Unit);
+    (x: Int);
+    (y: String);
+  }
+}
+
+fun testAnnotation(b1: BoolIterator) {
+  // Success
+  for (x: Bool in b1) {
+    (x: Bool);
+  }
+
+  // Failure
+  for (x: Unit in b1) {}
+}
+
+fun testAnnotationInference() {
+  // Failure - cannot infer type for variable
+  for (x in OptionIterator(None)) {}
+
+  // Success
+  for (x: Option<Int> in OptionIterator(None)) {
+    // Intentional error to print type
+    (x: Unit);
+    (x: Option<Int>);
+  }
+
+  // Successful inference
+  for (x in OptionIterator(Some (true))) {
+    // Intentional error to print type
+    (x: Unit);
+    (x: Option<Bool>);
+  }
+}
+
+fun main() {}

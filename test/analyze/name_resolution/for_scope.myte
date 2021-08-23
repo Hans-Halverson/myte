@@ -1,0 +1,22 @@
+module test
+
+fun testScopes() {
+  for ((x, y) in true) {
+    // Success
+    (x, y);
+  }
+
+  for (x in true) {
+    // Success
+    x;
+    // Failure
+    y;
+  }
+
+  // Variables not usable in iterator
+  for (x in x) {
+    x;
+  }
+}
+
+fun main() {}

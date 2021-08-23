@@ -80,6 +80,14 @@ let rec take i lst =
     []
   | (i, hd :: tl) -> hd :: take (i - 1) tl
 
+let rec find_map_opt f lst =
+  match lst with
+  | [] -> None
+  | hd :: tl ->
+    (match f hd with
+    | None -> find_map_opt f tl
+    | Some _ as result -> result)
+
 let iteri2 f l1 l2 =
   let rec helper i f l1 l2 =
     match (l1, l2) with

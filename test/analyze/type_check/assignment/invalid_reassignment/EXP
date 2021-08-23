@@ -57,3 +57,13 @@ Error: Cannot reassign match case variable `x`
 test/analyze/type_check/assignment/invalid_reassignment/test.myte:47:6
  47 |       x = 1;
     |       ^
+
+Error: Type `Bool` cannot be used in for loop since it does not implement trait `Iterable`
+test/analyze/type_check/assignment/invalid_reassignment/test.myte:52:12-16
+ 52 |   for (x in true) {
+    |             ^^^^
+
+Error: Cannot reassign immutable variable `x`
+test/analyze/type_check/assignment/invalid_reassignment/test.myte:53:4
+ 53 |     x = 1;
+    |     ^

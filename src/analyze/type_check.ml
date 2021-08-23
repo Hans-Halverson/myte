@@ -709,16 +709,19 @@ and check_module ~cx module_ =
 and check_variable_declaration ~cx decl =
   let open Ast.Statement.VariableDeclaration in
   let { loc; pattern; init; annot; _ } = decl in
-  let (pattern_loc, pattern_tvar_id) = check_pattern ~cx pattern in
   let (expr_loc, expr_tvar_id) = check_expression ~cx init in
+  check_variable_declaration_bindings ~cx loc pattern annot (expr_loc, Type.TVar expr_tvar_id)
+
+and check_variable_declaration_bindings ~cx loc pattern annot (expr_loc, expr_ty) =
+  let (pattern_loc, pattern_tvar_id) = check_pattern ~cx pattern in
   match annot with
   | None ->
     (* If expression's type is fully resolved then use as type of id, otherwise error
        requesting an annotation. *)
-    let rep_ty = Type_context.find_rep_type ~cx (TVar expr_tvar_id) in
+    let rep_ty = Type_context.find_rep_type ~cx expr_ty in
     let unresolved_tvars = Types.get_all_tvars [rep_ty] in
     if unresolved_tvars = [] then
-      Type_context.assert_unify ~cx expr_loc (TVar expr_tvar_id) (TVar pattern_tvar_id)
+      Type_context.assert_unify ~cx expr_loc expr_ty (TVar pattern_tvar_id)
     else
       let partial =
         match rep_ty with
@@ -729,7 +732,7 @@ and check_variable_declaration ~cx decl =
   | Some annot ->
     let annot_ty = build_type ~cx annot in
     if Type_context.unify ~cx annot_ty (TVar pattern_tvar_id) then
-      Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) annot_ty
+      Type_context.assert_is_subtype ~cx expr_loc expr_ty annot_ty
     else
       Type_context.add_incompatible_types_error ~cx pattern_loc (TVar pattern_tvar_id) annot_ty
 
@@ -871,7 +874,10 @@ and check_expression ~cx expr =
           (* We know that an IntLiteral will implement ToString *)
           | IntLiteral _ -> ()
           | _ ->
-            if not (Type_context.implements_trait rep_ty !Std_lib.to_string_trait_sig) then
+            let implemented_trait =
+              Type_context.get_implemented_trait rep_ty !Std_lib.to_string_trait_sig
+            in
+            if implemented_trait = None then
               Type_context.add_error ~cx expr_loc (InterpolatedExpressionRequiresToString rep_ty)))
       parts;
     ignore (Type_context.unify ~cx (Std_lib.mk_string_type ()) (TVar tvar_id));
@@ -944,7 +950,7 @@ and check_expression ~cx expr =
       (* We know that an IntLiteral will implement Equatable, but do not want to resolve it yet
          as it may be an expression such as `(x: Byte) == 1` where we can still infer its type. *)
       | IntLiteral _ -> true
-      | _ -> Type_context.implements_trait rep_ty !Std_lib.equatable_trait_sig
+      | _ -> Type_context.get_implemented_trait rep_ty !Std_lib.equatable_trait_sig <> None
     in
     let error_int loc tvar_id =
       Type_context.add_error
@@ -1012,7 +1018,7 @@ and check_expression ~cx expr =
           if op = Equal then
             OperatorRequiresTraitEquals
           else
-            OperatorRequirestRaitNotEquals
+            OperatorRequiresTraitNotEquals
         in
         Type_context.add_error
           ~cx
@@ -1810,6 +1816,29 @@ and check_statement ~cx stmt =
     ()
   (*
    * ============================
+   *          For Loop
+   * ============================
+   *)
+  | For { For.pattern; annot; iterator; body; _ } ->
+    (* Expression must be an iterator - extract its element type *)
+    let (iter_loc, iter_tvar_id) = check_expression ~cx iterator in
+    let iter_rep_ty = Type_context.find_rep_type ~cx (TVar iter_tvar_id) in
+    let iter_trait_instance =
+      Type_context.get_implemented_trait iter_rep_ty !Std_lib.iterable_trait_sig
+    in
+    let element_ty =
+      match iter_trait_instance with
+      | None ->
+        Type_context.add_error ~cx iter_loc (ForLoopRequiresIterable iter_rep_ty);
+        Type.Any
+      | Some { type_args; _ } -> List.hd type_args
+    in
+    (* Check bindings and optional annotation against iterator element type *)
+    let pattern_loc = Ast_utils.pattern_loc pattern in
+    check_variable_declaration_bindings ~cx pattern_loc pattern annot (iter_loc, element_ty);
+    check_statement ~cx body
+  (*
+   * ============================
    *         Assignment
    * ============================
    *)
@@ -1884,7 +1913,6 @@ and check_statement ~cx stmt =
    * ============================
    *)
   | Match match_ -> check_match ~cx match_ Unit
-  | For _ -> failwith "TODO: Type check for loops"
 
 (* Resolve all IntLiteral placeholder types to an actual integer type. Infer as Int if all
    literals are within the Int range, otherwise infer as Long. *)

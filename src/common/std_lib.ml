@@ -76,6 +76,8 @@ let std_int_int_toLong = "std.int.Int.toLong"
 
 let std_io_write = "std.io.write"
 
+let std_iterator_iterable = "std.iterator.Iterable"
+
 let std_long_long = "std.long.Long"
 
 let std_long_long_equals = "std.long.Long.equals"
@@ -120,6 +122,7 @@ let all_stdlib_names =
       std_byte_byte_toInt;
       std_byte_byte_toLong;
       std_io_write;
+      std_iterator_iterable;
       std_int_int;
       std_int_int_equals;
       std_int_int_toByte;
@@ -162,6 +165,8 @@ let unit_adt_sig = ref Types.AdtSig.empty
 let mk_string_type () = Types.Type.ADT { adt_sig = !string_adt_sig; type_args = [] }
 
 let equatable_trait_sig = ref Types.TraitSig.empty
+
+let iterable_trait_sig = ref Types.TraitSig.empty
 
 let to_string_trait_sig = ref Types.TraitSig.empty
 
@@ -220,6 +225,7 @@ let register_stdlib_type loc adt_sig =
 
 let register_stdlib_trait loc trait_sig =
   match lookup_stdlib_name loc with
+  | Some name when name = std_iterator_iterable -> iterable_trait_sig := trait_sig
   | Some name when name = std_ops_equatable -> equatable_trait_sig := trait_sig
   | Some name when name = std_string_tostring -> to_string_trait_sig := trait_sig
   | _ -> ()

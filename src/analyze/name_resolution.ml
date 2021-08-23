@@ -729,6 +729,26 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         this#visit_pattern ~is_match:false ~mk_decl:None pattern;
         super#assignment assign
 
+    (* For loops open a new scope for pattern bindings *)
+    method! for_ for_ =
+      let open Statement.For in
+      let { loc; pattern; annot; iterator; body } = for_ in
+      (* Type and iterator must be resolved before bindings are added. Bindings are only added for
+         body of for loop. *)
+      let annot' = id_map_opt this#type_ annot in
+      let iterator' = this#expression iterator in
+      this#enter_scope ();
+      this#visit_pattern
+        ~is_match:false
+        ~mk_decl:(Some (fun _ -> VarDecl (VariableDeclaration.mk Immutable)))
+        pattern;
+      let body' = this#statement body in
+      this#exit_scope ();
+      if annot == annot' && iterator == iterator' && body == body' then
+        for_
+      else
+        { loc; pattern; annot = annot'; iterator = iterator'; body = body' }
+
     method! match_case case =
       let { Match.Case.pattern; _ } = case in
       this#enter_scope ();

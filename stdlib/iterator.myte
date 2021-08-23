@@ -1,0 +1,15 @@
+module std.iterator
+
+import std.option.Option
+
+trait Iterator<T> {
+  extends Iterable<T>
+
+  fun next(): Option<T>
+
+  override fun toIterator(): This = this
+}
+
+trait Iterable<T> {
+  fun toIterator(): Iterator<T>
+}

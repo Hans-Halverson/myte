@@ -51,6 +51,7 @@ type t =
   | CannotInferType of cannot_infer_type_kind * (Type.t * TVar.t list) option
   | OperatorRequiresTrait of operator_requires_trait_kind * Type.t
   | InterpolatedExpressionRequiresToString of Type.t
+  | ForLoopRequiresIterable of Type.t
   | NonFunctionCalled of Type.t
   | RecordConstructorCalled of string
   | ExpectedConstructorKind of (* Tuple *) bool * (* Record *) bool
@@ -102,7 +103,7 @@ and cannot_infer_type_kind =
 
 and operator_requires_trait_kind =
   | OperatorRequiresTraitEquals
-  | OperatorRequirestRaitNotEquals
+  | OperatorRequiresTraitNotEquals
 
 and name_source =
   | FunctionName of string
@@ -143,7 +144,7 @@ let string_of_trait_type trait_or_type =
 let operator_requires_trait_info kind =
   match kind with
   | OperatorRequiresTraitEquals -> ("==", "Equatable")
-  | OperatorRequirestRaitNotEquals -> ("!=", "Equatable")
+  | OperatorRequiresTraitNotEquals -> ("!=", "Equatable")
 
 let concat_with_and strs =
   match strs with
@@ -364,6 +365,10 @@ let to_string error =
   | InterpolatedExpressionRequiresToString ty ->
     Printf.sprintf
       "Type `%s` cannot be used in string interpolation since it does not implement trait `ToString`"
+      (Types.pp ty)
+  | ForLoopRequiresIterable ty ->
+    Printf.sprintf
+      "Type `%s` cannot be used in for loop since it does not implement trait `Iterable`"
       (Types.pp ty)
   | IncorrectFunctionArity (actual, expected) ->
     Printf.sprintf

@@ -321,7 +321,9 @@ let get_all_tvars_with_duplicates ty =
     | Function { type_args = _; params; return } ->
       let acc = List.fold_left inner acc params in
       inner acc return
-    | ADT { type_args; _ } -> List.fold_left inner acc type_args
+    | ADT { type_args; _ }
+    | TraitBound { type_args; _ } ->
+      List.fold_left inner acc type_args
     | _ -> acc
   in
   inner [] ty |> List.rev

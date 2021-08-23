@@ -1,0 +1,9 @@
+Error: Could not resolve name `y` to value
+test/analyze/name_resolution/for_scope.myte:13:4
+ 13 |     y;
+    |     ^
+
+Error: Could not resolve name `x` to value
+test/analyze/name_resolution/for_scope.myte:17:12
+ 17 |   for (x in x) {
+    |             ^

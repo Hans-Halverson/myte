@@ -1,9 +1,14 @@
 module std.vec
 
 import std.int.Int
+import std.iterator.{Iterable, Iterator}
 import std.memory.Array
+import std.option.{None, Option, Some}
 import std.sys.abort
 
+/*
+ * A resizable container of elements.
+ */
 type Vec<T> {
   data: Array<T>,
   size: Int,
@@ -52,5 +57,35 @@ methods Vec<T> {
     val newData: Array<T> = Array.new(newCapacity);
     Array.copy(newData, 0, this.data, 0, oldCapacity);
     this.data = newData;
+  }
+}
+
+/*
+ * An iterator over a Vec. Contains both the Vec and the index of the next item to visit.
+ */
+type VecIterator<T> { data: Array<T>, size: Int, index: Int }
+
+methods Vec<T> {
+  implements Iterable<T>
+
+  override fun toIterator(): VecIterator<T> {
+    val Vec { data, size, ... } = this;
+    return VecIterator { data, size, index: 0 };
+  }
+}
+
+methods VecIterator<T> {
+  implements Iterator<T>
+
+  override fun next(): Option<T> {
+    val index = this.index;
+    if (index >= this.size) {
+      return None;
+    }
+
+    val value = this.data[index];
+    this.index = index + 1;
+
+    return Some (value);
   }
 }

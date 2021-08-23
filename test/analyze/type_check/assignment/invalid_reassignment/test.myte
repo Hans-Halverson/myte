@@ -47,6 +47,11 @@ fun func(funcParam: Int) {
       x = 1;
     }
   }
+  
+  // Error when reassigning for loop variables
+  for (x in true) {
+    x = 1;
+  }
 }
 
 fun main() {}

@@ -1,0 +1,49 @@
+Error: Type `Bool` cannot be used in for loop since it does not implement trait `Iterable`
+test/analyze/type_check/for/basic.myte:31:12-16
+ 31 |   for (x in true) {
+    |             ^^^^
+
+Error: Expected type `Unit` but found `Bool`
+test/analyze/type_check/for/basic.myte:39:5
+ 39 |     (x: Unit);
+    |      ^
+
+Error: Expected type `Unit` but found `Bool`
+test/analyze/type_check/for/basic.myte:46:5
+ 46 |     (x: Unit);
+    |      ^
+
+Error: Expected type `Unit` but found `String`
+test/analyze/type_check/for/basic.myte:53:5
+ 53 |     (x: Unit);
+    |      ^
+
+Error: Expected type `Unit` but found `String`
+test/analyze/type_check/for/basic.myte:60:5
+ 60 |     (x: Unit);
+    |      ^
+
+Error: Expected type `Unit` but found `(Int, String)`
+test/analyze/type_check/for/basic.myte:68:5-11
+ 68 |     ((x, y): Unit);
+    |      ^^^^^^
+
+Error: Expected type `Unit` but found `Bool`
+test/analyze/type_check/for/basic.myte:81:18-20
+ 81 |   for (x: Unit in b1) {}
+    |                   ^^
+
+Error: Cannot infer type for variable declaration. Partially inferred `Option<a>` but was unable to resolve `a`. Please provide additional type annotations.
+test/analyze/type_check/for/basic.myte:86:7
+ 86 |   for (x in OptionIterator(None)) {}
+    |        ^
+
+Error: Expected type `Unit` but found `Option<Int>`
+test/analyze/type_check/for/basic.myte:91:5
+ 91 |     (x: Unit);
+    |      ^
+
+Error: Expected type `Unit` but found `Option<Bool>`
+test/analyze/type_check/for/basic.myte:98:5
+ 98 |     (x: Unit);
+    |      ^
