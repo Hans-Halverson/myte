@@ -2,8 +2,12 @@ module std.string
 
 import std.bool.Bool
 import std.byte.Byte
+import std.hash
+import std.hash.Hashable
 import std.int.Int
+import std.iterator.Iterator
 import std.ops.Equatable
+import std.option.{None, Option, Some}
 import std.memory.Array
 import std.sys.abort
 
@@ -95,6 +99,12 @@ methods String {
       i = i + 1;
     }
   }
+
+  /**
+   * Return an iterator over this String's bytes.
+   */
+  fun bytes(): StringByteIterator =
+    StringByteIterator { data: this.data, size: this.size, index: 0 }
 }
 
 methods String {
@@ -122,6 +132,9 @@ methods String {
   }
 }
 
+/**
+ * A trait for anything that has a String representation.
+ */
 trait ToString {
   fun toString(): String
 }
@@ -130,4 +143,38 @@ methods String {
   implements ToString
 
   override fun toString(): String = this
+}
+
+methods String {
+  implements Hashable
+
+  override fun hash(): Int {
+    var n = 0;
+    for (byte in this.bytes()) {
+      n = hash.combine(n, byte.toInt());
+    }
+
+    return n;
+  }
+}
+
+/**
+ * An iterator over the bytes of a String.
+ */
+type StringByteIterator { data: Array<Byte>, size: Int, index: Int }
+
+methods StringByteIterator {
+  implements Iterator<Byte>
+
+  override fun next(): Option<Byte> {
+    val index = this.index;
+    if (index >= this.size) {
+      return None;
+    }
+
+    val value = this.data[index];
+    this.index = index + 1;
+
+    return Some (value);
+  }
 }

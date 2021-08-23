@@ -1,0 +1,116 @@
+module test
+
+import std.iterator.Iterator
+import std.ops.Equatable
+import std.test.{assertEqual, fail}
+
+fun nextIsNone<T>(iter: Iterator<T>) {
+  match (iter.next()) {
+    | None -> ()
+    | Some _ -> fail()
+  }
+}
+
+fun nextIs<T: Equatable>(iter: Iterator<T>, expected: T) {
+  match (iter.next()) {
+    | None -> fail()
+    | Some (actual) -> assertEqual(actual, expected)
+  }
+}
+
+fun testToString() {
+  assertEqual("".toString(), "");
+  assertEqual("foo".toString(), "foo");
+}
+
+fun testGet() {
+  assertEqual("a".get(0), 97);
+  assertEqual("bar".get(0), 98);
+  assertEqual("bar".get(1), 97);
+  assertEqual("bar".get(2), 114);
+}
+
+fun testSet() {
+  val s = "aaaa";
+
+  s.set(0, 98);
+  assertEqual(s, "baaa");
+
+  s.set(2, 99);
+  assertEqual(s, "baca");
+
+  s.set(2, 101);
+  assertEqual(s, "baea");
+}
+
+fun testPush() {
+  val s = "";
+
+  s.push(98);
+  assertEqual(s, "b");
+
+  s.push(101);
+  assertEqual(s, "be");
+
+  s.push(100);
+  s.push(98);
+  assertEqual(s, "bedb");
+}
+
+fun testAppend() {
+  val s = "";
+
+  s.append("");
+  assertEqual(s, "");
+
+  s.append("foo");
+  assertEqual(s, "foo");
+
+  s.append("");
+  assertEqual(s, "foo");
+
+  s.append("b");
+  assertEqual(s, "foob");
+
+  s.append("ararar");
+  assertEqual(s, "foobararar");
+}
+
+fun testReverse() {
+  val s = "";
+  s.reverse();
+  assertEqual(s, "");
+
+  val s = "foo";
+  s.reverse();
+  assertEqual(s, "oof");
+
+  val s = "bacd";
+  s.reverse();
+  assertEqual(s, "dcab");
+}
+
+fun testBytesIterator() {
+  // Empty iterator
+  val iter = "".bytes();
+  nextIsNone(iter);
+
+  val iter = "foobar".bytes();
+  nextIs(iter, 102);
+  nextIs(iter, 111);
+  nextIs(iter, 111);
+  nextIs(iter, 98);
+  nextIs(iter, 97);
+  nextIs(iter, 114);
+  nextIsNone(iter);
+}
+
+fun main() {
+  testToString();
+  testGet();
+  testSet();
+  testPush();
+  testAppend();
+  testReverse();
+  testBytesIterator();
+}
