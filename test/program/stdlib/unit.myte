@@ -1,0 +1,21 @@
+module test
+
+import std.test.assertEqual
+
+fun testToString() {
+  assertEqual(().toString(), "()");
+}
+
+fun testEquals() {
+  assertEqual(().equals(()), true);
+}
+
+fun testHash() {
+  assertEqual(().hash(), 0);
+}
+
+fun main() {
+  testToString();
+  testEquals();
+  testHash();
+}

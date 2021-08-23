@@ -12,6 +12,37 @@ fun testToString() {
   assertEqual((-2147483648: Int).toString(), "-2147483648");
 }
 
+fun testToByte() {
+  assertEqual((0: Int).toByte(), 0);
+  assertEqual((1: Int).toByte(), 1);
+  assertEqual((-1: Int).toByte(), -1);
+  assertEqual((127: Int).toByte(), 127);
+  assertEqual((-128: Int).toByte(), -128);
+  assertEqual((128: Int).toByte(), -128);
+  assertEqual((129: Int).toByte(), -127);
+  assertEqual((-129: Int).toByte(), 127);
+  assertEqual((-130: Int).toByte(), 126);
+}
+
+fun testToLong() {
+  assertEqual((0: Int).toLong(), 0);
+  assertEqual((1: Int).toLong(), 1);
+  assertEqual((-1: Int).toLong(), -1);
+  assertEqual((2147483647: Int).toLong(), 2147483647);
+  assertEqual((-2147483648: Int).toLong(), -2147483648);
+}
+
+fun testHash() {
+  assertEqual((0: Int).hash(), 0);
+  assertEqual((1: Int).hash(), 1);
+  assertEqual((-1: Int).hash(), -1);
+  assertEqual((2147483647: Int).hash(), 2147483647);
+  assertEqual((-2147483648: Int).hash(), -2147483648);
+}
+
 fun main() {
   testToString();
+  testToByte();
+  testToLong();
+  testHash();
 }

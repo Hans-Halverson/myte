@@ -12,6 +12,40 @@ fun testToString() {
   assertEqual((-9223372036854775808: Long).toString(), "-9223372036854775808");
 }
 
+fun testToByte() {
+  assertEqual((0: Long).toByte(), 0);
+  assertEqual((1: Long).toByte(), 1);
+  assertEqual((-1: Long).toByte(), -1);
+  assertEqual((127: Long).toByte(), 127);
+  assertEqual((-128: Long).toByte(), -128);
+  assertEqual((128: Long).toByte(), -128);
+  assertEqual((129: Long).toByte(), -127);
+  assertEqual((-129: Long).toByte(), 127);
+  assertEqual((-130: Long).toByte(), 126);
+}
+
+fun testToInt() {
+  assertEqual((0: Long).toInt(), 0);
+  assertEqual((1: Long).toInt(), 1);
+  assertEqual((-1: Long).toInt(), -1);
+  assertEqual((2147483647: Long).toInt(), 2147483647);
+  assertEqual((-2147483648: Long).toInt(), -2147483648);
+  assertEqual((2147483648: Long).toInt(), -2147483648);
+  assertEqual((2147483649: Long).toInt(), -2147483647);
+  assertEqual((-2147483649: Long).toInt(), 2147483647);
+  assertEqual((-2147483650: Long).toInt(), 2147483646);
+}
+
+fun testHash() {
+  assertEqual((0: Long).hash(), 0);
+  assertEqual((1: Long).hash(), 1);
+  assertEqual((100: Long).hash(), 100);
+  assertEqual((((0b1110100101: Long) << 32) | 0b1010011110).hash(), 0b0100111011);
+}
+
 fun main() {
   testToString();
+  testToByte();
+  testToInt();
+  testHash();
 }

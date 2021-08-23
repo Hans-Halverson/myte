@@ -1,0 +1,7 @@
+module std.hash
+
+import std.int.Int
+
+trait Hashable {
+  fun hash(): Int
+}

@@ -1,0 +1,26 @@
+module test
+
+import std.test.assertEqual
+
+fun testToString() {
+  assertEqual(true.toString(), "true");
+  assertEqual(false.toString(), "false");
+}
+
+fun testEquals() {
+  assertEqual(true.equals(true), true);
+  assertEqual(false.equals(false), true);
+  assertEqual(true.equals(false), false);
+  assertEqual(false.equals(true), false);
+}
+
+fun testHash() {
+  assertEqual(true.hash(), 1);
+  assertEqual(false.hash(), 0);
+}
+
+fun main() {
+  testToString();
+  testEquals();
+  testHash();
+}

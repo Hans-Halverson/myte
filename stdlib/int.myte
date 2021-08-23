@@ -2,6 +2,7 @@ module std.int
 
 import std.bool.Bool
 import std.byte.Byte
+import std.hash.Hashable
 import std.long.Long
 import std.ops.Equatable
 import std.string.{String, ToString}
@@ -16,6 +17,12 @@ methods Int {
   implements Equatable
 
   builtin override fun equals(other: Int): Bool
+}
+
+methods Int {
+  implements Hashable
+
+  override fun hash(): Int = this
 }
 
 methods Int {

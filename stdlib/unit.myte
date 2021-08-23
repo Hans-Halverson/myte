@@ -1,6 +1,8 @@
 module std.unit
 
 import std.bool.Bool
+import std.hash.Hashable
+import std.int.Int
 import std.ops.Equatable
 import std.string.{String, ToString}
 
@@ -10,6 +12,12 @@ methods Unit {
   implements Equatable
 
   builtin override fun equals(other: Unit): Bool
+}
+
+methods Unit {
+  implements Hashable
+
+  override fun hash(): Int = 0
 }
 
 methods Unit {
