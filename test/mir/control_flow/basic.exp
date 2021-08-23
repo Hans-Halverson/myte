@@ -26,7 +26,7 @@ label @6:
   %7 := Neg int %2
   continue @7
 label @7:
-  %8 := Phi int @4:5, @5:6
+  %8 := Phi int @4:5, @5:6, @6:6
   %9 := Neg int %8
   Ret
 }

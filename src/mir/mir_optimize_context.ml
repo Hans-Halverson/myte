@@ -39,9 +39,10 @@ let remove_phi_backreferences_for_block ~ocx block_id_to_remove next_block_id =
           IMap.filter (fun prev_block_id _ -> prev_block_id != block_id_to_remove) args ))
       next_block.phis
 
-(* Replace all references to old_block_id in the phis of a block with a new_block_id.
+(* Replace all references to old_block_id in the phis of a block with new_block_ids. Note that there
+   may be multiple new_block_ids, so a single phi argument may be expanded to multiple arguments.
    This may be needed when editing the program. *)
-let map_phi_backreferences_for_block ~ocx old_block_id new_block_id block_to_edit =
+let map_phi_backreferences_for_block ~ocx old_block_id new_block_ids block_to_edit =
   let block = get_block ~ocx block_to_edit in
   block.phis <-
     List.map
@@ -50,7 +51,12 @@ let map_phi_backreferences_for_block ~ocx old_block_id new_block_id block_to_edi
           dest_var_id,
           match IMap.find_opt old_block_id args with
           | None -> args
-          | Some var_id -> IMap.add new_block_id var_id args |> IMap.remove old_block_id ))
+          | Some value ->
+            let args_without_old_block_id = IMap.remove old_block_id args in
+            ISet.fold
+              (fun new_block_id args -> IMap.add new_block_id value args)
+              new_block_ids
+              args_without_old_block_id ))
       block.phis
 
 (* An empty block can be removed only if it continues to a single block, and is not needed by any
@@ -99,16 +105,20 @@ let remove_block ~ocx block_id =
     if func.body_start_block = block_id then func.body_start_block <- continue_block
   | _ -> ());
   let prev_blocks = IIMMap.find_all block_id ocx.prev_blocks in
-  ISet.iter
-    (fun prev_block_id ->
-      let prev_block = get_block ~ocx prev_block_id in
-      match block.next with
-      | Continue next_id ->
+
+  (match block.next with
+  | Continue next_block_id ->
+    (* Update phis in next block to reference previous blocks instead of removed block *)
+    map_phi_backreferences_for_block ~ocx block_id prev_blocks next_block_id;
+
+    (* Rewrite next of previous blocks to point to next block instead of removed block *)
+    ISet.iter
+      (fun prev_block_id ->
+        let prev_block = get_block ~ocx prev_block_id in
         let map_id id =
           if id = block_id then (
-            add_block_link ~ocx prev_block_id next_id;
-            map_phi_backreferences_for_block ~ocx block_id prev_block_id next_id;
-            next_id
+            add_block_link ~ocx prev_block_id next_block_id;
+            next_block_id
           ) else
             id
         in
@@ -124,12 +134,12 @@ let remove_block ~ocx block_id =
               Continue new_continue
             else
               (* Otherwise create branch to new block *)
-              Branch { test; continue = new_continue; jump = new_jump })
-      (* Halting or branching block cannot be removed *)
-      | Halt
-      | Branch _ ->
-        failwith "Block cannot be removed")
-    prev_blocks;
+              Branch { test; continue = new_continue; jump = new_jump }))
+      prev_blocks
+  | Branch _
+  | Halt ->
+    ());
+
   (* Remove references to this removed block from phi nodes of next blocks *)
   let next_blocks = IMap.find block_id ocx.next_blocks in
   ISet.iter
@@ -173,7 +183,8 @@ let merge_adjacent_blocks ~ocx block_id1 block_id2 =
      to now reference b1 instead. *)
   let next_blocks = IIMMap.find_all b2.id ocx.next_blocks in
   ISet.iter
-    (fun next_block_id -> map_phi_backreferences_for_block ~ocx b2.id b1.id next_block_id)
+    (fun next_block_id ->
+      map_phi_backreferences_for_block ~ocx b2.id (ISet.singleton b1.id) next_block_id)
     next_blocks;
   (* Set prev pointers for blocks that succeed b2 to point to b1 instead *)
   ISet.iter
