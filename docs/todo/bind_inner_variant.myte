@@ -1,0 +1,25 @@
+module test
+
+// Binding nested inner values
+fun match6(x: V2): V2 =
+  match (x) {
+    // Extract inner value
+    | Record2 { foo: Record2 { foo: Record2 { foo: Record2 { foo: x, bar: true }, ...}, ... }, ... } -> x
+    // Bind pattern, use already loaded value
+    | Record2 { foo: Record2 { foo: (Enum2 as x), ... }, ... } -> x
+    | Record2 { foo: (Record2 { foo: Record2 { foo: Record2 { bar: false, ... }, ... }, ... } as x), ... } -> x
+    | other -> other
+  }
+
+fun testMatch6() {
+  val x1 = match6(Record2 { bar: true, foo: Record2 { bar: true, foo: Record2 { bar: true, foo: Record2 { foo: Enum2, bar: true }}}});
+  // TODO: Fails integration test
+  match (x1) {
+    | Enum2 -> ()
+    | _ -> fail()
+  }
+}
+
+fun main() {
+  testMatch6();
+}

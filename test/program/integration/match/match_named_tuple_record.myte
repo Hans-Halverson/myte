@@ -1,0 +1,41 @@
+module test
+
+import std.test.assertEqual
+
+type Tup (Int, Bool)
+
+type Rec { bar: Int, baz: Bool }
+
+fun matchTuple1(x: Tup): Int =
+  match (x) {
+    | Tup (1, true) -> 1
+    | Tup (1, _) -> 2
+    | Tup (x, _) -> x
+  }
+
+fun matchRecord1(x: Rec): Int =
+  match (x) {
+    | Rec { bar: 1, baz: true } -> 1
+    | Rec { bar: 1, ... } -> 2
+    | Rec { bar: x, baz: false } -> x + 3
+    | Rec { bar, baz: _ } -> bar
+  }
+
+fun testMatchTuple1() {
+  assertEqual(matchTuple1(Tup (1, true)), 1);
+  assertEqual(matchTuple1(Tup (1, false)), 2);
+  assertEqual(matchTuple1(Tup (3, true)), 3);
+  assertEqual(matchTuple1(Tup (-100, false)), -100);
+}
+
+fun testMatchRecord1() {
+  assertEqual(matchRecord1(Rec { bar: 1, baz: true }), 1);
+  assertEqual(matchRecord1(Rec { baz: false, bar: 1 }), 2);
+  assertEqual(matchRecord1(Rec { bar: 99, baz: false }), 102);
+  assertEqual(matchRecord1(Rec { baz: true, bar: 99 }), 99);
+}
+
+fun main() {
+  testMatchTuple1();
+  testMatchRecord1();
+}

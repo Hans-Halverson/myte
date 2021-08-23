@@ -1,0 +1,108 @@
+module test
+
+import std.test.{assertEqual, fail}
+
+type V1 =
+  | Enum1
+  | Tuple1 (Bool, Int)
+  | Record1 { foo: Int, bar: Byte }
+
+type V2 =
+  | Tuple2 (Bool, V1)
+  | Enum2
+  | Record2 { foo: V2, bar: Bool }
+
+// Exhaustive, only check tags
+fun match1(x: V1): Int =
+  match (x) {
+    | Tuple1 _ -> 1
+    | Enum1 -> 2
+    | Record1 _ -> 3
+  }
+
+fun testMatch1() {
+  assertEqual(match1(Enum1), 2);
+  assertEqual(match1(Tuple1 (true, 1)), 1);
+  assertEqual(match1(Record1 { foo: 1, bar: 1 }), 3);
+}
+
+// Check inner elements
+fun match2(x: V1): Int =
+  match (x) {
+    | Record1 { foo: 2, ... } -> 1
+    | Tuple1 (_, 4) -> 2
+    | Record1 { bar: 2, foo: _ } -> 3
+    | Tuple1 (true, _) -> 4
+    | _ -> 5
+  }
+
+fun testMatch2() {
+  assertEqual(match2(Record1 { foo: 2, bar: 2 }), 1);
+  assertEqual(match2(Tuple1 (true, 4)), 2);
+  assertEqual(match2(Record1 { foo: 1, bar: 2 }), 3);
+  assertEqual(match2(Tuple1 (true, 3)), 4);
+  assertEqual(match2(Enum1), 5);
+  assertEqual(match2(Record1 { foo: 1, bar: 1 }), 5);
+  assertEqual(match2(Tuple1 (false, 3)), 5);
+}
+
+// Nested variants
+fun match3(x: V2): Int =
+  match (x) {
+    | Tuple2 (_, Tuple1 (true, _)) -> 1
+    | Record2 { foo: Record2 { foo: Enum2, ... }, ... } -> 2
+    | _ -> 3
+  }
+
+fun testMatch3() {
+  assertEqual(match3(Tuple2 (true, Tuple1 (true, 7))), 1);
+  assertEqual(match3(Record2 { foo: Record2 { foo: Enum2, bar: true }, bar: true }), 2);
+  assertEqual(match3(Tuple2 (true, Tuple1 (false, 7))), 3);
+  assertEqual(match3(Record2 { foo: Record2 { foo: Tuple2 (true, Enum1), bar: true }, bar: true }), 3);
+  assertEqual(match3(Record2 { foo: Enum2, bar: true }), 3);
+  assertEqual(match3(Enum2), 3);
+}
+
+// Deeply nested variant only loads each check once
+fun match4(x: V2): Int =
+  match (x) {
+    | Record2 { foo: Record2 { foo: Record2 { foo: Tuple2 (_, Tuple1 (true, 1 | 2 | 3)), ... }, ... }, ... } -> 1
+    | Record2 { foo: Record2 { foo: Record2 _, ... }, ... } -> 2
+    | _ -> 3
+  }
+
+fun testMatch4() {
+  assertEqual(match4(Record2 { bar: true, foo: Record2 { bar: true, foo: Record2 { bar: true, foo: Tuple2 (true, Tuple1 (true, 1)) }}}), 1);
+  assertEqual(match4(Record2 { bar: true, foo: Record2 { bar: true, foo: Record2 { bar: true, foo: Tuple2 (true, Tuple1 (true, 2)) }}}), 1);
+  assertEqual(match4(Record2 { bar: true, foo: Record2 { bar: true, foo: Record2 { bar: true, foo: Tuple2 (true, Tuple1 (true, 3)) }}}), 1);
+  assertEqual(match4(Record2 { bar: true, foo: Record2 { bar: true, foo: Record2 { bar: true, foo: Tuple2 (true, Tuple1 (false, 3)) }}}), 2);
+  assertEqual(match4(Record2 { bar: true, foo: Record2 { bar: true, foo: Record2 { bar: true, foo: Tuple2 (true, Enum1) }}}), 2);
+  assertEqual(match4(Record2 { bar: true, foo: Record2 { bar: true, foo: Record2 { bar: true, foo: Enum2 }}}), 2);
+  assertEqual(match4(Record2 { bar: true, foo: Record2 { bar: true, foo: Enum2 }}), 3);
+  assertEqual(match4(Record2 { bar: true, foo: Enum2 }), 3);
+  assertEqual(match4(Enum2), 3);
+}
+
+// Binds inner values
+fun match5(x: V1): Int =
+  match (x) {
+    | Record1 { foo: x, bar } -> bar == 1 ? x : bar.toInt()
+    | Tuple1 (foo, bar) -> foo ? bar : 2
+    | Enum1 -> 3
+  }
+
+fun testMatch5() {
+  assertEqual(match5(Record1 { foo: 5, bar: 1 }), 5);
+  assertEqual(match5(Record1 { foo: 5, bar: 7 }), 7);
+  assertEqual(match5(Tuple1 (true, 8)), 8);
+  assertEqual(match5(Tuple1 (false, 8)), 2);
+  assertEqual(match5(Enum1), 3);
+}
+
+fun main() {
+  testMatch1();
+  testMatch2();
+  testMatch3();
+  testMatch4();
+  testMatch5();
+}

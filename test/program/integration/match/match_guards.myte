@@ -1,0 +1,47 @@
+module test
+
+import std.test.assertEqual
+
+fun match1(x: Bool, y: Int): Int =
+  match (y) {
+    | 0 -> 0
+    | 1 when x -> 1
+    | 1 -> 2
+    | 2 when x -> 3
+    | 2 when !x -> 4
+    | 2 when !!x -> 5
+    | 2 -> 6
+    | _ -> 7
+  }
+
+fun match2(x: Bool, y: Int, z: Int): Int =
+  match (y, z) {
+    | (_, 1) when x -> 1
+    | (_, 1) -> 2
+    | (2, 3) when x -> 3
+    | (2, 3) when !x -> 4
+    | _ -> 5
+  }
+
+fun testMatch1() {
+  assertEqual(match1(true, 0), 0);
+  assertEqual(match1(true, 1), 1);
+  assertEqual(match1(false, 1), 2);
+  assertEqual(match1(true, 2), 3);
+  assertEqual(match1(false, 2), 4);
+  assertEqual(match1(true, 3), 7);
+  assertEqual(match1(false, 3), 7);
+}
+
+fun testMatch2() {
+  assertEqual(match2(true, 0, 1), 1);
+  assertEqual(match2(false, 0, 1), 2);
+  assertEqual(match2(true, 2, 3), 3);
+  assertEqual(match2(false, 2, 3), 4);
+  assertEqual(match2(true, 3, 2), 5);
+}
+
+fun main() {
+  testMatch1();
+  testMatch2();
+}

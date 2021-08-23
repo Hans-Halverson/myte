@@ -1,0 +1,111 @@
+module test
+
+import std.test.assertEqual
+
+// No tests generated
+fun match1(x: (Int, Bool, String)): Int =
+  match (x) {
+    | (_, _, _) -> 1
+  }
+
+// Test multiple columns
+fun match2(x: (Int, Bool, String)): Int =
+  match (x) {
+    | (1, true, _) -> 1
+    | (2, _, _) -> 2
+    | (_, true, _) -> 3
+    | (3, false, _) -> 4
+    | (4, _, _) -> 5
+    | (_, false, _) -> 6
+  }
+
+// Destructure inner values
+fun match3(x: (Int, Bool, (Int, Bool))): Int =
+  match (x) {
+    | (1, _, _) -> 1
+    | (_, true, _) -> 2
+    | (_, _, (2, _)) -> 3
+    | (_, _, (_, false)) -> 4
+    | _ -> 5
+  }
+
+// Bind inner values
+fun match4(x: (Int, Bool, (Int, Bool))): Int =
+  match (x) {
+    | (1, x, _) -> x ? 1 : 2
+    | (_, true, (x, false)) -> x + 3
+    | (x, true, (y, _)) -> x + y + 4
+    | (_, _, (x, y)) -> y ? x : x + 5
+  }
+
+// Extract inner tuple 
+fun match5(x: (Int, Bool, (Int, Bool))): (Int, Bool) =
+  match (x) {
+    | (1, true, x) -> x
+    | (_, true, _ as x) -> x
+    | (_, _, (1, _) as x) -> x
+    | (_, false, x) -> (x[0], x[1])
+  }
+
+fun testMatch1() {
+  assertEqual(match1((1, true, "")), 1);
+  assertEqual(match1((-1, false, "foo")), 1);
+}
+
+fun testMatch2() {
+  assertEqual(match2((1, true, "")), 1);
+  assertEqual(match2((1, false, "")), 6);
+  assertEqual(match2((2, true, "")), 2);
+  assertEqual(match2((2, false, "")), 2);
+  assertEqual(match2((5, true, "")), 3);
+  assertEqual(match2((3, false, "")), 4);
+  assertEqual(match2((3, true, "")), 3);
+  assertEqual(match2((4, true, "")), 3);
+  assertEqual(match2((4, false, "")), 5);
+  assertEqual(match2((5, false, "")), 6);
+  assertEqual(match2((0, false, "")), 6);
+}
+
+fun testMatch3() {
+  assertEqual(match3((1, true, (2, true))), 1);
+  assertEqual(match3((2, true, (2, false))), 2);
+  assertEqual(match3((2, false, (2, false))), 3);
+  assertEqual(match3((2, false, (3, false))), 4);
+  assertEqual(match3((2, false, (3, true))), 5);
+}
+
+fun testMatch4() {
+  assertEqual(match4((1, false, (2, true))), 2);
+  assertEqual(match4((1, true, (2, true))), 1);
+  assertEqual(match4((2, true, (3, false))), 6);
+  assertEqual(match4((-1, true, (-7, false))), -4);
+  assertEqual(match4((-10, true, (-7, true))), -13);
+  assertEqual(match4((2, false, (9, true))), 9);
+  assertEqual(match4((2, false, (9, false))), 14);
+}
+
+fun testMatch5() {
+  val t1 = match5((1, true, (2, false)));
+  assertEqual(t1[0], 2);
+  assertEqual(t1[1], false);
+
+  val t2 = match5((2, true, (3, true)));
+  assertEqual(t2[0], 3);
+  assertEqual(t2[1], true);
+
+  val t3 = match5((1, false, (1, true)));
+  assertEqual(t3[0], 1);
+  assertEqual(t3[1], true);
+
+  val t4 = match5((1, false, (7, true)));
+  assertEqual(t4[0], 7);
+  assertEqual(t4[1], true);
+}
+
+fun main() {
+  testMatch1();
+  testMatch2();
+  testMatch3();
+  testMatch4();
+  testMatch5();
+}
