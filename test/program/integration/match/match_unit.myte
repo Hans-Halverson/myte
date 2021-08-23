@@ -1,0 +1,16 @@
+module test
+
+import std.test.assertEqual
+
+fun match1(): Int =
+  match (()) {
+    | () -> 1
+  }
+
+fun testMatch1() {
+  assertEqual(match1(), 1);
+}
+
+fun main() {
+  testMatch1();
+}

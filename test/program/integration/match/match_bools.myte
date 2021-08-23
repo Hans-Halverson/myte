@@ -1,0 +1,34 @@
+module test
+
+import std.test.assertEqual
+
+fun match1(x: Bool): Int =
+  match (x) {
+    | true -> 1
+    | false -> 2
+  }
+
+fun match2(x: Bool, y: Bool): Int =
+  match (x, y) {
+    | (true, false) -> 1
+    | (false, true) -> 2
+    | (true, true) -> 3
+    | (false, false) -> 4
+  }
+
+fun testMatch1() {
+  assertEqual(match1(true), 1);
+  assertEqual(match1(false), 2);
+}
+
+fun testMatch2() {
+  assertEqual(match2(true, true), 3);
+  assertEqual(match2(true, false), 1);
+  assertEqual(match2(false, true), 2);
+  assertEqual(match2(false, false), 4);
+}
+
+fun main() {
+  testMatch1();
+  testMatch2();
+}

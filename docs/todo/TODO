@@ -22,13 +22,11 @@
 - Enforce what expressions can appear in global initializers
 
 # Features
-- For loops (traditional, for-each)
 - Do while loops
 - Labels for break and continue
 - Anonymous Functions (fn x -> x)
 - Floating point numbers
 - unicode encodings
-- Optional/None type
 - Indexing into collections
 - Pattern matching (syntax with optional: "| ?a -> 1" or "| ?(a, b) -> 1")
 - Unused variable errors/warnings

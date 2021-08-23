@@ -1,0 +1,24 @@
+module test
+
+import std.test.assertEqual
+
+fun match1(x: String): Int =
+  match (x) {
+    | "foo" -> 1
+    | "bar" -> 2
+    | "baz" -> 3
+    | _ -> 4
+  }
+
+fun testMatch1() {
+  assertEqual(match1("foo"), 1);
+  assertEqual(match1("bar"), 2);
+  assertEqual(match1("baz"), 3);
+  assertEqual(match1(""), 4);
+  assertEqual(match1("fo"), 4);
+  assertEqual(match1("fooo"), 4);
+}
+
+fun main() {
+  testMatch1();
+}

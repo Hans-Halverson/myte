@@ -1,0 +1,57 @@
+module test
+
+import std.test.assertEqual
+
+fun matchBytes1(x: Byte): Int =
+  match (x) {
+    | 0 -> 1
+    | -1 -> 2
+    | 5 -> 3
+    | _ -> 4
+  }
+
+fun matchInts1(x: Int): Int =
+  match (x) {
+    | 0 -> 1
+    | -1 -> 2
+    | 5 -> 3
+    | _ -> 4
+  }
+
+fun matchLongs1(x: Long): Int =
+  match (x) {
+    | 0 -> 1
+    | -1 -> 2
+    | 5 -> 3
+    | _ -> 4
+  }
+
+fun testMatchBytes1() {
+  assertEqual(matchBytes1(0), 1);
+  assertEqual(matchBytes1(-1), 2);
+  assertEqual(matchBytes1(5), 3);
+  assertEqual(matchBytes1(6), 4);
+  assertEqual(matchBytes1(-100), 4);
+}
+
+fun testMatchInts1() {
+  assertEqual(matchInts1(0), 1);
+  assertEqual(matchInts1(-1), 2);
+  assertEqual(matchInts1(5), 3);
+  assertEqual(matchInts1(6), 4);
+  assertEqual(matchInts1(-100), 4);
+}
+
+fun testMatchLongs1() {
+  assertEqual(matchLongs1(0), 1);
+  assertEqual(matchLongs1(-1), 2);
+  assertEqual(matchLongs1(5), 3);
+  assertEqual(matchLongs1(6), 4);
+  assertEqual(matchLongs1(-100), 4);
+}
+
+fun main() {
+  testMatchBytes1();
+  testMatchInts1();
+  testMatchLongs1();
+}

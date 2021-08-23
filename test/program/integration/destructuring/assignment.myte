@@ -1,0 +1,79 @@
+module test
+
+import std.test.assertEqual
+
+fun testDestructureTuple() {
+  // Simple destructuring
+  var x = 1000;
+  var y = 1000;
+
+  (x, y) = (1, 2);
+  assertEqual(x, 1);
+  assertEqual(y, 2);
+
+  // Nested destructuring
+  var x = false;
+  var y = 1000;
+  var z = true;
+  var a = "";
+
+  (x, (_, y, (z, a))) = (true, (1, 2, (false, "test")));
+  assertEqual(x, true);
+  assertEqual(y, 2);
+  assertEqual(z, false);
+  assertEqual(a, "test");
+}
+
+type Tup (Int, Byte, Bool)
+type Rec { foo: Int, bar: Byte, baz: Bool }
+
+fun testDestructureNamedTuple() {
+  var x = 1000;
+  var y = 127;
+  var z = true;
+
+  Tup (x, y, z) = Tup (1, 2, false);
+  assertEqual(x, 1);
+  assertEqual(y, 2);
+  assertEqual(z, false);
+}
+
+fun testDestructureNamedRecord() {
+  var x = 1000;
+  var y = 127;
+  var z = true;
+
+  Rec { foo: x, bar: y, baz: z } = Rec { foo: 1, bar: 2, baz: false };
+  assertEqual(x, 1);
+  assertEqual(y, 2);
+  assertEqual(z, false);
+
+  var foo = 1000;
+
+  Rec { foo, ... } = Rec { foo: 10, bar: 2, baz: false };
+  assertEqual(foo, 10);
+}
+
+type Variant =
+  | Tup1 (Int, String)
+  | Tup2 (String, Int)
+
+fun testDestructureVariants() {
+  var x = 1000;
+  var y = "";
+
+  Tup1 (x, y) | Tup2 (y, x) = Tup1 (6, "foo");
+  assertEqual(x, 6);
+  assertEqual(y, "foo");
+
+  Tup1 (x, y) | Tup2 (y, x) = Tup2 ("bar", 7);
+  assertEqual(x, 7);
+  assertEqual(y, "bar");
+}
+
+fun main() {
+  testDestructureTuple();
+  testDestructureNamedTuple();
+  testDestructureNamedRecord();
+  testDestructureVariants();
+}
