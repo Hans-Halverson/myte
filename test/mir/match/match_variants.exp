@@ -223,6 +223,19 @@ label @42:
   Ret %108
 }
 
+func int @test.test7(byte %109) {
+  %110 := Eq byte %109, 0
+  branch %110, @45, @43
+label @43:
+  %111 := Eq byte %109, 1
+  branch %111, @45, @44
+label @44:
+  continue @45
+label @45:
+  %112 := Phi int @test.test7:5, @43:6, @44:7
+  Ret %112
+}
+
 func int @test.main() {
   Ret 0
 }

@@ -63,4 +63,16 @@ fun test6(x: V2): V2 =
     | other -> other
   }
 
+type V3 =
+  | Enum31
+  | Enum32
+  | Enum33
+
+fun test7(x: V3): Int =
+  match (x) {
+    | Enum31 -> 5
+    | Enum32 -> 6
+    | Enum33 -> 7
+  }
+
 fun main() {}

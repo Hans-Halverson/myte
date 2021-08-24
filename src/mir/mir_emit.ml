@@ -414,7 +414,7 @@ and emit_expression ~ecx expr =
       let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
       (match mir_adt_layout.layout with
       (* Enum constructor is a pure integer, and tag is its direct value *)
-      | PureEnum { tags; _ } -> SMap.find name tags
+      | PureEnum { tags; _ } -> (SMap.find name tags :> Value.t)
       (* Enum constructor is part of a variant type, so allocate union aggregate and set tag *)
       | Variants { tags; _ } ->
         let adt = type_of_loc ~ecx loc in
@@ -1703,12 +1703,26 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
       (* Variants are tested by loading their tag and checking against scrutinee in if-else chain *)
       | (Variant (_, adt_sig, _), _) ->
         let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
-        let variants_layout =
+        let (scrutinee_tag_val, tags, path_cache) =
           match mir_adt_layout.layout with
-          | Variants layout -> layout
-          | _ -> failwith "Expected variants layout"
+          (* If layout is a variant then load tag value so it can be tested *)
+          | Variants layout ->
+            let tag_type = (layout.tag_mir_type :> Type.t) in
+            let (scrutinee_val, path_cache) = emit_load_pattern_path ~path_cache scrutinee in
+            let scrutinee_val = cast_to_pointer_value scrutinee_val in
+            let scrutinee_tag_ptr_val = cast_pointer_value scrutinee_val tag_type in
+            let scrutinee_tag_var_id = mk_var_id () in
+            Ecx.emit ~ecx (Load (scrutinee_tag_var_id, scrutinee_tag_ptr_val));
+            let scrutinee_tag_val =
+              cast_to_comparable_value (var_value_of_type scrutinee_tag_var_id tag_type)
+            in
+            (scrutinee_tag_val, layout.tags, path_cache)
+          (* If layout is a pure enum then scrutinee is already tag value *)
+          | PureEnum layout ->
+            let (scrutinee_val, path_cache) = emit_load_pattern_path ~path_cache scrutinee in
+            (cast_to_comparable_value scrutinee_val, layout.tags, path_cache)
+          | _ -> failwith "Invalid layout for variants"
         in
-        let tag_type = (variants_layout.tag_mir_type :> Type.t) in
         (* Split out last case if there is no default, as it does not have to be explicitly tested *)
         let (test_cases, default_case) =
           match default_case with
@@ -1717,19 +1731,11 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
             (cases, last_tree_node)
           | Some default_tree_node -> (cases, default_tree_node)
         in
-        (* Load tag value so it can be tested *)
-        let (scrutinee_val, path_cache) = emit_load_pattern_path ~path_cache scrutinee in
-        let scrutinee_val = cast_to_pointer_value scrutinee_val in
-        let scrutinee_tag_ptr_val = cast_pointer_value scrutinee_val tag_type in
-        let scrutinee_tag_var_id = mk_var_id () in
-        Ecx.emit ~ecx (Load (scrutinee_tag_var_id, scrutinee_tag_ptr_val));
-        let scrutinee_tag_val =
-          cast_to_comparable_value (var_value_of_type scrutinee_tag_var_id tag_type)
-        in
+
         (* TODO: Emit better checks than linear if else chain - e.g. binary search, jump table *)
         emit_decision_tree_if_else_chain ~path_cache test_cases default_case (fun ctor ->
             let (name, _, _) = Ctor.cast_to_variant ctor in
-            let tag_val = (SMap.find name variants_layout.tags :> Mir.Value.comparable_value) in
+            let tag_val = (SMap.find name tags :> Mir.Value.comparable_value) in
             let test_var_id = mk_var_id () in
             Ecx.emit ~ecx (Eq (test_var_id, scrutinee_tag_val, tag_val));
             `BoolV test_var_id))

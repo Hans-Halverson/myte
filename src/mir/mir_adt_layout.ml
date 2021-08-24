@@ -28,7 +28,7 @@ end
 
 module MirAdtPureEnumLayout = struct
   type t = {
-    tags: Mir.Value.t SMap.t;
+    tags: Mir.Value.numeric_value SMap.t;
     tag_mir_type: tag_type;
   }
 end
