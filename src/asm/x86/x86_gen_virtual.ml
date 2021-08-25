@@ -997,22 +997,37 @@ and gen_get_pointer ~gcx ~func (get_pointer_instr : var_id Mir.Instruction.GetPo
   let { var_id; return_ty = _; pointer; pointer_offset; offsets } = get_pointer_instr in
   let element_ty = pointer_value_element_type pointer in
 
-  (* Current address calculation - updated as offsets are visited *)
-  let offset = ref None in
-  let base = ref NoBase in
-  let index_and_scale = ref None in
-
   (* Utilities for creating vregs *)
   let vreg_of_result_var_id var_id =
     VReg.of_var_id ~resolution:Unresolved ~func:(Some func) var_id
   in
   let mk_vreg () = VReg.mk ~resolution:Unresolved ~func:(Some func) in
 
+  (* Current address calculation - updated as offsets are visited. Note that base and index_and_scale
+     can only contain 64-bit registers. *)
+  let offset = ref None in
+  let base = ref NoBase in
+  let index_and_scale = ref None in
+
+  (* Zero extend index register to 64 bits for address calculation *)
+  let zero_extend_vreg_to_size64 vreg size =
+    match size with
+    | Size64 -> vreg
+    | _ ->
+      let zero_extended_vreg = mk_vreg () in
+      Gcx.emit ~gcx (MovZX (size, Size64, Reg vreg, zero_extended_vreg));
+      zero_extended_vreg
+  in
+  let set_base vreg size = base := RegBase (zero_extend_vreg_to_size64 vreg size) in
+  let set_index_and_scale vreg size scale =
+    let vreg = zero_extend_vreg_to_size64 vreg size in
+    index_and_scale := Some (vreg, scale)
+  in
+
   (* Emit the current address calculation as a Lea instruction, returning the resulting var and
      storing it as the base of the next instruction. If only a register base is present, do not emit
      an instruction and simply return that register. *)
   let emit_current_address_calculation () =
-    (* TODO: All registers must have same size - must sign extend those that do not match *)
     let result_vreg =
       match (!offset, !base, !index_and_scale) with
       | (None, RegBase reg, None) -> reg
@@ -1057,31 +1072,31 @@ and gen_get_pointer ~gcx ~func (get_pointer_instr : var_id Mir.Instruction.GetPo
     (* Add an unscaled register to current address calculation. First try to add it to base if there
        is no base yet, then try adding to index with scale = 1 if there is no index, otherwise
        emit current address calculation and try again. *)
-    let rec add_unscaled_register vreg =
+    let rec add_unscaled_register vreg size =
       if !base = NoBase then
-        base := RegBase vreg
+        set_base vreg size
       else if !index_and_scale = None then
-        index_and_scale := Some (vreg, Scale1)
+        set_index_and_scale vreg size Scale1
       else (
         ignore (emit_current_address_calculation ());
-        add_unscaled_register vreg
+        add_unscaled_register vreg size
       )
     in
     (* Add a scaled register to current address calculation. If there is already a scaled register
        then emit the current address calculation and try again. *)
-    let rec add_scaled_register vreg scale =
+    let rec add_scaled_register vreg size scale =
       if !index_and_scale = None then
-        index_and_scale := Some (vreg, scale)
+        set_index_and_scale vreg size scale
       else (
         ignore (emit_current_address_calculation ());
-        add_scaled_register vreg scale
+        add_scaled_register vreg size scale
       )
     in
     match scale with
-    | 1 -> add_unscaled_register vreg
-    | 2 -> add_scaled_register vreg Scale2
-    | 4 -> add_scaled_register vreg Scale4
-    | 8 -> add_scaled_register vreg Scale8
+    | 1 -> add_unscaled_register vreg size
+    | 2 -> add_scaled_register vreg size Scale2
+    | 4 -> add_scaled_register vreg size Scale4
+    | 8 -> add_scaled_register vreg size Scale8
     (* Otherwise emit multiply to calculate index *)
     | scale ->
       ignore (emit_current_address_calculation ());
@@ -1089,7 +1104,7 @@ and gen_get_pointer ~gcx ~func (get_pointer_instr : var_id Mir.Instruction.GetPo
       let scale_imm = Imm32 (Int32.of_int scale) in
       (* TODO: Handle sign extending byte arguments to 32/64 bits (movzbl/q) *)
       Gcx.emit ~gcx (IMulMIR (size, Reg vreg, scale_imm, scaled_vreg));
-      add_unscaled_register scaled_vreg
+      add_unscaled_register scaled_vreg size
   in
 
   (* Add address of root pointer *)
@@ -1099,11 +1114,16 @@ and gen_get_pointer ~gcx ~func (get_pointer_instr : var_id Mir.Instruction.GetPo
     base := IPBase
   | `PointerV _ ->
     (match resolve_ir_value ~gcx ~func (pointer :> Value.t) with
-    | SVReg (vreg, _) -> base := RegBase vreg
-    | SMem (mem, _) ->
+    | SVReg (vreg, size) -> set_base vreg size
+    | SMem (mem, size) ->
       let vreg = mk_vreg () in
-      Gcx.emit ~gcx (MovMM (Size64, Mem mem, Reg vreg));
-      base := RegBase vreg
+      (* Must zero extend to 64 bits *)
+      (match size with
+      | Size32
+      | Size64 ->
+        Gcx.emit ~gcx (MovMM (size, Mem mem, Reg vreg))
+      | _ -> Gcx.emit ~gcx (MovZX (size, Size64, Mem mem, vreg)));
+      set_base vreg Size64
     | _ -> failwith "PointerV must resolve to VReg or Mem"));
 
   (* The type that is currently being indexed into *)

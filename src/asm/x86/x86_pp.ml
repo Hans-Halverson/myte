@@ -250,6 +250,20 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_mem ~size:src_size src_mem;
         pp_args_separator ();
         pp_register ~size:dest_size dest_reg
+      | MovZX (src_size, dest_size, src_mem, dest_reg) ->
+        (* Zero extending 32 bit register is actually just a regular mov instruction *)
+        let (src_size, dest_size) =
+          if src_size == Size32 && dest_size == Size64 then (
+            pp_sized_op "mov" Size32;
+            (Size32, Size32)
+          ) else (
+            pp_op "movzx";
+            (src_size, dest_size)
+          )
+        in
+        pp_mem ~size:src_size src_mem;
+        pp_args_separator ();
+        pp_register ~size:dest_size dest_reg
       | Lea (size, mem, reg) ->
         pp_sized_op "lea" size;
         pp_memory_address mem;

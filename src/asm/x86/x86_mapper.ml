@@ -46,6 +46,13 @@ class instruction_mapper =
             instr
           else
             MovSX (src_size, dest_size, src_mem', dest_reg')
+        | MovZX (src_size, dest_size, src_mem, dest_reg) ->
+          let src_mem' = this#map_mem src_mem in
+          let dest_reg' = this#map_reg dest_reg in
+          if src_mem == src_mem' && dest_reg == dest_reg' then
+            instr
+          else
+            MovZX (src_size, dest_size, src_mem', dest_reg')
         | Lea (size, addr, reg) ->
           let addr' = this#map_addr addr in
           let reg' = this#map_reg reg in

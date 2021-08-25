@@ -41,6 +41,7 @@ class instruction_visitor =
         visit_read_mem read_mem;
         visit_write_mem write_mem
       | MovSX (_, _, read_mem, write_vreg)
+      | MovZX (_, _, read_mem, write_vreg)
       | IMulMIR (_, read_mem, _, write_vreg) ->
         visit_read_mem read_mem;
         visit_write_vreg write_vreg

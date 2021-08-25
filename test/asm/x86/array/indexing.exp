@@ -26,12 +26,14 @@ test.constantIndexing:
 test.indexIntoGlobal:
   movq test.intArray(%rip), %rax
   movl 20(%rax), %eax
-  movq test.intArray(%rip), %rax
-  movl (%rax, %rdi, 4), %eax
+  movq test.intArray(%rip), %rcx
+  movl %edi, %eax
+  movl (%rcx, %rax, 4), %eax
   movq test.intArray(%rip), %rax
   movl $6, 20(%rax)
-  movq test.intArray(%rip), %rax
-  movl $7, (%rax, %rdi, 4)
+  movq test.intArray(%rip), %rcx
+  movl %edi, %eax
+  movl $7, (%rcx, %rax, 4)
   ret
 test.longConstantIndexing:
   movq $17179869184, %rax
@@ -45,14 +47,28 @@ test.nestedIndexing:
   movb 4(%rax), %al
   movq 8(%rsi), %rax
   movl 20(%rax), %eax
-  movq (%rdi, %rdx, 8), %rax
+  movl %edx, %eax
+  movq (%rdi, %rax, 8), %rax
   movb 4(%rax), %al
-  movq 8(%rsi), %rax
-  movl (%rax, %rdx, 4), %eax
+  movq 8(%rsi), %rcx
+  movl %edx, %eax
+  movl (%rcx, %rax, 4), %eax
   ret
 test.variableIndexing:
-  movb (%rdi, %r8), %al
-  movl (%rsi, %r8, 4), %eax
-  movq (%rdx, %r8, 8), %rax
-  movq (%rcx, %r8, 8), %rax
+  movl %r8d, %eax
+  movb (%rdi, %rax), %al
+  movl %r8d, %eax
+  movl (%rsi, %rax, 4), %eax
+  movl %r8d, %eax
+  movq (%rdx, %rax, 8), %rax
+  movl %r8d, %eax
+  movq (%rcx, %rax, 8), %rax
+  movzx %r9b, %rax
+  movb (%rdi, %rax), %al
+  movzx %r9b, %rax
+  movl (%rsi, %rax, 4), %eax
+  movzx %r9b, %rax
+  movq (%rdx, %rax, 8), %rax
+  movzx %r9b, %rax
+  movq (%rcx, %rax, 8), %rax
   ret

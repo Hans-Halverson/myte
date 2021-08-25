@@ -176,6 +176,7 @@ module Instruction = struct
     | MovIM of register_size * immediate * 'reg memory (* Allows 64-bit immediate *)
     | MovMM of register_size * 'reg memory * 'reg memory
     | MovSX of register_size * register_size * 'reg memory * 'reg (* Src size then dest size where src size < dest size *)
+    | MovZX of register_size * register_size * 'reg memory * 'reg (* Src size then dest size where src size < dest size *)
     | Lea of register_size * 'reg memory_address * 'reg (* Only supports 32 or 64 bit register argument *)
     (* Numeric operations *)
     | NegM of register_size * 'reg memory

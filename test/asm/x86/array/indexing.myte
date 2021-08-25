@@ -42,11 +42,17 @@ fun variableIndexing(
   longArray: Array<Long>,
   tupArray: Array<Tup1>,
   x: Int,
+  y: Byte,
 ) {
   byteArray[x];
   intArray[x];
   longArray[x];
   tupArray[x];
+
+  byteArray[y];
+  intArray[y];
+  longArray[y];
+  tupArray[y];
 }
 
 fun nestedIndexing(tup1Array: Array<Tup1>, t2: Tup2, x: Int) {
