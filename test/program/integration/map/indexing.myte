@@ -1,0 +1,32 @@
+module test
+
+import std.map.Map
+import std.test.{assertEqual, assertNone, assertSome}
+
+fun testIndexedAccess() {
+  val x: Map<String, Int> = Map.new();
+  x.add("a", 7);
+  x.add("z", 10);
+
+  assertSome(x["a"], 7);
+  assertSome(x["z"], 10);
+}
+
+fun testIndexedAssignment() {
+  val x: Map<String, Int> = Map.new();
+  assertNone(x["a"]);
+  assertNone(x["z"]);
+
+  x["a"] = 7;
+  x["z"] = 10;
+  assertSome(x.get("a"), 7);
+  assertSome(x.get("z"), 10);
+
+  x["z"] = 11;
+  assertSome(x.get("z"), 11);
+}
+
+fun main() {
+  testIndexedAccess();
+  testIndexedAssignment();
+}

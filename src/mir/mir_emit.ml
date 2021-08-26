@@ -600,6 +600,11 @@ and emit_expression ~ecx expr =
       let target_var = emit_expression ~ecx target in
       let index_var = emit_expression ~ecx index in
       emit_call_vec_get ~ecx loc target_var index_var
+    (* If indexing a map, call Map's `get` method instead of emitting access chain *)
+    | ADT { adt_sig; type_args } when adt_sig == !Std_lib.map_adt_sig ->
+      let target_var = emit_expression ~ecx target in
+      let index_var = emit_expression ~ecx index in
+      emit_call_map_get ~ecx loc type_args target_var index_var
     | _ -> emit_expression_access_chain_load ~ecx expr)
   | NamedAccess _ -> emit_expression_access_chain_load ~ecx expr
   (*
@@ -1106,7 +1111,7 @@ and emit_call_vec_set ~ecx element_ty_loc vec_var index_var expr_var =
   let vec_get_method_sig = Types.AdtSig.lookup_method !Std_lib.vec_adt_sig "set" |> Option.get in
   let vec_get_binding = Bindings.get_value_binding ecx.Ecx.pcx.bindings vec_get_method_sig.loc in
   let vec_get_name = mk_value_binding_name vec_get_binding in
-  (* Find element type and instantiate Vec's `get` method *)
+  (* Find element type and instantiate Vec's `set` method *)
   let element_ty = type_of_loc ~ecx element_ty_loc in
   let func_name =
     Ecx.add_necessary_func_instantiation
@@ -1118,6 +1123,43 @@ and emit_call_vec_set ~ecx element_ty_loc vec_var index_var expr_var =
   (* Emit call of Vec's `set` method *)
   let var_id = mk_var_id () in
   Ecx.emit ~ecx (Call (var_id, `UnitT, `FunctionL func_name, [vec_var; index_var; expr_var]))
+
+and emit_call_map_get ~ecx return_loc map_type_args map_var index_var =
+  (* Get full name for Map's `get` method *)
+  let map_get_method_sig = Types.AdtSig.lookup_method !Std_lib.map_adt_sig "get" |> Option.get in
+  let map_get_binding = Bindings.get_value_binding ecx.pcx.bindings map_get_method_sig.loc in
+  let map_get_name = mk_value_binding_name map_get_binding in
+  (* Find element type and instantiate Map's `get` method *)
+  let return_ty = type_of_loc ~ecx return_loc in
+  let func_name =
+    Ecx.add_necessary_func_instantiation
+      ~ecx
+      map_get_name
+      map_get_method_sig.trait_sig.type_params
+      map_type_args
+  in
+  (* Emit call to Map's `get` method *)
+  let var_id = mk_var_id () in
+  let ret_ty = Ecx.to_mir_type ~ecx return_ty in
+  Ecx.emit ~ecx (Call (var_id, ret_ty, `FunctionL func_name, [map_var; index_var]));
+  var_value_of_type var_id ret_ty
+
+and emit_call_map_set ~ecx map_type_args map_var index_var expr_var =
+  (* Get full name for Vec's `set` method *)
+  let map_get_method_sig = Types.AdtSig.lookup_method !Std_lib.map_adt_sig "add" |> Option.get in
+  let map_get_binding = Bindings.get_value_binding ecx.Ecx.pcx.bindings map_get_method_sig.loc in
+  let map_get_name = mk_value_binding_name map_get_binding in
+  (* Find element type and instantiate Map's `add` method *)
+  let func_name =
+    Ecx.add_necessary_func_instantiation
+      ~ecx
+      map_get_name
+      map_get_method_sig.trait_sig.type_params
+      map_type_args
+  in
+  (* Emit call of Map's `set` method *)
+  let var_id = mk_var_id () in
+  Ecx.emit ~ecx (Call (var_id, `UnitT, `FunctionL func_name, [map_var; index_var; expr_var]))
 
 and emit_store_tag ~ecx tag ptr_var_id =
   let tag = (tag :> Value.t) in
@@ -1441,6 +1483,12 @@ and emit_statement ~ecx stmt =
         let index_var = emit_expression ~ecx index in
         let expr_var = emit_expression ~ecx expr in
         emit_call_vec_set ~ecx loc target_var index_var expr_var
+      (* If indexing a map, call Map's `set` method instead of emitting access chain *)
+      | ADT { adt_sig; type_args } when adt_sig == !Std_lib.map_adt_sig ->
+        let target_var = emit_expression ~ecx target in
+        let index_var = emit_expression ~ecx index in
+        let expr_var = emit_expression ~ecx expr in
+        emit_call_map_set ~ecx type_args target_var index_var expr_var
       | _ -> emit_expression_access_chain_store ~ecx expr_lvalue expr)
     | Assignment.Expression (NamedAccess _ as expr_lvalue) ->
       emit_expression_access_chain_store ~ecx expr_lvalue expr

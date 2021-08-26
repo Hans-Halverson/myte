@@ -1,0 +1,19 @@
+module test
+
+import std.map.Map
+
+fun use<T>(x: T) {}
+
+fun testSimpleIndexing(x: Map<Bool, Byte>) {
+  use(x[true]);
+  x[false] = 2;  
+}
+
+type Rec1 { foo: Int, bar: Map<Byte, String> }
+
+fun testIndexAfterAccess(x: Rec1, y: Byte, z: String) {
+  x.bar[y];
+  x.bar[y] = z;
+}
+
+fun main() {}
