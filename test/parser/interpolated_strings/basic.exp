@@ -1,7 +1,7 @@
 test/parser/interpolated_strings/basic.myte
 {
   node: Module,
-  loc: 1:0-25:1,
+  loc: 1:0-26:1,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -20,7 +20,7 @@ test/parser/interpolated_strings/basic.myte
   toplevels: [
     {
       node: Function,
-      loc: 3:0-25:1,
+      loc: 3:0-26:1,
       name: {
         node: Identifier,
         loc: 3:4-3:8,
@@ -29,7 +29,7 @@ test/parser/interpolated_strings/basic.myte
       params: [],
       body: {
         node: Block,
-        loc: 3:11-25:1,
+        loc: 3:11-26:1,
         statements: [
           {
             node: ExpressionStatement,
@@ -188,14 +188,14 @@ test/parser/interpolated_strings/basic.myte
           },
           {
             node: ExpressionStatement,
-            loc: 18:2-18:15,
+            loc: 18:2-19:8,
             expression: {
               node: InterpolatedString,
-              loc: 18:2-18:14,
+              loc: 18:2-19:7,
               parts: [
                 {
                   node: StringLiteral,
-                  loc: 18:2-18:14,
+                  loc: 18:2-19:7,
                   value: "foo
    bar",
                 },
@@ -204,55 +204,55 @@ test/parser/interpolated_strings/basic.myte
           },
           {
             node: ExpressionStatement,
-            loc: 21:3-21:34,
+            loc: 22:3-22:34,
             expression: {
               node: InterpolatedString,
-              loc: 21:3-21:33,
+              loc: 22:3-22:33,
               parts: [
                 {
                   node: StringLiteral,
-                  loc: 21:3-21:9,
+                  loc: 22:3-22:9,
                   value: "foo",
                 },
                 {
                   node: BinaryOperation,
-                  loc: 21:9-21:28,
+                  loc: 22:9-22:28,
                   op: Add,
                   left: {
                     node: IntLiteral,
-                    loc: 21:9-21:10,
+                    loc: 22:9-22:10,
                     raw: "1",
                   },
                   right: {
                     node: BinaryOperation,
-                    loc: 21:13-21:28,
+                    loc: 22:13-22:28,
                     op: Multiply,
                     left: {
                       node: IntLiteral,
-                      loc: 21:13-21:14,
+                      loc: 22:13-22:14,
                       raw: "2",
                     },
                     right: {
                       node: Call,
-                      loc: 21:17-21:28,
+                      loc: 22:17-22:28,
                       func: {
                         node: Identifier,
-                        loc: 21:17-21:21,
+                        loc: 22:17-22:21,
                         name: "call",
                       },
                       args: [
                         {
                           node: BinaryOperation,
-                          loc: 21:22-21:27,
+                          loc: 22:22-22:27,
                           op: Add,
                           left: {
                             node: Identifier,
-                            loc: 21:22-21:23,
+                            loc: 22:22-22:23,
                             name: "x",
                           },
                           right: {
                             node: IntLiteral,
-                            loc: 21:26-21:27,
+                            loc: 22:26-22:27,
                             raw: "1",
                           },
                         },
@@ -262,7 +262,7 @@ test/parser/interpolated_strings/basic.myte
                 },
                 {
                   node: StringLiteral,
-                  loc: 21:28-21:33,
+                  loc: 22:28-22:33,
                   value: "bar",
                 },
               ],
@@ -270,82 +270,82 @@ test/parser/interpolated_strings/basic.myte
           },
           {
             node: ExpressionStatement,
-            loc: 24:3-24:65,
+            loc: 25:3-25:65,
             expression: {
               node: InterpolatedString,
-              loc: 24:3-24:64,
+              loc: 25:3-25:64,
               parts: [
                 {
                   node: StringLiteral,
-                  loc: 24:3-24:10,
+                  loc: 25:3-25:10,
                   value: "foo1",
                 },
                 {
                   node: InterpolatedString,
-                  loc: 24:10-24:37,
+                  loc: 25:10-25:37,
                   parts: [
                     {
                       node: StringLiteral,
-                      loc: 24:10-24:17,
+                      loc: 25:10-25:17,
                       value: "foo2",
                     },
                     {
                       node: InterpolatedString,
-                      loc: 24:17-24:31,
+                      loc: 25:17-25:31,
                       parts: [
                         {
                           node: StringLiteral,
-                          loc: 24:17-24:24,
+                          loc: 25:17-25:24,
                           value: "foo3",
                         },
                         {
                           node: IntLiteral,
-                          loc: 24:24-24:25,
+                          loc: 25:24-25:25,
                           raw: "1",
                         },
                         {
                           node: StringLiteral,
-                          loc: 24:25-24:31,
+                          loc: 25:25-25:31,
                           value: "bar3",
                         },
                       ],
                     },
                     {
                       node: StringLiteral,
-                      loc: 24:31-24:37,
+                      loc: 25:31-25:37,
                       value: "bar2",
                     },
                   ],
                 },
                 {
                   node: StringLiteral,
-                  loc: 24:37-24:44,
+                  loc: 25:37-25:44,
                   value: "bar1",
                 },
                 {
                   node: InterpolatedString,
-                  loc: 24:44-24:58,
+                  loc: 25:44-25:58,
                   parts: [
                     {
                       node: StringLiteral,
-                      loc: 24:44-24:51,
+                      loc: 25:44-25:51,
                       value: "foo4",
                     },
                     {
                       node: IntLiteral,
-                      loc: 24:51-24:52,
+                      loc: 25:51-25:52,
                       raw: "1",
                     },
                     {
                       node: StringLiteral,
-                      loc: 24:52-24:58,
+                      loc: 25:52-25:58,
                       value: "bar4",
                     },
                   ],
                 },
                 {
                   node: StringLiteral,
-                  loc: 24:58-24:64,
+                  loc: 25:58-25:64,
                   value: "baz1",
                 },
               ],

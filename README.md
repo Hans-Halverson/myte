@@ -45,7 +45,7 @@ The following is a description of the overall architecture of the Myte compiler.
 
 ### Parsing
 
-The Myte parser is a handwritten recursive descent parser contained in the [`src/parser`](src/parser) directory. Tokenization is performed using a lexer generated using the [`sedlex`](https://github.com/ocaml-community/sedlex) library (the sole library dependency of the Myte compiler). The parser directory also contains the definition for the [Myte AST](src/parser/ast.ml) along with utilities for traversing and transforming the AST. Errors are reported after parsing, and only if there are no parse or tokenization errors does the compiler proceed to the next phase.
+The Myte parser is a handwritten recursive descent parser contained in the [`src/parser`](src/parser) directory. The parser directory also contains the definition for the [Myte AST](src/parser/ast.ml) along with utilities for traversing and transforming the AST. Errors are reported after parsing, and only if there are no parse or tokenization errors does the compiler proceed to the next phase.
 
 ### Type Checking and Static Analysis
 

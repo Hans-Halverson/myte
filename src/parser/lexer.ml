@@ -1,31 +1,16 @@
-let new_line = [%sedlex.regexp? '\n' | '\r' | "\r\n"]
-
-let letter = [%sedlex.regexp? 'a' .. 'z' | 'A' .. 'Z']
-
-let digit = [%sedlex.regexp? '0' .. '9']
-
-let hex_digit = [%sedlex.regexp? '0' .. '9' | 'a' .. 'f' | 'A' .. 'F']
-
-let bin_digit = [%sedlex.regexp? '0' .. '1']
-
-(* Any sequence of letters, digits, and underscores. Does not include the wildcard pattern "_"
-   or any sequence starting with a digit *)
-let identifier =
-  [%sedlex.regexp? ('_', Plus (letter | digit | '_')) | (letter, Star (letter | digit | '_'))]
-
-let dec_literal = [%sedlex.regexp? Plus digit]
-
-let hex_literal = [%sedlex.regexp? ("0x", Plus hex_digit)]
-
-let bin_literal = [%sedlex.regexp? ("0b", Plus bin_digit)]
-
-let lexeme = Sedlexing.Utf8.lexeme
-
 type t = {
-  buf: Sedlexing.lexbuf;
+  (* All bytes to tokenize *)
+  bytes: Bytes.t;
+  (* Source of bytes *)
   source: Source.t option;
-  current_line: int;
-  current_line_offset: int;
+  (* Current byte *)
+  mutable current: Char.t;
+  (* Offset of current byte in bytes *)
+  mutable current_offset: int;
+  (* Line number of current byte *)
+  mutable current_line: int;
+  (* Offset of current line in bytes *)
+  mutable current_line_offset: int;
 }
 
 type result = {
@@ -35,147 +20,289 @@ type result = {
 
 type tokenize_result =
   | Token of (t * result)
-  | Skip of t
   | LexError of (t * (Loc.t * Parse_error.t))
 
-let mk source buf = { buf; source; current_line = 1; current_line_offset = 0 }
+let eof = Char.unsafe_chr (-1)
 
-(* Sedlexing has mutable state but does not expose its internals, so use force a sketchy deep copy
-   with Obj so we can save and restore the exact state of a Sedlexing buffer. *)
-let deep_copy lex = { lex with buf = Obj.repr lex.buf |> Obj.dup |> Obj.obj }
+let mk source bytes =
+  let current =
+    if Bytes.length bytes > 0 then
+      Bytes.unsafe_get bytes 0
+    else
+      eof
+  in
+  { bytes; source; current; current_offset = 0; current_line = 1; current_line_offset = 0 }
 
-let pos_of_offset lex offset =
-  { Loc.line = lex.current_line; col = offset - lex.current_line_offset }
-
-let current_loc lex =
-  let (start_offset, end_offset) = Sedlexing.loc lex.buf in
+let copy lex =
   {
-    Loc.source = lex.source;
-    start = pos_of_offset lex start_offset;
-    _end = pos_of_offset lex end_offset;
+    bytes = lex.bytes;
+    source = lex.source;
+    current = lex.current;
+    current_offset = lex.current_offset;
+    current_line = lex.current_line;
+    current_line_offset = lex.current_line_offset;
   }
 
-let mark_new_line lex =
-  let new_current_line_offset = Sedlexing.lexeme_end lex.buf in
-  { lex with current_line = lex.current_line + 1; current_line_offset = new_current_line_offset }
+let current_pos lex =
+  { Loc.line = lex.current_line; col = lex.current_offset - lex.current_line_offset }
+
+let current_loc lex start_pos =
+  { Loc.source = lex.source; start = start_pos; _end = current_pos lex }
+
+let loc_of_pos lex pos =
+  { Loc.source = lex.source; start = pos; _end = { line = pos.line; col = pos.col + 1 } }
+
+(* Advance the lexer one byte *)
+let advance lex =
+  (* If current byte is a new line character, next byte will be on a new line *)
+  (match lex.current with
+  | '\n' ->
+    lex.current_line <- lex.current_line + 1;
+    lex.current_line_offset <- lex.current_offset + 1
+  | _ -> ());
+
+  (* Only move to next byte if not already at end *)
+  let next_offset = lex.current_offset + 1 in
+  let bytes_length = Bytes.length lex.bytes in
+  if next_offset < bytes_length then (
+    lex.current <- Bytes.unsafe_get lex.bytes next_offset;
+    lex.current_offset <- next_offset
+  ) else (
+    lex.current <- eof;
+    lex.current_offset <- bytes_length
+  )
+
+let advance_two lex =
+  advance lex;
+  advance lex
+
+(* Return the next byte if not at end *)
+let peek lex =
+  let next_offset = lex.current_offset + 1 in
+  if next_offset < Bytes.length lex.bytes then
+    Bytes.unsafe_get lex.bytes next_offset
+  else
+    eof
+
+(* Return byte after the next byte if not at end *)
+let peek_two lex =
+  let offset = lex.current_offset + 2 in
+  if offset < Bytes.length lex.bytes then
+    Bytes.unsafe_get lex.bytes offset
+  else
+    eof
 
 let rec skip_line_comment lex =
-  let { buf; _ } = lex in
-  match%sedlex buf with
-  | eof
-  | new_line ->
-    Skip (mark_new_line lex)
-  | any -> skip_line_comment lex
-  | _ -> failwith "Unreachable"
+  match lex.current with
+  | '\n'
+  | '\r' ->
+    ()
+  | current when current = eof -> ()
+  | _ ->
+    advance lex;
+    skip_line_comment lex
 
-let rec skip_block_comment lex =
-  let { buf; _ } = lex in
-  match%sedlex buf with
-  | "*/" -> Skip lex
-  | eof ->
-    LexError
-      (lex, (current_loc lex, Parse_error.UnexpectedToken { actual = T_EOF; expected = None }))
-  | new_line -> skip_block_comment (mark_new_line lex)
-  | any -> skip_block_comment lex
-  | _ -> failwith "Unreachable"
+let skip_block_comment lex =
+  let start_pos = current_pos lex in
+  let rec iter () =
+    match lex.current with
+    | '*' when peek lex = '/' ->
+      advance_two lex;
+      Ok ()
+    | current when current = eof ->
+      Error
+        (current_loc lex start_pos, Parse_error.UnexpectedToken { actual = T_EOF; expected = None })
+    | _ ->
+      advance lex;
+      iter ()
+  in
+  iter ()
 
-let sedlex_catch_all_case () = failwith "Needed for sedlex, but any case catches all patterns"
+(* Only called if current byte is a valid identifier start character *)
+let parse_identifier_or_keyword lex =
+  let start_pos = current_pos lex in
+  let start_offset = lex.current_offset in
+  let token_result token = Token (lex, { loc = current_loc lex start_pos; token }) in
 
-let parse_string_literal lex ~is_interpolated =
-  let start_loc = current_loc lex in
+  let rec iter () =
+    match lex.current with
+    | 'a' .. 'z'
+    | 'A' .. 'Z'
+    | '0' .. '9'
+    | '_' ->
+      advance lex;
+      iter ()
+    | _ ->
+      let raw = Bytes.sub_string lex.bytes start_offset (lex.current_offset - start_offset) in
+      (match raw with
+      | "true" -> token_result (T_BOOL_LITERAL true)
+      | "false" -> token_result (T_BOOL_LITERAL false)
+      | "val" -> token_result T_VAL
+      | "var" -> token_result T_VAR
+      | "fun" -> token_result T_FUN
+      | "if" -> token_result T_IF
+      | "else" -> token_result T_ELSE
+      | "while" -> token_result T_WHILE
+      | "for" -> token_result T_FOR
+      | "in" -> token_result T_IN
+      | "return" -> token_result T_RETURN
+      | "break" -> token_result T_BREAK
+      | "continue" -> token_result T_CONTINUE
+      | "match" -> token_result T_MATCH
+      | "when" -> token_result T_WHEN
+      | "module" -> token_result T_MODULE
+      | "import" -> token_result T_IMPORT
+      | "as" -> token_result T_AS
+      | "is" -> token_result T_IS
+      | "type" -> token_result T_TYPE
+      | "alias" -> token_result T_ALIAS
+      | "builtin" -> token_result T_BUILTIN
+      | "trait" -> token_result T_TRAIT
+      | "methods" -> token_result T_METHODS
+      | "extends" -> token_result T_EXTENDS
+      | "implements" -> token_result T_IMPLEMENTS
+      | "static" -> token_result T_STATIC
+      | "override" -> token_result T_OVERRIDE
+      | "super" -> token_result T_SUPER
+      | _ -> token_result (T_IDENTIFIER raw))
+  in
+  (* An underscore not followed by an identifier character is a wildcard token *)
+  match lex.current with
+  | '_' ->
+    (match peek lex with
+    | 'a' .. 'z'
+    | 'A' .. 'Z'
+    | '0' .. '9'
+    | '_' ->
+      iter ()
+    | _ ->
+      advance lex;
+      token_result T_WILDCARD)
+  | _ -> iter ()
+
+let parse_number_dec lex =
+  let start_pos = current_pos lex in
+  let start_offset = lex.current_offset in
+
+  (* Find all digits in number *)
+  let rec iter () =
+    match lex.current with
+    | '0' .. '9' ->
+      advance lex;
+      iter ()
+    | _ -> ()
+  in
+  iter ();
+
+  let raw = Bytes.sub_string lex.bytes start_offset (lex.current_offset - start_offset) in
+  Token (lex, { loc = current_loc lex start_pos; token = T_INT_LITERAL (raw, Integers.Dec) })
+
+let parse_number_hex lex =
+  let start_pos = current_pos lex in
+  let start_offset = lex.current_offset in
+
+  (* Skip `0x` prefix *)
+  advance_two lex;
+
+  (* Find all hex digits in number *)
+  let rec iter () =
+    match lex.current with
+    | '0' .. '9'
+    | 'a' .. 'f'
+    | 'A' .. 'F' ->
+      advance lex;
+      iter ()
+    | _ -> ()
+  in
+  iter ();
+
+  let raw = Bytes.sub_string lex.bytes start_offset (lex.current_offset - start_offset) in
+  Token (lex, { loc = current_loc lex start_pos; token = T_INT_LITERAL (raw, Integers.Hex) })
+
+let parse_number_bin lex =
+  let start_pos = current_pos lex in
+  let start_offset = lex.current_offset in
+
+  (* Skip `0b` prefix *)
+  advance_two lex;
+
+  (* Find all binary digits in number *)
+  let rec iter () =
+    match lex.current with
+    | '0'
+    | '1' ->
+      advance lex;
+      iter ()
+    | _ -> ()
+  in
+  iter ();
+
+  let raw = Bytes.sub_string lex.bytes start_offset (lex.current_offset - start_offset) in
+  Token (lex, { loc = current_loc lex start_pos; token = T_INT_LITERAL (raw, Integers.Bin) })
+
+let parse_string_literal lex ~is_interpolated ~start_pos =
   let builder = Buffer.create 10 in
-
-  let rec iter lex =
-    let { buf; _ } = lex in
-    match%sedlex buf with
+  let token_result token = Token (lex, { loc = current_loc lex start_pos; token }) in
+  let rec iter () =
+    match lex.current with
     (* Double quotes are end for string literal *)
-    | '"' ->
-      if is_interpolated then (
-        Buffer.add_string builder (lexeme buf);
-        iter lex
-      ) else
-        let loc = Loc.between start_loc (current_loc lex) in
-        let token = Token.T_STRING_LITERAL (Buffer.contents builder) in
-        Token (lex, { loc; token })
+    | '"' when not is_interpolated ->
+      advance lex;
+      token_result (Token.T_STRING_LITERAL (Buffer.contents builder))
     (* Backtick is end for interpolated string literal *)
-    | '`' ->
-      if not is_interpolated then (
-        Buffer.add_string builder (lexeme buf);
-        iter lex
-      ) else
-        let loc = Loc.between start_loc (current_loc lex) in
-        let token = Token.T_INTERPOLATED_STRING (Buffer.contents builder, true) in
-        Token (lex, { loc; token })
+    | '`' when is_interpolated ->
+      advance lex;
+      token_result (Token.T_INTERPOLATED_STRING (Buffer.contents builder, true))
     (* `${` marks the beginning of an expression in an interpolated string *)
-    | "${" ->
-      if not is_interpolated then (
-        Buffer.add_string builder (lexeme buf);
-        iter lex
-      ) else
-        let loc = Loc.between start_loc (current_loc lex) in
-        let token = Token.T_INTERPOLATED_STRING (Buffer.contents builder, false) in
-        Token (lex, { loc; token })
+    | '$' when is_interpolated ->
+      (match peek lex with
+      | '{' ->
+        advance_two lex;
+        token_result (Token.T_INTERPOLATED_STRING (Buffer.contents builder, false))
+      | _ -> add_char_and_advance '$')
     (* Newlines are allowed in interpolated strings, but not normal string literals *)
-    | '\n' ->
-      if is_interpolated then (
-        Buffer.add_string builder (lexeme buf);
-        iter lex
-      ) else
-        LexError (lex, (start_loc, Parse_error.UnterminatedStringLiteral))
-    | eof -> LexError (lex, (start_loc, Parse_error.UnterminatedStringLiteral))
-    | '\\' -> parse_escape_sequence lex
-    | any ->
-      Buffer.add_string builder (lexeme buf);
-      iter lex
-    | _ -> sedlex_catch_all_case ()
-  and parse_escape_sequence lex =
-    let { buf; _ } = lex in
-    let invalid_escape_error lex is_interpolated =
-      LexError (lex, (current_loc lex, Parse_error.InvalidEscape is_interpolated))
-    in
-    let start_loc = current_loc lex in
-    match%sedlex buf with
-    (* Escape sequences for both string literals and interpolated strings *)
-    | 'n' ->
-      Buffer.add_char builder '\n';
-      iter lex
-    | 'r' ->
-      Buffer.add_char builder '\r';
-      iter lex
-    | 't' ->
-      Buffer.add_char builder '\t';
-      iter lex
+    | '\n' when not is_interpolated ->
+      LexError (lex, (loc_of_pos lex start_pos, Parse_error.UnterminatedStringLiteral))
     | '\\' ->
-      Buffer.add_char builder '\\';
-      iter lex
-    | 'x' -> parse_hex_escape_sequence lex start_loc
+      let start_pos = current_pos lex in
+      advance lex;
+      parse_escape_sequence start_pos
+    | current when current = eof ->
+      LexError (lex, (loc_of_pos lex start_pos, Parse_error.UnterminatedStringLiteral))
+    | current -> add_char_and_advance current
+  and parse_escape_sequence start_pos =
+    let invalid_escape_error () =
+      LexError (lex, (loc_of_pos lex (current_pos lex), Parse_error.InvalidEscape is_interpolated))
+    in
+    match lex.current with
+    (* Escape sequences for both string literals and interpolated strings *)
+    | 'n' -> add_char_and_advance '\n'
+    | 'r' -> add_char_and_advance '\r'
+    | 't' -> add_char_and_advance '\t'
+    | '\\' -> add_char_and_advance '\\'
+    | 'x' ->
+      advance lex;
+      parse_hex_escape_sequence start_pos
     (* Double quotes are only an escape sequence in string literals *)
     | '"' ->
       if is_interpolated then
-        invalid_escape_error lex is_interpolated
-      else (
-        Buffer.add_char builder '"';
-        iter lex
-      )
+        invalid_escape_error ()
+      else
+        add_char_and_advance '"'
     (* Backtick is only an escape sequence in interpolated strings *)
     | '`' ->
       if not is_interpolated then
-        invalid_escape_error lex is_interpolated
-      else (
-        Buffer.add_char builder '`';
-        iter lex
-      )
+        invalid_escape_error ()
+      else
+        add_char_and_advance '`'
     (* Dollar sign is only an escape sequence in interpolated strings *)
     | '$' ->
       if not is_interpolated then
-        invalid_escape_error lex is_interpolated
-      else (
-        Buffer.add_char builder '$';
-        iter lex
-      )
-    | _ -> invalid_escape_error lex is_interpolated
-  and parse_hex_escape_sequence lex start_loc =
-    let { buf; _ } = lex in
+        invalid_escape_error ()
+      else
+        add_char_and_advance '$'
+    | _ -> invalid_escape_error ()
+  and parse_hex_escape_sequence start_pos =
     let int_of_hex_digit digit =
       if digit >= 'a' && digit <= 'f' then
         Char.code digit - Char.code 'a' + 10
@@ -184,117 +311,201 @@ let parse_string_literal lex ~is_interpolated =
       else
         Char.code digit - Char.code '0'
     in
-    let err () =
-      LexError (lex, (Loc.between start_loc (current_loc lex), Parse_error.InvalidHexEscape))
-    in
-    match%sedlex buf with
-    | (hex_digit, hex_digit) ->
-      let hex_digits = lexeme buf in
-      let char_code = (int_of_hex_digit hex_digits.[0] * 16) + int_of_hex_digit hex_digits.[1] in
-      Buffer.add_char builder (Char.chr char_code);
-      iter lex
-    | hex_digit -> err ()
+    let err () = LexError (lex, (current_loc lex start_pos, Parse_error.InvalidHexEscape)) in
+    match lex.current with
+    | ('0' .. '9' | 'a' .. 'f' | 'A' .. 'F') as first_digit ->
+      advance lex;
+      (match lex.current with
+      | ('0' .. '9' | 'a' .. 'f' | 'A' .. 'F') as second_digit ->
+        let char_code = (int_of_hex_digit first_digit * 16) + int_of_hex_digit second_digit in
+        add_char_and_advance (Char.chr char_code)
+      | _ -> err ())
     | _ -> err ()
+  and add_char_and_advance char =
+    advance lex;
+    Buffer.add_char builder char;
+    iter ()
   in
-  iter lex
+  iter ()
 
-let tokenize lex =
+let rec tokenize lex =
   let open Token in
-  let { buf; _ } = lex in
-  let token_result token = Token (lex, { loc = current_loc lex; token }) in
-  let lex_error err = LexError (lex, (current_loc lex, err)) in
-  match%sedlex buf with
-  | new_line -> Skip (mark_new_line lex)
-  | white_space -> Skip lex
-  | "//" -> skip_line_comment lex
-  | "/*" -> skip_block_comment lex
-  | "&&" -> token_result T_LOGICAL_AND
-  | "||" -> token_result T_LOGICAL_OR
-  | "==" -> token_result T_DOUBLE_EQUALS
-  | "!=" -> token_result T_NOT_EQUALS
-  | "<" -> token_result T_LESS_THAN
-  | ">" -> token_result T_GREATER_THAN
-  | "<=" -> token_result T_LESS_THAN_OR_EQUAL
-  | ">=" -> token_result T_GREATER_THAN_OR_EQUAL
-  | "->" -> token_result T_ARROW
-  | ';' -> token_result T_SEMICOLON
-  | ':' -> token_result T_COLON
-  | '?' -> token_result T_QUESTION
-  | '|' -> token_result T_PIPE
-  | '_' -> token_result T_WILDCARD
-  | '.' -> token_result T_PERIOD
-  | ',' -> token_result T_COMMA
-  | '=' -> token_result T_EQUALS
-  | '+' -> token_result T_PLUS
-  | '-' -> token_result T_MINUS
-  | '*' -> token_result T_MULTIPLY
-  | '/' -> token_result T_DIVIDE
-  | '%' -> token_result T_PERCENT
-  | '!' -> token_result T_BANG
-  | '&' -> token_result T_AMPERSAND
-  | '^' -> token_result T_CARET
-  | '(' -> token_result T_LEFT_PAREN
-  | ')' -> token_result T_RIGHT_PAREN
-  | '{' -> token_result T_LEFT_BRACE
-  | '}' -> token_result T_RIGHT_BRACE
-  | '[' -> token_result T_LEFT_BRACKET
-  | ']' -> token_result T_RIGHT_BRACKET
-  | "true" -> token_result (T_BOOL_LITERAL true)
-  | "false" -> token_result (T_BOOL_LITERAL false)
-  | "val" -> token_result T_VAL
-  | "var" -> token_result T_VAR
-  | "fun" -> token_result T_FUN
-  | "if" -> token_result T_IF
-  | "else" -> token_result T_ELSE
-  | "while" -> token_result T_WHILE
-  | "for" -> token_result T_FOR
-  | "in" -> token_result T_IN
-  | "return" -> token_result T_RETURN
-  | "break" -> token_result T_BREAK
-  | "continue" -> token_result T_CONTINUE
-  | "match" -> token_result T_MATCH
-  | "when" -> token_result T_WHEN
-  | "module" -> token_result T_MODULE
-  | "import" -> token_result T_IMPORT
-  | "as" -> token_result T_AS
-  | "is" -> token_result T_IS
-  | "type" -> token_result T_TYPE
-  | "alias" -> token_result T_ALIAS
-  | "builtin" -> token_result T_BUILTIN
-  | "trait" -> token_result T_TRAIT
-  | "methods" -> token_result T_METHODS
-  | "extends" -> token_result T_EXTENDS
-  | "implements" -> token_result T_IMPLEMENTS
-  | "static" -> token_result T_STATIC
-  | "override" -> token_result T_OVERRIDE
-  | "super" -> token_result T_SUPER
-  | eof -> token_result T_EOF
-  | identifier -> token_result (T_IDENTIFIER (lexeme buf))
-  | dec_literal ->
-    let raw = lexeme buf in
-    token_result (T_INT_LITERAL (raw, Integers.Dec))
-  | bin_literal ->
-    let raw = lexeme buf in
-    token_result (T_INT_LITERAL (raw, Integers.Bin))
-  | hex_literal ->
-    let raw = lexeme buf in
-    token_result (T_INT_LITERAL (raw, Integers.Hex))
-  | '"' -> parse_string_literal lex ~is_interpolated:false
-  | '`' -> parse_string_literal lex ~is_interpolated:true
-  | any -> lex_error (Parse_error.UnknownToken (lexeme buf))
-  | _ -> sedlex_catch_all_case ()
+  let rec skip_whitespace () =
+    match lex.current with
+    | '\t'
+    | '\r'
+    | '\n'
+    | ' ' ->
+      advance lex;
+      skip_whitespace ()
+    | _ -> ()
+  in
+  skip_whitespace ();
+
+  let start_pos = current_pos lex in
+  let token_result token = Token (lex, { loc = current_loc lex start_pos; token }) in
+  let lex_error err = LexError (lex, (current_loc lex start_pos, err)) in
+
+  match lex.current with
+  | 'a' .. 'z'
+  | 'A' .. 'Z'
+  | '_' ->
+    parse_identifier_or_keyword lex
+  | '0'
+    when peek lex = 'x'
+         &&
+         let char = peek_two lex in
+         match char with
+         | '0' .. '9'
+         | 'a' .. 'f'
+         | 'A' .. 'F' ->
+           true
+         | _ -> false ->
+    parse_number_hex lex
+  | '0'
+    when peek lex = 'b'
+         &&
+         let char = peek_two lex in
+         char = '0' || char = '1' ->
+    parse_number_bin lex
+  | '0' .. '9' -> parse_number_dec lex
+  | ';' ->
+    advance lex;
+    token_result T_SEMICOLON
+  | ':' ->
+    advance lex;
+    token_result T_COLON
+  | '?' ->
+    advance lex;
+    token_result T_QUESTION
+  | '.' ->
+    advance lex;
+    token_result T_PERIOD
+  | ',' ->
+    advance lex;
+    token_result T_COMMA
+  | '+' ->
+    advance lex;
+    token_result T_PLUS
+  | '*' ->
+    advance lex;
+    token_result T_MULTIPLY
+  | '%' ->
+    advance lex;
+    token_result T_PERCENT
+  | '^' ->
+    advance lex;
+    token_result T_CARET
+  | '(' ->
+    advance lex;
+    token_result T_LEFT_PAREN
+  | ')' ->
+    advance lex;
+    token_result T_RIGHT_PAREN
+  | '{' ->
+    advance lex;
+    token_result T_LEFT_BRACE
+  | '}' ->
+    advance lex;
+    token_result T_RIGHT_BRACE
+  | '[' ->
+    advance lex;
+    token_result T_LEFT_BRACKET
+  | ']' ->
+    advance lex;
+    token_result T_RIGHT_BRACKET
+  | '/' ->
+    (match peek lex with
+    | '/' ->
+      advance_two lex;
+      skip_line_comment lex;
+      tokenize lex
+    | '*' ->
+      advance_two lex;
+      (match skip_block_comment lex with
+      | Ok _ -> tokenize lex
+      | Error err -> LexError (lex, err))
+    | _ ->
+      advance lex;
+      token_result T_DIVIDE)
+  | '&' ->
+    (match peek lex with
+    | '&' ->
+      advance_two lex;
+      token_result T_LOGICAL_AND
+    | _ ->
+      advance lex;
+      token_result T_AMPERSAND)
+  | '|' ->
+    (match peek lex with
+    | '|' ->
+      advance_two lex;
+      token_result T_LOGICAL_OR
+    | _ ->
+      advance lex;
+      token_result T_PIPE)
+  | '=' ->
+    (match peek lex with
+    | '=' ->
+      advance_two lex;
+      token_result T_DOUBLE_EQUALS
+    | _ ->
+      advance lex;
+      token_result T_EQUALS)
+  | '!' ->
+    (match peek lex with
+    | '=' ->
+      advance_two lex;
+      token_result T_NOT_EQUALS
+    | _ ->
+      advance lex;
+      token_result T_BANG)
+  | '<' ->
+    (match peek lex with
+    | '=' ->
+      advance_two lex;
+      token_result T_LESS_THAN_OR_EQUAL
+    | _ ->
+      advance lex;
+      token_result T_LESS_THAN)
+  | '>' ->
+    (match peek lex with
+    | '=' ->
+      advance_two lex;
+      token_result T_GREATER_THAN_OR_EQUAL
+    | _ ->
+      advance lex;
+      token_result T_GREATER_THAN)
+  | '-' ->
+    (match peek lex with
+    | '>' ->
+      advance_two lex;
+      token_result T_ARROW
+    | _ ->
+      advance lex;
+      token_result T_MINUS)
+  | '"' ->
+    let start_pos = current_pos lex in
+    advance lex;
+    parse_string_literal lex ~is_interpolated:false ~start_pos
+  | '`' ->
+    let start_pos = current_pos lex in
+    advance lex;
+    parse_string_literal lex ~is_interpolated:true ~start_pos
+  | current when current = eof -> token_result T_EOF
+  | current ->
+    advance lex;
+    lex_error (Parse_error.UnknownToken (String.make 1 current))
 
 let next lexer =
-  let rec find_next_token lexer =
-    match tokenize lexer with
-    | Skip lexer -> find_next_token lexer
-    | Token (lexer, result) -> (lexer, Ok result)
-    | LexError (lexer, result) -> (lexer, Error result)
-  in
-  find_next_token lexer
-
-let next_in_interpolated_string lexer =
-  match parse_string_literal ~is_interpolated:true lexer with
+  match tokenize lexer with
   | Token (lexer, result) -> (lexer, Ok result)
   | LexError (lexer, result) -> (lexer, Error result)
-  | Skip _ -> failwith "Skip cannot appear in interpolated string"
+
+let next_in_interpolated_string lexer =
+  (* Adjust post to start at '}' which must precede this call *)
+  let current_pos = current_pos lexer in
+  let start_pos = { Loc.line = current_pos.line; col = current_pos.col - 1 } in
+  match parse_string_literal ~is_interpolated:true ~start_pos lexer with
+  | Token (lexer, result) -> (lexer, Ok result)
+  | LexError (lexer, result) -> (lexer, Error result)

@@ -76,7 +76,7 @@ module Env = struct
   and error env error = env.errors <- error :: env.errors
 
   and peek env =
-    let saved_lexer = Lexer.deep_copy env.lexer in
+    let saved_lexer = Lexer.copy env.lexer in
     let (loc, token) =
       match lexer_next env with
       | (_, Ok { loc; token }) -> (loc, token)
@@ -96,13 +96,19 @@ module Env = struct
   and exit_interpolated_string env = env.in_interpolated_string <- false
 end
 
+let bytes_of_file file =
+  let file_chan = open_in_bin file in
+  let file_chan_length = in_channel_length file_chan in
+  let file_bytes = Bytes.create file_chan_length in
+  really_input file_chan file_bytes 0 file_chan_length;
+  close_in file_chan;
+  file_bytes
+
 let from_file file =
-  let file_chan = open_in file in
-  let buf = Sedlexing.Utf8.from_channel file_chan in
-  let lexer = Lexer.mk (Some (File file)) buf in
+  let bytes = bytes_of_file file in
+  let lexer = Lexer.mk (Some (File file)) bytes in
   Env.mk lexer
 
 let from_string str =
-  let buf = Sedlexing.Utf8.from_string str in
-  let lexer = Lexer.mk (Some (String str)) buf in
+  let lexer = Lexer.mk (Some (String str)) (Bytes.of_string str) in
   Env.mk lexer

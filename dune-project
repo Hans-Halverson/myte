@@ -21,5 +21,4 @@
  (depends
   (ocaml (= 4.09.0))
   (ocamlformat (= 0.14.0))
-  (sedlex (= 2.1))
   (dune (= 2.4.0))))

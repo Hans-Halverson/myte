@@ -1,5 +1,4 @@
 (library
   (name parser)
   (wrapped false)
-  (libraries sedlex myte_common)
-  (preprocess (pps sedlex.ppx)))
+  (libraries myte_common))
