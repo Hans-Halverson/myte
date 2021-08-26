@@ -503,7 +503,7 @@ let next lexer =
   | LexError (lexer, result) -> (lexer, Error result)
 
 let next_in_interpolated_string lexer =
-  (* Adjust post to start at '}' which must precede this call *)
+  (* Adjust pos to start at '}' which must precede this call *)
   let current_pos = current_pos lexer in
   let start_pos = { Loc.line = current_pos.line; col = current_pos.col - 1 } in
   match parse_string_literal ~is_interpolated:true ~start_pos lexer with

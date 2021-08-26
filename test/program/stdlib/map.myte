@@ -1,0 +1,137 @@
+module test
+
+import std.map.Map
+import std.test.{assertEqual, assertFalse, assertSome, assertNone, assertTrue}
+
+fun testEmptyMap() {
+  // Operations on empty map
+  val map: Map<Int, Bool> = Map.new();
+  assertNone(map.get(1));
+  assertFalse(map.containsKey(2));
+  assertFalse(map.remove(3));
+}
+
+fun testAddNewKeys() {
+  val map: Map<Int, String> = Map.new();
+  assertEqual(map.size, 0);
+
+  map.add(1, "a");
+  assertEqual(map.size, 1);
+  assertSome(map.get(1), "a");
+
+  map.add(2, "b");
+  assertEqual(map.size, 2);
+  assertSome(map.get(1), "a");
+  assertSome(map.get(2), "b");
+
+  map.add(3, "c");
+  assertEqual(map.size, 3);
+  assertSome(map.get(1), "a");
+  assertSome(map.get(2), "b");
+  assertSome(map.get(3), "c");
+
+  map.add(9, "d");
+  assertEqual(map.size, 4);
+  assertSome(map.get(1), "a");
+  assertSome(map.get(2), "b");
+  assertSome(map.get(3), "c");
+  assertSome(map.get(9), "d");
+}
+
+fun testOverwriteKeys() {
+  val map: Map<Byte, Int> = Map.new();
+  map.add(3, 44);
+  assertEqual(map.size, 1);
+
+  map.add(4, 55);
+  map.add(5, 66);
+  assertEqual(map.size, 3);
+  assertSome(map.get(3), 44);
+  assertSome(map.get(4), 55);
+  assertSome(map.get(5), 66);
+
+  // Overwrite key
+  map.add(3, 77);
+  assertEqual(map.size, 3);
+  assertSome(map.get(3), 77);
+  assertSome(map.get(4), 55);
+  assertSome(map.get(5), 66);
+
+  // Overwrite more keys
+  map.add(3, 88);
+  map.add(5, 100);
+  assertEqual(map.size, 3);
+  assertSome(map.get(3), 88);
+  assertSome(map.get(4), 55);
+  assertSome(map.get(5), 100);
+}
+
+fun testRemove() {
+  val map: Map<Int, String> = Map.new();
+  map.add(3, "a");
+  map.add(6, "b");
+  map.add(9, "c");
+  assertEqual(map.size, 3);
+
+  // No key to remove
+  assertFalse(map.remove(7));
+  assertEqual(map.size, 3);
+
+  // Remove key
+  assertTrue(map.remove(6));
+  assertNone(map.get(6));
+  assertEqual(map.size, 2);
+
+  // Try to remove key again
+  assertFalse(map.remove(6));
+  assertNone(map.get(6));
+  assertEqual(map.size, 2);
+
+  // Remove remaining keys
+  assertTrue(map.remove(3));
+  assertEqual(map.size, 1);
+  assertTrue(map.remove(9));
+  assertEqual(map.size, 0);
+  assertNone(map.get(3));
+  assertNone(map.get(6));
+  assertNone(map.get(9));
+}
+
+fun testAddRemoveLarge() {
+  // Insert many keys into map
+  val map: Map<Int, String> = Map.new();
+
+  var i = 0;
+  while (i < 9999) {
+    map.add(i, i.toString());
+    i = i + 3;
+  }
+
+  assertEqual(map.size, 3333);
+
+  // Check for all key/value pairs in map
+  var i = 0;
+  while (i < 9999) {
+    assertSome(map.get(i), i.toString());
+    i = i + 3;
+  }
+
+  // Remove all key/value pairs from map
+  var i = 0;
+  while (i < 9999) {
+    assertTrue(map.remove(i));
+    assertNone(map.get(i));
+
+    i = i + 3;
+  }
+
+  assertEqual(map.size, 0);
+}
+
+fun main() {
+  testEmptyMap();
+  testAddNewKeys();
+  testOverwriteKeys();
+  testRemove();
+  testAddRemoveLarge();
+}

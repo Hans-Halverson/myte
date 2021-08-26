@@ -322,9 +322,13 @@ and build_phi_nodes ~cx program =
   (* To realize a phi node, that phi node and its entire phi chain graph should be realized *)
   let rec realize_phi_chain_graph node_id decl_loc =
     let node = get_node ~cx node_id in
-    if Option.is_none node.realized then node.realized <- Some (mk_var_id ());
-    add_realized_phi ~cx node.block_id decl_loc node_id;
-    IMap.iter (fun prev_node_id _ -> realize_phi_chain_graph prev_node_id decl_loc) node.prev_nodes
+    if Option.is_none node.realized then (
+      node.realized <- Some (mk_var_id ());
+      add_realized_phi ~cx node.block_id decl_loc node_id;
+      IMap.iter
+        (fun prev_node_id _ -> realize_phi_chain_graph prev_node_id decl_loc)
+        node.prev_nodes
+    )
   in
   IMap.iter realize_phi_chain_graph !phi_nodes_to_realize
 

@@ -1,0 +1,217 @@
+module std.map
+
+import std.bool.Bool
+import std.hash.Hashable
+import std.int.Int
+import std.memory.Array
+import std.ops.Equatable
+import std.option.{None, Option, Some}
+
+/**
+ * Map which associates keys with values. Implemented as a hash map which uses robin hood hashing.
+ */
+type Map<K: Equatable & Hashable, V> {
+  // Entries in the hash table
+  data: Array<Option<Entry<K, V>>>,
+  // Number of items inserted in map
+  size: Int,
+  // Number of slots for entries in data array. Always a power of two.
+  capacity: Int,
+  // Bit mask to apply to a hash value to mod it to range [0, capacity)
+  capacityMask: Int,
+}
+
+type Entry<K, V> {
+  key: K,
+  value: V,
+  hash: Int,
+  isDeleted: Bool,
+}
+
+methods Map<K: Equatable & Hashable, V> {
+
+  /**
+   * Create a new, empty map.
+   */
+  static fun new<K: Equatable & Hashable, V>(): Map<K, V> {
+    return Map {
+      data: Array.new(0),
+      size: 0,
+      capacity: 0,
+      capacityMask: 0,
+    };
+  }
+
+  /**
+   * Return whether the map contains an entry with the specified key.
+   */
+  fun containsKey(key: K): Bool = this.findEntry(key).isSome()
+
+  /**
+   * Return the value associated with a key if the key is present in the map. Return `None` if key
+   * is not present in map.
+   */
+  fun get(key: K): Option<V> =
+    match (this.findEntry(key)) {
+      | None -> None
+      | Some (Entry { value, ... }) -> Some (value)
+    }
+
+  /**
+   * Add a key value pair to the map.
+   */
+  fun add(key: K, value: V) {
+    if (this.size >= this.capacity / 2) {
+      this.resize();
+    }
+
+    this.insert(key, value, key.hash());
+  }
+
+  /**
+   * Remove the entry with the specified key from the map, if such an entry exists. Return whether
+   * the key was present in the map.
+   */
+  fun remove(key: K): Bool {
+    match (this.findEntry(key)) {
+      | None -> return false
+      | Some (entry) -> {
+        entry.isDeleted = true;
+        this.size = this.size - 1;
+        return true;
+      }
+    }
+  }
+  
+  fun entryOffsetCost(entryTrueIndex: Int, entryHash: Int): Int {
+    val capacityMask = this.capacityMask;
+    val entryHashedIndex = entryHash & this.capacityMask;
+    return (entryTrueIndex + this.capacity - entryHashedIndex) & this.capacityMask;
+  }
+
+  fun findEntry(key: K): Option<Entry<K, V>> {
+    if (this.size == 0) {
+      return None;
+    }
+
+    val keyHash = key.hash();
+    val capacityMask = this.capacityMask;
+    var index = keyHash & capacityMask;
+    var offsetCost = 0;
+
+    while (true) {
+      match (this.data[index]) {
+        | Some (Entry { isDeleted: false, hash, ... } as entry) ->
+          if (this.entryOffsetCost(index, hash) < offsetCost) {
+            return None;
+          } else if (keyHash == hash && key == entry.key) {
+            return Some (entry);
+          }
+        | _ -> return None
+      }
+
+      offsetCost = offsetCost + 1;
+      index = (index + 1) & capacityMask;
+    }
+
+    return None;
+  }
+
+  fun insert(key: K, value: V, hash: Int) {
+    val capacityMask = this.capacityMask;
+    var index = hash & capacityMask;
+    var offsetCost = 0;
+
+    var currentKey = key;
+    var currentValue = value;
+    var currentHash = hash;
+
+    while (true) {
+      match (this.data[index]) {
+        // Insert at the first empty entry encountered
+        | None -> {
+          this.size = this.size + 1;
+          this.data[index] = Some (Entry {
+            key: currentKey,
+            value: currentValue,
+            hash: currentHash,
+            isDeleted: false,
+          });
+
+          return;
+        }
+        | Some (Entry { hash, ... } as entry) -> {
+          // Overwrite existing value if entry with key is found
+          if (currentHash == hash && currentKey == entry.key) {
+            entry.value = currentValue;
+            entry.isDeleted = false;
+            return;
+          }
+
+          // Robin hood heuristic - swap entries if cost for current entry is higher than cost
+          // of entry in table.
+          var entryOffsetCost = this.entryOffsetCost(index, hash);
+          if (entryOffsetCost < offsetCost) {
+            if (entry.isDeleted) {
+              this.size = this.size + 1;
+              entry.key = currentKey;
+              entry.value = currentValue;
+              entry.hash = currentHash;
+              entry.isDeleted = false;
+
+              return;
+            }
+
+            // Swap entries
+            val tmpKey = entry.key;
+            entry.key = currentKey;
+            currentKey = tmpKey;
+
+            val tmpValue = entry.value;
+            entry.value = currentValue;
+            currentValue = tmpValue;
+
+            val tmpHash = entry.hash;
+            entry.hash = currentHash;
+            currentHash = tmpHash;
+
+            offsetCost = entryOffsetCost;
+          }
+        }
+      }
+      
+      offsetCost = offsetCost + 1;
+      index = (index + 1) & capacityMask;
+    }
+  }
+
+  fun resize() {
+    // Double capacity to next power of two (starting at 4)
+    val oldCapacity = this.capacity;
+    val newCapacity = oldCapacity == 0 ? 2 : oldCapacity * 2;
+    this.capacity = newCapacity;
+    this.capacityMask = newCapacity - 1;
+    this.size = 0;
+
+    // Create new array with every entry initialized to empty
+    val oldData = this.data;
+    this.data = Array.new(newCapacity);
+
+    var i = 0;
+    while (i < newCapacity) {
+      this.data[i] = None;
+      i = i + 1;
+    }
+
+    // Insert all non-deleted entries into new array
+    var i = 0;
+    while (i < oldCapacity) {
+      match (oldData[i]) {
+        | Some (Entry { isDeleted: false, key, value, hash }) -> this.insert(key, value, hash)
+        | _ -> {}
+      }
+      
+      i = i + 1;
+    }
+  }
+}

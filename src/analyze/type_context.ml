@@ -519,7 +519,8 @@ and is_subtype ~cx sub sup =
     union_bounded_existentials bound_ty1 bound_ty2 ty2;
     true
   (* Unresolved bounded existentials can be unified with a concrete type if the type satisfies the bound *)
-  | (ty, BoundedExistential trait_bound) ->
+  | (ty, BoundedExistential trait_bound)
+  | (BoundedExistential trait_bound, ty) ->
     let rep_ty = find_rep_type ~cx ty in
     let rep_trait_bound =
       match find_rep_type ~cx (BoundedExistential trait_bound) with

@@ -2,32 +2,49 @@ module std.test
 
 import std.bool.Bool
 import std.ops.Equatable
+import std.option.{None, Option, Some}
 import std.sys.exit
+
+fun fail() {
+  exit(1);
+}
 
 fun assertEqual<T: Equatable>(actual: T, expected: T) {
   if (actual != expected) {
-    exit(1);
+    fail();
   }
 }
 
 fun assertNotEqual<T: Equatable>(actual: T, expected: T) {
   if (actual == expected) {
-    exit(1);
+    fail();
   }
 }
 
 fun assertTrue(expr: Bool) {
   if (!expr) {
-    exit(1);
+    fail();
   }
 }
 
 fun assertFalse(expr: Bool) {
   if (expr) {
-    exit(1);
+    fail();
   }
 }
 
-fun fail() {
-  exit(1);
+fun assertSome<T: Equatable>(actual: Option<T>, expected: T) {
+  match (actual) {
+    | None -> fail()
+    | Some (actual) ->
+      if (actual != expected) {
+        fail();
+      }
+  }
+}
+
+fun assertNone<T>(actual: Option<T>) {
+  if (actual.isSome()) {
+    fail();
+  }
 }
