@@ -55,7 +55,12 @@ module MethodMMap = MultiMap.Make (String) (MethodLocation)
 
 let implicit_value_imports =
   let open Std_lib in
-  [("None", std_option_none); ("Some", std_option_some)]
+  [
+    ("None", std_option_none);
+    ("Some", std_option_some);
+    ("Ok", std_result_ok);
+    ("Error", std_result_error);
+  ]
 
 let implicit_type_imports =
   let open Std_lib in
@@ -67,6 +72,10 @@ let implicit_type_imports =
     ("Unit", std_unit_unit);
     ("String", std_string_string);
     ("Option", std_option_option);
+    ("Result", std_result_result);
+    ("Vec", std_vec_vec);
+    ("Map", std_map_map);
+    ("Set", std_set_set);
   ]
 
 let build_implicit_imports ~is_stdlib ~bindings =

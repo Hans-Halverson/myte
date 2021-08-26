@@ -102,6 +102,14 @@ let std_option_option = "std.option.Option"
 
 let std_option_some = "std.option.Some"
 
+let std_result_error = "std.result.Error"
+
+let std_result_ok = "std.result.Ok"
+
+let std_result_result = "std.result.Result"
+
+let std_set_set = "std.set.Set"
+
 let std_string_string = "std.string.String"
 
 let std_string_tostring = "std.string.ToString"
@@ -141,6 +149,10 @@ let all_stdlib_names =
       std_option_none;
       std_option_option;
       std_option_some;
+      std_result_error;
+      std_result_ok;
+      std_result_result;
+      std_set_set;
       std_string_string;
       std_string_tostring;
       std_sys_exit;
