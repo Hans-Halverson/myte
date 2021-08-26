@@ -1,24 +1,39 @@
 Error: Invalid left hand side of assignment. Tuples are immutable and cannot have their elements reassigned.
-test/analyze/type_check/assignment/indexed_assign.myte:11:2-6
- 11 |   x[0] = 2;
-    |   ^^^^
-
-Error: Invalid left hand side of assignment. Tuples are immutable and cannot have their elements reassigned.
 test/analyze/type_check/assignment/indexed_assign.myte:12:2-6
- 12 |   x[1] = 2;
+ 12 |   x[0] = 2;
     |   ^^^^
 
 Error: Invalid left hand side of assignment. Tuples are immutable and cannot have their elements reassigned.
-test/analyze/type_check/assignment/indexed_assign.myte:17:2-6
- 17 |   y[0] = 2;
+test/analyze/type_check/assignment/indexed_assign.myte:13:2-6
+ 13 |   x[1] = 2;
     |   ^^^^
 
 Error: Invalid left hand side of assignment. Tuples are immutable and cannot have their elements reassigned.
 test/analyze/type_check/assignment/indexed_assign.myte:18:2-6
- 18 |   y[1] = 2;
+ 18 |   y[0] = 2;
+    |   ^^^^
+
+Error: Invalid left hand side of assignment. Tuples are immutable and cannot have their elements reassigned.
+test/analyze/type_check/assignment/indexed_assign.myte:19:2-6
+ 19 |   y[1] = 2;
     |   ^^^^
 
 Error: Expected type `Bool` but found `Int`
-test/analyze/type_check/assignment/indexed_assign.myte:24:9
- 24 |   x[0] = 1;
+test/analyze/type_check/assignment/indexed_assign.myte:25:9
+ 25 |   x[0] = 1;
     |          ^
+
+Error: Expected type `Bool` but found `Int`
+test/analyze/type_check/assignment/indexed_assign.myte:31:11
+ 31 |   x["a"] = 1;
+    |            ^
+
+Error: Cannot index into value of type `Rec1`
+test/analyze/type_check/assignment/indexed_assign.myte:40:2
+ 40 |   r[0];
+    |   ^
+
+Error: Cannot index into value of type `Variant1`
+test/analyze/type_check/assignment/indexed_assign.myte:41:2
+ 41 |   v[0];
+    |   ^

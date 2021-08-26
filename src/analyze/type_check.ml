@@ -1299,6 +1299,12 @@ and check_expression ~cx expr =
       | ADT { adt_sig; type_args = [element_ty] } when adt_sig == !Std_lib.vec_adt_sig ->
         check_arrayish_indexed_access element_ty;
         true
+      (* Can index into Map *)
+      | ADT { adt_sig; type_args = [key_ty; value_ty] } when adt_sig == !Std_lib.map_adt_sig ->
+        Type_context.assert_is_subtype ~cx index_loc (TVar index_tvar_id) key_ty;
+        let result_ty = Std_lib.mk_option_type value_ty in
+        ignore (Type_context.unify ~cx result_ty (TVar tvar_id));
+        true
       (* Can only index into ADTs with a single tuple variant *)
       | ADT { adt_sig = { variants; _ }; _ } ->
         (match SMap.choose_opt variants with
@@ -1843,7 +1849,7 @@ and check_statement ~cx stmt =
    * ============================
    *)
   | Assignment { Assignment.lvalue; expr; _ } ->
-    let lvalue_loc_and_tvar_opt =
+    let lvalue_loc_and_ty_opt =
       match lvalue with
       | Pattern pattern ->
         (* Check that every identifier referenced in lvalue can be reassigned *)
@@ -1879,14 +1885,14 @@ and check_statement ~cx stmt =
             ids
         in
         (* Check pattern, only checking against right hand side if no errors have been seen so far *)
-        let loc_and_tvar_id = check_pattern ~cx pattern in
+        let (patt_loc, patt_tvar_id) = check_pattern ~cx pattern in
         if has_error then
           None
         else
-          Some loc_and_tvar_id
+          Some (patt_loc, Type.TVar patt_tvar_id)
       | Expression (IndexedAccess { Ast.Expression.IndexedAccess.loc; target; _ } as expr) ->
         (* Check lvalue expression *)
-        let expr_loc_and_tvar_id = check_expression ~cx expr in
+        let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
         (* If the lvalue is a tuple then error as tuple cannot have their fields assigned *)
         let target_tvar_id = Type_context.get_tvar_from_loc ~cx (Ast_utils.expression_loc target) in
         let target_rep_ty = Type_context.find_rep_type ~cx (TVar target_tvar_id) in
@@ -1895,17 +1901,27 @@ and check_statement ~cx stmt =
         | Tuple _ ->
           Type_context.add_error ~cx loc (InvalidLValue InvalidLValueTuple);
           None
-        | ADT { adt_sig = { variants; _ } as adt_sig; _ }
-          when SMap.cardinal variants = 1 && adt_sig != !Std_lib.vec_adt_sig ->
+        (* Vecs can have indexed assignment, argument type is same as element type *)
+        | ADT { adt_sig; _ } when adt_sig == !Std_lib.vec_adt_sig ->
+          Some (expr_loc, TVar expr_tvar_id)
+        (* Maps can have indexed assignment, must unpack expression type option to find value type *)
+        | ADT { adt_sig; _ } when adt_sig == !Std_lib.map_adt_sig ->
+          (match Type_context.find_rep_type ~cx (TVar expr_tvar_id) with
+          | ADT { adt_sig; type_args = [element_ty] } when adt_sig == !Std_lib.option_adt_sig ->
+            Some (expr_loc, element_ty)
+          | _ -> failwith "Expected option type")
+        | ADT { adt_sig = { variants; _ }; _ } when SMap.cardinal variants = 1 ->
           Type_context.add_error ~cx loc (InvalidLValue InvalidLValueTuple);
           None
-        | _ -> Some expr_loc_and_tvar_id)
-      | Expression expr -> Some (check_expression ~cx expr)
+        | _ -> Some (expr_loc, TVar expr_tvar_id))
+      | Expression expr ->
+        let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
+        Some (expr_loc, TVar expr_tvar_id)
     in
     let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
-    (match lvalue_loc_and_tvar_opt with
-    | Some (_, lvalue_tvar_id) ->
-      Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) (TVar lvalue_tvar_id)
+    (match lvalue_loc_and_ty_opt with
+    | Some (_, lvalue_ty) ->
+      Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) lvalue_ty
     | None -> ())
   (*
    * ============================

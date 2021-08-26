@@ -1,0 +1,14 @@
+Error: Expected type `Option<Int>` but found `Option<String>`
+test/analyze/type_check/map/indexing.myte:10:3-7
+ 10 |   (x[0]: Option<Int>);
+    |    ^^^^
+
+Error: Expected type `String` but found `Option<String>`
+test/analyze/type_check/map/indexing.myte:11:3-7
+ 11 |   (x[0]: String);
+    |    ^^^^
+
+Error: Expected type `Map<Int, String>` but found `Option<String>`
+test/analyze/type_check/map/indexing.myte:12:3-7
+ 12 |   (x[0]: Map<Int, String>);
+    |    ^^^^

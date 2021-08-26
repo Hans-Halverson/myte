@@ -1,5 +1,6 @@
 module test
 
+import std.map.Map
 import std.vec.Vec
 
 type Tup1 (Int, String)
@@ -22,6 +23,22 @@ fun testVecs(x: Vec<Bool>) {
   // Vecs allow indexed assignment
   x[0] = true;
   x[0] = 1;
+}
+
+fun testMaps(x: Map<String, Bool>) {
+  // Maps allow indexed assignment
+  x["a"] = true;
+  x["a"] = 1;
+}
+
+type Rec1 { foo: Int }
+type Variant1 =
+  | Tup2 (Int)
+  | Tup3 (Int)
+
+fun testNonIndexableAdts(r: Rec1, v: Variant1) {
+  r[0];
+  v[0];
 }
 
 fun main() {}

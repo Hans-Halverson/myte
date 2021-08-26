@@ -86,6 +86,8 @@ let std_long_long_toByte = "std.long.Long.toByte"
 
 let std_long_long_toInt = "std.long.Long.toInt"
 
+let std_map_map = "std.map.Map"
+
 let std_memory_array = "std.memory.Array"
 
 let std_memory_array_copy = "std.memory.Array.copy"
@@ -131,6 +133,7 @@ let all_stdlib_names =
       std_long_long_equals;
       std_long_long_toByte;
       std_long_long_toInt;
+      std_map_map;
       std_memory_array;
       std_memory_array_copy;
       std_memory_array_new;
@@ -155,6 +158,8 @@ let byte_adt_sig = ref Types.AdtSig.empty
 let int_adt_sig = ref Types.AdtSig.empty
 
 let long_adt_sig = ref Types.AdtSig.empty
+
+let map_adt_sig = ref Types.AdtSig.empty
 
 let option_adt_sig = ref Types.AdtSig.empty
 
@@ -222,6 +227,7 @@ let register_stdlib_type loc adt_sig =
   | Some name when name = std_byte_byte -> byte_adt_sig := adt_sig
   | Some name when name = std_int_int -> int_adt_sig := adt_sig
   | Some name when name = std_long_long -> long_adt_sig := adt_sig
+  | Some name when name = std_map_map -> map_adt_sig := adt_sig
   | Some name when name = std_option_option -> option_adt_sig := adt_sig
   | Some name when name = std_string_string -> string_adt_sig := adt_sig
   | Some name when name = std_vec_vec -> vec_adt_sig := adt_sig
