@@ -1066,13 +1066,17 @@ and emit_std_memory_array_copy ~ecx arg_vals _ =
   | _ -> failwith "Array.copy expects five arguments"
 
 and emit_std_memory_array_new ~ecx arg_vals ret_type =
-  let var_id = mk_var_id () in
-  let (`PointerT element_ty) = cast_to_pointer_type ret_type in
-  let (array_ptr_val, myte_alloc_instr) =
-    Mir_builtin.(mk_call_builtin myte_alloc var_id arg_vals [element_ty])
-  in
-  Ecx.emit ~ecx myte_alloc_instr;
-  array_ptr_val
+  match arg_vals with
+  (* An allocation of 0 represents the null pointer *)
+  | [`IntL 0l] -> `LongL 0L
+  | _ ->
+    let var_id = mk_var_id () in
+    let (`PointerT element_ty) = cast_to_pointer_type ret_type in
+    let (array_ptr_val, myte_alloc_instr) =
+      Mir_builtin.(mk_call_builtin myte_alloc var_id arg_vals [element_ty])
+    in
+    Ecx.emit ~ecx myte_alloc_instr;
+    array_ptr_val
 
 and emit_std_io_write ~ecx arg_vals _ =
   let var_id = mk_var_id () in

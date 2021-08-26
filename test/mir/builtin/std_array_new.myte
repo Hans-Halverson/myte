@@ -2,6 +2,9 @@ module test
 
 import std.memory.Array
 
+fun use<T>(x: T) {}
+
 fun main() {
-  val x: Array<Int> = Array.new(99);
+  use((Array.new(99): Array<Int>));
+  use((Array.new(0): Array<Int>));
 }
