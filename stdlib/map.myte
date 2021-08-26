@@ -3,6 +3,7 @@ module std.map
 import std.bool.Bool
 import std.hash.Hashable
 import std.int.Int
+import std.iterator.{Iterable, Iterator}
 import std.memory.Array
 import std.ops.Equatable
 import std.option.{None, Option, Some}
@@ -217,5 +218,107 @@ methods Map<K: Equatable & Hashable, V> {
       
       i = i + 1;
     }
+  }
+}
+
+type MapIterator<K: Equatable & Hashable, V> {
+  data: Array<Option<Entry<K, V>>>,
+  capacity: Int,
+  index: Int,
+}
+
+/*
+ * An iterator over the entries of a map. Returns a tuple of the key and value of each entry.
+ */
+type MapEntriesIterator<K: Equatable & Hashable, V> (MapIterator<K, V>)
+
+/*
+ * An iterator over the keys of a map.
+ */
+type MapKeysIterator<K: Equatable & Hashable, V> (MapIterator<K, V>)
+
+/*
+ * An iterator over the values of a map.
+ */
+type MapValuesIterator<K: Equatable & Hashable, V> (MapIterator<K, V>)
+
+methods Map<K: Equatable & Hashable, V> {
+  /**
+   * Return an iterator over the entries of a map. Entries are returned as a tuple containing a
+   * key and value.
+   */
+  fun entries(): MapEntriesIterator<K, V> {
+    val Map { data, capacity, ... } = this;
+    return MapEntriesIterator (MapIterator { data, capacity, index: 0 });
+  }
+
+  /**
+   * Return an iterator over the keys of a map.
+   */
+  fun keys(): MapKeysIterator<K, V> {
+    val Map { data, capacity, ... } = this;
+    return MapKeysIterator (MapIterator { data, capacity, index: 0 });
+  }
+
+  /**
+   * Return an iterator over the values of a map.
+   */
+  fun values(): MapValuesIterator<K, V> {
+    val Map { data, capacity, ... } = this;
+    return MapValuesIterator (MapIterator { data, capacity, index: 0 });
+  }
+}
+
+methods MapEntriesIterator<K: Equatable & Hashable, V> {
+  implements Iterator<(K, V)>
+
+  override fun next(): Option<(K, V)> {
+    while (this[0].index < this[0].capacity) {
+      val entry = this[0].data[this[0].index];
+      this[0].index = this[0].index + 1;
+
+      match (entry) {
+        | Some (Entry { isDeleted: false, key, value, ... }) -> return Some ((key, value))
+        | _ -> continue
+      }
+    }
+
+    return None;
+  }
+}
+
+methods MapKeysIterator<K: Equatable & Hashable, V> {
+  implements Iterator<K>
+
+  override fun next(): Option<K> {
+    while (this[0].index < this[0].capacity) {
+      val entry = this[0].data[this[0].index];
+      this[0].index = this[0].index + 1;
+
+      match (entry) {
+        | Some (Entry { isDeleted: false, key, ... }) -> return Some (key)
+        | _ -> continue
+      }
+    }
+
+    return None;
+  }
+}
+
+methods MapValuesIterator<K: Equatable & Hashable, V> {
+  implements Iterator<V>
+
+  override fun next(): Option<V> {
+    while (this[0].index < this[0].capacity) {
+      val entry = this[0].data[this[0].index];
+      this[0].index = this[0].index + 1;
+
+      match (entry) {
+        | Some (Entry { isDeleted: false, value, ... }) -> return Some (value)
+        | _ -> continue
+      }
+    }
+
+    return None;
   }
 }

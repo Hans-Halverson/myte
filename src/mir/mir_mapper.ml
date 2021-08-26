@@ -459,10 +459,13 @@ class rewrite_vars_mapper ~(program : Program.t) (var_map : Value.t IMap.t) =
     method! map_pointer_value ~block value =
       match value with
       | `PointerL _ as value -> value
-      | `PointerV (_, var_id) as value ->
+      | `PointerV (element_type, var_id) as value ->
         (match IMap.find_opt var_id var_map with
         | None -> value
-        | Some mapped_value -> this#map_pointer_value ~block (cast_to_pointer_value mapped_value))
+        | Some mapped_value ->
+          (* Pointers may be cast to a different element type, so preserve element type of original pointer *)
+          let mapped_ptr_val = this#map_pointer_value ~block (cast_to_pointer_value mapped_value) in
+          cast_pointer_value mapped_ptr_val element_type)
 
     method! map_array_value ~block value =
       match value with

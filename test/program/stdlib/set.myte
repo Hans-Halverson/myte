@@ -1,7 +1,7 @@
 module test
 
 import std.set.Set
-import std.test.{assertEqual, assertFalse, assertTrue}
+import std.test.{assertEqual, assertFalse, assertNone, assertSome, assertTrue}
 
 fun testEmptySet() {
   // Operations on empty set
@@ -75,8 +75,34 @@ fun testRemove() {
   assertEqual(set.size(), 1);
 }
 
+fun testIterator() {
+  val set: Set<Int> = Set.new();
+  val iterator = set.toIterator();
+  assertNone(iterator.next());
+
+  // Single item
+  set.add(5);
+  val iterator = set.toIterator();
+  assertSome(iterator.next(), 5);
+  assertNone(iterator.next());
+
+  // Two items
+  set.add(6);
+  val iterator = set.toIterator();
+  assertSome(iterator.next(), 5);
+  assertSome(iterator.next(), 6);
+  assertNone(iterator.next());
+
+  // Remove item, back to single item
+  set.remove(5);
+  val iterator = set.toIterator();
+  assertSome(iterator.next(), 6);
+  assertNone(iterator.next());
+}
+
 fun main() {
   testEmptySet();
   testAdd();
   testRemove();
+  testIterator();
 }

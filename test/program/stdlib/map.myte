@@ -1,7 +1,7 @@
 module test
 
 import std.map.Map
-import std.test.{assertEqual, assertFalse, assertSome, assertNone, assertTrue}
+import std.test.{assertEqual, assertFalse, assertSome, assertNone, assertTrue, fail}
 
 fun testEmptyMap() {
   // Operations on empty map
@@ -137,10 +137,112 @@ fun testAddRemoveLarge() {
   assertEqual(map.size, 0);
 }
 
+fun testEntriesIterator() {
+  val map: Map<Int, String> = Map.new();
+  val entries = map.entries();
+  assertNone(entries.next());
+
+  // Single entry
+  map.add(5, "a");
+  val entries = map.entries();
+  match (entries.next()) {
+    | Some ((key, value)) -> {
+      assertEqual(key, 5);
+      assertEqual(value, "a");
+    }
+    | None -> fail() 
+  }
+  assertNone(entries.next());
+
+  // Two entries
+  map.add(6, "b");
+  val entries = map.entries();
+  match (entries.next()) {
+    | Some ((key, value)) -> {
+      assertEqual(key, 5);
+      assertEqual(value, "a");
+    }
+    | None -> fail() 
+  }
+  match (entries.next()) {
+    | Some ((key, value)) -> {
+      assertEqual(key, 6);
+      assertEqual(value, "b");
+    }
+    | None -> fail() 
+  }
+  assertNone(entries.next());
+
+  // Remove entry, back to single entry
+  map.remove(5);
+  val entries = map.entries();
+  match (entries.next()) {
+    | Some ((key, value)) -> {
+      assertEqual(key, 6);
+      assertEqual(value, "b");
+    }
+    | None -> fail() 
+  }
+  assertNone(entries.next());
+}
+
+fun testKeysIterator() {
+  val map: Map<Int, String> = Map.new();
+  val entries = map.keys();
+  assertNone(entries.next());
+
+  // Single entry
+  map.add(5, "a");
+  val entries = map.keys();
+  assertSome(entries.next(), 5);
+  assertNone(entries.next());
+
+  // Two entries
+  map.add(6, "b");
+  val entries = map.keys();
+  assertSome(entries.next(), 5);
+  assertSome(entries.next(), 6);
+  assertNone(entries.next());
+
+  // Remove entry, back to single entry
+  map.remove(5);
+  val entries = map.keys();
+  assertSome(entries.next(), 6);
+  assertNone(entries.next());
+}
+
+fun testValuesIterator() {
+  val map: Map<Int, String> = Map.new();
+  val entries = map.values();
+  assertNone(entries.next());
+
+  // Single entry
+  map.add(5, "a");
+  val entries = map.values();
+  assertSome(entries.next(), "a");
+  assertNone(entries.next());
+
+  // Two entries
+  map.add(6, "b");
+  val entries = map.values();
+  assertSome(entries.next(), "a");
+  assertSome(entries.next(), "b");
+  assertNone(entries.next());
+
+  // Remove entry, back to single entry
+  map.remove(5);
+  val entries = map.values();
+  assertSome(entries.next(), "b");
+  assertNone(entries.next());
+}
+
 fun main() {
   testEmptyMap();
   testAddNewKeys();
   testOverwriteKeys();
   testRemove();
   testAddRemoveLarge();
+  testEntriesIterator();
+  testKeysIterator();
+  testValuesIterator();
 }

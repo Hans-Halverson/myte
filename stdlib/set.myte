@@ -2,8 +2,9 @@ module std.set
 
 import std.bool.Bool
 import std.int.Int
+import std.iterator.{Iterable, Iterator}
 import std.hash.Hashable
-import std.map.Map
+import std.map.{Map, MapIterator, MapKeysIterator}
 import std.ops.Equatable
 import std.unit.Unit
 
@@ -39,4 +40,13 @@ methods Set<T: Equatable & Hashable> {
    * the map.
    */
   fun remove(item: T): Bool = this[0].remove(item)
+}
+
+methods Set<T: Equatable & Hashable> {
+  implements Iterable<T>
+
+  override fun toIterator(): MapKeysIterator<T, Unit> {
+    val Map { data, capacity, ... } = this[0];
+    return MapKeysIterator (MapIterator { data, capacity, index: 0 });
+  }
 }
