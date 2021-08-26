@@ -143,6 +143,10 @@ methods Map<K: Equatable & Hashable, V> {
         | Some (Entry { hash, ... } as entry) -> {
           // Overwrite existing value if entry with key is found
           if (currentHash == hash && currentKey == entry.key) {
+            if (entry.isDeleted) {
+              this.size = this.size + 1;
+            }
+
             entry.value = currentValue;
             entry.isDeleted = false;
             return;

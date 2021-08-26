@@ -5,7 +5,6 @@
 - Implement signed and unsigned integers
 - Guarantee 16-byte stack alignment for x64 at calls
 - Optimize `!=` in MIR/assembly to consolidate `LogNot` after call `Eq` instruction or call to `equals` method
-- Implement maps and sets
 - Better errors for variables with mismatched types in or pattern branches
 
 ## Old List

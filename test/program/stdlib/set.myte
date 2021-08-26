@@ -1,0 +1,82 @@
+module test
+
+import std.set.Set
+import std.test.{assertEqual, assertFalse, assertTrue}
+
+fun testEmptySet() {
+  // Operations on empty set
+  val set: Set<String> = Set.new();
+  assertFalse(set.contains("a"));
+  assertFalse(set.remove("b"));
+  assertEqual(set.size(), 0);
+}
+
+fun testAdd() {
+  val set: Set<String> = Set.new();
+  assertFalse(set.contains("a"));
+
+  set.add("a");
+  assertTrue(set.contains("a"));
+  assertEqual(set.size(), 1);
+
+  set.add("b");
+  assertTrue(set.contains("a"));
+  assertTrue(set.contains("b"));
+  assertEqual(set.size(), 2);
+
+  // Re-add key
+  set.add("a");
+  assertTrue(set.contains("a"));
+  assertTrue(set.contains("b"));
+  assertEqual(set.size(), 2);
+
+  set.add("aa");
+  assertTrue(set.contains("a"));
+  assertTrue(set.contains("b"));
+  assertTrue(set.contains("aa"));
+  assertEqual(set.size(), 3);
+}
+
+fun testRemove() {
+  val set: Set<Int> = Set.new();
+  set.add(7);
+  set.add(14);
+  set.add(21);
+
+  assertTrue(set.contains(7));
+  assertTrue(set.contains(14));
+  assertTrue(set.contains(21));
+  assertEqual(set.size(), 3);
+
+  // Removing key that does not exist
+  assertFalse(set.remove(100));
+  assertEqual(set.size(), 3);
+
+  assertTrue(set.remove(14));
+  assertFalse(set.contains(14));
+  assertEqual(set.size(), 2);
+
+  // Re-add key
+  set.add(14);
+  set.add(14);
+  assertTrue(set.contains(14));
+  assertEqual(set.size(), 3);
+
+  // Re-remove key
+  assertTrue(set.remove(14));
+  assertFalse(set.contains(14));
+  assertEqual(set.size(), 2);
+
+  // Remove another key
+  assertTrue(set.remove(7));
+  assertFalse(set.contains(7));
+  assertFalse(set.contains(14));
+  assertTrue(set.contains(21));
+  assertEqual(set.size(), 1);
+}
+
+fun main() {
+  testEmptySet();
+  testAdd();
+  testRemove();
+}

@@ -87,6 +87,15 @@ fun testRemove() {
   assertNone(map.get(6));
   assertEqual(map.size, 2);
 
+  // Re-add key and remove again
+  map.add(6, "p");
+  assertSome(map.get(6), "p");
+  assertEqual(map.size, 3);
+
+  assertTrue(map.remove(6));
+  assertNone(map.get(6));
+  assertEqual(map.size, 2);
+
   // Remove remaining keys
   assertTrue(map.remove(3));
   assertEqual(map.size, 1);
