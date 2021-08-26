@@ -1293,7 +1293,10 @@ and emit_statement ~ecx stmt =
 
     (* Find type of iterable *)
     let iterable_ty = type_of_loc ~ecx (Ast_utils.expression_loc iterator) in
-    let (iterable_type_args, iterable_adt_sig) = Type_util.cast_to_adt_type iterable_ty in
+    let (_, iterable_adt_sig) = Type_util.cast_to_adt_type iterable_ty in
+    let { Types.TraitSig.type_args = iterable_type_args; _ } =
+      Type_context.get_implemented_trait iterable_ty !Std_lib.iterable_trait_sig |> Option.get
+    in
 
     (* Find type of iterator *)
     let to_iterator_sig = Types.AdtSig.lookup_method iterable_adt_sig "toIterator" |> Option.get in

@@ -2,90 +2,112 @@ func unit @test.use<bool>(bool %0) {
   Ret
 }
 
-func unit @test.use<int>(int %1) {
+func unit @test.use<byte>(byte %1) {
   Ret
 }
 
-func unit @test.testIterators(std.vec.Vec<int>* %2, std.vec.Vec<bool>* %3) {
-  %4 := Call std.vec.VecIterator<int>* @std.vec.Vec.toIterator<int>(%2)
+func unit @test.use<int>(int %2) {
+  Ret
+}
+
+func unit @test.testIterators(std.vec.Vec<int>* %3, std.vec.Vec<bool>* %4) {
+  %5 := Call std.vec.VecIterator<int>* @std.vec.Vec.toIterator<int>(%3)
   continue @0
 label @0:
-  %5 := Call std.option.Option<int>* @std.vec.VecIterator.next<int>(%4)
-  %6 := Load byte %5
-  %7 := Eq byte %6, 1
-  branch %7, @1, @2
+  %6 := Call std.option.Option<int>* @std.vec.VecIterator.next<int>(%5)
+  %7 := Load byte %6
+  %8 := Eq byte %7, 1
+  branch %8, @1, @2
 label @1:
-  %8 := GetPointer int, std.option.Option<int>* %5.2
-  %9 := Load int %8
-  %10 := Call unit @test.use<int>(%9)
+  %9 := GetPointer int, std.option.Option<int>* %6.2
+  %10 := Load int %9
+  %11 := Call unit @test.use<int>(%10)
   continue @0
 label @2:
-  %11 := Call std.vec.VecIterator<bool>* @std.vec.Vec.toIterator<bool>(%3)
+  %12 := Call std.vec.VecIterator<bool>* @std.vec.Vec.toIterator<bool>(%4)
   continue @3
 label @3:
-  %13 := Phi bool @2:false, @4:%12
-  %14 := Call std.option.Option<bool>* @std.vec.VecIterator.next<bool>(%11)
-  %15 := Load byte %14
-  %16 := Eq byte %15, 1
-  branch %16, @4, @5
+  %14 := Phi bool @2:false, @4:%13
+  %15 := Call std.option.Option<bool>* @std.vec.VecIterator.next<bool>(%12)
+  %16 := Load byte %15
+  %17 := Eq byte %16, 1
+  branch %17, @4, @5
 label @4:
-  %17 := GetPointer bool, std.option.Option<bool>* %14.1
-  %12 := Load bool %17
-  %18 := Call unit @test.use<bool>(%12)
+  %18 := GetPointer bool, std.option.Option<bool>* %15.1
+  %13 := Load bool %18
+  %19 := Call unit @test.use<bool>(%13)
   continue @3
 label @5:
-  %19 := Call unit @test.use<bool>(%13)
+  %20 := Call unit @test.use<bool>(%14)
   Ret
 }
 
-func unit @test.testBreak(std.vec.Vec<bool>* %20) {
-  %21 := Call std.vec.VecIterator<bool>* @std.vec.Vec.toIterator<bool>(%20)
+func unit @test.testBreak(std.vec.Vec<bool>* %21) {
+  %22 := Call std.vec.VecIterator<bool>* @std.vec.Vec.toIterator<bool>(%21)
   continue @6
 label @6:
-  %22 := Phi int @test.testBreak:0, @8:2
-  %23 := Call std.option.Option<bool>* @std.vec.VecIterator.next<bool>(%21)
-  %24 := Load byte %23
-  %25 := Eq byte %24, 1
-  branch %25, @7, @10
+  %23 := Phi int @test.testBreak:0, @8:2
+  %24 := Call std.option.Option<bool>* @std.vec.VecIterator.next<bool>(%22)
+  %25 := Load byte %24
+  %26 := Eq byte %25, 1
+  branch %26, @7, @10
 label @7:
-  %26 := GetPointer bool, std.option.Option<bool>* %23.1
-  %27 := Load bool %26
-  %28 := LogNot %27
-  branch %28, @9, @8
+  %27 := GetPointer bool, std.option.Option<bool>* %24.1
+  %28 := Load bool %27
+  %29 := LogNot %28
+  branch %29, @9, @8
 label @8:
-  %29 := Call unit @test.use<int>(2)
+  %30 := Call unit @test.use<int>(2)
   continue @6
 label @9:
-  %30 := Call unit @test.use<int>(1)
+  %31 := Call unit @test.use<int>(1)
   continue @10
 label @10:
-  %31 := Phi int @6:%22, @9:1
-  %32 := Call unit @test.use<int>(%31)
+  %32 := Phi int @6:%23, @9:1
+  %33 := Call unit @test.use<int>(%32)
   Ret
 }
 
-func unit @test.testContinue(std.vec.Vec<bool>* %33) {
-  %34 := Call std.vec.VecIterator<bool>* @std.vec.Vec.toIterator<bool>(%33)
+func unit @test.testContinue(std.vec.Vec<bool>* %34) {
+  %35 := Call std.vec.VecIterator<bool>* @std.vec.Vec.toIterator<bool>(%34)
   continue @11
 label @11:
-  %35 := Phi int @test.testContinue:0, @13:1, @14:2
-  %36 := Call std.option.Option<bool>* @std.vec.VecIterator.next<bool>(%34)
-  %37 := Load byte %36
-  %38 := Eq byte %37, 1
-  branch %38, @12, @15
+  %36 := Phi int @test.testContinue:0, @13:1, @14:2
+  %37 := Call std.option.Option<bool>* @std.vec.VecIterator.next<bool>(%35)
+  %38 := Load byte %37
+  %39 := Eq byte %38, 1
+  branch %39, @12, @15
 label @12:
-  %39 := GetPointer bool, std.option.Option<bool>* %36.1
-  %40 := Load bool %39
-  %41 := LogNot %40
-  branch %41, @13, @14
+  %40 := GetPointer bool, std.option.Option<bool>* %37.1
+  %41 := Load bool %40
+  %42 := LogNot %41
+  branch %42, @13, @14
 label @13:
-  %42 := Call unit @test.use<int>(1)
+  %43 := Call unit @test.use<int>(1)
   continue @11
 label @14:
-  %43 := Call unit @test.use<int>(2)
+  %44 := Call unit @test.use<int>(2)
   continue @11
 label @15:
-  %44 := Call unit @test.use<int>(%35)
+  %45 := Call unit @test.use<int>(%36)
+  Ret
+}
+
+func unit @test.testStringIterator(std.string.String* %46) {
+  %47 := Call std.string.StringByteIterator* @std.string.String.bytes(%46)
+  %48 := Call std.string.StringByteIterator* @std.iterator.Iterator.toIterator<std.string.StringByteIterator*,byte>(%47)
+  continue @16
+label @16:
+  %49 := Call std.option.Option<byte>* @std.string.StringByteIterator.next(%48)
+  %50 := Load byte %49
+  %51 := Eq byte %50, 1
+  branch %51, @17, @18
+label @17:
+  %52 := GetPointer byte, std.option.Option<byte>* %49.1
+  %53 := Load byte %52
+  %54 := Call unit @test.use<byte>(%53)
+  continue @16
+label @18:
   Ret
 }
 

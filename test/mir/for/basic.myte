@@ -52,4 +52,10 @@ fun testContinue(v1: Vec<Bool>) {
   use(y);
 }
 
+fun testStringIterator(s: String) {
+  for (byte in s.bytes()) {
+    use(byte);
+  }
+}
+
 fun main() {}

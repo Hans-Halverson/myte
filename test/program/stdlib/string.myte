@@ -90,6 +90,10 @@ fun testReverse() {
   assertEqual(s, "dcab");
 }
 
+fun testHash() {
+  assertEqual("foo".hash(), "foo".hash());
+}
+
 fun testBytesIterator() {
   // Empty iterator
   val iter = "".bytes();
@@ -112,5 +116,6 @@ fun main() {
   testPush();
   testAppend();
   testReverse();
+  testHash();
   testBytesIterator();
 }
