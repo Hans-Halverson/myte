@@ -469,14 +469,7 @@ and build_function_declaration ~cx decl =
 (* Check whether the main function has the correct parameter and return types *)
 and check_main_declaration ~cx decl params return =
   let has_valid_type_params = decl.type_params = [] in
-  let has_valid_params =
-    match params with
-    | [] -> true
-    | [Type.ADT { adt_sig = vec_adt_sig; type_args = [Type.ADT { adt_sig = string_adt_sig; _ }] }]
-      when vec_adt_sig == !Std_lib.vec_adt_sig && string_adt_sig == !Std_lib.string_adt_sig ->
-      true
-    | _ -> false
-  in
+  let has_valid_params = params = [] in
   let has_valid_return = return = Unit || return = Int in
   if (not has_valid_type_params) || (not has_valid_params) || not has_valid_return then
     Type_context.add_error ~cx decl.name.loc InvalidMainFunctionType

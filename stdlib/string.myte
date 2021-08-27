@@ -6,9 +6,9 @@ import std.hash
 import std.hash.Hashable
 import std.int.Int
 import std.iterator.Iterator
+import std.memory.Array
 import std.ops.Equatable
 import std.option.{None, Option, Some}
-import std.memory.Array
 import std.sys.abort
 
 type alias Char = Byte
@@ -98,6 +98,20 @@ methods String {
       newData[size - (i + 1)] = oldData[i];
       i = i + 1;
     }
+  }
+
+  /**
+   * Convert a c-string (a null terminated byte string) to a string.
+   */
+  static fun fromCString(cString: Array<Byte>): String {
+    val str = "";
+    var i = 0;
+    while (cString[i] != 0) {
+      str.push(cString[i]);
+      i = i + 1;
+    }
+
+    return str;
   }
 
   /**

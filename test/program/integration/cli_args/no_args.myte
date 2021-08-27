@@ -1,0 +1,9 @@
+module test
+
+import std.sys.args
+import std.test.assertEqual
+
+fun main() {
+  // Script name is first cli arg
+  assertEqual(args.size, 1);
+}

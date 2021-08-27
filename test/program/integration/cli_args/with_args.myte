@@ -1,0 +1,11 @@
+module test
+
+import std.sys.args
+import std.test.assertEqual
+
+fun main() {
+  assertEqual(args.size, 4);
+  assertEqual(args[1], "asdf");
+  assertEqual(args[2], "hjk");
+  assertEqual(args[3], "qwerty");
+}

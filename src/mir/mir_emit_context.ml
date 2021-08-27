@@ -30,6 +30,8 @@ type t = {
   mutable current_is_main: bool;
   (* Stack of loop contexts for all loops we are currently inside *)
   mutable current_loop_contexts: loop_context list;
+  (* Whether to filter out the standard library when dumping IR or asm *)
+  filter_std_lib: bool;
   (* Variable decl loc to the var id of the pointer for the memory location it resides in during
      initial creation. These memory locations will be promoted to registers with phi nodes for joins. *)
   mutable variable_to_ptr_var_id: var_id LocMap.t;
@@ -73,6 +75,9 @@ let mk ~pcx =
     current_in_std_lib = false;
     current_is_main = false;
     current_loop_contexts = [];
+    filter_std_lib =
+      (Opts.dump_ir () || Opts.dump_pre_ssa_ir () || Opts.dump_virtual_asm () || Opts.dump_asm ())
+      && not (Opts.dump_stdlib ());
     variable_to_ptr_var_id = LocMap.empty;
     param_to_var_id = LocMap.empty;
     ptr_var_ids_to_ssaify = ISet.empty;

@@ -1,10 +1,27 @@
 module std.sys
 
+import std.byte.Byte
 import std.int.Int
+import std.memory.Array
+import std.string.String
+import std.vec.Vec
 import std.unit.Unit
 
 builtin fun exit(code: Int)
 
 fun abort(): Unit {
   exit(1);
+}
+
+val args: Vec<String> = Vec.new()
+
+/**
+ * Convert `argc` and `argv` arguments to `main` to a vec of strings.
+ */
+fun init(argc: Int, argv: Array<Array<Byte>>) {
+  var i = 0;
+  while (i < argc) {
+    args.push(String.fromCString(argv[i]));
+    i = i + 1;
+  }
 }

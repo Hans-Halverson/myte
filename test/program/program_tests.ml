@@ -1,4 +1,9 @@
-let mk_command ~optimize bin files =
+let mk_command ~config ~optimize bin files =
+  let args =
+    match config with
+    | None -> ""
+    | Some config -> " " ^ config
+  in
   let optimize_flag =
     if optimize then
       " -O"
@@ -8,7 +13,7 @@ let mk_command ~optimize bin files =
   Printf.sprintf
     {|
       %s%s %s -o t.out;
-      ./t.out;
+      ./t.out%s;
       EXIT_CODE="$?";
       if [ "$EXIT_CODE" -ne 0 ]; then
         if [ "$EXIT_CODE" -eq 139 ]; then
@@ -21,12 +26,13 @@ let mk_command ~optimize bin files =
     bin
     optimize_flag
     files
+    args
 
-let commands ~config:_ bin files =
+let commands ~config bin files =
   let files = String.concat " " files in
   [
-    ("UNOPTIMIZED", mk_command ~optimize:false bin files);
-    ("OPTIMIZED", mk_command ~optimize:true bin files);
+    ("UNOPTIMIZED", mk_command ~config ~optimize:false bin files);
+    ("OPTIMIZED", mk_command ~config ~optimize:true bin files);
   ]
 
 let suite ~bin ~record =

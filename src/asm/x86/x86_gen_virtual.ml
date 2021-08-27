@@ -59,15 +59,30 @@ and preprocess_ir ~gcx ir =
    the myte runtime, initializes all global variables if necessary, and finally calls the main
    function. *)
 and gen_entrypoint ~gcx ir =
-  (* Create function and call myte runtime's init *)
+  (* Set up entrypoint function *)
   let func = Gcx.start_function ~gcx [] 0 in
   Gcx.start_block ~gcx ~label:(Some start_label) ~func:func.id ~mir_block_id:None;
   let prologue_block_id = (Option.get gcx.current_block_builder).id in
   func.prologue <- prologue_block_id;
+
+  (* First save `argc` and `argv` as they will be needed later *)
+  let reg_di = Gcx.mk_precolored ~gcx DI in
+  let reg_si = Gcx.mk_precolored ~gcx SI in
+  Gcx.emit ~gcx (PushM (Reg reg_di));
+  Gcx.emit ~gcx (PushM (Reg reg_si));
+
+  (* Call myte runtime's init *)
   Gcx.emit ~gcx (CallL X86_runtime.myte_runtime_init_label);
 
   (* Call the init function if it exists *)
   if SMap.mem init_func_name ir.funcs then Gcx.emit ~gcx (CallL init_func_name);
+
+  (* Call `std.sys.init` with `argc` and `argv` to initialize command line arguments *)
+  Gcx.emit ~gcx (PopM (Reg reg_si));
+  Gcx.emit ~gcx (PopM (Reg reg_di));
+  Gcx.emit ~gcx (CallL Std_lib.std_sys_init);
+
+  (* Call main function *)
   Gcx.emit ~gcx (CallL main_label);
 
   (match Target.system () with

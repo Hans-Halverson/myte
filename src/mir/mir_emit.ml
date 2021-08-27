@@ -115,15 +115,19 @@ and emit_toplevel_variable_declaration ~ecx decl =
   let init_val =
     Ecx.emit_init_section ~ecx (fun _ ->
         ecx.current_in_std_lib <- Bindings.is_std_lib_value binding;
-        (* If initial value is statically known at compile time, add it as constant initialization *)
-        let init_val = emit_expression ~ecx init in
-        if is_literal init_val then
-          Some init_val
-        else (
-          (* Otherwise value must be calculated and stored at runtime *)
-          Ecx.emit ~ecx (Store (`PointerL (ty, name), init_val));
+        (* Do not generate init blocks for stdlib globals when filtering stdlib *)
+        if ecx.current_in_std_lib && ecx.filter_std_lib then
           None
-        ))
+        else
+          (* If initial value is statically known at compile time, add it as constant initialization *)
+          let init_val = emit_expression ~ecx init in
+          if is_literal init_val then
+            Some init_val
+          else (
+            (* Otherwise value must be calculated and stored at runtime *)
+            Ecx.emit ~ecx (Store (`PointerL (ty, name), init_val));
+            None
+          ))
   in
   Ecx.add_global ~ecx { Global.loc; name; ty; init_val }
 

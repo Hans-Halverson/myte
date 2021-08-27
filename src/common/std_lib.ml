@@ -116,6 +116,8 @@ let std_string_tostring = "std.string.ToString"
 
 let std_sys_exit = "std.sys.exit"
 
+let std_sys_init = "std.sys.init"
+
 let std_unit_unit = "std.unit.Unit"
 
 let std_unit_unit_equals = "std.unit.Unit.equals"
@@ -156,6 +158,7 @@ let all_stdlib_names =
       std_string_string;
       std_string_tostring;
       std_sys_exit;
+      std_sys_init;
       std_unit_unit;
       std_unit_unit_equals;
       std_vec_vec;
