@@ -1,4 +1,4 @@
-  .global _start
+  .global _main
 
   .text
 test.bool:

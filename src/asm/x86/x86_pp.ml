@@ -454,8 +454,12 @@ let pp_x86_program ~gcx =
   let open Gcx in
   let pcx = mk_pcx ~gcx in
   let buf = mk_buf () in
-  (* Add global directive *)
-  add_line ~buf (fun buf -> add_string ~buf (".global " ^ start_label));
+  (* Add global directives *)
+  add_line ~buf (fun buf -> add_string ~buf (".global " ^ main_label));
+  if (not (Opts.dump_asm ())) && not (Opts.dump_virtual_asm ()) then (
+    add_line ~buf (fun buf -> add_string ~buf (".global " ^ init_label));
+    add_line ~buf (fun buf -> add_string ~buf (".global " ^ Std_lib.std_sys_init))
+  );
   if gcx.bss <> [] then
     List.iter
       (fun { label; size } ->

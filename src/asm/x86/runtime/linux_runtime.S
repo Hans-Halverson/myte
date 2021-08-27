@@ -1,3 +1,4 @@
+  .global _start
   .global __myte_alloc
   .global __myte_copy
   .global __myte_exit
@@ -10,6 +11,16 @@ __myte_heap_start:
   .quad 0
 
   .text
+
+_start:
+  call __myte_runtime_init
+  call _init
+  mov (%rsp), %rdi
+  lea 8(%rsp), %rsi
+  call std.sys.init
+  call _main
+  mov %eax, %edi
+  call __myte_runtime_exit
 
 __myte_runtime_init:
   # Allocate memory region for heap
