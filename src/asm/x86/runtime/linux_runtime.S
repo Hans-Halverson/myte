@@ -20,7 +20,7 @@ _start:
   call std.sys.init
   call _main
   mov %eax, %edi
-  call __myte_runtime_exit
+  call __myte_exit
 
 __myte_runtime_init:
   # Allocate memory region for heap
