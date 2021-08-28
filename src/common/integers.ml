@@ -63,3 +63,15 @@ let trunc_long_to_int x =
   let bytes = Bytes.create 8 in
   Bytes.set_int64_le bytes 0 x;
   Bytes.get_int32_le bytes 0
+
+let is_power_of_two x = Int64.equal 0L (Int64.logand x (Int64.sub x 1L))
+
+(* Find rightmost bit that is set, index of bit minus 1 is power of two *)
+let power_of_two x =
+  let rec find_set_bit x i =
+    if Int64.equal 1L x then
+      i
+    else
+      find_set_bit (Int64.shift_right_logical x 1) (i + 1)
+  in
+  find_set_bit x 0

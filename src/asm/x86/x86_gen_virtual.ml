@@ -663,10 +663,22 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.Div (result_var_id, left_val, right_val) :: rest_instructions ->
-    let result_vreg = vreg_of_result_var_id result_var_id in
-    let precolored_a = Gcx.mk_precolored ~gcx A in
-    let size = gen_idiv left_val right_val in
-    Gcx.emit ~gcx (MovMM (size, Reg precolored_a, Reg result_vreg));
+    (match resolve_ir_value ~allow_imm64:true right_val with
+    (* Division by a power of two can be optimized to a right shift *)
+    | SImm imm when Opts.optimize () && Integers.is_power_of_two (int64_of_immediate imm) ->
+      let result_vreg = vreg_of_result_var_id result_var_id in
+      let power_of_two = Integers.power_of_two (int64_of_immediate imm) in
+      let left = resolve_ir_value left_val in
+      let left_mem = emit_mem left in
+      let size = register_size_of_svalue left in
+      Gcx.emit ~gcx (MovMM (size, left_mem, Reg result_vreg));
+      Gcx.emit ~gcx (SarI (size, Imm8 power_of_two, Reg result_vreg))
+    (* Otherwise emit a divide instruction *)
+    | _ ->
+      let result_vreg = vreg_of_result_var_id result_var_id in
+      let precolored_a = Gcx.mk_precolored ~gcx A in
+      let size = gen_idiv left_val right_val in
+      Gcx.emit ~gcx (MovMM (size, Reg precolored_a, Reg result_vreg)));
     gen_instructions rest_instructions
   (*
    * ===========================================

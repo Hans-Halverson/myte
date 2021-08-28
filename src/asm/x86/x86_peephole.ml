@@ -137,25 +137,11 @@ let load_zero_to_register_optimization ~gcx:_ instr _ =
 (* Some arithmetic operations that involve immediate powers of two can be reduced to bit shifts *)
 let power_of_two_strength_reduction_optimization ~gcx:_ instr _ =
   let open Instruction in
-  let is_power_of_two imm =
-    let i = int64_of_immediate imm in
-    Int64.equal 0L (Int64.logand i (Int64.sub i 1L))
-  in
-  (* Find rightmost bit that is set, index of bit minus 1 is power of two *)
-  let power_of_two imm =
-    let rec find_set_bit i n =
-      if Int64.equal 1L i then
-        n
-      else
-        find_set_bit (Int64.shift_right_logical i 1) (n + 1)
-    in
-    let i = int64_of_immediate imm in
-    find_set_bit i 0
-  in
   match instr with
   (* Multiplication by power of two can be reduced to a left shift *)
-  | (instr_id, IMulMIR (size, src, imm, dest_reg)) when is_power_of_two imm ->
-    let power_of_two = power_of_two imm in
+  | (instr_id, IMulMIR (size, src, imm, dest_reg))
+    when Integers.is_power_of_two (int64_of_immediate imm) ->
+    let power_of_two = Integers.power_of_two (int64_of_immediate imm) in
     let shift_instr = (instr_id, ShlI (size, Imm8 power_of_two, Reg dest_reg)) in
     (match src with
     (* If same register is source and dest, can shift it in place *)

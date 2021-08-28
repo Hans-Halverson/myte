@@ -96,9 +96,33 @@ fun testDivConstant() {
   assertEqual(sevenHundredEightyLong() / 78, 10);
 }
 
+fun forty(): Int = 40
+fun fortyByte(): Byte = 40
+fun fortyLong(): Long = 40
+
+fun testDivPowerOfTwo() {
+  assertEqual(forty() / 2, 20);
+  assertEqual(forty() / 4, 10);
+  assertEqual(forty() / 8, 5);
+
+  assertEqual(fortyByte() / 2, 20);
+  assertEqual(fortyByte() / 4, 10);
+  assertEqual(fortyByte() / 8, 5);
+
+  assertEqual(fortyLong() / 2, 20);
+  assertEqual(fortyLong() / 4, 10);
+  assertEqual(fortyLong() / 8, 5);
+
+  // Negative numbers
+  assertEqual((-forty()) / 2, -20);
+  assertEqual((-forty()) / 4, -10);
+  assertEqual((-forty()) / 8, -5);
+}
+
 fun main() {
   testDivBytes();
   testDivInts();
   testDivLongs();
   testDivConstant();
+  testDivPowerOfTwo();
 }
