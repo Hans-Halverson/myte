@@ -1,0 +1,12 @@
+  .global _main
+
+  .text
+_main:
+  xorl %edi, %edi
+  xorl %esi, %esi
+  xorl %edx, %edx
+  call test.use
+  xorl %eax, %eax
+  ret
+test.use:
+  ret

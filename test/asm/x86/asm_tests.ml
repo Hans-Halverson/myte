@@ -1,10 +1,15 @@
-let commands ~config:_ bin files =
+let commands ~config bin files =
   let files = String.concat " " files in
+  let config =
+    match config with
+    | None -> ""
+    | Some config -> " " ^ config
+  in
   [
     ( "test",
       Printf.sprintf
         {|
-          %s --dump-asm --no-pretty-print %s && %s %s -o t.out;
+          %s --dump-asm --no-pretty-print%s %s && %s%s %s -o t.out;
           ./t.out;
           EXIT_CODE="$?";
           if [ "$EXIT_CODE" -ne 0 ]; then
@@ -16,8 +21,10 @@ let commands ~config:_ bin files =
           rm t.out 2> /dev/null
         |}
         bin
+        config
         files
         bin
+        config
         files );
   ]
 

@@ -1,0 +1,8 @@
+module test
+
+fun use(x1: Int, x2: Byte, x3: Long) {}
+
+fun main() {
+  // Loads of the immediate zero are converted to reflexive xors
+  use(0, 0, 0);
+}

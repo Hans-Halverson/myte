@@ -126,8 +126,25 @@ let remove_byte_reg_reg_moves_optimization ~gcx:_ instr _ =
     Some (1, [(instr_id, MovMM (Size32, Reg src_reg, Reg dest_reg))])
   | _ -> None
 
-let all_peephole_optimizations = [coalesce_lea_optimization; remove_byte_reg_reg_moves_optimization]
+(* Loading zero to a register can be replaced by a reflexive xor for smaller instruction size *)
+let load_zero_to_register_optimization ~gcx:_ instr _ =
+  let open Instruction in
+  match instr with
+  | (instr_id, MovIM (_, (Imm8 0 | Imm16 0 | Imm32 0l | Imm64 0L), Reg dest_reg)) ->
+    Some (1, [(instr_id, XorMM (Size32, Reg dest_reg, Reg dest_reg))])
+  | _ -> None
+
+let basic_peephole_optimizations =
+  [coalesce_lea_optimization; remove_byte_reg_reg_moves_optimization]
+
+let optimizer_peephole_optimizations = [load_zero_to_register_optimization]
 
 let run_peephole_optimizations ~gcx =
-  let runner = new peephole_optimization_runner ~gcx all_peephole_optimizations in
+  let peephole_optimizations =
+    if Opts.optimize () then
+      basic_peephole_optimizations @ optimizer_peephole_optimizations
+    else
+      basic_peephole_optimizations
+  in
+  let runner = new peephole_optimization_runner ~gcx peephole_optimizations in
   runner#run ()
