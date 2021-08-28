@@ -1,0 +1,24 @@
+module test
+
+fun use<T>(x: T) {}
+
+fun powerOfTwoMultiply(b: Byte, i: Int, l: Long) {
+  use(b * 2);
+  use(b * 4);
+  use(b * 8);
+
+  use(i * 2);
+  use(i * 4);
+  use(i * 8);
+
+  use(l * 2);
+  use(l * 4);
+  use(l * 8);
+
+  // No strength reduction
+  use(b * 5);
+  use(i * 5);
+  use(l * 5);
+}
+
+fun main() {}

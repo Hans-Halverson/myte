@@ -1,0 +1,56 @@
+  .global _main
+
+  .text
+_main:
+  xorl %eax, %eax
+  ret
+test.powerOfTwoMultiply:
+  push %rbx
+  push %r12
+  push %r13
+  movl %edi, %r13d
+  movl %esi, %r12d
+  movq %rdx, %rbx
+  movw %r13w, %di
+  shlw $1, %di
+  call test.use$byte$
+  movw %r13w, %di
+  shlw $2, %di
+  call test.use$byte$
+  movw %r13w, %di
+  shlw $3, %di
+  call test.use$byte$
+  movl %r12d, %edi
+  shll $1, %edi
+  call test.use$int$
+  movl %r12d, %edi
+  shll $2, %edi
+  call test.use$int$
+  movl %r12d, %edi
+  shll $3, %edi
+  call test.use$int$
+  movq %rbx, %rdi
+  shlq $1, %rdi
+  call test.use$long$
+  movq %rbx, %rdi
+  shlq $2, %rdi
+  call test.use$long$
+  movq %rbx, %rdi
+  shlq $3, %rdi
+  call test.use$long$
+  imulw $5, %r13w, %di
+  call test.use$byte$
+  imull $5, %r12d, %edi
+  call test.use$int$
+  imulq $5, %rbx, %rdi
+  call test.use$long$
+  pop %r13
+  pop %r12
+  pop %rbx
+  ret
+test.use$byte$:
+  ret
+test.use$int$:
+  ret
+test.use$long$:
+  ret

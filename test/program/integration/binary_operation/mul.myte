@@ -79,6 +79,7 @@ fun testMulLongs() {
 }
 
 fun ten(): Int = 10
+fun tenByte(): Byte = 10
 fun tenLong(): Long = 10
 
 fun testMulConstant() {
@@ -86,9 +87,27 @@ fun testMulConstant() {
   assertEqual(3 * ten(), 30);
   assertEqual(ten() * 3, 30);
 
+  // Constant bytes
+  assertEqual(3 * tenByte(), 30);
+  assertEqual(tenByte() * 3, 30);
+
   // Constant longs
   assertEqual(3 * tenLong(), 30);
   assertEqual(tenLong() * 3, 30);
+}
+
+fun testMulPowerOfTwo() {
+  assertEqual(2 * ten(), 20);
+  assertEqual(4 * ten(), 40);
+  assertEqual(8 * ten(), 80);
+
+  assertEqual(2 * tenByte(), 20);
+  assertEqual(4 * tenByte(), 40);
+  assertEqual(8 * tenByte(), 80);
+
+  assertEqual(2 * tenLong(), 20);
+  assertEqual(4 * tenLong(), 40);
+  assertEqual(8 * tenLong(), 80);
 }
 
 fun main() {
@@ -96,4 +115,5 @@ fun main() {
   testMulInts();
   testMulLongs();
   testMulConstant();
+  testMulPowerOfTwo();
 }
