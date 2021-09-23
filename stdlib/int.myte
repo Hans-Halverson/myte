@@ -3,8 +3,10 @@ module std.int
 import std.bool.Bool
 import std.byte.Byte
 import std.hash.Hashable
+import std.iterator.Iterator
 import std.long.Long
 import std.ops.Equatable
+import std.option.{None, Option, Some}
 import std.string.{String, ToString}
 
 builtin type Int
@@ -26,11 +28,13 @@ methods Int {
 }
 
 methods Int {
-  implements ToString
-
   builtin fun toByte(): Byte
 
   builtin fun toLong(): Long
+}
+
+methods Int {
+  implements ToString
 
   override fun toString(): String {
     var n = this;
@@ -62,5 +66,115 @@ methods Int {
     str.reverse();
 
     return str;
+  }
+}
+
+methods Int {
+  /**
+   * Create an iterator starting at this number and ending at the end number, exclusive.
+   */
+  fun to(end: Int): IntRange = IntRange { current: this, end }
+
+  /**
+   * Create an iterator starting at this number and ending at the end number, inclusive.
+   */
+  fun toInclusive(end: Int): IntRangeInclusive = IntRangeInclusive { current: this, end }
+
+  /**
+   * Create an iterator starting at this number and ending at the end number, exclusive,
+   * stepping by the given amount each iteration.
+   */
+  fun stepTo(end: Int, step: Int): IntRangeWithStep {
+    return IntRangeWithStep { current: this, end, step };
+  }
+
+  /**
+   * Create an iterator starting at this number and ending at the end number, exclusive,
+   * stepping down by the given amount each iteration.
+   */
+  fun stepDownTo(end: Int, step: Int): IntRangeWithStepDown {
+    return IntRangeWithStepDown { current: this, end, step };
+  }
+}
+
+type IntRange {
+  current: Int,
+  end: Int,
+}
+
+methods IntRange {
+  implements Iterator<Int>
+
+  override fun next(): Option<Int> {
+    val current = this.current;
+    if (current >= this.end) {
+      return None;
+    }
+
+    this.current = current + 1;
+
+    return Some (current);
+  }
+}
+
+type IntRangeInclusive {
+  current: Int,
+  end: Int,
+}
+
+methods IntRangeInclusive {
+  implements Iterator<Int>
+
+  override fun next(): Option<Int> {
+    val current = this.current;
+    if (current > this.end) {
+      return None;
+    }
+
+    this.current = current + 1;
+
+    return Some (current);
+  }
+}
+
+type IntRangeWithStep {
+  current: Int,
+  end: Int,
+  step: Int,
+}
+
+methods IntRangeWithStep {
+  implements Iterator<Int>
+
+  override fun next(): Option<Int> {
+    val current = this.current;
+    if (current >= this.end) {
+      return None;
+    }
+
+    this.current = current + this.step;
+
+    return Some (current);
+  }
+}
+
+type IntRangeWithStepDown {
+  current: Int,
+  end: Int,
+  step: Int,
+}
+
+methods IntRangeWithStepDown {
+  implements Iterator<Int>
+
+  override fun next(): Option<Int> {
+    val current = this.current;
+    if (current <= this.end) {
+      return None;
+    }
+
+    this.current = current - this.step;
+
+    return Some (current);
   }
 }

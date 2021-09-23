@@ -26,7 +26,6 @@
 - Anonymous Functions (fn x -> x)
 - Floating point numbers
 - unicode encodings
-- Indexing into collections
 - Pattern matching (syntax with optional: "| ?a -> 1" or "| ?(a, b) -> 1")
 - Unused variable errors/warnings
 - Errors vs warnings

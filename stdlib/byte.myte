@@ -3,8 +3,10 @@ module std.byte
 import std.bool.Bool
 import std.hash.Hashable
 import std.int.Int
+import std.iterator.Iterator
 import std.long.Long
 import std.ops.Equatable
+import std.option.{None, Option, Some}
 import std.string.{String, ToString}
 
 builtin type Byte
@@ -62,5 +64,115 @@ methods Byte {
     str.reverse();
 
     return str;
+  }
+}
+
+methods Byte {
+  /**
+   * Create an iterator starting at this number and ending at the end number, exclusive.
+   */
+  fun to(end: Byte): ByteRange = ByteRange { current: this, end }
+
+  /**
+   * Create an iterator starting at this number and ending at the end number, inclusive.
+   */
+  fun toInclusive(end: Byte): ByteRangeInclusive = ByteRangeInclusive { current: this, end }
+
+  /**
+   * Create an iterator starting at this number and ending at the end number, exclusive,
+   * stepping by the given amount each iteration.
+   */
+  fun stepTo(end: Byte, step: Byte): ByteRangeWithStep {
+    return ByteRangeWithStep { current: this, end, step };
+  }
+
+  /**
+   * Create an iterator starting at this number and ending at the end number, exclusive,
+   * stepping down by the given amount each iteration.
+   */
+  fun stepDownTo(end: Byte, step: Byte): ByteRangeWithStepDown {
+    return ByteRangeWithStepDown { current: this, end, step };
+  }
+}
+
+type ByteRange {
+  current: Byte,
+  end: Byte,
+}
+
+methods ByteRange {
+  implements Iterator<Byte>
+
+  override fun next(): Option<Byte> {
+    val current = this.current;
+    if (current >= this.end) {
+      return None;
+    }
+
+    this.current = current + 1;
+
+    return Some (current);
+  }
+}
+
+type ByteRangeInclusive {
+  current: Byte,
+  end: Byte,
+}
+
+methods ByteRangeInclusive {
+  implements Iterator<Byte>
+
+  override fun next(): Option<Byte> {
+    val current = this.current;
+    if (current > this.end) {
+      return None;
+    }
+
+    this.current = current + 1;
+
+    return Some (current);
+  }
+}
+
+type ByteRangeWithStep {
+  current: Byte,
+  end: Byte,
+  step: Byte,
+}
+
+methods ByteRangeWithStep {
+  implements Iterator<Byte>
+
+  override fun next(): Option<Byte> {
+    val current = this.current;
+    if (current >= this.end) {
+      return None;
+    }
+
+    this.current = current + this.step;
+
+    return Some (current);
+  }
+}
+
+type ByteRangeWithStepDown {
+  current: Byte,
+  end: Byte,
+  step: Byte,
+}
+
+methods ByteRangeWithStepDown {
+  implements Iterator<Byte>
+
+  override fun next(): Option<Byte> {
+    val current = this.current;
+    if (current <= this.end) {
+      return None;
+    }
+
+    this.current = current - this.step;
+
+    return Some (current);
   }
 }

@@ -1,0 +1,179 @@
+module test
+
+import std.test.{assertEqual, assertNone, assertSome}
+
+fun testIntRange() {
+  val range = 1.to(5);
+  assertSome(range.next(), 1);
+  assertSome(range.next(), 2);
+  assertSome(range.next(), 3);
+  assertSome(range.next(), 4);
+  assertNone(range.next());
+  assertNone(range.next());
+}
+
+fun testIntRangeInclusive() {
+  val range = 1.toInclusive(5);
+  assertSome(range.next(), 1);
+  assertSome(range.next(), 2);
+  assertSome(range.next(), 3);
+  assertSome(range.next(), 4);
+  assertSome(range.next(), 5);
+  assertNone(range.next());
+  assertNone(range.next());
+}
+
+fun testIntRangeWithStep() {
+  val range = 1.stepTo(10, 3);
+  assertSome(range.next(), 1);
+  assertSome(range.next(), 4);
+  assertSome(range.next(), 7);
+  assertNone(range.next());
+  assertNone(range.next());
+
+  val range = 2.stepTo(10, 3);
+  assertSome(range.next(), 2);
+  assertSome(range.next(), 5);
+  assertSome(range.next(), 8);
+  assertNone(range.next());
+  assertNone(range.next());
+}
+
+fun testIntRangeWithStepDown() {
+  val range = 10.stepDownTo(1, 3);
+  assertSome(range.next(), 10);
+  assertSome(range.next(), 7);
+  assertSome(range.next(), 4);
+  assertNone(range.next());
+  assertNone(range.next());
+
+  val range = 9.stepDownTo(1, 3);
+  assertSome(range.next(), 9);
+  assertSome(range.next(), 6);
+  assertSome(range.next(), 3);
+  assertNone(range.next());
+  assertNone(range.next());
+}
+
+fun testByteRange() {
+  val range = (1: Byte).to(5);
+  assertSome(range.next(), 1);
+  assertSome(range.next(), 2);
+  assertSome(range.next(), 3);
+  assertSome(range.next(), 4);
+  assertNone(range.next());
+  assertNone(range.next());
+}
+
+fun testByteRangeInclusive() {
+  val range = (1: Byte).toInclusive(5);
+  assertSome(range.next(), 1);
+  assertSome(range.next(), 2);
+  assertSome(range.next(), 3);
+  assertSome(range.next(), 4);
+  assertSome(range.next(), 5);
+  assertNone(range.next());
+  assertNone(range.next());
+}
+
+fun testByteRangeWithStep() {
+  val range = (1: Byte).stepTo(10, 3);
+  assertSome(range.next(), 1);
+  assertSome(range.next(), 4);
+  assertSome(range.next(), 7);
+  assertNone(range.next());
+  assertNone(range.next());
+
+  val range = (2: Byte).stepTo(10, 3);
+  assertSome(range.next(), 2);
+  assertSome(range.next(), 5);
+  assertSome(range.next(), 8);
+  assertNone(range.next());
+  assertNone(range.next());
+}
+
+fun testByteRangeWithStepDown() {
+  val range = (10: Byte).stepDownTo(1, 3);
+  assertSome(range.next(), 10);
+  assertSome(range.next(), 7);
+  assertSome(range.next(), 4);
+  assertNone(range.next());
+  assertNone(range.next());
+
+  val range = (9: Byte).stepDownTo(1, 3);
+  assertSome(range.next(), 9);
+  assertSome(range.next(), 6);
+  assertSome(range.next(), 3);
+  assertNone(range.next());
+  assertNone(range.next());
+}
+
+fun testLongRange() {
+  val range = (1: Long).to(5);
+  assertSome(range.next(), 1);
+  assertSome(range.next(), 2);
+  assertSome(range.next(), 3);
+  assertSome(range.next(), 4);
+  assertNone(range.next());
+  assertNone(range.next());
+}
+
+fun testLongRangeInclusive() {
+  val range = (1: Long).toInclusive(5);
+  assertSome(range.next(), 1);
+  assertSome(range.next(), 2);
+  assertSome(range.next(), 3);
+  assertSome(range.next(), 4);
+  assertSome(range.next(), 5);
+  assertNone(range.next());
+  assertNone(range.next());
+}
+
+fun testLongRangeWithStep() {
+  val range = (1: Long).stepTo(10, 3);
+  assertSome(range.next(), 1);
+  assertSome(range.next(), 4);
+  assertSome(range.next(), 7);
+  assertNone(range.next());
+  assertNone(range.next());
+
+  val range = (2: Long).stepTo(10, 3);
+  assertSome(range.next(), 2);
+  assertSome(range.next(), 5);
+  assertSome(range.next(), 8);
+  assertNone(range.next());
+  assertNone(range.next());
+}
+
+fun testLongRangeWithStepDown() {
+  val range = (10: Long).stepDownTo(1, 3);
+  assertSome(range.next(), 10);
+  assertSome(range.next(), 7);
+  assertSome(range.next(), 4);
+  assertNone(range.next());
+  assertNone(range.next());
+
+  val range = (9: Long).stepDownTo(1, 3);
+  assertSome(range.next(), 9);
+  assertSome(range.next(), 6);
+  assertSome(range.next(), 3);
+  assertNone(range.next());
+  assertNone(range.next());
+}
+
+fun main() {
+  testIntRange();
+  testIntRangeInclusive();
+  testIntRangeWithStep();
+  testIntRangeWithStepDown();
+
+  testByteRange();
+  testByteRangeInclusive();
+  testByteRangeWithStep();
+  testByteRangeWithStepDown();
+
+  testLongRange();
+  testLongRangeInclusive();
+  testLongRangeWithStep();
+  testLongRangeWithStepDown();
+}

@@ -4,7 +4,9 @@ import std.bool.Bool
 import std.byte.Byte
 import std.hash.Hashable
 import std.int.Int
+import std.iterator.Iterator
 import std.ops.Equatable
+import std.option.{None, Option, Some}
 import std.string.{String, ToString}
 
 builtin type Long
@@ -62,5 +64,115 @@ methods Long {
     str.reverse();
 
     return str;
+  }
+}
+
+methods Long {
+  /**
+   * Create an iterator starting at this number and ending at the end number, exclusive.
+   */
+  fun to(end: Long): LongRange = LongRange { current: this, end }
+
+  /**
+   * Create an iterator starting at this number and ending at the end number, inclusive.
+   */
+  fun toInclusive(end: Long): LongRangeInclusive = LongRangeInclusive { current: this, end }
+
+  /**
+   * Create an iterator starting at this number and ending at the end number, exclusive,
+   * stepping by the given amount each iteration.
+   */
+  fun stepTo(end: Long, step: Long): LongRangeWithStep {
+    return LongRangeWithStep { current: this, end, step };
+  }
+
+  /**
+   * Create an iterator starting at this number and ending at the end number, exclusive,
+   * stepping down by the given amount each iteration.
+   */
+  fun stepDownTo(end: Long, step: Long): LongRangeWithStepDown {
+    return LongRangeWithStepDown { current: this, end, step };
+  }
+}
+
+type LongRange {
+  current: Long,
+  end: Long,
+}
+
+methods LongRange {
+  implements Iterator<Long>
+
+  override fun next(): Option<Long> {
+    val current = this.current;
+    if (current >= this.end) {
+      return None;
+    }
+
+    this.current = current + 1;
+
+    return Some (current);
+  }
+}
+
+type LongRangeInclusive {
+  current: Long,
+  end: Long,
+}
+
+methods LongRangeInclusive {
+  implements Iterator<Long>
+
+  override fun next(): Option<Long> {
+    val current = this.current;
+    if (current > this.end) {
+      return None;
+    }
+
+    this.current = current + 1;
+
+    return Some (current);
+  }
+}
+
+type LongRangeWithStep {
+  current: Long,
+  end: Long,
+  step: Long,
+}
+
+methods LongRangeWithStep {
+  implements Iterator<Long>
+
+  override fun next(): Option<Long> {
+    val current = this.current;
+    if (current >= this.end) {
+      return None;
+    }
+
+    this.current = current + this.step;
+
+    return Some (current);
+  }
+}
+
+type LongRangeWithStepDown {
+  current: Long,
+  end: Long,
+  step: Long,
+}
+
+methods LongRangeWithStepDown {
+  implements Iterator<Long>
+
+  override fun next(): Option<Long> {
+    val current = this.current;
+    if (current <= this.end) {
+      return None;
+    }
+
+    this.current = current - this.step;
+
+    return Some (current);
   }
 }
