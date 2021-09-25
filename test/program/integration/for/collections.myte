@@ -1,0 +1,44 @@
+module test
+
+import std.io.println
+
+import std.iterator.Iterator
+
+fun testForVec() {
+  val vec: Vec<String> = Vec.new();
+  vec.push("a");
+  vec.push("b");
+  vec.push("c");
+  
+  println("Vec:");
+  for (s in vec) {
+    println(s);
+  }
+}
+
+fun testForMap() {
+  val map: Map<String, String> = Map.new();
+  map.add("1", "a");
+  map.add("2", "b");
+  map.add("3", "c");
+
+  println("Map keys:");
+  for (k in map.keys()) {
+    println(k);
+  }
+
+  println("Map values:");
+  for (v in map.values()) {
+    println(v);
+  }
+
+  println("Map entries:");
+  for ((k, v) in map.entries()) {
+    println(`${k} -> ${v}`);
+  }
+}
+
+fun main() {
+  testForVec();
+  testForMap();
+}

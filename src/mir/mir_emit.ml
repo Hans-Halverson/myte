@@ -1343,8 +1343,8 @@ and emit_statement ~ecx stmt =
 
     (* Find type of iterable *)
     let iterable_ty = type_of_loc ~ecx (Ast_utils.expression_loc iterator) in
-    let (_, iterable_adt_sig) = Type_util.cast_to_adt_type iterable_ty in
-    let { Types.TraitSig.type_args = iterable_type_args; _ } =
+    let (iterable_adt_type_args, iterable_adt_sig) = Type_util.cast_to_adt_type iterable_ty in
+    let { Types.TraitSig.type_args = iterable_trait_type_args; _ } =
       Type_context.get_implemented_trait iterable_ty !Std_lib.iterable_trait_sig |> Option.get
     in
 
@@ -1354,9 +1354,7 @@ and emit_statement ~ecx stmt =
       Type_util.cast_to_adt_type to_iterator_sig.return
     in
     let type_param_bindings =
-      Types.bind_type_params_to_args
-        to_iterator_sig.source_trait_instance.trait_sig.type_params
-        iterable_type_args
+      Types.bind_type_params_to_args to_iterator_sig.trait_sig.type_params iterable_adt_type_args
     in
     let iterator_type_args =
       List.map (Types.substitute_type_params type_param_bindings) iterator_type_args
@@ -1365,7 +1363,7 @@ and emit_statement ~ecx stmt =
       Types.Type.ADT { adt_sig = iterator_adt_sig; type_args = iterator_type_args }
     in
     let iterator_mir_type = Ecx.to_mir_type ~ecx iterator_ty in
-    let item_ty = List.hd iterable_type_args in
+    let item_ty = List.hd iterable_trait_type_args in
 
     (* Find aggregate data for option of iterator item *)
     let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx !Std_lib.option_adt_sig in
@@ -1422,10 +1420,11 @@ and emit_statement ~ecx stmt =
     (* Body block starts by loading payload from `Some` variant *)
     Ecx.set_block_builder ~ecx body_builder;
     let (item_mir_type, item_index) = lookup_element some_aggregate (TupleKeyCache.get_key 0) in
+    let item_some_opt_ptr_val = cast_pointer_value item_opt_ptr_val (`AggregateT some_aggregate) in
     let (item_ptr_val, get_ptr_instr) =
       mk_get_pointer_instr
         item_mir_type
-        item_opt_ptr_val
+        item_some_opt_ptr_val
         [Instruction.GetPointer.FieldIndex item_index]
     in
     Ecx.emit ~ecx (GetPointer get_ptr_instr);

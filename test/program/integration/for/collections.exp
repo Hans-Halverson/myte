@@ -1,0 +1,16 @@
+Vec:
+a
+b
+c
+Map keys:
+2
+3
+1
+Map values:
+b
+c
+a
+Map entries:
+2 -> b
+3 -> c
+1 -> a

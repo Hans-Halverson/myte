@@ -1,0 +1,38 @@
+module test
+
+import std.io.println
+
+fun testRange() {
+  println("Range:");
+  for (x in 1.to(4)) {
+    println(x.toString());
+  }
+}
+
+fun testRangeInclusive() {
+  println("RangeInclusive:");
+  for (x in 1.toInclusive(4)) {
+    println(x.toString());
+  }
+}
+
+fun testRangeWithStep() {
+  println("RangeWithStep:");
+  for (x in 1.stepTo(10, 2)) {
+    println(x.toString());
+  }
+}
+
+fun testRangeWithStepDown() {
+  println("RangeWithStepDown:");
+  for (x in 10.stepDownTo(1, 2)) {
+    println(x.toString());
+  }
+}
+
+fun main() {
+  testRange();
+  testRangeInclusive();
+  testRangeWithStep();
+  testRangeWithStepDown();
+}

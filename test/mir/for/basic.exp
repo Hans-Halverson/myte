@@ -19,7 +19,7 @@ label @0:
   %8 := Eq byte %7, 1
   branch %8, @1, @2
 label @1:
-  %9 := GetPointer int, std.option.Option<int>* %6.2
+  %9 := GetPointer int, std.option.Option<int>::Some* %6.2
   %10 := Load int %9
   %11 := Call unit @test.use<int>(%10)
   continue @0
@@ -33,7 +33,7 @@ label @3:
   %17 := Eq byte %16, 1
   branch %17, @4, @5
 label @4:
-  %18 := GetPointer bool, std.option.Option<bool>* %15.1
+  %18 := GetPointer bool, std.option.Option<bool>::Some* %15.1
   %13 := Load bool %18
   %19 := Call unit @test.use<bool>(%13)
   continue @3
@@ -52,7 +52,7 @@ label @6:
   %26 := Eq byte %25, 1
   branch %26, @7, @10
 label @7:
-  %27 := GetPointer bool, std.option.Option<bool>* %24.1
+  %27 := GetPointer bool, std.option.Option<bool>::Some* %24.1
   %28 := Load bool %27
   %29 := LogNot %28
   branch %29, @9, @8
@@ -78,7 +78,7 @@ label @11:
   %39 := Eq byte %38, 1
   branch %39, @12, @15
 label @12:
-  %40 := GetPointer bool, std.option.Option<bool>* %37.1
+  %40 := GetPointer bool, std.option.Option<bool>::Some* %37.1
   %41 := Load bool %40
   %42 := LogNot %41
   branch %42, @13, @14
@@ -103,7 +103,7 @@ label @16:
   %51 := Eq byte %50, 1
   branch %51, @17, @18
 label @17:
-  %52 := GetPointer byte, std.option.Option<byte>* %49.1
+  %52 := GetPointer byte, std.option.Option<byte>::Some* %49.1
   %53 := Load byte %52
   %54 := Call unit @test.use<byte>(%53)
   continue @16
