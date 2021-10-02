@@ -720,8 +720,72 @@ and emit_expression ~ecx expr =
     let var_id = mk_var_id () in
     Ecx.emit ~ecx (Load (var_id, result_ptr_val));
     var_value_of_type var_id mir_type
+  (*
+   * ============================
+   *       Vec Literal
+   * ============================
+   *)
+  | VecLiteral { loc; elements } ->
+    (* Find MIR element type *)
+    let (vec_type_args, _) = Type_util.cast_to_adt_type (type_of_loc ~ecx loc) in
+    let element_ty = List.hd vec_type_args in
+    let element_mir_type = type_to_mir_type ~ecx element_ty in
+
+    (* Do not allocate if vec is empty *)
+    let size_val = `IntL (Int32.of_int (List.length elements)) in
+    let data_val =
+      if elements = [] then
+        `LongL 0L
+      else
+        (* Call myte_alloc builtin to allocate space for elements *)
+        let data_ptr_var_id = mk_var_id () in
+        let (data_val, myte_alloc_instr) =
+          Mir_builtin.(mk_call_builtin myte_alloc data_ptr_var_id [size_val] [element_mir_type])
+        in
+        Ecx.emit ~ecx myte_alloc_instr;
+
+        (* Generate each element and store into array of elements *)
+        let data_ptr_val = cast_to_pointer_value data_val in
+        List.iteri
+          (fun i element ->
+            let element_var = emit_expression ~ecx element in
+            let (element_offset_var, get_ptr_instr) =
+              mk_get_pointer_instr
+                element_mir_type
+                data_ptr_val
+                [Instruction.GetPointer.PointerIndex (`IntL (Int32.of_int i))]
+            in
+            Ecx.emit ~ecx (GetPointer get_ptr_instr);
+            Ecx.emit ~ecx (Store (element_offset_var, element_var)))
+          elements;
+        data_val
+    in
+
+    (* Call myte_alloc builtin to allocate space for vec *)
+    let vec_ptr_var_id = mk_var_id () in
+    let vec_ptr_mir_type = mir_type_of_loc ~ecx loc in
+    let (`PointerT vec_mir_type) = cast_to_pointer_type vec_ptr_mir_type in
+    let vec_ptr_var = `PointerV (vec_mir_type, vec_ptr_var_id) in
+    let (vec_ptr_val, myte_alloc_instr) =
+      Mir_builtin.(mk_call_builtin myte_alloc vec_ptr_var_id [`IntL Int32.one] [vec_mir_type])
+    in
+    Ecx.emit ~ecx myte_alloc_instr;
+
+    (* Write all vec literal fields *)
+    let (`AggregateT vec_agg) = cast_to_aggregate_type vec_mir_type in
+    let emit_field_store name value =
+      let (element_ty, element_idx) = lookup_element vec_agg name in
+      let (element_offset_var, get_ptr_instr) =
+        mk_get_pointer_instr element_ty vec_ptr_var [Instruction.GetPointer.FieldIndex element_idx]
+      in
+      Ecx.emit ~ecx (GetPointer get_ptr_instr);
+      Ecx.emit ~ecx (Store (element_offset_var, value))
+    in
+    emit_field_store "data" data_val;
+    emit_field_store "size" size_val;
+    emit_field_store "capacity" size_val;
+    vec_ptr_val
   | Super _ -> failwith "TODO: Emit MIR for super expressions"
-  | VecLiteral _ -> failwith "TODO: Emit MIR for vec literals"
 
 and emit_string_literal ~ecx loc value =
   let string_global_ptr = Ecx.add_string_literal ~ecx loc value in

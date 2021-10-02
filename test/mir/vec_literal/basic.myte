@@ -1,0 +1,18 @@
+module test
+
+fun emptyVec() {
+  val x: Vec<Int> = [];
+  val y: Vec<Bool> = [];
+}
+
+fun oneElementVec() {
+  [1];
+  [(2: Byte)];
+}
+
+fun multiElementVec() {
+  [5, 6, 7];
+  [false, true, false, true];
+}
+
+fun main() {}

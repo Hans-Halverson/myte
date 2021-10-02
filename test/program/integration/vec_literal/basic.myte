@@ -1,0 +1,68 @@
+module test
+
+import std.test.{assertEqual, assertVecEqual}
+
+fun testEmpty() {
+  val x: Vec<Int> = [];
+  assertEqual(x.size, 0);
+
+  x.push(3);
+  assertEqual(x.size, 1);
+  assertEqual(x[0], 3);
+
+  val y: Vec<Bool> = [];
+  assertEqual(y.size, 0);
+
+  y.push(true);
+  assertEqual(y.size, 1);
+  assertEqual(y[0], true);
+}
+
+fun testSingleElement() {
+  val x = [7];
+  assertEqual(x.size, 1);
+  assertEqual(x[0], 7);
+
+  x.push(8);
+  assertEqual(x.size, 2);
+  assertEqual(x[0], 7);
+  assertEqual(x[1], 8);
+
+  val x = [true];
+  assertEqual(x.size, 1);
+  assertEqual(x[0], true);
+
+  x.push(false);
+  assertEqual(x.size, 2);
+  assertEqual(x[0], true);
+  assertEqual(x[1], false);
+}
+
+fun testMultipleElements() {
+  val x = [3, 4, 5];
+  assertEqual(x.size, 3);
+  assertEqual(x[0], 3);
+  assertEqual(x[1], 4);
+  assertEqual(x[2], 5);
+
+  x.push(6);
+  assertEqual(x.size, 4);
+  assertEqual(x[0], 3);
+  assertEqual(x[1], 4);
+  assertEqual(x[2], 5);
+  assertEqual(x[3], 6);
+
+  val x = [true, false, false, true];
+  assertEqual(x.size, 4);
+  assertVecEqual(x, [true, false, false, true]);
+
+  x.push(true);
+  assertEqual(x.size, 5);
+  assertVecEqual(x, [true, false, false, true, true]);
+}
+
+fun main() {
+  testEmpty();
+  testSingleElement();
+  testMultipleElements();
+}
