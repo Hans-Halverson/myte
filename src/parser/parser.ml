@@ -286,6 +286,7 @@ and parse_expression_prefix env =
     BoolLiteral { BoolLiteral.loc; value }
   | T_INTERPOLATED_STRING (first_string, is_end) ->
     parse_interpolated_string env first_string is_end
+  | T_LEFT_BRACKET -> parse_vec_literal env
   | token -> Parse_error.fatal (Env.loc env, UnexpectedToken { actual = token; expected = None })
 
 and parse_expression_infix ~precedence env left marker =
@@ -667,6 +668,28 @@ and parse_indexed_access env left marker =
   Env.expect env T_RIGHT_BRACKET;
   let loc = marker env in
   Expression.IndexedAccess { loc; target = left; index }
+
+and parse_vec_literal env =
+  let marker = mark_loc env in
+  Env.expect env T_LEFT_BRACKET;
+  let rec elements env =
+    match Env.token env with
+    | T_RIGHT_BRACKET ->
+      Env.advance env;
+      []
+    | _ ->
+      let element = parse_expression env in
+      begin
+        match Env.token env with
+        | T_RIGHT_BRACKET -> ()
+        | T_COMMA -> Env.advance env
+        | _ -> Env.expect env T_RIGHT_BRACKET
+      end;
+      element :: elements env
+  in
+  let elements = elements env in
+  let loc = marker env in
+  Expression.VecLiteral { loc; elements }
 
 and parse_identifier env =
   match Env.token env with

@@ -1,0 +1,24 @@
+Error: Cannot infer type for variable declaration. Partially inferred `Vec<a>` but was unable to resolve `a`. Please provide additional type annotations.
+test/analyze/type_check/vec_literal/basic.myte:5:2-14
+ 5 |   val x1 = [];
+   |   ^^^^^^^^^^^^
+
+Error: Expected type `Unit` but found `Vec<Int>`
+test/analyze/type_check/vec_literal/basic.myte:14:3-5
+ 14 |   (x4: Unit);
+    |    ^^
+
+Error: Expected type `Bool` but found `Int`
+test/analyze/type_check/vec_literal/basic.myte:17:18
+ 17 |   val x5 = [true, 1, "a"];
+    |                   ^
+
+Error: Expected type `Bool` but found `String`
+test/analyze/type_check/vec_literal/basic.myte:17:21-24
+ 17 |   val x5 = [true, 1, "a"];
+    |                      ^^^
+
+Error: Expected type `Unit` but found `Vec<Bool>`
+test/analyze/type_check/vec_literal/basic.myte:19:3-5
+ 19 |   (x5: Unit);
+    |    ^^

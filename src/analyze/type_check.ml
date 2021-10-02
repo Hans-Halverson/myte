@@ -1433,6 +1433,35 @@ and check_expression ~cx expr =
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     check_match ~cx match_ (Type.TVar tvar_id);
     (loc, tvar_id)
+  (*
+   * ============================
+   *         Vec Literal
+   * ============================
+   *)
+  | VecLiteral { loc; elements } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    let element_tvar_id =
+      if elements = [] then
+        (* If there are no elements create new, unresolved tvar *)
+        TVar.mk ()
+      else
+        (* If there are elements, all element types must match *)
+        let element_locs_and_tvar_ids = List.map (check_expression ~cx) elements in
+        let ((_, first_tvar_id), rest_locs_and_tvar_ids) =
+          List_utils.split_first element_locs_and_tvar_ids
+        in
+        List.iter
+          (fun (element_loc, element_tvar_id) ->
+            Type_context.assert_unify ~cx element_loc (TVar first_tvar_id) (TVar element_tvar_id))
+          rest_locs_and_tvar_ids;
+        first_tvar_id
+    in
+    ignore
+      (Type_context.unify
+         ~cx
+         (ADT { adt_sig = !Std_lib.vec_adt_sig; type_args = [TVar element_tvar_id] })
+         (TVar tvar_id));
+    (loc, tvar_id)
   | Super _ -> failwith "TODO: Type check super expressions"
 
 and check_match ~cx match_ right_ty =

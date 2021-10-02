@@ -162,6 +162,7 @@ and node_of_expression expr =
   | NamedAccess access -> node_of_named_access access
   | Match match_ -> node_of_match match_
   | Super loc -> node_of_super loc
+  | VecLiteral lit -> node_of_vec_literal lit
 
 and node_of_pattern pat =
   let open Pattern in
@@ -333,6 +334,10 @@ and node_of_indexed_access access =
 and node_of_named_access access =
   let { Expression.NamedAccess.loc; target; name } = access in
   node "NamedAccess" loc [("target", node_of_expression target); ("name", node_of_identifier name)]
+
+and node_of_vec_literal lit =
+  let { Expression.VecLiteral.loc; elements } = lit in
+  node "VecLiteral" loc [("elements", List (List.map node_of_expression elements))]
 
 and node_of_wildcard_pattern loc = node "Wildcard" loc []
 

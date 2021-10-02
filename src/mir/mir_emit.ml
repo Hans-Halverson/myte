@@ -721,6 +721,7 @@ and emit_expression ~ecx expr =
     Ecx.emit ~ecx (Load (var_id, result_ptr_val));
     var_value_of_type var_id mir_type
   | Super _ -> failwith "TODO: Emit MIR for super expressions"
+  | VecLiteral _ -> failwith "TODO: Emit MIR for vec literals"
 
 and emit_string_literal ~ecx loc value =
   let string_global_ptr = Ecx.add_string_literal ~ecx loc value in

@@ -82,6 +82,7 @@ class mapper =
         | NamedAccess e -> id_map this#named_access e expr (fun e' -> NamedAccess e')
         | Match e -> id_map this#match_ e expr (fun e' -> Match e')
         | Super _ -> expr
+        | VecLiteral e -> id_map this#vec_literal e expr (fun e' -> VecLiteral e')
 
     method pattern : Pattern.t -> Pattern.t =
       fun pat ->
@@ -283,6 +284,15 @@ class mapper =
         access
       else
         { loc; target = target'; name = name' }
+
+    method vec_literal lit =
+      let open Expression.VecLiteral in
+      let { loc; elements } = lit in
+      let elements' = List.map this#expression elements in
+      if elements == elements' then
+        lit
+      else
+        { loc; elements = elements' }
 
     method record_pattern record =
       let open Pattern.Record in

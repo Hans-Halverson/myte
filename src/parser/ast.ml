@@ -297,6 +297,13 @@ and Expression : sig
     }
   end
 
+  module VecLiteral : sig
+    type t = {
+      loc: Loc.t;
+      elements: Expression.t list;
+    }
+  end
+
   type t =
     | Unit of Unit.t
     | IntLiteral of IntLiteral.t
@@ -318,6 +325,7 @@ and Expression : sig
     | NamedAccess of NamedAccess.t
     | Match of Match.t
     | Super of Loc.t
+    | VecLiteral of VecLiteral.t
 end =
   Expression
 

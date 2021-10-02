@@ -65,6 +65,7 @@ class visitor =
         | NamedAccess e -> this#named_access e
         | Match e -> this#match_ e
         | Super e -> this#super e
+        | VecLiteral e -> this#vec_literal e
 
     method pattern : Pattern.t -> unit =
       fun pat ->
@@ -201,6 +202,11 @@ class visitor =
       let { loc = _; target; name } = access in
       this#expression target;
       this#identifier name
+
+    method vec_literal lit =
+      let open Expression.VecLiteral in
+      let { loc = _; elements } = lit in
+      List.iter this#expression elements
 
     method record_pattern record =
       let open Pattern.Record in

@@ -1,0 +1,20 @@
+module test
+
+fun main() {
+  // Error since element type is unknown
+  val x1 = [];
+
+  // No error since element type is known
+  val x2: Vec<Int> = [];
+  val x3: Vec<Bool> = [];
+
+  // Can infer type from elements
+  val x4 = [1, 2];
+  // Intentional error to print type
+  (x4: Unit);
+
+  // Element type mismatch, but overall expression typed with first element type
+  val x5 = [true, 1, "a"];
+  // Intentional erro to print type
+  (x5: Unit);
+}
