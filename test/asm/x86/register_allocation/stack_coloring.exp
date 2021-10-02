@@ -15,10 +15,10 @@ test.testMultipleInterferingSpillsInDifferentStackSlots:
   push %r15
   subq $32, %rsp
   movl %edi, %r15d
-  movl %esi, 32(%rsp)
-  movl %edx, 24(%rsp)
+  movl %esi, 0(%rsp)
+  movl %edx, 8(%rsp)
   movl %ecx, 16(%rsp)
-  movl %r8d, 8(%rsp)
+  movl %r8d, 24(%rsp)
   cmpl $1, %r15d
   jne .L0
   movl $101, %r14d
@@ -38,13 +38,13 @@ test.testMultipleInterferingSpillsInDifferentStackSlots:
   addl %r13d, %r12d
   addl %r12d, %ebx
   addl %ebx, %r15d
-  movl 32(%rsp), %eax
+  movl 0(%rsp), %eax
   addl %r15d, %eax
-  movl 24(%rsp), %ebx
+  movl 8(%rsp), %ebx
   addl %eax, %ebx
   movl 16(%rsp), %ecx
   addl %ebx, %ecx
-  movl 8(%rsp), %eax
+  movl 24(%rsp), %eax
   addl %ecx, %eax
   addq $32, %rsp
   pop %r15
@@ -66,7 +66,7 @@ test.testNonInterferingSpillsReuseStackSlots:
   movl $101, %r15d
   movl $102, %r14d
   movl $103, %r13d
-  movl $104, 8(%rsp)
+  movl $104, 0(%rsp)
   movl $105, %r12d
   movl $106, %r11d
   movl $107, %r10d
@@ -83,7 +83,7 @@ test.testNonInterferingSpillsReuseStackSlots:
   movl $1, %r15d
   movl $2, %r14d
   movl $3, %r13d
-  movl $4, 8(%rsp)
+  movl $4, 0(%rsp)
   movl $5, %r12d
   movl $6, %r11d
   movl $7, %r10d
@@ -98,7 +98,7 @@ test.testNonInterferingSpillsReuseStackSlots:
 .L3:
   addl %r15d, %r14d
   addl %r14d, %r13d
-  movl 8(%rsp), %r14d
+  movl 0(%rsp), %r14d
   addl %r13d, %r14d
   addl %r14d, %r12d
   addl %r12d, %r11d
@@ -117,7 +117,7 @@ test.testNonInterferingSpillsReuseStackSlots:
   movl $101, %r15d
   movl $102, %r14d
   movl $103, %r13d
-  movl $104, 8(%rsp)
+  movl $104, 0(%rsp)
   movl $105, %r12d
   movl $106, %r11d
   movl $107, %r10d
@@ -134,7 +134,7 @@ test.testNonInterferingSpillsReuseStackSlots:
   movl $1, %r15d
   movl $2, %r14d
   movl $3, %r13d
-  movl $4, 8(%rsp)
+  movl $4, 0(%rsp)
   movl $5, %r12d
   movl $6, %r11d
   movl $7, %r10d
@@ -149,7 +149,7 @@ test.testNonInterferingSpillsReuseStackSlots:
 .L5:
   addl %r15d, %r14d
   addl %r14d, %r13d
-  movl 8(%rsp), %r14d
+  movl 0(%rsp), %r14d
   addl %r13d, %r14d
   addl %r14d, %r12d
   addl %r12d, %r11d
@@ -168,7 +168,7 @@ test.testNonInterferingSpillsReuseStackSlots:
   movl $101, %r15d
   movl $102, %r14d
   movl $103, %r13d
-  movl $104, 8(%rsp)
+  movl $104, 0(%rsp)
   movl $105, %r12d
   movl $106, %r11d
   movl $107, %r10d
@@ -185,7 +185,7 @@ test.testNonInterferingSpillsReuseStackSlots:
   movl $1, %r15d
   movl $2, %r14d
   movl $3, %r13d
-  movl $4, 8(%rsp)
+  movl $4, 0(%rsp)
   movl $5, %r12d
   movl $6, %r11d
   movl $7, %r10d
@@ -200,7 +200,7 @@ test.testNonInterferingSpillsReuseStackSlots:
 .L7:
   addl %r15d, %r14d
   addl %r14d, %r13d
-  movl 8(%rsp), %r14d
+  movl 0(%rsp), %r14d
   addl %r13d, %r14d
   addl %r14d, %r12d
   addl %r12d, %r11d
@@ -234,7 +234,7 @@ test.testPartialReuseStackSlots:
   movl $101, %r15d
   movl $102, %r14d
   movl $103, %r13d
-  movl $104, 16(%rsp)
+  movl $104, 0(%rsp)
   movl $105, 8(%rsp)
   movl $106, %r12d
   movl $107, %r11d
@@ -252,7 +252,7 @@ test.testPartialReuseStackSlots:
   movl $1, %r15d
   movl $2, %r14d
   movl $3, %r13d
-  movl $4, 16(%rsp)
+  movl $4, 0(%rsp)
   movl $5, 8(%rsp)
   movl $6, %r12d
   movl $7, %r11d
@@ -268,7 +268,7 @@ test.testPartialReuseStackSlots:
 .L9:
   addl %r15d, %r14d
   addl %r14d, %r13d
-  movl 16(%rsp), %r14d
+  movl 0(%rsp), %r14d
   addl %r13d, %r14d
   movl 8(%rsp), %r13d
   addl %r14d, %r13d
@@ -289,7 +289,7 @@ test.testPartialReuseStackSlots:
   movl $101, %r15d
   movl $102, %r14d
   movl $103, %r13d
-  movl $104, 16(%rsp)
+  movl $104, 0(%rsp)
   movl $105, %r12d
   movl $106, %r11d
   movl $107, %r10d
@@ -306,7 +306,7 @@ test.testPartialReuseStackSlots:
   movl $1, %r15d
   movl $2, %r14d
   movl $3, %r13d
-  movl $4, 16(%rsp)
+  movl $4, 0(%rsp)
   movl $5, %r12d
   movl $6, %r11d
   movl $7, %r10d
@@ -321,7 +321,7 @@ test.testPartialReuseStackSlots:
 .L11:
   addl %r15d, %r14d
   addl %r14d, %r13d
-  movl 16(%rsp), %r14d
+  movl 0(%rsp), %r14d
   addl %r13d, %r14d
   addl %r14d, %r12d
   addl %r12d, %r11d
@@ -340,7 +340,7 @@ test.testPartialReuseStackSlots:
   movl $101, %r15d
   movl $102, %r14d
   movl $103, %r13d
-  movl $104, 16(%rsp)
+  movl $104, 0(%rsp)
   movl $105, 8(%rsp)
   movl $106, %r12d
   movl $107, %r11d
@@ -358,7 +358,7 @@ test.testPartialReuseStackSlots:
   movl $1, %r15d
   movl $2, %r14d
   movl $3, %r13d
-  movl $4, 16(%rsp)
+  movl $4, 0(%rsp)
   movl $5, 8(%rsp)
   movl $6, %r12d
   movl $7, %r11d
@@ -374,7 +374,7 @@ test.testPartialReuseStackSlots:
 .L13:
   addl %r15d, %r14d
   addl %r14d, %r13d
-  movl 16(%rsp), %r14d
+  movl 0(%rsp), %r14d
   addl %r13d, %r14d
   movl 8(%rsp), %r13d
   addl %r14d, %r13d
