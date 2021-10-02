@@ -19,9 +19,7 @@ val args: Vec<String> = Vec.new()
  * Convert `argc` and `argv` arguments to `main` to a vec of strings.
  */
 fun init(argc: Int, argv: Array<Array<Byte>>) {
-  var i = 0;
-  while (i < argc) {
+  for (i in 0.to(argc)) {
     args.push(String.fromCString(argv[i]));
-    i = i + 1;
   }
 }

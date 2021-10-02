@@ -93,10 +93,8 @@ methods String {
     this.data = newData;
     this.capacity = size;
 
-    var i = 0;
-    while (i < size) {
+    for (i in 0.to(size)) {
       newData[size - (i + 1)] = oldData[i];
-      i = i + 1;
     }
   }
 
@@ -133,13 +131,10 @@ methods String {
     val thisData = this.data;
     val otherData = other.data;
 
-    var i = 0;
-    while (i < size) {
+    for (i in 0.to(size)) {
       if (thisData[i] != otherData[i]) {
         return false;
       }
-
-      i = i + 1;
     }
 
     return true;

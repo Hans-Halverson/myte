@@ -202,21 +202,16 @@ methods Map<K: Equatable & Hashable, V> {
     val oldData = this.data;
     this.data = Array.new(newCapacity);
 
-    var i = 0;
-    while (i < newCapacity) {
+    for (i in 0.to(newCapacity)) {
       this.data[i] = None;
-      i = i + 1;
     }
 
     // Insert all non-deleted entries into new array
-    var i = 0;
-    while (i < oldCapacity) {
+    for (i in 0.to(oldCapacity)) {
       match (oldData[i]) {
         | Some (Entry { isDeleted: false, key, value, hash }) -> this.insert(key, value, hash)
         | _ -> {}
       }
-      
-      i = i + 1;
     }
   }
 }
