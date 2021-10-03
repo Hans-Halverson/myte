@@ -163,6 +163,8 @@ and node_of_expression expr =
   | Match match_ -> node_of_match match_
   | Super loc -> node_of_super loc
   | VecLiteral lit -> node_of_vec_literal lit
+  | MapLiteral lit -> node_of_map_literal lit
+  | SetLiteral lit -> node_of_set_literal lit
 
 and node_of_pattern pat =
   let open Pattern in
@@ -338,6 +340,18 @@ and node_of_named_access access =
 and node_of_vec_literal lit =
   let { Expression.VecLiteral.loc; elements } = lit in
   node "VecLiteral" loc [("elements", List (List.map node_of_expression elements))]
+
+and node_of_map_literal lit =
+  let { Expression.MapLiteral.loc; entries } = lit in
+  node "MapLiteral" loc [("entries", List (List.map node_of_map_literal_entry entries))]
+
+and node_of_map_literal_entry entry =
+  let { Expression.MapLiteral.Entry.loc; key; value } = entry in
+  node "MapLiteralEntry" loc [("key", node_of_expression key); ("value", node_of_expression value)]
+
+and node_of_set_literal lit =
+  let { Expression.SetLiteral.loc; elements } = lit in
+  node "SetLiteral" loc [("elements", List (List.map node_of_expression elements))]
 
 and node_of_wildcard_pattern loc = node "Wildcard" loc []
 

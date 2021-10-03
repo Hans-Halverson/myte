@@ -786,6 +786,8 @@ and emit_expression ~ecx expr =
     emit_field_store "capacity" size_val;
     vec_ptr_val
   | Super _ -> failwith "TODO: Emit MIR for super expressions"
+  | MapLiteral _ -> failwith "TODO: Emit MIR for map literals"
+  | SetLiteral _ -> failwith "TODO: Emit MIR for set literals"
 
 and emit_string_literal ~ecx loc value =
   let string_global_ptr = Ecx.add_string_literal ~ecx loc value in

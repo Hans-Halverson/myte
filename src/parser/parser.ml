@@ -287,6 +287,8 @@ and parse_expression_prefix env =
   | T_INTERPOLATED_STRING (first_string, is_end) ->
     parse_interpolated_string env first_string is_end
   | T_LEFT_BRACKET -> parse_vec_literal env
+  | T_LEFT_BRACE -> parse_map_literal env
+  | T_SET_OPEN -> parse_set_literal env
   | token -> Parse_error.fatal (Env.loc env, UnexpectedToken { actual = token; expected = None })
 
 and parse_expression_infix ~precedence env left marker =
@@ -690,6 +692,55 @@ and parse_vec_literal env =
   let elements = elements env in
   let loc = marker env in
   Expression.VecLiteral { loc; elements }
+
+and parse_map_literal env =
+  let marker = mark_loc env in
+  Env.expect env T_LEFT_BRACE;
+  let rec entries env =
+    match Env.token env with
+    | T_RIGHT_BRACE ->
+      Env.advance env;
+      []
+    | _ ->
+      let marker = mark_loc env in
+      let key = parse_expression env in
+      Env.expect env T_COLON;
+      let value = parse_expression env in
+      let loc = marker env in
+      let entry = { Expression.MapLiteral.Entry.loc; key; value } in
+      begin
+        match Env.token env with
+        | T_RIGHT_BRACE -> ()
+        | T_COMMA -> Env.advance env
+        | _ -> Env.expect env T_RIGHT_BRACE
+      end;
+      entry :: entries env
+  in
+  let entries = entries env in
+  let loc = marker env in
+  Expression.MapLiteral { loc; entries }
+
+and parse_set_literal env =
+  let marker = mark_loc env in
+  Env.expect env T_SET_OPEN;
+  let rec elements env =
+    match Env.token env with
+    | T_SET_CLOSE ->
+      Env.advance env;
+      []
+    | _ ->
+      let element = parse_expression env in
+      begin
+        match Env.token env with
+        | T_SET_CLOSE -> ()
+        | T_COMMA -> Env.advance env
+        | _ -> Env.expect env T_SET_CLOSE
+      end;
+      element :: elements env
+  in
+  let elements = elements env in
+  let loc = marker env in
+  Expression.SetLiteral { loc; elements }
 
 and parse_identifier env =
   match Env.token env with

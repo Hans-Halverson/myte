@@ -40,7 +40,9 @@ let expression_loc expr =
   | NamedAccess { loc; _ }
   | Match { loc; _ }
   | Super loc
-  | VecLiteral { loc; _ } ->
+  | VecLiteral { loc; _ }
+  | MapLiteral { loc; _ }
+  | SetLiteral { loc; _ } ->
     loc
 
 let pattern_loc patt =

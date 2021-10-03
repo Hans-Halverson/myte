@@ -1,0 +1,117 @@
+test/parser/set_literal/basic.myte
+{
+  node: Module,
+  loc: 1:0-8:1,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: Function,
+      loc: 3:0-8:1,
+      name: {
+        node: Identifier,
+        loc: 3:4-3:8,
+        name: "test",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 3:11-8:1,
+        statements: [
+          {
+            node: ExpressionStatement,
+            loc: 4:2-4:7,
+            expression: {
+              node: SetLiteral,
+              loc: 4:2-4:6,
+              elements: [],
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 5:2-5:8,
+            expression: {
+              node: SetLiteral,
+              loc: 5:2-5:7,
+              elements: [
+                {
+                  node: IntLiteral,
+                  loc: 5:4-5:5,
+                  raw: "1",
+                },
+              ],
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 6:2-6:14,
+            expression: {
+              node: SetLiteral,
+              loc: 6:2-6:13,
+              elements: [
+                {
+                  node: IntLiteral,
+                  loc: 6:4-6:5,
+                  raw: "1",
+                },
+                {
+                  node: IntLiteral,
+                  loc: 6:7-6:8,
+                  raw: "2",
+                },
+                {
+                  node: IntLiteral,
+                  loc: 6:10-6:11,
+                  raw: "3",
+                },
+              ],
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 7:2-7:15,
+            expression: {
+              node: SetLiteral,
+              loc: 7:2-7:14,
+              elements: [
+                {
+                  node: IntLiteral,
+                  loc: 7:4-7:5,
+                  raw: "1",
+                },
+                {
+                  node: IntLiteral,
+                  loc: 7:7-7:8,
+                  raw: "2",
+                },
+                {
+                  node: IntLiteral,
+                  loc: 7:10-7:11,
+                  raw: "3",
+                },
+              ],
+            },
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+      builtin: false,
+      static: false,
+      override: false,
+    },
+  ],
+}

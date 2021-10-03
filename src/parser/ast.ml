@@ -304,6 +304,28 @@ and Expression : sig
     }
   end
 
+  module MapLiteral : sig
+    module Entry : sig
+      type t = {
+        loc: Loc.t;
+        key: Expression.t;
+        value: Expression.t;
+      }
+    end
+
+    type t = {
+      loc: Loc.t;
+      entries: Entry.t list;
+    }
+  end
+
+  module SetLiteral : sig
+    type t = {
+      loc: Loc.t;
+      elements: Expression.t list;
+    }
+  end
+
   type t =
     | Unit of Unit.t
     | IntLiteral of IntLiteral.t
@@ -326,6 +348,8 @@ and Expression : sig
     | Match of Match.t
     | Super of Loc.t
     | VecLiteral of VecLiteral.t
+    | MapLiteral of MapLiteral.t
+    | SetLiteral of SetLiteral.t
 end =
   Expression
 

@@ -402,9 +402,6 @@ let rec tokenize lex =
   | ')' ->
     advance lex;
     token_result T_RIGHT_PAREN
-  | '{' ->
-    advance lex;
-    token_result T_LEFT_BRACE
   | '}' ->
     advance lex;
     token_result T_RIGHT_BRACE
@@ -428,6 +425,14 @@ let rec tokenize lex =
     | _ ->
       advance lex;
       token_result T_DIVIDE)
+  | '{' ->
+    (match peek lex with
+    | '|' ->
+      advance_two lex;
+      token_result T_SET_OPEN
+    | _ ->
+      advance lex;
+      token_result T_LEFT_BRACE)
   | '&' ->
     (match peek lex with
     | '&' ->
@@ -441,6 +446,9 @@ let rec tokenize lex =
     | '|' ->
       advance_two lex;
       token_result T_LOGICAL_OR
+    | '}' ->
+      advance_two lex;
+      token_result T_SET_CLOSE
     | _ ->
       advance lex;
       token_result T_PIPE)

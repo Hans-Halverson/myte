@@ -89,6 +89,8 @@
 				{ "include": "#parenthesized-expression" },
 				{ "include": "#bracketed-expression" },
 				{ "include": "#ternary-expression" },
+				{ "include": "#set-literal" },
+				{ "include": "#map-literal" },
 				{ "include": "#match" },
 				{
 					"name": "variable.language.this.myte",
@@ -334,6 +336,33 @@
 				}
 			]
 		},
+		"map-literal": {
+			"name": "meta.map-literal.myte",
+			"begin": "{",
+			"beginCaptures": {
+				"0": { "name": "punctuation.brackets.curly.myte" }
+			},
+			"end": "}",
+			"endCaptures": {
+				"0": { "name": "punctuation.brackets.curly.myte" }
+			},
+			"patterns": [
+				{ "include": "#expressions" },
+				{
+					"begin": ":",
+					"beginCaptures": {
+						"0": { "name": "punctuation.colon.myte" }
+					},
+					"end": "(,|(?=}))",
+					"endCaptures": {
+						"1": { "name": "punctuation.comma.myte" }
+					},
+					"patterns": [
+						{ "include": "#expressions" }
+					]
+				}
+			]
+		},
 		"match": {
 			"name": "meta.match.myte",
 			"begin": "\\b(match)\\b",
@@ -342,7 +371,25 @@
 			},
 			"end": "(?<=\\})",
 			"patterns": [
-				{ "include": "#expressions" },
+				{ "include": "#comments "},
+				{
+					"name": "meta.match.arguments.myte",
+					"begin": "\\(",
+					"beginCaptures": {
+						"0": { "name": "punctuation.brackets.round.myte" }
+					},
+					"end": "\\)",
+					"endCaptures": {
+						"0": { "name": "punctuation.brackets.round.myte" }
+					},
+					"patterns": [
+						{ "include": "#expressions" },
+						{
+							"name": "punctuation.comma.myte",
+							"match": ","
+						}
+					]
+				},
 				{
 					"name": "meta.match.body.myte",
 					"begin": "{",
@@ -627,6 +674,24 @@
 				}
 			]
 		},
+		"set-literal": {
+			"name": "meta.set-literal.myte",
+			"begin": "{\\|",
+			"beginCaptures": {
+				"0": { "name": "punctuation.brackets.set-open.myte" }
+			},
+			"end": "\\|}",
+			"endCaptures": {
+				"0": { "name": "punctuation.brackets.set-close.myte" }
+			},
+			"patterns": [
+				{ "include": "#expressions" },
+				{
+					"name": "punctuation.comma.myte",
+					"match": ","
+				}
+			]
+		},
 		"statements": {
 			"patterns": [
 				{ "include": "#comments" },
@@ -642,8 +707,9 @@
 				},
 				{ "include": "#for" },
 				{ "include": "#match" },
-				{ "include": "#expressions" },
-				{ "include": "#block" }
+				{ "include": "#set-literal" },
+				{ "include": "#block" },
+				{ "include": "#expressions" }
 			]
 		},
 		"string": {

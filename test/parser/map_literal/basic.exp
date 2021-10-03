@@ -1,0 +1,180 @@
+test/parser/map_literal/basic.myte
+{
+  node: Module,
+  loc: 1:0-8:1,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: Function,
+      loc: 3:0-8:1,
+      name: {
+        node: Identifier,
+        loc: 3:4-3:8,
+        name: "test",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 3:11-8:1,
+        statements: [
+          {
+            node: ExpressionStatement,
+            loc: 4:2-4:7,
+            expression: {
+              node: MapLiteral,
+              loc: 4:3-4:5,
+              entries: [],
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 5:2-5:13,
+            expression: {
+              node: MapLiteral,
+              loc: 5:3-5:11,
+              entries: [
+                {
+                  node: MapLiteralEntry,
+                  loc: 5:5-5:9,
+                  key: {
+                    node: IntLiteral,
+                    loc: 5:5-5:6,
+                    raw: "1",
+                  },
+                  value: {
+                    node: IntLiteral,
+                    loc: 5:8-5:9,
+                    raw: "2",
+                  },
+                },
+              ],
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 6:2-6:25,
+            expression: {
+              node: MapLiteral,
+              loc: 6:3-6:23,
+              entries: [
+                {
+                  node: MapLiteralEntry,
+                  loc: 6:5-6:9,
+                  key: {
+                    node: IntLiteral,
+                    loc: 6:5-6:6,
+                    raw: "1",
+                  },
+                  value: {
+                    node: IntLiteral,
+                    loc: 6:8-6:9,
+                    raw: "2",
+                  },
+                },
+                {
+                  node: MapLiteralEntry,
+                  loc: 6:11-6:15,
+                  key: {
+                    node: IntLiteral,
+                    loc: 6:11-6:12,
+                    raw: "3",
+                  },
+                  value: {
+                    node: IntLiteral,
+                    loc: 6:14-6:15,
+                    raw: "4",
+                  },
+                },
+                {
+                  node: MapLiteralEntry,
+                  loc: 6:17-6:21,
+                  key: {
+                    node: IntLiteral,
+                    loc: 6:17-6:18,
+                    raw: "5",
+                  },
+                  value: {
+                    node: IntLiteral,
+                    loc: 6:20-6:21,
+                    raw: "6",
+                  },
+                },
+              ],
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 7:2-7:32,
+            expression: {
+              node: MapLiteral,
+              loc: 7:3-7:30,
+              entries: [
+                {
+                  node: MapLiteralEntry,
+                  loc: 7:5-7:11,
+                  key: {
+                    node: StringLiteral,
+                    loc: 7:5-7:8,
+                    value: "a",
+                  },
+                  value: {
+                    node: IntLiteral,
+                    loc: 7:10-7:11,
+                    raw: "1",
+                  },
+                },
+                {
+                  node: MapLiteralEntry,
+                  loc: 7:13-7:19,
+                  key: {
+                    node: StringLiteral,
+                    loc: 7:13-7:16,
+                    value: "b",
+                  },
+                  value: {
+                    node: IntLiteral,
+                    loc: 7:18-7:19,
+                    raw: "2",
+                  },
+                },
+                {
+                  node: MapLiteralEntry,
+                  loc: 7:21-7:27,
+                  key: {
+                    node: StringLiteral,
+                    loc: 7:21-7:24,
+                    value: "c",
+                  },
+                  value: {
+                    node: IntLiteral,
+                    loc: 7:26-7:27,
+                    raw: "3",
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+      builtin: false,
+      static: false,
+      override: false,
+    },
+  ],
+}

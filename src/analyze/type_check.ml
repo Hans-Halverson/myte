@@ -1463,6 +1463,8 @@ and check_expression ~cx expr =
          (TVar tvar_id));
     (loc, tvar_id)
   | Super _ -> failwith "TODO: Type check super expressions"
+  | MapLiteral _ -> failwith "TODO: Type check map literals"
+  | SetLiteral _ -> failwith "TODO: Type check set literals"
 
 and check_match ~cx match_ right_ty =
   let open Ast.Match in

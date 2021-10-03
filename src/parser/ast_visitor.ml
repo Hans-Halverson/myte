@@ -66,6 +66,8 @@ class visitor =
         | Match e -> this#match_ e
         | Super e -> this#super e
         | VecLiteral e -> this#vec_literal e
+        | MapLiteral e -> this#map_literal e
+        | SetLiteral e -> this#set_literal e
 
     method pattern : Pattern.t -> unit =
       fun pat ->
@@ -205,6 +207,22 @@ class visitor =
 
     method vec_literal lit =
       let open Expression.VecLiteral in
+      let { loc = _; elements } = lit in
+      List.iter this#expression elements
+
+    method map_literal lit =
+      let open Expression.MapLiteral in
+      let { loc = _; entries } = lit in
+      List.iter this#map_literal_entry entries
+
+    method map_literal_entry entry =
+      let open Expression.MapLiteral.Entry in
+      let { loc = _; key; value } = entry in
+      this#expression key;
+      this#expression value
+
+    method set_literal lit =
+      let open Expression.SetLiteral in
       let { loc = _; elements } = lit in
       List.iter this#expression elements
 

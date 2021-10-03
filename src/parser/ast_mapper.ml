@@ -83,6 +83,8 @@ class mapper =
         | Match e -> id_map this#match_ e expr (fun e' -> Match e')
         | Super _ -> expr
         | VecLiteral e -> id_map this#vec_literal e expr (fun e' -> VecLiteral e')
+        | MapLiteral e -> id_map this#map_literal e expr (fun e' -> MapLiteral e')
+        | SetLiteral e -> id_map this#set_literal e expr (fun e' -> SetLiteral e')
 
     method pattern : Pattern.t -> Pattern.t =
       fun pat ->
@@ -287,6 +289,34 @@ class mapper =
 
     method vec_literal lit =
       let open Expression.VecLiteral in
+      let { loc; elements } = lit in
+      let elements' = List.map this#expression elements in
+      if elements == elements' then
+        lit
+      else
+        { loc; elements = elements' }
+
+    method map_literal lit =
+      let open Expression.MapLiteral in
+      let { loc; entries } = lit in
+      let entries' = List.map this#map_literal_entry entries in
+      if entries == entries' then
+        lit
+      else
+        { loc; entries = entries' }
+
+    method map_literal_entry entry =
+      let open Expression.MapLiteral.Entry in
+      let { loc; key; value } = entry in
+      let key' = this#expression key in
+      let value' = this#expression value in
+      if key == key' && value == value' then
+        entry
+      else
+        { loc; key = key'; value = value' }
+
+    method set_literal lit =
+      let open Expression.SetLiteral in
       let { loc; elements } = lit in
       let elements' = List.map this#expression elements in
       if elements == elements' then
