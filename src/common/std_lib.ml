@@ -178,6 +178,8 @@ let map_adt_sig = ref Types.AdtSig.empty
 
 let option_adt_sig = ref Types.AdtSig.empty
 
+let set_adt_sig = ref Types.AdtSig.empty
+
 let string_adt_sig = ref Types.AdtSig.empty
 
 let vec_adt_sig = ref Types.AdtSig.empty
@@ -244,6 +246,7 @@ let register_stdlib_type loc adt_sig =
   | Some name when name = std_long_long -> long_adt_sig := adt_sig
   | Some name when name = std_map_map -> map_adt_sig := adt_sig
   | Some name when name = std_option_option -> option_adt_sig := adt_sig
+  | Some name when name = std_set_set -> set_adt_sig := adt_sig
   | Some name when name = std_string_string -> string_adt_sig := adt_sig
   | Some name when name = std_vec_vec -> vec_adt_sig := adt_sig
   | Some name when name = std_unit_unit -> unit_adt_sig := adt_sig

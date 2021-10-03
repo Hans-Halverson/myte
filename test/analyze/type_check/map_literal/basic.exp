@@ -1,0 +1,54 @@
+Error: Cannot infer type for variable declaration. Partially inferred `Map<a, b>` but was unable to resolve `a` or `b`. Please provide additional type annotations.
+test/analyze/type_check/map_literal/basic.myte:5:2-14
+ 5 |   val x1 = {};
+   |   ^^^^^^^^^^^^
+
+Error: Expected type `Unit` but found `Map<Int, String>`
+test/analyze/type_check/map_literal/basic.myte:14:3-5
+ 14 |   (x4: Unit);
+    |    ^^
+
+Error: Expected type `Bool` but found `Int`
+test/analyze/type_check/map_literal/basic.myte:17:24
+ 17 |   val x5 = { true: "a", 1: "b", "a": "c" };
+    |                         ^
+
+Error: Expected type `Bool` but found `String`
+test/analyze/type_check/map_literal/basic.myte:17:32-35
+ 17 |   val x5 = { true: "a", 1: "b", "a": "c" };
+    |                                 ^^^
+
+Error: Expected type `Unit` but found `Map<Bool, String>`
+test/analyze/type_check/map_literal/basic.myte:19:3-5
+ 19 |   (x5: Unit);
+    |    ^^
+
+Error: Expected type `Bool` but found `Int`
+test/analyze/type_check/map_literal/basic.myte:22:29
+ 22 |   val x6 = { "a": true, "b": 1, "c": "c" };
+    |                              ^
+
+Error: Expected type `Bool` but found `String`
+test/analyze/type_check/map_literal/basic.myte:22:37-40
+ 22 |   val x6 = { "a": true, "b": 1, "c": "c" };
+    |                                      ^^^
+
+Error: Expected type `Unit` but found `Map<String, Bool>`
+test/analyze/type_check/map_literal/basic.myte:24:3-5
+ 24 |   (x6: Unit);
+    |    ^^
+
+Error: Expected type `String` but found `Int`
+test/analyze/type_check/map_literal/basic.myte:27:24
+ 27 |   val x7 = { "a": true, 1: false, "c": "c" };
+    |                         ^
+
+Error: Expected type `Bool` but found `String`
+test/analyze/type_check/map_literal/basic.myte:27:39-42
+ 27 |   val x7 = { "a": true, 1: false, "c": "c" };
+    |                                        ^^^
+
+Error: Expected type `Unit` but found `Map<String, Bool>`
+test/analyze/type_check/map_literal/basic.myte:29:3-5
+ 29 |   (x6: Unit);
+    |    ^^

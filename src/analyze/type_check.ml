@@ -1462,9 +1462,73 @@ and check_expression ~cx expr =
          (ADT { adt_sig = !Std_lib.vec_adt_sig; type_args = [TVar element_tvar_id] })
          (TVar tvar_id));
     (loc, tvar_id)
+  (*
+   * ============================
+   *         Map Literal
+   * ============================
+   *)
+  | MapLiteral { loc; entries } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    let (key_tvar_id, value_tvar_id) =
+      if entries = [] then
+        (* If there are no entries create new, unresolved tvars for key and value types *)
+        (TVar.mk (), TVar.mk ())
+      else
+        (* If there are entries, all key and value types must match *)
+        let entry_locs_and_tvar_ids =
+          List.map
+            (fun { MapLiteral.Entry.key; value; _ } ->
+              let key_loc_and_tvar_id = check_expression ~cx key in
+              let value_loc_and_tvar_id = check_expression ~cx value in
+              (key_loc_and_tvar_id, value_loc_and_tvar_id))
+            entries
+        in
+        let (((_, first_key_tvar_id), (_, first_value_tvar_id)), rest_locs_and_tvar_ids) =
+          List_utils.split_first entry_locs_and_tvar_ids
+        in
+        List.iter
+          (fun ((key_loc, key_tvar_id), (value_loc, value_tvar_id)) ->
+            Type_context.assert_unify ~cx key_loc (TVar first_key_tvar_id) (TVar key_tvar_id);
+            Type_context.assert_unify ~cx value_loc (TVar first_value_tvar_id) (TVar value_tvar_id))
+          rest_locs_and_tvar_ids;
+        (first_key_tvar_id, first_value_tvar_id)
+    in
+    ignore
+      (Type_context.unify
+         ~cx
+         (ADT { adt_sig = !Std_lib.map_adt_sig; type_args = [TVar key_tvar_id; TVar value_tvar_id] })
+         (TVar tvar_id));
+    (loc, tvar_id)
+  (*
+   * ============================
+   *         Set Literal
+   * ============================
+   *)
+  | SetLiteral { loc; elements } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    let element_tvar_id =
+      if elements = [] then
+        (* If there are no elements create new, unresolved tvar *)
+        TVar.mk ()
+      else
+        (* If there are elements, all element types must match *)
+        let element_locs_and_tvar_ids = List.map (check_expression ~cx) elements in
+        let ((_, first_tvar_id), rest_locs_and_tvar_ids) =
+          List_utils.split_first element_locs_and_tvar_ids
+        in
+        List.iter
+          (fun (element_loc, element_tvar_id) ->
+            Type_context.assert_unify ~cx element_loc (TVar first_tvar_id) (TVar element_tvar_id))
+          rest_locs_and_tvar_ids;
+        first_tvar_id
+    in
+    ignore
+      (Type_context.unify
+         ~cx
+         (ADT { adt_sig = !Std_lib.set_adt_sig; type_args = [TVar element_tvar_id] })
+         (TVar tvar_id));
+    (loc, tvar_id)
   | Super _ -> failwith "TODO: Type check super expressions"
-  | MapLiteral _ -> failwith "TODO: Type check map literals"
-  | SetLiteral _ -> failwith "TODO: Type check set literals"
 
 and check_match ~cx match_ right_ty =
   let open Ast.Match in

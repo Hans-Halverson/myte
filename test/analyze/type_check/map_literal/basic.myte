@@ -1,0 +1,30 @@
+module test
+
+fun main() {
+  // Error since key and value types are unknown
+  val x1 = {};
+
+  // No error since key and value types are known
+  val x2: Map<Int, String> = {};
+  val x3: Map<Bool, Unit> = {};
+
+  // Can infer type from entries
+  val x4 = { 1: "a", 2: "b" };
+  // Intentional error to print type
+  (x4: Unit);
+
+  // Key type mismatch, but overall expression typed with first key type
+  val x5 = { true: "a", 1: "b", "a": "c" };
+  // Intentional error to print type
+  (x5: Unit);
+
+  // Value type mismatch, but overall expression typed with first value type
+  val x6 = { "a": true, "b": 1, "c": "c" };
+  // Intentional error to print type
+  (x6: Unit);
+
+  // Key and value type mismatches
+  val x7 = { "a": true, 1: false, "c": "c" };
+  // Intentional error to print type
+  (x6: Unit);
+}

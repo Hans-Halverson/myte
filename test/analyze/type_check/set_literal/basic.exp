@@ -1,0 +1,24 @@
+Error: Cannot infer type for variable declaration. Partially inferred `Set<a>` but was unable to resolve `a`. Please provide additional type annotations.
+test/analyze/type_check/set_literal/basic.myte:5:2-16
+ 5 |   val x1 = {||};
+   |   ^^^^^^^^^^^^^^
+
+Error: Expected type `Unit` but found `Set<Int>`
+test/analyze/type_check/set_literal/basic.myte:14:3-5
+ 14 |   (x4: Unit);
+    |    ^^
+
+Error: Expected type `Bool` but found `Int`
+test/analyze/type_check/set_literal/basic.myte:17:19
+ 17 |   val x5 = {|true, 1, "a"|};
+    |                    ^
+
+Error: Expected type `Bool` but found `String`
+test/analyze/type_check/set_literal/basic.myte:17:22-25
+ 17 |   val x5 = {|true, 1, "a"|};
+    |                       ^^^
+
+Error: Expected type `Unit` but found `Set<Bool>`
+test/analyze/type_check/set_literal/basic.myte:19:3-5
+ 19 |   (x5: Unit);
+    |    ^^
