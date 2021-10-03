@@ -89,6 +89,7 @@ class visitor =
         | Identifier t -> this#identifier_type t
         | Tuple t -> this#tuple_type t
         | Function t -> this#function_type t
+        | Trait t -> this#trait_type t
 
     method identifier _id = ()
 
@@ -445,4 +446,9 @@ class visitor =
       let { loc = _; params; return } = func in
       List.iter this#type_ params;
       this#type_ return
+
+    method trait_type trait =
+      let open Type.Trait in
+      let { loc = _; trait } = trait in
+      this#identifier_type trait
   end

@@ -1430,6 +1430,7 @@ and parse_type_prefix env =
   match Env.token env with
   | T_LEFT_PAREN -> parse_parenthesized_type env
   | T_IDENTIFIER _ -> Identifier (parse_identifier_type env)
+  | T_TRAIT -> parse_trait_type env
   | token -> Parse_error.fatal (Env.loc env, MalformedType token)
 
 and parse_parenthesized_type env =
@@ -1515,6 +1516,14 @@ and parse_function_type env params marker =
   let return = parse_type env in
   let loc = marker env in
   Function { Function.loc; params; return }
+
+and parse_trait_type env =
+  let open Ast.Type in
+  let marker = mark_loc env in
+  Env.expect env T_TRAIT;
+  let trait = parse_identifier_type env in
+  let loc = marker env in
+  Trait { loc; trait }
 
 and parse_type_param_bounds env =
   let bound = parse_identifier_type env in

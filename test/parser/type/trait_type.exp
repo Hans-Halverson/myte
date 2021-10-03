@@ -1,0 +1,199 @@
+test/parser/type/trait_type.myte
+{
+  node: Module,
+  loc: 1:0-9:35,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: TypeDeclaration,
+      loc: 3:0-3:24,
+      name: {
+        node: Identifier,
+        loc: 3:11-3:12,
+        name: "T",
+      },
+      type_params: [],
+      alias: {
+        node: TraitType,
+        loc: 3:15-3:24,
+        trait: {
+          node: IdentifierType,
+          loc: 3:21-3:24,
+          name: {
+            node: ScopedIdentifier,
+            loc: 3:21-3:24,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 3:21-3:24,
+              name: "Foo",
+            },
+          },
+          type_args: [],
+        },
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 5:0-5:27,
+      name: {
+        node: Identifier,
+        loc: 5:11-5:12,
+        name: "T",
+      },
+      type_params: [],
+      alias: {
+        node: TraitType,
+        loc: 5:15-5:27,
+        trait: {
+          node: IdentifierType,
+          loc: 5:21-5:27,
+          name: {
+            node: ScopedIdentifier,
+            loc: 5:21-5:24,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 5:21-5:24,
+              name: "Foo",
+            },
+          },
+          type_args: [
+            {
+              node: IdentifierType,
+              loc: 5:25-5:26,
+              name: {
+                node: ScopedIdentifier,
+                loc: 5:25-5:26,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 5:25-5:26,
+                  name: "T",
+                },
+              },
+              type_args: [],
+            },
+          ],
+        },
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 7:0-7:37,
+      name: {
+        node: Identifier,
+        loc: 7:11-7:12,
+        name: "T",
+      },
+      type_params: [],
+      alias: {
+        node: TupleType,
+        loc: 7:15-7:37,
+        elements: [
+          {
+            node: TraitType,
+            loc: 7:16-7:25,
+            trait: {
+              node: IdentifierType,
+              loc: 7:22-7:25,
+              name: {
+                node: ScopedIdentifier,
+                loc: 7:22-7:25,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 7:22-7:25,
+                  name: "Foo",
+                },
+              },
+              type_args: [],
+            },
+          },
+          {
+            node: TraitType,
+            loc: 7:27-7:36,
+            trait: {
+              node: IdentifierType,
+              loc: 7:33-7:36,
+              name: {
+                node: ScopedIdentifier,
+                loc: 7:33-7:36,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 7:33-7:36,
+                  name: "Bar",
+                },
+              },
+              type_args: [],
+            },
+          },
+        ],
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 9:0-9:35,
+      name: {
+        node: Identifier,
+        loc: 9:11-9:12,
+        name: "T",
+      },
+      type_params: [],
+      alias: {
+        node: TraitType,
+        loc: 9:15-9:35,
+        trait: {
+          node: IdentifierType,
+          loc: 9:21-9:35,
+          name: {
+            node: ScopedIdentifier,
+            loc: 9:21-9:24,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 9:21-9:24,
+              name: "Foo",
+            },
+          },
+          type_args: [
+            {
+              node: TraitType,
+              loc: 9:25-9:34,
+              trait: {
+                node: IdentifierType,
+                loc: 9:31-9:34,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 9:31-9:34,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 9:31-9:34,
+                    name: "Bar",
+                  },
+                },
+                type_args: [],
+              },
+            },
+          ],
+        },
+      },
+    },
+  ],
+}

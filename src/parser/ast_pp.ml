@@ -184,6 +184,7 @@ and node_of_type ty =
   | Identifier id -> node_of_identifier_type id
   | Tuple tuple -> node_of_tuple_type tuple
   | Function func -> node_of_function_type func
+  | Trait trait -> node_of_trait_type trait
 
 and node_of_expression_stmt (loc, expr) =
   node "ExpressionStatement" loc [("expression", node_of_expression expr)]
@@ -629,6 +630,10 @@ and node_of_function_type func =
     "FunctionType"
     loc
     [("params", List (List.map node_of_type params)); ("return", node_of_type return)]
+
+and node_of_trait_type trait =
+  let { Type.Trait.loc; trait } = trait in
+  node "TraitType" loc [("trait", node_of_identifier_type trait)]
 
 and pp_module mod_ =
   let node = node_of_module mod_ in

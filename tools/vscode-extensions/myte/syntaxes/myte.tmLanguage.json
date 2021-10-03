@@ -846,17 +846,19 @@
 					"match": "->"
 				},
 				{
-					"match": "\\b(\\w+)\\s*(\\.)",
+					"match": "(\\btrait)?\\s*\\b(\\w+)\\s*(\\.)",
 					"captures": {
-						"1": { "name": "entity.name.type.myte" },
-						"2": { "name": "keyword.operator.accessor.myte" }
+						"1": { "name": "storage.modifier.myte" },
+						"2": { "name": "entity.name.type.myte" },
+						"3": { "name": "keyword.operator.accessor.myte" }
 					}
 				},
 				{
-					"begin": "\\b(\\w+)\\s*(<)",
+					"begin": "(\\btrait)?\\s*\\b(\\w+)\\s*(<)",
 					"beginCaptures": {
-						"1": { "name": "entity.name.type.myte" },
-						"2": { "name": "punctuation.brackets.angle.myte" }
+						"1": { "name": "storage.modifier.myte" },
+						"2": { "name": "entity.name.type.myte" },
+						"3": { "name": "punctuation.brackets.angle.myte" }
 					},
 					"end": ">",
 					"endCaptures": {
@@ -867,7 +869,14 @@
 					]
 				},
 				{
-					"name": "entity.name.type.myte",
+					"match": "\\b(trait)\\s+(\\w+)\\b",
+					"captures": {
+						"1": { "name": "storage.modifier.myte" },
+						"2": { "name": "entity.name.type.myte" }
+					}
+				},
+				{
+					"name": "entity.name.type.myte meta.hello",
 					"match": "\\w+"
 				}
 			]
@@ -886,10 +895,16 @@
 					"patterns": [
 						{ "include": "#type-parameters" },
 						{
-							"name": "keyword.operator.assignment.myte",
-							"match": "="
-						},
-						{ "include": "#types" }
+							"begin": "(=)\\s*(trait\\b)?",
+							"beginCaptures": {
+								"1": { "name": "keyword.operator.assigment.myte" },
+								"2": { "name": "storage.modifier.myte" }
+							},
+							"end": "(?=\\b(module|import|fun|methods|trait|type|val|var|builtin)\\b)",
+							"patterns": [
+								{ "include": "#types" }
+							]
+						}
 					]
 				},
 				{

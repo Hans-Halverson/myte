@@ -63,7 +63,8 @@ let type_loc ty =
   match ty with
   | Identifier { loc; _ }
   | Tuple { loc; _ }
-  | Function { loc; _ } ->
+  | Function { loc; _ }
+  | Trait { loc; _ } ->
     loc
 
 let ids_of_pattern patt =

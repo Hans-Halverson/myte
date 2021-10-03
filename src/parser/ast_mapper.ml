@@ -106,6 +106,7 @@ class mapper =
         | Identifier t -> id_map this#identifier_type t ty (fun t' -> Identifier t')
         | Tuple t -> id_map this#tuple_type t ty (fun t' -> Tuple t')
         | Function t -> id_map this#function_type t ty (fun t' -> Function t')
+        | Trait t -> id_map this#trait_type t ty (fun t' -> Trait t')
 
     method identifier id = id
 
@@ -669,4 +670,13 @@ class mapper =
         func
       else
         { loc; params = params'; return = return' }
+
+    method trait_type trait_type =
+      let open Type.Trait in
+      let { loc; trait } = trait_type in
+      let trait' = this#identifier_type trait in
+      if trait == trait' then
+        trait_type
+      else
+        { loc; trait = trait' }
   end

@@ -446,10 +446,18 @@ and Type : sig
     }
   end
 
+  module Trait : sig
+    type t = {
+      loc: Loc.t;
+      trait: Identifier.t;
+    }
+  end
+
   type t =
     | Identifier of Identifier.t
     | Tuple of Tuple.t
     | Function of Function.t
+    | Trait of Trait.t
 end =
   Type
 

@@ -118,6 +118,7 @@ let rec build_type ~cx ?(check_type_param_bounds = true) ?(trait_ctx = TraitDisa
               Type.TypeParam type_param
             | _ -> Type.TraitBound bound
           ))))
+  | Trait _ -> failwith "TODO: Type check trait types"
 
 (* Build type parameters for all types, alias, and traits. Type parameter bounds are built, but
    are not yet checked for correctness. *)

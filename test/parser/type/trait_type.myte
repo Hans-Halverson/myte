@@ -1,0 +1,9 @@
+module test
+
+type alias T = trait Foo
+
+type alias T = trait Foo<T>
+
+type alias T = (trait Foo, trait Bar)
+
+type alias T = trait Foo<trait Bar>
