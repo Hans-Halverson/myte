@@ -63,7 +63,10 @@ methods Map<K: Equatable & Hashable, V> {
    */
   fun add(key: K, value: V) {
     if (this.size >= this.capacity / 2) {
-      this.resize();
+      // Double capacity to next power of two (starting at two)
+      val oldCapacity = this.capacity;
+      val newCapacity = oldCapacity == 0 ? 2 : oldCapacity * 2;
+      this.resize(newCapacity);
     }
 
     this.insert(key, value, key.hash());
@@ -83,7 +86,28 @@ methods Map<K: Equatable & Hashable, V> {
       }
     }
   }
-  
+
+  /**
+   * Reserve space in the map for at least a given number of entries. This may force the map to be
+   * resized.
+   */
+  fun reserve(capacity: Int) {
+    // Round (capacity * 2) up to nearest power of two
+    var newCapacity = (capacity * 2) - 1;
+
+    newCapacity = newCapacity | (newCapacity >> 1);
+    newCapacity = newCapacity | (newCapacity >> 2);
+    newCapacity = newCapacity | (newCapacity >> 4);
+    newCapacity = newCapacity | (newCapacity >> 8);
+    newCapacity = newCapacity | (newCapacity >> 16);
+
+    newCapacity = newCapacity + 1;
+
+    if (newCapacity > this.capacity) {
+      this.resize(newCapacity);
+    }
+  }
+
   fun entryOffsetCost(entryTrueIndex: Int, entryHash: Int): Int {
     val capacityMask = this.capacityMask;
     val entryHashedIndex = entryHash & this.capacityMask;
@@ -190,10 +214,8 @@ methods Map<K: Equatable & Hashable, V> {
     }
   }
 
-  fun resize() {
-    // Double capacity to next power of two (starting at 4)
+  fun resize(newCapacity: Int) {
     val oldCapacity = this.capacity;
-    val newCapacity = oldCapacity == 0 ? 2 : oldCapacity * 2;
     this.capacity = newCapacity;
     this.capacityMask = newCapacity - 1;
     this.size = 0;

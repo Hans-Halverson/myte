@@ -785,9 +785,56 @@ and emit_expression ~ecx expr =
     emit_field_store "size" size_val;
     emit_field_store "capacity" size_val;
     vec_ptr_val
+  (*
+   * ============================
+   *         Map Literal
+   * ============================
+   *)
+  | MapLiteral { loc; entries } ->
+    (* Create new map by calling `Map.new` *)
+    let map_ty = type_of_loc ~ecx loc in
+    let map_mir_type = type_to_mir_type ~ecx map_ty in
+    let (map_type_args, _) = Type_util.cast_to_adt_type map_ty in
+    let map_ptr_val = emit_call_map_new ~ecx map_mir_type map_type_args in
+
+    (* Reserve capacity for all entries in map literal by calling map's `reserve` method *)
+    ( if List.length entries > 1 then
+      let capacity_val = `IntL (Int32.of_int (List.length entries)) in
+      emit_call_map_reserve ~ecx map_type_args map_ptr_val capacity_val );
+
+    (* Add all entries to map by calling map's `add` method *)
+    List.iter
+      (fun { MapLiteral.Entry.key; value; _ } ->
+        let key_val = emit_expression ~ecx key in
+        let value_val = emit_expression ~ecx value in
+        emit_call_map_add ~ecx map_type_args map_ptr_val key_val value_val)
+      entries;
+    map_ptr_val
+  (*
+   * ============================
+   *         Set Literal
+   * ============================
+   *)
+  | SetLiteral { loc; elements } ->
+    (* Create new set by calling `Set.new` *)
+    let set_ty = type_of_loc ~ecx loc in
+    let set_mir_type = type_to_mir_type ~ecx set_ty in
+    let (set_type_args, _) = Type_util.cast_to_adt_type set_ty in
+    let set_ptr_val = emit_call_set_new ~ecx set_mir_type set_type_args in
+
+    (* Reserve capacity for all entries in set literal by calling set's `reserve` method *)
+    ( if List.length elements > 1 then
+      let capacity_val = `IntL (Int32.of_int (List.length elements)) in
+      emit_call_set_reserve ~ecx set_type_args set_ptr_val capacity_val );
+
+    (* Add all entries to set by calling set's `add` method *)
+    List.iter
+      (fun element ->
+        let element_val = emit_expression ~ecx element in
+        emit_call_set_add ~ecx set_type_args set_ptr_val element_val)
+      elements;
+    set_ptr_val
   | Super _ -> failwith "TODO: Emit MIR for super expressions"
-  | MapLiteral _ -> failwith "TODO: Emit MIR for map literals"
-  | SetLiteral _ -> failwith "TODO: Emit MIR for set literals"
 
 and emit_string_literal ~ecx loc value =
   let string_global_ptr = Ecx.add_string_literal ~ecx loc value in
@@ -1219,22 +1266,117 @@ and emit_call_map_get ~ecx return_loc map_type_args map_var index_var =
   Ecx.emit ~ecx (Call (var_id, ret_ty, `FunctionL func_name, [map_var; index_var]));
   var_value_of_type var_id ret_ty
 
-and emit_call_map_set ~ecx map_type_args map_var index_var expr_var =
-  (* Get full name for Vec's `set` method *)
-  let map_get_method_sig = Types.AdtSig.lookup_method !Std_lib.map_adt_sig "add" |> Option.get in
-  let map_get_binding = Bindings.get_value_binding ecx.Ecx.pcx.bindings map_get_method_sig.loc in
-  let map_get_name = mk_value_binding_name map_get_binding in
+and emit_call_map_add ~ecx map_type_args map_var index_var expr_var =
+  (* Get full name for Map's `add` method *)
+  let map_add_method_sig = Types.AdtSig.lookup_method !Std_lib.map_adt_sig "add" |> Option.get in
+  let map_add_binding = Bindings.get_value_binding ecx.Ecx.pcx.bindings map_add_method_sig.loc in
+  let map_add_name = mk_value_binding_name map_add_binding in
   (* Find element type and instantiate Map's `add` method *)
   let func_name =
     Ecx.add_necessary_func_instantiation
       ~ecx
-      map_get_name
-      map_get_method_sig.trait_sig.type_params
+      map_add_name
+      map_add_method_sig.trait_sig.type_params
       map_type_args
   in
-  (* Emit call of Map's `set` method *)
+  (* Emit call of Map's `add` method *)
   let var_id = mk_var_id () in
   Ecx.emit ~ecx (Call (var_id, `UnitT, `FunctionL func_name, [map_var; index_var; expr_var]))
+
+and emit_call_map_reserve ~ecx map_type_args map_val capacity_val =
+  (* Get full name for Map's `reserve` method *)
+  let map_reserve_method_sig =
+    Types.AdtSig.lookup_method !Std_lib.map_adt_sig "reserve" |> Option.get
+  in
+  let map_reserve_binding =
+    Bindings.get_value_binding ecx.Ecx.pcx.bindings map_reserve_method_sig.loc
+  in
+  let map_reserve_name = mk_value_binding_name map_reserve_binding in
+  (* Find element type and instantiate Map's `reserve` method *)
+  let func_name =
+    Ecx.add_necessary_func_instantiation
+      ~ecx
+      map_reserve_name
+      map_reserve_method_sig.trait_sig.type_params
+      map_type_args
+  in
+  (* Emit call of Map's `reserve` method *)
+  let var_id = mk_var_id () in
+  Ecx.emit ~ecx (Call (var_id, `UnitT, `FunctionL func_name, [map_val; capacity_val]))
+
+and emit_call_map_new ~ecx return_mir_type map_type_args =
+  let decl_loc = Std_lib.lookup_stdlib_decl_loc Std_lib.std_map_map_new in
+  let binding = Bindings.get_value_binding ecx.Ecx.pcx.bindings decl_loc in
+  let func_name =
+    match binding.declaration with
+    | FunDecl { Bindings.FunctionDeclaration.type_params; _ } ->
+      let func_name = mk_value_binding_name binding in
+      let func_name =
+        Ecx.add_necessary_func_instantiation ~ecx func_name type_params map_type_args
+      in
+      func_name
+    | _ -> failwith "Expected function declaration"
+  in
+  (* Emit call of Map's `new` function *)
+  let var_id = mk_var_id () in
+  Ecx.emit ~ecx (Call (var_id, return_mir_type, `FunctionL func_name, []));
+  var_value_of_type var_id return_mir_type
+
+and emit_call_set_add ~ecx set_type_args set_val element_val =
+  (* Get full name for set's `add` method *)
+  let set_add_method_sig = Types.AdtSig.lookup_method !Std_lib.set_adt_sig "add" |> Option.get in
+  let set_add_binding = Bindings.get_value_binding ecx.Ecx.pcx.bindings set_add_method_sig.loc in
+  let set_add_name = mk_value_binding_name set_add_binding in
+  (* Find element type and instantiate set's `add` method *)
+  let func_name =
+    Ecx.add_necessary_func_instantiation
+      ~ecx
+      set_add_name
+      set_add_method_sig.trait_sig.type_params
+      set_type_args
+  in
+  (* Emit call of set's `add` method *)
+  let var_id = mk_var_id () in
+  Ecx.emit ~ecx (Call (var_id, `UnitT, `FunctionL func_name, [set_val; element_val]))
+
+and emit_call_set_reserve ~ecx set_type_args set_val capacity_val =
+  (* Get full name for set's `reserve` method *)
+  let set_reserve_method_sig =
+    Types.AdtSig.lookup_method !Std_lib.set_adt_sig "reserve" |> Option.get
+  in
+  let set_reserve_binding =
+    Bindings.get_value_binding ecx.Ecx.pcx.bindings set_reserve_method_sig.loc
+  in
+  let set_reserve_name = mk_value_binding_name set_reserve_binding in
+  (* Find element type and instantiate set's `reserve` method *)
+  let func_name =
+    Ecx.add_necessary_func_instantiation
+      ~ecx
+      set_reserve_name
+      set_reserve_method_sig.trait_sig.type_params
+      set_type_args
+  in
+  (* Emit call of set's `reserve` method *)
+  let var_id = mk_var_id () in
+  Ecx.emit ~ecx (Call (var_id, `UnitT, `FunctionL func_name, [set_val; capacity_val]))
+
+and emit_call_set_new ~ecx return_mir_type set_type_args =
+  let decl_loc = Std_lib.lookup_stdlib_decl_loc Std_lib.std_set_set_new in
+  let binding = Bindings.get_value_binding ecx.Ecx.pcx.bindings decl_loc in
+  let func_name =
+    match binding.declaration with
+    | FunDecl { Bindings.FunctionDeclaration.type_params; _ } ->
+      let func_name = mk_value_binding_name binding in
+      let func_name =
+        Ecx.add_necessary_func_instantiation ~ecx func_name type_params set_type_args
+      in
+      func_name
+    | _ -> failwith "Expected function declaration"
+  in
+  (* Emit call of set's `new` function *)
+  let var_id = mk_var_id () in
+  Ecx.emit ~ecx (Call (var_id, return_mir_type, `FunctionL func_name, []));
+  var_value_of_type var_id return_mir_type
 
 and emit_store_tag ~ecx tag ptr_var_id =
   let tag = (tag :> Value.t) in
@@ -1557,12 +1699,12 @@ and emit_statement ~ecx stmt =
         let index_var = emit_expression ~ecx index in
         let expr_var = emit_expression ~ecx expr in
         emit_call_vec_set ~ecx loc target_var index_var expr_var
-      (* If indexing a map, call Map's `set` method instead of emitting access chain *)
+      (* If indexing a map, call Map's `add` method instead of emitting access chain *)
       | ADT { adt_sig; type_args } when adt_sig == !Std_lib.map_adt_sig ->
         let target_var = emit_expression ~ecx target in
         let index_var = emit_expression ~ecx index in
         let expr_var = emit_expression ~ecx expr in
-        emit_call_map_set ~ecx type_args target_var index_var expr_var
+        emit_call_map_add ~ecx type_args target_var index_var expr_var
       | _ -> emit_expression_access_chain_store ~ecx expr_lvalue expr)
     | Assignment.Expression (NamedAccess _ as expr_lvalue) ->
       emit_expression_access_chain_store ~ecx expr_lvalue expr

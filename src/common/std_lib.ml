@@ -88,6 +88,12 @@ let std_long_long_toInt = "std.long.Long.toInt"
 
 let std_map_map = "std.map.Map"
 
+let std_map_map_add = "std.map.Map.add"
+
+let std_map_map_new = "std.map.Map.new"
+
+let std_map_map_reserve = "std.map.Map.reserve"
+
 let std_memory_array = "std.memory.Array"
 
 let std_memory_array_copy = "std.memory.Array.copy"
@@ -109,6 +115,12 @@ let std_result_ok = "std.result.Ok"
 let std_result_result = "std.result.Result"
 
 let std_set_set = "std.set.Set"
+
+let std_set_set_add = "std.set.Set.add"
+
+let std_set_set_new = "std.set.Set.new"
+
+let std_set_set_reserve = "std.set.Set.reserve"
 
 let std_string_string = "std.string.String"
 
@@ -144,6 +156,9 @@ let all_stdlib_names =
       std_long_long_toByte;
       std_long_long_toInt;
       std_map_map;
+      std_map_map_add;
+      std_map_map_new;
+      std_map_map_reserve;
       std_memory_array;
       std_memory_array_copy;
       std_memory_array_new;
@@ -155,6 +170,9 @@ let all_stdlib_names =
       std_result_ok;
       std_result_result;
       std_set_set;
+      std_set_set_add;
+      std_set_set_new;
+      std_set_set_reserve;
       std_string_string;
       std_string_tostring;
       std_sys_exit;

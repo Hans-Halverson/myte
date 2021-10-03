@@ -1,0 +1,77 @@
+module test
+
+import std.test.{assertEqual, assertMapEqual, assertSome}
+
+fun testEmpty() {
+  val x: Map<Int, Byte> = {};
+  assertEqual(x.size, 0);
+
+  x.add(3, 4);
+  assertEqual(x.size, 1);
+  assertSome(x[3], 4);
+
+  val x: Map<Bool, Long> = {};
+  assertEqual(x.size, 0);
+
+  x.add(true, 9);
+  assertEqual(x.size, 1);
+  assertSome(x[true], 9);
+}
+
+fun testSingleElement() {
+  val x = { 7: 8 };
+  assertEqual(x.size, 1);
+  assertSome(x[7], 8);
+
+  x.add(9, 10);
+  assertEqual(x.size, 2);
+  assertSome(x[7], 8);
+  assertSome(x[9], 10);
+
+  val x = { true: "true" };
+  assertEqual(x.size, 1);
+  assertSome(x[true], "true");
+
+  x.add(false, "false");
+  assertEqual(x.size, 2);
+  assertSome(x[true], "true");
+  assertSome(x[false], "false");
+}
+
+fun testMultipleElements() {
+  val x = { 3: 33, 4: 44, 5: 55 };
+  assertEqual(x.size, 3);
+  assertSome(x[3], 33);
+  assertSome(x[4], 44);
+  assertSome(x[5], 55);
+
+  x.add(6, 66);
+  assertEqual(x.size, 4);
+  assertSome(x[3], 33);
+  assertSome(x[4], 44);
+  assertSome(x[5], 55);
+  assertSome(x[6], 66);
+
+  val x = { "a": true, "b": false, "c": false, "d": true };
+  assertEqual(x.size, 4);
+  assertMapEqual(x, { "a": true, "b": false, "c": false, "d": true });
+
+  x.add("e", true);
+  assertEqual(x.size, 5);
+  assertMapEqual(x, { "a": true, "b": false, "c": false, "d": true, "e": true });
+}
+
+fun testDuplicateKey() {
+  val x = { 3: 33, 4: 44, 5: 55, 3: 66 };
+  assertEqual(x.size, 3);
+  assertSome(x[3], 66);
+  assertSome(x[4], 44);
+  assertSome(x[5], 55);
+}
+
+fun main() {
+  testEmpty();
+  testSingleElement();
+  testMultipleElements();
+  testDuplicateKey();
+}

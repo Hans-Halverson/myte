@@ -1,0 +1,77 @@
+module test
+
+import std.test.{assertEqual, assertSetEqual, assertTrue}
+
+fun testEmpty() {
+  val x: Set<Int> = {||};
+  assertEqual(x.size(), 0);
+
+  x.add(3);
+  assertEqual(x.size(), 1);
+  assertTrue(x.contains(3));
+
+  val y: Set<Bool> = {||};
+  assertEqual(y.size(), 0);
+
+  y.add(true);
+  assertEqual(y.size(), 1);
+  assertTrue(y.contains(true));
+}
+
+fun testSingleElement() {
+  val x = {| 7 |};
+  assertEqual(x.size(), 1);
+  assertTrue(x.contains(7));
+
+  x.add(8);
+  assertEqual(x.size(), 2);
+  assertTrue(x.contains(7));
+  assertTrue(x.contains(8));
+
+  val x = {| true |};
+  assertEqual(x.size(), 1);
+  assertTrue(x.contains(true));
+
+  x.add(false);
+  assertEqual(x.size(), 2);
+  assertTrue(x.contains(true));
+  assertTrue(x.contains(false));
+}
+
+fun testMultipleElements() {
+  val x = {| 3, 4, 5 |};
+  assertEqual(x.size(), 3);
+  assertTrue(x.contains(3));
+  assertTrue(x.contains(4));
+  assertTrue(x.contains(5));
+
+  x.add(6);
+  assertEqual(x.size(), 4);
+  assertTrue(x.contains(3));
+  assertTrue(x.contains(4));
+  assertTrue(x.contains(5));
+  assertTrue(x.contains(6));
+
+  val x = {| "a", "b", "c", "d" |};
+  assertEqual(x.size(), 4);
+  assertSetEqual(x, {| "a", "b", "c", "d" |});
+
+  x.add("e");
+  assertEqual(x.size(), 5);
+  assertSetEqual(x, {| "a", "b", "c", "d", "e" |});
+}
+
+fun testDuplicateElement() {
+  val x = {| 3, 4, 5, 3, 4 |};
+  assertEqual(x.size(), 3);
+  assertTrue(x.contains(3));
+  assertTrue(x.contains(4));
+  assertTrue(x.contains(5));
+}
+
+fun main() {
+  testEmpty();
+  testSingleElement();
+  testMultipleElements();
+  testDuplicateElement();
+}

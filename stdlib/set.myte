@@ -40,6 +40,12 @@ methods Set<T: Equatable & Hashable> {
    * the map.
    */
   fun remove(item: T): Bool = this[0].remove(item)
+
+  /**
+   * Reserve space in the set for at least a given number of elements. This may force the set to be
+   * resized.
+   */
+  fun reserve(capacity: Int) = this[0].reserve(capacity)
 }
 
 methods Set<T: Equatable & Hashable> {

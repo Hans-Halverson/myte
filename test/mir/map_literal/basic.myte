@@ -1,0 +1,18 @@
+module test
+
+fun emptyMap() {
+  val x: Map<Int, String> = {};
+  val y: Map<Bool, Unit> = {};
+}
+
+fun oneEntryMap() {
+  ({ 1: true });
+  ({ (2: Byte): (3: Long) });
+}
+
+fun multiEntryMap() {
+  ({ 5: true, 6: false, 7: true });
+  ({ false: 3, true: 4, false: 5, true: 6 });
+}
+
+fun main() {}

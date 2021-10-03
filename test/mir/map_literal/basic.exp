@@ -1,0 +1,32 @@
+func unit @test.emptyMap() {
+  %0 := Call std.map.Map<int,std.string.String*>* @std.map.Map.new<int,std.string.String*>()
+  %1 := Call std.map.Map<bool,unit>* @std.map.Map.new<bool,unit>()
+  Ret
+}
+
+func unit @test.oneEntryMap() {
+  %2 := Call std.map.Map<int,bool>* @std.map.Map.new<int,bool>()
+  %3 := Call unit @std.map.Map.add<int,bool>(%2, 1, true)
+  %4 := Call std.map.Map<byte,long>* @std.map.Map.new<byte,long>()
+  %5 := Call unit @std.map.Map.add<byte,long>(%4, 2, 3)
+  Ret
+}
+
+func unit @test.multiEntryMap() {
+  %6 := Call std.map.Map<int,bool>* @std.map.Map.new<int,bool>()
+  %7 := Call unit @std.map.Map.reserve<int,bool>(%6, 3)
+  %8 := Call unit @std.map.Map.add<int,bool>(%6, 5, true)
+  %9 := Call unit @std.map.Map.add<int,bool>(%6, 6, false)
+  %10 := Call unit @std.map.Map.add<int,bool>(%6, 7, true)
+  %11 := Call std.map.Map<bool,int>* @std.map.Map.new<bool,int>()
+  %12 := Call unit @std.map.Map.reserve<bool,int>(%11, 4)
+  %13 := Call unit @std.map.Map.add<bool,int>(%11, false, 3)
+  %14 := Call unit @std.map.Map.add<bool,int>(%11, true, 4)
+  %15 := Call unit @std.map.Map.add<bool,int>(%11, false, 5)
+  %16 := Call unit @std.map.Map.add<bool,int>(%11, true, 6)
+  Ret
+}
+
+func int @test.main() {
+  Ret 0
+}

@@ -1,8 +1,11 @@
 module std.test
 
 import std.bool.Bool
+import std.hash.Hashable
+import std.map.Map
 import std.ops.Equatable
 import std.option.{None, Option, Some}
+import std.set.Set
 import std.sys.exit
 import std.vec.Vec
 
@@ -55,5 +58,24 @@ fun assertVecEqual<T: Equatable>(actual: Vec<T>, expected: Vec<T>) {
 
   for (i in 0.to(actual.size)) {
     assertEqual(actual[i], expected[i]);
+  }
+}
+
+fun assertMapEqual<K: Equatable & Hashable, V: Equatable>(actual: Map<K, V>, expected: Map<K, V>) {
+  assertEqual(actual.size, expected.size);
+
+  for ((key, expectedValue) in expected.entries()) {
+    match (actual[key]) {
+      | None -> fail()
+      | Some (actualValue) -> assertEqual(actualValue, expectedValue)
+    }
+  }
+}
+
+fun assertSetEqual<T: Equatable & Hashable>(actual: Set<T>, expected: Set<T>) {
+  assertEqual(actual.size(), expected.size());
+
+  for (element in expected) {
+    assertTrue(actual.contains(element));
   }
 }

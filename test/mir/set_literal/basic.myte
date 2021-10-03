@@ -1,0 +1,18 @@
+module test
+
+fun emptySet() {
+  val x: Set<Int> = {||};
+  val y: Set<Bool> = {||};
+}
+
+fun oneEntrySet() {
+  {| 1 |};
+  {| (2: Byte) |};
+}
+
+fun multiEntrySet() {
+  {| 5, 6, 7 |};
+  {| false, true, false, true |};
+}
+
+fun main() {}
