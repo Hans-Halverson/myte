@@ -11,7 +11,7 @@ methods Type2 {
   implements Trait1
 }
 
-fun test1<U: Trait1>(x: U, y: Type1, z: Type2) {
+fun test1<U: Trait1>(x: U, y: Type1, z: Type2, a: trait Trait1) {
   // Error
   foo(1);
   foo(x);
@@ -19,6 +19,7 @@ fun test1<U: Trait1>(x: U, y: Type1, z: Type2) {
   // Succeed
   foo(y);
   foo(z);
+  foo(a);
 }
 
 fun main() {}

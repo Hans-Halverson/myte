@@ -308,6 +308,7 @@ and Type : sig
     | IntLiteral of IntLiteral.t
     | BoundedExistential of BoundedExistential.t
     | TraitBound of TraitSig.instance
+    | TraitObject of TraitSig.instance
 end =
   Type
 
@@ -322,7 +323,8 @@ let get_all_tvars_with_duplicates ty =
       let acc = List.fold_left inner acc params in
       inner acc return
     | ADT { type_args; _ }
-    | TraitBound { type_args; _ } ->
+    | TraitBound { type_args; _ }
+    | TraitObject { type_args; _ } ->
       List.fold_left inner acc type_args
     | _ -> acc
   in
@@ -378,6 +380,8 @@ let rec substitute_type_params type_params ty =
     ADT { adt_sig; type_args = List.map (substitute_type_params type_params) type_args }
   | TraitBound { trait_sig; type_args } ->
     TraitBound { trait_sig; type_args = List.map (substitute_type_params type_params) type_args }
+  | TraitObject { trait_sig; type_args } ->
+    TraitObject { trait_sig; type_args = List.map (substitute_type_params type_params) type_args }
   | TypeParam { TypeParam.id; name; bounds } ->
     (match IMap.find_opt id type_params with
     | None ->
@@ -488,6 +492,8 @@ let rec pp_with_names ~tvar_to_name ty =
     pp_with_names ~tvar_to_name resolved
   | IntLiteral { resolved = None; _ } -> "<Integer>"
   | BoundedExistential { resolved = None; bounds } -> pp_trait_bounds bounds
+  | TraitObject { trait_sig = { name; _ }; type_args } ->
+    "trait " ^ pp_name_with_args name type_args
 
 let name_id_to_string name_id =
   let quot = name_id / 26 in

@@ -424,6 +424,7 @@ and to_mir_type ~ecx ty =
   | TVar _
   | Any ->
     failwith "Not allowed as value in IR"
+  | TraitObject _ -> failwith "TODO: Emit MIR for trait objects"
 
 and mk_aggregate ~ecx name loc elements =
   let aggregate = { Aggregate.id = mk_aggregate_id (); name; loc; elements } in

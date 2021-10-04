@@ -1,0 +1,13 @@
+module test
+
+trait SingleArg<T> {}
+
+fun test(
+  // Success
+  x1: trait SingleArg<Int>,
+  // Failure
+  x2: trait SingleArg,
+  x3: trait SingleArg<Int, Int>,
+) {}
+
+fun main() {}

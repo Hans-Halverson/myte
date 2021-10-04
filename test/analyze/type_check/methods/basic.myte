@@ -28,6 +28,15 @@ fun testTypeParams<T: FooTrait>(x: T, y: FooTrait) {
   y.bar();
 }
 
+// Can call methods on trait objects
+fun testTraitObject(x: trait FooTrait) {
+  // Success
+  (x.foo(): Int);
+
+  // Nonexistent
+  x.bar();
+}
+
 // Can call methods on primitive types
 fun testPrimitives(x: Unit) {
   (x.toString(): String);

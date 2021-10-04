@@ -1,0 +1,18 @@
+module test
+
+type alias Alias = Int
+
+type TupleType (Int)
+
+trait Trait {}
+
+fun test1(
+  // Failure
+  x1: trait Int,
+  x2: trait TupleType,
+  x3: trait Alias,
+  // Success
+  x4: trait Trait,
+) {}
+
+fun main() {}

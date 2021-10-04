@@ -251,6 +251,13 @@
 		"function-return-type": {
 			"patterns": [
 				{
+					"match": "(:)\\s*(trait\\b)",
+					"captures": {
+						"1": { "name": "punctuation.colon.myte" },
+						"2": { "name": "storage.modifier.myte" }
+					}
+				},
+				{
 					"name": "punctuation.colon.myte",
 					"match": ":"
 				},
@@ -876,7 +883,7 @@
 					}
 				},
 				{
-					"name": "entity.name.type.myte meta.hello",
+					"name": "entity.name.type.myte",
 					"match": "\\w+"
 				}
 			]

@@ -1,0 +1,15 @@
+module test
+
+trait Foo {}
+
+fun useTraitObject(x: trait Foo) {}
+
+fun testCall(x: trait Foo) {
+  // Success
+  useTraitObject(x);
+
+  // Failure
+  useTraitObject(1);
+}
+
+fun main() {}

@@ -1054,7 +1054,9 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
     method! type_ ty =
       let open Ast.Type in
       (match ty with
-      | Identifier { name; _ } -> this#resolve_type_scoped_id name
+      | Identifier { name; _ }
+      | Trait { trait = { name; _ }; _ } ->
+        this#resolve_type_scoped_id name
       | _ -> ());
       super#type_ ty
 

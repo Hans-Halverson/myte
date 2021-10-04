@@ -14,27 +14,41 @@ trait ParameterizedTrait<T: Foo> {}
 // Errors
 val test1: ParameterizedType<Int> = 1
 
-fun test2(x: ParameterizedType<Int>, y: ParameterizedTrait<Int>) {}
+val test2: trait ParameterizedTrait<Int> = 1
+
+fun test3(
+  x: ParameterizedType<Int>,
+  y: ParameterizedTrait<Int>,
+  z: trait ParameterizedTrait<Int>,
+) {}
 
 type TestType1 =
   | Tup1 (ParameterizedType<Int>)
   | Rec1 { foo: ParameterizedType<Int> }
+  | Tup3 (trait ParameterizedTrait<Int>)
 
 methods TestType1 {
-  fun test1(x: ParameterizedType<Int>) {}
+  fun test1(x: ParameterizedType<Int>, y: trait ParameterizedTrait<Int>) {}
 }
 
 // Successes
-val test3: ParameterizedType<ImplementsFoo> = 1
+val test4: ParameterizedType<ImplementsFoo> = 1
 
-fun test4(x: ParameterizedType<ImplementsFoo>, y: ParameterizedTrait<ImplementsFoo>) {}
+val test5: trait ParameterizedTrait<ImplementsFoo> = 1
+
+fun test6(
+  x: ParameterizedType<ImplementsFoo>,
+  y: ParameterizedTrait<ImplementsFoo>,
+  z: trait ParameterizedTrait<ImplementsFoo>,
+) {}
 
 type TestType2 =
   | Tup2 (ParameterizedType<ImplementsFoo>)
   | Rec2 { foo: ParameterizedType<ImplementsFoo> }
+  | Tup4 (trait ParameterizedTrait<ImplementsFoo>)
 
 methods TestType2 {
-  fun test2(x: ParameterizedType<ImplementsFoo>) {}
+  fun test2(x: ParameterizedType<ImplementsFoo>, y: trait ParameterizedTrait<ImplementsFoo>) {}
 }
 
 fun main() {}

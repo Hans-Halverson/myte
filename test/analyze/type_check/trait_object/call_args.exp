@@ -1,0 +1,4 @@
+Error: Expected type `trait Foo` but found `Int`
+test/analyze/type_check/trait_object/call_args.myte:12:17
+ 12 |   useTraitObject(1);
+    |                  ^

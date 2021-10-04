@@ -236,6 +236,12 @@ let rec find_rep_type ~cx (ty : Type.t) =
       ty
     else
       TraitBound { trait_sig; type_args = type_args' }
+  | TraitObject { trait_sig; type_args } ->
+    let type_args' = id_map_list (find_rep_type ~cx) type_args in
+    if type_args == type_args' then
+      ty
+    else
+      TraitObject { trait_sig; type_args = type_args' }
   | BoundedExistential ({ resolved = None; bounds } as trait_bound) ->
     (* Unresolved trait bound types must be preserved, so keep type and update bounds with rep types *)
     let bounds' = id_map_list (find_trait_instance_rep_type ~cx) bounds in
@@ -273,7 +279,8 @@ let rec tvar_occurs_in ~cx tvar ty =
   | Function { type_args = _; params; return } ->
     List.exists (tvar_occurs_in ~cx tvar) params || tvar_occurs_in ~cx tvar return
   | ADT { adt_sig = _; type_args }
-  | TraitBound { trait_sig = _; type_args } ->
+  | TraitBound { trait_sig = _; type_args }
+  | TraitObject { trait_sig = _; type_args } ->
     List.exists (tvar_occurs_in ~cx tvar) type_args
   | TVar rep_tvar -> tvar = rep_tvar
   | BoundedExistential { bounds; resolved = _ } ->
@@ -378,7 +385,9 @@ let rec type_satisfies_trait_bounds ~cx ty trait_bounds =
   (* Bounded type params and trait bounds have an upper trait bound which may satisfy the target
      trait bounds. *)
   | TypeParam { bounds; _ } -> traits_satisfy_bounds bounds trait_bounds
-  | TraitBound bound -> traits_satisfy_bounds [bound] trait_bounds
+  | TraitBound trait
+  | TraitObject trait ->
+    traits_satisfy_bounds [trait] trait_bounds
   (* Unresolved int literal types are first resolved to the best choice based on their values *)
   | IntLiteral lit_ty ->
     let resolved_ty = resolve_int_literal_from_values ~cx lit_ty in
@@ -422,10 +431,16 @@ and unify ~cx ty1 ty2 =
     List.length params1 = List.length params2
     && List.for_all2 (fun ty1 ty2 -> unify ~cx ty1 ty2) params1 params2
     && unify ~cx return1 return2
-  (* Algebraic data types must have same signature and type params *)
+  (* Algebraic data types must have same signature and type args *)
   | (ADT { adt_sig = adt_sig1; type_args = args1 }, ADT { adt_sig = adt_sig2; type_args = args2 })
     ->
     adt_sig1 == adt_sig2
+    && List.length args1 = List.length args2
+    && List.for_all2 (fun ty1 ty2 -> unify ~cx ty1 ty2) args1 args2
+  (* Trait objects must have same signature and type args *)
+  | ( TraitObject { trait_sig = trait_sig1; type_args = args1 },
+      TraitObject { trait_sig = trait_sig2; type_args = args2 } ) ->
+    trait_sig1 == trait_sig2
     && List.length args1 = List.length args2
     && List.for_all2 (fun ty1 ty2 -> unify ~cx ty1 ty2) args1 args2
   (* Unresolved int literals can be unified *)
@@ -496,6 +511,12 @@ and is_subtype ~cx sub sup =
     adt_sig1 == adt_sig2
     && List.length args1 = List.length args2
     && List.for_all2 (fun ty1 ty2 -> is_subtype ~cx ty1 ty2 && is_subtype ~cx ty2 ty1) args1 args2
+  (* Trait objects type parameters are invariant *)
+  | ( TraitObject { trait_sig = trait_sig1; type_args = args1 },
+      TraitObject { trait_sig = trait_sig2; type_args = args2 } ) ->
+    trait_sig1 == trait_sig2
+    && List.length args1 = List.length args2
+    && List.for_all2 (fun ty1 ty2 -> is_subtype ~cx ty1 ty2 && is_subtype ~cx ty2 ty1) args1 args2
   (* Int literals are not subtyped so they must be unified *)
   | (IntLiteral lit_ty1, (IntLiteral lit_ty2 as ty2)) ->
     union_int_literals lit_ty1 lit_ty2 ty2;
@@ -505,7 +526,7 @@ and is_subtype ~cx sub sup =
   | (IntLiteral lit_ty, ((Byte | Int | Long) as ty)) ->
     resolve_int_literal ~cx lit_ty ty;
     true
-  (* Any type may be a subtype of a trait bound if that type satisifies the bound *)
+  (* Any type may be a subtype of a trait bound if that type satisfies the bound *)
   | (ty, TraitBound bound) ->
     let rep_ty = find_rep_type ~cx ty in
     let rep_trait_bound =
@@ -593,7 +614,9 @@ let get_implemented_trait ty trait_sig =
     let adt_sig = Std_lib.get_primitive_adt_sig ty in
     adt_sig_implements_trait adt_sig [] trait_sig
   | ADT { adt_sig; type_args } -> adt_sig_implements_trait adt_sig type_args trait_sig
-  | TraitBound bound -> bounds_implements_trait [bound] trait_sig
+  | TraitBound trait
+  | TraitObject trait ->
+    bounds_implements_trait [trait] trait_sig
   | TypeParam { bounds; _ } -> bounds_implements_trait bounds trait_sig
   | BoundedExistential { bounds; _ } -> bounds_implements_trait bounds trait_sig
   | _ -> None

@@ -13,22 +13,27 @@ test/analyze/type_check/methods/basic.myte:28:2
  28 |   y.bar();
     |   ^
 
-Error: Cannot resolve field or method with name `nonexist` on type `Unit`
-test/analyze/type_check/methods/basic.myte:36:2
- 36 |   x.nonexist();
+Error: Cannot resolve field or method with name `bar` on type `trait FooTrait`
+test/analyze/type_check/methods/basic.myte:37:2
+ 37 |   x.bar();
     |   ^
 
 Error: Cannot resolve field or method with name `nonexist` on type `Unit`
-test/analyze/type_check/methods/basic.myte:37:2-4
- 37 |   ().nonexist();
+test/analyze/type_check/methods/basic.myte:45:2
+ 45 |   x.nonexist();
+    |   ^
+
+Error: Cannot resolve field or method with name `nonexist` on type `Unit`
+test/analyze/type_check/methods/basic.myte:46:2-4
+ 46 |   ().nonexist();
     |   ^^
 
 Error: Cannot resolve field or method with name `nonexist` on type `Int`
-test/analyze/type_check/methods/basic.myte:43:2
- 43 |   1.nonexist();
+test/analyze/type_check/methods/basic.myte:52:2
+ 52 |   1.nonexist();
     |   ^
 
 Error: Cannot resolve field or method with name `nonexist` on type `Long`
-test/analyze/type_check/methods/basic.myte:44:2-12
- 44 |   2147483648.nonexist();
+test/analyze/type_check/methods/basic.myte:53:2-12
+ 53 |   2147483648.nonexist();
     |   ^^^^^^^^^^

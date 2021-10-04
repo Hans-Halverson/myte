@@ -1,0 +1,9 @@
+Error: Incorrect number of type parameters. Expected 1 type parameter but found 0.
+test/analyze/type_check/trait_object/incorrect_args_arity_error.myte:9:12-21
+ 9 |   x2: trait SingleArg,
+   |             ^^^^^^^^^
+
+Error: Incorrect number of type parameters. Expected 1 type parameter but found 2.
+test/analyze/type_check/trait_object/incorrect_args_arity_error.myte:10:12-31
+ 10 |   x3: trait SingleArg<Int, Int>,
+    |             ^^^^^^^^^^^^^^^^^^^

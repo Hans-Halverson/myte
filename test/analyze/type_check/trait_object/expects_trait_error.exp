@@ -1,0 +1,14 @@
+Error: Trait object expects trait
+test/analyze/type_check/trait_object/expects_trait_error.myte:11:12-15
+ 11 |   x1: trait Int,
+    |             ^^^
+
+Error: Trait object expects trait
+test/analyze/type_check/trait_object/expects_trait_error.myte:12:12-21
+ 12 |   x2: trait TupleType,
+    |             ^^^^^^^^^
+
+Error: Trait object expects trait
+test/analyze/type_check/trait_object/expects_trait_error.myte:13:12-17
+ 13 |   x3: trait Alias,
+    |             ^^^^^
