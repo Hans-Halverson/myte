@@ -44,7 +44,7 @@ val get_type_binding_from_decl : cx:t -> Loc.t -> TypeBinding.t
 
 val unify : cx:t -> Type.t -> Type.t -> bool
 
-val is_subtype : cx:t -> Type.t -> Type.t -> bool
+val is_subtype : cx:t -> trait_object_promotion_loc:Loc.t option -> Type.t -> Type.t -> bool
 
 val assert_unify : cx:t -> Loc.t -> Type.t -> Type.t -> unit
 

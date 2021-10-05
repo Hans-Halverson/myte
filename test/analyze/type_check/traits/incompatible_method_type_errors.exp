@@ -22,3 +22,8 @@ Error: Method `foo` has incompatible type from declaration in trait `Trait3`. De
 test/analyze/type_check/traits/incompatible_method_type_errors.myte:30:15-18
  30 |   override fun foo(x: Bool) {}
     |                ^^^
+
+Error: Method `foo` has incompatible type from declaration in trait `Trait6`. Declared as type `trait Trait1 -> Unit` but found `Type1 -> Unit`.
+test/analyze/type_check/traits/incompatible_method_type_errors.myte:40:15-18
+ 40 |   override fun foo(x: Type1) {}
+    |                ^^^

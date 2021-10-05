@@ -1,0 +1,29 @@
+Error: Expected type `trait Foo` but found `Int`
+test/analyze/type_check/trait_object/promotion_types.myte:28:20
+ 28 |   useFooTraitObject(1);
+    |                     ^
+
+Error: Expected type `trait ToString` but found `FooType`
+test/analyze/type_check/trait_object/promotion_types.myte:36:25-37
+ 36 |   useToStringTraitObject(FooType (()));
+    |                          ^^^^^^^^^^^^
+
+Error: Expected type `trait Foo` but found `T`
+test/analyze/type_check/trait_object/promotion_types.myte:45:20
+ 45 |   useFooTraitObject(x);
+    |                     ^
+
+Error: Expected type `trait ToString` but found `U: Foo`
+test/analyze/type_check/trait_object/promotion_types.myte:46:25
+ 46 |   useToStringTraitObject(y);
+    |                          ^
+
+Error: Expected type `trait ToString` but found `implicit Foo`
+test/analyze/type_check/trait_object/promotion_types.myte:47:25
+ 47 |   useToStringTraitObject(z);
+    |                          ^
+
+Error: Expected type `(trait Foo, Int)` but found `(FooType, Int)`
+test/analyze/type_check/trait_object/promotion_types.myte:54:28-34
+ 54 |   val y: (trait Foo, Int) = (x, 1);
+    |                             ^^^^^^

@@ -30,4 +30,14 @@ methods Type2 {
   override fun foo(x: Bool) {}
 }
 
+// Trait object type cannot be overriden by implementing type - no promotion occurs
+trait Trait6 {
+  fun foo(x: trait Trait1)
+}
+
+trait Trait7 {
+  extends Trait6
+  override fun foo(x: Type1) {}
+}
+
 fun main() {}

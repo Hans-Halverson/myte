@@ -1,0 +1,44 @@
+Error: Expected type `trait Foo` but found `Int`
+test/analyze/type_check/trait_object/promotion_locations.myte:24:20
+ 24 |   useFooTraitObject(1);
+    |                     ^
+
+Error: Expected type `trait Foo` but found `Int`
+test/analyze/type_check/trait_object/promotion_locations.myte:32:13
+ 32 |   TupleType (1);
+    |              ^
+
+Error: Expected type `trait Foo` but found `Int`
+test/analyze/type_check/trait_object/promotion_locations.myte:40:22
+ 40 |   RecordType { field: 1 };
+    |                       ^
+
+Error: Expected type `trait Foo` but found `Int`
+test/analyze/type_check/trait_object/promotion_locations.myte:48:3
+ 48 |   (1: trait Foo);
+    |    ^
+
+Error: Expected type `trait Foo` but found `Int`
+test/analyze/type_check/trait_object/promotion_locations.myte:57:11
+ 57 |     return 1;
+    |            ^
+
+Error: Expected type `trait Foo` but found `Int`
+test/analyze/type_check/trait_object/promotion_locations.myte:63:50
+ 63 | fun testReturnExpressionPromotion2(): trait Foo = 1 // Failure
+    |                                                   ^
+
+Error: Expected type `trait Foo` but found `Int`
+test/analyze/type_check/trait_object/promotion_locations.myte:70:21
+ 70 |   val z: trait Foo = 1;
+    |                      ^
+
+Error: Expected type `trait Foo` but found `Int`
+test/analyze/type_check/trait_object/promotion_locations.myte:79:6
+ 79 |   y = 1;
+    |       ^
+
+Error: Expected type `trait MapKeyTrait` but found `Int`
+test/analyze/type_check/trait_object/promotion_locations.myte:99:6
+ 99 |   map[1] = 1;
+    |       ^

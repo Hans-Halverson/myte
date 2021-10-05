@@ -17,6 +17,8 @@ type t = {
   mutable main_loc: Loc.t;
   (* Order of (non-type) trait declarations in current compilation unit *)
   mutable ordered_traits: Ast.TraitDeclaration.t list;
+  (* Map of expression loc to the trait object type it is promoted to *)
+  mutable trait_object_promotions: TraitSig.instance LocMap.t;
 }
 
 and union_forest_node =
@@ -37,6 +39,7 @@ let mk ~bindings =
     method_uses = LocSet.empty;
     main_loc = Loc.none;
     ordered_traits = [];
+    trait_object_promotions = LocMap.empty;
   }
 
 let add_error ~cx loc error = cx.errors <- (loc, error) :: cx.errors
@@ -471,7 +474,8 @@ and unify ~cx ty1 ty2 =
   (* All other combinations of types cannot be unified *)
   | _ -> false
 
-and is_subtype ~cx sub sup =
+and is_subtype ~cx ~trait_object_promotion_loc sub sup =
+  let is_subtype ~cx sub sup = is_subtype ~cx ~trait_object_promotion_loc:None sub sup in
   let rep_sub = find_union_rep_type ~cx sub in
   let rep_sup = find_union_rep_type ~cx sup in
   match (rep_sub, rep_sup) with
@@ -532,7 +536,7 @@ and is_subtype ~cx sub sup =
     let rep_trait_bound =
       match find_rep_type ~cx (TraitBound bound) with
       | TraitBound trait_bound -> trait_bound
-      | _ -> failwith "Expected trait_bound"
+      | _ -> failwith "Expected TraitBound"
     in
     type_satisfies_trait_bounds ~cx rep_ty [rep_trait_bound]
   (* Unresolved trait bounds are not subtyped so they must be unified *)
@@ -546,11 +550,25 @@ and is_subtype ~cx sub sup =
     let rep_trait_bound =
       match find_rep_type ~cx (BoundedExistential trait_bound) with
       | BoundedExistential trait_bound -> trait_bound
-      | _ -> failwith "Expected trait_bound"
+      | _ -> failwith "Expected BoundedExistential"
     in
     let satisfies_trait_bound = type_satisfies_trait_bounds ~cx rep_ty rep_trait_bound.bounds in
     if satisfies_trait_bound then rep_trait_bound.resolved <- Some rep_ty;
     satisfies_trait_bound
+  (* A type may be promoted to a trait object when promotion is enabled *)
+  | (ty, TraitObject trait) when trait_object_promotion_loc <> None ->
+    let rep_ty = find_rep_type ~cx ty in
+    let rep_trait =
+      match find_rep_type ~cx (TraitObject trait) with
+      | TraitObject trait -> trait
+      | _ -> failwith "Expected TraitObject"
+    in
+    let can_promote = type_satisfies_trait_bounds ~cx rep_ty [rep_trait] in
+    (* Save locs of all promoted expressions *)
+    ( if can_promote then
+      let expr_loc = Option.get trait_object_promotion_loc in
+      cx.trait_object_promotions <- LocMap.add expr_loc rep_trait cx.trait_object_promotions );
+    can_promote
   | _ -> false
 
 let add_incompatible_types_error ~cx loc ty1 ty2 =
@@ -560,7 +578,8 @@ let assert_unify ~cx loc expected actual =
   if not (unify ~cx expected actual) then add_incompatible_types_error ~cx loc actual expected
 
 let assert_is_subtype ~cx loc sub sup =
-  if not (is_subtype ~cx sub sup) then add_incompatible_types_error ~cx loc sub sup
+  if not (is_subtype ~cx ~trait_object_promotion_loc:(Some loc) sub sup) then
+    add_incompatible_types_error ~cx loc sub sup
 
 let mk_int_literal_ty ~cx loc raw base =
   cx.unresolved_int_literals <- LocSet.add loc cx.unresolved_int_literals;

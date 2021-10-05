@@ -1,0 +1,102 @@
+module test
+
+import std.hash.Hashable
+import std.ops.Equatable
+
+trait Foo {}
+
+type FooType (Unit)
+methods FooType { implements Foo }
+
+type TupleType (trait Foo)
+
+type RecordType { field: trait Foo }
+
+fun useFooTraitObject(x: trait Foo) {}
+
+// Test promotion at different locations
+
+fun testCallArgumentPromotion(x: FooType) {
+  // Success
+  useFooTraitObject(x);
+
+  // Failure
+  useFooTraitObject(1);
+}
+
+fun testTupleTypeArgumentPromotion(x: FooType) {
+  // Success
+  TupleType (x);
+
+  // Failure
+  TupleType (1);
+}
+
+fun testRecordTypeArgumentPromotion(x: FooType) {
+  // Success
+  RecordType { field: x };
+
+  // Failure
+  RecordType { field: 1 };
+}
+
+fun testTypeCastPromotion(x: FooType) {
+  // Success
+  (x: trait Foo);
+
+  // Failure
+  (1: trait Foo);
+}
+
+fun testReturnArgumentPromotion(): trait Foo {
+  if (true) {
+    // Success
+    return FooType (());
+  } else {
+    // Failure
+    return 1;
+  }
+}
+
+fun testReturnExpressionPromotion1(): trait Foo = FooType (()) // Success
+
+fun testReturnExpressionPromotion2(): trait Foo = 1 // Failure
+
+fun testVariableDeclarationPromotion(x: FooType) {
+  // Success
+  val y: trait Foo = x;
+
+  // Failure
+  val z: trait Foo = 1;
+}
+
+fun testVariableAssignmentPromotion(x: FooType) {
+  // Success
+  var y: trait Foo = FooType (());
+  y = x;
+
+  // Failure
+  y = 1;
+}
+
+trait MapKeyTrait {
+  extends Hashable
+  extends Equatable
+
+  override fun hash(): Int = 0
+  override fun equals(other: This): Bool = true
+}
+
+type MapKeyType (Unit)
+methods MapKeyType { implements MapKeyTrait }
+
+fun testMapIndexPromotion(x: MapKeyType) {
+  // Success
+  val map: Map<trait MapKeyTrait, Int> = {};
+  map[x] = 1;
+
+  // Failure
+  map[1] = 1;
+}
+
+fun main() {}

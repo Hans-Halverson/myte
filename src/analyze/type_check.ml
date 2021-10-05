@@ -672,7 +672,14 @@ and check_implemented_methods
               let super_method_ty =
                 Types.substitute_type_params type_param_bindings super_method_ty
               in
-              if not (Type_context.is_subtype ~cx sub_method_ty super_method_ty) then
+              if
+                not
+                  (Type_context.is_subtype
+                     ~cx
+                     ~trait_object_promotion_loc:None
+                     sub_method_ty
+                     super_method_ty)
+              then
                 let sub_rep_ty = Type_context.find_rep_type ~cx sub_method_ty in
                 let sup_rep_ty = Type_context.find_rep_type ~cx super_method_ty in
                 Type_context.add_error

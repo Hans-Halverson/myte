@@ -1,0 +1,60 @@
+module test
+
+import std.string.ToString
+
+trait Foo {}
+
+trait FooTrait { extends Foo }
+
+type FooType (Unit)
+methods FooType { implements Foo }
+
+type TupleType (trait Foo)
+
+type RecordType { field: trait Foo }
+
+fun useFooTraitObject(x: trait Foo) {}
+
+fun useToStringTraitObject(x: trait ToString) {}
+
+// Test promotion of different types
+
+fun testPromotePrimitives() {
+  // Success
+  useToStringTraitObject(1);
+  useToStringTraitObject(2);
+
+  // Failure
+  useFooTraitObject(1);
+}
+
+fun testPromoteADTs() {
+  // Success
+  useFooTraitObject(FooType (()));
+
+  // Failure
+  useToStringTraitObject(FooType (()));
+}
+
+fun testPromoteTypeParams<T, U: Foo>(x: T, y: U, z: Foo) {
+  // Success
+  useFooTraitObject(y);
+  useFooTraitObject(z);
+
+  // Failure
+  useFooTraitObject(x);
+  useToStringTraitObject(y);
+  useToStringTraitObject(z);
+}
+
+// Test promotion fails for nested types
+
+fun testNestedTypePromotionFailure(x: FooType) {
+  // Failure
+  val y: (trait Foo, Int) = (x, 1);
+
+  // Success
+  val z: (trait Foo, Int) = ((x: trait Foo), 1);
+}
+
+fun main() {}
