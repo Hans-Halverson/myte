@@ -107,6 +107,7 @@ and AdtSig : sig
   type t = {
     id: id;
     name: string;
+    loc: Loc.t;
     mutable type_params: TypeParam.t list;
     mutable variants: Variant.t SMap.t;
     mutable traits: TraitSig.t list;
@@ -117,7 +118,7 @@ and AdtSig : sig
     type_args: Type.t list;
   }
 
-  val mk : name:string -> t
+  val mk : name:string -> loc:Loc.t -> t
 
   val empty : t
 
@@ -141,6 +142,7 @@ end = struct
   type t = {
     id: id;
     name: string;
+    loc: Loc.t;
     mutable type_params: TypeParam.t list;
     mutable variants: Variant.t SMap.t;
     mutable traits: TraitSig.t list;
@@ -158,9 +160,11 @@ end = struct
     max_id := id + 1;
     id
 
-  let mk ~name = { id = mk_id (); name; type_params = []; variants = SMap.empty; traits = [] }
+  let mk ~name ~loc =
+    { id = mk_id (); name; loc; type_params = []; variants = SMap.empty; traits = [] }
 
-  let empty = { id = 0; name = ""; type_params = []; variants = SMap.empty; traits = [] }
+  let empty =
+    { id = 0; name = ""; loc = Loc.none; type_params = []; variants = SMap.empty; traits = [] }
 
   let lookup_method adt_sig method_name =
     List.fold_left
@@ -194,6 +198,8 @@ and MethodSig : sig
   }
 
   val is_inherited : t -> bool
+
+  val is_generic : t -> bool
 end = struct
   type t = {
     loc: Loc.t;
@@ -206,6 +212,8 @@ end = struct
   }
 
   let is_inherited method_sig = method_sig.source_trait_instance.trait_sig != method_sig.trait_sig
+
+  let is_generic method_sig = method_sig.type_params <> []
 end
 
 and TraitSig : sig
@@ -214,6 +222,7 @@ and TraitSig : sig
   type t = {
     id: id;
     name: string;
+    loc: Loc.t;
     mutable type_params: TypeParam.t list;
     mutable methods: MethodSig.t SMap.t;
     (* Implemented traits, along with the loc of the TraitDeclaration.ImplementedTrait node that
@@ -230,7 +239,7 @@ and TraitSig : sig
     type_args: Type.t list;
   }
 
-  val mk : name:string -> t
+  val mk : name:string -> loc:Loc.t -> t
 
   val empty : t
 
@@ -243,6 +252,7 @@ end = struct
   type t = {
     id: id;
     name: string;
+    loc: Loc.t;
     mutable type_params: TypeParam.t list;
     mutable methods: MethodSig.t SMap.t;
     mutable implemented: (Loc.t * instance) list;
@@ -262,10 +272,11 @@ end = struct
     max_id := id + 1;
     id
 
-  let mk ~name =
+  let mk ~name ~loc =
     {
       id = mk_id ();
       name;
+      loc;
       type_params = [];
       methods = SMap.empty;
       implemented = [];
@@ -277,6 +288,7 @@ end = struct
     {
       id = 0;
       name = "";
+      loc = Loc.none;
       type_params = [];
       methods = SMap.empty;
       implemented = [];

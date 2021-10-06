@@ -1,0 +1,53 @@
+module test
+
+trait NongenericTrait {
+  fun foo(): Int
+  fun bar(): Bool
+}
+
+trait GenericTrait<T> {
+  fun foo(): Int
+  fun baz(x: T): T
+}
+
+type NongenericType (Int)
+methods NongenericType {
+  implements NongenericTrait
+  implements GenericTrait<Byte>
+
+  override fun foo(): Int = 1
+  override fun bar(): Bool = true
+  override fun baz(x: Byte): Byte = x
+  fun notInstantiated(): Int = 99
+}
+
+type GenericType<T> (T)
+methods GenericType<T> {
+  implements NongenericTrait
+  implements GenericTrait<T>
+
+  override fun foo(): Int = 2
+  override fun bar(): Bool = false
+  override fun baz(x: T): T = x
+  fun notInstantiated(): Int = 99
+}
+
+type UnusedType (Int)
+methods UnusedType {
+  implements GenericTrait<Long>
+
+  override fun foo(): Int = 3
+  override fun baz(x: Long): Long = x
+}
+
+fun forceInstantiations() {
+  (NongenericType (1): trait NongenericTrait);
+  (GenericType (2): trait NongenericTrait);
+  (GenericType (true): trait NongenericTrait);
+
+  (NongenericType (1): trait GenericTrait<Byte>);
+  (GenericType (2): trait GenericTrait<Byte>);
+  (GenericType (true): trait GenericTrait<Bool>);
+}
+
+fun main() {}

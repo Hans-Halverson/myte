@@ -1,6 +1,7 @@
 open Ast
 open Basic_collections
 open Mir
+open Mir_emit_utils
 open Mir_type
 module Ecx = Mir_emit_context
 module Pcx = Program_context
@@ -232,6 +233,18 @@ and finish_init_function ~ecx =
 and emit_expression ~ecx expr =
   let open Expression in
   let open Instruction in
+  (* Check for trait object promotion on every expression *)
+  let emit_expression ~ecx expr =
+    let expr_val = emit_expression ~ecx expr in
+    let expr_loc = Ast_utils.expression_loc expr in
+    (match Type_context.get_trait_object_promotion ~cx:ecx.Ecx.pcx.type_ctx expr_loc with
+    | None -> ()
+    | Some trait_instance ->
+      let ty = type_of_loc ~ecx expr_loc in
+      ignore (Ecx.instantiate_trait_object_vtable ~ecx trait_instance ty));
+    expr_val
+  in
+
   match expr with
   (*
    * ============================
@@ -1013,55 +1026,8 @@ and emit_method_call
     ~(arg_vals : Value.t list)
     ~(method_instance_type_args : Types.Type.t list)
     ~(ret_type : Type.t) =
-  (* Emit receiver and gather its ADT signature and type args *)
-  let (adt_sig, receiver_type_args) =
-    match receiver_ty with
-    | ADT { adt_sig; type_args; _ } -> (adt_sig, type_args)
-    | _ -> (Std_lib.get_primitive_adt_sig receiver_ty, [])
-  in
-
-  (* Find method, along with the trait it was defined in *)
-  let method_sig = Types.AdtSig.lookup_method adt_sig method_name in
-  let method_sig = Option.get method_sig in
-  let source_trait_instance = method_sig.source_trait_instance in
-  let source_trait_sig = source_trait_instance.trait_sig in
-
-  (* Calculate generic keys from trait/type *)
-  let (extra_key_type_params, extra_key_type_args) =
-    if method_sig.trait_sig == source_trait_sig then
-      (* Method was directly declared on the ADT's trait. Substitute type args for trait's type args *)
-      (source_trait_sig.type_params, receiver_type_args)
-    else
-      (* Method was declared on a trait that the ADT implements. The source trait instance's type
-         args are in terms of the ADT trait's type params, so first map from the ADT trait's type
-         params to the actual ADT instance's type args in the source trait instance's type args.
-         The key args are these mapped source trait instance's type args along with the a `this`
-         type of the ADT instance. *)
-      let bindings =
-        Types.bind_type_params_to_args method_sig.trait_sig.type_params receiver_type_args
-      in
-      let type_args =
-        List.map (Types.substitute_type_params bindings) source_trait_instance.type_args
-      in
-      let all_key_type_params = source_trait_sig.this_type_param :: source_trait_sig.type_params in
-      let all_key_type_args = receiver_ty :: type_args in
-      (all_key_type_params, all_key_type_args)
-  in
-
-  (* Full keys are trait/type args plus method's own generic args *)
-  let key_type_params = extra_key_type_params @ method_sig.type_params in
-  let key_type_args = extra_key_type_args @ method_instance_type_args in
-
-  (* Find name of method fully qualified by module and trait *)
-  let method_binding = Bindings.get_value_binding ecx.pcx.bindings method_sig.loc in
-  let fully_qualified_method_name = mk_value_binding_name method_binding in
-
   let full_method_name_with_type_args =
-    Ecx.add_necessary_func_instantiation
-      ~ecx
-      fully_qualified_method_name
-      key_type_params
-      key_type_args
+    Ecx.add_necessary_method_instantiation ~ecx ~method_name ~receiver_ty ~method_instance_type_args
   in
   let func_val = `FunctionL full_method_name_with_type_args in
   emit_call ~ecx ~func_val ~arg_vals ~receiver_val:(Some receiver_val) ~ret_type
@@ -2105,13 +2071,6 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
   in
 
   emit_tree_node ~path_cache:IMap.empty decision_tree
-
-and mk_value_binding_name binding =
-  match binding.context with
-  | Module
-  | Function ->
-    String.concat "." (binding.module_ @ [binding.name])
-  | Trait trait_name -> String.concat "." (binding.module_ @ [trait_name; binding.name])
 
 and mk_get_pointer_instr ?(pointer_offset = None) return_ty pointer offsets =
   let var_id = mk_var_id () in

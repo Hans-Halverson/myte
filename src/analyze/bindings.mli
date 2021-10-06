@@ -81,7 +81,7 @@ module TypeDeclaration : sig
     mutable traits: TraitDeclaration.t list;
   }
 
-  val mk : name:string -> t
+  val mk : name:string -> loc:Loc.t -> t
 
   val add_trait : t -> TraitDeclaration.t -> unit
 end

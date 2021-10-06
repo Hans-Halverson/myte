@@ -1,0 +1,85 @@
+type test.NongenericType {int}
+
+global fn[2] @$vtable$test.NongenericType$test.GenericTrait<byte> = [test.NongenericType.baz, test.NongenericType.foo]
+
+global fn[2] @$vtable$test.NongenericType$test.NongenericTrait = [test.NongenericType.bar, test.NongenericType.foo]
+
+func int @test.NongenericType.foo(test.NongenericType* %0) {
+  Ret 1
+}
+
+func bool @test.NongenericType.bar(test.NongenericType* %1) {
+  Ret true
+}
+
+func byte @test.NongenericType.baz(test.NongenericType* %2, byte %3) {
+  Ret %3
+}
+
+type test.GenericType<bool> {bool}
+
+type test.GenericType<byte> {byte}
+
+type test.GenericType<int> {int}
+
+global fn[2] @$vtable$test.GenericType<bool>$test.GenericTrait<bool> = [test.GenericType.baz<bool>, test.GenericType.foo<bool>]
+
+global fn[2] @$vtable$test.GenericType<bool>$test.NongenericTrait = [test.GenericType.bar<bool>, test.GenericType.foo<bool>]
+
+global fn[2] @$vtable$test.GenericType<byte>$test.GenericTrait<byte> = [test.GenericType.baz<byte>, test.GenericType.foo<byte>]
+
+global fn[2] @$vtable$test.GenericType<int>$test.NongenericTrait = [test.GenericType.bar<int>, test.GenericType.foo<int>]
+
+func int @test.GenericType.foo<bool>(test.GenericType<bool>* %4) {
+  Ret 2
+}
+
+func int @test.GenericType.foo<byte>(test.GenericType<byte>* %5) {
+  Ret 2
+}
+
+func int @test.GenericType.foo<int>(test.GenericType<int>* %6) {
+  Ret 2
+}
+
+func bool @test.GenericType.bar<bool>(test.GenericType<bool>* %7) {
+  Ret false
+}
+
+func bool @test.GenericType.bar<int>(test.GenericType<int>* %8) {
+  Ret false
+}
+
+func bool @test.GenericType.baz<bool>(test.GenericType<bool>* %9, bool %10) {
+  Ret %10
+}
+
+func byte @test.GenericType.baz<byte>(test.GenericType<byte>* %11, byte %12) {
+  Ret %12
+}
+
+func unit @test.forceInstantiations() {
+  %13 := CallBuiltin test.NongenericType* myte_alloc(1)
+  %14 := GetPointer int, test.NongenericType* %13.0
+  Store int %14, 1
+  %15 := CallBuiltin test.GenericType<int>* myte_alloc(1)
+  %16 := GetPointer int, test.GenericType<int>* %15.0
+  Store int %16, 2
+  %17 := CallBuiltin test.GenericType<bool>* myte_alloc(1)
+  %18 := GetPointer bool, test.GenericType<bool>* %17.0
+  Store bool %18, true
+  %19 := CallBuiltin test.NongenericType* myte_alloc(1)
+  %20 := GetPointer int, test.NongenericType* %19.0
+  Store int %20, 1
+  %21 := CallBuiltin test.GenericType<byte>* myte_alloc(1)
+  %22 := GetPointer byte, test.GenericType<byte>* %21.0
+  Store byte %22, 2
+  %23 := CallBuiltin test.GenericType<bool>* myte_alloc(1)
+  %24 := GetPointer bool, test.GenericType<bool>* %23.0
+  Store bool %24, true
+  Ret
+}
+
+func int @test.main() {
+  Ret 0
+}

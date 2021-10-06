@@ -61,7 +61,7 @@ and gen_global_instruction_builder ~gcx ~ir:_ global =
     let size = Gcx.size_of_mir_type ~gcx global.ty in
     Gcx.add_bss ~gcx { label; size }
   (* Array literal is known at compile time, so insert into initialized data section *)
-  | Some (`ArrayL (_, _, data)) -> Gcx.add_data ~gcx { label; value = AsciiData data }
+  | Some (`ArrayStringL data) -> Gcx.add_data ~gcx { label; value = AsciiData data }
   (* Pointer and function literals are labels, so insert into initialized data section *)
   | Some (`PointerL (_, init_label))
   | Some (`FunctionL init_label) ->
@@ -1228,7 +1228,9 @@ and resolve_ir_value ~gcx ~func ?(allow_imm64 = false) value =
   | `FunctionV var_id -> vreg_of_var var_id Size64
   | `PointerL (_, label) -> SAddr (mk_label_memory_address label)
   | `PointerV (_, var_id) -> vreg_of_var var_id Size64
-  | `ArrayL _ -> failwith "TODO: Cannot compile array literals yet"
+  | `ArrayStringL _
+  | `ArrayVtableL _ ->
+    failwith "TODO: Cannot compile array literals yet"
   | `ArrayV _ -> failwith "TODO: Cannot compile array variables yet"
 
 and register_size_of_mir_value_type value_type =

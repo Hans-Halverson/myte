@@ -346,7 +346,7 @@ module InstructionsMapper = struct
           (this#map_numeric_value ~block v :> Value.t)
         | (`FunctionL _ | `FunctionV _) as v -> (this#map_function_value ~block v :> Value.t)
         | (`PointerL _ | `PointerV _) as v -> (this#map_pointer_value ~block v :> Value.t)
-        | (`ArrayL _ | `ArrayV _) as v -> this#map_array_value ~block v
+        | (`ArrayStringL _ | `ArrayVtableL _ | `ArrayV _) as v -> this#map_array_value ~block v
 
       method map_unit_value ~block value : Value.unit_value =
         match value with
@@ -385,7 +385,7 @@ module InstructionsMapper = struct
 
       method map_array_value ~block value =
         match value with
-        | `ArrayL _ as value -> value
+        | (`ArrayStringL _ | `ArrayVtableL _) as value -> value
         | `ArrayV (ty, size, var_id) as value ->
           id_map (this#map_use_variable ~block) var_id value (fun var_id' ->
               `ArrayV (ty, size, var_id'))
@@ -469,7 +469,7 @@ class rewrite_vars_mapper ~(program : Program.t) (var_map : Value.t IMap.t) =
 
     method! map_array_value ~block value =
       match value with
-      | `ArrayL _ as value -> value
+      | (`ArrayStringL _ | `ArrayVtableL _) as value -> value
       | `ArrayV (_, _, var_id) as value ->
         (match IMap.find_opt var_id var_map with
         | None -> value

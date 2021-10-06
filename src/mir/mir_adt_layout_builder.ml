@@ -1,12 +1,13 @@
 open Basic_collections
 open Mir_adt_layout
+open Mir_emit_utils
 open Mir_type
 module Ecx = Mir_emit_context
 
 let get_type_node_properties ~(ecx : Ecx.t) decl_node =
   let { Ast.TypeDeclaration.name = { Ast.Identifier.loc; _ } as id; _ } = decl_node in
   let binding = Bindings.get_type_binding ecx.pcx.bindings loc in
-  let full_name = String.concat "." (binding.module_ @ [binding.name]) in
+  let full_name = mk_type_binding_name binding in
   let type_decl = Bindings.get_type_decl binding in
   (id, full_name, type_decl.adt_sig)
 

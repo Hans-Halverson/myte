@@ -1385,7 +1385,7 @@ and check_expression ~cx expr =
       match method_sig with
       | None -> false
       | Some method_sig ->
-        if method_sig.type_params <> [] then
+        if MethodSig.is_generic method_sig then
           Type_context.add_error ~cx name.loc GenericTraitObjectMethod;
         true
     in

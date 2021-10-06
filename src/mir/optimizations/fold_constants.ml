@@ -262,7 +262,8 @@ class calc_constants_visitor ~ocx =
               | `FunctionL label -> (FunctionConstant label :: constants, is_constant)
               | `PointerL _
               | `PointerV _
-              | `ArrayL _
+              | `ArrayStringL _
+              | `ArrayVtableL _
               | `ArrayV _ ->
                 (constants, false))
             args

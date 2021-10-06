@@ -87,7 +87,13 @@ module TraitDeclaration = struct
   }
 
   let mk ~name ~loc =
-    { trait_sig = TraitSig.mk ~name; name; loc; methods = SMap.empty; implemented = LocMap.empty }
+    {
+      trait_sig = TraitSig.mk ~name ~loc;
+      name;
+      loc;
+      methods = SMap.empty;
+      implemented = LocMap.empty;
+    }
 end
 
 module TypeDeclaration = struct
@@ -96,7 +102,7 @@ module TypeDeclaration = struct
     mutable traits: TraitDeclaration.t list;
   }
 
-  let mk ~name = { adt_sig = AdtSig.mk ~name; traits = [] }
+  let mk ~name ~loc = { adt_sig = AdtSig.mk ~name ~loc; traits = [] }
 
   let add_trait decl trait = decl.traits <- trait :: decl.traits
 end

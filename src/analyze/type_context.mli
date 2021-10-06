@@ -32,6 +32,8 @@ val get_ordered_traits : cx:t -> Ast.TraitDeclaration.t list
 
 val set_ordered_traits : cx:t -> Ast.TraitDeclaration.t list -> unit
 
+val get_trait_object_promotion : cx:t -> Loc.t -> Types.TraitSig.instance option
+
 (* Binding getters *)
 
 val get_value_binding : cx:t -> Loc.t -> ValueBinding.t

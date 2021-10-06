@@ -154,7 +154,8 @@ module IRVisitor = struct
         | `LongL _
         | `FunctionL _
         | `PointerL _
-        | `ArrayL _ ->
+        | `ArrayStringL _
+        | `ArrayVtableL _ ->
           ()
         | `UnitV var_id
         | `BoolV var_id

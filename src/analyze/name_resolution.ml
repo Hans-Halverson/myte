@@ -271,12 +271,12 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               | Alias _ -> add_type_binding name (TypeAlias (TypeAliasDeclaration.mk ()))
               | Tuple { name; _ }
               | Record { name; _ } ->
-                let type_decl = TypeDeclaration.mk ~name:name.name in
+                let type_decl = TypeDeclaration.mk ~name:name.name ~loc:name.loc in
                 add_value_binding name (CtorDecl type_decl);
                 add_type_binding name (TypeDecl type_decl);
                 Std_lib.register_stdlib_type name.loc type_decl.adt_sig
               | Variant variants ->
-                let type_decl = TypeDeclaration.mk ~name:name.name in
+                let type_decl = TypeDeclaration.mk ~name:name.name ~loc:name.loc in
                 add_type_binding name (TypeDecl type_decl);
                 Std_lib.register_stdlib_type name.loc type_decl.adt_sig;
                 List.iter
@@ -290,7 +290,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                       add_value_binding name (CtorDecl type_decl))
                   variants
               | Builtin ->
-                let type_decl = TypeDeclaration.mk ~name:name.name in
+                let type_decl = TypeDeclaration.mk ~name:name.name ~loc:name.loc in
                 add_type_binding name (TypeDecl type_decl);
                 Std_lib.register_stdlib_type name.loc type_decl.adt_sig );
             (* Check record fields for duplicates and save to compare against methods *)

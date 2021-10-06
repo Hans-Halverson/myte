@@ -43,7 +43,8 @@ module rec Value : sig
 
   type array_value =
     [ `ArrayV of Type.t * int * var_id
-    | `ArrayL of Type.t * int * string
+    | `ArrayStringL of string
+    | `ArrayVtableL of int * label list
     ]
 
   type t =
@@ -243,9 +244,9 @@ let type_of_value (v : Value.t) : Type.t =
   | `PointerV (ty, _)
   | `PointerL (ty, _) ->
     `PointerT ty
-  | `ArrayV (ty, size, _)
-  | `ArrayL (ty, size, _) ->
-    `ArrayT (ty, size)
+  | `ArrayV (ty, size, _) -> `ArrayT (ty, size)
+  | `ArrayStringL str -> `ArrayT (`ByteT, String.length str)
+  | `ArrayVtableL (size, _) -> `ArrayT (`FunctionT, size)
 
 let pointer_value_element_type (ptr : Value.pointer_value) : Type.t =
   match ptr with
@@ -292,7 +293,7 @@ let cast_to_pointer_value (v : Value.t) : Value.pointer_value =
 
 let cast_to_array_value (v : Value.t) : Value.array_value =
   match v with
-  | (`ArrayL _ | `ArrayV _) as v -> v
+  | (`ArrayStringL _ | `ArrayVtableL _ | `ArrayV _) as v -> v
   | _ -> failwith "Expected array value"
 
 let cast_to_comparable_value (v : Value.t) : Value.comparable_value =
@@ -316,7 +317,8 @@ let is_literal (v : Value.t) : bool =
   | `ByteL _
   | `IntL _
   | `LongL _
-  | `ArrayL _ ->
+  | `ArrayStringL _
+  | `ArrayVtableL _ ->
     true
   | `UnitV _
   | `BoolV _
@@ -337,7 +339,8 @@ let var_id_of_value_opt (v : Value.t) : var_id option =
   | `ByteL _
   | `IntL _
   | `LongL _
-  | `ArrayL _ ->
+  | `ArrayStringL _
+  | `ArrayVtableL _ ->
     None
   | `UnitV var_id
   | `BoolV var_id
@@ -358,7 +361,9 @@ let values_equal (v1 : Value.t) (v2 : Value.t) : bool =
   | (`LongL l1, `LongL l2) -> Int64.equal l1 l2
   | (`FunctionL label1, `FunctionL label2) -> label1 = label2
   | (`PointerL (_, label1), `PointerL (_, label2)) -> label1 = label2
-  | (`ArrayL (_, size1, label1), `ArrayL (_, size2, label2)) -> size1 = size2 && label1 = label2
+  | (`ArrayStringL str1, `ArrayStringL str2) -> String.equal str1 str2
+  | (`ArrayVtableL (size1, labels1), `ArrayVtableL (size2, labels2)) ->
+    size1 = size2 && List.for_all2 String.equal labels1 labels2
   | (`UnitV var_id1, `UnitV var_id2)
   | (`BoolV var_id1, `BoolV var_id2)
   | (`ByteV var_id1, `ByteV var_id2)
@@ -382,7 +387,7 @@ let rec map_value ~f (value : Value.t) : Value.t =
   | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _) as v -> (map_numeric_value ~f v :> Value.t)
   | (`FunctionL _ | `FunctionV _) as v -> (map_function_value ~f v :> Value.t)
   | (`PointerL _ | `PointerV _) as v -> (map_pointer_value ~f v :> Value.t)
-  | (`ArrayL _ | `ArrayV _) as v -> (map_array_value ~f v :> Value.t)
+  | (`ArrayStringL _ | `ArrayVtableL _ | `ArrayV _) as v -> (map_array_value ~f v :> Value.t)
 
 and map_unit_value ~f (value : Value.unit_value) : Value.unit_value =
   match value with
@@ -418,7 +423,7 @@ and map_pointer_value ~f (value : Value.pointer_value) : Value.pointer_value =
 
 and map_array_value ~f (value : Value.array_value) : Value.array_value =
   match value with
-  | `ArrayL _ as lit -> lit
+  | (`ArrayStringL _ | `ArrayVtableL _) as lit -> lit
   | `ArrayV (ty, size, v) -> `ArrayV (ty, size, f v)
 
 and map_comparable_value ~f (value : Value.comparable_value) : Value.comparable_value =

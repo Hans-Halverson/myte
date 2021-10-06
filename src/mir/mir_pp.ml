@@ -43,13 +43,23 @@ let rec pp_program program =
   (* Collect printed blocks along with their source locations *)
   let blocks =
     SMap.fold
+      (fun name type_ blocks ->
+        if filter_stdlib name then
+          blocks
+        else
+          (Aggregate.(type_.loc, type_.name, 0), (fun _ -> pp_type_decl type_)) :: blocks)
+      program.types
+      []
+  in
+  let blocks =
+    SMap.fold
       (fun name global blocks ->
         if filter_stdlib name then
           blocks
         else
-          (Global.(global.loc, global.name), (fun _ -> pp_global ~cx global)) :: blocks)
+          (Global.(global.loc, global.name, 1), (fun _ -> pp_global ~cx global)) :: blocks)
       program.globals
-      []
+      blocks
   in
   let blocks =
     SMap.fold
@@ -57,26 +67,19 @@ let rec pp_program program =
         if filter_stdlib name then
           blocks
         else
-          (Function.(func.loc, func.name), (fun _ -> pp_func ~cx ~program func)) :: blocks)
+          (Function.(func.loc, func.name, 2), (fun _ -> pp_func ~cx ~program func)) :: blocks)
       program.funcs
-      blocks
-  in
-  let blocks =
-    SMap.fold
-      (fun name type_ blocks ->
-        if filter_stdlib name then
-          blocks
-        else
-          (Aggregate.(type_.loc, type_.name), (fun _ -> pp_type_decl type_)) :: blocks)
-      program.types
       blocks
   in
   (* Sort by block source location, break ties by name *)
   let sorted_blocks =
     List.sort
-      (fun ((loc1, name1), _) ((loc2, name2), _) ->
+      (fun ((loc1, name1, order1), _) ((loc2, name2, order2), _) ->
         match Loc.compare loc1 loc2 with
-        | 0 -> String.compare name1 name2
+        | 0 ->
+          (match Int.compare order1 order2 with
+          | 0 -> String.compare name1 name2
+          | other -> other)
         | other -> other)
       blocks
   in
@@ -225,7 +228,8 @@ and pp_value ~cx v =
   | `FunctionL label
   | `PointerL (_, label) ->
     "@" ^ label
-  | `ArrayL (_, _, str) -> Printf.sprintf "\"%s\"" str
+  | `ArrayStringL str -> "\"" ^ str ^ "\""
+  | `ArrayVtableL (_, labels) -> "[" ^ String.concat ", " labels ^ "]"
   | `UnitV var_id
   | `BoolV var_id
   | `ByteV var_id

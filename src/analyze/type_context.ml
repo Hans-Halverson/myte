@@ -67,6 +67,8 @@ let get_ordered_traits ~cx = cx.ordered_traits
 
 let set_ordered_traits ~cx ordered_traits = cx.ordered_traits <- ordered_traits
 
+let get_trait_object_promotion ~cx expr_loc = LocMap.find_opt expr_loc cx.trait_object_promotions
+
 let get_value_binding ~cx use_loc = get_value_binding cx.bindings use_loc
 
 let get_type_binding ~cx use_loc = get_type_binding cx.bindings use_loc

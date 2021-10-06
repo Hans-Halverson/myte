@@ -1,6 +1,8 @@
 open Basic_collections
 open Mir
 open Mir_adt_layout
+open Mir_emit_utils
+open Mir_trait_object_vtable
 open Mir_type
 
 module BlockBuilder = struct
@@ -41,6 +43,8 @@ type t = {
   mutable ptr_var_ids_to_ssaify: ISet.t;
   (* ADT signature id to its corresponding MIR layout *)
   mutable adt_sig_to_mir_layout: MirAdtLayout.t IMap.t;
+  (* Trait signature id to its corresponding trait object vtables *)
+  mutable trait_sig_to_vtables: MirTraitObjectVtable.t IMap.t;
   (* All tuple types used in this program, keyed by their type arguments *)
   mutable tuple_instantiations: Aggregate.t TypeArgsHashtbl.t;
   (* All instances of generic functions used in this program that have been generated so far,
@@ -82,6 +86,7 @@ let mk ~pcx =
     param_to_var_id = LocMap.empty;
     ptr_var_ids_to_ssaify = ISet.empty;
     adt_sig_to_mir_layout = IMap.empty;
+    trait_sig_to_vtables = IMap.empty;
     tuple_instantiations = TypeArgsHashtbl.create 10;
     func_instantiations = SMap.empty;
     pending_func_instantiations = SMap.empty;
@@ -221,7 +226,7 @@ let add_string_literal ~ecx loc string =
   in
   let length = String.length string in
   let ty = `ArrayT (`ByteT, length) in
-  let global = { Global.loc; name; ty; init_val = Some (`ArrayL (`ByteT, length, string)) } in
+  let global = { Global.loc; name; ty; init_val = Some (`ArrayStringL string) } in
   add_global ~ecx global;
   `PointerL (ty, name)
 
@@ -393,6 +398,85 @@ and instantiate_tuple ~ecx element_types =
     TypeArgsHashtbl.add ecx.tuple_instantiations mir_type_args agg;
     agg
 
+and instantiate_trait_object_vtable ~ecx trait_instance ty =
+  let { Types.TraitSig.trait_sig; type_args } = trait_instance in
+  let mir_type = to_mir_type ~ecx ty in
+  let trait_mir_type_args = List.map (to_mir_type ~ecx) type_args in
+
+  (* Get all vtables for this trait instance, creating new trait object vtable collection if it does
+     not yet exist. *)
+  let rec get_vtables trait_sig =
+    match IMap.find_opt trait_sig.Types.TraitSig.id ecx.trait_sig_to_vtables with
+    | None ->
+      let trait_object_vtable = MirTraitObjectVtable.mk trait_sig in
+      ecx.trait_sig_to_vtables <- IMap.add trait_sig.id trait_object_vtable ecx.trait_sig_to_vtables;
+      get_vtables trait_sig
+    | Some { instantiations = Concrete vtables; _ } -> vtables
+    | Some { instantiations = Generic instantiations; _ } ->
+      MirTraitObjectVtable.add_instantiation instantiations trait_mir_type_args
+  in
+  let vtables = get_vtables trait_sig in
+
+  (* Return vtable for this type if it has already been instantiated, otherwise instantiate it *)
+  let type_key = [mir_type] in
+  match TypeArgsHashtbl.find_opt vtables type_key with
+  | Some vtable_ptr -> vtable_ptr
+  | None ->
+    (* Instantiate type's methods that are part of the trait object, building vtable array *)
+    let (vtable_size, vtable_functions) =
+      SMap.fold
+        (fun method_name method_sig (i, vtable_functions) ->
+          if Types.MethodSig.is_generic method_sig then
+            (i, vtable_functions)
+          else
+            let full_method_name =
+              add_necessary_method_instantiation
+                ~ecx
+                ~method_name
+                ~receiver_ty:ty
+                ~method_instance_type_args:[]
+            in
+            (i + 1, full_method_name :: vtable_functions))
+        trait_sig.methods
+        (0, [])
+    in
+    let vtable_val = `ArrayVtableL (vtable_size, List.rev vtable_functions) in
+    let vtable_mir_type = type_of_value vtable_val in
+
+    (* Create vtable name, composed from fully parameterized type and trait names *)
+    let (adt_sig, adt_type_args) =
+      match ty with
+      | ADT { adt_sig; type_args; _ } -> (adt_sig, type_args)
+      | _ -> (Std_lib.get_primitive_adt_sig ty, [])
+    in
+
+    (* Find fully parameterized type name *)
+    let adt_binding = Type_context.get_type_binding ~cx:ecx.pcx.type_ctx adt_sig.loc in
+    let adt_mir_type_args = List.map (to_mir_type ~ecx) adt_type_args in
+    let full_adt_name = mk_type_binding_name adt_binding ^ TypeArgs.to_string adt_mir_type_args in
+
+    (* Find fully parameterized trait name *)
+    let trait_binding = Type_context.get_type_binding ~cx:ecx.pcx.type_ctx trait_sig.loc in
+    let full_trait_name =
+      mk_type_binding_name trait_binding ^ TypeArgs.to_string trait_mir_type_args
+    in
+
+    (* Create global for vtable *)
+    let vtable_label = Printf.sprintf "$vtable$%s$%s" full_adt_name full_trait_name in
+    add_global
+      ~ecx
+      {
+        Global.loc = adt_sig.loc;
+        name = vtable_label;
+        ty = vtable_mir_type;
+        init_val = Some vtable_val;
+      };
+
+    (* Save and return pointer to vtable *)
+    let vtable_ptr = `PointerL (vtable_mir_type, vtable_label) in
+    TypeArgsHashtbl.add vtables type_key vtable_ptr;
+    vtable_ptr
+
 and to_mir_type ~ecx ty =
   match ty with
   | Types.Type.Unit -> `UnitT
@@ -442,14 +526,14 @@ and mk_placeholder_aggregate ~ecx name loc = mk_aggregate ~ecx name loc []
    concrete type if we are generating an instantiation of a generic function.
   
    Every rep type that is a type parameter is guaranteed to have a concrete type substituted for it. *)
-let find_rep_non_generic_type ~ecx ty =
+and find_rep_non_generic_type ~ecx ty =
   let ty = Type_context.find_rep_type ~cx:ecx.pcx.Program_context.type_ctx ty in
   if IMap.is_empty ecx.current_type_param_bindings then
     ty
   else
     Types.substitute_type_params ecx.current_type_param_bindings ty
 
-let add_necessary_func_instantiation ~ecx name key_type_params key_type_args =
+and add_necessary_func_instantiation ~ecx name key_type_params key_type_args =
   let key_type_args = List.map (find_rep_non_generic_type ~ecx) key_type_args in
   let arg_mir_tys = List.map (fun key_arg_ty -> to_mir_type ~ecx key_arg_ty) key_type_args in
   let name_with_args =
@@ -487,6 +571,55 @@ let add_necessary_func_instantiation ~ecx name key_type_params key_type_args =
       ecx.pending_func_instantiations <-
         SMap.add name pending_type_args ecx.pending_func_instantiations );
   name_with_args
+
+and add_necessary_method_instantiation
+    ~ecx
+    ~(method_name : string)
+    ~(receiver_ty : Types.Type.t)
+    ~(method_instance_type_args : Types.Type.t list) =
+  let (receiver_adt_sig, receiver_type_args) =
+    match receiver_ty with
+    | ADT { adt_sig; type_args; _ } -> (adt_sig, type_args)
+    | _ -> (Std_lib.get_primitive_adt_sig receiver_ty, [])
+  in
+
+  (* Find method, along with the trait it was defined in *)
+  let method_sig = Types.AdtSig.lookup_method receiver_adt_sig method_name in
+  let method_sig = Option.get method_sig in
+  let source_trait_instance = method_sig.source_trait_instance in
+  let source_trait_sig = source_trait_instance.trait_sig in
+
+  (* Calculate generic keys from trait/type *)
+  let (extra_key_type_params, extra_key_type_args) =
+    if method_sig.trait_sig == source_trait_sig then
+      (* Method was directly declared on the ADT's trait. Substitute type args for trait's type args *)
+      (source_trait_sig.type_params, receiver_type_args)
+    else
+      (* Method was declared on a trait that the ADT implements. The source trait instance's type
+         args are in terms of the ADT trait's type params, so first map from the ADT trait's type
+         params to the actual ADT instance's type args in the source trait instance's type args.
+         The key args are these mapped source trait instance's type args along with the a `this`
+         type of the ADT instance. *)
+      let bindings =
+        Types.bind_type_params_to_args method_sig.trait_sig.type_params receiver_type_args
+      in
+      let type_args =
+        List.map (Types.substitute_type_params bindings) source_trait_instance.type_args
+      in
+      let all_key_type_params = source_trait_sig.this_type_param :: source_trait_sig.type_params in
+      let all_key_type_args = receiver_ty :: type_args in
+      (all_key_type_params, all_key_type_args)
+  in
+
+  (* Full keys are trait/type args plus method's own generic args *)
+  let key_type_params = extra_key_type_params @ method_sig.type_params in
+  let key_type_args = extra_key_type_args @ method_instance_type_args in
+
+  (* Find name of method fully qualified by module and trait *)
+  let method_binding = Bindings.get_value_binding ecx.pcx.bindings method_sig.loc in
+  let fully_qualified_method_name = mk_value_binding_name method_binding in
+
+  add_necessary_func_instantiation ~ecx fully_qualified_method_name key_type_params key_type_args
 
 let pop_pending_func_instantiation ~ecx =
   match SMap.choose_opt ecx.pending_func_instantiations with
