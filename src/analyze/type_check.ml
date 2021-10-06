@@ -1354,11 +1354,11 @@ and check_expression ~cx expr =
 
     (* Try to find a method with the given name in a set of trait sigs *)
     let try_resolve_method trait_sigs type_args =
-      List.exists
+      List_utils.find_map_opt
         (fun { TraitSig.type_params = trait_type_params; methods; _ } ->
           match SMap.find_opt name.name methods with
-          | None -> false
-          | Some { MethodSig.type_params; params; return; _ } ->
+          | None -> None
+          | Some ({ MethodSig.type_params; params; return; _ } as method_sig) ->
             Type_context.add_method_use ~cx name.loc;
             (* Create fresh function type (refreshing only type params bound to the method itself).
                Also must substitute trait's type params with true type args for ADT, since method will
@@ -1369,19 +1369,25 @@ and check_expression ~cx expr =
             in
             let method_type = Types.substitute_type_params trait_type_param_bindings method_type in
             ignore (Type_context.unify ~cx method_type (TVar tvar_id));
-            true)
+            Some method_sig)
         trait_sigs
     in
     let try_resolve_adt_method { AdtSig.traits; _ } type_args =
-      try_resolve_method traits type_args
+      try_resolve_method traits type_args <> None
     in
     let try_resolve_trait_bounds_method bounds =
       List.exists
-        (fun { TraitSig.trait_sig; type_args } -> try_resolve_method [trait_sig] type_args)
+        (fun { TraitSig.trait_sig; type_args } -> try_resolve_method [trait_sig] type_args <> None)
         bounds
     in
     let try_resolve_trait_object_method { TraitSig.trait_sig; type_args } =
-      try_resolve_method [trait_sig] type_args
+      let method_sig = try_resolve_method [trait_sig] type_args in
+      match method_sig with
+      | None -> false
+      | Some method_sig ->
+        if method_sig.type_params <> [] then
+          Type_context.add_error ~cx name.loc GenericTraitObjectMethod;
+        true
     in
 
     (* Try to resolve named access to a method access *)

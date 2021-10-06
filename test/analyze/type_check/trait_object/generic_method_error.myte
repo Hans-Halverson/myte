@@ -1,0 +1,13 @@
+module test
+
+trait Foo {
+  fun nonGeneric(): Unit
+  fun generic<T>(x: T): T
+}
+
+fun test(x: trait Foo) {
+  x.nonGeneric();
+  x.generic(1);
+}
+
+fun main() {}
