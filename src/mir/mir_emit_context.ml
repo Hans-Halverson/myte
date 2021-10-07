@@ -408,7 +408,7 @@ and get_trait_object_layout ~ecx (trait_sig : Types.TraitSig.t) =
     (* Create aggregate for trait object *)
     let trait_binding = Type_context.get_type_binding ~cx:ecx.pcx.type_ctx trait_sig.loc in
     let full_trait_name = mk_type_binding_name trait_binding in
-    let trait_object_label = "$object$" ^ full_trait_name in
+    let trait_object_label = "_object$" ^ full_trait_name in
     let trait_object_agg =
       mk_aggregate
         ~ecx
@@ -483,7 +483,7 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
     in
 
     (* Create global for vtable and save pointer to it *)
-    let vtable_label = Printf.sprintf "$vtable$%s$%s" full_adt_name full_trait_name in
+    let vtable_label = Printf.sprintf "_vtable$%s$%s" full_adt_name full_trait_name in
     add_global
       ~ecx
       {
@@ -495,9 +495,13 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
     let vtable = `PointerL (vtable_mir_type, vtable_label) in
 
     (* Create aggregate type for type's trait object *)
-    let agg_label = Printf.sprintf "$object$%s$%s" full_adt_name full_trait_name in
+    let agg_label = Printf.sprintf "_object$%s$%s" full_adt_name full_trait_name in
     let agg =
-      mk_aggregate ~ecx agg_label adt_sig.loc [("item", mir_type); ("vtable", vtable_mir_type)]
+      mk_aggregate
+        ~ecx
+        agg_label
+        adt_sig.loc
+        [("item", mir_type); ("vtable", `PointerT vtable_mir_type)]
     in
 
     let trait_object_instance = { MirTraitObjectLayout.vtable; agg } in

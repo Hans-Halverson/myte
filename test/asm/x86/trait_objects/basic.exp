@@ -1,0 +1,62 @@
+  .global _main
+
+  .data
+.S3:
+  .ascii ""
+_vtable$test.Type$test.Trait:
+  .quad test.Type.bar
+  .quad test.Type.foo
+
+  .text
+test.Type.bar:
+  movl $16, %edi
+  call __myte_alloc
+  leaq .S3(%rip), %rcx
+  movq %rcx, (%rax)
+  movl $0, 8(%rax)
+  movl $0, 12(%rax)
+  ret
+test.Type.foo:
+  movl $1, %eax
+  ret
+test.callMethodWithArgs:
+  movq (%rdi), %rax
+  movq 8(%rdi), %rcx
+  movq (%rcx), %rcx
+  movq %rax, %rdi
+  movl $1, %esi
+  movb $1, %dl
+  callq *%rcx
+  ret
+test.callSimpleMethod:
+  movq (%rdi), %rax
+  movq 8(%rdi), %rcx
+  movq 16(%rcx), %rcx
+  movq %rax, %rdi
+  callq *%rcx
+  ret
+_main:
+  movl $0, %eax
+  ret
+test.testCall:
+  push %rbx
+  movq %rdi, %rbx
+  movq %rbx, %rdi
+  call test.callSimpleMethod
+  movq %rbx, %rdi
+  call test.callMethodWithArgs
+  pop %rbx
+  ret
+test.testPromotion:
+  push %rbx
+  movq %rdi, %rbx
+  movl $16, %edi
+  call __myte_alloc
+  movq %rbx, (%rax)
+  leaq 8(%rax), %rcx
+  leaq _vtable$test.Type$test.Trait(%rip), %rbx
+  movq %rbx, (%rcx)
+  movq %rax, %rdi
+  call test.testCall
+  pop %rbx
+  ret

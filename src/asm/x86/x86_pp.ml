@@ -427,20 +427,23 @@ let pp_data ~buf (data : data) =
      label:
        .directive immediate *)
   add_label_line ~buf data.label;
-  add_line ~buf (fun buf ->
-      let (directive_string, value_string) =
-        match data.value with
-        | ImmediateData (Imm8 imm) -> ("byte", string_of_int imm)
-        | ImmediateData (Imm16 imm) -> ("value", string_of_int imm)
-        | ImmediateData (Imm32 imm) -> ("long", Int32.to_string imm)
-        | ImmediateData (Imm64 imm) -> ("quad", Int64.to_string imm)
-        | AsciiData str -> ("ascii", quote_string str)
-        | LabelData label -> ("quad", label)
-      in
-      add_char ~buf '.';
-      add_string ~buf directive_string;
-      add_char ~buf ' ';
-      add_string ~buf value_string)
+  List.iter
+    (fun value ->
+      add_line ~buf (fun buf ->
+          let (directive_string, value_string) =
+            match value with
+            | ImmediateData (Imm8 imm) -> ("byte", string_of_int imm)
+            | ImmediateData (Imm16 imm) -> ("value", string_of_int imm)
+            | ImmediateData (Imm32 imm) -> ("long", Int32.to_string imm)
+            | ImmediateData (Imm64 imm) -> ("quad", Int64.to_string imm)
+            | AsciiData str -> ("ascii", quote_string str)
+            | LabelData label -> ("quad", label)
+          in
+          add_char ~buf '.';
+          add_string ~buf directive_string;
+          add_char ~buf ' ';
+          add_string ~buf value_string))
+    data.value
 
 let pp_block ~gcx ~pcx ~buf (block : virtual_block) =
   (match pp_label ~pcx block with

@@ -275,7 +275,7 @@ type data_value =
 
 type data = {
   label: label;
-  value: data_value;
+  value: data_value list;
 }
 
 type bss_data = {

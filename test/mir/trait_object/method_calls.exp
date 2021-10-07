@@ -1,10 +1,10 @@
-type $object$test.Trait {unit*, fn[2]*}
+type _object$test.Trait {unit*, fn[2]*}
 
-type $object$test.Type$test.Trait {test.Type*, fn[2]}
+type _object$test.Type$test.Trait {test.Type*, fn[2]*}
 
 type test.Type {int}
 
-global fn[2] @$vtable$test.Type$test.Trait = [test.Type.bar, test.Type.foo]
+global fn[2] @_vtable$test.Type$test.Trait = [test.Type.bar, test.Type.foo]
 
 func int @test.Type.foo(test.Type* %0) {
   Ret 1
@@ -23,10 +23,10 @@ func std.string.String* @test.Type.bar(test.Type* %1, int %2, bool %3) {
 
 global byte[0] @.S3 = ""
 
-func unit @test.callSimpleMethod($object$test.Trait* %8) {
-  %9 := GetPointer unit*, $object$test.Trait* %8.0
+func unit @test.callSimpleMethod(_object$test.Trait* %8) {
+  %9 := GetPointer unit*, _object$test.Trait* %8.0
   %10 := Load unit* %9
-  %11 := GetPointer fn[2]*, $object$test.Trait* %8.1
+  %11 := GetPointer fn[2]*, _object$test.Trait* %8.1
   %12 := Load fn[2]* %11
   %13 := GetPointer fn, fn[2]* %12[int 1]
   %14 := Load fn %13
@@ -34,10 +34,10 @@ func unit @test.callSimpleMethod($object$test.Trait* %8) {
   Ret
 }
 
-func unit @test.callMethodWithArgs($object$test.Trait* %16) {
-  %17 := GetPointer unit*, $object$test.Trait* %16.0
+func unit @test.callMethodWithArgs(_object$test.Trait* %16) {
+  %17 := GetPointer unit*, _object$test.Trait* %16.0
   %18 := Load unit* %17
-  %19 := GetPointer fn[2]*, $object$test.Trait* %16.1
+  %19 := GetPointer fn[2]*, _object$test.Trait* %16.1
   %20 := Load fn[2]* %19
   %21 := GetPointer fn, fn[2]* %20[int 0]
   %22 := Load fn %21
@@ -46,11 +46,11 @@ func unit @test.callMethodWithArgs($object$test.Trait* %16) {
 }
 
 func unit @test.test(test.Type* %24) {
-  %25 := CallBuiltin $object$test.Type$test.Trait* myte_alloc(1)
-  %26 := GetPointer test.Type*, $object$test.Type$test.Trait* %25.0
+  %25 := CallBuiltin _object$test.Type$test.Trait* myte_alloc(1)
+  %26 := GetPointer test.Type*, _object$test.Type$test.Trait* %25.0
   Store test.Type* %26, %24
-  %27 := GetPointer fn[2], $object$test.Type$test.Trait* %25.1
-  Store fn[2] %27, @$vtable$test.Type$test.Trait
+  %27 := GetPointer fn[2]*, _object$test.Type$test.Trait* %25.1
+  Store fn[2]* %27, @_vtable$test.Type$test.Trait
   %28 := Call unit @test.callSimpleMethod(%25)
   %29 := Call unit @test.callMethodWithArgs(%25)
   Ret
