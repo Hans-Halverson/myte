@@ -2,7 +2,7 @@ open Basic_collections
 open Mir
 open Mir_adt_layout
 open Mir_emit_utils
-open Mir_trait_object_vtable
+open Mir_trait_object_layout
 open Mir_type
 
 module BlockBuilder = struct
@@ -44,7 +44,7 @@ type t = {
   (* ADT signature id to its corresponding MIR layout *)
   mutable adt_sig_to_mir_layout: MirAdtLayout.t IMap.t;
   (* Trait signature id to its corresponding trait object vtables *)
-  mutable trait_sig_to_vtables: MirTraitObjectVtable.t IMap.t;
+  mutable trait_sig_to_trait_object_layout: MirTraitObjectLayout.t IMap.t;
   (* All tuple types used in this program, keyed by their type arguments *)
   mutable tuple_instantiations: Aggregate.t TypeArgsHashtbl.t;
   (* All instances of generic functions used in this program that have been generated so far,
@@ -86,7 +86,7 @@ let mk ~pcx =
     param_to_var_id = LocMap.empty;
     ptr_var_ids_to_ssaify = ISet.empty;
     adt_sig_to_mir_layout = IMap.empty;
-    trait_sig_to_vtables = IMap.empty;
+    trait_sig_to_trait_object_layout = IMap.empty;
     tuple_instantiations = TypeArgsHashtbl.create 10;
     func_instantiations = SMap.empty;
     pending_func_instantiations = SMap.empty;
@@ -398,29 +398,50 @@ and instantiate_tuple ~ecx element_types =
     TypeArgsHashtbl.add ecx.tuple_instantiations mir_type_args agg;
     agg
 
+and get_trait_object_layout ~ecx (trait_sig : Types.TraitSig.t) =
+  match IMap.find_opt trait_sig.id ecx.trait_sig_to_trait_object_layout with
+  | Some trait_object -> trait_object
+  (* Create trait object if it does not yet exist *)
+  | None ->
+    let (vtable_size, vtable_indices) = build_vtable_indices trait_sig in
+
+    (* Create aggregate for trait object *)
+    let trait_binding = Type_context.get_type_binding ~cx:ecx.pcx.type_ctx trait_sig.loc in
+    let full_trait_name = mk_type_binding_name trait_binding in
+    let trait_object_label = "$object$" ^ full_trait_name in
+    let trait_object_agg =
+      mk_aggregate
+        ~ecx
+        trait_object_label
+        trait_sig.loc
+        [("item", `PointerT `UnitT); ("vtable", `PointerT (`ArrayT (`FunctionT, vtable_size)))]
+    in
+
+    let trait_object_layout =
+      MirTraitObjectLayout.mk ~trait_sig ~trait_object_agg ~vtable_indices
+    in
+    ecx.trait_sig_to_trait_object_layout <-
+      IMap.add trait_sig.id trait_object_layout ecx.trait_sig_to_trait_object_layout;
+    trait_object_layout
+
 and instantiate_trait_object_vtable ~ecx trait_instance ty =
   let { Types.TraitSig.trait_sig; type_args } = trait_instance in
   let mir_type = to_mir_type ~ecx ty in
   let trait_mir_type_args = List.map (to_mir_type ~ecx) type_args in
 
-  (* Get all vtables for this trait instance, creating new trait object vtable collection if it does
-     not yet exist. *)
-  let rec get_vtables trait_sig =
-    match IMap.find_opt trait_sig.Types.TraitSig.id ecx.trait_sig_to_vtables with
-    | None ->
-      let trait_object_vtable = MirTraitObjectVtable.mk trait_sig in
-      ecx.trait_sig_to_vtables <- IMap.add trait_sig.id trait_object_vtable ecx.trait_sig_to_vtables;
-      get_vtables trait_sig
-    | Some { instantiations = Concrete vtables; _ } -> vtables
-    | Some { instantiations = Generic instantiations; _ } ->
-      MirTraitObjectVtable.add_instantiation instantiations trait_mir_type_args
+  (* Get all vtables for this trait instance, creating new trait object layout if it does not yet exist *)
+  let trait_object_layout = get_trait_object_layout ~ecx trait_sig in
+  let trait_instance =
+    match trait_object_layout.instantiations with
+    | Concrete trait_instance -> trait_instance
+    | Generic instantiations ->
+      MirTraitObjectLayout.add_instantiation instantiations trait_mir_type_args
   in
-  let vtables = get_vtables trait_sig in
 
   (* Return vtable for this type if it has already been instantiated, otherwise instantiate it *)
   let type_key = [mir_type] in
-  match TypeArgsHashtbl.find_opt vtables type_key with
-  | Some vtable_ptr -> vtable_ptr
+  match TypeArgsHashtbl.find_opt trait_instance type_key with
+  | Some trait_object_instance -> trait_object_instance
   | None ->
     (* Instantiate type's methods that are part of the trait object, building vtable array *)
     let (vtable_size, vtable_functions) =
@@ -443,7 +464,7 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
     let vtable_val = `ArrayVtableL (vtable_size, List.rev vtable_functions) in
     let vtable_mir_type = type_of_value vtable_val in
 
-    (* Create vtable name, composed from fully parameterized type and trait names *)
+    (* Create vtable and trait object names, composed from fully parameterized type and trait names *)
     let (adt_sig, adt_type_args) =
       match ty with
       | ADT { adt_sig; type_args; _ } -> (adt_sig, type_args)
@@ -461,7 +482,7 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
       mk_type_binding_name trait_binding ^ TypeArgs.to_string trait_mir_type_args
     in
 
-    (* Create global for vtable *)
+    (* Create global for vtable and save pointer to it *)
     let vtable_label = Printf.sprintf "$vtable$%s$%s" full_adt_name full_trait_name in
     add_global
       ~ecx
@@ -471,11 +492,17 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
         ty = vtable_mir_type;
         init_val = Some vtable_val;
       };
+    let vtable = `PointerL (vtable_mir_type, vtable_label) in
 
-    (* Save and return pointer to vtable *)
-    let vtable_ptr = `PointerL (vtable_mir_type, vtable_label) in
-    TypeArgsHashtbl.add vtables type_key vtable_ptr;
-    vtable_ptr
+    (* Create aggregate type for type's trait object *)
+    let agg_label = Printf.sprintf "$object$%s$%s" full_adt_name full_trait_name in
+    let agg =
+      mk_aggregate ~ecx agg_label adt_sig.loc [("item", mir_type); ("vtable", vtable_mir_type)]
+    in
+
+    let trait_object_instance = { MirTraitObjectLayout.vtable; agg } in
+    TypeArgsHashtbl.add trait_instance type_key trait_object_instance;
+    trait_object_instance
 
 and to_mir_type ~ecx ty =
   match ty with
@@ -503,12 +530,14 @@ and to_mir_type ~ecx ty =
       `PointerT (`AggregateT instance.union)
     | PureEnum { tag_mir_type; _ } -> (tag_mir_type :> Type.t)
     | InlineValue _ -> instantiate_mir_adt_inline_value_layout ~ecx mir_adt_layout type_args)
+  | TraitObject { trait_sig; _ } ->
+    let trait_object_layout = get_trait_object_layout ~ecx trait_sig in
+    `PointerT (`AggregateT trait_object_layout.trait_object_agg)
   | TypeParam _
   | TraitBound _
   | TVar _
   | Any ->
     failwith "Not allowed as value in IR"
-  | TraitObject _ -> failwith "TODO: Emit MIR for trait objects"
 
 and mk_aggregate ~ecx name loc elements =
   let aggregate = { Aggregate.id = mk_aggregate_id (); name; loc; elements } in

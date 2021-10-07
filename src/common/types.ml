@@ -246,6 +246,8 @@ and TraitSig : sig
   val add_method : t -> string -> MethodSig.t -> unit
 
   val add_implemented : t -> Loc.t -> instance -> unit
+
+  val is_generic : t -> bool
 end = struct
   type id = int
 
@@ -301,6 +303,8 @@ end = struct
 
   let add_implemented trait_sig loc implemented =
     trait_sig.implemented <- (loc, implemented) :: trait_sig.implemented
+
+  let is_generic trait_sig = trait_sig.type_params <> []
 end
 
 and Type : sig

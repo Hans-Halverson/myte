@@ -1,0 +1,108 @@
+type $object$test.Trait {unit*, fn[1]*}
+
+type $object$test.Type$test.Trait {test.Type*, fn[1]}
+
+type test.Type {int}
+
+global fn[1] @$vtable$test.Type$test.Trait = [test.Type.foo]
+
+func int @test.Type.foo(test.Type* %0) {
+  Ret 0
+}
+
+type test.TupleType {$object$test.Trait*}
+
+type test.RecordType {$object$test.Trait*}
+
+func unit @test.useTraitObject($object$test.Trait* %1) {
+  Ret
+}
+
+func unit @test.testCallArgumentPromotion(test.Type* %2) {
+  %3 := CallBuiltin $object$test.Type$test.Trait* myte_alloc(1)
+  %4 := GetPointer test.Type*, $object$test.Type$test.Trait* %3.0
+  Store test.Type* %4, %2
+  %5 := GetPointer fn[1], $object$test.Type$test.Trait* %3.1
+  Store fn[1] %5, @$vtable$test.Type$test.Trait
+  %6 := Call unit @test.useTraitObject(%3)
+  Ret
+}
+
+func unit @test.testTupleTypeArgumentPromotion(test.Type* %7) {
+  %8 := CallBuiltin test.TupleType* myte_alloc(1)
+  %9 := CallBuiltin $object$test.Type$test.Trait* myte_alloc(1)
+  %10 := GetPointer test.Type*, $object$test.Type$test.Trait* %9.0
+  Store test.Type* %10, %7
+  %11 := GetPointer fn[1], $object$test.Type$test.Trait* %9.1
+  Store fn[1] %11, @$vtable$test.Type$test.Trait
+  %12 := GetPointer $object$test.Trait*, test.TupleType* %8.0
+  Store $object$test.Trait* %12, %9
+  Ret
+}
+
+func unit @test.testRecordTypeArgumentPromotion(test.Type* %13) {
+  %14 := CallBuiltin test.RecordType* myte_alloc(1)
+  %15 := CallBuiltin $object$test.Type$test.Trait* myte_alloc(1)
+  %16 := GetPointer test.Type*, $object$test.Type$test.Trait* %15.0
+  Store test.Type* %16, %13
+  %17 := GetPointer fn[1], $object$test.Type$test.Trait* %15.1
+  Store fn[1] %17, @$vtable$test.Type$test.Trait
+  %18 := GetPointer $object$test.Trait*, test.RecordType* %14.0
+  Store $object$test.Trait* %18, %15
+  Ret
+}
+
+func unit @test.testTypeCastPromotion(test.Type* %19) {
+  %20 := CallBuiltin $object$test.Type$test.Trait* myte_alloc(1)
+  %21 := GetPointer test.Type*, $object$test.Type$test.Trait* %20.0
+  Store test.Type* %21, %19
+  %22 := GetPointer fn[1], $object$test.Type$test.Trait* %20.1
+  Store fn[1] %22, @$vtable$test.Type$test.Trait
+  Ret
+}
+
+func $object$test.Trait* @test.testReturnArgumentPromotion(test.Type* %23) {
+  %24 := CallBuiltin $object$test.Type$test.Trait* myte_alloc(1)
+  %25 := GetPointer test.Type*, $object$test.Type$test.Trait* %24.0
+  Store test.Type* %25, %23
+  %26 := GetPointer fn[1], $object$test.Type$test.Trait* %24.1
+  Store fn[1] %26, @$vtable$test.Type$test.Trait
+  Ret %24
+}
+
+func $object$test.Trait* @test.testReturnExpressionPromotion(test.Type* %27) {
+  %28 := CallBuiltin $object$test.Type$test.Trait* myte_alloc(1)
+  %29 := GetPointer test.Type*, $object$test.Type$test.Trait* %28.0
+  Store test.Type* %29, %27
+  %30 := GetPointer fn[1], $object$test.Type$test.Trait* %28.1
+  Store fn[1] %30, @$vtable$test.Type$test.Trait
+  Ret %28
+}
+
+func unit @test.testVariableDeclarationPromotion(test.Type* %31) {
+  %32 := CallBuiltin $object$test.Type$test.Trait* myte_alloc(1)
+  %33 := GetPointer test.Type*, $object$test.Type$test.Trait* %32.0
+  Store test.Type* %33, %31
+  %34 := GetPointer fn[1], $object$test.Type$test.Trait* %32.1
+  Store fn[1] %34, @$vtable$test.Type$test.Trait
+  %35 := Call unit @test.useTraitObject(%32)
+  Ret
+}
+
+func unit @test.testVariableAssignmentPromotion($object$test.Trait* %36, test.Type* %37) {
+  %38 := CallBuiltin $object$test.Type$test.Trait* myte_alloc(1)
+  %39 := GetPointer test.Type*, $object$test.Type$test.Trait* %38.0
+  Store test.Type* %39, %37
+  %40 := GetPointer fn[1], $object$test.Type$test.Trait* %38.1
+  Store fn[1] %40, @$vtable$test.Type$test.Trait
+  %41 := Call unit @test.useTraitObject(%38)
+  Ret
+}
+
+func $object$test.Trait* @test.testNoPromotionOnTraitObject($object$test.Trait* %42) {
+  Ret %42
+}
+
+func int @test.main() {
+  Ret 0
+}

@@ -1,0 +1,55 @@
+module test
+
+trait Trait {
+  fun foo(): Int
+}
+
+type Type (Int)
+methods Type {
+  implements Trait
+
+  override fun foo(): Int = 0
+}
+
+type TupleType (trait Trait)
+
+type RecordType { field: trait Trait }
+
+fun useTraitObject(x: trait Trait) {}
+
+fun testCallArgumentPromotion(x: Type) {
+  useTraitObject(x);
+}
+
+fun testTupleTypeArgumentPromotion(x: Type) {
+  TupleType (x);
+}
+
+fun testRecordTypeArgumentPromotion(x: Type) {
+  RecordType { field: x };
+}
+
+fun testTypeCastPromotion(x: Type) {
+  (x: trait Trait);
+}
+
+fun testReturnArgumentPromotion(x: Type): trait Trait {
+  return x;
+}
+
+fun testReturnExpressionPromotion(x: Type): trait Trait = x
+
+fun testVariableDeclarationPromotion(x: Type) {
+  val y: trait Trait = x;
+  useTraitObject(y);
+}
+
+fun testVariableAssignmentPromotion(x: trait Trait, y: Type) {
+  var z: trait Trait = x;
+  z = y;
+  useTraitObject(z);
+}
+
+fun testNoPromotionOnTraitObject(x: trait Trait): trait Trait = x
+
+fun main() {}

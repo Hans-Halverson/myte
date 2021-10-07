@@ -231,20 +231,19 @@ and finish_init_function ~ecx =
     (mk_instr_id (), Instruction.Ret None) :: last_init_block.instructions
 
 and emit_expression ~ecx expr =
+  (* Check for trait object promotion on every expression *)
+  let expr_val = emit_expression_without_promotion ~ecx expr in
+  let expr_loc = Ast_utils.expression_loc expr in
+  match Type_context.get_trait_object_promotion ~cx:ecx.Ecx.pcx.type_ctx expr_loc with
+  | None -> expr_val
+  | Some trait_instance ->
+    let ty = type_of_loc ~ecx expr_loc in
+    let trait_object_instance = Ecx.instantiate_trait_object_vtable ~ecx trait_instance ty in
+    emit_trait_object_promotion ~ecx expr_val trait_object_instance
+
+and emit_expression_without_promotion ~ecx expr =
   let open Expression in
   let open Instruction in
-  (* Check for trait object promotion on every expression *)
-  let emit_expression ~ecx expr =
-    let expr_val = emit_expression ~ecx expr in
-    let expr_loc = Ast_utils.expression_loc expr in
-    (match Type_context.get_trait_object_promotion ~cx:ecx.Ecx.pcx.type_ctx expr_loc with
-    | None -> ()
-    | Some trait_instance ->
-      let ty = type_of_loc ~ecx expr_loc in
-      ignore (Ecx.instantiate_trait_object_vtable ~ecx trait_instance ty));
-    expr_val
-  in
-
   match expr with
   (*
    * ============================
@@ -875,6 +874,32 @@ and emit_string_literal ~ecx loc value =
   emit_field_store "size" length;
   emit_field_store "capacity" length;
   agg_ptr_val
+
+and emit_trait_object_promotion ~ecx expr_val trait_object_instance =
+  (* Call myte_alloc builtin to allocate space for trait object *)
+  let trait_object_type = `AggregateT trait_object_instance.agg in
+  let trait_object_ptr_var_id = mk_var_id () in
+  let trait_object_ptr_var = `PointerV (trait_object_type, trait_object_ptr_var_id) in
+  let (trait_object_ptr_val, myte_alloc_instr) =
+    Mir_builtin.(
+      mk_call_builtin myte_alloc trait_object_ptr_var_id [`IntL Int32.one] [trait_object_type])
+  in
+  Ecx.emit ~ecx myte_alloc_instr;
+  (* Write trait object fields *)
+  let emit_field_store name value =
+    let (element_ty, element_idx) = lookup_element trait_object_instance.agg name in
+    let (element_offset_var, get_ptr_instr) =
+      mk_get_pointer_instr
+        element_ty
+        trait_object_ptr_var
+        [Instruction.GetPointer.FieldIndex element_idx]
+    in
+    Ecx.emit ~ecx (GetPointer get_ptr_instr);
+    Ecx.emit ~ecx (Store (element_offset_var, value))
+  in
+  emit_field_store "item" expr_val;
+  emit_field_store "vtable" (trait_object_instance.vtable :> Value.t);
+  trait_object_ptr_val
 
 and emit_expression_access_chain_load ~ecx expr =
   match emit_expression_access_chain ~ecx expr with
