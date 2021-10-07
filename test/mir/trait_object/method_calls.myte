@@ -1,0 +1,30 @@
+module test
+
+trait Trait {
+  fun foo(): Int
+  fun bar(x: Int, y: Bool): String
+}
+
+type Type (Int)
+methods Type {
+  implements Trait
+
+  override fun foo(): Int = 1
+  override fun bar(x: Int, y: Bool): String = ""
+}
+
+fun callSimpleMethod(x: trait Trait) {
+  x.foo();
+}
+
+fun callMethodWithArgs(x: trait Trait) {
+  x.bar(1, true);
+}
+
+fun test(t: Type) {
+  val x: trait Trait = t;
+  callSimpleMethod(x);
+  callMethodWithArgs(x);
+}
+
+fun main() {}

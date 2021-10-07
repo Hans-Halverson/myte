@@ -1,0 +1,61 @@
+type $object$test.Trait {unit*, fn[2]*}
+
+type $object$test.Type$test.Trait {test.Type*, fn[2]}
+
+type test.Type {int}
+
+global fn[2] @$vtable$test.Type$test.Trait = [test.Type.bar, test.Type.foo]
+
+func int @test.Type.foo(test.Type* %0) {
+  Ret 1
+}
+
+func std.string.String* @test.Type.bar(test.Type* %1, int %2, bool %3) {
+  %4 := CallBuiltin std.string.String* myte_alloc(1)
+  %5 := GetPointer byte*, std.string.String* %4.0
+  Store byte* %5, @.S3
+  %6 := GetPointer int, std.string.String* %4.1
+  Store int %6, 0
+  %7 := GetPointer int, std.string.String* %4.2
+  Store int %7, 0
+  Ret %4
+}
+
+global byte[0] @.S3 = ""
+
+func unit @test.callSimpleMethod($object$test.Trait* %8) {
+  %9 := GetPointer unit*, $object$test.Trait* %8.0
+  %10 := Load unit* %9
+  %11 := GetPointer fn[2]*, $object$test.Trait* %8.1
+  %12 := Load fn[2]* %11
+  %13 := GetPointer fn, fn[2]* %12[int 1]
+  %14 := Load fn %13
+  %15 := Call int %14(%10)
+  Ret
+}
+
+func unit @test.callMethodWithArgs($object$test.Trait* %16) {
+  %17 := GetPointer unit*, $object$test.Trait* %16.0
+  %18 := Load unit* %17
+  %19 := GetPointer fn[2]*, $object$test.Trait* %16.1
+  %20 := Load fn[2]* %19
+  %21 := GetPointer fn, fn[2]* %20[int 0]
+  %22 := Load fn %21
+  %23 := Call std.string.String* %22(%18, 1, true)
+  Ret
+}
+
+func unit @test.test(test.Type* %24) {
+  %25 := CallBuiltin $object$test.Type$test.Trait* myte_alloc(1)
+  %26 := GetPointer test.Type*, $object$test.Type$test.Trait* %25.0
+  Store test.Type* %26, %24
+  %27 := GetPointer fn[2], $object$test.Type$test.Trait* %25.1
+  Store fn[2] %27, @$vtable$test.Type$test.Trait
+  %28 := Call unit @test.callSimpleMethod(%25)
+  %29 := Call unit @test.callMethodWithArgs(%25)
+  Ret
+}
+
+func int @test.main() {
+  Ret 0
+}

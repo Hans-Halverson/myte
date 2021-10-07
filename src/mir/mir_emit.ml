@@ -1051,11 +1051,53 @@ and emit_method_call
     ~(arg_vals : Value.t list)
     ~(method_instance_type_args : Types.Type.t list)
     ~(ret_type : Type.t) =
-  let full_method_name_with_type_args =
-    Ecx.add_necessary_method_instantiation ~ecx ~method_name ~receiver_ty ~method_instance_type_args
-  in
-  let func_val = `FunctionL full_method_name_with_type_args in
-  emit_call ~ecx ~func_val ~arg_vals ~receiver_val:(Some receiver_val) ~ret_type
+  match receiver_ty with
+  (* Trait objects perform dynamic dispatch *)
+  | TraitObject { trait_sig; _ } ->
+    let trait_object_layout = Ecx.get_trait_object_layout ~ecx trait_sig in
+    let vtable_index = SMap.find method_name trait_object_layout.vtable_indices in
+    let receiver_ptr_val = cast_to_pointer_value receiver_val in
+
+    (* Load item and vtable from trait object *)
+    let emit_field_load name =
+      let element_var_id = mk_var_id () in
+      let (element_ty, element_idx) = lookup_element trait_object_layout.trait_object_agg name in
+      let (element_offset_val, get_ptr_instr) =
+        mk_get_pointer_instr
+          element_ty
+          receiver_ptr_val
+          [Instruction.GetPointer.FieldIndex element_idx]
+      in
+      Ecx.emit ~ecx (GetPointer get_ptr_instr);
+      Ecx.emit ~ecx (Load (element_var_id, element_offset_val));
+      var_value_of_type element_var_id element_ty
+    in
+    let item_val = emit_field_load "item" in
+    let vtable_val = emit_field_load "vtable" |> cast_to_pointer_value in
+
+    (* Load function from vtable *)
+    let func_var_id = mk_var_id () in
+    let (func_offset_val, get_ptr_instr) =
+      mk_get_pointer_instr
+        `FunctionT
+        vtable_val
+        [Instruction.GetPointer.PointerIndex (`IntL (Int32.of_int vtable_index))]
+    in
+    Ecx.emit ~ecx (GetPointer get_ptr_instr);
+    Ecx.emit ~ecx (Load (func_var_id, func_offset_val));
+    let func_val = `FunctionV func_var_id in
+    emit_call ~ecx ~func_val ~arg_vals ~receiver_val:(Some item_val) ~ret_type
+  (* All other receivers perform static dispatch *)
+  | _ ->
+    let full_method_name_with_type_args =
+      Ecx.add_necessary_method_instantiation
+        ~ecx
+        ~method_name
+        ~receiver_ty
+        ~method_instance_type_args
+    in
+    let func_val = `FunctionL full_method_name_with_type_args in
+    emit_call ~ecx ~func_val ~arg_vals ~receiver_val:(Some receiver_val) ~ret_type
 
 and emit_call
     ~ecx
