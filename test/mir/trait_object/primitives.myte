@@ -1,0 +1,32 @@
+module test
+
+import std.string.ToString
+
+fun useToString(x: trait ToString): String = x.toString()
+
+fun testUnitPromotion(x: Unit) {
+  useToString(x);
+  useToString(());
+}
+
+fun testBoolPromotion(x: Bool) {
+  useToString(x);
+  useToString(true);
+}
+
+fun testBytePromotion(x: Byte) {
+  useToString(x);
+  useToString((1: Byte));
+}
+
+fun testIntPromotion(x: Int) {
+  useToString(x);
+  useToString(1);
+}
+
+fun testLongPromotion(x: Long) {
+  useToString(x);
+  useToString((1: Long));
+}
+
+fun main() {}

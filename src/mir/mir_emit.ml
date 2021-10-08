@@ -1057,6 +1057,9 @@ and emit_method_call
     let trait_object_layout = Ecx.get_trait_object_layout ~ecx trait_sig in
     let vtable_index = SMap.find method_name trait_object_layout.vtable_indices in
     let receiver_ptr_val = cast_to_pointer_value receiver_val in
+    let receiver_ptr_val =
+      cast_pointer_value receiver_ptr_val (`AggregateT trait_object_layout.trait_object_agg)
+    in
 
     (* Load item and vtable from trait object *)
     let emit_field_load name =

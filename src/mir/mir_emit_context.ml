@@ -498,13 +498,10 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
 
     (* Create aggregate type for type's trait object *)
     let agg_label = Printf.sprintf "_object$%s$%s" full_adt_name full_trait_name in
-    let agg =
-      mk_aggregate
-        ~ecx
-        agg_label
-        adt_sig.loc
-        [("item", mir_type); ("vtable", `PointerT vtable_mir_type)]
+    let (agg_elements, _) =
+      align_and_pad_aggregate_elements [("item", mir_type); ("vtable", `PointerT vtable_mir_type)]
     in
+    let agg = mk_aggregate ~ecx agg_label adt_sig.loc agg_elements in
 
     let trait_object_instance = { MirTraitObjectLayout.vtable; agg } in
     TypeArgsHashtbl.add trait_instance type_key trait_object_instance;

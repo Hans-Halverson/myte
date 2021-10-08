@@ -1,0 +1,49 @@
+module test
+
+import std.string.ToString
+import std.test.assertEqual
+
+fun useToString(x: trait ToString): String = x.toString()
+
+fun callUnit(x: Unit): String = useToString(x)
+
+fun callBool(x: Bool): String = useToString(x)
+
+fun callByte(x: Byte): String = useToString(x)
+
+fun callInt(x: Int): String = useToString(x)
+
+fun callLong(x: Long): String = useToString(x)
+
+fun testUnit() {
+  assertEqual(useToString(()), "()");
+  assertEqual(callUnit(()), "()");
+}
+
+fun testBool() {
+  assertEqual(useToString(true), "true");
+  assertEqual(callBool(false), "false");
+}
+
+fun testByte() {
+  assertEqual(useToString((7: Byte)), "7");
+  assertEqual(callByte((11: Byte)), "11");
+}
+
+fun testInt() {
+  assertEqual(useToString(8), "8");
+  assertEqual(callInt(12), "12");
+}
+
+fun testLong() {
+  assertEqual(useToString((9: Long)), "9");
+  assertEqual(callLong((13: Long)), "13");
+}
+
+fun main() {
+  testUnit();
+  testBool();
+  testByte();
+  testInt();
+  testLong();
+}
