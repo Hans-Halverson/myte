@@ -1,0 +1,41 @@
+module test
+
+trait Trait<T> {
+  fun method(x: T): Option<T>
+}
+
+type ConcreteType1 (Unit)
+methods ConcreteType1 {
+  implements Trait<Int>
+
+  override fun method(x: Int): Option<Int> = Some (x)
+}
+
+type ConcreteType2 (Unit)
+methods ConcreteType2 {
+  implements Trait<Bool>
+
+  override fun method(x: Bool): Option<Bool> = Some (x)
+}
+
+type GenericType<T> (T)
+methods GenericType<T> {
+  implements Trait<T>
+
+  override fun method(x: T): Option<T> = Some (x)
+}
+
+fun callMethod<T>(x: trait Trait<T>, y: T): Option<T> = x.method(y)
+
+fun testConcreteTypes() {
+  callMethod(ConcreteType1 (()), 1);
+  callMethod(ConcreteType2 (()), true);
+}
+
+fun testGenericType() {
+  callMethod(GenericType (1), 1);
+  callMethod(GenericType (()), ());
+  callMethod(GenericType ((1: Long)), (1: Long));
+}
+
+fun main() {}

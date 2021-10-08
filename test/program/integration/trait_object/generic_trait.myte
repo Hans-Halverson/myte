@@ -1,0 +1,46 @@
+module test
+
+import std.test.assertSome
+
+trait Trait<T> {
+  fun method(x: T): Option<T>
+}
+
+type ConcreteType1 (Unit)
+methods ConcreteType1 {
+  implements Trait<Int>
+
+  override fun method(x: Int): Option<Int> = Some (x)
+}
+
+type ConcreteType2 (Unit)
+methods ConcreteType2 {
+  implements Trait<Bool>
+
+  override fun method(x: Bool): Option<Bool> = Some (x)
+}
+
+type GenericType<T> (T)
+methods GenericType<T> {
+  implements Trait<T>
+
+  override fun method(x: T): Option<T> = Some (x)
+}
+
+fun callMethod<T>(x: trait Trait<T>, y: T): Option<T> = x.method(y)
+
+fun testConcreteTypes() {
+  assertSome(callMethod(ConcreteType1 (()), 1), 1);
+  assertSome(callMethod(ConcreteType2 (()), false), false);
+}
+
+fun testGenericType() {
+  assertSome(callMethod(GenericType (0), 2), 2);
+  assertSome(callMethod(GenericType (()), ()), ());
+  assertSome(callMethod(GenericType ((0: Long)), (3: Long)), (3: Long));
+}
+
+fun main() {
+  testConcreteTypes();
+  testGenericType();
+}

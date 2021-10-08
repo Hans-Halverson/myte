@@ -427,7 +427,9 @@ and get_trait_object_layout ~ecx (trait_sig : Types.TraitSig.t) =
 and instantiate_trait_object_vtable ~ecx trait_instance ty =
   let { Types.TraitSig.trait_sig; type_args } = trait_instance in
   let mir_type = to_mir_type ~ecx ty in
-  let trait_mir_type_args = List.map (to_mir_type ~ecx) type_args in
+  let trait_mir_type_args =
+    List.map (fun type_arg -> to_mir_type ~ecx (find_rep_non_generic_type ~ecx type_arg)) type_args
+  in
 
   (* Get all vtables for this trait instance, creating new trait object layout if it does not yet exist *)
   let trait_object_layout = get_trait_object_layout ~ecx trait_sig in

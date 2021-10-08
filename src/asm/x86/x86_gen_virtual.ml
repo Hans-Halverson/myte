@@ -63,7 +63,9 @@ and gen_global_instruction_builder ~gcx ~ir:_ global =
   (* Array literal is known at compile time, so insert into initialized data section *)
   | Some (`ArrayStringL data) -> Gcx.add_data ~gcx { label; value = [AsciiData data] }
   | Some (`ArrayVtableL (_, function_labels)) ->
-    let value = List.map (fun function_label -> LabelData function_label) function_labels in
+    let value =
+      List.map (fun function_label -> LabelData (label_of_mir_label function_label)) function_labels
+    in
     Gcx.add_data ~gcx { label; value }
   (* Pointer and function literals are labels, so insert into initialized data section *)
   | Some (`PointerL (_, init_label))
