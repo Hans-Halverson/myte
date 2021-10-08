@@ -37,8 +37,3 @@ Error: Expected type `trait Foo` but found `Int`
 test/analyze/type_check/trait_object/promotion_locations.myte:79:6
  79 |   y = 1;
     |       ^
-
-Error: Expected type `trait MapKeyTrait` but found `Int`
-test/analyze/type_check/trait_object/promotion_locations.myte:99:6
- 99 |   map[1] = 1;
-    |       ^

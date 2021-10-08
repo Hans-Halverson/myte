@@ -1,0 +1,34 @@
+Error: Trait cannot be used as a trait object since it contains a method with type parameters or the `This` type
+test/analyze/type_check/trait_object/invalid_trait_object_errors.myte:19:12-34
+ 19 |   x1: trait TraitWithGenericMethod,
+    |             ^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Trait cannot be used as a trait object since it contains a method with type parameters or the `This` type
+test/analyze/type_check/trait_object/invalid_trait_object_errors.myte:20:12-31
+ 20 |   x2: trait TraitWithThisParam1,
+    |             ^^^^^^^^^^^^^^^^^^^
+
+Error: Trait cannot be used as a trait object since it contains a method with type parameters or the `This` type
+test/analyze/type_check/trait_object/invalid_trait_object_errors.myte:21:12-31
+ 21 |   x3: trait TraitWithThisParam2,
+    |             ^^^^^^^^^^^^^^^^^^^
+
+Error: Trait cannot be used as a trait object since it contains a method with type parameters or the `This` type
+test/analyze/type_check/trait_object/invalid_trait_object_errors.myte:22:12-48
+ 22 |   x4: trait TraitInheritsFromInvalidTraitObject1,
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Trait cannot be used as a trait object since it contains a method with type parameters or the `This` type
+test/analyze/type_check/trait_object/invalid_trait_object_errors.myte:23:12-48
+ 23 |   x5: trait TraitInheritsFromInvalidTraitObject2,
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Trait cannot be used as a trait object since it contains a method with type parameters or the `This` type
+test/analyze/type_check/trait_object/invalid_trait_object_errors.myte:28:22-44
+ 28 |   fun method(x: trait TraitWithGenericMethod)
+    |                       ^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Trait cannot be used as a trait object since it contains a method with type parameters or the `This` type
+test/analyze/type_check/trait_object/invalid_trait_object_errors.myte:33:22-32
+ 33 |   fun method(x: trait TestTrait2)
+    |                       ^^^^^^^^^^

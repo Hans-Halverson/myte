@@ -120,7 +120,12 @@ let rec build_type ~cx ?(check_type_param_bounds = true) ?(trait_ctx = TraitDisa
     let binding = Type_context.get_type_binding ~cx name.name.loc in
     let type_args = List.map build_type type_arg_nodes in
     (match binding.declaration with
+    | TraitDecl { trait_sig = { can_be_trait_object = Some false; _ }; _ } ->
+      Type_context.add_error ~cx loc InvalidTraitObject;
+      Type.Any
     | TraitDecl { trait_sig; _ } ->
+      if trait_sig.can_be_trait_object = None then
+        Type_context.add_unchecked_trait_object_use ~cx trait_sig loc;
       let num_type_args = List.length type_args in
       let num_type_params = List.length trait_sig.type_params in
       if num_type_params <> num_type_args then (
@@ -502,11 +507,12 @@ and check_trait_implementations ~cx modules =
     let this_type_alias = Bindings.get_type_alias_decl this_type_binding in
 
     (* Fill trait sig with base methods *)
-    let this_instance =
+    let (this_instance, this_type_param) =
       match this_type_alias.body with
-      | Type.ADT { type_args; _ } -> { TraitSig.trait_sig; type_args }
-      | TypeParam { bounds = [trait_instance]; _ } -> trait_instance
-      | _ -> (* Primitive types in stdlib *) { TraitSig.trait_sig; type_args = [] }
+      | Type.ADT { type_args; _ } -> ({ TraitSig.trait_sig; type_args }, None)
+      | TypeParam ({ bounds = [trait_instance]; _ } as type_param) ->
+        (trait_instance, Some type_param)
+      | _ -> (* Primitive types in stdlib *) ({ TraitSig.trait_sig; type_args = [] }, None)
     in
     let open Bindings.FunctionDeclaration in
     SMap.iter
@@ -564,7 +570,29 @@ and check_trait_implementations ~cx modules =
           loc
           this_type_alias.body
           already_implemented_methods)
-      trait_sig.implemented
+      trait_sig.implemented;
+
+    (* For non-type traits, determine whether trait can become a trait object *)
+    match this_type_param with
+    | None -> ()
+    | Some this_type_param ->
+      (* Trait cannot be a trait object if any methods have type parameters or the `This` type *)
+      let cannot_be_trait_object =
+        SMap.exists
+          (fun _ { MethodSig.type_params; params; return; _ } ->
+            type_params <> []
+            || List.exists (has_type_param this_type_param) params
+            || has_type_param this_type_param return)
+          trait_sig.methods
+      in
+      (* Or if it extends a trait that cannot be a trait object *)
+      let cannot_be_trait_object =
+        cannot_be_trait_object
+        || List.exists
+             (fun (_, { TraitSig.trait_sig; _ }) -> not (Option.get trait_sig.can_be_trait_object))
+             trait_sig.implemented
+      in
+      trait_sig.can_be_trait_object <- Some (not cannot_be_trait_object)
   in
 
   (* Check traits in topological order, followed by all type traits *)
@@ -1354,11 +1382,11 @@ and check_expression ~cx expr =
 
     (* Try to find a method with the given name in a set of trait sigs *)
     let try_resolve_method trait_sigs type_args =
-      List_utils.find_map_opt
+      List.exists
         (fun { TraitSig.type_params = trait_type_params; methods; _ } ->
           match SMap.find_opt name.name methods with
-          | None -> None
-          | Some ({ MethodSig.type_params; params; return; _ } as method_sig) ->
+          | None -> false
+          | Some { MethodSig.type_params; params; return; _ } ->
             Type_context.add_method_use ~cx name.loc;
             (* Create fresh function type (refreshing only type params bound to the method itself).
                Also must substitute trait's type params with true type args for ADT, since method will
@@ -1369,25 +1397,19 @@ and check_expression ~cx expr =
             in
             let method_type = Types.substitute_type_params trait_type_param_bindings method_type in
             ignore (Type_context.unify ~cx method_type (TVar tvar_id));
-            Some method_sig)
+            true)
         trait_sigs
     in
     let try_resolve_adt_method { AdtSig.traits; _ } type_args =
-      try_resolve_method traits type_args <> None
+      try_resolve_method traits type_args
     in
     let try_resolve_trait_bounds_method bounds =
       List.exists
-        (fun { TraitSig.trait_sig; type_args } -> try_resolve_method [trait_sig] type_args <> None)
+        (fun { TraitSig.trait_sig; type_args } -> try_resolve_method [trait_sig] type_args)
         bounds
     in
     let try_resolve_trait_object_method { TraitSig.trait_sig; type_args } =
-      let method_sig = try_resolve_method [trait_sig] type_args in
-      match method_sig with
-      | None -> false
-      | Some method_sig ->
-        if MethodSig.is_generic method_sig then
-          Type_context.add_error ~cx name.loc GenericTraitObjectMethod;
-        true
+      try_resolve_method [trait_sig] type_args
     in
 
     (* Try to resolve named access to a method access *)
@@ -2099,6 +2121,7 @@ let ensure_all_expression_are_typed ~cx modules =
   List.iter (fun (_, module_) -> ignore (visitor#module_ module_)) modules
 
 let analyze ~cx modules =
+  let if_no_errors f = if Type_context.get_errors ~cx = [] then f () in
   (* First build parameters for all types and traits *)
   List.iter (fun (_, module_) -> build_type_and_trait_parameters ~cx module_) modules;
   (* Build all type aliases in program (in topological order). This must be done before any other
@@ -2108,13 +2131,12 @@ let analyze ~cx modules =
   build_trait_hierarchy ~cx modules;
   (* With trait hierarchy built, recheck types already built to verify that trait bounds are
      satisfied for all type instantiations. *)
-  if Type_context.get_errors ~cx = [] then
-    List.iter (fun (_, module_) -> recheck_type_parameters ~cx module_) modules;
-  if Type_context.get_errors ~cx = [] then
-    List.iter (fun (_, module_) -> build_declarations ~cx module_) modules;
-  if Type_context.get_errors ~cx = [] then check_trait_implementations ~cx modules;
-  if Type_context.get_errors ~cx = [] then
-    List.iter (fun (_, module_) -> check_module ~cx module_) modules;
+  if_no_errors (fun _ ->
+      List.iter (fun (_, module_) -> recheck_type_parameters ~cx module_) modules);
+  if_no_errors (fun _ -> List.iter (fun (_, module_) -> build_declarations ~cx module_) modules);
+  if_no_errors (fun _ -> check_trait_implementations ~cx modules);
+  if_no_errors (fun _ -> Type_context.resolve_unchecked_trait_object_uses ~cx);
+  if_no_errors (fun _ -> List.iter (fun (_, module_) -> check_module ~cx module_) modules);
   resolve_unresolved_int_literals ~cx;
-  if Type_context.get_errors ~cx = [] then ensure_all_expression_are_typed ~cx modules;
+  if_no_errors (fun _ -> ensure_all_expression_are_typed ~cx modules);
   Type_context.set_errors ~cx (List.rev (Type_context.get_errors ~cx))

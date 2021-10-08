@@ -64,7 +64,7 @@ type t =
   | RecordExpressionWithRest
   | NonIndexableIndexed of Type.t
   | UnresolvedNamedAccess of string * Type.t
-  | GenericTraitObjectMethod
+  | InvalidTraitObject
   | TupleIndexIsNotLiteral
   | TupleIndexOutOfBounds of int
   | IntLiteralOutOfRange of Type.t
@@ -422,7 +422,9 @@ let to_string error =
       "Cannot resolve field or method with name `%s` on type `%s`"
       field_name
       (Types.pp ty)
-  | GenericTraitObjectMethod -> Printf.sprintf "Cannot call generic method on trait object"
+  | InvalidTraitObject ->
+    Printf.sprintf
+      "Trait cannot be used as a trait object since it contains a method with type parameters or the `This` type"
   | TupleIndexIsNotLiteral -> Printf.sprintf "Tuple indices must be int literals"
   | TupleIndexOutOfBounds actual_size ->
     Printf.sprintf

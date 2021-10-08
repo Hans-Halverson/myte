@@ -1,0 +1,38 @@
+module test
+
+trait TraitWithGenericMethod {
+  fun generic<T>(x: T): T
+}
+
+trait TraitWithThisParam1 {
+  fun method(x: This)
+}
+
+trait TraitWithThisParam2 {
+  fun method(): This
+}
+
+trait TraitInheritsFromInvalidTraitObject1 { extends TraitWithGenericMethod }
+trait TraitInheritsFromInvalidTraitObject2 { extends TraitInheritsFromInvalidTraitObject1 }
+
+fun test(
+  x1: trait TraitWithGenericMethod,
+  x2: trait TraitWithThisParam1,
+  x3: trait TraitWithThisParam2,
+  x4: trait TraitInheritsFromInvalidTraitObject1,
+  x5: trait TraitInheritsFromInvalidTraitObject2,
+) {}
+
+// Can recheck other trait objects
+trait TestTrait1 {
+  fun method(x: trait TraitWithGenericMethod)
+}
+
+// Can recheck self trait object
+trait TestTrait2 {
+  fun method(x: trait TestTrait2)
+  
+  fun generic<T>(x: T): T
+}
+
+fun main() {}

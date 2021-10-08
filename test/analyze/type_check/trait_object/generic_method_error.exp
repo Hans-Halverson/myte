@@ -1,4 +1,0 @@
-Error: Cannot call generic method on trait object
-test/analyze/type_check/trait_object/generic_method_error.myte:10:4-11
- 10 |   x.generic(1);
-    |     ^^^^^^^

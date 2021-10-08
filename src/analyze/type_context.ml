@@ -19,6 +19,9 @@ type t = {
   mutable ordered_traits: Ast.TraitDeclaration.t list;
   (* Map of expression loc to the trait object type it is promoted to *)
   mutable trait_object_promotions: TraitSig.instance LocMap.t;
+  (* Map from trait signature to locs where trait is used as a trait object, for traits that have
+     not yet been checked for trait object compatibility. *)
+  mutable unchecked_trait_object_uses: LocSet.t TraitSigMap.t;
 }
 
 and union_forest_node =
@@ -40,6 +43,7 @@ let mk ~bindings =
     main_loc = Loc.none;
     ordered_traits = [];
     trait_object_promotions = LocMap.empty;
+    unchecked_trait_object_uses = TraitSigMap.empty;
   }
 
 let add_error ~cx loc error = cx.errors <- (loc, error) :: cx.errors
@@ -68,6 +72,28 @@ let get_ordered_traits ~cx = cx.ordered_traits
 let set_ordered_traits ~cx ordered_traits = cx.ordered_traits <- ordered_traits
 
 let get_trait_object_promotion ~cx expr_loc = LocMap.find_opt expr_loc cx.trait_object_promotions
+
+let add_unchecked_trait_object_use ~cx trait_sig use_loc =
+  let use_locs =
+    match TraitSigMap.find_opt trait_sig cx.unchecked_trait_object_uses with
+    | None -> LocSet.singleton use_loc
+    | Some use_locs -> LocSet.add use_loc use_locs
+  in
+  cx.unchecked_trait_object_uses <-
+    TraitSigMap.add trait_sig use_locs cx.unchecked_trait_object_uses
+
+let resolve_unchecked_trait_object_uses ~cx =
+  TraitSigMap.iter
+    (fun trait_sig use_locs ->
+      LocSet.iter
+        (fun use_loc ->
+          match trait_sig.can_be_trait_object with
+          | None -> failwith "Trait object compatibility must be resolved"
+          | Some false -> add_error ~cx use_loc InvalidTraitObject
+          | Some true -> ())
+        use_locs)
+    cx.unchecked_trait_object_uses;
+  cx.unchecked_trait_object_uses <- TraitSigMap.empty
 
 let get_value_binding ~cx use_loc = get_value_binding cx.bindings use_loc
 

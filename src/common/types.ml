@@ -230,6 +230,8 @@ and TraitSig : sig
        direct super trait that inherits from the ancestor. *)
     mutable implemented: (Loc.t * instance) list;
     mutable this_type_param: TypeParam.t;
+    (* Whether this trait can be used as a trait object. None until this has been determined. *)
+    mutable can_be_trait_object: bool option;
     (* The ADT sig if this is a type trait. None if this is not a type trait *)
     mutable adt_sig: AdtSig.t option;
   }
@@ -248,6 +250,8 @@ and TraitSig : sig
   val add_implemented : t -> Loc.t -> instance -> unit
 
   val is_generic : t -> bool
+
+  val compare : t -> t -> int
 end = struct
   type id = int
 
@@ -259,6 +263,7 @@ end = struct
     mutable methods: MethodSig.t SMap.t;
     mutable implemented: (Loc.t * instance) list;
     mutable this_type_param: TypeParam.t;
+    mutable can_be_trait_object: bool option;
     mutable adt_sig: AdtSig.t option;
   }
 
@@ -283,6 +288,7 @@ end = struct
       methods = SMap.empty;
       implemented = [];
       this_type_param = TypeParam.empty;
+      can_be_trait_object = None;
       adt_sig = None;
     }
 
@@ -295,6 +301,7 @@ end = struct
       methods = SMap.empty;
       implemented = [];
       this_type_param = TypeParam.empty;
+      can_be_trait_object = None;
       adt_sig = None;
     }
 
@@ -305,6 +312,8 @@ end = struct
     trait_sig.implemented <- (loc, implemented) :: trait_sig.implemented
 
   let is_generic trait_sig = trait_sig.type_params <> []
+
+  let compare t1 t2 = Int.compare t1.id t2.id
 end
 
 and Type : sig
@@ -358,6 +367,35 @@ let get_all_tvars tys =
         hd :: remove_duplicates (ISet.add hd seen) tl
   in
   remove_duplicates ISet.empty tvars_with_duplicates
+
+let rec has_type_param type_param ty =
+  let list_has_type_param list = List.exists (has_type_param type_param) list in
+  let trait_bounds_have_type_param bounds =
+    List.exists (fun { TraitSig.type_args; _ } -> list_has_type_param type_args) bounds
+  in
+  match ty with
+  | Type.TypeParam { id; bounds; _ } ->
+    id = type_param.TypeParam.id || trait_bounds_have_type_param bounds
+  | Any
+  | Unit
+  | Bool
+  | Byte
+  | Int
+  | Long
+  | TVar _
+  | IntLiteral { resolved = None; _ } ->
+    false
+  | BoundedExistential { resolved = None; bounds } -> trait_bounds_have_type_param bounds
+  | IntLiteral { resolved = Some resolved; _ }
+  | BoundedExistential { resolved = Some resolved; _ } ->
+    has_type_param type_param resolved
+  | Array element -> has_type_param type_param element
+  | Tuple elements -> list_has_type_param elements
+  | Function { params; return; _ } -> list_has_type_param params || has_type_param type_param return
+  | ADT { type_args; _ }
+  | TraitBound { type_args; _ }
+  | TraitObject { type_args; _ } ->
+    list_has_type_param type_args
 
 let rec substitute_type_params type_params ty =
   let open Type in
@@ -574,3 +612,5 @@ let get_record_variant adt_sig name =
   match SMap.find name adt_sig.variants with
   | { kind = Record field_sigs; _ } -> field_sigs
   | _ -> failwith "Expected Record"
+
+module TraitSigMap = Map.Make (TraitSig)
