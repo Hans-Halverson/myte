@@ -1,0 +1,43 @@
+module test
+
+import std.test.assertEqual
+
+trait Trait {
+  fun method1(): Int
+  fun method2(x: Byte): Byte
+}
+
+type Type1 (Int)
+methods Type1 {
+  implements Trait
+
+  override fun method1(): Int = this[0]
+  override fun method2(x: Byte): Byte = x + 1
+}
+
+type Type2 (Bool)
+methods Type2 {
+  implements Trait
+
+  override fun method1(): Int = this[0] ? 3 : 4
+  override fun method2(x: Byte): Byte = x + 2
+}
+
+fun callMethod1(x: trait Trait): Int = x.method1()
+
+fun callMethod2(x: trait Trait, y: Byte): Byte = x.method2(y)
+
+fun testMethod1() {
+  assertEqual(callMethod1(Type1 (5)), 5);
+  assertEqual(callMethod1(Type2 (true)), 3);
+}
+
+fun testMethod2() {
+  assertEqual(callMethod2(Type1 (0), 10), 11);
+  assertEqual(callMethod2(Type2 (false), 10), 12);
+}
+
+fun main() {
+  testMethod1();
+  testMethod2();
+}

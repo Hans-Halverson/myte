@@ -1,0 +1,74 @@
+module test
+
+import std.test.assertEqual
+
+trait Trait {
+  fun method(): String
+}
+
+type Type (Int)
+methods Type {
+  implements Trait
+
+  override fun method(): String {
+    return `Called ${this[0]}`;
+  }
+}
+
+type TupleType (trait Trait)
+
+type RecordType { field: trait Trait }
+
+fun useFooTraitObject(x: trait Trait): String {
+  return x.method();
+}
+
+fun testCallArgumentPromotion() {
+  assertEqual(useFooTraitObject(Type (0)), "Called 0");
+}
+
+fun testTupleTypeArgumentPromotion() {
+  val tuple = TupleType (Type (1));
+  assertEqual(tuple[0].method(), "Called 1");
+}
+
+fun testRecordTypeArgumentPromotion() {
+  val record = RecordType { field: Type (2) };
+  assertEqual(record.field.method(), "Called 2");
+}
+
+fun testTypeCastPromotion() {
+  assertEqual((Type (3): trait Trait).method(), "Called 3");
+}
+
+fun promoteReturnArgument(x: Type): trait Trait {
+  return x;
+}
+
+fun promoteReturnExpression(x: Type): trait Trait = x
+
+fun testReturnPromotion() {
+  assertEqual(promoteReturnArgument(Type (4)).method(), "Called 4");
+  assertEqual(promoteReturnExpression(Type (5)).method(), "Called 5");
+}
+
+fun testVariableDeclarationPromotion() {
+  val y: trait Trait = Type (6);
+  assertEqual(y.method(), "Called 6");
+}
+
+fun testVariableAssignmentPromotion() {
+  var x: trait Trait = Type (0);
+  x = Type (7);
+  assertEqual(x.method(), "Called 7");
+}
+
+fun main() {
+  testCallArgumentPromotion();
+  testTupleTypeArgumentPromotion();
+  testRecordTypeArgumentPromotion();
+  testTypeCastPromotion();
+  testReturnPromotion();
+  testVariableDeclarationPromotion();
+  testVariableAssignmentPromotion();
+}

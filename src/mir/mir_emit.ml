@@ -1074,6 +1074,7 @@ and emit_method_call
     in
     let item_val = emit_field_load "item" in
     let vtable_val = emit_field_load "vtable" |> cast_to_pointer_value in
+    let vtable_val = cast_pointer_value vtable_val `FunctionT in
 
     (* Load function from vtable *)
     let func_var_id = mk_var_id () in

@@ -28,7 +28,7 @@ func unit @test.callSimpleMethod(_object$test.Trait* %8) {
   %10 := Load unit* %9
   %11 := GetPointer fn[2]*, _object$test.Trait* %8.1
   %12 := Load fn[2]* %11
-  %13 := GetPointer fn, fn[2]* %12[int 1]
+  %13 := GetPointer fn, fn* %12[int 1]
   %14 := Load fn %13
   %15 := Call int %14(%10)
   Ret
@@ -39,7 +39,7 @@ func unit @test.callMethodWithArgs(_object$test.Trait* %16) {
   %18 := Load unit* %17
   %19 := GetPointer fn[2]*, _object$test.Trait* %16.1
   %20 := Load fn[2]* %19
-  %21 := GetPointer fn, fn[2]* %20[int 0]
+  %21 := GetPointer fn, fn* %20[int 0]
   %22 := Load fn %21
   %23 := Call std.string.String* %22(%18, 1, true)
   Ret
