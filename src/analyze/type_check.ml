@@ -731,7 +731,7 @@ and check_module ~cx module_ =
   List.iter
     (fun toplevel ->
       match toplevel with
-      | VariableDeclaration decl -> check_variable_declaration ~cx decl
+      | VariableDeclaration decl -> check_variable_declaration ~cx ~is_toplevel:true decl
       | FunctionDeclaration decl -> if not decl.builtin then check_function_body ~cx decl
       | TraitDeclaration { loc; methods; _ } ->
         let this_type_binding = Type_context.get_type_binding ~cx loc in
@@ -750,14 +750,28 @@ and check_module ~cx module_ =
       | TypeDeclaration _ -> ())
     toplevels
 
-and check_variable_declaration ~cx decl =
+and check_variable_declaration ~cx ~is_toplevel decl =
   let open Ast.Statement.VariableDeclaration in
   let { loc; pattern; init; annot; _ } = decl in
+  (* Toplevel variable declarations have already had pattern checked *)
+  let (pattern_loc, pattern_tvar_id) =
+    if is_toplevel then
+      let pattern_loc = Ast_utils.pattern_loc pattern in
+      let pattern_tvar_id = Type_context.get_tvar_from_loc ~cx pattern_loc in
+      (pattern_loc, pattern_tvar_id)
+    else
+      check_pattern ~cx pattern
+  in
   let (expr_loc, expr_tvar_id) = check_expression ~cx init in
-  check_variable_declaration_bindings ~cx loc pattern annot (expr_loc, Type.TVar expr_tvar_id)
+  check_variable_declaration_bindings
+    ~cx
+    loc
+    annot
+    (pattern_loc, pattern_tvar_id)
+    (expr_loc, Type.TVar expr_tvar_id)
 
-and check_variable_declaration_bindings ~cx loc pattern annot (expr_loc, expr_ty) =
-  let (pattern_loc, pattern_tvar_id) = check_pattern ~cx pattern in
+and check_variable_declaration_bindings
+    ~cx loc annot (pattern_loc, pattern_tvar_id) (expr_loc, expr_ty) =
   match annot with
   | None ->
     (* If expression's type is fully resolved then use as type of id, otherwise error
@@ -911,6 +925,10 @@ and check_expression ~cx expr =
    *     Interpolated String
    * ============================
    *)
+  | InterpolatedString { loc; parts = [String _] } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    ignore (Type_context.unify ~cx (Std_lib.mk_string_type ()) (TVar tvar_id));
+    (loc, tvar_id)
   | InterpolatedString { loc; parts; _ } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     List.iter
@@ -1948,7 +1966,7 @@ and check_enum_variant ~cx name loc ctor_decl =
 and check_statement ~cx stmt =
   let open Ast.Statement in
   match stmt with
-  | VariableDeclaration decl -> check_variable_declaration ~cx decl
+  | VariableDeclaration decl -> check_variable_declaration ~cx ~is_toplevel:false decl
   | FunctionDeclaration decl ->
     build_function_declaration ~cx decl;
     check_function_body ~cx decl
@@ -2000,8 +2018,13 @@ and check_statement ~cx stmt =
       | Some { type_args; _ } -> List.hd type_args
     in
     (* Check bindings and optional annotation against iterator element type *)
-    let pattern_loc = Ast_utils.pattern_loc pattern in
-    check_variable_declaration_bindings ~cx pattern_loc pattern annot (iter_loc, element_ty);
+    let (pattern_loc, pattern_tvar_id) = check_pattern ~cx pattern in
+    check_variable_declaration_bindings
+      ~cx
+      pattern_loc
+      annot
+      (pattern_loc, pattern_tvar_id)
+      (iter_loc, element_ty);
     Type_context.enter_loop ~cx;
     check_statement ~cx body;
     Type_context.exit_loop ~cx

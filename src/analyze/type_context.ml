@@ -114,7 +114,9 @@ let get_tvar_from_loc ~cx loc = LocMap.find loc cx.loc_to_tvar
 
 let get_tvar_from_loc_opt ~cx loc = LocMap.find_opt loc cx.loc_to_tvar
 
-let set_tvar_for_loc ~cx tvar loc = cx.loc_to_tvar <- LocMap.add loc tvar cx.loc_to_tvar
+let set_tvar_for_loc ~cx tvar loc =
+  if LocMap.mem loc cx.loc_to_tvar then failwith "TVar already created for loc";
+  cx.loc_to_tvar <- LocMap.add loc tvar cx.loc_to_tvar
 
 let set_union_find_node ~cx tvar_id node =
   cx.union_forest_nodes <- IMap.add tvar_id node cx.union_forest_nodes
