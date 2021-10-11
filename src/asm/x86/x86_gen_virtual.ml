@@ -934,6 +934,36 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       let precolored_a = Gcx.mk_precolored ~gcx A in
       Gcx.emit ~gcx (CallL X86_runtime.myte_write_label);
       Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg ret_vreg))
+      (*
+       * ===========================================
+       *                myte_read
+       * ===========================================
+       *)
+    ) else if name = myte_read.name then (
+      gen_call_arguments args;
+      let precolored_a = Gcx.mk_precolored ~gcx A in
+      Gcx.emit ~gcx (CallL X86_runtime.myte_read_label);
+      Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg ret_vreg))
+      (*
+       * ===========================================
+       *                myte_open
+       * ===========================================
+       *)
+    ) else if name = myte_open.name then (
+      gen_call_arguments args;
+      let precolored_a = Gcx.mk_precolored ~gcx A in
+      Gcx.emit ~gcx (CallL X86_runtime.myte_open_label);
+      Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg ret_vreg))
+      (*
+       * ===========================================
+       *                myte_close
+       * ===========================================
+       *)
+    ) else if name = myte_close.name then (
+      gen_call_arguments args;
+      let precolored_a = Gcx.mk_precolored ~gcx A in
+      Gcx.emit ~gcx (CallL X86_runtime.myte_close_label);
+      Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg ret_vreg))
     ) else
       failwith (Printf.sprintf "Cannot compile unknown builtin %s to assembly" name);
     gen_instructions rest_instructions

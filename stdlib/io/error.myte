@@ -1,0 +1,7 @@
+module std.io.error
+
+type IOError =
+  // The end of file has been reached
+  | EOF
+  // An unknown IO error
+  | Unknown

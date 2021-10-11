@@ -10,6 +10,7 @@ import std.memory.Array
 import std.ops.Equatable
 import std.option.{None, Option, Some}
 import std.sys.abort
+import std.vec.Vec
 
 type alias Char = Byte
 
@@ -62,6 +63,16 @@ methods String {
     Array.copy(this.data, this.size, str.data, 0, str.size);
     this.size = newSize;
   }
+  
+  fun appendBytes(data: Array<Byte>, offset: Int, size: Int) {
+    val newSize = this.size + size;
+    if (newSize > this.capacity) {
+      this.resizeWithMinCapacity(newSize);
+    }
+
+    Array.copy(this.data, this.size, data, offset, size);
+    this.size = newSize;
+  }
 
   fun resize() {
     val oldCapacity = this.capacity;
@@ -96,6 +107,23 @@ methods String {
     for (i in 0.to(size)) {
       newData[size - (i + 1)] = oldData[i];
     }
+  }
+
+  fun clone(): String {
+    val capacity = this.capacity;
+    val data: Array<Byte> = Array.new(capacity);
+    val size = this.size;
+
+    Array.copy(data, 0, this.data, 0, this.size);
+
+    return String { data, size, capacity };
+  }
+
+  fun toCString(): String {
+    val cString = this.clone();
+    cString.push(0);
+
+    return cString;
   }
 
   /**

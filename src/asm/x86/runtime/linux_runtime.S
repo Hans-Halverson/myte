@@ -1,7 +1,10 @@
   .global _start
   .global __myte_alloc
+  .global __myte_close
   .global __myte_copy
   .global __myte_exit
+  .global __myte_open
+  .global __myte_read
   .global __myte_runtime_init
   .global __myte_write
 
@@ -48,6 +51,11 @@ __myte_alloc:
   mov %rdx, __myte_heap_start(%rip)
   ret
 
+__myte_close:
+  mov $3, %rax  # close
+  syscallb
+  ret
+
 __myte_copy:
   mov %rdx, %rcx
   rep movsb
@@ -55,6 +63,16 @@ __myte_copy:
 
 __myte_exit:
   mov $60, %rax  # exit
+  syscall
+  ret
+
+__myte_open:
+  mov $2, %rax  # open
+  syscallb
+  ret
+
+__myte_read:
+  xor %rax, %rax  # read
   syscall
   ret
 

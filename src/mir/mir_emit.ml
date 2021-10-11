@@ -1147,7 +1147,10 @@ and builtin_functions =
         (Std_lib.std_long_long_toInt, emit_std_long_long_toInt);
         (Std_lib.std_memory_array_copy, emit_std_memory_array_copy);
         (Std_lib.std_memory_array_new, emit_std_memory_array_new);
-        (Std_lib.std_io_write, emit_std_io_write);
+        (Std_lib.std_io_builtin_close, emit_std_io_close);
+        (Std_lib.std_io_builtin_open, emit_std_io_open);
+        (Std_lib.std_io_builtin_read, emit_std_io_read);
+        (Std_lib.std_io_builtin_write, emit_std_io_write);
         (Std_lib.std_sys_exit, emit_std_sys_exit);
         (Std_lib.std_unit_unit_equals, emit_eq);
       ]
@@ -1236,6 +1239,24 @@ and emit_std_memory_array_new ~ecx arg_vals ret_type =
 and emit_std_io_write ~ecx arg_vals _ =
   let var_id = mk_var_id () in
   let (return_val, instr) = Mir_builtin.(mk_call_builtin myte_write var_id arg_vals []) in
+  Ecx.emit ~ecx instr;
+  return_val
+
+and emit_std_io_read ~ecx arg_vals _ =
+  let var_id = mk_var_id () in
+  let (return_val, instr) = Mir_builtin.(mk_call_builtin myte_read var_id arg_vals []) in
+  Ecx.emit ~ecx instr;
+  return_val
+
+and emit_std_io_open ~ecx arg_vals _ =
+  let var_id = mk_var_id () in
+  let (return_val, instr) = Mir_builtin.(mk_call_builtin myte_open var_id arg_vals []) in
+  Ecx.emit ~ecx instr;
+  return_val
+
+and emit_std_io_close ~ecx arg_vals _ =
+  let var_id = mk_var_id () in
+  let (return_val, instr) = Mir_builtin.(mk_call_builtin myte_close var_id arg_vals []) in
   Ecx.emit ~ecx instr;
   return_val
 

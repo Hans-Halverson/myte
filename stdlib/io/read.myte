@@ -1,0 +1,141 @@
+module std.io.read
+
+import std.byte.Byte
+import std.int.Int
+import std.io.error.{EOF, IOError}
+import std.iterator.Iterator
+import std.option.{None, Option, Some}
+import std.result.{Error, Ok, Result}
+import std.string.String
+import std.vec.Vec
+
+val BUFFER_SIZE: Int = 1024
+
+trait Reader {
+  /**
+   * Fill buffer with bytes from source, returning number of bytes that were successfully read, or
+   * an error if bytes were not successfully read.
+   *
+   * On success between 0 and buffer.size bytes will be read into buffer.
+   */
+  fun read(buffer: Vec<Byte>): Result<Int, IOError>
+}
+
+type BufferedReader<R: Reader> {
+  reader: R,
+  buffer: Vec<Byte>,
+  pos: Int,
+  size: Int,
+}
+
+methods BufferedReader<R: Reader> {
+  static fun new<R: Reader>(reader: R): BufferedReader<R> {
+    val buffer: Vec<Byte> = Vec.newUninitialized(BUFFER_SIZE);
+
+    return BufferedReader { reader, buffer, pos: 0, size: 0 };
+  }
+
+  /**
+   * Refill inner buffer if all bytes have been read. Return the number of bytes that can be read
+   * from the buffer after the call to `refill`. If 0 is returned then EOF has been reached.
+   */
+  fun refill(): Result<Int, IOError> {
+    if (this.pos == this.size) {
+      match (this.reader.read(this.buffer)) {
+        | Ok (size) -> {
+          this.size = size;
+          this.pos = 0;
+
+          return Ok (size);
+        }
+        | Error (err) -> return Error (err)
+      }
+    }
+
+    return Ok (this.size - this.pos);
+  }
+
+  /**
+   * Read all bytes from source into string, stopping once EOF is reached.
+   */
+  fun readToString(): Result<String, IOError> {
+    val buffer = this.buffer;
+    val string = "";
+
+    while (true) {
+      match (this.refill()) {
+        | Ok (toRead) when toRead == 0 -> return Ok (string)
+        | Ok (toRead) -> {
+          val pos = this.pos;
+          val size = this.size;
+
+          // Add remaining buffer to string if newline was not found
+          string.appendBytes(buffer.data, pos, size - pos);
+          this.pos = size;
+        }
+        | Error (err) -> return Error (err)
+      }
+    }
+
+    // Unreachable
+    return Ok (string);
+  }
+
+  /**
+   * Read bytes from source until EOF or newline character, returning string containing bytes up
+   * until but not including the newline character.
+   *
+   * Returns the error `EOF` if the end of file has been reached and there is no next line to return.
+   */
+  fun readLine(): Result<String, IOError> {
+    val buffer = this.buffer;
+    val string = "";
+    var hasRead = false;
+
+    while (true) {
+      match (this.refill()) {
+        | Ok (toRead) when toRead == 0 -> return hasRead ? Ok (string) : Error (EOF)
+        | Ok (toRead) -> {
+          val pos = this.pos;
+          val size = this.size;
+
+          // Search for newline character in buffer
+          for (i in pos.to(size)) {
+            if (buffer[i] == 0xA) {
+              string.appendBytes(buffer.data, pos, i - pos);
+              this.pos = i + 1;
+
+              return Ok (string);
+            }
+          }
+
+          // Add remaining buffer to string if newline was not found
+          string.appendBytes(buffer.data, pos, size - pos);
+          this.pos = size;
+          hasRead = true;
+        }
+        | Error (err) -> return Error (err)
+      }
+    }
+
+    // Unreachable
+    return Ok (string);
+  }
+
+  /**
+   * Return an iterator over the lines in the source.
+   */
+  fun lines(): Lines<R> = Lines (this)
+}
+
+type Lines<R: Reader> (BufferedReader<R>)
+
+methods Lines<R: Reader> {
+  implements Iterator<String>
+
+  override fun next(): Option<String> =
+    match (this[0].readLine()) {
+      | Ok (line) -> Some (line)
+      | Error _ -> None
+    }
+}

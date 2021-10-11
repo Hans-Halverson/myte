@@ -12,8 +12,14 @@ let myte_runtime_init_label = "__myte_runtime_init"
 
 let myte_alloc_label = "__myte_alloc"
 
+let myte_close_label = "__myte_close"
+
 let myte_copy_label = "__myte_copy"
 
 let myte_exit_label = "__myte_exit"
+
+let myte_open_label = "__myte_open"
+
+let myte_read_label = "__myte_read"
 
 let myte_write_label = "__myte_write"

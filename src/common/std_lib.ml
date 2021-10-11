@@ -74,7 +74,13 @@ let std_int_int_toByte = "std.int.Int.toByte"
 
 let std_int_int_toLong = "std.int.Int.toLong"
 
-let std_io_write = "std.io.write"
+let std_io_builtin_close = "std.io.__builtin_close"
+
+let std_io_builtin_open = "std.io.__builtin_open"
+
+let std_io_builtin_read = "std.io.__builtin_read"
+
+let std_io_builtin_write = "std.io.__builtin_write"
 
 let std_iterator_iterable = "std.iterator.Iterable"
 
@@ -145,7 +151,10 @@ let all_stdlib_names =
       std_byte_byte_equals;
       std_byte_byte_toInt;
       std_byte_byte_toLong;
-      std_io_write;
+      std_io_builtin_read;
+      std_io_builtin_open;
+      std_io_builtin_read;
+      std_io_builtin_write;
       std_iterator_iterable;
       std_int_int;
       std_int_int_equals;

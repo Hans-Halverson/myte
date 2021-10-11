@@ -29,6 +29,27 @@ let myte_exit = { Builtin.name = "myte_exit"; mk_return_ty = (fun _ -> `UnitT) }
  *)
 let myte_write = { Builtin.name = "myte_write"; mk_return_ty = (fun _ -> `IntT) }
 
+(* 
+   myte.myte_read<T>(file: int, buffer: byte*, size: int): int
+
+   Read `size` bytes into `buffer` from file with descriptor `file`.
+ *)
+let myte_read = { Builtin.name = "myte_read"; mk_return_ty = (fun _ -> `IntT) }
+
+(* 
+   myte.myte_open<T>(file: byte*, flags: int, mode: int): int
+
+   Open file with name `file` using `flags` and `mode` options.
+ *)
+let myte_open = { Builtin.name = "myte_open"; mk_return_ty = (fun _ -> `IntT) }
+
+(* 
+   myte.myte_close<T>(file: int, flags: int, mode: int): int
+
+   Close file with descriptor `file`.
+ *)
+let myte_close = { Builtin.name = "myte_close"; mk_return_ty = (fun _ -> `IntT) }
+
 let mk_call_builtin builtin var_id args mk_return_ty_args =
   let open Builtin in
   let return_ty = builtin.mk_return_ty mk_return_ty_args in

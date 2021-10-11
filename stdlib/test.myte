@@ -5,6 +5,7 @@ import std.hash.Hashable
 import std.map.Map
 import std.ops.Equatable
 import std.option.{None, Option, Some}
+import std.result.{Error, Ok, Result}
 import std.set.Set
 import std.sys.exit
 import std.vec.Vec
@@ -50,6 +51,16 @@ fun assertSome<T: Equatable>(actual: Option<T>, expected: T) {
 fun assertNone<T>(actual: Option<T>) {
   if (actual.isSome()) {
     fail();
+  }
+}
+
+fun assertOk<T: Equatable, E>(actual: Result<T, E>, expected: T) {
+  match (actual) {
+    | Error _ -> fail()
+    | Ok (actual) ->
+      if (actual != expected) {
+        fail();
+      }
   }
 }
 

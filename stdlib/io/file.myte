@@ -1,0 +1,50 @@
+module std.io.file
+
+import std.byte.Byte
+import std.int.Int
+import std.io.{__builtin_close, __builtin_open, __builtin_read}
+import std.io.error.{IOError, Unknown}
+import std.io.read.Reader
+import std.result.{Error, Ok, Result}
+import std.string.String
+import std.unit.Unit
+import std.vec.Vec
+
+type File (Int)
+
+methods File {
+  /**
+   * Open the file with the given filename. File is opened in read only mode.
+   */
+  static fun open(name: String): Result<File, IOError> {
+    val cName = name.toCString();
+    val ret = __builtin_open(cName.data, 0, 0);
+    if (ret < 0) {
+      return Error (Unknown);
+    }
+
+    return Ok (File (ret));
+  }
+
+  fun close(): Result<Unit, IOError> {
+    val ret = __builtin_close(this[0]);
+    if (ret < 0) {
+      return Error (Unknown);
+    }
+
+    return Ok (());
+  }
+}
+
+methods File {
+  implements Reader
+
+  override fun read(buffer: Vec<Byte>): Result<Int, IOError> {
+    val ret = __builtin_read(this[0], buffer.data, buffer.size);
+    if (ret < 0) {
+      return Error (Unknown);
+    }
+
+    return Ok (ret);
+  }
+}

@@ -4,7 +4,7 @@ import std.io
 import std.memory.Array
 
 fun wrapper(file: Int, buffer: Array<Byte>, size: Int): Int {
-  return io.write(file, buffer, size);
+  return io.__builtin_write(file, buffer, size);
 }
 
 fun main() {}

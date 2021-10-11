@@ -90,6 +90,14 @@ fun testReverse() {
   assertEqual(s, "dcab");
 }
 
+fun testClone() {
+  val s = "";
+  assertEqual(s, s.clone());
+
+  val s = "kahsdfk";
+  assertEqual(s, s.clone());
+}
+
 fun testHash() {
   assertEqual("foo".hash(), "foo".hash());
 }
@@ -116,6 +124,7 @@ fun main() {
   testPush();
   testAppend();
   testReverse();
+  testClone();
   testHash();
   testBytesIterator();
 }

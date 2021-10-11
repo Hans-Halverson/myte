@@ -24,6 +24,14 @@ methods Vec<T> {
     };
   }
 
+  static fun newUninitialized<T>(size: Int): Vec<T> {
+    return Vec {
+      data: Array.new(size),
+      size,
+      capacity: size,
+    };
+  }
+
   fun get(index: Int): T {
     if (index < 0 || index >= this.size) {
       abort();

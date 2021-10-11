@@ -1,0 +1,27 @@
+module test
+
+import std.io.{STDIN, println}
+import std.io.file.File
+import std.io.read.BufferedReader
+import std.sys.args
+
+fun main(): Int {
+  if (args.size == 1) {
+    val reader = BufferedReader.new(STDIN);
+    for (line in reader.lines()) {
+      println(line);
+    }
+  }
+
+  match (File.open(args[1])) {
+    | Ok (file) -> {
+      val reader = BufferedReader.new(file);
+      for (line in reader.lines()) {
+        println(line);
+      }
+
+      return 0;
+    }
+    | Error _ -> return 1
+  }
+}
