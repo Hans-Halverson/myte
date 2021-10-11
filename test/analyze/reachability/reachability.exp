@@ -1,13 +1,3 @@
-Error: Break cannot appear outside a loop
-test/analyze/reachability/break_outside_loop.myte:4:2-8
- 4 |   break;
-   |   ^^^^^^
-
-Error: Continue cannot appear outside a loop
-test/analyze/reachability/continue_outside_loop.myte:4:2-11
- 4 |   continue;
-   |   ^^^^^^^^^
-
 Error: Unreachable statement after return
 test/analyze/reachability/reachability.myte:6:2-11
  6 |   return 2;

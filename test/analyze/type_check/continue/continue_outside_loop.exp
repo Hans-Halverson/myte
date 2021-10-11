@@ -1,0 +1,4 @@
+Error: Continue cannot appear outside a loop
+test/analyze/type_check/continue/continue_outside_loop.myte:4:2-11
+ 4 |   continue;
+   |   ^^^^^^^^^

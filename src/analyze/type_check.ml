@@ -1961,7 +1961,9 @@ and check_statement ~cx stmt =
   | While { While.test; body; _ } ->
     let (test_loc, test_tvar_id) = check_expression ~cx test in
     Type_context.assert_unify ~cx test_loc Bool (TVar test_tvar_id);
-    check_statement ~cx body
+    Type_context.enter_loop ~cx;
+    check_statement ~cx body;
+    Type_context.exit_loop ~cx
   | Return { Return.loc; arg } ->
     let (arg_loc, arg_ty) =
       match arg with
@@ -1973,9 +1975,10 @@ and check_statement ~cx stmt =
     (* Return argument must be subtype of function's return type stored in return type map *)
     let return_ty = LocMap.find loc (Type_context.get_return_types ~cx) in
     Type_context.assert_is_subtype ~cx arg_loc arg_ty return_ty
-  | Break _
-  | Continue _ ->
-    ()
+  | Break { Break.loc } ->
+    if not (Type_context.in_loop ~cx) then Type_context.add_error ~cx loc BreakOutsideLoop
+  | Continue { Continue.loc } ->
+    if not (Type_context.in_loop ~cx) then Type_context.add_error ~cx loc ContinueOutsideLoop
   (*
    * ============================
    *          For Loop
@@ -1998,7 +2001,9 @@ and check_statement ~cx stmt =
     (* Check bindings and optional annotation against iterator element type *)
     let pattern_loc = Ast_utils.pattern_loc pattern in
     check_variable_declaration_bindings ~cx pattern_loc pattern annot (iter_loc, element_ty);
-    check_statement ~cx body
+    Type_context.enter_loop ~cx;
+    check_statement ~cx body;
+    Type_context.exit_loop ~cx
   (*
    * ============================
    *         Assignment

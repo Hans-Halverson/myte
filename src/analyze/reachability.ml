@@ -12,18 +12,11 @@ and unreachable_reason =
 
 type cx = {
   mutable errors: (Loc.t * Analyze_error.t) list;
-  mutable num_loops: int;
 }
 
-let mk_cx () = { errors = []; num_loops = 0 }
+let mk_cx () = { errors = [] }
 
 let add_error ~cx loc err = cx.errors <- (loc, err) :: cx.errors
-
-let enter_loop ~cx = cx.num_loops <- cx.num_loops + 1
-
-let exit_loop ~cx = cx.num_loops <- cx.num_loops - 1
-
-let in_loop ~cx = cx.num_loops > 0
 
 let join_reachabilities reachabilities =
   match reachabilities with
@@ -51,12 +44,8 @@ let rec visit_statement ~cx stmt =
   | VariableDeclaration _ ->
     Reachable
   | Return _ -> Unreachable AfterReturn
-  | Break { loc } ->
-    if not (in_loop ~cx) then add_error ~cx loc Analyze_error.BreakOutsideLoop;
-    Unreachable AfterBreak
-  | Continue { loc } ->
-    if not (in_loop ~cx) then add_error ~cx loc Analyze_error.ContinueOutsideLoop;
-    Unreachable AfterContinue
+  | Break _ -> Unreachable AfterBreak
+  | Continue _ -> Unreachable AfterContinue
   | Block { Block.statements; _ } -> visit_statements ~cx ~reachability:Reachable statements
   | If { conseq; altern; _ } ->
     let conseq_reachability = visit_statement ~cx conseq in
@@ -77,9 +66,7 @@ let rec visit_statement ~cx stmt =
     join_reachabilities case_reachabilities
   | While { While.body; _ }
   | For { For.body; _ } ->
-    enter_loop ~cx;
     ignore (visit_statement ~cx body);
-    exit_loop ~cx;
     Reachable
   | FunctionDeclaration func ->
     visit_function ~cx func;

@@ -22,6 +22,8 @@ type t = {
   (* Map from trait signature to locs where trait is used as a trait object, for traits that have
      not yet been checked for trait object compatibility. *)
   mutable unchecked_trait_object_uses: LocSet.t TraitSigMap.t;
+  (* Nesting level for number of loops the type checker is currently inside *)
+  mutable num_loops: int;
 }
 
 and union_forest_node =
@@ -44,6 +46,7 @@ let mk ~bindings =
     ordered_traits = [];
     trait_object_promotions = LocMap.empty;
     unchecked_trait_object_uses = TraitSigMap.empty;
+    num_loops = 0;
   }
 
 let add_error ~cx loc error = cx.errors <- (loc, error) :: cx.errors
@@ -94,6 +97,12 @@ let resolve_unchecked_trait_object_uses ~cx =
         use_locs)
     cx.unchecked_trait_object_uses;
   cx.unchecked_trait_object_uses <- TraitSigMap.empty
+
+let enter_loop ~cx = cx.num_loops <- cx.num_loops + 1
+
+let exit_loop ~cx = cx.num_loops <- cx.num_loops - 1
+
+let in_loop ~cx = cx.num_loops > 0
 
 let get_value_binding ~cx use_loc = get_value_binding cx.bindings use_loc
 

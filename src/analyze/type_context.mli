@@ -38,6 +38,12 @@ val add_unchecked_trait_object_use : cx:t -> Types.TraitSig.t -> Loc.t -> unit
 
 val resolve_unchecked_trait_object_uses : cx:t -> unit
 
+val enter_loop : cx:t -> unit
+
+val exit_loop : cx:t -> unit
+
+val in_loop : cx:t -> bool
+
 (* Binding getters *)
 
 val get_value_binding : cx:t -> Loc.t -> ValueBinding.t
