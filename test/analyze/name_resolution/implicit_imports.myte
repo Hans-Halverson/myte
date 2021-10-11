@@ -12,6 +12,7 @@ fun implicitTypeImports(
   x9: Vec<Int>,
   x10: Map<Int, Int>,
   x11: Set<Int>,
+  x12: Never,
 ) {}
 
 fun implicitValueImports() {

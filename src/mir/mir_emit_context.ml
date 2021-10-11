@@ -509,7 +509,9 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
 
 and to_mir_type ~ecx ty =
   match ty with
-  | Types.Type.Unit -> `UnitT
+  | Types.Type.Unit
+  | Never ->
+    `UnitT
   | Bool -> `BoolT
   | Byte -> `ByteT
   | Int -> `IntT

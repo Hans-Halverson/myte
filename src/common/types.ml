@@ -321,6 +321,7 @@ and Type : sig
     | TVar of TVar.t
     | TypeParam of TypeParam.t
     | Any
+    | Never
     | Unit
     | Bool
     | Byte
@@ -377,6 +378,7 @@ let rec has_type_param type_param ty =
   | Type.TypeParam { id; bounds; _ } ->
     id = type_param.TypeParam.id || trait_bounds_have_type_param bounds
   | Any
+  | Never
   | Unit
   | Bool
   | Byte
@@ -407,6 +409,7 @@ let rec substitute_type_params type_params ty =
   in
   match ty with
   | Any
+  | Never
   | Unit
   | Bool
   | Byte
@@ -503,6 +506,7 @@ let rec pp_with_names ~tvar_to_name ty =
   in
   match ty with
   | Any -> "Any"
+  | Never -> "Never"
   | Unit -> "Unit"
   | Bool -> "Bool"
   | Byte -> "Byte"

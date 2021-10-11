@@ -10,9 +10,7 @@ and unreachable_reason =
   | AfterContinue
   | Complex
 
-type cx = {
-  mutable errors: (Loc.t * Analyze_error.t) list;
-}
+type cx = { mutable errors: (Loc.t * Analyze_error.t) list }
 
 let mk_cx () = { errors = [] }
 

@@ -99,7 +99,7 @@ class analyzer =
                   {
                     name =
                       {
-                        ScopedIdentifier.name = { Ast.Identifier.name = "Unit"; _ };
+                        ScopedIdentifier.name = { Ast.Identifier.name = "Unit" | "Never"; _ };
                         scopes = [];
                         _;
                       };

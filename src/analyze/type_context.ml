@@ -235,6 +235,7 @@ let rec find_rep_type ~cx (ty : Type.t) =
   in
   match ty with
   | Any
+  | Never
   | Unit
   | Bool
   | Byte
@@ -306,6 +307,7 @@ let rec find_rep_type ~cx (ty : Type.t) =
 let rec tvar_occurs_in ~cx tvar ty =
   match find_union_rep_type ~cx ty with
   | Any
+  | Never
   | Unit
   | Bool
   | Byte
@@ -433,6 +435,7 @@ let rec type_satisfies_trait_bounds ~cx ty trait_bounds =
     let resolved_ty = resolve_int_literal_from_values ~cx lit_ty in
     type_satisfies_trait_bounds ~cx resolved_ty trait_bounds
   (* Types that do not implement any traits themselves *)
+  | Never
   | Array _
   | Tuple _
   | Function _ ->
@@ -450,6 +453,7 @@ and unify ~cx ty1 ty2 =
     union_tvars ~cx rep_ty1 rep_ty2
   | (Any, _)
   | (_, Any)
+  | (Never, Never)
   | (Unit, Unit)
   | (Bool, Bool)
   | (Byte, Byte)
@@ -529,6 +533,8 @@ and is_subtype ~cx ~trait_object_promotion_loc sub sup =
   | (Int, Int)
   | (Long, Long) ->
     true
+  (* The never type is a subtype of all other types (since it can never actually be created) *)
+  | (Never, _) -> true
   (* Type parameters are invariant, so check that they are identical *)
   | (TypeParam { id = id1; name = _; bounds = _ }, TypeParam { id = id2; name = _; bounds = _ }) ->
     id1 = id2

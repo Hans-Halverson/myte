@@ -58,6 +58,7 @@ let rec build_type ~cx ?(check_type_param_bounds = true) ?(trait_ctx = TraitDisa
     | Some name when name = Std_lib.std_byte_byte -> mk_if_correct_arity 0 (fun _ -> Type.Byte)
     | Some name when name = Std_lib.std_int_int -> mk_if_correct_arity 0 (fun _ -> Type.Int)
     | Some name when name = Std_lib.std_long_long -> mk_if_correct_arity 0 (fun _ -> Type.Long)
+    | Some name when name = Std_lib.std_never_never -> mk_if_correct_arity 0 (fun _ -> Type.Never)
     | Some name when name = Std_lib.std_unit_unit -> mk_if_correct_arity 0 (fun _ -> Type.Unit)
     | Some name when name = Std_lib.std_string_string ->
       mk_if_correct_arity 0 Std_lib.mk_string_type

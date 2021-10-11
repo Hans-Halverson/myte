@@ -106,6 +106,8 @@ let std_memory_array_copy = "std.memory.Array.copy"
 
 let std_memory_array_new = "std.memory.Array.new"
 
+let std_never_never = "std.never.Never"
+
 let std_ops_equatable = "std.ops.Equatable"
 
 let std_option_none = "std.option.None"
@@ -171,6 +173,7 @@ let all_stdlib_names =
       std_memory_array;
       std_memory_array_copy;
       std_memory_array_new;
+      std_never_never;
       std_ops_equatable;
       std_option_none;
       std_option_option;
@@ -202,6 +205,8 @@ let int_adt_sig = ref Types.AdtSig.empty
 let long_adt_sig = ref Types.AdtSig.empty
 
 let map_adt_sig = ref Types.AdtSig.empty
+
+let never_adt_sig = ref Types.AdtSig.empty
 
 let option_adt_sig = ref Types.AdtSig.empty
 
@@ -272,6 +277,7 @@ let register_stdlib_type loc adt_sig =
   | Some name when name = std_int_int -> int_adt_sig := adt_sig
   | Some name when name = std_long_long -> long_adt_sig := adt_sig
   | Some name when name = std_map_map -> map_adt_sig := adt_sig
+  | Some name when name = std_never_never -> never_adt_sig := adt_sig
   | Some name when name = std_option_option -> option_adt_sig := adt_sig
   | Some name when name = std_set_set -> set_adt_sig := adt_sig
   | Some name when name = std_string_string -> string_adt_sig := adt_sig

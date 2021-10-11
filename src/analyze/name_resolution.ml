@@ -70,6 +70,7 @@ let implicit_type_imports =
     ("Int", std_int_int);
     ("Long", std_long_long);
     ("Unit", std_unit_unit);
+    ("Never", std_never_never);
     ("String", std_string_string);
     ("Option", std_option_option);
     ("Result", std_result_result);

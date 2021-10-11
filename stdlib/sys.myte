@@ -3,13 +3,14 @@ module std.sys
 import std.byte.Byte
 import std.int.Int
 import std.memory.Array
+import std.never.Never
 import std.string.String
 import std.vec.Vec
 import std.unit.Unit
 
-builtin fun exit(code: Int)
+builtin fun exit(code: Int): Never
 
-fun abort(): Unit {
+fun abort(): Never {
   exit(1);
 }
 
