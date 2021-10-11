@@ -101,7 +101,7 @@ methods BufferedReader<R: Reader> {
 
           // Search for newline character in buffer
           for (i in pos.to(size)) {
-            if (buffer[i] == 0xA) {
+            if (buffer[i] == '\n') {
               string.appendBytes(buffer.data, pos, i - pos);
               this.pos = i + 1;
 

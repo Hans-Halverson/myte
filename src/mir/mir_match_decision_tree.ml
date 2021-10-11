@@ -558,7 +558,10 @@ and pattern_of_pattern_node ~(ecx : Ecx.t) ~bindings ~scrutinee pattern =
     | Literal (Int { loc; raw; base; _ }) ->
       let ty = type_of_loc loc in
       let value = Integers.int64_of_string_opt raw base |> Option.get in
-      mk_pattern (Constructor (Int (value, ty = Bool), []))
+      mk_pattern (Constructor (Int (value, ty = Byte), []))
+    | Literal (Char { loc; value }) ->
+      let ty = type_of_loc loc in
+      mk_pattern (Constructor (Int (Integers.int64_of_char value, ty = Byte), []))
     (* Identifier pattern may be for an enum variant, otherwise it is a variable and can be treated
        as a wildcard. Collect binding if at root level. *)
     | Identifier { name; _ } ->

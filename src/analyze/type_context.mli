@@ -74,6 +74,6 @@ val resolve_int_literal_from_values : cx:t -> IntLiteral.t -> Type.t
 
 val add_incompatible_types_error : cx:t -> Loc.t -> Type.t -> Type.t -> unit
 
-val mk_int_literal_ty : cx:t -> Loc.t -> string -> Integers.base -> Type.t
+val mk_int_literal_ty : cx:t -> Loc.t -> Int64.t option -> Type.t
 
 val get_implemented_trait : Type.t -> TraitSig.t -> TraitSig.instance option

@@ -26,6 +26,12 @@ global byte @test.y2 = 1
 
 global long @test.y3 = 2147483648
 
+global int @test.c1 = 97
+
+global byte @test.c2 = 97
+
+global long @test.c3 = 97
+
 global std.string.String* @test.z = uninitialized
 
 global byte[4] @.S0 = "test"

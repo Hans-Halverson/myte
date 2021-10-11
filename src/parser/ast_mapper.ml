@@ -63,6 +63,7 @@ class mapper =
         match expr with
         | Unit e -> id_map this#unit e expr (fun e' -> Unit e')
         | IntLiteral e -> id_map this#int_literal e expr (fun e' -> IntLiteral e')
+        | CharLiteral e -> id_map this#char_literal e expr (fun e' -> CharLiteral e')
         | StringLiteral e -> id_map this#string_literal e expr (fun e' -> StringLiteral e')
         | BoolLiteral e -> id_map this#bool_literal e expr (fun e' -> BoolLiteral e')
         | Identifier e -> id_map this#identifier e expr (fun e' -> Identifier e')
@@ -149,6 +150,8 @@ class mapper =
     method unit unit = unit
 
     method int_literal lit = lit
+
+    method char_literal lit = lit
 
     method string_literal lit = lit
 
@@ -351,6 +354,7 @@ class mapper =
       | Unit l -> id_map this#unit l lit (fun l' -> Unit l')
       | Bool l -> id_map this#bool_literal l lit (fun l' -> Bool l')
       | Int l -> id_map this#int_literal l lit (fun l' -> Int l')
+      | Char l -> id_map this#char_literal l lit (fun l' -> Char l')
       | String l -> id_map this#string_literal l lit (fun l' -> String l')
 
     method named_wildcard_pattern named =

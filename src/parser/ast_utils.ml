@@ -22,6 +22,7 @@ let expression_loc expr =
   match expr with
   | Unit { loc }
   | IntLiteral { loc; _ }
+  | CharLiteral { loc; _ }
   | StringLiteral { loc; _ }
   | BoolLiteral { loc; _ }
   | Identifier { loc; _ }
@@ -55,7 +56,8 @@ let pattern_loc patt =
   | Binding { loc; _ }
   | Tuple { loc; _ }
   | Record { loc; _ }
-  | Literal (Unit { loc; _ } | Bool { loc; _ } | Int { loc; _ } | String { loc; _ }) ->
+  | Literal
+      (Unit { loc; _ } | Bool { loc; _ } | Int { loc; _ } | Char { loc; _ } | String { loc; _ }) ->
     loc
 
 let type_loc ty =

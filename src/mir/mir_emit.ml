@@ -260,6 +260,14 @@ and emit_expression_without_promotion ~ecx expr =
     | `IntT -> `IntL (Int64.to_int32 value)
     | `LongT -> `LongL value
     | _ -> failwith "Int literal must have integer type")
+  | CharLiteral { loc; value } ->
+    let value = int_of_char value in
+    let ty = mir_type_of_loc ~ecx loc in
+    (match ty with
+    | `ByteT -> `ByteL value
+    | `IntT -> `IntL (Int32.of_int value)
+    | `LongT -> `LongL (Int64.of_int value)
+    | _ -> failwith "Char literal must have integer type")
   | StringLiteral { loc; value; _ } -> emit_string_literal ~ecx loc value
   (*
    * ============================

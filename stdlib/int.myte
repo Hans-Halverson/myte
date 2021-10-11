@@ -56,11 +56,11 @@ methods Int {
     }
 
     // Add last digit to string
-    str.push(n.toByte() + 48);
-    
+    str.push(n.toByte() + '0');
+
     // Add negative sign
     if (isNegative) {
-      str.push(45);
+      str.push('-');
     }
 
     str.reverse();

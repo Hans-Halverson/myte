@@ -1,4 +1,4 @@
-Error: Invalid escape sequence. Expected `"`, `\`, `n`, `t`, `r`, or `x`.
+Error: Invalid escape sequence, expected `"`, `\`, `n`, `t`, `r`, or `x`
 test/parser/string_literal/invalid_dollar_escape_error.myte:4:7
  4 |   "foo\$bar";
    |        ^

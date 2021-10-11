@@ -485,6 +485,9 @@ let pattern_vector_of_pattern_node ~cx pattern_node =
       let ty = type_of_loc loc in
       let value = Integers.int64_of_string_opt raw base |> Option.get in
       Constructor ({ Ctor.ctor = Int value; ty; loc }, [])
+    | Literal (Char { loc; value }) ->
+      let ty = type_of_loc loc in
+      Constructor ({ Ctor.ctor = Int (Integers.int64_of_char value); ty; loc }, [])
     (* Identifier pattern may be for an enum variant, otherwise it is a variable and can be
        treated as a wildcard for exhaustiveness/usefulness checking. *)
     | Identifier { loc; name; _ } ->

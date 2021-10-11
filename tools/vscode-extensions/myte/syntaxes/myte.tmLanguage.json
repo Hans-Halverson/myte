@@ -292,6 +292,17 @@
 						"1": { "name": "keyword.operator.numeric.myte" },
 						"2": { "name": "constant.numeric.hex.myte" }
 					}
+				},
+				{
+					"name": "string.quoted.single.myte",
+					"begin": "'",
+					"end": "'",
+					"patterns": [
+						{
+							"name": "constant.character.escape.myte",
+							"match": "\\\\(n|r|t|\\\\|')"
+						}
+					]
 				}
 			]
 		},

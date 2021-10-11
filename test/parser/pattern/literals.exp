@@ -44,10 +44,10 @@ test/parser/pattern/literals.myte
             cases: [
               {
                 node: MatchCase,
-                loc: 5:6-5:28,
+                loc: 5:6-5:33,
                 pattern: {
                   node: TuplePattern,
-                  loc: 5:6-5:23,
+                  loc: 5:6-5:28,
                   name: None,
                   elements: [
                     {
@@ -69,12 +69,17 @@ test/parser/pattern/literals.myte
                       loc: 5:20-5:22,
                       value: "",
                     },
+                    {
+                      node: CharLiteral,
+                      loc: 5:24-5:27,
+                      value: "a",
+                    },
                   ],
                 },
                 guard: None,
                 right: {
                   node: IntLiteral,
-                  loc: 5:27-5:28,
+                  loc: 5:32-5:33,
                   raw: "1",
                 },
               },

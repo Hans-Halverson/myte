@@ -833,7 +833,14 @@ and check_expression ~cx expr =
     (loc, tvar_id)
   | IntLiteral { IntLiteral.loc; raw; base } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    let int_literal_ty = Type_context.mk_int_literal_ty ~cx loc raw base in
+    let value = Integers.int64_of_string_opt raw base in
+    let int_literal_ty = Type_context.mk_int_literal_ty ~cx loc value in
+    ignore (Type_context.unify ~cx int_literal_ty (TVar tvar_id));
+    (loc, tvar_id)
+  | CharLiteral { CharLiteral.loc; value } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    let value = Some (Integers.int64_of_char value) in
+    let int_literal_ty = Type_context.mk_int_literal_ty ~cx loc value in
     ignore (Type_context.unify ~cx int_literal_ty (TVar tvar_id));
     (loc, tvar_id)
   | StringLiteral { StringLiteral.loc; _ } ->
@@ -1753,7 +1760,14 @@ and check_pattern ~cx patt =
     (loc, tvar_id)
   | Literal (Int { loc; raw; base }) ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    let int_literal_ty = Type_context.mk_int_literal_ty ~cx loc raw base in
+    let value = Integers.int64_of_string_opt raw base in
+    let int_literal_ty = Type_context.mk_int_literal_ty ~cx loc value in
+    ignore (Type_context.unify ~cx int_literal_ty (TVar tvar_id));
+    (loc, tvar_id)
+  | Literal (Char { loc; value }) ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    let value = Some (Integers.int64_of_char value) in
+    let int_literal_ty = Type_context.mk_int_literal_ty ~cx loc value in
     ignore (Type_context.unify ~cx int_literal_ty (TVar tvar_id));
     (loc, tvar_id)
   (*

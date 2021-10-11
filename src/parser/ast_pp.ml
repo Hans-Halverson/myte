@@ -146,6 +146,7 @@ and node_of_expression expr =
   | Identifier id -> node_of_identifier id
   | ScopedIdentifier id -> node_of_scoped_identifier id
   | IntLiteral lit -> node_of_int_literal lit
+  | CharLiteral lit -> node_of_char_literal lit
   | StringLiteral lit -> node_of_string_literal lit
   | BoolLiteral lit -> node_of_bool_literal lit
   | InterpolatedString str -> node_of_interpolated_string str
@@ -236,6 +237,10 @@ and node_of_int_literal lit =
     | Hex -> [("base", String "Hex")]
   in
   node "IntLiteral" loc ([("raw", String raw)] @ base_node)
+
+and node_of_char_literal lit =
+  let { Expression.CharLiteral.loc; value } = lit in
+  node "CharLiteral" loc [("value", String (Integers.char_to_string value))]
 
 and node_of_string_literal lit =
   let { Expression.StringLiteral.loc; value } = lit in
@@ -402,6 +407,7 @@ and node_of_literal_pattern lit =
   | Unit unit -> node_of_unit unit
   | Bool lit -> node_of_bool_literal lit
   | Int lit -> node_of_int_literal lit
+  | Char lit -> node_of_char_literal lit
   | String lit -> node_of_string_literal lit
 
 and node_of_block block =

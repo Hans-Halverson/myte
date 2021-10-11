@@ -276,6 +276,10 @@ and parse_expression_prefix env =
     let loc = Env.loc env in
     Env.advance env;
     IntLiteral { IntLiteral.loc; raw; base }
+  | T_CHAR_LITERAL value ->
+    let loc = Env.loc env in
+    Env.advance env;
+    CharLiteral { CharLiteral.loc; value }
   | T_STRING_LITERAL value ->
     let loc = Env.loc env in
     Env.advance env;
@@ -794,6 +798,7 @@ and parse_pattern_prefix ~is_decl env =
   (* Literals are not allowed in declaration patterns *)
   | T_BOOL_LITERAL _
   | T_INT_LITERAL _
+  | T_CHAR_LITERAL _
   | T_STRING_LITERAL _
     when is_decl ->
     Parse_error.fatal (Env.loc env, LiteralInPattern)
@@ -806,6 +811,10 @@ and parse_pattern_prefix ~is_decl env =
     let loc = Env.loc env in
     Env.advance env;
     Literal (Literal.Int { Expression.IntLiteral.loc; raw; base })
+  | T_CHAR_LITERAL value ->
+    let loc = Env.loc env in
+    Env.advance env;
+    Literal (Literal.Char { Expression.CharLiteral.loc; value })
   | T_STRING_LITERAL value ->
     let loc = Env.loc env in
     Env.advance env;

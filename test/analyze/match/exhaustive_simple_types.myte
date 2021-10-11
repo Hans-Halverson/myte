@@ -101,4 +101,23 @@ fun testIntegers() {
   }
 }
 
+fun testChars() {
+  // Exhaustive
+  match ('a') {
+    | 'a' -> ()
+    | _ -> ()
+  }
+
+  // Inexhaustive
+  match ('a') {
+    | 'a' -> ()
+  }
+
+  match ('a') {
+    | 'a' -> ()
+    | 'b' -> ()
+    | '0' -> ()
+  }
+}
+
 fun main() {}

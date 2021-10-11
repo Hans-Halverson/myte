@@ -8,6 +8,8 @@ type t =
   | UnterminatedStringLiteral
   | InvalidEscape of bool
   | InvalidHexEscape
+  | InvalidCharEscape
+  | MalformedCharLiteral
   | MalformedTopLevel of Token.t
   | MalformedMethodsItem of Token.t
   | MalformedPattern of Token.t
@@ -55,9 +57,11 @@ let to_string error =
       else
         "`\"`, `\\`, `n`, `t`, `r`, or `x`"
     in
-    Printf.sprintf "Invalid escape sequence. Expected %s." escapes
+    Printf.sprintf "Invalid escape sequence, expected %s" escapes
   | InvalidHexEscape ->
-    Printf.sprintf "Invalid hex escape sequence, expected exactly two hex digits following `\\x`"
+    "Invalid hex escape sequence, expected exactly two hex digits following `\\x`"
+  | InvalidCharEscape -> "Invalid character escape sequence, expected `'`, `\\`, `n`, `t`, or `r`"
+  | MalformedCharLiteral -> "Malformed character literal"
   | MalformedTopLevel actual ->
     Printf.sprintf
       "Unexpected token `%s`, expected start of top level statement"

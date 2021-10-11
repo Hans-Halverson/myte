@@ -328,6 +328,37 @@ let parse_string_literal lex ~is_interpolated ~start_pos =
   in
   iter ()
 
+let parse_char_literal lex =
+  let start_pos = current_pos lex in
+  advance lex;
+  let malformed_err () =
+    LexError (lex, (loc_of_pos lex (current_pos lex), Parse_error.MalformedCharLiteral))
+  in
+  let advance_char_literal value =
+    advance lex;
+    match lex.current with
+    | '\'' ->
+      advance lex;
+      Token (lex, { loc = current_loc lex start_pos; token = T_CHAR_LITERAL value })
+    | _ -> malformed_err ()
+  in
+  match lex.current with
+  (* Unescaped single quote is not allowed *)
+  | '\'' -> malformed_err ()
+  (* Escape sequences for char literals *)
+  | '\\' ->
+    advance lex;
+    (match lex.current with
+    | '\'' -> advance_char_literal '\''
+    | '\\' -> advance_char_literal '\\'
+    | 'n' -> advance_char_literal '\n'
+    | 'r' -> advance_char_literal '\r'
+    | 't' -> advance_char_literal '\t'
+    | _ -> LexError (lex, (loc_of_pos lex (current_pos lex), Parse_error.InvalidCharEscape)))
+  (* All other printable chars are allowed *)
+  | ' ' .. '~' as value -> advance_char_literal value
+  | _ -> malformed_err ()
+
 let rec tokenize lex =
   let open Token in
   let rec skip_whitespace () =
@@ -500,6 +531,7 @@ let rec tokenize lex =
     let start_pos = current_pos lex in
     advance lex;
     parse_string_literal lex ~is_interpolated:true ~start_pos
+  | '\'' -> parse_char_literal lex
   | current when current = eof -> token_result T_EOF
   | current ->
     advance lex;

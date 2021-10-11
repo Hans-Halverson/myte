@@ -47,6 +47,7 @@ class visitor =
         match expr with
         | Unit e -> this#unit e
         | IntLiteral e -> this#int_literal e
+        | CharLiteral e -> this#char_literal e
         | StringLiteral e -> this#string_literal e
         | BoolLiteral e -> this#bool_literal e
         | Identifier e -> this#identifier e
@@ -120,6 +121,8 @@ class visitor =
     method unit _unit = ()
 
     method int_literal _lit = ()
+
+    method char_literal _lit = ()
 
     method string_literal _lit = ()
 
@@ -245,6 +248,7 @@ class visitor =
       | Unit lit -> this#unit lit
       | Bool lit -> this#bool_literal lit
       | Int lit -> this#int_literal lit
+      | Char lit -> this#char_literal lit
       | String lit -> this#string_literal lit
 
     method named_wildcard_pattern named =

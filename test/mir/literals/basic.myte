@@ -10,6 +10,12 @@ val y2: Byte = 1
 
 val y3: Long = 2147483648
 
+val c1: Int = 'a'
+
+val c2: Byte = 'a'
+
+val c3: Long = 'a'
+
 val z: String = "test"
 
 val a1: Bool = true

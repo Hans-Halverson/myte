@@ -46,6 +46,22 @@ label @11:
   Ret %14
 }
 
+func int @test.testCharLiterals(byte %15) {
+  %16 := Eq byte %15, 48
+  branch %16, @15, @12
+label @12:
+  %17 := Eq byte %15, 97
+  branch %17, @15, @13
+label @13:
+  %18 := Eq byte %15, 98
+  branch %18, @15, @14
+label @14:
+  continue @15
+label @15:
+  %19 := Phi int @test.testCharLiterals:3, @12:1, @13:2, @14:4
+  Ret %19
+}
+
 func int @test.main() {
   Ret 0
 }

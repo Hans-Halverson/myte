@@ -148,6 +148,13 @@ and Expression : sig
     }
   end
 
+  module CharLiteral : sig
+    type t = {
+      loc: Loc.t;
+      value: char;
+    }
+  end
+
   module StringLiteral : sig
     type t = {
       loc: Loc.t;
@@ -329,6 +336,7 @@ and Expression : sig
   type t =
     | Unit of Unit.t
     | IntLiteral of IntLiteral.t
+    | CharLiteral of CharLiteral.t
     | StringLiteral of StringLiteral.t
     | BoolLiteral of BoolLiteral.t
     | Identifier of Identifier.t
@@ -407,6 +415,7 @@ and Pattern : sig
       | Unit of Expression.Unit.t
       | Bool of Expression.BoolLiteral.t
       | Int of Expression.IntLiteral.t
+      | Char of Expression.CharLiteral.t
       | String of Expression.StringLiteral.t
   end
 

@@ -24,4 +24,12 @@ fun testLongs(x: Long): Int =
     | _ -> 4
   }
 
+fun testCharLiterals(x: Byte): Int =
+  match (x) {
+    | 'a' -> 1
+    | 'b' -> 2
+    | '0' -> 3
+    | _ -> 4
+  }
+
 fun main() {}

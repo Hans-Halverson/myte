@@ -26,6 +26,14 @@ fun matchLongs1(x: Long): Int =
     | _ -> 4
   }
 
+fun matchChars1(x: Byte): Int =
+  match (x) {
+    | 'a' -> 1
+    | 'b' -> 2
+    | '0' -> 3
+    | _ -> 4
+  }
+
 fun testMatchBytes1() {
   assertEqual(matchBytes1(0), 1);
   assertEqual(matchBytes1(-1), 2);
@@ -50,8 +58,17 @@ fun testMatchLongs1() {
   assertEqual(matchLongs1(-100), 4);
 }
 
+fun testMatchChars1() {
+  assertEqual(matchChars1('a'), 1);
+  assertEqual(matchChars1('b'), 2);
+  assertEqual(matchChars1('0'), 3);
+  assertEqual(matchChars1('c'), 4);
+  assertEqual(matchChars1(' '), 4);
+}
+
 fun main() {
   testMatchBytes1();
   testMatchInts1();
   testMatchLongs1();
+  testMatchChars1();
 }

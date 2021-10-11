@@ -609,9 +609,8 @@ let assert_is_subtype ~cx loc sub sup =
   if not (is_subtype ~cx ~trait_object_promotion_loc:(Some loc) sub sup) then
     add_incompatible_types_error ~cx loc sub sup
 
-let mk_int_literal_ty ~cx loc raw base =
+let mk_int_literal_ty ~cx loc value =
   cx.unresolved_int_literals <- LocSet.add loc cx.unresolved_int_literals;
-  let value = Integers.int64_of_string_opt raw base in
   Type.IntLiteral { values = [(loc, value)]; resolved = None }
 
 let get_implemented_trait ty trait_sig =

@@ -1,0 +1,4 @@
+Error: Invalid character escape sequence, expected `'`, `\`, `n`, `t`, or `r`
+test/parser/char_literal/invalid_escape_error.myte:3:10
+ 3 | val x = '\a'
+   |           ^

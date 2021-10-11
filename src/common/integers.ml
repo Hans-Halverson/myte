@@ -75,3 +75,11 @@ let power_of_two x =
       find_set_bit (Int64.shift_right_logical x 1) (i + 1)
   in
   find_set_bit x 0
+
+let int64_of_char char = Int64.of_int (int_of_char char)
+
+let char_to_string char =
+  if char = '"' then
+    "\""
+  else
+    Char.escaped char

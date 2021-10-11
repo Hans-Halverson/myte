@@ -1,0 +1,20 @@
+module test
+
+fun testAllTypes() {
+  val x1: Byte = 'a';
+  val x2: Int = 'a';
+  val x3: Long = 'a';
+}
+
+fun testInference() {
+  val x1 = 'a';
+  (x1 + 1: Int);
+
+  val x2 = 'a';
+  (x2 + 1: Byte);
+
+  val x3 = 'a';
+  (x3 + 1: Long);
+}
+
+fun main() {}

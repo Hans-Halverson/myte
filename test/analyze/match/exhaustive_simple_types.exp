@@ -88,3 +88,25 @@ test/analyze/match/exhaustive_simple_types.myte:97:2-101:3
      | | ^^^^^^^^^^^^^
  101 | |   }
      | \ ^^^^
+
+Error: Inexhaustive pattern matching. For example the pattern `0` is not matched.
+test/analyze/match/exhaustive_simple_types.myte:112:2-114:3
+ 112 | /   match ('a') {
+     | |   ^^^^^^^^^^^^^
+ 113 | |     | 'a' -> ()
+     | | ^^^^^^^^^^^^^^^
+ 114 | |   }
+     | \ ^^^^
+
+Error: Inexhaustive pattern matching. For example the pattern `0` is not matched.
+test/analyze/match/exhaustive_simple_types.myte:116:2-120:3
+ 116 | /   match ('a') {
+     | |   ^^^^^^^^^^^^^
+ 117 | |     | 'a' -> ()
+     | | ^^^^^^^^^^^^^^^
+ 118 | |     | 'b' -> ()
+     | | ^^^^^^^^^^^^^^^
+ 119 | |     | '0' -> ()
+     | | ^^^^^^^^^^^^^^^
+ 120 | |   }
+     | \ ^^^^

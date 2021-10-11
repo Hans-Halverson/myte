@@ -1,0 +1,4 @@
+Error: Malformed character literal
+test/parser/char_literal/malformed_error1.myte:3:9
+ 3 | val x = ''
+   |          ^
