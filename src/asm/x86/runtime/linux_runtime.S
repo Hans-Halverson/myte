@@ -53,7 +53,7 @@ __myte_alloc:
 
 __myte_close:
   mov $3, %rax  # close
-  syscallb
+  syscall
   ret
 
 __myte_copy:
@@ -68,7 +68,7 @@ __myte_exit:
 
 __myte_open:
   mov $2, %rax  # open
-  syscallb
+  syscall
   ret
 
 __myte_read:
