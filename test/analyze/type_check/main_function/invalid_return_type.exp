@@ -1,4 +1,4 @@
-Error: Invalid type for main function. The main function optionally takes a single parameter of type `Vec<String>`, and must return either an `Int` or `Unit`.
+Error: Invalid type for main function. The main function takes no parameters and must return either an `Int` or `Unit`.
 test/analyze/type_check/main_function/invalid_return_type.myte:3:4-8
  3 | fun main(): Bool {
    |     ^^^^

@@ -175,7 +175,7 @@ let to_string error =
   | MissingMainFunction -> "No main function found in modules"
   | MultipleMainFunctions -> "Main function has already been declared"
   | InvalidMainFunctionType ->
-    "Invalid type for main function. The main function optionally takes a single parameter of type `Vec<String>`, and must return either an `Int` or `Unit`."
+    "Invalid type for main function. The main function takes no parameters and must return either an `Int` or `Unit`."
   | UnresolvedName (name, position) ->
     Printf.sprintf "Could not resolve name `%s` to %s" name (string_of_name_position position)
   | MethodDeclarationsInSameModule (type_name, module_parts) ->
