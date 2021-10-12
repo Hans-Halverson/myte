@@ -31,8 +31,7 @@ let analyze_modules ~is_stdlib ~pcx mods_and_files =
       (List.map
          (fun (_, mod_) ->
            let exhaustive_returns_errors = Exhaustive_returns.analyze mod_ in
-           let reachability_errors = Reachability.analyze mod_ in
-           exhaustive_returns_errors @ reachability_errors)
+           exhaustive_returns_errors)
          new_resolved_mods)
   in
 

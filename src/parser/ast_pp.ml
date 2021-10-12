@@ -137,7 +137,7 @@ and node_of_statement stmt =
   | Break break -> node_of_break break
   | Continue continue -> node_of_continue continue
   | Assignment assign -> node_of_assignment assign
-  | Match match_ -> node_of_match match_
+  | Match match_ -> node_of_match ~is_expr:false match_
 
 and node_of_expression expr =
   let open Expression in
@@ -161,7 +161,7 @@ and node_of_expression expr =
   | Call call -> node_of_call call
   | IndexedAccess access -> node_of_indexed_access access
   | NamedAccess access -> node_of_named_access access
-  | Match match_ -> node_of_match match_
+  | Match match_ -> node_of_match ~is_expr:true match_
   | Super loc -> node_of_super loc
   | VecLiteral lit -> node_of_vec_literal lit
   | MapLiteral lit -> node_of_map_literal lit
@@ -466,10 +466,16 @@ and node_of_assignment assign =
       ("expr", node_of_expression expr);
     ]
 
-and node_of_match match_ =
+and node_of_match match_ ~is_expr =
   let { Match.loc; args; cases } = match_ in
+  let name =
+    if is_expr then
+      "MatchExpression"
+    else
+      "MatchStatement"
+  in
   node
-    "Match"
+    name
     loc
     [
       ("args", List (List.map node_of_expression args));

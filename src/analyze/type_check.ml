@@ -832,7 +832,7 @@ and check_function_body ~cx decl =
   | Block block ->
     let open Ast.Statement in
     let block_stmt = Block block in
-    check_statement ~cx block_stmt
+    ignore (check_statement ~cx block_stmt)
 
 and check_expression ~cx expr =
   let open Ast.Expression in
@@ -1511,7 +1511,7 @@ and check_expression ~cx expr =
    *)
   | Match ({ loc; _ } as match_) ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    check_match ~cx match_ (Type.TVar tvar_id);
+    check_match ~cx ~is_expr:true match_ (Type.TVar tvar_id);
     (loc, tvar_id)
   (*
    * ============================
@@ -1610,7 +1610,7 @@ and check_expression ~cx expr =
     (loc, tvar_id)
   | Super _ -> failwith "TODO: Type check super expressions"
 
-and check_match ~cx match_ right_ty =
+and check_match ~cx ~is_expr match_ match_ty =
   let open Ast.Match in
   let { args; cases; _ } = match_ in
   let num_args = List.length args in
@@ -1623,30 +1623,47 @@ and check_match ~cx match_ right_ty =
     | _ -> Tuple arg_tys
   in
 
-  List.iter
-    (fun { Case.pattern; guard; right; _ } ->
-      (* Pattern must have same type as arg *)
-      let (pattern_loc, pattern_tvar_id) = check_pattern ~cx pattern in
-      Type_context.assert_unify ~cx pattern_loc arg_ty (TVar pattern_tvar_id);
-      if num_args <> 1 then check_multiple_args_pattern ~cx pattern;
+  let right_hand_ty =
+    if is_expr then
+      match_ty
+    else
+      Unit
+  in
 
-      (* Guard must evaluate to a boolean *)
-      (match guard with
-      | None -> ()
-      | Some guard ->
-        let (guard_loc, guard_tvar_id) = check_expression ~cx guard in
-        Type_context.assert_unify ~cx guard_loc Bool (TVar guard_tvar_id));
+  let case_evaluates_to_value =
+    List.fold_left
+      (fun case_evaluates_to_value { Case.pattern; guard; right; _ } ->
+        (* Pattern must have same type as arg *)
+        let (pattern_loc, pattern_tvar_id) = check_pattern ~cx pattern in
+        Type_context.assert_unify ~cx pattern_loc arg_ty (TVar pattern_tvar_id);
+        if num_args <> 1 then check_multiple_args_pattern ~cx pattern;
 
-      (* All cases must evaluate to same result value *)
-      match right with
-      | Expression expr ->
-        let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
-        Type_context.assert_unify ~cx expr_loc right_ty (TVar expr_tvar_id)
-      | Statement stmt ->
-        check_statement ~cx stmt;
-        let loc = Ast_utils.statement_loc stmt in
-        Type_context.assert_unify ~cx loc right_ty Unit)
-    cases
+        (* Guard must evaluate to a boolean *)
+        (match guard with
+        | None -> ()
+        | Some guard ->
+          let (guard_loc, guard_tvar_id) = check_expression ~cx guard in
+          Type_context.assert_unify ~cx guard_loc Bool (TVar guard_tvar_id));
+
+        (* All cases must evaluate to same result value *)
+        let (rhs_loc, rhs_tvar_id) =
+          match right with
+          | Expression expr -> check_expression ~cx expr
+          | Statement stmt -> check_statement ~cx stmt
+        in
+        let rhs_rep_ty = Type_context.find_rep_type ~cx (TVar rhs_tvar_id) in
+        (* If right hand side never produces a value then ignore case *)
+        match rhs_rep_ty with
+        | Never -> case_evaluates_to_value
+        | _ ->
+          Type_context.assert_unify ~cx rhs_loc right_hand_ty rhs_rep_ty;
+          true)
+      false
+      cases
+  in
+
+  (* If all cases diverge and do not evaluate to value, entire match never produces a value *)
+  if not case_evaluates_to_value then ignore (Type_context.unify ~cx Never match_ty)
 
 (* Verify that a pattern for a match with multiple args has the correct structure. Bindings and
    variables cannot appear at the top level. Do not error on other patterns, as type checking will
@@ -1963,27 +1980,108 @@ and check_enum_variant ~cx name loc ctor_decl =
     Type_context.add_error ~cx loc (MissingRecordConstructorFields field_names);
     Any
 
-and check_statement ~cx stmt =
+and check_statement ~cx stmt : Loc.t * Types.TVar.t =
   let open Ast.Statement in
   match stmt with
-  | VariableDeclaration decl -> check_variable_declaration ~cx ~is_toplevel:false decl
-  | FunctionDeclaration decl ->
+  (*
+   * ============================
+   *     Variable Declaration
+   * ============================
+   *)
+  | VariableDeclaration ({ loc; _ } as decl) ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    check_variable_declaration ~cx ~is_toplevel:false decl;
+    ignore (Type_context.unify ~cx Unit (TVar tvar_id));
+    (loc, tvar_id)
+  (*
+   * ============================
+   *     Function Declaration
+   * ============================
+   *)
+  | FunctionDeclaration ({ loc; _ } as decl) ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     build_function_declaration ~cx decl;
-    check_function_body ~cx decl
-  | Expression (_, expr) -> ignore (check_expression ~cx expr)
-  | Block { Block.statements; _ } -> List.iter (check_statement ~cx) statements
-  | If { If.test; conseq; altern; _ } ->
+    check_function_body ~cx decl;
+    ignore (Type_context.unify ~cx Unit (TVar tvar_id));
+    (loc, tvar_id)
+  (*
+   * ============================
+   *    Expression Statement
+   * ============================
+   *)
+  | Expression (loc, expr) ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    ignore (check_expression ~cx expr);
+    ignore (Type_context.unify ~cx Unit (TVar tvar_id));
+    (loc, tvar_id)
+  (*
+   * ============================
+   *       Block Statement
+   * ============================
+   *)
+  | Block { Block.loc; statements } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    let (is_reachable, first_unreachable_loc) =
+      List.fold_left
+        (fun ((is_reachable, first_unreachable_loc) as acc) stmt ->
+          let (stmt_loc, stmt_tvar_id) = check_statement ~cx stmt in
+          match (is_reachable, first_unreachable_loc) with
+          (* Save loc of first statement that is unreachable in block *)
+          | (false, None) -> (false, Some stmt_loc)
+          (* Do not collect locs of later unreachable statements, as first will error *)
+          | (false, Some _) -> acc
+          (* An inner statement that diverges makes later statements unreachable *)
+          | (true, _) ->
+            let stmt_rep_ty = Type_context.find_rep_type ~cx (TVar stmt_tvar_id) in
+            (stmt_rep_ty <> Never, None))
+        (true, None)
+        statements
+    in
+    (* Error on first unreachable statement in block *)
+    (match first_unreachable_loc with
+    | None -> ()
+    | Some loc -> Type_context.add_error ~cx loc UnreachableStatement);
+    (* Block diverges if end of black (beyond last statement) is never reached *)
+    let stmt_ty =
+      if is_reachable then
+        Type.Unit
+      else
+        Never
+    in
+    ignore (Type_context.unify ~cx stmt_ty (TVar tvar_id));
+    (loc, tvar_id)
+  (*
+   * ============================
+   *         If Statement
+   * ============================
+   *)
+  | If { If.loc; test; conseq; altern } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let (test_loc, test_tvar_id) = check_expression ~cx test in
     Type_context.assert_unify ~cx test_loc Bool (TVar test_tvar_id);
-    check_statement ~cx conseq;
-    Option.iter (check_statement ~cx) altern
-  | While { While.test; body; _ } ->
-    let (test_loc, test_tvar_id) = check_expression ~cx test in
-    Type_context.assert_unify ~cx test_loc Bool (TVar test_tvar_id);
-    Type_context.enter_loop ~cx;
-    check_statement ~cx body;
-    Type_context.exit_loop ~cx
+    let (_, conseq_tvar_id) = check_statement ~cx conseq in
+    let stmt_ty =
+      match altern with
+      | None -> Type.Unit
+      | Some altern ->
+        let (_, altern_tvar_id) = check_statement ~cx altern in
+        (* If diverges only if both conseq and altern exist and both diverge *)
+        let conseq_ty = Type_context.find_rep_type ~cx (TVar conseq_tvar_id) in
+        let altern_ty = Type_context.find_rep_type ~cx (TVar altern_tvar_id) in
+        if conseq_ty = Never && altern_ty = Never then
+          Never
+        else
+          Unit
+    in
+    ignore (Type_context.unify ~cx stmt_ty (TVar tvar_id));
+    (loc, tvar_id)
+  (*
+   * ============================
+   *           Return
+   * ============================
+   *)
   | Return { Return.loc; arg } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let (arg_loc, arg_ty) =
       match arg with
       | None -> (loc, Type.Unit)
@@ -1993,17 +2091,50 @@ and check_statement ~cx stmt =
     in
     (* Return argument must be subtype of function's return type stored in return type map *)
     let return_ty = LocMap.find loc (Type_context.get_return_types ~cx) in
-    Type_context.assert_is_subtype ~cx arg_loc arg_ty return_ty
+    Type_context.assert_is_subtype ~cx arg_loc arg_ty return_ty;
+    ignore (Type_context.unify ~cx Never (TVar tvar_id));
+    (loc, tvar_id)
+  (*
+   * ============================
+   *           Break
+   * ============================
+   *)
   | Break { Break.loc } ->
-    if not (Type_context.in_loop ~cx) then Type_context.add_error ~cx loc BreakOutsideLoop
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    if not (Type_context.in_loop ~cx) then Type_context.add_error ~cx loc BreakOutsideLoop;
+    ignore (Type_context.unify ~cx Never (TVar tvar_id));
+    (loc, tvar_id)
+  (*
+   * ============================
+   *          Continue
+   * ============================
+   *)
   | Continue { Continue.loc } ->
-    if not (Type_context.in_loop ~cx) then Type_context.add_error ~cx loc ContinueOutsideLoop
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    if not (Type_context.in_loop ~cx) then Type_context.add_error ~cx loc ContinueOutsideLoop;
+    ignore (Type_context.unify ~cx Never (TVar tvar_id));
+    (loc, tvar_id)
+  (*
+   * ============================
+   *          While Loop
+   * ============================
+   *)
+  | While { While.loc; test; body } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    let (test_loc, test_tvar_id) = check_expression ~cx test in
+    Type_context.assert_unify ~cx test_loc Bool (TVar test_tvar_id);
+    Type_context.enter_loop ~cx;
+    ignore (check_statement ~cx body);
+    Type_context.exit_loop ~cx;
+    ignore (Type_context.unify ~cx Unit (TVar tvar_id));
+    (loc, tvar_id)
   (*
    * ============================
    *          For Loop
    * ============================
    *)
-  | For { For.pattern; annot; iterator; body; _ } ->
+  | For { For.loc; pattern; annot; iterator; body } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     (* Expression must be an iterator - extract its element type *)
     let (iter_loc, iter_tvar_id) = check_expression ~cx iterator in
     let iter_rep_ty = Type_context.find_rep_type ~cx (TVar iter_tvar_id) in
@@ -2026,14 +2157,17 @@ and check_statement ~cx stmt =
       (pattern_loc, pattern_tvar_id)
       (iter_loc, element_ty);
     Type_context.enter_loop ~cx;
-    check_statement ~cx body;
-    Type_context.exit_loop ~cx
+    ignore (check_statement ~cx body);
+    Type_context.exit_loop ~cx;
+    ignore (Type_context.unify ~cx Unit (TVar tvar_id));
+    (loc, tvar_id)
   (*
    * ============================
    *         Assignment
    * ============================
    *)
-  | Assignment { Assignment.lvalue; expr; _ } ->
+  | Assignment { Assignment.loc; lvalue; expr } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let lvalue_loc_and_ty_opt =
       match lvalue with
       | Pattern pattern ->
@@ -2107,13 +2241,18 @@ and check_statement ~cx stmt =
     (match lvalue_loc_and_ty_opt with
     | Some (_, lvalue_ty) ->
       Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) lvalue_ty
-    | None -> ())
+    | None -> ());
+    ignore (Type_context.unify ~cx Unit (TVar tvar_id));
+    (loc, tvar_id)
   (*
    * ============================
    *       Match Statement
    * ============================
    *)
-  | Match match_ -> check_match ~cx match_ Unit
+  | Match ({ loc; _ } as match_) ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    check_match ~cx ~is_expr:false match_ (TVar tvar_id);
+    (loc, tvar_id)
 
 (* Resolve all IntLiteral placeholder types to an actual integer type. Infer as Int if all
    literals are within the Int range, otherwise infer as Long. *)

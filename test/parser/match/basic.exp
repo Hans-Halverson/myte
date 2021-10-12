@@ -1,7 +1,7 @@
 test/parser/match/basic.myte
 {
   node: Module,
-  loc: 1:0-97:1,
+  loc: 1:0-126:1,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -32,7 +32,7 @@ test/parser/match/basic.myte
         loc: 3:26-25:1,
         statements: [
           {
-            node: Match,
+            node: MatchStatement,
             loc: 5:2-7:3,
             args: [
               {
@@ -65,7 +65,7 @@ test/parser/match/basic.myte
             ],
           },
           {
-            node: Match,
+            node: MatchStatement,
             loc: 9:2-13:3,
             args: [
               {
@@ -138,7 +138,7 @@ test/parser/match/basic.myte
             ],
           },
           {
-            node: Match,
+            node: MatchStatement,
             loc: 16:2-18:3,
             args: [
               {
@@ -171,7 +171,7 @@ test/parser/match/basic.myte
             ],
           },
           {
-            node: Match,
+            node: MatchStatement,
             loc: 20:2-24:3,
             args: [
               {
@@ -279,7 +279,7 @@ test/parser/match/basic.myte
               },
             },
             init: {
-              node: Match,
+              node: MatchExpression,
               loc: 28:10-30:3,
               args: [
                 {
@@ -335,7 +335,7 @@ test/parser/match/basic.myte
         loc: 33:19-37:1,
         statements: [
           {
-            node: Match,
+            node: MatchStatement,
             loc: 34:2-36:3,
             args: [
               {
@@ -414,7 +414,7 @@ test/parser/match/basic.myte
         loc: 39:24-47:1,
         statements: [
           {
-            node: Match,
+            node: MatchStatement,
             loc: 40:2-42:3,
             args: [
               {
@@ -447,7 +447,7 @@ test/parser/match/basic.myte
             ],
           },
           {
-            node: Match,
+            node: MatchStatement,
             loc: 44:2-46:3,
             args: [
               {
@@ -511,7 +511,7 @@ test/parser/match/basic.myte
         loc: 49:13-55:1,
         statements: [
           {
-            node: Match,
+            node: MatchStatement,
             loc: 50:2-54:3,
             args: [
               {
@@ -633,7 +633,7 @@ test/parser/match/basic.myte
         loc: 57:22-63:1,
         statements: [
           {
-            node: Match,
+            node: MatchStatement,
             loc: 58:2-62:3,
             args: [
               {
@@ -802,7 +802,7 @@ test/parser/match/basic.myte
         loc: 65:25-72:1,
         statements: [
           {
-            node: Match,
+            node: MatchStatement,
             loc: 66:2-71:3,
             args: [
               {
@@ -895,7 +895,7 @@ test/parser/match/basic.myte
         loc: 74:26-78:1,
         statements: [
           {
-            node: Match,
+            node: MatchStatement,
             loc: 75:2-77:3,
             args: [
               {
@@ -969,7 +969,7 @@ test/parser/match/basic.myte
         loc: 80:26-97:1,
         statements: [
           {
-            node: Match,
+            node: MatchStatement,
             loc: 82:2-91:3,
             args: [
               {
@@ -1237,7 +1237,7 @@ test/parser/match/basic.myte
             ],
           },
           {
-            node: Match,
+            node: MatchStatement,
             loc: 94:2-96:3,
             args: [
               {
@@ -1265,6 +1265,254 @@ test/parser/match/basic.myte
                   node: Return,
                   loc: 95:11-95:17,
                   arg: None,
+                },
+              },
+            ],
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+      builtin: false,
+      static: false,
+      override: false,
+    },
+    {
+      node: Function,
+      loc: 99:0-126:1,
+      name: {
+        node: Identifier,
+        loc: 99:4-99:17,
+        name: "nestedMatches",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 99:20-126:1,
+        statements: [
+          {
+            node: MatchStatement,
+            loc: 101:2-107:3,
+            args: [
+              {
+                node: Identifier,
+                loc: 101:9-101:10,
+                name: "x",
+              },
+            ],
+            cases: [
+              {
+                node: MatchCase,
+                loc: 102:6-106:5,
+                pattern: {
+                  node: Wildcard,
+                  loc: 102:6-102:7,
+                },
+                guard: None,
+                right: {
+                  node: MatchStatement,
+                  loc: 102:11-106:5,
+                  args: [
+                    {
+                      node: Identifier,
+                      loc: 102:18-102:19,
+                      name: "y",
+                    },
+                  ],
+                  cases: [
+                    {
+                      node: MatchCase,
+                      loc: 103:8-105:7,
+                      pattern: {
+                        node: Wildcard,
+                        loc: 103:8-103:9,
+                      },
+                      guard: None,
+                      right: {
+                        node: MatchStatement,
+                        loc: 103:13-105:7,
+                        args: [
+                          {
+                            node: Identifier,
+                            loc: 103:20-103:21,
+                            name: "z",
+                          },
+                        ],
+                        cases: [
+                          {
+                            node: MatchCase,
+                            loc: 104:10-104:17,
+                            pattern: {
+                              node: Wildcard,
+                              loc: 104:10-104:11,
+                            },
+                            guard: None,
+                            right: {
+                              node: Block,
+                              loc: 104:15-104:17,
+                              statements: [],
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          {
+            node: VariableDeclaration,
+            loc: 110:2-116:4,
+            kind: Immutable,
+            pattern: {
+              node: ScopedIdentifier,
+              loc: 110:6-110:7,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 110:6-110:7,
+                name: "a",
+              },
+            },
+            init: {
+              node: MatchExpression,
+              loc: 110:10-116:3,
+              args: [
+                {
+                  node: Identifier,
+                  loc: 110:17-110:18,
+                  name: "x",
+                },
+              ],
+              cases: [
+                {
+                  node: MatchCase,
+                  loc: 111:6-115:5,
+                  pattern: {
+                    node: Wildcard,
+                    loc: 111:6-111:7,
+                  },
+                  guard: None,
+                  right: {
+                    node: MatchExpression,
+                    loc: 111:11-115:5,
+                    args: [
+                      {
+                        node: Identifier,
+                        loc: 111:18-111:19,
+                        name: "y",
+                      },
+                    ],
+                    cases: [
+                      {
+                        node: MatchCase,
+                        loc: 112:8-114:7,
+                        pattern: {
+                          node: Wildcard,
+                          loc: 112:8-112:9,
+                        },
+                        guard: None,
+                        right: {
+                          node: MatchExpression,
+                          loc: 112:13-114:7,
+                          args: [
+                            {
+                              node: Identifier,
+                              loc: 112:20-112:21,
+                              name: "z",
+                            },
+                          ],
+                          cases: [
+                            {
+                              node: MatchCase,
+                              loc: 113:10-113:17,
+                              pattern: {
+                                node: Wildcard,
+                                loc: 113:10-113:11,
+                              },
+                              guard: None,
+                              right: {
+                                node: Unit,
+                                loc: 113:15-113:17,
+                              },
+                            },
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+            annot: None,
+          },
+          {
+            node: MatchStatement,
+            loc: 119:2-125:3,
+            args: [
+              {
+                node: Identifier,
+                loc: 119:9-119:10,
+                name: "x",
+              },
+            ],
+            cases: [
+              {
+                node: MatchCase,
+                loc: 120:6-124:6,
+                pattern: {
+                  node: Wildcard,
+                  loc: 120:6-120:7,
+                },
+                guard: None,
+                right: {
+                  node: MatchExpression,
+                  loc: 120:12-124:5,
+                  args: [
+                    {
+                      node: Identifier,
+                      loc: 120:19-120:20,
+                      name: "y",
+                    },
+                  ],
+                  cases: [
+                    {
+                      node: MatchCase,
+                      loc: 121:8-123:7,
+                      pattern: {
+                        node: Wildcard,
+                        loc: 121:8-121:9,
+                      },
+                      guard: None,
+                      right: {
+                        node: MatchExpression,
+                        loc: 121:13-123:7,
+                        args: [
+                          {
+                            node: Identifier,
+                            loc: 121:20-121:21,
+                            name: "z",
+                          },
+                        ],
+                        cases: [
+                          {
+                            node: MatchCase,
+                            loc: 122:10-122:17,
+                            pattern: {
+                              node: Wildcard,
+                              loc: 122:10-122:11,
+                            },
+                            guard: None,
+                            right: {
+                              node: Unit,
+                              loc: 122:15-122:17,
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  ],
                 },
               },
             ],

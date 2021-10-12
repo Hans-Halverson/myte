@@ -32,7 +32,7 @@ test/parser/pattern/or.myte
         loc: 3:11-12:1,
         statements: [
           {
-            node: Match,
+            node: MatchStatement,
             loc: 4:2-11:3,
             args: [
               {

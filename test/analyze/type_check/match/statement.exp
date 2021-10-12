@@ -4,10 +4,6 @@ test/analyze/type_check/match/statement.myte:18:14
     |               ^
 
 Error: Expected type `Unit` but found `Int`
-test/analyze/type_check/match/statement.myte:23:11-25:5
- 23 | /     | x -> match (true) {
-    | |            ^^^^^^^^^^^^^^
- 24 | |       | y -> 1
-    | | ^^^^^^^^^^^^^^
- 25 | |     }
-    | \ ^^^^^^
+test/analyze/type_check/match/statement.myte:24:13
+ 24 |       | y -> 1
+    |              ^

@@ -3,7 +3,7 @@ open Types
 
 type t =
   | InexhaustiveReturn of Identifier.t
-  | UnreachableStatement of unreachable_statement_reason option
+  | UnreachableStatement
   | BreakOutsideLoop
   | ContinueOutsideLoop
   | MissingMainFunction
@@ -75,11 +75,6 @@ type t =
   | InvalidMultipleArgumentsPattern
   | InexhaustiveMatch of string
   | UnreachablePattern
-
-and unreachable_statement_reason =
-  | AfterReturn
-  | AfterBreak
-  | AfterContinue
 
 and name_position_type =
   | NamePositionValue
@@ -161,15 +156,7 @@ let to_string error =
   match error with
   | InexhaustiveReturn { Identifier.name; _ } ->
     Printf.sprintf "All branches of function `%s` must end in a return statement" name
-  | UnreachableStatement reason ->
-    let reason_string =
-      match reason with
-      | None -> ""
-      | Some AfterReturn -> " after return"
-      | Some AfterBreak -> " after break"
-      | Some AfterContinue -> " after continue"
-    in
-    "Unreachable statement" ^ reason_string
+  | UnreachableStatement -> "Unreachable statement"
   | BreakOutsideLoop -> "Break cannot appear outside a loop"
   | ContinueOutsideLoop -> "Continue cannot appear outside a loop"
   | MissingMainFunction -> "No main function found in modules"

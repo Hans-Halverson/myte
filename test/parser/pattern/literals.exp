@@ -32,7 +32,7 @@ test/parser/pattern/literals.myte
         loc: 3:11-9:1,
         statements: [
           {
-            node: Match,
+            node: MatchStatement,
             loc: 4:2-8:3,
             args: [
               {

@@ -1,0 +1,143 @@
+module test
+
+fun testReturnDivergence() {
+  val x: Int = match (true) {
+    | true -> 1
+    | false -> return
+  };
+
+  val x: Int = match (true) {
+    | true -> return
+    | false -> 1
+  };
+
+  val x: Int = match (true) {
+    | true -> return
+    | false -> return
+  };
+}
+
+fun testLoopDivergence() {
+  while (true) {
+    val x: Int = match ("a") {
+      | "a" -> 1
+      | "b" -> continue
+      | _ -> break
+    };
+  }
+}
+
+fun testIfDivergence() {
+  // Success
+  val x: Int = match (true) {
+    | true -> 1
+    | false -> if (true) {
+      return;
+    } else {
+      return;
+    }
+  };
+
+  // Failure
+  val x: Int = match ("a") {
+    | "b" -> 1
+    | "c" -> if (true) {
+      return;
+    }
+    | "d" -> if (true) {
+      return;
+    } else {
+    }
+    | _ -> if (true) {
+    } else {
+      return;
+    }
+  };
+}
+
+fun testBlockDivergence() {
+  // Success
+  val x: Int = match (true) {
+    | true -> 1
+    | false -> {
+      1;
+      2;
+      if (true) {
+        return;
+      } else {
+        return;
+      }
+    }
+  };
+
+  // Failure
+  val x: Int = match (true) {
+    | true -> 1
+    | false -> {
+      1;
+      2;
+    }
+  };
+}
+
+fun testNestedMatchDivergence() {
+  // Success
+  val x: Int = match (true) {
+    | true -> 1
+    | false -> match (true) {
+      | true -> return
+      | false -> return
+    }
+  };
+
+  val x: Int = match (true) {
+    | true -> 1
+    | false -> match (true) {
+      | true -> match (true) {
+        | true -> return
+        | false -> return
+      }
+      | false -> if (true) {
+        return;
+      } else {
+        return;
+      }
+    }
+  };
+
+  // Failure
+  val x: Int = match (true) {
+    | true -> 1
+    | false -> match (true) {
+      | true -> match (true) {
+        | true -> return
+        | false -> return
+      }
+      | false -> if (true) {
+        return;
+      }
+    }
+  };
+
+  val x: Int = match (true) {
+    | true -> 1
+    | false -> match (true) {
+      | true -> match (true) {
+        | true -> return
+        | false -> if (true) {
+          return;
+        }
+      }
+      | false -> return
+    }
+  };
+}
+
+fun testMatchStatementDivergence() {
+  match (true) {
+    | true -> {}
+    | false -> return
+  }
+}
+
+fun main() {}

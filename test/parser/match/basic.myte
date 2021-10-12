@@ -95,3 +95,32 @@ fun rightHandStatements() {
     | a -> return
   }
 }
+
+fun nestedMatches() {
+  // Nested match statements
+  match (x) {
+    | _ -> match (y) {
+      | _ -> match (z) {
+        | _ -> {}  
+      }
+    }
+  }
+
+  // Nested match expressions
+  val a = match (x) {
+    | _ -> match (y) {
+      | _ -> match (z) {
+        | _ -> ()
+      }
+    }
+  };
+
+  // Match expression within match statement
+  match (x) {
+    | _ -> (match (y) {
+      | _ -> match (z) {
+        | _ -> ()
+      }
+    })
+  }
+}

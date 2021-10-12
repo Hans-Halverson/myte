@@ -203,7 +203,7 @@ and parse_statement env =
   match Env.token env with
   | T_LEFT_BRACE -> Block (parse_block env)
   | T_IF -> parse_if env
-  | T_MATCH -> Match (parse_match env)
+  | T_MATCH -> Match (parse_match ~is_expr:false env)
   | T_WHILE -> parse_while env
   | T_FOR -> parse_for env
   | T_RETURN -> parse_return ~in_match_case:false env
@@ -262,7 +262,7 @@ and parse_expression_prefix env =
   | T_MINUS
   | T_BANG ->
     parse_unary_expression env
-  | T_MATCH -> Match (parse_match env)
+  | T_MATCH -> Match (parse_match ~is_expr:true env)
   | T_IDENTIFIER _ -> Expression.Identifier (parse_identifier env)
   | T_WILDCARD ->
     let loc = Env.loc env in
@@ -985,7 +985,7 @@ and parse_record_pattern ~is_decl env name marker =
   if fields = [] then Parse_error.fatal (loc, EmptyRecord);
   Record { loc; name; fields; rest = !rest }
 
-and parse_match env =
+and parse_match ~is_expr env =
   let open Match in
   let marker = mark_loc env in
   Env.expect env T_MATCH;
@@ -1035,6 +1035,12 @@ and parse_match env =
       | T_RETURN -> Case.Statement (parse_return ~in_match_case:true env)
       | T_BREAK -> Case.Statement (parse_break ~in_match_case:true env)
       | T_CONTINUE -> Case.Statement (parse_continue ~in_match_case:true env)
+      | T_MATCH ->
+        let match_ = parse_match ~is_expr env in
+        if is_expr then
+          Case.Expression (Match match_)
+        else
+          Case.Statement (Match match_)
       | _ -> Case.Expression (parse_expression env)
     in
     let loc = marker env in

@@ -1,39 +1,39 @@
-Error: Unreachable statement after return
+Error: Unreachable statement
 test/analyze/reachability/reachability.myte:6:2-11
  6 |   return 2;
    |   ^^^^^^^^^
 
-Error: Unreachable statement after break
+Error: Unreachable statement
 test/analyze/reachability/reachability.myte:12:4-13
  12 |     return 1;
     |     ^^^^^^^^^
 
-Error: Unreachable statement after continue
+Error: Unreachable statement
 test/analyze/reachability/reachability.myte:21:4-13
  21 |     return 1;
     |     ^^^^^^^^^
 
-Error: Unreachable statement after return
+Error: Unreachable statement
 test/analyze/reachability/reachability.myte:34:2-4
  34 |   3;
     |   ^^
 
-Error: Unreachable statement after return
+Error: Unreachable statement
 test/analyze/reachability/reachability.myte:44:2-11
  44 |   return 2;
     |   ^^^^^^^^^
 
-Error: Unreachable statement after return
+Error: Unreachable statement
 test/analyze/reachability/reachability.myte:55:2-11
  55 |   return 4;
     |   ^^^^^^^^^
 
-Error: Unreachable statement after return
+Error: Unreachable statement
 test/analyze/reachability/reachability.myte:63:2-11
  63 |   return 2;
     |   ^^^^^^^^^
 
-Error: Unreachable statement after return
+Error: Unreachable statement
 test/analyze/reachability/reachability.myte:69:4-13
  69 |     return 2;
     |     ^^^^^^^^^
@@ -43,7 +43,7 @@ test/analyze/reachability/reachability.myte:83:4-13
  83 |     return 1;
     |     ^^^^^^^^^
 
-Error: Unreachable statement after continue
+Error: Unreachable statement
 test/analyze/reachability/reachability.myte:92:4-13
  92 |     return 1;
     |     ^^^^^^^^^

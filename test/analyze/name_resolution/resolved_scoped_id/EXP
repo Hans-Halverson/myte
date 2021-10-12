@@ -1970,7 +1970,7 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
             },
           },
           {
-            node: Match,
+            node: MatchStatement,
             loc: 38:2-42:3,
             args: [
               {
