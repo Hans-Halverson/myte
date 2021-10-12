@@ -1,0 +1,9 @@
+Error: Unreachable statement
+test/analyze/type_check/reachability/divergence.myte:8:2-4
+ 8 |   1;
+   |   ^^
+
+Error: Unreachable statement
+test/analyze/type_check/reachability/divergence.myte:18:2-4
+ 18 |   1;
+    |   ^^

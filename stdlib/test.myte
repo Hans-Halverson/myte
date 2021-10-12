@@ -3,6 +3,7 @@ module std.test
 import std.bool.Bool
 import std.hash.Hashable
 import std.map.Map
+import std.never.Never
 import std.ops.Equatable
 import std.option.{None, Option, Some}
 import std.result.{Error, Ok, Result}
@@ -10,7 +11,7 @@ import std.set.Set
 import std.sys.exit
 import std.vec.Vec
 
-fun fail() {
+fun fail(): Never {
   exit(1);
 }
 

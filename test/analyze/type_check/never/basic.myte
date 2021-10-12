@@ -1,0 +1,65 @@
+module test
+
+import std.sys.abort
+
+// Never value type checking
+
+fun testNeverIsSubtypeOfAllTypes() {
+  val x: Int = match (true) {
+    | true -> return
+    | false -> return
+  };
+
+  val x: Bool = match (true) {
+    | true -> return
+    | false -> return
+  };
+}
+
+fun testNoValuesOfTypeNever() {
+  // Success
+  val x: Never = match (true) {
+    | true -> return
+    | false -> return
+  };
+
+  // Errors
+  val x: Never = 1;
+  val x: Never = false;
+}
+
+fun testCannotReturnWithNeverReturnType(): Never {
+  if (true) {
+    return 1;
+  }
+
+  return;
+}
+
+// Never return type checking
+
+fun testDivergeSuccessFromDivergentCall1(): Never {
+  abort();
+}
+
+fun testDivergeSuccessFromDivergentCall2(): Never = abort()
+
+fun testDivergeSuccessFromAllDivergentPaths(): Never {
+  if (true) {
+    abort();
+  } else {
+    abort();
+  }
+}
+
+fun testDoesNotDivergeError1(): Never {}
+
+fun testDoesNotDivergeError2(): Never = ()
+
+fun testDoesNotDivergeError3(): Never {
+  if (true) {
+    testDoesNotDivergeError1();
+  }
+}
+
+fun main() {}

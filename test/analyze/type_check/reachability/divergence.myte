@@ -1,0 +1,29 @@
+module test
+
+import std.sys.abort
+
+fun unreachableAfterDivergence() {
+  abort();
+
+  1;
+}
+
+fun unreachableAfterAllPathsDivergence() {
+  if (true) {
+    abort();
+  } else {
+    abort();
+  }
+
+  1;
+}
+
+fun reachableAfterSinglePathDivergence() {
+  if (true) {
+    abort();
+  }
+
+  1;
+}
+
+fun main() {}

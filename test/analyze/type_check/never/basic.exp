@@ -1,0 +1,42 @@
+Error: Expected type `Never` but found `Int`
+test/analyze/type_check/never/basic.myte:27:17
+ 27 |   val x: Never = 1;
+    |                  ^
+
+Error: Expected type `Never` but found `Bool`
+test/analyze/type_check/never/basic.myte:28:17-22
+ 28 |   val x: Never = false;
+    |                  ^^^^^
+
+Error: Expected type `Never` but found `Int`
+test/analyze/type_check/never/basic.myte:33:11
+ 33 |     return 1;
+    |            ^
+
+Error: Expected type `Never` but found `Unit`
+test/analyze/type_check/never/basic.myte:36:2-9
+ 36 |   return;
+    |   ^^^^^^^
+
+Error: Expected type `Never` but found `Unit`
+test/analyze/type_check/never/basic.myte:55:38-40
+ 55 | fun testDoesNotDivergeError1(): Never {}
+    |                                       ^^
+
+Error: Expected type `Never` but found `Unit`
+test/analyze/type_check/never/basic.myte:57:40-42
+ 57 | fun testDoesNotDivergeError2(): Never = ()
+    |                                         ^^
+
+Error: Expected type `Never` but found `Unit`
+test/analyze/type_check/never/basic.myte:59:38-63:1
+ 59 | / fun testDoesNotDivergeError3(): Never {
+    | |                                       ^
+ 60 | |   if (true) {
+    | | ^^^^^^^^^^^^^
+ 61 | |     testDoesNotDivergeError1();
+    | | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 62 | |   }
+    | | ^^^
+ 63 | | }
+    | \ ^^

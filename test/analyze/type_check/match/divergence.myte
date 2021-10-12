@@ -1,5 +1,7 @@
 module test
 
+import std.sys.abort
+
 fun testReturnDivergence() {
   val x: Int = match (true) {
     | true -> 1
@@ -138,6 +140,13 @@ fun testMatchStatementDivergence() {
     | true -> {}
     | false -> return
   }
+}
+
+fun testDivergentExpressionDivergence() {
+  val x: Int = match (true) {
+    | true -> 1
+    | false -> abort()
+  };
 }
 
 fun main() {}

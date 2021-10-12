@@ -812,13 +812,14 @@ and check_function_body ~cx decl =
          ignore (Type_context.unify ~cx param_ty (TVar param_decl.tvar)));
 
   (* Annotate each return statement node with this function's return type *)
+  let return_ty = Type_context.find_rep_type ~cx func_decl.return in
   let return_visitor =
     object
       inherit Ast_visitor.visitor
 
       method! function_ _ = ()
 
-      method! return { loc; _ } = Type_context.add_return_type ~cx loc func_decl.return
+      method! return { loc; _ } = Type_context.add_return_type ~cx loc return_ty
     end
   in
   return_visitor#function_body body;
@@ -828,11 +829,14 @@ and check_function_body ~cx decl =
   | Expression expr ->
     (* Expression body must be subtype of return type *)
     let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
-    Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) func_decl.return
+    Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) return_ty
   | Block block ->
     let open Ast.Statement in
     let block_stmt = Block block in
-    ignore (check_statement ~cx block_stmt)
+    let (block_loc, block_tvar_id) = check_statement ~cx block_stmt in
+    (* If return type is never, check that block diverges *)
+    if return_ty = Never then
+      Type_context.assert_is_subtype ~cx block_loc (TVar block_tvar_id) return_ty
 
 and check_expression ~cx expr =
   let open Ast.Expression in
@@ -2011,8 +2015,16 @@ and check_statement ~cx stmt : Loc.t * Types.TVar.t =
    *)
   | Expression (loc, expr) ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    ignore (check_expression ~cx expr);
-    ignore (Type_context.unify ~cx Unit (TVar tvar_id));
+    let (_, expr_tvar_id) = check_expression ~cx expr in
+    (* Propagate never type from expression if expression diverges *)
+    let expr_rep_ty = Type_context.find_rep_type ~cx (TVar expr_tvar_id) in
+    let expr_stmt_ty =
+      if expr_rep_ty = Never then
+        Type.Never
+      else
+        Unit
+    in
+    ignore (Type_context.unify ~cx expr_stmt_ty (TVar tvar_id));
     (loc, tvar_id)
   (*
    * ============================
@@ -2041,7 +2053,7 @@ and check_statement ~cx stmt : Loc.t * Types.TVar.t =
     (match first_unreachable_loc with
     | None -> ()
     | Some loc -> Type_context.add_error ~cx loc UnreachableStatement);
-    (* Block diverges if end of black (beyond last statement) is never reached *)
+    (* Block diverges if end of block (beyond last statement) is never reached *)
     let stmt_ty =
       if is_reachable then
         Type.Unit
