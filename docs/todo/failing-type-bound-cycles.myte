@@ -1,5 +1,7 @@
 module test
 
+// Case 1:
+
 trait Into<T> {
   fun into(x: This): T
 }
@@ -16,5 +18,20 @@ fun useInto<T: Into<T>>(x: T) {}
 fun test() {
   useInto(Foo (1));
 }
+
+
+// Case 2
+
+// type Foo<T: Bar<T>> (Int)
+
+// trait Bar<T> {}
+
+// type Baz (Int)
+// methods Baz {
+//   implements Bar<Baz>
+// }
+
+// fun test(x: Foo<Baz>) {}
+
 
 fun main() {}

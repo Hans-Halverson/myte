@@ -1,0 +1,18 @@
+module test
+
+// Case 1
+
+type TypeCase1<T: TraitCase1<T>> (Int)
+
+trait TraitCase1<T> {}
+
+
+// Case 2
+
+type Type1Case2<T: TraitCase2<Type2Case2<T>>> (Int)
+
+trait TraitCase2<T> {}
+
+type Type2Case2<T> (Int)
+
+fun main() {}

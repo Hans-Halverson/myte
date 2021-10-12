@@ -21,7 +21,7 @@ and TypeParam : sig
   type t = {
     id: id;
     name: name;
-    bounds: TraitSig.instance list;
+    mutable bounds: TraitSig.instance list;
   }
 
   and name =
@@ -37,7 +37,7 @@ end = struct
   type t = {
     id: id;
     name: name;
-    bounds: TraitSig.instance list;
+    mutable bounds: TraitSig.instance list;
   }
 
   and name =

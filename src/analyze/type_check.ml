@@ -140,11 +140,13 @@ let rec build_type ~cx ?(check_type_param_bounds = true) ?(trait_ctx = TraitDisa
       Type_context.add_error ~cx loc TraitObjectExpectsTrait;
       Type.Any)
 
-(* Build type parameters for all types, alias, and traits. Type parameter bounds are built, but
+(* Build type parameters for all types, traits, and aliases. Type parameter bounds are built, but
    are not yet checked for correctness. *)
 and build_type_and_trait_parameters ~cx module_ =
   let open Ast.Module in
   let { toplevels; _ } = module_ in
+
+  (* Build type parameters without bounds for types, traits, and aliases. *)
   List.iter
     (fun toplevel ->
       let open Ast.TypeDeclaration in
@@ -152,8 +154,7 @@ and build_type_and_trait_parameters ~cx module_ =
       | TypeDeclaration { name; decl = Alias _; type_params; _ } ->
         let binding = Type_context.get_type_binding ~cx name.loc in
         let alias_decl = Bindings.get_type_alias_decl binding in
-        alias_decl.type_params <-
-          build_type_parameters ~cx ~check_type_param_bounds:false type_params;
+        alias_decl.type_params <- build_type_parameters ~cx type_params;
         (* Type alias parameters cannot have bounds *)
         List.iter
           (fun { Ast.TypeParameter.bounds; _ } ->
@@ -164,22 +165,61 @@ and build_type_and_trait_parameters ~cx module_ =
       | TypeDeclaration { name; decl = Builtin | Tuple _ | Record _ | Variant _; type_params; _ } ->
         let binding = Type_context.get_type_binding ~cx name.loc in
         let type_decl = Bindings.get_type_decl binding in
-        let type_params = build_type_parameters ~cx ~check_type_param_bounds:false type_params in
+        let type_params = build_type_parameters ~cx type_params in
         type_decl.adt_sig.type_params <- type_params
       | TraitDeclaration { name; type_params; _ } ->
         let binding = Type_context.get_type_binding_from_decl ~cx name.loc in
         let trait_decl = Bindings.get_trait_decl binding in
-        let type_params = build_type_parameters ~cx ~check_type_param_bounds:false type_params in
+        let type_params = build_type_parameters ~cx type_params in
         trait_decl.trait_sig.type_params <- type_params
+      | _ -> ())
+    toplevels;
+
+  (* Add bounds to type parameters checking structure, but not checking trait implementation *)
+  List.iter
+    (fun toplevel ->
+      let open Ast.TypeDeclaration in
+      match toplevel with
+      | TypeDeclaration { name; decl = Alias _; type_params; _ } ->
+        let binding = Type_context.get_type_binding ~cx name.loc in
+        let alias_decl = Bindings.get_type_alias_decl binding in
+        build_type_parameter_bounds
+          ~cx
+          ~check_type_param_bounds:false
+          type_params
+          alias_decl.type_params
+      | TypeDeclaration { name; decl = Builtin | Tuple _ | Record _ | Variant _; type_params; _ } ->
+        let binding = Type_context.get_type_binding ~cx name.loc in
+        let type_decl = Bindings.get_type_decl binding in
+        build_type_parameter_bounds
+          ~cx
+          ~check_type_param_bounds:false
+          type_params
+          type_decl.adt_sig.type_params
+      | TraitDeclaration { name; type_params; _ } ->
+        let binding = Type_context.get_type_binding_from_decl ~cx name.loc in
+        let trait_decl = Bindings.get_trait_decl binding in
+        build_type_parameter_bounds
+          ~cx
+          ~check_type_param_bounds:false
+          type_params
+          trait_decl.trait_sig.type_params
       | _ -> ())
     toplevels
 
-and build_type_parameters ~cx ?(check_type_param_bounds = true) params =
+and build_type_parameters ~cx params =
   List.map
-    (fun { Ast.TypeParameter.name = { Ast.Identifier.loc; name }; bounds; _ } ->
+    (fun { Ast.TypeParameter.name = { Ast.Identifier.loc; name }; _ } ->
       let binding = Type_context.get_type_binding ~cx loc in
       let type_param_decl = Bindings.get_type_param_decl binding in
+      let type_param = Types.TypeParam.mk ~name:(Explicit name) ~bounds:[] in
+      Bindings.TypeParamDeclaration.set type_param_decl type_param;
+      type_param)
+    params
 
+and build_type_parameter_bounds ~cx ~check_type_param_bounds param_nodes type_params =
+  List.iter2
+    (fun { Ast.TypeParameter.bounds; _ } type_param ->
       (* Build type parameter bounds, returning no bounds if error is encountered *)
       let (bounds, has_error) =
         List.fold_left
@@ -206,16 +246,9 @@ and build_type_parameters ~cx ?(check_type_param_bounds = true) params =
           ([], false)
           bounds
       in
-      let bounds =
-        if has_error then
-          []
-        else
-          List.rev bounds
-      in
-      let type_param = Types.TypeParam.mk ~name:(Explicit name) ~bounds in
-      Bindings.TypeParamDeclaration.set type_param_decl type_param;
-      type_param)
-    params
+      if not has_error then type_param.TypeParam.bounds <- List.rev bounds)
+    param_nodes
+    type_params
 
 and build_type_aliases ~cx modules =
   let open Ast.TypeDeclaration in
@@ -449,6 +482,7 @@ and build_function_declaration ~cx decl =
   let open Ast.Function in
   let { name = { loc = id_loc; _ }; params; return; type_params; body; _ } = decl in
   let explicit_type_params = build_type_parameters ~cx type_params in
+  build_type_parameter_bounds ~cx ~check_type_param_bounds:true type_params explicit_type_params;
 
   (* Traits in function parameters are concverted to bounded implicit type params *)
   let implicit_type_params = ref [] in
