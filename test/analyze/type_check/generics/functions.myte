@@ -23,8 +23,8 @@ fun testCannotInferUnannotatedGenericFunction() {
 }
 
 fun canInferTypeParameterForVariableWithAnnotation<A>(x: A) {
-  val x1: Int -> Int = id;
-  val x2: A -> A = id;
+  val x1: (Int) -> Int = id;
+  val x2: (A) -> A = id;
 
   // Success
   x1(1);

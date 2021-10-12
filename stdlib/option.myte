@@ -25,19 +25,19 @@ methods Option<T> {
       | Some (x) -> x
     }
 
-  fun map<U>(f: T -> U): Option<U> =
+  fun map<U>(f: (T) -> U): Option<U> =
     match (this) {
       | None -> None
       | Some (x) -> Some (f(x))
     }
   
-  fun flatMap<U>(f: T -> Option<U>): Option<U> =
+  fun flatMap<U>(f: (T) -> Option<U>): Option<U> =
     match (this) {
       | None -> None
       | Some (x) -> f(x)
     }
   
-  fun filter(predicate: T -> Bool): Option<T> =
+  fun filter(predicate: (T) -> Bool): Option<T> =
     match (this) {
       | None -> this
       | Some (x) -> predicate(x) ? this : None

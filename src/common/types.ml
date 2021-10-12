@@ -517,26 +517,12 @@ let rec pp_with_names ~tvar_to_name ty =
     let element_names = List.map (pp_with_names ~tvar_to_name) elements in
     concat_and_wrap ("(", ")") element_names
   | Function { type_args = _; params; return } ->
-    let pp_function_part ty =
-      let pp_param = pp_with_names ~tvar_to_name ty in
-      match ty with
-      | Function _ -> "(" ^ pp_param ^ ")"
-      | _ -> pp_param
-    in
-    let pp_params =
-      match params with
-      | [param] -> pp_function_part param
-      | _ ->
-        let pp_params = List.map (fun param -> pp_with_names ~tvar_to_name param) params in
-        concat_and_wrap ("(", ")") pp_params
-    in
-    pp_params ^ " -> " ^ pp_function_part return
+    let params = List.map (fun param -> pp_with_names ~tvar_to_name param) params in
+    concat_and_wrap ("(", ")") params ^ " -> " ^ pp_with_names ~tvar_to_name return
   | ADT { adt_sig = { name; _ }; type_args }
   | TraitBound { trait_sig = { name; _ }; type_args } ->
     pp_name_with_args name type_args
-  | TVar tvar_id ->
-    let x = IMap.find tvar_id tvar_to_name in
-    x
+  | TVar tvar_id -> IMap.find tvar_id tvar_to_name
   | TypeParam { TypeParam.name; id = _; bounds } ->
     (match name with
     | Implicit -> "implicit " ^ pp_trait_bounds bounds

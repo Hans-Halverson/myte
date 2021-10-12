@@ -229,7 +229,7 @@ test/parser/type/basic.myte
     },
     {
       node: VariableDeclaration,
-      loc: 10:0-10:24,
+      loc: 10:0-10:26,
       kind: Immutable,
       pattern: {
         node: ScopedIdentifier,
@@ -243,23 +243,23 @@ test/parser/type/basic.myte
       },
       init: {
         node: IntLiteral,
-        loc: 10:23-10:24,
+        loc: 10:25-10:26,
         raw: "1",
       },
       annot: {
         node: FunctionType,
-        loc: 10:7-10:20,
+        loc: 10:7-10:22,
         params: [
           {
             node: IdentifierType,
-            loc: 10:7-10:10,
+            loc: 10:8-10:11,
             name: {
               node: ScopedIdentifier,
-              loc: 10:7-10:10,
+              loc: 10:8-10:11,
               scopes: [],
               name: {
                 node: Identifier,
-                loc: 10:7-10:10,
+                loc: 10:8-10:11,
                 name: "Int",
               },
             },
@@ -268,14 +268,14 @@ test/parser/type/basic.myte
         ],
         return: {
           node: IdentifierType,
-          loc: 10:14-10:20,
+          loc: 10:16-10:22,
           name: {
             node: ScopedIdentifier,
-            loc: 10:14-10:20,
+            loc: 10:16-10:22,
             scopes: [],
             name: {
               node: Identifier,
-              loc: 10:14-10:20,
+              loc: 10:16-10:22,
               name: "String",
             },
           },
@@ -285,7 +285,7 @@ test/parser/type/basic.myte
     },
     {
       node: VariableDeclaration,
-      loc: 11:0-11:32,
+      loc: 11:0-11:36,
       kind: Immutable,
       pattern: {
         node: ScopedIdentifier,
@@ -299,23 +299,23 @@ test/parser/type/basic.myte
       },
       init: {
         node: IntLiteral,
-        loc: 11:31-11:32,
+        loc: 11:35-11:36,
         raw: "1",
       },
       annot: {
         node: FunctionType,
-        loc: 11:7-11:28,
+        loc: 11:7-11:32,
         params: [
           {
             node: IdentifierType,
-            loc: 11:7-11:10,
+            loc: 11:8-11:11,
             name: {
               node: ScopedIdentifier,
-              loc: 11:7-11:10,
+              loc: 11:8-11:11,
               scopes: [],
               name: {
                 node: Identifier,
-                loc: 11:7-11:10,
+                loc: 11:8-11:11,
                 name: "Int",
               },
             },
@@ -324,18 +324,18 @@ test/parser/type/basic.myte
         ],
         return: {
           node: FunctionType,
-          loc: 11:14-11:28,
+          loc: 11:16-11:32,
           params: [
             {
               node: IdentifierType,
-              loc: 11:14-11:20,
+              loc: 11:17-11:23,
               name: {
                 node: ScopedIdentifier,
-                loc: 11:14-11:20,
+                loc: 11:17-11:23,
                 scopes: [],
                 name: {
                   node: Identifier,
-                  loc: 11:14-11:20,
+                  loc: 11:17-11:23,
                   name: "String",
                 },
               },
@@ -344,14 +344,14 @@ test/parser/type/basic.myte
           ],
           return: {
             node: IdentifierType,
-            loc: 11:24-11:28,
+            loc: 11:28-11:32,
             name: {
               node: ScopedIdentifier,
-              loc: 11:24-11:28,
+              loc: 11:28-11:32,
               scopes: [],
               name: {
                 node: Identifier,
-                loc: 11:24-11:28,
+                loc: 11:28-11:32,
                 name: "Bool",
               },
             },
@@ -362,7 +362,7 @@ test/parser/type/basic.myte
     },
     {
       node: VariableDeclaration,
-      loc: 12:0-12:42,
+      loc: 12:0-12:48,
       kind: Immutable,
       pattern: {
         node: ScopedIdentifier,
@@ -376,23 +376,23 @@ test/parser/type/basic.myte
       },
       init: {
         node: IntLiteral,
-        loc: 12:41-12:42,
+        loc: 12:47-12:48,
         raw: "1",
       },
       annot: {
         node: FunctionType,
-        loc: 12:7-12:38,
+        loc: 12:7-12:44,
         params: [
           {
             node: IdentifierType,
-            loc: 12:7-12:10,
+            loc: 12:8-12:11,
             name: {
               node: ScopedIdentifier,
-              loc: 12:7-12:10,
+              loc: 12:8-12:11,
               scopes: [],
               name: {
                 node: Identifier,
-                loc: 12:7-12:10,
+                loc: 12:8-12:11,
                 name: "Int",
               },
             },
@@ -401,18 +401,18 @@ test/parser/type/basic.myte
         ],
         return: {
           node: FunctionType,
-          loc: 12:14-12:38,
+          loc: 12:16-12:44,
           params: [
             {
               node: IdentifierType,
-              loc: 12:14-12:20,
+              loc: 12:17-12:23,
               name: {
                 node: ScopedIdentifier,
-                loc: 12:14-12:20,
+                loc: 12:17-12:23,
                 scopes: [],
                 name: {
                   node: Identifier,
-                  loc: 12:14-12:20,
+                  loc: 12:17-12:23,
                   name: "String",
                 },
               },
@@ -421,18 +421,18 @@ test/parser/type/basic.myte
           ],
           return: {
             node: FunctionType,
-            loc: 12:24-12:38,
+            loc: 12:28-12:44,
             params: [
               {
                 node: IdentifierType,
-                loc: 12:24-12:28,
+                loc: 12:29-12:33,
                 name: {
                   node: ScopedIdentifier,
-                  loc: 12:24-12:28,
+                  loc: 12:29-12:33,
                   scopes: [],
                   name: {
                     node: Identifier,
-                    loc: 12:24-12:28,
+                    loc: 12:29-12:33,
                     name: "Bool",
                   },
                 },
@@ -441,14 +441,14 @@ test/parser/type/basic.myte
             ],
             return: {
               node: IdentifierType,
-              loc: 12:32-12:38,
+              loc: 12:38-12:44,
               name: {
                 node: ScopedIdentifier,
-                loc: 12:32-12:38,
+                loc: 12:38-12:44,
                 scopes: [],
                 name: {
                   node: Identifier,
-                  loc: 12:32-12:38,
+                  loc: 12:38-12:44,
                   name: "String",
                 },
               },
@@ -541,7 +541,7 @@ test/parser/type/basic.myte
     },
     {
       node: VariableDeclaration,
-      loc: 16:0-16:64,
+      loc: 16:0-16:68,
       kind: Immutable,
       pattern: {
         node: ScopedIdentifier,
@@ -555,29 +555,29 @@ test/parser/type/basic.myte
       },
       init: {
         node: IntLiteral,
-        loc: 16:63-16:64,
+        loc: 16:67-16:68,
         raw: "1",
       },
       annot: {
         node: FunctionType,
-        loc: 16:7-16:60,
+        loc: 16:7-16:64,
         params: [
           {
             node: IdentifierType,
-            loc: 16:7-16:22,
+            loc: 16:8-16:23,
             name: {
               node: ScopedIdentifier,
-              loc: 16:7-16:22,
+              loc: 16:8-16:23,
               scopes: [
                 {
                   node: Identifier,
-                  loc: 16:7-16:14,
+                  loc: 16:8-16:15,
                   name: "Custom1",
                 },
               ],
               name: {
                 node: Identifier,
-                loc: 16:15-16:22,
+                loc: 16:16-16:23,
                 name: "Custom2",
               },
             },
@@ -586,24 +586,24 @@ test/parser/type/basic.myte
         ],
         return: {
           node: FunctionType,
-          loc: 16:26-16:60,
+          loc: 16:28-16:64,
           params: [
             {
               node: IdentifierType,
-              loc: 16:26-16:41,
+              loc: 16:29-16:44,
               name: {
                 node: ScopedIdentifier,
-                loc: 16:26-16:41,
+                loc: 16:29-16:44,
                 scopes: [
                   {
                     node: Identifier,
-                    loc: 16:26-16:33,
+                    loc: 16:29-16:36,
                     name: "Custom3",
                   },
                 ],
                 name: {
                   node: Identifier,
-                  loc: 16:34-16:41,
+                  loc: 16:37-16:44,
                   name: "Custom4",
                 },
               },
@@ -612,20 +612,20 @@ test/parser/type/basic.myte
           ],
           return: {
             node: IdentifierType,
-            loc: 16:45-16:60,
+            loc: 16:49-16:64,
             name: {
               node: ScopedIdentifier,
-              loc: 16:45-16:60,
+              loc: 16:49-16:64,
               scopes: [
                 {
                   node: Identifier,
-                  loc: 16:45-16:52,
+                  loc: 16:49-16:56,
                   name: "Custom5",
                 },
               ],
               name: {
                 node: Identifier,
-                loc: 16:53-16:60,
+                loc: 16:57-16:64,
                 name: "Custom6",
               },
             },

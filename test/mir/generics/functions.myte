@@ -16,7 +16,7 @@ fun testSingleParameter() {
   singleParameter(Tup1 (1, (1: Byte)));
 }
 
-fun testInstantiationFromNonCallUse(): Unit -> Unit {
+fun testInstantiationFromNonCallUse(): (Unit) -> Unit {
   return id;
 }
 

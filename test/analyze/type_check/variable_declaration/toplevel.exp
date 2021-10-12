@@ -18,17 +18,17 @@ test/analyze/type_check/variable_declaration/toplevel.myte:16:14-16
  16 | val v9: Int = ()
     |               ^^
 
-Error: Expected type `Int` but found `Int -> Int`
+Error: Expected type `Int` but found `(Int) -> Int`
 test/analyze/type_check/variable_declaration/toplevel.myte:17:15-23
  17 | val v10: Int = intToInt
     |                ^^^^^^^^
 
-Error: Expected type `Int -> Unit` but found `Int -> Int`
-test/analyze/type_check/variable_declaration/toplevel.myte:18:23-31
- 18 | val v11: Int -> Unit = intToInt
-    |                        ^^^^^^^^
+Error: Expected type `(Int) -> Unit` but found `(Int) -> Int`
+test/analyze/type_check/variable_declaration/toplevel.myte:18:25-33
+ 18 | val v11: (Int) -> Unit = intToInt
+    |                          ^^^^^^^^
 
-Error: Expected type `Unit -> Int` but found `Int -> Int`
-test/analyze/type_check/variable_declaration/toplevel.myte:19:23-31
- 19 | val v12: Unit -> Int = intToInt
-    |                        ^^^^^^^^
+Error: Expected type `(Unit) -> Int` but found `(Int) -> Int`
+test/analyze/type_check/variable_declaration/toplevel.myte:19:25-33
+ 19 | val v12: (Unit) -> Int = intToInt
+    |                          ^^^^^^^^

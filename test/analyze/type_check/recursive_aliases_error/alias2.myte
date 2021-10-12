@@ -1,6 +1,6 @@
 module test
 
-type alias rec_type3 = rec_type4 -> Unit
+type alias rec_type3 = (rec_type4) -> Unit
 type alias rec_type4 = rec_type3
 
 fun main() {}

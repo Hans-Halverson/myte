@@ -3,7 +3,7 @@ test/analyze/type_check/type_cast/basic.myte:13:3-5
  13 |   ((): Int);
     |    ^^
 
-Error: Expected type `Int` but found `Int -> String`
+Error: Expected type `Int` but found `(Int) -> String`
 test/analyze/type_check/type_cast/basic.myte:14:3-14
  14 |   (intToString: Int);
     |    ^^^^^^^^^^^

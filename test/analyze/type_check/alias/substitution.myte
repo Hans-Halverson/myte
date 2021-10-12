@@ -8,8 +8,8 @@ type alias equiv5 = Bool
 
 type alias unitAlias = Unit
 type alias intAlias = Int
-type alias complex1 = intAlias -> unitAlias
-type alias complex2 = complex1 -> Bool
+type alias complex1 = (intAlias) -> unitAlias
+type alias complex2 = (complex1) -> Bool
 type alias complex3 = (complex1, String) -> complex2
 
 fun main() {
@@ -35,18 +35,18 @@ fun main() {
     c3: complex3,
   ) {
     (c1: Int);
-    (c1: intAlias -> unitAlias);
-    (c1: Int -> Unit);
+    (c1: (intAlias) -> unitAlias);
+    (c1: (Int) -> Unit);
 
     (c2: Int);
-    (c2: (intAlias -> unitAlias) -> Bool);
-    (c2: (Int -> Unit) -> Bool);
+    (c2: ((intAlias) -> unitAlias) -> Bool);
+    (c2: ((Int) -> Unit) -> Bool);
     (c2: (Int, Unit) -> Bool);
 
     (c3: Int);
-    (c3: ((intAlias -> unitAlias), String) -> ((intAlias -> unitAlias) -> Bool));
-    (c3: ((Int -> Unit), String) -> ((Int -> Unit) -> Bool));
+    (c3: (((intAlias) -> unitAlias), String) -> (((intAlias) -> unitAlias) -> Bool));
+    (c3: (((Int) -> Unit), String) -> (((Int) -> Unit) -> Bool));
     (c3: (Int, Unit, String, Int, Unit) -> Bool);
-    (c3: ((Int -> Unit), String, (Int -> Unit)) -> Bool);
+    (c3: (((Int) -> Unit), String, ((Int) -> Unit)) -> Bool);
   }
 }

@@ -1,7 +1,7 @@
 test/parser/type/function.myte
 {
   node: Module,
-  loc: 1:0-14:13,
+  loc: 1:0-13:13,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -20,73 +20,27 @@ test/parser/type/function.myte
   toplevels: [
     {
       node: TypeDeclaration,
-      loc: 3:0-3:29,
+      loc: 3:0-3:28,
       name: {
         node: Identifier,
         loc: 3:11-3:13,
-        name: "t1",
-      },
-      type_params: [],
-      alias: {
-        node: FunctionType,
-        loc: 3:16-3:29,
-        params: [
-          {
-            node: IdentifierType,
-            loc: 3:16-3:19,
-            name: {
-              node: ScopedIdentifier,
-              loc: 3:16-3:19,
-              scopes: [],
-              name: {
-                node: Identifier,
-                loc: 3:16-3:19,
-                name: "Int",
-              },
-            },
-            type_args: [],
-          },
-        ],
-        return: {
-          node: IdentifierType,
-          loc: 3:23-3:29,
-          name: {
-            node: ScopedIdentifier,
-            loc: 3:23-3:29,
-            scopes: [],
-            name: {
-              node: Identifier,
-              loc: 3:23-3:29,
-              name: "String",
-            },
-          },
-          type_args: [],
-        },
-      },
-    },
-    {
-      node: TypeDeclaration,
-      loc: 4:0-4:28,
-      name: {
-        node: Identifier,
-        loc: 4:11-4:13,
         name: "t2",
       },
       type_params: [],
       alias: {
         node: FunctionType,
-        loc: 4:16-4:28,
+        loc: 3:16-3:28,
         params: [],
         return: {
           node: IdentifierType,
-          loc: 4:22-4:28,
+          loc: 3:22-3:28,
           name: {
             node: ScopedIdentifier,
-            loc: 4:22-4:28,
+            loc: 3:22-3:28,
             scopes: [],
             name: {
               node: Identifier,
-              loc: 4:22-4:28,
+              loc: 3:22-3:28,
               name: "String",
             },
           },
@@ -96,27 +50,27 @@ test/parser/type/function.myte
     },
     {
       node: TypeDeclaration,
-      loc: 5:0-5:31,
+      loc: 4:0-4:31,
       name: {
         node: Identifier,
-        loc: 5:11-5:13,
+        loc: 4:11-4:13,
         name: "t3",
       },
       type_params: [],
       alias: {
         node: FunctionType,
-        loc: 5:16-5:31,
+        loc: 4:16-4:31,
         params: [
           {
             node: IdentifierType,
-            loc: 5:17-5:20,
+            loc: 4:17-4:20,
             name: {
               node: ScopedIdentifier,
-              loc: 5:17-5:20,
+              loc: 4:17-4:20,
               scopes: [],
               name: {
                 node: Identifier,
-                loc: 5:17-5:20,
+                loc: 4:17-4:20,
                 name: "Int",
               },
             },
@@ -125,14 +79,14 @@ test/parser/type/function.myte
         ],
         return: {
           node: IdentifierType,
-          loc: 5:25-5:31,
+          loc: 4:25-4:31,
           name: {
             node: ScopedIdentifier,
-            loc: 5:25-5:31,
+            loc: 4:25-4:31,
             scopes: [],
             name: {
               node: Identifier,
-              loc: 5:25-5:31,
+              loc: 4:25-4:31,
               name: "String",
             },
           },
@@ -142,27 +96,27 @@ test/parser/type/function.myte
     },
     {
       node: TypeDeclaration,
-      loc: 6:0-6:35,
+      loc: 5:0-5:35,
       name: {
         node: Identifier,
-        loc: 6:11-6:13,
+        loc: 5:11-5:13,
         name: "t4",
       },
       type_params: [],
       alias: {
         node: FunctionType,
-        loc: 6:16-6:35,
+        loc: 5:16-5:35,
         params: [
           {
             node: IdentifierType,
-            loc: 6:19-6:22,
+            loc: 5:19-5:22,
             name: {
               node: ScopedIdentifier,
-              loc: 6:19-6:22,
+              loc: 5:19-5:22,
               scopes: [],
               name: {
                 node: Identifier,
-                loc: 6:19-6:22,
+                loc: 5:19-5:22,
                 name: "Int",
               },
             },
@@ -171,14 +125,14 @@ test/parser/type/function.myte
         ],
         return: {
           node: IdentifierType,
-          loc: 6:29-6:35,
+          loc: 5:29-5:35,
           name: {
             node: ScopedIdentifier,
-            loc: 6:29-6:35,
+            loc: 5:29-5:35,
             scopes: [],
             name: {
               node: Identifier,
-              loc: 6:29-6:35,
+              loc: 5:29-5:35,
               name: "String",
             },
           },
@@ -188,16 +142,77 @@ test/parser/type/function.myte
     },
     {
       node: TypeDeclaration,
-      loc: 7:0-7:37,
+      loc: 6:0-6:37,
       name: {
         node: Identifier,
-        loc: 7:11-7:13,
+        loc: 6:11-6:13,
         name: "t5",
       },
       type_params: [],
       alias: {
         node: FunctionType,
-        loc: 7:16-7:37,
+        loc: 6:16-6:37,
+        params: [
+          {
+            node: IdentifierType,
+            loc: 6:17-6:20,
+            name: {
+              node: ScopedIdentifier,
+              loc: 6:17-6:20,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 6:17-6:20,
+                name: "Int",
+              },
+            },
+            type_args: [],
+          },
+          {
+            node: IdentifierType,
+            loc: 6:22-6:28,
+            name: {
+              node: ScopedIdentifier,
+              loc: 6:22-6:28,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 6:22-6:28,
+                name: "String",
+              },
+            },
+            type_args: [],
+          },
+        ],
+        return: {
+          node: IdentifierType,
+          loc: 6:33-6:37,
+          name: {
+            node: ScopedIdentifier,
+            loc: 6:33-6:37,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 6:33-6:37,
+              name: "Unit",
+            },
+          },
+          type_args: [],
+        },
+      },
+    },
+    {
+      node: TypeDeclaration,
+      loc: 7:0-7:43,
+      name: {
+        node: Identifier,
+        loc: 7:11-7:13,
+        name: "t6",
+      },
+      type_params: [],
+      alias: {
+        node: FunctionType,
+        loc: 7:16-7:43,
         params: [
           {
             node: IdentifierType,
@@ -229,17 +244,32 @@ test/parser/type/function.myte
             },
             type_args: [],
           },
+          {
+            node: IdentifierType,
+            loc: 7:30-7:34,
+            name: {
+              node: ScopedIdentifier,
+              loc: 7:30-7:34,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 7:30-7:34,
+                name: "Bool",
+              },
+            },
+            type_args: [],
+          },
         ],
         return: {
           node: IdentifierType,
-          loc: 7:33-7:37,
+          loc: 7:39-7:43,
           name: {
             node: ScopedIdentifier,
-            loc: 7:33-7:37,
+            loc: 7:39-7:43,
             scopes: [],
             name: {
               node: Identifier,
-              loc: 7:33-7:37,
+              loc: 7:39-7:43,
               name: "Unit",
             },
           },
@@ -249,16 +279,16 @@ test/parser/type/function.myte
     },
     {
       node: TypeDeclaration,
-      loc: 8:0-8:43,
+      loc: 8:0-8:55,
       name: {
         node: Identifier,
         loc: 8:11-8:13,
-        name: "t6",
+        name: "t7",
       },
       type_params: [],
       alias: {
         node: FunctionType,
-        loc: 8:16-8:43,
+        loc: 8:16-8:55,
         params: [
           {
             node: IdentifierType,
@@ -290,51 +320,72 @@ test/parser/type/function.myte
             },
             type_args: [],
           },
-          {
+        ],
+        return: {
+          node: FunctionType,
+          loc: 8:33-8:55,
+          params: [
+            {
+              node: IdentifierType,
+              loc: 8:34-8:38,
+              name: {
+                node: ScopedIdentifier,
+                loc: 8:34-8:38,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 8:34-8:38,
+                  name: "Bool",
+                },
+              },
+              type_args: [],
+            },
+            {
+              node: IdentifierType,
+              loc: 8:40-8:44,
+              name: {
+                node: ScopedIdentifier,
+                loc: 8:40-8:44,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 8:40-8:44,
+                  name: "Unit",
+                },
+              },
+              type_args: [],
+            },
+          ],
+          return: {
             node: IdentifierType,
-            loc: 8:30-8:34,
+            loc: 8:49-8:55,
             name: {
               node: ScopedIdentifier,
-              loc: 8:30-8:34,
+              loc: 8:49-8:55,
               scopes: [],
               name: {
                 node: Identifier,
-                loc: 8:30-8:34,
-                name: "Bool",
+                loc: 8:49-8:55,
+                name: "String",
               },
             },
             type_args: [],
           },
-        ],
-        return: {
-          node: IdentifierType,
-          loc: 8:39-8:43,
-          name: {
-            node: ScopedIdentifier,
-            loc: 8:39-8:43,
-            scopes: [],
-            name: {
-              node: Identifier,
-              loc: 8:39-8:43,
-              name: "Unit",
-            },
-          },
-          type_args: [],
         },
       },
     },
     {
       node: TypeDeclaration,
-      loc: 9:0-9:55,
+      loc: 9:0-9:38,
       name: {
         node: Identifier,
         loc: 9:11-9:13,
-        name: "t7",
+        name: "t8",
       },
       type_params: [],
       alias: {
         node: FunctionType,
-        loc: 9:16-9:55,
+        loc: 9:16-9:38,
         params: [
           {
             node: IdentifierType,
@@ -368,70 +419,34 @@ test/parser/type/function.myte
           },
         ],
         return: {
-          node: FunctionType,
-          loc: 9:33-9:55,
-          params: [
-            {
-              node: IdentifierType,
-              loc: 9:34-9:38,
-              name: {
-                node: ScopedIdentifier,
-                loc: 9:34-9:38,
-                scopes: [],
-                name: {
-                  node: Identifier,
-                  loc: 9:34-9:38,
-                  name: "Bool",
-                },
-              },
-              type_args: [],
-            },
-            {
-              node: IdentifierType,
-              loc: 9:40-9:44,
-              name: {
-                node: ScopedIdentifier,
-                loc: 9:40-9:44,
-                scopes: [],
-                name: {
-                  node: Identifier,
-                  loc: 9:40-9:44,
-                  name: "Unit",
-                },
-              },
-              type_args: [],
-            },
-          ],
-          return: {
-            node: IdentifierType,
-            loc: 9:49-9:55,
+          node: IdentifierType,
+          loc: 9:34-9:38,
+          name: {
+            node: ScopedIdentifier,
+            loc: 9:34-9:38,
+            scopes: [],
             name: {
-              node: ScopedIdentifier,
-              loc: 9:49-9:55,
-              scopes: [],
-              name: {
-                node: Identifier,
-                loc: 9:49-9:55,
-                name: "String",
-              },
+              node: Identifier,
+              loc: 9:34-9:38,
+              name: "Unit",
             },
-            type_args: [],
           },
+          type_args: [],
         },
       },
     },
     {
       node: TypeDeclaration,
-      loc: 10:0-10:38,
+      loc: 10:0-10:30,
       name: {
         node: Identifier,
         loc: 10:11-10:13,
-        name: "t8",
+        name: "t9",
       },
       type_params: [],
       alias: {
         node: FunctionType,
-        loc: 10:16-10:38,
+        loc: 10:16-10:30,
         params: [
           {
             node: IdentifierType,
@@ -448,32 +463,17 @@ test/parser/type/function.myte
             },
             type_args: [],
           },
-          {
-            node: IdentifierType,
-            loc: 10:22-10:28,
-            name: {
-              node: ScopedIdentifier,
-              loc: 10:22-10:28,
-              scopes: [],
-              name: {
-                node: Identifier,
-                loc: 10:22-10:28,
-                name: "String",
-              },
-            },
-            type_args: [],
-          },
         ],
         return: {
           node: IdentifierType,
-          loc: 10:34-10:38,
+          loc: 10:26-10:30,
           name: {
             node: ScopedIdentifier,
-            loc: 10:34-10:38,
+            loc: 10:26-10:30,
             scopes: [],
             name: {
               node: Identifier,
-              loc: 10:34-10:38,
+              loc: 10:26-10:30,
               name: "Unit",
             },
           },
@@ -483,77 +483,31 @@ test/parser/type/function.myte
     },
     {
       node: TypeDeclaration,
-      loc: 11:0-11:30,
+      loc: 11:0-11:41,
       name: {
         node: Identifier,
-        loc: 11:11-11:13,
-        name: "t9",
-      },
-      type_params: [],
-      alias: {
-        node: FunctionType,
-        loc: 11:16-11:30,
-        params: [
-          {
-            node: IdentifierType,
-            loc: 11:17-11:20,
-            name: {
-              node: ScopedIdentifier,
-              loc: 11:17-11:20,
-              scopes: [],
-              name: {
-                node: Identifier,
-                loc: 11:17-11:20,
-                name: "Int",
-              },
-            },
-            type_args: [],
-          },
-        ],
-        return: {
-          node: IdentifierType,
-          loc: 11:26-11:30,
-          name: {
-            node: ScopedIdentifier,
-            loc: 11:26-11:30,
-            scopes: [],
-            name: {
-              node: Identifier,
-              loc: 11:26-11:30,
-              name: "Unit",
-            },
-          },
-          type_args: [],
-        },
-      },
-    },
-    {
-      node: TypeDeclaration,
-      loc: 12:0-12:41,
-      name: {
-        node: Identifier,
-        loc: 12:11-12:14,
+        loc: 11:11-11:14,
         name: "t10",
       },
       type_params: [],
       alias: {
         node: FunctionType,
-        loc: 12:17-12:41,
+        loc: 11:17-11:41,
         params: [
           {
             node: TupleType,
-            loc: 12:18-12:31,
+            loc: 11:18-11:31,
             elements: [
               {
                 node: IdentifierType,
-                loc: 12:19-12:22,
+                loc: 11:19-11:22,
                 name: {
                   node: ScopedIdentifier,
-                  loc: 12:19-12:22,
+                  loc: 11:19-11:22,
                   scopes: [],
                   name: {
                     node: Identifier,
-                    loc: 12:19-12:22,
+                    loc: 11:19-11:22,
                     name: "Int",
                   },
                 },
@@ -561,14 +515,14 @@ test/parser/type/function.myte
               },
               {
                 node: IdentifierType,
-                loc: 12:24-12:30,
+                loc: 11:24-11:30,
                 name: {
                   node: ScopedIdentifier,
-                  loc: 12:24-12:30,
+                  loc: 11:24-11:30,
                   scopes: [],
                   name: {
                     node: Identifier,
-                    loc: 12:24-12:30,
+                    loc: 11:24-11:30,
                     name: "String",
                   },
                 },
@@ -579,14 +533,14 @@ test/parser/type/function.myte
         ],
         return: {
           node: IdentifierType,
-          loc: 12:37-12:41,
+          loc: 11:37-11:41,
           name: {
             node: ScopedIdentifier,
-            loc: 12:37-12:41,
+            loc: 11:37-11:41,
             scopes: [],
             name: {
               node: Identifier,
-              loc: 12:37-12:41,
+              loc: 11:37-11:41,
               name: "Unit",
             },
           },
@@ -596,16 +550,16 @@ test/parser/type/function.myte
     },
     {
       node: Function,
-      loc: 14:0-14:13,
+      loc: 13:0-13:13,
       name: {
         node: Identifier,
-        loc: 14:4-14:8,
+        loc: 13:4-13:8,
         name: "main",
       },
       params: [],
       body: {
         node: Block,
-        loc: 14:11-14:13,
+        loc: 13:11-13:13,
         statements: [],
       },
       return: None,

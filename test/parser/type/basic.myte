@@ -7,13 +7,13 @@ val x: Long = 1
 val x: String = "test"
 val x: Bool = true
 
-val x: Int -> String = 1
-val x: Int -> String -> Bool = 1
-val x: Int -> String -> Bool -> String = 1
+val x: (Int) -> String = 1
+val x: (Int) -> (String) -> Bool = 1
+val x: (Int) -> (String) -> (Bool) -> String = 1
 
 val x: Custom1 = 1
 val x: Custom1.Custom2.Custom3 = 1
-val x: Custom1.Custom2 -> Custom3.Custom4 -> Custom5.Custom6 = 1
+val x: (Custom1.Custom2) -> (Custom3.Custom4) -> Custom5.Custom6 = 1
 
 // Type parameters
 val x: Id<A> = 1

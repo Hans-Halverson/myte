@@ -1,6 +1,5 @@
 module Test
 
-type alias t1 = Int -> String
 type alias t2 = () -> String
 type alias t3 = (Int) -> String
 type alias t4 = (((Int))) -> String

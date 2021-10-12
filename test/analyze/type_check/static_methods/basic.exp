@@ -1,14 +1,14 @@
-Error: Expected type `Unit` but found `Int -> Int`
+Error: Expected type `Unit` but found `(Int) -> Int`
 test/analyze/type_check/static_methods/basic.myte:24:3-13
  24 |   (Trait1.foo: Unit);
     |    ^^^^^^^^^^
 
-Error: Expected type `Unit` but found `Bool -> Bool`
+Error: Expected type `Unit` but found `(Bool) -> Bool`
 test/analyze/type_check/static_methods/basic.myte:25:3-13
  25 |   (Trait2.foo: Unit);
     |    ^^^^^^^^^^
 
-Error: Expected type `Unit` but found `Byte -> Byte`
+Error: Expected type `Unit` but found `(Byte) -> Byte`
 test/analyze/type_check/static_methods/basic.myte:26:3-12
  26 |   (Type1.foo: Unit);
     |    ^^^^^^^^^

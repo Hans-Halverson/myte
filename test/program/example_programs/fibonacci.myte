@@ -39,13 +39,13 @@ fun fibDynamic(x: Int): Int {
   return table[x];
 }
 
-fun printTestCase(func: Int -> Int, x: Int) {
+fun printTestCase(func: (Int) -> Int, x: Int) {
   val result = func(x);
 
   println(`F(${x}) = ${result}`);
 }
 
-fun printAlgorithmTests(func: Int -> Int) {
+fun printAlgorithmTests(func: (Int) -> Int) {
   var i = 0;
   while (i <= 10) {
     printTestCase(func, i);

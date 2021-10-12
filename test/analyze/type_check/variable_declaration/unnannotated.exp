@@ -8,12 +8,12 @@ test/analyze/type_check/variable_declaration/unnannotated.myte:11:3-5
  11 |   (x2: String);
     |    ^^
 
-Error: Expected type `Bool` but found `Int -> String`
+Error: Expected type `Bool` but found `(Int) -> String`
 test/analyze/type_check/variable_declaration/unnannotated.myte:14:3-5
  14 |   (x3: Bool);
     |    ^^
 
-Error: Expected type `Int -> String` but found `Bool`
+Error: Expected type `(Int) -> String` but found `Bool`
 test/analyze/type_check/variable_declaration/unnannotated.myte:18:5-7
- 18 |     (x3: Int -> String);
+ 18 |     (x3: (Int) -> String);
     |      ^^

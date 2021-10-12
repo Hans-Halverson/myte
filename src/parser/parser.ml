@@ -1435,13 +1435,6 @@ and parse_trait_declaration ~kind env =
   { loc; kind; name; type_params; implemented; methods }
 
 and parse_type env =
-  let marker = mark_loc env in
-  let ty = parse_type_prefix env in
-  match Env.token env with
-  | T_ARROW -> parse_function_type env [ty] marker
-  | _ -> ty
-
-and parse_type_prefix env =
   match Env.token env with
   | T_LEFT_PAREN -> parse_parenthesized_type env
   | T_IDENTIFIER _ -> Identifier (parse_identifier_type env)

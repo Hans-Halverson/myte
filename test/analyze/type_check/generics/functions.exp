@@ -8,7 +8,7 @@ test/analyze/type_check/generics/functions.myte:14:3-11
  14 |   (id(true): Unit);
     |    ^^^^^^^^
 
-Error: Cannot infer type for variable declaration. Partially inferred `a -> a` but was unable to resolve `a`. Please provide additional type annotations.
+Error: Cannot infer type for variable declaration. Partially inferred `(a) -> a` but was unable to resolve `a`. Please provide additional type annotations.
 test/analyze/type_check/generics/functions.myte:22:2-13
  22 |   val x = id;
     |   ^^^^^^^^^^^

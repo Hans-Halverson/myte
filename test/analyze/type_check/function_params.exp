@@ -3,9 +3,9 @@ test/analyze/type_check/function_params.myte:14:3-5
  14 |   (p1: Bool);
     |    ^^
 
-Error: Expected type `Int -> Bool` but found `(Int, String) -> Bool`
+Error: Expected type `(Int) -> Bool` but found `(Int, String) -> Bool`
 test/analyze/type_check/function_params.myte:15:3-5
- 15 |   (p4: Int -> Bool);
+ 15 |   (p4: (Int) -> Bool);
     |    ^^
 
 Error: Expected type `Unit` but found `Int`

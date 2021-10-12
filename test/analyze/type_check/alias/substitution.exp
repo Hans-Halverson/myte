@@ -33,32 +33,32 @@ test/analyze/type_check/alias/substitution.myte:29:3-5
  29 |   ((): intAlias);
     |    ^^
 
-Error: Expected type `Int` but found `Int -> Unit`
+Error: Expected type `Int` but found `(Int) -> Unit`
 test/analyze/type_check/alias/substitution.myte:37:5-7
  37 |     (c1: Int);
     |      ^^
 
-Error: Expected type `Int` but found `(Int -> Unit) -> Bool`
+Error: Expected type `Int` but found `((Int) -> Unit) -> Bool`
 test/analyze/type_check/alias/substitution.myte:41:5-7
  41 |     (c2: Int);
     |      ^^
 
-Error: Expected type `(Int, Unit) -> Bool` but found `(Int -> Unit) -> Bool`
+Error: Expected type `(Int, Unit) -> Bool` but found `((Int) -> Unit) -> Bool`
 test/analyze/type_check/alias/substitution.myte:44:5-7
  44 |     (c2: (Int, Unit) -> Bool);
     |      ^^
 
-Error: Expected type `Int` but found `(Int -> Unit, String) -> ((Int -> Unit) -> Bool)`
+Error: Expected type `Int` but found `((Int) -> Unit, String) -> ((Int) -> Unit) -> Bool`
 test/analyze/type_check/alias/substitution.myte:46:5-7
  46 |     (c3: Int);
     |      ^^
 
-Error: Expected type `(Int, Unit, String, Int, Unit) -> Bool` but found `(Int -> Unit, String) -> ((Int -> Unit) -> Bool)`
+Error: Expected type `(Int, Unit, String, Int, Unit) -> Bool` but found `((Int) -> Unit, String) -> ((Int) -> Unit) -> Bool`
 test/analyze/type_check/alias/substitution.myte:49:5-7
  49 |     (c3: (Int, Unit, String, Int, Unit) -> Bool);
     |      ^^
 
-Error: Expected type `(Int -> Unit, String, Int -> Unit) -> Bool` but found `(Int -> Unit, String) -> ((Int -> Unit) -> Bool)`
+Error: Expected type `((Int) -> Unit, String, (Int) -> Unit) -> Bool` but found `((Int) -> Unit, String) -> ((Int) -> Unit) -> Bool`
 test/analyze/type_check/alias/substitution.myte:50:5-7
- 50 |     (c3: ((Int -> Unit), String, (Int -> Unit)) -> Bool);
+ 50 |     (c3: (((Int) -> Unit), String, ((Int) -> Unit)) -> Bool);
     |      ^^

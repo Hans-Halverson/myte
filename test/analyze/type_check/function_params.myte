@@ -12,7 +12,7 @@ fun foo(p1: Unit, p2: Int, p3: String, p4: (Int, String) -> Bool, p5: IntAlias) 
   (p5: Int);
 
   (p1: Bool);
-  (p4: Int -> Bool);
+  (p4: (Int) -> Bool);
   (p5: Unit);
 
   {

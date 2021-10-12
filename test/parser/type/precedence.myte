@@ -1,7 +1,7 @@
 module Test
 
 // Group precedence
-type alias t1 = (Int -> String) -> Bool
-type alias t2 = Int -> (String -> Bool)
-type alias t3 = Int -> String -> Bool
+type alias t1 = ((Int) -> String) -> Bool
+type alias t2 = (Int) -> ((String) -> Bool)
+type alias t3 = (Int) -> (String) -> Bool
 

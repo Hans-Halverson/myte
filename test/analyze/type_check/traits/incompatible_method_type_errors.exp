@@ -1,29 +1,29 @@
-Error: Method `foo` has incompatible type from declaration in trait `Trait1`. Declared as type `Int -> Unit` but found `Bool -> Unit`.
+Error: Method `foo` has incompatible type from declaration in trait `Trait1`. Declared as type `(Int) -> Unit` but found `(Bool) -> Unit`.
 test/analyze/type_check/traits/incompatible_method_type_errors.myte:11:15-18
  11 |   override fun foo(x: Bool) {}
     |                ^^^
 
-Error: Method `bar` has incompatible type from declaration in trait `Trait1`. Declared as type `Int -> Unit` but found `Bool -> Unit`.
+Error: Method `bar` has incompatible type from declaration in trait `Trait1`. Declared as type `(Int) -> Unit` but found `(Bool) -> Unit`.
 test/analyze/type_check/traits/incompatible_method_type_errors.myte:12:15-18
  12 |   override fun bar(x: Bool) {}
     |                ^^^
 
-Error: Method `foo` has incompatible type from declaration in trait `Trait1`. Declared as type `Int -> Unit` but found `Bool -> Unit`.
+Error: Method `foo` has incompatible type from declaration in trait `Trait1`. Declared as type `(Int) -> Unit` but found `(Bool) -> Unit`.
 test/analyze/type_check/traits/incompatible_method_type_errors.myte:18:15-18
  18 |   override fun foo(x: Bool) {}
     |                ^^^
 
-Error: Method `bar` has incompatible type from declaration in trait `Trait1`. Declared as type `Int -> Unit` but found `Bool -> Unit`.
+Error: Method `bar` has incompatible type from declaration in trait `Trait1`. Declared as type `(Int) -> Unit` but found `(Bool) -> Unit`.
 test/analyze/type_check/traits/incompatible_method_type_errors.myte:19:15-18
  19 |   override fun bar(x: Bool) {}
     |                ^^^
 
-Error: Method `foo` has incompatible type from declaration in trait `Trait3`. Declared as type `Int -> Unit` but found `Bool -> Unit`.
+Error: Method `foo` has incompatible type from declaration in trait `Trait3`. Declared as type `(Int) -> Unit` but found `(Bool) -> Unit`.
 test/analyze/type_check/traits/incompatible_method_type_errors.myte:30:15-18
  30 |   override fun foo(x: Bool) {}
     |                ^^^
 
-Error: Method `foo` has incompatible type from declaration in trait `Trait6`. Declared as type `trait Trait1 -> Unit` but found `Type1 -> Unit`.
+Error: Method `foo` has incompatible type from declaration in trait `Trait6`. Declared as type `(trait Trait1) -> Unit` but found `(Type1) -> Unit`.
 test/analyze/type_check/traits/incompatible_method_type_errors.myte:40:15-18
  40 |   override fun foo(x: Type1) {}
     |                ^^^

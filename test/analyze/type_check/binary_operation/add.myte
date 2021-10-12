@@ -9,5 +9,5 @@ fun main() {
   (1 + true: Int);
 
   // If neither type is addable error on both sides but do not enforce type for expression
-  (true + (): Int -> Int);
+  (true + (): (Int) -> Int);
 }

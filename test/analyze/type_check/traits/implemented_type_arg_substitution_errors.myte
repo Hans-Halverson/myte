@@ -32,7 +32,7 @@ trait Trait3<T> {
   extends Trait2<(T, T), T>
 }
 trait Trait4<T> {
-  extends Trait3<T -> T>
+  extends Trait3<(T) -> T>
 }
 
 type Type3 (Unit)
@@ -48,7 +48,7 @@ trait Trait5<T> {
   fun foo(x: T)
 }
 trait Trait6<U> {
-  extends Trait5<U -> Bool>
+  extends Trait5<(U) -> Bool>
 }
 
 type Type4<V> (V)
@@ -64,7 +64,7 @@ methods Type5<V> {
   implements Trait6<V>
 
   // Successful override
-  override fun foo(x: V -> Bool) {}
+  override fun foo(x: (V) -> Bool) {}
 }
 
 fun test1() {

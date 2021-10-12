@@ -5,10 +5,10 @@ test/analyze/type_check/binary_operation/add.myte:9:7-11
 
 Error: Expected type `Int` but found `Bool`
 test/analyze/type_check/binary_operation/add.myte:12:3-7
- 12 |   (true + (): Int -> Int);
+ 12 |   (true + (): (Int) -> Int);
     |    ^^^^
 
 Error: Expected type `Int` but found `Unit`
 test/analyze/type_check/binary_operation/add.myte:12:10-12
- 12 |   (true + (): Int -> Int);
+ 12 |   (true + (): (Int) -> Int);
     |           ^^

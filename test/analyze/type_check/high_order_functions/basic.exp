@@ -1,4 +1,4 @@
-Error: Expected type `Unit -> a` but found `Int -> Bool`
+Error: Expected type `(Unit) -> a` but found `(Int) -> Bool`
 test/analyze/type_check/high_order_functions/basic.myte:12:10-19
  12 |   map((), intToBool);
     |           ^^^^^^^^^
