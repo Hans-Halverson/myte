@@ -1,1 +1,1 @@
-val analyze : Ast.Module.t -> Analyze_error.errors
+val analyze_function : cx:Type_context.t -> Ast.Function.t -> unit

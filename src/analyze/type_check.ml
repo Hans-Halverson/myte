@@ -811,8 +811,16 @@ and check_function_body ~cx decl =
          let param_decl = Bindings.get_func_param_decl binding in
          ignore (Type_context.unify ~cx param_ty (TVar param_decl.tvar)));
 
-  (* Annotate each return statement node with this function's return type *)
   let return_ty = Type_context.find_rep_type ~cx func_decl.return in
+
+  (* Check for exhaustiveness of returns *)
+  (match return_ty with
+  | Unit
+  | Never ->
+    ()
+  | _ -> Exhaustive_returns.analyze_function ~cx decl);
+
+  (* Annotate each return statement node with this function's return type *)
   let return_visitor =
     object
       inherit Ast_visitor.visitor

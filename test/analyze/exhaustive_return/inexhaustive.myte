@@ -66,11 +66,11 @@ fun testWhile2(): Int {
 }
 
 fun testFor1(): Int {
-  for (x in true) {}
+  for (x in 1.to(2)) {}
 }
 
 fun testFor2(): Int {
-  for (x in true) {
+  for (x in 1.to(2)) {
     return 1;
   }
 }
@@ -78,7 +78,7 @@ fun testFor2(): Int {
 fun testMatchSingleCase(): Int {
   val _ = 1;
   match (1) {
-    | _ -> 1
+    | _ -> ()
   }
 }
 
@@ -86,7 +86,7 @@ fun testMatchMultipleCases(): Int {
   val _ = 1;
   match (1) {
     | _ -> return 1
-    | _ -> 2
+    | _ -> ()
     | _ -> return 3
   }
 }
@@ -97,7 +97,11 @@ fun testMatchNested(): Int {
     | _ -> return 1
     | _ -> match (2) {
       | _ -> return 2
-      | _ -> 3
+      | _ -> ()
     }
   }
 }
+
+type Unit (Int)
+
+fun testShadowedUnitReturn() {}

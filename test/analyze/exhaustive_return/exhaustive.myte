@@ -1,11 +1,28 @@
 module Exhaustive
 
+import std.sys.abort
+
 // Functions with Unit return type do not need exhaustive returns
-fun test1() {}
+fun unit1() {}
 
-fun test2(): Unit {}
+fun unit2(): Unit {}
 
-fun test3(): (((Unit))) {}
+fun unit3(): (((Unit))) {}
+
+type alias UnitAlias = Unit
+
+fun unit4(): UnitAlias {}
+
+// Functions with Never return type do not need exhaustive returns
+fun never1(): Never {
+  abort();
+}
+
+type alias NeverAlias = Never
+
+fun never2(): NeverAlias {
+  abort();
+}
 
 // Functions with expression bodies do not need exhaustive returns
 fun test4(): Int = 1

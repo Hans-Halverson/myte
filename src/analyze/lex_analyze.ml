@@ -25,20 +25,8 @@ let analyze_modules ~is_stdlib ~pcx mods_and_files =
   Program_context.add_resolved_modules ~pcx new_resolved_mods;
   Type_context.set_ordered_traits ~cx:pcx.type_ctx ordered_traits;
 
-  (* Perform other single-module structural analyses, collecting errors *)
-  let single_module_errors =
-    List.flatten
-      (List.map
-         (fun (_, mod_) ->
-           let exhaustive_returns_errors = Exhaustive_returns.analyze mod_ in
-           exhaustive_returns_errors)
-         new_resolved_mods)
-  in
-
   (* Only proceed to type checking if there are no pre-typechecking errors *)
-  let pre_typecheck_errors =
-    List.concat [module_tree_errors; main_errors; resolution_errors; single_module_errors]
-  in
+  let pre_typecheck_errors = List.concat [module_tree_errors; main_errors; resolution_errors] in
   if List.length pre_typecheck_errors <> 0 then
     Error pre_typecheck_errors
   else (
