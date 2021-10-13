@@ -41,6 +41,7 @@ type t =
   | T_VAR
   | T_VAL
   | T_FUN
+  | T_FN
   | T_IF
   | T_ELSE
   | T_WHILE
@@ -115,6 +116,7 @@ let to_string token =
   | T_VAR -> "var"
   | T_VAL -> "val"
   | T_FUN -> "fun"
+  | T_FN -> "fn"
   | T_IF -> "if"
   | T_ELSE -> "else"
   | T_WHILE -> "while"

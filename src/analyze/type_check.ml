@@ -1655,6 +1655,7 @@ and check_expression ~cx expr =
          (TVar tvar_id));
     (loc, tvar_id)
   | Super _ -> failwith "TODO: Type check super expressions"
+  | AnonymousFunction _ -> failwith "TODO: Type check anonymous functions"
 
 and check_match ~cx ~is_expr match_ match_ty =
   let open Ast.Match in

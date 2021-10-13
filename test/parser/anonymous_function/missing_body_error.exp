@@ -1,0 +1,4 @@
+Error: Unexpected token `1`, expected start of function body
+test/parser/anonymous_function/missing_body_error.myte:3:14
+ 3 | val x = fn () 1
+   |               ^

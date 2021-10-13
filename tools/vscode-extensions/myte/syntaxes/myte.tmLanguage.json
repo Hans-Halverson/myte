@@ -14,6 +14,22 @@
 		{ "include": "#variable-declarations" }
 	],
 	"repository": {
+		"anonymous-function": {
+			"name": "meta.anonymous-function.myte",
+			"begin": "\\bfn\\b",
+			"beginCaptures": {
+				"0": { "name": "keyword.other.fn.myte" }
+			},
+			"end": "(?<=\\})|(->)",
+			"endCaptures": {
+				"1": { "name": "keyword.operator.arrow.myte" }
+			},
+			"patterns": [
+				{ "include": "#function-parameters" },
+				{ "include": "#function-return-type" },
+				{ "include": "#block" }
+			]
+		},
 		"block": {
 			"name": "meta.block.myte",
 			"begin": "{",
@@ -92,6 +108,7 @@
 				{ "include": "#set-literal" },
 				{ "include": "#map-literal" },
 				{ "include": "#match" },
+				{ "include": "#anonymous-function" },
 				{
 					"name": "variable.language.this.myte",
 					"match": "\\b(this)\\b"
@@ -224,9 +241,9 @@
 		},
 		"function-parameters": {
 			"name": "meta.function-parameters.myte",
-			"begin": "\\(",
+			"begin": "(?<=>\\s*|\\w\\s*)(\\()",
 			"beginCaptures": {
-				"0": { "name": "punctuation.brackets.round.myte" }
+				"1": { "name": "punctuation.brackets.round.myte" }
 			},
 			"end": "\\)",
 			"endCaptures": {
@@ -263,6 +280,24 @@
 				},
 				{
 					"include": "#types"
+				}
+			]
+		},
+		"function-type": {
+			"begin": "\\(",
+			"beginCaptures": {
+				"0": { "name": "punctuation.brackets.round.myte" }
+			},
+			"end": "(\\))\\s*(->)",
+			"endCaptures": {
+				"1": { "name": "punctuation.brackets.round.myte" },
+				"2": { "name": "keyword.operator.arrow.myte" }
+			},
+			"patterns": [
+				{ "include": "#types" },
+				{
+					"name": "punctuation.comma.myte",
+					"match": ","
 				}
 			]
 		},
@@ -858,6 +893,7 @@
 		"types": {
 			"patterns": [
 				{ "include": "#comments" },
+				{ "include": "#function-type" },
 				{ "include": "#tuple-type" },
 				{ 
 					"name": "keyword.operator.arrow.myte",

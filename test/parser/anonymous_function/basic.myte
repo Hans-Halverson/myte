@@ -1,0 +1,15 @@
+module Test
+
+val x = fn () {}
+
+val x = fn () -> 1
+
+val x = fn (): Int {}
+
+val x = fn (): Int -> 1
+
+val x = fn (): (Int) -> Int -> 1
+
+val x = fn (a: Int, b: String, c: Bool): Int {}
+
+val x = fn (a: Int, b: String, c: Bool,): Int {}

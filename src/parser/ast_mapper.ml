@@ -86,6 +86,8 @@ class mapper =
         | VecLiteral e -> id_map this#vec_literal e expr (fun e' -> VecLiteral e')
         | MapLiteral e -> id_map this#map_literal e expr (fun e' -> MapLiteral e')
         | SetLiteral e -> id_map this#set_literal e expr (fun e' -> SetLiteral e')
+        | AnonymousFunction e ->
+          id_map this#anonymous_function e expr (fun e' -> AnonymousFunction e')
 
     method pattern : Pattern.t -> Pattern.t =
       fun pat ->
@@ -328,6 +330,23 @@ class mapper =
       else
         { loc; elements = elements' }
 
+    method anonymous_function func =
+      let open Expression.AnonymousFunction in
+      let { loc; params; body; return } = func in
+      let params' = id_map_list this#function_param params in
+      let return' = id_map_opt this#type_ return in
+      let body' = this#anonymous_function_body body in
+      if params == params' && return == return' && body == body' then
+        func
+      else
+        { loc; params = params'; return = return'; body = body' }
+
+    method anonymous_function_body body =
+      let open Expression.AnonymousFunction in
+      match body with
+      | Block block -> id_map this#block block body (fun block' -> Block block')
+      | Expression expr -> id_map this#expression expr body (fun expr' -> Expression expr')
+
     method record_pattern record =
       let open Pattern.Record in
       let { loc; name; fields; rest } = record in
@@ -398,18 +417,18 @@ class mapper =
 
     method function_ func =
       let open Function in
-      let { loc; name; params; body; return; type_params; builtin; static; override } = func in
+      let { loc; name; params; return; type_params; body; builtin; static; override } = func in
       let name' = this#identifier name in
       let params' = id_map_list this#function_param params in
-      let body' = this#function_body body in
       let return' = id_map_opt this#type_ return in
       let type_params' = id_map_list this#type_parameter type_params in
+      let body' = this#function_body body in
       if
         name == name'
         && params == params'
-        && body == body'
         && return == return'
         && type_params == type_params'
+        && body == body'
       then
         func
       else
@@ -417,9 +436,9 @@ class mapper =
           loc;
           name = name';
           params = params';
-          body = body';
           return = return';
           type_params = type_params';
+          body = body';
           builtin;
           static;
           override;

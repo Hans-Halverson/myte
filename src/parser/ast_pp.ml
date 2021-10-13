@@ -166,6 +166,7 @@ and node_of_expression expr =
   | VecLiteral lit -> node_of_vec_literal lit
   | MapLiteral lit -> node_of_map_literal lit
   | SetLiteral lit -> node_of_set_literal lit
+  | AnonymousFunction func -> node_of_anonymous_function func
 
 and node_of_pattern pat =
   let open Pattern in
@@ -358,6 +359,23 @@ and node_of_map_literal_entry entry =
 and node_of_set_literal lit =
   let { Expression.SetLiteral.loc; elements } = lit in
   node "SetLiteral" loc [("elements", List (List.map node_of_expression elements))]
+
+and node_of_anonymous_function func =
+  let open Expression.AnonymousFunction in
+  let { loc; params; body; return } = func in
+  let body =
+    match body with
+    | Block block -> node_of_block block
+    | Expression expr -> node_of_expression expr
+  in
+  node
+    "AnonymousFunction"
+    loc
+    [
+      ("params", List (List.map node_of_function_param params));
+      ("return", opt node_of_type return);
+      ("body", body);
+    ]
 
 and node_of_wildcard_pattern loc = node "Wildcard" loc []
 

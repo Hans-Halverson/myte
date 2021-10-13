@@ -69,6 +69,7 @@ class visitor =
         | VecLiteral e -> this#vec_literal e
         | MapLiteral e -> this#map_literal e
         | SetLiteral e -> this#set_literal e
+        | AnonymousFunction e -> this#anonymous_function e
 
     method pattern : Pattern.t -> unit =
       fun pat ->
@@ -230,6 +231,19 @@ class visitor =
       let { loc = _; elements } = lit in
       List.iter this#expression elements
 
+    method anonymous_function func =
+      let open Expression.AnonymousFunction in
+      let { loc = _; params; return; body } = func in
+      List.iter this#function_param params;
+      Option.iter this#type_ return;
+      this#anonymous_function_body body
+
+    method anonymous_function_body body =
+      let open Expression.AnonymousFunction in
+      match body with
+      | Block block -> this#block block
+      | Expression expr -> this#expression expr
+
     method record_pattern record =
       let open Pattern.Record in
       let { loc = _; name; fields; rest = _ } = record in
@@ -280,9 +294,9 @@ class visitor =
         loc = _;
         name;
         params;
-        body;
         return;
         type_params;
+        body;
         builtin = _;
         static = _;
         override = _;
@@ -291,9 +305,9 @@ class visitor =
       in
       this#identifier name;
       List.iter this#function_param params;
-      this#function_body body;
       Option.iter this#type_ return;
-      List.iter this#type_parameter type_params
+      List.iter this#type_parameter type_params;
+      this#function_body body
 
     method function_param param =
       let open Function.Param in

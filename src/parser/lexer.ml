@@ -140,6 +140,7 @@ let parse_identifier_or_keyword lex =
       | "val" -> token_result T_VAL
       | "var" -> token_result T_VAR
       | "fun" -> token_result T_FUN
+      | "fn" -> token_result T_FN
       | "if" -> token_result T_IF
       | "else" -> token_result T_ELSE
       | "while" -> token_result T_WHILE

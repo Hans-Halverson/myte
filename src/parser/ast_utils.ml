@@ -43,7 +43,8 @@ let expression_loc expr =
   | Super loc
   | VecLiteral { loc; _ }
   | MapLiteral { loc; _ }
-  | SetLiteral { loc; _ } ->
+  | SetLiteral { loc; _ }
+  | AnonymousFunction { loc; _ } ->
     loc
 
 let pattern_loc patt =

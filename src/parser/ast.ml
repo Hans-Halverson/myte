@@ -333,6 +333,19 @@ and Expression : sig
     }
   end
 
+  module AnonymousFunction : sig
+    type body =
+      | Block of Statement.Block.t
+      | Expression of Expression.t
+
+    and t = {
+      loc: Loc.t;
+      params: Function.Param.t list;
+      return: Type.t option;
+      body: body;
+    }
+  end
+
   type t =
     | Unit of Unit.t
     | IntLiteral of IntLiteral.t
@@ -358,6 +371,7 @@ and Expression : sig
     | VecLiteral of VecLiteral.t
     | MapLiteral of MapLiteral.t
     | SetLiteral of SetLiteral.t
+    | AnonymousFunction of AnonymousFunction.t
 end =
   Expression
 

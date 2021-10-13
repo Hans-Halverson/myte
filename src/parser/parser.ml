@@ -293,6 +293,7 @@ and parse_expression_prefix env =
   | T_LEFT_BRACKET -> parse_vec_literal env
   | T_LEFT_BRACE -> parse_map_literal env
   | T_SET_OPEN -> parse_set_literal env
+  | T_FN -> parse_anonymous_function env
   | token -> Parse_error.fatal (Env.loc env, UnexpectedToken { actual = token; expected = None })
 
 and parse_expression_infix ~precedence env left marker =
@@ -745,6 +746,22 @@ and parse_set_literal env =
   let elements = elements env in
   let loc = marker env in
   Expression.SetLiteral { loc; elements }
+
+and parse_anonymous_function env =
+  let open Expression.AnonymousFunction in
+  let marker = mark_loc env in
+  Env.expect env T_FN;
+  let (params, return) = parse_function_signature env in
+  let body =
+    match Env.token env with
+    | T_LEFT_BRACE -> Block (parse_block env)
+    | T_ARROW ->
+      Env.advance env;
+      Expression (parse_expression env)
+    | token -> Parse_error.fatal (Env.loc env, MalformedFunctionBody token)
+  in
+  let loc = marker env in
+  Expression.AnonymousFunction { loc; params; body; return }
 
 and parse_identifier env =
   match Env.token env with
@@ -1316,35 +1333,7 @@ and parse_function ~is_builtin ~is_static ~is_override ~in_trait marker env =
     else
       []
   in
-  Env.expect env T_LEFT_PAREN;
-  let rec params env =
-    match Env.token env with
-    | T_RIGHT_PAREN ->
-      Env.advance env;
-      []
-    | _ ->
-      let marker = mark_loc env in
-      let name = parse_identifier env in
-      Env.expect env T_COLON;
-      let annot = parse_type env in
-      let loc = marker env in
-      begin
-        match Env.token env with
-        | T_RIGHT_PAREN -> ()
-        | T_COMMA -> Env.advance env
-        | _ -> Env.expect env T_RIGHT_PAREN
-      end;
-      let param = { Param.loc; name; annot } in
-      param :: params env
-  in
-  let params = params env in
-  let return =
-    match Env.token env with
-    | T_COLON ->
-      Env.advance env;
-      Some (parse_type env)
-    | _ -> None
-  in
+  let (params, return) = parse_function_signature env in
   let body =
     match Env.token env with
     (* Builtin functions never have a body, so mark body as function signature *)
@@ -1369,6 +1358,38 @@ and parse_function ~is_builtin ~is_static ~is_override ~in_trait marker env =
     static = is_static;
     override = is_override;
   }
+
+and parse_function_signature env =
+  Env.expect env T_LEFT_PAREN;
+  let rec params env =
+    match Env.token env with
+    | T_RIGHT_PAREN ->
+      Env.advance env;
+      []
+    | _ ->
+      let marker = mark_loc env in
+      let name = parse_identifier env in
+      Env.expect env T_COLON;
+      let annot = parse_type env in
+      let loc = marker env in
+      begin
+        match Env.token env with
+        | T_RIGHT_PAREN -> ()
+        | T_COMMA -> Env.advance env
+        | _ -> Env.expect env T_RIGHT_PAREN
+      end;
+      let param = { Function.Param.loc; name; annot } in
+      param :: params env
+  in
+  let params = params env in
+  let return =
+    match Env.token env with
+    | T_COLON ->
+      Env.advance env;
+      Some (parse_type env)
+    | _ -> None
+  in
+  (params, return)
 
 and parse_trait_declaration ~kind env =
   let marker = mark_loc env in

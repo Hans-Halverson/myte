@@ -1,0 +1,448 @@
+test/parser/anonymous_function/basic.myte
+{
+  node: Module,
+  loc: 1:0-16:0,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "Test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: VariableDeclaration,
+      loc: 3:0-3:16,
+      kind: Immutable,
+      pattern: {
+        node: ScopedIdentifier,
+        loc: 3:4-3:5,
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 3:4-3:5,
+          name: "x",
+        },
+      },
+      init: {
+        node: AnonymousFunction,
+        loc: 3:8-3:16,
+        params: [],
+        return: None,
+        body: {
+          node: Block,
+          loc: 3:14-3:16,
+          statements: [],
+        },
+      },
+      annot: None,
+    },
+    {
+      node: VariableDeclaration,
+      loc: 5:0-5:18,
+      kind: Immutable,
+      pattern: {
+        node: ScopedIdentifier,
+        loc: 5:4-5:5,
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 5:4-5:5,
+          name: "x",
+        },
+      },
+      init: {
+        node: AnonymousFunction,
+        loc: 5:8-5:18,
+        params: [],
+        return: None,
+        body: {
+          node: IntLiteral,
+          loc: 5:17-5:18,
+          raw: "1",
+        },
+      },
+      annot: None,
+    },
+    {
+      node: VariableDeclaration,
+      loc: 7:0-7:21,
+      kind: Immutable,
+      pattern: {
+        node: ScopedIdentifier,
+        loc: 7:4-7:5,
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 7:4-7:5,
+          name: "x",
+        },
+      },
+      init: {
+        node: AnonymousFunction,
+        loc: 7:8-7:21,
+        params: [],
+        return: {
+          node: IdentifierType,
+          loc: 7:15-7:18,
+          name: {
+            node: ScopedIdentifier,
+            loc: 7:15-7:18,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 7:15-7:18,
+              name: "Int",
+            },
+          },
+          type_args: [],
+        },
+        body: {
+          node: Block,
+          loc: 7:19-7:21,
+          statements: [],
+        },
+      },
+      annot: None,
+    },
+    {
+      node: VariableDeclaration,
+      loc: 9:0-9:23,
+      kind: Immutable,
+      pattern: {
+        node: ScopedIdentifier,
+        loc: 9:4-9:5,
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 9:4-9:5,
+          name: "x",
+        },
+      },
+      init: {
+        node: AnonymousFunction,
+        loc: 9:8-9:23,
+        params: [],
+        return: {
+          node: IdentifierType,
+          loc: 9:15-9:18,
+          name: {
+            node: ScopedIdentifier,
+            loc: 9:15-9:18,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 9:15-9:18,
+              name: "Int",
+            },
+          },
+          type_args: [],
+        },
+        body: {
+          node: IntLiteral,
+          loc: 9:22-9:23,
+          raw: "1",
+        },
+      },
+      annot: None,
+    },
+    {
+      node: VariableDeclaration,
+      loc: 11:0-11:32,
+      kind: Immutable,
+      pattern: {
+        node: ScopedIdentifier,
+        loc: 11:4-11:5,
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 11:4-11:5,
+          name: "x",
+        },
+      },
+      init: {
+        node: AnonymousFunction,
+        loc: 11:8-11:32,
+        params: [],
+        return: {
+          node: FunctionType,
+          loc: 11:15-11:27,
+          params: [
+            {
+              node: IdentifierType,
+              loc: 11:16-11:19,
+              name: {
+                node: ScopedIdentifier,
+                loc: 11:16-11:19,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 11:16-11:19,
+                  name: "Int",
+                },
+              },
+              type_args: [],
+            },
+          ],
+          return: {
+            node: IdentifierType,
+            loc: 11:24-11:27,
+            name: {
+              node: ScopedIdentifier,
+              loc: 11:24-11:27,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 11:24-11:27,
+                name: "Int",
+              },
+            },
+            type_args: [],
+          },
+        },
+        body: {
+          node: IntLiteral,
+          loc: 11:31-11:32,
+          raw: "1",
+        },
+      },
+      annot: None,
+    },
+    {
+      node: VariableDeclaration,
+      loc: 13:0-13:47,
+      kind: Immutable,
+      pattern: {
+        node: ScopedIdentifier,
+        loc: 13:4-13:5,
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 13:4-13:5,
+          name: "x",
+        },
+      },
+      init: {
+        node: AnonymousFunction,
+        loc: 13:8-13:47,
+        params: [
+          {
+            node: Param,
+            loc: 13:12-13:18,
+            name: {
+              node: Identifier,
+              loc: 13:12-13:13,
+              name: "a",
+            },
+            annot: {
+              node: IdentifierType,
+              loc: 13:15-13:18,
+              name: {
+                node: ScopedIdentifier,
+                loc: 13:15-13:18,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 13:15-13:18,
+                  name: "Int",
+                },
+              },
+              type_args: [],
+            },
+          },
+          {
+            node: Param,
+            loc: 13:20-13:29,
+            name: {
+              node: Identifier,
+              loc: 13:20-13:21,
+              name: "b",
+            },
+            annot: {
+              node: IdentifierType,
+              loc: 13:23-13:29,
+              name: {
+                node: ScopedIdentifier,
+                loc: 13:23-13:29,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 13:23-13:29,
+                  name: "String",
+                },
+              },
+              type_args: [],
+            },
+          },
+          {
+            node: Param,
+            loc: 13:31-13:38,
+            name: {
+              node: Identifier,
+              loc: 13:31-13:32,
+              name: "c",
+            },
+            annot: {
+              node: IdentifierType,
+              loc: 13:34-13:38,
+              name: {
+                node: ScopedIdentifier,
+                loc: 13:34-13:38,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 13:34-13:38,
+                  name: "Bool",
+                },
+              },
+              type_args: [],
+            },
+          },
+        ],
+        return: {
+          node: IdentifierType,
+          loc: 13:41-13:44,
+          name: {
+            node: ScopedIdentifier,
+            loc: 13:41-13:44,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 13:41-13:44,
+              name: "Int",
+            },
+          },
+          type_args: [],
+        },
+        body: {
+          node: Block,
+          loc: 13:45-13:47,
+          statements: [],
+        },
+      },
+      annot: None,
+    },
+    {
+      node: VariableDeclaration,
+      loc: 15:0-15:48,
+      kind: Immutable,
+      pattern: {
+        node: ScopedIdentifier,
+        loc: 15:4-15:5,
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 15:4-15:5,
+          name: "x",
+        },
+      },
+      init: {
+        node: AnonymousFunction,
+        loc: 15:8-15:48,
+        params: [
+          {
+            node: Param,
+            loc: 15:12-15:18,
+            name: {
+              node: Identifier,
+              loc: 15:12-15:13,
+              name: "a",
+            },
+            annot: {
+              node: IdentifierType,
+              loc: 15:15-15:18,
+              name: {
+                node: ScopedIdentifier,
+                loc: 15:15-15:18,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 15:15-15:18,
+                  name: "Int",
+                },
+              },
+              type_args: [],
+            },
+          },
+          {
+            node: Param,
+            loc: 15:20-15:29,
+            name: {
+              node: Identifier,
+              loc: 15:20-15:21,
+              name: "b",
+            },
+            annot: {
+              node: IdentifierType,
+              loc: 15:23-15:29,
+              name: {
+                node: ScopedIdentifier,
+                loc: 15:23-15:29,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 15:23-15:29,
+                  name: "String",
+                },
+              },
+              type_args: [],
+            },
+          },
+          {
+            node: Param,
+            loc: 15:31-15:38,
+            name: {
+              node: Identifier,
+              loc: 15:31-15:32,
+              name: "c",
+            },
+            annot: {
+              node: IdentifierType,
+              loc: 15:34-15:38,
+              name: {
+                node: ScopedIdentifier,
+                loc: 15:34-15:38,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 15:34-15:38,
+                  name: "Bool",
+                },
+              },
+              type_args: [],
+            },
+          },
+        ],
+        return: {
+          node: IdentifierType,
+          loc: 15:42-15:45,
+          name: {
+            node: ScopedIdentifier,
+            loc: 15:42-15:45,
+            scopes: [],
+            name: {
+              node: Identifier,
+              loc: 15:42-15:45,
+              name: "Int",
+            },
+          },
+          type_args: [],
+        },
+        body: {
+          node: Block,
+          loc: 15:46-15:48,
+          statements: [],
+        },
+      },
+      annot: None,
+    },
+  ],
+}
