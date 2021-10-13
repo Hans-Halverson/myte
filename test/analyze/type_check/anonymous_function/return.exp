@@ -1,0 +1,44 @@
+Error: Expected type `Int` but found `String`
+test/analyze/type_check/anonymous_function/return.myte:22:13-15
+ 22 |       return "";
+    |              ^^
+
+Error: Expected type `Int` but found `Bool`
+test/analyze/type_check/anonymous_function/return.myte:25:15-19
+ 25 |         return true;
+    |                ^^^^
+
+Error: Expected type `Int` but found `() -> Int`
+test/analyze/type_check/anonymous_function/return.myte:30:13-31
+ 30 |       return explicitUnitReturn;
+    |              ^^^^^^^^^^^^^^^^^^
+
+Error: Expected type `Unit` but found `Int`
+test/analyze/type_check/anonymous_function/return.myte:43:23
+ 43 |   fn (): Unit { return 1; };
+    |                        ^
+
+Error: Expected type `Unit` but found `Int`
+test/analyze/type_check/anonymous_function/return.myte:44:17
+ 44 |   fn (): Unit -> 1;
+    |                  ^
+
+Error: Expected type `Unit` but found `Int`
+test/analyze/type_check/anonymous_function/return.myte:57:17
+ 57 |   fn () { return 1; };
+    |                  ^
+
+Error: Expected type `Unit` but found `Int`
+test/analyze/type_check/anonymous_function/return.myte:58:11
+ 58 |   fn () -> 1;
+    |            ^
+
+Error: Expected type `Unit` but found `Int`
+test/analyze/type_check/anonymous_function/return.myte:69:15
+ 69 |         return 1;
+    |                ^
+
+Error: Expected type `Int` but found `Unit`
+test/analyze/type_check/anonymous_function/return.myte:74:13-15
+ 74 |       return ();
+    |              ^^

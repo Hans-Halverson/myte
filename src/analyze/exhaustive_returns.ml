@@ -72,18 +72,27 @@ and exhaustive_match ~cx match_ =
   | None -> Exhaustive
   | Some inexhaustive -> inexhaustive
 
+let analyze_function_block_body ~cx block func_name =
+  let exhaustive = exhaustive ~cx (Statement.Block block) in
+  match exhaustive with
+  | BlockMissingReturn loc
+  | IfMissingAltern loc
+  | MatchInexhaustiveCase loc ->
+    add_error ~cx (Loc.point_end loc) (InexhaustiveReturn func_name)
+  | AtomicInexhaustiveStatement ->
+    add_error ~cx (Loc.point_end block.loc) (InexhaustiveReturn func_name)
+  | Exhaustive -> ()
+
 let analyze_function ~cx func =
   let { Function.name; body; _ } = func in
   match body with
   | Signature
   | Expression _ ->
     ()
-  | Block ({ Statement.Block.loc; _ } as block) ->
-    let exhaustive = exhaustive ~cx (Statement.Block block) in
-    (match exhaustive with
-    | BlockMissingReturn loc
-    | IfMissingAltern loc
-    | MatchInexhaustiveCase loc ->
-      add_error ~cx (Loc.point_end loc) (InexhaustiveReturn name)
-    | AtomicInexhaustiveStatement -> add_error ~cx (Loc.point_end loc) (InexhaustiveReturn name)
-    | _ -> ())
+  | Block block -> analyze_function_block_body ~cx block (Some name.name)
+
+let analyze_anonymous_function ~cx func =
+  let { Expression.AnonymousFunction.body; _ } = func in
+  match body with
+  | Expression _ -> ()
+  | Block block -> analyze_function_block_body ~cx block None

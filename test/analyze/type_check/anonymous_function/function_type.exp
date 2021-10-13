@@ -1,0 +1,39 @@
+Error: Expected type `Unit` but found `(Int) -> Int`
+test/analyze/type_check/anonymous_function/function_type.myte:5:16-37
+ 5 |   val x: Unit = fn (x: Int): Int -> x;
+   |                 ^^^^^^^^^^^^^^^^^^^^^
+
+Error: Expected type `Unit` but found `() -> Unit`
+test/analyze/type_check/anonymous_function/function_type.myte:6:16-24
+ 6 |   val x: Unit = fn () {};
+   |                 ^^^^^^^^
+
+Error: Expected type `(Int) -> Byte` but found `(Int) -> Int`
+test/analyze/type_check/anonymous_function/function_type.myte:16:11-32
+ 16 |     return fn (x: Int): Int -> x;
+    |            ^^^^^^^^^^^^^^^^^^^^^
+
+Error: Expected type `Unit` but found `Byte`
+test/analyze/type_check/anonymous_function/function_type.myte:25:3-39
+ 25 |   ((fn (x: Int): Byte -> x.toByte())(1): Unit);
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Expected type `Unit` but found `String`
+test/analyze/type_check/anonymous_function/function_type.myte:26:3-26
+ 26 |   ((fn (): String -> "")(): Unit);
+    |    ^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Incorrect number of arguments supplied to function. Expected 1 argument but found 0.
+test/analyze/type_check/anonymous_function/function_type.myte:29:2-37
+ 29 |   (fn (x: Int): Byte -> x.toByte())();
+    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Incorrect number of arguments supplied to function. Expected 0 arguments but found 2.
+test/analyze/type_check/anonymous_function/function_type.myte:30:2-29
+ 30 |   (fn (): String -> "")(1, 2);
+    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Expected type `(Int) -> Byte` but found `(Int) -> Int`
+test/analyze/type_check/anonymous_function/function_type.myte:41:18-39
+ 41 |   useFunctionType(fn (x: Int): Int -> x);
+    |                   ^^^^^^^^^^^^^^^^^^^^^

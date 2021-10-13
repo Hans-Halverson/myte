@@ -13,6 +13,13 @@ type alias UnitAlias = Unit
 
 fun unit4(): UnitAlias {}
 
+fun unit5() {
+  fn () {};
+  fn (): Unit {};
+  fn (): (((Unit))) {};
+  fn (): UnitAlias {};
+}
+
 // Functions with Never return type do not need exhaustive returns
 fun never1(): Never {
   abort();
@@ -22,6 +29,16 @@ type alias NeverAlias = Never
 
 fun never2(): NeverAlias {
   abort();
+}
+
+fun never3() {
+  fn (): Never {
+    abort();
+  };
+
+  fn (): NeverAlias {
+    abort();
+  };
 }
 
 // Functions with expression bodies do not need exhaustive returns
@@ -93,6 +110,26 @@ fun testMatchNested(): Int {
       | _ -> return 3
     }
   }
+}
+
+fun testExhaustiveAnonymousFunction() {
+  fn (): Int {
+    if (true) {
+      return 1;
+    } else {
+      return 2;
+    }
+  };
+
+  fn (): Int {
+    match (1) {
+      | _ -> return 1
+      | _ -> match (2) {
+        | _ -> return 2
+        | _ -> return 3
+      }
+    }
+  };
 }
 
 fun main() {}

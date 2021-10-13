@@ -1,0 +1,20 @@
+module test
+
+fun test() {
+  // Success and failure to resolve
+  fn (x: Int) -> x + y;
+
+  // Nested resolved
+  fn (x: Int) {
+    x;
+
+    fn (y: Int) {
+      x + y;
+    };
+  };
+
+  // Failure to resolve
+  x;
+}
+
+fun main() {}

@@ -1,0 +1,47 @@
+module test
+
+fun boundToVariable() {
+  // Failure - intentional to print type
+  val x: Unit = fn (x: Int): Int -> x;
+  val x: Unit = fn () {};
+
+  // Success
+  val x: (Int) -> Byte = fn (x: Int): Byte -> x.toByte();
+  val x: () -> Unit = fn () {};
+}
+
+fun returned(): (Int) -> Byte {
+  if (true) {
+    // Failure
+    return fn (x: Int): Int -> x;
+  }
+
+  // Success
+  return fn (x: Int): Byte -> x.toByte();
+}
+
+fun immediateCall() {
+  // Failure - intentionall print return type
+  ((fn (x: Int): Byte -> x.toByte())(1): Unit);
+  ((fn (): String -> "")(): Unit);
+
+  // Failure - incorrect number of args
+  (fn (x: Int): Byte -> x.toByte())();
+  (fn (): String -> "")(1, 2);
+
+  // Success
+  ((fn (x: Int): Byte -> x.toByte())(1): Byte);
+  ((fn (): String -> "")(): String);
+}
+
+fun useFunctionType(x: (Int) -> Byte) {}
+
+fun functionArgument() {
+  // Failure
+  useFunctionType(fn (x: Int): Int -> x);
+
+  // Success
+  useFunctionType(fn (x: Int): Byte -> x.toByte());
+}
+
+fun main() {}

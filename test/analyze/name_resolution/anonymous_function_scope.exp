@@ -1,0 +1,9 @@
+Error: Could not resolve name `y` to value
+test/analyze/name_resolution/anonymous_function_scope.myte:5:21
+ 5 |   fn (x: Int) -> x + y;
+   |                      ^
+
+Error: Could not resolve name `x` to value
+test/analyze/name_resolution/anonymous_function_scope.myte:17:2
+ 17 |   x;
+    |   ^

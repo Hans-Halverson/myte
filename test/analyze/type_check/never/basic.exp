@@ -19,24 +19,47 @@ test/analyze/type_check/never/basic.myte:36:2-9
     |   ^^^^^^^
 
 Error: Expected type `Never` but found `Unit`
-test/analyze/type_check/never/basic.myte:55:38-40
- 55 | fun testDoesNotDivergeError1(): Never {}
+test/analyze/type_check/never/basic.myte:61:38-40
+ 61 | fun testDoesNotDivergeError1(): Never {}
     |                                       ^^
 
 Error: Expected type `Never` but found `Unit`
-test/analyze/type_check/never/basic.myte:57:40-42
- 57 | fun testDoesNotDivergeError2(): Never = ()
+test/analyze/type_check/never/basic.myte:63:40-42
+ 63 | fun testDoesNotDivergeError2(): Never = ()
     |                                         ^^
 
 Error: Expected type `Never` but found `Unit`
-test/analyze/type_check/never/basic.myte:59:38-63:1
- 59 | / fun testDoesNotDivergeError3(): Never {
+test/analyze/type_check/never/basic.myte:65:38-69:1
+ 65 | / fun testDoesNotDivergeError3(): Never {
     | |                                       ^
- 60 | |   if (true) {
+ 66 | |   if (true) {
     | | ^^^^^^^^^^^^^
- 61 | |     testDoesNotDivergeError1();
+ 67 | |     testDoesNotDivergeError1();
     | | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 62 | |   }
+ 68 | |   }
     | | ^^^
- 63 | | }
+ 69 | | }
     | \ ^^
+
+Error: Expected type `Never` but found `Unit`
+test/analyze/type_check/never/basic.myte:88:15-17
+ 88 |   fn (): Never {};
+    |                ^^
+
+Error: Expected type `Never` but found `Unit`
+test/analyze/type_check/never/basic.myte:89:18-20
+ 89 |   fn (): Never -> ();
+    |                   ^^
+
+Error: Expected type `Never` but found `Unit`
+test/analyze/type_check/never/basic.myte:90:15-94:3
+ 90 | /   fn (): Never {
+    | |                ^
+ 91 | |     if (true) {
+    | | ^^^^^^^^^^^^^^^
+ 92 | |       testDoesNotDivergeError1();
+    | | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 93 | |     }
+    | | ^^^^^
+ 94 | |   };
+    | \ ^^^^

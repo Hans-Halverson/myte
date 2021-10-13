@@ -624,6 +624,24 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             SSet.empty)
            params)
 
+    method visit_function_params func_name params =
+      ignore
+        (List.fold_left
+           (fun param_names { Function.Param.name = { Ast.Identifier.loc; name; _ }; _ } ->
+             if SSet.mem name param_names then
+               this#add_error loc (DuplicateParameterNames (name, func_name));
+             let binding =
+               this#add_value_declaration
+                 loc
+                 name
+                 ValueBinding.Function
+                 (FunParamDecl (FunctionParamDeclaration.mk ()))
+             in
+             this#add_value_to_scope name (Decl binding);
+             SSet.add name param_names)
+           SSet.empty
+           params)
+
     method visit_function_declaration ~is_nested ~is_method decl =
       let open Ast.Function in
       let {
@@ -667,26 +685,19 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             (FunParamDecl (FunctionParamDeclaration.mk ()))
         in
         this#add_value_to_scope "this" (Decl binding) );
-      let _ =
-        List.fold_left
-          (fun param_names { Param.name = { Ast.Identifier.loc; name; _ }; _ } ->
-            if SSet.mem name param_names then
-              this#add_error loc (DuplicateParameterNames (name, func_name));
-            let binding =
-              this#add_value_declaration
-                loc
-                name
-                ValueBinding.Function
-                (FunParamDecl (FunctionParamDeclaration.mk ()))
-            in
-            this#add_value_to_scope name (Decl binding);
-            SSet.add name param_names)
-          SSet.empty
-          params
-      in
+      this#visit_function_params (Some func_name) params;
       let function_ = super#function_ decl in
       this#exit_scope ();
       function_
+
+    method! anonymous_function func =
+      let { Expression.AnonymousFunction.params; _ } = func in
+      (* Anonymous function body is in new scope that includes function parameters *)
+      this#enter_scope ();
+      this#visit_function_params None params;
+      let func = super#anonymous_function func in
+      this#exit_scope ();
+      func
 
     method visit_trait_declaration decl =
       let open Ast.TraitDeclaration in

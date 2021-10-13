@@ -52,6 +52,12 @@ fun testDivergeSuccessFromAllDivergentPaths(): Never {
   }
 }
 
+fun testDivergeSuccessAnonymousFunctionCall(): Never {
+  fn (): Never {
+    abort();
+  }();
+}
+
 fun testDoesNotDivergeError1(): Never {}
 
 fun testDoesNotDivergeError2(): Never = ()
@@ -60,6 +66,32 @@ fun testDoesNotDivergeError3(): Never {
   if (true) {
     testDoesNotDivergeError1();
   }
+}
+
+fun testAnonymousFunctionDivergence() {
+  // Success
+  fn (): Never {
+    abort();
+  };
+
+  fn (): Never -> abort();
+
+  fn (): Never {
+    if (true) {
+      abort();
+    } else {
+      abort();
+    }
+  };
+
+  // Failure
+  fn (): Never {};
+  fn (): Never -> ();
+  fn (): Never {
+    if (true) {
+      testDoesNotDivergeError1();
+    }
+  };
 }
 
 fun main() {}

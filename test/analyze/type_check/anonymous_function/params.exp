@@ -1,0 +1,24 @@
+Error: Expected type `Unit` but found `Int`
+test/analyze/type_check/anonymous_function/params.myte:6:5
+ 6 |     (x: Unit);
+   |      ^
+
+Error: Expected type `Unit` but found `Bool`
+test/analyze/type_check/anonymous_function/params.myte:7:5
+ 7 |     (y: Unit);
+   |      ^
+
+Error: Expected type `Unit` but found `String`
+test/analyze/type_check/anonymous_function/params.myte:15:7
+ 15 |       (x: Unit);
+    |        ^
+
+Error: Expected type `Unit` but found `Bool`
+test/analyze/type_check/anonymous_function/params.myte:16:7
+ 16 |       (y: Unit);
+    |        ^
+
+Error: Expected type `Unit` but found `Byte`
+test/analyze/type_check/anonymous_function/params.myte:17:7
+ 17 |       (z: Unit);
+    |        ^

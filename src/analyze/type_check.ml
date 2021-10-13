@@ -484,7 +484,7 @@ and build_function_declaration ~cx decl =
   let explicit_type_params = build_type_parameters ~cx type_params in
   build_type_parameter_bounds ~cx ~check_type_param_bounds:true type_params explicit_type_params;
 
-  (* Traits in function parameters are concverted to bounded implicit type params *)
+  (* Traits in function parameters are converted to bounded implicit type params *)
   let implicit_type_params = ref [] in
   let params =
     List.map
@@ -855,30 +855,36 @@ and check_function_body ~cx decl =
   | _ -> Exhaustive_returns.analyze_function ~cx decl);
 
   (* Annotate each return statement node with this function's return type *)
-  let return_visitor =
-    object
-      inherit Ast_visitor.visitor
-
-      method! function_ _ = ()
-
-      method! return { loc; _ } = Type_context.add_return_type ~cx loc return_ty
-    end
-  in
+  let return_visitor = mk_return_visitor ~cx return_ty in
   return_visitor#function_body body;
 
   match body with
   | Signature -> ()
-  | Expression expr ->
-    (* Expression body must be subtype of return type *)
-    let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
-    Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) return_ty
-  | Block block ->
-    let open Ast.Statement in
-    let block_stmt = Block block in
-    let (block_loc, block_tvar_id) = check_statement ~cx block_stmt in
-    (* If return type is never, check that block diverges *)
-    if return_ty = Never then
-      Type_context.assert_is_subtype ~cx block_loc (TVar block_tvar_id) return_ty
+  | Expression expr -> check_function_expression_body ~cx expr return_ty
+  | Block block -> check_function_block_body ~cx block return_ty
+
+and mk_return_visitor ~cx return_ty =
+  object
+    inherit Ast_visitor.visitor
+
+    method! function_ _ = ()
+
+    method! anonymous_function _ = ()
+
+    method! return { loc; _ } = Type_context.add_return_type ~cx loc return_ty
+  end
+
+and check_function_expression_body ~cx expr return_ty =
+  (* Expression body must be subtype of return type *)
+  let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
+  Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) return_ty
+
+and check_function_block_body ~cx block return_ty =
+  let block_stmt = Ast.Statement.Block block in
+  let (block_loc, block_tvar_id) = check_statement ~cx block_stmt in
+  (* If return type is never, check that block diverges *)
+  if return_ty = Type.Never then
+    Type_context.assert_is_subtype ~cx block_loc (TVar block_tvar_id) return_ty
 
 and check_expression ~cx expr =
   let open Ast.Expression in
@@ -1654,8 +1660,47 @@ and check_expression ~cx expr =
          (ADT { adt_sig = !Std_lib.set_adt_sig; type_args = [TVar element_tvar_id] })
          (TVar tvar_id));
     (loc, tvar_id)
+  (*
+   * ============================
+   *      Anonymous Function
+   * ============================
+   *)
+  | AnonymousFunction ({ loc; params; return; body } as func) ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+
+    (* Build params and return type, creating overall function type *)
+    let params =
+      List.map
+        (fun { Ast.Function.Param.name = { loc; _ }; annot; _ } ->
+          let binding = Type_context.get_value_binding ~cx loc in
+          let param_decl = Bindings.get_func_param_decl binding in
+          let param_ty = build_type ~cx annot in
+          ignore (Type_context.unify ~cx param_ty (TVar param_decl.tvar));
+          param_ty)
+        params
+    in
+    let return = Option.fold ~none:Type.Unit ~some:(fun return -> build_type ~cx return) return in
+    let func_ty = Type.Function { type_args = []; params; return } in
+
+    (* Check for exhaustiveness of returns *)
+    (match return with
+    | Unit
+    | Never ->
+      ()
+    | _ -> Exhaustive_returns.analyze_anonymous_function ~cx func);
+
+    (* Annotate each return statement node with this function's return type *)
+    let return_visitor = mk_return_visitor ~cx return in
+    return_visitor#anonymous_function_body body;
+
+    (* Check anonymous function body *)
+    (match body with
+    | Expression expr -> check_function_expression_body ~cx expr return
+    | Block block -> check_function_block_body ~cx block return);
+
+    ignore (Type_context.unify ~cx func_ty (TVar tvar_id));
+    (loc, tvar_id)
   | Super _ -> failwith "TODO: Type check super expressions"
-  | AnonymousFunction _ -> failwith "TODO: Type check anonymous functions"
 
 and check_match ~cx ~is_expr match_ match_ty =
   let open Ast.Match in

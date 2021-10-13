@@ -1,0 +1,27 @@
+module test
+
+fun paramTypes() {
+  fn (x: Int, y: Bool) {
+    // Failure to print type
+    (x: Unit);
+    (y: Unit);
+
+    // Success
+    (x: Int);
+    (y: Bool);
+
+    fn (x: String, z: Byte) {
+      // Failure to print type
+      (x: Unit);
+      (y: Unit);
+      (z: Unit);
+
+      // Success
+      (x: String);
+      (y: Bool);
+      (z: Byte);
+    };
+  };
+}
+
+fun main() {}

@@ -1,8 +1,7 @@
-open Ast
 open Types
 
 type t =
-  | InexhaustiveReturn of Identifier.t
+  | InexhaustiveReturn of string option
   | UnreachableStatement
   | BreakOutsideLoop
   | ContinueOutsideLoop
@@ -16,7 +15,7 @@ type t =
   | InvalidAssignment of string * invalid_assignment_kind
   | InvalidLValue of invalid_lvalue_kind
   | DuplicateToplevelNames of string
-  | DuplicateParameterNames of string * string
+  | DuplicateParameterNames of string * string option
   | DuplicatePatternNames of string
   | DuplicateTypeParameterNames of string * name_source
   | DuplicateModuleNames of string
@@ -116,6 +115,11 @@ let plural n str =
   else
     str ^ "s"
 
+let string_of_func_name_opt func_name_opt =
+  match func_name_opt with
+  | None -> "anonymous function"
+  | Some func_name -> Printf.sprintf "function `%s`" func_name
+
 let string_of_name_source source =
   match source with
   | FunctionName name -> Printf.sprintf "function `%s`" name
@@ -154,8 +158,9 @@ let concat_with_and strs =
 
 let to_string error =
   match error with
-  | InexhaustiveReturn { Identifier.name; _ } ->
-    Printf.sprintf "All branches of function `%s` must end in a return statement" name
+  | InexhaustiveReturn func_name_opt ->
+    let func_name = string_of_func_name_opt func_name_opt in
+    Printf.sprintf "All branches of %s must end in a return statement" func_name
   | UnreachableStatement -> "Unreachable statement"
   | BreakOutsideLoop -> "Break cannot appear outside a loop"
   | ContinueOutsideLoop -> "Continue cannot appear outside a loop"
@@ -190,8 +195,9 @@ let to_string error =
     in
     Printf.sprintf "Invalid left hand side of assignment. %s" kind_string
   | DuplicateToplevelNames name -> Printf.sprintf "Name `%s` already bound in module" name
-  | DuplicateParameterNames (param, func) ->
-    Printf.sprintf "Name `%s` already bound in parameters of function `%s`" param func
+  | DuplicateParameterNames (param, func_name_opt) ->
+    let func_name = string_of_func_name_opt func_name_opt in
+    Printf.sprintf "Name `%s` already bound in parameters of %s" param func_name
   | DuplicatePatternNames name -> Printf.sprintf "Name `%s` already bound in pattern" name
   | DuplicateTypeParameterNames (param, source) ->
     Printf.sprintf

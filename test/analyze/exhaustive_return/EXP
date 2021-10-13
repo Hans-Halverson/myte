@@ -82,3 +82,28 @@ Error: All branches of function `testMatchNested` must end in a return statement
 test/analyze/exhaustive_return/inexhaustive.myte:100:14
  100 |       | _ -> ()
      |               ^
+
+Error: All branches of function `testShadowedUnitReturn` must end in a return statement
+test/analyze/exhaustive_return/inexhaustive.myte:107:36
+ 107 | fun testShadowedUnitReturn(): Unit {}
+     |                                     ^
+
+Error: All branches of anonymous function must end in a return statement
+test/analyze/exhaustive_return/inexhaustive.myte:110:14
+ 110 |   fn (): Int {};
+     |               ^
+
+Error: All branches of anonymous function must end in a return statement
+test/analyze/exhaustive_return/inexhaustive.myte:115:4
+ 115 |     }
+     |     ^
+
+Error: All branches of anonymous function must end in a return statement
+test/analyze/exhaustive_return/inexhaustive.myte:121:14
+ 121 |       | _ -> ()
+     |               ^
+
+Error: All branches of anonymous function must end in a return statement
+test/analyze/exhaustive_return/inexhaustive.myte:126:15
+ 126 |   fn (): Unit {};
+     |                ^
