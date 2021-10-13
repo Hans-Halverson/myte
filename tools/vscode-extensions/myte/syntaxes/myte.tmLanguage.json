@@ -288,7 +288,7 @@
 			"beginCaptures": {
 				"0": { "name": "punctuation.brackets.round.myte" }
 			},
-			"end": "(\\))\\s*(->)",
+			"end": "(\\))\\s*(->)?",
 			"endCaptures": {
 				"1": { "name": "punctuation.brackets.round.myte" },
 				"2": { "name": "keyword.operator.arrow.myte" }
