@@ -14,9 +14,11 @@ val get_errors : cx:t -> Analyze_error.errors
 
 val set_errors : cx:t -> Analyze_error.errors -> unit
 
-val add_return_type : cx:t -> Loc.t -> Type.t -> unit
+val push_current_function : cx:t -> Type.t -> unit
 
-val get_return_types : cx:t -> Type.t LocMap.t
+val pop_current_function : cx:t -> unit
+
+val get_current_function : cx:t -> Type.t
 
 val get_unresolved_int_literals : cx:t -> LocSet.t
 

@@ -8,8 +8,8 @@ type t = {
   mutable errors: (Loc.t * Analyze_error.t) list;
   mutable loc_to_tvar: TVar.t LocMap.t;
   mutable union_forest_nodes: union_forest_node IMap.t;
-  (* Map of return node locs to the return type for that function *)
-  mutable return_types: Type.t LocMap.t;
+  (* Stack of return types for functions that are currently being checked *)
+  mutable current_function_stack: Type.t list;
   (* Set of all int literal locs that have not been resolved *)
   mutable unresolved_int_literals: LocSet.t;
   (* Set of all method uses locs *)
@@ -39,7 +39,7 @@ let mk ~bindings =
     errors = [];
     loc_to_tvar = LocMap.empty;
     union_forest_nodes = IMap.empty;
-    return_types = LocMap.empty;
+    current_function_stack = [];
     unresolved_int_literals = LocSet.empty;
     method_uses = LocSet.empty;
     main_loc = Loc.none;
@@ -55,10 +55,12 @@ let get_errors ~cx = cx.errors
 
 let set_errors ~cx errors = cx.errors <- errors
 
-let add_return_type ~cx loc return_type =
-  cx.return_types <- LocMap.add loc return_type cx.return_types
+let push_current_function ~cx return_ty =
+  cx.current_function_stack <- return_ty :: cx.current_function_stack
 
-let get_return_types ~cx = cx.return_types
+let pop_current_function ~cx = cx.current_function_stack <- List.tl cx.current_function_stack
+
+let get_current_function ~cx = List.hd cx.current_function_stack
 
 let get_unresolved_int_literals ~cx = cx.unresolved_int_literals
 

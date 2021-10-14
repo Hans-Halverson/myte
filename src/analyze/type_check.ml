@@ -854,27 +854,14 @@ and check_function_body ~cx decl =
     ()
   | _ -> Exhaustive_returns.analyze_function ~cx decl);
 
-  (* Annotate each return statement node with this function's return type *)
-  let return_visitor = mk_return_visitor ~cx return_ty in
-  return_visitor#function_body body;
+  Type_context.push_current_function ~cx return_ty;
 
-  match body with
+  (match body with
   | Signature -> ()
   | Expression expr -> check_function_expression_body ~cx expr return_ty
-  | Block block -> check_function_block_body ~cx block return_ty
+  | Block block -> check_function_block_body ~cx block return_ty);
 
-and mk_return_visitor ~cx return_ty =
-  object
-    inherit Ast_visitor.visitor as super
-
-    method! function_ _ = ()
-
-    method! anonymous_function _ = ()
-
-    method! return return =
-      Type_context.add_return_type ~cx return.loc return_ty;
-      super#return return
-  end
+  Type_context.pop_current_function ~cx
 
 and check_function_expression_body ~cx expr return_ty =
   (* Expression body must be subtype of return type *)
@@ -1691,14 +1678,14 @@ and check_expression ~cx expr =
       ()
     | _ -> Exhaustive_returns.analyze_anonymous_function ~cx func);
 
-    (* Annotate each return statement node with this function's return type *)
-    let return_visitor = mk_return_visitor ~cx return in
-    return_visitor#anonymous_function_body body;
+    Type_context.push_current_function ~cx return;
 
     (* Check anonymous function body *)
     (match body with
     | Expression expr -> check_function_expression_body ~cx expr return
     | Block block -> check_function_block_body ~cx block return);
+
+    Type_context.pop_current_function ~cx;
 
     ignore (Type_context.unify ~cx func_ty (TVar tvar_id));
     (loc, tvar_id)
@@ -2191,8 +2178,8 @@ and check_statement ~cx stmt : Loc.t * Types.TVar.t =
         let (arg_loc, arg_tvar_id) = check_expression ~cx arg in
         (arg_loc, TVar arg_tvar_id)
     in
-    (* Return argument must be subtype of function's return type stored in return type map *)
-    let return_ty = LocMap.find loc (Type_context.get_return_types ~cx) in
+    (* Return argument must be subtype of current function's return type *)
+    let return_ty = Type_context.get_current_function ~cx in
     Type_context.assert_is_subtype ~cx arg_loc arg_ty return_ty;
     ignore (Type_context.unify ~cx Never (TVar tvar_id));
     (loc, tvar_id)
