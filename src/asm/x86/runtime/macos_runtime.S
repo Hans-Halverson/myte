@@ -56,6 +56,9 @@ __myte_alloc:
 __myte_close:
   mov $0x2000006, %rax   # close
   syscall
+  jnc .myte_close_ret
+  neg %rax
+.myte_close_ret:
   ret
 
 __myte_copy:
@@ -71,19 +74,31 @@ __myte_exit:
 __myte_open:
   mov $0x2000005, %rax   # open
   syscall
+  jnc .myte_open_ret
+  neg %rax
+.myte_open_ret:
   ret
 
 __myte_read:
   mov $0x2000003, %rax   # write
   syscall
+  jnc .myte_read_ret
+  neg %rax
+.myte_read_ret:
   ret
 
 __myte_unlink:
   mov $0x200000a, %rax   # unlink
   syscall
+  jnc .myte_unlink_ret
+  neg %rax
+.myte_unlink_ret:
   ret
 
 __myte_write:
   mov $0x2000004, %rax   # write
   syscall
+  jnc .myte_write_ret
+  neg %rax
+.myte_write_ret:
   ret

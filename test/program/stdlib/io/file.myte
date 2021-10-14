@@ -1,0 +1,39 @@
+module test
+
+import std.io.file.File
+import std.test.fail
+
+val FILE_NAME: String = "test/program/stdlib/io/file.txt"
+
+val DIRECTORY_NAME: String = "test/program/stdlib/io/dir"
+
+fun testOpenAndCloseFile() {
+  match (File.open(FILE_NAME)) {
+    | Ok (file) -> {
+      match (file.close()) {
+        | Ok _ -> {}
+        | Error _ -> fail()
+      }
+    }
+    | Error _ -> fail()
+  }
+}
+
+fun testOpenNonexistentFile() {
+  match (File.open("___nonexistent")) {
+    | Ok _ -> fail()
+    | Error _ -> {}
+  }
+}
+
+fun testOpenDirectory() {
+  match (File.open(DIRECTORY_NAME)) {
+    | Ok _ -> fail()
+    | Error _ -> {}
+  }
+}
+
+fun main() {
+  testOpenAndCloseFile();
+  testOpenNonexistentFile();
+}
