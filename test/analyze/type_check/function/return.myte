@@ -62,4 +62,11 @@ fun nestedFunctionReturn(): Int {
   }
 }
 
+fun returnInReturnMatch(): Int {
+  return match (true) {
+    | true -> 1
+    | false -> return 1
+  };
+}
+
 fun main() {}

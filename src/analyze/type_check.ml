@@ -865,13 +865,15 @@ and check_function_body ~cx decl =
 
 and mk_return_visitor ~cx return_ty =
   object
-    inherit Ast_visitor.visitor
+    inherit Ast_visitor.visitor as super
 
     method! function_ _ = ()
 
     method! anonymous_function _ = ()
 
-    method! return { loc; _ } = Type_context.add_return_type ~cx loc return_ty
+    method! return return =
+      Type_context.add_return_type ~cx return.loc return_ty;
+      super#return return
   end
 
 and check_function_expression_body ~cx expr return_ty =
