@@ -32,7 +32,7 @@ methods File {
    * truncated. File is opened in write only mode.
    */
   static fun create(name: String): Result<File, IOError> {
-    val cName = name.toString();
+    val cName = name.toCString();
     val ret = File.__builtin_open(
       cName.data,
       /* O_WRONLY */ 0x2 | /* O_CREAT */ 0x40 | /* O_TRUNC */ 0x00200,
