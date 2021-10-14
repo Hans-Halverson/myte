@@ -1156,10 +1156,11 @@ and builtin_functions =
         (Std_lib.std_long_long_toInt, emit_std_long_long_toInt);
         (Std_lib.std_memory_array_copy, emit_std_memory_array_copy);
         (Std_lib.std_memory_array_new, emit_std_memory_array_new);
-        (Std_lib.std_io_builtin_close, emit_std_io_close);
-        (Std_lib.std_io_builtin_open, emit_std_io_open);
-        (Std_lib.std_io_builtin_read, emit_std_io_read);
-        (Std_lib.std_io_builtin_write, emit_std_io_write);
+        (Std_lib.std_io_file_builtin_close, emit_std_io_close);
+        (Std_lib.std_io_file_builtin_open, emit_std_io_open);
+        (Std_lib.std_io_file_builtin_read, emit_std_io_read);
+        (Std_lib.std_io_file_builtin_unlink, emit_std_io_unlink);
+        (Std_lib.std_io_file_builtin_write, emit_std_io_write);
         (Std_lib.std_sys_exit, emit_std_sys_exit);
         (Std_lib.std_unit_unit_equals, emit_eq);
       ]
@@ -1207,23 +1208,10 @@ and emit_std_long_long_toInt ~ecx arg_vals _ =
   var_value_of_type var_id `IntT
 
 and emit_std_memory_array_copy ~ecx arg_vals _ =
-  (* If the index is nonzero, emit a GetPointer instruction to calculate the pointer's start *)
-  let maybe_emit_index_past_ptr ptr_val index_val =
-    match cast_to_numeric_value index_val with
-    | `IntL lit when lit = Int32.zero -> ptr_val
-    | index_val ->
-      let ptr_val = cast_to_pointer_value ptr_val in
-      let ptr_ty = pointer_value_element_type ptr_val in
-      let (get_ptr_val, get_ptr_instr) =
-        mk_get_pointer_instr ~pointer_offset:(Some index_val) ptr_ty ptr_val []
-      in
-      Ecx.emit ~ecx (GetPointer get_ptr_instr);
-      (get_ptr_val :> Value.t)
-  in
   match arg_vals with
   | [dest_array; dest_index; src_array; src_index; count] ->
-    let dest_ptr = maybe_emit_index_past_ptr dest_array dest_index in
-    let src_ptr = maybe_emit_index_past_ptr src_array src_index in
+    let dest_ptr = emit_offset_ptr ~ecx dest_array dest_index in
+    let src_ptr = emit_offset_ptr ~ecx src_array src_index in
     let var_id = mk_var_id () in
     let (return_val, myte_copy_instr) =
       Mir_builtin.(mk_call_builtin myte_copy var_id [dest_ptr; src_ptr; count] [])
@@ -1247,6 +1235,13 @@ and emit_std_memory_array_new ~ecx arg_vals ret_type =
 
 and emit_std_io_write ~ecx arg_vals _ =
   let var_id = mk_var_id () in
+  let arg_vals =
+    match arg_vals with
+    | [file_val; buffer_val; offset_val; size_val] ->
+      let ptr_val = emit_offset_ptr ~ecx buffer_val offset_val in
+      [file_val; ptr_val; size_val]
+    | _ -> failwith "Expected four arguments"
+  in
   let (return_val, instr) = Mir_builtin.(mk_call_builtin myte_write var_id arg_vals []) in
   Ecx.emit ~ecx instr;
   return_val
@@ -1266,6 +1261,12 @@ and emit_std_io_open ~ecx arg_vals _ =
 and emit_std_io_close ~ecx arg_vals _ =
   let var_id = mk_var_id () in
   let (return_val, instr) = Mir_builtin.(mk_call_builtin myte_close var_id arg_vals []) in
+  Ecx.emit ~ecx instr;
+  return_val
+
+and emit_std_io_unlink ~ecx arg_vals _ =
+  let var_id = mk_var_id () in
+  let (return_val, instr) = Mir_builtin.(mk_call_builtin myte_unlink var_id arg_vals []) in
   Ecx.emit ~ecx instr;
   return_val
 
@@ -1444,6 +1445,19 @@ and emit_call_set_new ~ecx return_mir_type set_type_args =
   let var_id = mk_var_id () in
   Ecx.emit ~ecx (Call (var_id, return_mir_type, `FunctionL func_name, []));
   var_value_of_type var_id return_mir_type
+
+(* If the index is nonzero, emit a GetPointer instruction to calculate the pointer's start *)
+and emit_offset_ptr ~ecx ptr_val offset_val =
+  match cast_to_numeric_value offset_val with
+  | `IntL lit when lit = Int32.zero -> ptr_val
+  | offset_val ->
+    let ptr_val = cast_to_pointer_value ptr_val in
+    let ptr_ty = pointer_value_element_type ptr_val in
+    let (get_ptr_val, get_ptr_instr) =
+      mk_get_pointer_instr ~pointer_offset:(Some offset_val) ptr_ty ptr_val []
+    in
+    Ecx.emit ~ecx (GetPointer get_ptr_instr);
+    (get_ptr_val :> Value.t)
 
 and emit_store_tag ~ecx tag ptr_var_id =
   let tag = (tag :> Value.t) in

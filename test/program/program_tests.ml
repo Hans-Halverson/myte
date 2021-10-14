@@ -15,13 +15,13 @@ let mk_command ~config ~optimize bin files =
       %s%s %s -o t.out;
       ./t.out%s;
       EXIT_CODE="$?";
+      rm t.out 2> /dev/null;
       if [ "$EXIT_CODE" -ne 0 ]; then
         if [ "$EXIT_CODE" -eq 139 ]; then
           EXTRA_INFO=" (Segfault)"
         fi
         echo "NOTE: Exited with code $EXIT_CODE$EXTRA_INFO"
       fi
-      rm t.out 2> /dev/null;
     |}
     bin
     optimize_flag

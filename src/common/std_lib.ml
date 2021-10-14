@@ -74,13 +74,15 @@ let std_int_int_toByte = "std.int.Int.toByte"
 
 let std_int_int_toLong = "std.int.Int.toLong"
 
-let std_io_builtin_close = "std.io.__builtin_close"
+let std_io_file_builtin_close = "std.io.file.File.__builtin_close"
 
-let std_io_builtin_open = "std.io.__builtin_open"
+let std_io_file_builtin_open = "std.io.file.File.__builtin_open"
 
-let std_io_builtin_read = "std.io.__builtin_read"
+let std_io_file_builtin_read = "std.io.file.File.__builtin_read"
 
-let std_io_builtin_write = "std.io.__builtin_write"
+let std_io_file_builtin_unlink = "std.io.file.File.__builtin_unlink"
+
+let std_io_file_builtin_write = "std.io.file.File.__builtin_write"
 
 let std_iterator_iterable = "std.iterator.Iterable"
 
@@ -153,10 +155,11 @@ let all_stdlib_names =
       std_byte_byte_equals;
       std_byte_byte_toInt;
       std_byte_byte_toLong;
-      std_io_builtin_read;
-      std_io_builtin_open;
-      std_io_builtin_read;
-      std_io_builtin_write;
+      std_io_file_builtin_close;
+      std_io_file_builtin_open;
+      std_io_file_builtin_read;
+      std_io_file_builtin_unlink;
+      std_io_file_builtin_write;
       std_iterator_iterable;
       std_int_int;
       std_int_int_equals;

@@ -6,6 +6,7 @@
   .global __myte_open
   .global __myte_read
   .global __myte_runtime_init
+  .global __myte_unlink
   .global __myte_write
 
   .data
@@ -74,6 +75,11 @@ __myte_open:
 
 __myte_read:
   mov $0x2000003, %rax   # write
+  syscall
+  ret
+
+__myte_unlink:
+  mov $0x200000a, %rax   # unlink
   syscall
   ret
 

@@ -1,0 +1,135 @@
+module std.io.write
+
+import std.byte.Byte
+import std.int.Int
+import std.io.error.IOError
+import std.result.{Error, Ok, Result}
+import std.string.String
+import std.unit.Unit
+import std.vec.Vec
+
+val BUFFER_SIZE: Int = 1024
+
+trait Writer {
+  /**
+   * Write all bytes in buffer to output, returning an error if bytes were not successfully written.
+   */
+  fun write(buffer: Vec<Byte>): Result<Unit, IOError>
+}
+
+type BufferedWriter<W: Writer> {
+  writer: W,
+  buffer: Vec<Byte>,
+  nextPos: Int,
+  bufferSize: Int,
+ }
+
+methods BufferedWriter<W: Writer> {
+  static fun new<W: Writer>(writer: W): BufferedWriter<W> {
+    return BufferedWriter {
+      writer,
+      buffer: Vec.newUninitialized(BUFFER_SIZE),
+      nextPos: 0,
+      bufferSize: BUFFER_SIZE,
+    };
+  }
+
+  static fun newWithSize<W: Writer>(writer: W, size: Int): BufferedWriter<W> {
+    return BufferedWriter {
+      writer,
+      buffer: Vec.newUninitialized(size),
+      nextPos: 0,
+      bufferSize: size,
+    };
+  }
+
+  /**
+   * Write a single byte, returning error if write failed.
+   */
+  fun writeByte(byte: Byte): Result<Unit, IOError> {
+    val nextPos = this.nextPos;
+    if (nextPos >= this.bufferSize) {
+      match (this.flush()) {
+        | Error _ as err -> return err
+        | _ -> {}
+      }
+    }
+
+    this.buffer[nextPos] = byte;
+    this.nextPos = nextPos + 1;
+
+    return Ok (());
+  }
+
+  /**
+   * Write a sequence of bytes, returning error if write failed.
+   */
+  fun writeBytes(bytes: Vec<Byte>): Result<Unit, IOError> {
+    // If written data is too large for buffer, flush buffer and write new data directly to output,
+    // bypassing buffer.
+    if (bytes.size > this.bufferSize) {
+      match (this.flush()) {
+        | Error _ as err -> return err
+        | _ -> {}
+      }
+
+      return this.writer.write(bytes);
+    }
+
+    // If written data fits in remaining space in buffer, copy it to buffer
+    val nextPosAfterWrite = this.nextPos + bytes.size;
+    if (nextPosAfterWrite < this.bufferSize) {
+      Vec.copyRange(this.buffer, this.nextPos, bytes, 0, bytes.size);
+      this.nextPos = nextPosAfterWrite;
+
+      return Ok (());
+    }
+
+    // Otherwise copy written data into buffer in two chunks. First chunk fills up the buffer which
+    // is then flushed.
+    val chunkSize1 = this.bufferSize - this.nextPos;
+    Vec.copyRange(this.buffer, this.nextPos, bytes, 0, chunkSize1);
+    this.nextPos = this.bufferSize;
+
+    match (this.flush()) {
+      | Error _ as err -> return err
+      | _ -> {}
+    }
+
+    // Second chunk is simply copied into buffer
+    val chunkSize2 = bytes.size - chunkSize1;
+    Vec.copyRange(this.buffer, 0, bytes, chunkSize1, chunkSize2);
+    this.nextPos = chunkSize2;
+    
+    return Ok (());
+  }
+
+  /**
+   * Write a string, returning error if write failed.
+   */
+  fun writeString(string: String): Result<Unit, IOError> {
+    val vec = Vec { data: string.data, size: string.size, capacity: string.capacity };
+    return this.writeBytes(vec);
+  }
+
+  /**
+   * Ensure all bytes written into this writer are written to the output stream. Bytes may have only
+   * been written to an immediate buffer, flush ensures they are truly written to the output.
+   */
+  fun flush(): Result<Unit, IOError> {
+    if (this.nextPos == 0) {
+      return Ok (());
+    }
+
+    this.buffer.size = this.nextPos;
+    match (this.writer.write(this.buffer)) {
+      | Ok _ as ok -> {
+        this.nextPos = 0;
+        this.buffer.size = this.bufferSize;
+
+        return ok;
+      }
+      | Error _ as err -> return err
+    }
+  }
+}

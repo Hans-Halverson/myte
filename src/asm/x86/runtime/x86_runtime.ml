@@ -22,4 +22,6 @@ let myte_open_label = "__myte_open"
 
 let myte_read_label = "__myte_read"
 
+let myte_unlink_label = "__myte_unlink"
+
 let myte_write_label = "__myte_write"

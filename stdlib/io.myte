@@ -1,25 +1,14 @@
 module std.io
 
-import std.byte.Byte
-import std.int.Int
 import std.io.file.File
-import std.memory.Array
 import std.string.String
 
 val STDIN: File = File (0)
 val STDOUT: File = File (1)
 val STDERR: File = File (2)
 
-builtin fun __builtin_write(file: Int, buffer: Array<Byte>, size: Int): Int
-
-builtin fun __builtin_read(file: Int, buffer: Array<Byte>, size: Int): Int
-
-builtin fun __builtin_open(file: Array<Byte>, flags: Int, mode: Int): Int
-
-builtin fun __builtin_close(file: Int): Int
-
 fun print(string: String) {
-  __builtin_write(STDOUT[0], string.data, string.size);
+  File.__builtin_write(STDOUT[0], string.data, 0, string.size);
 }
 
 fun println(string: String) {
@@ -28,7 +17,7 @@ fun println(string: String) {
 }
 
 fun eprint(string: String) {
-  __builtin_write(STDERR[0], string.data, string.size);
+  File.__builtin_write(STDERR[0], string.data, 0, string.size);
 }
 
 fun eprintln(string: String) {

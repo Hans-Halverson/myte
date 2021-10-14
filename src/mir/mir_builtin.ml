@@ -44,11 +44,18 @@ let myte_read = { Builtin.name = "myte_read"; mk_return_ty = (fun _ -> `IntT) }
 let myte_open = { Builtin.name = "myte_open"; mk_return_ty = (fun _ -> `IntT) }
 
 (* 
-   myte.myte_close<T>(file: int, flags: int, mode: int): int
+   myte.myte_close<T>(file: int): int
 
    Close file with descriptor `file`.
  *)
 let myte_close = { Builtin.name = "myte_close"; mk_return_ty = (fun _ -> `IntT) }
+
+(* 
+   myte.myte_close<T>(file: byte* ): int
+
+   Unlink file with name `file`.
+ *)
+let myte_unlink = { Builtin.name = "myte_unlink"; mk_return_ty = (fun _ -> `IntT) }
 
 let mk_call_builtin builtin var_id args mk_return_ty_args =
   let open Builtin in

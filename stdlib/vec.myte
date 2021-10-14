@@ -66,6 +66,16 @@ methods Vec<T> {
     Array.copy(newData, 0, this.data, 0, oldCapacity);
     this.data = newData;
   }
+
+  static fun copyRange<T>(src: Vec<T>, srcIndex: Int, dest: Vec<T>, destIndex: Int, count: Int) {
+    if (count < 0 || srcIndex < 0 || destIndex < 0 ||
+        srcIndex + count > src.size ||
+        destIndex + count > dest.size) {
+      abort();
+    }
+
+    Array.copy(src.data, srcIndex, dest.data, destIndex, count);
+  }
 }
 
 /*

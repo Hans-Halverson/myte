@@ -1,10 +1,14 @@
 module test
 
-import std.io
+import std.io.file.File
 import std.memory.Array
 
-fun wrapper(file: Int, buffer: Array<Byte>, size: Int): Int {
-  return io.__builtin_write(file, buffer, size);
+fun testWithoutOffset(file: Int, buffer: Array<Byte>, size: Int): Int {
+  return File.__builtin_write(file, buffer, 0, size);
+}
+
+fun testWithOffset(file: Int, buffer: Array<Byte>, size: Int): Int {
+  return File.__builtin_write(file, buffer, 123, size);
 }
 
 fun main() {}

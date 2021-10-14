@@ -2,9 +2,10 @@ module std.io.file
 
 import std.byte.Byte
 import std.int.Int
-import std.io.{__builtin_close, __builtin_open, __builtin_read}
 import std.io.error.{IOError, Unknown}
 import std.io.read.Reader
+import std.io.write.Writer
+import std.memory.Array
 import std.result.{Error, Ok, Result}
 import std.string.String
 import std.unit.Unit
@@ -18,7 +19,7 @@ methods File {
    */
   static fun open(name: String): Result<File, IOError> {
     val cName = name.toCString();
-    val ret = __builtin_open(cName.data, 0, 0);
+    val ret = File.__builtin_open(cName.data, 0, 0);
     if (ret < 0) {
       return Error (Unknown);
     }
@@ -26,25 +27,86 @@ methods File {
     return Ok (File (ret));
   }
 
+  /**
+   * Create a file with the given filename. If a file with that name already exists it will be
+   * truncated. File is opened in write only mode.
+   */
+  static fun create(name: String): Result<File, IOError> {
+    val cName = name.toCString();
+    val ret = File.__builtin_open(
+      cName.data,
+      /* O_WRONLY */ 0x2 | /* O_CREAT */ 0x40 | /* O_TRUNC */ 0x00200,
+      /* rw-rw-rw- */ 0b110110110,
+    );
+    if (ret < 0) {
+      return Error (Unknown);
+    }
+
+    return Ok (File (ret));
+  }
+
+  /**
+   * Close file.
+   */
   fun close(): Result<Unit, IOError> {
-    val ret = __builtin_close(this[0]);
+    val ret = File.__builtin_close(this[0]);
     if (ret < 0) {
       return Error (Unknown);
     }
 
     return Ok (());
   }
+
+  /**
+   * Removes a file from the filesystem.
+   */
+  static fun remove(name: String): Result<Unit, IOError> {
+    val ret = File.__builtin_unlink(name.toCString().data);
+    if (ret < 0) {
+      return Error (Unknown);
+    }
+
+    return Ok (());
+  }
+
+  builtin static fun __builtin_read(file: Int, buffer: Array<Byte>, size: Int): Int
+
+  builtin static fun __builtin_write(file: Int, buffer: Array<Byte>, offset: Int, size: Int): Int
+
+  builtin static fun __builtin_open(file: Array<Byte>, flags: Int, mode: Int): Int
+
+  builtin static fun __builtin_close(file: Int): Int
+
+  builtin static fun __builtin_unlink(file: Array<Byte>): Int
 }
 
 methods File {
   implements Reader
+  implements Writer
 
   override fun read(buffer: Vec<Byte>): Result<Int, IOError> {
-    val ret = __builtin_read(this[0], buffer.data, buffer.size);
+    val ret = File.__builtin_read(this[0], buffer.data, buffer.size);
     if (ret < 0) {
       return Error (Unknown);
     }
 
     return Ok (ret);
+  }
+
+  override fun write(buffer: Vec<Byte>): Result<Unit, IOError> {
+    var bytesWritten = 0;
+    var bytesToWrite = buffer.size;
+
+    while (bytesToWrite > 0) {
+      val ret = File.__builtin_write(this[0], buffer.data, bytesWritten, bytesToWrite);
+      if (ret < 0) {
+        return Error (Unknown);
+      }
+
+      bytesWritten = bytesWritten + ret;
+      bytesToWrite = bytesToWrite - ret;
+    }
+    
+    return Ok (());
   }
 }
