@@ -7,13 +7,15 @@ type Option<T> =
 fun useInt(x: Option<Int>) {}
 fun useBool(x: Option<Bool>) {}
 
+fun same<T>(x: T, y: T) {}
+
 fun enumVariants() {
   // Enum constructor can be used locally for different types
   useInt(None);
   useBool(None);
 
   // Errors
-  None is 1;
+  same(None, 1);
 }
 
 fun returnIntOption(): Option<Int> {

@@ -247,7 +247,6 @@ and Expression : sig
       | Multiply
       | Divide
       | Remainder
-      | Is
       | Equal
       | NotEqual
       | LessThan

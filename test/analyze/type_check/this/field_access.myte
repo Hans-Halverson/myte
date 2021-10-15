@@ -23,7 +23,9 @@ methods Rec2<T> {
   }
 
   // Should succeed
-  fun testFoo(x: T): Bool = x is this.foo
+  fun testFoo(x: T): Bool = sameType(x, this.foo)
 }
+
+fun sameType<T>(x: T, y: T): Bool = true
 
 fun main() {}

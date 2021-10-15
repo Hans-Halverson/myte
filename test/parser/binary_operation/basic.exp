@@ -1,7 +1,7 @@
 test/parser/binary_operation/basic.myte
 {
   node: Module,
-  loc: 1:0-43:0,
+  loc: 1:0-41:0,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -20,7 +20,7 @@ test/parser/binary_operation/basic.myte
   toplevels: [
     {
       node: Function,
-      loc: 3:0-42:1,
+      loc: 3:0-40:1,
       name: {
         node: Identifier,
         loc: 3:4-3:8,
@@ -29,7 +29,7 @@ test/parser/binary_operation/basic.myte
       params: [],
       body: {
         node: Block,
-        loc: 3:11-42:1,
+        loc: 3:11-40:1,
         statements: [
           {
             node: ExpressionStatement,
@@ -132,7 +132,7 @@ test/parser/binary_operation/basic.myte
             expression: {
               node: BinaryOperation,
               loc: 9:2-9:8,
-              op: Is,
+              op: Equal,
               left: {
                 node: Identifier,
                 loc: 9:2-9:3,
@@ -151,7 +151,7 @@ test/parser/binary_operation/basic.myte
             expression: {
               node: BinaryOperation,
               loc: 10:2-10:8,
-              op: Equal,
+              op: NotEqual,
               left: {
                 node: Identifier,
                 loc: 10:2-10:3,
@@ -166,11 +166,11 @@ test/parser/binary_operation/basic.myte
           },
           {
             node: ExpressionStatement,
-            loc: 11:2-11:9,
+            loc: 11:2-11:8,
             expression: {
               node: BinaryOperation,
-              loc: 11:2-11:8,
-              op: NotEqual,
+              loc: 11:2-11:7,
+              op: LessThan,
               left: {
                 node: Identifier,
                 loc: 11:2-11:3,
@@ -178,7 +178,7 @@ test/parser/binary_operation/basic.myte
               },
               right: {
                 node: Identifier,
-                loc: 11:7-11:8,
+                loc: 11:6-11:7,
                 name: "b",
               },
             },
@@ -189,7 +189,7 @@ test/parser/binary_operation/basic.myte
             expression: {
               node: BinaryOperation,
               loc: 12:2-12:7,
-              op: LessThan,
+              op: GreaterThan,
               left: {
                 node: Identifier,
                 loc: 12:2-12:3,
@@ -204,11 +204,11 @@ test/parser/binary_operation/basic.myte
           },
           {
             node: ExpressionStatement,
-            loc: 13:2-13:8,
+            loc: 13:2-13:9,
             expression: {
               node: BinaryOperation,
-              loc: 13:2-13:7,
-              op: GreaterThan,
+              loc: 13:2-13:8,
+              op: LessThanOrEqual,
               left: {
                 node: Identifier,
                 loc: 13:2-13:3,
@@ -216,7 +216,7 @@ test/parser/binary_operation/basic.myte
               },
               right: {
                 node: Identifier,
-                loc: 13:6-13:7,
+                loc: 13:7-13:8,
                 name: "b",
               },
             },
@@ -227,7 +227,7 @@ test/parser/binary_operation/basic.myte
             expression: {
               node: BinaryOperation,
               loc: 14:2-14:8,
-              op: LessThanOrEqual,
+              op: GreaterThanOrEqual,
               left: {
                 node: Identifier,
                 loc: 14:2-14:3,
@@ -242,11 +242,11 @@ test/parser/binary_operation/basic.myte
           },
           {
             node: ExpressionStatement,
-            loc: 15:2-15:9,
+            loc: 15:2-15:8,
             expression: {
               node: BinaryOperation,
-              loc: 15:2-15:8,
-              op: GreaterThanOrEqual,
+              loc: 15:2-15:7,
+              op: BitwiseAnd,
               left: {
                 node: Identifier,
                 loc: 15:2-15:3,
@@ -254,7 +254,7 @@ test/parser/binary_operation/basic.myte
               },
               right: {
                 node: Identifier,
-                loc: 15:7-15:8,
+                loc: 15:6-15:7,
                 name: "b",
               },
             },
@@ -265,7 +265,7 @@ test/parser/binary_operation/basic.myte
             expression: {
               node: BinaryOperation,
               loc: 16:2-16:7,
-              op: BitwiseAnd,
+              op: BitwiseXor,
               left: {
                 node: Identifier,
                 loc: 16:2-16:3,
@@ -284,7 +284,7 @@ test/parser/binary_operation/basic.myte
             expression: {
               node: BinaryOperation,
               loc: 17:2-17:7,
-              op: BitwiseXor,
+              op: BitwiseOr,
               left: {
                 node: Identifier,
                 loc: 17:2-17:3,
@@ -299,11 +299,11 @@ test/parser/binary_operation/basic.myte
           },
           {
             node: ExpressionStatement,
-            loc: 18:2-18:8,
+            loc: 18:2-18:9,
             expression: {
               node: BinaryOperation,
-              loc: 18:2-18:7,
-              op: BitwiseOr,
+              loc: 18:2-18:8,
+              op: LeftShift,
               left: {
                 node: Identifier,
                 loc: 18:2-18:3,
@@ -311,7 +311,7 @@ test/parser/binary_operation/basic.myte
               },
               right: {
                 node: Identifier,
-                loc: 18:6-18:7,
+                loc: 18:7-18:8,
                 name: "b",
               },
             },
@@ -322,7 +322,7 @@ test/parser/binary_operation/basic.myte
             expression: {
               node: BinaryOperation,
               loc: 19:2-19:8,
-              op: LeftShift,
+              op: ArithmeticRightShift,
               left: {
                 node: Identifier,
                 loc: 19:2-19:3,
@@ -337,11 +337,11 @@ test/parser/binary_operation/basic.myte
           },
           {
             node: ExpressionStatement,
-            loc: 20:2-20:9,
+            loc: 20:2-20:10,
             expression: {
               node: BinaryOperation,
-              loc: 20:2-20:8,
-              op: ArithmeticRightShift,
+              loc: 20:2-20:9,
+              op: LogicalRightShift,
               left: {
                 node: Identifier,
                 loc: 20:2-20:3,
@@ -349,27 +349,37 @@ test/parser/binary_operation/basic.myte
               },
               right: {
                 node: Identifier,
-                loc: 20:7-20:8,
+                loc: 20:8-20:9,
                 name: "b",
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 21:2-21:10,
+            loc: 23:2-23:12,
             expression: {
               node: BinaryOperation,
-              loc: 21:2-21:9,
-              op: LogicalRightShift,
+              loc: 23:2-23:11,
+              op: Add,
               left: {
-                node: Identifier,
-                loc: 21:2-21:3,
-                name: "a",
+                node: BinaryOperation,
+                loc: 23:2-23:7,
+                op: Add,
+                left: {
+                  node: Identifier,
+                  loc: 23:2-23:3,
+                  name: "a",
+                },
+                right: {
+                  node: Identifier,
+                  loc: 23:6-23:7,
+                  name: "b",
+                },
               },
               right: {
                 node: Identifier,
-                loc: 21:8-21:9,
-                name: "b",
+                loc: 23:10-23:11,
+                name: "c",
               },
             },
           },
@@ -379,11 +389,11 @@ test/parser/binary_operation/basic.myte
             expression: {
               node: BinaryOperation,
               loc: 24:2-24:11,
-              op: Add,
+              op: Subtract,
               left: {
                 node: BinaryOperation,
                 loc: 24:2-24:7,
-                op: Add,
+                op: Subtract,
                 left: {
                   node: Identifier,
                   loc: 24:2-24:3,
@@ -408,11 +418,11 @@ test/parser/binary_operation/basic.myte
             expression: {
               node: BinaryOperation,
               loc: 25:2-25:11,
-              op: Subtract,
+              op: Multiply,
               left: {
                 node: BinaryOperation,
                 loc: 25:2-25:7,
-                op: Subtract,
+                op: Multiply,
                 left: {
                   node: Identifier,
                   loc: 25:2-25:3,
@@ -437,11 +447,11 @@ test/parser/binary_operation/basic.myte
             expression: {
               node: BinaryOperation,
               loc: 26:2-26:11,
-              op: Multiply,
+              op: Divide,
               left: {
                 node: BinaryOperation,
                 loc: 26:2-26:7,
-                op: Multiply,
+                op: Divide,
                 left: {
                   node: Identifier,
                   loc: 26:2-26:3,
@@ -466,11 +476,11 @@ test/parser/binary_operation/basic.myte
             expression: {
               node: BinaryOperation,
               loc: 27:2-27:11,
-              op: Divide,
+              op: Remainder,
               left: {
                 node: BinaryOperation,
                 loc: 27:2-27:7,
-                op: Divide,
+                op: Remainder,
                 left: {
                   node: Identifier,
                   loc: 27:2-27:3,
@@ -491,15 +501,15 @@ test/parser/binary_operation/basic.myte
           },
           {
             node: ExpressionStatement,
-            loc: 28:2-28:12,
+            loc: 28:2-28:14,
             expression: {
               node: BinaryOperation,
-              loc: 28:2-28:11,
-              op: Remainder,
+              loc: 28:2-28:13,
+              op: Equal,
               left: {
                 node: BinaryOperation,
-                loc: 28:2-28:7,
-                op: Remainder,
+                loc: 28:2-28:8,
+                op: Equal,
                 left: {
                   node: Identifier,
                   loc: 28:2-28:3,
@@ -507,13 +517,13 @@ test/parser/binary_operation/basic.myte
                 },
                 right: {
                   node: Identifier,
-                  loc: 28:6-28:7,
+                  loc: 28:7-28:8,
                   name: "b",
                 },
               },
               right: {
                 node: Identifier,
-                loc: 28:10-28:11,
+                loc: 28:12-28:13,
                 name: "c",
               },
             },
@@ -524,11 +534,11 @@ test/parser/binary_operation/basic.myte
             expression: {
               node: BinaryOperation,
               loc: 29:2-29:13,
-              op: Is,
+              op: NotEqual,
               left: {
                 node: BinaryOperation,
                 loc: 29:2-29:8,
-                op: Is,
+                op: NotEqual,
                 left: {
                   node: Identifier,
                   loc: 29:2-29:3,
@@ -549,15 +559,15 @@ test/parser/binary_operation/basic.myte
           },
           {
             node: ExpressionStatement,
-            loc: 30:2-30:14,
+            loc: 30:2-30:12,
             expression: {
               node: BinaryOperation,
-              loc: 30:2-30:13,
-              op: Equal,
+              loc: 30:2-30:11,
+              op: LessThan,
               left: {
                 node: BinaryOperation,
-                loc: 30:2-30:8,
-                op: Equal,
+                loc: 30:2-30:7,
+                op: LessThan,
                 left: {
                   node: Identifier,
                   loc: 30:2-30:3,
@@ -565,28 +575,28 @@ test/parser/binary_operation/basic.myte
                 },
                 right: {
                   node: Identifier,
-                  loc: 30:7-30:8,
+                  loc: 30:6-30:7,
                   name: "b",
                 },
               },
               right: {
                 node: Identifier,
-                loc: 30:12-30:13,
+                loc: 30:10-30:11,
                 name: "c",
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 31:2-31:14,
+            loc: 31:2-31:12,
             expression: {
               node: BinaryOperation,
-              loc: 31:2-31:13,
-              op: NotEqual,
+              loc: 31:2-31:11,
+              op: GreaterThan,
               left: {
                 node: BinaryOperation,
-                loc: 31:2-31:8,
-                op: NotEqual,
+                loc: 31:2-31:7,
+                op: GreaterThan,
                 left: {
                   node: Identifier,
                   loc: 31:2-31:3,
@@ -594,28 +604,28 @@ test/parser/binary_operation/basic.myte
                 },
                 right: {
                   node: Identifier,
-                  loc: 31:7-31:8,
+                  loc: 31:6-31:7,
                   name: "b",
                 },
               },
               right: {
                 node: Identifier,
-                loc: 31:12-31:13,
+                loc: 31:10-31:11,
                 name: "c",
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 32:2-32:12,
+            loc: 32:2-32:14,
             expression: {
               node: BinaryOperation,
-              loc: 32:2-32:11,
-              op: LessThan,
+              loc: 32:2-32:13,
+              op: LessThanOrEqual,
               left: {
                 node: BinaryOperation,
-                loc: 32:2-32:7,
-                op: LessThan,
+                loc: 32:2-32:8,
+                op: LessThanOrEqual,
                 left: {
                   node: Identifier,
                   loc: 32:2-32:3,
@@ -623,28 +633,28 @@ test/parser/binary_operation/basic.myte
                 },
                 right: {
                   node: Identifier,
-                  loc: 32:6-32:7,
+                  loc: 32:7-32:8,
                   name: "b",
                 },
               },
               right: {
                 node: Identifier,
-                loc: 32:10-32:11,
+                loc: 32:12-32:13,
                 name: "c",
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 33:2-33:12,
+            loc: 33:2-33:14,
             expression: {
               node: BinaryOperation,
-              loc: 33:2-33:11,
-              op: GreaterThan,
+              loc: 33:2-33:13,
+              op: GreaterThanOrEqual,
               left: {
                 node: BinaryOperation,
-                loc: 33:2-33:7,
-                op: GreaterThan,
+                loc: 33:2-33:8,
+                op: GreaterThanOrEqual,
                 left: {
                   node: Identifier,
                   loc: 33:2-33:3,
@@ -652,28 +662,28 @@ test/parser/binary_operation/basic.myte
                 },
                 right: {
                   node: Identifier,
-                  loc: 33:6-33:7,
+                  loc: 33:7-33:8,
                   name: "b",
                 },
               },
               right: {
                 node: Identifier,
-                loc: 33:10-33:11,
+                loc: 33:12-33:13,
                 name: "c",
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 34:2-34:14,
+            loc: 34:2-34:12,
             expression: {
               node: BinaryOperation,
-              loc: 34:2-34:13,
-              op: LessThanOrEqual,
+              loc: 34:2-34:11,
+              op: BitwiseAnd,
               left: {
                 node: BinaryOperation,
-                loc: 34:2-34:8,
-                op: LessThanOrEqual,
+                loc: 34:2-34:7,
+                op: BitwiseAnd,
                 left: {
                   node: Identifier,
                   loc: 34:2-34:3,
@@ -681,28 +691,28 @@ test/parser/binary_operation/basic.myte
                 },
                 right: {
                   node: Identifier,
-                  loc: 34:7-34:8,
+                  loc: 34:6-34:7,
                   name: "b",
                 },
               },
               right: {
                 node: Identifier,
-                loc: 34:12-34:13,
+                loc: 34:10-34:11,
                 name: "c",
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 35:2-35:14,
+            loc: 35:2-35:12,
             expression: {
               node: BinaryOperation,
-              loc: 35:2-35:13,
-              op: GreaterThanOrEqual,
+              loc: 35:2-35:11,
+              op: BitwiseXor,
               left: {
                 node: BinaryOperation,
-                loc: 35:2-35:8,
-                op: GreaterThanOrEqual,
+                loc: 35:2-35:7,
+                op: BitwiseXor,
                 left: {
                   node: Identifier,
                   loc: 35:2-35:3,
@@ -710,13 +720,13 @@ test/parser/binary_operation/basic.myte
                 },
                 right: {
                   node: Identifier,
-                  loc: 35:7-35:8,
+                  loc: 35:6-35:7,
                   name: "b",
                 },
               },
               right: {
                 node: Identifier,
-                loc: 35:12-35:13,
+                loc: 35:10-35:11,
                 name: "c",
               },
             },
@@ -727,11 +737,11 @@ test/parser/binary_operation/basic.myte
             expression: {
               node: BinaryOperation,
               loc: 36:2-36:11,
-              op: BitwiseAnd,
+              op: BitwiseOr,
               left: {
                 node: BinaryOperation,
                 loc: 36:2-36:7,
-                op: BitwiseAnd,
+                op: BitwiseOr,
                 left: {
                   node: Identifier,
                   loc: 36:2-36:3,
@@ -752,15 +762,15 @@ test/parser/binary_operation/basic.myte
           },
           {
             node: ExpressionStatement,
-            loc: 37:2-37:12,
+            loc: 37:2-37:14,
             expression: {
               node: BinaryOperation,
-              loc: 37:2-37:11,
-              op: BitwiseXor,
+              loc: 37:2-37:13,
+              op: LeftShift,
               left: {
                 node: BinaryOperation,
-                loc: 37:2-37:7,
-                op: BitwiseXor,
+                loc: 37:2-37:8,
+                op: LeftShift,
                 left: {
                   node: Identifier,
                   loc: 37:2-37:3,
@@ -768,28 +778,28 @@ test/parser/binary_operation/basic.myte
                 },
                 right: {
                   node: Identifier,
-                  loc: 37:6-37:7,
+                  loc: 37:7-37:8,
                   name: "b",
                 },
               },
               right: {
                 node: Identifier,
-                loc: 37:10-37:11,
+                loc: 37:12-37:13,
                 name: "c",
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 38:2-38:12,
+            loc: 38:2-38:14,
             expression: {
               node: BinaryOperation,
-              loc: 38:2-38:11,
-              op: BitwiseOr,
+              loc: 38:2-38:13,
+              op: ArithmeticRightShift,
               left: {
                 node: BinaryOperation,
-                loc: 38:2-38:7,
-                op: BitwiseOr,
+                loc: 38:2-38:8,
+                op: ArithmeticRightShift,
                 left: {
                   node: Identifier,
                   loc: 38:2-38:3,
@@ -797,28 +807,28 @@ test/parser/binary_operation/basic.myte
                 },
                 right: {
                   node: Identifier,
-                  loc: 38:6-38:7,
+                  loc: 38:7-38:8,
                   name: "b",
                 },
               },
               right: {
                 node: Identifier,
-                loc: 38:10-38:11,
+                loc: 38:12-38:13,
                 name: "c",
               },
             },
           },
           {
             node: ExpressionStatement,
-            loc: 39:2-39:14,
+            loc: 39:2-39:16,
             expression: {
               node: BinaryOperation,
-              loc: 39:2-39:13,
-              op: LeftShift,
+              loc: 39:2-39:15,
+              op: LogicalRightShift,
               left: {
                 node: BinaryOperation,
-                loc: 39:2-39:8,
-                op: LeftShift,
+                loc: 39:2-39:9,
+                op: LogicalRightShift,
                 left: {
                   node: Identifier,
                   loc: 39:2-39:3,
@@ -826,71 +836,13 @@ test/parser/binary_operation/basic.myte
                 },
                 right: {
                   node: Identifier,
-                  loc: 39:7-39:8,
+                  loc: 39:8-39:9,
                   name: "b",
                 },
               },
               right: {
                 node: Identifier,
-                loc: 39:12-39:13,
-                name: "c",
-              },
-            },
-          },
-          {
-            node: ExpressionStatement,
-            loc: 40:2-40:14,
-            expression: {
-              node: BinaryOperation,
-              loc: 40:2-40:13,
-              op: ArithmeticRightShift,
-              left: {
-                node: BinaryOperation,
-                loc: 40:2-40:8,
-                op: ArithmeticRightShift,
-                left: {
-                  node: Identifier,
-                  loc: 40:2-40:3,
-                  name: "a",
-                },
-                right: {
-                  node: Identifier,
-                  loc: 40:7-40:8,
-                  name: "b",
-                },
-              },
-              right: {
-                node: Identifier,
-                loc: 40:12-40:13,
-                name: "c",
-              },
-            },
-          },
-          {
-            node: ExpressionStatement,
-            loc: 41:2-41:16,
-            expression: {
-              node: BinaryOperation,
-              loc: 41:2-41:15,
-              op: LogicalRightShift,
-              left: {
-                node: BinaryOperation,
-                loc: 41:2-41:9,
-                op: LogicalRightShift,
-                left: {
-                  node: Identifier,
-                  loc: 41:2-41:3,
-                  name: "a",
-                },
-                right: {
-                  node: Identifier,
-                  loc: 41:8-41:9,
-                  name: "b",
-                },
-              },
-              right: {
-                node: Identifier,
-                loc: 41:14-41:15,
+                loc: 39:14-39:15,
                 name: "c",
               },
             },

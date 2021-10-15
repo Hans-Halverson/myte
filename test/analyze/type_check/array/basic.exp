@@ -1,19 +1,19 @@
 Error: Expected type `Array<Int>` but found `Int`
-test/analyze/type_check/array/basic.myte:10:8
- 10 |   a1 is 1;
-    |         ^
+test/analyze/type_check/array/basic.myte:12:12
+ 12 |   unify(a1, 1);
+    |             ^
 
 Error: Expected type `Array<Int>` but found `Array<Bool>`
-test/analyze/type_check/array/basic.myte:11:8-10
- 11 |   a1 is a3;
-    |         ^^
+test/analyze/type_check/array/basic.myte:13:12-14
+ 13 |   unify(a1, a3);
+    |             ^^
 
 Error: Expected type `Int` but found `Array<Int>`
-test/analyze/type_check/array/basic.myte:19:3-5
- 19 |   (a1: Int);
+test/analyze/type_check/array/basic.myte:21:3-5
+ 21 |   (a1: Int);
     |    ^^
 
 Error: Expected type `Array<Bool>` but found `Array<Int>`
-test/analyze/type_check/array/basic.myte:20:3-5
- 20 |   (a1: Array<Bool>);
+test/analyze/type_check/array/basic.myte:22:3-5
+ 22 |   (a1: Array<Bool>);
     |    ^^

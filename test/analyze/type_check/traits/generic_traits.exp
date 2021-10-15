@@ -4,9 +4,9 @@ test/analyze/type_check/traits/generic_traits.myte:29:18
     |                   ^
 
 Error: Expected type `Container<Int>` but found `implicit Container<T>`
-test/analyze/type_check/traits/generic_traits.myte:39:17
- 39 |  useContainerInt(y);
-    |                  ^
+test/analyze/type_check/traits/generic_traits.myte:39:18
+ 39 |   useContainerInt(y);
+    |                   ^
 
 Error: Expected type `Container<Int>` but found `implicit ContainerSubTrait<T>`
 test/analyze/type_check/traits/generic_traits.myte:49:18

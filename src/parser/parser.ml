@@ -346,7 +346,6 @@ and parse_expression_infix ~precedence env left marker =
   | T_GREATER_THAN_OR_EQUAL
     when ExpressionPrecedence.(is_tighter Comparison precedence) ->
     parse_binary_operation env left marker
-  | T_IS
   | T_DOUBLE_EQUALS
   | T_NOT_EQUALS
     when ExpressionPrecedence.(is_tighter Equality precedence) ->
@@ -500,7 +499,6 @@ and parse_binary_operation env left marker =
     | T_AMPERSAND -> (BitwiseAnd, ExpressionPrecedence.BitwiseAnd)
     | T_PIPE -> (BitwiseOr, ExpressionPrecedence.BitwiseOr)
     | T_CARET -> (BitwiseXor, ExpressionPrecedence.BitwiseXor)
-    | T_IS -> (Is, ExpressionPrecedence.Equality)
     | T_DOUBLE_EQUALS -> (Equal, ExpressionPrecedence.Equality)
     | T_NOT_EQUALS -> (NotEqual, ExpressionPrecedence.Equality)
     | T_LESS_THAN -> (LessThan, ExpressionPrecedence.Comparison)

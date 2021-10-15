@@ -2,13 +2,15 @@ module test
 
 import std.memory.Array
 
+fun unify<T>(x: Array<T>, y: Array<T>) {}
+
 fun testUnifying(a1: Array<Int>, a2: Array<Int>, a3: Array<Bool>) {
   // Same type
-  a1 is a2;
-
+  unify(a1, a2);
+ 
   // Different types
-  a1 is 1;
-  a1 is a3;
+  unify(a1, 1);
+  unify(a1, a3);
 }
 
 fun testSubtyping(a1: Array<Int>) {

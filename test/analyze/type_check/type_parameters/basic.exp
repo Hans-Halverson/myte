@@ -9,6 +9,6 @@ test/analyze/type_check/type_parameters/basic.myte:10:3
     |    ^
 
 Error: Expected type `T` but found `U`
-test/analyze/type_check/type_parameters/basic.myte:14:38
- 14 | fun t5<T, U>(x: T, y: U): Bool = x is y
-    |                                       ^
+test/analyze/type_check/type_parameters/basic.myte:14:45
+ 14 | fun t5<T, U>(x: T, y: U): Bool = sameType(x, y)
+    |                                              ^

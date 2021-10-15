@@ -6,7 +6,6 @@ fun main() {
   a * b;
   a / b;
   a % b;
-  a is b;
   a == b;
   a != b;
   a < b;
@@ -26,7 +25,6 @@ fun main() {
   a * b * c;
   a / b / c;
   a % b % c;
-  a is b is c;
   a == b == c;
   a != b != c;
   a < b < c;

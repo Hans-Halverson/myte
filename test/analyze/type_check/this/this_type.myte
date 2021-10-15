@@ -18,10 +18,12 @@ methods Type {
     ((): This);
 
     // Success
-    this is (Type (()));
+    sameType(this, (Type (())));
   }
 
   fun id(): This = this
 }
+
+fun sameType<T>(x: T, y: T) {}
 
 fun main() {}

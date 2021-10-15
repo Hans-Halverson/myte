@@ -69,7 +69,6 @@ let string_of_binary_op op =
   | Multiply -> "Multiply"
   | Divide -> "Divide"
   | Remainder -> "Remainder"
-  | Is -> "Is"
   | Equal -> "Equal"
   | NotEqual -> "NotEqual"
   | LessThan -> "LessThan"

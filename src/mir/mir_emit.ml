@@ -420,7 +420,6 @@ and emit_expression_without_promotion ~ecx expr =
       | Equal
       | NotEqual ->
         failwith "Handled separately"
-      | Is -> failwith "TODO: Emit Is expression"
     in
     Ecx.emit ~ecx instr;
     var_value_of_type var_id ty

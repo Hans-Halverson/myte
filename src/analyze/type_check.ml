@@ -1094,10 +1094,6 @@ and check_expression ~cx expr =
       );
       (* Right expression must also be an int, but does not need to be same type as left *)
       if not (is_integer right_tvar_id) then error_not_int right_loc right_tvar_id
-    (* All types can be compare with `is`, but types must be equal *)
-    | Is ->
-      Type_context.assert_unify ~cx right_loc (TVar left_tvar_id) (TVar right_tvar_id);
-      ignore (Type_context.unify ~cx Type.Bool (TVar tvar_id))
     (* Types must be equal and implement the Equatable trait *)
     | Equal
     | NotEqual ->
