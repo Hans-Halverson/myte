@@ -5,19 +5,19 @@ func unit @test.simpleAccesses(int* %0) {
 }
 
 func unit @test.nestedAccesses(std.string.String**** %2, std.string.String** %3) {
-  %4 := GetPointer std.string.String***, std.string.String**** %2[int 5]
-  %5 := Load std.string.String*** %4
-  %6 := GetPointer std.string.String**, std.string.String*** %5[int 6]
-  %7 := Load std.string.String** %6
-  %8 := GetPointer std.string.String*, std.string.String** %7[int 7]
-  %9 := CallBuiltin std.string.String* myte_alloc(1)
-  %10 := GetPointer byte*, std.string.String* %9.0
-  Store byte* %10, @.S0
-  %11 := GetPointer int, std.string.String* %9.1
-  Store int %11, 4
-  %12 := GetPointer int, std.string.String* %9.2
-  Store int %12, 4
-  Store std.string.String* %8, %9
+  %4 := CallBuiltin std.string.String* myte_alloc(1)
+  %5 := GetPointer byte*, std.string.String* %4.0
+  Store byte* %5, @.S0
+  %6 := GetPointer int, std.string.String* %4.1
+  Store int %6, 4
+  %7 := GetPointer int, std.string.String* %4.2
+  Store int %7, 4
+  %8 := GetPointer std.string.String***, std.string.String**** %2[int 5]
+  %9 := Load std.string.String*** %8
+  %10 := GetPointer std.string.String**, std.string.String*** %9[int 6]
+  %11 := Load std.string.String** %10
+  %12 := GetPointer std.string.String*, std.string.String** %11[int 7]
+  Store std.string.String* %12, %4
   %13 := GetPointer std.string.String***, std.string.String**** %2[int 55]
   %14 := Load std.string.String*** %13
   %15 := GetPointer std.string.String**, std.string.String*** %14[int 66]
@@ -34,19 +34,19 @@ type test.Rec1 {bool, byte, std.string.String*}
 type test.Rec2 {long*, byte}
 
 func unit @test.indexAndAccesses(test.Tup1* %16, test.Rec2** %17) {
-  %18 := GetPointer test.Rec1**, test.Tup1* %16.1
-  %19 := Load test.Rec1** %18
-  %20 := GetPointer test.Rec1*, test.Rec1** %19[int 500]
-  %21 := Load test.Rec1* %20
-  %22 := GetPointer std.string.String*, test.Rec1* %21.2
-  %23 := CallBuiltin std.string.String* myte_alloc(1)
-  %24 := GetPointer byte*, std.string.String* %23.0
-  Store byte* %24, @.S1
-  %25 := GetPointer int, std.string.String* %23.1
-  Store int %25, 4
-  %26 := GetPointer int, std.string.String* %23.2
-  Store int %26, 4
-  Store std.string.String* %22, %23
+  %18 := CallBuiltin std.string.String* myte_alloc(1)
+  %19 := GetPointer byte*, std.string.String* %18.0
+  Store byte* %19, @.S1
+  %20 := GetPointer int, std.string.String* %18.1
+  Store int %20, 4
+  %21 := GetPointer int, std.string.String* %18.2
+  Store int %21, 4
+  %22 := GetPointer test.Rec1**, test.Tup1* %16.1
+  %23 := Load test.Rec1** %22
+  %24 := GetPointer test.Rec1*, test.Rec1** %23[int 500]
+  %25 := Load test.Rec1* %24
+  %26 := GetPointer std.string.String*, test.Rec1* %25.2
+  Store std.string.String* %26, %18
   %27 := GetPointer test.Rec2*, test.Rec2** %17[int 999]
   %28 := Load test.Rec2* %27
   %29 := GetPointer long*, test.Rec2* %28.0

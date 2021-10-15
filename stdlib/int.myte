@@ -51,8 +51,8 @@ methods Int {
 
     // Add digits one at a time to string
     while (n > 9) {
-      str.push((n % 10).toByte() + 48);
-      n = n / 10;
+      str.push((n % 10).toByte() + '0');
+      n /= 10;
     }
 
     // Add last digit to string

@@ -49,8 +49,8 @@ methods Byte {
 
     // Add digits one at a time to string
     while (n > 9) {
-      str.push((n % 10) + 48);
-      n = n / 10;
+      str.push((n % 10) + '0');
+      n /= 10;
     }
 
     // Add last digit to string

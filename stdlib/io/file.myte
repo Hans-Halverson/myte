@@ -103,8 +103,8 @@ methods File {
         return Error (Unknown);
       }
 
-      bytesWritten = bytesWritten + ret;
-      bytesToWrite = bytesToWrite - ret;
+      bytesWritten += ret;
+      bytesToWrite -= ret;
     }
     
     return Ok (());

@@ -95,13 +95,13 @@ methods Map<K: Equatable & Hashable, V> {
     // Round (capacity * 2) up to nearest power of two
     var newCapacity = (capacity * 2) - 1;
 
-    newCapacity = newCapacity | (newCapacity >> 1);
-    newCapacity = newCapacity | (newCapacity >> 2);
-    newCapacity = newCapacity | (newCapacity >> 4);
-    newCapacity = newCapacity | (newCapacity >> 8);
-    newCapacity = newCapacity | (newCapacity >> 16);
+    newCapacity |= (newCapacity >> 1);
+    newCapacity |= (newCapacity >> 2);
+    newCapacity |= (newCapacity >> 4);
+    newCapacity |= (newCapacity >> 8);
+    newCapacity |= (newCapacity >> 16);
 
-    newCapacity = newCapacity + 1;
+    newCapacity += 1;
 
     if (newCapacity > this.capacity) {
       this.resize(newCapacity);
@@ -135,7 +135,7 @@ methods Map<K: Equatable & Hashable, V> {
         | _ -> return None
       }
 
-      offsetCost = offsetCost + 1;
+      offsetCost += 1;
       index = (index + 1) & capacityMask;
     }
 
@@ -155,7 +155,7 @@ methods Map<K: Equatable & Hashable, V> {
       match (this.data[index]) {
         // Insert at the first empty entry encountered
         | None -> {
-          this.size = this.size + 1;
+          this.size += 1;
           this.data[index] = Some (Entry {
             key: currentKey,
             value: currentValue,
@@ -169,7 +169,7 @@ methods Map<K: Equatable & Hashable, V> {
           // Overwrite existing value if entry with key is found
           if (currentHash == hash && currentKey == entry.key) {
             if (entry.isDeleted) {
-              this.size = this.size + 1;
+              this.size += 1;
             }
 
             entry.value = currentValue;
@@ -182,7 +182,7 @@ methods Map<K: Equatable & Hashable, V> {
           var entryOffsetCost = this.entryOffsetCost(index, hash);
           if (entryOffsetCost < offsetCost) {
             if (entry.isDeleted) {
-              this.size = this.size + 1;
+              this.size += 1;
               entry.key = currentKey;
               entry.value = currentValue;
               entry.hash = currentHash;
@@ -209,7 +209,7 @@ methods Map<K: Equatable & Hashable, V> {
         }
       }
       
-      offsetCost = offsetCost + 1;
+      offsetCost += 1;
       index = (index + 1) & capacityMask;
     }
   }
@@ -292,7 +292,7 @@ methods MapEntriesIterator<K: Equatable & Hashable, V> {
   override fun next(): Option<(K, V)> {
     while (this[0].index < this[0].capacity) {
       val entry = this[0].data[this[0].index];
-      this[0].index = this[0].index + 1;
+      this[0].index += 1;
 
       match (entry) {
         | Some (Entry { isDeleted: false, key, value, ... }) -> return Some ((key, value))
@@ -310,7 +310,7 @@ methods MapKeysIterator<K: Equatable & Hashable, V> {
   override fun next(): Option<K> {
     while (this[0].index < this[0].capacity) {
       val entry = this[0].data[this[0].index];
-      this[0].index = this[0].index + 1;
+      this[0].index += 1;
 
       match (entry) {
         | Some (Entry { isDeleted: false, key, ... }) -> return Some (key)
@@ -328,7 +328,7 @@ methods MapValuesIterator<K: Equatable & Hashable, V> {
   override fun next(): Option<V> {
     while (this[0].index < this[0].capacity) {
       val entry = this[0].data[this[0].index];
-      this[0].index = this[0].index + 1;
+      this[0].index += 1;
 
       match (entry) {
         | Some (Entry { isDeleted: false, value, ... }) -> return Some (value)

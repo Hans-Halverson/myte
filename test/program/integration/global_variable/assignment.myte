@@ -1,0 +1,31 @@
+module test
+
+import std.test.assertEqual
+
+var x: Int = 1
+
+fun testAssign() {
+  assertEqual(x, 1);
+  
+  x = 2;
+  assertEqual(x, 2);
+
+  x = 9;
+  assertEqual(x, 9);
+}
+
+fun testOperatorAssign() {
+  x = 1;
+  assertEqual(x, 1);
+
+  x += 99;
+  assertEqual(x, 100);
+
+  x *= 5;
+  assertEqual(x, 500);
+}
+
+fun main() {
+  testAssign();
+  testOperatorAssign();
+}

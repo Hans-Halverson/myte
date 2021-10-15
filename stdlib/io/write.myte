@@ -47,16 +47,15 @@ methods BufferedWriter<W: Writer> {
    * Write a single byte, returning error if write failed.
    */
   fun writeByte(byte: Byte): Result<Unit, IOError> {
-    val nextPos = this.nextPos;
-    if (nextPos >= this.bufferSize) {
+    if (this.nextPos >= this.bufferSize) {
       match (this.flush()) {
         | Error _ as err -> return err
         | _ -> {}
       }
     }
 
-    this.buffer[nextPos] = byte;
-    this.nextPos = nextPos + 1;
+    this.buffer[this.nextPos] = byte;
+    this.nextPos += 1;
 
     return Ok (());
   }

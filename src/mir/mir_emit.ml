@@ -1784,7 +1784,7 @@ and emit_statement ~ecx stmt =
     in
 
     (* Emit an assignment that stores a value at a pointer *)
-    let emit_pointer_assign pointer_val expr =
+    let emit_pointer_assign mk_pointer_val expr =
       let store_val =
         match op with
         (* Standard assignments simply store expression value *)
@@ -1793,6 +1793,7 @@ and emit_statement ~ecx stmt =
         | Some op ->
           (* Load value *)
           let loaded_var_id = mk_var_id () in
+          let pointer_val = mk_pointer_val () in
           Ecx.emit ~ecx (Load (loaded_var_id, pointer_val));
           (* Apply operation *)
           let mir_type = pointer_value_element_type pointer_val in
@@ -1801,14 +1802,19 @@ and emit_statement ~ecx stmt =
           let store_var_id = emit_apply_op op loaded_val expr_val in
           var_value_of_type store_var_id mir_type
       in
+      let pointer_val = mk_pointer_val () in
       Ecx.emit ~ecx (Store (pointer_val, store_val))
     in
 
     (* Emit an assignment that stores at an expression access chain *)
     let emit_access_chain_assign lvalue =
-      match emit_expression_access_chain ~ecx lvalue with
-      | GetPointerEmittedResult element_pointer_val -> emit_pointer_assign element_pointer_val expr
-      | InlinedValueResult _ -> failwith "Cannot store to inlined value"
+      let mk_pointer_val () =
+        match emit_expression_access_chain ~ecx lvalue with
+        | GetPointerEmittedResult element_pointer_val -> element_pointer_val
+        | InlinedValueResult _ -> failwith "Cannot store to inlined value"
+      in
+      (* TODO: Only emit element pointer once, but this requires fixing lea coalescing in asm *)
+      emit_pointer_assign mk_pointer_val expr
     in
 
     (match lvalue with
@@ -1824,7 +1830,7 @@ and emit_statement ~ecx stmt =
         else
           `PointerV (mir_type, Ecx.get_ptr_var_id ~ecx loc)
       in
-      emit_pointer_assign pointer_val expr
+      emit_pointer_assign (fun _ -> pointer_val) expr
     (* Pattern assignments are destructured with a decision tree *)
     | Pattern pattern ->
       if op <> None then failwith "Destructuring cannot be used in operator assignment";

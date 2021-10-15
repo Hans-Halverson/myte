@@ -139,10 +139,10 @@ label @17:
   %71 := GetPointer bool, bool* %68[int %70]
   Store bool %71, %60
   %72 := GetPointer int, std.vec.Vec<bool>* %59.1
-  %73 := GetPointer int, std.vec.Vec<bool>* %59.1
-  %74 := Load int %73
-  %75 := Add int %74, 1
-  Store int %72, %75
+  %73 := Load int %72
+  %74 := Add int %73, 1
+  %75 := GetPointer int, std.vec.Vec<bool>* %59.1
+  Store int %75, %74
   Ret
 }
 
@@ -164,10 +164,10 @@ label @19:
   %88 := GetPointer int, int* %85[int %87]
   Store int %88, %77
   %89 := GetPointer int, std.vec.Vec<int>* %76.1
-  %90 := GetPointer int, std.vec.Vec<int>* %76.1
-  %91 := Load int %90
-  %92 := Add int %91, 1
-  Store int %89, %92
+  %90 := Load int %89
+  %91 := Add int %90, 1
+  %92 := GetPointer int, std.vec.Vec<int>* %76.1
+  Store int %92, %91
   Ret
 }
 
@@ -189,10 +189,10 @@ label @21:
   %105 := GetPointer std.string.String*, std.string.String** %102[int %104]
   Store std.string.String* %105, %94
   %106 := GetPointer int, std.vec.Vec<std.string.String*>* %93.1
-  %107 := GetPointer int, std.vec.Vec<std.string.String*>* %93.1
-  %108 := Load int %107
-  %109 := Add int %108, 1
-  Store int %106, %109
+  %107 := Load int %106
+  %108 := Add int %107, 1
+  %109 := GetPointer int, std.vec.Vec<std.string.String*>* %93.1
+  Store int %109, %108
   Ret
 }
 

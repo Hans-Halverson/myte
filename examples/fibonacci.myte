@@ -16,7 +16,7 @@ fun fibIterative(x: Int): Int {
 
   for (i in x.stepDownTo(1, 1)) {
     val oldCurrent = current;
-    current = prev + current;
+    current += prev;
     prev = oldCurrent;
   }
 

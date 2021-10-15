@@ -54,7 +54,7 @@ methods Vec<T> {
     }
 
     this.data[this.size] = x;
-    this.size = this.size + 1;
+    this.size += 1;
   }
 
   fun resize() {
@@ -96,13 +96,12 @@ methods VecIterator<T> {
   implements Iterator<T>
 
   override fun next(): Option<T> {
-    val index = this.index;
-    if (index >= this.size) {
+    if (this.index >= this.size) {
       return None;
     }
 
-    val value = this.data[index];
-    this.index = index + 1;
+    val value = this.data[this.index];
+    this.index += 1;
 
     return Some (value);
   }

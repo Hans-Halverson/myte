@@ -204,13 +204,12 @@ methods StringByteIterator {
   implements Iterator<Byte>
 
   override fun next(): Option<Byte> {
-    val index = this.index;
-    if (index >= this.size) {
+    if (this.index >= this.size) {
       return None;
     }
 
-    val value = this.data[index];
-    this.index = index + 1;
+    val value = this.data[this.index];
+    this.index += 1;
 
     return Some (value);
   }
