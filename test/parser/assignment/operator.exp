@@ -1,0 +1,263 @@
+test/parser/assignment/operator.myte
+{
+  node: Module,
+  loc: 1:0-15:1,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: Function,
+      loc: 3:0-15:1,
+      name: {
+        node: Identifier,
+        loc: 3:4-3:8,
+        name: "test",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 3:11-15:1,
+        statements: [
+          {
+            node: Assignment,
+            loc: 4:2-4:9,
+            op: "Add",
+            lvalue: {
+              node: ScopedIdentifier,
+              loc: 4:2-4:3,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 4:2-4:3,
+                name: "x",
+              },
+            },
+            expr: {
+              node: IntLiteral,
+              loc: 4:7-4:8,
+              raw: "1",
+            },
+          },
+          {
+            node: Assignment,
+            loc: 5:2-5:9,
+            op: "Subtract",
+            lvalue: {
+              node: ScopedIdentifier,
+              loc: 5:2-5:3,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 5:2-5:3,
+                name: "x",
+              },
+            },
+            expr: {
+              node: IntLiteral,
+              loc: 5:7-5:8,
+              raw: "1",
+            },
+          },
+          {
+            node: Assignment,
+            loc: 6:2-6:9,
+            op: "Multiply",
+            lvalue: {
+              node: ScopedIdentifier,
+              loc: 6:2-6:3,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 6:2-6:3,
+                name: "x",
+              },
+            },
+            expr: {
+              node: IntLiteral,
+              loc: 6:7-6:8,
+              raw: "1",
+            },
+          },
+          {
+            node: Assignment,
+            loc: 7:2-7:9,
+            op: "Divide",
+            lvalue: {
+              node: ScopedIdentifier,
+              loc: 7:2-7:3,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 7:2-7:3,
+                name: "x",
+              },
+            },
+            expr: {
+              node: IntLiteral,
+              loc: 7:7-7:8,
+              raw: "1",
+            },
+          },
+          {
+            node: Assignment,
+            loc: 8:2-8:9,
+            op: "Remainder",
+            lvalue: {
+              node: ScopedIdentifier,
+              loc: 8:2-8:3,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 8:2-8:3,
+                name: "x",
+              },
+            },
+            expr: {
+              node: IntLiteral,
+              loc: 8:7-8:8,
+              raw: "1",
+            },
+          },
+          {
+            node: Assignment,
+            loc: 9:2-9:9,
+            op: "BitwiseAnd",
+            lvalue: {
+              node: ScopedIdentifier,
+              loc: 9:2-9:3,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 9:2-9:3,
+                name: "x",
+              },
+            },
+            expr: {
+              node: IntLiteral,
+              loc: 9:7-9:8,
+              raw: "1",
+            },
+          },
+          {
+            node: Assignment,
+            loc: 10:2-10:9,
+            op: "BitwiseOr",
+            lvalue: {
+              node: ScopedIdentifier,
+              loc: 10:2-10:3,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 10:2-10:3,
+                name: "x",
+              },
+            },
+            expr: {
+              node: IntLiteral,
+              loc: 10:7-10:8,
+              raw: "1",
+            },
+          },
+          {
+            node: Assignment,
+            loc: 11:2-11:9,
+            op: "BitwiseXor",
+            lvalue: {
+              node: ScopedIdentifier,
+              loc: 11:2-11:3,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 11:2-11:3,
+                name: "x",
+              },
+            },
+            expr: {
+              node: IntLiteral,
+              loc: 11:7-11:8,
+              raw: "1",
+            },
+          },
+          {
+            node: Assignment,
+            loc: 12:2-12:10,
+            op: "LeftShift",
+            lvalue: {
+              node: ScopedIdentifier,
+              loc: 12:2-12:3,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 12:2-12:3,
+                name: "x",
+              },
+            },
+            expr: {
+              node: IntLiteral,
+              loc: 12:8-12:9,
+              raw: "1",
+            },
+          },
+          {
+            node: Assignment,
+            loc: 13:2-13:10,
+            op: "ArithmeticRightShift",
+            lvalue: {
+              node: ScopedIdentifier,
+              loc: 13:2-13:3,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 13:2-13:3,
+                name: "x",
+              },
+            },
+            expr: {
+              node: IntLiteral,
+              loc: 13:8-13:9,
+              raw: "1",
+            },
+          },
+          {
+            node: Assignment,
+            loc: 14:2-14:11,
+            op: "LogicalRightShift",
+            lvalue: {
+              node: ScopedIdentifier,
+              loc: 14:2-14:3,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 14:2-14:3,
+                name: "x",
+              },
+            },
+            expr: {
+              node: IntLiteral,
+              loc: 14:9-14:10,
+              raw: "1",
+            },
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+      builtin: false,
+      static: false,
+      override: false,
+    },
+  ],
+}

@@ -1766,7 +1766,7 @@ and emit_statement ~ecx stmt =
    *         Assignment
    * ============================
    *)
-  | Assignment { loc = _; lvalue; expr } ->
+  | Assignment { loc = _; op = None; lvalue; expr } ->
     (match lvalue with
     | Assignment.Pattern pattern ->
       let expr_val = emit_expression ~ecx expr in
@@ -1811,6 +1811,7 @@ and emit_statement ~ecx stmt =
     emit_match_decision_tree ~ecx ~join_block ~result_ptr:None ~alloc:true decision_tree;
     Ecx.set_block_builder ~ecx join_block
   | FunctionDeclaration _ -> failwith "TODO: Emit MIR for non-toplevel function declarations"
+  | Assignment { op = Some _; _ } -> failwith "TODO: Emit MIR for operator assignment"
 
 and emit_destructuring ~(ecx : Ecx.t) ~alloc pattern value =
   match pattern with

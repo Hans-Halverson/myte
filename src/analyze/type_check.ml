@@ -2255,7 +2255,7 @@ and check_statement ~cx stmt : Loc.t * Types.TVar.t =
    *         Assignment
    * ============================
    *)
-  | Assignment { Assignment.loc; lvalue; expr } ->
+  | Assignment { Assignment.loc; op = None; lvalue; expr } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let lvalue_loc_and_ty_opt =
       match lvalue with
@@ -2342,6 +2342,7 @@ and check_statement ~cx stmt : Loc.t * Types.TVar.t =
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     check_match ~cx ~is_expr:false match_ (TVar tvar_id);
     (loc, tvar_id)
+  | Assignment { op = Some _; _ } -> failwith "TODO: Type check operator assignment"
 
 (* Resolve all IntLiteral placeholder types to an actual integer type. Infer as Int if all
    literals are within the Int range, otherwise infer as Long. *)

@@ -227,15 +227,33 @@ and parse_statement env =
 and parse_assignment_or_expression_statement env =
   let marker = mark_loc env in
   let expr = parse_expression env in
-  match Env.token env with
-  (* If followed by an equals, expression is actually the lvalue for an assignment statement *)
-  | T_EQUALS ->
-    let lvalue = reparse_expression_as_lvalue expr in
+  let parse_assignment op =
+    let lvalue =
+      match op with
+      | None -> reparse_expression_as_lvalue expr
+      | Some _ -> reparse_expression_as_assignment_op_lvalue expr
+    in
     Env.advance env;
     let expr = parse_expression env in
     Env.expect env T_SEMICOLON;
     let loc = marker env in
-    Statement.Assignment { loc; lvalue; expr }
+    Statement.Assignment { loc; op; lvalue; expr }
+  in
+  match Env.token env with
+  (* If followed by an equals or equals operation, expression is actually the lvalue for an
+     assignment statement *)
+  | T_EQUALS -> parse_assignment None
+  | T_PLUS_EQUALS -> parse_assignment (Some Add)
+  | T_MINUS_EQUALS -> parse_assignment (Some Subtract)
+  | T_MULTIPLY_EQUALS -> parse_assignment (Some Multiply)
+  | T_DIVIDE_EQUALS -> parse_assignment (Some Divide)
+  | T_PERCENT_EQUALS -> parse_assignment (Some Remainder)
+  | T_AMPERSAND_EQUALS -> parse_assignment (Some BitwiseAnd)
+  | T_PIPE_EQUALS -> parse_assignment (Some BitwiseOr)
+  | T_CARET_EQUALS -> parse_assignment (Some BitwiseXor)
+  | T_LEFT_SHIFT_EQUALS -> parse_assignment (Some LeftShift)
+  | T_ARITHMETIC_RIGHT_SHIFT_EQUALS -> parse_assignment (Some ArithmeticRightShift)
+  | T_LOGICAL_RIGHT_SHIFT_EQUALS -> parse_assignment (Some LogicalRightShift)
   (* If the expression is not followed by an equals then it must be an expression statement *)
   | _ ->
     Env.expect env T_SEMICOLON;
@@ -1613,6 +1631,16 @@ and reparse_expression_as_lvalue expr =
     assert_expression_is_lvalue_expression expr;
     Statement.Assignment.Expression expr
   | _ -> Statement.Assignment.Pattern (reparse_expression_as_lvalue_pattern expr)
+
+and reparse_expression_as_assignment_op_lvalue expr =
+  let open Expression in
+  match expr with
+  | IndexedAccess _
+  | NamedAccess _
+  | Identifier _
+  | ScopedIdentifier _ ->
+    reparse_expression_as_lvalue expr
+  | _ -> Parse_error.fatal (Ast_utils.expression_loc expr, Parse_error.InvalidAssignmentPattern)
 
 and assert_expression_is_lvalue_expression expr =
   let open Expression in

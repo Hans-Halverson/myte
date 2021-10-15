@@ -76,6 +76,17 @@ let advance_two lex =
   advance lex;
   advance lex
 
+let advance_three lex =
+  advance lex;
+  advance lex;
+  advance lex
+
+let advance_four lex =
+  advance lex;
+  advance lex;
+  advance lex;
+  advance lex
+
 (* Return the next byte if not at end *)
 let peek lex =
   let next_offset = lex.current_offset + 1 in
@@ -87,6 +98,14 @@ let peek lex =
 (* Return byte after the next byte if not at end *)
 let peek_two lex =
   let offset = lex.current_offset + 2 in
+  if offset < Bytes.length lex.bytes then
+    Bytes.unsafe_get lex.bytes offset
+  else
+    eof
+
+(* Return byte two after the next byte if not at end *)
+let peek_three lex =
+  let offset = lex.current_offset + 3 in
   if offset < Bytes.length lex.bytes then
     Bytes.unsafe_get lex.bytes offset
   else
@@ -416,18 +435,6 @@ let rec tokenize lex =
   | ',' ->
     advance lex;
     token_result T_COMMA
-  | '+' ->
-    advance lex;
-    token_result T_PLUS
-  | '*' ->
-    advance lex;
-    token_result T_MULTIPLY
-  | '%' ->
-    advance lex;
-    token_result T_PERCENT
-  | '^' ->
-    advance lex;
-    token_result T_CARET
   | '(' ->
     advance lex;
     token_result T_LEFT_PAREN
@@ -454,9 +461,55 @@ let rec tokenize lex =
       (match skip_block_comment lex with
       | Ok _ -> tokenize lex
       | Error err -> LexError (lex, err))
+    | '=' ->
+      advance_two lex;
+      token_result T_DIVIDE_EQUALS
     | _ ->
       advance lex;
       token_result T_DIVIDE)
+  | '+' ->
+    (match peek lex with
+    | '=' ->
+      advance_two lex;
+      token_result T_PLUS_EQUALS
+    | _ ->
+      advance lex;
+      token_result T_PLUS)
+  | '-' ->
+    (match peek lex with
+    | '>' ->
+      advance_two lex;
+      token_result T_ARROW
+    | '=' ->
+      advance_two lex;
+      token_result T_MINUS_EQUALS
+    | _ ->
+      advance lex;
+      token_result T_MINUS)
+  | '*' ->
+    (match peek lex with
+    | '=' ->
+      advance_two lex;
+      token_result T_MULTIPLY_EQUALS
+    | _ ->
+      advance lex;
+      token_result T_MULTIPLY)
+  | '%' ->
+    (match peek lex with
+    | '=' ->
+      advance_two lex;
+      token_result T_PERCENT_EQUALS
+    | _ ->
+      advance lex;
+      token_result T_PERCENT)
+  | '^' ->
+    (match peek lex with
+    | '=' ->
+      advance_two lex;
+      token_result T_CARET_EQUALS
+    | _ ->
+      advance lex;
+      token_result T_CARET)
   | '{' ->
     (match peek lex with
     | '|' ->
@@ -470,6 +523,9 @@ let rec tokenize lex =
     | '&' ->
       advance_two lex;
       token_result T_LOGICAL_AND
+    | '=' ->
+      advance_two lex;
+      token_result T_AMPERSAND_EQUALS
     | _ ->
       advance lex;
       token_result T_AMPERSAND)
@@ -481,6 +537,9 @@ let rec tokenize lex =
     | '}' ->
       advance_two lex;
       token_result T_SET_CLOSE
+    | '=' ->
+      advance_two lex;
+      token_result T_PIPE_EQUALS
     | _ ->
       advance lex;
       token_result T_PIPE)
@@ -505,6 +564,14 @@ let rec tokenize lex =
     | '=' ->
       advance_two lex;
       token_result T_LESS_THAN_OR_EQUAL
+    | '<' ->
+      (match peek_two lex with
+      | '=' ->
+        advance_three lex;
+        token_result T_LEFT_SHIFT_EQUALS
+      | _ ->
+        advance lex;
+        token_result T_LESS_THAN)
     | _ ->
       advance lex;
       token_result T_LESS_THAN)
@@ -513,17 +580,25 @@ let rec tokenize lex =
     | '=' ->
       advance_two lex;
       token_result T_GREATER_THAN_OR_EQUAL
+    | '>' ->
+      (match peek_two lex with
+      | '=' ->
+        advance_three lex;
+        token_result T_ARITHMETIC_RIGHT_SHIFT_EQUALS
+      | '>' ->
+        (match peek_three lex with
+        | '=' ->
+          advance_four lex;
+          token_result T_LOGICAL_RIGHT_SHIFT_EQUALS
+        | _ ->
+          advance lex;
+          token_result T_GREATER_THAN)
+      | _ ->
+        advance lex;
+        token_result T_GREATER_THAN)
     | _ ->
       advance lex;
       token_result T_GREATER_THAN)
-  | '-' ->
-    (match peek lex with
-    | '>' ->
-      advance_two lex;
-      token_result T_ARROW
-    | _ ->
-      advance lex;
-      token_result T_MINUS)
   | '"' ->
     let start_pos = current_pos lex in
     advance lex;

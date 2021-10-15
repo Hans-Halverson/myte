@@ -34,6 +34,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 5:2-5:8,
+            op: None,
             lvalue: {
               node: ScopedIdentifier,
               loc: 5:2-5:3,
@@ -53,6 +54,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 8:2-8:13,
+            op: None,
             lvalue: {
               node: TuplePattern,
               loc: 8:2-8:8,
@@ -89,6 +91,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 9:2-9:17,
+            op: None,
             lvalue: {
               node: TuplePattern,
               loc: 9:2-9:12,
@@ -135,6 +138,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 12:2-12:14,
+            op: None,
             lvalue: {
               node: TuplePattern,
               loc: 12:2-12:9,
@@ -170,6 +174,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 13:2-13:20,
+            op: None,
             lvalue: {
               node: TuplePattern,
               loc: 13:2-13:15,
@@ -225,6 +230,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 14:2-14:21,
+            op: None,
             lvalue: {
               node: TuplePattern,
               loc: 14:2-14:16,
@@ -280,6 +286,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 17:2-17:32,
+            op: None,
             lvalue: {
               node: RecordPattern,
               loc: 17:2-17:27,
@@ -340,6 +347,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 18:2-18:33,
+            op: None,
             lvalue: {
               node: RecordPattern,
               loc: 18:2-18:28,
@@ -400,6 +408,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 19:2-19:26,
+            op: None,
             lvalue: {
               node: RecordPattern,
               loc: 19:2-19:21,
@@ -441,6 +450,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 20:2-20:27,
+            op: None,
             lvalue: {
               node: RecordPattern,
               loc: 20:2-20:22,
@@ -482,6 +492,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 23:2-23:28,
+            op: None,
             lvalue: {
               node: TuplePattern,
               loc: 23:2-23:23,
@@ -556,6 +567,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 24:2-24:36,
+            op: None,
             lvalue: {
               node: RecordPattern,
               loc: 24:2-24:31,
@@ -644,6 +656,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 27:2-27:20,
+            op: None,
             lvalue: {
               node: TuplePattern,
               loc: 27:2-27:15,
@@ -695,6 +708,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 28:2-28:26,
+            op: None,
             lvalue: {
               node: RecordPattern,
               loc: 28:2-28:21,
@@ -752,6 +766,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 31:2-31:10,
+            op: None,
             lvalue: {
               node: NamedAccess,
               loc: 31:2-31:5,
@@ -775,6 +790,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 32:2-32:14,
+            op: None,
             lvalue: {
               node: NamedAccess,
               loc: 32:2-32:9,
@@ -816,6 +832,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 33:2-33:11,
+            op: None,
             lvalue: {
               node: IndexedAccess,
               loc: 33:2-33:6,
@@ -839,6 +856,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 34:2-34:17,
+            op: None,
             lvalue: {
               node: IndexedAccess,
               loc: 34:2-34:12,
@@ -880,6 +898,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 35:2-35:13,
+            op: None,
             lvalue: {
               node: IndexedAccess,
               loc: 35:2-35:8,
@@ -912,6 +931,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 36:2-36:13,
+            op: None,
             lvalue: {
               node: NamedAccess,
               loc: 36:2-36:8,
@@ -944,6 +964,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 37:2-37:25,
+            op: None,
             lvalue: {
               node: NamedAccess,
               loc: 37:2-37:20,
@@ -1021,6 +1042,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 40:2-40:18,
+            op: None,
             lvalue: {
               node: Or,
               loc: 40:3-40:12,
@@ -1068,6 +1090,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 41:2-41:20,
+            op: None,
             lvalue: {
               node: Or,
               loc: 41:3-41:14,
@@ -1115,6 +1138,7 @@ test/parser/assignment/basic.myte
           {
             node: Assignment,
             loc: 42:2-42:20,
+            op: None,
             lvalue: {
               node: Or,
               loc: 42:3-42:14,

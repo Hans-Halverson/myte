@@ -1,4 +1,4 @@
-Error: Left side of assignment must be a pattern
+Error: Invalid left hand side of assignment
 test/parser/assignment/invalid_pattern_name_error.myte:4:3-6
  4 |    A().B.C (A) = 1;
    |    ^^^

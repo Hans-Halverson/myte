@@ -369,7 +369,7 @@ class visitor =
 
     method assignment assign =
       let open Statement.Assignment in
-      let { loc = _; lvalue; expr } = assign in
+      let { loc = _; op = _; lvalue; expr } = assign in
       (match lvalue with
       | Pattern patt -> this#pattern patt
       | Expression epxr -> this#expression epxr);

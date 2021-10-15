@@ -1,0 +1,4 @@
+Error: Invalid left hand side of assignment
+test/parser/assignment/invalid_pattern_assignment_op_error.myte:4:2-8
+ 4 |   (x, y) += 1;
+   |   ^^^^^^

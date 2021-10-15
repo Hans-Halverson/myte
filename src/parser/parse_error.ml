@@ -82,7 +82,7 @@ let to_string error =
     Printf.sprintf
       "File must start with a module declaration. Found `%s` but expected `module`."
       (Token.to_string actual)
-  | InvalidAssignmentPattern -> "Left side of assignment must be a pattern"
+  | InvalidAssignmentPattern -> "Invalid left hand side of assignment"
   | LiteralInPattern -> "Literals cannot appear in variable declaration patterns"
   | EmptyRecord -> "Record must have at least one field"
   | EmptyTuple -> "Tuple must have at least one element"

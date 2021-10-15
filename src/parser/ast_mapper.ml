@@ -526,7 +526,7 @@ class mapper =
 
     method assignment assign =
       let open Statement.Assignment in
-      let { loc; lvalue; expr } = assign in
+      let { loc; op; lvalue; expr } = assign in
       let lvalue' =
         match lvalue with
         | Pattern pattern -> id_map this#pattern pattern lvalue (fun p' -> Pattern p')
@@ -536,7 +536,7 @@ class mapper =
       if lvalue == lvalue' && expr == expr' then
         assign
       else
-        { loc; lvalue = lvalue'; expr = expr' }
+        { loc; op; lvalue = lvalue'; expr = expr' }
 
     method match_ match_ =
       let open Match in

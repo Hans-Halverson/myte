@@ -94,12 +94,26 @@ and Statement : sig
   end
 
   module Assignment : sig
+    type op =
+      | Add
+      | Subtract
+      | Multiply
+      | Divide
+      | Remainder
+      | BitwiseAnd
+      | BitwiseOr
+      | BitwiseXor
+      | LeftShift
+      | ArithmeticRightShift
+      | LogicalRightShift
+
     type lvalue =
       | Pattern of Pattern.t
       | Expression of Expression.t
 
     type t = {
       loc: Loc.t;
+      op: op option;
       lvalue: lvalue;
       expr: Expression.t;
     }

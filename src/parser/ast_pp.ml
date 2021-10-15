@@ -83,6 +83,21 @@ let string_of_binary_op op =
   | ArithmeticRightShift -> "ArithmeticRightShift"
   | LogicalRightShift -> "LogicalRightShift"
 
+let string_of_assignment_op op =
+  let open Statement.Assignment in
+  match op with
+  | Add -> "Add"
+  | Subtract -> "Subtract"
+  | Multiply -> "Multiply"
+  | Divide -> "Divide"
+  | Remainder -> "Remainder"
+  | BitwiseAnd -> "BitwiseAnd"
+  | BitwiseOr -> "BitwiseOr"
+  | BitwiseXor -> "BitwiseXor"
+  | LeftShift -> "LeftShift"
+  | ArithmeticRightShift -> "ArithmeticRightShift"
+  | LogicalRightShift -> "LogicalRightShift"
+
 let rec node_of_loc loc =
   let pp_pos pos =
     let { Loc.line; col } = pos in
@@ -472,11 +487,17 @@ and node_of_continue continue =
   node "Continue" loc []
 
 and node_of_assignment assign =
-  let { Statement.Assignment.loc; lvalue; expr } = assign in
+  let { Statement.Assignment.loc; op; lvalue; expr } = assign in
+  let op =
+    match op with
+    | None -> None
+    | Some op -> String (string_of_assignment_op op)
+  in
   node
     "Assignment"
     loc
     [
+      ("op", op);
       ( "lvalue",
         match lvalue with
         | Pattern pattern -> node_of_pattern pattern

@@ -2063,6 +2063,7 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
           {
             node: Assignment,
             loc: 45:2-45:20,
+            op: None,
             lvalue: {
               node: ScopedIdentifier,
               loc: 45:2-45:15,
@@ -2093,6 +2094,7 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
           {
             node: Assignment,
             loc: 46:2-46:33,
+            op: None,
             lvalue: {
               node: NamedAccess,
               loc: 46:2-46:28,
@@ -2315,6 +2317,7 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
           {
             node: Assignment,
             loc: 56:2-56:34,
+            op: None,
             lvalue: {
               node: TuplePattern,
               loc: 56:2-56:18,
@@ -2583,6 +2586,7 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
           {
             node: Assignment,
             loc: 67:2-67:37,
+            op: None,
             lvalue: {
               node: Or,
               loc: 67:3-67:26,
@@ -2671,6 +2675,7 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
           {
             node: Assignment,
             loc: 68:2-68:47,
+            op: None,
             lvalue: {
               node: Or,
               loc: 68:3-68:36,
@@ -2759,6 +2764,7 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
           {
             node: Assignment,
             loc: 69:2-69:31,
+            op: None,
             lvalue: {
               node: RecordPattern,
               loc: 69:2-69:21,
@@ -2821,6 +2827,7 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
           {
             node: Assignment,
             loc: 70:2-70:36,
+            op: None,
             lvalue: {
               node: RecordPattern,
               loc: 70:2-70:26,
