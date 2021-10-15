@@ -1,0 +1,79 @@
+module test
+
+fun getInt(): Int = 1
+
+fun useInt(x: Int) {}
+
+fun testAssign() {
+  var x = getInt();
+  x = 6;
+  useInt(x);
+}
+
+fun testAddOperatorAssign() {
+  var x = getInt();
+  x += 7;
+  useInt(x);
+}
+
+fun testSubtractOperatorAssign() {
+  var x = getInt();
+  x -= 7;
+  useInt(x);
+}
+
+fun testMultiplyOperatorAssign() {
+  var x = getInt();
+  x *= 7;
+  useInt(x);
+}
+
+fun testDivideOperatorAssign() {
+  var x = getInt();
+  x /= 7;
+  useInt(x);
+}
+
+fun testRemainderOperatorAssign() {
+  var x = getInt();
+  x %= 7;
+  useInt(x);
+}
+
+fun testAndOperatorAssign() {
+  var x = getInt();
+  x &= 7;
+  useInt(x);
+}
+
+fun testOrOperatorAssign() {
+  var x = getInt();
+  x |= 7;
+  useInt(x);
+}
+
+fun testXorOperatorAssign() {
+  var x = getInt();
+  x ^= 7;
+  useInt(x);
+}
+
+fun testLeftShiftOperatorAssign() {
+  var x = getInt();
+  x <<= 7;
+  useInt(x);
+}
+
+fun testArithmeticRightShiftOperatorAssign() {
+  var x = getInt();
+  x >>= 7;
+  useInt(x);
+}
+
+fun testLogicalRightShiftOperatorAssign() {
+  var x = getInt();
+  x >>>= 7;
+  useInt(x);
+}
+
+fun main() {}

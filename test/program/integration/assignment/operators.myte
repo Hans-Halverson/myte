@@ -1,0 +1,107 @@
+module test
+
+import std.test.assertEqual
+
+fun id<T>(x: T): T = x
+
+fun testAdd() {
+  var x = id(7);
+  assertEqual(x, 7);
+
+  x += 9;
+  assertEqual(x, 16);
+}
+
+fun testSubtract() {
+  var x = id(7);
+  assertEqual(x, 7);
+
+  x -= 4;
+  assertEqual(x, 3);
+}
+
+fun testMultiply() {
+  var x = id(7);
+  assertEqual(x, 7);
+
+  x *= 4;
+  assertEqual(x, 28);
+}
+
+fun testDivide() {
+  var x = id(63);
+  assertEqual(x, 63);
+
+  x /= 7;
+  assertEqual(x, 9);
+}
+
+fun testRemainder() {
+  var x = id(100);
+  assertEqual(x, 100);
+
+  x %= 37;
+  assertEqual(x, 26);
+}
+
+fun testAnd() {
+  var x = id(0b1110101);
+  assertEqual(x, 0b1110101);
+
+  x &= 0b1000110;
+  assertEqual(x, 0b1000100);
+}
+
+fun testOr() {
+  var x = id(0b1100101);
+  assertEqual(x, 0b1100101);
+
+  x |= 0b1010011;
+  assertEqual(x, 0b1110111);
+}
+
+fun testXor() {
+  var x = id(0b1100101);
+  assertEqual(x, 0b1100101);
+
+  x ^= 0b1010011;
+  assertEqual(x, 0b0110110);
+}
+
+fun testLeftShift() {
+  var x = id(0b101);
+  assertEqual(x, 0b101);
+
+  x <<= 5;
+  assertEqual(x, 0b10100000);
+}
+
+fun testArithmeticRightShift() {
+  var x = id((-39: Byte)); /* 0b11011001 */
+  assertEqual(x, -39);
+
+  x >>= 3;
+  assertEqual(x, -5); /* 0b11111011 */
+}
+
+fun testLogicalRightShift() {
+  var x = id((-39: Byte)); /* 0b11011001 */
+  assertEqual(x, -39);
+
+  x >>>= 3;
+  assertEqual(x, 0b00011011);
+}
+
+fun main() {
+  testAdd();
+  testSubtract();
+  testMultiply();
+  testDivide();
+  testRemainder();
+  testAnd();
+  testOr();
+  testXor();
+  testLeftShift();
+  testArithmeticRightShift();
+  testLogicalRightShift();
+}

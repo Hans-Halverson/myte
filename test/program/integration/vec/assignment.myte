@@ -1,0 +1,38 @@
+module test
+
+import std.test.assertEqual
+
+fun testAssignment() {
+  val x = [1, 2, 3];
+  assertEqual(x[1], 2);
+  assertEqual(x[2], 3);
+
+  x[1] = -8;
+  x[2] = 10;
+  assertEqual(x[1], -8);
+  assertEqual(x[2], 10);
+
+  x[1] = 99;
+  assertEqual(x[0], 1);
+  assertEqual(x[1], 99);
+  assertEqual(x[2], 10);
+}
+
+fun testOperatorAssignment() {
+  val x = [2, 5, 7];
+  assertEqual(x[1], 5);
+
+  x[1] += 8;
+  assertEqual(x[1], 13);
+
+  x[0] -= -100;
+  x[1] *= 4;
+  assertEqual(x[0], 102);
+  assertEqual(x[1], 52);
+  assertEqual(x[2], 7);
+}
+
+fun main() {
+  testAssignment();
+  testOperatorAssignment();
+}

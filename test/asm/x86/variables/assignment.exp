@@ -1,0 +1,85 @@
+  .global _main
+
+  .text
+test.getInt:
+  movl $1, %eax
+  ret
+_main:
+  movl $0, %eax
+  ret
+test.testAddOperatorAssign:
+  call test.getInt
+  addl $7, %eax
+  movl %eax, %edi
+  call test.useInt
+  ret
+test.testAndOperatorAssign:
+  call test.getInt
+  andl $7, %eax
+  movl %eax, %edi
+  call test.useInt
+  ret
+test.testArithmeticRightShiftOperatorAssign:
+  call test.getInt
+  sarl $7, %eax
+  movl %eax, %edi
+  call test.useInt
+  ret
+test.testAssign:
+  call test.getInt
+  movl $6, %edi
+  call test.useInt
+  ret
+test.testDivideOperatorAssign:
+  call test.getInt
+  movl $7, %ecx
+  cdq 
+  idivl %ecx
+  movl %eax, %edi
+  call test.useInt
+  ret
+test.testLeftShiftOperatorAssign:
+  call test.getInt
+  shll $7, %eax
+  movl %eax, %edi
+  call test.useInt
+  ret
+test.testLogicalRightShiftOperatorAssign:
+  call test.getInt
+  shrl $7, %eax
+  movl %eax, %edi
+  call test.useInt
+  ret
+test.testMultiplyOperatorAssign:
+  call test.getInt
+  imull $7, %eax, %edi
+  call test.useInt
+  ret
+test.testOrOperatorAssign:
+  call test.getInt
+  orl $7, %eax
+  movl %eax, %edi
+  call test.useInt
+  ret
+test.testRemainderOperatorAssign:
+  call test.getInt
+  movl $7, %ecx
+  cdq 
+  idivl %ecx
+  movl %edx, %edi
+  call test.useInt
+  ret
+test.testSubtractOperatorAssign:
+  call test.getInt
+  subl $7, %eax
+  movl %eax, %edi
+  call test.useInt
+  ret
+test.testXorOperatorAssign:
+  call test.getInt
+  xorl $7, %eax
+  movl %eax, %edi
+  call test.useInt
+  ret
+test.useInt:
+  ret

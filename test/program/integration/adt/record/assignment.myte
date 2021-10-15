@@ -1,0 +1,56 @@
+module test
+
+import std.test.assertEqual
+
+type Rec1 { foo: Int, bar: Byte }
+
+type Rec2 { foo: Bool, bar: Rec1 }
+
+type Tup1 (String, Rec1)
+
+fun id<T>(x: T): T = x
+
+fun testAssignment() {
+  val x = id(Rec1 { foo: 7, bar: 10 });
+  assertEqual(x.foo, 7);
+  assertEqual(x.bar, 10);
+
+  x.foo = 9;
+  x.bar = -7;
+  assertEqual(x.foo, 9);
+  assertEqual(x.bar, -7);
+
+  x.foo += 2;
+  assertEqual(x.foo, 11);
+  assertEqual(x.bar, -7);
+}
+
+fun testNestedAssignment() {
+  val x = id(Rec2 { foo: true, bar: Rec1 { foo: 7, bar: 10 } });
+  assertEqual(x.bar.foo, 7);
+
+  x.bar.foo = 11;
+  assertEqual(x.bar.foo, 11);
+
+  x.bar.foo -= -8;
+  assertEqual(x.bar.foo, 19);
+  assertEqual(x.bar.bar, 10);
+}
+
+fun testNestedAssignmentThroughTuple() {
+  val x = id(Tup1 ("test", Rec1 { foo: 7, bar: 10 }));
+  assertEqual(x[1].foo, 7);
+
+  x[1].foo = 15;
+  assertEqual(x[1].foo, 15);
+
+  x[1].foo -= -8;
+  assertEqual(x[1].foo, 23);
+  assertEqual(x[1].bar, 10);
+}
+
+fun main() {
+  testAssignment();
+  testNestedAssignment();
+  testNestedAssignmentThroughTuple();
+}
