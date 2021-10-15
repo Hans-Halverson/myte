@@ -1031,18 +1031,8 @@ and check_expression ~cx expr =
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let (left_loc, left_tvar_id) = check_expression ~cx left in
     let (right_loc, right_tvar_id) = check_expression ~cx right in
-    let is_int tvar_id =
-      let rep_ty = Type_context.find_rep_type ~cx (TVar tvar_id) in
-      match rep_ty with
-      | Any
-      | Byte
-      | Int
-      | Long
-      | IntLiteral _ ->
-        true
-      | _ -> false
-    in
-    let is_int_or_string tvar_id =
+    let is_integer tvar_id = is_integer ~cx (Type.TVar tvar_id) in
+    let is_integer_or_string tvar_id =
       let rep_ty = Type_context.find_rep_type ~cx (TVar tvar_id) in
       match rep_ty with
       | Any
@@ -1062,13 +1052,8 @@ and check_expression ~cx expr =
       | IntLiteral _ -> true
       | _ -> Type_context.get_implemented_trait rep_ty !Std_lib.equatable_trait_sig <> None
     in
-    let error_int loc tvar_id =
-      Type_context.add_error
-        ~cx
-        loc
-        (IncompatibleTypes (Type_context.find_rep_type ~cx (TVar tvar_id), [Type.Int]))
-    in
-    let error_int_or_string loc tvar_id =
+    let error_not_int loc tvar_id = error_not_int ~cx loc (Type.TVar tvar_id) in
+    let error_not_int_or_string loc tvar_id =
       Type_context.add_error
         ~cx
         loc
@@ -1084,31 +1069,31 @@ and check_expression ~cx expr =
     | BitwiseAnd
     | BitwiseOr
     | BitwiseXor ->
-      (* If a child expression is an int propagate type to other child and expression *)
-      if is_int left_tvar_id then (
+      (* If a child expression is an int propagate type to other child expression *)
+      if is_integer left_tvar_id then (
         Type_context.assert_unify ~cx right_loc (TVar left_tvar_id) (TVar right_tvar_id);
         ignore (Type_context.unify ~cx (TVar left_tvar_id) (TVar tvar_id))
-      ) else if is_int right_tvar_id then (
+      ) else if is_integer right_tvar_id then (
         Type_context.assert_unify ~cx left_loc (TVar right_tvar_id) (TVar left_tvar_id);
         ignore (Type_context.unify ~cx (TVar right_tvar_id) (TVar tvar_id))
       ) else (
         (* Otherwise force expression's type to be any to avoid erroring at uses *)
-        error_int left_loc left_tvar_id;
-        error_int right_loc right_tvar_id;
+        error_not_int left_loc left_tvar_id;
+        error_not_int right_loc right_tvar_id;
         ignore (Type_context.unify ~cx Any (TVar tvar_id))
       )
     | LeftShift
     | ArithmeticRightShift
     | LogicalRightShift ->
       (* If a left expression is an int propagate type to shift expression *)
-      if is_int left_tvar_id then
+      if is_integer left_tvar_id then
         ignore (Type_context.unify ~cx (TVar left_tvar_id) (TVar tvar_id))
       else (
-        error_int left_loc left_tvar_id;
+        error_not_int left_loc left_tvar_id;
         ignore (Type_context.unify ~cx Any (TVar tvar_id))
       );
       (* Right expression must also be an int, but does not need to be same type as left *)
-      if not (is_int right_tvar_id) then error_int right_loc right_tvar_id
+      if not (is_integer right_tvar_id) then error_not_int right_loc right_tvar_id
     (* All types can be compare with `is`, but types must be equal *)
     | Is ->
       Type_context.assert_unify ~cx right_loc (TVar left_tvar_id) (TVar right_tvar_id);
@@ -1140,13 +1125,13 @@ and check_expression ~cx expr =
     | LessThanOrEqual
     | GreaterThanOrEqual ->
       (* If a child expression is an int or string propagate type to other child *)
-      if is_int_or_string left_tvar_id then
+      if is_integer_or_string left_tvar_id then
         Type_context.assert_unify ~cx right_loc (TVar left_tvar_id) (TVar right_tvar_id)
-      else if is_int_or_string right_tvar_id then
+      else if is_integer_or_string right_tvar_id then
         Type_context.assert_unify ~cx left_loc (TVar right_tvar_id) (TVar left_tvar_id)
       else (
-        error_int_or_string left_loc left_tvar_id;
-        error_int_or_string right_loc right_tvar_id
+        error_not_int_or_string left_loc left_tvar_id;
+        error_not_int_or_string right_loc right_tvar_id
       );
       ignore (Type_context.unify ~cx Type.Bool (TVar tvar_id)));
     (loc, tvar_id)
@@ -2255,7 +2240,7 @@ and check_statement ~cx stmt : Loc.t * Types.TVar.t =
    *         Assignment
    * ============================
    *)
-  | Assignment { Assignment.loc; op = None; lvalue; expr } ->
+  | Assignment { Assignment.loc; op; lvalue; expr } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let lvalue_loc_and_ty_opt =
       match lvalue with
@@ -2328,8 +2313,23 @@ and check_statement ~cx stmt : Loc.t * Types.TVar.t =
     in
     let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
     (match lvalue_loc_and_ty_opt with
-    | Some (_, lvalue_ty) ->
-      Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) lvalue_ty
+    | Some (lvalue_loc, lvalue_ty) ->
+      (match op with
+      (* Right hand side must be subtype of left hand side for standard assignments *)
+      | None -> Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) lvalue_ty
+      (* Both left and right hand side must be same integer type for numeric operator assignments *)
+      | Some (Add | Subtract | Multiply | Divide | Remainder | BitwiseAnd | BitwiseOr | BitwiseXor)
+        ->
+        if is_integer ~cx lvalue_ty then
+          Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) lvalue_ty
+        else
+          error_not_int ~cx lvalue_loc lvalue_ty
+      (* Both left and right hand side must be integers for shift operator assignments, but do not
+         need to have the same type. *)
+      | Some (LeftShift | ArithmeticRightShift | LogicalRightShift) ->
+        if not (is_integer ~cx lvalue_ty) then error_not_int ~cx lvalue_loc lvalue_ty;
+        if not (is_integer ~cx (TVar expr_tvar_id)) then
+          error_not_int ~cx expr_loc (TVar expr_tvar_id))
     | None -> ());
     ignore (Type_context.unify ~cx Unit (TVar tvar_id));
     (loc, tvar_id)
@@ -2342,7 +2342,20 @@ and check_statement ~cx stmt : Loc.t * Types.TVar.t =
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     check_match ~cx ~is_expr:false match_ (TVar tvar_id);
     (loc, tvar_id)
-  | Assignment { op = Some _; _ } -> failwith "TODO: Type check operator assignment"
+
+and is_integer ~cx ty =
+  let rep_ty = Type_context.find_rep_type ~cx ty in
+  match rep_ty with
+  | Any
+  | Byte
+  | Int
+  | Long
+  | IntLiteral _ ->
+    true
+  | _ -> false
+
+and error_not_int ~cx loc ty =
+  Type_context.add_error ~cx loc (IncompatibleTypes (Type_context.find_rep_type ~cx ty, [Type.Int]))
 
 (* Resolve all IntLiteral placeholder types to an actual integer type. Infer as Int if all
    literals are within the Int range, otherwise infer as Long. *)

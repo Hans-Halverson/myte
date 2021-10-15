@@ -1,0 +1,76 @@
+module test
+
+fun numeric() {
+  // Success
+  var x: Int = 1;
+  x += 1;
+  x -= 1;
+  x *= 1;
+  x /= 1;
+  x %= 1;
+  x &= 1;
+  x |= 1;
+  x ^= 1;
+
+  // Failure due to non-numeric left hand side
+  var x: Bool = true;
+  x += 1;
+  x -= 1;
+  x *= 1;
+  x /= 1;
+  x %= 1;
+  x &= 1;
+  x |= 1;
+  x ^= 1;
+
+  // Failure due to non-numeric right hand side
+  var x: Long = 1;
+  x += true;
+
+  // Success - left and right hand side have same type
+  var x: Byte = 1;
+  x += (1: Byte);
+
+  // Failure - left and right hand side have different types
+  var x: Byte = 1;
+  x += (1: Int);
+}
+
+fun shifts() {
+  // Success
+  var x: Int = 1;
+  x <<= 1;
+  x >>= 1;
+  x >>>= 1;
+
+  // Failure due to non-numeric left hand side
+  var x: Bool = true;
+  x <<= 1;
+  x >>= 1;
+  x >>>= 1;
+
+  // Failure due to non-numeric right hand side
+  var x: Long = 1;
+  x <<= true;
+
+  // Success - left and right hand side do not need to have same type
+  var x: Byte = 1;
+  x <<= (1: Byte);
+  x <<= (1: Int);
+  x <<= (1: Long);
+}
+
+type Rec { foo: Int, bar: Bool }
+
+fun leftHandAccess(x: Rec) {
+  // Success
+  x.foo += 1;
+  x.foo += (1: Int);
+
+  // Failure
+  x.foo += (1: Byte);
+  x.foo += "";
+  x.bar += 1;
+}
+
+fun main() {}
