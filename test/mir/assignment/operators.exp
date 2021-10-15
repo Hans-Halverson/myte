@@ -1,0 +1,47 @@
+global int @test.global = 0
+
+func int @test.getInt() {
+  Ret 1
+}
+
+func int @test.getInt2() {
+  Ret 2
+}
+
+func unit @test.testGlobal() {
+  %0 := Load int @test.global
+  %1 := Add int %0, 1
+  Store int @test.global, %1
+  %2 := Load int @test.global
+  %3 := Call int @test.getInt()
+  %4 := Sub int %2, %3
+  Store int @test.global, %4
+  Ret
+}
+
+func unit @test.testOperators() {
+  %5 := Call int @test.getInt()
+  %6 := Add int %5, 1
+  %7 := Sub int %6, 2
+  %8 := Mul int %7, 3
+  %9 := Div int %8, 4
+  %10 := Rem int %9, 5
+  %11 := BitAnd int, %10 6
+  %12 := BitOr int, %11 7
+  %13 := BitXor int, %12 8
+  %14 := Shl int, %13 9
+  %15 := Shr int, %14 10
+  %16 := Shrl int, %15 11
+  Ret
+}
+
+func unit @test.testOrder() {
+  %17 := Call int @test.getInt()
+  %18 := Call int @test.getInt2()
+  %19 := Add int %17, %18
+  Ret
+}
+
+func int @test.main() {
+  Ret 0
+}

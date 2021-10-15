@@ -918,13 +918,6 @@ and emit_expression_access_chain_load ~ecx expr =
     var_value_of_type var_id (pointer_value_element_type element_pointer_val)
   | InlinedValueResult value -> value
 
-and emit_expression_access_chain_store ~ecx expr_lvalue expr =
-  match emit_expression_access_chain ~ecx expr_lvalue with
-  | GetPointerEmittedResult element_pointer_val ->
-    let expr_val = emit_expression ~ecx expr in
-    Ecx.emit ~ecx (Store (element_pointer_val, expr_val))
-  | InlinedValueResult _ -> failwith "Cannot store to inlined value"
-
 and emit_expression_access_chain ~ecx expr =
   let open Expression in
   let open Instruction in
@@ -1723,7 +1716,7 @@ and emit_statement ~ecx stmt =
 
     (* Body block then destructures payload to for loop bindings *)
     let item_val = var_value_of_type item_var_id (Ecx.to_mir_type ~ecx item_ty) in
-    emit_destructuring ~ecx ~alloc:true pattern item_val;
+    emit_alloc_destructuring ~ecx pattern item_val;
 
     (* Body block contains body of for loop and continues to test block *)
     Ecx.push_loop_context ~ecx finish_builder.id test_builder.id;
@@ -1766,29 +1759,110 @@ and emit_statement ~ecx stmt =
    *         Assignment
    * ============================
    *)
-  | Assignment { loc = _; op = None; lvalue; expr } ->
+  | Assignment { loc = _; op; lvalue; expr } ->
+    (* Apply an operation given the left and right values, returning the result *)
+    let emit_apply_op op left_val expr_val =
+      let var_id = mk_var_id () in
+      let left_val = cast_to_numeric_value left_val in
+      let expr_val = cast_to_numeric_value expr_val in
+      let instr =
+        match op with
+        | Assignment.Add -> Instruction.Add (var_id, left_val, expr_val)
+        | Subtract -> Sub (var_id, left_val, expr_val)
+        | Multiply -> Mul (var_id, left_val, expr_val)
+        | Divide -> Div (var_id, left_val, expr_val)
+        | Remainder -> Rem (var_id, left_val, expr_val)
+        | BitwiseAnd -> BitAnd (var_id, left_val, expr_val)
+        | BitwiseOr -> BitOr (var_id, left_val, expr_val)
+        | BitwiseXor -> BitXor (var_id, left_val, expr_val)
+        | LeftShift -> Shl (var_id, left_val, expr_val)
+        | ArithmeticRightShift -> Shr (var_id, left_val, expr_val)
+        | LogicalRightShift -> Shrl (var_id, left_val, expr_val)
+      in
+      Ecx.emit ~ecx instr;
+      var_id
+    in
+
+    (* Emit an assignment that stores a value at a pointer *)
+    let emit_pointer_assign pointer_val expr =
+      let store_val =
+        match op with
+        (* Standard assignments simply store expression value *)
+        | None -> emit_expression ~ecx expr
+        (* Operator assignments load value, apply operation, then store result *)
+        | Some op ->
+          (* Load value *)
+          let loaded_var_id = mk_var_id () in
+          Ecx.emit ~ecx (Load (loaded_var_id, pointer_val));
+          (* Apply operation *)
+          let mir_type = pointer_value_element_type pointer_val in
+          let loaded_val = var_value_of_type loaded_var_id mir_type in
+          let expr_val = emit_expression ~ecx expr in
+          let store_var_id = emit_apply_op op loaded_val expr_val in
+          var_value_of_type store_var_id mir_type
+      in
+      Ecx.emit ~ecx (Store (pointer_val, store_val))
+    in
+
+    (* Emit an assignment that stores at an expression access chain *)
+    let emit_access_chain_assign lvalue =
+      match emit_expression_access_chain ~ecx lvalue with
+      | GetPointerEmittedResult element_pointer_val -> emit_pointer_assign element_pointer_val expr
+      | InlinedValueResult _ -> failwith "Cannot store to inlined value"
+    in
+
     (match lvalue with
-    | Assignment.Pattern pattern ->
+    (* Simple variable assignments are stored at the variable's pointer, whether global or local *)
+    | Pattern (Identifier { loc; _ }) ->
+      let mir_type = mir_type_of_loc ~ecx (Ast_utils.expression_loc expr) in
+      let binding = Bindings.get_value_binding ecx.pcx.bindings loc in
+      let pointer_val =
+        if Bindings.is_module_decl ecx.pcx.bindings binding.loc then
+          let binding_name = mk_value_binding_name binding in
+          let global = SMap.find binding_name ecx.globals in
+          `PointerL (global.ty, global.name)
+        else
+          `PointerV (mir_type, Ecx.get_ptr_var_id ~ecx loc)
+      in
+      emit_pointer_assign pointer_val expr
+    (* Pattern assignments are destructured with a decision tree *)
+    | Pattern pattern ->
+      if op <> None then failwith "Destructuring cannot be used in operator assignment";
       let expr_val = emit_expression ~ecx expr in
-      emit_destructuring ~ecx ~alloc:false pattern expr_val
-    | Assignment.Expression (IndexedAccess { loc; target; index; _ } as expr_lvalue) ->
+      let decision_tree =
+        Mir_match_decision_tree.build_destructure_decision_tree ~ecx expr_val pattern
+      in
+      let join_block = Ecx.mk_block_builder ~ecx in
+      emit_match_decision_tree ~ecx ~join_block ~result_ptr:None ~alloc:false decision_tree;
+      Ecx.set_block_builder ~ecx join_block
+    | Expression (IndexedAccess { loc; target; index; _ } as expr_lvalue) ->
       let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
       (match target_ty with
-      (* If indexing a vector, call Vec's `set` method instead of emitting access chain *)
+      (* If indexing a vector, call Vec's `get` and `set` methods instead of emitting access chain *)
       | ADT { adt_sig; _ } when adt_sig == !Std_lib.vec_adt_sig ->
-        let target_var = emit_expression ~ecx target in
-        let index_var = emit_expression ~ecx index in
-        let expr_var = emit_expression ~ecx expr in
-        emit_call_vec_set ~ecx loc target_var index_var expr_var
+        let target_val = emit_expression ~ecx target in
+        let index_val = emit_expression ~ecx index in
+        (match op with
+        (* Standard assignment simply calls `set` method *)
+        | None ->
+          let expr_val = emit_expression ~ecx expr in
+          emit_call_vec_set ~ecx loc target_val index_val expr_val
+        (* Operator assignment gets old value with `get`, applies operator, then calls `set` *)
+        | Some op ->
+          let old_value = emit_call_vec_get ~ecx loc target_val index_val in
+          let expr_val = emit_expression ~ecx expr in
+          let new_var_id = emit_apply_op op old_value expr_val in
+          let new_val = var_value_of_type new_var_id (mir_type_of_loc ~ecx loc) in
+          emit_call_vec_set ~ecx loc target_val index_val new_val)
       (* If indexing a map, call Map's `add` method instead of emitting access chain *)
       | ADT { adt_sig; type_args } when adt_sig == !Std_lib.map_adt_sig ->
-        let target_var = emit_expression ~ecx target in
-        let index_var = emit_expression ~ecx index in
-        let expr_var = emit_expression ~ecx expr in
-        emit_call_map_add ~ecx type_args target_var index_var expr_var
-      | _ -> emit_expression_access_chain_store ~ecx expr_lvalue expr)
-    | Assignment.Expression (NamedAccess _ as expr_lvalue) ->
-      emit_expression_access_chain_store ~ecx expr_lvalue expr
+        if op <> None then failwith "Map indexing cannot be used in operator assignment";
+        let target_val = emit_expression ~ecx target in
+        let index_val = emit_expression ~ecx index in
+        let expr_val = emit_expression ~ecx expr in
+        emit_call_map_add ~ecx type_args target_val index_val expr_val
+      | _ -> emit_access_chain_assign expr_lvalue)
+    | Expression (NamedAccess _ as expr_lvalue) -> emit_access_chain_assign expr_lvalue
     | _ -> failwith "Lvalue expression must be an access")
   (*
    * ============================
@@ -1797,7 +1871,7 @@ and emit_statement ~ecx stmt =
    *)
   | VariableDeclaration { pattern; init; _ } ->
     let init_val = emit_expression ~ecx init in
-    emit_destructuring ~ecx ~alloc:true pattern init_val
+    emit_alloc_destructuring ~ecx pattern init_val
   (*
    * ============================
    *       Match Statement
@@ -1811,9 +1885,8 @@ and emit_statement ~ecx stmt =
     emit_match_decision_tree ~ecx ~join_block ~result_ptr:None ~alloc:true decision_tree;
     Ecx.set_block_builder ~ecx join_block
   | FunctionDeclaration _ -> failwith "TODO: Emit MIR for non-toplevel function declarations"
-  | Assignment { op = Some _; _ } -> failwith "TODO: Emit MIR for operator assignment"
 
-and emit_destructuring ~(ecx : Ecx.t) ~alloc pattern value =
+and emit_alloc_destructuring ~(ecx : Ecx.t) pattern value =
   match pattern with
   | Pattern.Identifier { loc; _ } ->
     let mir_type = type_of_value value in
@@ -1824,14 +1897,14 @@ and emit_destructuring ~(ecx : Ecx.t) ~alloc pattern value =
       Ecx.emit ~ecx (Store (`PointerL (global.ty, global.name), value))
     else
       let var_id = Ecx.get_ptr_var_id ~ecx loc in
-      if alloc then Ecx.emit ~ecx (StackAlloc (var_id, mir_type));
+      Ecx.emit ~ecx (StackAlloc (var_id, mir_type));
       Ecx.emit ~ecx (Store (`PointerV (mir_type, var_id), value))
   | _ ->
     let decision_tree =
       Mir_match_decision_tree.build_destructure_decision_tree ~ecx value pattern
     in
     let join_block = Ecx.mk_block_builder ~ecx in
-    emit_match_decision_tree ~ecx ~join_block ~result_ptr:None ~alloc decision_tree;
+    emit_match_decision_tree ~ecx ~join_block ~result_ptr:None ~alloc:true decision_tree;
     Ecx.set_block_builder ~ecx join_block
 
 (* Structure of leaf and case body blocks:

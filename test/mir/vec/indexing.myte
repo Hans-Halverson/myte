@@ -4,6 +4,8 @@ import std.vec.Vec
 
 type Rec1 { foo: Int, bar: Vec<Int> }
 
+fun getInt(): Int = 1
+
 fun testIndexRec1(x: Rec1) {
   x.bar[7];
   x.bar[7] = 1;
@@ -20,6 +22,11 @@ type Rec3 { foo: Int, bar: Vec<Rec2> }
 fun testIndexRec3(x: Rec3) {
   x.bar[7].b;
   x.bar[7].b = true;
+}
+
+fun testIndexOperatorAssign(x: Rec1) {
+  x.bar[7] += 1;
+  x.bar[7] += getInt();
 }
 
 fun main() {}

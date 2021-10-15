@@ -8,6 +8,10 @@ type test.Rec4 {int, int, test.Rec3*}
 
 type test.Tup1 {test.Rec3*}
 
+func int @test.getInt() {
+  Ret 1
+}
+
 func unit @test.simpleAccesses(test.Rec1* %0, test.Rec2* %1) {
   %2 := GetPointer int, test.Rec1* %0.0
   Store int %2, 1
@@ -70,6 +74,31 @@ func unit @test.namedAndIndexedAccess(test.Tup1* %24) {
 }
 
 global byte[6] @.S2 = "string"
+
+func unit @test.accessOperatorAssign(test.Rec1* %34, test.Rec3* %35, test.Tup1* %36) {
+  %37 := GetPointer int, test.Rec1* %34.0
+  %38 := Load int %37
+  %39 := Add int %38, 1
+  Store int %37, %39
+  %40 := GetPointer int, test.Rec1* %34.0
+  %41 := Load int %40
+  %42 := Call int @test.getInt()
+  %43 := Add int %41, %42
+  Store int %40, %43
+  %44 := GetPointer test.Rec2*, test.Rec3* %35.1
+  %45 := Load test.Rec2* %44
+  %46 := GetPointer int, test.Rec2* %45.2
+  %47 := Load int %46
+  %48 := Add int %47, 1
+  Store int %46, %48
+  %49 := GetPointer test.Rec3*, test.Tup1* %36.0
+  %50 := Load test.Rec3* %49
+  %51 := GetPointer long, test.Rec3* %50.2
+  %52 := Load long %51
+  %53 := Add long %52, 1
+  Store long %51, %53
+  Ret
+}
 
 func int @test.main() {
   Ret 0

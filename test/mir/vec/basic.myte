@@ -2,6 +2,8 @@ module test
 
 import std.vec.Vec
 
+fun getInt(): Int = 1
+
 fun testVecGet(x: Vec<Int>, y: Vec<Bool>) {
   x[7];
   y[7];
@@ -15,6 +17,11 @@ fun testVecSet(x: Vec<Int>, y: Vec<Bool>) {
 fun testVecPush(x: Vec<Int>, y: Vec<Bool>) {
   x.push(1);
   y.push(true);
+}
+
+fun testVecOperatorAssign(x: Vec<Int>) {
+  x[7] += 8;
+  x[7] += getInt();
 }
 
 fun main() {}

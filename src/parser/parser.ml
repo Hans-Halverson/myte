@@ -1634,13 +1634,17 @@ and reparse_expression_as_lvalue expr =
 
 and reparse_expression_as_assignment_op_lvalue expr =
   let open Expression in
+  let error () =
+    Parse_error.fatal (Ast_utils.expression_loc expr, Parse_error.InvalidAssignmentPattern)
+  in
   match expr with
-  | IndexedAccess _
-  | NamedAccess _
+  | Identifier { name = "_"; _ } -> error ()
   | Identifier _
-  | ScopedIdentifier _ ->
+  | ScopedIdentifier _
+  | IndexedAccess _
+  | NamedAccess _ ->
     reparse_expression_as_lvalue expr
-  | _ -> Parse_error.fatal (Ast_utils.expression_loc expr, Parse_error.InvalidAssignmentPattern)
+  | _ -> error ()
 
 and assert_expression_is_lvalue_expression expr =
   let open Expression in

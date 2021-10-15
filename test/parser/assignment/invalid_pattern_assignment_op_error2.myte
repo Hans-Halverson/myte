@@ -1,0 +1,5 @@
+module test
+
+fun test() {
+  _ += 1;
+}

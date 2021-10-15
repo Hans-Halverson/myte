@@ -62,15 +62,18 @@ fun shifts() {
 
 type Rec { foo: Int, bar: Bool }
 
-fun leftHandAccess(x: Rec) {
+fun leftHandAccess(x: Rec, y: Vec<Int>, z: Map<String, Int>) {
   // Success
   x.foo += 1;
   x.foo += (1: Int);
+  y[0] += 1;
 
   // Failure
   x.foo += (1: Byte);
   x.foo += "";
   x.bar += 1;
+  y[0] += "";
+  z[""] += 1;
 }
 
 fun main() {}

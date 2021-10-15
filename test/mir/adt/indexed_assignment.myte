@@ -10,6 +10,8 @@ type Rec4 { foo: Int, bar: Int, baz: Rec3 }
 
 type Tup1 (Rec3)
 
+fun getInt(): Int = 1
+
 fun simpleAccesses(r1: Rec1, r2: Rec2) {
   // Simple accesses
   r1.foo = 1;
@@ -26,9 +28,17 @@ fun nestedAccesses(r3: Rec3, r4: Rec4) {
   r4.baz.bar.foo = "string";
  }
 
- fun namedAndIndexedAccess(t1: Tup1) {
-   // Named access after indexed access
-   t1[0].bar.foo = "string";
- }
+fun namedAndIndexedAccess(t1: Tup1) {
+  // Named access after indexed access
+  t1[0].bar.foo = "string";
+}
+
+fun accessOperatorAssign(r1: Rec1, r3: Rec3, t1: Tup1) {
+  r1.foo += 1;
+  r1.foo += getInt();
+
+  r3.bar.baz += 1;
+  t1[0].baz += 1;
+}
 
 fun main() {}

@@ -259,6 +259,10 @@ label @27:
   Ret
 }
 
+func int @test.getInt() {
+  Ret 1
+}
+
 func unit @test.testVecGet(std.vec.Vec<int>* %146, std.vec.Vec<bool>* %147) {
   %148 := Call int @std.vec.Vec.get<int>(%146, 7)
   %149 := Call bool @std.vec.Vec.get<bool>(%147, 7)
@@ -274,6 +278,17 @@ func unit @test.testVecSet(std.vec.Vec<int>* %150, std.vec.Vec<bool>* %151) {
 func unit @test.testVecPush(std.vec.Vec<int>* %154, std.vec.Vec<bool>* %155) {
   %156 := Call unit @std.vec.Vec.push<int>(%154, 1)
   %157 := Call unit @std.vec.Vec.push<bool>(%155, true)
+  Ret
+}
+
+func unit @test.testVecOperatorAssign(std.vec.Vec<int>* %158) {
+  %159 := Call int @std.vec.Vec.get<int>(%158, 7)
+  %160 := Add int %159, 8
+  %161 := Call unit @std.vec.Vec.set<int>(%158, 7, %160)
+  %162 := Call int @std.vec.Vec.get<int>(%158, 7)
+  %163 := Call int @test.getInt()
+  %164 := Add int %162, %163
+  %165 := Call unit @std.vec.Vec.set<int>(%158, 7, %164)
   Ret
 }
 

@@ -2299,10 +2299,16 @@ and check_statement ~cx stmt : Loc.t * Types.TVar.t =
           Some (expr_loc, TVar expr_tvar_id)
         (* Maps can have indexed assignment, must unpack expression type option to find value type *)
         | ADT { adt_sig; _ } when adt_sig == !Std_lib.map_adt_sig ->
-          (match Type_context.find_rep_type ~cx (TVar expr_tvar_id) with
-          | ADT { adt_sig; type_args = [element_ty] } when adt_sig == !Std_lib.option_adt_sig ->
-            Some (expr_loc, element_ty)
-          | _ -> failwith "Expected option type")
+          (match op with
+          (* Cannot operator assign on map indexing, as lvalue has option type *)
+          | Some _ ->
+            error_not_int ~cx loc (TVar expr_tvar_id);
+            None
+          | None ->
+            (match Type_context.find_rep_type ~cx (TVar expr_tvar_id) with
+            | ADT { adt_sig; type_args = [element_ty] } when adt_sig == !Std_lib.option_adt_sig ->
+              Some (expr_loc, element_ty)
+            | _ -> failwith "Expected option type"))
         | ADT { adt_sig = { variants; _ }; _ } when SMap.cardinal variants = 1 ->
           Type_context.add_error ~cx loc (InvalidLValue InvalidLValueTuple);
           None

@@ -69,16 +69,26 @@ test/analyze/type_check/assignment/operators.myte:54:8-12
     |         ^^^^
 
 Error: Expected type `Int` but found `Byte`
-test/analyze/type_check/assignment/operators.myte:71:11-20
- 71 |   x.foo += (1: Byte);
+test/analyze/type_check/assignment/operators.myte:72:11-20
+ 72 |   x.foo += (1: Byte);
     |            ^^^^^^^^^
 
 Error: Expected type `Int` but found `String`
-test/analyze/type_check/assignment/operators.myte:72:11-13
- 72 |   x.foo += "";
+test/analyze/type_check/assignment/operators.myte:73:11-13
+ 73 |   x.foo += "";
     |            ^^
 
 Error: Expected type `Int` but found `Bool`
-test/analyze/type_check/assignment/operators.myte:73:2-7
- 73 |   x.bar += 1;
+test/analyze/type_check/assignment/operators.myte:74:2-7
+ 74 |   x.bar += 1;
+    |   ^^^^^
+
+Error: Expected type `Int` but found `String`
+test/analyze/type_check/assignment/operators.myte:75:10-12
+ 75 |   y[0] += "";
+    |           ^^
+
+Error: Expected type `Int` but found `Option<Int>`
+test/analyze/type_check/assignment/operators.myte:76:2-7
+ 76 |   z[""] += 1;
     |   ^^^^^

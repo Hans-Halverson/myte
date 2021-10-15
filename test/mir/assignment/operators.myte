@@ -1,0 +1,35 @@
+module test
+
+var global: Int = 0
+
+fun getInt(): Int = 1
+
+fun getInt2(): Int = 2
+
+fun testGlobal() {
+  global += 1;
+  global -= getInt();
+}
+
+fun testOperators() {
+  var x = getInt();
+
+  x += 1;
+  x -= 2;
+  x *= 3;
+  x /= 4;
+  x %= 5;
+  x &= 6;
+  x |= 7;
+  x ^= 8;
+  x <<= 9;
+  x >>= 10;
+  x >>>= 11;
+}
+
+fun testOrder() {
+  var x = getInt();
+  x += getInt2();
+}
+
+fun main() {}
