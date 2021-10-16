@@ -1,13 +1,13 @@
 module t
 
 // Simple constant folding
-val int1: Int = 1 + 2
-val bool1: Bool = true && false
+var int1: Int = 1 + 2
+var bool1: Bool = true && false
 
 // Complex constant folding
-val int2: Int = 8 * -(34) - 2 * 7
-val bool2: Bool = (true || false) && (!false || false)
-val mixed: Bool = (2 * 6) == (3 * 4)
+var int2: Int = 8 * -(34) - 2 * 7
+var bool2: Bool = (true || false) && (!false || false)
+var mixed: Bool = (2 * 6) == (3 * 4)
 
 fun useBool(b: Bool) {}
 fun useInt(i: Int) {}

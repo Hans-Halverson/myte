@@ -400,11 +400,15 @@ module InstructionsMapper = struct
           (this#map_pointer_value ~block v :> Value.comparable_value)
 
       method map_phis ~block (phis : Block.phi list) =
-        List.map
+        List.filter_map
           (fun (value_type, var_id, args) ->
+            current_instruction_edit <- Keep;
             let var_id' = this#map_result_variable ~block var_id in
             let args' = IMap.map (this#map_value ~block) args in
-            (value_type, var_id', args'))
+            if current_instruction_edit = Remove then
+              None
+            else
+              Some (value_type, var_id', args'))
           phis
 
       method map_block_next ~block next =

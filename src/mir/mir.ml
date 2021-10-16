@@ -175,6 +175,7 @@ and Global : sig
     loc: Loc.t;
     ty: Type.t;
     mutable init_val: Value.t option;
+    is_constant: bool;
   }
 end =
   Global

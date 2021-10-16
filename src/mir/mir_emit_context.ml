@@ -233,7 +233,9 @@ let add_string_literal ~ecx loc string =
   in
   let length = String.length string in
   let ty = `ArrayT (`ByteT, length) in
-  let global = { Global.loc; name; ty; init_val = Some (`ArrayStringL string) } in
+  let global =
+    { Global.loc; name; ty; init_val = Some (`ArrayStringL string); is_constant = true }
+  in
   add_global ~ecx global;
   `PointerL (ty, name)
 
@@ -500,6 +502,7 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
         name = vtable_label;
         ty = vtable_mir_type;
         init_val = Some vtable_val;
+        is_constant = true;
       };
     let vtable = `PointerL (vtable_mir_type, vtable_label) in
 
@@ -720,7 +723,9 @@ let get_global_pointer ~ecx binding =
     (* Add global to MIR globals map *)
     let var_decl = Bindings.get_var_decl binding in
     let ty = to_mir_type ~ecx (find_rep_non_generic_type ~ecx (TVar var_decl.tvar)) in
-    add_global ~ecx { Global.loc; name; ty; init_val = None };
+    add_global
+      ~ecx
+      { Global.loc; name; ty; init_val = None; is_constant = decl_node.kind = Immutable };
 
     `PointerL (ty, name)
 

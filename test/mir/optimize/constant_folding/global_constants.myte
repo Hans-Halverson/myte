@@ -1,0 +1,33 @@
+module test
+
+// Constant global
+val int1: Int = 2
+
+// Global is calculated to be constant
+val int2: Int = 2 + 4 * 8
+
+var int3: Int = 2
+
+var int4: Int = 2 + 7
+
+// Global depends on another global
+val int5: Int = int2 - 100
+
+fun testFolded() {
+  use(int1 * 5);
+  use(int2 * 2);
+  use(int5 * 2);
+}
+
+fun testNotFolded() {
+  // Not folded as variable is mutable
+  use(int3 * 2);
+  use(int4 * 3);
+}
+
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testFolded);
+  use(testNotFolded);
+}

@@ -1,10 +1,16 @@
 module test
 
-// Constants are put in data section and do not have init blocks
-val constantB: Byte = 123
-val constantI: Int = 123
-val constantL: Long = 123
-val constantF: () -> Byte = getByte
+// Immutable constants are inlined and do not have init blocks
+val immConstantB: Byte = 125
+val immConstantI: Int = 125
+val immConstantL: Int = 125
+val immConstantF: () -> Byte = getByte
+
+// Mutable constants are put in data section and do not have init blocks
+var constantB: Byte = 123
+var constantI: Int = 123
+var constantL: Long = 123
+var constantF: () -> Byte = getByte
 
 // Non-constants are put in bss section and have init blocks
 val b: Byte = getByte()
@@ -23,6 +29,10 @@ fun getFunction(): () -> Byte = getByte
 fun use<T>(x: T) {}
 
 fun main() {
+  use(immConstantB);
+  use(immConstantI);
+  use(immConstantL);
+  use(immConstantF);
   use(constantB);
   use(constantI);
   use(constantL);

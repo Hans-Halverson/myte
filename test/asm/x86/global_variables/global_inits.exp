@@ -38,6 +38,14 @@ test.getLong:
   movq $24, %rax
   ret
 _main:
+  movb $125, %dil
+  call test.use$byte$
+  movl $125, %edi
+  call test.use$int$
+  movl $125, %edi
+  call test.use$int$
+  leaq test.getByte(%rip), %rdi
+  call test.use$fn$
   movb test.constantB(%rip), %dil
   call test.use$byte$
   movl test.constantI(%rip), %edi

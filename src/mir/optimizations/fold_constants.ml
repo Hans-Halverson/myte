@@ -146,6 +146,8 @@ class calc_constants_visitor ~ocx =
 
     val mutable var_id_constants : folded_constant IMap.t = IMap.empty
 
+    val mutable global_constants : folded_constant SMap.t = SMap.empty
+
     (* Whether a new constant was created on this pass *)
     val mutable has_new_constant = false
 
@@ -160,6 +162,11 @@ class calc_constants_visitor ~ocx =
         has_new_constant <- true
       )
 
+    method add_global_constant name value =
+      global_constants <- SMap.add name value global_constants;
+      has_new_constant <- true;
+      ocx.program.globals <- SMap.remove name ocx.program.globals
+
     method lookup_constant var_id = IMap.find_opt var_id var_id_constants
 
     method get_var_id_constants () = var_id_constants
@@ -169,7 +176,9 @@ class calc_constants_visitor ~ocx =
       let rec iter () =
         visited_blocks <- ISet.empty;
         has_new_constant <- false;
+        this#find_constant_globals ();
         this#visit_program ();
+        this#fold_global_inits ();
         (* Remove pruned blocks *)
         IMap.iter
           (fun block_id block ->
@@ -188,6 +197,61 @@ class calc_constants_visitor ~ocx =
           ()
       in
       iter ()
+
+    method find_constant_globals () =
+      SMap.iter
+        (fun name global ->
+          match global.Global.init_val with
+          (* Skip if global cannot be constant or has already been marked as constant *)
+          | Some _ when (not global.is_constant) || SMap.mem name global_constants -> ()
+          | None -> ()
+          | Some init_val ->
+            (match var_id_of_value_opt init_val with
+            | Some var_id ->
+              (match IMap.find_opt var_id var_id_constants with
+              | Some constant -> this#add_global_constant name constant
+              | None -> ())
+            (* Globals initialized with constant value have constant propagated *)
+            | None ->
+              (match init_val with
+              | `UnitL -> this#add_global_constant name UnitConstant
+              | `BoolL lit -> this#add_global_constant name (BoolConstant lit)
+              | `ByteL lit -> this#add_global_constant name (ByteConstant lit)
+              | `IntL lit -> this#add_global_constant name (IntConstant lit)
+              | `LongL lit -> this#add_global_constant name (LongConstant lit)
+              | `FunctionL lit -> this#add_global_constant name (FunctionConstant lit)
+              | _ -> ())))
+        ocx.program.globals
+
+    (* Constant folding may determine that globals are initialized to a constant. These take the
+       form of stores to globals in the init function, which should be removed. *)
+    method fold_global_inits () =
+      match SMap.find_opt init_func_name ocx.Ocx.program.funcs with
+      | None -> ()
+      | Some init_func ->
+        let mapper =
+          object (mapper)
+            inherit Mir_mapper.InstructionsMapper.t ~program:ocx.Ocx.program
+
+            method! map_instruction ~block:_ ((_, instr) as instruction) =
+              (match instr with
+              | Store (`PointerL (_, name), value) ->
+                (match (SMap.find_opt name ocx.program.globals, var_id_of_value_opt value) with
+                | (Some global, Some var_id) ->
+                  (match IMap.find_opt var_id var_id_constants with
+                  | Some constant ->
+                    mapper#mark_instruction_removed ();
+                    if global.is_constant then
+                      this#add_global_constant name constant
+                    else
+                      global.init_val <- Some (mir_value_of_constant constant)
+                  | None -> ())
+                | _ -> ())
+              | _ -> ());
+              [instruction]
+          end
+        in
+        mapper#map_function init_func
 
     method! visit_block block =
       if this#check_visited_block block.id then
@@ -381,22 +445,16 @@ class calc_constants_visitor ~ocx =
       | GtEq (var_id, left, right) -> try_fold_comparison var_id left right ( >= )
       | Trunc (var_id, arg, ty) -> try_fold_numeric_constant var_id arg (TruncOp ty)
       | SExt (var_id, arg, ty) -> try_fold_numeric_constant var_id arg (SExtOp ty)
+      (* Propagate global constants through pointers *)
+      | Load (var_id, `PointerL (_, label)) ->
+        (match SMap.find_opt label global_constants with
+        | None -> ()
+        | Some constant -> this#add_constant var_id constant)
       | _ -> ()
   end
 
 class update_constants_mapper ~ocx var_id_constants =
-  let var_map =
-    IMap.map
-      (fun constant ->
-        match constant with
-        | UnitConstant -> `UnitL
-        | BoolConstant b -> `BoolL b
-        | ByteConstant b -> `ByteL b
-        | IntConstant i -> `IntL i
-        | LongConstant l -> `LongL l
-        | FunctionConstant label -> `FunctionL label)
-      var_id_constants
-  in
+  let var_map = IMap.map mir_value_of_constant var_id_constants in
   object (this)
     inherit Mir_mapper.rewrite_vars_mapper ~program:ocx.Ocx.program var_map
 
@@ -408,43 +466,9 @@ class update_constants_mapper ~ocx var_id_constants =
       var_id
   end
 
-(* Constant folding may determine that globals are initialized to a constant. These take the form of
-  stores to globals in the init function, which should be removed and replaced with a constant
-  initialization of the global variable. *)
-let fold_global_inits ~ocx =
-  match SMap.find_opt init_func_name ocx.Ocx.program.funcs with
-  | None -> ()
-  | Some init_func ->
-    let mapper =
-      object (this)
-        inherit Mir_mapper.InstructionsMapper.t ~program:ocx.Ocx.program
-
-        method! map_instruction ~block:_ ((_, instr) as instruction) =
-          let open Instruction in
-          (match instr with
-          | Store (`PointerL (_, name), value) when is_literal value ->
-            (match SMap.find_opt name ocx.Ocx.program.globals with
-            | None -> ()
-            | Some global ->
-              global.init_val <- Some value;
-              this#mark_instruction_removed ())
-          | _ -> ());
-          [instruction]
-      end
-    in
-    mapper#map_function init_func
-
 let fold_constants_and_prune ~ocx =
   let calc_visitor = new calc_constants_visitor ~ocx in
   ignore (calc_visitor#run ());
   let var_id_constants = calc_visitor#get_var_id_constants () in
   let update_constants_mapper = new update_constants_mapper ~ocx var_id_constants in
-  IMap.iter
-    (fun _ block ->
-      let open Block in
-      (* Remove constant phis *)
-      block.phis <-
-        List.filter (fun (_, var_id, _) -> not (IMap.mem var_id var_id_constants)) block.phis;
-      update_constants_mapper#map_block block)
-    ocx.Ocx.program.blocks;
-  fold_global_inits ~ocx
+  IMap.iter (fun _ block -> update_constants_mapper#map_block block) ocx.Ocx.program.blocks
