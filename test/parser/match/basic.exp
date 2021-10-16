@@ -1,7 +1,7 @@
 test/parser/match/basic.myte
 {
   node: Module,
-  loc: 1:0-126:1,
+  loc: 1:0-138:1,
   module: {
     node: Module,
     loc: 1:0-1:11,
@@ -1024,7 +1024,7 @@ test/parser/match/basic.myte
                 },
                 guard: None,
                 right: {
-                  node: If,
+                  node: IfStatement,
                   loc: 84:11-84:39,
                   test: {
                     node: BoolLiteral,
@@ -1516,6 +1516,147 @@ test/parser/match/basic.myte
                 },
               },
             ],
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+      builtin: false,
+      static: false,
+      override: false,
+    },
+    {
+      node: Function,
+      loc: 128:0-138:1,
+      name: {
+        node: Identifier,
+        loc: 128:4-128:19,
+        name: "nestedIfInMatch",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 128:22-138:1,
+        statements: [
+          {
+            node: MatchStatement,
+            loc: 130:2-132:3,
+            args: [
+              {
+                node: Identifier,
+                loc: 130:9-130:10,
+                name: "x",
+              },
+            ],
+            cases: [
+              {
+                node: MatchCase,
+                loc: 131:6-131:28,
+                pattern: {
+                  node: Wildcard,
+                  loc: 131:6-131:7,
+                },
+                guard: None,
+                right: {
+                  node: IfStatement,
+                  loc: 131:11-131:28,
+                  test: {
+                    node: Identifier,
+                    loc: 131:15-131:16,
+                    name: "y",
+                  },
+                  conseq: {
+                    node: Block,
+                    loc: 131:18-131:20,
+                    statements: [],
+                  },
+                  altern: {
+                    node: Block,
+                    loc: 131:26-131:28,
+                    statements: [],
+                  },
+                },
+              },
+            ],
+          },
+          {
+            node: VariableDeclaration,
+            loc: 135:2-137:4,
+            kind: Immutable,
+            pattern: {
+              node: ScopedIdentifier,
+              loc: 135:6-135:7,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 135:6-135:7,
+                name: "x",
+              },
+            },
+            init: {
+              node: MatchExpression,
+              loc: 135:10-137:3,
+              args: [
+                {
+                  node: Identifier,
+                  loc: 135:17-135:18,
+                  name: "x",
+                },
+              ],
+              cases: [
+                {
+                  node: MatchCase,
+                  loc: 136:6-136:34,
+                  pattern: {
+                    node: Wildcard,
+                    loc: 136:6-136:7,
+                  },
+                  guard: None,
+                  right: {
+                    node: IfExpression,
+                    loc: 136:11-136:34,
+                    test: {
+                      node: Identifier,
+                      loc: 136:15-136:16,
+                      name: "x",
+                    },
+                    conseq: {
+                      node: Block,
+                      loc: 136:18-136:23,
+                      statements: [
+                        {
+                          node: ExpressionStatement,
+                          loc: 136:20-136:21,
+                          expression: {
+                            node: Identifier,
+                            loc: 136:20-136:21,
+                            name: "y",
+                          },
+                          is_value: true,
+                        },
+                      ],
+                    },
+                    altern: {
+                      node: Block,
+                      loc: 136:29-136:34,
+                      statements: [
+                        {
+                          node: ExpressionStatement,
+                          loc: 136:31-136:32,
+                          expression: {
+                            node: Identifier,
+                            loc: 136:31-136:32,
+                            name: "z",
+                          },
+                          is_value: true,
+                        },
+                      ],
+                    },
+                  },
+                },
+              ],
+            },
+            annot: None,
           },
         ],
       },

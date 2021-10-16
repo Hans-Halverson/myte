@@ -142,9 +142,9 @@ and node_of_statement stmt =
   match stmt with
   | VariableDeclaration decl -> node_of_variable_decl decl
   | FunctionDeclaration decl -> node_of_function decl
-  | Expression expr -> node_of_expression_stmt expr
+  | ExpressionStatement expr -> node_of_expression_stmt expr
   | Block block -> node_of_block block
-  | If if_ -> node_of_if if_
+  | If if_ -> node_of_if ~is_expr:false if_
   | While while_ -> node_of_while while_
   | For for_ -> node_of_for for_
   | Return ret -> node_of_return ret
@@ -172,6 +172,7 @@ and node_of_expression expr =
   | LogicalAnd logical -> node_of_logical_and logical
   | LogicalOr logical -> node_of_logical_or logical
   | Ternary ternary -> node_of_ternary ternary
+  | If if_ -> node_of_if ~is_expr:true if_
   | Call call -> node_of_call call
   | IndexedAccess access -> node_of_indexed_access access
   | NamedAccess access -> node_of_named_access access
@@ -202,8 +203,16 @@ and node_of_type ty =
   | Function func -> node_of_function_type func
   | Trait trait -> node_of_trait_type trait
 
-and node_of_expression_stmt (loc, expr) =
-  node "ExpressionStatement" loc [("expression", node_of_expression expr)]
+and node_of_expression_stmt stmt =
+  let { Statement.ExpressionStatement.loc; expr; is_value } = stmt in
+  let nodes = [("expression", node_of_expression expr)] in
+  let nodes =
+    if is_value then
+      nodes @ [("is_value", Bool true)]
+    else
+      nodes
+  in
+  node "ExpressionStatement" loc nodes
 
 and node_of_identifier id =
   let { Identifier.loc; name } = id in
@@ -446,19 +455,6 @@ and node_of_block block =
   let { Statement.Block.loc; statements } = block in
   node "Block" loc [("statements", List (List.map node_of_statement statements))]
 
-and node_of_if if_ =
-  let { Statement.If.loc; test; conseq; altern } = if_ in
-  let altern =
-    match altern with
-    | Block block -> node_of_block block
-    | If if_ -> node_of_if if_
-    | None -> None
-  in
-  node
-    "If"
-    loc
-    [("test", node_of_expression test); ("conseq", node_of_block conseq); ("altern", altern)]
-
 and node_of_while while_ =
   let { Statement.While.loc; test; body } = while_ in
   node "While" loc [("test", node_of_expression test); ("body", node_of_block body)]
@@ -505,6 +501,25 @@ and node_of_assignment assign =
         | Expression expr -> node_of_expression expr );
       ("expr", node_of_expression expr);
     ]
+
+and node_of_if ~is_expr if_ =
+  let { If.loc; test; conseq; altern } = if_ in
+  let name =
+    if is_expr then
+      "IfExpression"
+    else
+      "IfStatement"
+  in
+  let altern =
+    match altern with
+    | Block block -> node_of_block block
+    | If if_ -> node_of_if ~is_expr if_
+    | None -> None
+  in
+  node
+    name
+    loc
+    [("test", node_of_expression test); ("conseq", node_of_block conseq); ("altern", altern)]
 
 and node_of_match match_ ~is_expr =
   let { Match.loc; args; cases } = match_ in

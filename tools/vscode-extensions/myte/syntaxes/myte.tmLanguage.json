@@ -107,6 +107,7 @@
 				{ "include": "#ternary-expression" },
 				{ "include": "#set-literal" },
 				{ "include": "#map-literal" },
+				{ "include": "#if" },
 				{ "include": "#match" },
 				{ "include": "#anonymous-function" },
 				{
@@ -299,6 +300,47 @@
 					"name": "punctuation.comma.myte",
 					"match": ","
 				}
+			]
+		},
+		"if": {
+			"name": "meta.if.myte",
+			"begin": "\\bif\\b",
+			"beginCaptures": {
+				"0": { "name": "keyword.control.myte" }
+			},
+			"end": "(?<=\\})",
+			"patterns": [
+				{ "include": "#comments" },
+				{
+					"name": "meta.if.test.myte",
+					"begin": "\\(",
+					"beginCaptures": {
+						"0": { "name": "punctuation.brackets.round.myte" }
+					},
+					"end": "\\)",
+					"endCaptures": {
+						"0": { "name": "punctuation.brackets.round.myte" }
+					},
+					"patterns": [
+						{ "include": "#expressions" }
+					]
+				},
+				{
+					"name": "meta.if.block.myte",
+			    "begin": "{",
+					"beginCaptures": {
+						"0": { "name": "punctuation.brackets.curly.myte" }
+					},
+					"end": "(})(\\s*\\b(else)\\b)?",
+					"endCaptures": {
+						"1": { "name": "punctuation.brackets.curly.myte" },
+						"3": { "name": "keyword.control.myte" }
+					},
+					"patterns": [
+						{ "include": "#statements" }
+					]
+				},
+				{ "include": "#if" }
 			]
 		},
 		"literals": {
@@ -756,9 +798,10 @@
 				{ "include": "#variable-declarations" },
 				{
 					"name": "keyword.control.myte",
-					"match": "\\b(if|else|while|break|continue|return)\\b"
+					"match": "\\b(while|break|continue|return)\\b"
 				},
 				{ "include": "#for" },
+				{ "include": "#if" },
 				{ "include": "#match" },
 				{ "include": "#set-literal" },
 				{ "include": "#block" },

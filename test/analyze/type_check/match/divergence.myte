@@ -45,9 +45,6 @@ fun testIfDivergence() {
     | "b" -> 1
     | "c" -> if (true) {
       return;
-    }
-    | "d" -> if (true) {
-      return;
     } else {
     }
     | _ -> if (true) {
@@ -117,6 +114,7 @@ fun testNestedMatchDivergence() {
       }
       | false -> if (true) {
         return;
+      } else {
       }
     }
   };
@@ -128,6 +126,7 @@ fun testNestedMatchDivergence() {
         | true -> return
         | false -> if (true) {
           return;
+        } else {
         }
       }
       | false -> return

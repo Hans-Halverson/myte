@@ -869,7 +869,7 @@ and check_function_expression_body ~cx expr return_ty =
   Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) return_ty
 
 and check_function_block_body ~cx block return_ty =
-  let (block_loc, block_tvar_id) = check_block ~cx block in
+  let (block_loc, block_tvar_id) = check_block ~cx ~is_expr:false block in
   (* If return type is never, check that block diverges *)
   if return_ty = Type.Never then
     Type_context.assert_is_subtype ~cx block_loc (TVar block_tvar_id) return_ty
@@ -877,6 +877,8 @@ and check_function_block_body ~cx block return_ty =
 and check_expression ~cx expr =
   let open Ast.Expression in
   match expr with
+  | If if_ -> check_if ~cx ~is_expr:true if_
+  | Match match_ -> check_match ~cx ~is_expr:true match_
   (* 
    * ============================
    *         Literals
@@ -1527,15 +1529,6 @@ and check_expression ~cx expr =
     (loc, tvar_id)
   (*
    * ============================
-   *       Match Expression
-   * ============================
-   *)
-  | Match ({ loc; _ } as match_) ->
-    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    check_match ~cx ~is_expr:true match_ (Type.TVar tvar_id);
-    (loc, tvar_id)
-  (*
-   * ============================
    *         Vec Literal
    * ============================
    *)
@@ -1671,9 +1664,52 @@ and check_expression ~cx expr =
     (loc, tvar_id)
   | Super _ -> failwith "TODO: Type check super expressions"
 
-and check_match ~cx ~is_expr match_ match_ty =
+and check_if ~cx ~is_expr if_ =
+  let { Ast.If.loc; test; conseq; altern } = if_ in
+  let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+
+  (* Check test expression, which must be of Bool type *)
+  let (test_loc, test_tvar_id) = check_expression ~cx test in
+  Type_context.assert_unify ~cx test_loc Bool (TVar test_tvar_id);
+
+  let (_, conseq_tvar_id) = check_block ~cx ~is_expr conseq in
+  let merge_branches (altern_loc, altern_tvar_id) =
+    let conseq_ty = Type_context.find_rep_type ~cx (TVar conseq_tvar_id) in
+    let altern_ty = Type_context.find_rep_type ~cx (TVar altern_tvar_id) in
+    match (conseq_ty, altern_ty) with
+    (* If diverges only if both branches diverge *)
+    | (Never, Never) -> Type.Never
+    (* If one branch diverges in expression, if can only evaluate to type of other branch *)
+    | (Never, ty)
+    | (ty, Never)
+      when is_expr ->
+      ty
+    (* If non-divergent expression, types of both branches must match *)
+    | _ when is_expr ->
+      Type_context.assert_unify ~cx altern_loc (TVar conseq_tvar_id) (TVar altern_tvar_id);
+      TVar conseq_tvar_id
+    (* If statement types of branches do not need to match, and statement has unit type *)
+    | _ -> Unit
+  in
+
+  let stmt_ty =
+    match altern with
+    | Block block -> merge_branches (check_block ~cx ~is_expr block)
+    | If if_ -> merge_branches (check_if ~cx ~is_expr if_)
+    | None ->
+      if is_expr then (
+        Type_context.add_error ~cx loc IfExpressionMissingElse;
+        Type.Any
+      ) else
+        Unit
+  in
+  ignore (Type_context.unify ~cx stmt_ty (TVar tvar_id));
+  (loc, tvar_id)
+
+and check_match ~cx ~is_expr match_ =
   let open Ast.Match in
-  let { args; cases; _ } = match_ in
+  let { loc; args; cases } = match_ in
+  let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
   let num_args = List.length args in
 
   (* Find arg types - if multiple args are present, wrap in tuple *)
@@ -1686,7 +1722,7 @@ and check_match ~cx ~is_expr match_ match_ty =
 
   let right_hand_ty =
     if is_expr then
-      match_ty
+      Type.TVar tvar_id
     else
       Unit
   in
@@ -1710,7 +1746,7 @@ and check_match ~cx ~is_expr match_ match_ty =
         let (rhs_loc, rhs_tvar_id) =
           match right with
           | Expression expr -> check_expression ~cx expr
-          | Statement stmt -> check_statement ~cx stmt
+          | Statement stmt -> check_statement ~cx ~is_expr stmt
         in
         let rhs_rep_ty = Type_context.find_rep_type ~cx (TVar rhs_tvar_id) in
         (* If right hand side never produces a value then ignore case *)
@@ -1724,7 +1760,8 @@ and check_match ~cx ~is_expr match_ match_ty =
   in
 
   (* If all cases diverge and do not evaluate to value, entire match never produces a value *)
-  if not case_evaluates_to_value then ignore (Type_context.unify ~cx Never match_ty)
+  if not case_evaluates_to_value then ignore (Type_context.unify ~cx Never (TVar tvar_id));
+  (loc, tvar_id)
 
 (* Verify that a pattern for a match with multiple args has the correct structure. Bindings and
    variables cannot appear at the top level. Do not error on other patterns, as type checking will
@@ -2041,11 +2078,12 @@ and check_enum_variant ~cx name loc ctor_decl =
     Type_context.add_error ~cx loc (MissingRecordConstructorFields field_names);
     Any
 
-and check_statement ~cx stmt : Loc.t * Types.TVar.t =
+and check_statement ~cx ~is_expr stmt =
   let open Ast.Statement in
   match stmt with
-  | Block block -> check_block ~cx block
-  | If if_ -> check_if ~cx if_
+  | Block block -> check_block ~cx ~is_expr block
+  | If if_ -> check_if ~cx ~is_expr if_
+  | Match match_ -> check_match ~cx ~is_expr match_
   (*
    * ============================
    *     Variable Declaration
@@ -2072,16 +2110,27 @@ and check_statement ~cx stmt : Loc.t * Types.TVar.t =
    *    Expression Statement
    * ============================
    *)
-  | Expression (loc, expr) ->
-    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+  | ExpressionStatement { loc; expr; is_value } ->
     let (_, expr_tvar_id) = check_expression ~cx expr in
-    (* Propagate never type from expression if expression diverges *)
+    (* Statement can only be a value (with no semicolon) if it is an expression position *)
+    if (not is_expr) && is_value then
+      Type_context.add_error ~cx loc ExpressionStatementMissingSemicolon;
+    (* If a value, loc is same as inner expression loc so use expression's tvar *)
+    let tvar_id =
+      if is_value then
+        expr_tvar_id
+      else
+        Type_context.mk_tvar_id ~cx ~loc
+    in
     let expr_rep_ty = Type_context.find_rep_type ~cx (TVar expr_tvar_id) in
     let expr_stmt_ty =
-      if expr_rep_ty = Never then
-        Type.Never
-      else
-        Unit
+      match expr_rep_ty with
+      (* Propagate never type from expression if expression diverges *)
+      | Never -> Type.Never
+      (* A semicolon means this is not a value, so force the unit return type *)
+      | _ when not is_value -> Unit
+      (* Otherwise this is a value, so propagate type of expression *)
+      | other -> other
     in
     ignore (Type_context.unify ~cx expr_stmt_ty (TVar tvar_id));
     (loc, tvar_id)
@@ -2134,7 +2183,7 @@ and check_statement ~cx stmt : Loc.t * Types.TVar.t =
     let (test_loc, test_tvar_id) = check_expression ~cx test in
     Type_context.assert_unify ~cx test_loc Bool (TVar test_tvar_id);
     Type_context.enter_loop ~cx;
-    ignore (check_block ~cx body);
+    ignore (check_block ~cx ~is_expr:false body);
     Type_context.exit_loop ~cx;
     ignore (Type_context.unify ~cx Unit (TVar tvar_id));
     (loc, tvar_id)
@@ -2167,7 +2216,7 @@ and check_statement ~cx stmt : Loc.t * Types.TVar.t =
       (pattern_loc, pattern_tvar_id)
       (iter_loc, element_ty);
     Type_context.enter_loop ~cx;
-    ignore (check_block ~cx body);
+    ignore (check_block ~cx ~is_expr:false body);
     Type_context.exit_loop ~cx;
     ignore (Type_context.unify ~cx Unit (TVar tvar_id));
     (loc, tvar_id)
@@ -2275,83 +2324,47 @@ and check_statement ~cx stmt : Loc.t * Types.TVar.t =
     | None -> ());
     ignore (Type_context.unify ~cx Unit (TVar tvar_id));
     (loc, tvar_id)
-  (*
-   * ============================
-   *       Match Statement
-   * ============================
-   *)
-  | Match ({ loc; _ } as match_) ->
-    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    check_match ~cx ~is_expr:false match_ (TVar tvar_id);
-    (loc, tvar_id)
 
-(*
- * ============================
- *       Block Statement
- * ============================
- *)
-and check_block ~cx block =
+and check_block ~cx ~is_expr block =
   let { Ast.Statement.Block.loc; statements } = block in
   let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-  let (is_reachable, first_unreachable_loc) =
+  let num_statements = List.length statements in
+  let stmt_expr_ty = ref None in
+  let (_, is_reachable, first_unreachable_loc) =
     List.fold_left
-      (fun ((is_reachable, first_unreachable_loc) as acc) stmt ->
-        let (stmt_loc, stmt_tvar_id) = check_statement ~cx stmt in
+      (fun (i, is_reachable, first_unreachable_loc) stmt ->
+        (* If this block is an expression, the last statement in the block must be an expression *)
+        let is_last_stmt = i = num_statements - 1 in
+        let is_expr = is_expr && is_last_stmt in
+        let (stmt_loc, stmt_tvar_id) = check_statement ~cx ~is_expr stmt in
+
+        (* Save type if statement is the block's value *)
+        if is_expr then stmt_expr_ty := Some (Type.TVar stmt_tvar_id);
+
         match (is_reachable, first_unreachable_loc) with
         (* Save loc of first statement that is unreachable in block *)
-        | (false, None) -> (false, Some stmt_loc)
+        | (false, None) -> (i + 1, false, Some stmt_loc)
         (* Do not collect locs of later unreachable statements, as first will error *)
-        | (false, Some _) -> acc
+        | (false, Some _) -> (i + 1, false, first_unreachable_loc)
         (* An inner statement that diverges makes later statements unreachable *)
         | (true, _) ->
           let stmt_rep_ty = Type_context.find_rep_type ~cx (TVar stmt_tvar_id) in
-          (stmt_rep_ty <> Never, None))
-      (true, None)
+          (i + 1, stmt_rep_ty <> Never, None))
+      (0, true, None)
       statements
   in
+
   (* Error on first unreachable statement in block *)
   (match first_unreachable_loc with
   | None -> ()
   | Some loc -> Type_context.add_error ~cx loc UnreachableStatement);
+
   (* Block diverges if end of block (beyond last statement) is never reached *)
   let stmt_ty =
     if is_reachable then
-      Type.Unit
+      Option.value !stmt_expr_ty ~default:Unit
     else
       Never
-  in
-  ignore (Type_context.unify ~cx stmt_ty (TVar tvar_id));
-  (loc, tvar_id)
-
-(*
- * ============================
- *         If Statement
- * ============================
- *)
-and check_if ~cx if_ =
-  let { Ast.Statement.If.loc; test; conseq; altern } = if_ in
-  let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-  let (test_loc, test_tvar_id) = check_expression ~cx test in
-  Type_context.assert_unify ~cx test_loc Bool (TVar test_tvar_id);
-  let (_, conseq_tvar_id) = check_block ~cx conseq in
-  let check_altern_divergence altern_tvar_id =
-    (* If diverges only if both conseq and altern exist and both diverge *)
-    let conseq_ty = Type_context.find_rep_type ~cx (TVar conseq_tvar_id) in
-    let altern_ty = Type_context.find_rep_type ~cx (TVar altern_tvar_id) in
-    if conseq_ty = Never && altern_ty = Never then
-      Type.Never
-    else
-      Unit
-  in
-  let stmt_ty =
-    match altern with
-    | None -> Type.Unit
-    | Block block ->
-      let (_, altern_tvar_id) = check_block ~cx block in
-      check_altern_divergence altern_tvar_id
-    | If if_ ->
-      let (_, altern_tvar_id) = check_if ~cx if_ in
-      check_altern_divergence altern_tvar_id
   in
   ignore (Type_context.unify ~cx stmt_ty (TVar tvar_id));
   (loc, tvar_id)

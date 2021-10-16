@@ -1,0 +1,215 @@
+test/parser/if/expression.myte
+{
+  node: Module,
+  loc: 1:0-9:1,
+  module: {
+    node: Module,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: Function,
+      loc: 3:0-9:1,
+      name: {
+        node: Identifier,
+        loc: 3:4-3:8,
+        name: "main",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 3:11-9:1,
+        statements: [
+          {
+            node: ExpressionStatement,
+            loc: 4:2-4:28,
+            expression: {
+              node: IfExpression,
+              loc: 4:3-4:26,
+              test: {
+                node: Identifier,
+                loc: 4:7-4:8,
+                name: "a",
+              },
+              conseq: {
+                node: Block,
+                loc: 4:10-4:15,
+                statements: [
+                  {
+                    node: ExpressionStatement,
+                    loc: 4:12-4:13,
+                    expression: {
+                      node: Identifier,
+                      loc: 4:12-4:13,
+                      name: "b",
+                    },
+                    is_value: true,
+                  },
+                ],
+              },
+              altern: {
+                node: Block,
+                loc: 4:21-4:26,
+                statements: [
+                  {
+                    node: ExpressionStatement,
+                    loc: 4:23-4:24,
+                    expression: {
+                      node: Identifier,
+                      loc: 4:23-4:24,
+                      name: "c",
+                    },
+                    is_value: true,
+                  },
+                ],
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 6:2-6:46,
+            expression: {
+              node: IfExpression,
+              loc: 6:3-6:44,
+              test: {
+                node: Identifier,
+                loc: 6:7-6:8,
+                name: "a",
+              },
+              conseq: {
+                node: Block,
+                loc: 6:10-6:15,
+                statements: [
+                  {
+                    node: ExpressionStatement,
+                    loc: 6:12-6:13,
+                    expression: {
+                      node: Identifier,
+                      loc: 6:12-6:13,
+                      name: "b",
+                    },
+                    is_value: true,
+                  },
+                ],
+              },
+              altern: {
+                node: IfExpression,
+                loc: 6:21-6:44,
+                test: {
+                  node: Identifier,
+                  loc: 6:25-6:26,
+                  name: "d",
+                },
+                conseq: {
+                  node: Block,
+                  loc: 6:28-6:33,
+                  statements: [
+                    {
+                      node: ExpressionStatement,
+                      loc: 6:30-6:31,
+                      expression: {
+                        node: Identifier,
+                        loc: 6:30-6:31,
+                        name: "c",
+                      },
+                      is_value: true,
+                    },
+                  ],
+                },
+                altern: {
+                  node: Block,
+                  loc: 6:39-6:44,
+                  statements: [
+                    {
+                      node: ExpressionStatement,
+                      loc: 6:41-6:42,
+                      expression: {
+                        node: Identifier,
+                        loc: 6:41-6:42,
+                        name: "e",
+                      },
+                      is_value: true,
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          {
+            node: VariableDeclaration,
+            loc: 8:2-8:34,
+            kind: Immutable,
+            pattern: {
+              node: ScopedIdentifier,
+              loc: 8:6-8:7,
+              scopes: [],
+              name: {
+                node: Identifier,
+                loc: 8:6-8:7,
+                name: "x",
+              },
+            },
+            init: {
+              node: IfExpression,
+              loc: 8:10-8:33,
+              test: {
+                node: Identifier,
+                loc: 8:14-8:15,
+                name: "a",
+              },
+              conseq: {
+                node: Block,
+                loc: 8:17-8:22,
+                statements: [
+                  {
+                    node: ExpressionStatement,
+                    loc: 8:19-8:20,
+                    expression: {
+                      node: Identifier,
+                      loc: 8:19-8:20,
+                      name: "b",
+                    },
+                    is_value: true,
+                  },
+                ],
+              },
+              altern: {
+                node: Block,
+                loc: 8:28-8:33,
+                statements: [
+                  {
+                    node: ExpressionStatement,
+                    loc: 8:30-8:31,
+                    expression: {
+                      node: Identifier,
+                      loc: 8:30-8:31,
+                      name: "c",
+                    },
+                    is_value: true,
+                  },
+                ],
+              },
+            },
+            annot: None,
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+      builtin: false,
+      static: false,
+      override: false,
+    },
+  ],
+}

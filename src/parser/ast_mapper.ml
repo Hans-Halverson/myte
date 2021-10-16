@@ -46,7 +46,8 @@ class mapper =
         | VariableDeclaration s ->
           id_map this#variable_declaration s stmt (fun s' -> VariableDeclaration s')
         | FunctionDeclaration s -> id_map this#function_ s stmt (fun s' -> FunctionDeclaration s')
-        | Expression s -> id_map this#expression_statement s stmt (fun s' -> Expression s')
+        | ExpressionStatement s ->
+          id_map this#expression_statement s stmt (fun s' -> ExpressionStatement s')
         | Block s -> id_map this#block s stmt (fun s' -> Block s')
         | If s -> id_map this#if_ s stmt (fun s' -> If s')
         | While s -> id_map this#while_ s stmt (fun s' -> While s')
@@ -78,6 +79,7 @@ class mapper =
         | LogicalAnd e -> id_map this#logical_and e expr (fun e' -> LogicalAnd e')
         | LogicalOr e -> id_map this#logical_or e expr (fun e' -> LogicalOr e')
         | Ternary e -> id_map this#ternary e expr (fun e' -> Ternary e')
+        | If e -> id_map this#if_ e expr (fun e' -> If e')
         | Call e -> id_map this#call e expr (fun e' -> Call e')
         | IndexedAccess e -> id_map this#indexed_access e expr (fun e' -> IndexedAccess e')
         | NamedAccess e -> id_map this#named_access e expr (fun e' -> NamedAccess e')
@@ -462,12 +464,13 @@ class mapper =
       | Signature -> body
 
     method expression_statement stmt =
-      let (loc, expr) = stmt in
+      let open Statement.ExpressionStatement in
+      let { loc; expr; is_value } = stmt in
       let expr' = this#expression expr in
       if expr == expr' then
         stmt
       else
-        (loc, expr')
+        { loc; expr = expr'; is_value }
 
     method block block =
       let open Statement.Block in
@@ -477,24 +480,6 @@ class mapper =
         block
       else
         { loc; statements = statements' }
-
-    method if_ if_ =
-      let open Statement.If in
-      let { loc; test; conseq; altern } = if_ in
-      let test' = this#expression test in
-      let conseq' = this#block conseq in
-      let altern' = this#if_altern altern in
-      if test == test' && conseq == conseq' && altern == altern' then
-        if_
-      else
-        { loc; test = test'; conseq = conseq'; altern = altern' }
-
-    method if_altern altern =
-      let open Statement.If in
-      match altern with
-      | Block block -> id_map this#block block altern (fun block' -> Block block')
-      | If if_ -> id_map this#if_ if_ altern (fun if_' -> If if_')
-      | None -> altern
 
     method while_ while_ =
       let open Statement.While in
@@ -544,6 +529,24 @@ class mapper =
         assign
       else
         { loc; op; lvalue = lvalue'; expr = expr' }
+
+    method if_ if_ =
+      let open If in
+      let { loc; test; conseq; altern } = if_ in
+      let test' = this#expression test in
+      let conseq' = this#block conseq in
+      let altern' = this#if_altern altern in
+      if test == test' && conseq == conseq' && altern == altern' then
+        if_
+      else
+        { loc; test = test'; conseq = conseq'; altern = altern' }
+
+    method if_altern altern =
+      let open If in
+      match altern with
+      | Block block -> id_map this#block block altern (fun block' -> Block block')
+      | If if_ -> id_map this#if_ if_ altern (fun if_' -> If if_')
+      | None -> altern
 
     method match_ match_ =
       let open Match in

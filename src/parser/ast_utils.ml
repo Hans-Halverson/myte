@@ -5,7 +5,7 @@ let statement_loc stmt =
   match stmt with
   | VariableDeclaration { VariableDeclaration.loc; _ }
   | FunctionDeclaration { Function.loc; _ }
-  | Expression (loc, _)
+  | ExpressionStatement { ExpressionStatement.loc; _ }
   | Block { Block.loc; _ }
   | If { If.loc; _ }
   | While { While.loc; _ }
@@ -36,6 +36,7 @@ let expression_loc expr =
   | LogicalAnd { loc; _ }
   | LogicalOr { loc; _ }
   | Ternary { loc; _ }
+  | If { loc; _ }
   | Call { loc; _ }
   | IndexedAccess { loc; _ }
   | NamedAccess { loc; _ }

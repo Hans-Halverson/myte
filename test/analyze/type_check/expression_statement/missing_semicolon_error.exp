@@ -1,0 +1,24 @@
+Error: Expression is in a statement position but semicolon is missing
+test/analyze/type_check/expression_statement/missing_semicolon_error.myte:4:2
+ 4 |   1
+   |   ^
+
+Error: Expression is in a statement position but semicolon is missing
+test/analyze/type_check/expression_statement/missing_semicolon_error.myte:9:4
+ 9 |     1
+   |     ^
+
+Error: Expression is in a statement position but semicolon is missing
+test/analyze/type_check/expression_statement/missing_semicolon_error.myte:13:4
+ 13 |     1
+    |     ^
+
+Error: Expression is in a statement position but semicolon is missing
+test/analyze/type_check/expression_statement/missing_semicolon_error.myte:19:4
+ 19 |     1
+    |     ^
+
+Error: Expression is in a statement position but semicolon is missing
+test/analyze/type_check/expression_statement/missing_semicolon_error.myte:26:6
+ 26 |       1
+    |       ^

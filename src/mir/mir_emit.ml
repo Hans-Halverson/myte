@@ -862,6 +862,7 @@ and emit_expression_without_promotion ~ecx expr =
     set_ptr_val
   | Super _ -> failwith "TODO: Emit MIR for super expressions"
   | AnonymousFunction _ -> failwith "TODO: Emit anonymous functions"
+  | If _ -> failwith "TODO: Emit if expression"
 
 and emit_string_literal ~ecx loc value =
   let string_global_ptr = Ecx.add_string_literal ~ecx loc value in
@@ -1545,7 +1546,7 @@ and emit_block ~ecx block =
 and emit_statement ~ecx stmt =
   let open Statement in
   match stmt with
-  | Expression (_, expr) -> ignore (emit_expression ~ecx expr)
+  | ExpressionStatement { loc = _; expr; is_value = _ } -> ignore (emit_expression ~ecx expr)
   | Block block -> emit_block ~ecx block
   (*
    * ============================

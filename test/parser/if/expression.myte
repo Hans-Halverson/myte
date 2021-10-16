@@ -1,0 +1,9 @@
+module test
+
+fun main() {
+  (if (a) { b } else { c });
+
+  (if (a) { b } else if (d) { c } else { e });
+
+  val x = if (a) { b } else { c };
+}

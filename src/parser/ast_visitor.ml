@@ -30,7 +30,7 @@ class visitor =
         match stmt with
         | VariableDeclaration s -> this#variable_declaration s
         | FunctionDeclaration s -> this#function_ s
-        | Expression s -> this#expression_statement s
+        | ExpressionStatement s -> this#expression_statement s
         | Block s -> this#block s
         | If s -> this#if_ s
         | While s -> this#while_ s
@@ -61,6 +61,7 @@ class visitor =
         | LogicalAnd e -> this#logical_and e
         | LogicalOr e -> this#logical_or e
         | Ternary e -> this#ternary e
+        | If e -> this#if_ e
         | Call e -> this#call e
         | IndexedAccess e -> this#indexed_access e
         | NamedAccess e -> this#named_access e
@@ -329,23 +330,14 @@ class visitor =
       | Signature -> ()
 
     method expression_statement stmt =
-      let (_, expr) = stmt in
+      let open Statement.ExpressionStatement in
+      let { loc = _; expr; is_value = _ } = stmt in
       this#expression expr
 
     method block block =
       let open Statement.Block in
       let { loc = _; statements } = block in
       List.iter this#statement statements
-
-    method if_ if_ =
-      let open Statement.If in
-      let { loc = _; test; conseq; altern } = if_ in
-      this#expression test;
-      this#block conseq;
-      match altern with
-      | Block block -> this#block block
-      | If if_ -> this#if_ if_
-      | None -> ()
 
     method while_ while_ =
       let open Statement.While in
@@ -378,13 +370,23 @@ class visitor =
       | Expression epxr -> this#expression epxr);
       this#expression expr
 
+    method super _loc = ()
+
+    method if_ if_ =
+      let open If in
+      let { loc = _; test; conseq; altern } = if_ in
+      this#expression test;
+      this#block conseq;
+      match altern with
+      | Block block -> this#block block
+      | If if_ -> this#if_ if_
+      | None -> ()
+
     method match_ match_ =
       let open Match in
       let { loc = _; args; cases } = match_ in
       List.iter this#expression args;
       List.iter this#match_case cases
-
-    method super _loc = ()
 
     method match_case case =
       let open Match.Case in

@@ -124,3 +124,15 @@ fun nestedMatches() {
     })
   }
 }
+
+fun nestedIfInMatch() {
+  // If in match statement is a statement
+  match (x) {
+    | _ -> if (y) {} else {}
+  }
+
+  // If in match expression is an expression
+  val x = match (x) {
+    | _ -> if (x) { y } else { z }
+  };
+}

@@ -256,9 +256,21 @@ and parse_assignment_or_expression_statement env =
   | T_LOGICAL_RIGHT_SHIFT_EQUALS -> parse_assignment (Some LogicalRightShift)
   (* If the expression is not followed by an equals then it must be an expression statement *)
   | _ ->
-    Env.expect env T_SEMICOLON;
+    (* An expression statement must be terminated by a semicolon unless it is the last statement
+       in a block, in which case it is the value of the block. *)
+    let is_value =
+      match Env.token env with
+      | T_SEMICOLON ->
+        Env.advance env;
+        false
+      | T_RIGHT_BRACE -> true
+      (* Provide a missing semicolon error if incorrect token is next *)
+      | _ ->
+        Env.expect env T_SEMICOLON;
+        false
+    in
     let loc = marker env in
-    Statement.Expression (loc, expr)
+    Statement.ExpressionStatement { loc; expr; is_value }
 
 and parse_expression ?(precedence = ExpressionPrecedence.None) env =
   let marker = mark_loc env in
@@ -312,6 +324,7 @@ and parse_expression_prefix env =
   | T_LEFT_BRACE -> parse_map_literal env
   | T_SET_OPEN -> parse_set_literal env
   | T_FN -> parse_anonymous_function env
+  | T_IF -> If (parse_if env)
   | token -> Parse_error.fatal (Env.loc env, UnexpectedToken { actual = token; expected = None })
 
 and parse_expression_infix ~precedence env left marker =
@@ -1062,12 +1075,16 @@ and parse_match ~is_expr env =
       match Env.token env with
       (* Only certain statements are allowed as right hand side *)
       | T_LEFT_BRACE -> Case.Statement (Statement.Block (parse_block env))
-      | T_IF -> Case.Statement (If (parse_if env))
       | T_WHILE -> Case.Statement (parse_while env)
       | T_FOR -> Case.Statement (parse_for env)
       | T_RETURN -> Case.Statement (parse_return ~in_match_case:true env)
       | T_BREAK -> Case.Statement (parse_break ~in_match_case:true env)
       | T_CONTINUE -> Case.Statement (parse_continue ~in_match_case:true env)
+      | T_IF ->
+        if is_expr then
+          Case.Expression (If (parse_if env))
+        else
+          Case.Statement (If (parse_if env))
       | T_MATCH ->
         let match_ = parse_match ~is_expr env in
         if is_expr then
@@ -1111,7 +1128,7 @@ and parse_block env =
   { Block.loc; statements }
 
 and parse_if env =
-  let open Statement.If in
+  let open If in
   let marker = mark_loc env in
   Env.expect env T_IF;
   Env.expect env T_LEFT_PAREN;

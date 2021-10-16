@@ -16,8 +16,30 @@ fun testMismatchedExpressions() {
   };
 
   val x = match (1) {
-    | 1 -> if (true) {}
+    | 1 -> while (true) {}
     | 2 -> "a"
+  };
+}
+
+fun testBlockExpression() {
+  val x: Int = match (1) {
+    | 1 -> {
+      // Success
+      1
+    }
+    | 2 -> {
+      // Failure
+      2;
+    }
+    | 3 -> {
+      if (true) {
+        // Success
+        1
+      } else {
+        // Failure
+        1;
+      }
+    }
   };
 }
 

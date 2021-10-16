@@ -14,7 +14,7 @@ let rec exhaustive ~cx stmt =
   let open Statement in
   match stmt with
   | Return _ -> Exhaustive
-  | Expression _
+  | ExpressionStatement _
   | Assignment _
   | While _
   | For _
@@ -45,7 +45,7 @@ and exhaustive_block ~cx block =
   visit_statements ~prev_exhaustive:AtomicInexhaustiveStatement statements
 
 and exhaustive_if ~cx if_ =
-  let { Statement.If.loc; conseq; altern; _ } = if_ in
+  let { If.loc; conseq; altern; _ } = if_ in
   match exhaustive_block ~cx conseq with
   | Exhaustive ->
     (match altern with

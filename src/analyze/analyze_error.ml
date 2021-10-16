@@ -72,6 +72,8 @@ type t =
   | IncompatibleOverridenMethodType of string * string * Type.t * Type.t
   | IncorrectOverridenMethodTypeParametersArity of string * string * int * int
   | InvalidMultipleArgumentsPattern
+  | IfExpressionMissingElse
+  | ExpressionStatementMissingSemicolon
   | InexhaustiveMatch of string
   | UnreachablePattern
 
@@ -450,6 +452,9 @@ let to_string error =
       actual
   | InvalidMultipleArgumentsPattern ->
     "Invalid pattern for match with multiple arguments. The only allowed patterns are the wildcard `_` or a tuple with the same arity as the number of arguments."
+  | IfExpressionMissingElse -> "If expression is missing an `else` block"
+  | ExpressionStatementMissingSemicolon ->
+    "Expression is in a statement position but semicolon is missing"
   | InexhaustiveMatch witness ->
     Printf.sprintf
       "Inexhaustive pattern matching. For example the pattern `%s` is not matched."

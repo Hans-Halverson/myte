@@ -1,69 +1,60 @@
 Error: Expected type `Int` but found `Unit`
-test/analyze/type_check/match/divergence.myte:46:13-48:5
+test/analyze/type_check/match/divergence.myte:46:13-49:5
  46 | /     | "c" -> if (true) {
     | |              ^^^^^^^^^^^
  47 | |       return;
     | | ^^^^^^^^^^^^^
- 48 | |     }
+ 48 | |     } else {
+    | | ^^^^^^^^^^^^
+ 49 | |     }
     | \ ^^^^^^
 
 Error: Expected type `Int` but found `Unit`
-test/analyze/type_check/match/divergence.myte:49:13-52:5
- 49 | /     | "d" -> if (true) {
-    | |              ^^^^^^^^^^^
- 50 | |       return;
-    | | ^^^^^^^^^^^^^
+test/analyze/type_check/match/divergence.myte:50:11-53:5
+ 50 | /     | _ -> if (true) {
+    | |            ^^^^^^^^^^^
  51 | |     } else {
     | | ^^^^^^^^^^^^
- 52 | |     }
-    | \ ^^^^^^
-
-Error: Expected type `Int` but found `Unit`
-test/analyze/type_check/match/divergence.myte:53:11-56:5
- 53 | /     | _ -> if (true) {
-    | |            ^^^^^^^^^^^
- 54 | |     } else {
-    | | ^^^^^^^^^^^^
- 55 | |       return;
+ 52 | |       return;
     | | ^^^^^^^^^^^^^
- 56 | |     }
+ 53 | |     }
     | \ ^^^^^^
 
 Error: Expected type `Int` but found `Unit`
-test/analyze/type_check/match/divergence.myte:78:15-81:5
- 78 | /     | false -> {
+test/analyze/type_check/match/divergence.myte:75:15-78:5
+ 75 | /     | false -> {
     | |                ^
- 79 | |       1;
+ 76 | |       1;
     | | ^^^^^^^^
- 80 | |       2;
+ 77 | |       2;
     | | ^^^^^^^^
- 81 | |     }
+ 78 | |     }
     | \ ^^^^^^
 
 Error: Expected type `Int` but found `Unit`
-test/analyze/type_check/match/divergence.myte:113:15-121:5
- 113 | /     | false -> match (true) {
+test/analyze/type_check/match/divergence.myte:110:15-119:5
+ 110 | /     | false -> match (true) {
      | |                ^^^^^^^^^^^^^^
- 114 | |       | true -> match (true) {
+ 111 | |       | true -> match (true) {
      | | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 115 | |         | true -> return
+ 112 | |         | true -> return
      | | ^^^^^^^^^^^^^^^^^^^^^^^^
  ...   |
- 120 | |       }
+ 118 | |       }
      | | ^^^^^^^
- 121 | |     }
+ 119 | |     }
      | \ ^^^^^^
 
 Error: Expected type `Int` but found `Unit`
-test/analyze/type_check/match/divergence.myte:126:15-134:5
- 126 | /     | false -> match (true) {
+test/analyze/type_check/match/divergence.myte:124:15-133:5
+ 124 | /     | false -> match (true) {
      | |                ^^^^^^^^^^^^^^
- 127 | |       | true -> match (true) {
+ 125 | |       | true -> match (true) {
      | | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 128 | |         | true -> return
+ 126 | |         | true -> return
      | | ^^^^^^^^^^^^^^^^^^^^^^^^
  ...   |
- 133 | |       | false -> return
+ 132 | |       | false -> return
      | | ^^^^^^^^^^^^^^^^^^^^^^^
- 134 | |     }
+ 133 | |     }
      | \ ^^^^^^

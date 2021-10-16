@@ -1,0 +1,31 @@
+module test
+
+fun missingSemicolonInFunction() {
+  1
+}
+
+fun missingSemicolonInLoops() {
+  while (true) {
+    1
+  }
+
+  for (i in [1, 2]) {
+    1
+  }
+}
+
+fun missingSemicolonInIfStatement() {
+  if (true) {
+    1
+  }
+}
+
+fun missingSemicolonInMatchStatement() {
+  match (true) {
+    | _ -> {
+      1
+    }
+  }
+}
+
+fun main() {}

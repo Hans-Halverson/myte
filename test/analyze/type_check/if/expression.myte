@@ -1,0 +1,126 @@
+module test
+
+import std.sys.abort
+
+fun missingElseError() {
+  // Error
+  val x = if (true) {
+    1
+  };
+
+  val x = if (true) {
+    // No error for non-last statement
+    if (true) {
+      1;
+    }
+
+    // Error
+    if (true) {
+      1
+    }
+  } else {
+    1
+  };
+
+  // Error on last if
+  val x = if (true) {
+    1
+  } else if (true) {
+    1
+  } else if (true) {
+    1
+  };
+
+  val x = match (true) {
+    // Error
+    | true -> if (true) {
+      1
+    }
+    | _ -> {
+      // Error
+      if (true) {
+        1
+      }
+    }
+  };
+}
+
+fun testIsBool<T>(x: T) {
+  (if (true) { 1 } else { 2 });
+  
+  // Intentional failure
+  (if (x) { 1 } else { 2 });
+}
+
+fun sameBranchType<T>(x: T, y: T) {
+  (if (true) { 1 } else { 2 });
+  (if (true) { "foo" } else if (true) { "bar" } else { "baz" });
+  (if (true) { (1, 2) } else { (3, 4) });
+  (if (true) { x } else { y });
+}
+
+fun differentBranchTypes<T, U>(x: T, y: U) {
+  (if (true) { 1 } else { "string" });
+  (if (true) { x } else { y });
+  (if (true) { (1, 2) } else { (1, 2, 3) });
+
+  // Expression takes type of consequent in case of conflict
+  (if (true) { 1 } else { "string" }: Int);
+  (if (true) { 1 } else { "string" }: String);
+}
+
+fun divergentBranch(): String {
+  // Success
+  val x: Int = if (true) {
+    return "a";
+  } else {
+    1
+  };
+  
+  // Success
+  val x: Int = if (true) {
+    1
+  } else {
+    return "a";
+  };
+
+  // Success
+  val x: Int = if (true) {
+    return "a";
+  } else {
+    return "b";
+  };
+
+  return "c";
+}
+
+fun nonValueBranch() {
+  val x: Int = if (true) {
+    // Success
+    1
+  } else {
+    // Error
+    1;
+  };
+}
+
+fun nestedValueBranch() {
+  val x: Int = if (true) {
+    if (true) {
+      // Success
+      1
+    } else {
+      // Failure
+      true
+    }
+  } else {
+    match (true) {
+      // Success
+      | true -> 1
+      // Failure
+      | false -> true
+    }
+  };
+}
+
+fun main() {}

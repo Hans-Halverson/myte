@@ -51,18 +51,12 @@ and Statement : sig
     }
   end
 
-  module If : sig
+  module ExpressionStatement : sig
     type t = {
       loc: Loc.t;
-      test: Expression.t;
-      conseq: Block.t;
-      altern: altern;
+      expr: Expression.t;
+      is_value: bool;
     }
-
-    and altern =
-      | Block of Block.t
-      | If of t
-      | None
   end
 
   module While : sig
@@ -141,7 +135,7 @@ and Statement : sig
   type t =
     | VariableDeclaration of VariableDeclaration.t
     | FunctionDeclaration of Function.t
-    | Expression of (Loc.t * Expression.t)
+    | ExpressionStatement of ExpressionStatement.t
     | Block of Block.t
     | If of If.t
     | While of While.t
@@ -381,6 +375,7 @@ and Expression : sig
     | LogicalAnd of LogicalAnd.t
     | LogicalOr of LogicalOr.t
     | Ternary of Ternary.t
+    | If of If.t
     | Call of Call.t
     | IndexedAccess of IndexedAccess.t
     | NamedAccess of NamedAccess.t
@@ -616,6 +611,21 @@ and Identifier : sig
   }
 end =
   Identifier
+
+and If : sig
+  type t = {
+    loc: Loc.t;
+    test: Expression.t;
+    conseq: Statement.Block.t;
+    altern: altern;
+  }
+
+  and altern =
+    | Block of Statement.Block.t
+    | If of t
+    | None
+end =
+  If
 
 and Match : sig
   module Case : sig
