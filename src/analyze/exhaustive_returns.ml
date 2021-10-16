@@ -23,29 +23,36 @@ let rec exhaustive ~cx stmt =
   | VariableDeclaration _
   | FunctionDeclaration _ ->
     AtomicInexhaustiveStatement
-  | Block { Block.loc; statements; _ } ->
-    let rec visit_statements ~prev_exhaustive stmts =
-      match stmts with
-      | [] ->
-        (match prev_exhaustive with
-        | AtomicInexhaustiveStatement -> BlockMissingReturn loc
-        | other -> other)
-      | stmt :: stmts ->
-        if prev_exhaustive = Exhaustive then
-          Exhaustive
-        else
-          let exhaustive = exhaustive ~cx stmt in
-          visit_statements ~prev_exhaustive:exhaustive stmts
-    in
-    visit_statements ~prev_exhaustive:AtomicInexhaustiveStatement statements
-  | If { If.loc; conseq; altern; _ } ->
-    (match exhaustive ~cx conseq with
-    | Exhaustive ->
-      (match altern with
-      | None -> IfMissingAltern loc
-      | Some altern -> exhaustive ~cx altern)
-    | inexhaustive -> inexhaustive)
+  | Block block -> exhaustive_block ~cx block
+  | If if_ -> exhaustive_if ~cx if_
   | Match match_ -> exhaustive_match ~cx match_
+
+and exhaustive_block ~cx block =
+  let { Statement.Block.loc; statements; _ } = block in
+  let rec visit_statements ~prev_exhaustive stmts =
+    match stmts with
+    | [] ->
+      (match prev_exhaustive with
+      | AtomicInexhaustiveStatement -> BlockMissingReturn loc
+      | other -> other)
+    | stmt :: stmts ->
+      if prev_exhaustive = Exhaustive then
+        Exhaustive
+      else
+        let exhaustive = exhaustive ~cx stmt in
+        visit_statements ~prev_exhaustive:exhaustive stmts
+  in
+  visit_statements ~prev_exhaustive:AtomicInexhaustiveStatement statements
+
+and exhaustive_if ~cx if_ =
+  let { Statement.If.loc; conseq; altern; _ } = if_ in
+  match exhaustive_block ~cx conseq with
+  | Exhaustive ->
+    (match altern with
+    | None -> IfMissingAltern loc
+    | Block block -> exhaustive_block ~cx block
+    | If if_ -> exhaustive_if ~cx if_)
+  | inexhaustive -> inexhaustive
 
 and exhaustive_match ~cx match_ =
   let { Match.cases; _ } = match_ in

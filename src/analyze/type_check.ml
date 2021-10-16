@@ -869,8 +869,7 @@ and check_function_expression_body ~cx expr return_ty =
   Type_context.assert_is_subtype ~cx expr_loc (TVar expr_tvar_id) return_ty
 
 and check_function_block_body ~cx block return_ty =
-  let block_stmt = Ast.Statement.Block block in
-  let (block_loc, block_tvar_id) = check_statement ~cx block_stmt in
+  let (block_loc, block_tvar_id) = check_block ~cx block in
   (* If return type is never, check that block diverges *)
   if return_ty = Type.Never then
     Type_context.assert_is_subtype ~cx block_loc (TVar block_tvar_id) return_ty
@@ -2045,6 +2044,8 @@ and check_enum_variant ~cx name loc ctor_decl =
 and check_statement ~cx stmt : Loc.t * Types.TVar.t =
   let open Ast.Statement in
   match stmt with
+  | Block block -> check_block ~cx block
+  | If if_ -> check_if ~cx if_
   (*
    * ============================
    *     Variable Declaration
@@ -2083,67 +2084,6 @@ and check_statement ~cx stmt : Loc.t * Types.TVar.t =
         Unit
     in
     ignore (Type_context.unify ~cx expr_stmt_ty (TVar tvar_id));
-    (loc, tvar_id)
-  (*
-   * ============================
-   *       Block Statement
-   * ============================
-   *)
-  | Block { Block.loc; statements } ->
-    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    let (is_reachable, first_unreachable_loc) =
-      List.fold_left
-        (fun ((is_reachable, first_unreachable_loc) as acc) stmt ->
-          let (stmt_loc, stmt_tvar_id) = check_statement ~cx stmt in
-          match (is_reachable, first_unreachable_loc) with
-          (* Save loc of first statement that is unreachable in block *)
-          | (false, None) -> (false, Some stmt_loc)
-          (* Do not collect locs of later unreachable statements, as first will error *)
-          | (false, Some _) -> acc
-          (* An inner statement that diverges makes later statements unreachable *)
-          | (true, _) ->
-            let stmt_rep_ty = Type_context.find_rep_type ~cx (TVar stmt_tvar_id) in
-            (stmt_rep_ty <> Never, None))
-        (true, None)
-        statements
-    in
-    (* Error on first unreachable statement in block *)
-    (match first_unreachable_loc with
-    | None -> ()
-    | Some loc -> Type_context.add_error ~cx loc UnreachableStatement);
-    (* Block diverges if end of block (beyond last statement) is never reached *)
-    let stmt_ty =
-      if is_reachable then
-        Type.Unit
-      else
-        Never
-    in
-    ignore (Type_context.unify ~cx stmt_ty (TVar tvar_id));
-    (loc, tvar_id)
-  (*
-   * ============================
-   *         If Statement
-   * ============================
-   *)
-  | If { If.loc; test; conseq; altern } ->
-    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    let (test_loc, test_tvar_id) = check_expression ~cx test in
-    Type_context.assert_unify ~cx test_loc Bool (TVar test_tvar_id);
-    let (_, conseq_tvar_id) = check_statement ~cx conseq in
-    let stmt_ty =
-      match altern with
-      | None -> Type.Unit
-      | Some altern ->
-        let (_, altern_tvar_id) = check_statement ~cx altern in
-        (* If diverges only if both conseq and altern exist and both diverge *)
-        let conseq_ty = Type_context.find_rep_type ~cx (TVar conseq_tvar_id) in
-        let altern_ty = Type_context.find_rep_type ~cx (TVar altern_tvar_id) in
-        if conseq_ty = Never && altern_ty = Never then
-          Never
-        else
-          Unit
-    in
-    ignore (Type_context.unify ~cx stmt_ty (TVar tvar_id));
     (loc, tvar_id)
   (*
    * ============================
@@ -2194,7 +2134,7 @@ and check_statement ~cx stmt : Loc.t * Types.TVar.t =
     let (test_loc, test_tvar_id) = check_expression ~cx test in
     Type_context.assert_unify ~cx test_loc Bool (TVar test_tvar_id);
     Type_context.enter_loop ~cx;
-    ignore (check_statement ~cx body);
+    ignore (check_block ~cx body);
     Type_context.exit_loop ~cx;
     ignore (Type_context.unify ~cx Unit (TVar tvar_id));
     (loc, tvar_id)
@@ -2227,7 +2167,7 @@ and check_statement ~cx stmt : Loc.t * Types.TVar.t =
       (pattern_loc, pattern_tvar_id)
       (iter_loc, element_ty);
     Type_context.enter_loop ~cx;
-    ignore (check_statement ~cx body);
+    ignore (check_block ~cx body);
     Type_context.exit_loop ~cx;
     ignore (Type_context.unify ~cx Unit (TVar tvar_id));
     (loc, tvar_id)
@@ -2344,6 +2284,77 @@ and check_statement ~cx stmt : Loc.t * Types.TVar.t =
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     check_match ~cx ~is_expr:false match_ (TVar tvar_id);
     (loc, tvar_id)
+
+(*
+ * ============================
+ *       Block Statement
+ * ============================
+ *)
+and check_block ~cx block =
+  let { Ast.Statement.Block.loc; statements } = block in
+  let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+  let (is_reachable, first_unreachable_loc) =
+    List.fold_left
+      (fun ((is_reachable, first_unreachable_loc) as acc) stmt ->
+        let (stmt_loc, stmt_tvar_id) = check_statement ~cx stmt in
+        match (is_reachable, first_unreachable_loc) with
+        (* Save loc of first statement that is unreachable in block *)
+        | (false, None) -> (false, Some stmt_loc)
+        (* Do not collect locs of later unreachable statements, as first will error *)
+        | (false, Some _) -> acc
+        (* An inner statement that diverges makes later statements unreachable *)
+        | (true, _) ->
+          let stmt_rep_ty = Type_context.find_rep_type ~cx (TVar stmt_tvar_id) in
+          (stmt_rep_ty <> Never, None))
+      (true, None)
+      statements
+  in
+  (* Error on first unreachable statement in block *)
+  (match first_unreachable_loc with
+  | None -> ()
+  | Some loc -> Type_context.add_error ~cx loc UnreachableStatement);
+  (* Block diverges if end of block (beyond last statement) is never reached *)
+  let stmt_ty =
+    if is_reachable then
+      Type.Unit
+    else
+      Never
+  in
+  ignore (Type_context.unify ~cx stmt_ty (TVar tvar_id));
+  (loc, tvar_id)
+
+(*
+ * ============================
+ *         If Statement
+ * ============================
+ *)
+and check_if ~cx if_ =
+  let { Ast.Statement.If.loc; test; conseq; altern } = if_ in
+  let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+  let (test_loc, test_tvar_id) = check_expression ~cx test in
+  Type_context.assert_unify ~cx test_loc Bool (TVar test_tvar_id);
+  let (_, conseq_tvar_id) = check_block ~cx conseq in
+  let check_altern_divergence altern_tvar_id =
+    (* If diverges only if both conseq and altern exist and both diverge *)
+    let conseq_ty = Type_context.find_rep_type ~cx (TVar conseq_tvar_id) in
+    let altern_ty = Type_context.find_rep_type ~cx (TVar altern_tvar_id) in
+    if conseq_ty = Never && altern_ty = Never then
+      Type.Never
+    else
+      Unit
+  in
+  let stmt_ty =
+    match altern with
+    | None -> Type.Unit
+    | Block block ->
+      let (_, altern_tvar_id) = check_block ~cx block in
+      check_altern_divergence altern_tvar_id
+    | If if_ ->
+      let (_, altern_tvar_id) = check_if ~cx if_ in
+      check_altern_divergence altern_tvar_id
+  in
+  ignore (Type_context.unify ~cx stmt_ty (TVar tvar_id));
+  (loc, tvar_id)
 
 and is_integer ~cx ty =
   let rep_ty = Type_context.find_rep_type ~cx ty in

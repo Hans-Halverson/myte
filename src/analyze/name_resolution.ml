@@ -763,7 +763,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         ~is_match:false
         ~mk_decl:(Some (fun _ -> VarDecl (VariableDeclaration.mk Immutable)))
         pattern;
-      let body' = this#statement body in
+      let body' = this#block body in
       this#exit_scope ();
       if annot == annot' && iterator == iterator' && body == body' then
         for_

@@ -1538,11 +1538,15 @@ and emit_function_expression ~ecx expr =
   | (`FunctionL _ | `FunctionV _) as v -> v
   | _ -> failwith "Expected function value"
 
+and emit_block ~ecx block =
+  let { Statement.Block.statements; _ } = block in
+  List.iter (emit_statement ~ecx) statements
+
 and emit_statement ~ecx stmt =
   let open Statement in
   match stmt with
   | Expression (_, expr) -> ignore (emit_expression ~ecx expr)
-  | Block { statements; _ } -> List.iter (emit_statement ~ecx) statements
+  | Block block -> emit_block ~ecx block
   (*
    * ============================
    *        If Statement
@@ -1557,12 +1561,12 @@ and emit_statement ~ecx stmt =
 
     (* Emit conseq and continue to join block *)
     Ecx.set_block_builder ~ecx conseq_builder;
-    emit_statement ~ecx conseq;
+    emit_block ~ecx conseq;
     Ecx.finish_block_continue ~ecx join_builder.id;
 
     (* Start join block *)
     Ecx.set_block_builder ~ecx join_builder
-  | If { loc = _; test; conseq; altern = Some altern } ->
+  | If { loc = _; test; conseq; altern } ->
     (* Branch to conseq or altern blocks *)
     let test_val = emit_bool_expression ~ecx test in
     let conseq_builder = Ecx.mk_block_builder ~ecx in
@@ -1572,12 +1576,15 @@ and emit_statement ~ecx stmt =
 
     (* Emit conseq and continue to join block *)
     Ecx.set_block_builder ~ecx conseq_builder;
-    emit_statement ~ecx conseq;
+    emit_block ~ecx conseq;
     Ecx.finish_block_continue ~ecx join_builder.id;
 
     (* Emit altern and continue to join block *)
     Ecx.set_block_builder ~ecx altern_builder;
-    emit_statement ~ecx altern;
+    (match altern with
+    | Block block -> emit_block ~ecx block
+    | If if_ -> emit_statement ~ecx (If if_)
+    | None -> failwith "Handled by previous case");
     Ecx.finish_block_continue ~ecx join_builder.id;
 
     (* Start join block *)
@@ -1602,7 +1609,7 @@ and emit_statement ~ecx stmt =
     (* Emit body block which continues to test block *)
     Ecx.push_loop_context ~ecx finish_builder.id test_builder.id;
     Ecx.set_block_builder ~ecx body_builder;
-    emit_statement ~ecx body;
+    emit_block ~ecx body;
     Ecx.finish_block_continue ~ecx test_builder.id;
     Ecx.pop_loop_context ~ecx;
 
@@ -1715,7 +1722,7 @@ and emit_statement ~ecx stmt =
 
     (* Body block contains body of for loop and continues to test block *)
     Ecx.push_loop_context ~ecx finish_builder.id test_builder.id;
-    emit_statement ~ecx body;
+    emit_block ~ecx body;
     Ecx.pop_loop_context ~ecx;
     Ecx.finish_block_continue ~ecx test_builder.id;
 

@@ -1,8 +1,6 @@
 module Test
 
 fun main() {
-  if (test) 1;
-
   if (test) {}
 
   if (test) {

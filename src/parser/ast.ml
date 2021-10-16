@@ -55,16 +55,21 @@ and Statement : sig
     type t = {
       loc: Loc.t;
       test: Expression.t;
-      conseq: Statement.t;
-      altern: Statement.t option;
+      conseq: Block.t;
+      altern: altern;
     }
+
+    and altern =
+      | Block of Block.t
+      | If of t
+      | None
   end
 
   module While : sig
     type t = {
       loc: Loc.t;
       test: Expression.t;
-      body: Statement.t;
+      body: Block.t;
     }
   end
 
@@ -74,7 +79,7 @@ and Statement : sig
       pattern: Pattern.t;
       annot: Type.t option;
       iterator: Expression.t;
-      body: Statement.t;
+      body: Block.t;
     }
   end
 

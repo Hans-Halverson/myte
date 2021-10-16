@@ -448,18 +448,20 @@ and node_of_block block =
 
 and node_of_if if_ =
   let { Statement.If.loc; test; conseq; altern } = if_ in
+  let altern =
+    match altern with
+    | Block block -> node_of_block block
+    | If if_ -> node_of_if if_
+    | None -> None
+  in
   node
     "If"
     loc
-    [
-      ("test", node_of_expression test);
-      ("conseq", node_of_statement conseq);
-      ("altern", opt node_of_statement altern);
-    ]
+    [("test", node_of_expression test); ("conseq", node_of_block conseq); ("altern", altern)]
 
 and node_of_while while_ =
   let { Statement.While.loc; test; body } = while_ in
-  node "While" loc [("test", node_of_expression test); ("body", node_of_statement body)]
+  node "While" loc [("test", node_of_expression test); ("body", node_of_block body)]
 
 and node_of_for for_ =
   let { Statement.For.loc; pattern; annot; iterator; body } = for_ in
@@ -470,7 +472,7 @@ and node_of_for for_ =
       ("pattern", node_of_pattern pattern);
       ("annot", opt node_of_type annot);
       ("iterator", node_of_expression iterator);
-      ("body", node_of_statement body);
+      ("body", node_of_block body);
     ]
 
 and node_of_return ret =

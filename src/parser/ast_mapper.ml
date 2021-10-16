@@ -482,18 +482,25 @@ class mapper =
       let open Statement.If in
       let { loc; test; conseq; altern } = if_ in
       let test' = this#expression test in
-      let conseq' = this#statement conseq in
-      let altern' = id_map_opt this#statement altern in
+      let conseq' = this#block conseq in
+      let altern' = this#if_altern altern in
       if test == test' && conseq == conseq' && altern == altern' then
         if_
       else
         { loc; test = test'; conseq = conseq'; altern = altern' }
 
+    method if_altern altern =
+      let open Statement.If in
+      match altern with
+      | Block block -> id_map this#block block altern (fun block' -> Block block')
+      | If if_ -> id_map this#if_ if_ altern (fun if_' -> If if_')
+      | None -> altern
+
     method while_ while_ =
       let open Statement.While in
       let { loc; test; body } = while_ in
       let test' = this#expression test in
-      let body' = this#statement body in
+      let body' = this#block body in
       if test == test' && body == body' then
         while_
       else
@@ -505,7 +512,7 @@ class mapper =
       let pattern' = this#pattern pattern in
       let annot' = id_map_opt this#type_ annot in
       let iterator' = this#expression iterator in
-      let body' = this#statement body in
+      let body' = this#block body in
       if pattern == pattern' && annot == annot' && iterator == iterator' && body == body' then
         for_
       else

@@ -341,14 +341,17 @@ class visitor =
       let open Statement.If in
       let { loc = _; test; conseq; altern } = if_ in
       this#expression test;
-      this#statement conseq;
-      Option.iter this#statement altern
+      this#block conseq;
+      match altern with
+      | Block block -> this#block block
+      | If if_ -> this#if_ if_
+      | None -> ()
 
     method while_ while_ =
       let open Statement.While in
       let { loc = _; test; body } = while_ in
       this#expression test;
-      this#statement body
+      this#block body
 
     method for_ for_ =
       let open Statement.For in
@@ -356,7 +359,7 @@ class visitor =
       this#pattern pattern;
       Option.iter this#type_ annot;
       this#expression iterator;
-      this#statement body
+      this#block body
 
     method return return =
       let open Statement.Return in
