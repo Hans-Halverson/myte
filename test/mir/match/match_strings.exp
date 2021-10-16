@@ -1,7 +1,7 @@
 func int @test.test1(std.string.String* %0) {
   %1 := CallBuiltin std.string.String* myte_alloc(1)
   %2 := GetPointer byte*, std.string.String* %1.0
-  Store byte* %2, @.S0
+  Store byte* %2, @.S1
   %3 := GetPointer int, std.string.String* %1.1
   Store int %3, 3
   %4 := GetPointer int, std.string.String* %1.2
@@ -11,7 +11,7 @@ func int @test.test1(std.string.String* %0) {
 label @0:
   %6 := CallBuiltin std.string.String* myte_alloc(1)
   %7 := GetPointer byte*, std.string.String* %6.0
-  Store byte* %7, @.S1
+  Store byte* %7, @.S2
   %8 := GetPointer int, std.string.String* %6.1
   Store int %8, 3
   %9 := GetPointer int, std.string.String* %6.2
@@ -21,7 +21,7 @@ label @0:
 label @1:
   %11 := CallBuiltin std.string.String* myte_alloc(1)
   %12 := GetPointer byte*, std.string.String* %11.0
-  Store byte* %12, @.S2
+  Store byte* %12, @.S3
   %13 := GetPointer int, std.string.String* %11.1
   Store int %13, 3
   %14 := GetPointer int, std.string.String* %11.2
@@ -35,12 +35,17 @@ label @3:
   Ret %16
 }
 
-global byte[3] @.S0 = "foo"
+global byte[3] @.S1 = "foo"
 
-global byte[3] @.S1 = "bar"
+global byte[3] @.S2 = "bar"
 
-global byte[3] @.S2 = "baz"
+global byte[3] @.S3 = "baz"
+
+func unit @test.use<fn>(fn %17) {
+  Ret
+}
 
 func int @test.main() {
+  %18 := Call unit @test.use<fn>(@test.test1)
   Ret 0
 }

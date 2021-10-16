@@ -12,5 +12,6 @@ func unit @test.test() {
 }
 
 func int @test.main() {
+  %2 := Call unit @test.test()
   Ret 0
 }

@@ -18,4 +18,10 @@ fun nestedReassign(r2: Rec2, r4: Rec4) {
   r2.bar.baz2 = r4;
 }
 
-fun main() {}
+fun main() {
+  simpleReassign(Rec1 { foo: 0, bar: 0, baz: 0 });
+  nestedReassign(
+    Rec2 { foo: 0, bar: Rec3 { baz: 0, baz2: Rec4 { baz3: 0, baz4: 0 }}},
+    Rec4 { baz3: 0, baz4: 0 }
+  );
+}

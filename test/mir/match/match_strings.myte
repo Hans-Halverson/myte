@@ -8,4 +8,8 @@ fun test1(x: String): Int =
     | _ -> 4
   }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(test1);
+}

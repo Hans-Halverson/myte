@@ -41,4 +41,9 @@ fun testInheritsType(x: InheritsType) {
   x.setThenGet(true);
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testRecordType);
+  use(testInheritsType);
+}

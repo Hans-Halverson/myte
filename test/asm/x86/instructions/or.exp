@@ -2,6 +2,24 @@
 
   .text
 _main:
+  leaq test.orByteRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.orByteImmReg(%rip), %rdi
+  call test.use$fn$
+  leaq test.orByteRegImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.orIntRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.orIntRegImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.orIntImmReg(%rip), %rdi
+  call test.use$fn$
+  leaq test.orLongRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.orLongRegImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.orLongImmReg(%rip), %rdi
+  call test.use$fn$
   movl $0, %eax
   ret
 test.orByteImmReg:
@@ -40,4 +58,7 @@ test.orLongRegImm:
 test.orLongRegs:
   orq %rdi, %rsi
   movq %rsi, %rax
+  ret
+test.use$fn$:
+  movq %rdi, %rax
   ret

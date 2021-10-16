@@ -44,7 +44,7 @@ module rec Value : sig
   type array_value =
     [ `ArrayV of Type.t * int * var_id
     | `ArrayStringL of string
-    | `ArrayVtableL of int * label list
+    | `ArrayVtableL of int * function_value list
     ]
 
   type t =
@@ -136,7 +136,7 @@ end =
 
 and Program : sig
   type t = {
-    mutable main_id: Block.id;
+    mutable main_label: label;
     mutable blocks: Block.t IMap.t;
     mutable globals: Global.t SMap.t;
     mutable funcs: Function.t SMap.t;
@@ -352,7 +352,7 @@ let var_id_of_value_opt (v : Value.t) : var_id option =
   | `ArrayV (_, _, var_id) ->
     Some var_id
 
-let values_equal (v1 : Value.t) (v2 : Value.t) : bool =
+let rec values_equal (v1 : Value.t) (v2 : Value.t) : bool =
   match (v1, v2) with
   | (`UnitL, `UnitL) -> true
   | (`BoolL b1, `BoolL b2) -> b1 = b2
@@ -363,7 +363,8 @@ let values_equal (v1 : Value.t) (v2 : Value.t) : bool =
   | (`PointerL (_, label1), `PointerL (_, label2)) -> label1 = label2
   | (`ArrayStringL str1, `ArrayStringL str2) -> String.equal str1 str2
   | (`ArrayVtableL (size1, labels1), `ArrayVtableL (size2, labels2)) ->
-    size1 = size2 && List.for_all2 String.equal labels1 labels2
+    size1 = size2
+    && List.for_all2 (fun f1 f2 -> values_equal (f1 :> Value.t) (f2 :> Value.t)) labels1 labels2
   | (`UnitV var_id1, `UnitV var_id2)
   | (`BoolV var_id1, `BoolV var_id2)
   | (`ByteV var_id1, `ByteV var_id2)

@@ -12,4 +12,9 @@ fun testIndexing(t1: Rec1<Int>, t2: Rec1<Bool>) {
   t2.baz;
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testConstructor);
+  use(testIndexing);
+}

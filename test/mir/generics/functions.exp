@@ -68,6 +68,12 @@ func fn @test.testInstantiationFromNonCallUse() {
   Ret @test.id<unit>
 }
 
+func unit @test.use<fn>(fn %25) {
+  Ret
+}
+
 func int @test.main() {
+  %26 := Call unit @test.use<fn>(@test.testSingleParameter)
+  %27 := Call unit @test.use<fn>(@test.testInstantiationFromNonCallUse)
   Ret 0
 }

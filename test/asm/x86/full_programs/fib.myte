@@ -23,6 +23,8 @@ fun fibIterative(x: Int): Int {
 }
 
 fun main() {
+  fibRecursive(1);
+  fibRecursive(3);
   fibIterative(1);
   fibIterative(2);
   fibIterative(3);

@@ -1,7 +1,5 @@
 module test
 
-fun use(x: Int) {}
-
 fun testNeitherUpdated() {
   var x = 1;
 
@@ -98,4 +96,13 @@ fun testGlobal() {
   -glob;
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testNeitherUpdated);
+  use(testOnlyFirstUpdated);
+  use(testOnlySecondUpdated);
+  use(testBothUpdated);
+  use(testMultiple);
+  use(testGlobal);
+}

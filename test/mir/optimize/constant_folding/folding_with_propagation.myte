@@ -37,6 +37,8 @@ fun main() {
   }
 
   useBool(local3);
+
+  useAllGlobals();
 }
 
 fun useAllGlobals() {

@@ -1,6 +1,6 @@
 module test
 
-fun use(x: Int): Int = x
+fun use<T>(x: T): T = x
 
 // Default to caller saved registers if not crossing a function call
 fun testDefaultToCallerSaveRegisters(p: Int, cond: Bool): Int {
@@ -69,4 +69,9 @@ fun callerSavedRegistersSavedAcrossFunctionCallsWithSpills(p1: Int, p2: Int, p3:
   return x + y + z + p1 + p2 + p3 + p4 + p5 + p6;
 }
 
-fun main() {}
+fun main() {
+  use(testDefaultToCallerSaveRegisters);
+  use(testDefaultToCalleeSaveRegistersIfAcrossFunctionCall);
+  use(callerSavedRegistersSavedAcrossFunctionCalls);
+  use(callerSavedRegistersSavedAcrossFunctionCallsWithSpills);
+}

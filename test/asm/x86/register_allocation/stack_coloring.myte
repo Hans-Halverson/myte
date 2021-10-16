@@ -1,6 +1,6 @@
 module test
 
-fun use(x: Int): Int = x
+fun use<T>(x: T): T = x
 fun cond(): Bool = true
 
 fun testMultipleInterferingSpillsInDifferentStackSlots(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int): Int {
@@ -259,4 +259,8 @@ fun testPartialReuseStackSlots(): Int {
   return 77;
 }
 
-fun main() {}
+fun main() {
+  use(testMultipleInterferingSpillsInDifferentStackSlots);
+  use(testNonInterferingSpillsReuseStackSlots);
+  use(testPartialReuseStackSlots);
+}

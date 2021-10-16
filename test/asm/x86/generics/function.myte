@@ -3,6 +3,8 @@ module test
 type Tup<T> (T)
 type Pair<T, U> (T, U)
 
+fun use<T>(x: T): T = x
+
 fun buildOption<T>(x: T): Tup<T> = Tup (x)
 
 fun buildPair<T, U>(x: T, y: U): Pair<T, U> = Pair (x, y)
@@ -19,4 +21,7 @@ fun testTwoTypeArgs() {
   buildPair(true, true);
 }
 
-fun main() {}
+fun main() {
+  use(testSingleTypeArg);
+  use(testTwoTypeArgs);
+}

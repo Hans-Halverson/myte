@@ -52,6 +52,13 @@ label @11:
   Ret
 }
 
+func unit @split_incoming_edge.use<fn>(fn %9) {
+  Ret
+}
+
 func int @split_incoming_edge.main() {
+  %10 := Call unit @split_incoming_edge.use<fn>(@split_incoming_edge.inexhaustiveIf)
+  %11 := Call unit @split_incoming_edge.use<fn>(@split_incoming_edge.loop)
+  %12 := Call unit @split_incoming_edge.use<fn>(@split_incoming_edge.multiple)
   Ret 0
 }

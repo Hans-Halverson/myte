@@ -2,6 +2,10 @@
 
   .text
 _main:
+  movl $1, %edi
+  call test.testMyteAllocLiteralCount
+  movl $1, %edi
+  call test.testMyteAllocVariableCount
   movl $0, %eax
   ret
 test.testMyteAllocLiteralCount:

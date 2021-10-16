@@ -2,6 +2,12 @@
 
   .text
 _main:
+  leaq test.sextByteToInt(%rip), %rdi
+  call test.use$fn$
+  leaq test.sextByteToLong(%rip), %rdi
+  call test.use$fn$
+  leaq test.sextIntToLong(%rip), %rdi
+  call test.use$fn$
   movl $0, %eax
   ret
 test.sextByteToInt:
@@ -12,4 +18,6 @@ test.sextByteToLong:
   ret
 test.sextIntToLong:
   movsx %edi, %rax
+  ret
+test.use$fn$:
   ret

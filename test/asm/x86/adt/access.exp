@@ -2,7 +2,48 @@
 
   .text
 _main:
+  push %rbx
+  push %r12
+  movl $24, %edi
+  call __myte_alloc
+  movq %rax, %r12
+  movl $0, (%r12)
+  movq $0, 8(%r12)
+  movb $0, 16(%r12)
+  movl $24, %edi
+  call __myte_alloc
+  movq %rax, %rbx
+  movl $0, (%rbx)
+  movq $0, 8(%rbx)
+  movb $0, 16(%rbx)
+  movl $3, %edi
+  call __myte_alloc
+  movb $0, (%rax)
+  movb $0, 1(%rax)
+  movb $0, 2(%rax)
+  movq %r12, %rdi
+  movq %rbx, %rsi
+  movq %rax, %rdx
+  call test.simpleAccess
+  movl $16, %edi
+  call __myte_alloc
+  movq %rax, %rbx
+  movq $0, (%rbx)
+  movl $16, %edi
+  call __myte_alloc
+  movq %rax, %r12
+  movl $0, (%r12)
+  movl $2, %edi
+  call __myte_alloc
+  movb $0, (%rax)
+  movb $0, 1(%rax)
+  movq %rax, 8(%r12)
+  movq %r12, 8(%rbx)
+  movq %rbx, %rdi
+  call test.nestedAccess
   movl $0, %eax
+  pop %r12
+  pop %rbx
   ret
 test.nestedAccess:
   movq 8(%rdi), %rax

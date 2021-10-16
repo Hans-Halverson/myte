@@ -40,6 +40,14 @@ func unit @test.useMutuallyRecursiveVariants(test.VRec2* %5) {
   Ret
 }
 
+func unit @test.use<fn>(fn %6) {
+  Ret
+}
+
 func int @test.main() {
+  %7 := Call unit @test.use<fn>(@test.useSelfRecursive)
+  %8 := Call unit @test.use<fn>(@test.useMutuallyRecursive)
+  %9 := Call unit @test.use<fn>(@test.useSelfRecursiveVariant)
+  %10 := Call unit @test.use<fn>(@test.useMutuallyRecursiveVariants)
   Ret 0
 }

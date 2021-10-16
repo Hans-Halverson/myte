@@ -1,7 +1,7 @@
   .global _main
 
   .data
-.S3:
+.S1:
   .ascii ""
 _vtable$test.Type$test.Trait:
   .quad test.Type.bar
@@ -11,7 +11,7 @@ _vtable$test.Type$test.Trait:
 test.Type.bar:
   movl $16, %edi
   call __myte_alloc
-  leaq .S3(%rip), %rcx
+  leaq .S1(%rip), %rcx
   movq %rcx, (%rax)
   movl $0, 8(%rax)
   movl $0, 12(%rax)
@@ -36,6 +36,14 @@ test.callSimpleMethod:
   callq *%rcx
   ret
 _main:
+  leaq test.callSimpleMethod(%rip), %rdi
+  call test.use$fn$
+  leaq test.callMethodWithArgs(%rip), %rdi
+  call test.use$fn$
+  leaq test.testCall(%rip), %rdi
+  call test.use$fn$
+  leaq test.testPromotion(%rip), %rdi
+  call test.use$fn$
   movl $0, %eax
   ret
 test.testCall:
@@ -59,4 +67,6 @@ test.testPromotion:
   movq %rax, %rdi
   call test.testCall
   pop %rbx
+  ret
+test.use$fn$:
   ret

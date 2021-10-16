@@ -64,4 +64,10 @@ fun destructureAssignGlobals(t: (Int, Bool)) {
   (globalInt, y) = t;
 }
 
-fun main() {}
+fun main() {
+  use(destructureTuple);
+  use(destructureVariants);
+  use(destructureNamedTuple);
+  use(destructureNamedRecord);
+  use(destructureAssignGlobals);
+}

@@ -2,6 +2,14 @@
 
   .text
 _main:
+  leaq test.testReturnsInMain(%rip), %rdi
+  call test.use$fn$
+  leaq test.testReturnsInMain2(%rip), %rdi
+  call test.use$fn$
+  leaq test.testNestedReturnNoReturnRegisterMove(%rip), %rdi
+  call test.use$fn$
+  leaq test.testReturnRegisterClobberAcrossCall(%rip), %rdi
+  call test.use$fn$
   movl $0, %eax
   ret
 test.testNestedReturnNoReturnRegisterMove:
@@ -20,4 +28,7 @@ test.testReturnsInMain:
   ret
 test.testReturnsInMain2:
   movl %edi, %eax
+  ret
+test.use$fn$:
+  movq %rdi, %rax
   ret

@@ -47,5 +47,30 @@ test.addLongRegs:
   movq %rsi, %rax
   ret
 _main:
+  leaq test.addByteRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.addByteImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.addIntRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.addIntByteImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.addIntIntImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.addLongRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.addLongByteImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.addLongIntImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.addLongLongImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.addByteImm2(%rip), %rdi
+  call test.use$fn$
+  leaq test.addLongLongImm2(%rip), %rdi
+  call test.use$fn$
   movl $0, %eax
+  ret
+test.use$fn$:
+  movq %rdi, %rax
   ret

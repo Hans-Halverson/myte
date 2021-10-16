@@ -39,4 +39,10 @@ fun multiple() {
   (x + y);
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(inexhaustiveIf);
+  use(loop);
+  use(multiple);
+}

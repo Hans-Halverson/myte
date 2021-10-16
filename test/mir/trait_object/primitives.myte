@@ -29,4 +29,12 @@ fun testLongPromotion(x: Long) {
   useToString((1: Long));
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testUnitPromotion);
+  use(testBoolPromotion);
+  use(testBytePromotion);
+  use(testIntPromotion);
+  use(testLongPromotion);
+}

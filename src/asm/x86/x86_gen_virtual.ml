@@ -62,9 +62,14 @@ and gen_global_instruction_builder ~gcx ~ir:_ global =
     Gcx.add_bss ~gcx { label; size }
   (* Array literal is known at compile time, so insert into initialized data section *)
   | Some (`ArrayStringL data) -> Gcx.add_data ~gcx { label; value = [AsciiData data] }
-  | Some (`ArrayVtableL (_, function_labels)) ->
+  | Some (`ArrayVtableL (_, function_values)) ->
     let value =
-      List.map (fun function_label -> LabelData (label_of_mir_label function_label)) function_labels
+      List.map
+        (fun function_value ->
+          match function_value with
+          | `FunctionL label -> LabelData (label_of_mir_label label)
+          | `FunctionV _ -> failwith "ArrayVtableL value must only contain functin literals")
+        function_values
     in
     Gcx.add_data ~gcx { label; value }
   (* Pointer and function literals are labels, so insert into initialized data section *)
@@ -86,7 +91,7 @@ and gen_global_instruction_builder ~gcx ~ir:_ global =
 and gen_function_instruction_builder ~gcx ~ir func =
   let func_ = Gcx.start_function ~gcx [] 0 in
   let label =
-    if func.body_start_block = ir.main_id then
+    if func.name = ir.main_label then
       main_label
     else
       label_of_mir_label func.name

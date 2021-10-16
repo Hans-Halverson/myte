@@ -1,5 +1,7 @@
 module test
 
+fun use<T>(x: T): T = x
+
 fun testReturnsInMain(): Int = 1
 fun testReturnsInMain2(x: Int): Int = x
 
@@ -14,4 +16,9 @@ fun testReturnRegisterClobberAcrossCall(): Int {
   return x + y;
 }
 
-fun main() {}
+fun main() {
+  use(testReturnsInMain);
+  use(testReturnsInMain2);
+  use(testNestedReturnNoReturnRegisterMove);
+  use(testReturnRegisterClobberAcrossCall);
+}

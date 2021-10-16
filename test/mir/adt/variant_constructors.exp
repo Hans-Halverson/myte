@@ -90,6 +90,13 @@ func unit @test.testRecordConstructors() {
   Ret
 }
 
+func unit @test.use<fn>(fn %31) {
+  Ret
+}
+
 func int @test.main() {
+  %32 := Call unit @test.use<fn>(@test.testEnumConstructors)
+  %33 := Call unit @test.use<fn>(@test.testTupleConstructors)
+  %34 := Call unit @test.use<fn>(@test.testRecordConstructors)
   Ret 0
 }

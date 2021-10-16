@@ -27,4 +27,7 @@ fun nestedAccess(t2: Tup2) {
   t2[1][1][1];
 }
 
-fun main() {}
+fun main() {
+  simpleAccess(Tup1 (0, 0, 0), Rec1 { foo: 0, bar: 0, baz: 0 }, (0, 0, 0));
+  nestedAccess(Tup2 (0, Tup3 (0, Tup4 (0, 0))));
+}

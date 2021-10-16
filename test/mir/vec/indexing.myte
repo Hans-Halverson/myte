@@ -29,4 +29,11 @@ fun testIndexOperatorAssign(x: Rec1) {
   x.bar[7] += getInt();
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testIndexRec1);
+  use(testIndexVecRec2);
+  use(testIndexRec3);
+  use(testIndexOperatorAssign);
+}

@@ -17,73 +17,77 @@ type access_chain_result =
 let rec emit (pcx : Pcx.t) : Program.t =
   let ecx = Ecx.mk ~pcx in
   start_init_function ~ecx;
-  emit_type_declarations ~ecx;
+  register_type_declarations ~ecx;
   register_toplevel_variable_declarations ~ecx;
-  emit_function_declarations ~ecx;
+  register_function_declarations ~ecx;
   emit_pending ~ecx;
   finish_init_function ~ecx;
   {
-    Program.main_id = ecx.main_id;
+    Program.main_label = ecx.main_label;
     blocks = Ecx.builders_to_blocks ecx.blocks;
     globals = ecx.globals;
     funcs = ecx.funcs;
     types = ecx.types;
   }
 
-and emit_type_declarations ~ecx =
+and iter_toplevels ~ecx f =
+  List.iter (fun (_, m) -> List.iter f m.Ast.Module.toplevels) ecx.Ecx.pcx.modules
+
+and register_type_declarations ~ecx =
   let open Ast.Module in
-  List.iter
-    (fun (_, module_) ->
-      List.iter
-        (fun toplevel ->
-          match toplevel with
-          | TypeDeclaration decl -> emit_type_declaration ~ecx decl
-          | _ -> ())
-        module_.toplevels)
-    ecx.pcx.modules
+  (fun toplevel ->
+    match toplevel with
+    | TypeDeclaration decl ->
+      (* Create and store MIR ADT and variant objects to be used during MIR emission *)
+      let open TypeDeclaration in
+      (match decl.decl with
+      | Tuple _ ->
+        let mir_adt_layout = Mir_adt_layout_builder.mk_mir_tuple_layout ~ecx decl in
+        Ecx.add_mir_adt_layout ~ecx mir_adt_layout
+      | Record record_decl ->
+        let mir_adt_layout = Mir_adt_layout_builder.mk_mir_record_layout ~ecx decl record_decl in
+        Ecx.add_mir_adt_layout ~ecx mir_adt_layout
+      | Variant variants ->
+        let mir_adt_layout = Mir_adt_layout_builder.mk_mir_variants_layout ~ecx decl variants in
+        Ecx.add_mir_adt_layout ~ecx mir_adt_layout
+      | Alias _
+      | Builtin ->
+        ())
+    | _ -> ())
+  |> iter_toplevels ~ecx
 
 and register_toplevel_variable_declarations ~ecx =
   let open Ast.Module in
-  List.iter
-    (fun (_, module_) ->
-      List.iter
-        (fun toplevel ->
-          match toplevel with
-          | VariableDeclaration ({ pattern = Identifier { loc; _ }; _ } as decl) ->
-            Ecx.add_global_variable_declaration_node ~ecx loc decl
-          | _ -> ())
-        module_.toplevels)
-    ecx.pcx.modules
+  (fun toplevel ->
+    match toplevel with
+    | VariableDeclaration ({ pattern = Identifier { loc; _ }; _ } as decl) ->
+      Ecx.add_global_variable_declaration_node ~ecx loc decl
+    | _ -> ())
+  |> iter_toplevels ~ecx
 
-and emit_function_declarations ~ecx =
+and register_function_declarations ~ecx =
   let open Ast.Module in
-  List.iter
-    (fun (_, module_) ->
-      List.iter
-        (fun toplevel ->
-          match toplevel with
-          | FunctionDeclaration decl -> emit_function_declaration ~ecx decl false
-          | TraitDeclaration { methods; _ } ->
-            List.iter
-              (fun ({ Ast.Function.static; _ } as func_decl) ->
-                emit_function_declaration ~ecx func_decl (not static))
-              methods
-          | _ -> ())
-        module_.toplevels)
-    ecx.pcx.modules
+  let register_function_declaration decl =
+    let open Ast.Function in
+    let { name = { Identifier.loc; _ }; _ } = decl in
+    let binding = Bindings.get_value_binding ecx.pcx.bindings loc in
+    let name = mk_value_binding_name binding in
+    Ecx.add_function_declaration_node ~ecx name decl;
+    if loc = Option.get ecx.pcx.main_loc then ecx.main_label <- name
+  in
+  (fun toplevel ->
+    match toplevel with
+    | FunctionDeclaration decl -> register_function_declaration decl
+    | TraitDeclaration { methods; _ } -> List.iter register_function_declaration methods
+    | _ -> ())
+  |> iter_toplevels ~ecx
 
 and emit_pending ~ecx =
   let complete = ref true in
 
-  (* Emit all pending instantiations of generic functions *)
-  let rec emit_pending_func_instantations () =
-    match Ecx.pop_pending_func_instantiation ~ecx with
-    | None -> ()
-    | Some func_instantiation ->
-      emit_function_instantiation ~ecx func_instantiation;
-      complete := false;
-      emit_pending_func_instantations ()
-  in
+  (* Add root set of functions to emit *)
+  ignore (Ecx.get_nongeneric_function_value ~ecx ecx.main_label);
+  ignore (Ecx.get_nongeneric_function_value ~ecx Std_lib.std_sys_init);
 
   (* Emit all pending global variables *)
   let rec emit_pending_globals () =
@@ -95,30 +99,35 @@ and emit_pending ~ecx =
       emit_pending_globals ()
   in
 
+  (* Emit all pending nongeneric functions *)
+  let rec emit_pending_nongeneric_functions () =
+    match Ecx.pop_pending_nongeneric_function ~ecx with
+    | None -> ()
+    | Some (name, func_decl) ->
+      emit_function_body ~ecx name func_decl;
+      Ecx.mark_pending_nongeneric_function_completed ~ecx name;
+      complete := false;
+      emit_pending_nongeneric_functions ()
+  in
+
+  (* Emit all pending instantiations of generic functions *)
+  let rec emit_pending_func_instantations () =
+    match Ecx.pop_pending_func_instantiation ~ecx with
+    | None -> ()
+    | Some func_instantiation ->
+      emit_function_instantiation ~ecx func_instantiation;
+      complete := false;
+      emit_pending_func_instantations ()
+  in
+
   let rec emit_all_pending () =
     complete := true;
-    emit_pending_func_instantations ();
     emit_pending_globals ();
+    emit_pending_nongeneric_functions ();
+    emit_pending_func_instantations ();
     if not !complete then emit_all_pending ()
   in
   emit_all_pending ()
-
-(* Create and store MIR ADT and variant objects to be used during MIR emission *)
-and emit_type_declaration ~ecx decl =
-  let open TypeDeclaration in
-  match decl.decl with
-  | Tuple _ ->
-    let mir_adt_layout = Mir_adt_layout_builder.mk_mir_tuple_layout ~ecx decl in
-    Ecx.add_mir_adt_layout ~ecx mir_adt_layout
-  | Record record_decl ->
-    let mir_adt_layout = Mir_adt_layout_builder.mk_mir_record_layout ~ecx decl record_decl in
-    Ecx.add_mir_adt_layout ~ecx mir_adt_layout
-  | Variant variants ->
-    let mir_adt_layout = Mir_adt_layout_builder.mk_mir_variants_layout ~ecx decl variants in
-    Ecx.add_mir_adt_layout ~ecx mir_adt_layout
-  | Alias _
-  | Builtin ->
-    ()
 
 and emit_global_variable_declaration ~ecx name decl =
   let { Statement.VariableDeclaration.init; _ } = decl in
@@ -144,19 +153,6 @@ and emit_global_variable_declaration ~ecx name decl =
   in
   global.init_val <- init_val
 
-and emit_function_declaration ~ecx decl is_method =
-  let open Ast.Function in
-  let { name = { Identifier.loc; _ }; body; _ } = decl in
-  let binding = Bindings.get_value_binding ecx.pcx.bindings loc in
-  let name = mk_value_binding_name binding in
-  Ecx.add_function_declaration_node ~ecx name decl;
-  (* Non-generic functions are emitted now. An instance of generic functions will be emitted when
-     they are instantiated. *)
-  if body <> Signature && not is_method then
-    let binding = Type_context.get_value_binding ~cx:ecx.pcx.type_ctx loc in
-    let func_decl = Bindings.get_func_decl binding in
-    if func_decl.type_params = [] then emit_function_body ~ecx name decl
-
 and emit_function_instantiation ~ecx (name, name_with_args, type_param_bindings) =
   Ecx.in_type_binding_context ~ecx type_param_bindings (fun _ ->
       let func_decl_node = SMap.find name ecx.func_decl_nodes in
@@ -167,7 +163,7 @@ and emit_function_body ~ecx name decl =
   let { loc = full_loc; name = { Identifier.loc; _ }; params; body; _ } = decl in
   let binding = Type_context.get_value_binding ~cx:ecx.pcx.type_ctx loc in
   ecx.current_in_std_lib <- Bindings.is_std_lib_value binding;
-  ecx.current_is_main <- loc = Option.get ecx.pcx.main_loc;
+  let current_is_main = ecx.main_label = name in
 
   (* Create MIR vars for function params *)
   let func_decl = Bindings.get_func_decl binding in
@@ -191,7 +187,6 @@ and emit_function_body ~ecx name decl =
   (* Build IR for function body *)
   Ecx.set_current_func ~ecx name;
   let body_start_block = Ecx.start_new_block ~ecx in
-  if ecx.current_is_main then ecx.main_id <- body_start_block;
   (match body with
   | Block { Statement.Block.statements; _ } ->
     List.iter (emit_statement ~ecx) statements;
@@ -201,7 +196,7 @@ and emit_function_body ~ecx name decl =
     | _ ->
       (* Handle implicit return from main *)
       let return_val =
-        if ecx.current_is_main then
+        if current_is_main then
           Some (`IntL Int32.zero)
         else
           None
@@ -216,7 +211,7 @@ and emit_function_body ~ecx name decl =
   (* The main function must always return an Int *)
   let return_ty = type_to_mir_type ~ecx func_decl.return in
   let return_ty =
-    if ecx.current_is_main && return_ty = `UnitT then
+    if current_is_main && return_ty = `UnitT then
       `IntT
     else
       return_ty
@@ -474,14 +469,16 @@ and emit_expression_without_promotion ~ecx expr =
     | FunDecl { Bindings.FunctionDeclaration.type_params; is_builtin; _ } ->
       let func_name = mk_value_binding_name binding in
       let ty = type_of_loc ~ecx loc in
-      let func_name =
-        if type_params = [] || is_builtin then
-          func_name
+      let func_val =
+        if is_builtin then
+          `FunctionL func_name
+        else if type_params = [] then
+          Ecx.get_nongeneric_function_value ~ecx func_name
         else
           let (type_args, _, _) = Type_util.cast_to_function_type ty in
-          Ecx.add_necessary_func_instantiation ~ecx func_name type_params type_args
+          Ecx.get_generic_function_value ~ecx func_name type_params type_args
       in
-      `FunctionL func_name
+      (func_val :> Value.t)
     (* Variables may be either globals or locals *)
     | VarDecl { tvar; _ } ->
       let mir_ty = type_to_mir_type ~ecx (Types.Type.TVar tvar) in
@@ -1104,14 +1101,9 @@ and emit_method_call
     emit_call ~ecx ~func_val ~arg_vals ~receiver_val:(Some item_val) ~ret_type
   (* All other receivers perform static dispatch *)
   | _ ->
-    let full_method_name_with_type_args =
-      Ecx.add_necessary_method_instantiation
-        ~ecx
-        ~method_name
-        ~receiver_ty
-        ~method_instance_type_args
+    let func_val =
+      Ecx.get_method_function_value ~ecx ~method_name ~receiver_ty ~method_instance_type_args
     in
-    let func_val = `FunctionL full_method_name_with_type_args in
     emit_call ~ecx ~func_val ~arg_vals ~receiver_val:(Some receiver_val) ~ret_type
 
 and emit_call
@@ -1285,8 +1277,8 @@ and emit_call_vec_get ~ecx return_loc vec_var index_var =
   let vec_get_name = mk_value_binding_name vec_get_binding in
   (* Find element type and instantiate Vec's `get` method *)
   let element_ty = type_of_loc ~ecx return_loc in
-  let func_name =
-    Ecx.add_necessary_func_instantiation
+  let func_val =
+    Ecx.get_generic_function_value
       ~ecx
       vec_get_name
       vec_get_method_sig.trait_sig.type_params
@@ -1295,7 +1287,7 @@ and emit_call_vec_get ~ecx return_loc vec_var index_var =
   (* Emit call to Vec's `get` method *)
   let var_id = mk_var_id () in
   let ret_ty = Ecx.to_mir_type ~ecx element_ty in
-  Ecx.emit ~ecx (Call (var_id, ret_ty, `FunctionL func_name, [vec_var; index_var]));
+  Ecx.emit ~ecx (Call (var_id, ret_ty, func_val, [vec_var; index_var]));
   var_value_of_type var_id ret_ty
 
 and emit_call_vec_set ~ecx element_ty_loc vec_var index_var expr_var =
@@ -1305,8 +1297,8 @@ and emit_call_vec_set ~ecx element_ty_loc vec_var index_var expr_var =
   let vec_get_name = mk_value_binding_name vec_get_binding in
   (* Find element type and instantiate Vec's `set` method *)
   let element_ty = type_of_loc ~ecx element_ty_loc in
-  let func_name =
-    Ecx.add_necessary_func_instantiation
+  let func_val =
+    Ecx.get_generic_function_value
       ~ecx
       vec_get_name
       vec_get_method_sig.trait_sig.type_params
@@ -1314,7 +1306,7 @@ and emit_call_vec_set ~ecx element_ty_loc vec_var index_var expr_var =
   in
   (* Emit call of Vec's `set` method *)
   let var_id = mk_var_id () in
-  Ecx.emit ~ecx (Call (var_id, `UnitT, `FunctionL func_name, [vec_var; index_var; expr_var]))
+  Ecx.emit ~ecx (Call (var_id, `UnitT, func_val, [vec_var; index_var; expr_var]))
 
 and emit_call_map_get ~ecx return_loc map_type_args map_var index_var =
   (* Get full name for Map's `get` method *)
@@ -1323,8 +1315,8 @@ and emit_call_map_get ~ecx return_loc map_type_args map_var index_var =
   let map_get_name = mk_value_binding_name map_get_binding in
   (* Find element type and instantiate Map's `get` method *)
   let return_ty = type_of_loc ~ecx return_loc in
-  let func_name =
-    Ecx.add_necessary_func_instantiation
+  let func_val =
+    Ecx.get_generic_function_value
       ~ecx
       map_get_name
       map_get_method_sig.trait_sig.type_params
@@ -1333,7 +1325,7 @@ and emit_call_map_get ~ecx return_loc map_type_args map_var index_var =
   (* Emit call to Map's `get` method *)
   let var_id = mk_var_id () in
   let ret_ty = Ecx.to_mir_type ~ecx return_ty in
-  Ecx.emit ~ecx (Call (var_id, ret_ty, `FunctionL func_name, [map_var; index_var]));
+  Ecx.emit ~ecx (Call (var_id, ret_ty, func_val, [map_var; index_var]));
   var_value_of_type var_id ret_ty
 
 and emit_call_map_add ~ecx map_type_args map_var index_var expr_var =
@@ -1342,8 +1334,8 @@ and emit_call_map_add ~ecx map_type_args map_var index_var expr_var =
   let map_add_binding = Bindings.get_value_binding ecx.Ecx.pcx.bindings map_add_method_sig.loc in
   let map_add_name = mk_value_binding_name map_add_binding in
   (* Find element type and instantiate Map's `add` method *)
-  let func_name =
-    Ecx.add_necessary_func_instantiation
+  let func_val =
+    Ecx.get_generic_function_value
       ~ecx
       map_add_name
       map_add_method_sig.trait_sig.type_params
@@ -1351,7 +1343,7 @@ and emit_call_map_add ~ecx map_type_args map_var index_var expr_var =
   in
   (* Emit call of Map's `add` method *)
   let var_id = mk_var_id () in
-  Ecx.emit ~ecx (Call (var_id, `UnitT, `FunctionL func_name, [map_var; index_var; expr_var]))
+  Ecx.emit ~ecx (Call (var_id, `UnitT, func_val, [map_var; index_var; expr_var]))
 
 and emit_call_map_reserve ~ecx map_type_args map_val capacity_val =
   (* Get full name for Map's `reserve` method *)
@@ -1363,8 +1355,8 @@ and emit_call_map_reserve ~ecx map_type_args map_val capacity_val =
   in
   let map_reserve_name = mk_value_binding_name map_reserve_binding in
   (* Find element type and instantiate Map's `reserve` method *)
-  let func_name =
-    Ecx.add_necessary_func_instantiation
+  let func_val =
+    Ecx.get_generic_function_value
       ~ecx
       map_reserve_name
       map_reserve_method_sig.trait_sig.type_params
@@ -1372,24 +1364,21 @@ and emit_call_map_reserve ~ecx map_type_args map_val capacity_val =
   in
   (* Emit call of Map's `reserve` method *)
   let var_id = mk_var_id () in
-  Ecx.emit ~ecx (Call (var_id, `UnitT, `FunctionL func_name, [map_val; capacity_val]))
+  Ecx.emit ~ecx (Call (var_id, `UnitT, func_val, [map_val; capacity_val]))
 
 and emit_call_map_new ~ecx return_mir_type map_type_args =
   let decl_loc = Std_lib.lookup_stdlib_decl_loc Std_lib.std_map_map_new in
   let binding = Bindings.get_value_binding ecx.Ecx.pcx.bindings decl_loc in
-  let func_name =
+  let func_val =
     match binding.declaration with
     | FunDecl { Bindings.FunctionDeclaration.type_params; _ } ->
       let func_name = mk_value_binding_name binding in
-      let func_name =
-        Ecx.add_necessary_func_instantiation ~ecx func_name type_params map_type_args
-      in
-      func_name
+      Ecx.get_generic_function_value ~ecx func_name type_params map_type_args
     | _ -> failwith "Expected function declaration"
   in
   (* Emit call of Map's `new` function *)
   let var_id = mk_var_id () in
-  Ecx.emit ~ecx (Call (var_id, return_mir_type, `FunctionL func_name, []));
+  Ecx.emit ~ecx (Call (var_id, return_mir_type, func_val, []));
   var_value_of_type var_id return_mir_type
 
 and emit_call_set_add ~ecx set_type_args set_val element_val =
@@ -1398,8 +1387,8 @@ and emit_call_set_add ~ecx set_type_args set_val element_val =
   let set_add_binding = Bindings.get_value_binding ecx.Ecx.pcx.bindings set_add_method_sig.loc in
   let set_add_name = mk_value_binding_name set_add_binding in
   (* Find element type and instantiate set's `add` method *)
-  let func_name =
-    Ecx.add_necessary_func_instantiation
+  let func_val =
+    Ecx.get_generic_function_value
       ~ecx
       set_add_name
       set_add_method_sig.trait_sig.type_params
@@ -1407,7 +1396,7 @@ and emit_call_set_add ~ecx set_type_args set_val element_val =
   in
   (* Emit call of set's `add` method *)
   let var_id = mk_var_id () in
-  Ecx.emit ~ecx (Call (var_id, `UnitT, `FunctionL func_name, [set_val; element_val]))
+  Ecx.emit ~ecx (Call (var_id, `UnitT, func_val, [set_val; element_val]))
 
 and emit_call_set_reserve ~ecx set_type_args set_val capacity_val =
   (* Get full name for set's `reserve` method *)
@@ -1419,8 +1408,8 @@ and emit_call_set_reserve ~ecx set_type_args set_val capacity_val =
   in
   let set_reserve_name = mk_value_binding_name set_reserve_binding in
   (* Find element type and instantiate set's `reserve` method *)
-  let func_name =
-    Ecx.add_necessary_func_instantiation
+  let func_val =
+    Ecx.get_generic_function_value
       ~ecx
       set_reserve_name
       set_reserve_method_sig.trait_sig.type_params
@@ -1428,24 +1417,21 @@ and emit_call_set_reserve ~ecx set_type_args set_val capacity_val =
   in
   (* Emit call of set's `reserve` method *)
   let var_id = mk_var_id () in
-  Ecx.emit ~ecx (Call (var_id, `UnitT, `FunctionL func_name, [set_val; capacity_val]))
+  Ecx.emit ~ecx (Call (var_id, `UnitT, func_val, [set_val; capacity_val]))
 
 and emit_call_set_new ~ecx return_mir_type set_type_args =
   let decl_loc = Std_lib.lookup_stdlib_decl_loc Std_lib.std_set_set_new in
   let binding = Bindings.get_value_binding ecx.Ecx.pcx.bindings decl_loc in
-  let func_name =
+  let func_val =
     match binding.declaration with
     | FunDecl { Bindings.FunctionDeclaration.type_params; _ } ->
       let func_name = mk_value_binding_name binding in
-      let func_name =
-        Ecx.add_necessary_func_instantiation ~ecx func_name type_params set_type_args
-      in
-      func_name
+      Ecx.get_generic_function_value ~ecx func_name type_params set_type_args
     | _ -> failwith "Expected function declaration"
   in
   (* Emit call of set's `new` function *)
   let var_id = mk_var_id () in
-  Ecx.emit ~ecx (Call (var_id, return_mir_type, `FunctionL func_name, []));
+  Ecx.emit ~ecx (Call (var_id, return_mir_type, func_val, []));
   var_value_of_type var_id return_mir_type
 
 (* If the index is nonzero, emit a GetPointer instruction to calculate the pointer's start *)
@@ -1758,7 +1744,7 @@ and emit_statement ~ecx stmt =
       match arg_val with
       | None
       | Some (`UnitL | `UnitV _)
-        when ecx.current_is_main ->
+        when ecx.current_func = ecx.main_label ->
         Some (`IntL Int32.zero)
       | _ -> arg_val
     in

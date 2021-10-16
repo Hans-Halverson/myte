@@ -1,26 +1,32 @@
-func unit @test.use<std.option.Option<byte>*>(std.option.Option<byte>* %0) {
+func unit @test.use<fn>(fn %0) {
   Ret
 }
 
-func unit @test.testSimpleIndexing(std.map.Map<bool,byte>* %1) {
-  %2 := Call std.option.Option<byte>* @std.map.Map.get<bool,byte>(%1, true)
-  %3 := Call unit @test.use<std.option.Option<byte>*>(%2)
-  %4 := Call unit @std.map.Map.add<bool,byte>(%1, false, 2)
+func unit @test.use<std.option.Option<byte>*>(std.option.Option<byte>* %1) {
+  Ret
+}
+
+func unit @test.testSimpleIndexing(std.map.Map<bool,byte>* %2) {
+  %3 := Call std.option.Option<byte>* @std.map.Map.get<bool,byte>(%2, true)
+  %4 := Call unit @test.use<std.option.Option<byte>*>(%3)
+  %5 := Call unit @std.map.Map.add<bool,byte>(%2, false, 2)
   Ret
 }
 
 type test.Rec1 {int, std.map.Map<byte,std.string.String*>*}
 
-func unit @test.testIndexAfterAccess(test.Rec1* %5, byte %6, std.string.String* %7) {
-  %8 := GetPointer std.map.Map<byte,std.string.String*>*, test.Rec1* %5.1
-  %9 := Load std.map.Map<byte,std.string.String*>* %8
-  %10 := Call std.option.Option<std.string.String*>* @std.map.Map.get<byte,std.string.String*>(%9, %6)
-  %11 := GetPointer std.map.Map<byte,std.string.String*>*, test.Rec1* %5.1
-  %12 := Load std.map.Map<byte,std.string.String*>* %11
-  %13 := Call unit @std.map.Map.add<byte,std.string.String*>(%12, %6, %7)
+func unit @test.testIndexAfterAccess(test.Rec1* %6, byte %7, std.string.String* %8) {
+  %9 := GetPointer std.map.Map<byte,std.string.String*>*, test.Rec1* %6.1
+  %10 := Load std.map.Map<byte,std.string.String*>* %9
+  %11 := Call std.option.Option<std.string.String*>* @std.map.Map.get<byte,std.string.String*>(%10, %7)
+  %12 := GetPointer std.map.Map<byte,std.string.String*>*, test.Rec1* %6.1
+  %13 := Load std.map.Map<byte,std.string.String*>* %12
+  %14 := Call unit @std.map.Map.add<byte,std.string.String*>(%13, %7, %8)
   Ret
 }
 
 func int @test.main() {
+  %15 := Call unit @test.use<fn>(@test.testSimpleIndexing)
+  %16 := Call unit @test.use<fn>(@test.testIndexAfterAccess)
   Ret 0
 }

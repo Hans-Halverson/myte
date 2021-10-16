@@ -15,4 +15,6 @@ fun testReassignGlobals(x: Int, y: Long, z: Tup) {
   t = Tup (2);
 }
 
-fun main() {}
+fun main() {
+  testReassignGlobals(0, 0, Tup (0));
+}

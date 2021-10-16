@@ -28,4 +28,8 @@ fun testNested() {
   Tup4 (x, y);
 }
 
-fun main() {}
+fun main() {
+  testTuple();
+  testRecord();
+  testNested();
+}

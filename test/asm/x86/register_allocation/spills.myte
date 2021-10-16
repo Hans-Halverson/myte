@@ -3,7 +3,7 @@ module test
 import std.io.println
 
 fun cond(): Bool = true
-fun use(x: Int): Int = x
+fun use<T>(x: T): T = x
 
 fun testSingleSpillUsingAllRegisters(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p16: Int): Int {
   val p7 = p1 + p2;
@@ -68,4 +68,7 @@ fun testSingleSpillUsingAllRegistersFromLocals(): Int {
 
 fun main() {
   println(testSingleSpillUsingAllRegisters(1, 2, 3, 4, 5, 6, 16).toString()); // Returns 88
+  use(testSingleSpillUsingAllRegisters);
+  use(testCallerSavedRegistersSpilledAcrossFunctionCalls);
+  use(testSingleSpillUsingAllRegistersFromLocals);
 }

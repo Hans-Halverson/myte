@@ -2,6 +2,24 @@
 
   .text
 _main:
+  leaq test.mulByteRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.mulByteImmReg(%rip), %rdi
+  call test.use$fn$
+  leaq test.mulByteRegImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.mulIntRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.mulIntRegImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.mulIntImmReg(%rip), %rdi
+  call test.use$fn$
+  leaq test.mulLongRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.mulLongRegImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.mulLongImmReg(%rip), %rdi
+  call test.use$fn$
   movl $0, %eax
   ret
 test.mulByteImmReg:
@@ -36,4 +54,7 @@ test.mulLongRegImm:
 test.mulLongRegs:
   imulq %rdi, %rsi
   movq %rsi, %rax
+  ret
+test.use$fn$:
+  movq %rdi, %rax
   ret

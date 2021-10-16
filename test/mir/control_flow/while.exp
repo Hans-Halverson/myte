@@ -22,5 +22,6 @@ label @5:
 }
 
 func int @test.main() {
+  %7 := Call unit @test.writeInBody()
   Ret 0
 }

@@ -4,7 +4,7 @@ type _object$test.Type$test.Trait {test.Type*, fn[1]*}
 
 type test.Type {int}
 
-global fn[1] @_vtable$test.Type$test.Trait = [test.Type.foo]
+global fn[1] @_vtable$test.Type$test.Trait = [@test.Type.foo]
 
 func int @test.Type.foo(test.Type* %0) {
   Ret 0
@@ -103,6 +103,19 @@ func _object$test.Trait* @test.testNoPromotionOnTraitObject(_object$test.Trait* 
   Ret %42
 }
 
+func unit @test.use<fn>(fn %43) {
+  Ret
+}
+
 func int @test.main() {
+  %44 := Call unit @test.use<fn>(@test.testCallArgumentPromotion)
+  %45 := Call unit @test.use<fn>(@test.testTupleTypeArgumentPromotion)
+  %46 := Call unit @test.use<fn>(@test.testRecordTypeArgumentPromotion)
+  %47 := Call unit @test.use<fn>(@test.testTypeCastPromotion)
+  %48 := Call unit @test.use<fn>(@test.testReturnArgumentPromotion)
+  %49 := Call unit @test.use<fn>(@test.testReturnExpressionPromotion)
+  %50 := Call unit @test.use<fn>(@test.testVariableDeclarationPromotion)
+  %51 := Call unit @test.use<fn>(@test.testVariableAssignmentPromotion)
+  %52 := Call unit @test.use<fn>(@test.testNoPromotionOnTraitObject)
   Ret 0
 }

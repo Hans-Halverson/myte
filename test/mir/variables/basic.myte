@@ -17,4 +17,7 @@ fun test2() {
   use(y);
 }
 
-fun main() {}
+fun main() {
+  use(test1);
+  use(test2);
+}

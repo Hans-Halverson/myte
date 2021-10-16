@@ -13,7 +13,7 @@ test.callerSavedRegistersSavedAcrossFunctionCalls:
   movl %ecx, %r12d
   movl %r8d, %ebx
   movl $3, %edi
-  call test.use
+  call test.use$int$
   addl %r15d, %r14d
   addl %r14d, %r13d
   addl %r13d, %r12d
@@ -50,7 +50,7 @@ test.callerSavedRegistersSavedAcrossFunctionCallsWithSpills:
   movl $3, %ebx
 .L1:
   movl $3, %edi
-  call test.use
+  call test.use$int$
   addl %r13d, %r12d
   addl %r12d, %ebx
   addl %ebx, %r14d
@@ -72,6 +72,14 @@ test.callerSavedRegistersSavedAcrossFunctionCallsWithSpills:
   pop %rbx
   ret
 _main:
+  leaq test.testDefaultToCallerSaveRegisters(%rip), %rdi
+  call test.use$fn$
+  leaq test.testDefaultToCalleeSaveRegistersIfAcrossFunctionCall(%rip), %rdi
+  call test.use$fn$
+  leaq test.callerSavedRegistersSavedAcrossFunctionCalls(%rip), %rdi
+  call test.use$fn$
+  leaq test.callerSavedRegistersSavedAcrossFunctionCallsWithSpills(%rip), %rdi
+  call test.use$fn$
   movl $0, %eax
   ret
 test.testDefaultToCalleeSaveRegistersIfAcrossFunctionCall:
@@ -87,11 +95,11 @@ test.testDefaultToCalleeSaveRegistersIfAcrossFunctionCall:
   movl $2, %ebx
 .L3:
   movl $3, %edi
-  call test.use
+  call test.use$int$
   movl %r12d, %edi
-  call test.use
+  call test.use$int$
   movl %ebx, %edi
-  call test.use
+  call test.use$int$
   pop %r12
   pop %rbx
   ret
@@ -128,6 +136,9 @@ test.testDefaultToCallerSaveRegisters:
   addl %edx, %ecx
   addl %ecx, %eax
   ret
-test.use:
+test.use$fn$:
+  movq %rdi, %rax
+  ret
+test.use$int$:
   movl %edi, %eax
   ret

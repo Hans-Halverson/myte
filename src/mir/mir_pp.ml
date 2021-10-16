@@ -229,7 +229,9 @@ and pp_value ~cx v =
   | `PointerL (_, label) ->
     "@" ^ label
   | `ArrayStringL str -> "\"" ^ str ^ "\""
-  | `ArrayVtableL (_, labels) -> "[" ^ String.concat ", " labels ^ "]"
+  | `ArrayVtableL (_, funcs) ->
+    let funcs = List.map (fun func -> pp_value ~cx (func :> Value.t)) funcs in
+    "[" ^ String.concat ", " funcs ^ "]"
   | `UnitV var_id
   | `BoolV var_id
   | `ByteV var_id

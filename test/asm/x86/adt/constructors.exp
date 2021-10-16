@@ -2,6 +2,9 @@
 
   .text
 _main:
+  call test.testTuple
+  call test.testRecord
+  call test.testNested
   movl $0, %eax
   ret
 test.testNested:

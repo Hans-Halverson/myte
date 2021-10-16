@@ -1,5 +1,7 @@
 module test
 
+fun use<T>(x: T): T = x
+
 fun addByteRegs(x: Byte, y: Byte): Byte = x + y
 
 fun addByteImm(x: Byte): Byte = x + 60
@@ -16,11 +18,23 @@ fun addLongByteImm(x: Long): Long = x + 60
 
 fun addLongIntImm(x: Long): Long = x + 257
 
-//First have to load long to register
+// First have to load long to register
 fun addLongLongImm(x: Long): Long = x + 2147483648
 
 // Adding in opposite direction, should be identical to above
 fun addByteImm2(x: Byte): Byte = 60 + x
 fun addLongLongImm2(x: Long): Long = 2147483648 + x
 
-fun main() {}
+fun main() {
+  use(addByteRegs);
+  use(addByteImm);
+  use(addIntRegs);
+  use(addIntByteImm);
+  use(addIntIntImm);
+  use(addLongRegs);
+  use(addLongByteImm);
+  use(addLongIntImm);
+  use(addLongLongImm);
+  use(addByteImm2);
+  use(addLongLongImm2);
+}

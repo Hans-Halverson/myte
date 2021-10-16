@@ -38,17 +38,6 @@ test.getLong:
   movq $24, %rax
   ret
 _main:
-  movl $0, %eax
-  ret
-test.use$byte$:
-  ret
-test.use$fn$:
-  ret
-test.use$int$:
-  ret
-test.use$long$:
-  ret
-test.useAll:
   movb test.constantB(%rip), %dil
   call test.use$byte$
   movl test.constantI(%rip), %edi
@@ -65,4 +54,21 @@ test.useAll:
   call test.use$long$
   movq test.f(%rip), %rdi
   call test.use$fn$
+  leaq test.getByte(%rip), %rdi
+  call test.use$fn$
+  leaq test.getInt(%rip), %rdi
+  call test.use$fn$
+  leaq test.getLong(%rip), %rdi
+  call test.use$fn$
+  leaq test.getFunction(%rip), %rdi
+  call test.use$fn$
+  movl $0, %eax
+  ret
+test.use$byte$:
+  ret
+test.use$fn$:
+  ret
+test.use$int$:
+  ret
+test.use$long$:
   ret

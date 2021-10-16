@@ -32,4 +32,11 @@ type VRec3 =
 
 fun useMutuallyRecursiveVariants(v: VRec2) {}
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(useSelfRecursive);
+  use(useMutuallyRecursive);
+  use(useSelfRecursiveVariant);
+  use(useMutuallyRecursiveVariants);
+}

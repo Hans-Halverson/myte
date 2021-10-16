@@ -2,6 +2,8 @@ module test
 
 type Rec<T> { foo: Int, bar: T, baz: T }
 
+fun use<T>(x: T): T = x
+
 fun useBool(b: Bool) {}
 fun useInt(i: Int) {}
 fun useLong(l: Long) {}
@@ -30,4 +32,8 @@ fun testLong() {
   useLong(r.baz);
 }
 
-fun main() {}
+fun main() {
+  use(testBool);
+  use(testInt);
+  use(testLong);
+}

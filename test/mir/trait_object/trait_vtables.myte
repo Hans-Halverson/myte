@@ -50,4 +50,6 @@ fun forceInstantiations() {
   (GenericType (true): trait GenericTrait<Bool>);
 }
 
-fun main() {}
+fun main() {
+  forceInstantiations();
+}

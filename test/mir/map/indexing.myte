@@ -16,4 +16,7 @@ fun testIndexAfterAccess(x: Rec1, y: Byte, z: String) {
   x.bar[y] = z;
 }
 
-fun main() {}
+fun main() {
+  use(testSimpleIndexing);
+  use(testIndexAfterAccess);
+}

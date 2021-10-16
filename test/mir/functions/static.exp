@@ -20,6 +20,11 @@ func unit @test.test() {
   Ret
 }
 
+func unit @test.use<fn>(fn %9) {
+  Ret
+}
+
 func int @test.main() {
+  %10 := Call unit @test.use<fn>(@test.test)
   Ret 0
 }

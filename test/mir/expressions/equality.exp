@@ -45,6 +45,16 @@ func unit @test.equatableType(std.string.String* %28, std.string.String* %29) {
   Ret
 }
 
+func unit @test.use<fn>(fn %33) {
+  Ret
+}
+
 func int @test.main() {
+  %34 := Call unit @test.use<fn>(@test.ints)
+  %35 := Call unit @test.use<fn>(@test.bytes)
+  %36 := Call unit @test.use<fn>(@test.longs)
+  %37 := Call unit @test.use<fn>(@test.units)
+  %38 := Call unit @test.use<fn>(@test.bools)
+  %39 := Call unit @test.use<fn>(@test.equatableType)
   Ret 0
 }

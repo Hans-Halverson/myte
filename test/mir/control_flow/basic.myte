@@ -1,7 +1,5 @@
 module test
 
-fun use(x: Int) {}
-
 fun testLatest() {
   var x = 1;
   var y = 2;
@@ -31,4 +29,8 @@ fun testLatest() {
   -y;
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testLatest);
+}

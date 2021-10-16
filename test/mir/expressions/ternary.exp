@@ -51,6 +51,13 @@ label @11:
   Ret %14
 }
 
+func unit @test.use<fn>(fn %15) {
+  Ret
+}
+
 func int @test.main() {
+  %16 := Call unit @test.use<fn>(@test.testSimpleTernary)
+  %17 := Call unit @test.use<fn>(@test.testTernaryWithExpressions)
+  %18 := Call unit @test.use<fn>(@test.testNestedTernary)
   Ret 0
 }

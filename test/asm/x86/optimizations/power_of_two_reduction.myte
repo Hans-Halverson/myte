@@ -40,4 +40,7 @@ fun powerOfTwoDivide(b: Byte, i: Int, l: Long) {
   use(l / 5);
 }
 
-fun main() {}
+fun main() {
+  use(powerOfTwoMultiply);
+  use(powerOfTwoDivide);
+}

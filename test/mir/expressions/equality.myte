@@ -36,4 +36,13 @@ fun equatableType(x: String, y: String) {
   x != y;
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(ints);
+  use(bytes);
+  use(longs);
+  use(units);
+  use(bools);
+  use(equatableType);
+}

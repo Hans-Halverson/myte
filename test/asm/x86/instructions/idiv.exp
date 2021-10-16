@@ -52,6 +52,42 @@ test.divLongRegs:
   idivq %rsi
   ret
 _main:
+  leaq test.divByteRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.divByteImmReg(%rip), %rdi
+  call test.use$fn$
+  leaq test.divByteRegImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.divIntRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.divIntRegImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.divIntImmReg(%rip), %rdi
+  call test.use$fn$
+  leaq test.divLongRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.divLongRegImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.divLongImmReg(%rip), %rdi
+  call test.use$fn$
+  leaq test.remByteRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.remByteImmReg(%rip), %rdi
+  call test.use$fn$
+  leaq test.remByteRegImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.remIntRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.remIntRegImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.remIntImmReg(%rip), %rdi
+  call test.use$fn$
+  leaq test.remLongRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.remLongRegImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.remLongImmReg(%rip), %rdi
+  call test.use$fn$
   movl $0, %eax
   ret
 test.remByteImmReg:
@@ -112,4 +148,7 @@ test.remLongRegs:
   cqo 
   idivq %rsi
   movq %rdx, %rax
+  ret
+test.use$fn$:
+  movq %rdi, %rax
   ret

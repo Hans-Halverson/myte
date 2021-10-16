@@ -6,6 +6,34 @@ test.longArgs:
   movq %rdi, %rax
   ret
 _main:
+  leaq test.zeroArgFunction(%rip), %rdi
+  call test.use$fn$
+  leaq test.testOneArgFunction(%rip), %rdi
+  call test.use$fn$
+  leaq test.testTwoArgFunction(%rip), %rdi
+  call test.use$fn$
+  leaq test.testThreeArgFunction(%rip), %rdi
+  call test.use$fn$
+  leaq test.testFourArgFunction(%rip), %rdi
+  call test.use$fn$
+  leaq test.testFiveArgFunction(%rip), %rdi
+  call test.use$fn$
+  leaq test.testSixArgFunction(%rip), %rdi
+  call test.use$fn$
+  leaq test.testSevenArgFunction(%rip), %rdi
+  call test.use$fn$
+  leaq test.testEightArgFunction(%rip), %rdi
+  call test.use$fn$
+  leaq test.testNineArgFunction(%rip), %rdi
+  call test.use$fn$
+  leaq test.passedInRegistersAndStack(%rip), %rdi
+  call test.use$fn$
+  leaq test.testFunctionStackParamsOffsetByPushedCalleeSavedRegisters(%rip), %rdi
+  call test.use$fn$
+  leaq test.testFunctionStackParamsOffsetByStackFrameAndPushedCalleeSavedRegisters(%rip), %rdi
+  call test.use$fn$
+  leaq test.testLongArgs(%rip), %rdi
+  call test.use$fn$
   movl $0, %eax
   ret
 test.passedInRegistersAndStack:
@@ -48,7 +76,7 @@ test.testFunctionStackParamsOffsetByPushedCalleeSavedRegisters:
   push %rbx
   movl %edi, %ebx
   movl $3, %edi
-  call test.use
+  call test.use$int$
   addl 16(%rsp), %ebx
   movl %ebx, %eax
   pop %rbx
@@ -67,7 +95,7 @@ test.testFunctionStackParamsOffsetByStackFrameAndPushedCalleeSavedRegisters:
   movl %r8d, %r12d
   movl %r9d, %ebx
   movl $3, %edi
-  call test.use
+  call test.use$int$
   addl 0(%rsp), %r15d
   addl %r15d, %r14d
   addl %r14d, %r13d
@@ -144,7 +172,10 @@ test.testTwoArgFunction:
   addl %edi, %esi
   movl %esi, %eax
   ret
-test.use:
+test.use$fn$:
+  movq %rdi, %rax
+  ret
+test.use$int$:
   movl %edi, %eax
   ret
 test.zeroArgFunction:

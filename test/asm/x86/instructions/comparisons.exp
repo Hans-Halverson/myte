@@ -2,6 +2,46 @@
 
   .text
 _main:
+  leaq test.testCompareRegisterImmediate(%rip), %rdi
+  call test.use$fn$
+  leaq test.testCompareImmediateRegister(%rip), %rdi
+  call test.use$fn$
+  leaq test.testCompareMemoryImmediate(%rip), %rdi
+  call test.use$fn$
+  leaq test.testCompareImmediateMemory(%rip), %rdi
+  call test.use$fn$
+  leaq test.testCompareMemoryMemory(%rip), %rdi
+  call test.use$fn$
+  leaq test.testCompareMemoryRegister(%rip), %rdi
+  call test.use$fn$
+  leaq test.testCompareRegisterMemory(%rip), %rdi
+  call test.use$fn$
+  leaq test.testCompareRegisterRegister(%rip), %rdi
+  call test.use$fn$
+  leaq test.testCompareByteRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.testCompareByteRegImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.testCompareByteImmReg(%rip), %rdi
+  call test.use$fn$
+  leaq test.testCompareLongRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.testCompareLongRegImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.testCompareLongImmReg(%rip), %rdi
+  call test.use$fn$
+  leaq test.testCompareBoolRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.testCompareBoolRegImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.testCompareBoolImmReg(%rip), %rdi
+  call test.use$fn$
+  leaq test.testCompareUnitRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.testCompareUnitRegImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.testCompareUnitImmReg(%rip), %rdi
+  call test.use$fn$
   movl $0, %eax
   ret
 test.testCompareBoolImmReg:
@@ -503,4 +543,7 @@ test.testCompareUnitRegImm:
   ret
 test.testCompareUnitRegs:
   movb $1, %al
+  ret
+test.use$fn$:
+  movq %rdi, %rax
   ret

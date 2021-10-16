@@ -10,4 +10,10 @@ fun testNestedTernary(): Int {
   return bool() ? (bool() ? 1 : 2) : (bool() ? 3 : 4);
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testSimpleTernary);
+  use(testTernaryWithExpressions);
+  use(testNestedTernary);
+}

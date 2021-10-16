@@ -14,14 +14,10 @@ func int @test.use<int>(int %1) {
   Ret %1
 }
 
-func unit @test.useAll() {
+func int @test.main() {
   %2 := Load int @test.i
   %3 := Call int @test.use<int>(%2)
   %4 := Load fn @test.f
   %5 := Call fn @test.use<fn>(%4)
-  Ret
-}
-
-func int @test.main() {
   Ret 0
 }

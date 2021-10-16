@@ -23,4 +23,8 @@ type UnusedDeclaration (Int, Int)
 
 fun useAll(p1: Tup1, p2: Tup2, p3: Tup3, p4: Rec1, p5: Rec2, p6: Rec3, p7: Tup4, p8: Tup5) {}
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(useAll);
+}

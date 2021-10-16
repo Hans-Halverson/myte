@@ -64,6 +64,14 @@ func unit @test.testAnonymousIndexing($tuple<int,int>* %25, $tuple<int,bool>* %2
   Ret
 }
 
+func unit @test.use<fn>(fn %31) {
+  Ret
+}
+
 func int @test.main() {
+  %32 := Call unit @test.use<fn>(@test.testConstructor)
+  %33 := Call unit @test.use<fn>(@test.testAnonymousConstructor)
+  %34 := Call unit @test.use<fn>(@test.testIndexing)
+  %35 := Call unit @test.use<fn>(@test.testAnonymousIndexing)
   Ret 0
 }

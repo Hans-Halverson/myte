@@ -1,14 +1,14 @@
   .global _main
 
   .data
-.S0:
+.S1:
   .ascii "Hello world!\n"
 
   .text
 _main:
   movl $16, %edi
   call __myte_alloc
-  leaq .S0(%rip), %rcx
+  leaq .S1(%rip), %rcx
   movq %rcx, (%rax)
   movl $13, 8(%rax)
   movl $13, 12(%rax)

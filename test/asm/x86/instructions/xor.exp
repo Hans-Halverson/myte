@@ -2,7 +2,28 @@
 
   .text
 _main:
+  leaq test.xorByteRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.xorByteImmReg(%rip), %rdi
+  call test.use$fn$
+  leaq test.xorByteRegImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.xorIntRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.xorIntRegImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.xorIntImmReg(%rip), %rdi
+  call test.use$fn$
+  leaq test.xorLongRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.xorLongRegImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.xorLongImmReg(%rip), %rdi
+  call test.use$fn$
   movl $0, %eax
+  ret
+test.use$fn$:
+  movq %rdi, %rax
   ret
 test.xorByteImmReg:
   xorb $60, %dil

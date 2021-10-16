@@ -26,4 +26,10 @@ fun indexAndAccesses(t1: Tup1, r2: Array<Rec2>) {
   r2[999].foo[888] = 7;
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(simpleAccesses);
+  use(nestedAccesses);
+  use(indexAndAccesses);
+}

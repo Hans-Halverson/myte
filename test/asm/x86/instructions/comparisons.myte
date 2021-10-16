@@ -1,5 +1,7 @@
 module test
 
+fun use<T>(x: T): T = x
+
 fun testCompareRegisterImmediate(x: Int): Bool {
   if (x == 3) {
     return x == 3;
@@ -161,4 +163,25 @@ fun testCompareUnitRegs(x: Unit, y: Unit): Bool = x == y
 fun testCompareUnitRegImm(x: Unit): Bool = x == ()
 fun testCompareUnitImmReg(x: Unit): Bool = () == x
 
-fun main() {}
+fun main() {
+  use(testCompareRegisterImmediate);
+  use(testCompareImmediateRegister);
+  use(testCompareMemoryImmediate);
+  use(testCompareImmediateMemory);
+  use(testCompareMemoryMemory);
+  use(testCompareMemoryRegister);
+  use(testCompareRegisterMemory);
+  use(testCompareRegisterRegister);
+  use(testCompareByteRegs);
+  use(testCompareByteRegImm);
+  use(testCompareByteImmReg);
+  use(testCompareLongRegs);
+  use(testCompareLongRegImm);
+  use(testCompareLongImmReg);
+  use(testCompareBoolRegs);
+  use(testCompareBoolRegImm);
+  use(testCompareBoolImmReg);
+  use(testCompareUnitRegs);
+  use(testCompareUnitRegImm);
+  use(testCompareUnitImmReg);
+}

@@ -19,4 +19,9 @@ fun testNamedRecord(x: Rec): Int =
     | Rec { bar, baz: _ } -> bar
   }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testNamedTuple);
+  use(testNamedRecord);
+}

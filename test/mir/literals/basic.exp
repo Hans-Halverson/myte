@@ -1,7 +1,7 @@
 func unit @_init() {
   %0 := CallBuiltin std.string.String* myte_alloc(1)
   %1 := GetPointer byte*, std.string.String* %0.0
-  Store byte* %1, @.S3
+  Store byte* %1, @.S1
   %2 := GetPointer int, std.string.String* %0.1
   Store int %2, 4
   %3 := GetPointer int, std.string.String* %0.2
@@ -18,19 +18,23 @@ func unit @test.use<byte>(byte %5) {
   Ret
 }
 
-func unit @test.use<int>(int %6) {
+func unit @test.use<fn>(fn %6) {
   Ret
 }
 
-func unit @test.use<long>(long %7) {
+func unit @test.use<int>(int %7) {
   Ret
 }
 
-func unit @test.use<std.string.String*>(std.string.String* %8) {
+func unit @test.use<long>(long %8) {
   Ret
 }
 
-func unit @test.use<unit>(unit %9) {
+func unit @test.use<std.string.String*>(std.string.String* %9) {
+  Ret
+}
+
+func unit @test.use<unit>(unit %10) {
   Ret
 }
 
@@ -50,41 +54,42 @@ global long @test.c3 = 97
 
 global std.string.String* @test.z = uninitialized
 
-global byte[4] @.S3 = "test"
+global byte[4] @.S1 = "test"
 
 global bool @test.a1 = true
 
 func int @test.main() {
-  %10 := Call unit @test.use<int>(0)
-  %11 := Call unit @test.use<int>(2147483647)
-  %12 := Call unit @test.use<long>(2147483648)
-  %13 := Add int 2, 4
-  %14 := Add int %13, 6
-  %15 := Call unit @test.use<int>(%14)
-  %16 := Add long 2, 2147483648
-  %17 := Add long %16, 6
-  %18 := Call unit @test.use<long>(%17)
+  %11 := Call unit @test.use<int>(0)
+  %12 := Call unit @test.use<int>(2147483647)
+  %13 := Call unit @test.use<long>(2147483648)
+  %14 := Add int 2, 4
+  %15 := Add int %14, 6
+  %16 := Call unit @test.use<int>(%15)
+  %17 := Add long 2, 2147483648
+  %18 := Add long %17, 6
+  %19 := Call unit @test.use<long>(%18)
+  %20 := Call unit @test.use<fn>(@test.useAll)
   Ret 0
 }
 
 func unit @test.useAll() {
-  %19 := Load unit @test.x
-  %20 := Call unit @test.use<unit>(%19)
-  %21 := Load int @test.y1
-  %22 := Call unit @test.use<int>(%21)
-  %23 := Load byte @test.y2
-  %24 := Call unit @test.use<byte>(%23)
-  %25 := Load long @test.y3
-  %26 := Call unit @test.use<long>(%25)
-  %27 := Load int @test.c1
-  %28 := Call unit @test.use<int>(%27)
-  %29 := Load byte @test.c2
-  %30 := Call unit @test.use<byte>(%29)
-  %31 := Load long @test.c3
-  %32 := Call unit @test.use<long>(%31)
-  %33 := Load std.string.String* @test.z
-  %34 := Call unit @test.use<std.string.String*>(%33)
-  %35 := Load bool @test.a1
-  %36 := Call unit @test.use<bool>(%35)
+  %21 := Load unit @test.x
+  %22 := Call unit @test.use<unit>(%21)
+  %23 := Load int @test.y1
+  %24 := Call unit @test.use<int>(%23)
+  %25 := Load byte @test.y2
+  %26 := Call unit @test.use<byte>(%25)
+  %27 := Load long @test.y3
+  %28 := Call unit @test.use<long>(%27)
+  %29 := Load int @test.c1
+  %30 := Call unit @test.use<int>(%29)
+  %31 := Load byte @test.c2
+  %32 := Call unit @test.use<byte>(%31)
+  %33 := Load long @test.c3
+  %34 := Call unit @test.use<long>(%33)
+  %35 := Load std.string.String* @test.z
+  %36 := Call unit @test.use<std.string.String*>(%35)
+  %37 := Load bool @test.a1
+  %38 := Call unit @test.use<bool>(%37)
   Ret
 }

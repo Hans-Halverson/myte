@@ -2,6 +2,12 @@
 
   .text
 _main:
+  leaq test.negByteReg(%rip), %rdi
+  call test.use$fn$
+  leaq test.negIntReg(%rip), %rdi
+  call test.use$fn$
+  leaq test.negLongReg(%rip), %rdi
+  call test.use$fn$
   movl $0, %eax
   ret
 test.negByteReg:
@@ -14,5 +20,8 @@ test.negIntReg:
   ret
 test.negLongReg:
   negq %rdi
+  movq %rdi, %rax
+  ret
+test.use$fn$:
   movq %rdi, %rax
   ret

@@ -40,6 +40,16 @@ test.longConstantIndexing:
   movl (%rdi, %rax), %eax
   ret
 _main:
+  leaq test.constantIndexing(%rip), %rdi
+  call test.use$fn$
+  leaq test.longConstantIndexing(%rip), %rdi
+  call test.use$fn$
+  leaq test.variableIndexing(%rip), %rdi
+  call test.use$fn$
+  leaq test.nestedIndexing(%rip), %rdi
+  call test.use$fn$
+  leaq test.indexIntoGlobal(%rip), %rdi
+  call test.use$fn$
   movl $0, %eax
   ret
 test.nestedIndexing:
@@ -53,6 +63,9 @@ test.nestedIndexing:
   movq 8(%rsi), %rcx
   movl %edx, %eax
   movl (%rcx, %rax, 4), %eax
+  ret
+test.use$fn$:
+  movq %rdi, %rax
   ret
 test.variableIndexing:
   movl %r8d, %eax

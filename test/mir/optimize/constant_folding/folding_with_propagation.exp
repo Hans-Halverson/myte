@@ -25,19 +25,20 @@ func int @t.main() {
   %3 := Call unit @t.useBool(false)
   %4 := Call bool @t.rand()
   %5 := Call unit @t.useBool(true)
+  %6 := Call unit @t.useAllGlobals()
   Ret 0
 }
 
 func unit @t.useAllGlobals() {
-  %6 := Load int @t.int1
-  %7 := Call unit @t.useInt(%6)
-  %8 := Load bool @t.bool1
-  %9 := Call unit @t.useBool(%8)
-  %10 := Load int @t.int2
-  %11 := Call unit @t.useInt(%10)
-  %12 := Load bool @t.bool2
-  %13 := Call unit @t.useBool(%12)
-  %14 := Load bool @t.mixed
-  %15 := Call unit @t.useBool(%14)
+  %7 := Load int @t.int1
+  %8 := Call unit @t.useInt(%7)
+  %9 := Load bool @t.bool1
+  %10 := Call unit @t.useBool(%9)
+  %11 := Load int @t.int2
+  %12 := Call unit @t.useInt(%11)
+  %13 := Load bool @t.bool2
+  %14 := Call unit @t.useBool(%13)
+  %15 := Load bool @t.mixed
+  %16 := Call unit @t.useBool(%15)
   Ret
 }

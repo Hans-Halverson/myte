@@ -27,6 +27,13 @@ func unit @test.multiEntrySet() {
   Ret
 }
 
+func unit @test.use<fn>(fn %17) {
+  Ret
+}
+
 func int @test.main() {
+  %18 := Call unit @test.use<fn>(@test.emptySet)
+  %19 := Call unit @test.use<fn>(@test.oneEntrySet)
+  %20 := Call unit @test.use<fn>(@test.multiEntrySet)
   Ret 0
 }

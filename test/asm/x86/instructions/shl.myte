@@ -1,5 +1,7 @@
 module test
 
+fun use<T>(x: T): T = x
+
 fun shlByteRegs(x: Byte, y: Byte): Byte = x << y
 fun shlByteImmReg(x: Byte): Byte = 6 << x
 fun shlByteRegImm(x: Byte): Byte = x << 6
@@ -21,4 +23,18 @@ fun shlLongImmReg(x: Long): Long = 2147483648 << x
 fun shlTruncIntImm(x: Int): Int = x << 257
 fun shlTruncLongImm(x: Int): Int = x << 2147483650
 
-fun main() {}
+fun main() {
+  use(shlByteRegs);
+  use(shlByteImmReg);
+  use(shlByteRegImm);
+  use(shlIntRegs);
+  use(shlIntRegImm);
+  use(shlIntImmReg);
+  use(shlIntRegByteImm);
+  use(shlIntByteImmReg);
+  use(shlLongRegs);
+  use(shlLongRegImm);
+  use(shlLongImmReg);
+  use(shlTruncIntImm);
+  use(shlTruncLongImm);
+}

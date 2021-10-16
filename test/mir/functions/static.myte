@@ -19,4 +19,8 @@ fun test() {
   Type1.foo(true);
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(test);
+}

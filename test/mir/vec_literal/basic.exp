@@ -74,6 +74,13 @@ func unit @test.multiElementVec() {
   Ret
 }
 
+func unit @test.use<fn>(fn %37) {
+  Ret
+}
+
 func int @test.main() {
+  %38 := Call unit @test.use<fn>(@test.emptyVec)
+  %39 := Call unit @test.use<fn>(@test.oneElementVec)
+  %40 := Call unit @test.use<fn>(@test.multiElementVec)
   Ret 0
 }

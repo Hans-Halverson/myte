@@ -1,24 +1,30 @@
-func unit @test.use<int>(int %0) {
+func unit @test.use<fn>(fn %0) {
+  Ret
+}
+
+func unit @test.use<int>(int %1) {
   Ret
 }
 
 global int @test.x = 1
 
-func unit @test.test1(int %1, unit %2) {
-  %3 := Load int @test.x
-  %4 := Mul int 2, %1
-  %5 := Add int %3, %4
+func unit @test.test1(int %2, unit %3) {
+  %4 := Load int @test.x
+  %5 := Mul int 2, %2
+  %6 := Add int %4, %5
   Ret
 }
 
 func unit @test.test2() {
-  %6 := Load int @test.x
-  %7 := Mul int 4, 34
-  %8 := Call unit @test.use<int>(%6)
+  %7 := Load int @test.x
+  %8 := Mul int 4, 34
   %9 := Call unit @test.use<int>(%7)
+  %10 := Call unit @test.use<int>(%8)
   Ret
 }
 
 func int @test.main() {
+  %11 := Call unit @test.use<fn>(@test.test1)
+  %12 := Call unit @test.use<fn>(@test.test2)
   Ret 0
 }

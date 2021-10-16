@@ -2,36 +2,39 @@
   .lcomm test.s, 8
 
   .data
-.S0:
+.S1:
   .ascii "foobar"
-.S4:
+.S2:
   .ascii "foo"
 
   .text
 _init:
   movl $16, %edi
   call __myte_alloc
-  leaq .S4(%rip), %rcx
+  leaq .S2(%rip), %rcx
   movq %rcx, (%rax)
   movl $3, 8(%rax)
   movl $3, 12(%rax)
   movq %rax, test.s(%rip)
   ret
 _main:
+  movq test.s(%rip), %rdi
+  call test.use$std.string.String$$
+  leaq test.test(%rip), %rdi
+  call test.use$fn$
   movl $0, %eax
   ret
 test.test:
   movl $16, %edi
   call __myte_alloc
-  leaq .S0(%rip), %rcx
+  leaq .S1(%rip), %rcx
   movq %rcx, (%rax)
   movl $6, 8(%rax)
   movl $6, 12(%rax)
   ret
-test.use$std.string.String$$:
+test.use$fn$:
   movq %rdi, %rax
   ret
-test.useAll:
-  movq test.s(%rip), %rdi
-  call test.use$std.string.String$$
+test.use$std.string.String$$:
+  movq %rdi, %rax
   ret

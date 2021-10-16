@@ -24,4 +24,11 @@ fun testVecOperatorAssign(x: Vec<Int>) {
   x[7] += getInt();
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testVecGet);
+  use(testVecSet);
+  use(testVecPush);
+  use(testVecOperatorAssign);
+}

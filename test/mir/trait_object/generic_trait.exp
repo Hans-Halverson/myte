@@ -4,7 +4,7 @@ type _object$test.ConcreteType1$test.Trait<int> {test.ConcreteType1*, fn[1]*}
 
 type test.ConcreteType1 {unit}
 
-global fn[1] @_vtable$test.ConcreteType1$test.Trait<int> = [test.ConcreteType1.method]
+global fn[1] @_vtable$test.ConcreteType1$test.Trait<int> = [@test.ConcreteType1.method]
 
 func std.option.Option<int>* @test.ConcreteType1.method(test.ConcreteType1* %0, int %1) {
   %2 := CallBuiltin std.option.Option<int>::Some* myte_alloc(1)
@@ -18,7 +18,7 @@ type _object$test.ConcreteType2$test.Trait<bool> {test.ConcreteType2*, fn[1]*}
 
 type test.ConcreteType2 {unit}
 
-global fn[1] @_vtable$test.ConcreteType2$test.Trait<bool> = [test.ConcreteType2.method]
+global fn[1] @_vtable$test.ConcreteType2$test.Trait<bool> = [@test.ConcreteType2.method]
 
 func std.option.Option<bool>* @test.ConcreteType2.method(test.ConcreteType2* %4, bool %5) {
   %6 := CallBuiltin std.option.Option<bool>::Some* myte_alloc(1)
@@ -40,11 +40,11 @@ type test.GenericType<long> {long}
 
 type test.GenericType<unit> {unit}
 
-global fn[1] @_vtable$test.GenericType<int>$test.Trait<int> = [test.GenericType.method<int>]
+global fn[1] @_vtable$test.GenericType<int>$test.Trait<int> = [@test.GenericType.method<int>]
 
-global fn[1] @_vtable$test.GenericType<long>$test.Trait<long> = [test.GenericType.method<long>]
+global fn[1] @_vtable$test.GenericType<long>$test.Trait<long> = [@test.GenericType.method<long>]
 
-global fn[1] @_vtable$test.GenericType<unit>$test.Trait<unit> = [test.GenericType.method<unit>]
+global fn[1] @_vtable$test.GenericType<unit>$test.Trait<unit> = [@test.GenericType.method<unit>]
 
 func std.option.Option<int>* @test.GenericType.method<int>(test.GenericType<int>* %8, int %9) {
   %10 := CallBuiltin std.option.Option<int>::Some* myte_alloc(1)
@@ -167,6 +167,12 @@ func unit @test.testGenericType() {
   Ret
 }
 
+func unit @test.use<fn>(fn %86) {
+  Ret
+}
+
 func int @test.main() {
+  %87 := Call unit @test.use<fn>(@test.testConcreteTypes)
+  %88 := Call unit @test.use<fn>(@test.testGenericType)
   Ret 0
 }

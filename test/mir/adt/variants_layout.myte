@@ -24,4 +24,10 @@ type V1 =
 
 fun useV1(v: V1) {}
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(useOpt1);
+  use(useOpt2);
+  use(useV1);
+}

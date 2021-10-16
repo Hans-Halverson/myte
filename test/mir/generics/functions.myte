@@ -20,4 +20,9 @@ fun testInstantiationFromNonCallUse(): (Unit) -> Unit {
   return id;
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testSingleParameter);
+  use(testInstantiationFromNonCallUse);
+}

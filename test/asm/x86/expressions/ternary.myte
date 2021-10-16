@@ -1,5 +1,7 @@
 module test
 
+fun use<T>(x: T): T = x
+
 fun bool(): Bool = true
 
 fun testSimpleTernary(): Int = bool() ? 1 : 2
@@ -10,4 +12,8 @@ fun testNestedTernary(): Int {
   return bool() ? (bool() ? 1 : 2) : (bool() ? 3 : 4);
 }
 
-fun main() {}
+fun main() {
+  use(testSimpleTernary);
+  use(testTernaryWithExpressions);
+  use(testNestedTernary);
+}

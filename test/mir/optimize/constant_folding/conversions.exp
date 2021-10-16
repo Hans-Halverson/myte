@@ -42,14 +42,22 @@ func byte @test.use<byte>(byte %24) {
   Ret %24
 }
 
-func int @test.use<int>(int %25) {
+func fn @test.use<fn>(fn %25) {
   Ret %25
 }
 
-func long @test.use<long>(long %26) {
+func int @test.use<int>(int %26) {
   Ret %26
 }
 
+func long @test.use<long>(long %27) {
+  Ret %27
+}
+
 func int @test.main() {
+  %28 := Call fn @test.use<fn>(@test.byteSignExtension)
+  %29 := Call fn @test.use<fn>(@test.intSignExtension)
+  %30 := Call fn @test.use<fn>(@test.intTruncation)
+  %31 := Call fn @test.use<fn>(@test.longTruncation)
   Ret 0
 }

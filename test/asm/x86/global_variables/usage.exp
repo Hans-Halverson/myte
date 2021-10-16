@@ -15,6 +15,8 @@ test.getByte:
   movb $1, %al
   ret
 _main:
+  movl $0, %edi
+  call test.testReferencing
   movl $0, %eax
   ret
 test.testReferencing:

@@ -44,6 +44,12 @@ func unit @test.testInheritsType(test.InheritsType* %19) {
   Ret
 }
 
+func unit @test.use<fn>(fn %21) {
+  Ret
+}
+
 func int @test.main() {
+  %22 := Call unit @test.use<fn>(@test.testRecordType)
+  %23 := Call unit @test.use<fn>(@test.testInheritsType)
   Ret 0
 }

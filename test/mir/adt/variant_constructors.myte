@@ -35,4 +35,10 @@ fun testRecordConstructors() {
   Record3 { foo: 4, bar: 5 };
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testEnumConstructors);
+  use(testTupleConstructors);
+  use(testRecordConstructors);
+}

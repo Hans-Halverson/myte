@@ -15,4 +15,7 @@ fun testMyteAllocVariableCount(x: Int) {
   val arr3: Array<Long> = Array.new(x);
 }
 
-fun main() {}
+fun main() {
+  testMyteAllocLiteralCount(1);
+  testMyteAllocVariableCount(1);
+}

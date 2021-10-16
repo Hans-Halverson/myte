@@ -16,6 +16,13 @@ func unit @test.testConvertLong(long %6) {
   Ret
 }
 
+func unit @test.use<fn>(fn %9) {
+  Ret
+}
+
 func int @test.main() {
+  %10 := Call unit @test.use<fn>(@test.testConvertByte)
+  %11 := Call unit @test.use<fn>(@test.testConvertInt)
+  %12 := Call unit @test.use<fn>(@test.testConvertLong)
   Ret 0
 }

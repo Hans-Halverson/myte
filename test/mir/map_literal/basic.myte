@@ -15,4 +15,10 @@ fun multiEntryMap() {
   ({ false: 3, true: 4, false: 5, true: 6 });
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(emptyMap);
+  use(oneEntryMap);
+  use(multiEntryMap);
+}

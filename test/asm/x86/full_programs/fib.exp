@@ -39,6 +39,10 @@ fib.fibRecursive:
   ret
 _main:
   movl $1, %edi
+  call fib.fibRecursive
+  movl $3, %edi
+  call fib.fibRecursive
+  movl $1, %edi
   call fib.fibIterative
   movl $2, %edi
   call fib.fibIterative

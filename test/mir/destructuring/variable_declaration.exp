@@ -10,32 +10,36 @@ func unit @test.use<bool>(bool %1) {
   Ret
 }
 
-func unit @test.use<int>(int %2) {
+func unit @test.use<fn>(fn %2) {
   Ret
 }
 
-func unit @test.use<std.string.String*>(std.string.String* %3) {
+func unit @test.use<int>(int %3) {
   Ret
 }
 
-func unit @test.destructureTuple($tuple<int,bool,$tuple<int,bool>*>* %4) {
-  %5 := GetPointer int, $tuple<int,bool,$tuple<int,bool>*>* %4.0
-  %6 := Load int %5
-  %7 := GetPointer bool, $tuple<int,bool,$tuple<int,bool>*>* %4.1
-  %8 := Load bool %7
-  %9 := GetPointer $tuple<int,bool>*, $tuple<int,bool,$tuple<int,bool>*>* %4.2
-  %10 := Load $tuple<int,bool>* %9
-  %11 := Call unit @test.use<int>(%6)
-  %12 := Call unit @test.use<bool>(%8)
-  %13 := Call unit @test.use<$tuple<int,bool>*>(%10)
-  %14 := GetPointer $tuple<int,bool>*, $tuple<int,bool,$tuple<int,bool>*>* %4.2
-  %15 := Load $tuple<int,bool>* %14
-  %16 := GetPointer int, $tuple<int,bool>* %15.0
-  %17 := Load int %16
-  %18 := GetPointer bool, $tuple<int,bool>* %15.1
-  %19 := Load bool %18
-  %20 := Call unit @test.use<int>(%17)
-  %21 := Call unit @test.use<bool>(%19)
+func unit @test.use<std.string.String*>(std.string.String* %4) {
+  Ret
+}
+
+func unit @test.destructureTuple($tuple<int,bool,$tuple<int,bool>*>* %5) {
+  %6 := GetPointer int, $tuple<int,bool,$tuple<int,bool>*>* %5.0
+  %7 := Load int %6
+  %8 := GetPointer bool, $tuple<int,bool,$tuple<int,bool>*>* %5.1
+  %9 := Load bool %8
+  %10 := GetPointer $tuple<int,bool>*, $tuple<int,bool,$tuple<int,bool>*>* %5.2
+  %11 := Load $tuple<int,bool>* %10
+  %12 := Call unit @test.use<int>(%7)
+  %13 := Call unit @test.use<bool>(%9)
+  %14 := Call unit @test.use<$tuple<int,bool>*>(%11)
+  %15 := GetPointer $tuple<int,bool>*, $tuple<int,bool,$tuple<int,bool>*>* %5.2
+  %16 := Load $tuple<int,bool>* %15
+  %17 := GetPointer int, $tuple<int,bool>* %16.0
+  %18 := Load int %17
+  %19 := GetPointer bool, $tuple<int,bool>* %16.1
+  %20 := Load bool %19
+  %21 := Call unit @test.use<int>(%18)
+  %22 := Call unit @test.use<bool>(%20)
   Ret
 }
 
@@ -45,67 +49,72 @@ type test.Variant::Tup1 {byte, byte[3], int, std.string.String*, byte[8]}
 
 type test.Variant::Tup2 {byte, byte[7], std.string.String*, int, byte[4]}
 
-func unit @test.destructureVariants(test.Variant* %22) {
-  %23 := Load byte %22
-  %24 := Eq byte %23, 0
-  branch %24, @0, @1
+func unit @test.destructureVariants(test.Variant* %23) {
+  %24 := Load byte %23
+  %25 := Eq byte %24, 0
+  branch %25, @0, @1
 label @0:
-  %25 := GetPointer int, test.Variant::Tup1* %22.2
-  %26 := Load int %25
-  %27 := GetPointer std.string.String*, test.Variant::Tup1* %22.3
-  %28 := Load std.string.String* %27
+  %26 := GetPointer int, test.Variant::Tup1* %23.2
+  %27 := Load int %26
+  %28 := GetPointer std.string.String*, test.Variant::Tup1* %23.3
+  %29 := Load std.string.String* %28
   continue @2
 label @1:
-  %29 := GetPointer std.string.String*, test.Variant::Tup2* %22.2
-  %30 := Load std.string.String* %29
-  %31 := GetPointer int, test.Variant::Tup2* %22.3
-  %32 := Load int %31
+  %30 := GetPointer std.string.String*, test.Variant::Tup2* %23.2
+  %31 := Load std.string.String* %30
+  %32 := GetPointer int, test.Variant::Tup2* %23.3
+  %33 := Load int %32
   continue @2
 label @2:
-  %33 := Phi std.string.String* @0:%28, @1:%30
-  %34 := Phi int @0:%26, @1:%32
-  %35 := Call unit @test.use<int>(%34)
-  %36 := Call unit @test.use<std.string.String*>(%33)
+  %34 := Phi std.string.String* @0:%29, @1:%31
+  %35 := Phi int @0:%27, @1:%33
+  %36 := Call unit @test.use<int>(%35)
+  %37 := Call unit @test.use<std.string.String*>(%34)
   Ret
 }
 
 type test.Tup {int, bool}
 
-func unit @test.destructureNamedTuple(test.Tup* %37) {
-  %38 := GetPointer int, test.Tup* %37.0
-  %39 := Load int %38
-  %40 := GetPointer bool, test.Tup* %37.1
-  %41 := Load bool %40
-  %42 := Call unit @test.use<int>(%39)
-  %43 := Call unit @test.use<bool>(%41)
+func unit @test.destructureNamedTuple(test.Tup* %38) {
+  %39 := GetPointer int, test.Tup* %38.0
+  %40 := Load int %39
+  %41 := GetPointer bool, test.Tup* %38.1
+  %42 := Load bool %41
+  %43 := Call unit @test.use<int>(%40)
+  %44 := Call unit @test.use<bool>(%42)
   Ret
 }
 
 type test.Rec {int, bool}
 
-func unit @test.destructureNamedRecord(test.Rec* %44) {
-  %45 := GetPointer int, test.Rec* %44.0
-  %46 := Load int %45
-  %47 := GetPointer bool, test.Rec* %44.1
-  %48 := Load bool %47
-  %49 := Call unit @test.use<int>(%46)
-  %50 := Call unit @test.use<bool>(%48)
+func unit @test.destructureNamedRecord(test.Rec* %45) {
+  %46 := GetPointer int, test.Rec* %45.0
+  %47 := Load int %46
+  %48 := GetPointer bool, test.Rec* %45.1
+  %49 := Load bool %48
+  %50 := Call unit @test.use<int>(%47)
+  %51 := Call unit @test.use<bool>(%49)
   Ret
 }
 
 type test.Rec2<int> {int, bool}
 
-func int @test.Rec2.methodDestructuring<int>(test.Rec2<int>* %51) {
-  %52 := GetPointer int, test.Rec2<int>* %51.0
-  %53 := Load int %52
-  Ret %53
+func int @test.Rec2.methodDestructuring<int>(test.Rec2<int>* %52) {
+  %53 := GetPointer int, test.Rec2<int>* %52.0
+  %54 := Load int %53
+  Ret %54
 }
 
-func unit @test.testUseRec2(test.Rec2<int>* %54) {
-  %55 := Call int @test.Rec2.methodDestructuring<int>(%54)
+func unit @test.testUseRec2(test.Rec2<int>* %55) {
+  %56 := Call int @test.Rec2.methodDestructuring<int>(%55)
   Ret
 }
 
 func int @test.main() {
+  %57 := Call unit @test.use<fn>(@test.destructureTuple)
+  %58 := Call unit @test.use<fn>(@test.destructureVariants)
+  %59 := Call unit @test.use<fn>(@test.destructureNamedTuple)
+  %60 := Call unit @test.use<fn>(@test.destructureNamedRecord)
+  %61 := Call unit @test.use<fn>(@test.testUseRec2)
   Ret 0
 }

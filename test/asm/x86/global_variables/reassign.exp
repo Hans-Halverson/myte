@@ -17,6 +17,13 @@ _init:
   movq %rax, test.t(%rip)
   ret
 _main:
+  movl $4, %edi
+  call __myte_alloc
+  movl $0, (%rax)
+  movl $0, %edi
+  movq $0, %rsi
+  movq %rax, %rdx
+  call test.testReassignGlobals
   movl $0, %eax
   ret
 test.testReassignGlobals:

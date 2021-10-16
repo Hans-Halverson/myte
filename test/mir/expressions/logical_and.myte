@@ -18,4 +18,16 @@ fun testConstant4(x: Bool): Bool = false && x
 
 fun testVariables(x: Bool, y: Bool): Bool = x && y
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testConstants1);
+  use(testConstants2);
+  use(testConstants3);
+  use(testConstants4);
+  use(testConstant1);
+  use(testConstant2);
+  use(testConstant3);
+  use(testConstant4);
+  use(testVariables);
+}

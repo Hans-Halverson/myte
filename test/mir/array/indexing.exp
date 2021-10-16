@@ -70,6 +70,15 @@ func unit @test.indexingWithRecordAndTuple(test.Rec1* %47) {
   Ret
 }
 
+func unit @test.use<fn>(fn %54) {
+  Ret
+}
+
 func int @test.main() {
+  %55 := Call unit @test.use<fn>(@test.indexing)
+  %56 := Call unit @test.use<fn>(@test.indexingAllIntegerTypes)
+  %57 := Call unit @test.use<fn>(@test.indexingWithTuple)
+  %58 := Call unit @test.use<fn>(@test.indexingWithRecord)
+  %59 := Call unit @test.use<fn>(@test.indexingWithRecordAndTuple)
   Ret 0
 }

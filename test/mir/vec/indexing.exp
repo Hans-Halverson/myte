@@ -57,6 +57,14 @@ func unit @test.testIndexOperatorAssign(test.Rec1* %23) {
   Ret
 }
 
+func unit @test.use<fn>(fn %35) {
+  Ret
+}
+
 func int @test.main() {
+  %36 := Call unit @test.use<fn>(@test.testIndexRec1)
+  %37 := Call unit @test.use<fn>(@test.testIndexVecRec2)
+  %38 := Call unit @test.use<fn>(@test.testIndexRec3)
+  %39 := Call unit @test.use<fn>(@test.testIndexOperatorAssign)
   Ret 0
 }

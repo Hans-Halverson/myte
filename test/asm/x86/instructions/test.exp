@@ -2,6 +2,10 @@
 
   .text
 _main:
+  leaq test.testRegister(%rip), %rdi
+  call test.use$fn$
+  leaq test.testMemory(%rip), %rdi
+  call test.use$fn$
   movl $0, %eax
   ret
 test.testMemory:
@@ -20,4 +24,7 @@ test.testRegister:
   ret
 .L1:
   movl $2, %eax
+  ret
+test.use$fn$:
+  movq %rdi, %rax
   ret

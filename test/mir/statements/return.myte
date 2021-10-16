@@ -1,7 +1,5 @@
 module test
 
-fun use(x: Int) {}
-
 fun test1(): Unit {
   use(1);
   return;
@@ -22,4 +20,10 @@ fun returnPreventsContinue() {
   }
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(test1);
+  use(test2);
+  use(returnPreventsContinue);
+}

@@ -12,7 +12,13 @@ func unit @a.useFromB(b.RecB<byte>* %0) {
   Ret
 }
 
+func unit @a.use<fn>(fn %3) {
+  Ret
+}
+
 func int @a.main() {
+  %4 := Call unit @a.use<fn>(@a.useFromB)
+  %5 := Call unit @a.use<fn>(@b.useFromA)
   Ret 0
 }
 
@@ -24,8 +30,8 @@ func unit @b.funcB() {
   Ret
 }
 
-func unit @b.useFromA(a.TupA<long>* %3) {
-  %4 := Load int @a.varA
-  %5 := Call unit @a.funcA()
+func unit @b.useFromA(a.TupA<long>* %6) {
+  %7 := Load int @a.varA
+  %8 := Call unit @a.funcA()
   Ret
 }

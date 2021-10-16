@@ -47,6 +47,11 @@ func unit @test.testIndexing(test.Rec1* %3, test.Rec2* %4, test.Rec3* %5, test.R
   Ret
 }
 
+func unit @test.use<fn>(fn %36) {
+  Ret
+}
+
 func int @test.main() {
+  %37 := Call unit @test.use<fn>(@test.testIndexing)
   Ret 0
 }

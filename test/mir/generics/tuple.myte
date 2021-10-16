@@ -23,4 +23,11 @@ fun testAnonymousIndexing(t1: (Int, Int), t2: (Int, Bool)) {
   t2[1];
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testConstructor);
+  use(testAnonymousConstructor);
+  use(testIndexing);
+  use(testAnonymousIndexing);
+}

@@ -1,24 +1,24 @@
 type _object$std.bool.Bool$std.string.ToString {bool, byte[7], fn[1]*}
 
-global fn[1] @_vtable$std.bool.Bool$std.string.ToString = [std.bool.Bool.toString]
+global fn[1] @_vtable$std.bool.Bool$std.string.ToString = [@std.bool.Bool.toString]
 
 type _object$std.byte.Byte$std.string.ToString {byte, byte[7], fn[1]*}
 
-global fn[1] @_vtable$std.byte.Byte$std.string.ToString = [std.byte.Byte.toString]
+global fn[1] @_vtable$std.byte.Byte$std.string.ToString = [@std.byte.Byte.toString]
 
 type _object$std.int.Int$std.string.ToString {int, byte[4], fn[1]*}
 
-global fn[1] @_vtable$std.int.Int$std.string.ToString = [std.int.Int.toString]
+global fn[1] @_vtable$std.int.Int$std.string.ToString = [@std.int.Int.toString]
 
 type _object$std.long.Long$std.string.ToString {long, fn[1]*}
 
-global fn[1] @_vtable$std.long.Long$std.string.ToString = [std.long.Long.toString]
+global fn[1] @_vtable$std.long.Long$std.string.ToString = [@std.long.Long.toString]
 
 type _object$std.string.ToString {unit*, fn[1]*}
 
 type _object$std.unit.Unit$std.string.ToString {unit, byte[7], fn[1]*}
 
-global fn[1] @_vtable$std.unit.Unit$std.string.ToString = [std.unit.Unit.toString]
+global fn[1] @_vtable$std.unit.Unit$std.string.ToString = [@std.unit.Unit.toString]
 
 func std.string.String* @test.useToString(_object$std.string.ToString* %0) {
   %1 := GetPointer unit*, _object$std.string.ToString* %0.0
@@ -111,6 +111,15 @@ func unit @test.testLongPromotion(long %44) {
   Ret
 }
 
+func unit @test.use<fn>(fn %53) {
+  Ret
+}
+
 func int @test.main() {
+  %54 := Call unit @test.use<fn>(@test.testUnitPromotion)
+  %55 := Call unit @test.use<fn>(@test.testBoolPromotion)
+  %56 := Call unit @test.use<fn>(@test.testBytePromotion)
+  %57 := Call unit @test.use<fn>(@test.testIntPromotion)
+  %58 := Call unit @test.use<fn>(@test.testLongPromotion)
   Ret 0
 }

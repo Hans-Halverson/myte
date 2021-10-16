@@ -5,6 +5,12 @@ test.bool:
   movb $1, %al
   ret
 _main:
+  leaq test.testSimpleTernary(%rip), %rdi
+  call test.use$fn$
+  leaq test.testTernaryWithExpressions(%rip), %rdi
+  call test.use$fn$
+  leaq test.testNestedTernary(%rip), %rdi
+  call test.use$fn$
   movl $0, %eax
   ret
 test.testNestedTernary:
@@ -59,4 +65,7 @@ test.testTernaryWithExpressions:
   movl %ebx, %eax
   pop %r12
   pop %rbx
+  ret
+test.use$fn$:
+  movq %rdi, %rax
   ret

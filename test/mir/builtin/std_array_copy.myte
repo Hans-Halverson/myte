@@ -18,4 +18,11 @@ fun testCopy(x: Array<Int>, y: Array<Int>, z: Int) {
   Array.copy(x, z, y, z, 7);
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testCopy1);
+  use(testCopy2);
+  use(testCopy3);
+  use(testCopy);
+}

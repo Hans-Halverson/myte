@@ -27,6 +27,13 @@ func unit @test.multiEntryMap() {
   Ret
 }
 
+func unit @test.use<fn>(fn %17) {
+  Ret
+}
+
 func int @test.main() {
+  %18 := Call unit @test.use<fn>(@test.emptyMap)
+  %19 := Call unit @test.use<fn>(@test.oneEntryMap)
+  %20 := Call unit @test.use<fn>(@test.multiEntryMap)
   Ret 0
 }

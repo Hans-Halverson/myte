@@ -76,4 +76,19 @@ fun testLogicalRightShiftOperatorAssign() {
   useInt(x);
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testAssign);
+  use(testAddOperatorAssign);
+  use(testSubtractOperatorAssign);
+  use(testMultiplyOperatorAssign);
+  use(testDivideOperatorAssign);
+  use(testRemainderOperatorAssign);
+  use(testAndOperatorAssign);
+  use(testOrOperatorAssign);
+  use(testXorOperatorAssign);
+  use(testLeftShiftOperatorAssign);
+  use(testArithmeticRightShiftOperatorAssign);
+  use(testLogicalRightShiftOperatorAssign);
+}

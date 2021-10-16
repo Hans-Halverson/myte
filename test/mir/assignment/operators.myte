@@ -32,4 +32,10 @@ fun testOrder() {
   x += getInt2();
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testGlobal);
+  use(testOperators);
+  use(testOrder);
+}

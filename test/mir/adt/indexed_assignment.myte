@@ -26,7 +26,7 @@ fun nestedAccesses(r3: Rec3, r4: Rec4) {
   r3.bar.baz = (1: Int);
 
   r4.baz.bar.foo = "string";
- }
+}
 
 fun namedAndIndexedAccess(t1: Tup1) {
   // Named access after indexed access
@@ -41,4 +41,11 @@ fun accessOperatorAssign(r1: Rec1, r3: Rec3, t1: Tup1) {
   t1[0].baz += 1;
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(simpleAccesses);
+  use(nestedAccesses);
+  use(namedAndIndexedAccess);
+  use(accessOperatorAssign);
+}

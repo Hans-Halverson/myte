@@ -8,9 +8,9 @@ type _object$test.NongenericType$test.NongenericTrait {test.NongenericType*, fn[
 
 type test.NongenericType {int}
 
-global fn[2] @_vtable$test.NongenericType$test.GenericTrait<byte> = [test.NongenericType.baz, test.NongenericType.foo]
+global fn[2] @_vtable$test.NongenericType$test.GenericTrait<byte> = [@test.NongenericType.baz, @test.NongenericType.foo]
 
-global fn[2] @_vtable$test.NongenericType$test.NongenericTrait = [test.NongenericType.bar, test.NongenericType.foo]
+global fn[2] @_vtable$test.NongenericType$test.NongenericTrait = [@test.NongenericType.bar, @test.NongenericType.foo]
 
 func int @test.NongenericType.foo(test.NongenericType* %0) {
   Ret 1
@@ -38,13 +38,13 @@ type test.GenericType<byte> {byte}
 
 type test.GenericType<int> {int}
 
-global fn[2] @_vtable$test.GenericType<bool>$test.GenericTrait<bool> = [test.GenericType.baz<bool>, test.GenericType.foo<bool>]
+global fn[2] @_vtable$test.GenericType<bool>$test.GenericTrait<bool> = [@test.GenericType.baz<bool>, @test.GenericType.foo<bool>]
 
-global fn[2] @_vtable$test.GenericType<bool>$test.NongenericTrait = [test.GenericType.bar<bool>, test.GenericType.foo<bool>]
+global fn[2] @_vtable$test.GenericType<bool>$test.NongenericTrait = [@test.GenericType.bar<bool>, @test.GenericType.foo<bool>]
 
-global fn[2] @_vtable$test.GenericType<byte>$test.GenericTrait<byte> = [test.GenericType.baz<byte>, test.GenericType.foo<byte>]
+global fn[2] @_vtable$test.GenericType<byte>$test.GenericTrait<byte> = [@test.GenericType.baz<byte>, @test.GenericType.foo<byte>]
 
-global fn[2] @_vtable$test.GenericType<int>$test.NongenericTrait = [test.GenericType.bar<int>, test.GenericType.foo<int>]
+global fn[2] @_vtable$test.GenericType<int>$test.NongenericTrait = [@test.GenericType.bar<int>, @test.GenericType.foo<int>]
 
 func int @test.GenericType.foo<bool>(test.GenericType<bool>* %4) {
   Ret 2
@@ -127,5 +127,6 @@ func unit @test.forceInstantiations() {
 }
 
 func int @test.main() {
+  %43 := Call unit @test.forceInstantiations()
   Ret 0
 }

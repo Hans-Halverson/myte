@@ -42,4 +42,9 @@ fun longTruncation() {
 
 fun use<T>(x: T): T = x
 
-fun main() {}
+fun main() {
+  use(byteSignExtension);
+  use(intSignExtension);
+  use(intTruncation);
+  use(longTruncation);
+}

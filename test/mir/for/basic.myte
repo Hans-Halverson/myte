@@ -58,4 +58,9 @@ fun testStringIterator(s: String) {
   }
 }
 
-fun main() {}
+fun main() {
+  use(testIterators);
+  use(testBreak);
+  use(testContinue);
+  use(testStringIterator);
+}

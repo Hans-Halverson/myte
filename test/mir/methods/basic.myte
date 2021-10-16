@@ -66,4 +66,11 @@ fun testInheritedGenericTrait(x: GenericType2<Int>, y: GenericType2<Bool>) {
   y.generic(true, true);
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testDirectNonGenericType);
+  use(testDirectGenericType);
+  use(testInheritedNonGenericTrait);
+  use(testInheritedGenericTrait);
+}

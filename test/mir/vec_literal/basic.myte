@@ -15,4 +15,10 @@ fun multiElementVec() {
   [false, true, false, true];
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(emptyVec);
+  use(oneElementVec);
+  use(multiElementVec);
+}

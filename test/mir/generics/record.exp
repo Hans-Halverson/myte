@@ -28,6 +28,12 @@ func unit @test.testIndexing(test.Rec1<int>* %8, test.Rec1<bool>* %9) {
   Ret
 }
 
+func unit @test.use<fn>(fn %14) {
+  Ret
+}
+
 func int @test.main() {
+  %15 := Call unit @test.use<fn>(@test.testConstructor)
+  %16 := Call unit @test.use<fn>(@test.testIndexing)
   Ret 0
 }

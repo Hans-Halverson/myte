@@ -11,4 +11,8 @@ fun test() {
   higherOrder(x);
 }
 
-fun main() {}
+fun use<T>(x: T): T = x
+
+fun main() {
+  test();
+}

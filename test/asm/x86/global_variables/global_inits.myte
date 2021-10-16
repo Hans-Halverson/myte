@@ -22,7 +22,7 @@ fun getFunction(): () -> Byte = getByte
 
 fun use<T>(x: T) {}
 
-fun useAll() {
+fun main() {
   use(constantB);
   use(constantI);
   use(constantL);
@@ -30,7 +30,9 @@ fun useAll() {
   use(b);
   use(i);
   use(l);
-  use(f);  
+  use(f);
+  use(getByte);
+  use(getInt);
+  use(getLong);
+  use(getFunction);
 }
-
-fun main() {}

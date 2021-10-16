@@ -18,7 +18,7 @@ func unit @test.multiArgsFunc(int %3, int %4, std.string.String* %5) {
 func unit @test.directCalls() {
   %6 := CallBuiltin std.string.String* myte_alloc(1)
   %7 := GetPointer byte*, std.string.String* %6.0
-  Store byte* %7, @.S0
+  Store byte* %7, @.S1
   %8 := GetPointer int, std.string.String* %6.1
   Store int %8, 3
   %9 := GetPointer int, std.string.String* %6.2
@@ -27,7 +27,7 @@ func unit @test.directCalls() {
   %11 := Call int @test.singleArgFunc(33)
   %12 := CallBuiltin std.string.String* myte_alloc(1)
   %13 := GetPointer byte*, std.string.String* %12.0
-  Store byte* %13, @.S1
+  Store byte* %13, @.S2
   %14 := GetPointer int, std.string.String* %12.1
   Store int %14, 4
   %15 := GetPointer int, std.string.String* %12.2
@@ -41,9 +41,9 @@ func unit @test.directCalls() {
   Ret
 }
 
-global byte[3] @.S0 = "str"
+global byte[3] @.S1 = "str"
 
-global byte[4] @.S1 = "test"
+global byte[4] @.S2 = "test"
 
 func unit @test.indirectCalls() {
   branch true, @0, @1
@@ -58,6 +58,12 @@ label @1:
   Ret
 }
 
+func unit @test.use<fn>(fn %27) {
+  Ret
+}
+
 func int @test.main() {
+  %28 := Call unit @test.use<fn>(@test.directCalls)
+  %29 := Call unit @test.use<fn>(@test.indirectCalls)
   Ret 0
 }

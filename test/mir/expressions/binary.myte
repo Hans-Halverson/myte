@@ -65,4 +65,10 @@ fun longs(x: Long, y: Long) {
   x >= y;
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(ints);
+  use(bytes);
+  use(longs);
+}

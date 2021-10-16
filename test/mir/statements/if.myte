@@ -1,7 +1,5 @@
 module test
 
-fun use(x: Int) {}
-
 fun testWithoutAltern() {
   use(1);
   if (true) {
@@ -47,4 +45,10 @@ fun nested() {
   }
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testWithoutAltern);
+  use(testWithAltern);
+  use(nested);
+}

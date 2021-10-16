@@ -2,6 +2,24 @@
 
   .text
 _main:
+  leaq test.shrByteRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.shrByteImmReg(%rip), %rdi
+  call test.use$fn$
+  leaq test.shrByteRegImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.shrIntRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.shrIntRegImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.shrIntImmReg(%rip), %rdi
+  call test.use$fn$
+  leaq test.shrLongRegs(%rip), %rdi
+  call test.use$fn$
+  leaq test.shrLongRegImm(%rip), %rdi
+  call test.use$fn$
+  leaq test.shrLongImmReg(%rip), %rdi
+  call test.use$fn$
   movl $0, %eax
   ret
 test.shrByteImmReg:
@@ -44,5 +62,8 @@ test.shrLongRegImm:
 test.shrLongRegs:
   movl %esi, %ecx
   shrq %cl, %rdi
+  movq %rdi, %rax
+  ret
+test.use$fn$:
   movq %rdi, %rax
   ret

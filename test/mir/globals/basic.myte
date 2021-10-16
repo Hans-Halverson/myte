@@ -10,9 +10,7 @@ fun test() {}
 
 fun use<T>(x: T): T = x
 
-fun useAll() {
+fun main() {
   use(i);
   use(f);
 }
-
-fun main() {}

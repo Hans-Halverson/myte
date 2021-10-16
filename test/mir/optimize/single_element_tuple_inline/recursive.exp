@@ -26,6 +26,13 @@ func unit @test.useNested(test.Rec5* %2, test.Rec6* %3) {
   Ret
 }
 
+func fn @test.use<fn>(fn %4) {
+  Ret %4
+}
+
 func int @test.main() {
+  %5 := Call fn @test.use<fn>(@test.useSelfRecursive)
+  %6 := Call fn @test.use<fn>(@test.useMutuallyRecursive)
+  %7 := Call fn @test.use<fn>(@test.useNested)
   Ret 0
 }

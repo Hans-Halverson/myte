@@ -160,6 +160,14 @@ func unit @test.testInheritedGenericTrait(test.GenericType2<int>* %82, test.Gene
   Ret
 }
 
+func unit @test.use<fn>(fn %90) {
+  Ret
+}
+
 func int @test.main() {
+  %91 := Call unit @test.use<fn>(@test.testDirectNonGenericType)
+  %92 := Call unit @test.use<fn>(@test.testDirectGenericType)
+  %93 := Call unit @test.use<fn>(@test.testInheritedNonGenericTrait)
+  %94 := Call unit @test.use<fn>(@test.testInheritedGenericTrait)
   Ret 0
 }

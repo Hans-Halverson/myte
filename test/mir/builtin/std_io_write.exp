@@ -9,6 +9,12 @@ func int @test.testWithOffset(int %4, byte* %5, int %6) {
   Ret %8
 }
 
+func unit @test.use<fn>(fn %9) {
+  Ret
+}
+
 func int @test.main() {
+  %10 := Call unit @test.use<fn>(@test.testWithoutOffset)
+  %11 := Call unit @test.use<fn>(@test.testWithOffset)
   Ret 0
 }

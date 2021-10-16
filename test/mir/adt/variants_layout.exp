@@ -40,6 +40,13 @@ func unit @test.useV1(test.V1* %4) {
   Ret
 }
 
+func unit @test.use<fn>(fn %5) {
+  Ret
+}
+
 func int @test.main() {
+  %6 := Call unit @test.use<fn>(@test.useOpt1)
+  %7 := Call unit @test.use<fn>(@test.useOpt2)
+  %8 := Call unit @test.use<fn>(@test.useV1)
   Ret 0
 }

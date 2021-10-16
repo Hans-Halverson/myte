@@ -16,4 +16,11 @@ fun testMultipleParts2(): String {
   return `foo${1}${2}bar`;
 }
 
-fun main() {}
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testSingleStringPart);
+  use(testSingleExpressionPart);
+  use(testMultipleParts1);
+  use(testMultipleParts2);
+}
