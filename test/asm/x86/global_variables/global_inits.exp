@@ -18,12 +18,12 @@ test.constantL:
 _init:
   call test.getByte
   movb %al, test.b(%rip)
+  call test.getFunction
+  movq %rax, test.f(%rip)
   call test.getInt
   movl %eax, test.i(%rip)
   call test.getLong
   movq %rax, test.l(%rip)
-  call test.getFunction
-  movq %rax, test.f(%rip)
   ret
 test.getByte:
   movb $22, %al
@@ -39,4 +39,30 @@ test.getLong:
   ret
 _main:
   movl $0, %eax
+  ret
+test.use$byte$:
+  ret
+test.use$fn$:
+  ret
+test.use$int$:
+  ret
+test.use$long$:
+  ret
+test.useAll:
+  movb test.constantB(%rip), %dil
+  call test.use$byte$
+  movl test.constantI(%rip), %edi
+  call test.use$int$
+  movq test.constantL(%rip), %rdi
+  call test.use$long$
+  movq test.constantF(%rip), %rdi
+  call test.use$fn$
+  movb test.b(%rip), %dil
+  call test.use$byte$
+  movl test.i(%rip), %edi
+  call test.use$int$
+  movq test.l(%rip), %rdi
+  call test.use$long$
+  movq test.f(%rip), %rdi
+  call test.use$fn$
   ret

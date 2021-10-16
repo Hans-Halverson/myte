@@ -1,35 +1,45 @@
 module test
 
 // Byte sign extension conversions
-val bExt1: Int = (1: Byte).toInt()
-val bExt2: Int = (-1: Byte).toInt()
-val bExt3: Long = (1: Byte).toLong()
-val bExt4: Long = (-1: Byte).toLong()
+fun byteSignExtension() {
+  use((1: Byte).toInt());
+  use((-1: Byte).toInt());
+  use((1: Byte).toLong());
+  use((-1: Byte).toLong());
+}
 
 // Int sign extension conversions
-val iExt1: Long = (1: Int).toLong()
-val iExt2: Long = (-1: Int).toLong()
+fun intSignExtension() {
+  use((1: Int).toLong());
+  use((-1: Int).toLong());
+}
 
 // Int truncation conversions
-val iTrunc1: Byte = (1: Int).toByte()
-val iTrunc2: Byte = (127: Int).toByte()
-val iTrunc3: Byte = (128: Int).toByte()
-val iTrunc4: Byte = (-1: Int).toByte()
-val iTrunc5: Byte = (-128: Int).toByte()
-val iTrunc6: Byte = (-129: Int).toByte()
+fun intTruncation() {
+  use((1: Int).toByte());
+  use((127: Int).toByte());
+  use((128: Int).toByte());
+  use((-1: Int).toByte());
+  use((-128: Int).toByte());
+  use((-129: Int).toByte());
+}
 
 // Long truncation conversions
-val lTrunc1: Byte = (1: Long).toByte()
-val lTrunc2: Byte = (127: Long).toByte()
-val lTrunc3: Byte = (128: Long).toByte()
-val lTrunc4: Byte = (-1: Long).toByte()
-val lTrunc5: Byte = (-128: Long).toByte()
-val lTrunc6: Byte = (-129: Long).toByte()
-val lTrunc7: Int = (1: Long).toInt()
-val lTrunc8: Int = (2147483647: Long).toInt()
-val lTrunc9: Int = (2147483648: Long).toInt()
-val lTrunc10: Int = (-1: Long).toInt()
-val lTrunc11: Int = (-2147483648: Long).toInt()
-val lTrunc12: Int = (-2147483649: Long).toInt()
+fun longTruncation() {
+  use((1: Long).toByte());
+  use((127: Long).toByte());
+  use((128: Long).toByte());
+  use((-1: Long).toByte());
+  use((-128: Long).toByte());
+  use((-129: Long).toByte());
+  use((1: Long).toInt());
+  use((2147483647: Long).toInt());
+  use((2147483648: Long).toInt());
+  use((-1: Long).toInt());
+  use((-2147483648: Long).toInt());
+  use((-2147483649: Long).toInt());
+}
+
+fun use<T>(x: T): T = x
 
 fun main() {}

@@ -1,50 +1,54 @@
-global int @test.bExt1 = 1
+func unit @test.byteSignExtension() {
+  %0 := Call int @test.use<int>(1)
+  %1 := Call int @test.use<int>(-1)
+  %2 := Call long @test.use<long>(1)
+  %3 := Call long @test.use<long>(-1)
+  Ret
+}
 
-global int @test.bExt2 = -1
+func unit @test.intSignExtension() {
+  %4 := Call long @test.use<long>(1)
+  %5 := Call long @test.use<long>(-1)
+  Ret
+}
 
-global long @test.bExt3 = 1
+func unit @test.intTruncation() {
+  %6 := Call byte @test.use<byte>(1)
+  %7 := Call byte @test.use<byte>(127)
+  %8 := Call byte @test.use<byte>(-128)
+  %9 := Call byte @test.use<byte>(-1)
+  %10 := Call byte @test.use<byte>(-128)
+  %11 := Call byte @test.use<byte>(127)
+  Ret
+}
 
-global long @test.bExt4 = -1
+func unit @test.longTruncation() {
+  %12 := Call byte @test.use<byte>(1)
+  %13 := Call byte @test.use<byte>(127)
+  %14 := Call byte @test.use<byte>(-128)
+  %15 := Call byte @test.use<byte>(-1)
+  %16 := Call byte @test.use<byte>(-128)
+  %17 := Call byte @test.use<byte>(127)
+  %18 := Call int @test.use<int>(1)
+  %19 := Call int @test.use<int>(2147483647)
+  %20 := Call int @test.use<int>(-2147483648)
+  %21 := Call int @test.use<int>(-1)
+  %22 := Call int @test.use<int>(-2147483648)
+  %23 := Call int @test.use<int>(2147483647)
+  Ret
+}
 
-global long @test.iExt1 = 1
+func byte @test.use<byte>(byte %24) {
+  Ret %24
+}
 
-global long @test.iExt2 = -1
+func int @test.use<int>(int %25) {
+  Ret %25
+}
 
-global byte @test.iTrunc1 = 1
-
-global byte @test.iTrunc2 = 127
-
-global byte @test.iTrunc3 = -128
-
-global byte @test.iTrunc4 = -1
-
-global byte @test.iTrunc5 = -128
-
-global byte @test.iTrunc6 = 127
-
-global byte @test.lTrunc1 = 1
-
-global byte @test.lTrunc2 = 127
-
-global byte @test.lTrunc3 = -128
-
-global byte @test.lTrunc4 = -1
-
-global byte @test.lTrunc5 = -128
-
-global byte @test.lTrunc6 = 127
-
-global int @test.lTrunc7 = 1
-
-global int @test.lTrunc8 = 2147483647
-
-global int @test.lTrunc9 = -2147483648
-
-global int @test.lTrunc10 = -1
-
-global int @test.lTrunc11 = -2147483648
-
-global int @test.lTrunc12 = 2147483647
+func long @test.use<long>(long %26) {
+  Ret %26
+}
 
 func int @test.main() {
   Ret 0

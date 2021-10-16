@@ -2,4 +2,10 @@ module test
 
 val x: Int = 1 + 2 * 3 / 4 - 67
 
+fun use<T>(x: T): T = x
+
+fun useAll() {
+  use(x);
+}
+
 fun main() {}

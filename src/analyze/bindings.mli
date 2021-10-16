@@ -162,7 +162,7 @@ val get_type_binding_from_decl : Bindings.t -> Loc.t -> TypeBinding.t
 
 val get_decl_loc_from_value_use : Bindings.t -> Loc.t -> Loc.t
 
-val is_module_decl : Bindings.t -> Loc.t -> bool
+val is_module_decl : ValueBinding.t -> bool
 
 val is_std_lib_value : ValueBinding.t -> bool
 

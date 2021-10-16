@@ -32,3 +32,15 @@ fun main() {
   use(2 + 4 + 6);
   use(2 + 2147483648 + 6);
 }
+
+fun useAll() {
+  use(x);
+  use(y1);
+  use(y2);
+  use(y3);
+  use(c1);
+  use(c2);
+  use(c3);
+  use(z);
+  use(a1);
+}

@@ -27,3 +27,17 @@ func int @t.main() {
   %5 := Call unit @t.useBool(true)
   Ret 0
 }
+
+func unit @t.useAllGlobals() {
+  %6 := Load int @t.int1
+  %7 := Call unit @t.useInt(%6)
+  %8 := Load bool @t.bool1
+  %9 := Call unit @t.useBool(%8)
+  %10 := Load int @t.int2
+  %11 := Call unit @t.useInt(%10)
+  %12 := Load bool @t.bool2
+  %13 := Call unit @t.useBool(%12)
+  %14 := Load bool @t.mixed
+  %15 := Call unit @t.useBool(%14)
+  Ret
+}

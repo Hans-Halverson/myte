@@ -3,15 +3,15 @@
 
   .data
 .S0:
-  .ascii "foo"
-.S1:
   .ascii "foobar"
+.S4:
+  .ascii "foo"
 
   .text
 _init:
   movl $16, %edi
   call __myte_alloc
-  leaq .S0(%rip), %rcx
+  leaq .S4(%rip), %rcx
   movq %rcx, (%rax)
   movl $3, 8(%rax)
   movl $3, 12(%rax)
@@ -23,8 +23,15 @@ _main:
 test.test:
   movl $16, %edi
   call __myte_alloc
-  leaq .S1(%rip), %rcx
+  leaq .S0(%rip), %rcx
   movq %rcx, (%rax)
   movl $6, 8(%rax)
   movl $6, 12(%rax)
+  ret
+test.use$std.string.String$$:
+  movq %rdi, %rax
+  ret
+test.useAll:
+  movq test.s(%rip), %rdi
+  call test.use$std.string.String$$
   ret

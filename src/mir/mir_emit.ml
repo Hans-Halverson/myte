@@ -18,9 +18,9 @@ let rec emit (pcx : Pcx.t) : Program.t =
   let ecx = Ecx.mk ~pcx in
   start_init_function ~ecx;
   emit_type_declarations ~ecx;
-  emit_toplevel_variable_declarations ~ecx;
+  register_toplevel_variable_declarations ~ecx;
   emit_function_declarations ~ecx;
-  emit_pending_instantiations ~ecx;
+  emit_pending ~ecx;
   finish_init_function ~ecx;
   {
     Program.main_id = ecx.main_id;
@@ -42,14 +42,15 @@ and emit_type_declarations ~ecx =
         module_.toplevels)
     ecx.pcx.modules
 
-and emit_toplevel_variable_declarations ~ecx =
+and register_toplevel_variable_declarations ~ecx =
   let open Ast.Module in
   List.iter
     (fun (_, module_) ->
       List.iter
         (fun toplevel ->
           match toplevel with
-          | VariableDeclaration decl -> emit_toplevel_variable_declaration ~ecx decl
+          | VariableDeclaration ({ pattern = Identifier { loc; _ }; _ } as decl) ->
+            Ecx.add_global_variable_declaration_node ~ecx loc decl
           | _ -> ())
         module_.toplevels)
     ecx.pcx.modules
@@ -71,16 +72,36 @@ and emit_function_declarations ~ecx =
         module_.toplevels)
     ecx.pcx.modules
 
-and emit_pending_instantiations ~ecx =
+and emit_pending ~ecx =
+  let complete = ref true in
+
   (* Emit all pending instantiations of generic functions *)
-  let rec iter () =
+  let rec emit_pending_func_instantations () =
     match Ecx.pop_pending_func_instantiation ~ecx with
     | None -> ()
     | Some func_instantiation ->
       emit_function_instantiation ~ecx func_instantiation;
-      iter ()
+      complete := false;
+      emit_pending_func_instantations ()
   in
-  iter ()
+
+  (* Emit all pending global variables *)
+  let rec emit_pending_globals () =
+    match Ecx.pop_pending_global ~ecx with
+    | None -> ()
+    | Some (name, global_decl) ->
+      emit_global_variable_declaration ~ecx name global_decl;
+      complete := false;
+      emit_pending_globals ()
+  in
+
+  let rec emit_all_pending () =
+    complete := true;
+    emit_pending_func_instantations ();
+    emit_pending_globals ();
+    if not !complete then emit_all_pending ()
+  in
+  emit_all_pending ()
 
 (* Create and store MIR ADT and variant objects to be used during MIR emission *)
 and emit_type_declaration ~ecx decl =
@@ -99,20 +120,11 @@ and emit_type_declaration ~ecx decl =
   | Builtin ->
     ()
 
-and emit_toplevel_variable_declaration ~ecx decl =
-  let { Statement.VariableDeclaration.pattern; init; _ } = decl in
-  let loc =
-    match pattern with
-    | Identifier { loc; _ } -> loc
-    | _ -> failwith "Toplevel variable must be identifier"
-  in
-  let binding = Bindings.get_value_binding ecx.pcx.bindings loc in
-  let name = mk_value_binding_name binding in
-  (* Find value type of variable *)
-  let binding = Type_context.get_value_binding ~cx:ecx.pcx.type_ctx loc in
-  let var_decl = Bindings.get_var_decl binding in
-  let ty = type_to_mir_type ~ecx (Types.Type.TVar var_decl.tvar) in
+and emit_global_variable_declaration ~ecx name decl =
+  let { Statement.VariableDeclaration.init; _ } = decl in
   (* Build IR for variable init *)
+  let global = SMap.find name ecx.globals in
+  let binding = Bindings.get_value_binding ecx.pcx.bindings global.loc in
   let init_val =
     Ecx.emit_init_section ~ecx (fun _ ->
         ecx.current_in_std_lib <- Bindings.is_std_lib_value binding;
@@ -126,11 +138,11 @@ and emit_toplevel_variable_declaration ~ecx decl =
             Some init_val
           else (
             (* Otherwise value must be calculated and stored at runtime *)
-            Ecx.emit ~ecx (Store (`PointerL (ty, name), init_val));
+            Ecx.emit ~ecx (Store (`PointerL (global.ty, name), init_val));
             None
           ))
   in
-  Ecx.add_global ~ecx { Global.loc; name; ty; init_val }
+  global.init_val <- init_val
 
 and emit_function_declaration ~ecx decl is_method =
   let open Ast.Function in
@@ -431,7 +443,6 @@ and emit_expression_without_promotion ~ecx expr =
   | Identifier { loc = id_loc as loc; name }
   | ScopedIdentifier { loc; name = { Identifier.loc = id_loc; name }; _ } ->
     let binding = Bindings.get_value_binding ecx.pcx.bindings id_loc in
-    let decl_loc = binding.loc in
     (match binding.declaration with
     | CtorDecl { adt_sig; _ } ->
       let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
@@ -475,17 +486,16 @@ and emit_expression_without_promotion ~ecx expr =
     | VarDecl { tvar; _ } ->
       let mir_ty = type_to_mir_type ~ecx (Types.Type.TVar tvar) in
       let var_id = mk_var_id () in
-      ( if Bindings.is_module_decl ecx.pcx.bindings decl_loc then
-        let binding_name = mk_value_binding_name binding in
-        let global = SMap.find binding_name ecx.globals in
-        Ecx.emit ~ecx (Load (var_id, `PointerL (global.ty, global.name)))
+      ( if Bindings.is_module_decl binding then
+        let global_ptr = Ecx.get_global_pointer ~ecx binding in
+        Ecx.emit ~ecx (Load (var_id, global_ptr))
       else
         let ptr_var_id = Ecx.get_ptr_var_id ~ecx id_loc in
         Ecx.emit ~ecx (Load (var_id, `PointerV (mir_ty, ptr_var_id))) );
       var_value_of_type var_id mir_ty
     (* Function parameters can have their corresponding MIR var referenced directly *)
     | FunParamDecl { tvar } ->
-      let var_id = Ecx.get_function_param_var_id ~ecx decl_loc in
+      let var_id = Ecx.get_function_param_var_id ~ecx binding.loc in
       let mir_ty = type_to_mir_type ~ecx (Types.Type.TVar tvar) in
       var_value_of_type var_id mir_ty
     (* Match cases variables are locals, and must be loaded from their var ptr *)
@@ -1822,10 +1832,8 @@ and emit_statement ~ecx stmt =
       let mir_type = mir_type_of_loc ~ecx (Ast_utils.expression_loc expr) in
       let binding = Bindings.get_value_binding ecx.pcx.bindings loc in
       let pointer_val =
-        if Bindings.is_module_decl ecx.pcx.bindings binding.loc then
-          let binding_name = mk_value_binding_name binding in
-          let global = SMap.find binding_name ecx.globals in
-          `PointerL (global.ty, global.name)
+        if Bindings.is_module_decl binding then
+          Ecx.get_global_pointer ~ecx binding
         else
           `PointerV (mir_type, Ecx.get_ptr_var_id ~ecx loc)
       in
@@ -1896,10 +1904,9 @@ and emit_alloc_destructuring ~(ecx : Ecx.t) pattern value =
   | Pattern.Identifier { loc; _ } ->
     let mir_type = type_of_value value in
     let binding = Bindings.get_value_binding ecx.pcx.bindings loc in
-    if Bindings.is_module_decl ecx.pcx.bindings binding.loc then
-      let binding_name = mk_value_binding_name binding in
-      let global = SMap.find binding_name ecx.globals in
-      Ecx.emit ~ecx (Store (`PointerL (global.ty, global.name), value))
+    if Bindings.is_module_decl binding then
+      let global_ptr = Ecx.get_global_pointer ~ecx binding in
+      Ecx.emit ~ecx (Store (global_ptr, value))
     else
       let var_id = Ecx.get_ptr_var_id ~ecx loc in
       Ecx.emit ~ecx (StackAlloc (var_id, mir_type));
@@ -1998,10 +2005,8 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
              let decl_loc = binding.loc in
              (* Determine pointer value - may be a global if this is a destructuring assignment *)
              let ptr_val =
-               if Bindings.is_module_decl ecx.pcx.bindings binding.loc then
-                 let binding_name = mk_value_binding_name binding in
-                 let global = SMap.find binding_name ecx.globals in
-                 `PointerL (global.ty, global.name)
+               if Bindings.is_module_decl binding then
+                 Ecx.get_global_pointer ~ecx binding
                else
                  let mir_type = type_of_value binding_val in
                  let ptr_var_id = Ecx.get_ptr_var_id ~ecx decl_loc in

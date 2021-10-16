@@ -6,4 +6,10 @@ fun test() {
   "foobar";
 }
 
+fun use<T>(x: T): T = x
+
+fun useAll() {
+  use(s);
+}
+
 fun main() {}

@@ -12,9 +12,25 @@ val i: Int = getInt()
 val l: Long = getLong()
 val f: () -> Byte = getFunction()
 
+// Unused constants are not generated
+val unused: Int = 999
+
 fun getByte(): Byte = 22
 fun getInt(): Int = 23
 fun getLong(): Long = 24
 fun getFunction(): () -> Byte = getByte
+
+fun use<T>(x: T) {}
+
+fun useAll() {
+  use(constantB);
+  use(constantI);
+  use(constantL);
+  use(constantF);
+  use(b);
+  use(i);
+  use(l);
+  use(f);  
+}
 
 fun main() {}

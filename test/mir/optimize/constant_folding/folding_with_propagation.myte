@@ -38,3 +38,11 @@ fun main() {
 
   useBool(local3);
 }
+
+fun useAllGlobals() {
+  useInt(int1);
+  useBool(bool1);
+  useInt(int2);
+  useBool(bool2);
+  useBool(mixed);
+}

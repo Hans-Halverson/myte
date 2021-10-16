@@ -203,10 +203,7 @@ let get_decl_loc_from_value_use bindings use_loc =
   let binding = get_value_binding bindings use_loc in
   binding.loc
 
-let is_module_decl bindings decl_loc =
-  let open Bindings in
-  let binding = LocMap.find decl_loc bindings.value_bindings in
-  binding.context = ValueBinding.Module
+let is_module_decl binding = binding.ValueBinding.context = ValueBinding.Module
 
 let is_std_lib_value binding = List.hd binding.ValueBinding.module_ = "std"
 

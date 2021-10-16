@@ -45,6 +45,8 @@ type t = {
   mutable adt_sig_to_mir_layout: MirAdtLayout.t IMap.t;
   (* Trait signature id to its corresponding trait object vtables *)
   mutable trait_sig_to_trait_object_layout: MirTraitObjectLayout.t IMap.t;
+  (* All AST nodes for all globals that should be generated, indexed by their full name *)
+  mutable pending_globals: Ast.Statement.VariableDeclaration.t SMap.t;
   (* All tuple types used in this program, keyed by their type arguments *)
   mutable tuple_instantiations: Aggregate.t TypeArgsHashtbl.t;
   (* All instances of generic functions used in this program that have been generated so far,
@@ -59,6 +61,8 @@ type t = {
   mutable current_type_param_bindings: Types.Type.t IMap.t;
   (* All function declaration AST nodes, indexed by their full name *)
   mutable func_decl_nodes: Ast.Function.t SMap.t;
+  (* All globals in program indexed by their decl loc *)
+  mutable global_variable_decl_nodes: Ast.Statement.VariableDeclaration.t LocMap.t;
   (* Whether we are currently emitting blocks for the init function *)
   mutable in_init: bool;
   (* The last init block builder that was completed *)
@@ -87,11 +91,13 @@ let mk ~pcx =
     ptr_var_ids_to_ssaify = ISet.empty;
     adt_sig_to_mir_layout = IMap.empty;
     trait_sig_to_trait_object_layout = IMap.empty;
+    pending_globals = SMap.empty;
     tuple_instantiations = TypeArgsHashtbl.create 10;
     func_instantiations = SMap.empty;
     pending_func_instantiations = SMap.empty;
     current_type_param_bindings = IMap.empty;
     func_decl_nodes = SMap.empty;
+    global_variable_decl_nodes = LocMap.empty;
     in_init = false;
     last_init_block_builder = None;
     max_string_literal_id = 0;
@@ -675,6 +681,35 @@ let pop_pending_func_instantiation ~ecx =
     in
     Some (name, name_with_args, type_param_bindings)
 
+(*
+ * Global Variables
+ *)
+
+let get_global_pointer ~ecx binding =
+  let loc = binding.Bindings.ValueBinding.loc in
+  let name = mk_value_binding_name binding in
+  match SMap.find_opt name ecx.globals with
+  (* Global will be in MIR globals map if it has already been created or is pending *)
+  | Some global -> `PointerL (global.ty, global.name)
+  | None ->
+    (* Add global to pending globals queue *)
+    let decl_node = LocMap.find loc ecx.global_variable_decl_nodes in
+    ecx.pending_globals <- SMap.add name decl_node ecx.pending_globals;
+
+    (* Add global to MIR globals map *)
+    let var_decl = Bindings.get_var_decl binding in
+    let ty = to_mir_type ~ecx (find_rep_non_generic_type ~ecx (TVar var_decl.tvar)) in
+    add_global ~ecx { Global.loc; name; ty; init_val = None };
+
+    `PointerL (ty, name)
+
+let pop_pending_global ~ecx =
+  match SMap.choose_opt ecx.pending_globals with
+  | None -> None
+  | Some (name, decl) ->
+    ecx.pending_globals <- SMap.remove name ecx.pending_globals;
+    Some (name, decl)
+
 let in_type_binding_context ~ecx type_param_bindings f =
   let old_type_param_bindings = ecx.current_type_param_bindings in
   ecx.current_type_param_bindings <-
@@ -684,3 +719,6 @@ let in_type_binding_context ~ecx type_param_bindings f =
 
 let add_function_declaration_node ~ecx name decl_node =
   ecx.func_decl_nodes <- SMap.add name decl_node ecx.func_decl_nodes
+
+let add_global_variable_declaration_node ~ecx loc decl =
+  ecx.global_variable_decl_nodes <- LocMap.add loc decl ecx.global_variable_decl_nodes

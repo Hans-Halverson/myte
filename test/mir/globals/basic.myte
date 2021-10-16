@@ -4,6 +4,15 @@ val i: Int = 1
 
 val f: () -> Unit = test
 
+val unused: Int = 999
+
 fun test() {}
+
+fun use<T>(x: T): T = x
+
+fun useAll() {
+  use(i);
+  use(f);
+}
 
 fun main() {}

@@ -1,77 +1,83 @@
 module test
 
+fun use<T>(x: T): T = x
+
 fun unit(): Unit = ()
 
-// Int
+fun testInt() {
+  use(-(56));
 
-val i0: Int = -(56)
+  use(1 + 2);
+  use(1 - 2);
+  use(2 * 7);
+  use(24 / 3);
+  use(19 % 3);
+  use(0b1100 & 0b1010);
+  use(0b1100 | 0b1010);
+  use(0b1100 ^ 0b1010);
+  use(1 << 4);
+  use(-1 >> 2);
+  use(-1 >>> 2);
 
-val i1: Int = 1 + 2
-val i2: Int = 1 - 2
-val i3: Int = 2 * 7
-val i4: Int = 24 / 3
-val i5: Int = 19 % 3
-val i6: Int = 0b1100 & 0b1010
-val i7: Int = 0b1100 | 0b1010
-val i8: Int = 0b1100 ^ 0b1010
-val i9: Int = 1 << 4
-val i10: Int = -1 >> 2
-val i11: Int = -1 >>> 2
+  use((5: Int) > 7);
+}
 
-val i12: Bool = (5: Int) > 7
+fun testByte() {
+  use(-(56));
 
-// Byte
+  use(1 + 2);
+  use(1 - 2);
+  use(2 * 7);
+  use(24 / 3);
+  use(19 % 3);
+  use(0b1100 & 0b1010);
+  use(0b1100 | 0b1010);
+  use(0b1100 ^ 0b1010);
+  use(1 << 4);
+  use(-1 >> 2);
+  use(-1 >>> 2);
 
-val b0: Byte = -(56)
+  use((5: Byte) > 7);
+}
 
-val b1: Byte = 1 + 2
-val b2: Byte = 1 - 2
-val b3: Byte = 2 * 7
-val b4: Byte = 24 / 3
-val b5: Byte = 19 % 3
-val b6: Byte = 0b1100 & 0b1010
-val b7: Byte = 0b1100 | 0b1010
-val b8: Byte = 0b1100 ^ 0b1010
-val b9: Byte = 1 << 4
-val b10: Byte = -1 >> 2
-val b11: Byte = -1 >>> 2
+fun testLong() {
+  use(-(56));
 
-val b12: Bool = (5: Byte) > 7
+  use(1 + 2);
+  use(1 - 2);
+  use(2 * 7);
+  use(24 / 3);
+  use(19 % 3);
+  use(0b1100 & 0b1010);
+  use(0b1100 | 0b1010);
+  use(0b1100 ^ 0b1010);
+  use(1 << 4);
+  use(-1 >> 2);
+  use(-1 >>> 2);
 
-// Long
+  use((5: Long) > 7);
+}
 
-val l0: Long = -(56)
+fun testBool() {
+  use(!true);
 
-val l1: Long = 1 + 2
-val l2: Long = 1 - 2
-val l3: Long = 2 * 7
-val l4: Long = 24 / 3
-val l5: Long = 19 % 3
-val l6: Long = 0b1100 & 0b1010
-val l7: Long = 0b1100 | 0b1010
-val l8: Long = 0b1100 ^ 0b1010
-val l9: Long = 1 << 4
-val l10: Long = -1 >> 2
-val l11: Long = -1 >>> 2
+  use(true && false);
+  use(true || false);
+  use(true == false);
+  use(true != false);
+}
 
-val l12: Bool = (5: Long) > 7
-
-// Bools
-val bool0: Bool = !true
-
-val bool1: Bool = true && false
-val bool2: Bool = true || false
-val bool3: Bool = true == false
-val bool4: Bool = true != false
-
-// Units
-val unit1: Bool = () == ()
-val unit2: Bool = () != ()
-val unit3: Bool = unit() == unit()
-val unit4: Bool = unit() != unit()
+fun testUnit() {
+  use(() == ());
+  use(() != ());
+  use(unit() == unit());
+  use(unit() != unit());
+}
 
 // Shifts only use lowest byte of right hand side
-val shift1: Int = 1 << 258
-val shift2: Long = 1 << 258
+fun testShift() {
+  use(1 << 258);
+  use(1 << 258);
+}
 
 fun main() {}
