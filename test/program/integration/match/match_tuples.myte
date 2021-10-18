@@ -32,10 +32,10 @@ fun match3(x: (Int, Bool, (Int, Bool))): Int =
 // Bind inner values
 fun match4(x: (Int, Bool, (Int, Bool))): Int =
   match (x) {
-    | (1, x, _) -> x ? 1 : 2
+    | (1, x, _) -> if (x) { 1 } else { 2 }
     | (_, true, (x, false)) -> x + 3
     | (x, true, (y, _)) -> x + y + 4
-    | (_, _, (x, y)) -> y ? x : x + 5
+    | (_, _, (x, y)) -> if (y) { x } else { x + 5 }
   }
 
 // Extract inner tuple 

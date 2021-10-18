@@ -94,7 +94,12 @@ methods BufferedReader<R: Reader> {
 
     while (true) {
       match (this.refill()) {
-        | Ok (toRead) when toRead == 0 -> return hasRead ? Ok (string) : Error (EOF)
+        | Ok (toRead) when toRead == 0 ->
+          return if (hasRead) {
+            Ok (string)
+          } else {
+            Error (EOF)
+          }
         | Ok (toRead) -> {
           val pos = this.pos;
           val size = this.size;

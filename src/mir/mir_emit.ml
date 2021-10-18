@@ -682,43 +682,6 @@ and emit_expression_without_promotion ~ecx expr =
     first_part_val
   (*
    * ============================
-   *     Ternary Expression
-   * ============================
-   *)
-  | Ternary { loc; test; conseq; altern } ->
-    let mir_type = mir_type_of_loc ~ecx loc in
-
-    (* Model ternary join by creating stack location to place results of branches *)
-    let result_var_id = mk_var_id () in
-    let result_ptr_val = `PointerV (mir_type, result_var_id) in
-    Ecx.emit ~ecx (StackAlloc (result_var_id, mir_type));
-
-    (* Branch to conseq or altern blocks *)
-    let test_val = emit_bool_expression ~ecx test in
-    let conseq_builder = Ecx.mk_block_builder ~ecx in
-    let altern_builder = Ecx.mk_block_builder ~ecx in
-    let join_builder = Ecx.mk_block_builder ~ecx in
-    Ecx.finish_block_branch ~ecx test_val conseq_builder.id altern_builder.id;
-
-    (* Emit conseq, store result, and continue to join block *)
-    Ecx.set_block_builder ~ecx conseq_builder;
-    let conseq_val = emit_expression ~ecx conseq in
-    Ecx.emit ~ecx (Store (result_ptr_val, conseq_val));
-    Ecx.finish_block_continue ~ecx join_builder.id;
-
-    (* Emit altern, store result, and continue to join block *)
-    Ecx.set_block_builder ~ecx altern_builder;
-    let altern_val = emit_expression ~ecx altern in
-    Ecx.emit ~ecx (Store (result_ptr_val, altern_val));
-    Ecx.finish_block_continue ~ecx join_builder.id;
-
-    (* Join branches together and load result from stack location *)
-    Ecx.set_block_builder ~ecx join_builder;
-    let var_id = mk_var_id () in
-    Ecx.emit ~ecx (Load (var_id, result_ptr_val));
-    var_value_of_type var_id mir_type
-  (*
-   * ============================
    *       If Expression
    * ============================
    *)

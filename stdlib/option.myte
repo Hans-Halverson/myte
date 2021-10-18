@@ -40,6 +40,11 @@ methods Option<T> {
   fun filter(predicate: (T) -> Bool): Option<T> =
     match (this) {
       | None -> this
-      | Some (x) -> predicate(x) ? this : None
+      | Some (x) ->
+        if (predicate(x)) {
+          this
+        } else {
+          None
+        }
     }
 }

@@ -104,7 +104,6 @@
 				{ "include": "#expression-operators" },
 				{ "include": "#parenthesized-expression" },
 				{ "include": "#bracketed-expression" },
-				{ "include": "#ternary-expression" },
 				{ "include": "#set-literal" },
 				{ "include": "#map-literal" },
 				{ "include": "#if" },
@@ -850,19 +849,6 @@
 						{ "include": "#expressions" }
 					]
 				}
-			]
-		},
-		"ternary-expression": {
-			"begin": "\\?",
-			"beginCaptures": {
-				"0": { "name": "punctuation.question.myte" }
-			},
-			"end": ":",
-			"endCaptures": {
-				"0": { "name": "punctuation.colon.myte" }
-			},
-			"patterns": [
-				{ "include": "#expressions" }
 			]
 		},
 		"trait-declarations": {

@@ -65,7 +65,11 @@ methods Map<K: Equatable & Hashable, V> {
     if (this.size >= this.capacity / 2) {
       // Double capacity to next power of two (starting at two)
       val oldCapacity = this.capacity;
-      val newCapacity = oldCapacity == 0 ? 2 : oldCapacity * 2;
+      val newCapacity = if (oldCapacity == 0) {
+        2
+      } else {
+        oldCapacity * 2
+      };
       this.resize(newCapacity);
     }
 

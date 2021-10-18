@@ -19,7 +19,7 @@ type Type2 (Bool)
 methods Type2 {
   implements Trait
 
-  override fun method1(): Int = this[0] ? 3 : 4
+  override fun method1(): Int = if (this[0]) { 3 } else { 4 }
   override fun method2(x: Byte): Byte = x + 2
 }
 

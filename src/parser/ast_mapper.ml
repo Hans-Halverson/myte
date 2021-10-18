@@ -78,7 +78,6 @@ class mapper =
         | BinaryOperation e -> id_map this#binary_operation e expr (fun e' -> BinaryOperation e')
         | LogicalAnd e -> id_map this#logical_and e expr (fun e' -> LogicalAnd e')
         | LogicalOr e -> id_map this#logical_or e expr (fun e' -> LogicalOr e')
-        | Ternary e -> id_map this#ternary e expr (fun e' -> Ternary e')
         | If e -> id_map this#if_ e expr (fun e' -> If e')
         | Call e -> id_map this#call e expr (fun e' -> Call e')
         | IndexedAccess e -> id_map this#indexed_access e expr (fun e' -> IndexedAccess e')
@@ -253,17 +252,6 @@ class mapper =
         logical
       else
         { loc; left = left'; right = right' }
-
-    method ternary ternary =
-      let open Expression.Ternary in
-      let { loc; test; conseq; altern } = ternary in
-      let test' = this#expression test in
-      let conseq' = this#expression conseq in
-      let altern' = this#expression altern in
-      if test == test' && conseq == conseq' && altern == altern' then
-        ternary
-      else
-        { loc; test = test'; conseq = conseq'; altern = altern' }
 
     method call call =
       let open Expression.Call in

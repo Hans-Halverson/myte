@@ -16,7 +16,7 @@ fun testMatch1() {
 fun match2(x: Int, y: Bool): Int =
   match (x, y) {
     | (x, true) -> x
-    | (_, y) -> y ? 1 : 2
+    | (_, y) -> if (y) { 1 } else { 2 }
   }
 
 fun testMatch2() {

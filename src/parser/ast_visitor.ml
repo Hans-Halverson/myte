@@ -60,7 +60,6 @@ class visitor =
         | BinaryOperation e -> this#binary_operation e
         | LogicalAnd e -> this#logical_and e
         | LogicalOr e -> this#logical_or e
-        | Ternary e -> this#ternary e
         | If e -> this#if_ e
         | Call e -> this#call e
         | IndexedAccess e -> this#indexed_access e
@@ -185,13 +184,6 @@ class visitor =
       let { loc = _; left; right } = logical in
       this#expression left;
       this#expression right
-
-    method ternary ternary =
-      let open Expression.Ternary in
-      let { loc = _; test; conseq; altern } = ternary in
-      this#expression test;
-      this#expression conseq;
-      this#expression altern
 
     method call call =
       let open Expression.Call in

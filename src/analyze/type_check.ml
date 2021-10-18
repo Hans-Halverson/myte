@@ -1515,20 +1515,6 @@ and check_expression ~cx expr =
     (loc, tvar_id)
   (*
    * ============================
-   *      Ternary Expression
-   * ============================
-   *)
-  | Ternary { loc; test; conseq; altern } ->
-    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    let (test_loc, test_tvar_id) = check_expression ~cx test in
-    let (_, conseq_tvar_id) = check_expression ~cx conseq in
-    let (altern_loc, altern_tvar_id) = check_expression ~cx altern in
-    Type_context.assert_unify ~cx test_loc Bool (TVar test_tvar_id);
-    Type_context.assert_unify ~cx altern_loc (TVar conseq_tvar_id) (TVar altern_tvar_id);
-    ignore (Type_context.unify ~cx (TVar conseq_tvar_id) (TVar tvar_id));
-    (loc, tvar_id)
-  (*
-   * ============================
    *         Vec Literal
    * ============================
    *)

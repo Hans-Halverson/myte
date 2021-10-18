@@ -2,8 +2,8 @@ module Test
 
 fun main() {
   // Full precedence
-  +a() * b + c << d & e ^ f | g < h == i && j || k ? l : m;
-  a ? b : c || d && e == f < g | h ^ i & j << k + l * m;
+  +a() * b + c << d & e ^ f | g < h == i && j || k;
+  a || b && c == d < e | f ^ g & h << i + j * k;
 
   // Group precedence
   a((b)(c));
@@ -43,7 +43,6 @@ fun main() {
   a == b();
   a && b();
   a || b();
-  a ? b : c();
 
   // Access precedence
   +a.b;
@@ -67,9 +66,6 @@ fun main() {
   a && b.c;
   a.b || c;
   a || b.c;
-  a.b ? c : d;
-  a ? b.c : d;
-  a ? b : c.d;
 
   +a[b];
   a[b] * c;
@@ -92,9 +88,6 @@ fun main() {
   a && b[c];
   a[b] || c;
   a || b[c];
-  a[b] ? c : d;
-  a ? b[c] : d;
-  a ? b : c[d];
 
   // Unary precedence
   +(a + b);
@@ -108,7 +101,6 @@ fun main() {
   +a == b;
   +a && b;
   +a || b;
-  +a ? b : c;
 
   // Multiplication precedence
   a * b + c;
@@ -129,8 +121,6 @@ fun main() {
   a && b * c;
   a * b || c;
   a || b * c;
-  a * b ? c : d;
-  a ? b : c * d;
 
   // Addition precedence
   a + b << c;
@@ -149,8 +139,6 @@ fun main() {
   a && b + c;
   a + b || c;
   a || b + c;
-  a + b ? c : d;
-  a ? b : c + d;
 
   // Bitwise shift precedence
   a << b & c;
@@ -167,8 +155,6 @@ fun main() {
   a && b << c;
   a << b || c;
   a || b << c;
-  a << b ? c : d;
-  a ? b : c << d;
 
   // Bitwise and precedence
   a & b ^ c;
@@ -183,8 +169,6 @@ fun main() {
   a && b & c;
   a & b || c;
   a || b & c;
-  a & b ? c : d;
-  a ? b : c & d;
 
   // Bitwise xor precedence
   a ^ b | c;
@@ -197,8 +181,6 @@ fun main() {
   a && b & c;
   a ^ b || c;
   a || b ^ c;
-  a ^ b ? c : d;
-  a ? b : c ^ d;
 
   // Bitwise or precedence
   a | b < c;
@@ -209,8 +191,6 @@ fun main() {
   a && b & c;
   a | b || c;
   a || b | c;
-  a | b ? c : d;
-  a ? b : c | d;
 
   // Comparison precedence
   a < b == c;
@@ -219,24 +199,14 @@ fun main() {
   a && b < c;
   a < b || c;
   a || b < c;
-  a < b ? c : d;
-  a ? b : c < d;
 
   // Equality precedence
   a == b && c;
   a && b == c;
   a == b || c;
   a || b == c;
-  a == b ? c : d;
-  a ? b : c == d;
 
   // Logical and precedence
   a && b || c;
   a || b && c;
-  a && b ? c : d;
-  a ? b : c && d;
-
-  // Logical or precedence
-  a || b ? c : d;
-  a ? b : c || d;
 }

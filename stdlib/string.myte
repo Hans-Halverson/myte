@@ -76,7 +76,12 @@ methods String {
 
   fun resize() {
     val oldCapacity = this.capacity;
-    val newCapacity = oldCapacity == 0 ? 1 : oldCapacity * 2;
+    val newCapacity = if (oldCapacity == 0) {
+      1
+    } else {
+      oldCapacity * 2
+    };
+  
     this.capacity = newCapacity;
 
     val newData: Array<Char> = Array.new(newCapacity);
@@ -86,7 +91,12 @@ methods String {
 
   fun resizeWithMinCapacity(minCapacity: Int) {
     val oldCapacity = this.capacity;
-    var newCapacity = oldCapacity == 0 ? 1 : oldCapacity * 2;
+    var newCapacity = if (oldCapacity == 0) {
+      1
+    } else {
+      oldCapacity * 2
+    };
+
     if (newCapacity < minCapacity) {
       newCapacity = minCapacity;
     }

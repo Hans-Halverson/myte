@@ -59,7 +59,11 @@ methods Vec<T> {
 
   fun resize() {
     val oldCapacity = this.capacity;
-    val newCapacity = oldCapacity == 0 ? 1 : oldCapacity * 2;
+    val newCapacity = if (oldCapacity == 0) {
+      1
+    } else {
+      oldCapacity * 2
+    };
     this.capacity = newCapacity;
 
     val newData: Array<T> = Array.new(newCapacity);

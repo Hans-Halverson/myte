@@ -89,7 +89,6 @@ fun main() {
   use(testSimpleExpressionStatements);
   use(testExpressionStatementSingleValue);
   use(testExpressionStatementsBeforeValue);
-  use(testExpressionStatementIfValue);
   use(testExpressionStatementUnitValue);
   use(testWhileUnitValue);
   use(testForUnitValue);

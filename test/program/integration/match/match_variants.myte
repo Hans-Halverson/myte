@@ -86,8 +86,8 @@ fun testMatch4() {
 // Binds inner values
 fun match5(x: V1): Int =
   match (x) {
-    | Record1 { foo: x, bar } -> bar == 1 ? x : bar.toInt()
-    | Tuple1 (foo, bar) -> foo ? bar : 2
+    | Record1 { foo: x, bar } -> if (bar == 1) { x } else { bar.toInt() }
+    | Tuple1 (foo, bar) -> if (foo) { bar } else { 2 }
     | Enum1 -> 3
   }
 

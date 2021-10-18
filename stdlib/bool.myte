@@ -16,11 +16,21 @@ methods Bool {
 methods Bool {
   implements Hashable
 
-  override fun hash(): Int = this ? 1 : 0
+  override fun hash(): Int =
+    if (this) {
+      1
+    } else {
+      0
+    }
 }
 
 methods Bool {
   implements ToString
 
-  override fun toString(): String = this ? "true" : "false"
+  override fun toString(): String =
+    if (this) {
+      "true"
+    } else {
+      "false"
+    }
 }
