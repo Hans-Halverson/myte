@@ -27,7 +27,8 @@ type t = {
   mutable funcs: Function.t SMap.t;
   mutable types: Aggregate.t SMap.t;
   mutable current_block_builder: BlockBuilder.t option;
-  mutable current_func: label;
+  (* Current function name and return type *)
+  mutable current_func: label * Types.Type.t;
   mutable current_in_std_lib: bool;
   (* Stack of loop contexts for all loops we are currently inside *)
   mutable current_loop_contexts: loop_context list;
@@ -80,7 +81,7 @@ let mk ~pcx =
     funcs = SMap.empty;
     types = SMap.empty;
     current_block_builder = None;
-    current_func = "";
+    current_func = ("", Any);
     current_in_std_lib = false;
     current_loop_contexts = [];
     filter_std_lib =
@@ -132,7 +133,7 @@ let emit ~ecx inst =
 let mk_block_builder ~ecx =
   let block_id = mk_block_id () in
   let builder =
-    { BlockBuilder.id = block_id; func = ecx.current_func; instructions = []; next = Halt }
+    { BlockBuilder.id = block_id; func = fst ecx.current_func; instructions = []; next = Halt }
   in
   ecx.blocks <- IMap.add block_id builder ecx.blocks;
   builder
@@ -171,7 +172,7 @@ let finish_block_continue ~ecx continue = finish_block ~ecx (Continue continue)
 
 let finish_block_halt ~ecx = finish_block ~ecx Halt
 
-let set_current_func ~ecx func = ecx.current_func <- func
+let set_current_func ~ecx func return_ty = ecx.current_func <- (func, return_ty)
 
 let push_loop_context ~ecx break_id continue_id =
   ecx.current_loop_contexts <- (break_id, continue_id) :: ecx.current_loop_contexts
@@ -202,7 +203,7 @@ let emit_init_section ~ecx f =
   let old_in_init = ecx.in_init in
   let old_func = ecx.current_func in
   ecx.in_init <- true;
-  ecx.current_func <- init_func_name;
+  set_current_func ~ecx init_func_name Unit;
 
   let init_block_id = start_new_block ~ecx in
 

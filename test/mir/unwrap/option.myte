@@ -1,0 +1,24 @@
+module test
+
+fun testUnwrapOption(x: Option<Int>): Option<Int> {
+  use(x?);
+  return Some (1);
+}
+
+fun testUnwrapOptionDifferentType(x: Option<Bool>): Option<Int> {
+  use(x?);
+  return Some (1);
+}
+
+fun testDoubleUnwrap(x: Option<Option<Int>>): Option<Int> {
+  use(x??);
+  return Some (1);
+}
+
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testUnwrapOption);
+  use(testUnwrapOptionDifferentType);
+  use(testDoubleUnwrap);
+}

@@ -184,8 +184,11 @@ and emit_function_body ~ecx name decl =
     | _ -> params
   in
 
+  (*  *)
+  let return_ty = Ecx.find_rep_non_generic_type ~ecx func_decl.return in
+
   (* Build IR for function body *)
-  Ecx.set_current_func ~ecx name;
+  Ecx.set_current_func ~ecx name return_ty;
   let body_start_block = Ecx.start_new_block ~ecx in
   (match body with
   | Block block ->
@@ -439,32 +442,9 @@ and emit_expression_without_promotion ~ecx expr =
   | ScopedIdentifier { loc; name = { Identifier.loc = id_loc; name }; _ } ->
     let binding = Bindings.get_value_binding ecx.pcx.bindings id_loc in
     (match binding.declaration with
-    | CtorDecl { adt_sig; _ } ->
-      let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
-      (match mir_adt_layout.layout with
-      (* Enum constructor is a pure integer, and tag is its direct value *)
-      | PureEnum { tags; _ } -> (SMap.find name tags :> Value.t)
-      (* Enum constructor is part of a variant type, so allocate union aggregate and set tag *)
-      | Variants { tags; _ } ->
-        let adt = type_of_loc ~ecx loc in
-        let (type_args, _) = Type_util.cast_to_adt_type adt in
-        let instance = Ecx.instantiate_mir_adt_variants_layout ~ecx mir_adt_layout type_args in
-        let union_ty = `AggregateT instance.union in
-
-        (* Call myte_alloc builtin to allocate space for variant's union aggregate *)
-        let ptr_var_id = mk_var_id () in
-        let (union_ptr_val, myte_alloc_instr) =
-          Mir_builtin.(mk_call_builtin myte_alloc ptr_var_id [`IntL Int32.one] [union_ty])
-        in
-        Ecx.emit ~ecx myte_alloc_instr;
-
-        (* Store enum tag *)
-        let tag = SMap.find name tags in
-        emit_store_tag ~ecx tag ptr_var_id;
-        union_ptr_val
-      | Aggregate _
-      | InlineValue _ ->
-        failwith "Invalid layout for enum")
+    | CtorDecl _ ->
+      let ty = type_of_loc ~ecx loc in
+      emit_construct_enum_variant ~ecx ~name ~ty
     (* Create function literal for functions *)
     | FunDecl { Bindings.FunctionDeclaration.type_params; is_builtin; _ } ->
       let func_name = mk_value_binding_name binding in
@@ -517,7 +497,8 @@ and emit_expression_without_promotion ~ecx expr =
     let ty = type_of_loc ~ecx loc in
     let element_tys = Type_util.cast_to_tuple_type ty in
     let agg = Ecx.instantiate_tuple ~ecx element_tys in
-    emit_construct_tuple ~ecx ~tag:None agg elements
+    let mk_elements = List.map (fun element _ -> emit_expression ~ecx element) elements in
+    emit_construct_tuple ~ecx ~tag:None ~agg ~mk_elements
   (*
    * ============================
    *        Method Calls
@@ -554,27 +535,9 @@ and emit_expression_without_promotion ~ecx expr =
         let binding = Type_context.get_value_binding ~cx:ecx.pcx.type_ctx ctor_id_loc in
         (match binding.declaration with
         | CtorDecl _ ->
-          (* Find MIR ADT layout this constructor *)
-          let adt = type_of_loc ~ecx loc in
-          let (type_args, adt_sig) = Type_util.cast_to_adt_type adt in
-          let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
-          (match mir_adt_layout.layout with
-          (* If layout is an aggregate, construct tuple *)
-          | Aggregate _ ->
-            let agg = Ecx.instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args in
-            let agg_ptr_val = emit_construct_tuple ~ecx ~tag:None agg args in
-            Some agg_ptr_val
-          (* If layout is a variant, construct tuple and set variant tag *)
-          | Variants { tags; _ } ->
-            let instance = Ecx.instantiate_mir_adt_variants_layout ~ecx mir_adt_layout type_args in
-            let tuple_variant_agg = SMap.find name instance.variants in
-            let tag = SMap.find name tags in
-            let agg_ptr_val = emit_construct_tuple ~ecx ~tag:(Some tag) tuple_variant_agg args in
-            Some agg_ptr_val
-          (* If layout is an inlined value there must have been a single arg, which we use directly
-             without actually constructing a tuple. *)
-          | InlineValue _ -> Some (emit_expression ~ecx (List.hd args))
-          | PureEnum _ -> failwith "Invalid layout for tuple")
+          let ty = type_of_loc ~ecx loc in
+          let mk_elements = List.map (fun arg _ -> emit_expression ~ecx arg) args in
+          Some (emit_construct_tuple_variant ~ecx ~name ~ty ~mk_elements)
         | _ -> None)
       | _ -> None
     in
@@ -806,9 +769,70 @@ and emit_expression_without_promotion ~ecx expr =
         emit_call_set_add ~ecx set_type_args set_ptr_val element_val)
       elements;
     set_ptr_val
+  (*
+   * ============================
+   *           Unwrap
+   * ============================
+   *)
+  | Unwrap { loc = _; operand } ->
+    (* Emit operand, find its type, and the return type of function (which may differ) *)
+    let operand_val = emit_expression ~ecx operand in
+    let operand_ty = type_of_loc ~ecx (Ast_utils.expression_loc operand) in
+    let return_ty = snd ecx.current_func in
+
+    (match operand_ty with
+    | ADT { adt_sig; type_args = [item_ty] } when adt_sig == !Std_lib.option_adt_sig ->
+      (* Destructure option, jumping to None branch if option is None *)
+      let some_branch_builder = Ecx.mk_block_builder ~ecx in
+      let none_branch_builder = Ecx.mk_block_builder ~ecx in
+      let item_val =
+        emit_option_destructuring
+          ~ecx
+          ~option_val:operand_val
+          ~item_ty
+          ~some_branch_builder
+          ~none_branch_builder
+      in
+
+      (* None branch creates and returns new None value (as it may have different size) *)
+      Ecx.set_block_builder ~ecx none_branch_builder;
+      let none_val = emit_construct_enum_variant ~ecx ~name:"None" ~ty:return_ty in
+      Ecx.emit ~ecx (Ret (Some none_val));
+
+      (* Return unwrapped value in Some case and proceed *)
+      Ecx.set_block_builder ~ecx some_branch_builder;
+      item_val
+    | ADT { adt_sig; type_args = [ok_ty; error_ty] } when adt_sig == !Std_lib.result_adt_sig ->
+      (* Destructure result, jumping to Error branch if result is Error *)
+      let ok_branch_builder = Ecx.mk_block_builder ~ecx in
+      let error_branch_builder = Ecx.mk_block_builder ~ecx in
+      let (ok_item_val, error_item_val) =
+        emit_result_destructuring
+          ~ecx
+          ~result_val:operand_val
+          ~ok_ty
+          ~error_ty
+          ~ok_branch_builder
+          ~error_branch_builder
+      in
+
+      (* Error branch creates and returns new Error value (as it may have different size) *)
+      Ecx.set_block_builder ~ecx error_branch_builder;
+      let error_val =
+        emit_construct_tuple_variant
+          ~ecx
+          ~name:"Error"
+          ~ty:return_ty
+          ~mk_elements:[(fun _ -> error_item_val)]
+      in
+      Ecx.emit ~ecx (Ret (Some error_val));
+
+      (* Return unwrapped value in Ok case and proceed *)
+      Ecx.set_block_builder ~ecx ok_branch_builder;
+      ok_item_val
+    | _ -> failwith "Only option and result types can be unwrapped")
   | Super _ -> failwith "TODO: Emit MIR for super expressions"
   | AnonymousFunction _ -> failwith "TODO: Emit anonymous functions"
-  | Unwrap _ -> failwith "TODO: Emit unwrap expressions"
 
 and emit_string_literal ~ecx loc value =
   let string_global_ptr = Ecx.add_string_literal ~ecx loc value in
@@ -1464,7 +1488,62 @@ and emit_store_tag ~ecx tag ptr_var_id =
   let tag_ptr_val = `PointerV (type_of_value tag, ptr_var_id) in
   Ecx.emit ~ecx (Store (tag_ptr_val, tag))
 
-and emit_construct_tuple ~ecx ~tag agg elements =
+and emit_construct_enum_variant ~ecx ~name ~ty =
+  let (type_args, adt_sig) = Type_util.cast_to_adt_type ty in
+  let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
+  match mir_adt_layout.layout with
+  (* Enum constructor is a pure integer, and tag is its direct value *)
+  | PureEnum { tags; _ } -> (SMap.find name tags :> Value.t)
+  (* Enum constructor is part of a variant type, so allocate union aggregate and set tag *)
+  | Variants { tags; _ } ->
+    let instance = Ecx.instantiate_mir_adt_variants_layout ~ecx mir_adt_layout type_args in
+    let union_ty = `AggregateT instance.union in
+
+    (* Call myte_alloc builtin to allocate space for variant's union aggregate *)
+    let ptr_var_id = mk_var_id () in
+    let (union_ptr_val, myte_alloc_instr) =
+      Mir_builtin.(mk_call_builtin myte_alloc ptr_var_id [`IntL Int32.one] [union_ty])
+    in
+    Ecx.emit ~ecx myte_alloc_instr;
+
+    (* Store enum tag *)
+    let tag = SMap.find name tags in
+    emit_store_tag ~ecx tag ptr_var_id;
+    union_ptr_val
+  | Aggregate _
+  | InlineValue _ ->
+    failwith "Invalid layout for enum"
+
+and emit_construct_tuple_variant
+    ~ecx ~(name : string) ~(ty : Types.Type.t) ~(mk_elements : (unit -> Value.t) list) =
+  (* Find MIR ADT layout this constructor *)
+  let (type_args, adt_sig) = Type_util.cast_to_adt_type ty in
+  let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
+  match mir_adt_layout.layout with
+  (* If layout is an aggregate, construct tuple *)
+  | Aggregate _ ->
+    let agg = Ecx.instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args in
+    let agg_ptr_val = emit_construct_tuple ~ecx ~tag:None ~agg ~mk_elements in
+    agg_ptr_val
+  (* If layout is a variant, construct tuple and set variant tag *)
+  | Variants { tags; _ } ->
+    let instance = Ecx.instantiate_mir_adt_variants_layout ~ecx mir_adt_layout type_args in
+    let tuple_variant_agg = SMap.find name instance.variants in
+    let tag = SMap.find name tags in
+    let agg_ptr_val =
+      emit_construct_tuple ~ecx ~tag:(Some tag) ~agg:tuple_variant_agg ~mk_elements
+    in
+    agg_ptr_val
+  (* If layout is an inlined value there must have been a single arg, which we use directly
+     without actually constructing a tuple. *)
+  | InlineValue _ -> (List.hd mk_elements) ()
+  | PureEnum _ -> failwith "Invalid layout for tuple"
+
+and emit_construct_tuple
+    ~ecx
+    ~(tag : Value.numeric_value option)
+    ~(agg : Aggregate.t)
+    ~(mk_elements : (unit -> Value.t) list) =
   let agg_ty = `AggregateT agg in
 
   (* Call myte_alloc builtin to allocate space for tuple *)
@@ -1487,14 +1566,14 @@ and emit_construct_tuple ~ecx ~tag agg elements =
          elements list due to tag or padding elements (which we skip). *)
       if key.[0] <> '$' then (
         let index = TupleKeyCache.get_index key in
-        let arg = List.nth elements index in
+        let mk_element = List.nth mk_elements index in
         (* Calculate offset for this element and store *)
-        let arg_var = emit_expression ~ecx arg in
-        let (element_offset_var, get_ptr_instr) =
+        let arg_val = mk_element () in
+        let (element_offset_val, get_ptr_instr) =
           mk_get_pointer_instr element_ty agg_ptr_var [Instruction.GetPointer.FieldIndex i]
         in
         Ecx.emit ~ecx (GetPointer get_ptr_instr);
-        Ecx.emit ~ecx (Store (element_offset_var, arg_var))
+        Ecx.emit ~ecx (Store (element_offset_val, arg_val))
       ))
     agg.Aggregate.elements;
   agg_ptr_val
@@ -1683,18 +1762,6 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
     let iterator_mir_type = Ecx.to_mir_type ~ecx iterator_ty in
     let item_ty = List.hd iterable_trait_type_args in
 
-    (* Find aggregate data for option of iterator item *)
-    let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx !Std_lib.option_adt_sig in
-    let variants_layout =
-      match mir_adt_layout.layout with
-      | Variants variants_layout -> variants_layout
-      | _ -> failwith "Expected variants layout"
-    in
-    let instance = Ecx.instantiate_mir_adt_variants_layout ~ecx mir_adt_layout [item_ty] in
-    let some_aggregate = SMap.find "Some" instance.variants in
-    let some_tag = SMap.find "Some" variants_layout.tags in
-    let tag_type = type_of_value (some_tag :> Value.t) in
-
     (* Before loop starts, emit iterable value and call `toIterator` to create iterator *)
     let iterable_val = emit_expression ~ecx iterator in
     let iterator_val =
@@ -1711,7 +1778,7 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
 
     (* Test block starts by calling iterator's `next` method, returning item option *)
     Ecx.set_block_builder ~ecx test_builder;
-    let item_opt_ptr_val =
+    let option_val =
       emit_method_call
         ~ecx
         ~method_name:"next"
@@ -1721,36 +1788,18 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
         ~method_instance_type_args:[]
         ~ret_type:(Ecx.to_mir_type ~ecx (Std_lib.mk_option_type item_ty))
     in
-    let item_opt_ptr_val = cast_to_pointer_value item_opt_ptr_val in
 
-    (* Test block proceeds to load tag of item option *)
-    let tag_ptr_val = cast_pointer_value item_opt_ptr_val tag_type in
-    let tag_var_id = mk_var_id () in
-    Ecx.emit ~ecx (Load (tag_var_id, tag_ptr_val));
-
-    (* Test block finishes by jumping to body if item is a `Some` variant, otherwise test block
-       finishes by jumping to loop end if item is a `None` variant. *)
-    let tag_val = cast_to_comparable_value (var_value_of_type tag_var_id tag_type) in
-    let test_var_id = mk_var_id () in
-    Ecx.emit ~ecx (Eq (test_var_id, tag_val, (some_tag :> Value.comparable_value)));
-    Ecx.finish_block_branch ~ecx (`BoolV test_var_id) body_builder.id finish_builder.id;
-
-    (* Body block starts by loading payload from `Some` variant *)
-    Ecx.set_block_builder ~ecx body_builder;
-    let (item_mir_type, item_index) = lookup_element some_aggregate (TupleKeyCache.get_key 0) in
-    let item_some_opt_ptr_val = cast_pointer_value item_opt_ptr_val (`AggregateT some_aggregate) in
-    let (item_ptr_val, get_ptr_instr) =
-      mk_get_pointer_instr
-        item_mir_type
-        item_some_opt_ptr_val
-        [Instruction.GetPointer.FieldIndex item_index]
+    (* Destructure item option, jumping to finish if none *)
+    let item_val =
+      emit_option_destructuring
+        ~ecx
+        ~option_val
+        ~item_ty
+        ~some_branch_builder:body_builder
+        ~none_branch_builder:finish_builder
     in
-    Ecx.emit ~ecx (GetPointer get_ptr_instr);
-    let item_var_id = mk_var_id () in
-    Ecx.emit ~ecx (Load (item_var_id, item_ptr_val));
 
     (* Body block then destructures payload to for loop bindings *)
-    let item_val = var_value_of_type item_var_id (Ecx.to_mir_type ~ecx item_ty) in
     emit_alloc_destructuring ~ecx pattern item_val;
 
     (* Body block contains body of for loop and continues to test block *)
@@ -1787,7 +1836,7 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
       match arg_val with
       | None
       | Some (`UnitL | `UnitV _)
-        when ecx.current_func = ecx.main_label ->
+        when fst ecx.current_func = ecx.main_label ->
         Some (`IntL Int32.zero)
       | _ -> arg_val
     in
@@ -1934,6 +1983,120 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
       Ecx.set_block_builder ~ecx join_block;
       None
   | FunctionDeclaration _ -> failwith "TODO: Emit MIR for non-toplevel function declarations"
+
+and emit_option_destructuring
+    ~ecx
+    ~(option_val : Value.t)
+    ~(item_ty : Types.Type.t)
+    ~(some_branch_builder : Ecx.BlockBuilder.t)
+    ~(none_branch_builder : Ecx.BlockBuilder.t) =
+  (* Find aggregate data for option *)
+  let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx !Std_lib.option_adt_sig in
+  let variants_layout =
+    match mir_adt_layout.layout with
+    | Variants variants_layout -> variants_layout
+    | _ -> failwith "Expected variants layout"
+  in
+  let instance = Ecx.instantiate_mir_adt_variants_layout ~ecx mir_adt_layout [item_ty] in
+  let some_aggregate = SMap.find "Some" instance.variants in
+  let some_tag = SMap.find "Some" variants_layout.tags in
+  let tag_type = type_of_value (some_tag :> Value.t) in
+
+  (* Test block proceeds to load tag of option *)
+  let option_val = cast_to_pointer_value option_val in
+  let tag_ptr_val = cast_pointer_value option_val tag_type in
+  let tag_var_id = mk_var_id () in
+  Ecx.emit ~ecx (Load (tag_var_id, tag_ptr_val));
+
+  (* Test block finishes by jumping to Some branch if option is a `Some` variant, otherwise test
+     block finishes by jumping to None branch if option is a `None` variant. *)
+  let tag_val = cast_to_comparable_value (var_value_of_type tag_var_id tag_type) in
+  let test_var_id = mk_var_id () in
+  Ecx.emit ~ecx (Eq (test_var_id, tag_val, (some_tag :> Value.comparable_value)));
+  Ecx.finish_block_branch ~ecx (`BoolV test_var_id) some_branch_builder.id none_branch_builder.id;
+
+  (* Some branch starts by loading payload from `Some` variant *)
+  Ecx.set_block_builder ~ecx some_branch_builder;
+  let (item_mir_type, item_index) = lookup_element some_aggregate (TupleKeyCache.get_key 0) in
+  let item_some_opt_ptr_val = cast_pointer_value option_val (`AggregateT some_aggregate) in
+  let (item_ptr_val, get_ptr_instr) =
+    mk_get_pointer_instr
+      item_mir_type
+      item_some_opt_ptr_val
+      [Instruction.GetPointer.FieldIndex item_index]
+  in
+  Ecx.emit ~ecx (GetPointer get_ptr_instr);
+  let item_var_id = mk_var_id () in
+  Ecx.emit ~ecx (Load (item_var_id, item_ptr_val));
+
+  var_value_of_type item_var_id (Ecx.to_mir_type ~ecx item_ty)
+
+and emit_result_destructuring
+    ~ecx
+    ~(result_val : Value.t)
+    ~(ok_ty : Types.Type.t)
+    ~(error_ty : Types.Type.t)
+    ~(ok_branch_builder : Ecx.BlockBuilder.t)
+    ~(error_branch_builder : Ecx.BlockBuilder.t) =
+  (* Find aggregate data for result *)
+  let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx !Std_lib.result_adt_sig in
+  let variants_layout =
+    match mir_adt_layout.layout with
+    | Variants variants_layout -> variants_layout
+    | _ -> failwith "Expected variants layout"
+  in
+  let instance = Ecx.instantiate_mir_adt_variants_layout ~ecx mir_adt_layout [ok_ty; error_ty] in
+  let ok_aggregate = SMap.find "Ok" instance.variants in
+  let error_aggregate = SMap.find "Error" instance.variants in
+  let ok_tag = SMap.find "Ok" variants_layout.tags in
+  let tag_type = type_of_value (ok_tag :> Value.t) in
+
+  (* Test block proceeds to load tag of result *)
+  let result_val = cast_to_pointer_value result_val in
+  let tag_ptr_val = cast_pointer_value result_val tag_type in
+  let tag_var_id = mk_var_id () in
+  Ecx.emit ~ecx (Load (tag_var_id, tag_ptr_val));
+
+  (* Test block finishes by jumping to Ok branch if option is an `Ok` variant, otherwise test
+     block finishes by jumping to Error branch if option is an `Error` variant. *)
+  let tag_val = cast_to_comparable_value (var_value_of_type tag_var_id tag_type) in
+  let test_var_id = mk_var_id () in
+  Ecx.emit ~ecx (Eq (test_var_id, tag_val, (ok_tag :> Value.comparable_value)));
+  Ecx.finish_block_branch ~ecx (`BoolV test_var_id) ok_branch_builder.id error_branch_builder.id;
+
+  (* Ok branch starts by loading payload from `Ok` variant *)
+  Ecx.set_block_builder ~ecx ok_branch_builder;
+  let (ok_item_mir_type, ok_item_index) = lookup_element ok_aggregate (TupleKeyCache.get_key 0) in
+  let ok_item_result_ptr_val = cast_pointer_value result_val (`AggregateT ok_aggregate) in
+  let (ok_item_ptr_val, get_ptr_instr) =
+    mk_get_pointer_instr
+      ok_item_mir_type
+      ok_item_result_ptr_val
+      [Instruction.GetPointer.FieldIndex ok_item_index]
+  in
+  Ecx.emit ~ecx (GetPointer get_ptr_instr);
+  let ok_item_var_id = mk_var_id () in
+  Ecx.emit ~ecx (Load (ok_item_var_id, ok_item_ptr_val));
+  let ok_item_val = var_value_of_type ok_item_var_id (Ecx.to_mir_type ~ecx ok_ty) in
+
+  (* Error branch starts by loading payload from `Error` variant *)
+  Ecx.set_block_builder ~ecx error_branch_builder;
+  let (error_item_mir_type, error_item_index) =
+    lookup_element error_aggregate (TupleKeyCache.get_key 0)
+  in
+  let error_item_result_ptr_val = cast_pointer_value result_val (`AggregateT error_aggregate) in
+  let (error_item_ptr_val, get_ptr_instr) =
+    mk_get_pointer_instr
+      error_item_mir_type
+      error_item_result_ptr_val
+      [Instruction.GetPointer.FieldIndex error_item_index]
+  in
+  Ecx.emit ~ecx (GetPointer get_ptr_instr);
+  let error_item_var_id = mk_var_id () in
+  Ecx.emit ~ecx (Load (error_item_var_id, error_item_ptr_val));
+  let error_item_val = var_value_of_type error_item_var_id (Ecx.to_mir_type ~ecx error_ty) in
+
+  (ok_item_val, error_item_val)
 
 and emit_alloc_destructuring ~(ecx : Ecx.t) pattern value =
   match pattern with

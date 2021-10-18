@@ -1,0 +1,97 @@
+func std.result.Result<int,bool>* @test.testUnwrapResult(std.result.Result<int,bool>* %0) {
+  %1 := Load byte %0
+  %2 := Eq byte %1, 0
+  branch %2, @0, @1
+label @0:
+  %3 := GetPointer int, std.result.Result<int,bool>::Ok* %0.2
+  %4 := Load int %3
+  %5 := Call unit @test.use<int>(%4)
+  %6 := CallBuiltin std.result.Result<int,bool>::Ok* myte_alloc(1)
+  Store byte %6, 0
+  %7 := GetPointer int, std.result.Result<int,bool>::Ok* %6.2
+  Store int %7, 1
+  Ret %6
+label @1:
+  %8 := GetPointer bool, std.result.Result<int,bool>::Error* %0.1
+  %9 := Load bool %8
+  %10 := CallBuiltin std.result.Result<int,bool>::Error* myte_alloc(1)
+  Store byte %10, 1
+  %11 := GetPointer bool, std.result.Result<int,bool>::Error* %10.1
+  Store bool %11, %9
+  Ret %10
+}
+
+func std.result.Result<long,bool>* @test.testUnwrapResultDifferentType(std.result.Result<int,bool>* %12) {
+  %13 := Load byte %12
+  %14 := Eq byte %13, 0
+  branch %14, @2, @3
+label @2:
+  %15 := GetPointer int, std.result.Result<int,bool>::Ok* %12.2
+  %16 := Load int %15
+  %17 := Call unit @test.use<int>(%16)
+  %18 := CallBuiltin std.result.Result<long,bool>::Ok* myte_alloc(1)
+  Store byte %18, 0
+  %19 := GetPointer long, std.result.Result<long,bool>::Ok* %18.2
+  Store long %19, 1
+  Ret %18
+label @3:
+  %20 := GetPointer bool, std.result.Result<int,bool>::Error* %12.1
+  %21 := Load bool %20
+  %22 := CallBuiltin std.result.Result<long,bool>::Error* myte_alloc(1)
+  Store byte %22, 1
+  %23 := GetPointer bool, std.result.Result<long,bool>::Error* %22.1
+  Store bool %23, %21
+  Ret %22
+}
+
+func std.result.Result<int,bool>* @test.testDoubleUnwrap(std.result.Result<std.result.Result<int,bool>*,bool>* %24) {
+  %25 := Load byte %24
+  %26 := Eq byte %25, 0
+  branch %26, @4, @7
+label @4:
+  %27 := GetPointer std.result.Result<int,bool>*, std.result.Result<std.result.Result<int,bool>*,bool>::Ok* %24.2
+  %28 := Load std.result.Result<int,bool>* %27
+  %29 := Load byte %28
+  %30 := Eq byte %29, 0
+  branch %30, @5, @6
+label @5:
+  %31 := GetPointer int, std.result.Result<int,bool>::Ok* %28.2
+  %32 := Load int %31
+  %33 := Call unit @test.use<int>(%32)
+  %34 := CallBuiltin std.result.Result<int,bool>::Ok* myte_alloc(1)
+  Store byte %34, 0
+  %35 := GetPointer int, std.result.Result<int,bool>::Ok* %34.2
+  Store int %35, 1
+  Ret %34
+label @6:
+  %36 := GetPointer bool, std.result.Result<int,bool>::Error* %28.1
+  %37 := Load bool %36
+  %38 := CallBuiltin std.result.Result<int,bool>::Error* myte_alloc(1)
+  Store byte %38, 1
+  %39 := GetPointer bool, std.result.Result<int,bool>::Error* %38.1
+  Store bool %39, %37
+  Ret %38
+label @7:
+  %40 := GetPointer bool, std.result.Result<std.result.Result<int,bool>*,bool>::Error* %24.1
+  %41 := Load bool %40
+  %42 := CallBuiltin std.result.Result<int,bool>::Error* myte_alloc(1)
+  Store byte %42, 1
+  %43 := GetPointer bool, std.result.Result<int,bool>::Error* %42.1
+  Store bool %43, %41
+  Ret %42
+}
+
+func unit @test.use<fn>(fn %44) {
+  Ret
+}
+
+func unit @test.use<int>(int %45) {
+  Ret
+}
+
+func int @test.main() {
+  %46 := Call unit @test.use<fn>(@test.testUnwrapResult)
+  %47 := Call unit @test.use<fn>(@test.testUnwrapResultDifferentType)
+  %48 := Call unit @test.use<fn>(@test.testDoubleUnwrap)
+  Ret 0
+}
