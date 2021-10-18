@@ -1,0 +1,26 @@
+module test
+
+import std.test.assertEqual
+
+fun getTen(): Int = 10
+
+fun matchWithBlockExpressions(x: Bool, y: Int): Int =
+  match (x) {
+    | true -> {
+      y + getTen()
+    }
+    | false -> {
+      val x = getTen();
+      val y = getTen();
+      x * y
+    }
+  }
+
+fun testMatchWithBlockExpressions() {
+  assertEqual(matchWithBlockExpressions(true, 7), 17);
+  assertEqual(matchWithBlockExpressions(false, 1), 100);
+}
+
+fun main() {
+  testMatchWithBlockExpressions();
+}

@@ -1,0 +1,59 @@
+module test
+
+fun testMatchExpressionBlockValues(test: Bool) {
+  val x: Int = match (test) {
+    | true -> {
+      1
+    }
+    | false -> {
+      2
+    }
+  };
+  use(x);
+}
+
+fun testMatchStatementInExpressionPosition(test: Bool) {
+  val x: Int = if (test) {
+    match (test) {
+      | true -> {
+        1
+      }
+      | false -> 2
+    }
+  } else {
+    3
+  };
+  use(x);
+}
+
+fun testNestedMatchAndIf(test: Bool) {
+  val x: Int = if (test) {
+    match (test) {
+      | true -> {
+        if (test) {
+          match (test) {
+            | true -> 1
+            | false -> 2
+          }
+        } else {
+          match (test) {
+            | true -> 3
+            | false -> 4
+          }
+        }
+      }
+      | false -> 5
+    }
+  } else {
+    6
+  };
+  use(x);
+}
+
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testMatchExpressionBlockValues);
+  use(testMatchStatementInExpressionPosition);
+  use(testNestedMatchAndIf);
+}

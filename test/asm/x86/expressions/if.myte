@@ -1,0 +1,32 @@
+module test
+
+fun use<T>(x: T): T = x
+
+fun bool(): Bool = true
+
+fun testSimpleIf(): Int = if (bool()) { 1 } else { 2 }
+
+fun testIfWithExpressions(x: Int, y: Int): Int =
+  if (bool()) { x + y } else { x * y + x }
+
+fun testNestedIfStatementInExpressionPosition(): Int {
+  return if(bool()) {
+    if(bool()) {
+      1
+    } else {
+      2
+    }
+  } else {
+    if(bool()) {
+      3
+    } else {
+      4
+    }
+  };
+}
+
+fun main() {
+  use(testSimpleIf);
+  use(testIfWithExpressions);
+  use(testNestedIfStatementInExpressionPosition);
+}

@@ -1,6 +1,98 @@
 module test
 
-fun main() {
+fun testSimpleExpressionStatements() {
   1;
   1 + 2 * 3 / 4;
+}
+
+fun testExpressionStatementSingleValue(test: Bool) {
+  val x: Int = if (test) { 1 } else { 2 };
+  use(x);
+}
+
+fun testExpressionStatementsBeforeValue(test: Bool) {
+  val x: Int = if (test) {
+    use(1);
+    use(2);
+    1
+  } else {
+    use(test);
+    2
+  };
+  use(x);
+}
+
+fun testExpressionStatementUnitValue(test: Bool) {
+  // Expression statement with semicolon - completely removed
+  val x: Unit = if (test) {
+    1;
+  } else {
+    ()
+  };
+  use(x);
+
+  // Expression statement with semicolon - branch kept due to call
+  val x: Unit = if (test) {
+    use(2);
+    2;
+  } else {
+    ()
+  };
+  use(x);
+}
+
+fun testWhileUnitValue(test: Bool) {
+  val x: Unit = if (test) {
+    while (test) {
+      use(1);
+    }
+  } else {
+    ()
+  };
+  use(x);
+}
+
+fun testForUnitValue(test: Bool, vec: Vec<Int>) {
+  val x: Unit = if (test) {
+    for (x in vec) {
+      use(x);
+    }
+  } else {
+    ()
+  };
+  use(x);
+}
+
+fun testVariableDeclarationUnitValue(test: Bool) {
+  val x: Unit = if (test) {
+    val y = 1;
+  } else {
+    ()
+  };
+  use(x);
+}
+
+fun testAssignmentUnitValue(test: Bool) {
+  val x: Unit = if (test) {
+    var y = 1;
+    use(y);
+    y = 2;
+  } else {
+    ()
+  };
+  use(x);
+}
+
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testSimpleExpressionStatements);
+  use(testExpressionStatementSingleValue);
+  use(testExpressionStatementsBeforeValue);
+  use(testExpressionStatementIfValue);
+  use(testExpressionStatementUnitValue);
+  use(testWhileUnitValue);
+  use(testForUnitValue);
+  use(testVariableDeclarationUnitValue);
+  use(testAssignmentUnitValue);
 }

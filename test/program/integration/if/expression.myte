@@ -1,0 +1,52 @@
+module test
+
+import std.test.assertEqual
+
+fun getTrue(): Bool = true
+fun getFalse(): Bool = false
+
+fun testSimpleIfExpression() {
+  assertEqual(if (getTrue()) { 1 } else { 2 }, 1);
+  assertEqual(if (getFalse()) { 1 } else { 2 }, 2);
+}
+
+fun ifWithExpressions(test: Bool, x: Int, y: Int): Int =
+  if (test) {
+    x + y
+  } else {
+    x * y + x
+  }
+
+fun testIfExpressionWithExpressions() {
+  assertEqual(ifWithExpressions(true, 2, 3), 5);
+  assertEqual(ifWithExpressions(false, 2, 3), 8);
+}
+
+fun nestedIf(t1: Bool, t2: Bool): Int {
+  return if(t1) {
+    if(t2) {
+      1
+    } else {
+      2
+    }
+  } else {
+    if(t2) {
+      3
+    } else {
+      4
+    }
+  };
+}
+
+fun testNestedIfExpressions() {
+  assertEqual(nestedIf(true, true), 1);
+  assertEqual(nestedIf(true, false), 2);
+  assertEqual(nestedIf(false, true), 3);
+  assertEqual(nestedIf(false, false), 4);
+}
+
+fun main() {
+  testSimpleIfExpression();
+  testIfExpressionWithExpressions();
+  testNestedIfExpressions();
+}

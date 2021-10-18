@@ -1,6 +1,4 @@
-func int @test.main() {
-  %0 := Mul int 2, 3
-  %1 := Div int %0, 4
-  %2 := Add int 1, %1
-  Ret 0
-}
+Error: Could not resolve name `testExpressionStatementIfValue` to value
+test/mir/statements/expression.myte:92:6-36
+ 92 |   use(testExpressionStatementIfValue);
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

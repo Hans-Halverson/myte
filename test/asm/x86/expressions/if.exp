@@ -1,0 +1,71 @@
+  .global _main
+
+  .text
+test.bool:
+  movb $1, %al
+  ret
+_main:
+  leaq test.testSimpleIf(%rip), %rdi
+  call test.use$fn$
+  leaq test.testIfWithExpressions(%rip), %rdi
+  call test.use$fn$
+  leaq test.testNestedIfStatementInExpressionPosition(%rip), %rdi
+  call test.use$fn$
+  movl $0, %eax
+  ret
+test.testIfWithExpressions:
+  push %rbx
+  push %r12
+  movl %edi, %r12d
+  movl %esi, %ebx
+  call test.bool
+  testb %al, %al
+  je .L0
+  addl %r12d, %ebx
+  jmp .L1
+.L0:
+  imull %r12d, %ebx
+  addl %ebx, %r12d
+  movl %r12d, %ebx
+.L1:
+  movl %ebx, %eax
+  pop %r12
+  pop %rbx
+  ret
+test.testNestedIfStatementInExpressionPosition:
+  call test.bool
+  testb %al, %al
+  je .L4
+  call test.bool
+  testb %al, %al
+  je .L2
+  movl $1, %eax
+  jmp .L3
+.L2:
+  movl $2, %eax
+.L3:
+  jmp .L7
+.L4:
+  call test.bool
+  testb %al, %al
+  je .L5
+  movl $3, %eax
+  jmp .L6
+.L5:
+  movl $4, %eax
+.L6:
+.L7:
+  ret
+test.testSimpleIf:
+  call test.bool
+  testb %al, %al
+  je .L8
+  movl $1, %eax
+  jmp .L9
+.L8:
+  movl $2, %eax
+.L9:
+  ret
+test.use$fn$:
+  movq %rdi, %rax
+  ret

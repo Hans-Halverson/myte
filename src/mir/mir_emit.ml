@@ -188,8 +188,8 @@ and emit_function_body ~ecx name decl =
   Ecx.set_current_func ~ecx name;
   let body_start_block = Ecx.start_new_block ~ecx in
   (match body with
-  | Block { Statement.Block.statements; _ } ->
-    List.iter (emit_statement ~ecx) statements;
+  | Block block ->
+    ignore (emit_block ~ecx ~is_expr:false block);
     (* Add an implicit return if the last instruction is not a return *)
     (match ecx.current_block_builder with
     | Some { Ecx.BlockBuilder.instructions = (_, Ret _) :: _; _ } -> ()
@@ -719,33 +719,16 @@ and emit_expression_without_promotion ~ecx expr =
     var_value_of_type var_id mir_type
   (*
    * ============================
+   *       If Expression
+   * ============================
+   *)
+  | If if_ -> emit_if_expression ~ecx if_
+  (*
+   * ============================
    *       Match Expression
    * ============================
    *)
-  | Match { loc; args; cases } ->
-    let mir_type = mir_type_of_loc ~ecx loc in
-
-    (* Model join of match expression by creatign stack location to place results of cases *)
-    let result_var_id = mk_var_id () in
-    let result_ptr_val = `PointerV (mir_type, result_var_id) in
-    Ecx.emit ~ecx (StackAlloc (result_var_id, mir_type));
-
-    (* Emit args and decision tree *)
-    let args = List.map (emit_expression ~ecx) args in
-    let decision_tree = Mir_match_decision_tree.build_match_decision_tree ~ecx args cases in
-    let join_block = Ecx.mk_block_builder ~ecx in
-    emit_match_decision_tree
-      ~ecx
-      ~join_block
-      ~result_ptr:(Some result_ptr_val)
-      ~alloc:true
-      decision_tree;
-
-    (* Join branches together and load result from stack location *)
-    Ecx.set_block_builder ~ecx join_block;
-    let var_id = mk_var_id () in
-    Ecx.emit ~ecx (Load (var_id, result_ptr_val));
-    var_value_of_type var_id mir_type
+  | Match match_ -> emit_match_expression ~ecx match_
   (*
    * ============================
    *       Vec Literal
@@ -862,7 +845,6 @@ and emit_expression_without_promotion ~ecx expr =
     set_ptr_val
   | Super _ -> failwith "TODO: Emit MIR for super expressions"
   | AnonymousFunction _ -> failwith "TODO: Emit anonymous functions"
-  | If _ -> failwith "TODO: Emit if expression"
 
 and emit_string_literal ~ecx loc value =
   let string_global_ptr = Ecx.add_string_literal ~ecx loc value in
@@ -890,6 +872,71 @@ and emit_string_literal ~ecx loc value =
   emit_field_store "size" length;
   emit_field_store "capacity" length;
   agg_ptr_val
+
+and emit_if_expression ~ecx if_ =
+  let { If.loc; test; conseq; altern } = if_ in
+  let mir_type = mir_type_of_loc ~ecx loc in
+
+  (* Model if join by creating stack location to place results of branches *)
+  let result_var_id = mk_var_id () in
+  let result_ptr_val = `PointerV (mir_type, result_var_id) in
+  Ecx.emit ~ecx (StackAlloc (result_var_id, mir_type));
+
+  (* Branch to conseq or altern blocks *)
+  let test_val = emit_bool_expression ~ecx test in
+  let conseq_builder = Ecx.mk_block_builder ~ecx in
+  let altern_builder = Ecx.mk_block_builder ~ecx in
+  let join_builder = Ecx.mk_block_builder ~ecx in
+  Ecx.finish_block_branch ~ecx test_val conseq_builder.id altern_builder.id;
+
+  (* Emit conseq, store result, and continue to join block *)
+  Ecx.set_block_builder ~ecx conseq_builder;
+  let conseq_val = emit_block ~ecx ~is_expr:true conseq |> Option.value ~default:`UnitL in
+  Ecx.emit ~ecx (Store (result_ptr_val, conseq_val));
+  Ecx.finish_block_continue ~ecx join_builder.id;
+
+  (* Emit altern, store result, and continue to join block *)
+  Ecx.set_block_builder ~ecx altern_builder;
+  let altern_val =
+    match altern with
+    | Block block -> emit_block ~ecx ~is_expr:true block |> Option.value ~default:`UnitL
+    | If if_ -> emit_if_expression ~ecx if_
+    | None -> failwith "If expression must have else branch"
+  in
+  Ecx.emit ~ecx (Store (result_ptr_val, altern_val));
+  Ecx.finish_block_continue ~ecx join_builder.id;
+
+  (* Join branches together and load result from stack location *)
+  Ecx.set_block_builder ~ecx join_builder;
+  let var_id = mk_var_id () in
+  Ecx.emit ~ecx (Load (var_id, result_ptr_val));
+  var_value_of_type var_id mir_type
+
+and emit_match_expression ~ecx match_ =
+  let { Match.loc; args; cases } = match_ in
+  let mir_type = mir_type_of_loc ~ecx loc in
+
+  (* Model join of match expression by creating stack location to place results of cases *)
+  let result_var_id = mk_var_id () in
+  let result_ptr_val = `PointerV (mir_type, result_var_id) in
+  Ecx.emit ~ecx (StackAlloc (result_var_id, mir_type));
+
+  (* Emit args and decision tree *)
+  let args = List.map (emit_expression ~ecx) args in
+  let decision_tree = Mir_match_decision_tree.build_match_decision_tree ~ecx args cases in
+  let join_block = Ecx.mk_block_builder ~ecx in
+  emit_match_decision_tree
+    ~ecx
+    ~join_block
+    ~result_ptr:(Some result_ptr_val)
+    ~alloc:true
+    decision_tree;
+
+  (* Join branches together and load result from stack location *)
+  Ecx.set_block_builder ~ecx join_block;
+  let var_id = mk_var_id () in
+  Ecx.emit ~ecx (Load (var_id, result_ptr_val));
+  var_value_of_type var_id mir_type
 
 and emit_trait_object_promotion ~ecx expr_val trait_object_instance =
   (* Call myte_alloc builtin to allocate space for trait object *)
@@ -1539,15 +1586,30 @@ and emit_function_expression ~ecx expr =
   | (`FunctionL _ | `FunctionV _) as v -> v
   | _ -> failwith "Expected function value"
 
-and emit_block ~ecx block =
+and emit_block ~ecx ~is_expr block =
   let { Statement.Block.statements; _ } = block in
-  List.iter (emit_statement ~ecx) statements
+  if statements = [] then
+    None
+  else
+    (* Emit statements, only last statement can be an expression *)
+    let (first_statements, last_statement) = List_utils.split_last statements in
+    List.iter (fun stmt -> ignore (emit_statement ~ecx ~is_expr:false stmt)) first_statements;
+    let value = emit_statement ~ecx ~is_expr last_statement in
+    if is_expr then
+      value
+    else
+      None
 
-and emit_statement ~ecx stmt =
+and emit_statement ~ecx ~is_expr stmt : Value.t option =
   let open Statement in
   match stmt with
-  | ExpressionStatement { loc = _; expr; is_value = _ } -> ignore (emit_expression ~ecx expr)
-  | Block block -> emit_block ~ecx block
+  | ExpressionStatement { loc = _; expr; is_value } ->
+    let expr_value = emit_expression ~ecx expr in
+    if is_expr && is_value then
+      Some expr_value
+    else
+      None
+  | Block block -> emit_block ~ecx ~is_expr block
   (*
    * ============================
    *        If Statement
@@ -1562,34 +1624,39 @@ and emit_statement ~ecx stmt =
 
     (* Emit conseq and continue to join block *)
     Ecx.set_block_builder ~ecx conseq_builder;
-    emit_block ~ecx conseq;
+    ignore (emit_block ~ecx ~is_expr conseq);
     Ecx.finish_block_continue ~ecx join_builder.id;
 
     (* Start join block *)
-    Ecx.set_block_builder ~ecx join_builder
-  | If { loc = _; test; conseq; altern } ->
-    (* Branch to conseq or altern blocks *)
-    let test_val = emit_bool_expression ~ecx test in
-    let conseq_builder = Ecx.mk_block_builder ~ecx in
-    let altern_builder = Ecx.mk_block_builder ~ecx in
-    let join_builder = Ecx.mk_block_builder ~ecx in
-    Ecx.finish_block_branch ~ecx test_val conseq_builder.id altern_builder.id;
+    Ecx.set_block_builder ~ecx join_builder;
+    None
+  | If ({ loc = _; test; conseq; altern } as if_) ->
+    if is_expr then
+      Some (emit_if_expression ~ecx if_)
+    else
+      (* Branch to conseq or altern blocks *)
+      let test_val = emit_bool_expression ~ecx test in
+      let conseq_builder = Ecx.mk_block_builder ~ecx in
+      let altern_builder = Ecx.mk_block_builder ~ecx in
+      let join_builder = Ecx.mk_block_builder ~ecx in
+      Ecx.finish_block_branch ~ecx test_val conseq_builder.id altern_builder.id;
 
-    (* Emit conseq and continue to join block *)
-    Ecx.set_block_builder ~ecx conseq_builder;
-    emit_block ~ecx conseq;
-    Ecx.finish_block_continue ~ecx join_builder.id;
+      (* Emit conseq and continue to join block *)
+      Ecx.set_block_builder ~ecx conseq_builder;
+      ignore (emit_block ~ecx ~is_expr:false conseq);
+      Ecx.finish_block_continue ~ecx join_builder.id;
 
-    (* Emit altern and continue to join block *)
-    Ecx.set_block_builder ~ecx altern_builder;
-    (match altern with
-    | Block block -> emit_block ~ecx block
-    | If if_ -> emit_statement ~ecx (If if_)
-    | None -> failwith "Handled by previous case");
-    Ecx.finish_block_continue ~ecx join_builder.id;
+      (* Emit altern and continue to join block *)
+      Ecx.set_block_builder ~ecx altern_builder;
+      (match altern with
+      | Block block -> ignore (emit_block ~ecx ~is_expr:false block)
+      | If if_ -> ignore (emit_statement ~ecx ~is_expr:false (If if_))
+      | None -> failwith "Handled by previous case");
+      Ecx.finish_block_continue ~ecx join_builder.id;
 
-    (* Start join block *)
-    Ecx.set_block_builder ~ecx join_builder
+      (* Start join block *)
+      Ecx.set_block_builder ~ecx join_builder;
+      None
   (*
    * ============================
    *         While Loop
@@ -1610,12 +1677,13 @@ and emit_statement ~ecx stmt =
     (* Emit body block which continues to test block *)
     Ecx.push_loop_context ~ecx finish_builder.id test_builder.id;
     Ecx.set_block_builder ~ecx body_builder;
-    emit_block ~ecx body;
+    ignore (emit_block ~ecx ~is_expr:false body);
     Ecx.finish_block_continue ~ecx test_builder.id;
     Ecx.pop_loop_context ~ecx;
 
     (* Start join block *)
-    Ecx.set_block_builder ~ecx finish_builder
+    Ecx.set_block_builder ~ecx finish_builder;
+    None
   (*
    * ============================
    *         For Loop
@@ -1723,12 +1791,13 @@ and emit_statement ~ecx stmt =
 
     (* Body block contains body of for loop and continues to test block *)
     Ecx.push_loop_context ~ecx finish_builder.id test_builder.id;
-    emit_block ~ecx body;
+    ignore (emit_block ~ecx ~is_expr:false body);
     Ecx.pop_loop_context ~ecx;
     Ecx.finish_block_continue ~ecx test_builder.id;
 
     (* Start join block *)
-    Ecx.set_block_builder ~ecx finish_builder
+    Ecx.set_block_builder ~ecx finish_builder;
+    None
   (*
    * ============================
    *      Loop Control Flow
@@ -1736,10 +1805,12 @@ and emit_statement ~ecx stmt =
    *)
   | Continue _ ->
     let (_, continue_id) = Ecx.get_loop_context ~ecx in
-    Ecx.finish_block_continue ~ecx continue_id
+    Ecx.finish_block_continue ~ecx continue_id;
+    None
   | Break _ ->
     let (break_id, _) = Ecx.get_loop_context ~ecx in
-    Ecx.finish_block_continue ~ecx break_id
+    Ecx.finish_block_continue ~ecx break_id;
+    None
   (*
    * ============================
    *           Return
@@ -1756,7 +1827,8 @@ and emit_statement ~ecx stmt =
         Some (`IntL Int32.zero)
       | _ -> arg_val
     in
-    Ecx.emit ~ecx (Ret arg_val)
+    Ecx.emit ~ecx (Ret arg_val);
+    None
   (*
    * ============================
    *         Assignment
@@ -1870,7 +1942,8 @@ and emit_statement ~ecx stmt =
         emit_call_map_add ~ecx type_args target_val index_val expr_val
       | _ -> emit_access_chain_assign expr_lvalue)
     | Expression (NamedAccess _ as expr_lvalue) -> emit_access_chain_assign expr_lvalue
-    | _ -> failwith "Lvalue expression must be an access")
+    | _ -> failwith "Lvalue expression must be an access");
+    None
   (*
    * ============================
    *     Variable Declaration
@@ -1878,19 +1951,24 @@ and emit_statement ~ecx stmt =
    *)
   | VariableDeclaration { pattern; init; _ } ->
     let init_val = emit_expression ~ecx init in
-    emit_alloc_destructuring ~ecx pattern init_val
+    emit_alloc_destructuring ~ecx pattern init_val;
+    None
   (*
    * ============================
    *       Match Statement
    * ============================
    *)
-  | Match { args; cases; _ } ->
-    (* Emit args and decision tree *)
-    let args = List.map (emit_expression ~ecx) args in
-    let decision_tree = Mir_match_decision_tree.build_match_decision_tree ~ecx args cases in
-    let join_block = Ecx.mk_block_builder ~ecx in
-    emit_match_decision_tree ~ecx ~join_block ~result_ptr:None ~alloc:true decision_tree;
-    Ecx.set_block_builder ~ecx join_block
+  | Match ({ args; cases; _ } as match_) ->
+    if is_expr then
+      Some (emit_match_expression ~ecx match_)
+    else
+      (* Emit args and decision tree *)
+      let args = List.map (emit_expression ~ecx) args in
+      let decision_tree = Mir_match_decision_tree.build_match_decision_tree ~ecx args cases in
+      let join_block = Ecx.mk_block_builder ~ecx in
+      emit_match_decision_tree ~ecx ~join_block ~result_ptr:None ~alloc:true decision_tree;
+      Ecx.set_block_builder ~ecx join_block;
+      None
   | FunctionDeclaration _ -> failwith "TODO: Emit MIR for non-toplevel function declarations"
 
 and emit_alloc_destructuring ~(ecx : Ecx.t) pattern value =
@@ -2033,17 +2111,15 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
           Ecx.set_block_builder ~ecx case_body_builder;
 
           (* Emit the right hand side of case, store result at result ptr if one is supplied. *)
-          match case_node.right with
-          | Expression expr ->
+          match (case_node.right, result_ptr) with
+          | (Expression expr, None) -> ignore (emit_expression ~ecx expr)
+          | (Statement stmt, None) -> ignore (emit_statement ~ecx ~is_expr:false stmt)
+          | (Expression expr, Some result_ptr) ->
             let body_val = emit_expression ~ecx expr in
-            (match result_ptr with
-            | None -> ()
-            | Some result_ptr -> Ecx.emit ~ecx (Store (result_ptr, body_val)))
-          | Statement stmt ->
-            emit_statement ~ecx stmt;
-            (match result_ptr with
-            | None -> ()
-            | Some result_ptr -> Ecx.emit ~ecx (Store (result_ptr, `UnitL)))
+            Ecx.emit ~ecx (Store (result_ptr, body_val))
+          | (Statement stmt, Some result_ptr) ->
+            let body_val = emit_statement ~ecx ~is_expr:true stmt |> Option.value ~default:`UnitL in
+            Ecx.emit ~ecx (Store (result_ptr, body_val))
         );
 
         (* Continue to match's overall join block at end of case body *)
