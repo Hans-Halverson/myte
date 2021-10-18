@@ -62,6 +62,8 @@ let pop_current_function ~cx = cx.current_function_stack <- List.tl cx.current_f
 
 let get_current_function ~cx = List.hd cx.current_function_stack
 
+let is_in_function ~cx = cx.current_function_stack <> []
+
 let get_unresolved_int_literals ~cx = cx.unresolved_int_literals
 
 let add_method_use ~cx use_loc = cx.method_uses <- LocSet.add use_loc cx.method_uses

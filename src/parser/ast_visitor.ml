@@ -70,6 +70,7 @@ class visitor =
         | MapLiteral e -> this#map_literal e
         | SetLiteral e -> this#set_literal e
         | AnonymousFunction e -> this#anonymous_function e
+        | Unwrap e -> this#unwrap e
 
     method pattern : Pattern.t -> unit =
       fun pat ->
@@ -236,6 +237,11 @@ class visitor =
       match body with
       | Block block -> this#block block
       | Expression expr -> this#expression expr
+
+    method unwrap unwrap =
+      let open Expression.Unwrap in
+      let { loc = _; operand } = unwrap in
+      this#expression operand
 
     method record_pattern record =
       let open Pattern.Record in

@@ -1,0 +1,54 @@
+module test
+
+fun unwrapOptionSuccess(): Option<Int> {
+  ((Some (1))?: Int);
+  ((Some (true))?: Bool);
+
+  return None;
+}
+
+fun unwrapResultSuccess(): Result<Int, Bool> {
+  val x: Result<Int, Bool> = Ok (1);
+  (x?: Int);
+
+  val x: Result<String, Bool> = Ok ("test");
+  (x?: String);
+
+  return Error (true);
+}
+
+fun unwrapInNonUnwrappable(): Int {
+  val x: Option<Bool> = Some (true);
+  x?;
+
+  val x: Result<Long, Bool> = Ok (1);
+  x?;
+
+  return 1;
+}
+
+fun unwrapIncorrectResultErrorType(): Result<Int, Bool> {
+  val x: Result<Int, Long> = Ok (1);
+  x?;
+
+  return Error (true);
+}
+
+fun unwrapOptionInResultFunction(): Result<Int, Bool> {
+  val x: Option<Bool> = Some (true);
+  x?;
+
+  return Error (true);
+}
+
+fun unwrapResultInOptionFunction(): Option<Bool> {
+  val x: Result<Int, Bool> = Error (true);
+  x?;
+
+  return Some (true);
+}
+
+// Error when unwrapping outside function
+val x: Int = (Some (1))?
+
+fun main() {}

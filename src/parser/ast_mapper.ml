@@ -89,6 +89,7 @@ class mapper =
         | SetLiteral e -> id_map this#set_literal e expr (fun e' -> SetLiteral e')
         | AnonymousFunction e ->
           id_map this#anonymous_function e expr (fun e' -> AnonymousFunction e')
+        | Unwrap e -> id_map this#unwrap e expr (fun e' -> Unwrap e')
 
     method pattern : Pattern.t -> Pattern.t =
       fun pat ->
@@ -336,6 +337,15 @@ class mapper =
       match body with
       | Block block -> id_map this#block block body (fun block' -> Block block')
       | Expression expr -> id_map this#expression expr body (fun expr' -> Expression expr')
+
+    method unwrap unwrap =
+      let open Expression.Unwrap in
+      let { loc; operand } = unwrap in
+      let operand' = this#expression operand in
+      if operand == operand' then
+        unwrap
+      else
+        { loc; operand = operand' }
 
     method record_pattern record =
       let open Pattern.Record in

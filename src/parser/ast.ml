@@ -349,6 +349,13 @@ and Expression : sig
     }
   end
 
+  module Unwrap : sig
+    type t = {
+      loc: Loc.t;
+      operand: Expression.t;
+    }
+  end
+
   type t =
     | Unit of Unit.t
     | IntLiteral of IntLiteral.t
@@ -375,6 +382,7 @@ and Expression : sig
     | MapLiteral of MapLiteral.t
     | SetLiteral of SetLiteral.t
     | AnonymousFunction of AnonymousFunction.t
+    | Unwrap of Unwrap.t
 end =
   Expression
 

@@ -74,6 +74,9 @@ type t =
   | InvalidMultipleArgumentsPattern
   | IfExpressionMissingElse
   | ExpressionStatementMissingSemicolon
+  | UnwrapOutsideFunction
+  | InvalidTypeUnwrapped of Type.t
+  | InvalidUnwrappedReturnType of invalid_unwrapped_return_type_kind * Type.t
   | InexhaustiveMatch of string
   | UnreachablePattern
 
@@ -102,6 +105,10 @@ and cannot_infer_type_kind =
 and operator_requires_trait_kind =
   | OperatorRequiresTraitEquals
   | OperatorRequiresTraitNotEquals
+
+and invalid_unwrapped_return_type_kind =
+  | InvalidUnwrappedReturnTypeOption
+  | InvalidUnwrappedReturnTypeResult of Type.t
 
 and name_source =
   | FunctionName of string
@@ -455,6 +462,21 @@ let to_string error =
   | IfExpressionMissingElse -> "If expression is missing an `else` block"
   | ExpressionStatementMissingSemicolon ->
     "Expression is in a statement position but semicolon is missing"
+  | UnwrapOutsideFunction -> "Unwrap expressions can only appear in functions"
+  | InvalidTypeUnwrapped ty ->
+    Printf.sprintf
+      "Expression must be an `Option` or `Result` to be unwrapped, but found `%s`"
+      (Types.pp ty)
+  | InvalidUnwrappedReturnType (expected, actual) ->
+    let expected_string =
+      match expected with
+      | InvalidUnwrappedReturnTypeOption -> "Option"
+      | InvalidUnwrappedReturnTypeResult err_ty -> Printf.sprintf "Result<_, %s>" (Types.pp err_ty)
+    in
+    Printf.sprintf
+      "This unwrap expression can only be used in a function that returns `%s`, but found return type `%s`"
+      expected_string
+      (Types.pp actual)
   | InexhaustiveMatch witness ->
     Printf.sprintf
       "Inexhaustive pattern matching. For example the pattern `%s` is not matched."

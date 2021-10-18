@@ -2,8 +2,8 @@ module Test
 
 fun main() {
   // Full precedence
-  +a() * b + c << d & e ^ f | g < h == i && j || k;
-  a || b && c == d < e | f ^ g & h << i + j * k;
+  +a()? * b + c << d & e ^ f | g < h == i && j || k;
+  a || b && c == d < e | f ^ g & h << i + j * k?;
 
   // Group precedence
   a((b)(c));
@@ -31,7 +31,7 @@ fun main() {
   (a || b) || c;
 
   // Call precedence
-  +a();
+  +a()?;
   a().b();
   a * b();
   a + b();
@@ -45,7 +45,7 @@ fun main() {
   a || b();
 
   // Access precedence
-  +a.b;
+  +a.b?;
   a.b * c;
   a * b.c;
   a.b + c;
@@ -67,7 +67,7 @@ fun main() {
   a.b || c;
   a || b.c;
 
-  +a[b];
+  +a[b]?;
   a[b] * c;
   a * b[c];
   a[b] + c;
@@ -89,8 +89,21 @@ fun main() {
   a[b] || c;
   a || b[c];
 
+  // Unwrap precedence
+  +a?;
+  a * b?;
+  a + b?;
+  a << +b?;
+  a & +b?;
+  a ^ +b?;
+  a | +b?;
+  a < b?;
+  a == b?;
+  a && b?;
+  a || b?;
+
   // Unary precedence
-  +(a + b);
+  +(a + b)?;
   +a * b;
   +a + b;
   +a << +b;

@@ -213,6 +213,8 @@ let never_adt_sig = ref Types.AdtSig.empty
 
 let option_adt_sig = ref Types.AdtSig.empty
 
+let result_adt_sig = ref Types.AdtSig.empty
+
 let set_adt_sig = ref Types.AdtSig.empty
 
 let string_adt_sig = ref Types.AdtSig.empty
@@ -222,6 +224,9 @@ let vec_adt_sig = ref Types.AdtSig.empty
 let unit_adt_sig = ref Types.AdtSig.empty
 
 let mk_option_type type_arg = Types.Type.ADT { adt_sig = !option_adt_sig; type_args = [type_arg] }
+
+let mk_result_type ok_ty err_ty =
+  Types.Type.ADT { adt_sig = !result_adt_sig; type_args = [ok_ty; err_ty] }
 
 let mk_string_type () = Types.Type.ADT { adt_sig = !string_adt_sig; type_args = [] }
 
@@ -282,6 +287,7 @@ let register_stdlib_type loc adt_sig =
   | Some name when name = std_map_map -> map_adt_sig := adt_sig
   | Some name when name = std_never_never -> never_adt_sig := adt_sig
   | Some name when name = std_option_option -> option_adt_sig := adt_sig
+  | Some name when name = std_result_result -> result_adt_sig := adt_sig
   | Some name when name = std_set_set -> set_adt_sig := adt_sig
   | Some name when name = std_string_string -> string_adt_sig := adt_sig
   | Some name when name = std_vec_vec -> vec_adt_sig := adt_sig

@@ -7,6 +7,7 @@ module ExpressionPrecedence = struct
     | (* Binds tightest *) Group
     | Call
     | Access
+    | Unwrap
     | Unary
     | Multiplication
     | Addition
@@ -21,9 +22,10 @@ module ExpressionPrecedence = struct
     | (* Binds weakest *) None
 
   let level = function
-    | Group -> 13
-    | Call -> 12
-    | Access -> 12
+    | Group -> 14
+    | Call -> 13
+    | Access -> 13
+    | Unwrap -> 12
     | Unary -> 11
     | Multiplication -> 10
     | Addition -> 9
@@ -363,6 +365,8 @@ and parse_expression_infix ~precedence env left marker =
     parse_logical_expression env left marker
   | T_LOGICAL_OR when ExpressionPrecedence.(is_tighter LogicalOr precedence) ->
     parse_logical_expression env left marker
+  | T_QUESTION when ExpressionPrecedence.(is_tighter Unwrap precedence) ->
+    parse_unwrap_expression env left marker
   | _ -> left
 
 and parse_less_than_infix_expression ~precedence env left marker =
@@ -533,6 +537,12 @@ and parse_logical_expression env left marker =
     let loc = marker env in
     LogicalOr { LogicalOr.loc; left; right }
   | _ -> failwith "Invalid logical operator"
+
+and parse_unwrap_expression env operand marker =
+  let open Expression in
+  Env.advance env;
+  let loc = marker env in
+  Unwrap { Unwrap.loc; operand }
 
 and parse_interpolated_string env first_string is_single_string =
   let open Expression.InterpolatedString in

@@ -808,6 +808,7 @@ and emit_expression_without_promotion ~ecx expr =
     set_ptr_val
   | Super _ -> failwith "TODO: Emit MIR for super expressions"
   | AnonymousFunction _ -> failwith "TODO: Emit anonymous functions"
+  | Unwrap _ -> failwith "TODO: Emit unwrap expressions"
 
 and emit_string_literal ~ecx loc value =
   let string_global_ptr = Ecx.add_string_literal ~ecx loc value in

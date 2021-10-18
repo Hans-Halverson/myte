@@ -1648,6 +1648,54 @@ and check_expression ~cx expr =
 
     ignore (Type_context.unify ~cx func_ty (TVar tvar_id));
     (loc, tvar_id)
+  (*
+   * ============================
+   *           Unwrap
+   * ============================
+   *)
+  | Unwrap { loc; operand } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    let return_ty () = Type_context.find_rep_type ~cx (Type_context.get_current_function ~cx) in
+    let return_error kind return_ty =
+      Type_context.add_error ~cx loc (InvalidUnwrappedReturnType (kind, return_ty))
+    in
+    let (operand_loc, operand_tvar_id) = check_expression ~cx operand in
+    let ty =
+      match Type_context.find_rep_type ~cx (TVar operand_tvar_id) with
+      (* Unwrap expression can only appear within functions *)
+      | _ when not (Type_context.is_in_function ~cx) ->
+        Type_context.add_error ~cx loc UnwrapOutsideFunction;
+        Type.Any
+      (* Any types are propagated without new errors *)
+      | Any -> Any
+      (* An unwrapped option type can only be used in a function with return type option (with any
+         any element type). *)
+      | ADT { adt_sig; type_args = [element_ty] } when adt_sig == !Std_lib.option_adt_sig ->
+        let return_ty = return_ty () in
+        (match return_ty with
+        | Any -> ()
+        | ADT { adt_sig; _ } when adt_sig == !Std_lib.option_adt_sig -> ()
+        | _ -> return_error InvalidUnwrappedReturnTypeOption return_ty);
+        element_ty
+      (* An unwrapped result type can only be used in a function with return type result with the
+         correct error type argument (but with any ok type argument). *)
+      | ADT { adt_sig; type_args = [ok_ty; err_ty] } when adt_sig == !Std_lib.result_adt_sig ->
+        let return_ty = return_ty () in
+        (match return_ty with
+        | Any -> ()
+        | ADT { adt_sig; type_args = [_; return_err_ty] } when adt_sig == !Std_lib.result_adt_sig ->
+          if not (Type_context.is_subtype ~cx ~trait_object_promotion_loc:None err_ty return_err_ty)
+          then
+            return_error (InvalidUnwrappedReturnTypeResult err_ty) return_ty
+        | _ -> return_error (InvalidUnwrappedReturnTypeResult err_ty) return_ty);
+        ok_ty
+      (* Only option or result types can be unwrapped *)
+      | other_ty ->
+        Type_context.add_error ~cx operand_loc (InvalidTypeUnwrapped other_ty);
+        Any
+    in
+    ignore (Type_context.unify ~cx ty (TVar tvar_id));
+    (loc, tvar_id)
   | Super _ -> failwith "TODO: Type check super expressions"
 
 and check_if ~cx ~is_expr if_ =

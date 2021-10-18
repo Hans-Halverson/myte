@@ -181,6 +181,7 @@ and node_of_expression expr =
   | MapLiteral lit -> node_of_map_literal lit
   | SetLiteral lit -> node_of_set_literal lit
   | AnonymousFunction func -> node_of_anonymous_function func
+  | Unwrap unwrap -> node_of_unwrap unwrap
 
 and node_of_pattern pat =
   let open Pattern in
@@ -387,6 +388,10 @@ and node_of_anonymous_function func =
       ("return", opt node_of_type return);
       ("body", body);
     ]
+
+and node_of_unwrap unwrap =
+  let { Expression.Unwrap.loc; operand } = unwrap in
+  node "Unwrap" loc [("operand", node_of_expression operand)]
 
 and node_of_wildcard_pattern loc = node "Wildcard" loc []
 

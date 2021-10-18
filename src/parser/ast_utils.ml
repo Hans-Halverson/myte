@@ -44,7 +44,8 @@ let expression_loc expr =
   | VecLiteral { loc; _ }
   | MapLiteral { loc; _ }
   | SetLiteral { loc; _ }
-  | AnonymousFunction { loc; _ } ->
+  | AnonymousFunction { loc; _ }
+  | Unwrap { loc; _ } ->
     loc
 
 let pattern_loc patt =

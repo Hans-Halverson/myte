@@ -20,6 +20,8 @@ val pop_current_function : cx:t -> unit
 
 val get_current_function : cx:t -> Type.t
 
+val is_in_function : cx:t -> bool
+
 val get_unresolved_int_literals : cx:t -> LocSet.t
 
 val add_method_use : cx:t -> Loc.t -> unit

@@ -1,0 +1,29 @@
+Error: This unwrap expression can only be used in a function that returns `Option`, but found return type `Int`
+test/analyze/type_check/unwrap/basic.myte:22:2-4
+ 22 |   x?;
+    |   ^^
+
+Error: This unwrap expression can only be used in a function that returns `Result<_, Bool>`, but found return type `Int`
+test/analyze/type_check/unwrap/basic.myte:25:2-4
+ 25 |   x?;
+    |   ^^
+
+Error: This unwrap expression can only be used in a function that returns `Result<_, Long>`, but found return type `Result<Int, Bool>`
+test/analyze/type_check/unwrap/basic.myte:32:2-4
+ 32 |   x?;
+    |   ^^
+
+Error: This unwrap expression can only be used in a function that returns `Option`, but found return type `Result<Int, Bool>`
+test/analyze/type_check/unwrap/basic.myte:39:2-4
+ 39 |   x?;
+    |   ^^
+
+Error: This unwrap expression can only be used in a function that returns `Result<_, Bool>`, but found return type `Option<Bool>`
+test/analyze/type_check/unwrap/basic.myte:46:2-4
+ 46 |   x?;
+    |   ^^
+
+Error: Unwrap expressions can only appear in functions
+test/analyze/type_check/unwrap/basic.myte:52:13-24
+ 52 | val x: Int = (Some (1))?
+    |              ^^^^^^^^^^^
