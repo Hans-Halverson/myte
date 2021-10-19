@@ -530,11 +530,12 @@ and to_mir_type ~ecx ty =
   | IntLiteral { resolved; _ }
   | BoundedExistential { resolved; _ } ->
     to_mir_type ~ecx (Option.get resolved)
-  | Array element_ty -> `PointerT (to_mir_type ~ecx element_ty)
   | Function _ -> `FunctionT
   | Tuple elements ->
     let tuple_agg = instantiate_tuple ~ecx elements in
     `PointerT (`AggregateT tuple_agg)
+  | ADT { adt_sig; type_args = [element_ty] } when adt_sig == !Std_lib.array_adt_sig ->
+    `PointerT (to_mir_type ~ecx element_ty)
   | ADT { adt_sig; type_args } ->
     let mir_adt_layout = get_mir_adt_layout ~ecx adt_sig in
     (match mir_adt_layout.layout with

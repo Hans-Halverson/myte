@@ -62,8 +62,6 @@ let rec build_type ~cx ?(check_type_param_bounds = true) ?(trait_ctx = TraitDisa
     | Some name when name = Std_lib.std_unit_unit -> mk_if_correct_arity 0 (fun _ -> Type.Unit)
     | Some name when name = Std_lib.std_string_string ->
       mk_if_correct_arity 0 Std_lib.mk_string_type
-    | Some name when name = Std_lib.std_memory_array ->
-      mk_if_correct_arity 1 (fun _ -> Type.Array (List.hd type_args))
     | _ ->
       (match binding.declaration with
       (* Type parameters can be used directly and do not take type parameters of their own *)
@@ -1387,8 +1385,9 @@ and check_expression ~cx expr =
       | Tuple elements ->
         check_tuple_indexed_access IMap.empty elements;
         true
-      (* Can index into Vec *)
-      | ADT { adt_sig; type_args = [element_ty] } when adt_sig == !Std_lib.vec_adt_sig ->
+      (* Can index into Vec or Array *)
+      | ADT { adt_sig; type_args = [element_ty] }
+        when adt_sig == !Std_lib.vec_adt_sig || adt_sig == !Std_lib.array_adt_sig ->
         check_arrayish_indexed_access element_ty;
         true
       (* Can index into Map *)
@@ -1405,9 +1404,6 @@ and check_expression ~cx expr =
           check_tuple_indexed_access type_param_bindings element_sigs;
           true
         | _ -> false)
-      | Array element_ty ->
-        check_arrayish_indexed_access element_ty;
-        true
       (* Propagate anys *)
       | Any ->
         ignore (Type_context.unify ~cx Any (TVar tvar_id));

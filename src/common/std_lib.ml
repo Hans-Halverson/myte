@@ -199,6 +199,8 @@ let all_stdlib_names =
 
 (* Stdlib types and traits *)
 
+let array_adt_sig = ref Types.AdtSig.empty
+
 let bool_adt_sig = ref Types.AdtSig.empty
 
 let byte_adt_sig = ref Types.AdtSig.empty
@@ -285,6 +287,7 @@ let register_stdlib_type loc adt_sig =
   | Some name when name = std_int_int -> int_adt_sig := adt_sig
   | Some name when name = std_long_long -> long_adt_sig := adt_sig
   | Some name when name = std_map_map -> map_adt_sig := adt_sig
+  | Some name when name = std_memory_array -> array_adt_sig := adt_sig
   | Some name when name = std_never_never -> never_adt_sig := adt_sig
   | Some name when name = std_option_option -> option_adt_sig := adt_sig
   | Some name when name = std_result_result -> result_adt_sig := adt_sig

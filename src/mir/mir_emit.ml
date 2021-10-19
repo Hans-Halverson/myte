@@ -991,9 +991,10 @@ and emit_expression_access_chain ~ecx expr =
     | IndexedAccess ({ target; _ } as access) ->
       let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
       (match target_ty with
-      | Types.Type.Array _ -> emit_array_indexed_access access
-      | Tuple _ -> emit_tuple_indexed_access access
+      | Types.Type.Tuple _ -> emit_tuple_indexed_access access
       | ADT { adt_sig; _ } when adt_sig == !Std_lib.vec_adt_sig -> emit_vec_indexed_access access
+      | ADT { adt_sig; _ } when adt_sig == !Std_lib.array_adt_sig ->
+        emit_array_indexed_access access
       | ADT { adt_sig = { variants; _ }; _ } when SMap.cardinal variants = 1 ->
         emit_tuple_indexed_access access
       | _ -> failwith "Target must be a tuple to pass type checking")

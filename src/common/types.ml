@@ -327,7 +327,6 @@ and Type : sig
     | Byte
     | Int
     | Long
-    | Array of t
     | Tuple of t list
     | Function of Function.t
     | ADT of AdtSig.instance
@@ -344,7 +343,6 @@ let get_all_tvars_with_duplicates ty =
     match ty with
     | TVar tvar_id -> tvar_id :: acc
     | Tuple elements -> List.fold_left inner acc elements
-    | Array element -> inner acc element
     | Function { type_args = _; params; return } ->
       let acc = List.fold_left inner acc params in
       inner acc return
@@ -391,7 +389,6 @@ let rec has_type_param type_param ty =
   | IntLiteral { resolved = Some resolved; _ }
   | BoundedExistential { resolved = Some resolved; _ } ->
     has_type_param type_param resolved
-  | Array element -> has_type_param type_param element
   | Tuple elements -> list_has_type_param elements
   | Function { params; return; _ } -> list_has_type_param params || has_type_param type_param return
   | ADT { type_args; _ }
@@ -427,7 +424,6 @@ let rec substitute_type_params type_params ty =
   | IntLiteral { resolved = Some resolved; _ }
   | BoundedExistential { resolved = Some resolved; _ } ->
     substitute_type_params type_params resolved
-  | Array element -> Array (substitute_type_params type_params element)
   | Tuple elements -> Tuple (List.map (substitute_type_params type_params) elements)
   | Function { type_args; params; return } ->
     let params' = List.map (substitute_type_params type_params) params in
@@ -512,7 +508,6 @@ let rec pp_with_names ~tvar_to_name ty =
   | Byte -> "Byte"
   | Int -> "Int"
   | Long -> "Long"
-  | Array element -> "Array<" ^ pp_with_names ~tvar_to_name element ^ ">"
   | Tuple elements ->
     let element_names = List.map (pp_with_names ~tvar_to_name) elements in
     concat_and_wrap ("(", ")") element_names

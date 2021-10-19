@@ -252,12 +252,6 @@ let rec find_rep_type ~cx (ty : Type.t) =
   | IntLiteral { resolved = Some ty; _ }
   | BoundedExistential { resolved = Some ty; _ } ->
     find_non_union_rep_type ~cx ty
-  | Array element ->
-    let element' = find_rep_type ~cx element in
-    if element == element' then
-      ty
-    else
-      Array element'
   | Tuple elements ->
     let elements' = id_map_list (find_rep_type ~cx) elements in
     if elements == elements' then
@@ -322,7 +316,6 @@ let rec tvar_occurs_in ~cx tvar ty =
   | IntLiteral _
   | TypeParam _ ->
     false
-  | Array element -> tvar_occurs_in ~cx tvar element
   | Tuple elements -> List.exists (tvar_occurs_in ~cx tvar) elements
   | Function { type_args = _; params; return } ->
     List.exists (tvar_occurs_in ~cx tvar) params || tvar_occurs_in ~cx tvar return
@@ -442,7 +435,6 @@ let rec type_satisfies_trait_bounds ~cx ty trait_bounds =
     type_satisfies_trait_bounds ~cx resolved_ty trait_bounds
   (* Types that do not implement any traits themselves *)
   | Never
-  | Array _
   | Tuple _
   | Function _ ->
     false
@@ -469,8 +461,6 @@ and unify ~cx ty1 ty2 =
   (* Type parameters check that they are identical *)
   | (TypeParam { id = id1; name = _; bounds = _ }, TypeParam { id = id2; name = _; bounds = _ }) ->
     id1 = id2
-  (* Arrays unify their element types *)
-  | (Array element1, Array element2) -> unify ~cx element1 element2
   (* Tuples unify all their elements if they have the same arity *)
   | (Tuple elements1, Tuple elements2) ->
     List.length elements1 = List.length elements2
@@ -544,9 +534,6 @@ and is_subtype ~cx ~trait_object_promotion_loc sub sup =
   (* Type parameters are invariant, so check that they are identical *)
   | (TypeParam { id = id1; name = _; bounds = _ }, TypeParam { id = id2; name = _; bounds = _ }) ->
     id1 = id2
-  (* Array type parameter is invariant *)
-  | (Array element1, Array element2) ->
-    is_subtype ~cx element1 element2 && is_subtype ~cx element2 element1
   (* Tuple element types are covariant *)
   | (Tuple sub_elements, Tuple sup_elements) ->
     List.length sub_elements = List.length sup_elements
