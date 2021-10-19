@@ -1,79 +1,79 @@
-type test.Tup1<bool> {int, bool}
+type test.Tup1<Bool> {int, bool}
 
-type test.Tup1<byte> {int, byte}
+type test.Tup1<Byte> {int, byte}
 
-type test.Tup1<int> {int, int}
+type test.Tup1<Int> {int, int}
 
-type test.Tup1<test.Tup1<byte>*> {int, test.Tup1<byte>*}
+type test.Tup1<test.Tup1<Byte>> {int, test.Tup1<Byte>*}
 
-func bool @test.id<bool>(bool %0) {
+func bool @test.id<Bool>(bool %0) {
   Ret %0
 }
 
-func int @test.id<int>(int %1) {
+func int @test.id<Int>(int %1) {
   Ret %1
 }
 
-func test.Tup1<byte>* @test.id<test.Tup1<byte>*>(test.Tup1<byte>* %2) {
+func unit @test.id<Unit>(unit %2) {
   Ret %2
 }
 
-func unit @test.id<unit>(unit %3) {
+func test.Tup1<Byte>* @test.id<test.Tup1<Byte>>(test.Tup1<Byte>* %3) {
   Ret %3
 }
 
-func test.Tup1<bool>* @test.singleParameter<bool>(bool %4) {
-  %5 := Call bool @test.id<bool>(%4)
-  %6 := CallBuiltin test.Tup1<bool>* myte_alloc(1)
-  %7 := GetPointer int, test.Tup1<bool>* %6.0
+func test.Tup1<Bool>* @test.singleParameter<Bool>(bool %4) {
+  %5 := Call bool @test.id<Bool>(%4)
+  %6 := CallBuiltin test.Tup1<Bool>* myte_alloc(1)
+  %7 := GetPointer int, test.Tup1<Bool>* %6.0
   Store int %7, 1
-  %8 := GetPointer bool, test.Tup1<bool>* %6.1
+  %8 := GetPointer bool, test.Tup1<Bool>* %6.1
   Store bool %8, %5
   Ret %6
 }
 
-func test.Tup1<int>* @test.singleParameter<int>(int %9) {
-  %10 := Call int @test.id<int>(%9)
-  %11 := CallBuiltin test.Tup1<int>* myte_alloc(1)
-  %12 := GetPointer int, test.Tup1<int>* %11.0
+func test.Tup1<Int>* @test.singleParameter<Int>(int %9) {
+  %10 := Call int @test.id<Int>(%9)
+  %11 := CallBuiltin test.Tup1<Int>* myte_alloc(1)
+  %12 := GetPointer int, test.Tup1<Int>* %11.0
   Store int %12, 1
-  %13 := GetPointer int, test.Tup1<int>* %11.1
+  %13 := GetPointer int, test.Tup1<Int>* %11.1
   Store int %13, %10
   Ret %11
 }
 
-func test.Tup1<test.Tup1<byte>*>* @test.singleParameter<test.Tup1<byte>*>(test.Tup1<byte>* %14) {
-  %15 := Call test.Tup1<byte>* @test.id<test.Tup1<byte>*>(%14)
-  %16 := CallBuiltin test.Tup1<test.Tup1<byte>*>* myte_alloc(1)
-  %17 := GetPointer int, test.Tup1<test.Tup1<byte>*>* %16.0
+func test.Tup1<test.Tup1<Byte>>* @test.singleParameter<test.Tup1<Byte>>(test.Tup1<Byte>* %14) {
+  %15 := Call test.Tup1<Byte>* @test.id<test.Tup1<Byte>>(%14)
+  %16 := CallBuiltin test.Tup1<test.Tup1<Byte>>* myte_alloc(1)
+  %17 := GetPointer int, test.Tup1<test.Tup1<Byte>>* %16.0
   Store int %17, 1
-  %18 := GetPointer test.Tup1<byte>*, test.Tup1<test.Tup1<byte>*>* %16.1
-  Store test.Tup1<byte>* %18, %15
+  %18 := GetPointer test.Tup1<Byte>*, test.Tup1<test.Tup1<Byte>>* %16.1
+  Store test.Tup1<Byte>* %18, %15
   Ret %16
 }
 
 func unit @test.testSingleParameter() {
-  %19 := Call test.Tup1<int>* @test.singleParameter<int>(1)
-  %20 := Call test.Tup1<bool>* @test.singleParameter<bool>(true)
-  %21 := CallBuiltin test.Tup1<byte>* myte_alloc(1)
-  %22 := GetPointer int, test.Tup1<byte>* %21.0
+  %19 := Call test.Tup1<Int>* @test.singleParameter<Int>(1)
+  %20 := Call test.Tup1<Bool>* @test.singleParameter<Bool>(true)
+  %21 := CallBuiltin test.Tup1<Byte>* myte_alloc(1)
+  %22 := GetPointer int, test.Tup1<Byte>* %21.0
   Store int %22, 1
-  %23 := GetPointer byte, test.Tup1<byte>* %21.1
+  %23 := GetPointer byte, test.Tup1<Byte>* %21.1
   Store byte %23, 1
-  %24 := Call test.Tup1<test.Tup1<byte>*>* @test.singleParameter<test.Tup1<byte>*>(%21)
+  %24 := Call test.Tup1<test.Tup1<Byte>>* @test.singleParameter<test.Tup1<Byte>>(%21)
   Ret
 }
 
 func fn @test.testInstantiationFromNonCallUse() {
-  Ret @test.id<unit>
+  Ret @test.id<Unit>
 }
 
-func unit @test.use<fn>(fn %25) {
+func unit @test.use<Function>(fn %25) {
   Ret
 }
 
 func int @test.main() {
-  %26 := Call unit @test.use<fn>(@test.testSingleParameter)
-  %27 := Call unit @test.use<fn>(@test.testInstantiationFromNonCallUse)
+  %26 := Call unit @test.use<Function>(@test.testSingleParameter)
+  %27 := Call unit @test.use<Function>(@test.testInstantiationFromNonCallUse)
   Ret 0
 }

@@ -15,15 +15,15 @@ _vtable$std.unit.Unit$std.string.ToString:
   .text
 _main:
   leaq test.testUnitPromotion(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testBoolPromotion(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testBytePromotion(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testIntPromotion(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testLongPromotion(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   movl $0, %eax
   ret
 test.testBoolPromotion:
@@ -91,7 +91,7 @@ test.testUnitPromotion:
   call test.useToString
   pop %rbx
   ret
-test.use$fn$:
+test.use$Function$:
   ret
 test.useToString:
   movq (%rdi), %rax

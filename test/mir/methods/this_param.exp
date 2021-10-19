@@ -23,33 +23,33 @@ func unit @test.testRecordType(test.RecordType* %10) {
   Ret
 }
 
-func bool @test.Trait.getBar<test.InheritsType*>(test.InheritsType* %12) {
+func bool @test.Trait.getBar<test.InheritsType>(test.InheritsType* %12) {
   Ret true
 }
 
-func test.InheritsType* @test.Trait.setBar<test.InheritsType*>(test.InheritsType* %13, bool %14) {
+func test.InheritsType* @test.Trait.setBar<test.InheritsType>(test.InheritsType* %13, bool %14) {
   Ret %13
 }
 
-func bool @test.Trait.setThenGet<test.InheritsType*>(test.InheritsType* %15, bool %16) {
-  %17 := Call test.InheritsType* @test.Trait.setBar<test.InheritsType*>(%15, %16)
-  %18 := Call bool @test.Trait.getBar<test.InheritsType*>(%15)
+func bool @test.Trait.setThenGet<test.InheritsType>(test.InheritsType* %15, bool %16) {
+  %17 := Call test.InheritsType* @test.Trait.setBar<test.InheritsType>(%15, %16)
+  %18 := Call bool @test.Trait.getBar<test.InheritsType>(%15)
   Ret %18
 }
 
 type test.InheritsType {int}
 
 func unit @test.testInheritsType(test.InheritsType* %19) {
-  %20 := Call bool @test.Trait.setThenGet<test.InheritsType*>(%19, true)
+  %20 := Call bool @test.Trait.setThenGet<test.InheritsType>(%19, true)
   Ret
 }
 
-func unit @test.use<fn>(fn %21) {
+func unit @test.use<Function>(fn %21) {
   Ret
 }
 
 func int @test.main() {
-  %22 := Call unit @test.use<fn>(@test.testRecordType)
-  %23 := Call unit @test.use<fn>(@test.testInheritsType)
+  %22 := Call unit @test.use<Function>(@test.testRecordType)
+  %23 := Call unit @test.use<Function>(@test.testInheritsType)
   Ret 0
 }

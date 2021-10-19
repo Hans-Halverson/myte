@@ -1,39 +1,39 @@
 func unit @test.emptySet() {
-  %0 := Call std.set.Set<int>* @std.set.Set.new<int>()
-  %1 := Call std.set.Set<bool>* @std.set.Set.new<bool>()
+  %0 := Call std.set.Set<Int>* @std.set.Set.new<Int>()
+  %1 := Call std.set.Set<Bool>* @std.set.Set.new<Bool>()
   Ret
 }
 
 func unit @test.oneEntrySet() {
-  %2 := Call std.set.Set<int>* @std.set.Set.new<int>()
-  %3 := Call unit @std.set.Set.add<int>(%2, 1)
-  %4 := Call std.set.Set<byte>* @std.set.Set.new<byte>()
-  %5 := Call unit @std.set.Set.add<byte>(%4, 2)
+  %2 := Call std.set.Set<Int>* @std.set.Set.new<Int>()
+  %3 := Call unit @std.set.Set.add<Int>(%2, 1)
+  %4 := Call std.set.Set<Byte>* @std.set.Set.new<Byte>()
+  %5 := Call unit @std.set.Set.add<Byte>(%4, 2)
   Ret
 }
 
 func unit @test.multiEntrySet() {
-  %6 := Call std.set.Set<int>* @std.set.Set.new<int>()
-  %7 := Call unit @std.set.Set.reserve<int>(%6, 3)
-  %8 := Call unit @std.set.Set.add<int>(%6, 5)
-  %9 := Call unit @std.set.Set.add<int>(%6, 6)
-  %10 := Call unit @std.set.Set.add<int>(%6, 7)
-  %11 := Call std.set.Set<bool>* @std.set.Set.new<bool>()
-  %12 := Call unit @std.set.Set.reserve<bool>(%11, 4)
-  %13 := Call unit @std.set.Set.add<bool>(%11, false)
-  %14 := Call unit @std.set.Set.add<bool>(%11, true)
-  %15 := Call unit @std.set.Set.add<bool>(%11, false)
-  %16 := Call unit @std.set.Set.add<bool>(%11, true)
+  %6 := Call std.set.Set<Int>* @std.set.Set.new<Int>()
+  %7 := Call unit @std.set.Set.reserve<Int>(%6, 3)
+  %8 := Call unit @std.set.Set.add<Int>(%6, 5)
+  %9 := Call unit @std.set.Set.add<Int>(%6, 6)
+  %10 := Call unit @std.set.Set.add<Int>(%6, 7)
+  %11 := Call std.set.Set<Bool>* @std.set.Set.new<Bool>()
+  %12 := Call unit @std.set.Set.reserve<Bool>(%11, 4)
+  %13 := Call unit @std.set.Set.add<Bool>(%11, false)
+  %14 := Call unit @std.set.Set.add<Bool>(%11, true)
+  %15 := Call unit @std.set.Set.add<Bool>(%11, false)
+  %16 := Call unit @std.set.Set.add<Bool>(%11, true)
   Ret
 }
 
-func unit @test.use<fn>(fn %17) {
+func unit @test.use<Function>(fn %17) {
   Ret
 }
 
 func int @test.main() {
-  %18 := Call unit @test.use<fn>(@test.emptySet)
-  %19 := Call unit @test.use<fn>(@test.oneEntrySet)
-  %20 := Call unit @test.use<fn>(@test.multiEntrySet)
+  %18 := Call unit @test.use<Function>(@test.emptySet)
+  %19 := Call unit @test.use<Function>(@test.oneEntrySet)
+  %20 := Call unit @test.use<Function>(@test.multiEntrySet)
   Ret 0
 }

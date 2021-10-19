@@ -1,7 +1,7 @@
 open Basic_collections
 open Mir_adt_layout
 open Mir_emit_utils
-open Mir_type
+open Mir_type_args_hashtbl
 module Ecx = Mir_emit_context
 
 let get_type_node_properties ~(ecx : Ecx.t) decl_node =

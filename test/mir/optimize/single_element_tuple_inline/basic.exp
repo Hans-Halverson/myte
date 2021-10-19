@@ -1,4 +1,4 @@
-type $tuple<int,byte> {int, byte}
+type $tuple<test.Tuple1,Byte> {int, byte}
 
 func int @test.testConstructor1(int %0) {
   Ret %0
@@ -13,12 +13,12 @@ func int @test.testIndexing(int %1, int %2) {
   Ret %3
 }
 
-type test.Record {byte, $tuple<int,byte>*}
+type test.Record {byte, $tuple<test.Tuple1,Byte>*}
 
 func int @test.testNestedIndexing(test.Record* %4) {
-  %5 := GetPointer $tuple<int,byte>*, test.Record* %4.1
-  %6 := Load $tuple<int,byte>* %5
-  %7 := GetPointer int, $tuple<int,byte>* %6.0
+  %5 := GetPointer $tuple<test.Tuple1,Byte>*, test.Record* %4.1
+  %6 := Load $tuple<test.Tuple1,Byte>* %5
+  %7 := GetPointer int, $tuple<test.Tuple1,Byte>* %6.0
   %8 := Load int %7
   %9 := Add int %8, 4
   Ret %9
@@ -30,15 +30,15 @@ func int @test.testGenerics(int %10, byte %11) {
   Ret %13
 }
 
-func fn @test.use<fn>(fn %14) {
+func fn @test.use<Function>(fn %14) {
   Ret %14
 }
 
 func int @test.main() {
-  %15 := Call fn @test.use<fn>(@test.testConstructor1)
-  %16 := Call fn @test.use<fn>(@test.testConstructor2)
-  %17 := Call fn @test.use<fn>(@test.testIndexing)
-  %18 := Call fn @test.use<fn>(@test.testNestedIndexing)
-  %19 := Call fn @test.use<fn>(@test.testGenerics)
+  %15 := Call fn @test.use<Function>(@test.testConstructor1)
+  %16 := Call fn @test.use<Function>(@test.testConstructor2)
+  %17 := Call fn @test.use<Function>(@test.testIndexing)
+  %18 := Call fn @test.use<Function>(@test.testNestedIndexing)
+  %19 := Call fn @test.use<Function>(@test.testGenerics)
   Ret 0
 }

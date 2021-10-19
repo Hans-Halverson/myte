@@ -42,13 +42,13 @@ func unit @test.testOrder() {
   Ret
 }
 
-func unit @test.use<fn>(fn %20) {
+func unit @test.use<Function>(fn %20) {
   Ret
 }
 
 func int @test.main() {
-  %21 := Call unit @test.use<fn>(@test.testGlobal)
-  %22 := Call unit @test.use<fn>(@test.testOperators)
-  %23 := Call unit @test.use<fn>(@test.testOrder)
+  %21 := Call unit @test.use<Function>(@test.testGlobal)
+  %22 := Call unit @test.use<Function>(@test.testOperators)
+  %23 := Call unit @test.use<Function>(@test.testOrder)
   Ret 0
 }

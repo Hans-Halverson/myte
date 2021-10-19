@@ -6,11 +6,11 @@ test.bool:
   ret
 _main:
   leaq test.testSimpleIf(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testIfWithExpressions(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testNestedIfStatementInExpressionPosition(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   movl $0, %eax
   ret
 test.testIfWithExpressions:
@@ -66,6 +66,6 @@ test.testSimpleIf:
   movl $2, %eax
 .L9:
   ret
-test.use$fn$:
+test.use$Function$:
   movq %rdi, %rax
   ret

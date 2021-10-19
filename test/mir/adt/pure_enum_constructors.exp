@@ -1,16 +1,16 @@
-type $tuple<byte,byte> {byte, byte}
+type $tuple<test.ByteEnum,test.ByteEnum> {byte, byte}
 
 func unit @test.useByteEnum(byte %0) {
   Ret
 }
 
-func $tuple<byte,byte>* @test.testPureEnum1Values() {
+func $tuple<test.ByteEnum,test.ByteEnum>* @test.testPureEnum1Values() {
   %1 := Call unit @test.useByteEnum(0)
   %2 := Call unit @test.useByteEnum(1)
-  %3 := CallBuiltin $tuple<byte,byte>* myte_alloc(1)
-  %4 := GetPointer byte, $tuple<byte,byte>* %3.0
+  %3 := CallBuiltin $tuple<test.ByteEnum,test.ByteEnum>* myte_alloc(1)
+  %4 := GetPointer byte, $tuple<test.ByteEnum,test.ByteEnum>* %3.0
   Store byte %4, 3
-  %5 := GetPointer byte, $tuple<byte,byte>* %3.1
+  %5 := GetPointer byte, $tuple<test.ByteEnum,test.ByteEnum>* %3.1
   Store byte %5, 2
   Ret %3
 }
@@ -42,13 +42,13 @@ func unit @test.testIntEnum() {
   Ret
 }
 
-func unit @test.use<fn>(fn %19) {
+func unit @test.use<Function>(fn %19) {
   Ret
 }
 
 func int @test.main() {
-  %20 := Call unit @test.use<fn>(@test.testPureEnum1Values)
-  %21 := Call unit @test.use<fn>(@test.testFullByteEnum)
-  %22 := Call unit @test.use<fn>(@test.testIntEnum)
+  %20 := Call unit @test.use<Function>(@test.testPureEnum1Values)
+  %21 := Call unit @test.use<Function>(@test.testFullByteEnum)
+  %22 := Call unit @test.use<Function>(@test.testIntEnum)
   Ret 0
 }

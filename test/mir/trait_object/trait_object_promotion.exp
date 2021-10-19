@@ -103,19 +103,19 @@ func _object$test.Trait* @test.testNoPromotionOnTraitObject(_object$test.Trait* 
   Ret %42
 }
 
-func unit @test.use<fn>(fn %43) {
+func unit @test.use<Function>(fn %43) {
   Ret
 }
 
 func int @test.main() {
-  %44 := Call unit @test.use<fn>(@test.testCallArgumentPromotion)
-  %45 := Call unit @test.use<fn>(@test.testTupleTypeArgumentPromotion)
-  %46 := Call unit @test.use<fn>(@test.testRecordTypeArgumentPromotion)
-  %47 := Call unit @test.use<fn>(@test.testTypeCastPromotion)
-  %48 := Call unit @test.use<fn>(@test.testReturnArgumentPromotion)
-  %49 := Call unit @test.use<fn>(@test.testReturnExpressionPromotion)
-  %50 := Call unit @test.use<fn>(@test.testVariableDeclarationPromotion)
-  %51 := Call unit @test.use<fn>(@test.testVariableAssignmentPromotion)
-  %52 := Call unit @test.use<fn>(@test.testNoPromotionOnTraitObject)
+  %44 := Call unit @test.use<Function>(@test.testCallArgumentPromotion)
+  %45 := Call unit @test.use<Function>(@test.testTupleTypeArgumentPromotion)
+  %46 := Call unit @test.use<Function>(@test.testRecordTypeArgumentPromotion)
+  %47 := Call unit @test.use<Function>(@test.testTypeCastPromotion)
+  %48 := Call unit @test.use<Function>(@test.testReturnArgumentPromotion)
+  %49 := Call unit @test.use<Function>(@test.testReturnExpressionPromotion)
+  %50 := Call unit @test.use<Function>(@test.testVariableDeclarationPromotion)
+  %51 := Call unit @test.use<Function>(@test.testVariableAssignmentPromotion)
+  %52 := Call unit @test.use<Function>(@test.testNoPromotionOnTraitObject)
   Ret 0
 }

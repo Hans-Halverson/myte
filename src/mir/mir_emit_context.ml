@@ -4,6 +4,7 @@ open Mir_adt_layout
 open Mir_emit_utils
 open Mir_trait_object_layout
 open Mir_type
+open Mir_type_args_hashtbl
 
 module BlockBuilder = struct
   type t = {
@@ -304,13 +305,12 @@ and instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args =
     aggregate
   (* Check if generic layout has already been instantiated with these type args, create if not *)
   | Generic instantiations ->
-    let mir_type_args = List.map (to_mir_type ~ecx) type_args in
-    (match TypeArgsHashtbl.find_opt instantiations mir_type_args with
+    (match TypeArgsHashtbl.find_opt instantiations type_args with
     | Some aggregate -> aggregate
     | None ->
-      let parameterized_name = mir_adt_layout.name ^ TypeArgs.to_string mir_type_args in
+      let parameterized_name = mir_adt_layout.name ^ TypeArgs.to_string ~pcx:ecx.pcx type_args in
       let aggregate = mk_placeholder_aggregate ~ecx parameterized_name mir_adt_layout.loc in
-      TypeArgsHashtbl.add instantiations mir_type_args aggregate;
+      TypeArgsHashtbl.add instantiations type_args aggregate;
       let type_param_bindings = Types.bind_type_params_to_args adt_sig.type_params type_args in
       aggregate.elements <- instantiate_mir_adt_template_elements ~ecx template type_param_bindings;
       aggregate)
@@ -370,14 +370,13 @@ and instantiate_mir_adt_variants_layout ~ecx mir_adt_layout type_args =
     instantiate_union_and_variants instance mir_adt_layout.name IMap.empty
   (* Check if generic layout has already been instantiated with these type args, create if not *)
   | Generic instantiations ->
-    let mir_type_args = List.map (to_mir_type ~ecx) type_args in
-    (match TypeArgsHashtbl.find_opt instantiations mir_type_args with
+    (match TypeArgsHashtbl.find_opt instantiations type_args with
     | Some instance -> instance
     | None ->
-      let parameterized_name = mir_adt_layout.name ^ TypeArgs.to_string mir_type_args in
+      let parameterized_name = mir_adt_layout.name ^ TypeArgs.to_string ~pcx:ecx.pcx type_args in
       let union_aggregate = mk_placeholder_aggregate ~ecx parameterized_name mir_adt_layout.loc in
       let instance = { union = union_aggregate; size = 0; variants = SMap.empty } in
-      TypeArgsHashtbl.add instantiations mir_type_args instance;
+      TypeArgsHashtbl.add instantiations type_args instance;
       let type_param_bindings = Types.bind_type_params_to_args adt_sig.type_params type_args in
       instantiate_union_and_variants instance parameterized_name type_param_bindings)
 
@@ -395,17 +394,17 @@ and instantiate_mir_adt_inline_value_layout ~ecx mir_adt_layout type_args =
    has already been instantiated, return its aggregate type. Otherwise create new aggregate type for
    this tuple, save, and return it. *)
 and instantiate_tuple ~ecx element_types =
-  let mir_type_args = List.map (to_mir_type ~ecx) element_types in
-  match TypeArgsHashtbl.find_opt ecx.tuple_instantiations mir_type_args with
+  match TypeArgsHashtbl.find_opt ecx.tuple_instantiations element_types with
   | Some agg -> agg
   | None ->
-    let type_args_string = TypeArgs.to_string mir_type_args in
+    let type_args_string = TypeArgs.to_string ~pcx:ecx.pcx element_types in
     let name = "$tuple" ^ type_args_string in
+    let mir_type_args = List.map (to_mir_type ~ecx) element_types in
     let agg_elements =
       List.mapi (fun i mir_ty -> (TupleKeyCache.get_key i, mir_ty)) mir_type_args
     in
     let agg = mk_aggregate ~ecx name Loc.none agg_elements in
-    TypeArgsHashtbl.add ecx.tuple_instantiations mir_type_args agg;
+    TypeArgsHashtbl.add ecx.tuple_instantiations element_types agg;
     agg
 
 and get_trait_object_layout ~ecx (trait_sig : Types.TraitSig.t) =
@@ -437,8 +436,8 @@ and get_trait_object_layout ~ecx (trait_sig : Types.TraitSig.t) =
 and instantiate_trait_object_vtable ~ecx trait_instance ty =
   let { Types.TraitSig.trait_sig; type_args } = trait_instance in
   let mir_type = to_mir_type ~ecx ty in
-  let trait_mir_type_args =
-    List.map (fun type_arg -> to_mir_type ~ecx (find_rep_non_generic_type ~ecx type_arg)) type_args
+  let trait_type_args =
+    List.map (fun type_arg -> find_rep_non_generic_type ~ecx type_arg) type_args
   in
 
   (* Get all vtables for this trait instance, creating new trait object layout if it does not yet exist *)
@@ -447,11 +446,11 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
     match trait_object_layout.instantiations with
     | Concrete trait_instance -> trait_instance
     | Generic instantiations ->
-      MirTraitObjectLayout.add_instantiation instantiations trait_mir_type_args
+      MirTraitObjectLayout.add_instantiation instantiations trait_type_args
   in
 
   (* Return vtable for this type if it has already been instantiated, otherwise instantiate it *)
-  let type_key = [mir_type] in
+  let type_key = [ty] in
   match TypeArgsHashtbl.find_opt trait_instance type_key with
   | Some trait_object_instance -> trait_object_instance
   | None ->
@@ -485,13 +484,14 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
 
     (* Find fully parameterized type name *)
     let adt_binding = Type_context.get_type_binding ~cx:ecx.pcx.type_ctx adt_sig.loc in
-    let adt_mir_type_args = List.map (to_mir_type ~ecx) adt_type_args in
-    let full_adt_name = mk_type_binding_name adt_binding ^ TypeArgs.to_string adt_mir_type_args in
+    let full_adt_name =
+      mk_type_binding_name adt_binding ^ TypeArgs.to_string ~pcx:ecx.pcx adt_type_args
+    in
 
     (* Find fully parameterized trait name *)
     let trait_binding = Type_context.get_type_binding ~cx:ecx.pcx.type_ctx trait_sig.loc in
     let full_trait_name =
-      mk_type_binding_name trait_binding ^ TypeArgs.to_string trait_mir_type_args
+      mk_type_binding_name trait_binding ^ TypeArgs.to_string ~pcx:ecx.pcx trait_type_args
     in
 
     (* Create global for vtable and save pointer to it *)
@@ -601,16 +601,15 @@ and find_rep_non_generic_type ~ecx ty =
 
 and get_generic_function_value ~ecx name key_type_params key_type_args : Value.function_value =
   let key_type_args = List.map (find_rep_non_generic_type ~ecx) key_type_args in
-  let arg_mir_tys = List.map (fun key_arg_ty -> to_mir_type ~ecx key_arg_ty) key_type_args in
   let name_with_args =
-    let type_args_string = TypeArgs.to_string arg_mir_tys in
+    let type_args_string = TypeArgs.to_string ~pcx:ecx.pcx key_type_args in
     Printf.sprintf "%s%s" name type_args_string
   in
   let already_instantiated =
     match SMap.find_opt name ecx.func_instantiations with
     | None -> false
     | Some instantiated_type_args ->
-      (match TypeArgsHashtbl.find_opt instantiated_type_args arg_mir_tys with
+      (match TypeArgsHashtbl.find_opt instantiated_type_args key_type_args with
       | None -> false
       | Some _ -> true)
   in
@@ -622,7 +621,7 @@ and get_generic_function_value ~ecx name key_type_params key_type_args : Value.f
       | None -> TypeArgsHashtbl.create 2
       | Some pending_instantiation_type_args -> pending_instantiation_type_args
     in
-    match TypeArgsHashtbl.find_opt pending_type_args arg_mir_tys with
+    match TypeArgsHashtbl.find_opt pending_type_args key_type_args with
     | Some _ -> ()
     | None ->
       let instantiated_type_param_bindings =
@@ -633,7 +632,7 @@ and get_generic_function_value ~ecx name key_type_params key_type_args : Value.f
           key_type_params
           key_type_args
       in
-      TypeArgsHashtbl.add pending_type_args arg_mir_tys instantiated_type_param_bindings;
+      TypeArgsHashtbl.add pending_type_args key_type_args instantiated_type_param_bindings;
       ecx.pending_func_instantiations <-
         SMap.add name pending_type_args ecx.pending_func_instantiations );
   `FunctionL name_with_args
@@ -702,7 +701,7 @@ let pop_pending_func_instantiation ~ecx =
     else
       TypeArgsHashtbl.remove pending_type_args type_args;
     let name_with_args =
-      let type_args_string = TypeArgs.to_string type_args in
+      let type_args_string = TypeArgs.to_string ~pcx:ecx.pcx type_args in
       Printf.sprintf "%s%s" name type_args_string
     in
     Some (name, name_with_args, type_param_bindings)

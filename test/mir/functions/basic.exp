@@ -1,12 +1,12 @@
-func unit @test.use<bool>(bool %0) {
+func unit @test.use<Bool>(bool %0) {
   Ret
 }
 
-func unit @test.use<fn>(fn %1) {
+func unit @test.use<Function>(fn %1) {
   Ret
 }
 
-func unit @test.use<int>(int %2) {
+func unit @test.use<Int>(int %2) {
   Ret
 }
 
@@ -23,7 +23,7 @@ func int @test.shorthand(int %5) {
 }
 
 func unit @test.withBody(int %6, bool %7, bool %8) {
-  %9 := Call unit @test.use<int>(10)
+  %9 := Call unit @test.use<Int>(10)
   branch %7, @1, @0
 label @0:
   continue @1
@@ -33,10 +33,10 @@ label @1:
 }
 
 func int @test.main() {
-  %11 := Call unit @test.use<bool>(true)
-  %12 := Call unit @test.use<fn>(@test.empty)
-  %13 := Call unit @test.use<fn>(@test.emptyParams)
-  %14 := Call unit @test.use<fn>(@test.shorthand)
-  %15 := Call unit @test.use<fn>(@test.withBody)
+  %11 := Call unit @test.use<Bool>(true)
+  %12 := Call unit @test.use<Function>(@test.empty)
+  %13 := Call unit @test.use<Function>(@test.emptyParams)
+  %14 := Call unit @test.use<Function>(@test.shorthand)
+  %15 := Call unit @test.use<Function>(@test.withBody)
   Ret 0
 }

@@ -1,7 +1,7 @@
   .global _main
 
   .text
-test.buildOption$bool$:
+test.buildOption$Bool$:
   push %rbx
   movl %edi, %ebx
   movl $1, %edi
@@ -9,7 +9,7 @@ test.buildOption$bool$:
   movb %bl, (%rax)
   pop %rbx
   ret
-test.buildOption$int$:
+test.buildOption$Int$:
   push %rbx
   movl %edi, %ebx
   movl $4, %edi
@@ -17,7 +17,7 @@ test.buildOption$int$:
   movl %ebx, (%rax)
   pop %rbx
   ret
-test.buildOption$long$:
+test.buildOption$Long$:
   push %rbx
   movq %rdi, %rbx
   movl $8, %edi
@@ -25,7 +25,7 @@ test.buildOption$long$:
   movq %rbx, (%rax)
   pop %rbx
   ret
-test.buildPair$bool$bool$:
+test.buildPair$Bool$Bool$:
   push %rbx
   push %r12
   movl %edi, %r12d
@@ -37,7 +37,7 @@ test.buildPair$bool$bool$:
   pop %r12
   pop %rbx
   ret
-test.buildPair$bool$int$:
+test.buildPair$Bool$Int$:
   push %rbx
   push %r12
   movl %edi, %r12d
@@ -49,7 +49,7 @@ test.buildPair$bool$int$:
   pop %r12
   pop %rbx
   ret
-test.buildPair$int$int$:
+test.buildPair$Int$Int$:
   push %rbx
   push %r12
   movl %edi, %r12d
@@ -63,30 +63,30 @@ test.buildPair$int$int$:
   ret
 _main:
   leaq test.testSingleTypeArg(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testTwoTypeArgs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   movl $0, %eax
   ret
 test.testSingleTypeArg:
   movb $1, %dil
-  call test.buildOption$bool$
+  call test.buildOption$Bool$
   movl $5, %edi
-  call test.buildOption$int$
+  call test.buildOption$Int$
   movq $6, %rdi
-  call test.buildOption$long$
+  call test.buildOption$Long$
   ret
 test.testTwoTypeArgs:
   movl $1, %edi
   movl $1, %esi
-  call test.buildPair$int$int$
+  call test.buildPair$Int$Int$
   movb $1, %dil
   movl $1, %esi
-  call test.buildPair$bool$int$
+  call test.buildPair$Bool$Int$
   movb $1, %dil
   movb $1, %sil
-  call test.buildPair$bool$bool$
+  call test.buildPair$Bool$Bool$
   ret
-test.use$fn$:
+test.use$Function$:
   movq %rdi, %rax
   ret

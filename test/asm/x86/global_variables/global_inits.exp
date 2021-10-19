@@ -39,44 +39,44 @@ test.getLong:
   ret
 _main:
   movb $125, %dil
-  call test.use$byte$
+  call test.use$Byte$
   movl $125, %edi
-  call test.use$int$
+  call test.use$Int$
   movl $125, %edi
-  call test.use$int$
+  call test.use$Int$
   leaq test.getByte(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   movb test.constantB(%rip), %dil
-  call test.use$byte$
+  call test.use$Byte$
   movl test.constantI(%rip), %edi
-  call test.use$int$
+  call test.use$Int$
   movq test.constantL(%rip), %rdi
-  call test.use$long$
+  call test.use$Long$
   movq test.constantF(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   movb test.b(%rip), %dil
-  call test.use$byte$
+  call test.use$Byte$
   movl test.i(%rip), %edi
-  call test.use$int$
+  call test.use$Int$
   movq test.l(%rip), %rdi
-  call test.use$long$
+  call test.use$Long$
   movq test.f(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.getByte(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.getInt(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.getLong(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.getFunction(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   movl $0, %eax
   ret
-test.use$byte$:
+test.use$Byte$:
   ret
-test.use$fn$:
+test.use$Function$:
   ret
-test.use$int$:
+test.use$Int$:
   ret
-test.use$long$:
+test.use$Long$:
   ret

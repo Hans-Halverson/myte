@@ -6,29 +6,29 @@ test.getInt:
   ret
 _main:
   leaq test.testAssign(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testAddOperatorAssign(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testSubtractOperatorAssign(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testMultiplyOperatorAssign(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testDivideOperatorAssign(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testRemainderOperatorAssign(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testAndOperatorAssign(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testOrOperatorAssign(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testXorOperatorAssign(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testLeftShiftOperatorAssign(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testArithmeticRightShiftOperatorAssign(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testLogicalRightShiftOperatorAssign(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   movl $0, %eax
   ret
 test.testAddOperatorAssign:
@@ -105,7 +105,7 @@ test.testXorOperatorAssign:
   movl %eax, %edi
   call test.useInt
   ret
-test.use$fn$:
+test.use$Function$:
   ret
 test.useInt:
   ret

@@ -1,76 +1,76 @@
-type $tuple<bool,unit> {bool, unit}
+type $tuple<Bool,Unit> {bool, unit}
 
-type $tuple<byte,long> {byte, long}
+type $tuple<Byte,Long> {byte, long}
 
-type $tuple<int,byte,$tuple<bool,unit>*> {int, byte, $tuple<bool,unit>*}
+type $tuple<Int,Byte,(Bool,Unit)> {int, byte, $tuple<Bool,Unit>*}
 
-type $tuple<int,int> {int, int}
+type $tuple<Int,Int> {int, int}
 
-type $tuple<long,long> {long, long}
+type $tuple<Long,Long> {long, long}
 
-type $tuple<unit,byte> {unit, byte}
+type $tuple<Unit,Byte> {unit, byte}
 
-type test.Tup1<$tuple<unit,byte>*> {int, $tuple<unit,byte>*}
+type test.Tup1<(Unit,Byte)> {int, $tuple<Unit,Byte>*}
 
-type test.Tup1<bool> {int, bool}
+type test.Tup1<Bool> {int, bool}
 
-type test.Tup1<byte> {int, byte}
+type test.Tup1<Byte> {int, byte}
 
-type test.Tup1<int> {int, int}
+type test.Tup1<Int> {int, int}
 
-type test.Tup1<test.Rec1<int,long>*> {int, test.Rec1<int,long>*}
+type test.Tup1<test.Rec1<Int,Long>> {int, test.Rec1<Int,Long>*}
 
-func unit @test.useTup1(test.Tup1<int>* %0, test.Tup1<bool>* %1) {
+func unit @test.useTup1(test.Tup1<Int>* %0, test.Tup1<Bool>* %1) {
   Ret
 }
 
-func unit @test.duplicateInstances(test.Tup1<int>* %2, test.Tup1<int>* %3) {
+func unit @test.duplicateInstances(test.Tup1<Int>* %2, test.Tup1<Int>* %3) {
   Ret
 }
 
-type test.Rec1<int,bool> {int, unit, bool}
+type test.Rec1<Int,Bool> {int, unit, bool}
 
-type test.Rec1<int,long> {int, unit, long}
+type test.Rec1<Int,Long> {int, unit, long}
 
-type test.Rec1<long,long> {long, unit, long}
+type test.Rec1<Long,Long> {long, unit, long}
 
-type test.Rec1<test.Tup1<byte>*,long> {test.Tup1<byte>*, unit, long}
+type test.Rec1<test.Tup1<Byte>,Long> {test.Tup1<Byte>*, unit, long}
 
-func unit @test.useRec1(test.Rec1<int,bool>* %4, test.Rec1<long,long>* %5) {
+func unit @test.useRec1(test.Rec1<Int,Bool>* %4, test.Rec1<Long,Long>* %5) {
   Ret
 }
 
-func unit @test.adtTypeArgs(test.Tup1<test.Rec1<int,long>*>* %6, test.Rec1<test.Tup1<byte>*,long>* %7) {
+func unit @test.adtTypeArgs(test.Tup1<test.Rec1<Int,Long>>* %6, test.Rec1<test.Tup1<Byte>,Long>* %7) {
   Ret
 }
 
-func unit @test.tupleTypeArgs(test.Tup1<$tuple<unit,byte>*>* %8) {
+func unit @test.tupleTypeArgs(test.Tup1<(Unit,Byte)>* %8) {
   Ret
 }
 
-func unit @test.useAnonTup($tuple<int,int>* %9, $tuple<byte,long>* %10, $tuple<int,byte,$tuple<bool,unit>*>* %11) {
+func unit @test.useAnonTup($tuple<Int,Int>* %9, $tuple<Byte,Long>* %10, $tuple<Int,Byte,(Bool,Unit)>* %11) {
   Ret
 }
 
-type test.TestVec<int> {$tuple<int,int>*, int, int}
+type test.TestVec<Int> {$tuple<Int,Int>*, int, int}
 
-type test.TestVec<long> {$tuple<long,long>*, int, int}
+type test.TestVec<Long> {$tuple<Long,Long>*, int, int}
 
-func unit @test.useTestVec(test.TestVec<int>* %12, test.TestVec<long>* %13) {
+func unit @test.useTestVec(test.TestVec<Int>* %12, test.TestVec<Long>* %13) {
   Ret
 }
 
-func unit @test.use<fn>(fn %14) {
+func unit @test.use<Function>(fn %14) {
   Ret
 }
 
 func int @test.main() {
-  %15 := Call unit @test.use<fn>(@test.useTup1)
-  %16 := Call unit @test.use<fn>(@test.duplicateInstances)
-  %17 := Call unit @test.use<fn>(@test.useRec1)
-  %18 := Call unit @test.use<fn>(@test.adtTypeArgs)
-  %19 := Call unit @test.use<fn>(@test.tupleTypeArgs)
-  %20 := Call unit @test.use<fn>(@test.useAnonTup)
-  %21 := Call unit @test.use<fn>(@test.useTestVec)
+  %15 := Call unit @test.use<Function>(@test.useTup1)
+  %16 := Call unit @test.use<Function>(@test.duplicateInstances)
+  %17 := Call unit @test.use<Function>(@test.useRec1)
+  %18 := Call unit @test.use<Function>(@test.adtTypeArgs)
+  %19 := Call unit @test.use<Function>(@test.tupleTypeArgs)
+  %20 := Call unit @test.use<Function>(@test.useAnonTup)
+  %21 := Call unit @test.use<Function>(@test.useTestVec)
   Ret 0
 }

@@ -111,15 +111,15 @@ func unit @test.testLongPromotion(long %44) {
   Ret
 }
 
-func unit @test.use<fn>(fn %53) {
+func unit @test.use<Function>(fn %53) {
   Ret
 }
 
 func int @test.main() {
-  %54 := Call unit @test.use<fn>(@test.testUnitPromotion)
-  %55 := Call unit @test.use<fn>(@test.testBoolPromotion)
-  %56 := Call unit @test.use<fn>(@test.testBytePromotion)
-  %57 := Call unit @test.use<fn>(@test.testIntPromotion)
-  %58 := Call unit @test.use<fn>(@test.testLongPromotion)
+  %54 := Call unit @test.use<Function>(@test.testUnitPromotion)
+  %55 := Call unit @test.use<Function>(@test.testBoolPromotion)
+  %56 := Call unit @test.use<Function>(@test.testBytePromotion)
+  %57 := Call unit @test.use<Function>(@test.testIntPromotion)
+  %58 := Call unit @test.use<Function>(@test.testLongPromotion)
   Ret 0
 }

@@ -6,23 +6,23 @@ func unit @test.useOpt1(test.Opt1* %0) {
   Ret
 }
 
-type test.Opt2<bool> {byte, byte[1]}
+type test.Opt2<Bool> {byte, byte[1]}
 
-type test.Opt2<int> {byte, byte[7]}
+type test.Opt2<Int> {byte, byte[7]}
 
-type test.Opt2<std.string.String*> {byte, byte[15]}
+type test.Opt2<String> {byte, byte[15]}
 
-type test.Opt2<test.Opt2<std.string.String*>*> {byte, byte[15]}
+type test.Opt2<test.Opt2<String>> {byte, byte[15]}
 
-type test.Opt2<bool>::Some2 {byte, bool}
+type test.Opt2<Bool>::Some2 {byte, bool}
 
-type test.Opt2<int>::Some2 {byte, byte[3], int}
+type test.Opt2<Int>::Some2 {byte, byte[3], int}
 
-type test.Opt2<std.string.String*>::Some2 {byte, byte[7], std.string.String*}
+type test.Opt2<String>::Some2 {byte, byte[7], std.string.String*}
 
-type test.Opt2<test.Opt2<std.string.String*>*>::Some2 {byte, byte[7], test.Opt2<std.string.String*>*}
+type test.Opt2<test.Opt2<String>>::Some2 {byte, byte[7], test.Opt2<String>*}
 
-func unit @test.useOpt2(test.Opt2<int>* %1, test.Opt2<bool>* %2, test.Opt2<test.Opt2<std.string.String*>*>* %3) {
+func unit @test.useOpt2(test.Opt2<Int>* %1, test.Opt2<Bool>* %2, test.Opt2<test.Opt2<String>>* %3) {
   Ret
 }
 
@@ -40,13 +40,13 @@ func unit @test.useV1(test.V1* %4) {
   Ret
 }
 
-func unit @test.use<fn>(fn %5) {
+func unit @test.use<Function>(fn %5) {
   Ret
 }
 
 func int @test.main() {
-  %6 := Call unit @test.use<fn>(@test.useOpt1)
-  %7 := Call unit @test.use<fn>(@test.useOpt2)
-  %8 := Call unit @test.use<fn>(@test.useV1)
+  %6 := Call unit @test.use<Function>(@test.useOpt1)
+  %7 := Call unit @test.use<Function>(@test.useOpt2)
+  %8 := Call unit @test.use<Function>(@test.useV1)
   Ret 0
 }

@@ -3,11 +3,11 @@
   .text
 _main:
   leaq test.sextByteToInt(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.sextByteToLong(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.sextIntToLong(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   movl $0, %eax
   ret
 test.sextByteToInt:
@@ -19,5 +19,5 @@ test.sextByteToLong:
 test.sextIntToLong:
   movsx %edi, %rax
   ret
-test.use$fn$:
+test.use$Function$:
   ret

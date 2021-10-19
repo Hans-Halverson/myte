@@ -55,13 +55,13 @@ func unit @test.longs(long %32, long %33) {
   Ret
 }
 
-func unit @test.use<fn>(fn %49) {
+func unit @test.use<Function>(fn %49) {
   Ret
 }
 
 func int @test.main() {
-  %50 := Call unit @test.use<fn>(@test.ints)
-  %51 := Call unit @test.use<fn>(@test.bytes)
-  %52 := Call unit @test.use<fn>(@test.longs)
+  %50 := Call unit @test.use<Function>(@test.ints)
+  %51 := Call unit @test.use<Function>(@test.bytes)
+  %52 := Call unit @test.use<Function>(@test.longs)
   Ret 0
 }

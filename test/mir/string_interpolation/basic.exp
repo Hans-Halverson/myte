@@ -60,14 +60,14 @@ global byte[3] @.S2 = "foo"
 
 global byte[3] @.S3 = "bar"
 
-func unit @test.use<fn>(fn %26) {
+func unit @test.use<Function>(fn %26) {
   Ret
 }
 
 func int @test.main() {
-  %27 := Call unit @test.use<fn>(@test.testSingleStringPart)
-  %28 := Call unit @test.use<fn>(@test.testSingleExpressionPart)
-  %29 := Call unit @test.use<fn>(@test.testMultipleParts1)
-  %30 := Call unit @test.use<fn>(@test.testMultipleParts2)
+  %27 := Call unit @test.use<Function>(@test.testSingleStringPart)
+  %28 := Call unit @test.use<Function>(@test.testSingleExpressionPart)
+  %29 := Call unit @test.use<Function>(@test.testMultipleParts1)
+  %30 := Call unit @test.use<Function>(@test.testMultipleParts2)
   Ret 0
 }

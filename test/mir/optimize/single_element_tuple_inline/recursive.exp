@@ -1,4 +1,4 @@
-type $tuple<int,test.Rec5*> {int, test.Rec5*}
+type $tuple<Int,test.Rec5> {int, test.Rec5*}
 
 type test.Rec1 {test.Rec1*}
 
@@ -16,23 +16,23 @@ func unit @test.useMutuallyRecursive(test.Rec3* %1) {
   Ret
 }
 
-type test.Rec5 {$tuple<int,test.Rec5*>*}
+type test.Rec5 {$tuple<Int,test.Rec5>*}
 
-type test.Rec6 {test.Generic<test.Rec6*>*}
+type test.Rec6 {test.Generic<test.Rec6>*}
 
-type test.Generic<test.Rec6*> {int, test.Rec6*}
+type test.Generic<test.Rec6> {int, test.Rec6*}
 
 func unit @test.useNested(test.Rec5* %2, test.Rec6* %3) {
   Ret
 }
 
-func fn @test.use<fn>(fn %4) {
+func fn @test.use<Function>(fn %4) {
   Ret %4
 }
 
 func int @test.main() {
-  %5 := Call fn @test.use<fn>(@test.useSelfRecursive)
-  %6 := Call fn @test.use<fn>(@test.useMutuallyRecursive)
-  %7 := Call fn @test.use<fn>(@test.useNested)
+  %5 := Call fn @test.use<Function>(@test.useSelfRecursive)
+  %6 := Call fn @test.use<Function>(@test.useMutuallyRecursive)
+  %7 := Call fn @test.use<Function>(@test.useNested)
   Ret 0
 }

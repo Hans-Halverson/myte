@@ -1,6 +1,7 @@
 open Basic_collections
 open Mir
 open Mir_type
+open Mir_type_args_hashtbl
 open Types
 
 module MirTraitObjectLayout = struct

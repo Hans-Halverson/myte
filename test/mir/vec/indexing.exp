@@ -1,70 +1,70 @@
-type test.Rec1 {int, std.vec.Vec<int>*}
+type test.Rec1 {int, std.vec.Vec<Int>*}
 
 func int @test.getInt() {
   Ret 1
 }
 
 func unit @test.testIndexRec1(test.Rec1* %0) {
-  %1 := GetPointer std.vec.Vec<int>*, test.Rec1* %0.1
-  %2 := Load std.vec.Vec<int>* %1
-  %3 := Call int @std.vec.Vec.get<int>(%2, 7)
-  %4 := GetPointer std.vec.Vec<int>*, test.Rec1* %0.1
-  %5 := Load std.vec.Vec<int>* %4
-  %6 := Call unit @std.vec.Vec.set<int>(%5, 7, 1)
+  %1 := GetPointer std.vec.Vec<Int>*, test.Rec1* %0.1
+  %2 := Load std.vec.Vec<Int>* %1
+  %3 := Call int @std.vec.Vec.get<Int>(%2, 7)
+  %4 := GetPointer std.vec.Vec<Int>*, test.Rec1* %0.1
+  %5 := Load std.vec.Vec<Int>* %4
+  %6 := Call unit @std.vec.Vec.set<Int>(%5, 7, 1)
   Ret
 }
 
 type test.Rec2 {long, bool}
 
-func unit @test.testIndexVecRec2(std.vec.Vec<test.Rec2*>* %7) {
-  %8 := Call test.Rec2* @std.vec.Vec.get<test.Rec2*>(%7, 7)
+func unit @test.testIndexVecRec2(std.vec.Vec<test.Rec2>* %7) {
+  %8 := Call test.Rec2* @std.vec.Vec.get<test.Rec2>(%7, 7)
   %9 := GetPointer bool, test.Rec2* %8.1
   %10 := Load bool %9
-  %11 := Call test.Rec2* @std.vec.Vec.get<test.Rec2*>(%7, 7)
+  %11 := Call test.Rec2* @std.vec.Vec.get<test.Rec2>(%7, 7)
   %12 := GetPointer bool, test.Rec2* %11.1
   Store bool %12, true
   Ret
 }
 
-type test.Rec3 {int, std.vec.Vec<test.Rec2*>*}
+type test.Rec3 {int, std.vec.Vec<test.Rec2>*}
 
 func unit @test.testIndexRec3(test.Rec3* %13) {
-  %14 := GetPointer std.vec.Vec<test.Rec2*>*, test.Rec3* %13.1
-  %15 := Load std.vec.Vec<test.Rec2*>* %14
-  %16 := Call test.Rec2* @std.vec.Vec.get<test.Rec2*>(%15, 7)
+  %14 := GetPointer std.vec.Vec<test.Rec2>*, test.Rec3* %13.1
+  %15 := Load std.vec.Vec<test.Rec2>* %14
+  %16 := Call test.Rec2* @std.vec.Vec.get<test.Rec2>(%15, 7)
   %17 := GetPointer bool, test.Rec2* %16.1
   %18 := Load bool %17
-  %19 := GetPointer std.vec.Vec<test.Rec2*>*, test.Rec3* %13.1
-  %20 := Load std.vec.Vec<test.Rec2*>* %19
-  %21 := Call test.Rec2* @std.vec.Vec.get<test.Rec2*>(%20, 7)
+  %19 := GetPointer std.vec.Vec<test.Rec2>*, test.Rec3* %13.1
+  %20 := Load std.vec.Vec<test.Rec2>* %19
+  %21 := Call test.Rec2* @std.vec.Vec.get<test.Rec2>(%20, 7)
   %22 := GetPointer bool, test.Rec2* %21.1
   Store bool %22, true
   Ret
 }
 
 func unit @test.testIndexOperatorAssign(test.Rec1* %23) {
-  %24 := GetPointer std.vec.Vec<int>*, test.Rec1* %23.1
-  %25 := Load std.vec.Vec<int>* %24
-  %26 := Call int @std.vec.Vec.get<int>(%25, 7)
+  %24 := GetPointer std.vec.Vec<Int>*, test.Rec1* %23.1
+  %25 := Load std.vec.Vec<Int>* %24
+  %26 := Call int @std.vec.Vec.get<Int>(%25, 7)
   %27 := Add int %26, 1
-  %28 := Call unit @std.vec.Vec.set<int>(%25, 7, %27)
-  %29 := GetPointer std.vec.Vec<int>*, test.Rec1* %23.1
-  %30 := Load std.vec.Vec<int>* %29
-  %31 := Call int @std.vec.Vec.get<int>(%30, 7)
+  %28 := Call unit @std.vec.Vec.set<Int>(%25, 7, %27)
+  %29 := GetPointer std.vec.Vec<Int>*, test.Rec1* %23.1
+  %30 := Load std.vec.Vec<Int>* %29
+  %31 := Call int @std.vec.Vec.get<Int>(%30, 7)
   %32 := Call int @test.getInt()
   %33 := Add int %31, %32
-  %34 := Call unit @std.vec.Vec.set<int>(%30, 7, %33)
+  %34 := Call unit @std.vec.Vec.set<Int>(%30, 7, %33)
   Ret
 }
 
-func unit @test.use<fn>(fn %35) {
+func unit @test.use<Function>(fn %35) {
   Ret
 }
 
 func int @test.main() {
-  %36 := Call unit @test.use<fn>(@test.testIndexRec1)
-  %37 := Call unit @test.use<fn>(@test.testIndexVecRec2)
-  %38 := Call unit @test.use<fn>(@test.testIndexRec3)
-  %39 := Call unit @test.use<fn>(@test.testIndexOperatorAssign)
+  %36 := Call unit @test.use<Function>(@test.testIndexRec1)
+  %37 := Call unit @test.use<Function>(@test.testIndexVecRec2)
+  %38 := Call unit @test.use<Function>(@test.testIndexRec3)
+  %39 := Call unit @test.use<Function>(@test.testIndexOperatorAssign)
   Ret 0
 }

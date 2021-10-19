@@ -3,45 +3,45 @@
   .text
 _main:
   leaq test.testCompareRegisterImmediate(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testCompareImmediateRegister(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testCompareMemoryImmediate(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testCompareImmediateMemory(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testCompareMemoryMemory(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testCompareMemoryRegister(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testCompareRegisterMemory(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testCompareRegisterRegister(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testCompareByteRegs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testCompareByteRegImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testCompareByteImmReg(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testCompareLongRegs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testCompareLongRegImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testCompareLongImmReg(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testCompareBoolRegs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testCompareBoolRegImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testCompareBoolImmReg(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testCompareUnitRegs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testCompareUnitRegImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testCompareUnitImmReg(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   movl $0, %eax
   ret
 test.testCompareBoolImmReg:
@@ -544,6 +544,6 @@ test.testCompareUnitRegImm:
 test.testCompareUnitRegs:
   movb $1, %al
   ret
-test.use$fn$:
+test.use$Function$:
   movq %rdi, %rax
   ret

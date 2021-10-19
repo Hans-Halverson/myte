@@ -1,10 +1,10 @@
 func unit @test.testNeitherUpdated() {
   branch true, @0, @1
 label @0:
-  %0 := Call unit @test.use<int>(0)
+  %0 := Call unit @test.use<Int>(0)
   continue @2
 label @1:
-  %1 := Call unit @test.use<int>(1)
+  %1 := Call unit @test.use<Int>(1)
   continue @2
 label @2:
   %2 := Neg int 1
@@ -14,7 +14,7 @@ label @2:
 func unit @test.testOnlyFirstUpdated() {
   branch true, @4, @3
 label @3:
-  %3 := Call unit @test.use<int>(0)
+  %3 := Call unit @test.use<Int>(0)
   continue @4
 label @4:
   %4 := Phi int @test.testOnlyFirstUpdated:2, @3:1
@@ -25,7 +25,7 @@ label @4:
 func unit @test.testOnlySecondUpdated() {
   branch true, @5, @6
 label @5:
-  %6 := Call unit @test.use<int>(0)
+  %6 := Call unit @test.use<Int>(0)
   continue @6
 label @6:
   %7 := Phi int @test.testOnlySecondUpdated:2, @5:1
@@ -64,14 +64,14 @@ label @11:
   Store int @test.glob, 2
   continue @13
 label @12:
-  %17 := Call unit @test.use<int>(0)
+  %17 := Call unit @test.use<Int>(0)
   continue @13
 label @13:
   %18 := Load int @test.glob
   %19 := Neg int %18
   branch true, @14, @15
 label @14:
-  %20 := Call unit @test.use<int>(0)
+  %20 := Call unit @test.use<Int>(0)
   continue @16
 label @15:
   Store int @test.glob, 3
@@ -92,20 +92,20 @@ label @19:
   Ret
 }
 
-func unit @test.use<fn>(fn %25) {
+func unit @test.use<Function>(fn %25) {
   Ret
 }
 
-func unit @test.use<int>(int %26) {
+func unit @test.use<Int>(int %26) {
   Ret
 }
 
 func int @test.main() {
-  %27 := Call unit @test.use<fn>(@test.testNeitherUpdated)
-  %28 := Call unit @test.use<fn>(@test.testOnlyFirstUpdated)
-  %29 := Call unit @test.use<fn>(@test.testOnlySecondUpdated)
-  %30 := Call unit @test.use<fn>(@test.testBothUpdated)
-  %31 := Call unit @test.use<fn>(@test.testMultiple)
-  %32 := Call unit @test.use<fn>(@test.testGlobal)
+  %27 := Call unit @test.use<Function>(@test.testNeitherUpdated)
+  %28 := Call unit @test.use<Function>(@test.testOnlyFirstUpdated)
+  %29 := Call unit @test.use<Function>(@test.testOnlySecondUpdated)
+  %30 := Call unit @test.use<Function>(@test.testBothUpdated)
+  %31 := Call unit @test.use<Function>(@test.testMultiple)
+  %32 := Call unit @test.use<Function>(@test.testGlobal)
   Ret 0
 }

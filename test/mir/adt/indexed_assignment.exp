@@ -108,14 +108,14 @@ func unit @test.accessOperatorAssign(test.Rec1* %34, test.Rec3* %35, test.Tup1* 
   Ret
 }
 
-func unit @test.use<fn>(fn %62) {
+func unit @test.use<Function>(fn %62) {
   Ret
 }
 
 func int @test.main() {
-  %63 := Call unit @test.use<fn>(@test.simpleAccesses)
-  %64 := Call unit @test.use<fn>(@test.nestedAccesses)
-  %65 := Call unit @test.use<fn>(@test.namedAndIndexedAccess)
-  %66 := Call unit @test.use<fn>(@test.accessOperatorAssign)
+  %63 := Call unit @test.use<Function>(@test.simpleAccesses)
+  %64 := Call unit @test.use<Function>(@test.nestedAccesses)
+  %65 := Call unit @test.use<Function>(@test.namedAndIndexedAccess)
+  %66 := Call unit @test.use<Function>(@test.accessOperatorAssign)
   Ret 0
 }

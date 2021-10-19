@@ -56,11 +56,11 @@ func unit @test.test(test.Type* %24) {
   Ret
 }
 
-func unit @test.use<fn>(fn %30) {
+func unit @test.use<Function>(fn %30) {
   Ret
 }
 
 func int @test.main() {
-  %31 := Call unit @test.use<fn>(@test.test)
+  %31 := Call unit @test.use<Function>(@test.test)
   Ret 0
 }

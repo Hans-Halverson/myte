@@ -56,13 +56,13 @@ label @8:
   Ret
 }
 
-func unit @test.use<fn>(fn %14) {
+func unit @test.use<Function>(fn %14) {
   Ret
 }
 
 func int @test.main() {
-  %15 := Call unit @test.use<fn>(@test.swap)
-  %16 := Call unit @test.use<fn>(@test.doubleSwap)
-  %17 := Call unit @test.use<fn>(@test.longSwap)
+  %15 := Call unit @test.use<Function>(@test.swap)
+  %16 := Call unit @test.use<Function>(@test.doubleSwap)
+  %17 := Call unit @test.use<Function>(@test.longSwap)
   Ret 0
 }

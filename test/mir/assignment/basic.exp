@@ -20,12 +20,12 @@ func unit @test.testReassignLocals() {
   Ret
 }
 
-func unit @test.use<fn>(fn %9) {
+func unit @test.use<Function>(fn %9) {
   Ret
 }
 
 func int @test.main() {
-  %10 := Call unit @test.use<fn>(@test.testReassignGlobals)
-  %11 := Call unit @test.use<fn>(@test.testReassignLocals)
+  %10 := Call unit @test.use<Function>(@test.testReassignGlobals)
+  %11 := Call unit @test.use<Function>(@test.testReassignLocals)
   Ret 0
 }

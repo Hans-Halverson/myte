@@ -41,11 +41,11 @@ global byte[3] @.S2 = "bar"
 
 global byte[3] @.S3 = "baz"
 
-func unit @test.use<fn>(fn %17) {
+func unit @test.use<Function>(fn %17) {
   Ret
 }
 
 func int @test.main() {
-  %18 := Call unit @test.use<fn>(@test.test1)
+  %18 := Call unit @test.use<Function>(@test.test1)
   Ret 0
 }

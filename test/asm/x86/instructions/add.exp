@@ -48,29 +48,29 @@ test.addLongRegs:
   ret
 _main:
   leaq test.addByteRegs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.addByteImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.addIntRegs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.addIntByteImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.addIntIntImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.addLongRegs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.addLongByteImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.addLongIntImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.addLongLongImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.addByteImm2(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.addLongLongImm2(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   movl $0, %eax
   ret
-test.use$fn$:
+test.use$Function$:
   movq %rdi, %rax
   ret

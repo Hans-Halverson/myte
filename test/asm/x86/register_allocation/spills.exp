@@ -19,11 +19,11 @@ _main:
   movq %rax, %rdi
   call std.io.println
   leaq test.testSingleSpillUsingAllRegisters(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testCallerSavedRegistersSpilledAcrossFunctionCalls(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testSingleSpillUsingAllRegistersFromLocals(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   movl $0, %eax
   ret
 test.testCallerSavedRegistersSpilledAcrossFunctionCalls:
@@ -40,7 +40,7 @@ test.testCallerSavedRegistersSpilledAcrossFunctionCalls:
   movl %r8d, %r12d
   movl %r9d, %ebx
   movl $3, %edi
-  call test.use$int$
+  call test.use$Int$
   addl 0(%rsp), %r15d
   addl %r15d, %r14d
   addl %r14d, %r13d
@@ -169,10 +169,10 @@ test.testSingleSpillUsingAllRegistersFromLocals:
   pop %r12
   pop %rbx
   ret
-test.use$fn$:
+test.use$Function$:
   movq %rdi, %rax
   ret
-test.use$int$:
+test.use$Int$:
   movl %edi, %eax
   ret
 88

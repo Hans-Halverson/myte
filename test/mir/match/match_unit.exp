@@ -2,11 +2,11 @@ func int @test.test() {
   Ret 1
 }
 
-func unit @test.use<fn>(fn %0) {
+func unit @test.use<Function>(fn %0) {
   Ret
 }
 
 func int @test.main() {
-  %1 := Call unit @test.use<fn>(@test.test)
+  %1 := Call unit @test.use<Function>(@test.test)
   Ret 0
 }

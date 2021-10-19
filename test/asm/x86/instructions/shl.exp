@@ -3,31 +3,31 @@
   .text
 _main:
   leaq test.shlByteRegs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.shlByteImmReg(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.shlByteRegImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.shlIntRegs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.shlIntRegImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.shlIntImmReg(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.shlIntRegByteImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.shlIntByteImmReg(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.shlLongRegs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.shlLongRegImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.shlLongImmReg(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.shlTruncIntImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.shlTruncLongImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   movl $0, %eax
   ret
 test.shlByteImmReg:
@@ -89,6 +89,6 @@ test.shlTruncLongImm:
   shll $2, %edi
   movl %edi, %eax
   ret
-test.use$fn$:
+test.use$Function$:
   movq %rdi, %rax
   ret

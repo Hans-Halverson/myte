@@ -1,50 +1,50 @@
-type $tuple<int,bool,$tuple<int,bool>*> {int, bool, $tuple<int,bool>*}
+type $tuple<Int,Bool,(Int,Bool)> {int, bool, $tuple<Int,Bool>*}
 
-type $tuple<int,bool> {int, bool}
+type $tuple<Int,Bool> {int, bool}
 
-func unit @test.use<$tuple<int,bool>*>($tuple<int,bool>* %0) {
+func unit @test.use<(Int,Bool)>($tuple<Int,Bool>* %0) {
   Ret
 }
 
-func unit @test.use<bool>(bool %1) {
+func unit @test.use<Bool>(bool %1) {
   Ret
 }
 
-func unit @test.use<fn>(fn %2) {
+func unit @test.use<Function>(fn %2) {
   Ret
 }
 
-func unit @test.use<int>(int %3) {
+func unit @test.use<Int>(int %3) {
   Ret
 }
 
-func unit @test.use<std.string.String*>(std.string.String* %4) {
+func unit @test.use<String>(std.string.String* %4) {
   Ret
 }
 
-func unit @test.destructureTuple($tuple<int,bool,$tuple<int,bool>*>* %5) {
-  %6 := CallBuiltin $tuple<int,bool>* myte_alloc(1)
-  %7 := GetPointer int, $tuple<int,bool>* %6.0
+func unit @test.destructureTuple($tuple<Int,Bool,(Int,Bool)>* %5) {
+  %6 := CallBuiltin $tuple<Int,Bool>* myte_alloc(1)
+  %7 := GetPointer int, $tuple<Int,Bool>* %6.0
   Store int %7, 1
-  %8 := GetPointer bool, $tuple<int,bool>* %6.1
+  %8 := GetPointer bool, $tuple<Int,Bool>* %6.1
   Store bool %8, true
-  %9 := GetPointer int, $tuple<int,bool,$tuple<int,bool>*>* %5.0
+  %9 := GetPointer int, $tuple<Int,Bool,(Int,Bool)>* %5.0
   %10 := Load int %9
-  %11 := GetPointer bool, $tuple<int,bool,$tuple<int,bool>*>* %5.1
+  %11 := GetPointer bool, $tuple<Int,Bool,(Int,Bool)>* %5.1
   %12 := Load bool %11
-  %13 := GetPointer $tuple<int,bool>*, $tuple<int,bool,$tuple<int,bool>*>* %5.2
-  %14 := Load $tuple<int,bool>* %13
-  %15 := Call unit @test.use<int>(%10)
-  %16 := Call unit @test.use<bool>(%12)
-  %17 := Call unit @test.use<$tuple<int,bool>*>(%14)
-  %18 := GetPointer $tuple<int,bool>*, $tuple<int,bool,$tuple<int,bool>*>* %5.2
-  %19 := Load $tuple<int,bool>* %18
-  %20 := GetPointer int, $tuple<int,bool>* %19.0
+  %13 := GetPointer $tuple<Int,Bool>*, $tuple<Int,Bool,(Int,Bool)>* %5.2
+  %14 := Load $tuple<Int,Bool>* %13
+  %15 := Call unit @test.use<Int>(%10)
+  %16 := Call unit @test.use<Bool>(%12)
+  %17 := Call unit @test.use<(Int,Bool)>(%14)
+  %18 := GetPointer $tuple<Int,Bool>*, $tuple<Int,Bool,(Int,Bool)>* %5.2
+  %19 := Load $tuple<Int,Bool>* %18
+  %20 := GetPointer int, $tuple<Int,Bool>* %19.0
   %21 := Load int %20
-  %22 := GetPointer bool, $tuple<int,bool>* %19.1
+  %22 := GetPointer bool, $tuple<Int,Bool>* %19.1
   %23 := Load bool %22
-  %24 := Call unit @test.use<int>(%21)
-  %25 := Call unit @test.use<bool>(%23)
+  %24 := Call unit @test.use<Int>(%21)
+  %25 := Call unit @test.use<Bool>(%23)
   Ret
 }
 
@@ -80,8 +80,8 @@ label @1:
 label @2:
   %41 := Phi int @0:%34, @1:%40
   %42 := Phi std.string.String* @0:%36, @1:%38
-  %43 := Call unit @test.use<int>(%41)
-  %44 := Call unit @test.use<std.string.String*>(%42)
+  %43 := Call unit @test.use<Int>(%41)
+  %44 := Call unit @test.use<String>(%42)
   Ret
 }
 
@@ -94,8 +94,8 @@ func unit @test.destructureNamedTuple(test.Tup* %45) {
   %47 := Load int %46
   %48 := GetPointer bool, test.Tup* %45.1
   %49 := Load bool %48
-  %50 := Call unit @test.use<int>(%47)
-  %51 := Call unit @test.use<bool>(%49)
+  %50 := Call unit @test.use<Int>(%47)
+  %51 := Call unit @test.use<Bool>(%49)
   Ret
 }
 
@@ -106,8 +106,8 @@ func unit @test.destructureNamedRecord(test.Rec* %52) {
   %54 := Load int %53
   %55 := GetPointer bool, test.Rec* %52.1
   %56 := Load bool %55
-  %57 := Call unit @test.use<int>(%54)
-  %58 := Call unit @test.use<bool>(%56)
+  %57 := Call unit @test.use<Int>(%54)
+  %58 := Call unit @test.use<Bool>(%56)
   Ret
 }
 
@@ -115,26 +115,26 @@ global int @test.globalInt = 1
 
 global bool @test.globalBool = true
 
-func unit @test.destructureAssignGlobals($tuple<int,bool>* %59) {
-  %60 := GetPointer int, $tuple<int,bool>* %59.0
+func unit @test.destructureAssignGlobals($tuple<Int,Bool>* %59) {
+  %60 := GetPointer int, $tuple<Int,Bool>* %59.0
   %61 := Load int %60
   Store int @test.globalInt, %61
-  %62 := GetPointer bool, $tuple<int,bool>* %59.1
+  %62 := GetPointer bool, $tuple<Int,Bool>* %59.1
   %63 := Load bool %62
   Store bool @test.globalBool, %63
-  %64 := GetPointer int, $tuple<int,bool>* %59.0
+  %64 := GetPointer int, $tuple<Int,Bool>* %59.0
   %65 := Load int %64
   Store int @test.globalInt, %65
-  %66 := GetPointer bool, $tuple<int,bool>* %59.1
+  %66 := GetPointer bool, $tuple<Int,Bool>* %59.1
   %67 := Load bool %66
   Ret
 }
 
 func int @test.main() {
-  %68 := Call unit @test.use<fn>(@test.destructureTuple)
-  %69 := Call unit @test.use<fn>(@test.destructureVariants)
-  %70 := Call unit @test.use<fn>(@test.destructureNamedTuple)
-  %71 := Call unit @test.use<fn>(@test.destructureNamedRecord)
-  %72 := Call unit @test.use<fn>(@test.destructureAssignGlobals)
+  %68 := Call unit @test.use<Function>(@test.destructureTuple)
+  %69 := Call unit @test.use<Function>(@test.destructureVariants)
+  %70 := Call unit @test.use<Function>(@test.destructureNamedTuple)
+  %71 := Call unit @test.use<Function>(@test.destructureNamedRecord)
+  %72 := Call unit @test.use<Function>(@test.destructureAssignGlobals)
   Ret 0
 }

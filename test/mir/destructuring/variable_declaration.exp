@@ -1,45 +1,45 @@
-type $tuple<int,bool,$tuple<int,bool>*> {int, bool, $tuple<int,bool>*}
+type $tuple<Int,Bool,(Int,Bool)> {int, bool, $tuple<Int,Bool>*}
 
-type $tuple<int,bool> {int, bool}
+type $tuple<Int,Bool> {int, bool}
 
-func unit @test.use<$tuple<int,bool>*>($tuple<int,bool>* %0) {
+func unit @test.use<(Int,Bool)>($tuple<Int,Bool>* %0) {
   Ret
 }
 
-func unit @test.use<bool>(bool %1) {
+func unit @test.use<Bool>(bool %1) {
   Ret
 }
 
-func unit @test.use<fn>(fn %2) {
+func unit @test.use<Function>(fn %2) {
   Ret
 }
 
-func unit @test.use<int>(int %3) {
+func unit @test.use<Int>(int %3) {
   Ret
 }
 
-func unit @test.use<std.string.String*>(std.string.String* %4) {
+func unit @test.use<String>(std.string.String* %4) {
   Ret
 }
 
-func unit @test.destructureTuple($tuple<int,bool,$tuple<int,bool>*>* %5) {
-  %6 := GetPointer int, $tuple<int,bool,$tuple<int,bool>*>* %5.0
+func unit @test.destructureTuple($tuple<Int,Bool,(Int,Bool)>* %5) {
+  %6 := GetPointer int, $tuple<Int,Bool,(Int,Bool)>* %5.0
   %7 := Load int %6
-  %8 := GetPointer bool, $tuple<int,bool,$tuple<int,bool>*>* %5.1
+  %8 := GetPointer bool, $tuple<Int,Bool,(Int,Bool)>* %5.1
   %9 := Load bool %8
-  %10 := GetPointer $tuple<int,bool>*, $tuple<int,bool,$tuple<int,bool>*>* %5.2
-  %11 := Load $tuple<int,bool>* %10
-  %12 := Call unit @test.use<int>(%7)
-  %13 := Call unit @test.use<bool>(%9)
-  %14 := Call unit @test.use<$tuple<int,bool>*>(%11)
-  %15 := GetPointer $tuple<int,bool>*, $tuple<int,bool,$tuple<int,bool>*>* %5.2
-  %16 := Load $tuple<int,bool>* %15
-  %17 := GetPointer int, $tuple<int,bool>* %16.0
+  %10 := GetPointer $tuple<Int,Bool>*, $tuple<Int,Bool,(Int,Bool)>* %5.2
+  %11 := Load $tuple<Int,Bool>* %10
+  %12 := Call unit @test.use<Int>(%7)
+  %13 := Call unit @test.use<Bool>(%9)
+  %14 := Call unit @test.use<(Int,Bool)>(%11)
+  %15 := GetPointer $tuple<Int,Bool>*, $tuple<Int,Bool,(Int,Bool)>* %5.2
+  %16 := Load $tuple<Int,Bool>* %15
+  %17 := GetPointer int, $tuple<Int,Bool>* %16.0
   %18 := Load int %17
-  %19 := GetPointer bool, $tuple<int,bool>* %16.1
+  %19 := GetPointer bool, $tuple<Int,Bool>* %16.1
   %20 := Load bool %19
-  %21 := Call unit @test.use<int>(%18)
-  %22 := Call unit @test.use<bool>(%20)
+  %21 := Call unit @test.use<Int>(%18)
+  %22 := Call unit @test.use<Bool>(%20)
   Ret
 }
 
@@ -68,8 +68,8 @@ label @1:
 label @2:
   %34 := Phi std.string.String* @0:%29, @1:%31
   %35 := Phi int @0:%27, @1:%33
-  %36 := Call unit @test.use<int>(%35)
-  %37 := Call unit @test.use<std.string.String*>(%34)
+  %36 := Call unit @test.use<Int>(%35)
+  %37 := Call unit @test.use<String>(%34)
   Ret
 }
 
@@ -80,8 +80,8 @@ func unit @test.destructureNamedTuple(test.Tup* %38) {
   %40 := Load int %39
   %41 := GetPointer bool, test.Tup* %38.1
   %42 := Load bool %41
-  %43 := Call unit @test.use<int>(%40)
-  %44 := Call unit @test.use<bool>(%42)
+  %43 := Call unit @test.use<Int>(%40)
+  %44 := Call unit @test.use<Bool>(%42)
   Ret
 }
 
@@ -92,29 +92,29 @@ func unit @test.destructureNamedRecord(test.Rec* %45) {
   %47 := Load int %46
   %48 := GetPointer bool, test.Rec* %45.1
   %49 := Load bool %48
-  %50 := Call unit @test.use<int>(%47)
-  %51 := Call unit @test.use<bool>(%49)
+  %50 := Call unit @test.use<Int>(%47)
+  %51 := Call unit @test.use<Bool>(%49)
   Ret
 }
 
-type test.Rec2<int> {int, bool}
+type test.Rec2<Int> {int, bool}
 
-func int @test.Rec2.methodDestructuring<int>(test.Rec2<int>* %52) {
-  %53 := GetPointer int, test.Rec2<int>* %52.0
+func int @test.Rec2.methodDestructuring<Int>(test.Rec2<Int>* %52) {
+  %53 := GetPointer int, test.Rec2<Int>* %52.0
   %54 := Load int %53
   Ret %54
 }
 
-func unit @test.testUseRec2(test.Rec2<int>* %55) {
-  %56 := Call int @test.Rec2.methodDestructuring<int>(%55)
+func unit @test.testUseRec2(test.Rec2<Int>* %55) {
+  %56 := Call int @test.Rec2.methodDestructuring<Int>(%55)
   Ret
 }
 
 func int @test.main() {
-  %57 := Call unit @test.use<fn>(@test.destructureTuple)
-  %58 := Call unit @test.use<fn>(@test.destructureVariants)
-  %59 := Call unit @test.use<fn>(@test.destructureNamedTuple)
-  %60 := Call unit @test.use<fn>(@test.destructureNamedRecord)
-  %61 := Call unit @test.use<fn>(@test.testUseRec2)
+  %57 := Call unit @test.use<Function>(@test.destructureTuple)
+  %58 := Call unit @test.use<Function>(@test.destructureVariants)
+  %59 := Call unit @test.use<Function>(@test.destructureNamedTuple)
+  %60 := Call unit @test.use<Function>(@test.destructureNamedRecord)
+  %61 := Call unit @test.use<Function>(@test.testUseRec2)
   Ret 0
 }

@@ -18,11 +18,11 @@ func unit @test.useAll(test.Tup1* %0, test.Tup2* %1, test.Tup3* %2, test.Rec1* %
   Ret
 }
 
-func unit @test.use<fn>(fn %8) {
+func unit @test.use<Function>(fn %8) {
   Ret
 }
 
 func int @test.main() {
-  %9 := Call unit @test.use<fn>(@test.useAll)
+  %9 := Call unit @test.use<Function>(@test.useAll)
   Ret 0
 }

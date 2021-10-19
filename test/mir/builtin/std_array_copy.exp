@@ -22,14 +22,14 @@ func unit @test.testCopy(int* %13, int* %14, int %15) {
   Ret
 }
 
-func unit @test.use<fn>(fn %19) {
+func unit @test.use<Function>(fn %19) {
   Ret
 }
 
 func int @test.main() {
-  %20 := Call unit @test.use<fn>(@test.testCopy1)
-  %21 := Call unit @test.use<fn>(@test.testCopy2)
-  %22 := Call unit @test.use<fn>(@test.testCopy3)
-  %23 := Call unit @test.use<fn>(@test.testCopy)
+  %20 := Call unit @test.use<Function>(@test.testCopy1)
+  %21 := Call unit @test.use<Function>(@test.testCopy2)
+  %22 := Call unit @test.use<Function>(@test.testCopy3)
+  %23 := Call unit @test.use<Function>(@test.testCopy)
   Ret 0
 }

@@ -84,13 +84,13 @@ func unit @test.recordConstructor() {
   Ret
 }
 
-func unit @test.use<fn>(fn %37) {
+func unit @test.use<Function>(fn %37) {
   Ret
 }
 
 func int @test.main() {
-  %38 := Call unit @test.use<fn>(@test.arguments)
-  %39 := Call unit @test.use<fn>(@test.tupleConstructor)
-  %40 := Call unit @test.use<fn>(@test.recordConstructor)
+  %38 := Call unit @test.use<Function>(@test.arguments)
+  %39 := Call unit @test.use<Function>(@test.tupleConstructor)
+  %40 := Call unit @test.use<Function>(@test.recordConstructor)
   Ret 0
 }

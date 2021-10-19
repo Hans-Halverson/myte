@@ -3,26 +3,26 @@
   .text
 _main:
   leaq test.xorByteRegs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.xorByteImmReg(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.xorByteRegImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.xorIntRegs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.xorIntRegImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.xorIntImmReg(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.xorLongRegs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.xorLongRegImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.xorLongImmReg(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   movl $0, %eax
   ret
-test.use$fn$:
+test.use$Function$:
   movq %rdi, %rax
   ret
 test.xorByteImmReg:

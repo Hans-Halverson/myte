@@ -3,9 +3,9 @@
   .text
 _main:
   leaq test.powerOfTwoMultiply(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.powerOfTwoDivide(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   xorl %eax, %eax
   ret
 test.powerOfTwoDivide:
@@ -17,49 +17,49 @@ test.powerOfTwoDivide:
   movq %rdx, %rbx
   movl %r13d, %edi
   sarb $1, %dil
-  call test.use$byte$
+  call test.use$Byte$
   movl %r13d, %edi
   sarb $2, %dil
-  call test.use$byte$
+  call test.use$Byte$
   movl %r13d, %edi
   sarb $3, %dil
-  call test.use$byte$
+  call test.use$Byte$
   movl %r12d, %edi
   sarl $1, %edi
-  call test.use$int$
+  call test.use$Int$
   movl %r12d, %edi
   sarl $2, %edi
-  call test.use$int$
+  call test.use$Int$
   movl %r12d, %edi
   sarl $3, %edi
-  call test.use$int$
+  call test.use$Int$
   movq %rbx, %rdi
   sarq $1, %rdi
-  call test.use$long$
+  call test.use$Long$
   movq %rbx, %rdi
   sarq $2, %rdi
-  call test.use$long$
+  call test.use$Long$
   movq %rbx, %rdi
   sarq $3, %rdi
-  call test.use$long$
+  call test.use$Long$
   movsx %r13b, %ax
   movw $5, %cx
   cwd 
   idivw %cx
   movl %eax, %edi
-  call test.use$byte$
+  call test.use$Byte$
   movl %r12d, %eax
   movl $5, %ecx
   cdq 
   idivl %ecx
   movl %eax, %edi
-  call test.use$int$
+  call test.use$Int$
   movq %rbx, %rax
   movq $5, %rbx
   cqo 
   idivq %rbx
   movq %rax, %rdi
-  call test.use$long$
+  call test.use$Long$
   pop %r13
   pop %r12
   pop %rbx
@@ -73,46 +73,46 @@ test.powerOfTwoMultiply:
   movq %rdx, %rbx
   movw %r13w, %di
   shlw $1, %di
-  call test.use$byte$
+  call test.use$Byte$
   movw %r13w, %di
   shlw $2, %di
-  call test.use$byte$
+  call test.use$Byte$
   movw %r13w, %di
   shlw $3, %di
-  call test.use$byte$
+  call test.use$Byte$
   movl %r12d, %edi
   shll $1, %edi
-  call test.use$int$
+  call test.use$Int$
   movl %r12d, %edi
   shll $2, %edi
-  call test.use$int$
+  call test.use$Int$
   movl %r12d, %edi
   shll $3, %edi
-  call test.use$int$
+  call test.use$Int$
   movq %rbx, %rdi
   shlq $1, %rdi
-  call test.use$long$
+  call test.use$Long$
   movq %rbx, %rdi
   shlq $2, %rdi
-  call test.use$long$
+  call test.use$Long$
   movq %rbx, %rdi
   shlq $3, %rdi
-  call test.use$long$
+  call test.use$Long$
   imulw $5, %r13w, %di
-  call test.use$byte$
+  call test.use$Byte$
   imull $5, %r12d, %edi
-  call test.use$int$
+  call test.use$Int$
   imulq $5, %rbx, %rdi
-  call test.use$long$
+  call test.use$Long$
   pop %r13
   pop %r12
   pop %rbx
   ret
-test.use$byte$:
+test.use$Byte$:
   ret
-test.use$fn$:
+test.use$Function$:
   ret
-test.use$int$:
+test.use$Int$:
   ret
-test.use$long$:
+test.use$Long$:
   ret

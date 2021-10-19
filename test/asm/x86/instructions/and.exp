@@ -40,25 +40,25 @@ test.andLongRegs:
   ret
 _main:
   leaq test.andByteRegs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.andByteImmReg(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.andByteRegImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.andIntRegs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.andIntRegImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.andIntImmReg(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.andLongRegs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.andLongRegImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.andLongImmReg(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   movl $0, %eax
   ret
-test.use$fn$:
+test.use$Function$:
   movq %rdi, %rax
   ret

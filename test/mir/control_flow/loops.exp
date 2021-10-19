@@ -87,16 +87,16 @@ label @21:
   Ret
 }
 
-func unit @test.use<fn>(fn %21) {
+func unit @test.use<Function>(fn %21) {
   Ret
 }
 
 func int @test.main() {
-  %22 := Call unit @test.use<fn>(@test.inexhaustiveContinue)
-  %23 := Call unit @test.use<fn>(@test.inexhaustiveBreak)
-  %24 := Call unit @test.use<fn>(@test.exhaustiveContinues)
-  %25 := Call unit @test.use<fn>(@test.exhaustiveBreaks)
-  %26 := Call unit @test.use<fn>(@test.inexhaustiveBreakAndContinue)
-  %27 := Call unit @test.use<fn>(@test.exhaustiveBreakAndContinue)
+  %22 := Call unit @test.use<Function>(@test.inexhaustiveContinue)
+  %23 := Call unit @test.use<Function>(@test.inexhaustiveBreak)
+  %24 := Call unit @test.use<Function>(@test.exhaustiveContinues)
+  %25 := Call unit @test.use<Function>(@test.exhaustiveBreaks)
+  %26 := Call unit @test.use<Function>(@test.inexhaustiveBreakAndContinue)
+  %27 := Call unit @test.use<Function>(@test.exhaustiveBreakAndContinue)
   Ret 0
 }

@@ -3,11 +3,11 @@
   .text
 _main:
   leaq test.testBool(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testInt(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testLong(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   movl $0, %eax
   ret
 test.testBool:
@@ -58,7 +58,7 @@ test.testLong:
   call test.useLong
   pop %rbx
   ret
-test.use$fn$:
+test.use$Function$:
   movq %rdi, %rax
   ret
 test.useBool:

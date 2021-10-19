@@ -37,13 +37,13 @@ test.callSimpleMethod:
   ret
 _main:
   leaq test.callSimpleMethod(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.callMethodWithArgs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testCall(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testPromotion(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   movl $0, %eax
   ret
 test.testCall:
@@ -68,5 +68,5 @@ test.testPromotion:
   call test.testCall
   pop %rbx
   ret
-test.use$fn$:
+test.use$Function$:
   ret

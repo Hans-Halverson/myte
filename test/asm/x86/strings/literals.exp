@@ -19,9 +19,9 @@ _init:
   ret
 _main:
   movq test.s(%rip), %rdi
-  call test.use$std.string.String$$
+  call test.use$String$
   leaq test.test(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   movl $0, %eax
   ret
 test.test:
@@ -32,9 +32,9 @@ test.test:
   movl $6, 8(%rax)
   movl $6, 12(%rax)
   ret
-test.use$fn$:
+test.use$Function$:
   movq %rdi, %rax
   ret
-test.use$std.string.String$$:
+test.use$String$:
   movq %rdi, %rax
   ret

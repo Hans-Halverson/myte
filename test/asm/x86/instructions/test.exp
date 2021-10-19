@@ -3,9 +3,9 @@
   .text
 _main:
   leaq test.testRegister(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.testMemory(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   movl $0, %eax
   ret
 test.testMemory:
@@ -25,6 +25,6 @@ test.testRegister:
 .L1:
   movl $2, %eax
   ret
-test.use$fn$:
+test.use$Function$:
   movq %rdi, %rax
   ret

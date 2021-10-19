@@ -6,18 +6,18 @@ func unit @test.test() {
   Ret
 }
 
-func fn @test.use<fn>(fn %0) {
+func fn @test.use<Function>(fn %0) {
   Ret %0
 }
 
-func int @test.use<int>(int %1) {
+func int @test.use<Int>(int %1) {
   Ret %1
 }
 
 func int @test.main() {
   %2 := Load int @test.i
-  %3 := Call int @test.use<int>(%2)
+  %3 := Call int @test.use<Int>(%2)
   %4 := Load fn @test.f
-  %5 := Call fn @test.use<fn>(%4)
+  %5 := Call fn @test.use<Function>(%4)
   Ret 0
 }

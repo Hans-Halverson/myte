@@ -10,31 +10,31 @@ func unit @_init() {
   Ret
 }
 
-func unit @test.use<bool>(bool %4) {
+func unit @test.use<Bool>(bool %4) {
   Ret
 }
 
-func unit @test.use<byte>(byte %5) {
+func unit @test.use<Byte>(byte %5) {
   Ret
 }
 
-func unit @test.use<fn>(fn %6) {
+func unit @test.use<Function>(fn %6) {
   Ret
 }
 
-func unit @test.use<int>(int %7) {
+func unit @test.use<Int>(int %7) {
   Ret
 }
 
-func unit @test.use<long>(long %8) {
+func unit @test.use<Long>(long %8) {
   Ret
 }
 
-func unit @test.use<std.string.String*>(std.string.String* %9) {
+func unit @test.use<String>(std.string.String* %9) {
   Ret
 }
 
-func unit @test.use<unit>(unit %10) {
+func unit @test.use<Unit>(unit %10) {
   Ret
 }
 
@@ -59,37 +59,37 @@ global byte[4] @.S1 = "test"
 global bool @test.a1 = true
 
 func int @test.main() {
-  %11 := Call unit @test.use<int>(0)
-  %12 := Call unit @test.use<int>(2147483647)
-  %13 := Call unit @test.use<long>(2147483648)
+  %11 := Call unit @test.use<Int>(0)
+  %12 := Call unit @test.use<Int>(2147483647)
+  %13 := Call unit @test.use<Long>(2147483648)
   %14 := Add int 2, 4
   %15 := Add int %14, 6
-  %16 := Call unit @test.use<int>(%15)
+  %16 := Call unit @test.use<Int>(%15)
   %17 := Add long 2, 2147483648
   %18 := Add long %17, 6
-  %19 := Call unit @test.use<long>(%18)
-  %20 := Call unit @test.use<fn>(@test.useAll)
+  %19 := Call unit @test.use<Long>(%18)
+  %20 := Call unit @test.use<Function>(@test.useAll)
   Ret 0
 }
 
 func unit @test.useAll() {
   %21 := Load unit @test.x
-  %22 := Call unit @test.use<unit>(%21)
+  %22 := Call unit @test.use<Unit>(%21)
   %23 := Load int @test.y1
-  %24 := Call unit @test.use<int>(%23)
+  %24 := Call unit @test.use<Int>(%23)
   %25 := Load byte @test.y2
-  %26 := Call unit @test.use<byte>(%25)
+  %26 := Call unit @test.use<Byte>(%25)
   %27 := Load long @test.y3
-  %28 := Call unit @test.use<long>(%27)
+  %28 := Call unit @test.use<Long>(%27)
   %29 := Load int @test.c1
-  %30 := Call unit @test.use<int>(%29)
+  %30 := Call unit @test.use<Int>(%29)
   %31 := Load byte @test.c2
-  %32 := Call unit @test.use<byte>(%31)
+  %32 := Call unit @test.use<Byte>(%31)
   %33 := Load long @test.c3
-  %34 := Call unit @test.use<long>(%33)
+  %34 := Call unit @test.use<Long>(%33)
   %35 := Load std.string.String* @test.z
-  %36 := Call unit @test.use<std.string.String*>(%35)
+  %36 := Call unit @test.use<String>(%35)
   %37 := Load bool @test.a1
-  %38 := Call unit @test.use<bool>(%37)
+  %38 := Call unit @test.use<Bool>(%37)
   Ret
 }

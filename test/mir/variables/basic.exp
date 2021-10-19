@@ -1,8 +1,8 @@
-func unit @test.use<fn>(fn %0) {
+func unit @test.use<Function>(fn %0) {
   Ret
 }
 
-func unit @test.use<int>(int %1) {
+func unit @test.use<Int>(int %1) {
   Ret
 }
 
@@ -18,13 +18,13 @@ func unit @test.test1(int %2, unit %3) {
 func unit @test.test2() {
   %7 := Load int @test.x
   %8 := Mul int 4, 34
-  %9 := Call unit @test.use<int>(%7)
-  %10 := Call unit @test.use<int>(%8)
+  %9 := Call unit @test.use<Int>(%7)
+  %10 := Call unit @test.use<Int>(%8)
   Ret
 }
 
 func int @test.main() {
-  %11 := Call unit @test.use<fn>(@test.test1)
-  %12 := Call unit @test.use<fn>(@test.test2)
+  %11 := Call unit @test.use<Function>(@test.test1)
+  %12 := Call unit @test.use<Function>(@test.test2)
   Ret 0
 }

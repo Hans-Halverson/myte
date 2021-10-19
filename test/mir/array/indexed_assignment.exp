@@ -58,13 +58,13 @@ func unit @test.indexAndAccesses(test.Tup1* %16, test.Rec2** %17) {
 
 global byte[4] @.S1 = "test"
 
-func unit @test.use<fn>(fn %32) {
+func unit @test.use<Function>(fn %32) {
   Ret
 }
 
 func int @test.main() {
-  %33 := Call unit @test.use<fn>(@test.simpleAccesses)
-  %34 := Call unit @test.use<fn>(@test.nestedAccesses)
-  %35 := Call unit @test.use<fn>(@test.indexAndAccesses)
+  %33 := Call unit @test.use<Function>(@test.simpleAccesses)
+  %34 := Call unit @test.use<Function>(@test.nestedAccesses)
+  %35 := Call unit @test.use<Function>(@test.indexAndAccesses)
   Ret 0
 }

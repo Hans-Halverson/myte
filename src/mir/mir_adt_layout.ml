@@ -1,4 +1,5 @@
 open Basic_collections
+open Mir_type_args_hashtbl
 open Mir_type
 open Types
 

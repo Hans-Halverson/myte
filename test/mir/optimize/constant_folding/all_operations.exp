@@ -1,12 +1,12 @@
-func bool @test.use<bool>(bool %0) {
+func bool @test.use<Bool>(bool %0) {
   Ret %0
 }
 
-func fn @test.use<fn>(fn %1) {
+func fn @test.use<Function>(fn %1) {
   Ret %1
 }
 
-func int @test.use<int>(int %2) {
+func int @test.use<Int>(int %2) {
   Ret %2
 }
 
@@ -15,89 +15,89 @@ func unit @test.unit() {
 }
 
 func unit @test.testInt() {
-  %3 := Call int @test.use<int>(-56)
-  %4 := Call int @test.use<int>(3)
-  %5 := Call int @test.use<int>(-1)
-  %6 := Call int @test.use<int>(14)
-  %7 := Call int @test.use<int>(8)
-  %8 := Call int @test.use<int>(1)
-  %9 := Call int @test.use<int>(8)
-  %10 := Call int @test.use<int>(14)
-  %11 := Call int @test.use<int>(6)
-  %12 := Call int @test.use<int>(16)
-  %13 := Call int @test.use<int>(-1)
-  %14 := Call int @test.use<int>(1073741823)
-  %15 := Call bool @test.use<bool>(false)
+  %3 := Call int @test.use<Int>(-56)
+  %4 := Call int @test.use<Int>(3)
+  %5 := Call int @test.use<Int>(-1)
+  %6 := Call int @test.use<Int>(14)
+  %7 := Call int @test.use<Int>(8)
+  %8 := Call int @test.use<Int>(1)
+  %9 := Call int @test.use<Int>(8)
+  %10 := Call int @test.use<Int>(14)
+  %11 := Call int @test.use<Int>(6)
+  %12 := Call int @test.use<Int>(16)
+  %13 := Call int @test.use<Int>(-1)
+  %14 := Call int @test.use<Int>(1073741823)
+  %15 := Call bool @test.use<Bool>(false)
   Ret
 }
 
 func unit @test.testByte() {
-  %16 := Call int @test.use<int>(-56)
-  %17 := Call int @test.use<int>(3)
-  %18 := Call int @test.use<int>(-1)
-  %19 := Call int @test.use<int>(14)
-  %20 := Call int @test.use<int>(8)
-  %21 := Call int @test.use<int>(1)
-  %22 := Call int @test.use<int>(8)
-  %23 := Call int @test.use<int>(14)
-  %24 := Call int @test.use<int>(6)
-  %25 := Call int @test.use<int>(16)
-  %26 := Call int @test.use<int>(-1)
-  %27 := Call int @test.use<int>(1073741823)
-  %28 := Call bool @test.use<bool>(false)
+  %16 := Call int @test.use<Int>(-56)
+  %17 := Call int @test.use<Int>(3)
+  %18 := Call int @test.use<Int>(-1)
+  %19 := Call int @test.use<Int>(14)
+  %20 := Call int @test.use<Int>(8)
+  %21 := Call int @test.use<Int>(1)
+  %22 := Call int @test.use<Int>(8)
+  %23 := Call int @test.use<Int>(14)
+  %24 := Call int @test.use<Int>(6)
+  %25 := Call int @test.use<Int>(16)
+  %26 := Call int @test.use<Int>(-1)
+  %27 := Call int @test.use<Int>(1073741823)
+  %28 := Call bool @test.use<Bool>(false)
   Ret
 }
 
 func unit @test.testLong() {
-  %29 := Call int @test.use<int>(-56)
-  %30 := Call int @test.use<int>(3)
-  %31 := Call int @test.use<int>(-1)
-  %32 := Call int @test.use<int>(14)
-  %33 := Call int @test.use<int>(8)
-  %34 := Call int @test.use<int>(1)
-  %35 := Call int @test.use<int>(8)
-  %36 := Call int @test.use<int>(14)
-  %37 := Call int @test.use<int>(6)
-  %38 := Call int @test.use<int>(16)
-  %39 := Call int @test.use<int>(-1)
-  %40 := Call int @test.use<int>(1073741823)
-  %41 := Call bool @test.use<bool>(false)
+  %29 := Call int @test.use<Int>(-56)
+  %30 := Call int @test.use<Int>(3)
+  %31 := Call int @test.use<Int>(-1)
+  %32 := Call int @test.use<Int>(14)
+  %33 := Call int @test.use<Int>(8)
+  %34 := Call int @test.use<Int>(1)
+  %35 := Call int @test.use<Int>(8)
+  %36 := Call int @test.use<Int>(14)
+  %37 := Call int @test.use<Int>(6)
+  %38 := Call int @test.use<Int>(16)
+  %39 := Call int @test.use<Int>(-1)
+  %40 := Call int @test.use<Int>(1073741823)
+  %41 := Call bool @test.use<Bool>(false)
   Ret
 }
 
 func unit @test.testBool() {
-  %42 := Call bool @test.use<bool>(false)
-  %43 := Call bool @test.use<bool>(false)
-  %44 := Call bool @test.use<bool>(true)
-  %45 := Call bool @test.use<bool>(false)
-  %46 := Call bool @test.use<bool>(true)
+  %42 := Call bool @test.use<Bool>(false)
+  %43 := Call bool @test.use<Bool>(false)
+  %44 := Call bool @test.use<Bool>(true)
+  %45 := Call bool @test.use<Bool>(false)
+  %46 := Call bool @test.use<Bool>(true)
   Ret
 }
 
 func unit @test.testUnit() {
-  %47 := Call bool @test.use<bool>(true)
-  %48 := Call bool @test.use<bool>(false)
+  %47 := Call bool @test.use<Bool>(true)
+  %48 := Call bool @test.use<Bool>(false)
   %49 := Call unit @test.unit()
   %50 := Call unit @test.unit()
-  %51 := Call bool @test.use<bool>(true)
+  %51 := Call bool @test.use<Bool>(true)
   %52 := Call unit @test.unit()
   %53 := Call unit @test.unit()
-  %54 := Call bool @test.use<bool>(false)
+  %54 := Call bool @test.use<Bool>(false)
   Ret
 }
 
 func unit @test.testShift() {
-  %55 := Call int @test.use<int>(4)
-  %56 := Call int @test.use<int>(4)
+  %55 := Call int @test.use<Int>(4)
+  %56 := Call int @test.use<Int>(4)
   Ret
 }
 
 func int @test.main() {
-  %57 := Call fn @test.use<fn>(@test.testInt)
-  %58 := Call fn @test.use<fn>(@test.testByte)
-  %59 := Call fn @test.use<fn>(@test.testLong)
-  %60 := Call fn @test.use<fn>(@test.testBool)
-  %61 := Call fn @test.use<fn>(@test.testUnit)
-  %62 := Call fn @test.use<fn>(@test.testShift)
+  %57 := Call fn @test.use<Function>(@test.testInt)
+  %58 := Call fn @test.use<Function>(@test.testByte)
+  %59 := Call fn @test.use<Function>(@test.testLong)
+  %60 := Call fn @test.use<Function>(@test.testBool)
+  %61 := Call fn @test.use<Function>(@test.testUnit)
+  %62 := Call fn @test.use<Function>(@test.testShift)
   Ret 0
 }

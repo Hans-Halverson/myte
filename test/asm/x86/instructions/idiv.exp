@@ -53,41 +53,41 @@ test.divLongRegs:
   ret
 _main:
   leaq test.divByteRegs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.divByteImmReg(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.divByteRegImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.divIntRegs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.divIntRegImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.divIntImmReg(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.divLongRegs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.divLongRegImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.divLongImmReg(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.remByteRegs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.remByteImmReg(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.remByteRegImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.remIntRegs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.remIntRegImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.remIntImmReg(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.remLongRegs(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.remLongRegImm(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.remLongImmReg(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   movl $0, %eax
   ret
 test.remByteImmReg:
@@ -149,6 +149,6 @@ test.remLongRegs:
   idivq %rsi
   movq %rdx, %rax
   ret
-test.use$fn$:
+test.use$Function$:
   movq %rdi, %rax
   ret

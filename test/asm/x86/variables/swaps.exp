@@ -28,11 +28,11 @@ test.longSwap:
   jmp .L1
 _main:
   leaq test.swap(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.doubleSwap(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   leaq test.longSwap(%rip), %rdi
-  call test.use$fn$
+  call test.use$Function$
   movl $0, %eax
   ret
 test.swap:
@@ -43,5 +43,5 @@ test.swap:
   movl %ecx, %edx
   movl %eax, %ecx
   jmp .L2
-test.use$fn$:
+test.use$Function$:
   ret
