@@ -1,0 +1,41 @@
+module test
+
+import std.test.{assertNone, assertSome}
+
+fun unwrapSameType(x: Option<Int>, y: Option<Int>): Option<Int> {
+  return Some (x? + y?);
+}
+
+fun testUnwrapSameType() {
+  assertNone(unwrapSameType(None, None));
+  assertNone(unwrapSameType(Some (1), None));
+  assertNone(unwrapSameType(None, Some (1)));
+  assertSome(unwrapSameType(Some (2), Some (10)), 12);
+}
+
+fun unwrapDifferentType(x: Option<Int>, y: Option<Long>): Option<Byte> {
+  return Some (x?.toByte() + y?.toByte());
+}
+
+fun testUnwrapDifferentType() {
+  assertNone(unwrapDifferentType(None, None));
+  assertNone(unwrapDifferentType(Some (1), None));
+  assertNone(unwrapDifferentType(None, Some (1)));
+  assertSome(unwrapDifferentType(Some (2), Some (10)), 12);
+}
+
+fun doubleUnwrap(x: Option<Option<Int>>): Option<Int> {
+  return Some (x?? + 1);
+}
+
+fun testDoubleUnwrap() {
+  assertNone(doubleUnwrap(None));
+  assertNone(doubleUnwrap(Some (None)));
+  assertSome(doubleUnwrap(Some (Some (1))), 2);
+}
+
+fun main() {
+  testUnwrapSameType();
+  testUnwrapDifferentType();
+  testDoubleUnwrap();
+}

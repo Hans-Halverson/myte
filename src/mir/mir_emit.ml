@@ -184,10 +184,8 @@ and emit_function_body ~ecx name decl =
     | _ -> params
   in
 
-  (*  *)
-  let return_ty = Ecx.find_rep_non_generic_type ~ecx func_decl.return in
-
   (* Build IR for function body *)
+  let return_ty = Ecx.find_rep_non_generic_type ~ecx func_decl.return in
   Ecx.set_current_func ~ecx name return_ty;
   let body_start_block = Ecx.start_new_block ~ecx in
   (match body with

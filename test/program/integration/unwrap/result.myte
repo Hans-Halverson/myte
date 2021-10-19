@@ -1,0 +1,41 @@
+module test
+
+import std.test.{assertError, assertOk}
+
+fun unwrapSameType(x: Result<Byte, Int>, y: Result<Byte, Int>): Result<Byte, Int> {
+  return Ok (x? + y?);
+}
+
+fun testUnwrapSameType() {
+  assertError(unwrapSameType(Error (1), Error (2)), 1);
+  assertError(unwrapSameType(Ok (1), Error (2)), 2);
+  assertError(unwrapSameType(Error (1), Ok (2)), 1);
+  assertOk(unwrapSameType(Ok (2), Ok (10)), 12);
+}
+
+fun unwrapDifferentType(x: Result<Int, Bool>, y: Result<Long, Bool>): Result<Byte, Bool> {
+  return Ok (x?.toByte() + y?.toByte());
+}
+
+fun testUnwrapDifferentType() {
+  assertError(unwrapDifferentType(Error (true), Error (false)), true);
+  assertError(unwrapDifferentType(Ok (1), Error (false)), false);
+  assertError(unwrapDifferentType(Error (true), Ok (1)), true);
+  assertOk(unwrapDifferentType(Ok (2), Ok (10)), 12);
+}
+
+fun doubleUnwrap(x: Result<Result<Int, Bool>, Bool>): Result<Int, Bool> {
+  return Ok (x?? + 1);
+}
+
+fun testDoubleUnwrap() {
+  assertError(doubleUnwrap(Error (false)), false);
+  assertError(doubleUnwrap(Ok (Error (true))), true);
+  assertOk(doubleUnwrap(Ok (Ok (1))), 2);
+}
+
+fun main() {
+  testUnwrapSameType();
+  testUnwrapDifferentType();
+  testDoubleUnwrap();
+}

@@ -65,6 +65,16 @@ fun assertOk<T: Equatable, E>(actual: Result<T, E>, expected: T) {
   }
 }
 
+fun assertError<T, E: Equatable>(actual: Result<T, E>, expected: E) {
+  match (actual) {
+    | Ok _ -> fail()
+    | Error (actual) ->
+      if (actual != expected) {
+        fail();
+      }
+  }
+}
+
 fun assertVecEqual<T: Equatable>(actual: Vec<T>, expected: Vec<T>) {
   assertEqual(actual.size, expected.size);
 

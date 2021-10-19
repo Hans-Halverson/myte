@@ -48,10 +48,7 @@ methods BufferedWriter<W: Writer> {
    */
   fun writeByte(byte: Byte): Result<Unit, IOError> {
     if (this.nextPos >= this.bufferSize) {
-      match (this.flush()) {
-        | Error _ as err -> return err
-        | _ -> {}
-      }
+      this.flush()?;
     }
 
     this.buffer[this.nextPos] = byte;
@@ -67,10 +64,7 @@ methods BufferedWriter<W: Writer> {
     // If written data is too large for buffer, flush buffer and write new data directly to output,
     // bypassing buffer.
     if (bytes.size > this.bufferSize) {
-      match (this.flush()) {
-        | Error _ as err -> return err
-        | _ -> {}
-      }
+      this.flush()?;
 
       return this.writer.write(bytes);
     }
@@ -90,10 +84,7 @@ methods BufferedWriter<W: Writer> {
     Vec.copyRange(this.buffer, this.nextPos, bytes, 0, chunkSize1);
     this.nextPos = this.bufferSize;
 
-    match (this.flush()) {
-      | Error _ as err -> return err
-      | _ -> {}
-    }
+    this.flush()?;
 
     // Second chunk is simply copied into buffer
     val chunkSize2 = bytes.size - chunkSize1;
@@ -121,14 +112,11 @@ methods BufferedWriter<W: Writer> {
     }
 
     this.buffer.size = this.nextPos;
-    match (this.writer.write(this.buffer)) {
-      | Ok _ as ok -> {
-        this.nextPos = 0;
-        this.buffer.size = this.bufferSize;
+    this.writer.write(this.buffer)?;
 
-        return ok;
-      }
-      | Error _ as err -> return err
-    }
+    this.nextPos = 0;
+    this.buffer.size = this.bufferSize;
+
+    return Ok (());
   }
 }
