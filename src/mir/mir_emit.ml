@@ -563,16 +563,13 @@ and emit_expression_without_promotion ~ecx expr =
     (* Find MIR ADT layout for this constructor *)
     let adt = type_of_loc ~ecx loc in
     let (type_args, adt_sig) = Type_util.cast_to_adt_type adt in
-    let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
-    (match mir_adt_layout.layout with
+    let layout = Ecx.get_mir_adt_layout ~ecx adt_sig type_args in
+    (match layout with
     (* If layout is an aggregate, construct record *)
-    | Aggregate _ ->
-      let agg = Ecx.instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args in
-      emit_construct_record ~ecx ~tag:None agg fields
+    | Aggregate agg -> emit_construct_record ~ecx ~tag:None agg fields
     (* If layout is a variant, construct record and set variant tag *)
-    | Variants { tags; _ } ->
-      let instance = Ecx.instantiate_mir_adt_variants_layout ~ecx mir_adt_layout type_args in
-      let record_variant_agg = SMap.find name instance.variants in
+    | Variants { tags; variants; _ } ->
+      let record_variant_agg = SMap.find name variants in
       let tag = SMap.find name tags in
       emit_construct_record ~ecx ~tag:(Some tag) record_variant_agg fields
     | InlineValue _
@@ -1025,9 +1022,9 @@ and emit_expression_access_chain ~ecx expr =
     | Tuple _ -> emit_get_pointer_index ()
     (* If layout is aggregate, index like normal tuple, otherwise is single element tuple so do
        not need to index at all. *)
-    | ADT { adt_sig; _ } ->
-      let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
-      (match mir_adt_layout.layout with
+    | ADT { adt_sig; type_args } ->
+      let layout = Ecx.get_mir_adt_layout ~ecx adt_sig type_args in
+      (match layout with
       | Aggregate _ -> emit_get_pointer_index ()
       | InlineValue _ -> (root_var, [])
       | Variants _
@@ -1060,11 +1057,10 @@ and emit_expression_access_chain ~ecx expr =
     in
     (* Find MIR ADT layout for this record *)
     let (type_args, adt_sig) = Type_util.cast_to_adt_type target_ty in
-    let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
-    match mir_adt_layout.layout with
+    let layout = Ecx.get_mir_adt_layout ~ecx adt_sig type_args in
+    match layout with
     (* If layout is aggregate, index its field with a GetPointer offset *)
-    | Aggregate _ ->
-      let agg = Ecx.instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args in
+    | Aggregate agg ->
       (* Find element index in the corresponding aggregate type *)
       let (_, element_idx) = lookup_element agg name in
       (root_var, [GetPointer.FieldIndex element_idx])
@@ -1489,14 +1485,13 @@ and emit_store_tag ~ecx tag ptr_var_id =
 
 and emit_construct_enum_variant ~ecx ~name ~ty =
   let (type_args, adt_sig) = Type_util.cast_to_adt_type ty in
-  let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
-  match mir_adt_layout.layout with
+  let layout = Ecx.get_mir_adt_layout ~ecx adt_sig type_args in
+  match layout with
   (* Enum constructor is a pure integer, and tag is its direct value *)
   | PureEnum { tags; _ } -> (SMap.find name tags :> Value.t)
   (* Enum constructor is part of a variant type, so allocate union aggregate and set tag *)
-  | Variants { tags; _ } ->
-    let instance = Ecx.instantiate_mir_adt_variants_layout ~ecx mir_adt_layout type_args in
-    let union_ty = `AggregateT instance.union in
+  | Variants { tags; union; _ } ->
+    let union_ty = `AggregateT union in
 
     (* Call myte_alloc builtin to allocate space for variant's union aggregate *)
     let ptr_var_id = mk_var_id () in
@@ -1517,17 +1512,15 @@ and emit_construct_tuple_variant
     ~ecx ~(name : string) ~(ty : Types.Type.t) ~(mk_elements : (unit -> Value.t) list) =
   (* Find MIR ADT layout this constructor *)
   let (type_args, adt_sig) = Type_util.cast_to_adt_type ty in
-  let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
-  match mir_adt_layout.layout with
+  let layout = Ecx.get_mir_adt_layout ~ecx adt_sig type_args in
+  match layout with
   (* If layout is an aggregate, construct tuple *)
-  | Aggregate _ ->
-    let agg = Ecx.instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args in
+  | Aggregate agg ->
     let agg_ptr_val = emit_construct_tuple ~ecx ~tag:None ~agg ~mk_elements in
     agg_ptr_val
   (* If layout is a variant, construct tuple and set variant tag *)
-  | Variants { tags; _ } ->
-    let instance = Ecx.instantiate_mir_adt_variants_layout ~ecx mir_adt_layout type_args in
-    let tuple_variant_agg = SMap.find name instance.variants in
+  | Variants { tags; variants; _ } ->
+    let tuple_variant_agg = SMap.find name variants in
     let tag = SMap.find name tags in
     let agg_ptr_val =
       emit_construct_tuple ~ecx ~tag:(Some tag) ~agg:tuple_variant_agg ~mk_elements
@@ -1990,14 +1983,13 @@ and emit_option_destructuring
     ~(some_branch_builder : Ecx.BlockBuilder.t)
     ~(none_branch_builder : Ecx.BlockBuilder.t) =
   (* Find aggregate data for option *)
-  let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx !Std_lib.option_adt_sig in
+  let layout = Ecx.get_mir_adt_layout ~ecx !Std_lib.option_adt_sig [item_ty] in
   let variants_layout =
-    match mir_adt_layout.layout with
+    match layout with
     | Variants variants_layout -> variants_layout
     | _ -> failwith "Expected variants layout"
   in
-  let instance = Ecx.instantiate_mir_adt_variants_layout ~ecx mir_adt_layout [item_ty] in
-  let some_aggregate = SMap.find "Some" instance.variants in
+  let some_aggregate = SMap.find "Some" variants_layout.variants in
   let some_tag = SMap.find "Some" variants_layout.tags in
   let tag_type = type_of_value (some_tag :> Value.t) in
 
@@ -2038,15 +2030,14 @@ and emit_result_destructuring
     ~(ok_branch_builder : Ecx.BlockBuilder.t)
     ~(error_branch_builder : Ecx.BlockBuilder.t) =
   (* Find aggregate data for result *)
-  let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx !Std_lib.result_adt_sig in
+  let layout = Ecx.get_mir_adt_layout ~ecx !Std_lib.result_adt_sig [ok_ty; error_ty] in
   let variants_layout =
-    match mir_adt_layout.layout with
+    match layout with
     | Variants variants_layout -> variants_layout
     | _ -> failwith "Expected variants layout"
   in
-  let instance = Ecx.instantiate_mir_adt_variants_layout ~ecx mir_adt_layout [ok_ty; error_ty] in
-  let ok_aggregate = SMap.find "Ok" instance.variants in
-  let error_aggregate = SMap.find "Error" instance.variants in
+  let ok_aggregate = SMap.find "Ok" variants_layout.variants in
+  let error_aggregate = SMap.find "Error" variants_layout.variants in
   let ok_tag = SMap.find "Ok" variants_layout.tags in
   let tag_type = type_of_value (ok_tag :> Value.t) in
 
@@ -2329,10 +2320,10 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
             Ecx.emit ~ecx (Eq (test_var_id, scrutinee_val, case_val));
             `BoolV test_var_id)
       (* Variants are tested by loading their tag and checking against scrutinee in if-else chain *)
-      | (Variant (_, adt_sig, _), _) ->
-        let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
+      | (Variant (_, adt_sig, type_args), _) ->
+        let layout = Ecx.get_mir_adt_layout ~ecx adt_sig type_args in
         let (scrutinee_tag_val, tags, path_cache) =
-          match mir_adt_layout.layout with
+          match layout with
           (* If layout is a variant then load tag value so it can be tested *)
           | Variants layout ->
             let tag_type = (layout.tag_mir_type :> Type.t) in
@@ -2406,22 +2397,23 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
             (* Look up field in single variant (aggregate) types *)
             | VariantField { field; adt_sig; type_args; _ } when SMap.cardinal adt_sig.variants = 1
               ->
-              let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
-              let agg = Ecx.instantiate_mir_adt_aggregate_layout ~ecx mir_adt_layout type_args in
-              let field_key = get_field_key field in
-              (agg, field_key, pointer_val)
+              (match Ecx.get_mir_adt_layout ~ecx adt_sig type_args with
+              | Aggregate agg ->
+                let field_key = get_field_key field in
+                (agg, field_key, pointer_val)
+              | _ -> failwith "Expected aggregate layout")
             (* For variant fields we must find the correct variant aggregate, fetch its field key,
                and cast the pointer to the variant aggregate type. *)
             | VariantField { field; variant_name; adt_sig; type_args; _ } ->
-              let mir_adt_layout = Ecx.get_mir_adt_layout ~ecx adt_sig in
-              let instance =
-                Ecx.instantiate_mir_adt_variants_layout ~ecx mir_adt_layout type_args
-              in
-              let variant_aggregate = SMap.find variant_name instance.variants in
-              let field_key = get_field_key field in
-              let variant_agg_type = `AggregateT variant_aggregate in
-              (variant_aggregate, field_key, cast_pointer_value pointer_val variant_agg_type)
+              (match Ecx.get_mir_adt_layout ~ecx adt_sig type_args with
+              | Variants { variants; _ } ->
+                let variant_aggregate = SMap.find variant_name variants in
+                let field_key = get_field_key field in
+                let variant_agg_type = `AggregateT variant_aggregate in
+                (variant_aggregate, field_key, cast_pointer_value pointer_val variant_agg_type)
+              | _ -> failwith "Expected variants layout")
           in
+
           let (element_type, element_index) = lookup_element aggregate field_key in
           let (element_ptr_val, get_ptr_instr) =
             mk_get_pointer_instr

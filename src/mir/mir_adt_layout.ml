@@ -8,26 +8,11 @@ type tag_type =
   | `IntT
   ]
 
-type template =
+type variant_template =
   | TupleTemplate of Type.t list
   | RecordTemplate of (Type.t * Loc.t) SMap.t
 
-type 'a instantiations =
-  (* A concrete layout. Lazy fill the value if this type is actually used. *)
-  | Concrete of 'a option ref
-  (* A generic layout. Table maps from instantiations of this ADT that have been created (aka
-     configurations of type arguments that have been used) to the value instantiated with those
-     type arguments. *)
-  | Generic of 'a TypeArgsHashtbl.t
-
-module MirAdtAggregateLayout = struct
-  type t = {
-    template: template;
-    instantiations: Aggregate.t instantiations;
-  }
-end
-
-module MirAdtPureEnumLayout = struct
+module PureEnumLayout = struct
   type t = {
     tags: Mir.Value.numeric_value SMap.t;
     tag_mir_type: tag_type;
@@ -53,23 +38,27 @@ end
  *
  * In the Aggregate, the tag has key "$tag", and all paddings have key "$padding".
  *)
-module MirAdtVariantsLayout = struct
+module VariantsTemplate = struct
   type t = {
     (* Tags for all variants, indexed by variant name *)
     tags: Mir.Value.numeric_value SMap.t;
     tag_mir_type: tag_type;
     (* Templates for all data variants, indexed by variant name. Templates do not contain any
        padding - padding is calculated during instantiation. *)
-    templates: template SMap.t;
-    instantiations: instance instantiations;
+    templates: variant_template SMap.t;
     variant_locs: Loc.t SMap.t;
   }
+end
 
-  and instance = {
-    (* Total size of union in bytes. Equal to the size of the largest variant layout in the union. *)
-    mutable size: int;
+module VariantsLayout = struct
+  type t = {
+    (* Tags for all variants, indexed by variant name *)
+    tags: Mir.Value.numeric_value SMap.t;
+    tag_mir_type: tag_type;
     (* Concrete instance for the union of all variants, (also the instance for enum variants) *)
     union: Aggregate.t;
+    (* Total size of union in bytes. Equal to the size of the largest variant layout in the union. *)
+    mutable size: int;
     (* Concrete instances of all data variants *)
     mutable variants: Aggregate.t SMap.t;
   }
@@ -80,14 +69,27 @@ module MirAdtLayout = struct
     adt_sig: AdtSig.t;
     name: string;
     loc: Loc.t;
-    layout: layout;
+    template: template;
+    layouts: layouts;
   }
 
+  and template =
+    | SingleTemplate of variant_template
+    | VariantsTemplate of VariantsTemplate.t
+
+  and layouts =
+    (* A concrete layout. Lazily fill the value if this type is actually used. *)
+    | Concrete of layout option ref
+    (* A generic layout. Table maps from instantiations of this ADT that have been created (aka
+       configurations of type arguments that have been used) to the value instantiated with those
+       type arguments. *)
+    | Generic of layout TypeArgsHashtbl.t
+
   and layout =
-    | Aggregate of MirAdtAggregateLayout.t
-    | Variants of MirAdtVariantsLayout.t
-    | PureEnum of MirAdtPureEnumLayout.t
-    | InlineValue of Type.t
+    | Aggregate of Aggregate.t
+    | Variants of VariantsLayout.t
+    | PureEnum of PureEnumLayout.t
+    | InlineValue of Mir_type.Type.t
 end
 
 let tag_key = "$tag"
@@ -185,3 +187,24 @@ let add_end_padding elements current_size target_size =
       | hd :: tl -> hd :: add_to_end tl
     in
     add_to_end elements
+
+(* A single element tuple can be inlined as long as it does not contain itself anywhere in the type
+   of its single element. Must recurse through other inlined single element tuples as it may be cyclic. *)
+let rec can_inline_single_element_tuple (root_adt_sig : Types.AdtSig.t) (element_ty : Types.Type.t)
+    =
+  let check_types = List.for_all (can_inline_single_element_tuple root_adt_sig) in
+  match element_ty with
+  | Types.Type.ADT { adt_sig; _ } when adt_sig.id = root_adt_sig.id -> false
+  | ADT { type_args; adt_sig } ->
+    check_types type_args
+    &&
+    (* Recurse into other inlined non-variant single element tuples *)
+    if SMap.cardinal adt_sig.variants = 1 then
+      match SMap.choose adt_sig.variants with
+      | (_, { kind = Tuple [single_element]; _ }) ->
+        can_inline_single_element_tuple root_adt_sig single_element
+      | _ -> true
+    else
+      true
+  | Tuple elements -> check_types elements
+  | _ -> true
