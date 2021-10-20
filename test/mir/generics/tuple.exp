@@ -8,7 +8,7 @@ type test.Tup1<Bool> {int, bool}
 
 type test.Tup1<Int> {int, int}
 
-func unit @test.testConstructor() {
+func void @test.testConstructor() {
   %0 := CallBuiltin test.Tup1<Int>* myte_alloc(1)
   %1 := GetPointer int, test.Tup1<Int>* %0.0
   Store int %1, 1
@@ -22,7 +22,7 @@ func unit @test.testConstructor() {
   Ret
 }
 
-func unit @test.testAnonymousConstructor() {
+func void @test.testAnonymousConstructor() {
   %6 := CallBuiltin $tuple<Int,Int>* myte_alloc(1)
   %7 := GetPointer int, $tuple<Int,Int>* %6.0
   Store int %7, 1
@@ -48,7 +48,7 @@ func unit @test.testAnonymousConstructor() {
   Ret
 }
 
-func unit @test.testIndexing(test.Tup1<Int>* %19, test.Tup1<Bool>* %20) {
+func void @test.testIndexing(test.Tup1<Int>* %19, test.Tup1<Bool>* %20) {
   %21 := GetPointer int, test.Tup1<Int>* %19.1
   %22 := Load int %21
   %23 := GetPointer bool, test.Tup1<Bool>* %20.1
@@ -56,7 +56,7 @@ func unit @test.testIndexing(test.Tup1<Int>* %19, test.Tup1<Bool>* %20) {
   Ret
 }
 
-func unit @test.testAnonymousIndexing($tuple<Int,Int>* %25, $tuple<Int,Bool>* %26) {
+func void @test.testAnonymousIndexing($tuple<Int,Int>* %25, $tuple<Int,Bool>* %26) {
   %27 := GetPointer int, $tuple<Int,Int>* %25.1
   %28 := Load int %27
   %29 := GetPointer bool, $tuple<Int,Bool>* %26.1
@@ -64,14 +64,14 @@ func unit @test.testAnonymousIndexing($tuple<Int,Int>* %25, $tuple<Int,Bool>* %2
   Ret
 }
 
-func unit @test.use<Function>(fn %31) {
+func void @test.use<Function>(fn %31) {
   Ret
 }
 
 func int @test.main() {
-  %32 := Call unit @test.use<Function>(@test.testConstructor)
-  %33 := Call unit @test.use<Function>(@test.testAnonymousConstructor)
-  %34 := Call unit @test.use<Function>(@test.testIndexing)
-  %35 := Call unit @test.use<Function>(@test.testAnonymousIndexing)
+  Call void @test.use<Function>(@test.testConstructor)
+  Call void @test.use<Function>(@test.testAnonymousConstructor)
+  Call void @test.use<Function>(@test.testIndexing)
+  Call void @test.use<Function>(@test.testAnonymousIndexing)
   Ret 0
 }

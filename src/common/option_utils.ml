@@ -14,3 +14,8 @@ let value_map f ~default o =
   match o with
   | None -> default
   | Some x -> f x
+
+let flat_map f o =
+  match o with
+  | None -> None
+  | Some x -> f x

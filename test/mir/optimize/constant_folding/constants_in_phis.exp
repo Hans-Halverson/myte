@@ -17,7 +17,7 @@ label @3:
   Ret %5
 }
 
-func unit @test.test3() {
+func void @test.test3() {
   continue @4
 label @4:
   %7 := Phi int @test.test3:1, @5:%6
@@ -31,13 +31,13 @@ label @6:
   Ret
 }
 
-func unit @test.use<Function>(fn %10) {
+func void @test.use<Function>(fn %10) {
   Ret
 }
 
 func int @test.main() {
-  %11 := Call unit @test.use<Function>(@test.test1)
-  %12 := Call unit @test.use<Function>(@test.test2)
-  %13 := Call unit @test.use<Function>(@test.test3)
+  Call void @test.use<Function>(@test.test1)
+  Call void @test.use<Function>(@test.test2)
+  Call void @test.use<Function>(@test.test3)
   Ret 0
 }

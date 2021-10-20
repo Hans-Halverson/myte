@@ -90,6 +90,7 @@ module MirAdtLayout = struct
     | Variants of VariantsLayout.t
     | PureEnum of PureEnumLayout.t
     | InlineValue of Mir_type.Type.t
+    | ZeroSize
 end
 
 let tag_key = "$tag"
@@ -106,7 +107,6 @@ let mk_padding_element (size : int) : string * Mir_type.Type.t =
 
 let rec size_of_type mir_type =
   match mir_type with
-  | `UnitT
   | `BoolT
   | `ByteT ->
     1

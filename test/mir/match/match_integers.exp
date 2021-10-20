@@ -62,14 +62,14 @@ label @15:
   Ret %19
 }
 
-func unit @test.use<Function>(fn %20) {
+func void @test.use<Function>(fn %20) {
   Ret
 }
 
 func int @test.main() {
-  %21 := Call unit @test.use<Function>(@test.testBytes)
-  %22 := Call unit @test.use<Function>(@test.testInts)
-  %23 := Call unit @test.use<Function>(@test.testLongs)
-  %24 := Call unit @test.use<Function>(@test.testCharLiterals)
+  Call void @test.use<Function>(@test.testBytes)
+  Call void @test.use<Function>(@test.testInts)
+  Call void @test.use<Function>(@test.testLongs)
+  Call void @test.use<Function>(@test.testCharLiterals)
   Ret 0
 }

@@ -1,4 +1,4 @@
-func unit @test.test1() {
+func void @test.test1() {
   branch true, @0, @3
 label @0:
   branch false, @1, @2
@@ -23,7 +23,7 @@ label @6:
   Ret
 }
 
-func unit @test.test2() {
+func void @test.test2() {
   branch true, @7, @10
 label @7:
   branch false, @8, @9
@@ -49,7 +49,7 @@ label @13:
   Ret
 }
 
-func unit @test.test3() {
+func void @test.test3() {
   branch true, @14, @17
 label @14:
   branch false, @15, @16
@@ -75,7 +75,7 @@ label @20:
   Ret
 }
 
-func unit @test.test4() {
+func void @test.test4() {
   branch true, @21, @24
 label @21:
   branch false, @22, @23
@@ -102,14 +102,14 @@ label @27:
   Ret
 }
 
-func unit @test.use<Function>(fn %32) {
+func void @test.use<Function>(fn %32) {
   Ret
 }
 
 func int @test.main() {
-  %33 := Call unit @test.use<Function>(@test.test1)
-  %34 := Call unit @test.use<Function>(@test.test2)
-  %35 := Call unit @test.use<Function>(@test.test3)
-  %36 := Call unit @test.use<Function>(@test.test4)
+  Call void @test.use<Function>(@test.test1)
+  Call void @test.use<Function>(@test.test2)
+  Call void @test.use<Function>(@test.test3)
+  Call void @test.use<Function>(@test.test4)
   Ret 0
 }

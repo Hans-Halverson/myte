@@ -18,7 +18,7 @@ func bool @test.RecordType.setThenGet(test.RecordType* %6, bool %7) {
   Ret %9
 }
 
-func unit @test.testRecordType(test.RecordType* %10) {
+func void @test.testRecordType(test.RecordType* %10) {
   %11 := Call bool @test.RecordType.setThenGet(%10, true)
   Ret
 }
@@ -39,17 +39,17 @@ func bool @test.Trait.setThenGet<test.InheritsType>(test.InheritsType* %15, bool
 
 type test.InheritsType {int}
 
-func unit @test.testInheritsType(test.InheritsType* %19) {
+func void @test.testInheritsType(test.InheritsType* %19) {
   %20 := Call bool @test.Trait.setThenGet<test.InheritsType>(%19, true)
   Ret
 }
 
-func unit @test.use<Function>(fn %21) {
+func void @test.use<Function>(fn %21) {
   Ret
 }
 
 func int @test.main() {
-  %22 := Call unit @test.use<Function>(@test.testRecordType)
-  %23 := Call unit @test.use<Function>(@test.testInheritsType)
+  Call void @test.use<Function>(@test.testRecordType)
+  Call void @test.use<Function>(@test.testInheritsType)
   Ret 0
 }

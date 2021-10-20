@@ -461,7 +461,14 @@ and rewrite_program ~cx program =
               | Halt -> Block.Halt
               | Continue continue -> Continue (map_next_id continue)
               | Branch { test; continue; jump } ->
-                Branch { test; continue = map_next_id continue; jump = map_next_id jump }
+                let new_continue = map_next_id continue in
+                let new_jump = map_next_id jump in
+                (* If both branches points to same label convert to continue *)
+                if new_continue = new_jump then
+                  Continue new_continue
+                else
+                  (* Otherwise create branch to new block *)
+                  Branch { test; continue = new_continue; jump = new_jump }
             in
             block.next <- next')
           prev_blocks;

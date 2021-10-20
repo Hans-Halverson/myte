@@ -73,6 +73,14 @@ type t = {
   mutable max_string_literal_id: int;
 }
 
+let mk_aggregate ~ecx name loc elements =
+  let aggregate = { Aggregate.id = mk_aggregate_id (); name; loc; elements } in
+  ecx.types <- SMap.add name aggregate ecx.types;
+  aggregate
+
+(* Create a placeholder aggregate (during type instantiation) that will be filled in later *)
+let mk_placeholder_aggregate ~ecx name loc = mk_aggregate ~ecx name loc []
+
 let mk ~pcx =
   {
     pcx;
@@ -286,14 +294,26 @@ and instantiate_mir_adt_layout
   | SingleTemplate (TupleTemplate [element])
     when Opts.optimize () && can_inline_single_element_tuple mir_adt_layout.adt_sig element ->
     let ty = Types.substitute_type_params type_param_bindings element in
-    let mir_type = to_mir_type ~ecx ty in
-    MirAdtLayout.InlineValue mir_type
+    (match to_mir_type ~ecx ty with
+    | None -> MirAdtLayout.ZeroSize
+    | Some mir_type -> InlineValue mir_type)
   | SingleTemplate ((TupleTemplate _ | RecordTemplate _) as template) ->
     let parameterized_name = mir_adt_layout.name ^ TypeArgs.to_string ~pcx:ecx.pcx type_args in
     let aggregate = mk_placeholder_aggregate ~ecx parameterized_name mir_adt_layout.loc in
     set_layout (Aggregate aggregate);
-    aggregate.elements <- instantiate_mir_adt_template_elements ~ecx template type_param_bindings;
-    Aggregate aggregate
+    let elements = instantiate_mir_adt_template_elements ~ecx template type_param_bindings in
+    if elements <> [] then (
+      aggregate.elements <- elements;
+      Aggregate aggregate
+    ) else (
+      (* If aggregate has only zero size elements then entire layout is zero size. Remove
+         placeholder aggregate that was temporarily created. This is safe, meaning no other types
+         can reference the placeholder aggregate, because if they did this would not have had only
+         zero size elements. *)
+      ecx.types <- SMap.remove parameterized_name ecx.types;
+      set_layout ZeroSize;
+      ZeroSize
+    )
   | VariantsTemplate { tags; tag_mir_type; templates; _ } when SMap.is_empty templates ->
     PureEnum { tags; tag_mir_type }
   | VariantsTemplate { tags; tag_mir_type; templates; variant_locs } ->
@@ -345,19 +365,21 @@ and instantiate_mir_adt_layout
 and instantiate_mir_adt_template_elements ~ecx template type_param_bindings =
   match template with
   | TupleTemplate element_sigs ->
-    List.mapi
+    List_utils.filter_mapi
       (fun i element_sig ->
         let element_ty = Types.substitute_type_params type_param_bindings element_sig in
-        let mir_ty = to_mir_type ~ecx element_ty in
-        (TupleKeyCache.get_key i, mir_ty))
+        match to_mir_type ~ecx element_ty with
+        | None -> None
+        | Some mir_type -> Some (TupleKeyCache.get_key i, mir_type))
       element_sigs
   | RecordTemplate field_sigs_and_locs ->
     let aggregate_elements_and_locs =
       SMap.fold
         (fun field_name (field_sig, loc) agg_elements ->
           let element_ty = Types.substitute_type_params type_param_bindings field_sig in
-          let mir_ty = to_mir_type ~ecx element_ty in
-          ((field_name, mir_ty), loc) :: agg_elements)
+          match to_mir_type ~ecx element_ty with
+          | None -> agg_elements
+          | Some mir_type -> ((field_name, mir_type), loc) :: agg_elements)
         field_sigs_and_locs
         []
     in
@@ -367,20 +389,25 @@ and instantiate_mir_adt_template_elements ~ecx template type_param_bindings =
 
 (* Instantiate a tuple with a particular set of element types. If a tuple with these element types
    has already been instantiated, return its aggregate type. Otherwise create new aggregate type for
-   this tuple, save, and return it. *)
+   this tuple, save, and return it.
+   
+   If resulting tuple has no fields return None instead of creating an aggregate. *)
 and instantiate_tuple ~ecx element_types =
-  match TypeArgsHashtbl.find_opt ecx.tuple_instantiations element_types with
-  | Some agg -> agg
-  | None ->
-    let type_args_string = TypeArgs.to_string ~pcx:ecx.pcx element_types in
-    let name = "$tuple" ^ type_args_string in
-    let mir_type_args = List.map (to_mir_type ~ecx) element_types in
-    let agg_elements =
-      List.mapi (fun i mir_ty -> (TupleKeyCache.get_key i, mir_ty)) mir_type_args
-    in
-    let agg = mk_aggregate ~ecx name Loc.none agg_elements in
-    TypeArgsHashtbl.add ecx.tuple_instantiations element_types agg;
-    agg
+  let mir_type_args = List.filter_map (to_mir_type ~ecx) element_types in
+  if mir_type_args = [] then
+    None
+  else
+    match TypeArgsHashtbl.find_opt ecx.tuple_instantiations element_types with
+    | Some agg -> Some agg
+    | None ->
+      let type_args_string = TypeArgs.to_string ~pcx:ecx.pcx element_types in
+      let name = "$tuple" ^ type_args_string in
+      let agg_elements =
+        List.mapi (fun i mir_ty -> (TupleKeyCache.get_key i, mir_ty)) mir_type_args
+      in
+      let agg = mk_aggregate ~ecx name Loc.none agg_elements in
+      TypeArgsHashtbl.add ecx.tuple_instantiations element_types agg;
+      Some agg
 
 and get_trait_object_layout ~ecx (trait_sig : Types.TraitSig.t) =
   match IMap.find_opt trait_sig.id ecx.trait_sig_to_trait_object_layout with
@@ -398,7 +425,7 @@ and get_trait_object_layout ~ecx (trait_sig : Types.TraitSig.t) =
         ~ecx
         trait_object_label
         trait_sig.loc
-        [("item", `PointerT `UnitT); ("vtable", `PointerT (`ArrayT (`FunctionT, vtable_size)))]
+        [("item", `PointerT `ByteT); ("vtable", `PointerT (`ArrayT (`FunctionT, vtable_size)))]
     in
 
     let trait_object_layout =
@@ -410,7 +437,6 @@ and get_trait_object_layout ~ecx (trait_sig : Types.TraitSig.t) =
 
 and instantiate_trait_object_vtable ~ecx trait_instance ty =
   let { Types.TraitSig.trait_sig; type_args } = trait_instance in
-  let mir_type = to_mir_type ~ecx ty in
   let trait_type_args =
     List.map (fun type_arg -> find_rep_non_generic_type ~ecx type_arg) type_args
   in
@@ -482,8 +508,14 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
       };
     let vtable = `PointerL (vtable_mir_type, vtable_label) in
 
-    (* Create aggregate type for type's trait object *)
+    (* Create aggregate type for type's trait object. Default to pointer field (for alignment) if
+       type is zero width and has no MIR representation. *)
     let agg_label = Printf.sprintf "_object$%s$%s" full_adt_name full_trait_name in
+    let mir_type =
+      match to_mir_type ~ecx ty with
+      | Some mir_type -> mir_type
+      | None -> `PointerT (get_zero_size_type ~ecx)
+    in
     let (agg_elements, _) =
       align_and_pad_aggregate_elements [("item", mir_type); ("vtable", `PointerT vtable_mir_type)]
     in
@@ -493,47 +525,73 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
     TypeArgsHashtbl.add trait_instance type_key trait_object_instance;
     trait_object_instance
 
-and to_mir_type ~ecx ty =
+(* 
+ * Convert a type to a MIR type if possible.
+ * 
+ * If type has zero size in MIR, then return None instead of a MIR type.
+ *)
+and to_mir_type ~ecx (ty : Types.Type.t) : Type.t option =
   match ty with
   | Types.Type.Unit
   | Never ->
-    `UnitT
-  | Bool -> `BoolT
-  | Byte -> `ByteT
-  | Int -> `IntT
-  | Long -> `LongT
+    None
+  | Bool -> Some `BoolT
+  | Byte -> Some `ByteT
+  | Int -> Some `IntT
+  | Long -> Some `LongT
   | IntLiteral { resolved; _ }
   | BoundedExistential { resolved; _ } ->
     to_mir_type ~ecx (Option.get resolved)
-  | Function _ -> `FunctionT
+  | Function _ -> Some `FunctionT
   | Tuple elements ->
-    let tuple_agg = instantiate_tuple ~ecx elements in
-    `PointerT (`AggregateT tuple_agg)
+    instantiate_tuple ~ecx elements
+    |> Option.map (fun tuple_agg -> `PointerT (`AggregateT tuple_agg))
   | ADT { adt_sig; type_args = [element_ty] } when adt_sig == !Std_lib.array_adt_sig ->
-    `PointerT (to_mir_type ~ecx element_ty)
+    let mir_type =
+      match to_mir_type ~ecx element_ty with
+      | Some mir_type -> mir_type
+      | None -> get_zero_size_type ~ecx
+    in
+    Some (`PointerT mir_type)
   | ADT { adt_sig; type_args } ->
     let layout = get_mir_adt_layout ~ecx adt_sig type_args in
     (match layout with
-    | Aggregate aggregate -> `PointerT (`AggregateT aggregate)
-    | Variants { union; _ } -> `PointerT (`AggregateT union)
-    | PureEnum { tag_mir_type; _ } -> (tag_mir_type :> Type.t)
-    | InlineValue mir_type -> mir_type)
+    | Aggregate aggregate -> Some (`PointerT (`AggregateT aggregate))
+    | Variants { union; _ } -> Some (`PointerT (`AggregateT union))
+    | PureEnum { tag_mir_type; _ } -> Some (tag_mir_type :> Type.t)
+    | InlineValue mir_type -> Some mir_type
+    | ZeroSize -> None)
   | TraitObject { trait_sig; _ } ->
     let trait_object_layout = get_trait_object_layout ~ecx trait_sig in
-    `PointerT (`AggregateT trait_object_layout.trait_object_agg)
+    Some (`PointerT (`AggregateT trait_object_layout.trait_object_agg))
   | TypeParam _
   | TraitBound _
   | TVar _
   | Any ->
     failwith "Not allowed as value in IR"
 
-and mk_aggregate ~ecx name loc elements =
-  let aggregate = { Aggregate.id = mk_aggregate_id (); name; loc; elements } in
-  ecx.types <- SMap.add name aggregate ecx.types;
-  aggregate
+and get_zero_size_type ~ecx =
+  (* Add zero size type if it does not already exist *)
+  match SMap.find_opt zero_size_name ecx.types with
+  | None ->
+    let agg = mk_placeholder_aggregate ~ecx zero_size_name Loc.none in
+    `AggregateT agg
+  | Some agg -> `AggregateT agg
 
-(* Create a placeholder aggregate (during type instantiation) that will be filled in later *)
-and mk_placeholder_aggregate ~ecx name loc = mk_aggregate ~ecx name loc []
+and get_zero_size_global_pointer ~ecx =
+  (* Add zero size global if it does not already exist *)
+  let zero_size_type = get_zero_size_type ~ecx in
+  if not (SMap.mem zero_size_name ecx.globals) then
+    add_global
+      ~ecx
+      {
+        Global.loc = Loc.none;
+        name = zero_size_name;
+        ty = zero_size_type;
+        init_val = None;
+        is_constant = false;
+      };
+  `PointerL (zero_size_type, zero_size_name)
 
 (*
  * Nongeneric Functions
@@ -681,25 +739,33 @@ let pop_pending_func_instantiation ~ecx =
  * Global Variables
  *)
 
+(*
+ * Return the pointer literal value for a given global variable if the variable exists in MIR.
+ *
+ * If global variable has zero size then instead return None.
+ *)
 let get_global_pointer ~ecx binding =
   let loc = binding.Bindings.ValueBinding.loc in
   let name = mk_value_binding_name binding in
   match SMap.find_opt name ecx.globals with
   (* Global will be in MIR globals map if it has already been created or is pending *)
-  | Some global -> `PointerL (global.ty, global.name)
+  | Some global -> Some (`PointerL (global.ty, global.name))
   | None ->
-    (* Add global to pending globals queue *)
-    let decl_node = LocMap.find loc ecx.global_variable_decl_nodes in
-    ecx.pending_globals <- SMap.add name decl_node ecx.pending_globals;
-
-    (* Add global to MIR globals map *)
     let var_decl = Bindings.get_var_decl binding in
-    let ty = to_mir_type ~ecx (find_rep_non_generic_type ~ecx (TVar var_decl.tvar)) in
-    add_global
-      ~ecx
-      { Global.loc; name; ty; init_val = None; is_constant = decl_node.kind = Immutable };
+    (match to_mir_type ~ecx (find_rep_non_generic_type ~ecx (TVar var_decl.tvar)) with
+    (* Global does not exist if it has zero size type *)
+    | None -> None
+    | Some ty ->
+      (* Add global to pending globals queue *)
+      let decl_node = LocMap.find loc ecx.global_variable_decl_nodes in
+      ecx.pending_globals <- SMap.add name decl_node ecx.pending_globals;
 
-    `PointerL (ty, name)
+      (* Add global to MIR globals map *)
+      add_global
+        ~ecx
+        { Global.loc; name; ty; init_val = None; is_constant = decl_node.kind = Immutable };
+
+      Some (`PointerL (ty, name)))
 
 let pop_pending_global ~ecx =
   match SMap.choose_opt ecx.pending_globals with

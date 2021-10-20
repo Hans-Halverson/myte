@@ -8,11 +8,11 @@ global bool @t.bool2 = true
 
 global bool @t.mixed = true
 
-func unit @t.useBool(bool %0) {
+func void @t.useBool(bool %0) {
   Ret
 }
 
-func unit @t.useInt(int %1) {
+func void @t.useInt(int %1) {
   Ret
 }
 
@@ -21,24 +21,24 @@ func bool @t.rand() {
 }
 
 func int @t.main() {
-  %2 := Call unit @t.useInt(6)
-  %3 := Call unit @t.useBool(false)
-  %4 := Call bool @t.rand()
-  %5 := Call unit @t.useBool(true)
-  %6 := Call unit @t.useAllGlobals()
+  Call void @t.useInt(6)
+  Call void @t.useBool(false)
+  %2 := Call bool @t.rand()
+  Call void @t.useBool(true)
+  Call void @t.useAllGlobals()
   Ret 0
 }
 
-func unit @t.useAllGlobals() {
-  %7 := Load int @t.int1
-  %8 := Call unit @t.useInt(%7)
-  %9 := Load bool @t.bool1
-  %10 := Call unit @t.useBool(%9)
-  %11 := Load int @t.int2
-  %12 := Call unit @t.useInt(%11)
-  %13 := Load bool @t.bool2
-  %14 := Call unit @t.useBool(%13)
-  %15 := Load bool @t.mixed
-  %16 := Call unit @t.useBool(%15)
+func void @t.useAllGlobals() {
+  %3 := Load int @t.int1
+  Call void @t.useInt(%3)
+  %4 := Load bool @t.bool1
+  Call void @t.useBool(%4)
+  %5 := Load int @t.int2
+  Call void @t.useInt(%5)
+  %6 := Load bool @t.bool2
+  Call void @t.useBool(%6)
+  %7 := Load bool @t.mixed
+  Call void @t.useBool(%7)
   Ret
 }

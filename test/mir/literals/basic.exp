@@ -1,4 +1,4 @@
-func unit @_init() {
+func void @_init() {
   %0 := CallBuiltin std.string.String* myte_alloc(1)
   %1 := GetPointer byte*, std.string.String* %0.0
   Store byte* %1, @.S1
@@ -10,35 +10,33 @@ func unit @_init() {
   Ret
 }
 
-func unit @test.use<Bool>(bool %4) {
+func void @test.use<Bool>(bool %4) {
   Ret
 }
 
-func unit @test.use<Byte>(byte %5) {
+func void @test.use<Byte>(byte %5) {
   Ret
 }
 
-func unit @test.use<Function>(fn %6) {
+func void @test.use<Function>(fn %6) {
   Ret
 }
 
-func unit @test.use<Int>(int %7) {
+func void @test.use<Int>(int %7) {
   Ret
 }
 
-func unit @test.use<Long>(long %8) {
+func void @test.use<Long>(long %8) {
   Ret
 }
 
-func unit @test.use<String>(std.string.String* %9) {
+func void @test.use<String>(std.string.String* %9) {
   Ret
 }
 
-func unit @test.use<Unit>(unit %10) {
+func void @test.use<Unit>() {
   Ret
 }
-
-global unit @test.x = ()
 
 global int @test.y1 = 500
 
@@ -59,37 +57,36 @@ global byte[4] @.S1 = "test"
 global bool @test.a1 = true
 
 func int @test.main() {
-  %11 := Call unit @test.use<Int>(0)
-  %12 := Call unit @test.use<Int>(2147483647)
-  %13 := Call unit @test.use<Long>(2147483648)
-  %14 := Add int 2, 4
-  %15 := Add int %14, 6
-  %16 := Call unit @test.use<Int>(%15)
-  %17 := Add long 2, 2147483648
-  %18 := Add long %17, 6
-  %19 := Call unit @test.use<Long>(%18)
-  %20 := Call unit @test.use<Function>(@test.useAll)
+  Call void @test.use<Int>(0)
+  Call void @test.use<Int>(2147483647)
+  Call void @test.use<Long>(2147483648)
+  %10 := Add int 2, 4
+  %11 := Add int %10, 6
+  Call void @test.use<Int>(%11)
+  %12 := Add long 2, 2147483648
+  %13 := Add long %12, 6
+  Call void @test.use<Long>(%13)
+  Call void @test.use<Function>(@test.useAll)
   Ret 0
 }
 
-func unit @test.useAll() {
-  %21 := Load unit @test.x
-  %22 := Call unit @test.use<Unit>(%21)
-  %23 := Load int @test.y1
-  %24 := Call unit @test.use<Int>(%23)
-  %25 := Load byte @test.y2
-  %26 := Call unit @test.use<Byte>(%25)
-  %27 := Load long @test.y3
-  %28 := Call unit @test.use<Long>(%27)
-  %29 := Load int @test.c1
-  %30 := Call unit @test.use<Int>(%29)
-  %31 := Load byte @test.c2
-  %32 := Call unit @test.use<Byte>(%31)
-  %33 := Load long @test.c3
-  %34 := Call unit @test.use<Long>(%33)
-  %35 := Load std.string.String* @test.z
-  %36 := Call unit @test.use<String>(%35)
-  %37 := Load bool @test.a1
-  %38 := Call unit @test.use<Bool>(%37)
+func void @test.useAll() {
+  Call void @test.use<Unit>()
+  %14 := Load int @test.y1
+  Call void @test.use<Int>(%14)
+  %15 := Load byte @test.y2
+  Call void @test.use<Byte>(%15)
+  %16 := Load long @test.y3
+  Call void @test.use<Long>(%16)
+  %17 := Load int @test.c1
+  Call void @test.use<Int>(%17)
+  %18 := Load byte @test.c2
+  Call void @test.use<Byte>(%18)
+  %19 := Load long @test.c3
+  Call void @test.use<Long>(%19)
+  %20 := Load std.string.String* @test.z
+  Call void @test.use<String>(%20)
+  %21 := Load bool @test.a1
+  Call void @test.use<Bool>(%21)
   Ret
 }

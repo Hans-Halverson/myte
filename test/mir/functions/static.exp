@@ -13,18 +13,18 @@ func bool @test.Type1.foo(bool %4) {
   Ret %5
 }
 
-func unit @test.test() {
+func void @test.test() {
   %6 := Call int @test.Trait1.foo(1)
   %7 := Call long @test.Trait2.foo(1)
   %8 := Call bool @test.Type1.foo(true)
   Ret
 }
 
-func unit @test.use<Function>(fn %9) {
+func void @test.use<Function>(fn %9) {
   Ret
 }
 
 func int @test.main() {
-  %10 := Call unit @test.use<Function>(@test.test)
+  Call void @test.use<Function>(@test.test)
   Ret 0
 }

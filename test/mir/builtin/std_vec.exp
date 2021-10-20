@@ -1,10 +1,10 @@
-func unit @test.test() {
+func void @test.test() {
   %0 := Call std.vec.Vec<Int>* @std.vec.Vec.new<Int>()
   %1 := Call std.vec.Vec<Bool>* @std.vec.Vec.new<Bool>()
   Ret
 }
 
 func int @test.main() {
-  %2 := Call unit @test.test()
+  Call void @test.test()
   Ret 0
 }

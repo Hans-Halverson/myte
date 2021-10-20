@@ -1,4 +1,4 @@
-func unit @test.writeInBody() {
+func void @test.writeInBody() {
   continue @0
 label @0:
   %1 := Phi int @test.writeInBody:1, @1:%0
@@ -22,6 +22,6 @@ label @5:
 }
 
 func int @test.main() {
-  %7 := Call unit @test.writeInBody()
+  Call void @test.writeInBody()
   Ret 0
 }

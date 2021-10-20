@@ -1,6 +1,6 @@
-type _object$test.NongenericTrait {unit*, fn[2]*}
+type _object$test.NongenericTrait {byte*, fn[2]*}
 
-type _object$test.GenericTrait {unit*, fn[2]*}
+type _object$test.GenericTrait {byte*, fn[2]*}
 
 type _object$test.NongenericType$test.GenericTrait<Byte> {test.NongenericType*, fn[2]*}
 
@@ -74,7 +74,7 @@ func byte @test.GenericType.baz<Byte>(test.GenericType<Byte>* %11, byte %12) {
   Ret %12
 }
 
-func unit @test.forceInstantiations() {
+func void @test.forceInstantiations() {
   %13 := CallBuiltin test.NongenericType* myte_alloc(1)
   %14 := GetPointer int, test.NongenericType* %13.0
   Store int %14, 1
@@ -127,6 +127,6 @@ func unit @test.forceInstantiations() {
 }
 
 func int @test.main() {
-  %43 := Call unit @test.forceInstantiations()
+  Call void @test.forceInstantiations()
   Ret 0
 }

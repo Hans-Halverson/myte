@@ -2,7 +2,7 @@ type test.Rec1<Bool> {int, bool, bool}
 
 type test.Rec1<Int> {int, int, int}
 
-func unit @test.testConstructor() {
+func void @test.testConstructor() {
   %0 := CallBuiltin test.Rec1<Int>* myte_alloc(1)
   %1 := GetPointer int, test.Rec1<Int>* %0.0
   Store int %1, 1
@@ -20,7 +20,7 @@ func unit @test.testConstructor() {
   Ret
 }
 
-func unit @test.testIndexing(test.Rec1<Int>* %8, test.Rec1<Bool>* %9) {
+func void @test.testIndexing(test.Rec1<Int>* %8, test.Rec1<Bool>* %9) {
   %10 := GetPointer int, test.Rec1<Int>* %8.1
   %11 := Load int %10
   %12 := GetPointer bool, test.Rec1<Bool>* %9.2
@@ -28,12 +28,12 @@ func unit @test.testIndexing(test.Rec1<Int>* %8, test.Rec1<Bool>* %9) {
   Ret
 }
 
-func unit @test.use<Function>(fn %14) {
+func void @test.use<Function>(fn %14) {
   Ret
 }
 
 func int @test.main() {
-  %15 := Call unit @test.use<Function>(@test.testConstructor)
-  %16 := Call unit @test.use<Function>(@test.testIndexing)
+  Call void @test.use<Function>(@test.testConstructor)
+  Call void @test.use<Function>(@test.testIndexing)
   Ret 0
 }

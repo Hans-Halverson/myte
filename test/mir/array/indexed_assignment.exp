@@ -1,10 +1,10 @@
-func unit @test.simpleAccesses(int* %0) {
+func void @test.simpleAccesses(int* %0) {
   %1 := GetPointer int, int* %0[int 90]
   Store int %1, 1
   Ret
 }
 
-func unit @test.nestedAccesses(std.string.String**** %2, std.string.String** %3) {
+func void @test.nestedAccesses(std.string.String**** %2, std.string.String** %3) {
   %4 := CallBuiltin std.string.String* myte_alloc(1)
   %5 := GetPointer byte*, std.string.String* %4.0
   Store byte* %5, @.S2
@@ -33,7 +33,7 @@ type test.Rec1 {bool, byte, std.string.String*}
 
 type test.Rec2 {long*, byte}
 
-func unit @test.indexAndAccesses(test.Tup1* %16, test.Rec2** %17) {
+func void @test.indexAndAccesses(test.Tup1* %16, test.Rec2** %17) {
   %18 := CallBuiltin std.string.String* myte_alloc(1)
   %19 := GetPointer byte*, std.string.String* %18.0
   Store byte* %19, @.S1
@@ -58,13 +58,13 @@ func unit @test.indexAndAccesses(test.Tup1* %16, test.Rec2** %17) {
 
 global byte[4] @.S1 = "test"
 
-func unit @test.use<Function>(fn %32) {
+func void @test.use<Function>(fn %32) {
   Ret
 }
 
 func int @test.main() {
-  %33 := Call unit @test.use<Function>(@test.simpleAccesses)
-  %34 := Call unit @test.use<Function>(@test.nestedAccesses)
-  %35 := Call unit @test.use<Function>(@test.indexAndAccesses)
+  Call void @test.use<Function>(@test.simpleAccesses)
+  Call void @test.use<Function>(@test.nestedAccesses)
+  Call void @test.use<Function>(@test.indexAndAccesses)
   Ret 0
 }

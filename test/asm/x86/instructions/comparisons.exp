@@ -536,13 +536,13 @@ test.testCompareRegisterRegister:
   movb $1, %al
   ret
 test.testCompareUnitImmReg:
-  movb $1, %al
+  call std.unit.Unit.equals
   ret
 test.testCompareUnitRegImm:
-  movb $1, %al
+  call std.unit.Unit.equals
   ret
 test.testCompareUnitRegs:
-  movb $1, %al
+  call std.unit.Unit.equals
   ret
 test.use$Function$:
   movq %rdi, %rax

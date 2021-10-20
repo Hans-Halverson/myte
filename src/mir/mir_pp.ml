@@ -102,9 +102,12 @@ and pp_func ~cx ~program func =
     |> List.map (fun (_, var_id, ty) -> Printf.sprintf "%s %s" (pp_type ty) (pp_var_id ~cx var_id))
     |> String.concat ", "
   in
-  let func_label =
-    Printf.sprintf "func %s @%s(%s) {" (pp_type func.return_ty) func.name func_params
+  let return_ty =
+    match func.return_ty with
+    | None -> "void"
+    | Some return_ty -> pp_type return_ty
   in
+  let func_label = Printf.sprintf "func %s @%s(%s) {" return_ty func.name func_params in
   cx.print_block_id_map <- IMap.add func.body_start_block func.name cx.print_block_id_map;
   let body_blocks = Mir_block_ordering.order_blocks ~program func.body_start_block in
   calc_print_block_ids ~cx (List.tl body_blocks);
@@ -219,7 +222,6 @@ and pp_block_id ~cx block_id =
 
 and pp_value ~cx v =
   match v with
-  | `UnitL -> "()"
   | `BoolL true -> "true"
   | `BoolL false -> "false"
   | `ByteL i -> string_of_int i
@@ -232,7 +234,6 @@ and pp_value ~cx v =
   | `ArrayVtableL (_, funcs) ->
     let funcs = List.map (fun func -> pp_value ~cx (func :> Value.t)) funcs in
     "[" ^ String.concat ", " funcs ^ "]"
-  | `UnitV var_id
   | `BoolV var_id
   | `ByteV var_id
   | `IntV var_id
@@ -271,14 +272,19 @@ and pp_instruction ~cx (_, instr) =
     match instr with
     | Mov (var_id, right) ->
       pp_instr var_id (Printf.sprintf "Mov %s %s" (pp_type_of_value right) (pp_value ~cx right))
-    | Call (var_id, ret_ty, func, args) ->
+    | Call { return; func; args } ->
       let args_string = List.map (pp_value ~cx) args |> String.concat ", " in
-      pp_instr
-        var_id
-        (Printf.sprintf "Call %s %s(%s)" (pp_type ret_ty) (pp_function_value ~cx func) args_string)
-    | CallBuiltin (var_id, ret_ty, { Builtin.name; _ }, args) ->
+      let func_string = pp_function_value ~cx func in
+      (match return with
+      | None -> Printf.sprintf "Call void %s(%s)" func_string args_string
+      | Some (var_id, ret_ty) ->
+        pp_instr var_id (Printf.sprintf "Call %s %s(%s)" (pp_type ret_ty) func_string args_string))
+    | CallBuiltin { return; func = { Builtin.name; _ }; args } ->
       let args_string = List.map (pp_value ~cx) args |> String.concat ", " in
-      pp_instr var_id (Printf.sprintf "CallBuiltin %s %s(%s)" (pp_type ret_ty) name args_string)
+      (match return with
+      | None -> Printf.sprintf "CallBuiltin void %s(%s)" name args_string
+      | Some (var_id, ret_ty) ->
+        pp_instr var_id (Printf.sprintf "CallBuiltin %s %s(%s)" (pp_type ret_ty) name args_string))
     | Ret val_opt ->
       "Ret"
       ^

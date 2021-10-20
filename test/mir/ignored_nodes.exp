@@ -1,9 +1,9 @@
-func unit @test.use(int %0) {
+func void @test.use(int %0) {
   Ret
 }
 
 func int @test.main() {
-  %1 := Call unit @test.use(1)
-  %2 := Call unit @test.use(1)
+  Call void @test.use(1)
+  Call void @test.use(1)
   Ret 0
 }

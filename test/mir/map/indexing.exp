@@ -1,32 +1,32 @@
-func unit @test.use<Function>(fn %0) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 
-func unit @test.use<Option<Byte>>(std.option.Option<Byte>* %1) {
+func void @test.use<Option<Byte>>(std.option.Option<Byte>* %1) {
   Ret
 }
 
-func unit @test.testSimpleIndexing(std.map.Map<Bool,Byte>* %2) {
+func void @test.testSimpleIndexing(std.map.Map<Bool,Byte>* %2) {
   %3 := Call std.option.Option<Byte>* @std.map.Map.get<Bool,Byte>(%2, true)
-  %4 := Call unit @test.use<Option<Byte>>(%3)
-  %5 := Call unit @std.map.Map.add<Bool,Byte>(%2, false, 2)
+  Call void @test.use<Option<Byte>>(%3)
+  Call void @std.map.Map.add<Bool,Byte>(%2, false, 2)
   Ret
 }
 
 type test.Rec1 {int, std.map.Map<Byte,String>*}
 
-func unit @test.testIndexAfterAccess(test.Rec1* %6, byte %7, std.string.String* %8) {
-  %9 := GetPointer std.map.Map<Byte,String>*, test.Rec1* %6.1
-  %10 := Load std.map.Map<Byte,String>* %9
-  %11 := Call std.option.Option<String>* @std.map.Map.get<Byte,String>(%10, %7)
-  %12 := GetPointer std.map.Map<Byte,String>*, test.Rec1* %6.1
-  %13 := Load std.map.Map<Byte,String>* %12
-  %14 := Call unit @std.map.Map.add<Byte,String>(%13, %7, %8)
+func void @test.testIndexAfterAccess(test.Rec1* %4, byte %5, std.string.String* %6) {
+  %7 := GetPointer std.map.Map<Byte,String>*, test.Rec1* %4.1
+  %8 := Load std.map.Map<Byte,String>* %7
+  %9 := Call std.option.Option<String>* @std.map.Map.get<Byte,String>(%8, %5)
+  %10 := GetPointer std.map.Map<Byte,String>*, test.Rec1* %4.1
+  %11 := Load std.map.Map<Byte,String>* %10
+  Call void @std.map.Map.add<Byte,String>(%11, %5, %6)
   Ret
 }
 
 func int @test.main() {
-  %15 := Call unit @test.use<Function>(@test.testSimpleIndexing)
-  %16 := Call unit @test.use<Function>(@test.testIndexAfterAccess)
+  Call void @test.use<Function>(@test.testSimpleIndexing)
+  Call void @test.use<Function>(@test.testIndexAfterAccess)
   Ret 0
 }

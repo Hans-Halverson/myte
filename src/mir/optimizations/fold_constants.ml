@@ -5,7 +5,6 @@ open Mir_visitor
 module Ocx = Mir_optimize_context
 
 type folded_constant =
-  | UnitConstant
   | ByteConstant of int
   | IntConstant of Int32.t
   | LongConstant of Int64.t
@@ -112,7 +111,6 @@ let fold_numeric_constants op x y =
 
 let fold_constants_compare x y =
   match (x, y) with
-  | (UnitConstant, UnitConstant) -> 0
   | (BoolConstant x, BoolConstant y) -> Bool.compare x y
   | (ByteConstant x, ByteConstant y) -> Int.compare x y
   | (IntConstant x, IntConstant y) -> Int32.compare x y
@@ -121,7 +119,6 @@ let fold_constants_compare x y =
 
 let folded_constants_equal c1 c2 =
   match (c1, c2) with
-  | (UnitConstant, UnitConstant) -> true
   | (ByteConstant i1, ByteConstant i2) -> i1 = i2
   | (IntConstant i1, IntConstant i2) -> Int32.equal i1 i2
   | (LongConstant i1, LongConstant i2) -> Int64.equal i1 i2
@@ -131,7 +128,6 @@ let folded_constants_equal c1 c2 =
 
 let mir_value_of_constant constant =
   match constant with
-  | UnitConstant -> `UnitL
   | BoolConstant b -> `BoolL b
   | ByteConstant i -> `ByteL i
   | IntConstant i -> `IntL i
@@ -214,7 +210,6 @@ class calc_constants_visitor ~ocx =
             (* Globals initialized with constant value have constant propagated *)
             | None ->
               (match init_val with
-              | `UnitL -> this#add_global_constant name UnitConstant
               | `BoolL lit -> this#add_global_constant name (BoolConstant lit)
               | `ByteL lit -> this#add_global_constant name (ByteConstant lit)
               | `IntL lit -> this#add_global_constant name (IntConstant lit)
@@ -305,7 +300,6 @@ class calc_constants_visitor ~ocx =
           IMap.fold
             (fun _ arg_val (constants, is_constant) ->
               match arg_val with
-              | `UnitV var_id
               | `ByteV var_id
               | `IntV var_id
               | `LongV var_id
@@ -318,7 +312,6 @@ class calc_constants_visitor ~ocx =
                   | None -> (constants, false)
                   | Some constant -> (constant :: constants, is_constant)
                 )
-              | `UnitL -> (UnitConstant :: constants, is_constant)
               | `BoolL b -> (BoolConstant b :: constants, is_constant)
               | `ByteL b -> (ByteConstant b :: constants, is_constant)
               | `IntL i -> (IntConstant i :: constants, is_constant)
@@ -381,9 +374,6 @@ class calc_constants_visitor ~ocx =
         | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as value ->
           get_numeric_lit_opt value
         | (`BoolL _ | `BoolV _) as value -> get_bool_lit_opt value
-        | `UnitL
-        | `UnitV _ ->
-          Some UnitConstant
         | `PointerL _
         | `PointerV _ ->
           None

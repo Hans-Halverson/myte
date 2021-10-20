@@ -2,23 +2,23 @@ type a.TupA<Long> {long}
 
 global int @a.varA = 1
 
-func unit @a.funcA() {
+func void @a.funcA() {
   Ret
 }
 
-func unit @a.useFromB(b.RecB<Byte>* %0) {
+func void @a.useFromB(b.RecB<Byte>* %0) {
   %1 := Load bool @b.varB
-  %2 := Call unit @b.funcB()
+  Call void @b.funcB()
   Ret
 }
 
-func unit @a.use<Function>(fn %3) {
+func void @a.use<Function>(fn %2) {
   Ret
 }
 
 func int @a.main() {
-  %4 := Call unit @a.use<Function>(@a.useFromB)
-  %5 := Call unit @a.use<Function>(@b.useFromA)
+  Call void @a.use<Function>(@a.useFromB)
+  Call void @a.use<Function>(@b.useFromA)
   Ret 0
 }
 
@@ -26,12 +26,12 @@ type b.RecB<Byte> {byte}
 
 global bool @b.varB = true
 
-func unit @b.funcB() {
+func void @b.funcB() {
   Ret
 }
 
-func unit @b.useFromA(a.TupA<Long>* %6) {
-  %7 := Load int @a.varA
-  %8 := Call unit @a.funcA()
+func void @b.useFromA(a.TupA<Long>* %3) {
+  %4 := Load int @a.varA
+  Call void @a.funcA()
   Ret
 }

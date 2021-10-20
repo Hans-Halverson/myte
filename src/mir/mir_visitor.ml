@@ -74,13 +74,17 @@ module IRVisitor = struct
         | Mov (result, arg) ->
           this#visit_value ~block arg;
           this#visit_result_variable ~block result
-        | Call (ret, _ret_ty, func, args) ->
+        | Call { return; func; args } ->
           this#visit_function_value ~block func;
           List.iter (this#visit_value ~block) args;
-          this#visit_result_variable ~block ret
-        | CallBuiltin (ret, _ret_ty, _builtin, args) ->
+          (match return with
+          | None -> ()
+          | Some (ret, _ret_ty) -> this#visit_result_variable ~block ret)
+        | CallBuiltin { return; func = _; args } ->
           List.iter (this#visit_value ~block) args;
-          this#visit_result_variable ~block ret
+          (match return with
+          | None -> ()
+          | Some (ret, _ret_ty) -> this#visit_result_variable ~block ret)
         | Ret arg_opt -> Option.iter (this#visit_value ~block) arg_opt
         | StackAlloc (result, _ty) -> this#visit_result_variable ~block result
         | Load (result, ptr) ->
@@ -147,7 +151,6 @@ module IRVisitor = struct
 
       method visit_value ~block value =
         match value with
-        | `UnitL
         | `BoolL _
         | `ByteL _
         | `IntL _
@@ -157,7 +160,6 @@ module IRVisitor = struct
         | `ArrayStringL _
         | `ArrayVtableL _ ->
           ()
-        | `UnitV var_id
         | `BoolV var_id
         | `IntV var_id
         | `ByteV var_id
@@ -166,9 +168,6 @@ module IRVisitor = struct
         | `PointerV (_, var_id)
         | `ArrayV (_, _, var_id) ->
           this#visit_instruction_use_variable ~block var_id
-
-      method visit_unit_value ~block (value : Value.unit_value) =
-        this#visit_value ~block (value :> Value.t)
 
       method visit_bool_value ~block (value : Value.bool_value) =
         this#visit_value ~block (value :> Value.t)

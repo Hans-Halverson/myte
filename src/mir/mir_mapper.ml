@@ -74,21 +74,31 @@ module InstructionsMapper = struct
             [instruction]
           else
             mk_instr (Mov (result', arg'))
-        | Call (ret, ret_ty, func, args) ->
-          let ret' = this#map_result_variable ~block ret in
+        | Call { return; func; args } ->
+          let return' =
+            id_map_opt
+              (fun ((ret, ret_ty) as return) ->
+                id_map (this#map_result_variable ~block) ret return (fun ret' -> (ret', ret_ty)))
+              return
+          in
           let func' = this#map_function_value ~block func in
           let args' = id_map_list (this#map_value ~block) args in
-          if ret == ret' && func == func' && args == args' then
+          if return == return' && func == func' && args == args' then
             [instruction]
           else
-            mk_instr (Call (ret', ret_ty, func', args'))
-        | CallBuiltin (ret, ret_ty, builtin, args) ->
-          let ret' = this#map_result_variable ~block ret in
+            mk_instr (Call { return = return'; func = func'; args = args' })
+        | CallBuiltin { return; func; args } ->
+          let return' =
+            id_map_opt
+              (fun ((ret, ret_ty) as return) ->
+                id_map (this#map_result_variable ~block) ret return (fun ret' -> (ret', ret_ty)))
+              return
+          in
           let args' = id_map_list (this#map_value ~block) args in
-          if ret == ret' && args == args' then
+          if return == return' && args == args' then
             [instruction]
           else
-            mk_instr (CallBuiltin (ret', ret_ty, builtin, args'))
+            mk_instr (CallBuiltin { return = return'; func; args = args' })
         | Ret arg_opt ->
           let arg_opt' = id_map_opt (this#map_value ~block) arg_opt in
           if arg_opt == arg_opt' then
@@ -340,19 +350,12 @@ module InstructionsMapper = struct
 
       method map_value ~block value =
         match value with
-        | (`UnitL | `UnitV _) as v -> (this#map_unit_value ~block v :> Value.t)
         | (`BoolL _ | `BoolV _) as v -> (this#map_bool_value ~block v :> Value.t)
         | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v ->
           (this#map_numeric_value ~block v :> Value.t)
         | (`FunctionL _ | `FunctionV _) as v -> (this#map_function_value ~block v :> Value.t)
         | (`PointerL _ | `PointerV _) as v -> (this#map_pointer_value ~block v :> Value.t)
         | (`ArrayStringL _ | `ArrayVtableL _ | `ArrayV _) as v -> this#map_array_value ~block v
-
-      method map_unit_value ~block value : Value.unit_value =
-        match value with
-        | `UnitL as value -> value
-        | `UnitV var_id as value ->
-          id_map (this#map_use_variable ~block) var_id value (fun var_id' -> `UnitV var_id')
 
       method map_bool_value ~block value =
         match value with
@@ -392,7 +395,6 @@ module InstructionsMapper = struct
 
       method map_comparable_value ~block value =
         match value with
-        | (`UnitL | `UnitV _) as v -> (this#map_unit_value ~block v :> Value.comparable_value)
         | (`BoolL _ | `BoolV _) as v -> (this#map_bool_value ~block v :> Value.comparable_value)
         | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v ->
           (this#map_numeric_value ~block v :> Value.comparable_value)
@@ -425,14 +427,6 @@ end
 class rewrite_vars_mapper ~(program : Program.t) (var_map : Value.t IMap.t) =
   object (this)
     inherit InstructionsMapper.t ~program
-
-    method! map_unit_value ~block value =
-      match value with
-      | `UnitL -> value
-      | `UnitV var_id as value ->
-        (match IMap.find_opt var_id var_map with
-        | None -> value
-        | Some mapped_value -> this#map_unit_value ~block (cast_to_unit_value mapped_value))
 
     method! map_bool_value ~block value =
       match value with

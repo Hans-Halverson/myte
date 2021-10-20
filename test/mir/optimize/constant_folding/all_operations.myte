@@ -67,6 +67,8 @@ fun testBool() {
   use(true != false);
 }
 
+// Unit constants are not folded as they are removed during MIR emission. Instead calls to
+// std.unit.Unit.equals are emitted.
 fun testUnit() {
   use(() == ());
   use(() != ());

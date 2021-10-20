@@ -1,5 +1,5 @@
-func unit @test.test1() {
-  %0 := Call unit @test.use<Int>(1)
+func void @test.test1() {
+  Call void @test.use<Int>(1)
   Ret
 }
 
@@ -7,7 +7,7 @@ func int @test.test2() {
   Ret 99
 }
 
-func unit @test.returnPreventsContinue() {
+func void @test.returnPreventsContinue() {
   branch true, @0, @1
 label @0:
   Ret
@@ -19,17 +19,17 @@ label @3:
   Ret
 }
 
-func unit @test.use<Function>(fn %1) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 
-func unit @test.use<Int>(int %2) {
+func void @test.use<Int>(int %1) {
   Ret
 }
 
 func int @test.main() {
-  %3 := Call unit @test.use<Function>(@test.test1)
-  %4 := Call unit @test.use<Function>(@test.test2)
-  %5 := Call unit @test.use<Function>(@test.returnPreventsContinue)
+  Call void @test.use<Function>(@test.test1)
+  Call void @test.use<Function>(@test.test2)
+  Call void @test.use<Function>(@test.returnPreventsContinue)
   Ret 0
 }

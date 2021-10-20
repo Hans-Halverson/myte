@@ -1,67 +1,67 @@
-func unit @test.testNotUpdated() {
+func void @test.testNotUpdated() {
   branch true, @0, @1
 label @0:
-  %0 := Call unit @test.use<Int>(1)
+  Call void @test.use<Int>(1)
   continue @1
 label @1:
-  %1 := Neg int 1
+  %0 := Neg int 1
   Ret
 }
 
-func unit @test.testUpdated() {
+func void @test.testUpdated() {
   branch true, @2, @3
 label @2:
   continue @3
 label @3:
-  %2 := Phi int @test.testUpdated:1, @2:2
-  %3 := Neg int %2
+  %1 := Phi int @test.testUpdated:1, @2:2
+  %2 := Neg int %1
   Ret
 }
 
-func unit @test.testMultiple(int %4) {
+func void @test.testMultiple(int %3) {
   branch true, @4, @5
 label @4:
   continue @5
 label @5:
-  %5 := Phi int @test.testMultiple:1, @4:4
-  %6 := Phi int @test.testMultiple:2, @4:5
+  %4 := Phi int @test.testMultiple:1, @4:4
+  %5 := Phi int @test.testMultiple:2, @4:5
+  %6 := Neg int %4
   %7 := Neg int %5
-  %8 := Neg int %6
-  %9 := Neg int %4
+  %8 := Neg int %3
   branch true, @6, @7
 label @6:
   continue @7
 label @7:
-  %10 := Phi int @5:%5, @6:6
-  %11 := Neg int %10
+  %9 := Phi int @5:%4, @6:6
+  %10 := Neg int %9
   Ret
 }
 
 global int @test.glob = 1
 
-func unit @test.testGlobal() {
+func void @test.testGlobal() {
   branch true, @8, @9
 label @8:
   Store int @test.glob, 2
   continue @9
 label @9:
-  %12 := Load int @test.glob
-  %13 := Neg int %12
+  %11 := Load int @test.glob
+  %12 := Neg int %11
   Ret
 }
 
-func unit @test.use<Function>(fn %14) {
+func void @test.use<Function>(fn %13) {
   Ret
 }
 
-func unit @test.use<Int>(int %15) {
+func void @test.use<Int>(int %14) {
   Ret
 }
 
 func int @test.main() {
-  %16 := Call unit @test.use<Function>(@test.testNotUpdated)
-  %17 := Call unit @test.use<Function>(@test.testUpdated)
-  %18 := Call unit @test.use<Function>(@test.testMultiple)
-  %19 := Call unit @test.use<Function>(@test.testGlobal)
+  Call void @test.use<Function>(@test.testNotUpdated)
+  Call void @test.use<Function>(@test.testUpdated)
+  Call void @test.use<Function>(@test.testMultiple)
+  Call void @test.use<Function>(@test.testGlobal)
   Ret 0
 }

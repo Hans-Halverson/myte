@@ -78,7 +78,7 @@ end
 
 module PatternPath = struct
   type t =
-    | Root of Mir.Value.t
+    | Root of Mir.Value.t option
     | TupleField of {
         id: int;
         parent: t;
@@ -364,7 +364,8 @@ let default_scrutinee_vector column_index scrutinee_vector =
   in
   pre_scrutinees @ post_scrutinees
 
-let rec build_match_decision_tree ~(ecx : Ecx.t) scrutinee_vals case_nodes =
+let rec build_match_decision_tree
+    ~(ecx : Ecx.t) (scrutinee_vals : Mir.Value.t option list) (case_nodes : Ast.Match.Case.t list) =
   let pattern_matrix =
     List.map (fun case_node -> rows_of_case_node ~ecx ~scrutinee_vals case_node) case_nodes
     |> List.flatten
@@ -374,9 +375,10 @@ let rec build_match_decision_tree ~(ecx : Ecx.t) scrutinee_vals case_nodes =
   in
   build_decision_tree ~prev_guard:None scrutinee_vector pattern_matrix
 
-and build_destructure_decision_tree ~(ecx : Ecx.t) value pattern_node =
-  let pattern_matrix = rows_of_destructuring_node ~ecx value pattern_node in
-  let scrutinee_vector = [PatternPath.Root value] in
+and build_destructure_decision_tree
+    ~(ecx : Ecx.t) (value : Mir.Value.t) (pattern_node : Ast.Pattern.t) =
+  let pattern_matrix = rows_of_destructuring_node ~ecx (Some value) pattern_node in
+  let scrutinee_vector = [PatternPath.Root (Some value)] in
   build_decision_tree ~prev_guard:None scrutinee_vector pattern_matrix
 
 and build_decision_tree ~prev_guard scrutinee_vector matrix =

@@ -1,8 +1,8 @@
-func unit @_init() {
+func void @_init() {
   Ret
 }
 
-func unit @split_incoming_edge.inexhaustiveIf() {
+func void @split_incoming_edge.inexhaustiveIf() {
   branch true, @0, @1
 label @0:
   %0 := Mov int 2
@@ -15,7 +15,7 @@ label @2:
   Ret
 }
 
-func unit @split_incoming_edge.loop() {
+func void @split_incoming_edge.loop() {
   %2 := Mov int 1
   continue @3
 label @3:
@@ -37,7 +37,7 @@ label @8:
   Ret
 }
 
-func unit @split_incoming_edge.multiple() {
+func void @split_incoming_edge.multiple() {
   branch true, @9, @10
 label @9:
   %6 := Mov int 3
@@ -52,13 +52,13 @@ label @11:
   Ret
 }
 
-func unit @split_incoming_edge.use<Function>(fn %9) {
+func void @split_incoming_edge.use<Function>(fn %9) {
   Ret
 }
 
 func int @split_incoming_edge.main() {
-  %10 := Call unit @split_incoming_edge.use<Function>(@split_incoming_edge.inexhaustiveIf)
-  %11 := Call unit @split_incoming_edge.use<Function>(@split_incoming_edge.loop)
-  %12 := Call unit @split_incoming_edge.use<Function>(@split_incoming_edge.multiple)
+  Call void @split_incoming_edge.use<Function>(@split_incoming_edge.inexhaustiveIf)
+  Call void @split_incoming_edge.use<Function>(@split_incoming_edge.loop)
+  Call void @split_incoming_edge.use<Function>(@split_incoming_edge.multiple)
   Ret 0
 }

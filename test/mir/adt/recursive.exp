@@ -2,7 +2,7 @@ type test.Rec1 {int, test.Rec1*}
 
 type test.Rec2<Int> {int, test.Rec2<Int>*}
 
-func unit @test.useSelfRecursive(test.Rec1* %0, test.Rec2<Int>* %1) {
+func void @test.useSelfRecursive(test.Rec1* %0, test.Rec2<Int>* %1) {
   Ret
 }
 
@@ -12,7 +12,7 @@ type test.Rec4 {std.string.String*, test.Rec5*}
 
 type test.Rec5 {bool, test.Rec3*}
 
-func unit @test.useMutuallyRecursive(test.Rec4* %2) {
+func void @test.useMutuallyRecursive(test.Rec4* %2) {
   Ret
 }
 
@@ -24,7 +24,7 @@ type test.VRec1<Bool>::Tree {byte, bool, byte[6], test.VRec1<Bool>*, test.VRec1<
 
 type test.VRec1<Int>::Tree {byte, byte[3], int, test.VRec1<Int>*, test.VRec1<Int>*}
 
-func unit @test.useSelfRecursiveVariant(test.VRec1<Bool>* %3, test.VRec1<Int>* %4) {
+func void @test.useSelfRecursiveVariant(test.VRec1<Bool>* %3, test.VRec1<Int>* %4) {
   Ret
 }
 
@@ -36,18 +36,18 @@ type test.VRec3 {byte, byte[15]}
 
 type test.VRec3::T2 {byte, byte, byte[6], test.VRec2*}
 
-func unit @test.useMutuallyRecursiveVariants(test.VRec2* %5) {
+func void @test.useMutuallyRecursiveVariants(test.VRec2* %5) {
   Ret
 }
 
-func unit @test.use<Function>(fn %6) {
+func void @test.use<Function>(fn %6) {
   Ret
 }
 
 func int @test.main() {
-  %7 := Call unit @test.use<Function>(@test.useSelfRecursive)
-  %8 := Call unit @test.use<Function>(@test.useMutuallyRecursive)
-  %9 := Call unit @test.use<Function>(@test.useSelfRecursiveVariant)
-  %10 := Call unit @test.use<Function>(@test.useMutuallyRecursiveVariants)
+  Call void @test.use<Function>(@test.useSelfRecursive)
+  Call void @test.use<Function>(@test.useMutuallyRecursive)
+  Call void @test.use<Function>(@test.useSelfRecursiveVariant)
+  Call void @test.use<Function>(@test.useMutuallyRecursiveVariants)
   Ret 0
 }

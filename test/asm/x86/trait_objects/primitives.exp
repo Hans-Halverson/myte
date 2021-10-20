@@ -79,17 +79,13 @@ test.testLongPromotion:
   pop %rbx
   ret
 test.testUnitPromotion:
-  push %rbx
-  movl %edi, %ebx
   movl $16, %edi
   call __myte_alloc
-  movb %bl, (%rax)
   leaq 8(%rax), %rcx
-  leaq _vtable$std.unit.Unit$std.string.ToString(%rip), %rbx
-  movq %rbx, (%rcx)
+  leaq _vtable$std.unit.Unit$std.string.ToString(%rip), %rdx
+  movq %rdx, (%rcx)
   movq %rax, %rdi
   call test.useToString
-  pop %rbx
   ret
 test.use$Function$:
   ret

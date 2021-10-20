@@ -8,7 +8,7 @@ fun indexing(x: Array<Int>, y: Array<Array<Array<Bool>>>) {
   y[1][2][3];
 }
 
-fun indexingAllIntegerTypes(arr: Array<Unit>, x: Int, y: Byte, z: Long) {
+fun indexingAllIntegerTypes(arr: Array<Byte>, x: Int, y: Byte, z: Long) {
   arr[x];
   arr[y];
   arr[z];

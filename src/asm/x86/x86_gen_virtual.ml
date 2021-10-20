@@ -56,6 +56,8 @@ and preprocess_ir ~gcx ir =
 and gen_global_instruction_builder ~gcx ~ir:_ global =
   let label = label_of_mir_label global.name in
   match global.init_val with
+  (* Fake zero size global is not generated *)
+  | _ when global.name = zero_size_name -> ()
   (* If uninitialized, place global variable in bss section *)
   | None ->
     let size = Gcx.size_of_mir_type ~gcx global.ty in
@@ -200,18 +202,16 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     (* First six arguments are placed in registers %rdi​, ​%rsi​, ​%rdx​, ​%rcx​, ​%r8​, and ​%r9​ *)
     List.iteri
       (fun i arg_val ->
-        if i >= 6 then
-          ()
-        else
-          match register_of_param i with
-          | None -> ()
-          | Some color ->
-            let vreg = Gcx.mk_precolored ~gcx color in
-            (match resolve_ir_value ~allow_imm64:true arg_val with
-            | SImm imm -> Gcx.emit ~gcx (MovIM (size_of_immediate imm, imm, Reg vreg))
-            | SAddr addr -> Gcx.emit ~gcx (Lea (Size64, addr, vreg))
-            | SMem (mem, size) -> Gcx.emit ~gcx (MovMM (size, Mem mem, Reg vreg))
-            | SVReg (source_vreg, size) -> Gcx.emit ~gcx (MovMM (size, Reg source_vreg, Reg vreg))))
+        match register_of_param i with
+        | None -> ()
+        | Some _ when i = 0 && is_zero_size_global arg_val -> ()
+        | Some color ->
+          let vreg = Gcx.mk_precolored ~gcx color in
+          (match resolve_ir_value ~allow_imm64:true arg_val with
+          | SImm imm -> Gcx.emit ~gcx (MovIM (size_of_immediate imm, imm, Reg vreg))
+          | SAddr addr -> Gcx.emit ~gcx (Lea (Size64, addr, vreg))
+          | SMem (mem, size) -> Gcx.emit ~gcx (MovMM (size, Mem mem, Reg vreg))
+          | SVReg (source_vreg, size) -> Gcx.emit ~gcx (MovMM (size, Reg source_vreg, Reg vreg))))
       arg_vals
   in
   let gen_idiv left_val right_val =
@@ -473,7 +473,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    *                   Call
    * ===========================================
    *)
-  | Mir.Instruction.Call (return_var_id, ret_ty, func_val, arg_vals) :: rest_instructions ->
+  | Mir.Instruction.Call { return; func = func_val; args = arg_vals } :: rest_instructions ->
     (* Emit arguments for call *)
     gen_call_arguments arg_vals;
     (* Emit call instruction *)
@@ -493,10 +493,14 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
         (AddIM
            (Size64, Imm32 (Int32.of_int (num_stack_arg_vals * 8)), Reg (Gcx.mk_precolored ~gcx SP)));
     (* Move result from register A to return vreg *)
-    let return_size = register_size_of_mir_value_type ret_ty in
-    Gcx.emit
-      ~gcx
-      (MovMM (return_size, Reg (Gcx.mk_precolored ~gcx A), Reg (vreg_of_result_var_id return_var_id)));
+    (match return with
+    | None -> ()
+    | Some (return_var_id, ret_ty) ->
+      let return_size = register_size_of_mir_value_type ret_ty in
+      Gcx.emit
+        ~gcx
+        (MovMM
+           (return_size, Reg (Gcx.mk_precolored ~gcx A), Reg (vreg_of_result_var_id return_var_id))));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -525,7 +529,6 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     let pointer_element_type = pointer_value_element_type pointer in
     let size =
       match pointer_element_type with
-      | `UnitT
       | `BoolT
       | `ByteT
       | `IntT
@@ -559,7 +562,6 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     let pointer_element_type = pointer_value_element_type pointer in
     let size =
       match pointer_element_type with
-      | `UnitT
       | `BoolT
       | `ByteT
       | `IntT
@@ -893,22 +895,21 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    *                CallBuiltin
    * ===========================================
    *)
-  | Mir.Instruction.CallBuiltin (ret_var, ret_mir_ty, { Builtin.name; _ }, args)
-    :: rest_instructions ->
+  | Mir.Instruction.CallBuiltin { return; func = { Builtin.name; _ }; args } :: rest_instructions ->
     let open Mir_builtin in
-    let ret_vreg = vreg_of_result_var_id ret_var in
+    let ret_vreg () = vreg_of_result_var_id (fst (Option.get return)) in
     (*
      * ===========================================
      *                myte_alloc
      * ===========================================
      *)
     if name = myte_alloc.name then (
-      let (`PointerT element_mir_ty) = cast_to_pointer_type ret_mir_ty in
+      let (`PointerT element_mir_ty) = cast_to_pointer_type (snd (Option.get return)) in
       let precolored_a = Gcx.mk_precolored ~gcx A in
       let precolored_di = Gcx.mk_precolored ~gcx DI in
       gen_size_from_count_and_type ~gcx ~func (List.hd args) element_mir_ty precolored_di;
       Gcx.emit ~gcx (CallL X86_runtime.myte_alloc_label);
-      Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg ret_vreg))
+      Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg (ret_vreg ())))
       (*
        * ===========================================
        *                myte_copy
@@ -938,7 +939,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       gen_call_arguments args;
       let precolored_a = Gcx.mk_precolored ~gcx A in
       Gcx.emit ~gcx (CallL X86_runtime.myte_write_label);
-      Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg ret_vreg))
+      Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg (ret_vreg ())))
       (*
        * ===========================================
        *                myte_read
@@ -948,7 +949,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       gen_call_arguments args;
       let precolored_a = Gcx.mk_precolored ~gcx A in
       Gcx.emit ~gcx (CallL X86_runtime.myte_read_label);
-      Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg ret_vreg))
+      Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg (ret_vreg ())))
       (*
        * ===========================================
        *                myte_open
@@ -958,7 +959,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       gen_call_arguments args;
       let precolored_a = Gcx.mk_precolored ~gcx A in
       Gcx.emit ~gcx (CallL X86_runtime.myte_open_label);
-      Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg ret_vreg))
+      Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg (ret_vreg ())))
       (*
        * ===========================================
        *                myte_close
@@ -968,7 +969,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       gen_call_arguments args;
       let precolored_a = Gcx.mk_precolored ~gcx A in
       Gcx.emit ~gcx (CallL X86_runtime.myte_close_label);
-      Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg ret_vreg))
+      Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg (ret_vreg ())))
       (*
        * ===========================================
        *                myte_unlink
@@ -978,7 +979,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       gen_call_arguments args;
       let precolored_a = Gcx.mk_precolored ~gcx A in
       Gcx.emit ~gcx (CallL X86_runtime.myte_unlink_label);
-      Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg ret_vreg))
+      Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg (ret_vreg ())))
     ) else
       failwith (Printf.sprintf "Cannot compile unknown builtin %s to assembly" name);
     gen_instructions rest_instructions
@@ -1247,8 +1248,6 @@ and resolve_ir_value ~gcx ~func ?(allow_imm64 = false) value =
     | _ -> SVReg (vreg, size)
   in
   match value with
-  | `UnitL -> SImm (Imm8 0)
-  | `UnitV var_id -> vreg_of_var var_id Size8
   | `BoolL b ->
     SImm
       (Imm8
@@ -1285,7 +1284,6 @@ and resolve_ir_value ~gcx ~func ?(allow_imm64 = false) value =
 
 and register_size_of_mir_value_type value_type =
   match value_type with
-  | `UnitT
   | `BoolT
   | `ByteT ->
     Size8
@@ -1318,3 +1316,8 @@ and mk_label_memory_address label =
     }
 
 and label_of_mir_label label = Str.global_replace invalid_label_chars "$" label
+
+and is_zero_size_global value =
+  match value with
+  | `PointerL (_, name) when name = zero_size_name -> true
+  | _ -> false

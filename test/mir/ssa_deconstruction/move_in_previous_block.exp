@@ -1,4 +1,4 @@
-func unit @_init() {
+func void @_init() {
   Ret
 }
 
@@ -12,21 +12,21 @@ label @1:
   continue @2
 label @2:
   %1 := Neg int %0
-  %2 := Call unit @move_in_previous_block.multiple()
+  Call void @move_in_previous_block.multiple()
   Ret 0
 }
 
-func unit @move_in_previous_block.multiple() {
+func void @move_in_previous_block.multiple() {
   branch true, @3, @4
 label @3:
-  %3 := Mov int 3
-  %4 := Mov int 4
+  %2 := Mov int 3
+  %3 := Mov int 4
   continue @5
 label @4:
-  %3 := Mov int 5
-  %4 := Mov int 6
+  %2 := Mov int 5
+  %3 := Mov int 6
   continue @5
 label @5:
-  %5 := Add int %3, %4
+  %4 := Add int %2, %3
   Ret
 }

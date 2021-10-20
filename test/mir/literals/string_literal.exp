@@ -1,4 +1,4 @@
-func unit @test.test() {
+func void @test.test() {
   %0 := CallBuiltin std.string.String* myte_alloc(1)
   %1 := GetPointer byte*, std.string.String* %0.0
   Store byte* %1, @.S1
@@ -21,6 +21,6 @@ global byte[3] @.S1 = "foo"
 global byte[6] @.S2 = "barbaz"
 
 func int @test.main() {
-  %8 := Call unit @test.test()
+  Call void @test.test()
   Ret 0
 }

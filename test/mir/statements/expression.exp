@@ -1,117 +1,117 @@
-func unit @test.testSimpleExpressionStatements() {
+func void @test.testSimpleExpressionStatements() {
   %0 := Mul int 2, 3
   %1 := Div int %0, 4
   %2 := Add int 1, %1
   Ret
 }
 
-func unit @test.testExpressionStatementSingleValue(bool %3) {
+func void @test.testExpressionStatementSingleValue(bool %3) {
   branch %3, @1, @0
 label @0:
   continue @1
 label @1:
   %4 := Phi int @test.testExpressionStatementSingleValue:1, @0:2
-  %5 := Call unit @test.use<Int>(%4)
+  Call void @test.use<Int>(%4)
   Ret
 }
 
-func unit @test.testExpressionStatementsBeforeValue(bool %6) {
-  branch %6, @2, @3
+func void @test.testExpressionStatementsBeforeValue(bool %5) {
+  branch %5, @2, @3
 label @2:
-  %7 := Call unit @test.use<Int>(1)
-  %8 := Call unit @test.use<Int>(2)
+  Call void @test.use<Int>(1)
+  Call void @test.use<Int>(2)
   continue @4
 label @3:
-  %9 := Call unit @test.use<Bool>(%6)
+  Call void @test.use<Bool>(%5)
   continue @4
 label @4:
-  %10 := Phi int @2:1, @3:2
-  %11 := Call unit @test.use<Int>(%10)
+  %6 := Phi int @2:1, @3:2
+  Call void @test.use<Int>(%6)
   Ret
 }
 
-func unit @test.testExpressionStatementUnitValue(bool %12) {
-  %13 := Call unit @test.use<Unit>(())
-  branch %12, @5, @6
+func void @test.testExpressionStatementUnitValue(bool %7) {
+  Call void @test.use<Unit>()
+  branch %7, @5, @6
 label @5:
-  %14 := Call unit @test.use<Int>(2)
+  Call void @test.use<Int>(2)
   continue @6
 label @6:
-  %15 := Call unit @test.use<Unit>(())
+  Call void @test.use<Unit>()
   Ret
 }
 
-func unit @test.testWhileUnitValue(bool %16) {
-  branch %16, @7, @9
+func void @test.testWhileUnitValue(bool %8) {
+  branch %8, @7, @9
 label @7:
-  branch %16, @8, @9
+  branch %8, @8, @9
 label @8:
-  %17 := Call unit @test.use<Int>(1)
+  Call void @test.use<Int>(1)
   continue @7
 label @9:
-  %18 := Call unit @test.use<Unit>(())
+  Call void @test.use<Unit>()
   Ret
 }
 
-func unit @test.testForUnitValue(bool %19, std.vec.Vec<Int>* %20) {
-  branch %19, @10, @13
+func void @test.testForUnitValue(bool %9, std.vec.Vec<Int>* %10) {
+  branch %9, @10, @13
 label @10:
-  %21 := Call std.vec.VecIterator<Int>* @std.vec.Vec.toIterator<Int>(%20)
+  %11 := Call std.vec.VecIterator<Int>* @std.vec.Vec.toIterator<Int>(%10)
   continue @11
 label @11:
-  %22 := Call std.option.Option<Int>* @std.vec.VecIterator.next<Int>(%21)
-  %23 := Load byte %22
-  %24 := Eq byte %23, 1
-  branch %24, @12, @13
+  %12 := Call std.option.Option<Int>* @std.vec.VecIterator.next<Int>(%11)
+  %13 := Load byte %12
+  %14 := Eq byte %13, 1
+  branch %14, @12, @13
 label @12:
-  %25 := GetPointer int, std.option.Option<Int>::Some* %22.2
-  %26 := Load int %25
-  %27 := Call unit @test.use<Int>(%26)
+  %15 := GetPointer int, std.option.Option<Int>::Some* %12.2
+  %16 := Load int %15
+  Call void @test.use<Int>(%16)
   continue @11
 label @13:
-  %28 := Call unit @test.use<Unit>(())
+  Call void @test.use<Unit>()
   Ret
 }
 
-func unit @test.testVariableDeclarationUnitValue(bool %29) {
-  %30 := Call unit @test.use<Unit>(())
+func void @test.testVariableDeclarationUnitValue(bool %17) {
+  Call void @test.use<Unit>()
   Ret
 }
 
-func unit @test.testAssignmentUnitValue(bool %31) {
-  branch %31, @14, @15
+func void @test.testAssignmentUnitValue(bool %18) {
+  branch %18, @14, @15
 label @14:
-  %32 := Call unit @test.use<Int>(1)
+  Call void @test.use<Int>(1)
   continue @15
 label @15:
-  %33 := Call unit @test.use<Unit>(())
+  Call void @test.use<Unit>()
   Ret
 }
 
-func unit @test.use<Bool>(bool %34) {
+func void @test.use<Bool>(bool %19) {
   Ret
 }
 
-func unit @test.use<Function>(fn %35) {
+func void @test.use<Function>(fn %20) {
   Ret
 }
 
-func unit @test.use<Int>(int %36) {
+func void @test.use<Int>(int %21) {
   Ret
 }
 
-func unit @test.use<Unit>(unit %37) {
+func void @test.use<Unit>() {
   Ret
 }
 
 func int @test.main() {
-  %38 := Call unit @test.use<Function>(@test.testSimpleExpressionStatements)
-  %39 := Call unit @test.use<Function>(@test.testExpressionStatementSingleValue)
-  %40 := Call unit @test.use<Function>(@test.testExpressionStatementsBeforeValue)
-  %41 := Call unit @test.use<Function>(@test.testExpressionStatementUnitValue)
-  %42 := Call unit @test.use<Function>(@test.testWhileUnitValue)
-  %43 := Call unit @test.use<Function>(@test.testForUnitValue)
-  %44 := Call unit @test.use<Function>(@test.testVariableDeclarationUnitValue)
-  %45 := Call unit @test.use<Function>(@test.testAssignmentUnitValue)
+  Call void @test.use<Function>(@test.testSimpleExpressionStatements)
+  Call void @test.use<Function>(@test.testExpressionStatementSingleValue)
+  Call void @test.use<Function>(@test.testExpressionStatementsBeforeValue)
+  Call void @test.use<Function>(@test.testExpressionStatementUnitValue)
+  Call void @test.use<Function>(@test.testWhileUnitValue)
+  Call void @test.use<Function>(@test.testForUnitValue)
+  Call void @test.use<Function>(@test.testVariableDeclarationUnitValue)
+  Call void @test.use<Function>(@test.testAssignmentUnitValue)
   Ret 0
 }

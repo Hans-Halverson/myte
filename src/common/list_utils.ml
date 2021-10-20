@@ -99,6 +99,29 @@ let iteri2 f l1 l2 =
   in
   helper 0 f l1 l2
 
+let filter_mapi f lst =
+  let rec helper i acc lst =
+    match lst with
+    | [] -> List.rev acc
+    | hd :: tl ->
+      (match f i hd with
+      | None -> helper (i + 1) acc tl
+      | Some x -> helper (i + 1) (x :: acc) tl)
+  in
+  helper 0 [] lst
+
+let filter_map2 f l1 l2 =
+  let rec helper acc l1 l2 =
+    match (l1, l2) with
+    | ([], []) -> List.rev acc
+    | (hd1 :: tl1, hd2 :: tl2) ->
+      (match f hd1 hd2 with
+      | None -> helper acc tl1 tl2
+      | Some x -> helper (x :: acc) tl1 tl2)
+    | _ -> failwith "Lists must have same length"
+  in
+  helper [] l1 l2
+
 (* Transpose a matrix represented as a list of lists *)
 let rec transpose matrix =
   match matrix with

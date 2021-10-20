@@ -1,4 +1,4 @@
-func unit @test.ints() {
+func void @test.ints() {
   %0 := Add int 1, 2
   %1 := Sub int 1, 2
   %2 := Mul int 1, 2
@@ -17,7 +17,7 @@ func unit @test.ints() {
   Ret
 }
 
-func unit @test.bytes(byte %15, byte %16) {
+func void @test.bytes(byte %15, byte %16) {
   %17 := Add byte %15, %16
   %18 := Sub byte %15, %16
   %19 := Mul byte %15, %16
@@ -36,7 +36,7 @@ func unit @test.bytes(byte %15, byte %16) {
   Ret
 }
 
-func unit @test.longs(long %32, long %33) {
+func void @test.longs(long %32, long %33) {
   %34 := Add long %32, %33
   %35 := Sub long %32, %33
   %36 := Mul long %32, %33
@@ -55,13 +55,13 @@ func unit @test.longs(long %32, long %33) {
   Ret
 }
 
-func unit @test.use<Function>(fn %49) {
+func void @test.use<Function>(fn %49) {
   Ret
 }
 
 func int @test.main() {
-  %50 := Call unit @test.use<Function>(@test.ints)
-  %51 := Call unit @test.use<Function>(@test.bytes)
-  %52 := Call unit @test.use<Function>(@test.longs)
+  Call void @test.use<Function>(@test.ints)
+  Call void @test.use<Function>(@test.bytes)
+  Call void @test.use<Function>(@test.longs)
   Ret 0
 }

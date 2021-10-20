@@ -51,13 +51,13 @@ label @11:
   Ret %14
 }
 
-func unit @test.use<Function>(fn %15) {
+func void @test.use<Function>(fn %15) {
   Ret
 }
 
 func int @test.main() {
-  %16 := Call unit @test.use<Function>(@test.testSimpleIf)
-  %17 := Call unit @test.use<Function>(@test.testIfWithExpressions)
-  %18 := Call unit @test.use<Function>(@test.testNestedIfStatementInExpressionPosition)
+  Call void @test.use<Function>(@test.testSimpleIf)
+  Call void @test.use<Function>(@test.testIfWithExpressions)
+  Call void @test.use<Function>(@test.testNestedIfStatementInExpressionPosition)
   Ret 0
 }

@@ -1,76 +1,76 @@
-func unit @test.use(int %0) {
+func void @test.use(int %0) {
   Ret
 }
 
 func int @test.main() {
-  %1 := Call unit @test.use(1)
+  Call void @test.use(1)
   continue @0
 label @0:
   branch false, @1, @23
 label @1:
   branch true, @2, @6
 label @2:
-  %2 := Call unit @test.use(2)
+  Call void @test.use(2)
   branch false, @3, @4
 label @3:
-  %3 := Call unit @test.use(3)
+  Call void @test.use(3)
   continue @5
 label @4:
-  %4 := Call unit @test.use(4)
+  Call void @test.use(4)
   continue @5
 label @5:
-  %5 := Call unit @test.use(5)
+  Call void @test.use(5)
   continue @10
 label @6:
-  %6 := Call unit @test.use(6)
+  Call void @test.use(6)
   branch false, @7, @8
 label @7:
-  %7 := Call unit @test.use(7)
+  Call void @test.use(7)
   continue @9
 label @8:
-  %8 := Call unit @test.use(8)
+  Call void @test.use(8)
   continue @9
 label @9:
-  %9 := Call unit @test.use(9)
+  Call void @test.use(9)
   continue @10
 label @10:
-  %10 := Call unit @test.use(10)
+  Call void @test.use(10)
   continue @11
 label @11:
   branch false, @12, @22
 label @12:
   branch true, @13, @17
 label @13:
-  %11 := Call unit @test.use(11)
+  Call void @test.use(11)
   branch false, @14, @15
 label @14:
-  %12 := Call unit @test.use(12)
+  Call void @test.use(12)
   continue @16
 label @15:
-  %13 := Call unit @test.use(13)
+  Call void @test.use(13)
   continue @16
 label @16:
-  %14 := Call unit @test.use(14)
+  Call void @test.use(14)
   continue @21
 label @17:
-  %15 := Call unit @test.use(15)
+  Call void @test.use(15)
   branch false, @18, @19
 label @18:
-  %16 := Call unit @test.use(16)
+  Call void @test.use(16)
   continue @20
 label @19:
-  %17 := Call unit @test.use(17)
+  Call void @test.use(17)
   continue @20
 label @20:
-  %18 := Call unit @test.use(18)
+  Call void @test.use(18)
   continue @21
 label @21:
-  %19 := Call unit @test.use(19)
+  Call void @test.use(19)
   continue @11
 label @22:
-  %20 := Call unit @test.use(20)
+  Call void @test.use(20)
   continue @0
 label @23:
-  %21 := Call unit @test.use(21)
+  Call void @test.use(21)
   Ret 0
 }

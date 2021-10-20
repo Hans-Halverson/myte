@@ -2,33 +2,33 @@ global int @test.int3 = 2
 
 global int @test.int4 = 9
 
-func unit @test.testFolded() {
-  %0 := Call unit @test.use<Int>(10)
-  %1 := Call unit @test.use<Int>(68)
-  %2 := Call unit @test.use<Int>(-132)
+func void @test.testFolded() {
+  Call void @test.use<Int>(10)
+  Call void @test.use<Int>(68)
+  Call void @test.use<Int>(-132)
   Ret
 }
 
-func unit @test.testNotFolded() {
-  %3 := Load int @test.int3
-  %4 := Mul int %3, 2
-  %5 := Call unit @test.use<Int>(%4)
-  %6 := Load int @test.int4
-  %7 := Mul int %6, 3
-  %8 := Call unit @test.use<Int>(%7)
+func void @test.testNotFolded() {
+  %0 := Load int @test.int3
+  %1 := Mul int %0, 2
+  Call void @test.use<Int>(%1)
+  %2 := Load int @test.int4
+  %3 := Mul int %2, 3
+  Call void @test.use<Int>(%3)
   Ret
 }
 
-func unit @test.use<Function>(fn %9) {
+func void @test.use<Function>(fn %4) {
   Ret
 }
 
-func unit @test.use<Int>(int %10) {
+func void @test.use<Int>(int %5) {
   Ret
 }
 
 func int @test.main() {
-  %11 := Call unit @test.use<Function>(@test.testFolded)
-  %12 := Call unit @test.use<Function>(@test.testNotFolded)
+  Call void @test.use<Function>(@test.testFolded)
+  Call void @test.use<Function>(@test.testNotFolded)
   Ret 0
 }

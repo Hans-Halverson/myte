@@ -142,8 +142,6 @@ let std_sys_init = "std.sys.init"
 
 let std_unit_unit = "std.unit.Unit"
 
-let std_unit_unit_equals = "std.unit.Unit.equals"
-
 let std_vec_vec = "std.vec.Vec"
 
 let all_stdlib_names =
@@ -193,7 +191,6 @@ let all_stdlib_names =
       std_sys_exit;
       std_sys_init;
       std_unit_unit;
-      std_unit_unit_equals;
       std_vec_vec;
     ]
 

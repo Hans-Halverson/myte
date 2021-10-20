@@ -1,39 +1,39 @@
-func unit @test.emptyMap() {
+func void @test.emptyMap() {
   %0 := Call std.map.Map<Int,String>* @std.map.Map.new<Int,String>()
   %1 := Call std.map.Map<Bool,Unit>* @std.map.Map.new<Bool,Unit>()
   Ret
 }
 
-func unit @test.oneEntryMap() {
+func void @test.oneEntryMap() {
   %2 := Call std.map.Map<Int,Bool>* @std.map.Map.new<Int,Bool>()
-  %3 := Call unit @std.map.Map.add<Int,Bool>(%2, 1, true)
-  %4 := Call std.map.Map<Byte,Long>* @std.map.Map.new<Byte,Long>()
-  %5 := Call unit @std.map.Map.add<Byte,Long>(%4, 2, 3)
+  Call void @std.map.Map.add<Int,Bool>(%2, 1, true)
+  %3 := Call std.map.Map<Byte,Long>* @std.map.Map.new<Byte,Long>()
+  Call void @std.map.Map.add<Byte,Long>(%3, 2, 3)
   Ret
 }
 
-func unit @test.multiEntryMap() {
-  %6 := Call std.map.Map<Int,Bool>* @std.map.Map.new<Int,Bool>()
-  %7 := Call unit @std.map.Map.reserve<Int,Bool>(%6, 3)
-  %8 := Call unit @std.map.Map.add<Int,Bool>(%6, 5, true)
-  %9 := Call unit @std.map.Map.add<Int,Bool>(%6, 6, false)
-  %10 := Call unit @std.map.Map.add<Int,Bool>(%6, 7, true)
-  %11 := Call std.map.Map<Bool,Int>* @std.map.Map.new<Bool,Int>()
-  %12 := Call unit @std.map.Map.reserve<Bool,Int>(%11, 4)
-  %13 := Call unit @std.map.Map.add<Bool,Int>(%11, false, 3)
-  %14 := Call unit @std.map.Map.add<Bool,Int>(%11, true, 4)
-  %15 := Call unit @std.map.Map.add<Bool,Int>(%11, false, 5)
-  %16 := Call unit @std.map.Map.add<Bool,Int>(%11, true, 6)
+func void @test.multiEntryMap() {
+  %4 := Call std.map.Map<Int,Bool>* @std.map.Map.new<Int,Bool>()
+  Call void @std.map.Map.reserve<Int,Bool>(%4, 3)
+  Call void @std.map.Map.add<Int,Bool>(%4, 5, true)
+  Call void @std.map.Map.add<Int,Bool>(%4, 6, false)
+  Call void @std.map.Map.add<Int,Bool>(%4, 7, true)
+  %5 := Call std.map.Map<Bool,Int>* @std.map.Map.new<Bool,Int>()
+  Call void @std.map.Map.reserve<Bool,Int>(%5, 4)
+  Call void @std.map.Map.add<Bool,Int>(%5, false, 3)
+  Call void @std.map.Map.add<Bool,Int>(%5, true, 4)
+  Call void @std.map.Map.add<Bool,Int>(%5, false, 5)
+  Call void @std.map.Map.add<Bool,Int>(%5, true, 6)
   Ret
 }
 
-func unit @test.use<Function>(fn %17) {
+func void @test.use<Function>(fn %6) {
   Ret
 }
 
 func int @test.main() {
-  %18 := Call unit @test.use<Function>(@test.emptyMap)
-  %19 := Call unit @test.use<Function>(@test.oneEntryMap)
-  %20 := Call unit @test.use<Function>(@test.multiEntryMap)
+  Call void @test.use<Function>(@test.emptyMap)
+  Call void @test.use<Function>(@test.oneEntryMap)
+  Call void @test.use<Function>(@test.multiEntryMap)
   Ret 0
 }

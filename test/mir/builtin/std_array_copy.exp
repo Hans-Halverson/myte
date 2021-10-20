@@ -1,35 +1,35 @@
-func unit @test.testCopy1(int* %0, int* %1) {
-  %2 := CallBuiltin unit myte_copy(%0, %1, 7)
+func void @test.testCopy1(int* %0, int* %1) {
+  CallBuiltin void myte_copy(%0, %1, 7)
   Ret
 }
 
-func unit @test.testCopy2(int* %3, int* %4, int %5) {
-  %6 := GetPointer int, int* %3[int %5]
-  %7 := CallBuiltin unit myte_copy(%6, %4, 7)
+func void @test.testCopy2(int* %2, int* %3, int %4) {
+  %5 := GetPointer int, int* %2[int %4]
+  CallBuiltin void myte_copy(%5, %3, 7)
   Ret
 }
 
-func unit @test.testCopy3(int* %8, int* %9, int %10) {
-  %11 := GetPointer int, int* %9[int %10]
-  %12 := CallBuiltin unit myte_copy(%8, %11, 7)
+func void @test.testCopy3(int* %6, int* %7, int %8) {
+  %9 := GetPointer int, int* %7[int %8]
+  CallBuiltin void myte_copy(%6, %9, 7)
   Ret
 }
 
-func unit @test.testCopy(int* %13, int* %14, int %15) {
-  %16 := GetPointer int, int* %13[int %15]
-  %17 := GetPointer int, int* %14[int %15]
-  %18 := CallBuiltin unit myte_copy(%16, %17, 7)
+func void @test.testCopy(int* %10, int* %11, int %12) {
+  %13 := GetPointer int, int* %10[int %12]
+  %14 := GetPointer int, int* %11[int %12]
+  CallBuiltin void myte_copy(%13, %14, 7)
   Ret
 }
 
-func unit @test.use<Function>(fn %19) {
+func void @test.use<Function>(fn %15) {
   Ret
 }
 
 func int @test.main() {
-  %20 := Call unit @test.use<Function>(@test.testCopy1)
-  %21 := Call unit @test.use<Function>(@test.testCopy2)
-  %22 := Call unit @test.use<Function>(@test.testCopy3)
-  %23 := Call unit @test.use<Function>(@test.testCopy)
+  Call void @test.use<Function>(@test.testCopy1)
+  Call void @test.use<Function>(@test.testCopy2)
+  Call void @test.use<Function>(@test.testCopy3)
+  Call void @test.use<Function>(@test.testCopy)
   Ret 0
 }

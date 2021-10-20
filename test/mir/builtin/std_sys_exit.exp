@@ -1,4 +1,4 @@
 func int @test.main() {
-  %0 := CallBuiltin unit myte_exit(1)
+  CallBuiltin void myte_exit(1)
   Ret 0
 }

@@ -141,8 +141,10 @@ and emit_global_variable_declaration ~ecx name decl =
         if ecx.current_in_std_lib && ecx.filter_std_lib then
           None
         else
-          (* If initial value is statically known at compile time, add it as constant initialization *)
           let init_val = emit_expression ~ecx init in
+          (* Globals are only emitted if they have a MIR value *)
+          let init_val = Option.get init_val in
+          (* If initial value is statically known at compile time, add it as constant initialization *)
           if is_literal init_val then
             Some init_val
           else (
@@ -168,9 +170,11 @@ and emit_function_body ~ecx name decl =
   (* Create MIR vars for function params *)
   let func_decl = Bindings.get_func_decl binding in
   let params =
-    List.map2
+    List_utils.filter_map2
       (fun { Param.name = { Identifier.loc; _ }; _ } ty ->
-        (loc, Ecx.add_function_param ~ecx loc, type_to_mir_type ~ecx ty))
+        match type_to_mir_type ~ecx ty with
+        | Some mir_type -> Some (loc, Ecx.add_function_param ~ecx loc, mir_type)
+        | None -> None)
       params
       func_decl.params
   in
@@ -179,7 +183,13 @@ and emit_function_body ~ecx name decl =
   let params =
     match LocMap.find_opt full_loc ecx.pcx.bindings.value_bindings with
     | Some { declaration = FunParamDecl { tvar }; _ } ->
-      let this_type = type_to_mir_type ~ecx (Types.Type.TVar tvar) in
+      (* Method receiver parameters cannot be removed if they are zero sized due to compatability
+         with trait objects. Instead use pointer to zero type type for receiver. *)
+      let this_type =
+        match type_to_mir_type ~ecx (Types.Type.TVar tvar) with
+        | Some this_type -> this_type
+        | None -> `PointerT (Ecx.get_zero_size_type ~ecx)
+      in
       (full_loc, Ecx.add_function_param ~ecx full_loc, this_type) :: params
     | _ -> params
   in
@@ -204,16 +214,16 @@ and emit_function_body ~ecx name decl =
       in
       Ecx.emit ~ecx (Ret return_val))
   | Expression expr ->
-    let ret_val = emit_expression ~ecx expr in
-    Ecx.emit ~ecx (Ret (Some ret_val))
+    let ret_val_opt = emit_expression ~ecx expr in
+    Ecx.emit ~ecx (Ret ret_val_opt)
   | Signature -> ());
   Ecx.finish_block_halt ~ecx;
 
   (* The main function must always return an Int *)
   let return_ty = type_to_mir_type ~ecx func_decl.return in
   let return_ty =
-    if current_is_main && return_ty = `UnitT then
-      `IntT
+    if current_is_main then
+      Some `IntT
     else
       return_ty
   in
@@ -229,7 +239,7 @@ and start_init_function ~ecx =
       Function.loc = Loc.none;
       name = init_func_name;
       params = [];
-      return_ty = `UnitT;
+      return_ty = None;
       body_start_block;
     }
 
@@ -238,7 +248,11 @@ and finish_init_function ~ecx =
   last_init_block.instructions <-
     (mk_instr_id (), Instruction.Ret None) :: last_init_block.instructions
 
-and emit_expression ~ecx expr =
+(*
+ * Emit an expression, returning the value for that expression if the expression produces a value.
+ * If expression does not produce a value then None is returned.
+ *)
+and emit_expression ~ecx expr : Value.t option =
   (* Check for trait object promotion on every expression *)
   let expr_val = emit_expression_without_promotion ~ecx expr in
   let expr_loc = Ast_utils.expression_loc expr in
@@ -249,7 +263,7 @@ and emit_expression ~ecx expr =
     let trait_object_instance = Ecx.instantiate_trait_object_vtable ~ecx trait_instance ty in
     emit_trait_object_promotion ~ecx expr_val trait_object_instance
 
-and emit_expression_without_promotion ~ecx expr =
+and emit_expression_without_promotion ~ecx expr : Value.t option =
   let open Expression in
   let open Instruction in
   match expr with
@@ -258,25 +272,31 @@ and emit_expression_without_promotion ~ecx expr =
    *         Literals
    * ============================
    *)
-  | Unit _ -> `UnitL
-  | BoolLiteral { value; _ } -> `BoolL value
+  | Unit _ -> None
+  | BoolLiteral { value; _ } -> Some (`BoolL value)
   | IntLiteral { loc; raw; base } ->
     let value = Integers.int64_of_string_opt raw base |> Option.get in
-    let ty = mir_type_of_loc ~ecx loc in
-    (match ty with
-    | `ByteT -> `ByteL (Int64.to_int value)
-    | `IntT -> `IntL (Int64.to_int32 value)
-    | `LongT -> `LongL value
-    | _ -> failwith "Int literal must have integer type")
+    let ty = mir_type_of_loc ~ecx loc |> Option.get in
+    let value =
+      match ty with
+      | `ByteT -> `ByteL (Int64.to_int value)
+      | `IntT -> `IntL (Int64.to_int32 value)
+      | `LongT -> `LongL value
+      | _ -> failwith "Int literal must have integer type"
+    in
+    Some value
   | CharLiteral { loc; value } ->
     let value = int_of_char value in
-    let ty = mir_type_of_loc ~ecx loc in
-    (match ty with
-    | `ByteT -> `ByteL value
-    | `IntT -> `IntL (Int32.of_int value)
-    | `LongT -> `LongL (Int64.of_int value)
-    | _ -> failwith "Char literal must have integer type")
-  | StringLiteral { loc; value; _ } -> emit_string_literal ~ecx loc value
+    let ty = mir_type_of_loc ~ecx loc |> Option.get in
+    let value =
+      match ty with
+      | `ByteT -> `ByteL value
+      | `IntT -> `IntL (Int32.of_int value)
+      | `LongT -> `LongL (Int64.of_int value)
+      | _ -> failwith "Char literal must have integer type"
+    in
+    Some value
+  | StringLiteral { loc; value; _ } -> Some (emit_string_literal ~ecx loc value)
   (*
    * ============================
    *       Unary Operations
@@ -286,24 +306,27 @@ and emit_expression_without_promotion ~ecx expr =
   | UnaryOperation { loc; op = Minus; operand } ->
     let var_id = mk_var_id () in
     let operand_val = emit_numeric_expression ~ecx operand in
-    let ty = mir_type_of_loc ~ecx loc in
+    let ty = mir_type_of_loc ~ecx loc |> Option.get in
     Ecx.emit ~ecx (Neg (var_id, operand_val));
-    var_value_of_type var_id ty
+    Some (var_value_of_type var_id ty)
   | UnaryOperation { op = Not; loc; operand } ->
     let var_id = mk_var_id () in
-    let value_ty = mir_type_of_loc ~ecx loc in
-    (match value_ty with
-    | `BoolT ->
-      let operand_val = emit_bool_expression ~ecx operand in
-      Ecx.emit ~ecx (LogNot (var_id, operand_val));
-      `BoolV var_id
-    | `ByteT
-    | `IntT
-    | `LongT ->
-      let operand_val = emit_numeric_expression ~ecx operand in
-      Ecx.emit ~ecx (BitNot (var_id, operand_val));
-      var_value_of_type var_id value_ty
-    | _ -> failwith "Not argument must be a bool or int")
+    let value_ty = mir_type_of_loc ~ecx loc |> Option.get in
+    let value =
+      match value_ty with
+      | `BoolT ->
+        let operand_val = emit_bool_expression ~ecx operand in
+        Ecx.emit ~ecx (LogNot (var_id, operand_val));
+        `BoolV var_id
+      | `ByteT
+      | `IntT
+      | `LongT ->
+        let operand_val = emit_numeric_expression ~ecx operand in
+        Ecx.emit ~ecx (BitNot (var_id, operand_val));
+        var_value_of_type var_id value_ty
+      | _ -> failwith "Not argument must be a bool or int"
+    in
+    Some value
   (*
    * ============================
    *        Logical And
@@ -324,7 +347,7 @@ and emit_expression_without_promotion ~ecx expr =
 
     (* Store right hand side when lhs is true and continue to join block *)
     Ecx.set_block_builder ~ecx rhs_builder;
-    let right_val = emit_expression ~ecx right in
+    let right_val = (emit_bool_expression ~ecx right :> Value.t) in
     Ecx.emit ~ecx (Store (result_ptr_val, right_val));
     Ecx.finish_block_continue ~ecx join_builder.id;
 
@@ -337,7 +360,7 @@ and emit_expression_without_promotion ~ecx expr =
     Ecx.set_block_builder ~ecx join_builder;
     let var_id = mk_var_id () in
     Ecx.emit ~ecx (Load (var_id, result_ptr_val));
-    `BoolV var_id
+    Some (`BoolV var_id)
   (*
    * ============================
    *         Logical Or
@@ -358,7 +381,7 @@ and emit_expression_without_promotion ~ecx expr =
 
     (* Store right hand side when lhs is false and continue to join block *)
     Ecx.set_block_builder ~ecx rhs_builder;
-    let right_val = emit_expression ~ecx right in
+    let right_val = (emit_bool_expression ~ecx right :> Value.t) in
     Ecx.emit ~ecx (Store (result_ptr_val, right_val));
     Ecx.finish_block_continue ~ecx join_builder.id;
 
@@ -371,7 +394,7 @@ and emit_expression_without_promotion ~ecx expr =
     Ecx.set_block_builder ~ecx join_builder;
     let var_id = mk_var_id () in
     Ecx.emit ~ecx (Load (var_id, result_ptr_val));
-    `BoolV var_id
+    Some (`BoolV var_id)
   (*
    * ============================
    *          Equality
@@ -380,7 +403,7 @@ and emit_expression_without_promotion ~ecx expr =
   | BinaryOperation { op = (Equal | NotEqual) as op; left; right; _ } ->
     let left_ty = type_of_loc ~ecx (Ast_utils.expression_loc left) in
     let receiver_val = emit_expression ~ecx left in
-    let arg_vals = [emit_expression ~ecx right] in
+    let arg_vals = List.filter_map (fun x -> x) [emit_expression ~ecx right] in
     let equals_result_val =
       emit_method_call
         ~ecx
@@ -389,14 +412,15 @@ and emit_expression_without_promotion ~ecx expr =
         ~receiver_ty:left_ty
         ~arg_vals
         ~method_instance_type_args:[]
-        ~ret_type:`BoolT
+        ~ret_type:(Some `BoolT)
     in
     if op = Equal then
       equals_result_val
     else
       let var_id = mk_var_id () in
-      Ecx.emit ~ecx (LogNot (var_id, cast_to_bool_value equals_result_val));
-      var_value_of_type var_id `BoolT
+      let equals_result_val = cast_to_bool_value (Option.get equals_result_val) in
+      Ecx.emit ~ecx (LogNot (var_id, equals_result_val));
+      Some (var_value_of_type var_id `BoolT)
   (*
    * ============================
    *       Binary Operations
@@ -407,7 +431,7 @@ and emit_expression_without_promotion ~ecx expr =
     let var_id = mk_var_id () in
     let left_val = emit_numeric_expression ~ecx left in
     let right_val = emit_numeric_expression ~ecx right in
-    let ty = mir_type_of_loc ~ecx loc in
+    let ty = mir_type_of_loc ~ecx loc |> Option.get in
     let (instr, ty) =
       match op with
       | Add -> (Instruction.Add (var_id, left_val, right_val), ty)
@@ -430,7 +454,7 @@ and emit_expression_without_promotion ~ecx expr =
         failwith "Handled separately"
     in
     Ecx.emit ~ecx instr;
-    var_value_of_type var_id ty
+    Some (var_value_of_type var_id ty)
   (*
    * ============================
    *         Identifiers
@@ -442,7 +466,7 @@ and emit_expression_without_promotion ~ecx expr =
     (match binding.declaration with
     | CtorDecl _ ->
       let ty = type_of_loc ~ecx loc in
-      emit_construct_enum_variant ~ecx ~name ~ty
+      Some (emit_construct_enum_variant ~ecx ~name ~ty)
     (* Create function literal for functions *)
     | FunDecl { Bindings.FunctionDeclaration.type_params; is_builtin; _ } ->
       let func_name = mk_value_binding_name binding in
@@ -456,30 +480,36 @@ and emit_expression_without_promotion ~ecx expr =
           let (type_args, _, _) = Type_util.cast_to_function_type ty in
           Ecx.get_generic_function_value ~ecx func_name type_params type_args
       in
-      (func_val :> Value.t)
+      Some (func_val :> Value.t)
     (* Variables may be either globals or locals *)
     | VarDecl { tvar; _ } ->
-      let mir_ty = type_to_mir_type ~ecx (Types.Type.TVar tvar) in
-      let var_id = mk_var_id () in
-      ( if Bindings.is_module_decl binding then
-        let global_ptr = Ecx.get_global_pointer ~ecx binding in
-        Ecx.emit ~ecx (Load (var_id, global_ptr))
-      else
-        let ptr_var_id = Ecx.get_ptr_var_id ~ecx id_loc in
-        Ecx.emit ~ecx (Load (var_id, `PointerV (mir_ty, ptr_var_id))) );
-      var_value_of_type var_id mir_ty
+      (match type_to_mir_type ~ecx (Types.Type.TVar tvar) with
+      | None -> None
+      | Some mir_type ->
+        let var_id = mk_var_id () in
+        ( if Bindings.is_module_decl binding then
+          let global_ptr = Ecx.get_global_pointer ~ecx binding |> Option.get in
+          Ecx.emit ~ecx (Load (var_id, global_ptr))
+        else
+          let ptr_var_id = Ecx.get_ptr_var_id ~ecx id_loc in
+          Ecx.emit ~ecx (Load (var_id, `PointerV (mir_type, ptr_var_id))) );
+        Some (var_value_of_type var_id mir_type))
     (* Function parameters can have their corresponding MIR var referenced directly *)
     | FunParamDecl { tvar } ->
-      let var_id = Ecx.get_function_param_var_id ~ecx binding.loc in
-      let mir_ty = type_to_mir_type ~ecx (Types.Type.TVar tvar) in
-      var_value_of_type var_id mir_ty
+      (match type_to_mir_type ~ecx (Types.Type.TVar tvar) with
+      | None -> None
+      | Some mir_type ->
+        let var_id = Ecx.get_function_param_var_id ~ecx binding.loc in
+        Some (var_value_of_type var_id mir_type))
     (* Match cases variables are locals, and must be loaded from their var ptr *)
     | MatchCaseVarDecl { tvar } ->
-      let mir_ty = type_to_mir_type ~ecx (Types.Type.TVar tvar) in
-      let var_id = mk_var_id () in
-      let ptr_var_id = Ecx.get_ptr_var_id ~ecx id_loc in
-      Ecx.emit ~ecx (Load (var_id, `PointerV (mir_ty, ptr_var_id)));
-      var_value_of_type var_id mir_ty)
+      (match type_to_mir_type ~ecx (Types.Type.TVar tvar) with
+      | None -> None
+      | Some mir_type ->
+        let var_id = mk_var_id () in
+        let ptr_var_id = Ecx.get_ptr_var_id ~ecx id_loc in
+        Ecx.emit ~ecx (Load (var_id, `PointerV (mir_type, ptr_var_id)));
+        Some (var_value_of_type var_id mir_type)))
   (*
    * ============================
    *     Type Casts (ignored)
@@ -494,9 +524,11 @@ and emit_expression_without_promotion ~ecx expr =
   | Tuple { loc; elements } ->
     let ty = type_of_loc ~ecx loc in
     let element_tys = Type_util.cast_to_tuple_type ty in
-    let agg = Ecx.instantiate_tuple ~ecx element_tys in
-    let mk_elements = List.map (fun element _ -> emit_expression ~ecx element) elements in
-    emit_construct_tuple ~ecx ~tag:None ~agg ~mk_elements
+    (match Ecx.instantiate_tuple ~ecx element_tys with
+    | None -> None
+    | Some agg ->
+      let mk_elements = List.map (fun element _ -> emit_expression ~ecx element) elements in
+      Some (emit_construct_tuple ~ecx ~tag:None ~agg ~mk_elements))
   (*
    * ============================
    *        Method Calls
@@ -507,7 +539,7 @@ and emit_expression_without_promotion ~ecx expr =
     when Type_context.is_method_use ~cx:ecx.pcx.type_ctx method_name.loc ->
     let receiver_ty = type_of_loc ~ecx (Ast_utils.expression_loc receiver) in
     let receiver_val = emit_expression ~ecx receiver in
-    let arg_vals = List.map (emit_expression ~ecx) args in
+    let arg_vals = List.filter_map (emit_expression ~ecx) args in
     let method_ty = type_of_loc ~ecx method_loc in
     let (method_instance_type_args, _, _) = Type_util.cast_to_function_type method_ty in
     let ret_type = mir_type_of_loc ~ecx loc in
@@ -544,7 +576,7 @@ and emit_expression_without_promotion ~ecx expr =
     | Some result -> result
     | None ->
       let func_val = emit_function_expression ~ecx func in
-      let arg_vals = List.map (emit_expression ~ecx) args in
+      let arg_vals = List.filter_map (emit_expression ~ecx) args in
       let ret_type = mir_type_of_loc ~ecx loc in
       emit_call ~ecx ~func_val ~arg_vals ~receiver_val:None ~ret_type)
   (*
@@ -566,12 +598,16 @@ and emit_expression_without_promotion ~ecx expr =
     let layout = Ecx.get_mir_adt_layout ~ecx adt_sig type_args in
     (match layout with
     (* If layout is an aggregate, construct record *)
-    | Aggregate agg -> emit_construct_record ~ecx ~tag:None agg fields
+    | Aggregate agg -> Some (emit_construct_record ~ecx ~tag:None agg fields)
     (* If layout is a variant, construct record and set variant tag *)
     | Variants { tags; variants; _ } ->
       let record_variant_agg = SMap.find name variants in
       let tag = SMap.find name tags in
-      emit_construct_record ~ecx ~tag:(Some tag) record_variant_agg fields
+      Some (emit_construct_record ~ecx ~tag:(Some tag) record_variant_agg fields)
+    (* If layout is zero size, still emit all fields as they may have side effect s*)
+    | ZeroSize ->
+      List.iter (fun field -> ignore (emit_record_field_value ~ecx field)) fields;
+      None
     | InlineValue _
     | PureEnum _ ->
       failwith "Invalid layout for record")
@@ -585,12 +621,12 @@ and emit_expression_without_promotion ~ecx expr =
     (match target_ty with
     (* If indexing a vector, call Vec's `get` method instead of emitting access chain *)
     | ADT { adt_sig; _ } when adt_sig == !Std_lib.vec_adt_sig ->
-      let target_var = emit_expression ~ecx target in
-      let index_var = emit_expression ~ecx index in
+      let target_var = emit_expression ~ecx target |> Option.get in
+      let index_var = emit_expression ~ecx index |> Option.get in
       emit_call_vec_get ~ecx loc target_var index_var
     (* If indexing a map, call Map's `get` method instead of emitting access chain *)
     | ADT { adt_sig; type_args } when adt_sig == !Std_lib.map_adt_sig ->
-      let target_var = emit_expression ~ecx target in
+      let target_var = emit_expression ~ecx target |> Option.get in
       let index_var = emit_expression ~ecx index in
       emit_call_map_get ~ecx loc type_args target_var index_var
     | _ -> emit_expression_access_chain_load ~ecx expr)
@@ -608,18 +644,21 @@ and emit_expression_without_promotion ~ecx expr =
     let emit_part part =
       match part with
       | InterpolatedString.String string_literal ->
-        emit_expression ~ecx (StringLiteral string_literal)
+        emit_expression ~ecx (StringLiteral string_literal) |> Option.get
       | Expression expr ->
         let receiver_val = emit_expression ~ecx expr in
         let receiver_ty = type_of_loc ~ecx (Ast_utils.expression_loc expr) in
-        emit_method_call
-          ~ecx
-          ~method_name:"toString"
-          ~receiver_val
-          ~receiver_ty
-          ~arg_vals:[]
-          ~method_instance_type_args:[]
-          ~ret_type:string_type
+        let string_val =
+          emit_method_call
+            ~ecx
+            ~method_name:"toString"
+            ~receiver_val
+            ~receiver_ty
+            ~arg_vals:[]
+            ~method_instance_type_args:[]
+            ~ret_type:string_type
+        in
+        Option.get string_val
     in
     (* Emit first part string, then if there are other parts emit each and call `append` on the
        first string part. *)
@@ -631,13 +670,13 @@ and emit_expression_without_promotion ~ecx expr =
           (emit_method_call
              ~ecx
              ~method_name:"append"
-             ~receiver_val:first_part_val
+             ~receiver_val:(Some first_part_val)
              ~receiver_ty:string_ty
              ~arg_vals:[part_val]
              ~method_instance_type_args:[]
-             ~ret_type:`UnitT))
+             ~ret_type:None))
       rest_parts;
-    first_part_val
+    Some first_part_val
   (*
    * ============================
    *       If Expression
@@ -656,10 +695,15 @@ and emit_expression_without_promotion ~ecx expr =
    * ============================
    *)
   | VecLiteral { loc; elements } ->
-    (* Find MIR element type *)
+    (* Find MIR element type. A type is needed for the alloc call, so use zero size type placeholder
+       if vec is paramterized by zero size type. *)
     let (vec_type_args, _) = Type_util.cast_to_adt_type (type_of_loc ~ecx loc) in
     let element_ty = List.hd vec_type_args in
-    let element_mir_type = type_to_mir_type ~ecx element_ty in
+    let element_mir_type =
+      match type_to_mir_type ~ecx element_ty with
+      | Some mir_type -> mir_type
+      | None -> Ecx.get_zero_size_type ~ecx
+    in
 
     (* Do not allocate if vec is empty *)
     let size_val = `IntL (Int32.of_int (List.length elements)) in
@@ -678,22 +722,24 @@ and emit_expression_without_promotion ~ecx expr =
         let data_ptr_val = cast_to_pointer_value data_val in
         List.iteri
           (fun i element ->
-            let element_var = emit_expression ~ecx element in
-            let (element_offset_var, get_ptr_instr) =
-              mk_get_pointer_instr
-                element_mir_type
-                data_ptr_val
-                [Instruction.GetPointer.PointerIndex (`IntL (Int32.of_int i))]
-            in
-            Ecx.emit ~ecx (GetPointer get_ptr_instr);
-            Ecx.emit ~ecx (Store (element_offset_var, element_var)))
+            match emit_expression ~ecx element with
+            | Some element_var ->
+              let (element_offset_var, get_ptr_instr) =
+                mk_get_pointer_instr
+                  element_mir_type
+                  data_ptr_val
+                  [Instruction.GetPointer.PointerIndex (`IntL (Int32.of_int i))]
+              in
+              Ecx.emit ~ecx (GetPointer get_ptr_instr);
+              Ecx.emit ~ecx (Store (element_offset_var, element_var))
+            | None -> ())
           elements;
         data_val
     in
 
     (* Call myte_alloc builtin to allocate space for vec *)
     let vec_ptr_var_id = mk_var_id () in
-    let vec_ptr_mir_type = mir_type_of_loc ~ecx loc in
+    let vec_ptr_mir_type = mir_type_of_loc ~ecx loc |> Option.get in
     let (`PointerT vec_mir_type) = cast_to_pointer_type vec_ptr_mir_type in
     let vec_ptr_var = `PointerV (vec_mir_type, vec_ptr_var_id) in
     let (vec_ptr_val, myte_alloc_instr) =
@@ -714,7 +760,7 @@ and emit_expression_without_promotion ~ecx expr =
     emit_field_store "data" data_val;
     emit_field_store "size" size_val;
     emit_field_store "capacity" size_val;
-    vec_ptr_val
+    Some vec_ptr_val
   (*
    * ============================
    *         Map Literal
@@ -723,7 +769,7 @@ and emit_expression_without_promotion ~ecx expr =
   | MapLiteral { loc; entries } ->
     (* Create new map by calling `Map.new` *)
     let map_ty = type_of_loc ~ecx loc in
-    let map_mir_type = type_to_mir_type ~ecx map_ty in
+    let map_mir_type = type_to_mir_type ~ecx map_ty |> Option.get in
     let (map_type_args, _) = Type_util.cast_to_adt_type map_ty in
     let map_ptr_val = emit_call_map_new ~ecx map_mir_type map_type_args in
 
@@ -739,7 +785,7 @@ and emit_expression_without_promotion ~ecx expr =
         let value_val = emit_expression ~ecx value in
         emit_call_map_add ~ecx map_type_args map_ptr_val key_val value_val)
       entries;
-    map_ptr_val
+    Some map_ptr_val
   (*
    * ============================
    *         Set Literal
@@ -748,7 +794,7 @@ and emit_expression_without_promotion ~ecx expr =
   | SetLiteral { loc; elements } ->
     (* Create new set by calling `Set.new` *)
     let set_ty = type_of_loc ~ecx loc in
-    let set_mir_type = type_to_mir_type ~ecx set_ty in
+    let set_mir_type = type_to_mir_type ~ecx set_ty |> Option.get in
     let (set_type_args, _) = Type_util.cast_to_adt_type set_ty in
     let set_ptr_val = emit_call_set_new ~ecx set_mir_type set_type_args in
 
@@ -763,7 +809,7 @@ and emit_expression_without_promotion ~ecx expr =
         let element_val = emit_expression ~ecx element in
         emit_call_set_add ~ecx set_type_args set_ptr_val element_val)
       elements;
-    set_ptr_val
+    Some set_ptr_val
   (*
    * ============================
    *           Unwrap
@@ -771,7 +817,7 @@ and emit_expression_without_promotion ~ecx expr =
    *)
   | Unwrap { loc = _; operand } ->
     (* Emit operand, find its type, and the return type of function (which may differ) *)
-    let operand_val = emit_expression ~ecx operand in
+    let operand_val = emit_expression ~ecx operand |> Option.get in
     let operand_ty = type_of_loc ~ecx (Ast_utils.expression_loc operand) in
     let return_ty = snd ecx.current_func in
 
@@ -820,7 +866,7 @@ and emit_expression_without_promotion ~ecx expr =
           ~ty:return_ty
           ~mk_elements:[(fun _ -> error_item_val)]
       in
-      Ecx.emit ~ecx (Ret (Some error_val));
+      Ecx.emit ~ecx (Ret error_val);
 
       (* Return unwrapped value in Ok case and proceed *)
       Ecx.set_block_builder ~ecx ok_branch_builder;
@@ -831,7 +877,7 @@ and emit_expression_without_promotion ~ecx expr =
 
 and emit_string_literal ~ecx loc value =
   let string_global_ptr = Ecx.add_string_literal ~ecx loc value in
-  let string_pointer_type = mir_type_of_loc ~ecx loc in
+  let string_pointer_type = mir_type_of_loc ~ecx loc |> Option.get in
   let (`PointerT string_type) = cast_to_pointer_type string_pointer_type in
   let (`AggregateT string_agg) = cast_to_aggregate_type string_type in
   (* Call myte_alloc builtin to allocate space for string *)
@@ -860,10 +906,17 @@ and emit_if_expression ~ecx if_ =
   let { If.loc; test; conseq; altern } = if_ in
   let mir_type = mir_type_of_loc ~ecx loc in
 
-  (* Model if join by creating stack location to place results of branches *)
-  let result_var_id = mk_var_id () in
-  let result_ptr_val = `PointerV (mir_type, result_var_id) in
-  Ecx.emit ~ecx (StackAlloc (result_var_id, mir_type));
+  (* Model if join by creating stack location to place results of branches as long as type is not
+     zero sized. *)
+  let result_ptr_val =
+    match mir_type with
+    | None -> None
+    | Some mir_type ->
+      let result_var_id = mk_var_id () in
+      let result_ptr_val = `PointerV (mir_type, result_var_id) in
+      Ecx.emit ~ecx (StackAlloc (result_var_id, mir_type));
+      Some result_ptr_val
+  in
 
   (* Branch to conseq or altern blocks *)
   let test_val = emit_bool_expression ~ecx test in
@@ -874,52 +927,62 @@ and emit_if_expression ~ecx if_ =
 
   (* Emit conseq, store result, and continue to join block *)
   Ecx.set_block_builder ~ecx conseq_builder;
-  let conseq_val = emit_block ~ecx ~is_expr:true conseq |> Option.value ~default:`UnitL in
-  Ecx.emit ~ecx (Store (result_ptr_val, conseq_val));
+  (match emit_block ~ecx ~is_expr:true conseq with
+  | Some conseq_val -> Ecx.emit ~ecx (Store (Option.get result_ptr_val, conseq_val))
+  | None -> ());
   Ecx.finish_block_continue ~ecx join_builder.id;
 
   (* Emit altern, store result, and continue to join block *)
   Ecx.set_block_builder ~ecx altern_builder;
   let altern_val =
     match altern with
-    | Block block -> emit_block ~ecx ~is_expr:true block |> Option.value ~default:`UnitL
+    | Block block -> emit_block ~ecx ~is_expr:true block
     | If if_ -> emit_if_expression ~ecx if_
     | None -> failwith "If expression must have else branch"
   in
-  Ecx.emit ~ecx (Store (result_ptr_val, altern_val));
+  (match altern_val with
+  | Some altern_val -> Ecx.emit ~ecx (Store (Option.get result_ptr_val, altern_val))
+  | None -> ());
   Ecx.finish_block_continue ~ecx join_builder.id;
 
   (* Join branches together and load result from stack location *)
   Ecx.set_block_builder ~ecx join_builder;
-  let var_id = mk_var_id () in
-  Ecx.emit ~ecx (Load (var_id, result_ptr_val));
-  var_value_of_type var_id mir_type
+  match mir_type with
+  | None -> None
+  | Some mir_type ->
+    let var_id = mk_var_id () in
+    Ecx.emit ~ecx (Load (var_id, Option.get result_ptr_val));
+    Some (var_value_of_type var_id mir_type)
 
 and emit_match_expression ~ecx match_ =
   let { Match.loc; args; cases } = match_ in
   let mir_type = mir_type_of_loc ~ecx loc in
 
   (* Model join of match expression by creating stack location to place results of cases *)
-  let result_var_id = mk_var_id () in
-  let result_ptr_val = `PointerV (mir_type, result_var_id) in
-  Ecx.emit ~ecx (StackAlloc (result_var_id, mir_type));
+  let result_ptr_val =
+    match mir_type with
+    | None -> None
+    | Some mir_type ->
+      let result_var_id = mk_var_id () in
+      let result_ptr_val = `PointerV (mir_type, result_var_id) in
+      Ecx.emit ~ecx (StackAlloc (result_var_id, mir_type));
+      Some result_ptr_val
+  in
 
   (* Emit args and decision tree *)
   let args = List.map (emit_expression ~ecx) args in
   let decision_tree = Mir_match_decision_tree.build_match_decision_tree ~ecx args cases in
   let join_block = Ecx.mk_block_builder ~ecx in
-  emit_match_decision_tree
-    ~ecx
-    ~join_block
-    ~result_ptr:(Some result_ptr_val)
-    ~alloc:true
-    decision_tree;
+  emit_match_decision_tree ~ecx ~join_block ~result_ptr:result_ptr_val ~alloc:true decision_tree;
 
   (* Join branches together and load result from stack location *)
   Ecx.set_block_builder ~ecx join_block;
-  let var_id = mk_var_id () in
-  Ecx.emit ~ecx (Load (var_id, result_ptr_val));
-  var_value_of_type var_id mir_type
+  match mir_type with
+  | None -> None
+  | Some mir_type ->
+    let var_id = mk_var_id () in
+    Ecx.emit ~ecx (Load (var_id, Option.get result_ptr_val));
+    Some (var_value_of_type var_id mir_type)
 
 and emit_trait_object_promotion ~ecx expr_val trait_object_instance =
   (* Call myte_alloc builtin to allocate space for trait object *)
@@ -943,19 +1006,20 @@ and emit_trait_object_promotion ~ecx expr_val trait_object_instance =
     Ecx.emit ~ecx (GetPointer get_ptr_instr);
     Ecx.emit ~ecx (Store (element_offset_var, value))
   in
-  emit_field_store "item" expr_val;
+  expr_val |> Option.iter (emit_field_store "item");
   emit_field_store "vtable" (trait_object_instance.vtable :> Value.t);
-  trait_object_ptr_val
+  Some trait_object_ptr_val
 
 and emit_expression_access_chain_load ~ecx expr =
   match emit_expression_access_chain ~ecx expr with
-  | GetPointerEmittedResult element_pointer_val ->
+  | None -> None
+  | Some (GetPointerEmittedResult element_pointer_val) ->
     let var_id = mk_var_id () in
     Ecx.emit ~ecx (Load (var_id, element_pointer_val));
-    var_value_of_type var_id (pointer_value_element_type element_pointer_val)
-  | InlinedValueResult value -> value
+    Some (var_value_of_type var_id (pointer_value_element_type element_pointer_val))
+  | Some (InlinedValueResult value) -> Some value
 
-and emit_expression_access_chain ~ecx expr =
+and emit_expression_access_chain ~ecx expr : access_chain_result option =
   let open Expression in
   let open Instruction in
   let emit_get_pointer_instr target_var element_mir_ty offsets =
@@ -980,8 +1044,11 @@ and emit_expression_access_chain ~ecx expr =
     if offsets = [] then
       root_var
     else
-      let element_pointer_var = emit_get_pointer_instr root_var (Ecx.to_mir_type ~ecx ty) offsets in
-      emit_load_instr element_pointer_var
+      match (root_var, Ecx.to_mir_type ~ecx ty) with
+      | (Some root_var, Some mir_type) ->
+        let element_pointer_var = emit_get_pointer_instr root_var mir_type offsets in
+        Some (emit_load_instr element_pointer_var)
+      | _ -> None
   in
   let rec emit_access_expression expr =
     match expr with
@@ -1009,24 +1076,28 @@ and emit_expression_access_chain ~ecx expr =
       maybe_emit_get_pointer_and_load_instrs target_root_var target_ty target_offsets
     in
     (* Extract tuple element index from integer literal and add to GetPointer offsets *)
-    let emit_get_pointer_index () =
-      let element_idx =
-        match index with
-        | IntLiteral { IntLiteral.raw; base; _ } ->
-          Integers.int64_of_string_opt raw base |> Option.get |> Int64.to_int
-        | _ -> failwith "Index of a tuple must be an int literal to pass type checking"
-      in
-      (root_var, [GetPointer.FieldIndex element_idx])
+    let emit_get_pointer_index agg =
+      match index with
+      | IntLiteral { IntLiteral.raw; base; _ } ->
+        let tuple_index = Integers.int64_of_string_opt raw base |> Option.get |> Int64.to_int in
+        (match lookup_element_opt agg (TupleKeyCache.get_key tuple_index) with
+        | Some (_, element_index) -> (root_var, [GetPointer.FieldIndex element_index])
+        | None -> (None, []))
+      | _ -> failwith "Index of a tuple must be an int literal to pass type checking"
     in
     match target_ty with
-    | Tuple _ -> emit_get_pointer_index ()
+    | Tuple elements ->
+      (match Ecx.instantiate_tuple ~ecx elements with
+      | Some agg -> emit_get_pointer_index agg
+      | None -> (None, []))
     (* If layout is aggregate, index like normal tuple, otherwise is single element tuple so do
        not need to index at all. *)
     | ADT { adt_sig; type_args } ->
       let layout = Ecx.get_mir_adt_layout ~ecx adt_sig type_args in
       (match layout with
-      | Aggregate _ -> emit_get_pointer_index ()
+      | Aggregate agg -> emit_get_pointer_index agg
       | InlineValue _ -> (root_var, [])
+      | ZeroSize -> (None, [])
       | Variants _
       | PureEnum _ ->
         failwith "Invalid layout for indexed access")
@@ -1044,9 +1115,9 @@ and emit_expression_access_chain ~ecx expr =
     let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
     let (target_root_var, target_offsets) = emit_access_expression target in
     let target_var =
-      maybe_emit_get_pointer_and_load_instrs target_root_var target_ty target_offsets
+      maybe_emit_get_pointer_and_load_instrs target_root_var target_ty target_offsets |> Option.get
     in
-    let index_var = emit_expression ~ecx index in
+    let index_var = emit_expression ~ecx index |> Option.get in
     let vec_get_result = emit_call_vec_get ~ecx loc target_var index_var in
     (vec_get_result, [])
   and emit_record_named_access { NamedAccess.target; name = { name; _ }; _ } =
@@ -1062,8 +1133,10 @@ and emit_expression_access_chain ~ecx expr =
     (* If layout is aggregate, index its field with a GetPointer offset *)
     | Aggregate agg ->
       (* Find element index in the corresponding aggregate type *)
-      let (_, element_idx) = lookup_element agg name in
-      (root_var, [GetPointer.FieldIndex element_idx])
+      (match lookup_element_opt agg name with
+      | Some (_, element_idx) -> (root_var, [GetPointer.FieldIndex element_idx])
+      | None -> (None, []))
+    | ZeroSize -> (None, [])
     | Variants _
     | PureEnum _
     | InlineValue _ ->
@@ -1076,26 +1149,29 @@ and emit_expression_access_chain ~ecx expr =
       emit_access_expression expr
     | _ -> failwith "Must be called on access expression"
   in
-  if offsets = [] then
-    InlinedValueResult target_var
-  else
-    let element_mir_ty = mir_type_of_loc ~ecx (Ast_utils.expression_loc expr) in
-    GetPointerEmittedResult (emit_get_pointer_instr target_var element_mir_ty offsets)
+  match target_var with
+  | None -> None
+  | Some target_var when offsets = [] -> Some (InlinedValueResult target_var)
+  | Some target_var ->
+    (match mir_type_of_loc ~ecx (Ast_utils.expression_loc expr) with
+    | None -> None
+    | Some element_mir_ty ->
+      Some (GetPointerEmittedResult (emit_get_pointer_instr target_var element_mir_ty offsets)))
 
 and emit_method_call
     ~ecx
     ~(method_name : string)
-    ~(receiver_val : Value.t)
+    ~(receiver_val : Value.t option)
     ~(receiver_ty : Types.Type.t)
     ~(arg_vals : Value.t list)
     ~(method_instance_type_args : Types.Type.t list)
-    ~(ret_type : Type.t) =
+    ~(ret_type : Type.t option) =
   match receiver_ty with
   (* Trait objects perform dynamic dispatch *)
   | TraitObject { trait_sig; _ } ->
     let trait_object_layout = Ecx.get_trait_object_layout ~ecx trait_sig in
     let vtable_index = SMap.find method_name trait_object_layout.vtable_indices in
-    let receiver_ptr_val = cast_to_pointer_value receiver_val in
+    let receiver_ptr_val = cast_to_pointer_value (Option.get receiver_val) in
     let receiver_ptr_val =
       cast_pointer_value receiver_ptr_val (`AggregateT trait_object_layout.trait_object_agg)
     in
@@ -1132,6 +1208,12 @@ and emit_method_call
     emit_call ~ecx ~func_val ~arg_vals ~receiver_val:(Some item_val) ~ret_type
   (* All other receivers perform static dispatch *)
   | _ ->
+    (* If receiver has zero size must still pass in some argument - use zero size global *)
+    let receiver_val =
+      match receiver_val with
+      | Some receiver_val -> receiver_val
+      | None -> (Ecx.get_zero_size_global_pointer ~ecx :> Value.t)
+    in
     let func_val =
       Ecx.get_method_function_value ~ecx ~method_name ~receiver_ty ~method_instance_type_args
     in
@@ -1142,8 +1224,7 @@ and emit_call
     ~(func_val : Value.function_value)
     ~(arg_vals : Value.t list)
     ~(receiver_val : Value.t option)
-    ~(ret_type : Type.t) =
-  let var_id = mk_var_id () in
+    ~(ret_type : Type.t option) =
   (* Pass `this` value as first argument if this is a method call *)
   let arg_vals =
     match receiver_val with
@@ -1163,8 +1244,14 @@ and emit_call
   match builtin_ret_opt with
   | Some ret_val -> ret_val
   | None ->
-    Ecx.emit ~ecx (Call (var_id, ret_type, func_val, arg_vals));
-    var_value_of_type var_id ret_type
+    (match ret_type with
+    | None ->
+      Ecx.emit ~ecx (Call { return = None; func = func_val; args = arg_vals });
+      None
+    | Some ret_type ->
+      let var_id = mk_var_id () in
+      Ecx.emit ~ecx (Call { return = Some (var_id, ret_type); func = func_val; args = arg_vals });
+      Some (var_value_of_type var_id ret_type))
 
 and builtin_functions =
   lazy
@@ -1187,7 +1274,6 @@ and builtin_functions =
         (Std_lib.std_io_file_builtin_unlink, emit_std_io_unlink);
         (Std_lib.std_io_file_builtin_write, emit_std_io_write);
         (Std_lib.std_sys_exit, emit_std_sys_exit);
-        (Std_lib.std_unit_unit_equals, emit_eq);
       ]
     |> List.to_seq
     |> SMap.of_seq )
@@ -1199,64 +1285,67 @@ and emit_eq ~ecx arg_vals _ =
     Ecx.emit
       ~ecx
       (Eq (var_id, cast_to_comparable_value left_arg, cast_to_comparable_value right_arg));
-    var_value_of_type var_id `BoolT
+    Some (var_value_of_type var_id `BoolT)
   | _ -> failwith "Expected two arguments"
 
 and emit_std_byte_byte_toInt ~ecx arg_vals _ =
   let var_id = mk_var_id () in
   Ecx.emit ~ecx (SExt (var_id, cast_to_numeric_value (List.hd arg_vals), `IntT));
-  var_value_of_type var_id `IntT
+  Some (var_value_of_type var_id `IntT)
 
 and emit_std_byte_byte_toLong ~ecx arg_vals _ =
   let var_id = mk_var_id () in
   Ecx.emit ~ecx (SExt (var_id, cast_to_numeric_value (List.hd arg_vals), `LongT));
-  var_value_of_type var_id `LongT
+  Some (var_value_of_type var_id `LongT)
 
 and emit_std_int_int_toByte ~ecx arg_vals _ =
   let var_id = mk_var_id () in
   Ecx.emit ~ecx (Trunc (var_id, cast_to_numeric_value (List.hd arg_vals), `ByteT));
-  var_value_of_type var_id `ByteT
+  Some (var_value_of_type var_id `ByteT)
 
 and emit_std_int_int_toLong ~ecx arg_vals _ =
   let var_id = mk_var_id () in
   Ecx.emit ~ecx (SExt (var_id, cast_to_numeric_value (List.hd arg_vals), `LongT));
-  var_value_of_type var_id `LongT
+  Some (var_value_of_type var_id `LongT)
 
 and emit_std_long_long_toByte ~ecx arg_vals _ =
   let var_id = mk_var_id () in
   Ecx.emit ~ecx (Trunc (var_id, cast_to_numeric_value (List.hd arg_vals), `ByteT));
-  var_value_of_type var_id `ByteT
+  Some (var_value_of_type var_id `ByteT)
 
 and emit_std_long_long_toInt ~ecx arg_vals _ =
   let var_id = mk_var_id () in
   Ecx.emit ~ecx (Trunc (var_id, cast_to_numeric_value (List.hd arg_vals), `IntT));
-  var_value_of_type var_id `IntT
+  Some (var_value_of_type var_id `IntT)
 
 and emit_std_memory_array_copy ~ecx arg_vals _ =
   match arg_vals with
   | [dest_array; dest_index; src_array; src_index; count] ->
     let dest_ptr = emit_offset_ptr ~ecx dest_array dest_index in
     let src_ptr = emit_offset_ptr ~ecx src_array src_index in
-    let var_id = mk_var_id () in
-    let (return_val, myte_copy_instr) =
-      Mir_builtin.(mk_call_builtin myte_copy var_id [dest_ptr; src_ptr; count] [])
-    in
-    Ecx.emit ~ecx myte_copy_instr;
-    return_val
+    Ecx.emit ~ecx Mir_builtin.(mk_call_builtin_no_return myte_copy [dest_ptr; src_ptr; count]);
+    None
   | _ -> failwith "Array.copy expects five arguments"
 
 and emit_std_memory_array_new ~ecx arg_vals ret_type =
   match arg_vals with
   (* An allocation of 0 represents the null pointer *)
-  | [`IntL 0l] -> `LongL 0L
+  | [`IntL 0l] -> Some (`LongL 0L)
   | _ ->
     let var_id = mk_var_id () in
-    let (`PointerT element_ty) = cast_to_pointer_type ret_type in
+    (* Call to alloc requires a type, so create explicit zero size type if necessary *)
+    let element_ty =
+      match ret_type with
+      | Some ret_type ->
+        let (`PointerT element_ty) = cast_to_pointer_type ret_type in
+        element_ty
+      | None -> Ecx.get_zero_size_type ~ecx
+    in
     let (array_ptr_val, myte_alloc_instr) =
       Mir_builtin.(mk_call_builtin myte_alloc var_id arg_vals [element_ty])
     in
     Ecx.emit ~ecx myte_alloc_instr;
-    array_ptr_val
+    Some array_ptr_val
 
 and emit_std_io_write ~ecx arg_vals _ =
   let var_id = mk_var_id () in
@@ -1269,39 +1358,37 @@ and emit_std_io_write ~ecx arg_vals _ =
   in
   let (return_val, instr) = Mir_builtin.(mk_call_builtin myte_write var_id arg_vals []) in
   Ecx.emit ~ecx instr;
-  return_val
+  Some return_val
 
 and emit_std_io_read ~ecx arg_vals _ =
   let var_id = mk_var_id () in
   let (return_val, instr) = Mir_builtin.(mk_call_builtin myte_read var_id arg_vals []) in
   Ecx.emit ~ecx instr;
-  return_val
+  Some return_val
 
 and emit_std_io_open ~ecx arg_vals _ =
   let var_id = mk_var_id () in
   let (return_val, instr) = Mir_builtin.(mk_call_builtin myte_open var_id arg_vals []) in
   Ecx.emit ~ecx instr;
-  return_val
+  Some return_val
 
 and emit_std_io_close ~ecx arg_vals _ =
   let var_id = mk_var_id () in
   let (return_val, instr) = Mir_builtin.(mk_call_builtin myte_close var_id arg_vals []) in
   Ecx.emit ~ecx instr;
-  return_val
+  Some return_val
 
 and emit_std_io_unlink ~ecx arg_vals _ =
   let var_id = mk_var_id () in
   let (return_val, instr) = Mir_builtin.(mk_call_builtin myte_unlink var_id arg_vals []) in
   Ecx.emit ~ecx instr;
-  return_val
+  Some return_val
 
 and emit_std_sys_exit ~ecx arg_vals _ =
-  let var_id = mk_var_id () in
-  let (return_val, instr) = Mir_builtin.(mk_call_builtin myte_exit var_id arg_vals []) in
-  Ecx.emit ~ecx instr;
-  return_val
+  Ecx.emit ~ecx Mir_builtin.(mk_call_builtin_no_return myte_exit arg_vals);
+  None
 
-and emit_call_vec_get ~ecx return_loc vec_var index_var =
+and emit_call_vec_get ~ecx return_loc vec_val index_val =
   (* Get full name for Vec's `get` method *)
   let vec_get_method_sig = Types.AdtSig.lookup_method !Std_lib.vec_adt_sig "get" |> Option.get in
   let vec_get_binding = Bindings.get_value_binding ecx.pcx.bindings vec_get_method_sig.loc in
@@ -1316,12 +1403,19 @@ and emit_call_vec_get ~ecx return_loc vec_var index_var =
       [element_ty]
   in
   (* Emit call to Vec's `get` method *)
-  let var_id = mk_var_id () in
-  let ret_ty = Ecx.to_mir_type ~ecx element_ty in
-  Ecx.emit ~ecx (Call (var_id, ret_ty, func_val, [vec_var; index_var]));
-  var_value_of_type var_id ret_ty
+  let emit_call return =
+    Ecx.emit ~ecx (Call { return; func = func_val; args = [vec_val; index_val] })
+  in
+  match Ecx.to_mir_type ~ecx element_ty with
+  | None ->
+    emit_call None;
+    None
+  | Some ret_ty ->
+    let var_id = mk_var_id () in
+    emit_call (Some (var_id, ret_ty));
+    Some (var_value_of_type var_id ret_ty)
 
-and emit_call_vec_set ~ecx element_ty_loc vec_var index_var expr_var =
+and emit_call_vec_set ~ecx element_ty_loc vec_val index_val expr_val =
   (* Get full name for Vec's `set` method *)
   let vec_get_method_sig = Types.AdtSig.lookup_method !Std_lib.vec_adt_sig "set" |> Option.get in
   let vec_get_binding = Bindings.get_value_binding ecx.Ecx.pcx.bindings vec_get_method_sig.loc in
@@ -1336,10 +1430,14 @@ and emit_call_vec_set ~ecx element_ty_loc vec_var index_var expr_var =
       [element_ty]
   in
   (* Emit call of Vec's `set` method *)
-  let var_id = mk_var_id () in
-  Ecx.emit ~ecx (Call (var_id, `UnitT, func_val, [vec_var; index_var; expr_var]))
+  let args =
+    match expr_val with
+    | Some expr_val -> [vec_val; index_val; expr_val]
+    | None -> [vec_val; index_val]
+  in
+  Ecx.emit ~ecx (Call { return = None; func = func_val; args })
 
-and emit_call_map_get ~ecx return_loc map_type_args map_var index_var =
+and emit_call_map_get ~ecx return_loc map_type_args map_val index_val =
   (* Get full name for Map's `get` method *)
   let map_get_method_sig = Types.AdtSig.lookup_method !Std_lib.map_adt_sig "get" |> Option.get in
   let map_get_binding = Bindings.get_value_binding ecx.pcx.bindings map_get_method_sig.loc in
@@ -1354,12 +1452,24 @@ and emit_call_map_get ~ecx return_loc map_type_args map_var index_var =
       map_type_args
   in
   (* Emit call to Map's `get` method *)
-  let var_id = mk_var_id () in
-  let ret_ty = Ecx.to_mir_type ~ecx return_ty in
-  Ecx.emit ~ecx (Call (var_id, ret_ty, func_val, [map_var; index_var]));
-  var_value_of_type var_id ret_ty
+  let emit_call return =
+    let args =
+      match index_val with
+      | Some index_val -> [map_val; index_val]
+      | None -> [map_val]
+    in
+    Ecx.emit ~ecx (Call { return; func = func_val; args })
+  in
+  match Ecx.to_mir_type ~ecx return_ty with
+  | None ->
+    emit_call None;
+    None
+  | Some ret_ty ->
+    let var_id = mk_var_id () in
+    emit_call (Some (var_id, ret_ty));
+    Some (var_value_of_type var_id ret_ty)
 
-and emit_call_map_add ~ecx map_type_args map_var index_var expr_var =
+and emit_call_map_add ~ecx map_type_args map_val index_val expr_val =
   (* Get full name for Map's `add` method *)
   let map_add_method_sig = Types.AdtSig.lookup_method !Std_lib.map_adt_sig "add" |> Option.get in
   let map_add_binding = Bindings.get_value_binding ecx.Ecx.pcx.bindings map_add_method_sig.loc in
@@ -1373,8 +1483,8 @@ and emit_call_map_add ~ecx map_type_args map_var index_var expr_var =
       map_type_args
   in
   (* Emit call of Map's `add` method *)
-  let var_id = mk_var_id () in
-  Ecx.emit ~ecx (Call (var_id, `UnitT, func_val, [map_var; index_var; expr_var]))
+  let index_and_expr_args = List.filter_map (fun v -> v) [index_val; expr_val] in
+  Ecx.emit ~ecx (Call { return = None; func = func_val; args = map_val :: index_and_expr_args })
 
 and emit_call_map_reserve ~ecx map_type_args map_val capacity_val =
   (* Get full name for Map's `reserve` method *)
@@ -1394,8 +1504,7 @@ and emit_call_map_reserve ~ecx map_type_args map_val capacity_val =
       map_type_args
   in
   (* Emit call of Map's `reserve` method *)
-  let var_id = mk_var_id () in
-  Ecx.emit ~ecx (Call (var_id, `UnitT, func_val, [map_val; capacity_val]))
+  Ecx.emit ~ecx (Call { return = None; func = func_val; args = [map_val; capacity_val] })
 
 and emit_call_map_new ~ecx return_mir_type map_type_args =
   let decl_loc = Std_lib.lookup_stdlib_decl_loc Std_lib.std_map_map_new in
@@ -1409,7 +1518,7 @@ and emit_call_map_new ~ecx return_mir_type map_type_args =
   in
   (* Emit call of Map's `new` function *)
   let var_id = mk_var_id () in
-  Ecx.emit ~ecx (Call (var_id, return_mir_type, func_val, []));
+  Ecx.emit ~ecx (Call { return = Some (var_id, return_mir_type); func = func_val; args = [] });
   var_value_of_type var_id return_mir_type
 
 and emit_call_set_add ~ecx set_type_args set_val element_val =
@@ -1426,8 +1535,12 @@ and emit_call_set_add ~ecx set_type_args set_val element_val =
       set_type_args
   in
   (* Emit call of set's `add` method *)
-  let var_id = mk_var_id () in
-  Ecx.emit ~ecx (Call (var_id, `UnitT, func_val, [set_val; element_val]))
+  let args =
+    match element_val with
+    | Some element_val -> [set_val; element_val]
+    | None -> [set_val]
+  in
+  Ecx.emit ~ecx (Call { return = None; func = func_val; args })
 
 and emit_call_set_reserve ~ecx set_type_args set_val capacity_val =
   (* Get full name for set's `reserve` method *)
@@ -1447,8 +1560,7 @@ and emit_call_set_reserve ~ecx set_type_args set_val capacity_val =
       set_type_args
   in
   (* Emit call of set's `reserve` method *)
-  let var_id = mk_var_id () in
-  Ecx.emit ~ecx (Call (var_id, `UnitT, func_val, [set_val; capacity_val]))
+  Ecx.emit ~ecx (Call { return = None; func = func_val; args = [set_val; capacity_val] })
 
 and emit_call_set_new ~ecx return_mir_type set_type_args =
   let decl_loc = Std_lib.lookup_stdlib_decl_loc Std_lib.std_set_set_new in
@@ -1462,7 +1574,7 @@ and emit_call_set_new ~ecx return_mir_type set_type_args =
   in
   (* Emit call of set's `new` function *)
   let var_id = mk_var_id () in
-  Ecx.emit ~ecx (Call (var_id, return_mir_type, func_val, []));
+  Ecx.emit ~ecx (Call { return = Some (var_id, return_mir_type); func = func_val; args = [] });
   var_value_of_type var_id return_mir_type
 
 (* If the index is nonzero, emit a GetPointer instruction to calculate the pointer's start *)
@@ -1505,11 +1617,12 @@ and emit_construct_enum_variant ~ecx ~name ~ty =
     emit_store_tag ~ecx tag ptr_var_id;
     union_ptr_val
   | Aggregate _
-  | InlineValue _ ->
+  | InlineValue _
+  | ZeroSize ->
     failwith "Invalid layout for enum"
 
 and emit_construct_tuple_variant
-    ~ecx ~(name : string) ~(ty : Types.Type.t) ~(mk_elements : (unit -> Value.t) list) =
+    ~ecx ~(name : string) ~(ty : Types.Type.t) ~(mk_elements : (unit -> Value.t option) list) =
   (* Find MIR ADT layout this constructor *)
   let (type_args, adt_sig) = Type_util.cast_to_adt_type ty in
   let layout = Ecx.get_mir_adt_layout ~ecx adt_sig type_args in
@@ -1517,7 +1630,7 @@ and emit_construct_tuple_variant
   (* If layout is an aggregate, construct tuple *)
   | Aggregate agg ->
     let agg_ptr_val = emit_construct_tuple ~ecx ~tag:None ~agg ~mk_elements in
-    agg_ptr_val
+    Some agg_ptr_val
   (* If layout is a variant, construct tuple and set variant tag *)
   | Variants { tags; variants; _ } ->
     let tuple_variant_agg = SMap.find name variants in
@@ -1525,17 +1638,28 @@ and emit_construct_tuple_variant
     let agg_ptr_val =
       emit_construct_tuple ~ecx ~tag:(Some tag) ~agg:tuple_variant_agg ~mk_elements
     in
-    agg_ptr_val
-  (* If layout is an inlined value there must have been a single arg, which we use directly
-     without actually constructing a tuple. *)
-  | InlineValue _ -> (List.hd mk_elements) ()
+    Some agg_ptr_val
+  (* If layout is an inlined value then exactly one element must have a non-zero size value, which
+     we use directly without actually constructing a tuple. *)
+  | InlineValue _ ->
+    List.fold_left
+      (fun acc mk_element ->
+        match mk_element () with
+        | None -> acc
+        | Some value -> Some value)
+      None
+      mk_elements
+  (* If layout is zero size all elements must still be emitted, as they may have side effect *)
+  | ZeroSize ->
+    List.iter (fun mk_element -> ignore (mk_element ())) mk_elements;
+    None
   | PureEnum _ -> failwith "Invalid layout for tuple"
 
 and emit_construct_tuple
     ~ecx
     ~(tag : Value.numeric_value option)
     ~(agg : Aggregate.t)
-    ~(mk_elements : (unit -> Value.t) list) =
+    ~(mk_elements : (unit -> Value.t option) list) =
   let agg_ty = `AggregateT agg in
 
   (* Call myte_alloc builtin to allocate space for tuple *)
@@ -1553,31 +1677,31 @@ and emit_construct_tuple
 
   (* Store each argument to the tuple constructor in space allocated for tuple *)
   List.iteri
-    (fun i (key, element_ty) ->
-      (* Find element in tuple based on element key - note this may not match index in aggregate
-         elements list due to tag or padding elements (which we skip). *)
-      if key.[0] <> '$' then (
-        let index = TupleKeyCache.get_index key in
-        let mk_element = List.nth mk_elements index in
-        (* Calculate offset for this element and store *)
-        let arg_val = mk_element () in
+    (fun i mk_element ->
+      match mk_element () with
+      | None -> ()
+      | Some element_val ->
+        let (element_ty, element_index) = lookup_element agg (TupleKeyCache.get_key i) in
         let (element_offset_val, get_ptr_instr) =
-          mk_get_pointer_instr element_ty agg_ptr_var [Instruction.GetPointer.FieldIndex i]
+          mk_get_pointer_instr
+            element_ty
+            agg_ptr_var
+            [Instruction.GetPointer.FieldIndex element_index]
         in
         Ecx.emit ~ecx (GetPointer get_ptr_instr);
-        Ecx.emit ~ecx (Store (element_offset_val, arg_val))
-      ))
-    agg.Aggregate.elements;
+        Ecx.emit ~ecx (Store (element_offset_val, element_val)))
+    mk_elements;
   agg_ptr_val
+
+and emit_record_field_value ~ecx field =
+  let { Ast.Expression.Record.Field.name; value; _ } = field in
+  match value with
+  | Some expr -> emit_expression ~ecx expr
+  | None -> emit_expression ~ecx (Identifier name)
 
 and emit_construct_record ~ecx ~tag agg fields =
   let open Ast.Expression in
   let agg_ty = `AggregateT agg in
-  let emit_field_value_expression { Record.Field.name; value; _ } =
-    match value with
-    | Some expr -> emit_expression ~ecx expr
-    | None -> emit_expression ~ecx (Identifier name)
-  in
 
   (* Call myte_alloc builtin to allocate space for record *)
   let agg_ptr_var_id = mk_var_id () in
@@ -1596,29 +1720,34 @@ and emit_construct_record ~ecx ~tag agg fields =
   List.iter
     (fun ({ Record.Field.name = { name; _ }; _ } as field) ->
       (* Calculate offset for this element and store *)
-      let arg_var = emit_field_value_expression field in
-      let (element_ty, element_idx) = lookup_element agg name in
-      let (element_offset_var, get_ptr_instr) =
-        mk_get_pointer_instr element_ty agg_ptr_var [Instruction.GetPointer.FieldIndex element_idx]
-      in
-      Ecx.emit ~ecx (GetPointer get_ptr_instr);
-      Ecx.emit ~ecx (Store (element_offset_var, arg_var)))
+      match emit_record_field_value ~ecx field with
+      | None -> ()
+      | Some arg_var ->
+        let (element_ty, element_idx) = lookup_element agg name in
+        let (element_offset_var, get_ptr_instr) =
+          mk_get_pointer_instr
+            element_ty
+            agg_ptr_var
+            [Instruction.GetPointer.FieldIndex element_idx]
+        in
+        Ecx.emit ~ecx (GetPointer get_ptr_instr);
+        Ecx.emit ~ecx (Store (element_offset_var, arg_var)))
     fields;
   agg_ptr_val
 
 and emit_bool_expression ~ecx expr =
   match emit_expression ~ecx expr with
-  | (`BoolL _ | `BoolV _) as v -> v
+  | Some ((`BoolL _ | `BoolV _) as v) -> v
   | _ -> failwith "Expected bool value"
 
 and emit_numeric_expression ~ecx expr =
   match emit_expression ~ecx expr with
-  | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v -> v
+  | Some ((`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v) -> v
   | _ -> failwith "Expected numeric value"
 
 and emit_function_expression ~ecx expr =
   match emit_expression ~ecx expr with
-  | (`FunctionL _ | `FunctionV _) as v -> v
+  | Some ((`FunctionL _ | `FunctionV _) as v) -> v
   | _ -> failwith "Expected function value"
 
 and emit_block ~ecx ~is_expr block =
@@ -1641,7 +1770,7 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
   | ExpressionStatement { loc = _; expr; is_value } ->
     let expr_value = emit_expression ~ecx expr in
     if is_expr && is_value then
-      Some expr_value
+      expr_value
     else
       None
   | Block block -> emit_block ~ecx ~is_expr block
@@ -1667,7 +1796,7 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
     None
   | If ({ loc = _; test; conseq; altern } as if_) ->
     if is_expr then
-      Some (emit_if_expression ~ecx if_)
+      emit_if_expression ~ecx if_
     else
       (* Branch to conseq or altern blocks *)
       let test_val = emit_bool_expression ~ecx test in
@@ -1779,6 +1908,7 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
         ~arg_vals:[]
         ~method_instance_type_args:[]
         ~ret_type:(Ecx.to_mir_type ~ecx (Std_lib.mk_option_type item_ty))
+      |> Option.get
     in
 
     (* Destructure item option, jumping to finish if none *)
@@ -1792,7 +1922,7 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
     in
 
     (* Body block then destructures payload to for loop bindings *)
-    emit_alloc_destructuring ~ecx pattern item_val;
+    item_val |> Option.iter (emit_alloc_destructuring ~ecx pattern);
 
     (* Body block contains body of for loop and continues to test block *)
     Ecx.push_loop_context ~ecx finish_builder.id test_builder.id;
@@ -1822,15 +1952,13 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
    * ============================
    *)
   | Return { loc = _; arg } ->
-    let arg_val = Option.map (emit_expression ~ecx) arg in
+    let arg_val = Option_utils.flat_map (emit_expression ~ecx) arg in
     (* Handle implicit return from main function *)
     let arg_val =
-      match arg_val with
-      | None
-      | Some (`UnitL | `UnitV _)
-        when fst ecx.current_func = ecx.main_label ->
-        Some (`IntL Int32.zero)
-      | _ -> arg_val
+      if arg_val = None && fst ecx.current_func = ecx.main_label then
+        Some (`IntL 0l)
+      else
+        arg_val
     in
     Ecx.emit ~ecx (Ret arg_val);
     None
@@ -1873,25 +2001,27 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
         | Some op ->
           (* Load value *)
           let loaded_var_id = mk_var_id () in
-          let pointer_val = mk_pointer_val () in
+          let pointer_val = mk_pointer_val () |> Option.get in
           Ecx.emit ~ecx (Load (loaded_var_id, pointer_val));
           (* Apply operation *)
           let mir_type = pointer_value_element_type pointer_val in
           let loaded_val = var_value_of_type loaded_var_id mir_type in
-          let expr_val = emit_expression ~ecx expr in
+          let expr_val = emit_expression ~ecx expr |> Option.get in
           let store_var_id = emit_apply_op op loaded_val expr_val in
-          var_value_of_type store_var_id mir_type
+          Some (var_value_of_type store_var_id mir_type)
       in
-      let pointer_val = mk_pointer_val () in
-      Ecx.emit ~ecx (Store (pointer_val, store_val))
+      match (mk_pointer_val (), store_val) with
+      | (Some pointer_val, Some store_val) -> Ecx.emit ~ecx (Store (pointer_val, store_val))
+      | _ -> ()
     in
 
     (* Emit an assignment that stores at an expression access chain *)
     let emit_access_chain_assign lvalue =
       let mk_pointer_val () =
         match emit_expression_access_chain ~ecx lvalue with
-        | GetPointerEmittedResult element_pointer_val -> element_pointer_val
-        | InlinedValueResult _ -> failwith "Cannot store to inlined value"
+        | None -> None
+        | Some (GetPointerEmittedResult element_pointer_val) -> Some element_pointer_val
+        | Some (InlinedValueResult _) -> failwith "Cannot store to inlined value"
       in
       (* TODO: Only emit element pointer once, but this requires fixing lea coalescing in asm *)
       emit_pointer_assign mk_pointer_val expr
@@ -1900,32 +2030,38 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
     (match lvalue with
     (* Simple variable assignments are stored at the variable's pointer, whether global or local *)
     | Pattern (Identifier { loc; _ }) ->
-      let mir_type = mir_type_of_loc ~ecx (Ast_utils.expression_loc expr) in
-      let binding = Bindings.get_value_binding ecx.pcx.bindings loc in
-      let pointer_val =
-        if Bindings.is_module_decl binding then
-          Ecx.get_global_pointer ~ecx binding
-        else
-          `PointerV (mir_type, Ecx.get_ptr_var_id ~ecx loc)
-      in
-      emit_pointer_assign (fun _ -> pointer_val) expr
+      (match mir_type_of_loc ~ecx (Ast_utils.expression_loc expr) with
+      (* If zero width type no assignment occurs, but still emit expression as it may have side effects *)
+      | None -> ignore (emit_expression ~ecx expr)
+      | Some mir_type ->
+        let binding = Bindings.get_value_binding ecx.pcx.bindings loc in
+        let pointer_val =
+          if Bindings.is_module_decl binding then
+            Ecx.get_global_pointer ~ecx binding |> Option.get
+          else
+            `PointerV (mir_type, Ecx.get_ptr_var_id ~ecx loc)
+        in
+        emit_pointer_assign (fun _ -> Some pointer_val) expr)
     (* Pattern assignments are destructured with a decision tree *)
     | Pattern pattern ->
       if op <> None then failwith "Destructuring cannot be used in operator assignment";
-      let expr_val = emit_expression ~ecx expr in
-      let decision_tree =
-        Mir_match_decision_tree.build_destructure_decision_tree ~ecx expr_val pattern
-      in
-      let join_block = Ecx.mk_block_builder ~ecx in
-      emit_match_decision_tree ~ecx ~join_block ~result_ptr:None ~alloc:false decision_tree;
-      Ecx.set_block_builder ~ecx join_block
+      (match emit_expression ~ecx expr with
+      (* No destructuring occurs for zero size type *)
+      | None -> ()
+      | Some expr_val ->
+        let decision_tree =
+          Mir_match_decision_tree.build_destructure_decision_tree ~ecx expr_val pattern
+        in
+        let join_block = Ecx.mk_block_builder ~ecx in
+        emit_match_decision_tree ~ecx ~join_block ~result_ptr:None ~alloc:false decision_tree;
+        Ecx.set_block_builder ~ecx join_block)
     | Expression (IndexedAccess { loc; target; index; _ } as expr_lvalue) ->
       let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
       (match target_ty with
       (* If indexing a vector, call Vec's `get` and `set` methods instead of emitting access chain *)
       | ADT { adt_sig; _ } when adt_sig == !Std_lib.vec_adt_sig ->
-        let target_val = emit_expression ~ecx target in
-        let index_val = emit_expression ~ecx index in
+        let target_val = emit_expression ~ecx target |> Option.get in
+        let index_val = emit_expression ~ecx index |> Option.get in
         (match op with
         (* Standard assignment simply calls `set` method *)
         | None ->
@@ -1933,15 +2069,16 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
           emit_call_vec_set ~ecx loc target_val index_val expr_val
         (* Operator assignment gets old value with `get`, applies operator, then calls `set` *)
         | Some op ->
-          let old_value = emit_call_vec_get ~ecx loc target_val index_val in
-          let expr_val = emit_expression ~ecx expr in
+          let old_value = emit_call_vec_get ~ecx loc target_val index_val |> Option.get in
+          let expr_val = emit_expression ~ecx expr |> Option.get in
+          let mir_type = mir_type_of_loc ~ecx loc |> Option.get in
           let new_var_id = emit_apply_op op old_value expr_val in
-          let new_val = var_value_of_type new_var_id (mir_type_of_loc ~ecx loc) in
-          emit_call_vec_set ~ecx loc target_val index_val new_val)
+          let new_val = var_value_of_type new_var_id mir_type in
+          emit_call_vec_set ~ecx loc target_val index_val (Some new_val))
       (* If indexing a map, call Map's `add` method instead of emitting access chain *)
       | ADT { adt_sig; type_args } when adt_sig == !Std_lib.map_adt_sig ->
         if op <> None then failwith "Map indexing cannot be used in operator assignment";
-        let target_val = emit_expression ~ecx target in
+        let target_val = emit_expression ~ecx target |> Option.get in
         let index_val = emit_expression ~ecx index in
         let expr_val = emit_expression ~ecx expr in
         emit_call_map_add ~ecx type_args target_val index_val expr_val
@@ -1956,7 +2093,7 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
    *)
   | VariableDeclaration { pattern; init; _ } ->
     let init_val = emit_expression ~ecx init in
-    emit_alloc_destructuring ~ecx pattern init_val;
+    init_val |> Option.iter (emit_alloc_destructuring ~ecx pattern);
     None
   (*
    * ============================
@@ -1965,7 +2102,7 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
    *)
   | Match ({ args; cases; _ } as match_) ->
     if is_expr then
-      Some (emit_match_expression ~ecx match_)
+      emit_match_expression ~ecx match_
     else
       (* Emit args and decision tree *)
       let args = List.map (emit_expression ~ecx) args in
@@ -2008,19 +2145,23 @@ and emit_option_destructuring
 
   (* Some branch starts by loading payload from `Some` variant *)
   Ecx.set_block_builder ~ecx some_branch_builder;
-  let (item_mir_type, item_index) = lookup_element some_aggregate (TupleKeyCache.get_key 0) in
-  let item_some_opt_ptr_val = cast_pointer_value option_val (`AggregateT some_aggregate) in
-  let (item_ptr_val, get_ptr_instr) =
-    mk_get_pointer_instr
-      item_mir_type
-      item_some_opt_ptr_val
-      [Instruction.GetPointer.FieldIndex item_index]
-  in
-  Ecx.emit ~ecx (GetPointer get_ptr_instr);
-  let item_var_id = mk_var_id () in
-  Ecx.emit ~ecx (Load (item_var_id, item_ptr_val));
+  match Ecx.to_mir_type ~ecx item_ty with
+  (* Do not load payload if `Some` item is a zero size type *)
+  | None -> None
+  | Some _ ->
+    let (item_mir_type, item_index) = lookup_element some_aggregate (TupleKeyCache.get_key 0) in
+    let item_some_opt_ptr_val = cast_pointer_value option_val (`AggregateT some_aggregate) in
+    let (item_ptr_val, get_ptr_instr) =
+      mk_get_pointer_instr
+        item_mir_type
+        item_some_opt_ptr_val
+        [Instruction.GetPointer.FieldIndex item_index]
+    in
+    Ecx.emit ~ecx (GetPointer get_ptr_instr);
+    let item_var_id = mk_var_id () in
+    Ecx.emit ~ecx (Load (item_var_id, item_ptr_val));
 
-  var_value_of_type item_var_id (Ecx.to_mir_type ~ecx item_ty)
+    Some (var_value_of_type item_var_id item_mir_type)
 
 and emit_result_destructuring
     ~ecx
@@ -2056,35 +2197,48 @@ and emit_result_destructuring
 
   (* Ok branch starts by loading payload from `Ok` variant *)
   Ecx.set_block_builder ~ecx ok_branch_builder;
-  let (ok_item_mir_type, ok_item_index) = lookup_element ok_aggregate (TupleKeyCache.get_key 0) in
-  let ok_item_result_ptr_val = cast_pointer_value result_val (`AggregateT ok_aggregate) in
-  let (ok_item_ptr_val, get_ptr_instr) =
-    mk_get_pointer_instr
-      ok_item_mir_type
-      ok_item_result_ptr_val
-      [Instruction.GetPointer.FieldIndex ok_item_index]
+  let ok_item_val =
+    match Ecx.to_mir_type ~ecx ok_ty with
+    (* Do not load payload if `Ok` item is a zero size type *)
+    | None -> None
+    | Some _ ->
+      let (ok_item_mir_type, ok_item_index) =
+        lookup_element ok_aggregate (TupleKeyCache.get_key 0)
+      in
+      let ok_item_result_ptr_val = cast_pointer_value result_val (`AggregateT ok_aggregate) in
+      let (ok_item_ptr_val, get_ptr_instr) =
+        mk_get_pointer_instr
+          ok_item_mir_type
+          ok_item_result_ptr_val
+          [Instruction.GetPointer.FieldIndex ok_item_index]
+      in
+      Ecx.emit ~ecx (GetPointer get_ptr_instr);
+      let ok_item_var_id = mk_var_id () in
+      Ecx.emit ~ecx (Load (ok_item_var_id, ok_item_ptr_val));
+      Some (var_value_of_type ok_item_var_id ok_item_mir_type)
   in
-  Ecx.emit ~ecx (GetPointer get_ptr_instr);
-  let ok_item_var_id = mk_var_id () in
-  Ecx.emit ~ecx (Load (ok_item_var_id, ok_item_ptr_val));
-  let ok_item_val = var_value_of_type ok_item_var_id (Ecx.to_mir_type ~ecx ok_ty) in
 
   (* Error branch starts by loading payload from `Error` variant *)
   Ecx.set_block_builder ~ecx error_branch_builder;
-  let (error_item_mir_type, error_item_index) =
-    lookup_element error_aggregate (TupleKeyCache.get_key 0)
+  let error_item_val =
+    match Ecx.to_mir_type ~ecx error_ty with
+    | None -> None
+    | Some _ ->
+      let (error_item_mir_type, error_item_index) =
+        lookup_element error_aggregate (TupleKeyCache.get_key 0)
+      in
+      let error_item_result_ptr_val = cast_pointer_value result_val (`AggregateT error_aggregate) in
+      let (error_item_ptr_val, get_ptr_instr) =
+        mk_get_pointer_instr
+          error_item_mir_type
+          error_item_result_ptr_val
+          [Instruction.GetPointer.FieldIndex error_item_index]
+      in
+      Ecx.emit ~ecx (GetPointer get_ptr_instr);
+      let error_item_var_id = mk_var_id () in
+      Ecx.emit ~ecx (Load (error_item_var_id, error_item_ptr_val));
+      Some (var_value_of_type error_item_var_id error_item_mir_type)
   in
-  let error_item_result_ptr_val = cast_pointer_value result_val (`AggregateT error_aggregate) in
-  let (error_item_ptr_val, get_ptr_instr) =
-    mk_get_pointer_instr
-      error_item_mir_type
-      error_item_result_ptr_val
-      [Instruction.GetPointer.FieldIndex error_item_index]
-  in
-  Ecx.emit ~ecx (GetPointer get_ptr_instr);
-  let error_item_var_id = mk_var_id () in
-  Ecx.emit ~ecx (Load (error_item_var_id, error_item_ptr_val));
-  let error_item_val = var_value_of_type error_item_var_id (Ecx.to_mir_type ~ecx error_ty) in
 
   (ok_item_val, error_item_val)
 
@@ -2094,7 +2248,7 @@ and emit_alloc_destructuring ~(ecx : Ecx.t) pattern value =
     let mir_type = type_of_value value in
     let binding = Bindings.get_value_binding ecx.pcx.bindings loc in
     if Bindings.is_module_decl binding then
-      let global_ptr = Ecx.get_global_pointer ~ecx binding in
+      let global_ptr = Ecx.get_global_pointer ~ecx binding |> Option.get in
       Ecx.emit ~ecx (Store (global_ptr, value))
     else
       let var_id = Ecx.get_ptr_var_id ~ecx loc in
@@ -2152,16 +2306,18 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
       let acc =
         List.fold_left
           (fun acc (_, binding_loc) ->
-            let decl_loc = Bindings.get_decl_loc_from_value_use ecx.pcx.bindings binding_loc in
-            (* The same binding may be defined in multiple places due to or patterns. Make sure to
-               only emit a single stack slot. *)
-            if LocSet.mem decl_loc acc then
-              acc
-            else
-              let mir_type = mir_type_of_loc ~ecx binding_loc in
-              let var_id = Ecx.get_ptr_var_id ~ecx decl_loc in
-              Ecx.emit ~ecx (StackAlloc (var_id, mir_type));
-              LocSet.add decl_loc acc)
+            match mir_type_of_loc ~ecx binding_loc with
+            | None -> acc
+            | Some mir_type ->
+              let decl_loc = Bindings.get_decl_loc_from_value_use ecx.pcx.bindings binding_loc in
+              (* The same binding may be defined in multiple places due to or patterns. Make sure to
+                 only emit a single stack slot. *)
+              if LocSet.mem decl_loc acc then
+                acc
+              else
+                let var_id = Ecx.get_ptr_var_id ~ecx decl_loc in
+                Ecx.emit ~ecx (StackAlloc (var_id, mir_type));
+                LocSet.add decl_loc acc)
           acc
           bindings
       in
@@ -2189,20 +2345,22 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
       ignore
         (List.fold_left
            (fun path_cache (path, binding_loc) ->
-             let (binding_val, path_cache) = emit_load_pattern_path ~path_cache path in
-             let binding = Bindings.get_value_binding ecx.pcx.bindings binding_loc in
-             let decl_loc = binding.loc in
-             (* Determine pointer value - may be a global if this is a destructuring assignment *)
-             let ptr_val =
-               if Bindings.is_module_decl binding then
-                 Ecx.get_global_pointer ~ecx binding
-               else
-                 let mir_type = type_of_value binding_val in
-                 let ptr_var_id = Ecx.get_ptr_var_id ~ecx decl_loc in
-                 `PointerV (mir_type, ptr_var_id)
-             in
-             Ecx.emit ~ecx (Store (ptr_val, binding_val));
-             path_cache)
+             match mir_type_of_loc ~ecx binding_loc with
+             | None -> path_cache
+             | Some mir_type ->
+               let (binding_val, path_cache) = emit_load_pattern_path ~path_cache path in
+               let binding = Bindings.get_value_binding ecx.pcx.bindings binding_loc in
+               let decl_loc = binding.loc in
+               (* Determine pointer value - may be a global if this is a destructuring assignment *)
+               let ptr_val =
+                 if Bindings.is_module_decl binding then
+                   Ecx.get_global_pointer ~ecx binding |> Option.get
+                 else
+                   let ptr_var_id = Ecx.get_ptr_var_id ~ecx decl_loc in
+                   `PointerV (mir_type, ptr_var_id)
+               in
+               Ecx.emit ~ecx (Store (ptr_val, binding_val));
+               path_cache)
            path_cache
            bindings);
 
@@ -2232,10 +2390,10 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
           | (Expression expr, None) -> ignore (emit_expression ~ecx expr)
           | (Statement stmt, None) -> ignore (emit_statement ~ecx ~is_expr:false stmt)
           | (Expression expr, Some result_ptr) ->
-            let body_val = emit_expression ~ecx expr in
+            let body_val = emit_expression ~ecx expr |> Option.get in
             Ecx.emit ~ecx (Store (result_ptr, body_val))
           | (Statement stmt, Some result_ptr) ->
-            let body_val = emit_statement ~ecx ~is_expr:true stmt |> Option.value ~default:`UnitL in
+            let body_val = emit_statement ~ecx ~is_expr:true stmt |> Option.get in
             Ecx.emit ~ecx (Store (result_ptr, body_val))
         );
 
@@ -2286,11 +2444,12 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
               emit_method_call
                 ~ecx
                 ~method_name:"equals"
-                ~receiver_val:scrutinee_val
+                ~receiver_val:(Some scrutinee_val)
                 ~receiver_ty:(Std_lib.mk_string_type ())
                 ~arg_vals:[string_val]
                 ~method_instance_type_args:[]
-                ~ret_type:`BoolT
+                ~ret_type:(Some `BoolT)
+              |> Option.get
             in
             cast_to_bool_value test_val)
       (* Ints are tested for equality in if-else chain *)
@@ -2426,7 +2585,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
           Ecx.emit ~ecx (Load (var_id, element_ptr_val));
           let value = var_value_of_type var_id element_type in
           (value, IMap.add path_field_id value path_cache))
-      (root_value, path_cache)
+      (Option.get root_value, path_cache)
       fields
   (* Emit a sequence of tests and resulting blocks given a list of tests cases with ctors, the default
      case if all test ctors fail, and a function to generate a boolean test value from a ctor. *)
@@ -2464,14 +2623,14 @@ and mk_get_pointer_instr ?(pointer_offset = None) return_ty pointer offsets =
   let var = `PointerV (return_ty, var_id) in
   (var, { Instruction.GetPointer.var_id; return_ty; pointer; pointer_offset; offsets })
 
-and type_of_loc ~ecx loc =
+and type_of_loc ~ecx loc : Types.Type.t =
   let tvar_id = Type_context.get_tvar_from_loc ~cx:ecx.pcx.type_ctx loc in
   Ecx.find_rep_non_generic_type ~ecx (TVar tvar_id)
 
-and mir_type_of_loc ~ecx loc =
+and mir_type_of_loc ~ecx loc : Type.t option =
   let tvar_id = Type_context.get_tvar_from_loc ~cx:ecx.pcx.type_ctx loc in
   type_to_mir_type ~ecx (Types.Type.TVar tvar_id)
 
-and type_to_mir_type ~ecx ty =
+and type_to_mir_type ~ecx ty : Type.t option =
   let ty = Ecx.find_rep_non_generic_type ~ecx ty in
   Ecx.to_mir_type ~ecx ty

@@ -64,19 +64,19 @@ label @11:
   Ret %11
 }
 
-func unit @test.use<Function>(fn %12) {
+func void @test.use<Function>(fn %12) {
   Ret
 }
 
 func int @test.main() {
-  %13 := Call unit @test.use<Function>(@test.testConstants1)
-  %14 := Call unit @test.use<Function>(@test.testConstants2)
-  %15 := Call unit @test.use<Function>(@test.testConstants3)
-  %16 := Call unit @test.use<Function>(@test.testConstants4)
-  %17 := Call unit @test.use<Function>(@test.testConstant1)
-  %18 := Call unit @test.use<Function>(@test.testConstant2)
-  %19 := Call unit @test.use<Function>(@test.testConstant3)
-  %20 := Call unit @test.use<Function>(@test.testConstant4)
-  %21 := Call unit @test.use<Function>(@test.testVariables)
+  Call void @test.use<Function>(@test.testConstants1)
+  Call void @test.use<Function>(@test.testConstants2)
+  Call void @test.use<Function>(@test.testConstants3)
+  Call void @test.use<Function>(@test.testConstants4)
+  Call void @test.use<Function>(@test.testConstant1)
+  Call void @test.use<Function>(@test.testConstant2)
+  Call void @test.use<Function>(@test.testConstant3)
+  Call void @test.use<Function>(@test.testConstant4)
+  Call void @test.use<Function>(@test.testVariables)
   Ret 0
 }

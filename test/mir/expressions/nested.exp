@@ -1,4 +1,4 @@
-func unit @_init() {
+func void @_init() {
   %0 := Mul int 2, 3
   %1 := Div int %0, 4
   %2 := Add int 1, %1

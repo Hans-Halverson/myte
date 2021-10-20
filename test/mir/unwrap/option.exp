@@ -5,81 +5,81 @@ func std.option.Option<Int>* @test.testUnwrapOption(std.option.Option<Int>* %0) 
 label @0:
   %3 := GetPointer int, std.option.Option<Int>::Some* %0.2
   %4 := Load int %3
-  %5 := Call unit @test.use<Int>(%4)
-  %6 := CallBuiltin std.option.Option<Int>::Some* myte_alloc(1)
-  Store byte %6, 1
-  %7 := GetPointer int, std.option.Option<Int>::Some* %6.2
-  Store int %7, 1
-  Ret %6
+  Call void @test.use<Int>(%4)
+  %5 := CallBuiltin std.option.Option<Int>::Some* myte_alloc(1)
+  Store byte %5, 1
+  %6 := GetPointer int, std.option.Option<Int>::Some* %5.2
+  Store int %6, 1
+  Ret %5
 label @1:
-  %8 := CallBuiltin std.option.Option<Int>* myte_alloc(1)
-  Store byte %8, 0
-  Ret %8
+  %7 := CallBuiltin std.option.Option<Int>* myte_alloc(1)
+  Store byte %7, 0
+  Ret %7
 }
 
-func std.option.Option<Int>* @test.testUnwrapOptionDifferentType(std.option.Option<Bool>* %9) {
-  %10 := Load byte %9
-  %11 := Eq byte %10, 1
-  branch %11, @2, @3
+func std.option.Option<Int>* @test.testUnwrapOptionDifferentType(std.option.Option<Bool>* %8) {
+  %9 := Load byte %8
+  %10 := Eq byte %9, 1
+  branch %10, @2, @3
 label @2:
-  %12 := GetPointer bool, std.option.Option<Bool>::Some* %9.1
-  %13 := Load bool %12
-  %14 := Call unit @test.use<Bool>(%13)
-  %15 := CallBuiltin std.option.Option<Int>::Some* myte_alloc(1)
-  Store byte %15, 1
-  %16 := GetPointer int, std.option.Option<Int>::Some* %15.2
-  Store int %16, 1
-  Ret %15
+  %11 := GetPointer bool, std.option.Option<Bool>::Some* %8.1
+  %12 := Load bool %11
+  Call void @test.use<Bool>(%12)
+  %13 := CallBuiltin std.option.Option<Int>::Some* myte_alloc(1)
+  Store byte %13, 1
+  %14 := GetPointer int, std.option.Option<Int>::Some* %13.2
+  Store int %14, 1
+  Ret %13
 label @3:
-  %17 := CallBuiltin std.option.Option<Int>* myte_alloc(1)
-  Store byte %17, 0
-  Ret %17
+  %15 := CallBuiltin std.option.Option<Int>* myte_alloc(1)
+  Store byte %15, 0
+  Ret %15
 }
 
-func std.option.Option<Int>* @test.testDoubleUnwrap(std.option.Option<Option<Int>>* %18) {
-  %19 := Load byte %18
-  %20 := Eq byte %19, 1
-  branch %20, @4, @7
+func std.option.Option<Int>* @test.testDoubleUnwrap(std.option.Option<Option<Int>>* %16) {
+  %17 := Load byte %16
+  %18 := Eq byte %17, 1
+  branch %18, @4, @7
 label @4:
-  %21 := GetPointer std.option.Option<Int>*, std.option.Option<Option<Int>>::Some* %18.2
-  %22 := Load std.option.Option<Int>* %21
-  %23 := Load byte %22
-  %24 := Eq byte %23, 1
-  branch %24, @5, @6
+  %19 := GetPointer std.option.Option<Int>*, std.option.Option<Option<Int>>::Some* %16.2
+  %20 := Load std.option.Option<Int>* %19
+  %21 := Load byte %20
+  %22 := Eq byte %21, 1
+  branch %22, @5, @6
 label @5:
-  %25 := GetPointer int, std.option.Option<Int>::Some* %22.2
-  %26 := Load int %25
-  %27 := Call unit @test.use<Int>(%26)
-  %28 := CallBuiltin std.option.Option<Int>::Some* myte_alloc(1)
-  Store byte %28, 1
-  %29 := GetPointer int, std.option.Option<Int>::Some* %28.2
-  Store int %29, 1
-  Ret %28
+  %23 := GetPointer int, std.option.Option<Int>::Some* %20.2
+  %24 := Load int %23
+  Call void @test.use<Int>(%24)
+  %25 := CallBuiltin std.option.Option<Int>::Some* myte_alloc(1)
+  Store byte %25, 1
+  %26 := GetPointer int, std.option.Option<Int>::Some* %25.2
+  Store int %26, 1
+  Ret %25
 label @6:
-  %30 := CallBuiltin std.option.Option<Int>* myte_alloc(1)
-  Store byte %30, 0
-  Ret %30
+  %27 := CallBuiltin std.option.Option<Int>* myte_alloc(1)
+  Store byte %27, 0
+  Ret %27
 label @7:
-  %31 := CallBuiltin std.option.Option<Int>* myte_alloc(1)
-  Store byte %31, 0
-  Ret %31
+  %28 := CallBuiltin std.option.Option<Int>* myte_alloc(1)
+  Store byte %28, 0
+  Ret %28
 }
 
-func unit @test.use<Bool>(bool %32) {
+func void @test.use<Bool>(bool %29) {
   Ret
 }
 
-func unit @test.use<Function>(fn %33) {
+func void @test.use<Function>(fn %30) {
   Ret
 }
 
-func unit @test.use<Int>(int %34) {
+func void @test.use<Int>(int %31) {
   Ret
 }
 
 func int @test.main() {
-  %35 := Call unit @test.use<Function>(@test.testUnwrapOption)
-  %36 := Call unit @test.use<Function>(@test.testUnwrapOptionDifferentType)
-  %37 := Call unit @test.use<Function>(@test.testDoubleUnwrap)
+  Call void @test.use<Function>(@test.testUnwrapOption)
+  Call void @test.use<Function>(@test.testUnwrapOptionDifferentType)
+  Call void @test.use<Function>(@test.testDoubleUnwrap)
   Ret 0
 }

@@ -1,4 +1,4 @@
-func unit @test.noArgsFunc() {
+func void @test.noArgsFunc() {
   Ret
 }
 
@@ -11,11 +11,11 @@ func int @test.singleArgFunc2(int %1) {
   Ret %2
 }
 
-func unit @test.multiArgsFunc(int %3, int %4, std.string.String* %5) {
+func void @test.multiArgsFunc(int %3, int %4, std.string.String* %5) {
   Ret
 }
 
-func unit @test.directCalls() {
+func void @test.directCalls() {
   %6 := CallBuiltin std.string.String* myte_alloc(1)
   %7 := GetPointer byte*, std.string.String* %6.0
   Store byte* %7, @.S1
@@ -23,21 +23,21 @@ func unit @test.directCalls() {
   Store int %8, 3
   %9 := GetPointer int, std.string.String* %6.2
   Store int %9, 3
-  %10 := Call unit @test.noArgsFunc()
-  %11 := Call int @test.singleArgFunc(33)
-  %12 := CallBuiltin std.string.String* myte_alloc(1)
-  %13 := GetPointer byte*, std.string.String* %12.0
-  Store byte* %13, @.S2
-  %14 := GetPointer int, std.string.String* %12.1
+  Call void @test.noArgsFunc()
+  %10 := Call int @test.singleArgFunc(33)
+  %11 := CallBuiltin std.string.String* myte_alloc(1)
+  %12 := GetPointer byte*, std.string.String* %11.0
+  Store byte* %12, @.S2
+  %13 := GetPointer int, std.string.String* %11.1
+  Store int %13, 4
+  %14 := GetPointer int, std.string.String* %11.2
   Store int %14, 4
-  %15 := GetPointer int, std.string.String* %12.2
-  Store int %15, 4
-  %16 := Call unit @test.multiArgsFunc(29, 98, %12)
-  %17 := Call int @test.singleArgFunc(%11)
-  %18 := Call int @test.singleArgFunc(45)
-  %19 := Mul int 5, 6
-  %20 := Add int 2, %19
-  %21 := Call unit @test.multiArgsFunc(%18, %20, %6)
+  Call void @test.multiArgsFunc(29, 98, %11)
+  %15 := Call int @test.singleArgFunc(%10)
+  %16 := Call int @test.singleArgFunc(45)
+  %17 := Mul int 5, 6
+  %18 := Add int 2, %17
+  Call void @test.multiArgsFunc(%16, %18, %6)
   Ret
 }
 
@@ -45,25 +45,25 @@ global byte[3] @.S1 = "str"
 
 global byte[4] @.S2 = "test"
 
-func unit @test.indirectCalls() {
+func void @test.indirectCalls() {
   branch true, @0, @1
 label @0:
   continue @1
 label @1:
-  %22 := Phi fn @test.indirectCalls:@test.singleArgFunc, @0:@test.singleArgFunc2
-  %23 := Call int %22(10)
-  %24 := Add int 1, 2
-  %25 := Call int %22(%24)
-  %26 := Add int 3, %25
+  %19 := Phi fn @test.indirectCalls:@test.singleArgFunc, @0:@test.singleArgFunc2
+  %20 := Call int %19(10)
+  %21 := Add int 1, 2
+  %22 := Call int %19(%21)
+  %23 := Add int 3, %22
   Ret
 }
 
-func unit @test.use<Function>(fn %27) {
+func void @test.use<Function>(fn %24) {
   Ret
 }
 
 func int @test.main() {
-  %28 := Call unit @test.use<Function>(@test.directCalls)
-  %29 := Call unit @test.use<Function>(@test.indirectCalls)
+  Call void @test.use<Function>(@test.directCalls)
+  Call void @test.use<Function>(@test.indirectCalls)
   Ret 0
 }

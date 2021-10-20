@@ -137,7 +137,6 @@ module Gcx = struct
 
   let rec size_of_mir_type ~gcx mir_type =
     match mir_type with
-    | `UnitT
     | `BoolT
     | `ByteT ->
       1
@@ -185,8 +184,13 @@ module Gcx = struct
     (* Aggregate has alignment of its largest element. Aggregate size must be multiple of alignment,
        so insert padding to end of aggregate if necessary. *)
     let alignment = !largest_alignment in
-    let align_overlow = !current_offset mod alignment in
-    if align_overlow <> 0 then current_offset := !current_offset + (alignment - align_overlow);
+    let align_overflow =
+      if alignment = 0 then
+        0
+      else
+        !current_offset mod alignment
+    in
+    if align_overflow <> 0 then current_offset := !current_offset + (alignment - align_overflow);
 
     let agg_layout =
       { AggregateLayout.agg; size = !current_offset; alignment; elements = Array.of_list elements }

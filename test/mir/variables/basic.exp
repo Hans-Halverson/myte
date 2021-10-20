@@ -1,30 +1,30 @@
-func unit @test.use<Function>(fn %0) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 
-func unit @test.use<Int>(int %1) {
+func void @test.use<Int>(int %1) {
   Ret
 }
 
 global int @test.x = 1
 
-func unit @test.test1(int %2, unit %3) {
-  %4 := Load int @test.x
-  %5 := Mul int 2, %2
-  %6 := Add int %4, %5
+func void @test.test1(int %2) {
+  %3 := Load int @test.x
+  %4 := Mul int 2, %2
+  %5 := Add int %3, %4
   Ret
 }
 
-func unit @test.test2() {
-  %7 := Load int @test.x
-  %8 := Mul int 4, 34
-  %9 := Call unit @test.use<Int>(%7)
-  %10 := Call unit @test.use<Int>(%8)
+func void @test.test2() {
+  %6 := Load int @test.x
+  %7 := Mul int 4, 34
+  Call void @test.use<Int>(%6)
+  Call void @test.use<Int>(%7)
   Ret
 }
 
 func int @test.main() {
-  %11 := Call unit @test.use<Function>(@test.test1)
-  %12 := Call unit @test.use<Function>(@test.test2)
+  Call void @test.use<Function>(@test.test1)
+  Call void @test.use<Function>(@test.test2)
   Ret 0
 }

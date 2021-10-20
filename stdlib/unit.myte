@@ -11,7 +11,7 @@ builtin type Unit
 methods Unit {
   implements Equatable
 
-  builtin override fun equals(other: Unit): Bool
+  override fun equals(other: Unit): Bool = true
 }
 
 methods Unit {

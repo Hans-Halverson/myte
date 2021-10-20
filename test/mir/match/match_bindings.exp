@@ -212,21 +212,21 @@ label @43:
   Ret %91
 }
 
-func unit @test.use<Function>(fn %92) {
+func void @test.use<Function>(fn %92) {
   Ret
 }
 
 func int @test.main() {
-  %93 := Call unit @test.use<Function>(@test.test1)
-  %94 := Call unit @test.use<Function>(@test.test2)
-  %95 := Call unit @test.use<Function>(@test.test3)
-  %96 := Call unit @test.use<Function>(@test.test4)
-  %97 := Call unit @test.use<Function>(@test.test5)
-  %98 := Call unit @test.use<Function>(@test.test6)
-  %99 := Call unit @test.use<Function>(@test.test7)
-  %100 := Call unit @test.use<Function>(@test.test8)
-  %101 := Call unit @test.use<Function>(@test.test9)
-  %102 := Call unit @test.use<Function>(@test.test10)
-  %103 := Call unit @test.use<Function>(@test.test11)
+  Call void @test.use<Function>(@test.test1)
+  Call void @test.use<Function>(@test.test2)
+  Call void @test.use<Function>(@test.test3)
+  Call void @test.use<Function>(@test.test4)
+  Call void @test.use<Function>(@test.test5)
+  Call void @test.use<Function>(@test.test6)
+  Call void @test.use<Function>(@test.test7)
+  Call void @test.use<Function>(@test.test8)
+  Call void @test.use<Function>(@test.test9)
+  Call void @test.use<Function>(@test.test10)
+  Call void @test.use<Function>(@test.test11)
   Ret 0
 }

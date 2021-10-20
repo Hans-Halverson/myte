@@ -2,7 +2,7 @@ type $tuple<Int,test.Rec5> {int, test.Rec5*}
 
 type test.Rec1 {test.Rec1*}
 
-func unit @test.useSelfRecursive(test.Rec1* %0) {
+func void @test.useSelfRecursive(test.Rec1* %0) {
   Ret
 }
 
@@ -12,7 +12,7 @@ type test.Rec3 {test.Rec4*}
 
 type test.Rec4 {test.Rec2*}
 
-func unit @test.useMutuallyRecursive(test.Rec3* %1) {
+func void @test.useMutuallyRecursive(test.Rec3* %1) {
   Ret
 }
 
@@ -22,7 +22,7 @@ type test.Rec6 {test.Generic<test.Rec6>*}
 
 type test.Generic<test.Rec6> {int, test.Rec6*}
 
-func unit @test.useNested(test.Rec5* %2, test.Rec6* %3) {
+func void @test.useNested(test.Rec5* %2, test.Rec6* %3) {
   Ret
 }
 

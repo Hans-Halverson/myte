@@ -1,3 +1,7 @@
+type _ZeroSize {}
+
+global _ZeroSize @_ZeroSize = uninitialized
+
 func bool @test.use<Bool>(bool %0) {
   Ret %0
 }
@@ -10,11 +14,11 @@ func int @test.use<Int>(int %2) {
   Ret %2
 }
 
-func unit @test.unit() {
-  Ret ()
+func void @test.unit() {
+  Ret
 }
 
-func unit @test.testInt() {
+func void @test.testInt() {
   %3 := Call int @test.use<Int>(-56)
   %4 := Call int @test.use<Int>(3)
   %5 := Call int @test.use<Int>(-1)
@@ -31,7 +35,7 @@ func unit @test.testInt() {
   Ret
 }
 
-func unit @test.testByte() {
+func void @test.testByte() {
   %16 := Call int @test.use<Int>(-56)
   %17 := Call int @test.use<Int>(3)
   %18 := Call int @test.use<Int>(-1)
@@ -48,7 +52,7 @@ func unit @test.testByte() {
   Ret
 }
 
-func unit @test.testLong() {
+func void @test.testLong() {
   %29 := Call int @test.use<Int>(-56)
   %30 := Call int @test.use<Int>(3)
   %31 := Call int @test.use<Int>(-1)
@@ -65,7 +69,7 @@ func unit @test.testLong() {
   Ret
 }
 
-func unit @test.testBool() {
+func void @test.testBool() {
   %42 := Call bool @test.use<Bool>(false)
   %43 := Call bool @test.use<Bool>(false)
   %44 := Call bool @test.use<Bool>(true)
@@ -74,30 +78,36 @@ func unit @test.testBool() {
   Ret
 }
 
-func unit @test.testUnit() {
-  %47 := Call bool @test.use<Bool>(true)
-  %48 := Call bool @test.use<Bool>(false)
-  %49 := Call unit @test.unit()
-  %50 := Call unit @test.unit()
-  %51 := Call bool @test.use<Bool>(true)
-  %52 := Call unit @test.unit()
-  %53 := Call unit @test.unit()
-  %54 := Call bool @test.use<Bool>(false)
+func void @test.testUnit() {
+  %47 := Call bool @std.unit.Unit.equals(@_ZeroSize)
+  %48 := Call bool @test.use<Bool>(%47)
+  %49 := Call bool @std.unit.Unit.equals(@_ZeroSize)
+  %50 := LogNot %49
+  %51 := Call bool @test.use<Bool>(%50)
+  Call void @test.unit()
+  Call void @test.unit()
+  %52 := Call bool @std.unit.Unit.equals(@_ZeroSize)
+  %53 := Call bool @test.use<Bool>(%52)
+  Call void @test.unit()
+  Call void @test.unit()
+  %54 := Call bool @std.unit.Unit.equals(@_ZeroSize)
+  %55 := LogNot %54
+  %56 := Call bool @test.use<Bool>(%55)
   Ret
 }
 
-func unit @test.testShift() {
-  %55 := Call int @test.use<Int>(4)
-  %56 := Call int @test.use<Int>(4)
+func void @test.testShift() {
+  %57 := Call int @test.use<Int>(4)
+  %58 := Call int @test.use<Int>(4)
   Ret
 }
 
 func int @test.main() {
-  %57 := Call fn @test.use<Function>(@test.testInt)
-  %58 := Call fn @test.use<Function>(@test.testByte)
-  %59 := Call fn @test.use<Function>(@test.testLong)
-  %60 := Call fn @test.use<Function>(@test.testBool)
-  %61 := Call fn @test.use<Function>(@test.testUnit)
-  %62 := Call fn @test.use<Function>(@test.testShift)
+  %59 := Call fn @test.use<Function>(@test.testInt)
+  %60 := Call fn @test.use<Function>(@test.testByte)
+  %61 := Call fn @test.use<Function>(@test.testLong)
+  %62 := Call fn @test.use<Function>(@test.testBool)
+  %63 := Call fn @test.use<Function>(@test.testUnit)
+  %64 := Call fn @test.use<Function>(@test.testShift)
   Ret 0
 }

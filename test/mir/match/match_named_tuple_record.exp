@@ -44,12 +44,12 @@ label @7:
   Ret %19
 }
 
-func unit @test.use<Function>(fn %20) {
+func void @test.use<Function>(fn %20) {
   Ret
 }
 
 func int @test.main() {
-  %21 := Call unit @test.use<Function>(@test.testNamedTuple)
-  %22 := Call unit @test.use<Function>(@test.testNamedRecord)
+  Call void @test.use<Function>(@test.testNamedTuple)
+  Call void @test.use<Function>(@test.testNamedRecord)
   Ret 0
 }

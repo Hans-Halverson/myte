@@ -1,4 +1,4 @@
-func unit @test.inexhaustiveContinue() {
+func void @test.inexhaustiveContinue() {
   continue @0
 label @0:
   %0 := Phi int @test.inexhaustiveContinue:1, @1:3, @2:4
@@ -13,7 +13,7 @@ label @3:
   Ret
 }
 
-func unit @test.inexhaustiveBreak() {
+func void @test.inexhaustiveBreak() {
   continue @4
 label @4:
   %3 := Phi int @test.inexhaustiveBreak:1, @5:4
@@ -27,7 +27,7 @@ label @6:
   Ret
 }
 
-func unit @test.exhaustiveContinues() {
+func void @test.exhaustiveContinues() {
   continue @7
 label @7:
   %7 := Phi int @test.exhaustiveContinues:1, @8:2, @9:3
@@ -42,7 +42,7 @@ label @10:
   Ret
 }
 
-func unit @test.exhaustiveBreaks() {
+func void @test.exhaustiveBreaks() {
   branch false, @11, @13
 label @11:
   %10 := Gt int 1, 1
@@ -55,7 +55,7 @@ label @13:
   Ret
 }
 
-func unit @test.inexhaustiveBreakAndContinue() {
+func void @test.inexhaustiveBreakAndContinue() {
   continue @14
 label @14:
   %13 := Phi int @test.inexhaustiveBreakAndContinue:1, @16:4, @17:3
@@ -73,7 +73,7 @@ label @18:
   Ret
 }
 
-func unit @test.exhaustiveBreakAndContinue() {
+func void @test.exhaustiveBreakAndContinue() {
   continue @19
 label @19:
   %17 := Phi int @test.exhaustiveBreakAndContinue:1, @20:3
@@ -87,16 +87,16 @@ label @21:
   Ret
 }
 
-func unit @test.use<Function>(fn %21) {
+func void @test.use<Function>(fn %21) {
   Ret
 }
 
 func int @test.main() {
-  %22 := Call unit @test.use<Function>(@test.inexhaustiveContinue)
-  %23 := Call unit @test.use<Function>(@test.inexhaustiveBreak)
-  %24 := Call unit @test.use<Function>(@test.exhaustiveContinues)
-  %25 := Call unit @test.use<Function>(@test.exhaustiveBreaks)
-  %26 := Call unit @test.use<Function>(@test.inexhaustiveBreakAndContinue)
-  %27 := Call unit @test.use<Function>(@test.exhaustiveBreakAndContinue)
+  Call void @test.use<Function>(@test.inexhaustiveContinue)
+  Call void @test.use<Function>(@test.inexhaustiveBreak)
+  Call void @test.use<Function>(@test.exhaustiveContinues)
+  Call void @test.use<Function>(@test.exhaustiveBreaks)
+  Call void @test.use<Function>(@test.inexhaustiveBreakAndContinue)
+  Call void @test.use<Function>(@test.exhaustiveBreakAndContinue)
   Ret 0
 }

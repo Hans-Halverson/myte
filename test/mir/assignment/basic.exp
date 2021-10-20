@@ -1,6 +1,6 @@
 global int @test.x = 0
 
-func unit @test.testReassignGlobals() {
+func void @test.testReassignGlobals() {
   Store int @test.x, 1
   %0 := Add int 2, 3
   Store int @test.x, %0
@@ -11,7 +11,7 @@ func unit @test.testReassignGlobals() {
   Ret
 }
 
-func unit @test.testReassignLocals() {
+func void @test.testReassignLocals() {
   %4 := Neg int 0
   %5 := Neg int 1
   %6 := Add int 2, 3
@@ -20,12 +20,12 @@ func unit @test.testReassignLocals() {
   Ret
 }
 
-func unit @test.use<Function>(fn %9) {
+func void @test.use<Function>(fn %9) {
   Ret
 }
 
 func int @test.main() {
-  %10 := Call unit @test.use<Function>(@test.testReassignGlobals)
-  %11 := Call unit @test.use<Function>(@test.testReassignLocals)
+  Call void @test.use<Function>(@test.testReassignGlobals)
+  Call void @test.use<Function>(@test.testReassignLocals)
   Ret 0
 }

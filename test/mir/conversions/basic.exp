@@ -1,28 +1,28 @@
-func unit @test.testConvertByte(byte %0) {
+func void @test.testConvertByte(byte %0) {
   %1 := SExt byte %0 to int
   %2 := SExt byte %0 to long
   Ret
 }
 
-func unit @test.testConvertInt(int %3) {
+func void @test.testConvertInt(int %3) {
   %4 := Trunc int %3 to byte
   %5 := SExt int %3 to long
   Ret
 }
 
-func unit @test.testConvertLong(long %6) {
+func void @test.testConvertLong(long %6) {
   %7 := Trunc long %6 to byte
   %8 := Trunc long %6 to int
   Ret
 }
 
-func unit @test.use<Function>(fn %9) {
+func void @test.use<Function>(fn %9) {
   Ret
 }
 
 func int @test.main() {
-  %10 := Call unit @test.use<Function>(@test.testConvertByte)
-  %11 := Call unit @test.use<Function>(@test.testConvertInt)
-  %12 := Call unit @test.use<Function>(@test.testConvertLong)
+  Call void @test.use<Function>(@test.testConvertByte)
+  Call void @test.use<Function>(@test.testConvertInt)
+  Call void @test.use<Function>(@test.testConvertLong)
   Ret 0
 }

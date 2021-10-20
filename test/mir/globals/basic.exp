@@ -2,7 +2,7 @@ global int @test.i = 1
 
 global fn @test.f = @test.test
 
-func unit @test.test() {
+func void @test.test() {
   Ret
 }
 

@@ -15,7 +15,7 @@ func test.Rec1* @test.makeRec(int %0) {
   Ret %1
 }
 
-func unit @test.testIndexing(test.Rec1* %3, test.Rec2* %4, test.Rec3* %5, test.Rec4* %6, test.Tup1* %7) {
+func void @test.testIndexing(test.Rec1* %3, test.Rec2* %4, test.Rec3* %5, test.Rec4* %6, test.Tup1* %7) {
   %8 := GetPointer int, test.Rec1* %3.0
   %9 := Load int %8
   %10 := GetPointer std.string.String*, test.Rec2* %4.0
@@ -47,11 +47,11 @@ func unit @test.testIndexing(test.Rec1* %3, test.Rec2* %4, test.Rec3* %5, test.R
   Ret
 }
 
-func unit @test.use<Function>(fn %36) {
+func void @test.use<Function>(fn %36) {
   Ret
 }
 
 func int @test.main() {
-  %37 := Call unit @test.use<Function>(@test.testIndexing)
+  Call void @test.use<Function>(@test.testIndexing)
   Ret 0
 }

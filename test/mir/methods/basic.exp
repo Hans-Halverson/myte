@@ -20,7 +20,7 @@ func int @test.NonGenericType1.generic<Int>(test.NonGenericType1* %4, int %5) {
   Ret %5
 }
 
-func unit @test.testDirectNonGenericType(test.NonGenericType1* %6) {
+func void @test.testDirectNonGenericType(test.NonGenericType1* %6) {
   %7 := Call int @test.NonGenericType1.nongeneric(%6, 2)
   %8 := Call int @test.NonGenericType1.generic<Int>(%6, 1)
   %9 := Call bool @test.NonGenericType1.generic<Bool>(%6, false)
@@ -75,7 +75,7 @@ func $tuple<Int,Int>* @test.GenericType1.generic<Int,Int>(test.GenericType1<Int>
   Ret %35
 }
 
-func unit @test.testDirectGenericType(test.GenericType1<Int>* %38, test.GenericType1<Bool>* %39) {
+func void @test.testDirectGenericType(test.GenericType1<Int>* %38, test.GenericType1<Bool>* %39) {
   %40 := Call int @test.GenericType1.nongeneric<Int>(%38, 1)
   %41 := Call bool @test.GenericType1.nongeneric<Bool>(%39, true)
   %42 := Call $tuple<Int,Int>* @test.GenericType1.generic<Int,Int>(%38, 1, 1)
@@ -95,7 +95,7 @@ func int @test.NonGenericTrait.generic<test.NonGenericType2,Int>(test.NonGeneric
 
 type test.NonGenericType2 {int}
 
-func unit @test.testInheritedNonGenericTrait(test.NonGenericType2* %50) {
+func void @test.testInheritedNonGenericTrait(test.NonGenericType2* %50) {
   %51 := Call int @test.NonGenericTrait.nongeneric<test.NonGenericType2>(%50, 1)
   %52 := Call int @test.NonGenericTrait.generic<test.NonGenericType2,Int>(%50, 1)
   %53 := Call int @test.NonGenericTrait.generic<test.NonGenericType2,Int>(%50, 2)
@@ -150,7 +150,7 @@ type test.GenericType2<Bool> {bool}
 
 type test.GenericType2<Int> {int}
 
-func unit @test.testInheritedGenericTrait(test.GenericType2<Int>* %82, test.GenericType2<Bool>* %83) {
+func void @test.testInheritedGenericTrait(test.GenericType2<Int>* %82, test.GenericType2<Bool>* %83) {
   %84 := Call int @test.GenericTrait.nongeneric<test.GenericType2<Int>,Int>(%82, 1)
   %85 := Call bool @test.GenericTrait.nongeneric<test.GenericType2<Bool>,Bool>(%83, true)
   %86 := Call $tuple<Int,Int>* @test.GenericTrait.generic<test.GenericType2<Int>,Int,Int>(%82, 1, 1)
@@ -160,14 +160,14 @@ func unit @test.testInheritedGenericTrait(test.GenericType2<Int>* %82, test.Gene
   Ret
 }
 
-func unit @test.use<Function>(fn %90) {
+func void @test.use<Function>(fn %90) {
   Ret
 }
 
 func int @test.main() {
-  %91 := Call unit @test.use<Function>(@test.testDirectNonGenericType)
-  %92 := Call unit @test.use<Function>(@test.testDirectGenericType)
-  %93 := Call unit @test.use<Function>(@test.testInheritedNonGenericTrait)
-  %94 := Call unit @test.use<Function>(@test.testInheritedGenericTrait)
+  Call void @test.use<Function>(@test.testDirectNonGenericType)
+  Call void @test.use<Function>(@test.testDirectGenericType)
+  Call void @test.use<Function>(@test.testInheritedNonGenericTrait)
+  Call void @test.use<Function>(@test.testInheritedGenericTrait)
   Ret 0
 }

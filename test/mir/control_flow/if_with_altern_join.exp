@@ -1,84 +1,84 @@
-func unit @test.testNeitherUpdated() {
+func void @test.testNeitherUpdated() {
   branch true, @0, @1
 label @0:
-  %0 := Call unit @test.use<Int>(0)
+  Call void @test.use<Int>(0)
   continue @2
 label @1:
-  %1 := Call unit @test.use<Int>(1)
+  Call void @test.use<Int>(1)
   continue @2
 label @2:
-  %2 := Neg int 1
+  %0 := Neg int 1
   Ret
 }
 
-func unit @test.testOnlyFirstUpdated() {
+func void @test.testOnlyFirstUpdated() {
   branch true, @4, @3
 label @3:
-  %3 := Call unit @test.use<Int>(0)
+  Call void @test.use<Int>(0)
   continue @4
 label @4:
-  %4 := Phi int @test.testOnlyFirstUpdated:2, @3:1
-  %5 := Neg int %4
+  %1 := Phi int @test.testOnlyFirstUpdated:2, @3:1
+  %2 := Neg int %1
   Ret
 }
 
-func unit @test.testOnlySecondUpdated() {
+func void @test.testOnlySecondUpdated() {
   branch true, @5, @6
 label @5:
-  %6 := Call unit @test.use<Int>(0)
+  Call void @test.use<Int>(0)
   continue @6
 label @6:
-  %7 := Phi int @test.testOnlySecondUpdated:2, @5:1
-  %8 := Neg int %7
+  %3 := Phi int @test.testOnlySecondUpdated:2, @5:1
+  %4 := Neg int %3
   Ret
 }
 
-func unit @test.testBothUpdated() {
+func void @test.testBothUpdated() {
   branch true, @8, @7
 label @7:
   continue @8
 label @8:
-  %9 := Phi int @test.testBothUpdated:2, @7:3
-  %10 := Neg int %9
+  %5 := Phi int @test.testBothUpdated:2, @7:3
+  %6 := Neg int %5
   Ret
 }
 
-func unit @test.testMultiple(int %11) {
+func void @test.testMultiple(int %7) {
   branch true, @10, @9
 label @9:
   continue @10
 label @10:
-  %12 := Phi int @test.testMultiple:3, @9:0
-  %13 := Phi int @test.testMultiple:1, @9:4
-  %14 := Neg int %12
-  %15 := Neg int %13
-  %16 := Neg int %11
+  %8 := Phi int @test.testMultiple:3, @9:0
+  %9 := Phi int @test.testMultiple:1, @9:4
+  %10 := Neg int %8
+  %11 := Neg int %9
+  %12 := Neg int %7
   Ret
 }
 
 global int @test.glob = 1
 
-func unit @test.testGlobal() {
+func void @test.testGlobal() {
   branch true, @11, @12
 label @11:
   Store int @test.glob, 2
   continue @13
 label @12:
-  %17 := Call unit @test.use<Int>(0)
+  Call void @test.use<Int>(0)
   continue @13
 label @13:
-  %18 := Load int @test.glob
-  %19 := Neg int %18
+  %13 := Load int @test.glob
+  %14 := Neg int %13
   branch true, @14, @15
 label @14:
-  %20 := Call unit @test.use<Int>(0)
+  Call void @test.use<Int>(0)
   continue @16
 label @15:
   Store int @test.glob, 3
   continue @16
 label @16:
-  %21 := Load int @test.glob
-  %22 := Neg int %21
+  %15 := Load int @test.glob
+  %16 := Neg int %15
   branch true, @17, @18
 label @17:
   Store int @test.glob, 4
@@ -87,25 +87,25 @@ label @18:
   Store int @test.glob, 5
   continue @19
 label @19:
-  %23 := Load int @test.glob
-  %24 := Neg int %23
+  %17 := Load int @test.glob
+  %18 := Neg int %17
   Ret
 }
 
-func unit @test.use<Function>(fn %25) {
+func void @test.use<Function>(fn %19) {
   Ret
 }
 
-func unit @test.use<Int>(int %26) {
+func void @test.use<Int>(int %20) {
   Ret
 }
 
 func int @test.main() {
-  %27 := Call unit @test.use<Function>(@test.testNeitherUpdated)
-  %28 := Call unit @test.use<Function>(@test.testOnlyFirstUpdated)
-  %29 := Call unit @test.use<Function>(@test.testOnlySecondUpdated)
-  %30 := Call unit @test.use<Function>(@test.testBothUpdated)
-  %31 := Call unit @test.use<Function>(@test.testMultiple)
-  %32 := Call unit @test.use<Function>(@test.testGlobal)
+  Call void @test.use<Function>(@test.testNeitherUpdated)
+  Call void @test.use<Function>(@test.testOnlyFirstUpdated)
+  Call void @test.use<Function>(@test.testOnlySecondUpdated)
+  Call void @test.use<Function>(@test.testBothUpdated)
+  Call void @test.use<Function>(@test.testMultiple)
+  Call void @test.use<Function>(@test.testGlobal)
   Ret 0
 }

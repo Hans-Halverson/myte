@@ -2,7 +2,7 @@ type test.Opt1 {byte, byte[7]}
 
 type test.Opt1::Some1 {byte, byte[3], int}
 
-func unit @test.useOpt1(test.Opt1* %0) {
+func void @test.useOpt1(test.Opt1* %0) {
   Ret
 }
 
@@ -22,7 +22,7 @@ type test.Opt2<String>::Some2 {byte, byte[7], std.string.String*}
 
 type test.Opt2<test.Opt2<String>>::Some2 {byte, byte[7], test.Opt2<String>*}
 
-func unit @test.useOpt2(test.Opt2<Int>* %1, test.Opt2<Bool>* %2, test.Opt2<test.Opt2<String>>* %3) {
+func void @test.useOpt2(test.Opt2<Int>* %1, test.Opt2<Bool>* %2, test.Opt2<test.Opt2<String>>* %3) {
   Ret
 }
 
@@ -36,17 +36,17 @@ type test.V1::V2Rec1 {byte, byte[7], test.Opt1*, int, byte, byte[3]}
 
 type test.V1::V2Rec2 {byte, byte, byte[2], int, byte, byte[15]}
 
-func unit @test.useV1(test.V1* %4) {
+func void @test.useV1(test.V1* %4) {
   Ret
 }
 
-func unit @test.use<Function>(fn %5) {
+func void @test.use<Function>(fn %5) {
   Ret
 }
 
 func int @test.main() {
-  %6 := Call unit @test.use<Function>(@test.useOpt1)
-  %7 := Call unit @test.use<Function>(@test.useOpt2)
-  %8 := Call unit @test.use<Function>(@test.useV1)
+  Call void @test.use<Function>(@test.useOpt1)
+  Call void @test.use<Function>(@test.useOpt2)
+  Call void @test.use<Function>(@test.useV1)
   Ret 0
 }

@@ -1,4 +1,4 @@
-func unit @test.byteSignExtension() {
+func void @test.byteSignExtension() {
   %0 := Call int @test.use<Int>(1)
   %1 := Call int @test.use<Int>(-1)
   %2 := Call long @test.use<Long>(1)
@@ -6,13 +6,13 @@ func unit @test.byteSignExtension() {
   Ret
 }
 
-func unit @test.intSignExtension() {
+func void @test.intSignExtension() {
   %4 := Call long @test.use<Long>(1)
   %5 := Call long @test.use<Long>(-1)
   Ret
 }
 
-func unit @test.intTruncation() {
+func void @test.intTruncation() {
   %6 := Call byte @test.use<Byte>(1)
   %7 := Call byte @test.use<Byte>(127)
   %8 := Call byte @test.use<Byte>(-128)
@@ -22,7 +22,7 @@ func unit @test.intTruncation() {
   Ret
 }
 
-func unit @test.longTruncation() {
+func void @test.longTruncation() {
   %12 := Call byte @test.use<Byte>(1)
   %13 := Call byte @test.use<Byte>(127)
   %14 := Call byte @test.use<Byte>(-128)

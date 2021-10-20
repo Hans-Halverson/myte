@@ -10,7 +10,7 @@ type test.Rec2 {bool, long, int}
 
 type test.Rec3 {byte, test.Tup2*, byte}
 
-func unit @test.arguments(int %0) {
+func void @test.arguments(int %0) {
   %1 := CallBuiltin test.Tup2* myte_alloc(1)
   %2 := GetPointer bool, test.Tup2* %1.0
   Store bool %2, true
@@ -49,7 +49,7 @@ func unit @test.arguments(int %0) {
   Ret
 }
 
-func unit @test.tupleConstructor() {
+func void @test.tupleConstructor() {
   %21 := CallBuiltin test.Tup1* myte_alloc(1)
   %22 := GetPointer int, test.Tup1* %21.0
   Store int %22, 3
@@ -63,7 +63,7 @@ func unit @test.tupleConstructor() {
   Ret
 }
 
-func unit @test.recordConstructor() {
+func void @test.recordConstructor() {
   %27 := CallBuiltin test.Rec1* myte_alloc(1)
   %28 := GetPointer int, test.Rec1* %27.0
   Store int %28, 3
@@ -84,13 +84,13 @@ func unit @test.recordConstructor() {
   Ret
 }
 
-func unit @test.use<Function>(fn %37) {
+func void @test.use<Function>(fn %37) {
   Ret
 }
 
 func int @test.main() {
-  %38 := Call unit @test.use<Function>(@test.arguments)
-  %39 := Call unit @test.use<Function>(@test.tupleConstructor)
-  %40 := Call unit @test.use<Function>(@test.recordConstructor)
+  Call void @test.use<Function>(@test.arguments)
+  Call void @test.use<Function>(@test.tupleConstructor)
+  Call void @test.use<Function>(@test.recordConstructor)
   Ret 0
 }

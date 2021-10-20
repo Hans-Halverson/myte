@@ -1,39 +1,39 @@
-func unit @test.emptySet() {
+func void @test.emptySet() {
   %0 := Call std.set.Set<Int>* @std.set.Set.new<Int>()
   %1 := Call std.set.Set<Bool>* @std.set.Set.new<Bool>()
   Ret
 }
 
-func unit @test.oneEntrySet() {
+func void @test.oneEntrySet() {
   %2 := Call std.set.Set<Int>* @std.set.Set.new<Int>()
-  %3 := Call unit @std.set.Set.add<Int>(%2, 1)
-  %4 := Call std.set.Set<Byte>* @std.set.Set.new<Byte>()
-  %5 := Call unit @std.set.Set.add<Byte>(%4, 2)
+  Call void @std.set.Set.add<Int>(%2, 1)
+  %3 := Call std.set.Set<Byte>* @std.set.Set.new<Byte>()
+  Call void @std.set.Set.add<Byte>(%3, 2)
   Ret
 }
 
-func unit @test.multiEntrySet() {
-  %6 := Call std.set.Set<Int>* @std.set.Set.new<Int>()
-  %7 := Call unit @std.set.Set.reserve<Int>(%6, 3)
-  %8 := Call unit @std.set.Set.add<Int>(%6, 5)
-  %9 := Call unit @std.set.Set.add<Int>(%6, 6)
-  %10 := Call unit @std.set.Set.add<Int>(%6, 7)
-  %11 := Call std.set.Set<Bool>* @std.set.Set.new<Bool>()
-  %12 := Call unit @std.set.Set.reserve<Bool>(%11, 4)
-  %13 := Call unit @std.set.Set.add<Bool>(%11, false)
-  %14 := Call unit @std.set.Set.add<Bool>(%11, true)
-  %15 := Call unit @std.set.Set.add<Bool>(%11, false)
-  %16 := Call unit @std.set.Set.add<Bool>(%11, true)
+func void @test.multiEntrySet() {
+  %4 := Call std.set.Set<Int>* @std.set.Set.new<Int>()
+  Call void @std.set.Set.reserve<Int>(%4, 3)
+  Call void @std.set.Set.add<Int>(%4, 5)
+  Call void @std.set.Set.add<Int>(%4, 6)
+  Call void @std.set.Set.add<Int>(%4, 7)
+  %5 := Call std.set.Set<Bool>* @std.set.Set.new<Bool>()
+  Call void @std.set.Set.reserve<Bool>(%5, 4)
+  Call void @std.set.Set.add<Bool>(%5, false)
+  Call void @std.set.Set.add<Bool>(%5, true)
+  Call void @std.set.Set.add<Bool>(%5, false)
+  Call void @std.set.Set.add<Bool>(%5, true)
   Ret
 }
 
-func unit @test.use<Function>(fn %17) {
+func void @test.use<Function>(fn %6) {
   Ret
 }
 
 func int @test.main() {
-  %18 := Call unit @test.use<Function>(@test.emptySet)
-  %19 := Call unit @test.use<Function>(@test.oneEntrySet)
-  %20 := Call unit @test.use<Function>(@test.multiEntrySet)
+  Call void @test.use<Function>(@test.emptySet)
+  Call void @test.use<Function>(@test.oneEntrySet)
+  Call void @test.use<Function>(@test.multiEntrySet)
   Ret 0
 }

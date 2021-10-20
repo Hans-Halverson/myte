@@ -1,4 +1,4 @@
-func unit @t.func(int %0) {
+func void @t.func(int %0) {
   Ret
 }
 
@@ -6,10 +6,10 @@ func bool @t.rand() {
   Ret true
 }
 
-func unit @t.ifStatement() {
-  %1 := Call unit @t.func(3)
-  %2 := Call unit @t.func(4)
-  %3 := Call unit @t.func(5)
+func void @t.ifStatement() {
+  Call void @t.func(3)
+  Call void @t.func(4)
+  Call void @t.func(5)
   Ret
 }
 
@@ -17,43 +17,43 @@ func int @t.nestedIfStatements() {
   Ret 2
 }
 
-func unit @t.whileTrue() {
-  %4 := Call unit @t.func(1)
+func void @t.whileTrue() {
+  Call void @t.func(1)
   continue @t.whileTrue
 }
 
-func unit @t.whileFalse() {
-  %5 := Call unit @t.func(3)
+func void @t.whileFalse() {
+  Call void @t.func(3)
   Ret
 }
 
-func unit @t.whileTrueWithReturn() {
-  %6 := Call unit @t.func(1)
+func void @t.whileTrueWithReturn() {
+  Call void @t.func(1)
   Ret
 }
 
-func unit @t.whileTrueWithBreak() {
-  %7 := Call unit @t.func(1)
-  %8 := Call unit @t.func(2)
+func void @t.whileTrueWithBreak() {
+  Call void @t.func(1)
+  Call void @t.func(2)
   Ret
 }
 
-func unit @t.whileTrueWithContinue() {
-  %9 := Call unit @t.func(1)
+func void @t.whileTrueWithContinue() {
+  Call void @t.func(1)
   continue @t.whileTrueWithContinue
 }
 
-func fn @t.use<Function>(fn %10) {
-  Ret %10
+func fn @t.use<Function>(fn %1) {
+  Ret %1
 }
 
 func int @t.main() {
-  %11 := Call fn @t.use<Function>(@t.ifStatement)
-  %12 := Call fn @t.use<Function>(@t.nestedIfStatements)
-  %13 := Call fn @t.use<Function>(@t.whileTrue)
-  %14 := Call fn @t.use<Function>(@t.whileFalse)
-  %15 := Call fn @t.use<Function>(@t.whileTrueWithReturn)
-  %16 := Call fn @t.use<Function>(@t.whileTrueWithBreak)
-  %17 := Call fn @t.use<Function>(@t.whileTrueWithContinue)
+  %2 := Call fn @t.use<Function>(@t.ifStatement)
+  %3 := Call fn @t.use<Function>(@t.nestedIfStatements)
+  %4 := Call fn @t.use<Function>(@t.whileTrue)
+  %5 := Call fn @t.use<Function>(@t.whileFalse)
+  %6 := Call fn @t.use<Function>(@t.whileTrueWithReturn)
+  %7 := Call fn @t.use<Function>(@t.whileTrueWithBreak)
+  %8 := Call fn @t.use<Function>(@t.whileTrueWithContinue)
   Ret 0
 }

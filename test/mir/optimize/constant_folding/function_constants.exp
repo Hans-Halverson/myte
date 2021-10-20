@@ -1,17 +1,17 @@
-func unit @test.f() {
+func void @test.f() {
   Ret
 }
 
-func unit @test.higherOrder(fn %0) {
+func void @test.higherOrder(fn %0) {
   Ret
 }
 
-func unit @test.test() {
-  %1 := Call unit @test.higherOrder(@test.f)
+func void @test.test() {
+  Call void @test.higherOrder(@test.f)
   Ret
 }
 
 func int @test.main() {
-  %2 := Call unit @test.test()
+  Call void @test.test()
   Ret 0
 }

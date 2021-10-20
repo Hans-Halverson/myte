@@ -4,8 +4,7 @@ type aggregate_id = int
 
 module rec Type : sig
   type t =
-    [ `UnitT
-    | `BoolT
+    [ `BoolT
     | `IntT
     | `ByteT
     | `LongT
@@ -42,17 +41,24 @@ let mk_aggregate_id () =
   max_aggregate_id := agg_id + 1;
   agg_id
 
-(* Look up an element by name in an aggregate type, throwing if no element with that name is found.
-   Return a tuple of the element's type and its index in the aggregate. *)
-let lookup_element agg name =
+let zero_size_name = "_ZeroSize"
+
+let lookup_element_opt agg name =
   let open Aggregate in
   let rec inner elements i =
     match elements with
-    | [] -> failwith "Field not defined for aggregate"
-    | (element_name, element_ty) :: _ when element_name = name -> (element_ty, i)
+    | [] -> None
+    | (element_name, element_ty) :: _ when element_name = name -> Some (element_ty, i)
     | _ :: tl -> inner tl (i + 1)
   in
   inner agg.elements 0
+
+(* Look up an element by name in an aggregate type, throwing if no element with that name is found.
+   Return a tuple of the element's type and its index in the aggregate. *)
+let lookup_element agg name =
+  match lookup_element_opt agg name with
+  | Some result -> result
+  | None -> failwith "Field not defined for aggregate"
 
 (* Tuple indices are converted to strings in aggregate element list. Keep cache of indices converted
    to keys to avoid a large number of calls to `string_of_int`. *)
@@ -80,7 +86,6 @@ end
 
 let rec type_to_string ty =
   match ty with
-  | `UnitT -> "unit"
   | `ByteT -> "byte"
   | `IntT -> "int"
   | `LongT -> "long"

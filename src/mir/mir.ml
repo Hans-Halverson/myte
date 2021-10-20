@@ -8,11 +8,6 @@ type instr_id = int
 type label = string
 
 module rec Value : sig
-  type unit_value =
-    [ `UnitV of var_id
-    | `UnitL
-    ]
-
   type bool_value =
     [ `BoolV of var_id
     | `BoolL of bool
@@ -48,8 +43,7 @@ module rec Value : sig
     ]
 
   type t =
-    [ unit_value
-    | bool_value
+    [ bool_value
     | numeric_value
     | function_value
     | pointer_value
@@ -58,8 +52,7 @@ module rec Value : sig
 
   (* Value subsets for instructions *)
   and comparable_value =
-    [ unit_value
-    | bool_value
+    [ bool_value
     | numeric_value
     | pointer_value
     ]
@@ -81,11 +74,19 @@ and Instruction : sig
     }
   end
 
+  module Call : sig
+    type 'a t = {
+      return: (var_id * Type.t) option;
+      func: 'a;
+      args: Value.t list;
+    }
+  end
+
   type t = instr_id * t'
 
   and t' =
-    | Call of Value.function_value call
-    | CallBuiltin of Builtin.t call
+    | Call of Value.function_value Call.t
+    | CallBuiltin of Builtin.t Call.t
     | Ret of Value.t option
     (* Memory operations *)
     | StackAlloc of var_id * Type.t
@@ -127,10 +128,6 @@ and Instruction : sig
     | SExt of var_id * Value.numeric_value * Type.numeric_type
     (* Only generated during MIR destruction *)
     | Mov of var_id * Value.t
-
-  and 'a call =
-    (* Return var *)
-    var_id * (* Return type *) Type.t * (* Function *) 'a * (* Arguments *) Value.t list
 end =
   Instruction
 
@@ -185,7 +182,7 @@ and Function : sig
     name: label;
     loc: Loc.t;
     params: (Loc.t * var_id * Type.t) list;
-    return_ty: Type.t;
+    return_ty: Type.t option;
     mutable body_start_block: Block.id;
   }
 end =
@@ -194,7 +191,7 @@ end =
 and Builtin : sig
   type t = {
     name: string;
-    mk_return_ty: Type.t list -> Type.t;
+    mk_return_ty: Type.t list -> Type.t option;
   }
 end =
   Builtin
@@ -224,9 +221,6 @@ let mk_instr_id () =
 
 let type_of_value (v : Value.t) : Type.t =
   match v with
-  | `UnitV _
-  | `UnitL ->
-    `UnitT
   | `BoolV _
   | `BoolL _ ->
     `BoolT
@@ -257,7 +251,6 @@ let pointer_value_element_type (ptr : Value.pointer_value) : Type.t =
 
 let var_value_of_type var_id (ty : Type.t) : Value.t =
   match ty with
-  | `UnitT -> `UnitV var_id
   | `BoolT -> `BoolV var_id
   | `ByteT -> `ByteV var_id
   | `IntT -> `IntV var_id
@@ -266,11 +259,6 @@ let var_value_of_type var_id (ty : Type.t) : Value.t =
   | `PointerT ty -> `PointerV (ty, var_id)
   | `ArrayT (ty, size) -> `ArrayV (ty, size, var_id)
   | `AggregateT _ -> failwith "Cannot create variable for Aggregate, must be behind pointer"
-
-let cast_to_unit_value (v : Value.t) : Value.unit_value =
-  match v with
-  | (`UnitL | `UnitV _) as v -> v
-  | _ -> failwith "Expected unit value"
 
 let cast_to_bool_value (v : Value.t) : Value.bool_value =
   match v with
@@ -299,8 +287,8 @@ let cast_to_array_value (v : Value.t) : Value.array_value =
 
 let cast_to_comparable_value (v : Value.t) : Value.comparable_value =
   match v with
-  | ( `UnitL | `UnitV _ | `BoolL _ | `BoolV _ | `ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _
-    | `LongV _ | `PointerL _ | `PointerV _ ) as v ->
+  | ( `BoolL _ | `BoolV _ | `ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _
+    | `PointerL _ | `PointerV _ ) as v ->
     v
   | _ -> failwith "Expected comparable value"
 
@@ -313,7 +301,6 @@ let is_literal (v : Value.t) : bool =
   match v with
   | `FunctionL _
   | `PointerL _
-  | `UnitL
   | `BoolL _
   | `ByteL _
   | `IntL _
@@ -321,7 +308,6 @@ let is_literal (v : Value.t) : bool =
   | `ArrayStringL _
   | `ArrayVtableL _ ->
     true
-  | `UnitV _
   | `BoolV _
   | `ByteV _
   | `IntV _
@@ -335,7 +321,6 @@ let var_id_of_value_opt (v : Value.t) : var_id option =
   match v with
   | `FunctionL _
   | `PointerL _
-  | `UnitL
   | `BoolL _
   | `ByteL _
   | `IntL _
@@ -343,7 +328,6 @@ let var_id_of_value_opt (v : Value.t) : var_id option =
   | `ArrayStringL _
   | `ArrayVtableL _ ->
     None
-  | `UnitV var_id
   | `BoolV var_id
   | `ByteV var_id
   | `IntV var_id
@@ -355,7 +339,6 @@ let var_id_of_value_opt (v : Value.t) : var_id option =
 
 let rec values_equal (v1 : Value.t) (v2 : Value.t) : bool =
   match (v1, v2) with
-  | (`UnitL, `UnitL) -> true
   | (`BoolL b1, `BoolL b2) -> b1 = b2
   | (`ByteL b1, `ByteL b2) -> b1 = b2
   | (`IntL i1, `IntL i2) -> Int32.equal i1 i2
@@ -366,7 +349,6 @@ let rec values_equal (v1 : Value.t) (v2 : Value.t) : bool =
   | (`ArrayVtableL (size1, labels1), `ArrayVtableL (size2, labels2)) ->
     size1 = size2
     && List.for_all2 (fun f1 f2 -> values_equal (f1 :> Value.t) (f2 :> Value.t)) labels1 labels2
-  | (`UnitV var_id1, `UnitV var_id2)
   | (`BoolV var_id1, `BoolV var_id2)
   | (`ByteV var_id1, `ByteV var_id2)
   | (`IntV var_id1, `IntV var_id2)
@@ -383,18 +365,12 @@ let mk_branch test continue jump = Block.Branch { test; continue; jump }
 
 let rec map_value ~f (value : Value.t) : Value.t =
   match value with
-  | (`UnitL | `UnitV _) as v -> (map_unit_value ~f v :> Value.t)
   | (`BoolL _ | `BoolV _) as v -> (map_bool_value ~f v :> Value.t)
   | (`LongL _ | `LongV _) as v -> (map_long_value ~f v :> Value.t)
   | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _) as v -> (map_numeric_value ~f v :> Value.t)
   | (`FunctionL _ | `FunctionV _) as v -> (map_function_value ~f v :> Value.t)
   | (`PointerL _ | `PointerV _) as v -> (map_pointer_value ~f v :> Value.t)
   | (`ArrayStringL _ | `ArrayVtableL _ | `ArrayV _) as v -> (map_array_value ~f v :> Value.t)
-
-and map_unit_value ~f (value : Value.unit_value) : Value.unit_value =
-  match value with
-  | `UnitL as lit -> lit
-  | `UnitV v -> `UnitV (f v)
 
 and map_bool_value ~f (value : Value.bool_value) : Value.bool_value =
   match value with
@@ -430,7 +406,6 @@ and map_array_value ~f (value : Value.array_value) : Value.array_value =
 
 and map_comparable_value ~f (value : Value.comparable_value) : Value.comparable_value =
   match value with
-  | (`UnitL | `UnitV _) as v -> (map_unit_value ~f v :> Value.comparable_value)
   | (`BoolL _ | `BoolV _) as v -> (map_bool_value ~f v :> Value.comparable_value)
   | (`LongL _ | `LongV _) as v -> (map_long_value ~f v :> Value.comparable_value)
   | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _) as v ->

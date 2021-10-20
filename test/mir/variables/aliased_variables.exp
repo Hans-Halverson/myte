@@ -1,4 +1,4 @@
-func unit @_init() {
+func void @_init() {
   %0 := Load int @test.x
   Store int @test.y, %0
   Ret

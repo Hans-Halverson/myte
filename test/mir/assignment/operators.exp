@@ -8,7 +8,7 @@ func int @test.getInt2() {
   Ret 2
 }
 
-func unit @test.testGlobal() {
+func void @test.testGlobal() {
   %0 := Load int @test.global
   %1 := Add int %0, 1
   Store int @test.global, %1
@@ -19,7 +19,7 @@ func unit @test.testGlobal() {
   Ret
 }
 
-func unit @test.testOperators() {
+func void @test.testOperators() {
   %5 := Call int @test.getInt()
   %6 := Add int %5, 1
   %7 := Sub int %6, 2
@@ -35,20 +35,20 @@ func unit @test.testOperators() {
   Ret
 }
 
-func unit @test.testOrder() {
+func void @test.testOrder() {
   %17 := Call int @test.getInt()
   %18 := Call int @test.getInt2()
   %19 := Add int %17, %18
   Ret
 }
 
-func unit @test.use<Function>(fn %20) {
+func void @test.use<Function>(fn %20) {
   Ret
 }
 
 func int @test.main() {
-  %21 := Call unit @test.use<Function>(@test.testGlobal)
-  %22 := Call unit @test.use<Function>(@test.testOperators)
-  %23 := Call unit @test.use<Function>(@test.testOrder)
+  Call void @test.use<Function>(@test.testGlobal)
+  Call void @test.use<Function>(@test.testOperators)
+  Call void @test.use<Function>(@test.testOrder)
   Ret 0
 }
