@@ -1,0 +1,61 @@
+module test
+
+// Zero size types
+type Tup1 (Unit, Unit, Unit)
+type Rec1 { foo: Unit, bar: Unit }
+
+fun testZeroSizeADT() {
+  val x = Tup1 ((), getUnit(), id(()));
+  use(x);
+  use(x[0]);
+  use(x[2]);
+
+  val x = Rec1 { foo: getUnit(), bar: id(()) };
+  use(x);
+  use(x.foo);
+  use(x.bar);
+}
+
+// Types with zero size types in them
+type Tup2 (Unit, Int, Unit, Unit, Byte)
+type Rec2 { one: Unit, two: Int, three: Unit, four: Byte }
+
+fun testAggregateWithZeroSizeFields() {
+  val x = Tup2 ((), 6, getUnit(), id(()), 5);
+  use(x[0]);
+  use(x[1]);
+  use(x[2]);
+  use(x[3]);
+  use(x[4]);
+
+  val x = Rec2 { one: getUnit(), two: 6, three: id(()), four: 5 };
+  use(x.one);
+  use(x.two);
+  use(x.three);
+  use(x.four);
+}
+
+type Variant1 =
+  | Tup3 (Unit, Int, Unit, Byte)
+  | Rec3 { one: Byte, two: Unit, three: Unit, four: Int }
+  | Tup4 (Unit, Unit)
+  | Rec4 { one: Unit, two: Unit }
+
+fun testVariantWithZeroSizeFields() {
+  use(Tup3 ((), 1, getUnit(), 2));
+  use(Rec3 { one: 3, two: id (()), three: (), four: 4 });
+  use(Tup4 ((), id(())));
+  use(Rec4 { one: getUnit(), two: id(()) });
+}
+
+fun getUnit() = ()
+
+fun id<T>(x: T): T = x
+
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testZeroSizeADT);
+  use(testAggregateWithZeroSizeFields);
+  use(testVariantWithZeroSizeFields);
+}

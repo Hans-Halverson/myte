@@ -15,10 +15,18 @@ fun withBody(x: Int, y: Bool, z: Bool) {
 
 fun uncalledFunction(x: Int): Int = x + 100
 
+type ZeroSize (Unit)
+
+fun zeroSizeParams(x: Int, y: Unit, z: Bool, a: ZeroSize) {
+  use(y);
+  use(a);
+}
+
 fun main() {
   use(true);
   use(empty);
   use(emptyParams);
   use(shorthand);
   use(withBody);
+  use(zeroSizeParams);
 }

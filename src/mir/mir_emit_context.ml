@@ -393,18 +393,22 @@ and instantiate_mir_adt_template_elements ~ecx template type_param_bindings =
    
    If resulting tuple has no fields return None instead of creating an aggregate. *)
 and instantiate_tuple ~ecx element_types =
-  let mir_type_args = List.filter_map (to_mir_type ~ecx) element_types in
-  if mir_type_args = [] then
-    None
-  else
-    match TypeArgsHashtbl.find_opt ecx.tuple_instantiations element_types with
-    | Some agg -> Some agg
-    | None ->
+  match TypeArgsHashtbl.find_opt ecx.tuple_instantiations element_types with
+  | Some agg -> Some agg
+  | None ->
+    let agg_elements =
+      List_utils.filter_mapi
+        (fun i element_type ->
+          match to_mir_type ~ecx element_type with
+          | None -> None
+          | Some mir_type -> Some (TupleKeyCache.get_key i, mir_type))
+        element_types
+    in
+    if agg_elements = [] then
+      None
+    else
       let type_args_string = TypeArgs.to_string ~pcx:ecx.pcx element_types in
       let name = "$tuple" ^ type_args_string in
-      let agg_elements =
-        List.mapi (fun i mir_ty -> (TupleKeyCache.get_key i, mir_ty)) mir_type_args
-      in
       let agg = mk_aggregate ~ecx name Loc.none agg_elements in
       TypeArgsHashtbl.add ecx.tuple_instantiations element_types agg;
       Some agg

@@ -4,7 +4,13 @@ import std.memory.Array
 
 fun use<T>(x: T) {}
 
+type ZeroSize (Unit)
+
 fun main() {
   use((Array.new(99): Array<Int>));
   use((Array.new(0): Array<Int>));
+
+  // Zero size types in arrays
+  use((Array.new(3): Array<Unit>));
+  use((Array.new(3): Array<ZeroSize>));
 }

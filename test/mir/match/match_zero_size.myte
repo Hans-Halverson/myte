@@ -1,0 +1,43 @@
+module test
+
+type ZeroSize (Unit)
+
+fun testZeroSizeType(x: ZeroSize) {
+  match (x) {
+    | ZeroSize (()) -> use(1)
+  }
+
+  match (x) {
+    | ZeroSize (y) -> use(y)
+  }
+
+  match (x) {
+    | y -> use(y)
+  }
+
+  match (x) {
+    | (ZeroSize (y)) as z -> {
+      use(y);
+      use(z);
+    }
+  }
+}
+
+type ZeroSizeFieldType (Int, Unit, Bool)
+
+fun testTypeWithZeroSizeField(x: ZeroSizeFieldType) {
+  match (x) {
+    | ZeroSizeFieldType (x, y, z) -> {
+      use(x);
+      use(y);
+      use(z);
+    }
+  }
+}
+
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testZeroSizeType);
+  use(testTypeWithZeroSizeField);
+}

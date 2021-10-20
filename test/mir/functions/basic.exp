@@ -10,6 +10,14 @@ func void @test.use<Int>(int %2) {
   Ret
 }
 
+func void @test.use<Unit>() {
+  Ret
+}
+
+func void @test.use<test.ZeroSize>() {
+  Ret
+}
+
 func void @test.empty() {
   Ret
 }
@@ -32,11 +40,18 @@ label @1:
   Ret
 }
 
+func void @test.zeroSizeParams(int %10, bool %11) {
+  Call void @test.use<Unit>()
+  Call void @test.use<test.ZeroSize>()
+  Ret
+}
+
 func int @test.main() {
   Call void @test.use<Bool>(true)
   Call void @test.use<Function>(@test.empty)
   Call void @test.use<Function>(@test.emptyParams)
   Call void @test.use<Function>(@test.shorthand)
   Call void @test.use<Function>(@test.withBody)
+  Call void @test.use<Function>(@test.zeroSizeParams)
   Ret 0
 }

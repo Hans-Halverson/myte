@@ -32,7 +32,22 @@ fun testNestedIndexing() {
   assertEqual(x[1][2][1], "bar");
 }
 
+fun testSizeZeroIndexing() {
+  // Entire tuple has size zero
+  val x = ((), ());
+  assertEqual(x[0], ());
+  assertEqual(x[1], ());
+
+  // Some fields have size zero
+  val x = (1, (), (), true);
+  assertEqual(x[0], 1);
+  assertEqual(x[1], ());
+  assertEqual(x[2], ());
+  assertEqual(x[3], true);
+}
+
 fun main() {
   testSimpleIndexing();
   testNestedIndexing();
+  testSizeZeroIndexing();
 }

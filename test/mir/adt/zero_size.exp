@@ -1,0 +1,134 @@
+func void @test.testZeroSizeADT() {
+  Call void @test.getUnit()
+  Call void @test.id<Unit>()
+  Call void @test.use<test.Tup1>()
+  Call void @test.use<Unit>()
+  Call void @test.use<Unit>()
+  Call void @test.getUnit()
+  Call void @test.id<Unit>()
+  Call void @test.use<test.Rec1>()
+  Call void @test.use<Unit>()
+  Call void @test.use<Unit>()
+  Ret
+}
+
+type test.Tup2 {int, byte}
+
+type test.Rec2 {int, byte}
+
+func void @test.testAggregateWithZeroSizeFields() {
+  %0 := CallBuiltin test.Tup2* myte_alloc(1)
+  %1 := GetPointer int, test.Tup2* %0.0
+  Store int %1, 6
+  Call void @test.getUnit()
+  Call void @test.id<Unit>()
+  %2 := GetPointer byte, test.Tup2* %0.1
+  Store byte %2, 5
+  Call void @test.use<Unit>()
+  %3 := GetPointer int, test.Tup2* %0.0
+  %4 := Load int %3
+  Call void @test.use<Int>(%4)
+  Call void @test.use<Unit>()
+  Call void @test.use<Unit>()
+  %5 := GetPointer byte, test.Tup2* %0.1
+  %6 := Load byte %5
+  Call void @test.use<Byte>(%6)
+  %7 := CallBuiltin test.Rec2* myte_alloc(1)
+  Call void @test.getUnit()
+  %8 := GetPointer int, test.Rec2* %7.0
+  Store int %8, 6
+  Call void @test.id<Unit>()
+  %9 := GetPointer byte, test.Rec2* %7.1
+  Store byte %9, 5
+  Call void @test.use<Unit>()
+  %10 := GetPointer int, test.Rec2* %7.0
+  %11 := Load int %10
+  Call void @test.use<Int>(%11)
+  Call void @test.use<Unit>()
+  %12 := GetPointer byte, test.Rec2* %7.1
+  %13 := Load byte %12
+  Call void @test.use<Byte>(%13)
+  Ret
+}
+
+type test.Variant1 {byte, byte[11]}
+
+type test.Variant1::Tup3 {byte, byte[3], int, byte, byte[3]}
+
+type test.Variant1::Rec3 {byte, byte, byte[2], int, byte[4]}
+
+type test.Variant1::Tup4 {byte, byte[11]}
+
+type test.Variant1::Rec4 {byte, byte[11]}
+
+func void @test.testVariantWithZeroSizeFields() {
+  %14 := CallBuiltin test.Variant1::Tup3* myte_alloc(1)
+  Store byte %14, 0
+  %15 := GetPointer int, test.Variant1::Tup3* %14.2
+  Store int %15, 1
+  Call void @test.getUnit()
+  %16 := GetPointer byte, test.Variant1::Tup3* %14.3
+  Store byte %16, 2
+  Call void @test.use<test.Variant1>(%14)
+  %17 := CallBuiltin test.Variant1::Rec3* myte_alloc(1)
+  Store byte %17, 1
+  %18 := GetPointer byte, test.Variant1::Rec3* %17.1
+  Store byte %18, 3
+  Call void @test.id<Unit>()
+  %19 := GetPointer int, test.Variant1::Rec3* %17.3
+  Store int %19, 4
+  Call void @test.use<test.Variant1>(%17)
+  %20 := CallBuiltin test.Variant1::Tup4* myte_alloc(1)
+  Store byte %20, 2
+  Call void @test.id<Unit>()
+  Call void @test.use<test.Variant1>(%20)
+  %21 := CallBuiltin test.Variant1::Rec4* myte_alloc(1)
+  Store byte %21, 3
+  Call void @test.getUnit()
+  Call void @test.id<Unit>()
+  Call void @test.use<test.Variant1>(%21)
+  Ret
+}
+
+func void @test.getUnit() {
+  Ret
+}
+
+func void @test.id<Unit>() {
+  Ret
+}
+
+func void @test.use<Byte>(byte %22) {
+  Ret
+}
+
+func void @test.use<Function>(fn %23) {
+  Ret
+}
+
+func void @test.use<Int>(int %24) {
+  Ret
+}
+
+func void @test.use<Unit>() {
+  Ret
+}
+
+func void @test.use<test.Rec1>() {
+  Ret
+}
+
+func void @test.use<test.Tup1>() {
+  Ret
+}
+
+func void @test.use<test.Variant1>(test.Variant1* %25) {
+  Ret
+}
+
+func int @test.main() {
+  Call void @test.use<Function>(@test.testZeroSizeADT)
+  Call void @test.use<Function>(@test.testAggregateWithZeroSizeFields)
+  Call void @test.use<Function>(@test.testVariantWithZeroSizeFields)
+  Ret 0
+}

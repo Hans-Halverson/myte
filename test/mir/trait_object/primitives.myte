@@ -29,6 +29,18 @@ fun testLongPromotion(x: Long) {
   useToString((1: Long));
 }
 
+type ZeroSize (Unit)
+methods ZeroSize {
+  implements ToString
+
+  override fun toString(): String = ""
+}
+
+fun testZeroSizePromotion(x: ZeroSize) {
+  useToString(x);
+  useToString(ZeroSize (use(())));
+}
+
 fun use<T>(x: T) {}
 
 fun main() {
@@ -37,4 +49,5 @@ fun main() {
   use(testBytePromotion);
   use(testIntPromotion);
   use(testLongPromotion);
+  use(testZeroSizePromotion);
 }

@@ -1,10 +1,24 @@
+type _ZeroSize {}
+
 func void @test.use<std.memory.Array<Int>>(int* %0) {
   Ret
 }
 
+func void @test.use<std.memory.Array<Unit>>(_ZeroSize* %1) {
+  Ret
+}
+
+func void @test.use<std.memory.Array<test.ZeroSize>>(_ZeroSize* %2) {
+  Ret
+}
+
 func int @test.main() {
-  %1 := CallBuiltin int* myte_alloc(99)
-  Call void @test.use<std.memory.Array<Int>>(%1)
+  %3 := CallBuiltin int* myte_alloc(99)
+  Call void @test.use<std.memory.Array<Int>>(%3)
   Call void @test.use<std.memory.Array<Int>>(0)
+  %4 := CallBuiltin _ZeroSize* myte_alloc(3)
+  Call void @test.use<std.memory.Array<Unit>>(%4)
+  %5 := CallBuiltin _ZeroSize* myte_alloc(3)
+  Call void @test.use<std.memory.Array<test.ZeroSize>>(%5)
   Ret 0
 }

@@ -81,11 +81,76 @@ label @7:
   Ret %39
 }
 
-func void @test.use<Function>(fn %41) {
+func std.result.Result<Int,Bool>* @test.testZeroSizeOkUnwrap(std.result.Result<test.ZeroSize,Bool>* %41) {
+  %42 := Load byte %41
+  %43 := Eq byte %42, 0
+  branch %43, @8, @9
+label @8:
+  Call void @test.use<test.ZeroSize>()
+  %44 := CallBuiltin std.result.Result<Int,Bool>::Ok* myte_alloc(1)
+  Store byte %44, 0
+  %45 := GetPointer int, std.result.Result<Int,Bool>::Ok* %44.2
+  Store int %45, 1
+  Ret %44
+label @9:
+  %46 := GetPointer bool, std.result.Result<test.ZeroSize,Bool>::Error* %41.1
+  %47 := Load bool %46
+  %48 := CallBuiltin std.result.Result<Int,Bool>::Error* myte_alloc(1)
+  Store byte %48, 1
+  %49 := GetPointer bool, std.result.Result<Int,Bool>::Error* %48.1
+  Store bool %49, %47
+  Ret %48
+}
+
+func std.result.Result<Int,test.ZeroSize>* @test.testZeroSizeResultUnwrap(std.result.Result<Bool,test.ZeroSize>* %50) {
+  %51 := Load byte %50
+  %52 := Eq byte %51, 0
+  branch %52, @10, @11
+label @10:
+  %53 := GetPointer bool, std.result.Result<Bool,test.ZeroSize>::Ok* %50.1
+  %54 := Load bool %53
+  Call void @test.use<Bool>(%54)
+  %55 := CallBuiltin std.result.Result<Int,test.ZeroSize>::Ok* myte_alloc(1)
+  Store byte %55, 0
+  %56 := GetPointer int, std.result.Result<Int,test.ZeroSize>::Ok* %55.2
+  Store int %56, 1
+  Ret %55
+label @11:
+  %57 := CallBuiltin std.result.Result<Int,test.ZeroSize>::Error* myte_alloc(1)
+  Store byte %57, 1
+  Ret %57
+}
+
+func std.result.Result<Int,test.ZeroSize>* @test.testZeroSizeOkAndResultUnwrap(std.result.Result<test.ZeroSize,test.ZeroSize>* %58) {
+  %59 := Load byte %58
+  %60 := Eq byte %59, 0
+  branch %60, @12, @13
+label @12:
+  Call void @test.use<test.ZeroSize>()
+  %61 := CallBuiltin std.result.Result<Int,test.ZeroSize>::Ok* myte_alloc(1)
+  Store byte %61, 0
+  %62 := GetPointer int, std.result.Result<Int,test.ZeroSize>::Ok* %61.2
+  Store int %62, 1
+  Ret %61
+label @13:
+  %63 := CallBuiltin std.result.Result<Int,test.ZeroSize>::Error* myte_alloc(1)
+  Store byte %63, 1
+  Ret %63
+}
+
+func void @test.use<Bool>(bool %64) {
   Ret
 }
 
-func void @test.use<Int>(int %42) {
+func void @test.use<Function>(fn %65) {
+  Ret
+}
+
+func void @test.use<Int>(int %66) {
+  Ret
+}
+
+func void @test.use<test.ZeroSize>() {
   Ret
 }
 
@@ -93,5 +158,8 @@ func int @test.main() {
   Call void @test.use<Function>(@test.testUnwrapResult)
   Call void @test.use<Function>(@test.testUnwrapResultDifferentType)
   Call void @test.use<Function>(@test.testDoubleUnwrap)
+  Call void @test.use<Function>(@test.testZeroSizeOkUnwrap)
+  Call void @test.use<Function>(@test.testZeroSizeResultUnwrap)
+  Call void @test.use<Function>(@test.testZeroSizeOkAndResultUnwrap)
   Ret 0
 }

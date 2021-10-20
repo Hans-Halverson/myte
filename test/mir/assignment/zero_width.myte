@@ -1,0 +1,70 @@
+module test
+
+type ZeroSize (Unit)
+
+type MultiFieldZeroSize(Unit, Unit, Unit)
+
+fun getUnit() = ()
+
+var global: ZeroSize = ZeroSize (())
+
+fun testAssignGlobal() {
+  global = id(ZeroSize(getUnit()));
+  use(global);
+}
+
+fun testAssignLocal() {
+  var x = ZeroSize (());
+  use(x);
+
+  x = id(ZeroSize(getUnit()));
+  use(x);
+}
+
+fun testAssignDestructuring() {
+  var x = ();
+  var y = ();
+  var z = ();
+
+  MultiFieldZeroSize (x, y, z) = id(MultiFieldZeroSize (getUnit(), (), ()));
+
+  use(x);
+  use(y);
+  use(z);
+}
+
+fun testAssignVecIndexing(x: Vec<ZeroSize>) {
+  x[3] = id(ZeroSize (getUnit()));
+}
+
+fun testAssignMapIndexing(x: Map<Bool, ZeroSize>) {
+  x[true] = id(ZeroSize (getUnit()));
+}
+
+type RecWithZeroSizeField { foo: Int, bar: ZeroSize }
+
+fun testAssignAccessChainIndexing(
+  rec: RecWithZeroSizeField,
+  tup: (Int, RecWithZeroSizeField),
+  vec: Vec<RecWithZeroSizeField>,
+) {
+  rec.bar = id(ZeroSize (getUnit()));
+
+  tup[1].bar = id(ZeroSize(getUnit()));
+
+  // Emit side effects in chain
+  vec[id(8)].bar = id(ZeroSize (getUnit()));
+}
+
+fun id<T>(x: T): T = x
+
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testAssignGlobal);
+  use(testAssignLocal);
+  use(testAssignDestructuring);
+  use(testAssignVecIndexing);
+  use(testAssignMapIndexing);
+  use(testAssignAccessChainIndexing);
+}

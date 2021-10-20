@@ -6,6 +6,10 @@ type Rec1 { foo: Int, bar: Byte }
 
 type Rec2 { foo: Bool, bar: Rec1 }
 
+type Rec3 { foo: Unit, bar: Unit }
+
+type Rec4 { one: Int, two: Unit, three: Unit, four: Bool }
+
 type Tup1 (String, Rec1)
 
 fun id<T>(x: T): T = x
@@ -49,8 +53,36 @@ fun testNestedAssignmentThroughTuple() {
   assertEqual(x[1].bar, 10);
 }
 
+fun testSizeZeroAssignment() {
+  // Entire record has size zero
+  val x = Rec3 { foo: (), bar: () };
+  assertEqual(x.foo, ());
+  assertEqual(x.bar, ());
+
+  x.foo = ();
+  x.bar = ();
+  assertEqual(x.foo, ());
+  assertEqual(x.bar, ());
+
+  // Some fields have size zero
+  val x = Rec4 { one: 1, two: (), three: (), four: true };
+  assertEqual(x.one, 1);
+  assertEqual(x.two, ());
+  assertEqual(x.three, ());
+  assertEqual(x.four, true);
+
+  x.one = 1000;
+  x.three = ();
+  x.four = false;
+  assertEqual(x.one, 1000);
+  assertEqual(x.two, ());
+  assertEqual(x.three, ());
+  assertEqual(x.four, false);
+}
+
 fun main() {
   testAssignment();
   testNestedAssignment();
   testNestedAssignmentThroughTuple();
+  testSizeZeroAssignment();
 }

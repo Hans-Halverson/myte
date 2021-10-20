@@ -65,15 +65,36 @@ label @7:
   Ret %28
 }
 
-func void @test.use<Bool>(bool %29) {
+func std.option.Option<Int>* @test.testZeroSizeUnwrap(std.option.Option<test.ZeroSize>* %29) {
+  %30 := Load byte %29
+  %31 := Eq byte %30, 1
+  branch %31, @8, @9
+label @8:
+  Call void @test.use<test.ZeroSize>()
+  %32 := CallBuiltin std.option.Option<Int>::Some* myte_alloc(1)
+  Store byte %32, 1
+  %33 := GetPointer int, std.option.Option<Int>::Some* %32.2
+  Store int %33, 1
+  Ret %32
+label @9:
+  %34 := CallBuiltin std.option.Option<Int>* myte_alloc(1)
+  Store byte %34, 0
+  Ret %34
+}
+
+func void @test.use<Bool>(bool %35) {
   Ret
 }
 
-func void @test.use<Function>(fn %30) {
+func void @test.use<Function>(fn %36) {
   Ret
 }
 
-func void @test.use<Int>(int %31) {
+func void @test.use<Int>(int %37) {
+  Ret
+}
+
+func void @test.use<test.ZeroSize>() {
   Ret
 }
 
@@ -81,5 +102,6 @@ func int @test.main() {
   Call void @test.use<Function>(@test.testUnwrapOption)
   Call void @test.use<Function>(@test.testUnwrapOptionDifferentType)
   Call void @test.use<Function>(@test.testDoubleUnwrap)
+  Call void @test.use<Function>(@test.testZeroSizeUnwrap)
   Ret 0
 }

@@ -250,7 +250,7 @@ and finish_init_function ~ecx =
 
 (*
  * Emit an expression, returning the value for that expression if the expression produces a value.
- * If expression does not produce a value then None is returned.
+ * If expression produces a zero sized value then return None.
  *)
 and emit_expression ~ecx expr : Value.t option =
   (* Check for trait object promotion on every expression *)
@@ -628,7 +628,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     | ADT { adt_sig; type_args } when adt_sig == !Std_lib.map_adt_sig ->
       let target_var = emit_expression ~ecx target |> Option.get in
       let index_var = emit_expression ~ecx index in
-      emit_call_map_get ~ecx loc type_args target_var index_var
+      Some (emit_call_map_get ~ecx loc type_args target_var index_var)
     | _ -> emit_expression_access_chain_load ~ecx expr)
   | NamedAccess _ -> emit_expression_access_chain_load ~ecx expr
   (*
@@ -1452,22 +1452,15 @@ and emit_call_map_get ~ecx return_loc map_type_args map_val index_val =
       map_type_args
   in
   (* Emit call to Map's `get` method *)
-  let emit_call return =
-    let args =
-      match index_val with
-      | Some index_val -> [map_val; index_val]
-      | None -> [map_val]
-    in
-    Ecx.emit ~ecx (Call { return; func = func_val; args })
+  let var_id = mk_var_id () in
+  let mir_type = Ecx.to_mir_type ~ecx return_ty |> Option.get in
+  let args =
+    match index_val with
+    | Some index_val -> [map_val; index_val]
+    | None -> [map_val]
   in
-  match Ecx.to_mir_type ~ecx return_ty with
-  | None ->
-    emit_call None;
-    None
-  | Some ret_ty ->
-    let var_id = mk_var_id () in
-    emit_call (Some (var_id, ret_ty));
-    Some (var_value_of_type var_id ret_ty)
+  Ecx.emit ~ecx (Call { return = Some (var_id, mir_type); func = func_val; args });
+  var_value_of_type var_id mir_type
 
 and emit_call_map_add ~ecx map_type_args map_val index_val expr_val =
   (* Get full name for Map's `add` method *)

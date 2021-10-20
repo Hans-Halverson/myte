@@ -24,6 +24,12 @@ fun testVecOperatorAssign(x: Vec<Int>) {
   x[7] += getInt();
 }
 
+type ZeroSize (Unit)
+
+fun testVecGetZeroSize(x: Vec<ZeroSize>) {
+  use(x[getInt()]);
+}
+
 fun use<T>(x: T) {}
 
 fun main() {
@@ -31,4 +37,5 @@ fun main() {
   use(testVecSet);
   use(testVecPush);
   use(testVecOperatorAssign);
+  use(testVecGetZeroSize);
 }

@@ -1,0 +1,31 @@
+module test
+
+type ZeroSize (Unit)
+
+methods ZeroSize {
+  fun useThis() {
+    use(this);
+    use(this[0]);
+  }
+
+  fun method1(x: Unit, y: ZeroSize) {
+    use(x);
+    use(y);
+  }
+
+  fun method2(x: Int, y: Unit) {
+    use(y);
+  }
+}
+
+fun useAll(x: ZeroSize) {
+  x.useThis();
+  x.method1((), ZeroSize (()));
+  x.method2(1, ());
+}
+
+fun use<T>(x: T) {}
+
+fun main() {
+  use(useAll);
+}

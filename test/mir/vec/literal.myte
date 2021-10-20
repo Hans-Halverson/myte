@@ -15,10 +15,20 @@ fun multiElementVec() {
   [false, true, false, true];
 }
 
+type ZeroSize (Unit)
+
+fun zeroSizeElementsVec() {
+  [(), id(()), ()];
+  [ZeroSize (()), id(ZeroSize (())), ZeroSize (())];
+}
+
+fun id<T>(x: T): T = x
+
 fun use<T>(x: T) {}
 
 fun main() {
   use(emptyVec);
   use(oneElementVec);
   use(multiElementVec);
+  use(zeroSizeElementsVec);
 }

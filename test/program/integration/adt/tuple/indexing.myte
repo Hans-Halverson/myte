@@ -6,6 +6,8 @@ type Tup1 (Int, Int, Int)
 type Tup2 (Int, Bool, String)
 type Tup3 (Int)
 type Tup4 (Bool)
+type Tup5 (Unit, Unit)
+type Tup6 (Int, Unit, Unit, Bool)
 
 type GenericTup1<T> (T)
 type GenericTup2<T, U> (T, U)
@@ -67,8 +69,23 @@ fun testSingleElementTuple() {
   assertEqual(y1[0] && y2[0], false);
 }
 
+fun testSizeZeroIndexing() {
+  // Entire tuple has size zero
+  val x = Tup5 ((), ());
+  assertEqual(x[0], ());
+  assertEqual(x[1], ());
+
+  // Some fields have size zero
+  val x = Tup6 (1, (), (), true);
+  assertEqual(x[0], 1);
+  assertEqual(x[1], ());
+  assertEqual(x[2], ());
+  assertEqual(x[3], true);
+}
+
 fun main() {
   testSimpleIndexing();
   testNestedIndexing();
   testSingleElementTuple();
+  testSizeZeroIndexing();
 }

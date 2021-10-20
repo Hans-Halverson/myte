@@ -58,9 +58,20 @@ fun testStringIterator(s: String) {
   }
 }
 
+type ZeroSize (Unit, Unit, Unit)
+
+fun testDestructureZeroSizeType(x: Vec<ZeroSize>) {
+  for (ZeroSize (x, y, z) in x) {
+    use(x);
+    use(y);
+    use(z);
+  }
+}
+
 fun main() {
   use(testIterators);
   use(testBreak);
   use(testContinue);
   use(testStringIterator);
+  use(testDestructureZeroSizeType);
 }

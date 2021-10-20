@@ -1,3 +1,5 @@
+type _ZeroSize {}
+
 func void @test.use<Bool>(bool %0) {
   Ret
 }
@@ -11,6 +13,10 @@ func void @test.use<Function>(fn %2) {
 }
 
 func void @test.use<Int>(int %3) {
+  Ret
+}
+
+func void @test.use<Unit>() {
   Ret
 }
 
@@ -115,10 +121,28 @@ label @18:
   Ret
 }
 
+func void @test.testDestructureZeroSizeType(std.vec.Vec<test.ZeroSize>* %46) {
+  %47 := Call std.vec.VecIterator<test.ZeroSize>* @std.vec.Vec.toIterator<test.ZeroSize>(%46)
+  continue @19
+label @19:
+  %48 := Call std.option.Option<test.ZeroSize>* @std.vec.VecIterator.next<test.ZeroSize>(%47)
+  %49 := Load byte %48
+  %50 := Eq byte %49, 1
+  branch %50, @20, @21
+label @20:
+  Call void @test.use<Unit>()
+  Call void @test.use<Unit>()
+  Call void @test.use<Unit>()
+  continue @19
+label @21:
+  Ret
+}
+
 func int @test.main() {
   Call void @test.use<Function>(@test.testIterators)
   Call void @test.use<Function>(@test.testBreak)
   Call void @test.use<Function>(@test.testContinue)
   Call void @test.use<Function>(@test.testStringIterator)
+  Call void @test.use<Function>(@test.testDestructureZeroSizeType)
   Ret 0
 }

@@ -15,10 +15,30 @@ fun testDoubleUnwrap(x: Result<Result<Int, Bool>, Bool>): Result<Int, Bool> {
   return Ok (1);
 }
 
+type ZeroSize (Unit)
+
+fun testZeroSizeOkUnwrap(x: Result<ZeroSize, Bool>): Result<Int, Bool> {
+  use(x?);
+  return Ok (1);
+}
+
+fun testZeroSizeResultUnwrap(x: Result<Bool, ZeroSize>): Result<Int, ZeroSize> {
+  use(x?);
+  return Ok (1);
+}
+
+fun testZeroSizeOkAndResultUnwrap(x: Result<ZeroSize, ZeroSize>): Result<Int, ZeroSize> {
+  use(x?);
+  return Ok (1);
+}
+
 fun use<T>(x: T) {}
 
 fun main() {
   use(testUnwrapResult);
   use(testUnwrapResultDifferentType);
   use(testDoubleUnwrap);
+  use(testZeroSizeOkUnwrap);
+  use(testZeroSizeResultUnwrap);
+  use(testZeroSizeOkAndResultUnwrap);
 }

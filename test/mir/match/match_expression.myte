@@ -50,10 +50,38 @@ fun testNestedMatchAndIf(test: Bool) {
   use(x);
 }
 
+type ZeroSize (Unit)
+
+fun testZeroSizeMatch(test: Bool) {
+  val x: ZeroSize = match (test) {
+    | true -> {
+      use(true);
+      ZeroSize (())
+    }
+    | false -> {
+      use(false);
+      ZeroSize (())
+    }
+  };
+  use(x);
+}
+
+fun testUnitMatch(test: Int) {
+  val x: Unit = match (test) {
+    | 1 -> ()
+    | 2 -> { () }
+    | 3 -> use(3)
+    | _ -> {}
+  };
+  use(x);
+}
+
 fun use<T>(x: T) {}
 
 fun main() {
   use(testMatchExpressionBlockValues);
   use(testMatchStatementInExpressionPosition);
   use(testNestedMatchAndIf);
+  use(testZeroSizeMatch);
+  use(testUnitMatch);
 }

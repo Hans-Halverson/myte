@@ -1,0 +1,47 @@
+func void @test.testZeroSizeType() {
+  Call void @test.use<Int>(1)
+  Call void @test.use<Unit>()
+  Call void @test.use<test.ZeroSize>()
+  Call void @test.use<Unit>()
+  Call void @test.use<test.ZeroSize>()
+  Ret
+}
+
+type test.ZeroSizeFieldType {int, bool}
+
+func void @test.testTypeWithZeroSizeField(test.ZeroSizeFieldType* %0) {
+  %1 := GetPointer int, test.ZeroSizeFieldType* %0.0
+  %2 := Load int %1
+  %3 := GetPointer bool, test.ZeroSizeFieldType* %0.1
+  %4 := Load bool %3
+  Call void @test.use<Int>(%2)
+  Call void @test.use<Unit>()
+  Call void @test.use<Bool>(%4)
+  Ret
+}
+
+func void @test.use<Bool>(bool %5) {
+  Ret
+}
+
+func void @test.use<Function>(fn %6) {
+  Ret
+}
+
+func void @test.use<Int>(int %7) {
+  Ret
+}
+
+func void @test.use<Unit>() {
+  Ret
+}
+
+func void @test.use<test.ZeroSize>() {
+  Ret
+}
+
+func int @test.main() {
+  Call void @test.use<Function>(@test.testZeroSizeType)
+  Call void @test.use<Function>(@test.testTypeWithZeroSizeField)
+  Ret 0
+}

@@ -23,10 +23,17 @@ fun testNestedIfStatementInExpressionPosition(): Int {
   };
 }
 
+type ZeroSize (Unit)
+
+fun testZeroSizeIfExpression() {
+  use(if (bool()) { use(true); ZeroSize (()) } else { use(false); ZeroSize (()) });
+}
+
 fun use<T>(x: T) {}
 
 fun main() {
   use(testSimpleIf);
   use(testIfWithExpressions);
   use(testNestedIfStatementInExpressionPosition);
+  use(testZeroSizeIfExpression);
 }

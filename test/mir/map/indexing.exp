@@ -1,32 +1,56 @@
-func void @test.use<Function>(fn %0) {
-  Ret
-}
+type _ZeroSize {}
 
-func void @test.use<Option<Byte>>(std.option.Option<Byte>* %1) {
-  Ret
-}
+global _ZeroSize @_ZeroSize = uninitialized
 
-func void @test.testSimpleIndexing(std.map.Map<Bool,Byte>* %2) {
-  %3 := Call std.option.Option<Byte>* @std.map.Map.get<Bool,Byte>(%2, true)
-  Call void @test.use<Option<Byte>>(%3)
-  Call void @std.map.Map.add<Bool,Byte>(%2, false, 2)
+func void @test.testSimpleIndexing(std.map.Map<Bool,Byte>* %0) {
+  %1 := Call std.option.Option<Byte>* @std.map.Map.get<Bool,Byte>(%0, true)
+  Call void @test.use<Option<Byte>>(%1)
+  Call void @std.map.Map.add<Bool,Byte>(%0, false, 2)
   Ret
 }
 
 type test.Rec1 {int, std.map.Map<Byte,String>*}
 
-func void @test.testIndexAfterAccess(test.Rec1* %4, byte %5, std.string.String* %6) {
-  %7 := GetPointer std.map.Map<Byte,String>*, test.Rec1* %4.1
-  %8 := Load std.map.Map<Byte,String>* %7
-  %9 := Call std.option.Option<String>* @std.map.Map.get<Byte,String>(%8, %5)
-  %10 := GetPointer std.map.Map<Byte,String>*, test.Rec1* %4.1
-  %11 := Load std.map.Map<Byte,String>* %10
-  Call void @std.map.Map.add<Byte,String>(%11, %5, %6)
+func void @test.testIndexAfterAccess(test.Rec1* %2, byte %3, std.string.String* %4) {
+  %5 := GetPointer std.map.Map<Byte,String>*, test.Rec1* %2.1
+  %6 := Load std.map.Map<Byte,String>* %5
+  %7 := Call std.option.Option<String>* @std.map.Map.get<Byte,String>(%6, %3)
+  %8 := GetPointer std.map.Map<Byte,String>*, test.Rec1* %2.1
+  %9 := Load std.map.Map<Byte,String>* %8
+  Call void @std.map.Map.add<Byte,String>(%9, %3, %4)
+  Ret
+}
+
+func bool @test.ZeroSize.equals(_ZeroSize* %10) {
+  Ret true
+}
+
+func int @test.ZeroSize.hash(_ZeroSize* %11) {
+  Ret 0
+}
+
+func void @test.testZeroSizeKey(std.map.Map<test.ZeroSize,Byte>* %12) {
+  Call void @test.id<test.ZeroSize>()
+  %13 := Call std.option.Option<Byte>* @std.map.Map.get<test.ZeroSize,Byte>(%12)
+  Call void @test.use<Option<Byte>>(%13)
+  Ret
+}
+
+func void @test.id<test.ZeroSize>() {
+  Ret
+}
+
+func void @test.use<Function>(fn %14) {
+  Ret
+}
+
+func void @test.use<Option<Byte>>(std.option.Option<Byte>* %15) {
   Ret
 }
 
 func int @test.main() {
   Call void @test.use<Function>(@test.testSimpleIndexing)
   Call void @test.use<Function>(@test.testIndexAfterAccess)
+  Call void @test.use<Function>(@test.testZeroSizeKey)
   Ret 0
 }

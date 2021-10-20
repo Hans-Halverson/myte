@@ -1,8 +1,8 @@
 module test
 
+import std.hash.Hashable
 import std.map.Map
-
-fun use<T>(x: T) {}
+import std.ops.Equatable
 
 fun testSimpleIndexing(x: Map<Bool, Byte>) {
   use(x[true]);
@@ -16,7 +16,26 @@ fun testIndexAfterAccess(x: Rec1, y: Byte, z: String) {
   x.bar[y] = z;
 }
 
+type ZeroSize (Unit)
+
+methods ZeroSize {
+  implements Equatable
+  implements Hashable
+
+  override fun equals(other: ZeroSize): Bool = true
+  override fun hash(): Int = 0
+}
+
+fun testZeroSizeKey(x: Map<ZeroSize, Byte>) {
+  use(x[id(ZeroSize(()))]);
+}
+
+fun id<T>(x: T): T = x
+
+fun use<T>(x: T) {}
+
 fun main() {
   use(testSimpleIndexing);
   use(testIndexAfterAccess);
+  use(testZeroSizeKey);
 }

@@ -109,7 +109,41 @@ func void @test.testLongPromotion(long %41) {
   Ret
 }
 
-func void @test.use<Function>(fn %50) {
+type _object$test.ZeroSize$std.string.ToString {_ZeroSize*, fn[1]*}
+
+global fn[1] @_vtable$test.ZeroSize$std.string.ToString = [@test.ZeroSize.toString]
+
+func std.string.String* @test.ZeroSize.toString(_ZeroSize* %50) {
+  %51 := CallBuiltin std.string.String* myte_alloc(1)
+  %52 := GetPointer byte*, std.string.String* %51.0
+  Store byte* %52, @.S7
+  %53 := GetPointer int, std.string.String* %51.1
+  Store int %53, 0
+  %54 := GetPointer int, std.string.String* %51.2
+  Store int %54, 0
+  Ret %51
+}
+
+global byte[0] @.S7 = ""
+
+func void @test.testZeroSizePromotion() {
+  %55 := CallBuiltin _object$test.ZeroSize$std.string.ToString* myte_alloc(1)
+  %56 := GetPointer fn[1]*, _object$test.ZeroSize$std.string.ToString* %55.1
+  Store fn[1]* %56, @_vtable$test.ZeroSize$std.string.ToString
+  %57 := Call std.string.String* @test.useToString(%55)
+  Call void @test.use<Unit>()
+  %58 := CallBuiltin _object$test.ZeroSize$std.string.ToString* myte_alloc(1)
+  %59 := GetPointer fn[1]*, _object$test.ZeroSize$std.string.ToString* %58.1
+  Store fn[1]* %59, @_vtable$test.ZeroSize$std.string.ToString
+  %60 := Call std.string.String* @test.useToString(%58)
+  Ret
+}
+
+func void @test.use<Function>(fn %61) {
+  Ret
+}
+
+func void @test.use<Unit>() {
   Ret
 }
 
@@ -119,5 +153,6 @@ func int @test.main() {
   Call void @test.use<Function>(@test.testBytePromotion)
   Call void @test.use<Function>(@test.testIntPromotion)
   Call void @test.use<Function>(@test.testLongPromotion)
+  Call void @test.use<Function>(@test.testZeroSizePromotion)
   Ret 0
 }

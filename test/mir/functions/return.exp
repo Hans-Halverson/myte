@@ -1,0 +1,42 @@
+func int @test.testReturnValue() {
+  branch true, @0, @1
+label @0:
+  %0 := Call int @test.id<Int>(1)
+  %1 := Call int @test.id<Int>(2)
+  %2 := Add int %0, %1
+  Ret %2
+label @1:
+  Ret 1
+}
+
+func void @test.getUnit() {
+  Ret
+}
+
+func void @test.testReturnZeroSizeType() {
+  branch true, @2, @3
+label @2:
+  Call void @test.getUnit()
+  Call void @test.id<test.ZeroSize>()
+  Ret
+label @3:
+  Ret
+}
+
+func int @test.id<Int>(int %3) {
+  Ret %3
+}
+
+func void @test.id<test.ZeroSize>() {
+  Ret
+}
+
+func void @test.use<Function>(fn %4) {
+  Ret
+}
+
+func int @test.main() {
+  Call void @test.use<Function>(@test.testReturnValue)
+  Call void @test.use<Function>(@test.testReturnZeroSizeType)
+  Ret 0
+}

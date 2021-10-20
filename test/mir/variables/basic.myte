@@ -4,12 +4,12 @@ fun use<T>(x: T) {}
 
 val x: Int = 1
 
-fun test1(y: Int, z: Unit) {
+fun testVariableUse(y: Int, z: Unit) {
   x + 2 * y;
   z;
 }
 
-fun test2() {
+fun testVariableDeclaration() {
   val x: Int = x;
   val y: Int = 4 * 34;
 
@@ -17,7 +17,26 @@ fun test2() {
   use(y);
 }
 
+type ZeroSize (Unit)
+
+fun getUnit() = ()
+
+fun id<T>(x: T): T = x
+
+fun testZeroSizeVariableDeclaration() {
+  // Completely eliminated
+  val x: ZeroSize = ZeroSize (());
+  use(x);
+
+  use(1);
+
+  // Eliminated but calls remains
+  val x: ZeroSize = id(ZeroSize(getUnit()));
+  use(x);
+}
+
 fun main() {
-  use(test1);
-  use(test2);
+  use(testVariableUse);
+  use(testVariableDeclaration);
+  use(testZeroSizeVariableDeclaration);
 }

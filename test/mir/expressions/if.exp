@@ -51,7 +51,29 @@ label @11:
   Ret %14
 }
 
-func void @test.use<Function>(fn %15) {
+func void @test.testZeroSizeIfExpression() {
+  %15 := Call bool @test.bool()
+  branch %15, @12, @13
+label @12:
+  Call void @test.use<Bool>(true)
+  continue @14
+label @13:
+  Call void @test.use<Bool>(false)
+  continue @14
+label @14:
+  Call void @test.use<test.ZeroSize>()
+  Ret
+}
+
+func void @test.use<Bool>(bool %16) {
+  Ret
+}
+
+func void @test.use<Function>(fn %17) {
+  Ret
+}
+
+func void @test.use<test.ZeroSize>() {
   Ret
 }
 
@@ -59,5 +81,6 @@ func int @test.main() {
   Call void @test.use<Function>(@test.testSimpleIf)
   Call void @test.use<Function>(@test.testIfWithExpressions)
   Call void @test.use<Function>(@test.testNestedIfStatementInExpressionPosition)
+  Call void @test.use<Function>(@test.testZeroSizeIfExpression)
   Ret 0
 }

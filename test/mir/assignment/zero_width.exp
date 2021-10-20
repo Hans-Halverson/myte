@@ -1,0 +1,95 @@
+type $tuple<Int,test.RecWithZeroSizeField> {int, test.RecWithZeroSizeField*}
+
+type _ZeroSize {}
+
+func void @test.getUnit() {
+  Ret
+}
+
+func void @test.testAssignGlobal() {
+  Call void @test.getUnit()
+  Call void @test.id<test.ZeroSize>()
+  Call void @test.use<test.ZeroSize>()
+  Ret
+}
+
+func void @test.testAssignLocal() {
+  Call void @test.use<test.ZeroSize>()
+  Call void @test.getUnit()
+  Call void @test.id<test.ZeroSize>()
+  Call void @test.use<test.ZeroSize>()
+  Ret
+}
+
+func void @test.testAssignDestructuring() {
+  Call void @test.getUnit()
+  Call void @test.id<test.MultiFieldZeroSize>()
+  Call void @test.use<Unit>()
+  Call void @test.use<Unit>()
+  Call void @test.use<Unit>()
+  Ret
+}
+
+func void @test.testAssignVecIndexing(std.vec.Vec<test.ZeroSize>* %0) {
+  Call void @test.getUnit()
+  Call void @test.id<test.ZeroSize>()
+  Call void @std.vec.Vec.set<test.ZeroSize>(%0, 3)
+  Ret
+}
+
+func void @test.testAssignMapIndexing(std.map.Map<Bool,test.ZeroSize>* %1) {
+  Call void @test.getUnit()
+  Call void @test.id<test.ZeroSize>()
+  Call void @std.map.Map.add<Bool,test.ZeroSize>(%1, true)
+  Ret
+}
+
+type test.RecWithZeroSizeField {int}
+
+func void @test.testAssignAccessChainIndexing(test.RecWithZeroSizeField* %2, $tuple<Int,test.RecWithZeroSizeField>* %3, std.vec.Vec<test.RecWithZeroSizeField>* %4) {
+  Call void @test.getUnit()
+  Call void @test.id<test.ZeroSize>()
+  Call void @test.getUnit()
+  Call void @test.id<test.ZeroSize>()
+  %5 := GetPointer test.RecWithZeroSizeField*, $tuple<Int,test.RecWithZeroSizeField>* %3.1
+  %6 := Load test.RecWithZeroSizeField* %5
+  Call void @test.getUnit()
+  Call void @test.id<test.ZeroSize>()
+  %7 := Call int @test.id<Int>(8)
+  %8 := Call test.RecWithZeroSizeField* @std.vec.Vec.get<test.RecWithZeroSizeField>(%4, %7)
+  Ret
+}
+
+func int @test.id<Int>(int %9) {
+  Ret %9
+}
+
+func void @test.id<test.MultiFieldZeroSize>() {
+  Ret
+}
+
+func void @test.id<test.ZeroSize>() {
+  Ret
+}
+
+func void @test.use<Function>(fn %10) {
+  Ret
+}
+
+func void @test.use<Unit>() {
+  Ret
+}
+
+func void @test.use<test.ZeroSize>() {
+  Ret
+}
+
+func int @test.main() {
+  Call void @test.use<Function>(@test.testAssignGlobal)
+  Call void @test.use<Function>(@test.testAssignLocal)
+  Call void @test.use<Function>(@test.testAssignDestructuring)
+  Call void @test.use<Function>(@test.testAssignVecIndexing)
+  Call void @test.use<Function>(@test.testAssignMapIndexing)
+  Call void @test.use<Function>(@test.testAssignAccessChainIndexing)
+  Ret 0
+}

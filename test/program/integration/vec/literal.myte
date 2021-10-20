@@ -61,8 +61,17 @@ fun testMultipleElements() {
   assertVecEqual(x, [true, false, false, true, true]);
 }
 
+fun testUnitElementVec() {
+  val x = [(), (), ()];
+  assertEqual(x.size, 3);
+  assertEqual(x[0], ());
+  assertEqual(x[1], ());
+  assertEqual(x[2], ());
+}
+
 fun main() {
   testEmpty();
   testSingleElement();
   testMultipleElements();
+  testUnitElementVec();
 }
