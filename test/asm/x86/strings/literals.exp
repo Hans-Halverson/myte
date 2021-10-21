@@ -2,16 +2,16 @@
   .lcomm test.s, 8
 
   .data
-.S1:
+.S0:
   .ascii "foobar"
-.S2:
+.S1:
   .ascii "foo"
 
   .text
 _init:
   movl $16, %edi
   call __myte_alloc
-  leaq .S2(%rip), %rcx
+  leaq .S1(%rip), %rcx
   movq %rcx, (%rax)
   movl $3, 8(%rax)
   movl $3, 12(%rax)
@@ -27,7 +27,7 @@ _main:
 test.test:
   movl $16, %edi
   call __myte_alloc
-  leaq .S1(%rip), %rcx
+  leaq .S0(%rip), %rcx
   movq %rcx, (%rax)
   movl $6, 8(%rax)
   movl $6, 12(%rax)

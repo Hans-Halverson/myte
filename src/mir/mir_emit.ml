@@ -637,7 +637,6 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
    * ============================
    *)
   | InterpolatedString { loc; parts } ->
-    let (first_part, rest_parts) = List_utils.split_first parts in
     let string_ty = type_of_loc ~ecx loc in
     let string_type = type_to_mir_type ~ecx string_ty in
     (* String parts are emitted directly, expression parts have their `toString` method called *)
@@ -660,9 +659,16 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
         in
         Option.get string_val
     in
-    (* Emit first part string, then if there are other parts emit each and call `append` on the
-       first string part. *)
-    let first_part_val = emit_part first_part in
+
+    let (string_val, other_parts) =
+      match List_utils.split_first parts with
+      (* Use first part as string if first part is a string literal (which will be newly created) *)
+      | ((String _ as first_part), rest_parts) -> (emit_part first_part, rest_parts)
+      (* Otherwise create empty new string to add to, as we do not want to modify first part *)
+      | (first_part, rest_parts) -> (emit_string_literal ~ecx loc "", first_part :: rest_parts)
+    in
+
+    (* Emit parts and call `append` on the new string *)
     List.iter
       (fun part ->
         let part_val = emit_part part in
@@ -670,13 +676,13 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
           (emit_method_call
              ~ecx
              ~method_name:"append"
-             ~receiver_val:(Some first_part_val)
+             ~receiver_val:(Some string_val)
              ~receiver_ty:string_ty
              ~arg_vals:[part_val]
              ~method_instance_type_args:[]
              ~ret_type:None))
-      rest_parts;
-    Some first_part_val
+      other_parts;
+    Some string_val
   (*
    * ============================
    *       If Expression
@@ -876,7 +882,14 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
   | AnonymousFunction _ -> failwith "TODO: Emit anonymous functions"
 
 and emit_string_literal ~ecx loc value =
-  let string_global_ptr = Ecx.add_string_literal ~ecx loc value in
+  (* Add string global string literal unless this is the empty string, in which case use null pointer *)
+  let string_length = String.length value in
+  let string_global_ptr =
+    if string_length <> 0 then
+      Ecx.add_string_literal ~ecx loc value
+    else
+      `LongL 0L
+  in
   let string_pointer_type = mir_type_of_loc ~ecx loc |> Option.get in
   let (`PointerT string_type) = cast_to_pointer_type string_pointer_type in
   let (`AggregateT string_agg) = cast_to_aggregate_type string_type in
@@ -896,7 +909,7 @@ and emit_string_literal ~ecx loc value =
     Ecx.emit ~ecx (GetPointer get_ptr_instr);
     Ecx.emit ~ecx (Store (element_offset_var, value))
   in
-  let length = `IntL (Int32.of_int (String.length value)) in
+  let length = `IntL (Int32.of_int string_length) in
   emit_field_store "data" string_global_ptr;
   emit_field_store "size" length;
   emit_field_store "capacity" length;

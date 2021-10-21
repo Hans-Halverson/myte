@@ -1,13 +1,13 @@
   .global _main
 
   .data
-.S1:
+.S0:
   .ascii "Failed 1\n"
-.S2:
+.S1:
   .ascii "Passed 1\n"
-.S3:
+.S2:
   .ascii "Passed 2\n"
-.S4:
+.S3:
   .ascii "Failed 2\n"
 
   .text
@@ -23,7 +23,7 @@ _main:
   je .L0
   movl $16, %edi
   call __myte_alloc
-  leaq .S1(%rip), %rcx
+  leaq .S0(%rip), %rcx
   movq %rcx, (%rax)
   movl $9, 8(%rax)
   movl $9, 12(%rax)
@@ -33,7 +33,7 @@ _main:
 .L0:
   movl $16, %edi
   call __myte_alloc
-  leaq .S2(%rip), %rcx
+  leaq .S1(%rip), %rcx
   movq %rcx, (%rax)
   movl $9, 8(%rax)
   movl $9, 12(%rax)
@@ -46,7 +46,7 @@ _main:
   je .L2
   movl $16, %edi
   call __myte_alloc
-  leaq .S3(%rip), %rcx
+  leaq .S2(%rip), %rcx
   movq %rcx, (%rax)
   movl $9, 8(%rax)
   movl $9, 12(%rax)
@@ -56,7 +56,7 @@ _main:
 .L2:
   movl $16, %edi
   call __myte_alloc
-  leaq .S4(%rip), %rcx
+  leaq .S3(%rip), %rcx
   movq %rcx, (%rax)
   movl $9, 8(%rax)
   movl $9, 12(%rax)

@@ -1,0 +1,10 @@
+module test
+
+import std.test.assertEqual
+
+fun main() {
+  val x = "";
+
+  assertEqual(`${x} foo`, " foo");
+  assertEqual(`${x} bar`, " bar");
+}

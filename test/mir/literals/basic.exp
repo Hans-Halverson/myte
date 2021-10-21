@@ -1,7 +1,7 @@
 func void @_init() {
   %0 := CallBuiltin std.string.String* myte_alloc(1)
   %1 := GetPointer byte*, std.string.String* %0.0
-  Store byte* %1, @.S1
+  Store byte* %1, @.S0
   %2 := GetPointer int, std.string.String* %0.1
   Store int %2, 4
   %3 := GetPointer int, std.string.String* %0.2
@@ -52,7 +52,7 @@ global long @test.c3 = 97
 
 global std.string.String* @test.z = uninitialized
 
-global byte[4] @.S1 = "test"
+global byte[4] @.S0 = "test"
 
 global bool @test.a1 = true
 

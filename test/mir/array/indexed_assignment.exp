@@ -7,7 +7,7 @@ func void @test.simpleAccesses(int* %0) {
 func void @test.nestedAccesses(std.string.String**** %2, std.string.String** %3) {
   %4 := CallBuiltin std.string.String* myte_alloc(1)
   %5 := GetPointer byte*, std.string.String* %4.0
-  Store byte* %5, @.S2
+  Store byte* %5, @.S1
   %6 := GetPointer int, std.string.String* %4.1
   Store int %6, 4
   %7 := GetPointer int, std.string.String* %4.2
@@ -25,7 +25,7 @@ func void @test.nestedAccesses(std.string.String**** %2, std.string.String** %3)
   Ret
 }
 
-global byte[4] @.S2 = "test"
+global byte[4] @.S1 = "test"
 
 type test.Tup1 {byte, test.Rec1**, bool}
 
@@ -36,7 +36,7 @@ type test.Rec2 {long*, byte}
 func void @test.indexAndAccesses(test.Tup1* %16, test.Rec2** %17) {
   %18 := CallBuiltin std.string.String* myte_alloc(1)
   %19 := GetPointer byte*, std.string.String* %18.0
-  Store byte* %19, @.S1
+  Store byte* %19, @.S0
   %20 := GetPointer int, std.string.String* %18.1
   Store int %20, 4
   %21 := GetPointer int, std.string.String* %18.2
@@ -56,7 +56,7 @@ func void @test.indexAndAccesses(test.Tup1* %16, test.Rec2** %17) {
   Ret
 }
 
-global byte[4] @.S1 = "test"
+global byte[4] @.S0 = "test"
 
 func void @test.use<Function>(fn %32) {
   Ret

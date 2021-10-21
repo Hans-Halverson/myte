@@ -116,15 +116,13 @@ global fn[1] @_vtable$test.ZeroSize$std.string.ToString = [@test.ZeroSize.toStri
 func std.string.String* @test.ZeroSize.toString(_ZeroSize* %50) {
   %51 := CallBuiltin std.string.String* myte_alloc(1)
   %52 := GetPointer byte*, std.string.String* %51.0
-  Store byte* %52, @.S7
+  Store byte* %52, 0
   %53 := GetPointer int, std.string.String* %51.1
   Store int %53, 0
   %54 := GetPointer int, std.string.String* %51.2
   Store int %54, 0
   Ret %51
 }
-
-global byte[0] @.S7 = ""
 
 func void @test.testZeroSizePromotion() {
   %55 := CallBuiltin _object$test.ZeroSize$std.string.ToString* myte_alloc(1)

@@ -57,7 +57,7 @@ type test.Variant::Tup2 {byte, byte[7], std.string.String*, int, byte[4]}
 func void @test.destructureVariants(test.Variant* %21) {
   %22 := CallBuiltin std.string.String* myte_alloc(1)
   %23 := GetPointer byte*, std.string.String* %22.0
-  Store byte* %23, @.S1
+  Store byte* %23, 0
   %24 := GetPointer int, std.string.String* %22.1
   Store int %24, 0
   %25 := GetPointer int, std.string.String* %22.2
@@ -84,8 +84,6 @@ label @2:
   Call void @test.use<String>(%37)
   Ret
 }
-
-global byte[0] @.S1 = ""
 
 type test.Tup {int, bool}
 

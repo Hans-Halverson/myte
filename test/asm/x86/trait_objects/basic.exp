@@ -1,8 +1,6 @@
   .global _main
 
   .data
-.S1:
-  .ascii ""
 _vtable$test.Type$test.Trait:
   .quad test.Type.bar
   .quad test.Type.foo
@@ -11,8 +9,7 @@ _vtable$test.Type$test.Trait:
 test.Type.bar:
   movl $16, %edi
   call __myte_alloc
-  leaq .S1(%rip), %rcx
-  movq %rcx, (%rax)
+  movq $0, (%rax)
   movl $0, 8(%rax)
   movl $0, 12(%rax)
   ret
