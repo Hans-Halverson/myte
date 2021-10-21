@@ -335,10 +335,10 @@ let swap_condition_code_order cc =
   | E
   | NE ->
     cc
-  | L -> GE
-  | G -> LE
-  | LE -> G
-  | GE -> L
+  | L -> G
+  | G -> L
+  | LE -> GE
+  | GE -> LE
 
 let register_of_param i =
   if i < 6 then

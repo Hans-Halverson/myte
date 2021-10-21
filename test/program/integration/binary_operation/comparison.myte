@@ -1,0 +1,82 @@
+module test
+
+import std.test.{assertFalse, assertTrue}
+
+fun ltVars(x: Int, y: Int): Bool = x < y
+fun ltLeftConst(x: Int): Bool = 10 < x
+fun ltRightConst(x: Int): Bool = x < 10
+
+fun gtVars(x: Int, y: Int): Bool = x > y
+fun gtLeftConst(x: Int): Bool = 10 > x
+fun gtRightConst(x: Int): Bool = x > 10
+
+fun ltEqVars(x: Int, y: Int): Bool = x <= y
+fun ltEqLeftConst(x: Int): Bool = 10 <= x
+fun ltEqRightConst(x: Int): Bool = x <= 10
+
+fun gtEqVars(x: Int, y: Int): Bool = x >= y
+fun gtEqLeftConst(x: Int): Bool = 10 >= x
+fun gtEqRightConst(x: Int): Bool = x >= 10
+
+fun testLt() {
+  assertTrue(ltVars(1, 2));
+  assertFalse(ltVars(2, 2));
+  assertFalse(ltVars(3, 2));
+
+  assertFalse(ltLeftConst(9));
+  assertFalse(ltLeftConst(10));
+  assertTrue(ltLeftConst(11));
+
+  assertTrue(ltRightConst(9));
+  assertFalse(ltRightConst(10));
+  assertFalse(ltRightConst(11));
+}
+
+fun testGt() {
+  assertFalse(gtVars(1, 2));
+  assertFalse(gtVars(2, 2));
+  assertTrue(gtVars(3, 2));
+
+  assertTrue(gtLeftConst(9));
+  assertFalse(gtLeftConst(10));
+  assertFalse(gtLeftConst(11));
+
+  assertFalse(gtRightConst(9));
+  assertFalse(gtRightConst(10));
+  assertTrue(gtRightConst(11));
+}
+
+fun testLtEq() {
+  assertTrue(ltEqVars(1, 2));
+  assertTrue(ltEqVars(2, 2));
+  assertFalse(ltEqVars(3, 2));
+
+  assertFalse(ltEqLeftConst(9));
+  assertTrue(ltEqLeftConst(10));
+  assertTrue(ltEqLeftConst(11));
+
+  assertTrue(ltEqRightConst(9));
+  assertTrue(ltEqRightConst(10));
+  assertFalse(ltEqRightConst(11));
+}
+
+fun testGtEq() {
+  assertFalse(gtEqVars(1, 2));
+  assertTrue(gtEqVars(2, 2));
+  assertTrue(gtEqVars(3, 2));
+
+  assertTrue(gtEqLeftConst(9));
+  assertTrue(gtEqLeftConst(10));
+  assertFalse(gtEqLeftConst(11));
+
+  assertFalse(gtEqRightConst(9));
+  assertTrue(gtEqRightConst(10));
+  assertTrue(gtEqRightConst(11));
+}
+
+fun main() {
+  testLt();
+  testGt();
+  testLtEq();
+  testGtEq();
+}

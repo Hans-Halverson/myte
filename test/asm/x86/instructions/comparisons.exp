@@ -62,7 +62,7 @@ test.testCompareBoolRegs:
 test.testCompareByteImmReg:
   xorl %eax, %eax
   cmpb $63, %dil
-  setge %al
+  setg %al
   ret
 test.testCompareByteRegImm:
   xorl %eax, %eax
@@ -99,31 +99,31 @@ test.testCompareImmediateMemory:
   ret
 .L1:
   cmpl $3, 8(%rsp)
-  jl .L2
-  xorl %eax, %eax
-  cmpl $3, 8(%rsp)
-  setge %al
-  ret
-.L2:
-  cmpl $3, 8(%rsp)
-  jle .L3
+  jle .L2
   xorl %eax, %eax
   cmpl $3, 8(%rsp)
   setg %al
   ret
-.L3:
+.L2:
   cmpl $3, 8(%rsp)
-  jg .L4
+  jl .L3
   xorl %eax, %eax
   cmpl $3, 8(%rsp)
-  setle %al
+  setge %al
   ret
-.L4:
+.L3:
   cmpl $3, 8(%rsp)
-  jge .L5
+  jge .L4
   xorl %eax, %eax
   cmpl $3, 8(%rsp)
   setl %al
+  ret
+.L4:
+  cmpl $3, 8(%rsp)
+  jg .L5
+  xorl %eax, %eax
+  cmpl $3, 8(%rsp)
+  setle %al
   ret
 .L5:
   movb $1, %al
@@ -153,31 +153,31 @@ test.testCompareImmediateRegister:
   ret
 .L7:
   cmpl $3, %edi
-  jl .L8
-  xorl %eax, %eax
-  cmpl $3, %edi
-  setge %al
-  ret
-.L8:
-  cmpl $3, %edi
-  jle .L9
+  jle .L8
   xorl %eax, %eax
   cmpl $3, %edi
   setg %al
   ret
-.L9:
+.L8:
   cmpl $3, %edi
-  jg .L10
+  jl .L9
   xorl %eax, %eax
   cmpl $3, %edi
-  setle %al
+  setge %al
   ret
-.L10:
+.L9:
   cmpl $3, %edi
-  jge .L11
+  jge .L10
   xorl %eax, %eax
   cmpl $3, %edi
   setl %al
+  ret
+.L10:
+  cmpl $3, %edi
+  jg .L11
+  xorl %eax, %eax
+  cmpl $3, %edi
+  setle %al
   ret
 .L11:
   movb $1, %al
