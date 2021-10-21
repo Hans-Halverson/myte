@@ -1061,7 +1061,13 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           let { Ast.Identifier.loc; name } = first_part in
           this#add_error loc (ModuleInvalidPosition ([name], NamePositionType))
         | _ :: _ -> this#match_module_parts_type module_tree first_part rest_parts)
-      | Some (Decl binding) -> this#add_type_use binding.loc first_part.loc
+      | Some (Decl binding) ->
+        if rest_parts = [] then
+          this#add_type_use binding.loc first_part.loc
+        else
+          (* Error if there are other parts, as types cannot have accesses *)
+          let full_loc = Loc.between first_part.loc (List.hd rest_parts).loc in
+          this#add_error full_loc (TypeWithAccess [first_part.name])
 
     method! type_ ty =
       let open Ast.Type in

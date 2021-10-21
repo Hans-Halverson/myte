@@ -2,6 +2,16 @@ module test
 
 import a1
 
-type alias t = a1.a2.a3.ExportedType.foo
+type Type (Int)
+methods Type {
+  static fun method() {}
+}
 
-fun main() {}
+fun main() {
+  (1: Type.nonexist);
+  (1: Type.method);
+  (1: Type.nonexist.another.another);
+  (1: a1.a2.a3.ExportedType.nonexist);
+  (1: a1.a2.a3.ExportedType.method);
+  (1: a1.a2.a3.ExportedType.nonexist.another.another);
+}

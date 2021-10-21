@@ -1,4 +1,29 @@
+Error: Could not resolve access on type `Type`. Types do not have members that can be accessed.
+test/analyze/name_resolution/type_with_access_error/test.myte:11:6-19
+ 11 |   (1: Type.nonexist);
+    |       ^^^^^^^^^^^^^
+
+Error: Could not resolve access on type `Type`. Types do not have members that can be accessed.
+test/analyze/name_resolution/type_with_access_error/test.myte:12:6-17
+ 12 |   (1: Type.method);
+    |       ^^^^^^^^^^^
+
+Error: Could not resolve access on type `Type`. Types do not have members that can be accessed.
+test/analyze/name_resolution/type_with_access_error/test.myte:13:6-19
+ 13 |   (1: Type.nonexist.another.another);
+    |       ^^^^^^^^^^^^^
+
 Error: Could not resolve access on type `a1.a2.a3.ExportedType`. Types do not have members that can be accessed.
-test/analyze/name_resolution/type_with_access_error/test.myte:5:15-40
- 5 | type alias t = a1.a2.a3.ExportedType.foo
-   |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+test/analyze/name_resolution/type_with_access_error/test.myte:14:6-36
+ 14 |   (1: a1.a2.a3.ExportedType.nonexist);
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Could not resolve access on type `a1.a2.a3.ExportedType`. Types do not have members that can be accessed.
+test/analyze/name_resolution/type_with_access_error/test.myte:15:6-34
+ 15 |   (1: a1.a2.a3.ExportedType.method);
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Could not resolve access on type `a1.a2.a3.ExportedType`. Types do not have members that can be accessed.
+test/analyze/name_resolution/type_with_access_error/test.myte:16:6-36
+ 16 |   (1: a1.a2.a3.ExportedType.nonexist.another.another);
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
