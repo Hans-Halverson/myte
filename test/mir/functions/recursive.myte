@@ -1,0 +1,51 @@
+module test
+
+type ConcreteType (Int)
+
+methods ConcreteType {
+  fun recursive() {
+    use(true);
+    this.recursive();
+  }
+}
+
+type GenericType<T> (T)
+
+methods GenericType<T> {
+  fun recursive() {
+    use(true);
+    this.recursive();
+  }
+}
+
+fun concreteFunctionRecursive() {
+  use(true);
+  concreteFunctionRecursive();
+}
+
+fun genericFunctionRecursive<T>(x: T) {
+  use(true);
+  genericFunctionRecursive(x);
+}
+
+fun testGenericFunctionRecursive() {
+  genericFunctionRecursive(1);
+}
+
+fun testConcreteMethodRecursive(x: ConcreteType) {
+  x.recursive();
+}
+
+fun testGenericMethodRecursive(x1: GenericType<Int>, x2: GenericType<Bool>) {
+  x1.recursive();
+  x2.recursive();
+}
+
+fun use<T>(x: T) {}
+
+fun main() {
+  use(concreteFunctionRecursive);
+  use(testGenericFunctionRecursive);
+  use(testConcreteMethodRecursive);
+  use(testGenericMethodRecursive);
+}

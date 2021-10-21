@@ -1,7 +1,7 @@
 func std.string.String* @test.testSingleStringPart() {
   %0 := CallBuiltin std.string.String* myte_alloc(1)
   %1 := GetPointer byte*, std.string.String* %0.0
-  Store byte* %1, @.S3
+  Store byte* %1, @.S4
   %2 := GetPointer int, std.string.String* %0.1
   Store int %2, 3
   %3 := GetPointer int, std.string.String* %0.2
@@ -9,7 +9,7 @@ func std.string.String* @test.testSingleStringPart() {
   Ret %0
 }
 
-global byte[3] @.S3 = "foo"
+global byte[3] @.S4 = "foo"
 
 func std.string.String* @test.testSingleExpressionPart() {
   %4 := CallBuiltin std.string.String* myte_alloc(1)
@@ -52,7 +52,7 @@ global byte[3] @.S0 = "foo"
 func std.string.String* @test.testMultipleParts2() {
   %19 := CallBuiltin std.string.String* myte_alloc(1)
   %20 := GetPointer byte*, std.string.String* %19.0
-  Store byte* %20, @.S1
+  Store byte* %20, @.S2
   %21 := GetPointer int, std.string.String* %19.1
   Store int %21, 3
   %22 := GetPointer int, std.string.String* %19.2
@@ -63,7 +63,7 @@ func std.string.String* @test.testMultipleParts2() {
   Call void @std.string.String.append(%19, %24)
   %25 := CallBuiltin std.string.String* myte_alloc(1)
   %26 := GetPointer byte*, std.string.String* %25.0
-  Store byte* %26, @.S2
+  Store byte* %26, @.S3
   %27 := GetPointer int, std.string.String* %25.1
   Store int %27, 3
   %28 := GetPointer int, std.string.String* %25.2
@@ -72,9 +72,9 @@ func std.string.String* @test.testMultipleParts2() {
   Ret %19
 }
 
-global byte[3] @.S1 = "foo"
+global byte[3] @.S2 = "foo"
 
-global byte[3] @.S2 = "bar"
+global byte[3] @.S3 = "bar"
 
 func void @test.use<Function>(fn %29) {
   Ret

@@ -1,0 +1,67 @@
+type test.ConcreteType {int}
+
+func void @test.ConcreteType.recursive(test.ConcreteType* %0) {
+  Call void @test.use<Bool>(true)
+  Call void @test.ConcreteType.recursive(%0)
+  Ret
+}
+
+type test.GenericType<Bool> {bool}
+
+type test.GenericType<Int> {int}
+
+func void @test.GenericType.recursive<Bool>(test.GenericType<Bool>* %1) {
+  Call void @test.use<Bool>(true)
+  Call void @test.GenericType.recursive<Bool>(%1)
+  Ret
+}
+
+func void @test.GenericType.recursive<Int>(test.GenericType<Int>* %2) {
+  Call void @test.use<Bool>(true)
+  Call void @test.GenericType.recursive<Int>(%2)
+  Ret
+}
+
+func void @test.concreteFunctionRecursive() {
+  Call void @test.use<Bool>(true)
+  Call void @test.concreteFunctionRecursive()
+  Ret
+}
+
+func void @test.genericFunctionRecursive<Int>(int %3) {
+  Call void @test.use<Bool>(true)
+  Call void @test.genericFunctionRecursive<Int>(%3)
+  Ret
+}
+
+func void @test.testGenericFunctionRecursive() {
+  Call void @test.genericFunctionRecursive<Int>(1)
+  Ret
+}
+
+func void @test.testConcreteMethodRecursive(test.ConcreteType* %4) {
+  Call void @test.ConcreteType.recursive(%4)
+  Ret
+}
+
+func void @test.testGenericMethodRecursive(test.GenericType<Int>* %5, test.GenericType<Bool>* %6) {
+  Call void @test.GenericType.recursive<Int>(%5)
+  Call void @test.GenericType.recursive<Bool>(%6)
+  Ret
+}
+
+func void @test.use<Bool>(bool %7) {
+  Ret
+}
+
+func void @test.use<Function>(fn %8) {
+  Ret
+}
+
+func int @test.main() {
+  Call void @test.use<Function>(@test.concreteFunctionRecursive)
+  Call void @test.use<Function>(@test.testGenericFunctionRecursive)
+  Call void @test.use<Function>(@test.testConcreteMethodRecursive)
+  Call void @test.use<Function>(@test.testGenericMethodRecursive)
+  Ret 0
+}

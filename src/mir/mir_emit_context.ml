@@ -54,11 +54,11 @@ type t = {
   mutable tuple_instantiations: Aggregate.t TypeArgsHashtbl.t;
   (* All instances of generic functions used in this program that have been generated so far,
      uniquely identifier by the generic function name and its type arguments. *)
-  mutable func_instantiations: unit TypeArgsHashtbl.t SMap.t;
+  mutable generic_func_instantiations: unit TypeArgsHashtbl.t SMap.t;
   (* All instances of generic functions that must still be generated. This must be empty for the
      emit pass to be complete. Keys are the generic function name and its type arguments, and
      value is a map of type parameter bindings to be used when generating the function instance. *)
-  mutable pending_func_instantiations: Types.Type.t IMap.t TypeArgsHashtbl.t SMap.t;
+  mutable pending_generic_func_instantiations: Types.Type.t IMap.t TypeArgsHashtbl.t SMap.t;
   (* Concrete types bound to type parameters in the current context. This is used when generating
      generic functions. *)
   mutable current_type_param_bindings: Types.Type.t IMap.t;
@@ -104,8 +104,8 @@ let mk ~pcx =
     pending_nongeneric_funcs = SSet.empty;
     pending_globals = SMap.empty;
     tuple_instantiations = TypeArgsHashtbl.create 10;
-    func_instantiations = SMap.empty;
-    pending_func_instantiations = SMap.empty;
+    generic_func_instantiations = SMap.empty;
+    pending_generic_func_instantiations = SMap.empty;
     current_type_param_bindings = IMap.empty;
     func_decl_nodes = SMap.empty;
     global_variable_decl_nodes = LocMap.empty;
@@ -639,7 +639,7 @@ and get_generic_function_value ~ecx name key_type_params key_type_args : Value.f
     Printf.sprintf "%s%s" name type_args_string
   in
   let already_instantiated =
-    match SMap.find_opt name ecx.func_instantiations with
+    match SMap.find_opt name ecx.generic_func_instantiations with
     | None -> false
     | Some instantiated_type_args ->
       (match TypeArgsHashtbl.find_opt instantiated_type_args key_type_args with
@@ -650,7 +650,7 @@ and get_generic_function_value ~ecx name key_type_params key_type_args : Value.f
     ()
   else
     let pending_type_args =
-      match SMap.find_opt name ecx.pending_func_instantiations with
+      match SMap.find_opt name ecx.pending_generic_func_instantiations with
       | None -> TypeArgsHashtbl.create 2
       | Some pending_instantiation_type_args -> pending_instantiation_type_args
     in
@@ -666,8 +666,8 @@ and get_generic_function_value ~ecx name key_type_params key_type_args : Value.f
           key_type_args
       in
       TypeArgsHashtbl.add pending_type_args key_type_args instantiated_type_param_bindings;
-      ecx.pending_func_instantiations <-
-        SMap.add name pending_type_args ecx.pending_func_instantiations );
+      ecx.pending_generic_func_instantiations <-
+        SMap.add name pending_type_args ecx.pending_generic_func_instantiations );
   `FunctionL name_with_args
 
 and get_method_function_value
@@ -717,22 +717,42 @@ and get_method_function_value
   let method_binding = Bindings.get_value_binding ecx.pcx.bindings method_sig.loc in
   let fully_qualified_method_name = mk_value_binding_name method_binding in
 
-  get_generic_function_value ~ecx fully_qualified_method_name key_type_params key_type_args
+  if key_type_params = [] then
+    get_nongeneric_function_value ~ecx fully_qualified_method_name
+  else
+    get_generic_function_value ~ecx fully_qualified_method_name key_type_params key_type_args
 
-let pop_pending_func_instantiation ~ecx =
-  match SMap.choose_opt ecx.pending_func_instantiations with
+let pop_pending_generic_func_instantiation ~ecx =
+  match SMap.choose_opt ecx.pending_generic_func_instantiations with
   | None -> None
   | Some (name, pending_type_args) ->
+    (* Build type paramater substitution *)
     let (type_args, type_param_bindings) =
       let pending_type_args_iter = TypeArgsHashtbl.to_seq pending_type_args in
       match pending_type_args_iter () with
       | Seq.Cons (args_and_bindings, _) -> args_and_bindings
       | _ -> failwith "Pending type args table must be nonempty"
     in
+
+    (* Remove from pending instantiations table *)
     if TypeArgsHashtbl.length pending_type_args = 1 then
-      ecx.pending_func_instantiations <- SMap.remove name ecx.pending_func_instantiations
+      ecx.pending_generic_func_instantiations <-
+        SMap.remove name ecx.pending_generic_func_instantiations
     else
       TypeArgsHashtbl.remove pending_type_args type_args;
+
+    (* Add to completed instantiations table *)
+    let instantiations =
+      match SMap.find_opt name ecx.generic_func_instantiations with
+      | Some instantiations -> instantiations
+      | None ->
+        let completed_type_args = TypeArgsHashtbl.create 2 in
+        ecx.generic_func_instantiations <-
+          SMap.add name completed_type_args ecx.generic_func_instantiations;
+        completed_type_args
+    in
+    TypeArgsHashtbl.add instantiations type_args ();
+
     let name_with_args =
       let type_args_string = TypeArgs.to_string ~pcx:ecx.pcx type_args in
       Printf.sprintf "%s%s" name type_args_string

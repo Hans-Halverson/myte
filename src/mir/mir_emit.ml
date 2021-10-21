@@ -104,27 +104,27 @@ and emit_pending ~ecx =
     match Ecx.pop_pending_nongeneric_function ~ecx with
     | None -> ()
     | Some (name, func_decl) ->
-      emit_function_body ~ecx name func_decl;
+      emit_nongeneric_function ~ecx name func_decl;
       Ecx.mark_pending_nongeneric_function_completed ~ecx name;
       complete := false;
       emit_pending_nongeneric_functions ()
   in
 
   (* Emit all pending instantiations of generic functions *)
-  let rec emit_pending_func_instantations () =
-    match Ecx.pop_pending_func_instantiation ~ecx with
+  let rec emit_pending_generic_func_instantations () =
+    match Ecx.pop_pending_generic_func_instantiation ~ecx with
     | None -> ()
     | Some func_instantiation ->
-      emit_function_instantiation ~ecx func_instantiation;
+      emit_generic_function_instantiation ~ecx func_instantiation;
       complete := false;
-      emit_pending_func_instantations ()
+      emit_pending_generic_func_instantations ()
   in
 
   let rec emit_all_pending () =
     complete := true;
     emit_pending_globals ();
     emit_pending_nongeneric_functions ();
-    emit_pending_func_instantations ();
+    emit_pending_generic_func_instantations ();
     if not !complete then emit_all_pending ()
   in
   emit_all_pending ()
@@ -155,7 +155,10 @@ and emit_global_variable_declaration ~ecx name decl =
   in
   global.init_val <- init_val
 
-and emit_function_instantiation ~ecx (name, name_with_args, type_param_bindings) =
+and emit_nongeneric_function ~ecx name func_decl =
+  if not func_decl.builtin then emit_function_body ~ecx name func_decl
+
+and emit_generic_function_instantiation ~ecx (name, name_with_args, type_param_bindings) =
   Ecx.in_type_binding_context ~ecx type_param_bindings (fun _ ->
       let func_decl_node = SMap.find name ecx.func_decl_nodes in
       if not func_decl_node.builtin then emit_function_body ~ecx name_with_args func_decl_node)
