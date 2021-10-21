@@ -82,6 +82,17 @@ methods String {
     this.size = newSize;
   }
 
+  fun substring(start: Int, size: Int): String {
+    if (start < 0 || size < 0 || start + size > this.size) {
+      abort();
+    }
+
+    val string = String { data: Array.new(size), size, capacity: size };
+    Array.copy(string.data, 0, this.data, start, size);
+
+    return string;
+  }
+
   static fun repeat(string: String, count: Int): String {
     if (count <= 0) {
       return "";

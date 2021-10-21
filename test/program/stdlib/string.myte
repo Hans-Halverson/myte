@@ -90,6 +90,18 @@ fun testReverse() {
   assertEqual(s, "dcab");
 }
 
+fun testSubstring() {
+  assertEqual("".substring(0, 0), "");
+  assertEqual("foo".substring(0, 0), "");
+  assertEqual("foo".substring(2, 0), "");
+  assertEqual("foo".substring(0, 2), "fo");
+  assertEqual("foo".substring(0, 3), "foo");
+  assertEqual("foo".substring(1, 1), "o");
+  assertEqual("foo".substring(1, 2), "oo");
+  assertEqual("foo".substring(2, 1), "o");
+  assertEqual("foo".substring(2, 0), "");
+}
+
 fun testRepeat() {
   assertEqual(String.repeat("a", -1), "");
   assertEqual(String.repeat("a", 0), "");
@@ -134,6 +146,7 @@ fun main() {
   testPush();
   testAppend();
   testReverse();
+  testSubstring();
   testRepeat();
   testClone();
   testHash();
