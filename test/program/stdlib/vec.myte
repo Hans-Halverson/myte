@@ -1,0 +1,24 @@
+module test
+
+import std.test.assertEqual
+
+fun intToString(x: Int): String = x.toString()
+
+fun testMap() {
+  // Empty vector
+  val x: Vec<Int> = [];
+  val y = x.map(intToString);
+  assertEqual(y.size, 0);
+
+  // Vector has elements
+  val x = [1, 2, 3];
+  val y = x.map(intToString);
+  assertEqual(y.size, 3);
+  assertEqual(y[0], "1");
+  assertEqual(y[1], "2");
+  assertEqual(y[2], "3");
+}
+
+fun main() {
+  testMap();
+}

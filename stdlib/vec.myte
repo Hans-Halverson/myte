@@ -56,6 +56,15 @@ methods Vec<T> {
     this.data[this.size] = x;
     this.size += 1;
   }
+  
+  fun map<U>(func: (T) -> U): Vec<U> {
+    val vec: Vec<U> = Vec.newUninitialized(this.size);
+    for (i in 0.to(this.size)) {
+      vec[i] = func(this[i]);
+    }
+
+    return vec;
+  }
 
   fun resize() {
     val oldCapacity = this.capacity;

@@ -4,6 +4,8 @@ import std.iterator.Iterator
 import std.ops.Equatable
 import std.test.{assertEqual, fail}
 
+import std.io.println
+
 fun nextIsNone<T>(iter: Iterator<T>) {
   match (iter.next()) {
     | None -> ()
@@ -90,6 +92,16 @@ fun testReverse() {
   assertEqual(s, "dcab");
 }
 
+fun testRepeat() {
+  assertEqual(String.repeat("a", -1), "");
+  assertEqual(String.repeat("a", 0), "");
+  assertEqual(String.repeat("a", 1), "a");
+  assertEqual(String.repeat("a", 4), "aaaa");
+  assertEqual(String.repeat("foo", 3), "foofoofoo");
+  assertEqual(String.repeat("", 0), "");
+  assertEqual(String.repeat("", 3), "");
+}
+
 fun testClone() {
   val s = "";
   assertEqual(s, s.clone());
@@ -124,6 +136,7 @@ fun main() {
   testPush();
   testAppend();
   testReverse();
+  testRepeat();
   testClone();
   testHash();
   testBytesIterator();

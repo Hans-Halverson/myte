@@ -29,6 +29,14 @@ methods String {
     };
   }
 
+  static fun newWithCapacity(capacity: Int): String {
+    return String {
+      data: Array.new(capacity),
+      size: 0,
+      capacity,
+    };
+  }
+
   fun get(index: Int): Char {
     if (index >= this.size) {
       abort();
@@ -72,6 +80,19 @@ methods String {
 
     Array.copy(this.data, this.size, data, offset, size);
     this.size = newSize;
+  }
+
+  static fun repeat(string: String, count: Int): String {
+    if (count <= 0) {
+      return "";
+    }
+
+    val newString = String.newWithCapacity(string.size * count);
+    for (_ in 0.to(count)) {
+      newString.append(string);
+    }
+
+    return newString;
   }
 
   fun resize() {
