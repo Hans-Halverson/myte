@@ -1,5 +1,7 @@
 module test
 
+import std.sys.exit
+
 fun testMatchExpressionBlockValues(test: Bool) {
   val x: Int = match (test) {
     | true -> {
@@ -76,6 +78,47 @@ fun testUnitMatch(test: Int) {
   use(x);
 }
 
+fun testReturnBranch(test: Int) {
+  val x: Int = match (test) {
+    | 1 -> 1
+    | 2 -> 2
+    | _ -> return
+  };
+  use(x);
+}
+
+fun testReturnBlockBranch(test: Int) {
+  val x: Int = match (test) {
+    | 1 -> 1
+    | 2 -> 2
+    | _ -> {
+      use(true);
+      return;
+    }
+  };
+  use(x);
+}
+
+fun testDivergentExpressionBranch(test: Int) {
+  val x: Int = match (test) {
+    | 1 -> 1
+    | 2 -> 2
+    | _ -> exit(1)
+  };
+  use(x);
+}
+
+fun testLoopDivergence(test: Int) {
+  while (true) {
+    val x: Int = match (test) {
+      | 1 -> 1
+      | 2 -> continue
+      | _ -> break
+    };
+    use(x);
+  }
+}
+
 fun use<T>(x: T) {}
 
 fun main() {
@@ -84,4 +127,8 @@ fun main() {
   use(testNestedMatchAndIf);
   use(testZeroSizeMatch);
   use(testUnitMatch);
+  use(testReturnBranch);
+  use(testReturnBlockBranch);
+  use(testDivergentExpressionBranch);
+  use(testLoopDivergence);
 }

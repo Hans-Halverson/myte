@@ -1,5 +1,7 @@
 module test
 
+import std.sys.exit
+
 fun bool(): Bool = true
 
 fun testSimpleIf(): Int = if (bool()) { 1 } else { 2 }
@@ -29,6 +31,66 @@ fun testZeroSizeIfExpression() {
   use(if (bool()) { use(true); ZeroSize (()) } else { use(false); ZeroSize (()) });
 }
 
+fun testReturnBranch(test: Bool) {
+  val x: Int = if (test) {
+    1
+  } else {
+    return;
+  };
+  use(x);
+
+  val x: Int = if (test) {
+    return;
+  } else {
+    2
+  };
+  use(x);
+}
+
+fun testReturnBlockBranch(test: Bool) {
+  val x: Int = if (test) {
+    1
+  } else {
+    use(true);
+    return;
+  };
+  use(x);
+}
+
+fun testDivergentExpressionBranch(test: Bool) {
+  val x: Int = if (test) {
+    1
+  } else {
+    exit(1)
+  };
+  use(x);
+}
+
+fun testContinueBranch(test: Bool) {
+  while (true) {
+    val x: Int = if (test) {
+      1
+    } else {
+      use(false);
+      continue;
+    };
+    use(x);
+  }
+}
+
+fun testBreakBranch(test: Bool) {
+  while (true) {
+    val x: Int = if (test) {
+      1
+    } else {
+      use(false);
+      break;
+    };
+    use(x);
+  }
+}
+
+
 fun use<T>(x: T) {}
 
 fun main() {
@@ -36,4 +98,9 @@ fun main() {
   use(testIfWithExpressions);
   use(testNestedIfStatementInExpressionPosition);
   use(testZeroSizeIfExpression);
+  use(testReturnBranch);
+  use(testReturnBlockBranch);
+  use(testDivergentExpressionBranch);
+  use(testContinueBranch);
+  use(testBreakBranch);
 }

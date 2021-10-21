@@ -2378,20 +2378,30 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
           constructed_case_bodies := LocSet.add case_node.loc !constructed_case_bodies;
           Ecx.set_block_builder ~ecx case_body_builder;
 
-          (* Emit the right hand side of case, store result at result ptr if one is supplied. *)
-          match (case_node.right, result_ptr) with
-          | (Expression expr, None) -> ignore (emit_expression ~ecx expr)
-          | (Statement stmt, None) -> ignore (emit_statement ~ecx ~is_expr:false stmt)
-          | (Expression expr, Some result_ptr) ->
-            let body_val = emit_expression ~ecx expr |> Option.get in
-            Ecx.emit ~ecx (Store (result_ptr, body_val))
-          | (Statement stmt, Some result_ptr) ->
-            let body_val = emit_statement ~ecx ~is_expr:true stmt |> Option.get in
-            Ecx.emit ~ecx (Store (result_ptr, body_val))
-        );
+          (* Emit the right hand side of case *)
+          let (body_val, body_ty) =
+            match case_node.right with
+            | Expression expr ->
+              let body_ty = type_of_loc ~ecx (Ast_utils.expression_loc expr) in
+              (emit_expression ~ecx expr, body_ty)
+            | Statement stmt ->
+              let body_ty = type_of_loc ~ecx (Ast_utils.statement_loc stmt) in
+              (emit_statement ~ecx ~is_expr:(result_ptr <> None) stmt, body_ty)
+          in
 
-        (* Continue to match's overall join block at end of case body *)
-        Ecx.finish_block_continue ~ecx join_block.id)
+          (* Store result at result ptr if one is supplied and case does not diverge *)
+          let diverges = body_ty = Never in
+          (match result_ptr with
+          | Some result_ptr when not diverges ->
+            Ecx.emit ~ecx (Store (result_ptr, Option.get body_val))
+          | _ -> ());
+
+          (* Continue to match's overall join block at end of case body if case does not diverge *)
+          if diverges then
+            Ecx.finish_block_halt ~ecx
+          else
+            Ecx.finish_block_continue ~ecx join_block.id
+        ))
     (* Otherwise we need to test a scrutinee and potentially branch to new decision tree nodes to emit *)
     | Test { scrutinee; cases; default_case } ->
       (match List.hd cases with

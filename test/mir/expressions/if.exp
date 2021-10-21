@@ -65,11 +65,77 @@ label @14:
   Ret
 }
 
-func void @test.use<Bool>(bool %16) {
+func void @test.testReturnBranch(bool %16) {
+  branch %16, @15, @18
+label @15:
+  Call void @test.use<Int>(1)
+  branch %16, @16, @17
+label @16:
+  Ret
+label @17:
+  Call void @test.use<Int>(2)
+  Ret
+label @18:
   Ret
 }
 
-func void @test.use<Function>(fn %17) {
+func void @test.testReturnBlockBranch(bool %17) {
+  branch %17, @19, @20
+label @19:
+  Call void @test.use<Int>(1)
+  Ret
+label @20:
+  Call void @test.use<Bool>(true)
+  Ret
+}
+
+func void @test.testDivergentExpressionBranch(bool %18) {
+  branch %18, @22, @21
+label @21:
+  CallBuiltin void myte_exit(1)
+  continue @22
+label @22:
+  Call void @test.use<Int>(1)
+  Ret
+}
+
+func void @test.testContinueBranch(bool %19) {
+  branch true, @23, @26
+label @23:
+  branch %19, @24, @25
+label @24:
+  Call void @test.use<Int>(1)
+  continue @test.testContinueBranch
+label @25:
+  Call void @test.use<Bool>(false)
+  continue @test.testContinueBranch
+label @26:
+  Ret
+}
+
+func void @test.testBreakBranch(bool %20) {
+  branch true, @27, @30
+label @27:
+  branch %20, @28, @29
+label @28:
+  Call void @test.use<Int>(1)
+  continue @test.testBreakBranch
+label @29:
+  Call void @test.use<Bool>(false)
+  continue @30
+label @30:
+  Ret
+}
+
+func void @test.use<Bool>(bool %21) {
+  Ret
+}
+
+func void @test.use<Function>(fn %22) {
+  Ret
+}
+
+func void @test.use<Int>(int %23) {
   Ret
 }
 
@@ -82,5 +148,10 @@ func int @test.main() {
   Call void @test.use<Function>(@test.testIfWithExpressions)
   Call void @test.use<Function>(@test.testNestedIfStatementInExpressionPosition)
   Call void @test.use<Function>(@test.testZeroSizeIfExpression)
+  Call void @test.use<Function>(@test.testReturnBranch)
+  Call void @test.use<Function>(@test.testReturnBlockBranch)
+  Call void @test.use<Function>(@test.testDivergentExpressionBranch)
+  Call void @test.use<Function>(@test.testContinueBranch)
+  Call void @test.use<Function>(@test.testBreakBranch)
   Ret 0
 }
