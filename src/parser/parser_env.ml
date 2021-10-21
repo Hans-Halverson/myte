@@ -1,8 +1,10 @@
 module Env = struct
   type t = {
     mutable lexer: Lexer.t;
-    mutable lex_result: (Lexer.result, Loc.t * Parse_error.t) result;
-    mutable prev_lex_result: (Lexer.result, Loc.t * Parse_error.t) result option;
+    mutable lex_result: Lexer.result;
+    (* Previous lex result, initially the same as the first lex result until Lexer.next is called
+       a second time. *)
+    mutable prev_lex_result: Lexer.result;
     mutable errors: (Loc.t * Parse_error.t) list;
     (* A stack of bools where each bool represents whether bitwise or is not allowed
        in the enclosing matches *)
@@ -14,32 +16,25 @@ module Env = struct
   let rec mk lexer =
     let (lexer, lex_result) = Lexer.next lexer in
     Result.iter_error Parse_error.fatal lex_result;
+    let lex_result = Result.get_ok lex_result in
     let match_stack = Stack.create () in
     Stack.push false match_stack;
     {
       lexer;
       lex_result;
-      prev_lex_result = None;
+      prev_lex_result = lex_result;
       errors = [];
       match_stack;
       in_interpolated_string = false;
     }
 
-  and lex_result env =
-    match env.lex_result with
-    | Ok result -> result
-    | Error err -> Parse_error.fatal err
+  and loc env = env.lex_result.loc
 
-  and loc env = (lex_result env).loc
-
-  and token env = (lex_result env).token
+  and token env = env.lex_result.token
 
   and errors env = List.rev env.errors
 
-  and prev_loc env =
-    match env.prev_lex_result with
-    | Some (Ok { Lexer.loc; _ }) -> loc
-    | _ -> failwith "No previous location"
+  and prev_loc env = env.prev_lex_result.loc
 
   and lexer_next env =
     if env.in_interpolated_string then
@@ -49,14 +44,14 @@ module Env = struct
 
   and advance env =
     let (lexer, new_lex_result) = lexer_next env in
-    let prev_lex_result = env.lex_result in
-    env.prev_lex_result <- Some prev_lex_result;
-    env.lex_result <- new_lex_result;
     Result.iter_error Parse_error.fatal new_lex_result;
+    let prev_lex_result = env.lex_result in
+    env.prev_lex_result <- prev_lex_result;
+    env.lex_result <- Result.get_ok new_lex_result;
     env.lexer <- lexer;
     (* Track whether whether parser is in top level of match statement *)
     if not env.in_interpolated_string then
-      match (Result.get_ok prev_lex_result).token with
+      match prev_lex_result.token with
       | T_LEFT_PAREN
       | T_LEFT_BRACE
       | T_LEFT_BRACKET ->
