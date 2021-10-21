@@ -69,19 +69,18 @@ and parse env =
       helper (toplevel :: toplevels)
   in
   try
-    let module_ = parse_module env in
+    let name = parse_module_name env in
     let imports = parse_imports env in
     let toplevels = helper [] in
     let loc = { (Env.loc env) with Loc.start = Loc.first_pos } in
     let errors = Env.errors env in
     if errors = [] then
-      Ok { Module.loc; module_; imports; toplevels }
+      Ok { Module.loc; name; imports; toplevels }
     else
       Error errors
   with Parse_error.Fatal (loc, err) -> Error [(loc, err)]
 
-and parse_module env =
-  let open Module in
+and parse_module_name env =
   let marker = mark_loc env in
   begin
     match Env.token env with
@@ -90,7 +89,7 @@ and parse_module env =
   end;
   let name = parse_scoped_identifier env in
   let loc = marker env in
-  { Module.loc; name }
+  { Module.Name.loc; name }
 
 and parse_imports env =
   let open Module.Import in

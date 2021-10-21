@@ -4,15 +4,15 @@ class visitor =
   object (this)
     method module_ : Module.t -> unit =
       fun mod_ ->
-        let { Module.loc = _; module_; imports; toplevels } = mod_ in
-        this#module_module module_;
+        let { Module.loc = _; name; imports; toplevels } = mod_ in
+        this#module_name name;
         List.iter this#import imports;
         List.iter this#toplevel toplevels
 
-    method module_module : Module.Module.t -> unit =
-      fun module_ ->
-        let open Module.Module in
-        let { loc = _; name } = module_ in
+    method module_name : Module.Name.t -> unit =
+      fun module_name ->
+        let open Module.Name in
+        let { loc = _; name } = module_name in
         this#scoped_identifier name
 
     method toplevel : Module.toplevel -> unit =

@@ -2,8 +2,8 @@ test/parser/comment/block.myte
 {
   node: Module,
   loc: 1:0-14:1,
-  module: {
-    node: Module,
+  name: {
+    node: ModuleName,
     loc: 1:0-1:11,
     name: {
       node: ScopedIdentifier,

@@ -7,22 +7,22 @@ class mapper =
   object (this)
     method module_ : Module.t -> Module.t =
       fun mod_ ->
-        let { Module.loc; module_; imports; toplevels } = mod_ in
-        let module' = this#module_module module_ in
+        let { Module.loc; name; imports; toplevels } = mod_ in
+        let name' = this#module_name name in
         let imports' = id_map_list this#import imports in
         let toplevels' = id_map_list this#toplevel toplevels in
-        if module_ == module' && imports == imports' && toplevels == toplevels' then
+        if name == name' && imports == imports' && toplevels == toplevels' then
           mod_
         else
-          { Module.loc; module_ = module'; imports = imports'; toplevels = toplevels' }
+          { Module.loc; name = name'; imports = imports'; toplevels = toplevels' }
 
-    method module_module : Module.Module.t -> Module.Module.t =
-      fun module_ ->
-        let open Module.Module in
-        let { loc; name } = module_ in
+    method module_name : Module.Name.t -> Module.Name.t =
+      fun module_name ->
+        let open Module.Name in
+        let { loc; name } = module_name in
         let name' = this#scoped_identifier name in
         if name == name' then
-          module_
+          module_name
         else
           { loc; name = name' }
 

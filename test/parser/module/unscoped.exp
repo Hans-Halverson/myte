@@ -2,8 +2,8 @@ test/parser/module/unscoped.myte
 {
   node: Module,
   loc: 1:0-1:11,
-  module: {
-    node: Module,
+  name: {
+    node: ModuleName,
     loc: 1:0-1:11,
     name: {
       node: ScopedIdentifier,

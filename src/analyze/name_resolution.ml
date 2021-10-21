@@ -136,9 +136,9 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
 
     method errors () = List.rev errors
 
-    method set_current_module module_ =
-      let open Module.Module in
-      module_name <- Ast_utils.name_parts_of_scoped_ident module_.name
+    method set_current_module name =
+      let open Module.Name in
+      module_name <- Ast_utils.name_parts_of_scoped_ident name.name
 
     method save_toplevel_scope loc = toplevel_scopes <- LocMap.add loc scopes toplevel_scopes
 
@@ -214,10 +214,10 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
     (* Visit all toplevel declarations in a module, creating bindings for each *)
     method add_toplevel_declarations mod_ =
       let open Ast.Module in
-      let { module_; toplevels; _ } = mod_ in
-      this#set_current_module module_;
+      let { name; toplevels; _ } = mod_ in
+      this#set_current_module name;
       let module_name_prefix =
-        String.concat "." (Ast_utils.name_parts_of_scoped_ident module_.name) ^ "."
+        String.concat "." (Ast_utils.name_parts_of_scoped_ident name.name) ^ "."
       in
       (* Gather toplevel type and variable declarations and add them to toplevel scope *)
       let register_stdlib_decl name =
@@ -329,8 +329,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
     (* Setup and save the toplevel scope for this module, consisting of all imports and declarations *)
     method setup_toplevel_scope mod_ =
       let open Ast.Module in
-      let { loc; module_; toplevels; imports; _ } = mod_ in
-      this#set_current_module module_;
+      let { loc; name; toplevels; imports; _ } = mod_ in
+      this#set_current_module name;
       let check_duplicate_toplevel_name name =
         let { Ast.Identifier.loc; name } = name in
         if SMap.mem name (List.hd scopes).local_values || SMap.mem name (List.hd scopes).local_types
@@ -489,8 +489,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         trait.TraitDeclaration.implemented <- implemented
       in
 
-      let { Module.loc; module_; toplevels; _ } = mod_ in
-      this#set_current_module module_;
+      let { Module.loc; name; toplevels; _ } = mod_ in
+      this#set_current_module name;
       this#restore_toplevel_scope loc;
       List.iter
         (fun toplevel ->
@@ -528,8 +528,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
     (* Resolve all names in module to their declarations *)
     method resolve mod_ =
       let open Ast.Module in
-      let { loc; module_; toplevels; _ } = mod_ in
-      this#set_current_module module_;
+      let { loc; name; toplevels; _ } = mod_ in
+      this#set_current_module name;
       this#restore_toplevel_scope loc;
       (* Then visit child nodes once toplevel scope is complete *)
       let toplevels' =

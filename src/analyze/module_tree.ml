@@ -27,7 +27,7 @@ let add_exports module_ submodule_tree =
           | Some (Module _ | Empty _) ->
             (* Error for export with same name as module *)
             let {
-              module_ = { Module.name = { Ast.ScopedIdentifier.name = name_ident; scopes; _ }; _ };
+              name = { Module.Name.name = { Ast.ScopedIdentifier.name = name_ident; scopes; _ }; _ };
               _;
             } =
               module_
@@ -77,8 +77,7 @@ let add_exports module_ submodule_tree =
 
 let add_to_module_tree module_ module_tree =
   let {
-    Ast.Module.module_ =
-      { Ast.Module.Module.loc; name = { Ast.ScopedIdentifier.scopes; name; _ }; _ };
+    Ast.Module.name = { Ast.Module.Name.loc; name = { Ast.ScopedIdentifier.scopes; name; _ }; _ };
     _;
   } =
     module_

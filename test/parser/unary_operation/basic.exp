@@ -2,8 +2,8 @@ test/parser/unary_operation/basic.myte
 {
   node: Module,
   loc: 1:0-12:1,
-  module: {
-    node: Module,
+  name: {
+    node: ModuleName,
     loc: 1:0-1:11,
     name: {
       node: ScopedIdentifier,

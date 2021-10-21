@@ -2,8 +2,8 @@ test/parser/trait_declaration/super.myte
 {
   node: Module,
   loc: 1:0-5:1,
-  module: {
-    node: Module,
+  name: {
+    node: ModuleName,
     loc: 1:0-1:11,
     name: {
       node: ScopedIdentifier,

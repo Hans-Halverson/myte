@@ -5,7 +5,7 @@ module rec Module : sig
     | TypeDeclaration of TypeDeclaration.t
     | TraitDeclaration of TraitDeclaration.t
 
-  module Module : sig
+  module Name : sig
     type t = {
       loc: Loc.t;
       name: ScopedIdentifier.t;
@@ -36,7 +36,7 @@ module rec Module : sig
 
   type t = {
     loc: Loc.t;
-    module_: Module.t;
+    name: Name.t;
     imports: Import.t list;
     toplevels: toplevel list;
   }

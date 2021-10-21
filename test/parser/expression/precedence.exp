@@ -2,8 +2,8 @@ test/parser/expression/precedence.myte
 {
   node: Module,
   loc: 1:0-226:0,
-  module: {
-    node: Module,
+  name: {
+    node: ModuleName,
     loc: 1:0-1:11,
     name: {
       node: ScopedIdentifier,

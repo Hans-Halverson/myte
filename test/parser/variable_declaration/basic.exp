@@ -2,8 +2,8 @@ test/parser/variable_declaration/basic.myte
 {
   node: Module,
   loc: 1:0-6:14,
-  module: {
-    node: Module,
+  name: {
+    node: ModuleName,
     loc: 1:0-1:11,
     name: {
       node: ScopedIdentifier,

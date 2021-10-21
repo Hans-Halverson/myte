@@ -115,19 +115,19 @@ and opt : 'a. ('a -> 'b) -> 'a option -> 'b =
   | Some x -> f x
 
 and node_of_module mod_ =
-  let { Module.loc; module_; imports; toplevels } = mod_ in
+  let { Module.loc; name; imports; toplevels } = mod_ in
   node
     "Module"
     loc
     [
-      ("module", node_of_module_module module_);
+      ("name", node_of_module_name name);
       ("imports", List (List.map node_of_import imports));
       ("toplevels", List (List.map node_of_toplevel toplevels));
     ]
 
-and node_of_module_module module_ =
-  let { Module.Module.loc; name } = module_ in
-  node "Module" loc [("name", node_of_scoped_identifier name)]
+and node_of_module_name module_ =
+  let { Module.Name.loc; name } = module_ in
+  node "ModuleName" loc [("name", node_of_scoped_identifier name)]
 
 and node_of_toplevel toplevel =
   let open Module in

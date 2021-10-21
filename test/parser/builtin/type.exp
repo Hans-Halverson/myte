@@ -2,8 +2,8 @@ test/parser/builtin/type.myte
 {
   node: Module,
   loc: 1:0-5:21,
-  module: {
-    node: Module,
+  name: {
+    node: ModuleName,
     loc: 1:0-1:11,
     name: {
       node: ScopedIdentifier,

@@ -4,8 +4,6 @@ import std.iterator.Iterator
 import std.ops.Equatable
 import std.test.{assertEqual, fail}
 
-import std.io.println
-
 fun nextIsNone<T>(iter: Iterator<T>) {
   match (iter.next()) {
     | None -> ()

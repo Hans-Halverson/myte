@@ -2,8 +2,8 @@ test/analyze/name_resolution/resolved_scoped_id/a1.myte
 {
   node: Module,
   loc: 1:0-13:32,
-  module: {
-    node: Module,
+  name: {
+    node: ModuleName,
     loc: 1:0-1:9,
     name: {
       node: ScopedIdentifier,
@@ -342,8 +342,8 @@ test/analyze/name_resolution/resolved_scoped_id/a2.myte
 {
   node: Module,
   loc: 1:0-10:30,
-  module: {
-    node: Module,
+  name: {
+    node: ModuleName,
     loc: 1:0-1:12,
     name: {
       node: ScopedIdentifier,
@@ -654,8 +654,8 @@ test/analyze/name_resolution/resolved_scoped_id/b.myte
 {
   node: Module,
   loc: 1:0-9:22,
-  module: {
-    node: Module,
+  name: {
+    node: ModuleName,
     loc: 1:0-1:15,
     name: {
       node: ScopedIdentifier,
@@ -815,8 +815,8 @@ test/analyze/name_resolution/resolved_scoped_id/c.myte
 {
   node: Module,
   loc: 1:0-9:29,
-  module: {
-    node: Module,
+  name: {
+    node: ModuleName,
     loc: 1:0-1:9,
     name: {
       node: ScopedIdentifier,
@@ -1048,8 +1048,8 @@ test/analyze/name_resolution/resolved_scoped_id/d.myte
 {
   node: Module,
   loc: 1:0-9:31,
-  module: {
-    node: Module,
+  name: {
+    node: ModuleName,
     loc: 1:0-1:12,
     name: {
       node: ScopedIdentifier,
@@ -1257,8 +1257,8 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
 {
   node: Module,
   loc: 1:0-73:13,
-  module: {
-    node: Module,
+  name: {
+    node: ModuleName,
     loc: 1:0-1:11,
     name: {
       node: ScopedIdentifier,
