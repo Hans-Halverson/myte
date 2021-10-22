@@ -1,9 +1,10 @@
 module myte.parse.error
 
-import std.io.println
+import std.io.print
 import std.string.ToString
 import std.sys.exit
 
+import myte.common.error.formatErrorWithLoc
 import myte.common.loc.Loc
 import myte.parse.token
 import myte.parse.token.Token
@@ -23,7 +24,7 @@ type ParseError =
   | CannotOpenFile { filename: String }
 
 fun fatal(error: ParseError, loc: Loc): Never {
-  println(`Error: ${error}\n${loc}`);
+  print(formatErrorWithLoc(error.toString(), loc));
   exit(1);
 }
 

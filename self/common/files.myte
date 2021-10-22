@@ -1,8 +1,9 @@
 module myte.common.files
 
+import std.io.error.IOError
+import std.io.file.File
+import std.io.read.BufferedReader
 import std.sys.getEnv
-
-import std.io.println
 
 var currentDirectory: String = ""
 
@@ -30,4 +31,13 @@ fun stripRoot(path: String): String {
   }
 
   return path.substring(root.size + 1, path.size);
+}
+
+fun readFileContents(filename: String): Result<String, IOError> {
+  val file = File.open(filename)?;
+  val reader = BufferedReader.new(file);
+  val contents = reader.readToString()?;
+  file.close()?;
+
+  return Ok (contents);
 }

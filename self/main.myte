@@ -1,66 +1,30 @@
 module myte.main
 
-import std.io.println
-import std.sys.{args, getEnv}
-import std.sys.exit
+import std.io.{print, println}
 
+import myte.common.error.formatErrorWithoutLoc
 import myte.common.files.stripRoot
+import myte.common.options.{options, parseCliArgs}
 import myte.parse.parser.parseFile
 import myte.parse.printer.printModule
 
 fun parse(filename: String) {
   match (parseFile(filename)) {
     | Ok (mod) -> {
-      println(stripRoot(filename));
-      println(printModule(mod));
+      if (options.dumpAst) {
+        println(stripRoot(filename));
+        println(printModule(mod));
+      }
     }
     | Error (error) -> {
       println(stripRoot(filename));
-      println(`${error}`);
+      print(formatErrorWithoutLoc(error.toString()));
     }
   }
-}
-
-fun printUsage() {
-  println(
-`
-OVERVIEW: Myte programming language
-
-USAGE: myte [options] file...
-
-OPTIONS:
-  --help    Display this list of options
-`
-  );
-  exit(1);
-}
-
-fun parseArgs(): Vec<String> {
-  val optionsToIgnore = {|
-    "--dump-ast",
-    "--no-pretty-print",
-  |};
-
-  val files: Vec<String> = [];
-  for (i in 1.to(args.size)) {
-    val arg = args[i];
-    if (optionsToIgnore.contains(arg)) {
-      continue;
-    }
-
-    files.push(arg);
-  }
-
-  if (files.size == 0) {
-    printUsage();
-  }
-
-  return files;
 }
 
 fun main() {
-  getEnv("PWD");
-  val files = parseArgs();
+  val files = parseCliArgs();
   for (file in files) {
     parse(file);
   }

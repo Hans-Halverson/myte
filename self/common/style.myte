@@ -1,0 +1,57 @@
+module myte.common.style
+
+import myte.common.options.options
+
+type Color =
+  | Black
+  | Red
+  | Green
+  | White
+  | Default
+
+// Reset styles
+val RESET: String = "\x1B[0m"
+
+// Decorations
+val BOLD: String = "\x1B[1m"
+val DIM: String = "\x1B[2m"
+
+// Text colors
+val TEXT_BLACK: String = "\x1B[30m"
+val TEXT_RED: String = "\x1B[31m"
+val TEXT_GREEN: String = "\x1B[32m"
+val TEXT_WHITE: String = "\x1B[37m"
+val TEXT_DEFAULT: String = "\x1B[39m"
+
+fun textColor(color: Color): String =
+  match (color) {
+    | Black -> TEXT_BLACK
+    | Red -> TEXT_RED
+    | Green -> TEXT_GREEN
+    | White -> TEXT_WHITE
+    | Default -> TEXT_DEFAULT
+  }
+
+fun styleReset(): String {
+  if (options.noPrettyPrint) {
+    return "";
+  }
+
+  return RESET;
+}
+
+fun styleBold(): String {
+  if (options.noPrettyPrint) {
+    return "";
+  }
+
+  return BOLD;
+}
+
+fun styleText(color: Color): String {
+  if (options.noPrettyPrint) {
+    return "";
+  }
+
+  return textColor(color);
+}

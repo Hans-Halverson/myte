@@ -1,0 +1,50 @@
+module myte.common.options
+
+import std.io.println
+import std.sys.{args, exit}
+
+type Options {
+  dumpAst: Bool,
+  noPrettyPrint: Bool,
+}
+
+val options: Options = Options {
+  dumpAst: false,
+  noPrettyPrint: false,
+}
+
+fun printUsage() {
+  println(
+`
+OVERVIEW: Myte programming language
+
+USAGE: myte [options] file...
+
+OPTIONS:
+  --help    Display this list of options
+`
+  );
+  exit(1);
+}
+
+fun parseCliArgs(): Vec<String> {
+  val files: Vec<String> = [];
+  for (i in 1.to(args.size)) {
+    match (args[i]) {
+      | "--dump-ast" -> {
+        options.dumpAst = true;
+      }
+      | "--no-pretty-print" -> {
+        options.noPrettyPrint = true;
+      }
+      | "--help" -> printUsage()
+      | file -> files.push(file)
+    }
+  }
+
+  if (files.size == 0) {
+    printUsage();
+  }
+
+  return files;
+}

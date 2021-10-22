@@ -1,0 +1,269 @@
+module myte.common.error
+
+import std.io.file.File
+import std.io.read.BufferedReader
+
+import myte.common.files.stripRoot
+import myte.common.loc.Loc
+import myte.common.style.{Red, styleBold, styleReset, styleText}
+
+fun formatErrorWithoutLoc(message: String): String {
+  val builder = ErrorBuilder.new();
+  builder.addMessageLine(message);
+
+  return builder.finish();
+}
+
+fun formatErrorWithLoc(message: String, loc: Loc): String {
+  val snippet = getSnippet(loc);
+  val builder = ErrorBuilder.new();
+
+  // Start with a line displaying the error message, and a line displaying the source file
+  builder.addMessageLine(message);
+  builder.addSourceLine(loc);
+
+  val numLines = loc.end.line - loc.start.line + 1;
+
+  if (numLines == 1) { 
+    // A single line snippet has special formatting
+    builder.addSingleLine(loc, snippet[0]);
+  } else if (numLines <= 5) {
+    // Show all snippet lines for snippets of up to 5 lines
+    builder.addFirstSnippetLine(loc, snippet);
+
+    for (i in 1.to(snippet.size - 1)) {
+      builder.addMiddleSnippetLine(loc, snippet, i);
+    }
+
+    builder.addLastSnippetLine(loc, snippet);
+  } else {
+    // Otherwise show first three lines of snippet, a `...` line, and then the last two lines
+    builder.addFirstSnippetLine(loc, snippet);
+    builder.addMiddleSnippetLine(loc, snippet, 1);
+    builder.addMiddleSnippetLine(loc, snippet, 2);
+
+    builder.addSeparatorLine(loc);
+
+    builder.addMiddleSnippetLine(loc, snippet, snippet.size - 2);
+    builder.addLastSnippetLine(loc, snippet);
+  }
+
+  return builder.finish();
+}
+
+/**
+ * Extract all lines included in the given loc from the loc's source file.
+ */
+fun getSnippet(loc: Loc): Vec<String> {
+  val file = match (File.open(loc.source)) {
+    | Ok (file) -> file
+    | Error _ -> return []
+  };
+  
+  val startLine = loc.start.line;
+  val endLine = loc.end.line;
+
+  val reader = BufferedReader.new(file);
+  val snippet: Vec<String> = [];
+  var lineNum = 1;
+
+  for (line in reader.lines()) {
+    if (lineNum > endLine) {
+      break;
+    } else if (lineNum >= startLine) {
+      snippet.push(line);
+    }
+
+    lineNum += 1;
+  }
+
+  file.close();
+
+  return snippet;
+}
+
+/**
+ * The number of digits in the base-10 representation of a number.
+ */
+fun numDigits(n: Int): Int {
+  var x = n;
+  var digits = 1;
+
+  while (x >= 10) {
+    x /= 10;
+    digits += 1;
+  }
+
+  return digits;
+}
+
+type ErrorBuilder {
+  builder: String,
+}
+
+methods ErrorBuilder {
+  static fun new(): ErrorBuilder = ErrorBuilder { builder: "" }
+
+  fun finish(): String = this.builder
+
+  fun char(char: Byte) {
+    this.builder.push(char);
+  }
+
+  fun string(string: String) {
+    this.builder.append(string);
+  }
+
+  fun repeatChar(char: Byte, count: Int) {
+    for (_ in 0.to(count)) {
+      this.builder.push(char);
+    }
+  }
+
+  fun bold() {
+    this.builder.append(styleBold());
+  }
+
+  fun red() {
+    this.builder.append(styleText(Red));
+  }
+
+  fun reset() {
+    this.builder.append(styleReset());
+  }
+
+  fun addMessageLine(message: String) {
+    this.bold();
+    this.red();
+    this.string("Error:");
+    this.reset();
+    this.char(' ');
+    this.string(message);
+    this.char('\n');
+  }
+
+  fun addSourceLine(loc: Loc) {
+    this.bold();
+    this.string(stripRoot(loc.source));
+    this.char(':');
+    this.string(loc.toString());
+    this.reset();
+    this.char('\n');
+  }
+
+  fun paddedLineNumber(n: Int, maxDigits: Int) {
+    this.bold();
+    this.char(' ');
+    this.string(n.toString());
+    this.repeatChar(' ', maxDigits - numDigits(n) + 1);
+    this.char('|');
+  }
+
+  fun paddedLineNumberPlaceholder(maxDigits: Int) {
+    this.bold();
+    this.repeatChar(' ', maxDigits + 2);
+    this.char('|');
+  }
+
+  fun addSingleLine(loc: Loc, line: String) {
+    val Loc { start, end, ... } = loc;
+    val maxDigits = numDigits(start.line);
+
+    val endColumn = if (start.column == end.column) {
+      end.column + 1
+    } else {
+      end.column
+    };
+
+    this.paddedLineNumber(start.line, maxDigits);
+
+    this.reset();
+    this.char(' ');
+    this.string(line);
+    this.char('\n');
+
+    this.paddedLineNumberPlaceholder(maxDigits);
+
+    this.red();
+    this.char(' ');
+    this.repeatChar(' ', start.column);
+    this.repeatChar('^', endColumn - start.column);
+    this.char('\n');
+  }
+
+  fun addFirstSnippetLine(loc: Loc, lines: Vec<String>) {
+    val maxDigits = numDigits(loc.end.line);
+    val line = lines[0];
+
+    this.paddedLineNumber(loc.start.line, maxDigits);
+
+    this.red();
+    this.string(" / ");
+    this.reset();
+    this.string(line);
+    this.char('\n');
+
+    this.paddedLineNumberPlaceholder(maxDigits);
+
+    this.red();
+    this.string(" | ");
+    this.repeatChar(' ', loc.start.column);
+    this.repeatChar('^', line.size - loc.start.column);
+    this.reset();
+    this.char('\n');
+  }
+
+  fun addLastSnippetLine(loc: Loc, lines: Vec<String>) {
+    val maxDigits = numDigits(loc.end.line);
+    val line = lines[lines.size - 1];
+
+    this.paddedLineNumber(loc.end.line, maxDigits);
+
+    this.red();
+    this.string(" | ");
+    this.reset();
+    this.string(line);
+    this.char('\n');
+
+    this.paddedLineNumberPlaceholder(maxDigits);
+
+    this.red();
+    this.string(" \\ ");
+    this.repeatChar('^', loc.end.column + 1);
+    this.reset();
+    this.char('\n');
+  }
+
+  fun addMiddleSnippetLine(loc: Loc, lines: Vec<String>, offset: Int) {
+    val maxDigits = numDigits(loc.end.line);
+    val line = lines[offset];
+
+    this.paddedLineNumber(loc.start.line + offset, maxDigits);
+
+    this.red();
+    this.string(" | ");
+    this.reset();
+    this.string(line);
+    this.char('\n');
+
+    this.paddedLineNumberPlaceholder(maxDigits);
+
+    this.red();
+    this.string(" | ");
+    this.repeatChar('^', line.size);
+    this.reset();
+    this.char('\n');
+  }
+
+  fun addSeparatorLine(loc: Loc) {
+    val maxDigits = numDigits(loc.end.line);
+
+    this.bold();
+    this.string(" ...");
+    this.repeatChar(' ', maxDigits - 1);
+    this.red();
+    this.string(" |");
+    this.reset();
+    this.char('\n');
+  }
+}

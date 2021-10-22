@@ -2,11 +2,9 @@ module myte.parse.parser
 
 import std.io.println
 
-import std.io.error.IOError
-import std.io.file.File
-import std.io.read.BufferedReader
 import std.sys.exit
 
+import myte.common.files.readFileContents
 import myte.common.loc.{Loc, START_POS}
 import myte.parse.ast
 import myte.parse.error
@@ -770,13 +768,4 @@ fun parseFile(filename: String): Result<ast.Module, ParseError> {
   val mod = parser.parse();
 
   return Ok (mod);
-}
-
-fun readFileContents(filename: String): Result<String, IOError> {
-  val file = File.open(filename)?;
-  val reader = BufferedReader.new(file);
-  val contents = reader.readToString()?;
-  file.close()?;
-
-  return Ok (contents);
 }

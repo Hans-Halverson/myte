@@ -229,6 +229,7 @@ methods Lexer {
             match (this.current) {
               | '\n'
               | '\r' -> break
+              | current when current == EOF -> break
               | _ -> this.advance()
             }
           }
