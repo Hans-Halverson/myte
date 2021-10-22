@@ -9,11 +9,17 @@ type Token =
   | Identifier (String)
   | IntLiteral { raw: String, base: ast.IntLiteralBase }
   | BoolLiteral (Bool)
-  | Plus
+  | StringLiteral (String)
   | Semicolon
   | Colon
   | Comma
   | Period
+  | Equals
+  | Pipe
+  | Arrow
+  | Plus
+  | Minus
+  | Divide
   | Ampersand
   | LeftParen
   | RightParen
@@ -25,6 +31,14 @@ type Token =
   | Val
   | Var
   | Fun
+  | Type
+  | Trait
+  | While
+  | Return
+  | Break
+  | Continue
+  | Alias
+  | Builtin
   | Module
   | Eof
 
@@ -36,11 +50,17 @@ methods Token {
       | Identifier (name) -> name
       | BoolLiteral (bool) -> bool.toString()
       | IntLiteral { raw, ... } -> raw
-      | Plus -> "+"
+      | StringLiteral (string) -> `"${string}"`
       | Semicolon -> ";"
       | Colon -> ":"
       | Comma -> ","
       | Period -> "."
+      | Equals -> "="
+      | Pipe -> "|"
+      | Arrow -> "->"
+      | Plus -> "+"
+      | Minus -> "-"
+      | Divide -> "/"
       | Ampersand -> "&"
       | LeftParen -> "("
       | RightParen -> ")"
@@ -52,6 +72,14 @@ methods Token {
       | Val -> "val"
       | Var -> "var"
       | Fun -> "fun"
+      | Type -> "type"
+      | Trait -> "trait"
+      | While -> "while"
+      | Return -> "return"
+      | Break -> "break"
+      | Continue -> "continue"
+      | Alias -> "alias"
+      | Builtin -> "builtin"
       | Module -> "module"
       | Eof -> "<EOF>"
     }
@@ -65,11 +93,17 @@ methods Token {
       | (Identifier _, Identifier _)
       | (IntLiteral _, IntLiteral _)
       | (BoolLiteral _, BoolLiteral _)
-      | (Plus, Plus)
+      | (StringLiteral _, StringLiteral _)
       | (Semicolon, Semicolon)
       | (Colon, Colon)
       | (Comma, Comma)
       | (Period, Period)
+      | (Equals, Equals)
+      | (Pipe, Pipe)
+      | (Arrow, Arrow)
+      | (Plus, Plus)
+      | (Minus, Minus)
+      | (Divide, Divide)
       | (Ampersand, Ampersand)
       | (LeftParen, LeftParen)
       | (RightParen, RightParen)
@@ -81,6 +115,14 @@ methods Token {
       | (Val, Val)
       | (Var, Var)
       | (Fun, Fun)
+      | (Type, Type)
+      | (Trait, Trait)
+      | (While, While)
+      | (Return, Return)
+      | (Break, Break)
+      | (Continue, Continue)
+      | (Alias, Alias)
+      | (Builtin, Builtin)
       | (Module, Module)
       | (Eof, Eof) -> true
       | _ -> false

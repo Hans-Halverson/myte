@@ -2,7 +2,8 @@ module myte.parse.lexer
 
 import myte.common.loc.{Loc, Pos}
 import myte.parse.ast
-import myte.parse.error.{ParseError, UnknownToken}
+import myte.parse.error
+import myte.parse.error.ParseError
 import myte.parse.token
 import myte.parse.token.Token
 
@@ -84,6 +85,14 @@ methods Lexer {
     }
   }
 
+  /**
+   * Advance the lexer two bytes.
+   */
+  fun advanceTwo() {
+    this.advance();
+    this.advance();
+  }
+
   /*
    * Return the next byte if not at end of source.
    */
@@ -96,14 +105,17 @@ methods Lexer {
     };
   }
 
-  fun getCurrentPosition(): Pos =
+  fun getCurrentPos(): Pos =
     Pos { line: this.currentLine, column: this.currentOffset - this.currentLineOffset }
+  
+  fun locOfPosition(pos: Pos): Loc =
+    Loc { source: this.source, start: pos, end: Pos { line: pos.line, column: pos.column + 1 } }
   
   fun tokenResult(token: Token): Result<TokenResult, ErrorResult> {
     val loc = Loc {
       source: this.source,
       start: this.currentTokenStartPos,
-      end: this.getCurrentPosition(),
+      end: this.getCurrentPos(),
     };
 
     return Ok (TokenResult { loc, token });
@@ -125,7 +137,7 @@ methods Lexer {
     }
 
     // Save the current position
-    this.currentTokenStartPos = this.getCurrentPosition();
+    this.currentTokenStartPos = this.getCurrentPos();
 
     // Check if first character is for an identifier or keyword
     val current = this.current;
@@ -138,10 +150,6 @@ methods Lexer {
     }
 
     return match (current) {
-      | '+' -> {
-        this.advance();
-        this.tokenResult(token.Plus)
-      }
       | ';' -> {
         this.advance();
         this.tokenResult(token.Semicolon)
@@ -157,6 +165,32 @@ methods Lexer {
       | '.' -> {
         this.advance();
         this.tokenResult(token.Period)
+      }
+      | '=' -> {
+        this.advance();
+        this.tokenResult(token.Equals)
+      }
+      | '|' -> {
+        this.advance();
+        this.tokenResult(token.Pipe)
+      }
+      | '+' -> {
+        this.advance();
+        this.tokenResult(token.Plus)
+      }
+      | '-' -> match (this.peek()) {
+        | '>' -> {
+          this.advanceTwo();
+          this.tokenResult(token.Arrow)
+        }
+        | _ -> {
+          this.advance();
+          this.tokenResult(token.Minus)
+        }
+      }
+      | '&' -> {
+        this.advance();
+        this.tokenResult(token.Ampersand)
       }
       | '(' -> {
         this.advance();
@@ -174,20 +208,84 @@ methods Lexer {
         this.advance();
         this.tokenResult(token.RightBrace)
       }
+      | '<' -> {
+        this.advance();
+        this.tokenResult(token.LessThan)
+      }
+      | '>' -> {
+        this.advance();
+        this.tokenResult(token.GreaterThan)
+      }
+      | '"' -> {
+        this.advance();
+        this.parseStringLiteral(false)
+      }
+      | '/' -> match (this.peek()) {
+        | '/' -> {
+          this.advanceTwo();
+
+          // Skip characters in line comment
+          while (true) {
+            match (this.current) {
+              | '\n'
+              | '\r' -> break
+              | _ -> this.advance()
+            }
+          }
+
+          this.next()
+        }
+        | '*' -> {
+          this.advanceTwo();
+          
+          // Skip characters in block comment
+          while (true) {
+            match (this.current) {
+              | '*' -> match (this.peek()) {
+                | '/' -> {
+                  this.advanceTwo();
+                  break;
+                }
+                | _ -> ()
+              }
+              // Error on unclosed block comment
+              | current when current == EOF -> {
+                val loc = Loc {
+                  source: this.source,
+                  start: this.currentTokenStartPos,
+                  end: this.getCurrentPos(),
+                };
+                val error = error.UnexpectedToken { actual: token.Eof, expected: None };
+
+                return Error (ErrorResult { error, loc });
+              }
+              | _ -> ()
+            }
+
+            this.advance();
+          }
+
+          this.next()
+        }
+        | _ -> {
+          this.advance();
+          this.tokenResult(token.Divide)
+        }
+      }
       | current when current == EOF -> this.tokenResult(token.Eof)
       // Error on unkown token
-      | other -> {
+      | current -> {
         this.advance();
         val loc = Loc {
           source: this.source,
           start: this.currentTokenStartPos,
-          end: this.getCurrentPosition(),
+          end: this.getCurrentPos(),
         };
 
         val raw = "";
-        raw.push(other.toByte());
+        raw.push(current.toByte());
 
-        Error (ErrorResult { error: UnknownToken { raw }, loc })
+        Error (ErrorResult { error: error.UnknownToken { raw }, loc })
       }
     };
   }
@@ -215,6 +313,14 @@ methods Lexer {
       | "val" -> token.Val
       | "var" -> token.Var
       | "fun" -> token.Fun
+      | "type" -> token.Type
+      | "trait" -> token.Trait
+      | "while" -> token.While
+      | "return" -> token.Return
+      | "break" -> token.Break
+      | "continue" -> token.Continue
+      | "alias" -> token.Alias
+      | "builtin" -> token.Builtin
       | "module" -> token.Module
       | _ -> token.Identifier (raw)
     };
@@ -229,5 +335,31 @@ methods Lexer {
     val raw = this.bytes.substring(startOffset, this.currentOffset);
 
     return token.IntLiteral { raw, base: ast.Dec };
+  }
+
+  fun parseStringLiteral(isInterpolated: Bool): Result<TokenResult, ErrorResult> {
+    val string = "";
+    while (true) {
+      match (this.current) {
+        | '"' when !isInterpolated -> {
+          this.advance();
+          break;
+        }
+        | '\n' when !isInterpolated -> {
+          val loc = this.locOfPosition(this.currentTokenStartPos);
+          return Error (ErrorResult { error: error.UnterminatedStringLiteral, loc });
+        }
+        | current when current == EOF -> {
+          val loc = this.locOfPosition(this.currentTokenStartPos);
+          return Error (ErrorResult { error: error.UnterminatedStringLiteral, loc });
+        }
+        | current -> {
+          string.push(current.toByte());
+          this.advance();
+        }
+      }
+    }
+
+    return this.tokenResult(token.StringLiteral (string));
   }
 }

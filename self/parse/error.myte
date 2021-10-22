@@ -14,7 +14,12 @@ type ParseError =
   | UnterminatedStringLiteral
   | MalformedToplevel { token: Token }
   | MalformedFunctionBody { token: Token }
+  | MalformedTypeDeclaration { token: Token }
   | MalformedType { token: Token }
+  | EmptyRecord
+  | EmptyTuple
+  | SingleVariant
+  | TypeAliasBuiltin
   | CannotOpenFile { filename: String }
 
 fun fatal(error: ParseError, loc: Loc): Never {
@@ -39,7 +44,14 @@ methods ParseError {
         `Unexpected token \`${token}\`, expected start of top level declaration`
       | MalformedFunctionBody { token } ->
         `Unexpected token \`${token}\`, expected expected start of function body`
+      | MalformedTypeDeclaration { token } ->
+        `Unexpected token \`${token}\`, expected expected start of type declaration`
       | MalformedType { token } -> `Unexpected token \`${token}\`, expected start of type`
+      | EmptyRecord -> "Record must have at least one field"
+      | EmptyTuple -> "Tuple must have at least one element"
+      | SingleVariant -> "Variant type must have at least two variants"
+      | TypeAliasBuiltin ->
+        "A type alias cannot be builtin. Only function and type declarations can be builtin."
       | CannotOpenFile { filename } -> `Cannot open file ${filename}`
     }
 }

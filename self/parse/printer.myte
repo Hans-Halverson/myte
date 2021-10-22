@@ -136,8 +136,9 @@ fun nodeOfModuleName(name: ast.ModuleName): PrintNode {
 
 fun nodeOfToplevel(toplevel: ast.Toplevel): PrintNode =
   match (toplevel) {
-    | ast.ToplevelFunction (t) -> nodeOfFunctionDeclaration(t)
-    | ast.ToplevelVariable (t) -> nodeOfVariableDeclaration(t)
+    | ast.TLFunction (t) -> nodeOfFunctionDeclaration(t)
+    | ast.TLVariable (t) -> nodeOfVariableDeclaration(t)
+    | ast.TLType (t) -> nodeOfTypeDeclaration(t)
   }
 
 fun nodeOfFunctionDeclaration(decl: ast.FunctionDeclaration): PrintNode {
@@ -186,21 +187,79 @@ fun nodeOfTypeParameter(param: ast.TypeParameter): PrintNode {
 fun nodeOfVariableDeclaration(decl: ast.VariableDeclaration): PrintNode {
   val ast.VariableDeclaration { loc, kind, pattern, init, annot } = decl;
   val kind = match (kind) {
-    | Immutable -> "Immutable"
-    | Mutable -> "Mutable"
+    | ast.Immutable -> "Immutable"
+    | ast.Mutable -> "Mutable"
   };
 
- return Node {
+  return Node {
     name: "VariableDeclaration",
     loc,
     fields: [
       ("kind", Raw (kind)),
-      ("pattern", nodeOfIdentifier(pattern)),
+      ("pattern", nodeOfScopedIdentifier(pattern)),
       ("init", nodeOfExpression(init)),
       ("annot", optional(annot, nodeOfType)),
     ],
  };
 }
+
+fun nodeOfTypeDeclaration(decl: ast.TypeDeclaration): PrintNode {
+  val ast.TypeDeclaration { loc, name, typeParams, decl } = decl;
+  val decl = match (decl) {
+    | ast.TDAlias (typeAlias) -> ("alias", nodeOfType(typeAlias))
+    | ast.TDTuple (tuple) -> ("tuple", nodeOfTupleDeclaration(tuple))
+    | ast.TDRecord (record) -> ("record", nodeOfRecordDeclaration(record))
+    | ast.TDVariant (variants) -> ("variants", List (variants.map(nodeOfVariantDeclaration)))
+    | ast.TDBuiltin -> ("builtin", Bool (true))
+  };
+
+  return Node {
+    name: "TypeDeclaration",
+    loc,
+    fields: [
+      ("name", nodeOfIdentifier(name)),
+      ("type_params", List (typeParams.map(nodeOfTypeParameter))),
+      decl,
+    ],
+ };
+}
+
+fun nodeOfTupleDeclaration(decl: ast.TupleDeclaration): PrintNode {
+  val ast.TupleDeclaration { loc, name, elements } = decl;
+  return Node {
+    name: "TupleVariant",
+    loc,
+    fields: [("name", nodeOfIdentifier(name)), ("elements", List (elements.map(nodeOfType)))],
+  };
+}
+
+fun nodeOfRecordDeclaration(decl: ast.RecordDeclaration): PrintNode {
+  val ast.RecordDeclaration { loc, name, fields } = decl;
+  return Node {
+    name: "RecordVariant",
+    loc,
+    fields: [
+      ("name", nodeOfIdentifier(name)),
+      ("fields", List (fields.map(nodeOfRecordDeclarationField))),
+    ],
+  };
+}
+
+fun nodeOfRecordDeclarationField(field: ast.RecordDeclarationField): PrintNode {
+  val ast.RecordDeclarationField { loc, name, ty } = field;
+  return Node {
+    name: "RecordVariantField",
+    loc,
+    fields: [("name", nodeOfIdentifier(name)), ("type", nodeOfType(ty))],
+  };
+}
+
+fun nodeOfVariantDeclaration(decl: ast.VariantDeclaration): PrintNode =
+  match (decl) {
+    | ast.EnumVariant (ident) -> nodeOfIdentifier(ident)
+    | ast.TupleVariant (tuple) -> nodeOfTupleDeclaration(tuple)
+    | ast.RecordVariant (record) -> nodeOfRecordDeclaration(record)
+  }
 
 fun nodeOfIdentifier(ident: ast.Identifier): PrintNode {
   val ast.Identifier { loc, name } = ident;
@@ -221,6 +280,10 @@ fun nodeOfStatement(stmt: ast.Statement): PrintNode =
     | ast.SBlock (s) -> nodeOfBlock(s)
     | ast.SExpression (s) -> nodeOfExpressionStatement(s)
     | ast.SVariableDeclaration (s) -> nodeOfVariableDeclaration(s)
+    | ast.SWhile (s) -> nodeOfWhile(s)
+    | ast.SReturn (s) -> nodeOfReturn(s)
+    | ast.SBreak (s) -> nodeOfBreak(s)
+    | ast.SContinue (s) -> nodeOfContinue(s)
   }
 
 fun nodeOfBlock(block: ast.Block): PrintNode {
@@ -242,10 +305,37 @@ fun nodeOfExpressionStatement(block: ast.ExpressionStatement): PrintNode {
   return Node { name: "ExpressionStatement", loc, fields };
 }
 
+fun nodeOfWhile(w: ast.While): PrintNode {
+  val ast.While { loc, test, body } = w;
+  return Node {
+    name: "While",
+    loc,
+    fields: [("test", nodeOfExpression(test)), ("body", nodeOfBlock(body))],
+  };
+}
+
+fun nodeOfReturn(r: ast.Return): PrintNode {
+  val ast.Return { loc, arg } = r;
+  return Node { name: "Return", loc, fields: [("arg", optional(arg, nodeOfExpression))] };
+}
+
+fun nodeOfBreak(b: ast.Break): PrintNode {
+  val ast.Break { loc } = b;
+  return Node { name: "Break", loc, fields: [] };
+}
+
+
+fun nodeOfContinue(b: ast.Continue): PrintNode {
+  val ast.Continue { loc } = b;
+  return Node { name: "Continue", loc, fields: [] };
+}
+
 fun nodeOfExpression(expr: ast.Expression): PrintNode =
   match (expr) {
     | ast.EUnitLiteral (e) -> nodeOfUnitLiteral(e)
     | ast.EIntLiteral (e) -> nodeOfIntLiteral(e)
+    | ast.EBoolLiteral (e) -> nodeOfBoolLiteral(e)
+    | ast.EStringLiteral (e) -> nodeOfStringLiteral(e)
     | ast.EIdentifier (e) -> nodeOfIdentifier(e)
     | ast.ETuple (e) -> nodeOfTupleExpression(e)
     | ast.ETypeCast (e) -> nodeOfTypeCast(e)
@@ -268,6 +358,16 @@ fun nodeOfIntLiteral(lit: ast.IntLiteral): PrintNode {
   return Node { name: "IntLiteral", loc, fields };
 }
 
+fun nodeOfBoolLiteral(lit: ast.BoolLiteral): PrintNode {
+  val ast.BoolLiteral { loc, value } = lit;
+  return Node { name: "BoolLiteral", loc, fields: [("value", Bool (value))] };
+}
+
+fun nodeOfStringLiteral(lit: ast.StringLiteral): PrintNode {
+  val ast.StringLiteral { loc, value } = lit;
+  return Node { name: "StringLiteral", loc, fields: [("value", String (value))] };
+}
+
 fun nodeOfTupleExpression(tuple: ast.TupleExpression): PrintNode {
   val ast.TupleExpression { loc, elements } = tuple;
   return Node {
@@ -288,8 +388,10 @@ fun nodeOfTypeCast(tuple: ast.TypeCast): PrintNode {
 
 fun nodeOfType(ty: ast.Type): PrintNode =
   match (ty) {
-    | ast.TIdentifier (ident) -> nodeOfIdentifierType(ident)
-    | ast.TTuple (tuple) -> nodeOfTupleType(tuple)
+    | ast.TIdentifier (t) -> nodeOfIdentifierType(t)
+    | ast.TTuple (t) -> nodeOfTupleType(t)
+    | ast.TFunction (t) -> nodeOfFunctionType(t)
+    | ast.TTrait (t) -> nodeOfTraitType(t)
   }
 
 fun nodeOfIdentifierType(ident: ast.IdentifierType): PrintNode {
@@ -307,4 +409,16 @@ fun nodeOfIdentifierType(ident: ast.IdentifierType): PrintNode {
 fun nodeOfTupleType(tuple: ast.TupleType): PrintNode {
   val ast.TupleType { loc, elements } = tuple;
   return Node { name: "TupleType", loc, fields: [("elements", List (elements.map(nodeOfType)))] };
+}
+
+fun nodeOfFunctionType(func: ast.FunctionType): PrintNode {
+  val ast.FunctionType { loc, params, return_ } = func;
+  return Node {
+    name: "FunctionType",
+    loc, fields: [("params", List (params.map(nodeOfType))), ("return", nodeOfType(return_))] };
+}
+
+fun nodeOfTraitType(trait_: ast.TraitType): PrintNode {
+  val ast.TraitType { loc, trait_ } = trait_;
+  return Node { name: "TraitType", loc, fields: [("trait", nodeOfIdentifierType(trait_))] };
 }

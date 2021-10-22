@@ -14,8 +14,9 @@ type ModuleName {
 }
 
 type Toplevel =
-  | ToplevelFunction (FunctionDeclaration)
-  | ToplevelVariable (VariableDeclaration)
+  | TLFunction (FunctionDeclaration)
+  | TLVariable (VariableDeclaration)
+  | TLType (TypeDeclaration)
 
 type Identifier {
   loc: Loc,
@@ -64,7 +65,7 @@ type TypeParameter {
 type VariableDeclaration {
   loc: Loc,
   kind: VariableDeclarationKind,
-  pattern: Identifier,
+  pattern: ScopedIdentifier,
   init: Expression,
   annot: Option<Type>,
 }
@@ -73,6 +74,43 @@ type VariableDeclarationKind =
   | Immutable
   | Mutable
 
+type TypeDeclaration {
+  loc: Loc,
+  name: Identifier,
+  typeParams: Vec<TypeParameter>,
+  decl: TypeDecl,
+}
+
+type TypeDecl =
+  | TDAlias (Type)
+  | TDTuple (TupleDeclaration)
+  | TDRecord (RecordDeclaration)
+  | TDVariant (Vec<VariantDeclaration>)
+  | TDBuiltin
+
+type TupleDeclaration {
+  loc: Loc,
+  name: Identifier,
+  elements: Vec<Type>,
+}
+
+type RecordDeclaration {
+  loc: Loc,
+  name: Identifier,
+  fields: Vec<RecordDeclarationField>,
+}
+
+type RecordDeclarationField {
+  loc: Loc,
+  name: Identifier,
+  ty: Type,
+}
+
+type VariantDeclaration =
+  | TupleVariant (TupleDeclaration)
+  | RecordVariant (RecordDeclaration)
+  | EnumVariant (Identifier)
+
 /*
  * Statements
  */
@@ -80,6 +118,10 @@ type Statement =
   | SBlock (Block)
   | SExpression (ExpressionStatement)
   | SVariableDeclaration (VariableDeclaration)
+  | SWhile (While)
+  | SReturn (Return)
+  | SBreak (Break)
+  | SContinue (Continue)
 
 type Block {
   loc: Loc,
@@ -92,6 +134,21 @@ type ExpressionStatement {
   isValue: Bool,
 }
 
+type While {
+  loc: Loc,
+  test: Expression,
+  body: Block,
+}
+
+type Return {
+  loc: Loc,
+  arg: Option<Expression>,
+}
+
+type Break { loc: Loc }
+
+type Continue { loc: Loc }
+
 /*
  * Expressions
  */
@@ -99,6 +156,8 @@ type ExpressionStatement {
 type Expression =
   | EUnitLiteral (UnitLiteral)
   | EIntLiteral (IntLiteral)
+  | EBoolLiteral (BoolLiteral)
+  | EStringLiteral (StringLiteral)
   | EIdentifier (Identifier)
   | ETuple (TupleExpression)
   | ETypeCast (TypeCast)
@@ -115,6 +174,16 @@ type IntLiteralBase =
   | Dec
   | Bin
   | Hex
+
+type BoolLiteral {
+  loc: Loc,
+  value: Bool,
+}
+
+type StringLiteral {
+  loc: Loc,
+  value: String,
+}
 
 type TupleExpression {
   loc: Loc,
@@ -134,6 +203,8 @@ type TypeCast {
 type Type =
   | TIdentifier (IdentifierType)
   | TTuple (TupleType)
+  | TFunction (FunctionType)
+  | TTrait (TraitType)
 
 type IdentifierType {
   loc: Loc,
@@ -144,4 +215,15 @@ type IdentifierType {
 type TupleType {
   loc: Loc,
   elements: Vec<Type>,
+}
+
+type FunctionType {
+  loc: Loc,
+  params: Vec<Type>,
+  return_: Type,
+}
+
+type TraitType {
+  loc: Loc,
+  trait_: IdentifierType,
 }

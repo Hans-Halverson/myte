@@ -14,7 +14,10 @@ fun parse(filename: String) {
       println(stripRoot(filename));
       println(printModule(mod));
     }
-    | Error (error) -> println(`${error}`)
+    | Error (error) -> {
+      println(stripRoot(filename));
+      println(`${error}`);
+    }
   }
 }
 

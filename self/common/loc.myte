@@ -34,11 +34,11 @@ methods Loc {
   override fun toString(): String =
     if (this.start.line == this.end.line) {
       if (this.start.column == this.end.column - 1) {
-        `${this.source}${this.start.line}:${this.start.column}`
+        `${this.source}:${this.start.line}:${this.start.column}`
       } else {
-        `${this.source}${this.start.line}:${this.start.column}-${this.end.column}`
+        `${this.source}:${this.start.line}:${this.start.column}-${this.end.column}`
       }
     } else {
-      `${this.source}${this.start.line}:${this.start.column}-${this.end.line}:${this.end.column}`
+      `${this.source}:${this.start.line}:${this.start.column}-${this.end.line}:${this.end.column}`
     }
 }
