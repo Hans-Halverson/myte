@@ -93,13 +93,13 @@ fun testReverse() {
 fun testSubstring() {
   assertEqual("".substring(0, 0), "");
   assertEqual("foo".substring(0, 0), "");
-  assertEqual("foo".substring(2, 0), "");
+  assertEqual("foo".substring(1, 1), "");
   assertEqual("foo".substring(0, 2), "fo");
   assertEqual("foo".substring(0, 3), "foo");
-  assertEqual("foo".substring(1, 1), "o");
-  assertEqual("foo".substring(1, 2), "oo");
-  assertEqual("foo".substring(2, 1), "o");
-  assertEqual("foo".substring(2, 0), "");
+  assertEqual("foo".substring(1, 2), "o");
+  assertEqual("foo".substring(1, 3), "oo");
+  assertEqual("foo".substring(2, 3), "o");
+  assertEqual("foo".substring(2, 2), "");
 }
 
 fun testRepeat() {

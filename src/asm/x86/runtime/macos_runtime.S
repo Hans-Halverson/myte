@@ -19,8 +19,10 @@ __myte_heap_start:
 _start:
   push %rdi
   push %rsi
+  push %rdx
   call __myte_runtime_init
   call _init
+  pop %rdx
   pop %rsi
   pop %rdi
   call std.sys.init

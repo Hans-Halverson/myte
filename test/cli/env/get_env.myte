@@ -1,0 +1,17 @@
+module test
+
+import std.io.println
+import std.sys.getEnv
+import std.test.fail
+
+fun main() {
+  match (getEnv("MYTE_TEST_COM_ARG_77")) {
+    | Some (value) -> println(value)
+    | None -> fail()
+  }
+
+  match (getEnv("MYTE_NONEXIST_ARG_92893")) {
+    | None -> println("Success")
+    | Some _ -> fail()
+  }
+}

@@ -1283,6 +1283,7 @@ and builtin_functions =
         (Std_lib.std_long_long_toByte, emit_std_long_long_toByte);
         (Std_lib.std_long_long_toInt, emit_std_long_long_toInt);
         (Std_lib.std_memory_array_copy, emit_std_memory_array_copy);
+        (Std_lib.std_memory_array_isNull, emit_std_memory_array_isNull);
         (Std_lib.std_memory_array_new, emit_std_memory_array_new);
         (Std_lib.std_io_file_builtin_close, emit_std_io_close);
         (Std_lib.std_io_file_builtin_open, emit_std_io_open);
@@ -1342,6 +1343,11 @@ and emit_std_memory_array_copy ~ecx arg_vals _ =
     Ecx.emit ~ecx Mir_builtin.(mk_call_builtin_no_return myte_copy [dest_ptr; src_ptr; count]);
     None
   | _ -> failwith "Array.copy expects five arguments"
+
+and emit_std_memory_array_isNull ~ecx arg_vals _ =
+  let var_id = mk_var_id () in
+  Ecx.emit ~ecx (Eq (var_id, cast_to_comparable_value (List.hd arg_vals), `LongL 0L));
+  Some (var_value_of_type var_id `BoolT)
 
 and emit_std_memory_array_new ~ecx arg_vals ret_type =
   match arg_vals with

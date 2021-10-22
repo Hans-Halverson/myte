@@ -106,6 +106,8 @@ let std_memory_array = "std.memory.Array"
 
 let std_memory_array_copy = "std.memory.Array.copy"
 
+let std_memory_array_isNull = "std.memory.Array.isNull"
+
 let std_memory_array_new = "std.memory.Array.new"
 
 let std_never_never = "std.never.Never"
@@ -173,6 +175,7 @@ let all_stdlib_names =
       std_map_map_reserve;
       std_memory_array;
       std_memory_array_copy;
+      std_memory_array_isNull;
       std_memory_array_new;
       std_never_never;
       std_ops_equatable;

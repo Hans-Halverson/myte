@@ -2,11 +2,15 @@ module std.sys
 
 import std.byte.Byte
 import std.int.Int
+import std.map.Map
 import std.memory.Array
 import std.never.Never
+import std.option.{None, Option, Some}
 import std.string.String
 import std.vec.Vec
 import std.unit.Unit
+
+import std.io.println
 
 builtin fun exit(code: Int): Never
 
@@ -16,11 +20,57 @@ fun abort(): Never {
 
 val args: Vec<String> = Vec.new()
 
+var envp: Array<Array<Byte>> = Array.new(0)
+
+var env: Option<Map<String, String>> = None
+
 /**
- * Convert `argc` and `argv` arguments to `main` to a vec of strings.
+ * Initialize with arguments from entrypoint. Command line arguments are built from `argc` and
+ * `argv`, and `env` pointer is saved so environment variables can be lazily filled.
  */
-fun init(argc: Int, argv: Array<Array<Byte>>) {
+fun init(argc: Int, argv: Array<Array<Byte>>, env: Array<Array<Byte>>) {
   for (i in 0.to(argc)) {
     args.push(String.fromCString(argv[i]));
   }
+
+  envp = env;
+}
+
+/**
+ * Return the environment variable associated with a given variable, or None if no environment
+ * variable with that key exists.
+ */
+fun getEnv(key: String): Option<String> {
+  // If env cache has been filled, check it for key
+  match (env) {
+    | Some (env) -> return env[key]
+    | None -> ()
+  }
+
+  // Otherwise build env cache
+  val envCache: Map<String, String> = {};
+  env = Some (envCache);
+
+  var i = 0;
+  while (!Array.isNull(envp[i])) {
+    val entry = String.fromCString(envp[i]);
+
+    // Find index of '=' in environment entry
+    var equalsIndex = 0;
+    for (i in 0.to(entry.size)) {
+      if (entry.get(i) == '=') {
+        equalsIndex = i;
+        break;
+      }
+    }
+
+    // Extract key and value and add to cache
+    val key = entry.substring(0, equalsIndex);
+    val value = entry.substring(equalsIndex + 1, entry.size);
+    envCache.add(key, value);
+
+    i += 1;
+  }
+
+  return envCache[key];
 }

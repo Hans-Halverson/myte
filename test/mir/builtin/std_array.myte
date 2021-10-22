@@ -1,0 +1,13 @@
+module test
+
+import std.memory.Array
+
+fun testIsNull(x: Array<Bool>) {
+  use(Array.isNull(x));
+}
+
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testIsNull);
+}

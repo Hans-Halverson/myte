@@ -82,11 +82,12 @@ methods String {
     this.size = newSize;
   }
 
-  fun substring(start: Int, size: Int): String {
-    if (start < 0 || size < 0 || start + size > this.size) {
+  fun substring(start: Int, end: Int): String {
+    if (start < 0 || end > this.size || end < start) {
       abort();
     }
 
+    val size = end - start;
     val string = String { data: Array.new(size), size, capacity: size };
     Array.copy(string.data, 0, this.data, start, size);
 

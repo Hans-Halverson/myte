@@ -21,6 +21,7 @@ _start:
   call _init
   mov (%rsp), %rdi
   lea 8(%rsp), %rsi
+  lea 16(%rsp), %rdx
   call std.sys.init
   call _main
   mov %eax, %edi

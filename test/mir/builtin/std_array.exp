@@ -1,0 +1,18 @@
+func void @test.testIsNull(bool* %0) {
+  %1 := Eq bool* %0, 0
+  Call void @test.use<Bool>(%1)
+  Ret
+}
+
+func void @test.use<Bool>(bool %2) {
+  Ret
+}
+
+func void @test.use<Function>(fn %3) {
+  Ret
+}
+
+func int @test.main() {
+  Call void @test.use<Function>(@test.testIsNull)
+  Ret 0
+}
