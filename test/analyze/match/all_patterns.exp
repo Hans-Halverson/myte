@@ -35,7 +35,7 @@ test/analyze/match/all_patterns.myte:23:10-25:3
  24 | |     | Tup1 (x | x) -> 1
     | | ^^^^^^^^^^^^^^^^^^^^^^^
  25 | |   };
-    | \ ^^^^
+    | \ ^^^
 
 Error: Unreachable pattern
 test/analyze/match/all_patterns.myte:24:16
@@ -49,7 +49,7 @@ test/analyze/match/all_patterns.myte:27:6-29:3
  28 | |     | Tup1 (x | x) -> 1
     | | ^^^^^^^^^^^^^^^^^^^^^^^
  29 | |   };
-    | \ ^^^^
+    | \ ^^^
 
 Error: Unreachable pattern
 test/analyze/match/all_patterns.myte:28:16

@@ -85,7 +85,7 @@ let print_last_line loc snippet =
   let max_num_digits = num_digits loc._end.line in
   let padded_line_num = pad_number loc._end.line max_num_digits in
   let line = List.nth_opt snippet (loc._end.line - loc.start.line) |> Option.value ~default:"" in
-  let padded_carets = String.make (loc._end.col + 1) '^' in
+  let padded_carets = String.make loc._end.col '^' in
   Printf.sprintf
     "%s%s|%s | %s%s"
     (style ~decorations:[Bold] ())

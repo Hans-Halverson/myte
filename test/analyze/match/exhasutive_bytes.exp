@@ -7,7 +7,7 @@ test/analyze/match/exhasutive_bytes.myte:4:2-7:3
  6 | |     | 1 -> ()
    | | ^^^^^^^^^^^^^
  7 | |   }
-   | \ ^^^^
+   | \ ^^^
 
 Error: Inexhaustive pattern matching. For example the pattern `-19` is not matched.
 test/analyze/match/exhasutive_bytes.myte:272:2-510:3
@@ -21,4 +21,4 @@ test/analyze/match/exhasutive_bytes.myte:272:2-510:3
  509 | |     | 127 -> ()
      | | ^^^^^^^^^^^^^^^
  510 | |   }
-     | \ ^^^^
+     | \ ^^^

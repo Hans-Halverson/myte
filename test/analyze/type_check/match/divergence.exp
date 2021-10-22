@@ -7,7 +7,7 @@ test/analyze/type_check/match/divergence.myte:46:13-49:5
  48 | |     } else {
     | | ^^^^^^^^^^^^
  49 | |     }
-    | \ ^^^^^^
+    | \ ^^^^^
 
 Error: Expected type `Int` but found `Unit`
 test/analyze/type_check/match/divergence.myte:50:11-53:5
@@ -18,7 +18,7 @@ test/analyze/type_check/match/divergence.myte:50:11-53:5
  52 | |       return;
     | | ^^^^^^^^^^^^^
  53 | |     }
-    | \ ^^^^^^
+    | \ ^^^^^
 
 Error: Expected type `Int` but found `Unit`
 test/analyze/type_check/match/divergence.myte:75:15-78:5
@@ -29,7 +29,7 @@ test/analyze/type_check/match/divergence.myte:75:15-78:5
  77 | |       2;
     | | ^^^^^^^^
  78 | |     }
-    | \ ^^^^^^
+    | \ ^^^^^
 
 Error: Expected type `Int` but found `Unit`
 test/analyze/type_check/match/divergence.myte:110:15-119:5
@@ -43,7 +43,7 @@ test/analyze/type_check/match/divergence.myte:110:15-119:5
  118 | |       }
      | | ^^^^^^^
  119 | |     }
-     | \ ^^^^^^
+     | \ ^^^^^
 
 Error: Expected type `Int` but found `Unit`
 test/analyze/type_check/match/divergence.myte:124:15-133:5
@@ -57,4 +57,4 @@ test/analyze/type_check/match/divergence.myte:124:15-133:5
  132 | |       | false -> return
      | | ^^^^^^^^^^^^^^^^^^^^^^^
  133 | |     }
-     | \ ^^^^^^
+     | \ ^^^^^

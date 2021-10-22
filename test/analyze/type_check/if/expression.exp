@@ -5,7 +5,7 @@ test/analyze/type_check/if/expression.myte:7:10-9:3
  8 | |     1
    | | ^^^^^
  9 | |   };
-   | \ ^^^^
+   | \ ^^^
 
 Error: If expression is missing an `else` block
 test/analyze/type_check/if/expression.myte:18:4-20:5
@@ -14,7 +14,7 @@ test/analyze/type_check/if/expression.myte:18:4-20:5
  19 | |       1
     | | ^^^^^^^
  20 | |     }
-    | \ ^^^^^^
+    | \ ^^^^^
 
 Error: If expression is missing an `else` block
 test/analyze/type_check/if/expression.myte:30:9-32:3
@@ -23,7 +23,7 @@ test/analyze/type_check/if/expression.myte:30:9-32:3
  31 | |     1
     | | ^^^^^
  32 | |   };
-    | \ ^^^^
+    | \ ^^^
 
 Error: If expression is missing an `else` block
 test/analyze/type_check/if/expression.myte:36:14-38:5
@@ -32,7 +32,7 @@ test/analyze/type_check/if/expression.myte:36:14-38:5
  37 | |       1
     | | ^^^^^^^
  38 | |     }
-    | \ ^^^^^^
+    | \ ^^^^^
 
 Error: If expression is missing an `else` block
 test/analyze/type_check/if/expression.myte:41:6-43:7
@@ -41,7 +41,7 @@ test/analyze/type_check/if/expression.myte:41:6-43:7
  42 | |         1
     | | ^^^^^^^^^
  43 | |       }
-    | \ ^^^^^^^^
+    | \ ^^^^^^^
 
 Error: Expected type `Bool` but found `T`
 test/analyze/type_check/if/expression.myte:52:7
@@ -87,7 +87,7 @@ test/analyze/type_check/if/expression.myte:101:9-104:3
  103 | |     1;
      | | ^^^^^^
  104 | |   };
-     | \ ^^^^
+     | \ ^^^
 
 Error: Expected type `Int` but found `Bool`
 test/analyze/type_check/if/expression.myte:112:11-115:5
@@ -98,7 +98,7 @@ test/analyze/type_check/if/expression.myte:112:11-115:5
  114 | |       true
      | | ^^^^^^^^^^
  115 | |     }
-     | \ ^^^^^^
+     | \ ^^^^^
 
 Error: Expected type `Int` but found `Bool`
 test/analyze/type_check/if/expression.myte:121:17-21

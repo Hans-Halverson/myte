@@ -9,7 +9,7 @@ test/analyze/match/exhaustive_variants.myte:23:2-27:3
  26 | |     // Missing enum case
     | | ^^^^^^^^^^^^^^^^^^^^^^^^
  27 | |   }
-    | \ ^^^^
+    | \ ^^^
 
 Error: Inexhaustive pattern matching. For example the pattern `Tuple1 _` is not matched.
 test/analyze/match/exhaustive_variants.myte:29:2-33:3
@@ -22,7 +22,7 @@ test/analyze/match/exhaustive_variants.myte:29:2-33:3
  32 | |     // Missing tuple case
     | | ^^^^^^^^^^^^^^^^^^^^^^^^^
  33 | |   }
-    | \ ^^^^
+    | \ ^^^
 
 Error: Inexhaustive pattern matching. For example the pattern `Record1 _` is not matched.
 test/analyze/match/exhaustive_variants.myte:35:2-39:3
@@ -35,7 +35,7 @@ test/analyze/match/exhaustive_variants.myte:35:2-39:3
  38 | |     // Missing record case
     | | ^^^^^^^^^^^^^^^^^^^^^^^^^^
  39 | |   }
-    | \ ^^^^
+    | \ ^^^
 
 Error: Inexhaustive pattern matching. For example the pattern `Record1 _ | Tuple1 _` is not matched.
 test/analyze/match/exhaustive_variants.myte:41:2-44:3
@@ -46,7 +46,7 @@ test/analyze/match/exhaustive_variants.myte:41:2-44:3
  43 | |     // Missing multiple cases
     | | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  44 | |   }
-    | \ ^^^^
+    | \ ^^^
 
 Error: Inexhaustive pattern matching. For example the pattern `Tuple1 (false, _)` is not matched.
 test/analyze/match/exhaustive_variants.myte:64:2-68:3
@@ -59,7 +59,7 @@ test/analyze/match/exhaustive_variants.myte:64:2-68:3
  67 | |     | Record1 _ -> ()
     | | ^^^^^^^^^^^^^^^^^^^^^
  68 | |   }
-    | \ ^^^^
+    | \ ^^^
 
 Error: Inexhaustive pattern matching. For example the pattern `Record1 { foo: false, ... }` is not matched.
 test/analyze/match/exhaustive_variants.myte:70:2-74:3
@@ -72,7 +72,7 @@ test/analyze/match/exhaustive_variants.myte:70:2-74:3
  73 | |     | Tuple1 _ -> ()
     | | ^^^^^^^^^^^^^^^^^^^^
  74 | |   }
-    | \ ^^^^
+    | \ ^^^
 
 Error: Inexhaustive pattern matching. For example the pattern `Record1 { bar: "*", foo: false }` is not matched.
 test/analyze/match/exhaustive_variants.myte:79:2-84:3
@@ -86,4 +86,4 @@ test/analyze/match/exhaustive_variants.myte:79:2-84:3
  83 | |     | Enum1 -> ()
     | | ^^^^^^^^^^^^^^^^^
  84 | |   }
-    | \ ^^^^
+    | \ ^^^

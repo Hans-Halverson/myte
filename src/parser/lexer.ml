@@ -121,8 +121,7 @@ let rec skip_line_comment lex =
     advance lex;
     skip_line_comment lex
 
-let skip_block_comment lex =
-  let start_pos = current_pos lex in
+let skip_block_comment lex start_pos =
   let rec iter () =
     match lex.current with
     | '*' when peek lex = '/' ->
@@ -456,8 +455,9 @@ let rec tokenize lex =
       skip_line_comment lex;
       tokenize lex
     | '*' ->
+      let start_pos = current_pos lex in
       advance_two lex;
-      (match skip_block_comment lex with
+      (match skip_block_comment lex start_pos with
       | Ok _ -> tokenize lex
       | Error err -> LexError (lex, err))
     | '=' ->

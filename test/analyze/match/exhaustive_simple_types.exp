@@ -5,7 +5,7 @@ test/analyze/match/exhaustive_simple_types.myte:36:2-38:3
  37 | |     | true -> ()
     | | ^^^^^^^^^^^^^^^^
  38 | |   }
-    | \ ^^^^
+    | \ ^^^
 
 Error: Inexhaustive pattern matching. For example the pattern `true` is not matched.
 test/analyze/match/exhaustive_simple_types.myte:40:2-42:3
@@ -14,7 +14,7 @@ test/analyze/match/exhaustive_simple_types.myte:40:2-42:3
  41 | |     | false -> ()
     | | ^^^^^^^^^^^^^^^^^
  42 | |   }
-    | \ ^^^^
+    | \ ^^^
 
 Error: Inexhaustive pattern matching. For example the pattern `""` is not matched.
 test/analyze/match/exhaustive_simple_types.myte:57:2-59:3
@@ -23,7 +23,7 @@ test/analyze/match/exhaustive_simple_types.myte:57:2-59:3
  58 | |     | "a" -> ()
     | | ^^^^^^^^^^^^^^^
  59 | |   }
-    | \ ^^^^
+    | \ ^^^
 
 Error: Inexhaustive pattern matching. For example the pattern `"*"` is not matched.
 test/analyze/match/exhaustive_simple_types.myte:61:2-63:3
@@ -32,7 +32,7 @@ test/analyze/match/exhaustive_simple_types.myte:61:2-63:3
  62 | |     | "" -> ()
     | | ^^^^^^^^^^^^^^
  63 | |   }
-    | \ ^^^^
+    | \ ^^^
 
 Error: Inexhaustive pattern matching. For example the pattern `"**"` is not matched.
 test/analyze/match/exhaustive_simple_types.myte:65:2-68:3
@@ -43,7 +43,7 @@ test/analyze/match/exhaustive_simple_types.myte:65:2-68:3
  67 | |     | "*" -> ()
     | | ^^^^^^^^^^^^^^^
  68 | |   }
-    | \ ^^^^
+    | \ ^^^
 
 Error: Inexhaustive pattern matching. For example the pattern `"***"` is not matched.
 test/analyze/match/exhaustive_simple_types.myte:70:2-74:3
@@ -56,7 +56,7 @@ test/analyze/match/exhaustive_simple_types.myte:70:2-74:3
  73 | |     | "**" -> ()
     | | ^^^^^^^^^^^^^^^^
  74 | |   }
-    | \ ^^^^
+    | \ ^^^
 
 Error: Inexhaustive pattern matching. For example the pattern `0` is not matched.
 test/analyze/match/exhaustive_simple_types.myte:89:2-91:3
@@ -65,7 +65,7 @@ test/analyze/match/exhaustive_simple_types.myte:89:2-91:3
  90 | |     | 1 -> ()
     | | ^^^^^^^^^^^^^
  91 | |   }
-    | \ ^^^^
+    | \ ^^^
 
 Error: Inexhaustive pattern matching. For example the pattern `1` is not matched.
 test/analyze/match/exhaustive_simple_types.myte:93:2-95:3
@@ -74,7 +74,7 @@ test/analyze/match/exhaustive_simple_types.myte:93:2-95:3
  94 | |     | 0 -> ()
     | | ^^^^^^^^^^^^^
  95 | |   }
-    | \ ^^^^
+    | \ ^^^
 
 Error: Inexhaustive pattern matching. For example the pattern `3` is not matched.
 test/analyze/match/exhaustive_simple_types.myte:97:2-101:3
@@ -87,7 +87,7 @@ test/analyze/match/exhaustive_simple_types.myte:97:2-101:3
  100 | |     | 2 -> ()
      | | ^^^^^^^^^^^^^
  101 | |   }
-     | \ ^^^^
+     | \ ^^^
 
 Error: Inexhaustive pattern matching. For example the pattern `0` is not matched.
 test/analyze/match/exhaustive_simple_types.myte:112:2-114:3
@@ -96,7 +96,7 @@ test/analyze/match/exhaustive_simple_types.myte:112:2-114:3
  113 | |     | 'a' -> ()
      | | ^^^^^^^^^^^^^^^
  114 | |   }
-     | \ ^^^^
+     | \ ^^^
 
 Error: Inexhaustive pattern matching. For example the pattern `0` is not matched.
 test/analyze/match/exhaustive_simple_types.myte:116:2-120:3
@@ -109,4 +109,4 @@ test/analyze/match/exhaustive_simple_types.myte:116:2-120:3
  119 | |     | '0' -> ()
      | | ^^^^^^^^^^^^^^^
  120 | |   }
-     | \ ^^^^
+     | \ ^^^

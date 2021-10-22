@@ -1,4 +1,4 @@
 Error: Unexpected <EOF>
-test/parser/comment/unterminated_block.myte:3:2-2
+test/parser/comment/unterminated_block.myte:3:0-2
  3 | /*
-   |   ^
+   | ^^
