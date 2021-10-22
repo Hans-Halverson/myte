@@ -1,0 +1,88 @@
+module myte.parse.token
+
+import std.ops.Equatable
+import std.string.ToString
+
+import myte.parse.ast
+
+type Token =
+  | Identifier (String)
+  | IntLiteral { raw: String, base: ast.IntLiteralBase }
+  | BoolLiteral (Bool)
+  | Plus
+  | Semicolon
+  | Colon
+  | Comma
+  | Period
+  | Ampersand
+  | LeftParen
+  | RightParen
+  | LeftBrace
+  | RightBrace
+  | LessThan
+  | GreaterThan
+  | Wildcard
+  | Val
+  | Var
+  | Fun
+  | Module
+  | Eof
+
+methods Token {
+  implements ToString
+
+  override fun toString(): String =
+    match (this) {
+      | Identifier (name) -> name
+      | BoolLiteral (bool) -> bool.toString()
+      | IntLiteral { raw, ... } -> raw
+      | Plus -> "+"
+      | Semicolon -> ";"
+      | Colon -> ":"
+      | Comma -> ","
+      | Period -> "."
+      | Ampersand -> "&"
+      | LeftParen -> "("
+      | RightParen -> ")"
+      | LeftBrace -> "{"
+      | RightBrace -> "}"
+      | LessThan -> "<"
+      | GreaterThan -> ">"
+      | Wildcard -> "_"
+      | Val -> "val"
+      | Var -> "var"
+      | Fun -> "fun"
+      | Module -> "module"
+      | Eof -> "<EOF>"
+    }
+}
+
+methods Token {
+  implements Equatable
+
+  override fun equals(other: Token): Bool =
+    match (this, other) {
+      | (Identifier _, Identifier _)
+      | (IntLiteral _, IntLiteral _)
+      | (BoolLiteral _, BoolLiteral _)
+      | (Plus, Plus)
+      | (Semicolon, Semicolon)
+      | (Colon, Colon)
+      | (Comma, Comma)
+      | (Period, Period)
+      | (Ampersand, Ampersand)
+      | (LeftParen, LeftParen)
+      | (RightParen, RightParen)
+      | (LeftBrace, LeftBrace)
+      | (RightBrace, RightBrace)
+      | (LessThan, LessThan)
+      | (GreaterThan, GreaterThan)
+      | (Wildcard, Wildcard)
+      | (Val, Val)
+      | (Var, Var)
+      | (Fun, Fun)
+      | (Module, Module)
+      | (Eof, Eof) -> true
+      | _ -> false
+    }
+}

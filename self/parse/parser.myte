@@ -1,0 +1,462 @@
+module myte.parse.parser
+
+import std.io.error.IOError
+import std.io.file.File
+import std.io.read.BufferedReader
+import std.sys.exit
+
+import myte.common.loc.{Loc, START_POS}
+import myte.parse.ast
+import myte.parse.error
+import myte.parse.error.{ParseError, fatal}
+import myte.parse.lexer.{ErrorResult, Lexer, TokenResult}
+import myte.parse.token
+import myte.parse.token.Token
+
+type Parser {
+  lexer: Lexer,
+  token: Token,
+  loc: Loc,
+  prevToken: Token,
+  prevLoc: Loc,
+}
+
+methods Parser {
+  static fun new(lexer: Lexer): Parser {
+    val TokenResult { token, loc } = match (lexer.next()) {
+      | Ok (result) -> result
+      | Error (ErrorResult { error, loc }) -> fatal(error, loc)
+    };
+
+    return Parser {
+      lexer,
+      token,
+      loc,
+      prevToken: token,
+      prevLoc: loc,
+    };
+  }
+
+  fun advance() {
+    val TokenResult { token, loc } = match (this.lexer.next()) {
+      | Ok (result) -> result
+      | Error (ErrorResult { error, loc }) -> fatal(error, loc)
+    };
+
+    val prevToken = this.token;
+    val prevLoc = this.loc;
+
+    this.token = token;
+    this.loc = loc;
+
+    this.prevToken = prevToken;
+    this.prevLoc = prevLoc;
+  }
+
+  fun expect(expected: Token) {
+    val actual = this.token;
+    if (!actual.equals(expected)) {
+      val error = error.UnexpectedToken { actual, expected: Some (expected) };
+      fatal(error, this.loc);
+    }
+
+    this.advance();
+  }
+
+  fun currentLoc(start: Loc): Loc = Loc.between(start, this.prevLoc)
+
+  fun parse(): ast.Module {
+    val name = this.parseModuleName();
+
+    val toplevels: Vec<ast.Toplevel> = [];
+    while (true) {
+      match (this.token) {
+        | token.Eof -> break
+        | _ -> toplevels.push(this.parseToplevel())
+      }
+    }
+
+    val startLoc = Loc { source: this.loc.source, start: START_POS, end: START_POS };
+    val loc = Loc.between(startLoc, this.loc);
+
+    return ast.Module { loc, name, toplevels };
+  }
+
+  fun parseModuleName(): ast.ModuleName {
+    val startLoc = this.loc;
+    this.expect(token.Module);
+
+    val name = this.parseScopedIdentifier();
+    val loc = this.currentLoc(startLoc);
+
+    return ast.ModuleName { loc, name };
+  }
+
+  fun parseToplevel(): ast.Toplevel {
+    match (this.token) {
+      | token.Fun -> {
+        val startLoc = this.loc;
+        return ast.ToplevelFunction (this.parseFunctionDeclaration(startLoc, false, false, false));
+      }
+      | token -> return fatal(error.MalformedToplevel { token }, this.loc)
+    }
+  }
+
+  fun parseIdentifier(): ast.Identifier {
+    match (this.token) {
+      | token.Identifier (name) -> {
+        val loc = this.loc;
+        this.advance();
+        return ast.Identifier { loc, name };
+      }
+      | actual -> {
+        val error = error.UnexpectedToken { actual, expected: Some (token.Identifier ("")) };
+        return fatal(error, this.loc);
+      }
+    }
+  }
+
+  fun parseScopedIdentifier(): ast.ScopedIdentifier {
+    val startLoc = this.loc;
+
+    val scopes: Vec<ast.Identifier> = [];
+    var name = this.parseIdentifier();
+
+    while (true) {
+      match (this.token) {
+        | token.Period -> {
+          this.advance();
+          scopes.push(name);
+          name = this.parseIdentifier();
+        }
+        | _ -> break
+      }
+    }
+
+    val loc = this.currentLoc(startLoc);
+
+    return ast.ScopedIdentifier { loc, scopes, name };
+  }
+
+  /* 
+   * ============================
+   *        Declarations
+   * ============================
+   */
+
+  fun parseFunctionDeclaration(
+    startLoc: Loc,
+    isBuiltin: Bool,
+    isStatic: Bool,
+    isOverride: Bool,
+  ): ast.FunctionDeclaration {
+    this.expect(token.Fun);
+
+    val name = this.parseIdentifier();
+    val typeParams = this.parseTypeParameters();
+
+    // Parse function parameters
+    val params: Vec<ast.FunctionParam> = [];
+    this.expect(token.LeftParen);
+
+    while (true) {
+      match (this.token) {
+        | token.RightParen -> {
+          this.advance();
+          break;
+        }
+        | _ -> {
+          val startLoc = this.loc;
+          val name = this.parseIdentifier();
+          this.expect(token.Colon);
+          val annot = this.parseType();
+
+          val loc = this.currentLoc(startLoc);
+          params.push(ast.FunctionParam { loc, name, annot });
+
+          match (this.token) {
+            | token.RightParen -> ()
+            | token.Comma -> this.advance()
+            | _ -> this.expect(token.RightParen)
+          }
+        }
+      }
+    }
+
+    // Parse optional return type
+    val ret = match (this.token) {
+      | token.Colon -> {
+        this.advance();
+        Some (this.parseType())
+      }
+      | _ -> None
+    };
+
+    // Parse function body
+    val body = match (this.token) {
+      | token.LeftBrace -> ast.FBBlock (this.parseBlock())
+      | token -> fatal(error.MalformedFunctionBody { token }, this.loc)
+    };
+
+    val loc = this.currentLoc(startLoc);
+
+    return ast.FunctionDeclaration
+      { loc, name, params, body, ret, typeParams, isBuiltin, isStatic, isOverride };
+  }
+
+  fun parseTypeParameters(): Vec<ast.TypeParameter> {
+    if (!this.token.equals(token.LessThan)) {
+      return [];
+    }
+
+    this.advance();
+
+    // List of type params must be nonempty
+    if (this.token.equals(token.GreaterThan)) {
+      this.expect(token.Identifier (""));
+      return [];
+    }
+
+    val typeParams: Vec<ast.TypeParameter> = [];
+    while (!this.token.equals(token.GreaterThan)) {
+      val startLoc = this.loc;
+      val name = this.parseIdentifier();
+
+      // Parse type parameter bounds if any are provided
+      val bounds = match (this.token) {
+        | token.Colon -> {
+          this.advance();
+
+          // Bounds are separated with a potentially trailing ampersand
+          val bounds = [this.parseIdentifierType()];
+          while (this.token.equals(token.Ampersand)) {
+            this.advance();
+            match (this.token) {
+              | token.Comma
+              | token.GreaterThan -> break
+              | _ -> bounds.push(this.parseIdentifierType())
+            }
+          }
+
+          bounds
+        }
+        | _ -> []
+      };
+
+      val loc = this.currentLoc(startLoc);
+      typeParams.push(ast.TypeParameter { loc, name, bounds });
+
+      match (this.token) {
+        | token.GreaterThan -> ()
+        | token.Comma -> this.advance()
+        | _ -> this.expect(token.GreaterThan)
+      }
+    }
+
+    return typeParams;
+  }
+
+  /* 
+   * ============================
+   *        Statements
+   * ============================
+   */
+
+  fun parseStatement(): ast.Statement {
+    return match (this.token) {
+      | token.LeftBrace -> ast.SBlock (this.parseBlock())
+      | _ -> this.parseAssignmentOrExpressionStatement()
+    };
+  }
+
+  fun parseBlock(): ast.Block {
+    val startLoc = this.loc;
+    this.expect(token.LeftBrace);
+
+    val statements: Vec<ast.Statement> = [];
+    while (!this.token.equals(token.RightBrace)) {
+      statements.push(this.parseStatement());
+    }
+
+    this.advance();
+    val loc = this.currentLoc(startLoc);
+
+    return ast.Block { loc, statements };
+  }
+
+  fun parseAssignmentOrExpressionStatement(): ast.Statement {
+    val startLoc = this.loc;
+    val expr = this.parseExpression();
+
+    // An expression statement must be terminated by a semicolon unless it is the last statement
+    // in a block, in which case it is the value of the block.
+    val isValue = if (this.token.equals(token.RightBrace)) {
+      true
+    } else {
+      this.expect(token.Semicolon);
+      false
+    };
+
+    val loc = this.currentLoc(startLoc);
+
+    return ast.SExpression (ast.ExpressionStatement { loc, expr, isValue });
+  }
+
+  /* 
+   * ============================
+   *        Expressions
+   * ============================
+   */
+
+  fun parseExpression(): ast.Expression {
+    return match (this.token) {
+      | token.Identifier _ -> ast.EIdentifier (this.parseIdentifier())
+      | token.LeftParen -> this.parseParenthesizedExpression()
+      | token.IntLiteral { raw, base } -> {
+        val loc = this.loc;
+        this.advance();
+        ast.EIntLiteral (ast.IntLiteral { loc, raw, base })
+      }
+      | actual -> fatal(error.UnexpectedToken { actual, expected: None }, this.loc)
+    };
+  }
+
+  fun parseParenthesizedExpression(): ast.Expression {
+    val startLoc = this.loc;
+    this.expect(token.LeftParen);
+
+    // A set of empty parens is a unit literal
+    if (this.token.equals(token.RightParen)) {
+      this.advance();
+      val loc = this.currentLoc(startLoc);
+
+      return ast.EUnitLiteral (ast.UnitLiteral { loc });
+    }
+
+    val expr = this.parseExpression();
+    return match (this.token) {
+      // A colon following an expression represents the start of a type cast `(expr: ty)`
+      | token.Colon -> {
+        this.advance();
+        val ty = this.parseType();
+        this.expect(token.RightParen);
+        val loc = this.currentLoc(startLoc);
+
+        ast.ETypeCast (ast.TypeCast { loc, expr, ty })
+      }
+      // A colon following an expression represents a tuple expression
+      | token.Comma -> {
+        val commaLoc = this.loc;
+        this.advance();
+
+        // Error if this would be parsed as a single element tuple with a trailing comma
+        if (this.token.equals(token.RightParen)) {
+          val error = error.UnexpectedToken {
+            actual: token.Comma,
+            expected: Some (token.RightParen),
+          };
+          fatal(error, commaLoc);
+        }
+
+        // Parse elements of tuple expression
+        val elements = [expr]; 
+        while (!this.token.equals(token.RightParen)) {
+          elements.push(this.parseExpression());
+          match (this.token) {
+            | token.RightParen -> ()
+            | token.Comma -> this.advance()
+            | _ -> this.expect(token.RightParen)
+          }
+        }
+
+        this.advance();
+        val loc = this.currentLoc(startLoc);
+
+        ast.ETuple (ast.TupleExpression { loc, elements })
+      }
+      // Otherwise this must be a single parenthesized expression
+      | _ -> {
+        this.expect(token.RightParen);
+        expr
+      }
+    };
+  }
+
+  /* 
+   * ============================
+   *           Types
+   * ============================
+   */
+
+  fun parseType(): ast.Type {
+    return match(this.token) {
+      | token.Identifier _ -> ast.TIdentifier (this.parseIdentifierType())
+      | token -> fatal(error.MalformedType { token }, this.loc)
+    };
+  }
+
+  fun parseIdentifierType(): ast.IdentifierType {
+    val startLoc = this.loc;
+    val name = this.parseScopedIdentifier();
+    val typeArgs = this.parseTypeArgs();
+    val loc = this.currentLoc(startLoc);
+
+    return ast.IdentifierType { loc, name, typeArgs };
+  }
+
+  fun parseTypeArgs(): Vec<ast.Type> {
+    if (!this.token.equals(token.LessThan)) {
+      return [];
+    }
+
+    this.advance();
+
+    // List of type args must be nonempty
+    if (this.token.equals(token.GreaterThan)) {
+      this.expect(token.Identifier (""));
+    }
+
+    val typeArgs: Vec<ast.Type> = [];
+    while (true) {
+      match (this.token) {
+        | token.GreaterThan -> {
+          this.advance();
+          break;
+        }
+        | _ -> {
+          typeArgs.push(this.parseType());
+
+          match (this.token) {
+            | token.GreaterThan -> ()
+            | token.Comma -> this.advance()
+            | _ -> this.expect(token.GreaterThan)
+          }
+        }
+      }
+    }
+
+    return typeArgs;
+  }
+}
+
+fun parseFile(filename: String): Result<ast.Module, ParseError> {
+  val contents = match (readFileContents(filename)) {
+    | Ok (contents) -> contents
+    | Error _ -> return Error (error.CannotOpenFile { filename })
+  };
+
+  val lexer = Lexer.new(filename, contents);
+  val parser = Parser.new(lexer);
+  val mod = parser.parse();
+
+  return Ok (mod);
+}
+
+fun readFileContents(filename: String): Result<String, IOError> {
+  val file = File.open(filename)?;
+  val reader = BufferedReader.new(file);
+  val contents = reader.readToString()?;
+  file.close()?;
+
+  return Ok (contents);
+}

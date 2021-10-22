@@ -1,0 +1,233 @@
+module myte.parse.lexer
+
+import myte.common.loc.{Loc, Pos}
+import myte.parse.ast
+import myte.parse.error.{ParseError, UnknownToken}
+import myte.parse.token
+import myte.parse.token.Token
+
+import std.io.println
+
+type Lexer {
+  // All bytes to tokenize
+  bytes: String,
+  // Name of source file that is being tokenized
+  source: String,
+  // Current byte
+  current: LexByte,
+  // Offset of current byte in bytes
+  currentOffset: Int,
+  // Line number of current byte
+  currentLine: Int,
+  // Offset of current line in bytes
+  currentLineOffset: Int,
+  // Position of the start of the current token
+  currentTokenStartPos: Pos,
+}
+
+type TokenResult {
+  loc: Loc,
+  token: Token,
+}
+
+type ErrorResult {
+  loc: Loc,
+  error: ParseError,
+}
+
+// Bytes in the lexer are stored as a full Int to support sigil values outside the Byte range
+type alias LexByte = Int
+
+// A number outside the byte range to signal EOF has been reached
+val EOF: LexByte = 128
+
+methods Lexer {
+  static fun new(source: String, bytes: String): Lexer {
+    val current = if (bytes.size > 0) {
+      bytes.get(0).toInt()
+    } else {
+      EOF
+    };
+
+    return Lexer {
+      bytes,
+      source,
+      current,
+      currentOffset: 0,
+      currentLine: 1,
+      currentLineOffset: 0,
+      currentTokenStartPos: Pos {
+        line: 1,
+        column: 0,
+      },
+    };
+  }
+
+  /*
+   * Advance the lexer one byte.
+   */
+  fun advance() {
+    // If current byte is a new line character, next byte will be on a new line
+    if (this.current == '\n') {
+      this.currentLine += 1;
+      this.currentLineOffset = this.currentOffset + 1;
+    }
+
+    // Only move to next byte if not already at end
+    val nextOffset = this.currentOffset + 1;
+    if (nextOffset < this.bytes.size) {
+      this.current = this.bytes.get(nextOffset).toInt();
+      this.currentOffset = nextOffset;
+    } else {
+      this.current = EOF;
+      this.currentOffset = this.bytes.size;
+    }
+  }
+
+  /*
+   * Return the next byte if not at end of source.
+   */
+  fun peek(): LexByte {
+    val nextOffset = this.currentOffset + 1;
+    return if (nextOffset < this.bytes.size) {
+      this.bytes.get(nextOffset).toInt()
+    } else {
+      EOF
+    };
+  }
+
+  fun getCurrentPosition(): Pos =
+    Pos { line: this.currentLine, column: this.currentOffset - this.currentLineOffset }
+  
+  fun tokenResult(token: Token): Result<TokenResult, ErrorResult> {
+    val loc = Loc {
+      source: this.source,
+      start: this.currentTokenStartPos,
+      end: this.getCurrentPosition(),
+    };
+
+    return Ok (TokenResult { loc, token });
+  }
+
+  /*
+   * Return the next token in the source, or an error if an error was encountered.
+   */
+  fun next(): Result<TokenResult, ErrorResult> {
+    // Skip over all whitespace before token
+    while (true) {
+      match (this.current) {
+        | ' '
+        | '\n'
+        | '\r'
+        | '\t' -> this.advance()
+        | _ -> break
+      }
+    }
+
+    // Save the current position
+    this.currentTokenStartPos = this.getCurrentPosition();
+
+    // Check if first character is for an identifier or keyword
+    val current = this.current;
+    if (('a' <= current && current <= 'z') ||
+        ('A' <= current && current <= 'Z') ||
+        (current == '_')) {
+      return this.tokenResult(this.parseIdentifierOrKeyword());
+    } else if ('0' <= current && current <= '9') {
+      return this.tokenResult(this.parseNumberDec());
+    }
+
+    return match (current) {
+      | '+' -> {
+        this.advance();
+        this.tokenResult(token.Plus)
+      }
+      | ';' -> {
+        this.advance();
+        this.tokenResult(token.Semicolon)
+      }
+      | ':' -> {
+        this.advance();
+        this.tokenResult(token.Colon)
+      }
+      | ',' -> {
+        this.advance();
+        this.tokenResult(token.Comma)
+      }
+      | '.' -> {
+        this.advance();
+        this.tokenResult(token.Period)
+      }
+      | '(' -> {
+        this.advance();
+        this.tokenResult(token.LeftParen)
+      }
+      | ')' -> {
+        this.advance();
+        this.tokenResult(token.RightParen)
+      }
+      | '{' -> {
+        this.advance();
+        this.tokenResult(token.LeftBrace)
+      }
+      | '}' -> {
+        this.advance();
+        this.tokenResult(token.RightBrace)
+      }
+      | current when current == EOF -> this.tokenResult(token.Eof)
+      // Error on unkown token
+      | other -> {
+        this.advance();
+        val loc = Loc {
+          source: this.source,
+          start: this.currentTokenStartPos,
+          end: this.getCurrentPosition(),
+        };
+
+        val raw = "";
+        raw.push(other.toByte());
+
+        Error (ErrorResult { error: UnknownToken { raw }, loc })
+      }
+    };
+  }
+
+  fun parseIdentifierOrKeyword(): Token {
+    val raw = "";
+    var current = this.current;
+
+    // Collect all characters in identifier
+    while (('a' <= current && current <= 'z') ||
+           ('A' <= current && current <= 'Z') ||
+           ('0' <= current && current <= '9') ||
+           (current == '_')) {
+      raw.push(current.toByte());
+
+      this.advance();
+      current = this.current;
+    }
+
+    // Check if this is a keyword or identifier
+    return match (raw) {
+      | "_" -> token.Wildcard
+      | "true" -> token.BoolLiteral (true)
+      | "false" -> token.BoolLiteral (false)
+      | "val" -> token.Val
+      | "var" -> token.Var
+      | "fun" -> token.Fun
+      | "module" -> token.Module
+      | _ -> token.Identifier (raw)
+    };
+  }
+
+  fun parseNumberDec(): Token {
+    val startOffset = this.currentOffset;
+    while ('0' <= this.current && this.current <= '9') {
+      this.advance();
+    }
+
+    val raw = this.bytes.substring(startOffset, this.currentOffset);
+
+    return token.IntLiteral { raw, base: ast.Dec };
+  }
+}

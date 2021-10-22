@@ -1,0 +1,310 @@
+module myte.parse.printer
+
+import myte.common.loc.Loc
+import myte.parse.ast
+
+type PrintNode =
+  | Empty
+  | Int (Int)
+  | String (String)
+  | Bool (Bool)
+  | Raw (String)
+  | List (Vec<PrintNode>)
+  | Node {
+    name: String,
+    loc: Loc,
+    fields: Vec<(String, PrintNode)>
+  }
+
+type Printer {
+  builder: String,
+  indent: Int,
+}
+
+methods Printer {
+  static fun new(): Printer = Printer { builder: "", indent: 0 }
+
+  fun addChar(byte: Byte) {
+    this.builder.push(byte);
+  }
+
+  fun addString(string: String) {
+    this.builder.append(string);
+  }
+
+  fun addLoc(loc: Loc) {
+    this.addString(`${loc.start.line}:${loc.start.column}-${loc.end.line}:${loc.end.column}`);
+  }
+
+  fun addIndent() {
+    this.addString(String.repeat("  ", this.indent));
+  }
+
+  fun visitNode(node: PrintNode) {
+    match (node) {
+      | Empty -> this.addString("None")
+      | Int (int) -> this.addString(int.toString())
+      | String (string) -> {
+        this.addChar('"');
+        this.addString(string);
+        this.addChar('"');
+      }
+      | Bool (bool) -> this.addString(bool.toString())
+      | Raw (raw) -> this.addString(raw)
+      | List (nodes) -> {
+        if (nodes.size == 0) {
+          this.addString("[]");
+        } else {
+          this.addString("[\n");
+          this.indent += 1;
+
+          for (node in nodes) {
+            this.addIndent();
+            this.visitNode(node);
+            this.addString(",\n");
+          }
+
+          this.indent -= 1;
+          this.addIndent();
+          this.addChar(']');
+        }
+      }
+      | Node { name, loc, fields } -> {
+        this.addString("{\n");
+        this.indent += 1;
+
+        // Add node type
+        this.addIndent();
+        this.addString("node: ");
+        this.addString(name);
+        this.addString(",\n");
+
+        // Add loc
+        this.addIndent();
+        this.addString("loc: ");
+        this.addLoc(loc);
+        this.addString(",\n");
+
+        // Add fields
+        for ((name, node) in fields) {
+          this.addIndent();
+          this.addString(name);
+          this.addString(": ");
+          this.visitNode(node);
+          this.addString(",\n");
+        }
+
+        this.indent -= 1;
+        this.addIndent();
+        this.addChar('}');
+      }
+    }
+  }
+}
+
+fun optional<T>(x: Option<T>, f: (T) -> PrintNode): PrintNode =
+  match (x) {
+    | None -> Empty
+    | Some (x) -> f(x)
+  }
+
+fun printModule(mod: ast.Module): String {
+  val node = nodeOfModule(mod);
+  val printer = Printer.new();
+  printer.visitNode(node);
+
+  return printer.builder;
+}
+
+fun nodeOfModule(mod: ast.Module): PrintNode {
+  val ast.Module { loc, name, toplevels } = mod;
+  return Node {
+    name: "Module",
+    loc,
+    fields: [
+      ("name", nodeOfModuleName(name)),
+      ("imports", List ([])),
+      ("toplevels", List (toplevels.map(nodeOfToplevel))),
+    ],
+  };
+}
+
+fun nodeOfModuleName(name: ast.ModuleName): PrintNode {
+  val ast.ModuleName { loc, name } = name;
+  return Node { name: "ModuleName", loc, fields: [("name", nodeOfScopedIdentifier(name))] };
+}
+
+fun nodeOfToplevel(toplevel: ast.Toplevel): PrintNode =
+  match (toplevel) {
+    | ast.ToplevelFunction (t) -> nodeOfFunctionDeclaration(t)
+    | ast.ToplevelVariable (t) -> nodeOfVariableDeclaration(t)
+  }
+
+fun nodeOfFunctionDeclaration(decl: ast.FunctionDeclaration): PrintNode {
+  val ast.FunctionDeclaration
+    { loc, name, params, body, ret, typeParams, isBuiltin, isStatic, isOverride } = decl;
+  val body = match (body) {
+    | ast.FBBlock (block) -> nodeOfBlock(block)
+    | ast.FBExpression (expr) -> nodeOfExpression(expr)
+    | ast.FBSignature -> Empty
+  };
+  
+  return Node {
+    name: "Function",
+    loc,
+    fields: [
+      ("name", nodeOfIdentifier(name)),
+      ("params", List (params.map(nodeOfFunctionParam))),
+      ("body", body),
+      ("return", optional(ret, nodeOfType)),
+      ("type_params", List (typeParams.map(nodeOfTypeParameter))),
+      ("builtin", Bool (isBuiltin)),
+      ("static", Bool (isStatic)),
+      ("override", Bool (isOverride)),
+    ]
+  };
+}
+
+fun nodeOfFunctionParam(param: ast.FunctionParam): PrintNode {
+  val ast.FunctionParam { loc, name, annot } = param;
+  return Node {
+    name: "Param",
+    loc,
+    fields: [("name", nodeOfIdentifier(name)), ("annot", nodeOfType(annot))],
+  };
+}
+
+fun nodeOfTypeParameter(param: ast.TypeParameter): PrintNode {
+  val ast.TypeParameter { loc, name, bounds } = param;
+  return Node {
+    name: "TypeParameter",
+    loc,
+    fields: [("name", nodeOfIdentifier(name)), ("bounds", List (bounds.map(nodeOfIdentifierType)))],
+  };
+}
+
+fun nodeOfVariableDeclaration(decl: ast.VariableDeclaration): PrintNode {
+  val ast.VariableDeclaration { loc, kind, pattern, init, annot } = decl;
+  val kind = match (kind) {
+    | Immutable -> "Immutable"
+    | Mutable -> "Mutable"
+  };
+
+ return Node {
+    name: "VariableDeclaration",
+    loc,
+    fields: [
+      ("kind", Raw (kind)),
+      ("pattern", nodeOfIdentifier(pattern)),
+      ("init", nodeOfExpression(init)),
+      ("annot", optional(annot, nodeOfType)),
+    ],
+ };
+}
+
+fun nodeOfIdentifier(ident: ast.Identifier): PrintNode {
+  val ast.Identifier { loc, name } = ident;
+  return Node { name: "Identifier", loc, fields: [("name", String (name))] };
+}
+
+fun nodeOfScopedIdentifier(ident: ast.ScopedIdentifier): PrintNode {
+  val ast.ScopedIdentifier { loc, scopes, name } = ident;
+  return Node {
+    name: "ScopedIdentifier",
+    loc,
+    fields: [("scopes", List (scopes.map(nodeOfIdentifier))), ("name", nodeOfIdentifier(name))],
+  };
+}
+
+fun nodeOfStatement(stmt: ast.Statement): PrintNode =
+  match (stmt) {
+    | ast.SBlock (s) -> nodeOfBlock(s)
+    | ast.SExpression (s) -> nodeOfExpressionStatement(s)
+    | ast.SVariableDeclaration (s) -> nodeOfVariableDeclaration(s)
+  }
+
+fun nodeOfBlock(block: ast.Block): PrintNode {
+  val ast.Block { loc, statements } = block;
+  return Node {
+    name: "Block",
+    loc,
+    fields: [("statements", List (statements.map(nodeOfStatement)))],
+  };
+}
+
+fun nodeOfExpressionStatement(block: ast.ExpressionStatement): PrintNode {
+  val ast.ExpressionStatement { loc, expr, isValue } = block;
+  val fields = [("expression", nodeOfExpression(expr))];
+  if (isValue) {
+    fields.push(("is_value", Bool (true)));
+  }
+
+  return Node { name: "ExpressionStatement", loc, fields };
+}
+
+fun nodeOfExpression(expr: ast.Expression): PrintNode =
+  match (expr) {
+    | ast.EUnitLiteral (e) -> nodeOfUnitLiteral(e)
+    | ast.EIntLiteral (e) -> nodeOfIntLiteral(e)
+    | ast.EIdentifier (e) -> nodeOfIdentifier(e)
+    | ast.ETuple (e) -> nodeOfTupleExpression(e)
+    | ast.ETypeCast (e) -> nodeOfTypeCast(e)
+  }
+
+fun nodeOfUnitLiteral(lit: ast.UnitLiteral): PrintNode {
+  val ast.UnitLiteral { loc } = lit;
+  return Node { name: "Unit", loc, fields: [] };
+}
+
+fun nodeOfIntLiteral(lit: ast.IntLiteral): PrintNode {
+  val ast.IntLiteral { loc, raw, base } = lit;
+  val fields = [("raw", String (raw))];
+  match (base) {
+    | ast.Dec -> ()
+    | ast.Bin -> fields.push(("base", String ("Bin")))
+    | ast.Hex -> fields.push(("base", String ("Hex")))
+  }
+
+  return Node { name: "IntLiteral", loc, fields };
+}
+
+fun nodeOfTupleExpression(tuple: ast.TupleExpression): PrintNode {
+  val ast.TupleExpression { loc, elements } = tuple;
+  return Node {
+    name: "TupleExpression",
+    loc,
+    fields: [("elements", List (elements.map(nodeOfExpression)))],
+  };
+}
+
+fun nodeOfTypeCast(tuple: ast.TypeCast): PrintNode {
+  val ast.TypeCast { loc, expr, ty } = tuple;
+  return Node {
+    name: "TypeCast",
+    loc,
+    fields: [("expr", nodeOfExpression(expr)), ("type", nodeOfType(ty))],
+  };
+}
+
+fun nodeOfType(ty: ast.Type): PrintNode =
+  match (ty) {
+    | ast.TIdentifier (ident) -> nodeOfIdentifierType(ident)
+    | ast.TTuple (tuple) -> nodeOfTupleType(tuple)
+  }
+
+fun nodeOfIdentifierType(ident: ast.IdentifierType): PrintNode {
+  val ast.IdentifierType { loc, name, typeArgs } = ident;
+  return Node {
+    name: "IdentifierType",
+    loc,
+    fields: [
+      ("name", nodeOfScopedIdentifier(name)),
+      ("type_args", List (typeArgs.map(nodeOfType))),
+    ],
+  };
+}
+
+fun nodeOfTupleType(tuple: ast.TupleType): PrintNode {
+  val ast.TupleType { loc, elements } = tuple;
+  return Node { name: "TupleType", loc, fields: [("elements", List (elements.map(nodeOfType)))] };
+}

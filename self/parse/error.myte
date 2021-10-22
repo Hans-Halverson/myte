@@ -1,0 +1,45 @@
+module myte.parse.error
+
+import std.io.println
+import std.string.ToString
+import std.sys.exit
+
+import myte.common.loc.Loc
+import myte.parse.token
+import myte.parse.token.Token
+
+type ParseError =
+  | UnknownToken { raw: String }
+  | UnexpectedToken { actual: Token, expected: Option<Token> }
+  | UnterminatedStringLiteral
+  | MalformedToplevel { token: Token }
+  | MalformedFunctionBody { token: Token }
+  | MalformedType { token: Token }
+  | CannotOpenFile { filename: String }
+
+fun fatal(error: ParseError, loc: Loc): Never {
+  println(`Error: ${error}\n${loc}`);
+  exit(1);
+}
+
+methods ParseError {
+  implements ToString
+
+  override fun toString(): String =
+    match (this) {
+      | UnknownToken { raw } -> `Unexpected token \`${raw}\``
+      | UnexpectedToken { actual: token.Eof, expected: None } -> "Unexpected <EOF>"
+      | UnexpectedToken { actual, expected: None } -> `Unexpected token \`${actual}\``
+      | UnexpectedToken { actual, expected: Some (token.Identifier _) } ->
+        `Unexpected token \`${actual}\`, expected identifier`
+      | UnexpectedToken { actual, expected: Some (expected) } ->
+        `Unexpected token \`${actual}\`, expected \`${expected}\``
+      | UnterminatedStringLiteral -> "Unterminated string literal"
+      | MalformedToplevel { token } ->
+        `Unexpected token \`${token}\`, expected start of top level declaration`
+      | MalformedFunctionBody { token } ->
+        `Unexpected token \`${token}\`, expected expected start of function body`
+      | MalformedType { token } -> `Unexpected token \`${token}\`, expected start of type`
+      | CannotOpenFile { filename } -> `Cannot open file ${filename}`
+    }
+}

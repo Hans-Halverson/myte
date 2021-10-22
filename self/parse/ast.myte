@@ -1,0 +1,147 @@
+module myte.parse.ast
+
+import myte.common.loc.Loc
+
+type Module {
+  loc: Loc,
+  name: ModuleName,
+  toplevels: Vec<Toplevel>,
+}
+
+type ModuleName {
+  loc: Loc,
+  name: ScopedIdentifier,
+}
+
+type Toplevel =
+  | ToplevelFunction (FunctionDeclaration)
+  | ToplevelVariable (VariableDeclaration)
+
+type Identifier {
+  loc: Loc,
+  name: String,
+}
+
+type ScopedIdentifier {
+  loc: Loc,
+  scopes: Vec<Identifier>,
+  name: Identifier,
+}
+
+/*
+ * Declarations
+ */
+
+type FunctionDeclaration {
+  loc: Loc,
+  name: Identifier,
+  params: Vec<FunctionParam>,
+  body: FunctionBody,
+  ret: Option<Type>,
+  typeParams: Vec<TypeParameter>,
+  isBuiltin: Bool,
+  isStatic: Bool,
+  isOverride: Bool,
+}
+
+type FunctionParam {
+  loc: Loc,
+  name: Identifier,
+  annot: Type,
+}
+
+type FunctionBody =
+  | FBBlock (Block)
+  | FBExpression (Expression)
+  | FBSignature
+
+type TypeParameter {
+  loc: Loc,
+  name: Identifier,
+  bounds: Vec<IdentifierType>,
+}
+
+type VariableDeclaration {
+  loc: Loc,
+  kind: VariableDeclarationKind,
+  pattern: Identifier,
+  init: Expression,
+  annot: Option<Type>,
+}
+
+type VariableDeclarationKind =
+  | Immutable
+  | Mutable
+
+/*
+ * Statements
+ */
+type Statement =
+  | SBlock (Block)
+  | SExpression (ExpressionStatement)
+  | SVariableDeclaration (VariableDeclaration)
+
+type Block {
+  loc: Loc,
+  statements: Vec<Statement>,
+}
+
+type ExpressionStatement {
+  loc: Loc,
+  expr: Expression,
+  isValue: Bool,
+}
+
+/*
+ * Expressions
+ */
+
+type Expression =
+  | EUnitLiteral (UnitLiteral)
+  | EIntLiteral (IntLiteral)
+  | EIdentifier (Identifier)
+  | ETuple (TupleExpression)
+  | ETypeCast (TypeCast)
+
+type UnitLiteral { loc: Loc }
+
+type IntLiteral {
+  loc: Loc,
+  raw: String,
+  base: IntLiteralBase,
+}
+
+type IntLiteralBase =
+  | Dec
+  | Bin
+  | Hex
+
+type TupleExpression {
+  loc: Loc,
+  elements: Vec<Expression>,
+}
+
+type TypeCast {
+  loc: Loc,
+  expr: Expression,
+  ty: Type,
+}
+
+/*
+ * Types
+ */
+
+type Type =
+  | TIdentifier (IdentifierType)
+  | TTuple (TupleType)
+
+type IdentifierType {
+  loc: Loc,
+  name: ScopedIdentifier,
+  typeArgs: Vec<Type>,
+}
+
+type TupleType {
+  loc: Loc,
+  elements: Vec<Type>,
+}

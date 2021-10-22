@@ -1,0 +1,44 @@
+module myte.common.loc
+
+import std.string.ToString
+
+// A range of bytes in a source file.
+type Loc {
+  // Name of source file.
+  source: String,
+  // The starting position of the range.
+  start: Pos,
+  // The ending position of the range. Locations are half open so this is one past the last
+  // position included in the location.
+  end: Pos,
+}
+
+// A single byte position in a source file.
+type Pos {
+  // The line number, starting at 1
+  line: Int,
+  // The column number within the given line, starting at 0
+  column: Int,
+}
+
+val START_POS: Pos = Pos { line: 1, column: 0 }
+
+methods Loc {
+  static fun between(start: Loc, end: Loc): Loc =
+    Loc { source: start.source, start: start.start, end: end.end }
+}
+
+methods Loc {
+  implements ToString
+
+  override fun toString(): String =
+    if (this.start.line == this.end.line) {
+      if (this.start.column == this.end.column - 1) {
+        `${this.source}${this.start.line}:${this.start.column}`
+      } else {
+        `${this.source}${this.start.line}:${this.start.column}-${this.end.column}`
+      }
+    } else {
+      `${this.source}${this.start.line}:${this.start.column}-${this.end.line}:${this.end.column}`
+    }
+}

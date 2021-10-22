@@ -1,0 +1,33 @@
+module myte.common.files
+
+import std.sys.getEnv
+
+import std.io.println
+
+var currentDirectory: String = ""
+
+fun getCurrentDirectory(): String {
+  // Fetch current directory from environment if it has not yet been fetched
+  if (currentDirectory.size == 0) {
+    match (getEnv("PWD")) {
+      | Some (directory) -> {
+        currentDirectory = directory;
+      }
+      | None -> ()
+    }
+  }
+
+  return currentDirectory;
+}
+
+fun stripRoot(path: String): String {
+  val root = getCurrentDirectory();
+
+  if (path.size < root.size + 1 ||
+      path.substring(0, root.size) != root ||
+      path.get(root.size) != '/') {
+    return path;
+  }
+
+  return path.substring(root.size + 1, path.size);
+}
