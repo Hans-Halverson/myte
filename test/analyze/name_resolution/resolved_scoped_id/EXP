@@ -38,7 +38,7 @@ test/analyze/name_resolution/resolved_scoped_id/a1.myte
         fields: [
           {
             node: RecordVariantField,
-            loc: 3:5-3:21,
+            loc: 3:11-3:21,
             name: {
               node: Identifier,
               loc: 3:11-3:16,
@@ -62,7 +62,7 @@ test/analyze/name_resolution/resolved_scoped_id/a1.myte
           },
           {
             node: RecordVariantField,
-            loc: 3:5-3:35,
+            loc: 3:23-3:35,
             name: {
               node: Identifier,
               loc: 3:23-3:29,
@@ -107,7 +107,7 @@ test/analyze/name_resolution/resolved_scoped_id/a1.myte
         fields: [
           {
             node: RecordVariantField,
-            loc: 4:5-4:23,
+            loc: 4:12-4:23,
             name: {
               node: Identifier,
               loc: 4:12-4:18,
@@ -309,7 +309,7 @@ test/analyze/name_resolution/resolved_scoped_id/a1.myte
           fields: [
             {
               node: RecordVariantField,
-              loc: 13:4-13:30,
+              loc: 13:20-13:30,
               name: {
                 node: Identifier,
                 loc: 13:20-13:25,
@@ -384,7 +384,7 @@ test/analyze/name_resolution/resolved_scoped_id/a2.myte
         fields: [
           {
             node: RecordVariantField,
-            loc: 3:5-3:21,
+            loc: 3:11-3:21,
             name: {
               node: Identifier,
               loc: 3:11-3:16,
@@ -408,7 +408,7 @@ test/analyze/name_resolution/resolved_scoped_id/a2.myte
           },
           {
             node: RecordVariantField,
-            loc: 3:5-3:35,
+            loc: 3:23-3:35,
             name: {
               node: Identifier,
               loc: 3:23-3:29,
@@ -453,7 +453,7 @@ test/analyze/name_resolution/resolved_scoped_id/a2.myte
         fields: [
           {
             node: RecordVariantField,
-            loc: 4:5-4:23,
+            loc: 4:12-4:23,
             name: {
               node: Identifier,
               loc: 4:12-4:18,
@@ -622,7 +622,7 @@ test/analyze/name_resolution/resolved_scoped_id/a2.myte
         fields: [
           {
             node: RecordVariantField,
-            loc: 10:5-10:28,
+            loc: 10:18-10:28,
             name: {
               node: Identifier,
               loc: 10:18-10:23,
@@ -851,7 +851,7 @@ test/analyze/name_resolution/resolved_scoped_id/c.myte
         fields: [
           {
             node: RecordVariantField,
-            loc: 3:5-3:21,
+            loc: 3:11-3:21,
             name: {
               node: Identifier,
               loc: 3:11-3:16,
@@ -1090,7 +1090,7 @@ test/analyze/name_resolution/resolved_scoped_id/d.myte
         fields: [
           {
             node: RecordVariantField,
-            loc: 3:5-3:21,
+            loc: 3:11-3:21,
             name: {
               node: Identifier,
               loc: 3:11-3:16,
@@ -1689,7 +1689,7 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
         fields: [
           {
             node: RecordVariantField,
-            loc: 27:5-27:26,
+            loc: 27:10-27:26,
             name: {
               node: Identifier,
               loc: 27:10-27:11,
@@ -1773,7 +1773,7 @@ test/analyze/name_resolution/resolved_scoped_id/test.myte
           fields: [
             {
               node: RecordVariantField,
-              loc: 28:33-28:55,
+              loc: 28:39-28:55,
               name: {
                 node: Identifier,
                 loc: 28:39-28:40,

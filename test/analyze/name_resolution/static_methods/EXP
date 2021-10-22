@@ -277,7 +277,7 @@ test/analyze/name_resolution/static_methods/test.myte
         fields: [
           {
             node: RecordVariantField,
-            loc: 10:5-10:19,
+            loc: 10:13-10:19,
             name: {
               node: Identifier,
               loc: 10:13-10:14,
