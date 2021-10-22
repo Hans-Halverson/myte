@@ -1288,6 +1288,7 @@ and parse_record_variant env name marker =
       Env.advance env;
       []
     | _ ->
+      let marker = mark_loc env in
       let name = parse_identifier env in
       Env.expect env T_COLON;
       let field =

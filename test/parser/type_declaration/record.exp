@@ -38,7 +38,7 @@ test/parser/type_declaration/record.myte
         fields: [
           {
             node: RecordVariantField,
-            loc: 3:5-3:18,
+            loc: 3:10-3:18,
             name: {
               node: Identifier,
               loc: 3:10-3:13,
@@ -83,7 +83,7 @@ test/parser/type_declaration/record.myte
         fields: [
           {
             node: RecordVariantField,
-            loc: 5:5-5:18,
+            loc: 5:10-5:18,
             name: {
               node: Identifier,
               loc: 5:10-5:13,
@@ -128,7 +128,7 @@ test/parser/type_declaration/record.myte
         fields: [
           {
             node: RecordVariantField,
-            loc: 7:5-7:18,
+            loc: 7:10-7:18,
             name: {
               node: Identifier,
               loc: 7:10-7:13,
@@ -152,7 +152,7 @@ test/parser/type_declaration/record.myte
           },
           {
             node: RecordVariantField,
-            loc: 7:5-7:29,
+            loc: 7:20-7:29,
             name: {
               node: Identifier,
               loc: 7:20-7:23,
@@ -176,7 +176,7 @@ test/parser/type_declaration/record.myte
           },
           {
             node: RecordVariantField,
-            loc: 7:5-7:42,
+            loc: 7:31-7:42,
             name: {
               node: Identifier,
               loc: 7:31-7:34,
@@ -221,7 +221,7 @@ test/parser/type_declaration/record.myte
         fields: [
           {
             node: RecordVariantField,
-            loc: 9:5-9:18,
+            loc: 9:10-9:18,
             name: {
               node: Identifier,
               loc: 9:10-9:13,
@@ -245,7 +245,7 @@ test/parser/type_declaration/record.myte
           },
           {
             node: RecordVariantField,
-            loc: 9:5-9:29,
+            loc: 9:20-9:29,
             name: {
               node: Identifier,
               loc: 9:20-9:23,
@@ -269,7 +269,7 @@ test/parser/type_declaration/record.myte
           },
           {
             node: RecordVariantField,
-            loc: 9:5-9:42,
+            loc: 9:31-9:42,
             name: {
               node: Identifier,
               loc: 9:31-9:34,
@@ -314,7 +314,7 @@ test/parser/type_declaration/record.myte
         fields: [
           {
             node: RecordVariantField,
-            loc: 11:5-11:22,
+            loc: 11:10-11:22,
             name: {
               node: Identifier,
               loc: 11:10-11:13,
@@ -338,7 +338,7 @@ test/parser/type_declaration/record.myte
           },
           {
             node: RecordVariantField,
-            loc: 11:5-11:51,
+            loc: 11:24-11:51,
             name: {
               node: Identifier,
               loc: 11:24-11:27,
@@ -398,7 +398,7 @@ test/parser/type_declaration/record.myte
           },
           {
             node: RecordVariantField,
-            loc: 11:5-11:72,
+            loc: 11:53-11:72,
             name: {
               node: Identifier,
               loc: 11:53-11:56,
@@ -475,7 +475,7 @@ test/parser/type_declaration/record.myte
         fields: [
           {
             node: RecordVariantField,
-            loc: 13:5-13:19,
+            loc: 13:13-13:19,
             name: {
               node: Identifier,
               loc: 13:13-13:16,
@@ -551,7 +551,7 @@ test/parser/type_declaration/record.myte
         fields: [
           {
             node: RecordVariantField,
-            loc: 15:5-15:33,
+            loc: 15:19-15:33,
             name: {
               node: Identifier,
               loc: 15:19-15:22,

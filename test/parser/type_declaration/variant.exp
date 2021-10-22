@@ -203,7 +203,7 @@ test/parser/type_declaration/variant.myte
           fields: [
             {
               node: RecordVariantField,
-              loc: 13:4-13:17,
+              loc: 13:10-13:17,
               name: {
                 node: Identifier,
                 loc: 13:10-13:12,
@@ -238,7 +238,7 @@ test/parser/type_declaration/variant.myte
           fields: [
             {
               node: RecordVariantField,
-              loc: 14:4-14:17,
+              loc: 14:10-14:17,
               name: {
                 node: Identifier,
                 loc: 14:10-14:12,
@@ -273,7 +273,7 @@ test/parser/type_declaration/variant.myte
           fields: [
             {
               node: RecordVariantField,
-              loc: 15:4-15:20,
+              loc: 15:10-15:20,
               name: {
                 node: Identifier,
                 loc: 15:10-15:12,
@@ -297,7 +297,7 @@ test/parser/type_declaration/variant.myte
             },
             {
               node: RecordVariantField,
-              loc: 15:4-15:30,
+              loc: 15:22-15:30,
               name: {
                 node: Identifier,
                 loc: 15:22-15:24,
@@ -321,7 +321,7 @@ test/parser/type_declaration/variant.myte
             },
             {
               node: RecordVariantField,
-              loc: 15:4-15:40,
+              loc: 15:32-15:40,
               name: {
                 node: Identifier,
                 loc: 15:32-15:34,
@@ -399,7 +399,7 @@ test/parser/type_declaration/variant.myte
           fields: [
             {
               node: RecordVariantField,
-              loc: 17:28-17:41,
+              loc: 17:34-17:41,
               name: {
                 node: Identifier,
                 loc: 17:34-17:35,
@@ -555,7 +555,7 @@ test/parser/type_declaration/variant.myte
           fields: [
             {
               node: RecordVariantField,
-              loc: 22:3-22:21,
+              loc: 22:9-22:21,
               name: {
                 node: Identifier,
                 loc: 22:9-22:10,
