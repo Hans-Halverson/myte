@@ -15,4 +15,18 @@ fun testAssignmentPatterns() {
   Tup1 (x | x) = Tup1 (y);
 }
 
+fun testForLoopPatterns() {
+  for (Tup1 (x | x) in [Tup1 (1)]) {}
+}
+
+fun matchExpressionInPatternStatement() {
+  var x = match (Tup1 (1)) {
+    | Tup1 (x | x) -> 1
+  };
+
+  x = match (Tup1 (1)) {
+    | Tup1 (x | x) -> 1
+  };
+}
+
 fun main() {}

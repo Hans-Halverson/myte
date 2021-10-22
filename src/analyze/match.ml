@@ -699,7 +699,7 @@ let args_wildcard_vector ~cx (match_ : Ast.Match.t) =
 
 class match_analyzer ~cx =
   object (this)
-    inherit Ast_visitor.visitor
+    inherit Ast_visitor.visitor as super
 
     val mutable errors : (Loc.t * Analyze_error.t) list = []
 
@@ -770,12 +770,19 @@ class match_analyzer ~cx =
       let exhaustive_result = ExhaustiveAnalyzer.useful ~is_guarded:false [row] [wildcard] in
       this#check_exhaustive_result loc exhaustive_result
 
-    method! variable_declaration decl = this#analyze_destructure decl.pattern
+    method! variable_declaration decl =
+      this#analyze_destructure decl.pattern;
+      super#variable_declaration decl
 
     method! assignment assign =
-      match assign.lvalue with
+      (match assign.lvalue with
       | Pattern pattern -> this#analyze_destructure pattern
-      | Expression _ -> ()
+      | Expression _ -> ());
+      super#assignment assign
+
+    method! for_ for_ =
+      this#analyze_destructure for_.pattern;
+      super#for_ for_
   end
 
 let analyze ~cx modules =
