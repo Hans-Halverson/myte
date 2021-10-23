@@ -40,7 +40,6 @@ let expression_loc expr =
   | IndexedAccess { loc; _ }
   | NamedAccess { loc; _ }
   | Match { loc; _ }
-  | Super loc
   | VecLiteral { loc; _ }
   | MapLiteral { loc; _ }
   | SetLiteral { loc; _ }

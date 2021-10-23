@@ -881,7 +881,6 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
       Ecx.set_block_builder ~ecx ok_branch_builder;
       ok_item_val
     | _ -> failwith "Only option and result types can be unwrapped")
-  | Super _ -> failwith "TODO: Emit MIR for super expressions"
   | AnonymousFunction _ -> failwith "TODO: Emit anonymous functions"
 
 and emit_string_literal ~ecx loc value =

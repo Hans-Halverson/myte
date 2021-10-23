@@ -1,5 +1,0 @@
-module test
-
-fun test() {
-  super;
-}

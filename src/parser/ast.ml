@@ -377,7 +377,6 @@ and Expression : sig
     | IndexedAccess of IndexedAccess.t
     | NamedAccess of NamedAccess.t
     | Match of Match.t
-    | Super of Loc.t
     | VecLiteral of VecLiteral.t
     | MapLiteral of MapLiteral.t
     | SetLiteral of SetLiteral.t

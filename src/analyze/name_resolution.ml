@@ -953,9 +953,6 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       | Identifier id ->
         this#resolve_value_id_use id;
         expr
-      | Super loc ->
-        if not in_method then this#add_error loc SuperOutsideMethod;
-        expr
       | NamedAccess { target; name; _ } ->
         (* Gather all potential module parts in order if there is an unbroken chain of accesses
            ending in an id *)

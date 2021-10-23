@@ -176,7 +176,6 @@ and node_of_expression expr =
   | IndexedAccess access -> node_of_indexed_access access
   | NamedAccess access -> node_of_named_access access
   | Match match_ -> node_of_match ~is_expr:true match_
-  | Super loc -> node_of_super loc
   | VecLiteral lit -> node_of_vec_literal lit
   | MapLiteral lit -> node_of_map_literal lit
   | SetLiteral lit -> node_of_set_literal lit

@@ -83,7 +83,6 @@ class mapper =
         | IndexedAccess e -> id_map this#indexed_access e expr (fun e' -> IndexedAccess e')
         | NamedAccess e -> id_map this#named_access e expr (fun e' -> NamedAccess e')
         | Match e -> id_map this#match_ e expr (fun e' -> Match e')
-        | Super _ -> expr
         | VecLiteral e -> id_map this#vec_literal e expr (fun e' -> VecLiteral e')
         | MapLiteral e -> id_map this#map_literal e expr (fun e' -> MapLiteral e')
         | SetLiteral e -> id_map this#set_literal e expr (fun e' -> SetLiteral e')

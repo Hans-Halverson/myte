@@ -65,7 +65,6 @@ class visitor =
         | IndexedAccess e -> this#indexed_access e
         | NamedAccess e -> this#named_access e
         | Match e -> this#match_ e
-        | Super e -> this#super e
         | VecLiteral e -> this#vec_literal e
         | MapLiteral e -> this#map_literal e
         | SetLiteral e -> this#set_literal e
@@ -367,8 +366,6 @@ class visitor =
       | Pattern patt -> this#pattern patt
       | Expression epxr -> this#expression epxr);
       this#expression expr
-
-    method super _loc = ()
 
     method if_ if_ =
       let open If in

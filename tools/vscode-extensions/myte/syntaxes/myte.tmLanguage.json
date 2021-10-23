@@ -113,10 +113,6 @@
 					"name": "variable.language.this.myte",
 					"match": "\\b(this)\\b"
 				},
-				{
-					"name": "variable.language.super.myte",
-					"match": "\\b(super)\\b"
-				},
 				{	"include": "#call-expression" },
 				{ "include": "#named-tuple-expression" },
 				{ "include": "#named-record-expression" },

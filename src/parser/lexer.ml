@@ -181,7 +181,6 @@ let parse_identifier_or_keyword lex =
       | "implements" -> token_result T_IMPLEMENTS
       | "static" -> token_result T_STATIC
       | "override" -> token_result T_OVERRIDE
-      | "super" -> token_result T_SUPER
       | _ -> token_result (T_IDENTIFIER raw))
   in
   (* An underscore not followed by an identifier character is a wildcard token *)

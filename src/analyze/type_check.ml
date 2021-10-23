@@ -1692,7 +1692,6 @@ and check_expression ~cx expr =
     in
     ignore (Type_context.unify ~cx ty (TVar tvar_id));
     (loc, tvar_id)
-  | Super _ -> failwith "TODO: Type check super expressions"
 
 and check_if ~cx ~is_expr if_ =
   let { Ast.If.loc; test; conseq; altern } = if_ in

@@ -295,10 +295,6 @@ and parse_expression_prefix env =
     let loc = Env.loc env in
     Env.advance env;
     Expression.Identifier { Identifier.loc; name = "_" }
-  | T_SUPER ->
-    let loc = Env.loc env in
-    Env.advance env;
-    Expression.Super loc
   | T_INT_LITERAL (raw, base) ->
     let loc = Env.loc env in
     Env.advance env;
