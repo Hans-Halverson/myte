@@ -34,6 +34,7 @@ type Toplevel =
   | TLFunction (FunctionDeclaration)
   | TLVariable (VariableDeclaration)
   | TLType (TypeDeclaration)
+  | TLTrait (TraitDeclaration)
 
 type Identifier {
   loc: Loc,
@@ -129,6 +130,19 @@ type VariantDeclaration =
   | TupleVariant (TupleDeclaration)
   | RecordVariant (RecordDeclaration)
   | EnumVariant (Identifier)
+
+type TraitDeclaration {
+  loc: Loc,
+  kind: TraitDeclarationKind,
+  name: Identifier,
+  typeParams: Vec<TypeParameter>,
+  implemented: Vec<IdentifierType>,
+  methods_: Vec<FunctionDeclaration>,
+}
+
+type TraitDeclarationKind =
+  | TKMethods
+  | TKTrait
 
 /* 
  * ============================

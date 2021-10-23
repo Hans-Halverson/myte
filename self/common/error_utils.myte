@@ -1,0 +1,22 @@
+module myte.common.error.utils
+
+fun concatWithOr(items: Vec<String>): String = concatWithConjunction(items, "or")
+
+fun concatWithConjunction(items: Vec<String>, conjunction: String): String =
+  match (items.size) {
+    | 0 -> ""
+    | 1 -> items[0]
+    | 2 -> `${items[0]} ${conjunction} ${items[1]}`
+    | _ -> {
+      val str = "";
+      for (i in 0.to(items.size - 1)) {
+        str.append(items[i]);
+        str.append(", ");
+      }
+
+      str.append(conjunction);
+      str.append(items[items.size - 1]);
+
+      str
+    }
+  }

@@ -167,6 +167,7 @@ fun nodeOfToplevel(toplevel: ast.Toplevel): PrintNode =
     | ast.TLFunction (t) -> nodeOfFunctionDeclaration(t)
     | ast.TLVariable (t) -> nodeOfVariableDeclaration(t)
     | ast.TLType (t) -> nodeOfTypeDeclaration(t)
+    | ast.TLTrait (t) -> nodeOfTraitDeclaration(t)
   }
 
 fun nodeOfFunctionDeclaration(decl: ast.FunctionDeclaration): PrintNode {
@@ -249,7 +250,7 @@ fun nodeOfTypeDeclaration(decl: ast.TypeDeclaration): PrintNode {
       ("type_params", List (typeParams.map(nodeOfTypeParameter))),
       decl,
     ],
- };
+  };
 }
 
 fun nodeOfTupleDeclaration(decl: ast.TupleDeclaration): PrintNode {
@@ -288,6 +289,26 @@ fun nodeOfVariantDeclaration(decl: ast.VariantDeclaration): PrintNode =
     | ast.TupleVariant (tuple) -> nodeOfTupleDeclaration(tuple)
     | ast.RecordVariant (record) -> nodeOfRecordDeclaration(record)
   }
+
+fun nodeOfTraitDeclaration(decl: ast.TraitDeclaration): PrintNode {
+  val ast.TraitDeclaration { loc, kind, name, typeParams, implemented, methods_ } = decl;
+  val kind = match (kind) {
+    | ast.TKMethods -> "Methods"
+    | ast.TKTrait -> "Trait"
+  };
+
+  return Node {
+    name: "TraitDeclaration",
+    loc,
+    fields: [
+      ("kind", Raw (kind)),
+      ("name", nodeOfIdentifier(name)),
+      ("type_params", List (typeParams.map(nodeOfTypeParameter))),
+      ("implemented", List (implemented.map(nodeOfIdentifierType))),
+      ("methods", List (methods_.map(nodeOfFunctionDeclaration))),
+    ],
+ };
+}
 
 fun nodeOfIdentifier(ident: ast.Identifier): PrintNode {
   val ast.Identifier { loc, name } = ident;

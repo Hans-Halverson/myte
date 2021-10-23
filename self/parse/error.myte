@@ -4,6 +4,7 @@ import std.io.print
 import std.string.ToString
 import std.sys.exit
 
+import myte.common.error
 import myte.common.error.formatErrorWithLoc
 import myte.common.loc.Loc
 import myte.parse.token
@@ -12,6 +13,7 @@ import myte.parse.token.Token
 type ParseError =
   | UnknownToken { raw: String }
   | UnexpectedToken { actual: Token, expected: Option<Token> }
+  | UnexpectedTokens { actual: Token, expected: Vec<Token> }
   | UnterminatedStringLiteral
   | InvalidStringEscape { inInterpolated: Bool }
   | InvalidHexEscape
@@ -20,6 +22,7 @@ type ParseError =
   | MalformedToplevel { token: Token }
   | MalformedFunctionBody { token: Token }
   | MalformedTypeDeclaration { token: Token }
+  | MalformedMethodsItem { token: Token }
   | MalformedType { token: Token }
   | MalformedPattern { token: Token }
   | EmptyRecord
@@ -47,6 +50,14 @@ methods ParseError {
         `Unexpected token \`${actual}\`, expected identifier`
       | UnexpectedToken { actual, expected: Some (expected) } ->
         `Unexpected token \`${actual}\`, expected \`${expected}\``
+      | UnexpectedTokens { actual, expected } -> {
+        val tokens: Vec<String> = [];
+        for (expected in expected) {
+          tokens.push(`\`${expected.toString()}\``);
+        }
+
+        `Unexpected token \`${actual}\`, expected ${error.utils.concatWithOr(tokens)}`
+      }
       | UnterminatedStringLiteral -> "Unterminated string literal"
       | InvalidStringEscape { inInterpolated } -> {
         val escapes = if (inInterpolated) {
@@ -67,6 +78,7 @@ methods ParseError {
         `Unexpected token \`${token}\`, expected start of function body`
       | MalformedTypeDeclaration { token } ->
         `Unexpected token \`${token}\`, expected start of type declaration`
+      | MalformedMethodsItem { token } -> `Unexpected token \`${token}\`, expected start of method`
       | MalformedType { token } -> `Unexpected token \`${token}\`, expected start of type`
       | MalformedPattern { token } -> `Unexpected token \`${token}\`, expected start of pattern`
       | EmptyRecord -> "Record must have at least one field"

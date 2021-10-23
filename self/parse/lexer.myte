@@ -561,6 +561,11 @@ methods Lexer {
       | "continue" -> token.Continue
       | "alias" -> token.Alias
       | "builtin" -> token.Builtin
+      | "override" -> token.Override
+      | "static" -> token.Static
+      | "methods" -> token.Methods
+      | "implements" -> token.Implements
+      | "extends" -> token.Extends
       | "module" -> token.Module
       | "import" -> token.Import
       | "as" -> token.As

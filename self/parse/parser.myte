@@ -233,10 +233,26 @@ methods Parser {
 
   fun parseToplevel(): ast.Toplevel {
     return match (this.token) {
-      | token.Fun -> ast.TLFunction (this.parseFunctionDeclaration(this.loc, false, false, false))
+      | token.Fun ->
+        ast.TLFunction (this.parseFunctionDeclaration(this.loc, false, false, false, false))
       | token.Val
       | token.Var -> ast.TLVariable (this.parseVariableDeclaration(true))
       | token.Type -> ast.TLType (this.parseTypeDeclaration(false))
+      | token.Trait -> ast.TLTrait (this.parseTraitDeclaration(ast.TKTrait))
+      | token.Methods -> ast.TLTrait (this.parseTraitDeclaration(ast.TKMethods))
+      // A builtin declaration may be either a type or function
+      | token.Builtin -> {
+        val startLoc = this.loc;
+        this.advance();
+
+        match (this.token) {
+          | token.Fun ->
+            ast.TLFunction(this.parseFunctionDeclaration(startLoc, true, false, false, false))
+          | token.Type -> ast.TLType (this.parseTypeDeclaration(true))
+          | actual ->
+            fatal(error.UnexpectedTokens { actual, expected: [token.Fun, token.Type] }, this.loc)
+        }
+      }
       | token -> fatal(error.MalformedToplevel { token }, this.loc)
     };
   }
@@ -281,8 +297,9 @@ methods Parser {
   fun parseFunctionDeclaration(
     startLoc: Loc,
     isBuiltin: Bool,
-    isStatic: Bool,
     isOverride: Bool,
+    isStatic: Bool,
+    inTrait: Bool,
   ): ast.FunctionDeclaration {
     this.expect(token.Fun);
 
@@ -322,11 +339,16 @@ methods Parser {
 
     // Parse function body
     val body = match (this.token) {
+      // Builtin functions never have a body, so mark body as function signature
+      | _ when isBuiltin -> ast.FBSignature
+      // Function bodies can be a block or expression
       | token.LeftBrace -> ast.FBBlock (this.parseBlock())
       | token.Equals -> {
         this.advance();
         ast.FBExpression (this.parseExpression())
       }
+      // Methods in trait may have a body, otherwise they are method signatures
+      | _ when inTrait -> ast.FBSignature
       | token -> fatal(error.MalformedFunctionBody { token }, this.loc)
     };
 
@@ -503,6 +525,78 @@ methods Parser {
     }
 
     return ast.RecordDeclaration { loc, name, fields };
+  }
+
+  fun parseTraitDeclaration(kind: ast.TraitDeclarationKind): ast.TraitDeclaration {
+    val startLoc = this.loc;
+    this.advance();
+
+    val inTrait = match (kind) {
+      | ast.TKTrait -> true
+      | ast.TKMethods -> false
+    };
+
+    // Parse trait declaration name and type parameters
+    val name = this.parseIdentifier();
+    val typeParams = this.parseTypeParameters();
+
+    this.expect(token.LeftBrace);
+
+    // Trait declaration body starts with list of implemented traits
+    val implemented: Vec<ast.IdentifierType> = [];
+    while (true) {
+      match (this.token, kind) {
+        | (token.Implements, ast.TKMethods)
+        | (token.Extends, ast.TKTrait) -> {
+          val startLoc = this.loc;
+          this.advance();
+
+          // Parse implemented trait and its type arguments
+          val name = this.parseScopedIdentifier();
+          val typeArgs = this.parseTypeArgs();
+          val loc = this.currentLoc(startLoc);
+
+          implemented.push(ast.IdentifierType { loc, name, typeArgs });
+        }
+        | _ -> break
+      }
+    }
+
+    // Remaining items in body are method declarations
+    val methods_: Vec<ast.FunctionDeclaration> = [];
+    while (this.token != token.RightBrace) {
+      val startLoc = this.loc;
+
+      // Methods may optionally start with modifier keywords
+      val isBuiltin = this.token == token.Builtin;
+      if (isBuiltin) {
+        this.advance();
+      }
+
+      val isOverride = this.token == token.Override;
+      if (isOverride) {
+        this.advance();
+      }
+
+      val isStatic = this.token == token.Static;
+      if (isStatic) {
+        this.advance();
+      }
+
+      if (this.token == token.Fun) {
+        val method = this.parseFunctionDeclaration(
+          startLoc, isBuiltin, isOverride, isStatic, inTrait,
+        );
+        methods_.push(method);
+      } else {
+        fatal(error.MalformedMethodsItem { token: this.token }, this.loc);
+      }
+    }
+
+    this.advance();
+    val loc = this.currentLoc(startLoc);
+
+    return ast.TraitDeclaration { loc, kind, name, typeParams, implemented, methods_ };
   }
 
   fun parseTypeParameters(): Vec<ast.TypeParameter> {

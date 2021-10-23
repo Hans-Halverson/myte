@@ -578,14 +578,6 @@ end =
   TypeDeclaration
 
 and TraitDeclaration : sig
-  module ImplementedTrait : sig
-    type t = {
-      loc: Loc.t;
-      name: ScopedIdentifier.t;
-      type_args: Type.t list;
-    }
-  end
-
   type kind =
     | Methods
     | Trait

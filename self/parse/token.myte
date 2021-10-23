@@ -72,6 +72,11 @@ type Token =
   | Continue
   | Alias
   | Builtin
+  | Override
+  | Static
+  | Methods
+  | Implements
+  | Extends
   | Module
   | Import
   | As
@@ -147,6 +152,11 @@ methods Token {
       | Continue -> "continue"
       | Alias -> "alias"
       | Builtin -> "builtin"
+      | Override -> "override"
+      | Static -> "static"
+      | Methods -> "methods"
+      | Implements -> "implements"
+      | Extends -> "extends"
       | Module -> "module"
       | Import -> "import"
       | As -> "as"
@@ -223,6 +233,11 @@ methods Token {
       | (Continue, Continue)
       | (Alias, Alias)
       | (Builtin, Builtin)
+      | (Override, Override)
+      | (Static, Static)
+      | (Methods, Methods)
+      | (Implements, Implements)
+      | (Extends, Extends)
       | (Module, Module)
       | (Import, Import)
       | (As, As)
