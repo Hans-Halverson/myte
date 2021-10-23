@@ -145,6 +145,12 @@ methods Lexer {
     return Ok (TokenResult { loc, token });
   }
 
+  fun tokenResultFromPos(token: Token, startPos: Pos): Result<TokenResult, ErrorResult> {
+    val loc = Loc { source: this.source, start: startPos, end: this.getCurrentPos() };
+
+    return Ok (TokenResult { loc, token });
+  }
+
   fun errorResultAtCurrentPos(error: ParseError): Result<TokenResult, ErrorResult> {
     val loc = this.locOfPosition(this.getCurrentPos());
 
@@ -331,7 +337,11 @@ methods Lexer {
       }
       | '"' -> {
         this.advance();
-        this.parseStringLiteral(false)
+        this.parseStringLiteral(false, this.currentTokenStartPos)
+      }
+      | '`' -> {
+        this.advance();
+        this.parseStringLiteral(true, this.currentTokenStartPos)
       }
       | '\'' -> this.parseCharLiteral()
       | '/' -> match (this.peek()) {
@@ -405,6 +415,14 @@ methods Lexer {
     };
   }
 
+  fun nextInInterpolatedString(): Result<TokenResult, ErrorResult> {
+    // Adjust pos to start at '}' which must precede this call
+    val currentPos = this.getCurrentPos();
+    val adjustedStartPos = Pos { line: currentPos.line, column: currentPos.column - 1 };
+
+    return this.parseStringLiteral(true, adjustedStartPos);
+  }
+
   fun parseIdentifierOrKeyword(): Token {
     val raw = "";
     var current = this.current;
@@ -437,6 +455,8 @@ methods Lexer {
       | "alias" -> token.Alias
       | "builtin" -> token.Builtin
       | "module" -> token.Module
+      | "import" -> token.Import
+      | "as" -> token.As
       | _ -> token.Identifier (raw)
     };
   }
@@ -491,7 +511,7 @@ methods Lexer {
     return token.IntLiteral { raw, base: ast.Bin };
   }
 
-  fun parseStringLiteral(inInterpolated: Bool): Result<TokenResult, ErrorResult> {
+  fun parseStringLiteral(inInterpolated: Bool, startPos: Pos): Result<TokenResult, ErrorResult> {
     val string = "";
     while (true) {
       match (this.current) {
@@ -500,9 +520,31 @@ methods Lexer {
           this.advance();
           break;
         }
+        // Backtick is end for interpolated string literal
+        | '`' when inInterpolated -> {
+          this.advance();
+          return this.tokenResultFromPos(
+            token.InterpolatedString { string, isEnd: true },
+            startPos,
+          );
+        }
+        // `${` marks the beginning of an expression in an interpolated string
+        | '$' when inInterpolated -> match (this.peek()) {
+          | '{' -> {
+            this.advanceTwo();
+            return this.tokenResultFromPos(
+              token.InterpolatedString { string, isEnd: false },
+              startPos,
+            );
+          }
+          | _ -> {
+            string.push('$');
+            this.advance();
+          }
+        }
         // Newlines are allowed in interpolated strings, but not normal string literals
         | '\n' when !inInterpolated -> {
-          val loc = this.locOfPosition(this.currentTokenStartPos);
+          val loc = this.locOfPosition(startPos);
           return Error (ErrorResult { error: error.UnterminatedStringLiteral, loc });
         }
         // Start of an escape sequence sequence
@@ -537,6 +579,24 @@ methods Lexer {
                 '"'
               }
             }
+            // Backtick is only an escape sequence in string literals
+            | '`' -> {
+              if (inInterpolated) {
+                this.advance();
+                '`'
+              } else {
+                return this.errorResultAtCurrentPos(error.InvalidStringEscape { inInterpolated });
+              }
+            }
+            // Dollar sign is only an escape sequence in string literals
+            | '$' -> {
+              if (inInterpolated) {
+                this.advance();
+                '$'
+              } else {
+                return this.errorResultAtCurrentPos(error.InvalidStringEscape { inInterpolated });
+              }
+            }
             // Start of a hex escape sequence
             | 'x' -> {
               this.advance();
@@ -561,7 +621,7 @@ methods Lexer {
           string.push(decoded.toByte());
         }
         | current when current == EOF -> {
-          val loc = this.locOfPosition(this.currentTokenStartPos);
+          val loc = this.locOfPosition(startPos);
           return Error (ErrorResult { error: error.UnterminatedStringLiteral, loc });
         }
         | current -> {
@@ -571,7 +631,7 @@ methods Lexer {
       }
     }
 
-    return this.tokenResult(token.StringLiteral (string));
+    return this.tokenResultFromPos(token.StringLiteral (string), startPos);
   }
 
   /**

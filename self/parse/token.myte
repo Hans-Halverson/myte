@@ -12,6 +12,7 @@ type Token =
   | BoolLiteral (Bool)
   | StringLiteral (String)
   | CharLiteral (Byte)
+  | InterpolatedString { string: String, isEnd: Bool }
   | Semicolon
   | Colon
   | Comma
@@ -55,6 +56,8 @@ type Token =
   | Alias
   | Builtin
   | Module
+  | Import
+  | As
   | Eof
 
 methods Token {
@@ -67,6 +70,7 @@ methods Token {
       | IntLiteral { raw, ... } -> raw
       | StringLiteral (string) -> `"${string}"`
       | CharLiteral (char) -> escapeCharLiteralValue(char)
+      | InterpolatedString _ -> "<interpolated string>"
       | Semicolon -> ";"
       | Colon -> ":"
       | Comma -> ","
@@ -110,6 +114,8 @@ methods Token {
       | Alias -> "alias"
       | Builtin -> "builtin"
       | Module -> "module"
+      | Import -> "import"
+      | As -> "as"
       | Eof -> "<EOF>"
     }
 }
@@ -123,6 +129,7 @@ methods Token {
       | (IntLiteral _, IntLiteral _)
       | (BoolLiteral _, BoolLiteral _)
       | (StringLiteral _, StringLiteral _)
+      | (InterpolatedString _, InterpolatedString _)
       | (Semicolon, Semicolon)
       | (Colon, Colon)
       | (Comma, Comma)
@@ -166,6 +173,8 @@ methods Token {
       | (Alias, Alias)
       | (Builtin, Builtin)
       | (Module, Module)
+      | (Import, Import)
+      | (As, As)
       | (Eof, Eof) -> true
       | _ -> false
     }

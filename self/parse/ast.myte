@@ -5,12 +5,29 @@ import myte.common.loc.Loc
 type Module {
   loc: Loc,
   name: ModuleName,
+  imports: Vec<Import>,
   toplevels: Vec<Toplevel>,
 }
 
 type ModuleName {
   loc: Loc,
   name: ScopedIdentifier,
+}
+
+type Import =
+  | ISimpleImport (ScopedIdentifier)
+  | IComplexImport (ComplexImport)
+
+type ComplexImport {
+  loc: Loc,
+  scopes: Vec<Identifier>,
+  aliases: Vec<ImportAlias>,
+}
+
+type ImportAlias {
+  loc: Loc,
+  name: Identifier,
+  alias_: Option<Identifier>,
 }
 
 type Toplevel =
@@ -160,6 +177,7 @@ type Expression =
   | EBoolLiteral (BoolLiteral)
   | EStringLiteral (StringLiteral)
   | ECharLiteral (CharLiteral)
+  | EInterpolatedString (InterpolatedString)
   | EIdentifier (Identifier)
   | ETuple (TupleExpression)
   | ETypeCast (TypeCast)
@@ -199,6 +217,15 @@ type CharLiteral {
   loc: Loc,
   value: Byte,
 }
+
+type InterpolatedString {
+  loc: Loc,
+  parts: Vec<InterpolatedStringPart>,
+}
+
+type InterpolatedStringPart =
+  | IPString (StringLiteral)
+  | IPExpression (Expression)
 
 type TupleExpression {
   loc: Loc,

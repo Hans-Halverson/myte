@@ -118,13 +118,13 @@ fun printModule(mod: ast.Module): String {
 }
 
 fun nodeOfModule(mod: ast.Module): PrintNode {
-  val ast.Module { loc, name, toplevels } = mod;
+  val ast.Module { loc, name, imports, toplevels } = mod;
   return Node {
     name: "Module",
     loc,
     fields: [
       ("name", nodeOfModuleName(name)),
-      ("imports", List ([])),
+      ("imports", List (imports.map(nodeOfImport))),
       ("toplevels", List (toplevels.map(nodeOfToplevel))),
     ],
   };
@@ -133,6 +133,33 @@ fun nodeOfModule(mod: ast.Module): PrintNode {
 fun nodeOfModuleName(name: ast.ModuleName): PrintNode {
   val ast.ModuleName { loc, name } = name;
   return Node { name: "ModuleName", loc, fields: [("name", nodeOfScopedIdentifier(name))] };
+}
+
+fun nodeOfImport(import_: ast.Import): PrintNode =
+  match (import_) {
+    | ast.ISimpleImport (i) -> nodeOfScopedIdentifier(i)
+    | ast.IComplexImport (t) -> nodeOfComplexImport(t)
+  }
+
+fun nodeOfComplexImport(complex: ast.ComplexImport): PrintNode {
+  val ast.ComplexImport { loc, scopes, aliases } = complex;
+  return Node {
+    name: "ComplexImport",
+    loc,
+    fields: [
+      ("scopes", List (scopes.map(nodeOfIdentifier))),
+      ("aliases", List (aliases.map(nodeOfImportAlias))),
+    ],
+  };
+}
+
+fun nodeOfImportAlias(alias_: ast.ImportAlias): PrintNode {
+  val ast.ImportAlias { loc, name, alias_ } = alias_;
+  return Node {
+    name: "ImportAlias",
+    loc,
+    fields: [("name", nodeOfIdentifier(name)), ("alias", optional(alias_, nodeOfIdentifier))],
+  };
 }
 
 fun nodeOfToplevel(toplevel: ast.Toplevel): PrintNode =
@@ -338,6 +365,7 @@ fun nodeOfExpression(expr: ast.Expression): PrintNode =
     | ast.EBoolLiteral (e) -> nodeOfBoolLiteral(e)
     | ast.EStringLiteral (e) -> nodeOfStringLiteral(e)
     | ast.ECharLiteral (e) -> nodeOfCharLiteral(e)
+    | ast.EInterpolatedString (e) -> nodeOfInterpolatedString(e)
     | ast.EIdentifier (e) -> nodeOfIdentifier(e)
     | ast.ETuple (e) -> nodeOfTupleExpression(e)
     | ast.ETypeCast (e) -> nodeOfTypeCast(e)
@@ -385,6 +413,21 @@ fun nodeOfCharLiteral(lit: ast.CharLiteral): PrintNode {
     loc,
     fields: [("value", String (escapeCharLiteralValue(value)))] };
 }
+
+fun nodeOfInterpolatedString(string: ast.InterpolatedString): PrintNode {
+  val ast.InterpolatedString { loc, parts } = string;
+  return Node {
+    name: "InterpolatedString",
+    loc,
+    fields: [("parts", List (parts.map(nodeOfInterpolatedStringPart)))],
+  };
+}
+
+fun nodeOfInterpolatedStringPart(part: ast.InterpolatedStringPart): PrintNode =
+  match (part) {
+    | ast.IPString (string) -> nodeOfStringLiteral(string)
+    | ast.IPExpression (expr) -> nodeOfExpression(expr)
+  }
 
 fun nodeOfTupleExpression(tuple: ast.TupleExpression): PrintNode {
   val ast.TupleExpression { loc, elements } = tuple;

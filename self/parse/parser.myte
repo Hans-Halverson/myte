@@ -21,6 +21,7 @@ type Parser {
   loc: Loc,
   prevToken: Token,
   prevLoc: Loc,
+  inInterpolatedString: Bool,
 }
 
 methods Parser {
@@ -36,11 +37,20 @@ methods Parser {
       loc,
       prevToken: token,
       prevLoc: loc,
+      inInterpolatedString: false,
+    };
+  }
+
+  fun lexerNext(): Result<TokenResult, ErrorResult> {
+    return if (this.inInterpolatedString) {
+      this.lexer.nextInInterpolatedString()
+    } else {
+      this.lexer.next()
     };
   }
 
   fun advance() {
-    val TokenResult { token, loc } = match (this.lexer.next()) {
+    val TokenResult { token, loc } = match (this.lexerNext()) {
       | Ok (result) -> result
       | Error (ErrorResult { error, loc }) -> fatal(error, loc)
     };
@@ -67,7 +77,7 @@ methods Parser {
 
   fun peek(): TokenResult {
     val savedLexer = this.lexer.clone();
-    val tokenResult = match (this.lexer.next()) {
+    val tokenResult = match (this.lexerNext()) {
       | Ok (result) -> result
       | Error (ErrorResult { error, loc }) -> fatal(error, loc)
     };
@@ -76,20 +86,33 @@ methods Parser {
     return tokenResult;
   }
 
+  fun enterInterpolatedString() {
+    this.inInterpolatedString = true;
+  }
+
+  fun exitInterpolatedString() {
+    this.inInterpolatedString = false;
+  }
+
   fun currentLoc(start: Loc): Loc = Loc.between(start, this.prevLoc)
 
   fun parse(): ast.Module {
     val name = this.parseModuleName();
 
+    val imports: Vec<ast.Import> = [];
+    while (this.token == token.Import) {
+      imports.push(this.parseImport());
+    }
+
     val toplevels: Vec<ast.Toplevel> = [];
-    while (!this.token.equals(token.Eof)) {
+    while (this.token != token.Eof) {
       toplevels.push(this.parseToplevel());
     }
 
     val startLoc = Loc { source: this.loc.source, start: START_POS, end: START_POS };
     val loc = Loc.between(startLoc, this.loc);
 
-    return ast.Module { loc, name, toplevels };
+    return ast.Module { loc, name, imports, toplevels };
   }
 
   fun parseModuleName(): ast.ModuleName {
@@ -100,6 +123,80 @@ methods Parser {
     val loc = this.currentLoc(startLoc);
 
     return ast.ModuleName { loc, name };
+  }
+
+  fun parseImport(): ast.Import {
+    val startLoc = this.loc;
+    this.expect(token.Import);
+
+    // Gather scopes and final name until end or '{' is reached
+    var name = this.parseIdentifier();
+    val scopes: Vec<ast.Identifier> = [];
+    while (this.token == token.Period) {
+      this.advance();
+
+      match (this.token) {
+        | token.LeftBrace -> break
+        | _ -> {
+          scopes.push(name);
+          name = this.parseIdentifier();
+        }
+      }
+    }
+
+    return match (this.token) {
+      // If a left brace follows scopes this is a complex import
+      | token.LeftBrace -> {
+        scopes.push(name);
+        ast.IComplexImport (this.parseComplexImport(scopes, startLoc))
+      }
+      // Otherwise it is a simple import - a single scoped identifier
+      | _ -> {
+        val loc = this.currentLoc(startLoc);
+        ast.ISimpleImport (ast.ScopedIdentifier { loc, name, scopes })
+      }
+    };
+  }
+
+  fun parseComplexImport(scopes: Vec<ast.Identifier>, startLoc: Loc): ast.ComplexImport {
+    this.expect(token.LeftBrace);
+
+    // Parse all import aliases
+    val aliases: Vec<ast.ImportAlias> = [];
+    while (true) {
+      val startLoc = this.loc;
+      val name = this.parseIdentifier();
+
+      // Parse optional alias
+      val alias_ = match (this.token) {
+        | token.As -> {
+          this.advance();
+          Some (this.parseIdentifier())
+        }
+        | _ -> None
+      };
+
+      val loc = this.currentLoc(startLoc);
+      aliases.push(ast.ImportAlias { loc, name, alias_ });
+
+      // Only proceed to another alias if there is a comma followed by an identifier. Otherwise
+      // if there is no comma, or the comma is trailing, expect a right brace next.
+      match (this.token) {
+        | token.Comma -> {
+          this.advance();
+          match (this.token) {
+            | token.Identifier _ -> ()
+            | _ -> break
+          }
+        }
+        | _ -> break
+      }
+    }
+
+    this.expect(token.RightBrace);
+    val loc = this.currentLoc(startLoc);
+
+    return ast.ComplexImport { loc, scopes, aliases };
   }
 
   fun parseToplevel(): ast.Toplevel {
@@ -667,6 +764,8 @@ methods Parser {
         this.advance();
         ast.ECharLiteral (ast.CharLiteral { loc, value })
       }
+      | token.InterpolatedString { string, isEnd } ->
+        ast.EInterpolatedString (this.parseInterpolatedString(string, isEnd))
       | token.Plus -> ast.EUnaryOperation (this.parseUnaryPlus())
       | token.Minus -> this.parseUnaryMinusOrNegativeIntLiteral()
       | token.Bang -> ast.EUnaryOperation (this.parseUnaryNot())
@@ -900,6 +999,57 @@ methods Parser {
     val loc = this.currentLoc(startLoc);
 
     return ast.Unwrap { loc, operand };
+  }
+
+  fun parseInterpolatedString(firstString: String, isSinglePart: Bool): ast.InterpolatedString {
+    val startLoc = this.loc;
+    val loc = startLoc;
+    this.advance();
+
+    if (isSinglePart) {
+      return ast.InterpolatedString {
+        loc,
+        parts: [ast.IPString (ast.StringLiteral { loc, value: firstString })],
+     };
+    }
+
+    // String parts are only included if they are nonempy, e.g. `${expr1}${expr2}` has two
+    // expression parts and no string parts.
+    val parts: Vec<ast.InterpolatedStringPart> = [];
+    if (firstString.size != 0) {
+      parts.push(ast.IPString (ast.StringLiteral { loc, value: firstString }));
+    }
+
+    while (true) {
+      parts.push(ast.IPExpression (this.parseExpression()));
+
+      // Enter interpolated string mode before call to `advance` within `expect`. This ensures the
+      // token after the right brace is lexed as an interpolated string token.
+      this.enterInterpolatedString();
+      this.expect(token.RightBrace);
+      
+      match (this.token) {
+        | token.InterpolatedString { string, isEnd } -> {
+          this.exitInterpolatedString();
+          val loc = this.loc;
+          this.advance();
+
+          if (string.size != 0) {
+            parts.push(ast.IPString (ast.StringLiteral { loc, value: string }));
+          }
+
+          if (isEnd) {
+            break;
+          }
+        }
+        // Unreachable, interpolated string is always returned when parsing interpolated strings
+        | _ -> break
+      }
+    }
+
+    val loc = this.currentLoc(loc);
+
+    return ast.InterpolatedString { loc, parts };
   }
 
   /* 
