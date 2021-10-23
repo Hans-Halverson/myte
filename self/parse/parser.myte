@@ -570,8 +570,10 @@ methods Parser {
       | token.LeftBrace -> ast.SBlock (this.parseBlock())
       | token.Val
       | token.Var -> ast.SVariableDeclaration (this.parseVariableDeclaration(false))
+      | token.If -> ast.SIf (this.parseIf())
       | token.Match -> ast.SMatch (this.parseMatch(false))
       | token.While -> ast.SWhile (this.parseWhile())
+      | token.For -> ast.SFor (this.parseFor())
       | token.Return -> ast.SReturn (this.parseReturn(false))
       | token.Break -> ast.SBreak (this.parseBreak(false))
       | token.Continue -> ast.SContinue (this.parseContinue(false))
@@ -669,6 +671,35 @@ methods Parser {
     return ast.Match { loc, args, cases };
   }
 
+  fun parseIf(): ast.If {
+    val startLoc = this.loc;
+
+    // Parse if keyword and parenthesized test
+    this.expect(token.If);
+    this.expect(token.LeftParen);
+    val test = this.parseExpression();
+    this.expect(token.RightParen);
+
+    // Consequent must always be a block
+    val conseq = this.parseBlock();
+
+    // Altern may be a single else block, an else if statement, or may not exist at all
+    val altern = if (this.token == token.Else) {
+      this.advance();
+      if (this.token == token.If) {
+        ast.ElseIf (this.parseIf())
+      } else {
+        ast.Else (this.parseBlock())
+      }
+    } else {
+      ast.NoAltern
+    };
+
+    val loc = this.currentLoc(startLoc);
+
+    return ast.If { loc, test, conseq, altern };
+  }
+
   fun parseMatchCase(isExpression: Bool): ast.MatchCase {
     val startLoc = this.loc;
 
@@ -687,9 +718,18 @@ methods Parser {
     val body = match (this.token) {
       | token.LeftBrace -> ast.MCStatement (ast.SBlock (this.parseBlock()))
       | token.While -> ast.MCStatement (ast.SWhile (this.parseWhile()))
+      | token.For -> ast.MCStatement (ast.SFor (this.parseFor()))
       | token.Return -> ast.MCStatement (ast.SReturn (this.parseReturn(true)))
       | token.Break -> ast.MCStatement (ast.SBreak (this.parseBreak(true)))
       | token.Continue -> ast.MCStatement (ast.SContinue (this.parseContinue(true)))
+      | token.If -> {
+        val if_ = this.parseIf();
+        if (isExpression) {
+          ast.MCExpression (ast.EIf (if_))
+        } else {
+          ast.MCStatement (ast.SIf (if_))
+        }
+      }
       | token.Match -> {
         val match_ = this.parseMatch(isExpression);
         if (isExpression) {
@@ -719,6 +759,30 @@ methods Parser {
     val loc = this.currentLoc(startLoc);
 
     return ast.While { loc, test, body };
+  }
+
+  fun parseFor(): ast.For {
+    val startLoc = this.loc;
+    this.expect(token.For);
+    this.expect(token.LeftParen);
+
+    // Parse pattern and its optional annotation
+    val pattern = this.parsePattern(true);
+    val annot = if (this.token == token.Colon) {
+      this.advance();
+      Some (this.parseType())
+    } else {
+      None
+    };
+
+    this.expect(token.In);
+    val iterator = this.parseExpression();
+    this.expect(token.RightParen);
+
+    val body = this.parseBlock();
+    val loc = this.currentLoc(startLoc);
+
+    return ast.For { loc, pattern, annot, iterator, body };
   }
 
   fun parseReturn(inMatchCase: Bool): ast.Return {
@@ -894,6 +958,7 @@ methods Parser {
       }
       | token.InterpolatedString { string, isEnd } ->
         ast.EInterpolatedString (this.parseInterpolatedString(string, isEnd))
+      | token.If -> ast.EIf (this.parseIf())
       | token.Match -> ast.EMatch (this.parseMatch(true))
       | token.Plus -> ast.EUnaryOperation (this.parseUnaryPlus())
       | token.Minus -> this.parseUnaryMinusOrNegativeIntLiteral()

@@ -308,8 +308,10 @@ fun nodeOfStatement(stmt: ast.Statement): PrintNode =
     | ast.SBlock (s) -> nodeOfBlock(s)
     | ast.SExpression (s) -> nodeOfExpressionStatement(s)
     | ast.SVariableDeclaration (s) -> nodeOfVariableDeclaration(s)
+    | ast.SIf (s) -> nodeOfIf(s, true)
     | ast.SMatch (s) -> nodeOfMatch(s, true)
     | ast.SWhile (s) -> nodeOfWhile(s)
+    | ast.SFor (s) -> nodeOfFor(s)
     | ast.SReturn (s) -> nodeOfReturn(s)
     | ast.SBreak (s) -> nodeOfBreak(s)
     | ast.SContinue (s) -> nodeOfContinue(s)
@@ -334,6 +336,32 @@ fun nodeOfExpressionStatement(block: ast.ExpressionStatement): PrintNode {
   return Node { name: "ExpressionStatement", loc, fields };
 }
 
+fun nodeOfIf(if_: ast.If, isStatement: Bool): PrintNode {
+  val ast.If { loc, test, conseq, altern } = if_;
+  val name = if (isStatement) {
+    "IfStatement"
+  } else {
+    "IfExpression"
+  };
+
+  val altern = match (altern) {
+    | ast.Else (block) -> nodeOfBlock(block)
+    | ast.ElseIf (if_) -> nodeOfIf(if_, isStatement)
+    | ast.NoAltern -> Empty
+  };
+
+  return Node {
+    name,
+    loc,
+    fields: [
+      ("test", nodeOfExpression(test)),
+      ("conseq", nodeOfBlock(conseq)),
+      ("altern", altern),
+    ],
+  };
+}  
+
+
 fun nodeOfMatch(match_: ast.Match, isStatement: Bool): PrintNode {
   val ast.Match { loc, args, cases } = match_;
   val name = if (isStatement) {
@@ -354,22 +382,21 @@ fun nodeOfMatch(match_: ast.Match, isStatement: Bool): PrintNode {
 
 fun nodeOfMatchCase(case: ast.MatchCase): PrintNode {
   val ast.MatchCase { loc, pattern, guard, body } = case;
+  val body = match (body) {
+    | ast.MCStatement (stmt) -> nodeOfStatement(stmt)
+    | ast.MCExpression (expr) -> nodeOfExpression(expr)
+  };
+
   return Node {
     name: "MatchCase",
     loc,
     fields: [
       ("pattern", nodeOfPattern(pattern)),
       ("guard", optional(guard, nodeOfExpression)),
-      ("right", nodeOfMatchCaseBody(body)),
+      ("right", body),
     ],
   };
-}
-
-fun nodeOfMatchCaseBody(body: ast.MatchCaseBody): PrintNode =
-  match (body) {
-    | ast.MCStatement (stmt) -> nodeOfStatement(stmt)
-    | ast.MCExpression (expr) -> nodeOfExpression(expr)
-  }
+}  
 
 fun nodeOfWhile(w: ast.While): PrintNode {
   val ast.While { loc, test, body } = w;
@@ -377,6 +404,20 @@ fun nodeOfWhile(w: ast.While): PrintNode {
     name: "While",
     loc,
     fields: [("test", nodeOfExpression(test)), ("body", nodeOfBlock(body))],
+  };
+}
+
+fun nodeOfFor(w: ast.For): PrintNode {
+  val ast.For { loc, pattern, annot, iterator, body } = w;
+  return Node {
+    name: "For",
+    loc,
+    fields: [
+      ("pattern", nodeOfPattern(pattern)),
+      ("annot", optional(annot, nodeOfType)),
+      ("iterator", nodeOfExpression(iterator)),
+      ("body", nodeOfBlock(body)),
+    ],
   };
 }
 
@@ -415,7 +456,8 @@ fun nodeOfExpression(expr: ast.Expression): PrintNode =
     | ast.ENamedAccess (e) -> nodeOfNamedAccess(e)
     | ast.EIndexedAccess (e) -> nodeOfIndexedAccess(e)
     | ast.EUnwrap (e) -> nodeOfUnwrap(e)
-    | ast.EMatch (s) -> nodeOfMatch(s, false)
+    | ast.EIf (e) -> nodeOfIf(e, false)
+    | ast.EMatch (e) -> nodeOfMatch(e, false)
   }
 
 fun nodeOfUnitLiteral(lit: ast.UnitLiteral): PrintNode {

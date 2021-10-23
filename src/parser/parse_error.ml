@@ -64,7 +64,7 @@ let to_string error =
   | MalformedCharLiteral -> "Malformed character literal"
   | MalformedTopLevel actual ->
     Printf.sprintf
-      "Unexpected token `%s`, expected start of top level statement"
+      "Unexpected token `%s`, expected start of top level declaration"
       (Token.to_string actual)
   | MalformedMethodsItem actual ->
     Printf.sprintf "Unexpected token `%s`, expected start of method" (Token.to_string actual)

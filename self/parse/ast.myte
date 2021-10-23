@@ -140,8 +140,10 @@ type Statement =
   | SBlock (Block)
   | SExpression (ExpressionStatement)
   | SVariableDeclaration (VariableDeclaration)
+  | SIf (If)
   | SMatch (Match)
   | SWhile (While)
+  | SFor (For)
   | SReturn (Return)
   | SBreak (Break)
   | SContinue (Continue)
@@ -156,6 +158,18 @@ type ExpressionStatement {
   expr: Expression,
   isValue: Bool,
 }
+
+type If {
+  loc: Loc,
+  test: Expression,
+  conseq: Block,
+  altern: IfAltern,
+}
+
+type IfAltern =
+  | Else (Block)
+  | ElseIf (If)
+  | NoAltern
 
 type Match {
   loc: Loc,
@@ -177,6 +191,14 @@ type MatchCaseBody =
 type While {
   loc: Loc,
   test: Expression,
+  body: Block,
+}
+
+type For {
+  loc: Loc,
+  pattern: Pattern,
+  annot: Option<Type>,
+  iterator: Expression,
   body: Block,
 }
 
@@ -213,6 +235,7 @@ type Expression =
   | ENamedAccess (NamedAccess)
   | EIndexedAccess (IndexedAccess)
   | EUnwrap (Unwrap)
+  | EIf (If)
   | EMatch (Match)
 
 type UnitLiteral { loc: Loc }

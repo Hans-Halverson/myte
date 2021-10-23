@@ -448,7 +448,11 @@ methods Lexer {
       | "fun" -> token.Fun
       | "type" -> token.Type
       | "trait" -> token.Trait
+      | "if" -> token.If
+      | "else" -> token.Else
       | "while" -> token.While
+      | "for" -> token.For
+      | "in" -> token.In
       | "match" -> token.Match
       | "when" -> token.When
       | "return" -> token.Return

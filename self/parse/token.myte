@@ -49,7 +49,11 @@ type Token =
   | Fun
   | Type
   | Trait
+  | If
+  | Else
   | While
+  | For
+  | In
   | Match
   | When
   | Return
@@ -109,7 +113,11 @@ methods Token {
       | Fun -> "fun"
       | Type -> "type"
       | Trait -> "trait"
+      | If -> "if"
+      | Else -> "else"
       | While -> "while"
+      | For -> "for"
+      | In -> "in"
       | Match -> "match"
       | When -> "when"
       | Return -> "return"
@@ -170,7 +178,11 @@ methods Token {
       | (Fun, Fun)
       | (Type, Type)
       | (Trait, Trait)
+      | (If, If)
+      | (Else, Else)
       | (While, While)
+      | (For, For)
+      | (In, In)
       | (Match, Match)
       | (When, When)
       | (Return, Return)
