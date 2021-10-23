@@ -158,6 +158,7 @@ type Expression =
   | EIntLiteral (IntLiteral)
   | EBoolLiteral (BoolLiteral)
   | EStringLiteral (StringLiteral)
+  | ECharLiteral (CharLiteral)
   | EIdentifier (Identifier)
   | ETuple (TupleExpression)
   | ETypeCast (TypeCast)
@@ -183,6 +184,11 @@ type BoolLiteral {
 type StringLiteral {
   loc: Loc,
   value: String,
+}
+
+type CharLiteral {
+  loc: Loc,
+  value: Byte,
 }
 
 type TupleExpression {

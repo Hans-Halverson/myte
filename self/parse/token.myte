@@ -4,12 +4,14 @@ import std.ops.Equatable
 import std.string.ToString
 
 import myte.parse.ast
+import myte.parse.ast.utils.escapeCharLiteralValue
 
 type Token =
   | Identifier (String)
   | IntLiteral { raw: String, base: ast.IntLiteralBase }
   | BoolLiteral (Bool)
   | StringLiteral (String)
+  | CharLiteral (Byte)
   | Semicolon
   | Colon
   | Comma
@@ -51,6 +53,7 @@ methods Token {
       | BoolLiteral (bool) -> bool.toString()
       | IntLiteral { raw, ... } -> raw
       | StringLiteral (string) -> `"${string}"`
+      | CharLiteral (char) -> escapeCharLiteralValue(char)
       | Semicolon -> ";"
       | Colon -> ":"
       | Comma -> ","

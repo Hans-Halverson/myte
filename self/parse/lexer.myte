@@ -105,6 +105,18 @@ methods Lexer {
     };
   }
 
+  /*
+   * Return the byte after the next byte if not at end of source.
+   */
+  fun peekTwo(): LexByte {
+    val nextOffset = this.currentOffset + 2;
+    return if (nextOffset < this.bytes.size) {
+      this.bytes.get(nextOffset).toInt()
+    } else {
+      EOF
+    };
+  }
+
   fun getCurrentPos(): Pos =
     Pos { line: this.currentLine, column: this.currentOffset - this.currentLineOffset }
   
@@ -119,6 +131,18 @@ methods Lexer {
     };
 
     return Ok (TokenResult { loc, token });
+  }
+
+  fun errorResultAtCurrentPos(error: ParseError): Result<TokenResult, ErrorResult> {
+    val loc = this.locOfPosition(this.getCurrentPos());
+
+    return Error (ErrorResult { error, loc });
+  }
+
+  fun errorResultFromPos(error: ParseError, startPos: Pos): Result<TokenResult, ErrorResult> {
+    val loc = Loc { source: this.source, start: startPos, end: this.getCurrentPos() };
+
+    return Error (ErrorResult { error, loc });
   }
 
   /*
@@ -145,7 +169,20 @@ methods Lexer {
         ('A' <= current && current <= 'Z') ||
         (current == '_')) {
       return this.tokenResult(this.parseIdentifierOrKeyword());
-    } else if ('0' <= current && current <= '9') {
+    }
+    
+    // Check for hexadecimal integer literal
+    if (current == '0' && this.peek() == 'x' && this.isHexDigit(this.peekTwo())) {
+      return this.tokenResult(this.parseNumberHex());
+    }
+
+    // Check for binary integer literal
+    if (current == '0' && this.peek() == 'b' && this.isBinDigit(this.peekTwo())) {
+      return this.tokenResult(this.parseNumberBin());
+    }
+
+    // Otherwise is a decimal integer literal
+    if ('0' <= current && current <= '9') {
       return this.tokenResult(this.parseNumberDec());
     }
 
@@ -220,6 +257,7 @@ methods Lexer {
         this.advance();
         this.parseStringLiteral(false)
       }
+      | '\'' -> this.parseCharLiteral()
       | '/' -> match (this.peek()) {
         | '/' -> {
           this.advanceTwo();
@@ -327,6 +365,13 @@ methods Lexer {
     };
   }
 
+  fun isHexDigit(byte: LexByte): Bool =
+    ('0' <= this.current && this.current <= '9') ||
+    ('a' <= this.current && this.current <= 'f') ||
+    ('A' <= this.current && this.current <= 'F')
+  
+  fun isBinDigit(byte: LexByte): Bool = byte == '0' || byte == '1'
+
   fun parseNumberDec(): Token {
     val startOffset = this.currentOffset;
     while ('0' <= this.current && this.current <= '9') {
@@ -338,17 +383,106 @@ methods Lexer {
     return token.IntLiteral { raw, base: ast.Dec };
   }
 
-  fun parseStringLiteral(isInterpolated: Bool): Result<TokenResult, ErrorResult> {
+  fun parseNumberHex(): Token {
+    val startOffset = this.currentOffset;
+
+    // Skip `0x` prefix
+    this.advanceTwo();
+
+    // Find all hex digits in number
+    while (this.isHexDigit(this.current)) {
+      this.advance();
+    }
+
+    val raw = this.bytes.substring(startOffset, this.currentOffset);
+
+    return token.IntLiteral { raw, base: ast.Hex };
+  }
+
+  fun parseNumberBin(): Token {
+    val startOffset = this.currentOffset;
+
+    // Skip `0b` prefix
+    this.advanceTwo();
+
+    // Find all binary digits in number
+    while (this.isBinDigit(this.current)) {
+      this.advance();
+    }
+
+    val raw = this.bytes.substring(startOffset, this.currentOffset);
+
+    return token.IntLiteral { raw, base: ast.Bin };
+  }
+
+  fun parseStringLiteral(inInterpolated: Bool): Result<TokenResult, ErrorResult> {
     val string = "";
     while (true) {
       match (this.current) {
-        | '"' when !isInterpolated -> {
+        // Double quotes are end for string literal
+        | '"' when !inInterpolated -> {
           this.advance();
           break;
         }
-        | '\n' when !isInterpolated -> {
+        // Newlines are allowed in interpolated strings, but not normal string literals
+        | '\n' when !inInterpolated -> {
           val loc = this.locOfPosition(this.currentTokenStartPos);
           return Error (ErrorResult { error: error.UnterminatedStringLiteral, loc });
+        }
+        // Start of an escape sequence sequence
+        | '\\' -> {
+          val escapeStartPos = this.getCurrentPos();
+          this.advance();
+
+          val decoded = match (this.current) {
+            // Escape sequences for both string literals and interpolated strings
+            | 'n' -> {
+              this.advance();
+              '\n'
+            }
+            | 'r' -> {
+              this.advance();
+              '\r'
+            }
+            | 't' -> {
+              this.advance();
+              '\t'
+            }
+            | '\\' -> {
+              this.advance();
+              '\\'
+            }
+            // Double quotes are only an escape sequence in string literals
+            | '"' -> {
+              if (inInterpolated) {
+                return this.errorResultAtCurrentPos(error.InvalidStringEscape { inInterpolated });
+              } else {
+                this.advance();
+                '"'
+              }
+            }
+            // Start of a hex escape sequence
+            | 'x' -> {
+              this.advance();
+
+              val digit1 = this.parseHexDigit(this.current);
+              if (digit1 == -1) {
+                return this.errorResultFromPos(error.InvalidHexEscape, escapeStartPos);
+              }
+              this.advance();
+
+              val digit2 = this.parseHexDigit(this.current);
+              if (digit2 == -1) {
+                return this.errorResultFromPos(error.InvalidHexEscape, escapeStartPos);
+              }
+              this.advance();
+
+              digit1 * 16 + digit2
+            }
+            | _ -> return this.errorResultAtCurrentPos(error.InvalidStringEscape { inInterpolated })
+          };
+
+          string.push(decoded.toByte());
         }
         | current when current == EOF -> {
           val loc = this.locOfPosition(this.currentTokenStartPos);
@@ -362,5 +496,55 @@ methods Lexer {
     }
 
     return this.tokenResult(token.StringLiteral (string));
+  }
+
+  /**
+   * Parse a hex digit character to its integer value, returning -1 if it is not a hex digit.
+   */
+  fun parseHexDigit(n: Int): Int {
+    return if ('0' <= n && n <= '9') {
+      n - '0'
+    } else if ('a' <= n && n <= 'f') {
+      n - 'a' + 10
+    } else if ('A' <= n && n <= 'F') {
+      n - 'A' + 10
+    } else {
+      -1
+    };
+  }
+
+  fun parseCharLiteral(): Result<TokenResult, ErrorResult> {
+    this.advance();
+    
+    val value = match (this.current) {
+      // Unescaped single quote is not allowed
+      | '\'' -> return this.errorResultAtCurrentPos(error.MalformedCharLiteral)
+      // Escape sequences for char literals
+      | '\\' -> {
+        this.advance();
+        match (this.current) {
+          | '\'' -> '\''
+          | '\\' -> '\\'
+          | 'n' -> '\n'
+          | 'r' -> '\r'
+          | 't' -> '\t'
+          | _ -> return this.errorResultAtCurrentPos(error.InvalidCharEscape)
+        }
+      }
+      // All other printable chars are allowed
+      | current when ' ' <= current && current <= '~' -> current
+      | _ -> return this.errorResultAtCurrentPos(error.MalformedCharLiteral)
+    };
+
+    this.advance();
+
+    // Char literal must be closed by another single quote
+    return match (this.current) {
+      | '\'' -> {
+        this.advance();
+        this.tokenResult(token.CharLiteral (value.toByte()))
+      }
+      | _ -> this.errorResultAtCurrentPos(error.MalformedCharLiteral)
+    };
   }
 }

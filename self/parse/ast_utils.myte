@@ -1,0 +1,18 @@
+module myte.parse.ast.utils
+
+import myte.parse.ast
+
+fun escapeCharLiteralValue(value: Byte): String =
+  match (value) {
+    | '"' -> "\""
+    | '\'' -> "\\'"
+    | '\\' -> "\\\\"
+    | '\n' -> "\\n"
+    | '\r' -> "\\r"
+    | '\t' -> "\\t"
+    | _ -> {
+      val str = "";
+      str.push(value);
+      str
+    }
+  }

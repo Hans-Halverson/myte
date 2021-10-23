@@ -13,6 +13,10 @@ type ParseError =
   | UnknownToken { raw: String }
   | UnexpectedToken { actual: Token, expected: Option<Token> }
   | UnterminatedStringLiteral
+  | InvalidStringEscape { inInterpolated: Bool }
+  | InvalidHexEscape
+  | InvalidCharEscape
+  | MalformedCharLiteral
   | MalformedToplevel { token: Token }
   | MalformedFunctionBody { token: Token }
   | MalformedTypeDeclaration { token: Token }
@@ -41,6 +45,19 @@ methods ParseError {
       | UnexpectedToken { actual, expected: Some (expected) } ->
         `Unexpected token \`${actual}\`, expected \`${expected}\``
       | UnterminatedStringLiteral -> "Unterminated string literal"
+      | InvalidStringEscape { inInterpolated } -> {
+        val escapes = if (inInterpolated) {
+            "```, `$`, `\\`, `n`, `t`, `r`, or `x`"
+        } else {
+            "`\"`, `\\`, `n`, `t`, `r`, or `x`"
+        };
+        `Invalid escape sequence, expected ${escapes}`
+      }
+      | InvalidHexEscape ->
+        "Invalid hex escape sequence, expected exactly two hex digits following `\\x`"
+      | InvalidCharEscape ->
+        "Invalid character escape sequence, expected `'`, `\\`, `n`, `t`, or `r`"
+      | MalformedCharLiteral -> "Malformed character literal"
       | MalformedToplevel { token } ->
         `Unexpected token \`${token}\`, expected start of top level declaration`
       | MalformedFunctionBody { token } ->

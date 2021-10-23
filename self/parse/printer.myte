@@ -2,6 +2,7 @@ module myte.parse.printer
 
 import myte.common.loc.Loc
 import myte.parse.ast
+import myte.parse.ast.utils.escapeCharLiteralValue
 
 type PrintNode =
   | Empty
@@ -336,6 +337,7 @@ fun nodeOfExpression(expr: ast.Expression): PrintNode =
     | ast.EIntLiteral (e) -> nodeOfIntLiteral(e)
     | ast.EBoolLiteral (e) -> nodeOfBoolLiteral(e)
     | ast.EStringLiteral (e) -> nodeOfStringLiteral(e)
+    | ast.ECharLiteral (e) -> nodeOfCharLiteral(e)
     | ast.EIdentifier (e) -> nodeOfIdentifier(e)
     | ast.ETuple (e) -> nodeOfTupleExpression(e)
     | ast.ETypeCast (e) -> nodeOfTypeCast(e)
@@ -366,6 +368,14 @@ fun nodeOfBoolLiteral(lit: ast.BoolLiteral): PrintNode {
 fun nodeOfStringLiteral(lit: ast.StringLiteral): PrintNode {
   val ast.StringLiteral { loc, value } = lit;
   return Node { name: "StringLiteral", loc, fields: [("value", String (value))] };
+}
+
+fun nodeOfCharLiteral(lit: ast.CharLiteral): PrintNode {
+  val ast.CharLiteral { loc, value } = lit;
+  return Node {
+    name: "CharLiteral",
+    loc,
+    fields: [("value", String (escapeCharLiteralValue(value)))] };
 }
 
 fun nodeOfTupleExpression(tuple: ast.TupleExpression): PrintNode {

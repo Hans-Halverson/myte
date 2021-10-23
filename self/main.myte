@@ -17,7 +17,6 @@ fun parse(filename: String) {
       }
     }
     | Error (error) -> {
-      println(stripRoot(filename));
       print(formatErrorWithoutLoc(error.toString()));
     }
   }

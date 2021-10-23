@@ -559,6 +559,11 @@ methods Parser {
         this.advance();
         ast.EStringLiteral (ast.StringLiteral { loc, value })
       }
+      | token.CharLiteral (value) -> {
+        val loc = this.loc;
+        this.advance();
+        ast.ECharLiteral (ast.CharLiteral { loc, value })
+      }
       | actual -> fatal(error.UnexpectedToken { actual, expected: None }, this.loc)
     };
   }
