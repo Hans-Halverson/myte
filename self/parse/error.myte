@@ -21,10 +21,12 @@ type ParseError =
   | MalformedFunctionBody { token: Token }
   | MalformedTypeDeclaration { token: Token }
   | MalformedType { token: Token }
+  | MalformedPattern { token: Token }
   | EmptyRecord
   | EmptyTuple
   | SingleVariant
   | TypeAliasBuiltin
+  | LiteralInPattern
   | CannotOpenFile { filename: String }
 
 fun fatal(error: ParseError, loc: Loc): Never {
@@ -65,11 +67,13 @@ methods ParseError {
       | MalformedTypeDeclaration { token } ->
         `Unexpected token \`${token}\`, expected start of type declaration`
       | MalformedType { token } -> `Unexpected token \`${token}\`, expected start of type`
+      | MalformedPattern { token } -> `Unexpected token \`${token}\`, expected start of pattern`
       | EmptyRecord -> "Record must have at least one field"
       | EmptyTuple -> "Tuple must have at least one element"
       | SingleVariant -> "Variant type must have at least two variants"
       | TypeAliasBuiltin ->
         "A type alias cannot be builtin. Only function and type declarations can be builtin."
+      | LiteralInPattern -> "Literals cannot appear in variable declaration patterns"
       | CannotOpenFile { filename } -> `Cannot open file ${filename}`
     }
 }

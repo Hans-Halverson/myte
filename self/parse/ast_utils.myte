@@ -16,3 +16,6 @@ fun escapeCharLiteralValue(value: Byte): String =
       str
     }
   }
+
+fun identifierToScopedIdentifier(ident: ast.Identifier): ast.ScopedIdentifier =
+  ast.ScopedIdentifier { loc: ident.loc, scopes: [], name: ident }

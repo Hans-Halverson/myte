@@ -449,6 +449,8 @@ methods Lexer {
       | "type" -> token.Type
       | "trait" -> token.Trait
       | "while" -> token.While
+      | "match" -> token.Match
+      | "when" -> token.When
       | "return" -> token.Return
       | "break" -> token.Break
       | "continue" -> token.Continue

@@ -50,6 +50,8 @@ type Token =
   | Type
   | Trait
   | While
+  | Match
+  | When
   | Return
   | Break
   | Continue
@@ -108,6 +110,8 @@ methods Token {
       | Type -> "type"
       | Trait -> "trait"
       | While -> "while"
+      | Match -> "match"
+      | When -> "when"
       | Return -> "return"
       | Break -> "break"
       | Continue -> "continue"
@@ -167,6 +171,8 @@ methods Token {
       | (Type, Type)
       | (Trait, Trait)
       | (While, While)
+      | (Match, Match)
+      | (When, When)
       | (Return, Return)
       | (Break, Break)
       | (Continue, Continue)

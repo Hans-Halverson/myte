@@ -21,7 +21,11 @@ type Parser {
   loc: Loc,
   prevToken: Token,
   prevLoc: Loc,
+  // Whether the lexer should currently be lexing an interpolated string 
   inInterpolatedString: Bool,
+  // A stack of bools where each bool represents whether bitwise or is not allowed
+  // in the enclosing matches.
+  matchStack: Vec<Bool>,
 }
 
 methods Parser {
@@ -38,6 +42,7 @@ methods Parser {
       prevToken: token,
       prevLoc: loc,
       inInterpolatedString: false,
+      matchStack: [false],
     };
   }
 
@@ -50,7 +55,7 @@ methods Parser {
   }
 
   fun advance() {
-    val TokenResult { token, loc } = match (this.lexerNext()) {
+    val TokenResult { token: newToken, loc: newLoc } = match (this.lexerNext()) {
       | Ok (result) -> result
       | Error (ErrorResult { error, loc }) -> fatal(error, loc)
     };
@@ -58,11 +63,26 @@ methods Parser {
     val prevToken = this.token;
     val prevLoc = this.loc;
 
-    this.token = token;
-    this.loc = loc;
+    this.token = newToken;
+    this.loc = newLoc;
 
     this.prevToken = prevToken;
     this.prevLoc = prevLoc;
+
+    // Track whether whether parser is in top level of match statement
+    if (!this.inInterpolatedString) {
+      match (this.prevToken) {
+        | token.LeftParen
+        | token.LeftBrace
+        | token.LeftBracket -> this.matchStack.push(false)
+        | token.RightParen
+        | token.RightBrace
+        | token.RightBracket -> {
+          this.matchStack.pop();
+        }
+        | _ -> ()
+      }
+    }
   }
 
   fun expect(expected: Token) {
@@ -92,6 +112,18 @@ methods Parser {
 
   fun exitInterpolatedString() {
     this.inInterpolatedString = false;
+  }
+
+  fun enterMatch() {
+    this.matchStack.push(true);
+  }
+
+  fun exitMatch() {
+    this.matchStack.pop();
+  }
+
+  fun canUseBitwiseOr(): Bool {
+    return !this.matchStack[this.matchStack.size - 1];
   }
 
   fun currentLoc(start: Loc): Loc = Loc.between(start, this.prevLoc)
@@ -314,7 +346,7 @@ methods Parser {
 
     this.advance();
 
-    val pattern = this.parseScopedIdentifier();
+    val pattern = this.parsePattern(true);
     val annot = if (this.token.equals(token.Colon)) {
       this.advance();
       Some (this.parseType())
@@ -538,6 +570,7 @@ methods Parser {
       | token.LeftBrace -> ast.SBlock (this.parseBlock())
       | token.Val
       | token.Var -> ast.SVariableDeclaration (this.parseVariableDeclaration(false))
+      | token.Match -> ast.SMatch (this.parseMatch(false))
       | token.While -> ast.SWhile (this.parseWhile())
       | token.Return -> ast.SReturn (this.parseReturn(false))
       | token.Break -> ast.SBreak (this.parseBreak(false))
@@ -577,6 +610,100 @@ methods Parser {
     val loc = this.currentLoc(startLoc);
 
     return ast.SExpression (ast.ExpressionStatement { loc, expr, isValue });
+  }
+
+  fun parseMatch(isExpression: Bool): ast.Match {
+    val startLoc = this.loc;
+    this.expect(token.Match);
+
+    // Parse nonempty arguments list
+    this.expect(token.LeftParen);
+    val args: Vec<ast.Expression> = [];
+
+    while (true) {
+      args.push(this.parseExpression());
+
+      // Args are separated by commas and end at right paren, with optional trailing comma
+      match (this.token) {
+        | token.RightParen -> break
+        | token.Comma -> {
+          this.advance();
+
+          // May be a trailing comma, finish args if so
+          if (this.token == token.RightParen) {
+            break;
+          }
+        }
+        | _ -> this.expect(token.RightParen)
+      }
+    }
+
+    this.expect(token.RightParen);
+
+    // Parse match cases
+    this.expect(token.LeftBrace);
+    this.enterMatch();
+
+    // Pipe for first case is optional
+    if (this.token == token.Pipe) {
+      this.advance();
+    }
+
+    val cases: Vec<ast.MatchCase> = [];
+    while (true) {
+      cases.push(this.parseMatchCase(isExpression));
+
+      // A pipe following a match case means another case follows, otherwise must be end of body
+      match (this.token) {
+        | token.RightBrace -> break
+        | token.Pipe -> this.advance()
+        | _ -> this.expect(token.RightBrace)
+      }
+    }
+
+    this.expect(token.RightBrace);
+    this.exitMatch();
+
+    val loc = this.currentLoc(startLoc);
+
+    return ast.Match { loc, args, cases };
+  }
+
+  fun parseMatchCase(isExpression: Bool): ast.MatchCase {
+    val startLoc = this.loc;
+
+    // Parse pattern with optional match guard
+    val pattern = this.parsePattern(false);
+    val guard = if (this.token == token.When) {
+      this.advance();
+      Some (this.parseExpression())
+    } else {
+      None
+    };
+
+    this.expect(token.Arrow);
+
+    // Parse body of match case. Only certain statements are allowed as body of match case.
+    val body = match (this.token) {
+      | token.LeftBrace -> ast.MCStatement (ast.SBlock (this.parseBlock()))
+      | token.While -> ast.MCStatement (ast.SWhile (this.parseWhile()))
+      | token.Return -> ast.MCStatement (ast.SReturn (this.parseReturn(true)))
+      | token.Break -> ast.MCStatement (ast.SBreak (this.parseBreak(true)))
+      | token.Continue -> ast.MCStatement (ast.SContinue (this.parseContinue(true)))
+      | token.Match -> {
+        val match_ = this.parseMatch(isExpression);
+        if (isExpression) {
+          ast.MCExpression (ast.EMatch (match_))
+        } else {
+          ast.MCStatement (ast.SMatch (match_))
+        }
+      }
+      | _ -> ast.MCExpression (this.parseExpression())
+    };
+
+    val loc = this.currentLoc(startLoc);
+
+    return ast.MatchCase { loc, pattern, guard, body };
   }
 
   fun parseWhile(): ast.While {
@@ -679,7 +806,8 @@ methods Parser {
           ast.EBinaryOperation (this.parseBinaryOperation(expr, startLoc))
         | token.Ampersand when leftPrecedence.isWeakerThan(precedence.BitwiseAnd) ->
           ast.EBinaryOperation (this.parseBinaryOperation(expr, startLoc))
-        | token.Pipe when leftPrecedence.isWeakerThan(precedence.BitwiseOr) ->
+        | token.Pipe
+            when leftPrecedence.isWeakerThan(precedence.BitwiseOr) && this.canUseBitwiseOr() ->
           ast.EBinaryOperation (this.parseBinaryOperation(expr, startLoc))
         | token.Caret when leftPrecedence.isWeakerThan(precedence.BitwiseXor) ->
           ast.EBinaryOperation (this.parseBinaryOperation(expr, startLoc))
@@ -766,6 +894,7 @@ methods Parser {
       }
       | token.InterpolatedString { string, isEnd } ->
         ast.EInterpolatedString (this.parseInterpolatedString(string, isEnd))
+      | token.Match -> ast.EMatch (this.parseMatch(true))
       | token.Plus -> ast.EUnaryOperation (this.parseUnaryPlus())
       | token.Minus -> this.parseUnaryMinusOrNegativeIntLiteral()
       | token.Bang -> ast.EUnaryOperation (this.parseUnaryNot())
@@ -1182,6 +1311,257 @@ methods Parser {
     this.advance();
 
     return typeArgs;
+  }
+
+  /* 
+   * ============================
+   *          Patterns
+   * ============================
+   */
+
+  fun parsePattern(isDecl: Bool): ast.Pattern {
+    return this.parsePatternWithPrecedence(isDecl, precedence.Toplevel);
+  }
+
+  fun parsePatternWithPrecedence(isDecl: Bool, leftPrecedence: Precedence): ast.Pattern {
+    val startLoc = this.loc;
+
+    var pattern = this.parsePatternPrefix(isDecl);
+    while (true) {
+      pattern = match (this.token) {
+        | token.Pipe when leftPrecedence.isWeakerThan(precedence.BitwiseOr) -> {
+          this.advance();
+          val right = this.parsePatternWithPrecedence(isDecl, precedence.BitwiseOr);
+          val loc = this.currentLoc(startLoc);
+
+          ast.POr (ast.OrPattern { loc, left: pattern, right })
+        }
+        | token.As -> {
+          this.advance();
+          val name = this.parseIdentifier();
+          val loc = this.currentLoc(startLoc);
+
+          ast.PBinding (ast.BindingPattern { loc, pattern, name })
+        }
+        | _ -> break    
+      };
+    }
+
+    return pattern;
+  }
+
+  fun parsePatternPrefix(isDecl: Bool): ast.Pattern {
+    return match (this.token) {
+      | token.Wildcard -> {
+        val loc = this.loc;
+        this.advance();
+
+        ast.PWildcard (loc)
+      }
+      | token.Identifier (ident) -> this.parseIdentifierPattern(isDecl)
+      | token.LeftParen -> this.parseParenthesizedPattern(isDecl)
+      // Literals in declaration patterns are not allowed
+      | token.BoolLiteral _
+      | token.IntLiteral _
+      | token.CharLiteral _
+      | token.StringLiteral _ when isDecl ->
+        fatal(error.LiteralInPattern, this.loc)
+      // Literals in non-declaration patterns are allowed
+      | token.IntLiteral { raw, base } -> {
+        val loc = this.loc;
+        this.advance();
+        ast.PLiteral (ast.PInt (ast.IntLiteral { loc, raw, base }))
+      }
+      | token.BoolLiteral (value) -> {
+        val loc = this.loc;
+        this.advance();
+        ast.PLiteral (ast.PBool (ast.BoolLiteral { loc, value }))
+      }
+      | token.StringLiteral (value) -> {
+        val loc = this.loc;
+        this.advance();
+        ast.PLiteral (ast.PString (ast.StringLiteral { loc, value }))
+      }
+      | token.CharLiteral (value) -> {
+        val loc = this.loc;
+        this.advance();
+        ast.PLiteral (ast.PChar (ast.CharLiteral { loc, value }))
+      }
+      // Minus may be start of negative int literal if not in declaration
+      | token.Minus when !isDecl -> {
+        val minusLoc = this.loc;
+        this.advance();
+
+        match (this.token) {
+          // For this to be a negative int literal, minus sign must be immediately followed by an
+          // int literal with no space between them.
+          | token.IntLiteral { raw, base } when minusLoc.isAdjacentTo(this.loc) -> {
+            this.advance();
+            val raw = `-${raw}`;
+            val loc = this.currentLoc(minusLoc);
+
+            ast.PLiteral (ast.PInt (ast.IntLiteral { loc, raw, base }))
+          }
+          | _ -> fatal(error.MalformedPattern { token: token.Minus }, minusLoc)
+        }
+      }
+      | token -> fatal(error.MalformedPattern { token }, this.loc)
+    };
+  }
+
+  fun parseIdentifierPattern(isDecl: Bool): ast.Pattern {
+    val startLoc = this.loc;
+    val name = this.parseScopedIdentifier();
+
+    return match (this.token) {
+      | token.Wildcard -> {
+        this.advance();
+        val loc = this.currentLoc(startLoc);
+
+        ast.PNamedWildcard (ast.NamedWildcard { loc, name })
+      }
+      | token.LeftParen -> ast.PTuple (this.parseTuplePattern(name, startLoc, isDecl))
+      | token.LeftBrace -> ast.PRecord (this.parseRecordPattern(name, startLoc, isDecl))
+      | _ -> ast.PIdentifier (name)
+    };
+  }
+
+  fun parseTuplePattern(name: ast.ScopedIdentifier, startLoc: Loc, isDecl: Bool): ast.TuplePattern {
+    this.expect(token.LeftParen);
+
+    val elements: Vec<ast.Pattern> = [];
+    while (this.token != token.RightParen) {
+      elements.push(this.parsePattern(isDecl));
+      match (this.token) {
+        | token.RightParen -> ()
+        | token.Comma -> this.advance()
+        | _ -> this.expect(token.RightParen)
+      }
+    }
+
+    this.advance();
+    val loc = this.currentLoc(startLoc);
+    
+    if (elements.size == 0) {
+      fatal(error.EmptyTuple, loc);
+    }
+
+    return ast.TuplePattern { loc, name: Some (name), elements };
+  }
+
+  fun parseRecordPattern(
+    name: ast.ScopedIdentifier,
+    startLoc: Loc,
+    isDecl: Bool,
+  ): ast.RecordPattern {
+    this.expect(token.LeftBrace);
+
+    var rest = false;
+    val fields: Vec<ast.RecordPatternField> = [];
+
+    while (true) {
+      match (this.token) {
+        // Record ends with a right element
+        | token.RightBrace -> {
+          this.advance();
+          break;
+        }
+        // `...` is a rest element, and must be last element in record
+        | token.Period -> {
+          this.expect(token.Period);
+          this.expect(token.Period);
+          this.expect(token.Period);
+          rest = true;
+
+          // Rest can optionally be followed by a trailing comma, then the record must end
+          if (this.token == token.Comma) {
+            this.advance();
+          }
+          
+          this.expect(token.RightBrace);
+          break;
+        }
+        // An identifier is the start of a record field
+        | token.Identifier _ -> {
+          val startLoc = this.loc;
+          val name = this.parseIdentifier();
+
+          // A colon indicates this field has both a name and value
+          val field = if (this.token == token.Colon) {
+            this.advance();
+            val value = this.parsePattern(isDecl);
+            val loc = this.currentLoc(startLoc);
+
+            ast.RecordPatternField { loc, name: Some (name), value }
+          } else {
+            // Otherwise this is field shorthand with just a name
+            val loc = this.currentLoc(startLoc);
+
+            ast.RecordPatternField {
+              loc,
+              name: None,
+              value: ast.PIdentifier (ast.utils.identifierToScopedIdentifier(name)),
+            }
+          };
+
+          fields.push(field);
+
+          // Optionally followed by a trailing comma
+          match (this.token) {
+            | token.RightBrace -> ()
+            | token.Comma -> this.advance()
+            | _ -> this.expect(token.RightBrace)
+          }
+        }
+        | _ -> this.expect(token.RightParen)
+      }
+    }
+
+    val loc = this.currentLoc(startLoc);
+
+    if (fields.size == 0) {
+      fatal(error.EmptyRecord, loc);
+    }
+
+    return ast.RecordPattern { loc, name, fields, rest };
+  }
+
+  fun parseParenthesizedPattern(isDecl: Bool): ast.Pattern {
+    val startLoc = this.loc;
+    this.expect(token.LeftParen);
+
+    // A unit literal can appear in non-declaration patterns
+    if (this.token == token.RightParen) {
+      this.advance();
+      val loc = this.currentLoc(startLoc);
+
+      if (isDecl) {
+        fatal(error.LiteralInPattern, loc);
+      }
+
+      return ast.PLiteral (ast.PUnit (ast.UnitLiteral { loc }));
+    }
+
+    // Gather parenthesized elements
+    val elements: Vec<ast.Pattern> = [];
+    while (this.token != token.RightParen) {
+      elements.push(this.parsePattern(isDecl));
+      match (this.token) {
+        | token.RightParen -> ()
+        | token.Comma -> this.advance()
+        | _ -> this.expect(token.RightParen)
+      }
+    }
+
+    this.advance();
+
+    // If there is a single element this is a parenthesized pattern, otherwise it is a tuple pattern
+    return if (elements.size == 1) {
+      elements[0]
+    } else {
+      val loc = this.currentLoc(startLoc);
+      ast.PTuple (ast.TuplePattern { loc, name: None, elements })
+    };
   }
 }
 

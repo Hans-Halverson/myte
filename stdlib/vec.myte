@@ -56,6 +56,17 @@ methods Vec<T> {
     this.data[this.size] = x;
     this.size += 1;
   }
+
+  fun pop(): Option<T> {
+    if (this.size == 0) {
+      return None;
+    }
+
+    val toReturn = this.data[this.size - 1];
+    this.size -= 1;
+
+    return Some (toReturn);
+  }
   
   fun map<U>(func: (T) -> U): Vec<U> {
     val vec: Vec<U> = Vec.newUninitialized(this.size);

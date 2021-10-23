@@ -1,8 +1,26 @@
 module test
 
-import std.test.assertEqual
+import std.test.{assertEqual, assertNone, assertSome}
 
 fun intToString(x: Int): String = x.toString()
+
+fun testPop() {
+  val x: Vec<Int> = [];
+  assertNone(x.pop());
+
+  x.push(3);
+  x.push(2);
+  x.push(10);
+
+  assertSome(x.pop(), 10);
+  assertSome(x.pop(), 2);
+
+  x.push(8);
+
+  assertSome(x.pop(), 8);
+  assertSome(x.pop(), 3);
+  assertNone(x.pop());
+}
 
 fun testMap() {
   // Empty vector
@@ -20,5 +38,6 @@ fun testMap() {
 }
 
 fun main() {
+  testPop();
   testMap();
 }

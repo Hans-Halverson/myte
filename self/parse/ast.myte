@@ -46,8 +46,10 @@ type ScopedIdentifier {
   name: Identifier,
 }
 
-/*
- * Declarations
+/* 
+ * ============================
+ *        Declarations
+ * ============================
  */
 
 type FunctionDeclaration {
@@ -82,7 +84,7 @@ type TypeParameter {
 type VariableDeclaration {
   loc: Loc,
   kind: VariableDeclarationKind,
-  pattern: ScopedIdentifier,
+  pattern: Pattern,
   init: Expression,
   annot: Option<Type>,
 }
@@ -128,14 +130,17 @@ type VariantDeclaration =
   | RecordVariant (RecordDeclaration)
   | EnumVariant (Identifier)
 
-/*
- * Statements
+/* 
+ * ============================
+ *         Statements
+ * ============================
  */
 
 type Statement =
   | SBlock (Block)
   | SExpression (ExpressionStatement)
   | SVariableDeclaration (VariableDeclaration)
+  | SMatch (Match)
   | SWhile (While)
   | SReturn (Return)
   | SBreak (Break)
@@ -152,6 +157,23 @@ type ExpressionStatement {
   isValue: Bool,
 }
 
+type Match {
+  loc: Loc,
+  args: Vec<Expression>,
+  cases: Vec<MatchCase>,
+}
+
+type MatchCase {
+  loc: Loc,
+  pattern: Pattern,
+  guard: Option<Expression>,
+  body: MatchCaseBody,
+}
+
+type MatchCaseBody =
+  | MCExpression (Expression)
+  | MCStatement (Statement)
+
 type While {
   loc: Loc,
   test: Expression,
@@ -167,8 +189,10 @@ type Break { loc: Loc }
 
 type Continue { loc: Loc }
 
-/*
- * Expressions
+/* 
+ * ============================
+ *        Expressions
+ * ============================
  */
 
 type Expression =
@@ -189,6 +213,7 @@ type Expression =
   | ENamedAccess (NamedAccess)
   | EIndexedAccess (IndexedAccess)
   | EUnwrap (Unwrap)
+  | EMatch (Match)
 
 type UnitLiteral { loc: Loc }
 
@@ -310,8 +335,10 @@ type Unwrap {
   operand: Expression,
 }
 
-/*
- * Types
+/* 
+ * ============================
+ *           Types
+ * ============================
  */
 
 type Type =
@@ -340,4 +367,63 @@ type FunctionType {
 type TraitType {
   loc: Loc,
   trait_: IdentifierType,
+}
+
+/* 
+ * ============================
+ *          Patterns
+ * ============================
+ */
+
+type Pattern =
+  | PIdentifier (ScopedIdentifier)
+  | PWildcard (Loc)
+  | PNamedWildcard (NamedWildcard)
+  | PBinding (BindingPattern)
+  | POr (OrPattern)
+  | PTuple (TuplePattern)
+  | PRecord (RecordPattern)
+  | PLiteral (LiteralPattern)
+
+type LiteralPattern =
+  | PUnit (UnitLiteral)
+  | PBool (BoolLiteral)
+  | PInt (IntLiteral)
+  | PChar (CharLiteral)
+  | PString (StringLiteral)
+
+type NamedWildcard {
+  loc: Loc,
+  name: ScopedIdentifier,
+}
+
+type OrPattern {
+  loc: Loc,
+  left: Pattern,
+  right: Pattern,
+}
+
+type TuplePattern {
+  loc: Loc,
+  name: Option<ScopedIdentifier>,
+  elements: Vec<Pattern>,
+}
+
+type RecordPattern {
+  loc: Loc,
+  name: ScopedIdentifier,
+  fields: Vec<RecordPatternField>,
+  rest: Bool,
+}
+
+type RecordPatternField {
+  loc: Loc,
+  name: Option<Identifier>,
+  value: Pattern,
+}
+
+type BindingPattern {
+  loc: Loc,
+  pattern: Pattern,
+  name: Identifier,
 }

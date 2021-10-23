@@ -224,7 +224,7 @@ fun nodeOfVariableDeclaration(decl: ast.VariableDeclaration): PrintNode {
     loc,
     fields: [
       ("kind", Raw (kind)),
-      ("pattern", nodeOfScopedIdentifier(pattern)),
+      ("pattern", nodeOfPattern(pattern)),
       ("init", nodeOfExpression(init)),
       ("annot", optional(annot, nodeOfType)),
     ],
@@ -308,6 +308,7 @@ fun nodeOfStatement(stmt: ast.Statement): PrintNode =
     | ast.SBlock (s) -> nodeOfBlock(s)
     | ast.SExpression (s) -> nodeOfExpressionStatement(s)
     | ast.SVariableDeclaration (s) -> nodeOfVariableDeclaration(s)
+    | ast.SMatch (s) -> nodeOfMatch(s, true)
     | ast.SWhile (s) -> nodeOfWhile(s)
     | ast.SReturn (s) -> nodeOfReturn(s)
     | ast.SBreak (s) -> nodeOfBreak(s)
@@ -332,6 +333,43 @@ fun nodeOfExpressionStatement(block: ast.ExpressionStatement): PrintNode {
 
   return Node { name: "ExpressionStatement", loc, fields };
 }
+
+fun nodeOfMatch(match_: ast.Match, isStatement: Bool): PrintNode {
+  val ast.Match { loc, args, cases } = match_;
+  val name = if (isStatement) {
+    "MatchStatement"
+  } else {
+    "MatchExpression"
+  };
+
+  return Node {
+    name,
+    loc,
+    fields: [
+      ("args", List (args.map(nodeOfExpression))),
+      ("cases", List (cases.map(nodeOfMatchCase))),
+    ],
+  };
+}
+
+fun nodeOfMatchCase(case: ast.MatchCase): PrintNode {
+  val ast.MatchCase { loc, pattern, guard, body } = case;
+  return Node {
+    name: "MatchCase",
+    loc,
+    fields: [
+      ("pattern", nodeOfPattern(pattern)),
+      ("guard", optional(guard, nodeOfExpression)),
+      ("right", nodeOfMatchCaseBody(body)),
+    ],
+  };
+}
+
+fun nodeOfMatchCaseBody(body: ast.MatchCaseBody): PrintNode =
+  match (body) {
+    | ast.MCStatement (stmt) -> nodeOfStatement(stmt)
+    | ast.MCExpression (expr) -> nodeOfExpression(expr)
+  }
 
 fun nodeOfWhile(w: ast.While): PrintNode {
   val ast.While { loc, test, body } = w;
@@ -377,6 +415,7 @@ fun nodeOfExpression(expr: ast.Expression): PrintNode =
     | ast.ENamedAccess (e) -> nodeOfNamedAccess(e)
     | ast.EIndexedAccess (e) -> nodeOfIndexedAccess(e)
     | ast.EUnwrap (e) -> nodeOfUnwrap(e)
+    | ast.EMatch (s) -> nodeOfMatch(s, false)
   }
 
 fun nodeOfUnitLiteral(lit: ast.UnitLiteral): PrintNode {
@@ -581,3 +620,83 @@ fun nodeOfTraitType(trait_: ast.TraitType): PrintNode {
   val ast.TraitType { loc, trait_ } = trait_;
   return Node { name: "TraitType", loc, fields: [("trait", nodeOfIdentifierType(trait_))] };
 }
+
+fun nodeOfPattern(pattern: ast.Pattern): PrintNode =
+  match (pattern) {
+    | ast.PIdentifier (p) -> nodeOfScopedIdentifier(p)
+    | ast.PWildcard (p) -> nodeOfWildcard(p)
+    | ast.PNamedWildcard (p) -> nodeOfNamedWildcard(p)
+    | ast.PBinding (p) -> nodeOfBindingPattern(p)
+    | ast.POr (p) -> nodeOfOrPattern(p)
+    | ast.PTuple (p) -> nodeOfTuplePattern(p)
+    | ast.PRecord (p) -> nodeOfRecordPattern(p)
+    | ast.PLiteral (p) -> nodeOfLiteralPattern(p)
+  }
+
+fun nodeOfWildcard(loc: Loc): PrintNode = Node { name: "Wildcard", loc, fields: [] }
+
+fun nodeOfNamedWildcard(patt: ast.NamedWildcard): PrintNode {
+  val ast.NamedWildcard { loc, name } = patt;
+  return Node { name: "NamedWildcard", loc, fields: [("name", nodeOfScopedIdentifier(name))] };
+}
+
+fun nodeOfBindingPattern(patt: ast.BindingPattern): PrintNode {
+  val ast.BindingPattern { loc, pattern, name } = patt;
+  return Node {
+    name: "Binding",
+    loc, fields:
+    [("pattern", nodeOfPattern(pattern)), ("name", nodeOfIdentifier(name))],
+  };
+}
+
+fun nodeOfOrPattern(patt: ast.OrPattern): PrintNode {
+  val ast.OrPattern { loc, left, right } = patt;
+  return Node {
+    name: "Or",
+    loc,
+    fields: [("left", nodeOfPattern(left)), ("right", nodeOfPattern(right))],
+  };
+}
+
+fun nodeOfTuplePattern(decl: ast.TuplePattern): PrintNode {
+  val ast.TuplePattern { loc, name, elements } = decl;
+  return Node {
+    name: "TuplePattern",
+    loc,
+    fields: [
+      ("name", optional(name, nodeOfScopedIdentifier)),
+      ("elements", List (elements.map(nodeOfPattern))),
+    ],
+  };
+}
+
+fun nodeOfRecordPattern(decl: ast.RecordPattern): PrintNode {
+  val ast.RecordPattern { loc, name, fields, rest } = decl;
+  return Node {
+    name: "RecordPattern",
+    loc,
+    fields: [
+      ("name", nodeOfScopedIdentifier(name)),
+      ("fields", List (fields.map(nodeOfRecordPatternField))),
+      ("rest", Bool (rest)),
+    ],
+  };
+}
+
+fun nodeOfRecordPatternField(field: ast.RecordPatternField): PrintNode {
+  val ast.RecordPatternField { loc, name, value } = field;
+  return Node {
+    name: "RecordPatternField",
+    loc,
+    fields: [("name", optional(name, nodeOfIdentifier)), ("value", nodeOfPattern(value))],
+  };
+}
+
+fun nodeOfLiteralPattern(lit: ast.LiteralPattern): PrintNode =
+  match (lit) {
+    | ast.PUnit (lit) -> nodeOfUnitLiteral(lit)
+    | ast.PBool (lit) -> nodeOfBoolLiteral(lit)
+    | ast.PInt (lit) -> nodeOfIntLiteral(lit)
+    | ast.PChar (lit) -> nodeOfCharLiteral(lit)
+    | ast.PString (lit) -> nodeOfStringLiteral(lit)
+  }
