@@ -1,5 +1,6 @@
 module myte.common.loc
 
+import std.ops.Equatable
 import std.string.ToString
 
 // A range of bytes in a source file.
@@ -23,9 +24,17 @@ type Pos {
 
 val START_POS: Pos = Pos { line: 1, column: 0 }
 
+methods Pos {
+  implements Equatable
+
+  override fun equals(other: Pos): Bool = this.line == other.line && this.column == other.column
+}
+
 methods Loc {
   static fun between(start: Loc, end: Loc): Loc =
     Loc { source: start.source, start: start.start, end: end.end }
+  
+  fun isAdjacentTo(next: Loc): Bool = this.end == next.start
 }
 
 methods Loc {

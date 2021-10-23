@@ -114,6 +114,7 @@ type VariantDeclaration =
 /*
  * Statements
  */
+
 type Statement =
   | SBlock (Block)
   | SExpression (ExpressionStatement)
@@ -162,6 +163,14 @@ type Expression =
   | EIdentifier (Identifier)
   | ETuple (TupleExpression)
   | ETypeCast (TypeCast)
+  | ECall (Call)
+  | EUnaryOperation (UnaryOperation)
+  | EBinaryOperation (BinaryOperation)
+  | ELogicalAnd (LogicalAnd)
+  | ELogicalOr (LogicalOr)
+  | ENamedAccess (NamedAccess)
+  | EIndexedAccess (IndexedAccess)
+  | EUnwrap (Unwrap)
 
 type UnitLiteral { loc: Loc }
 
@@ -200,6 +209,78 @@ type TypeCast {
   loc: Loc,
   expr: Expression,
   ty: Type,
+}
+
+type Call {
+  loc: Loc,
+  func: Expression,
+  args: Vec<Expression>,
+}
+
+type UnaryOperation {
+  loc: Loc,
+  op: UnaryOperator,
+  operand: Expression,
+}
+
+type UnaryOperator =
+  | UnaryPlus
+  | UnaryMinus
+  | UnaryNot
+
+type BinaryOperation {
+  loc: Loc,
+  op: BinaryOperator,
+  left: Expression,
+  right: Expression,
+}
+
+type BinaryOperator =
+  | BinaryAdd
+  | BinarySubtract
+  | BinaryMultiply
+  | BinaryDivide
+  | BinaryRemainder
+  | BinaryEqual
+  | BinaryNotEqual
+  | BinaryLessThan
+  | BinaryGreaterThan
+  | BinaryLessThanOrEqual
+  | BinaryGreaterThanOrEqual
+  | BinaryBitwiseAnd
+  | BinaryBitwiseOr
+  | BinaryBitwiseXor
+  | BinaryLeftShift
+  | BinaryArithmeticRightShift
+  | BinaryLogicalRightShift
+
+type LogicalAnd {
+  loc: Loc,
+  left: Expression,
+  right: Expression,
+}
+
+type LogicalOr {
+  loc: Loc,
+  left: Expression,
+  right: Expression,
+}
+
+type NamedAccess {
+  loc: Loc,
+  target: Expression,
+  name: Identifier,
+}
+
+type IndexedAccess {
+  loc: Loc,
+  target: Expression,
+  index: Expression,
+}
+
+type Unwrap {
+  loc: Loc,
+  operand: Expression,
 }
 
 /*

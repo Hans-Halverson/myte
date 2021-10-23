@@ -2,7 +2,7 @@ module myte.parse.parser
 
 import std.io.println
 
-import std.sys.exit
+import std.sys.{abort, exit}
 
 import myte.common.files.readFileContents
 import myte.common.loc.{Loc, START_POS}
@@ -10,6 +10,8 @@ import myte.parse.ast
 import myte.parse.error
 import myte.parse.error.{ParseError, fatal}
 import myte.parse.lexer.{ErrorResult, Lexer, TokenResult}
+import myte.parse.precedence
+import myte.parse.precedence.Precedence
 import myte.parse.token
 import myte.parse.token.Token
 
@@ -61,6 +63,17 @@ methods Parser {
     }
 
     this.advance();
+  }
+
+  fun peek(): TokenResult {
+    val savedLexer = this.lexer.clone();
+    val tokenResult = match (this.lexer.next()) {
+      | Ok (result) -> result
+      | Error (ErrorResult { error, loc }) -> fatal(error, loc)
+    };
+    this.lexer = savedLexer;
+
+    return tokenResult;
   }
 
   fun currentLoc(start: Loc): Loc = Loc.between(start, this.prevLoc)
@@ -181,6 +194,10 @@ methods Parser {
     // Parse function body
     val body = match (this.token) {
       | token.LeftBrace -> ast.FBBlock (this.parseBlock())
+      | token.Equals -> {
+        this.advance();
+        ast.FBExpression (this.parseExpression())
+      }
       | token -> fatal(error.MalformedFunctionBody { token }, this.loc)
     };
 
@@ -541,6 +558,92 @@ methods Parser {
    */
 
   fun parseExpression(): ast.Expression {
+    return this.parseExpressionWithPrecedence(precedence.Toplevel);
+  }
+
+  fun parseExpressionWithPrecedence(leftPrecedence: Precedence): ast.Expression {
+    val startLoc = this.loc;
+
+    var expr = this.parseExpressionPrefix();
+    while (true) {
+      expr = match (this.token) {
+        | token.LeftParen when leftPrecedence.isWeakerThan(precedence.Call) ->
+          ast.ECall (this.parseCall(expr, startLoc))
+        | token.Period when leftPrecedence.isWeakerThan(precedence.Access) ->
+          ast.ENamedAccess (this.parseNamedAccess(expr, startLoc))
+        | token.LeftBracket when leftPrecedence.isWeakerThan(precedence.Access) ->
+          ast.EIndexedAccess (this.parseIndexedAccess(expr, startLoc))
+        | token.Plus
+        | token.Minus when leftPrecedence.isWeakerThan(precedence.Addition) ->
+          ast.EBinaryOperation (this.parseBinaryOperation(expr, startLoc))
+        | token.Multiply
+        | token.Divide
+        | token.Percent when leftPrecedence.isWeakerThan(precedence.Multiplication) ->
+          ast.EBinaryOperation (this.parseBinaryOperation(expr, startLoc))
+        | token.Ampersand when leftPrecedence.isWeakerThan(precedence.BitwiseAnd) ->
+          ast.EBinaryOperation (this.parseBinaryOperation(expr, startLoc))
+        | token.Pipe when leftPrecedence.isWeakerThan(precedence.BitwiseOr) ->
+          ast.EBinaryOperation (this.parseBinaryOperation(expr, startLoc))
+        | token.Caret when leftPrecedence.isWeakerThan(precedence.BitwiseXor) ->
+          ast.EBinaryOperation (this.parseBinaryOperation(expr, startLoc))
+        | token.LessThanOrEqual
+        | token.GreaterThanOrEqual when leftPrecedence.isWeakerThan(precedence.Comparison) ->
+          ast.EBinaryOperation (this.parseBinaryOperation(expr, startLoc))
+        | token.DoubleEquals
+        | token.NotEquals when leftPrecedence.isWeakerThan(precedence.Equality) ->
+          ast.EBinaryOperation (this.parseBinaryOperation(expr, startLoc))
+        | token.LogicalAnd when leftPrecedence.isWeakerThan(precedence.LogicalAnd) ->
+          ast.ELogicalAnd (this.parseLogicalAnd(expr, startLoc))
+        | token.LogicalOr when leftPrecedence.isWeakerThan(precedence.LogicalOr) ->
+          ast.ELogicalOr (this.parseLogicalOr(expr, startLoc))
+        | token.Question when leftPrecedence.isWeakerThan(precedence.Unwrap) ->
+          ast.EUnwrap (this.parseUnwrap(expr, startLoc))
+        // A less than can be the start of a comparison or left shift
+        | token.LessThan -> {
+          // Two adjacent less thans are a left shift
+          val TokenResult { token: secondToken, loc: secondLoc } = this.peek();
+          if (secondToken == token.LessThan &&
+              leftPrecedence.isWeakerThan(precedence.BitwiseShift) &&
+              this.loc.isAdjacentTo(secondLoc)) {
+            ast.EBinaryOperation(this.parseLeftShift(expr, startLoc))
+          } else if (leftPrecedence.isWeakerThan(precedence.Comparison)) {
+            // Otherwise it is a les than comparison
+            ast.EBinaryOperation(this.parseLessThan(expr, startLoc))
+          } else {
+            break;
+          }
+        }
+        // A greater than can be the start of a comparison or right shift
+        | token.GreaterThan -> {
+          // Two adjacent greater thans must be a right shift
+          val TokenResult { token: secondToken, loc: secondLoc } = this.peek();
+          if (secondToken == token.GreaterThan &&
+              leftPrecedence.isWeakerThan(precedence.BitwiseShift) &&
+              this.loc.isAdjacentTo(secondLoc)) {
+            this.expect(token.GreaterThan);
+            this.expect(token.GreaterThan);
+
+            // A third adjacent greater than is a logical right shift, otherwise arithmetic
+            if (this.token == token.GreaterThan && secondLoc.isAdjacentTo(this.loc)) {
+              ast.EBinaryOperation(this.parseLogicalRightShift(expr, startLoc))
+            } else {
+              ast.EBinaryOperation(this.parseArithmeticRightShift(expr, startLoc))
+            }
+          } else if (leftPrecedence.isWeakerThan(precedence.Comparison)) {
+            // Otherwise it is a greater than comparison
+            ast.EBinaryOperation(this.parseGreaterThan(expr, startLoc))
+          } else {
+            break;
+          }
+        }
+        | _ -> break
+      };
+    }
+
+    return expr;
+  }
+
+  fun parseExpressionPrefix(): ast.Expression {
     return match (this.token) {
       | token.Identifier _ -> ast.EIdentifier (this.parseIdentifier())
       | token.LeftParen -> this.parseParenthesizedExpression()
@@ -564,6 +667,9 @@ methods Parser {
         this.advance();
         ast.ECharLiteral (ast.CharLiteral { loc, value })
       }
+      | token.Plus -> ast.EUnaryOperation (this.parseUnaryPlus())
+      | token.Minus -> this.parseUnaryMinusOrNegativeIntLiteral()
+      | token.Bang -> ast.EUnaryOperation (this.parseUnaryNot())
       | actual -> fatal(error.UnexpectedToken { actual, expected: None }, this.loc)
     };
   }
@@ -627,6 +733,173 @@ methods Parser {
         expr
       }
     };
+  }
+
+  fun parseCall(func: ast.Expression, startLoc: Loc): ast.Call {
+    this.expect(token.LeftParen);
+
+    val args: Vec<ast.Expression> = [];
+    while (this.token != token.RightParen) {
+      args.push(this.parseExpression());
+
+      match (this.token) {
+        | token.RightParen -> ()
+        | token.Comma -> this.advance()
+        | _ -> this.expect(token.RightParen)
+      }
+    }
+
+    this.advance();
+    val loc = this.currentLoc(startLoc);
+
+    return ast.Call { loc, func, args };
+  }
+
+  fun parseNamedAccess(target: ast.Expression, startLoc: Loc): ast.NamedAccess {
+    this.expect(token.Period);
+    val name = this.parseIdentifier();
+    val loc = this.currentLoc(startLoc);
+
+    return ast.NamedAccess { loc, target, name };
+  }
+
+  fun parseIndexedAccess(target: ast.Expression, startLoc: Loc): ast.IndexedAccess {
+    this.expect(token.LeftBracket);
+    val index = this.parseExpression();
+    this.expect(token.RightBracket);
+    val loc = this.currentLoc(startLoc);
+
+    return ast.IndexedAccess { loc, target, index };
+  }
+
+  fun parseUnaryPlus(): ast.UnaryOperation {
+    val startLoc = this.loc;
+    this.expect(token.Plus);
+    val operand = this.parseExpressionWithPrecedence(precedence.Unary);
+    val loc = this.currentLoc(startLoc);
+
+    return ast.UnaryOperation { loc, op: ast.UnaryPlus, operand };
+  }
+
+  fun parseUnaryNot(): ast.UnaryOperation {
+    val startLoc = this.loc;
+    this.expect(token.Bang);
+    val operand = this.parseExpressionWithPrecedence(precedence.Unary);
+    val loc = this.currentLoc(startLoc);
+
+    return ast.UnaryOperation { loc, op: ast.UnaryNot, operand };
+  }
+
+  fun parseUnaryMinusOrNegativeIntLiteral(): ast.Expression {
+    val startLoc = this.loc;
+    this.expect(token.Minus);
+
+    return match (this.token) { 
+      // When a minus is followed by an int literal with no space between them, it is a negative
+      // int literal.
+      | token.IntLiteral { raw, base } when startLoc.isAdjacentTo(this.loc) -> {
+        this.advance();
+        val raw = `-${raw}`;
+        val loc = this.currentLoc(startLoc);
+
+        return ast.EIntLiteral (ast.IntLiteral { loc, raw, base });
+      }
+      // Otherwise this is a unary minus expression
+      | _ -> {
+        val operand = this.parseExpressionWithPrecedence(precedence.Unary);
+        val loc = this.currentLoc(startLoc);
+
+        return ast.EUnaryOperation (ast.UnaryOperation { loc, op: ast.UnaryMinus, operand });
+      }
+    };
+  }
+
+  fun parseBinaryOperation(left: ast.Expression, startLoc: Loc): ast.BinaryOperation {
+    val (op, precedence) = match (this.token) {
+      | token.Plus -> (ast.BinaryAdd, precedence.Addition)
+      | token.Minus -> (ast.BinarySubtract, precedence.Addition)
+      | token.Multiply -> (ast.BinaryMultiply, precedence.Multiplication)
+      | token.Divide -> (ast.BinaryDivide, precedence.Multiplication)
+      | token.Percent -> (ast.BinaryRemainder, precedence.Multiplication)
+      | token.Ampersand -> (ast.BinaryBitwiseAnd, precedence.BitwiseAnd)
+      | token.Pipe -> (ast.BinaryBitwiseOr, precedence.BitwiseOr)
+      | token.Caret -> (ast.BinaryBitwiseXor, precedence.BitwiseXor)
+      | token.DoubleEquals -> (ast.BinaryEqual, precedence.Equality)
+      | token.NotEquals -> (ast.BinaryNotEqual, precedence.Equality)
+      | token.LessThanOrEqual -> (ast.BinaryLessThanOrEqual, precedence.Comparison)
+      | token.GreaterThanOrEqual -> (ast.BinaryGreaterThanOrEqual, precedence.Comparison)
+      // Unreachable
+      | _ -> abort()
+    };
+
+    this.advance();
+    val right = this.parseExpressionWithPrecedence(precedence);
+    val loc = this.currentLoc(startLoc);
+
+    return ast.BinaryOperation { loc, op, left, right };
+  }
+
+  fun parseLogicalAnd(left: ast.Expression, startLoc: Loc): ast.LogicalAnd {
+    this.expect(token.LogicalAnd);
+    val right = this.parseExpressionWithPrecedence(precedence.LogicalAnd);
+    val loc = this.currentLoc(startLoc);
+
+    return ast.LogicalAnd { loc, left, right };
+  }
+
+  fun parseLogicalOr(left: ast.Expression, startLoc: Loc): ast.LogicalOr {
+    this.expect(token.LogicalOr);
+    val right = this.parseExpressionWithPrecedence(precedence.LogicalOr);
+    val loc = this.currentLoc(startLoc);
+
+    return ast.LogicalOr { loc, left, right };
+  }
+
+  fun parseLessThan(left: ast.Expression, startLoc: Loc): ast.BinaryOperation {
+    this.expect(token.LessThan);
+    val right = this.parseExpressionWithPrecedence(precedence.Comparison);
+    val loc = this.currentLoc(startLoc);
+
+    return ast.BinaryOperation { loc, op: ast.BinaryLessThan, left, right };
+  }
+
+  fun parseGreaterThan(left: ast.Expression, startLoc: Loc): ast.BinaryOperation {
+    this.expect(token.GreaterThan);
+    val right = this.parseExpressionWithPrecedence(precedence.Comparison);
+    val loc = this.currentLoc(startLoc);
+
+    return ast.BinaryOperation { loc, op: ast.BinaryGreaterThan, left, right };
+  }
+
+  fun parseLeftShift(left: ast.Expression, startLoc: Loc): ast.BinaryOperation {
+    this.expect(token.LessThan);
+    this.expect(token.LessThan);
+    val right = this.parseExpressionWithPrecedence(precedence.BitwiseShift);
+    val loc = this.currentLoc(startLoc);
+
+    return ast.BinaryOperation { loc, op: ast.BinaryLeftShift, left, right };
+  }
+
+  fun parseArithmeticRightShift(left: ast.Expression, startLoc: Loc): ast.BinaryOperation {
+    val right = this.parseExpressionWithPrecedence(precedence.BitwiseShift);
+    val loc = this.currentLoc(startLoc);
+
+    return ast.BinaryOperation { loc, op: ast.BinaryArithmeticRightShift, left, right };
+  }
+
+  fun parseLogicalRightShift(left: ast.Expression, startLoc: Loc): ast.BinaryOperation {
+    this.expect(token.GreaterThan);
+    val right = this.parseExpressionWithPrecedence(precedence.BitwiseShift);
+    val loc = this.currentLoc(startLoc);
+
+    return ast.BinaryOperation { loc, op: ast.BinaryLogicalRightShift, left, right };
+  }
+
+  fun parseUnwrap(operand: ast.Expression, startLoc: Loc): ast.Unwrap {
+    this.expect(token.Question);
+    val loc = this.currentLoc(startLoc);
+
+    return ast.Unwrap { loc, operand };
   }
 
   /* 

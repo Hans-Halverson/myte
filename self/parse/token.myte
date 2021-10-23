@@ -21,14 +21,27 @@ type Token =
   | Arrow
   | Plus
   | Minus
+  | Multiply
   | Divide
+  | Percent
   | Ampersand
+  | Caret
+  | Question
+  | Bang
   | LeftParen
   | RightParen
   | LeftBrace
   | RightBrace
+  | LeftBracket
+  | RightBracket
+  | DoubleEquals
+  | NotEquals
   | LessThan
   | GreaterThan
+  | LessThanOrEqual
+  | GreaterThanOrEqual
+  | LogicalAnd
+  | LogicalOr
   | Wildcard
   | Val
   | Var
@@ -63,14 +76,27 @@ methods Token {
       | Arrow -> "->"
       | Plus -> "+"
       | Minus -> "-"
+      | Multiply -> "*"
       | Divide -> "/"
+      | Percent -> "%"
       | Ampersand -> "&"
+      | Caret -> "^"
+      | Question -> "?"
+      | Bang -> "!"
       | LeftParen -> "("
       | RightParen -> ")"
       | LeftBrace -> "{"
       | RightBrace -> "}"
+      | LeftBracket -> "["
+      | RightBracket -> "]"
+      | DoubleEquals -> "=="
+      | NotEquals -> "!="
       | LessThan -> "<"
       | GreaterThan -> ">"
+      | LessThanOrEqual -> "<="
+      | GreaterThanOrEqual -> ">="
+      | LogicalAnd -> "&&"
+      | LogicalOr -> "||"
       | Wildcard -> "_"
       | Val -> "val"
       | Var -> "var"
@@ -106,14 +132,27 @@ methods Token {
       | (Arrow, Arrow)
       | (Plus, Plus)
       | (Minus, Minus)
+      | (Multiply, Multiply)
       | (Divide, Divide)
+      | (Percent, Percent)
       | (Ampersand, Ampersand)
+      | (Caret, Caret)
+      | (Question, Question)
+      | (Bang, Bang)
       | (LeftParen, LeftParen)
       | (RightParen, RightParen)
       | (LeftBrace, LeftBrace)
       | (RightBrace, RightBrace)
+      | (LeftBracket, LeftBracket)
+      | (RightBracket, RightBracket)
+      | (DoubleEquals, DoubleEquals)
+      | (NotEquals, NotEquals)
       | (LessThan, LessThan)
       | (GreaterThan, GreaterThan)
+      | (LessThanOrEqual, LessThanOrEqual)
+      | (GreaterThanOrEqual, GreaterThanOrEqual)
+      | (LogicalAnd, LogicalAnd)
+      | (LogicalOr, LogicalOr)
       | (Wildcard, Wildcard)
       | (Val, Val)
       | (Var, Var)

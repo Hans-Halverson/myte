@@ -61,9 +61,9 @@ methods ParseError {
       | MalformedToplevel { token } ->
         `Unexpected token \`${token}\`, expected start of top level declaration`
       | MalformedFunctionBody { token } ->
-        `Unexpected token \`${token}\`, expected expected start of function body`
+        `Unexpected token \`${token}\`, expected start of function body`
       | MalformedTypeDeclaration { token } ->
-        `Unexpected token \`${token}\`, expected expected start of type declaration`
+        `Unexpected token \`${token}\`, expected start of type declaration`
       | MalformedType { token } -> `Unexpected token \`${token}\`, expected start of type`
       | EmptyRecord -> "Record must have at least one field"
       | EmptyTuple -> "Tuple must have at least one element"

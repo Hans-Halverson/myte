@@ -341,6 +341,14 @@ fun nodeOfExpression(expr: ast.Expression): PrintNode =
     | ast.EIdentifier (e) -> nodeOfIdentifier(e)
     | ast.ETuple (e) -> nodeOfTupleExpression(e)
     | ast.ETypeCast (e) -> nodeOfTypeCast(e)
+    | ast.ECall (e) -> nodeOfCall(e)
+    | ast.EUnaryOperation (e) -> nodeOfUnaryOperation(e)
+    | ast.EBinaryOperation (e) -> nodeOfBinaryOperation(e)
+    | ast.ELogicalAnd (e) -> nodeOfLogicalAnd(e)
+    | ast.ELogicalOr (e) -> nodeOfLogicalOr(e)
+    | ast.ENamedAccess (e) -> nodeOfNamedAccess(e)
+    | ast.EIndexedAccess (e) -> nodeOfIndexedAccess(e)
+    | ast.EUnwrap (e) -> nodeOfUnwrap(e)
   }
 
 fun nodeOfUnitLiteral(lit: ast.UnitLiteral): PrintNode {
@@ -394,6 +402,104 @@ fun nodeOfTypeCast(tuple: ast.TypeCast): PrintNode {
     loc,
     fields: [("expr", nodeOfExpression(expr)), ("type", nodeOfType(ty))],
   };
+}
+
+fun nodeOfCall(call: ast.Call): PrintNode {
+  val ast.Call { loc, func, args } = call;
+  return Node {
+    name: "Call",
+    loc,
+    fields: [("func", nodeOfExpression(func)), ("args", List (args.map(nodeOfExpression)))],
+  };
+}
+
+fun nodeOfUnaryOperation(unary: ast.UnaryOperation): PrintNode {
+  val ast.UnaryOperation { loc, op, operand } = unary;
+  val op = match (op) {
+    | ast.UnaryPlus -> "Plus"
+    | ast.UnaryMinus -> "Minus"
+    | ast.UnaryNot -> "Not"
+  };
+
+  return Node {
+    name: "UnaryOperation",
+    loc,
+    fields: [("op", Raw (op)), ("operand", nodeOfExpression(operand))],
+  };
+}
+
+fun nodeOfBinaryOperation(binary: ast.BinaryOperation): PrintNode {
+  val ast.BinaryOperation { loc, op, left, right } = binary;
+  val op = match (op) {
+    | ast.BinaryAdd -> "Add"
+    | ast.BinarySubtract -> "Subtract"
+    | ast.BinaryMultiply -> "Multiply"
+    | ast.BinaryDivide -> "Divide"
+    | ast.BinaryRemainder -> "Remainder"
+    | ast.BinaryEqual -> "Equal"
+    | ast.BinaryNotEqual -> "NotEqual"
+    | ast.BinaryLessThan -> "LessThan"
+    | ast.BinaryGreaterThan -> "GreaterThan"
+    | ast.BinaryLessThanOrEqual -> "LessThanOrEqual"
+    | ast.BinaryGreaterThanOrEqual -> "GreaterThanOrEqual"
+    | ast.BinaryBitwiseAnd -> "BitwiseAnd"
+    | ast.BinaryBitwiseOr -> "BitwiseOr"
+    | ast.BinaryBitwiseXor -> "BitwiseXor"
+    | ast.BinaryLeftShift -> "LeftShift"
+    | ast.BinaryArithmeticRightShift -> "ArithmeticRightShift"
+    | ast.BinaryLogicalRightShift -> "LogicalRightShift"
+  };
+
+  return Node {
+    name: "BinaryOperation",
+    loc,
+    fields: [
+      ("op", Raw (op)),
+      ("left", nodeOfExpression(left)),
+      ("right", nodeOfExpression(right)),
+    ],
+  };
+}
+
+fun nodeOfLogicalAnd(logical: ast.LogicalAnd): PrintNode {
+  val ast.LogicalAnd { loc, left, right } = logical;
+  return Node {
+    name: "LogicalAnd",
+    loc,
+    fields: [("left", nodeOfExpression(left)), ("right", nodeOfExpression(right))],
+  };
+}
+
+fun nodeOfLogicalOr(logical: ast.LogicalOr): PrintNode {
+  val ast.LogicalOr { loc, left, right } = logical;
+  return Node {
+    name: "LogicalOr",
+    loc,
+    fields: [("left", nodeOfExpression(left)), ("right", nodeOfExpression(right))],
+  };
+}
+
+fun nodeOfNamedAccess(access: ast.NamedAccess): PrintNode {
+  val ast.NamedAccess { loc, target, name } = access;
+  return Node {
+    name: "NamedAccess",
+    loc,
+    fields: [("target", nodeOfExpression(target)), ("name", nodeOfIdentifier(name))],
+  };
+}
+
+fun nodeOfIndexedAccess(access: ast.IndexedAccess): PrintNode {
+  val ast.IndexedAccess { loc, target, index } = access;
+  return Node {
+    name: "IndexedAccess",
+    loc,
+    fields: [("target", nodeOfExpression(target)), ("index", nodeOfExpression(index))],
+  };
+}
+
+fun nodeOfUnwrap(unwrap: ast.Unwrap): PrintNode {
+  val ast.Unwrap { loc, operand } = unwrap;
+  return Node { name: "Unwrap", loc, fields: [("operand", nodeOfExpression(operand))]};
 }
 
 fun nodeOfType(ty: ast.Type): PrintNode =

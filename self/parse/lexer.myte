@@ -64,6 +64,18 @@ methods Lexer {
     };
   }
 
+  fun clone(): Lexer {
+    return Lexer {
+      bytes: this.bytes,
+      source: this.source,
+      current: this.current,
+      currentOffset: this.currentOffset,
+      currentLine: this.currentLine,
+      currentLineOffset: this.currentLineOffset,
+      currentTokenStartPos: this.currentTokenStartPos,
+    };
+  }
+
   /*
    * Advance the lexer one byte.
    */
@@ -203,13 +215,25 @@ methods Lexer {
         this.advance();
         this.tokenResult(token.Period)
       }
-      | '=' -> {
-        this.advance();
-        this.tokenResult(token.Equals)
+      | '=' -> match (this.peek()) {
+        | '=' -> {
+          this.advanceTwo();
+          this.tokenResult(token.DoubleEquals)
+        }
+        | _ -> {
+          this.advance();
+          this.tokenResult(token.Equals)
+        }
       }
-      | '|' -> {
-        this.advance();
-        this.tokenResult(token.Pipe)
+      | '|' -> match (this.peek()) {
+        | '|' -> {
+          this.advanceTwo();
+          this.tokenResult(token.LogicalOr)
+        }
+        | _ -> {
+          this.advance();
+          this.tokenResult(token.Pipe)
+        }
       }
       | '+' -> {
         this.advance();
@@ -225,9 +249,41 @@ methods Lexer {
           this.tokenResult(token.Minus)
         }
       }
-      | '&' -> {
+      | '*' -> {
         this.advance();
-        this.tokenResult(token.Ampersand)
+        this.tokenResult(token.Multiply)
+      }
+      | '%' -> {
+        this.advance();
+        this.tokenResult(token.Percent)
+      }
+      | '&' -> match (this.peek()) {
+        | '&' -> {
+          this.advanceTwo();
+          this.tokenResult(token.LogicalAnd)
+        }
+        | _ -> {
+          this.advance();
+          this.tokenResult(token.Ampersand)
+        }
+      }
+      | '^' -> {
+        this.advance();
+        this.tokenResult(token.Caret)
+      }
+      | '?' -> {
+        this.advance();
+        this.tokenResult(token.Question)
+      }
+      | '!' -> match (this.peek()) {
+        | '=' -> {
+          this.advanceTwo();
+          this.tokenResult(token.NotEquals)
+        }
+        | _ -> {
+          this.advance();
+          this.tokenResult(token.Bang)
+        }
       }
       | '(' -> {
         this.advance();
@@ -245,13 +301,33 @@ methods Lexer {
         this.advance();
         this.tokenResult(token.RightBrace)
       }
-      | '<' -> {
+      | '[' -> {
         this.advance();
-        this.tokenResult(token.LessThan)
+        this.tokenResult(token.LeftBracket)
       }
-      | '>' -> {
+      | ']' -> {
         this.advance();
-        this.tokenResult(token.GreaterThan)
+        this.tokenResult(token.RightBracket)
+      }
+      | '<' -> match (this.peek()) {
+        | '=' -> {
+          this.advanceTwo();
+          this.tokenResult(token.LessThanOrEqual)
+        }
+        | _ -> {
+          this.advance();
+          this.tokenResult(token.LessThan)
+        }
+      }
+      | '>' -> match (this.peek()) {
+        | '=' -> {
+          this.advanceTwo();
+          this.tokenResult(token.GreaterThanOrEqual)
+        }
+        | _ -> {
+          this.advance();
+          this.tokenResult(token.GreaterThan)
+        }
       }
       | '"' -> {
         this.advance();
