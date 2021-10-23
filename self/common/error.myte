@@ -77,6 +77,11 @@ fun getSnippet(loc: Loc): Vec<String> {
     lineNum += 1;
   }
 
+  // Return single blank line for the empty file
+  if (snippet.size == 0) {
+    snippet.push("");
+  }
+
   file.close();
 
   return snippet;

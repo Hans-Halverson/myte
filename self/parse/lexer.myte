@@ -271,6 +271,10 @@ methods Lexer {
           this.advanceTwo();
           this.tokenResult(token.PipeEquals)
         }
+        | '}' -> {
+          this.advanceTwo();
+          this.tokenResult(token.SetClose)
+        }
         | _ -> {
           this.advance();
           this.tokenResult(token.Pipe)
@@ -366,9 +370,15 @@ methods Lexer {
         this.advance();
         this.tokenResult(token.RightParen)
       }
-      | '{' -> {
-        this.advance();
-        this.tokenResult(token.LeftBrace)
+      | '{' -> match (this.peek()) {
+        | '|' -> {
+          this.advanceTwo();
+          this.tokenResult(token.SetOpen)
+        }
+        | _ -> {
+          this.advance();
+          this.tokenResult(token.LeftBrace)
+        }
       }
       | '}' -> {
         this.advance();
@@ -547,6 +557,7 @@ methods Lexer {
       | "val" -> token.Val
       | "var" -> token.Var
       | "fun" -> token.Fun
+      | "fn" -> token.Fn
       | "type" -> token.Type
       | "trait" -> token.Trait
       | "if" -> token.If

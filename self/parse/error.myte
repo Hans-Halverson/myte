@@ -25,6 +25,7 @@ type ParseError =
   | MalformedMethodsItem { token: Token }
   | MalformedType { token: Token }
   | MalformedPattern { token: Token }
+  | MissingModule { token: Token }
   | EmptyRecord
   | EmptyTuple
   | SingleVariant
@@ -81,6 +82,8 @@ methods ParseError {
       | MalformedMethodsItem { token } -> `Unexpected token \`${token}\`, expected start of method`
       | MalformedType { token } -> `Unexpected token \`${token}\`, expected start of type`
       | MalformedPattern { token } -> `Unexpected token \`${token}\`, expected start of pattern`
+      | MissingModule { token } ->
+        `File must start with a module declaration. Found \`${token}\` but expected \`module\`.`
       | EmptyRecord -> "Record must have at least one field"
       | EmptyTuple -> "Tuple must have at least one element"
       | SingleVariant -> "Variant type must have at least two variants"

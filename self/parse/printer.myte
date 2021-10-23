@@ -172,7 +172,7 @@ fun nodeOfToplevel(toplevel: ast.Toplevel): PrintNode =
 
 fun nodeOfFunctionDeclaration(decl: ast.FunctionDeclaration): PrintNode {
   val ast.FunctionDeclaration
-    { loc, name, params, body, ret, typeParams, isBuiltin, isStatic, isOverride } = decl;
+    { loc, name, params, body, return_, typeParams, isBuiltin, isStatic, isOverride } = decl;
   val body = match (body) {
     | ast.FBBlock (block) -> nodeOfBlock(block)
     | ast.FBExpression (expr) -> nodeOfExpression(expr)
@@ -186,7 +186,7 @@ fun nodeOfFunctionDeclaration(decl: ast.FunctionDeclaration): PrintNode {
       ("name", nodeOfIdentifier(name)),
       ("params", List (params.map(nodeOfFunctionParam))),
       ("body", body),
-      ("return", optional(ret, nodeOfType)),
+      ("return", optional(return_, nodeOfType)),
       ("type_params", List (typeParams.map(nodeOfTypeParameter))),
       ("builtin", Bool (isBuiltin)),
       ("static", Bool (isStatic)),
@@ -275,11 +275,11 @@ fun nodeOfRecordDeclaration(decl: ast.RecordDeclaration): PrintNode {
 }
 
 fun nodeOfRecordDeclarationField(field: ast.RecordDeclarationField): PrintNode {
-  val ast.RecordDeclarationField { loc, name, ty } = field;
+  val ast.RecordDeclarationField { loc, name, type_ } = field;
   return Node {
     name: "RecordVariantField",
     loc,
-    fields: [("name", nodeOfIdentifier(name)), ("type", nodeOfType(ty))],
+    fields: [("name", nodeOfIdentifier(name)), ("type", nodeOfType(type_))],
   };
 }
 
@@ -518,6 +518,10 @@ fun nodeOfExpression(expr: ast.Expression): PrintNode =
     | ast.EUnwrap (e) -> nodeOfUnwrap(e)
     | ast.EIf (e) -> nodeOfIf(e, false)
     | ast.EMatch (e) -> nodeOfMatch(e, false)
+    | ast.EVecLiteral (e) -> nodeOfVecLiteral(e)
+    | ast.EMapLiteral (e) -> nodeOfMapLiteral(e)
+    | ast.ESetLiteral (e) -> nodeOfSetLiteral(e)
+    | ast.EAnonymousFunction (e) -> nodeOfAnonymousFunction(e)
   }
 
 fun nodeOfUnitLiteral(lit: ast.UnitLiteral): PrintNode {
@@ -601,11 +605,11 @@ fun nodeOfRecordExpressionField(field: ast.RecordExpressionField): PrintNode {
 }
 
 fun nodeOfTypeCast(tuple: ast.TypeCast): PrintNode {
-  val ast.TypeCast { loc, expr, ty } = tuple;
+  val ast.TypeCast { loc, expr, type_ } = tuple;
   return Node {
     name: "TypeCast",
     loc,
-    fields: [("expr", nodeOfExpression(expr)), ("type", nodeOfType(ty))],
+    fields: [("expr", nodeOfExpression(expr)), ("type", nodeOfType(type_))],
   };
 }
 
@@ -705,6 +709,60 @@ fun nodeOfIndexedAccess(access: ast.IndexedAccess): PrintNode {
 fun nodeOfUnwrap(unwrap: ast.Unwrap): PrintNode {
   val ast.Unwrap { loc, operand } = unwrap;
   return Node { name: "Unwrap", loc, fields: [("operand", nodeOfExpression(operand))]};
+}
+
+fun nodeOfVecLiteral(lit: ast.VecLiteral): PrintNode {
+  val ast.VecLiteral { loc, elements } = lit;
+  return Node {
+    name: "VecLiteral",
+    loc,
+    fields: [("elements", List (elements.map(nodeOfExpression)))],
+  };
+}
+
+fun nodeOfMapLiteral(lit: ast.MapLiteral): PrintNode {
+  val ast.MapLiteral { loc, entries } = lit;
+  return Node {
+    name: "MapLiteral",
+    loc,
+    fields: [("entries", List (entries.map(nodeOfMapLiteralEntry)))],
+  };
+}
+
+fun nodeOfMapLiteralEntry(access: ast.MapLiteralEntry): PrintNode {
+  val ast.MapLiteralEntry { loc, key, value } = access;
+  return Node {
+    name: "MapLiteralEntry",
+    loc,
+    fields: [("key", nodeOfExpression(key)), ("value", nodeOfExpression(value))],
+  };
+}
+
+fun nodeOfSetLiteral(lit: ast.SetLiteral): PrintNode {
+  val ast.SetLiteral { loc, elements } = lit;
+  return Node {
+    name: "SetLiteral",
+    loc,
+    fields: [("elements", List (elements.map(nodeOfExpression)))],
+  };
+}
+
+fun nodeOfAnonymousFunction(func: ast.AnonymousFunction): PrintNode {
+  val ast.AnonymousFunction { loc, params, return_, body } = func;
+  val body = match (body) {
+    | ast.ABBlock (block) -> nodeOfBlock(block)
+    | ast.ABExpression (expr) -> nodeOfExpression(expr)
+  };
+  
+  return Node {
+    name: "AnonymousFunction",
+    loc,
+    fields: [
+      ("params", List (params.map(nodeOfFunctionParam))),
+      ("return", optional(return_, nodeOfType)),
+      ("body", body),
+    ]
+  };
 }
 
 fun nodeOfType(ty: ast.Type): PrintNode =

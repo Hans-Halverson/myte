@@ -58,7 +58,7 @@ type FunctionDeclaration {
   name: Identifier,
   params: Vec<FunctionParam>,
   body: FunctionBody,
-  ret: Option<Type>,
+  return_: Option<Type>,
   typeParams: Vec<TypeParameter>,
   isBuiltin: Bool,
   isStatic: Bool,
@@ -123,7 +123,7 @@ type RecordDeclaration {
 type RecordDeclarationField {
   loc: Loc,
   name: Identifier,
-  ty: Type,
+  type_: Type,
 }
 
 type VariantDeclaration =
@@ -278,6 +278,10 @@ type Expression =
   | EUnwrap (Unwrap)
   | EIf (If)
   | EMatch (Match)
+  | EVecLiteral (VecLiteral)
+  | EMapLiteral (MapLiteral)
+  | ESetLiteral (SetLiteral)
+  | EAnonymousFunction (AnonymousFunction)
 
 type UnitLiteral { loc: Loc }
 
@@ -338,7 +342,7 @@ type RecordExpressionField {
 type TypeCast {
   loc: Loc,
   expr: Expression,
-  ty: Type,
+  type_: Type,
 }
 
 type Call {
@@ -412,6 +416,38 @@ type Unwrap {
   loc: Loc,
   operand: Expression,
 }
+
+type VecLiteral {
+  loc: Loc,
+  elements: Vec<Expression>,
+}
+
+type MapLiteral {
+  loc: Loc,
+  entries: Vec<MapLiteralEntry>,
+}
+
+type MapLiteralEntry {
+  loc: Loc,
+  key: Expression,
+  value: Expression,
+}
+
+type SetLiteral {
+  loc: Loc,
+  elements: Vec<Expression>,
+}
+
+type AnonymousFunction {
+  loc: Loc,
+  params: Vec<FunctionParam>,
+  return_: Option<Type>,
+  body: AnonymousFunctionBody,
+}
+
+type AnonymousFunctionBody =
+  | ABBlock (Block)
+  | ABExpression (Expression)
 
 /* 
  * ============================

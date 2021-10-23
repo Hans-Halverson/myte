@@ -35,6 +35,8 @@ type Token =
   | RightBrace
   | LeftBracket
   | RightBracket
+  | SetOpen
+  | SetClose
   | DoubleEquals
   | NotEquals
   | PlusEquals
@@ -58,6 +60,7 @@ type Token =
   | Val
   | Var
   | Fun
+  | Fn
   | Type
   | Trait
   | If
@@ -115,6 +118,8 @@ methods Token {
       | RightBrace -> "}"
       | LeftBracket -> "["
       | RightBracket -> "]"
+      | SetOpen -> "{|"
+      | SetClose -> "|}"
       | DoubleEquals -> "=="
       | NotEquals -> "!="
       | PlusEquals -> "+="
@@ -138,6 +143,7 @@ methods Token {
       | Val -> "val"
       | Var -> "var"
       | Fun -> "fun"
+      | Fn -> "fn"
       | Type -> "type"
       | Trait -> "trait"
       | If -> "if"
@@ -195,6 +201,8 @@ methods Token {
       | (LeftBrace, LeftBrace)
       | (RightBrace, RightBrace)
       | (LeftBracket, LeftBracket)
+      | (SetOpen, SetOpen)
+      | (SetClose, SetClose)
       | (RightBracket, RightBracket)
       | (DoubleEquals, DoubleEquals)
       | (NotEquals, NotEquals)
@@ -219,6 +227,7 @@ methods Token {
       | (Val, Val)
       | (Var, Var)
       | (Fun, Fun)
+      | (Fn, Fn)
       | (Type, Type)
       | (Trait, Trait)
       | (If, If)

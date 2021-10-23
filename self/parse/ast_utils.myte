@@ -43,6 +43,10 @@ fun expressionLoc(expr: ast.Expression): Loc =
     | ast.EIndexedAccess (ast.IndexedAccess { loc, ... })
     | ast.EUnwrap (ast.Unwrap { loc, ... })
     | ast.EIf (ast.If { loc, ... })
-    | ast.EMatch (ast.Match { loc, ... }) ->
+    | ast.EMatch (ast.Match { loc, ... })
+    | ast.EVecLiteral (ast.VecLiteral { loc, ... })
+    | ast.EMapLiteral (ast.MapLiteral { loc, ... })
+    | ast.ESetLiteral (ast.SetLiteral { loc, ... })
+    | ast.EAnonymousFunction (ast.AnonymousFunction { loc, ... }) ->
       loc
   }
