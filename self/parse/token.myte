@@ -37,6 +37,17 @@ type Token =
   | RightBracket
   | DoubleEquals
   | NotEquals
+  | PlusEquals
+  | MinusEquals
+  | MultiplyEquals
+  | DivideEquals
+  | PercentEquals
+  | AmpersandEquals
+  | PipeEquals
+  | CaretEquals
+  | LeftShiftEquals
+  | ArithmeticRightShiftEquals
+  | LogicalRightShiftEquals
   | LessThan
   | GreaterThan
   | LessThanOrEqual
@@ -101,6 +112,17 @@ methods Token {
       | RightBracket -> "]"
       | DoubleEquals -> "=="
       | NotEquals -> "!="
+      | PlusEquals -> "+="
+      | MinusEquals -> "-="
+      | MultiplyEquals -> "*="
+      | DivideEquals -> "/="
+      | PercentEquals -> "%="
+      | AmpersandEquals -> "&="
+      | PipeEquals -> "|="
+      | CaretEquals -> "^="
+      | LeftShiftEquals -> "<<="
+      | ArithmeticRightShiftEquals -> ">>="
+      | LogicalRightShiftEquals -> ">>>="
       | LessThan -> "<"
       | GreaterThan -> ">"
       | LessThanOrEqual -> "<="
@@ -166,6 +188,17 @@ methods Token {
       | (RightBracket, RightBracket)
       | (DoubleEquals, DoubleEquals)
       | (NotEquals, NotEquals)
+      | (PlusEquals, PlusEquals)
+      | (MinusEquals, MinusEquals)
+      | (MultiplyEquals, MultiplyEquals)
+      | (DivideEquals, DivideEquals)
+      | (PercentEquals, PercentEquals)
+      | (AmpersandEquals, AmpersandEquals)
+      | (PipeEquals, PipeEquals)
+      | (CaretEquals, CaretEquals)
+      | (LeftShiftEquals, LeftShiftEquals)
+      | (ArithmeticRightShiftEquals, ArithmeticRightShiftEquals)
+      | (LogicalRightShiftEquals, LogicalRightShiftEquals)
       | (LessThan, LessThan)
       | (GreaterThan, GreaterThan)
       | (LessThanOrEqual, LessThanOrEqual)

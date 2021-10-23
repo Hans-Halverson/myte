@@ -315,6 +315,7 @@ fun nodeOfStatement(stmt: ast.Statement): PrintNode =
     | ast.SReturn (s) -> nodeOfReturn(s)
     | ast.SBreak (s) -> nodeOfBreak(s)
     | ast.SContinue (s) -> nodeOfContinue(s)
+    | ast.SAssignment (s) -> nodeOfAssignment(s)
   }
 
 fun nodeOfBlock(block: ast.Block): PrintNode {
@@ -437,6 +438,42 @@ fun nodeOfContinue(b: ast.Continue): PrintNode {
   return Node { name: "Continue", loc, fields: [] };
 }
 
+fun nodeOfAssignment(assign: ast.Assignment): PrintNode {
+  val ast.Assignment { loc, op, lvalue, expr } = assign;
+
+  val op = match (op) {
+    | None -> Empty
+    | Some (op) -> {
+      val string = match (op) {
+        | ast.AssignAdd -> "Add"
+        | ast.AssignSubtract -> "Subtract"
+        | ast.AssignMultiply -> "Multiply"
+        | ast.AssignDivide -> "Divide"
+        | ast.AssignRemainder -> "Remainder"
+        | ast.AssignBitwiseAnd -> "BitwiseAnd"
+        | ast.AssignBitwiseOr -> "BitwiseOr"
+        | ast.AssignBitwiseXor -> "BitwiseXor"
+        | ast.AssignLeftShift -> "LeftShift"
+        | ast.AssignArithmeticRightShift -> "ArithmeticRightShift"
+        | ast.AssignLogicalRightShift -> "LogicalRightShift"
+      };
+
+      String (string)
+    }
+  };
+
+  val lvalue = match (lvalue) {
+    | ast.ALPattern (patt) -> nodeOfPattern(patt)
+    | ast.ALExpression (expr) -> nodeOfExpression(expr)
+  };
+
+  return Node {
+    name: "Assignment",
+    loc,
+    fields: [("op", op), ("lvalue", lvalue), ("expr", nodeOfExpression(expr))],
+  };
+}
+
 fun nodeOfExpression(expr: ast.Expression): PrintNode =
   match (expr) {
     | ast.EUnitLiteral (e) -> nodeOfUnitLiteral(e)
@@ -446,7 +483,9 @@ fun nodeOfExpression(expr: ast.Expression): PrintNode =
     | ast.ECharLiteral (e) -> nodeOfCharLiteral(e)
     | ast.EInterpolatedString (e) -> nodeOfInterpolatedString(e)
     | ast.EIdentifier (e) -> nodeOfIdentifier(e)
+    | ast.EScopedIdentifier (e) -> nodeOfScopedIdentifier(e)
     | ast.ETuple (e) -> nodeOfTupleExpression(e)
+    | ast.ERecord (e) -> nodeOfRecordExpression(e)
     | ast.ETypeCast (e) -> nodeOfTypeCast(e)
     | ast.ECall (e) -> nodeOfCall(e)
     | ast.EUnaryOperation (e) -> nodeOfUnaryOperation(e)
@@ -516,6 +555,27 @@ fun nodeOfTupleExpression(tuple: ast.TupleExpression): PrintNode {
     name: "TupleExpression",
     loc,
     fields: [("elements", List (elements.map(nodeOfExpression)))],
+  };
+}
+
+fun nodeOfRecordExpression(decl: ast.RecordExpression): PrintNode {
+  val ast.RecordExpression { loc, name, fields, rest: _ } = decl;
+  return Node {
+    name: "RecordExpression",
+    loc,
+    fields: [
+      ("name", nodeOfExpression(name)),
+      ("fields", List (fields.map(nodeOfRecordExpressionField))),
+    ],
+  };
+}
+
+fun nodeOfRecordExpressionField(field: ast.RecordExpressionField): PrintNode {
+  val ast.RecordExpressionField { loc, name, value } = field;
+  return Node {
+    name: "RecordExpressionField",
+    loc,
+    fields: [("name", nodeOfIdentifier(name)), ("value", optional(value, nodeOfExpression))],
   };
 }
 

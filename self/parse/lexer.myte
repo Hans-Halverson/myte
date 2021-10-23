@@ -105,6 +105,25 @@ methods Lexer {
     this.advance();
   }
 
+  /**
+   * Advance the lexer three bytes.
+   */
+  fun advanceThree() {
+    this.advance();
+    this.advance();
+    this.advance();
+   }
+
+  /**
+   * Advance the lexer four bytes.
+   */
+  fun advanceFour() {
+    this.advance();
+    this.advance();
+    this.advance();
+    this.advance();
+  }
+
   /*
    * Return the next byte if not at end of source.
    */
@@ -122,6 +141,18 @@ methods Lexer {
    */
   fun peekTwo(): LexByte {
     val nextOffset = this.currentOffset + 2;
+    return if (nextOffset < this.bytes.size) {
+      this.bytes.get(nextOffset).toInt()
+    } else {
+      EOF
+    };
+  }
+
+  /*
+   * Return the byte two bytes after the next byte if not at end of source.
+   */
+  fun peekThree(): LexByte {
+    val nextOffset = this.currentOffset + 3;
     return if (nextOffset < this.bytes.size) {
       this.bytes.get(nextOffset).toInt()
     } else {
@@ -236,46 +267,82 @@ methods Lexer {
           this.advanceTwo();
           this.tokenResult(token.LogicalOr)
         }
+        | '=' -> {
+          this.advanceTwo();
+          this.tokenResult(token.PipeEquals)
+        }
         | _ -> {
           this.advance();
           this.tokenResult(token.Pipe)
         }
       }
-      | '+' -> {
-        this.advance();
-        this.tokenResult(token.Plus)
+      | '+' -> match (this.peek()) {
+        | '=' -> {
+          this.advanceTwo();
+          this.tokenResult(token.PlusEquals)
+        }
+        | _ -> {
+          this.advance();
+          this.tokenResult(token.Plus)
+        }
       }
       | '-' -> match (this.peek()) {
         | '>' -> {
           this.advanceTwo();
           this.tokenResult(token.Arrow)
         }
+        | '=' -> {
+          this.advanceTwo();
+          this.tokenResult(token.MinusEquals)
+        }
         | _ -> {
           this.advance();
           this.tokenResult(token.Minus)
         }
       }
-      | '*' -> {
-        this.advance();
-        this.tokenResult(token.Multiply)
+      | '*' -> match (this.peek()) {
+        | '=' -> {
+          this.advanceTwo();
+          this.tokenResult(token.MultiplyEquals)
+        }
+        | _ -> {
+          this.advance();
+          this.tokenResult(token.Multiply)
+        }
       }
-      | '%' -> {
-        this.advance();
-        this.tokenResult(token.Percent)
+      | '%' -> match (this.peek()) {
+        | '=' -> {
+          this.advanceTwo();
+          this.tokenResult(token.PercentEquals)
+        }
+        | _ -> {
+          this.advance();
+          this.tokenResult(token.Percent)
+        }
       }
       | '&' -> match (this.peek()) {
         | '&' -> {
           this.advanceTwo();
           this.tokenResult(token.LogicalAnd)
         }
+        | '=' -> {
+          this.advanceTwo();
+          this.tokenResult(token.AmpersandEquals)
+        }
         | _ -> {
           this.advance();
           this.tokenResult(token.Ampersand)
         }
       }
-      | '^' -> {
-        this.advance();
-        this.tokenResult(token.Caret)
+      | '^' -> match (this.peek()) {
+        | '=' -> {
+          this.advanceTwo();
+          this.tokenResult(token.CaretEquals)
+        }
+        | _ -> {
+          this.advance();
+          this.tokenResult(token.Caret)
+        }
       }
       | '?' -> {
         this.advance();
@@ -320,6 +387,16 @@ methods Lexer {
           this.advanceTwo();
           this.tokenResult(token.LessThanOrEqual)
         }
+        | '<' -> match (this.peekTwo()) {
+          | '=' -> {
+            this.advanceThree();
+            this.tokenResult(token.LeftShiftEquals)
+          } 
+          | _ -> {
+            this.advance();
+            this.tokenResult(token.LessThan)
+          }
+        }
         | _ -> {
           this.advance();
           this.tokenResult(token.LessThan)
@@ -329,6 +406,26 @@ methods Lexer {
         | '=' -> {
           this.advanceTwo();
           this.tokenResult(token.GreaterThanOrEqual)
+        }
+        | '>' -> match (this.peekTwo()) {
+          | '=' -> {
+            this.advanceThree();
+            this.tokenResult(token.ArithmeticRightShiftEquals)
+          }
+          | '>' -> match (this.peekThree()) {
+            | '=' -> {
+              this.advanceFour();
+              this.tokenResult(token.LogicalRightShiftEquals)
+            }
+            | _ -> {
+              this.advance();
+              this.tokenResult(token.GreaterThan)
+            }
+          }
+          | _ -> {
+            this.advance();
+            this.tokenResult(token.GreaterThan)
+          }
         }
         | _ -> {
           this.advance();
@@ -391,6 +488,10 @@ methods Lexer {
           }
 
           this.next()
+        }
+        | '=' -> {
+          this.advanceTwo();
+          this.tokenResult(token.DivideEquals)
         }
         | _ -> {
           this.advance();

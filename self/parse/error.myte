@@ -26,6 +26,7 @@ type ParseError =
   | EmptyTuple
   | SingleVariant
   | TypeAliasBuiltin
+  | InvalidAssignmentPattern
   | LiteralInPattern
   | CannotOpenFile { filename: String }
 
@@ -73,6 +74,7 @@ methods ParseError {
       | SingleVariant -> "Variant type must have at least two variants"
       | TypeAliasBuiltin ->
         "A type alias cannot be builtin. Only function and type declarations can be builtin."
+      | InvalidAssignmentPattern -> "Invalid left hand side of assignment"
       | LiteralInPattern -> "Literals cannot appear in variable declaration patterns"
       | CannotOpenFile { filename } -> `Cannot open file ${filename}`
     }

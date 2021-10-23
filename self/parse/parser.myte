@@ -600,19 +600,175 @@ methods Parser {
     val startLoc = this.loc;
     val expr = this.parseExpression();
 
-    // An expression statement must be terminated by a semicolon unless it is the last statement
-    // in a block, in which case it is the value of the block.
-    val isValue = if (this.token.equals(token.RightBrace)) {
-      true
-    } else {
-      this.expect(token.Semicolon);
-      false
+    val op = match (this.token) {
+      // If followed by an equals or equals operation this is an assignment statement
+      | token.Equals -> None
+      | token.PlusEquals -> Some (ast.AssignAdd)
+      | token.MinusEquals -> Some (ast.AssignSubtract)
+      | token.MultiplyEquals -> Some (ast.AssignMultiply)
+      | token.DivideEquals -> Some (ast.AssignDivide)
+      | token.PercentEquals -> Some (ast.AssignRemainder)
+      | token.AmpersandEquals -> Some (ast.AssignBitwiseAnd)
+      | token.PipeEquals -> Some (ast.AssignBitwiseOr)
+      | token.CaretEquals -> Some (ast.AssignBitwiseXor)
+      | token.LeftShiftEquals -> Some (ast.AssignLeftShift)
+      | token.ArithmeticRightShiftEquals -> Some (ast.AssignArithmeticRightShift)
+      | token.LogicalRightShiftEquals -> Some (ast.AssignLogicalRightShift)
+      // If the expression is not followed by an equals then it must be an expression statement
+      | _ -> {
+
+        // An expression statement must be terminated by a semicolon unless it is the last
+        // statement in a block, in which case it is the value of the block.
+        val isValue = if (this.token.equals(token.RightBrace)) {
+          true
+        } else {
+          this.expect(token.Semicolon);
+          false
+        };
+
+        val loc = this.currentLoc(startLoc);
+
+        return ast.SExpression (ast.ExpressionStatement { loc, expr, isValue });
+      }
     };
 
+    // First expression is actually the lvalue for an assignment statement
+    val lvalue = if (op.isNone()) {
+      this.reparseExpressionAsAssignmentLvalue(expr)
+    } else {
+      this.reparseExpressionAsAssignmentOpLvalue(expr)
+    };
+
+    // Parse right hand side of assignment
+    this.advance();
+    val expr = this.parseExpression();
+    this.expect(token.Semicolon);
     val loc = this.currentLoc(startLoc);
 
-    return ast.SExpression (ast.ExpressionStatement { loc, expr, isValue });
+    return ast.SAssignment (ast.Assignment { loc, op, lvalue, expr });
   }
+
+  fun reparseExpressionAsAssignmentLvalue(expr: ast.Expression): ast.AssignmentLvalue =
+    match (expr) {
+      | ast.EIndexedAccess _
+      | ast.ENamedAccess _ -> {
+        this.assertExpressionIsLvalueExpression(expr);
+        ast.ALExpression (expr)
+      }
+      | _ -> ast.ALPattern (this.reparseExpressionAsLvaluePattern(expr))
+    }
+  
+  fun reparseExpressionAsAssignmentOpLvalue(expr: ast.Expression): ast.AssignmentLvalue =
+    match (expr) {
+      | ast.EIdentifier (ast.Identifier { loc, name: "_" }) ->
+        fatal(error.InvalidAssignmentPattern, loc)
+      | ast.EIdentifier _
+      | ast.EScopedIdentifier _
+      | ast.EIndexedAccess _
+      | ast.ENamedAccess _ -> this.reparseExpressionAsAssignmentLvalue(expr)
+      | _ -> fatal(error.InvalidAssignmentPattern, ast.utils.expressionLoc(expr))
+    }
+  
+  fun assertExpressionIsLvalueExpression(expr: ast.Expression) =
+    match (expr) {
+      | ast.EIdentifier _ -> ()
+      | ast.ENamedAccess (ast.NamedAccess { target, ... })
+      | ast.EIndexedAccess (ast.IndexedAccess { target, ... }) ->
+        this.assertExpressionIsLvalueExpression(target)
+      | _ -> fatal(error.InvalidAssignmentPattern, ast.utils.expressionLoc(expr))
+    }
+  
+  fun reparseExpressionAsLvaluePattern(expr: ast.Expression): ast.Pattern =
+    match (expr) {
+      | ast.EIdentifier (ast.Identifier { loc, name: "_" }) -> ast.PWildcard (loc)
+      | ast.EIdentifier (ident) -> ast.PIdentifier (ast.utils.identifierToScopedIdentifier(ident))
+      | ast.EScopedIdentifier (ident) -> ast.PIdentifier (ident)
+      | ast.EBinaryOperation (
+            ast.BinaryOperation { loc, op: ast.BinaryBitwiseOr, left, right },
+          ) -> {
+        val left = this.reparseExpressionAsLvaluePattern(left);
+        val right = this.reparseExpressionAsLvaluePattern(right);
+
+        ast.POr (ast.OrPattern { loc, left, right })
+      }
+      | ast.ETuple (ast.TupleExpression { loc, elements }) -> {
+        val patternElements: Vec<ast.Pattern> = [];
+        for (element in elements) {
+          patternElements.push(this.reparseExpressionAsLvaluePattern(element));
+        }
+
+        ast.PTuple (ast.TuplePattern { loc, name: None, elements: patternElements })
+      }
+      | ast.ECall (ast.Call { loc, func, args }) -> {
+        val name = this.reparseNameParts(func);
+        val elements: Vec<ast.Pattern> = [];
+        for (arg in args) {
+          elements.push(this.reparseExpressionAsLvaluePattern(arg));
+        }
+
+        ast.PTuple (ast.TuplePattern { loc, name: Some (name), elements })
+      }
+      | ast.ERecord (ast.RecordExpression { loc, name, fields, rest }) -> {
+        val name = this.reparseNameParts(name);
+
+        // Reparse record fields
+        val fieldPatterns: Vec<ast.RecordPatternField> = [];
+        for (ast.RecordExpressionField { loc, name, value } in fields) {
+          val field = match (value) {
+            // Field shorthand can be converted
+            | None -> {
+              val value = ast.PIdentifier (ast.utils.identifierToScopedIdentifier(name));
+              ast.RecordPatternField { loc, name: None, value }
+            }
+            // Explicit value must be converted to a pattern
+            | Some (value) -> {
+              val value = this.reparseExpressionAsLvaluePattern(value);
+              ast.RecordPatternField { loc, name: Some (name), value }
+            }
+          };
+
+          fieldPatterns.push(field);
+        }
+
+        ast.PRecord (ast.RecordPattern { loc, name, fields: fieldPatterns, rest: rest.isSome() })
+      }
+      | _ -> fatal(error.InvalidAssignmentPattern, ast.utils.expressionLoc(expr))
+    }
+
+    fun reparseNameParts(expr: ast.Expression): ast.ScopedIdentifier {
+      // Collect all identifier parts in nested named access chain
+      val parts: Vec<ast.Identifier> = [];
+      var current = expr;
+
+      while (true) {
+        match (current) {
+          | ast.EIdentifier (ident) -> {
+            parts.push(ident);
+            break;
+          }
+          | ast.ENamedAccess (ast.NamedAccess { target, name, ... }) -> {
+            parts.push(name);
+            current = target;
+          }
+          | _ -> fatal(error.InvalidAssignmentPattern, ast.utils.expressionLoc(current))
+        }
+      }
+
+      // Identifier parts are reversed, so first part and scopes are remaining parts (reversed)
+      val name = parts[0];
+      val scopes: Vec<ast.Identifier> = [];
+      for (i in (parts.size - 1).stepDownTo(0, 1)) {
+        scopes.push(parts[i]);
+      }
+
+      val loc = if (scopes.size == 0) {
+        name.loc
+      } else {
+        Loc.between(scopes[0].loc, name.loc)
+      };
+
+      return ast.ScopedIdentifier { loc, name, scopes };
+    }
 
   fun parseMatch(isExpression: Bool): ast.Match {
     val startLoc = this.loc;
@@ -857,6 +1013,8 @@ methods Parser {
       expr = match (this.token) {
         | token.LeftParen when leftPrecedence.isWeakerThan(precedence.Call) ->
           ast.ECall (this.parseCall(expr, startLoc))
+        | token.LeftBrace when leftPrecedence.isWeakerThan(precedence.Call) ->
+          ast.ERecord (this.parseRecordExpression(expr, startLoc))
         | token.Period when leftPrecedence.isWeakerThan(precedence.Access) ->
           ast.ENamedAccess (this.parseNamedAccess(expr, startLoc))
         | token.LeftBracket when leftPrecedence.isWeakerThan(precedence.Access) ->
@@ -935,6 +1093,11 @@ methods Parser {
   fun parseExpressionPrefix(): ast.Expression {
     return match (this.token) {
       | token.Identifier _ -> ast.EIdentifier (this.parseIdentifier())
+      | token.Wildcard -> {
+        val loc = this.loc;
+        this.advance();
+        ast.EIdentifier (ast.Identifier { loc, name: "_" })
+      }
       | token.LeftParen -> this.parseParenthesizedExpression()
       | token.IntLiteral { raw, base } -> {
         val loc = this.loc;
@@ -1046,6 +1209,79 @@ methods Parser {
     val loc = this.currentLoc(startLoc);
 
     return ast.Call { loc, func, args };
+  }
+
+  fun parseRecordExpression(name: ast.Expression, startLoc: Loc): ast.RecordExpression {
+    this.expect(token.LeftBrace);
+
+    var rest: Option<Loc> = None;
+    val fields: Vec<ast.RecordExpressionField> = [];
+
+    while (true) {
+      match (this.token) {
+        // Record ends with a right element
+        | token.RightBrace -> {
+          this.advance();
+          break;
+        }
+        // `...` is a rest element, and must be last element in record
+        | token.Period -> {
+          val startLoc = this.loc;
+          this.expect(token.Period);
+          this.expect(token.Period);
+          this.expect(token.Period);
+
+          // Save loc of rest element
+          val loc = this.currentLoc(startLoc);
+          rest = Some (loc);
+
+          // Rest can optionally be followed by a trailing comma, then the record must end
+          if (this.token == token.Comma) {
+            this.advance();
+          }
+          
+          this.expect(token.RightBrace);
+          break;
+        }
+        // An identifier is the start of a record field
+        | token.Identifier _ -> {
+          val startLoc = this.loc;
+          val name = this.parseIdentifier();
+
+          // A colon indicates this field has both a name and value
+          val field = if (this.token == token.Colon) {
+            this.advance();
+            val value = this.parseExpression();
+            val loc = this.currentLoc(startLoc);
+
+            ast.RecordExpressionField { loc, name, value: Some (value) }
+          } else {
+            // Otherwise this is field shorthand with just a name
+            val loc = this.currentLoc(startLoc);
+
+            ast.RecordExpressionField { loc, name, value: None }
+          };
+
+          fields.push(field);
+
+          // Optionally followed by a trailing comma
+          match (this.token) {
+            | token.RightBrace -> ()
+            | token.Comma -> this.advance()
+            | _ -> this.expect(token.RightBrace)
+          }
+        }
+        | _ -> this.expect(token.RightParen)
+      }
+    }
+
+    val loc = this.currentLoc(startLoc);
+
+    if (fields.size == 0) {
+      fatal(error.EmptyRecord, loc);
+    }
+
+    return ast.RecordExpression { loc, name, fields, rest };
   }
 
   fun parseNamedAccess(target: ast.Expression, startLoc: Loc): ast.NamedAccess {

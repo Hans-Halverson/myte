@@ -147,6 +147,7 @@ type Statement =
   | SReturn (Return)
   | SBreak (Break)
   | SContinue (Continue)
+  | SAssignment (Assignment)
 
 type Block {
   loc: Loc,
@@ -211,6 +212,30 @@ type Break { loc: Loc }
 
 type Continue { loc: Loc }
 
+type Assignment {
+  loc: Loc,
+  op: Option<AssignmentOperation>,
+  lvalue: AssignmentLvalue,
+  expr: Expression,
+}
+
+type AssignmentOperation =
+  | AssignAdd
+  | AssignSubtract
+  | AssignMultiply
+  | AssignDivide
+  | AssignRemainder
+  | AssignBitwiseAnd
+  | AssignBitwiseOr
+  | AssignBitwiseXor
+  | AssignLeftShift
+  | AssignArithmeticRightShift
+  | AssignLogicalRightShift
+
+type AssignmentLvalue =
+  | ALPattern (Pattern)
+  | ALExpression (Expression)
+
 /* 
  * ============================
  *        Expressions
@@ -225,7 +250,9 @@ type Expression =
   | ECharLiteral (CharLiteral)
   | EInterpolatedString (InterpolatedString)
   | EIdentifier (Identifier)
+  | EScopedIdentifier (ScopedIdentifier)
   | ETuple (TupleExpression)
+  | ERecord (RecordExpression)
   | ETypeCast (TypeCast)
   | ECall (Call)
   | EUnaryOperation (UnaryOperation)
@@ -278,6 +305,20 @@ type InterpolatedStringPart =
 type TupleExpression {
   loc: Loc,
   elements: Vec<Expression>,
+}
+
+type RecordExpression {
+  loc: Loc,
+  name: Expression,
+  fields: Vec<RecordExpressionField>,
+  // Needed for reparsing expressions as patterns. Record expressions cannot have a `...`.
+  rest: Option<Loc>,
+}
+
+type RecordExpressionField {
+  loc: Loc,
+  name: Identifier,
+  value: Option<Expression>,
 }
 
 type TypeCast {
