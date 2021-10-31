@@ -2,15 +2,15 @@ func void @test.use<Bool>(bool %0) {
   Ret
 }
 
-func void @test.use<Int>(int %1) {
+func void @test.use<Int>(int %0) {
   Ret
 }
 
 func int @test.main() {
   Call void @test.use<Int>(8)
   Call void @test.use<Int>(77)
-  %2 := Mul int 77, 34
-  Call void @test.use<Int>(%2)
+  %0 := Mul int 77, 34
+  Call void @test.use<Int>(%0)
   Call void @test.use<Bool>(true)
   Ret 0
 }

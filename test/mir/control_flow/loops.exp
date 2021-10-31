@@ -14,80 +14,80 @@ label @3:
 }
 
 func void @test.inexhaustiveBreak() {
-  continue @4
-label @4:
-  %3 := Phi int @test.inexhaustiveBreak:1, @5:4
-  branch false, @5, @6
-label @5:
-  %4 := Gt int %3, 2
-  branch %4, @6, @4
-label @6:
-  %5 := Phi int @4:%3, @5:3
-  %6 := Neg int %5
+  continue @0
+label @0:
+  %0 := Phi int @test.inexhaustiveBreak:1, @1:4
+  branch false, @1, @2
+label @1:
+  %1 := Gt int %0, 2
+  branch %1, @2, @0
+label @2:
+  %2 := Phi int @0:%0, @1:3
+  %3 := Neg int %2
   Ret
 }
 
 func void @test.exhaustiveContinues() {
-  continue @7
-label @7:
-  %7 := Phi int @test.exhaustiveContinues:1, @8:2, @9:3
-  branch false, @8, @10
-label @8:
-  %8 := Gt int %7, 1
-  branch %8, @7, @9
-label @9:
-  continue @7
-label @10:
-  %9 := Neg int %7
+  continue @0
+label @0:
+  %0 := Phi int @test.exhaustiveContinues:1, @1:2, @2:3
+  branch false, @1, @3
+label @1:
+  %1 := Gt int %0, 1
+  branch %1, @0, @2
+label @2:
+  continue @0
+label @3:
+  %2 := Neg int %0
   Ret
 }
 
 func void @test.exhaustiveBreaks() {
-  branch false, @11, @13
-label @11:
-  %10 := Gt int 1, 1
-  branch %10, @13, @12
-label @12:
-  continue @13
-label @13:
-  %11 := Phi int @test.exhaustiveBreaks:1, @11:2, @12:3
-  %12 := Neg int %11
+  branch false, @0, @2
+label @0:
+  %0 := Gt int 1, 1
+  branch %0, @2, @1
+label @1:
+  continue @2
+label @2:
+  %1 := Phi int @test.exhaustiveBreaks:1, @0:2, @1:3
+  %2 := Neg int %1
   Ret
 }
 
 func void @test.inexhaustiveBreakAndContinue() {
-  continue @14
-label @14:
-  %13 := Phi int @test.inexhaustiveBreakAndContinue:1, @16:4, @17:3
-  branch false, @15, @18
-label @15:
-  %14 := Gt int %13, 1
-  branch %14, @18, @16
-label @16:
-  branch true, @17, @14
-label @17:
-  continue @14
-label @18:
-  %15 := Phi int @14:%13, @15:2
-  %16 := Neg int %15
+  continue @0
+label @0:
+  %0 := Phi int @test.inexhaustiveBreakAndContinue:1, @2:4, @3:3
+  branch false, @1, @4
+label @1:
+  %1 := Gt int %0, 1
+  branch %1, @4, @2
+label @2:
+  branch true, @3, @0
+label @3:
+  continue @0
+label @4:
+  %2 := Phi int @0:%0, @1:2
+  %3 := Neg int %2
   Ret
 }
 
 func void @test.exhaustiveBreakAndContinue() {
-  continue @19
-label @19:
-  %17 := Phi int @test.exhaustiveBreakAndContinue:1, @20:3
-  branch false, @20, @21
-label @20:
-  %18 := Gt int %17, 1
-  branch %18, @21, @19
-label @21:
-  %19 := Phi int @19:%17, @20:2
-  %20 := Neg int %19
+  continue @0
+label @0:
+  %0 := Phi int @test.exhaustiveBreakAndContinue:1, @1:3
+  branch false, @1, @2
+label @1:
+  %1 := Gt int %0, 1
+  branch %1, @2, @0
+label @2:
+  %2 := Phi int @0:%0, @1:2
+  %3 := Neg int %2
   Ret
 }
 
-func void @test.use<Function>(fn %21) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 

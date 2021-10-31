@@ -9,155 +9,155 @@ label @1:
   Ret
 }
 
-func void @test.testMatchStatementInExpressionPosition(bool %3) {
-  branch %3, @2, @5
+func void @test.testMatchStatementInExpressionPosition(bool %0) {
+  branch %0, @0, @3
+label @0:
+  %1 := Eq bool %0, false
+  branch %1, @2, @1
+label @1:
+  continue @2
 label @2:
-  %4 := Eq bool %3, false
-  branch %4, @4, @3
+  %2 := Phi int @0:2, @1:1
+  continue @3
+label @3:
+  %3 := Phi int @test.testMatchStatementInExpressionPosition:3, @2:%2
+  Call void @test.use<Int>(%3)
+  Ret
+}
+
+func void @test.testNestedMatchAndIf(bool %0) {
+  branch %0, @0, @10
+label @0:
+  %1 := Eq bool %0, false
+  branch %1, @9, @1
+label @1:
+  branch %0, @2, @5
+label @2:
+  %2 := Eq bool %0, false
+  branch %2, @4, @3
 label @3:
   continue @4
 label @4:
-  %5 := Phi int @2:2, @3:1
-  continue @5
+  %3 := Phi int @2:2, @3:1
+  continue @8
 label @5:
-  %6 := Phi int @test.testMatchStatementInExpressionPosition:3, @4:%5
-  Call void @test.use<Int>(%6)
-  Ret
-}
-
-func void @test.testNestedMatchAndIf(bool %7) {
-  branch %7, @6, @16
+  %4 := Eq bool %0, false
+  branch %4, @7, @6
 label @6:
-  %8 := Eq bool %7, false
-  branch %8, @15, @7
+  continue @7
 label @7:
-  branch %7, @8, @11
+  %5 := Phi int @5:4, @6:3
+  continue @8
 label @8:
-  %9 := Eq bool %7, false
-  branch %9, @10, @9
+  %6 := Phi int @4:%3, @7:%5
+  continue @9
 label @9:
+  %7 := Phi int @0:5, @8:%6
   continue @10
 label @10:
-  %10 := Phi int @8:2, @9:1
-  continue @14
-label @11:
-  %11 := Eq bool %7, false
-  branch %11, @13, @12
-label @12:
-  continue @13
-label @13:
-  %12 := Phi int @11:4, @12:3
-  continue @14
-label @14:
-  %13 := Phi int @10:%10, @13:%12
-  continue @15
-label @15:
-  %14 := Phi int @6:5, @14:%13
-  continue @16
-label @16:
-  %15 := Phi int @test.testNestedMatchAndIf:6, @15:%14
-  Call void @test.use<Int>(%15)
+  %8 := Phi int @test.testNestedMatchAndIf:6, @9:%7
+  Call void @test.use<Int>(%8)
   Ret
 }
 
-func void @test.testZeroSizeMatch(bool %16) {
-  %17 := Eq bool %16, false
-  branch %17, @17, @18
-label @17:
+func void @test.testZeroSizeMatch(bool %0) {
+  %1 := Eq bool %0, false
+  branch %1, @0, @1
+label @0:
   Call void @test.use<Bool>(false)
-  continue @19
-label @18:
+  continue @2
+label @1:
   Call void @test.use<Bool>(true)
-  continue @19
-label @19:
+  continue @2
+label @2:
   Call void @test.use<test.ZeroSize>()
   Ret
 }
 
-func void @test.testUnitMatch(int %18) {
-  %19 := Eq int %18, 1
-  branch %19, @23, @20
-label @20:
-  %20 := Eq int %18, 2
-  branch %20, @23, @21
-label @21:
-  %21 := Eq int %18, 3
-  branch %21, @22, @23
-label @22:
+func void @test.testUnitMatch(int %0) {
+  %1 := Eq int %0, 1
+  branch %1, @3, @0
+label @0:
+  %2 := Eq int %0, 2
+  branch %2, @3, @1
+label @1:
+  %3 := Eq int %0, 3
+  branch %3, @2, @3
+label @2:
   Call void @test.use<Int>(3)
-  continue @23
-label @23:
+  continue @3
+label @3:
   Call void @test.use<Unit>()
   Ret
 }
 
-func void @test.testReturnBranch(int %22) {
-  %23 := Eq int %22, 1
-  branch %23, @25, @24
-label @24:
-  %24 := Eq int %22, 2
-  branch %24, @25, @26
-label @25:
-  %25 := Phi int @test.testReturnBranch:1, @24:2
-  Call void @test.use<Int>(%25)
+func void @test.testReturnBranch(int %0) {
+  %1 := Eq int %0, 1
+  branch %1, @1, @0
+label @0:
+  %2 := Eq int %0, 2
+  branch %2, @1, @2
+label @1:
+  %3 := Phi int @test.testReturnBranch:1, @0:2
+  Call void @test.use<Int>(%3)
   Ret
-label @26:
+label @2:
   Ret
 }
 
-func void @test.testReturnBlockBranch(int %26) {
-  %27 := Eq int %26, 1
-  branch %27, @28, @27
-label @27:
-  %28 := Eq int %26, 2
-  branch %28, @28, @29
-label @28:
-  %29 := Phi int @test.testReturnBlockBranch:1, @27:2
-  Call void @test.use<Int>(%29)
+func void @test.testReturnBlockBranch(int %0) {
+  %1 := Eq int %0, 1
+  branch %1, @1, @0
+label @0:
+  %2 := Eq int %0, 2
+  branch %2, @1, @2
+label @1:
+  %3 := Phi int @test.testReturnBlockBranch:1, @0:2
+  Call void @test.use<Int>(%3)
   Ret
-label @29:
+label @2:
   Call void @test.use<Bool>(true)
   Ret
 }
 
-func void @test.testDivergentExpressionBranch(int %30) {
-  %31 := Eq int %30, 1
-  branch %31, @31, @30
-label @30:
-  %32 := Eq int %30, 2
-  branch %32, @31, @32
-label @31:
-  %33 := Phi int @test.testDivergentExpressionBranch:1, @30:2
-  Call void @test.use<Int>(%33)
+func void @test.testDivergentExpressionBranch(int %0) {
+  %1 := Eq int %0, 1
+  branch %1, @1, @0
+label @0:
+  %2 := Eq int %0, 2
+  branch %2, @1, @2
+label @1:
+  %3 := Phi int @test.testDivergentExpressionBranch:1, @0:2
+  Call void @test.use<Int>(%3)
   Ret
-label @32:
+label @2:
   CallBuiltin void myte_exit(1)
 }
 
-func void @test.testLoopDivergence(int %34) {
-  branch true, @33, @36
-label @33:
-  %35 := Eq int %34, 1
-  branch %35, @34, @35
-label @34:
+func void @test.testLoopDivergence(int %0) {
+  branch true, @0, @3
+label @0:
+  %1 := Eq int %0, 1
+  branch %1, @1, @2
+label @1:
   Call void @test.use<Int>(1)
   continue @test.testLoopDivergence
-label @35:
-  %36 := Eq int %34, 2
-  branch %36, @test.testLoopDivergence, @36
-label @36:
+label @2:
+  %2 := Eq int %0, 2
+  branch %2, @test.testLoopDivergence, @3
+label @3:
   Ret
 }
 
-func void @test.use<Bool>(bool %37) {
+func void @test.use<Bool>(bool %0) {
   Ret
 }
 
-func void @test.use<Function>(fn %38) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 
-func void @test.use<Int>(int %39) {
+func void @test.use<Int>(int %0) {
   Ret
 }
 

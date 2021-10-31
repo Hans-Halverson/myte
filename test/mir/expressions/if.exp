@@ -12,130 +12,130 @@ label @1:
   Ret %1
 }
 
-func int @test.testIfWithExpressions(int %2, int %3) {
-  %4 := Call bool @test.bool()
-  branch %4, @2, @3
+func int @test.testIfWithExpressions(int %0, int %1) {
+  %2 := Call bool @test.bool()
+  branch %2, @0, @1
+label @0:
+  %3 := Add int %0, %1
+  continue @2
+label @1:
+  %4 := Mul int %0, %1
+  %5 := Add int %4, %0
+  continue @2
 label @2:
-  %5 := Add int %2, %3
-  continue @4
-label @3:
-  %6 := Mul int %2, %3
-  %7 := Add int %6, %2
-  continue @4
-label @4:
-  %8 := Phi int @2:%5, @3:%7
-  Ret %8
+  %6 := Phi int @0:%3, @1:%5
+  Ret %6
 }
 
 func int @test.testNestedIfStatementInExpressionPosition() {
-  %9 := Call bool @test.bool()
-  branch %9, @5, @8
+  %0 := Call bool @test.bool()
+  branch %0, @0, @3
+label @0:
+  %1 := Call bool @test.bool()
+  branch %1, @2, @1
+label @1:
+  continue @2
+label @2:
+  %2 := Phi int @0:1, @1:2
+  continue @6
+label @3:
+  %3 := Call bool @test.bool()
+  branch %3, @5, @4
+label @4:
+  continue @5
 label @5:
-  %10 := Call bool @test.bool()
-  branch %10, @7, @6
+  %4 := Phi int @3:3, @4:4
+  continue @6
 label @6:
-  continue @7
-label @7:
-  %11 := Phi int @5:1, @6:2
-  continue @11
-label @8:
-  %12 := Call bool @test.bool()
-  branch %12, @10, @9
-label @9:
-  continue @10
-label @10:
-  %13 := Phi int @8:3, @9:4
-  continue @11
-label @11:
-  %14 := Phi int @7:%11, @10:%13
-  Ret %14
+  %5 := Phi int @2:%2, @5:%4
+  Ret %5
 }
 
 func void @test.testZeroSizeIfExpression() {
-  %15 := Call bool @test.bool()
-  branch %15, @12, @13
-label @12:
+  %0 := Call bool @test.bool()
+  branch %0, @0, @1
+label @0:
   Call void @test.use<Bool>(true)
-  continue @14
-label @13:
+  continue @2
+label @1:
   Call void @test.use<Bool>(false)
-  continue @14
-label @14:
+  continue @2
+label @2:
   Call void @test.use<test.ZeroSize>()
   Ret
 }
 
-func void @test.testReturnBranch(bool %16) {
-  branch %16, @15, @18
-label @15:
+func void @test.testReturnBranch(bool %0) {
+  branch %0, @0, @3
+label @0:
   Call void @test.use<Int>(1)
-  branch %16, @16, @17
-label @16:
+  branch %0, @1, @2
+label @1:
   Ret
-label @17:
+label @2:
   Call void @test.use<Int>(2)
   Ret
-label @18:
+label @3:
   Ret
 }
 
-func void @test.testReturnBlockBranch(bool %17) {
-  branch %17, @19, @20
-label @19:
+func void @test.testReturnBlockBranch(bool %0) {
+  branch %0, @0, @1
+label @0:
   Call void @test.use<Int>(1)
   Ret
-label @20:
+label @1:
   Call void @test.use<Bool>(true)
   Ret
 }
 
-func void @test.testDivergentExpressionBranch(bool %18) {
-  branch %18, @22, @21
-label @21:
+func void @test.testDivergentExpressionBranch(bool %0) {
+  branch %0, @1, @0
+label @0:
   CallBuiltin void myte_exit(1)
-  continue @22
-label @22:
+  continue @1
+label @1:
   Call void @test.use<Int>(1)
   Ret
 }
 
-func void @test.testContinueBranch(bool %19) {
-  branch true, @23, @26
-label @23:
-  branch %19, @24, @25
-label @24:
+func void @test.testContinueBranch(bool %0) {
+  branch true, @0, @3
+label @0:
+  branch %0, @1, @2
+label @1:
   Call void @test.use<Int>(1)
   continue @test.testContinueBranch
-label @25:
+label @2:
   Call void @test.use<Bool>(false)
   continue @test.testContinueBranch
-label @26:
+label @3:
   Ret
 }
 
-func void @test.testBreakBranch(bool %20) {
-  branch true, @27, @30
-label @27:
-  branch %20, @28, @29
-label @28:
+func void @test.testBreakBranch(bool %0) {
+  branch true, @0, @3
+label @0:
+  branch %0, @1, @2
+label @1:
   Call void @test.use<Int>(1)
   continue @test.testBreakBranch
-label @29:
+label @2:
   Call void @test.use<Bool>(false)
-  continue @30
-label @30:
+  continue @3
+label @3:
   Ret
 }
 
-func void @test.use<Bool>(bool %21) {
+func void @test.use<Bool>(bool %0) {
   Ret
 }
 
-func void @test.use<Function>(fn %22) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 
-func void @test.use<Int>(int %23) {
+func void @test.use<Int>(int %0) {
   Ret
 }
 

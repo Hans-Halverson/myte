@@ -10,51 +10,51 @@ func int @test.Type.foo(test.Type* %0) {
   Ret 1
 }
 
-func std.string.String* @test.Type.bar(test.Type* %1, int %2, bool %3) {
-  %4 := CallBuiltin std.string.String* myte_alloc(1)
-  %5 := GetPointer byte*, std.string.String* %4.0
-  Store byte* %5, 0
-  %6 := GetPointer int, std.string.String* %4.1
+func std.string.String* @test.Type.bar(test.Type* %0, int %1, bool %2) {
+  %3 := CallBuiltin std.string.String* myte_alloc(1)
+  %4 := GetPointer byte*, std.string.String* %3.0
+  Store byte* %4, 0
+  %5 := GetPointer int, std.string.String* %3.1
+  Store int %5, 0
+  %6 := GetPointer int, std.string.String* %3.2
   Store int %6, 0
-  %7 := GetPointer int, std.string.String* %4.2
-  Store int %7, 0
-  Ret %4
+  Ret %3
 }
 
-func void @test.callSimpleMethod(_object$test.Trait* %8) {
-  %9 := GetPointer byte*, _object$test.Trait* %8.0
-  %10 := Load byte* %9
-  %11 := GetPointer fn[2]*, _object$test.Trait* %8.1
-  %12 := Load fn[2]* %11
-  %13 := GetPointer fn, fn* %12[int 1]
-  %14 := Load fn %13
-  %15 := Call int %14(%10)
+func void @test.callSimpleMethod(_object$test.Trait* %0) {
+  %1 := GetPointer byte*, _object$test.Trait* %0.0
+  %2 := Load byte* %1
+  %3 := GetPointer fn[2]*, _object$test.Trait* %0.1
+  %4 := Load fn[2]* %3
+  %5 := GetPointer fn, fn* %4[int 1]
+  %6 := Load fn %5
+  %7 := Call int %6(%2)
   Ret
 }
 
-func void @test.callMethodWithArgs(_object$test.Trait* %16) {
-  %17 := GetPointer byte*, _object$test.Trait* %16.0
-  %18 := Load byte* %17
-  %19 := GetPointer fn[2]*, _object$test.Trait* %16.1
-  %20 := Load fn[2]* %19
-  %21 := GetPointer fn, fn* %20[int 0]
-  %22 := Load fn %21
-  %23 := Call std.string.String* %22(%18, 1, true)
+func void @test.callMethodWithArgs(_object$test.Trait* %0) {
+  %1 := GetPointer byte*, _object$test.Trait* %0.0
+  %2 := Load byte* %1
+  %3 := GetPointer fn[2]*, _object$test.Trait* %0.1
+  %4 := Load fn[2]* %3
+  %5 := GetPointer fn, fn* %4[int 0]
+  %6 := Load fn %5
+  %7 := Call std.string.String* %6(%2, 1, true)
   Ret
 }
 
-func void @test.test(test.Type* %24) {
-  %25 := CallBuiltin _object$test.Type$test.Trait* myte_alloc(1)
-  %26 := GetPointer test.Type*, _object$test.Type$test.Trait* %25.0
-  Store test.Type* %26, %24
-  %27 := GetPointer fn[2]*, _object$test.Type$test.Trait* %25.1
-  Store fn[2]* %27, @_vtable$test.Type$test.Trait
-  Call void @test.callSimpleMethod(%25)
-  Call void @test.callMethodWithArgs(%25)
+func void @test.test(test.Type* %0) {
+  %1 := CallBuiltin _object$test.Type$test.Trait* myte_alloc(1)
+  %2 := GetPointer test.Type*, _object$test.Type$test.Trait* %1.0
+  Store test.Type* %2, %0
+  %3 := GetPointer fn[2]*, _object$test.Type$test.Trait* %1.1
+  Store fn[2]* %3, @_vtable$test.Type$test.Trait
+  Call void @test.callSimpleMethod(%1)
+  Call void @test.callMethodWithArgs(%1)
   Ret
 }
 
-func void @test.use<Function>(fn %28) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 

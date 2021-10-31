@@ -27,11 +27,11 @@ label @7:
   Ret
 }
 
-func void @test.use<Function>(fn %5) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 
-func void @test.use<Int>(int %6) {
+func void @test.use<Int>(int %0) {
   Ret
 }
 

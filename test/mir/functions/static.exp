@@ -3,24 +3,24 @@ func int @test.Trait1.foo(int %0) {
   Ret %1
 }
 
-func long @test.Trait2.foo(long %2) {
-  %3 := Add long %2, 10
-  Ret %3
+func long @test.Trait2.foo(long %0) {
+  %1 := Add long %0, 10
+  Ret %1
 }
 
-func bool @test.Type1.foo(bool %4) {
-  %5 := LogNot %4
-  Ret %5
+func bool @test.Type1.foo(bool %0) {
+  %1 := LogNot %0
+  Ret %1
 }
 
 func void @test.test() {
-  %6 := Call int @test.Trait1.foo(1)
-  %7 := Call long @test.Trait2.foo(1)
-  %8 := Call bool @test.Type1.foo(true)
+  %0 := Call int @test.Trait1.foo(1)
+  %1 := Call long @test.Trait2.foo(1)
+  %2 := Call bool @test.Type1.foo(true)
   Ret
 }
 
-func void @test.use<Function>(fn %9) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 

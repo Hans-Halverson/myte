@@ -10,27 +10,27 @@ func void @_init() {
   Ret
 }
 
-func void @test.use<Bool>(bool %4) {
+func void @test.use<Bool>(bool %0) {
   Ret
 }
 
-func void @test.use<Byte>(byte %5) {
+func void @test.use<Byte>(byte %0) {
   Ret
 }
 
-func void @test.use<Function>(fn %6) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 
-func void @test.use<Int>(int %7) {
+func void @test.use<Int>(int %0) {
   Ret
 }
 
-func void @test.use<Long>(long %8) {
+func void @test.use<Long>(long %0) {
   Ret
 }
 
-func void @test.use<String>(std.string.String* %9) {
+func void @test.use<String>(std.string.String* %0) {
   Ret
 }
 
@@ -60,33 +60,33 @@ func int @test.main() {
   Call void @test.use<Int>(0)
   Call void @test.use<Int>(2147483647)
   Call void @test.use<Long>(2147483648)
-  %10 := Add int 2, 4
-  %11 := Add int %10, 6
-  Call void @test.use<Int>(%11)
-  %12 := Add long 2, 2147483648
-  %13 := Add long %12, 6
-  Call void @test.use<Long>(%13)
+  %0 := Add int 2, 4
+  %1 := Add int %0, 6
+  Call void @test.use<Int>(%1)
+  %2 := Add long 2, 2147483648
+  %3 := Add long %2, 6
+  Call void @test.use<Long>(%3)
   Call void @test.use<Function>(@test.useAll)
   Ret 0
 }
 
 func void @test.useAll() {
   Call void @test.use<Unit>()
-  %14 := Load int @test.y1
-  Call void @test.use<Int>(%14)
-  %15 := Load byte @test.y2
-  Call void @test.use<Byte>(%15)
-  %16 := Load long @test.y3
-  Call void @test.use<Long>(%16)
-  %17 := Load int @test.c1
-  Call void @test.use<Int>(%17)
-  %18 := Load byte @test.c2
-  Call void @test.use<Byte>(%18)
-  %19 := Load long @test.c3
-  Call void @test.use<Long>(%19)
-  %20 := Load std.string.String* @test.z
-  Call void @test.use<String>(%20)
-  %21 := Load bool @test.a1
-  Call void @test.use<Bool>(%21)
+  %0 := Load int @test.y1
+  Call void @test.use<Int>(%0)
+  %1 := Load byte @test.y2
+  Call void @test.use<Byte>(%1)
+  %2 := Load long @test.y3
+  Call void @test.use<Long>(%2)
+  %3 := Load int @test.c1
+  Call void @test.use<Int>(%3)
+  %4 := Load byte @test.c2
+  Call void @test.use<Byte>(%4)
+  %5 := Load long @test.c3
+  Call void @test.use<Long>(%5)
+  %6 := Load std.string.String* @test.z
+  Call void @test.use<String>(%6)
+  %7 := Load bool @test.a1
+  Call void @test.use<Bool>(%7)
   Ret
 }

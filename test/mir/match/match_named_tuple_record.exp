@@ -19,32 +19,32 @@ label @2:
   Ret %7
 }
 
-func int @test.testNamedRecord(test.Rec* %8) {
-  %9 := GetPointer int, test.Rec* %8.0
-  %10 := Load int %9
-  %11 := Eq int %10, 1
-  branch %11, @3, @5
+func int @test.testNamedRecord(test.Rec* %0) {
+  %1 := GetPointer int, test.Rec* %0.0
+  %2 := Load int %1
+  %3 := Eq int %2, 1
+  branch %3, @0, @2
+label @0:
+  %4 := GetPointer bool, test.Rec* %0.1
+  %5 := Load bool %4
+  %6 := Eq bool %5, false
+  branch %6, @4, @1
+label @1:
+  continue @4
+label @2:
+  %7 := GetPointer bool, test.Rec* %0.1
+  %8 := Load bool %7
+  %9 := Eq bool %8, false
+  branch %9, @3, @4
 label @3:
-  %12 := GetPointer bool, test.Rec* %8.1
-  %13 := Load bool %12
-  %14 := Eq bool %13, false
-  branch %14, @7, @4
+  %10 := Add int %2, 3
+  continue @4
 label @4:
-  continue @7
-label @5:
-  %15 := GetPointer bool, test.Rec* %8.1
-  %16 := Load bool %15
-  %17 := Eq bool %16, false
-  branch %17, @6, @7
-label @6:
-  %18 := Add int %10, 3
-  continue @7
-label @7:
-  %19 := Phi int @3:2, @5:%10, @4:1, @6:%18
-  Ret %19
+  %11 := Phi int @0:2, @2:%2, @1:1, @3:%10
+  Ret %11
 }
 
-func void @test.use<Function>(fn %20) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 

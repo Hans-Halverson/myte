@@ -14,23 +14,23 @@ func void @test.useV1Bool(test.V1<Bool>* %0) {
   Ret
 }
 
-func void @test.useV1Int(test.V1<Int>* %1) {
+func void @test.useV1Int(test.V1<Int>* %0) {
   Ret
 }
 
 func void @test.testEnumConstructors() {
-  %2 := CallBuiltin test.V1<Bool>* myte_alloc(1)
+  %0 := CallBuiltin test.V1<Bool>* myte_alloc(1)
+  Store byte %0, 0
+  Call void @test.useV1Bool(%0)
+  %1 := CallBuiltin test.V1<Bool>* myte_alloc(1)
+  Store byte %1, 1
+  Call void @test.useV1Bool(%1)
+  %2 := CallBuiltin test.V1<Int>* myte_alloc(1)
   Store byte %2, 0
-  Call void @test.useV1Bool(%2)
-  %3 := CallBuiltin test.V1<Bool>* myte_alloc(1)
+  Call void @test.useV1Int(%2)
+  %3 := CallBuiltin test.V1<Int>* myte_alloc(1)
   Store byte %3, 1
-  Call void @test.useV1Bool(%3)
-  %4 := CallBuiltin test.V1<Int>* myte_alloc(1)
-  Store byte %4, 0
-  Call void @test.useV1Int(%4)
-  %5 := CallBuiltin test.V1<Int>* myte_alloc(1)
-  Store byte %5, 1
-  Call void @test.useV1Int(%5)
+  Call void @test.useV1Int(%3)
   Ret
 }
 
@@ -43,54 +43,54 @@ type test.V2::Record2 {byte, byte[3], int, bool, byte[7], test.V1<Int>*}
 type test.V2::Record3 {byte, byte, byte[2], int, byte[16]}
 
 func void @test.testTupleConstructors() {
-  %6 := CallBuiltin test.V1<Bool>::Tuple1* myte_alloc(1)
-  Store byte %6, 2
-  %7 := GetPointer bool, test.V1<Bool>::Tuple1* %6.1
-  Store bool %7, true
-  Call void @test.useV1Bool(%6)
-  %8 := CallBuiltin test.V1<Int>::Tuple1* myte_alloc(1)
-  Store byte %8, 2
-  %9 := GetPointer int, test.V1<Int>::Tuple1* %8.2
-  Store int %9, 7
-  %10 := CallBuiltin test.V2::Tuple2* myte_alloc(1)
-  Store byte %10, 0
-  %11 := GetPointer int, test.V2::Tuple2* %10.2
-  Store int %11, 3
-  %12 := GetPointer bool, test.V2::Tuple2* %10.3
-  Store bool %12, false
-  %13 := GetPointer test.V1<Int>*, test.V2::Tuple2* %10.5
-  Store test.V1<Int>* %13, %8
+  %0 := CallBuiltin test.V1<Bool>::Tuple1* myte_alloc(1)
+  Store byte %0, 2
+  %1 := GetPointer bool, test.V1<Bool>::Tuple1* %0.1
+  Store bool %1, true
+  Call void @test.useV1Bool(%0)
+  %2 := CallBuiltin test.V1<Int>::Tuple1* myte_alloc(1)
+  Store byte %2, 2
+  %3 := GetPointer int, test.V1<Int>::Tuple1* %2.2
+  Store int %3, 7
+  %4 := CallBuiltin test.V2::Tuple2* myte_alloc(1)
+  Store byte %4, 0
+  %5 := GetPointer int, test.V2::Tuple2* %4.2
+  Store int %5, 3
+  %6 := GetPointer bool, test.V2::Tuple2* %4.3
+  Store bool %6, false
+  %7 := GetPointer test.V1<Int>*, test.V2::Tuple2* %4.5
+  Store test.V1<Int>* %7, %2
   Ret
 }
 
 func void @test.testRecordConstructors() {
-  %14 := CallBuiltin test.V1<Bool>::Record1* myte_alloc(1)
-  Store byte %14, 3
-  %15 := GetPointer bool, test.V1<Bool>::Record1* %14.1
-  Store bool %15, true
-  Call void @test.useV1Bool(%14)
-  %16 := CallBuiltin test.V1<Int>::Record1* myte_alloc(1)
-  Store byte %16, 3
-  %17 := GetPointer int, test.V1<Int>::Record1* %16.2
-  Store int %17, 7
-  %18 := CallBuiltin test.V2::Record2* myte_alloc(1)
-  Store byte %18, 1
-  %19 := GetPointer int, test.V2::Record2* %18.2
-  Store int %19, 3
-  %20 := GetPointer bool, test.V2::Record2* %18.3
-  Store bool %20, false
-  %21 := GetPointer test.V1<Int>*, test.V2::Record2* %18.5
-  Store test.V1<Int>* %21, %16
-  %22 := CallBuiltin test.V2::Record3* myte_alloc(1)
-  Store byte %22, 2
-  %23 := GetPointer byte, test.V2::Record3* %22.1
-  Store byte %23, 4
-  %24 := GetPointer int, test.V2::Record3* %22.3
-  Store int %24, 5
+  %0 := CallBuiltin test.V1<Bool>::Record1* myte_alloc(1)
+  Store byte %0, 3
+  %1 := GetPointer bool, test.V1<Bool>::Record1* %0.1
+  Store bool %1, true
+  Call void @test.useV1Bool(%0)
+  %2 := CallBuiltin test.V1<Int>::Record1* myte_alloc(1)
+  Store byte %2, 3
+  %3 := GetPointer int, test.V1<Int>::Record1* %2.2
+  Store int %3, 7
+  %4 := CallBuiltin test.V2::Record2* myte_alloc(1)
+  Store byte %4, 1
+  %5 := GetPointer int, test.V2::Record2* %4.2
+  Store int %5, 3
+  %6 := GetPointer bool, test.V2::Record2* %4.3
+  Store bool %6, false
+  %7 := GetPointer test.V1<Int>*, test.V2::Record2* %4.5
+  Store test.V1<Int>* %7, %2
+  %8 := CallBuiltin test.V2::Record3* myte_alloc(1)
+  Store byte %8, 2
+  %9 := GetPointer byte, test.V2::Record3* %8.1
+  Store byte %9, 4
+  %10 := GetPointer int, test.V2::Record3* %8.3
+  Store int %10, 5
   Ret
 }
 
-func void @test.use<Function>(fn %25) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 

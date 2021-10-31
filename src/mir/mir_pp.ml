@@ -97,6 +97,9 @@ and pp_global ~cx global =
 
 and pp_func ~cx ~program func =
   let open Function in
+  (* Each function's variables and labels have their own print id space *)
+  cx.max_print_var_id <- 0;
+  cx.max_print_block_id <- 0;
   let func_params =
     func.params
     |> List.map (fun (_, var_id, ty) -> Printf.sprintf "%s %s" (pp_type ty) (pp_var_id ~cx var_id))

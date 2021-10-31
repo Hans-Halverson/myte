@@ -7,57 +7,57 @@ func void @test.byteSignExtension() {
 }
 
 func void @test.intSignExtension() {
-  %4 := Call long @test.use<Long>(1)
-  %5 := Call long @test.use<Long>(-1)
+  %0 := Call long @test.use<Long>(1)
+  %1 := Call long @test.use<Long>(-1)
   Ret
 }
 
 func void @test.intTruncation() {
-  %6 := Call byte @test.use<Byte>(1)
-  %7 := Call byte @test.use<Byte>(127)
-  %8 := Call byte @test.use<Byte>(-128)
-  %9 := Call byte @test.use<Byte>(-1)
-  %10 := Call byte @test.use<Byte>(-128)
-  %11 := Call byte @test.use<Byte>(127)
+  %0 := Call byte @test.use<Byte>(1)
+  %1 := Call byte @test.use<Byte>(127)
+  %2 := Call byte @test.use<Byte>(-128)
+  %3 := Call byte @test.use<Byte>(-1)
+  %4 := Call byte @test.use<Byte>(-128)
+  %5 := Call byte @test.use<Byte>(127)
   Ret
 }
 
 func void @test.longTruncation() {
-  %12 := Call byte @test.use<Byte>(1)
-  %13 := Call byte @test.use<Byte>(127)
-  %14 := Call byte @test.use<Byte>(-128)
-  %15 := Call byte @test.use<Byte>(-1)
-  %16 := Call byte @test.use<Byte>(-128)
-  %17 := Call byte @test.use<Byte>(127)
-  %18 := Call int @test.use<Int>(1)
-  %19 := Call int @test.use<Int>(2147483647)
-  %20 := Call int @test.use<Int>(-2147483648)
-  %21 := Call int @test.use<Int>(-1)
-  %22 := Call int @test.use<Int>(-2147483648)
-  %23 := Call int @test.use<Int>(2147483647)
+  %0 := Call byte @test.use<Byte>(1)
+  %1 := Call byte @test.use<Byte>(127)
+  %2 := Call byte @test.use<Byte>(-128)
+  %3 := Call byte @test.use<Byte>(-1)
+  %4 := Call byte @test.use<Byte>(-128)
+  %5 := Call byte @test.use<Byte>(127)
+  %6 := Call int @test.use<Int>(1)
+  %7 := Call int @test.use<Int>(2147483647)
+  %8 := Call int @test.use<Int>(-2147483648)
+  %9 := Call int @test.use<Int>(-1)
+  %10 := Call int @test.use<Int>(-2147483648)
+  %11 := Call int @test.use<Int>(2147483647)
   Ret
 }
 
-func byte @test.use<Byte>(byte %24) {
-  Ret %24
+func byte @test.use<Byte>(byte %0) {
+  Ret %0
 }
 
-func fn @test.use<Function>(fn %25) {
-  Ret %25
+func fn @test.use<Function>(fn %0) {
+  Ret %0
 }
 
-func int @test.use<Int>(int %26) {
-  Ret %26
+func int @test.use<Int>(int %0) {
+  Ret %0
 }
 
-func long @test.use<Long>(long %27) {
-  Ret %27
+func long @test.use<Long>(long %0) {
+  Ret %0
 }
 
 func int @test.main() {
-  %28 := Call fn @test.use<Function>(@test.byteSignExtension)
-  %29 := Call fn @test.use<Function>(@test.intSignExtension)
-  %30 := Call fn @test.use<Function>(@test.intTruncation)
-  %31 := Call fn @test.use<Function>(@test.longTruncation)
+  %0 := Call fn @test.use<Function>(@test.byteSignExtension)
+  %1 := Call fn @test.use<Function>(@test.intSignExtension)
+  %2 := Call fn @test.use<Function>(@test.intTruncation)
+  %3 := Call fn @test.use<Function>(@test.longTruncation)
   Ret 0
 }

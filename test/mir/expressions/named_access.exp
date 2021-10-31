@@ -15,39 +15,39 @@ func test.Rec1* @test.makeRec(int %0) {
   Ret %1
 }
 
-func void @test.testIndexing(test.Rec1* %3, test.Rec2* %4, test.Rec3* %5, test.Rec4* %6, test.Tup1* %7) {
-  %8 := GetPointer int, test.Rec1* %3.0
-  %9 := Load int %8
-  %10 := GetPointer std.string.String*, test.Rec2* %4.0
-  %11 := Load std.string.String* %10
-  %12 := GetPointer bool, test.Rec2* %4.1
-  %13 := Load bool %12
-  %14 := GetPointer byte, test.Rec3* %5.0
-  %15 := Load byte %14
-  %16 := GetPointer test.Rec2*, test.Rec3* %5.1
-  %17 := Load test.Rec2* %16
-  %18 := GetPointer int, test.Rec2* %17.2
-  %19 := Load int %18
-  %20 := GetPointer test.Rec3*, test.Rec4* %6.2
-  %21 := Load test.Rec3* %20
-  %22 := GetPointer test.Rec2*, test.Rec3* %21.1
-  %23 := Load test.Rec2* %22
-  %24 := GetPointer std.string.String*, test.Rec2* %23.0
-  %25 := Load std.string.String* %24
-  %26 := Mul int 2, 3
-  %27 := Call test.Rec1* @test.makeRec(%26)
-  %28 := GetPointer int, test.Rec1* %27.0
-  %29 := Load int %28
-  %30 := GetPointer test.Rec4*, test.Tup1* %7.0
-  %31 := Load test.Rec4* %30
-  %32 := GetPointer test.Rec3*, test.Rec4* %31.2
-  %33 := Load test.Rec3* %32
-  %34 := GetPointer test.Rec2*, test.Rec3* %33.1
-  %35 := Load test.Rec2* %34
+func void @test.testIndexing(test.Rec1* %0, test.Rec2* %1, test.Rec3* %2, test.Rec4* %3, test.Tup1* %4) {
+  %5 := GetPointer int, test.Rec1* %0.0
+  %6 := Load int %5
+  %7 := GetPointer std.string.String*, test.Rec2* %1.0
+  %8 := Load std.string.String* %7
+  %9 := GetPointer bool, test.Rec2* %1.1
+  %10 := Load bool %9
+  %11 := GetPointer byte, test.Rec3* %2.0
+  %12 := Load byte %11
+  %13 := GetPointer test.Rec2*, test.Rec3* %2.1
+  %14 := Load test.Rec2* %13
+  %15 := GetPointer int, test.Rec2* %14.2
+  %16 := Load int %15
+  %17 := GetPointer test.Rec3*, test.Rec4* %3.2
+  %18 := Load test.Rec3* %17
+  %19 := GetPointer test.Rec2*, test.Rec3* %18.1
+  %20 := Load test.Rec2* %19
+  %21 := GetPointer std.string.String*, test.Rec2* %20.0
+  %22 := Load std.string.String* %21
+  %23 := Mul int 2, 3
+  %24 := Call test.Rec1* @test.makeRec(%23)
+  %25 := GetPointer int, test.Rec1* %24.0
+  %26 := Load int %25
+  %27 := GetPointer test.Rec4*, test.Tup1* %4.0
+  %28 := Load test.Rec4* %27
+  %29 := GetPointer test.Rec3*, test.Rec4* %28.2
+  %30 := Load test.Rec3* %29
+  %31 := GetPointer test.Rec2*, test.Rec3* %30.1
+  %32 := Load test.Rec2* %31
   Ret
 }
 
-func void @test.use<Function>(fn %36) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 

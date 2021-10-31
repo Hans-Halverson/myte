@@ -34,78 +34,78 @@ func std.string.String* @test.useToString(_object$std.string.ToString* %0) {
 }
 
 func void @test.testUnitPromotion() {
-  %8 := CallBuiltin _object$std.unit.Unit$std.string.ToString* myte_alloc(1)
-  %9 := GetPointer fn[1]*, _object$std.unit.Unit$std.string.ToString* %8.1
-  Store fn[1]* %9, @_vtable$std.unit.Unit$std.string.ToString
-  %10 := Call std.string.String* @test.useToString(%8)
-  %11 := CallBuiltin _object$std.unit.Unit$std.string.ToString* myte_alloc(1)
-  %12 := GetPointer fn[1]*, _object$std.unit.Unit$std.string.ToString* %11.1
-  Store fn[1]* %12, @_vtable$std.unit.Unit$std.string.ToString
-  %13 := Call std.string.String* @test.useToString(%11)
+  %0 := CallBuiltin _object$std.unit.Unit$std.string.ToString* myte_alloc(1)
+  %1 := GetPointer fn[1]*, _object$std.unit.Unit$std.string.ToString* %0.1
+  Store fn[1]* %1, @_vtable$std.unit.Unit$std.string.ToString
+  %2 := Call std.string.String* @test.useToString(%0)
+  %3 := CallBuiltin _object$std.unit.Unit$std.string.ToString* myte_alloc(1)
+  %4 := GetPointer fn[1]*, _object$std.unit.Unit$std.string.ToString* %3.1
+  Store fn[1]* %4, @_vtable$std.unit.Unit$std.string.ToString
+  %5 := Call std.string.String* @test.useToString(%3)
   Ret
 }
 
-func void @test.testBoolPromotion(bool %14) {
-  %15 := CallBuiltin _object$std.bool.Bool$std.string.ToString* myte_alloc(1)
-  %16 := GetPointer bool, _object$std.bool.Bool$std.string.ToString* %15.0
-  Store bool %16, %14
-  %17 := GetPointer fn[1]*, _object$std.bool.Bool$std.string.ToString* %15.2
-  Store fn[1]* %17, @_vtable$std.bool.Bool$std.string.ToString
-  %18 := Call std.string.String* @test.useToString(%15)
-  %19 := CallBuiltin _object$std.bool.Bool$std.string.ToString* myte_alloc(1)
-  %20 := GetPointer bool, _object$std.bool.Bool$std.string.ToString* %19.0
-  Store bool %20, true
-  %21 := GetPointer fn[1]*, _object$std.bool.Bool$std.string.ToString* %19.2
-  Store fn[1]* %21, @_vtable$std.bool.Bool$std.string.ToString
-  %22 := Call std.string.String* @test.useToString(%19)
+func void @test.testBoolPromotion(bool %0) {
+  %1 := CallBuiltin _object$std.bool.Bool$std.string.ToString* myte_alloc(1)
+  %2 := GetPointer bool, _object$std.bool.Bool$std.string.ToString* %1.0
+  Store bool %2, %0
+  %3 := GetPointer fn[1]*, _object$std.bool.Bool$std.string.ToString* %1.2
+  Store fn[1]* %3, @_vtable$std.bool.Bool$std.string.ToString
+  %4 := Call std.string.String* @test.useToString(%1)
+  %5 := CallBuiltin _object$std.bool.Bool$std.string.ToString* myte_alloc(1)
+  %6 := GetPointer bool, _object$std.bool.Bool$std.string.ToString* %5.0
+  Store bool %6, true
+  %7 := GetPointer fn[1]*, _object$std.bool.Bool$std.string.ToString* %5.2
+  Store fn[1]* %7, @_vtable$std.bool.Bool$std.string.ToString
+  %8 := Call std.string.String* @test.useToString(%5)
   Ret
 }
 
-func void @test.testBytePromotion(byte %23) {
-  %24 := CallBuiltin _object$std.byte.Byte$std.string.ToString* myte_alloc(1)
-  %25 := GetPointer byte, _object$std.byte.Byte$std.string.ToString* %24.0
-  Store byte %25, %23
-  %26 := GetPointer fn[1]*, _object$std.byte.Byte$std.string.ToString* %24.2
-  Store fn[1]* %26, @_vtable$std.byte.Byte$std.string.ToString
-  %27 := Call std.string.String* @test.useToString(%24)
-  %28 := CallBuiltin _object$std.byte.Byte$std.string.ToString* myte_alloc(1)
-  %29 := GetPointer byte, _object$std.byte.Byte$std.string.ToString* %28.0
-  Store byte %29, 1
-  %30 := GetPointer fn[1]*, _object$std.byte.Byte$std.string.ToString* %28.2
-  Store fn[1]* %30, @_vtable$std.byte.Byte$std.string.ToString
-  %31 := Call std.string.String* @test.useToString(%28)
+func void @test.testBytePromotion(byte %0) {
+  %1 := CallBuiltin _object$std.byte.Byte$std.string.ToString* myte_alloc(1)
+  %2 := GetPointer byte, _object$std.byte.Byte$std.string.ToString* %1.0
+  Store byte %2, %0
+  %3 := GetPointer fn[1]*, _object$std.byte.Byte$std.string.ToString* %1.2
+  Store fn[1]* %3, @_vtable$std.byte.Byte$std.string.ToString
+  %4 := Call std.string.String* @test.useToString(%1)
+  %5 := CallBuiltin _object$std.byte.Byte$std.string.ToString* myte_alloc(1)
+  %6 := GetPointer byte, _object$std.byte.Byte$std.string.ToString* %5.0
+  Store byte %6, 1
+  %7 := GetPointer fn[1]*, _object$std.byte.Byte$std.string.ToString* %5.2
+  Store fn[1]* %7, @_vtable$std.byte.Byte$std.string.ToString
+  %8 := Call std.string.String* @test.useToString(%5)
   Ret
 }
 
-func void @test.testIntPromotion(int %32) {
-  %33 := CallBuiltin _object$std.int.Int$std.string.ToString* myte_alloc(1)
-  %34 := GetPointer int, _object$std.int.Int$std.string.ToString* %33.0
-  Store int %34, %32
-  %35 := GetPointer fn[1]*, _object$std.int.Int$std.string.ToString* %33.2
-  Store fn[1]* %35, @_vtable$std.int.Int$std.string.ToString
-  %36 := Call std.string.String* @test.useToString(%33)
-  %37 := CallBuiltin _object$std.int.Int$std.string.ToString* myte_alloc(1)
-  %38 := GetPointer int, _object$std.int.Int$std.string.ToString* %37.0
-  Store int %38, 1
-  %39 := GetPointer fn[1]*, _object$std.int.Int$std.string.ToString* %37.2
-  Store fn[1]* %39, @_vtable$std.int.Int$std.string.ToString
-  %40 := Call std.string.String* @test.useToString(%37)
+func void @test.testIntPromotion(int %0) {
+  %1 := CallBuiltin _object$std.int.Int$std.string.ToString* myte_alloc(1)
+  %2 := GetPointer int, _object$std.int.Int$std.string.ToString* %1.0
+  Store int %2, %0
+  %3 := GetPointer fn[1]*, _object$std.int.Int$std.string.ToString* %1.2
+  Store fn[1]* %3, @_vtable$std.int.Int$std.string.ToString
+  %4 := Call std.string.String* @test.useToString(%1)
+  %5 := CallBuiltin _object$std.int.Int$std.string.ToString* myte_alloc(1)
+  %6 := GetPointer int, _object$std.int.Int$std.string.ToString* %5.0
+  Store int %6, 1
+  %7 := GetPointer fn[1]*, _object$std.int.Int$std.string.ToString* %5.2
+  Store fn[1]* %7, @_vtable$std.int.Int$std.string.ToString
+  %8 := Call std.string.String* @test.useToString(%5)
   Ret
 }
 
-func void @test.testLongPromotion(long %41) {
-  %42 := CallBuiltin _object$std.long.Long$std.string.ToString* myte_alloc(1)
-  %43 := GetPointer long, _object$std.long.Long$std.string.ToString* %42.0
-  Store long %43, %41
-  %44 := GetPointer fn[1]*, _object$std.long.Long$std.string.ToString* %42.1
-  Store fn[1]* %44, @_vtable$std.long.Long$std.string.ToString
-  %45 := Call std.string.String* @test.useToString(%42)
-  %46 := CallBuiltin _object$std.long.Long$std.string.ToString* myte_alloc(1)
-  %47 := GetPointer long, _object$std.long.Long$std.string.ToString* %46.0
-  Store long %47, 1
-  %48 := GetPointer fn[1]*, _object$std.long.Long$std.string.ToString* %46.1
-  Store fn[1]* %48, @_vtable$std.long.Long$std.string.ToString
-  %49 := Call std.string.String* @test.useToString(%46)
+func void @test.testLongPromotion(long %0) {
+  %1 := CallBuiltin _object$std.long.Long$std.string.ToString* myte_alloc(1)
+  %2 := GetPointer long, _object$std.long.Long$std.string.ToString* %1.0
+  Store long %2, %0
+  %3 := GetPointer fn[1]*, _object$std.long.Long$std.string.ToString* %1.1
+  Store fn[1]* %3, @_vtable$std.long.Long$std.string.ToString
+  %4 := Call std.string.String* @test.useToString(%1)
+  %5 := CallBuiltin _object$std.long.Long$std.string.ToString* myte_alloc(1)
+  %6 := GetPointer long, _object$std.long.Long$std.string.ToString* %5.0
+  Store long %6, 1
+  %7 := GetPointer fn[1]*, _object$std.long.Long$std.string.ToString* %5.1
+  Store fn[1]* %7, @_vtable$std.long.Long$std.string.ToString
+  %8 := Call std.string.String* @test.useToString(%5)
   Ret
 }
 
@@ -113,31 +113,31 @@ type _object$test.ZeroSize$std.string.ToString {_ZeroSize*, fn[1]*}
 
 global fn[1] @_vtable$test.ZeroSize$std.string.ToString = [@test.ZeroSize.toString]
 
-func std.string.String* @test.ZeroSize.toString(_ZeroSize* %50) {
-  %51 := CallBuiltin std.string.String* myte_alloc(1)
-  %52 := GetPointer byte*, std.string.String* %51.0
-  Store byte* %52, 0
-  %53 := GetPointer int, std.string.String* %51.1
-  Store int %53, 0
-  %54 := GetPointer int, std.string.String* %51.2
-  Store int %54, 0
-  Ret %51
+func std.string.String* @test.ZeroSize.toString(_ZeroSize* %0) {
+  %1 := CallBuiltin std.string.String* myte_alloc(1)
+  %2 := GetPointer byte*, std.string.String* %1.0
+  Store byte* %2, 0
+  %3 := GetPointer int, std.string.String* %1.1
+  Store int %3, 0
+  %4 := GetPointer int, std.string.String* %1.2
+  Store int %4, 0
+  Ret %1
 }
 
 func void @test.testZeroSizePromotion() {
-  %55 := CallBuiltin _object$test.ZeroSize$std.string.ToString* myte_alloc(1)
-  %56 := GetPointer fn[1]*, _object$test.ZeroSize$std.string.ToString* %55.1
-  Store fn[1]* %56, @_vtable$test.ZeroSize$std.string.ToString
-  %57 := Call std.string.String* @test.useToString(%55)
+  %0 := CallBuiltin _object$test.ZeroSize$std.string.ToString* myte_alloc(1)
+  %1 := GetPointer fn[1]*, _object$test.ZeroSize$std.string.ToString* %0.1
+  Store fn[1]* %1, @_vtable$test.ZeroSize$std.string.ToString
+  %2 := Call std.string.String* @test.useToString(%0)
   Call void @test.use<Unit>()
-  %58 := CallBuiltin _object$test.ZeroSize$std.string.ToString* myte_alloc(1)
-  %59 := GetPointer fn[1]*, _object$test.ZeroSize$std.string.ToString* %58.1
-  Store fn[1]* %59, @_vtable$test.ZeroSize$std.string.ToString
-  %60 := Call std.string.String* @test.useToString(%58)
+  %3 := CallBuiltin _object$test.ZeroSize$std.string.ToString* myte_alloc(1)
+  %4 := GetPointer fn[1]*, _object$test.ZeroSize$std.string.ToString* %3.1
+  Store fn[1]* %4, @_vtable$test.ZeroSize$std.string.ToString
+  %5 := Call std.string.String* @test.useToString(%3)
   Ret
 }
 
-func void @test.use<Function>(fn %61) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 

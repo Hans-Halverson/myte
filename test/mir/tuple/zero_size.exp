@@ -36,7 +36,7 @@ func void @test.id<Unit>() {
   Ret
 }
 
-func void @test.use<(Unit,Int,Unit,Unit,Bool)>($tuple<Unit,Int,Unit,Unit,Bool>* %7) {
+func void @test.use<(Unit,Int,Unit,Unit,Bool)>($tuple<Unit,Int,Unit,Unit,Bool>* %0) {
   Ret
 }
 
@@ -44,15 +44,15 @@ func void @test.use<(Unit,Unit)>() {
   Ret
 }
 
-func void @test.use<Bool>(bool %8) {
+func void @test.use<Bool>(bool %0) {
   Ret
 }
 
-func void @test.use<Function>(fn %9) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 
-func void @test.use<Int>(int %10) {
+func void @test.use<Int>(int %0) {
   Ret
 }
 

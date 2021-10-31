@@ -12,71 +12,71 @@ func std.string.String* @test.testSingleStringPart() {
 global byte[3] @.S4 = "foo"
 
 func std.string.String* @test.testSingleExpressionPart() {
-  %4 := CallBuiltin std.string.String* myte_alloc(1)
-  %5 := GetPointer byte*, std.string.String* %4.0
-  Store byte* %5, 0
-  %6 := GetPointer int, std.string.String* %4.1
-  Store int %6, 0
-  %7 := GetPointer int, std.string.String* %4.2
-  Store int %7, 0
-  %8 := Call std.string.String* @std.int.Int.toString(1)
-  Call void @std.string.String.append(%4, %8)
-  Ret %4
+  %0 := CallBuiltin std.string.String* myte_alloc(1)
+  %1 := GetPointer byte*, std.string.String* %0.0
+  Store byte* %1, 0
+  %2 := GetPointer int, std.string.String* %0.1
+  Store int %2, 0
+  %3 := GetPointer int, std.string.String* %0.2
+  Store int %3, 0
+  %4 := Call std.string.String* @std.int.Int.toString(1)
+  Call void @std.string.String.append(%0, %4)
+  Ret %0
 }
 
 func std.string.String* @test.testMultipleParts1() {
-  %9 := CallBuiltin std.string.String* myte_alloc(1)
-  %10 := GetPointer byte*, std.string.String* %9.0
-  Store byte* %10, 0
-  %11 := GetPointer int, std.string.String* %9.1
-  Store int %11, 0
-  %12 := GetPointer int, std.string.String* %9.2
-  Store int %12, 0
-  %13 := Call std.string.String* @std.int.Int.toString(1)
-  Call void @std.string.String.append(%9, %13)
-  %14 := CallBuiltin std.string.String* myte_alloc(1)
-  %15 := GetPointer byte*, std.string.String* %14.0
-  Store byte* %15, @.S0
-  %16 := GetPointer int, std.string.String* %14.1
-  Store int %16, 3
-  %17 := GetPointer int, std.string.String* %14.2
-  Store int %17, 3
-  Call void @std.string.String.append(%9, %14)
-  %18 := Call std.string.String* @std.int.Int.toString(2)
-  Call void @std.string.String.append(%9, %18)
-  Ret %9
+  %0 := CallBuiltin std.string.String* myte_alloc(1)
+  %1 := GetPointer byte*, std.string.String* %0.0
+  Store byte* %1, 0
+  %2 := GetPointer int, std.string.String* %0.1
+  Store int %2, 0
+  %3 := GetPointer int, std.string.String* %0.2
+  Store int %3, 0
+  %4 := Call std.string.String* @std.int.Int.toString(1)
+  Call void @std.string.String.append(%0, %4)
+  %5 := CallBuiltin std.string.String* myte_alloc(1)
+  %6 := GetPointer byte*, std.string.String* %5.0
+  Store byte* %6, @.S0
+  %7 := GetPointer int, std.string.String* %5.1
+  Store int %7, 3
+  %8 := GetPointer int, std.string.String* %5.2
+  Store int %8, 3
+  Call void @std.string.String.append(%0, %5)
+  %9 := Call std.string.String* @std.int.Int.toString(2)
+  Call void @std.string.String.append(%0, %9)
+  Ret %0
 }
 
 global byte[3] @.S0 = "foo"
 
 func std.string.String* @test.testMultipleParts2() {
-  %19 := CallBuiltin std.string.String* myte_alloc(1)
-  %20 := GetPointer byte*, std.string.String* %19.0
-  Store byte* %20, @.S2
-  %21 := GetPointer int, std.string.String* %19.1
-  Store int %21, 3
-  %22 := GetPointer int, std.string.String* %19.2
-  Store int %22, 3
-  %23 := Call std.string.String* @std.int.Int.toString(1)
-  Call void @std.string.String.append(%19, %23)
-  %24 := Call std.string.String* @std.int.Int.toString(2)
-  Call void @std.string.String.append(%19, %24)
-  %25 := CallBuiltin std.string.String* myte_alloc(1)
-  %26 := GetPointer byte*, std.string.String* %25.0
-  Store byte* %26, @.S3
-  %27 := GetPointer int, std.string.String* %25.1
-  Store int %27, 3
-  %28 := GetPointer int, std.string.String* %25.2
-  Store int %28, 3
-  Call void @std.string.String.append(%19, %25)
-  Ret %19
+  %0 := CallBuiltin std.string.String* myte_alloc(1)
+  %1 := GetPointer byte*, std.string.String* %0.0
+  Store byte* %1, @.S2
+  %2 := GetPointer int, std.string.String* %0.1
+  Store int %2, 3
+  %3 := GetPointer int, std.string.String* %0.2
+  Store int %3, 3
+  %4 := Call std.string.String* @std.int.Int.toString(1)
+  Call void @std.string.String.append(%0, %4)
+  %5 := Call std.string.String* @std.int.Int.toString(2)
+  Call void @std.string.String.append(%0, %5)
+  %6 := CallBuiltin std.string.String* myte_alloc(1)
+  %7 := GetPointer byte*, std.string.String* %6.0
+  Store byte* %7, @.S3
+  %8 := GetPointer int, std.string.String* %6.1
+  Store int %8, 3
+  %9 := GetPointer int, std.string.String* %6.2
+  Store int %9, 3
+  Call void @std.string.String.append(%0, %6)
+  Ret %0
 }
 
 global byte[3] @.S2 = "foo"
 
 global byte[3] @.S3 = "bar"
 
-func void @test.use<Function>(fn %29) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 

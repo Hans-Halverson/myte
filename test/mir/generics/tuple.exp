@@ -23,48 +23,48 @@ func void @test.testConstructor() {
 }
 
 func void @test.testAnonymousConstructor() {
-  %6 := CallBuiltin $tuple<Int,Int>* myte_alloc(1)
-  %7 := GetPointer int, $tuple<Int,Int>* %6.0
+  %0 := CallBuiltin $tuple<Int,Int>* myte_alloc(1)
+  %1 := GetPointer int, $tuple<Int,Int>* %0.0
+  Store int %1, 1
+  %2 := GetPointer int, $tuple<Int,Int>* %0.1
+  Store int %2, 2
+  %3 := CallBuiltin $tuple<Int,Bool>* myte_alloc(1)
+  %4 := GetPointer int, $tuple<Int,Bool>* %3.0
+  Store int %4, 1
+  %5 := GetPointer bool, $tuple<Int,Bool>* %3.1
+  Store bool %5, true
+  %6 := CallBuiltin $tuple<Int,Byte,(Int,Bool)>* myte_alloc(1)
+  %7 := GetPointer int, $tuple<Int,Byte,(Int,Bool)>* %6.0
   Store int %7, 1
-  %8 := GetPointer int, $tuple<Int,Int>* %6.1
-  Store int %8, 2
+  %8 := GetPointer byte, $tuple<Int,Byte,(Int,Bool)>* %6.1
+  Store byte %8, 2
   %9 := CallBuiltin $tuple<Int,Bool>* myte_alloc(1)
   %10 := GetPointer int, $tuple<Int,Bool>* %9.0
-  Store int %10, 1
+  Store int %10, 3
   %11 := GetPointer bool, $tuple<Int,Bool>* %9.1
-  Store bool %11, true
-  %12 := CallBuiltin $tuple<Int,Byte,(Int,Bool)>* myte_alloc(1)
-  %13 := GetPointer int, $tuple<Int,Byte,(Int,Bool)>* %12.0
-  Store int %13, 1
-  %14 := GetPointer byte, $tuple<Int,Byte,(Int,Bool)>* %12.1
-  Store byte %14, 2
-  %15 := CallBuiltin $tuple<Int,Bool>* myte_alloc(1)
-  %16 := GetPointer int, $tuple<Int,Bool>* %15.0
-  Store int %16, 3
-  %17 := GetPointer bool, $tuple<Int,Bool>* %15.1
-  Store bool %17, false
-  %18 := GetPointer $tuple<Int,Bool>*, $tuple<Int,Byte,(Int,Bool)>* %12.2
-  Store $tuple<Int,Bool>* %18, %15
+  Store bool %11, false
+  %12 := GetPointer $tuple<Int,Bool>*, $tuple<Int,Byte,(Int,Bool)>* %6.2
+  Store $tuple<Int,Bool>* %12, %9
   Ret
 }
 
-func void @test.testIndexing(test.Tup1<Int>* %19, test.Tup1<Bool>* %20) {
-  %21 := GetPointer int, test.Tup1<Int>* %19.1
-  %22 := Load int %21
-  %23 := GetPointer bool, test.Tup1<Bool>* %20.1
-  %24 := Load bool %23
+func void @test.testIndexing(test.Tup1<Int>* %0, test.Tup1<Bool>* %1) {
+  %2 := GetPointer int, test.Tup1<Int>* %0.1
+  %3 := Load int %2
+  %4 := GetPointer bool, test.Tup1<Bool>* %1.1
+  %5 := Load bool %4
   Ret
 }
 
-func void @test.testAnonymousIndexing($tuple<Int,Int>* %25, $tuple<Int,Bool>* %26) {
-  %27 := GetPointer int, $tuple<Int,Int>* %25.1
-  %28 := Load int %27
-  %29 := GetPointer bool, $tuple<Int,Bool>* %26.1
-  %30 := Load bool %29
+func void @test.testAnonymousIndexing($tuple<Int,Int>* %0, $tuple<Int,Bool>* %1) {
+  %2 := GetPointer int, $tuple<Int,Int>* %0.1
+  %3 := Load int %2
+  %4 := GetPointer bool, $tuple<Int,Bool>* %1.1
+  %5 := Load bool %4
   Ret
 }
 
-func void @test.use<Function>(fn %31) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 

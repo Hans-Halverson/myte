@@ -19,11 +19,11 @@ func void @test.testNotFolded() {
   Ret
 }
 
-func void @test.use<Function>(fn %4) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 
-func void @test.use<Int>(int %5) {
+func void @test.use<Int>(int %0) {
   Ret
 }
 

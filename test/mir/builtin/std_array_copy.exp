@@ -3,26 +3,26 @@ func void @test.testCopy1(int* %0, int* %1) {
   Ret
 }
 
-func void @test.testCopy2(int* %2, int* %3, int %4) {
-  %5 := GetPointer int, int* %2[int %4]
-  CallBuiltin void myte_copy(%5, %3, 7)
+func void @test.testCopy2(int* %0, int* %1, int %2) {
+  %3 := GetPointer int, int* %0[int %2]
+  CallBuiltin void myte_copy(%3, %1, 7)
   Ret
 }
 
-func void @test.testCopy3(int* %6, int* %7, int %8) {
-  %9 := GetPointer int, int* %7[int %8]
-  CallBuiltin void myte_copy(%6, %9, 7)
+func void @test.testCopy3(int* %0, int* %1, int %2) {
+  %3 := GetPointer int, int* %1[int %2]
+  CallBuiltin void myte_copy(%0, %3, 7)
   Ret
 }
 
-func void @test.testCopy(int* %10, int* %11, int %12) {
-  %13 := GetPointer int, int* %10[int %12]
-  %14 := GetPointer int, int* %11[int %12]
-  CallBuiltin void myte_copy(%13, %14, 7)
+func void @test.testCopy(int* %0, int* %1, int %2) {
+  %3 := GetPointer int, int* %0[int %2]
+  %4 := GetPointer int, int* %1[int %2]
+  CallBuiltin void myte_copy(%3, %4, 7)
   Ret
 }
 
-func void @test.use<Function>(fn %15) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 

@@ -4,11 +4,11 @@ func void @test.testIsNull(bool* %0) {
   Ret
 }
 
-func void @test.use<Bool>(bool %2) {
+func void @test.use<Bool>(bool %0) {
   Ret
 }
 
-func void @test.use<Function>(fn %3) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 

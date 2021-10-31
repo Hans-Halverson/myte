@@ -17,45 +17,45 @@ func void @test.ints() {
   Ret
 }
 
-func void @test.bytes(byte %15, byte %16) {
-  %17 := Add byte %15, %16
-  %18 := Sub byte %15, %16
-  %19 := Mul byte %15, %16
-  %20 := Div byte %15, %16
-  %21 := Rem byte %15, %16
-  %22 := BitAnd byte, %15 %16
-  %23 := BitOr byte, %15 %16
-  %24 := BitXor byte, %15 %16
-  %25 := Shl byte, %15 %16
-  %26 := Shr byte, %15 %16
-  %27 := Shrl byte, %15 %16
-  %28 := Lt byte %15, %16
-  %29 := LtEq byte %15, %16
-  %30 := Gt byte %15, %16
-  %31 := GtEq byte %15, %16
+func void @test.bytes(byte %0, byte %1) {
+  %2 := Add byte %0, %1
+  %3 := Sub byte %0, %1
+  %4 := Mul byte %0, %1
+  %5 := Div byte %0, %1
+  %6 := Rem byte %0, %1
+  %7 := BitAnd byte, %0 %1
+  %8 := BitOr byte, %0 %1
+  %9 := BitXor byte, %0 %1
+  %10 := Shl byte, %0 %1
+  %11 := Shr byte, %0 %1
+  %12 := Shrl byte, %0 %1
+  %13 := Lt byte %0, %1
+  %14 := LtEq byte %0, %1
+  %15 := Gt byte %0, %1
+  %16 := GtEq byte %0, %1
   Ret
 }
 
-func void @test.longs(long %32, long %33) {
-  %34 := Add long %32, %33
-  %35 := Sub long %32, %33
-  %36 := Mul long %32, %33
-  %37 := Div long %32, %33
-  %38 := Rem long %32, %33
-  %39 := BitAnd long, %32 %33
-  %40 := BitOr long, %32 %33
-  %41 := BitXor long, %32 %33
-  %42 := Shl long, %32 %33
-  %43 := Shr long, %32 %33
-  %44 := Shrl long, %32 %33
-  %45 := Lt long %32, %33
-  %46 := LtEq long %32, %33
-  %47 := Gt long %32, %33
-  %48 := GtEq long %32, %33
+func void @test.longs(long %0, long %1) {
+  %2 := Add long %0, %1
+  %3 := Sub long %0, %1
+  %4 := Mul long %0, %1
+  %5 := Div long %0, %1
+  %6 := Rem long %0, %1
+  %7 := BitAnd long, %0 %1
+  %8 := BitOr long, %0 %1
+  %9 := BitXor long, %0 %1
+  %10 := Shl long, %0 %1
+  %11 := Shr long, %0 %1
+  %12 := Shrl long, %0 %1
+  %13 := Lt long %0, %1
+  %14 := LtEq long %0, %1
+  %15 := Gt long %0, %1
+  %16 := GtEq long %0, %1
   Ret
 }
 
-func void @test.use<Function>(fn %49) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 

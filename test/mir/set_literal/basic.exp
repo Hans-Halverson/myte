@@ -5,29 +5,29 @@ func void @test.emptySet() {
 }
 
 func void @test.oneEntrySet() {
-  %2 := Call std.set.Set<Int>* @std.set.Set.new<Int>()
-  Call void @std.set.Set.add<Int>(%2, 1)
-  %3 := Call std.set.Set<Byte>* @std.set.Set.new<Byte>()
-  Call void @std.set.Set.add<Byte>(%3, 2)
+  %0 := Call std.set.Set<Int>* @std.set.Set.new<Int>()
+  Call void @std.set.Set.add<Int>(%0, 1)
+  %1 := Call std.set.Set<Byte>* @std.set.Set.new<Byte>()
+  Call void @std.set.Set.add<Byte>(%1, 2)
   Ret
 }
 
 func void @test.multiEntrySet() {
-  %4 := Call std.set.Set<Int>* @std.set.Set.new<Int>()
-  Call void @std.set.Set.reserve<Int>(%4, 3)
-  Call void @std.set.Set.add<Int>(%4, 5)
-  Call void @std.set.Set.add<Int>(%4, 6)
-  Call void @std.set.Set.add<Int>(%4, 7)
-  %5 := Call std.set.Set<Bool>* @std.set.Set.new<Bool>()
-  Call void @std.set.Set.reserve<Bool>(%5, 4)
-  Call void @std.set.Set.add<Bool>(%5, false)
-  Call void @std.set.Set.add<Bool>(%5, true)
-  Call void @std.set.Set.add<Bool>(%5, false)
-  Call void @std.set.Set.add<Bool>(%5, true)
+  %0 := Call std.set.Set<Int>* @std.set.Set.new<Int>()
+  Call void @std.set.Set.reserve<Int>(%0, 3)
+  Call void @std.set.Set.add<Int>(%0, 5)
+  Call void @std.set.Set.add<Int>(%0, 6)
+  Call void @std.set.Set.add<Int>(%0, 7)
+  %1 := Call std.set.Set<Bool>* @std.set.Set.new<Bool>()
+  Call void @std.set.Set.reserve<Bool>(%1, 4)
+  Call void @std.set.Set.add<Bool>(%1, false)
+  Call void @std.set.Set.add<Bool>(%1, true)
+  Call void @std.set.Set.add<Bool>(%1, false)
+  Call void @std.set.Set.add<Bool>(%1, true)
   Ret
 }
 
-func void @test.use<Function>(fn %6) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 

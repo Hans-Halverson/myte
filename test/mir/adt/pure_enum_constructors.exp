@@ -7,15 +7,15 @@ func void @test.useByteEnum(byte %0) {
 func $tuple<test.ByteEnum,test.ByteEnum>* @test.testPureEnum1Values() {
   Call void @test.useByteEnum(0)
   Call void @test.useByteEnum(1)
-  %1 := CallBuiltin $tuple<test.ByteEnum,test.ByteEnum>* myte_alloc(1)
-  %2 := GetPointer byte, $tuple<test.ByteEnum,test.ByteEnum>* %1.0
-  Store byte %2, 3
-  %3 := GetPointer byte, $tuple<test.ByteEnum,test.ByteEnum>* %1.1
-  Store byte %3, 2
-  Ret %1
+  %0 := CallBuiltin $tuple<test.ByteEnum,test.ByteEnum>* myte_alloc(1)
+  %1 := GetPointer byte, $tuple<test.ByteEnum,test.ByteEnum>* %0.0
+  Store byte %1, 3
+  %2 := GetPointer byte, $tuple<test.ByteEnum,test.ByteEnum>* %0.1
+  Store byte %2, 2
+  Ret %0
 }
 
-func void @test.useFullByteEnum(byte %4) {
+func void @test.useFullByteEnum(byte %0) {
   Ret
 }
 
@@ -29,7 +29,7 @@ func void @test.testFullByteEnum() {
   Ret
 }
 
-func void @test.useIntEnum(int %5) {
+func void @test.useIntEnum(int %0) {
   Ret
 }
 
@@ -42,7 +42,7 @@ func void @test.testIntEnum() {
   Ret
 }
 
-func void @test.use<Function>(fn %6) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 

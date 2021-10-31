@@ -18,7 +18,7 @@ func void @test.useAll(test.Tup1* %0, test.Tup2* %1, test.Tup3* %2, test.Rec1* %
   Ret
 }
 
-func void @test.use<Function>(fn %8) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 

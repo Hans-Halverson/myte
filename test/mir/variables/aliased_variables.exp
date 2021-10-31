@@ -9,9 +9,9 @@ global int @test.x = 1
 global int @test.y = uninitialized
 
 func int @test.main() {
-  %1 := Load int @test.x
-  %2 := Load int @test.y
-  %3 := Add int %1, %2
-  %4 := Add int 1, 1
+  %0 := Load int @test.x
+  %1 := Load int @test.y
+  %2 := Add int %0, %1
+  %3 := Add int 1, 1
   Ret 0
 }

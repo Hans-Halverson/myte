@@ -9,12 +9,12 @@ func void @_init() {
 
 global int @test.x = uninitialized
 
-func int @test.use<Int>(int %4) {
-  Ret %4
+func int @test.use<Int>(int %0) {
+  Ret %0
 }
 
 func int @test.main() {
-  %5 := Load int @test.x
-  %6 := Call int @test.use<Int>(%5)
+  %0 := Load int @test.x
+  %1 := Call int @test.use<Int>(%0)
   Ret 0
 }

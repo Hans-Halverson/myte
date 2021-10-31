@@ -11,46 +11,46 @@ label @1:
 
 func void @test.testWithAltern() {
   Call void @test.use<Int>(1)
-  branch true, @2, @3
-label @2:
+  branch true, @0, @1
+label @0:
   Call void @test.use<Int>(2)
-  continue @4
-label @3:
+  continue @2
+label @1:
   Call void @test.use<Int>(3)
-  continue @4
-label @4:
+  continue @2
+label @2:
   Call void @test.use<Int>(4)
   Ret
 }
 
 func void @test.nested() {
   Call void @test.use<Int>(1)
-  branch true, @5, @9
-label @5:
+  branch true, @0, @4
+label @0:
   Call void @test.use<Int>(2)
-  branch false, @6, @7
-label @6:
+  branch false, @1, @2
+label @1:
   Call void @test.use<Int>(3)
-  continue @8
-label @7:
+  continue @3
+label @2:
   Call void @test.use<Int>(4)
+  continue @3
+label @3:
+  Call void @test.use<Int>(5)
+  continue @8
+label @4:
+  Call void @test.use<Int>(6)
+  branch false, @5, @6
+label @5:
+  Call void @test.use<Int>(7)
+  continue @7
+label @6:
+  Call void @test.use<Int>(8)
+  continue @7
+label @7:
+  Call void @test.use<Int>(9)
   continue @8
 label @8:
-  Call void @test.use<Int>(5)
-  continue @13
-label @9:
-  Call void @test.use<Int>(6)
-  branch false, @10, @11
-label @10:
-  Call void @test.use<Int>(7)
-  continue @12
-label @11:
-  Call void @test.use<Int>(8)
-  continue @12
-label @12:
-  Call void @test.use<Int>(9)
-  continue @13
-label @13:
   Ret
 }
 
@@ -58,7 +58,7 @@ func void @test.use<Function>(fn %0) {
   Ret
 }
 
-func void @test.use<Int>(int %1) {
+func void @test.use<Int>(int %0) {
   Ret
 }
 

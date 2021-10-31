@@ -8,13 +8,13 @@ func void @test.ZeroSize.useThis(_ZeroSize* %0) {
   Ret
 }
 
-func void @test.ZeroSize.method1(_ZeroSize* %1) {
+func void @test.ZeroSize.method1(_ZeroSize* %0) {
   Call void @test.use<Unit>()
   Call void @test.use<test.ZeroSize>()
   Ret
 }
 
-func void @test.ZeroSize.method2(_ZeroSize* %2, int %3) {
+func void @test.ZeroSize.method2(_ZeroSize* %0, int %1) {
   Call void @test.use<Unit>()
   Ret
 }
@@ -26,7 +26,7 @@ func void @test.useAll() {
   Ret
 }
 
-func void @test.use<Function>(fn %4) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 

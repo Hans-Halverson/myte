@@ -9,52 +9,52 @@ label @1:
 }
 
 func void @test.testUpdated() {
+  branch true, @0, @1
+label @0:
+  continue @1
+label @1:
+  %0 := Phi int @test.testUpdated:1, @0:2
+  %1 := Neg int %0
+  Ret
+}
+
+func void @test.testMultiple(int %0) {
+  branch true, @0, @1
+label @0:
+  continue @1
+label @1:
+  %1 := Phi int @test.testMultiple:1, @0:4
+  %2 := Phi int @test.testMultiple:2, @0:5
+  %3 := Neg int %1
+  %4 := Neg int %2
+  %5 := Neg int %0
   branch true, @2, @3
 label @2:
   continue @3
 label @3:
-  %1 := Phi int @test.testUpdated:1, @2:2
-  %2 := Neg int %1
-  Ret
-}
-
-func void @test.testMultiple(int %3) {
-  branch true, @4, @5
-label @4:
-  continue @5
-label @5:
-  %4 := Phi int @test.testMultiple:1, @4:4
-  %5 := Phi int @test.testMultiple:2, @4:5
-  %6 := Neg int %4
-  %7 := Neg int %5
-  %8 := Neg int %3
-  branch true, @6, @7
-label @6:
-  continue @7
-label @7:
-  %9 := Phi int @5:%4, @6:6
-  %10 := Neg int %9
+  %6 := Phi int @1:%1, @2:6
+  %7 := Neg int %6
   Ret
 }
 
 global int @test.glob = 1
 
 func void @test.testGlobal() {
-  branch true, @8, @9
-label @8:
+  branch true, @0, @1
+label @0:
   Store int @test.glob, 2
-  continue @9
-label @9:
-  %11 := Load int @test.glob
-  %12 := Neg int %11
+  continue @1
+label @1:
+  %0 := Load int @test.glob
+  %1 := Neg int %0
   Ret
 }
 
-func void @test.use<Function>(fn %13) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 
-func void @test.use<Int>(int %14) {
+func void @test.use<Int>(int %0) {
   Ret
 }
 

@@ -20,29 +20,29 @@ func void @test.testGlobal() {
 }
 
 func void @test.testOperators() {
-  %5 := Call int @test.getInt()
-  %6 := Add int %5, 1
-  %7 := Sub int %6, 2
-  %8 := Mul int %7, 3
-  %9 := Div int %8, 4
-  %10 := Rem int %9, 5
-  %11 := BitAnd int, %10 6
-  %12 := BitOr int, %11 7
-  %13 := BitXor int, %12 8
-  %14 := Shl int, %13 9
-  %15 := Shr int, %14 10
-  %16 := Shrl int, %15 11
+  %0 := Call int @test.getInt()
+  %1 := Add int %0, 1
+  %2 := Sub int %1, 2
+  %3 := Mul int %2, 3
+  %4 := Div int %3, 4
+  %5 := Rem int %4, 5
+  %6 := BitAnd int, %5 6
+  %7 := BitOr int, %6 7
+  %8 := BitXor int, %7 8
+  %9 := Shl int, %8 9
+  %10 := Shr int, %9 10
+  %11 := Shrl int, %10 11
   Ret
 }
 
 func void @test.testOrder() {
-  %17 := Call int @test.getInt()
-  %18 := Call int @test.getInt2()
-  %19 := Add int %17, %18
+  %0 := Call int @test.getInt()
+  %1 := Call int @test.getInt2()
+  %2 := Add int %0, %1
   Ret
 }
 
-func void @test.use<Function>(fn %20) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 

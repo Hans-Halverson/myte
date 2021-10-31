@@ -4,24 +4,24 @@ func void @test.simpleAccesses(int* %0) {
   Ret
 }
 
-func void @test.nestedAccesses(std.string.String**** %2, std.string.String** %3) {
-  %4 := CallBuiltin std.string.String* myte_alloc(1)
-  %5 := GetPointer byte*, std.string.String* %4.0
-  Store byte* %5, @.S1
-  %6 := GetPointer int, std.string.String* %4.1
-  Store int %6, 4
-  %7 := GetPointer int, std.string.String* %4.2
-  Store int %7, 4
-  %8 := GetPointer std.string.String***, std.string.String**** %2[int 5]
-  %9 := Load std.string.String*** %8
-  %10 := GetPointer std.string.String**, std.string.String*** %9[int 6]
-  %11 := Load std.string.String** %10
-  %12 := GetPointer std.string.String*, std.string.String** %11[int 7]
-  Store std.string.String* %12, %4
-  %13 := GetPointer std.string.String***, std.string.String**** %2[int 55]
-  %14 := Load std.string.String*** %13
-  %15 := GetPointer std.string.String**, std.string.String*** %14[int 66]
-  Store std.string.String** %15, %3
+func void @test.nestedAccesses(std.string.String**** %0, std.string.String** %1) {
+  %2 := CallBuiltin std.string.String* myte_alloc(1)
+  %3 := GetPointer byte*, std.string.String* %2.0
+  Store byte* %3, @.S1
+  %4 := GetPointer int, std.string.String* %2.1
+  Store int %4, 4
+  %5 := GetPointer int, std.string.String* %2.2
+  Store int %5, 4
+  %6 := GetPointer std.string.String***, std.string.String**** %0[int 5]
+  %7 := Load std.string.String*** %6
+  %8 := GetPointer std.string.String**, std.string.String*** %7[int 6]
+  %9 := Load std.string.String** %8
+  %10 := GetPointer std.string.String*, std.string.String** %9[int 7]
+  Store std.string.String* %10, %2
+  %11 := GetPointer std.string.String***, std.string.String**** %0[int 55]
+  %12 := Load std.string.String*** %11
+  %13 := GetPointer std.string.String**, std.string.String*** %12[int 66]
+  Store std.string.String** %13, %1
   Ret
 }
 
@@ -33,32 +33,32 @@ type test.Rec1 {bool, byte, std.string.String*}
 
 type test.Rec2 {long*, byte}
 
-func void @test.indexAndAccesses(test.Tup1* %16, test.Rec2** %17) {
-  %18 := CallBuiltin std.string.String* myte_alloc(1)
-  %19 := GetPointer byte*, std.string.String* %18.0
-  Store byte* %19, @.S0
-  %20 := GetPointer int, std.string.String* %18.1
-  Store int %20, 4
-  %21 := GetPointer int, std.string.String* %18.2
-  Store int %21, 4
-  %22 := GetPointer test.Rec1**, test.Tup1* %16.1
-  %23 := Load test.Rec1** %22
-  %24 := GetPointer test.Rec1*, test.Rec1** %23[int 500]
-  %25 := Load test.Rec1* %24
-  %26 := GetPointer std.string.String*, test.Rec1* %25.2
-  Store std.string.String* %26, %18
-  %27 := GetPointer test.Rec2*, test.Rec2** %17[int 999]
-  %28 := Load test.Rec2* %27
-  %29 := GetPointer long*, test.Rec2* %28.0
-  %30 := Load long* %29
-  %31 := GetPointer long, long* %30[int 888]
-  Store long %31, 7
+func void @test.indexAndAccesses(test.Tup1* %0, test.Rec2** %1) {
+  %2 := CallBuiltin std.string.String* myte_alloc(1)
+  %3 := GetPointer byte*, std.string.String* %2.0
+  Store byte* %3, @.S0
+  %4 := GetPointer int, std.string.String* %2.1
+  Store int %4, 4
+  %5 := GetPointer int, std.string.String* %2.2
+  Store int %5, 4
+  %6 := GetPointer test.Rec1**, test.Tup1* %0.1
+  %7 := Load test.Rec1** %6
+  %8 := GetPointer test.Rec1*, test.Rec1** %7[int 500]
+  %9 := Load test.Rec1* %8
+  %10 := GetPointer std.string.String*, test.Rec1* %9.2
+  Store std.string.String* %10, %2
+  %11 := GetPointer test.Rec2*, test.Rec2** %1[int 999]
+  %12 := Load test.Rec2* %11
+  %13 := GetPointer long*, test.Rec2* %12.0
+  %14 := Load long* %13
+  %15 := GetPointer long, long* %14[int 888]
+  Store long %15, 7
   Ret
 }
 
 global byte[4] @.S0 = "test"
 
-func void @test.use<Function>(fn %32) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 

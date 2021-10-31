@@ -17,16 +17,16 @@ label @2:
 }
 
 func void @move_in_previous_block.multiple() {
-  branch true, @3, @4
-label @3:
-  %2 := Mov int 3
-  %3 := Mov int 4
-  continue @5
-label @4:
-  %2 := Mov int 5
-  %3 := Mov int 6
-  continue @5
-label @5:
-  %4 := Add int %2, %3
+  branch true, @0, @1
+label @0:
+  %0 := Mov int 3
+  %1 := Mov int 4
+  continue @2
+label @1:
+  %0 := Mov int 5
+  %1 := Mov int 6
+  continue @2
+label @2:
+  %2 := Add int %0, %1
   Ret
 }

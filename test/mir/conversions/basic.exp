@@ -4,19 +4,19 @@ func void @test.testConvertByte(byte %0) {
   Ret
 }
 
-func void @test.testConvertInt(int %3) {
-  %4 := Trunc int %3 to byte
-  %5 := SExt int %3 to long
+func void @test.testConvertInt(int %0) {
+  %1 := Trunc int %0 to byte
+  %2 := SExt int %0 to long
   Ret
 }
 
-func void @test.testConvertLong(long %6) {
-  %7 := Trunc long %6 to byte
-  %8 := Trunc long %6 to int
+func void @test.testConvertLong(long %0) {
+  %1 := Trunc long %0 to byte
+  %2 := Trunc long %0 to int
   Ret
 }
 
-func void @test.use<Function>(fn %9) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 

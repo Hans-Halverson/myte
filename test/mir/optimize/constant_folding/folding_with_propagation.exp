@@ -12,7 +12,7 @@ func void @t.useBool(bool %0) {
   Ret
 }
 
-func void @t.useInt(int %1) {
+func void @t.useInt(int %0) {
   Ret
 }
 
@@ -23,22 +23,22 @@ func bool @t.rand() {
 func int @t.main() {
   Call void @t.useInt(6)
   Call void @t.useBool(false)
-  %2 := Call bool @t.rand()
+  %0 := Call bool @t.rand()
   Call void @t.useBool(true)
   Call void @t.useAllGlobals()
   Ret 0
 }
 
 func void @t.useAllGlobals() {
-  %3 := Load int @t.int1
-  Call void @t.useInt(%3)
-  %4 := Load bool @t.bool1
+  %0 := Load int @t.int1
+  Call void @t.useInt(%0)
+  %1 := Load bool @t.bool1
+  Call void @t.useBool(%1)
+  %2 := Load int @t.int2
+  Call void @t.useInt(%2)
+  %3 := Load bool @t.bool2
+  Call void @t.useBool(%3)
+  %4 := Load bool @t.mixed
   Call void @t.useBool(%4)
-  %5 := Load int @t.int2
-  Call void @t.useInt(%5)
-  %6 := Load bool @t.bool2
-  Call void @t.useBool(%6)
-  %7 := Load bool @t.mixed
-  Call void @t.useBool(%7)
   Ret
 }

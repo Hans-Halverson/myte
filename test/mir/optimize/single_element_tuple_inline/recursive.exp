@@ -12,7 +12,7 @@ type test.Rec3 {test.Rec4*}
 
 type test.Rec4 {test.Rec2*}
 
-func void @test.useMutuallyRecursive(test.Rec3* %1) {
+func void @test.useMutuallyRecursive(test.Rec3* %0) {
   Ret
 }
 
@@ -22,17 +22,17 @@ type test.Rec6 {test.Generic<test.Rec6>*}
 
 type test.Generic<test.Rec6> {int, test.Rec6*}
 
-func void @test.useNested(test.Rec5* %2, test.Rec6* %3) {
+func void @test.useNested(test.Rec5* %0, test.Rec6* %1) {
   Ret
 }
 
-func fn @test.use<Function>(fn %4) {
-  Ret %4
+func fn @test.use<Function>(fn %0) {
+  Ret %0
 }
 
 func int @test.main() {
-  %5 := Call fn @test.use<Function>(@test.useSelfRecursive)
-  %6 := Call fn @test.use<Function>(@test.useMutuallyRecursive)
-  %7 := Call fn @test.use<Function>(@test.useNested)
+  %0 := Call fn @test.use<Function>(@test.useSelfRecursive)
+  %1 := Call fn @test.use<Function>(@test.useMutuallyRecursive)
+  %2 := Call fn @test.use<Function>(@test.useNested)
   Ret 0
 }

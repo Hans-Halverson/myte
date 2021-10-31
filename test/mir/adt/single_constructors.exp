@@ -50,41 +50,41 @@ func void @test.arguments(int %0) {
 }
 
 func void @test.tupleConstructor() {
-  %21 := CallBuiltin test.Tup1* myte_alloc(1)
-  %22 := GetPointer int, test.Tup1* %21.0
-  Store int %22, 3
-  %23 := CallBuiltin test.Tup2* myte_alloc(1)
-  %24 := GetPointer bool, test.Tup2* %23.0
-  Store bool %24, true
-  %25 := GetPointer long, test.Tup2* %23.1
-  Store long %25, 4
-  %26 := GetPointer int, test.Tup2* %23.2
-  Store int %26, 5
+  %0 := CallBuiltin test.Tup1* myte_alloc(1)
+  %1 := GetPointer int, test.Tup1* %0.0
+  Store int %1, 3
+  %2 := CallBuiltin test.Tup2* myte_alloc(1)
+  %3 := GetPointer bool, test.Tup2* %2.0
+  Store bool %3, true
+  %4 := GetPointer long, test.Tup2* %2.1
+  Store long %4, 4
+  %5 := GetPointer int, test.Tup2* %2.2
+  Store int %5, 5
   Ret
 }
 
 func void @test.recordConstructor() {
-  %27 := CallBuiltin test.Rec1* myte_alloc(1)
-  %28 := GetPointer int, test.Rec1* %27.0
-  Store int %28, 3
-  %29 := CallBuiltin test.Rec2* myte_alloc(1)
-  %30 := GetPointer bool, test.Rec2* %29.0
-  Store bool %30, true
-  %31 := GetPointer long, test.Rec2* %29.1
-  Store long %31, 4
-  %32 := GetPointer int, test.Rec2* %29.2
-  Store int %32, 5
-  %33 := CallBuiltin test.Rec2* myte_alloc(1)
-  %34 := GetPointer int, test.Rec2* %33.2
-  Store int %34, 6
-  %35 := GetPointer bool, test.Rec2* %33.0
-  Store bool %35, true
-  %36 := GetPointer long, test.Rec2* %33.1
-  Store long %36, 7
+  %0 := CallBuiltin test.Rec1* myte_alloc(1)
+  %1 := GetPointer int, test.Rec1* %0.0
+  Store int %1, 3
+  %2 := CallBuiltin test.Rec2* myte_alloc(1)
+  %3 := GetPointer bool, test.Rec2* %2.0
+  Store bool %3, true
+  %4 := GetPointer long, test.Rec2* %2.1
+  Store long %4, 4
+  %5 := GetPointer int, test.Rec2* %2.2
+  Store int %5, 5
+  %6 := CallBuiltin test.Rec2* myte_alloc(1)
+  %7 := GetPointer int, test.Rec2* %6.2
+  Store int %7, 6
+  %8 := GetPointer bool, test.Rec2* %6.0
+  Store bool %8, true
+  %9 := GetPointer long, test.Rec2* %6.1
+  Store long %9, 7
   Ret
 }
 
-func void @test.use<Function>(fn %37) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 

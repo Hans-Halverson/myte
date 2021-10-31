@@ -12,91 +12,91 @@ label @2:
 }
 
 func void @test.testOnlyFirstUpdated() {
-  branch true, @4, @3
-label @3:
+  branch true, @1, @0
+label @0:
   Call void @test.use<Int>(0)
-  continue @4
-label @4:
-  %1 := Phi int @test.testOnlyFirstUpdated:2, @3:1
-  %2 := Neg int %1
+  continue @1
+label @1:
+  %0 := Phi int @test.testOnlyFirstUpdated:2, @0:1
+  %1 := Neg int %0
   Ret
 }
 
 func void @test.testOnlySecondUpdated() {
-  branch true, @5, @6
-label @5:
+  branch true, @0, @1
+label @0:
   Call void @test.use<Int>(0)
-  continue @6
-label @6:
-  %3 := Phi int @test.testOnlySecondUpdated:2, @5:1
-  %4 := Neg int %3
+  continue @1
+label @1:
+  %0 := Phi int @test.testOnlySecondUpdated:2, @0:1
+  %1 := Neg int %0
   Ret
 }
 
 func void @test.testBothUpdated() {
-  branch true, @8, @7
-label @7:
-  continue @8
-label @8:
-  %5 := Phi int @test.testBothUpdated:2, @7:3
-  %6 := Neg int %5
+  branch true, @1, @0
+label @0:
+  continue @1
+label @1:
+  %0 := Phi int @test.testBothUpdated:2, @0:3
+  %1 := Neg int %0
   Ret
 }
 
-func void @test.testMultiple(int %7) {
-  branch true, @10, @9
-label @9:
-  continue @10
-label @10:
-  %8 := Phi int @test.testMultiple:3, @9:0
-  %9 := Phi int @test.testMultiple:1, @9:4
-  %10 := Neg int %8
-  %11 := Neg int %9
-  %12 := Neg int %7
+func void @test.testMultiple(int %0) {
+  branch true, @1, @0
+label @0:
+  continue @1
+label @1:
+  %1 := Phi int @test.testMultiple:3, @0:0
+  %2 := Phi int @test.testMultiple:1, @0:4
+  %3 := Neg int %1
+  %4 := Neg int %2
+  %5 := Neg int %0
   Ret
 }
 
 global int @test.glob = 1
 
 func void @test.testGlobal() {
-  branch true, @11, @12
-label @11:
+  branch true, @0, @1
+label @0:
   Store int @test.glob, 2
-  continue @13
-label @12:
+  continue @2
+label @1:
   Call void @test.use<Int>(0)
-  continue @13
-label @13:
-  %13 := Load int @test.glob
-  %14 := Neg int %13
-  branch true, @14, @15
-label @14:
+  continue @2
+label @2:
+  %0 := Load int @test.glob
+  %1 := Neg int %0
+  branch true, @3, @4
+label @3:
   Call void @test.use<Int>(0)
-  continue @16
-label @15:
+  continue @5
+label @4:
   Store int @test.glob, 3
-  continue @16
-label @16:
-  %15 := Load int @test.glob
-  %16 := Neg int %15
-  branch true, @17, @18
-label @17:
+  continue @5
+label @5:
+  %2 := Load int @test.glob
+  %3 := Neg int %2
+  branch true, @6, @7
+label @6:
   Store int @test.glob, 4
-  continue @19
-label @18:
+  continue @8
+label @7:
   Store int @test.glob, 5
-  continue @19
-label @19:
-  %17 := Load int @test.glob
-  %18 := Neg int %17
+  continue @8
+label @8:
+  %4 := Load int @test.glob
+  %5 := Neg int %4
   Ret
 }
 
-func void @test.use<Function>(fn %19) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 
-func void @test.use<Int>(int %20) {
+func void @test.use<Int>(int %0) {
   Ret
 }
 

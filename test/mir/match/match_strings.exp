@@ -41,7 +41,7 @@ global byte[3] @.S1 = "bar"
 
 global byte[3] @.S2 = "baz"
 
-func void @test.use<Function>(fn %17) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 

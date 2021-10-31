@@ -12,7 +12,7 @@ func void @a.useFromB(b.RecB<Byte>* %0) {
   Ret
 }
 
-func void @a.use<Function>(fn %2) {
+func void @a.use<Function>(fn %0) {
   Ret
 }
 
@@ -30,8 +30,8 @@ func void @b.funcB() {
   Ret
 }
 
-func void @b.useFromA(a.TupA<Long>* %3) {
-  %4 := Load int @a.varA
+func void @b.useFromA(a.TupA<Long>* %0) {
+  %1 := Load int @a.varA
   Call void @a.funcA()
   Ret
 }

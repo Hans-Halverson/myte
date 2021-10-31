@@ -12,59 +12,59 @@ func bool @test.testConstants2() {
 }
 
 func bool @test.testConstants3() {
-  branch false, @3, @2
-label @2:
-  continue @3
-label @3:
-  %1 := Phi bool @test.testConstants3:true, @2:false
-  Ret %1
+  branch false, @1, @0
+label @0:
+  continue @1
+label @1:
+  %0 := Phi bool @test.testConstants3:true, @0:false
+  Ret %0
 }
 
 func bool @test.testConstants4() {
   Ret false
 }
 
-func bool @test.testConstant1(bool %2) {
-  branch %2, @5, @4
-label @4:
-  continue @5
-label @5:
-  %3 := Phi bool @test.testConstant1:true, @4:false
-  Ret %3
+func bool @test.testConstant1(bool %0) {
+  branch %0, @1, @0
+label @0:
+  continue @1
+label @1:
+  %1 := Phi bool @test.testConstant1:true, @0:false
+  Ret %1
 }
 
-func bool @test.testConstant2(bool %4) {
+func bool @test.testConstant2(bool %0) {
   Ret false
 }
 
-func bool @test.testConstant3(bool %5) {
-  branch true, @7, @6
-label @6:
-  continue @7
-label @7:
-  %6 := Phi bool @test.testConstant3:%5, @6:false
-  Ret %6
+func bool @test.testConstant3(bool %0) {
+  branch true, @1, @0
+label @0:
+  continue @1
+label @1:
+  %1 := Phi bool @test.testConstant3:%0, @0:false
+  Ret %1
 }
 
-func bool @test.testConstant4(bool %7) {
-  branch false, @9, @8
-label @8:
-  continue @9
-label @9:
-  %8 := Phi bool @test.testConstant4:%7, @8:false
-  Ret %8
+func bool @test.testConstant4(bool %0) {
+  branch false, @1, @0
+label @0:
+  continue @1
+label @1:
+  %1 := Phi bool @test.testConstant4:%0, @0:false
+  Ret %1
 }
 
-func bool @test.testVariables(bool %9, bool %10) {
-  branch %9, @11, @10
-label @10:
-  continue @11
-label @11:
-  %11 := Phi bool @test.testVariables:%10, @10:false
-  Ret %11
+func bool @test.testVariables(bool %0, bool %1) {
+  branch %0, @1, @0
+label @0:
+  continue @1
+label @1:
+  %2 := Phi bool @test.testVariables:%1, @0:false
+  Ret %2
 }
 
-func void @test.use<Function>(fn %12) {
+func void @test.use<Function>(fn %0) {
   Ret
 }
 

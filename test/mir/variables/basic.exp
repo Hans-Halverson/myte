@@ -2,7 +2,7 @@ func void @test.use<Function>(fn %0) {
   Ret
 }
 
-func void @test.use<Int>(int %1) {
+func void @test.use<Int>(int %0) {
   Ret
 }
 
@@ -12,18 +12,18 @@ func void @test.use<test.ZeroSize>() {
 
 global int @test.x = 1
 
-func void @test.testVariableUse(int %2) {
-  %3 := Load int @test.x
-  %4 := Mul int 2, %2
-  %5 := Add int %3, %4
+func void @test.testVariableUse(int %0) {
+  %1 := Load int @test.x
+  %2 := Mul int 2, %0
+  %3 := Add int %1, %2
   Ret
 }
 
 func void @test.testVariableDeclaration() {
-  %6 := Load int @test.x
-  %7 := Mul int 4, 34
-  Call void @test.use<Int>(%6)
-  Call void @test.use<Int>(%7)
+  %0 := Load int @test.x
+  %1 := Mul int 4, 34
+  Call void @test.use<Int>(%0)
+  Call void @test.use<Int>(%1)
   Ret
 }
 
