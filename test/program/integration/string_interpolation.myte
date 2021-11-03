@@ -9,6 +9,7 @@ fun testSimpleInterpolations() {
   assertEqual(`foo${1}bar`, "foo1bar");
   assertEqual(`${true} foo ${1 + 2}`, "true foo 3");
   assertEqual(`${1}${2}${3}`, "123");
+  assertEqual(`foo${1}bar${2}foo${3}bar`, "foo1bar2foo3bar");
 }
 
 type IntPair (Int, Int)

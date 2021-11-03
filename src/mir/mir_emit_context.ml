@@ -19,6 +19,14 @@ end
 (* Break block id and continue block id for a loop *)
 type loop_context = Block.id * Block.id
 
+(* Immutable strings are deduplicated in MIR, and have a canonical value global and length global *)
+module ImmutableString = struct
+  type t = {
+    value_global_val: Value.pointer_value;
+    size_global_val: Value.pointer_value;
+  }
+end
+
 type t = {
   pcx: Program_context.t;
   (* Data structures for MIR *)
@@ -70,7 +78,10 @@ type t = {
   mutable in_init: bool;
   (* The last init block builder that was completed *)
   mutable last_init_block_builder: BlockBuilder.t option;
-  mutable max_string_literal_id: int;
+  mutable max_mutable_string_literal_id: int;
+  mutable max_immutable_string_literal_id: int;
+  (* Map from string to the deduplicated immutable string *)
+  mutable immutable_string_literals: ImmutableString.t SMap.t;
 }
 
 let mk_aggregate ~ecx name loc elements =
@@ -111,7 +122,9 @@ let mk ~pcx =
     global_variable_decl_nodes = LocMap.empty;
     in_init = false;
     last_init_block_builder = None;
-    max_string_literal_id = 0;
+    max_mutable_string_literal_id = 0;
+    max_immutable_string_literal_id = 0;
+    immutable_string_literals = SMap.empty;
   }
 
 let builders_to_blocks builders =
@@ -229,10 +242,14 @@ let emit_init_section ~ecx f =
   ecx.current_func <- old_func;
   result
 
-let add_string_literal ~ecx loc string =
+(*
+ * String literals
+ *)
+
+let add_mutable_string_literal ~ecx loc string =
   let name =
-    let id = ecx.max_string_literal_id in
-    ecx.max_string_literal_id <- id + 1;
+    let id = ecx.max_mutable_string_literal_id in
+    ecx.max_mutable_string_literal_id <- id + 1;
     let prefix =
       if ecx.current_in_std_lib then
         Mir.std_lib_string_prefix
@@ -248,6 +265,53 @@ let add_string_literal ~ecx loc string =
   in
   add_global ~ecx global;
   `PointerL (ty, name)
+
+let add_immutable_string_literal ~ecx string =
+  match SMap.find_opt string ecx.immutable_string_literals with
+  (* Immutable strings have a single canonical global value and size *)
+  | Some imm_string -> imm_string
+  | None ->
+    (* If not yet interned, generate new immutable string id *)
+    let id = ecx.max_immutable_string_literal_id in
+    ecx.max_immutable_string_literal_id <- id + 1;
+    let size = String.length string in
+
+    (* Create global for string value *)
+    let value_name = ".IS" ^ string_of_int id in
+    let value_ty = `ArrayT (`ByteT, size) in
+    let value_global =
+      {
+        Global.loc = Loc.none;
+        name = value_name;
+        ty = value_ty;
+        init_val = Some (`ArrayStringL string);
+        is_constant = true;
+      }
+    in
+    add_global ~ecx value_global;
+
+    (* Create global for string size *)
+    let size_name = value_name ^ "Size" in
+    let size_global =
+      {
+        Global.loc = Loc.none;
+        name = size_name;
+        ty = `IntT;
+        init_val = Some (`IntL (Int32.of_int size));
+        is_constant = true;
+      }
+    in
+    add_global ~ecx size_global;
+
+    (* Intern globals for new immutable string *)
+    let imm_string =
+      {
+        ImmutableString.value_global_val = `PointerL (value_ty, value_name);
+        size_global_val = `PointerL (`IntT, size_name);
+      }
+    in
+    ecx.immutable_string_literals <- SMap.add string imm_string ecx.immutable_string_literals;
+    imm_string
 
 (*
  * Generic Types

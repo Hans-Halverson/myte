@@ -1,45 +1,33 @@
+global byte[3] @.IS0 = "foo"
+
+global int @.IS0Size = 3
+
+global byte[3] @.IS1 = "bar"
+
+global int @.IS1Size = 3
+
+global byte[3] @.IS2 = "baz"
+
+global int @.IS2Size = 3
+
 func int @test.test1(std.string.String* %0) {
-  %1 := CallBuiltin std.string.String* myte_alloc(1)
-  %2 := GetPointer byte*, std.string.String* %1.0
-  Store byte* %2, @.S0
-  %3 := GetPointer int, std.string.String* %1.1
-  Store int %3, 3
-  %4 := GetPointer int, std.string.String* %1.2
-  Store int %4, 3
-  %5 := Call bool @std.string.String.equals(%0, %1)
-  branch %5, @3, @0
+  %1 := Load int @.IS0Size
+  %2 := Call bool @std.string.String.equalsImmutable(%0, @.IS0, %1)
+  branch %2, @3, @0
 label @0:
-  %6 := CallBuiltin std.string.String* myte_alloc(1)
-  %7 := GetPointer byte*, std.string.String* %6.0
-  Store byte* %7, @.S1
-  %8 := GetPointer int, std.string.String* %6.1
-  Store int %8, 3
-  %9 := GetPointer int, std.string.String* %6.2
-  Store int %9, 3
-  %10 := Call bool @std.string.String.equals(%0, %6)
-  branch %10, @3, @1
+  %3 := Load int @.IS1Size
+  %4 := Call bool @std.string.String.equalsImmutable(%0, @.IS1, %3)
+  branch %4, @3, @1
 label @1:
-  %11 := CallBuiltin std.string.String* myte_alloc(1)
-  %12 := GetPointer byte*, std.string.String* %11.0
-  Store byte* %12, @.S2
-  %13 := GetPointer int, std.string.String* %11.1
-  Store int %13, 3
-  %14 := GetPointer int, std.string.String* %11.2
-  Store int %14, 3
-  %15 := Call bool @std.string.String.equals(%0, %11)
-  branch %15, @3, @2
+  %5 := Load int @.IS2Size
+  %6 := Call bool @std.string.String.equalsImmutable(%0, @.IS2, %5)
+  branch %6, @3, @2
 label @2:
   continue @3
 label @3:
-  %16 := Phi int @test.test1:1, @0:2, @1:3, @2:4
-  Ret %16
+  %7 := Phi int @test.test1:1, @0:2, @1:3, @2:4
+  Ret %7
 }
-
-global byte[3] @.S0 = "foo"
-
-global byte[3] @.S1 = "bar"
-
-global byte[3] @.S2 = "baz"
 
 func void @test.use<Function>(fn %0) {
   Ret

@@ -16,6 +16,10 @@ fun testMultipleParts2(): String {
   return `foo${1}${2}bar`;
 }
 
+fun testRepeatedParts(): String {
+  return `foo${1}bar${2}foo${3}bar`;
+}
+
 fun use<T>(x: T) {}
 
 fun main() {
@@ -23,4 +27,5 @@ fun main() {
   use(testSingleExpressionPart);
   use(testMultipleParts1);
   use(testMultipleParts2);
+  use(testRepeatedParts);
 }

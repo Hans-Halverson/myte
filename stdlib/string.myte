@@ -188,6 +188,40 @@ methods String {
    */
   fun bytes(): StringByteIterator =
     StringByteIterator { data: this.data, size: this.size, index: 0 }
+
+  /**
+   * Append an immutable string to this string. Called by runtime, not for external consumption.
+   */
+  fun appendImmutable(value: Array<Byte>, size: Int) {
+    val newSize = this.size + size;
+    if (newSize > this.capacity) {
+      this.resizeWithMinCapacity(newSize);
+    }
+
+    Array.copy(this.data, this.size, value, 0, size);
+    this.size = newSize;
+  }
+  
+  /**
+   * Check whether an immutable string equals this string. Called by runtime, not for external
+   * consumption.
+   */
+  fun equalsImmutable(otherValue: Array<Byte>, otherSize: Int): Bool {
+    val size = this.size;
+    if (size != otherSize) {
+      return false;
+    }
+
+    val thisData = this.data;
+
+    for (i in 0.to(size)) {
+      if (thisData[i] != otherValue[i]) {
+        return false;
+      }
+    }
+
+    return true;
+  }
 }
 
 methods String {

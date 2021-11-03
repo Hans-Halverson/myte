@@ -642,31 +642,11 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
   | InterpolatedString { loc; parts } ->
     let string_ty = type_of_loc ~ecx loc in
     let string_type = type_to_mir_type ~ecx string_ty in
-    (* String parts are emitted directly, expression parts have their `toString` method called *)
-    let emit_part part =
-      match part with
-      | InterpolatedString.String string_literal ->
-        emit_expression ~ecx (StringLiteral string_literal) |> Option.get
-      | Expression expr ->
-        let receiver_val = emit_expression ~ecx expr in
-        let receiver_ty = type_of_loc ~ecx (Ast_utils.expression_loc expr) in
-        let string_val =
-          emit_method_call
-            ~ecx
-            ~method_name:"toString"
-            ~receiver_val
-            ~receiver_ty
-            ~arg_vals:[]
-            ~method_instance_type_args:[]
-            ~ret_type:string_type
-        in
-        Option.get string_val
-    in
 
     let (string_val, other_parts) =
       match List_utils.split_first parts with
       (* Use first part as string if first part is a string literal (which will be newly created) *)
-      | ((String _ as first_part), rest_parts) -> (emit_part first_part, rest_parts)
+      | (String { loc; value }, rest_parts) -> (emit_string_literal ~ecx loc value, rest_parts)
       (* Otherwise create empty new string to add to, as we do not want to modify first part *)
       | (first_part, rest_parts) -> (emit_string_literal ~ecx loc "", first_part :: rest_parts)
     in
@@ -674,16 +654,48 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     (* Emit parts and call `append` on the new string *)
     List.iter
       (fun part ->
-        let part_val = emit_part part in
-        ignore
-          (emit_method_call
-             ~ecx
-             ~method_name:"append"
-             ~receiver_val:(Some string_val)
-             ~receiver_ty:string_ty
-             ~arg_vals:[part_val]
-             ~method_instance_type_args:[]
-             ~ret_type:None))
+        match part with
+        (* String parts are stored as immutable strings and will be appended to new string *)
+        | InterpolatedString.String { value; _ } ->
+          let { Ecx.ImmutableString.value_global_val; size_global_val } =
+            Ecx.add_immutable_string_literal ~ecx value
+          in
+          let size_var_id = mk_var_id () in
+          let size_val = var_value_of_type size_var_id `IntT in
+          Ecx.emit ~ecx (Load (size_var_id, size_global_val));
+          ignore
+            (emit_method_call
+               ~ecx
+               ~method_name:"appendImmutable"
+               ~receiver_val:(Some string_val)
+               ~receiver_ty:string_ty
+               ~arg_vals:[(value_global_val :> Value.t); size_val]
+               ~method_instance_type_args:[]
+               ~ret_type:None)
+        (* Expression parts have their `toString` method called then are appended to new string *)
+        | Expression expr ->
+          let receiver_val = emit_expression ~ecx expr in
+          let receiver_ty = type_of_loc ~ecx (Ast_utils.expression_loc expr) in
+          let part_val =
+            emit_method_call
+              ~ecx
+              ~method_name:"toString"
+              ~receiver_val
+              ~receiver_ty
+              ~arg_vals:[]
+              ~method_instance_type_args:[]
+              ~ret_type:string_type
+            |> Option.get
+          in
+          ignore
+            (emit_method_call
+               ~ecx
+               ~method_name:"append"
+               ~receiver_val:(Some string_val)
+               ~receiver_ty:string_ty
+               ~arg_vals:[part_val]
+               ~method_instance_type_args:[]
+               ~ret_type:None))
       other_parts;
     Some string_val
   (*
@@ -888,7 +900,7 @@ and emit_string_literal ~ecx loc value =
   let string_length = String.length value in
   let string_global_ptr =
     if string_length <> 0 then
-      Ecx.add_string_literal ~ecx loc value
+      Ecx.add_mutable_string_literal ~ecx loc value
     else
       `LongL 0L
   in
@@ -2468,16 +2480,20 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
             cases
         in
         emit_decision_tree_if_else_chain ~path_cache cases default_tree_node (fun ctor ->
-            let (value, loc) = Ctor.cast_to_string ctor in
-            (* TODO: Check raw bytes directly instead of allocating new string and calling equals *)
-            let string_val = emit_string_literal ~ecx loc value in
+            let (value, _) = Ctor.cast_to_string ctor in
+            let { Ecx.ImmutableString.value_global_val; size_global_val } =
+              Ecx.add_immutable_string_literal ~ecx value
+            in
+            let size_var_id = mk_var_id () in
+            let size_val = var_value_of_type size_var_id `IntT in
+            Ecx.emit ~ecx (Load (size_var_id, size_global_val));
             let test_val =
               emit_method_call
                 ~ecx
-                ~method_name:"equals"
+                ~method_name:"equalsImmutable"
                 ~receiver_val:(Some scrutinee_val)
                 ~receiver_ty:(Std_lib.mk_string_type ())
-                ~arg_vals:[string_val]
+                ~arg_vals:[(value_global_val :> Value.t); size_val]
                 ~method_instance_type_args:[]
                 ~ret_type:(Some `BoolT)
               |> Option.get
