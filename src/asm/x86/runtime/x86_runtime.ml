@@ -18,6 +18,8 @@ let myte_copy_label = "__myte_copy"
 
 let myte_exit_label = "__myte_exit"
 
+let myte_get_heap_size = "__myte_get_heap_size"
+
 let myte_open_label = "__myte_open"
 
 let myte_read_label = "__myte_read"

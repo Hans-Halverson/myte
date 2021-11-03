@@ -3,6 +3,7 @@
   .global __myte_close
   .global __myte_copy
   .global __myte_exit
+  .global __myte_get_heap_size
   .global __myte_open
   .global __myte_read
   .global __myte_runtime_init
@@ -12,6 +13,8 @@
   .data
 
 __myte_heap_start:
+  .quad 0
+__myte_heap_current:
   .quad 0
 
   .text
@@ -42,17 +45,23 @@ __myte_runtime_init:
 
   # Store heap start
   mov %rax, __myte_heap_start(%rip)
+  mov %rax, __myte_heap_current(%rip)
+  ret
+
+__myte_get_heap_size:
+  mov __myte_heap_current(%rip), %rax
+  sub __myte_heap_start(%rip), %rax
   ret
 
 __myte_alloc:
-  mov __myte_heap_start(%rip), %rdx
+  mov __myte_heap_current(%rip), %rdx
   # Align to 16-byte boundary
   add $15, %rdx
   and $-16, %rdx
   mov %rdx, %rax
   # Bump heap start pointer
   add %rdi, %rdx
-  mov %rdx, __myte_heap_start(%rip)
+  mov %rdx, __myte_heap_current(%rip)
   ret
 
 __myte_close:

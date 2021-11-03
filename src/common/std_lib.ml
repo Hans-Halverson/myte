@@ -66,6 +66,8 @@ let std_byte_byte_toInt = "std.byte.Byte.toInt"
 
 let std_byte_byte_toLong = "std.byte.Byte.toLong"
 
+let std_gc_getHeapSize = "std.gc.getHeapSize"
+
 let std_int_int = "std.int.Int"
 
 let std_int_int_equals = "std.int.Int.equals"
@@ -155,6 +157,7 @@ let all_stdlib_names =
       std_byte_byte_equals;
       std_byte_byte_toInt;
       std_byte_byte_toLong;
+      std_gc_getHeapSize;
       std_io_file_builtin_close;
       std_io_file_builtin_open;
       std_io_file_builtin_read;

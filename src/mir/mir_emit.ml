@@ -1275,6 +1275,7 @@ and builtin_functions =
         (Std_lib.std_byte_byte_equals, emit_eq);
         (Std_lib.std_byte_byte_toInt, emit_std_byte_byte_toInt);
         (Std_lib.std_byte_byte_toLong, emit_std_byte_byte_toLong);
+        (Std_lib.std_gc_getHeapSize, emit_std_gc_getHeapSize);
         (Std_lib.std_int_int_equals, emit_eq);
         (Std_lib.std_int_int_toByte, emit_std_int_int_toByte);
         (Std_lib.std_int_int_toLong, emit_std_int_int_toLong);
@@ -1313,6 +1314,12 @@ and emit_std_byte_byte_toLong ~ecx arg_vals _ =
   let var_id = mk_var_id () in
   Ecx.emit ~ecx (SExt (var_id, cast_to_numeric_value (List.hd arg_vals), `LongT));
   Some (var_value_of_type var_id `LongT)
+
+and emit_std_gc_getHeapSize ~ecx _ _ =
+  let var_id = mk_var_id () in
+  let (result_val, instr) = Mir_builtin.(mk_call_builtin myte_get_heap_size var_id [] []) in
+  Ecx.emit ~ecx instr;
+  Some result_val
 
 and emit_std_int_int_toByte ~ecx arg_vals _ =
   let var_id = mk_var_id () in

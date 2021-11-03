@@ -980,6 +980,15 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       let precolored_a = Gcx.mk_precolored ~gcx A in
       Gcx.emit ~gcx (CallL X86_runtime.myte_unlink_label);
       Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg (ret_vreg ())))
+      (*
+       * ===========================================
+       *            myte_get_heap_size
+       * ===========================================
+       *)
+    ) else if name = myte_get_heap_size.name then (
+      let precolored_a = Gcx.mk_precolored ~gcx A in
+      Gcx.emit ~gcx (CallL X86_runtime.myte_get_heap_size);
+      Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg (ret_vreg ())))
     ) else
       failwith (Printf.sprintf "Cannot compile unknown builtin %s to assembly" name);
     gen_instructions rest_instructions

@@ -57,6 +57,14 @@ let myte_close = { Builtin.name = "myte_close"; mk_return_ty = (fun _ -> Some `I
  *)
 let myte_unlink = { Builtin.name = "myte_unlink"; mk_return_ty = (fun _ -> Some `IntT) }
 
+(* 
+   myte.myte_get_heap_size<T>(): long
+
+   Return size of used myte heap in bytes.
+ *)
+let myte_get_heap_size =
+  { Builtin.name = "myte_get_heap_size"; mk_return_ty = (fun _ -> Some `LongT) }
+
 let mk_call_builtin builtin var_id args mk_return_ty_args =
   let open Builtin in
   let return_ty = builtin.mk_return_ty mk_return_ty_args |> Option.get in

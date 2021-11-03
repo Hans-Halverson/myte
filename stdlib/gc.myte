@@ -1,0 +1,11 @@
+module std.gc
+
+import std.long.Long
+import std.string.String
+
+builtin fun getHeapSize(): Long
+
+fun report(): String {
+  val heapSize = getHeapSize();
+  return `Heap is ${heapSize} bytes`;
+}

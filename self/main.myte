@@ -1,5 +1,6 @@
 module myte.main
 
+import std.gc
 import std.io.{print, println}
 
 import myte.common.error.formatErrorWithoutLoc
