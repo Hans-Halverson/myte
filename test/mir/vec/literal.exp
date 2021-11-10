@@ -9,8 +9,8 @@ func void @test.emptyVec() {
   %3 := GetPointer int, std.vec.Vec<Int>* %0.2
   Store int %3, 0
   %4 := CallBuiltin std.vec.Vec<Bool>* myte_alloc(1)
-  %5 := GetPointer bool*, std.vec.Vec<Bool>* %4.0
-  Store bool* %5, 0
+  %5 := GetPointer long*, std.vec.Vec<Bool>* %4.0
+  Store long* %5, 0
   %6 := GetPointer int, std.vec.Vec<Bool>* %4.1
   Store int %6, 0
   %7 := GetPointer int, std.vec.Vec<Bool>* %4.2
@@ -57,18 +57,18 @@ func void @test.multiElementVec() {
   Store int %6, 3
   %7 := GetPointer int, std.vec.Vec<Int>* %4.2
   Store int %7, 3
-  %8 := CallBuiltin bool* myte_alloc(4)
-  %9 := GetPointer bool, bool* %8[int 0]
-  Store bool %9, false
-  %10 := GetPointer bool, bool* %8[int 1]
-  Store bool %10, true
-  %11 := GetPointer bool, bool* %8[int 2]
-  Store bool %11, false
-  %12 := GetPointer bool, bool* %8[int 3]
-  Store bool %12, true
+  %8 := CallBuiltin long* myte_alloc(4)
+  %9 := GetPointer long, long* %8[int 0]
+  Store long %9, 1
+  %10 := GetPointer long, long* %8[int 1]
+  Store long %10, 3
+  %11 := GetPointer long, long* %8[int 2]
+  Store long %11, 1
+  %12 := GetPointer long, long* %8[int 3]
+  Store long %12, 3
   %13 := CallBuiltin std.vec.Vec<Bool>* myte_alloc(1)
-  %14 := GetPointer bool*, std.vec.Vec<Bool>* %13.0
-  Store bool* %14, %8
+  %14 := GetPointer long*, std.vec.Vec<Bool>* %13.0
+  Store long* %14, %8
   %15 := GetPointer int, std.vec.Vec<Bool>* %13.1
   Store int %15, 4
   %16 := GetPointer int, std.vec.Vec<Bool>* %13.2

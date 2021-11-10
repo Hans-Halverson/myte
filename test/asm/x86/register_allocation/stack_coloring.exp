@@ -2,7 +2,7 @@
 
   .text
 test.cond:
-  movb $1, %al
+  movq $3, %rax
   ret
 _main:
   leaq test.testMultipleInterferingSpillsInDifferentStackSlots(%rip), %rdi
@@ -67,8 +67,8 @@ test.testNonInterferingSpillsReuseStackSlots:
   push %r15
   subq $8, %rsp
   call test.cond
-  testb %al, %al
-  je .L2
+  cmpq $3, %rax
+  jne .L2
   movl $101, %r15d
   movl $102, %r14d
   movl $103, %r13d
@@ -118,8 +118,8 @@ test.testNonInterferingSpillsReuseStackSlots:
   addl %ecx, %ebx
   addl %ebx, %eax
   call test.cond
-  testb %al, %al
-  je .L4
+  cmpq $3, %rax
+  jne .L4
   movl $101, %r15d
   movl $102, %r14d
   movl $103, %r13d
@@ -169,8 +169,8 @@ test.testNonInterferingSpillsReuseStackSlots:
   addl %ecx, %ebx
   addl %ebx, %eax
   call test.cond
-  testb %al, %al
-  je .L6
+  cmpq $3, %rax
+  jne .L6
   movl $101, %r15d
   movl $102, %r14d
   movl $103, %r13d
@@ -235,8 +235,8 @@ test.testPartialReuseStackSlots:
   push %r15
   subq $16, %rsp
   call test.cond
-  testb %al, %al
-  je .L8
+  cmpq $3, %rax
+  jne .L8
   movl $101, %r15d
   movl $102, %r14d
   movl $103, %r13d
@@ -290,8 +290,8 @@ test.testPartialReuseStackSlots:
   addl %ecx, %ebx
   addl %ebx, %eax
   call test.cond
-  testb %al, %al
-  je .L10
+  cmpq $3, %rax
+  jne .L10
   movl $101, %r15d
   movl $102, %r14d
   movl $103, %r13d
@@ -341,8 +341,8 @@ test.testPartialReuseStackSlots:
   addl %ecx, %ebx
   addl %ebx, %eax
   call test.cond
-  testb %al, %al
-  je .L12
+  cmpq $3, %rax
+  jne .L12
   movl $101, %r15d
   movl $102, %r14d
   movl $103, %r13d

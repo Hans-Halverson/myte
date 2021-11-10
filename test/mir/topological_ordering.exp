@@ -6,12 +6,15 @@ func int @test.main() {
   Call void @test.use(1)
   continue @0
 label @0:
-  branch false, @1, @23
+  %0 := Eq long 1, 3
+  branch %0, @1, @23
 label @1:
-  branch true, @2, @6
+  %1 := Eq long 3, 3
+  branch %1, @2, @6
 label @2:
   Call void @test.use(2)
-  branch false, @3, @4
+  %2 := Eq long 1, 3
+  branch %2, @3, @4
 label @3:
   Call void @test.use(3)
   continue @5
@@ -23,7 +26,8 @@ label @5:
   continue @10
 label @6:
   Call void @test.use(6)
-  branch false, @7, @8
+  %3 := Eq long 1, 3
+  branch %3, @7, @8
 label @7:
   Call void @test.use(7)
   continue @9
@@ -37,12 +41,15 @@ label @10:
   Call void @test.use(10)
   continue @11
 label @11:
-  branch false, @12, @22
+  %4 := Eq long 1, 3
+  branch %4, @12, @22
 label @12:
-  branch true, @13, @17
+  %5 := Eq long 3, 3
+  branch %5, @13, @17
 label @13:
   Call void @test.use(11)
-  branch false, @14, @15
+  %6 := Eq long 1, 3
+  branch %6, @14, @15
 label @14:
   Call void @test.use(12)
   continue @16
@@ -54,7 +61,8 @@ label @16:
   continue @21
 label @17:
   Call void @test.use(15)
-  branch false, @18, @19
+  %7 := Eq long 1, 3
+  branch %7, @18, @19
 label @18:
   Call void @test.use(16)
   continue @20

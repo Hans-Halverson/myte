@@ -11,7 +11,9 @@ type folded_constant =
   | BoolConstant of bool
   | FunctionConstant of string
 
-type bool_constant_op = LogNotOp
+type bool_constant_op =
+  | LogNotOp
+  | BoolToValueOp
 
 type bool_constants_op =
   | LogAndOp
@@ -39,6 +41,12 @@ type numeric_constants_op =
 let fold_bool_constant op x =
   match (op, x) with
   | (LogNotOp, BoolConstant x) -> BoolConstant (not x)
+  | (BoolToValueOp, BoolConstant x) ->
+    LongConstant
+      ( if x then
+        3L
+      else
+        1L )
   | _ -> failwith "Invalid operation"
 
 let fold_bool_constants op x y =
@@ -231,7 +239,9 @@ class calc_constants_visitor ~ocx =
             method! map_instruction ~block:_ ((_, instr) as instruction) =
               (match instr with
               | Store (`PointerL (_, name), value) ->
-                (match (SMap.find_opt name ocx.program.globals, var_id_of_value_opt value) with
+                (match
+                   (SMap.find_opt name ocx.program.globals, var_id_of_value_opt (value :> Value.t))
+                 with
                 | (Some global, Some var_id) ->
                   (match IMap.find_opt var_id var_id_constants with
                   | Some constant ->
@@ -435,6 +445,7 @@ class calc_constants_visitor ~ocx =
       | GtEq (var_id, left, right) -> try_fold_comparison var_id left right ( >= )
       | Trunc (var_id, arg, ty) -> try_fold_numeric_constant var_id arg (TruncOp ty)
       | SExt (var_id, arg, ty) -> try_fold_numeric_constant var_id arg (SExtOp ty)
+      | BoolToValue (var_id, arg) -> try_fold_bool_constant var_id arg BoolToValueOp
       (* Propagate global constants through pointers *)
       | Load (var_id, `PointerL (_, label)) ->
         (match SMap.find_opt label global_constants with

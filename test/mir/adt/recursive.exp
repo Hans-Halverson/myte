@@ -10,17 +10,17 @@ type test.Rec3 {int, test.Rec4*}
 
 type test.Rec4 {std.string.String*, test.Rec5*}
 
-type test.Rec5 {bool, test.Rec3*}
+type test.Rec5 {long, test.Rec3*}
 
 func void @test.useMutuallyRecursive(test.Rec4* %0) {
   Ret
 }
 
-type test.VRec1<Bool> {byte, byte[23]}
+type test.VRec1<Bool> {byte, byte[31]}
 
 type test.VRec1<Int> {byte, byte[23]}
 
-type test.VRec1<Bool>::Tree {byte, bool, byte[6], test.VRec1<Bool>*, test.VRec1<Bool>*}
+type test.VRec1<Bool>::Tree {byte, byte[7], long, test.VRec1<Bool>*, test.VRec1<Bool>*}
 
 type test.VRec1<Int>::Tree {byte, byte[3], int, test.VRec1<Int>*, test.VRec1<Int>*}
 

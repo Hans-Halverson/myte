@@ -1,14 +1,14 @@
-func void @test.indexing(int* %0, bool*** %1) {
+func void @test.indexing(int* %0, long*** %1) {
   %2 := GetPointer int, int* %0[int 0]
   %3 := Load int %2
-  %4 := GetPointer bool**, bool*** %1[int 0]
-  %5 := Load bool** %4
-  %6 := GetPointer bool**, bool*** %1[int 1]
-  %7 := Load bool** %6
-  %8 := GetPointer bool*, bool** %7[int 2]
-  %9 := Load bool* %8
-  %10 := GetPointer bool, bool* %9[int 3]
-  %11 := Load bool %10
+  %4 := GetPointer long**, long*** %1[int 0]
+  %5 := Load long** %4
+  %6 := GetPointer long**, long*** %1[int 1]
+  %7 := Load long** %6
+  %8 := GetPointer long*, long** %7[int 2]
+  %9 := Load long* %8
+  %10 := GetPointer long, long* %9[int 3]
+  %11 := Load long %10
   Ret
 }
 
@@ -30,29 +30,29 @@ func void @test.indexingAllIntegerTypes(byte* %0, int %1, byte %2, long %3) {
 
 type test.Tup0 {long, byte}
 
-type test.Tup1 {std.string.String*, bool*}
+type test.Tup1 {std.string.String*, long*}
 
 func void @test.indexingWithTuple(test.Tup0** %0, test.Tup1* %1) {
   %2 := GetPointer test.Tup0*, test.Tup0** %0[int 77]
   %3 := Load test.Tup0* %2
   %4 := GetPointer byte, test.Tup0* %3.1
   %5 := Load byte %4
-  %6 := GetPointer bool*, test.Tup1* %1.1
-  %7 := Load bool* %6
-  %8 := GetPointer bool, bool* %7[int 1]
-  %9 := Load bool %8
+  %6 := GetPointer long*, test.Tup1* %1.1
+  %7 := Load long* %6
+  %8 := GetPointer long, long* %7[int 1]
+  %9 := Load long %8
   Ret
 }
 
-type test.Rec0 {std.string.String*, bool*}
+type test.Rec0 {std.string.String*, long*}
 
 func void @test.indexingWithRecord(test.Rec0** %0, test.Rec1* %1, int %2) {
   %3 := GetPointer test.Rec0*, test.Rec0** %0[int 77]
   %4 := Load test.Rec0* %3
-  %5 := GetPointer bool*, test.Rec0* %4.1
-  %6 := Load bool* %5
-  %7 := GetPointer bool, bool* %6[int %2]
-  %8 := Load bool %7
+  %5 := GetPointer long*, test.Rec0* %4.1
+  %6 := Load long* %5
+  %7 := GetPointer long, long* %6[int %2]
+  %8 := Load long %7
   Ret
 }
 

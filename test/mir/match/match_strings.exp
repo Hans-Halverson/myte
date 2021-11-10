@@ -12,21 +12,24 @@ global int @.IS2Size = 3
 
 func int @test.test1(std.string.String* %0) {
   %1 := Load int @.IS0Size
-  %2 := Call bool @std.string.String.equalsImmutable(%0, @.IS0, %1)
-  branch %2, @3, @0
+  %2 := Call long @std.string.String.equalsImmutable(%0, @.IS0, %1)
+  %3 := Eq long %2, 3
+  branch %3, @3, @0
 label @0:
-  %3 := Load int @.IS1Size
-  %4 := Call bool @std.string.String.equalsImmutable(%0, @.IS1, %3)
-  branch %4, @3, @1
+  %4 := Load int @.IS1Size
+  %5 := Call long @std.string.String.equalsImmutable(%0, @.IS1, %4)
+  %6 := Eq long %5, 3
+  branch %6, @3, @1
 label @1:
-  %5 := Load int @.IS2Size
-  %6 := Call bool @std.string.String.equalsImmutable(%0, @.IS2, %5)
-  branch %6, @3, @2
+  %7 := Load int @.IS2Size
+  %8 := Call long @std.string.String.equalsImmutable(%0, @.IS2, %7)
+  %9 := Eq long %8, 3
+  branch %9, @3, @2
 label @2:
   continue @3
 label @3:
-  %7 := Phi int @test.test1:1, @0:2, @1:3, @2:4
-  Ret %7
+  %10 := Phi int @test.test1:1, @0:2, @1:3, @2:4
+  Ret %10
 }
 
 func void @test.use<Function>(fn %0) {

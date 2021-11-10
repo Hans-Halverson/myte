@@ -1,10 +1,10 @@
-type $tuple<Int,Bool> {int, bool}
+type $tuple<Int,Bool> {int, long}
 
 type $tuple<Int,Byte,(Int,Bool)> {int, byte, $tuple<Int,Bool>*}
 
 type $tuple<Int,Int> {int, int}
 
-type test.Tup1<Bool> {int, bool}
+type test.Tup1<Bool> {int, long}
 
 type test.Tup1<Int> {int, int}
 
@@ -17,8 +17,8 @@ func void @test.testConstructor() {
   %3 := CallBuiltin test.Tup1<Bool>* myte_alloc(1)
   %4 := GetPointer int, test.Tup1<Bool>* %3.0
   Store int %4, 1
-  %5 := GetPointer bool, test.Tup1<Bool>* %3.1
-  Store bool %5, true
+  %5 := GetPointer long, test.Tup1<Bool>* %3.1
+  Store long %5, 3
   Ret
 }
 
@@ -31,8 +31,8 @@ func void @test.testAnonymousConstructor() {
   %3 := CallBuiltin $tuple<Int,Bool>* myte_alloc(1)
   %4 := GetPointer int, $tuple<Int,Bool>* %3.0
   Store int %4, 1
-  %5 := GetPointer bool, $tuple<Int,Bool>* %3.1
-  Store bool %5, true
+  %5 := GetPointer long, $tuple<Int,Bool>* %3.1
+  Store long %5, 3
   %6 := CallBuiltin $tuple<Int,Byte,(Int,Bool)>* myte_alloc(1)
   %7 := GetPointer int, $tuple<Int,Byte,(Int,Bool)>* %6.0
   Store int %7, 1
@@ -41,8 +41,8 @@ func void @test.testAnonymousConstructor() {
   %9 := CallBuiltin $tuple<Int,Bool>* myte_alloc(1)
   %10 := GetPointer int, $tuple<Int,Bool>* %9.0
   Store int %10, 3
-  %11 := GetPointer bool, $tuple<Int,Bool>* %9.1
-  Store bool %11, false
+  %11 := GetPointer long, $tuple<Int,Bool>* %9.1
+  Store long %11, 1
   %12 := GetPointer $tuple<Int,Bool>*, $tuple<Int,Byte,(Int,Bool)>* %6.2
   Store $tuple<Int,Bool>* %12, %9
   Ret
@@ -51,16 +51,16 @@ func void @test.testAnonymousConstructor() {
 func void @test.testIndexing(test.Tup1<Int>* %0, test.Tup1<Bool>* %1) {
   %2 := GetPointer int, test.Tup1<Int>* %0.1
   %3 := Load int %2
-  %4 := GetPointer bool, test.Tup1<Bool>* %1.1
-  %5 := Load bool %4
+  %4 := GetPointer long, test.Tup1<Bool>* %1.1
+  %5 := Load long %4
   Ret
 }
 
 func void @test.testAnonymousIndexing($tuple<Int,Int>* %0, $tuple<Int,Bool>* %1) {
   %2 := GetPointer int, $tuple<Int,Int>* %0.1
   %3 := Load int %2
-  %4 := GetPointer bool, $tuple<Int,Bool>* %1.1
-  %5 := Load bool %4
+  %4 := GetPointer long, $tuple<Int,Bool>* %1.1
+  %5 := Load long %4
   Ret
 }
 

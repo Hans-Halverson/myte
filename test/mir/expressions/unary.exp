@@ -1,5 +1,5 @@
-func void @test.bools(bool %0) {
-  %1 := LogNot %0
+func void @test.bools(long %0) {
+  %1 := BitXor long, %0 2
   Ret
 }
 

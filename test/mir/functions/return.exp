@@ -1,10 +1,11 @@
 func int @test.testReturnValue() {
-  branch true, @0, @1
+  %0 := Eq long 3, 3
+  branch %0, @0, @1
 label @0:
-  %0 := Call int @test.id<Int>(1)
-  %1 := Call int @test.id<Int>(2)
-  %2 := Add int %0, %1
-  Ret %2
+  %1 := Call int @test.id<Int>(1)
+  %2 := Call int @test.id<Int>(2)
+  %3 := Add int %1, %2
+  Ret %3
 label @1:
   Ret 1
 }
@@ -14,7 +15,8 @@ func void @test.getUnit() {
 }
 
 func void @test.testReturnZeroSizeType() {
-  branch true, @0, @1
+  %0 := Eq long 3, 3
+  branch %0, @0, @1
 label @0:
   Call void @test.getUnit()
   Call void @test.id<test.ZeroSize>()

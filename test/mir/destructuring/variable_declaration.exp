@@ -1,12 +1,12 @@
-type $tuple<Int,Bool,(Int,Bool)> {int, bool, $tuple<Int,Bool>*}
+type $tuple<Int,Bool,(Int,Bool)> {int, long, $tuple<Int,Bool>*}
 
-type $tuple<Int,Bool> {int, bool}
+type $tuple<Int,Bool> {int, long}
 
 func void @test.use<(Int,Bool)>($tuple<Int,Bool>* %0) {
   Ret
 }
 
-func void @test.use<Bool>(bool %0) {
+func void @test.use<Bool>(long %0) {
   Ret
 }
 
@@ -25,8 +25,8 @@ func void @test.use<String>(std.string.String* %0) {
 func void @test.destructureTuple($tuple<Int,Bool,(Int,Bool)>* %0) {
   %1 := GetPointer int, $tuple<Int,Bool,(Int,Bool)>* %0.0
   %2 := Load int %1
-  %3 := GetPointer bool, $tuple<Int,Bool,(Int,Bool)>* %0.1
-  %4 := Load bool %3
+  %3 := GetPointer long, $tuple<Int,Bool,(Int,Bool)>* %0.1
+  %4 := Load long %3
   %5 := GetPointer $tuple<Int,Bool>*, $tuple<Int,Bool,(Int,Bool)>* %0.2
   %6 := Load $tuple<Int,Bool>* %5
   Call void @test.use<Int>(%2)
@@ -36,8 +36,8 @@ func void @test.destructureTuple($tuple<Int,Bool,(Int,Bool)>* %0) {
   %8 := Load $tuple<Int,Bool>* %7
   %9 := GetPointer int, $tuple<Int,Bool>* %8.0
   %10 := Load int %9
-  %11 := GetPointer bool, $tuple<Int,Bool>* %8.1
-  %12 := Load bool %11
+  %11 := GetPointer long, $tuple<Int,Bool>* %8.1
+  %12 := Load long %11
   Call void @test.use<Int>(%10)
   Call void @test.use<Bool>(%12)
   Ret
@@ -73,31 +73,31 @@ label @2:
   Ret
 }
 
-type test.Tup {int, bool}
+type test.Tup {int, long}
 
 func void @test.destructureNamedTuple(test.Tup* %0) {
   %1 := GetPointer int, test.Tup* %0.0
   %2 := Load int %1
-  %3 := GetPointer bool, test.Tup* %0.1
-  %4 := Load bool %3
+  %3 := GetPointer long, test.Tup* %0.1
+  %4 := Load long %3
   Call void @test.use<Int>(%2)
   Call void @test.use<Bool>(%4)
   Ret
 }
 
-type test.Rec {int, bool}
+type test.Rec {int, long}
 
 func void @test.destructureNamedRecord(test.Rec* %0) {
   %1 := GetPointer int, test.Rec* %0.0
   %2 := Load int %1
-  %3 := GetPointer bool, test.Rec* %0.1
-  %4 := Load bool %3
+  %3 := GetPointer long, test.Rec* %0.1
+  %4 := Load long %3
   Call void @test.use<Int>(%2)
   Call void @test.use<Bool>(%4)
   Ret
 }
 
-type test.Rec2<Int> {int, bool}
+type test.Rec2<Int> {int, long}
 
 func int @test.Rec2.methodDestructuring<Int>(test.Rec2<Int>* %0) {
   %1 := GetPointer int, test.Rec2<Int>* %0.0

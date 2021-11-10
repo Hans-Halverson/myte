@@ -2,8 +2,8 @@ func void @t.func(int %0) {
   Ret
 }
 
-func bool @t.rand() {
-  Ret true
+func long @t.rand() {
+  Ret 3
 }
 
 func void @t.ifStatement() {

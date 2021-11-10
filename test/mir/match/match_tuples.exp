@@ -1,8 +1,8 @@
-type $tuple<Int,Bool,(Int,Bool)> {int, bool, $tuple<Int,Bool>*}
+type $tuple<Int,Bool,(Int,Bool)> {int, long, $tuple<Int,Bool>*}
 
-type $tuple<Int,Bool,String> {int, bool, std.string.String*}
+type $tuple<Int,Bool,String> {int, long, std.string.String*}
 
-type $tuple<Int,Bool> {int, bool}
+type $tuple<Int,Bool> {int, long}
 
 func int @test.test1($tuple<Int,Bool,String>* %0) {
   Ret 1
@@ -14,9 +14,9 @@ func int @test.test2($tuple<Int,Bool,String>* %0) {
   %3 := Eq int %2, 1
   branch %3, @0, @2
 label @0:
-  %4 := GetPointer bool, $tuple<Int,Bool,String>* %0.1
-  %5 := Load bool %4
-  %6 := Eq bool %5, false
+  %4 := GetPointer long, $tuple<Int,Bool,String>* %0.1
+  %5 := Load long %4
+  %6 := Eq long %5, 1
   branch %6, @5, @1
 label @1:
   continue @5
@@ -24,9 +24,9 @@ label @2:
   %7 := Eq int %2, 2
   branch %7, @5, @3
 label @3:
-  %8 := GetPointer bool, $tuple<Int,Bool,String>* %0.1
-  %9 := Load bool %8
-  %10 := Eq bool %9, false
+  %8 := GetPointer long, $tuple<Int,Bool,String>* %0.1
+  %9 := Load long %8
+  %10 := Eq long %9, 1
   branch %10, @5, @4
 label @4:
   continue @5
@@ -41,9 +41,9 @@ func int @test.test3($tuple<Int,Bool,(Int,Bool)>* %0) {
   %3 := Eq int %2, 1
   branch %3, @4, @0
 label @0:
-  %4 := GetPointer bool, $tuple<Int,Bool,(Int,Bool)>* %0.1
-  %5 := Load bool %4
-  %6 := Eq bool %5, true
+  %4 := GetPointer long, $tuple<Int,Bool,(Int,Bool)>* %0.1
+  %5 := Load long %4
+  %6 := Eq long %5, 3
   branch %6, @4, @1
 label @1:
   %7 := GetPointer $tuple<Int,Bool>*, $tuple<Int,Bool,(Int,Bool)>* %0.2
@@ -53,9 +53,9 @@ label @1:
   %11 := Eq int %10, 2
   branch %11, @4, @2
 label @2:
-  %12 := GetPointer bool, $tuple<Int,Bool>* %8.1
-  %13 := Load bool %12
-  %14 := Eq bool %13, false
+  %12 := GetPointer long, $tuple<Int,Bool>* %8.1
+  %13 := Load long %12
+  %14 := Eq long %13, 1
   branch %14, @4, @3
 label @3:
   continue @4
@@ -70,60 +70,62 @@ func int @test.test4($tuple<Int,Bool,(Int,Bool)>* %0) {
   %3 := Eq int %2, 1
   branch %3, @0, @3
 label @0:
-  %4 := GetPointer bool, $tuple<Int,Bool,(Int,Bool)>* %0.1
-  %5 := Load bool %4
-  branch %5, @2, @1
+  %4 := GetPointer long, $tuple<Int,Bool,(Int,Bool)>* %0.1
+  %5 := Load long %4
+  %6 := Eq long %5, 3
+  branch %6, @2, @1
 label @1:
   continue @2
 label @2:
-  %6 := Phi int @0:1, @1:2
+  %7 := Phi int @0:1, @1:2
   continue @10
 label @3:
-  %7 := GetPointer bool, $tuple<Int,Bool,(Int,Bool)>* %0.1
-  %8 := Load bool %7
-  %9 := Eq bool %8, true
-  branch %9, @4, @7
+  %8 := GetPointer long, $tuple<Int,Bool,(Int,Bool)>* %0.1
+  %9 := Load long %8
+  %10 := Eq long %9, 3
+  branch %10, @4, @7
 label @4:
-  %10 := GetPointer $tuple<Int,Bool>*, $tuple<Int,Bool,(Int,Bool)>* %0.2
-  %11 := Load $tuple<Int,Bool>* %10
-  %12 := GetPointer bool, $tuple<Int,Bool>* %11.1
-  %13 := Load bool %12
-  %14 := Eq bool %13, false
-  branch %14, @5, @6
+  %11 := GetPointer $tuple<Int,Bool>*, $tuple<Int,Bool,(Int,Bool)>* %0.2
+  %12 := Load $tuple<Int,Bool>* %11
+  %13 := GetPointer long, $tuple<Int,Bool>* %12.1
+  %14 := Load long %13
+  %15 := Eq long %14, 1
+  branch %15, @5, @6
 label @5:
-  %15 := GetPointer int, $tuple<Int,Bool>* %11.0
-  %16 := Load int %15
-  %17 := Add int %16, 3
+  %16 := GetPointer int, $tuple<Int,Bool>* %12.0
+  %17 := Load int %16
+  %18 := Add int %17, 3
   continue @10
 label @6:
-  %18 := GetPointer int, $tuple<Int,Bool>* %11.0
-  %19 := Load int %18
-  %20 := Add int %2, %19
-  %21 := Add int %20, 4
+  %19 := GetPointer int, $tuple<Int,Bool>* %12.0
+  %20 := Load int %19
+  %21 := Add int %2, %20
+  %22 := Add int %21, 4
   continue @10
 label @7:
-  %22 := GetPointer $tuple<Int,Bool>*, $tuple<Int,Bool,(Int,Bool)>* %0.2
-  %23 := Load $tuple<Int,Bool>* %22
-  %24 := GetPointer int, $tuple<Int,Bool>* %23.0
-  %25 := Load int %24
-  %26 := GetPointer bool, $tuple<Int,Bool>* %23.1
-  %27 := Load bool %26
-  branch %27, @9, @8
+  %23 := GetPointer $tuple<Int,Bool>*, $tuple<Int,Bool,(Int,Bool)>* %0.2
+  %24 := Load $tuple<Int,Bool>* %23
+  %25 := GetPointer int, $tuple<Int,Bool>* %24.0
+  %26 := Load int %25
+  %27 := GetPointer long, $tuple<Int,Bool>* %24.1
+  %28 := Load long %27
+  %29 := Eq long %28, 3
+  branch %29, @9, @8
 label @8:
-  %28 := Add int %25, 5
+  %30 := Add int %26, 5
   continue @9
 label @9:
-  %29 := Phi int @7:%25, @8:%28
+  %31 := Phi int @7:%26, @8:%30
   continue @10
 label @10:
-  %30 := Phi int @2:%6, @5:%17, @6:%21, @9:%29
-  Ret %30
+  %32 := Phi int @2:%7, @5:%18, @6:%22, @9:%31
+  Ret %32
 }
 
 func $tuple<Int,Bool>* @test.test5($tuple<Int,Bool,(Int,Bool)>* %0) {
-  %1 := GetPointer bool, $tuple<Int,Bool,(Int,Bool)>* %0.1
-  %2 := Load bool %1
-  %3 := Eq bool %2, false
+  %1 := GetPointer long, $tuple<Int,Bool,(Int,Bool)>* %0.1
+  %2 := Load long %1
+  %3 := Eq long %2, 1
   branch %3, @0, @2
 label @0:
   %4 := GetPointer $tuple<Int,Bool>*, $tuple<Int,Bool,(Int,Bool)>* %0.2
@@ -138,10 +140,10 @@ label @1:
   %11 := Load int %10
   %12 := GetPointer int, $tuple<Int,Bool>* %9.0
   Store int %12, %11
-  %13 := GetPointer bool, $tuple<Int,Bool>* %5.1
-  %14 := Load bool %13
-  %15 := GetPointer bool, $tuple<Int,Bool>* %9.1
-  Store bool %15, %14
+  %13 := GetPointer long, $tuple<Int,Bool>* %5.1
+  %14 := Load long %13
+  %15 := GetPointer long, $tuple<Int,Bool>* %9.1
+  Store long %15, %14
   continue @5
 label @2:
   %16 := GetPointer int, $tuple<Int,Bool,(Int,Bool)>* %0.0

@@ -28,10 +28,10 @@ _main:
   ret
 test.testBoolPromotion:
   push %rbx
-  movl %edi, %ebx
+  movq %rdi, %rbx
   movl $16, %edi
   call __myte_alloc
-  movb %bl, (%rax)
+  movq %rbx, (%rax)
   leaq 8(%rax), %rcx
   leaq _vtable$std.bool.Bool$std.string.ToString(%rip), %rbx
   movq %rbx, (%rcx)

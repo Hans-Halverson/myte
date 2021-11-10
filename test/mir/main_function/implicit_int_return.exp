@@ -1,5 +1,6 @@
 func int @test.main() {
-  branch true, @0, @1
+  %0 := Eq long 3, 3
+  branch %0, @0, @1
 label @0:
   Ret 0
 label @1:

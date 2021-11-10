@@ -176,6 +176,22 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       vreg
     | _ -> failwith "Boolean variable must be vreg or memory location"
   in
+  let emit_value_as_reg ir_value =
+    match resolve_ir_value ~allow_imm64:true ir_value with
+    | SImm imm ->
+      let vreg = mk_vreg () in
+      Gcx.emit ~gcx (MovIM (size_of_immediate imm, imm, Reg vreg));
+      vreg
+    | SAddr addr ->
+      let vreg = mk_vreg () in
+      Gcx.emit ~gcx (Lea (Size64, addr, vreg));
+      vreg
+    | SMem (mem, size) ->
+      let vreg = mk_vreg () in
+      Gcx.emit ~gcx (MovMM (size, Mem mem, Reg vreg));
+      vreg
+    | SVReg (source_vreg, _) -> source_vreg
+  in
   (* Return preferred (source, dest) args for a commutative binary operation. We try to avoid having
      the destination be a memory location, so source always contains memory location if one exists. *)
   let choose_commutative_source_dest_arg_order v1 v2 =
@@ -916,7 +932,9 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
        * ===========================================
        *)
     ) else if name = myte_copy.name then (
-      let (`PointerT element_mir_ty) = cast_to_pointer_type (type_of_value (List.hd args)) in
+      let (`PointerT element_mir_ty) =
+        cast_to_pointer_type (type_of_value (List.hd args :> Value.t))
+      in
       let (pointer_args, count_arg) = List_utils.split_last args in
       let precolored_d = Gcx.mk_precolored ~gcx D in
       gen_call_arguments pointer_args;
@@ -1031,6 +1049,24 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       let result_size = register_size_of_mir_value_type (ty :> Type.t) in
       let arg_mem = emit_mem arg in
       Gcx.emit ~gcx (MovSX (arg_size, result_size, arg_mem, result_vreg)));
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                BoolToValue
+   * ===========================================
+   *)
+  | Mir.Instruction.BoolToValue (result_var_id, arg_val) :: rest_instructions ->
+    let result_vreg = vreg_of_result_var_id result_var_id in
+    let arg_vreg = emit_value_as_reg arg_val in
+    let address =
+      PhysicalAddress
+        {
+          offset = Some (ImmediateOffset 1l);
+          base = NoBase;
+          index_and_scale = Some (arg_vreg, Scale2);
+        }
+    in
+    Gcx.emit ~gcx (Lea (Size32, address, result_vreg));
     gen_instructions rest_instructions
   | Mir.Instruction.StackAlloc _ :: _ -> failwith "StackAlloc instructions removed before asm gen"
 

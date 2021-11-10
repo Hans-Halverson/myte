@@ -82,7 +82,7 @@ module InstructionsMapper = struct
               return
           in
           let func' = this#map_function_value ~block func in
-          let args' = id_map_list (this#map_value ~block) args in
+          let args' = id_map_list (this#map_storable_value ~block) args in
           if return == return' && func == func' && args == args' then
             [instruction]
           else
@@ -94,13 +94,13 @@ module InstructionsMapper = struct
                 id_map (this#map_result_variable ~block) ret return (fun ret' -> (ret', ret_ty)))
               return
           in
-          let args' = id_map_list (this#map_value ~block) args in
+          let args' = id_map_list (this#map_storable_value ~block) args in
           if return == return' && args == args' then
             [instruction]
           else
             mk_instr (CallBuiltin { return = return'; func; args = args' })
         | Ret arg_opt ->
-          let arg_opt' = id_map_opt (this#map_value ~block) arg_opt in
+          let arg_opt' = id_map_opt (this#map_storable_value ~block) arg_opt in
           if arg_opt == arg_opt' then
             [instruction]
           else
@@ -120,7 +120,7 @@ module InstructionsMapper = struct
             mk_instr (Load (result', ptr'))
         | Store (ptr, arg) ->
           let ptr' = this#map_pointer_value ~block ptr in
-          let arg' = this#map_value ~block arg in
+          let arg' = this#map_storable_value ~block arg in
           if ptr == ptr' && arg == arg' then
             [instruction]
           else
@@ -343,6 +343,13 @@ module InstructionsMapper = struct
             [instruction]
           else
             mk_instr (SExt (result', arg', ty))
+        | BoolToValue (result, arg) ->
+          let result' = this#map_result_variable ~block result in
+          let arg' = this#map_bool_value ~block arg in
+          if result == result' && arg == arg' then
+            [instruction]
+          else
+            mk_instr (BoolToValue (result', arg'))
 
       method map_result_variable ~block:_ var_id = var_id
 
@@ -400,6 +407,15 @@ module InstructionsMapper = struct
           (this#map_numeric_value ~block v :> Value.comparable_value)
         | (`PointerL _ | `PointerV _) as v ->
           (this#map_pointer_value ~block v :> Value.comparable_value)
+
+      method map_storable_value ~block value =
+        match value with
+        | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v ->
+          (this#map_numeric_value ~block v :> Value.storable_value)
+        | (`PointerL _ | `PointerV _) as v ->
+          (this#map_pointer_value ~block v :> Value.storable_value)
+        | (`FunctionL _ | `FunctionV _) as v ->
+          (this#map_function_value ~block v :> Value.storable_value)
 
       method map_phis ~block (phis : Block.phi list) =
         List.filter_map

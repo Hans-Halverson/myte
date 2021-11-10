@@ -10,7 +10,7 @@ func void @_init() {
   Ret
 }
 
-func void @test.use<Bool>(bool %0) {
+func void @test.use<Bool>(long %0) {
   Ret
 }
 
@@ -54,7 +54,7 @@ global std.string.String* @test.z = uninitialized
 
 global byte[4] @.S0 = "test"
 
-global bool @test.a1 = true
+global long @test.a1 = 3
 
 func int @test.main() {
   Call void @test.use<Int>(0)
@@ -86,7 +86,7 @@ func void @test.useAll() {
   Call void @test.use<Long>(%5)
   %6 := Load std.string.String* @test.z
   Call void @test.use<String>(%6)
-  %7 := Load bool @test.a1
+  %7 := Load long @test.a1
   Call void @test.use<Bool>(%7)
   Ret
 }

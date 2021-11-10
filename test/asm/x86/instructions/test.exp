@@ -9,17 +9,16 @@ _main:
   movl $0, %eax
   ret
 test.testMemory:
-  movb 8(%rsp), %al
-  testb %al, %al
-  je .L0
+  cmpq $3, 8(%rsp)
+  jne .L0
   movl $1, %eax
   ret
 .L0:
   movl $2, %eax
   ret
 test.testRegister:
-  testb %dil, %dil
-  je .L1
+  cmpq $3, %rdi
+  jne .L1
   movl $1, %eax
   ret
 .L1:

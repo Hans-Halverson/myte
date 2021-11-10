@@ -1,14 +1,14 @@
 global int @t.int1 = 3
 
-global bool @t.bool1 = false
+global long @t.bool1 = 1
 
 global int @t.int2 = -286
 
-global bool @t.bool2 = true
+global long @t.bool2 = 3
 
-global bool @t.mixed = true
+global long @t.mixed = 3
 
-func void @t.useBool(bool %0) {
+func void @t.useBool(long %0) {
   Ret
 }
 
@@ -16,15 +16,16 @@ func void @t.useInt(int %0) {
   Ret
 }
 
-func bool @t.rand() {
-  Ret true
+func long @t.rand() {
+  Ret 3
 }
 
 func int @t.main() {
   Call void @t.useInt(6)
-  Call void @t.useBool(false)
-  %0 := Call bool @t.rand()
-  Call void @t.useBool(true)
+  Call void @t.useBool(1)
+  %0 := Call long @t.rand()
+  %1 := Eq long %0, 3
+  Call void @t.useBool(3)
   Call void @t.useAllGlobals()
   Ret 0
 }
@@ -32,13 +33,13 @@ func int @t.main() {
 func void @t.useAllGlobals() {
   %0 := Load int @t.int1
   Call void @t.useInt(%0)
-  %1 := Load bool @t.bool1
+  %1 := Load long @t.bool1
   Call void @t.useBool(%1)
   %2 := Load int @t.int2
   Call void @t.useInt(%2)
-  %3 := Load bool @t.bool2
+  %3 := Load long @t.bool2
   Call void @t.useBool(%3)
-  %4 := Load bool @t.mixed
+  %4 := Load long @t.mixed
   Call void @t.useBool(%4)
   Ret
 }

@@ -16,8 +16,8 @@ func int @test.NongenericType.foo(test.NongenericType* %0) {
   Ret 1
 }
 
-func bool @test.NongenericType.bar(test.NongenericType* %0) {
-  Ret true
+func long @test.NongenericType.bar(test.NongenericType* %0) {
+  Ret 3
 }
 
 func byte @test.NongenericType.baz(test.NongenericType* %0, byte %1) {
@@ -32,7 +32,7 @@ type _object$test.GenericType<Byte>$test.GenericTrait<Byte> {test.GenericType<By
 
 type _object$test.GenericType<Int>$test.NongenericTrait {test.GenericType<Int>*, fn[2]*}
 
-type test.GenericType<Bool> {bool}
+type test.GenericType<Bool> {long}
 
 type test.GenericType<Byte> {byte}
 
@@ -58,15 +58,15 @@ func int @test.GenericType.foo<Int>(test.GenericType<Int>* %0) {
   Ret 2
 }
 
-func bool @test.GenericType.bar<Bool>(test.GenericType<Bool>* %0) {
-  Ret false
+func long @test.GenericType.bar<Bool>(test.GenericType<Bool>* %0) {
+  Ret 1
 }
 
-func bool @test.GenericType.bar<Int>(test.GenericType<Int>* %0) {
-  Ret false
+func long @test.GenericType.bar<Int>(test.GenericType<Int>* %0) {
+  Ret 1
 }
 
-func bool @test.GenericType.baz<Bool>(test.GenericType<Bool>* %0, bool %1) {
+func long @test.GenericType.baz<Bool>(test.GenericType<Bool>* %0, long %1) {
   Ret %1
 }
 
@@ -92,8 +92,8 @@ func void @test.forceInstantiations() {
   %9 := GetPointer fn[2]*, _object$test.GenericType<Int>$test.NongenericTrait* %7.1
   Store fn[2]* %9, @_vtable$test.GenericType<Int>$test.NongenericTrait
   %10 := CallBuiltin test.GenericType<Bool>* myte_alloc(1)
-  %11 := GetPointer bool, test.GenericType<Bool>* %10.0
-  Store bool %11, true
+  %11 := GetPointer long, test.GenericType<Bool>* %10.0
+  Store long %11, 3
   %12 := CallBuiltin _object$test.GenericType<Bool>$test.NongenericTrait* myte_alloc(1)
   %13 := GetPointer test.GenericType<Bool>*, _object$test.GenericType<Bool>$test.NongenericTrait* %12.0
   Store test.GenericType<Bool>* %13, %10
@@ -116,8 +116,8 @@ func void @test.forceInstantiations() {
   %24 := GetPointer fn[2]*, _object$test.GenericType<Byte>$test.GenericTrait<Byte>* %22.1
   Store fn[2]* %24, @_vtable$test.GenericType<Byte>$test.GenericTrait<Byte>
   %25 := CallBuiltin test.GenericType<Bool>* myte_alloc(1)
-  %26 := GetPointer bool, test.GenericType<Bool>* %25.0
-  Store bool %26, true
+  %26 := GetPointer long, test.GenericType<Bool>* %25.0
+  Store long %26, 3
   %27 := CallBuiltin _object$test.GenericType<Bool>$test.GenericTrait<Bool>* myte_alloc(1)
   %28 := GetPointer test.GenericType<Bool>*, _object$test.GenericType<Bool>$test.GenericTrait<Bool>* %27.0
   Store test.GenericType<Bool>* %28, %25

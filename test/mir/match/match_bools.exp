@@ -1,5 +1,5 @@
-func int @test.test1(bool %0) {
-  %1 := Eq bool %0, false
+func int @test.test1(long %0) {
+  %1 := Eq long %0, 1
   branch %1, @1, @0
 label @0:
   continue @1
@@ -8,16 +8,16 @@ label @1:
   Ret %2
 }
 
-func int @test.test2(bool %0, bool %1) {
-  %2 := Eq bool %0, false
+func int @test.test2(long %0, long %1) {
+  %2 := Eq long %0, 1
   branch %2, @0, @2
 label @0:
-  %3 := Eq bool %1, false
+  %3 := Eq long %1, 1
   branch %3, @4, @1
 label @1:
   continue @4
 label @2:
-  %4 := Eq bool %1, false
+  %4 := Eq long %1, 1
   branch %4, @4, @3
 label @3:
   continue @4

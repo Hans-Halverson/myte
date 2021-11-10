@@ -12,17 +12,17 @@ _main:
   ret
 test.testBool:
   push %rbx
-  movl $8, %edi
+  movl $24, %edi
   call __myte_alloc
   movq %rax, %rbx
   movl $1, (%rbx)
-  movb $1, 4(%rbx)
-  movb $0, 5(%rbx)
+  movq $3, 8(%rbx)
+  movq $1, 16(%rbx)
   movl (%rbx), %edi
   call test.useInt
-  movb 4(%rbx), %dil
+  movq 8(%rbx), %rdi
   call test.useBool
-  movb 5(%rbx), %dil
+  movq 16(%rbx), %rdi
   call test.useBool
   pop %rbx
   ret

@@ -3,9 +3,9 @@ type _ZeroSize {}
 global _ZeroSize @_ZeroSize = uninitialized
 
 func void @test.testSimpleIndexing(std.map.Map<Bool,Byte>* %0) {
-  %1 := Call std.option.Option<Byte>* @std.map.Map.get<Bool,Byte>(%0, true)
+  %1 := Call std.option.Option<Byte>* @std.map.Map.get<Bool,Byte>(%0, 3)
   Call void @test.use<Option<Byte>>(%1)
-  Call void @std.map.Map.add<Bool,Byte>(%0, false, 2)
+  Call void @std.map.Map.add<Bool,Byte>(%0, 1, 2)
   Ret
 }
 
@@ -21,8 +21,8 @@ func void @test.testIndexAfterAccess(test.Rec1* %0, byte %1, std.string.String* 
   Ret
 }
 
-func bool @test.ZeroSize.equals(_ZeroSize* %0) {
-  Ret true
+func long @test.ZeroSize.equals(_ZeroSize* %0) {
+  Ret 3
 }
 
 func int @test.ZeroSize.hash(_ZeroSize* %0) {

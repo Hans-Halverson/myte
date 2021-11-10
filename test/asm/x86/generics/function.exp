@@ -3,10 +3,10 @@
   .text
 test.buildOption$Bool$:
   push %rbx
-  movl %edi, %ebx
-  movl $1, %edi
+  movq %rdi, %rbx
+  movl $8, %edi
   call __myte_alloc
-  movb %bl, (%rax)
+  movq %rbx, (%rax)
   pop %rbx
   ret
 test.buildOption$Int$:
@@ -28,24 +28,24 @@ test.buildOption$Long$:
 test.buildPair$Bool$Bool$:
   push %rbx
   push %r12
-  movl %edi, %r12d
-  movl %esi, %ebx
-  movl $2, %edi
+  movq %rdi, %r12
+  movq %rsi, %rbx
+  movl $16, %edi
   call __myte_alloc
-  movb %r12b, (%rax)
-  movb %bl, 1(%rax)
+  movq %r12, (%rax)
+  movq %rbx, 8(%rax)
   pop %r12
   pop %rbx
   ret
 test.buildPair$Bool$Int$:
   push %rbx
   push %r12
-  movl %edi, %r12d
+  movq %rdi, %r12
   movl %esi, %ebx
-  movl $8, %edi
+  movl $16, %edi
   call __myte_alloc
-  movb %r12b, (%rax)
-  movl %ebx, 4(%rax)
+  movq %r12, (%rax)
+  movl %ebx, 8(%rax)
   pop %r12
   pop %rbx
   ret
@@ -69,7 +69,7 @@ _main:
   movl $0, %eax
   ret
 test.testSingleTypeArg:
-  movb $1, %dil
+  movq $3, %rdi
   call test.buildOption$Bool$
   movl $5, %edi
   call test.buildOption$Int$
@@ -80,11 +80,11 @@ test.testTwoTypeArgs:
   movl $1, %edi
   movl $1, %esi
   call test.buildPair$Int$Int$
-  movb $1, %dil
+  movq $3, %rdi
   movl $1, %esi
   call test.buildPair$Bool$Int$
-  movb $1, %dil
-  movb $1, %sil
+  movq $3, %rdi
+  movq $3, %rsi
   call test.buildPair$Bool$Bool$
   ret
 test.use$Function$:

@@ -1,6 +1,7 @@
 func void @test.testWithoutAltern() {
   Call void @test.use<Int>(1)
-  branch true, @0, @1
+  %0 := Eq long 3, 3
+  branch %0, @0, @1
 label @0:
   Call void @test.use<Int>(2)
   continue @1
@@ -11,7 +12,8 @@ label @1:
 
 func void @test.testWithAltern() {
   Call void @test.use<Int>(1)
-  branch true, @0, @1
+  %0 := Eq long 3, 3
+  branch %0, @0, @1
 label @0:
   Call void @test.use<Int>(2)
   continue @2
@@ -25,10 +27,12 @@ label @2:
 
 func void @test.nested() {
   Call void @test.use<Int>(1)
-  branch true, @0, @4
+  %0 := Eq long 3, 3
+  branch %0, @0, @4
 label @0:
   Call void @test.use<Int>(2)
-  branch false, @1, @2
+  %1 := Eq long 1, 3
+  branch %1, @1, @2
 label @1:
   Call void @test.use<Int>(3)
   continue @3
@@ -40,7 +44,8 @@ label @3:
   continue @8
 label @4:
   Call void @test.use<Int>(6)
-  branch false, @5, @6
+  %2 := Eq long 1, 3
+  branch %2, @5, @6
 label @5:
   Call void @test.use<Int>(7)
   continue @7

@@ -1,4 +1,4 @@
-type $tuple<Unit,Int,Unit,Unit,Bool> {int, bool}
+type $tuple<Unit,Int,Unit,Unit,Bool> {int, long}
 
 func void @test.testZeroSizeTuple() {
   Call void @test.use<(Unit,Unit)>()
@@ -13,8 +13,8 @@ func void @test.testTupleWithZeroSizeFields() {
   %1 := GetPointer int, $tuple<Unit,Int,Unit,Unit,Bool>* %0.0
   Store int %1, 1
   Call void @test.id<Unit>()
-  %2 := GetPointer bool, $tuple<Unit,Int,Unit,Unit,Bool>* %0.1
-  Store bool %2, true
+  %2 := GetPointer long, $tuple<Unit,Int,Unit,Unit,Bool>* %0.1
+  Store long %2, 3
   Call void @test.use<(Unit,Int,Unit,Unit,Bool)>(%0)
   Call void @test.use<Unit>()
   %3 := GetPointer int, $tuple<Unit,Int,Unit,Unit,Bool>* %0.0
@@ -22,8 +22,8 @@ func void @test.testTupleWithZeroSizeFields() {
   Call void @test.use<Int>(%4)
   Call void @test.use<Unit>()
   Call void @test.use<Unit>()
-  %5 := GetPointer bool, $tuple<Unit,Int,Unit,Unit,Bool>* %0.1
-  %6 := Load bool %5
+  %5 := GetPointer long, $tuple<Unit,Int,Unit,Unit,Bool>* %0.1
+  %6 := Load long %5
   Call void @test.use<Bool>(%6)
   Ret
 }
@@ -44,7 +44,7 @@ func void @test.use<(Unit,Unit)>() {
   Ret
 }
 
-func void @test.use<Bool>(bool %0) {
+func void @test.use<Bool>(long %0) {
   Ret
 }
 

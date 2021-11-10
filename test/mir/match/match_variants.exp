@@ -1,14 +1,14 @@
-type test.V1 {byte, byte[11]}
+type test.V1 {byte, byte[23]}
 
-type test.V1::Tuple1 {byte, bool, byte[2], int, byte[4]}
+type test.V1::Tuple1 {byte, byte[7], long, int, byte[4]}
 
-type test.V1::Record1 {byte, byte[3], int, byte, byte[3]}
+type test.V1::Record1 {byte, byte[3], int, byte, byte[15]}
 
 type test.V2 {byte, byte[23]}
 
-type test.V2::Tuple2 {byte, bool, byte[6], test.V1*, byte[8]}
+type test.V2::Tuple2 {byte, byte[7], long, test.V1*}
 
-type test.V2::Record2 {byte, byte[7], test.V2*, bool, byte[7]}
+type test.V2::Record2 {byte, byte[7], test.V2*, long}
 
 func int @test.test1(test.V1* %0) {
   %1 := Load byte %0
@@ -47,9 +47,9 @@ label @3:
   %12 := Eq int %11, 4
   branch %12, @6, @4
 label @4:
-  %13 := GetPointer bool, test.V1::Tuple1* %0.1
-  %14 := Load bool %13
-  %15 := Eq bool %14, true
+  %13 := GetPointer long, test.V1::Tuple1* %0.2
+  %14 := Load long %13
+  %15 := Eq long %14, 3
   branch %15, @6, @5
 label @5:
   continue @6
@@ -84,9 +84,9 @@ label @3:
   %15 := Eq byte %14, 1
   branch %15, @4, @5
 label @4:
-  %16 := GetPointer bool, test.V1::Tuple1* %13.1
-  %17 := Load bool %16
-  %18 := Eq bool %17, true
+  %16 := GetPointer long, test.V1::Tuple1* %13.2
+  %17 := Load long %16
+  %18 := Eq long %17, 3
   branch %18, @6, @5
 label @5:
   continue @6
@@ -124,9 +124,9 @@ label @3:
   %18 := Eq byte %17, 1
   branch %18, @4, @8
 label @4:
-  %19 := GetPointer bool, test.V1::Tuple1* %16.1
-  %20 := Load bool %19
-  %21 := Eq bool %20, true
+  %19 := GetPointer long, test.V1::Tuple1* %16.2
+  %20 := Load long %19
+  %21 := Eq long %20, 3
   branch %21, @5, @8
 label @5:
   %22 := GetPointer int, test.V1::Tuple1* %16.3
@@ -167,19 +167,20 @@ label @3:
   %10 := Phi int @1:%5, @2:%9
   continue @7
 label @4:
-  %11 := GetPointer bool, test.V1::Tuple1* %0.1
-  %12 := Load bool %11
+  %11 := GetPointer long, test.V1::Tuple1* %0.2
+  %12 := Load long %11
   %13 := GetPointer int, test.V1::Tuple1* %0.3
   %14 := Load int %13
-  branch %12, @6, @5
+  %15 := Eq long %12, 3
+  branch %15, @6, @5
 label @5:
   continue @6
 label @6:
-  %15 := Phi int @4:%14, @5:2
+  %16 := Phi int @4:%14, @5:2
   continue @7
 label @7:
-  %16 := Phi int @test.test5:3, @3:%10, @6:%15
-  Ret %16
+  %17 := Phi int @test.test5:3, @3:%10, @6:%16
+  Ret %17
 }
 
 func test.V2* @test.test6(test.V2* %0) {
@@ -208,9 +209,9 @@ label @3:
   %15 := Eq byte %14, 2
   branch %15, @4, @6
 label @4:
-  %16 := GetPointer bool, test.V2::Record2* %13.3
-  %17 := Load bool %16
-  %18 := Eq bool %17, false
+  %16 := GetPointer long, test.V2::Record2* %13.3
+  %17 := Load long %16
+  %18 := Eq long %17, 1
   branch %18, @7, @5
 label @5:
   %19 := GetPointer test.V2*, test.V2::Record2* %13.2

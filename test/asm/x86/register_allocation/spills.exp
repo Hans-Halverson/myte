@@ -2,7 +2,7 @@
 
   .text
 test.cond:
-  movb $1, %al
+  movq $3, %rax
   ret
 _main:
   push $16
@@ -112,8 +112,8 @@ test.testSingleSpillUsingAllRegistersFromLocals:
   push %r15
   subq $8, %rsp
   call test.cond
-  testb %al, %al
-  je .L0
+  cmpq $3, %rax
+  jne .L0
   movl $101, %r15d
   movl $102, %r14d
   movl $103, %r13d

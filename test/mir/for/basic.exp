@@ -1,6 +1,6 @@
 type _ZeroSize {}
 
-func void @test.use<Bool>(bool %0) {
+func void @test.use<Bool>(long %0) {
   Ret
 }
 
@@ -37,14 +37,14 @@ label @2:
   %8 := Call std.vec.VecIterator<Bool>* @std.vec.Vec.toIterator<Bool>(%1)
   continue @3
 label @3:
-  %10 := Phi bool @2:false, @4:%9
+  %10 := Phi long @2:1, @4:%9
   %11 := Call std.option.Option<Bool>* @std.vec.VecIterator.next<Bool>(%8)
   %12 := Load byte %11
   %13 := Eq byte %12, 1
   branch %13, @4, @5
 label @4:
-  %14 := GetPointer bool, std.option.Option<Bool>::Some* %11.1
-  %9 := Load bool %14
+  %14 := GetPointer long, std.option.Option<Bool>::Some* %11.2
+  %9 := Load long %14
   Call void @test.use<Bool>(%9)
   continue @3
 label @5:
@@ -62,10 +62,11 @@ label @0:
   %5 := Eq byte %4, 1
   branch %5, @1, @4
 label @1:
-  %6 := GetPointer bool, std.option.Option<Bool>::Some* %3.1
-  %7 := Load bool %6
-  %8 := LogNot %7
-  branch %8, @3, @2
+  %6 := GetPointer long, std.option.Option<Bool>::Some* %3.2
+  %7 := Load long %6
+  %8 := BitXor long, %7 2
+  %9 := Eq long %8, 3
+  branch %9, @3, @2
 label @2:
   Call void @test.use<Int>(2)
   continue @0
@@ -73,8 +74,8 @@ label @3:
   Call void @test.use<Int>(1)
   continue @4
 label @4:
-  %9 := Phi int @0:%2, @3:1
-  Call void @test.use<Int>(%9)
+  %10 := Phi int @0:%2, @3:1
+  Call void @test.use<Int>(%10)
   Ret
 }
 
@@ -88,10 +89,11 @@ label @0:
   %5 := Eq byte %4, 1
   branch %5, @1, @4
 label @1:
-  %6 := GetPointer bool, std.option.Option<Bool>::Some* %3.1
-  %7 := Load bool %6
-  %8 := LogNot %7
-  branch %8, @2, @3
+  %6 := GetPointer long, std.option.Option<Bool>::Some* %3.2
+  %7 := Load long %6
+  %8 := BitXor long, %7 2
+  %9 := Eq long %8, 3
+  branch %9, @2, @3
 label @2:
   Call void @test.use<Int>(1)
   continue @0

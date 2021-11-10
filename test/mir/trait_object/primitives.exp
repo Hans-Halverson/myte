@@ -1,6 +1,6 @@
 type _ZeroSize {}
 
-type _object$std.bool.Bool$std.string.ToString {bool, byte[7], fn[1]*}
+type _object$std.bool.Bool$std.string.ToString {long, fn[1]*}
 
 global fn[1] @_vtable$std.bool.Bool$std.string.ToString = [@std.bool.Bool.toString]
 
@@ -45,17 +45,17 @@ func void @test.testUnitPromotion() {
   Ret
 }
 
-func void @test.testBoolPromotion(bool %0) {
+func void @test.testBoolPromotion(long %0) {
   %1 := CallBuiltin _object$std.bool.Bool$std.string.ToString* myte_alloc(1)
-  %2 := GetPointer bool, _object$std.bool.Bool$std.string.ToString* %1.0
-  Store bool %2, %0
-  %3 := GetPointer fn[1]*, _object$std.bool.Bool$std.string.ToString* %1.2
+  %2 := GetPointer long, _object$std.bool.Bool$std.string.ToString* %1.0
+  Store long %2, %0
+  %3 := GetPointer fn[1]*, _object$std.bool.Bool$std.string.ToString* %1.1
   Store fn[1]* %3, @_vtable$std.bool.Bool$std.string.ToString
   %4 := Call std.string.String* @test.useToString(%1)
   %5 := CallBuiltin _object$std.bool.Bool$std.string.ToString* myte_alloc(1)
-  %6 := GetPointer bool, _object$std.bool.Bool$std.string.ToString* %5.0
-  Store bool %6, true
-  %7 := GetPointer fn[1]*, _object$std.bool.Bool$std.string.ToString* %5.2
+  %6 := GetPointer long, _object$std.bool.Bool$std.string.ToString* %5.0
+  Store long %6, 3
+  %7 := GetPointer fn[1]*, _object$std.bool.Bool$std.string.ToString* %5.1
   Store fn[1]* %7, @_vtable$std.bool.Bool$std.string.ToString
   %8 := Call std.string.String* @test.useToString(%5)
   Ret

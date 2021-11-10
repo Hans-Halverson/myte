@@ -1,46 +1,46 @@
-type test.RecordType {int, bool}
+type test.RecordType {int, long}
 
-func bool @test.RecordType.getBar(test.RecordType* %0) {
-  %1 := GetPointer bool, test.RecordType* %0.1
-  %2 := Load bool %1
+func long @test.RecordType.getBar(test.RecordType* %0) {
+  %1 := GetPointer long, test.RecordType* %0.1
+  %2 := Load long %1
   Ret %2
 }
 
-func test.RecordType* @test.RecordType.setBar(test.RecordType* %0, bool %1) {
-  %2 := GetPointer bool, test.RecordType* %0.1
-  Store bool %2, %1
+func test.RecordType* @test.RecordType.setBar(test.RecordType* %0, long %1) {
+  %2 := GetPointer long, test.RecordType* %0.1
+  Store long %2, %1
   Ret %0
 }
 
-func bool @test.RecordType.setThenGet(test.RecordType* %0, bool %1) {
+func long @test.RecordType.setThenGet(test.RecordType* %0, long %1) {
   %2 := Call test.RecordType* @test.RecordType.setBar(%0, %1)
-  %3 := Call bool @test.RecordType.getBar(%0)
+  %3 := Call long @test.RecordType.getBar(%0)
   Ret %3
 }
 
 func void @test.testRecordType(test.RecordType* %0) {
-  %1 := Call bool @test.RecordType.setThenGet(%0, true)
+  %1 := Call long @test.RecordType.setThenGet(%0, 3)
   Ret
 }
 
-func bool @test.Trait.getBar<test.InheritsType>(test.InheritsType* %0) {
-  Ret true
+func long @test.Trait.getBar<test.InheritsType>(test.InheritsType* %0) {
+  Ret 3
 }
 
-func test.InheritsType* @test.Trait.setBar<test.InheritsType>(test.InheritsType* %0, bool %1) {
+func test.InheritsType* @test.Trait.setBar<test.InheritsType>(test.InheritsType* %0, long %1) {
   Ret %0
 }
 
-func bool @test.Trait.setThenGet<test.InheritsType>(test.InheritsType* %0, bool %1) {
+func long @test.Trait.setThenGet<test.InheritsType>(test.InheritsType* %0, long %1) {
   %2 := Call test.InheritsType* @test.Trait.setBar<test.InheritsType>(%0, %1)
-  %3 := Call bool @test.Trait.getBar<test.InheritsType>(%0)
+  %3 := Call long @test.Trait.getBar<test.InheritsType>(%0)
   Ret %3
 }
 
 type test.InheritsType {int}
 
 func void @test.testInheritsType(test.InheritsType* %0) {
-  %1 := Call bool @test.Trait.setThenGet<test.InheritsType>(%0, true)
+  %1 := Call long @test.Trait.setThenGet<test.InheritsType>(%0, 3)
   Ret
 }
 

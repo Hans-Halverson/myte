@@ -7,7 +7,7 @@ func void @a.funcA() {
 }
 
 func void @a.useFromB(b.RecB<Byte>* %0) {
-  %1 := Load bool @b.varB
+  %1 := Load long @b.varB
   Call void @b.funcB()
   Ret
 }
@@ -24,7 +24,7 @@ func int @a.main() {
 
 type b.RecB<Byte> {byte}
 
-global bool @b.varB = true
+global long @b.varB = 3
 
 func void @b.funcB() {
   Ret

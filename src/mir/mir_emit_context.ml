@@ -93,39 +93,49 @@ let mk_aggregate ~ecx name loc elements =
 let mk_placeholder_aggregate ~ecx name loc = mk_aggregate ~ecx name loc []
 
 let mk ~pcx =
-  {
-    pcx;
-    main_label = "";
-    blocks = IMap.empty;
-    globals = SMap.empty;
-    funcs = SMap.empty;
-    types = SMap.empty;
-    current_block_builder = None;
-    current_func = ("", Any);
-    current_in_std_lib = false;
-    current_loop_contexts = [];
-    filter_std_lib =
-      (Opts.dump_ir () || Opts.dump_pre_ssa_ir () || Opts.dump_virtual_asm () || Opts.dump_asm ())
-      && not (Opts.dump_stdlib ());
-    variable_to_ptr_var_id = LocMap.empty;
-    param_to_var_id = LocMap.empty;
-    ptr_var_ids_to_ssaify = ISet.empty;
-    adt_sig_to_mir_layout = IMap.empty;
-    trait_sig_to_trait_object_layout = IMap.empty;
-    pending_nongeneric_funcs = SSet.empty;
-    pending_globals = SMap.empty;
-    tuple_instantiations = TypeArgsHashtbl.create 10;
-    generic_func_instantiations = SMap.empty;
-    pending_generic_func_instantiations = SMap.empty;
-    current_type_param_bindings = IMap.empty;
-    func_decl_nodes = SMap.empty;
-    global_variable_decl_nodes = LocMap.empty;
-    in_init = false;
-    last_init_block_builder = None;
-    max_mutable_string_literal_id = 0;
-    max_immutable_string_literal_id = 0;
-    immutable_string_literals = SMap.empty;
-  }
+  let ecx =
+    {
+      pcx;
+      main_label = "";
+      blocks = IMap.empty;
+      globals = SMap.empty;
+      funcs = SMap.empty;
+      types = SMap.empty;
+      current_block_builder = None;
+      current_func = ("", Any);
+      current_in_std_lib = false;
+      current_loop_contexts = [];
+      filter_std_lib =
+        (Opts.dump_ir () || Opts.dump_pre_ssa_ir () || Opts.dump_virtual_asm () || Opts.dump_asm ())
+        && not (Opts.dump_stdlib ());
+      variable_to_ptr_var_id = LocMap.empty;
+      param_to_var_id = LocMap.empty;
+      ptr_var_ids_to_ssaify = ISet.empty;
+      adt_sig_to_mir_layout = IMap.empty;
+      trait_sig_to_trait_object_layout = IMap.empty;
+      pending_nongeneric_funcs = SSet.empty;
+      pending_globals = SMap.empty;
+      tuple_instantiations = TypeArgsHashtbl.create 10;
+      generic_func_instantiations = SMap.empty;
+      pending_generic_func_instantiations = SMap.empty;
+      current_type_param_bindings = IMap.empty;
+      func_decl_nodes = SMap.empty;
+      global_variable_decl_nodes = LocMap.empty;
+      in_init = false;
+      last_init_block_builder = None;
+      max_mutable_string_literal_id = 0;
+      max_immutable_string_literal_id = 0;
+      immutable_string_literals = SMap.empty;
+    }
+  in
+  (* Initialize long block *)
+  ignore
+    (mk_aggregate
+       ~ecx
+       Std_lib.std_long_long
+       (Std_lib.lookup_stdlib_decl_loc Std_lib.std_long_long)
+       [("$header", `LongT); ("value", `LongT)]);
+  ecx
 
 let builders_to_blocks builders =
   IMap.map
@@ -603,7 +613,7 @@ and to_mir_type ~ecx (ty : Types.Type.t) : Type.t option =
   | Types.Type.Unit
   | Never ->
     None
-  | Bool -> Some `BoolT
+  | Bool -> Some `LongT
   | Byte -> Some `ByteT
   | Int -> Some `IntT
   | Long -> Some `LongT

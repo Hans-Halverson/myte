@@ -2,7 +2,7 @@ type _ZeroSize {}
 
 global _ZeroSize @_ZeroSize = uninitialized
 
-func bool @test.use<Bool>(bool %0) {
+func long @test.use<Bool>(long %0) {
   Ret %0
 }
 
@@ -31,7 +31,7 @@ func void @test.testInt() {
   %9 := Call int @test.use<Int>(16)
   %10 := Call int @test.use<Int>(-1)
   %11 := Call int @test.use<Int>(1073741823)
-  %12 := Call bool @test.use<Bool>(false)
+  %12 := Call long @test.use<Bool>(1)
   Ret
 }
 
@@ -48,7 +48,7 @@ func void @test.testByte() {
   %9 := Call int @test.use<Int>(16)
   %10 := Call int @test.use<Int>(-1)
   %11 := Call int @test.use<Int>(1073741823)
-  %12 := Call bool @test.use<Bool>(false)
+  %12 := Call long @test.use<Bool>(1)
   Ret
 }
 
@@ -65,34 +65,34 @@ func void @test.testLong() {
   %9 := Call int @test.use<Int>(16)
   %10 := Call int @test.use<Int>(-1)
   %11 := Call int @test.use<Int>(1073741823)
-  %12 := Call bool @test.use<Bool>(false)
+  %12 := Call long @test.use<Bool>(1)
   Ret
 }
 
 func void @test.testBool() {
-  %0 := Call bool @test.use<Bool>(false)
-  %1 := Call bool @test.use<Bool>(false)
-  %2 := Call bool @test.use<Bool>(true)
-  %3 := Call bool @test.use<Bool>(false)
-  %4 := Call bool @test.use<Bool>(true)
+  %0 := Call long @test.use<Bool>(1)
+  %1 := Call long @test.use<Bool>(1)
+  %2 := Call long @test.use<Bool>(3)
+  %3 := Call long @test.use<Bool>(1)
+  %4 := Call long @test.use<Bool>(3)
   Ret
 }
 
 func void @test.testUnit() {
-  %0 := Call bool @std.unit.Unit.equals(@_ZeroSize)
-  %1 := Call bool @test.use<Bool>(%0)
-  %2 := Call bool @std.unit.Unit.equals(@_ZeroSize)
-  %3 := LogNot %2
-  %4 := Call bool @test.use<Bool>(%3)
+  %0 := Call long @std.unit.Unit.equals(@_ZeroSize)
+  %1 := Call long @test.use<Bool>(%0)
+  %2 := Call long @std.unit.Unit.equals(@_ZeroSize)
+  %3 := BitXor long, %2 2
+  %4 := Call long @test.use<Bool>(%3)
   Call void @test.unit()
   Call void @test.unit()
-  %5 := Call bool @std.unit.Unit.equals(@_ZeroSize)
-  %6 := Call bool @test.use<Bool>(%5)
+  %5 := Call long @std.unit.Unit.equals(@_ZeroSize)
+  %6 := Call long @test.use<Bool>(%5)
   Call void @test.unit()
   Call void @test.unit()
-  %7 := Call bool @std.unit.Unit.equals(@_ZeroSize)
-  %8 := LogNot %7
-  %9 := Call bool @test.use<Bool>(%8)
+  %7 := Call long @std.unit.Unit.equals(@_ZeroSize)
+  %8 := BitXor long, %7 2
+  %9 := Call long @test.use<Bool>(%8)
   Ret
 }
 

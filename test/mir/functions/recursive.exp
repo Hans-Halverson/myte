@@ -1,35 +1,35 @@
 type test.ConcreteType {int}
 
 func void @test.ConcreteType.recursive(test.ConcreteType* %0) {
-  Call void @test.use<Bool>(true)
+  Call void @test.use<Bool>(3)
   Call void @test.ConcreteType.recursive(%0)
   Ret
 }
 
-type test.GenericType<Bool> {bool}
+type test.GenericType<Bool> {long}
 
 type test.GenericType<Int> {int}
 
 func void @test.GenericType.recursive<Bool>(test.GenericType<Bool>* %0) {
-  Call void @test.use<Bool>(true)
+  Call void @test.use<Bool>(3)
   Call void @test.GenericType.recursive<Bool>(%0)
   Ret
 }
 
 func void @test.GenericType.recursive<Int>(test.GenericType<Int>* %0) {
-  Call void @test.use<Bool>(true)
+  Call void @test.use<Bool>(3)
   Call void @test.GenericType.recursive<Int>(%0)
   Ret
 }
 
 func void @test.concreteFunctionRecursive() {
-  Call void @test.use<Bool>(true)
+  Call void @test.use<Bool>(3)
   Call void @test.concreteFunctionRecursive()
   Ret
 }
 
 func void @test.genericFunctionRecursive<Int>(int %0) {
-  Call void @test.use<Bool>(true)
+  Call void @test.use<Bool>(3)
   Call void @test.genericFunctionRecursive<Int>(%0)
   Ret
 }
@@ -50,7 +50,7 @@ func void @test.testGenericMethodRecursive(test.GenericType<Int>* %0, test.Gener
   Ret
 }
 
-func void @test.use<Bool>(bool %0) {
+func void @test.use<Bool>(long %0) {
   Ret
 }
 

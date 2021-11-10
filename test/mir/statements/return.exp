@@ -8,11 +8,13 @@ func int @test.test2() {
 }
 
 func void @test.returnPreventsContinue() {
-  branch true, @0, @1
+  %0 := Eq long 3, 3
+  branch %0, @0, @1
 label @0:
   Ret
 label @1:
-  branch true, @2, @3
+  %1 := Eq long 3, 3
+  branch %1, @2, @3
 label @2:
   Ret
 label @3:

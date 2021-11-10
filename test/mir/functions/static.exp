@@ -8,15 +8,15 @@ func long @test.Trait2.foo(long %0) {
   Ret %1
 }
 
-func bool @test.Type1.foo(bool %0) {
-  %1 := LogNot %0
+func long @test.Type1.foo(long %0) {
+  %1 := BitXor long, %0 2
   Ret %1
 }
 
 func void @test.test() {
   %0 := Call int @test.Trait1.foo(1)
   %1 := Call long @test.Trait2.foo(1)
-  %2 := Call bool @test.Type1.foo(true)
+  %2 := Call long @test.Type1.foo(3)
   Ret
 }
 

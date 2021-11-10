@@ -6,7 +6,7 @@ func void @test.useOpt1(test.Opt1* %0) {
   Ret
 }
 
-type test.Opt2<Bool> {byte, byte[1]}
+type test.Opt2<Bool> {byte, byte[15]}
 
 type test.Opt2<Int> {byte, byte[7]}
 
@@ -14,7 +14,7 @@ type test.Opt2<String> {byte, byte[15]}
 
 type test.Opt2<test.Opt2<String>> {byte, byte[15]}
 
-type test.Opt2<Bool>::Some2 {byte, bool}
+type test.Opt2<Bool>::Some2 {byte, byte[7], long}
 
 type test.Opt2<Int>::Some2 {byte, byte[3], int}
 

@@ -22,7 +22,7 @@ test.callMethodWithArgs:
   movq (%rcx), %rcx
   movq %rax, %rdi
   movl $1, %esi
-  movb $1, %dl
+  movq $3, %rdx
   callq *%rcx
   ret
 test.callSimpleMethod:

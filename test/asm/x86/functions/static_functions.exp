@@ -15,12 +15,13 @@ test.Trait1.foo:
   xorl %eax, %eax
   cmpl $7, %edi
   sete %al
+  leal 1(, %rax, 2), %eax
   ret
 _main:
   movl $5, %edi
   call test.Trait1.foo
-  testb %al, %al
-  je .L0
+  cmpq $3, %rax
+  jne .L0
   movl $16, %edi
   call __myte_alloc
   leaq .S0(%rip), %rcx
@@ -42,8 +43,8 @@ _main:
 .L1:
   movl $7, %edi
   call test.Trait1.foo
-  testb %al, %al
-  je .L2
+  cmpq $3, %rax
+  jne .L2
   movl $16, %edi
   call __myte_alloc
   leaq .S2(%rip), %rcx

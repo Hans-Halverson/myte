@@ -22,8 +22,8 @@ func std.option.Option<Int>* @test.testUnwrapOptionDifferentType(std.option.Opti
   %2 := Eq byte %1, 1
   branch %2, @0, @1
 label @0:
-  %3 := GetPointer bool, std.option.Option<Bool>::Some* %0.1
-  %4 := Load bool %3
+  %3 := GetPointer long, std.option.Option<Bool>::Some* %0.2
+  %4 := Load long %3
   Call void @test.use<Bool>(%4)
   %5 := CallBuiltin std.option.Option<Int>::Some* myte_alloc(1)
   Store byte %5, 1
@@ -82,7 +82,7 @@ label @1:
   Ret %5
 }
 
-func void @test.use<Bool>(bool %0) {
+func void @test.use<Bool>(long %0) {
   Ret
 }
 

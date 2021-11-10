@@ -6,7 +6,7 @@ func void @test.emptyMap() {
 
 func void @test.oneEntryMap() {
   %0 := Call std.map.Map<Int,Bool>* @std.map.Map.new<Int,Bool>()
-  Call void @std.map.Map.add<Int,Bool>(%0, 1, true)
+  Call void @std.map.Map.add<Int,Bool>(%0, 1, 3)
   %1 := Call std.map.Map<Byte,Long>* @std.map.Map.new<Byte,Long>()
   Call void @std.map.Map.add<Byte,Long>(%1, 2, 3)
   Ret
@@ -15,15 +15,15 @@ func void @test.oneEntryMap() {
 func void @test.multiEntryMap() {
   %0 := Call std.map.Map<Int,Bool>* @std.map.Map.new<Int,Bool>()
   Call void @std.map.Map.reserve<Int,Bool>(%0, 3)
-  Call void @std.map.Map.add<Int,Bool>(%0, 5, true)
-  Call void @std.map.Map.add<Int,Bool>(%0, 6, false)
-  Call void @std.map.Map.add<Int,Bool>(%0, 7, true)
+  Call void @std.map.Map.add<Int,Bool>(%0, 5, 3)
+  Call void @std.map.Map.add<Int,Bool>(%0, 6, 1)
+  Call void @std.map.Map.add<Int,Bool>(%0, 7, 3)
   %1 := Call std.map.Map<Bool,Int>* @std.map.Map.new<Bool,Int>()
   Call void @std.map.Map.reserve<Bool,Int>(%1, 4)
-  Call void @std.map.Map.add<Bool,Int>(%1, false, 3)
-  Call void @std.map.Map.add<Bool,Int>(%1, true, 4)
-  Call void @std.map.Map.add<Bool,Int>(%1, false, 5)
-  Call void @std.map.Map.add<Bool,Int>(%1, true, 6)
+  Call void @std.map.Map.add<Bool,Int>(%1, 1, 3)
+  Call void @std.map.Map.add<Bool,Int>(%1, 3, 4)
+  Call void @std.map.Map.add<Bool,Int>(%1, 1, 5)
+  Call void @std.map.Map.add<Bool,Int>(%1, 3, 6)
   Ret
 }
 

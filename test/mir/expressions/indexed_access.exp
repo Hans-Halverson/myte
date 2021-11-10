@@ -1,6 +1,6 @@
 type test.Tup1 {int}
 
-type test.Tup2 {std.string.String*, bool, int}
+type test.Tup2 {std.string.String*, long, int}
 
 type test.Tup3 {byte, test.Tup2*, long}
 
@@ -20,8 +20,8 @@ func void @test.testIndexing(test.Tup1* %0, test.Tup2* %1, test.Tup3* %2, test.T
   %6 := Load int %5
   %7 := GetPointer std.string.String*, test.Tup2* %1.0
   %8 := Load std.string.String* %7
-  %9 := GetPointer bool, test.Tup2* %1.1
-  %10 := Load bool %9
+  %9 := GetPointer long, test.Tup2* %1.1
+  %10 := Load long %9
   %11 := GetPointer byte, test.Tup3* %2.0
   %12 := Load byte %11
   %13 := GetPointer test.Tup2*, test.Tup3* %2.1

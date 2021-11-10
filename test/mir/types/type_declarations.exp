@@ -1,14 +1,14 @@
 type test.Tup1 {int}
 
-type test.Tup2 {std.string.String*, bool}
+type test.Tup2 {std.string.String*, long}
 
 type test.Tup3 {test.Tup1*, test.Tup2*, int}
 
 type test.Rec1 {int}
 
-type test.Rec2 {bool, test.Tup2*}
+type test.Rec2 {long, test.Tup2*}
 
-type test.Rec3 {bool, int}
+type test.Rec3 {long, int}
 
 type test.Tup4 {test.Tup5*}
 

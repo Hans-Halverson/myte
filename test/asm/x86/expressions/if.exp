@@ -2,7 +2,7 @@
 
   .text
 test.bool:
-  movb $1, %al
+  movq $3, %rax
   ret
 _main:
   leaq test.testSimpleIf(%rip), %rdi
@@ -19,8 +19,8 @@ test.testIfWithExpressions:
   movl %edi, %r12d
   movl %esi, %ebx
   call test.bool
-  testb %al, %al
-  je .L0
+  cmpq $3, %rax
+  jne .L0
   addl %r12d, %ebx
   jmp .L1
 .L0:
@@ -34,11 +34,11 @@ test.testIfWithExpressions:
   ret
 test.testNestedIfStatementInExpressionPosition:
   call test.bool
-  testb %al, %al
-  je .L4
+  cmpq $3, %rax
+  jne .L4
   call test.bool
-  testb %al, %al
-  je .L2
+  cmpq $3, %rax
+  jne .L2
   movl $1, %eax
   jmp .L3
 .L2:
@@ -47,8 +47,8 @@ test.testNestedIfStatementInExpressionPosition:
   jmp .L7
 .L4:
   call test.bool
-  testb %al, %al
-  je .L5
+  cmpq $3, %rax
+  jne .L5
   movl $3, %eax
   jmp .L6
 .L5:
@@ -58,8 +58,8 @@ test.testNestedIfStatementInExpressionPosition:
   ret
 test.testSimpleIf:
   call test.bool
-  testb %al, %al
-  je .L8
+  cmpq $3, %rax
+  jne .L8
   movl $1, %eax
   jmp .L9
 .L8:

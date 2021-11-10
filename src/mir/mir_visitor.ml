@@ -76,22 +76,23 @@ module IRVisitor = struct
           this#visit_result_variable ~block result
         | Call { return; func; args } ->
           this#visit_function_value ~block func;
-          List.iter (this#visit_value ~block) args;
+          List.iter (fun value -> this#visit_value ~block (value :> Value.t)) args;
           (match return with
           | None -> ()
           | Some (ret, _ret_ty) -> this#visit_result_variable ~block ret)
         | CallBuiltin { return; func = _; args } ->
-          List.iter (this#visit_value ~block) args;
+          List.iter (fun value -> this#visit_value ~block (value :> Value.t)) args;
           (match return with
           | None -> ()
           | Some (ret, _ret_ty) -> this#visit_result_variable ~block ret)
-        | Ret arg_opt -> Option.iter (this#visit_value ~block) arg_opt
+        | Ret arg_opt ->
+          Option.iter (fun value -> this#visit_value ~block (value :> Value.t)) arg_opt
         | StackAlloc (result, _ty) -> this#visit_result_variable ~block result
         | Load (result, ptr) ->
           this#visit_pointer_value ~block ptr;
           this#visit_result_variable ~block result
         | Store (ptr, arg) ->
-          this#visit_value ~block arg;
+          this#visit_value ~block (arg :> Value.t);
           this#visit_pointer_value ~block ptr
         | GetPointer { GetPointer.var_id; return_ty = _; pointer; pointer_offset; offsets } ->
           this#visit_pointer_value ~block pointer;
@@ -139,6 +140,9 @@ module IRVisitor = struct
         | Neq (result, left, right) ->
           this#visit_comparable_value ~block left;
           this#visit_comparable_value ~block right;
+          this#visit_result_variable ~block result
+        | BoolToValue (result, arg) ->
+          this#visit_bool_value ~block arg;
           this#visit_result_variable ~block result
 
       method visit_result_variable ~block:_ _var_id = ()

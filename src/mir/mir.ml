@@ -56,6 +56,12 @@ module rec Value : sig
     | numeric_value
     | pointer_value
     ]
+
+  and storable_value =
+    [ numeric_value
+    | function_value
+    | pointer_value
+    ]
 end =
   Value
 
@@ -78,7 +84,7 @@ and Instruction : sig
     type 'a t = {
       return: (var_id * Type.t) option;
       func: 'a;
-      args: Value.t list;
+      args: Value.storable_value list;
     }
   end
 
@@ -87,11 +93,11 @@ and Instruction : sig
   and t' =
     | Call of Value.function_value Call.t
     | CallBuiltin of Builtin.t Call.t
-    | Ret of Value.t option
+    | Ret of Value.storable_value option
     (* Memory operations *)
     | StackAlloc of var_id * Type.t
     | Load of var_id * Value.pointer_value
-    | Store of Value.pointer_value * Value.t
+    | Store of Value.pointer_value * Value.storable_value
     (* Memory offset operations *)
     | GetPointer of var_id GetPointer.t
     (* Logical ops *)
@@ -126,6 +132,7 @@ and Instruction : sig
     (* Conversions *)
     | Trunc of var_id * Value.numeric_value * Type.numeric_type
     | SExt of var_id * Value.numeric_value * Type.numeric_type
+    | BoolToValue of var_id * Value.bool_value
     (* Only generated during MIR destruction *)
     | Mov of var_id * Value.t
 end =
@@ -264,6 +271,11 @@ let cast_to_bool_value (v : Value.t) : Value.bool_value =
   match v with
   | (`BoolL _ | `BoolV _) as v -> v
   | _ -> failwith "Expected bool value"
+
+let cast_to_long_value (v : Value.t) : Value.long_value =
+  match v with
+  | (`LongL _ | `LongV _) as v -> v
+  | _ -> failwith "Expected long value"
 
 let cast_to_numeric_value (v : Value.t) : Value.numeric_value =
   match v with

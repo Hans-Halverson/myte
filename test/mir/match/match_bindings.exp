@@ -1,26 +1,27 @@
 type $tuple<Int,(Int,Bool)> {int, $tuple<Int,Bool>*}
 
-type $tuple<Int,Bool,(Int,(Int,Bool))> {int, bool, $tuple<Int,(Int,Bool)>*}
+type $tuple<Int,Bool,(Int,(Int,Bool))> {int, long, $tuple<Int,(Int,Bool)>*}
 
-type $tuple<Int,Bool> {int, bool}
+type $tuple<Int,Bool> {int, long}
 
 func int @test.test1(int %0) {
   Ret %0
 }
 
-func int @test.test2(int %0, bool %1) {
-  %2 := Eq bool %1, true
+func int @test.test2(int %0, long %1) {
+  %2 := Eq long %1, 3
   branch %2, @3, @0
 label @0:
-  branch %1, @2, @1
+  %3 := Eq long %1, 3
+  branch %3, @2, @1
 label @1:
   continue @2
 label @2:
-  %3 := Phi int @0:1, @1:2
+  %4 := Phi int @0:1, @1:2
   continue @3
 label @3:
-  %4 := Phi int @test.test2:%0, @2:%3
-  Ret %4
+  %5 := Phi int @test.test2:%0, @2:%4
+  Ret %5
 }
 
 func int @test.test3(int %0) {

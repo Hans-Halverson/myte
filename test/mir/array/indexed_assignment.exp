@@ -27,9 +27,9 @@ func void @test.nestedAccesses(std.string.String**** %0, std.string.String** %1)
 
 global byte[4] @.S1 = "test"
 
-type test.Tup1 {byte, test.Rec1**, bool}
+type test.Tup1 {byte, test.Rec1**, long}
 
-type test.Rec1 {bool, byte, std.string.String*}
+type test.Rec1 {long, byte, std.string.String*}
 
 type test.Rec2 {long*, byte}
 

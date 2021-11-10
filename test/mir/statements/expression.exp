@@ -5,18 +5,20 @@ func void @test.testSimpleExpressionStatements() {
   Ret
 }
 
-func void @test.testExpressionStatementSingleValue(bool %0) {
-  branch %0, @1, @0
+func void @test.testExpressionStatementSingleValue(long %0) {
+  %1 := Eq long %0, 3
+  branch %1, @1, @0
 label @0:
   continue @1
 label @1:
-  %1 := Phi int @test.testExpressionStatementSingleValue:1, @0:2
-  Call void @test.use<Int>(%1)
+  %2 := Phi int @test.testExpressionStatementSingleValue:1, @0:2
+  Call void @test.use<Int>(%2)
   Ret
 }
 
-func void @test.testExpressionStatementsBeforeValue(bool %0) {
-  branch %0, @0, @1
+func void @test.testExpressionStatementsBeforeValue(long %0) {
+  %1 := Eq long %0, 3
+  branch %1, @0, @1
 label @0:
   Call void @test.use<Int>(1)
   Call void @test.use<Int>(2)
@@ -25,14 +27,16 @@ label @1:
   Call void @test.use<Bool>(%0)
   continue @2
 label @2:
-  %1 := Phi int @0:1, @1:2
-  Call void @test.use<Int>(%1)
+  %2 := Phi int @0:1, @1:2
+  Call void @test.use<Int>(%2)
   Ret
 }
 
-func void @test.testExpressionStatementUnitValue(bool %0) {
+func void @test.testExpressionStatementUnitValue(long %0) {
+  %1 := Eq long %0, 3
   Call void @test.use<Unit>()
-  branch %0, @0, @1
+  %2 := Eq long %0, 3
+  branch %2, @0, @1
 label @0:
   Call void @test.use<Int>(2)
   continue @1
@@ -41,10 +45,12 @@ label @1:
   Ret
 }
 
-func void @test.testWhileUnitValue(bool %0) {
-  branch %0, @0, @2
+func void @test.testWhileUnitValue(long %0) {
+  %1 := Eq long %0, 3
+  branch %1, @0, @2
 label @0:
-  branch %0, @1, @2
+  %2 := Eq long %0, 3
+  branch %2, @1, @2
 label @1:
   Call void @test.use<Int>(1)
   continue @0
@@ -53,33 +59,36 @@ label @2:
   Ret
 }
 
-func void @test.testForUnitValue(bool %0, std.vec.Vec<Int>* %1) {
-  branch %0, @0, @3
+func void @test.testForUnitValue(long %0, std.vec.Vec<Int>* %1) {
+  %2 := Eq long %0, 3
+  branch %2, @0, @3
 label @0:
-  %2 := Call std.vec.VecIterator<Int>* @std.vec.Vec.toIterator<Int>(%1)
+  %3 := Call std.vec.VecIterator<Int>* @std.vec.Vec.toIterator<Int>(%1)
   continue @1
 label @1:
-  %3 := Call std.option.Option<Int>* @std.vec.VecIterator.next<Int>(%2)
-  %4 := Load byte %3
-  %5 := Eq byte %4, 1
-  branch %5, @2, @3
+  %4 := Call std.option.Option<Int>* @std.vec.VecIterator.next<Int>(%3)
+  %5 := Load byte %4
+  %6 := Eq byte %5, 1
+  branch %6, @2, @3
 label @2:
-  %6 := GetPointer int, std.option.Option<Int>::Some* %3.2
-  %7 := Load int %6
-  Call void @test.use<Int>(%7)
+  %7 := GetPointer int, std.option.Option<Int>::Some* %4.2
+  %8 := Load int %7
+  Call void @test.use<Int>(%8)
   continue @1
 label @3:
   Call void @test.use<Unit>()
   Ret
 }
 
-func void @test.testVariableDeclarationUnitValue(bool %0) {
+func void @test.testVariableDeclarationUnitValue(long %0) {
+  %1 := Eq long %0, 3
   Call void @test.use<Unit>()
   Ret
 }
 
-func void @test.testAssignmentUnitValue(bool %0) {
-  branch %0, @0, @1
+func void @test.testAssignmentUnitValue(long %0) {
+  %1 := Eq long %0, 3
+  branch %1, @0, @1
 label @0:
   Call void @test.use<Int>(1)
   continue @1
@@ -88,7 +97,7 @@ label @1:
   Ret
 }
 
-func void @test.use<Bool>(bool %0) {
+func void @test.use<Bool>(long %0) {
   Ret
 }
 

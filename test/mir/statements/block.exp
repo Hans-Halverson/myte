@@ -1,4 +1,4 @@
-func void @test.use<Bool>(bool %0) {
+func void @test.use<Bool>(long %0) {
   Ret
 }
 
@@ -11,6 +11,6 @@ func int @test.main() {
   Call void @test.use<Int>(77)
   %0 := Mul int 77, 34
   Call void @test.use<Int>(%0)
-  Call void @test.use<Bool>(true)
+  Call void @test.use<Bool>(3)
   Ret 0
 }

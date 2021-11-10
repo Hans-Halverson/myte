@@ -1,6 +1,6 @@
 type test.Rec1 {int}
 
-type test.Rec2 {std.string.String*, bool, int}
+type test.Rec2 {std.string.String*, long, int}
 
 type test.Rec3 {byte, test.Rec2*, long}
 
@@ -24,8 +24,8 @@ func void @test.simpleAccesses(test.Rec1* %0, test.Rec2* %1) {
   Store int %6, 6
   %7 := GetPointer std.string.String*, test.Rec2* %1.0
   Store std.string.String* %7, %3
-  %8 := GetPointer bool, test.Rec2* %1.1
-  Store bool %8, true
+  %8 := GetPointer long, test.Rec2* %1.1
+  Store long %8, 3
   Ret
 }
 

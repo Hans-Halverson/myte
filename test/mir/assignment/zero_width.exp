@@ -40,7 +40,7 @@ func void @test.testAssignVecIndexing(std.vec.Vec<test.ZeroSize>* %0) {
 func void @test.testAssignMapIndexing(std.map.Map<Bool,test.ZeroSize>* %0) {
   Call void @test.getUnit()
   Call void @test.id<test.ZeroSize>()
-  Call void @std.map.Map.add<Bool,test.ZeroSize>(%0, true)
+  Call void @std.map.Map.add<Bool,test.ZeroSize>(%0, 3)
   Ret
 }
 

@@ -236,7 +236,7 @@ and mk_build_phi_nodes_visitor ~cx program func_name sources phi_nodes_to_realiz
       match instr with
       | Store (`PointerV (_, var_id), arg) when IMap.mem var_id cx.stack_alloc_ids ->
         (* Source for this variable is now this write location *)
-        sources := IMap.add var_id (WriteLocation (block.id, instr_id, arg)) !sources
+        sources := IMap.add var_id (WriteLocation (block.id, instr_id, (arg :> Value.t))) !sources
       | Load (load_var_id, `PointerV (_, var_id)) when IMap.mem var_id cx.stack_alloc_ids ->
         (* Save source for each use *)
         let source = IMap.find var_id !sources in

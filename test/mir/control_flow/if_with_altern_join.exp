@@ -1,5 +1,6 @@
 func void @test.testNeitherUpdated() {
-  branch true, @0, @1
+  %0 := Eq long 3, 3
+  branch %0, @0, @1
 label @0:
   Call void @test.use<Int>(0)
   continue @2
@@ -7,59 +8,64 @@ label @1:
   Call void @test.use<Int>(1)
   continue @2
 label @2:
-  %0 := Neg int 1
+  %1 := Neg int 1
   Ret
 }
 
 func void @test.testOnlyFirstUpdated() {
-  branch true, @1, @0
+  %0 := Eq long 3, 3
+  branch %0, @1, @0
 label @0:
   Call void @test.use<Int>(0)
   continue @1
 label @1:
-  %0 := Phi int @test.testOnlyFirstUpdated:2, @0:1
-  %1 := Neg int %0
+  %1 := Phi int @test.testOnlyFirstUpdated:2, @0:1
+  %2 := Neg int %1
   Ret
 }
 
 func void @test.testOnlySecondUpdated() {
-  branch true, @0, @1
+  %0 := Eq long 3, 3
+  branch %0, @0, @1
 label @0:
   Call void @test.use<Int>(0)
   continue @1
 label @1:
-  %0 := Phi int @test.testOnlySecondUpdated:2, @0:1
-  %1 := Neg int %0
+  %1 := Phi int @test.testOnlySecondUpdated:2, @0:1
+  %2 := Neg int %1
   Ret
 }
 
 func void @test.testBothUpdated() {
-  branch true, @1, @0
+  %0 := Eq long 3, 3
+  branch %0, @1, @0
 label @0:
   continue @1
 label @1:
-  %0 := Phi int @test.testBothUpdated:2, @0:3
-  %1 := Neg int %0
+  %1 := Phi int @test.testBothUpdated:2, @0:3
+  %2 := Neg int %1
   Ret
 }
 
 func void @test.testMultiple(int %0) {
-  branch true, @1, @0
+  %1 := Eq long 3, 3
+  branch %1, @1, @0
 label @0:
   continue @1
 label @1:
-  %1 := Phi int @test.testMultiple:3, @0:0
-  %2 := Phi int @test.testMultiple:1, @0:4
-  %3 := Neg int %1
+  %2 := Phi int @test.testMultiple:3, @0:0
+  %3 := Phi int @test.testMultiple:1, @0:4
   %4 := Neg int %2
-  %5 := Neg int %0
+  %5 := Neg int %3
+  %6 := Neg int %0
   Ret
 }
 
 global int @test.glob = 1
 
 func void @test.testGlobal() {
-  branch true, @0, @1
+  %0 := Eq long 3, 3
+  branch %0, @0, @1
 label @0:
   Store int @test.glob, 2
   continue @2
@@ -67,9 +73,10 @@ label @1:
   Call void @test.use<Int>(0)
   continue @2
 label @2:
-  %0 := Load int @test.glob
-  %1 := Neg int %0
-  branch true, @3, @4
+  %1 := Load int @test.glob
+  %2 := Neg int %1
+  %3 := Eq long 3, 3
+  branch %3, @3, @4
 label @3:
   Call void @test.use<Int>(0)
   continue @5
@@ -77,9 +84,10 @@ label @4:
   Store int @test.glob, 3
   continue @5
 label @5:
-  %2 := Load int @test.glob
-  %3 := Neg int %2
-  branch true, @6, @7
+  %4 := Load int @test.glob
+  %5 := Neg int %4
+  %6 := Eq long 3, 3
+  branch %6, @6, @7
 label @6:
   Store int @test.glob, 4
   continue @8
@@ -87,8 +95,8 @@ label @7:
   Store int @test.glob, 5
   continue @8
 label @8:
-  %4 := Load int @test.glob
-  %5 := Neg int %4
+  %7 := Load int @test.glob
+  %8 := Neg int %7
   Ret
 }
 

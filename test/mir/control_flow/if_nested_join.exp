@@ -1,104 +1,116 @@
 func void @test.test1() {
-  branch true, @0, @3
+  %0 := Eq long 3, 3
+  branch %0, @0, @3
 label @0:
-  branch false, @1, @2
+  %1 := Eq long 1, 3
+  branch %1, @1, @2
 label @1:
   continue @2
 label @2:
-  %0 := Phi int @0:1, @1:3
-  %1 := Phi int @0:2, @1:4
+  %2 := Phi int @0:1, @1:3
+  %3 := Phi int @0:2, @1:4
   continue @6
 label @3:
-  branch false, @4, @5
+  %4 := Eq long 1, 3
+  branch %4, @4, @5
 label @4:
   continue @5
 label @5:
-  %2 := Phi int @3:2, @4:5
+  %5 := Phi int @3:2, @4:5
   continue @6
 label @6:
-  %3 := Phi int @2:%0, @5:1
-  %4 := Phi int @2:%1, @5:%2
-  %5 := Neg int %3
-  %6 := Neg int %4
+  %6 := Phi int @2:%2, @5:1
+  %7 := Phi int @2:%3, @5:%5
+  %8 := Neg int %6
+  %9 := Neg int %7
   Ret
 }
 
 func void @test.test2() {
-  branch true, @0, @3
+  %0 := Eq long 3, 3
+  branch %0, @0, @3
 label @0:
-  branch false, @1, @2
+  %1 := Eq long 1, 3
+  branch %1, @1, @2
 label @1:
   continue @2
 label @2:
-  %0 := Phi int @0:1, @1:3
-  %1 := Phi int @0:2, @1:4
-  %2 := Neg int %1
+  %2 := Phi int @0:1, @1:3
+  %3 := Phi int @0:2, @1:4
+  %4 := Neg int %3
   continue @6
 label @3:
-  branch false, @4, @5
+  %5 := Eq long 1, 3
+  branch %5, @4, @5
 label @4:
   continue @5
 label @5:
-  %3 := Phi int @3:2, @4:5
+  %6 := Phi int @3:2, @4:5
   continue @6
 label @6:
-  %4 := Phi int @2:%0, @5:1
-  %5 := Phi int @2:%1, @5:%3
-  %6 := Neg int %4
-  %7 := Neg int %5
+  %7 := Phi int @2:%2, @5:1
+  %8 := Phi int @2:%3, @5:%6
+  %9 := Neg int %7
+  %10 := Neg int %8
   Ret
 }
 
 func void @test.test3() {
-  branch true, @0, @3
+  %0 := Eq long 3, 3
+  branch %0, @0, @3
 label @0:
-  branch false, @1, @2
+  %1 := Eq long 1, 3
+  branch %1, @1, @2
 label @1:
   continue @2
 label @2:
-  %0 := Phi int @0:1, @1:3
-  %1 := Phi int @0:2, @1:4
+  %2 := Phi int @0:1, @1:3
+  %3 := Phi int @0:2, @1:4
   continue @6
 label @3:
-  branch false, @4, @5
+  %4 := Eq long 1, 3
+  branch %4, @4, @5
 label @4:
   continue @5
 label @5:
-  %2 := Phi int @3:2, @4:5
-  %3 := Neg int %2
+  %5 := Phi int @3:2, @4:5
+  %6 := Neg int %5
   continue @6
 label @6:
-  %4 := Phi int @2:%0, @5:1
-  %5 := Phi int @2:%1, @5:%2
-  %6 := Neg int %4
-  %7 := Neg int %5
+  %7 := Phi int @2:%2, @5:1
+  %8 := Phi int @2:%3, @5:%5
+  %9 := Neg int %7
+  %10 := Neg int %8
   Ret
 }
 
 func void @test.test4() {
-  branch true, @0, @3
+  %0 := Eq long 3, 3
+  branch %0, @0, @3
 label @0:
-  branch false, @1, @2
+  %1 := Eq long 1, 3
+  branch %1, @1, @2
 label @1:
   continue @2
 label @2:
-  %0 := Phi int @0:1, @1:3
-  %1 := Phi int @0:2, @1:4
-  %2 := Neg int %1
+  %2 := Phi int @0:1, @1:3
+  %3 := Phi int @0:2, @1:4
+  %4 := Neg int %3
   continue @6
 label @3:
-  branch false, @4, @5
+  %5 := Eq long 1, 3
+  branch %5, @4, @5
 label @4:
   continue @5
 label @5:
-  %3 := Phi int @3:2, @4:5
-  %4 := Neg int %3
+  %6 := Phi int @3:2, @4:5
+  %7 := Neg int %6
   continue @6
 label @6:
-  %5 := Phi int @2:%0, @5:1
-  %6 := Phi int @2:%1, @5:%3
-  %7 := Neg int %5
-  %8 := Neg int %6
+  %8 := Phi int @2:%2, @5:1
+  %9 := Phi int @2:%3, @5:%6
+  %10 := Neg int %8
+  %11 := Neg int %9
   Ret
 }
 
