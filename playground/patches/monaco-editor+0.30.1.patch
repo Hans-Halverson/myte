@@ -1,0 +1,16 @@
+diff --git a/node_modules/monaco-editor/esm/vs/editor/standalone/browser/standaloneLanguages.js b/node_modules/monaco-editor/esm/vs/editor/standalone/browser/standaloneLanguages.js
+index 161a9c7..2fb2e27 100644
+--- a/node_modules/monaco-editor/esm/vs/editor/standalone/browser/standaloneLanguages.js
++++ b/node_modules/monaco-editor/esm/vs/editor/standalone/browser/standaloneLanguages.js
+@@ -133,7 +133,10 @@ export class TokenizationSupport2Adapter {
+         let previousStartIndex = 0;
+         for (let i = 0, len = tokens.length; i < len; i++) {
+             const t = tokens[i];
+-            const metadata = tokenTheme.match(languageId, t.scopes);
++            const metadata = t.scopes.reduce(
++                (metadata, scope) => tokenTheme.match(languageId, scope) | metadata,
++                0
++            );
+             if (resultLen > 0 && result[resultLen - 1] === metadata) {
+                 // same metadata
+                 continue;
