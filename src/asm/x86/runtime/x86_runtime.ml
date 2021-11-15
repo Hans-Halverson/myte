@@ -1,12 +1,13 @@
-let find_runtime_file runtime_basename =
-  let root = Sys.getcwd () in
-  let relative_dir = Filename.dirname __FILE__ in
-  let absolute_dir = Filename.concat root relative_dir in
-  Filename.concat absolute_dir runtime_basename
+(* Write the given runtime file to disk and return its name *)
+let mk_runtime_file name contents =
+  let file = open_out name in
+  output_string file contents;
+  close_out file;
+  name
 
-let macos_runtime_file = find_runtime_file "macos_runtime.S"
+let macos_runtime_file () = mk_runtime_file "macos_runtime.S" Macos_runtime.file
 
-let linux_runtime_file = find_runtime_file "linux_runtime.S"
+let linux_runtime_file () = mk_runtime_file "linux_runtime.S" Linux_runtime.file
 
 let myte_runtime_init_label = "__myte_runtime_init"
 

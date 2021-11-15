@@ -25,13 +25,15 @@ let gen_executable program_asm_file =
   assemble_file program_asm_file program_obj_file;
   Sys.remove program_asm_file;
 
+  let runtime_asm_file = X86_runtime.macos_runtime_file () in
   let runtime_obj_file = output_file ^ ".runtime" in
-  assemble_file X86_runtime.macos_runtime_file runtime_obj_file;
+  assemble_file runtime_asm_file runtime_obj_file;
 
   (* Link using system linker *)
   let ret = Sys.command (mk_linker_command output_file program_obj_file runtime_obj_file) in
   Sys.remove program_obj_file;
   Sys.remove runtime_obj_file;
+  Sys.remove runtime_asm_file;
   if ret <> 0 then (
     print_error_message (Printf.sprintf "Linker failed with exit code %d" ret);
     exit 1
