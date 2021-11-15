@@ -1,24 +1,24 @@
-export const RUN_COMMAND = {
-  id: "run",
-  label: "Run",
-};
-
-export const COMMANDS = [
-  RUN_COMMAND,
-  {
+const Commands = {
+  Execute: {
+    id: "execute",
+    label: "Execute",
+  },
+  Compile: {
     id: "compile",
     label: "Compile",
   },
-  {
+  AST: {
     id: "dump-ast",
-    label: "AST",
+    label: "Show AST",
   },
-  {
+  MIR: {
     id: "mir",
-    label: "MIR",
+    label: "Show MIR",
   },
-  {
+  Asm: {
     id: "asm",
-    label: "Assembly",
+    label: "Show Assembly",
   },
-];
+};
+
+module.exports = Commands;
