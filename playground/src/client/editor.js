@@ -5,7 +5,6 @@ export function create(rootElement, options) {
   return monaco.editor.create(rootElement, {
     automaticLayout: true,
     fontSize: 14,
-    lineNumbers: false,
     minimap: {
       enabled: false,
     },

@@ -58,6 +58,7 @@ export default function ResultsPane(props) {
 
       const editor = create(rootRef.current, {
         model,
+        lineNumbers: false,
         // Disable interaction with editor
         readOnly: true,
         domReadOnly: true,
