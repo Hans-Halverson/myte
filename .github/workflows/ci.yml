@@ -11,7 +11,7 @@ jobs:
       - name: Set up OCaml
         uses: ocaml/setup-ocaml@v2
         with:
-          ocaml-compiler: 4.09.0
+          ocaml-compiler: 4.09.1
       - name: Install Myte dependencies
         run: opam install . --deps-only
       - name: Build Myte
@@ -36,8 +36,8 @@ jobs:
           name: myte-build-macos
       - name: Unzip files
         run: |
-         tar -xzf build.tgz
-         rm build.tgz
+          tar -xzf build.tgz
+          rm build.tgz
       - name: Run Myte tests
         run: ./scripts/run_tests
 
@@ -49,7 +49,7 @@ jobs:
       - name: Set up OCaml
         uses: ocaml/setup-ocaml@v2
         with:
-          ocaml-compiler: 4.09.0
+          ocaml-compiler: 4.09.1
       - name: Install Myte dependencies
         run: opam install . --deps-only
       - name: Build Myte
@@ -74,7 +74,7 @@ jobs:
           name: myte-build-linux
       - name: Unzip files
         run: |
-         tar -xzf build.tgz
-         rm build.tgz
+          tar -xzf build.tgz
+          rm build.tgz
       - name: Run Myte tests
         run: ./scripts/run_tests

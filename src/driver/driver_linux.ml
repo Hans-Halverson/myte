@@ -1,11 +1,12 @@
 open Driver_utils
 
 let mk_assembler_command asm_file obj_file =
-  Printf.sprintf "as -o %s %s" (Filename.quote asm_file) (Filename.quote obj_file)
+  Printf.sprintf "%s -o %s %s" (assembler_path) (Filename.quote asm_file) (Filename.quote obj_file)
 
 let mk_linker_command output_file program_obj_file runtime_obj_file =
   Printf.sprintf
-    "ld -e _start -o %s %s %s"
+    "%s -e _start -o %s %s %s"
+    linker_path
     (Filename.quote output_file)
     (Filename.quote program_obj_file)
     (Filename.quote runtime_obj_file)

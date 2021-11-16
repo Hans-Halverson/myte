@@ -5,7 +5,8 @@
   "scripts": {
     "postinstall": "patch-package",
     "build": "webpack",
-    "start": "node ./src/server/server.js"
+    "start": "MYTE_BIN=$(pwd)/../scripts/myte MYTE_STDLIB=$(pwd)/../stdlib node ./src/server/server.js",
+    "package-server": "bash ./package-server.sh"
   },
   "dependencies": {
     "monaco-editor": "0.30.1",

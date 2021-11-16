@@ -1,11 +1,12 @@
 # myte
+
 [![tests](https://github.com/Hans-Halverson/myte/actions/workflows/ci.yml/badge.svg)](https://github.com/Hans-Halverson/myte/actions/workflows/ci.yml)
 
 Myte is an in-progress modern, general-purpose programming language. This repository contains Myte's compiler, standard library, and tooling.
 
 ## Building and testing the compiler
 
-The Myte compiler is written in OCaml (version 4.09.0). To build the compiler from source and run its test suite, check out this repository and run the following commands from the `myte` repository's root directory.
+The Myte compiler is written in OCaml (version 4.09.1). To build the compiler from source and run its test suite, check out this repository and run the following commands from the `myte` repository's root directory.
 
 ### Initial install
 
@@ -13,7 +14,7 @@ First [install opam](https://opam.ocaml.org/doc/Install.html), the OCaml package
 
 ```
 opam init
-opam switch create 4.09.0
+opam switch create 4.09.1
 opam install . --deps-only --yes
 ```
 

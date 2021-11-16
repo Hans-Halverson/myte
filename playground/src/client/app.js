@@ -1,4 +1,4 @@
-const Commands = require("../commands");
+const Commands = require("../server/commands");
 import Header from "./header";
 import Panes from "./panes";
 import RunRequests from "./runRequest";
@@ -18,9 +18,6 @@ export default function App() {
   const [editorText, setEditorText] = useState(INITIAL_EDITOR_TEXT);
   const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState("");
-
-  console.log(editorText);
-  console.log(results);
 
   function onSubmit() {
     setIsRunning(true);

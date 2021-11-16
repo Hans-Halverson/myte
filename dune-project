@@ -19,6 +19,6 @@
  (synopsis "Compiler for the Myte language")
  (description "Compiler for the Myte language")
  (depends
-  (ocaml (= 4.09.0))
+  (ocaml (= 4.09.1))
   (ocamlformat (= 0.14.0))
   (dune (= 2.4.0))))

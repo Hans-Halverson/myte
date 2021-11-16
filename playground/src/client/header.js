@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const Commands = require("../commands");
+const Commands = require("../server/commands");
 
 const PLAY_ICON_SVG = (
   <svg

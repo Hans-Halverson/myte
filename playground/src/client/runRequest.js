@@ -1,3 +1,6 @@
+const RUNNER_SERVICE_URL =
+  "https://km73q57egb.execute-api.us-east-1.amazonaws.com/default/MytePlaygroundRunner";
+
 export default class RunRequests {
   // Every run request gets a unique id
   static nextRequestId = 0;
@@ -21,13 +24,14 @@ export default class RunRequests {
       command,
     };
 
-    return fetch("/run", {
+    return fetch(RUNNER_SERVICE_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
       signal: controller.signal,
+      mode: "cors",
     })
       .then(
         (response) => response.json(),

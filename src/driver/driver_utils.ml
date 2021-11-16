@@ -1,3 +1,15 @@
+let assembler_env_variable = "ASSEMBLER"
+
+let linker_env_variable = "LINKER"
+
+let assembler_path = match (Sys.getenv_opt assembler_env_variable) with
+    | Some path -> path
+    | None -> "as"
+
+let linker_path = match (Sys.getenv_opt linker_env_variable) with
+    | Some path -> path
+    | None -> "ld"
+
 let print_errors errors =
   let errors = List.sort (fun (loc1, _) (loc2, _) -> Loc.compare loc1 loc2) errors in
   Printf.printf
