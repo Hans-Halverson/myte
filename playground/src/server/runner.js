@@ -32,7 +32,7 @@ async function run(program, command) {
   const env = RunEnvironment.setup(program);
   const execCommand = buildExecCommand(env, command);
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     exec(execCommand, { timeout: TIMEOUT }, (error, stdout, stderr) => {
       env.cleanup();
 
@@ -40,14 +40,19 @@ async function run(program, command) {
         console.error(stderr);
       }
 
-      // Check if process was killed
-      if (error?.killed) {
-        resolve({ error: true, results: stdout + `Timed out` });
-      }
-
       const exitCode = error?.code ?? 0;
 
-      resolve({ results: stdout + `Exited with code ${exitCode}` });
+      // Check if process was killed
+      if (error?.killed) {
+        resolve({
+          error: true,
+          results: buildStatusLine(stdout, "Timed out", exitCode),
+        });
+      }
+
+      resolve({
+        results: buildResults(stdout, `Exited with code ${exitCode}`, exitCode),
+      });
     });
   });
 }
@@ -67,6 +72,17 @@ function buildExecCommand(env, command) {
     case Commands.Asm.id:
       return `${prefix} ${MYTE_BIN} ${env.program} --dump-asm`;
   }
+}
+
+function buildResults(resultText, statusMessage, exitCode) {
+  const statusHeader =
+    exitCode === 0 ? `\x1b[32mSuccess:\x1b[0m` : `\x1b[31mFailure:\x1b[0m`;
+
+  if (resultText !== "") {
+    resultText += "\n";
+  }
+
+  return `${resultText}${statusHeader} ${statusMessage}`;
 }
 
 module.exports = { run };

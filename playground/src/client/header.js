@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 const Commands = require("../server/commands");
 
@@ -41,79 +41,161 @@ const CHEVRON_DOWN_SVG = (
 
 function RunButton(props) {
   return (
-    <button className="headerButton runButton" onClick={props.onClick}>
+    <button className="headerButton" onClick={props.onClick}>
       <div className="headerButtonText">Run</div>
       {PLAY_ICON_SVG}
     </button>
   );
 }
 
-function CommandSelector(props) {
+function DropdownButton(props) {
   const [isDropdownActive, setIsDropdownActive] = useState(false);
+  const toggleRef = useRef();
+  const dropdownRef = useRef();
 
-  function disableDropdown() {
+  function onCloseDropdown() {
     setIsDropdownActive(false);
-    document.removeEventListener("click", disableDropdown);
+    document.removeEventListener("click", onCloseDropdown);
   }
 
-  function onOpenDropdown(event) {
-    event.stopPropagation();
+  function onToggleDropdown(event) {
+    if (isDropdownActive) {
+      onCloseDropdown();
+      return;
+    }
+
     setIsDropdownActive(true);
-    document.addEventListener("click", disableDropdown);
+
+    // Clicks outside the dropdown and its trigger will close the dropdown
+    document.addEventListener("click", (event) => {
+      if (
+        dropdownRef.current != null &&
+        dropdownRef.current.contains(event.target)
+      ) {
+        return;
+      }
+
+      onCloseDropdown();
+    });
   }
 
   return (
-    <div className={`dropdown ${isDropdownActive ? "is-active" : ""}`}>
+    <div
+      className={`dropdown ${props.className} ${
+        isDropdownActive ? "is-active" : ""
+      }`}
+      ref={dropdownRef}
+    >
       <div className="dropdown-trigger">
         <button
-          className="headerButton commandButton"
+          className="headerButton"
           aria-haspopup="true"
-          aria-controls="command-selector"
-          onClick={onOpenDropdown}
+          aria-controls={props.id}
+          onClick={onToggleDropdown}
         >
-          <div className="headerButtonText">{props.command.label}</div>
-          {CHEVRON_DOWN_SVG}
+          {props.renderButtonContents()}
         </button>
       </div>
-      <div className="dropdown-menu" id="command-selector" role="menu">
-        <div className="dropdown-content">
-          {Object.values(Commands).map((command) => (
-            <a
-              key={command.id}
-              className="dropdown-item"
-              onClick={() => props.onChangeCommand(command)}
-            >
-              {command.label}
-            </a>
-          ))}
+      <div
+        className="dropdown-menu headerDropdownMenu"
+        id={props.id}
+        role="menu"
+      >
+        <div className="dropdown-content headerDropdownContent">
+          {props.renderDropdownContents(onCloseDropdown)}
         </div>
       </div>
     </div>
   );
 }
 
-function SettingsButton() {
+function CommandSelector(props) {
   return (
-    <button className="headerButton settingsButton">
-      <div className="headerButtonText">Settings</div>
-      {GEAR_ICON_SVG}
-    </button>
+    <DropdownButton
+      id="command-selector"
+      className="commandSelector"
+      renderButtonContents={() => (
+        <>
+          <div className="headerButtonText">{props.command.label}</div>
+          {CHEVRON_DOWN_SVG}
+        </>
+      )}
+      renderDropdownContents={(onCloseDropdown) =>
+        Object.values(Commands).map((command) => {
+          const isSelected = command.id === props.command.id;
+
+          return (
+            <button
+              key={command.id}
+              className={`dropdown-item headerDropdownItem ${
+                isSelected ? "headerDropdownSelectedItem" : ""
+              }`}
+              onClick={() => {
+                props.onChangeCommand(command);
+                onCloseDropdown();
+              }}
+            >
+              <p className="headerDropdownItemTitle">{command.label}</p>
+              <p className="headerDropdownItemBody">{command.description}</p>
+            </button>
+          );
+        })
+      }
+    />
+  );
+}
+
+function SettingsMenu(props) {
+  function onToggleShouldStyleTerminalOutput() {
+    props.onChangeSettings({
+      ...props.settings,
+      shouldStyleTerminalOutput: !props.settings.shouldStyleTerminalOutput,
+    });
+  }
+
+  return (
+    <DropdownButton
+      id="settings-menu"
+      className="settingsMenu"
+      renderButtonContents={() => (
+        <>
+          <div className="headerButtonText">Settings</div>
+          {GEAR_ICON_SVG}
+        </>
+      )}
+      renderDropdownContents={() => (
+        <label className="checkbox headerDropdownCheckbox">
+          <input
+            type="checkbox"
+            className="headerDropdownCheckboxInput"
+            checked={props.settings.shouldStyleTerminalOutput}
+            onChange={onToggleShouldStyleTerminalOutput}
+          />
+          Style Terminal Output
+        </label>
+      )}
+    />
   );
 }
 
 export default function Header(props) {
   return (
-    <div className="header">
+    <header className="header">
       <a className="headerBrand" href="#">
         <img className="headerLogo" src="resources/myte-logo.svg" />
         <div className="headerTitle">MYTE</div>
       </a>
       <RunButton onClick={props.onSubmit} />
       <CommandSelector
-        command={props.command}
-        onChangeCommand={props.onChangeCommand}
+        command={props.settings.command}
+        onChangeCommand={(command) =>
+          props.onChangeSettings({ ...props.settings, command })
+        }
       />
-      <SettingsButton />
-    </div>
+      <SettingsMenu
+        settings={props.settings}
+        onChangeSettings={props.onChangeSettings}
+      />
+    </header>
   );
 }

@@ -1,27 +1,22 @@
-const Commands = require("../server/commands");
 import Header from "./header";
 import Panes from "./panes";
 import RunRequests from "./runRequest";
+import {
+  INITIAL_EDITOR_TEXT,
+  INITIAL_SETTINGS,
+  storeSettings,
+} from "./storage";
 import { useState } from "react";
 
-const INITIAL_EDITOR_TEXT = `module playground
-
-import std.io.println
-
-fun main() {
-  println("Hello world");
-}
-`;
-
 export default function App() {
-  const [command, setCommand] = useState(Commands.Execute);
   const [editorText, setEditorText] = useState(INITIAL_EDITOR_TEXT);
+  const [settings, setSettings] = useState(INITIAL_SETTINGS);
   const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState("");
 
   function onSubmit() {
     setIsRunning(true);
-    RunRequests.send(editorText, command.id).then((results) => {
+    RunRequests.send(editorText, settings.command.id).then((results) => {
       if (!RunRequests.hasInflightRequest()) {
         setIsRunning(false);
       }
@@ -32,11 +27,16 @@ export default function App() {
     });
   }
 
+  function onChangeSettings(settings) {
+    storeSettings(settings);
+    setSettings(settings);
+  }
+
   return (
     <div className="root">
       <Header
-        command={command}
-        onChangeCommand={setCommand}
+        settings={settings}
+        onChangeSettings={onChangeSettings}
         onSubmit={onSubmit}
       />
       <Panes
@@ -44,6 +44,7 @@ export default function App() {
         setEditorText={setEditorText}
         isRunning={isRunning}
         results={results}
+        settings={settings}
       />
     </div>
   );

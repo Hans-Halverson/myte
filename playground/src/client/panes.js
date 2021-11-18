@@ -48,6 +48,7 @@ export default function Panes(props) {
       <PaneDivider offset={cappedEditorWidth} setOffset={setEditorWidth} />
       <ResultsPane
         results={props.results}
+        settings={props.settings}
         isRunning={props.isRunning}
         height={height - 16}
         width={resultsPaneWidth}

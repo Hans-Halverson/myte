@@ -2,6 +2,7 @@ import { INITIAL } from "vscode-textmate";
 import { useEffect, useRef } from "react";
 import { create } from "./editor";
 import monaco from "./monaco";
+import { storeEditorText } from "./storage";
 import { MYTE_LANG_REGISTRY } from "./theme";
 
 function initTokensProvider() {
@@ -45,6 +46,7 @@ export default function Editor(props) {
 
     model.onDidChangeContent(() => {
       const value = model.getValue();
+      storeEditorText(value);
       props.setText(value);
     });
 

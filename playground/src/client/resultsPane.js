@@ -1,13 +1,13 @@
 import { useEffect, useRef } from "react";
 import { INITIAL } from "vscode-textmate";
-import { Parser } from "./ansi";
+import { Color, Parser } from "./ansi";
 import { create } from "./editor";
 import monaco from "./monaco";
 import { COLOR_TO_ID, MYTE_LANG_REGISTRY } from "./theme";
 
 const parser = new Parser();
 
-function initTokensProvider() {
+function setTokensProvider(useColors) {
   const encodedLanguageId = monaco.languages.getEncodedLanguageId("ansi");
   const tokensProvider = {
     getInitialState() {
@@ -21,18 +21,26 @@ function initTokensProvider() {
       for (const span of spans) {
         tokens.push(span.offset);
 
-        // Build metadata for token
-        const foregroundColorId = COLOR_TO_ID[span.foregroundColor] ?? 0;
-        const backgroundColorId = COLOR_TO_ID[span.backgroundColor] ?? 0;
+        if (useColors) {
+          // Build metadata for token
+          const foregroundColorId = COLOR_TO_ID[span.foregroundColor] ?? 0;
+          const backgroundColorId = COLOR_TO_ID[span.backgroundColor] ?? 0;
 
-        const metadata =
-          (encodedLanguageId |
-            (span.attributeFlags << 11) |
-            (foregroundColorId << 14) |
-            (backgroundColorId << 23)) >>>
-          0;
+          const metadata =
+            (encodedLanguageId |
+              (span.attributeFlags << 11) |
+              (foregroundColorId << 14) |
+              (backgroundColorId << 23)) >>>
+            0;
 
-        tokens.push(metadata);
+          tokens.push(metadata);
+        } else if (span.foregroundColor === Color.Hidden) {
+          tokens.push(
+            (encodedLanguageId | (COLOR_TO_ID[Color.Hidden] << 14)) >>> 0
+          );
+        } else {
+          tokens.push(encodedLanguageId >>> 0);
+        }
       }
 
       return { tokens, endState: state };
@@ -48,8 +56,6 @@ export default function ResultsPane(props) {
 
   useEffect(() => {
     if (rootRef.current) {
-      MYTE_LANG_REGISTRY.then(() => initTokensProvider());
-
       const model = monaco.editor.createModel(
         props.results,
         "ansi",
@@ -92,6 +98,12 @@ export default function ResultsPane(props) {
   useEffect(() => {
     parser.clear();
   }, [props.results]);
+
+  useEffect(() => {
+    MYTE_LANG_REGISTRY.then(() =>
+      setTokensProvider(props.settings.shouldStyleTerminalOutput)
+    );
+  }, [props.settings.shouldStyleTerminalOutput]);
 
   return (
     <div className="pane resultsPane">

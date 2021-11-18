@@ -22,10 +22,6 @@ module.exports = {
         use: ["style-loader", "css-loader"],
       },
       {
-        test: /\.ttf$/,
-        use: ["file-loader"],
-      },
-      {
         test: /\.wasm$/,
         loader: "file-loader",
         type: "javascript/auto",
