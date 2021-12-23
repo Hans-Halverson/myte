@@ -1,7 +1,7 @@
 open Driver_utils
 
 let mk_assembler_command asm_file obj_file =
-  Printf.sprintf "%s -o %s %s" (assembler_path) (Filename.quote asm_file) (Filename.quote obj_file)
+  Printf.sprintf "%s -o %s %s" assembler_path (Filename.quote asm_file) (Filename.quote obj_file)
 
 let mk_linker_command output_file program_obj_file runtime_obj_file =
   Printf.sprintf
@@ -26,15 +26,11 @@ let gen_executable program_asm_file =
   assemble_file program_asm_file program_obj_file;
   Sys.remove program_asm_file;
 
-  let runtime_asm_file = X86_runtime.linux_runtime_file () in
-  let runtime_obj_file = output_file ^ ".runtime" in
-  assemble_file runtime_asm_file runtime_obj_file;
+  let runtime_obj_file = X86_runtime.linux_runtime_file () in
 
   (* Link using system linker *)
   let ret = Sys.command (mk_linker_command output_file program_obj_file runtime_obj_file) in
   Sys.remove program_obj_file;
-  Sys.remove runtime_obj_file;
-  Sys.remove runtime_asm_file;
   if ret <> 0 then (
     print_error_message (Printf.sprintf "Linker failed with exit code %d" ret);
     exit 1

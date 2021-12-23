@@ -1,6 +1,6 @@
 type system =
-  | Darwin
   (* MacOS *)
+  | Darwin
   | Linux
 
 type architecture = X86_64

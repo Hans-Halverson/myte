@@ -4,13 +4,15 @@
 
 Myte is an in-progress modern, general-purpose programming language. This repository contains Myte's compiler, standard library, and tooling.
 
+You can play around with the Myte language on the Myte Playground at https://mytelang.org/playground/.
+
 ## Building and testing the compiler
 
-The Myte compiler is written in OCaml (version 4.09.1). To build the compiler from source and run its test suite, check out this repository and run the following commands from the `myte` repository's root directory.
+The Myte compiler is written in OCaml (version 4.09.1) with some runtime components in C. To build the compiler from source and run its test suite, check out this repository and run the following commands from the `myte` repository's root directory.
 
 ### Initial install
 
-First [install opam](https://opam.ocaml.org/doc/Install.html), the OCaml package manager. Then navigate to the checked out `myte` directory and run the following commands, which will set up opam and install the correct version of the compiler and dependencies for Myte.
+First install the OCaml package manager [opam](https://opam.ocaml.org/doc/Install.html) and the C compiler [clang](https://releases.llvm.org/download.html). Then navigate to the checked out `myte` directory and run the following commands, which will set up opam and install the correct version of the compiler and dependencies for Myte.
 
 ```
 opam init

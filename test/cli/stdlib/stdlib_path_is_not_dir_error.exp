@@ -1,1 +1,0 @@
-Error: Path to standard library determined to be `./stdlib_path_is_not_dir_error.config`, but there is no directory at that path. Provide a path to the standard library by setting the `$MYTEPATH` environment variable or the `--stdlib` command line option.

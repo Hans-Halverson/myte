@@ -1,1 +1,0 @@
-<BIN> --stdlib=./foo.myte --check --no-pretty-print <MYTE_FILES>

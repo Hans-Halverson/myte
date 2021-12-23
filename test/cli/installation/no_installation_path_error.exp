@@ -1,0 +1,3 @@
+Error: Could not find Myte installation on system.
+
+There may have been an error during installation. Reinstall Myte or provide a path to a valid Myte installation by setting the `$MYTEPATH` environment variable or the `--installation` command line option.

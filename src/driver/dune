@@ -1,4 +1,4 @@
 (library
   (name driver)
   (wrapped false)
-  (libraries myte_common parser analyze mir mir_optimizations asm_x86 asm_x86_runtime))
+  (libraries myte_common parser analyze mir mir_optimizations asm_x86))

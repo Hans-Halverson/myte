@@ -94,7 +94,7 @@ let can_remove_block ~ocx (block : Block.t) =
            continue_block.phis
     in
     let function_start_self_loop = is_start_block && continue_id = block.id in
-    not block_needed_for_phi && not function_start_self_loop
+    (not block_needed_for_phi) && not function_start_self_loop
 
 let remove_block ~ocx block_id =
   let block = get_block ~ocx block_id in

@@ -17,3 +17,14 @@ let strip_root str =
       (String.length str - absolute_root_with_trailing_len)
   else
     str
+
+let join_parts parts =
+  let rec inner prefix parts =
+    match parts with
+    | [] -> prefix
+    | part :: rest -> inner (Filename.concat prefix part) rest
+  in
+  match parts with
+  | [] -> ""
+  | [part] -> part
+  | first :: rest -> inner first rest

@@ -8,4 +8,5 @@ let () =
     exit 1
   );
   Target.detect ();
+  Installation.detect ();
   Driver_myte.compile !files

@@ -1,13 +1,6 @@
-(* Write the given runtime file to disk and return its name *)
-let mk_runtime_file name contents =
-  let file = open_out name in
-  output_string file contents;
-  close_out file;
-  name
+let macos_runtime_file () = Filename.concat (Installation.get_runtime_path ()) "macos.o"
 
-let macos_runtime_file () = mk_runtime_file "macos_runtime.S" Macos_runtime.file
-
-let linux_runtime_file () = mk_runtime_file "linux_runtime.S" Linux_runtime.file
+let linux_runtime_file () = Filename.concat (Installation.get_runtime_path ()) "linux.o"
 
 let myte_runtime_init_label = "__myte_runtime_init"
 

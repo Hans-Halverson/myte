@@ -1,4 +1,0 @@
-(library
-  (name asm_x86_runtime)
-  (wrapped false)
-  (libraries myte_common))

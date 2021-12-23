@@ -236,7 +236,7 @@ module Gcx = struct
     IMap.iter
       (fun _ block ->
         match block.instructions with
-        | [(_, Jmp next_jump_block)] when block.id <> next_jump_block->
+        | [(_, Jmp next_jump_block)] when block.id <> next_jump_block ->
           jump_aliases := IMap.add block.id next_jump_block !jump_aliases
         | _ -> ())
       gcx.blocks_by_id;

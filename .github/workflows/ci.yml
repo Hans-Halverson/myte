@@ -17,7 +17,7 @@ jobs:
       - name: Build Myte
         run: opam exec -- ./scripts/build
       - name: Bundle files
-        run: tar -czf build.tgz _build
+        run: tar -czf build.tgz _build build
       - name: Upload build artifact
         uses: actions/upload-artifact@v2
         with:
@@ -55,7 +55,7 @@ jobs:
       - name: Build Myte
         run: opam exec -- ./scripts/build
       - name: Bundle files
-        run: tar -czf build.tgz _build
+        run: tar -czf build.tgz _build build
       - name: Upload build artifact
         uses: actions/upload-artifact@v2
         with:

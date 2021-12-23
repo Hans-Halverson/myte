@@ -36,15 +36,10 @@ let dump_ir ir =
 (* Stages of compilation *)
 
 let rec parse_and_check_stdlib () =
-  match Std_lib.get_stdlib_path () with
-  | Error err ->
-    print_error_message (Std_lib.pp_error err);
-    exit 1
-  | Ok stdlib_path ->
-    let pcx = Program_context.mk_pcx () in
-    let stdlib_files = Std_lib.get_stdlib_files stdlib_path in
-    parse_and_check ~pcx ~is_stdlib:true stdlib_files;
-    pcx
+  let pcx = Program_context.mk_pcx () in
+  let stdlib_files = Std_lib.get_stdlib_files (Installation.get_stdlib_path ()) in
+  parse_and_check ~pcx ~is_stdlib:true stdlib_files;
+  pcx
 
 and parse_files files =
   let (asts, errors) =

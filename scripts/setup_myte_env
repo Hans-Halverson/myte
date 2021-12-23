@@ -2,6 +2,6 @@
 
 # Only included in other scripts where ROOT_DIR has already been defined
 
-STDLIB_DIR="$ROOT_DIR/stdlib"
+BUILD_DIR="$ROOT_DIR/build"
 
-export MYTEPATH="$STDLIB_DIR"
+export MYTEPATH="$BUILD_DIR"

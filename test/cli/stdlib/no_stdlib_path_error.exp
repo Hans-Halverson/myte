@@ -1,1 +1,0 @@
-Error: Could not determine path to standard library. Provide a path to the standard library by setting the `$MYTEPATH` environment variable or the `--stdlib` command line option.
