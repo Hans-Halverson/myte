@@ -5,28 +5,28 @@ _main:
   push %rbx
   push %r12
   movl $24, %edi
-  call __myte_alloc
+  call _myte_alloc
   movl $0, (%rax)
   movq $0, 8(%rax)
   movb $0, 16(%rax)
   movq %rax, %rdi
   call test.simpleReassign
   movl $16, %edi
-  call __myte_alloc
+  call _myte_alloc
   movq %rax, %rbx
   movq $0, (%rbx)
   movl $16, %edi
-  call __myte_alloc
+  call _myte_alloc
   movq %rax, %r12
   movl $0, (%r12)
   movl $2, %edi
-  call __myte_alloc
+  call _myte_alloc
   movb $0, (%rax)
   movb $0, 1(%rax)
   movq %rax, 8(%r12)
   movq %r12, 8(%rbx)
   movl $2, %edi
-  call __myte_alloc
+  call _myte_alloc
   movb $0, (%rax)
   movb $0, 1(%rax)
   movq %rbx, %rdi

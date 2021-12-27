@@ -1,0 +1,46 @@
+#!/bin/bash
+
+set -e
+
+CURRENT_DIR=$(cd "$(dirname "$0")" && pwd)
+ROOT_DIR=$(dirname "$CURRENT_DIR")
+
+# Set up and build library
+BUILD_DIR="$ROOT_DIR/build"
+rm -rf "$BUILD_DIR"
+mkdir "$BUILD_DIR"
+
+# Copy library files into build directory
+cp -r "$ROOT_DIR/lib" "$BUILD_DIR/lib"
+cd "$BUILD_DIR/lib/runtime"
+
+# Detect current OS
+ALL_OS_NAMES=(linux macos)
+case "$(uname -s)" in
+  Linux)
+    CURRENT_OS=linux
+    ;;
+  Darwin)
+    CURRENT_OS=macos
+    ;;
+  *)
+    echo "Unsupported operating system $(uname -s)"
+    exit 1
+    ;;
+esac
+
+# Filter files to only those for this OS
+FILES=()
+for FILE in *.c *.S; do
+  for OS_NAME in "${ALL_OS_NAMES[@]}"; do
+    if [ "$OS_NAME" != "$CURRENT_OS" ] && [[ "$FILE" = *"$OS_NAME"* ]]; then
+      continue 2
+    fi
+  done
+
+  FILES+=("$FILE")
+done
+
+# Build runtime library
+clang -c "${FILES[@]}" -O2
+ar rcs libmyte.a *.o

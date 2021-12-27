@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 
@@ -13,14 +13,5 @@ opam exec -- dune build myte.exe --no-print-directory "$@"
 cd "$ROOT_DIR/test"
 opam exec -- dune build run_tests.exe --no-print-directory
 
-# Set up and build library
-BUILD_DIR="$ROOT_DIR/build"
-rm -rf "$BUILD_DIR"
-mkdir "$BUILD_DIR"
-
-# Copy library files into build directory
-cp -r "$ROOT_DIR/lib" "$BUILD_DIR/lib"
-
-# Build runtime library
-cd "$BUILD_DIR/lib/runtime"
-clang -c ./*.S
+# Build runtime
+"$CURRENT_DIR/build_runtime"

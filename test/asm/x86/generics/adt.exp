@@ -13,7 +13,7 @@ _main:
 test.testBool:
   push %rbx
   movl $8, %edi
-  call __myte_alloc
+  call _myte_alloc
   movq %rax, %rbx
   movl $1, (%rbx)
   movb $1, 4(%rbx)
@@ -29,7 +29,7 @@ test.testBool:
 test.testInt:
   push %rbx
   movl $12, %edi
-  call __myte_alloc
+  call _myte_alloc
   movq %rax, %rbx
   movl $1, (%rbx)
   movl $2, 4(%rbx)
@@ -45,7 +45,7 @@ test.testInt:
 test.testLong:
   push %rbx
   movl $24, %edi
-  call __myte_alloc
+  call _myte_alloc
   movq %rax, %rbx
   movl $1, (%rbx)
   movq $5, 8(%rbx)

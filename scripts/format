@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 
@@ -11,3 +11,8 @@ MLI_FILES=$(find src test -type f -name "*.mli")
 
 # Intentional word splitting
 opam exec -- ocamlformat -i $ML_FILES $MLI_FILES
+
+# Format C files
+H_FILES=$(find lib -type f -name "*.h")
+C_FILES=$(find lib -type f -name "*.c")
+clang-format -i $H_FILES $C_FILES

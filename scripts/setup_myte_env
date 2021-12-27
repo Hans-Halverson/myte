@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Only included in other scripts where ROOT_DIR has already been defined
 
