@@ -1,5 +1,5 @@
-open X86_gen_context
-open X86_instructions
+open X86_64_gen_context
+open X86_64_instructions
 
 class spill_writer ~gcx =
   object (this)

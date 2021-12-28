@@ -1,6 +1,6 @@
 open Basic_collections
-open X86_gen_context
-open X86_instructions
+open X86_64_gen_context
+open X86_64_instructions
 
 let func_should_save_base_pointer _func = false
 

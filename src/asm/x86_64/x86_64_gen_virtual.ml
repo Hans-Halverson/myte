@@ -1,9 +1,9 @@
 open Basic_collections
 open Mir
 open Mir_type
-open X86_gen_context
-open X86_instructions
-open X86_layout
+open X86_64_gen_context
+open X86_64_instructions
+open X86_64_layout
 
 type resolved_source_value =
   (* An immediate value *)
@@ -908,7 +908,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       let precolored_a = Gcx.mk_precolored ~gcx A in
       let precolored_di = Gcx.mk_precolored ~gcx DI in
       gen_size_from_count_and_type ~gcx ~func (List.hd args) element_mir_ty precolored_di;
-      Gcx.emit ~gcx (CallL X86_runtime.myte_alloc_label);
+      Gcx.emit ~gcx (CallL X86_64_runtime.myte_alloc_label);
       Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg (ret_vreg ())))
       (*
        * ===========================================
@@ -921,7 +921,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       let precolored_d = Gcx.mk_precolored ~gcx D in
       gen_call_arguments pointer_args;
       gen_size_from_count_and_type ~gcx ~func count_arg element_mir_ty precolored_d;
-      Gcx.emit ~gcx (CallL X86_runtime.myte_copy_label)
+      Gcx.emit ~gcx (CallL X86_64_runtime.myte_copy_label)
       (*
        * ===========================================
        *                myte_exit
@@ -929,7 +929,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
        *)
     ) else if name = myte_exit.name then (
       gen_call_arguments args;
-      Gcx.emit ~gcx (CallL X86_runtime.myte_exit_label)
+      Gcx.emit ~gcx (CallL X86_64_runtime.myte_exit_label)
       (*
        * ===========================================
        *                myte_write
@@ -938,7 +938,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     ) else if name = myte_write.name then (
       gen_call_arguments args;
       let precolored_a = Gcx.mk_precolored ~gcx A in
-      Gcx.emit ~gcx (CallL X86_runtime.myte_write_label);
+      Gcx.emit ~gcx (CallL X86_64_runtime.myte_write_label);
       Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg (ret_vreg ())))
       (*
        * ===========================================
@@ -948,7 +948,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     ) else if name = myte_read.name then (
       gen_call_arguments args;
       let precolored_a = Gcx.mk_precolored ~gcx A in
-      Gcx.emit ~gcx (CallL X86_runtime.myte_read_label);
+      Gcx.emit ~gcx (CallL X86_64_runtime.myte_read_label);
       Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg (ret_vreg ())))
       (*
        * ===========================================
@@ -958,7 +958,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     ) else if name = myte_open.name then (
       gen_call_arguments args;
       let precolored_a = Gcx.mk_precolored ~gcx A in
-      Gcx.emit ~gcx (CallL X86_runtime.myte_open_label);
+      Gcx.emit ~gcx (CallL X86_64_runtime.myte_open_label);
       Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg (ret_vreg ())))
       (*
        * ===========================================
@@ -968,7 +968,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     ) else if name = myte_close.name then (
       gen_call_arguments args;
       let precolored_a = Gcx.mk_precolored ~gcx A in
-      Gcx.emit ~gcx (CallL X86_runtime.myte_close_label);
+      Gcx.emit ~gcx (CallL X86_64_runtime.myte_close_label);
       Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg (ret_vreg ())))
       (*
        * ===========================================
@@ -978,7 +978,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     ) else if name = myte_unlink.name then (
       gen_call_arguments args;
       let precolored_a = Gcx.mk_precolored ~gcx A in
-      Gcx.emit ~gcx (CallL X86_runtime.myte_unlink_label);
+      Gcx.emit ~gcx (CallL X86_64_runtime.myte_unlink_label);
       Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg (ret_vreg ())))
       (*
        * ===========================================
@@ -987,7 +987,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
        *)
     ) else if name = myte_get_heap_size.name then (
       let precolored_a = Gcx.mk_precolored ~gcx A in
-      Gcx.emit ~gcx (CallL X86_runtime.myte_get_heap_size);
+      Gcx.emit ~gcx (CallL X86_64_runtime.myte_get_heap_size);
       Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg (ret_vreg ())))
     ) else
       failwith (Printf.sprintf "Cannot compile unknown builtin %s to assembly" name);

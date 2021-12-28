@@ -1,12 +1,12 @@
 open Basic_collections
-open X86_gen_context
-open X86_instructions
+open X86_64_gen_context
+open X86_64_instructions
 
 type print_context = { mutable block_print_labels: string IMap.t }
 
 class incoming_jump_blocks_visitor ~(gcx : Gcx.t) =
   object (this)
-    inherit X86_visitor.instruction_visitor
+    inherit X86_64_visitor.instruction_visitor
 
     val mutable incoming_jump_blocks = ISet.empty
 
@@ -453,16 +453,7 @@ let pp_block ~gcx ~pcx ~buf (block : virtual_block) =
     add_label_line ~buf label);
   List.iter (pp_instruction ~gcx ~pcx ~buf) block.instructions
 
-(* let add_system_prefix ~buf =
-  match Target.system () with
-  | Linux -> ()
-  | Darwin ->
-    add_line ~buf (fun buf -> add_string ~buf ".global __myte_read");
-    add_line ~buf (fun buf -> add_string ~buf "__myte_read = read");
-    add_line ~buf (fun buf -> add_string ~buf ".global __myte_write");
-    add_line ~buf (fun buf -> add_string ~buf "__myte_write = write") *)
-
-let pp_x86_program ~gcx =
+let pp_program ~gcx =
   let open Gcx in
   let pcx = mk_pcx ~gcx in
   let buf = mk_buf () in
@@ -472,7 +463,6 @@ let pp_x86_program ~gcx =
     add_line ~buf (fun buf -> add_string ~buf (".global " ^ init_label));
     add_line ~buf (fun buf -> add_string ~buf (".global " ^ Std_lib.std_sys_init))
   );
-  (* add_system_prefix ~buf; *)
   if gcx.bss <> [] then
     List.iter
       (fun { label; size } ->

@@ -91,9 +91,9 @@ let lower_to_ir pcx =
 let lower_to_asm ir =
   let destructed_ir = Mir_ssa_destruction.destruct_ssa ir in
 
-  (* Generate x86 program  *)
-  let gcx = X86_gen.gen_x86_program destructed_ir in
-  let x86_program_file = X86_pp.pp_x86_program ~gcx in
+  (* Generate x86_64 program  *)
+  let gcx = X86_64_gen.gen_program destructed_ir in
+  let program_file = X86_64_pp.pp_program ~gcx in
   let output_file =
     match Opts.output_file () with
     | None ->
@@ -106,7 +106,7 @@ let lower_to_asm ir =
   (* Write textual x86 assembly to output file *)
   try
     let out_chan = open_out output_file in
-    output_string out_chan x86_program_file;
+    output_string out_chan program_file;
     close_out out_chan;
     output_file
   with Sys_error err ->

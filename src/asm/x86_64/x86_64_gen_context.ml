@@ -1,7 +1,7 @@
 open Basic_collections
 open Mir_type
-open X86_instructions
-open X86_layout
+open X86_64_instructions
+open X86_64_layout
 
 module Gcx = struct
   type t = {

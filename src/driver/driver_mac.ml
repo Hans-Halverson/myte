@@ -26,7 +26,7 @@ let gen_executable program_asm_file =
   assemble_file program_asm_file program_obj_file;
   Sys.remove program_asm_file;
 
-  let lib_myte_file = X86_runtime.lib_myte_file () in
+  let lib_myte_file = X86_64_runtime.lib_myte_file () in
 
   (* Link using system linker *)
   let ret = Sys.command (mk_linker_command output_file program_obj_file lib_myte_file) in

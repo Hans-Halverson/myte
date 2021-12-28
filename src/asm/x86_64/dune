@@ -1,4 +1,4 @@
 (library
-  (name asm_x86)
+  (name asm_x86_64)
   (wrapped false)
   (libraries str myte_common mir))

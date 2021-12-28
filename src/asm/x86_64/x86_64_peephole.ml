@@ -1,6 +1,6 @@
 open Basic_collections
-open X86_instructions
-open X86_gen_context
+open X86_64_instructions
+open X86_64_gen_context
 
 (* A peephole optimization edit consists of the number of instructions to remove (1 for the
    current instruction, 2 for the current and next instruction, etc) as well as the new
@@ -66,7 +66,7 @@ class peephole_optimization_runner ~(gcx : Gcx.t) (opts : peephole_optimization 
 (* An instruction mapper which coalesces Lea instructions into the next instruction if applicable *)
 let coalesce_lea_mapper =
   object
-    inherit X86_mapper.instruction_mapper
+    inherit X86_64_mapper.instruction_mapper
 
     val mutable has_coalesced = false
 

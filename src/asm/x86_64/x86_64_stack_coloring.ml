@@ -1,10 +1,10 @@
 open Basic_collections
-open X86_gen_context
-open X86_instructions
+open X86_64_gen_context
+open X86_64_instructions
 
 class vslot_use_def_finder =
   object
-    inherit X86_visitor.instruction_visitor
+    inherit X86_64_visitor.instruction_visitor
 
     val mutable vslot_uses = VRegSet.empty
 
@@ -33,7 +33,7 @@ let find_vslot_use_defs block instruction =
   (finder#vslot_uses, finder#vslot_defs)
 
 let liveness_analysis ~(gcx : Gcx.t) =
-  let (_, live_out) = X86_liveness_analysis.analyze_virtual_stack_slots ~gcx in
+  let (_, live_out) = X86_64_liveness_analysis.analyze_virtual_stack_slots ~gcx in
   let graph = ref VRegMap.empty in
   IMap.iter
     (fun block_id block ->

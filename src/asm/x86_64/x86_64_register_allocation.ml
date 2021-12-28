@@ -1,6 +1,6 @@
 open Basic_collections
-open X86_gen_context
-open X86_instructions
+open X86_64_gen_context
+open X86_64_instructions
 
 (* Assign physical registers to all virtual registers and handle spills.
    Strategy is iterated register coalescing:
@@ -89,12 +89,14 @@ module RegisterAllocator = struct
     }
 
   let liveness_analysis ~(ra : t) =
-    let (_, live_out) = X86_liveness_analysis.analyze_vregs ra.func.blocks ra.gcx.color_to_vreg in
+    let (_, live_out) =
+      X86_64_liveness_analysis.analyze_vregs ra.func.blocks ra.gcx.color_to_vreg
+    in
     ra.live_out <- live_out
 
   class use_def_finder color_to_vreg =
     object
-      inherit X86_liveness_analysis.use_def_finder color_to_vreg
+      inherit X86_64_liveness_analysis.use_def_finder color_to_vreg
 
       val mutable vreg_uses = VRegSet.empty
 
@@ -505,7 +507,7 @@ module RegisterAllocator = struct
         vreg.resolution <- StackSlot (VirtualStackSlot vreg))
       ra.spilled_vregs;
     (* Then rewrite program to include newly resolved memory locations *)
-    let spill_writer = new X86_spill_writer.spill_writer ~gcx:ra.gcx in
+    let spill_writer = new X86_64_spill_writer.spill_writer ~gcx:ra.gcx in
     List.iter (fun block -> spill_writer#write_block_spills block) ra.func.blocks;
     (* Reset state of register allocator *)
     let new_vregs = spill_writer#new_vregs in
@@ -539,7 +541,7 @@ module RegisterAllocator = struct
 
   class allocate_init_visitor =
     object (this)
-      inherit X86_visitor.instruction_visitor
+      inherit X86_64_visitor.instruction_visitor
 
       val mutable vreg_num_use_defs = VRegMap.empty
 

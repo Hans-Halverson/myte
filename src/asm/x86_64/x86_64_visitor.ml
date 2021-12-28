@@ -1,4 +1,4 @@
-open X86_instructions
+open X86_64_instructions
 
 class instruction_visitor =
   object (this)

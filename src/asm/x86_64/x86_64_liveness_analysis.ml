@@ -1,10 +1,10 @@
 open Basic_collections
-open X86_gen_context
-open X86_instructions
+open X86_64_gen_context
+open X86_64_instructions
 
 class use_def_finder color_to_vreg =
   object (this)
-    inherit X86_visitor.instruction_visitor as super
+    inherit X86_64_visitor.instruction_visitor as super
 
     method add_vreg_use ~block:_ _vreg = ()
 
@@ -148,7 +148,7 @@ let analyze_vregs blocks color_to_vreg =
 
 class analyze_virtual_stack_slots_init_visitor ~(gcx : Gcx.t) =
   object (this)
-    inherit X86_visitor.instruction_visitor
+    inherit X86_64_visitor.instruction_visitor
 
     val mutable prev_blocks =
       IMap.fold (fun block_id _ acc -> IMap.add block_id ISet.empty acc) gcx.blocks_by_id IMap.empty
