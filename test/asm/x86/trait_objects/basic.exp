@@ -8,7 +8,7 @@ _vtable$test.Type$test.Trait:
   .text
 test.Type.bar:
   movl $16, %edi
-  call _myte_alloc
+  call __myte_alloc
   movq $0, (%rax)
   movl $0, 8(%rax)
   movl $0, 12(%rax)
@@ -56,7 +56,7 @@ test.testPromotion:
   push %rbx
   movq %rdi, %rbx
   movl $16, %edi
-  call _myte_alloc
+  call __myte_alloc
   movq %rbx, (%rax)
   leaq 8(%rax), %rcx
   leaq _vtable$test.Type$test.Trait(%rip), %rbx

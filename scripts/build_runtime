@@ -42,5 +42,5 @@ for FILE in *.c *.S; do
 done
 
 # Build runtime library
-clang -c "${FILES[@]}" -O2
-ar rcs libmyte.a *.o
+clang -O2 -c "${FILES[@]}"
+ar rcs libmyte.a ./*.o

@@ -30,7 +30,7 @@ test.testBoolPromotion:
   push %rbx
   movl %edi, %ebx
   movl $16, %edi
-  call _myte_alloc
+  call __myte_alloc
   movb %bl, (%rax)
   leaq 8(%rax), %rcx
   leaq _vtable$std.bool.Bool$std.string.ToString(%rip), %rbx
@@ -43,7 +43,7 @@ test.testBytePromotion:
   push %rbx
   movl %edi, %ebx
   movl $16, %edi
-  call _myte_alloc
+  call __myte_alloc
   movb %bl, (%rax)
   leaq 8(%rax), %rcx
   leaq _vtable$std.byte.Byte$std.string.ToString(%rip), %rbx
@@ -56,7 +56,7 @@ test.testIntPromotion:
   push %rbx
   movl %edi, %ebx
   movl $16, %edi
-  call _myte_alloc
+  call __myte_alloc
   movl %ebx, (%rax)
   leaq 8(%rax), %rcx
   leaq _vtable$std.int.Int$std.string.ToString(%rip), %rbx
@@ -69,7 +69,7 @@ test.testLongPromotion:
   push %rbx
   movq %rdi, %rbx
   movl $16, %edi
-  call _myte_alloc
+  call __myte_alloc
   movq %rbx, (%rax)
   leaq 8(%rax), %rcx
   leaq _vtable$std.long.Long$std.string.ToString(%rip), %rbx
@@ -80,7 +80,7 @@ test.testLongPromotion:
   ret
 test.testUnitPromotion:
   movl $16, %edi
-  call _myte_alloc
+  call __myte_alloc
   leaq 8(%rax), %rcx
   leaq _vtable$std.unit.Unit$std.string.ToString(%rip), %rdx
   movq %rdx, (%rcx)

@@ -5,7 +5,7 @@ test.buildOption$Bool$:
   push %rbx
   movl %edi, %ebx
   movl $1, %edi
-  call _myte_alloc
+  call __myte_alloc
   movb %bl, (%rax)
   pop %rbx
   ret
@@ -13,7 +13,7 @@ test.buildOption$Int$:
   push %rbx
   movl %edi, %ebx
   movl $4, %edi
-  call _myte_alloc
+  call __myte_alloc
   movl %ebx, (%rax)
   pop %rbx
   ret
@@ -21,7 +21,7 @@ test.buildOption$Long$:
   push %rbx
   movq %rdi, %rbx
   movl $8, %edi
-  call _myte_alloc
+  call __myte_alloc
   movq %rbx, (%rax)
   pop %rbx
   ret
@@ -31,7 +31,7 @@ test.buildPair$Bool$Bool$:
   movl %edi, %r12d
   movl %esi, %ebx
   movl $2, %edi
-  call _myte_alloc
+  call __myte_alloc
   movb %r12b, (%rax)
   movb %bl, 1(%rax)
   pop %r12
@@ -43,7 +43,7 @@ test.buildPair$Bool$Int$:
   movl %edi, %r12d
   movl %esi, %ebx
   movl $8, %edi
-  call _myte_alloc
+  call __myte_alloc
   movb %r12b, (%rax)
   movl %ebx, 4(%rax)
   pop %r12
@@ -55,7 +55,7 @@ test.buildPair$Int$Int$:
   movl %edi, %r12d
   movl %esi, %ebx
   movl $8, %edi
-  call _myte_alloc
+  call __myte_alloc
   movl %r12d, (%rax)
   movl %ebx, 4(%rax)
   pop %r12

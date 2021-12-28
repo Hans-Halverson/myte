@@ -22,7 +22,7 @@ _main:
   testb %al, %al
   je .L0
   movl $16, %edi
-  call _myte_alloc
+  call __myte_alloc
   leaq .S0(%rip), %rcx
   movq %rcx, (%rax)
   movl $9, 8(%rax)
@@ -32,7 +32,7 @@ _main:
   jmp .L1
 .L0:
   movl $16, %edi
-  call _myte_alloc
+  call __myte_alloc
   leaq .S1(%rip), %rcx
   movq %rcx, (%rax)
   movl $9, 8(%rax)
@@ -45,7 +45,7 @@ _main:
   testb %al, %al
   je .L2
   movl $16, %edi
-  call _myte_alloc
+  call __myte_alloc
   leaq .S2(%rip), %rcx
   movq %rcx, (%rax)
   movl $9, 8(%rax)
@@ -55,7 +55,7 @@ _main:
   jmp .L3
 .L2:
   movl $16, %edi
-  call _myte_alloc
+  call __myte_alloc
   leaq .S3(%rip), %rcx
   movq %rcx, (%rax)
   movl $9, 8(%rax)

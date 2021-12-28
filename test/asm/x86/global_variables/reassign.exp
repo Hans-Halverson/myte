@@ -12,13 +12,13 @@ test.l:
   .text
 _init:
   movl $4, %edi
-  call _myte_alloc
+  call __myte_alloc
   movl $1, (%rax)
   movq %rax, test.t(%rip)
   ret
 _main:
   movl $4, %edi
-  call _myte_alloc
+  call __myte_alloc
   movl $0, (%rax)
   movl $0, %edi
   movq $0, %rsi
@@ -33,7 +33,7 @@ test.testReassignGlobals:
   movq %rax, test.l(%rip)
   movq %rdx, test.t(%rip)
   movl $4, %edi
-  call _myte_alloc
+  call __myte_alloc
   movl $2, (%rax)
   movq %rax, test.t(%rip)
   ret

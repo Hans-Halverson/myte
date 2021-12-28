@@ -10,7 +10,7 @@
   .text
 _init:
   movl $16, %edi
-  call _myte_alloc
+  call __myte_alloc
   leaq .S1(%rip), %rcx
   movq %rcx, (%rax)
   movl $3, 8(%rax)
@@ -26,7 +26,7 @@ _main:
   ret
 test.test:
   movl $16, %edi
-  call _myte_alloc
+  call __myte_alloc
   leaq .S0(%rip), %rcx
   movq %rcx, (%rax)
   movl $6, 8(%rax)

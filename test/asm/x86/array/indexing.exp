@@ -4,7 +4,7 @@
   .text
 _init:
   movl $40, %edi
-  call _myte_alloc
+  call __myte_alloc
   movq %rax, test.intArray(%rip)
   ret
 test.constantIndexing:

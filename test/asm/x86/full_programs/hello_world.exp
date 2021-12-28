@@ -7,7 +7,7 @@
   .text
 _main:
   movl $16, %edi
-  call _myte_alloc
+  call __myte_alloc
   leaq .S0(%rip), %rcx
   movq %rcx, (%rax)
   movl $13, 8(%rax)

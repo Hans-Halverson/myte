@@ -10,18 +10,18 @@ _main:
   ret
 test.testMyteAllocLiteralCount:
   movl $16, %edi
-  call _myte_alloc
+  call __myte_alloc
   movl $800, %edi
-  call _myte_alloc
+  call __myte_alloc
   ret
 test.testMyteAllocVariableCount:
   push %rbx
   movl %edi, %ebx
   movq %rbx, %rdi
-  call _myte_alloc
+  call __myte_alloc
   imulq $4, %rbx, %rdi
-  call _myte_alloc
+  call __myte_alloc
   imulq $8, %rbx, %rdi
-  call _myte_alloc
+  call __myte_alloc
   pop %rbx
   ret
