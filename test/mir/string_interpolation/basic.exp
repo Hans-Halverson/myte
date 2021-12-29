@@ -8,11 +8,11 @@ global int @.IS1Size = 3
 
 func std.string.String* @test.testSingleStringPart() {
   %0 := CallBuiltin std.string.String* myte_alloc(1)
-  %1 := GetPointer byte*, std.string.String* %0.0
+  %1 := GetPointer byte*, std.string.String* %0.2
   Store byte* %1, @.S3
-  %2 := GetPointer int, std.string.String* %0.1
+  %2 := GetPointer int, std.string.String* %0.0
   Store int %2, 3
-  %3 := GetPointer int, std.string.String* %0.2
+  %3 := GetPointer int, std.string.String* %0.1
   Store int %3, 3
   Ret %0
 }
@@ -21,11 +21,11 @@ global byte[3] @.S3 = "foo"
 
 func std.string.String* @test.testSingleExpressionPart() {
   %0 := CallBuiltin std.string.String* myte_alloc(1)
-  %1 := GetPointer byte*, std.string.String* %0.0
+  %1 := GetPointer byte*, std.string.String* %0.2
   Store byte* %1, 0
-  %2 := GetPointer int, std.string.String* %0.1
+  %2 := GetPointer int, std.string.String* %0.0
   Store int %2, 0
-  %3 := GetPointer int, std.string.String* %0.2
+  %3 := GetPointer int, std.string.String* %0.1
   Store int %3, 0
   %4 := Call std.string.String* @std.int.Int.toString(1)
   Call void @std.string.String.append(%0, %4)
@@ -34,11 +34,11 @@ func std.string.String* @test.testSingleExpressionPart() {
 
 func std.string.String* @test.testMultipleParts1() {
   %0 := CallBuiltin std.string.String* myte_alloc(1)
-  %1 := GetPointer byte*, std.string.String* %0.0
+  %1 := GetPointer byte*, std.string.String* %0.2
   Store byte* %1, 0
-  %2 := GetPointer int, std.string.String* %0.1
+  %2 := GetPointer int, std.string.String* %0.0
   Store int %2, 0
-  %3 := GetPointer int, std.string.String* %0.2
+  %3 := GetPointer int, std.string.String* %0.1
   Store int %3, 0
   %4 := Call std.string.String* @std.int.Int.toString(1)
   Call void @std.string.String.append(%0, %4)
@@ -51,11 +51,11 @@ func std.string.String* @test.testMultipleParts1() {
 
 func std.string.String* @test.testMultipleParts2() {
   %0 := CallBuiltin std.string.String* myte_alloc(1)
-  %1 := GetPointer byte*, std.string.String* %0.0
+  %1 := GetPointer byte*, std.string.String* %0.2
   Store byte* %1, @.S1
-  %2 := GetPointer int, std.string.String* %0.1
+  %2 := GetPointer int, std.string.String* %0.0
   Store int %2, 3
-  %3 := GetPointer int, std.string.String* %0.2
+  %3 := GetPointer int, std.string.String* %0.1
   Store int %3, 3
   %4 := Call std.string.String* @std.int.Int.toString(1)
   Call void @std.string.String.append(%0, %4)
@@ -70,11 +70,11 @@ global byte[3] @.S1 = "foo"
 
 func std.string.String* @test.testRepeatedParts() {
   %0 := CallBuiltin std.string.String* myte_alloc(1)
-  %1 := GetPointer byte*, std.string.String* %0.0
+  %1 := GetPointer byte*, std.string.String* %0.2
   Store byte* %1, @.S2
-  %2 := GetPointer int, std.string.String* %0.1
+  %2 := GetPointer int, std.string.String* %0.0
   Store int %2, 3
-  %3 := GetPointer int, std.string.String* %0.2
+  %3 := GetPointer int, std.string.String* %0.1
   Store int %3, 3
   %4 := Call std.string.String* @std.int.Int.toString(1)
   Call void @std.string.String.append(%0, %4)

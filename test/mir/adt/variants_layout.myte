@@ -18,9 +18,9 @@ fun useOpt2(o1: Opt2<Int>, o2: Opt2<Bool>, o3: Opt2<Opt2<String>>) {}
 type V1 =
   | V1Tup1 (Byte, Int, Opt1)
   | V1Tup2 (Byte, Byte, Byte, Int, Opt1)
-  | V2Rec1 { foo: Opt1, bar: Int, baz: Byte }
+  | V2Rec1 { foo: Opt1, bar: Int, baz: Byte, bazz: Opt2<Int> }
   // Padding consolidated at end
-  | V2Rec2 { foo: Byte, bar: Int, baz: Byte }
+  | V2Rec2 { foo: Byte, bar: Int, baz: Byte, bazz: Int }
 
 fun useV1(v: V1) {}
 

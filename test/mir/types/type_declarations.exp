@@ -1,8 +1,8 @@
 type test.Tup1 {int}
 
-type test.Tup2 {std.string.String*, bool}
+type test.Tup2 {bool, std.string.String*}
 
-type test.Tup3 {test.Tup1*, test.Tup2*, int}
+type test.Tup3 {int, test.Tup1*, test.Tup2*}
 
 type test.Rec1 {int}
 

@@ -1,14 +1,14 @@
-type test.V1 {byte, byte[11]}
+type test.V1 {byte, byte[7]}
 
-type test.V1::Tuple1 {byte, bool, byte[2], int, byte[4]}
+type test.V1::Tuple1 {byte, bool, byte[2], int}
 
-type test.V1::Record1 {byte, byte[3], int, byte, byte[3]}
+type test.V1::Record1 {byte, byte, byte[2], int}
 
-type test.V2 {byte, byte[23]}
+type test.V2 {byte, byte[15]}
 
-type test.V2::Tuple2 {byte, bool, byte[6], test.V1*, byte[8]}
+type test.V2::Tuple2 {byte, bool, byte[6], test.V1*}
 
-type test.V2::Record2 {byte, byte[7], test.V2*, bool, byte[7]}
+type test.V2::Record2 {byte, bool, byte[6], test.V2*}
 
 func int @test.test1(test.V1* %0) {
   %1 := Load byte %0
@@ -29,12 +29,12 @@ func int @test.test2(test.V1* %0) {
   %2 := Eq byte %1, 2
   branch %2, @0, @2
 label @0:
-  %3 := GetPointer int, test.V1::Record1* %0.2
+  %3 := GetPointer int, test.V1::Record1* %0.3
   %4 := Load int %3
   %5 := Eq int %4, 2
   branch %5, @6, @1
 label @1:
-  %6 := GetPointer byte, test.V1::Record1* %0.3
+  %6 := GetPointer byte, test.V1::Record1* %0.1
   %7 := Load byte %6
   %8 := Eq byte %7, 2
   branch %8, @6, @5
@@ -63,13 +63,13 @@ func int @test.test3(test.V2* %0) {
   %2 := Eq byte %1, 2
   branch %2, @0, @2
 label @0:
-  %3 := GetPointer test.V2*, test.V2::Record2* %0.2
+  %3 := GetPointer test.V2*, test.V2::Record2* %0.3
   %4 := Load test.V2* %3
   %5 := Load byte %4
   %6 := Eq byte %5, 2
   branch %6, @1, @5
 label @1:
-  %7 := GetPointer test.V2*, test.V2::Record2* %4.2
+  %7 := GetPointer test.V2*, test.V2::Record2* %4.3
   %8 := Load test.V2* %7
   %9 := Load byte %8
   %10 := Eq byte %9, 1
@@ -100,19 +100,19 @@ func int @test.test4(test.V2* %0) {
   %2 := Eq byte %1, 2
   branch %2, @0, @9
 label @0:
-  %3 := GetPointer test.V2*, test.V2::Record2* %0.2
+  %3 := GetPointer test.V2*, test.V2::Record2* %0.3
   %4 := Load test.V2* %3
   %5 := Load byte %4
   %6 := Eq byte %5, 2
   branch %6, @1, @9
 label @1:
-  %7 := GetPointer test.V2*, test.V2::Record2* %4.2
+  %7 := GetPointer test.V2*, test.V2::Record2* %4.3
   %8 := Load test.V2* %7
   %9 := Load byte %8
   %10 := Eq byte %9, 2
   branch %10, @2, @9
 label @2:
-  %11 := GetPointer test.V2*, test.V2::Record2* %8.2
+  %11 := GetPointer test.V2*, test.V2::Record2* %8.3
   %12 := Load test.V2* %11
   %13 := Load byte %12
   %14 := Eq byte %13, 0
@@ -154,9 +154,9 @@ label @0:
   %3 := Eq byte %1, 2
   branch %3, @1, @4
 label @1:
-  %4 := GetPointer int, test.V1::Record1* %0.2
+  %4 := GetPointer int, test.V1::Record1* %0.3
   %5 := Load int %4
-  %6 := GetPointer byte, test.V1::Record1* %0.3
+  %6 := GetPointer byte, test.V1::Record1* %0.1
   %7 := Load byte %6
   %8 := Eq byte %7, 1
   branch %8, @3, @2
@@ -187,13 +187,13 @@ func test.V2* @test.test6(test.V2* %0) {
   %2 := Eq byte %1, 2
   branch %2, @0, @6
 label @0:
-  %3 := GetPointer test.V2*, test.V2::Record2* %0.2
+  %3 := GetPointer test.V2*, test.V2::Record2* %0.3
   %4 := Load test.V2* %3
   %5 := Load byte %4
   %6 := Eq byte %5, 2
   branch %6, @1, @6
 label @1:
-  %7 := GetPointer test.V2*, test.V2::Record2* %4.2
+  %7 := GetPointer test.V2*, test.V2::Record2* %4.3
   %8 := Load test.V2* %7
   %9 := Load byte %8
   %10 := Eq byte %9, 1
@@ -202,18 +202,18 @@ label @2:
   %11 := Eq byte %9, 2
   branch %11, @3, @6
 label @3:
-  %12 := GetPointer test.V2*, test.V2::Record2* %8.2
+  %12 := GetPointer test.V2*, test.V2::Record2* %8.3
   %13 := Load test.V2* %12
   %14 := Load byte %13
   %15 := Eq byte %14, 2
   branch %15, @4, @6
 label @4:
-  %16 := GetPointer bool, test.V2::Record2* %13.3
+  %16 := GetPointer bool, test.V2::Record2* %13.1
   %17 := Load bool %16
   %18 := Eq bool %17, false
   branch %18, @7, @5
 label @5:
-  %19 := GetPointer test.V2*, test.V2::Record2* %13.2
+  %19 := GetPointer test.V2*, test.V2::Record2* %13.3
   %20 := Load test.V2* %19
   continue @7
 label @6:

@@ -32,9 +32,9 @@ type test.V1::V1Tup1 {byte, byte, byte[2], int, test.Opt1*, byte[8]}
 
 type test.V1::V1Tup2 {byte, byte, byte, byte, int, test.Opt1*, byte[8]}
 
-type test.V1::V2Rec1 {byte, byte[7], test.Opt1*, int, byte, byte[3]}
+type test.V1::V2Rec1 {byte, byte, byte[2], int, test.Opt1*, test.Opt2<Int>*}
 
-type test.V1::V2Rec2 {byte, byte, byte[2], int, byte, byte[15]}
+type test.V1::V2Rec2 {byte, byte, byte, byte[1], int, int, byte[12]}
 
 func void @test.useV1(test.V1* %0) {
   Ret

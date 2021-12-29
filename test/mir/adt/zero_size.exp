@@ -12,62 +12,62 @@ func void @test.testZeroSizeADT() {
   Ret
 }
 
-type test.Tup2 {int, byte}
+type test.Tup2 {byte, int}
 
-type test.Rec2 {int, byte}
+type test.Rec2 {byte, int}
 
 func void @test.testAggregateWithZeroSizeFields() {
   %0 := CallBuiltin test.Tup2* myte_alloc(1)
-  %1 := GetPointer int, test.Tup2* %0.0
+  %1 := GetPointer int, test.Tup2* %0.1
   Store int %1, 6
   Call void @test.getUnit()
   Call void @test.id<Unit>()
-  %2 := GetPointer byte, test.Tup2* %0.1
+  %2 := GetPointer byte, test.Tup2* %0.0
   Store byte %2, 5
   Call void @test.use<Unit>()
-  %3 := GetPointer int, test.Tup2* %0.0
+  %3 := GetPointer int, test.Tup2* %0.1
   %4 := Load int %3
   Call void @test.use<Int>(%4)
   Call void @test.use<Unit>()
   Call void @test.use<Unit>()
-  %5 := GetPointer byte, test.Tup2* %0.1
+  %5 := GetPointer byte, test.Tup2* %0.0
   %6 := Load byte %5
   Call void @test.use<Byte>(%6)
   %7 := CallBuiltin test.Rec2* myte_alloc(1)
   Call void @test.getUnit()
-  %8 := GetPointer int, test.Rec2* %7.0
+  %8 := GetPointer int, test.Rec2* %7.1
   Store int %8, 6
   Call void @test.id<Unit>()
-  %9 := GetPointer byte, test.Rec2* %7.1
+  %9 := GetPointer byte, test.Rec2* %7.0
   Store byte %9, 5
   Call void @test.use<Unit>()
-  %10 := GetPointer int, test.Rec2* %7.0
+  %10 := GetPointer int, test.Rec2* %7.1
   %11 := Load int %10
   Call void @test.use<Int>(%11)
   Call void @test.use<Unit>()
-  %12 := GetPointer byte, test.Rec2* %7.1
+  %12 := GetPointer byte, test.Rec2* %7.0
   %13 := Load byte %12
   Call void @test.use<Byte>(%13)
   Ret
 }
 
-type test.Variant1 {byte, byte[11]}
+type test.Variant1 {byte, byte[7]}
 
-type test.Variant1::Tup3 {byte, byte[3], int, byte, byte[3]}
+type test.Variant1::Tup3 {byte, byte, byte[2], int}
 
-type test.Variant1::Rec3 {byte, byte, byte[2], int, byte[4]}
+type test.Variant1::Rec3 {byte, byte, byte[2], int}
 
-type test.Variant1::Tup4 {byte, byte[11]}
+type test.Variant1::Tup4 {byte, byte[7]}
 
-type test.Variant1::Rec4 {byte, byte[11]}
+type test.Variant1::Rec4 {byte, byte[7]}
 
 func void @test.testVariantWithZeroSizeFields() {
   %0 := CallBuiltin test.Variant1::Tup3* myte_alloc(1)
   Store byte %0, 0
-  %1 := GetPointer int, test.Variant1::Tup3* %0.2
+  %1 := GetPointer int, test.Variant1::Tup3* %0.3
   Store int %1, 1
   Call void @test.getUnit()
-  %2 := GetPointer byte, test.Variant1::Tup3* %0.3
+  %2 := GetPointer byte, test.Variant1::Tup3* %0.1
   Store byte %2, 2
   Call void @test.use<test.Variant1>(%0)
   %3 := CallBuiltin test.Variant1::Rec3* myte_alloc(1)

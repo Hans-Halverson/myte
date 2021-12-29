@@ -4,11 +4,11 @@
 _main:
   push %rbx
   push %r12
-  movl $24, %edi
+  movl $16, %edi
   call __myte_alloc
-  movl $0, (%rax)
+  movl $0, 4(%rax)
   movq $0, 8(%rax)
-  movb $0, 16(%rax)
+  movb $0, (%rax)
   movq %rax, %rdi
   call test.simpleReassign
   movl $16, %edi
@@ -44,7 +44,7 @@ test.nestedReassign:
   movq %rsi, 8(%rax)
   ret
 test.simpleReassign:
-  movl $1, (%rdi)
+  movl $1, 4(%rdi)
   movq $2, 8(%rdi)
-  movb $3, 16(%rdi)
+  movb $3, (%rdi)
   ret

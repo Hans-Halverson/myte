@@ -4,18 +4,18 @@
 _main:
   push %rbx
   push %r12
-  movl $24, %edi
+  movl $16, %edi
   call __myte_alloc
   movq %rax, %r12
-  movl $0, (%r12)
+  movl $0, 4(%r12)
   movq $0, 8(%r12)
-  movb $0, 16(%r12)
-  movl $24, %edi
+  movb $0, (%r12)
+  movl $16, %edi
   call __myte_alloc
   movq %rax, %rbx
-  movl $0, (%rbx)
+  movl $0, 4(%rbx)
   movq $0, 8(%rbx)
-  movb $0, 16(%rbx)
+  movb $0, (%rbx)
   movl $3, %edi
   call __myte_alloc
   movb $0, (%rax)
@@ -54,12 +54,12 @@ test.nestedAccess:
   movb 1(%rax), %al
   ret
 test.simpleAccess:
-  movl (%rdi), %eax
+  movl 4(%rdi), %eax
   movq 8(%rdi), %rax
-  movb 16(%rdi), %al
-  movl (%rsi), %eax
+  movb (%rdi), %al
+  movl 4(%rsi), %eax
   movq 8(%rsi), %rax
-  movb 16(%rsi), %al
+  movb (%rsi), %al
   movb (%rdx), %al
   movb 1(%rdx), %al
   movb 2(%rdx), %al

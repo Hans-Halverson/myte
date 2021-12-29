@@ -1,10 +1,10 @@
 func void @_init() {
   %0 := CallBuiltin std.string.String* myte_alloc(1)
-  %1 := GetPointer byte*, std.string.String* %0.0
+  %1 := GetPointer byte*, std.string.String* %0.2
   Store byte* %1, @.S0
-  %2 := GetPointer int, std.string.String* %0.1
+  %2 := GetPointer int, std.string.String* %0.0
   Store int %2, 4
-  %3 := GetPointer int, std.string.String* %0.2
+  %3 := GetPointer int, std.string.String* %0.1
   Store int %3, 4
   Store std.string.String* @test.z, %0
   Ret

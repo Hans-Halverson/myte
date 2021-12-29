@@ -17,20 +17,20 @@ func void @test.multiArgsFunc(int %0, int %1, std.string.String* %2) {
 
 func void @test.directCalls() {
   %0 := CallBuiltin std.string.String* myte_alloc(1)
-  %1 := GetPointer byte*, std.string.String* %0.0
+  %1 := GetPointer byte*, std.string.String* %0.2
   Store byte* %1, @.S0
-  %2 := GetPointer int, std.string.String* %0.1
+  %2 := GetPointer int, std.string.String* %0.0
   Store int %2, 3
-  %3 := GetPointer int, std.string.String* %0.2
+  %3 := GetPointer int, std.string.String* %0.1
   Store int %3, 3
   Call void @test.noArgsFunc()
   %4 := Call int @test.singleArgFunc(33)
   %5 := CallBuiltin std.string.String* myte_alloc(1)
-  %6 := GetPointer byte*, std.string.String* %5.0
+  %6 := GetPointer byte*, std.string.String* %5.2
   Store byte* %6, @.S1
-  %7 := GetPointer int, std.string.String* %5.1
+  %7 := GetPointer int, std.string.String* %5.0
   Store int %7, 4
-  %8 := GetPointer int, std.string.String* %5.2
+  %8 := GetPointer int, std.string.String* %5.1
   Store int %8, 4
   Call void @test.multiArgsFunc(29, 98, %5)
   %9 := Call int @test.singleArgFunc(%4)

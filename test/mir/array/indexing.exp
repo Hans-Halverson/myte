@@ -28,14 +28,14 @@ func void @test.indexingAllIntegerTypes(byte* %0, int %1, byte %2, long %3) {
   Ret
 }
 
-type test.Tup0 {long, byte}
+type test.Tup0 {byte, long}
 
 type test.Tup1 {std.string.String*, bool*}
 
 func void @test.indexingWithTuple(test.Tup0** %0, test.Tup1* %1) {
   %2 := GetPointer test.Tup0*, test.Tup0** %0[int 77]
   %3 := Load test.Tup0* %2
-  %4 := GetPointer byte, test.Tup0* %3.1
+  %4 := GetPointer byte, test.Tup0* %3.0
   %5 := Load byte %4
   %6 := GetPointer bool*, test.Tup1* %1.1
   %7 := Load bool* %6

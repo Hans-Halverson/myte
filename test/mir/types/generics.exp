@@ -12,9 +12,9 @@ type $tuple<Unit,Byte> {byte}
 
 type test.Tup1<(Unit,Byte)> {int, $tuple<Unit,Byte>*}
 
-type test.Tup1<Bool> {int, bool}
+type test.Tup1<Bool> {bool, int}
 
-type test.Tup1<Byte> {int, byte}
+type test.Tup1<Byte> {byte, int}
 
 type test.Tup1<Int> {int, int}
 
@@ -28,7 +28,7 @@ func void @test.duplicateInstances(test.Tup1<Int>* %0, test.Tup1<Int>* %1) {
   Ret
 }
 
-type test.Rec1<Int,Bool> {int, bool}
+type test.Rec1<Int,Bool> {bool, int}
 
 type test.Rec1<Int,Long> {int, long}
 
@@ -52,9 +52,9 @@ func void @test.useAnonTup($tuple<Int,Int>* %0, $tuple<Byte,Long>* %1, $tuple<In
   Ret
 }
 
-type test.TestVec<Int> {$tuple<Int,Int>*, int, int}
+type test.TestVec<Int> {int, int, $tuple<Int,Int>*}
 
-type test.TestVec<Long> {$tuple<Long,Long>*, int, int}
+type test.TestVec<Long> {int, int, $tuple<Long,Long>*}
 
 func void @test.useTestVec(test.TestVec<Int>* %0, test.TestVec<Long>* %1) {
   Ret

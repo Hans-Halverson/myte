@@ -426,30 +426,51 @@ and instantiate_mir_adt_layout
 
     Variants layout
 
+(* Instantiate a template with a set of type parameters, generating packed elements for aggregate *)
 and instantiate_mir_adt_template_elements ~ecx template type_param_bindings =
-  match template with
-  | TupleTemplate element_sigs ->
-    List_utils.filter_mapi
-      (fun i element_sig ->
-        let element_ty = Types.substitute_type_params type_param_bindings element_sig in
-        match to_mir_type ~ecx element_ty with
-        | None -> None
-        | Some mir_type -> Some (TupleKeyCache.get_key i, mir_type))
-      element_sigs
-  | RecordTemplate field_sigs_and_locs ->
-    let aggregate_elements_and_locs =
-      SMap.fold
-        (fun field_name (field_sig, loc) agg_elements ->
-          let element_ty = Types.substitute_type_params type_param_bindings field_sig in
+  let elements =
+    match template with
+    | TupleTemplate element_sigs ->
+      List_utils.filter_mapi
+        (fun i element_sig ->
+          let element_ty = Types.substitute_type_params type_param_bindings element_sig in
           match to_mir_type ~ecx element_ty with
-          | None -> agg_elements
-          | Some mir_type -> ((field_name, mir_type), loc) :: agg_elements)
-        field_sigs_and_locs
-        []
-    in
-    (* Preserve order of fields in source code *)
-    List.sort (fun (_, loc1) (_, loc2) -> Loc.compare loc1 loc2) aggregate_elements_and_locs
-    |> List.map fst
+          | None -> None
+          | Some mir_type -> Some (TupleKeyCache.get_key i, mir_type))
+        element_sigs
+    | RecordTemplate field_sigs_and_locs ->
+      let aggregate_elements_and_locs =
+        SMap.fold
+          (fun field_name (field_sig, loc) agg_elements ->
+            let element_ty = Types.substitute_type_params type_param_bindings field_sig in
+            match to_mir_type ~ecx element_ty with
+            | None -> agg_elements
+            | Some mir_type -> ((field_name, mir_type), loc) :: agg_elements)
+          field_sigs_and_locs
+          []
+      in
+      (* Preserve order of fields in source code *)
+      List.sort (fun (_, loc1) (_, loc2) -> Loc.compare loc1 loc2) aggregate_elements_and_locs
+      |> List.map fst
+  in
+
+  (* Pack elements by first grouping elements by their alignment *)
+  let elements_by_alignment = Array.make 4 [] in
+  List.iter
+    (fun ((_, mir_type) as element) ->
+      let align_index =
+        match alignment_of_type mir_type with
+        | 1 -> 0
+        | 2 -> 1
+        | 4 -> 2
+        | 8 -> 3
+        | _ -> failwith "Invalid alignment"
+      in
+      elements_by_alignment.(align_index) <- element :: elements_by_alignment.(align_index))
+    elements;
+
+  (* Packed order is in increasing order of alignment *)
+  Array.fold_right (fun elements acc -> List.rev elements @ acc) elements_by_alignment []
 
 (* Instantiate a tuple with a particular set of element types. If a tuple with these element types
    has already been instantiated, return its aggregate type. Otherwise create new aggregate type for

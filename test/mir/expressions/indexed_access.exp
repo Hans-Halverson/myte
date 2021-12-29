@@ -1,6 +1,6 @@
 type test.Tup1 {int}
 
-type test.Tup2 {std.string.String*, bool, int}
+type test.Tup2 {bool, int, std.string.String*}
 
 type test.Tup3 {byte, test.Tup2*, long}
 
@@ -18,21 +18,21 @@ func test.Tup1* @test.makeTup(int %0) {
 func void @test.testIndexing(test.Tup1* %0, test.Tup2* %1, test.Tup3* %2, test.Tup4* %3, test.Rec1* %4) {
   %5 := GetPointer int, test.Tup1* %0.0
   %6 := Load int %5
-  %7 := GetPointer std.string.String*, test.Tup2* %1.0
+  %7 := GetPointer std.string.String*, test.Tup2* %1.2
   %8 := Load std.string.String* %7
-  %9 := GetPointer bool, test.Tup2* %1.1
+  %9 := GetPointer bool, test.Tup2* %1.0
   %10 := Load bool %9
   %11 := GetPointer byte, test.Tup3* %2.0
   %12 := Load byte %11
   %13 := GetPointer test.Tup2*, test.Tup3* %2.1
   %14 := Load test.Tup2* %13
-  %15 := GetPointer int, test.Tup2* %14.2
+  %15 := GetPointer int, test.Tup2* %14.1
   %16 := Load int %15
   %17 := GetPointer test.Tup3*, test.Tup4* %3.2
   %18 := Load test.Tup3* %17
   %19 := GetPointer test.Tup2*, test.Tup3* %18.1
   %20 := Load test.Tup2* %19
-  %21 := GetPointer std.string.String*, test.Tup2* %20.0
+  %21 := GetPointer std.string.String*, test.Tup2* %20.2
   %22 := Load std.string.String* %21
   %23 := Mul int 2, 3
   %24 := Call test.Tup1* @test.makeTup(%23)

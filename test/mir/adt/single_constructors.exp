@@ -1,22 +1,22 @@
 type test.Tup1 {int}
 
-type test.Tup2 {bool, long, int}
+type test.Tup2 {bool, int, long}
 
-type test.Tup3 {byte, test.Tup2*, byte}
+type test.Tup3 {byte, byte, test.Tup2*}
 
 type test.Rec1 {int}
 
-type test.Rec2 {bool, long, int}
+type test.Rec2 {bool, int, long}
 
-type test.Rec3 {byte, test.Tup2*, byte}
+type test.Rec3 {byte, byte, test.Tup2*}
 
 func void @test.arguments(int %0) {
   %1 := CallBuiltin test.Tup2* myte_alloc(1)
   %2 := GetPointer bool, test.Tup2* %1.0
   Store bool %2, true
-  %3 := GetPointer long, test.Tup2* %1.1
+  %3 := GetPointer long, test.Tup2* %1.2
   Store long %3, 3
-  %4 := GetPointer int, test.Tup2* %1.2
+  %4 := GetPointer int, test.Tup2* %1.1
   Store int %4, %0
   %5 := CallBuiltin test.Tup3* myte_alloc(1)
   %6 := GetPointer byte, test.Tup3* %5.0
@@ -24,13 +24,13 @@ func void @test.arguments(int %0) {
   %7 := CallBuiltin test.Tup2* myte_alloc(1)
   %8 := GetPointer bool, test.Tup2* %7.0
   Store bool %8, false
-  %9 := GetPointer long, test.Tup2* %7.1
+  %9 := GetPointer long, test.Tup2* %7.2
   Store long %9, 7
-  %10 := GetPointer int, test.Tup2* %7.2
+  %10 := GetPointer int, test.Tup2* %7.1
   Store int %10, 8
-  %11 := GetPointer test.Tup2*, test.Tup3* %5.1
+  %11 := GetPointer test.Tup2*, test.Tup3* %5.2
   Store test.Tup2* %11, %7
-  %12 := GetPointer byte, test.Tup3* %5.2
+  %12 := GetPointer byte, test.Tup3* %5.1
   Store byte %12, 9
   %13 := CallBuiltin test.Rec3* myte_alloc(1)
   %14 := GetPointer byte, test.Rec3* %13.0
@@ -38,13 +38,13 @@ func void @test.arguments(int %0) {
   %15 := CallBuiltin test.Tup2* myte_alloc(1)
   %16 := GetPointer bool, test.Tup2* %15.0
   Store bool %16, false
-  %17 := GetPointer long, test.Tup2* %15.1
+  %17 := GetPointer long, test.Tup2* %15.2
   Store long %17, 7
-  %18 := GetPointer int, test.Tup2* %15.2
+  %18 := GetPointer int, test.Tup2* %15.1
   Store int %18, 8
-  %19 := GetPointer test.Tup2*, test.Rec3* %13.1
+  %19 := GetPointer test.Tup2*, test.Rec3* %13.2
   Store test.Tup2* %19, %15
-  %20 := GetPointer byte, test.Rec3* %13.2
+  %20 := GetPointer byte, test.Rec3* %13.1
   Store byte %20, 9
   Ret
 }
@@ -56,9 +56,9 @@ func void @test.tupleConstructor() {
   %2 := CallBuiltin test.Tup2* myte_alloc(1)
   %3 := GetPointer bool, test.Tup2* %2.0
   Store bool %3, true
-  %4 := GetPointer long, test.Tup2* %2.1
+  %4 := GetPointer long, test.Tup2* %2.2
   Store long %4, 4
-  %5 := GetPointer int, test.Tup2* %2.2
+  %5 := GetPointer int, test.Tup2* %2.1
   Store int %5, 5
   Ret
 }
@@ -70,16 +70,16 @@ func void @test.recordConstructor() {
   %2 := CallBuiltin test.Rec2* myte_alloc(1)
   %3 := GetPointer bool, test.Rec2* %2.0
   Store bool %3, true
-  %4 := GetPointer long, test.Rec2* %2.1
+  %4 := GetPointer long, test.Rec2* %2.2
   Store long %4, 4
-  %5 := GetPointer int, test.Rec2* %2.2
+  %5 := GetPointer int, test.Rec2* %2.1
   Store int %5, 5
   %6 := CallBuiltin test.Rec2* myte_alloc(1)
-  %7 := GetPointer int, test.Rec2* %6.2
+  %7 := GetPointer int, test.Rec2* %6.1
   Store int %7, 6
   %8 := GetPointer bool, test.Rec2* %6.0
   Store bool %8, true
-  %9 := GetPointer long, test.Rec2* %6.1
+  %9 := GetPointer long, test.Rec2* %6.2
   Store long %9, 7
   Ret
 }

@@ -23,20 +23,22 @@ _main:
   je .L0
   movl $16, %edi
   call __myte_alloc
-  leaq .S0(%rip), %rcx
-  movq %rcx, (%rax)
-  movl $9, 8(%rax)
-  movl $9, 12(%rax)
+  leaq 8(%rax), %rcx
+  leaq .S0(%rip), %rdx
+  movq %rdx, (%rcx)
+  movl $9, (%rax)
+  movl $9, 4(%rax)
   movq %rax, %rdi
   call std.io.print
   jmp .L1
 .L0:
   movl $16, %edi
   call __myte_alloc
-  leaq .S1(%rip), %rcx
-  movq %rcx, (%rax)
-  movl $9, 8(%rax)
-  movl $9, 12(%rax)
+  leaq 8(%rax), %rcx
+  leaq .S1(%rip), %rdx
+  movq %rdx, (%rcx)
+  movl $9, (%rax)
+  movl $9, 4(%rax)
   movq %rax, %rdi
   call std.io.print
 .L1:
@@ -46,20 +48,22 @@ _main:
   je .L2
   movl $16, %edi
   call __myte_alloc
-  leaq .S2(%rip), %rcx
-  movq %rcx, (%rax)
-  movl $9, 8(%rax)
-  movl $9, 12(%rax)
+  leaq 8(%rax), %rcx
+  leaq .S2(%rip), %rdx
+  movq %rdx, (%rcx)
+  movl $9, (%rax)
+  movl $9, 4(%rax)
   movq %rax, %rdi
   call std.io.print
   jmp .L3
 .L2:
   movl $16, %edi
   call __myte_alloc
-  leaq .S3(%rip), %rcx
-  movq %rcx, (%rax)
-  movl $9, 8(%rax)
-  movl $9, 12(%rax)
+  leaq 8(%rax), %rcx
+  leaq .S3(%rip), %rdx
+  movq %rdx, (%rcx)
+  movl $9, (%rax)
+  movl $9, 4(%rax)
   movq %rax, %rdi
   call std.io.print
 .L3:

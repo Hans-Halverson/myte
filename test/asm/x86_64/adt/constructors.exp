@@ -13,13 +13,13 @@ test.testNested:
   movl $8, %edi
   call __myte_alloc
   movq %rax, %r12
-  movl $1, (%r12)
-  movb $2, 4(%r12)
+  movl $1, 4(%r12)
+  movb $2, (%r12)
   movl $16, %edi
   call __myte_alloc
   movq %rax, %rbx
-  movq $3, (%rbx)
-  movb $4, 8(%rbx)
+  movq $3, 8(%rbx)
+  movb $4, (%rbx)
   movl $16, %edi
   call __myte_alloc
   movq %r12, (%rax)
@@ -30,8 +30,8 @@ test.testNested:
 test.testRecord:
   movl $16, %edi
   call __myte_alloc
-  movl $1, (%rax)
-  movb $2, 4(%rax)
+  movl $1, 4(%rax)
+  movb $2, (%rax)
   movq $3, 8(%rax)
   ret
 test.testTuple:
@@ -42,8 +42,8 @@ test.testTuple:
   movl $3, 8(%rax)
   movl $8, %edi
   call __myte_alloc
-  movl $1, (%rax)
-  movb $2, 4(%rax)
+  movl $1, 4(%rax)
+  movb $2, (%rax)
   movl $8, %edi
   call __myte_alloc
   movb $1, (%rax)

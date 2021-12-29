@@ -15,14 +15,14 @@ test.testBool:
   movl $8, %edi
   call __myte_alloc
   movq %rax, %rbx
-  movl $1, (%rbx)
-  movb $1, 4(%rbx)
-  movb $0, 5(%rbx)
-  movl (%rbx), %edi
+  movl $1, 4(%rbx)
+  movb $1, (%rbx)
+  movb $0, 1(%rbx)
+  movl 4(%rbx), %edi
   call test.useInt
-  movb 4(%rbx), %dil
+  movb (%rbx), %dil
   call test.useBool
-  movb 5(%rbx), %dil
+  movb 1(%rbx), %dil
   call test.useBool
   pop %rbx
   ret

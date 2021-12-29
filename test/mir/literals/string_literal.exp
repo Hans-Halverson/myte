@@ -1,17 +1,17 @@
 func void @test.test() {
   %0 := CallBuiltin std.string.String* myte_alloc(1)
-  %1 := GetPointer byte*, std.string.String* %0.0
+  %1 := GetPointer byte*, std.string.String* %0.2
   Store byte* %1, @.S0
-  %2 := GetPointer int, std.string.String* %0.1
+  %2 := GetPointer int, std.string.String* %0.0
   Store int %2, 3
-  %3 := GetPointer int, std.string.String* %0.2
+  %3 := GetPointer int, std.string.String* %0.1
   Store int %3, 3
   %4 := CallBuiltin std.string.String* myte_alloc(1)
-  %5 := GetPointer byte*, std.string.String* %4.0
+  %5 := GetPointer byte*, std.string.String* %4.2
   Store byte* %5, @.S1
-  %6 := GetPointer int, std.string.String* %4.1
+  %6 := GetPointer int, std.string.String* %4.0
   Store int %6, 6
-  %7 := GetPointer int, std.string.String* %4.2
+  %7 := GetPointer int, std.string.String* %4.1
   Store int %7, 6
   Ret
 }

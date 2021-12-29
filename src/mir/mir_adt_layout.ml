@@ -32,7 +32,7 @@ end
  * (represented as byte array elements in the aggregate) is inserted between the tag and data
  * elements to satisfy alignment requirements, and then after all elements to pad to the size of
  * the largest variant.
- *     { tag, <padding?>, element1, <padding?> , element2 ... <padding?> }
+ *     { tag, <padding?>, element1, <padding?>, element2 ... <padding?> }
  *
  * All representations have the same size, the size of the largest variant.
  *

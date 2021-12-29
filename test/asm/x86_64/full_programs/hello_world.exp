@@ -8,10 +8,11 @@
 _main:
   movl $16, %edi
   call __myte_alloc
-  leaq .S0(%rip), %rcx
-  movq %rcx, (%rax)
-  movl $13, 8(%rax)
-  movl $13, 12(%rax)
+  leaq 8(%rax), %rcx
+  leaq .S0(%rip), %rdx
+  movq %rdx, (%rcx)
+  movl $13, (%rax)
+  movl $13, 4(%rax)
   movq %rax, %rdi
   call std.io.print
   movl $0, %eax

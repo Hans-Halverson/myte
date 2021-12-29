@@ -58,12 +58,12 @@ _main:
   ret
 test.nestedIndexing:
   movq 40(%rdi), %rax
-  movb 4(%rax), %al
+  movb (%rax), %al
   movq 8(%rsi), %rax
   movl 20(%rax), %eax
   movl %edx, %eax
   movq (%rdi, %rax, 8), %rax
-  movb 4(%rax), %al
+  movb (%rax), %al
   movq 8(%rsi), %rcx
   movl %edx, %eax
   movl (%rcx, %rax, 4), %eax
