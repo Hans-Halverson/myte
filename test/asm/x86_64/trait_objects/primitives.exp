@@ -1,6 +1,7 @@
   .global _main
 
   .data
+  .balign 8
 _vtable$std.bool.Bool$std.string.ToString:
   .quad std.bool.Bool.toString
 _vtable$std.byte.Byte$std.string.ToString:

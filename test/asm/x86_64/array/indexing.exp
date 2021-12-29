@@ -1,5 +1,9 @@
   .global _main
-  .lcomm test.intArray, 8
+
+  .bss
+  .balign 8
+test.intArray:
+  .skip 8
 
   .text
 _init:

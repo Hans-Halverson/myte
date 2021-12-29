@@ -6,9 +6,8 @@ open X86_64_layout
 module Gcx = struct
   type t = {
     (* Virtual blocks and builders *)
-    mutable data: data list;
-    mutable bss: bss_data list;
-    mutable rodata: data list;
+    mutable data: data;
+    mutable bss: bss;
     mutable current_block_builder: virtual_block option;
     mutable current_func_builder: VReg.t Function.t option;
     (* All blocks, indexed by id *)
@@ -39,9 +38,8 @@ module Gcx = struct
         (RegMap.empty, VRegSet.empty, VRegMap.empty)
     in
     {
-      data = [];
-      bss = [];
-      rodata = [];
+      data = mk_data_section ();
+      bss = mk_data_section ();
       current_block_builder = None;
       current_func_builder = None;
       blocks_by_id = IMap.empty;
@@ -55,13 +53,16 @@ module Gcx = struct
     }
 
   let finish_builders ~gcx =
-    gcx.data <- List.rev gcx.data;
-    gcx.bss <- List.rev gcx.bss;
-    gcx.rodata <- List.rev gcx.rodata
+    gcx.data <- Array.map List.rev gcx.data;
+    gcx.bss <- Array.map List.rev gcx.bss
 
-  let add_data ~gcx d = gcx.data <- d :: gcx.data
+  let add_data ~gcx init_data =
+    let align_index = align_to_data_section_align_index (align_of_data_value init_data.value) in
+    gcx.data.(align_index) <- init_data :: gcx.data.(align_index)
 
-  let add_bss ~gcx bd = gcx.bss <- bd :: gcx.bss
+  let add_bss ~gcx uninit_data align =
+    let align_index = align_to_data_section_align_index align in
+    gcx.bss.(align_index) <- uninit_data :: gcx.bss.(align_index)
 
   let get_block_id_from_mir_block_id ~gcx mir_block_id =
     match IMap.find_opt mir_block_id gcx.mir_block_id_to_block_id with

@@ -422,28 +422,48 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
       | Ret -> add_string "ret"
       | Syscall -> add_string "syscall")
 
-let pp_data ~buf (data : data) =
+let pp_initialized_data ~buf (init_data : initialized_data) =
   (* Data blocks have the form:
      label:
        .directive immediate *)
-  add_label_line ~buf data.label;
-  List.iter
-    (fun value ->
-      add_line ~buf (fun buf ->
-          let (directive_string, value_string) =
-            match value with
-            | ImmediateData (Imm8 imm) -> ("byte", string_of_int imm)
-            | ImmediateData (Imm16 imm) -> ("value", string_of_int imm)
-            | ImmediateData (Imm32 imm) -> ("long", Int32.to_string imm)
-            | ImmediateData (Imm64 imm) -> ("quad", Int64.to_string imm)
-            | AsciiData str -> ("ascii", quote_string str)
-            | LabelData label -> ("quad", label)
-          in
-          add_char ~buf '.';
-          add_string ~buf directive_string;
-          add_char ~buf ' ';
-          add_string ~buf value_string))
-    data.value
+  let add_directive directive value =
+    add_line ~buf (fun buf ->
+        add_char ~buf '.';
+        add_string ~buf directive;
+        add_char ~buf ' ';
+        add_string ~buf value)
+  in
+  add_label_line ~buf init_data.label;
+  match init_data.value with
+  | ImmediateData (Imm8 imm) -> add_directive "byte" (string_of_int imm)
+  | ImmediateData (Imm16 imm) -> add_directive "value" (string_of_int imm)
+  | ImmediateData (Imm32 imm) -> add_directive "long" (Int32.to_string imm)
+  | ImmediateData (Imm64 imm) -> add_directive "quad" (Int64.to_string imm)
+  | AsciiData str -> add_directive "ascii" (quote_string str)
+  | LabelData labels -> List.iter (fun label -> add_directive "quad" label) labels
+
+let pp_uninitialized_data ~buf (uninit_data : uninitialized_data) =
+  add_label_line ~buf uninit_data.label;
+  add_line ~buf (fun buf ->
+      add_string ~buf ".skip ";
+      add_string ~buf (string_of_int uninit_data.size))
+
+let is_data_section_empty data_section = Array.for_all (fun data -> data = []) data_section
+
+let pp_data_section ~buf data_section section_name pp_func =
+  add_line ~buf (fun buf -> add_string ~buf section_name);
+  Array.iteri
+    (fun i data ->
+      if data <> [] then (
+        let alignment = string_of_int (Int.shift_left 1 i) in
+        (* Align data between data values of differing alignments *)
+        if i <> 0 then
+          add_line ~buf (fun buf ->
+              add_string ~buf ".balign ";
+              add_string ~buf alignment);
+        List.iter (pp_func ~buf) data
+      ))
+    data_section
 
 let pp_block ~gcx ~pcx ~buf (block : virtual_block) =
   (match pp_label ~pcx block with
@@ -463,22 +483,14 @@ let pp_program ~gcx =
     add_line ~buf (fun buf -> add_string ~buf (".global " ^ init_label));
     add_line ~buf (fun buf -> add_string ~buf (".global " ^ Std_lib.std_sys_init))
   );
-  if gcx.bss <> [] then
-    List.iter
-      (fun { label; size } ->
-        add_line ~buf (fun buf -> add_string ~buf (Printf.sprintf ".lcomm %s, %d" label size)))
-      gcx.bss;
-  (* Add rodata section *)
-  if gcx.rodata <> [] then (
+  if not (is_data_section_empty gcx.bss) then (
     add_blank_line ~buf;
-    add_line ~buf (fun buf -> add_string ~buf ".section \"r\", rodata");
-    List.iter (pp_data ~buf) gcx.rodata
+    pp_data_section ~buf gcx.bss ".bss" pp_uninitialized_data
   );
   (* Add data section *)
-  if gcx.data <> [] then (
+  if not (is_data_section_empty gcx.data) then (
     add_blank_line ~buf;
-    add_line ~buf (fun buf -> add_string ~buf ".data");
-    List.iter (pp_data ~buf) gcx.data
+    pp_data_section ~buf gcx.data ".data" pp_initialized_data
   );
   (* Add text section *)
   add_blank_line ~buf;

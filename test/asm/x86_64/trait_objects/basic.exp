@@ -1,6 +1,7 @@
   .global _main
 
   .data
+  .balign 8
 _vtable$test.Type$test.Trait:
   .quad test.Type.bar
   .quad test.Type.foo

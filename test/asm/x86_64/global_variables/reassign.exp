@@ -1,11 +1,17 @@
   .global _main
-  .lcomm test.t, 8
+
+  .bss
+  .balign 8
+test.t:
+  .skip 8
 
   .data
 test.b:
   .byte 0
+  .balign 4
 test.i:
   .long 0
+  .balign 8
 test.l:
   .quad 0
 

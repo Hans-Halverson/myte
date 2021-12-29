@@ -1,16 +1,26 @@
   .global _main
-  .lcomm test.b, 1
-  .lcomm test.f, 8
-  .lcomm test.i, 4
-  .lcomm test.l, 8
+
+  .bss
+test.b:
+  .skip 1
+  .balign 4
+test.i:
+  .skip 4
+  .balign 8
+test.f:
+  .skip 8
+test.l:
+  .skip 8
 
   .data
 test.constantB:
   .byte 123
-test.constantF:
-  .quad test.getByte
+  .balign 4
 test.constantI:
   .long 123
+  .balign 8
+test.constantF:
+  .quad test.getByte
 test.constantL:
   .quad 123
 

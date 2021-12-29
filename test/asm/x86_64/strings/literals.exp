@@ -1,5 +1,9 @@
   .global _main
-  .lcomm test.s, 8
+
+  .bss
+  .balign 8
+test.s:
+  .skip 8
 
   .data
 .S0:

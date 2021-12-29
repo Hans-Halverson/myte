@@ -3,10 +3,12 @@
   .data
 test.b:
   .byte 0
-test.f:
-  .quad test.getByte
+  .balign 4
 test.i:
   .long 0
+  .balign 8
+test.f:
+  .quad test.getByte
 test.l:
   .quad 0
 

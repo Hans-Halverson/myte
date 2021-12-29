@@ -271,23 +271,29 @@ end
 type data_value =
   | ImmediateData of immediate
   | AsciiData of string
-  | LabelData of string
+  | LabelData of string list
 
-type data = {
+type initialized_data = {
   label: label;
-  value: data_value list;
+  value: data_value;
 }
 
-type bss_data = {
+type uninitialized_data = {
   label: label;
   size: int;
 }
 
+(* Array of data lists, where every element of the data list at index i has alignment of 2^i *)
+type 'a data_section = 'a list array
+
+type data = initialized_data data_section
+
+type bss = uninitialized_data data_section
+
 type 'reg program = {
   text: 'reg Block.t list;
-  data: data list;
-  bss: bss_data list;
-  rodata: data list;
+  data: data;
+  bss: bss;
 }
 
 type virtual_instruction = VReg.t Instruction.t
@@ -297,6 +303,8 @@ type virtual_block = VReg.t Block.t
 type virtual_function = VReg.t Function.t
 
 type virtual_program = VReg.t program
+
+let mk_data_section () = Array.make 4 []
 
 let bytes_of_size size =
   match size with
@@ -318,6 +326,20 @@ let int64_of_immediate imm =
   | Imm16 i -> Int64.of_int i
   | Imm32 i -> Int64.of_int32 i
   | Imm64 i -> i
+
+let align_of_data_value d =
+  match d with
+  | ImmediateData imm -> bytes_of_size (size_of_immediate imm)
+  | AsciiData _ -> 1
+  | LabelData _ -> 8
+
+let align_to_data_section_align_index align =
+  match align with
+  | 1 -> 0
+  | 2 -> 1
+  | 4 -> 2
+  | 8 -> 3
+  | _ -> failwith "Invalid alignment"
 
 (* Return the opposite of a condition code (NOT CC) *)
 let invert_condition_code cc =
