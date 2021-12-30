@@ -10,9 +10,9 @@ type test.Opt2<Bool> {byte, byte[1]}
 
 type test.Opt2<Int> {byte, byte[7]}
 
-type test.Opt2<String> {byte, byte[15]}
+type test.Opt2<String> {byte, byte[7], byte*}
 
-type test.Opt2<test.Opt2<String>> {byte, byte[15]}
+type test.Opt2<test.Opt2<String>> {byte, byte[7], byte*}
 
 type test.Opt2<Bool>::Some2 {byte, bool}
 
@@ -26,17 +26,37 @@ func void @test.useOpt2(test.Opt2<Int>* %0, test.Opt2<Bool>* %1, test.Opt2<test.
   Ret
 }
 
-type test.V1 {byte, byte[23]}
+type test.V1 {byte, byte[15], byte*, byte*}
 
-type test.V1::V1Tup1 {byte, byte, byte[2], int, test.Opt1*, byte[8]}
+type test.V1::V1Tup1 {byte, byte, byte[2], int, byte[8], test.Opt1*, byte*}
 
-type test.V1::V1Tup2 {byte, byte, byte, byte, int, test.Opt1*, byte[8]}
+type test.V1::V1Tup2 {byte, byte, byte, byte, int, byte[8], test.Opt1*, byte*}
 
-type test.V1::V2Rec1 {byte, byte, byte[2], int, test.Opt1*, test.Opt2<Int>*}
+type test.V1::V2Rec1 {byte, byte, byte[2], int, byte[8], test.Opt1*, test.Opt2<Int>*}
 
-type test.V1::V2Rec2 {byte, byte, byte, byte[1], int, int, byte[12]}
+type test.V1::V2Rec2 {byte, byte, byte, byte[1], int, int, byte[4], byte*, byte*}
 
-func void @test.useV1(test.V1* %0) {
+type test.V2 {byte, byte[7], byte*}
+
+type test.V2::V22 {byte, byte, byte[6], byte*}
+
+type test.V2::V23 {byte, byte[7], std.string.String*}
+
+type test.V2::V24 {byte, byte, byte[6], std.string.String*}
+
+type test.V3 {byte, byte[7], byte*, byte*}
+
+type test.V3::V32 {byte, byte[7], std.string.String*, byte*}
+
+type test.V3::V33 {byte, byte[7], std.string.String*, std.string.String*}
+
+type test.V4 {byte, byte[2]}
+
+type test.V4::V42 {byte, byte, byte[1]}
+
+type test.V4::V43 {byte, byte, bool}
+
+func void @test.useVs(test.V1* %0, test.V2* %1, test.V3* %2, test.V4* %3) {
   Ret
 }
 
@@ -47,6 +67,6 @@ func void @test.use<Function>(fn %0) {
 func int @test.main() {
   Call void @test.use<Function>(@test.useOpt1)
   Call void @test.use<Function>(@test.useOpt2)
-  Call void @test.use<Function>(@test.useV1)
+  Call void @test.use<Function>(@test.useVs)
   Ret 0
 }

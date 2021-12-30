@@ -4,7 +4,7 @@ type test.V1::Tuple1 {byte, bool, byte[2], int}
 
 type test.V1::Record1 {byte, byte, byte[2], int}
 
-type test.V2 {byte, byte[15]}
+type test.V2 {byte, byte[7], byte*}
 
 type test.V2::Tuple2 {byte, bool, byte[6], test.V1*}
 

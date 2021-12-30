@@ -34,13 +34,13 @@ func void @test.testEnumConstructors() {
   Ret
 }
 
-type test.V2 {byte, byte[15]}
+type test.V2 {byte, byte[7], byte*}
 
 type test.V2::Tuple2 {byte, bool, byte[2], int, test.V1<Int>*}
 
 type test.V2::Record2 {byte, bool, byte[2], int, test.V1<Int>*}
 
-type test.V2::Record3 {byte, byte, byte[2], int, byte[8]}
+type test.V2::Record3 {byte, byte, byte[2], int, byte*}
 
 func void @test.testTupleConstructors() {
   %0 := CallBuiltin test.V1<Bool>::Tuple1* myte_alloc(1)

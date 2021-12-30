@@ -16,9 +16,9 @@ func void @test.useMutuallyRecursive(test.Rec4* %0) {
   Ret
 }
 
-type test.VRec1<Bool> {byte, byte[23]}
+type test.VRec1<Bool> {byte, byte[7], byte*, byte*}
 
-type test.VRec1<Int> {byte, byte[23]}
+type test.VRec1<Int> {byte, byte[7], byte*, byte*}
 
 type test.VRec1<Bool>::Tree {byte, bool, byte[6], test.VRec1<Bool>*, test.VRec1<Bool>*}
 
@@ -28,11 +28,11 @@ func void @test.useSelfRecursiveVariant(test.VRec1<Bool>* %0, test.VRec1<Int>* %
   Ret
 }
 
-type test.VRec2 {byte, byte[15]}
+type test.VRec2 {byte, byte[7], byte*}
 
 type test.VRec2::T1 {byte, byte[3], int, test.VRec3*}
 
-type test.VRec3 {byte, byte[15]}
+type test.VRec3 {byte, byte[7], byte*}
 
 type test.VRec3::T2 {byte, byte, byte[6], test.VRec2*}
 

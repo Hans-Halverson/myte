@@ -48,7 +48,7 @@ func void @test.destructureTuple($tuple<Int,Bool,(Int,Bool)>* %0) {
   Ret
 }
 
-type test.Variant {byte, byte[15]}
+type test.Variant {byte, byte[7], byte*}
 
 type test.Variant::Tup1 {byte, byte[3], int, std.string.String*}
 

@@ -22,12 +22,31 @@ type V1 =
   // Padding consolidated at end
   | V2Rec2 { foo: Byte, bar: Int, baz: Byte, bazz: Int }
 
-fun useV1(v: V1) {}
+// Pointer and non-pointer elements
+type V2 =
+  | V21
+  | V22 (Byte)
+  | V23 (String)
+  | V24 (Byte, String)
+
+// Only pointer elements
+type V3 =
+  | V31
+  | V32 (String)
+  | V33 (String, String)
+
+// No pointers, non-pointer elements do not need to be aligned to pointers
+type V4 =
+  | V41
+  | V42 (Byte)
+  | V43 (Byte, Bool)
+
+fun useVs(v1: V1, v2: V2, v3: V3, v4: V4) {}
 
 fun use<T>(x: T) {}
 
 fun main() {
   use(useOpt1);
   use(useOpt2);
-  use(useV1);
+  use(useVs);
 }
