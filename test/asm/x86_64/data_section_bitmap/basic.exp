@@ -1,0 +1,167 @@
+  .global _main
+  .global _init
+  .global std.sys.init
+  .global bss_bitmap
+  .global bss_bitmap_size
+  .global bss_bitmap_start
+  .global data_bitmap
+  .global data_bitmap_size
+  .global data_bitmap_start
+
+  .bss
+  .balign 8
+bss_bitmap_start:
+test.bss1:
+  .skip 8
+test.bss2:
+  .skip 8
+test.bss3:
+  .skip 8
+test.bss4:
+  .skip 8
+test.bss5:
+  .skip 8
+test.bss6:
+  .skip 8
+test.bss7:
+  .skip 8
+test.bss8:
+  .skip 8
+
+  .data
+  .balign 8
+data_bitmap_start:
+test.data01:
+  .quad 0
+test.data02:
+  .quad 1
+test.data03:
+  .quad 2
+test.data04:
+  .quad 3
+test.data05:
+  .quad 4
+test.data06:
+  .quad 5
+test.data07:
+  .quad 0
+test.data08:
+  .quad 6
+test.data09:
+  .quad 7
+test.data10:
+  .quad 0
+test.data11:
+  .quad 8
+
+  .text
+_init:
+  call test.getLong
+  movq %rax, test.bss1(%rip)
+  call test.getLong
+  movq %rax, test.bss2(%rip)
+  movl $16, %edi
+  call __myte_alloc
+  movq $0, 8(%rax)
+  movl $0, (%rax)
+  movl $0, 4(%rax)
+  movq %rax, test.bss3(%rip)
+  call test.getLong
+  movq %rax, test.bss4(%rip)
+  movl $16, %edi
+  call __myte_alloc
+  movq $0, 8(%rax)
+  movl $0, (%rax)
+  movl $0, 4(%rax)
+  movq %rax, test.bss5(%rip)
+  movl $16, %edi
+  call __myte_alloc
+  movq $0, 8(%rax)
+  movl $0, (%rax)
+  movl $0, 4(%rax)
+  movq %rax, test.bss6(%rip)
+  call test.getLong
+  movq %rax, test.bss7(%rip)
+  movl $16, %edi
+  call __myte_alloc
+  movq $0, 8(%rax)
+  movl $0, (%rax)
+  movl $0, 4(%rax)
+  movq %rax, test.bss8(%rip)
+  ret
+test.getLong:
+  movq $1, %rax
+  ret
+_main:
+  leaq test.useAll(%rip), %rdi
+  call test.use$Function$
+  movl $0, %eax
+  ret
+test.use$Function$:
+  ret
+test.use$Long$:
+  ret
+test.use$std.memory.Array$Int$$:
+  ret
+test.useAll:
+  push %rbx
+  push %r12
+  movq test.bss1(%rip), %rax
+  movq test.bss2(%rip), %rbx
+  addq %rax, %rbx
+  movq test.bss3(%rip), %rdi
+  movl $0, %esi
+  call std.vec.Vec.get$Long$
+  addq %rbx, %rax
+  movq test.bss4(%rip), %r12
+  addq %rax, %r12
+  movq test.bss5(%rip), %rdi
+  movl $0, %esi
+  call std.vec.Vec.get$Long$
+  movq %rax, %rbx
+  addq %r12, %rbx
+  movq test.bss6(%rip), %rdi
+  movl $0, %esi
+  call std.vec.Vec.get$Long$
+  addq %rbx, %rax
+  movq test.bss7(%rip), %rbx
+  addq %rax, %rbx
+  movq test.bss8(%rip), %rdi
+  movl $0, %esi
+  call std.vec.Vec.get$Long$
+  addq %rbx, %rax
+  movq %rax, %rdi
+  call test.use$Long$
+  movq test.data02(%rip), %rax
+  movq test.data03(%rip), %rcx
+  addq %rax, %rcx
+  movq test.data04(%rip), %rax
+  addq %rcx, %rax
+  movq test.data05(%rip), %rcx
+  addq %rax, %rcx
+  movq test.data06(%rip), %rax
+  addq %rcx, %rax
+  movq test.data08(%rip), %rcx
+  addq %rax, %rcx
+  movq test.data09(%rip), %rax
+  addq %rcx, %rax
+  movq test.data11(%rip), %rdi
+  addq %rax, %rdi
+  call test.use$Long$
+  movq test.data01(%rip), %rdi
+  call test.use$std.memory.Array$Int$$
+  movq test.data07(%rip), %rdi
+  call test.use$std.memory.Array$Int$$
+  movq test.data10(%rip), %rdi
+  call test.use$std.memory.Array$Int$$
+  pop %r12
+  pop %rbx
+  ret
+bss_bitmap_size:
+  .quad 8
+bss_bitmap:
+  .byte 0xB4
+data_bitmap_size:
+  .quad 11
+data_bitmap:
+  .byte 0x41, 0x2

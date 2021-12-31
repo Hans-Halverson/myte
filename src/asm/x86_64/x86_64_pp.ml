@@ -25,6 +25,9 @@ let find_incoming_jump_blocks ~gcx =
   visitor#run ();
   visitor#incoming_jump_blocks
 
+let write_full_asm () =
+  Opts.dump_full_asm () || ((not (Opts.dump_asm ())) && not (Opts.dump_virtual_asm ()))
+
 let mk_pcx ~gcx =
   let pcx = { block_print_labels = IMap.empty } in
   (* Determine labels for every unlabed block in program that has an incoming jump *)
@@ -422,7 +425,7 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
       | Ret -> add_string "ret"
       | Syscall -> add_string "syscall")
 
-let pp_initialized_data ~buf (init_data : initialized_data) =
+let pp_initialized_data_item ~buf (init_data : initialized_data_item) =
   (* Data blocks have the form:
      label:
        .directive immediate *)
@@ -442,7 +445,7 @@ let pp_initialized_data ~buf (init_data : initialized_data) =
   | AsciiData str -> add_directive "ascii" (quote_string str)
   | LabelData labels -> List.iter (fun label -> add_directive "quad" label) labels
 
-let pp_uninitialized_data ~buf (uninit_data : uninitialized_data) =
+let pp_uninitialized_data_item ~buf (uninit_data : uninitialized_data_item) =
   add_label_line ~buf uninit_data.label;
   add_line ~buf (fun buf ->
       add_string ~buf ".skip ";
@@ -451,19 +454,54 @@ let pp_uninitialized_data ~buf (uninit_data : uninitialized_data) =
 let is_data_section_empty data_section = Array.for_all (fun data -> data = []) data_section
 
 let pp_data_section ~buf data_section section_name pp_func =
-  add_line ~buf (fun buf -> add_string ~buf section_name);
+  add_line ~buf (fun buf ->
+      add_char ~buf '.';
+      add_string ~buf section_name);
   Array.iteri
     (fun i data ->
-      if data <> [] then (
+      (* Align data between data values of differing alignments *)
+      ( if data <> [] && i <> 0 then
         let alignment = string_of_int (Int.shift_left 1 i) in
-        (* Align data between data values of differing alignments *)
-        if i <> 0 then
-          add_line ~buf (fun buf ->
-              add_string ~buf ".balign ";
-              add_string ~buf alignment);
-        List.iter (pp_func ~buf) data
-      ))
+        add_line ~buf (fun buf ->
+            add_string ~buf ".balign ";
+            add_string ~buf alignment) );
+
+      if i = 3 && write_full_asm () then add_label_line ~buf (section_name ^ "_bitmap_start");
+
+      if data <> [] then List.iter (pp_func ~buf) data)
     data_section
+
+let pp_data_section_bitmap ~buf (bitmap : X86_64_bitmaps.data_section_bitmap) section_name =
+  (* Write bitmap size *)
+  add_label_line ~buf (section_name ^ "_bitmap_size");
+  add_line ~buf (fun buf ->
+      add_string ~buf ".quad ";
+      add_string ~buf (string_of_int bitmap.num_words));
+
+  (* Write bitmap data *)
+  add_label_line ~buf (section_name ^ "_bitmap");
+  let next_byte_to_write = ref 0 in
+  let bytes_remaining = ref (Bytes.length bitmap.bitmap) in
+
+  (* Write .quads while there are enough bytes remaining *)
+  while !bytes_remaining >= 8 do
+    let quad = Bytes.get_int64_be bitmap.bitmap !next_byte_to_write in
+    add_line ~buf (fun buf -> add_string ~buf (Printf.sprintf ".quad 0x%LX" quad));
+    next_byte_to_write := !next_byte_to_write + 8;
+    bytes_remaining := !bytes_remaining - 8
+  done;
+
+  (* Write all 0-7 remaining bytes in a single .byte directive *)
+  if !bytes_remaining > 0 then
+    add_line ~buf (fun buf ->
+        add_string ~buf ".byte ";
+        for i = 0 to !bytes_remaining - 1 do
+          if i <> 0 then add_string ~buf ", ";
+          let byte = Bytes.get_uint8 bitmap.bitmap (!next_byte_to_write + i) in
+          add_string ~buf (Printf.sprintf "0x%X" byte)
+        done)
+
+let pp_global_directive ~buf label = add_line ~buf (fun buf -> add_string ~buf (".global " ^ label))
 
 let pp_block ~gcx ~pcx ~buf (block : virtual_block) =
   (match pp_label ~pcx block with
@@ -477,23 +515,45 @@ let pp_program ~gcx =
   let open Gcx in
   let pcx = mk_pcx ~gcx in
   let buf = mk_buf () in
+  let write_full_asm = write_full_asm () in
+
   (* Add global directives *)
-  add_line ~buf (fun buf -> add_string ~buf (".global " ^ main_label));
-  if (not (Opts.dump_asm ())) && not (Opts.dump_virtual_asm ()) then (
-    add_line ~buf (fun buf -> add_string ~buf (".global " ^ init_label));
-    add_line ~buf (fun buf -> add_string ~buf (".global " ^ Std_lib.std_sys_init))
+  pp_global_directive ~buf main_label;
+  if write_full_asm then (
+    pp_global_directive ~buf init_label;
+    pp_global_directive ~buf Std_lib.std_sys_init;
+
+    pp_global_directive ~buf "bss_bitmap";
+    pp_global_directive ~buf "bss_bitmap_size";
+    pp_global_directive ~buf "bss_bitmap_start";
+
+    pp_global_directive ~buf "data_bitmap";
+    pp_global_directive ~buf "data_bitmap_size";
+    pp_global_directive ~buf "data_bitmap_start"
   );
-  if not (is_data_section_empty gcx.bss) then (
+
+  (* Add data sections *)
+  if write_full_asm || not (is_data_section_empty gcx.bss) then (
     add_blank_line ~buf;
-    pp_data_section ~buf gcx.bss ".bss" pp_uninitialized_data
+    pp_data_section ~buf gcx.bss "bss" pp_uninitialized_data_item
   );
-  (* Add data section *)
-  if not (is_data_section_empty gcx.data) then (
+
+  if write_full_asm || not (is_data_section_empty gcx.data) then (
     add_blank_line ~buf;
-    pp_data_section ~buf gcx.data ".data" pp_initialized_data
+    pp_data_section ~buf gcx.data "data" pp_initialized_data_item
   );
+
   (* Add text section *)
   add_blank_line ~buf;
   add_line ~buf (fun buf -> add_string ~buf ".text");
   IMap.iter (fun _ func -> List.iter (pp_block ~gcx ~pcx ~buf) func.Function.blocks) gcx.funcs_by_id;
+
+  (* Add data section bitmaps *)
+  if write_full_asm then (
+    let bss_bitmap = X86_64_bitmaps.gen_data_section_bitmap gcx.bss in
+    pp_data_section_bitmap ~buf bss_bitmap "bss";
+    let data_bitmap = X86_64_bitmaps.gen_data_section_bitmap gcx.data in
+    pp_data_section_bitmap ~buf data_bitmap "data"
+  );
+
   Buffer.contents buf

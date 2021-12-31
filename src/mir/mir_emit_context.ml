@@ -105,7 +105,11 @@ let mk ~pcx =
     current_in_std_lib = false;
     current_loop_contexts = [];
     filter_std_lib =
-      (Opts.dump_ir () || Opts.dump_pre_ssa_ir () || Opts.dump_virtual_asm () || Opts.dump_asm ())
+      ( Opts.dump_ir ()
+      || Opts.dump_pre_ssa_ir ()
+      || Opts.dump_virtual_asm ()
+      || Opts.dump_asm ()
+      || Opts.dump_full_asm () )
       && not (Opts.dump_stdlib ());
     variable_to_ptr_var_id = LocMap.empty;
     param_to_var_id = LocMap.empty;
@@ -405,12 +409,7 @@ and instantiate_mir_adt_layout
 
           (* Split elements into pointer and non-pointer elements, preserving order *)
           let (ptr_elements, non_ptr_elements) =
-            List.partition
-              (fun (_, mir_type) ->
-                match mir_type with
-                | `PointerT _ -> true
-                | _ -> false)
-              elements
+            List.partition (fun (_, mir_type) -> is_pointer_type mir_type) elements
           in
 
           (* Add tag element to start of non-pointer elements, then align and insert padding *)

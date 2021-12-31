@@ -6,7 +6,10 @@ let gen_program ir =
   (* Filter out stdlib for printing *)
   let ir =
     (* TODO: Only use parts of stdlib that we need to, currently strip it all out *)
-    if (Opts.dump_virtual_asm () || Opts.dump_asm ()) && not (Opts.dump_stdlib ()) then
+    if
+      (Opts.dump_virtual_asm () || Opts.dump_asm () || Opts.dump_full_asm ())
+      && not (Opts.dump_stdlib ())
+    then
       Mir.filter_stdlib ir
     else
       ir
@@ -42,7 +45,7 @@ let gen_program ir =
   X86_64_peephole.run_peephole_optimizations ~gcx;
 
   (* Optionally dump assembly to stdout *)
-  if Opts.dump_asm () then begin
+  if Opts.dump_asm () || Opts.dump_full_asm () then begin
     print_string (X86_64_pp.pp_program ~gcx);
     exit 0
   end;

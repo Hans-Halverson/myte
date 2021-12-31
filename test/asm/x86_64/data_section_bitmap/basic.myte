@@ -1,0 +1,43 @@
+module test
+
+import std.memory.Array
+
+// Bitmap fills a single byte. Byte should be 0xB4,
+val bss1: Long = getLong()
+val bss2: Long = getLong()
+val bss3: Vec<Long> = []
+val bss4: Long = getLong()
+val bss5: Vec<Long> = []
+val bss6: Vec<Long> = []
+val bss7: Long = getLong()
+val bss8: Vec<Long> = []
+
+// Bitmap fills multiple bytes. First byte should be 0x41,
+var data01: Array<Int> = Array.new(0)
+var data02: Long = 1
+var data03: Long = 2
+var data04: Long = 3
+var data05: Long = 4
+var data06: Long = 5
+var data07: Array<Int> = Array.new(0)
+var data08: Long = 6
+// Second byte should be 0x20, as leading bits in byte are zeros.
+var data09: Long = 7
+var data10: Array<Int> = Array.new(0)
+var data11: Long = 8
+
+fun useAll() {
+  use(bss1 + bss2 + bss3[0] + bss4 + bss5[0] + bss6[0] + bss7 + bss8[0]);
+  use(data02 + data03 + data04 + data05 + data06 + data08 + data09 + data11);
+  use(data01);
+  use(data07);
+  use(data10);
+}
+
+fun getLong(): Long = 1
+
+fun use<T>(x: T) {}
+
+fun main() {
+  use(useAll);
+}

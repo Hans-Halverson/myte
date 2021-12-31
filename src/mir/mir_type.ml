@@ -104,3 +104,8 @@ let cast_to_aggregate_type ty =
   match ty with
   | `AggregateT _ as ty -> ty
   | _ -> failwith "Expected aggregate type"
+
+let is_pointer_type ty =
+  match ty with
+  | `PointerT _ -> true
+  | _ -> false

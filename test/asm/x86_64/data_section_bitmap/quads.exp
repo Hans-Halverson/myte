@@ -1,0 +1,600 @@
+  .global _main
+  .global _init
+  .global std.sys.init
+  .global bss_bitmap
+  .global bss_bitmap_size
+  .global bss_bitmap_start
+  .global data_bitmap
+  .global data_bitmap_size
+  .global data_bitmap_start
+
+  .bss
+  .balign 8
+bss_bitmap_start:
+test.bss01:
+  .skip 8
+test.bss02:
+  .skip 8
+test.bss03:
+  .skip 8
+test.bss04:
+  .skip 8
+test.bss05:
+  .skip 8
+test.bss06:
+  .skip 8
+test.bss07:
+  .skip 8
+test.bss08:
+  .skip 8
+test.bss11:
+  .skip 8
+test.bss12:
+  .skip 8
+test.bss13:
+  .skip 8
+test.bss14:
+  .skip 8
+test.bss15:
+  .skip 8
+test.bss16:
+  .skip 8
+test.bss17:
+  .skip 8
+test.bss18:
+  .skip 8
+test.bss21:
+  .skip 8
+test.bss22:
+  .skip 8
+test.bss23:
+  .skip 8
+test.bss24:
+  .skip 8
+test.bss25:
+  .skip 8
+test.bss26:
+  .skip 8
+test.bss27:
+  .skip 8
+test.bss28:
+  .skip 8
+test.bss31:
+  .skip 8
+test.bss32:
+  .skip 8
+test.bss33:
+  .skip 8
+test.bss34:
+  .skip 8
+test.bss35:
+  .skip 8
+test.bss36:
+  .skip 8
+test.bss37:
+  .skip 8
+test.bss38:
+  .skip 8
+test.bss41:
+  .skip 8
+test.bss42:
+  .skip 8
+test.bss43:
+  .skip 8
+test.bss44:
+  .skip 8
+test.bss45:
+  .skip 8
+test.bss46:
+  .skip 8
+test.bss47:
+  .skip 8
+test.bss48:
+  .skip 8
+test.bss51:
+  .skip 8
+test.bss52:
+  .skip 8
+test.bss53:
+  .skip 8
+test.bss54:
+  .skip 8
+test.bss55:
+  .skip 8
+test.bss56:
+  .skip 8
+test.bss57:
+  .skip 8
+test.bss58:
+  .skip 8
+test.bss61:
+  .skip 8
+test.bss62:
+  .skip 8
+test.bss63:
+  .skip 8
+test.bss64:
+  .skip 8
+test.bss65:
+  .skip 8
+test.bss66:
+  .skip 8
+test.bss67:
+  .skip 8
+test.bss68:
+  .skip 8
+test.bss71:
+  .skip 8
+test.bss72:
+  .skip 8
+test.bss73:
+  .skip 8
+test.bss74:
+  .skip 8
+test.bss75:
+  .skip 8
+test.bss76:
+  .skip 8
+test.bss77:
+  .skip 8
+test.bss78:
+  .skip 8
+test.bss81:
+  .skip 8
+test.bss82:
+  .skip 8
+test.bss83:
+  .skip 8
+test.bss84:
+  .skip 8
+test.bss85:
+  .skip 8
+test.bss86:
+  .skip 8
+test.bss87:
+  .skip 8
+test.bss88:
+  .skip 8
+test.bss91:
+  .skip 8
+test.bss92:
+  .skip 8
+test.bss93:
+  .skip 8
+test.bss94:
+  .skip 8
+test.bss95:
+  .skip 8
+test.bss96:
+  .skip 8
+test.bss97:
+  .skip 8
+test.bss98:
+  .skip 8
+
+  .data
+data_bitmap_start:
+
+  .text
+_init:
+  call test.getLong
+  movq %rax, test.bss01(%rip)
+  movl $16, %edi
+  call __myte_alloc
+  movq $0, 8(%rax)
+  movl $0, (%rax)
+  movl $0, 4(%rax)
+  movq %rax, test.bss02(%rip)
+  call test.getLong
+  movq %rax, test.bss03(%rip)
+  call test.getLong
+  movq %rax, test.bss04(%rip)
+  call test.getLong
+  movq %rax, test.bss05(%rip)
+  call test.getLong
+  movq %rax, test.bss06(%rip)
+  call test.getLong
+  movq %rax, test.bss07(%rip)
+  call test.getLong
+  movq %rax, test.bss08(%rip)
+  call test.getLong
+  movq %rax, test.bss11(%rip)
+  call test.getLong
+  movq %rax, test.bss12(%rip)
+  movl $16, %edi
+  call __myte_alloc
+  movq $0, 8(%rax)
+  movl $0, (%rax)
+  movl $0, 4(%rax)
+  movq %rax, test.bss13(%rip)
+  call test.getLong
+  movq %rax, test.bss14(%rip)
+  call test.getLong
+  movq %rax, test.bss15(%rip)
+  call test.getLong
+  movq %rax, test.bss16(%rip)
+  call test.getLong
+  movq %rax, test.bss17(%rip)
+  call test.getLong
+  movq %rax, test.bss18(%rip)
+  call test.getLong
+  movq %rax, test.bss21(%rip)
+  call test.getLong
+  movq %rax, test.bss22(%rip)
+  call test.getLong
+  movq %rax, test.bss23(%rip)
+  movl $16, %edi
+  call __myte_alloc
+  movq $0, 8(%rax)
+  movl $0, (%rax)
+  movl $0, 4(%rax)
+  movq %rax, test.bss24(%rip)
+  call test.getLong
+  movq %rax, test.bss25(%rip)
+  call test.getLong
+  movq %rax, test.bss26(%rip)
+  call test.getLong
+  movq %rax, test.bss27(%rip)
+  call test.getLong
+  movq %rax, test.bss28(%rip)
+  call test.getLong
+  movq %rax, test.bss31(%rip)
+  call test.getLong
+  movq %rax, test.bss32(%rip)
+  call test.getLong
+  movq %rax, test.bss33(%rip)
+  call test.getLong
+  movq %rax, test.bss34(%rip)
+  movl $16, %edi
+  call __myte_alloc
+  movq $0, 8(%rax)
+  movl $0, (%rax)
+  movl $0, 4(%rax)
+  movq %rax, test.bss35(%rip)
+  call test.getLong
+  movq %rax, test.bss36(%rip)
+  call test.getLong
+  movq %rax, test.bss37(%rip)
+  call test.getLong
+  movq %rax, test.bss38(%rip)
+  call test.getLong
+  movq %rax, test.bss41(%rip)
+  call test.getLong
+  movq %rax, test.bss42(%rip)
+  call test.getLong
+  movq %rax, test.bss43(%rip)
+  call test.getLong
+  movq %rax, test.bss44(%rip)
+  call test.getLong
+  movq %rax, test.bss45(%rip)
+  movl $16, %edi
+  call __myte_alloc
+  movq $0, 8(%rax)
+  movl $0, (%rax)
+  movl $0, 4(%rax)
+  movq %rax, test.bss46(%rip)
+  call test.getLong
+  movq %rax, test.bss47(%rip)
+  call test.getLong
+  movq %rax, test.bss48(%rip)
+  call test.getLong
+  movq %rax, test.bss51(%rip)
+  call test.getLong
+  movq %rax, test.bss52(%rip)
+  call test.getLong
+  movq %rax, test.bss53(%rip)
+  movl $16, %edi
+  call __myte_alloc
+  movq $0, 8(%rax)
+  movl $0, (%rax)
+  movl $0, 4(%rax)
+  movq %rax, test.bss54(%rip)
+  movl $16, %edi
+  call __myte_alloc
+  movq $0, 8(%rax)
+  movl $0, (%rax)
+  movl $0, 4(%rax)
+  movq %rax, test.bss55(%rip)
+  call test.getLong
+  movq %rax, test.bss56(%rip)
+  call test.getLong
+  movq %rax, test.bss57(%rip)
+  call test.getLong
+  movq %rax, test.bss58(%rip)
+  call test.getLong
+  movq %rax, test.bss61(%rip)
+  call test.getLong
+  movq %rax, test.bss62(%rip)
+  call test.getLong
+  movq %rax, test.bss63(%rip)
+  call test.getLong
+  movq %rax, test.bss64(%rip)
+  call test.getLong
+  movq %rax, test.bss65(%rip)
+  call test.getLong
+  movq %rax, test.bss66(%rip)
+  call test.getLong
+  movq %rax, test.bss67(%rip)
+  call test.getLong
+  movq %rax, test.bss68(%rip)
+  call test.getLong
+  movq %rax, test.bss71(%rip)
+  call test.getLong
+  movq %rax, test.bss72(%rip)
+  call test.getLong
+  movq %rax, test.bss73(%rip)
+  call test.getLong
+  movq %rax, test.bss74(%rip)
+  call test.getLong
+  movq %rax, test.bss75(%rip)
+  movl $16, %edi
+  call __myte_alloc
+  movq $0, 8(%rax)
+  movl $0, (%rax)
+  movl $0, 4(%rax)
+  movq %rax, test.bss76(%rip)
+  call test.getLong
+  movq %rax, test.bss77(%rip)
+  call test.getLong
+  movq %rax, test.bss78(%rip)
+  call test.getLong
+  movq %rax, test.bss81(%rip)
+  call test.getLong
+  movq %rax, test.bss82(%rip)
+  call test.getLong
+  movq %rax, test.bss83(%rip)
+  call test.getLong
+  movq %rax, test.bss84(%rip)
+  movl $16, %edi
+  call __myte_alloc
+  movq $0, 8(%rax)
+  movl $0, (%rax)
+  movl $0, 4(%rax)
+  movq %rax, test.bss85(%rip)
+  movl $16, %edi
+  call __myte_alloc
+  movq $0, 8(%rax)
+  movl $0, (%rax)
+  movl $0, 4(%rax)
+  movq %rax, test.bss86(%rip)
+  call test.getLong
+  movq %rax, test.bss87(%rip)
+  call test.getLong
+  movq %rax, test.bss88(%rip)
+  call test.getLong
+  movq %rax, test.bss91(%rip)
+  call test.getLong
+  movq %rax, test.bss92(%rip)
+  movl $16, %edi
+  call __myte_alloc
+  movq $0, 8(%rax)
+  movl $0, (%rax)
+  movl $0, 4(%rax)
+  movq %rax, test.bss93(%rip)
+  call test.getLong
+  movq %rax, test.bss94(%rip)
+  call test.getLong
+  movq %rax, test.bss95(%rip)
+  movl $16, %edi
+  call __myte_alloc
+  movq $0, 8(%rax)
+  movl $0, (%rax)
+  movl $0, 4(%rax)
+  movq %rax, test.bss96(%rip)
+  call test.getLong
+  movq %rax, test.bss97(%rip)
+  call test.getLong
+  movq %rax, test.bss98(%rip)
+  ret
+test.getLong:
+  movq $1, %rax
+  ret
+_main:
+  leaq test.useAll(%rip), %rdi
+  call test.use$Function$
+  movl $0, %eax
+  ret
+test.use$Function$:
+  ret
+test.use$Long$:
+  ret
+test.useAll:
+  push %rbx
+  push %r12
+  movq test.bss01(%rip), %rbx
+  movq test.bss02(%rip), %rdi
+  movl $0, %esi
+  call std.vec.Vec.get$Long$
+  addq %rbx, %rax
+  movq test.bss03(%rip), %rcx
+  addq %rax, %rcx
+  movq test.bss04(%rip), %rbx
+  addq %rcx, %rbx
+  movq test.bss05(%rip), %rax
+  addq %rbx, %rax
+  movq test.bss06(%rip), %rbx
+  addq %rax, %rbx
+  movq test.bss07(%rip), %rax
+  addq %rbx, %rax
+  movq test.bss08(%rip), %rdi
+  addq %rax, %rdi
+  call test.use$Long$
+  movq test.bss11(%rip), %rax
+  movq test.bss12(%rip), %rbx
+  addq %rax, %rbx
+  movq test.bss13(%rip), %rdi
+  movl $0, %esi
+  call std.vec.Vec.get$Long$
+  addq %rbx, %rax
+  movq test.bss14(%rip), %rbx
+  addq %rax, %rbx
+  movq test.bss15(%rip), %rax
+  addq %rbx, %rax
+  movq test.bss16(%rip), %rbx
+  addq %rax, %rbx
+  movq test.bss17(%rip), %rax
+  addq %rbx, %rax
+  movq test.bss18(%rip), %rdi
+  addq %rax, %rdi
+  call test.use$Long$
+  movq test.bss21(%rip), %rbx
+  movq test.bss22(%rip), %rax
+  addq %rbx, %rax
+  movq test.bss23(%rip), %rbx
+  addq %rax, %rbx
+  movq test.bss24(%rip), %rdi
+  movl $0, %esi
+  call std.vec.Vec.get$Long$
+  addq %rbx, %rax
+  movq test.bss25(%rip), %rcx
+  addq %rax, %rcx
+  movq test.bss26(%rip), %rbx
+  addq %rcx, %rbx
+  movq test.bss27(%rip), %rax
+  addq %rbx, %rax
+  movq test.bss28(%rip), %rdi
+  addq %rax, %rdi
+  call test.use$Long$
+  movq test.bss31(%rip), %rax
+  movq test.bss32(%rip), %rbx
+  addq %rax, %rbx
+  movq test.bss33(%rip), %rax
+  addq %rbx, %rax
+  movq test.bss34(%rip), %rbx
+  addq %rax, %rbx
+  movq test.bss35(%rip), %rdi
+  movl $0, %esi
+  call std.vec.Vec.get$Long$
+  addq %rbx, %rax
+  movq test.bss36(%rip), %rbx
+  addq %rax, %rbx
+  movq test.bss37(%rip), %rax
+  addq %rbx, %rax
+  movq test.bss38(%rip), %rdi
+  addq %rax, %rdi
+  call test.use$Long$
+  movq test.bss41(%rip), %rbx
+  movq test.bss42(%rip), %rax
+  addq %rbx, %rax
+  movq test.bss43(%rip), %rbx
+  addq %rax, %rbx
+  movq test.bss44(%rip), %rax
+  addq %rbx, %rax
+  movq test.bss45(%rip), %rbx
+  addq %rax, %rbx
+  movq test.bss46(%rip), %rdi
+  movl $0, %esi
+  call std.vec.Vec.get$Long$
+  addq %rbx, %rax
+  movq test.bss47(%rip), %rbx
+  addq %rax, %rbx
+  movq test.bss48(%rip), %rdi
+  addq %rbx, %rdi
+  call test.use$Long$
+  movq test.bss51(%rip), %rbx
+  movq test.bss52(%rip), %rax
+  addq %rbx, %rax
+  movq test.bss53(%rip), %r12
+  addq %rax, %r12
+  movq test.bss54(%rip), %rdi
+  movl $0, %esi
+  call std.vec.Vec.get$Long$
+  movq %rax, %rbx
+  addq %r12, %rbx
+  movq test.bss55(%rip), %rdi
+  movl $0, %esi
+  call std.vec.Vec.get$Long$
+  addq %rbx, %rax
+  movq test.bss56(%rip), %rbx
+  addq %rax, %rbx
+  movq test.bss57(%rip), %rax
+  addq %rbx, %rax
+  movq test.bss58(%rip), %rdi
+  addq %rax, %rdi
+  call test.use$Long$
+  movq test.bss61(%rip), %rax
+  movq test.bss62(%rip), %rbx
+  addq %rax, %rbx
+  movq test.bss63(%rip), %rax
+  addq %rbx, %rax
+  movq test.bss64(%rip), %rbx
+  addq %rax, %rbx
+  movq test.bss65(%rip), %rax
+  addq %rbx, %rax
+  movq test.bss66(%rip), %rbx
+  addq %rax, %rbx
+  movq test.bss67(%rip), %rax
+  addq %rbx, %rax
+  movq test.bss68(%rip), %rdi
+  addq %rax, %rdi
+  call test.use$Long$
+  movq test.bss71(%rip), %rbx
+  movq test.bss72(%rip), %rax
+  addq %rbx, %rax
+  movq test.bss73(%rip), %rbx
+  addq %rax, %rbx
+  movq test.bss74(%rip), %rax
+  addq %rbx, %rax
+  movq test.bss75(%rip), %rbx
+  addq %rax, %rbx
+  movq test.bss76(%rip), %rdi
+  movl $0, %esi
+  call std.vec.Vec.get$Long$
+  addq %rbx, %rax
+  movq test.bss77(%rip), %rbx
+  addq %rax, %rbx
+  movq test.bss78(%rip), %rdi
+  addq %rbx, %rdi
+  call test.use$Long$
+  movq test.bss81(%rip), %rax
+  movq test.bss82(%rip), %rbx
+  addq %rax, %rbx
+  movq test.bss83(%rip), %rax
+  addq %rbx, %rax
+  movq test.bss84(%rip), %r12
+  addq %rax, %r12
+  movq test.bss85(%rip), %rdi
+  movl $0, %esi
+  call std.vec.Vec.get$Long$
+  movq %rax, %rbx
+  addq %r12, %rbx
+  movq test.bss86(%rip), %rdi
+  movl $0, %esi
+  call std.vec.Vec.get$Long$
+  addq %rbx, %rax
+  movq test.bss87(%rip), %rbx
+  addq %rax, %rbx
+  movq test.bss88(%rip), %rdi
+  addq %rbx, %rdi
+  call test.use$Long$
+  movq test.bss91(%rip), %rax
+  movq test.bss92(%rip), %rbx
+  addq %rax, %rbx
+  movq test.bss93(%rip), %rdi
+  movl $0, %esi
+  call std.vec.Vec.get$Long$
+  addq %rbx, %rax
+  movq test.bss94(%rip), %rcx
+  addq %rax, %rcx
+  movq test.bss95(%rip), %rbx
+  addq %rcx, %rbx
+  movq test.bss96(%rip), %rdi
+  movl $0, %esi
+  call std.vec.Vec.get$Long$
+  addq %rbx, %rax
+  movq test.bss97(%rip), %rcx
+  addq %rax, %rcx
+  movq test.bss98(%rip), %rdi
+  addq %rcx, %rdi
+  call test.use$Long$
+  pop %r12
+  pop %rbx
+  ret
+bss_bitmap_size:
+  .quad 80
+bss_bitmap:
+  .quad 0x204081020180020
+  .byte 0x30, 0x24
+data_bitmap_size:
+  .quad 0
+data_bitmap:

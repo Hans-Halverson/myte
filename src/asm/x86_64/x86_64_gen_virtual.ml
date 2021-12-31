@@ -62,9 +62,12 @@ and gen_global_instruction_builder ~gcx ~ir:_ global =
   | None ->
     let size = Gcx.size_of_mir_type ~gcx global.ty in
     let align = Gcx.alignment_of_mir_type ~gcx global.ty in
-    Gcx.add_bss ~gcx { label; size } align
+    let is_pointer = is_pointer_type global.ty in
+    Gcx.add_bss ~gcx { label; value = (); size; is_pointer } align
   (* Array literal is known at compile time, so insert into initialized data section *)
-  | Some (`ArrayStringL data) -> Gcx.add_data ~gcx { label; value = AsciiData data }
+  | Some (`ArrayStringL data) ->
+    let size = String.length data in
+    Gcx.add_data ~gcx { label; value = AsciiData data; size; is_pointer = false }
   | Some (`ArrayVtableL (_, function_values)) ->
     let label_values =
       List.map
@@ -74,17 +77,21 @@ and gen_global_instruction_builder ~gcx ~ir:_ global =
           | `FunctionV _ -> failwith "ArrayVtableL value must only contain function literals")
         function_values
     in
-    Gcx.add_data ~gcx { label; value = LabelData label_values }
+    let size = List.length label_values * pointer_size in
+    Gcx.add_data ~gcx { label; value = LabelData label_values; size; is_pointer = false }
   (* Pointer and function literals are labels, so insert into initialized data section *)
   | Some (`PointerL (_, init_label))
   | Some (`FunctionL init_label) ->
-    let data = { label; value = LabelData [init_label] } in
+    let is_pointer = is_pointer_type global.ty in
+    let data = { label; value = LabelData [init_label]; size = pointer_size; is_pointer } in
     Gcx.add_data ~gcx data
   (* Global is initialized to immediate, so insert into initialized data section *)
   | Some init_val ->
     (match resolve_ir_value ~gcx ~func:0 ~allow_imm64:true init_val with
     | SImm imm ->
-      let data = { label; value = ImmediateData imm } in
+      let size = bytes_of_size (size_of_immediate imm) in
+      let is_pointer = is_pointer_type global.ty in
+      let data = { label; value = ImmediateData imm; size; is_pointer } in
       Gcx.add_data ~gcx data
     | SAddr _
     | SVReg _

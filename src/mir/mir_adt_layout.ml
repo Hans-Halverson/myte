@@ -37,6 +37,14 @@ end
  * All representations have the same size, the size of the largest variant.
  *
  * In the Aggregate, the tag has key "$tag", and all paddings have key "$padding".
+ *
+ * Variants must place pointer elements in the same location across all variants, so that pointers
+ * may be scanned regardless of which variant is present. This is accomplished by grouping all the
+ * non-pointer elements together at the beginning of each variant, and grouping all pointer elements
+ * together at the end of each variant. Padding is inserted between the non-pointer and pointer
+ * elements for each variant to ensure that all pointer elements occupy the same location. Empty
+ * locations that contain pointer are marked with "$pointer" elements in both variants and the union
+ * aggregate.
  *)
 module VariantsTemplate = struct
   type t = {

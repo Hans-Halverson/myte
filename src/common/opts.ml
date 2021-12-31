@@ -7,6 +7,7 @@ type t = {
   dump_ir_transforms: string list ref;
   dump_virtual_asm: bool ref;
   dump_asm: bool ref;
+  dump_full_asm: bool ref;
   dump_debug: bool ref;
   dump_stdlib: bool ref;
   dump_stdlib_prefix: string option ref;
@@ -26,6 +27,7 @@ let opts =
     dump_ir_transforms = ref [];
     dump_virtual_asm = ref false;
     dump_asm = ref false;
+    dump_full_asm = ref false;
     dump_debug = ref false;
     dump_stdlib = ref false;
     dump_stdlib_prefix = ref None;
@@ -51,6 +53,9 @@ let spec =
       " Transforms to apply to IR before printing to stdout" );
     ("--dump-virtual-asm", Arg.Set opts.dump_virtual_asm, " Print the virtual assembly to stdout");
     ("--dump-asm", Arg.Set opts.dump_asm, " Print the assembly to stdout");
+    ( "--dump-full-asm",
+      Arg.Set opts.dump_full_asm,
+      " Print the full assembly including runtime metadata to stdout" );
     ("--dump-debug", Arg.Set opts.dump_debug, " Include debug info when printing other commands");
     ( "--dump-stdlib",
       Arg.Set opts.dump_stdlib,
@@ -91,6 +96,8 @@ let dump_ir_transforms () = !(opts.dump_ir_transforms)
 let dump_virtual_asm () = !(opts.dump_virtual_asm)
 
 let dump_asm () = !(opts.dump_asm)
+
+let dump_full_asm () = !(opts.dump_full_asm)
 
 let dump_debug () = !(opts.dump_debug)
 

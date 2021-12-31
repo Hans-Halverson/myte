@@ -1,0 +1,124 @@
+module test
+
+import std.memory.Array
+
+// Byte is 0x02
+val bss01: Long = getLong()
+val bss02: Vec<Long> = []
+val bss03: Long = getLong()
+val bss04: Long = getLong()
+val bss05: Long = getLong()
+val bss06: Long = getLong()
+val bss07: Long = getLong()
+val bss08: Long = getLong()
+
+// Byte is 0x04
+val bss11: Long = getLong()
+val bss12: Long = getLong()
+val bss13: Vec<Long> = []
+val bss14: Long = getLong()
+val bss15: Long = getLong()
+val bss16: Long = getLong()
+val bss17: Long = getLong()
+val bss18: Long = getLong()
+
+// Byte is 0x08
+val bss21: Long = getLong()
+val bss22: Long = getLong()
+val bss23: Long = getLong()
+val bss24: Vec<Long> = []
+val bss25: Long = getLong()
+val bss26: Long = getLong()
+val bss27: Long = getLong()
+val bss28: Long = getLong()
+
+// Byte is 0x10
+val bss31: Long = getLong()
+val bss32: Long = getLong()
+val bss33: Long = getLong()
+val bss34: Long = getLong()
+val bss35: Vec<Long> = []
+val bss36: Long = getLong()
+val bss37: Long = getLong()
+val bss38: Long = getLong()
+
+// Byte is 0x20
+val bss41: Long = getLong()
+val bss42: Long = getLong()
+val bss43: Long = getLong()
+val bss44: Long = getLong()
+val bss45: Long = getLong()
+val bss46: Vec<Long> = []
+val bss47: Long = getLong()
+val bss48: Long = getLong()
+
+// Byte is 0x18
+val bss51: Long = getLong()
+val bss52: Long = getLong()
+val bss53: Long = getLong()
+val bss54: Vec<Long> = []
+val bss55: Vec<Long> = []
+val bss56: Long = getLong()
+val bss57: Long = getLong()
+val bss58: Long = getLong()
+
+// Byte is 0x00
+val bss61: Long = getLong()
+val bss62: Long = getLong()
+val bss63: Long = getLong()
+val bss64: Long = getLong()
+val bss65: Long = getLong()
+val bss66: Long = getLong()
+val bss67: Long = getLong()
+val bss68: Long = getLong()
+
+// Byte is 0x20
+val bss71: Long = getLong()
+val bss72: Long = getLong()
+val bss73: Long = getLong()
+val bss74: Long = getLong()
+val bss75: Long = getLong()
+val bss76: Vec<Long> = []
+val bss77: Long = getLong()
+val bss78: Long = getLong()
+
+// Byte is 0x30
+val bss81: Long = getLong()
+val bss82: Long = getLong()
+val bss83: Long = getLong()
+val bss84: Long = getLong()
+val bss85: Vec<Long> = []
+val bss86: Vec<Long> = []
+val bss87: Long = getLong()
+val bss88: Long = getLong()
+
+// Byte is 0x24
+val bss91: Long = getLong()
+val bss92: Long = getLong()
+val bss93: Vec<Long> = []
+val bss94: Long = getLong()
+val bss95: Long = getLong()
+val bss96: Vec<Long> = []
+val bss97: Long = getLong()
+val bss98: Long = getLong()
+
+fun useAll() {
+  use(bss01 + bss02[0] + bss03 + bss04 + bss05 + bss06 + bss07 + bss08);
+  use(bss11 + bss12 + bss13[0] + bss14 + bss15 + bss16 + bss17 + bss18);
+  use(bss21 + bss22 + bss23 + bss24[0] + bss25 + bss26 + bss27 + bss28);
+  use(bss31 + bss32 + bss33 + bss34 + bss35[0] + bss36 + bss37 + bss38);
+  use(bss41 + bss42 + bss43 + bss44 + bss45 + bss46[0] + bss47 + bss48);
+  use(bss51 + bss52 + bss53 + bss54[0] + bss55[0] + bss56 + bss57 + bss58);
+  use(bss61 + bss62 + bss63 + bss64 + bss65 + bss66 + bss67 + bss68);
+  use(bss71 + bss72 + bss73 + bss74 + bss75 + bss76[0] + bss77 + bss78);
+  use(bss81 + bss82 + bss83 + bss84 + bss85[0] + bss86[0] + bss87 + bss88);
+  use(bss91 + bss92 + bss93[0] + bss94 + bss95 + bss96[0] + bss97 + bss98);
+}
+
+fun getLong(): Long = 1
+
+fun use<T>(x: T) {}
+
+fun main() {
+  use(useAll);
+}

@@ -273,22 +273,23 @@ type data_value =
   | AsciiData of string
   | LabelData of string list
 
-type initialized_data = {
+type 'a data_item = {
   label: label;
-  value: data_value;
+  value: 'a;
+  size: int;
+  is_pointer: bool;
 }
 
-type uninitialized_data = {
-  label: label;
-  size: int;
-}
+type initialized_data_item = data_value data_item
+
+type uninitialized_data_item = unit data_item
 
 (* Array of data lists, where every element of the data list at index i has alignment of 2^i *)
 type 'a data_section = 'a list array
 
-type data = initialized_data data_section
+type data = initialized_data_item data_section
 
-type bss = uninitialized_data data_section
+type bss = uninitialized_data_item data_section
 
 type 'reg program = {
   text: 'reg Block.t list;
@@ -303,6 +304,8 @@ type virtual_block = VReg.t Block.t
 type virtual_function = VReg.t Function.t
 
 type virtual_program = VReg.t program
+
+let pointer_size = 8
 
 let mk_data_section () = Array.make 4 []
 
