@@ -135,6 +135,10 @@ let pp_function_stack_argument ~buf vreg =
   add_string ~buf "STACK_ARG:";
   add_string ~buf (string_of_int vreg.VReg.id)
 
+let pp_function_argument_stack_slot ~buf vreg =
+  add_string ~buf "ARG_STACK_SLOT:";
+  add_string ~buf (string_of_int vreg.VReg.id)
+
 let rec pp_register ~gcx ~buf ~size reg =
   let reg_alias = VReg.get_vreg_alias reg in
   match reg_alias.resolution with
@@ -147,9 +151,12 @@ let rec pp_register ~gcx ~buf ~size reg =
     )
   (* Only used when printing virtual asm, as all vregs are resolved to physical register in
      asm after register allocation. *)
+  | _ when not (Opts.dump_virtual_asm ()) ->
+    failwith "All vregs must be resolved to a physical register"
   | StackSlot (PhysicalAddress _ as addr) -> pp_memory_address ~gcx ~buf addr
   | StackSlot (VirtualStackSlot vreg) -> pp_virtual_stack_slot ~buf vreg
   | StackSlot (FunctionStackArgument vreg) -> pp_function_stack_argument ~buf vreg
+  | StackSlot (FunctionArgumentStackSlot vreg) -> pp_function_argument_stack_slot ~buf vreg
   | Unresolved ->
     add_char ~buf '%';
     add_string ~buf (string_of_int reg_alias.id)
@@ -160,17 +167,27 @@ and pp_memory_address ~gcx ~buf mem =
   | VirtualStackSlot vreg ->
     (match VReg.get_vreg_resolution vreg with
     | StackSlot (PhysicalAddress _ as addr) -> pp_memory_address ~gcx ~buf addr
-    | StackSlot (VirtualStackSlot vreg) -> pp_virtual_stack_slot ~buf vreg
+    | StackSlot (VirtualStackSlot vreg) when Opts.dump_virtual_asm () ->
+      pp_virtual_stack_slot ~buf vreg
     | _ -> failwith "Virtual stack slot must have been resolved before printing")
   | FunctionStackArgument vreg ->
     (match VReg.get_vreg_resolution vreg with
     | StackSlot (PhysicalAddress _ as addr) -> pp_memory_address ~gcx ~buf addr
-    | StackSlot (FunctionStackArgument vreg) -> pp_function_stack_argument ~buf vreg
+    | StackSlot (FunctionStackArgument vreg) when Opts.dump_virtual_asm () ->
+      pp_function_stack_argument ~buf vreg
     | _ -> failwith "Function stack argument must have been resolved before printing")
+  | FunctionArgumentStackSlot vreg ->
+    (match VReg.get_vreg_resolution vreg with
+    | StackSlot (PhysicalAddress _ as addr) -> pp_memory_address ~gcx ~buf addr
+    | StackSlot (FunctionArgumentStackSlot vreg) when Opts.dump_virtual_asm () ->
+      pp_function_argument_stack_slot ~buf vreg
+    | _ -> failwith "Function argument stack slot must have been resolved before printing")
   | PhysicalAddress mem ->
     begin
       match mem.offset with
-      | None -> ()
+      | None
+      | Some (ImmediateOffset 0l) ->
+        ()
       | Some (ImmediateOffset imm) -> add_string ~buf (Int32.to_string imm)
       | Some (LabelOffset label) -> add_string ~buf label
     end;

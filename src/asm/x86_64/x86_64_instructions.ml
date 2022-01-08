@@ -67,12 +67,17 @@ type memory_address_scale =
 
 type 'reg memory_address =
   | VirtualStackSlot of 'reg
-  | FunctionStackArgument of 'reg
   | PhysicalAddress of {
       offset: memory_address_offset option;
       base: 'reg memory_address_base;
       index_and_scale: ('reg * memory_address_scale) option;
     }
+  (* An argument to the current function that is passed on the stack. These arguments appear at
+     the bottom of the previous function's stack frame. *)
+  | FunctionStackArgument of 'reg
+  (* An argument to pass to a callee function on the stack. These arguments appear at this bottom
+     of the current function's stack frame. *)
+  | FunctionArgumentStackSlot of 'reg
 
 let empty_memory_address = PhysicalAddress { offset = None; base = NoBase; index_and_scale = None }
 
@@ -168,15 +173,19 @@ module Instruction = struct
         All MM instructions must contain at least one register as an argument.
 
         Unless otherwise noted, immediates can only be 8, 16, or 32 bits. *)
-    (* Stack instructions *)
+    (* Stack instructions, all implicitly have size of 64 bits *)
     | PushI of immediate
     | PushM of 'reg memory
     | PopM of 'reg memory
     (* Data instructions *)
-    | MovIM of register_size * immediate * 'reg memory (* Allows 64-bit immediate *)
+    (* Allows 64-bit immediate. register_size is destination size which may not match immediate size *)
+    | MovIM of register_size * immediate * 'reg memory
+    (* Allows 64-bit immediate. register_size is destination size *)
     | MovMM of register_size * 'reg memory * 'reg memory
-    | MovSX of register_size * register_size * 'reg memory * 'reg (* Src size then dest size where src size < dest size *)
-    | MovZX of register_size * register_size * 'reg memory * 'reg (* Src size then dest size where src size < dest size *)
+    (* Src size then dest size where src size < dest size *)
+    | MovSX of register_size * register_size * 'reg memory * 'reg
+    (* Src size then dest size where src size < dest size *)
+    | MovZX of register_size * register_size * 'reg memory * 'reg
     | Lea of register_size * 'reg memory_address * 'reg (* Only supports 32 or 64 bit register argument *)
     (* Numeric operations *)
     | NegM of register_size * 'reg memory
@@ -258,6 +267,9 @@ module Function = struct
     mutable spilled_callee_saved_regs: RegSet.t;
     mutable spilled_vregs: VRegSet.t;
     mutable num_stack_frame_slots: int;
+    (* Stack slots in stack frame which hold arguments to pass on stack to callee functions. First
+       element in list is at bottom of stack frame (closest to callee function's stack frame). *)
+    mutable argument_stack_slots: 'reg list;
   }
 
   let max_id = ref 0

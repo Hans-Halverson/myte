@@ -1,0 +1,19 @@
+module test
+
+import std.test.assertEqual
+import std.io.println
+
+fun manyArgs(p1: Long, p2: Long, p3: Long, p4: Long, p5: Long, p6: Long, p7: Long, p8: Long, p9: Long, p10: Long): Long {
+  return p1 | (p2 << 4) | (p3 << 8) | (p4 << 12) | (p5 << 16) | (p6 << 20) | (p7 << 24) | (p8 << 28) | (p9 << 32) | (p10 << 36);
+}
+
+fun testManyArgs() {
+  assertEqual(
+    manyArgs(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
+    (1: Long) | (2 << 4) | (3 << 8) | (4 << 12) | (5 << 16) | (6 << 20) | (7 << 24) | (8 << 28) | (9 << 32) | (10 << 36),
+  );
+}
+
+fun main() {
+  testManyArgs();
+}

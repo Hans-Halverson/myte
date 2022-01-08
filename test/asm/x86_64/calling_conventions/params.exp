@@ -37,9 +37,10 @@ _main:
   movl $0, %eax
   ret
 test.passedInRegistersAndStack:
-  push $9
-  push $8
-  push $7
+  subq $24, %rsp
+  movl $7, (%rsp)
+  movl $8, 8(%rsp)
+  movl $9, 16(%rsp)
   movl $1, %edi
   movl $2, %esi
   movl $3, %edx
@@ -88,7 +89,7 @@ test.testFunctionStackParamsOffsetByStackFrameAndPushedCalleeSavedRegisters:
   push %r14
   push %r15
   subq $8, %rsp
-  movl %edi, 0(%rsp)
+  movl %edi, (%rsp)
   movl %esi, %r15d
   movl %edx, %r14d
   movl %ecx, %r13d
@@ -96,7 +97,7 @@ test.testFunctionStackParamsOffsetByStackFrameAndPushedCalleeSavedRegisters:
   movl %r9d, %ebx
   movl $3, %edi
   call test.use$Int$
-  addl 0(%rsp), %r15d
+  addl (%rsp), %r15d
   addl %r15d, %r14d
   addl %r14d, %r13d
   addl %r13d, %r12d
@@ -112,7 +113,8 @@ test.testFunctionStackParamsOffsetByStackFrameAndPushedCalleeSavedRegisters:
   pop %rbx
   ret
 test.testLongArgs:
-  push $7
+  subq $8, %rsp
+  movq $7, (%rsp)
   movq $1, %rdi
   movl $2, %esi
   movl $3, %edx
@@ -120,9 +122,8 @@ test.testLongArgs:
   movl $5, %r8d
   movl $6, %r9d
   call test.longArgs
-  addq $8, %rsp
   movq $2147483648, %rax
-  push %rax
+  movq %rax, (%rsp)
   movq $2147483648, %rdi
   movl $2, %esi
   movl $3, %edx

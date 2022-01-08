@@ -58,6 +58,16 @@ let liveness_analysis ~(gcx : Gcx.t) =
     gcx.blocks_by_id;
   !graph
 
+let resolve_to_physical_stack_slot ~gcx vreg offset =
+  vreg.VReg.resolution <-
+    StackSlot
+      (PhysicalAddress
+         {
+           base = RegBase (Gcx.mk_precolored ~gcx SP);
+           offset = Some (ImmediateOffset (Int32.of_int offset));
+           index_and_scale = None;
+         })
+
 let allocate_stack_slots ~(gcx : Gcx.t) =
   let interference_graph = liveness_analysis ~gcx in
 
@@ -103,23 +113,26 @@ let allocate_stack_slots ~(gcx : Gcx.t) =
             max_stack_slot := !max_stack_slot + 1)
         func.spilled_vregs;
 
-      func.num_stack_frame_slots <- !max_stack_slot;
+      (* Calculate total size of stack frame and its sections *)
+      let num_argument_stack_slots = List.length func.argument_stack_slots in
+      let num_local_stack_slots = !max_stack_slot in
+      let arguments_stack_frame_section_size = num_argument_stack_slots * 8 in
+
+      func.num_stack_frame_slots <- num_argument_stack_slots + num_local_stack_slots;
       let stack_frame_size = func.num_stack_frame_slots * 8 in
+
+      (* Write physical addresses in stack for each argument stack slot in function *)
+      List.iteri
+        (fun i stack_slot_vreg -> resolve_to_physical_stack_slot ~gcx stack_slot_vreg (i * 8))
+        func.argument_stack_slots;
 
       (* Write physical addresses in stack for each vslot in function *)
       IMap.iter
         (fun color vslots ->
           VRegSet.iter
             (fun vslot ->
-              let offset = color * 8 in
-              vslot.resolution <-
-                StackSlot
-                  (PhysicalAddress
-                     {
-                       base = RegBase (Gcx.mk_precolored ~gcx SP);
-                       offset = Some (ImmediateOffset (Int32.of_int offset));
-                       index_and_scale = None;
-                     }))
+              let offset = (color * 8) + arguments_stack_frame_section_size in
+              resolve_to_physical_stack_slot ~gcx vslot offset)
             vslots)
         !color_to_stack_slots;
 
@@ -128,18 +141,10 @@ let allocate_stack_slots ~(gcx : Gcx.t) =
       let num_used_callee_saved_regs = RegSet.cardinal func.spilled_callee_saved_regs in
       List.iteri
         (fun i param_vreg ->
-          let open VReg in
           (* Offset must reach past entire stack frame, then all used callee saved registers that were
              pushed on stack, then return address pushed onto stack from call instruction, and then
              finally can start accessing function arguments that were pushed onto stack. *)
           let offset = stack_frame_size + ((num_used_callee_saved_regs + i + 1) * 8) in
-          param_vreg.resolution <-
-            StackSlot
-              (PhysicalAddress
-                 {
-                   base = RegBase (Gcx.mk_precolored ~gcx SP);
-                   offset = Some (ImmediateOffset (Int32.of_int offset));
-                   index_and_scale = None;
-                 }))
+          resolve_to_physical_stack_slot ~gcx param_vreg offset)
         args_on_stack)
     gcx.funcs_by_id

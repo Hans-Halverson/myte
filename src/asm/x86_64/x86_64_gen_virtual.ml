@@ -193,19 +193,23 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     | _ -> (v1, v2)
   in
   let gen_call_arguments arg_vals =
-    (* Arguments 7+ are pushed on stack in reverse order *)
-    let stack_arg_vals = List.rev (List_utils.drop 6 arg_vals) in
-    List.iter
-      (fun arg_val ->
+    (* Arguments 7+ are placed in function arguments stack slots *)
+    let stack_arg_vals = List_utils.drop 6 arg_vals in
+    List.iteri
+      (fun i arg_val ->
+        let argument_stack_slot_vreg = Gcx.get_current_argument_stack_slot ~gcx i in
+        let argument_stack_slot = Mem (FunctionArgumentStackSlot argument_stack_slot_vreg) in
         match resolve_ir_value arg_val with
-        | SImm imm -> Gcx.emit ~gcx (PushI imm)
-        (* Address must be calculated in a register and then pushed onto stack *)
+        | SImm imm ->
+          let dest_size = register_size_of_mir_value_type (type_of_value arg_val) in
+          Gcx.emit ~gcx (MovIM (dest_size, imm, argument_stack_slot))
+        (* Address must be calculated in a register and then moved into stack slot *)
         | SAddr addr ->
           let vreg = mk_vreg () in
           Gcx.emit ~gcx (Lea (Size64, addr, vreg));
-          Gcx.emit ~gcx (PushM (Reg vreg))
-        | SMem (mem, _) -> Gcx.emit ~gcx (PushM (Mem mem))
-        | SVReg (var_id, _) -> Gcx.emit ~gcx (PushM (Reg var_id)))
+          Gcx.emit ~gcx (MovMM (Size64, Reg vreg, argument_stack_slot))
+        | SMem (mem, size) -> Gcx.emit ~gcx (MovMM (size, Mem mem, argument_stack_slot))
+        | SVReg (vreg, size) -> Gcx.emit ~gcx (MovMM (size, Reg vreg, argument_stack_slot)))
       stack_arg_vals;
     (* First six arguments are placed in registers %rdi​, ​%rsi​, ​%rdx​, ​%rcx​, ​%r8​, and ​%r9​ *)
     List.iteri
@@ -493,13 +497,6 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
         CallM (Size64, func_mem)
     in
     Gcx.emit ~gcx inst;
-    (* Return stack pointer to address before arguments were pushed onto stack *)
-    let num_stack_arg_vals = max 0 (List.length arg_vals - 6) in
-    if num_stack_arg_vals <> 0 then
-      Gcx.emit
-        ~gcx
-        (AddIM
-           (Size64, Imm32 (Int32.of_int (num_stack_arg_vals * 8)), Reg (Gcx.mk_precolored ~gcx SP)));
     (* Move result from register A to return vreg *)
     (match return with
     | None -> ()

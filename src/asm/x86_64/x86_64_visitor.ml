@@ -80,6 +80,7 @@ class instruction_visitor =
       match memory_address with
       | VirtualStackSlot _ -> ()
       | FunctionStackArgument _ -> ()
+      | FunctionArgumentStackSlot _ -> ()
       | PhysicalAddress mem ->
         (match mem.base with
         | NoBase -> ()

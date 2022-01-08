@@ -117,6 +117,7 @@ module Gcx = struct
         spilled_callee_saved_regs = RegSet.empty;
         spilled_vregs = VRegSet.empty;
         num_stack_frame_slots = 0;
+        argument_stack_slots = [];
       }
     in
     gcx.current_func_builder <- Some func;
@@ -127,6 +128,18 @@ module Gcx = struct
     let current_func = Option.get gcx.current_func_builder in
     current_func.blocks <- List.rev current_func.blocks;
     gcx.current_func_builder <- None
+
+  let get_current_argument_stack_slot ~gcx i =
+    (* Return stack slot vreg if one already exists for function, otherwise create new stack slot
+       vreg for function and return it. *)
+    let current_func = Option.get gcx.current_func_builder in
+    match List.nth_opt current_func.argument_stack_slots i with
+    | Some stack_slot_vreg -> stack_slot_vreg
+    | None ->
+      let stack_slot_vreg = VReg.mk ~resolution:Unresolved ~func:(Some current_func.id) in
+      stack_slot_vreg.resolution <- StackSlot (FunctionArgumentStackSlot stack_slot_vreg);
+      current_func.argument_stack_slots <- current_func.argument_stack_slots @ [stack_slot_vreg];
+      stack_slot_vreg
 
   let get_instruction ~gcx instr_id =
     let block_id = IMap.find instr_id gcx.instruction_to_block in
