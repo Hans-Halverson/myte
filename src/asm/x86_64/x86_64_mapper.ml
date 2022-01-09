@@ -2,7 +2,7 @@ open X86_64_instructions
 
 class instruction_mapper =
   object (this)
-    method map_instruction (instr_with_id : virtual_instruction) =
+    method map_instruction (instr_with_id : Instruction.t) =
       let open Instruction in
       let (instr_id, instr) = instr_with_id in
       let instr' =

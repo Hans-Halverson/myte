@@ -520,7 +520,7 @@ let pp_data_section_bitmap ~buf (bitmap : X86_64_bitmaps.data_section_bitmap) se
 
 let pp_global_directive ~buf label = add_line ~buf (fun buf -> add_string ~buf (".global " ^ label))
 
-let pp_block ~gcx ~pcx ~buf (block : virtual_block) =
+let pp_block ~gcx ~pcx ~buf (block : Block.t) =
   (match pp_label ~pcx block with
   | None -> ()
   | Some label ->

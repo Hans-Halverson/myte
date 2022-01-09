@@ -18,7 +18,7 @@ class spill_writer ~gcx =
 
     method add_instr instr = current_instruction_builder <- instr :: current_instruction_builder
 
-    method write_block_spills (block : virtual_block) =
+    method write_block_spills (block : Block.t) =
       current_block_builders <- [];
       List.iter
         (fun instruction ->
@@ -52,7 +52,7 @@ class spill_writer ~gcx =
       (* Must have a register not a memory address - if necessary create new register then move *)
       let force_register_write size reg f =
         match resolve_reg reg with
-        | VirtualRegister.StackSlot mem ->
+        | VReg.StackSlot mem ->
           let vreg_dest = mk_vreg () in
           this#add_instr (instr_id, f vreg_dest);
           this#add_instr (Gcx.mk_instr_id_for_block ~gcx block, MovMM (size, Reg vreg_dest, Mem mem))
@@ -132,7 +132,6 @@ class spill_writer ~gcx =
     (* Resolve a register, replacing the register with a memory if it has been resolved to a
        stack slot. *)
     method resolve_reg ~block reg =
-      let open VirtualRegister in
       match VReg.get_vreg_resolution reg with
       | StackSlot mem -> StackSlot (this#force_registers_in_address ~block mem)
       | other -> other
@@ -162,7 +161,7 @@ class spill_writer ~gcx =
               let vreg = this#mk_vreg () in
               this#add_instr
                 (Gcx.mk_instr_id_for_block ~gcx block, MovMM (Size64, Mem mem, Reg vreg));
-              RegBase vreg
+              MemoryAddress.RegBase vreg
             | _ -> base)
           | _ -> base
         in

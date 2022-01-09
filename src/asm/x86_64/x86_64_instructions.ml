@@ -50,52 +50,39 @@ type immediate =
   | Imm32 of Int32.t
   | Imm64 of Int64.t
 
-type memory_address_offset =
-  | ImmediateOffset of Int32.t
-  | LabelOffset of label
+module rec MemoryAddress : sig
+  type t =
+    | VirtualStackSlot of VReg.t
+    | PhysicalAddress of {
+        offset: offset option;
+        base: base;
+        index_and_scale: (VReg.t * scale) option;
+      }
+    (* An argument to the current function that is passed on the stack. These arguments appear at
+       the bottom of the previous function's stack frame. *)
+    | FunctionStackArgument of VReg.t
+    (* An argument to pass to a callee function on the stack. These arguments appear at this bottom
+       of the current function's stack frame. *)
+    | FunctionArgumentStackSlot of VReg.t
 
-type 'a memory_address_base =
-  | NoBase
-  | RegBase of 'a
-  | IPBase
+  and offset =
+    | ImmediateOffset of Int32.t
+    | LabelOffset of label
 
-type memory_address_scale =
-  | Scale1
-  | Scale2
-  | Scale4
-  | Scale8
+  and base =
+    | NoBase
+    | RegBase of VReg.t
+    | IPBase
 
-type 'reg memory_address =
-  | VirtualStackSlot of 'reg
-  | PhysicalAddress of {
-      offset: memory_address_offset option;
-      base: 'reg memory_address_base;
-      index_and_scale: ('reg * memory_address_scale) option;
-    }
-  (* An argument to the current function that is passed on the stack. These arguments appear at
-     the bottom of the previous function's stack frame. *)
-  | FunctionStackArgument of 'reg
-  (* An argument to pass to a callee function on the stack. These arguments appear at this bottom
-     of the current function's stack frame. *)
-  | FunctionArgumentStackSlot of 'reg
+  and scale =
+    | Scale1
+    | Scale2
+    | Scale4
+    | Scale8
+end =
+  MemoryAddress
 
-let empty_memory_address = PhysicalAddress { offset = None; base = NoBase; index_and_scale = None }
-
-type condition_code =
-  | E
-  | NE
-  | L
-  | LE
-  | G
-  | GE
-
-type block_id = int
-
-type func_id = int
-
-type vreg_id = int
-
-module VirtualRegister = struct
+and VReg : sig
   type id = int
 
   type t = {
@@ -109,8 +96,33 @@ module VirtualRegister = struct
     (* This vreg has been mapped to a physical register in a particular register slot *)
     | Physical of register_slot
     (* This vreg has been mapped to a slot on the stack. May be explicit or result from spills. *)
-    | StackSlot of t memory_address
+    | StackSlot of MemoryAddress.t
     (* This vreg has not yet been resolved to a physical location *)
+    | Unresolved
+
+  val of_var_id : resolution:resolution -> id -> t
+
+  val mk : resolution:resolution -> t
+
+  val compare : t -> t -> int
+
+  val get_vreg_alias : t -> t
+
+  val get_vreg_resolution : t -> resolution
+
+  val get_physical_resolution : t -> register_slot
+end = struct
+  type id = int
+
+  type t = {
+    id: id;
+    mutable resolution: resolution;
+  }
+
+  and resolution =
+    | Alias of t
+    | Physical of register_slot
+    | StackSlot of MemoryAddress.t
     | Unresolved
 
   let vregs_by_id = ref IMap.empty
@@ -140,9 +152,23 @@ module VirtualRegister = struct
     | _ -> failwith "Expected virtual register to be resolved to physical register"
 end
 
-module VReg = VirtualRegister
-module VRegSet = Set.Make (VirtualRegister)
-module VRegMap = Map.Make (VirtualRegister)
+let empty_memory_address =
+  MemoryAddress.PhysicalAddress { offset = None; base = NoBase; index_and_scale = None }
+
+type condition_code =
+  | E
+  | NE
+  | L
+  | LE
+  | G
+  | GE
+
+type block_id = int
+
+type func_id = int
+
+module VRegSet = Set.Make (VReg)
+module VRegMap = Map.Make (VReg)
 module VVMMap = MultiMap.Make (VReg) (VReg)
 module VIMMap = MultiMap.Make (VReg) (Int)
 
@@ -158,11 +184,11 @@ let string_of_vset vset =
 module Instruction = struct
   type id = int
 
-  type 'reg memory =
-    | Reg of 'reg
-    | Mem of 'reg memory_address
+  type reg_or_mem =
+    | Reg of VReg.t
+    | Mem of MemoryAddress.t
 
-  type 'reg t' =
+  type t' =
     (* Instruction Suffixes:
           R - virtual register
           I - immediate
@@ -174,60 +200,60 @@ module Instruction = struct
         Unless otherwise noted, immediates can only be 8, 16, or 32 bits. *)
     (* Stack instructions, all implicitly have size of 64 bits *)
     | PushI of immediate
-    | PushM of 'reg memory
-    | PopM of 'reg memory
+    | PushM of reg_or_mem
+    | PopM of reg_or_mem
     (* Data instructions *)
     (* Allows 64-bit immediate. register_size is destination size which may not match immediate size *)
-    | MovIM of register_size * immediate * 'reg memory
+    | MovIM of register_size * immediate * reg_or_mem
     (* Allows 64-bit immediate. register_size is destination size *)
-    | MovMM of register_size * 'reg memory * 'reg memory
+    | MovMM of register_size * reg_or_mem * reg_or_mem
     (* Src size then dest size where src size < dest size *)
-    | MovSX of register_size * register_size * 'reg memory * 'reg
+    | MovSX of register_size * register_size * reg_or_mem * VReg.t
     (* Src size then dest size where src size < dest size *)
-    | MovZX of register_size * register_size * 'reg memory * 'reg
-    | Lea of register_size * 'reg memory_address * 'reg (* Only supports 32 or 64 bit register argument *)
+    | MovZX of register_size * register_size * reg_or_mem * VReg.t
+    | Lea of register_size * MemoryAddress.t * VReg.t (* Only supports 32 or 64 bit register argument *)
     (* Numeric operations *)
-    | NegM of register_size * 'reg memory
-    | AddIM of register_size * immediate * 'reg memory
-    | AddMM of register_size * 'reg memory * 'reg memory
+    | NegM of register_size * reg_or_mem
+    | AddIM of register_size * immediate * reg_or_mem
+    | AddMM of register_size * reg_or_mem * reg_or_mem
     (* For sub instructions, right/dest := right/dest - left/src *)
-    | SubIM of register_size * immediate * 'reg memory
-    | SubMM of register_size * 'reg memory * 'reg memory
-    | IMulMR of register_size * 'reg memory * 'reg (* Only supports 16, 32, and 64-bit arguments *)
-    | IMulMIR of register_size * 'reg memory * immediate * 'reg (* Only supports 16 and 32-bit immediates *)
-    | IDiv of register_size * 'reg memory
+    | SubIM of register_size * immediate * reg_or_mem
+    | SubMM of register_size * reg_or_mem * reg_or_mem
+    | IMulMR of register_size * reg_or_mem * VReg.t (* Only supports 16, 32, and 64-bit arguments *)
+    | IMulMIR of register_size * reg_or_mem * immediate * VReg.t (* Only supports 16 and 32-bit immediates *)
+    | IDiv of register_size * reg_or_mem
     (* Bitwise operations *)
-    | NotM of register_size * 'reg memory
-    | AndIM of register_size * immediate * 'reg memory
-    | AndMM of register_size * 'reg memory * 'reg memory
-    | OrIM of register_size * immediate * 'reg memory
-    | OrMM of register_size * 'reg memory * 'reg memory
-    | XorIM of register_size * immediate * 'reg memory
-    | XorMM of register_size * 'reg memory * 'reg memory
+    | NotM of register_size * reg_or_mem
+    | AndIM of register_size * immediate * reg_or_mem
+    | AndMM of register_size * reg_or_mem * reg_or_mem
+    | OrIM of register_size * immediate * reg_or_mem
+    | OrMM of register_size * reg_or_mem * reg_or_mem
+    | XorIM of register_size * immediate * reg_or_mem
+    | XorMM of register_size * reg_or_mem * reg_or_mem
     (* Bit shifts *)
-    | ShlI of register_size * immediate * 'reg memory (* Requires 8-bit immediate *)
-    | ShlR of register_size * 'reg memory
-    | ShrI of register_size * immediate * 'reg memory (* Requires 8-bit immediate *)
-    | ShrR of register_size * 'reg memory
-    | SarI of register_size * immediate * 'reg memory (* Requires 8-bit immediate *)
-    | SarR of register_size * 'reg memory
+    | ShlI of register_size * immediate * reg_or_mem (* Requires 8-bit immediate *)
+    | ShlR of register_size * reg_or_mem
+    | ShrI of register_size * immediate * reg_or_mem (* Requires 8-bit immediate *)
+    | ShrR of register_size * reg_or_mem
+    | SarI of register_size * immediate * reg_or_mem (* Requires 8-bit immediate *)
+    | SarR of register_size * reg_or_mem
     (* Comparisons *)
-    | CmpMI of register_size * 'reg memory * immediate
-    | CmpMM of register_size * 'reg memory * 'reg memory
-    | TestMR of register_size * 'reg memory * 'reg
-    | SetCC of condition_code * 'reg memory (* Only supports 8-bit destination *)
+    | CmpMI of register_size * reg_or_mem * immediate
+    | CmpMM of register_size * reg_or_mem * reg_or_mem
+    | TestMR of register_size * reg_or_mem * VReg.t
+    | SetCC of condition_code * reg_or_mem (* Only supports 8-bit destination *)
     (* Conversions *)
     | ConvertDouble of register_size (* Only supports 16, 32, and 64 byte sizes (cwd/cdq/cqo) *)
     (* Control flow *)
     | Jmp of block_id
     | JmpCC of condition_code * block_id
     | CallL of label
-    | CallM of register_size * 'reg memory
+    | CallM of register_size * reg_or_mem
     | Leave
     | Ret
     | Syscall
 
-  type 'reg t = id * 'reg t'
+  type t = id * t'
 
   let max_id = ref 0
 
@@ -240,11 +266,11 @@ end
 module Block = struct
   type id = block_id
 
-  and 'reg t = {
+  and t = {
     id: id;
     label: label option;
     func: func_id;
-    mutable instructions: 'reg Instruction.t list;
+    mutable instructions: Instruction.t list;
   }
 
   let max_id = ref 0
@@ -258,17 +284,17 @@ end
 module Function = struct
   type id = int
 
-  type 'reg t = {
+  type t = {
     id: id;
-    mutable params: 'reg list;
+    mutable params: VReg.t list;
     mutable prologue: block_id;
-    mutable blocks: 'reg Block.t list;
+    mutable blocks: Block.t list;
     mutable spilled_callee_saved_regs: RegSet.t;
     mutable spilled_vregs: VRegSet.t;
     mutable num_stack_frame_slots: int;
     (* Stack slots in stack frame which hold arguments to pass on stack to callee functions. First
        element in list is at bottom of stack frame (closest to callee function's stack frame). *)
-    mutable argument_stack_slots: 'reg list;
+    mutable argument_stack_slots: VReg.t list;
   }
 
   let max_id = ref 0
@@ -302,19 +328,11 @@ type data = initialized_data_item data_section
 
 type bss = uninitialized_data_item data_section
 
-type 'reg program = {
-  text: 'reg Block.t list;
+type program = {
+  text: Block.t list;
   data: data;
   bss: bss;
 }
-
-type virtual_instruction = VReg.t Instruction.t
-
-type virtual_block = VReg.t Block.t
-
-type virtual_function = VReg.t Function.t
-
-type virtual_program = VReg.t program
 
 let pointer_size = 8
 

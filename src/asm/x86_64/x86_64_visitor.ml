@@ -2,7 +2,7 @@ open X86_64_instructions
 
 class instruction_visitor =
   object (this)
-    method visit_instruction ~(block : virtual_block) (instr : virtual_instruction) =
+    method visit_instruction ~(block : Block.t) (instr : Instruction.t) =
       let open Instruction in
       let visit_read_vreg reg = this#visit_read_vreg ~block reg in
       let visit_write_vreg reg = this#visit_write_vreg ~block reg in

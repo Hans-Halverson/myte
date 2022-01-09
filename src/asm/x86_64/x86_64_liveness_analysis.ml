@@ -50,7 +50,7 @@ class use_def_finder color_to_vreg =
     method! visit_write_vreg ~block vreg = this#add_vreg_def ~block vreg
   end
 
-class analyze_vregs_init_visitor (blocks : virtual_block List.t) color_to_vreg =
+class analyze_vregs_init_visitor (blocks : Block.t List.t) color_to_vreg =
   object (this)
     inherit use_def_finder color_to_vreg
 
@@ -79,10 +79,10 @@ class analyze_vregs_init_visitor (blocks : virtual_block List.t) color_to_vreg =
       prev_blocks <-
         IMap.add next_block_id (ISet.add block.id (IMap.find next_block_id prev_blocks)) prev_blocks
 
-    method! add_vreg_use ~(block : virtual_block) vreg =
+    method! add_vreg_use ~(block : Block.t) vreg =
       vreg_use_blocks <- VIMMap.add vreg block.id vreg_use_blocks
 
-    method! add_vreg_def ~(block : virtual_block) vreg =
+    method! add_vreg_def ~(block : Block.t) vreg =
       if
         VIMMap.contains vreg block.id vreg_use_blocks
         && not (VIMMap.contains vreg block.id vreg_def_blocks)

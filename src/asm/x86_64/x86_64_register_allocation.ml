@@ -24,7 +24,7 @@ let num_allocatable_registers = RegSet.cardinal general_purpose_registers - 1
 
 module RegisterAllocator = struct
   type t = {
-    func: virtual_function;
+    func: Function.t;
     gcx: Gcx.t;
     (* Map of virtual registers live at the beginning of each block *)
     mutable live_out: VReg.t list IMap.t;

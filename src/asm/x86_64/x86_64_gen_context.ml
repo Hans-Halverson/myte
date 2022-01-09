@@ -8,10 +8,10 @@ module Gcx = struct
     (* Virtual blocks and builders *)
     mutable data: data;
     mutable bss: bss;
-    mutable current_block_builder: virtual_block option;
-    mutable current_func_builder: VReg.t Function.t option;
+    mutable current_block_builder: Block.t option;
+    mutable current_func_builder: Function.t option;
     (* All blocks, indexed by id *)
-    mutable blocks_by_id: virtual_block IMap.t;
+    mutable blocks_by_id: Block.t IMap.t;
     mutable prev_blocks: IIMMap.t;
     (* Blocks indexed by their corresponding MIR block. Not all blocks may be in this map. *)
     mutable mir_block_id_to_block_id: Block.id IMap.t;
@@ -19,7 +19,7 @@ module Gcx = struct
     mutable var_num_uses: int IMap.t;
     (* Map from instruction id to the block that contains it *)
     mutable instruction_to_block: Block.id IMap.t;
-    mutable funcs_by_id: VReg.t Function.t IMap.t;
+    mutable funcs_by_id: Function.t IMap.t;
     (* Map from physical register to a precolored virtual register *)
     mutable color_to_vreg: VReg.t RegMap.t;
     mutable agg_to_layout: AggregateLayout.t IMap.t;
@@ -30,7 +30,7 @@ module Gcx = struct
     let (color_to_vreg, _precolored_vregs, _interference_degree) =
       RegSet.fold
         (fun reg (color_to_vreg, precolored_vregs, interference_degree) ->
-          let vreg = VirtualRegister.mk ~resolution:(Physical reg) in
+          let vreg = VReg.mk ~resolution:(Physical reg) in
           ( RegMap.add reg vreg color_to_vreg,
             VRegSet.add vreg precolored_vregs,
             VRegMap.add vreg Int.max_int interference_degree ))

@@ -11,9 +11,9 @@ type resolved_source_value =
   (* Value is a virtual register *)
   | SVReg of VReg.t * register_size
   (* Value is the contents at a memory location *)
-  | SMem of VReg.t memory_address * register_size
+  | SMem of MemoryAddress.t * register_size
   (* Value is a memory address *)
-  | SAddr of VReg.t memory_address
+  | SAddr of MemoryAddress.t
 
 let invalid_label_chars = Str.regexp "[<>,*()]"
 
@@ -548,7 +548,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
       | `PointerV _ ->
         (match resolve_ir_value pointer with
         | SVReg (vreg, _) ->
-          PhysicalAddress { offset = None; base = RegBase vreg; index_and_scale = None }
+          MemoryAddress.PhysicalAddress
+            { offset = None; base = RegBase vreg; index_and_scale = None }
         | SMem (mem, _) -> mem
         | SImm _
         | SAddr _ ->
@@ -1049,7 +1050,7 @@ and gen_get_pointer ~gcx (get_pointer_instr : var_id Mir.Instruction.GetPointer.
   (* Current address calculation - updated as offsets are visited. Note that base and index_and_scale
      can only contain 64-bit registers. *)
   let offset = ref None in
-  let base = ref NoBase in
+  let base = ref MemoryAddress.NoBase in
   let index_and_scale = ref None in
 
   (* Zero extend index register to 64 bits for address calculation *)

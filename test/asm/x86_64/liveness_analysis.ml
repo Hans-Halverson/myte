@@ -18,7 +18,7 @@ let mk_blocks blocks =
     blocks
 
 let find_liveness_sets blocks =
-  let open VirtualRegister in
+  let open VReg in
   let blocks_by_id = mk_blocks blocks in
   let (live_in, live_out) = X86_64_liveness_analysis.analyze_vregs blocks_by_id RegMap.empty in
   ( IMap.map

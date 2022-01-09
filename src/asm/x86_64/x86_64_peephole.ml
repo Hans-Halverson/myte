@@ -5,14 +5,14 @@ open X86_64_gen_context
 (* A peephole optimization edit consists of the number of instructions to remove (1 for the
    current instruction, 2 for the current and next instruction, etc) as well as the new
    instructions to be inserted *)
-type peephole_optimization_edit = int * virtual_instruction list
+type peephole_optimization_edit = int * Instruction.t list
 
 type peephole_optimization_result = peephole_optimization_edit option
 
 (* A peephole optimization is a function that takes an instruction (and the list of following
   instructions), and returns a peephole optimization result. *)
 type peephole_optimization =
-  gcx:Gcx.t -> virtual_instruction -> virtual_instruction list -> peephole_optimization_result
+  gcx:Gcx.t -> Instruction.t -> Instruction.t list -> peephole_optimization_result
 
 class peephole_optimization_runner ~(gcx : Gcx.t) (opts : peephole_optimization list) =
   object (this)
