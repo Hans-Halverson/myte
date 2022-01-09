@@ -30,7 +30,7 @@ module Gcx = struct
     let (color_to_vreg, _precolored_vregs, _interference_degree) =
       RegSet.fold
         (fun reg (color_to_vreg, precolored_vregs, interference_degree) ->
-          let vreg = VirtualRegister.mk ~func:None ~resolution:(Physical reg) in
+          let vreg = VirtualRegister.mk ~resolution:(Physical reg) in
           ( RegMap.add reg vreg color_to_vreg,
             VRegSet.add vreg precolored_vregs,
             VRegMap.add vreg Int.max_int interference_degree ))
@@ -136,7 +136,7 @@ module Gcx = struct
     match List.nth_opt current_func.argument_stack_slots i with
     | Some stack_slot_vreg -> stack_slot_vreg
     | None ->
-      let stack_slot_vreg = VReg.mk ~resolution:Unresolved ~func:(Some current_func.id) in
+      let stack_slot_vreg = VReg.mk ~resolution:Unresolved in
       stack_slot_vreg.resolution <- StackSlot (FunctionArgumentStackSlot stack_slot_vreg);
       current_func.argument_stack_slots <- current_func.argument_stack_slots @ [stack_slot_vreg];
       stack_slot_vreg

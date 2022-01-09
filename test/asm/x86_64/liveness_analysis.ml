@@ -2,7 +2,7 @@ open Basic_collections
 open Myte_test
 open X86_64_instructions
 
-let mk_vreg id = VReg.of_var_id ~resolution:Unresolved ~func:None id
+let mk_vreg id = VReg.of_var_id ~resolution:Unresolved id
 
 let mk_blocks blocks =
   List.fold_left

@@ -101,7 +101,6 @@ module VirtualRegister = struct
   type t = {
     id: id;
     mutable resolution: resolution;
-    mutable func: func_id option;
   }
 
   and resolution =
@@ -116,15 +115,15 @@ module VirtualRegister = struct
 
   let vregs_by_id = ref IMap.empty
 
-  let of_var_id ~resolution ~func var_id =
+  let of_var_id ~resolution var_id =
     match IMap.find_opt var_id !vregs_by_id with
     | None ->
-      let new_vreg = { id = var_id; resolution; func } in
+      let new_vreg = { id = var_id; resolution } in
       vregs_by_id := IMap.add var_id new_vreg !vregs_by_id;
       new_vreg
     | Some existing_vreg -> existing_vreg
 
-  let mk ~resolution ~func = { id = Mir.mk_var_id (); resolution; func }
+  let mk ~resolution = { id = Mir.mk_var_id (); resolution }
 
   let compare v1 v2 = Int.compare v1.id v2.id
 

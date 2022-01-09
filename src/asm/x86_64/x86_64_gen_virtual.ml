@@ -87,7 +87,7 @@ and gen_global_instruction_builder ~gcx ~ir:_ global =
     Gcx.add_data ~gcx data
   (* Global is initialized to immediate, so insert into initialized data section *)
   | Some init_val ->
-    (match resolve_ir_value ~gcx ~func:0 ~allow_imm64:true init_val with
+    (match resolve_ir_value ~gcx ~allow_imm64:true init_val with
     | SImm imm ->
       let size = bytes_of_size (size_of_immediate imm) in
       let is_pointer = is_pointer_type global.ty in
@@ -116,7 +116,7 @@ and gen_function_instruction_builder ~gcx ~ir func =
         (* First 6 parameters are passed in known registers *)
         let size = register_size_of_mir_value_type value_type in
         let move_from_precolored color =
-          let param_vreg = VReg.of_var_id ~resolution:Unresolved ~func:(Some func_.id) var_id in
+          let param_vreg = VReg.of_var_id ~resolution:Unresolved var_id in
           Gcx.emit ~gcx (MovMM (size, Reg (Gcx.mk_precolored ~gcx color), Reg param_vreg));
           param_vreg
         in
@@ -130,7 +130,7 @@ and gen_function_instruction_builder ~gcx ~ir func =
         (* All other parameters pushed onto stack before call. Address will be calculated once
            we know stack frame size after stack coloring. *)
         | _ ->
-          let vreg = VReg.of_var_id ~resolution:Unresolved ~func:(Some func_.id) var_id in
+          let vreg = VReg.of_var_id ~resolution:Unresolved var_id in
           vreg.resolution <- StackSlot (FunctionStackArgument vreg);
           vreg)
       func.params;
@@ -151,19 +151,17 @@ and gen_blocks ~gcx ~ir start_block_id label func =
           None
       in
       Gcx.start_block ~gcx ~label ~func ~mir_block_id:(Some mir_block_id);
-      gen_instructions ~gcx ~ir ~func ~block:mir_block (List.map snd mir_block.instructions);
+      gen_instructions ~gcx ~ir ~block:mir_block (List.map snd mir_block.instructions);
       Gcx.finish_block ~gcx)
     ordered_blocks
 
-and gen_instructions ~gcx ~ir ~func ~block instructions =
+and gen_instructions ~gcx ~ir ~block instructions =
   let open Instruction in
-  let gen_instructions = gen_instructions ~gcx ~ir ~func ~block in
-  let vreg_of_result_var_id var_id =
-    VReg.of_var_id ~resolution:Unresolved ~func:(Some func) var_id
-  in
-  let mk_vreg () = VReg.mk ~resolution:Unresolved ~func:(Some func) in
+  let gen_instructions = gen_instructions ~gcx ~ir ~block in
+  let vreg_of_result_var_id var_id = VReg.of_var_id ~resolution:Unresolved var_id in
+  let mk_vreg () = VReg.mk ~resolution:Unresolved in
   let resolve_ir_value ?(allow_imm64 = false) v =
-    resolve_ir_value ~gcx ~func ~allow_imm64 (v :> Value.t)
+    resolve_ir_value ~gcx ~allow_imm64 (v :> Value.t)
   in
   let emit_mem mem =
     match mem with
@@ -912,7 +910,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       let (`PointerT element_mir_ty) = cast_to_pointer_type (snd (Option.get return)) in
       let precolored_a = Gcx.mk_precolored ~gcx A in
       let precolored_di = Gcx.mk_precolored ~gcx DI in
-      gen_size_from_count_and_type ~gcx ~func (List.hd args) element_mir_ty precolored_di;
+      gen_size_from_count_and_type ~gcx (List.hd args) element_mir_ty precolored_di;
       Gcx.emit ~gcx (CallL X86_64_runtime.myte_alloc_label);
       Gcx.emit ~gcx (MovMM (Size64, Reg precolored_a, Reg (ret_vreg ())))
       (*
@@ -925,7 +923,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
       let (pointer_args, count_arg) = List_utils.split_last args in
       let precolored_d = Gcx.mk_precolored ~gcx D in
       gen_call_arguments pointer_args;
-      gen_size_from_count_and_type ~gcx ~func count_arg element_mir_ty precolored_d;
+      gen_size_from_count_and_type ~gcx count_arg element_mir_ty precolored_d;
       Gcx.emit ~gcx (CallL X86_64_runtime.myte_copy_label)
       (*
        * ===========================================
@@ -1003,7 +1001,7 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.GetPointer get_pointer_instr :: rest_instructions ->
-    gen_get_pointer ~gcx ~func get_pointer_instr;
+    gen_get_pointer ~gcx get_pointer_instr;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -1039,16 +1037,14 @@ and gen_instructions ~gcx ~ir ~func ~block instructions =
     gen_instructions rest_instructions
   | Mir.Instruction.StackAlloc _ :: _ -> failwith "StackAlloc instructions removed before asm gen"
 
-and gen_get_pointer ~gcx ~func (get_pointer_instr : var_id Mir.Instruction.GetPointer.t) =
+and gen_get_pointer ~gcx (get_pointer_instr : var_id Mir.Instruction.GetPointer.t) =
   let open Mir.Instruction.GetPointer in
   let { var_id; return_ty = _; pointer; pointer_offset; offsets } = get_pointer_instr in
   let element_ty = pointer_value_element_type pointer in
 
   (* Utilities for creating vregs *)
-  let vreg_of_result_var_id var_id =
-    VReg.of_var_id ~resolution:Unresolved ~func:(Some func) var_id
-  in
-  let mk_vreg () = VReg.mk ~resolution:Unresolved ~func:(Some func) in
+  let vreg_of_result_var_id var_id = VReg.of_var_id ~resolution:Unresolved var_id in
+  let mk_vreg () = VReg.mk ~resolution:Unresolved in
 
   (* Current address calculation - updated as offsets are visited. Note that base and index_and_scale
      can only contain 64-bit registers. *)
@@ -1160,7 +1156,7 @@ and gen_get_pointer ~gcx ~func (get_pointer_instr : var_id Mir.Instruction.GetPo
     offset := Some (LabelOffset (label_of_mir_label label));
     base := IPBase
   | `PointerV _ ->
-    (match resolve_ir_value ~gcx ~func (pointer :> Value.t) with
+    (match resolve_ir_value ~gcx (pointer :> Value.t) with
     | SVReg (vreg, size) -> set_base vreg size
     | SMem (mem, size) ->
       let vreg = mk_vreg () in
@@ -1181,7 +1177,7 @@ and gen_get_pointer ~gcx ~func (get_pointer_instr : var_id Mir.Instruction.GetPo
     | PointerIndex pointer_offset ->
       (* TODO: Handle sign extending byte arguments to 32/64 bits (movzbl/q) *)
       let element_size = Gcx.size_of_mir_type ~gcx ty in
-      (match resolve_ir_value ~gcx ~func ~allow_imm64:true (pointer_offset :> Value.t) with
+      (match resolve_ir_value ~gcx ~allow_imm64:true (pointer_offset :> Value.t) with
       | SImm imm ->
         let num_elements = int64_of_immediate imm in
         if num_elements <> Int64.zero then (
@@ -1224,7 +1220,7 @@ and gen_get_pointer ~gcx ~func (get_pointer_instr : var_id Mir.Instruction.GetPo
   let result_vreg = vreg_of_result_var_id var_id in
   Gcx.emit ~gcx (MovMM (Size64, Reg address_vreg, Reg result_vreg))
 
-and gen_size_from_count_and_type ~gcx ~func count_val mir_ty result_vreg =
+and gen_size_from_count_and_type ~gcx count_val mir_ty result_vreg =
   let element_size = Gcx.size_of_mir_type ~gcx mir_ty in
   match count_val with
   (* If count is a literal precalculate total requested size and fit into smallest immediate *)
@@ -1241,7 +1237,7 @@ and gen_size_from_count_and_type ~gcx ~func count_val mir_ty result_vreg =
   (* If count is a variable multiply by size before putting in argument register *)
   | (`ByteV _ | `IntV _ | `LongV _) as count_var ->
     let count_vreg =
-      match resolve_ir_value ~gcx ~func count_var with
+      match resolve_ir_value ~gcx count_var with
       | SVReg (count_vreg, _) -> count_vreg
       | _ -> failwith "Must be virtual register"
     in
@@ -1254,9 +1250,9 @@ and gen_size_from_count_and_type ~gcx ~func count_val mir_ty result_vreg =
         (IMulMIR (Size64, Reg count_vreg, Imm32 (Int32.of_int element_size), result_vreg))
   | _ -> failwith "Expected numeric count"
 
-and resolve_ir_value ~gcx ~func ?(allow_imm64 = false) value =
+and resolve_ir_value ~gcx ?(allow_imm64 = false) value =
   let vreg_of_var var_id size =
-    let vreg = VReg.of_var_id ~resolution:Unresolved ~func:(Some func) var_id in
+    let vreg = VReg.of_var_id ~resolution:Unresolved var_id in
     match vreg.resolution with
     | StackSlot mem -> SMem (mem, size)
     | _ -> SVReg (vreg, size)
@@ -1283,7 +1279,7 @@ and resolve_ir_value ~gcx ~func ?(allow_imm64 = false) value =
     else if not (Integers.is_out_of_signed_int_range l) then
       SImm (Imm32 (Int64.to_int32 l))
     else
-      let vreg = VReg.mk ~resolution:Unresolved ~func:(Some func) in
+      let vreg = VReg.mk ~resolution:Unresolved in
       Gcx.emit ~gcx Instruction.(MovIM (Size64, Imm64 l, Reg vreg));
       SVReg (vreg, Size64)
   | `LongV var_id -> vreg_of_var var_id Size64

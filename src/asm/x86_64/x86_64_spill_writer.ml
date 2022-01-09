@@ -11,8 +11,8 @@ class spill_writer ~gcx =
 
     method new_vregs = new_vregs
 
-    method mk_vreg ~block =
-      let vreg = VReg.mk ~resolution:Unresolved ~func:(Some block.Block.func) in
+    method mk_vreg () =
+      let vreg = VReg.mk ~resolution:Unresolved in
       new_vregs <- VRegSet.add vreg new_vregs;
       vreg
 
@@ -35,7 +35,7 @@ class spill_writer ~gcx =
       let open Instruction in
       let (instr_id, instr) = instr in
       let mk_single instr = this#add_instr (instr_id, instr) in
-      let mk_vreg () = this#mk_vreg ~block in
+      let mk_vreg () = this#mk_vreg () in
       let resolve_reg reg = this#resolve_reg ~block reg in
       let resolve_mem mem = this#resolve_mem ~block mem in
       let resolve_binop_single_mem size src_mem dest_mem f =
@@ -159,7 +159,7 @@ class spill_writer ~gcx =
           | RegBase reg ->
             (match this#resolve_reg ~block reg with
             | StackSlot mem ->
-              let vreg = this#mk_vreg ~block in
+              let vreg = this#mk_vreg () in
               this#add_instr
                 (Gcx.mk_instr_id_for_block ~gcx block, MovMM (Size64, Mem mem, Reg vreg));
               RegBase vreg
@@ -171,7 +171,7 @@ class spill_writer ~gcx =
           | Some (reg, scale) ->
             (match this#resolve_reg ~block reg with
             | StackSlot mem ->
-              let vreg = this#mk_vreg ~block in
+              let vreg = this#mk_vreg () in
               this#add_instr
                 (Gcx.mk_instr_id_for_block ~gcx block, MovMM (Size64, Mem mem, Reg vreg));
               Some (vreg, scale)
