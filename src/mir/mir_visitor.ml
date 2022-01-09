@@ -103,11 +103,8 @@ module IRVisitor = struct
               | GetPointer.FieldIndex _ -> ())
             offsets;
           this#visit_result_variable ~block var_id
-        | LogNot (result, arg) ->
-          this#visit_bool_value ~block arg;
-          this#visit_result_variable ~block result
         | Neg (result, arg)
-        | BitNot (result, arg)
+        | Not (result, arg)
         | Trunc (result, arg, _)
         | SExt (result, arg, _) ->
           this#visit_numeric_value ~block arg;

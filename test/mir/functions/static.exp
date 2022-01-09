@@ -9,7 +9,7 @@ func long @test.Trait2.foo(long %0) {
 }
 
 func bool @test.Type1.foo(bool %0) {
-  %1 := LogNot %0
+  %1 := Not bool %0
   Ret %1
 }
 

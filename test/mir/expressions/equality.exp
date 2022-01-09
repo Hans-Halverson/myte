@@ -6,7 +6,7 @@ func void @test.ints() {
   %0 := Eq int 1, 2
   %1 := Eq int 1, 2
   %2 := Eq int 1, 2
-  %3 := LogNot %2
+  %3 := Not bool %2
   Ret
 }
 
@@ -14,7 +14,7 @@ func void @test.bytes(byte %0, byte %1) {
   %2 := Eq byte %0, %1
   %3 := Eq byte %0, %1
   %4 := Eq byte %0, %1
-  %5 := LogNot %4
+  %5 := Not bool %4
   Ret
 }
 
@@ -22,7 +22,7 @@ func void @test.longs(long %0, long %1) {
   %2 := Eq long %0, %1
   %3 := Eq long %0, %1
   %4 := Eq long %0, %1
-  %5 := LogNot %4
+  %5 := Not bool %4
   Ret
 }
 
@@ -30,7 +30,7 @@ func void @test.units() {
   %0 := Call bool @std.unit.Unit.equals(@_ZeroSize)
   %1 := Call bool @std.unit.Unit.equals(@_ZeroSize)
   %2 := Call bool @std.unit.Unit.equals(@_ZeroSize)
-  %3 := LogNot %2
+  %3 := Not bool %2
   Ret
 }
 
@@ -38,14 +38,14 @@ func void @test.bools(bool %0, bool %1) {
   %2 := Eq bool %0, %1
   %3 := Eq bool %0, %1
   %4 := Eq bool %0, %1
-  %5 := LogNot %4
+  %5 := Not bool %4
   Ret
 }
 
 func void @test.equatableType(std.string.String* %0, std.string.String* %1) {
   %2 := Call bool @std.string.String.equals(%0, %1)
   %3 := Call bool @std.string.String.equals(%0, %1)
-  %4 := LogNot %3
+  %4 := Not bool %3
   Ret
 }
 

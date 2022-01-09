@@ -15,7 +15,8 @@ module rec Type : sig
     ]
 
   and numeric_type =
-    [ `ByteT
+    [ `BoolT
+    | `ByteT
     | `IntT
     | `LongT
     ]

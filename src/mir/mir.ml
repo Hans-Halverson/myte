@@ -93,10 +93,8 @@ and Instruction : sig
     | Store of Value.pointer_value * Value.t
     (* Memory offset operations *)
     | GetPointer of var_id GetPointer.t
-    (* Logical ops *)
-    | LogNot of var_id * Value.bool_value
     (* Bitwise ops *)
-    | BitNot of var_id * Value.numeric_value
+    | Not of var_id * Value.numeric_value
     | And of var_id * Value.numeric_value * Value.numeric_value
     | Or of var_id * Value.numeric_value * Value.numeric_value
     | Xor of var_id * Value.numeric_value * Value.numeric_value
@@ -313,6 +311,13 @@ let is_literal (v : Value.t) : bool =
   | `PointerV _
   | `ArrayV _ ->
     false
+
+let is_bool_value (v : Value.numeric_value) : bool =
+  match v with
+  | `BoolL _
+  | `BoolV _ ->
+    true
+  | _ -> false
 
 let var_id_of_value_opt (v : Value.t) : var_id option =
   match v with

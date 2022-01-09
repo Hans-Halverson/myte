@@ -51,7 +51,7 @@ label @6:
   Call void @test.marker(3)
   continue @10
 label @7:
-  %6 := LogNot %0
+  %6 := Not bool %0
   branch %6, @8, @9
 label @8:
   Call void @test.marker(4)

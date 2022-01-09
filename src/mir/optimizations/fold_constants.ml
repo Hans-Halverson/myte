@@ -11,8 +11,6 @@ type folded_constant =
   | BoolConstant of bool
   | FunctionConstant of string
 
-type bool_constant_op = LogNotOp
-
 type numeric_constant_op =
   | NegOp
   | NotOp
@@ -32,27 +30,34 @@ type numeric_constants_op =
   | ShrOp
   | ShrlOp
 
-let fold_bool_constant op x =
-  match (op, x) with
-  | (LogNotOp, BoolConstant x) -> BoolConstant (not x)
-  | _ -> failwith "Invalid operation"
-
-let fold_bool_constants op x y =
-  match (op, x, y) with
-  | _ -> failwith "Invalid operation"
-
 let fold_numeric_constant op x =
   match (op, x) with
+  | (NegOp, BoolConstant x) -> BoolConstant x
   | (NegOp, ByteConstant x) -> ByteConstant (-x)
   | (NegOp, IntConstant x) -> IntConstant (Int32.neg x)
   | (NegOp, LongConstant x) -> LongConstant (Int64.neg x)
+  | (NotOp, BoolConstant x) -> BoolConstant (not x)
   | (NotOp, ByteConstant x) -> ByteConstant (lnot x)
   | (NotOp, IntConstant x) -> IntConstant (Int32.lognot x)
   | (NotOp, LongConstant x) -> LongConstant (Int64.lognot x)
+  | (TruncOp `BoolT, IntConstant x) -> BoolConstant (Integers.trunc_int_to_bool x)
+  | (TruncOp `BoolT, LongConstant x) -> BoolConstant (Integers.trunc_long_to_bool x)
   | (TruncOp `ByteT, IntConstant x) -> ByteConstant (Integers.trunc_int_to_byte x)
   | (TruncOp `ByteT, LongConstant x) -> ByteConstant (Integers.trunc_long_to_byte x)
   | (TruncOp `IntT, LongConstant x) -> IntConstant (Integers.trunc_long_to_int x)
+  | (SExtOp `IntT, BoolConstant x) ->
+    IntConstant
+      ( if x then
+        1l
+      else
+        0l )
   | (SExtOp `IntT, ByteConstant x) -> IntConstant (Int32.of_int x)
+  | (SExtOp `LongT, BoolConstant x) ->
+    LongConstant
+      ( if x then
+        1L
+      else
+        0L )
   | (SExtOp `LongT, ByteConstant x) -> LongConstant (Int64.of_int x)
   | (SExtOp `LongT, IntConstant x) -> LongConstant (Int64.of_int32 x)
   | _ -> failwith "Invalid operation"
@@ -392,11 +397,6 @@ class calc_constants_visitor ~ocx =
         | `PointerV _ ->
           None
       in
-      let try_fold_bool_constant var_id arg op =
-        match get_bool_lit_opt arg with
-        | None -> ()
-        | Some arg -> this#add_constant var_id (fold_bool_constant op arg)
-      in
       let try_fold_numeric_constant var_id arg op =
         match get_numeric_lit_opt arg with
         | None -> ()
@@ -426,8 +426,7 @@ class calc_constants_visitor ~ocx =
       | Mul (var_id, left, right) -> try_fold_numeric_constants MulOp var_id left right
       | Div (var_id, left, right) -> try_fold_numeric_constants DivOp var_id left right
       | Rem (var_id, left, right) -> try_fold_numeric_constants RemOp var_id left right
-      | LogNot (var_id, arg) -> try_fold_bool_constant var_id arg LogNotOp
-      | BitNot (var_id, arg) -> try_fold_numeric_constant var_id arg NotOp
+      | Not (var_id, arg) -> try_fold_numeric_constant var_id arg NotOp
       | And (var_id, left, right) -> try_fold_numeric_constants AndOp var_id left right
       | Or (var_id, left, right) -> try_fold_numeric_constants OrOp var_id left right
       | Xor (var_id, left, right) -> try_fold_numeric_constants XorOp var_id left right

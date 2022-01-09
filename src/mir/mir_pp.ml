@@ -336,11 +336,10 @@ and pp_instruction ~cx (_, instr) =
            (pp_pointer_value ~cx pointer)
            pointer_offset_str
            (String.concat "" offset_strs))
-    | LogNot (var_id, arg) -> pp_instr var_id (Printf.sprintf "LogNot %s" (pp_bool_value ~cx arg))
-    | BitNot (var_id, arg) ->
+    | Not (var_id, arg) ->
       pp_instr
         var_id
-        (Printf.sprintf "BitNot %s %s" (pp_type_of_numeric_value arg) (pp_numeric_value ~cx arg))
+        (Printf.sprintf "Not %s %s" (pp_type_of_numeric_value arg) (pp_numeric_value ~cx arg))
     | And (var_id, left, right) ->
       pp_instr
         var_id

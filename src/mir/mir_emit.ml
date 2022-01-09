@@ -319,13 +319,13 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
       match value_ty with
       | `BoolT ->
         let operand_val = emit_bool_expression ~ecx operand in
-        Ecx.emit ~ecx (LogNot (var_id, operand_val));
+        Ecx.emit ~ecx (Not (var_id, (operand_val :> Value.numeric_value)));
         `BoolV var_id
       | `ByteT
       | `IntT
       | `LongT ->
         let operand_val = emit_numeric_expression ~ecx operand in
-        Ecx.emit ~ecx (BitNot (var_id, operand_val));
+        Ecx.emit ~ecx (Not (var_id, operand_val));
         var_value_of_type var_id value_ty
       | _ -> failwith "Not argument must be a bool or int"
     in
@@ -422,7 +422,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     else
       let var_id = mk_var_id () in
       let equals_result_val = cast_to_bool_value (Option.get equals_result_val) in
-      Ecx.emit ~ecx (LogNot (var_id, equals_result_val));
+      Ecx.emit ~ecx (Not (var_id, (equals_result_val :> Value.numeric_value)));
       Some (var_value_of_type var_id `BoolT)
   (*
    * ============================

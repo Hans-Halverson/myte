@@ -282,15 +282,6 @@ and gen_instructions ~gcx ~ir ~block instructions =
         Gcx.emit ~gcx (IDiv (size, divisor_mem));
         size
   in
-  (* Generate a not instruction applied to a partiuclar argument *)
-  let gen_not result_var_id arg =
-    let resolved_value = resolve_ir_value arg in
-    let size = register_size_of_svalue resolved_value in
-    let arg_mem = emit_mem resolved_value in
-    let result_vreg = vreg_of_result_var_id result_var_id in
-    Gcx.emit ~gcx (MovMM (size, arg_mem, Reg result_vreg));
-    Gcx.emit ~gcx (NotM (size, Reg result_vreg))
-  in
   (* Generate a bit shift instruction from the target and shift arguments *)
   let gen_shift ~mk_reg_instr ~mk_imm_instr result_var_id target_val shift_val =
     let result_vreg = vreg_of_result_var_id result_var_id in
@@ -684,23 +675,23 @@ and gen_instructions ~gcx ~ir ~block instructions =
     gen_instructions rest_instructions
   (*
    * ===========================================
-   *                  LogNot
+   *                    Not
    * ===========================================
    *)
-  | Mir.Instruction.LogNot (result_var_id, arg) :: rest_instructions ->
-    let arg_vreg = emit_bool_as_reg arg in
-    let result_vreg = vreg_of_result_var_id result_var_id in
-    Gcx.emit ~gcx (XorMM (Size32, Reg result_vreg, Reg result_vreg));
-    Gcx.emit ~gcx (TestMR (Size8, Reg arg_vreg, arg_vreg));
-    Gcx.emit ~gcx (SetCC (E, Reg result_vreg));
-    gen_instructions rest_instructions
-  (*
-   * ===========================================
-   *                  BitNot
-   * ===========================================
-   *)
-  | Mir.Instruction.BitNot (result_var_id, arg) :: rest_instructions ->
-    gen_not result_var_id arg;
+  | Mir.Instruction.Not (result_var_id, arg) :: rest_instructions ->
+    ( if is_bool_value arg then (
+      let arg_vreg = emit_bool_as_reg arg in
+      let result_vreg = vreg_of_result_var_id result_var_id in
+      Gcx.emit ~gcx (XorMM (Size32, Reg result_vreg, Reg result_vreg));
+      Gcx.emit ~gcx (TestMR (Size8, Reg arg_vreg, arg_vreg));
+      Gcx.emit ~gcx (SetCC (E, Reg result_vreg))
+    ) else
+      let resolved_value = resolve_ir_value arg in
+      let size = register_size_of_svalue resolved_value in
+      let arg_mem = emit_mem resolved_value in
+      let result_vreg = vreg_of_result_var_id result_var_id in
+      Gcx.emit ~gcx (MovMM (size, arg_mem, Reg result_vreg));
+      Gcx.emit ~gcx (NotM (size, Reg result_vreg)) );
     gen_instructions rest_instructions
   (*
    * ===========================================

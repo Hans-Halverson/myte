@@ -82,7 +82,7 @@ func void @test.testUnit() {
   %0 := Call bool @std.unit.Unit.equals(@_ZeroSize)
   %1 := Call bool @test.use<Bool>(%0)
   %2 := Call bool @std.unit.Unit.equals(@_ZeroSize)
-  %3 := LogNot %2
+  %3 := Not bool %2
   %4 := Call bool @test.use<Bool>(%3)
   Call void @test.unit()
   Call void @test.unit()
@@ -91,7 +91,7 @@ func void @test.testUnit() {
   Call void @test.unit()
   Call void @test.unit()
   %7 := Call bool @std.unit.Unit.equals(@_ZeroSize)
-  %8 := LogNot %7
+  %8 := Not bool %7
   %9 := Call bool @test.use<Bool>(%8)
   Ret
 }

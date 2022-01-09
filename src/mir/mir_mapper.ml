@@ -156,20 +156,13 @@ module InstructionsMapper = struct
                    pointer_offset = pointer_offset';
                    offsets = offsets';
                  })
-        | LogNot (result, arg) ->
-          let result' = this#map_result_variable ~block result in
-          let arg' = this#map_bool_value ~block arg in
-          if result == result' && arg == arg' then
-            [instruction]
-          else
-            mk_instr (LogNot (result', arg'))
-        | BitNot (result, arg) ->
+        | Not (result, arg) ->
           let result' = this#map_result_variable ~block result in
           let arg' = this#map_numeric_value ~block arg in
           if result == result' && arg == arg' then
             [instruction]
           else
-            mk_instr (BitNot (result', arg'))
+            mk_instr (Not (result', arg'))
         | And (result, left, right) ->
           let result' = this#map_result_variable ~block result in
           let left' = this#map_numeric_value ~block left in

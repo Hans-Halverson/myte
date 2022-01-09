@@ -49,6 +49,10 @@ let int64_of_string_opt raw base =
       else
         Some value)
 
+let trunc_int_to_bool x = Int32.equal 1l (Int32.logand x 1l)
+
+let trunc_long_to_bool x = Int64.equal 1L (Int64.logand x 1L)
+
 let trunc_int_to_byte x =
   let bytes = Bytes.create 4 in
   Bytes.set_int32_le bytes 0 x;

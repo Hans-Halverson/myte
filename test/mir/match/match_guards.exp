@@ -14,11 +14,11 @@ label @3:
 label @4:
   branch %0, @8, @5
 label @5:
-  %5 := LogNot %0
+  %5 := Not bool %0
   branch %5, @8, @6
 label @6:
-  %6 := LogNot %0
-  %7 := LogNot %6
+  %6 := Not bool %0
+  %7 := Not bool %6
   branch %7, @8, @7
 label @7:
   continue @8
@@ -43,7 +43,7 @@ label @3:
 label @4:
   branch %0, @7, @5
 label @5:
-  %5 := LogNot %0
+  %5 := Not bool %0
   branch %5, @7, @6
 label @6:
   continue @7

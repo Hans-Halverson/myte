@@ -1,23 +1,23 @@
 func void @test.bools(bool %0) {
-  %1 := LogNot %0
+  %1 := Not bool %0
   Ret
 }
 
 func void @test.ints(int %0) {
   %1 := Neg int %0
-  %2 := BitNot int %0
+  %2 := Not int %0
   Ret
 }
 
 func void @test.bytes(byte %0) {
   %1 := Neg byte %0
-  %2 := BitNot byte %0
+  %2 := Not byte %0
   Ret
 }
 
 func void @test.longs(long %0) {
   %1 := Neg long %0
-  %2 := BitNot long %0
+  %2 := Not long %0
   Ret
 }
 

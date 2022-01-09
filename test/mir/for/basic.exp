@@ -64,7 +64,7 @@ label @0:
 label @1:
   %6 := GetPointer bool, std.option.Option<Bool>::Some* %3.1
   %7 := Load bool %6
-  %8 := LogNot %7
+  %8 := Not bool %7
   branch %8, @3, @2
 label @2:
   Call void @test.use<Int>(2)
@@ -90,7 +90,7 @@ label @0:
 label @1:
   %6 := GetPointer bool, std.option.Option<Bool>::Some* %3.1
   %7 := Load bool %6
-  %8 := LogNot %7
+  %8 := Not bool %7
   branch %8, @2, @3
 label @2:
   Call void @test.use<Int>(1)
