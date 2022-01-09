@@ -337,39 +337,31 @@ and pp_instruction ~cx (_, instr) =
            pointer_offset_str
            (String.concat "" offset_strs))
     | LogNot (var_id, arg) -> pp_instr var_id (Printf.sprintf "LogNot %s" (pp_bool_value ~cx arg))
-    | LogAnd (var_id, left, right) ->
-      pp_instr
-        var_id
-        (Printf.sprintf "LogAnd %s, %s" (pp_bool_value ~cx left) (pp_bool_value ~cx right))
-    | LogOr (var_id, left, right) ->
-      pp_instr
-        var_id
-        (Printf.sprintf "LogAnd %s, %s" (pp_bool_value ~cx left) (pp_bool_value ~cx right))
     | BitNot (var_id, arg) ->
       pp_instr
         var_id
         (Printf.sprintf "BitNot %s %s" (pp_type_of_numeric_value arg) (pp_numeric_value ~cx arg))
-    | BitAnd (var_id, left, right) ->
+    | And (var_id, left, right) ->
       pp_instr
         var_id
         (Printf.sprintf
-           "BitAnd %s, %s %s"
+           "And %s, %s %s"
            (pp_type_of_numeric_value left)
            (pp_numeric_value ~cx left)
            (pp_numeric_value ~cx right))
-    | BitOr (var_id, left, right) ->
+    | Or (var_id, left, right) ->
       pp_instr
         var_id
         (Printf.sprintf
-           "BitOr %s, %s %s"
+           "Or %s, %s %s"
            (pp_type_of_numeric_value left)
            (pp_numeric_value ~cx left)
            (pp_numeric_value ~cx right))
-    | BitXor (var_id, left, right) ->
+    | Xor (var_id, left, right) ->
       pp_instr
         var_id
         (Printf.sprintf
-           "BitXor %s, %s %s"
+           "Xor %s, %s %s"
            (pp_type_of_numeric_value left)
            (pp_numeric_value ~cx left)
            (pp_numeric_value ~cx right))

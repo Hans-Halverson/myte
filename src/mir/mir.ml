@@ -34,6 +34,7 @@ module rec Value : sig
     | `ByteV of var_id
     | `ByteL of int
     | long_value
+    | bool_value
     ]
 
   type array_value =
@@ -43,8 +44,7 @@ module rec Value : sig
     ]
 
   type t =
-    [ bool_value
-    | numeric_value
+    [ numeric_value
     | function_value
     | pointer_value
     | array_value
@@ -52,8 +52,7 @@ module rec Value : sig
 
   (* Value subsets for instructions *)
   and comparable_value =
-    [ bool_value
-    | numeric_value
+    [ numeric_value
     | pointer_value
     ]
 end =
@@ -96,13 +95,11 @@ and Instruction : sig
     | GetPointer of var_id GetPointer.t
     (* Logical ops *)
     | LogNot of var_id * Value.bool_value
-    | LogAnd of var_id * Value.bool_value * Value.bool_value
-    | LogOr of var_id * Value.bool_value * Value.bool_value
     (* Bitwise ops *)
     | BitNot of var_id * Value.numeric_value
-    | BitAnd of var_id * Value.numeric_value * Value.numeric_value
-    | BitOr of var_id * Value.numeric_value * Value.numeric_value
-    | BitXor of var_id * Value.numeric_value * Value.numeric_value
+    | And of var_id * Value.numeric_value * Value.numeric_value
+    | Or of var_id * Value.numeric_value * Value.numeric_value
+    | Xor of var_id * Value.numeric_value * Value.numeric_value
     | Shl of var_id * Value.numeric_value * Value.numeric_value
     (* Arithmetic right shift *)
     | Shr of var_id * Value.numeric_value * Value.numeric_value
@@ -267,7 +264,7 @@ let cast_to_bool_value (v : Value.t) : Value.bool_value =
 
 let cast_to_numeric_value (v : Value.t) : Value.numeric_value =
   match v with
-  | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v -> v
+  | (`BoolL _ | `BoolV _ | `ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v -> v
   | _ -> failwith "Expected numeric value"
 
 let cast_to_function_value (v : Value.t) : Value.function_value =
@@ -388,6 +385,7 @@ and map_numeric_value ~f (value : Value.numeric_value) : Value.numeric_value =
   | `ByteV v -> `ByteV (f v)
   | `IntV v -> `IntV (f v)
   | (`LongL _ | `LongV _) as v -> (map_long_value ~f v :> Value.numeric_value)
+  | (`BoolL _ | `BoolV _) as v -> (map_bool_value ~f v :> Value.numeric_value)
 
 and map_function_value ~f (value : Value.function_value) : Value.function_value =
   match value with
@@ -406,9 +404,7 @@ and map_array_value ~f (value : Value.array_value) : Value.array_value =
 
 and map_comparable_value ~f (value : Value.comparable_value) : Value.comparable_value =
   match value with
-  | (`BoolL _ | `BoolV _) as v -> (map_bool_value ~f v :> Value.comparable_value)
-  | (`LongL _ | `LongV _) as v -> (map_long_value ~f v :> Value.comparable_value)
-  | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _) as v ->
+  | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _ | `BoolL _ | `BoolV _) as v ->
     (map_numeric_value ~f v :> Value.comparable_value)
   | (`PointerL _ | `PointerV _) as v -> (map_pointer_value ~f v :> Value.comparable_value)
 

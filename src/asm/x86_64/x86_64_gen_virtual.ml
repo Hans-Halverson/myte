@@ -291,44 +291,6 @@ and gen_instructions ~gcx ~ir ~block instructions =
     Gcx.emit ~gcx (MovMM (size, arg_mem, Reg result_vreg));
     Gcx.emit ~gcx (NotM (size, Reg result_vreg))
   in
-  (* Generate an and instruction between two arguments *)
-  let gen_and result_var_id left_val right_val =
-    let result_vreg = vreg_of_result_var_id result_var_id in
-    match (resolve_ir_value left_val, resolve_ir_value right_val) with
-    | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
-    | (SImm imm, other)
-    | (other, SImm imm) ->
-      let size = register_size_of_svalue other in
-      let other_mem = emit_mem other in
-      Gcx.emit ~gcx (MovMM (size, other_mem, Reg result_vreg));
-      Gcx.emit ~gcx (AndIM (size, imm, Reg result_vreg))
-    | (v1, v2) ->
-      let size = register_size_of_svalue v1 in
-      let (v1, v2) = choose_commutative_source_dest_arg_order v1 v2 in
-      let mem1 = emit_mem v1 in
-      let mem2 = emit_mem v2 in
-      Gcx.emit ~gcx (MovMM (size, mem2, Reg result_vreg));
-      Gcx.emit ~gcx (AndMM (size, mem1, Reg result_vreg))
-  in
-  (* Generate an or instruction between two arguments *)
-  let gen_or result_var_id left_val right_val =
-    let result_vreg = vreg_of_result_var_id result_var_id in
-    match (resolve_ir_value left_val, resolve_ir_value right_val) with
-    | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
-    | (SImm imm, other)
-    | (other, SImm imm) ->
-      let size = register_size_of_svalue other in
-      let other_mem = emit_mem other in
-      Gcx.emit ~gcx (MovMM (size, other_mem, Reg result_vreg));
-      Gcx.emit ~gcx (OrIM (size, imm, Reg result_vreg))
-    | (v1, v2) ->
-      let size = register_size_of_svalue v1 in
-      let (v1, v2) = choose_commutative_source_dest_arg_order v1 v2 in
-      let mem1 = emit_mem v1 in
-      let mem2 = emit_mem v2 in
-      Gcx.emit ~gcx (MovMM (size, mem2, Reg result_vreg));
-      Gcx.emit ~gcx (OrMM (size, mem1, Reg result_vreg))
-  in
   (* Generate a bit shift instruction from the target and shift arguments *)
   let gen_shift ~mk_reg_instr ~mk_imm_instr result_var_id target_val shift_val =
     let result_vreg = vreg_of_result_var_id result_var_id in
@@ -734,22 +696,6 @@ and gen_instructions ~gcx ~ir ~block instructions =
     gen_instructions rest_instructions
   (*
    * ===========================================
-   *                  LogAnd
-   * ===========================================
-   *)
-  | Mir.Instruction.LogAnd (result_var_id, left_val, right_val) :: rest_instructions ->
-    gen_and result_var_id left_val right_val;
-    gen_instructions rest_instructions
-  (*
-   * ===========================================
-   *                  LogOr
-   * ===========================================
-   *)
-  | Mir.Instruction.LogOr (result_var_id, left_val, right_val) :: rest_instructions ->
-    gen_or result_var_id left_val right_val;
-    gen_instructions rest_instructions
-  (*
-   * ===========================================
    *                  BitNot
    * ===========================================
    *)
@@ -758,26 +704,56 @@ and gen_instructions ~gcx ~ir ~block instructions =
     gen_instructions rest_instructions
   (*
    * ===========================================
-   *                  BitAnd
+   *                    And
    * ===========================================
    *)
-  | Mir.Instruction.BitAnd (result_var_id, left_val, right_val) :: rest_instructions ->
-    gen_and result_var_id left_val right_val;
+  | Mir.Instruction.And (result_var_id, left_val, right_val) :: rest_instructions ->
+    let result_vreg = vreg_of_result_var_id result_var_id in
+    (match (resolve_ir_value left_val, resolve_ir_value right_val) with
+    | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
+    | (SImm imm, other)
+    | (other, SImm imm) ->
+      let size = register_size_of_svalue other in
+      let other_mem = emit_mem other in
+      Gcx.emit ~gcx (MovMM (size, other_mem, Reg result_vreg));
+      Gcx.emit ~gcx (AndIM (size, imm, Reg result_vreg))
+    | (v1, v2) ->
+      let size = register_size_of_svalue v1 in
+      let (v1, v2) = choose_commutative_source_dest_arg_order v1 v2 in
+      let mem1 = emit_mem v1 in
+      let mem2 = emit_mem v2 in
+      Gcx.emit ~gcx (MovMM (size, mem2, Reg result_vreg));
+      Gcx.emit ~gcx (AndMM (size, mem1, Reg result_vreg)));
     gen_instructions rest_instructions
   (*
    * ===========================================
-   *                  BitOr
+   *                    Or
    * ===========================================
    *)
-  | Mir.Instruction.BitOr (result_var_id, left_val, right_val) :: rest_instructions ->
-    gen_or result_var_id left_val right_val;
+  | Mir.Instruction.Or (result_var_id, left_val, right_val) :: rest_instructions ->
+    let result_vreg = vreg_of_result_var_id result_var_id in
+    (match (resolve_ir_value left_val, resolve_ir_value right_val) with
+    | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
+    | (SImm imm, other)
+    | (other, SImm imm) ->
+      let size = register_size_of_svalue other in
+      let other_mem = emit_mem other in
+      Gcx.emit ~gcx (MovMM (size, other_mem, Reg result_vreg));
+      Gcx.emit ~gcx (OrIM (size, imm, Reg result_vreg))
+    | (v1, v2) ->
+      let size = register_size_of_svalue v1 in
+      let (v1, v2) = choose_commutative_source_dest_arg_order v1 v2 in
+      let mem1 = emit_mem v1 in
+      let mem2 = emit_mem v2 in
+      Gcx.emit ~gcx (MovMM (size, mem2, Reg result_vreg));
+      Gcx.emit ~gcx (OrMM (size, mem1, Reg result_vreg)));
     gen_instructions rest_instructions
   (*
    * ===========================================
-   *                  BitXor
+   *                    Xor
    * ===========================================
    *)
-  | Mir.Instruction.BitXor (result_var_id, left_val, right_val) :: rest_instructions ->
+  | Mir.Instruction.Xor (result_var_id, left_val, right_val) :: rest_instructions ->
     let result_vreg = vreg_of_result_var_id result_var_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"

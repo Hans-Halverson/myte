@@ -13,10 +13,6 @@ type folded_constant =
 
 type bool_constant_op = LogNotOp
 
-type bool_constants_op =
-  | LogAndOp
-  | LogOrOp
-
 type numeric_constant_op =
   | NegOp
   | NotOp
@@ -29,9 +25,9 @@ type numeric_constants_op =
   | MulOp
   | DivOp
   | RemOp
-  | BitAndOp
-  | BitOrOp
-  | BitXorOp
+  | AndOp
+  | OrOp
+  | XorOp
   | ShlOp
   | ShrOp
   | ShrlOp
@@ -43,8 +39,6 @@ let fold_bool_constant op x =
 
 let fold_bool_constants op x y =
   match (op, x, y) with
-  | (LogAndOp, BoolConstant x, BoolConstant y) -> BoolConstant (x && y)
-  | (LogOrOp, BoolConstant x, BoolConstant y) -> BoolConstant (x || y)
   | _ -> failwith "Invalid operation"
 
 let fold_numeric_constant op x =
@@ -72,36 +66,55 @@ let fold_numeric_constants op x y =
     | _ -> failwith "Invalid operation"
   in
   match (op, x, y) with
+  | (AddOp, BoolConstant x, BoolConstant y) -> BoolConstant (x <> y)
   | (AddOp, ByteConstant x, ByteConstant y) -> ByteConstant (x + y)
   | (AddOp, IntConstant x, IntConstant y) -> IntConstant (Int32.add x y)
   | (AddOp, LongConstant x, LongConstant y) -> LongConstant (Int64.add x y)
+  | (SubOp, BoolConstant x, BoolConstant y) -> BoolConstant (x <> y)
   | (SubOp, ByteConstant x, ByteConstant y) -> ByteConstant (x - y)
   | (SubOp, IntConstant x, IntConstant y) -> IntConstant (Int32.sub x y)
   | (SubOp, LongConstant x, LongConstant y) -> LongConstant (Int64.sub x y)
+  | (MulOp, BoolConstant x, BoolConstant y) -> BoolConstant (x && y)
   | (MulOp, ByteConstant x, ByteConstant y) -> ByteConstant (x * y)
   | (MulOp, IntConstant x, IntConstant y) -> IntConstant (Int32.mul x y)
   | (MulOp, LongConstant x, LongConstant y) -> LongConstant (Int64.mul x y)
+  | (DivOp, BoolConstant x, BoolConstant y) ->
+    if not y then
+      failwith "Division by zero"
+    else
+      BoolConstant x
   | (DivOp, ByteConstant x, ByteConstant y) -> ByteConstant (x / y)
   | (DivOp, IntConstant x, IntConstant y) -> IntConstant (Int32.div x y)
   | (DivOp, LongConstant x, LongConstant y) -> LongConstant (Int64.div x y)
+  | (RemOp, BoolConstant _, BoolConstant y) ->
+    if not y then
+      failwith "Division by zero"
+    else
+      BoolConstant false
   | (RemOp, ByteConstant x, ByteConstant y) -> ByteConstant (x mod y)
   | (RemOp, IntConstant x, IntConstant y) -> IntConstant (Int32.rem x y)
   | (RemOp, LongConstant x, LongConstant y) -> LongConstant (Int64.rem x y)
-  | (BitAndOp, ByteConstant x, ByteConstant y) -> ByteConstant (x land y)
-  | (BitAndOp, IntConstant x, IntConstant y) -> IntConstant (Int32.logand x y)
-  | (BitAndOp, LongConstant x, LongConstant y) -> LongConstant (Int64.logand x y)
-  | (BitOrOp, ByteConstant x, ByteConstant y) -> ByteConstant (x lor y)
-  | (BitOrOp, IntConstant x, IntConstant y) -> IntConstant (Int32.logor x y)
-  | (BitOrOp, LongConstant x, LongConstant y) -> LongConstant (Int64.logor x y)
-  | (BitXorOp, ByteConstant x, ByteConstant y) -> ByteConstant (x lxor y)
-  | (BitXorOp, IntConstant x, IntConstant y) -> IntConstant (Int32.logxor x y)
-  | (BitXorOp, LongConstant x, LongConstant y) -> LongConstant (Int64.logxor x y)
+  | (AndOp, BoolConstant x, BoolConstant y) -> BoolConstant (x && y)
+  | (AndOp, ByteConstant x, ByteConstant y) -> ByteConstant (x land y)
+  | (AndOp, IntConstant x, IntConstant y) -> IntConstant (Int32.logand x y)
+  | (AndOp, LongConstant x, LongConstant y) -> LongConstant (Int64.logand x y)
+  | (OrOp, BoolConstant x, BoolConstant y) -> BoolConstant (x || y)
+  | (OrOp, ByteConstant x, ByteConstant y) -> ByteConstant (x lor y)
+  | (OrOp, IntConstant x, IntConstant y) -> IntConstant (Int32.logor x y)
+  | (OrOp, LongConstant x, LongConstant y) -> LongConstant (Int64.logor x y)
+  | (XorOp, BoolConstant x, BoolConstant y) -> BoolConstant (x <> y)
+  | (XorOp, ByteConstant x, ByteConstant y) -> ByteConstant (x lxor y)
+  | (XorOp, IntConstant x, IntConstant y) -> IntConstant (Int32.logxor x y)
+  | (XorOp, LongConstant x, LongConstant y) -> LongConstant (Int64.logxor x y)
+  | (ShlOp, BoolConstant x, BoolConstant y) -> BoolConstant (x && not y)
   | (ShlOp, ByteConstant x, y) -> ByteConstant (x lsl trunc_integer_to_byte y)
   | (ShlOp, IntConstant x, y) -> IntConstant (Int32.shift_left x (trunc_integer_to_byte y))
   | (ShlOp, LongConstant x, y) -> LongConstant (Int64.shift_left x (trunc_integer_to_byte y))
+  | (ShrOp, BoolConstant x, BoolConstant _) -> BoolConstant x
   | (ShrOp, ByteConstant x, y) -> ByteConstant (x asr trunc_integer_to_byte y)
   | (ShrOp, IntConstant x, y) -> IntConstant (Int32.shift_right x (trunc_integer_to_byte y))
   | (ShrOp, LongConstant x, y) -> LongConstant (Int64.shift_right x (trunc_integer_to_byte y))
+  | (ShrlOp, BoolConstant x, BoolConstant y) -> BoolConstant (x && not y)
   | (ShrlOp, ByteConstant x, y) -> ByteConstant (Int.logand x 0xFF lsr trunc_integer_to_byte y)
   | (ShrlOp, IntConstant x, y) ->
     IntConstant (Int32.shift_right_logical x (trunc_integer_to_byte y))
@@ -350,6 +363,7 @@ class calc_constants_visitor ~ocx =
       in
       let get_numeric_lit_opt value =
         match value with
+        | (`BoolL _ | `BoolV _) as value -> get_bool_lit_opt value
         | `ByteL lit -> Some (ByteConstant lit)
         | `ByteV var_id ->
           (match IMap.find_opt var_id var_id_constants with
@@ -388,11 +402,6 @@ class calc_constants_visitor ~ocx =
         | None -> ()
         | Some arg -> this#add_constant var_id (fold_numeric_constant op arg)
       in
-      let try_fold_bool_constants op var_id left right =
-        match (get_bool_lit_opt left, get_bool_lit_opt right) with
-        | (Some left, Some right) -> this#add_constant var_id (fold_bool_constants op left right)
-        | _ -> ()
-      in
       let try_fold_numeric_constants op var_id left right =
         match (get_numeric_lit_opt left, get_numeric_lit_opt right) with
         | (Some left, Some right) -> this#add_constant var_id (fold_numeric_constants op left right)
@@ -418,12 +427,10 @@ class calc_constants_visitor ~ocx =
       | Div (var_id, left, right) -> try_fold_numeric_constants DivOp var_id left right
       | Rem (var_id, left, right) -> try_fold_numeric_constants RemOp var_id left right
       | LogNot (var_id, arg) -> try_fold_bool_constant var_id arg LogNotOp
-      | LogAnd (var_id, left, right) -> try_fold_bool_constants LogAndOp var_id left right
-      | LogOr (var_id, left, right) -> try_fold_bool_constants LogOrOp var_id left right
       | BitNot (var_id, arg) -> try_fold_numeric_constant var_id arg NotOp
-      | BitAnd (var_id, left, right) -> try_fold_numeric_constants BitAndOp var_id left right
-      | BitOr (var_id, left, right) -> try_fold_numeric_constants BitOrOp var_id left right
-      | BitXor (var_id, left, right) -> try_fold_numeric_constants BitXorOp var_id left right
+      | And (var_id, left, right) -> try_fold_numeric_constants AndOp var_id left right
+      | Or (var_id, left, right) -> try_fold_numeric_constants OrOp var_id left right
+      | Xor (var_id, left, right) -> try_fold_numeric_constants XorOp var_id left right
       | Shl (var_id, left, right) -> try_fold_numeric_constants ShlOp var_id left right
       | Shr (var_id, left, right) -> try_fold_numeric_constants ShrOp var_id left right
       | Shrl (var_id, left, right) -> try_fold_numeric_constants ShrlOp var_id left right

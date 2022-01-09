@@ -106,11 +106,6 @@ module IRVisitor = struct
         | LogNot (result, arg) ->
           this#visit_bool_value ~block arg;
           this#visit_result_variable ~block result
-        | LogAnd (result, left, right)
-        | LogOr (result, left, right) ->
-          this#visit_bool_value ~block left;
-          this#visit_bool_value ~block right;
-          this#visit_result_variable ~block result
         | Neg (result, arg)
         | BitNot (result, arg)
         | Trunc (result, arg, _)
@@ -122,9 +117,9 @@ module IRVisitor = struct
         | Mul (result, left, right)
         | Div (result, left, right)
         | Rem (result, left, right)
-        | BitAnd (result, left, right)
-        | BitOr (result, left, right)
-        | BitXor (result, left, right)
+        | And (result, left, right)
+        | Or (result, left, right)
+        | Xor (result, left, right)
         | Shl (result, left, right)
         | Shr (result, left, right)
         | Shrl (result, left, right)

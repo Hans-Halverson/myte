@@ -163,22 +163,6 @@ module InstructionsMapper = struct
             [instruction]
           else
             mk_instr (LogNot (result', arg'))
-        | LogAnd (result, left, right) ->
-          let result' = this#map_result_variable ~block result in
-          let left' = this#map_bool_value ~block left in
-          let right' = this#map_bool_value ~block right in
-          if result == result' && left == left' && right == right' then
-            [instruction]
-          else
-            mk_instr (LogAnd (result', left', right'))
-        | LogOr (result, left, right) ->
-          let result' = this#map_result_variable ~block result in
-          let left' = this#map_bool_value ~block left in
-          let right' = this#map_bool_value ~block right in
-          if result == result' && left == left' && right == right' then
-            [instruction]
-          else
-            mk_instr (LogOr (result', left', right'))
         | BitNot (result, arg) ->
           let result' = this#map_result_variable ~block result in
           let arg' = this#map_numeric_value ~block arg in
@@ -186,30 +170,30 @@ module InstructionsMapper = struct
             [instruction]
           else
             mk_instr (BitNot (result', arg'))
-        | BitAnd (result, left, right) ->
+        | And (result, left, right) ->
           let result' = this#map_result_variable ~block result in
           let left' = this#map_numeric_value ~block left in
           let right' = this#map_numeric_value ~block right in
           if result == result' && left == left' && right == right' then
             [instruction]
           else
-            mk_instr (BitAnd (result', left', right'))
-        | BitOr (result, left, right) ->
+            mk_instr (And (result', left', right'))
+        | Or (result, left, right) ->
           let result' = this#map_result_variable ~block result in
           let left' = this#map_numeric_value ~block left in
           let right' = this#map_numeric_value ~block right in
           if result == result' && left == left' && right == right' then
             [instruction]
           else
-            mk_instr (BitOr (result', left', right'))
-        | BitXor (result, left, right) ->
+            mk_instr (Or (result', left', right'))
+        | Xor (result, left, right) ->
           let result' = this#map_result_variable ~block result in
           let left' = this#map_numeric_value ~block left in
           let right' = this#map_numeric_value ~block right in
           if result == result' && left == left' && right == right' then
             [instruction]
           else
-            mk_instr (BitXor (result', left', right'))
+            mk_instr (Xor (result', left', right'))
         | Shl (result, left, right) ->
           let result' = this#map_result_variable ~block result in
           let left' = this#map_numeric_value ~block left in
@@ -365,7 +349,9 @@ module InstructionsMapper = struct
 
       method map_numeric_value ~block value =
         match value with
-        | (`ByteL _ | `IntL _ | `LongL _) as value -> value
+        | (`BoolL _ | `ByteL _ | `IntL _ | `LongL _) as value -> value
+        | `BoolV var_id as value ->
+          id_map (this#map_use_variable ~block) var_id value (fun var_id' -> `BoolV var_id')
         | `ByteV var_id as value ->
           id_map (this#map_use_variable ~block) var_id value (fun var_id' -> `ByteV var_id')
         | `IntV var_id as value ->
@@ -438,7 +424,8 @@ class rewrite_vars_mapper ~(program : Program.t) (var_map : Value.t IMap.t) =
 
     method! map_numeric_value ~block value =
       match value with
-      | (`ByteL _ | `IntL _ | `LongL _) as value -> value
+      | (`BoolL _ | `ByteL _ | `IntL _ | `LongL _) as value -> value
+      | (`BoolV var_id as value)
       | (`ByteV var_id as value)
       | (`IntV var_id as value)
       | (`LongV var_id as value) ->
