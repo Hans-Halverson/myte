@@ -224,6 +224,17 @@ and gen_instructions ~gcx ~ir ~block instructions =
           | SVReg (source_vreg, size) -> Gcx.emit ~gcx (MovMM (size, Reg source_vreg, Reg vreg))))
       arg_vals
   in
+  let gen_mov dest_var_id value =
+    let dest_vreg = vreg_of_result_var_id dest_var_id in
+    let instr =
+      match resolve_ir_value ~allow_imm64:true value with
+      | SImm imm -> MovIM (size_of_immediate imm, imm, Reg dest_vreg)
+      | SAddr addr -> Lea (Size64, addr, dest_vreg)
+      | SMem (mem, size) -> MovMM (size, Mem mem, Reg dest_vreg)
+      | SVReg (src_var_id, size) -> MovMM (size, Reg src_var_id, Reg dest_vreg)
+    in
+    Gcx.emit ~gcx instr
+  in
   let gen_idiv left_val right_val =
     let precolored_a = Gcx.mk_precolored ~gcx A in
     match (resolve_ir_value left_val, resolve_ir_value right_val) with
@@ -287,7 +298,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     let result_vreg = vreg_of_result_var_id result_var_id in
     (* Do not reduce size of target immediate, as we must know its original size to know what
        size to make the shift operation. *)
-    match (resolve_ir_value target_val, resolve_ir_value ~allow_imm64:true shift_val) with
+    (match (resolve_ir_value target_val, resolve_ir_value ~allow_imm64:true shift_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm target_imm, shift) ->
       let size = register_size_of_svalue shift in
@@ -326,7 +337,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
       Gcx.emit ~gcx (MovMM (shift_size, shift_mem, Reg precolored_c));
       let target_mem = emit_mem target in
       Gcx.emit ~gcx (MovMM (size, target_mem, Reg result_vreg));
-      Gcx.emit ~gcx (mk_reg_instr size (Reg result_vreg))
+      Gcx.emit ~gcx (mk_reg_instr size (Reg result_vreg)));
+    result_vreg
   in
   (* Generate a cmp instruction between two arguments. Return whether order was swapped. *)
   let gen_cmp left_val right_val =
@@ -421,15 +433,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.Mov (dest_var_id, value) :: rest_instructions ->
-    let dest_vreg = vreg_of_result_var_id dest_var_id in
-    let instr =
-      match resolve_ir_value ~allow_imm64:true value with
-      | SImm imm -> MovIM (size_of_immediate imm, imm, Reg dest_vreg)
-      | SAddr addr -> Lea (Size64, addr, dest_vreg)
-      | SMem (mem, size) -> MovMM (size, Mem mem, Reg dest_vreg)
-      | SVReg (src_var_id, size) -> MovMM (size, Reg src_var_id, Reg dest_vreg)
-    in
-    Gcx.emit ~gcx instr;
+    gen_mov dest_var_id value;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -577,6 +581,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let mem2 = emit_mem v2 in
       Gcx.emit ~gcx (MovMM (size, mem2, Reg result_vreg));
       Gcx.emit ~gcx (AddMM (size, mem1, Reg result_vreg)));
+    maybe_truncate_bool_vreg ~gcx ~if_bool:left_val result_vreg;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -603,6 +608,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let size = register_size_of_svalue left in
       Gcx.emit ~gcx (MovMM (size, left_mem, Reg result_vreg));
       Gcx.emit ~gcx (SubMM (size, right_mem, Reg result_vreg)));
+    maybe_truncate_bool_vreg ~gcx ~if_bool:left_val result_vreg;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -625,6 +631,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let mem2 = emit_mem v2 in
       Gcx.emit ~gcx (MovMM (size, mem2, Reg result_vreg));
       Gcx.emit ~gcx (IMulMR (size, mem1, result_vreg)));
+    maybe_truncate_bool_vreg ~gcx ~if_bool:left_val result_vreg;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -632,10 +639,10 @@ and gen_instructions ~gcx ~ir ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.Div (result_var_id, left_val, right_val) :: rest_instructions ->
+    let result_vreg = vreg_of_result_var_id result_var_id in
     (match resolve_ir_value ~allow_imm64:true right_val with
     (* Division by a power of two can be optimized to a right shift *)
     | SImm imm when Opts.optimize () && Integers.is_power_of_two (int64_of_immediate imm) ->
-      let result_vreg = vreg_of_result_var_id result_var_id in
       let power_of_two = Integers.power_of_two (int64_of_immediate imm) in
       let left = resolve_ir_value left_val in
       let left_mem = emit_mem left in
@@ -644,10 +651,10 @@ and gen_instructions ~gcx ~ir ~block instructions =
       Gcx.emit ~gcx (SarI (size, Imm8 power_of_two, Reg result_vreg))
     (* Otherwise emit a divide instruction *)
     | _ ->
-      let result_vreg = vreg_of_result_var_id result_var_id in
       let precolored_a = Gcx.mk_precolored ~gcx A in
       let size = gen_idiv left_val right_val in
       Gcx.emit ~gcx (MovMM (size, Reg precolored_a, Reg result_vreg)));
+    maybe_truncate_bool_vreg ~gcx ~if_bool:left_val result_vreg;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -659,6 +666,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     let precolored_d = Gcx.mk_precolored ~gcx D in
     let size = gen_idiv left_val right_val in
     Gcx.emit ~gcx (MovMM (size, Reg precolored_d, Reg result_vreg));
+    maybe_truncate_bool_vreg ~gcx ~if_bool:left_val result_vreg;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -672,6 +680,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     let result_vreg = vreg_of_result_var_id result_var_id in
     Gcx.emit ~gcx (MovMM (size, arg_mem, Reg result_vreg));
     Gcx.emit ~gcx (NegM (size, Reg result_vreg));
+    maybe_truncate_bool_vreg ~gcx ~if_bool:arg result_vreg;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -761,6 +770,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let mem2 = emit_mem v2 in
       Gcx.emit ~gcx (MovMM (size, mem2, Reg result_vreg));
       Gcx.emit ~gcx (XorMM (size, mem1, Reg result_vreg)));
+    maybe_truncate_bool_vreg ~gcx ~if_bool:left_val result_vreg;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -768,12 +778,15 @@ and gen_instructions ~gcx ~ir ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.Shl (result_var_id, target_val, shift_val) :: rest_instructions ->
-    gen_shift
-      result_var_id
-      target_val
-      shift_val
-      ~mk_reg_instr:(fun size mem -> ShlR (size, mem))
-      ~mk_imm_instr:(fun size imm mem -> ShlI (size, imm, mem));
+    let result_vreg =
+      gen_shift
+        result_var_id
+        target_val
+        shift_val
+        ~mk_reg_instr:(fun size mem -> ShlR (size, mem))
+        ~mk_imm_instr:(fun size imm mem -> ShlI (size, imm, mem))
+    in
+    maybe_truncate_bool_vreg ~gcx ~if_bool:target_val result_vreg;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -781,12 +794,17 @@ and gen_instructions ~gcx ~ir ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.Shr (result_var_id, target_val, shift_val) :: rest_instructions ->
-    gen_shift
-      result_var_id
-      target_val
-      shift_val
-      ~mk_reg_instr:(fun size mem -> SarR (size, mem))
-      ~mk_imm_instr:(fun size imm mem -> SarI (size, imm, mem));
+    (* Arithmetic right shift is a no-op on bools and cannot be represented by sar instruction *)
+    if is_bool_value target_val then
+      gen_mov result_var_id target_val
+    else
+      ignore
+        (gen_shift
+           result_var_id
+           target_val
+           shift_val
+           ~mk_reg_instr:(fun size mem -> SarR (size, mem))
+           ~mk_imm_instr:(fun size imm mem -> SarI (size, imm, mem)));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -794,12 +812,13 @@ and gen_instructions ~gcx ~ir ~block instructions =
    * ===========================================
    *)
   | Mir.Instruction.Shrl (result_var_id, target_val, shift_val) :: rest_instructions ->
-    gen_shift
-      result_var_id
-      target_val
-      shift_val
-      ~mk_reg_instr:(fun size mem -> ShrR (size, mem))
-      ~mk_imm_instr:(fun size imm mem -> ShrI (size, imm, mem));
+    ignore
+      (gen_shift
+         result_var_id
+         target_val
+         shift_val
+         ~mk_reg_instr:(fun size mem -> ShrR (size, mem))
+         ~mk_imm_instr:(fun size imm mem -> ShrI (size, imm, mem)));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -987,6 +1006,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let size = register_size_of_mir_value_type (ty :> Type.t) in
       let arg_mem = emit_mem arg in
       Gcx.emit ~gcx (MovMM (size, arg_mem, Reg result_vreg)));
+    (* Bools must be further truncated to only lowest bit *)
+    if ty = `BoolT then Gcx.emit ~gcx (AndIM (Size8, Imm8 1, Reg result_vreg));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -1001,7 +1022,10 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let arg_size = register_size_of_svalue arg in
       let result_size = register_size_of_mir_value_type (ty :> Type.t) in
       let arg_mem = emit_mem arg in
-      Gcx.emit ~gcx (MovSX (arg_size, result_size, arg_mem, result_vreg)));
+      if arg_size <> result_size then
+        Gcx.emit ~gcx (MovSX (arg_size, result_size, arg_mem, result_vreg))
+      else
+        Gcx.emit ~gcx (MovMM (arg_size, arg_mem, Reg result_vreg)));
     gen_instructions rest_instructions
   | Mir.Instruction.StackAlloc _ :: _ -> failwith "StackAlloc instructions removed before asm gen"
 
@@ -1217,6 +1241,10 @@ and gen_size_from_count_and_type ~gcx count_val mir_ty result_vreg =
         ~gcx
         (IMulMIR (Size64, Reg count_vreg, Imm32 (Int32.of_int element_size), result_vreg))
   | _ -> failwith "Expected numeric count"
+
+(* Truncate a single byte vreg to just its lowest bit if the test val has type bool *)
+and maybe_truncate_bool_vreg ~gcx ~if_bool vreg =
+  if is_bool_value if_bool then Gcx.emit ~gcx (AndIM (Size8, Imm8 1, Reg vreg))
 
 and resolve_ir_value ~gcx ?(allow_imm64 = false) value =
   let vreg_of_var var_id size =
