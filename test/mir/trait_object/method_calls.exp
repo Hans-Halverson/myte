@@ -11,7 +11,7 @@ func int @test.Type.foo(test.Type* %0) {
 }
 
 func std.string.String* @test.Type.bar(test.Type* %0, int %1, bool %2) {
-  %3 := CallBuiltin std.string.String* myte_alloc(1)
+  %3 := Call std.string.String* myte.builtin.alloc(1)
   %4 := GetPointer byte*, std.string.String* %3.2
   Store byte* %4, 0
   %5 := GetPointer int, std.string.String* %3.0
@@ -44,7 +44,7 @@ func void @test.callMethodWithArgs(_object$test.Trait* %0) {
 }
 
 func void @test.test(test.Type* %0) {
-  %1 := CallBuiltin _object$test.Type$test.Trait* myte_alloc(1)
+  %1 := Call _object$test.Type$test.Trait* myte.builtin.alloc(1)
   %2 := GetPointer test.Type*, _object$test.Type$test.Trait* %1.0
   Store test.Type* %2, %0
   %3 := GetPointer fn[2]*, _object$test.Type$test.Trait* %1.1

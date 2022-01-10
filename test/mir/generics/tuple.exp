@@ -9,12 +9,12 @@ type test.Tup1<Bool> {bool, int}
 type test.Tup1<Int> {int, int}
 
 func void @test.testConstructor() {
-  %0 := CallBuiltin test.Tup1<Int>* myte_alloc(1)
+  %0 := Call test.Tup1<Int>* myte.builtin.alloc(1)
   %1 := GetPointer int, test.Tup1<Int>* %0.0
   Store int %1, 1
   %2 := GetPointer int, test.Tup1<Int>* %0.1
   Store int %2, 2
-  %3 := CallBuiltin test.Tup1<Bool>* myte_alloc(1)
+  %3 := Call test.Tup1<Bool>* myte.builtin.alloc(1)
   %4 := GetPointer int, test.Tup1<Bool>* %3.1
   Store int %4, 1
   %5 := GetPointer bool, test.Tup1<Bool>* %3.0
@@ -23,22 +23,22 @@ func void @test.testConstructor() {
 }
 
 func void @test.testAnonymousConstructor() {
-  %0 := CallBuiltin $tuple<Int,Int>* myte_alloc(1)
+  %0 := Call $tuple<Int,Int>* myte.builtin.alloc(1)
   %1 := GetPointer int, $tuple<Int,Int>* %0.0
   Store int %1, 1
   %2 := GetPointer int, $tuple<Int,Int>* %0.1
   Store int %2, 2
-  %3 := CallBuiltin $tuple<Int,Bool>* myte_alloc(1)
+  %3 := Call $tuple<Int,Bool>* myte.builtin.alloc(1)
   %4 := GetPointer int, $tuple<Int,Bool>* %3.0
   Store int %4, 1
   %5 := GetPointer bool, $tuple<Int,Bool>* %3.1
   Store bool %5, true
-  %6 := CallBuiltin $tuple<Int,Byte,(Int,Bool)>* myte_alloc(1)
+  %6 := Call $tuple<Int,Byte,(Int,Bool)>* myte.builtin.alloc(1)
   %7 := GetPointer int, $tuple<Int,Byte,(Int,Bool)>* %6.0
   Store int %7, 1
   %8 := GetPointer byte, $tuple<Int,Byte,(Int,Bool)>* %6.1
   Store byte %8, 2
-  %9 := CallBuiltin $tuple<Int,Bool>* myte_alloc(1)
+  %9 := Call $tuple<Int,Bool>* myte.builtin.alloc(1)
   %10 := GetPointer int, $tuple<Int,Bool>* %9.0
   Store int %10, 3
   %11 := GetPointer bool, $tuple<Int,Bool>* %9.1

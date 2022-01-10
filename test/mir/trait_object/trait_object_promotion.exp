@@ -19,7 +19,7 @@ func void @test.useTraitObject(_object$test.Trait* %0) {
 }
 
 func void @test.testCallArgumentPromotion(test.Type* %0) {
-  %1 := CallBuiltin _object$test.Type$test.Trait* myte_alloc(1)
+  %1 := Call _object$test.Type$test.Trait* myte.builtin.alloc(1)
   %2 := GetPointer test.Type*, _object$test.Type$test.Trait* %1.0
   Store test.Type* %2, %0
   %3 := GetPointer fn[1]*, _object$test.Type$test.Trait* %1.1
@@ -29,8 +29,8 @@ func void @test.testCallArgumentPromotion(test.Type* %0) {
 }
 
 func void @test.testTupleTypeArgumentPromotion(test.Type* %0) {
-  %1 := CallBuiltin test.TupleType* myte_alloc(1)
-  %2 := CallBuiltin _object$test.Type$test.Trait* myte_alloc(1)
+  %1 := Call test.TupleType* myte.builtin.alloc(1)
+  %2 := Call _object$test.Type$test.Trait* myte.builtin.alloc(1)
   %3 := GetPointer test.Type*, _object$test.Type$test.Trait* %2.0
   Store test.Type* %3, %0
   %4 := GetPointer fn[1]*, _object$test.Type$test.Trait* %2.1
@@ -41,8 +41,8 @@ func void @test.testTupleTypeArgumentPromotion(test.Type* %0) {
 }
 
 func void @test.testRecordTypeArgumentPromotion(test.Type* %0) {
-  %1 := CallBuiltin test.RecordType* myte_alloc(1)
-  %2 := CallBuiltin _object$test.Type$test.Trait* myte_alloc(1)
+  %1 := Call test.RecordType* myte.builtin.alloc(1)
+  %2 := Call _object$test.Type$test.Trait* myte.builtin.alloc(1)
   %3 := GetPointer test.Type*, _object$test.Type$test.Trait* %2.0
   Store test.Type* %3, %0
   %4 := GetPointer fn[1]*, _object$test.Type$test.Trait* %2.1
@@ -53,7 +53,7 @@ func void @test.testRecordTypeArgumentPromotion(test.Type* %0) {
 }
 
 func void @test.testTypeCastPromotion(test.Type* %0) {
-  %1 := CallBuiltin _object$test.Type$test.Trait* myte_alloc(1)
+  %1 := Call _object$test.Type$test.Trait* myte.builtin.alloc(1)
   %2 := GetPointer test.Type*, _object$test.Type$test.Trait* %1.0
   Store test.Type* %2, %0
   %3 := GetPointer fn[1]*, _object$test.Type$test.Trait* %1.1
@@ -62,7 +62,7 @@ func void @test.testTypeCastPromotion(test.Type* %0) {
 }
 
 func _object$test.Trait* @test.testReturnArgumentPromotion(test.Type* %0) {
-  %1 := CallBuiltin _object$test.Type$test.Trait* myte_alloc(1)
+  %1 := Call _object$test.Type$test.Trait* myte.builtin.alloc(1)
   %2 := GetPointer test.Type*, _object$test.Type$test.Trait* %1.0
   Store test.Type* %2, %0
   %3 := GetPointer fn[1]*, _object$test.Type$test.Trait* %1.1
@@ -71,7 +71,7 @@ func _object$test.Trait* @test.testReturnArgumentPromotion(test.Type* %0) {
 }
 
 func _object$test.Trait* @test.testReturnExpressionPromotion(test.Type* %0) {
-  %1 := CallBuiltin _object$test.Type$test.Trait* myte_alloc(1)
+  %1 := Call _object$test.Type$test.Trait* myte.builtin.alloc(1)
   %2 := GetPointer test.Type*, _object$test.Type$test.Trait* %1.0
   Store test.Type* %2, %0
   %3 := GetPointer fn[1]*, _object$test.Type$test.Trait* %1.1
@@ -80,7 +80,7 @@ func _object$test.Trait* @test.testReturnExpressionPromotion(test.Type* %0) {
 }
 
 func void @test.testVariableDeclarationPromotion(test.Type* %0) {
-  %1 := CallBuiltin _object$test.Type$test.Trait* myte_alloc(1)
+  %1 := Call _object$test.Type$test.Trait* myte.builtin.alloc(1)
   %2 := GetPointer test.Type*, _object$test.Type$test.Trait* %1.0
   Store test.Type* %2, %0
   %3 := GetPointer fn[1]*, _object$test.Type$test.Trait* %1.1
@@ -90,7 +90,7 @@ func void @test.testVariableDeclarationPromotion(test.Type* %0) {
 }
 
 func void @test.testVariableAssignmentPromotion(_object$test.Trait* %0, test.Type* %1) {
-  %2 := CallBuiltin _object$test.Type$test.Trait* myte_alloc(1)
+  %2 := Call _object$test.Type$test.Trait* myte.builtin.alloc(1)
   %3 := GetPointer test.Type*, _object$test.Type$test.Trait* %2.0
   Store test.Type* %3, %1
   %4 := GetPointer fn[1]*, _object$test.Type$test.Trait* %2.1

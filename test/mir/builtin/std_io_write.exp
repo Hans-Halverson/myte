@@ -1,11 +1,11 @@
 func int @test.testWithoutOffset(int %0, byte* %1, int %2) {
-  %3 := CallBuiltin int myte_write(%0, %1, %2)
+  %3 := Call int myte.builtin.write(%0, %1, %2)
   Ret %3
 }
 
 func int @test.testWithOffset(int %0, byte* %1, int %2) {
   %3 := GetPointer byte, byte* %1[int 123]
-  %4 := CallBuiltin int myte_write(%0, %3, %2)
+  %4 := Call int myte.builtin.write(%0, %3, %2)
   Ret %4
 }
 

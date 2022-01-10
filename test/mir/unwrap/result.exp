@@ -6,7 +6,7 @@ label @0:
   %3 := GetPointer int, std.result.Result<Int,Bool>::Ok* %0.2
   %4 := Load int %3
   Call void @test.use<Int>(%4)
-  %5 := CallBuiltin std.result.Result<Int,Bool>::Ok* myte_alloc(1)
+  %5 := Call std.result.Result<Int,Bool>::Ok* myte.builtin.alloc(1)
   Store byte %5, 0
   %6 := GetPointer int, std.result.Result<Int,Bool>::Ok* %5.2
   Store int %6, 1
@@ -14,7 +14,7 @@ label @0:
 label @1:
   %7 := GetPointer bool, std.result.Result<Int,Bool>::Error* %0.1
   %8 := Load bool %7
-  %9 := CallBuiltin std.result.Result<Int,Bool>::Error* myte_alloc(1)
+  %9 := Call std.result.Result<Int,Bool>::Error* myte.builtin.alloc(1)
   Store byte %9, 1
   %10 := GetPointer bool, std.result.Result<Int,Bool>::Error* %9.1
   Store bool %10, %8
@@ -29,7 +29,7 @@ label @0:
   %3 := GetPointer int, std.result.Result<Int,Bool>::Ok* %0.2
   %4 := Load int %3
   Call void @test.use<Int>(%4)
-  %5 := CallBuiltin std.result.Result<Long,Bool>::Ok* myte_alloc(1)
+  %5 := Call std.result.Result<Long,Bool>::Ok* myte.builtin.alloc(1)
   Store byte %5, 0
   %6 := GetPointer long, std.result.Result<Long,Bool>::Ok* %5.2
   Store long %6, 1
@@ -37,7 +37,7 @@ label @0:
 label @1:
   %7 := GetPointer bool, std.result.Result<Int,Bool>::Error* %0.1
   %8 := Load bool %7
-  %9 := CallBuiltin std.result.Result<Long,Bool>::Error* myte_alloc(1)
+  %9 := Call std.result.Result<Long,Bool>::Error* myte.builtin.alloc(1)
   Store byte %9, 1
   %10 := GetPointer bool, std.result.Result<Long,Bool>::Error* %9.1
   Store bool %10, %8
@@ -58,7 +58,7 @@ label @1:
   %7 := GetPointer int, std.result.Result<Int,Bool>::Ok* %4.2
   %8 := Load int %7
   Call void @test.use<Int>(%8)
-  %9 := CallBuiltin std.result.Result<Int,Bool>::Ok* myte_alloc(1)
+  %9 := Call std.result.Result<Int,Bool>::Ok* myte.builtin.alloc(1)
   Store byte %9, 0
   %10 := GetPointer int, std.result.Result<Int,Bool>::Ok* %9.2
   Store int %10, 1
@@ -66,7 +66,7 @@ label @1:
 label @2:
   %11 := GetPointer bool, std.result.Result<Int,Bool>::Error* %4.1
   %12 := Load bool %11
-  %13 := CallBuiltin std.result.Result<Int,Bool>::Error* myte_alloc(1)
+  %13 := Call std.result.Result<Int,Bool>::Error* myte.builtin.alloc(1)
   Store byte %13, 1
   %14 := GetPointer bool, std.result.Result<Int,Bool>::Error* %13.1
   Store bool %14, %12
@@ -74,7 +74,7 @@ label @2:
 label @3:
   %15 := GetPointer bool, std.result.Result<Result<Int,Bool>,Bool>::Error* %0.1
   %16 := Load bool %15
-  %17 := CallBuiltin std.result.Result<Int,Bool>::Error* myte_alloc(1)
+  %17 := Call std.result.Result<Int,Bool>::Error* myte.builtin.alloc(1)
   Store byte %17, 1
   %18 := GetPointer bool, std.result.Result<Int,Bool>::Error* %17.1
   Store bool %18, %16
@@ -87,7 +87,7 @@ func std.result.Result<Int,Bool>* @test.testZeroSizeOkUnwrap(std.result.Result<t
   branch %2, @0, @1
 label @0:
   Call void @test.use<test.ZeroSize>()
-  %3 := CallBuiltin std.result.Result<Int,Bool>::Ok* myte_alloc(1)
+  %3 := Call std.result.Result<Int,Bool>::Ok* myte.builtin.alloc(1)
   Store byte %3, 0
   %4 := GetPointer int, std.result.Result<Int,Bool>::Ok* %3.2
   Store int %4, 1
@@ -95,7 +95,7 @@ label @0:
 label @1:
   %5 := GetPointer bool, std.result.Result<test.ZeroSize,Bool>::Error* %0.1
   %6 := Load bool %5
-  %7 := CallBuiltin std.result.Result<Int,Bool>::Error* myte_alloc(1)
+  %7 := Call std.result.Result<Int,Bool>::Error* myte.builtin.alloc(1)
   Store byte %7, 1
   %8 := GetPointer bool, std.result.Result<Int,Bool>::Error* %7.1
   Store bool %8, %6
@@ -110,13 +110,13 @@ label @0:
   %3 := GetPointer bool, std.result.Result<Bool,test.ZeroSize>::Ok* %0.1
   %4 := Load bool %3
   Call void @test.use<Bool>(%4)
-  %5 := CallBuiltin std.result.Result<Int,test.ZeroSize>::Ok* myte_alloc(1)
+  %5 := Call std.result.Result<Int,test.ZeroSize>::Ok* myte.builtin.alloc(1)
   Store byte %5, 0
   %6 := GetPointer int, std.result.Result<Int,test.ZeroSize>::Ok* %5.2
   Store int %6, 1
   Ret %5
 label @1:
-  %7 := CallBuiltin std.result.Result<Int,test.ZeroSize>::Error* myte_alloc(1)
+  %7 := Call std.result.Result<Int,test.ZeroSize>::Error* myte.builtin.alloc(1)
   Store byte %7, 1
   Ret %7
 }
@@ -127,13 +127,13 @@ func std.result.Result<Int,test.ZeroSize>* @test.testZeroSizeOkAndResultUnwrap(s
   branch %2, @0, @1
 label @0:
   Call void @test.use<test.ZeroSize>()
-  %3 := CallBuiltin std.result.Result<Int,test.ZeroSize>::Ok* myte_alloc(1)
+  %3 := Call std.result.Result<Int,test.ZeroSize>::Ok* myte.builtin.alloc(1)
   Store byte %3, 0
   %4 := GetPointer int, std.result.Result<Int,test.ZeroSize>::Ok* %3.2
   Store int %4, 1
   Ret %3
 label @1:
-  %5 := CallBuiltin std.result.Result<Int,test.ZeroSize>::Error* myte_alloc(1)
+  %5 := Call std.result.Result<Int,test.ZeroSize>::Error* myte.builtin.alloc(1)
   Store byte %5, 1
   Ret %5
 }

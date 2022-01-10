@@ -75,50 +75,50 @@ func byte @test.GenericType.baz<Byte>(test.GenericType<Byte>* %0, byte %1) {
 }
 
 func void @test.forceInstantiations() {
-  %0 := CallBuiltin test.NongenericType* myte_alloc(1)
+  %0 := Call test.NongenericType* myte.builtin.alloc(1)
   %1 := GetPointer int, test.NongenericType* %0.0
   Store int %1, 1
-  %2 := CallBuiltin _object$test.NongenericType$test.NongenericTrait* myte_alloc(1)
+  %2 := Call _object$test.NongenericType$test.NongenericTrait* myte.builtin.alloc(1)
   %3 := GetPointer test.NongenericType*, _object$test.NongenericType$test.NongenericTrait* %2.0
   Store test.NongenericType* %3, %0
   %4 := GetPointer fn[2]*, _object$test.NongenericType$test.NongenericTrait* %2.1
   Store fn[2]* %4, @_vtable$test.NongenericType$test.NongenericTrait
-  %5 := CallBuiltin test.GenericType<Int>* myte_alloc(1)
+  %5 := Call test.GenericType<Int>* myte.builtin.alloc(1)
   %6 := GetPointer int, test.GenericType<Int>* %5.0
   Store int %6, 2
-  %7 := CallBuiltin _object$test.GenericType<Int>$test.NongenericTrait* myte_alloc(1)
+  %7 := Call _object$test.GenericType<Int>$test.NongenericTrait* myte.builtin.alloc(1)
   %8 := GetPointer test.GenericType<Int>*, _object$test.GenericType<Int>$test.NongenericTrait* %7.0
   Store test.GenericType<Int>* %8, %5
   %9 := GetPointer fn[2]*, _object$test.GenericType<Int>$test.NongenericTrait* %7.1
   Store fn[2]* %9, @_vtable$test.GenericType<Int>$test.NongenericTrait
-  %10 := CallBuiltin test.GenericType<Bool>* myte_alloc(1)
+  %10 := Call test.GenericType<Bool>* myte.builtin.alloc(1)
   %11 := GetPointer bool, test.GenericType<Bool>* %10.0
   Store bool %11, true
-  %12 := CallBuiltin _object$test.GenericType<Bool>$test.NongenericTrait* myte_alloc(1)
+  %12 := Call _object$test.GenericType<Bool>$test.NongenericTrait* myte.builtin.alloc(1)
   %13 := GetPointer test.GenericType<Bool>*, _object$test.GenericType<Bool>$test.NongenericTrait* %12.0
   Store test.GenericType<Bool>* %13, %10
   %14 := GetPointer fn[2]*, _object$test.GenericType<Bool>$test.NongenericTrait* %12.1
   Store fn[2]* %14, @_vtable$test.GenericType<Bool>$test.NongenericTrait
-  %15 := CallBuiltin test.NongenericType* myte_alloc(1)
+  %15 := Call test.NongenericType* myte.builtin.alloc(1)
   %16 := GetPointer int, test.NongenericType* %15.0
   Store int %16, 1
-  %17 := CallBuiltin _object$test.NongenericType$test.GenericTrait<Byte>* myte_alloc(1)
+  %17 := Call _object$test.NongenericType$test.GenericTrait<Byte>* myte.builtin.alloc(1)
   %18 := GetPointer test.NongenericType*, _object$test.NongenericType$test.GenericTrait<Byte>* %17.0
   Store test.NongenericType* %18, %15
   %19 := GetPointer fn[2]*, _object$test.NongenericType$test.GenericTrait<Byte>* %17.1
   Store fn[2]* %19, @_vtable$test.NongenericType$test.GenericTrait<Byte>
-  %20 := CallBuiltin test.GenericType<Byte>* myte_alloc(1)
+  %20 := Call test.GenericType<Byte>* myte.builtin.alloc(1)
   %21 := GetPointer byte, test.GenericType<Byte>* %20.0
   Store byte %21, 2
-  %22 := CallBuiltin _object$test.GenericType<Byte>$test.GenericTrait<Byte>* myte_alloc(1)
+  %22 := Call _object$test.GenericType<Byte>$test.GenericTrait<Byte>* myte.builtin.alloc(1)
   %23 := GetPointer test.GenericType<Byte>*, _object$test.GenericType<Byte>$test.GenericTrait<Byte>* %22.0
   Store test.GenericType<Byte>* %23, %20
   %24 := GetPointer fn[2]*, _object$test.GenericType<Byte>$test.GenericTrait<Byte>* %22.1
   Store fn[2]* %24, @_vtable$test.GenericType<Byte>$test.GenericTrait<Byte>
-  %25 := CallBuiltin test.GenericType<Bool>* myte_alloc(1)
+  %25 := Call test.GenericType<Bool>* myte.builtin.alloc(1)
   %26 := GetPointer bool, test.GenericType<Bool>* %25.0
   Store bool %26, true
-  %27 := CallBuiltin _object$test.GenericType<Bool>$test.GenericTrait<Bool>* myte_alloc(1)
+  %27 := Call _object$test.GenericType<Bool>$test.GenericTrait<Bool>* myte.builtin.alloc(1)
   %28 := GetPointer test.GenericType<Bool>*, _object$test.GenericType<Bool>$test.GenericTrait<Bool>* %27.0
   Store test.GenericType<Bool>* %28, %25
   %29 := GetPointer fn[2]*, _object$test.GenericType<Bool>$test.GenericTrait<Bool>* %27.1

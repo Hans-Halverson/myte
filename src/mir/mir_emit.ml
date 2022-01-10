@@ -1279,11 +1279,13 @@ and emit_call
   | None ->
     (match ret_type with
     | None ->
-      Ecx.emit ~ecx (Call { return = None; func = func_val; args = arg_vals });
+      Ecx.emit ~ecx (Call { return = None; func = Value func_val; args = arg_vals });
       None
     | Some ret_type ->
       let var_id = mk_var_id () in
-      Ecx.emit ~ecx (Call { return = Some (var_id, ret_type); func = func_val; args = arg_vals });
+      Ecx.emit
+        ~ecx
+        (Call { return = Some (var_id, ret_type); func = Value func_val; args = arg_vals });
       Some (var_value_of_type var_id ret_type))
 
 and builtin_functions =
@@ -1450,7 +1452,7 @@ and emit_call_vec_get ~ecx return_loc vec_val index_val =
   in
   (* Emit call to Vec's `get` method *)
   let emit_call return =
-    Ecx.emit ~ecx (Call { return; func = func_val; args = [vec_val; index_val] })
+    Ecx.emit ~ecx (Call { return; func = Value func_val; args = [vec_val; index_val] })
   in
   match Ecx.to_mir_type ~ecx element_ty with
   | None ->
@@ -1481,7 +1483,7 @@ and emit_call_vec_set ~ecx element_ty_loc vec_val index_val expr_val =
     | Some expr_val -> [vec_val; index_val; expr_val]
     | None -> [vec_val; index_val]
   in
-  Ecx.emit ~ecx (Call { return = None; func = func_val; args })
+  Ecx.emit ~ecx (Call { return = None; func = Value func_val; args })
 
 and emit_call_map_get ~ecx return_loc map_type_args map_val index_val =
   (* Get full name for Map's `get` method *)
@@ -1505,7 +1507,7 @@ and emit_call_map_get ~ecx return_loc map_type_args map_val index_val =
     | Some index_val -> [map_val; index_val]
     | None -> [map_val]
   in
-  Ecx.emit ~ecx (Call { return = Some (var_id, mir_type); func = func_val; args });
+  Ecx.emit ~ecx (Call { return = Some (var_id, mir_type); func = Value func_val; args });
   var_value_of_type var_id mir_type
 
 and emit_call_map_add ~ecx map_type_args map_val index_val expr_val =
@@ -1523,7 +1525,9 @@ and emit_call_map_add ~ecx map_type_args map_val index_val expr_val =
   in
   (* Emit call of Map's `add` method *)
   let index_and_expr_args = List.filter_map (fun v -> v) [index_val; expr_val] in
-  Ecx.emit ~ecx (Call { return = None; func = func_val; args = map_val :: index_and_expr_args })
+  Ecx.emit
+    ~ecx
+    (Call { return = None; func = Value func_val; args = map_val :: index_and_expr_args })
 
 and emit_call_map_reserve ~ecx map_type_args map_val capacity_val =
   (* Get full name for Map's `reserve` method *)
@@ -1543,7 +1547,7 @@ and emit_call_map_reserve ~ecx map_type_args map_val capacity_val =
       map_type_args
   in
   (* Emit call of Map's `reserve` method *)
-  Ecx.emit ~ecx (Call { return = None; func = func_val; args = [map_val; capacity_val] })
+  Ecx.emit ~ecx (Call { return = None; func = Value func_val; args = [map_val; capacity_val] })
 
 and emit_call_map_new ~ecx return_mir_type map_type_args =
   let decl_loc = Std_lib.lookup_stdlib_decl_loc Std_lib.std_map_map_new in
@@ -1557,7 +1561,7 @@ and emit_call_map_new ~ecx return_mir_type map_type_args =
   in
   (* Emit call of Map's `new` function *)
   let var_id = mk_var_id () in
-  Ecx.emit ~ecx (Call { return = Some (var_id, return_mir_type); func = func_val; args = [] });
+  Ecx.emit ~ecx (Call { return = Some (var_id, return_mir_type); func = Value func_val; args = [] });
   var_value_of_type var_id return_mir_type
 
 and emit_call_set_add ~ecx set_type_args set_val element_val =
@@ -1579,7 +1583,7 @@ and emit_call_set_add ~ecx set_type_args set_val element_val =
     | Some element_val -> [set_val; element_val]
     | None -> [set_val]
   in
-  Ecx.emit ~ecx (Call { return = None; func = func_val; args })
+  Ecx.emit ~ecx (Call { return = None; func = Value func_val; args })
 
 and emit_call_set_reserve ~ecx set_type_args set_val capacity_val =
   (* Get full name for set's `reserve` method *)
@@ -1599,7 +1603,7 @@ and emit_call_set_reserve ~ecx set_type_args set_val capacity_val =
       set_type_args
   in
   (* Emit call of set's `reserve` method *)
-  Ecx.emit ~ecx (Call { return = None; func = func_val; args = [set_val; capacity_val] })
+  Ecx.emit ~ecx (Call { return = None; func = Value func_val; args = [set_val; capacity_val] })
 
 and emit_call_set_new ~ecx return_mir_type set_type_args =
   let decl_loc = Std_lib.lookup_stdlib_decl_loc Std_lib.std_set_set_new in
@@ -1613,7 +1617,7 @@ and emit_call_set_new ~ecx return_mir_type set_type_args =
   in
   (* Emit call of set's `new` function *)
   let var_id = mk_var_id () in
-  Ecx.emit ~ecx (Call { return = Some (var_id, return_mir_type); func = func_val; args = [] });
+  Ecx.emit ~ecx (Call { return = Some (var_id, return_mir_type); func = Value func_val; args = [] });
   var_value_of_type var_id return_mir_type
 
 (* If the index is nonzero, emit a GetPointer instruction to calculate the pointer's start *)

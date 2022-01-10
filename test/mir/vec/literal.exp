@@ -1,14 +1,14 @@
 type _ZeroSize {}
 
 func void @test.emptyVec() {
-  %0 := CallBuiltin std.vec.Vec<Int>* myte_alloc(1)
+  %0 := Call std.vec.Vec<Int>* myte.builtin.alloc(1)
   %1 := GetPointer int*, std.vec.Vec<Int>* %0.2
   Store int* %1, 0
   %2 := GetPointer int, std.vec.Vec<Int>* %0.0
   Store int %2, 0
   %3 := GetPointer int, std.vec.Vec<Int>* %0.1
   Store int %3, 0
-  %4 := CallBuiltin std.vec.Vec<Bool>* myte_alloc(1)
+  %4 := Call std.vec.Vec<Bool>* myte.builtin.alloc(1)
   %5 := GetPointer bool*, std.vec.Vec<Bool>* %4.2
   Store bool* %5, 0
   %6 := GetPointer int, std.vec.Vec<Bool>* %4.0
@@ -19,20 +19,20 @@ func void @test.emptyVec() {
 }
 
 func void @test.oneElementVec() {
-  %0 := CallBuiltin int* myte_alloc(1)
+  %0 := Call int* myte.builtin.alloc(1)
   %1 := GetPointer int, int* %0[int 0]
   Store int %1, 1
-  %2 := CallBuiltin std.vec.Vec<Int>* myte_alloc(1)
+  %2 := Call std.vec.Vec<Int>* myte.builtin.alloc(1)
   %3 := GetPointer int*, std.vec.Vec<Int>* %2.2
   Store int* %3, %0
   %4 := GetPointer int, std.vec.Vec<Int>* %2.0
   Store int %4, 1
   %5 := GetPointer int, std.vec.Vec<Int>* %2.1
   Store int %5, 1
-  %6 := CallBuiltin byte* myte_alloc(1)
+  %6 := Call byte* myte.builtin.alloc(1)
   %7 := GetPointer byte, byte* %6[int 0]
   Store byte %7, 2
-  %8 := CallBuiltin std.vec.Vec<Byte>* myte_alloc(1)
+  %8 := Call std.vec.Vec<Byte>* myte.builtin.alloc(1)
   %9 := GetPointer byte*, std.vec.Vec<Byte>* %8.2
   Store byte* %9, %6
   %10 := GetPointer int, std.vec.Vec<Byte>* %8.0
@@ -43,21 +43,21 @@ func void @test.oneElementVec() {
 }
 
 func void @test.multiElementVec() {
-  %0 := CallBuiltin int* myte_alloc(3)
+  %0 := Call int* myte.builtin.alloc(3)
   %1 := GetPointer int, int* %0[int 0]
   Store int %1, 5
   %2 := GetPointer int, int* %0[int 1]
   Store int %2, 6
   %3 := GetPointer int, int* %0[int 2]
   Store int %3, 7
-  %4 := CallBuiltin std.vec.Vec<Int>* myte_alloc(1)
+  %4 := Call std.vec.Vec<Int>* myte.builtin.alloc(1)
   %5 := GetPointer int*, std.vec.Vec<Int>* %4.2
   Store int* %5, %0
   %6 := GetPointer int, std.vec.Vec<Int>* %4.0
   Store int %6, 3
   %7 := GetPointer int, std.vec.Vec<Int>* %4.1
   Store int %7, 3
-  %8 := CallBuiltin bool* myte_alloc(4)
+  %8 := Call bool* myte.builtin.alloc(4)
   %9 := GetPointer bool, bool* %8[int 0]
   Store bool %9, false
   %10 := GetPointer bool, bool* %8[int 1]
@@ -66,7 +66,7 @@ func void @test.multiElementVec() {
   Store bool %11, false
   %12 := GetPointer bool, bool* %8[int 3]
   Store bool %12, true
-  %13 := CallBuiltin std.vec.Vec<Bool>* myte_alloc(1)
+  %13 := Call std.vec.Vec<Bool>* myte.builtin.alloc(1)
   %14 := GetPointer bool*, std.vec.Vec<Bool>* %13.2
   Store bool* %14, %8
   %15 := GetPointer int, std.vec.Vec<Bool>* %13.0
@@ -77,18 +77,18 @@ func void @test.multiElementVec() {
 }
 
 func void @test.zeroSizeElementsVec() {
-  %0 := CallBuiltin _ZeroSize* myte_alloc(3)
+  %0 := Call _ZeroSize* myte.builtin.alloc(3)
   Call void @test.id<Unit>()
-  %1 := CallBuiltin std.vec.Vec<Unit>* myte_alloc(1)
+  %1 := Call std.vec.Vec<Unit>* myte.builtin.alloc(1)
   %2 := GetPointer _ZeroSize*, std.vec.Vec<Unit>* %1.2
   Store _ZeroSize* %2, %0
   %3 := GetPointer int, std.vec.Vec<Unit>* %1.0
   Store int %3, 3
   %4 := GetPointer int, std.vec.Vec<Unit>* %1.1
   Store int %4, 3
-  %5 := CallBuiltin _ZeroSize* myte_alloc(3)
+  %5 := Call _ZeroSize* myte.builtin.alloc(3)
   Call void @test.id<test.ZeroSize>()
-  %6 := CallBuiltin std.vec.Vec<test.ZeroSize>* myte_alloc(1)
+  %6 := Call std.vec.Vec<test.ZeroSize>* myte.builtin.alloc(1)
   %7 := GetPointer _ZeroSize*, std.vec.Vec<test.ZeroSize>* %6.2
   Store _ZeroSize* %7, %5
   %8 := GetPointer int, std.vec.Vec<test.ZeroSize>* %6.0

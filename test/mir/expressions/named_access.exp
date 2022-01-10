@@ -9,7 +9,7 @@ type test.Rec4 {int, int, test.Rec3*}
 type test.Tup1 {test.Rec4*}
 
 func test.Rec1* @test.makeRec(int %0) {
-  %1 := CallBuiltin test.Rec1* myte_alloc(1)
+  %1 := Call test.Rec1* myte.builtin.alloc(1)
   %2 := GetPointer int, test.Rec1* %1.0
   Store int %2, %0
   Ret %1

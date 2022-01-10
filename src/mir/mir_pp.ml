@@ -304,18 +304,16 @@ and pp_instruction ~cx (_, instr) =
     | Mov (var_id, right) ->
       pp_instr var_id (Printf.sprintf "Mov %s %s" (pp_type_of_value right) (pp_value ~cx right))
     | Call { return; func; args } ->
+      let func_string =
+        match func with
+        | Value func -> pp_function_value ~cx func
+        | Builtin { name; _ } -> name
+      in
       let args_string = List.map (pp_value ~cx) args |> String.concat ", " in
-      let func_string = pp_function_value ~cx func in
       (match return with
       | None -> Printf.sprintf "Call void %s(%s)" func_string args_string
       | Some (var_id, ret_ty) ->
         pp_instr var_id (Printf.sprintf "Call %s %s(%s)" (pp_type ret_ty) func_string args_string))
-    | CallBuiltin { return; func = { Builtin.name; _ }; args } ->
-      let args_string = List.map (pp_value ~cx) args |> String.concat ", " in
-      (match return with
-      | None -> Printf.sprintf "CallBuiltin void %s(%s)" name args_string
-      | Some (var_id, ret_ty) ->
-        pp_instr var_id (Printf.sprintf "CallBuiltin %s %s(%s)" (pp_type ret_ty) name args_string))
     | Ret val_opt ->
       "Ret"
       ^

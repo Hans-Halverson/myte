@@ -81,24 +81,16 @@ module InstructionsMapper = struct
                 id_map (this#map_result_variable ~block) ret return (fun ret' -> (ret', ret_ty)))
               return
           in
-          let func' = this#map_function_value ~block func in
+          let func' =
+            match func with
+            | Value v -> id_map (this#map_function_value ~block) v func (fun v' -> Call.Value v')
+            | Builtin _ -> func
+          in
           let args' = id_map_list (this#map_value ~block) args in
           if return == return' && func == func' && args == args' then
             [instruction]
           else
             mk_instr (Call { return = return'; func = func'; args = args' })
-        | CallBuiltin { return; func; args } ->
-          let return' =
-            id_map_opt
-              (fun ((ret, ret_ty) as return) ->
-                id_map (this#map_result_variable ~block) ret return (fun ret' -> (ret', ret_ty)))
-              return
-          in
-          let args' = id_map_list (this#map_value ~block) args in
-          if return == return' && args == args' then
-            [instruction]
-          else
-            mk_instr (CallBuiltin { return = return'; func; args = args' })
         | Ret arg_opt ->
           let arg_opt' = id_map_opt (this#map_value ~block) arg_opt in
           if arg_opt == arg_opt' then

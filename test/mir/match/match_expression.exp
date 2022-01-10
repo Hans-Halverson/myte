@@ -131,7 +131,7 @@ label @1:
   Call void @test.use<Int>(%3)
   Ret
 label @2:
-  CallBuiltin void myte_exit(1)
+  Call void myte.builtin.exit(1)
 }
 
 func void @test.testLoopDivergence(int %0) {

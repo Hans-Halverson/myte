@@ -74,11 +74,15 @@ and Instruction : sig
   end
 
   module Call : sig
-    type 'a t = {
+    type t = {
       return: (var_id * Type.t) option;
-      func: 'a;
+      func: func;
       args: Value.t list;
     }
+
+    and func =
+      | Value of Value.function_value
+      | Builtin of Builtin.t
   end
 
   type comparison =
@@ -113,11 +117,14 @@ and Instruction : sig
     (* Logical right shift *)
     | Shrl
 
+  type func =
+    | FuncBuiltin of Builtin.t
+    | FuncValue of Value.function_value
+
   type t = instr_id * t'
 
   and t' =
-    | Call of Value.function_value Call.t
-    | CallBuiltin of Builtin.t Call.t
+    | Call of Call.t
     | Ret of Value.t option
     (* Memory operations *)
     | StackAlloc of var_id * Type.t

@@ -15,7 +15,7 @@ type std.vec.Vec<String> {int, int, std.string.String**}
 type std.vec.Vec<test.ZeroSize> {int, int, _ZeroSize*}
 
 func std.vec.Vec<String>* @std.vec.Vec.new<String>() {
-  %0 := CallBuiltin std.vec.Vec<String>* myte_alloc(1)
+  %0 := Call std.vec.Vec<String>* myte.builtin.alloc(1)
   %1 := GetPointer std.string.String**, std.vec.Vec<String>* %0.2
   Store std.string.String** %1, 0
   %2 := GetPointer int, std.vec.Vec<String>* %0.0
@@ -220,10 +220,10 @@ label @1:
   %5 := Phi int @std.vec.Vec.resize<Bool>:1, @0:%4
   %6 := GetPointer int, std.vec.Vec<Bool>* %0.1
   Store int %6, %5
-  %7 := CallBuiltin bool* myte_alloc(%5)
+  %7 := Call bool* myte.builtin.alloc(%5)
   %8 := GetPointer bool*, std.vec.Vec<Bool>* %0.2
   %9 := Load bool* %8
-  CallBuiltin void myte_copy(%7, %9, %2)
+  Call void myte.builtin.copy(%7, %9, %2)
   %10 := GetPointer bool*, std.vec.Vec<Bool>* %0.2
   Store bool* %10, %7
   Ret
@@ -241,10 +241,10 @@ label @1:
   %5 := Phi int @std.vec.Vec.resize<Int>:1, @0:%4
   %6 := GetPointer int, std.vec.Vec<Int>* %0.1
   Store int %6, %5
-  %7 := CallBuiltin int* myte_alloc(%5)
+  %7 := Call int* myte.builtin.alloc(%5)
   %8 := GetPointer int*, std.vec.Vec<Int>* %0.2
   %9 := Load int* %8
-  CallBuiltin void myte_copy(%7, %9, %2)
+  Call void myte.builtin.copy(%7, %9, %2)
   %10 := GetPointer int*, std.vec.Vec<Int>* %0.2
   Store int* %10, %7
   Ret
@@ -262,10 +262,10 @@ label @1:
   %5 := Phi int @std.vec.Vec.resize<String>:1, @0:%4
   %6 := GetPointer int, std.vec.Vec<String>* %0.1
   Store int %6, %5
-  %7 := CallBuiltin std.string.String** myte_alloc(%5)
+  %7 := Call std.string.String** myte.builtin.alloc(%5)
   %8 := GetPointer std.string.String**, std.vec.Vec<String>* %0.2
   %9 := Load std.string.String** %8
-  CallBuiltin void myte_copy(%7, %9, %2)
+  Call void myte.builtin.copy(%7, %9, %2)
   %10 := GetPointer std.string.String**, std.vec.Vec<String>* %0.2
   Store std.string.String** %10, %7
   Ret

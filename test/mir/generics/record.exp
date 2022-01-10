@@ -3,14 +3,14 @@ type test.Rec1<Bool> {bool, bool, int}
 type test.Rec1<Int> {int, int, int}
 
 func void @test.testConstructor() {
-  %0 := CallBuiltin test.Rec1<Int>* myte_alloc(1)
+  %0 := Call test.Rec1<Int>* myte.builtin.alloc(1)
   %1 := GetPointer int, test.Rec1<Int>* %0.0
   Store int %1, 1
   %2 := GetPointer int, test.Rec1<Int>* %0.1
   Store int %2, 2
   %3 := GetPointer int, test.Rec1<Int>* %0.2
   Store int %3, 3
-  %4 := CallBuiltin test.Rec1<Bool>* myte_alloc(1)
+  %4 := Call test.Rec1<Bool>* myte.builtin.alloc(1)
   %5 := GetPointer int, test.Rec1<Bool>* %4.2
   Store int %5, 1
   %6 := GetPointer bool, test.Rec1<Bool>* %4.0

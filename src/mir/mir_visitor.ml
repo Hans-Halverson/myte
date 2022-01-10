@@ -75,12 +75,9 @@ module IRVisitor = struct
           this#visit_value ~block arg;
           this#visit_result_variable ~block result
         | Call { return; func; args } ->
-          this#visit_function_value ~block func;
-          List.iter (this#visit_value ~block) args;
-          (match return with
-          | None -> ()
-          | Some (ret, _ret_ty) -> this#visit_result_variable ~block ret)
-        | CallBuiltin { return; func = _; args } ->
+          (match func with
+          | Value func -> this#visit_function_value ~block func
+          | Builtin _ -> ());
           List.iter (this#visit_value ~block) args;
           (match return with
           | None -> ()

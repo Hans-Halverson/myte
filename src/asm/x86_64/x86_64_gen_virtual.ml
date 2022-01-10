@@ -440,7 +440,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                   Call
    * ===========================================
    *)
-  | Mir.Instruction.Call { return; func = func_val; args = arg_vals } :: rest_instructions ->
+  | Mir.Instruction.Call { return; func = Value func_val; args = arg_vals } :: rest_instructions ->
     (* Emit arguments for call *)
     gen_call_arguments arg_vals;
     (* Emit call instruction *)
@@ -835,10 +835,11 @@ and gen_instructions ~gcx ~ir ~block instructions =
     gen_instructions rest_instructions
   (*
    * ===========================================
-   *                CallBuiltin
+   *                Call Builtin
    * ===========================================
    *)
-  | Mir.Instruction.CallBuiltin { return; func = { Builtin.name; _ }; args } :: rest_instructions ->
+  | Mir.Instruction.Call { return; func = Builtin { Builtin.name; _ }; args } :: rest_instructions
+    ->
     let open Mir_builtin in
     let ret_vreg () = vreg_of_result_var_id (fst (Option.get return)) in
     (*

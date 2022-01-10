@@ -92,7 +92,7 @@ label @1:
 func void @test.testDivergentExpressionBranch(bool %0) {
   branch %0, @1, @0
 label @0:
-  CallBuiltin void myte_exit(1)
+  Call void myte.builtin.exit(1)
   continue @1
 label @1:
   Call void @test.use<Int>(1)

@@ -8,7 +8,7 @@ func void @test.testZeroSizeTuple() {
 }
 
 func void @test.testTupleWithZeroSizeFields() {
-  %0 := CallBuiltin $tuple<Unit,Int,Unit,Unit,Bool>* myte_alloc(1)
+  %0 := Call $tuple<Unit,Int,Unit,Unit,Bool>* myte.builtin.alloc(1)
   Call void @test.getUnit()
   %1 := GetPointer int, $tuple<Unit,Int,Unit,Unit,Bool>* %0.0
   Store int %1, 1
