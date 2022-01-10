@@ -564,7 +564,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                   Add
    * ===========================================
    *)
-  | Mir.Instruction.Add (result_var_id, left_val, right_val) :: rest_instructions ->
+  | Mir.Instruction.Binary (Add, result_var_id, left_val, right_val) :: rest_instructions ->
     let result_vreg = vreg_of_result_var_id result_var_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
@@ -588,7 +588,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                    Sub
    * ===========================================
    *)
-  | Mir.Instruction.Sub (result_var_id, left_val, right_val) :: rest_instructions ->
+  | Mir.Instruction.Binary (Sub, result_var_id, left_val, right_val) :: rest_instructions ->
     let result_vreg = vreg_of_result_var_id result_var_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
@@ -615,7 +615,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                   Mul
    * ===========================================
    *)
-  | Mir.Instruction.Mul (result_var_id, left_val, right_val) :: rest_instructions ->
+  | Mir.Instruction.Binary (Mul, result_var_id, left_val, right_val) :: rest_instructions ->
     let result_vreg = vreg_of_result_var_id result_var_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
@@ -638,7 +638,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                   Div
    * ===========================================
    *)
-  | Mir.Instruction.Div (result_var_id, left_val, right_val) :: rest_instructions ->
+  | Mir.Instruction.Binary (Div, result_var_id, left_val, right_val) :: rest_instructions ->
     let result_vreg = vreg_of_result_var_id result_var_id in
     (match resolve_ir_value ~allow_imm64:true right_val with
     (* Division by a power of two can be optimized to a right shift *)
@@ -661,7 +661,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                   Rem
    * ===========================================
    *)
-  | Mir.Instruction.Rem (result_var_id, left_val, right_val) :: rest_instructions ->
+  | Mir.Instruction.Binary (Rem, result_var_id, left_val, right_val) :: rest_instructions ->
     let result_vreg = vreg_of_result_var_id result_var_id in
     let precolored_d = Gcx.mk_precolored ~gcx D in
     let size = gen_idiv left_val right_val in
@@ -673,7 +673,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                   Neg
    * ===========================================
    *)
-  | Mir.Instruction.Neg (result_var_id, arg) :: rest_instructions ->
+  | Mir.Instruction.Unary (Neg, result_var_id, arg) :: rest_instructions ->
     let resolved_value = resolve_ir_value arg in
     let size = register_size_of_svalue resolved_value in
     let arg_mem = emit_mem resolved_value in
@@ -687,7 +687,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                    Not
    * ===========================================
    *)
-  | Mir.Instruction.Not (result_var_id, arg) :: rest_instructions ->
+  | Mir.Instruction.Unary (Not, result_var_id, arg) :: rest_instructions ->
     ( if is_bool_value arg then (
       let arg_vreg = emit_bool_as_reg arg in
       let result_vreg = vreg_of_result_var_id result_var_id in
@@ -707,7 +707,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                    And
    * ===========================================
    *)
-  | Mir.Instruction.And (result_var_id, left_val, right_val) :: rest_instructions ->
+  | Mir.Instruction.Binary (And, result_var_id, left_val, right_val) :: rest_instructions ->
     let result_vreg = vreg_of_result_var_id result_var_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
@@ -730,7 +730,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                    Or
    * ===========================================
    *)
-  | Mir.Instruction.Or (result_var_id, left_val, right_val) :: rest_instructions ->
+  | Mir.Instruction.Binary (Or, result_var_id, left_val, right_val) :: rest_instructions ->
     let result_vreg = vreg_of_result_var_id result_var_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
@@ -753,7 +753,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                    Xor
    * ===========================================
    *)
-  | Mir.Instruction.Xor (result_var_id, left_val, right_val) :: rest_instructions ->
+  | Mir.Instruction.Binary (Xor, result_var_id, left_val, right_val) :: rest_instructions ->
     let result_vreg = vreg_of_result_var_id result_var_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
@@ -777,7 +777,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                  Shl
    * ===========================================
    *)
-  | Mir.Instruction.Shl (result_var_id, target_val, shift_val) :: rest_instructions ->
+  | Mir.Instruction.Binary (Shl, result_var_id, target_val, shift_val) :: rest_instructions ->
     let result_vreg =
       gen_shift
         result_var_id
@@ -793,7 +793,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                  Shr
    * ===========================================
    *)
-  | Mir.Instruction.Shr (result_var_id, target_val, shift_val) :: rest_instructions ->
+  | Mir.Instruction.Binary (Shr, result_var_id, target_val, shift_val) :: rest_instructions ->
     (* Arithmetic right shift is a no-op on bools and cannot be represented by sar instruction *)
     if is_bool_value target_val then
       gen_mov result_var_id target_val
@@ -811,7 +811,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                  Shrl
    * ===========================================
    *)
-  | Mir.Instruction.Shrl (result_var_id, target_val, shift_val) :: rest_instructions ->
+  | Mir.Instruction.Binary (Shrl, result_var_id, target_val, shift_val) :: rest_instructions ->
     ignore
       (gen_shift
          result_var_id

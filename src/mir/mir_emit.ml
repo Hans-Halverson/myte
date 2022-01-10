@@ -310,7 +310,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     let var_id = mk_var_id () in
     let operand_val = emit_numeric_expression ~ecx operand in
     let ty = mir_type_of_loc ~ecx loc |> Option.get in
-    Ecx.emit ~ecx (Neg (var_id, operand_val));
+    Ecx.emit ~ecx (Unary (Neg, var_id, operand_val));
     Some (var_value_of_type var_id ty)
   | UnaryOperation { op = Not; loc; operand } ->
     let var_id = mk_var_id () in
@@ -319,13 +319,13 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
       match value_ty with
       | `BoolT ->
         let operand_val = emit_bool_expression ~ecx operand in
-        Ecx.emit ~ecx (Not (var_id, (operand_val :> Value.numeric_value)));
+        Ecx.emit ~ecx (Unary (Not, var_id, (operand_val :> Value.numeric_value)));
         `BoolV var_id
       | `ByteT
       | `IntT
       | `LongT ->
         let operand_val = emit_numeric_expression ~ecx operand in
-        Ecx.emit ~ecx (Not (var_id, operand_val));
+        Ecx.emit ~ecx (Unary (Not, var_id, operand_val));
         var_value_of_type var_id value_ty
       | _ -> failwith "Not argument must be a bool or int"
     in
@@ -422,7 +422,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     else
       let var_id = mk_var_id () in
       let equals_result_val = cast_to_bool_value (Option.get equals_result_val) in
-      Ecx.emit ~ecx (Not (var_id, (equals_result_val :> Value.numeric_value)));
+      Ecx.emit ~ecx (Unary (Not, var_id, (equals_result_val :> Value.numeric_value)));
       Some (var_value_of_type var_id `BoolT)
   (*
    * ============================
@@ -435,6 +435,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     let left_val = emit_numeric_expression ~ecx left in
     let right_val = emit_numeric_expression ~ecx right in
     let ty = mir_type_of_loc ~ecx loc |> Option.get in
+    let mk_binary op = (Binary (op, var_id, left_val, right_val), ty) in
     let mk_cmp cmp =
       ( Cmp
           (cmp, var_id, (left_val :> Value.comparable_value), (right_val :> Value.comparable_value)),
@@ -442,17 +443,17 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     in
     let (instr, ty) =
       match op with
-      | Add -> (Instruction.Add (var_id, left_val, right_val), ty)
-      | Subtract -> (Sub (var_id, left_val, right_val), ty)
-      | Multiply -> (Mul (var_id, left_val, right_val), ty)
-      | Divide -> (Div (var_id, left_val, right_val), ty)
-      | Remainder -> (Rem (var_id, left_val, right_val), ty)
-      | BitwiseAnd -> (And (var_id, left_val, right_val), ty)
-      | BitwiseOr -> (Or (var_id, left_val, right_val), ty)
-      | BitwiseXor -> (Xor (var_id, left_val, right_val), ty)
-      | LeftShift -> (Shl (var_id, left_val, right_val), ty)
-      | ArithmeticRightShift -> (Shr (var_id, left_val, right_val), ty)
-      | LogicalRightShift -> (Shrl (var_id, left_val, right_val), ty)
+      | Add -> mk_binary Add
+      | Subtract -> mk_binary Sub
+      | Multiply -> mk_binary Mul
+      | Divide -> mk_binary Div
+      | Remainder -> mk_binary Rem
+      | BitwiseAnd -> mk_binary And
+      | BitwiseOr -> mk_binary Or
+      | BitwiseXor -> mk_binary Xor
+      | LeftShift -> mk_binary Shl
+      | ArithmeticRightShift -> mk_binary Shr
+      | LogicalRightShift -> mk_binary Shrl
       | LessThan -> mk_cmp Lt
       | GreaterThan -> mk_cmp Gt
       | LessThanOrEqual -> mk_cmp LtEq
@@ -2011,21 +2012,21 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
       let var_id = mk_var_id () in
       let left_val = cast_to_numeric_value left_val in
       let expr_val = cast_to_numeric_value expr_val in
-      let instr =
+      let op =
         match op with
-        | Assignment.Add -> Instruction.Add (var_id, left_val, expr_val)
-        | Subtract -> Sub (var_id, left_val, expr_val)
-        | Multiply -> Mul (var_id, left_val, expr_val)
-        | Divide -> Div (var_id, left_val, expr_val)
-        | Remainder -> Rem (var_id, left_val, expr_val)
-        | BitwiseAnd -> And (var_id, left_val, expr_val)
-        | BitwiseOr -> Or (var_id, left_val, expr_val)
-        | BitwiseXor -> Xor (var_id, left_val, expr_val)
-        | LeftShift -> Shl (var_id, left_val, expr_val)
-        | ArithmeticRightShift -> Shr (var_id, left_val, expr_val)
-        | LogicalRightShift -> Shrl (var_id, left_val, expr_val)
+        | Assignment.Add -> Instruction.Add
+        | Subtract -> Sub
+        | Multiply -> Mul
+        | Divide -> Div
+        | Remainder -> Rem
+        | BitwiseAnd -> And
+        | BitwiseOr -> Or
+        | BitwiseXor -> Xor
+        | LeftShift -> Shl
+        | ArithmeticRightShift -> Shr
+        | LogicalRightShift -> Shrl
       in
-      Ecx.emit ~ecx instr;
+      Ecx.emit ~ecx (Binary (op, var_id, left_val, expr_val));
       var_id
     in
 

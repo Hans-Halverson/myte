@@ -268,6 +268,25 @@ and pp_type_of_numeric_value v = pp_type_of_value (v :> Value.t)
 
 and pp_type_of_comparable_value v = pp_type_of_value (v :> Value.t)
 
+and pp_unary_operation unary_operation =
+  match unary_operation with
+  | Instruction.Neg -> "Neg"
+  | Not -> "Not"
+
+and pp_binary_operation binary_operation =
+  match binary_operation with
+  | Instruction.Add -> "Add"
+  | Sub -> "Sub"
+  | Mul -> "Mul"
+  | Div -> "Div"
+  | Rem -> "Rem"
+  | And -> "And"
+  | Or -> "Or"
+  | Xor -> "Xor"
+  | Shl -> "Shl"
+  | Shr -> "Shr"
+  | Shrl -> "Shrl"
+
 and pp_comparison comparison =
   match comparison with
   | Instruction.Eq -> "Eq"
@@ -345,99 +364,20 @@ and pp_instruction ~cx (_, instr) =
            (pp_pointer_value ~cx pointer)
            pointer_offset_str
            (String.concat "" offset_strs))
-    | Not (var_id, arg) ->
-      pp_instr
-        var_id
-        (Printf.sprintf "Not %s %s" (pp_type_of_numeric_value arg) (pp_numeric_value ~cx arg))
-    | And (var_id, left, right) ->
+    | Unary (unary_operation, var_id, arg) ->
       pp_instr
         var_id
         (Printf.sprintf
-           "And %s, %s %s"
-           (pp_type_of_numeric_value left)
-           (pp_numeric_value ~cx left)
-           (pp_numeric_value ~cx right))
-    | Or (var_id, left, right) ->
+           "%s %s %s"
+           (pp_unary_operation unary_operation)
+           (pp_type_of_numeric_value arg)
+           (pp_numeric_value ~cx arg))
+    | Binary (binary_operation, var_id, left, right) ->
       pp_instr
         var_id
         (Printf.sprintf
-           "Or %s, %s %s"
-           (pp_type_of_numeric_value left)
-           (pp_numeric_value ~cx left)
-           (pp_numeric_value ~cx right))
-    | Xor (var_id, left, right) ->
-      pp_instr
-        var_id
-        (Printf.sprintf
-           "Xor %s, %s %s"
-           (pp_type_of_numeric_value left)
-           (pp_numeric_value ~cx left)
-           (pp_numeric_value ~cx right))
-    | Shl (var_id, left, right) ->
-      pp_instr
-        var_id
-        (Printf.sprintf
-           "Shl %s, %s %s"
-           (pp_type_of_numeric_value left)
-           (pp_numeric_value ~cx left)
-           (pp_numeric_value ~cx right))
-    | Shr (var_id, left, right) ->
-      pp_instr
-        var_id
-        (Printf.sprintf
-           "Shr %s, %s %s"
-           (pp_type_of_numeric_value left)
-           (pp_numeric_value ~cx left)
-           (pp_numeric_value ~cx right))
-    | Shrl (var_id, left, right) ->
-      pp_instr
-        var_id
-        (Printf.sprintf
-           "Shrl %s, %s %s"
-           (pp_type_of_numeric_value left)
-           (pp_numeric_value ~cx left)
-           (pp_numeric_value ~cx right))
-    | Neg (var_id, arg) ->
-      pp_instr
-        var_id
-        (Printf.sprintf "Neg %s %s" (pp_type_of_numeric_value arg) (pp_numeric_value ~cx arg))
-    | Add (var_id, left, right) ->
-      pp_instr
-        var_id
-        (Printf.sprintf
-           "Add %s %s, %s"
-           (pp_type_of_numeric_value left)
-           (pp_numeric_value ~cx left)
-           (pp_numeric_value ~cx right))
-    | Sub (var_id, left, right) ->
-      pp_instr
-        var_id
-        (Printf.sprintf
-           "Sub %s %s, %s"
-           (pp_type_of_numeric_value left)
-           (pp_numeric_value ~cx left)
-           (pp_numeric_value ~cx right))
-    | Mul (var_id, left, right) ->
-      pp_instr
-        var_id
-        (Printf.sprintf
-           "Mul %s %s, %s"
-           (pp_type_of_numeric_value left)
-           (pp_numeric_value ~cx left)
-           (pp_numeric_value ~cx right))
-    | Div (var_id, left, right) ->
-      pp_instr
-        var_id
-        (Printf.sprintf
-           "Div %s %s, %s"
-           (pp_type_of_numeric_value left)
-           (pp_numeric_value ~cx left)
-           (pp_numeric_value ~cx right))
-    | Rem (var_id, left, right) ->
-      pp_instr
-        var_id
-        (Printf.sprintf
-           "Rem %s %s, %s"
+           "%s %s %s, %s"
+           (pp_binary_operation binary_operation)
            (pp_type_of_numeric_value left)
            (pp_numeric_value ~cx left)
            (pp_numeric_value ~cx right))

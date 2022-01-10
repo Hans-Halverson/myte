@@ -89,6 +89,30 @@ and Instruction : sig
     | Gt
     | GtEq
 
+  type unary_operation =
+    (* Numeric negate *)
+    | Neg
+    (* Bitwise not *)
+    | Not
+
+  type binary_operation =
+    (* Numeric operations *)
+    | Add
+    | Sub
+    | Mul
+    | Div
+    | Rem
+    (* Bitwise operations *)
+    | And
+    | Or
+    | Xor
+    (* Logical left shift *)
+    | Shl
+    (* Arithmetic right shift *)
+    | Shr
+    (* Logical right shift *)
+    | Shrl
+
   type t = instr_id * t'
 
   and t' =
@@ -101,24 +125,10 @@ and Instruction : sig
     | Store of Value.pointer_value * Value.t
     (* Memory offset operations *)
     | GetPointer of var_id GetPointer.t
-    (* Bitwise ops *)
-    | Not of var_id * Value.numeric_value
-    | And of var_id * Value.numeric_value * Value.numeric_value
-    | Or of var_id * Value.numeric_value * Value.numeric_value
-    | Xor of var_id * Value.numeric_value * Value.numeric_value
-    | Shl of var_id * Value.numeric_value * Value.numeric_value
-    (* Arithmetic right shift *)
-    | Shr of var_id * Value.numeric_value * Value.numeric_value
-    (* Logical right shift *)
-    | Shrl of var_id * Value.numeric_value * Value.numeric_value
-    (* Unary numeric ops *)
-    | Neg of var_id * Value.numeric_value
-    (* Binary numeric ops *)
-    | Add of var_id * Value.numeric_value * Value.numeric_value
-    | Sub of var_id * Value.numeric_value * Value.numeric_value
-    | Mul of var_id * Value.numeric_value * Value.numeric_value
-    | Div of var_id * Value.numeric_value * Value.numeric_value
-    | Rem of var_id * Value.numeric_value * Value.numeric_value
+    (* Unary operations *)
+    | Unary of unary_operation * var_id * Value.numeric_value
+    (* Binary operations *)
+    | Binary of binary_operation * var_id * Value.numeric_value * Value.numeric_value
     (* Comparison *)
     | Cmp of comparison * var_id * Value.comparable_value * Value.comparable_value
     (* Conversions *)

@@ -103,23 +103,12 @@ module IRVisitor = struct
               | GetPointer.FieldIndex _ -> ())
             offsets;
           this#visit_result_variable ~block var_id
-        | Neg (result, arg)
-        | Not (result, arg)
+        | Unary (_, result, arg)
         | Trunc (result, arg, _)
         | SExt (result, arg, _) ->
           this#visit_numeric_value ~block arg;
           this#visit_result_variable ~block result
-        | Add (result, left, right)
-        | Sub (result, left, right)
-        | Mul (result, left, right)
-        | Div (result, left, right)
-        | Rem (result, left, right)
-        | And (result, left, right)
-        | Or (result, left, right)
-        | Xor (result, left, right)
-        | Shl (result, left, right)
-        | Shr (result, left, right)
-        | Shrl (result, left, right) ->
+        | Binary (_binary_operation, result, left, right) ->
           this#visit_numeric_value ~block left;
           this#visit_numeric_value ~block right;
           this#visit_result_variable ~block result

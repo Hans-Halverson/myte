@@ -26,12 +26,12 @@ func void @test.testOperators() {
   %3 := Mul int %2, 3
   %4 := Div int %3, 4
   %5 := Rem int %4, 5
-  %6 := And int, %5 6
-  %7 := Or int, %6 7
-  %8 := Xor int, %7 8
-  %9 := Shl int, %8 9
-  %10 := Shr int, %9 10
-  %11 := Shrl int, %10 11
+  %6 := And int %5, 6
+  %7 := Or int %6, 7
+  %8 := Xor int %7, 8
+  %9 := Shl int %8, 9
+  %10 := Shr int %9, 10
+  %11 := Shrl int %10, 11
   Ret
 }
 

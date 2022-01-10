@@ -156,108 +156,21 @@ module InstructionsMapper = struct
                    pointer_offset = pointer_offset';
                    offsets = offsets';
                  })
-        | Not (result, arg) ->
+        | Unary (unary_operation, result, arg) ->
           let result' = this#map_result_variable ~block result in
           let arg' = this#map_numeric_value ~block arg in
           if result == result' && arg == arg' then
             [instruction]
           else
-            mk_instr (Not (result', arg'))
-        | And (result, left, right) ->
+            mk_instr (Unary (unary_operation, result', arg'))
+        | Binary (binary_operation, result, left, right) ->
           let result' = this#map_result_variable ~block result in
           let left' = this#map_numeric_value ~block left in
           let right' = this#map_numeric_value ~block right in
           if result == result' && left == left' && right == right' then
             [instruction]
           else
-            mk_instr (And (result', left', right'))
-        | Or (result, left, right) ->
-          let result' = this#map_result_variable ~block result in
-          let left' = this#map_numeric_value ~block left in
-          let right' = this#map_numeric_value ~block right in
-          if result == result' && left == left' && right == right' then
-            [instruction]
-          else
-            mk_instr (Or (result', left', right'))
-        | Xor (result, left, right) ->
-          let result' = this#map_result_variable ~block result in
-          let left' = this#map_numeric_value ~block left in
-          let right' = this#map_numeric_value ~block right in
-          if result == result' && left == left' && right == right' then
-            [instruction]
-          else
-            mk_instr (Xor (result', left', right'))
-        | Shl (result, left, right) ->
-          let result' = this#map_result_variable ~block result in
-          let left' = this#map_numeric_value ~block left in
-          let right' = this#map_numeric_value ~block right in
-          if result == result' && left == left' && right == right' then
-            [instruction]
-          else
-            mk_instr (Shl (result', left', right'))
-        | Shr (result, left, right) ->
-          let result' = this#map_result_variable ~block result in
-          let left' = this#map_numeric_value ~block left in
-          let right' = this#map_numeric_value ~block right in
-          if result == result' && left == left' && right == right' then
-            [instruction]
-          else
-            mk_instr (Shr (result', left', right'))
-        | Shrl (result, left, right) ->
-          let result' = this#map_result_variable ~block result in
-          let left' = this#map_numeric_value ~block left in
-          let right' = this#map_numeric_value ~block right in
-          if result == result' && left == left' && right == right' then
-            [instruction]
-          else
-            mk_instr (Shrl (result', left', right'))
-        | Neg (result, arg) ->
-          let result' = this#map_result_variable ~block result in
-          let arg' = this#map_numeric_value ~block arg in
-          if result == result' && arg == arg' then
-            [instruction]
-          else
-            mk_instr (Neg (result', arg'))
-        | Add (result, left, right) ->
-          let result' = this#map_result_variable ~block result in
-          let left' = this#map_numeric_value ~block left in
-          let right' = this#map_numeric_value ~block right in
-          if result == result' && left == left' && right == right' then
-            [instruction]
-          else
-            mk_instr (Add (result', left', right'))
-        | Sub (result, left, right) ->
-          let result' = this#map_result_variable ~block result in
-          let left' = this#map_numeric_value ~block left in
-          let right' = this#map_numeric_value ~block right in
-          if result == result' && left == left' && right == right' then
-            [instruction]
-          else
-            mk_instr (Sub (result', left', right'))
-        | Mul (result, left, right) ->
-          let result' = this#map_result_variable ~block result in
-          let left' = this#map_numeric_value ~block left in
-          let right' = this#map_numeric_value ~block right in
-          if result == result' && left == left' && right == right' then
-            [instruction]
-          else
-            mk_instr (Mul (result', left', right'))
-        | Div (result, left, right) ->
-          let result' = this#map_result_variable ~block result in
-          let left' = this#map_numeric_value ~block left in
-          let right' = this#map_numeric_value ~block right in
-          if result == result' && left == left' && right == right' then
-            [instruction]
-          else
-            mk_instr (Div (result', left', right'))
-        | Rem (result, left, right) ->
-          let result' = this#map_result_variable ~block result in
-          let left' = this#map_numeric_value ~block left in
-          let right' = this#map_numeric_value ~block right in
-          if result == result' && left == left' && right == right' then
-            [instruction]
-          else
-            mk_instr (Rem (result', left', right'))
+            mk_instr (Binary (binary_operation, result', left', right'))
         | Cmp (comparison, result, left, right) ->
           let result' = this#map_result_variable ~block result in
           let left' = this#map_comparable_value ~block left in
