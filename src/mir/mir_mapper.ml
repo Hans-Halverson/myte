@@ -45,7 +45,6 @@ module InstructionsMapper = struct
         visit_block (get_block func.body_start_block)
 
       method map_block (block : Block.t) =
-        block.phis <- this#map_phis ~block block.phis;
         block.instructions <- this#map_instructions ~block block.instructions;
         block.next <- this#map_block_next ~block block.next
 
@@ -74,6 +73,15 @@ module InstructionsMapper = struct
             [instruction]
           else
             mk_instr (Mov (result', arg'))
+        | Phi ({ var_id; type_; args } as phi) ->
+          let var_id' = this#map_result_variable ~block var_id in
+          let args' = IMap.map (this#map_value ~block) args in
+          if var_id == var_id' then (
+            (* Field is mutable and is always changed by IMap.map *)
+            phi.args <- args';
+            [instruction]
+          ) else
+            mk_instr (Phi { var_id = var_id'; type_; args = args' })
         | Call { return; func; args } ->
           let return' =
             id_map_opt
@@ -244,18 +252,6 @@ module InstructionsMapper = struct
           (this#map_numeric_value ~block v :> Value.comparable_value)
         | (`PointerL _ | `PointerV _) as v ->
           (this#map_pointer_value ~block v :> Value.comparable_value)
-
-      method map_phis ~block (phis : Block.phi list) =
-        List.filter_map
-          (fun (value_type, var_id, args) ->
-            current_instruction_edit <- Keep;
-            let var_id' = this#map_result_variable ~block var_id in
-            let args' = IMap.map (this#map_value ~block) args in
-            if current_instruction_edit = Remove then
-              None
-            else
-              Some (value_type, var_id', args'))
-          phis
 
       method map_block_next ~block next =
         let open Block in

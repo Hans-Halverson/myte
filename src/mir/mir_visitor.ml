@@ -36,14 +36,9 @@ module IRVisitor = struct
         if this#check_visited_block block.id then
           ()
         else (
-          List.iter (this#visit_phi_node ~block) block.phis;
           this#visit_instructions ~block block.instructions;
           this#visit_next ~block block.next
         )
-
-      method visit_phi_node ~block (_type, result_var_id, args) =
-        this#visit_result_variable ~block result_var_id;
-        IMap.iter (fun _block_id arg_val -> this#visit_value ~block arg_val) args
 
       method visit_next ~block next =
         match next with
@@ -74,6 +69,7 @@ module IRVisitor = struct
         | Mov (result, arg) ->
           this#visit_value ~block arg;
           this#visit_result_variable ~block result
+        | Phi phi -> this#visit_phi_node ~block phi
         | Call { return; func; args } ->
           (match func with
           | Value func -> this#visit_function_value ~block func
@@ -113,6 +109,10 @@ module IRVisitor = struct
           this#visit_comparable_value ~block left;
           this#visit_comparable_value ~block right;
           this#visit_result_variable ~block result
+
+      method visit_phi_node ~block { var_id; type_ = _; args } =
+        this#visit_result_variable ~block var_id;
+        IMap.iter (fun _block_id arg_val -> this#visit_value ~block arg_val) args
 
       method visit_result_variable ~block:_ _var_id = ()
 

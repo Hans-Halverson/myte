@@ -31,39 +31,29 @@ let remove_block_link ~ocx prev_block next_block =
    This may be needed when removing a block or block link. *)
 let remove_phi_backreferences_for_block ~ocx block_id_to_remove next_block_id =
   let next_block = get_block ~ocx next_block_id in
-  next_block.phis <-
-    List.map
-      (fun (value_type, dest_var_id, args) ->
-        ( value_type,
-          dest_var_id,
-          IMap.filter (fun prev_block_id _ -> prev_block_id != block_id_to_remove) args ))
-      next_block.phis
+  block_iter_phis next_block (fun phi ->
+      phi.args <- IMap.filter (fun prev_block_id _ -> prev_block_id != block_id_to_remove) phi.args)
 
 (* Replace all references to old_block_id in the phis of a block with new_block_ids. Note that there
    may be multiple new_block_ids, so a single phi argument may be expanded to multiple arguments.
    This may be needed when editing the program. *)
 let map_phi_backreferences_for_block ~ocx old_block_id new_block_ids block_to_edit =
   let block = get_block ~ocx block_to_edit in
-  block.phis <-
-    List.map
-      (fun (value_type, dest_var_id, args) ->
-        ( value_type,
-          dest_var_id,
-          match IMap.find_opt old_block_id args with
-          | None -> args
-          | Some value ->
-            let args_without_old_block_id = IMap.remove old_block_id args in
-            ISet.fold
-              (fun new_block_id args -> IMap.add new_block_id value args)
-              new_block_ids
-              args_without_old_block_id ))
-      block.phis
+  block_iter_phis block (fun ({ args; _ } as phi) ->
+      match IMap.find_opt old_block_id args with
+      | None -> ()
+      | Some value ->
+        let args_without_old_block_id = IMap.remove old_block_id args in
+        phi.args <-
+          ISet.fold
+            (fun new_block_id args -> IMap.add new_block_id value args)
+            new_block_ids
+            args_without_old_block_id)
 
 (* An empty block can be removed only if it continues to a single block, and is not needed by any
    phi nodes in its succeeding block. *)
 let can_remove_block ~ocx (block : Block.t) =
   block.instructions = []
-  && block.phis = []
   &&
   match block.next with
   | Halt
@@ -80,10 +70,11 @@ let can_remove_block ~ocx (block : Block.t) =
     let func = SMap.find block.func ocx.program.funcs in
     let is_start_block = func.body_start_block = block.id in
 
+    let continue_block_phis = block_get_phis continue_block in
     let block_needed_for_phi =
-      (continue_block.phis <> [] && is_start_block)
+      (continue_block_phis <> [] && is_start_block)
       || List.exists
-           (fun (_, _, args) ->
+           (fun { Instruction.Phi.args; _ } ->
              IMap.exists
                (fun prev_block_id prev_block_arg ->
                  if ISet.mem prev_block_id prev_nodes then
@@ -91,7 +82,7 @@ let can_remove_block ~ocx (block : Block.t) =
                  else
                    false)
                args)
-           continue_block.phis
+           continue_block_phis
     in
     let function_start_self_loop = is_start_block && continue_id = block.id in
     (not block_needed_for_phi) && not function_start_self_loop

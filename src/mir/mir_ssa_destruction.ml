@@ -28,16 +28,14 @@ let split_edges ~(ir : Program.t) =
      block B contains a phi node that references A, but block A branches at the end. *)
   IMap.iter
     (fun _ block ->
-      List.iter
-        (fun (_, _, args) ->
+      block_iter_phis block (fun { args; _ } ->
           IMap.iter
             (fun prev_block_id _ ->
               let prev_block = IMap.find prev_block_id ir.blocks in
               match prev_block.next with
               | Branch _ -> mark_edge_to_split prev_block_id block.id
               | _ -> ())
-            args)
-        block.phis)
+            args))
     ir.blocks;
 
   (* Split all marked edges *)
@@ -58,7 +56,6 @@ let split_edges ~(ir : Program.t) =
                   Block.id = new_block_id;
                   func = block.func;
                   instructions = [];
-                  phis = [];
                   next = Continue block.id;
                 }
               in
@@ -77,20 +74,15 @@ let split_edges ~(ir : Program.t) =
           IMap.empty
       in
       (* Rewrite references to previous block to instead reference newly inserted block *)
-      block.phis <-
-        List.map
-          (fun (value_type, var_id, args) ->
-            let args' =
-              IMap.fold
-                (fun prev_block_id arg args' ->
-                  match IMap.find_opt prev_block_id prev_to_new_block with
-                  | None -> IMap.add prev_block_id arg args'
-                  | Some new_block_id -> IMap.add new_block_id arg args')
-                args
-                IMap.empty
-            in
-            (value_type, var_id, args'))
-          block.phis)
+      block_iter_phis block (fun ({ args; _ } as phi) ->
+          phi.args <-
+            IMap.fold
+              (fun prev_block_id arg args' ->
+                match IMap.find_opt prev_block_id prev_to_new_block with
+                | None -> IMap.add prev_block_id arg args'
+                | Some new_block_id -> IMap.add new_block_id arg args')
+              args
+              IMap.empty))
     !edges_to_split
 
 (* Convert a collection of copies (from variables to values) that should that occur in parallel, to
@@ -171,8 +163,9 @@ let lower_phis_to_copies ~(ir : Program.t) =
     (fun _ block ->
       (* Collect all copies to create from phi nodes in each previous block *)
       let block_to_parallel_copies =
-        List.fold_left
-          (fun acc (_, var_id, args) ->
+        block_fold_phis
+          block
+          (fun { var_id; args; _ } acc ->
             IMap.fold
               (fun prev_block_id arg_val acc ->
                 let existing_copies = IMap.find_opt prev_block_id acc |> Option.value ~default:[] in
@@ -180,7 +173,6 @@ let lower_phis_to_copies ~(ir : Program.t) =
               args
               acc)
           IMap.empty
-          block.Block.phis
       in
 
       (* Create sequence for copies and emit Mov instructions in previous block *)
@@ -197,7 +189,7 @@ let lower_phis_to_copies ~(ir : Program.t) =
           prev_block.instructions <- prev_block.instructions @ copy_instrs)
         block_to_parallel_copies;
 
-      block.Block.phis <- [])
+      block_clear_phis block)
     ir.blocks
 
 let destruct_ssa (ir : Program.t) : Program.t =

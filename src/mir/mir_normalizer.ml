@@ -19,7 +19,6 @@ class var_gatherer ~program =
   end
 
 let rec normalize ~ocx =
-  let open Block in
   (* Gather all vars defined in program *)
   let gatherer = new var_gatherer ~program:ocx.Ocx.program in
   gatherer#run ();
@@ -28,22 +27,18 @@ let rec normalize ~ocx =
   (* Update and potentially prune phi nodes with missing vars *)
   IMap.iter
     (fun _ block ->
-      block.phis <-
-        List.filter_map
-          (fun (value_type, var_id, args) ->
-            let args' =
-              IMap.filter
-                (fun _ arg_val ->
-                  match var_id_of_value_opt arg_val with
-                  | None -> true
-                  | Some var_id -> ISet.mem var_id vars)
-                args
-            in
-            if IMap.is_empty args' then
-              None
-            else
-              Some (value_type, var_id, args'))
-          block.phis)
+      block_filter_phis block (fun ({ args; _ } as phi) ->
+          let args' =
+            IMap.filter
+              (fun _ arg_val ->
+                match var_id_of_value_opt arg_val with
+                | None -> true
+                | Some var_id -> ISet.mem var_id vars)
+              args
+          in
+          let has_args = not (IMap.is_empty args') in
+          if has_args then phi.args <- args';
+          has_args))
     ocx.program.blocks;
 
   (* Find and remove empty blocks *)
@@ -57,16 +52,13 @@ let rec normalize ~ocx =
   let rec iter () =
     IMap.iter
       (fun _ block ->
-        block.phis <-
-          List.filter
-            (fun (_, var_id, args) ->
-              let (_, arg_val) = IMap.choose args in
-              if IMap.for_all (fun _ arg -> values_equal arg arg_val) args then (
-                rewrite_map := IMap.add var_id arg_val !rewrite_map;
-                false
-              ) else
-                true)
-            block.phis)
+        block_filter_phis block (fun { var_id; args; _ } ->
+            let (_, arg_val) = IMap.choose args in
+            if IMap.for_all (fun _ arg -> values_equal arg arg_val) args then (
+              rewrite_map := IMap.add var_id arg_val !rewrite_map;
+              false
+            ) else
+              true))
       ocx.program.blocks;
     if IMap.is_empty !rewrite_map then
       ()
@@ -103,7 +95,11 @@ and consolidate_adjacent_blocks ~ocx =
             func.body_start_block = next_block_id
           in
           let prev_blocks = IMap.find next_block_id ocx.prev_blocks in
-          if ISet.cardinal prev_blocks = 1 && next_block.phis = [] && not next_block_is_start then (
+          if
+            ISet.cardinal prev_blocks = 1
+            && (not (block_has_phis next_block))
+            && not next_block_is_start
+          then (
             removed_blocks := ISet.add next_block_id !removed_blocks;
             Ocx.merge_adjacent_blocks ~ocx block_id next_block_id
           )

@@ -59,12 +59,22 @@ end =
   Value
 
 and Instruction : sig
+  (* Represents choosing a value depending on which basic block was previously visited *)
+  module Phi : sig
+    type t = {
+      var_id: var_id;
+      type_: Type.t;
+      (* Map from preceding basic block id to the value to choose if that basic block was visited *)
+      mutable args: Value.t IMap.t;
+    }
+  end
+
   module GetPointer : sig
     type offset =
       | PointerIndex of Value.numeric_value
       | FieldIndex of int
 
-    type 'var t = {
+    type t = {
       var_id: var_id;
       return_ty: Type.t;
       pointer: Value.pointer_value;
@@ -131,7 +141,7 @@ and Instruction : sig
     | Load of var_id * Value.pointer_value
     | Store of Value.pointer_value * Value.t
     (* Memory offset operations *)
-    | GetPointer of var_id GetPointer.t
+    | GetPointer of GetPointer.t
     (* Unary operations *)
     | Unary of unary_operation * var_id * Value.numeric_value
     (* Binary operations *)
@@ -143,6 +153,7 @@ and Instruction : sig
     | SExt of var_id * Value.numeric_value * Type.numeric_type
     (* Only generated during MIR destruction *)
     | Mov of var_id * Value.t
+    | Phi of Phi.t
 end =
   Instruction
 
@@ -158,17 +169,14 @@ end =
   Program
 
 and Block : sig
+  type id = int
+
   type t = {
     id: id;
     func: label;
-    mutable phis: phi list;
     mutable instructions: Instruction.t list;
     mutable next: next;
   }
-
-  and id = int
-
-  and phi = Type.t * var_id * Value.t IMap.t
 
   and next =
     | Halt
@@ -458,3 +466,53 @@ let filter_stdlib (program : Program.t) =
     Program.globals = filter_stdlib_names program.globals;
     funcs = filter_stdlib_names program.funcs;
   }
+
+let block_has_phis (block : Block.t) : bool =
+  match block.instructions with
+  | (_, Phi _) :: _ -> true
+  | _ -> false
+
+let block_get_phis (block : Block.t) : Instruction.Phi.t list =
+  let rec inner instrs acc =
+    match instrs with
+    | (_, Instruction.Phi phi) :: rest -> inner rest (phi :: acc)
+    | _ -> List.rev acc
+  in
+  inner block.instructions []
+
+let block_iter_phis (block : Block.t) (f : Instruction.Phi.t -> unit) =
+  let rec visit_phis instrs =
+    match instrs with
+    | (_, Instruction.Phi phi) :: rest ->
+      f phi;
+      visit_phis rest
+    | _ -> ()
+  in
+  visit_phis block.instructions
+
+let block_filter_phis (block : Block.t) (f : Instruction.Phi.t -> bool) =
+  let rec filter_phis instrs acc =
+    match instrs with
+    | ((_, Instruction.Phi phi) as instr) :: rest ->
+      let acc =
+        if f phi then
+          instr :: acc
+        else
+          acc
+      in
+      filter_phis rest acc
+    | rest -> List.rev acc @ rest
+  in
+  block.instructions <- filter_phis block.instructions []
+
+let block_fold_phis (block : Block.t) (f : Instruction.Phi.t -> 'a -> 'a) (acc : 'a) : 'a =
+  let rec visit_phis instrs acc =
+    match instrs with
+    | (_, Instruction.Phi phi) :: rest ->
+      let acc = f phi acc in
+      visit_phis rest acc
+    | _ -> acc
+  in
+  visit_phis block.instructions acc
+
+let block_clear_phis (block : Block.t) = block_filter_phis block (fun _ -> false)

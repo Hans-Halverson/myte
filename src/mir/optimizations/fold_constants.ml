@@ -188,7 +188,6 @@ class calc_constants_visitor ~ocx =
               Ocx.remove_block ~ocx block_id;
               (* Collect all removed variables so they can be excluded from constant folding *)
               let gatherer = new Mir_normalizer.var_gatherer ~program:ocx.program in
-              List.iter (gatherer#visit_phi_node ~block) block.phis;
               gatherer#visit_instructions ~block block.instructions;
               removed_vars <- ISet.union gatherer#vars removed_vars
             ))
@@ -258,7 +257,6 @@ class calc_constants_visitor ~ocx =
       if this#check_visited_block block.id then
         ()
       else (
-        List.iter (this#visit_phi_node ~block) block.phis;
         List.iter (this#visit_instruction ~block) block.instructions;
         (* Check for branches that can be pruned *)
         match block.next with
@@ -297,7 +295,7 @@ class calc_constants_visitor ~ocx =
       )
 
     (* Visit all phi nodes and propagate constants through if possible *)
-    method! visit_phi_node ~block:_ (_, var_id, args) =
+    method! visit_phi_node ~block:_ { var_id; type_ = _; args } =
       match this#lookup_constant var_id with
       | Some _ -> ()
       | None ->
@@ -344,7 +342,7 @@ class calc_constants_visitor ~ocx =
           in
           if is_single_constant then this#add_constant var_id constant
 
-    method! visit_instruction ~block:_ instruction =
+    method! visit_instruction ~block instruction =
       let get_bool_lit_opt value =
         match value with
         | `BoolL lit -> Some (BoolConstant lit)
@@ -423,6 +421,7 @@ class calc_constants_visitor ~ocx =
         (match SMap.find_opt label global_constants with
         | None -> ()
         | Some constant -> this#add_constant var_id constant)
+      | Phi phi -> this#visit_phi_node ~block phi
       | _ -> ()
   end
 

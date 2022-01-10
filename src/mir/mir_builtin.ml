@@ -6,7 +6,10 @@ open Mir
    Allocate space for `count` adjacent values of type `T`
  *)
 let myte_alloc =
-  { Builtin.name = "myte.builtin.alloc"; mk_return_ty = (fun tys -> Some (`PointerT (List.hd tys))) }
+  {
+    Builtin.name = "myte.builtin.alloc";
+    mk_return_ty = (fun tys -> Some (`PointerT (List.hd tys)));
+  }
 
 (* 
    myte.builtin.copy<T>(dest: *T, src: *T, count: int)

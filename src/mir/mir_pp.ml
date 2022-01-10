@@ -145,20 +145,6 @@ and pp_block ~cx ~label block =
     else
       []
   in
-  let phi_lines =
-    List.map
-      (fun (value_type, var_id, args) ->
-        Printf.sprintf
-          "  %s := Phi %s %s"
-          (pp_var_id ~cx var_id)
-          (pp_type value_type)
-          (String.concat
-             ", "
-             (List.map
-                (fun (prev_block_id, arg) -> pp_block_id ~cx prev_block_id ^ ":" ^ pp_value ~cx arg)
-                (IMap.bindings args))))
-      block.phis
-  in
   let instruction_lines = List.map (pp_instruction ~cx) block.instructions in
   let next_lines =
     match block.next with
@@ -180,7 +166,7 @@ and pp_block ~cx ~label block =
           (pp_block_id ~cx jump);
       ]
   in
-  let lines = List.concat [label_lines; phi_lines; instruction_lines; next_lines] in
+  let lines = List.concat [label_lines; instruction_lines; next_lines] in
   String.concat "\n" lines
 
 and pp_var_id ~cx var_id =
@@ -303,6 +289,14 @@ and pp_instruction ~cx (_, instr) =
     match instr with
     | Mov (var_id, right) ->
       pp_instr var_id (Printf.sprintf "Mov %s %s" (pp_type_of_value right) (pp_value ~cx right))
+    | Phi { var_id; type_; args } ->
+      let args_string =
+        List.map
+          (fun (prev_block_id, arg) -> pp_block_id ~cx prev_block_id ^ ":" ^ pp_value ~cx arg)
+          (IMap.bindings args)
+        |> String.concat ", "
+      in
+      pp_instr var_id (Printf.sprintf "Phi %s %s" (pp_type type_) args_string)
     | Call { return; func; args } ->
       let func_string =
         match func with

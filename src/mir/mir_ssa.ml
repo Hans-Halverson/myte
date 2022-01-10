@@ -302,7 +302,6 @@ and build_phi_nodes ~cx program =
     end;
     let block = IMap.find block_id program.blocks in
     let visitor = mk_build_phi_nodes_visitor ~cx program func_name sources phi_nodes_to_realize in
-    List.iter (visitor#visit_phi_node ~block) block.phis;
     List.iter (visitor#visit_instruction ~block) block.instructions;
     match block.next with
     | Halt -> ()
@@ -343,8 +342,9 @@ and rewrite_program ~cx program =
         visit_block ~name next_block_id
     in
     let block = IMap.find block_id program.blocks in
-    block.phis <-
-      (match IMap.find_opt block_id cx.realized_phis with
+    (* Create and add phis to beginning of block *)
+    let phis =
+      match IMap.find_opt block_id cx.realized_phis with
       | None -> []
       | Some realized_phis ->
         let phis =
@@ -354,11 +354,13 @@ and rewrite_program ~cx program =
               let mir_type = IMap.find ptr_var_id cx.stack_alloc_ids in
               let var_id = Option.get node.realized in
               let args = gather_phi_args ~mir_type node_id in
-              (mir_type, var_id, args) :: phis)
+              (mk_instr_id (), Instruction.Phi { var_id; type_ = mir_type; args }) :: phis)
             realized_phis
             []
         in
-        List.rev phis);
+        List.rev phis
+    in
+    block.instructions <- phis @ block.instructions;
     (* Remove memory instructions for memory locations promoted to registers *)
     block.instructions <-
       List.filter
@@ -432,12 +434,12 @@ and rewrite_program ~cx program =
 
   (* Strip empty blocks *)
   IMap.iter
-    (fun block_id { Block.phis; instructions; next; func; _ } ->
+    (fun block_id { Block.instructions; next; func; _ } ->
       match next with
       (* A block can only be removed if it has no instructions, and if its next block has no phis
          (as the phis may reference this block). *)
       | Continue continue_id
-        when instructions = [] && phis = [] && (IMap.find continue_id cx.blocks).phis = [] ->
+        when instructions = [] && not (block_has_phis (IMap.find continue_id cx.blocks)) ->
         let prev_blocks =
           match IMap.find_opt block_id cx.prev_blocks with
           | None -> ISet.empty
@@ -475,21 +477,13 @@ and rewrite_program ~cx program =
         (* Next node may have phis that point the removed block. Rewrite them to instead point to
            previous blocks. *)
         let next_node = IMap.find continue_id cx.blocks in
-        next_node.phis <-
-          List.map
-            (fun (value_type, var_id, args) ->
-              let args' =
-                match IMap.find_opt block_id args with
-                | None -> args
-                | Some arg_var_id ->
-                  let args' = IMap.remove block_id args in
-                  ISet.fold
-                    (fun prev_block_id -> IMap.add prev_block_id arg_var_id)
-                    prev_blocks
-                    args'
-              in
-              (value_type, var_id, args'))
-            next_node.phis;
+        block_iter_phis next_node (fun ({ args; _ } as phi) ->
+            match IMap.find_opt block_id args with
+            | None -> ()
+            | Some arg_var_id ->
+              let args' = IMap.remove block_id args in
+              phi.args <-
+                ISet.fold (fun prev_block_id -> IMap.add prev_block_id arg_var_id) prev_blocks args');
         (* Remove this empty node *)
         cx.blocks <- IMap.remove block_id cx.blocks;
         cx.prev_blocks <- IMap.remove block_id cx.prev_blocks;

@@ -981,9 +981,10 @@ and gen_instructions ~gcx ~ir ~block instructions =
       else
         Gcx.emit ~gcx (MovMM (arg_size, arg_mem, Reg result_vreg)));
     gen_instructions rest_instructions
+  | Mir.Instruction.Phi _ :: _ -> failwith "Phi nodes must be removed before asm gen"
   | Mir.Instruction.StackAlloc _ :: _ -> failwith "StackAlloc instructions removed before asm gen"
 
-and gen_get_pointer ~gcx (get_pointer_instr : var_id Mir.Instruction.GetPointer.t) =
+and gen_get_pointer ~gcx (get_pointer_instr : Mir.Instruction.GetPointer.t) =
   let open Mir.Instruction.GetPointer in
   let { var_id; return_ty = _; pointer; pointer_offset; offsets } = get_pointer_instr in
   let element_ty = pointer_value_element_type pointer in

@@ -137,7 +137,6 @@ let builders_to_blocks builders =
       {
         Block.id = builder.BlockBuilder.id;
         instructions = List.rev builder.instructions;
-        phis = [];
         next = builder.next;
         func = builder.func;
       })
