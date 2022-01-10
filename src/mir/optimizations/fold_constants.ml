@@ -407,14 +407,8 @@ class calc_constants_visitor ~ocx =
         | (Some left, Some right) -> this#add_constant var_id (fold_numeric_constants op left right)
         | _ -> ()
       in
-      let try_fold_equatable var_id left right f =
-        match (get_comparable_lit_opt left, get_comparable_lit_opt right) with
-        | (Some left, Some right) ->
-          this#add_constant var_id (BoolConstant (f (fold_constants_compare left right) 0))
-        | _ -> ()
-      in
       let try_fold_comparison var_id left right f =
-        match (get_numeric_lit_opt left, get_numeric_lit_opt right) with
+        match (get_comparable_lit_opt left, get_comparable_lit_opt right) with
         | (Some left, Some right) ->
           this#add_constant var_id (BoolConstant (f (fold_constants_compare left right) 0))
         | _ -> ()
@@ -433,12 +427,17 @@ class calc_constants_visitor ~ocx =
       | Shl (var_id, left, right) -> try_fold_numeric_constants ShlOp var_id left right
       | Shr (var_id, left, right) -> try_fold_numeric_constants ShrOp var_id left right
       | Shrl (var_id, left, right) -> try_fold_numeric_constants ShrlOp var_id left right
-      | Eq (var_id, left, right) -> try_fold_equatable var_id left right ( == )
-      | Neq (var_id, left, right) -> try_fold_equatable var_id left right ( <> )
-      | Lt (var_id, left, right) -> try_fold_comparison var_id left right ( < )
-      | LtEq (var_id, left, right) -> try_fold_comparison var_id left right ( <= )
-      | Gt (var_id, left, right) -> try_fold_comparison var_id left right ( > )
-      | GtEq (var_id, left, right) -> try_fold_comparison var_id left right ( >= )
+      | Cmp (cmp, var_id, left, right) ->
+        let cmp_f =
+          match cmp with
+          | Eq -> ( == )
+          | Neq -> ( <> )
+          | Lt -> ( < )
+          | LtEq -> ( <= )
+          | Gt -> ( > )
+          | GtEq -> ( >= )
+        in
+        try_fold_comparison var_id left right cmp_f
       | Trunc (var_id, arg, ty) -> try_fold_numeric_constant var_id arg (TruncOp ty)
       | SExt (var_id, arg, ty) -> try_fold_numeric_constant var_id arg (SExtOp ty)
       (* Propagate global constants through pointers *)

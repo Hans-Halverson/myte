@@ -435,6 +435,11 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     let left_val = emit_numeric_expression ~ecx left in
     let right_val = emit_numeric_expression ~ecx right in
     let ty = mir_type_of_loc ~ecx loc |> Option.get in
+    let mk_cmp cmp =
+      ( Cmp
+          (cmp, var_id, (left_val :> Value.comparable_value), (right_val :> Value.comparable_value)),
+        `BoolT )
+    in
     let (instr, ty) =
       match op with
       | Add -> (Instruction.Add (var_id, left_val, right_val), ty)
@@ -448,10 +453,10 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
       | LeftShift -> (Shl (var_id, left_val, right_val), ty)
       | ArithmeticRightShift -> (Shr (var_id, left_val, right_val), ty)
       | LogicalRightShift -> (Shrl (var_id, left_val, right_val), ty)
-      | LessThan -> (Lt (var_id, left_val, right_val), `BoolT)
-      | GreaterThan -> (Gt (var_id, left_val, right_val), `BoolT)
-      | LessThanOrEqual -> (LtEq (var_id, left_val, right_val), `BoolT)
-      | GreaterThanOrEqual -> (GtEq (var_id, left_val, right_val), `BoolT)
+      | LessThan -> mk_cmp Lt
+      | GreaterThan -> mk_cmp Gt
+      | LessThanOrEqual -> mk_cmp LtEq
+      | GreaterThanOrEqual -> mk_cmp GtEq
       | Equal
       | NotEqual ->
         failwith "Handled separately"
@@ -1313,7 +1318,7 @@ and emit_eq ~ecx arg_vals _ =
     let var_id = mk_var_id () in
     Ecx.emit
       ~ecx
-      (Eq (var_id, cast_to_comparable_value left_arg, cast_to_comparable_value right_arg));
+      (Cmp (Eq, var_id, cast_to_comparable_value left_arg, cast_to_comparable_value right_arg));
     Some (var_value_of_type var_id `BoolT)
   | _ -> failwith "Expected two arguments"
 
@@ -1364,7 +1369,7 @@ and emit_std_memory_array_copy ~ecx arg_vals _ =
 
 and emit_std_memory_array_isNull ~ecx arg_vals _ =
   let var_id = mk_var_id () in
-  Ecx.emit ~ecx (Eq (var_id, cast_to_comparable_value (List.hd arg_vals), `LongL 0L));
+  Ecx.emit ~ecx (Cmp (Eq, var_id, cast_to_comparable_value (List.hd arg_vals), `LongL 0L));
   Some (var_value_of_type var_id `BoolT)
 
 and emit_std_memory_array_new ~ecx arg_vals ret_type =
@@ -2173,7 +2178,7 @@ and emit_option_destructuring
      block finishes by jumping to None branch if option is a `None` variant. *)
   let tag_val = cast_to_comparable_value (var_value_of_type tag_var_id tag_type) in
   let test_var_id = mk_var_id () in
-  Ecx.emit ~ecx (Eq (test_var_id, tag_val, (some_tag :> Value.comparable_value)));
+  Ecx.emit ~ecx (Cmp (Eq, test_var_id, tag_val, (some_tag :> Value.comparable_value)));
   Ecx.finish_block_branch ~ecx (`BoolV test_var_id) some_branch_builder.id none_branch_builder.id;
 
   (* Some branch starts by loading payload from `Some` variant *)
@@ -2225,7 +2230,7 @@ and emit_result_destructuring
      block finishes by jumping to Error branch if option is an `Error` variant. *)
   let tag_val = cast_to_comparable_value (var_value_of_type tag_var_id tag_type) in
   let test_var_id = mk_var_id () in
-  Ecx.emit ~ecx (Eq (test_var_id, tag_val, (ok_tag :> Value.comparable_value)));
+  Ecx.emit ~ecx (Cmp (Eq, test_var_id, tag_val, (ok_tag :> Value.comparable_value)));
   Ecx.finish_block_branch ~ecx (`BoolV test_var_id) ok_branch_builder.id error_branch_builder.id;
 
   (* Ok branch starts by loading payload from `Ok` variant *)
@@ -2463,7 +2468,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
         let scrutinee_val = cast_to_comparable_value scrutinee_val in
         emit_decision_tree_if_else_chain ~path_cache [first_case] second_case (fun ctor ->
             let test_var_id = mk_var_id () in
-            Ecx.emit ~ecx (Eq (test_var_id, scrutinee_val, `BoolL (Ctor.cast_to_bool ctor)));
+            Ecx.emit ~ecx (Cmp (Eq, test_var_id, scrutinee_val, `BoolL (Ctor.cast_to_bool ctor)));
             `BoolV test_var_id)
       (* Strings are tested for equality in if-else-chain, following source code order *)
       | (String _, _) ->
@@ -2523,7 +2528,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
               | _ -> failwith "Expected numeric value"
             in
             let test_var_id = mk_var_id () in
-            Ecx.emit ~ecx (Eq (test_var_id, scrutinee_val, case_val));
+            Ecx.emit ~ecx (Cmp (Eq, test_var_id, scrutinee_val, case_val));
             `BoolV test_var_id)
       (* Variants are tested by loading their tag and checking against scrutinee in if-else chain *)
       | (Variant (_, adt_sig, type_args), _) ->
@@ -2562,7 +2567,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
             let (name, _, _) = Ctor.cast_to_variant ctor in
             let tag_val = (SMap.find name tags :> Mir.Value.comparable_value) in
             let test_var_id = mk_var_id () in
-            Ecx.emit ~ecx (Eq (test_var_id, scrutinee_tag_val, tag_val));
+            Ecx.emit ~ecx (Cmp (Eq, test_var_id, scrutinee_tag_val, tag_val));
             `BoolV test_var_id))
   (* Return the value indexed by a pattern path. Will emit load instructions if the pattern path
      points into an aggregate. Return the path cache with all new calculated paths added. *)

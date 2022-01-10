@@ -81,6 +81,14 @@ and Instruction : sig
     }
   end
 
+  type comparison =
+    | Eq
+    | Neq
+    | Lt
+    | LtEq
+    | Gt
+    | GtEq
+
   type t = instr_id * t'
 
   and t' =
@@ -111,13 +119,8 @@ and Instruction : sig
     | Mul of var_id * Value.numeric_value * Value.numeric_value
     | Div of var_id * Value.numeric_value * Value.numeric_value
     | Rem of var_id * Value.numeric_value * Value.numeric_value
-    (* Comparisons *)
-    | Eq of var_id * Value.comparable_value * Value.comparable_value
-    | Neq of var_id * Value.comparable_value * Value.comparable_value
-    | Lt of var_id * Value.numeric_value * Value.numeric_value
-    | LtEq of var_id * Value.numeric_value * Value.numeric_value
-    | Gt of var_id * Value.numeric_value * Value.numeric_value
-    | GtEq of var_id * Value.numeric_value * Value.numeric_value
+    (* Comparison *)
+    | Cmp of comparison * var_id * Value.comparable_value * Value.comparable_value
     (* Conversions *)
     | Trunc of var_id * Value.numeric_value * Type.numeric_type
     | SExt of var_id * Value.numeric_value * Type.numeric_type

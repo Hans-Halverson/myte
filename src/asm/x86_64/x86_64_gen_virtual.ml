@@ -822,63 +822,16 @@ and gen_instructions ~gcx ~ir ~block instructions =
     gen_instructions rest_instructions
   (*
    * ===========================================
-   *                   Eq
+   *                    Cmp
    * ===========================================
    *)
-  | [Mir.Instruction.Eq (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp E result_var_id left_val right_val
-  | Mir.Instruction.Eq (result_var_id, left_val, right_val) :: rest_instructions ->
-    ignore (gen_cmp_set_cc E result_var_id left_val right_val);
-    gen_instructions rest_instructions
-  (*
-   * ===========================================
-   *                    Neq
-   * ===========================================
-   *)
-  | [Mir.Instruction.Neq (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp NE result_var_id left_val right_val
-  | Mir.Instruction.Neq (result_var_id, left_val, right_val) :: rest_instructions ->
-    ignore (gen_cmp_set_cc NE result_var_id left_val right_val);
-    gen_instructions rest_instructions
-  (*
-   * ===========================================
-   *                    Lt
-   * ===========================================
-   *)
-  | [Mir.Instruction.Lt (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp L result_var_id left_val right_val
-  | Mir.Instruction.Lt (result_var_id, left_val, right_val) :: rest_instructions ->
-    ignore (gen_cmp_set_cc L result_var_id left_val right_val);
-    gen_instructions rest_instructions
-  (*
-   * ===========================================
-   *                   LtEq
-   * ===========================================
-   *)
-  | [Mir.Instruction.LtEq (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp LE result_var_id left_val right_val
-  | Mir.Instruction.LtEq (result_var_id, left_val, right_val) :: rest_instructions ->
-    ignore (gen_cmp_set_cc LE result_var_id left_val right_val);
-    gen_instructions rest_instructions
-  (*
-   * ===========================================
-   *                    Gt
-   * ===========================================
-   *)
-  | [Mir.Instruction.Gt (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp G result_var_id left_val right_val
-  | Mir.Instruction.Gt (result_var_id, left_val, right_val) :: rest_instructions ->
-    ignore (gen_cmp_set_cc G result_var_id left_val right_val);
-    gen_instructions rest_instructions
-  (*
-   * ===========================================
-   *                   GtEq
-   * ===========================================
-   *)
-  | [Mir.Instruction.GtEq (result_var_id, left_val, right_val)] when is_cond_jump result_var_id ->
-    gen_cond_jmp GE result_var_id left_val right_val
-  | Mir.Instruction.GtEq (result_var_id, left_val, right_val) :: rest_instructions ->
-    ignore (gen_cmp_set_cc GE result_var_id left_val right_val);
+  | [Mir.Instruction.Cmp (cmp, result_var_id, left_val, right_val)] when is_cond_jump result_var_id
+    ->
+    let cc = cc_of_mir_comparison cmp in
+    gen_cond_jmp cc result_var_id left_val right_val
+  | Mir.Instruction.Cmp (cmp, result_var_id, left_val, right_val) :: rest_instructions ->
+    let cc = cc_of_mir_comparison cmp in
+    ignore (gen_cmp_set_cc cc result_var_id left_val right_val);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -1312,6 +1265,15 @@ and min_size16 size =
   match size with
   | Size8 -> Size16
   | _ -> size
+
+and cc_of_mir_comparison cmp =
+  match cmp with
+  | Mir.Instruction.Eq -> E
+  | Neq -> NE
+  | Lt -> L
+  | LtEq -> LE
+  | Gt -> G
+  | GtEq -> GE
 
 and mk_label_memory_address label =
   PhysicalAddress

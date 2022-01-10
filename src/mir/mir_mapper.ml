@@ -258,54 +258,14 @@ module InstructionsMapper = struct
             [instruction]
           else
             mk_instr (Rem (result', left', right'))
-        | Eq (result, left, right) ->
+        | Cmp (comparison, result, left, right) ->
           let result' = this#map_result_variable ~block result in
           let left' = this#map_comparable_value ~block left in
           let right' = this#map_comparable_value ~block right in
           if result == result' && left == left' && right == right' then
             [instruction]
           else
-            mk_instr (Eq (result', left', right'))
-        | Neq (result, left, right) ->
-          let result' = this#map_result_variable ~block result in
-          let left' = this#map_comparable_value ~block left in
-          let right' = this#map_comparable_value ~block right in
-          if result == result' && left == left' && right == right' then
-            [instruction]
-          else
-            mk_instr (Neq (result', left', right'))
-        | Lt (result, left, right) ->
-          let result' = this#map_result_variable ~block result in
-          let left' = this#map_numeric_value ~block left in
-          let right' = this#map_numeric_value ~block right in
-          if result == result' && left == left' && right == right' then
-            [instruction]
-          else
-            mk_instr (Lt (result', left', right'))
-        | LtEq (result, left, right) ->
-          let result' = this#map_result_variable ~block result in
-          let left' = this#map_numeric_value ~block left in
-          let right' = this#map_numeric_value ~block right in
-          if result == result' && left == left' && right == right' then
-            [instruction]
-          else
-            mk_instr (LtEq (result', left', right'))
-        | Gt (result, left, right) ->
-          let result' = this#map_result_variable ~block result in
-          let left' = this#map_numeric_value ~block left in
-          let right' = this#map_numeric_value ~block right in
-          if result == result' && left == left' && right == right' then
-            [instruction]
-          else
-            mk_instr (Gt (result', left', right'))
-        | GtEq (result, left, right) ->
-          let result' = this#map_result_variable ~block result in
-          let left' = this#map_numeric_value ~block left in
-          let right' = this#map_numeric_value ~block right in
-          if result == result' && left == left' && right == right' then
-            [instruction]
-          else
-            mk_instr (GtEq (result', left', right'))
+            mk_instr (Cmp (comparison, result', left', right'))
         | Trunc (result, arg, ty) ->
           let result' = this#map_result_variable ~block result in
           let arg' = this#map_numeric_value ~block arg in

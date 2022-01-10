@@ -268,6 +268,15 @@ and pp_type_of_numeric_value v = pp_type_of_value (v :> Value.t)
 
 and pp_type_of_comparable_value v = pp_type_of_value (v :> Value.t)
 
+and pp_comparison comparison =
+  match comparison with
+  | Instruction.Eq -> "Eq"
+  | Neq -> "Neq"
+  | Lt -> "Lt"
+  | LtEq -> "LtEq"
+  | Gt -> "Gt"
+  | GtEq -> "GtEq"
+
 and pp_instruction ~cx (_, instr) =
   let open Instruction in
   let pp_instr var_id instr = Printf.sprintf "%s := %s" (pp_var_id ~cx var_id) instr in
@@ -432,54 +441,15 @@ and pp_instruction ~cx (_, instr) =
            (pp_type_of_numeric_value left)
            (pp_numeric_value ~cx left)
            (pp_numeric_value ~cx right))
-    | Eq (var_id, left, right) ->
+    | Cmp (comparison, var_id, left, right) ->
       pp_instr
         var_id
         (Printf.sprintf
-           "Eq %s %s, %s"
+           "%s %s %s, %s"
+           (pp_comparison comparison)
            (pp_type_of_comparable_value left)
            (pp_comparable_value ~cx left)
            (pp_comparable_value ~cx right))
-    | Neq (var_id, left, right) ->
-      pp_instr
-        var_id
-        (Printf.sprintf
-           "Neq %s %s, %s"
-           (pp_type_of_comparable_value left)
-           (pp_comparable_value ~cx left)
-           (pp_comparable_value ~cx right))
-    | Lt (var_id, left, right) ->
-      pp_instr
-        var_id
-        (Printf.sprintf
-           "Lt %s %s, %s"
-           (pp_type_of_numeric_value left)
-           (pp_numeric_value ~cx left)
-           (pp_numeric_value ~cx right))
-    | LtEq (var_id, left, right) ->
-      pp_instr
-        var_id
-        (Printf.sprintf
-           "LtEq %s %s, %s"
-           (pp_type_of_numeric_value left)
-           (pp_numeric_value ~cx left)
-           (pp_numeric_value ~cx right))
-    | Gt (var_id, left, right) ->
-      pp_instr
-        var_id
-        (Printf.sprintf
-           "Gt %s %s, %s"
-           (pp_type_of_numeric_value left)
-           (pp_numeric_value ~cx left)
-           (pp_numeric_value ~cx right))
-    | GtEq (var_id, left, right) ->
-      pp_instr
-        var_id
-        (Printf.sprintf
-           "GtEq %s %s, %s"
-           (pp_type_of_numeric_value left)
-           (pp_numeric_value ~cx left)
-           (pp_numeric_value ~cx right))
     | Trunc (var_id, arg, ty) ->
       pp_instr
         var_id
