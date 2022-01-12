@@ -22,8 +22,8 @@ type loop_context = Block.id * Block.id
 (* Immutable strings are deduplicated in MIR, and have a canonical value global and length global *)
 module ImmutableString = struct
   type t = {
-    value_global_val: Value.pointer_value;
-    size_global_val: Value.pointer_value;
+    value_global_val: (* Pointer *) Value.t;
+    size_global_val: (* Pointer *) Value.t;
   }
 end
 
@@ -43,11 +43,10 @@ type t = {
   mutable current_loop_contexts: loop_context list;
   (* Whether to filter out the standard library when dumping IR or asm *)
   filter_std_lib: bool;
-  (* Variable decl loc to the var id of the pointer for the memory location it resides in during
-     initial creation. These memory locations will be promoted to registers with phi nodes for joins. *)
-  mutable variable_to_ptr_var_id: var_id LocMap.t;
-  (* Function parameter decl loc to the var id for that parameter *)
-  mutable param_to_var_id: var_id LocMap.t;
+  (* Local variable decl loc to the StackAlloc instruction that defines that variable *)
+  mutable local_variable_to_alloc_instr: Instruction.t LocMap.t;
+  (* Function parameter decl loc to the Argument value for that parameter *)
+  mutable param_to_argument: Argument.t LocMap.t;
   (* Pointer var ids that shuld be promoted to registers during SSA pass *)
   mutable ptr_var_ids_to_ssaify: ISet.t;
   (* ADT signature id to its corresponding MIR layout *)
@@ -111,8 +110,8 @@ let mk ~pcx =
       || Opts.dump_asm ()
       || Opts.dump_full_asm () )
       && not (Opts.dump_stdlib ());
-    variable_to_ptr_var_id = LocMap.empty;
-    param_to_var_id = LocMap.empty;
+    local_variable_to_alloc_instr = LocMap.empty;
+    param_to_argument = LocMap.empty;
     ptr_var_ids_to_ssaify = ISet.empty;
     adt_sig_to_mir_layout = IMap.empty;
     trait_sig_to_trait_object_layout = IMap.empty;
@@ -150,10 +149,15 @@ let add_function ~ecx func =
   let name = func.Function.name in
   ecx.funcs <- SMap.add name func ecx.funcs
 
-let emit ~ecx inst =
-  match ecx.current_block_builder with
+(* Emit and return an instruction value, adding instruction to end of current block *)
+let emit ~ecx (inst : Instruction.t) : Value.t =
+  (match ecx.current_block_builder with
   | None -> failwith "No current block builder"
-  | Some builder -> builder.instructions <- (mk_instr_id (), inst) :: builder.instructions
+  | Some builder -> builder.instructions <- inst :: builder.instructions);
+  Value.Instr inst
+
+(* Emit instruction and add to end of current block without returning instruction *)
+let emit_ ~ecx (inst : Instruction.t) : unit = ignore (emit ~ecx inst)
 
 let mk_block_builder ~ecx =
   let block_id = mk_block_id () in
@@ -180,7 +184,7 @@ let start_new_block ~ecx =
 let finish_block ~ecx next =
   let next =
     match ecx.current_block_builder with
-    | Some { instructions = (_, Ret _) :: _; _ } -> Block.Halt
+    | Some { instructions = { instr = Ret _; _ } :: _; _ } -> Block.Halt
     | _ -> next
   in
   match ecx.current_block_builder with
@@ -206,23 +210,23 @@ let pop_loop_context ~ecx = ecx.current_loop_contexts <- List.tl ecx.current_loo
 
 let get_loop_context ~ecx = List.hd ecx.current_loop_contexts
 
-let get_ptr_var_id ~ecx use_loc =
+let get_local_ptr_def_instr ~ecx use_loc type_ =
   let decl_loc = Bindings.get_decl_loc_from_value_use ecx.pcx.bindings use_loc in
-  match LocMap.find_opt decl_loc ecx.variable_to_ptr_var_id with
-  | Some var_id -> var_id
+  match LocMap.find_opt decl_loc ecx.local_variable_to_alloc_instr with
+  | Some instr -> instr
   | None ->
-    let var_id = mk_var_id () in
-    ecx.variable_to_ptr_var_id <- LocMap.add decl_loc var_id ecx.variable_to_ptr_var_id;
-    var_id
+    let instr = Mir_builders.mk_stack_alloc ~type_ in
+    ecx.local_variable_to_alloc_instr <- LocMap.add decl_loc instr ecx.local_variable_to_alloc_instr;
+    instr
 
-let add_function_param ~ecx decl_loc =
-  let var_id = mk_var_id () in
-  ecx.param_to_var_id <- LocMap.add decl_loc var_id ecx.param_to_var_id;
-  var_id
+let add_function_argument ~ecx ~func decl_loc type_ =
+  let argument = { Argument.id = mk_value_id (); type_; func; decl_loc } in
+  ecx.param_to_argument <- LocMap.add decl_loc argument ecx.param_to_argument;
+  argument
 
-let get_function_param_var_id ~ecx use_loc =
+let get_function_argument_value ~ecx use_loc =
   let decl_loc = Bindings.get_decl_loc_from_value_use ecx.pcx.bindings use_loc in
-  LocMap.find decl_loc ecx.param_to_var_id
+  LocMap.find decl_loc ecx.param_to_argument
 
 let emit_init_section ~ecx f =
   let old_in_init = ecx.in_init in
@@ -264,10 +268,16 @@ let add_mutable_string_literal ~ecx loc string =
   let length = String.length string in
   let ty = `ArrayT (`ByteT, length) in
   let global =
-    { Global.loc; name; ty; init_val = Some (`ArrayStringL string); is_constant = true }
+    {
+      Global.loc;
+      name;
+      ty;
+      init_val = Some (Mir_builders.mk_array_string_lit string);
+      is_constant = true;
+    }
   in
   add_global ~ecx global;
-  `PointerL (ty, name)
+  Mir_builders.mk_ptr_lit ty name
 
 let add_immutable_string_literal ~ecx string =
   match SMap.find_opt string ecx.immutable_string_literals with
@@ -287,7 +297,7 @@ let add_immutable_string_literal ~ecx string =
         Global.loc = Loc.none;
         name = value_name;
         ty = value_ty;
-        init_val = Some (`ArrayStringL string);
+        init_val = Some (Mir_builders.mk_array_string_lit string);
         is_constant = true;
       }
     in
@@ -300,7 +310,7 @@ let add_immutable_string_literal ~ecx string =
         Global.loc = Loc.none;
         name = size_name;
         ty = `IntT;
-        init_val = Some (`IntL (Int32.of_int size));
+        init_val = Some (Mir_builders.mk_int_lit size);
         is_constant = true;
       }
     in
@@ -309,8 +319,8 @@ let add_immutable_string_literal ~ecx string =
     (* Intern globals for new immutable string *)
     let imm_string =
       {
-        ImmutableString.value_global_val = `PointerL (value_ty, value_name);
-        size_global_val = `PointerL (`IntT, size_name);
+        ImmutableString.value_global_val = Mir_builders.mk_ptr_lit value_ty value_name;
+        size_global_val = Mir_builders.mk_ptr_lit `IntT size_name;
       }
     in
     ecx.immutable_string_literals <- SMap.add string imm_string ecx.immutable_string_literals;
@@ -550,7 +560,7 @@ and get_trait_object_layout ~ecx (trait_sig : Types.TraitSig.t) =
   | Some trait_object -> trait_object
   (* Create trait object if it does not yet exist *)
   | None ->
-    let (vtable_size, vtable_indices) = build_vtable_indices trait_sig in
+    let (_, vtable_indices) = build_vtable_indices trait_sig in
 
     (* Create aggregate for trait object *)
     let trait_binding = Type_context.get_type_binding ~cx:ecx.pcx.type_ctx trait_sig.loc in
@@ -561,7 +571,7 @@ and get_trait_object_layout ~ecx (trait_sig : Types.TraitSig.t) =
         ~ecx
         trait_object_label
         trait_sig.loc
-        [("item", `PointerT `ByteT); ("vtable", `PointerT (`ArrayT (`FunctionT, vtable_size)))]
+        [("item", `PointerT `ByteT); ("vtable", `PointerT (`FunctionT))]
     in
 
     let trait_object_layout =
@@ -592,11 +602,11 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
   | Some trait_object_instance -> trait_object_instance
   | None ->
     (* Instantiate type's methods that are part of the trait object, building vtable array *)
-    let (vtable_size, vtable_functions) =
+    let vtable_functions =
       SMap.fold
-        (fun method_name method_sig (i, vtable_functions) ->
+        (fun method_name method_sig vtable_functions ->
           if Types.MethodSig.is_generic method_sig then
-            (i, vtable_functions)
+            vtable_functions
           else
             let method_value =
               get_method_function_value
@@ -605,11 +615,11 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
                 ~receiver_ty:ty
                 ~method_instance_type_args:[]
             in
-            (i + 1, method_value :: vtable_functions))
+            cast_to_function_literal method_value :: vtable_functions)
         trait_sig.methods
-        (0, [])
+        []
     in
-    let vtable_val = `ArrayVtableL (vtable_size, List.rev vtable_functions) in
+    let vtable_val = Mir_builders.mk_array_vtable_lit (List.rev vtable_functions) in
     let vtable_mir_type = type_of_value vtable_val in
 
     (* Create vtable and trait object names, composed from fully parameterized type and trait names *)
@@ -642,7 +652,7 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
         init_val = Some vtable_val;
         is_constant = true;
       };
-    let vtable = `PointerL (vtable_mir_type, vtable_label) in
+    let vtable = Mir_builders.mk_ptr_lit vtable_mir_type vtable_label in
 
     (* Create aggregate type for type's trait object. Default to pointer field (for alignment) if
        type is zero width and has no MIR representation. *)
@@ -653,7 +663,7 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
       | None -> `PointerT (get_zero_size_type ~ecx)
     in
     let (agg_elements, _) =
-      align_and_pad_aggregate_elements [("item", mir_type); ("vtable", `PointerT vtable_mir_type)]
+      align_and_pad_aggregate_elements [("item", mir_type); ("vtable", `PointerT `FunctionT)]
     in
     let agg = mk_aggregate ~ecx agg_label adt_sig.loc agg_elements in
 
@@ -727,17 +737,17 @@ and get_zero_size_global_pointer ~ecx =
         init_val = None;
         is_constant = false;
       };
-  `PointerL (zero_size_type, zero_size_name)
+  Mir_builders.mk_ptr_lit zero_size_type zero_size_name
 
 (*
  * Nongeneric Functions
  *)
-and get_nongeneric_function_value ~ecx name : Value.function_value =
+and get_nongeneric_function_value ~ecx name : Value.t =
   (* Mark function as pending if it has not yet been generated *)
   (match SMap.find_opt name ecx.funcs with
   | None -> ecx.pending_nongeneric_funcs <- SSet.add name ecx.pending_nongeneric_funcs
   | Some _ -> ());
-  `FunctionL name
+  Mir_builders.mk_func_lit name
 
 and pop_pending_nongeneric_function ~ecx =
   match SSet.choose_opt ecx.pending_nongeneric_funcs with
@@ -764,7 +774,7 @@ and find_rep_non_generic_type ~ecx ty =
   else
     Types.substitute_type_params ecx.current_type_param_bindings ty
 
-and get_generic_function_value ~ecx name key_type_params key_type_args : Value.function_value =
+and get_generic_function_value ~ecx name key_type_params key_type_args : Value.t =
   let key_type_args = List.map (find_rep_non_generic_type ~ecx) key_type_args in
   let name_with_args =
     let type_args_string = TypeArgs.to_string ~pcx:ecx.pcx key_type_args in
@@ -800,13 +810,13 @@ and get_generic_function_value ~ecx name key_type_params key_type_args : Value.f
       TypeArgsHashtbl.add pending_type_args key_type_args instantiated_type_param_bindings;
       ecx.pending_generic_func_instantiations <-
         SMap.add name pending_type_args ecx.pending_generic_func_instantiations );
-  `FunctionL name_with_args
+  Mir_builders.mk_func_lit name_with_args
 
 and get_method_function_value
     ~ecx
     ~(method_name : string)
     ~(receiver_ty : Types.Type.t)
-    ~(method_instance_type_args : Types.Type.t list) : Value.function_value =
+    ~(method_instance_type_args : Types.Type.t list) : Value.t =
   let (receiver_adt_sig, receiver_type_args) =
     match receiver_ty with
     | ADT { adt_sig; type_args; _ } -> (adt_sig, type_args)
@@ -900,12 +910,12 @@ let pop_pending_generic_func_instantiation ~ecx =
  *
  * If global variable has zero size then instead return None.
  *)
-let get_global_pointer ~ecx binding =
+let get_global_pointer ~ecx binding : Value.t option =
   let loc = binding.Bindings.ValueBinding.loc in
   let name = mk_value_binding_name binding in
   match SMap.find_opt name ecx.globals with
   (* Global will be in MIR globals map if it has already been created or is pending *)
-  | Some global -> Some (`PointerL (global.ty, global.name))
+  | Some global -> Some (Mir_builders.mk_ptr_lit global.ty global.name)
   | None ->
     let var_decl = Bindings.get_var_decl binding in
     (match to_mir_type ~ecx (find_rep_non_generic_type ~ecx (TVar var_decl.tvar)) with
@@ -921,7 +931,7 @@ let get_global_pointer ~ecx binding =
         ~ecx
         { Global.loc; name; ty; init_val = None; is_constant = decl_node.kind = Immutable };
 
-      Some (`PointerL (ty, name)))
+      Some (Mir_builders.mk_ptr_lit ty name))
 
 let pop_pending_global ~ecx =
   match SMap.choose_opt ecx.pending_globals with

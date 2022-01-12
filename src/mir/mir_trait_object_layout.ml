@@ -25,7 +25,7 @@ module MirTraitObjectLayout = struct
   and trait_instance = trait_object_instance TypeArgsHashtbl.t
 
   and trait_object_instance = {
-    vtable: Value.pointer_value;
+    vtable: (* Pointer *) Value.t;
     agg: Aggregate.t;
   }
 

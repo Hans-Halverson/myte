@@ -4,8 +4,8 @@ open Mir_type
 
 module Context = struct
   type t = {
-    mutable print_var_id_map: int IMap.t;
-    mutable max_print_var_id: int;
+    mutable print_value_id_map: int IMap.t;
+    mutable max_print_value_id: int;
     mutable print_block_id_map: string IMap.t;
     mutable max_print_block_id: int;
     program: Program.t;
@@ -13,8 +13,8 @@ module Context = struct
 
   let mk program =
     {
-      print_var_id_map = IMap.empty;
-      max_print_var_id = 0;
+      print_value_id_map = IMap.empty;
+      max_print_value_id = 0;
       print_block_id_map = IMap.empty;
       max_print_block_id = 0;
       program;
@@ -98,11 +98,12 @@ and pp_global ~cx global =
 and pp_func ~cx ~program func =
   let open Function in
   (* Each function's variables and labels have their own print id space *)
-  cx.max_print_var_id <- 0;
+  cx.max_print_value_id <- 0;
   cx.max_print_block_id <- 0;
   let func_params =
     func.params
-    |> List.map (fun (_, var_id, ty) -> Printf.sprintf "%s %s" (pp_type ty) (pp_var_id ~cx var_id))
+    |> List.map (fun { Argument.id; type_; _ } ->
+           Printf.sprintf "%s %s" (pp_type type_) (pp_var_id ~cx id))
     |> String.concat ", "
   in
   let return_ty =
@@ -161,7 +162,7 @@ and pp_block ~cx ~label block =
       [
         Printf.sprintf
           "  branch %s, %s, %s"
-          (pp_bool_value ~cx test)
+          (pp_value ~cx test)
           (pp_block_id ~cx continue)
           (pp_block_id ~cx jump);
       ]
@@ -169,18 +170,18 @@ and pp_block ~cx ~label block =
   let lines = List.concat [label_lines; instruction_lines; next_lines] in
   String.concat "\n" lines
 
-and pp_var_id ~cx var_id =
+and pp_var_id ~cx value_id =
   let open Context in
   let print_id =
     if Opts.dump_debug () then
-      var_id
+      value_id
     else
-      match IMap.find_opt var_id cx.print_var_id_map with
+      match IMap.find_opt value_id cx.print_value_id_map with
       | Some print_id -> print_id
       | None ->
-        let print_id = cx.max_print_var_id in
-        cx.print_var_id_map <- IMap.add var_id print_id cx.print_var_id_map;
-        cx.max_print_var_id <- print_id + 1;
+        let print_id = cx.max_print_value_id in
+        cx.print_value_id_map <- IMap.add value_id print_id cx.print_value_id_map;
+        cx.max_print_value_id <- print_id + 1;
         print_id
   in
   Printf.sprintf "%%%d" print_id
@@ -209,50 +210,33 @@ and pp_block_id ~cx block_id =
   in
   "@" ^ print_id
 
-and pp_value ~cx v =
-  match v with
-  | `BoolL true -> "true"
-  | `BoolL false -> "false"
-  | `ByteL i -> string_of_int i
-  | `IntL i -> Int32.to_string i
-  | `LongL i -> Int64.to_string i
-  | `FunctionL label
-  | `PointerL (_, label) ->
+and pp_value ~cx value =
+  match value with
+  | Instr { id; _ }
+  | Argument { id; _ } ->
+    pp_var_id ~cx id
+  | Lit lit -> pp_literal lit
+
+and pp_literal lit =
+  match lit with
+  | Literal.Bool true -> "true"
+  | Bool false -> "false"
+  | Byte i -> string_of_int i
+  | Int i -> Int32.to_string i
+  | Long i -> Int64.to_string i
+  | Function label
+  | Pointer (_, label) ->
     "@" ^ label
-  | `ArrayStringL str -> "\"" ^ str ^ "\""
-  | `ArrayVtableL (_, funcs) ->
-    let funcs = List.map (fun func -> pp_value ~cx (func :> Value.t)) funcs in
+  | ArrayString str -> "\"" ^ str ^ "\""
+  | ArrayVtable (_, funcs) ->
+    let funcs = List.map (fun func -> "@" ^ func) funcs in
     "[" ^ String.concat ", " funcs ^ "]"
-  | `BoolV var_id
-  | `ByteV var_id
-  | `IntV var_id
-  | `LongV var_id
-  | `FunctionV var_id
-  | `PointerV (_, var_id)
-  | `ArrayV (_, _, var_id) ->
-    pp_var_id ~cx var_id
-
-and pp_bool_value ~cx v = pp_value ~cx (v :> Value.t)
-
-and pp_long_value ~cx v = pp_value ~cx (v :> Value.t)
-
-and pp_numeric_value ~cx v = pp_value ~cx (v :> Value.t)
-
-and pp_function_value ~cx v = pp_value ~cx (v :> Value.t)
-
-and pp_pointer_value ~cx v = pp_value ~cx (v :> Value.t)
-
-and pp_comparable_value ~cx v = pp_value ~cx (v :> Value.t)
 
 and pp_type ty = type_to_string ty
 
 and pp_numeric_type ty = type_to_string (ty :> Type.t)
 
 and pp_type_of_value v = pp_type (type_of_value v)
-
-and pp_type_of_numeric_value v = pp_type_of_value (v :> Value.t)
-
-and pp_type_of_comparable_value v = pp_type_of_value (v :> Value.t)
 
 and pp_unary_operation unary_operation =
   match unary_operation with
@@ -282,59 +266,52 @@ and pp_comparison comparison =
   | Gt -> "Gt"
   | GtEq -> "GtEq"
 
-and pp_instruction ~cx (_, instr) =
+and pp_instruction ~cx instr =
   let open Instruction in
-  let pp_instr var_id instr = Printf.sprintf "%s := %s" (pp_var_id ~cx var_id) instr in
+  let pp_instr str = Printf.sprintf "%s := %s" (pp_var_id ~cx instr.id) str in
   let instr_string =
-    match instr with
-    | Mov (var_id, right) ->
-      pp_instr var_id (Printf.sprintf "Mov %s %s" (pp_type_of_value right) (pp_value ~cx right))
-    | Phi { var_id; type_; args } ->
+    match instr.instr with
+    | Mov right ->
+      pp_instr (Printf.sprintf "Mov %s %s" (pp_type_of_value right) (pp_value ~cx right))
+    | Phi { args } ->
       let args_string =
         List.map
           (fun (prev_block_id, arg) -> pp_block_id ~cx prev_block_id ^ ":" ^ pp_value ~cx arg)
           (IMap.bindings args)
         |> String.concat ", "
       in
-      pp_instr var_id (Printf.sprintf "Phi %s %s" (pp_type type_) args_string)
-    | Call { return; func; args } ->
+      pp_instr (Printf.sprintf "Phi %s %s" (pp_type instr.type_) args_string)
+    | Call { func; args; has_return } ->
       let func_string =
         match func with
-        | Value func -> pp_function_value ~cx func
+        | Value func -> pp_value ~cx func
         | Builtin { name; _ } -> name
       in
       let args_string = List.map (pp_value ~cx) args |> String.concat ", " in
-      (match return with
-      | None -> Printf.sprintf "Call void %s(%s)" func_string args_string
-      | Some (var_id, ret_ty) ->
-        pp_instr var_id (Printf.sprintf "Call %s %s(%s)" (pp_type ret_ty) func_string args_string))
+      if has_return then
+        pp_instr (Printf.sprintf "Call %s %s(%s)" (pp_type instr.type_) func_string args_string)
+      else
+        Printf.sprintf "Call void %s(%s)" func_string args_string
     | Ret val_opt ->
       "Ret"
       ^
       (match val_opt with
       | Some v -> " " ^ pp_value ~cx v
       | None -> "")
-    | StackAlloc (var_id, ty) -> pp_instr var_id (Printf.sprintf "StackAlloc %s" (pp_type ty))
-    | Load (var_id, ptr) ->
+    | StackAlloc ty -> pp_instr (Printf.sprintf "StackAlloc %s" (pp_type ty))
+    | Load ptr ->
       pp_instr
-        var_id
-        (Printf.sprintf
-           "Load %s %s"
-           (pp_type (pointer_value_element_type ptr))
-           (pp_pointer_value ~cx ptr))
+        (Printf.sprintf "Load %s %s" (pp_type (pointer_value_element_type ptr)) (pp_value ~cx ptr))
     | Store (ptr, right) ->
       Printf.sprintf
         "Store %s %s, %s"
         (pp_type (pointer_value_element_type ptr))
-        (pp_pointer_value ~cx ptr)
+        (pp_value ~cx ptr)
         (pp_value ~cx right)
-    | GetPointer { GetPointer.var_id; return_ty; pointer; pointer_offset; offsets } ->
-      let pointer_ty = type_of_value (pointer :> Value.t) in
+    | GetPointer { GetPointer.pointer; pointer_offset; offsets } ->
+      let pointer_ty = type_of_value pointer in
       let pp_pointer_offset pointer_offset =
-        Printf.sprintf
-          "[%s %s]"
-          (pp_type_of_numeric_value pointer_offset)
-          (pp_numeric_value ~cx pointer_offset)
+        Printf.sprintf "[%s %s]" (pp_type_of_value pointer_offset) (pp_value ~cx pointer_offset)
       in
       let pointer_offset_str =
         Option_utils.value_map pp_pointer_offset ~default:"" pointer_offset
@@ -347,56 +324,58 @@ and pp_instruction ~cx (_, instr) =
             | GetPointer.FieldIndex field -> "." ^ string_of_int field)
           offsets
       in
+      let (`PointerT ptr_element_type) = cast_to_pointer_type instr.type_ in
       pp_instr
-        var_id
         (Printf.sprintf
            "GetPointer %s, %s %s%s%s"
-           (pp_type return_ty)
+           (pp_type ptr_element_type)
            (pp_type pointer_ty)
-           (pp_pointer_value ~cx pointer)
+           (pp_value ~cx pointer)
            pointer_offset_str
            (String.concat "" offset_strs))
-    | Unary (unary_operation, var_id, arg) ->
+    | Unary (op, arg) ->
       pp_instr
-        var_id
         (Printf.sprintf
            "%s %s %s"
-           (pp_unary_operation unary_operation)
-           (pp_type_of_numeric_value arg)
-           (pp_numeric_value ~cx arg))
-    | Binary (binary_operation, var_id, left, right) ->
+           (pp_unary_operation op)
+           (pp_type_of_value arg)
+           (pp_value ~cx arg))
+    | Binary (op, left, right) ->
       pp_instr
-        var_id
         (Printf.sprintf
            "%s %s %s, %s"
-           (pp_binary_operation binary_operation)
-           (pp_type_of_numeric_value left)
-           (pp_numeric_value ~cx left)
-           (pp_numeric_value ~cx right))
-    | Cmp (comparison, var_id, left, right) ->
+           (pp_binary_operation op)
+           (pp_type_of_value left)
+           (pp_value ~cx left)
+           (pp_value ~cx right))
+    | Cmp (cmp, left, right) ->
       pp_instr
-        var_id
         (Printf.sprintf
            "%s %s %s, %s"
-           (pp_comparison comparison)
-           (pp_type_of_comparable_value left)
-           (pp_comparable_value ~cx left)
-           (pp_comparable_value ~cx right))
-    | Trunc (var_id, arg, ty) ->
+           (pp_comparison cmp)
+           (pp_type_of_value left)
+           (pp_value ~cx left)
+           (pp_value ~cx right))
+    | Cast arg ->
       pp_instr
-        var_id
+        (Printf.sprintf
+           "Cast %s %s to %s"
+           (pp_type_of_value arg)
+           (pp_value ~cx arg)
+           (pp_type instr.type_))
+    | Trunc arg ->
+      pp_instr
         (Printf.sprintf
            "Trunc %s %s to %s"
-           (pp_type_of_numeric_value arg)
-           (pp_numeric_value ~cx arg)
-           (pp_numeric_type ty))
-    | SExt (var_id, arg, ty) ->
+           (pp_type_of_value arg)
+           (pp_value ~cx arg)
+           (pp_numeric_type instr.type_))
+    | SExt arg ->
       pp_instr
-        var_id
         (Printf.sprintf
            "SExt %s %s to %s"
-           (pp_type_of_numeric_value arg)
-           (pp_numeric_value ~cx arg)
-           (pp_numeric_type ty))
+           (pp_type_of_value arg)
+           (pp_value ~cx arg)
+           (pp_numeric_type instr.type_))
   in
   "  " ^ instr_string

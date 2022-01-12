@@ -11,216 +11,255 @@ type test.V2::Tuple2 {byte, bool, byte[6], test.V1*}
 type test.V2::Record2 {byte, bool, byte[6], test.V2*}
 
 func int @test.test1(test.V1* %0) {
-  %1 := Load byte %0
-  %2 := Eq byte %1, 0
-  branch %2, @2, @0
+  %1 := Cast test.V1* %0 to byte*
+  %2 := Load byte %1
+  %3 := Eq byte %2, 0
+  branch %3, @2, @0
 label @0:
-  %3 := Eq byte %1, 2
-  branch %3, @2, @1
+  %4 := Eq byte %2, 2
+  branch %4, @2, @1
 label @1:
   continue @2
 label @2:
-  %4 := Phi int @test.test1:2, @0:3, @1:1
-  Ret %4
+  %5 := Phi int @test.test1:2, @0:3, @1:1
+  Ret %5
 }
 
 func int @test.test2(test.V1* %0) {
-  %1 := Load byte %0
-  %2 := Eq byte %1, 2
-  branch %2, @0, @2
+  %1 := Cast test.V1* %0 to byte*
+  %2 := Load byte %1
+  %3 := Eq byte %2, 2
+  branch %3, @0, @2
 label @0:
-  %3 := GetPointer int, test.V1::Record1* %0.3
-  %4 := Load int %3
-  %5 := Eq int %4, 2
-  branch %5, @6, @1
+  %4 := Cast test.V1* %0 to test.V1::Record1*
+  %5 := GetPointer int, test.V1::Record1* %4.3
+  %6 := Load int %5
+  %7 := Eq int %6, 2
+  branch %7, @6, @1
 label @1:
-  %6 := GetPointer byte, test.V1::Record1* %0.1
-  %7 := Load byte %6
-  %8 := Eq byte %7, 2
-  branch %8, @6, @5
+  %8 := Cast test.V1* %0 to test.V1::Record1*
+  %9 := GetPointer byte, test.V1::Record1* %8.1
+  %10 := Load byte %9
+  %11 := Eq byte %10, 2
+  branch %11, @6, @5
 label @2:
-  %9 := Eq byte %1, 1
-  branch %9, @3, @5
+  %12 := Eq byte %2, 1
+  branch %12, @3, @5
 label @3:
-  %10 := GetPointer int, test.V1::Tuple1* %0.3
-  %11 := Load int %10
-  %12 := Eq int %11, 4
-  branch %12, @6, @4
+  %13 := Cast test.V1* %0 to test.V1::Tuple1*
+  %14 := GetPointer int, test.V1::Tuple1* %13.3
+  %15 := Load int %14
+  %16 := Eq int %15, 4
+  branch %16, @6, @4
 label @4:
-  %13 := GetPointer bool, test.V1::Tuple1* %0.1
-  %14 := Load bool %13
-  %15 := Eq bool %14, true
-  branch %15, @6, @5
+  %17 := Cast test.V1* %0 to test.V1::Tuple1*
+  %18 := GetPointer bool, test.V1::Tuple1* %17.1
+  %19 := Load bool %18
+  %20 := Eq bool %19, true
+  branch %20, @6, @5
 label @5:
   continue @6
 label @6:
-  %16 := Phi int @0:1, @1:3, @5:5, @3:2, @4:4
-  Ret %16
+  %21 := Phi int @0:1, @1:3, @5:5, @3:2, @4:4
+  Ret %21
 }
 
 func int @test.test3(test.V2* %0) {
-  %1 := Load byte %0
-  %2 := Eq byte %1, 2
-  branch %2, @0, @2
+  %1 := Cast test.V2* %0 to byte*
+  %2 := Load byte %1
+  %3 := Eq byte %2, 2
+  branch %3, @0, @2
 label @0:
-  %3 := GetPointer test.V2*, test.V2::Record2* %0.3
-  %4 := Load test.V2* %3
-  %5 := Load byte %4
-  %6 := Eq byte %5, 2
-  branch %6, @1, @5
+  %4 := Cast test.V2* %0 to test.V2::Record2*
+  %5 := GetPointer test.V2*, test.V2::Record2* %4.3
+  %6 := Load test.V2* %5
+  %7 := Cast test.V2* %6 to byte*
+  %8 := Load byte %7
+  %9 := Eq byte %8, 2
+  branch %9, @1, @5
 label @1:
-  %7 := GetPointer test.V2*, test.V2::Record2* %4.3
-  %8 := Load test.V2* %7
-  %9 := Load byte %8
-  %10 := Eq byte %9, 1
-  branch %10, @6, @5
-label @2:
-  %11 := Eq byte %1, 0
-  branch %11, @3, @5
-label @3:
-  %12 := GetPointer test.V1*, test.V2::Tuple2* %0.3
-  %13 := Load test.V1* %12
+  %10 := Cast test.V2* %6 to test.V2::Record2*
+  %11 := GetPointer test.V2*, test.V2::Record2* %10.3
+  %12 := Load test.V2* %11
+  %13 := Cast test.V2* %12 to byte*
   %14 := Load byte %13
   %15 := Eq byte %14, 1
-  branch %15, @4, @5
+  branch %15, @6, @5
+label @2:
+  %16 := Eq byte %2, 0
+  branch %16, @3, @5
+label @3:
+  %17 := Cast test.V2* %0 to test.V2::Tuple2*
+  %18 := GetPointer test.V1*, test.V2::Tuple2* %17.3
+  %19 := Load test.V1* %18
+  %20 := Cast test.V1* %19 to byte*
+  %21 := Load byte %20
+  %22 := Eq byte %21, 1
+  branch %22, @4, @5
 label @4:
-  %16 := GetPointer bool, test.V1::Tuple1* %13.1
-  %17 := Load bool %16
-  %18 := Eq bool %17, true
-  branch %18, @6, @5
+  %23 := Cast test.V1* %19 to test.V1::Tuple1*
+  %24 := GetPointer bool, test.V1::Tuple1* %23.1
+  %25 := Load bool %24
+  %26 := Eq bool %25, true
+  branch %26, @6, @5
 label @5:
   continue @6
 label @6:
-  %19 := Phi int @1:2, @5:3, @4:1
-  Ret %19
-}
-
-func int @test.test4(test.V2* %0) {
-  %1 := Load byte %0
-  %2 := Eq byte %1, 2
-  branch %2, @0, @9
-label @0:
-  %3 := GetPointer test.V2*, test.V2::Record2* %0.3
-  %4 := Load test.V2* %3
-  %5 := Load byte %4
-  %6 := Eq byte %5, 2
-  branch %6, @1, @9
-label @1:
-  %7 := GetPointer test.V2*, test.V2::Record2* %4.3
-  %8 := Load test.V2* %7
-  %9 := Load byte %8
-  %10 := Eq byte %9, 2
-  branch %10, @2, @9
-label @2:
-  %11 := GetPointer test.V2*, test.V2::Record2* %8.3
-  %12 := Load test.V2* %11
-  %13 := Load byte %12
-  %14 := Eq byte %13, 0
-  branch %14, @3, @8
-label @3:
-  %15 := GetPointer test.V1*, test.V2::Tuple2* %12.3
-  %16 := Load test.V1* %15
-  %17 := Load byte %16
-  %18 := Eq byte %17, 1
-  branch %18, @4, @8
-label @4:
-  %19 := GetPointer bool, test.V1::Tuple1* %16.1
-  %20 := Load bool %19
-  %21 := Eq bool %20, true
-  branch %21, @5, @8
-label @5:
-  %22 := GetPointer int, test.V1::Tuple1* %16.3
-  %23 := Load int %22
-  %24 := Eq int %23, 1
-  branch %24, @9, @6
-label @6:
-  %25 := Eq int %23, 2
-  branch %25, @9, @7
-label @7:
-  %26 := Eq int %23, 3
-  branch %26, @9, @8
-label @8:
-  continue @9
-label @9:
-  %27 := Phi int @test.test4:3, @0:3, @1:3, @5:1, @6:1, @7:1, @8:2
+  %27 := Phi int @1:2, @5:3, @4:1
   Ret %27
 }
 
-func int @test.test5(test.V1* %0) {
-  %1 := Load byte %0
-  %2 := Eq byte %1, 0
-  branch %2, @7, @0
+func int @test.test4(test.V2* %0) {
+  %1 := Cast test.V2* %0 to byte*
+  %2 := Load byte %1
+  %3 := Eq byte %2, 2
+  branch %3, @0, @9
 label @0:
-  %3 := Eq byte %1, 2
-  branch %3, @1, @4
+  %4 := Cast test.V2* %0 to test.V2::Record2*
+  %5 := GetPointer test.V2*, test.V2::Record2* %4.3
+  %6 := Load test.V2* %5
+  %7 := Cast test.V2* %6 to byte*
+  %8 := Load byte %7
+  %9 := Eq byte %8, 2
+  branch %9, @1, @9
 label @1:
-  %4 := GetPointer int, test.V1::Record1* %0.3
-  %5 := Load int %4
-  %6 := GetPointer byte, test.V1::Record1* %0.1
-  %7 := Load byte %6
-  %8 := Eq byte %7, 1
-  branch %8, @3, @2
+  %10 := Cast test.V2* %6 to test.V2::Record2*
+  %11 := GetPointer test.V2*, test.V2::Record2* %10.3
+  %12 := Load test.V2* %11
+  %13 := Cast test.V2* %12 to byte*
+  %14 := Load byte %13
+  %15 := Eq byte %14, 2
+  branch %15, @2, @9
 label @2:
-  %9 := SExt byte %7 to int
+  %16 := Cast test.V2* %12 to test.V2::Record2*
+  %17 := GetPointer test.V2*, test.V2::Record2* %16.3
+  %18 := Load test.V2* %17
+  %19 := Cast test.V2* %18 to byte*
+  %20 := Load byte %19
+  %21 := Eq byte %20, 0
+  branch %21, @3, @8
+label @3:
+  %22 := Cast test.V2* %18 to test.V2::Tuple2*
+  %23 := GetPointer test.V1*, test.V2::Tuple2* %22.3
+  %24 := Load test.V1* %23
+  %25 := Cast test.V1* %24 to byte*
+  %26 := Load byte %25
+  %27 := Eq byte %26, 1
+  branch %27, @4, @8
+label @4:
+  %28 := Cast test.V1* %24 to test.V1::Tuple1*
+  %29 := GetPointer bool, test.V1::Tuple1* %28.1
+  %30 := Load bool %29
+  %31 := Eq bool %30, true
+  branch %31, @5, @8
+label @5:
+  %32 := Cast test.V1* %24 to test.V1::Tuple1*
+  %33 := GetPointer int, test.V1::Tuple1* %32.3
+  %34 := Load int %33
+  %35 := Eq int %34, 1
+  branch %35, @9, @6
+label @6:
+  %36 := Eq int %34, 2
+  branch %36, @9, @7
+label @7:
+  %37 := Eq int %34, 3
+  branch %37, @9, @8
+label @8:
+  continue @9
+label @9:
+  %38 := Phi int @test.test4:3, @0:3, @1:3, @5:1, @6:1, @7:1, @8:2
+  Ret %38
+}
+
+func int @test.test5(test.V1* %0) {
+  %1 := Cast test.V1* %0 to byte*
+  %2 := Load byte %1
+  %3 := Eq byte %2, 0
+  branch %3, @7, @0
+label @0:
+  %4 := Eq byte %2, 2
+  branch %4, @1, @4
+label @1:
+  %5 := Cast test.V1* %0 to test.V1::Record1*
+  %6 := GetPointer int, test.V1::Record1* %5.3
+  %7 := Load int %6
+  %8 := Cast test.V1* %0 to test.V1::Record1*
+  %9 := GetPointer byte, test.V1::Record1* %8.1
+  %10 := Load byte %9
+  %11 := Eq byte %10, 1
+  branch %11, @3, @2
+label @2:
+  %12 := SExt byte %10 to int
   continue @3
 label @3:
-  %10 := Phi int @1:%5, @2:%9
+  %13 := Phi int @1:%7, @2:%12
   continue @7
 label @4:
-  %11 := GetPointer bool, test.V1::Tuple1* %0.1
-  %12 := Load bool %11
-  %13 := GetPointer int, test.V1::Tuple1* %0.3
-  %14 := Load int %13
-  branch %12, @6, @5
+  %14 := Cast test.V1* %0 to test.V1::Tuple1*
+  %15 := GetPointer bool, test.V1::Tuple1* %14.1
+  %16 := Load bool %15
+  %17 := Cast test.V1* %0 to test.V1::Tuple1*
+  %18 := GetPointer int, test.V1::Tuple1* %17.3
+  %19 := Load int %18
+  branch %16, @6, @5
 label @5:
   continue @6
 label @6:
-  %15 := Phi int @4:%14, @5:2
+  %20 := Phi int @4:%19, @5:2
   continue @7
 label @7:
-  %16 := Phi int @test.test5:3, @3:%10, @6:%15
-  Ret %16
+  %21 := Phi int @test.test5:3, @3:%13, @6:%20
+  Ret %21
 }
 
 func test.V2* @test.test6(test.V2* %0) {
-  %1 := Load byte %0
-  %2 := Eq byte %1, 2
-  branch %2, @0, @6
+  %1 := Cast test.V2* %0 to byte*
+  %2 := Load byte %1
+  %3 := Eq byte %2, 2
+  branch %3, @0, @6
 label @0:
-  %3 := GetPointer test.V2*, test.V2::Record2* %0.3
-  %4 := Load test.V2* %3
-  %5 := Load byte %4
-  %6 := Eq byte %5, 2
-  branch %6, @1, @6
+  %4 := Cast test.V2* %0 to test.V2::Record2*
+  %5 := GetPointer test.V2*, test.V2::Record2* %4.3
+  %6 := Load test.V2* %5
+  %7 := Cast test.V2* %6 to byte*
+  %8 := Load byte %7
+  %9 := Eq byte %8, 2
+  branch %9, @1, @6
 label @1:
-  %7 := GetPointer test.V2*, test.V2::Record2* %4.3
-  %8 := Load test.V2* %7
-  %9 := Load byte %8
-  %10 := Eq byte %9, 1
-  branch %10, @7, @2
-label @2:
-  %11 := Eq byte %9, 2
-  branch %11, @3, @6
-label @3:
-  %12 := GetPointer test.V2*, test.V2::Record2* %8.3
-  %13 := Load test.V2* %12
+  %10 := Cast test.V2* %6 to test.V2::Record2*
+  %11 := GetPointer test.V2*, test.V2::Record2* %10.3
+  %12 := Load test.V2* %11
+  %13 := Cast test.V2* %12 to byte*
   %14 := Load byte %13
-  %15 := Eq byte %14, 2
-  branch %15, @4, @6
+  %15 := Eq byte %14, 1
+  branch %15, @7, @2
+label @2:
+  %16 := Eq byte %14, 2
+  branch %16, @3, @6
+label @3:
+  %17 := Cast test.V2* %12 to test.V2::Record2*
+  %18 := GetPointer test.V2*, test.V2::Record2* %17.3
+  %19 := Load test.V2* %18
+  %20 := Cast test.V2* %19 to byte*
+  %21 := Load byte %20
+  %22 := Eq byte %21, 2
+  branch %22, @4, @6
 label @4:
-  %16 := GetPointer bool, test.V2::Record2* %13.1
-  %17 := Load bool %16
-  %18 := Eq bool %17, false
-  branch %18, @7, @5
+  %23 := Cast test.V2* %19 to test.V2::Record2*
+  %24 := GetPointer bool, test.V2::Record2* %23.1
+  %25 := Load bool %24
+  %26 := Eq bool %25, false
+  branch %26, @7, @5
 label @5:
-  %19 := GetPointer test.V2*, test.V2::Record2* %13.3
-  %20 := Load test.V2* %19
+  %27 := Cast test.V2* %19 to test.V2::Record2*
+  %28 := GetPointer test.V2*, test.V2::Record2* %27.3
+  %29 := Load test.V2* %28
   continue @7
 label @6:
   continue @7
 label @7:
-  %21 := Phi test.V2* @1:%8, @4:%4, @5:%20, @6:%0
-  Ret %21
+  %30 := Phi test.V2* @1:%12, @4:%6, @5:%29, @6:%0
+  Ret %30
 }
 
 func int @test.test7(byte %0) {

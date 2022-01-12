@@ -7,33 +7,35 @@ class var_gatherer ~program =
   object
     inherit IRVisitor.t ~program as super
 
-    val mutable vars : ISet.t = ISet.empty
+    val mutable value_ids : ISet.t = ISet.empty
 
-    method vars = vars
+    method value_ids = value_ids
 
     method! visit_function func =
-      List.iter (fun (_, param_var_id, _) -> vars <- ISet.add param_var_id vars) func.params;
+      List.iter (fun param -> value_ids <- ISet.add param.Argument.id value_ids) func.params;
       super#visit_function func
 
-    method! visit_result_variable ~block:_ var_id = vars <- ISet.add var_id vars
+    method! visit_instruction ~block:_ instr = value_ids <- ISet.add instr.id value_ids
   end
 
 let rec normalize ~ocx =
   (* Gather all vars defined in program *)
   let gatherer = new var_gatherer ~program:ocx.Ocx.program in
   gatherer#run ();
-  let vars = gatherer#vars in
+  let value_ids = gatherer#value_ids in
 
   (* Update and potentially prune phi nodes with missing vars *)
   IMap.iter
     (fun _ block ->
-      block_filter_phis block (fun ({ args; _ } as phi) ->
+      block_filter_phis block (fun _ ({ args } as phi) ->
           let args' =
             IMap.filter
               (fun _ arg_val ->
-                match var_id_of_value_opt arg_val with
-                | None -> true
-                | Some var_id -> ISet.mem var_id vars)
+                match arg_val with
+                | Value.Lit _ -> true
+                | Argument { id; _ }
+                | Instr { id; _ } ->
+                  ISet.mem id value_ids)
               args
           in
           let has_args = not (IMap.is_empty args') in
@@ -52,10 +54,10 @@ let rec normalize ~ocx =
   let rec iter () =
     IMap.iter
       (fun _ block ->
-        block_filter_phis block (fun { var_id; args; _ } ->
+        block_filter_phis block (fun instr_id { args } ->
             let (_, arg_val) = IMap.choose args in
             if IMap.for_all (fun _ arg -> values_equal arg arg_val) args then (
-              rewrite_map := IMap.add var_id arg_val !rewrite_map;
+              rewrite_map := IMap.add instr_id arg_val !rewrite_map;
               false
             ) else
               true))
@@ -63,7 +65,7 @@ let rec normalize ~ocx =
     if IMap.is_empty !rewrite_map then
       ()
     else
-      let rewrite_mapper = new Mir_mapper.rewrite_vars_mapper ~program:ocx.program !rewrite_map in
+      let rewrite_mapper = new Mir_mapper.rewrite_vals_mapper ~program:ocx.program !rewrite_map in
       let all_blocks = ocx.Ocx.program.blocks in
       IMap.iter (fun _ block -> rewrite_mapper#map_block block) all_blocks;
       rewrite_map := IMap.empty;

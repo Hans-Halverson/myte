@@ -133,12 +133,13 @@ let folded_constants_equal c1 c2 =
   | _ -> false
 
 let mir_value_of_constant constant =
+  let open Mir_builders in
   match constant with
-  | BoolConstant b -> `BoolL b
-  | ByteConstant i -> `ByteL i
-  | IntConstant i -> `IntL i
-  | LongConstant i -> `LongL i
-  | FunctionConstant f -> `FunctionL f
+  | BoolConstant b -> mk_bool_lit b
+  | ByteConstant i -> mk_byte_lit i
+  | IntConstant i -> mk_int_lit_of_int32 i
+  | LongConstant i -> mk_long_lit i
+  | FunctionConstant f -> mk_func_lit f
 
 (* Perform iterative passes to calculate folded constants for all variables.
    Additionally prune dead branches, some of which may be exposed by constant folding. *)
@@ -146,21 +147,21 @@ class calc_constants_visitor ~ocx =
   object (this)
     inherit IRVisitor.t ~program:ocx.Ocx.program
 
-    val mutable var_id_constants : folded_constant IMap.t = IMap.empty
+    val mutable instr_constants : folded_constant IMap.t = IMap.empty
 
     val mutable global_constants : folded_constant SMap.t = SMap.empty
 
     (* Whether a new constant was created on this pass *)
     val mutable has_new_constant = false
 
-    (* Set of all variables that have been removed during this run *)
-    val mutable removed_vars : ISet.t = ISet.empty
+    (* Set of all instructions that have been removed during this run *)
+    val mutable removed_instr_ids : ISet.t = ISet.empty
 
-    method add_constant var_id value =
-      if IMap.mem var_id var_id_constants then
+    method add_constant instr_id value =
+      if IMap.mem instr_id instr_constants then
         ()
       else (
-        var_id_constants <- IMap.add var_id value var_id_constants;
+        instr_constants <- IMap.add instr_id value instr_constants;
         has_new_constant <- true
       )
 
@@ -169,9 +170,9 @@ class calc_constants_visitor ~ocx =
       has_new_constant <- true;
       ocx.program.globals <- SMap.remove name ocx.program.globals
 
-    method lookup_constant var_id = IMap.find_opt var_id var_id_constants
+    method lookup_constant instr_id = IMap.find_opt instr_id instr_constants
 
-    method get_var_id_constants () = var_id_constants
+    method get_instr_constants () = instr_constants
 
     method! run () =
       (* Fold constants until fixed point is found *)
@@ -189,7 +190,7 @@ class calc_constants_visitor ~ocx =
               (* Collect all removed variables so they can be excluded from constant folding *)
               let gatherer = new Mir_normalizer.var_gatherer ~program:ocx.program in
               gatherer#visit_instructions ~block block.instructions;
-              removed_vars <- ISet.union gatherer#vars removed_vars
+              removed_instr_ids <- ISet.union gatherer#value_ids removed_instr_ids
             ))
           ocx.program.blocks;
         if has_new_constant then
@@ -204,23 +205,24 @@ class calc_constants_visitor ~ocx =
         (fun name global ->
           match global.Global.init_val with
           (* Skip if global cannot be constant or has already been marked as constant *)
-          | Some _ when (not global.is_constant) || SMap.mem name global_constants -> ()
-          | None -> ()
-          | Some init_val ->
-            (match var_id_of_value_opt init_val with
-            | Some var_id ->
-              (match IMap.find_opt var_id var_id_constants with
-              | Some constant -> this#add_global_constant name constant
-              | None -> ())
-            (* Globals initialized with constant value have constant propagated *)
-            | None ->
-              (match init_val with
-              | `BoolL lit -> this#add_global_constant name (BoolConstant lit)
-              | `ByteL lit -> this#add_global_constant name (ByteConstant lit)
-              | `IntL lit -> this#add_global_constant name (IntConstant lit)
-              | `LongL lit -> this#add_global_constant name (LongConstant lit)
-              | `FunctionL lit -> this#add_global_constant name (FunctionConstant lit)
-              | _ -> ())))
+          | None
+          | Some _
+            when (not global.is_constant) || SMap.mem name global_constants ->
+            ()
+          | Some (Instr instr) ->
+            (match IMap.find_opt instr.id instr_constants with
+            | Some constant -> this#add_global_constant name constant
+            | None -> ())
+          (* Globals initialized with constant value have constant propagated *)
+          | Some (Lit lit) ->
+            (match lit with
+            | Bool lit -> this#add_global_constant name (BoolConstant lit)
+            | Byte lit -> this#add_global_constant name (ByteConstant lit)
+            | Int lit -> this#add_global_constant name (IntConstant lit)
+            | Long lit -> this#add_global_constant name (LongConstant lit)
+            | Function lit -> this#add_global_constant name (FunctionConstant lit)
+            | _ -> ())
+          | _ -> ())
         ocx.program.globals
 
     (* Constant folding may determine that globals are initialized to a constant. These take the
@@ -233,12 +235,12 @@ class calc_constants_visitor ~ocx =
           object (mapper)
             inherit Mir_mapper.InstructionsMapper.t ~program:ocx.Ocx.program
 
-            method! map_instruction ~block:_ ((_, instr) as instruction) =
-              (match instr with
-              | Store (`PointerL (_, name), value) ->
-                (match (SMap.find_opt name ocx.program.globals, var_id_of_value_opt value) with
-                | (Some global, Some var_id) ->
-                  (match IMap.find_opt var_id var_id_constants with
+            method! map_instruction instruction =
+              (match instruction.instr with
+              | Store (Lit (Pointer (_, name)), value) ->
+                (match (SMap.find_opt name ocx.program.globals, value) with
+                | (Some global, Instr { id = instr_id; _ }) ->
+                  (match IMap.find_opt instr_id instr_constants with
                   | Some constant ->
                     mapper#mark_instruction_removed ();
                     if global.is_constant then
@@ -266,12 +268,13 @@ class calc_constants_visitor ~ocx =
           (* Determine whether test is a constant value *)
           let test_constant_opt =
             match test with
-            | `BoolL lit -> Some lit
-            | `BoolV var_id ->
-              (match this#lookup_constant var_id with
+            | Lit (Bool lit) -> Some lit
+            | Instr instr ->
+              (match this#lookup_constant instr.id with
               | None -> None
               | Some (BoolConstant test) -> Some test
               | Some _ -> failwith "Expected BoolConstant")
+            | _ -> None
           in
           (match test_constant_opt with
           | None ->
@@ -295,8 +298,8 @@ class calc_constants_visitor ~ocx =
       )
 
     (* Visit all phi nodes and propagate constants through if possible *)
-    method! visit_phi_node ~block:_ { var_id; type_ = _; args } =
-      match this#lookup_constant var_id with
+    method! visit_phi_node ~block:_ instr { args } =
+      match this#lookup_constant instr.id with
       | Some _ -> ()
       | None ->
         (* Gather all constant args in phi node *)
@@ -304,29 +307,20 @@ class calc_constants_visitor ~ocx =
           IMap.fold
             (fun _ arg_val (constants, is_constant) ->
               match arg_val with
-              | `ByteV var_id
-              | `IntV var_id
-              | `LongV var_id
-              | `BoolV var_id
-              | `FunctionV var_id ->
-                if ISet.mem var_id removed_vars then
+              | Value.Instr instr ->
+                if ISet.mem instr.id removed_instr_ids then
                   (constants, is_constant)
                 else (
-                  match this#lookup_constant var_id with
+                  match this#lookup_constant instr.id with
                   | None -> (constants, false)
                   | Some constant -> (constant :: constants, is_constant)
                 )
-              | `BoolL b -> (BoolConstant b :: constants, is_constant)
-              | `ByteL b -> (ByteConstant b :: constants, is_constant)
-              | `IntL i -> (IntConstant i :: constants, is_constant)
-              | `LongL l -> (LongConstant l :: constants, is_constant)
-              | `FunctionL label -> (FunctionConstant label :: constants, is_constant)
-              | `PointerL _
-              | `PointerV _
-              | `ArrayStringL _
-              | `ArrayVtableL _
-              | `ArrayV _ ->
-                (constants, false))
+              | Lit (Bool b) -> (BoolConstant b :: constants, is_constant)
+              | Lit (Byte b) -> (ByteConstant b :: constants, is_constant)
+              | Lit (Int i) -> (IntConstant i :: constants, is_constant)
+              | Lit (Long l) -> (LongConstant l :: constants, is_constant)
+              | Lit (Function label) -> (FunctionConstant label :: constants, is_constant)
+              | _ -> (constants, false))
             args
             ([], true)
         in
@@ -340,70 +334,41 @@ class calc_constants_visitor ~ocx =
               (fun other_constant -> folded_constants_equal constant other_constant)
               other_constants
           in
-          if is_single_constant then this#add_constant var_id constant
+          if is_single_constant then this#add_constant instr.id constant
 
-    method! visit_instruction ~block instruction =
-      let get_bool_lit_opt value =
+    method! visit_instruction ~block instr =
+      let get_lit_opt value =
         match value with
-        | `BoolL lit -> Some (BoolConstant lit)
-        | `BoolV var_id ->
-          (match IMap.find_opt var_id var_id_constants with
-          | None -> None
-          | Some (BoolConstant _ as lit) -> Some lit
-          | _ -> failwith "Expected bool value")
+        | Value.Lit (Bool b) -> Some (BoolConstant b)
+        | Lit (Byte b) -> Some (ByteConstant b)
+        | Lit (Int i) -> Some (IntConstant i)
+        | Lit (Long l) -> Some (LongConstant l)
+        | Lit (Function label) -> Some (FunctionConstant label)
+        | Instr instr -> IMap.find_opt instr.id instr_constants
+        | _ -> None
       in
-      let get_numeric_lit_opt value =
-        match value with
-        | (`BoolL _ | `BoolV _) as value -> get_bool_lit_opt value
-        | `ByteL lit -> Some (ByteConstant lit)
-        | `ByteV var_id ->
-          (match IMap.find_opt var_id var_id_constants with
-          | None -> None
-          | Some (ByteConstant _ as lit) -> Some lit
-          | _ -> failwith "Expected numeric value")
-        | `IntL lit -> Some (IntConstant lit)
-        | `IntV var_id ->
-          (match IMap.find_opt var_id var_id_constants with
-          | None -> None
-          | Some (IntConstant _ as lit) -> Some lit
-          | _ -> failwith "Expected numeric value")
-        | `LongL lit -> Some (LongConstant lit)
-        | `LongV var_id ->
-          (match IMap.find_opt var_id var_id_constants with
-          | None -> None
-          | Some (LongConstant _ as lit) -> Some lit
-          | _ -> failwith "Expected numeric value")
-      in
-      let get_comparable_lit_opt value =
-        match value with
-        | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as value ->
-          get_numeric_lit_opt value
-        | (`BoolL _ | `BoolV _) as value -> get_bool_lit_opt value
-        | `PointerL _
-        | `PointerV _ ->
-          None
-      in
-      let try_fold_conversion var_id arg op =
-        match get_numeric_lit_opt arg with
+      let try_fold_conversion instr_id arg op =
+        match get_lit_opt arg with
         | None -> ()
-        | Some arg -> this#add_constant var_id (apply_conversion op arg)
+        | Some arg -> this#add_constant instr_id (apply_conversion op arg)
       in
-      let try_fold_comparison var_id left right f =
-        match (get_comparable_lit_opt left, get_comparable_lit_opt right) with
+      let try_fold_comparison instr_id left right f =
+        match (get_lit_opt left, get_lit_opt right) with
         | (Some left, Some right) ->
-          this#add_constant var_id (BoolConstant (f (fold_constants_compare left right) 0))
+          this#add_constant instr_id (BoolConstant (f (fold_constants_compare left right) 0))
         | _ -> ()
       in
-      match snd instruction with
-      | Unary (op, var_id, arg) ->
-        (match get_numeric_lit_opt arg with
+      match instr.instr with
+      | Unary (op, arg) ->
+        (match get_lit_opt arg with
         | None -> ()
-        | Some arg -> this#add_constant var_id (apply_unary_operation op arg))
-      | Binary (op, var_id, left, right) ->
-        (match (get_numeric_lit_opt left, get_numeric_lit_opt right) with
-        | (Some left, Some right) -> this#add_constant var_id (apply_binary_operation op left right)
+        | Some arg -> this#add_constant instr.id (apply_unary_operation op arg))
+      | Binary (op, left, right) ->
+        (match (get_lit_opt left, get_lit_opt right) with
+        | (Some left, Some right) ->
+          this#add_constant instr.id (apply_binary_operation op left right)
         | _ -> ())
-      | Cmp (cmp, var_id, left, right) ->
+      | Cmp (cmp, left, right) ->
         let cmp_f =
           match cmp with
           | Eq -> ( == )
@@ -413,34 +378,32 @@ class calc_constants_visitor ~ocx =
           | Gt -> ( > )
           | GtEq -> ( >= )
         in
-        try_fold_comparison var_id left right cmp_f
-      | Trunc (var_id, arg, ty) -> try_fold_conversion var_id arg (TruncOp ty)
-      | SExt (var_id, arg, ty) -> try_fold_conversion var_id arg (SExtOp ty)
+        try_fold_comparison instr.id left right cmp_f
+      | Trunc arg -> try_fold_conversion instr.id arg (TruncOp (cast_to_numeric_type instr.type_))
+      | SExt arg -> try_fold_conversion instr.id arg (SExtOp (cast_to_numeric_type instr.type_))
       (* Propagate global constants through pointers *)
-      | Load (var_id, `PointerL (_, label)) ->
+      | Load (Lit (Pointer (_, label))) ->
         (match SMap.find_opt label global_constants with
         | None -> ()
-        | Some constant -> this#add_constant var_id constant)
-      | Phi phi -> this#visit_phi_node ~block phi
+        | Some constant -> this#add_constant instr.id constant)
+      | Phi phi -> this#visit_phi_node ~block instr phi
       | _ -> ()
   end
 
-class update_constants_mapper ~ocx var_id_constants =
-  let var_map = IMap.map mir_value_of_constant var_id_constants in
+class update_constants_mapper ~ocx instr_constants =
+  let var_map = IMap.map mir_value_of_constant instr_constants in
   object (this)
-    inherit Mir_mapper.rewrite_vars_mapper ~program:ocx.Ocx.program var_map
+    inherit Mir_mapper.rewrite_vals_mapper ~program:ocx.Ocx.program var_map as super
 
-    (* If the result is a constant the entire instruction should be removed unless the result
-       appears in non-constant phis. If the result appears in non-constant phis then the
-       instruction should be replaced with a move of the constant to the result variable. *)
-    method! map_result_variable ~block:_ var_id =
-      if IMap.mem var_id var_id_constants then this#mark_instruction_removed ();
-      var_id
+    (* Remove instructions that have been folded to constants *)
+    method! map_instruction instr =
+      if IMap.mem instr.id instr_constants then this#mark_instruction_removed ();
+      super#map_instruction instr
   end
 
 let fold_constants_and_prune ~ocx =
   let calc_visitor = new calc_constants_visitor ~ocx in
   ignore (calc_visitor#run ());
-  let var_id_constants = calc_visitor#get_var_id_constants () in
-  let update_constants_mapper = new update_constants_mapper ~ocx var_id_constants in
+  let instr_constants = calc_visitor#get_instr_constants () in
+  let update_constants_mapper = new update_constants_mapper ~ocx instr_constants in
   IMap.iter (fun _ block -> update_constants_mapper#map_block block) ocx.Ocx.program.blocks

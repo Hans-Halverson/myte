@@ -62,26 +62,31 @@ func void @test.destructureVariants(test.Variant* %0) {
   Store int %3, 0
   %4 := GetPointer int, std.string.String* %1.1
   Store int %4, 0
-  %5 := Load byte %0
-  %6 := Eq byte %5, 0
-  branch %6, @0, @1
+  %5 := Cast test.Variant* %0 to byte*
+  %6 := Load byte %5
+  %7 := Eq byte %6, 0
+  branch %7, @0, @1
 label @0:
-  %7 := GetPointer int, test.Variant::Tup1* %0.2
-  %8 := Load int %7
-  %9 := GetPointer std.string.String*, test.Variant::Tup1* %0.3
-  %10 := Load std.string.String* %9
+  %8 := Cast test.Variant* %0 to test.Variant::Tup1*
+  %9 := GetPointer int, test.Variant::Tup1* %8.2
+  %10 := Load int %9
+  %11 := Cast test.Variant* %0 to test.Variant::Tup1*
+  %12 := GetPointer std.string.String*, test.Variant::Tup1* %11.3
+  %13 := Load std.string.String* %12
   continue @2
 label @1:
-  %11 := GetPointer std.string.String*, test.Variant::Tup2* %0.3
-  %12 := Load std.string.String* %11
-  %13 := GetPointer int, test.Variant::Tup2* %0.2
-  %14 := Load int %13
+  %14 := Cast test.Variant* %0 to test.Variant::Tup2*
+  %15 := GetPointer std.string.String*, test.Variant::Tup2* %14.3
+  %16 := Load std.string.String* %15
+  %17 := Cast test.Variant* %0 to test.Variant::Tup2*
+  %18 := GetPointer int, test.Variant::Tup2* %17.2
+  %19 := Load int %18
   continue @2
 label @2:
-  %15 := Phi int @0:%8, @1:%14
-  %16 := Phi std.string.String* @0:%10, @1:%12
-  Call void @test.use<Int>(%15)
-  Call void @test.use<String>(%16)
+  %20 := Phi int @0:%10, @1:%19
+  %21 := Phi std.string.String* @0:%13, @1:%16
+  Call void @test.use<Int>(%20)
+  Call void @test.use<String>(%21)
   Ret
 }
 

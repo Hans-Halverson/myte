@@ -9,12 +9,6 @@ type t = {
   mutable next_blocks: IIMMap.t;
   (* Block id to the previous blocks that jump to it *)
   mutable prev_blocks: IIMMap.t;
-  (* Variable id to the block that defines it.
-     Not updated on block or variable deletions! *)
-  mutable var_def_blocks: Block.id IMap.t;
-  (* Variable id to the set of blocks that use it.
-     Not updated on block or variable deletions! *)
-  mutable var_use_blocks: IIMMap.t;
 }
 
 let get_block ~ocx block_id = IMap.find block_id ocx.program.blocks
@@ -195,17 +189,6 @@ class init_visitor ~ocx =
     inherit IRVisitor.t ~program:ocx.program
 
     method! visit_edge b1 b2 = add_block_link ~ocx b1.id b2.id
-
-    method! visit_result_variable ~block var_id =
-      ocx.var_def_blocks <- IMap.add var_id block.id ocx.var_def_blocks
-
-    method! visit_use_variable ~block var_id =
-      let new_blocks =
-        match IMap.find_opt var_id ocx.var_use_blocks with
-        | None -> ISet.singleton block.id
-        | Some blocks -> ISet.add block.id blocks
-      in
-      ocx.var_use_blocks <- IMap.add var_id new_blocks ocx.var_use_blocks
   end
 
 let mk program =
@@ -216,15 +199,7 @@ let mk program =
       program.Program.blocks
       IMap.empty
   in
-  let ocx =
-    {
-      program;
-      next_blocks = init_block_mmaps;
-      prev_blocks = init_block_mmaps;
-      var_def_blocks = IMap.empty;
-      var_use_blocks = IMap.empty;
-    }
-  in
+  let ocx = { program; next_blocks = init_block_mmaps; prev_blocks = init_block_mmaps } in
   let init_visitor = new init_visitor ~ocx in
   init_visitor#run ();
   ocx

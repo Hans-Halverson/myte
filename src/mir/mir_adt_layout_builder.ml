@@ -67,11 +67,14 @@ let mk_mir_variants_layout ~(ecx : Ecx.t) decl_node variant_nodes =
           match tag_mir_type with
           | `ByteT ->
             (* Convert signed byte to equivalent unsigned byte *)
-            if i >= 128 then
-              `ByteL (127 - i)
-            else
-              `ByteL i
-          | `IntT -> `IntL (Int32.of_int i)
+            let i =
+              if i >= 128 then
+                127 - i
+              else
+                i
+            in
+            Mir_builders.mk_byte_lit i
+          | `IntT -> Mir_builders.mk_int_lit i
         in
         (i + 1, SMap.add name tag tags, SMap.add name loc variant_locs))
       (0, SMap.empty, SMap.empty)

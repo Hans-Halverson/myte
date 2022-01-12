@@ -106,6 +106,11 @@ let cast_to_aggregate_type ty =
   | `AggregateT _ as ty -> ty
   | _ -> failwith "Expected aggregate type"
 
+let cast_to_numeric_type ty =
+  match ty with
+  | (`BoolT | `ByteT | `IntT | `LongT) as ty -> ty
+  | _ -> failwith "Expected numeric type"
+
 let is_pointer_type ty =
   match ty with
   | `PointerT _ -> true

@@ -21,17 +21,21 @@ class preprocessor ~ir =
   object
     inherit Mir_visitor.IRVisitor.t ~program:ir
 
-    val mutable var_num_uses = IMap.empty
+    val mutable value_num_uses = IMap.empty
 
-    method get_var_num_uses = var_num_uses
+    method get_value_num_uses = value_num_uses
 
-    method! visit_use_variable ~block:_ var_id =
-      let num_uses =
-        match IMap.find_opt var_id var_num_uses with
-        | None -> 1
-        | Some num_uses -> num_uses + 1
-      in
-      var_num_uses <- IMap.add var_id num_uses var_num_uses
+    method! visit_value ~block:_ value =
+      match value with
+      | Value.Instr { id; _ }
+      | Argument { id; _ } ->
+        let num_uses =
+          match IMap.find_opt id value_num_uses with
+          | None -> 1
+          | Some num_uses -> num_uses + 1
+        in
+        value_num_uses <- IMap.add id num_uses value_num_uses
+      | _ -> ()
   end
 
 let rec gen ~gcx (ir : Program.t) =
@@ -51,7 +55,7 @@ let rec gen ~gcx (ir : Program.t) =
 and preprocess_ir ~gcx ir =
   let preprocessor = new preprocessor ~ir in
   preprocessor#run ();
-  gcx.var_num_uses <- preprocessor#get_var_num_uses
+  gcx.value_num_uses <- preprocessor#get_value_num_uses
 
 and gen_global_instruction_builder ~gcx ~ir:_ global =
   let label = label_of_mir_label global.name in
@@ -65,23 +69,16 @@ and gen_global_instruction_builder ~gcx ~ir:_ global =
     let is_pointer = is_pointer_type global.ty in
     Gcx.add_bss ~gcx { label; value = (); size; is_pointer } align
   (* Array literal is known at compile time, so insert into initialized data section *)
-  | Some (`ArrayStringL data) ->
+  | Some (Lit (ArrayString data)) ->
     let size = String.length data in
     Gcx.add_data ~gcx { label; value = AsciiData data; size; is_pointer = false }
-  | Some (`ArrayVtableL (_, function_values)) ->
-    let label_values =
-      List.map
-        (fun function_value ->
-          match function_value with
-          | `FunctionL label -> label_of_mir_label label
-          | `FunctionV _ -> failwith "ArrayVtableL value must only contain function literals")
-        function_values
-    in
+  | Some (Lit (ArrayVtable (_, func_labels))) ->
+    let label_values = List.map label_of_mir_label func_labels in
     let size = List.length label_values * pointer_size in
     Gcx.add_data ~gcx { label; value = LabelData label_values; size; is_pointer = false }
   (* Pointer and function literals are labels, so insert into initialized data section *)
-  | Some (`PointerL (_, init_label))
-  | Some (`FunctionL init_label) ->
+  | Some (Lit (Pointer (_, init_label)))
+  | Some (Lit (Function init_label)) ->
     let is_pointer = is_pointer_type global.ty in
     let data = { label; value = LabelData [init_label]; size = pointer_size; is_pointer } in
     Gcx.add_data ~gcx data
@@ -112,11 +109,11 @@ and gen_function_instruction_builder ~gcx ~ir func =
   func_.prologue <- prologue_block_id;
   func_.params <-
     List.mapi
-      (fun i (_, var_id, value_type) ->
+      (fun i { Argument.id = arg_id; type_; _ } ->
         (* First 6 parameters are passed in known registers *)
-        let size = register_size_of_mir_value_type value_type in
+        let size = register_size_of_mir_value_type type_ in
         let move_from_precolored color =
-          let param_vreg = VReg.of_var_id ~resolution:Unresolved var_id in
+          let param_vreg = VReg.of_var_id ~resolution:Unresolved arg_id in
           Gcx.emit ~gcx (MovMM (size, Reg (Gcx.mk_precolored ~gcx color), Reg param_vreg));
           param_vreg
         in
@@ -130,7 +127,7 @@ and gen_function_instruction_builder ~gcx ~ir func =
         (* All other parameters pushed onto stack before call. Address will be calculated once
            we know stack frame size after stack coloring. *)
         | _ ->
-          let vreg = VReg.of_var_id ~resolution:Unresolved var_id in
+          let vreg = VReg.of_var_id ~resolution:Unresolved arg_id in
           vreg.resolution <- StackSlot (FunctionStackArgument vreg);
           vreg)
       func.params;
@@ -151,7 +148,7 @@ and gen_blocks ~gcx ~ir start_block_id label func =
           None
       in
       Gcx.start_block ~gcx ~label ~func ~mir_block_id:(Some mir_block_id);
-      gen_instructions ~gcx ~ir ~block:mir_block (List.map snd mir_block.instructions);
+      gen_instructions ~gcx ~ir ~block:mir_block mir_block.instructions;
       Gcx.finish_block ~gcx)
     ordered_blocks
 
@@ -160,9 +157,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
   let gen_instructions = gen_instructions ~gcx ~ir ~block in
   let vreg_of_result_var_id var_id = VReg.of_var_id ~resolution:Unresolved var_id in
   let mk_vreg () = VReg.mk ~resolution:Unresolved in
-  let resolve_ir_value ?(allow_imm64 = false) v =
-    resolve_ir_value ~gcx ~allow_imm64 (v :> Value.t)
-  in
+  let resolve_ir_value ?(allow_imm64 = false) v = resolve_ir_value ~gcx ~allow_imm64 v in
   let emit_mem mem =
     match mem with
     | SVReg (vreg, _) -> Reg vreg
@@ -383,16 +378,16 @@ and gen_instructions ~gcx ~ir ~block instructions =
     Gcx.emit ~gcx (SetCC (cc, Reg result_vreg));
     cc
   in
-  let is_cond_jump var_id =
+  let is_cond_jump value_id =
     match block.next with
-    | Branch { test = `BoolV test_var_id; _ } when test_var_id = var_id -> true
+    | Branch { test = Instr { id; _ } | Argument { id; _ }; _ } when id = value_id -> true
     | _ -> false
   in
   let gen_cond_jmp cc test_var_id left_val right_val =
     let cc =
       (* If the only use of the comparison is in this branch instruction, only need to generate
          a comparison instruction and use the current flags. *)
-      if IMap.find test_var_id gcx.var_num_uses = 1 then
+      if IMap.find test_var_id gcx.value_num_uses = 1 then
         let swapped = gen_cmp left_val right_val in
         if swapped then
           swap_condition_code_order cc
@@ -417,11 +412,11 @@ and gen_instructions ~gcx ~ir ~block instructions =
   | [] ->
     (* Conditional jump when the condition is in a variable *)
     (match block.next with
-    | Branch { test = `BoolL _; _ } -> failwith "Dead branch pruning must have already occurred"
+    | Branch { test = Lit (Bool _); _ } -> failwith "Dead branch pruning must have already occurred"
     | Continue continue ->
       (* TODO: Create better structure for tracking relative block locations *)
       Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx continue))
-    | Branch { test = `BoolV _ as test; continue; jump } ->
+    | Branch { test; continue; jump } ->
       let vreg = emit_bool_as_reg test in
       Gcx.emit ~gcx (TestMR (Size8, Reg vreg, vreg));
       Gcx.emit ~gcx (JmpCC (E, Gcx.get_block_id_from_mir_block_id ~gcx jump));
@@ -432,42 +427,45 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                   Mov
    * ===========================================
    *)
-  | Mir.Instruction.Mov (dest_var_id, value) :: rest_instructions ->
-    gen_mov dest_var_id value;
+  | { Mir.Instruction.id = dest_id; instr = Mov value; _ } :: rest_instructions ->
+    gen_mov dest_id value;
     gen_instructions rest_instructions
   (*
    * ===========================================
    *                   Call
    * ===========================================
    *)
-  | Mir.Instruction.Call { return; func = Value func_val; args = arg_vals } :: rest_instructions ->
+  | {
+      id = return_id;
+      type_ = return_type;
+      instr = Call { func = Value func_val; args = arg_vals; has_return };
+    }
+    :: rest_instructions ->
     (* Emit arguments for call *)
     gen_call_arguments arg_vals;
     (* Emit call instruction *)
     let inst =
       match func_val with
-      | `FunctionL label -> CallL (label_of_mir_label label)
-      | `FunctionV _ ->
+      | Lit (Function label) -> CallL (label_of_mir_label label)
+      | _ ->
         let func_mem = emit_mem (resolve_ir_value func_val) in
         CallM (Size64, func_mem)
     in
     Gcx.emit ~gcx inst;
     (* Move result from register A to return vreg *)
-    (match return with
-    | None -> ()
-    | Some (return_var_id, ret_ty) ->
-      let return_size = register_size_of_mir_value_type ret_ty in
+    ( if has_return then
+      let return_size = register_size_of_mir_value_type return_type in
       Gcx.emit
         ~gcx
-        (MovMM
-           (return_size, Reg (Gcx.mk_precolored ~gcx A), Reg (vreg_of_result_var_id return_var_id))));
+        (MovMM (return_size, Reg (Gcx.mk_precolored ~gcx A), Reg (vreg_of_result_var_id return_id)))
+    );
     gen_instructions rest_instructions
   (*
    * ===========================================
    *                   Ret
    * ===========================================
    *)
-  | Mir.Instruction.Ret value :: rest_instructions ->
+  | { instr = Ret value; _ } :: rest_instructions ->
     (match value with
     | None -> ()
     | Some value ->
@@ -484,8 +482,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                Load
    * ===========================================
    *)
-  | Mir.Instruction.Load (result_var_id, pointer) :: rest_instructions ->
-    let result_vreg = vreg_of_result_var_id result_var_id in
+  | { id = result_id; instr = Load pointer; _ } :: rest_instructions ->
+    let result_vreg = vreg_of_result_var_id result_id in
     let pointer_element_type = pointer_value_element_type pointer in
     let size =
       match pointer_element_type with
@@ -501,8 +499,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
     in
     let src =
       match pointer with
-      | `PointerL (_, label) -> mk_label_memory_address label
-      | `PointerV _ ->
+      | Lit (Pointer (_, label)) -> mk_label_memory_address label
+      | _ ->
         (match resolve_ir_value pointer with
         | SVReg (vreg, _) ->
           MemoryAddress.PhysicalAddress
@@ -519,7 +517,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                Store
    * ===========================================
    *)
-  | Mir.Instruction.Store (pointer, value) :: rest_instructions ->
+  | { instr = Store (pointer, value); _ } :: rest_instructions ->
     let pointer_element_type = pointer_value_element_type pointer in
     let size =
       match pointer_element_type with
@@ -536,8 +534,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
     let value = resolve_ir_value ~allow_imm64:true value in
     let dest =
       match pointer with
-      | `PointerL (_, label) -> mk_label_memory_address label
-      | `PointerV _ ->
+      | Lit (Pointer (_, label)) -> mk_label_memory_address label
+      | _ ->
         (match resolve_ir_value pointer with
         | SVReg (vreg, _) ->
           PhysicalAddress { offset = None; base = RegBase vreg; index_and_scale = None }
@@ -564,8 +562,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                   Add
    * ===========================================
    *)
-  | Mir.Instruction.Binary (Add, result_var_id, left_val, right_val) :: rest_instructions ->
-    let result_vreg = vreg_of_result_var_id result_var_id in
+  | { id = result_id; instr = Binary (Add, left_val, right_val); _ } :: rest_instructions ->
+    let result_vreg = vreg_of_result_var_id result_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm imm, other)
@@ -588,8 +586,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                    Sub
    * ===========================================
    *)
-  | Mir.Instruction.Binary (Sub, result_var_id, left_val, right_val) :: rest_instructions ->
-    let result_vreg = vreg_of_result_var_id result_var_id in
+  | { id = result_id; instr = Binary (Sub, left_val, right_val); _ } :: rest_instructions ->
+    let result_vreg = vreg_of_result_var_id result_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm left_imm, right) ->
@@ -615,8 +613,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                   Mul
    * ===========================================
    *)
-  | Mir.Instruction.Binary (Mul, result_var_id, left_val, right_val) :: rest_instructions ->
-    let result_vreg = vreg_of_result_var_id result_var_id in
+  | { id = result_id; instr = Binary (Mul, left_val, right_val); _ } :: rest_instructions ->
+    let result_vreg = vreg_of_result_var_id result_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm imm, other)
@@ -638,8 +636,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                   Div
    * ===========================================
    *)
-  | Mir.Instruction.Binary (Div, result_var_id, left_val, right_val) :: rest_instructions ->
-    let result_vreg = vreg_of_result_var_id result_var_id in
+  | { id = result_id; instr = Binary (Div, left_val, right_val); _ } :: rest_instructions ->
+    let result_vreg = vreg_of_result_var_id result_id in
     (match resolve_ir_value ~allow_imm64:true right_val with
     (* Division by a power of two can be optimized to a right shift *)
     | SImm imm when Opts.optimize () && Integers.is_power_of_two (int64_of_immediate imm) ->
@@ -661,8 +659,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                   Rem
    * ===========================================
    *)
-  | Mir.Instruction.Binary (Rem, result_var_id, left_val, right_val) :: rest_instructions ->
-    let result_vreg = vreg_of_result_var_id result_var_id in
+  | { id = result_id; instr = Binary (Rem, left_val, right_val); _ } :: rest_instructions ->
+    let result_vreg = vreg_of_result_var_id result_id in
     let precolored_d = Gcx.mk_precolored ~gcx D in
     let size = gen_idiv left_val right_val in
     Gcx.emit ~gcx (MovMM (size, Reg precolored_d, Reg result_vreg));
@@ -673,11 +671,11 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                   Neg
    * ===========================================
    *)
-  | Mir.Instruction.Unary (Neg, result_var_id, arg) :: rest_instructions ->
+  | { id = result_id; instr = Unary (Neg, arg); _ } :: rest_instructions ->
     let resolved_value = resolve_ir_value arg in
     let size = register_size_of_svalue resolved_value in
     let arg_mem = emit_mem resolved_value in
-    let result_vreg = vreg_of_result_var_id result_var_id in
+    let result_vreg = vreg_of_result_var_id result_id in
     Gcx.emit ~gcx (MovMM (size, arg_mem, Reg result_vreg));
     Gcx.emit ~gcx (NegM (size, Reg result_vreg));
     maybe_truncate_bool_vreg ~gcx ~if_bool:arg result_vreg;
@@ -687,10 +685,10 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                    Not
    * ===========================================
    *)
-  | Mir.Instruction.Unary (Not, result_var_id, arg) :: rest_instructions ->
+  | { id = result_id; instr = Unary (Not, arg); _ } :: rest_instructions ->
     ( if is_bool_value arg then (
       let arg_vreg = emit_bool_as_reg arg in
-      let result_vreg = vreg_of_result_var_id result_var_id in
+      let result_vreg = vreg_of_result_var_id result_id in
       Gcx.emit ~gcx (XorMM (Size32, Reg result_vreg, Reg result_vreg));
       Gcx.emit ~gcx (TestMR (Size8, Reg arg_vreg, arg_vreg));
       Gcx.emit ~gcx (SetCC (E, Reg result_vreg))
@@ -698,7 +696,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let resolved_value = resolve_ir_value arg in
       let size = register_size_of_svalue resolved_value in
       let arg_mem = emit_mem resolved_value in
-      let result_vreg = vreg_of_result_var_id result_var_id in
+      let result_vreg = vreg_of_result_var_id result_id in
       Gcx.emit ~gcx (MovMM (size, arg_mem, Reg result_vreg));
       Gcx.emit ~gcx (NotM (size, Reg result_vreg)) );
     gen_instructions rest_instructions
@@ -707,8 +705,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                    And
    * ===========================================
    *)
-  | Mir.Instruction.Binary (And, result_var_id, left_val, right_val) :: rest_instructions ->
-    let result_vreg = vreg_of_result_var_id result_var_id in
+  | { id = result_id; instr = Binary (And, left_val, right_val); _ } :: rest_instructions ->
+    let result_vreg = vreg_of_result_var_id result_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm imm, other)
@@ -730,8 +728,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                    Or
    * ===========================================
    *)
-  | Mir.Instruction.Binary (Or, result_var_id, left_val, right_val) :: rest_instructions ->
-    let result_vreg = vreg_of_result_var_id result_var_id in
+  | { id = result_id; instr = Binary (Or, left_val, right_val); _ } :: rest_instructions ->
+    let result_vreg = vreg_of_result_var_id result_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm imm, other)
@@ -753,8 +751,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                    Xor
    * ===========================================
    *)
-  | Mir.Instruction.Binary (Xor, result_var_id, left_val, right_val) :: rest_instructions ->
-    let result_vreg = vreg_of_result_var_id result_var_id in
+  | { id = result_id; instr = Binary (Xor, left_val, right_val); _ } :: rest_instructions ->
+    let result_vreg = vreg_of_result_var_id result_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm imm, other)
@@ -777,10 +775,10 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                  Shl
    * ===========================================
    *)
-  | Mir.Instruction.Binary (Shl, result_var_id, target_val, shift_val) :: rest_instructions ->
+  | { id = result_id; instr = Binary (Shl, target_val, shift_val); _ } :: rest_instructions ->
     let result_vreg =
       gen_shift
-        result_var_id
+        result_id
         target_val
         shift_val
         ~mk_reg_instr:(fun size mem -> ShlR (size, mem))
@@ -793,14 +791,14 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                  Shr
    * ===========================================
    *)
-  | Mir.Instruction.Binary (Shr, result_var_id, target_val, shift_val) :: rest_instructions ->
+  | { id = result_id; instr = Binary (Shr, target_val, shift_val); _ } :: rest_instructions ->
     (* Arithmetic right shift is a no-op on bools and cannot be represented by sar instruction *)
     if is_bool_value target_val then
-      gen_mov result_var_id target_val
+      gen_mov result_id target_val
     else
       ignore
         (gen_shift
-           result_var_id
+           result_id
            target_val
            shift_val
            ~mk_reg_instr:(fun size mem -> SarR (size, mem))
@@ -811,10 +809,10 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                  Shrl
    * ===========================================
    *)
-  | Mir.Instruction.Binary (Shrl, result_var_id, target_val, shift_val) :: rest_instructions ->
+  | { id = result_id; instr = Binary (Shrl, target_val, shift_val); _ } :: rest_instructions ->
     ignore
       (gen_shift
-         result_var_id
+         result_id
          target_val
          shift_val
          ~mk_reg_instr:(fun size mem -> ShrR (size, mem))
@@ -825,30 +823,33 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                    Cmp
    * ===========================================
    *)
-  | [Mir.Instruction.Cmp (cmp, result_var_id, left_val, right_val)] when is_cond_jump result_var_id
-    ->
+  | [{ id = result_id; instr = Cmp (cmp, left_val, right_val); _ }] when is_cond_jump result_id ->
     let cc = cc_of_mir_comparison cmp in
-    gen_cond_jmp cc result_var_id left_val right_val
-  | Mir.Instruction.Cmp (cmp, result_var_id, left_val, right_val) :: rest_instructions ->
+    gen_cond_jmp cc result_id left_val right_val
+  | { id = result_id; instr = Cmp (cmp, left_val, right_val); _ } :: rest_instructions ->
     let cc = cc_of_mir_comparison cmp in
-    ignore (gen_cmp_set_cc cc result_var_id left_val right_val);
+    ignore (gen_cmp_set_cc cc result_id left_val right_val);
     gen_instructions rest_instructions
   (*
    * ===========================================
    *                Call Builtin
    * ===========================================
    *)
-  | Mir.Instruction.Call { return; func = Builtin { Builtin.name; _ }; args } :: rest_instructions
-    ->
+  | {
+      id = return_id;
+      type_ = return_type;
+      instr = Call { func = Builtin { Builtin.name; _ }; args; _ };
+    }
+    :: rest_instructions ->
     let open Mir_builtin in
-    let ret_vreg () = vreg_of_result_var_id (fst (Option.get return)) in
+    let ret_vreg () = vreg_of_result_var_id return_id in
     (*
      * ===========================================
      *                myte_alloc
      * ===========================================
      *)
     if name = myte_alloc.name then (
-      let (`PointerT element_mir_ty) = cast_to_pointer_type (snd (Option.get return)) in
+      let (`PointerT element_mir_ty) = cast_to_pointer_type return_type in
       let precolored_a = Gcx.mk_precolored ~gcx A in
       let precolored_di = Gcx.mk_precolored ~gcx DI in
       gen_size_from_count_and_type ~gcx (List.hd args) element_mir_ty precolored_di;
@@ -941,56 +942,74 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                 GetPointer
    * ===========================================
    *)
-  | Mir.Instruction.GetPointer get_pointer_instr :: rest_instructions ->
-    gen_get_pointer ~gcx get_pointer_instr;
+  | ({ instr = GetPointer get_pointer_instr; _ } as instr) :: rest_instructions ->
+    gen_get_pointer ~gcx instr get_pointer_instr;
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                   Cast
+   * ===========================================
+   *)
+  | { id = return_id; instr = Cast arg_val; _ } :: rest_instructions ->
+    let result_vreg = vreg_of_result_var_id return_id in
+    (* Cast simply copies argument to result vreg, which will likely be optimized away *)
+    (match resolve_ir_value ~allow_imm64:true arg_val with
+    | SImm imm -> Gcx.emit ~gcx (MovIM (size_of_immediate imm, imm, Reg result_vreg))
+    | SAddr addr -> Gcx.emit ~gcx (Lea (Size64, addr, result_vreg))
+    | SMem (mem, size) -> Gcx.emit ~gcx (MovMM (size, Mem mem, Reg result_vreg))
+    | SVReg (vreg, size) -> Gcx.emit ~gcx (MovMM (size, Reg vreg, Reg result_vreg)));
     gen_instructions rest_instructions
   (*
    * ===========================================
    *                  Trunc
    * ===========================================
    *)
-  | Mir.Instruction.Trunc (result_var_id, arg_val, ty) :: rest_instructions ->
+  | { id = return_id; type_; instr = Trunc arg_val } :: rest_instructions ->
     (* Truncation occurs when later accessing only a portion of the arg. Emit mov to link arg and
        result, which will likely be optimized away (but may not be optimized away if we end up
        moving the truncated portion to memory). *)
-    let result_vreg = vreg_of_result_var_id result_var_id in
+    let result_vreg = vreg_of_result_var_id return_id in
     (match resolve_ir_value arg_val with
     | SImm _ -> failwith "Constants must be folded before gen"
     | arg ->
-      let size = register_size_of_mir_value_type (ty :> Type.t) in
+      let size = register_size_of_mir_value_type (type_ :> Type.t) in
       let arg_mem = emit_mem arg in
       Gcx.emit ~gcx (MovMM (size, arg_mem, Reg result_vreg)));
     (* Bools must be further truncated to only lowest bit *)
-    if ty = `BoolT then Gcx.emit ~gcx (AndIM (Size8, Imm8 1, Reg result_vreg));
+    if type_ = `BoolT then Gcx.emit ~gcx (AndIM (Size8, Imm8 1, Reg result_vreg));
     gen_instructions rest_instructions
   (*
    * ===========================================
    *                  SExt
    * ===========================================
    *)
-  | Mir.Instruction.SExt (result_var_id, arg_val, ty) :: rest_instructions ->
-    let result_vreg = vreg_of_result_var_id result_var_id in
+  | { id = return_id; type_; instr = SExt arg_val } :: rest_instructions ->
+    let result_vreg = vreg_of_result_var_id return_id in
     (match resolve_ir_value arg_val with
     | SImm _ -> failwith "Constants must be folded before gen"
     | arg ->
       let arg_size = register_size_of_svalue arg in
-      let result_size = register_size_of_mir_value_type (ty :> Type.t) in
+      let result_size = register_size_of_mir_value_type (type_ :> Type.t) in
       let arg_mem = emit_mem arg in
       if arg_size <> result_size then
         Gcx.emit ~gcx (MovSX (arg_size, result_size, arg_mem, result_vreg))
       else
         Gcx.emit ~gcx (MovMM (arg_size, arg_mem, Reg result_vreg)));
     gen_instructions rest_instructions
-  | Mir.Instruction.Phi _ :: _ -> failwith "Phi nodes must be removed before asm gen"
-  | Mir.Instruction.StackAlloc _ :: _ -> failwith "StackAlloc instructions removed before asm gen"
+  | { instr = Mir.Instruction.Phi _; _ } :: _ -> failwith "Phi nodes must be removed before asm gen"
+  | { instr = Mir.Instruction.StackAlloc _; _ } :: _ ->
+    failwith "StackAlloc instructions removed before asm gen"
 
-and gen_get_pointer ~gcx (get_pointer_instr : Mir.Instruction.GetPointer.t) =
+and gen_get_pointer
+    ~gcx
+    ({ id = return_id; _ } : Mir.Instruction.t)
+    (get_pointer_instr : Mir.Instruction.GetPointer.t) =
   let open Mir.Instruction.GetPointer in
-  let { var_id; return_ty = _; pointer; pointer_offset; offsets } = get_pointer_instr in
+  let { pointer; pointer_offset; offsets } = get_pointer_instr in
   let element_ty = pointer_value_element_type pointer in
 
   (* Utilities for creating vregs *)
-  let vreg_of_result_var_id var_id = VReg.of_var_id ~resolution:Unresolved var_id in
+  let vreg_of_result_var_id return_id = VReg.of_var_id ~resolution:Unresolved return_id in
   let mk_vreg () = VReg.mk ~resolution:Unresolved in
 
   (* Current address calculation - updated as offsets are visited. Note that base and index_and_scale
@@ -1099,11 +1118,11 @@ and gen_get_pointer ~gcx (get_pointer_instr : Mir.Instruction.GetPointer.t) =
 
   (* Add address of root pointer *)
   (match pointer with
-  | `PointerL (_, label) ->
+  | Lit (Pointer (_, label)) ->
     offset := Some (LabelOffset (label_of_mir_label label));
     base := IPBase
-  | `PointerV _ ->
-    (match resolve_ir_value ~gcx (pointer :> Value.t) with
+  | _ ->
+    (match resolve_ir_value ~gcx pointer with
     | SVReg (vreg, size) -> set_base vreg size
     | SMem (mem, size) ->
       let vreg = mk_vreg () in
@@ -1124,7 +1143,7 @@ and gen_get_pointer ~gcx (get_pointer_instr : Mir.Instruction.GetPointer.t) =
     | PointerIndex pointer_offset ->
       (* TODO: Handle sign extending byte arguments to 32/64 bits (movzbl/q) *)
       let element_size = Gcx.size_of_mir_type ~gcx ty in
-      (match resolve_ir_value ~gcx ~allow_imm64:true (pointer_offset :> Value.t) with
+      (match resolve_ir_value ~gcx ~allow_imm64:true pointer_offset with
       | SImm imm ->
         let num_elements = int64_of_immediate imm in
         if num_elements <> Int64.zero then (
@@ -1164,14 +1183,14 @@ and gen_get_pointer ~gcx (get_pointer_instr : Mir.Instruction.GetPointer.t) =
   List.iter (fun offset -> gen_offset offset !current_ty) offsets;
 
   let address_vreg = emit_current_address_calculation () in
-  let result_vreg = vreg_of_result_var_id var_id in
+  let result_vreg = vreg_of_result_var_id return_id in
   Gcx.emit ~gcx (MovMM (Size64, Reg address_vreg, Reg result_vreg))
 
 and gen_size_from_count_and_type ~gcx count_val mir_ty result_vreg =
   let element_size = Gcx.size_of_mir_type ~gcx mir_ty in
   match count_val with
   (* If count is a literal precalculate total requested size and fit into smallest immediate *)
-  | (`ByteL _ | `IntL _ | `LongL _) as count_lit ->
+  | Lit ((Byte _ | Int _ | Long _) as count_lit) ->
     let count = int64_of_literal count_lit in
     let total_size = Int64.mul count (Int64.of_int element_size) in
     let (size, total_size_imm) =
@@ -1182,9 +1201,9 @@ and gen_size_from_count_and_type ~gcx count_val mir_ty result_vreg =
     in
     Gcx.emit ~gcx (MovIM (size, total_size_imm, Reg result_vreg))
   (* If count is a variable multiply by size before putting in argument register *)
-  | (`ByteV _ | `IntV _ | `LongV _) as count_var ->
+  | _ ->
     let count_vreg =
-      match resolve_ir_value ~gcx count_var with
+      match resolve_ir_value ~gcx count_val with
       | SVReg (count_vreg, _) -> count_vreg
       | _ -> failwith "Must be virtual register"
     in
@@ -1195,7 +1214,6 @@ and gen_size_from_count_and_type ~gcx count_val mir_ty result_vreg =
       Gcx.emit
         ~gcx
         (IMulMIR (Size64, Reg count_vreg, Imm32 (Int32.of_int element_size), result_vreg))
-  | _ -> failwith "Expected numeric count"
 
 (* Truncate a single byte vreg to just its lowest bit if the test val has type bool *)
 and maybe_truncate_bool_vreg ~gcx ~if_bool vreg =
@@ -1209,22 +1227,19 @@ and resolve_ir_value ~gcx ?(allow_imm64 = false) value =
     | _ -> SVReg (vreg, size)
   in
   match value with
-  | `BoolL b ->
+  | Lit (Bool b) ->
     SImm
       (Imm8
          ( if b then
            1
          else
            0 ))
-  | `BoolV var_id -> vreg_of_var var_id Size8
-  | `ByteL b -> SImm (Imm8 b)
-  | `ByteV var_id -> vreg_of_var var_id Size8
+  | Lit (Byte b) -> SImm (Imm8 b)
   (* Int literals can be downgraded to an 8 byte literal if they fit *)
-  | `IntL i -> SImm (Imm32 i)
-  | `IntV var_id -> vreg_of_var var_id Size32
+  | Lit (Int i) -> SImm (Imm32 i)
   (* Long literals can be downgraded to a 32 byte int literal if it fits. Otherwise 64 bit literal
      must first be loaded to a register with a mov instruction. *)
-  | `LongL l ->
+  | Lit (Long l) ->
     if allow_imm64 then
       SImm (Imm64 l)
     else if not (Integers.is_out_of_signed_int_range l) then
@@ -1233,15 +1248,22 @@ and resolve_ir_value ~gcx ?(allow_imm64 = false) value =
       let vreg = VReg.mk ~resolution:Unresolved in
       Gcx.emit ~gcx Instruction.(MovIM (Size64, Imm64 l, Reg vreg));
       SVReg (vreg, Size64)
-  | `LongV var_id -> vreg_of_var var_id Size64
-  | `FunctionL name -> SAddr (mk_label_memory_address name)
-  | `FunctionV var_id -> vreg_of_var var_id Size64
-  | `PointerL (_, label) -> SAddr (mk_label_memory_address label)
-  | `PointerV (_, var_id) -> vreg_of_var var_id Size64
-  | `ArrayStringL _
-  | `ArrayVtableL _ ->
+  | Lit (Function name) -> SAddr (mk_label_memory_address name)
+  | Lit (Pointer (_, label)) -> SAddr (mk_label_memory_address label)
+  | Lit (ArrayString _)
+  | Lit (ArrayVtable _) ->
     failwith "TODO: Cannot compile array literals yet"
-  | `ArrayV _ -> failwith "TODO: Cannot compile array variables yet"
+  | Instr { id; type_; _ }
+  | Argument { id; type_; _ } ->
+    (match type_ with
+    | `BoolT -> vreg_of_var id Size8
+    | `ByteT -> vreg_of_var id Size8
+    | `IntT -> vreg_of_var id Size32
+    | `LongT -> vreg_of_var id Size64
+    | `FunctionT -> vreg_of_var id Size64
+    | `PointerT _ -> vreg_of_var id Size64
+    | `ArrayT _ -> failwith "TODO: Cannot compile array variables yet"
+    | `AggregateT _ -> failwith "TODO: Cannot compile aggregate variables yet")
 
 and register_size_of_mir_value_type value_type =
   match value_type with
@@ -1289,5 +1311,5 @@ and label_of_mir_label label = Str.global_replace invalid_label_chars "$" label
 
 and is_zero_size_global value =
   match value with
-  | `PointerL (_, name) when name = zero_size_name -> true
+  | Lit (Pointer (_, name)) when name = zero_size_name -> true
   | _ -> false

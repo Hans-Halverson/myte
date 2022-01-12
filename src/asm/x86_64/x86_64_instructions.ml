@@ -135,7 +135,7 @@ end = struct
       new_vreg
     | Some existing_vreg -> existing_vreg
 
-  let mk ~resolution = { id = Mir.mk_var_id (); resolution }
+  let mk ~resolution = { id = Mir.mk_value_id (); resolution }
 
   let compare v1 v2 = Int.compare v1.id v2.id
 

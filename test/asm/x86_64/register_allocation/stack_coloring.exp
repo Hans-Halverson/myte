@@ -44,14 +44,14 @@ test.testMultipleInterferingSpillsInDifferentStackSlots:
   addl %r13d, %r12d
   addl %r12d, %ebx
   addl %ebx, %r15d
-  movl (%rsp), %eax
-  addl %r15d, %eax
-  movl 8(%rsp), %ebx
+  movl (%rsp), %ebx
+  addl %r15d, %ebx
+  movl 8(%rsp), %eax
+  addl %ebx, %eax
+  movl 16(%rsp), %ebx
   addl %eax, %ebx
-  movl 16(%rsp), %ecx
-  addl %ebx, %ecx
   movl 24(%rsp), %eax
-  addl %ecx, %eax
+  addl %ebx, %eax
   addq $32, %rsp
   pop %r15
   pop %r14

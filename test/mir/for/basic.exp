@@ -25,30 +25,34 @@ func void @test.testIterators(std.vec.Vec<Int>* %0, std.vec.Vec<Bool>* %1) {
   continue @0
 label @0:
   %3 := Call std.option.Option<Int>* @std.vec.VecIterator.next<Int>(%2)
-  %4 := Load byte %3
-  %5 := Eq byte %4, 1
-  branch %5, @1, @2
+  %4 := Cast std.option.Option<Int>* %3 to byte*
+  %5 := Load byte %4
+  %6 := Eq byte %5, 1
+  branch %6, @1, @2
 label @1:
-  %6 := GetPointer int, std.option.Option<Int>::Some* %3.2
-  %7 := Load int %6
-  Call void @test.use<Int>(%7)
+  %7 := Cast std.option.Option<Int>* %3 to std.option.Option<Int>::Some*
+  %8 := GetPointer int, std.option.Option<Int>::Some* %7.2
+  %9 := Load int %8
+  Call void @test.use<Int>(%9)
   continue @0
 label @2:
-  %8 := Call std.vec.VecIterator<Bool>* @std.vec.Vec.toIterator<Bool>(%1)
+  %10 := Call std.vec.VecIterator<Bool>* @std.vec.Vec.toIterator<Bool>(%1)
   continue @3
 label @3:
-  %10 := Phi bool @2:false, @4:%9
-  %11 := Call std.option.Option<Bool>* @std.vec.VecIterator.next<Bool>(%8)
-  %12 := Load byte %11
-  %13 := Eq byte %12, 1
-  branch %13, @4, @5
+  %12 := Phi bool @2:false, @4:%11
+  %13 := Call std.option.Option<Bool>* @std.vec.VecIterator.next<Bool>(%10)
+  %14 := Cast std.option.Option<Bool>* %13 to byte*
+  %15 := Load byte %14
+  %16 := Eq byte %15, 1
+  branch %16, @4, @5
 label @4:
-  %14 := GetPointer bool, std.option.Option<Bool>::Some* %11.1
-  %9 := Load bool %14
-  Call void @test.use<Bool>(%9)
+  %17 := Cast std.option.Option<Bool>* %13 to std.option.Option<Bool>::Some*
+  %18 := GetPointer bool, std.option.Option<Bool>::Some* %17.1
+  %11 := Load bool %18
+  Call void @test.use<Bool>(%11)
   continue @3
 label @5:
-  Call void @test.use<Bool>(%10)
+  Call void @test.use<Bool>(%12)
   Ret
 }
 
@@ -58,14 +62,16 @@ func void @test.testBreak(std.vec.Vec<Bool>* %0) {
 label @0:
   %2 := Phi int @test.testBreak:0, @2:2
   %3 := Call std.option.Option<Bool>* @std.vec.VecIterator.next<Bool>(%1)
-  %4 := Load byte %3
-  %5 := Eq byte %4, 1
-  branch %5, @1, @4
+  %4 := Cast std.option.Option<Bool>* %3 to byte*
+  %5 := Load byte %4
+  %6 := Eq byte %5, 1
+  branch %6, @1, @4
 label @1:
-  %6 := GetPointer bool, std.option.Option<Bool>::Some* %3.1
-  %7 := Load bool %6
-  %8 := Not bool %7
-  branch %8, @3, @2
+  %7 := Cast std.option.Option<Bool>* %3 to std.option.Option<Bool>::Some*
+  %8 := GetPointer bool, std.option.Option<Bool>::Some* %7.1
+  %9 := Load bool %8
+  %10 := Not bool %9
+  branch %10, @3, @2
 label @2:
   Call void @test.use<Int>(2)
   continue @0
@@ -73,8 +79,8 @@ label @3:
   Call void @test.use<Int>(1)
   continue @4
 label @4:
-  %9 := Phi int @0:%2, @3:1
-  Call void @test.use<Int>(%9)
+  %11 := Phi int @0:%2, @3:1
+  Call void @test.use<Int>(%11)
   Ret
 }
 
@@ -84,14 +90,16 @@ func void @test.testContinue(std.vec.Vec<Bool>* %0) {
 label @0:
   %2 := Phi int @test.testContinue:0, @2:1, @3:2
   %3 := Call std.option.Option<Bool>* @std.vec.VecIterator.next<Bool>(%1)
-  %4 := Load byte %3
-  %5 := Eq byte %4, 1
-  branch %5, @1, @4
+  %4 := Cast std.option.Option<Bool>* %3 to byte*
+  %5 := Load byte %4
+  %6 := Eq byte %5, 1
+  branch %6, @1, @4
 label @1:
-  %6 := GetPointer bool, std.option.Option<Bool>::Some* %3.1
-  %7 := Load bool %6
-  %8 := Not bool %7
-  branch %8, @2, @3
+  %7 := Cast std.option.Option<Bool>* %3 to std.option.Option<Bool>::Some*
+  %8 := GetPointer bool, std.option.Option<Bool>::Some* %7.1
+  %9 := Load bool %8
+  %10 := Not bool %9
+  branch %10, @2, @3
 label @2:
   Call void @test.use<Int>(1)
   continue @0
@@ -109,13 +117,15 @@ func void @test.testStringIterator(std.string.String* %0) {
   continue @0
 label @0:
   %3 := Call std.option.Option<Byte>* @std.string.StringByteIterator.next(%2)
-  %4 := Load byte %3
-  %5 := Eq byte %4, 1
-  branch %5, @1, @2
+  %4 := Cast std.option.Option<Byte>* %3 to byte*
+  %5 := Load byte %4
+  %6 := Eq byte %5, 1
+  branch %6, @1, @2
 label @1:
-  %6 := GetPointer byte, std.option.Option<Byte>::Some* %3.1
-  %7 := Load byte %6
-  Call void @test.use<Byte>(%7)
+  %7 := Cast std.option.Option<Byte>* %3 to std.option.Option<Byte>::Some*
+  %8 := GetPointer byte, std.option.Option<Byte>::Some* %7.1
+  %9 := Load byte %8
+  Call void @test.use<Byte>(%9)
   continue @0
 label @2:
   Ret
@@ -126,9 +136,10 @@ func void @test.testDestructureZeroSizeType(std.vec.Vec<test.ZeroSize>* %0) {
   continue @0
 label @0:
   %2 := Call std.option.Option<test.ZeroSize>* @std.vec.VecIterator.next<test.ZeroSize>(%1)
-  %3 := Load byte %2
-  %4 := Eq byte %3, 1
-  branch %4, @1, @2
+  %3 := Cast std.option.Option<test.ZeroSize>* %2 to byte*
+  %4 := Load byte %3
+  %5 := Eq byte %4, 1
+  branch %5, @1, @2
 label @1:
   Call void @test.use<Unit>()
   Call void @test.use<Unit>()

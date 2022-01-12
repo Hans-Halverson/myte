@@ -48,9 +48,7 @@ module IRVisitor = struct
           this#visit_edge block continue_block;
           this#visit_block continue_block
         | Branch { test; continue; jump } ->
-          (match test with
-          | `BoolL _ -> ()
-          | `BoolV var_id -> this#visit_branch_use_variable ~block var_id);
+          this#visit_value ~block test;
           let continue_block = get_block continue in
           let jump_block = get_block jump in
           this#visit_edge block continue_block;
@@ -63,101 +61,44 @@ module IRVisitor = struct
       method visit_instructions ~block instructions =
         List.iter (this#visit_instruction ~block) instructions
 
-      method visit_instruction ~block (_, instr) =
+      method visit_instruction ~block instr =
         let open Instruction in
-        match instr with
-        | Mov (result, arg) ->
-          this#visit_value ~block arg;
-          this#visit_result_variable ~block result
-        | Phi phi -> this#visit_phi_node ~block phi
-        | Call { return; func; args } ->
+        match instr.instr with
+        | Phi phi -> this#visit_phi_node ~block instr phi
+        | Call { func; args; has_return = _ } ->
           (match func with
-          | Value func -> this#visit_function_value ~block func
+          | Value func -> this#visit_value ~block func
           | Builtin _ -> ());
-          List.iter (this#visit_value ~block) args;
-          (match return with
-          | None -> ()
-          | Some (ret, _ret_ty) -> this#visit_result_variable ~block ret)
+          List.iter (this#visit_value ~block) args
         | Ret arg_opt -> Option.iter (this#visit_value ~block) arg_opt
-        | StackAlloc (result, _ty) -> this#visit_result_variable ~block result
-        | Load (result, ptr) ->
-          this#visit_pointer_value ~block ptr;
-          this#visit_result_variable ~block result
-        | Store (ptr, arg) ->
-          this#visit_value ~block arg;
-          this#visit_pointer_value ~block ptr
-        | GetPointer { GetPointer.var_id; return_ty = _; pointer; pointer_offset; offsets } ->
-          this#visit_pointer_value ~block pointer;
-          Option.iter (this#visit_numeric_value ~block) pointer_offset;
+        | StackAlloc _type -> ()
+        | Load ptr -> this#visit_value ~block ptr
+        | Store (ptr, value) ->
+          this#visit_value ~block ptr;
+          this#visit_value ~block value
+        | GetPointer { GetPointer.pointer; pointer_offset; offsets } ->
+          this#visit_value ~block pointer;
+          Option.iter (this#visit_value ~block) pointer_offset;
           List.iter
             (fun offset ->
               match offset with
-              | GetPointer.PointerIndex index -> this#visit_numeric_value ~block index
+              | GetPointer.PointerIndex index -> this#visit_value ~block index
               | GetPointer.FieldIndex _ -> ())
-            offsets;
-          this#visit_result_variable ~block var_id
-        | Unary (_, result, arg)
-        | Trunc (result, arg, _)
-        | SExt (result, arg, _) ->
-          this#visit_numeric_value ~block arg;
-          this#visit_result_variable ~block result
-        | Binary (_binary_operation, result, left, right) ->
-          this#visit_numeric_value ~block left;
-          this#visit_numeric_value ~block right;
-          this#visit_result_variable ~block result
-        | Cmp (_comparison, result, left, right) ->
-          this#visit_comparable_value ~block left;
-          this#visit_comparable_value ~block right;
-          this#visit_result_variable ~block result
+            offsets
+        | Mov arg -> this#visit_value ~block arg
+        | Unary (_, arg)
+        | Cast arg
+        | Trunc arg
+        | SExt arg ->
+          this#visit_value ~block arg
+        | Binary (_, left, right)
+        | Cmp (_, left, right) ->
+          this#visit_value ~block left;
+          this#visit_value ~block right
 
-      method visit_phi_node ~block { var_id; type_ = _; args } =
-        this#visit_result_variable ~block var_id;
-        IMap.iter (fun _block_id arg_val -> this#visit_value ~block arg_val) args
+      method visit_phi_node ~block _instr phi =
+        IMap.iter (fun _block_id arg_val -> this#visit_value ~block arg_val) phi.args
 
-      method visit_result_variable ~block:_ _var_id = ()
-
-      method visit_instruction_use_variable ~block var_id = this#visit_use_variable ~block var_id
-
-      method visit_branch_use_variable = this#visit_use_variable
-
-      method visit_use_variable ~block:_ _var_id = ()
-
-      method visit_value ~block value =
-        match value with
-        | `BoolL _
-        | `ByteL _
-        | `IntL _
-        | `LongL _
-        | `FunctionL _
-        | `PointerL _
-        | `ArrayStringL _
-        | `ArrayVtableL _ ->
-          ()
-        | `BoolV var_id
-        | `IntV var_id
-        | `ByteV var_id
-        | `LongV var_id
-        | `FunctionV var_id
-        | `PointerV (_, var_id)
-        | `ArrayV (_, _, var_id) ->
-          this#visit_instruction_use_variable ~block var_id
-
-      method visit_bool_value ~block (value : Value.bool_value) =
-        this#visit_value ~block (value :> Value.t)
-
-      method visit_long_value ~block (value : Value.long_value) =
-        this#visit_value ~block (value :> Value.t)
-
-      method visit_numeric_value ~block (value : Value.numeric_value) =
-        this#visit_value ~block (value :> Value.t)
-
-      method visit_function_value ~block (value : Value.function_value) =
-        this#visit_value ~block (value :> Value.t)
-
-      method visit_pointer_value ~block (value : Value.pointer_value) =
-        this#visit_value ~block (value :> Value.t)
-
-      method visit_comparable_value ~block (value : Value.comparable_value) =
-        this#visit_value ~block (value :> Value.t)
+      method visit_value ~block:_ _value = ()
     end
 end

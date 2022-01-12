@@ -1,69 +1,63 @@
 open Basic_collections
 open Mir_type
 
-type var_id = int
-
-type instr_id = int
-
 type label = string
 
 module rec Value : sig
-  type bool_value =
-    [ `BoolV of var_id
-    | `BoolL of bool
-    ]
-
-  type function_value =
-    [ `FunctionV of var_id
-    | `FunctionL of label
-    ]
-
-  type pointer_value =
-    [ `PointerV of Type.t * var_id
-    | `PointerL of Type.t * label
-    ]
-
-  type long_value =
-    [ `LongV of var_id
-    | `LongL of Int64.t
-    ]
-
-  type numeric_value =
-    [ `IntV of var_id
-    | `IntL of Int32.t
-    | `ByteV of var_id
-    | `ByteL of int
-    | long_value
-    | bool_value
-    ]
-
-  type array_value =
-    [ `ArrayV of Type.t * int * var_id
-    | `ArrayStringL of string
-    | `ArrayVtableL of int * function_value list
-    ]
+  type id = int
 
   type t =
-    [ numeric_value
-    | function_value
-    | pointer_value
-    | array_value
-    ]
+    | Instr of Instruction.t
+    | Lit of Literal.t
+    | Argument of Argument.t
 
-  (* Value subsets for instructions *)
-  and comparable_value =
-    [ numeric_value
-    | pointer_value
-    ]
+  val compare : Value.t -> Value.t -> int
+end = struct
+  type id = int
+
+  type t =
+    | Instr of Instruction.t
+    | Lit of Literal.t
+    | Argument of Argument.t
+
+  let compare v1 v2 =
+    match (v1, v2) with
+    | ( (Instr { id = id1; _ } | Argument { id = id1; _ }),
+        (Instr { id = id2; _ } | Argument { id = id2; _ }) ) ->
+      Int.compare id1 id2
+    | (Lit _, Lit _) -> 0
+    | (Lit _, _) -> -1
+    | (_, Lit _) -> 1
+end
+
+and Literal : sig
+  type t =
+    | Bool of bool
+    | Byte of int
+    | Int of Int32.t
+    | Long of Int64.t
+    | Pointer of Type.t * label
+    | Function of label
+    | ArrayString of string
+    | ArrayVtable of int * label list
 end =
-  Value
+  Literal
+
+and Argument : sig
+  type t = {
+    id: Value.id;
+    func: label;
+    type_: Type.t;
+    (* Location of argument declaration identifier *)
+    decl_loc: Loc.t;
+  }
+end =
+  Argument
 
 and Instruction : sig
   (* Represents choosing a value depending on which basic block was previously visited *)
   module Phi : sig
     type t = {
-      var_id: var_id;
-      type_: Type.t;
       (* Map from preceding basic block id to the value to choose if that basic block was visited *)
       mutable args: Value.t IMap.t;
     }
@@ -71,27 +65,28 @@ and Instruction : sig
 
   module GetPointer : sig
     type offset =
-      | PointerIndex of Value.numeric_value
+      | PointerIndex of (* Numeric *) Value.t
       | FieldIndex of int
 
+    (* Instruction type is result of GetPointer instruction, a pointer to indexed element type *)
     type t = {
-      var_id: var_id;
-      return_ty: Type.t;
-      pointer: Value.pointer_value;
-      pointer_offset: Value.numeric_value option;
+      pointer: (* Pointer *) Value.t;
+      pointer_offset: (* Numeric *) Value.t option;
       offsets: offset list;
     }
   end
 
   module Call : sig
     type t = {
-      return: (var_id * Type.t) option;
       func: func;
       args: Value.t list;
+      (* If true then instruction's type_ is call's return type. If false then instruction's
+         type_ is undefined *)
+      has_return: bool;
     }
 
     and func =
-      | Value of Value.function_value
+      | Value of (* Function *) Value.t
       | Builtin of Builtin.t
   end
 
@@ -129,31 +124,36 @@ and Instruction : sig
 
   type func =
     | FuncBuiltin of Builtin.t
-    | FuncValue of Value.function_value
+    | FuncValue of (* Function *) Value.t
 
-  type t = instr_id * t'
-
-  and t' =
+  and instr =
     | Call of Call.t
     | Ret of Value.t option
     (* Memory operations *)
-    | StackAlloc of var_id * Type.t
-    | Load of var_id * Value.pointer_value
-    | Store of Value.pointer_value * Value.t
+    | StackAlloc of (* Type of allocated value *) Type.t (* Instruction type is pointer type *)
+    | Load of (* Pointer *) Value.t
+    | Store of (* Pointer *) Value.t * (* Stored value, any type *) Value.t
     (* Memory offset operations *)
     | GetPointer of GetPointer.t
     (* Unary operations *)
-    | Unary of unary_operation * var_id * Value.numeric_value
+    | Unary of unary_operation * (* Numeric *) Value.t
     (* Binary operations *)
-    | Binary of binary_operation * var_id * Value.numeric_value * Value.numeric_value
+    | Binary of binary_operation * (* Numeric *) Value.t * (* Numeric *) Value.t
     (* Comparison *)
-    | Cmp of comparison * var_id * Value.comparable_value * Value.comparable_value
+    | Cmp of comparison * (* Comparable *) Value.t * (* Comparable *) Value.t
     (* Conversions *)
-    | Trunc of var_id * Value.numeric_value * Type.numeric_type
-    | SExt of var_id * Value.numeric_value * Type.numeric_type
+    | Cast of Value.t (* Instruction type is type value is cast to *)
+    | Trunc of (* Numeric *) Value.t (* Instruction type is type value is truncated to *)
+    | SExt of (* Numeric *) Value.t (* Instruction type is type value is sign extended to *)
     (* Only generated during MIR destruction *)
-    | Mov of var_id * Value.t
+    | Mov of Value.t
     | Phi of Phi.t
+
+  and t = {
+    id: Value.id;
+    mutable type_: Type.t;
+    mutable instr: instr;
+  }
 end =
   Instruction
 
@@ -182,7 +182,7 @@ and Block : sig
     | Halt
     | Continue of id
     | Branch of {
-        test: Value.bool_value;
+        test: (* Bool *) Value.t;
         continue: id;
         jump: id;
       }
@@ -204,7 +204,7 @@ and Function : sig
   type t = {
     name: label;
     loc: Loc.t;
-    params: (Loc.t * var_id * Type.t) list;
+    params: Argument.t list;
     return_ty: Type.t option;
     mutable body_start_block: Block.id;
   }
@@ -228,226 +228,92 @@ let mk_block_id () =
   max_block_id := block_id + 1;
   block_id
 
-let max_var_id = ref 0
+let max_value_id : Value.id ref = ref 0
 
-let mk_var_id () =
-  let var_id = !max_var_id in
-  max_var_id := var_id + 1;
-  var_id
+let mk_value_id () : Value.id =
+  let value_id = !max_value_id in
+  max_value_id := value_id + 1;
+  value_id
 
-let max_instr_id = ref 0
+(* Arbitrarily choose return type to use when there is no return type for an instruction *)
+let no_return_type = `BoolT
 
-let mk_instr_id () =
-  let instr_id = !max_instr_id in
-  max_instr_id := instr_id + 1;
-  instr_id
-
-let type_of_value (v : Value.t) : Type.t =
+let rec type_of_value (v : Value.t) : Type.t =
   match v with
-  | `BoolV _
-  | `BoolL _ ->
-    `BoolT
-  | `ByteV _
-  | `ByteL _ ->
-    `ByteT
-  | `IntV _
-  | `IntL _ ->
-    `IntT
-  | `LongV _
-  | `LongL _ ->
-    `LongT
-  | `FunctionV _
-  | `FunctionL _ ->
-    `FunctionT
-  | `PointerV (ty, _)
-  | `PointerL (ty, _) ->
-    `PointerT ty
-  | `ArrayV (ty, size, _) -> `ArrayT (ty, size)
-  | `ArrayStringL str -> `ArrayT (`ByteT, String.length str)
-  | `ArrayVtableL (size, _) -> `ArrayT (`FunctionT, size)
+  | Instr { type_; _ } -> type_
+  | Argument { type_; _ } -> type_
+  | Lit lit -> type_of_literal lit
 
-let pointer_value_element_type (ptr : Value.pointer_value) : Type.t =
-  match ptr with
-  | `PointerL (ty, _)
-  | `PointerV (ty, _) ->
-    ty
+and type_of_literal (lit : Literal.t) : Type.t =
+  match lit with
+  | Literal.Bool _ -> `BoolT
+  | Byte _ -> `ByteT
+  | Int _ -> `IntT
+  | Long _ -> `LongT
+  | Function _ -> `FunctionT
+  | Pointer (ty, _) -> `PointerT ty
+  | ArrayString str -> `ArrayT (`ByteT, String.length str)
+  | ArrayVtable (size, _) -> `ArrayT (`FunctionT, size)
 
-let var_value_of_type var_id (ty : Type.t) : Value.t =
-  match ty with
-  | `BoolT -> `BoolV var_id
-  | `ByteT -> `ByteV var_id
-  | `IntT -> `IntV var_id
-  | `LongT -> `LongV var_id
-  | `FunctionT -> `FunctionV var_id
-  | `PointerT ty -> `PointerV (ty, var_id)
-  | `ArrayT (ty, size) -> `ArrayV (ty, size, var_id)
-  | `AggregateT _ -> failwith "Cannot create variable for Aggregate, must be behind pointer"
+let pointer_value_element_type (ptr : Value.t) : Type.t =
+  match type_of_value ptr with
+  | `PointerT element_type -> element_type
+  | _ -> failwith "Expected pointer type"
 
-let cast_to_bool_value (v : Value.t) : Value.bool_value =
-  match v with
-  | (`BoolL _ | `BoolV _) as v -> v
-  | _ -> failwith "Expected bool value"
-
-let cast_to_numeric_value (v : Value.t) : Value.numeric_value =
-  match v with
-  | (`BoolL _ | `BoolV _ | `ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _) as v -> v
-  | _ -> failwith "Expected numeric value"
-
-let cast_to_function_value (v : Value.t) : Value.function_value =
-  match v with
-  | (`FunctionL _ | `FunctionV _) as v -> v
-  | _ -> failwith "Expected function value"
-
-let cast_to_pointer_value (v : Value.t) : Value.pointer_value =
-  match v with
-  | (`PointerL _ | `PointerV _) as v -> v
-  | _ -> failwith "Expected pointer value"
-
-let cast_to_array_value (v : Value.t) : Value.array_value =
-  match v with
-  | (`ArrayStringL _ | `ArrayVtableL _ | `ArrayV _) as v -> v
-  | _ -> failwith "Expected array value"
-
-let cast_to_comparable_value (v : Value.t) : Value.comparable_value =
-  match v with
-  | ( `BoolL _ | `BoolV _ | `ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _
-    | `PointerL _ | `PointerV _ ) as v ->
-    v
-  | _ -> failwith "Expected comparable value"
-
-let cast_pointer_value (v : Value.pointer_value) (mir_type : Type.t) : Value.pointer_value =
-  match v with
-  | `PointerL (_, label) -> `PointerL (mir_type, label)
-  | `PointerV (_, var_id) -> `PointerV (mir_type, var_id)
+let cast_to_function_literal (func : Value.t) : label =
+  match func with
+  | Lit (Function label) -> label
+  | _ -> failwith "Expected function literal"
 
 let is_literal (v : Value.t) : bool =
   match v with
-  | `FunctionL _
-  | `PointerL _
-  | `BoolL _
-  | `ByteL _
-  | `IntL _
-  | `LongL _
-  | `ArrayStringL _
-  | `ArrayVtableL _ ->
-    true
-  | `BoolV _
-  | `ByteV _
-  | `IntV _
-  | `LongV _
-  | `FunctionV _
-  | `PointerV _
-  | `ArrayV _ ->
-    false
-
-let is_bool_value (v : Value.numeric_value) : bool =
-  match v with
-  | `BoolL _
-  | `BoolV _ ->
-    true
+  | Lit _ -> true
   | _ -> false
 
-let var_id_of_value_opt (v : Value.t) : var_id option =
-  match v with
-  | `FunctionL _
-  | `PointerL _
-  | `BoolL _
-  | `ByteL _
-  | `IntL _
-  | `LongL _
-  | `ArrayStringL _
-  | `ArrayVtableL _ ->
-    None
-  | `BoolV var_id
-  | `ByteV var_id
-  | `IntV var_id
-  | `LongV var_id
-  | `FunctionV var_id
-  | `PointerV (_, var_id)
-  | `ArrayV (_, _, var_id) ->
-    Some var_id
+let is_bool_value (v : Value.t) : bool = type_of_value v = `BoolT
 
 let rec values_equal (v1 : Value.t) (v2 : Value.t) : bool =
   match (v1, v2) with
-  | (`BoolL b1, `BoolL b2) -> b1 = b2
-  | (`ByteL b1, `ByteL b2) -> b1 = b2
-  | (`IntL i1, `IntL i2) -> Int32.equal i1 i2
-  | (`LongL l1, `LongL l2) -> Int64.equal l1 l2
-  | (`FunctionL label1, `FunctionL label2) -> label1 = label2
-  | (`PointerL (_, label1), `PointerL (_, label2)) -> label1 = label2
-  | (`ArrayStringL str1, `ArrayStringL str2) -> String.equal str1 str2
-  | (`ArrayVtableL (size1, labels1), `ArrayVtableL (size2, labels2)) ->
-    size1 = size2
-    && List.for_all2 (fun f1 f2 -> values_equal (f1 :> Value.t) (f2 :> Value.t)) labels1 labels2
-  | (`BoolV var_id1, `BoolV var_id2)
-  | (`ByteV var_id1, `ByteV var_id2)
-  | (`IntV var_id1, `IntV var_id2)
-  | (`LongV var_id1, `LongV var_id2)
-  | (`FunctionV var_id1, `FunctionV var_id2)
-  | (`PointerV (_, var_id1), `PointerV (_, var_id2))
-  | (`ArrayV (_, _, var_id1), `ArrayV (_, _, var_id2)) ->
-    var_id1 = var_id2
+  | (Instr { id = id1; _ }, Instr { id = id2; _ }) -> id1 = id2
+  | (Lit lit1, Lit lit2) -> literals_equal lit1 lit2
+  | (Argument { id = id1; _ }, Argument { id = id2; _ }) -> id1 = id2
   | _ -> false
+
+and literals_equal (lit1 : Literal.t) (lit2 : Literal.t) : bool =
+  match (lit1, lit2) with
+  | (Bool b1, Bool b2) -> b1 = b2
+  | (Byte b1, Byte b2) -> b1 = b2
+  | (Int i1, Int i2) -> Int32.equal i1 i2
+  | (Long l1, Long l2) -> Int64.equal l1 l2
+  | (Function label1, Function label2) -> label1 = label2
+  | (Pointer (_, label1), Pointer (_, label2)) -> label1 = label2
+  | (ArrayString str1, ArrayString str2) -> String.equal str1 str2
+  | (ArrayVtable (size1, labels1), ArrayVtable (size2, labels2)) ->
+    size1 = size2 && List.for_all2 String.equal labels1 labels2
+  | _ -> false
+
+let cast_to_instruction (value : Value.t) : Instruction.t =
+  match value with
+  | Instr instr -> instr
+  | _ -> failwith "Expected instruction value"
+
+let cast_to_phi (instr : Instruction.t) : Instruction.Phi.t =
+  match instr with
+  | { instr = Instruction.Phi phi; _ } -> phi
+  | _ -> failwith "Expected phi instruction"
 
 let mk_continue continue = Block.Continue continue
 
 let mk_branch test continue jump = Block.Branch { test; continue; jump }
 
-let rec map_value ~f (value : Value.t) : Value.t =
-  match value with
-  | (`BoolL _ | `BoolV _) as v -> (map_bool_value ~f v :> Value.t)
-  | (`LongL _ | `LongV _) as v -> (map_long_value ~f v :> Value.t)
-  | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _) as v -> (map_numeric_value ~f v :> Value.t)
-  | (`FunctionL _ | `FunctionV _) as v -> (map_function_value ~f v :> Value.t)
-  | (`PointerL _ | `PointerV _) as v -> (map_pointer_value ~f v :> Value.t)
-  | (`ArrayStringL _ | `ArrayVtableL _ | `ArrayV _) as v -> (map_array_value ~f v :> Value.t)
-
-and map_bool_value ~f (value : Value.bool_value) : Value.bool_value =
-  match value with
-  | `BoolL _ as lit -> lit
-  | `BoolV v -> `BoolV (f v)
-
-and map_long_value ~f (value : Value.long_value) : Value.long_value =
-  match value with
-  | `LongL _ as lit -> lit
-  | `LongV v -> `LongV (f v)
-
-and map_numeric_value ~f (value : Value.numeric_value) : Value.numeric_value =
-  match value with
-  | (`ByteL _ | `IntL _) as lit -> lit
-  | `ByteV v -> `ByteV (f v)
-  | `IntV v -> `IntV (f v)
-  | (`LongL _ | `LongV _) as v -> (map_long_value ~f v :> Value.numeric_value)
-  | (`BoolL _ | `BoolV _) as v -> (map_bool_value ~f v :> Value.numeric_value)
-
-and map_function_value ~f (value : Value.function_value) : Value.function_value =
-  match value with
-  | `FunctionL _ as lit -> lit
-  | `FunctionV v -> `FunctionV (f v)
-
-and map_pointer_value ~f (value : Value.pointer_value) : Value.pointer_value =
-  match value with
-  | `PointerL _ as lit -> lit
-  | `PointerV (ty, v) -> `PointerV (ty, f v)
-
-and map_array_value ~f (value : Value.array_value) : Value.array_value =
-  match value with
-  | (`ArrayStringL _ | `ArrayVtableL _) as lit -> lit
-  | `ArrayV (ty, size, v) -> `ArrayV (ty, size, f v)
-
-and map_comparable_value ~f (value : Value.comparable_value) : Value.comparable_value =
-  match value with
-  | (`ByteL _ | `ByteV _ | `IntL _ | `IntV _ | `LongL _ | `LongV _ | `BoolL _ | `BoolV _) as v ->
-    (map_numeric_value ~f v :> Value.comparable_value)
-  | (`PointerL _ | `PointerV _) as v -> (map_pointer_value ~f v :> Value.comparable_value)
-
 let get_block ~ir block_id = IMap.find block_id ir.Program.blocks
 
 let int64_of_literal lit =
   match lit with
-  | `ByteL lit -> Int64.of_int lit
-  | `IntL lit -> Int64.of_int32 lit
-  | `LongL lit -> lit
+  | Literal.Byte lit -> Int64.of_int lit
+  | Int lit -> Int64.of_int32 lit
+  | Long lit -> lit
+  | _ -> failwith "Expected byte, int, or long"
 
 let std_lib_string_prefix = ".stdS"
 
@@ -469,13 +335,13 @@ let filter_stdlib (program : Program.t) =
 
 let block_has_phis (block : Block.t) : bool =
   match block.instructions with
-  | (_, Phi _) :: _ -> true
+  | { instr = Phi _; _ } :: _ -> true
   | _ -> false
 
 let block_get_phis (block : Block.t) : Instruction.Phi.t list =
   let rec inner instrs acc =
     match instrs with
-    | (_, Instruction.Phi phi) :: rest -> inner rest (phi :: acc)
+    | { Instruction.instr = Phi phi; _ } :: rest -> inner rest (phi :: acc)
     | _ -> List.rev acc
   in
   inner block.instructions []
@@ -483,19 +349,19 @@ let block_get_phis (block : Block.t) : Instruction.Phi.t list =
 let block_iter_phis (block : Block.t) (f : Instruction.Phi.t -> unit) =
   let rec visit_phis instrs =
     match instrs with
-    | (_, Instruction.Phi phi) :: rest ->
+    | { Instruction.instr = Phi phi; _ } :: rest ->
       f phi;
       visit_phis rest
     | _ -> ()
   in
   visit_phis block.instructions
 
-let block_filter_phis (block : Block.t) (f : Instruction.Phi.t -> bool) =
+let block_filter_phis (block : Block.t) (f : Value.id -> Instruction.Phi.t -> bool) =
   let rec filter_phis instrs acc =
     match instrs with
-    | ((_, Instruction.Phi phi) as instr) :: rest ->
+    | ({ Instruction.instr = Phi phi; id; _ } as instr) :: rest ->
       let acc =
-        if f phi then
+        if f id phi then
           instr :: acc
         else
           acc
@@ -505,14 +371,19 @@ let block_filter_phis (block : Block.t) (f : Instruction.Phi.t -> bool) =
   in
   block.instructions <- filter_phis block.instructions []
 
-let block_fold_phis (block : Block.t) (f : Instruction.Phi.t -> 'a -> 'a) (acc : 'a) : 'a =
+let block_fold_phis
+    (block : Block.t) (f : Instruction.t -> Instruction.Phi.t -> 'a -> 'a) (acc : 'a) : 'a =
   let rec visit_phis instrs acc =
     match instrs with
-    | (_, Instruction.Phi phi) :: rest ->
-      let acc = f phi acc in
+    | ({ Instruction.instr = Phi phi; _ } as instr) :: rest ->
+      let acc = f instr phi acc in
       visit_phis rest acc
     | _ -> acc
   in
   visit_phis block.instructions acc
 
-let block_clear_phis (block : Block.t) = block_filter_phis block (fun _ -> false)
+let block_clear_phis (block : Block.t) = block_filter_phis block (fun _ _ -> false)
+
+module VSet = Set.Make (Value)
+module VMap = Map.Make (Value)
+module VVMMap = MultiMap.Make (Value) (Value)

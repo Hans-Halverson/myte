@@ -85,74 +85,69 @@ let split_edges ~(ir : Program.t) =
               IMap.empty))
     !edges_to_split
 
-(* Convert a collection of copies (from variables to values) that should that occur in parallel, to
+(* Convert a collection of copies (dest value, src value) that should that occur in parallel, to
    an explicit sequence of copies, making sure to preserve semantics. In the presence of cycles, new
    variables with new copies will be introduced to break the cycles while not clobbering any vars. *)
-let sequentialize_parallel_copies (parallel_copies : (var_id * Value.t) list) =
+let sequentialize_parallel_copies (parallel_copies : (Value.t * Value.t) list) :
+    (Value.t * Value.t) list =
   let copy_sequence = ref [] in
-  let add_to_sequence result_var_id arg_val =
-    copy_sequence := (result_var_id, arg_val) :: !copy_sequence
+  let add_to_sequence dest_val src_val = copy_sequence := (dest_val, src_val) :: !copy_sequence in
+
+  (* Copy graph between values *)
+  let copied_to = ref VVMMap.empty in
+  let copied_from = ref VVMMap.empty in
+
+  let add_copy_edge dest_val arg_val =
+    copied_to := VVMMap.add arg_val dest_val !copied_to;
+    copied_from := VVMMap.add dest_val arg_val !copied_from
   in
-
-  (* Map from arg var id to its type *)
-  let var_types = ref IMap.empty in
-
-  (* Copy graph between variables *)
-  let copied_to = ref IIMMap.empty in
-  let copied_from = ref IIMMap.empty in
-
-  let add_copy_edge result_var_id arg_var_id =
-    copied_to := IIMMap.add arg_var_id result_var_id !copied_to;
-    copied_from := IIMMap.add result_var_id arg_var_id !copied_from
-  in
-  let remove_copy_edge result_var_id arg_var_id =
-    copied_to := IIMMap.remove arg_var_id result_var_id !copied_to;
-    copied_from := IIMMap.remove result_var_id arg_var_id !copied_from
+  let remove_copy_edge dest_val arg_val =
+    copied_to := VVMMap.remove arg_val dest_val !copied_to;
+    copied_from := VVMMap.remove dest_val arg_val !copied_from
   in
 
   (* Initialize copy graph *)
   List.iter
-    (fun (result_var_id, arg) ->
-      match var_id_of_value_opt arg with
-      (* Copies of literal values can always be immediately sequentialized, as they cannot form cycles *)
-      | None -> add_to_sequence result_var_id arg
-      | Some arg_var_id ->
+    (fun (dest_val, src_val) ->
+      let dest_instr = cast_to_instruction dest_val in
+      match src_val with
+      | Value.Instr { id; _ }
+      | Argument { id; _ } ->
         (* Add edge to graph for copy between variables. Self copies can be ignored *)
-        if arg_var_id <> result_var_id then (
-          add_copy_edge result_var_id arg_var_id;
-          var_types := IMap.add arg_var_id (type_of_value arg) !var_types
-        ))
+        if id <> dest_instr.id then add_copy_edge dest_val src_val
+      (* Copies of literal values can always be immediately sequentialized, as they cannot form cycles *)
+      | Lit _ -> add_to_sequence dest_val src_val)
     parallel_copies;
 
-  while not (IIMMap.is_empty !copied_to) do
+  while not (VVMMap.is_empty !copied_to) do
     (* Try to find a copy that is not part of a cycle *)
     let non_cyclic_copy_opt =
-      IMap.fold
-        (fun result_var_id arg_var_ids acc ->
-          if IIMMap.contains_key result_var_id !copied_to then
+      VMap.fold
+        (fun dest_val arg_vals acc ->
+          if VVMMap.contains_key dest_val !copied_to then
             acc
           else
-            Some (result_var_id, ISet.choose arg_var_ids))
+            Some (dest_val, VSet.choose arg_vals))
         !copied_from
         None
     in
     match non_cyclic_copy_opt with
     (* Non-cyclic copy can now be added to sequence, as it has no dependencies *)
-    | Some (result_var_id, arg_var_id) ->
-      let var_type = IMap.find arg_var_id !var_types in
-      add_to_sequence result_var_id (var_value_of_type arg_var_id var_type);
-      remove_copy_edge result_var_id arg_var_id
+    | Some (dest_val, arg_val) ->
+      add_to_sequence dest_val arg_val;
+      remove_copy_edge dest_val arg_val
     (* Only cyclic copies exist - choose one and break it. Break by creating a new variable, copying
        the chosen arg var to it, and modifying the existing edge from that arg to its result to
        instead point from the new var to the result. *)
     | None ->
-      let (result_var_id, arg_var_id) = IIMMap.choose !copied_from in
-      let var_type = IMap.find arg_var_id !var_types in
-      let new_var_id = mk_var_id () in
-      var_types := IMap.add new_var_id var_type !var_types;
-      add_to_sequence new_var_id (var_value_of_type arg_var_id var_type);
-      remove_copy_edge result_var_id arg_var_id;
-      add_copy_edge result_var_id new_var_id
+      let (dest_val, arg_val) = VVMMap.choose !copied_from in
+      let type_ = type_of_value arg_val in
+      let new_arg_val =
+        Value.Instr { Instruction.id = mk_value_id (); type_; instr = Mov arg_val }
+      in
+      add_to_sequence new_arg_val arg_val;
+      remove_copy_edge dest_val arg_val;
+      add_copy_edge dest_val new_arg_val
   done;
 
   List.rev !copy_sequence
@@ -165,11 +160,11 @@ let lower_phis_to_copies ~(ir : Program.t) =
       let block_to_parallel_copies =
         block_fold_phis
           block
-          (fun { var_id; args; _ } acc ->
+          (fun instr { args } acc ->
             IMap.fold
               (fun prev_block_id arg_val acc ->
                 let existing_copies = IMap.find_opt prev_block_id acc |> Option.value ~default:[] in
-                IMap.add prev_block_id ((var_id, arg_val) :: existing_copies) acc)
+                IMap.add prev_block_id ((Value.Instr instr, arg_val) :: existing_copies) acc)
               args
               acc)
           IMap.empty
@@ -181,8 +176,12 @@ let lower_phis_to_copies ~(ir : Program.t) =
           let sequential_copies = sequentialize_parallel_copies (List.rev parallel_copies) in
           let copy_instrs =
             List.map
-              (fun (result_var_id, arg_val) ->
-                (mk_instr_id (), Instruction.Mov (result_var_id, arg_val)))
+              (fun (dest_val, arg_val) ->
+                (* Destination instructions are all pre-existing Phis or Movs that were created
+                   during sequentialization. This breaks references but preserves value ids, so
+                   after this point arg/use references cannot be followed. *)
+                let dest_instr = cast_to_instruction dest_val in
+                { dest_instr with instr = Mov arg_val })
               sequential_copies
           in
           let prev_block = IMap.find prev_block_id ir.blocks in

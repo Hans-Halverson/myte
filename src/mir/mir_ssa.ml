@@ -57,7 +57,7 @@ module PhiChainNode = struct
     (* Store instruction ids for this node, mapped to the previous block that they flowed from along
        with the value that was stored. *)
     mutable write_locs: (Block.id * Value.t) IMap.t;
-    mutable realized: var_id option;
+    mutable realized: Instruction.t option;
     (* Type is filled after creation *)
     mutable mir_type: Type.t option;
   }
@@ -65,7 +65,7 @@ end
 
 type source =
   (* There was a single write at this store instruction in this block, writing this value *)
-  | WriteLocation of Block.id * instr_id * Value.t
+  | WriteLocation of Block.id * Value.id * Value.t
   (* Multiple writes were joined by phi chain node *)
   | PhiChainJoin of PhiChainNode.id
 
@@ -76,8 +76,8 @@ type cx = {
   mutable phi_chain_nodes: PhiChainNode.t IMap.t;
   (* Block ids to the pointer var ids with phi chain nodes for that block *)
   mutable block_nodes: PhiChainNode.id IMap.t IMap.t;
-  (* Block ids to the pointer var ids to the var id for this block's phi nodes *)
-  mutable realized_phis: PhiChainNode.id IMap.t IMap.t;
+  (* Block ids to the set of phi chain node ids that are realized in that block *)
+  mutable realized_phis: IIMMap.t;
   (* Function name to the local source for each load var id *)
   mutable use_sources: source IMap.t SMap.t;
   (* Block ids to the set of blocks that precede that block *)
@@ -91,7 +91,7 @@ let mk_cx () =
     stack_alloc_ids = IMap.empty;
     phi_chain_nodes = IMap.empty;
     block_nodes = IMap.empty;
-    realized_phis = IMap.empty;
+    realized_phis = IIMMap.empty;
     use_sources = SMap.empty;
     prev_blocks = IMap.empty;
   }
@@ -121,14 +121,6 @@ let mk_phi_chain_node ~cx block_id =
 
 let get_node ~cx node_id = IMap.find node_id cx.phi_chain_nodes
 
-let add_realized_phi ~cx block_id var_id node_id =
-  let phis =
-    match IMap.find_opt block_id cx.realized_phis with
-    | None -> IMap.singleton var_id node_id
-    | Some decls -> IMap.add var_id node_id decls
-  in
-  cx.realized_phis <- IMap.add block_id phis cx.realized_phis
-
 let add_block_link ~cx prev_id next_id = cx.prev_blocks <- IIMMap.add next_id prev_id cx.prev_blocks
 
 let rec promote_variables_to_registers ir =
@@ -142,11 +134,11 @@ and mk_add_sources_visitor ~cx ~program sources =
   object
     inherit IRVisitor.t ~program
 
-    method! visit_instruction ~block:_ (instr_id, instr) =
-      match instr with
-      | StackAlloc (var_id, ty) -> cx.stack_alloc_ids <- IMap.add var_id ty cx.stack_alloc_ids
-      | Store (`PointerV (_, var_id), _) when IMap.mem var_id cx.stack_alloc_ids ->
-        sources := IMap.add var_id instr_id !sources
+    method! visit_instruction ~block:_ instr =
+      match instr.instr with
+      | StackAlloc ty -> cx.stack_alloc_ids <- IMap.add instr.id ty cx.stack_alloc_ids
+      | Store ((Instr { id; _ } | Argument { id; _ }), _) when IMap.mem id cx.stack_alloc_ids ->
+        sources := IMap.add id instr.id !sources
       | _ -> ()
   end
 
@@ -223,29 +215,28 @@ and find_join_points ~cx program =
       !block_sources
       IMap.empty
 
-and add_use_source ~cx func_name load_var_id source =
+and add_use_source ~cx func_name load_instr_id source =
   let use_sources = SMap.find func_name cx.use_sources in
-  let new_use_sources = IMap.add load_var_id source use_sources in
+  let new_use_sources = IMap.add load_instr_id source use_sources in
   cx.use_sources <- SMap.add func_name new_use_sources cx.use_sources
 
 and mk_build_phi_nodes_visitor ~cx program func_name sources phi_nodes_to_realize =
   object
     inherit IRVisitor.t ~program
 
-    method! visit_instruction ~block (instr_id, instr) =
-      match instr with
-      | Store (`PointerV (_, var_id), arg) when IMap.mem var_id cx.stack_alloc_ids ->
+    method! visit_instruction ~block instr =
+      match instr.instr with
+      | Store ((Instr { id; _ } | Argument { id; _ }), arg) when IMap.mem id cx.stack_alloc_ids ->
         (* Source for this variable is now this write location *)
-        sources := IMap.add var_id (WriteLocation (block.id, instr_id, arg)) !sources
-      | Load (load_var_id, `PointerV (_, var_id)) when IMap.mem var_id cx.stack_alloc_ids ->
+        sources := IMap.add id (WriteLocation (block.id, instr.id, arg)) !sources
+      | Load (Instr { id; _ } | Argument { id; _ }) when IMap.mem id cx.stack_alloc_ids ->
         (* Save source for each use *)
-        let source = IMap.find var_id !sources in
-        add_use_source ~cx func_name load_var_id source;
+        let source = IMap.find id !sources in
+        add_use_source ~cx func_name instr.id source;
         (* If source is a phi node it should be realized *)
         (match source with
         | WriteLocation _ -> ()
-        | PhiChainJoin node_id ->
-          phi_nodes_to_realize := IMap.add node_id var_id !phi_nodes_to_realize)
+        | PhiChainJoin node_id -> phi_nodes_to_realize := IMap.add node_id id !phi_nodes_to_realize)
       | _ -> ()
   end
 
@@ -307,7 +298,7 @@ and build_phi_nodes ~cx program =
     | Halt -> ()
     | Continue continue -> maybe_visit_block !sources continue
     | Branch { test; continue; jump } ->
-      visitor#visit_bool_value ~block test;
+      visitor#visit_value ~block test;
       maybe_visit_block !sources continue;
       maybe_visit_block !sources jump
   in
@@ -322,8 +313,12 @@ and build_phi_nodes ~cx program =
   let rec realize_phi_chain_graph node_id decl_loc =
     let node = get_node ~cx node_id in
     if Option.is_none node.realized then (
-      node.realized <- Some (mk_var_id ());
-      add_realized_phi ~cx node.block_id decl_loc node_id;
+      (* Realize by creating phi instruction *)
+      let type_ = IMap.find decl_loc cx.stack_alloc_ids in
+      let phi = { Instruction.Phi.args = IMap.empty } in
+      let phi_instr = { Instruction.id = mk_value_id (); type_; instr = Phi phi } in
+      node.realized <- Some phi_instr;
+      cx.realized_phis <- IIMMap.add node.block_id node_id cx.realized_phis;
       IMap.iter
         (fun prev_node_id _ -> realize_phi_chain_graph prev_node_id decl_loc)
         node.prev_nodes
@@ -348,13 +343,13 @@ and rewrite_program ~cx program =
       | None -> []
       | Some realized_phis ->
         let phis =
-          IMap.fold
-            (fun ptr_var_id node_id phis ->
+          ISet.fold
+            (fun node_id phis ->
               let node = get_node ~cx node_id in
-              let mir_type = IMap.find ptr_var_id cx.stack_alloc_ids in
-              let var_id = Option.get node.realized in
-              let args = gather_phi_args ~mir_type node_id in
-              (mk_instr_id (), Instruction.Phi { var_id; type_ = mir_type; args }) :: phis)
+              let phi_instr = Option.get node.realized in
+              let phi = cast_to_phi phi_instr in
+              phi.args <- gather_phi_args node_id;
+              phi_instr :: phis)
             realized_phis
             []
         in
@@ -364,12 +359,12 @@ and rewrite_program ~cx program =
     (* Remove memory instructions for memory locations promoted to registers *)
     block.instructions <-
       List.filter
-        (fun (_, instr) ->
-          match instr with
-          | Instruction.StackAlloc (var_id, _)
-          | Store (`PointerV (_, var_id), _)
-          | Load (_, `PointerV (_, var_id))
-            when IMap.mem var_id cx.stack_alloc_ids ->
+        (fun instr ->
+          match instr.Instruction.instr with
+          | StackAlloc _ when IMap.mem instr.id cx.stack_alloc_ids -> false
+          | Store ((Instr { id; _ } | Argument { id; _ }), _)
+          | Load (Instr { id; _ } | Argument { id; _ })
+            when IMap.mem id cx.stack_alloc_ids ->
             false
           | _ -> true)
         block.instructions;
@@ -387,14 +382,14 @@ and rewrite_program ~cx program =
     cx.blocks <- IMap.add block.id block cx.blocks
   (* Traverse phi chain graph to gather all variable ids for a given phi node. The phi chain
      graph is deeply traversed until realized nodes are encountered. *)
-  and gather_phi_args ~mir_type (node_id : PhiChainNode.id) : Value.t IMap.t =
+  and gather_phi_args (node_id : PhiChainNode.id) : Value.t IMap.t =
     let phi_args = ref IMap.empty in
     let add_phi_arg prev_block_id arg_val = phi_args := IMap.add prev_block_id arg_val !phi_args in
     let rec visit_phi_node node_id prev_block_id =
       let node = get_node ~cx node_id in
       match node.realized with
       (* Do not descend into realized nodes, use their realized var id *)
-      | Some var_id -> add_phi_arg prev_block_id (var_value_of_type var_id mir_type)
+      | Some instr -> add_phi_arg prev_block_id (Value.Instr instr)
       (* Descend into unrealized nodes, gather local writes and phi chain nodes *)
       | _ ->
         IMap.iter (fun _ (_, arg_val) -> add_phi_arg prev_block_id arg_val) node.write_locs;
@@ -416,20 +411,19 @@ and rewrite_program ~cx program =
       let use_sources = SMap.find name cx.use_sources in
       let var_map =
         IMap.fold
-          (fun load_var_id source var_map ->
+          (fun load_instr_id source var_map ->
             match source with
-            | WriteLocation (_, _, write_val) -> IMap.add load_var_id write_val var_map
+            | WriteLocation (_, _, write_val) -> IMap.add load_instr_id write_val var_map
             | PhiChainJoin node_id ->
               let node = get_node ~cx node_id in
-              let mapped_val =
-                var_value_of_type (Option.get node.realized) (Option.get node.mir_type)
-              in
-              IMap.add load_var_id mapped_val var_map)
+              let instr = Option.get node.realized in
+              let mapped_val = Value.Instr instr in
+              IMap.add load_instr_id mapped_val var_map)
           use_sources
           IMap.empty
       in
-      let rewrite_var_mapper = new rewrite_vars_mapper ~program var_map in
-      rewrite_var_mapper#map_function func)
+      let rewrite_val_mapper = new rewrite_vals_mapper ~program var_map in
+      rewrite_val_mapper#map_function func)
     program.funcs;
 
   (* Strip empty blocks *)

@@ -14,7 +14,7 @@ type variant_template =
 
 module PureEnumLayout = struct
   type t = {
-    tags: Mir.Value.numeric_value SMap.t;
+    tags: (* Numeric value of each tag name *) Mir.Value.t SMap.t;
     tag_mir_type: tag_type;
   }
 end
@@ -48,8 +48,8 @@ end
  *)
 module VariantsTemplate = struct
   type t = {
-    (* Tags for all variants, indexed by variant name *)
-    tags: Mir.Value.numeric_value SMap.t;
+    (* Tags for all variants, indexed by variant name (numeric values) *)
+    tags: Mir.Value.t SMap.t;
     tag_mir_type: tag_type;
     (* Templates for all data variants, indexed by variant name. Templates do not contain any
        padding - padding is calculated during instantiation. *)
@@ -60,8 +60,8 @@ end
 
 module VariantsLayout = struct
   type t = {
-    (* Tags for all variants, indexed by variant name *)
-    tags: Mir.Value.numeric_value SMap.t;
+    (* Tags for all variants, indexed by variant name (numeric values) *)
+    tags: Mir.Value.t SMap.t;
     tag_mir_type: tag_type;
     (* Concrete instance for the union of all variants, (also the instance for enum variants) *)
     union: Aggregate.t;

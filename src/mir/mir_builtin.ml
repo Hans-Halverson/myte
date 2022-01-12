@@ -68,11 +68,12 @@ let myte_unlink = { Builtin.name = "myte.builtin.unlink"; mk_return_ty = (fun _ 
 let myte_get_heap_size =
   { Builtin.name = "myte.builtin.get_heap_size"; mk_return_ty = (fun _ -> Some `LongT) }
 
-let mk_call_builtin builtin var_id args mk_return_ty_args =
+let mk_call_builtin builtin args mk_return_ty_args : Instruction.t =
   let open Builtin in
-  let return_ty = builtin.mk_return_ty mk_return_ty_args |> Option.get in
-  let result_val = var_value_of_type var_id return_ty in
-  (result_val, Instruction.Call { func = Builtin builtin; return = Some (var_id, return_ty); args })
+  let return_type = builtin.mk_return_ty mk_return_ty_args |> Option.get in
+  let instr = Instruction.Call { func = Builtin builtin; args; has_return = true } in
+  { Instruction.id = mk_value_id (); type_ = return_type; instr }
 
 let mk_call_builtin_no_return builtin args =
-  Instruction.Call { func = Builtin builtin; return = None; args }
+  let instr = Instruction.Call { func = Builtin builtin; args; has_return = false } in
+  { Instruction.id = mk_value_id (); type_ = no_return_type; instr }
