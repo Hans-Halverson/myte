@@ -227,6 +227,7 @@ and pp_literal lit =
   | Function label
   | Pointer (_, label) ->
     "@" ^ label
+  | NullPointer _ -> "null"
   | ArrayString str -> "\"" ^ str ^ "\""
   | ArrayVtable (_, funcs) ->
     let funcs = List.map (fun func -> "@" ^ func) funcs in

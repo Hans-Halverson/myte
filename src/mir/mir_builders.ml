@@ -15,6 +15,8 @@ let mk_long_lit (n : Int64.t) : Value.t = Lit (Long n)
 
 let mk_ptr_lit (type_ : Type.t) (label : label) : Value.t = Lit (Pointer (type_, label))
 
+let mk_null_ptr_lit (type_ : Type.t) : Value.t = Lit (NullPointer type_)
+
 let mk_func_lit (label : label) : Value.t = Lit (Function label)
 
 let mk_array_string_lit (string : string) : Value.t = Lit (ArrayString string)

@@ -126,7 +126,7 @@ global fn[1] @_vtable$test.ZeroSize$std.string.ToString = [@test.ZeroSize.toStri
 func std.string.String* @test.ZeroSize.toString(_ZeroSize* %0) {
   %1 := Call std.string.String* myte.builtin.alloc(1)
   %2 := GetPointer byte*, std.string.String* %1.2
-  Store byte* %2, 0
+  Store byte* %2, null
   %3 := GetPointer int, std.string.String* %1.0
   Store int %3, 0
   %4 := GetPointer int, std.string.String* %1.1

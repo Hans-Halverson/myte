@@ -714,7 +714,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     let size_val = mk_int_lit (List.length elements) in
     let data_val =
       if elements = [] then
-        mk_long_lit 0L
+        mk_null_ptr_lit element_mir_type
       else
         (* Call myte_alloc builtin to allocate space for elements *)
         let data_ptr_val =
@@ -886,7 +886,7 @@ and emit_string_literal ~ecx loc value =
     if string_length <> 0 then
       Ecx.add_mutable_string_literal ~ecx loc value
     else
-      mk_long_lit 0L
+      mk_null_ptr_lit `ByteT
   in
   let string_pointer_type = mir_type_of_loc ~ecx loc |> Option.get in
   let (`PointerT string_type) = cast_to_pointer_type string_pointer_type in
@@ -1300,22 +1300,23 @@ and emit_std_memory_array_copy ~ecx arg_vals _ =
   | _ -> failwith "Array.copy expects five arguments"
 
 and emit_std_memory_array_isNull ~ecx arg_vals _ =
-  Some (Ecx.emit ~ecx (mk_cmp ~cmp:Eq ~left:(List.hd arg_vals) ~right:(mk_long_lit 0L)))
+  let arg = List.hd arg_vals in
+  let element_type = pointer_value_element_type arg in
+  Some (Ecx.emit ~ecx (mk_cmp ~cmp:Eq ~left:arg ~right:(mk_null_ptr_lit element_type)))
 
 and emit_std_memory_array_new ~ecx arg_vals ret_type =
+  (* Type must be supplied so create explicit zero size type if necessary *)
+  let element_ty =
+    match ret_type with
+    | Some ret_type ->
+      let (`PointerT element_ty) = cast_to_pointer_type ret_type in
+      element_ty
+    | None -> Ecx.get_zero_size_type ~ecx
+  in
   match arg_vals with
   (* An allocation of 0 represents the null pointer *)
-  | [Lit (Int 0l)] -> Some (mk_long_lit 0L)
-  | _ ->
-    (* Call to alloc requires a type, so create explicit zero size type if necessary *)
-    let element_ty =
-      match ret_type with
-      | Some ret_type ->
-        let (`PointerT element_ty) = cast_to_pointer_type ret_type in
-        element_ty
-      | None -> Ecx.get_zero_size_type ~ecx
-    in
-    Some (Ecx.emit ~ecx Mir_builtin.(mk_call_builtin myte_alloc arg_vals [element_ty]))
+  | [Lit (Int 0l)] -> Some (mk_null_ptr_lit element_ty)
+  | _ -> Some (Ecx.emit ~ecx Mir_builtin.(mk_call_builtin myte_alloc arg_vals [element_ty]))
 
 and emit_std_io_write ~ecx arg_vals _ =
   let arg_vals =

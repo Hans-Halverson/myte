@@ -1,5 +1,5 @@
 func void @test.testIsNull(bool* %0) {
-  %1 := Eq bool* %0, 0
+  %1 := Eq bool* %0, null
   Call void @test.use<Bool>(%1)
   Ret
 }

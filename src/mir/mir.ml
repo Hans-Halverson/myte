@@ -37,6 +37,7 @@ and Literal : sig
     | Int of Int32.t
     | Long of Int64.t
     | Pointer of Type.t * label
+    | NullPointer of Type.t
     | Function of label
     | ArrayString of string
     | ArrayVtable of int * label list
@@ -252,6 +253,7 @@ and type_of_literal (lit : Literal.t) : Type.t =
   | Long _ -> `LongT
   | Function _ -> `FunctionT
   | Pointer (ty, _) -> `PointerT ty
+  | NullPointer ty -> `PointerT ty
   | ArrayString str -> `ArrayT (`ByteT, String.length str)
   | ArrayVtable (size, _) -> `ArrayT (`FunctionT, size)
 

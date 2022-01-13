@@ -1250,6 +1250,7 @@ and resolve_ir_value ~gcx ?(allow_imm64 = false) value =
       SVReg (vreg, Size64)
   | Lit (Function name) -> SAddr (mk_label_memory_address name)
   | Lit (Pointer (_, label)) -> SAddr (mk_label_memory_address label)
+  | Lit (NullPointer _) -> SImm (Imm64 0L)
   | Lit (ArrayString _)
   | Lit (ArrayVtable _) ->
     failwith "TODO: Cannot compile array literals yet"

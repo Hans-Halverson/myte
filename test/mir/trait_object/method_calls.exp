@@ -13,7 +13,7 @@ func int @test.Type.foo(test.Type* %0) {
 func std.string.String* @test.Type.bar(test.Type* %0, int %1, bool %2) {
   %3 := Call std.string.String* myte.builtin.alloc(1)
   %4 := GetPointer byte*, std.string.String* %3.2
-  Store byte* %4, 0
+  Store byte* %4, null
   %5 := GetPointer int, std.string.String* %3.0
   Store int %5, 0
   %6 := GetPointer int, std.string.String* %3.1

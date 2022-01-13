@@ -15,7 +15,7 @@ func void @test.use<std.memory.Array<test.ZeroSize>>(_ZeroSize* %0) {
 func int @test.main() {
   %0 := Call int* myte.builtin.alloc(99)
   Call void @test.use<std.memory.Array<Int>>(%0)
-  Call void @test.use<std.memory.Array<Int>>(0)
+  Call void @test.use<std.memory.Array<Int>>(null)
   %1 := Call _ZeroSize* myte.builtin.alloc(3)
   Call void @test.use<std.memory.Array<Unit>>(%1)
   %2 := Call _ZeroSize* myte.builtin.alloc(3)

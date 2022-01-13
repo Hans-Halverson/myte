@@ -17,7 +17,7 @@ type std.vec.Vec<test.ZeroSize> {int, int, _ZeroSize*}
 func std.vec.Vec<String>* @std.vec.Vec.new<String>() {
   %0 := Call std.vec.Vec<String>* myte.builtin.alloc(1)
   %1 := GetPointer std.string.String**, std.vec.Vec<String>* %0.2
-  Store std.string.String** %1, 0
+  Store std.string.String** %1, null
   %2 := GetPointer int, std.vec.Vec<String>* %0.0
   Store int %2, 0
   %3 := GetPointer int, std.vec.Vec<String>* %0.1
