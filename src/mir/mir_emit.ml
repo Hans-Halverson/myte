@@ -501,7 +501,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     | None -> None
     | Some agg ->
       let mk_elements = List.map (fun element _ -> emit_expression ~ecx element) elements in
-      Some (emit_construct_tuple ~ecx ~tag:None ~agg ~mk_elements))
+      Some (emit_construct_tuple ~ecx ~agg ~mk_elements))
   (*
    * ============================
    *        Method Calls
@@ -571,12 +571,28 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     let layout = Ecx.get_mir_adt_layout ~ecx adt_sig type_args in
     (match layout with
     (* If layout is an aggregate, construct record *)
-    | Aggregate agg -> Some (emit_construct_record ~ecx ~tag:None agg fields)
+    | Aggregate agg ->
+      let ptr =
+        Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [`AggregateT agg])
+        |> Ecx.emit ~ecx
+      in
+      emit_store_record_fields ~ecx ~ptr ~tag:None agg fields;
+      Some ptr
     (* If layout is a variant, construct record and set variant tag *)
-    | Variants { tags; variants; _ } ->
+    | Variants { tags; union; variants; _ } ->
+      (* Call myte_alloc builtin to allocate space for variant type *)
+      let union_ptr =
+        Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [`AggregateT union])
+        |> Ecx.emit ~ecx
+      in
+      (* Cast to variant type and store all fields *)
       let record_variant_agg = SMap.find name variants in
+      let variant_ptr =
+        emit_cast_ptr ~ecx ~ptr:union_ptr ~element_type:(`AggregateT record_variant_agg)
+      in
       let tag = SMap.find name tags in
-      Some (emit_construct_record ~ecx ~tag:(Some tag) record_variant_agg fields)
+      emit_store_record_fields ~ecx ~ptr:variant_ptr ~tag:(Some tag) record_variant_agg fields;
+      Some union_ptr
     (* If layout is zero size, still emit all fields as they may have side effect s*)
     | ZeroSize ->
       List.iter (fun field -> ignore (emit_record_field_value ~ecx field)) fields;
@@ -1552,16 +1568,28 @@ and emit_construct_tuple_variant
   match layout with
   (* If layout is an aggregate, construct tuple *)
   | Aggregate agg ->
-    let agg_ptr_val = emit_construct_tuple ~ecx ~tag:None ~agg ~mk_elements in
+    let agg_ptr_val = emit_construct_tuple ~ecx ~agg ~mk_elements in
     Some agg_ptr_val
   (* If layout is a variant, construct tuple and set variant tag *)
-  | Variants { tags; variants; _ } ->
-    let tuple_variant_agg = SMap.find name variants in
-    let tag = SMap.find name tags in
-    let agg_ptr_val =
-      emit_construct_tuple ~ecx ~tag:(Some tag) ~agg:tuple_variant_agg ~mk_elements
+  | Variants { tags; union; variants; _ } ->
+    (* Call myte_alloc builtin to allocate space for variant type *)
+    let union_ptr =
+      Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [`AggregateT union])
+      |> Ecx.emit ~ecx
     in
-    Some agg_ptr_val
+    (* Cast to variant type and store all fields *)
+    let tuple_variant_agg = SMap.find name variants in
+    let variant_ptr =
+      emit_cast_ptr ~ecx ~ptr:union_ptr ~element_type:(`AggregateT tuple_variant_agg)
+    in
+    let tag = SMap.find name tags in
+    emit_store_tuple_fields
+      ~ecx
+      ~ptr:variant_ptr
+      ~tag:(Some tag)
+      ~agg:tuple_variant_agg
+      ~mk_elements;
+    Some union_ptr
   (* If layout is an inlined value then exactly one element must have a non-zero size value, which
      we use directly without actually constructing a tuple. *)
   | InlineValue _ ->
@@ -1578,21 +1606,26 @@ and emit_construct_tuple_variant
     None
   | PureEnum _ -> failwith "Invalid layout for tuple"
 
-and emit_construct_tuple
-    ~ecx ~(tag : Value.t option) ~(agg : Aggregate.t) ~(mk_elements : (unit -> Value.t option) list)
-    =
-  let agg_ty = `AggregateT agg in
-
+and emit_construct_tuple ~ecx ~(agg : Aggregate.t) ~(mk_elements : (unit -> Value.t option) list) :
+    Value.t =
   (* Call myte_alloc builtin to allocate space for tuple *)
-  let agg_ptr_val =
-    Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [agg_ty])
+  let ptr =
+    Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [`AggregateT agg])
     |> Ecx.emit ~ecx
   in
+  emit_store_tuple_fields ~ecx ~ptr ~tag:None ~agg ~mk_elements;
+  ptr
 
+and emit_store_tuple_fields
+    ~ecx
+    ~(ptr : Value.t)
+    ~(tag : Value.t option)
+    ~(agg : Aggregate.t)
+    ~(mk_elements : (unit -> Value.t option) list) =
   (* If this tuple is a variant, store tag in first element *)
   (match tag with
   | None -> ()
-  | Some tag -> emit_store_tag ~ecx ~tag ~agg_ptr:agg_ptr_val);
+  | Some tag -> emit_store_tag ~ecx ~tag ~agg_ptr:ptr);
 
   (* Store each argument to the tuple constructor in space allocated for tuple *)
   List.iteri
@@ -1604,14 +1637,13 @@ and emit_construct_tuple
         let element_ptr =
           mk_get_pointer_instr
             ~type_:element_ty
-            ~ptr:agg_ptr_val
+            ~ptr
             ~offsets:[Instruction.GetPointer.FieldIndex element_index]
             ()
           |> Ecx.emit ~ecx
         in
         Ecx.emit_ ~ecx (mk_store ~ptr:element_ptr ~value:element_val))
-    mk_elements;
-  agg_ptr_val
+    mk_elements
 
 and emit_record_field_value ~ecx field =
   let { Ast.Expression.Record.Field.name; value; _ } = field in
@@ -1619,20 +1651,12 @@ and emit_record_field_value ~ecx field =
   | Some expr -> emit_expression ~ecx expr
   | None -> emit_expression ~ecx (Identifier name)
 
-and emit_construct_record ~ecx ~tag agg fields =
+and emit_store_record_fields ~ecx ~ptr ~tag agg fields =
   let open Ast.Expression in
-  let agg_ty = `AggregateT agg in
-
-  (* Call myte_alloc builtin to allocate space for record *)
-  let agg_ptr_val =
-    Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [agg_ty])
-    |> Ecx.emit ~ecx
-  in
-
   (* If this record is a variant, store tag in first element *)
   (match tag with
   | None -> ()
-  | Some tag -> emit_store_tag ~ecx ~tag ~agg_ptr:agg_ptr_val);
+  | Some tag -> emit_store_tag ~ecx ~tag ~agg_ptr:ptr);
 
   (* Store each argument to the record constructor in space allocated for record *)
   List.iter
@@ -1645,14 +1669,13 @@ and emit_construct_record ~ecx ~tag agg fields =
         let element_ptr_val =
           mk_get_pointer_instr
             ~type_:element_ty
-            ~ptr:agg_ptr_val
+            ~ptr
             ~offsets:[Instruction.GetPointer.FieldIndex element_idx]
             ()
           |> Ecx.emit ~ecx
         in
         Ecx.emit_ ~ecx (mk_store ~ptr:element_ptr_val ~value:element_val))
-    fields;
-  agg_ptr_val
+    fields
 
 and emit_bool_expression ~ecx expr =
   let value = emit_expression ~ecx expr |> Option.get in

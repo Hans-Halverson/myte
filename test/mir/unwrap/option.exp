@@ -8,17 +8,18 @@ label @0:
   %5 := GetPointer int, std.option.Option<Int>::Some* %4.2
   %6 := Load int %5
   Call void @test.use<Int>(%6)
-  %7 := Call std.option.Option<Int>::Some* myte.builtin.alloc(1)
-  %8 := Cast std.option.Option<Int>::Some* %7 to byte*
-  Store byte %8, 1
-  %9 := GetPointer int, std.option.Option<Int>::Some* %7.2
-  Store int %9, 1
+  %7 := Call std.option.Option<Int>* myte.builtin.alloc(1)
+  %8 := Cast std.option.Option<Int>* %7 to std.option.Option<Int>::Some*
+  %9 := Cast std.option.Option<Int>::Some* %8 to byte*
+  Store byte %9, 1
+  %10 := GetPointer int, std.option.Option<Int>::Some* %8.2
+  Store int %10, 1
   Ret %7
 label @1:
-  %10 := Call std.option.Option<Int>* myte.builtin.alloc(1)
-  %11 := Cast std.option.Option<Int>* %10 to byte*
-  Store byte %11, 0
-  Ret %10
+  %11 := Call std.option.Option<Int>* myte.builtin.alloc(1)
+  %12 := Cast std.option.Option<Int>* %11 to byte*
+  Store byte %12, 0
+  Ret %11
 }
 
 func std.option.Option<Int>* @test.testUnwrapOptionDifferentType(std.option.Option<Bool>* %0) {
@@ -31,17 +32,18 @@ label @0:
   %5 := GetPointer bool, std.option.Option<Bool>::Some* %4.1
   %6 := Load bool %5
   Call void @test.use<Bool>(%6)
-  %7 := Call std.option.Option<Int>::Some* myte.builtin.alloc(1)
-  %8 := Cast std.option.Option<Int>::Some* %7 to byte*
-  Store byte %8, 1
-  %9 := GetPointer int, std.option.Option<Int>::Some* %7.2
-  Store int %9, 1
+  %7 := Call std.option.Option<Int>* myte.builtin.alloc(1)
+  %8 := Cast std.option.Option<Int>* %7 to std.option.Option<Int>::Some*
+  %9 := Cast std.option.Option<Int>::Some* %8 to byte*
+  Store byte %9, 1
+  %10 := GetPointer int, std.option.Option<Int>::Some* %8.2
+  Store int %10, 1
   Ret %7
 label @1:
-  %10 := Call std.option.Option<Int>* myte.builtin.alloc(1)
-  %11 := Cast std.option.Option<Int>* %10 to byte*
-  Store byte %11, 0
-  Ret %10
+  %11 := Call std.option.Option<Int>* myte.builtin.alloc(1)
+  %12 := Cast std.option.Option<Int>* %11 to byte*
+  Store byte %12, 0
+  Ret %11
 }
 
 func std.option.Option<Int>* @test.testDoubleUnwrap(std.option.Option<Option<Int>>* %0) {
@@ -62,22 +64,23 @@ label @1:
   %11 := GetPointer int, std.option.Option<Int>::Some* %10.2
   %12 := Load int %11
   Call void @test.use<Int>(%12)
-  %13 := Call std.option.Option<Int>::Some* myte.builtin.alloc(1)
-  %14 := Cast std.option.Option<Int>::Some* %13 to byte*
-  Store byte %14, 1
-  %15 := GetPointer int, std.option.Option<Int>::Some* %13.2
-  Store int %15, 1
+  %13 := Call std.option.Option<Int>* myte.builtin.alloc(1)
+  %14 := Cast std.option.Option<Int>* %13 to std.option.Option<Int>::Some*
+  %15 := Cast std.option.Option<Int>::Some* %14 to byte*
+  Store byte %15, 1
+  %16 := GetPointer int, std.option.Option<Int>::Some* %14.2
+  Store int %16, 1
   Ret %13
 label @2:
-  %16 := Call std.option.Option<Int>* myte.builtin.alloc(1)
-  %17 := Cast std.option.Option<Int>* %16 to byte*
-  Store byte %17, 0
-  Ret %16
+  %17 := Call std.option.Option<Int>* myte.builtin.alloc(1)
+  %18 := Cast std.option.Option<Int>* %17 to byte*
+  Store byte %18, 0
+  Ret %17
 label @3:
-  %18 := Call std.option.Option<Int>* myte.builtin.alloc(1)
-  %19 := Cast std.option.Option<Int>* %18 to byte*
-  Store byte %19, 0
-  Ret %18
+  %19 := Call std.option.Option<Int>* myte.builtin.alloc(1)
+  %20 := Cast std.option.Option<Int>* %19 to byte*
+  Store byte %20, 0
+  Ret %19
 }
 
 func std.option.Option<Int>* @test.testZeroSizeUnwrap(std.option.Option<test.ZeroSize>* %0) {
@@ -87,17 +90,18 @@ func std.option.Option<Int>* @test.testZeroSizeUnwrap(std.option.Option<test.Zer
   branch %3, @0, @1
 label @0:
   Call void @test.use<test.ZeroSize>()
-  %4 := Call std.option.Option<Int>::Some* myte.builtin.alloc(1)
-  %5 := Cast std.option.Option<Int>::Some* %4 to byte*
-  Store byte %5, 1
-  %6 := GetPointer int, std.option.Option<Int>::Some* %4.2
-  Store int %6, 1
+  %4 := Call std.option.Option<Int>* myte.builtin.alloc(1)
+  %5 := Cast std.option.Option<Int>* %4 to std.option.Option<Int>::Some*
+  %6 := Cast std.option.Option<Int>::Some* %5 to byte*
+  Store byte %6, 1
+  %7 := GetPointer int, std.option.Option<Int>::Some* %5.2
+  Store int %7, 1
   Ret %4
 label @1:
-  %7 := Call std.option.Option<Int>* myte.builtin.alloc(1)
-  %8 := Cast std.option.Option<Int>* %7 to byte*
-  Store byte %8, 0
-  Ret %7
+  %8 := Call std.option.Option<Int>* myte.builtin.alloc(1)
+  %9 := Cast std.option.Option<Int>* %8 to byte*
+  Store byte %9, 0
+  Ret %8
 }
 
 func void @test.use<Bool>(bool %0) {

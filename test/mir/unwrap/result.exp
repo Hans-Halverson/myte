@@ -8,22 +8,24 @@ label @0:
   %5 := GetPointer int, std.result.Result<Int,Bool>::Ok* %4.2
   %6 := Load int %5
   Call void @test.use<Int>(%6)
-  %7 := Call std.result.Result<Int,Bool>::Ok* myte.builtin.alloc(1)
-  %8 := Cast std.result.Result<Int,Bool>::Ok* %7 to byte*
-  Store byte %8, 0
-  %9 := GetPointer int, std.result.Result<Int,Bool>::Ok* %7.2
-  Store int %9, 1
+  %7 := Call std.result.Result<Int,Bool>* myte.builtin.alloc(1)
+  %8 := Cast std.result.Result<Int,Bool>* %7 to std.result.Result<Int,Bool>::Ok*
+  %9 := Cast std.result.Result<Int,Bool>::Ok* %8 to byte*
+  Store byte %9, 0
+  %10 := GetPointer int, std.result.Result<Int,Bool>::Ok* %8.2
+  Store int %10, 1
   Ret %7
 label @1:
-  %10 := Cast std.result.Result<Int,Bool>* %0 to std.result.Result<Int,Bool>::Error*
-  %11 := GetPointer bool, std.result.Result<Int,Bool>::Error* %10.1
-  %12 := Load bool %11
-  %13 := Call std.result.Result<Int,Bool>::Error* myte.builtin.alloc(1)
-  %14 := Cast std.result.Result<Int,Bool>::Error* %13 to byte*
-  Store byte %14, 1
-  %15 := GetPointer bool, std.result.Result<Int,Bool>::Error* %13.1
-  Store bool %15, %12
-  Ret %13
+  %11 := Cast std.result.Result<Int,Bool>* %0 to std.result.Result<Int,Bool>::Error*
+  %12 := GetPointer bool, std.result.Result<Int,Bool>::Error* %11.1
+  %13 := Load bool %12
+  %14 := Call std.result.Result<Int,Bool>* myte.builtin.alloc(1)
+  %15 := Cast std.result.Result<Int,Bool>* %14 to std.result.Result<Int,Bool>::Error*
+  %16 := Cast std.result.Result<Int,Bool>::Error* %15 to byte*
+  Store byte %16, 1
+  %17 := GetPointer bool, std.result.Result<Int,Bool>::Error* %15.1
+  Store bool %17, %13
+  Ret %14
 }
 
 func std.result.Result<Long,Bool>* @test.testUnwrapResultDifferentType(std.result.Result<Int,Bool>* %0) {
@@ -36,22 +38,24 @@ label @0:
   %5 := GetPointer int, std.result.Result<Int,Bool>::Ok* %4.2
   %6 := Load int %5
   Call void @test.use<Int>(%6)
-  %7 := Call std.result.Result<Long,Bool>::Ok* myte.builtin.alloc(1)
-  %8 := Cast std.result.Result<Long,Bool>::Ok* %7 to byte*
-  Store byte %8, 0
-  %9 := GetPointer long, std.result.Result<Long,Bool>::Ok* %7.2
-  Store long %9, 1
+  %7 := Call std.result.Result<Long,Bool>* myte.builtin.alloc(1)
+  %8 := Cast std.result.Result<Long,Bool>* %7 to std.result.Result<Long,Bool>::Ok*
+  %9 := Cast std.result.Result<Long,Bool>::Ok* %8 to byte*
+  Store byte %9, 0
+  %10 := GetPointer long, std.result.Result<Long,Bool>::Ok* %8.2
+  Store long %10, 1
   Ret %7
 label @1:
-  %10 := Cast std.result.Result<Int,Bool>* %0 to std.result.Result<Int,Bool>::Error*
-  %11 := GetPointer bool, std.result.Result<Int,Bool>::Error* %10.1
-  %12 := Load bool %11
-  %13 := Call std.result.Result<Long,Bool>::Error* myte.builtin.alloc(1)
-  %14 := Cast std.result.Result<Long,Bool>::Error* %13 to byte*
-  Store byte %14, 1
-  %15 := GetPointer bool, std.result.Result<Long,Bool>::Error* %13.1
-  Store bool %15, %12
-  Ret %13
+  %11 := Cast std.result.Result<Int,Bool>* %0 to std.result.Result<Int,Bool>::Error*
+  %12 := GetPointer bool, std.result.Result<Int,Bool>::Error* %11.1
+  %13 := Load bool %12
+  %14 := Call std.result.Result<Long,Bool>* myte.builtin.alloc(1)
+  %15 := Cast std.result.Result<Long,Bool>* %14 to std.result.Result<Long,Bool>::Error*
+  %16 := Cast std.result.Result<Long,Bool>::Error* %15 to byte*
+  Store byte %16, 1
+  %17 := GetPointer bool, std.result.Result<Long,Bool>::Error* %15.1
+  Store bool %17, %13
+  Ret %14
 }
 
 func std.result.Result<Int,Bool>* @test.testDoubleUnwrap(std.result.Result<Result<Int,Bool>,Bool>* %0) {
@@ -72,32 +76,35 @@ label @1:
   %11 := GetPointer int, std.result.Result<Int,Bool>::Ok* %10.2
   %12 := Load int %11
   Call void @test.use<Int>(%12)
-  %13 := Call std.result.Result<Int,Bool>::Ok* myte.builtin.alloc(1)
-  %14 := Cast std.result.Result<Int,Bool>::Ok* %13 to byte*
-  Store byte %14, 0
-  %15 := GetPointer int, std.result.Result<Int,Bool>::Ok* %13.2
-  Store int %15, 1
+  %13 := Call std.result.Result<Int,Bool>* myte.builtin.alloc(1)
+  %14 := Cast std.result.Result<Int,Bool>* %13 to std.result.Result<Int,Bool>::Ok*
+  %15 := Cast std.result.Result<Int,Bool>::Ok* %14 to byte*
+  Store byte %15, 0
+  %16 := GetPointer int, std.result.Result<Int,Bool>::Ok* %14.2
+  Store int %16, 1
   Ret %13
 label @2:
-  %16 := Cast std.result.Result<Int,Bool>* %6 to std.result.Result<Int,Bool>::Error*
-  %17 := GetPointer bool, std.result.Result<Int,Bool>::Error* %16.1
-  %18 := Load bool %17
-  %19 := Call std.result.Result<Int,Bool>::Error* myte.builtin.alloc(1)
-  %20 := Cast std.result.Result<Int,Bool>::Error* %19 to byte*
-  Store byte %20, 1
-  %21 := GetPointer bool, std.result.Result<Int,Bool>::Error* %19.1
-  Store bool %21, %18
-  Ret %19
+  %17 := Cast std.result.Result<Int,Bool>* %6 to std.result.Result<Int,Bool>::Error*
+  %18 := GetPointer bool, std.result.Result<Int,Bool>::Error* %17.1
+  %19 := Load bool %18
+  %20 := Call std.result.Result<Int,Bool>* myte.builtin.alloc(1)
+  %21 := Cast std.result.Result<Int,Bool>* %20 to std.result.Result<Int,Bool>::Error*
+  %22 := Cast std.result.Result<Int,Bool>::Error* %21 to byte*
+  Store byte %22, 1
+  %23 := GetPointer bool, std.result.Result<Int,Bool>::Error* %21.1
+  Store bool %23, %19
+  Ret %20
 label @3:
-  %22 := Cast std.result.Result<Result<Int,Bool>,Bool>* %0 to std.result.Result<Result<Int,Bool>,Bool>::Error*
-  %23 := GetPointer bool, std.result.Result<Result<Int,Bool>,Bool>::Error* %22.1
-  %24 := Load bool %23
-  %25 := Call std.result.Result<Int,Bool>::Error* myte.builtin.alloc(1)
-  %26 := Cast std.result.Result<Int,Bool>::Error* %25 to byte*
-  Store byte %26, 1
-  %27 := GetPointer bool, std.result.Result<Int,Bool>::Error* %25.1
-  Store bool %27, %24
-  Ret %25
+  %24 := Cast std.result.Result<Result<Int,Bool>,Bool>* %0 to std.result.Result<Result<Int,Bool>,Bool>::Error*
+  %25 := GetPointer bool, std.result.Result<Result<Int,Bool>,Bool>::Error* %24.1
+  %26 := Load bool %25
+  %27 := Call std.result.Result<Int,Bool>* myte.builtin.alloc(1)
+  %28 := Cast std.result.Result<Int,Bool>* %27 to std.result.Result<Int,Bool>::Error*
+  %29 := Cast std.result.Result<Int,Bool>::Error* %28 to byte*
+  Store byte %29, 1
+  %30 := GetPointer bool, std.result.Result<Int,Bool>::Error* %28.1
+  Store bool %30, %26
+  Ret %27
 }
 
 func std.result.Result<Int,Bool>* @test.testZeroSizeOkUnwrap(std.result.Result<test.ZeroSize,Bool>* %0) {
@@ -107,22 +114,24 @@ func std.result.Result<Int,Bool>* @test.testZeroSizeOkUnwrap(std.result.Result<t
   branch %3, @0, @1
 label @0:
   Call void @test.use<test.ZeroSize>()
-  %4 := Call std.result.Result<Int,Bool>::Ok* myte.builtin.alloc(1)
-  %5 := Cast std.result.Result<Int,Bool>::Ok* %4 to byte*
-  Store byte %5, 0
-  %6 := GetPointer int, std.result.Result<Int,Bool>::Ok* %4.2
-  Store int %6, 1
+  %4 := Call std.result.Result<Int,Bool>* myte.builtin.alloc(1)
+  %5 := Cast std.result.Result<Int,Bool>* %4 to std.result.Result<Int,Bool>::Ok*
+  %6 := Cast std.result.Result<Int,Bool>::Ok* %5 to byte*
+  Store byte %6, 0
+  %7 := GetPointer int, std.result.Result<Int,Bool>::Ok* %5.2
+  Store int %7, 1
   Ret %4
 label @1:
-  %7 := Cast std.result.Result<test.ZeroSize,Bool>* %0 to std.result.Result<test.ZeroSize,Bool>::Error*
-  %8 := GetPointer bool, std.result.Result<test.ZeroSize,Bool>::Error* %7.1
-  %9 := Load bool %8
-  %10 := Call std.result.Result<Int,Bool>::Error* myte.builtin.alloc(1)
-  %11 := Cast std.result.Result<Int,Bool>::Error* %10 to byte*
-  Store byte %11, 1
-  %12 := GetPointer bool, std.result.Result<Int,Bool>::Error* %10.1
-  Store bool %12, %9
-  Ret %10
+  %8 := Cast std.result.Result<test.ZeroSize,Bool>* %0 to std.result.Result<test.ZeroSize,Bool>::Error*
+  %9 := GetPointer bool, std.result.Result<test.ZeroSize,Bool>::Error* %8.1
+  %10 := Load bool %9
+  %11 := Call std.result.Result<Int,Bool>* myte.builtin.alloc(1)
+  %12 := Cast std.result.Result<Int,Bool>* %11 to std.result.Result<Int,Bool>::Error*
+  %13 := Cast std.result.Result<Int,Bool>::Error* %12 to byte*
+  Store byte %13, 1
+  %14 := GetPointer bool, std.result.Result<Int,Bool>::Error* %12.1
+  Store bool %14, %10
+  Ret %11
 }
 
 func std.result.Result<Int,test.ZeroSize>* @test.testZeroSizeResultUnwrap(std.result.Result<Bool,test.ZeroSize>* %0) {
@@ -135,17 +144,19 @@ label @0:
   %5 := GetPointer bool, std.result.Result<Bool,test.ZeroSize>::Ok* %4.1
   %6 := Load bool %5
   Call void @test.use<Bool>(%6)
-  %7 := Call std.result.Result<Int,test.ZeroSize>::Ok* myte.builtin.alloc(1)
-  %8 := Cast std.result.Result<Int,test.ZeroSize>::Ok* %7 to byte*
-  Store byte %8, 0
-  %9 := GetPointer int, std.result.Result<Int,test.ZeroSize>::Ok* %7.2
-  Store int %9, 1
+  %7 := Call std.result.Result<Int,test.ZeroSize>* myte.builtin.alloc(1)
+  %8 := Cast std.result.Result<Int,test.ZeroSize>* %7 to std.result.Result<Int,test.ZeroSize>::Ok*
+  %9 := Cast std.result.Result<Int,test.ZeroSize>::Ok* %8 to byte*
+  Store byte %9, 0
+  %10 := GetPointer int, std.result.Result<Int,test.ZeroSize>::Ok* %8.2
+  Store int %10, 1
   Ret %7
 label @1:
-  %10 := Call std.result.Result<Int,test.ZeroSize>::Error* myte.builtin.alloc(1)
-  %11 := Cast std.result.Result<Int,test.ZeroSize>::Error* %10 to byte*
-  Store byte %11, 1
-  Ret %10
+  %11 := Call std.result.Result<Int,test.ZeroSize>* myte.builtin.alloc(1)
+  %12 := Cast std.result.Result<Int,test.ZeroSize>* %11 to std.result.Result<Int,test.ZeroSize>::Error*
+  %13 := Cast std.result.Result<Int,test.ZeroSize>::Error* %12 to byte*
+  Store byte %13, 1
+  Ret %11
 }
 
 func std.result.Result<Int,test.ZeroSize>* @test.testZeroSizeOkAndResultUnwrap(std.result.Result<test.ZeroSize,test.ZeroSize>* %0) {
@@ -155,17 +166,19 @@ func std.result.Result<Int,test.ZeroSize>* @test.testZeroSizeOkAndResultUnwrap(s
   branch %3, @0, @1
 label @0:
   Call void @test.use<test.ZeroSize>()
-  %4 := Call std.result.Result<Int,test.ZeroSize>::Ok* myte.builtin.alloc(1)
-  %5 := Cast std.result.Result<Int,test.ZeroSize>::Ok* %4 to byte*
-  Store byte %5, 0
-  %6 := GetPointer int, std.result.Result<Int,test.ZeroSize>::Ok* %4.2
-  Store int %6, 1
+  %4 := Call std.result.Result<Int,test.ZeroSize>* myte.builtin.alloc(1)
+  %5 := Cast std.result.Result<Int,test.ZeroSize>* %4 to std.result.Result<Int,test.ZeroSize>::Ok*
+  %6 := Cast std.result.Result<Int,test.ZeroSize>::Ok* %5 to byte*
+  Store byte %6, 0
+  %7 := GetPointer int, std.result.Result<Int,test.ZeroSize>::Ok* %5.2
+  Store int %7, 1
   Ret %4
 label @1:
-  %7 := Call std.result.Result<Int,test.ZeroSize>::Error* myte.builtin.alloc(1)
-  %8 := Cast std.result.Result<Int,test.ZeroSize>::Error* %7 to byte*
-  Store byte %8, 1
-  Ret %7
+  %8 := Call std.result.Result<Int,test.ZeroSize>* myte.builtin.alloc(1)
+  %9 := Cast std.result.Result<Int,test.ZeroSize>* %8 to std.result.Result<Int,test.ZeroSize>::Error*
+  %10 := Cast std.result.Result<Int,test.ZeroSize>::Error* %9 to byte*
+  Store byte %10, 1
+  Ret %8
 }
 
 func void @test.use<Bool>(bool %0) {
