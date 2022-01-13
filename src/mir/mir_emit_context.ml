@@ -47,8 +47,6 @@ type t = {
   mutable local_variable_to_alloc_instr: Instruction.t LocMap.t;
   (* Function parameter decl loc to the Argument value for that parameter *)
   mutable param_to_argument: Argument.t LocMap.t;
-  (* Pointer var ids that shuld be promoted to registers during SSA pass *)
-  mutable ptr_var_ids_to_ssaify: ISet.t;
   (* ADT signature id to its corresponding MIR layout *)
   mutable adt_sig_to_mir_layout: MirAdtLayout.t IMap.t;
   (* Trait signature id to its corresponding trait object vtables *)
@@ -112,7 +110,6 @@ let mk ~pcx =
       && not (Opts.dump_stdlib ());
     local_variable_to_alloc_instr = LocMap.empty;
     param_to_argument = LocMap.empty;
-    ptr_var_ids_to_ssaify = ISet.empty;
     adt_sig_to_mir_layout = IMap.empty;
     trait_sig_to_trait_object_layout = IMap.empty;
     pending_nongeneric_funcs = SSet.empty;
@@ -571,7 +568,7 @@ and get_trait_object_layout ~ecx (trait_sig : Types.TraitSig.t) =
         ~ecx
         trait_object_label
         trait_sig.loc
-        [("item", `PointerT `ByteT); ("vtable", `PointerT (`FunctionT))]
+        [("item", `PointerT `ByteT); ("vtable", `PointerT `FunctionT)]
     in
 
     let trait_object_layout =

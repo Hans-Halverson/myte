@@ -141,7 +141,7 @@ let mir_value_of_constant constant =
   | LongConstant i -> mk_long_lit i
   | FunctionConstant f -> mk_func_lit f
 
-(* Perform iterative passes to calculate folded constants for all variables.
+(* Perform iterative passes to calculate folded constants for all instructions.
    Additionally prune dead branches, some of which may be exposed by constant folding. *)
 class calc_constants_visitor ~ocx =
   object (this)
@@ -187,7 +187,7 @@ class calc_constants_visitor ~ocx =
           (fun block_id block ->
             if not (ISet.mem block_id visited_blocks) then (
               Ocx.remove_block ~ocx block_id;
-              (* Collect all removed variables so they can be excluded from constant folding *)
+              (* Collect all removed instructions so they can be excluded from constant folding *)
               let gatherer = new Mir_normalizer.var_gatherer ~program:ocx.program in
               gatherer#visit_instructions ~block block.instructions;
               removed_instr_ids <- ISet.union gatherer#value_ids removed_instr_ids
@@ -324,8 +324,8 @@ class calc_constants_visitor ~ocx =
             args
             ([], true)
         in
-        (* If all non-removed args are the same constant, propagate constant through
-           to result variable *)
+        (* If all non-removed args are the same constant, propagate constant through as value
+           replacing uses of phi instruction. *)
         if is_constant && constants <> [] then
           let constant = List.hd constants in
           let other_constants = List.tl constants in

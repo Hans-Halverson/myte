@@ -100,7 +100,7 @@ and VReg : sig
     (* This vreg has not yet been resolved to a physical location *)
     | Unresolved
 
-  val of_var_id : resolution:resolution -> id -> t
+  val of_value_id : resolution:resolution -> id -> t
 
   val mk : resolution:resolution -> t
 
@@ -127,11 +127,11 @@ end = struct
 
   let vregs_by_id = ref IMap.empty
 
-  let of_var_id ~resolution var_id =
-    match IMap.find_opt var_id !vregs_by_id with
+  let of_value_id ~resolution value_id =
+    match IMap.find_opt value_id !vregs_by_id with
     | None ->
-      let new_vreg = { id = var_id; resolution } in
-      vregs_by_id := IMap.add var_id new_vreg !vregs_by_id;
+      let new_vreg = { id = value_id; resolution } in
+      vregs_by_id := IMap.add value_id new_vreg !vregs_by_id;
       new_vreg
     | Some existing_vreg -> existing_vreg
 

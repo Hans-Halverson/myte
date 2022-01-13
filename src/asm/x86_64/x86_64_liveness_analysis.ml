@@ -112,36 +112,34 @@ let analyze_vregs blocks color_to_vreg =
     blocks;
 
   (* Propagate a single variable backwards through the program, building liveness sets as we go *)
-  let set_contains set block_id var_id =
+  let set_contains set block_id vreg =
     match IMap.find block_id !set with
-    | hd :: _ when hd == var_id -> true
+    | hd :: _ when hd == vreg -> true
     | _ -> false
   in
-  let set_add set block_id var_id =
-    set := IMap.add block_id (var_id :: IMap.find block_id !set) !set
-  in
-  let rec propagate_backwards ~block_id ~vreg_id =
+  let set_add set block_id vreg = set := IMap.add block_id (vreg :: IMap.find block_id !set) !set in
+  let rec propagate_backwards ~block_id ~vreg =
     (* Stop backwards propagation if we reach a block that has already been visited or where the
        vreg is defined (unless the vreg is used in the block before it is defined in the block) *)
     if
-      (not (set_contains live_in block_id vreg_id))
-      && ( (not (VIMMap.contains vreg_id block_id vreg_def_blocks))
-         || VIMMap.contains vreg_id block_id vreg_use_before_def_blocks )
+      (not (set_contains live_in block_id vreg))
+      && ( (not (VIMMap.contains vreg block_id vreg_def_blocks))
+         || VIMMap.contains vreg block_id vreg_use_before_def_blocks )
     then (
-      set_add live_in block_id vreg_id;
+      set_add live_in block_id vreg;
       let prev_blocks = IMap.find block_id prev_blocks in
       ISet.iter
         (fun prev_block ->
-          if not (set_contains live_out prev_block vreg_id) then set_add live_out prev_block vreg_id;
-          propagate_backwards ~block_id:prev_block ~vreg_id)
+          if not (set_contains live_out prev_block vreg) then set_add live_out prev_block vreg;
+          propagate_backwards ~block_id:prev_block ~vreg)
         prev_blocks
     )
   in
 
   (* Liveness is calculated for all variables in program *)
   VRegMap.iter
-    (fun vreg_id use_blocks ->
-      ISet.iter (fun block_id -> propagate_backwards ~block_id ~vreg_id) use_blocks)
+    (fun vreg use_blocks ->
+      ISet.iter (fun block_id -> propagate_backwards ~block_id ~vreg) use_blocks)
     vreg_use_blocks;
 
   (!live_in, !live_out)
@@ -214,36 +212,34 @@ let analyze_virtual_stack_slots ~(gcx : Gcx.t) =
     gcx.blocks_by_id;
 
   (* Propagate a single variable backwards through the program, building liveness sets as we go *)
-  let set_contains set block_id var_id =
+  let set_contains set block_id vreg =
     match IMap.find block_id !set with
-    | hd :: _ when hd == var_id -> true
+    | hd :: _ when hd == vreg -> true
     | _ -> false
   in
-  let set_add set block_id var_id =
-    set := IMap.add block_id (var_id :: IMap.find block_id !set) !set
-  in
-  let rec propagate_backwards ~block_id ~vreg_id =
+  let set_add set block_id vreg = set := IMap.add block_id (vreg :: IMap.find block_id !set) !set in
+  let rec propagate_backwards ~block_id ~vreg =
     (* Stop backwards propagation if we reach a block that has already been visited or where the
        var is defined (unless the var is used in the block before it is defined in the block) *)
     if
-      (not (set_contains live_in block_id vreg_id))
-      && ( (not (VIMMap.contains vreg_id block_id vslot_def_blocks))
-         || VIMMap.contains vreg_id block_id vslot_use_before_def_blocks )
+      (not (set_contains live_in block_id vreg))
+      && ( (not (VIMMap.contains vreg block_id vslot_def_blocks))
+         || VIMMap.contains vreg block_id vslot_use_before_def_blocks )
     then (
-      set_add live_in block_id vreg_id;
+      set_add live_in block_id vreg;
       let prev_blocks = IMap.find block_id prev_blocks in
       ISet.iter
         (fun prev_block ->
-          if not (set_contains live_out prev_block vreg_id) then set_add live_out prev_block vreg_id;
-          propagate_backwards ~block_id:prev_block ~vreg_id)
+          if not (set_contains live_out prev_block vreg) then set_add live_out prev_block vreg;
+          propagate_backwards ~block_id:prev_block ~vreg)
         prev_blocks
     )
   in
 
   (* Liveness is calculated for all variables in program *)
   VRegMap.iter
-    (fun vreg_id use_blocks ->
-      ISet.iter (fun block_id -> propagate_backwards ~block_id ~vreg_id) use_blocks)
+    (fun vreg use_blocks ->
+      ISet.iter (fun block_id -> propagate_backwards ~block_id ~vreg) use_blocks)
     vslot_use_blocks;
 
   (!live_in, !live_out)

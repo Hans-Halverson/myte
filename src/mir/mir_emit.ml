@@ -471,7 +471,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
             Instr (Ecx.get_local_ptr_def_instr ~ecx id_loc mir_type)
         in
         Some (Ecx.emit ~ecx (mk_load ~ptr)))
-    (* Function parameters can have their corresponding MIR var referenced directly *)
+    (* Function parameters can have their corresponding MIR value referenced directly *)
     | FunParamDecl { tvar } ->
       (match type_to_mir_type ~ecx (Types.Type.TVar tvar) with
       | None -> None
@@ -594,14 +594,14 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     (match target_ty with
     (* If indexing a vector, call Vec's `get` method instead of emitting access chain *)
     | ADT { adt_sig; _ } when adt_sig == !Std_lib.vec_adt_sig ->
-      let target_var = emit_expression ~ecx target |> Option.get in
-      let index_var = emit_expression ~ecx index |> Option.get in
-      emit_call_vec_get ~ecx loc target_var index_var
+      let target_val = emit_expression ~ecx target |> Option.get in
+      let index_val = emit_expression ~ecx index |> Option.get in
+      emit_call_vec_get ~ecx loc target_val index_val
     (* If indexing a map, call Map's `get` method instead of emitting access chain *)
     | ADT { adt_sig; type_args } when adt_sig == !Std_lib.map_adt_sig ->
-      let target_var = emit_expression ~ecx target |> Option.get in
-      let index_var = emit_expression ~ecx index in
-      Some (emit_call_map_get ~ecx loc type_args target_var index_var)
+      let target_val = emit_expression ~ecx target |> Option.get in
+      let index_val = emit_expression ~ecx index in
+      Some (emit_call_map_get ~ecx loc type_args target_val index_val)
     | _ -> emit_expression_access_chain_load ~ecx expr)
   | NamedAccess _ -> emit_expression_access_chain_load ~ecx expr
   (*
@@ -1004,25 +1004,25 @@ and emit_expression_access_chain_load ~ecx expr =
 and emit_expression_access_chain ~ecx expr : access_chain_result option =
   let open Expression in
   let open Instruction in
-  let emit_get_pointer_instr target_ptr_var element_mir_ty offsets =
+  let emit_get_pointer_instr target_ptr_val element_mir_ty offsets =
     let (pointer_offset, offsets) =
       match List.rev offsets with
       | GetPointer.PointerIndex pointer_idx :: rest_offsets -> (Some pointer_idx, rest_offsets)
       | offsets -> (None, offsets)
     in
     let element_pointer_val =
-      mk_get_pointer_instr ~pointer_offset ~type_:element_mir_ty ~ptr:target_ptr_var ~offsets ()
+      mk_get_pointer_instr ~pointer_offset ~type_:element_mir_ty ~ptr:target_ptr_val ~offsets ()
       |> Ecx.emit ~ecx
     in
     element_pointer_val
   in
-  let maybe_emit_get_pointer_and_load_instrs root_var ty offsets =
+  let maybe_emit_get_pointer_and_load_instrs root_val ty offsets =
     if offsets = [] then
-      root_var
+      root_val
     else
-      match (root_var, Ecx.to_mir_type ~ecx ty) with
-      | (Some root_var, Some mir_type) ->
-        let element_ptr_val = emit_get_pointer_instr root_var mir_type offsets in
+      match (root_val, Ecx.to_mir_type ~ecx ty) with
+      | (Some root_val, Some mir_type) ->
+        let element_ptr_val = emit_get_pointer_instr root_val mir_type offsets in
         Some (Ecx.emit ~ecx (mk_load ~ptr:element_ptr_val))
       | _ -> None
   in
@@ -1047,9 +1047,9 @@ and emit_expression_access_chain ~ecx expr : access_chain_result option =
     | _ -> (emit_expression ~ecx expr, [])
   and emit_tuple_indexed_access { IndexedAccess.target; index; _ } =
     let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
-    let (target_root_var, target_offsets) = emit_access_expression target in
-    let root_var =
-      maybe_emit_get_pointer_and_load_instrs target_root_var target_ty target_offsets
+    let (target_root_val, target_offsets) = emit_access_expression target in
+    let root_val =
+      maybe_emit_get_pointer_and_load_instrs target_root_val target_ty target_offsets
     in
     (* Extract tuple element index from integer literal and add to GetPointer offsets *)
     let emit_get_pointer_index agg =
@@ -1057,7 +1057,7 @@ and emit_expression_access_chain ~ecx expr : access_chain_result option =
       | IntLiteral { IntLiteral.raw; base; _ } ->
         let tuple_index = Integers.int64_of_string_opt raw base |> Option.get |> Int64.to_int in
         (match lookup_element_opt agg (TupleKeyCache.get_key tuple_index) with
-        | Some (_, element_index) -> (root_var, [GetPointer.FieldIndex element_index])
+        | Some (_, element_index) -> (root_val, [GetPointer.FieldIndex element_index])
         | None -> (None, []))
       | _ -> failwith "Index of a tuple must be an int literal to pass type checking"
     in
@@ -1072,7 +1072,7 @@ and emit_expression_access_chain ~ecx expr : access_chain_result option =
       let layout = Ecx.get_mir_adt_layout ~ecx adt_sig type_args in
       (match layout with
       | Aggregate agg -> emit_get_pointer_index agg
-      | InlineValue _ -> (root_var, [])
+      | InlineValue _ -> (root_val, [])
       | ZeroSize -> (None, [])
       | Variants _
       | PureEnum _ ->
@@ -1080,27 +1080,27 @@ and emit_expression_access_chain ~ecx expr : access_chain_result option =
     | _ -> failwith "Indexed access must be on tuple or ADT type"
   and emit_array_indexed_access { IndexedAccess.target; index; _ } =
     let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
-    let (target_root_var, target_offsets) = emit_access_expression target in
-    let root_var =
-      maybe_emit_get_pointer_and_load_instrs target_root_var target_ty target_offsets
+    let (target_root_val, target_offsets) = emit_access_expression target in
+    let root_val =
+      maybe_emit_get_pointer_and_load_instrs target_root_val target_ty target_offsets
     in
-    let index_var = emit_numeric_expression ~ecx index in
-    (root_var, [GetPointer.PointerIndex index_var])
+    let index_val = emit_numeric_expression ~ecx index in
+    (root_val, [GetPointer.PointerIndex index_val])
   (* An indexed access on a Vec calls the Vec's `get` method *)
   and emit_vec_indexed_access { IndexedAccess.loc; target; index; _ } =
     let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
-    let (target_root_var, target_offsets) = emit_access_expression target in
-    let target_var =
-      maybe_emit_get_pointer_and_load_instrs target_root_var target_ty target_offsets |> Option.get
+    let (target_root_val, target_offsets) = emit_access_expression target in
+    let target_val =
+      maybe_emit_get_pointer_and_load_instrs target_root_val target_ty target_offsets |> Option.get
     in
-    let index_var = emit_expression ~ecx index |> Option.get in
-    let vec_get_result = emit_call_vec_get ~ecx loc target_var index_var in
+    let index_val = emit_expression ~ecx index |> Option.get in
+    let vec_get_result = emit_call_vec_get ~ecx loc target_val index_val in
     (vec_get_result, [])
   and emit_record_named_access { NamedAccess.target; name = { name; _ }; _ } =
     let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
-    let (target_root_var, target_offsets) = emit_access_expression target in
-    let root_var =
-      maybe_emit_get_pointer_and_load_instrs target_root_var target_ty target_offsets
+    let (target_root_val, target_offsets) = emit_access_expression target in
+    let root_val =
+      maybe_emit_get_pointer_and_load_instrs target_root_val target_ty target_offsets
     in
     (* Find MIR ADT layout for this record *)
     let (type_args, adt_sig) = Type_util.cast_to_adt_type target_ty in
@@ -1110,7 +1110,7 @@ and emit_expression_access_chain ~ecx expr : access_chain_result option =
     | Aggregate agg ->
       (* Find element index in the corresponding aggregate type *)
       (match lookup_element_opt agg name with
-      | Some (_, element_idx) -> (root_var, [GetPointer.FieldIndex element_idx])
+      | Some (_, element_idx) -> (root_val, [GetPointer.FieldIndex element_idx])
       | None -> (None, []))
     | ZeroSize -> (None, [])
     | Variants _
@@ -1118,21 +1118,21 @@ and emit_expression_access_chain ~ecx expr : access_chain_result option =
     | InlineValue _ ->
       failwith "Invalid layout for record"
   in
-  let (target_var, offsets) =
+  let (target_val, offsets) =
     match expr with
     | IndexedAccess _
     | NamedAccess _ ->
       emit_access_expression expr
     | _ -> failwith "Must be called on access expression"
   in
-  match target_var with
+  match target_val with
   | None -> None
-  | Some target_var when offsets = [] -> Some (InlinedValueResult target_var)
-  | Some target_var ->
+  | Some target_val when offsets = [] -> Some (InlinedValueResult target_val)
+  | Some target_val ->
     (match mir_type_of_loc ~ecx (Ast_utils.expression_loc expr) with
     | None -> None
     | Some element_mir_ty ->
-      Some (GetPointerEmittedResult (emit_get_pointer_instr target_var element_mir_ty offsets)))
+      Some (GetPointerEmittedResult (emit_get_pointer_instr target_val element_mir_ty offsets)))
 
 and emit_method_call
     ~ecx

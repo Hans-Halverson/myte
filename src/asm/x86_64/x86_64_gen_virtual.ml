@@ -113,7 +113,7 @@ and gen_function_instruction_builder ~gcx ~ir func =
         (* First 6 parameters are passed in known registers *)
         let size = register_size_of_mir_value_type type_ in
         let move_from_precolored color =
-          let param_vreg = VReg.of_var_id ~resolution:Unresolved arg_id in
+          let param_vreg = VReg.of_value_id ~resolution:Unresolved arg_id in
           Gcx.emit ~gcx (MovMM (size, Reg (Gcx.mk_precolored ~gcx color), Reg param_vreg));
           param_vreg
         in
@@ -127,7 +127,7 @@ and gen_function_instruction_builder ~gcx ~ir func =
         (* All other parameters pushed onto stack before call. Address will be calculated once
            we know stack frame size after stack coloring. *)
         | _ ->
-          let vreg = VReg.of_var_id ~resolution:Unresolved arg_id in
+          let vreg = VReg.of_value_id ~resolution:Unresolved arg_id in
           vreg.resolution <- StackSlot (FunctionStackArgument vreg);
           vreg)
       func.params;
@@ -155,7 +155,7 @@ and gen_blocks ~gcx ~ir start_block_id label func =
 and gen_instructions ~gcx ~ir ~block instructions =
   let open Instruction in
   let gen_instructions = gen_instructions ~gcx ~ir ~block in
-  let vreg_of_result_var_id var_id = VReg.of_var_id ~resolution:Unresolved var_id in
+  let vreg_of_result_value_id value_id = VReg.of_value_id ~resolution:Unresolved value_id in
   let mk_vreg () = VReg.mk ~resolution:Unresolved in
   let resolve_ir_value ?(allow_imm64 = false) v = resolve_ir_value ~gcx ~allow_imm64 v in
   let emit_mem mem =
@@ -219,14 +219,14 @@ and gen_instructions ~gcx ~ir ~block instructions =
           | SVReg (source_vreg, size) -> Gcx.emit ~gcx (MovMM (size, Reg source_vreg, Reg vreg))))
       arg_vals
   in
-  let gen_mov dest_var_id value =
-    let dest_vreg = vreg_of_result_var_id dest_var_id in
+  let gen_mov dest_value_id value =
+    let dest_vreg = vreg_of_result_value_id dest_value_id in
     let instr =
       match resolve_ir_value ~allow_imm64:true value with
       | SImm imm -> MovIM (size_of_immediate imm, imm, Reg dest_vreg)
       | SAddr addr -> Lea (Size64, addr, dest_vreg)
       | SMem (mem, size) -> MovMM (size, Mem mem, Reg dest_vreg)
-      | SVReg (src_var_id, size) -> MovMM (size, Reg src_var_id, Reg dest_vreg)
+      | SVReg (src_vreg, size) -> MovMM (size, Reg src_vreg, Reg dest_vreg)
     in
     Gcx.emit ~gcx instr
   in
@@ -289,8 +289,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
         size
   in
   (* Generate a bit shift instruction from the target and shift arguments *)
-  let gen_shift ~mk_reg_instr ~mk_imm_instr result_var_id target_val shift_val =
-    let result_vreg = vreg_of_result_var_id result_var_id in
+  let gen_shift ~mk_reg_instr ~mk_imm_instr result_value_id target_val shift_val =
+    let result_vreg = vreg_of_result_value_id result_value_id in
     (* Do not reduce size of target immediate, as we must know its original size to know what
        size to make the shift operation. *)
     (match (resolve_ir_value target_val, resolve_ir_value ~allow_imm64:true shift_val) with
@@ -365,8 +365,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
   (* Generate a comparison and SetCC instruction to load the result of the comparison to a register.
      Return the condition code that was used (may be different than the input condition code, as
      order of arguments may have been swapped). *)
-  let gen_cmp_set_cc cc result_var_id left_val right_val =
-    let result_vreg = vreg_of_result_var_id result_var_id in
+  let gen_cmp_set_cc cc result_value_id left_val right_val =
+    let result_vreg = vreg_of_result_value_id result_value_id in
     Gcx.emit ~gcx (XorMM (Size32, Reg result_vreg, Reg result_vreg));
     let swapped = gen_cmp left_val right_val in
     let cc =
@@ -383,11 +383,11 @@ and gen_instructions ~gcx ~ir ~block instructions =
     | Branch { test = Instr { id; _ } | Argument { id; _ }; _ } when id = value_id -> true
     | _ -> false
   in
-  let gen_cond_jmp cc test_var_id left_val right_val =
+  let gen_cond_jmp cc test_value_id left_val right_val =
     let cc =
       (* If the only use of the comparison is in this branch instruction, only need to generate
          a comparison instruction and use the current flags. *)
-      if IMap.find test_var_id gcx.value_num_uses = 1 then
+      if IMap.find test_value_id gcx.value_num_uses = 1 then
         let swapped = gen_cmp left_val right_val in
         if swapped then
           swap_condition_code_order cc
@@ -396,7 +396,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       (* Otherwise the result of the comparison is used elsewhere, so we must load to a register
          with a SetCC instruction. We can still emit a JmpCC directly off the current flags though. *)
       else
-        gen_cmp_set_cc cc test_var_id left_val right_val
+        gen_cmp_set_cc cc test_value_id left_val right_val
     in
     let (continue, jump) =
       match block.next with
@@ -457,7 +457,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let return_size = register_size_of_mir_value_type return_type in
       Gcx.emit
         ~gcx
-        (MovMM (return_size, Reg (Gcx.mk_precolored ~gcx A), Reg (vreg_of_result_var_id return_id)))
+        (MovMM (return_size, Reg (Gcx.mk_precolored ~gcx A), Reg (vreg_of_result_value_id return_id)))
     );
     gen_instructions rest_instructions
   (*
@@ -483,7 +483,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    * ===========================================
    *)
   | { id = result_id; instr = Load pointer; _ } :: rest_instructions ->
-    let result_vreg = vreg_of_result_var_id result_id in
+    let result_vreg = vreg_of_result_value_id result_id in
     let pointer_element_type = pointer_value_element_type pointer in
     let size =
       match pointer_element_type with
@@ -563,7 +563,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    * ===========================================
    *)
   | { id = result_id; instr = Binary (Add, left_val, right_val); _ } :: rest_instructions ->
-    let result_vreg = vreg_of_result_var_id result_id in
+    let result_vreg = vreg_of_result_value_id result_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm imm, other)
@@ -587,7 +587,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    * ===========================================
    *)
   | { id = result_id; instr = Binary (Sub, left_val, right_val); _ } :: rest_instructions ->
-    let result_vreg = vreg_of_result_var_id result_id in
+    let result_vreg = vreg_of_result_value_id result_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm left_imm, right) ->
@@ -614,7 +614,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    * ===========================================
    *)
   | { id = result_id; instr = Binary (Mul, left_val, right_val); _ } :: rest_instructions ->
-    let result_vreg = vreg_of_result_var_id result_id in
+    let result_vreg = vreg_of_result_value_id result_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm imm, other)
@@ -637,7 +637,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    * ===========================================
    *)
   | { id = result_id; instr = Binary (Div, left_val, right_val); _ } :: rest_instructions ->
-    let result_vreg = vreg_of_result_var_id result_id in
+    let result_vreg = vreg_of_result_value_id result_id in
     (match resolve_ir_value ~allow_imm64:true right_val with
     (* Division by a power of two can be optimized to a right shift *)
     | SImm imm when Opts.optimize () && Integers.is_power_of_two (int64_of_immediate imm) ->
@@ -660,7 +660,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    * ===========================================
    *)
   | { id = result_id; instr = Binary (Rem, left_val, right_val); _ } :: rest_instructions ->
-    let result_vreg = vreg_of_result_var_id result_id in
+    let result_vreg = vreg_of_result_value_id result_id in
     let precolored_d = Gcx.mk_precolored ~gcx D in
     let size = gen_idiv left_val right_val in
     Gcx.emit ~gcx (MovMM (size, Reg precolored_d, Reg result_vreg));
@@ -675,7 +675,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     let resolved_value = resolve_ir_value arg in
     let size = register_size_of_svalue resolved_value in
     let arg_mem = emit_mem resolved_value in
-    let result_vreg = vreg_of_result_var_id result_id in
+    let result_vreg = vreg_of_result_value_id result_id in
     Gcx.emit ~gcx (MovMM (size, arg_mem, Reg result_vreg));
     Gcx.emit ~gcx (NegM (size, Reg result_vreg));
     maybe_truncate_bool_vreg ~gcx ~if_bool:arg result_vreg;
@@ -688,7 +688,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
   | { id = result_id; instr = Unary (Not, arg); _ } :: rest_instructions ->
     ( if is_bool_value arg then (
       let arg_vreg = emit_bool_as_reg arg in
-      let result_vreg = vreg_of_result_var_id result_id in
+      let result_vreg = vreg_of_result_value_id result_id in
       Gcx.emit ~gcx (XorMM (Size32, Reg result_vreg, Reg result_vreg));
       Gcx.emit ~gcx (TestMR (Size8, Reg arg_vreg, arg_vreg));
       Gcx.emit ~gcx (SetCC (E, Reg result_vreg))
@@ -696,7 +696,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let resolved_value = resolve_ir_value arg in
       let size = register_size_of_svalue resolved_value in
       let arg_mem = emit_mem resolved_value in
-      let result_vreg = vreg_of_result_var_id result_id in
+      let result_vreg = vreg_of_result_value_id result_id in
       Gcx.emit ~gcx (MovMM (size, arg_mem, Reg result_vreg));
       Gcx.emit ~gcx (NotM (size, Reg result_vreg)) );
     gen_instructions rest_instructions
@@ -706,7 +706,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    * ===========================================
    *)
   | { id = result_id; instr = Binary (And, left_val, right_val); _ } :: rest_instructions ->
-    let result_vreg = vreg_of_result_var_id result_id in
+    let result_vreg = vreg_of_result_value_id result_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm imm, other)
@@ -729,7 +729,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    * ===========================================
    *)
   | { id = result_id; instr = Binary (Or, left_val, right_val); _ } :: rest_instructions ->
-    let result_vreg = vreg_of_result_var_id result_id in
+    let result_vreg = vreg_of_result_value_id result_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm imm, other)
@@ -752,7 +752,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    * ===========================================
    *)
   | { id = result_id; instr = Binary (Xor, left_val, right_val); _ } :: rest_instructions ->
-    let result_vreg = vreg_of_result_var_id result_id in
+    let result_vreg = vreg_of_result_value_id result_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm imm, other)
@@ -842,7 +842,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     }
     :: rest_instructions ->
     let open Mir_builtin in
-    let ret_vreg () = vreg_of_result_var_id return_id in
+    let ret_vreg () = vreg_of_result_value_id return_id in
     (*
      * ===========================================
      *                myte_alloc
@@ -951,7 +951,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    * ===========================================
    *)
   | { id = return_id; instr = Cast arg_val; _ } :: rest_instructions ->
-    let result_vreg = vreg_of_result_var_id return_id in
+    let result_vreg = vreg_of_result_value_id return_id in
     (* Cast simply copies argument to result vreg, which will likely be optimized away *)
     (match resolve_ir_value ~allow_imm64:true arg_val with
     | SImm imm -> Gcx.emit ~gcx (MovIM (size_of_immediate imm, imm, Reg result_vreg))
@@ -968,7 +968,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     (* Truncation occurs when later accessing only a portion of the arg. Emit mov to link arg and
        result, which will likely be optimized away (but may not be optimized away if we end up
        moving the truncated portion to memory). *)
-    let result_vreg = vreg_of_result_var_id return_id in
+    let result_vreg = vreg_of_result_value_id return_id in
     (match resolve_ir_value arg_val with
     | SImm _ -> failwith "Constants must be folded before gen"
     | arg ->
@@ -984,7 +984,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    * ===========================================
    *)
   | { id = return_id; type_; instr = SExt arg_val } :: rest_instructions ->
-    let result_vreg = vreg_of_result_var_id return_id in
+    let result_vreg = vreg_of_result_value_id return_id in
     (match resolve_ir_value arg_val with
     | SImm _ -> failwith "Constants must be folded before gen"
     | arg ->
@@ -1009,7 +1009,7 @@ and gen_get_pointer
   let element_ty = pointer_value_element_type pointer in
 
   (* Utilities for creating vregs *)
-  let vreg_of_result_var_id return_id = VReg.of_var_id ~resolution:Unresolved return_id in
+  let vreg_of_result_value_id return_id = VReg.of_value_id ~resolution:Unresolved return_id in
   let mk_vreg () = VReg.mk ~resolution:Unresolved in
 
   (* Current address calculation - updated as offsets are visited. Note that base and index_and_scale
@@ -1183,7 +1183,7 @@ and gen_get_pointer
   List.iter (fun offset -> gen_offset offset !current_ty) offsets;
 
   let address_vreg = emit_current_address_calculation () in
-  let result_vreg = vreg_of_result_var_id return_id in
+  let result_vreg = vreg_of_result_value_id return_id in
   Gcx.emit ~gcx (MovMM (Size64, Reg address_vreg, Reg result_vreg))
 
 and gen_size_from_count_and_type ~gcx count_val mir_ty result_vreg =
@@ -1220,8 +1220,8 @@ and maybe_truncate_bool_vreg ~gcx ~if_bool vreg =
   if is_bool_value if_bool then Gcx.emit ~gcx (AndIM (Size8, Imm8 1, Reg vreg))
 
 and resolve_ir_value ~gcx ?(allow_imm64 = false) value =
-  let vreg_of_var var_id size =
-    let vreg = VReg.of_var_id ~resolution:Unresolved var_id in
+  let vreg_of_var value_id size =
+    let vreg = VReg.of_value_id ~resolution:Unresolved value_id in
     match vreg.resolution with
     | StackSlot mem -> SMem (mem, size)
     | _ -> SVReg (vreg, size)

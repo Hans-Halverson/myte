@@ -97,13 +97,13 @@ and pp_global ~cx global =
 
 and pp_func ~cx ~program func =
   let open Function in
-  (* Each function's variables and labels have their own print id space *)
+  (* Each function's values and labels have their own print id space *)
   cx.max_print_value_id <- 0;
   cx.max_print_block_id <- 0;
   let func_params =
     func.params
     |> List.map (fun { Argument.id; type_; _ } ->
-           Printf.sprintf "%s %s" (pp_type type_) (pp_var_id ~cx id))
+           Printf.sprintf "%s %s" (pp_type type_) (pp_value_id ~cx id))
     |> String.concat ", "
   in
   let return_ty =
@@ -170,7 +170,7 @@ and pp_block ~cx ~label block =
   let lines = List.concat [label_lines; instruction_lines; next_lines] in
   String.concat "\n" lines
 
-and pp_var_id ~cx value_id =
+and pp_value_id ~cx value_id =
   let open Context in
   let print_id =
     if Opts.dump_debug () then
@@ -214,7 +214,7 @@ and pp_value ~cx value =
   match value with
   | Instr { id; _ }
   | Argument { id; _ } ->
-    pp_var_id ~cx id
+    pp_value_id ~cx id
   | Lit lit -> pp_literal lit
 
 and pp_literal lit =
@@ -268,7 +268,7 @@ and pp_comparison comparison =
 
 and pp_instruction ~cx instr =
   let open Instruction in
-  let pp_instr str = Printf.sprintf "%s := %s" (pp_var_id ~cx instr.id) str in
+  let pp_instr str = Printf.sprintf "%s := %s" (pp_value_id ~cx instr.id) str in
   let instr_string =
     match instr.instr with
     | Mov right ->
