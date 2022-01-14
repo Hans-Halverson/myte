@@ -25,8 +25,12 @@ module MirTraitObjectLayout = struct
   and trait_instance = trait_object_instance TypeArgsHashtbl.t
 
   and trait_object_instance = {
-    vtable: (* Pointer *) Value.t;
+    vtable: (* Pointer to function array *) Value.t;
+    (* Aggregate containing item and vtable for this specific instance of a trait object. Item
+       must be a pointer. *)
     agg: Aggregate.t;
+    (* Whether the item is boxed (e.g. because it is a primitive type) *)
+    is_boxed: bool;
   }
 
   let mk_trait_instance () = TypeArgsHashtbl.create 4

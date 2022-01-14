@@ -121,11 +121,23 @@ and emit_pending ~ecx =
       emit_pending_generic_func_instantations ()
   in
 
+  (* Emit all pending trampoline functions *)
+  let rec emit_pending_trampoline_functions () =
+    match Ecx.pop_pending_trampoline_function ~ecx with
+    | None -> ()
+    | Some name ->
+      emit_trampoline_function ~ecx name;
+      Ecx.mark_pending_trampoline_function_completed ~ecx name;
+      complete := false;
+      emit_pending_trampoline_functions ()
+  in
+
   let rec emit_all_pending () =
     complete := true;
     emit_pending_globals ();
     emit_pending_nongeneric_functions ();
     emit_pending_generic_func_instantations ();
+    emit_pending_trampoline_functions ();
     if not !complete then emit_all_pending ()
   in
   emit_all_pending ()
@@ -237,6 +249,52 @@ and emit_function_body ~ecx name decl =
   in
 
   Ecx.add_function ~ecx { Function.loc; name; params; return_ty; body_start_block }
+
+and emit_trampoline_function ~(ecx : Ecx.t) name =
+  (* Trampolines are created after wrpped function, so we can always lookup the function IR object *)
+  let func = SMap.find name ecx.funcs in
+  let trampoline_name = Ecx.mk_trampoline_name name in
+
+  (* Copy parameters to new parameters with same type but for trampoline function, except receiver
+     has pointer type since it is boxed. *)
+  let (receiver_param, rest_params) = List_utils.split_first func.params in
+  let receiver_ptr_arg =
+    {
+      Argument.id = mk_value_id ();
+      func = trampoline_name;
+      type_ = Pointer receiver_param.type_;
+      decl_loc = receiver_param.decl_loc;
+    }
+  in
+  let rest_args =
+    List.map
+      (fun { Argument.type_; decl_loc; _ } ->
+        { Argument.id = mk_value_id (); func = trampoline_name; type_; decl_loc })
+      rest_params
+  in
+  let params = receiver_ptr_arg :: rest_args in
+
+  (* Load receiver and call the wrapped function, passing original args with loaded receiver *)
+  let body_start_block = Ecx.start_new_block ~ecx in
+  let receiver_arg = Ecx.emit ~ecx (mk_load ~ptr:(Argument receiver_ptr_arg)) in
+  let args = receiver_arg :: (List.map (fun arg -> Value.Argument arg)) rest_args in
+  let return_val = Ecx.emit ~ecx (mk_call ~func:(mk_func_lit name) ~args ~return:func.return_ty) in
+
+  (* Return value from call if applicable *)
+  (match func.return_ty with
+  | None -> Ecx.emit_ ~ecx (mk_ret ~arg:None)
+  | Some _ -> Ecx.emit_ ~ecx (mk_ret ~arg:(Some return_val)));
+  Ecx.finish_block_halt ~ecx;
+
+  Ecx.add_function
+    ~ecx
+    {
+      Function.loc = func.loc;
+      name = trampoline_name;
+      params;
+      return_ty = func.return_ty;
+      body_start_block;
+    }
 
 and start_init_function ~ecx =
   Ecx.emit_init_section ~ecx (fun _ -> ());
@@ -1009,7 +1067,19 @@ and emit_trait_object_promotion ~ecx expr_val trait_object_layout trait_object_i
     in
     Ecx.emit_ ~ecx (mk_store ~ptr ~value)
   in
-  expr_val |> Option.iter (emit_field_store "item");
+  (match expr_val with
+  | None -> ()
+  (* Force non-pointer types to be allocated on heap so that pointer can be stored in trait object *)
+  | Some item_val when trait_object_instance.is_boxed ->
+    let item_type = type_of_value item_val in
+    let item_ptr =
+      Ecx.emit
+        ~ecx
+        Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [item_type])
+    in
+    Ecx.emit_ ~ecx (mk_store ~ptr:item_ptr ~value:item_val);
+    emit_field_store "item" item_ptr
+  | Some item_val -> emit_field_store "item" item_val);
   emit_field_store "vtable" trait_object_instance.vtable;
 
   (* Cast to general trait object *)

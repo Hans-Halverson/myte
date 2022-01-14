@@ -53,6 +53,8 @@ type t = {
   mutable trait_sig_to_trait_object_layout: MirTraitObjectLayout.t IMap.t;
   (* Names for all nongeneric functions that are pending generation *)
   mutable pending_nongeneric_funcs: SSet.t;
+  (* Names for all trampoline functions that are pending generation *)
+  mutable pending_trampoline_funcs: SSet.t;
   (* All AST nodes for all globals that should be generated, indexed by their full name *)
   mutable pending_globals: Ast.Statement.VariableDeclaration.t SMap.t;
   (* All tuple types used in this program, keyed by their type arguments *)
@@ -113,6 +115,7 @@ let mk ~pcx =
     adt_sig_to_mir_layout = IMap.empty;
     trait_sig_to_trait_object_layout = IMap.empty;
     pending_nongeneric_funcs = SSet.empty;
+    pending_trampoline_funcs = SSet.empty;
     pending_globals = SMap.empty;
     tuple_instantiations = TypeArgsHashtbl.create 10;
     generic_func_instantiations = SMap.empty;
@@ -137,6 +140,8 @@ let builders_to_blocks builders =
         func = builder.func;
       })
     builders
+
+let mk_trampoline_name name = "_trampoline$" ^ name
 
 let add_global ~ecx global =
   let name = global.Global.name in
@@ -598,6 +603,17 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
   match TypeArgsHashtbl.find_opt trait_instance type_key with
   | Some trait_object_instance -> trait_object_instance
   | None ->
+    (* Determine type of item in trait object. Default to pointer field (for alignment) if type
+       is zero width and has no MIR representation. *)
+    let (item_type, is_boxed) =
+      match to_mir_type ~ecx ty with
+      (* Pointers do not need to be boxed and can be used directly *)
+      | Some ((Pointer _ | Function) as item_type) -> (item_type, false)
+      (* All other types need to be boxed so pointer can be in trait object *)
+      | Some item_type -> (Pointer item_type, true)
+      | None -> (Pointer (get_zero_size_type ~ecx), false)
+    in
+
     (* Instantiate type's methods that are part of the trait object, building vtable array *)
     let vtable_functions =
       SMap.fold
@@ -605,14 +621,22 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
           if Types.MethodSig.is_generic method_sig then
             vtable_functions
           else
-            let method_value =
+            let method_name =
               get_method_function_value
                 ~ecx
                 ~method_name
                 ~receiver_ty:ty
                 ~method_instance_type_args:[]
+              |> cast_to_function_literal
             in
-            cast_to_function_literal method_value :: vtable_functions)
+            (* If item is boxed, add trampoline to load the item before calling the method *)
+            let method_name =
+              if is_boxed then
+                get_trampoline_function ~ecx method_name
+              else
+                method_name
+            in
+            method_name :: vtable_functions)
         trait_sig.methods
         []
     in
@@ -651,20 +675,14 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
       };
     let vtable = Mir_builders.mk_ptr_lit vtable_mir_type vtable_label in
 
-    (* Create aggregate type for type's trait object. Default to pointer field (for alignment) if
-       type is zero width and has no MIR representation. *)
+    (* Create aggregate type for type's trait object *)
     let agg_label = Printf.sprintf "_object$%s$%s" full_adt_name full_trait_name in
-    let mir_type =
-      match to_mir_type ~ecx ty with
-      | Some mir_type -> mir_type
-      | None -> Pointer (get_zero_size_type ~ecx)
-    in
     let (agg_elements, _) =
-      align_and_pad_aggregate_elements [("item", mir_type); ("vtable", Pointer vtable_mir_type)]
+      align_and_pad_aggregate_elements [("item", item_type); ("vtable", Pointer vtable_mir_type)]
     in
     let agg = mk_aggregate ~ecx agg_label adt_sig.loc agg_elements in
 
-    let trait_object_instance = { MirTraitObjectLayout.vtable; agg } in
+    let trait_object_instance = { MirTraitObjectLayout.vtable; agg; is_boxed } in
     TypeArgsHashtbl.add trait_instance type_key trait_object_instance;
     trait_object_instance
 
@@ -739,7 +757,7 @@ and get_zero_size_global_pointer ~ecx =
 (*
  * Nongeneric Functions
  *)
-and get_nongeneric_function_value ~ecx name : Value.t =
+and get_nongeneric_function_value ~(ecx : t) (name : label) : Value.t =
   (* Mark function as pending if it has not yet been generated *)
   (match SMap.find_opt name ecx.funcs with
   | None -> ecx.pending_nongeneric_funcs <- SSet.add name ecx.pending_nongeneric_funcs
@@ -757,6 +775,24 @@ and mark_pending_nongeneric_function_completed ~ecx name =
   ecx.pending_nongeneric_funcs <- SSet.remove name ecx.pending_nongeneric_funcs
 
 (*
+ * Trampoline Functions
+ *)
+and get_trampoline_function ~(ecx : t) (name : label) : label =
+  (* Mark function as pending if it has not yet been generated *)
+  (match SMap.find_opt name ecx.funcs with
+  | None -> ecx.pending_trampoline_funcs <- SSet.add name ecx.pending_trampoline_funcs
+  | Some _ -> ());
+  mk_trampoline_name name
+
+and pop_pending_trampoline_function ~ecx =
+  match SSet.choose_opt ecx.pending_trampoline_funcs with
+  | None -> None
+  | Some name -> Some name
+
+and mark_pending_trampoline_function_completed ~ecx name =
+  ecx.pending_trampoline_funcs <- SSet.remove name ecx.pending_trampoline_funcs
+
+(*
  * Generic Functions
  *)
 
@@ -771,7 +807,11 @@ and find_rep_non_generic_type ~ecx ty =
   else
     Types.substitute_type_params ecx.current_type_param_bindings ty
 
-and get_generic_function_value ~ecx name key_type_params key_type_args : Value.t =
+and get_generic_function_value
+    ~(ecx : t)
+    (name : label)
+    (key_type_params : Types.TypeParam.t list)
+    (key_type_args : Types.Type.t list) : Value.t =
   let key_type_args = List.map (find_rep_non_generic_type ~ecx) key_type_args in
   let name_with_args =
     let type_args_string = TypeArgs.to_string ~pcx:ecx.pcx key_type_args in

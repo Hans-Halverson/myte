@@ -3,17 +3,33 @@
   .data
   .balign 8
 _vtable$std.bool.Bool$std.string.ToString:
-  .quad std.bool.Bool.toString
+  .quad _trampoline$std.bool.Bool.toString
 _vtable$std.byte.Byte$std.string.ToString:
-  .quad std.byte.Byte.toString
+  .quad _trampoline$std.byte.Byte.toString
 _vtable$std.int.Int$std.string.ToString:
-  .quad std.int.Int.toString
+  .quad _trampoline$std.int.Int.toString
 _vtable$std.long.Long$std.string.ToString:
-  .quad std.long.Long.toString
+  .quad _trampoline$std.long.Long.toString
 _vtable$std.unit.Unit$std.string.ToString:
   .quad std.unit.Unit.toString
 
   .text
+_trampoline$std.bool.Bool.toString:
+  movb (%rdi), %dil
+  call std.bool.Bool.toString
+  ret
+_trampoline$std.byte.Byte.toString:
+  movb (%rdi), %dil
+  call std.byte.Byte.toString
+  ret
+_trampoline$std.int.Int.toString:
+  movl (%rdi), %edi
+  call std.int.Int.toString
+  ret
+_trampoline$std.long.Long.toString:
+  movq (%rdi), %rdi
+  call std.long.Long.toString
+  ret
 _main:
   leaq test.testUnitPromotion(%rip), %rdi
   call test.use$Function$
@@ -29,54 +45,78 @@ _main:
   ret
 test.testBoolPromotion:
   push %rbx
-  movl %edi, %ebx
+  push %r12
+  movl %edi, %r12d
   movl $16, %edi
   call __myte_alloc
-  movb %bl, (%rax)
-  leaq 8(%rax), %rcx
-  leaq _vtable$std.bool.Bool$std.string.ToString(%rip), %rbx
-  movq %rbx, (%rcx)
-  movq %rax, %rdi
+  movq %rax, %rbx
+  movl $1, %edi
+  call __myte_alloc
+  movb %r12b, (%rax)
+  movq %rax, (%rbx)
+  leaq 8(%rbx), %rax
+  leaq _vtable$std.bool.Bool$std.string.ToString(%rip), %rcx
+  movq %rcx, (%rax)
+  movq %rbx, %rdi
   call test.useToString
+  pop %r12
   pop %rbx
   ret
 test.testBytePromotion:
   push %rbx
-  movl %edi, %ebx
+  push %r12
+  movl %edi, %r12d
   movl $16, %edi
   call __myte_alloc
-  movb %bl, (%rax)
-  leaq 8(%rax), %rcx
-  leaq _vtable$std.byte.Byte$std.string.ToString(%rip), %rbx
-  movq %rbx, (%rcx)
-  movq %rax, %rdi
+  movq %rax, %rbx
+  movl $1, %edi
+  call __myte_alloc
+  movb %r12b, (%rax)
+  movq %rax, (%rbx)
+  leaq 8(%rbx), %rax
+  leaq _vtable$std.byte.Byte$std.string.ToString(%rip), %rcx
+  movq %rcx, (%rax)
+  movq %rbx, %rdi
   call test.useToString
+  pop %r12
   pop %rbx
   ret
 test.testIntPromotion:
   push %rbx
-  movl %edi, %ebx
+  push %r12
+  movl %edi, %r12d
   movl $16, %edi
   call __myte_alloc
-  movl %ebx, (%rax)
-  leaq 8(%rax), %rcx
-  leaq _vtable$std.int.Int$std.string.ToString(%rip), %rbx
-  movq %rbx, (%rcx)
-  movq %rax, %rdi
+  movq %rax, %rbx
+  movl $4, %edi
+  call __myte_alloc
+  movl %r12d, (%rax)
+  movq %rax, (%rbx)
+  leaq 8(%rbx), %rax
+  leaq _vtable$std.int.Int$std.string.ToString(%rip), %rcx
+  movq %rcx, (%rax)
+  movq %rbx, %rdi
   call test.useToString
+  pop %r12
   pop %rbx
   ret
 test.testLongPromotion:
   push %rbx
-  movq %rdi, %rbx
+  push %r12
+  movq %rdi, %r12
   movl $16, %edi
   call __myte_alloc
-  movq %rbx, (%rax)
-  leaq 8(%rax), %rcx
-  leaq _vtable$std.long.Long$std.string.ToString(%rip), %rbx
-  movq %rbx, (%rcx)
-  movq %rax, %rdi
+  movq %rax, %rbx
+  movl $8, %edi
+  call __myte_alloc
+  movq %r12, (%rax)
+  movq %rax, (%rbx)
+  leaq 8(%rbx), %rax
+  leaq _vtable$std.long.Long$std.string.ToString(%rip), %rcx
+  movq %rcx, (%rax)
+  movq %rbx, %rdi
   call test.useToString
+  pop %r12
   pop %rbx
   ret
 test.testUnitPromotion:
