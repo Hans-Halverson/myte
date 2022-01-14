@@ -6,10 +6,7 @@ open Mir
    Allocate space for `count` adjacent values of type `T`
  *)
 let myte_alloc =
-  {
-    Builtin.name = "myte.builtin.alloc";
-    mk_return_ty = (fun tys -> Some (`PointerT (List.hd tys)));
-  }
+  { Builtin.name = "myte.builtin.alloc"; mk_return_ty = (fun tys -> Some (Pointer (List.hd tys))) }
 
 (* 
    myte.builtin.copy<T>(dest: *T, src: *T, count: int)
@@ -30,35 +27,35 @@ let myte_exit = { Builtin.name = "myte.builtin.exit"; mk_return_ty = (fun _ -> N
 
    Write `size` bytes of `buffer` to file with descriptor `file`.
  *)
-let myte_write = { Builtin.name = "myte.builtin.write"; mk_return_ty = (fun _ -> Some `IntT) }
+let myte_write = { Builtin.name = "myte.builtin.write"; mk_return_ty = (fun _ -> Some Int) }
 
 (* 
    myte.builtin.read<T>(file: int, buffer: byte*, size: int): int
 
    Read `size` bytes into `buffer` from file with descriptor `file`.
  *)
-let myte_read = { Builtin.name = "myte.builtin.read"; mk_return_ty = (fun _ -> Some `IntT) }
+let myte_read = { Builtin.name = "myte.builtin.read"; mk_return_ty = (fun _ -> Some Int) }
 
 (* 
    myte.builtin.open<T>(file: byte*, flags: int, mode: int): int
 
    Open file with name `file` using `flags` and `mode` options.
  *)
-let myte_open = { Builtin.name = "myte.builtin.open"; mk_return_ty = (fun _ -> Some `IntT) }
+let myte_open = { Builtin.name = "myte.builtin.open"; mk_return_ty = (fun _ -> Some Int) }
 
 (* 
    myte.builtin.close<T>(file: int): int
 
    Close file with descriptor `file`.
  *)
-let myte_close = { Builtin.name = "myte.builtin.close"; mk_return_ty = (fun _ -> Some `IntT) }
+let myte_close = { Builtin.name = "myte.builtin.close"; mk_return_ty = (fun _ -> Some Int) }
 
 (* 
    myte.builtin.unlink<T>(file: byte* ): int
 
    Unlink file with name `file`.
  *)
-let myte_unlink = { Builtin.name = "myte.builtin.unlink"; mk_return_ty = (fun _ -> Some `IntT) }
+let myte_unlink = { Builtin.name = "myte.builtin.unlink"; mk_return_ty = (fun _ -> Some Int) }
 
 (* 
    myte.builtin.get_heap_size<T>(): long
@@ -66,7 +63,7 @@ let myte_unlink = { Builtin.name = "myte.builtin.unlink"; mk_return_ty = (fun _ 
    Return size of used myte heap in bytes.
  *)
 let myte_get_heap_size =
-  { Builtin.name = "myte.builtin.get_heap_size"; mk_return_ty = (fun _ -> Some `LongT) }
+  { Builtin.name = "myte.builtin.get_heap_size"; mk_return_ty = (fun _ -> Some Long) }
 
 let mk_call_builtin builtin args mk_return_ty_args : Instruction.t =
   let open Builtin in
@@ -76,4 +73,4 @@ let mk_call_builtin builtin args mk_return_ty_args : Instruction.t =
 
 let mk_call_builtin_no_return builtin args =
   let instr = Instruction.Call { func = Builtin builtin; args; has_return = false } in
-  { Instruction.id = mk_value_id (); type_ = no_return_type; instr }
+  { Instruction.id = mk_value_id (); type_ = Mir_type.no_return_type; instr }

@@ -236,9 +236,6 @@ let mk_value_id () : Value.id =
   max_value_id := value_id + 1;
   value_id
 
-(* Arbitrarily choose return type to use when there is no return type for an instruction *)
-let no_return_type = `BoolT
-
 let rec type_of_value (v : Value.t) : Type.t =
   match v with
   | Instr { type_; _ } -> type_
@@ -247,19 +244,19 @@ let rec type_of_value (v : Value.t) : Type.t =
 
 and type_of_literal (lit : Literal.t) : Type.t =
   match lit with
-  | Literal.Bool _ -> `BoolT
-  | Byte _ -> `ByteT
-  | Int _ -> `IntT
-  | Long _ -> `LongT
-  | Function _ -> `FunctionT
-  | Pointer (ty, _) -> `PointerT ty
-  | NullPointer ty -> `PointerT ty
-  | ArrayString str -> `ArrayT (`ByteT, String.length str)
-  | ArrayVtable (size, _) -> `ArrayT (`FunctionT, size)
+  | Literal.Bool _ -> Bool
+  | Byte _ -> Byte
+  | Int _ -> Int
+  | Long _ -> Long
+  | Function _ -> Function
+  | Pointer (ty, _) -> Pointer ty
+  | NullPointer ty -> Pointer ty
+  | ArrayString str -> Array (Byte, String.length str)
+  | ArrayVtable (size, _) -> Array (Function, size)
 
 let pointer_value_element_type (ptr : Value.t) : Type.t =
   match type_of_value ptr with
-  | `PointerT element_type -> element_type
+  | Pointer element_type -> element_type
   | _ -> failwith "Expected pointer type"
 
 let cast_to_function_literal (func : Value.t) : label =
@@ -272,24 +269,24 @@ let is_literal (v : Value.t) : bool =
   | Lit _ -> true
   | _ -> false
 
-let is_bool_value (v : Value.t) : bool = type_of_value v = `BoolT
+let is_bool_value (v : Value.t) : bool = type_of_value v = Bool
 
-let is_function_value (v : Value.t) : bool = type_of_value v = `FunctionT
+let is_function_value (v : Value.t) : bool = type_of_value v = Function
 
 let is_numeric_value (v : Value.t) : bool = is_numeric_type (type_of_value v)
 
 let is_pointer_value (v : Value.t) : bool =
   match type_of_value v with
-  | `PointerT _ -> true
+  | Pointer _ -> true
   | _ -> false
 
 let is_comparable_value (v : Value.t) : bool =
   match type_of_value v with
-  | `BoolT
-  | `ByteT
-  | `IntT
-  | `LongT
-  | `PointerT _ ->
+  | Bool
+  | Byte
+  | Int
+  | Long
+  | Pointer _ ->
     true
   | _ -> false
 

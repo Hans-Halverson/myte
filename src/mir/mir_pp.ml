@@ -325,7 +325,7 @@ and pp_instruction ~cx instr =
             | GetPointer.FieldIndex field -> "." ^ string_of_int field)
           offsets
       in
-      let (`PointerT ptr_element_type) = cast_to_pointer_type instr.type_ in
+      let ptr_element_type = cast_to_pointer_type instr.type_ in
       pp_instr
         (Printf.sprintf
            "GetPointer %s, %s %s%s%s"

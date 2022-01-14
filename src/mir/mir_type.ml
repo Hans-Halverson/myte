@@ -4,22 +4,14 @@ type aggregate_id = int
 
 module rec Type : sig
   type t =
-    [ `BoolT
-    | `ByteT
-    | `IntT
-    | `LongT
-    | `FunctionT
-    | `PointerT of t
-    | `AggregateT of Aggregate.t
-    | `ArrayT of t * int
-    ]
-
-  and numeric_type =
-    [ `BoolT
-    | `ByteT
-    | `IntT
-    | `LongT
-    ]
+    | Bool
+    | Byte
+    | Int
+    | Long
+    | Function
+    | Pointer of t
+    | Aggregate of Aggregate.t
+    | Array of t * int
 end =
   Type
 
@@ -85,29 +77,32 @@ module TupleKeyCache = struct
   let get_index key = SMap.find key cache.key_to_index
 end
 
+(* Arbitrarily choose return type to use when there is no return type for an instruction *)
+let no_return_type = Type.Bool
+
 let rec types_equal (ty1 : Type.t) (ty2 : Type.t) : bool =
   match (ty1, ty2) with
-  | (`BoolT, `BoolT)
-  | (`ByteT, `ByteT)
-  | (`IntT, `IntT)
-  | (`LongT, `LongT)
-  | (`FunctionT, `FunctionT) ->
+  | (Bool, Bool)
+  | (Byte, Byte)
+  | (Int, Int)
+  | (Long, Long)
+  | (Function, Function) ->
     true
-  | (`PointerT ty1, `PointerT ty2) -> types_equal ty1 ty2
-  | (`AggregateT agg1, `AggregateT agg2) -> agg1.id = agg2.id
-  | (`ArrayT (ty1, size1), `ArrayT (ty2, size2)) -> types_equal ty1 ty2 && size1 = size2
+  | (Pointer ty1, Pointer ty2) -> types_equal ty1 ty2
+  | (Aggregate agg1, Aggregate agg2) -> agg1.id = agg2.id
+  | (Array (ty1, size1), Array (ty2, size2)) -> types_equal ty1 ty2 && size1 = size2
   | _ -> false
 
-let rec type_to_string ty =
+let rec type_to_string (ty : Type.t) =
   match ty with
-  | `ByteT -> "byte"
-  | `IntT -> "int"
-  | `LongT -> "long"
-  | `BoolT -> "bool"
-  | `FunctionT -> "fn"
-  | `PointerT ty -> type_to_string ty ^ "*"
-  | `AggregateT { Aggregate.name; _ } -> name
-  | `ArrayT (ty, size) -> Printf.sprintf "%s[%d]" (type_to_string ty) size
+  | Byte -> "byte"
+  | Int -> "int"
+  | Long -> "long"
+  | Bool -> "bool"
+  | Function -> "fn"
+  | Pointer ty -> type_to_string ty ^ "*"
+  | Aggregate { Aggregate.name; _ } -> name
+  | Array (ty, size) -> Printf.sprintf "%s[%d]" (type_to_string ty) size
 
 let byte_size = 1
 
@@ -115,49 +110,44 @@ let int_size = 4
 
 let ptr_size = 8
 
-let rec size_of_type mir_type =
+let rec size_of_type (mir_type : Type.t) =
   match mir_type with
-  | `BoolT
-  | `ByteT ->
+  | Bool
+  | Byte ->
     byte_size
-  | `IntT -> int_size
-  | `LongT
-  | `FunctionT
-  | `PointerT _ ->
+  | Int -> int_size
+  | Long
+  | Function
+  | Pointer _ ->
     ptr_size
-  | `ArrayT (mir_type, size) -> size * size_of_type mir_type
-  | `AggregateT _ -> failwith "Aggregates not allowed as top level value of other aggregates"
+  | Array (mir_type, size) -> size * size_of_type mir_type
+  | Aggregate _ -> failwith "Aggregates not allowed as top level value of other aggregates"
 
-let alignment_of_type mir_type =
+let alignment_of_type (mir_type : Type.t) =
   match mir_type with
-  | `ArrayT (mir_type, _) -> size_of_type mir_type
+  | Array (mir_type, _) -> size_of_type mir_type
   | _ -> size_of_type mir_type
 
-let cast_to_pointer_type ty =
+let cast_to_pointer_type (ty : Type.t) : Type.t =
   match ty with
-  | `PointerT _ as ty -> ty
+  | Pointer element_type -> element_type
   | _ -> failwith "Expected pointer type"
 
-let cast_to_aggregate_type ty =
+let cast_to_aggregate_type (ty : Type.t) : Aggregate.t =
   match ty with
-  | `AggregateT _ as ty -> ty
+  | Aggregate agg -> agg
   | _ -> failwith "Expected aggregate type"
 
-let cast_to_numeric_type ty =
+let is_pointer_type (ty : Type.t) =
   match ty with
-  | (`BoolT | `ByteT | `IntT | `LongT) as ty -> ty
-  | _ -> failwith "Expected numeric type"
-
-let is_pointer_type ty =
-  match ty with
-  | `PointerT _ -> true
+  | Pointer _ -> true
   | _ -> false
 
 let is_numeric_type (v : Type.t) : bool =
   match v with
-  | `BoolT
-  | `ByteT
-  | `IntT
-  | `LongT ->
+  | Bool
+  | Byte
+  | Int
+  | Long ->
     true
   | _ -> false

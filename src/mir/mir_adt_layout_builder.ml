@@ -1,6 +1,7 @@
 open Basic_collections
 open Mir_adt_layout
 open Mir_emit_utils
+open Mir_type
 open Mir_type_args_hashtbl
 module Ecx = Mir_emit_context
 
@@ -56,16 +57,16 @@ let mk_mir_variants_layout ~(ecx : Ecx.t) decl_node variant_nodes =
   let num_variants = List.length variants in
   let tag_mir_type =
     if Integers.is_out_of_unsigned_byte_range (Int64.of_int num_variants) then
-      `IntT
+      Type.Int
     else
-      `ByteT
+      Byte
   in
   let (_, tags, variant_locs) =
     List.fold_left
       (fun (i, tags, variant_locs) (name, loc) ->
         let tag =
           match tag_mir_type with
-          | `ByteT ->
+          | Type.Byte ->
             (* Convert signed byte to equivalent unsigned byte *)
             let i =
               if i >= 128 then
@@ -74,7 +75,8 @@ let mk_mir_variants_layout ~(ecx : Ecx.t) decl_node variant_nodes =
                 i
             in
             Mir_builders.mk_byte_lit i
-          | `IntT -> Mir_builders.mk_int_lit i
+          | Int -> Mir_builders.mk_int_lit i
+          | _ -> failwith "Invalid tag MIR type"
         in
         (i + 1, SMap.add name tag tags, SMap.add name loc variant_locs))
       (0, SMap.empty, SMap.empty)

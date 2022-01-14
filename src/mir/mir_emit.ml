@@ -196,7 +196,7 @@ and emit_function_body ~ecx name decl =
       let this_type =
         match type_to_mir_type ~ecx (Types.Type.TVar tvar) with
         | Some this_type -> this_type
-        | None -> `PointerT (Ecx.get_zero_size_type ~ecx)
+        | None -> Pointer (Ecx.get_zero_size_type ~ecx)
       in
       Ecx.add_function_argument ~ecx ~func:name full_loc this_type :: params
     | _ -> params
@@ -231,7 +231,7 @@ and emit_function_body ~ecx name decl =
   let return_ty = type_to_mir_type ~ecx func_decl.return in
   let return_ty =
     if current_is_main then
-      Some `IntT
+      Some Type.Int
     else
       return_ty
   in
@@ -287,9 +287,9 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     let ty = mir_type_of_loc ~ecx loc |> Option.get in
     let value =
       match ty with
-      | `ByteT -> mk_byte_lit (Int64.to_int value)
-      | `IntT -> mk_int_lit_of_int32 (Int64.to_int32 value)
-      | `LongT -> mk_long_lit value
+      | Byte -> mk_byte_lit (Int64.to_int value)
+      | Int -> mk_int_lit_of_int32 (Int64.to_int32 value)
+      | Long -> mk_long_lit value
       | _ -> failwith "Int literal must have integer type"
     in
     Some value
@@ -298,9 +298,9 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     let ty = mir_type_of_loc ~ecx loc |> Option.get in
     let value =
       match ty with
-      | `ByteT -> mk_byte_lit value
-      | `IntT -> mk_int_lit_of_int32 (Int32.of_int value)
-      | `LongT -> mk_long_lit (Int64.of_int value)
+      | Byte -> mk_byte_lit value
+      | Int -> mk_int_lit_of_int32 (Int32.of_int value)
+      | Long -> mk_long_lit (Int64.of_int value)
       | _ -> failwith "Char literal must have integer type"
     in
     Some value
@@ -324,7 +324,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
    *)
   | LogicalAnd { loc = _; left; right } ->
     (* Model logical and join by creating stack location to place results of branches *)
-    let result_ptr_val = Ecx.emit ~ecx (mk_stack_alloc ~type_:`BoolT) in
+    let result_ptr_val = Ecx.emit ~ecx (mk_stack_alloc ~type_:Bool) in
 
     (* Short circuit when lhs is false by jumping to false case *)
     let rhs_builder = Ecx.mk_block_builder ~ecx in
@@ -354,7 +354,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
    *)
   | LogicalOr { loc = _; left; right } ->
     (* Model logical or join by creating stack location to place results of branches *)
-    let result_ptr_val = Ecx.emit ~ecx (mk_stack_alloc ~type_:`BoolT) in
+    let result_ptr_val = Ecx.emit ~ecx (mk_stack_alloc ~type_:Bool) in
 
     (* Short circuit when lhs is true by jumping to true case *)
     let rhs_builder = Ecx.mk_block_builder ~ecx in
@@ -394,7 +394,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
         ~receiver_ty:left_ty
         ~arg_vals
         ~method_instance_type_args:[]
-        ~ret_type:(Some `BoolT)
+        ~ret_type:(Some Type.Bool)
     in
     if op = Equal then
       equals_result_val
@@ -573,7 +573,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     (* If layout is an aggregate, construct record *)
     | Aggregate agg ->
       let ptr =
-        Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [`AggregateT agg])
+        Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [Aggregate agg])
         |> Ecx.emit ~ecx
       in
       emit_store_record_fields ~ecx ~ptr ~tag:None agg fields;
@@ -582,13 +582,13 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     | Variants { tags; union; variants; _ } ->
       (* Call myte_alloc builtin to allocate space for variant type *)
       let union_ptr =
-        Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [`AggregateT union])
+        Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [Aggregate union])
         |> Ecx.emit ~ecx
       in
       (* Cast to variant type and store all fields *)
       let record_variant_agg = SMap.find name variants in
       let variant_ptr =
-        emit_cast_ptr ~ecx ~ptr:union_ptr ~element_type:(`AggregateT record_variant_agg)
+        emit_cast_ptr ~ecx ~ptr:union_ptr ~element_type:(Type.Aggregate record_variant_agg)
       in
       let tag = SMap.find name tags in
       emit_store_record_fields ~ecx ~ptr:variant_ptr ~tag:(Some tag) record_variant_agg fields;
@@ -742,14 +742,14 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
 
     (* Call myte_alloc builtin to allocate space for vec *)
     let vec_ptr_mir_type = mir_type_of_loc ~ecx loc |> Option.get in
-    let (`PointerT vec_mir_type) = cast_to_pointer_type vec_ptr_mir_type in
+    let vec_mir_type = cast_to_pointer_type vec_ptr_mir_type in
     let vec_ptr =
       Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [vec_mir_type])
       |> Ecx.emit ~ecx
     in
 
     (* Write all vec literal fields *)
-    let (`AggregateT vec_agg) = cast_to_aggregate_type vec_mir_type in
+    let vec_agg = cast_to_aggregate_type vec_mir_type in
     let emit_field_store name value =
       let (element_ty, element_idx) = lookup_element vec_agg name in
       let ptr =
@@ -886,11 +886,11 @@ and emit_string_literal ~ecx loc value =
     if string_length <> 0 then
       (Ecx.add_mutable_string_literal ~ecx loc value, true)
     else
-      (mk_null_ptr_lit `ByteT, false)
+      (mk_null_ptr_lit Byte, false)
   in
   let string_pointer_type = mir_type_of_loc ~ecx loc |> Option.get in
-  let (`PointerT string_type) = cast_to_pointer_type string_pointer_type in
-  let (`AggregateT string_agg) = cast_to_aggregate_type string_type in
+  let string_type = cast_to_pointer_type string_pointer_type in
+  let string_agg = cast_to_aggregate_type string_type in
   (* Call myte_alloc builtin to allocate space for string *)
   let agg_ptr_val =
     Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [string_type])
@@ -912,7 +912,7 @@ and emit_string_literal ~ecx loc value =
   let length = mk_int_lit string_length in
   let string_byte_ptr =
     if needs_cast_to_byte_ptr then
-      emit_cast_ptr ~ecx ~ptr:string_global_ptr ~element_type:`ByteT
+      emit_cast_ptr ~ecx ~ptr:string_global_ptr ~element_type:Byte
     else
       string_global_ptr
   in
@@ -991,7 +991,7 @@ and emit_match_expression ~ecx match_ =
 
 and emit_trait_object_promotion ~ecx expr_val trait_object_layout trait_object_instance =
   (* Call myte_alloc builtin to allocate space for trait object *)
-  let trait_object_type = `AggregateT trait_object_instance.agg in
+  let trait_object_type = Type.Aggregate trait_object_instance.agg in
   let trait_object_ptr_val =
     Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [trait_object_type])
     |> Ecx.emit ~ecx
@@ -1013,7 +1013,7 @@ and emit_trait_object_promotion ~ecx expr_val trait_object_layout trait_object_i
   emit_field_store "vtable" trait_object_instance.vtable;
 
   (* Cast to general trait object *)
-  let trait_object_general_type = `PointerT (`AggregateT trait_object_layout.trait_object_agg) in
+  let trait_object_general_type = Type.Pointer (Aggregate trait_object_layout.trait_object_agg) in
   Some (Ecx.emit ~ecx (mk_cast ~arg:trait_object_ptr_val ~type_:trait_object_general_type))
 
 and emit_expression_access_chain_load ~ecx expr =
@@ -1190,7 +1190,7 @@ and emit_method_call
     (* Load function from vtable *)
     let func_ptr =
       mk_get_pointer_instr
-        ~type_:`FunctionT
+        ~type_:Function
         ~ptr:vtable_val
         ~offsets:[Instruction.GetPointer.PointerIndex (mk_int_lit vtable_index)]
         ()
@@ -1276,25 +1276,25 @@ and emit_eq ~ecx arg_vals _ =
   | _ -> failwith "Expected two arguments"
 
 and emit_std_byte_byte_toInt ~ecx arg_vals _ =
-  Some (Ecx.emit ~ecx (mk_sext ~arg:(List.hd arg_vals) ~type_:`IntT))
+  Some (Ecx.emit ~ecx (mk_sext ~arg:(List.hd arg_vals) ~type_:Int))
 
 and emit_std_byte_byte_toLong ~ecx arg_vals _ =
-  Some (Ecx.emit ~ecx (mk_sext ~arg:(List.hd arg_vals) ~type_:`LongT))
+  Some (Ecx.emit ~ecx (mk_sext ~arg:(List.hd arg_vals) ~type_:Long))
 
 and emit_std_gc_getHeapSize ~ecx _ _ =
   Some (Ecx.emit ~ecx Mir_builtin.(mk_call_builtin myte_get_heap_size [] []))
 
 and emit_std_int_int_toByte ~ecx arg_vals _ =
-  Some (Ecx.emit ~ecx (mk_trunc ~arg:(List.hd arg_vals) ~type_:`ByteT))
+  Some (Ecx.emit ~ecx (mk_trunc ~arg:(List.hd arg_vals) ~type_:Byte))
 
 and emit_std_int_int_toLong ~ecx arg_vals _ =
-  Some (Ecx.emit ~ecx (mk_sext ~arg:(List.hd arg_vals) ~type_:`LongT))
+  Some (Ecx.emit ~ecx (mk_sext ~arg:(List.hd arg_vals) ~type_:Long))
 
 and emit_std_long_long_toByte ~ecx arg_vals _ =
-  Some (Ecx.emit ~ecx (mk_trunc ~arg:(List.hd arg_vals) ~type_:`ByteT))
+  Some (Ecx.emit ~ecx (mk_trunc ~arg:(List.hd arg_vals) ~type_:Byte))
 
 and emit_std_long_long_toInt ~ecx arg_vals _ =
-  Some (Ecx.emit ~ecx (mk_trunc ~arg:(List.hd arg_vals) ~type_:`IntT))
+  Some (Ecx.emit ~ecx (mk_trunc ~arg:(List.hd arg_vals) ~type_:Int))
 
 and emit_std_memory_array_copy ~ecx arg_vals _ =
   match arg_vals with
@@ -1315,7 +1315,7 @@ and emit_std_memory_array_new ~ecx arg_vals ret_type =
   let element_ty =
     match ret_type with
     | Some ret_type ->
-      let (`PointerT element_ty) = cast_to_pointer_type ret_type in
+      let element_ty = cast_to_pointer_type ret_type in
       element_ty
     | None -> Ecx.get_zero_size_type ~ecx
   in
@@ -1531,7 +1531,7 @@ and emit_offset_ptr ~ecx ptr_val offset_val =
     |> Ecx.emit ~ecx
 
 and emit_cast_ptr ~ecx ~element_type ~ptr =
-  let ptr_type = `PointerT element_type in
+  let ptr_type = Type.Pointer element_type in
   Ecx.emit ~ecx (mk_cast ~arg:ptr ~type_:ptr_type)
 
 and emit_load_tag ~ecx ~type_ ~agg_ptr =
@@ -1550,7 +1550,7 @@ and emit_construct_enum_variant ~ecx ~name ~ty =
   | PureEnum { tags; _ } -> SMap.find name tags
   (* Enum constructor is part of a variant type, so allocate union aggregate and set tag *)
   | Variants { tags; union; _ } ->
-    let union_ty = `AggregateT union in
+    let union_ty = Type.Aggregate union in
 
     (* Call myte_alloc builtin to allocate space for variant's union aggregate *)
     let agg_ptr =
@@ -1581,13 +1581,13 @@ and emit_construct_tuple_variant
   | Variants { tags; union; variants; _ } ->
     (* Call myte_alloc builtin to allocate space for variant type *)
     let union_ptr =
-      Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [`AggregateT union])
+      Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [Aggregate union])
       |> Ecx.emit ~ecx
     in
     (* Cast to variant type and store all fields *)
     let tuple_variant_agg = SMap.find name variants in
     let variant_ptr =
-      emit_cast_ptr ~ecx ~ptr:union_ptr ~element_type:(`AggregateT tuple_variant_agg)
+      emit_cast_ptr ~ecx ~ptr:union_ptr ~element_type:(Aggregate tuple_variant_agg)
     in
     let tag = SMap.find name tags in
     emit_store_tuple_fields
@@ -1617,7 +1617,7 @@ and emit_construct_tuple ~ecx ~(agg : Aggregate.t) ~(mk_elements : (unit -> Valu
     Value.t =
   (* Call myte_alloc builtin to allocate space for tuple *)
   let ptr =
-    Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [`AggregateT agg])
+    Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [Aggregate agg])
     |> Ecx.emit ~ecx
   in
   emit_store_tuple_fields ~ecx ~ptr ~tag:None ~agg ~mk_elements;
@@ -1686,21 +1686,21 @@ and emit_store_record_fields ~ecx ~ptr ~tag agg fields =
 
 and emit_bool_expression ~ecx expr =
   let value = emit_expression ~ecx expr |> Option.get in
-  if type_of_value value <> `BoolT then failwith "Expected bool value";
+  if type_of_value value <> Bool then failwith "Expected bool value";
   value
 
 and emit_numeric_expression ~ecx expr =
   let value = emit_expression ~ecx expr |> Option.get in
   match type_of_value value with
-  | `ByteT
-  | `IntT
-  | `LongT ->
+  | Byte
+  | Int
+  | Long ->
     value
   | _ -> failwith "Expected numeric value"
 
 and emit_function_expression ~ecx expr =
   let value = emit_expression ~ecx expr |> Option.get in
-  if type_of_value value <> `FunctionT then failwith "Expected function value";
+  if type_of_value value <> Function then failwith "Expected function value";
   value
 
 and emit_block ~ecx ~is_expr block =
@@ -2088,7 +2088,7 @@ and emit_option_destructuring
   | None -> None
   | Some _ ->
     let (item_mir_type, item_index) = lookup_element some_aggregate (TupleKeyCache.get_key 0) in
-    let some_val = emit_cast_ptr ~ecx ~ptr:option_val ~element_type:(`AggregateT some_aggregate) in
+    let some_val = emit_cast_ptr ~ecx ~ptr:option_val ~element_type:(Aggregate some_aggregate) in
     let some_value_ptr =
       mk_get_pointer_instr
         ~type_:item_mir_type
@@ -2132,7 +2132,7 @@ and emit_result_destructuring
     (* Do not load payload if `Ok` item is a zero size type *)
     | None -> None
     | Some _ ->
-      let ok_val = emit_cast_ptr ~ecx ~ptr:result_val ~element_type:(`AggregateT ok_aggregate) in
+      let ok_val = emit_cast_ptr ~ecx ~ptr:result_val ~element_type:(Aggregate ok_aggregate) in
       let (ok_value_type, ok_item_index) = lookup_element ok_aggregate (TupleKeyCache.get_key 0) in
       let ok_value_ptr =
         mk_get_pointer_instr
@@ -2152,7 +2152,7 @@ and emit_result_destructuring
     | None -> None
     | Some _ ->
       let error_val =
-        emit_cast_ptr ~ecx ~ptr:result_val ~element_type:(`AggregateT error_aggregate)
+        emit_cast_ptr ~ecx ~ptr:result_val ~element_type:(Aggregate error_aggregate)
       in
       let (error_value_type, error_item_index) =
         lookup_element error_aggregate (TupleKeyCache.get_key 0)
@@ -2383,7 +2383,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
               ~receiver_ty:(Std_lib.mk_string_type ())
               ~arg_vals:[value_global_val; size_val]
               ~method_instance_type_args:[]
-              ~ret_type:(Some `BoolT)
+              ~ret_type:(Some Bool)
             |> Option.get)
       (* Ints are tested for equality in if-else chain *)
       | (Int _, _) ->
@@ -2402,9 +2402,9 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
             let (value, _) = Ctor.cast_to_int ctor in
             let case_lit =
               match scrutinee_type with
-              | `ByteT -> mk_byte_lit (Int64.to_int value)
-              | `IntT -> mk_int_lit_of_int32 (Int64.to_int32 value)
-              | `LongT -> mk_long_lit value
+              | Byte -> mk_byte_lit (Int64.to_int value)
+              | Int -> mk_int_lit_of_int32 (Int64.to_int32 value)
+              | Long -> mk_long_lit value
               | _ -> failwith "Expected numeric value"
             in
             Ecx.emit ~ecx (mk_cmp ~cmp:Eq ~left:scrutinee_val ~right:case_lit))
@@ -2471,8 +2471,8 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
             (* Tuple fields are simply looked up in the tuple type *)
             | TupleField { index; _ } ->
               let value_type = type_of_value value in
-              let (`PointerT ptr_type) = cast_to_pointer_type value_type in
-              let (`AggregateT aggregate) = cast_to_aggregate_type ptr_type in
+              let ptr_type = cast_to_pointer_type value_type in
+              let aggregate = cast_to_aggregate_type ptr_type in
               let field_key = TupleKeyCache.get_key index in
               (aggregate, field_key, value)
             (* Look up field in single variant (aggregate) types *)
@@ -2491,7 +2491,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
                 let variant_aggregate = SMap.find variant_name variants in
                 let field_key = get_field_key field in
                 let variant_val =
-                  emit_cast_ptr ~ecx ~ptr:value ~element_type:(`AggregateT variant_aggregate)
+                  emit_cast_ptr ~ecx ~ptr:value ~element_type:(Aggregate variant_aggregate)
                 in
                 (variant_aggregate, field_key, variant_val)
               | _ -> failwith "Expected variants layout")

@@ -151,25 +151,25 @@ module Gcx = struct
 
   let rec size_of_mir_type ~gcx mir_type =
     match mir_type with
-    | `BoolT
-    | `ByteT ->
+    | Type.Bool
+    | Byte ->
       1
-    | `IntT -> 4
-    | `LongT
-    | `FunctionT
-    | `PointerT _ ->
+    | Int -> 4
+    | Long
+    | Function
+    | Pointer _ ->
       8
-    | `AggregateT agg ->
+    | Aggregate agg ->
       let agg_layout = get_agg_layout ~gcx agg in
       agg_layout.size
-    | `ArrayT (ty, size) -> size_of_mir_type ~gcx ty * size
+    | Array (ty, size) -> size_of_mir_type ~gcx ty * size
 
   let rec alignment_of_mir_type ~gcx mir_type =
     match mir_type with
-    | `AggregateT agg ->
+    | Type.Aggregate agg ->
       let agg_layout = get_agg_layout ~gcx agg in
       agg_layout.alignment
-    | `ArrayT (ty, _) -> alignment_of_mir_type ~gcx ty
+    | Array (ty, _) -> alignment_of_mir_type ~gcx ty
     | _ -> size_of_mir_type ~gcx mir_type
 
   let build_agg_layout ~gcx agg =

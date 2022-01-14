@@ -12,8 +12,8 @@ type folded_constant =
   | FunctionConstant of string
 
 type conversion_op =
-  | TruncOp of Type.numeric_type
-  | SExtOp of Type.numeric_type
+  | TruncOp of Type.t
+  | SExtOp of Type.t
 
 let apply_unary_operation op x =
   match (op, x) with
@@ -93,26 +93,26 @@ let apply_binary_operation op x y =
 
 let apply_conversion op x =
   match (op, x) with
-  | (TruncOp `BoolT, IntConstant x) -> BoolConstant (Integers.trunc_int_to_bool x)
-  | (TruncOp `BoolT, LongConstant x) -> BoolConstant (Integers.trunc_long_to_bool x)
-  | (TruncOp `ByteT, IntConstant x) -> ByteConstant (Integers.trunc_int_to_byte x)
-  | (TruncOp `ByteT, LongConstant x) -> ByteConstant (Integers.trunc_long_to_byte x)
-  | (TruncOp `IntT, LongConstant x) -> IntConstant (Integers.trunc_long_to_int x)
-  | (SExtOp `IntT, BoolConstant x) ->
+  | (TruncOp Bool, IntConstant x) -> BoolConstant (Integers.trunc_int_to_bool x)
+  | (TruncOp Bool, LongConstant x) -> BoolConstant (Integers.trunc_long_to_bool x)
+  | (TruncOp Byte, IntConstant x) -> ByteConstant (Integers.trunc_int_to_byte x)
+  | (TruncOp Byte, LongConstant x) -> ByteConstant (Integers.trunc_long_to_byte x)
+  | (TruncOp Int, LongConstant x) -> IntConstant (Integers.trunc_long_to_int x)
+  | (SExtOp Int, BoolConstant x) ->
     IntConstant
       ( if x then
         1l
       else
         0l )
-  | (SExtOp `IntT, ByteConstant x) -> IntConstant (Int32.of_int x)
-  | (SExtOp `LongT, BoolConstant x) ->
+  | (SExtOp Int, ByteConstant x) -> IntConstant (Int32.of_int x)
+  | (SExtOp Long, BoolConstant x) ->
     LongConstant
       ( if x then
         1L
       else
         0L )
-  | (SExtOp `LongT, ByteConstant x) -> LongConstant (Int64.of_int x)
-  | (SExtOp `LongT, IntConstant x) -> LongConstant (Int64.of_int32 x)
+  | (SExtOp Long, ByteConstant x) -> LongConstant (Int64.of_int x)
+  | (SExtOp Long, IntConstant x) -> LongConstant (Int64.of_int32 x)
   | _ -> failwith "Invalid operation"
 
 let fold_constants_compare x y =
@@ -379,8 +379,8 @@ class calc_constants_visitor ~ocx =
           | GtEq -> ( >= )
         in
         try_fold_comparison instr.id left right cmp_f
-      | Trunc arg -> try_fold_conversion instr.id arg (TruncOp (cast_to_numeric_type instr.type_))
-      | SExt arg -> try_fold_conversion instr.id arg (SExtOp (cast_to_numeric_type instr.type_))
+      | Trunc arg -> try_fold_conversion instr.id arg (TruncOp instr.type_)
+      | SExt arg -> try_fold_conversion instr.id arg (SExtOp instr.type_)
       (* Propagate global constants through pointers *)
       | Load (Lit (Pointer (_, label))) ->
         (match SMap.find_opt label global_constants with

@@ -487,15 +487,15 @@ and gen_instructions ~gcx ~ir ~block instructions =
     let pointer_element_type = pointer_value_element_type pointer in
     let size =
       match pointer_element_type with
-      | `BoolT
-      | `ByteT
-      | `IntT
-      | `LongT
-      | `FunctionT
-      | `PointerT _ ->
+      | Bool
+      | Byte
+      | Int
+      | Long
+      | Function
+      | Pointer _ ->
         register_size_of_mir_value_type pointer_element_type
-      | `AggregateT _ -> failwith "TODO: Cannot compile aggregate literals"
-      | `ArrayT _ -> failwith "TODO: Cannot compile array literals"
+      | Aggregate _ -> failwith "TODO: Cannot compile aggregate literals"
+      | Array _ -> failwith "TODO: Cannot compile array literals"
     in
     let src =
       match pointer with
@@ -521,15 +521,15 @@ and gen_instructions ~gcx ~ir ~block instructions =
     let pointer_element_type = pointer_value_element_type pointer in
     let size =
       match pointer_element_type with
-      | `BoolT
-      | `ByteT
-      | `IntT
-      | `LongT
-      | `FunctionT
-      | `PointerT _ ->
+      | Bool
+      | Byte
+      | Int
+      | Long
+      | Function
+      | Pointer _ ->
         register_size_of_mir_value_type pointer_element_type
-      | `AggregateT _ -> failwith "TODO: Cannot compile aggregate literals"
-      | `ArrayT _ -> failwith "TODO: Cannot compile array literals"
+      | Aggregate _ -> failwith "TODO: Cannot compile aggregate literals"
+      | Array _ -> failwith "TODO: Cannot compile array literals"
     in
     let value = resolve_ir_value ~allow_imm64:true value in
     let dest =
@@ -849,7 +849,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
      * ===========================================
      *)
     if name = myte_alloc.name then (
-      let (`PointerT element_mir_ty) = cast_to_pointer_type return_type in
+      let element_mir_ty = cast_to_pointer_type return_type in
       let precolored_a = Gcx.mk_precolored ~gcx A in
       let precolored_di = Gcx.mk_precolored ~gcx DI in
       gen_size_from_count_and_type ~gcx (List.hd args) element_mir_ty precolored_di;
@@ -861,7 +861,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
        * ===========================================
        *)
     ) else if name = myte_copy.name then (
-      let (`PointerT element_mir_ty) = cast_to_pointer_type (type_of_value (List.hd args)) in
+      let element_mir_ty = cast_to_pointer_type (type_of_value (List.hd args)) in
       let (pointer_args, count_arg) = List_utils.split_last args in
       let precolored_d = Gcx.mk_precolored ~gcx D in
       gen_call_arguments pointer_args;
@@ -976,7 +976,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let arg_mem = emit_mem arg in
       Gcx.emit ~gcx (MovMM (size, arg_mem, Reg result_vreg)));
     (* Bools must be further truncated to only lowest bit *)
-    if type_ = `BoolT then Gcx.emit ~gcx (AndIM (Size8, Imm8 1, Reg result_vreg));
+    if type_ = Bool then Gcx.emit ~gcx (AndIM (Size8, Imm8 1, Reg result_vreg));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -1165,7 +1165,7 @@ and gen_get_pointer
       | SAddr _ -> failwith "PointerIndex cannot be resolved to SAddr")
     | FieldIndex element_index ->
       (match ty with
-      | `AggregateT ({ Aggregate.elements; _ } as agg) ->
+      | Aggregate ({ Aggregate.elements; _ } as agg) ->
         (* Find offset of aggregate element in aggregate's layout, add add it to address *)
         let agg_layout = Gcx.get_agg_layout ~gcx agg in
         let { AggregateElement.offset; _ } = AggregateLayout.get_element agg_layout element_index in
@@ -1257,27 +1257,27 @@ and resolve_ir_value ~gcx ?(allow_imm64 = false) value =
   | Instr { id; type_; _ }
   | Argument { id; type_; _ } ->
     (match type_ with
-    | `BoolT -> vreg_of_var id Size8
-    | `ByteT -> vreg_of_var id Size8
-    | `IntT -> vreg_of_var id Size32
-    | `LongT -> vreg_of_var id Size64
-    | `FunctionT -> vreg_of_var id Size64
-    | `PointerT _ -> vreg_of_var id Size64
-    | `ArrayT _ -> failwith "TODO: Cannot compile array variables yet"
-    | `AggregateT _ -> failwith "TODO: Cannot compile aggregate variables yet")
+    | Bool -> vreg_of_var id Size8
+    | Byte -> vreg_of_var id Size8
+    | Int -> vreg_of_var id Size32
+    | Long -> vreg_of_var id Size64
+    | Function -> vreg_of_var id Size64
+    | Pointer _ -> vreg_of_var id Size64
+    | Array _ -> failwith "TODO: Cannot compile array variables yet"
+    | Aggregate _ -> failwith "TODO: Cannot compile aggregate variables yet")
 
 and register_size_of_mir_value_type value_type =
   match value_type with
-  | `BoolT
-  | `ByteT ->
+  | Bool
+  | Byte ->
     Size8
-  | `IntT -> Size32
-  | `LongT
-  | `FunctionT
-  | `PointerT _ ->
+  | Int -> Size32
+  | Long
+  | Function
+  | Pointer _ ->
     Size64
-  | `AggregateT _ -> failwith "TODO: Cannot compile aggregate structure literals"
-  | `ArrayT _ -> failwith "TODO: Cannot compile array literals"
+  | Aggregate _ -> failwith "TODO: Cannot compile aggregate structure literals"
+  | Array _ -> failwith "TODO: Cannot compile array literals"
 
 and register_size_of_svalue value =
   match value with

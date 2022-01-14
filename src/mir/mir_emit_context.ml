@@ -263,7 +263,7 @@ let add_mutable_string_literal ~ecx loc string =
     prefix ^ string_of_int id
   in
   let length = String.length string in
-  let ty = `ArrayT (`ByteT, length) in
+  let ty = Type.Array (Byte, length) in
   let global =
     {
       Global.loc;
@@ -288,7 +288,7 @@ let add_immutable_string_literal ~ecx string =
 
     (* Create global for string value *)
     let value_name = ".IS" ^ string_of_int id in
-    let value_ty = `ArrayT (`ByteT, size) in
+    let value_ty = Type.Array (Byte, size) in
     let value_global =
       {
         Global.loc = Loc.none;
@@ -306,7 +306,7 @@ let add_immutable_string_literal ~ecx string =
       {
         Global.loc = Loc.none;
         name = size_name;
-        ty = `IntT;
+        ty = Int;
         init_val = Some (Mir_builders.mk_int_lit size);
         is_constant = true;
       }
@@ -317,7 +317,7 @@ let add_immutable_string_literal ~ecx string =
     let imm_string =
       {
         ImmutableString.value_global_val = Mir_builders.mk_ptr_lit value_ty value_name;
-        size_global_val = Mir_builders.mk_ptr_lit `IntT size_name;
+        size_global_val = Mir_builders.mk_ptr_lit Int size_name;
       }
     in
     ecx.immutable_string_literals <- SMap.add string imm_string ecx.immutable_string_literals;
@@ -568,7 +568,7 @@ and get_trait_object_layout ~ecx (trait_sig : Types.TraitSig.t) =
         ~ecx
         trait_object_label
         trait_sig.loc
-        [("item", `PointerT `ByteT); ("vtable", `PointerT `FunctionT)]
+        [("item", Pointer Byte); ("vtable", Pointer Function)]
     in
 
     let trait_object_layout =
@@ -657,10 +657,10 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
     let mir_type =
       match to_mir_type ~ecx ty with
       | Some mir_type -> mir_type
-      | None -> `PointerT (get_zero_size_type ~ecx)
+      | None -> Pointer (get_zero_size_type ~ecx)
     in
     let (agg_elements, _) =
-      align_and_pad_aggregate_elements [("item", mir_type); ("vtable", `PointerT vtable_mir_type)]
+      align_and_pad_aggregate_elements [("item", mir_type); ("vtable", Pointer vtable_mir_type)]
     in
     let agg = mk_aggregate ~ecx agg_label adt_sig.loc agg_elements in
 
@@ -678,35 +678,35 @@ and to_mir_type ~ecx (ty : Types.Type.t) : Type.t option =
   | Types.Type.Unit
   | Never ->
     None
-  | Bool -> Some `BoolT
-  | Byte -> Some `ByteT
-  | Int -> Some `IntT
-  | Long -> Some `LongT
+  | Bool -> Some Bool
+  | Byte -> Some Byte
+  | Int -> Some Int
+  | Long -> Some Long
   | IntLiteral { resolved; _ }
   | BoundedExistential { resolved; _ } ->
     to_mir_type ~ecx (Option.get resolved)
-  | Function _ -> Some `FunctionT
+  | Function _ -> Some Function
   | Tuple elements ->
     instantiate_tuple ~ecx elements
-    |> Option.map (fun tuple_agg -> `PointerT (`AggregateT tuple_agg))
+    |> Option.map (fun tuple_agg -> Type.Pointer (Aggregate tuple_agg))
   | ADT { adt_sig; type_args = [element_ty] } when adt_sig == !Std_lib.array_adt_sig ->
     let mir_type =
       match to_mir_type ~ecx element_ty with
       | Some mir_type -> mir_type
       | None -> get_zero_size_type ~ecx
     in
-    Some (`PointerT mir_type)
+    Some (Pointer mir_type)
   | ADT { adt_sig; type_args } ->
     let layout = get_mir_adt_layout ~ecx adt_sig type_args in
     (match layout with
-    | Aggregate aggregate -> Some (`PointerT (`AggregateT aggregate))
-    | Variants { union; _ } -> Some (`PointerT (`AggregateT union))
+    | Aggregate aggregate -> Some (Pointer (Aggregate aggregate))
+    | Variants { union; _ } -> Some (Pointer (Aggregate union))
     | PureEnum { tag_mir_type; _ } -> Some (tag_mir_type :> Type.t)
     | InlineValue mir_type -> Some mir_type
     | ZeroSize -> None)
   | TraitObject { trait_sig; _ } ->
     let trait_object_layout = get_trait_object_layout ~ecx trait_sig in
-    Some (`PointerT (`AggregateT trait_object_layout.trait_object_agg))
+    Some (Pointer (Aggregate trait_object_layout.trait_object_agg))
   | TypeParam _
   | TraitBound _
   | TVar _
@@ -718,8 +718,8 @@ and get_zero_size_type ~ecx =
   match SMap.find_opt zero_size_name ecx.types with
   | None ->
     let agg = mk_placeholder_aggregate ~ecx zero_size_name Loc.none in
-    `AggregateT agg
-  | Some agg -> `AggregateT agg
+    Aggregate agg
+  | Some agg -> Aggregate agg
 
 and get_zero_size_global_pointer ~ecx =
   (* Add zero size global if it does not already exist *)

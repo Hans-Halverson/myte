@@ -28,11 +28,11 @@ let mk_array_vtable_lit (func_labels : label list) : Value.t =
 (* Instructions *)
 
 let mk_stack_alloc ~(type_ : Type.t) : Instruction.t =
-  { Instruction.id = mk_value_id (); type_ = `PointerT type_; instr = StackAlloc type_ }
+  { Instruction.id = mk_value_id (); type_ = Pointer type_; instr = StackAlloc type_ }
 
 let mk_load ~(ptr : Value.t) : Instruction.t =
   match type_of_value ptr with
-  | `PointerT type_ -> { Instruction.id = mk_value_id (); type_; instr = Load ptr }
+  | Pointer type_ -> { Instruction.id = mk_value_id (); type_; instr = Load ptr }
   | _ -> failwith "Load argument must be a pointer type"
 
 let mk_store ~(ptr : Value.t) ~(value : Value.t) : Instruction.t =
@@ -48,7 +48,7 @@ let mk_get_pointer_instr
     () =
   if not (is_pointer_value ptr) then failwith "GetPointer argument must be a pointer type";
   let instr = Instruction.GetPointer { pointer = ptr; pointer_offset; offsets } in
-  { Instruction.id = mk_value_id (); type_ = `PointerT type_; instr }
+  { Instruction.id = mk_value_id (); type_ = Pointer type_; instr }
 
 let mk_call ~(func : Value.t) ~(args : Value.t list) ~(return : Type.t option) =
   if not (is_function_value func) then failwith "Call function argument must have function type";
@@ -84,7 +84,7 @@ let mk_cmp ~(cmp : Instruction.comparison) ~(left : Value.t) ~(right : Value.t) 
   if not (is_comparable_value left && is_comparable_value right && values_have_same_type left right)
   then
     failwith "Cmp arguments must be numeric or pointers and have the same type";
-  { Instruction.id = mk_value_id (); type_ = `BoolT; instr = Cmp (cmp, left, right) }
+  { Instruction.id = mk_value_id (); type_ = Bool; instr = Cmp (cmp, left, right) }
 
 let mk_cast ~(arg : Value.t) ~(type_ : Type.t) : Instruction.t =
   if not (is_pointer_value arg && is_pointer_type type_) then

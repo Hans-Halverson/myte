@@ -3,10 +3,7 @@ open Mir_type_args_hashtbl
 open Mir_type
 open Types
 
-type tag_type =
-  [ `ByteT
-  | `IntT
-  ]
+type tag_type = Mir_type.Type.t (* Byte or Int *)
 
 type variant_template =
   | TupleTemplate of Type.t list
@@ -107,13 +104,11 @@ let padding_key = "$padding"
 
 let pointer_key = "$pointer"
 
-let mk_tag_element (tag_type : tag_type) : string * Mir_type.Type.t =
-  (tag_key, (tag_type :> Mir_type.Type.t))
+let mk_tag_element (tag_type : tag_type) : string * Mir_type.Type.t = (tag_key, tag_type)
 
-let mk_padding_element (size : int) : string * Mir_type.Type.t =
-  (padding_key, `ArrayT (`ByteT, size))
+let mk_padding_element (size : int) : string * Mir_type.Type.t = (padding_key, Array (Byte, size))
 
-let pointer_element = (pointer_key, `PointerT `ByteT)
+let pointer_element = (pointer_key, Mir_type.Type.Pointer Byte)
 
 (* Utilities for aligning and padding variant aggregates *)
 
@@ -181,7 +176,7 @@ let add_end_padding elements current_size target_size =
       match elements with
       | [] -> failwith "Expected nonempty list"
       (* If last element is already padding, extend existing padding *)
-      | [(key, `ArrayT (`ByteT, size))] when key = padding_key ->
+      | [(key, Array (Byte, size))] when key = padding_key ->
         [mk_padding_element (size + size_to_add)]
       (* Otherwise add new padding element after last element *)
       | [last] -> [last; mk_padding_element size_to_add]
