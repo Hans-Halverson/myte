@@ -274,6 +274,25 @@ let is_literal (v : Value.t) : bool =
 
 let is_bool_value (v : Value.t) : bool = type_of_value v = `BoolT
 
+let is_function_value (v : Value.t) : bool = type_of_value v = `FunctionT
+
+let is_numeric_value (v : Value.t) : bool = is_numeric_type (type_of_value v)
+
+let is_pointer_value (v : Value.t) : bool =
+  match type_of_value v with
+  | `PointerT _ -> true
+  | _ -> false
+
+let is_comparable_value (v : Value.t) : bool =
+  match type_of_value v with
+  | `BoolT
+  | `ByteT
+  | `IntT
+  | `LongT
+  | `PointerT _ ->
+    true
+  | _ -> false
+
 let rec values_equal (v1 : Value.t) (v2 : Value.t) : bool =
   match (v1, v2) with
   | (Instr { id = id1; _ }, Instr { id = id2; _ }) -> id1 = id2
@@ -292,6 +311,17 @@ and literals_equal (lit1 : Literal.t) (lit2 : Literal.t) : bool =
   | (ArrayString str1, ArrayString str2) -> String.equal str1 str2
   | (ArrayVtable (size1, labels1), ArrayVtable (size2, labels2)) ->
     size1 = size2 && List.for_all2 String.equal labels1 labels2
+  | _ -> false
+
+let values_have_same_type (v1 : Value.t) (v2 : Value.t) : bool =
+  types_equal (type_of_value v1) (type_of_value v2)
+
+let is_shift_op (op : Instruction.binary_operation) : bool =
+  match op with
+  | Shl
+  | Shr
+  | Shrl ->
+    true
   | _ -> false
 
 let cast_to_instruction (value : Value.t) : Instruction.t =

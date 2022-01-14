@@ -109,6 +109,30 @@ let rec type_to_string ty =
   | `AggregateT { Aggregate.name; _ } -> name
   | `ArrayT (ty, size) -> Printf.sprintf "%s[%d]" (type_to_string ty) size
 
+let byte_size = 1
+
+let int_size = 4
+
+let ptr_size = 8
+
+let rec size_of_type mir_type =
+  match mir_type with
+  | `BoolT
+  | `ByteT ->
+    byte_size
+  | `IntT -> int_size
+  | `LongT
+  | `FunctionT
+  | `PointerT _ ->
+    ptr_size
+  | `ArrayT (mir_type, size) -> size * size_of_type mir_type
+  | `AggregateT _ -> failwith "Aggregates not allowed as top level value of other aggregates"
+
+let alignment_of_type mir_type =
+  match mir_type with
+  | `ArrayT (mir_type, _) -> size_of_type mir_type
+  | _ -> size_of_type mir_type
+
 let cast_to_pointer_type ty =
   match ty with
   | `PointerT _ as ty -> ty
@@ -127,4 +151,13 @@ let cast_to_numeric_type ty =
 let is_pointer_type ty =
   match ty with
   | `PointerT _ -> true
+  | _ -> false
+
+let is_numeric_type (v : Type.t) : bool =
+  match v with
+  | `BoolT
+  | `ByteT
+  | `IntT
+  | `LongT ->
+    true
   | _ -> false

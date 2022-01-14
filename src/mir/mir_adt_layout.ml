@@ -117,30 +117,6 @@ let pointer_element = (pointer_key, `PointerT `ByteT)
 
 (* Utilities for aligning and padding variant aggregates *)
 
-let byte_size = 1
-
-let int_size = 4
-
-let ptr_size = 8
-
-let rec size_of_type mir_type =
-  match mir_type with
-  | `BoolT
-  | `ByteT ->
-    byte_size
-  | `IntT -> int_size
-  | `LongT
-  | `FunctionT
-  | `PointerT _ ->
-    ptr_size
-  | `ArrayT (mir_type, size) -> size * size_of_type mir_type
-  | `AggregateT _ -> failwith "Aggregates not allowed as top level value of other aggregates"
-
-let alignment_of_type mir_type =
-  match mir_type with
-  | `ArrayT (mir_type, _) -> size_of_type mir_type
-  | _ -> size_of_type mir_type
-
 let round_up_to_alignment size alignment =
   let overflow = size mod alignment in
   if overflow = 0 then
