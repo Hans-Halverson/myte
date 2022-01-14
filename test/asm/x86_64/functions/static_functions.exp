@@ -23,9 +23,8 @@ _main:
   je .L0
   movl $16, %edi
   call __myte_alloc
-  leaq 8(%rax), %rcx
   leaq .S0(%rip), %rdx
-  movq %rdx, (%rcx)
+  movq %rdx, 8(%rax)
   movl $9, (%rax)
   movl $9, 4(%rax)
   movq %rax, %rdi
@@ -34,9 +33,8 @@ _main:
 .L0:
   movl $16, %edi
   call __myte_alloc
-  leaq 8(%rax), %rcx
   leaq .S1(%rip), %rdx
-  movq %rdx, (%rcx)
+  movq %rdx, 8(%rax)
   movl $9, (%rax)
   movl $9, 4(%rax)
   movq %rax, %rdi
@@ -48,9 +46,8 @@ _main:
   je .L2
   movl $16, %edi
   call __myte_alloc
-  leaq 8(%rax), %rcx
   leaq .S2(%rip), %rdx
-  movq %rdx, (%rcx)
+  movq %rdx, 8(%rax)
   movl $9, (%rax)
   movl $9, 4(%rax)
   movq %rax, %rdi
@@ -59,9 +56,8 @@ _main:
 .L2:
   movl $16, %edi
   call __myte_alloc
-  leaq 8(%rax), %rcx
   leaq .S3(%rip), %rdx
-  movq %rdx, (%rcx)
+  movq %rdx, 8(%rax)
   movl $9, (%rax)
   movl $9, 4(%rax)
   movq %rax, %rdi

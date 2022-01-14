@@ -8,9 +8,8 @@
 _main:
   movl $16, %edi
   call __myte_alloc
-  leaq 8(%rax), %rcx
   leaq .S0(%rip), %rdx
-  movq %rdx, (%rcx)
+  movq %rdx, 8(%rax)
   movl $13, (%rax)
   movl $13, 4(%rax)
   movq %rax, %rdi

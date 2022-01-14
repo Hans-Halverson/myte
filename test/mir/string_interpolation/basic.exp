@@ -8,12 +8,13 @@ global int @.IS1Size = 3
 
 func std.string.String* @test.testSingleStringPart() {
   %0 := Call std.string.String* myte.builtin.alloc(1)
-  %1 := GetPointer byte*, std.string.String* %0.2
-  Store byte* %1, @.S3
-  %2 := GetPointer int, std.string.String* %0.0
-  Store int %2, 3
-  %3 := GetPointer int, std.string.String* %0.1
+  %1 := Cast byte[3]* @.S3 to byte*
+  %2 := GetPointer byte*, std.string.String* %0.2
+  Store byte* %2, %1
+  %3 := GetPointer int, std.string.String* %0.0
   Store int %3, 3
+  %4 := GetPointer int, std.string.String* %0.1
+  Store int %4, 3
   Ret %0
 }
 
@@ -51,18 +52,19 @@ func std.string.String* @test.testMultipleParts1() {
 
 func std.string.String* @test.testMultipleParts2() {
   %0 := Call std.string.String* myte.builtin.alloc(1)
-  %1 := GetPointer byte*, std.string.String* %0.2
-  Store byte* %1, @.S1
-  %2 := GetPointer int, std.string.String* %0.0
-  Store int %2, 3
-  %3 := GetPointer int, std.string.String* %0.1
+  %1 := Cast byte[3]* @.S1 to byte*
+  %2 := GetPointer byte*, std.string.String* %0.2
+  Store byte* %2, %1
+  %3 := GetPointer int, std.string.String* %0.0
   Store int %3, 3
-  %4 := Call std.string.String* @std.int.Int.toString(1)
-  Call void @std.string.String.append(%0, %4)
-  %5 := Call std.string.String* @std.int.Int.toString(2)
+  %4 := GetPointer int, std.string.String* %0.1
+  Store int %4, 3
+  %5 := Call std.string.String* @std.int.Int.toString(1)
   Call void @std.string.String.append(%0, %5)
-  %6 := Load int @.IS1Size
-  Call void @std.string.String.appendImmutable(%0, @.IS1, %6)
+  %6 := Call std.string.String* @std.int.Int.toString(2)
+  Call void @std.string.String.append(%0, %6)
+  %7 := Load int @.IS1Size
+  Call void @std.string.String.appendImmutable(%0, @.IS1, %7)
   Ret %0
 }
 
@@ -70,24 +72,25 @@ global byte[3] @.S1 = "foo"
 
 func std.string.String* @test.testRepeatedParts() {
   %0 := Call std.string.String* myte.builtin.alloc(1)
-  %1 := GetPointer byte*, std.string.String* %0.2
-  Store byte* %1, @.S2
-  %2 := GetPointer int, std.string.String* %0.0
-  Store int %2, 3
-  %3 := GetPointer int, std.string.String* %0.1
+  %1 := Cast byte[3]* @.S2 to byte*
+  %2 := GetPointer byte*, std.string.String* %0.2
+  Store byte* %2, %1
+  %3 := GetPointer int, std.string.String* %0.0
   Store int %3, 3
-  %4 := Call std.string.String* @std.int.Int.toString(1)
-  Call void @std.string.String.append(%0, %4)
-  %5 := Load int @.IS1Size
-  Call void @std.string.String.appendImmutable(%0, @.IS1, %5)
-  %6 := Call std.string.String* @std.int.Int.toString(2)
-  Call void @std.string.String.append(%0, %6)
-  %7 := Load int @.IS0Size
-  Call void @std.string.String.appendImmutable(%0, @.IS0, %7)
-  %8 := Call std.string.String* @std.int.Int.toString(3)
-  Call void @std.string.String.append(%0, %8)
-  %9 := Load int @.IS1Size
-  Call void @std.string.String.appendImmutable(%0, @.IS1, %9)
+  %4 := GetPointer int, std.string.String* %0.1
+  Store int %4, 3
+  %5 := Call std.string.String* @std.int.Int.toString(1)
+  Call void @std.string.String.append(%0, %5)
+  %6 := Load int @.IS1Size
+  Call void @std.string.String.appendImmutable(%0, @.IS1, %6)
+  %7 := Call std.string.String* @std.int.Int.toString(2)
+  Call void @std.string.String.append(%0, %7)
+  %8 := Load int @.IS0Size
+  Call void @std.string.String.appendImmutable(%0, @.IS0, %8)
+  %9 := Call std.string.String* @std.int.Int.toString(3)
+  Call void @std.string.String.append(%0, %9)
+  %10 := Load int @.IS1Size
+  Call void @std.string.String.appendImmutable(%0, @.IS1, %10)
   Ret %0
 }
 

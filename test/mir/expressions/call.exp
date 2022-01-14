@@ -17,27 +17,29 @@ func void @test.multiArgsFunc(int %0, int %1, std.string.String* %2) {
 
 func void @test.directCalls() {
   %0 := Call std.string.String* myte.builtin.alloc(1)
-  %1 := GetPointer byte*, std.string.String* %0.2
-  Store byte* %1, @.S0
-  %2 := GetPointer int, std.string.String* %0.0
-  Store int %2, 3
-  %3 := GetPointer int, std.string.String* %0.1
+  %1 := Cast byte[3]* @.S0 to byte*
+  %2 := GetPointer byte*, std.string.String* %0.2
+  Store byte* %2, %1
+  %3 := GetPointer int, std.string.String* %0.0
   Store int %3, 3
+  %4 := GetPointer int, std.string.String* %0.1
+  Store int %4, 3
   Call void @test.noArgsFunc()
-  %4 := Call int @test.singleArgFunc(33)
-  %5 := Call std.string.String* myte.builtin.alloc(1)
-  %6 := GetPointer byte*, std.string.String* %5.2
-  Store byte* %6, @.S1
-  %7 := GetPointer int, std.string.String* %5.0
-  Store int %7, 4
-  %8 := GetPointer int, std.string.String* %5.1
-  Store int %8, 4
-  Call void @test.multiArgsFunc(29, 98, %5)
-  %9 := Call int @test.singleArgFunc(%4)
-  %10 := Call int @test.singleArgFunc(45)
-  %11 := Mul int 5, 6
-  %12 := Add int 2, %11
-  Call void @test.multiArgsFunc(%10, %12, %0)
+  %5 := Call int @test.singleArgFunc(33)
+  %6 := Call std.string.String* myte.builtin.alloc(1)
+  %7 := Cast byte[4]* @.S1 to byte*
+  %8 := GetPointer byte*, std.string.String* %6.2
+  Store byte* %8, %7
+  %9 := GetPointer int, std.string.String* %6.0
+  Store int %9, 4
+  %10 := GetPointer int, std.string.String* %6.1
+  Store int %10, 4
+  Call void @test.multiArgsFunc(29, 98, %6)
+  %11 := Call int @test.singleArgFunc(%5)
+  %12 := Call int @test.singleArgFunc(45)
+  %13 := Mul int 5, 6
+  %14 := Add int 2, %13
+  Call void @test.multiArgsFunc(%12, %14, %0)
   Ret
 }
 

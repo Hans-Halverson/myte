@@ -6,22 +6,23 @@ func void @test.simpleAccesses(int* %0) {
 
 func void @test.nestedAccesses(std.string.String**** %0, std.string.String** %1) {
   %2 := Call std.string.String* myte.builtin.alloc(1)
-  %3 := GetPointer byte*, std.string.String* %2.2
-  Store byte* %3, @.S1
-  %4 := GetPointer int, std.string.String* %2.0
-  Store int %4, 4
-  %5 := GetPointer int, std.string.String* %2.1
+  %3 := Cast byte[4]* @.S1 to byte*
+  %4 := GetPointer byte*, std.string.String* %2.2
+  Store byte* %4, %3
+  %5 := GetPointer int, std.string.String* %2.0
   Store int %5, 4
-  %6 := GetPointer std.string.String***, std.string.String**** %0[int 5]
-  %7 := Load std.string.String*** %6
-  %8 := GetPointer std.string.String**, std.string.String*** %7[int 6]
-  %9 := Load std.string.String** %8
-  %10 := GetPointer std.string.String*, std.string.String** %9[int 7]
-  Store std.string.String* %10, %2
-  %11 := GetPointer std.string.String***, std.string.String**** %0[int 55]
-  %12 := Load std.string.String*** %11
-  %13 := GetPointer std.string.String**, std.string.String*** %12[int 66]
-  Store std.string.String** %13, %1
+  %6 := GetPointer int, std.string.String* %2.1
+  Store int %6, 4
+  %7 := GetPointer std.string.String***, std.string.String**** %0[int 5]
+  %8 := Load std.string.String*** %7
+  %9 := GetPointer std.string.String**, std.string.String*** %8[int 6]
+  %10 := Load std.string.String** %9
+  %11 := GetPointer std.string.String*, std.string.String** %10[int 7]
+  Store std.string.String* %11, %2
+  %12 := GetPointer std.string.String***, std.string.String**** %0[int 55]
+  %13 := Load std.string.String*** %12
+  %14 := GetPointer std.string.String**, std.string.String*** %13[int 66]
+  Store std.string.String** %14, %1
   Ret
 }
 
@@ -35,24 +36,25 @@ type test.Rec2 {byte, long*}
 
 func void @test.indexAndAccesses(test.Tup1* %0, test.Rec2** %1) {
   %2 := Call std.string.String* myte.builtin.alloc(1)
-  %3 := GetPointer byte*, std.string.String* %2.2
-  Store byte* %3, @.S0
-  %4 := GetPointer int, std.string.String* %2.0
-  Store int %4, 4
-  %5 := GetPointer int, std.string.String* %2.1
+  %3 := Cast byte[4]* @.S0 to byte*
+  %4 := GetPointer byte*, std.string.String* %2.2
+  Store byte* %4, %3
+  %5 := GetPointer int, std.string.String* %2.0
   Store int %5, 4
-  %6 := GetPointer test.Rec1**, test.Tup1* %0.2
-  %7 := Load test.Rec1** %6
-  %8 := GetPointer test.Rec1*, test.Rec1** %7[int 500]
-  %9 := Load test.Rec1* %8
-  %10 := GetPointer std.string.String*, test.Rec1* %9.2
-  Store std.string.String* %10, %2
-  %11 := GetPointer test.Rec2*, test.Rec2** %1[int 999]
-  %12 := Load test.Rec2* %11
-  %13 := GetPointer long*, test.Rec2* %12.1
-  %14 := Load long* %13
-  %15 := GetPointer long, long* %14[int 888]
-  Store long %15, 7
+  %6 := GetPointer int, std.string.String* %2.1
+  Store int %6, 4
+  %7 := GetPointer test.Rec1**, test.Tup1* %0.2
+  %8 := Load test.Rec1** %7
+  %9 := GetPointer test.Rec1*, test.Rec1** %8[int 500]
+  %10 := Load test.Rec1* %9
+  %11 := GetPointer std.string.String*, test.Rec1* %10.2
+  Store std.string.String* %11, %2
+  %12 := GetPointer test.Rec2*, test.Rec2** %1[int 999]
+  %13 := Load test.Rec2* %12
+  %14 := GetPointer long*, test.Rec2* %13.1
+  %15 := Load long* %14
+  %16 := GetPointer long, long* %15[int 888]
+  Store long %16, 7
   Ret
 }
 

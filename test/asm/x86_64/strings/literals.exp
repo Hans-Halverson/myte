@@ -15,9 +15,8 @@ test.s:
 _init:
   movl $16, %edi
   call __myte_alloc
-  leaq 8(%rax), %rcx
   leaq .S1(%rip), %rdx
-  movq %rdx, (%rcx)
+  movq %rdx, 8(%rax)
   movl $3, (%rax)
   movl $3, 4(%rax)
   movq %rax, test.s(%rip)
@@ -32,9 +31,8 @@ _main:
 test.test:
   movl $16, %edi
   call __myte_alloc
-  leaq 8(%rax), %rcx
   leaq .S0(%rip), %rdx
-  movq %rdx, (%rcx)
+  movq %rdx, 8(%rax)
   movl $6, (%rax)
   movl $6, 4(%rax)
   ret

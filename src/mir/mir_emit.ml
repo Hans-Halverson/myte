@@ -882,11 +882,11 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
 and emit_string_literal ~ecx loc value =
   (* Add string global string literal unless this is the empty string, in which case use null pointer *)
   let string_length = String.length value in
-  let string_global_ptr =
+  let (string_global_ptr, needs_cast_to_byte_ptr) =
     if string_length <> 0 then
-      Ecx.add_mutable_string_literal ~ecx loc value
+      (Ecx.add_mutable_string_literal ~ecx loc value, true)
     else
-      mk_null_ptr_lit `ByteT
+      (mk_null_ptr_lit `ByteT, false)
   in
   let string_pointer_type = mir_type_of_loc ~ecx loc |> Option.get in
   let (`PointerT string_type) = cast_to_pointer_type string_pointer_type in
@@ -910,7 +910,13 @@ and emit_string_literal ~ecx loc value =
     Ecx.emit_ ~ecx (mk_store ~ptr ~value)
   in
   let length = mk_int_lit string_length in
-  emit_field_store "data" string_global_ptr;
+  let string_byte_ptr =
+    if needs_cast_to_byte_ptr then
+      emit_cast_ptr ~ecx ~ptr:string_global_ptr ~element_type:`ByteT
+    else
+      string_global_ptr
+  in
+  emit_field_store "data" string_byte_ptr;
   emit_field_store "size" length;
   emit_field_store "capacity" length;
   agg_ptr_val
