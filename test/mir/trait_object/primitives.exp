@@ -16,7 +16,7 @@ type _object$std.long.Long$std.string.ToString {long, fn[1]*}
 
 global fn[1] @_vtable$std.long.Long$std.string.ToString = [@std.long.Long.toString]
 
-type _object$std.string.ToString {byte*, fn*}
+type _object$std.string.ToString {byte*, fn[1]*}
 
 type _object$std.unit.Unit$std.string.ToString {_ZeroSize*, fn[1]*}
 
@@ -25,9 +25,9 @@ global fn[1] @_vtable$std.unit.Unit$std.string.ToString = [@std.unit.Unit.toStri
 func std.string.String* @test.useToString(_object$std.string.ToString* %0) {
   %1 := GetPointer byte*, _object$std.string.ToString* %0.0
   %2 := Load byte* %1
-  %3 := GetPointer fn*, _object$std.string.ToString* %0.1
-  %4 := Load fn* %3
-  %5 := GetPointer fn, fn* %4[int 0]
+  %3 := GetPointer fn[1]*, _object$std.string.ToString* %0.1
+  %4 := Load fn[1]* %3
+  %5 := GetPointer fn, fn[1]* %4[int 0]
   %6 := Load fn %5
   %7 := Call std.string.String* %6(%2)
   Ret %7

@@ -557,7 +557,7 @@ and get_trait_object_layout ~ecx (trait_sig : Types.TraitSig.t) =
   | Some trait_object -> trait_object
   (* Create trait object if it does not yet exist *)
   | None ->
-    let (_, vtable_indices) = build_vtable_indices trait_sig in
+    let (vtable_size, vtable_indices) = build_vtable_indices trait_sig in
 
     (* Create aggregate for trait object *)
     let trait_binding = Type_context.get_type_binding ~cx:ecx.pcx.type_ctx trait_sig.loc in
@@ -568,7 +568,7 @@ and get_trait_object_layout ~ecx (trait_sig : Types.TraitSig.t) =
         ~ecx
         trait_object_label
         trait_sig.loc
-        [("item", Pointer Byte); ("vtable", Pointer Function)]
+        [("item", Pointer Byte); ("vtable", Pointer (Array (Function, vtable_size)))]
     in
 
     let trait_object_layout =

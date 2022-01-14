@@ -1142,7 +1142,11 @@ and gen_get_pointer
     match offset with
     | PointerIndex pointer_offset ->
       (* TODO: Handle sign extending byte arguments to 32/64 bits (movzbl/q) *)
-      let element_size = Gcx.size_of_mir_type ~gcx ty in
+      let element_size =
+        match ty with
+        | Type.Array (ty, _) -> Gcx.size_of_mir_type ~gcx ty
+        | _ -> Gcx.size_of_mir_type ~gcx ty
+      in
       (match resolve_ir_value ~gcx ~allow_imm64:true pointer_offset with
       | SImm imm ->
         let num_elements = int64_of_immediate imm in

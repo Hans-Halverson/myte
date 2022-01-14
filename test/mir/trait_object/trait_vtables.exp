@@ -1,6 +1,6 @@
-type _object$test.NongenericTrait {byte*, fn*}
+type _object$test.NongenericTrait {byte*, fn[2]*}
 
-type _object$test.GenericTrait {byte*, fn*}
+type _object$test.GenericTrait {byte*, fn[2]*}
 
 type _object$test.NongenericType$test.GenericTrait<Byte> {test.NongenericType*, fn[2]*}
 

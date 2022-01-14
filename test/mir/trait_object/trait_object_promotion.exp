@@ -1,4 +1,4 @@
-type _object$test.Trait {byte*, fn*}
+type _object$test.Trait {byte*, fn[1]*}
 
 type _object$test.Type$test.Trait {test.Type*, fn[1]*}
 

@@ -1,4 +1,4 @@
-type _object$test.Trait {byte*, fn*}
+type _object$test.Trait {byte*, fn[2]*}
 
 type _object$test.Type$test.Trait {test.Type*, fn[2]*}
 
@@ -24,9 +24,9 @@ func std.string.String* @test.Type.bar(test.Type* %0, int %1, bool %2) {
 func void @test.callSimpleMethod(_object$test.Trait* %0) {
   %1 := GetPointer byte*, _object$test.Trait* %0.0
   %2 := Load byte* %1
-  %3 := GetPointer fn*, _object$test.Trait* %0.1
-  %4 := Load fn* %3
-  %5 := GetPointer fn, fn* %4[int 1]
+  %3 := GetPointer fn[2]*, _object$test.Trait* %0.1
+  %4 := Load fn[2]* %3
+  %5 := GetPointer fn, fn[2]* %4[int 1]
   %6 := Load fn %5
   %7 := Call int %6(%2)
   Ret
@@ -35,9 +35,9 @@ func void @test.callSimpleMethod(_object$test.Trait* %0) {
 func void @test.callMethodWithArgs(_object$test.Trait* %0) {
   %1 := GetPointer byte*, _object$test.Trait* %0.0
   %2 := Load byte* %1
-  %3 := GetPointer fn*, _object$test.Trait* %0.1
-  %4 := Load fn* %3
-  %5 := GetPointer fn, fn* %4[int 0]
+  %3 := GetPointer fn[2]*, _object$test.Trait* %0.1
+  %4 := Load fn[2]* %3
+  %5 := GetPointer fn, fn[2]* %4[int 0]
   %6 := Load fn %5
   %7 := Call std.string.String* %6(%2, 1, true)
   Ret
