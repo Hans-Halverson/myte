@@ -660,7 +660,7 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
       | None -> `PointerT (get_zero_size_type ~ecx)
     in
     let (agg_elements, _) =
-      align_and_pad_aggregate_elements [("item", mir_type); ("vtable", `PointerT `FunctionT)]
+      align_and_pad_aggregate_elements [("item", mir_type); ("vtable", `PointerT vtable_mir_type)]
     in
     let agg = mk_aggregate ~ecx agg_label adt_sig.loc agg_elements in
 

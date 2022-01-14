@@ -2,7 +2,7 @@ type _ZeroSize {}
 
 type _object$test.Trait {byte*, fn*}
 
-type _object$test.ConcreteType1$test.Trait<Int> {_ZeroSize*, fn*}
+type _object$test.ConcreteType1$test.Trait<Int> {_ZeroSize*, fn[1]*}
 
 global fn[1] @_vtable$test.ConcreteType1$test.Trait<Int> = [@test.ConcreteType1.method]
 
@@ -16,7 +16,7 @@ func std.option.Option<Int>* @test.ConcreteType1.method(_ZeroSize* %0, int %1) {
   Ret %2
 }
 
-type _object$test.ConcreteType2$test.Trait<Bool> {_ZeroSize*, fn*}
+type _object$test.ConcreteType2$test.Trait<Bool> {_ZeroSize*, fn[1]*}
 
 global fn[1] @_vtable$test.ConcreteType2$test.Trait<Bool> = [@test.ConcreteType2.method]
 
@@ -30,11 +30,11 @@ func std.option.Option<Bool>* @test.ConcreteType2.method(_ZeroSize* %0, bool %1)
   Ret %2
 }
 
-type _object$test.GenericType<Int>$test.Trait<Int> {test.GenericType<Int>*, fn*}
+type _object$test.GenericType<Int>$test.Trait<Int> {test.GenericType<Int>*, fn[1]*}
 
-type _object$test.GenericType<Long>$test.Trait<Long> {test.GenericType<Long>*, fn*}
+type _object$test.GenericType<Long>$test.Trait<Long> {test.GenericType<Long>*, fn[1]*}
 
-type _object$test.GenericType<Unit>$test.Trait<Unit> {_ZeroSize*, fn*}
+type _object$test.GenericType<Unit>$test.Trait<Unit> {_ZeroSize*, fn[1]*}
 
 type test.GenericType<Int> {int}
 
@@ -120,13 +120,13 @@ func std.option.Option<Unit>* @test.callMethod<Unit>(_object$test.Trait* %0) {
 
 func void @test.testConcreteTypes() {
   %0 := Call _object$test.ConcreteType1$test.Trait<Int>* myte.builtin.alloc(1)
-  %1 := GetPointer fn*, _object$test.ConcreteType1$test.Trait<Int>* %0.1
-  Store fn* %1, @_vtable$test.ConcreteType1$test.Trait<Int>
+  %1 := GetPointer fn[1]*, _object$test.ConcreteType1$test.Trait<Int>* %0.1
+  Store fn[1]* %1, @_vtable$test.ConcreteType1$test.Trait<Int>
   %2 := Cast _object$test.ConcreteType1$test.Trait<Int>* %0 to _object$test.Trait*
   %3 := Call std.option.Option<Int>* @test.callMethod<Int>(%2, 1)
   %4 := Call _object$test.ConcreteType2$test.Trait<Bool>* myte.builtin.alloc(1)
-  %5 := GetPointer fn*, _object$test.ConcreteType2$test.Trait<Bool>* %4.1
-  Store fn* %5, @_vtable$test.ConcreteType2$test.Trait<Bool>
+  %5 := GetPointer fn[1]*, _object$test.ConcreteType2$test.Trait<Bool>* %4.1
+  Store fn[1]* %5, @_vtable$test.ConcreteType2$test.Trait<Bool>
   %6 := Cast _object$test.ConcreteType2$test.Trait<Bool>* %4 to _object$test.Trait*
   %7 := Call std.option.Option<Bool>* @test.callMethod<Bool>(%6, true)
   Ret
@@ -139,13 +139,13 @@ func void @test.testGenericType() {
   %2 := Call _object$test.GenericType<Int>$test.Trait<Int>* myte.builtin.alloc(1)
   %3 := GetPointer test.GenericType<Int>*, _object$test.GenericType<Int>$test.Trait<Int>* %2.0
   Store test.GenericType<Int>* %3, %0
-  %4 := GetPointer fn*, _object$test.GenericType<Int>$test.Trait<Int>* %2.1
-  Store fn* %4, @_vtable$test.GenericType<Int>$test.Trait<Int>
+  %4 := GetPointer fn[1]*, _object$test.GenericType<Int>$test.Trait<Int>* %2.1
+  Store fn[1]* %4, @_vtable$test.GenericType<Int>$test.Trait<Int>
   %5 := Cast _object$test.GenericType<Int>$test.Trait<Int>* %2 to _object$test.Trait*
   %6 := Call std.option.Option<Int>* @test.callMethod<Int>(%5, 1)
   %7 := Call _object$test.GenericType<Unit>$test.Trait<Unit>* myte.builtin.alloc(1)
-  %8 := GetPointer fn*, _object$test.GenericType<Unit>$test.Trait<Unit>* %7.1
-  Store fn* %8, @_vtable$test.GenericType<Unit>$test.Trait<Unit>
+  %8 := GetPointer fn[1]*, _object$test.GenericType<Unit>$test.Trait<Unit>* %7.1
+  Store fn[1]* %8, @_vtable$test.GenericType<Unit>$test.Trait<Unit>
   %9 := Cast _object$test.GenericType<Unit>$test.Trait<Unit>* %7 to _object$test.Trait*
   %10 := Call std.option.Option<Unit>* @test.callMethod<Unit>(%9)
   %11 := Call test.GenericType<Long>* myte.builtin.alloc(1)
@@ -154,8 +154,8 @@ func void @test.testGenericType() {
   %13 := Call _object$test.GenericType<Long>$test.Trait<Long>* myte.builtin.alloc(1)
   %14 := GetPointer test.GenericType<Long>*, _object$test.GenericType<Long>$test.Trait<Long>* %13.0
   Store test.GenericType<Long>* %14, %11
-  %15 := GetPointer fn*, _object$test.GenericType<Long>$test.Trait<Long>* %13.1
-  Store fn* %15, @_vtable$test.GenericType<Long>$test.Trait<Long>
+  %15 := GetPointer fn[1]*, _object$test.GenericType<Long>$test.Trait<Long>* %13.1
+  Store fn[1]* %15, @_vtable$test.GenericType<Long>$test.Trait<Long>
   %16 := Cast _object$test.GenericType<Long>$test.Trait<Long>* %13 to _object$test.Trait*
   %17 := Call std.option.Option<Long>* @test.callMethod<Long>(%16, 1)
   Ret

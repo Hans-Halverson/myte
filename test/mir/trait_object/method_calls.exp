@@ -1,6 +1,6 @@
 type _object$test.Trait {byte*, fn*}
 
-type _object$test.Type$test.Trait {test.Type*, fn*}
+type _object$test.Type$test.Trait {test.Type*, fn[2]*}
 
 type test.Type {int}
 
@@ -47,8 +47,8 @@ func void @test.test(test.Type* %0) {
   %1 := Call _object$test.Type$test.Trait* myte.builtin.alloc(1)
   %2 := GetPointer test.Type*, _object$test.Type$test.Trait* %1.0
   Store test.Type* %2, %0
-  %3 := GetPointer fn*, _object$test.Type$test.Trait* %1.1
-  Store fn* %3, @_vtable$test.Type$test.Trait
+  %3 := GetPointer fn[2]*, _object$test.Type$test.Trait* %1.1
+  Store fn[2]* %3, @_vtable$test.Type$test.Trait
   %4 := Cast _object$test.Type$test.Trait* %1 to _object$test.Trait*
   Call void @test.callSimpleMethod(%4)
   Call void @test.callMethodWithArgs(%4)
