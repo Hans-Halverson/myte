@@ -38,6 +38,12 @@ class use_def_finder color_to_vreg =
         this#add_vreg_use ~block (this#get_precolored_vreg A);
         this#add_vreg_def ~block (this#get_precolored_vreg D);
         super#visit_instruction ~block instr_with_id
+      (* Shifts with register shfit argument implicitly use value in register C *)
+      | ShlR _
+      | ShrR _
+      | SarR _ ->
+        this#add_vreg_use ~block (this#get_precolored_vreg C);
+        super#visit_instruction ~block instr_with_id
       (* Xor of a register with itself zeros the register, and only counts as a def, not a use, as
          the result is completely independent of the original value in the register. *)
       | XorMM (_, Reg reg1, Reg reg2)

@@ -139,12 +139,15 @@ let pp_function_argument_stack_slot ~buf vreg =
   add_string ~buf "ARG_STACK_SLOT:";
   add_string ~buf (string_of_int vreg.VReg.id)
 
+let pp_sized_register ~buf reg size =
+  add_char ~buf '%';
+  add_string ~buf (string_of_sized_reg reg size)
+
 let rec pp_register ~gcx ~buf ~size reg =
   let reg_alias = VReg.get_vreg_alias reg in
   match reg_alias.resolution with
   | Physical reg ->
-    add_char ~buf '%';
-    add_string ~buf (string_of_sized_reg reg size);
+    pp_sized_register ~buf reg size;
     if Opts.dump_debug () then (
       add_char ~buf ':';
       add_string ~buf (string_of_int reg_alias.id)
@@ -364,7 +367,7 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_mem ~size dest_mem
       | ShlR (size, dest_mem) ->
         pp_sized_op "shl" size;
-        pp_register ~size:Size8 (Gcx.mk_precolored ~gcx C);
+        pp_sized_register ~buf C Size8;
         pp_args_separator ();
         pp_mem ~size dest_mem
       | ShlI (size, imm, dest_mem) ->
@@ -374,7 +377,7 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_mem ~size dest_mem
       | ShrR (size, dest_mem) ->
         pp_sized_op "shr" size;
-        pp_register ~size:Size8 (Gcx.mk_precolored ~gcx C);
+        pp_sized_register ~buf C Size8;
         pp_args_separator ();
         pp_mem ~size dest_mem
       | ShrI (size, imm, dest_mem) ->
@@ -384,7 +387,7 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_mem ~size dest_mem
       | SarR (size, dest_mem) ->
         pp_sized_op "sar" size;
-        pp_register ~size:Size8 (Gcx.mk_precolored ~gcx C);
+        pp_sized_register ~buf C Size8;
         pp_args_separator ();
         pp_mem ~size dest_mem
       | SarI (size, imm, dest_mem) ->
