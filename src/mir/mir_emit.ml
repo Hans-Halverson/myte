@@ -25,7 +25,7 @@ let rec emit (pcx : Pcx.t) : Program.t =
   finish_init_function ~ecx;
   {
     Program.main_label = ecx.main_label;
-    blocks = Ecx.builders_to_blocks ecx.blocks;
+    blocks = ecx.blocks;
     globals = ecx.globals;
     funcs = ecx.funcs;
     types = ecx.types;
@@ -222,8 +222,8 @@ and emit_function_body ~ecx name decl =
   | Block block ->
     ignore (emit_block ~ecx ~is_expr:false block);
     (* Add an implicit return if the last instruction is not a return *)
-    (match ecx.current_block_builder with
-    | Some { Ecx.BlockBuilder.instructions = { instr = Ret _; _ } :: _; _ } -> ()
+    (match ecx.current_block with
+    | Some { instructions = Some { last = { instr = Ret _; _ }; _ }; _ } -> ()
     | _ ->
       (* Handle implicit return from main *)
       let return_val =
@@ -298,7 +298,7 @@ and emit_trampoline_function ~(ecx : Ecx.t) name =
 
 and start_init_function ~ecx =
   Ecx.emit_init_section ~ecx (fun _ -> ());
-  let body_start_block = (Option.get ecx.Ecx.last_init_block_builder).id in
+  let body_start_block = (Option.get ecx.last_init_block).id in
   Ecx.add_function
     ~ecx
     {
@@ -310,8 +310,9 @@ and start_init_function ~ecx =
     }
 
 and finish_init_function ~ecx =
-  let last_init_block = Option.get ecx.Ecx.last_init_block_builder in
-  last_init_block.instructions <- mk_ret ~arg:None :: last_init_block.instructions
+  let last_init_block = Option.get ecx.last_init_block in
+  Ecx.set_current_block ~ecx last_init_block;
+  Ecx.emit_ ~ecx (mk_ret ~arg:None)
 
 (*
  * Emit an expression, returning the value for that expression if the expression produces a value.
@@ -385,25 +386,25 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     let result_ptr_val = Ecx.emit ~ecx (mk_stack_alloc ~type_:Bool) in
 
     (* Short circuit when lhs is false by jumping to false case *)
-    let rhs_builder = Ecx.mk_block_builder ~ecx in
-    let false_builder = Ecx.mk_block_builder ~ecx in
-    let join_builder = Ecx.mk_block_builder ~ecx in
+    let rhs_block = Ecx.mk_block ~ecx in
+    let false_block = Ecx.mk_block ~ecx in
+    let join_block = Ecx.mk_block ~ecx in
     let left_val = emit_bool_expression ~ecx left in
-    Ecx.finish_block_branch ~ecx left_val rhs_builder.id false_builder.id;
+    Ecx.finish_block_branch ~ecx left_val rhs_block.id false_block.id;
 
     (* Store right hand side when lhs is true and continue to join block *)
-    Ecx.set_block_builder ~ecx rhs_builder;
+    Ecx.set_current_block ~ecx rhs_block;
     let right_val = emit_bool_expression ~ecx right in
     Ecx.emit_ ~ecx (mk_store ~ptr:result_ptr_val ~value:right_val);
-    Ecx.finish_block_continue ~ecx join_builder.id;
+    Ecx.finish_block_continue ~ecx join_block.id;
 
     (* Store false literal when lhs is false and continue to join block *)
-    Ecx.set_block_builder ~ecx false_builder;
+    Ecx.set_current_block ~ecx false_block;
     Ecx.emit_ ~ecx (mk_store ~ptr:result_ptr_val ~value:(mk_bool_lit false));
-    Ecx.finish_block_continue ~ecx join_builder.id;
+    Ecx.finish_block_continue ~ecx join_block.id;
 
     (* Join cases together and load result from stack location *)
-    Ecx.set_block_builder ~ecx join_builder;
+    Ecx.set_current_block ~ecx join_block;
     Some (Ecx.emit ~ecx (mk_load ~ptr:result_ptr_val))
   (*
    * ============================
@@ -415,25 +416,25 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     let result_ptr_val = Ecx.emit ~ecx (mk_stack_alloc ~type_:Bool) in
 
     (* Short circuit when lhs is true by jumping to true case *)
-    let rhs_builder = Ecx.mk_block_builder ~ecx in
-    let true_builder = Ecx.mk_block_builder ~ecx in
-    let join_builder = Ecx.mk_block_builder ~ecx in
+    let rhs_block = Ecx.mk_block ~ecx in
+    let true_block = Ecx.mk_block ~ecx in
+    let join_block = Ecx.mk_block ~ecx in
     let left_val = emit_bool_expression ~ecx left in
-    Ecx.finish_block_branch ~ecx left_val true_builder.id rhs_builder.id;
+    Ecx.finish_block_branch ~ecx left_val true_block.id rhs_block.id;
 
     (* Store right hand side when lhs is false and continue to join block *)
-    Ecx.set_block_builder ~ecx rhs_builder;
+    Ecx.set_current_block ~ecx rhs_block;
     let right_val = emit_bool_expression ~ecx right in
     Ecx.emit_ ~ecx (mk_store ~ptr:result_ptr_val ~value:right_val);
-    Ecx.finish_block_continue ~ecx join_builder.id;
+    Ecx.finish_block_continue ~ecx join_block.id;
 
     (* Store true literal when lhs is true and continue to join block *)
-    Ecx.set_block_builder ~ecx true_builder;
+    Ecx.set_current_block ~ecx true_block;
     Ecx.emit_ ~ecx (mk_store ~ptr:result_ptr_val ~value:(mk_bool_lit true));
-    Ecx.finish_block_continue ~ecx join_builder.id;
+    Ecx.finish_block_continue ~ecx join_block.id;
 
     (* Join cases together and load result from stack location *)
-    Ecx.set_block_builder ~ecx join_builder;
+    Ecx.set_current_block ~ecx join_block;
     Some (Ecx.emit ~ecx (mk_load ~ptr:result_ptr_val))
   (*
    * ============================
@@ -887,41 +888,41 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     (match operand_ty with
     | ADT { adt_sig; type_args = [item_ty] } when adt_sig == !Std_lib.option_adt_sig ->
       (* Destructure option, jumping to None branch if option is None *)
-      let some_branch_builder = Ecx.mk_block_builder ~ecx in
-      let none_branch_builder = Ecx.mk_block_builder ~ecx in
+      let some_branch_block = Ecx.mk_block ~ecx in
+      let none_branch_block = Ecx.mk_block ~ecx in
       let item_val =
         emit_option_destructuring
           ~ecx
           ~option_val:operand_val
           ~item_ty
-          ~some_branch_builder
-          ~none_branch_builder
+          ~some_branch_block
+          ~none_branch_block
       in
 
       (* None branch creates and returns new None value (as it may have different size) *)
-      Ecx.set_block_builder ~ecx none_branch_builder;
+      Ecx.set_current_block ~ecx none_branch_block;
       let none_val = emit_construct_enum_variant ~ecx ~name:"None" ~ty:return_ty in
       Ecx.emit_ ~ecx (mk_ret ~arg:(Some none_val));
 
       (* Return unwrapped value in Some case and proceed *)
-      Ecx.set_block_builder ~ecx some_branch_builder;
+      Ecx.set_current_block ~ecx some_branch_block;
       item_val
     | ADT { adt_sig; type_args = [ok_ty; error_ty] } when adt_sig == !Std_lib.result_adt_sig ->
       (* Destructure result, jumping to Error branch if result is Error *)
-      let ok_branch_builder = Ecx.mk_block_builder ~ecx in
-      let error_branch_builder = Ecx.mk_block_builder ~ecx in
+      let ok_branch_block = Ecx.mk_block ~ecx in
+      let error_branch_block = Ecx.mk_block ~ecx in
       let (ok_item_val, error_item_val) =
         emit_result_destructuring
           ~ecx
           ~result_val:operand_val
           ~ok_ty
           ~error_ty
-          ~ok_branch_builder
-          ~error_branch_builder
+          ~ok_branch_block
+          ~error_branch_block
       in
 
       (* Error branch creates and returns new Error value (as it may have different size) *)
-      Ecx.set_block_builder ~ecx error_branch_builder;
+      Ecx.set_current_block ~ecx error_branch_block;
       let error_val =
         emit_construct_tuple_variant
           ~ecx
@@ -932,7 +933,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
       Ecx.emit_ ~ecx (mk_ret ~arg:error_val);
 
       (* Return unwrapped value in Ok case and proceed *)
-      Ecx.set_block_builder ~ecx ok_branch_builder;
+      Ecx.set_current_block ~ecx ok_branch_block;
       ok_item_val
     | _ -> failwith "Only option and result types can be unwrapped")
   | AnonymousFunction _ -> failwith "TODO: Emit anonymous functions"
@@ -993,20 +994,20 @@ and emit_if_expression ~ecx if_ =
 
   (* Branch to conseq or altern blocks *)
   let test_val = emit_bool_expression ~ecx test in
-  let conseq_builder = Ecx.mk_block_builder ~ecx in
-  let altern_builder = Ecx.mk_block_builder ~ecx in
-  let join_builder = Ecx.mk_block_builder ~ecx in
-  Ecx.finish_block_branch ~ecx test_val conseq_builder.id altern_builder.id;
+  let conseq_block = Ecx.mk_block ~ecx in
+  let altern_block = Ecx.mk_block ~ecx in
+  let join_block = Ecx.mk_block ~ecx in
+  Ecx.finish_block_branch ~ecx test_val conseq_block.id altern_block.id;
 
   (* Emit conseq, store result, and continue to join block *)
-  Ecx.set_block_builder ~ecx conseq_builder;
+  Ecx.set_current_block ~ecx conseq_block;
   (match emit_block ~ecx ~is_expr:true conseq with
   | Some conseq_val -> Ecx.emit_ ~ecx (mk_store ~ptr:(Option.get result_ptr_val) ~value:conseq_val)
   | None -> ());
-  Ecx.finish_block_continue ~ecx join_builder.id;
+  Ecx.finish_block_continue ~ecx join_block.id;
 
   (* Emit altern, store result, and continue to join block *)
-  Ecx.set_block_builder ~ecx altern_builder;
+  Ecx.set_current_block ~ecx altern_block;
   let altern_val =
     match altern with
     | Block block -> emit_block ~ecx ~is_expr:true block
@@ -1016,10 +1017,10 @@ and emit_if_expression ~ecx if_ =
   (match altern_val with
   | Some altern_val -> Ecx.emit_ ~ecx (mk_store ~ptr:(Option.get result_ptr_val) ~value:altern_val)
   | None -> ());
-  Ecx.finish_block_continue ~ecx join_builder.id;
+  Ecx.finish_block_continue ~ecx join_block.id;
 
   (* Join branches together and load result from stack location *)
-  Ecx.set_block_builder ~ecx join_builder;
+  Ecx.set_current_block ~ecx join_block;
   match mir_type with
   | None -> None
   | Some _ -> Some (Ecx.emit ~ecx (mk_load ~ptr:(Option.get result_ptr_val)))
@@ -1038,11 +1039,11 @@ and emit_match_expression ~ecx match_ =
   (* Emit args and decision tree *)
   let args = List.map (emit_expression ~ecx) args in
   let decision_tree = Mir_match_decision_tree.build_match_decision_tree ~ecx args cases in
-  let join_block = Ecx.mk_block_builder ~ecx in
+  let join_block = Ecx.mk_block ~ecx in
   emit_match_decision_tree ~ecx ~join_block ~result_ptr:result_ptr_val ~alloc:true decision_tree;
 
   (* Join branches together and load result from stack location *)
-  Ecx.set_block_builder ~ecx join_block;
+  Ecx.set_current_block ~ecx join_block;
   match mir_type with
   | None -> None
   | Some _ -> Some (Ecx.emit ~ecx (mk_load ~ptr:(Option.get result_ptr_val)))
@@ -1805,17 +1806,17 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
   | If { loc = _; test; conseq; altern = None } ->
     (* Branch to conseq or join blocks *)
     let test_val = emit_bool_expression ~ecx test in
-    let conseq_builder = Ecx.mk_block_builder ~ecx in
-    let join_builder = Ecx.mk_block_builder ~ecx in
-    Ecx.finish_block_branch ~ecx test_val conseq_builder.id join_builder.id;
+    let conseq_block = Ecx.mk_block ~ecx in
+    let join_block = Ecx.mk_block ~ecx in
+    Ecx.finish_block_branch ~ecx test_val conseq_block.id join_block.id;
 
     (* Emit conseq and continue to join block *)
-    Ecx.set_block_builder ~ecx conseq_builder;
+    Ecx.set_current_block ~ecx conseq_block;
     ignore (emit_block ~ecx ~is_expr conseq);
-    Ecx.finish_block_continue ~ecx join_builder.id;
+    Ecx.finish_block_continue ~ecx join_block.id;
 
     (* Start join block *)
-    Ecx.set_block_builder ~ecx join_builder;
+    Ecx.set_current_block ~ecx join_block;
     None
   | If ({ loc = _; test; conseq; altern } as if_) ->
     if is_expr then
@@ -1823,26 +1824,26 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
     else
       (* Branch to conseq or altern blocks *)
       let test_val = emit_bool_expression ~ecx test in
-      let conseq_builder = Ecx.mk_block_builder ~ecx in
-      let altern_builder = Ecx.mk_block_builder ~ecx in
-      let join_builder = Ecx.mk_block_builder ~ecx in
-      Ecx.finish_block_branch ~ecx test_val conseq_builder.id altern_builder.id;
+      let conseq_block = Ecx.mk_block ~ecx in
+      let altern_block = Ecx.mk_block ~ecx in
+      let join_block = Ecx.mk_block ~ecx in
+      Ecx.finish_block_branch ~ecx test_val conseq_block.id altern_block.id;
 
       (* Emit conseq and continue to join block *)
-      Ecx.set_block_builder ~ecx conseq_builder;
+      Ecx.set_current_block ~ecx conseq_block;
       ignore (emit_block ~ecx ~is_expr:false conseq);
-      Ecx.finish_block_continue ~ecx join_builder.id;
+      Ecx.finish_block_continue ~ecx join_block.id;
 
       (* Emit altern and continue to join block *)
-      Ecx.set_block_builder ~ecx altern_builder;
+      Ecx.set_current_block ~ecx altern_block;
       (match altern with
       | Block block -> ignore (emit_block ~ecx ~is_expr:false block)
       | If if_ -> ignore (emit_statement ~ecx ~is_expr:false (If if_))
       | None -> failwith "Handled by previous case");
-      Ecx.finish_block_continue ~ecx join_builder.id;
+      Ecx.finish_block_continue ~ecx join_block.id;
 
       (* Start join block *)
-      Ecx.set_block_builder ~ecx join_builder;
+      Ecx.set_current_block ~ecx join_block;
       None
   (*
    * ============================
@@ -1851,25 +1852,25 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
    *)
   | While { loc = _; test; body } ->
     (* Set up blocks for loop *)
-    let test_builder = Ecx.mk_block_builder ~ecx in
-    let body_builder = Ecx.mk_block_builder ~ecx in
-    let finish_builder = Ecx.mk_block_builder ~ecx in
-    Ecx.finish_block_continue ~ecx test_builder.id;
+    let test_block = Ecx.mk_block ~ecx in
+    let body_block = Ecx.mk_block ~ecx in
+    let finish_block = Ecx.mk_block ~ecx in
+    Ecx.finish_block_continue ~ecx test_block.id;
 
     (* Emit test block which branches to finish or body blocks *)
-    Ecx.set_block_builder ~ecx test_builder;
+    Ecx.set_current_block ~ecx test_block;
     let test_val = emit_bool_expression ~ecx test in
-    Ecx.finish_block_branch ~ecx test_val body_builder.id finish_builder.id;
+    Ecx.finish_block_branch ~ecx test_val body_block.id finish_block.id;
 
     (* Emit body block which continues to test block *)
-    Ecx.push_loop_context ~ecx finish_builder.id test_builder.id;
-    Ecx.set_block_builder ~ecx body_builder;
+    Ecx.push_loop_context ~ecx finish_block.id test_block.id;
+    Ecx.set_current_block ~ecx body_block;
     ignore (emit_block ~ecx ~is_expr:false body);
-    Ecx.finish_block_continue ~ecx test_builder.id;
+    Ecx.finish_block_continue ~ecx test_block.id;
     Ecx.pop_loop_context ~ecx;
 
     (* Start join block *)
-    Ecx.set_block_builder ~ecx finish_builder;
+    Ecx.set_current_block ~ecx finish_block;
     None
   (*
    * ============================
@@ -1878,9 +1879,9 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
    *)
   | For { pattern; iterator; body; _ } ->
     (* Set up blocks for loop *)
-    let test_builder = Ecx.mk_block_builder ~ecx in
-    let body_builder = Ecx.mk_block_builder ~ecx in
-    let finish_builder = Ecx.mk_block_builder ~ecx in
+    let test_block = Ecx.mk_block ~ecx in
+    let body_block = Ecx.mk_block ~ecx in
+    let finish_block = Ecx.mk_block ~ecx in
 
     (* Find type of iterable *)
     let iterable_ty = type_of_loc ~ecx (Ast_utils.expression_loc iterator) in
@@ -1918,10 +1919,10 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
         ~method_instance_type_args:[]
         ~ret_type:iterator_mir_type
     in
-    Ecx.finish_block_continue ~ecx test_builder.id;
+    Ecx.finish_block_continue ~ecx test_block.id;
 
     (* Test block starts by calling iterator's `next` method, returning item option *)
-    Ecx.set_block_builder ~ecx test_builder;
+    Ecx.set_current_block ~ecx test_block;
     let option_val =
       emit_method_call
         ~ecx
@@ -1940,21 +1941,21 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
         ~ecx
         ~option_val
         ~item_ty
-        ~some_branch_builder:body_builder
-        ~none_branch_builder:finish_builder
+        ~some_branch_block:body_block
+        ~none_branch_block:finish_block
     in
 
     (* Body block then destructures payload to for loop bindings *)
     item_val |> Option.iter (emit_alloc_destructuring ~ecx pattern);
 
     (* Body block contains body of for loop and continues to test block *)
-    Ecx.push_loop_context ~ecx finish_builder.id test_builder.id;
+    Ecx.push_loop_context ~ecx finish_block.id test_block.id;
     ignore (emit_block ~ecx ~is_expr:false body);
     Ecx.pop_loop_context ~ecx;
-    Ecx.finish_block_continue ~ecx test_builder.id;
+    Ecx.finish_block_continue ~ecx test_block.id;
 
     (* Start join block *)
-    Ecx.set_block_builder ~ecx finish_builder;
+    Ecx.set_current_block ~ecx finish_block;
     None
   (*
    * ============================
@@ -2068,9 +2069,9 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
         let decision_tree =
           Mir_match_decision_tree.build_destructure_decision_tree ~ecx expr_val pattern
         in
-        let join_block = Ecx.mk_block_builder ~ecx in
+        let join_block = Ecx.mk_block ~ecx in
         emit_match_decision_tree ~ecx ~join_block ~result_ptr:None ~alloc:false decision_tree;
-        Ecx.set_block_builder ~ecx join_block)
+        Ecx.set_current_block ~ecx join_block)
     | Expression (IndexedAccess { loc; target; index; _ } as expr_lvalue) ->
       let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
       (match target_ty with
@@ -2121,9 +2122,9 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
       (* Emit args and decision tree *)
       let args = List.map (emit_expression ~ecx) args in
       let decision_tree = Mir_match_decision_tree.build_match_decision_tree ~ecx args cases in
-      let join_block = Ecx.mk_block_builder ~ecx in
+      let join_block = Ecx.mk_block ~ecx in
       emit_match_decision_tree ~ecx ~join_block ~result_ptr:None ~alloc:true decision_tree;
-      Ecx.set_block_builder ~ecx join_block;
+      Ecx.set_current_block ~ecx join_block;
       None
   | FunctionDeclaration _ -> failwith "TODO: Emit MIR for non-toplevel function declarations"
 
@@ -2131,8 +2132,8 @@ and emit_option_destructuring
     ~ecx
     ~(option_val : Value.t)
     ~(item_ty : Types.Type.t)
-    ~(some_branch_builder : Ecx.BlockBuilder.t)
-    ~(none_branch_builder : Ecx.BlockBuilder.t) =
+    ~(some_branch_block : Block.t)
+    ~(none_branch_block : Block.t) =
   (* Find aggregate data for option *)
   let layout = Ecx.get_mir_adt_layout ~ecx !Std_lib.option_adt_sig [item_ty] in
   let variants_layout =
@@ -2149,10 +2150,10 @@ and emit_option_destructuring
   (* Test block finishes by jumping to Some branch if option is a `Some` variant, otherwise test
      block finishes by jumping to None branch if option is a `None` variant. *)
   let test_val = Ecx.emit ~ecx (mk_cmp ~cmp:Eq ~left:tag_val ~right:some_tag) in
-  Ecx.finish_block_branch ~ecx test_val some_branch_builder.id none_branch_builder.id;
+  Ecx.finish_block_branch ~ecx test_val some_branch_block.id none_branch_block.id;
 
   (* Some branch starts by loading payload from `Some` variant *)
-  Ecx.set_block_builder ~ecx some_branch_builder;
+  Ecx.set_current_block ~ecx some_branch_block;
   match Ecx.to_mir_type ~ecx item_ty with
   (* Do not load payload if `Some` item is a zero size type *)
   | None -> None
@@ -2174,8 +2175,8 @@ and emit_result_destructuring
     ~(result_val : Value.t)
     ~(ok_ty : Types.Type.t)
     ~(error_ty : Types.Type.t)
-    ~(ok_branch_builder : Ecx.BlockBuilder.t)
-    ~(error_branch_builder : Ecx.BlockBuilder.t) =
+    ~(ok_branch_block : Block.t)
+    ~(error_branch_block : Block.t) =
   (* Find aggregate data for result *)
   let layout = Ecx.get_mir_adt_layout ~ecx !Std_lib.result_adt_sig [ok_ty; error_ty] in
   let variants_layout =
@@ -2193,10 +2194,10 @@ and emit_result_destructuring
   (* Test block finishes by jumping to Ok branch if option is an `Ok` variant, otherwise test
      block finishes by jumping to Error branch if option is an `Error` variant. *)
   let test_val = Ecx.emit ~ecx (mk_cmp ~cmp:Eq ~left:tag_val ~right:ok_tag) in
-  Ecx.finish_block_branch ~ecx test_val ok_branch_builder.id error_branch_builder.id;
+  Ecx.finish_block_branch ~ecx test_val ok_branch_block.id error_branch_block.id;
 
   (* Ok branch starts by loading payload from `Ok` variant *)
-  Ecx.set_block_builder ~ecx ok_branch_builder;
+  Ecx.set_current_block ~ecx ok_branch_block;
   let ok_item_val =
     match Ecx.to_mir_type ~ecx ok_ty with
     (* Do not load payload if `Ok` item is a zero size type *)
@@ -2216,7 +2217,7 @@ and emit_result_destructuring
   in
 
   (* Error branch starts by loading payload from `Error` variant *)
-  Ecx.set_block_builder ~ecx error_branch_builder;
+  Ecx.set_current_block ~ecx error_branch_block;
   let error_item_val =
     match Ecx.to_mir_type ~ecx error_ty with
     | None -> None
@@ -2255,9 +2256,9 @@ and emit_alloc_destructuring ~(ecx : Ecx.t) pattern value =
     let decision_tree =
       Mir_match_decision_tree.build_destructure_decision_tree ~ecx value pattern
     in
-    let join_block = Ecx.mk_block_builder ~ecx in
+    let join_block = Ecx.mk_block ~ecx in
     emit_match_decision_tree ~ecx ~join_block ~result_ptr:None ~alloc:true decision_tree;
-    Ecx.set_block_builder ~ecx join_block
+    Ecx.set_current_block ~ecx join_block
 
 (* Structure of leaf and case body blocks:
 
@@ -2283,16 +2284,16 @@ and emit_alloc_destructuring ~(ecx : Ecx.t) pattern value =
    [alloc] fs true, generate StackAlloc instructions for all bindings *)
 and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
   let open Mir_match_decision_tree in
-  (* Maintain cache of block builder at beginning of each case body (including guard) *)
+  (* Maintain cache of blocks at beginning of each case body (including guard) *)
   let constructed_case_bodies = ref LocSet.empty in
-  let case_body_builder_cache = ref LocMap.empty in
-  let get_case_body_builder case_body_loc =
-    match LocMap.find_opt case_body_loc !case_body_builder_cache with
-    | Some block_builder -> block_builder
+  let case_body_block_cache = ref LocMap.empty in
+  let get_case_body_block case_body_loc =
+    match LocMap.find_opt case_body_loc !case_body_block_cache with
+    | Some block -> block
     | None ->
-      let block_builder = Ecx.mk_block_builder ~ecx in
-      case_body_builder_cache := LocMap.add case_body_loc block_builder !case_body_builder_cache;
-      block_builder
+      let block = Ecx.mk_block ~ecx in
+      case_body_block_cache := LocMap.add case_body_loc block !case_body_block_cache;
+      block
   in
 
   (* First emit stack allocations for every binding in decision tree. For each binding, save the
@@ -2366,20 +2367,20 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
       (* Destructurings do not have a case body, so simply continue to join block *)
       | None -> Ecx.finish_block_continue ~ecx join_block.id
       | Some case_node ->
-        let case_body_builder = get_case_body_builder case_node.loc in
+        let case_body_block = get_case_body_block case_node.loc in
         (match case_node.guard with
-        | None -> Ecx.finish_block_continue ~ecx case_body_builder.id
+        | None -> Ecx.finish_block_continue ~ecx case_body_block.id
         | Some guard_expr ->
           let guard_test_val = emit_bool_expression ~ecx guard_expr in
-          let guard_fail_builder = Ecx.mk_block_builder ~ecx in
-          Ecx.finish_block_branch ~ecx guard_test_val case_body_builder.id guard_fail_builder.id;
-          Ecx.set_block_builder ~ecx guard_fail_builder;
+          let guard_fail_block = Ecx.mk_block ~ecx in
+          Ecx.finish_block_branch ~ecx guard_test_val case_body_block.id guard_fail_block.id;
+          Ecx.set_current_block ~ecx guard_fail_block;
           emit_tree_node ~path_cache (Option.get guard_fail_case));
 
         (* Ensure that case body is only emitted once, and shared between leaves *)
         if not (LocSet.mem case_node.loc !constructed_case_bodies) then (
           constructed_case_bodies := LocSet.add case_node.loc !constructed_case_bodies;
-          Ecx.set_block_builder ~ecx case_body_builder;
+          Ecx.set_current_block ~ecx case_body_block;
 
           (* Emit the right hand side of case *)
           let (body_val, body_ty) =
@@ -2585,18 +2586,18 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
   and emit_decision_tree_if_else_chain ~path_cache test_cases default_case gen_test_val =
     let emit_test (ctor, tree_node) is_last_test =
       let test_val = gen_test_val ctor in
-      let pass_case_builder = Ecx.mk_block_builder ~ecx in
+      let pass_case_block = Ecx.mk_block ~ecx in
       (* The last test links directly to the default case, otherwise create a new block for the next test *)
-      let fail_case_builder =
+      let fail_case_block =
         if is_last_test then
-          Ecx.mk_block_builder ~ecx
+          Ecx.mk_block ~ecx
         else
-          Ecx.mk_block_builder ~ecx
+          Ecx.mk_block ~ecx
       in
-      Ecx.finish_block_branch ~ecx test_val pass_case_builder.id fail_case_builder.id;
-      Ecx.set_block_builder ~ecx pass_case_builder;
+      Ecx.finish_block_branch ~ecx test_val pass_case_block.id fail_case_block.id;
+      Ecx.set_current_block ~ecx pass_case_block;
       emit_tree_node ~path_cache tree_node;
-      Ecx.set_block_builder ~ecx fail_case_builder
+      Ecx.set_current_block ~ecx fail_case_block
     in
     let rec iter test_cases =
       match test_cases with

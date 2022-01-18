@@ -146,7 +146,9 @@ and pp_block ~cx ~label block =
     else
       []
   in
-  let instruction_lines = List.map (pp_instruction ~cx) block.instructions in
+  let instruction_lines =
+    fold_instructions block [] (fun instr acc -> pp_instruction ~cx instr :: acc) |> List.rev
+  in
   let next_lines =
     match block.next with
     | Halt -> []

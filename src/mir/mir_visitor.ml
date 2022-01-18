@@ -36,7 +36,7 @@ module IRVisitor = struct
         if this#check_visited_block block.id then
           ()
         else (
-          this#visit_instructions ~block block.instructions;
+          this#visit_instructions ~block;
           this#visit_next ~block block.next
         )
 
@@ -58,8 +58,7 @@ module IRVisitor = struct
 
       method visit_edge _b1 _b2 = ()
 
-      method visit_instructions ~block instructions =
-        List.iter (this#visit_instruction ~block) instructions
+      method visit_instructions ~block = iter_instructions block (this#visit_instruction ~block)
 
       method visit_instruction ~block instr =
         let open Instruction in

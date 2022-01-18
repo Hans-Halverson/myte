@@ -177,7 +177,7 @@ and find_join_points ~cx program =
     let sources = ref sources in
     let visitor = mk_add_sources_visitor ~cx ~program sources in
     let block = IMap.find block_id program.blocks in
-    List.iter (visitor#visit_instruction ~block) block.instructions;
+    iter_instructions block (visitor#visit_instruction ~block);
     match block.next with
     | Halt -> ()
     | Continue continue ->
@@ -293,7 +293,7 @@ and build_phi_nodes ~cx program =
     end;
     let block = IMap.find block_id program.blocks in
     let visitor = mk_build_phi_nodes_visitor ~cx program func_name sources phi_nodes_to_realize in
-    List.iter (visitor#visit_instruction ~block) block.instructions;
+    iter_instructions block (visitor#visit_instruction ~block);
     match block.next with
     | Halt -> ()
     | Continue continue -> maybe_visit_block !sources continue
@@ -315,8 +315,7 @@ and build_phi_nodes ~cx program =
     if Option.is_none node.realized then (
       (* Realize by creating phi instruction *)
       let type_ = IMap.find ptr_id cx.stack_alloc_ids in
-      let phi = { Instruction.Phi.args = IMap.empty } in
-      let phi_instr = { Instruction.id = mk_value_id (); type_; instr = Phi phi } in
+      let phi_instr = Mir_builders.mk_phi ~type_ ~args:IMap.empty in
       node.realized <- Some phi_instr;
       cx.realized_phis <- IIMMap.add node.block_id node_id cx.realized_phis;
       IMap.iter (fun prev_node_id _ -> realize_phi_chain_graph prev_node_id ptr_id) node.prev_nodes
@@ -340,32 +339,26 @@ and rewrite_program ~cx program =
       match IMap.find_opt block_id cx.realized_phis with
       | None -> []
       | Some realized_phis ->
-        let phis =
-          ISet.fold
-            (fun node_id phis ->
-              let node = get_node ~cx node_id in
-              let phi_instr = Option.get node.realized in
-              let phi = cast_to_phi phi_instr in
-              phi.args <- gather_phi_args node_id;
-              phi_instr :: phis)
-            realized_phis
-            []
-        in
-        List.rev phis
+        ISet.fold
+          (fun node_id phis ->
+            let node = get_node ~cx node_id in
+            let phi_instr = Option.get node.realized in
+            let phi = cast_to_phi phi_instr in
+            phi.args <- gather_phi_args node_id;
+            phi_instr :: phis)
+          realized_phis
+          []
     in
-    block.instructions <- phis @ block.instructions;
+    List.iter (prepend_instruction block) phis;
     (* Remove memory instructions for memory locations promoted to registers *)
-    block.instructions <-
-      List.filter
-        (fun instr ->
-          match instr.Instruction.instr with
-          | StackAlloc _ when IMap.mem instr.id cx.stack_alloc_ids -> false
-          | Store ((Instr { id; _ } | Argument { id; _ }), _)
-          | Load (Instr { id; _ } | Argument { id; _ })
-            when IMap.mem id cx.stack_alloc_ids ->
-            false
-          | _ -> true)
-        block.instructions;
+    filter_instructions block (fun instr ->
+        match instr.Instruction.instr with
+        | StackAlloc _ when IMap.mem instr.id cx.stack_alloc_ids -> false
+        | Store ((Instr { id; _ } | Argument { id; _ }), _)
+        | Load (Instr { id; _ } | Argument { id; _ })
+          when IMap.mem id cx.stack_alloc_ids ->
+          false
+        | _ -> true);
     block.next <-
       (let open Block in
       match block.next with
@@ -426,12 +419,12 @@ and rewrite_program ~cx program =
 
   (* Strip empty blocks *)
   IMap.iter
-    (fun block_id { Block.instructions; next; func; _ } ->
+    (fun block_id ({ Block.next; func; _ } as block) ->
       match next with
       (* A block can only be removed if it has no instructions, and if its next block has no phis
          (as the phis may reference this block). *)
       | Continue continue_id
-        when instructions = [] && not (block_has_phis (IMap.find continue_id cx.blocks)) ->
+        when has_no_instructions block && not (block_has_phis (IMap.find continue_id cx.blocks)) ->
         let prev_blocks =
           match IMap.find_opt block_id cx.prev_blocks with
           | None -> ISet.empty

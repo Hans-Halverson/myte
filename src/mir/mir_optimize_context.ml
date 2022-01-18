@@ -47,7 +47,7 @@ let map_phi_backreferences_for_block ~ocx old_block_id new_block_ids block_to_ed
 (* An empty block can be removed only if it continues to a single block, and is not needed by any
    phi nodes in its succeeding block. *)
 let can_remove_block ~ocx (block : Block.t) =
-  block.instructions = []
+  block.instructions = None
   &&
   match block.next with
   | Halt
@@ -157,7 +157,7 @@ let merge_adjacent_blocks ~ocx block_id1 block_id2 =
     else
       id
   in
-  b1.instructions <- b1.instructions @ b2.instructions;
+  b1.instructions <- concat_instructions b1 b2;
   (* Use b2's next, but take care to reference b1 instead of b2 in the case of self references *)
   b1.next <-
     (match b2.next with

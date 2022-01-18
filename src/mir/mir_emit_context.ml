@@ -6,16 +6,6 @@ open Mir_trait_object_layout
 open Mir_type
 open Mir_type_args_hashtbl
 
-module BlockBuilder = struct
-  type t = {
-    id: Block.id;
-    func: label;
-    (* Instructions in the block currently being built, in reverse *)
-    mutable instructions: Instruction.t list;
-    mutable next: Block.next;
-  }
-end
-
 (* Break block id and continue block id for a loop *)
 type loop_context = Block.id * Block.id
 
@@ -31,11 +21,11 @@ type t = {
   pcx: Program_context.t;
   (* Data structures for MIR *)
   mutable main_label: label;
-  mutable blocks: BlockBuilder.t IMap.t;
+  mutable blocks: Block.t IMap.t;
   mutable globals: Global.t SMap.t;
   mutable funcs: Function.t SMap.t;
   mutable types: Aggregate.t SMap.t;
-  mutable current_block_builder: BlockBuilder.t option;
+  mutable current_block: Block.t option;
   (* Current function name and return type *)
   mutable current_func: label * Types.Type.t;
   mutable current_in_std_lib: bool;
@@ -75,8 +65,8 @@ type t = {
   mutable global_variable_decl_nodes: Ast.Statement.VariableDeclaration.t LocMap.t;
   (* Whether we are currently emitting blocks for the init function *)
   mutable in_init: bool;
-  (* The last init block builder that was completed *)
-  mutable last_init_block_builder: BlockBuilder.t option;
+  (* The last init block that was completed *)
+  mutable last_init_block: Block.t option;
   mutable max_mutable_string_literal_id: int;
   mutable max_immutable_string_literal_id: int;
   (* Map from string to the deduplicated immutable string *)
@@ -99,7 +89,7 @@ let mk ~pcx =
     globals = SMap.empty;
     funcs = SMap.empty;
     types = SMap.empty;
-    current_block_builder = None;
+    current_block = None;
     current_func = ("", Any);
     current_in_std_lib = false;
     current_loop_contexts = [];
@@ -124,22 +114,11 @@ let mk ~pcx =
     func_decl_nodes = SMap.empty;
     global_variable_decl_nodes = LocMap.empty;
     in_init = false;
-    last_init_block_builder = None;
+    last_init_block = None;
     max_mutable_string_literal_id = 0;
     max_immutable_string_literal_id = 0;
     immutable_string_literals = SMap.empty;
   }
-
-let builders_to_blocks builders =
-  IMap.map
-    (fun builder ->
-      {
-        Block.id = builder.BlockBuilder.id;
-        instructions = List.rev builder.instructions;
-        next = builder.next;
-        func = builder.func;
-      })
-    builders
 
 let mk_trampoline_name name = "_trampoline$" ^ name
 
@@ -152,49 +131,41 @@ let add_function ~ecx func =
   ecx.funcs <- SMap.add name func ecx.funcs
 
 (* Emit and return an instruction value, adding instruction to end of current block *)
-let emit ~ecx (inst : Instruction.t) : Value.t =
-  (match ecx.current_block_builder with
-  | None -> failwith "No current block builder"
-  | Some builder -> builder.instructions <- inst :: builder.instructions);
-  Value.Instr inst
+let emit ~ecx (instr : Instruction.t) : Value.t =
+  (match ecx.current_block with
+  | None -> failwith "No current block"
+  | Some block -> append_instruction block instr);
+  Value.Instr instr
 
 (* Emit instruction and add to end of current block without returning instruction *)
 let emit_ ~ecx (inst : Instruction.t) : unit = ignore (emit ~ecx inst)
 
-let mk_block_builder ~ecx =
-  let block_id = mk_block_id () in
-  let builder =
-    { BlockBuilder.id = block_id; func = fst ecx.current_func; instructions = []; next = Halt }
+let mk_block ~ecx =
+  let block =
+    { Block.id = mk_block_id (); func = fst ecx.current_func; instructions = None; next = Halt }
   in
-  ecx.blocks <- IMap.add block_id builder ecx.blocks;
-  builder
+  ecx.blocks <- IMap.add block.id block ecx.blocks;
+  block
 
-let set_block_builder ~ecx builder = ecx.current_block_builder <- Some builder
-
-let get_block_builder_throws ~ecx =
-  match ecx.current_block_builder with
-  | Some builder -> builder
-  | None -> failwith "No current block builder"
-
-let get_block_builder_id_throws ~ecx = (get_block_builder_throws ~ecx).id
+let set_current_block ~ecx block = ecx.current_block <- Some block
 
 let start_new_block ~ecx =
-  let builder = mk_block_builder ~ecx in
-  set_block_builder ~ecx builder;
-  builder.id
+  let block = mk_block ~ecx in
+  set_current_block ~ecx block;
+  block.id
 
 let finish_block ~ecx next =
   let next =
-    match ecx.current_block_builder with
-    | Some { instructions = { instr = Ret _; _ } :: _; _ } -> Block.Halt
+    match ecx.current_block with
+    | Some { instructions = Some { last = { instr = Ret _; _ }; _ }; _ } -> Block.Halt
     | _ -> next
   in
-  match ecx.current_block_builder with
+  match ecx.current_block with
   | None -> ()
-  | Some builder ->
-    builder.next <- next;
-    ecx.current_block_builder <- None;
-    if ecx.in_init then ecx.last_init_block_builder <- Some builder
+  | Some block ->
+    block.next <- next;
+    ecx.current_block <- None;
+    if ecx.in_init then ecx.last_init_block <- Some block
 
 let finish_block_branch ~ecx test continue jump =
   finish_block ~ecx (Branch { test; continue; jump })
@@ -239,8 +210,8 @@ let emit_init_section ~ecx f =
   let init_block_id = start_new_block ~ecx in
 
   (* If an init section has already been created, link its last block to the new init section *)
-  (match ecx.last_init_block_builder with
-  | Some last_init_block_builder -> last_init_block_builder.next <- Continue init_block_id
+  (match ecx.last_init_block with
+  | Some last_init_block -> last_init_block.next <- Continue init_block_id
   | None -> ());
 
   (* Run callback to generate init instructions and finish block *)

@@ -154,6 +154,8 @@ and Instruction : sig
     id: Value.id;
     mutable type_: Type.t;
     mutable instr: instr;
+    mutable prev: Instruction.t;
+    mutable next: Instruction.t;
   }
 end =
   Instruction
@@ -175,8 +177,14 @@ and Block : sig
   type t = {
     id: id;
     func: label;
-    mutable instructions: Instruction.t list;
+    mutable instructions: instructions option;
     mutable next: next;
+  }
+
+  (* Circular doubly linked list of all instructions in block *)
+  and instructions = {
+    mutable first: Instruction.t;
+    mutable last: Instruction.t;
   }
 
   and next =
@@ -362,54 +370,131 @@ let filter_stdlib (program : Program.t) =
     funcs = filter_stdlib_names program.funcs;
   }
 
+let has_no_instructions (block : Block.t) : bool = block.instructions = None
+
+let has_single_instruction (block : Block.t) : bool =
+  match block.instructions with
+  | Some { first; last } when first == last -> true
+  | _ -> false
+
+let add_link (i1 : Instruction.t) (i2 : Instruction.t) =
+  i1.next <- i2;
+  i2.prev <- i1
+
+(* Utility function to check if an instruction list has a valid structure *)
+let assert_valid_list (block : Block.t) =
+  match block.instructions with
+  | None -> ()
+  | Some { first; last } ->
+    if first.prev != last || last.next != first then failwith "List must be circular";
+    let rec iter current last =
+      if current.Instruction.next.prev != current then failwith "Link is not bidirectional";
+      if current.next != last then iter current.next last
+    in
+    iter first last
+
+(* Prepend an instruction to the beginning of a block's instruction list *)
+let prepend_instruction (block : Block.t) (instr : Instruction.t) =
+  match block.instructions with
+  | None -> block.instructions <- Some { first = instr; last = instr }
+  | Some ({ first; last } as list) ->
+    add_link instr first;
+    add_link last instr;
+    list.first <- instr
+
+(* Append an instruction to the end of a block's instruction list *)
+let append_instruction (block : Block.t) (instr : Instruction.t) =
+  match block.instructions with
+  | None -> block.instructions <- Some { first = instr; last = instr }
+  | Some ({ first; last } as list) ->
+    add_link last instr;
+    add_link instr first;
+    list.last <- instr
+
+(* Remove an instruction from a block's instruction list *)
+let remove_instruction (block : Block.t) (instr : Instruction.t) =
+  (* Instruction list is circular, so check if single element list *)
+  if instr.next == instr then
+    block.instructions <- None
+  else
+    let prev = instr.prev in
+    let next = instr.next in
+    prev.next <- next;
+    next.prev <- prev;
+    let list = Option.get block.instructions in
+    if list.first == instr then list.first <- next;
+    if list.last == instr then list.last <- prev
+
+(* Concatenate the instruction lists of two blocks, returning the concatenated list. 
+   This is a destructive operation on the input lists. *)
+let concat_instructions (b1 : Block.t) (b2 : Block.t) : Block.instructions option =
+  match (b1.instructions, b2.instructions) with
+  | (None, None) -> None
+  | ((Some _ as instrs), None)
+  | (None, (Some _ as instrs)) ->
+    instrs
+  | (Some { first = first1; last = last1 }, Some { first = first2; last = last2 }) ->
+    add_link last1 first2;
+    add_link last2 first1;
+    Some { first = first1; last = last2 }
+
+let iter_instructions (block : Block.t) (f : Instruction.t -> unit) =
+  match block.instructions with
+  | None -> ()
+  | Some { first; last } ->
+    let rec iter current last f =
+      (* Save next in case instruction is modified *)
+      let next = current.Instruction.next in
+      f current;
+      if current != last then iter next last f
+    in
+    iter first last f
+
+let filter_instructions (block : Block.t) (f : Instruction.t -> bool) =
+  iter_instructions block (fun instr -> if not (f instr) then remove_instruction block instr)
+
+let fold_instructions (block : Block.t) (acc : 'a) (f : Instruction.t -> 'a -> 'a) : 'a =
+  match block.instructions with
+  | None -> acc
+  | Some { first; last } ->
+    let rec fold current last f acc =
+      let acc' = f current acc in
+      if current == last then
+        acc'
+      else
+        fold current.Instruction.next last f acc'
+    in
+    fold first last f acc
+
 let block_has_phis (block : Block.t) : bool =
   match block.instructions with
-  | { instr = Phi _; _ } :: _ -> true
+  | Some { first = { instr = Phi _; _ }; _ } -> true
   | _ -> false
 
 let block_get_phis (block : Block.t) : Instruction.Phi.t list =
-  let rec inner instrs acc =
-    match instrs with
-    | { Instruction.instr = Phi phi; _ } :: rest -> inner rest (phi :: acc)
-    | _ -> List.rev acc
-  in
-  inner block.instructions []
+  fold_instructions block [] (fun instr acc ->
+      match instr with
+      | { instr = Phi phi; _ } -> phi :: acc
+      | _ -> acc)
 
 let block_iter_phis (block : Block.t) (f : Instruction.Phi.t -> unit) =
-  let rec visit_phis instrs =
-    match instrs with
-    | { Instruction.instr = Phi phi; _ } :: rest ->
-      f phi;
-      visit_phis rest
-    | _ -> ()
-  in
-  visit_phis block.instructions
+  iter_instructions block (fun instr ->
+      match instr with
+      | { instr = Phi phi; _ } -> f phi
+      | _ -> ())
 
 let block_filter_phis (block : Block.t) (f : Value.id -> Instruction.Phi.t -> bool) =
-  let rec filter_phis instrs acc =
-    match instrs with
-    | ({ Instruction.instr = Phi phi; id; _ } as instr) :: rest ->
-      let acc =
-        if f id phi then
-          instr :: acc
-        else
-          acc
-      in
-      filter_phis rest acc
-    | rest -> List.rev acc @ rest
-  in
-  block.instructions <- filter_phis block.instructions []
+  iter_instructions block (fun instr ->
+      match instr with
+      | { instr = Phi phi; id; _ } -> if not (f id phi) then remove_instruction block instr
+      | _ -> ())
 
 let block_fold_phis
-    (block : Block.t) (f : Instruction.t -> Instruction.Phi.t -> 'a -> 'a) (acc : 'a) : 'a =
-  let rec visit_phis instrs acc =
-    match instrs with
-    | ({ Instruction.instr = Phi phi; _ } as instr) :: rest ->
-      let acc = f instr phi acc in
-      visit_phis rest acc
-    | _ -> acc
-  in
-  visit_phis block.instructions acc
+    (block : Block.t) (acc : 'a) (f : Instruction.t -> Instruction.Phi.t -> 'a -> 'a) : 'a =
+  fold_instructions block acc (fun instr acc ->
+      match instr with
+      | { instr = Phi phi; _ } -> f instr phi acc
+      | _ -> acc)
 
 let block_clear_phis (block : Block.t) = block_filter_phis block (fun _ _ -> false)
 

@@ -123,5 +123,5 @@ and remove_empty_init_func ~ocx =
   | Some init_func ->
     (* Init function is empty if it consists of a single block with a single instruction (Ret) *)
     let init_start_block = IMap.find init_func.body_start_block ocx.program.blocks in
-    if List.length init_start_block.instructions = 1 && init_start_block.next = Halt then
+    if has_single_instruction init_start_block && init_start_block.next = Halt then
       ocx.program.funcs <- SMap.remove init_func_name ocx.program.funcs

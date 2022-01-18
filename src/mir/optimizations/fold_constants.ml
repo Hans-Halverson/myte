@@ -189,7 +189,7 @@ class calc_constants_visitor ~ocx =
               Ocx.remove_block ~ocx block_id;
               (* Collect all removed instructions so they can be excluded from constant folding *)
               let gatherer = new Mir_normalizer.var_gatherer ~program:ocx.program in
-              gatherer#visit_instructions ~block block.instructions;
+              gatherer#visit_instructions ~block;
               removed_instr_ids <- ISet.union gatherer#value_ids removed_instr_ids
             ))
           ocx.program.blocks;
@@ -236,7 +236,7 @@ class calc_constants_visitor ~ocx =
             inherit Mir_mapper.InstructionsMapper.t ~program:ocx.Ocx.program
 
             method! map_instruction instruction =
-              (match instruction.instr with
+              match instruction.instr with
               | Store (Lit (Pointer (_, name)), value) ->
                 (match (SMap.find_opt name ocx.program.globals, value) with
                 | (Some global, Instr { id = instr_id; _ }) ->
@@ -249,8 +249,7 @@ class calc_constants_visitor ~ocx =
                       global.init_val <- Some (mir_value_of_constant constant)
                   | None -> ())
                 | _ -> ())
-              | _ -> ());
-              [instruction]
+              | _ -> ()
           end
         in
         mapper#map_function init_func
@@ -259,7 +258,7 @@ class calc_constants_visitor ~ocx =
       if this#check_visited_block block.id then
         ()
       else (
-        List.iter (this#visit_instruction ~block) block.instructions;
+        iter_instructions block (this#visit_instruction ~block);
         (* Check for branches that can be pruned *)
         match block.next with
         | Halt -> ()

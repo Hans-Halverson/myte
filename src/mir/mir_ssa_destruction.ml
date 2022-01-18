@@ -55,7 +55,7 @@ let split_edges ~(ir : Program.t) =
                 {
                   Block.id = new_block_id;
                   func = block.func;
-                  instructions = [];
+                  instructions = None;
                   next = Continue block.id;
                 }
               in
@@ -141,10 +141,7 @@ let sequentialize_parallel_copies (parallel_copies : (Value.t * Value.t) list) :
        instead point from the new var to the result. *)
     | None ->
       let (dest_val, arg_val) = VVMMap.choose !copied_from in
-      let type_ = type_of_value arg_val in
-      let new_arg_val =
-        Value.Instr { Instruction.id = mk_value_id (); type_; instr = Mov arg_val }
-      in
+      let new_arg_val = Value.Instr (Mir_builders.mk_mov ~arg:arg_val) in
       add_to_sequence new_arg_val arg_val;
       remove_copy_edge dest_val arg_val;
       add_copy_edge dest_val new_arg_val
@@ -158,34 +155,29 @@ let lower_phis_to_copies ~(ir : Program.t) =
     (fun _ block ->
       (* Collect all copies to create from phi nodes in each previous block *)
       let block_to_parallel_copies =
-        block_fold_phis
-          block
-          (fun instr { args } acc ->
+        block_fold_phis block IMap.empty (fun instr { args } acc ->
             IMap.fold
               (fun prev_block_id arg_val acc ->
                 let existing_copies = IMap.find_opt prev_block_id acc |> Option.value ~default:[] in
                 IMap.add prev_block_id ((Value.Instr instr, arg_val) :: existing_copies) acc)
               args
               acc)
-          IMap.empty
       in
 
       (* Create sequence for copies and emit Mov instructions in previous block *)
       IMap.iter
         (fun prev_block_id parallel_copies ->
-          let sequential_copies = sequentialize_parallel_copies (List.rev parallel_copies) in
-          let copy_instrs =
-            List.map
-              (fun (dest_val, arg_val) ->
-                (* Destination instructions are all pre-existing Phis or Movs that were created
-                   during sequentialization. This breaks references but preserves value ids, so
-                   after this point arg/use references cannot be followed. *)
-                let dest_instr = cast_to_instruction dest_val in
-                { dest_instr with instr = Mov arg_val })
-              sequential_copies
-          in
           let prev_block = IMap.find prev_block_id ir.blocks in
-          prev_block.instructions <- prev_block.instructions @ copy_instrs)
+          let sequential_copies = sequentialize_parallel_copies (List.rev parallel_copies) in
+          List.iter
+            (fun (dest_val, arg_val) ->
+              (* Destination instructions are all pre-existing Phis or Movs that were created
+                 during sequentialization. This breaks references but preserves value ids, so
+                 after this point arg/use references cannot be followed. *)
+              let dest_instr = cast_to_instruction dest_val in
+              let rec instr = { dest_instr with instr = Mov arg_val; next = instr; prev = instr } in
+              append_instruction prev_block instr)
+            sequential_copies)
         block_to_parallel_copies;
 
       block_clear_phis block)

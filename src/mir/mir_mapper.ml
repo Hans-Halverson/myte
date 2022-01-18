@@ -6,7 +6,6 @@ module Ocx = Mir_optimize_context
 type current_instruction_edit =
   | Keep
   | Remove
-  | Replace of Instruction.t list
 
 module InstructionsMapper = struct
   class t ~(program : Program.t) =
@@ -16,8 +15,6 @@ module InstructionsMapper = struct
       val mutable current_instruction_edit = Keep
 
       method mark_instruction_removed () = current_instruction_edit <- Remove
-
-      method replace_instruction instrs = current_instruction_edit <- Replace instrs
 
       method map_function (func : Function.t) =
         let visited_blocks = ref ISet.empty in
@@ -45,7 +42,7 @@ module InstructionsMapper = struct
         visit_block (get_block func.body_start_block)
 
       method map_block (block : Block.t) =
-        block.instructions <- this#map_instructions block.instructions;
+        this#map_instructions block;
         block.next <- this#map_block_next block.next
 
       method map_block_next next =
@@ -56,33 +53,21 @@ module InstructionsMapper = struct
           next
         | Branch ({ test; _ } as branch) -> Branch { branch with test = this#map_value test }
 
-      method map_instructions (instructions : Instruction.t list) =
-        let instructions' =
-          List.filter_map
-            (fun instruction ->
-              current_instruction_edit <- Keep;
-              let instrs = this#map_instruction instruction in
-              match current_instruction_edit with
-              | Keep -> Some instrs
-              | Remove -> None
-              | Replace instrs -> Some instrs)
-            instructions
-        in
-        List.flatten instructions'
+      method map_instructions (block : Block.t) =
+        iter_instructions block (fun instruction ->
+            current_instruction_edit <- Keep;
+            this#map_instruction instruction;
+            match current_instruction_edit with
+            | Keep -> ()
+            | Remove -> remove_instruction block instruction)
 
-      method map_instruction instruction =
+      method map_instruction (instruction : Instruction.t) =
         let open Instruction in
-        let mk_instr instr = [{ instruction with instr }] in
         match instruction.instr with
         | Mov arg ->
           let arg' = this#map_value arg in
-          if arg == arg' then
-            [instruction]
-          else
-            mk_instr (Mov arg')
-        | Phi ({ args } as phi) ->
-          phi.args <- IMap.map this#map_value args;
-          [instruction]
+          if arg != arg' then instruction.instr <- Mov arg'
+        | Phi ({ args } as phi) -> phi.args <- IMap.map this#map_value args
         | Call { func; args; has_return } ->
           let func' =
             match func with
@@ -90,30 +75,19 @@ module InstructionsMapper = struct
             | Builtin _ -> func
           in
           let args' = id_map_list this#map_value args in
-          if func == func' && args == args' then
-            [instruction]
-          else
-            mk_instr (Call { func = func'; args = args'; has_return })
+          if func != func' || args != args' then
+            instruction.instr <- Call { func = func'; args = args'; has_return }
         | Ret arg_opt ->
           let arg_opt' = id_map_opt this#map_value arg_opt in
-          if arg_opt == arg_opt' then
-            [instruction]
-          else
-            mk_instr (Ret arg_opt')
-        | StackAlloc _ty -> [instruction]
+          if arg_opt != arg_opt' then instruction.instr <- Ret arg_opt'
+        | StackAlloc _ty -> ()
         | Load ptr ->
           let ptr' = this#map_value ptr in
-          if ptr == ptr' then
-            [instruction]
-          else
-            mk_instr (Load ptr')
+          if ptr != ptr' then instruction.instr <- Load ptr'
         | Store (ptr, arg) ->
           let ptr' = this#map_value ptr in
           let arg' = this#map_value arg in
-          if ptr == ptr' && arg == arg' then
-            [instruction]
-          else
-            mk_instr (Store (ptr', arg'))
+          if ptr != ptr' || arg != arg' then instruction.instr <- Store (ptr', arg')
         | GetPointer { GetPointer.pointer; pointer_offset; offsets } ->
           let pointer' = this#map_value pointer in
           let pointer_offset' = id_map_opt this#map_value pointer_offset in
@@ -126,54 +100,34 @@ module InstructionsMapper = struct
                 | GetPointer.FieldIndex _ -> offset)
               offsets
           in
-          if pointer == pointer' && pointer_offset == pointer_offset' && offsets == offsets' then
-            [instruction]
-          else
-            mk_instr
-              (GetPointer
-                 {
-                   GetPointer.pointer = pointer';
-                   pointer_offset = pointer_offset';
-                   offsets = offsets';
-                 })
+          if pointer != pointer' || pointer_offset != pointer_offset' || offsets != offsets' then
+            instruction.instr <-
+              GetPointer
+                {
+                  GetPointer.pointer = pointer';
+                  pointer_offset = pointer_offset';
+                  offsets = offsets';
+                }
         | Unary (op, arg) ->
           let arg' = this#map_value arg in
-          if arg == arg' then
-            [instruction]
-          else
-            mk_instr (Unary (op, arg'))
+          if arg != arg' then instruction.instr <- Unary (op, arg')
         | Binary (op, left, right) ->
           let left' = this#map_value left in
           let right' = this#map_value right in
-          if left == left' && right == right' then
-            [instruction]
-          else
-            mk_instr (Binary (op, left', right'))
+          if left != left' || right != right' then instruction.instr <- Binary (op, left', right')
         | Cmp (cmp, left, right) ->
           let left' = this#map_value left in
           let right' = this#map_value right in
-          if left == left' && right == right' then
-            [instruction]
-          else
-            mk_instr (Cmp (cmp, left', right'))
+          if left != left' || right != right' then instruction.instr <- Cmp (cmp, left', right')
         | Cast arg ->
           let arg' = this#map_value arg in
-          if arg == arg' then
-            [instruction]
-          else
-            mk_instr (Cast arg')
+          if arg != arg' then instruction.instr <- Cast arg'
         | Trunc arg ->
           let arg' = this#map_value arg in
-          if arg == arg' then
-            [instruction]
-          else
-            mk_instr (Trunc arg')
+          if arg != arg' then instruction.instr <- Trunc arg'
         | SExt arg ->
           let arg' = this#map_value arg in
-          if arg == arg' then
-            [instruction]
-          else
-            mk_instr (SExt arg')
+          if arg != arg' then instruction.instr <- SExt arg'
 
       method map_value value = value
     end

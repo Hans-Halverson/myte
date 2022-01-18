@@ -148,7 +148,10 @@ and gen_blocks ~gcx ~ir start_block_id label func =
           None
       in
       Gcx.start_block ~gcx ~label ~func ~mir_block_id:(Some mir_block_id);
-      gen_instructions ~gcx ~ir ~block:mir_block mir_block.instructions;
+      let instructions =
+        fold_instructions mir_block [] (fun instr acc -> instr :: acc) |> List.rev
+      in
+      gen_instructions ~gcx ~ir ~block:mir_block instructions;
       Gcx.finish_block ~gcx)
     ordered_blocks
 
@@ -439,6 +442,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       id = return_id;
       type_ = return_type;
       instr = Call { func = Value func_val; args = arg_vals; has_return };
+      _;
     }
     :: rest_instructions ->
     (* Emit arguments for call *)
@@ -839,6 +843,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       id = return_id;
       type_ = return_type;
       instr = Call { func = Builtin { Builtin.name; _ }; args; _ };
+      _;
     }
     :: rest_instructions ->
     let open Mir_builtin in
@@ -964,7 +969,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                  Trunc
    * ===========================================
    *)
-  | { id = return_id; type_; instr = Trunc arg_val } :: rest_instructions ->
+  | { id = return_id; type_; instr = Trunc arg_val; _ } :: rest_instructions ->
     (* Truncation occurs when later accessing only a portion of the arg. Emit mov to link arg and
        result, which will likely be optimized away (but may not be optimized away if we end up
        moving the truncated portion to memory). *)
@@ -983,7 +988,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                  SExt
    * ===========================================
    *)
-  | { id = return_id; type_; instr = SExt arg_val } :: rest_instructions ->
+  | { id = return_id; type_; instr = SExt arg_val; _ } :: rest_instructions ->
     let result_vreg = vreg_of_result_value_id return_id in
     (match resolve_ir_value arg_val with
     | SImm _ -> failwith "Constants must be folded before gen"
