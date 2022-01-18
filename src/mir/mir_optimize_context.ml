@@ -157,7 +157,7 @@ let merge_adjacent_blocks ~ocx block_id1 block_id2 =
     else
       id
   in
-  b1.instructions <- concat_instructions b1 b2;
+  concat_instructions b1 b2;
   (* Use b2's next, but take care to reference b1 instead of b2 in the case of self references *)
   b1.next <-
     (match b2.next with

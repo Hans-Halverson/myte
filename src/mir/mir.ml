@@ -156,6 +156,7 @@ and Instruction : sig
     mutable instr: instr;
     mutable prev: Instruction.t;
     mutable next: Instruction.t;
+    mutable block: Block.t;
   }
 end =
   Instruction
@@ -243,6 +244,10 @@ let mk_value_id () : Value.id =
   let value_id = !max_value_id in
   max_value_id := value_id + 1;
   value_id
+
+(* A placeholder block, to avoid having to represent Option<Block> with its extra allocation *)
+let null_block : Block.t =
+  { Block.id = mk_block_id (); func = "Null block function"; instructions = None; next = Halt }
 
 let rec type_of_value (v : Value.t) : Type.t =
   match v with
@@ -377,67 +382,6 @@ let has_single_instruction (block : Block.t) : bool =
   | Some { first; last } when first == last -> true
   | _ -> false
 
-let add_link (i1 : Instruction.t) (i2 : Instruction.t) =
-  i1.next <- i2;
-  i2.prev <- i1
-
-(* Utility function to check if an instruction list has a valid structure *)
-let assert_valid_list (block : Block.t) =
-  match block.instructions with
-  | None -> ()
-  | Some { first; last } ->
-    if first.prev != last || last.next != first then failwith "List must be circular";
-    let rec iter current last =
-      if current.Instruction.next.prev != current then failwith "Link is not bidirectional";
-      if current.next != last then iter current.next last
-    in
-    iter first last
-
-(* Prepend an instruction to the beginning of a block's instruction list *)
-let prepend_instruction (block : Block.t) (instr : Instruction.t) =
-  match block.instructions with
-  | None -> block.instructions <- Some { first = instr; last = instr }
-  | Some ({ first; last } as list) ->
-    add_link instr first;
-    add_link last instr;
-    list.first <- instr
-
-(* Append an instruction to the end of a block's instruction list *)
-let append_instruction (block : Block.t) (instr : Instruction.t) =
-  match block.instructions with
-  | None -> block.instructions <- Some { first = instr; last = instr }
-  | Some ({ first; last } as list) ->
-    add_link last instr;
-    add_link instr first;
-    list.last <- instr
-
-(* Remove an instruction from a block's instruction list *)
-let remove_instruction (block : Block.t) (instr : Instruction.t) =
-  (* Instruction list is circular, so check if single element list *)
-  if instr.next == instr then
-    block.instructions <- None
-  else
-    let prev = instr.prev in
-    let next = instr.next in
-    prev.next <- next;
-    next.prev <- prev;
-    let list = Option.get block.instructions in
-    if list.first == instr then list.first <- next;
-    if list.last == instr then list.last <- prev
-
-(* Concatenate the instruction lists of two blocks, returning the concatenated list. 
-   This is a destructive operation on the input lists. *)
-let concat_instructions (b1 : Block.t) (b2 : Block.t) : Block.instructions option =
-  match (b1.instructions, b2.instructions) with
-  | (None, None) -> None
-  | ((Some _ as instrs), None)
-  | (None, (Some _ as instrs)) ->
-    instrs
-  | (Some { first = first1; last = last1 }, Some { first = first2; last = last2 }) ->
-    add_link last1 first2;
-    add_link last2 first1;
-    Some { first = first1; last = last2 }
-
 let iter_instructions (block : Block.t) (f : Instruction.t -> unit) =
   match block.instructions with
   | None -> ()
@@ -449,6 +393,69 @@ let iter_instructions (block : Block.t) (f : Instruction.t -> unit) =
       if current != last then iter next last f
     in
     iter first last f
+
+(* Utility function to check if an instruction list has a valid structure *)
+let assert_valid_list (block : Block.t) =
+  match block.instructions with
+  | None -> ()
+  | Some { first; last } ->
+    if first.prev != last || last.next != first then failwith "List must be circular";
+    let rec iter current last =
+      if current.Instruction.next.prev != current then failwith "Link is not bidirectional";
+      if current.block != block then failwith "Instruction does not have correct block";
+      if current.next != last then iter current.next last
+    in
+    iter first last
+
+let add_link (i1 : Instruction.t) (i2 : Instruction.t) =
+  i1.next <- i2;
+  i2.prev <- i1
+
+(* Prepend an instruction to the beginning of a block's instruction list *)
+let prepend_instruction (block : Block.t) (instr : Instruction.t) =
+  instr.block <- block;
+  match block.instructions with
+  | None -> block.instructions <- Some { first = instr; last = instr }
+  | Some ({ first; last } as list) ->
+    add_link instr first;
+    add_link last instr;
+    list.first <- instr
+
+(* Append an instruction to the end of a block's instruction list *)
+let append_instruction (block : Block.t) (instr : Instruction.t) =
+  instr.block <- block;
+  match block.instructions with
+  | None -> block.instructions <- Some { first = instr; last = instr }
+  | Some ({ first; last } as list) ->
+    add_link last instr;
+    add_link instr first;
+    list.last <- instr
+
+(* Remove an instruction from a block's instruction list *)
+let remove_instruction (block : Block.t) (instr : Instruction.t) =
+  if (* Instruction list is circular, so check if single element list *)
+     instr.next == instr then
+    block.instructions <- None
+  else
+    let prev = instr.prev in
+    let next = instr.next in
+    prev.next <- next;
+    next.prev <- prev;
+    let list = Option.get block.instructions in
+    if list.first == instr then list.first <- next;
+    if list.last == instr then list.last <- prev
+
+(* Concatenate the instructions in the second block to the end of the first block. 
+   This is a destructive operation on the second block's instructions. *)
+let concat_instructions (b1 : Block.t) (b2 : Block.t) =
+  iter_instructions b2 (fun instr -> instr.block <- b1);
+  match (b1.instructions, b2.instructions) with
+  | (_, None) -> ()
+  | (None, (Some _ as instrs)) -> b1.instructions <- instrs
+  | (Some ({ first = first1; last = last1 } as list), Some { first = first2; last = last2 }) ->
+    add_link last1 first2;
+    add_link last2 first1;
+    list.last <- last2
 
 let filter_instructions (block : Block.t) (f : Instruction.t -> bool) =
   iter_instructions block (fun instr -> if not (f instr) then remove_instruction block instr)

@@ -48,7 +48,7 @@ module IRVisitor = struct
           this#visit_edge block continue_block;
           this#visit_block continue_block
         | Branch { test; continue; jump } ->
-          this#visit_value ~block test;
+          this#visit_value test;
           let continue_block = get_block continue in
           let jump_block = get_block jump in
           this#visit_edge block continue_block;
@@ -58,46 +58,46 @@ module IRVisitor = struct
 
       method visit_edge _b1 _b2 = ()
 
-      method visit_instructions ~block = iter_instructions block (this#visit_instruction ~block)
+      method visit_instructions ~block = iter_instructions block this#visit_instruction
 
-      method visit_instruction ~block instr =
+      method visit_instruction instr =
         let open Instruction in
         match instr.instr with
-        | Phi phi -> this#visit_phi_node ~block instr phi
+        | Phi phi -> this#visit_phi_node instr phi
         | Call { func; args; has_return = _ } ->
           (match func with
-          | Value func -> this#visit_value ~block func
+          | Value func -> this#visit_value func
           | Builtin _ -> ());
-          List.iter (this#visit_value ~block) args
-        | Ret arg_opt -> Option.iter (this#visit_value ~block) arg_opt
+          List.iter this#visit_value args
+        | Ret arg_opt -> Option.iter this#visit_value arg_opt
         | StackAlloc _type -> ()
-        | Load ptr -> this#visit_value ~block ptr
+        | Load ptr -> this#visit_value ptr
         | Store (ptr, value) ->
-          this#visit_value ~block ptr;
-          this#visit_value ~block value
+          this#visit_value ptr;
+          this#visit_value value
         | GetPointer { GetPointer.pointer; pointer_offset; offsets } ->
-          this#visit_value ~block pointer;
-          Option.iter (this#visit_value ~block) pointer_offset;
+          this#visit_value pointer;
+          Option.iter this#visit_value pointer_offset;
           List.iter
             (fun offset ->
               match offset with
-              | GetPointer.PointerIndex index -> this#visit_value ~block index
+              | GetPointer.PointerIndex index -> this#visit_value index
               | GetPointer.FieldIndex _ -> ())
             offsets
-        | Mov arg -> this#visit_value ~block arg
+        | Mov arg -> this#visit_value arg
         | Unary (_, arg)
         | Cast arg
         | Trunc arg
         | SExt arg ->
-          this#visit_value ~block arg
+          this#visit_value arg
         | Binary (_, left, right)
         | Cmp (_, left, right) ->
-          this#visit_value ~block left;
-          this#visit_value ~block right
+          this#visit_value left;
+          this#visit_value right
 
-      method visit_phi_node ~block _instr phi =
-        IMap.iter (fun _block_id arg_val -> this#visit_value ~block arg_val) phi.args
+      method visit_phi_node _instr phi =
+        IMap.iter (fun _block_id arg_val -> this#visit_value arg_val) phi.args
 
-      method visit_value ~block:_ _value = ()
+      method visit_value _value = ()
     end
 end

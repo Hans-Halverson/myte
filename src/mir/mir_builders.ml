@@ -30,7 +30,14 @@ let mk_array_vtable_lit (func_labels : label list) : Value.t =
 
 let mk_instr ~(type_ : Type.t) ~(instr : Instruction.instr) : Instruction.t =
   let rec instruction =
-    { Instruction.id = mk_value_id (); type_; instr; prev = instruction; next = instruction }
+    {
+      Instruction.id = mk_value_id ();
+      type_;
+      instr;
+      prev = instruction;
+      next = instruction;
+      block = null_block;
+    }
   in
   instruction
 

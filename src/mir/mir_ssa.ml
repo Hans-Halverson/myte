@@ -134,7 +134,7 @@ and mk_add_sources_visitor ~cx ~program sources =
   object
     inherit IRVisitor.t ~program
 
-    method! visit_instruction ~block:_ instr =
+    method! visit_instruction instr =
       match instr.instr with
       | StackAlloc ty -> cx.stack_alloc_ids <- IMap.add instr.id ty cx.stack_alloc_ids
       | Store ((Instr { id; _ } | Argument { id; _ }), _) when IMap.mem id cx.stack_alloc_ids ->
@@ -177,7 +177,7 @@ and find_join_points ~cx program =
     let sources = ref sources in
     let visitor = mk_add_sources_visitor ~cx ~program sources in
     let block = IMap.find block_id program.blocks in
-    iter_instructions block (visitor#visit_instruction ~block);
+    iter_instructions block visitor#visit_instruction;
     match block.next with
     | Halt -> ()
     | Continue continue ->
@@ -224,11 +224,11 @@ and mk_build_phi_nodes_visitor ~cx program func_name sources phi_nodes_to_realiz
   object
     inherit IRVisitor.t ~program
 
-    method! visit_instruction ~block instr =
+    method! visit_instruction instr =
       match instr.instr with
       | Store ((Instr { id; _ } | Argument { id; _ }), arg) when IMap.mem id cx.stack_alloc_ids ->
         (* Source for this variable is now this write location *)
-        sources := IMap.add id (WriteLocation (block.id, instr.id, arg)) !sources
+        sources := IMap.add id (WriteLocation (instr.block.id, instr.id, arg)) !sources
       | Load (Instr { id; _ } | Argument { id; _ }) when IMap.mem id cx.stack_alloc_ids ->
         (* Save source for each use *)
         let source = IMap.find id !sources in
@@ -293,12 +293,12 @@ and build_phi_nodes ~cx program =
     end;
     let block = IMap.find block_id program.blocks in
     let visitor = mk_build_phi_nodes_visitor ~cx program func_name sources phi_nodes_to_realize in
-    iter_instructions block (visitor#visit_instruction ~block);
+    iter_instructions block visitor#visit_instruction;
     match block.next with
     | Halt -> ()
     | Continue continue -> maybe_visit_block !sources continue
     | Branch { test; continue; jump } ->
-      visitor#visit_value ~block test;
+      visitor#visit_value test;
       maybe_visit_block !sources continue;
       maybe_visit_block !sources jump
   in

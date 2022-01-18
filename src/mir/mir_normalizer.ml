@@ -15,7 +15,7 @@ class var_gatherer ~program =
       List.iter (fun param -> value_ids <- ISet.add param.Argument.id value_ids) func.params;
       super#visit_function func
 
-    method! visit_instruction ~block:_ instr = value_ids <- ISet.add instr.id value_ids
+    method! visit_instruction instr = value_ids <- ISet.add instr.id value_ids
   end
 
 let rec normalize ~ocx =

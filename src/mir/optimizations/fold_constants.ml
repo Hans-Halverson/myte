@@ -258,7 +258,7 @@ class calc_constants_visitor ~ocx =
       if this#check_visited_block block.id then
         ()
       else (
-        iter_instructions block (this#visit_instruction ~block);
+        iter_instructions block this#visit_instruction;
         (* Check for branches that can be pruned *)
         match block.next with
         | Halt -> ()
@@ -297,7 +297,7 @@ class calc_constants_visitor ~ocx =
       )
 
     (* Visit all phi nodes and propagate constants through if possible *)
-    method! visit_phi_node ~block:_ instr { args } =
+    method! visit_phi_node instr { args } =
       match this#lookup_constant instr.id with
       | Some _ -> ()
       | None ->
@@ -335,7 +335,7 @@ class calc_constants_visitor ~ocx =
           in
           if is_single_constant then this#add_constant instr.id constant
 
-    method! visit_instruction ~block instr =
+    method! visit_instruction instr =
       let get_lit_opt value =
         match value with
         | Value.Lit (Bool b) -> Some (BoolConstant b)
@@ -385,7 +385,7 @@ class calc_constants_visitor ~ocx =
         (match SMap.find_opt label global_constants with
         | None -> ()
         | Some constant -> this#add_constant instr.id constant)
-      | Phi phi -> this#visit_phi_node ~block instr phi
+      | Phi phi -> this#visit_phi_node instr phi
       | _ -> ()
   end
 

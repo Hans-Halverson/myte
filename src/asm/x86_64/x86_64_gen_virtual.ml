@@ -25,7 +25,7 @@ class preprocessor ~ir =
 
     method get_value_num_uses = value_num_uses
 
-    method! visit_value ~block:_ value =
+    method! visit_value value =
       match value with
       | Value.Instr { id; _ }
       | Argument { id; _ } ->
