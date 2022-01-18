@@ -12,10 +12,14 @@ fun test2(): Int {
 fun returnPreventsContinue() {
   // Continue should not follow ret
   if (true) {
+    use(1);
     return;
   }
 
+  use(2);
+
   while (true) {
+    use(3);
     return;
   }
 }

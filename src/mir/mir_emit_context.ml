@@ -17,6 +17,17 @@ module ImmutableString = struct
   }
 end
 
+(* Information about the function that is currently being emitted *)
+module FunctionContext = struct
+  type t = {
+    return_ty: Types.Type.t;
+    return_block: Block.t;
+    return_pointer: Value.t option;
+  }
+
+  let null = { return_ty = Unit; return_block = null_block; return_pointer = None }
+end
+
 type t = {
   pcx: Program_context.t;
   (* Data structures for MIR *)
@@ -27,6 +38,7 @@ type t = {
   mutable types: Aggregate.t SMap.t;
   mutable current_block: Block.t option;
   mutable current_func: Function.t;
+  mutable current_func_context: FunctionContext.t;
   mutable current_in_std_lib: bool;
   (* Stack of loop contexts for all loops we are currently inside *)
   mutable current_loop_contexts: loop_context list;
@@ -90,6 +102,7 @@ let mk ~pcx =
     types = SMap.empty;
     current_block = None;
     current_func = null_function;
+    current_func_context = FunctionContext.null;
     current_in_std_lib = false;
     current_loop_contexts = [];
     filter_std_lib =
@@ -296,32 +309,26 @@ let add_immutable_string_literal ~ecx string =
  * Functions
  *)
 
-let rec start_function ~ecx ~loc ~name ~params ~return_ty =
-  (* The main function must always return an Int *)
-  let return_type =
-    if ecx.main_label = name then
-      Some Type.Int
-    else
-      to_mir_type ~ecx return_ty
-  in
+let start_function ~ecx ~loc ~name ~params ~return_type =
   (* Create and set current function *)
-  let func =
-    { Function.loc; name; params; return_ty; return_type; start_block = null_block }
-  in
+  let func = { Function.loc; name; params; return_type; start_block = null_block } in
   ecx.funcs <- SMap.add name func ecx.funcs;
   ecx.current_func <- func;
   (* Create start block for function *)
   let start_block = start_new_block ~ecx in
   func.start_block <- start_block
 
+let start_function_context ~ecx ~return_ty ~return_block ~return_pointer =
+  ecx.current_func_context <- { return_ty; return_block; return_pointer }
+
 (*
  * Generic Types
  *)
-and add_mir_adt_layout ~ecx (mir_adt_layout : MirAdtLayout.t) =
+let add_mir_adt_layout ~ecx (mir_adt_layout : MirAdtLayout.t) =
   ecx.adt_sig_to_mir_layout <-
     IMap.add mir_adt_layout.adt_sig.id mir_adt_layout ecx.adt_sig_to_mir_layout
 
-and get_mir_adt_layout ~ecx (adt_sig : Types.AdtSig.t) (type_args : Types.Type.t list) =
+let rec get_mir_adt_layout ~ecx (adt_sig : Types.AdtSig.t) (type_args : Types.Type.t list) =
   let mir_adt_layout = IMap.find adt_sig.id ecx.adt_sig_to_mir_layout in
   match mir_adt_layout.layouts with
   | Concrete { contents = Some layout } -> layout

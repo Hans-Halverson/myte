@@ -1,7 +1,8 @@
 func int @test.main() {
-  branch true, @0, @1
+  branch true, @1, @0
 label @0:
-  Ret 3
+  continue @1
 label @1:
-  Ret 5
+  %0 := Phi int @test.main:3, @0:5
+  Ret %0
 }

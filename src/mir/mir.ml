@@ -215,7 +215,6 @@ and Function : sig
     name: label;
     loc: Loc.t;
     params: Argument.t list;
-    return_ty: Types.Type.t;
     return_type: Type.t option;
     mutable start_block: Block.t;
   }
@@ -252,7 +251,6 @@ let rec null_function : Function.t =
     Function.name = "Null function";
     loc = Loc.none;
     params = [];
-    return_ty = Unit;
     return_type = None;
     start_block = null_block;
   }

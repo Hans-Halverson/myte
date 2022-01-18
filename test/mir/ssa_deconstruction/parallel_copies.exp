@@ -1,7 +1,3 @@
-func void @_init() {
-  Ret
-}
-
 func void @test.swap() {
   %0 := Mov int 1
   %1 := Mov int 2

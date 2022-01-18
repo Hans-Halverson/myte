@@ -14,7 +14,7 @@ label @0:
   Store byte %9, 0
   %10 := GetPointer int, std.result.Result<Int,Bool>::Ok* %8.2
   Store int %10, 1
-  Ret %7
+  continue @2
 label @1:
   %11 := Cast std.result.Result<Int,Bool>* %0 to std.result.Result<Int,Bool>::Error*
   %12 := GetPointer bool, std.result.Result<Int,Bool>::Error* %11.1
@@ -25,7 +25,10 @@ label @1:
   Store byte %16, 1
   %17 := GetPointer bool, std.result.Result<Int,Bool>::Error* %15.1
   Store bool %17, %13
-  Ret %14
+  continue @2
+label @2:
+  %18 := Phi std.result.Result<Int,Bool>* @0:%7, @1:%14
+  Ret %18
 }
 
 func std.result.Result<Long,Bool>* @test.testUnwrapResultDifferentType(std.result.Result<Int,Bool>* %0) {
@@ -44,7 +47,7 @@ label @0:
   Store byte %9, 0
   %10 := GetPointer long, std.result.Result<Long,Bool>::Ok* %8.2
   Store long %10, 1
-  Ret %7
+  continue @2
 label @1:
   %11 := Cast std.result.Result<Int,Bool>* %0 to std.result.Result<Int,Bool>::Error*
   %12 := GetPointer bool, std.result.Result<Int,Bool>::Error* %11.1
@@ -55,7 +58,10 @@ label @1:
   Store byte %16, 1
   %17 := GetPointer bool, std.result.Result<Long,Bool>::Error* %15.1
   Store bool %17, %13
-  Ret %14
+  continue @2
+label @2:
+  %18 := Phi std.result.Result<Long,Bool>* @0:%7, @1:%14
+  Ret %18
 }
 
 func std.result.Result<Int,Bool>* @test.testDoubleUnwrap(std.result.Result<Result<Int,Bool>,Bool>* %0) {
@@ -82,7 +88,7 @@ label @1:
   Store byte %15, 0
   %16 := GetPointer int, std.result.Result<Int,Bool>::Ok* %14.2
   Store int %16, 1
-  Ret %13
+  continue @4
 label @2:
   %17 := Cast std.result.Result<Int,Bool>* %6 to std.result.Result<Int,Bool>::Error*
   %18 := GetPointer bool, std.result.Result<Int,Bool>::Error* %17.1
@@ -93,7 +99,7 @@ label @2:
   Store byte %22, 1
   %23 := GetPointer bool, std.result.Result<Int,Bool>::Error* %21.1
   Store bool %23, %19
-  Ret %20
+  continue @4
 label @3:
   %24 := Cast std.result.Result<Result<Int,Bool>,Bool>* %0 to std.result.Result<Result<Int,Bool>,Bool>::Error*
   %25 := GetPointer bool, std.result.Result<Result<Int,Bool>,Bool>::Error* %24.1
@@ -104,7 +110,10 @@ label @3:
   Store byte %29, 1
   %30 := GetPointer bool, std.result.Result<Int,Bool>::Error* %28.1
   Store bool %30, %26
-  Ret %27
+  continue @4
+label @4:
+  %31 := Phi std.result.Result<Int,Bool>* @3:%27, @1:%13, @2:%20
+  Ret %31
 }
 
 func std.result.Result<Int,Bool>* @test.testZeroSizeOkUnwrap(std.result.Result<test.ZeroSize,Bool>* %0) {
@@ -120,7 +129,7 @@ label @0:
   Store byte %6, 0
   %7 := GetPointer int, std.result.Result<Int,Bool>::Ok* %5.2
   Store int %7, 1
-  Ret %4
+  continue @2
 label @1:
   %8 := Cast std.result.Result<test.ZeroSize,Bool>* %0 to std.result.Result<test.ZeroSize,Bool>::Error*
   %9 := GetPointer bool, std.result.Result<test.ZeroSize,Bool>::Error* %8.1
@@ -131,7 +140,10 @@ label @1:
   Store byte %13, 1
   %14 := GetPointer bool, std.result.Result<Int,Bool>::Error* %12.1
   Store bool %14, %10
-  Ret %11
+  continue @2
+label @2:
+  %15 := Phi std.result.Result<Int,Bool>* @0:%4, @1:%11
+  Ret %15
 }
 
 func std.result.Result<Int,test.ZeroSize>* @test.testZeroSizeResultUnwrap(std.result.Result<Bool,test.ZeroSize>* %0) {
@@ -150,13 +162,16 @@ label @0:
   Store byte %9, 0
   %10 := GetPointer int, std.result.Result<Int,test.ZeroSize>::Ok* %8.2
   Store int %10, 1
-  Ret %7
+  continue @2
 label @1:
   %11 := Call std.result.Result<Int,test.ZeroSize>* myte.builtin.alloc(1)
   %12 := Cast std.result.Result<Int,test.ZeroSize>* %11 to std.result.Result<Int,test.ZeroSize>::Error*
   %13 := Cast std.result.Result<Int,test.ZeroSize>::Error* %12 to byte*
   Store byte %13, 1
-  Ret %11
+  continue @2
+label @2:
+  %14 := Phi std.result.Result<Int,test.ZeroSize>* @0:%7, @1:%11
+  Ret %14
 }
 
 func std.result.Result<Int,test.ZeroSize>* @test.testZeroSizeOkAndResultUnwrap(std.result.Result<test.ZeroSize,test.ZeroSize>* %0) {
@@ -172,13 +187,16 @@ label @0:
   Store byte %6, 0
   %7 := GetPointer int, std.result.Result<Int,test.ZeroSize>::Ok* %5.2
   Store int %7, 1
-  Ret %4
+  continue @2
 label @1:
   %8 := Call std.result.Result<Int,test.ZeroSize>* myte.builtin.alloc(1)
   %9 := Cast std.result.Result<Int,test.ZeroSize>* %8 to std.result.Result<Int,test.ZeroSize>::Error*
   %10 := Cast std.result.Result<Int,test.ZeroSize>::Error* %9 to byte*
   Store byte %10, 1
-  Ret %8
+  continue @2
+label @2:
+  %11 := Phi std.result.Result<Int,test.ZeroSize>* @0:%4, @1:%8
+  Ret %11
 }
 
 func void @test.use<Bool>(bool %0) {

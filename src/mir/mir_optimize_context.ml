@@ -90,6 +90,26 @@ let remove_block ~ocx (block : Block.t) =
   let prev_blocks = IIMMap.find_all block.id ocx.prev_blocks in
 
   (match block.next with
+  (* Only when removing unreachable blocks from branch pruning, which could include return block.
+     Remove any instances of block from previous blocks. *)
+  | Halt ->
+    ISet.iter
+      (fun prev_block_id ->
+        let prev_block = get_block ~ocx prev_block_id in
+        prev_block.next <-
+          (match prev_block.next with
+          | Halt
+          | Continue _ ->
+            Halt
+          | Branch { test = _; continue; jump } ->
+            if continue == block then
+              if jump == block then
+                Halt
+              else
+                Continue jump
+            else
+              Continue continue))
+      prev_blocks
   | Continue next_block ->
     (* Update phis in next block to reference previous blocks instead of removed block *)
     map_phi_backreferences_for_block ~ocx block.id prev_blocks next_block.id;
@@ -119,17 +139,15 @@ let remove_block ~ocx (block : Block.t) =
               (* Otherwise create branch to new block *)
               Branch { test; continue = new_continue; jump = new_jump }))
       prev_blocks
-  | Branch _
-  | Halt ->
-    ());
+  | Branch _ -> ());
 
   (* Remove references to this removed block from phi nodes of next blocks *)
-  let next_blocks = IMap.find block.id ocx.next_blocks in
+  let next_blocks = IMap.find_opt block.id ocx.next_blocks |> Option.value ~default:ISet.empty in
   ISet.iter
     (fun next_block_id -> remove_phi_backreferences_for_block ~ocx block.id next_block_id)
     next_blocks;
   (* Remove prev pointers from next blocks to this removed block *)
-  let next_blocks = IMap.find block.id ocx.next_blocks in
+  let next_blocks = IMap.find_opt block.id ocx.next_blocks |> Option.value ~default:ISet.empty in
   ISet.iter
     (fun next_block_id -> ocx.prev_blocks <- IIMMap.remove next_block_id block.id ocx.prev_blocks)
     next_blocks;

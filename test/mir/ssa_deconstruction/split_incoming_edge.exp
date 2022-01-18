@@ -1,7 +1,3 @@
-func void @_init() {
-  Ret
-}
-
 func void @split_incoming_edge.inexhaustiveIf() {
   branch true, @0, @1
 label @0:

@@ -1,7 +1,3 @@
-func void @_init() {
-  Ret
-}
-
 func int @move_in_previous_block.main() {
   branch true, @0, @1
 label @0:

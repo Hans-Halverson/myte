@@ -181,7 +181,6 @@ and emit_function_body ~ecx name decl =
   let { loc = full_loc; name = { Identifier.loc; _ }; params; body; _ } = decl in
   let binding = Type_context.get_value_binding ~cx:ecx.pcx.type_ctx loc in
   ecx.current_in_std_lib <- Bindings.is_std_lib_value binding;
-  let current_is_main = ecx.main_label = name in
 
   (* Clear emit context function context *)
   ecx.local_variable_to_alloc_instr <- LocMap.empty;
@@ -214,33 +213,63 @@ and emit_function_body ~ecx name decl =
     | _ -> params
   in
 
+  (* The main function must always return an Int *)
   let return_ty = Ecx.find_rep_non_generic_type ~ecx func_decl.return in
-  Ecx.start_function ~ecx ~loc ~name ~params ~return_ty;
+  let return_type =
+    if ecx.main_label = name then
+      Some Type.Int
+    else
+      Ecx.to_mir_type ~ecx return_ty
+  in
+  Ecx.start_function ~ecx ~loc ~name ~params ~return_type;
+
+  (* Set up return value and return block *)
+  let return_block = Ecx.mk_block ~ecx in
+  let return_pointer =
+    match return_type with
+    (* If there is no return value then simply return in return block *)
+    | None ->
+      Ecx.set_current_block ~ecx return_block;
+      Ecx.emit_ ~ecx (mk_ret ~arg:None);
+      None
+    (* If there is return value allocate space for it in start block, then load and return it in
+       return block. *)
+    | Some type_ ->
+      let return_pointer = Ecx.emit ~ecx (mk_stack_alloc ~type_) in
+      Ecx.set_current_block ~ecx return_block;
+      let return_val = Ecx.emit ~ecx (mk_load ~ptr:return_pointer) in
+      Ecx.emit_ ~ecx (mk_ret ~arg:(Some return_val));
+      Some return_pointer
+  in
+  Ecx.start_function_context ~ecx ~return_ty ~return_block ~return_pointer;
 
   (* Build IR for function body *)
+  Ecx.set_current_block ~ecx ecx.current_func.start_block;
   (match body with
   | Block block ->
     ignore (emit_block ~ecx ~is_expr:false block);
     (* Add an implicit return if the last instruction is not a return *)
     (match ecx.current_block with
-    | Some { instructions = Some { last = { instr = Ret _; _ }; _ }; _ } -> ()
-    | _ ->
+    | Some { next = Halt; _ } ->
       (* Handle implicit return from main *)
-      let return_val =
-        if current_is_main then
-          Some (mk_int_lit_of_int32 Int32.zero)
-        else
-          None
-      in
-      Ecx.emit_ ~ecx (mk_ret ~arg:return_val))
+      ( if name = ecx.main_label then
+        let return_pointer = Option.get return_pointer in
+        Ecx.emit_ ~ecx (mk_store ~ptr:return_pointer ~value:(mk_int_lit_of_int32 Int32.zero)) );
+      Ecx.finish_block_continue ~ecx ecx.current_func_context.return_block
+    | _ -> ())
   | Expression expr ->
-    let ret_val_opt = emit_expression ~ecx expr in
-    Ecx.emit_ ~ecx (mk_ret ~arg:ret_val_opt)
-  | Signature -> ());
+    let return_val_opt = emit_expression ~ecx expr in
+    (match return_val_opt with
+    | None -> ()
+    | Some return_val ->
+      let return_pointer = Option.get ecx.current_func_context.return_pointer in
+      Ecx.emit_ ~ecx (mk_store ~ptr:return_pointer ~value:return_val));
+    Ecx.finish_block_continue ~ecx ecx.current_func_context.return_block
+  | Signature -> failwith "Cannot emit function signature");
   Ecx.finish_block_halt ~ecx
 
 and emit_trampoline_function ~(ecx : Ecx.t) name =
-  (* Trampolines are created after wrpped function, so we can always lookup the function IR object *)
+  (* Trampolines are created after wrapped function, so we can always lookup the function IR object *)
   let func = SMap.find name ecx.funcs in
   let trampoline_name = Ecx.mk_trampoline_name name in
 
@@ -263,7 +292,7 @@ and emit_trampoline_function ~(ecx : Ecx.t) name =
   in
   let params = receiver_ptr_arg :: rest_args in
 
-  Ecx.start_function ~ecx ~loc:func.loc ~name:trampoline_name ~params ~return_ty:func.return_ty;
+  Ecx.start_function ~ecx ~loc:func.loc ~name:trampoline_name ~params ~return_type:func.return_type;
 
   (* Load receiver and call the wrapped function, passing original args with loaded receiver *)
   let receiver_arg = Ecx.emit ~ecx (mk_load ~ptr:(Argument receiver_ptr_arg)) in
@@ -279,7 +308,7 @@ and emit_trampoline_function ~(ecx : Ecx.t) name =
   Ecx.finish_block_halt ~ecx
 
 and start_init_function ~ecx =
-  Ecx.start_function ~ecx ~loc:Loc.none ~name:init_func_name ~params:[] ~return_ty:Unit;
+  Ecx.start_function ~ecx ~loc:Loc.none ~name:init_func_name ~params:[] ~return_type:None;
   ecx.last_init_block <- Some ecx.current_func.start_block
 
 and finish_init_function ~ecx =
@@ -856,7 +885,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     (* Emit operand, find its type, and the return type of function (which may differ) *)
     let operand_val = emit_expression ~ecx operand |> Option.get in
     let operand_ty = type_of_loc ~ecx (Ast_utils.expression_loc operand) in
-    let return_ty = ecx.current_func.return_ty in
+    let return_ty = ecx.current_func_context.return_ty in
 
     (match operand_ty with
     | ADT { adt_sig; type_args = [item_ty] } when adt_sig == !Std_lib.option_adt_sig ->
@@ -875,7 +904,9 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
       (* None branch creates and returns new None value (as it may have different size) *)
       Ecx.set_current_block ~ecx none_branch_block;
       let none_val = emit_construct_enum_variant ~ecx ~name:"None" ~ty:return_ty in
-      Ecx.emit_ ~ecx (mk_ret ~arg:(Some none_val));
+      let return_pointer = Option.get ecx.current_func_context.return_pointer in
+      Ecx.emit_ ~ecx (mk_store ~ptr:return_pointer ~value:none_val);
+      Ecx.finish_block_continue ~ecx ecx.current_func_context.return_block;
 
       (* Return unwrapped value in Some case and proceed *)
       Ecx.set_current_block ~ecx some_branch_block;
@@ -903,7 +934,9 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
           ~ty:return_ty
           ~mk_elements:[(fun _ -> error_item_val)]
       in
-      Ecx.emit_ ~ecx (mk_ret ~arg:error_val);
+      let return_pointer = Option.get ecx.current_func_context.return_pointer in
+      Ecx.emit_ ~ecx (mk_store ~ptr:return_pointer ~value:(Option.get error_val));
+      Ecx.finish_block_continue ~ecx ecx.current_func_context.return_block;
 
       (* Return unwrapped value in Ok case and proceed *)
       Ecx.set_current_block ~ecx ok_branch_block;
@@ -1957,7 +1990,14 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
       else
         arg
     in
-    Ecx.emit_ ~ecx (mk_ret ~arg);
+
+    (* Store returned value at return pointer if a value is returned and continue to return block *)
+    (match arg with
+    | None -> ()
+    | Some arg ->
+      let return_pointer = Option.get ecx.current_func_context.return_pointer in
+      Ecx.emit_ ~ecx (mk_store ~ptr:return_pointer ~value:arg));
+    Ecx.finish_block_continue ~ecx ecx.current_func_context.return_block;
     None
   (*
    * ============================

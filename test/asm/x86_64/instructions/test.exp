@@ -13,17 +13,19 @@ test.testMemory:
   testb %al, %al
   je .L0
   movl $1, %eax
-  ret
+  jmp .L1
 .L0:
   movl $2, %eax
+.L1:
   ret
 test.testRegister:
   testb %dil, %dil
-  je .L1
+  je .L2
   movl $1, %eax
-  ret
-.L1:
+  jmp .L3
+.L2:
   movl $2, %eax
+.L3:
   ret
 test.use$Function$:
   movq %rdi, %rax
