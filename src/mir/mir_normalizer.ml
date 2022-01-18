@@ -45,7 +45,7 @@ let rec normalize ~ocx =
 
   (* Find and remove empty blocks *)
   IMap.iter
-    (fun block_id block -> if Ocx.can_remove_block ~ocx block then Ocx.remove_block ~ocx block_id)
+    (fun _ block -> if Ocx.can_remove_block ~ocx block then Ocx.remove_block ~ocx block)
     ocx.program.blocks;
 
   (* Remove trivial phis and rewrite references to these phi vars in program, requires iteration
@@ -87,23 +87,21 @@ and consolidate_adjacent_blocks ~ocx =
         (* Can only consolidate this block if it continues to a block with no other previous blocks,
            and the next block has no phis (as phi arg vars may have been defined in this block). *)
         match block.next with
-        | Continue next_block_id
-          when block_id <> next_block_id && not (ISet.mem block_id !removed_blocks) ->
-          let next_block = Ocx.get_block ~ocx next_block_id in
+        | Continue next_block when block != next_block && not (ISet.mem block_id !removed_blocks) ->
           (* The next block could be the start block for the global or function, in which case it cannot
              be merged with the previous block. *)
           let next_block_is_start =
             let func = SMap.find next_block.func ocx.program.funcs in
-            func.body_start_block = next_block_id
+            func.body_start_block == next_block
           in
-          let prev_blocks = IMap.find next_block_id ocx.prev_blocks in
+          let prev_blocks = IMap.find next_block.id ocx.prev_blocks in
           if
             ISet.cardinal prev_blocks = 1
             && (not (block_has_phis next_block))
             && not next_block_is_start
           then (
-            removed_blocks := ISet.add next_block_id !removed_blocks;
-            Ocx.merge_adjacent_blocks ~ocx block_id next_block_id
+            removed_blocks := ISet.add next_block.id !removed_blocks;
+            Ocx.merge_adjacent_blocks ~ocx block next_block
           )
         | _ -> ())
       ocx.program.blocks;
@@ -122,6 +120,6 @@ and remove_empty_init_func ~ocx =
   | None -> ()
   | Some init_func ->
     (* Init function is empty if it consists of a single block with a single instruction (Ret) *)
-    let init_start_block = IMap.find init_func.body_start_block ocx.program.blocks in
+    let init_start_block = init_func.body_start_block in
     if has_single_instruction init_start_block && init_start_block.next = Halt then
       ocx.program.funcs <- SMap.remove init_func_name ocx.program.funcs

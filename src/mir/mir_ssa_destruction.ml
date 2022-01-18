@@ -56,13 +56,13 @@ let split_edges ~(ir : Program.t) =
                   Block.id = new_block_id;
                   func = block.func;
                   instructions = None;
-                  next = Continue block.id;
+                  next = Continue block;
                 }
               in
               ir.blocks <- IMap.add new_block_id new_block ir.blocks;
               let map_next_block next_block =
-                if next_block = block.id then
-                  new_block_id
+                if next_block == block then
+                  new_block
                 else
                   next_block
               in

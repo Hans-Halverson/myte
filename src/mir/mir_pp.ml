@@ -112,7 +112,7 @@ and pp_func ~cx ~program func =
     | Some return_ty -> pp_type return_ty
   in
   let func_label = Printf.sprintf "func %s @%s(%s) {" return_ty func.name func_params in
-  cx.print_block_id_map <- IMap.add func.body_start_block func.name cx.print_block_id_map;
+  cx.print_block_id_map <- IMap.add func.body_start_block.id func.name cx.print_block_id_map;
   let body_blocks = Mir_block_ordering.order_blocks ~program func.body_start_block in
   calc_print_block_ids ~cx (List.tl body_blocks);
   let body_strings =
@@ -152,21 +152,21 @@ and pp_block ~cx ~label block =
   let next_lines =
     match block.next with
     | Halt -> []
-    | Continue block_id ->
+    | Continue block ->
       let debug_id =
         if Opts.dump_debug () then
-          Printf.sprintf "(Block #%d) " block_id
+          Printf.sprintf "(Block #%d) " block.id
         else
           ""
       in
-      [Printf.sprintf "  continue %s%s" debug_id (pp_block_id ~cx block_id)]
+      [Printf.sprintf "  continue %s%s" debug_id (pp_block_id ~cx block.id)]
     | Branch { test; jump; continue } ->
       [
         Printf.sprintf
           "  branch %s, %s, %s"
           (pp_value ~cx test)
-          (pp_block_id ~cx continue)
-          (pp_block_id ~cx jump);
+          (pp_block_id ~cx continue.id)
+          (pp_block_id ~cx jump.id);
       ]
   in
   let lines = List.concat [label_lines; instruction_lines; next_lines] in

@@ -6,8 +6,8 @@ open Mir_trait_object_layout
 open Mir_type
 open Mir_type_args_hashtbl
 
-(* Break block id and continue block id for a loop *)
-type loop_context = Block.id * Block.id
+(* Break block and continue block for a loop *)
+type loop_context = Block.t * Block.t
 
 (* Immutable strings are deduplicated in MIR, and have a canonical value global and length global *)
 module ImmutableString = struct
@@ -152,7 +152,7 @@ let set_current_block ~ecx block = ecx.current_block <- Some block
 let start_new_block ~ecx =
   let block = mk_block ~ecx in
   set_current_block ~ecx block;
-  block.id
+  block
 
 let finish_block ~ecx next =
   let next =
@@ -207,11 +207,11 @@ let emit_init_section ~ecx f =
   ecx.in_init <- true;
   set_current_func ~ecx init_func_name Unit;
 
-  let init_block_id = start_new_block ~ecx in
+  let init_block = start_new_block ~ecx in
 
   (* If an init section has already been created, link its last block to the new init section *)
   (match ecx.last_init_block with
-  | Some last_init_block -> last_init_block.next <- Continue init_block_id
+  | Some last_init_block -> last_init_block.next <- Continue init_block
   | None -> ());
 
   (* Run callback to generate init instructions and finish block *)

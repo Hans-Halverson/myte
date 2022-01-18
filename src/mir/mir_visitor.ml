@@ -2,13 +2,11 @@ open Basic_collections
 open Mir
 
 module IRVisitor = struct
-  class t ~program =
+  class t ~(program : Program.t) =
     object (this)
       val mutable visited_blocks : ISet.t = ISet.empty
 
       val mutable constant_vars : Value.t IMap.t = IMap.empty
-
-      val get_block = (fun block_id -> IMap.find block_id program.Program.blocks)
 
       method check_visited_block block_id =
         if ISet.mem block_id visited_blocks then
@@ -29,7 +27,7 @@ module IRVisitor = struct
       method visit_program () = SMap.iter (fun _ func -> this#visit_function func) program.funcs
 
       method visit_function func =
-        let block = get_block func.body_start_block in
+        let block = func.body_start_block in
         this#visit_block block
 
       method visit_block (block : Block.t) =
@@ -43,18 +41,15 @@ module IRVisitor = struct
       method visit_next ~block next =
         match next with
         | Halt -> ()
-        | Continue id ->
-          let continue_block = get_block id in
-          this#visit_edge block continue_block;
-          this#visit_block continue_block
+        | Continue continue ->
+          this#visit_edge block continue;
+          this#visit_block continue
         | Branch { test; continue; jump } ->
           this#visit_value test;
-          let continue_block = get_block continue in
-          let jump_block = get_block jump in
-          this#visit_edge block continue_block;
-          this#visit_edge block jump_block;
-          this#visit_block continue_block;
-          this#visit_block jump_block
+          this#visit_edge block continue;
+          this#visit_edge block jump;
+          this#visit_block continue;
+          this#visit_block jump
 
       method visit_edge _b1 _b2 = ()
 

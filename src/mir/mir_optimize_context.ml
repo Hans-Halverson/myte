@@ -53,16 +53,15 @@ let can_remove_block ~ocx (block : Block.t) =
   | Halt
   | Branch _ ->
     false
-  | Continue continue_id ->
+  | Continue continue_block ->
     (* A block is needed if any of its previous blocks appear in a phi node of the next block, with
        a different value than the value from this block. A block is also needed if it is the start
        block and the next block has any phi nodes. If we were to remove this block, the value from
        its branch would be lost in the phi node. *)
-    let continue_block = get_block ~ocx continue_id in
     let prev_nodes = IIMMap.find_all block.id ocx.prev_blocks in
 
     let func = SMap.find block.func ocx.program.funcs in
-    let is_start_block = func.body_start_block = block.id in
+    let is_start_block = func.body_start_block == block in
 
     let continue_block_phis = block_get_phis continue_block in
     let block_needed_for_phi =
@@ -78,45 +77,44 @@ let can_remove_block ~ocx (block : Block.t) =
                args)
            continue_block_phis
     in
-    let function_start_self_loop = is_start_block && continue_id = block.id in
+    let function_start_self_loop = is_start_block && continue_block == block in
     (not block_needed_for_phi) && not function_start_self_loop
 
-let remove_block ~ocx block_id =
-  let block = get_block ~ocx block_id in
+let remove_block ~ocx (block : Block.t) =
   (* This may be the first block in a function. If so, update the function to point to the
      next block as the start. *)
   (match block.next with
   | Continue continue_block ->
     let func = SMap.find block.func ocx.program.funcs in
-    if func.body_start_block = block_id then func.body_start_block <- continue_block
+    if func.body_start_block == block then func.body_start_block <- continue_block
   | _ -> ());
-  let prev_blocks = IIMMap.find_all block_id ocx.prev_blocks in
+  let prev_blocks = IIMMap.find_all block.id ocx.prev_blocks in
 
   (match block.next with
-  | Continue next_block_id ->
+  | Continue next_block ->
     (* Update phis in next block to reference previous blocks instead of removed block *)
-    map_phi_backreferences_for_block ~ocx block_id prev_blocks next_block_id;
+    map_phi_backreferences_for_block ~ocx block.id prev_blocks next_block.id;
 
     (* Rewrite next of previous blocks to point to next block instead of removed block *)
     ISet.iter
       (fun prev_block_id ->
         let prev_block = get_block ~ocx prev_block_id in
-        let map_id id =
-          if id = block_id then (
-            add_block_link ~ocx prev_block_id next_block_id;
-            next_block_id
+        let map_block b =
+          if b == block then (
+            add_block_link ~ocx prev_block_id next_block.id;
+            next_block
           ) else
-            id
+            b
         in
         prev_block.next <-
           (match prev_block.next with
           | Halt -> Halt
-          | Continue id -> Continue (map_id id)
+          | Continue continue_block -> Continue (map_block continue_block)
           | Branch { test; continue; jump } ->
-            let new_continue = map_id continue in
-            let new_jump = map_id jump in
+            let new_continue = map_block continue in
+            let new_jump = map_block jump in
             (* If both branches points to same label convert to continue *)
-            if new_continue = new_jump then
+            if new_continue == new_jump then
               Continue new_continue
             else
               (* Otherwise create branch to new block *)
@@ -127,62 +125,60 @@ let remove_block ~ocx block_id =
     ());
 
   (* Remove references to this removed block from phi nodes of next blocks *)
-  let next_blocks = IMap.find block_id ocx.next_blocks in
+  let next_blocks = IMap.find block.id ocx.next_blocks in
   ISet.iter
-    (fun next_block_id -> remove_phi_backreferences_for_block ~ocx block_id next_block_id)
+    (fun next_block_id -> remove_phi_backreferences_for_block ~ocx block.id next_block_id)
     next_blocks;
   (* Remove prev pointers from next blocks to this removed block *)
-  let next_blocks = IMap.find block_id ocx.next_blocks in
+  let next_blocks = IMap.find block.id ocx.next_blocks in
   ISet.iter
-    (fun next_block_id -> ocx.prev_blocks <- IIMMap.remove next_block_id block_id ocx.prev_blocks)
+    (fun next_block_id -> ocx.prev_blocks <- IIMMap.remove next_block_id block.id ocx.prev_blocks)
     next_blocks;
   (* Remove next pointers from prev blocks to this removed block *)
   ISet.iter
-    (fun prev_block_id -> ocx.next_blocks <- IIMMap.remove prev_block_id block_id ocx.next_blocks)
+    (fun prev_block_id -> ocx.next_blocks <- IIMMap.remove prev_block_id block.id ocx.next_blocks)
     prev_blocks;
   (* Remove block from remaining maps in context *)
-  ocx.prev_blocks <- IMap.remove block_id ocx.prev_blocks;
-  ocx.next_blocks <- IMap.remove block_id ocx.next_blocks;
-  ocx.program.blocks <- IMap.remove block_id ocx.program.blocks
+  ocx.prev_blocks <- IMap.remove block.id ocx.prev_blocks;
+  ocx.next_blocks <- IMap.remove block.id ocx.next_blocks;
+  ocx.program.blocks <- IMap.remove block.id ocx.program.blocks
 
 (* Merge adjacent blocks b1 and b2. Must only be called if b1 and b2 can be merged, meaning
    b1 only continues to b2 and b2 has no other previous blocks. *)
-let merge_adjacent_blocks ~ocx block_id1 block_id2 =
+let merge_adjacent_blocks ~ocx block1 block2 =
   let open Block in
-  let b1 = get_block ~ocx block_id1 in
-  let b2 = get_block ~ocx block_id2 in
-  let map_id id =
-    if id = block_id2 then
-      block_id1
+  let map_block block =
+    if block == block2 then
+      block1
     else
-      id
+      block
   in
-  concat_instructions b1 b2;
+  concat_instructions block1 block2;
   (* Use b2's next, but take care to reference b1 instead of b2 in the case of self references *)
-  b1.next <-
-    (match b2.next with
+  block1.next <-
+    (match block2.next with
     | Halt -> Halt
-    | Continue continue -> Continue (map_id continue)
+    | Continue continue -> Continue (map_block continue)
     | Branch ({ continue; jump; _ } as branch) ->
-      Branch { branch with continue = map_id continue; jump = map_id jump });
+      Branch { branch with continue = map_block continue; jump = map_block jump });
   (* References to the b2 block in phi nodes of blocks that succeed b2 should be rewritten
      to now reference b1 instead. *)
-  let next_blocks = IIMMap.find_all b2.id ocx.next_blocks in
+  let next_blocks = IIMMap.find_all block2.id ocx.next_blocks in
   ISet.iter
     (fun next_block_id ->
-      map_phi_backreferences_for_block ~ocx b2.id (ISet.singleton b1.id) next_block_id)
+      map_phi_backreferences_for_block ~ocx block2.id (ISet.singleton block1.id) next_block_id)
     next_blocks;
   (* Set prev pointers for blocks that succeed b2 to point to b1 instead *)
   ISet.iter
     (fun next_block_id ->
-      remove_block_link ~ocx b2.id next_block_id;
-      add_block_link ~ocx b1.id next_block_id)
+      remove_block_link ~ocx block2.id next_block_id;
+      add_block_link ~ocx block1.id next_block_id)
     next_blocks;
-  remove_block_link ~ocx block_id1 block_id2;
+  remove_block_link ~ocx block1.id block2.id;
   (* Remove b2 from remaining maps in context *)
-  ocx.next_blocks <- IMap.remove b2.id ocx.next_blocks;
-  ocx.prev_blocks <- IMap.remove b2.id ocx.prev_blocks;
-  ocx.program.blocks <- IMap.remove b2.id ocx.program.blocks
+  ocx.next_blocks <- IMap.remove block2.id ocx.next_blocks;
+  ocx.prev_blocks <- IMap.remove block2.id ocx.prev_blocks;
+  ocx.program.blocks <- IMap.remove block2.id ocx.program.blocks
 
 class init_visitor ~ocx =
   object

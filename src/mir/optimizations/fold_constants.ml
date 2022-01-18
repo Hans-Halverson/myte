@@ -186,7 +186,7 @@ class calc_constants_visitor ~ocx =
         IMap.iter
           (fun block_id block ->
             if not (ISet.mem block_id visited_blocks) then (
-              Ocx.remove_block ~ocx block_id;
+              Ocx.remove_block ~ocx block;
               (* Collect all removed instructions so they can be excluded from constant folding *)
               let gatherer = new Mir_normalizer.var_gatherer ~program:ocx.program in
               gatherer#visit_instructions ~block;
@@ -262,7 +262,7 @@ class calc_constants_visitor ~ocx =
         (* Check for branches that can be pruned *)
         match block.next with
         | Halt -> ()
-        | Continue continue -> this#visit_block (Ocx.get_block ~ocx continue)
+        | Continue continue -> this#visit_block continue
         | Branch { test; continue; jump } ->
           (* Determine whether test is a constant value *)
           let test_constant_opt =
@@ -277,8 +277,8 @@ class calc_constants_visitor ~ocx =
           in
           (match test_constant_opt with
           | None ->
-            this#visit_block (Ocx.get_block ~ocx continue);
-            this#visit_block (Ocx.get_block ~ocx jump)
+            this#visit_block continue;
+            this#visit_block jump
           | Some test_constant ->
             (* Determine which branch should be pruned *)
             let (to_continue, to_prune) =
@@ -288,12 +288,12 @@ class calc_constants_visitor ~ocx =
                 (jump, continue)
             in
             (* Remove block link and set to continue to unpruned block *)
-            Ocx.remove_block_link ~ocx block.id to_prune;
-            Ocx.remove_phi_backreferences_for_block ~ocx block.id to_prune;
+            Ocx.remove_block_link ~ocx block.id to_prune.id;
+            Ocx.remove_phi_backreferences_for_block ~ocx block.id to_prune.id;
             block.next <- Continue to_continue;
             has_new_constant <- true;
             (* Only contine to remaining unpruned block *)
-            this#visit_block (Ocx.get_block ~ocx to_continue))
+            this#visit_block to_continue)
       )
 
     (* Visit all phi nodes and propagate constants through if possible *)

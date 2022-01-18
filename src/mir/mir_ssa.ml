@@ -121,7 +121,8 @@ let mk_phi_chain_node ~cx block_id =
 
 let get_node ~cx node_id = IMap.find node_id cx.phi_chain_nodes
 
-let add_block_link ~cx prev_id next_id = cx.prev_blocks <- IIMMap.add next_id prev_id cx.prev_blocks
+let add_block_link ~cx (prev_block : Block.t) (next_block : Block.t) =
+  cx.prev_blocks <- IIMMap.add next_block.id prev_block.id cx.prev_blocks
 
 let rec promote_variables_to_registers ir =
   let cx = mk_cx () in
@@ -146,7 +147,7 @@ and find_join_points ~cx program =
   let open Program in
   let block_sources = ref IMap.empty in
   (* Maintain set of all sources for each variable in each block *)
-  let add_block_sources block_id new_sources =
+  let add_block_sources (block : Block.t) new_sources =
     let new_sources =
       IMap.fold
         (fun ptr_id store_instr_id sources ->
@@ -155,7 +156,7 @@ and find_join_points ~cx program =
         IMap.empty
     in
     let sources =
-      match IMap.find_opt block_id !block_sources with
+      match IMap.find_opt block.id !block_sources with
       | None -> new_sources
       | Some sources ->
         IMap.union
@@ -163,29 +164,28 @@ and find_join_points ~cx program =
           sources
           new_sources
     in
-    block_sources := IMap.add block_id sources !block_sources
+    block_sources := IMap.add block.id sources !block_sources
   in
-  let rec visit_block ~sources block_id =
-    let maybe_visit_block sources next_block_id =
-      if ISet.mem next_block_id cx.visited_blocks then
-        add_block_sources next_block_id sources
+  let rec visit_block ~sources block =
+    let maybe_visit_block sources (next_block : Block.t) =
+      if ISet.mem next_block.id cx.visited_blocks then
+        add_block_sources next_block sources
       else
-        visit_block ~sources next_block_id
+        visit_block ~sources next_block
     in
-    cx.visited_blocks <- ISet.add block_id cx.visited_blocks;
-    add_block_sources block_id sources;
+    cx.visited_blocks <- ISet.add block.id cx.visited_blocks;
+    add_block_sources block sources;
     let sources = ref sources in
     let visitor = mk_add_sources_visitor ~cx ~program sources in
-    let block = IMap.find block_id program.blocks in
     iter_instructions block visitor#visit_instruction;
     match block.next with
     | Halt -> ()
     | Continue continue ->
-      add_block_link ~cx block_id continue;
+      add_block_link ~cx block continue;
       maybe_visit_block !sources continue
     | Branch { continue; jump; _ } ->
-      add_block_link ~cx block_id continue;
-      add_block_link ~cx block_id jump;
+      add_block_link ~cx block continue;
+      add_block_link ~cx block jump;
       maybe_visit_block !sources continue;
       maybe_visit_block !sources jump
   in
@@ -245,8 +245,8 @@ and build_phi_nodes ~cx program =
   (* Update phi nodes at the given block with the new sources. If source is a write locations add
      it directly to the phi node. Otherwise if the source is another phi node then add link to
      create phi chain. *)
-  let update_phis_from_sources block_id prev_block_id new_sources =
-    match IMap.find_opt block_id cx.block_nodes with
+  let update_phis_from_sources (block : Block.t) (prev_block : Block.t) new_sources =
+    match IMap.find_opt block.id cx.block_nodes with
     | None -> ()
     | Some nodes ->
       IMap.iter
@@ -259,12 +259,12 @@ and build_phi_nodes ~cx program =
             (match source with
             | WriteLocation (_, store_instr_id, arg_val) ->
               if not (IMap.mem store_instr_id node.write_locs) then (
-                node.write_locs <- IMap.add store_instr_id (prev_block_id, arg_val) node.write_locs;
+                node.write_locs <- IMap.add store_instr_id (prev_block.id, arg_val) node.write_locs;
                 node.mir_type <- Some (type_of_value arg_val)
               )
             | PhiChainJoin prev_node ->
               if prev_node <> node_id && not (IMap.mem prev_node node.prev_nodes) then (
-                node.prev_nodes <- IMap.add prev_node prev_block_id node.prev_nodes;
+                node.prev_nodes <- IMap.add prev_node prev_block.id node.prev_nodes;
                 match (get_node ~cx prev_node).mir_type with
                 | None -> ()
                 | Some _ as mir_type -> node.mir_type <- mir_type
@@ -272,26 +272,25 @@ and build_phi_nodes ~cx program =
         new_sources
   in
   let phi_nodes_to_realize = ref IMap.empty in
-  let rec visit_block ~func_name ~sources ~prev_block_id block_id =
-    let maybe_visit_block sources next_block_id =
-      if ISet.mem next_block_id cx.visited_blocks then
-        update_phis_from_sources next_block_id block_id sources
+  let rec visit_block ~func_name ~sources ~prev_block (block : Block.t) =
+    let maybe_visit_block sources (next_block : Block.t) =
+      if ISet.mem next_block.id cx.visited_blocks then
+        update_phis_from_sources next_block block sources
       else
-        visit_block ~func_name ~sources ~prev_block_id:block_id next_block_id
+        visit_block ~func_name ~sources ~prev_block:block next_block
     in
-    cx.visited_blocks <- ISet.add block_id cx.visited_blocks;
-    update_phis_from_sources block_id prev_block_id sources;
+    cx.visited_blocks <- ISet.add block.id cx.visited_blocks;
+    update_phis_from_sources block prev_block sources;
     let sources = ref sources in
     (* Add phi chain join nodes as current sources *)
     begin
-      match IMap.find_opt block_id cx.block_nodes with
+      match IMap.find_opt block.id cx.block_nodes with
       | None -> ()
       | Some nodes ->
         IMap.iter
           (fun ptr_id node_id -> sources := IMap.add ptr_id (PhiChainJoin node_id) !sources)
           nodes
     end;
-    let block = IMap.find block_id program.blocks in
     let visitor = mk_build_phi_nodes_visitor ~cx program func_name sources phi_nodes_to_realize in
     iter_instructions block visitor#visit_instruction;
     match block.next with
@@ -307,7 +306,7 @@ and build_phi_nodes ~cx program =
   SMap.iter
     (fun _ { Function.name = func_name; body_start_block; _ } ->
       cx.use_sources <- SMap.add func_name IMap.empty cx.use_sources;
-      visit_block ~func_name ~sources:IMap.empty ~prev_block_id:body_start_block body_start_block)
+      visit_block ~func_name ~sources:IMap.empty ~prev_block:body_start_block body_start_block)
     program.funcs;
   (* To realize a phi node, that phi node and its entire phi chain graph should be realized *)
   let rec realize_phi_chain_graph node_id ptr_id =
@@ -325,18 +324,17 @@ and build_phi_nodes ~cx program =
 
 and rewrite_program ~cx program =
   cx.visited_blocks <- ISet.empty;
-  let rec visit_block ~name block_id =
-    cx.visited_blocks <- ISet.add block_id cx.visited_blocks;
-    let maybe_visit_block next_block_id =
-      if ISet.mem next_block_id cx.visited_blocks then
+  let rec visit_block ~name (block : Block.t) =
+    cx.visited_blocks <- ISet.add block.id cx.visited_blocks;
+    let maybe_visit_block (next_block : Block.t) =
+      if ISet.mem next_block.id cx.visited_blocks then
         ()
       else
-        visit_block ~name next_block_id
+        visit_block ~name next_block
     in
-    let block = IMap.find block_id program.blocks in
     (* Create and add phis to beginning of block *)
     let phis =
-      match IMap.find_opt block_id cx.realized_phis with
+      match IMap.find_opt block.id cx.realized_phis with
       | None -> []
       | Some realized_phis ->
         ISet.fold
@@ -423,8 +421,8 @@ and rewrite_program ~cx program =
       match next with
       (* A block can only be removed if it has no instructions, and if its next block has no phis
          (as the phis may reference this block). *)
-      | Continue continue_id
-        when has_no_instructions block && not (block_has_phis (IMap.find continue_id cx.blocks)) ->
+      | Continue continue
+        when has_no_instructions block && not (block_has_phis (IMap.find continue.id cx.blocks)) ->
         let prev_blocks =
           match IMap.find_opt block_id cx.prev_blocks with
           | None -> ISet.empty
@@ -432,26 +430,26 @@ and rewrite_program ~cx program =
         in
         (* Block may be first block of function, reset body start block if so *)
         let func = SMap.find func program.funcs in
-        if func.body_start_block = block_id then func.body_start_block <- continue_id;
+        if func.body_start_block == block then func.body_start_block <- continue;
         (* Previous nodes point to next node *)
         ISet.iter
           (fun prev_block_id ->
-            let map_next_id id =
-              if id = block_id then
-                continue_id
+            let map_next next_block =
+              if next_block == block then
+                continue
               else
-                id
+                next_block
             in
             let block = IMap.find prev_block_id cx.blocks in
             let next' =
               match block.next with
               | Halt -> Block.Halt
-              | Continue continue -> Continue (map_next_id continue)
+              | Continue continue -> Continue (map_next continue)
               | Branch { test; continue; jump } ->
-                let new_continue = map_next_id continue in
-                let new_jump = map_next_id jump in
+                let new_continue = map_next continue in
+                let new_jump = map_next jump in
                 (* If both branches points to same label convert to continue *)
-                if new_continue = new_jump then
+                if new_continue == new_jump then
                   Continue new_continue
                 else
                   (* Otherwise create branch to new block *)
@@ -461,7 +459,7 @@ and rewrite_program ~cx program =
           prev_blocks;
         (* Next node may have phis that point the removed block. Rewrite them to instead point to
            previous blocks. *)
-        let next_node = IMap.find continue_id cx.blocks in
+        let next_node = IMap.find continue.id cx.blocks in
         block_iter_phis next_node (fun ({ args; _ } as phi) ->
             match IMap.find_opt block_id args with
             | None -> ()
@@ -476,11 +474,11 @@ and rewrite_program ~cx program =
         cx.blocks <- IMap.remove block_id cx.blocks;
         cx.prev_blocks <- IMap.remove block_id cx.prev_blocks;
         (* Remove the empty node from continue block's prev blocks *)
-        let continue_prev_blocks = IMap.find continue_id cx.prev_blocks in
+        let continue_prev_blocks = IMap.find continue.id cx.prev_blocks in
         let new_continue_prev_blocks =
           ISet.union prev_blocks (ISet.remove block_id continue_prev_blocks)
         in
-        cx.prev_blocks <- IMap.add continue_id new_continue_prev_blocks cx.prev_blocks
+        cx.prev_blocks <- IMap.add continue.id new_continue_prev_blocks cx.prev_blocks
       | _ -> ())
     cx.blocks;
 

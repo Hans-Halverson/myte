@@ -18,8 +18,7 @@ module InstructionsMapper = struct
 
       method map_function (func : Function.t) =
         let visited_blocks = ref ISet.empty in
-        let rec get_block block_id = IMap.find block_id program.blocks
-        and check_visited_block block_id =
+        let rec check_visited_block block_id =
           if ISet.mem block_id !visited_blocks then
             true
           else (
@@ -33,13 +32,13 @@ module InstructionsMapper = struct
             this#map_block block;
             match block.next with
             | Halt -> ()
-            | Continue id -> visit_block (get_block id)
+            | Continue continue -> visit_block continue
             | Branch { test = _; continue; jump } ->
-              visit_block (get_block continue);
-              visit_block (get_block jump)
+              visit_block continue;
+              visit_block jump
           )
         in
-        visit_block (get_block func.body_start_block)
+        visit_block func.body_start_block
 
       method map_block (block : Block.t) =
         this#map_instructions block;

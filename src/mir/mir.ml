@@ -190,11 +190,11 @@ and Block : sig
 
   and next =
     | Halt
-    | Continue of id
+    | Continue of Block.t
     | Branch of {
         test: (* Bool *) Value.t;
-        continue: id;
-        jump: id;
+        continue: Block.t;
+        jump: Block.t;
       }
 end =
   Block
@@ -216,7 +216,7 @@ and Function : sig
     loc: Loc.t;
     params: Argument.t list;
     return_ty: Type.t option;
-    mutable body_start_block: Block.id;
+    mutable body_start_block: Block.t;
   }
 end =
   Function
