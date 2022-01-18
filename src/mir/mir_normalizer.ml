@@ -90,10 +90,7 @@ and consolidate_adjacent_blocks ~ocx =
         | Continue next_block when block != next_block && not (ISet.mem block_id !removed_blocks) ->
           (* The next block could be the start block for the global or function, in which case it cannot
              be merged with the previous block. *)
-          let next_block_is_start =
-            let func = SMap.find next_block.func ocx.program.funcs in
-            func.body_start_block == next_block
-          in
+          let next_block_is_start = next_block.func.start_block == next_block in
           let prev_blocks = IMap.find next_block.id ocx.prev_blocks in
           if
             ISet.cardinal prev_blocks = 1
@@ -120,6 +117,6 @@ and remove_empty_init_func ~ocx =
   | None -> ()
   | Some init_func ->
     (* Init function is empty if it consists of a single block with a single instruction (Ret) *)
-    let init_start_block = init_func.body_start_block in
+    let init_start_block = init_func.start_block in
     if has_single_instruction init_start_block && init_start_block.next = Halt then
       ocx.program.funcs <- SMap.remove init_func_name ocx.program.funcs

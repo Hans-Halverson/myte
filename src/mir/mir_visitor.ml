@@ -27,7 +27,7 @@ module IRVisitor = struct
       method visit_program () = SMap.iter (fun _ func -> this#visit_function func) program.funcs
 
       method visit_function func =
-        let block = func.body_start_block in
+        let block = func.start_block in
         this#visit_block block
 
       method visit_block (block : Block.t) =

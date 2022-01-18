@@ -191,7 +191,7 @@ and find_join_points ~cx program =
   in
   (* Visit all function bodies *)
   SMap.iter
-    (fun _ { Function.body_start_block; _ } -> visit_block ~sources:IMap.empty body_start_block)
+    (fun _ { Function.start_block; _ } -> visit_block ~sources:IMap.empty start_block)
     program.funcs;
   (* Create phi chain nodes for all join points in program *)
   cx.block_nodes <-
@@ -304,9 +304,9 @@ and build_phi_nodes ~cx program =
   (* Visit bodies of all functions *)
   cx.visited_blocks <- ISet.empty;
   SMap.iter
-    (fun _ { Function.name = func_name; body_start_block; _ } ->
+    (fun _ { Function.name = func_name; start_block; _ } ->
       cx.use_sources <- SMap.add func_name IMap.empty cx.use_sources;
-      visit_block ~func_name ~sources:IMap.empty ~prev_block:body_start_block body_start_block)
+      visit_block ~func_name ~sources:IMap.empty ~prev_block:start_block start_block)
     program.funcs;
   (* To realize a phi node, that phi node and its entire phi chain graph should be realized *)
   let rec realize_phi_chain_graph node_id ptr_id =
@@ -392,9 +392,9 @@ and rewrite_program ~cx program =
 
   cx.visited_blocks <- ISet.empty;
   SMap.iter
-    (fun _ ({ Function.name; body_start_block; _ } as func) ->
+    (fun _ ({ Function.name; start_block; _ } as func) ->
       (* Create phi nodes within function *)
-      visit_block ~name body_start_block;
+      visit_block ~name start_block;
 
       (* Rewrite uses of a load from a promoted memory location to the last store before the load *)
       let use_sources = SMap.find name cx.use_sources in
@@ -429,8 +429,7 @@ and rewrite_program ~cx program =
           | Some prev_blocks -> prev_blocks
         in
         (* Block may be first block of function, reset body start block if so *)
-        let func = SMap.find func program.funcs in
-        if func.body_start_block == block then func.body_start_block <- continue;
+        if func.start_block == block then func.start_block <- continue;
         (* Previous nodes point to next node *)
         ISet.iter
           (fun prev_block_id ->

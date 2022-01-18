@@ -60,8 +60,7 @@ let can_remove_block ~ocx (block : Block.t) =
        its branch would be lost in the phi node. *)
     let prev_nodes = IIMMap.find_all block.id ocx.prev_blocks in
 
-    let func = SMap.find block.func ocx.program.funcs in
-    let is_start_block = func.body_start_block == block in
+    let is_start_block = block.func.start_block == block in
 
     let continue_block_phis = block_get_phis continue_block in
     let block_needed_for_phi =
@@ -85,8 +84,8 @@ let remove_block ~ocx (block : Block.t) =
      next block as the start. *)
   (match block.next with
   | Continue continue_block ->
-    let func = SMap.find block.func ocx.program.funcs in
-    if func.body_start_block == block then func.body_start_block <- continue_block
+    let func = block.func in
+    if func.start_block == block then func.start_block <- continue_block
   | _ -> ());
   let prev_blocks = IIMMap.find_all block.id ocx.prev_blocks in
 

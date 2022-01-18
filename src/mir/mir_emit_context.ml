@@ -26,8 +26,7 @@ type t = {
   mutable funcs: Function.t SMap.t;
   mutable types: Aggregate.t SMap.t;
   mutable current_block: Block.t option;
-  (* Current function name and return type *)
-  mutable current_func: label * Types.Type.t;
+  mutable current_func: Function.t;
   mutable current_in_std_lib: bool;
   (* Stack of loop contexts for all loops we are currently inside *)
   mutable current_loop_contexts: loop_context list;
@@ -90,7 +89,7 @@ let mk ~pcx =
     funcs = SMap.empty;
     types = SMap.empty;
     current_block = None;
-    current_func = ("", Any);
+    current_func = null_function;
     current_in_std_lib = false;
     current_loop_contexts = [];
     filter_std_lib =
@@ -126,10 +125,6 @@ let add_global ~ecx global =
   let name = global.Global.name in
   ecx.globals <- SMap.add name global ecx.globals
 
-let add_function ~ecx func =
-  let name = func.Function.name in
-  ecx.funcs <- SMap.add name func ecx.funcs
-
 (* Emit and return an instruction value, adding instruction to end of current block *)
 let emit ~ecx (instr : Instruction.t) : Value.t =
   (match ecx.current_block with
@@ -142,7 +137,7 @@ let emit_ ~ecx (inst : Instruction.t) : unit = ignore (emit ~ecx inst)
 
 let mk_block ~ecx =
   let block =
-    { Block.id = mk_block_id (); func = fst ecx.current_func; instructions = None; next = Halt }
+    { Block.id = mk_block_id (); func = ecx.current_func; instructions = None; next = Halt }
   in
   ecx.blocks <- IMap.add block.id block ecx.blocks;
   block
@@ -174,8 +169,6 @@ let finish_block_continue ~ecx continue = finish_block ~ecx (Continue continue)
 
 let finish_block_halt ~ecx = finish_block ~ecx Halt
 
-let set_current_func ~ecx func return_ty = ecx.current_func <- (func, return_ty)
-
 let push_loop_context ~ecx break_id continue_id =
   ecx.current_loop_contexts <- (break_id, continue_id) :: ecx.current_loop_contexts
 
@@ -205,7 +198,7 @@ let emit_init_section ~ecx f =
   let old_in_init = ecx.in_init in
   let old_func = ecx.current_func in
   ecx.in_init <- true;
-  set_current_func ~ecx init_func_name Unit;
+  ecx.current_func <- SMap.find init_func_name ecx.funcs;
 
   let init_block = start_new_block ~ecx in
 
@@ -300,14 +293,35 @@ let add_immutable_string_literal ~ecx string =
     imm_string
 
 (*
- * Generic Types
+ * Functions
  *)
 
-let add_mir_adt_layout ~ecx (mir_adt_layout : MirAdtLayout.t) =
+let rec start_function ~ecx ~loc ~name ~params ~return_ty =
+  (* The main function must always return an Int *)
+  let return_type =
+    if ecx.main_label = name then
+      Some Type.Int
+    else
+      to_mir_type ~ecx return_ty
+  in
+  (* Create and set current function *)
+  let func =
+    { Function.loc; name; params; return_ty; return_type; start_block = null_block }
+  in
+  ecx.funcs <- SMap.add name func ecx.funcs;
+  ecx.current_func <- func;
+  (* Create start block for function *)
+  let start_block = start_new_block ~ecx in
+  func.start_block <- start_block
+
+(*
+ * Generic Types
+ *)
+and add_mir_adt_layout ~ecx (mir_adt_layout : MirAdtLayout.t) =
   ecx.adt_sig_to_mir_layout <-
     IMap.add mir_adt_layout.adt_sig.id mir_adt_layout ecx.adt_sig_to_mir_layout
 
-let rec get_mir_adt_layout ~ecx (adt_sig : Types.AdtSig.t) (type_args : Types.Type.t list) =
+and get_mir_adt_layout ~ecx (adt_sig : Types.AdtSig.t) (type_args : Types.Type.t list) =
   let mir_adt_layout = IMap.find adt_sig.id ecx.adt_sig_to_mir_layout in
   match mir_adt_layout.layouts with
   | Concrete { contents = Some layout } -> layout

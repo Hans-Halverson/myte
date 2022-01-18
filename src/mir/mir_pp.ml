@@ -107,13 +107,13 @@ and pp_func ~cx ~program func =
     |> String.concat ", "
   in
   let return_ty =
-    match func.return_ty with
+    match func.return_type with
     | None -> "void"
     | Some return_ty -> pp_type return_ty
   in
   let func_label = Printf.sprintf "func %s @%s(%s) {" return_ty func.name func_params in
-  cx.print_block_id_map <- IMap.add func.body_start_block.id func.name cx.print_block_id_map;
-  let body_blocks = Mir_block_ordering.order_blocks ~program func.body_start_block in
+  cx.print_block_id_map <- IMap.add func.start_block.id func.name cx.print_block_id_map;
+  let body_blocks = Mir_block_ordering.order_blocks ~program func.start_block in
   calc_print_block_ids ~cx (List.tl body_blocks);
   let body_strings =
     List.mapi

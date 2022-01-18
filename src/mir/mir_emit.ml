@@ -214,10 +214,10 @@ and emit_function_body ~ecx name decl =
     | _ -> params
   in
 
-  (* Build IR for function body *)
   let return_ty = Ecx.find_rep_non_generic_type ~ecx func_decl.return in
-  Ecx.set_current_func ~ecx name return_ty;
-  let body_start_block = Ecx.start_new_block ~ecx in
+  Ecx.start_function ~ecx ~loc ~name ~params ~return_ty;
+
+  (* Build IR for function body *)
   (match body with
   | Block block ->
     ignore (emit_block ~ecx ~is_expr:false block);
@@ -237,18 +237,7 @@ and emit_function_body ~ecx name decl =
     let ret_val_opt = emit_expression ~ecx expr in
     Ecx.emit_ ~ecx (mk_ret ~arg:ret_val_opt)
   | Signature -> ());
-  Ecx.finish_block_halt ~ecx;
-
-  (* The main function must always return an Int *)
-  let return_ty = type_to_mir_type ~ecx func_decl.return in
-  let return_ty =
-    if current_is_main then
-      Some Type.Int
-    else
-      return_ty
-  in
-
-  Ecx.add_function ~ecx { Function.loc; name; params; return_ty; body_start_block }
+  Ecx.finish_block_halt ~ecx
 
 and emit_trampoline_function ~(ecx : Ecx.t) name =
   (* Trampolines are created after wrpped function, so we can always lookup the function IR object *)
@@ -274,40 +263,24 @@ and emit_trampoline_function ~(ecx : Ecx.t) name =
   in
   let params = receiver_ptr_arg :: rest_args in
 
+  Ecx.start_function ~ecx ~loc:func.loc ~name:trampoline_name ~params ~return_ty:func.return_ty;
+
   (* Load receiver and call the wrapped function, passing original args with loaded receiver *)
-  let body_start_block = Ecx.start_new_block ~ecx in
   let receiver_arg = Ecx.emit ~ecx (mk_load ~ptr:(Argument receiver_ptr_arg)) in
   let args = receiver_arg :: (List.map (fun arg -> Value.Argument arg)) rest_args in
-  let return_val = Ecx.emit ~ecx (mk_call ~func:(mk_func_lit name) ~args ~return:func.return_ty) in
+  let return_val =
+    Ecx.emit ~ecx (mk_call ~func:(mk_func_lit name) ~args ~return:func.return_type)
+  in
 
   (* Return value from call if applicable *)
-  (match func.return_ty with
+  (match func.return_type with
   | None -> Ecx.emit_ ~ecx (mk_ret ~arg:None)
   | Some _ -> Ecx.emit_ ~ecx (mk_ret ~arg:(Some return_val)));
-  Ecx.finish_block_halt ~ecx;
-
-  Ecx.add_function
-    ~ecx
-    {
-      Function.loc = func.loc;
-      name = trampoline_name;
-      params;
-      return_ty = func.return_ty;
-      body_start_block;
-    }
+  Ecx.finish_block_halt ~ecx
 
 and start_init_function ~ecx =
-  Ecx.emit_init_section ~ecx (fun _ -> ());
-  let body_start_block = Option.get ecx.last_init_block in
-  Ecx.add_function
-    ~ecx
-    {
-      Function.loc = Loc.none;
-      name = init_func_name;
-      params = [];
-      return_ty = None;
-      body_start_block;
-    }
+  Ecx.start_function ~ecx ~loc:Loc.none ~name:init_func_name ~params:[] ~return_ty:Unit;
+  ecx.last_init_block <- Some ecx.current_func.start_block
 
 and finish_init_function ~ecx =
   let last_init_block = Option.get ecx.last_init_block in
@@ -883,7 +856,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     (* Emit operand, find its type, and the return type of function (which may differ) *)
     let operand_val = emit_expression ~ecx operand |> Option.get in
     let operand_ty = type_of_loc ~ecx (Ast_utils.expression_loc operand) in
-    let return_ty = snd ecx.current_func in
+    let return_ty = ecx.current_func.return_ty in
 
     (match operand_ty with
     | ADT { adt_sig; type_args = [item_ty] } when adt_sig == !Std_lib.option_adt_sig ->
@@ -1979,7 +1952,7 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
     let arg = Option_utils.flat_map (emit_expression ~ecx) arg in
     (* Handle implicit return from main function *)
     let arg =
-      if arg = None && fst ecx.current_func = ecx.main_label then
+      if arg = None && ecx.current_func.name = ecx.main_label then
         Some (mk_int_lit_of_int32 0l)
       else
         arg

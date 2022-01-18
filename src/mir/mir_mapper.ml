@@ -38,7 +38,7 @@ module InstructionsMapper = struct
               visit_block jump
           )
         in
-        visit_block func.body_start_block
+        visit_block func.start_block
 
       method map_block (block : Block.t) =
         this#map_instructions block;

@@ -131,9 +131,9 @@ and gen_function_instruction_builder ~gcx ~ir func =
           vreg.resolution <- StackSlot (FunctionStackArgument vreg);
           vreg)
       func.params;
-  Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx func.body_start_block.id));
+  Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx func.start_block.id));
   Gcx.finish_block ~gcx;
-  gen_blocks ~gcx ~ir func.body_start_block None func_.id;
+  gen_blocks ~gcx ~ir func.start_block None func_.id;
   Gcx.finish_function ~gcx
 
 and gen_blocks ~gcx ~ir start_block label func =

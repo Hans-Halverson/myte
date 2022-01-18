@@ -177,7 +177,7 @@ and Block : sig
 
   type t = {
     id: id;
-    func: label;
+    func: Function.t;
     mutable instructions: instructions option;
     mutable next: next;
   }
@@ -215,8 +215,9 @@ and Function : sig
     name: label;
     loc: Loc.t;
     params: Argument.t list;
-    return_ty: Type.t option;
-    mutable body_start_block: Block.t;
+    return_ty: Types.Type.t;
+    return_type: Type.t option;
+    mutable start_block: Block.t;
   }
 end =
   Function
@@ -245,9 +246,20 @@ let mk_value_id () : Value.id =
   max_value_id := value_id + 1;
   value_id
 
+(* A placeholder function *)
+let rec null_function : Function.t =
+  {
+    Function.name = "Null function";
+    loc = Loc.none;
+    params = [];
+    return_ty = Unit;
+    return_type = None;
+    start_block = null_block;
+  }
+
 (* A placeholder block, to avoid having to represent Option<Block> with its extra allocation *)
-let null_block : Block.t =
-  { Block.id = mk_block_id (); func = "Null block function"; instructions = None; next = Halt }
+and null_block : Block.t =
+  { Block.id = mk_block_id (); func = null_function; instructions = None; next = Halt }
 
 let rec type_of_value (v : Value.t) : Type.t =
   match v with
