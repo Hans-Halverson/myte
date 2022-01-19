@@ -14,39 +14,28 @@ open Mir
    block between them, which will be filled with Mov instructions later. *)
 let split_edges ~(ir : Program.t) =
   let open Block in
-  let edges_to_split = ref IMap.empty in
-  let mark_edge_to_split prev_block block_id =
-    let edges =
-      match IMap.find_opt block_id !edges_to_split with
-      | None -> ISet.singleton prev_block
-      | Some edges -> ISet.add prev_block edges
-    in
-    edges_to_split := IMap.add block_id edges !edges_to_split
-  in
+  let edges_to_split = ref BlockMMap.empty in
 
   (* Mark all edges that should be split. An edge from block A to block B should be split if
      block B contains a phi node that references A, but block A branches at the end. *)
   IMap.iter
     (fun _ block ->
       block_iter_phis block (fun { args; _ } ->
-          IMap.iter
-            (fun prev_block_id _ ->
-              let prev_block = IMap.find prev_block_id ir.blocks in
+          BlockMap.iter
+            (fun prev_block _ ->
               match prev_block.next with
-              | Branch _ -> mark_edge_to_split prev_block_id block.id
+              | Branch _ -> edges_to_split := BlockMMap.add block prev_block !edges_to_split
               | _ -> ())
             args))
     ir.blocks;
 
   (* Split all marked edges *)
-  IMap.iter
-    (fun block_id prev_blocks ->
-      let block = IMap.find block_id ir.blocks in
+  BlockMMap.iter
+    (fun block prev_blocks ->
       (* Create and insert new blocks, keeping map from previous block to new inserted block *)
       let prev_to_new_block =
-        ISet.fold
-          (fun prev_block_id prev_to_new_block ->
-            let prev_block = IMap.find prev_block_id ir.blocks in
+        BlockMMap.VSet.fold
+          (fun prev_block prev_to_new_block ->
             match prev_block.next with
             | Branch { test; continue; jump } ->
               (* Create new empty block and insert between previous block and this block *)
@@ -68,21 +57,21 @@ let split_edges ~(ir : Program.t) =
               in
               prev_block.next <-
                 Branch { test; continue = map_next_block continue; jump = map_next_block jump };
-              IMap.add prev_block_id new_block_id prev_to_new_block
+              BlockMap.add prev_block new_block prev_to_new_block
             | _ -> failwith "Only blocks which branch need to be split")
           prev_blocks
-          IMap.empty
+          BlockMap.empty
       in
       (* Rewrite references to previous block to instead reference newly inserted block *)
       block_iter_phis block (fun ({ args; _ } as phi) ->
           phi.args <-
-            IMap.fold
-              (fun prev_block_id arg args' ->
-                match IMap.find_opt prev_block_id prev_to_new_block with
-                | None -> IMap.add prev_block_id arg args'
-                | Some new_block_id -> IMap.add new_block_id arg args')
+            BlockMap.fold
+              (fun prev_block arg args' ->
+                match BlockMap.find_opt prev_block prev_to_new_block with
+                | None -> BlockMap.add prev_block arg args'
+                | Some new_block -> BlockMap.add new_block arg args')
               args
-              IMap.empty))
+              BlockMap.empty))
     !edges_to_split
 
 (* Convert a collection of copies (dest value, src value) that should that occur in parallel, to
@@ -155,19 +144,20 @@ let lower_phis_to_copies ~(ir : Program.t) =
     (fun _ block ->
       (* Collect all copies to create from phi nodes in each previous block *)
       let block_to_parallel_copies =
-        block_fold_phis block IMap.empty (fun instr { args } acc ->
-            IMap.fold
-              (fun prev_block_id arg_val acc ->
-                let existing_copies = IMap.find_opt prev_block_id acc |> Option.value ~default:[] in
-                IMap.add prev_block_id ((Value.Instr instr, arg_val) :: existing_copies) acc)
+        block_fold_phis block BlockMap.empty (fun instr { args } acc ->
+            BlockMap.fold
+              (fun prev_block arg_val acc ->
+                let existing_copies =
+                  BlockMap.find_opt prev_block acc |> Option.value ~default:[]
+                in
+                BlockMap.add prev_block ((Value.Instr instr, arg_val) :: existing_copies) acc)
               args
               acc)
       in
 
       (* Create sequence for copies and emit Mov instructions in previous block *)
-      IMap.iter
-        (fun prev_block_id parallel_copies ->
-          let prev_block = IMap.find prev_block_id ir.blocks in
+      BlockMap.iter
+        (fun prev_block parallel_copies ->
           let sequential_copies = sequentialize_parallel_copies (List.rev parallel_copies) in
           List.iter
             (fun (dest_val, arg_val) ->

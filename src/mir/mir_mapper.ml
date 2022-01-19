@@ -17,16 +17,16 @@ module InstructionsMapper = struct
       method mark_instruction_removed () = current_instruction_edit <- Remove
 
       method map_function (func : Function.t) =
-        let visited_blocks = ref ISet.empty in
-        let rec check_visited_block block_id =
-          if ISet.mem block_id !visited_blocks then
+        let visited_blocks = ref BlockSet.empty in
+        let rec check_visited_block block =
+          if BlockSet.mem block !visited_blocks then
             true
           else (
-            visited_blocks := ISet.add block_id !visited_blocks;
+            visited_blocks := BlockSet.add block !visited_blocks;
             false
           )
         and visit_block (block : Block.t) =
-          if check_visited_block block.id then
+          if check_visited_block block then
             ()
           else (
             this#map_block block;
@@ -66,7 +66,7 @@ module InstructionsMapper = struct
         | Mov arg ->
           let arg' = this#map_value arg in
           if arg != arg' then instruction.instr <- Mov arg'
-        | Phi ({ args } as phi) -> phi.args <- IMap.map this#map_value args
+        | Phi ({ args } as phi) -> phi.args <- BlockMap.map this#map_value args
         | Call { func; args; has_return } ->
           let func' =
             match func with

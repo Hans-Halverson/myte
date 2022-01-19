@@ -1,8 +1,44 @@
+module type S = sig
+  type key
+
+  type value
+
+  module KMap : Map.S with type key = key
+
+  module VSet : Set.S with type elt = value
+
+  type t = VSet.t KMap.t
+
+  val empty : t
+
+  val is_empty : t -> bool
+
+  val add : key -> value -> t -> t
+
+  val remove : key -> value -> t -> t
+
+  val remove_key : key -> t -> t
+
+  val contains : key -> value -> t -> bool
+
+  val contains_key : key -> t -> bool
+
+  val find_all : key -> t -> VSet.t
+
+  val choose : t -> key * value
+
+  val iter : (key -> VSet.t -> unit) -> t -> unit
+end
+
 module Make (KeyType : Map.OrderedType) (ValueType : Set.OrderedType) = struct
   module KMap = Map.Make (KeyType)
   module VSet = Set.Make (ValueType)
 
   type t = VSet.t KMap.t
+
+  type key = KeyType.t
+
+  type value = ValueType.t
 
   let empty = KMap.empty
 
@@ -43,4 +79,6 @@ module Make (KeyType : Map.OrderedType) (ValueType : Set.OrderedType) = struct
   let choose mmap =
     let (k, vs) = KMap.choose mmap in
     (k, VSet.choose vs)
+
+  let iter = KMap.iter
 end

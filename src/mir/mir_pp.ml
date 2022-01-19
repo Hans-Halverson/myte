@@ -6,7 +6,7 @@ module Context = struct
   type t = {
     mutable print_value_id_map: int IMap.t;
     mutable max_print_value_id: int;
-    mutable print_block_id_map: string IMap.t;
+    mutable print_block_id_map: string BlockMap.t;
     mutable max_print_block_id: int;
     program: Program.t;
   }
@@ -15,7 +15,7 @@ module Context = struct
     {
       print_value_id_map = IMap.empty;
       max_print_value_id = 0;
-      print_block_id_map = IMap.empty;
+      print_block_id_map = BlockMap.empty;
       max_print_block_id = 0;
       program;
     }
@@ -67,7 +67,7 @@ let rec pp_program program =
         if filter_stdlib name then
           blocks
         else
-          (Function.(func.loc, func.name, 2), (fun _ -> pp_func ~cx ~program func)) :: blocks)
+          (Function.(func.loc, func.name, 2), (fun _ -> pp_func ~cx func)) :: blocks)
       program.funcs
       blocks
   in
@@ -95,7 +95,7 @@ and pp_global ~cx global =
   let global_label = Printf.sprintf "global %s @%s = %s\n" (pp_type global.ty) global.name init in
   global_label
 
-and pp_func ~cx ~program func =
+and pp_func ~cx func =
   let open Function in
   (* Each function's values and labels have their own print id space *)
   cx.max_print_value_id <- 0;
@@ -112,16 +112,10 @@ and pp_func ~cx ~program func =
     | Some return_ty -> pp_type return_ty
   in
   let func_label = Printf.sprintf "func %s @%s(%s) {" return_ty func.name func_params in
-  cx.print_block_id_map <- IMap.add func.start_block.id func.name cx.print_block_id_map;
-  let body_blocks = Mir_block_ordering.order_blocks ~program func.start_block in
+  cx.print_block_id_map <- BlockMap.add func.start_block func.name cx.print_block_id_map;
+  let body_blocks = Mir_block_ordering.order_blocks func.start_block in
   calc_print_block_ids ~cx (List.tl body_blocks);
-  let body_strings =
-    List.mapi
-      (fun i block_id ->
-        let block = IMap.find block_id program.Program.blocks in
-        pp_block ~cx ~label:(i <> 0) block)
-      body_blocks
-  in
+  let body_strings = List.mapi (fun i block -> pp_block ~cx ~label:(i <> 0) block) body_blocks in
   String.concat "\n" ((func_label :: body_strings) @ ["}\n"])
 
 and pp_type_decl type_ =
@@ -140,7 +134,7 @@ and pp_block ~cx ~label block =
         ""
     in
     if label then
-      [Printf.sprintf "%slabel %s:" debug_id (pp_block_id ~cx block.id)]
+      [Printf.sprintf "%slabel %s:" debug_id (pp_block_id ~cx block)]
     else if Opts.dump_debug () then
       [debug_id]
     else
@@ -159,14 +153,14 @@ and pp_block ~cx ~label block =
         else
           ""
       in
-      [Printf.sprintf "  continue %s%s" debug_id (pp_block_id ~cx block.id)]
+      [Printf.sprintf "  continue %s%s" debug_id (pp_block_id ~cx block)]
     | Branch { test; jump; continue } ->
       [
         Printf.sprintf
           "  branch %s, %s, %s"
           (pp_value ~cx test)
-          (pp_block_id ~cx continue.id)
-          (pp_block_id ~cx jump.id);
+          (pp_block_id ~cx continue)
+          (pp_block_id ~cx jump);
       ]
   in
   let lines = List.concat [label_lines; instruction_lines; next_lines] in
@@ -188,25 +182,25 @@ and pp_value_id ~cx value_id =
   in
   Printf.sprintf "%%%d" print_id
 
-and calc_print_block_ids ~cx block_ids =
+and calc_print_block_ids ~cx blocks =
   List.iter
-    (fun block_id ->
-      match IMap.find_opt block_id cx.print_block_id_map with
+    (fun block ->
+      match BlockMap.find_opt block cx.print_block_id_map with
       | Some _ -> ()
       | None ->
         let print_id = cx.max_print_block_id in
         cx.max_print_block_id <- print_id + 1;
-        cx.print_block_id_map <- IMap.add block_id (string_of_int print_id) cx.print_block_id_map)
-    block_ids
+        cx.print_block_id_map <- BlockMap.add block (string_of_int print_id) cx.print_block_id_map)
+    blocks
 
-and pp_block_id ~cx block_id =
+and pp_block_id ~cx block =
   let open Context in
   let print_id =
-    match IMap.find_opt block_id cx.print_block_id_map with
+    match BlockMap.find_opt block cx.print_block_id_map with
     | Some print_id -> print_id
     | None ->
       let print_id = cx.max_print_block_id in
-      cx.print_block_id_map <- IMap.add block_id (string_of_int print_id) cx.print_block_id_map;
+      cx.print_block_id_map <- BlockMap.add block (string_of_int print_id) cx.print_block_id_map;
       cx.max_print_block_id <- print_id + 1;
       string_of_int print_id
   in
@@ -279,8 +273,8 @@ and pp_instruction ~cx instr =
     | Phi { args } ->
       let args_string =
         List.map
-          (fun (prev_block_id, arg) -> pp_block_id ~cx prev_block_id ^ ":" ^ pp_value ~cx arg)
-          (IMap.bindings args)
+          (fun (prev_block, arg) -> pp_block_id ~cx prev_block ^ ":" ^ pp_value ~cx arg)
+          (BlockMap.bindings args)
         |> String.concat ", "
       in
       pp_instr (Printf.sprintf "Phi %s %s" (pp_type instr.type_) args_string)

@@ -14,7 +14,7 @@ module Gcx = struct
     mutable blocks_by_id: Block.t IMap.t;
     mutable prev_blocks: IIMMap.t;
     (* Blocks indexed by their corresponding MIR block. Not all blocks may be in this map. *)
-    mutable mir_block_id_to_block_id: Block.id IMap.t;
+    mutable mir_block_id_to_block_id: Block.id Mir.BlockMap.t;
     (* Number of uses of each MIR value with a value id *)
     mutable value_num_uses: int IMap.t;
     (* Map from instruction id to the block that contains it *)
@@ -44,7 +44,7 @@ module Gcx = struct
       current_func_builder = None;
       blocks_by_id = IMap.empty;
       prev_blocks = IIMMap.empty;
-      mir_block_id_to_block_id = IMap.empty;
+      mir_block_id_to_block_id = Mir.BlockMap.empty;
       value_num_uses = IMap.empty;
       instruction_to_block = IMap.empty;
       funcs_by_id = IMap.empty;
@@ -64,19 +64,20 @@ module Gcx = struct
     let align_index = align_to_data_section_align_index align in
     gcx.bss.(align_index) <- uninit_data :: gcx.bss.(align_index)
 
-  let get_block_id_from_mir_block_id ~gcx mir_block_id =
-    match IMap.find_opt mir_block_id gcx.mir_block_id_to_block_id with
+  let get_block_id_from_mir_block ~gcx mir_block =
+    match Mir.BlockMap.find_opt mir_block gcx.mir_block_id_to_block_id with
     | Some block_id -> block_id
     | None ->
       let block_id = Block.mk_id () in
-      gcx.mir_block_id_to_block_id <- IMap.add mir_block_id block_id gcx.mir_block_id_to_block_id;
+      gcx.mir_block_id_to_block_id <-
+        Mir.BlockMap.add mir_block block_id gcx.mir_block_id_to_block_id;
       block_id
 
-  let start_block ~gcx ~label ~func ~mir_block_id =
+  let start_block ~gcx ~label ~func ~mir_block =
     let id =
-      match mir_block_id with
+      match mir_block with
       | None -> Block.mk_id ()
-      | Some mir_block_id -> get_block_id_from_mir_block_id ~gcx mir_block_id
+      | Some mir_block -> get_block_id_from_mir_block ~gcx mir_block
     in
     gcx.current_block_builder <- Some { id; label; func; instructions = [] }
 

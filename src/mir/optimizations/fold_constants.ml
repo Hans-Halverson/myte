@@ -177,15 +177,15 @@ class calc_constants_visitor ~ocx =
     method! run () =
       (* Fold constants until fixed point is found *)
       let rec iter () =
-        visited_blocks <- ISet.empty;
+        visited_blocks <- BlockSet.empty;
         has_new_constant <- false;
         this#find_constant_globals ();
         this#visit_program ();
         this#fold_global_inits ();
         (* Remove pruned blocks *)
         IMap.iter
-          (fun block_id block ->
-            if not (ISet.mem block_id visited_blocks) then (
+          (fun _ block ->
+            if not (BlockSet.mem block visited_blocks) then (
               Ocx.remove_block ~ocx block;
               (* Collect all removed instructions so they can be excluded from constant folding *)
               let gatherer = new Mir_normalizer.var_gatherer ~program:ocx.program in
@@ -255,7 +255,7 @@ class calc_constants_visitor ~ocx =
         mapper#map_function init_func
 
     method! visit_block block =
-      if this#check_visited_block block.id then
+      if this#check_visited_block block then
         ()
       else (
         iter_instructions block this#visit_instruction;
@@ -289,7 +289,7 @@ class calc_constants_visitor ~ocx =
             in
             (* Remove block link and set to continue to unpruned block *)
             Ocx.remove_block_link ~ocx block.id to_prune.id;
-            Ocx.remove_phi_backreferences_for_block ~ocx block.id to_prune.id;
+            Ocx.remove_phi_backreferences_for_block ~ocx block to_prune.id;
             block.next <- Continue to_continue;
             has_new_constant <- true;
             (* Only contine to remaining unpruned block *)
@@ -303,7 +303,7 @@ class calc_constants_visitor ~ocx =
       | None ->
         (* Gather all constant args in phi node *)
         let (constants, is_constant) =
-          IMap.fold
+          BlockMap.fold
             (fun _ arg_val (constants, is_constant) ->
               match arg_val with
               | Value.Instr instr ->

@@ -1,4 +1,3 @@
-open Basic_collections
 open Mir
 open Mir_type
 
@@ -41,7 +40,7 @@ let mk_instr ~(type_ : Type.t) ~(instr : Instruction.instr) : Instruction.t =
   in
   instruction
 
-let mk_phi ~(type_ : Type.t) ~(args : Value.t IMap.t) : Instruction.t =
+let mk_phi ~(type_ : Type.t) ~(args : Value.t BlockMap.t) : Instruction.t =
   mk_instr ~type_ ~instr:(Phi { args })
 
 let mk_mov ~(arg : Value.t) : Instruction.t = mk_instr ~type_:(type_of_value arg) ~instr:(Mov arg)

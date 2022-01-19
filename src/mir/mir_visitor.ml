@@ -4,19 +4,19 @@ open Mir
 module IRVisitor = struct
   class t ~(program : Program.t) =
     object (this)
-      val mutable visited_blocks : ISet.t = ISet.empty
+      val mutable visited_blocks : BlockSet.t = BlockSet.empty
 
       val mutable constant_vars : Value.t IMap.t = IMap.empty
 
-      method check_visited_block block_id =
-        if ISet.mem block_id visited_blocks then
+      method check_visited_block block =
+        if BlockSet.mem block visited_blocks then
           true
         else (
-          visited_blocks <- ISet.add block_id visited_blocks;
+          visited_blocks <- BlockSet.add block visited_blocks;
           false
         )
 
-      method reset_visited_blocks () = visited_blocks <- ISet.empty
+      method reset_visited_blocks () = visited_blocks <- BlockSet.empty
 
       method run () =
         this#visit_program ();
@@ -31,7 +31,7 @@ module IRVisitor = struct
         this#visit_block block
 
       method visit_block (block : Block.t) =
-        if this#check_visited_block block.id then
+        if this#check_visited_block block then
           ()
         else (
           this#visit_instructions ~block;
@@ -91,7 +91,7 @@ module IRVisitor = struct
           this#visit_value right
 
       method visit_phi_node _instr phi =
-        IMap.iter (fun _block_id arg_val -> this#visit_value arg_val) phi.args
+        BlockMap.iter (fun _block arg_val -> this#visit_value arg_val) phi.args
 
       method visit_value _value = ()
     end

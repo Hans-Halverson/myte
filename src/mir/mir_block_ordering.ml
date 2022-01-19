@@ -3,30 +3,29 @@ open Mir
 
 (* Run Tarjan's strongly connected components algorithm on a set of blocks. Return a pair containing
    a set of all SCCs, as well as a map from block to the SCC it is a part of. *)
-let tarjans_scc ~program blocks =
+let tarjans_scc blocks =
   let max_scc_id = ref 0 in
-  let block_to_scc_id = ref IMap.empty in
+  let block_to_scc_id = ref BlockMap.empty in
   let sccs = ref ISet.empty in
 
   let index = ref 0 in
-  let block_index = ref IMap.empty in
-  let block_lowlink = ref IMap.empty in
-  let blocks_on_stack = ref ISet.empty in
+  let block_index = ref BlockMap.empty in
+  let block_lowlink = ref BlockMap.empty in
+  let blocks_on_stack = ref BlockSet.empty in
   let stack = Stack.create () in
 
-  let is_visited block_id = IMap.mem block_id !block_index in
-  let index_of block_id = IMap.find block_id !block_index in
-  let lowlink_of block_id = IMap.find block_id !block_lowlink in
-  let set_lowlink block_id lowlink = block_lowlink := IMap.add block_id lowlink !block_lowlink in
+  let is_visited block = BlockMap.mem block !block_index in
+  let index_of block = BlockMap.find block !block_index in
+  let lowlink_of block = BlockMap.find block !block_lowlink in
+  let set_lowlink block lowlink = block_lowlink := BlockMap.add block lowlink !block_lowlink in
 
-  let rec strong_connect block_id =
-    block_index := IMap.add block_id !index !block_index;
-    set_lowlink block_id !index;
+  let rec strong_connect block =
+    block_index := BlockMap.add block !index !block_index;
+    set_lowlink block !index;
     index := !index + 1;
-    Stack.push block_id stack;
-    blocks_on_stack := ISet.add block_id !blocks_on_stack;
+    Stack.push block stack;
+    blocks_on_stack := BlockSet.add block !blocks_on_stack;
 
-    let block = IMap.find block_id program.Program.blocks in
     let next_blocks =
       match block.next with
       | Halt -> []
@@ -35,30 +34,30 @@ let tarjans_scc ~program blocks =
     in
     List.iter
       (fun (next_block : Block.t) ->
-        if not (is_visited next_block.id) then (
-          strong_connect next_block.id;
-          set_lowlink block_id (min (lowlink_of block_id) (lowlink_of next_block.id))
-        ) else if ISet.mem next_block.id !blocks_on_stack then
-          set_lowlink block_id (min (lowlink_of block_id) (index_of next_block.id)))
+        if not (is_visited next_block) then (
+          strong_connect next_block;
+          set_lowlink block (min (lowlink_of block) (lowlink_of next_block))
+        ) else if BlockSet.mem next_block !blocks_on_stack then
+          set_lowlink block (min (lowlink_of block) (index_of next_block)))
       next_blocks;
 
     (* Generate strongly connected component by popping off stack *)
-    if lowlink_of block_id = index_of block_id then (
+    if lowlink_of block = index_of block then (
       let scc_id = !max_scc_id in
       max_scc_id := !max_scc_id + 1;
 
       let rec collect_scc () =
         let next_block = Stack.pop stack in
-        blocks_on_stack := ISet.remove next_block !blocks_on_stack;
-        block_to_scc_id := IMap.add next_block scc_id !block_to_scc_id;
-        if next_block != block_id then collect_scc ()
+        blocks_on_stack := BlockSet.remove next_block !blocks_on_stack;
+        block_to_scc_id := BlockMap.add next_block scc_id !block_to_scc_id;
+        if next_block != block then collect_scc ()
       in
       collect_scc ();
       sccs := ISet.add scc_id !sccs
     )
   in
 
-  ISet.iter (fun block_id -> if not (is_visited block_id) then strong_connect block_id) blocks;
+  BlockSet.iter (fun block -> if not (is_visited block) then strong_connect block) blocks;
   (sccs, block_to_scc_id)
 
 (* Order all blocks in the program that are reachable from the provided starting block. We attempt
@@ -80,14 +79,13 @@ let tarjans_scc ~program blocks =
    blocks currently on the current SCC frontier), then we visit the next SCC in depth-first
    topological order.
  *)
-let order_blocks ~program start_block =
+let order_blocks start_block =
   (* Depth-first traversal to gather all blocks *)
-  let all_blocks = ref ISet.empty in
+  let all_blocks = ref BlockSet.empty in
   let rec visit_block block =
     let open Block in
-    if not (ISet.mem block.id !all_blocks) then begin
-      all_blocks := ISet.add block.id !all_blocks;
-      let block = IMap.find block.id program.Program.blocks in
+    if not (BlockSet.mem block !all_blocks) then begin
+      all_blocks := BlockSet.add block !all_blocks;
       match block.next with
       | Halt -> ()
       | Continue continue -> visit_block continue
@@ -99,40 +97,39 @@ let order_blocks ~program start_block =
   visit_block start_block;
 
   (* Run Tarjan's algorithm to find strongly connected components of control flow graph *)
-  let (sccs, block_to_scc_id) = tarjans_scc ~program !all_blocks in
+  let (sccs, block_to_scc_id) = tarjans_scc !all_blocks in
 
   (* Build map of predecessor degree for each block, and map from SCC id the set of SCCs that
      precede it in the SCC DAG. *)
   let scc_preds = ref IMap.empty in
-  let block_pred_degree = ref IMap.empty in
+  let block_pred_degree = ref BlockMap.empty in
   let add_scc_pred pred_scc_id (succ_block : Block.t) =
-    let succ_scc_id = IMap.find succ_block.id !block_to_scc_id in
+    let succ_scc_id = BlockMap.find succ_block !block_to_scc_id in
     if pred_scc_id != succ_scc_id then
       scc_preds :=
         IMap.add succ_scc_id (ISet.add pred_scc_id (IMap.find succ_scc_id !scc_preds)) !scc_preds
   in
   let remove_scc_pred pred_scc_id (succ_block : Block.t) =
-    let succ_scc_id = IMap.find succ_block.id !block_to_scc_id in
+    let succ_scc_id = BlockMap.find succ_block !block_to_scc_id in
     if pred_scc_id != succ_scc_id then
       scc_preds :=
         IMap.add succ_scc_id (ISet.remove pred_scc_id (IMap.find succ_scc_id !scc_preds)) !scc_preds
   in
   let inc_block_pred (block : Block.t) =
-    let old_degree = IMap.find block.id !block_pred_degree in
-    block_pred_degree := IMap.add block.id (old_degree + 1) !block_pred_degree
+    let old_degree = BlockMap.find block !block_pred_degree in
+    block_pred_degree := BlockMap.add block (old_degree + 1) !block_pred_degree
   in
   let dec_block_pred (block : Block.t) =
     block_pred_degree :=
-      IMap.add block.id (IMap.find block.id !block_pred_degree - 1) !block_pred_degree
+      BlockMap.add block (BlockMap.find block !block_pred_degree - 1) !block_pred_degree
   in
   ISet.iter (fun scc_id -> scc_preds := IMap.add scc_id ISet.empty !scc_preds) !sccs;
-  ISet.iter
-    (fun block_id -> block_pred_degree := IMap.add block_id 0 !block_pred_degree)
+  BlockSet.iter
+    (fun block -> block_pred_degree := BlockMap.add block 0 !block_pred_degree)
     !all_blocks;
-  ISet.iter
-    (fun block_id ->
-      let block = IMap.find block_id program.Program.blocks in
-      let scc_id = IMap.find block_id !block_to_scc_id in
+  BlockSet.iter
+    (fun block ->
+      let scc_id = BlockMap.find block !block_to_scc_id in
       match block.next with
       | Halt -> ()
       | Continue continue ->
@@ -146,8 +143,8 @@ let order_blocks ~program start_block =
     !all_blocks;
 
   let blocks = ref [] in
-  let visited_blocks = ref ISet.empty in
-  let is_visited block_id = ISet.mem block_id !visited_blocks in
+  let visited_blocks = ref BlockSet.empty in
+  let is_visited block = BlockSet.mem block !visited_blocks in
 
   (* Blocks in other SCCs that are ready to be visited (meaning all predecessor SCCs have already
      been visited). This is represented as a stack of queues, where each queue contains the blocks
@@ -176,14 +173,13 @@ let order_blocks ~program start_block =
         | Some next_block ->
           (* If we are entering a new SCC, add a new queue to the stack to keep track of the next
              SCCs to visit from the new SCC. *)
-          let next_scc = IMap.find next_block !block_to_scc_id in
+          let next_scc = BlockMap.find next_block !block_to_scc_id in
           if prev_scc != next_scc then Stack.push (Queue.create ()) next_sccs_frontier;
           if not (is_visited next_block) then visit_block ~scc_id:next_scc next_block;
           iter ~prev_scc:next_scc ()))
-  and visit_block ~scc_id block_id =
-    visited_blocks := ISet.add block_id !visited_blocks;
-    blocks := block_id :: !blocks;
-    let block = IMap.find block_id program.Program.blocks in
+  and visit_block ~scc_id block =
+    visited_blocks := BlockSet.add block !visited_blocks;
+    blocks := block :: !blocks;
     match block.next with
     | Halt -> ()
     | Continue continue ->
@@ -198,25 +194,25 @@ let order_blocks ~program start_block =
       visit_or_enqueue ~prev_scc_id:scc_id continue;
       visit_or_enqueue ~prev_scc_id:scc_id jump
   and visit_or_enqueue ~prev_scc_id next_block =
-    let next_scc_id = IMap.find next_block.id !block_to_scc_id in
-    if is_visited next_block.id then
+    let next_scc_id = BlockMap.find next_block !block_to_scc_id in
+    if is_visited next_block then
       ()
     else if prev_scc_id = next_scc_id then
       (* If the next block is within the same SCC, visit it immediately if all its predecessors
          have been visited, otherwise enqueue in within the current SCC's frontier. *)
-      if IMap.find next_block.id !block_pred_degree = 0 then
-        visit_block ~scc_id:prev_scc_id next_block.id
+      if BlockMap.find next_block !block_pred_degree = 0 then
+        visit_block ~scc_id:prev_scc_id next_block
       else
-        Queue.push next_block.id within_scc_frontier
+        Queue.push next_block within_scc_frontier
     else if ISet.cardinal (IMap.find next_scc_id !scc_preds) = 0 then
       (* If the next block is within another SCC whose predecessor SCCs have been visited then
          enqueue it in the frontier for new SCCs to visit *)
-      Queue.push next_block.id (Stack.top next_sccs_frontier)
+      Queue.push next_block (Stack.top next_sccs_frontier)
   in
 
   (* Start with a stack of a single queue containing the start block id *)
   Stack.push (Queue.create ()) next_sccs_frontier;
-  Queue.push start_block.id (Stack.top next_sccs_frontier);
+  Queue.push start_block (Stack.top next_sccs_frontier);
 
-  iter ~prev_scc:(IMap.find start_block.id !block_to_scc_id) ();
+  iter ~prev_scc:(BlockMap.find start_block !block_to_scc_id) ();
   List.rev !blocks

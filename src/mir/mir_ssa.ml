@@ -46,17 +46,19 @@ open Mir_visitor
     SSA variable. Also must rewrite all use variables that were the result of removed Load
     instructions to now directly reference the new SSA variable. *)
 
+module BlockIMMap = MultiMap.Make (Block) (Int)
+
 module PhiChainNode = struct
   type id = int
 
   type t = {
     id: id;
-    block_id: Block.id;
+    block: Block.t;
     (* Previous phi nodes in the phi chain graph, mapped to the previous block that they flowed from *)
-    mutable prev_nodes: Block.id IMap.t;
+    mutable prev_nodes: Block.t IMap.t;
     (* Store instruction ids for this node, mapped to the previous block that they flowed from along
        with the value that was stored. *)
-    mutable write_locs: (Block.id * Value.t) IMap.t;
+    mutable write_locs: (Block.t * Value.t) IMap.t;
     mutable realized: Instruction.t option;
     (* Type is filled after creation *)
     mutable mir_type: Type.t option;
@@ -65,35 +67,35 @@ end
 
 type source =
   (* There was a single write at this store instruction in this block, writing this value *)
-  | WriteLocation of Block.id * Value.id * Value.t
+  | WriteLocation of Block.t * Value.id * Value.t
   (* Multiple writes were joined by phi chain node *)
   | PhiChainJoin of PhiChainNode.id
 
 type cx = {
   mutable blocks: Block.t IMap.t;
-  mutable visited_blocks: ISet.t;
+  mutable visited_blocks: BlockSet.t;
   mutable stack_alloc_ids: Type.t IMap.t;
   mutable phi_chain_nodes: PhiChainNode.t IMap.t;
-  (* Block ids to the pointer ids with phi chain nodes for that block *)
-  mutable block_nodes: PhiChainNode.id IMap.t IMap.t;
-  (* Block ids to the set of phi chain node ids that are realized in that block *)
-  mutable realized_phis: IIMMap.t;
+  (* Blocks to the pointer ids with phi chain nodes for that block *)
+  mutable block_nodes: PhiChainNode.id IMap.t BlockMap.t;
+  (* Blocks to the set of phi chain node ids that are realized in that block *)
+  mutable realized_phis: BlockIMMap.t;
   (* Function name to the local source for each load instruction id *)
   mutable use_sources: source IMap.t SMap.t;
-  (* Block ids to the set of blocks that precede that block *)
-  mutable prev_blocks: ISet.t IMap.t;
+  (* Block to the set of blocks that precede that block *)
+  mutable prev_blocks: BlockMMap.t;
 }
 
 let mk_cx () =
   {
     blocks = IMap.empty;
-    visited_blocks = ISet.empty;
+    visited_blocks = BlockSet.empty;
     stack_alloc_ids = IMap.empty;
     phi_chain_nodes = IMap.empty;
-    block_nodes = IMap.empty;
-    realized_phis = IIMMap.empty;
+    block_nodes = BlockMap.empty;
+    realized_phis = BlockIMMap.empty;
     use_sources = SMap.empty;
-    prev_blocks = IMap.empty;
+    prev_blocks = BlockMMap.empty;
   }
 
 let max_phi_chain_node_id = ref 0
@@ -103,14 +105,14 @@ let mk_phi_chain_node_id () =
   max_phi_chain_node_id := id + 1;
   id
 
-let mk_phi_chain_node ~cx block_id =
+let mk_phi_chain_node ~cx block =
   let id = mk_phi_chain_node_id () in
   cx.phi_chain_nodes <-
     IMap.add
       id
       {
         PhiChainNode.id;
-        block_id;
+        block;
         prev_nodes = IMap.empty;
         write_locs = IMap.empty;
         realized = None;
@@ -122,7 +124,7 @@ let mk_phi_chain_node ~cx block_id =
 let get_node ~cx node_id = IMap.find node_id cx.phi_chain_nodes
 
 let add_block_link ~cx (prev_block : Block.t) (next_block : Block.t) =
-  cx.prev_blocks <- IIMMap.add next_block.id prev_block.id cx.prev_blocks
+  cx.prev_blocks <- BlockMMap.add next_block prev_block cx.prev_blocks
 
 let rec promote_variables_to_registers ir =
   let cx = mk_cx () in
@@ -145,7 +147,7 @@ and mk_add_sources_visitor ~cx ~program sources =
 
 and find_join_points ~cx program =
   let open Program in
-  let block_sources = ref IMap.empty in
+  let block_sources = ref BlockMap.empty in
   (* Maintain set of all sources for each variable in each block *)
   let add_block_sources (block : Block.t) new_sources =
     let new_sources =
@@ -156,7 +158,7 @@ and find_join_points ~cx program =
         IMap.empty
     in
     let sources =
-      match IMap.find_opt block.id !block_sources with
+      match BlockMap.find_opt block !block_sources with
       | None -> new_sources
       | Some sources ->
         IMap.union
@@ -164,16 +166,16 @@ and find_join_points ~cx program =
           sources
           new_sources
     in
-    block_sources := IMap.add block.id sources !block_sources
+    block_sources := BlockMap.add block sources !block_sources
   in
   let rec visit_block ~sources block =
     let maybe_visit_block sources (next_block : Block.t) =
-      if ISet.mem next_block.id cx.visited_blocks then
+      if BlockSet.mem next_block cx.visited_blocks then
         add_block_sources next_block sources
       else
         visit_block ~sources next_block
     in
-    cx.visited_blocks <- ISet.add block.id cx.visited_blocks;
+    cx.visited_blocks <- BlockSet.add block cx.visited_blocks;
     add_block_sources block sources;
     let sources = ref sources in
     let visitor = mk_add_sources_visitor ~cx ~program sources in
@@ -195,15 +197,15 @@ and find_join_points ~cx program =
     program.funcs;
   (* Create phi chain nodes for all join points in program *)
   cx.block_nodes <-
-    IMap.fold
-      (fun block_id sources block_nodes ->
+    BlockMap.fold
+      (fun block sources block_nodes ->
         let nodes =
           IMap.fold
             (fun ptr_id sources nodes ->
               if ISet.cardinal sources <= 1 then
                 nodes
               else
-                let node_id = mk_phi_chain_node ~cx block_id in
+                let node_id = mk_phi_chain_node ~cx block in
                 IMap.add ptr_id node_id nodes)
             sources
             IMap.empty
@@ -211,9 +213,9 @@ and find_join_points ~cx program =
         if IMap.is_empty nodes then
           block_nodes
         else
-          IMap.add block_id nodes block_nodes)
+          BlockMap.add block nodes block_nodes)
       !block_sources
-      IMap.empty
+      BlockMap.empty
 
 and add_use_source ~cx func_name load_instr_id source =
   let use_sources = SMap.find func_name cx.use_sources in
@@ -228,7 +230,7 @@ and mk_build_phi_nodes_visitor ~cx program func_name sources phi_nodes_to_realiz
       match instr.instr with
       | Store ((Instr { id; _ } | Argument { id; _ }), arg) when IMap.mem id cx.stack_alloc_ids ->
         (* Source for this variable is now this write location *)
-        sources := IMap.add id (WriteLocation (instr.block.id, instr.id, arg)) !sources
+        sources := IMap.add id (WriteLocation (instr.block, instr.id, arg)) !sources
       | Load (Instr { id; _ } | Argument { id; _ }) when IMap.mem id cx.stack_alloc_ids ->
         (* Save source for each use *)
         let source = IMap.find id !sources in
@@ -246,7 +248,7 @@ and build_phi_nodes ~cx program =
      it directly to the phi node. Otherwise if the source is another phi node then add link to
      create phi chain. *)
   let update_phis_from_sources (block : Block.t) (prev_block : Block.t) new_sources =
-    match IMap.find_opt block.id cx.block_nodes with
+    match BlockMap.find_opt block cx.block_nodes with
     | None -> ()
     | Some nodes ->
       IMap.iter
@@ -259,12 +261,12 @@ and build_phi_nodes ~cx program =
             (match source with
             | WriteLocation (_, store_instr_id, arg_val) ->
               if not (IMap.mem store_instr_id node.write_locs) then (
-                node.write_locs <- IMap.add store_instr_id (prev_block.id, arg_val) node.write_locs;
+                node.write_locs <- IMap.add store_instr_id (prev_block, arg_val) node.write_locs;
                 node.mir_type <- Some (type_of_value arg_val)
               )
             | PhiChainJoin prev_node ->
               if prev_node <> node_id && not (IMap.mem prev_node node.prev_nodes) then (
-                node.prev_nodes <- IMap.add prev_node prev_block.id node.prev_nodes;
+                node.prev_nodes <- IMap.add prev_node prev_block node.prev_nodes;
                 match (get_node ~cx prev_node).mir_type with
                 | None -> ()
                 | Some _ as mir_type -> node.mir_type <- mir_type
@@ -274,17 +276,17 @@ and build_phi_nodes ~cx program =
   let phi_nodes_to_realize = ref IMap.empty in
   let rec visit_block ~func_name ~sources ~prev_block (block : Block.t) =
     let maybe_visit_block sources (next_block : Block.t) =
-      if ISet.mem next_block.id cx.visited_blocks then
+      if BlockSet.mem next_block cx.visited_blocks then
         update_phis_from_sources next_block block sources
       else
         visit_block ~func_name ~sources ~prev_block:block next_block
     in
-    cx.visited_blocks <- ISet.add block.id cx.visited_blocks;
+    cx.visited_blocks <- BlockSet.add block cx.visited_blocks;
     update_phis_from_sources block prev_block sources;
     let sources = ref sources in
     (* Add phi chain join nodes as current sources *)
     begin
-      match IMap.find_opt block.id cx.block_nodes with
+      match BlockMap.find_opt block cx.block_nodes with
       | None -> ()
       | Some nodes ->
         IMap.iter
@@ -302,7 +304,7 @@ and build_phi_nodes ~cx program =
       maybe_visit_block !sources jump
   in
   (* Visit bodies of all functions *)
-  cx.visited_blocks <- ISet.empty;
+  cx.visited_blocks <- BlockSet.empty;
   SMap.iter
     (fun _ { Function.name = func_name; start_block; _ } ->
       cx.use_sources <- SMap.add func_name IMap.empty cx.use_sources;
@@ -314,38 +316,36 @@ and build_phi_nodes ~cx program =
     if Option.is_none node.realized then (
       (* Realize by creating phi instruction *)
       let type_ = IMap.find ptr_id cx.stack_alloc_ids in
-      let phi_instr = Mir_builders.mk_phi ~type_ ~args:IMap.empty in
+      let phi_instr = Mir_builders.mk_phi ~type_ ~args:BlockMap.empty in
       node.realized <- Some phi_instr;
-      cx.realized_phis <- IIMMap.add node.block_id node_id cx.realized_phis;
+      cx.realized_phis <- BlockIMMap.add node.block node_id cx.realized_phis;
       IMap.iter (fun prev_node_id _ -> realize_phi_chain_graph prev_node_id ptr_id) node.prev_nodes
     )
   in
   IMap.iter realize_phi_chain_graph !phi_nodes_to_realize
 
 and rewrite_program ~cx program =
-  cx.visited_blocks <- ISet.empty;
+  cx.visited_blocks <- BlockSet.empty;
   let rec visit_block ~name (block : Block.t) =
-    cx.visited_blocks <- ISet.add block.id cx.visited_blocks;
+    cx.visited_blocks <- BlockSet.add block cx.visited_blocks;
     let maybe_visit_block (next_block : Block.t) =
-      if ISet.mem next_block.id cx.visited_blocks then
+      if BlockSet.mem next_block cx.visited_blocks then
         ()
       else
         visit_block ~name next_block
     in
     (* Create and add phis to beginning of block *)
     let phis =
-      match IMap.find_opt block.id cx.realized_phis with
-      | None -> []
-      | Some realized_phis ->
-        ISet.fold
-          (fun node_id phis ->
-            let node = get_node ~cx node_id in
-            let phi_instr = Option.get node.realized in
-            let phi = cast_to_phi phi_instr in
-            phi.args <- gather_phi_args node_id;
-            phi_instr :: phis)
-          realized_phis
-          []
+      let realized_phis = BlockIMMap.find_all block cx.realized_phis in
+      ISet.fold
+        (fun node_id phis ->
+          let node = get_node ~cx node_id in
+          let phi_instr = Option.get node.realized in
+          let phi = cast_to_phi phi_instr in
+          phi.args <- gather_phi_args node_id;
+          phi_instr :: phis)
+        realized_phis
+        []
     in
     List.iter (prepend_instruction block) phis;
     (* Remove memory instructions for memory locations promoted to registers *)
@@ -358,8 +358,7 @@ and rewrite_program ~cx program =
           false
         | _ -> true);
     block.next <-
-      (let open Block in
-      match block.next with
+      (match block.next with
       | Halt -> Halt
       | Continue continue ->
         maybe_visit_block continue;
@@ -371,26 +370,26 @@ and rewrite_program ~cx program =
     cx.blocks <- IMap.add block.id block cx.blocks
   (* Traverse phi chain graph to gather all previous block/value pairs for a given phi node. The phi
      chain graph is deeply traversed until realized nodes are encountered. *)
-  and gather_phi_args (node_id : PhiChainNode.id) : Value.t IMap.t =
-    let phi_args = ref IMap.empty in
-    let add_phi_arg prev_block_id arg_val = phi_args := IMap.add prev_block_id arg_val !phi_args in
-    let rec visit_phi_node node_id prev_block_id =
+  and gather_phi_args (node_id : PhiChainNode.id) : Value.t BlockMap.t =
+    let phi_args = ref BlockMap.empty in
+    let add_phi_arg prev_block arg_val = phi_args := BlockMap.add prev_block arg_val !phi_args in
+    let rec visit_phi_node node_id prev_block =
       let node = get_node ~cx node_id in
       match node.realized with
       (* Do not descend into realized nodes, use their realized instruction *)
-      | Some instr -> add_phi_arg prev_block_id (Value.Instr instr)
+      | Some instr -> add_phi_arg prev_block (Value.Instr instr)
       (* Descend into unrealized nodes, gather local writes and phi chain nodes *)
       | _ ->
-        IMap.iter (fun _ (_, arg_val) -> add_phi_arg prev_block_id arg_val) node.write_locs;
-        IMap.iter (fun node_id _ -> visit_phi_node node_id prev_block_id) node.prev_nodes
+        IMap.iter (fun _ (_, arg_val) -> add_phi_arg prev_block arg_val) node.write_locs;
+        IMap.iter (fun node_id _ -> visit_phi_node node_id prev_block) node.prev_nodes
     in
     let node = get_node ~cx node_id in
-    IMap.iter (fun _ (prev_block_id, arg_val) -> add_phi_arg prev_block_id arg_val) node.write_locs;
+    IMap.iter (fun _ (prev_block, arg_val) -> add_phi_arg prev_block arg_val) node.write_locs;
     IMap.iter visit_phi_node node.prev_nodes;
     !phi_args
   in
 
-  cx.visited_blocks <- ISet.empty;
+  cx.visited_blocks <- BlockSet.empty;
   SMap.iter
     (fun _ ({ Function.name; start_block; _ } as func) ->
       (* Create phi nodes within function *)
@@ -421,27 +420,21 @@ and rewrite_program ~cx program =
       match next with
       (* A block can only be removed if it has no instructions, and if its next block has no phis
          (as the phis may reference this block). *)
-      | Continue continue
-        when has_no_instructions block && not (block_has_phis (IMap.find continue.id cx.blocks)) ->
-        let prev_blocks =
-          match IMap.find_opt block_id cx.prev_blocks with
-          | None -> ISet.empty
-          | Some prev_blocks -> prev_blocks
-        in
+      | Continue continue when has_no_instructions block && not (block_has_phis continue) ->
+        let prev_blocks = BlockMMap.find_all block cx.prev_blocks in
         (* Block may be first block of function, reset body start block if so *)
         if func.start_block == block then func.start_block <- continue;
         (* Previous nodes point to next node *)
-        ISet.iter
-          (fun prev_block_id ->
+        BlockMMap.VSet.iter
+          (fun prev_block ->
             let map_next next_block =
               if next_block == block then
                 continue
               else
                 next_block
             in
-            let block = IMap.find prev_block_id cx.blocks in
             let next' =
-              match block.next with
+              match prev_block.next with
               | Halt -> Block.Halt
               | Continue continue -> Continue (map_next continue)
               | Branch { test; continue; jump } ->
@@ -454,30 +447,29 @@ and rewrite_program ~cx program =
                   (* Otherwise create branch to new block *)
                   Branch { test; continue = new_continue; jump = new_jump }
             in
-            block.next <- next')
+            prev_block.next <- next')
           prev_blocks;
         (* Next node may have phis that point the removed block. Rewrite them to instead point to
            previous blocks. *)
-        let next_node = IMap.find continue.id cx.blocks in
-        block_iter_phis next_node (fun ({ args; _ } as phi) ->
-            match IMap.find_opt block_id args with
+        block_iter_phis continue (fun ({ args; _ } as phi) ->
+            match BlockMap.find_opt block args with
             | None -> ()
-            | Some arg_value_id ->
-              let args' = IMap.remove block_id args in
+            | Some arg_value ->
+              let args' = BlockMap.remove block args in
               phi.args <-
-                ISet.fold
-                  (fun prev_block_id -> IMap.add prev_block_id arg_value_id)
+                BlockMMap.VSet.fold
+                  (fun prev_block -> BlockMap.add prev_block arg_value)
                   prev_blocks
                   args');
         (* Remove this empty node *)
         cx.blocks <- IMap.remove block_id cx.blocks;
-        cx.prev_blocks <- IMap.remove block_id cx.prev_blocks;
+        cx.prev_blocks <- BlockMMap.remove_key block cx.prev_blocks;
         (* Remove the empty node from continue block's prev blocks *)
-        let continue_prev_blocks = IMap.find continue.id cx.prev_blocks in
+        let continue_prev_blocks = BlockMMap.find_all continue cx.prev_blocks in
         let new_continue_prev_blocks =
-          ISet.union prev_blocks (ISet.remove block_id continue_prev_blocks)
+          BlockMMap.VSet.union prev_blocks (BlockMMap.VSet.remove block continue_prev_blocks)
         in
-        cx.prev_blocks <- IMap.add continue.id new_continue_prev_blocks cx.prev_blocks
+        cx.prev_blocks <- BlockMMap.KMap.add continue new_continue_prev_blocks cx.prev_blocks
       | _ -> ())
     cx.blocks;
 

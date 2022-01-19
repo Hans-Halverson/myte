@@ -104,7 +104,7 @@ and gen_function_instruction_builder ~gcx ~ir func =
       label_of_mir_label func.name
   in
   (* Create function prologue which copies all params from physical registers to temporaries *)
-  Gcx.start_block ~gcx ~label:(Some label) ~func:func_.id ~mir_block_id:None;
+  Gcx.start_block ~gcx ~label:(Some label) ~func:func_.id ~mir_block:None;
   let prologue_block_id = (Option.get gcx.current_block_builder).id in
   func_.prologue <- prologue_block_id;
   func_.params <-
@@ -131,23 +131,22 @@ and gen_function_instruction_builder ~gcx ~ir func =
           vreg.resolution <- StackSlot (FunctionStackArgument vreg);
           vreg)
       func.params;
-  Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx func.start_block.id));
+  Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block ~gcx func.start_block));
   Gcx.finish_block ~gcx;
   gen_blocks ~gcx ~ir func.start_block None func_.id;
   Gcx.finish_function ~gcx
 
 and gen_blocks ~gcx ~ir start_block label func =
-  let ordered_blocks = Mir_block_ordering.order_blocks ~program:ir start_block in
+  let ordered_blocks = Mir_block_ordering.order_blocks start_block in
   List.iteri
-    (fun i mir_block_id ->
-      let mir_block = IMap.find mir_block_id ir.blocks in
+    (fun i mir_block ->
       let label =
         if i = 0 then
           label
         else
           None
       in
-      Gcx.start_block ~gcx ~label ~func ~mir_block_id:(Some mir_block_id);
+      Gcx.start_block ~gcx ~label ~func ~mir_block:(Some mir_block);
       let instructions =
         fold_instructions mir_block [] (fun instr acc -> instr :: acc) |> List.rev
       in
@@ -408,8 +407,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
     in
     (* Note that the condition code is inverted as we emit a JmpCC to the false branch *)
     let cc = invert_condition_code cc in
-    Gcx.emit ~gcx (JmpCC (cc, Gcx.get_block_id_from_mir_block_id ~gcx jump.id));
-    Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx continue.id))
+    Gcx.emit ~gcx (JmpCC (cc, Gcx.get_block_id_from_mir_block ~gcx jump));
+    Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block ~gcx continue))
   in
   match instructions with
   | [] ->
@@ -418,12 +417,12 @@ and gen_instructions ~gcx ~ir ~block instructions =
     | Branch { test = Lit (Bool _); _ } -> failwith "Dead branch pruning must have already occurred"
     | Continue continue ->
       (* TODO: Create better structure for tracking relative block locations *)
-      Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx continue.id))
+      Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block ~gcx continue))
     | Branch { test; continue; jump } ->
       let vreg = emit_bool_as_reg test in
       Gcx.emit ~gcx (TestMR (Size8, Reg vreg, vreg));
-      Gcx.emit ~gcx (JmpCC (E, Gcx.get_block_id_from_mir_block_id ~gcx jump.id));
-      Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block_id ~gcx continue.id))
+      Gcx.emit ~gcx (JmpCC (E, Gcx.get_block_id_from_mir_block ~gcx jump));
+      Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block ~gcx continue))
     | _ -> ())
   (*
    * ===========================================

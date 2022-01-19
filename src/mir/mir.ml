@@ -59,8 +59,8 @@ and Instruction : sig
   (* Represents choosing a value depending on which basic block was previously visited *)
   module Phi : sig
     type t = {
-      (* Map from preceding basic block id to the value to choose if that basic block was visited *)
-      mutable args: Value.t IMap.t;
+      (* Map from preceding basic block to the value to choose if that basic block was visited *)
+      mutable args: Value.t BlockMap.t;
     }
   end
 
@@ -196,8 +196,34 @@ and Block : sig
         continue: Block.t;
         jump: Block.t;
       }
-end =
-  Block
+
+  val compare : t -> t -> int
+end = struct
+  type id = int
+
+  type t = {
+    id: id;
+    func: Function.t;
+    mutable instructions: instructions option;
+    mutable next: next;
+  }
+
+  and instructions = {
+    mutable first: Instruction.t;
+    mutable last: Instruction.t;
+  }
+
+  and next =
+    | Halt
+    | Continue of Block.t
+    | Branch of {
+        test: Value.t;
+        continue: Block.t;
+        jump: Block.t;
+      }
+
+  let compare b1 b2 = Int.compare b1.id b2.id
+end
 
 and Global : sig
   type t = {
@@ -228,6 +254,12 @@ and Builtin : sig
   }
 end =
   Builtin
+
+and BlockSet : (Set.S with type elt = Block.t) = Set.Make (Block)
+and BlockMap : (Map.S with type key = Block.t) = Map.Make (Block)
+
+and BlockMMap : (MultiMap.S with type key = Block.t and type value = Block.t) =
+  MultiMap.Make (Block) (Block)
 
 let init_func_name = "_init"
 

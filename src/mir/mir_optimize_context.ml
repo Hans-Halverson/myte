@@ -23,26 +23,26 @@ let remove_block_link ~ocx prev_block next_block =
 
 (* Remove all references to a block from phi nodes of on of its next blocks.
    This may be needed when removing a block or block link. *)
-let remove_phi_backreferences_for_block ~ocx block_id_to_remove next_block_id =
+let remove_phi_backreferences_for_block ~ocx block_to_remove next_block_id =
   let next_block = get_block ~ocx next_block_id in
   block_iter_phis next_block (fun phi ->
-      phi.args <- IMap.filter (fun prev_block_id _ -> prev_block_id != block_id_to_remove) phi.args)
+      phi.args <- BlockMap.filter (fun prev_block _ -> prev_block != block_to_remove) phi.args)
 
 (* Replace all references to old_block_id in the phis of a block with new_block_ids. Note that there
    may be multiple new_block_ids, so a single phi argument may be expanded to multiple arguments.
    This may be needed when editing the program. *)
-let map_phi_backreferences_for_block ~ocx old_block_id new_block_ids block_to_edit =
+let map_phi_backreferences_for_block ~ocx old_block new_block_ids block_to_edit =
   let block = get_block ~ocx block_to_edit in
   block_iter_phis block (fun ({ args; _ } as phi) ->
-      match IMap.find_opt old_block_id args with
+      match BlockMap.find_opt old_block args with
       | None -> ()
       | Some value ->
-        let args_without_old_block_id = IMap.remove old_block_id args in
+        let args_without_old_block = BlockMap.remove old_block args in
         phi.args <-
           ISet.fold
-            (fun new_block_id args -> IMap.add new_block_id value args)
+            (fun new_block_id args -> BlockMap.add (get_block ~ocx new_block_id) value args)
             new_block_ids
-            args_without_old_block_id)
+            args_without_old_block)
 
 (* An empty block can be removed only if it continues to a single block, and is not needed by any
    phi nodes in its succeeding block. *)
@@ -67,10 +67,10 @@ let can_remove_block ~ocx (block : Block.t) =
       (continue_block_phis <> [] && is_start_block)
       || List.exists
            (fun { Instruction.Phi.args; _ } ->
-             IMap.exists
-               (fun prev_block_id prev_block_arg ->
-                 if ISet.mem prev_block_id prev_nodes then
-                   not (values_equal prev_block_arg (IMap.find block.id args))
+             BlockMap.exists
+               (fun prev_block prev_block_arg ->
+                 if ISet.mem prev_block.id prev_nodes then
+                   not (values_equal prev_block_arg (BlockMap.find block args))
                  else
                    false)
                args)
@@ -112,7 +112,7 @@ let remove_block ~ocx (block : Block.t) =
       prev_blocks
   | Continue next_block ->
     (* Update phis in next block to reference previous blocks instead of removed block *)
-    map_phi_backreferences_for_block ~ocx block.id prev_blocks next_block.id;
+    map_phi_backreferences_for_block ~ocx block prev_blocks next_block.id;
 
     (* Rewrite next of previous blocks to point to next block instead of removed block *)
     ISet.iter
@@ -144,7 +144,7 @@ let remove_block ~ocx (block : Block.t) =
   (* Remove references to this removed block from phi nodes of next blocks *)
   let next_blocks = IMap.find_opt block.id ocx.next_blocks |> Option.value ~default:ISet.empty in
   ISet.iter
-    (fun next_block_id -> remove_phi_backreferences_for_block ~ocx block.id next_block_id)
+    (fun next_block_id -> remove_phi_backreferences_for_block ~ocx block next_block_id)
     next_blocks;
   (* Remove prev pointers from next blocks to this removed block *)
   let next_blocks = IMap.find_opt block.id ocx.next_blocks |> Option.value ~default:ISet.empty in
@@ -183,7 +183,7 @@ let merge_adjacent_blocks ~ocx block1 block2 =
   let next_blocks = IIMMap.find_all block2.id ocx.next_blocks in
   ISet.iter
     (fun next_block_id ->
-      map_phi_backreferences_for_block ~ocx block2.id (ISet.singleton block1.id) next_block_id)
+      map_phi_backreferences_for_block ~ocx block2 (ISet.singleton block1.id) next_block_id)
     next_blocks;
   (* Set prev pointers for blocks that succeed b2 to point to b1 instead *)
   ISet.iter
